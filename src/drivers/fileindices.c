@@ -17,6 +17,10 @@
 #include "framerd/pools.h"
 #include "framerd/indices.h"
 #include "framerd/drivers.h"
+
+#include <libu8/u8filefns.h>
+#include <libu8/u8printf.h>
+
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -1210,6 +1214,19 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   return 1;
 }
 
+static fd_index file_index_create(u8_string spec,fddb_flags flags,fdtype opts)
+{
+  fdtype n_slots=fd_getopt(opts,fd_intern("NSLOTS"),FD_INT(32000));
+  if (!(FD_FIXNUMP(n_slots))) {
+    fd_seterr("NumberOfIndexSlots","file_index_create",spec,n_slots);
+    return NULL;}
+  else if (fd_make_file_index(spec,
+                              FD_MULT_FILE_INDEX_MAGIC_NUMBER,
+                              FD_FIX2INT(n_slots))>=0)
+    return fd_open_index(spec,flags);
+  else return NULL;
+}
+
 
 /* The handler struct */
 
@@ -1226,8 +1243,25 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchkeys, /* fetchkeys */
   file_index_fetchsizes, /* fetchsizes */
   NULL, /* fetchsizes */
-  NULL /* sync */
-};
+  NULL, /* sync */
+  file_index_create /* create */ };
+
+static u8_string match_index_name(u8_string spec,void *data)
+{
+  if ((u8_file_existsp(spec)) &&
+      (fd_match4bytes(spec,data)))
+    return spec;
+  else if (u8_has_suffix(spec,".index",1))
+    return NULL;
+  else {
+    u8_string variation=u8_mkstring("%s.index",spec);
+    if ((u8_file_existsp(variation))&&
+        (fd_match4bytes(variation,data)))
+      return variation;
+    else {
+      u8_free(variation);
+      return NULL;}}
+}
 
 FD_EXPORT void fd_init_fileindices_c()
 {
@@ -1238,19 +1272,19 @@ FD_EXPORT void fd_init_fileindices_c()
   slotids_symbol=fd_intern("%%SLOTIDS");
   fd_register_index_opener(&file_index_handler,
                            open_file_index,
-                           fd_match4bytes,
+                           match_index_name,
                            (void*)FD_FILE_INDEX_MAGIC_NUMBER);
   fd_register_index_opener(&file_index_handler,
                            open_file_index,
-                           fd_match4bytes,
+                           match_index_name,
                            (void *)FD_MULT_FILE_INDEX_MAGIC_NUMBER);
   fd_register_index_opener(&file_index_handler,
                            open_file_index,
-                           fd_match4bytes,
+                           match_index_name,
                            (void *)FD_FILE_INDEX_TO_RECOVER);
   fd_register_index_opener(&file_index_handler,
                            open_file_index,
-                           fd_match4bytes,
+                           match_index_name,
                            (void *)FD_MULT_FILE_INDEX_TO_RECOVER);
 }
 

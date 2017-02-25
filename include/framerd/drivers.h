@@ -39,22 +39,22 @@ FD_EXPORT fd_exception fd_RecoveryRequired;
 #define FD_OIDPOOL_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
 #define FD_OIDPOOL_TO_RECOVER ((0x11<<24)|(0x09<<16)|(0x04<<8)|(0x12))
 
-FD_EXPORT int fd_match4bytes(u8_string file,void *data);
-FD_EXPORT int fd_netspecp(u8_string file,void *data);
+FD_EXPORT u8_string fd_match4bytes(u8_string file,void *data);
+FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);
 
 /* File Pools */
 
 typedef struct FD_POOL_OPENER {
   fd_pool_handler handler;
   fd_pool (*opener)(u8_string filename,fddb_flags flags);
-  int (*matcher)(u8_string filename,void *);
+  u8_string (*matcher)(u8_string filename,void *);
   void *matcher_data;} FD_POOL_OPENER;
 typedef struct FD_POOL_OPENER *fd_pool_opener;
 
 FD_EXPORT void fd_register_pool_opener
  (fd_pool_handler pool_handler,
   fd_pool (*opener)(u8_string path,fddb_flags flags),
-  int (*matcher)(u8_string path,void *),
+  u8_string (*matcher)(u8_string path,void *),
   void *matcher_data);
 
 typedef struct FD_FILE_POOL {
@@ -133,14 +133,14 @@ FD_EXPORT fd_exception fd_SchemaInconsistency;
 typedef struct FD_INDEX_OPENER {
   fd_index_handler handler;
   fd_index (*opener)(u8_string filename,fddb_flags flags);
-  int (*matcher)(u8_string filename,void *);
+  u8_string (*matcher)(u8_string filename,void *);
   void *matcher_data;} FD_INDEX_OPENER;
 typedef struct FD_INDEX_OPENER *fd_index_opener;
 
 FD_EXPORT void fd_register_index_opener
   (fd_index_handler handler,
    fd_index (*opener)(u8_string filename,fddb_flags flags),
-   int (*matcher)(u8_string filename,void *),
+   u8_string (*matcher)(u8_string filename,void *),
    void *matcher_data);
 
 #define FD_FILE_INDEX_MAGIC_NUMBER 0x90e0418

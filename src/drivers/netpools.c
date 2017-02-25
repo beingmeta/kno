@@ -259,14 +259,8 @@ static struct FD_POOL_HANDLER netpool_handler={
   network_pool_storen, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL}; /* sync */
-
-static int network_poolp(u8_string spec,void *data)
-{
-  if ((strchr(spec,'@'))||(strchr(spec,':')))
-    return 1;
-  else return 0;
-}
+  NULL, /* sync */
+  NULL /* create */};
 
 static void init_client_id()
 {
@@ -298,7 +292,7 @@ FD_EXPORT void fd_init_netpools_c()
   fd_register_pool_opener
     (&netpool_handler,
      fd_open_network_pool,
-     network_poolp,
+     fd_netspecp,
      (void*)NULL);
 
 

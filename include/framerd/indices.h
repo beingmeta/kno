@@ -72,7 +72,9 @@ typedef struct FD_INDEX_HANDLER {
   fdtype *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchsizes)(fd_index ix,int *n);
   fdtype (*metadata)(fd_index ix,fdtype);
-  int (*sync)(fd_index p);} FD_INDEX_HANDLER;
+  int (*sync)(fd_index p);
+  fd_index (*create)(u8_string spec,fddb_flags flags,fdtype opts);} 
+  FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
 #if 0
@@ -88,6 +90,7 @@ struct FD_INDEX_HANDLER some_handler={
     NULL, /* fetchkeys */
     NULL, /* fetchsizes */
     NULL /* sync */
+    NULL /* createsync */
     };
 #endif
 
@@ -143,8 +146,7 @@ typedef struct FD_NETWORK_INDEX {
   struct U8_CONNPOOL *index_connpool;} FD_NETWORK_INDEX;
 typedef struct FD_NETWORK_INDEX *fd_network_index;
 
-FD_EXPORT fd_index fd_open_network_index
-  (u8_string spec,u8_string source,fdtype xname,fddb_flags flags);
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fddb_flags flags);
 
 /* Server capabilities */
 #define FD_ISERVER_FETCHN 1

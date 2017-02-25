@@ -39,7 +39,7 @@ size_t fd_driver_bufsize=FD_DRIVER_BUFSIZE;
 /* Matching word prefixes */
 
 FD_EXPORT
-int fd_match4bytes(u8_string file,void *data)
+u8_string fd_match4bytes(u8_string file,void *data)
 {
   u8_wideint magic_number = (u8_wideint) data;
   if (u8_file_existsp(file)) {
@@ -52,18 +52,18 @@ int fd_match4bytes(u8_string file,void *data)
     byte=getc(f); word=word|(byte<<0);
     fclose(f);
     if (word == magic_number)
-      return 1;
-    else return 0;}
-  else return 0;
+      return file;
+    else return NULL;}
+  else return NULL;
 }
 
 FD_EXPORT
-int fd_netspecp(u8_string spec,void *ignored)
+u8_string fd_netspecp(u8_string spec,void *ignored)
 {
   u8_byte *at=strchr(spec,'@'), *col=strchr(at,':');
   if ((at==NULL)&&(col==NULL))
-    return 0;
-  else return 1;
+    return NULL;
+  else return spec;
 }
 
 
@@ -78,7 +78,7 @@ static u8_mutex pool_openers_lock;
 FD_EXPORT void fd_register_pool_opener
   (fd_pool_handler handler,
    fd_pool (*opener)(u8_string filename,fddb_flags flags),
-   int (*matcher)(u8_string filename,void *),
+   u8_string (*matcher)(u8_string filename,void *),
    void *matcher_data)
 {
   int i=0;
@@ -118,8 +118,13 @@ fd_pool fd_open_pool(u8_string spec,fddb_flags flags)
   int i=0, n=n_pool_openers;
   while (i<n) {
     struct FD_POOL_OPENER *po=&pool_openers[i];
-    if ((po->matcher) && (po->matcher(spec,po->matcher_data)))
-      return po->opener(spec,flags);
+    if (po->matcher) {
+      u8_string use_spec=po->matcher(spec,po->matcher_data);
+      if (use_spec) {
+        fd_pool opened=po->opener(use_spec,flags);
+        if (use_spec!=spec) u8_free(use_spec);
+        return opened;}
+      else i++;}
     else i++;}
   fd_seterr(fd_NotAPool,"fd_open_pool",spec,FD_VOID);
   return NULL;
@@ -143,7 +148,7 @@ static u8_mutex index_openers_lock;
 FD_EXPORT void fd_register_index_opener
   (fd_index_handler handler,
    fd_index (*opener)(u8_string filename,fddb_flags flags),
-   int (*matcher)(u8_string filename,void *),
+   u8_string (*matcher)(u8_string filename,void *),
    void *matcher_data)
 {
   int i=0;
@@ -183,10 +188,14 @@ fd_index fd_open_index(u8_string spec,fddb_flags flags)
   int i=0, n=n_index_openers;
   while (i<n) {
     struct FD_INDEX_OPENER *io=&index_openers[i];
-    if ((io->matcher) && (io->matcher(spec,io->matcher_data)))
-      return io->opener(spec,flags);
+    if (io->matcher) {
+      u8_string use_spec=io->matcher(spec,io->matcher_data);
+      if (use_spec) {
+        fd_index opened=io->opener(use_spec,flags);
+        if (use_spec!=spec) u8_free(use_spec);
+        return opened;}
+      else i++;}
     else i++;}
-  /* TODO */
   fd_seterr("NotAnIndex","fd_get_index",spec,FD_VOID);
   return NULL;
 }

@@ -21,6 +21,7 @@
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
+#include <libu8/u8printf.h>
 
 #include <errno.h>
 #include <sys/stat.h>
@@ -693,6 +694,29 @@ int fd_make_file_pool
   return 1;
 }
 
+static fd_pool filepool_create(u8_string spec,fddb_flags flags,fdtype opts)
+{
+  fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
+  fdtype capacity=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
+  fdtype load=fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
+  int rv=0;
+  if (!(FD_OIDP(base_oid))) {
+    fd_seterr("Not a base oid","filepool_create",spec,base_oid);
+    rv=-1;}
+  if ((rv>=0)&&(!(FD_INTEGERP(capacity)))) {
+    fd_seterr("Not a valid capacity","filepool_create",spec,capacity);
+    rv=-1;}
+  if ((rv>=0)&&(!(FD_INTEGERP(load)))) {
+    fd_seterr("Not a valid load","filepool_create",spec,load);
+    rv=-1;}
+  if (rv<0) return NULL;
+  else rv=fd_make_file_pool(spec,FD_FILE_POOL_MAGIC_NUMBER,
+                            FD_OID_ADDR(base_oid),capacity,load);
+  if (rv>=0)
+    return fd_open_pool(spec,flags);
+  else return NULL;
+}
+
 
 /* The handler struct */
 
@@ -710,7 +734,27 @@ static struct FD_POOL_HANDLER file_pool_handler={
   file_pool_storen, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL}; /* sync */
+  NULL, /* sync */
+  filepool_create /* create */};
+
+/* Matching pool names */
+
+static u8_string match_pool_name(u8_string spec,void *data)
+{
+  if ((u8_file_existsp(spec))&&
+      (fd_match4bytes(spec,data)))
+    return spec;
+  else if (u8_has_suffix(spec,".pool",1))
+    return NULL;
+  else {
+    u8_string variation=u8_mkstring("%s.pool",spec);
+    if ((u8_file_existsp(variation))&&
+        (fd_match4bytes(variation,data)))
+      return variation;
+    else {
+      u8_free(variation);
+      return NULL;}}
+}
 
 /* Module (file) Initialization */
 
@@ -721,12 +765,12 @@ FD_EXPORT void fd_init_file_pools_c()
   fd_register_pool_opener
     (&file_pool_handler,
      open_file_pool,
-     fd_match4bytes,
+     match_pool_name,
      (void *)FD_FILE_POOL_MAGIC_NUMBER);
   fd_register_pool_opener
     (&file_pool_handler,
      open_file_pool,
-     fd_match4bytes,
+     match_pool_name,
      (void *)FD_FILE_POOL_TO_RECOVER);
 }
 

@@ -15,6 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dtcall.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
@@ -44,22 +45,19 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index
-  (u8_string spec,u8_string source,fdtype xname,fddb_flags flags)
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fddb_flags flags)
 {
   struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;
-  u8_connpool cp=u8_open_connpool(source,fd_dbconn_reserve_default,
+  u8_connpool cp=u8_open_connpool(spec,fd_dbconn_reserve_default,
                                   fd_dbconn_cap_default,
                                   fd_dbconn_init_default);
   if (cp==NULL) return NULL;
   ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec,flags);
   ix->index_connpool=cp;
-  ix->xname=xname; ix->index_xid=xid;
-  if (FD_VOIDP(xname))
-    writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
-  else writable_response=fd_dtcall_x(ix->index_connpool,3,2,ixserver_writable,xname);
+  ix->xname=FD_VOID; ix->index_xid=xid;
+  writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||
       (!(FD_FALSEP(writable_response))))
     U8_SETBITS(ix->index_flags,(FDB_INIT_READ_ONLY|FDB_READ_ONLY));
@@ -255,8 +253,8 @@ static struct FD_INDEX_HANDLER netindex_handler={
   netindex_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL, /* metadata */
-  NULL /* sync */
-};
+  NULL, /* sync */
+  NULL /* create */};
 
 FD_EXPORT void fd_init_netindices_c()
 {
@@ -288,6 +286,13 @@ FD_EXPORT void fd_init_netindices_c()
   ixserver_fetchn=fd_intern("IXSERVER-BULK-GET");
   ixserver_addn=fd_intern("IXSERVER-BULK-ADD!");
   iserver_reset=fd_intern("IXSERVER-RESET!");
+
+  fd_register_index_opener
+    (&netindex_handler,
+     fd_open_network_index,
+     fd_netspecp,
+     (void*)NULL);
+
 }
 
 /* Emacs local variables

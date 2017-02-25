@@ -387,10 +387,14 @@ static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
 /* Making a hash index */
 
 FD_EXPORT int fd_make_hash_index
-  (u8_string fname,int n_buckets_arg,
-   unsigned int flags,unsigned int hashconst,
-   fdtype slotids_init,fdtype baseoids_init,
-   time_t ctime,time_t mtime)
+  (u8_string fname,
+   int n_buckets_arg,
+   unsigned int flags,
+   unsigned int hashconst,
+   fdtype slotids_init,
+   fdtype baseoids_init,
+   time_t ctime,
+   time_t mtime)
 {
   int n_buckets;
   time_t now=time(NULL);
@@ -2568,6 +2572,62 @@ static void hash_index_setbuf(fd_index ix,int bufsiz)
   fd_unlock_index(fx);
 }
 
+/* Creating a hash index handler */
+
+static int interpret_hash_index_flags(fdtype opts)
+{
+  int flags=0;
+  fdtype offtype=fd_intern("OFFTYPE");
+  fdtype compression=fd_intern("COMPRESSION");
+  if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
+       fd_testopt(opts,offtype,FD_INT(64)))
+    flags|=(FD_B64<<4);
+  else if ( fd_testopt(opts,offtype,fd_intern("B40"))  ||
+            fd_testopt(opts,offtype,FD_INT(40)))
+    flags|=(FD_B40<<4);
+  else if ( fd_testopt(opts,offtype,fd_intern("B32"))  ||
+            fd_testopt(opts,offtype,FD_INT(32)))
+    flags|=(FD_B32<<4);
+  else flags|=(FD_B40<<4);
+
+  if (fd_testopt(opts,fd_intern("DTYPEV2"),FD_VOID))
+    flags|=FD_HASH_INDEX_DTYPEV2;
+
+  return flags;
+}
+
+static fd_index hash_index_create(u8_string spec,fddb_flags flags,fdtype opts)
+{
+  int rv=0;
+  fdtype slotids_init=fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);
+  fdtype baseoids_init=fd_getopt(opts,fd_intern("BASEOIDS"),FD_VOID);
+  fdtype nbuckets_arg=fd_getopt(opts,fd_intern("NBUCKETS"),FD_VOID);
+  fdtype hashconst=fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
+  if (!(FD_FIXNUMP(nbuckets_arg))) {
+    fd_seterr("InvalidBucketCount","hash_index_create",spec,nbuckets_arg);
+    rv=-1;}
+  else if (!(FD_VECTORP(baseoids_init))) {
+    fd_seterr("InvalidBaseOIDs","hash_index_create",spec,baseoids_init);
+    rv=-1;}
+  else if (!(FD_VECTORP(slotids_init))) {
+    fd_seterr("InvalidSlotIDs","hash_index_create",spec,slotids_init);
+    rv=-1;}
+  else if (!(FD_INTEGERP(hashconst))) {
+    fd_seterr("InvalidHashConst","hash_index_create",spec,hashconst);
+    rv=-1;}
+  else {}
+  if (rv<0)
+    return NULL;
+  else rv=fd_make_hash_index
+    (spec,FD_FIX2INT(nbuckets_arg),
+     interpret_hash_index_flags(opts),
+     FD_INT(hashconst),
+     slotids_init,baseoids_init,-1,-1);
+  if (rv<0)
+    return NULL;
+  else return fd_open_index(spec,flags);
+}
+
 
 /* The handler struct */
 
@@ -2584,8 +2644,8 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   hash_index_fetchkeys, /* fetchkeys */
   hash_index_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
-  NULL /* sync */
-};
+  NULL, /* sync */
+  hash_index_create /* create */ };
 
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 {
@@ -2614,6 +2674,23 @@ FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *hx)
   return result;
 }
 
+static u8_string match_index_name(u8_string spec,void *data)
+{
+  if ((u8_file_existsp(spec))&&
+      (fd_match4bytes(spec,data)))
+    return spec;
+  else if (u8_has_suffix(spec,".index",1))
+    return NULL;
+  else {
+    u8_string variation=u8_mkstring("%s.index",spec);
+    if ((u8_file_existsp(variation))&&
+        (fd_match4bytes(variation,data)))
+      return variation;
+    else {
+      u8_free(variation);
+      return NULL;}}
+}
+
 FD_EXPORT void fd_init_hashindices_c()
 {
   set_symbol=fd_intern("SET");
@@ -2623,11 +2700,11 @@ FD_EXPORT void fd_init_hashindices_c()
 
   fd_register_index_opener(&hash_index_handler,
                            open_hash_index,
-                           fd_match4bytes,
+                           match_index_name,
                            (void *)FD_HASH_INDEX_MAGIC_NUMBER);
   fd_register_index_opener(&hash_index_handler,
                            open_hash_index,
-                           fd_match4bytes,
+                           match_index_name,
                            (void *)FD_HASH_INDEX_TO_RECOVER);
 }
 

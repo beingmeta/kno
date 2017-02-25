@@ -176,7 +176,7 @@ FD_EXPORT int fd_pool_serial_count;
 
 /* Pool handlers */
 
-struct FD_POOL_HANDLER {
+typedef struct FD_POOL_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_pool p);
   void (*setcache)(fd_pool p,int level);
@@ -190,7 +190,9 @@ struct FD_POOL_HANDLER {
   int (*storen)(fd_pool p,int n,fdtype *oids,fdtype *vals);
   int (*swapout)(fd_pool p,fdtype oids);
   fdtype (*metadata)(fd_pool p,fdtype);
-  int (*sync)(fd_pool p);};
+  int (*sync)(fd_pool p);
+  fd_pool (*create)(u8_string spec,fddb_flags flags,fdtype opts);}
+  FD_POOL_HANDLER;
 typedef struct FD_POOL_HANDLER *fd_pool_handler;
 
 #if 0
@@ -206,7 +208,8 @@ struct FD_POOL_HANDLER some_handler={
    NULL, /* release */
    NULL, /* storen */
    NULL, /* metadata */
-   NULL}; /* sync */
+   NULL, /* sync */
+   NULL};/* create */
 #endif
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
