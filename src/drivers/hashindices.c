@@ -2596,7 +2596,8 @@ static int interpret_hash_index_flags(fdtype opts)
   return flags;
 }
 
-static fd_index hash_index_create(u8_string spec,fddb_flags flags,fdtype opts)
+static fd_index hash_index_create(u8_string spec,void *typedata,
+                                  fddb_flags flags,fdtype opts)
 {
   int rv=0;
   fdtype slotids_init=fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);
@@ -2698,14 +2699,16 @@ FD_EXPORT void fd_init_hashindices_c()
 
   u8_register_source_file(_FILEINFO);
 
-  fd_register_index_opener(&hash_index_handler,
-                           open_hash_index,
-                           match_index_name,
-                           (void *)FD_HASH_INDEX_MAGIC_NUMBER);
-  fd_register_index_opener(&hash_index_handler,
-                           open_hash_index,
-                           match_index_name,
-                           (void *)FD_HASH_INDEX_TO_RECOVER);
+  fd_register_index_type("hashindex",
+                         &hash_index_handler,
+                         open_hash_index,
+                         match_index_name,
+                         (void *)FD_HASH_INDEX_MAGIC_NUMBER);
+  fd_register_index_type("damaged_hashindex",
+                         &hash_index_handler,
+                         open_hash_index,
+                         match_index_name,
+                         (void *)FD_HASH_INDEX_TO_RECOVER);
 }
 
 /* TODO:

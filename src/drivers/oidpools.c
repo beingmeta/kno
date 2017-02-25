@@ -1479,7 +1479,8 @@ static int interpret_pool_flags(fdtype opts)
   return flags;
 }
 
-static fd_pool oidpool_create(u8_string spec,fddb_flags flags,fdtype opts)
+static fd_pool oidpool_create(u8_string spec,void *type_data,
+                              fddb_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
@@ -1555,13 +1556,15 @@ FD_EXPORT void fd_init_oidpools_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_register_pool_opener
-    (&oidpool_handler,
+  fd_register_pool_type
+    ("oidpool",
+     &oidpool_handler,
      open_oidpool,
      match_pool_name,
      (void*)FD_OIDPOOL_MAGIC_NUMBER);
-  fd_register_pool_opener
-    (&oidpool_handler,
+  fd_register_pool_type
+    ("damaged_oidpool",
+     &oidpool_handler,
      open_oidpool,
      match_pool_name,
      (void*)FD_OIDPOOL_TO_RECOVER);

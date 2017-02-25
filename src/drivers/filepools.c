@@ -697,11 +697,13 @@ int fd_make_file_pool
   return 1;
 }
 
-static fd_pool filepool_create(u8_string spec,fddb_flags flags,fdtype opts)
+static fd_pool filepool_create(u8_string spec,void *type_data,
+                               fddb_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
   fdtype load=fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
+  unsigned int magic_number=(unsigned int)((unsigned long)type_data);
   int rv=0;
   if (!(FD_OIDP(base_oid))) {
     fd_seterr("Not a base oid","filepool_create",spec,base_oid);
@@ -713,8 +715,11 @@ static fd_pool filepool_create(u8_string spec,fddb_flags flags,fdtype opts)
     fd_seterr("Not a valid load","filepool_create",spec,load);
     rv=-1;}
   if (rv<0) return NULL;
-  else rv=fd_make_file_pool(spec,FD_FILE_POOL_MAGIC_NUMBER,
-                            FD_OID_ADDR(base_oid),capacity,load);
+  else rv=fd_make_file_pool(spec,
+                            magic_number,
+                            FD_OID_ADDR(base_oid),
+                            capacity,
+                            load);
   if (rv>=0)
     return fd_open_pool(spec,flags);
   else return NULL;
@@ -765,13 +770,15 @@ FD_EXPORT void fd_init_file_pools_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_register_pool_opener
-    (&file_pool_handler,
+  fd_register_pool_type
+    ("filepool",
+     &file_pool_handler,
      open_file_pool,
      match_pool_name,
      (void *)FD_FILE_POOL_MAGIC_NUMBER);
-  fd_register_pool_opener
-    (&file_pool_handler,
+  fd_register_pool_type
+    ("damaged_filepool",
+     &file_pool_handler,
      open_file_pool,
      match_pool_name,
      (void *)FD_FILE_POOL_TO_RECOVER);

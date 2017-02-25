@@ -40,18 +40,27 @@ FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);
 
 /* File Pools */
 
-typedef struct FD_POOL_OPENER {
+struct FD_POOL_TYPEINFO {
+  u8_string pool_typename;
   fd_pool_handler handler;
   fd_pool (*opener)(u8_string filename,fddb_flags flags);
   u8_string (*matcher)(u8_string filename,void *);
-  void *matcher_data;} FD_POOL_OPENER;
-typedef struct FD_POOL_OPENER *fd_pool_opener;
+  void *type_data;
+  struct FD_POOL_TYPEINFO *next_type;};
+typedef struct FD_POOL_TYPEINFO *fd_pool_typeinfo;
 
-FD_EXPORT void fd_register_pool_opener
- (fd_pool_handler pool_handler,
-  fd_pool (*opener)(u8_string path,fddb_flags flags),
-  u8_string (*matcher)(u8_string path,void *),
-  void *matcher_data);
+FD_EXPORT
+void fd_register_pool_type(
+			   u8_string name,
+			   fd_pool_handler pool_handler,
+			   fd_pool (*opener)(u8_string path,fddb_flags flags),
+			   u8_string (*matcher)(u8_string path,void *),
+			   void *type_data);
+
+FD_EXPORT fd_pool_handler fd_get_pool_handler(u8_string name);
+
+FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
+			       fddb_flags flags,fdtype opts);
 
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
@@ -126,18 +135,28 @@ FD_EXPORT fd_exception fd_SchemaInconsistency;
 
 /* File indices */
 
-typedef struct FD_INDEX_OPENER {
+struct FD_INDEX_TYPEINFO {
+  u8_string index_typename;
   fd_index_handler handler;
   fd_index (*opener)(u8_string filename,fddb_flags flags);
   u8_string (*matcher)(u8_string filename,void *);
-  void *matcher_data;} FD_INDEX_OPENER;
-typedef struct FD_INDEX_OPENER *fd_index_opener;
+  void *type_data;
+  struct FD_INDEX_TYPEINFO *next_type;};
+typedef struct FD_INDEX_TYPEINFO *fd_index_typeinfo;
 
-FD_EXPORT void fd_register_index_opener
-  (fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fddb_flags flags),
-   u8_string (*matcher)(u8_string filename,void *),
-   void *matcher_data);
+FD_EXPORT
+void fd_register_index_type(u8_string name,
+			    fd_index_handler handler,
+			    fd_index (*opener)(u8_string spec,
+					       fddb_flags flags),
+			    u8_string (*matcher)(u8_string spec,
+						 void *),
+			    void *type_data);
+
+FD_EXPORT fd_index_handler fd_get_index_handler(u8_string name);
+
+FD_EXPORT fd_index fd_make_index(u8_string spec,u8_string indextype,
+				 fddb_flags flags,fdtype opts);
 
 #define FD_FILE_INDEX_MAGIC_NUMBER 0x90e0418
 #define FD_MULT_FILE_INDEX_MAGIC_NUMBER 0x90e0419
@@ -148,8 +167,6 @@ FD_EXPORT void fd_register_index_opener
 
 #define FD_HASH_INDEX_MAGIC_NUMBER 0x8011308
 #define FD_HASH_INDEX_TO_RECOVER 0x8011328
-
-FD_EXPORT int fd_file_indexp(u8_string filename);
 
 typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;

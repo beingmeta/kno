@@ -1410,7 +1410,7 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL /* sync */
 };
 
-fd_pool (*fd_file_pool_opener)(u8_string spec,fddb_flags)=NULL;
+fd_pool (*fd_file_pool_type)(u8_string spec,fddb_flags)=NULL;
 
 FD_EXPORT fd_pool fd_get_pool(u8_string spec,fddb_flags flags)
 {

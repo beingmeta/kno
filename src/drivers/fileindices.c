@@ -1214,14 +1214,15 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   return 1;
 }
 
-static fd_index file_index_create(u8_string spec,fddb_flags flags,fdtype opts)
+static fd_index file_index_create(u8_string spec,void *type_data,
+                                  fddb_flags flags,fdtype opts)
 {
   fdtype n_slots=fd_getopt(opts,fd_intern("NSLOTS"),FD_INT(32000));
   if (!(FD_FIXNUMP(n_slots))) {
     fd_seterr("NumberOfIndexSlots","file_index_create",spec,n_slots);
     return NULL;}
   else if (fd_make_file_index(spec,
-                              FD_MULT_FILE_INDEX_MAGIC_NUMBER,
+                              (unsigned int)((unsigned long long)type_data),
                               FD_FIX2INT(n_slots))>=0)
     return fd_open_index(spec,flags);
   else return NULL;
@@ -1270,22 +1271,26 @@ FD_EXPORT void fd_init_fileindices_c()
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
   slotids_symbol=fd_intern("%%SLOTIDS");
-  fd_register_index_opener(&file_index_handler,
-                           open_file_index,
-                           match_index_name,
-                           (void*)FD_FILE_INDEX_MAGIC_NUMBER);
-  fd_register_index_opener(&file_index_handler,
-                           open_file_index,
-                           match_index_name,
-                           (void *)FD_MULT_FILE_INDEX_MAGIC_NUMBER);
-  fd_register_index_opener(&file_index_handler,
-                           open_file_index,
-                           match_index_name,
-                           (void *)FD_FILE_INDEX_TO_RECOVER);
-  fd_register_index_opener(&file_index_handler,
-                           open_file_index,
-                           match_index_name,
-                           (void *)FD_MULT_FILE_INDEX_TO_RECOVER);
+  fd_register_index_type("fileindex",
+                         &file_index_handler,
+                         open_file_index,
+                         match_index_name,
+                         (void*)FD_FILE_INDEX_MAGIC_NUMBER);
+  fd_register_index_type("fileindex.v2",
+                         &file_index_handler,
+                         open_file_index,
+                         match_index_name,
+                         (void *)FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+  fd_register_index_type("damaged_fileindex",
+                         &file_index_handler,
+                         open_file_index,
+                         match_index_name,
+                         (void *)FD_FILE_INDEX_TO_RECOVER);
+  fd_register_index_type("damaged_fileindex.v2",
+                         &file_index_handler,
+                         open_file_index,
+                         match_index_name,
+                         (void *)FD_MULT_FILE_INDEX_TO_RECOVER);
 }
 
 

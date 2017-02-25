@@ -161,7 +161,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
 
-fd_pool (*fd_file_pool_opener)(u8_string path,fddb_flags flags);
+fd_pool (*fd_file_pool_type)(u8_string path,fddb_flags flags);
 
 FD_EXPORT struct FD_POOL *fd_top_pools[];
 
@@ -191,7 +191,8 @@ typedef struct FD_POOL_HANDLER {
   int (*swapout)(fd_pool p,fdtype oids);
   fdtype (*metadata)(fd_pool p,fdtype);
   int (*sync)(fd_pool p);
-  fd_pool (*create)(u8_string spec,fddb_flags flags,fdtype opts);}
+  fd_pool (*create)(u8_string spec,void *typedata,
+		    fddb_flags flags,fdtype opts);}
   FD_POOL_HANDLER;
 typedef struct FD_POOL_HANDLER *fd_pool_handler;
 

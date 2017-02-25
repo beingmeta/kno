@@ -289,8 +289,9 @@ FD_EXPORT void fd_init_netpools_c()
   boundp=fd_intern("BOUND?");
   quote_symbol=fd_intern("QUOTE");
 
-  fd_register_pool_opener
-    (&netpool_handler,
+  fd_register_pool_type
+    ("network_pool",
+     &netpool_handler,
      fd_open_network_pool,
      fd_netspecp,
      (void*)NULL);

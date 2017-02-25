@@ -146,14 +146,19 @@ FD_EXPORT void fd_init_memindices_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_register_index_opener(&memindex_handler,open_memindex,
+  fd_register_index_type("memindex1",
+			 &memindex_handler,open_memindex,
                            fd_match4bytes,(void *)0x42c20000);
-  fd_register_index_opener(&memindex_handler,open_memindex,
+  fd_register_index_type("memindex2",
+			 &memindex_handler,open_memindex,
                            fd_match4bytes,(void *)0x42c20100);
-  fd_register_index_opener(&memindex_handler,open_memindex,
+  fd_register_index_type("memindex3",
+			 &memindex_handler,open_memindex,
                            fd_match4bytes,(void *)0x42820200);
-  fd_register_index_opener(&memindex_handler,open_memindex,
+  fd_register_index_type("memindex4",
+			 &memindex_handler,open_memindex,
                            fd_match4bytes,(void *)0x42820300);
-  fd_register_index_opener(&memindex_handler,open_memindex,
+  fd_register_index_type("memindex5",
+			 &memindex_handler,open_memindex,
                            fd_match4bytes,(void *)0x42820400);
 }

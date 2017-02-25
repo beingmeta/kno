@@ -287,8 +287,9 @@ FD_EXPORT void fd_init_netindices_c()
   ixserver_addn=fd_intern("IXSERVER-BULK-ADD!");
   iserver_reset=fd_intern("IXSERVER-RESET!");
 
-  fd_register_index_opener
-    (&netindex_handler,
+  fd_register_index_type
+    ("network_index",
+     &netindex_handler,
      fd_open_network_index,
      fd_netspecp,
      (void*)NULL);

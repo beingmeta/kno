@@ -53,7 +53,7 @@ typedef struct FD_INDEX *fd_index;
 FD_EXPORT fd_index fd_primary_indices[], *fd_secondary_indices;
 FD_EXPORT int fd_n_primary_indices, fd_n_secondary_indices;
 
-fd_index (*fd_file_index_opener)(u8_string spec,fddb_flags flags);
+fd_index (*fd_file_index_type)(u8_string spec,fddb_flags flags);
 
 typedef struct FD_KEY_SIZE {
   fdtype keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
@@ -73,7 +73,8 @@ typedef struct FD_INDEX_HANDLER {
   struct FD_KEY_SIZE *(*fetchsizes)(fd_index ix,int *n);
   fdtype (*metadata)(fd_index ix,fdtype);
   int (*sync)(fd_index p);
-  fd_index (*create)(u8_string spec,fddb_flags flags,fdtype opts);} 
+  fd_index (*create)(u8_string spec,void *type_data,
+		     fddb_flags flags,fdtype opts);}
   FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 

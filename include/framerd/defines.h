@@ -218,14 +218,6 @@ typedef int fd_size_t;
 #define FD_TYPE_MAX 256
 #endif
 
-#ifndef  FD_N_POOL_OPENERS
-#define FD_N_POOL_OPENERS 32
-#endif
-
-#ifndef  FD_N_INDEX_OPENERS
-#define FD_N_INDEX_OPENERS 32
-#endif
-
 #ifndef FD_TRACE_IPEVAL
 #define FD_TRACE_IPEVAL 1
 #endif

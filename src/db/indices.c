@@ -34,7 +34,7 @@ fd_exception fd_IndexCommitError=_("can't save changes to index");
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
-fd_index (*fd_file_index_opener)(u8_string,fddb_flags)=NULL;
+fd_index (*fd_file_index_type)(u8_string,fddb_flags)=NULL;
 
 int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
 int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
