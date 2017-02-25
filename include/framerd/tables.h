@@ -95,8 +95,8 @@ typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
 
 typedef struct FD_SLOTMAP {
   FD_CONS_HEADER;
-  int slots_used;
-  int slots_allocated;
+  short n_slots;
+  short n_allocd;
   unsigned int table_readonly:1;
   unsigned int table_modified:1;
   unsigned int table_uselock:1;
@@ -108,8 +108,8 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_SLOTMAPP(x) (FD_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
   (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
-#define FD_XSLOTMAP_NUSED(sm) (sm->slots_used)
-#define FD_XSLOTMAP_NALLOCATED(sm) (sm->slots_allocated)
+#define FD_XSLOTMAP_NUSED(sm) (sm->n_slots)
+#define FD_XSLOTMAP_NALLOCATED(sm) (sm->n_allocd)
 #define FD_XSLOTMAP_KEYVALS(sm) ((sm)->sm_keyvals)
 #define FD_XSLOTMAP_USELOCKP(sm) (sm->table_uselock)
 #define FD_XSLOTMAP_MODIFIEDP(sm) (sm->table_modified)
@@ -119,8 +119,8 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_XSLOTMAP_CLEAR_READONLY(sm) (sm)->table_readonly=0
 #define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->table_modified=1
 #define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->table_modified=0
-#define FD_XSLOTMAP_SET_NSLOTS(sm,sz) (sm)->slots_used=sz
-#define FD_XSLOTMAP_SET_NALLOCATED(sm,sz) (sm)->slots_allocated=sz
+#define FD_XSLOTMAP_SET_NSLOTS(sm,sz) (sm)->n_slots=sz
+#define FD_XSLOTMAP_SET_NALLOCATED(sm,sz) (sm)->n_allocd=sz
 
 
 #define FD_SLOTMAP_NUSED(x) (FD_XSLOTMAP_NUSED(FD_XSLOTMAP(x)))

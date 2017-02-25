@@ -553,15 +553,15 @@ FD_EXPORT fdtype fd_init_slotmap
   if (ptr == NULL) ptr=u8_alloc(struct FD_SLOTMAP);
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
-  ptr->slots_allocated=len;
+  ptr->n_allocd=len;
   if (data) {
     ptr->sm_keyvals=data;
-    ptr->slots_used=len;}
+    ptr->n_slots=len;}
   else if (len) {
     ptr->sm_keyvals=u8_zalloc_n(len,struct FD_KEYVAL);
-    ptr->slots_used=0;}
+    ptr->n_slots=0;}
   else {
-    ptr->slots_used=0;
+    ptr->n_slots=0;
     ptr->sm_keyvals=NULL;}
   ptr->table_modified=ptr->table_readonly=0;
   ptr->table_uselock=1;
@@ -582,7 +582,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   int i=0;
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
-  ptr->slots_allocated=space; ptr->slots_used=len;
+  ptr->n_allocd=space; ptr->n_slots=len;
   while (i<len) {
     kv[i].fd_kvkey=data[i].fd_kvkey;
     kv[i].fd_keyval=data[i].fd_keyval;
@@ -608,9 +608,9 @@ static fdtype copy_slotmap(fdtype smap,int flags)
   if (!(cur->sm_free_keyvals)) {
     fdtype copy; struct FD_SLOTMAP *consed; struct FD_KEYVAL *kvals;
     int i=0, len;
-    copy=fd_make_slotmap(cur->slots_allocated,cur->slots_used,cur->sm_keyvals);
+    copy=fd_make_slotmap(cur->n_allocd,cur->n_slots,cur->sm_keyvals);
     consed=(struct FD_SLOTMAP *)copy;
-    kvals=consed->sm_keyvals; len=consed->slots_used;
+    kvals=consed->sm_keyvals; len=consed->n_slots;
     if (cur->table_uselock) {fd_read_lock_table(cur); unlock=1;}
     while (i<len) {
       fdtype key=kvals[i].fd_kvkey, val=kvals[i].fd_keyval;
@@ -633,7 +633,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
     int n=FD_XSLOTMAP_NUSED(cur);
     struct FD_KEYVAL *read=cur->sm_keyvals, *read_limit=read+n;
     struct FD_KEYVAL *write=u8_alloc_n(n,struct FD_KEYVAL);
-    fresh->slots_allocated=fresh->slots_used=n; fresh->sm_keyvals=write;
+    fresh->n_allocd=fresh->n_slots=n; fresh->sm_keyvals=write;
     memset(write,0,n*sizeof(struct FD_KEYVAL));
     while (read<read_limit) {
       fdtype key=read->fd_kvkey, val=read->fd_keyval; read++;
@@ -648,7 +648,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
       else write->fd_keyval=val;
       write++;}}
   else {
-    fresh->slots_allocated=fresh->slots_used=0;
+    fresh->n_allocd=fresh->n_slots=0;
     fresh->sm_keyvals=NULL;}
   if (unlock) fd_unlock_table(cur);
 #if FD_THREADS_ENABLED
@@ -1229,7 +1229,7 @@ static unsigned int hash_lisp(fdtype x)
       struct FD_SLOTMAP *sm=
         fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type);
       fdtype *kv=(fdtype *)sm->sm_keyvals;
-      return hash_elts(kv,sm->slots_used*2);}
+      return hash_elts(kv,sm->n_slots*2);}
     case fd_choice_type: {
       struct FD_CHOICE *ch=
         fd_consptr(struct FD_CHOICE *,x,fd_choice_type);

@@ -13,6 +13,11 @@
 
 #include "bufio.h"
 
+#define FD_DTYPEIO_FLAGS     (FD_BUFIO_MAX_FLAG)
+#define FD_WRITE_OPAQUE      (FD_DTYPEIO_FLAGS << 0)
+#define FD_NATSORT_VALUES    (FD_DTYPEIO_FLAGS << 1)
+#define FD_USE_DTYPEV2       (FD_DTYPEIO_FLAGS << 2)
+
 /* DTYPE constants */
 
 typedef enum dt_type_code {
