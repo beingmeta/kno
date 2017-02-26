@@ -237,7 +237,9 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   pool->pool_base=base; pool->pool_capacity=0;
   pool->pool_flags=FDB_READ_ONLY;
   pool->pool_serialno=fd_get_oid_base_index(base,1);
-  pool->pool_label="gluepool"; pool->pool_source=NULL;
+  pool->pool_label="gluepool";
+  pool->pool_source=NULL;
+  pool->pool_xinfo=NULL;
   pool->n_subpools=0; pool->subpools=NULL;
   pool->pool_handler=&gluepool_handler;
   FD_INIT_STATIC_CONS(&(pool->pool_cache),fd_hashtable_type);
@@ -1378,6 +1380,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->pool_handler=h;
   p->pool_source=u8_strdup(source);
   p->pool_idstring=u8_strdup(cid);
+  p->pool_xinfo=NULL;
   p->pool_label=NULL;
   p->pool_prefix=NULL;
   p->pool_namefn=FD_VOID;
