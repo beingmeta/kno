@@ -126,7 +126,8 @@ static struct FD_INDEX_HANDLER memindex_handler={
   memindex_fetchkeys, /* fetchkeys */
   memindex_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
-  NULL /* sync */
+  NULL, /* sync */
+  NULL  /* indexop */
 };
 
 FD_EXPORT

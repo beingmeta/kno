@@ -135,7 +135,10 @@ static struct FD_POOL_HANDLER mempool_handler={
   mempool_storen, /* storen */
   mempool_swapout, /* swapout */
   NULL, /* metadata */
-  NULL}; /* sync */
+  NULL, /* sync */
+  NULL, /* create */
+  NULL  /* poolop */
+}; 
 
 FD_EXPORT int fd_clean_mempool(fd_pool p)
 {

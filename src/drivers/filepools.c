@@ -745,7 +745,9 @@ static struct FD_POOL_HANDLER file_pool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   NULL, /* sync */
-  filepool_create /* create */};
+  filepool_create, /* create */
+  NULL  /* poolop */
+};
 
 /* Matching pool names */
 

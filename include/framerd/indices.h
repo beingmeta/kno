@@ -74,25 +74,32 @@ typedef struct FD_INDEX_HANDLER {
   fdtype (*metadata)(fd_index ix,fdtype);
   int (*sync)(fd_index p);
   fd_index (*create)(u8_string spec,void *type_data,
-		     fddb_flags flags,fdtype opts);}
-  FD_INDEX_HANDLER;
+		     fddb_flags flags,fdtype opts);
+  fdtype (*indexop)(fd_index ix,int indexop,fdtype,fdtype,fdtype);
+} FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
+
+#define FDB_INDEXOP_PRELOAD     (1<<0)
+#define FDB_INDEXOP_STATS       (1<<1)
+#define FDB_INDEXOP_LABEL       (1<<2)
+#define FDB_INDEXOP_POPULATE    (1<<3)
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={
   "somehandler", 1, sizeof(somestruct), 4,
-    NULL, /* close */
-    NULL, /* commit */
-    NULL, /* setcache */
-    NULL, /* setbuf */
-    NULL, /* fetch */
-    NULL, /* fetchsize */
-    NULL /* fetchn */
-    NULL, /* fetchkeys */
-    NULL, /* fetchsizes */
-    NULL /* sync */
-    NULL /* createsync */
-    };
+  NULL, /* close */
+  NULL, /* commit */
+  NULL, /* setcache */
+  NULL, /* setbuf */
+  NULL, /* fetch */
+  NULL, /* fetchsize */
+  NULL /* fetchn */
+  NULL, /* fetchkeys */
+  NULL, /* fetchsizes */
+  NULL /* sync */
+  NULL, /* creates */
+  NULL /* indexop */
+};
 #endif
 
 FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);

@@ -240,7 +240,9 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   NULL, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL}; /* sync */
+  NULL,
+  NULL  /* poolop */
+}; /* sync */
 
 FD_EXPORT void fd_init_extpools_c()
 {
