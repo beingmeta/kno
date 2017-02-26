@@ -105,6 +105,7 @@ SRC_HEADERS=src/dtype/biginternals.h 		\
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o 			\
 	  src/dtype/fcnids.o src/dtype/bufio.o			\
 	  src/dtype/symbols.o src/dtype/numbers.o 		\
+	  src/dtype/compare.o					\
 	  src/dtype/apply.o src/dtype/ffi.o			\
           src/dtype/choices.o src/dtype/tables.o		\
           src/dtype/dtypeio.o src/dtype/textio.o		\
@@ -272,7 +273,8 @@ FRAMERD_HEADERS= \
 
 FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c           \
-        src/dtype/choices.c src/dtype/tables.c src/dtype/fcnids.c       \
+        src/dtype/compare.c src/dtype/fcnids.c       			\
+	 src/dtype/choices.c src/dtype/tables.c 			\
         src/dtype/bufio.c src/dtype/dtypeio.c src/dtype/textio.c 	\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
@@ -1549,10 +1551,10 @@ $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 # Driver dependencies
-src/drivers/filepools.o: src/drivers/headers/filepools.h:
-src/drivers/fileindices.o: src/drivers/headers/fileindices.h:
-src/drivers/oidpools.o: src/drivers/headers/oidpools.h:
-src/drivers/hashindices.o: src/drivers/headers/hashindices.h: 
+src/drivers/filepools.o: src/drivers/headers/filepools.h
+src/drivers/fileindices.o: src/drivers/headers/fileindices.h
+src/drivers/oidpools.o: src/drivers/headers/oidpools.h
+src/drivers/hashindices.o: src/drivers/headers/hashindices.h 
 
 # We've stopped using makedpend for the time being
 

@@ -103,6 +103,7 @@ static void init_type_names()
 static int fdtype_version=101;
 
 FD_EXPORT void fd_init_cons_c(void);
+FD_EXPORT void fd_init_compare_c(void);
 FD_EXPORT void fd_init_oids_c(void);
 FD_EXPORT void fd_init_textio_c(void);
 FD_EXPORT void fd_init_tables_c(void);
@@ -183,6 +184,7 @@ FD_EXPORT int fd_init_dtypelib()
   fd_init_mutex(&fd_symbol_lock);
   fd_init_cons_c();
   init_type_names();
+  fd_init_compare_c();
   fd_init_oids_c();
   fd_init_textio_c();
   fd_init_tables_c();

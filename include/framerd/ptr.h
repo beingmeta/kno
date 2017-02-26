@@ -314,9 +314,9 @@ FD_FASTOP FD_OID FD_OID_PLUS(FD_OID x,unsigned int increment)
 #define FD_SET_OID_LO(oid,low) oid.fd_oid_lo=low
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1.fd_oid_hi == oid2.fd_oid_hi) ? \
-   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) : \
-    (oid1.fd_oid_lo < oid2.fd_oid_lo) ? (-1) : (1)) :		\
-   (oid1.fd_oid_hi < oid2.fd_oid_hi) ? (-1) : (1))
+   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) :			\
+    (oid1.fd_oid_lo > oid2.fd_oid_lo) ? (1) : (-1)) :		\
+  (oid1.fd_oid_hi > oid2.fd_oid_hi) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
   ((oid1.fd_oid_lo>oid2.fd_oid_lo) ? \
    (oid1.fd_oid_lo-oid2.fd_oid_lo) : \
@@ -356,7 +356,7 @@ typedef unsigned long long FD_OID;
 #define FD_SET_OID_LO(oid,lo) \
   oid=((oid&(0xFFFFFFFF00000000ULL))|((unsigned int)((lo)&(0xFFFFFFFFULL))))
 #define FD_OID_COMPARE(oid1,oid2) \
-  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+  ((oid1 == oid2) ? (0) : (oid1>oid2) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
   ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #endif
