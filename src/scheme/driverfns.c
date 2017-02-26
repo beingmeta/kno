@@ -25,6 +25,47 @@
 
 static fdtype baseoids_symbol;
 
+static fddb_flags getdbflags(fdtype opts)
+{
+  return 0;
+}
+
+static fdtype make_pool(fdtype path,fdtype opts)
+{
+  fd_pool p=NULL;
+  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fddb_flags flags=getdbflags(opts);
+  if (FD_SYMBOLP(type))
+    p=fd_make_pool(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
+  else if (FD_STRINGP(type))
+    p=fd_make_pool(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
+  else {}
+  if (p)
+    return fd_pool2lisp(p);
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype open_pool(fdtype path)
+{
+  fd_pool p=fd_open_pool(FD_STRDATA(path),FDB_UNREGISTERED);
+  return (fdtype)p;
+}
+
+static fdtype make_index(fdtype path,fdtype opts)
+{
+  fd_index ix=NULL;
+  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fddb_flags flags=getdbflags(opts);
+  if (FD_SYMBOLP(type))
+    ix=fd_make_index(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
+  else if (FD_STRINGP(type))
+    ix=fd_make_index(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
+  else {}
+  if (ix)
+    return fd_index2lisp(ix);
+  else return FD_ERROR_VALUE;
+}
+
 static fdtype make_file_pool
   (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
 {
@@ -647,6 +688,13 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_init_dbs();
   driverfns_module=fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
+
+  fd_idefn(driverfns_module,
+           fd_make_cprim2x("MAKE-INDEX",make_index,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(driverfns_module,
+           fd_make_cprim2x("MAKE-POOL",make_index,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(driverfns_module,
            fd_make_cprim3x("MAKE-FILE-INDEX",make_file_index,2,
