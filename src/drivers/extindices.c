@@ -201,7 +201,8 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   extindex_fetchn, /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
-  NULL /* sync */
+  NULL, /* sync */
+  NULL  /* indexop */
 };
 
 FD_EXPORT void fd_init_extindices_c()

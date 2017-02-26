@@ -15,30 +15,38 @@
   (if (has-suffix file suffix) file
       (glom file suffix)))
 
-(define (initdb source)
-  (cond ((or (position #\@ source)
-	     (file-exists? (add-suffix source ".pool")))
-	 (set! dbsource source)
-	 (set! testpool (use-pool (add-suffix source ".pool")))
-	 (set! testindex (open-index (add-suffix source ".index"))))
+(define (sourcepool source)
+  (cond ((position #\@ source)
+	 (use-pool source))
+	((file-exists? (add-suffix source ".pool"))
+	 (use-pool (add-suffix source ".pool")))
+	((file-exists? source)
+	 (use-pool (add-suffix source ".pool")))
 	(else
-	 (if (config 'oidpool)
-	     (let ((flags (fix-flags (config 'oidpool #()))))
-	       (make-oidpool (add-suffix source ".pool") @17/0 64000 0 flags))
-	     (make-file-pool (add-suffix source ".pool") @17/0 64000))
-	 (if (config 'fileindex #f)
-	     (make-file-index (append source ".index") -500000)
-	     (let ((flags (fix-flags (config 'hashindex #()))))
-	       (if (position 'COMPRESS flags)
-		   (begin (message "Making compressed hash index for tests")
-		     (make-hash-index (append source ".index") -500000
-				      slotids-vec (vector @17/0) #f flags))
-		   (begin (message "Making hash index for tests")
-		     (make-hash-index (append source ".index") -500000
-				      #() #() #f flags)))))
-	 (set! dbsource source)
-	 (set! testpool (use-pool (add-suffix source ".pool")))
-	 (set! testindex (open-index (add-suffix source ".index")))))
+	 (make-pool (add-suffix source ".pool")
+		    (frame-create #f
+		      'type (config 'pooltype 'filepool)
+		      'base @17/0 'capacity 65000
+		      'offtype (config 'pooloff {}))))))
+
+(define (sourceindex source)
+  (cond ((position #\@ source)
+	 (open-index source))
+	((file-exists? (add-suffix source ".index"))
+	 (open-index (add-suffix source ".index")))
+	((file-exists? source)
+	 (open-index source))
+	(else
+	 (make-index (add-suffix source ".index")
+		     (frame-create #f
+		      'type (config 'indextype 'hashindex)
+		      'slots 65000
+		      'offtype (config 'indexoff {}))))))
+
+(define (initdb source)
+  (set! testpool (sourcepool source))
+  (set! testindex (sourceindex source))
+  (set! dbsource source)
   (logwarn |Pool| testpool)
   (logwarn |Index| testindex))
 

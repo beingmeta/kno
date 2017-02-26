@@ -103,10 +103,10 @@ FD_EXPORT fd_stream fd_open_filestream
 #define fd_open_stream(filename,mode) \
   fd_open_filestream(filename,mode,fd_filestream_bufsize)
 
-#define FD_STREAM_FREE    1
+#define FD_STREAM_FREEDATA    1
 #define FD_STREAM_NOCLOSE 2
 #define FD_STREAM_NOFLUSH 4
-#define FD_STREAM_CLOSE_FULL FD_STREAM_FREE
+#define FD_STREAM_CLOSE_FULL FD_STREAM_FREEDATA
 
 FD_EXPORT void fd_close_stream(fd_stream s,int flags);
 FD_EXPORT void fd_free_stream(fd_stream s);

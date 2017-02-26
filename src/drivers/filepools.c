@@ -13,6 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/numbers.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
 #include "framerd/indices.h"
@@ -22,6 +23,8 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
+
+#include "headers/filepools.h"
 
 #include <errno.h>
 #include <sys/stat.h>
@@ -693,7 +696,7 @@ int fd_make_file_pool
   fd_write_4bytes(outstream,0xFFFFFFFE);
   fd_write_4bytes(outstream,40);
   i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
-  fd_free_stream(stream);
+  fd_close_stream(stream,0);
   return 1;
 }
 
@@ -701,25 +704,43 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
                                fddb_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
-  fdtype capacity=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
-  fdtype load=fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
+  fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
+  fdtype load_arg=fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
+  unsigned int capacity, load;
   unsigned int magic_number=(unsigned int)((unsigned long)type_data);
   int rv=0;
-  if (!(FD_OIDP(base_oid))) {
+  if (u8_file_existsp(spec)) {
+    fd_seterr(_("FileAlreadyExists"),"filepool_create",spec,FD_VOID);
+    return NULL;}
+  else if (!(FD_OIDP(base_oid))) {
     fd_seterr("Not a base oid","filepool_create",spec,base_oid);
     rv=-1;}
-  if ((rv>=0)&&(!(FD_INTEGERP(capacity)))) {
-    fd_seterr("Not a valid capacity","filepool_create",spec,capacity);
-    rv=-1;}
-  if ((rv>=0)&&(!(FD_INTEGERP(load)))) {
-    fd_seterr("Not a valid load","filepool_create",spec,load);
+  else if (FD_ISINT(capacity_arg)) {
+    int capval=fd_getint(capacity_arg);
+    if (capval<=0) {
+      fd_seterr("Not a valid capacity","filepool_create",
+                spec,capacity_arg);
+      rv=-1;}
+    else capacity=capval;}
+  else {
+    fd_seterr("Not a valid capacity","filepool_create",
+              spec,capacity_arg);
+      rv=-1;}
+  if (rv<0) {}
+  else if (FD_ISINT(load_arg)) {
+    int loadval=fd_getint(load_arg);
+    if (loadval<0) {
+      fd_seterr("Not a valid load","filepool_create",
+                spec,load_arg);
+      rv=-1;}
+    else load=loadval;}
+  else {
+    fd_seterr("Not a valid load","filepool_create",
+              spec,load_arg);
     rv=-1;}
   if (rv<0) return NULL;
-  else rv=fd_make_file_pool(spec,
-                            magic_number,
-                            FD_OID_ADDR(base_oid),
-                            capacity,
-                            load);
+  else rv=fd_make_file_pool(spec,magic_number,
+                            FD_OID_ADDR(base_oid),capacity,load);
   if (rv>=0)
     return fd_open_pool(spec,flags);
   else return NULL;
@@ -743,7 +764,9 @@ static struct FD_POOL_HANDLER file_pool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   NULL, /* sync */
-  filepool_create /* create */};
+  filepool_create, /* create */
+  NULL  /* poolop */
+};
 
 /* Matching pool names */
 
@@ -775,15 +798,54 @@ FD_EXPORT void fd_init_file_pools_c()
      &file_pool_handler,
      open_file_pool,
      match_pool_name,
-     (void *)FD_FILE_POOL_MAGIC_NUMBER);
+     (void *)U8_INT2PTR(FD_FILE_POOL_MAGIC_NUMBER));
   fd_register_pool_type
     ("damaged_filepool",
      &file_pool_handler,
      open_file_pool,
      match_pool_name,
-     (void *)FD_FILE_POOL_TO_RECOVER);
+     (void *)(U8_INT2PTR(FD_FILE_POOL_TO_RECOVER)));
 }
 
+
+/* Deprecated primitives, placed here for now */
+
+FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
+  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
+{
+  fdtype metadata; unsigned int load;
+  int retval;
+  if (FD_FIXNUMP(opt1)) {
+    load=FD_FIX2INT(opt1); metadata=opt2;}
+  else {load=0; metadata=opt1;}
+  if (FD_VOIDP(metadata)) {}
+  else if (!(FD_SLOTMAPP(metadata)))
+    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
+  retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
+                           FD_OID_ADDR(base),fd_getint(capacity),
+                           load);
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label)
+{
+  int retval=-1;
+  fd_stream stream=
+    fd_open_stream(FD_STRING_DATA(fname),FD_STREAM_MODIFY);
+  fd_outbuf outstream=fd_writebuf(stream);
+  if (stream) {
+    fd_off_t endpos=fd_endpos(stream);
+    if (endpos>0) {
+      int bytes=fd_write_dtype(outstream,label);
+      if (bytes>0) {
+        fd_setpos(stream,20);
+        if (fd_write_4bytes((fd_writebuf(stream)),(unsigned int)endpos)>=0) {
+          retval=1; 
+          fd_free_stream(stream);}}}}
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
 
 /* Emacs local variables
    ;;;  Local variables: ***

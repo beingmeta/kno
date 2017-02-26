@@ -138,6 +138,7 @@ fd_pool fd_open_pool(u8_string spec,fddb_flags flags)
         return opened;}
       else ptype=ptype->next_type;}
     else ptype=ptype->next_type;}
+  fd_seterr(fd_UnknownPoolType,"fd_open_pool",spec,FD_VOID);
   return NULL;
 }
 
@@ -159,7 +160,7 @@ fd_pool fd_make_pool(
 {
   fd_pool_typeinfo ptype=get_pool_typeinfo(pooltype);
   if (ptype==NULL) {
-    fd_seterr(_("UnknownPoolType"),"fd_make_pool",pooltype,FD_VOID);
+    fd_seterr(fd_UnknownPoolType,"fd_make_pool",pooltype,FD_VOID);
     return NULL;}
   else if (ptype->handler==NULL) {
     fd_seterr(_("NoPoolHandler"),"fd_make_pool",pooltype,FD_VOID);
@@ -317,6 +318,54 @@ FD_EXPORT int fd_init_drivers_c()
 
   return drivers_c_initialized;
 }
+
+/* Needs to be replaced */
+
+/*
+static int load_pool_cache(fd_pool p,void *ignored)
+{
+  if ((p->pool_handler==NULL) ||
+      (p->pool_handler->name==NULL))
+    return 0;
+  else if (strcmp(p->pool_handler->name,"file_pool")==0) {
+    struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
+    if (fp->pool_offsets) load_cache(fp->pool_offsets,fp->pool_offsets_size);}
+  else if (strcmp(p->pool_handler->name,"oidpool")==0) {
+    struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
+    if (fp->pool_offsets)
+      load_cache(fp->pool_offsets,fp->pool_offsets_size);}
+  return 0;
+}
+
+static int load_index_cache(fd_index ix,void *ignored)
+{
+  if ((ix->index_handler==NULL) || (ix->index_handler->name==NULL)) return 0;
+  else if (strcmp(ix->index_handler->name,"file_index")==0) {
+    struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
+    if (fx->index_offsets) load_cache(fx->index_offsets,fx->index_n_slots);}
+  else if (strcmp(ix->index_handler->name,"hash_index")==0) {
+    struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+    if (hx->index_offdata)
+      load_cache(hx->index_offdata,hx->index_n_buckets*2);}
+  return 0;
+}
+
+static fdtype load_caches_prim(fdtype arg)
+{
+  if (FD_VOIDP(arg)) {
+    fd_for_pools(load_pool_cache,NULL);
+    fd_for_indices(load_index_cache,NULL);}
+  else if (FD_TYPEP(arg,fd_index_type))
+    load_index_cache(fd_indexptr(arg),NULL);
+  else if (FD_TYPEP(arg,fd_pool_type))
+    load_pool_cache(fd_lisp2pool(arg),NULL);
+  else {}
+  return FD_VOID;
+}
+
+  fd_idefn(driverfns_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));
+
+*/
 
 /* Emacs local variables
    ;;;  Local variables: ***

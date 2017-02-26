@@ -1024,7 +1024,9 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
       if (fcn->fcn_name)
         avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
                             fdtype_string(fcn->fcn_filename));
-      else avec[0]=fd_conspair(fd_intern("LAMBDA"),fdtype_string(fcn->fcn_filename));
+      else avec[0]=
+             fd_conspair(fd_intern("LAMBDA"),
+                         fdtype_string(fcn->fcn_filename));
     else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
     else avec[0]=fd_intern("LAMBDA");
     if (free_argv) u8_free(argv);

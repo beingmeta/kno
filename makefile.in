@@ -94,13 +94,18 @@ LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/dtype/biginternals.h 		\
 	src/scheme/eval_internals.h 		\
-	src/drivers/dbdriver_internals.h 	\
 	src/exe/webcommon.h 			\
-	src/cmodules/fdsqlite.h
+	src/drivers/headers/chunkrefs.h 	\
+	src/drivers/headers/filepools.h 	\
+	src/drivers/headers/fileindices.h 	\
+	src/drivers/headers/oidpools.h	 	\
+	src/drivers/headers/hashindices.h	\
+	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o 			\
 	  src/dtype/fcnids.o src/dtype/bufio.o			\
 	  src/dtype/symbols.o src/dtype/numbers.o 		\
+	  src/dtype/compare.o					\
 	  src/dtype/apply.o src/dtype/ffi.o			\
           src/dtype/choices.o src/dtype/tables.o		\
           src/dtype/dtypeio.o src/dtype/textio.o		\
@@ -268,7 +273,8 @@ FRAMERD_HEADERS= \
 
 FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c           \
-        src/dtype/choices.c src/dtype/tables.c src/dtype/fcnids.c       \
+        src/dtype/compare.c src/dtype/fcnids.c       			\
+	 src/dtype/choices.c src/dtype/tables.c 			\
         src/dtype/bufio.c src/dtype/dtypeio.c src/dtype/textio.c 	\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
@@ -1531,7 +1537,6 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
-#$(STATIC_LIBS) $(SHARED_LIBS): buildmode
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
 $(DBDRIVERS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
@@ -1545,6 +1550,11 @@ $(DTYPE_OBJS) $(DB_OBJS) $(DBDRIVERS_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
+# Driver dependencies
+src/drivers/filepools.o: src/drivers/headers/filepools.h
+src/drivers/fileindices.o: src/drivers/headers/fileindices.h
+src/drivers/oidpools.o: src/drivers/headers/oidpools.h
+src/drivers/hashindices.o: src/drivers/headers/hashindices.h 
 
 # We've stopped using makedpend for the time being
 

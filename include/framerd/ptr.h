@@ -38,16 +38,18 @@
     a more detailed type code and the remaining 23 bits are available to
     represent particular values of each type.
 
-    The FIXNUM base pointer type is used for small magnitude signed integers.
-    Rather than using a two's complement representation for negative numbers,
-    fdb uses the 32nd bit (the high order bit on 32 bit architectures) as a sign
-    bit and stores the absolute magnitude in the remainder of the word (down to
-    the two bits of type code.  For positive numbers, converting between C ints
-    dtype fixnums is simply a matter of multiply or diving by 4 and adding the
-    type code (when converting to DTYPEs).  For negative numbers, it is trickier but
-    not much, as in FD_INT2DTYPE and FD_DTYPE2INT below.  Currently, fixnums
-    do not take advantage of the full word on 64-bit machines, for a mix
-    of present practical and prospective design reasons.
+    The FIXNUM base pointer type is used for small magnitude signed
+    integers.  Rather than using a two's complement representation for
+    negative numbers, fdb uses the 32nd bit (the high order bit on 32
+    bit architectures) as a sign bit and stores the absolute magnitude
+    in the remainder of the word (down to the two bits of type code.
+    For positive numbers, converting between C ints dtype fixnums is
+    simply a matter of multiply or diving by 4 and adding the type
+    code (when converting to DTYPEs).  For negative numbers, it is
+    trickier but not much, as in FD_INT2DTYPE and FD_DTYPE2INT below.
+    Currently, fixnums do not take advantage of the full word on
+    64-bit machines, for a mix of present practical and prospective
+    design reasons.
 
     The OID base pointer type is used to represent object pointers into a
     64-bit object space.  It does this by dividing the 64 bit object space
@@ -314,9 +316,9 @@ FD_FASTOP FD_OID FD_OID_PLUS(FD_OID x,unsigned int increment)
 #define FD_SET_OID_LO(oid,low) oid.fd_oid_lo=low
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1.fd_oid_hi == oid2.fd_oid_hi) ? \
-   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) : \
-    (oid1.fd_oid_lo < oid2.fd_oid_lo) ? (-1) : (1)) :		\
-   (oid1.fd_oid_hi < oid2.fd_oid_hi) ? (-1) : (1))
+   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) :			\
+    (oid1.fd_oid_lo > oid2.fd_oid_lo) ? (1) : (-1)) :		\
+  (oid1.fd_oid_hi > oid2.fd_oid_hi) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
   ((oid1.fd_oid_lo>oid2.fd_oid_lo) ? \
    (oid1.fd_oid_lo-oid2.fd_oid_lo) : \
@@ -356,7 +358,7 @@ typedef unsigned long long FD_OID;
 #define FD_SET_OID_LO(oid,lo) \
   oid=((oid&(0xFFFFFFFF00000000ULL))|((unsigned int)((lo)&(0xFFFFFFFFULL))))
 #define FD_OID_COMPARE(oid1,oid2) \
-  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+  ((oid1 == oid2) ? (0) : (oid1>oid2) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
   ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #endif

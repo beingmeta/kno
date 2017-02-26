@@ -1050,7 +1050,7 @@ int main(int argc,char **argv)
         (!(FDTYPE_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
   if (eval_server)
-    fd_close_stream(eval_server,FD_STREAM_FREE);
+    fd_close_stream(eval_server,FD_STREAM_FREEDATA);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);

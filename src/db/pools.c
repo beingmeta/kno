@@ -25,7 +25,7 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-fd_exception fd_UnknownPool=_("Unknown pool");
+fd_exception fd_UnknownPoolType=_("Unknown pool type");
 fd_exception fd_CantLockOID=_("Can't lock OID");
 fd_exception fd_CantUnlockOID=_("Can't unlock OID");
 fd_exception fd_PoolRangeError=_("the OID is out of the range of the pool");
@@ -238,7 +238,9 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   pool->pool_base=base; pool->pool_capacity=0;
   pool->pool_flags=FDB_READ_ONLY;
   pool->pool_serialno=fd_get_oid_base_index(base,1);
-  pool->pool_label="gluepool"; pool->pool_source=NULL;
+  pool->pool_label="gluepool";
+  pool->pool_source=NULL;
+  pool->pool_xinfo=NULL;
   pool->n_subpools=0; pool->subpools=NULL;
   pool->pool_handler=&gluepool_handler;
   FD_INIT_STATIC_CONS(&(pool->pool_cache),fd_hashtable_type);
@@ -717,7 +719,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
     if (writes.len) {
       u8_log(fddb_loglevel,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
-             writes.len,p->pool_changes.n_keys,
+             writes.len,p->pool_changes.table_n_keys,
              p->pool_idstring);
       init_cache_level(p);
       retval=p->pool_handler->storen(p,writes.len,writes.oids,writes.values);}
@@ -1381,6 +1383,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->pool_handler=h;
   p->pool_source=u8_strdup(source);
   p->pool_idstring=u8_strdup(cid);
+  p->pool_xinfo=NULL;
   p->pool_label=NULL;
   p->pool_prefix=NULL;
   p->pool_namefn=FD_VOID;

@@ -74,6 +74,8 @@
 #include "framerd/indices.h"
 #include "framerd/drivers.h"
 
+#include "headers/hashindices.h"
+
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
@@ -99,8 +101,6 @@
 
 #define LOCK_STREAM 1
 #define DONT_LOCK_STREAM 0
-
-#include "dbdriver_internals.h"
 
 #if FD_DEBUG_HASHINDICES
 #define CHECK_POS(pos,stream)                                      \
@@ -487,7 +487,7 @@ FD_EXPORT int fd_make_hash_index
     fd_write_4bytes(outstream,metadata_size);}
 
   fd_flush_stream(stream);
-  fd_free_stream(stream);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
   
   return 0;
 }
@@ -2596,21 +2596,27 @@ static int interpret_hash_index_flags(fdtype opts)
   return flags;
 }
 
+static int good_initval(fdtype val)
+{
+  return ((FD_VOIDP(val))||(FD_FALSEP(val))||(FD_DEFAULTP(val))||
+          (FD_VECTORP(val)));
+}
+
 static fd_index hash_index_create(u8_string spec,void *typedata,
                                   fddb_flags flags,fdtype opts)
 {
   int rv=0;
   fdtype slotids_init=fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);
   fdtype baseoids_init=fd_getopt(opts,fd_intern("BASEOIDS"),FD_VOID);
-  fdtype nbuckets_arg=fd_getopt(opts,fd_intern("NBUCKETS"),FD_VOID);
+  fdtype nbuckets_arg=fd_getopt(opts,fd_intern("SLOTS"),FD_VOID);
   fdtype hashconst=fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
   if (!(FD_FIXNUMP(nbuckets_arg))) {
     fd_seterr("InvalidBucketCount","hash_index_create",spec,nbuckets_arg);
     rv=-1;}
-  else if (!(FD_VECTORP(baseoids_init))) {
+  else if (!(good_initval(baseoids_init))) {
     fd_seterr("InvalidBaseOIDs","hash_index_create",spec,baseoids_init);
     rv=-1;}
-  else if (!(FD_VECTORP(slotids_init))) {
+  else if (!(good_initval(slotids_init))) {
     fd_seterr("InvalidSlotIDs","hash_index_create",spec,slotids_init);
     rv=-1;}
   else if (!(FD_INTEGERP(hashconst))) {
@@ -2630,6 +2636,103 @@ static fd_index hash_index_create(u8_string spec,void *typedata,
 }
 
 
+/* Deprecated primitives */
+
+static int get_make_hash_index_flags(fdtype flags_arg)
+{
+  return ((FD_B40)<<4)|FD_HASH_INDEX_DTYPEV2;
+}
+
+FD_EXPORT fdtype _fd_make_hash_index_deprecated(fdtype fname,fdtype size,
+                                                fdtype slotids,fdtype baseoids,
+                                                fdtype metadata,
+                                                fdtype flags_arg)
+{
+  int retval=
+    fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
+                       get_make_hash_index_flags(flags_arg),0,
+                       slotids,baseoids,-1,-1);
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_VOID;
+}
+
+FD_EXPORT fdtype _fd_populate_hash_index_deprecated
+  (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
+{
+  fd_index ix=fd_indexptr(ix_arg); int blocksize=-1, retval;
+  const fdtype *keyvec; fdtype *consed_keyvec=NULL;
+  unsigned int n_keys; fdtype keys_choice=FD_VOID;
+  if (!(fd_hash_indexp(ix)))
+    return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
+  if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
+  if (FD_CHOICEP(keys)) {
+    keyvec=FD_CHOICE_DATA(keys); n_keys=FD_CHOICE_SIZE(keys);}
+  else if (FD_VECTORP(keys)) {
+    keyvec=FD_VECTOR_DATA(keys); n_keys=FD_VECTOR_LENGTH(keys);}
+  else if (FD_VOIDP(keys)) {
+    if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_raw_index_type))) {
+      fd_index ix=fd_indexptr(from);
+      if (ix->index_handler->fetchkeys!=NULL) {
+        consed_keyvec=ix->index_handler->fetchkeys(ix,&n_keys);
+        keyvec=consed_keyvec;}
+      else keys_choice=fd_getkeys(from);}
+    else keys_choice=fd_getkeys(from);
+    if (!(FD_VOIDP(keys_choice))) {
+      if (FD_CHOICEP(keys_choice)) {
+        keyvec=FD_CHOICE_DATA(keys_choice);
+        n_keys=FD_CHOICE_SIZE(keys_choice);}
+      else {
+        keyvec=&keys; n_keys=1;}}
+    else {keyvec=&keys; n_keys=0;}}
+  else {
+    keyvec=&keys; n_keys=1;}
+  if (n_keys)
+    retval=fd_populate_hash_index
+      ((struct FD_HASH_INDEX *)ix,from,keyvec,n_keys,blocksize);
+  else retval=0;
+  fd_decref(keys_choice);
+  if (consed_keyvec) {
+    int i=0; while (i<n_keys) {
+      fd_decref(keyvec[i]); i++;}
+    if (consed_keyvec) u8_free(consed_keyvec);}
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_INT(retval);
+}
+
+FD_EXPORT fdtype _fd_hash_index_bucket_deprecated(fdtype ix_arg,fdtype key,fdtype modulus)
+{
+  fd_index ix=fd_indexptr(ix_arg); int bucket;
+  if (!(fd_hash_indexp(ix)))
+    return fd_type_error(_("hash index"),"hash_index_bucket",ix_arg);
+  bucket=fd_hash_index_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
+  if (FD_FIXNUMP(modulus))
+    return FD_INT((bucket%FD_FIX2INT(modulus)));
+  else return FD_INT(bucket);
+}
+
+FD_EXPORT fdtype _fd_hash_index_stats_deprecated(fdtype ix_arg)
+{
+  fd_index ix=fd_indexptr(ix_arg);
+  if ((ix==NULL) || (!(fd_hash_indexp(ix))))
+    return fd_type_error(_("hash index"),"hash_index_stats",ix_arg);
+  return fd_hash_index_stats((struct FD_HASH_INDEX *)ix);
+}
+
+FD_EXPORT fdtype _fd_hash_index_slotids_deprecated(fdtype ix_arg)
+{
+  fd_index ix=fd_indexptr(ix_arg);
+  if (!(fd_hash_indexp(ix)))
+    return fd_type_error(_("hash index"),"hash_index_slotids",ix_arg);
+  else {
+    struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
+    fdtype *elts=u8_alloc_n(hx->index_n_slotids,fdtype);
+    fdtype *slotids=hx->index_slotids;
+    int i=0, n=hx->index_n_slotids;
+    while (i< n) {elts[i]=slotids[i]; i++;}
+    return fd_init_vector(NULL,n,elts);}
+}
+
+
 /* The handler struct */
 
 static struct FD_INDEX_HANDLER hash_index_handler={
@@ -2646,7 +2749,9 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   hash_index_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* sync */
-  hash_index_create /* create */ };
+  hash_index_create, /* create */ 
+  NULL  /* indexop */
+};
 
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 {
@@ -2699,16 +2804,18 @@ FD_EXPORT void fd_init_hashindices_c()
 
   u8_register_source_file(_FILEINFO);
 
-  fd_register_index_type("hashindex",
-                         &hash_index_handler,
-                         open_hash_index,
-                         match_index_name,
-                         (void *)FD_HASH_INDEX_MAGIC_NUMBER);
-  fd_register_index_type("damaged_hashindex",
-                         &hash_index_handler,
-                         open_hash_index,
-                         match_index_name,
-                         (void *)FD_HASH_INDEX_TO_RECOVER);
+  fd_register_index_type
+    ("hashindex",
+     &hash_index_handler,
+     open_hash_index,
+     match_index_name,
+     (void *)(U8_INT2PTR(FD_HASH_INDEX_MAGIC_NUMBER)));
+  fd_register_index_type
+    ("damaged_hashindex",
+     &hash_index_handler,
+     open_hash_index,
+     match_index_name,
+     (void *)(U8_INT2PTR(FD_HASH_INDEX_TO_RECOVER)));
 }
 
 /* TODO:

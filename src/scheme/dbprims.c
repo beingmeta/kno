@@ -19,6 +19,7 @@
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
 #include "framerd/indices.h"
+#include "framerd/drivers.h"
 #include "framerd/frames.h"
 #include "framerd/methods.h"
 #include "framerd/sequences.h"
@@ -287,7 +288,8 @@ static fdtype use_index(fdtype arg)
 
 static fdtype open_index(fdtype arg,fdtype consed_arg)
 {
-  int flags=(!((FD_FALSEP(consed_arg))||(FD_VOIDP(consed_arg))));
+  int unregistered=(!((FD_FALSEP(consed_arg))||(FD_VOIDP(consed_arg))));
+  fddb_flags flags=((unregistered)?(FDB_UNREGISTERED):(0));
   fd_index ix=NULL;
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
@@ -319,6 +321,57 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
   if (ix) return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
+static fddb_flags getdbflags(fdtype opts)
+{
+  fddb_flags flags=0;
+  if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
+    flags|=FDB_READ_ONLY;
+  if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
+    flags|=FDB_UNREGISTERED;
+  if (!(fd_testopt(opts,fd_intern("UNCACHED"),FD_VOID)))
+    flags|=FDB_CACHE_VALUES;
+  if (fd_testopt(opts,fd_intern("CACHEINDEX"),FD_VOID))
+    flags|=FDB_CACHE_OFFSETS;
+  return flags;
+}
+
+static fdtype make_pool(fdtype path,fdtype opts)
+{
+  fd_pool p=NULL;
+  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fddb_flags flags=getdbflags(opts);
+  if (FD_SYMBOLP(type))
+    p=fd_make_pool(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
+  else if (FD_STRINGP(type))
+    p=fd_make_pool(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
+  else {}
+  if (p)
+    return fd_pool2lisp(p);
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype open_pool(fdtype path,fdtype opts)
+{
+  fddb_flags flags=getdbflags(opts);
+  fd_pool p=fd_open_pool(FD_STRDATA(path),flags|FDB_UNREGISTERED);
+  return (fdtype)p;
+}
+
+static fdtype make_index(fdtype path,fdtype opts)
+{
+  fd_index ix=NULL;
+  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fddb_flags flags=getdbflags(opts);
+  if (FD_SYMBOLP(type))
+    ix=fd_make_index(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
+  else if (FD_STRINGP(type))
+    ix=fd_make_index(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
+  else {}
+  if (ix)
+    return fd_index2lisp(ix);
+  else return FD_ERROR_VALUE;
+}
+
 static fdtype oidvalue(fdtype arg)
 {
   return fd_oid_value(arg);
@@ -2878,6 +2931,16 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("USE-INDEX",use_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("OPEN-INDEX",open_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("CACHECOUNT",cachecount,0));
+
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim2x("MAKE-INDEX",make_index,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim2x("MAKE-POOL",make_pool,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim2x("OPEN-POOL",open_pool,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim

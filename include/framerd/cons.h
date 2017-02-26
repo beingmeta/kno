@@ -524,12 +524,25 @@ FD_EXPORT unsigned long long fd_bigint_to_ulong_long(fd_bigint bi);
 FD_EXPORT fd_bigint fd_long_long_to_bigint(long long);
 FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
+#define FD_INTEGERP(x) ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))
+
 #define fd_getint(x) \
   ((FD_FIXNUMP(x)) ? (FD_FIX2INT(x)) : \
    ((FD_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
    (fd_bigint2int((fd_bigint)x)) : (0))
+#define fd_getint64(x) \
+  ((FD_FIXNUMP(x)) ? (FD_FIX2INT(x)) : \
+   ((FD_TYPEP(x,fd_bigint_type)) && (fd_modest_bigintp((fd_bigint)x))) ? \
+   (fd_bigint2int64((fd_bigint)x)) : (0))
 
-#define FD_INTEGERP(x) ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))
+#define FD_ISINT(x) \
+  ((FD_FIXNUMP(x)) || \
+   ((FD_TYPEP(x,fd_bigint_type)) && \
+    (fd_small_bigintp((fd_bigint)x))))
+#define FD_ISINT64(x) \
+  ((FD_FIXNUMP(x)) || \
+   ((FD_TYPEP(x,fd_bigint_type)) && \
+    (fd_modest_bigintp((fd_bigint)x))))
 
 /* Doubles */
 

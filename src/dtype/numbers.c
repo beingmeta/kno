@@ -2852,6 +2852,21 @@ static int signum(fdtype x)
   else return 0;
 }
 
+FD_EXPORT int fd_tolonglong(fdtype r,long long *intval)
+{
+  if (FD_FIXNUMP(r)) {
+    *intval=((long long)(FD_FIX2INT(r)));
+    return 1;}
+  else if ((FD_BIGINTP(r))&&
+           (fd_bigint_fits_in_word_p((fd_bigint)r,64,1))) {
+    long long ival=fd_bigint_to_long_long((fd_bigint)r);
+    *intval=ival;
+    return 1;}
+  else if (FD_BIGINTP(r))
+    return 0;
+  else return -1;
+}
+
 FD_EXPORT
 int fd_numcompare(fdtype x,fdtype y)
 {

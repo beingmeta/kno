@@ -62,6 +62,8 @@ FD_EXPORT int fd_exactp(fdtype x);
    ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))?(1):		      \
    (fd_exactp(x)))
 
+FD_EXPORT int fd_tolonglong(fdtype r,long long *intval);
+
 /* Numeric vectors */
 
 FD_EXPORT int fd_numvec_showmax;

@@ -18,6 +18,8 @@
 #include "framerd/indices.h"
 #include "framerd/drivers.h"
 
+#include "headers/fileindices.h"
+
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
@@ -1211,14 +1213,14 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   fd_write_4bytes(outstream,0xFFFFFFFE);
   fd_write_4bytes(outstream,40);
   i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
-  fd_free_stream(stream);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
   return 1;
 }
 
 static fd_index file_index_create(u8_string spec,void *type_data,
                                   fddb_flags flags,fdtype opts)
 {
-  fdtype n_slots=fd_getopt(opts,fd_intern("NSLOTS"),FD_INT(32000));
+  fdtype n_slots=fd_getopt(opts,fd_intern("SLOTS"),FD_INT(32000));
   if (!(FD_FIXNUMP(n_slots))) {
     fd_seterr("NumberOfIndexSlots","file_index_create",spec,n_slots);
     return NULL;}
@@ -1228,6 +1230,32 @@ static fd_index file_index_create(u8_string spec,void *type_data,
     return fd_open_index(spec,flags);
   else return NULL;
 }
+
+/* */
+
+FD_EXPORT fdtype _fd_deprecated_make_file_index_prim(fdtype fname,
+                                                     fdtype size,
+                                                     fdtype metadata)
+{
+  int retval=
+    fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
+                       fd_getint(size));
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
+                                                            fdtype size,
+                                                            fdtype metadata)
+{
+  int retval=
+    fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
+                       fd_getint(size));
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+
 
 
 /* The handler struct */
@@ -1246,7 +1274,9 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchsizes, /* fetchsizes */
   NULL, /* fetchsizes */
   NULL, /* sync */
-  file_index_create /* create */ };
+  file_index_create, /* create */ 
+  NULL  /* indexop */
+};
 
 static u8_string match_index_name(u8_string spec,void *data)
 {
@@ -1276,22 +1306,22 @@ FD_EXPORT void fd_init_fileindices_c()
                          &file_index_handler,
                          open_file_index,
                          match_index_name,
-                         (void*)FD_FILE_INDEX_MAGIC_NUMBER);
+                         (void *) U8_INT2PTR(FD_FILE_INDEX_MAGIC_NUMBER));
   fd_register_index_type("fileindex.v2",
                          &file_index_handler,
                          open_file_index,
                          match_index_name,
-                         (void *)FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+                         (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_MAGIC_NUMBER));
   fd_register_index_type("damaged_fileindex",
                          &file_index_handler,
                          open_file_index,
                          match_index_name,
-                         (void *)FD_FILE_INDEX_TO_RECOVER);
+                         (void *) U8_INT2PTR(FD_FILE_INDEX_TO_RECOVER));
   fd_register_index_type("damaged_fileindex.v2",
                          &file_index_handler,
                          open_file_index,
                          match_index_name,
-                         (void *)FD_MULT_FILE_INDEX_TO_RECOVER);
+                         (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_TO_RECOVER));
 }
 
 

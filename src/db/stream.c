@@ -192,9 +192,9 @@ FD_EXPORT fd_stream fd_open_filestream
 {
   if (bufsiz<0) bufsiz=fd_filestream_bufsize;
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
-  struct FD_STREAM *opened=
-    fd_init_file_stream(stream,fname,mode,bufsiz);
-  if (opened) {
+  struct FD_STREAM *opened;
+  FD_INIT_CONS(stream,fd_stream_type);
+  if (opened=fd_init_file_stream(stream,fname,mode,bufsiz)) {
     opened->stream_flags|=FD_STREAM_IS_MALLOCD;
     return opened;}
   else {
@@ -204,19 +204,30 @@ FD_EXPORT fd_stream fd_open_filestream
 
 FD_EXPORT void fd_close_stream(fd_stream s,int flags)
 {
-  int dofree   =   (U8_BITP(flags,FD_STREAM_FREE));
-  int flush    = !  (U8_BITP(flags,FD_STREAM_NOFLUSH));
+  int dofree    = (U8_BITP(flags,FD_STREAM_FREEDATA));
+  int flush     = !(U8_BITP(flags,FD_STREAM_NOFLUSH));
 
   /* Already closed */
-  if (s->stream_fileno<0) return;
+  if (s->stream_fileno<0) {
+    struct FD_RAWBUF *buf=&(s->buf.raw);
+    if (!(buf->buffer)) return;}
 
   /* Lock before closing */
   lock_stream(s);
 
   /* Flush data */
-  if (flush) {
-    fd_flush_stream(s);
-    fsync(s->stream_fileno);}
+  if ((flush)&&
+      (U8_BITP(s->buf.raw.buf_flags,FD_IS_WRITING))&&
+      (s->buf.out.bufwrite>s->buf.out.buffer)) {
+    if (s->stream_fileno<0) {
+      u8_log(LOGCRIT,_("StreamClosed"),
+             "Stream %s (0x%llx) closed with %d bytes to buffered",
+             U8ALT(s->streamid,"somestream"),
+             (unsigned long long)s,
+             (s->buf.out.bufwrite-s->buf.out.buffer));}
+    else {
+      fd_flush_stream(s);
+      fsync(s->stream_fileno);}}
 
   if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
       (!(flags&FD_STREAM_NOCLOSE))) {
@@ -234,14 +245,26 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
       u8_free(buf->buffer);
       buf->buffer=buf->bufpoint=buf->buflim=NULL;}
     unlock_stream(s);
-    u8_destroy_mutex(&(s->stream_lock));
-    if (s->stream_flags&(FD_STREAM_IS_MALLOCD)) u8_free(s);}
+    u8_destroy_mutex(&(s->stream_lock));}
   else fd_unlock_stream(s);
 }
 
 FD_EXPORT void fd_free_stream(fd_stream s)
 {
-  fd_close_stream(s,FD_STREAM_FREE);
+  struct FD_CONS *cons=(struct FD_CONS *)s;
+  fdtype sptr=(fdtype)s;
+  if (FD_STATIC_CONSP(cons)) {
+    u8_log(LOGWARN,_("FreeingStaticStream"),
+           "Attempting to free the static stream %s 0x%llx",
+           U8ALT(s->streamid,"somestream"),
+           (unsigned long long)s);}
+  else if (FD_CONS_REFCOUNT(cons)>1) {
+    u8_log(LOGWARN,_("DanglingStreamPointers"),
+           "Freeing a stream with dangling pointers %s 0x%llx",
+           U8ALT(s->streamid,"somestream"),
+           (unsigned long long)s);
+    fd_decref(sptr);}
+  else fd_decref(sptr);
 }
 
 FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz)
@@ -274,7 +297,7 @@ static int unparse_stream(struct U8_OUTPUT *out,fdtype x)
 static void recycle_stream(struct FD_RAW_CONS *c)
 {
   struct FD_STREAM *stream=(struct FD_STREAM *)c;
-  fd_close_stream(stream,FD_STREAM_FREE);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -647,7 +670,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
         fd_read_byte(in);
         result=fd_zread_dtype(in);}
       else result=fd_read_dtype(in);
-      fd_free_stream(opened);
+      fd_close_stream(opened,FD_STREAM_FREEDATA);
       return result;}
     else {
       u8_free(stream);
@@ -664,7 +687,7 @@ FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
     size_t len=(zip)?
       (fd_zwrite_dtype(fd_writebuf(opened),object)):
       (fd_write_dtype(fd_writebuf(opened),object));
-    fd_free_stream(opened);
+    fd_close_stream(opened,FD_STREAM_FREEDATA);
     return len;}
   else return -1;
 }
