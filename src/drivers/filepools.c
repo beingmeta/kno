@@ -23,6 +23,8 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
+#include "headers/filepools.h"
+
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -784,6 +786,45 @@ FD_EXPORT void fd_init_file_pools_c()
      (void *)FD_FILE_POOL_TO_RECOVER);
 }
 
+
+/* Deprecated primitives, placed here for now */
+
+FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
+  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
+{
+  fdtype metadata; unsigned int load;
+  int retval;
+  if (FD_FIXNUMP(opt1)) {
+    load=FD_FIX2INT(opt1); metadata=opt2;}
+  else {load=0; metadata=opt1;}
+  if (FD_VOIDP(metadata)) {}
+  else if (!(FD_SLOTMAPP(metadata)))
+    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
+  retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
+                           FD_OID_ADDR(base),fd_getint(capacity),
+                           load);
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label)
+{
+  int retval=-1;
+  fd_stream stream=
+    fd_open_stream(FD_STRING_DATA(fname),FD_STREAM_MODIFY);
+  fd_outbuf outstream=fd_writebuf(stream);
+  if (stream) {
+    fd_off_t endpos=fd_endpos(stream);
+    if (endpos>0) {
+      int bytes=fd_write_dtype(outstream,label);
+      if (bytes>0) {
+        fd_setpos(stream,20);
+        if (fd_write_4bytes((fd_writebuf(stream)),(unsigned int)endpos)>=0) {
+          retval=1; 
+          fd_free_stream(stream);}}}}
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
 
 /* Emacs local variables
    ;;;  Local variables: ***

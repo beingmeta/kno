@@ -5,6 +5,12 @@
 
 /* Getting chunk refs */
 
+/* Full sized chunk refs, usually passed and returned but not
+   directly stored on disk. */
+typedef struct FD_CHUNK_REF {
+  fd_off_t off; size_t size;} FD_CHUNK_REF;
+typedef struct FD_CHUNK_REF *fd_chunk_ref;
+
 typedef long long int ll;
 typedef unsigned long long ull;
 

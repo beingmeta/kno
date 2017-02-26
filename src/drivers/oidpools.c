@@ -28,6 +28,8 @@
 #include "framerd/indices.h"
 #include "framerd/drivers.h"
 
+#include "headers/oidpools.h"
+
 #include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -42,8 +44,6 @@
 #include <sys/mman.h>
 #define MMAP_FLAGS MAP_SHARED
 #endif
-
-#include "dbdriver_internals.h"
 
 /* Locking oid pool streams */
 
@@ -222,7 +222,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
     (fd_compression_type)(((flags)&(FD_OIDPOOL_COMPRESSION))>>3);
   fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname);
   u8_free(rname); /* Done with this */
-  if (magicno==FD_FILE_POOL_TO_RECOVER) {
+  if (magicno==FD_OIDPOOL_TO_RECOVER) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_oidpool(pool)<0) {
       fd_seterr(fd_MallocFailed,"open_oidpool",NULL,FD_VOID);
@@ -1512,6 +1512,70 @@ static fd_pool oidpool_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
+/* Deprecated primitives which access the structure directly */
+
+FD_EXPORT fdtype _fd_make_oidpool_deprecated(int n,fdtype *args)
+{
+  FD_OID base; int retval, flags=0, load, cap; u8_string filename, label;
+  fdtype fname=args[0], base_arg=args[1], capacity=args[2];
+  fdtype label_arg=FD_VOID, flags_arg=FD_VOID, schemas=FD_VOID;
+  fdtype metadata=FD_VOID, load_arg=FD_INT(0);
+  if (n>3) load_arg=args[3];
+  if (n>4) flags_arg=args[4];
+  if (n>5) schemas=args[5];
+  if (n>6) metadata=args[6];
+  if (n>7) label_arg=args[7];
+
+  if (!(FD_OIDP(base_arg)))
+    return fd_type_error(_("OID"),"make_oidpool",base_arg);
+  else base=FD_OID_ADDR(base_arg);
+
+  if (!(FD_STRINGP(fname)))
+    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
+  else filename=FD_STRDATA(fname);
+
+  if (FD_STRINGP(label_arg)) label=FD_STRDATA(label_arg);
+  else if (FD_FALSEP(label_arg)) label=NULL;
+  else if (FD_VOIDP(label_arg)) label=NULL;
+  else return fd_type_error(_("string"),"make_oidpool",capacity);
+
+  if (!(FD_FIXNUMP(capacity)))
+    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
+  else cap=FD_FIX2INT(capacity);
+
+  if (!(FD_FIXNUMP(load_arg)))
+    return fd_type_error(_("fixnum"),"make_oidpool",load_arg);
+  else load=FD_FIX2INT(load_arg);
+
+  if (FD_FALSEP(metadata)) metadata=FD_VOID;
+
+  /* Check that pool alignment is legal */
+
+  {
+    FD_OID end=FD_OID_PLUS(base,cap-1);
+    unsigned int base_lo=FD_OID_LO(base);
+    unsigned int end_lo=FD_OID_LO(end);
+    if (((base_lo)/(1024*1024)) == ((end_lo)/(1024*1024))) {}
+    else if (((base_lo%(1024*1024))==0) && ((cap%(1024*1024))==0)) {}
+    else return fd_err(_("Misaligned pool"),"make_oidpool",NULL,FD_VOID);
+  }
+
+  if (FD_VOIDP(schemas)) {}
+  else if (FD_FALSEP(schemas))  schemas=FD_VOID;
+  else if (FD_VECTORP(schemas)) {}
+  else return fd_type_error(_("vector"),"make_oidpool",schemas);
+
+  flags=interpret_pool_flags(flags);
+
+  retval=fd_make_oidpool(filename,label,
+                         base,cap,load,flags,
+                         schemas,
+                         time(NULL),time(NULL),1);
+
+  if (retval<0)
+    return FD_ERROR_VALUE;
+  else return FD_VOID;
+}
 
 /* Module (file) Initialization */
 

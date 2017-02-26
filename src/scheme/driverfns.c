@@ -25,256 +25,28 @@
 
 static fdtype baseoids_symbol;
 
-static fdtype make_file_pool
-  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
-{
-  fdtype metadata; unsigned int load;
-  int retval;
-  if (FD_FIXNUMP(opt1)) {
-    load=FD_FIX2INT(opt1); metadata=opt2;}
-  else {load=0; metadata=opt1;}
-  if (FD_VOIDP(metadata)) {}
-  else if (!(FD_SLOTMAPP(metadata)))
-    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
-  retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
-                           FD_OID_ADDR(base),fd_getint(capacity),
-                           load);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
+FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
+  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2);
+FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label);
 
-static fdtype label_file_pool(fdtype fname,fdtype label)
-{
-  int retval=-1;
-  fd_stream stream=
-    fd_open_stream(FD_STRING_DATA(fname),FD_STREAM_MODIFY);
-  fd_outbuf outstream=fd_writebuf(stream);
-  if (stream) {
-    fd_off_t endpos=fd_endpos(stream);
-    if (endpos>0) {
-      int bytes=fd_write_dtype(outstream,label);
-      if (bytes>0) {
-        fd_setpos(stream,20);
-        if (fd_write_4bytes((fd_writebuf(stream)),(unsigned int)endpos)>=0) {
-          retval=1; 
-          fd_free_stream(stream);}}}}
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
+FD_EXPORT fdtype _fd_make_oidpool_deprecated(int n,fdtype *args);
 
-static fdtype make_oidpool(int n,fdtype *args)
-{
-  FD_OID base; int retval, flags=0, load, cap; u8_string filename, label;
-  fdtype fname=args[0], base_arg=args[1], capacity=args[2];
-  fdtype label_arg=FD_VOID, flags_arg=FD_VOID, schemas=FD_VOID;
-  fdtype metadata=FD_VOID, load_arg=FD_INT(0);
-  if (n>3) load_arg=args[3];
-  if (n>4) flags_arg=args[4];
-  if (n>5) schemas=args[5];
-  if (n>6) metadata=args[6];
-  if (n>7) label_arg=args[7];
+FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
+                                                            fdtype size,
+                                                            fdtype metadata);
+FD_EXPORT fdtype _fd_deprecated_make_file_index_prim(fdtype fname,
+                                                     fdtype size,
+                                                     fdtype metadata);
 
-  if (!(FD_OIDP(base_arg)))
-    return fd_type_error(_("OID"),"make_oidpool",base_arg);
-  else base=FD_OID_ADDR(base_arg);
-
-  if (!(FD_STRINGP(fname)))
-    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
-  else filename=FD_STRDATA(fname);
-
-  if (FD_STRINGP(label_arg)) label=FD_STRDATA(label_arg);
-  else if (FD_FALSEP(label_arg)) label=NULL;
-  else if (FD_VOIDP(label_arg)) label=NULL;
-  else return fd_type_error(_("string"),"make_oidpool",capacity);
-
-  if (!(FD_FIXNUMP(capacity)))
-    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
-  else cap=FD_FIX2INT(capacity);
-
-  if (!(FD_FIXNUMP(load_arg)))
-    return fd_type_error(_("fixnum"),"make_oidpool",load_arg);
-  else load=FD_FIX2INT(load_arg);
-
-  if (FD_FALSEP(metadata)) metadata=FD_VOID;
-
-  /* Check that pool alignment is legal */
-
-  {
-    FD_OID end=FD_OID_PLUS(base,cap-1);
-    unsigned int base_lo=FD_OID_LO(base);
-    unsigned int end_lo=FD_OID_LO(end);
-    if (((base_lo)/(1024*1024)) == ((end_lo)/(1024*1024))) {}
-    else if (((base_lo%(1024*1024))==0) && ((cap%(1024*1024))==0)) {}
-    else return fd_err(_("Misaligned pool"),"make_oidpool",NULL,FD_VOID);
-  }
-
-  if (FD_VOIDP(schemas)) {}
-  else if (FD_FALSEP(schemas))  schemas=FD_VOID;
-  else if (FD_VECTORP(schemas)) {}
-  else return fd_type_error(_("vector"),"make_oidpool",schemas);
-
-  if (FD_SEQUENCEP(flags_arg)) {
-    if (fd_position(fd_intern("B64"),flags_arg,0,-1)>=0)
-      flags=flags|FD_B64;
-    else if (fd_position(fd_intern("B32"),flags_arg,0,-1)>=0) {}
-    else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0)
-      flags=flags|FD_B40;
-    else flags=flags|FD_B40;
-    
-    if (fd_position(fd_intern("NOCOMPRESS"),flags_arg,0,-1)>=0) {}
-    else if (fd_position(fd_intern("ZLIB"),flags_arg,0,-1)>=0)
-      flags=flags|((FD_ZLIB)<<3);
-    else if (fd_position(fd_intern("BZ2"),flags_arg,0,-1)>=0)
-      flags=flags|((FD_BZ2)<<3);
-    
-    if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
-      flags=flags|FD_OIDPOOL_DTYPEV2;
-    
-    if (fd_position(fd_intern("READONLY"),flags_arg,0,-1)>=0)
-      flags=flags|FD_OIDPOOL_READ_ONLY;}
-  else flags=FD_B40;
-  
-  retval=fd_make_oidpool(filename,label,
-                         base,cap,load,flags,
-                         schemas,
-                         time(NULL),time(NULL),1);
-
-  if (retval<0)
-    return FD_ERROR_VALUE;
-  else return FD_VOID;
-}
-
-static fdtype make_file_index(fdtype fname,fdtype size,fdtype metadata)
-{
-  int retval=
-    fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
-                       fd_getint(size));
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-static fdtype make_legacy_file_index(fdtype fname,fdtype size,fdtype metadata)
-{
-  int retval=
-    fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
-                       fd_getint(size));
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-static int get_make_hash_index_flags(fdtype flags_arg)
-{
-  if (FD_SEQUENCEP(flags_arg)) {
-    int flags=0;
-    if (fd_position(fd_intern("B64"),flags_arg,0,-1)>=0) 
-      flags=flags|(FD_B64<<4);
-    else if (fd_position(fd_intern("B32"),flags_arg,0,-1)>=0) {}
-    else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0) 
-      flags=flags|(FD_B40<<4);
-    else flags=flags|(FD_B40<<4);
-    if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
-      flags=flags|FD_HASH_INDEX_DTYPEV2;
-    else if (fd_position(fd_intern("DTYPEV1"),flags_arg,0,-1)>=0)
-      flags=flags;
-    else flags=flags; /* |FDB_DTYPEV2; */
-    return flags;}
-  else if (FD_EQ(flags_arg,fd_intern("DTYPEV2")))
-    return FD_HASH_INDEX_DTYPEV2;
-  else if (FD_EQ(flags_arg,fd_intern("B40")))
-    return (FD_B40<<4);
-  else if (FD_EQ(flags_arg,fd_intern("B64")))
-    return (FD_B64<<4);
-  else return (FD_B40<<4);
-}
-
-static fdtype make_hash_index(fdtype fname,fdtype size,
-                              fdtype slotids,fdtype baseoids,
-                              fdtype metadata,
-                              fdtype flags_arg)
-{
-  int retval=
-    fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
-                       get_make_hash_index_flags(flags_arg),0,
-                       slotids,baseoids,-1,-1);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
-}
-
-static fdtype populate_hash_index
-  (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
-{
-  fd_index ix=fd_indexptr(ix_arg); int blocksize=-1, retval;
-  const fdtype *keyvec; fdtype *consed_keyvec=NULL;
-  unsigned int n_keys; fdtype keys_choice=FD_VOID;
-  if (!(fd_hash_indexp(ix)))
-    return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
-  if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
-  if (FD_CHOICEP(keys)) {
-    keyvec=FD_CHOICE_DATA(keys); n_keys=FD_CHOICE_SIZE(keys);}
-  else if (FD_VECTORP(keys)) {
-    keyvec=FD_VECTOR_DATA(keys); n_keys=FD_VECTOR_LENGTH(keys);}
-  else if (FD_VOIDP(keys)) {
-    if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_raw_index_type))) {
-      fd_index ix=fd_indexptr(from);
-      if (ix->index_handler->fetchkeys!=NULL) {
-        consed_keyvec=ix->index_handler->fetchkeys(ix,&n_keys);
-        keyvec=consed_keyvec;}
-      else keys_choice=fd_getkeys(from);}
-    else keys_choice=fd_getkeys(from);
-    if (!(FD_VOIDP(keys_choice))) {
-      if (FD_CHOICEP(keys_choice)) {
-        keyvec=FD_CHOICE_DATA(keys_choice);
-        n_keys=FD_CHOICE_SIZE(keys_choice);}
-      else {
-        keyvec=&keys; n_keys=1;}}
-    else {keyvec=&keys; n_keys=0;}}
-  else {
-    keyvec=&keys; n_keys=1;}
-  if (n_keys)
-    retval=fd_populate_hash_index
-      ((struct FD_HASH_INDEX *)ix,from,keyvec,n_keys,blocksize);
-  else retval=0;
-  fd_decref(keys_choice);
-  if (consed_keyvec) {
-    int i=0; while (i<n_keys) {
-      fd_decref(keyvec[i]); i++;}
-    if (consed_keyvec) u8_free(consed_keyvec);}
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_INT(retval);
-}
-
-static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
-{
-  fd_index ix=fd_indexptr(ix_arg); int bucket;
-  if (!(fd_hash_indexp(ix)))
-    return fd_type_error(_("hash index"),"hash_index_bucket",ix_arg);
-  bucket=fd_hash_index_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
-  if (FD_FIXNUMP(modulus))
-    return FD_INT((bucket%FD_FIX2INT(modulus)));
-  else return FD_INT(bucket);
-}
-
-static fdtype hash_index_stats(fdtype ix_arg)
-{
-  fd_index ix=fd_indexptr(ix_arg);
-  if ((ix==NULL) || (!(fd_hash_indexp(ix))))
-    return fd_type_error(_("hash index"),"hash_index_stats",ix_arg);
-  return fd_hash_index_stats((struct FD_HASH_INDEX *)ix);
-}
-
-static fdtype hash_index_slotids(fdtype ix_arg)
-{
-  fd_index ix=fd_indexptr(ix_arg);
-  if (!(fd_hash_indexp(ix)))
-    return fd_type_error(_("hash index"),"hash_index_slotids",ix_arg);
-  else {
-    struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
-    fdtype *elts=u8_alloc_n(hx->index_n_slotids,fdtype);
-    fdtype *slotids=hx->index_slotids;
-    int i=0, n=hx->index_n_slotids;
-    while (i< n) {elts[i]=slotids[i]; i++;}
-    return fd_init_vector(NULL,n,elts);}
-}
+FD_EXPORT fdtype _fd_make_hash_index_deprecated(fdtype fname,fdtype size,
+                                                fdtype slotids,fdtype baseoids,
+                                                fdtype metadata,
+                                                fdtype flags_arg);
+FD_EXPORT fdtype _fd_populate_hash_index_deprecated
+  (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys);
+FD_EXPORT fdtype _fd_hash_index_bucket_deprecated(fdtype ix_arg,fdtype key,fdtype modulus);
+FD_EXPORT fdtype _fd_hash_index_stats_deprecated(fdtype ix_arg);
+FD_EXPORT fdtype _fd_hash_index_slotids_deprecated(fdtype ix_arg);
 
 /* Cache forcing */
 
@@ -286,47 +58,6 @@ static unsigned int load_cache(unsigned int *cache,int length)
   unsigned int combo=0;
   int i=0; while (i<length) combo=combo^cache[i++];
   return combo;
-}
-
-static int load_pool_cache(fd_pool p,void *ignored)
-{
-  if ((p->pool_handler==NULL) ||
-      (p->pool_handler->name==NULL))
-    return 0;
-  else if (strcmp(p->pool_handler->name,"file_pool")==0) {
-    struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-    if (fp->pool_offsets) load_cache(fp->pool_offsets,fp->pool_offsets_size);}
-  else if (strcmp(p->pool_handler->name,"oidpool")==0) {
-    struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
-    if (fp->pool_offsets)
-      load_cache(fp->pool_offsets,fp->pool_offsets_size);}
-  return 0;
-}
-
-static int load_index_cache(fd_index ix,void *ignored)
-{
-  if ((ix->index_handler==NULL) || (ix->index_handler->name==NULL)) return 0;
-  else if (strcmp(ix->index_handler->name,"file_index")==0) {
-    struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
-    if (fx->index_offsets) load_cache(fx->index_offsets,fx->index_n_slots);}
-  else if (strcmp(ix->index_handler->name,"hash_index")==0) {
-    struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
-    if (hx->index_offdata)
-      load_cache(hx->index_offdata,hx->index_n_buckets*2);}
-  return 0;
-}
-
-static fdtype load_caches_prim(fdtype arg)
-{
-  if (FD_VOIDP(arg)) {
-    fd_for_pools(load_pool_cache,NULL);
-    fd_for_indices(load_index_cache,NULL);}
-  else if (FD_TYPEP(arg,fd_index_type))
-    load_index_cache(fd_indexptr(arg),NULL);
-  else if (FD_TYPEP(arg,fd_pool_type))
-    load_pool_cache(fd_lisp2pool(arg),NULL);
-  else {}
-  return FD_VOID;
 }
 
 /* Hashing functions */
@@ -649,31 +380,33 @@ FD_EXPORT void fd_init_driverfns_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(driverfns_module,
-           fd_make_cprim3x("MAKE-FILE-INDEX",make_file_index,2,
+           fd_make_cprim3x("MAKE-FILE-INDEX",
+                           _fd_deprecated_make_file_index_prim,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_slotmap_type,FD_VOID));
   fd_idefn(driverfns_module,
-           fd_make_cprim3x("MAKE-LEGACY-FILE-INDEX",make_legacy_file_index,2,
+           fd_make_cprim3x("MAKE-LEGACY-FILE-INDEX",
+                           _fd_deprecated_make_legacy_file_index_prim,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_slotmap_type,FD_VOID));
   fd_idefn(driverfns_module,
-           fd_make_cprim5x("MAKE-FILE-POOL",make_file_pool,3,
+           fd_make_cprim5x("MAKE-FILE-POOL",
+                           _fd_deprecated_make_file_pool_prim,3,
                            fd_string_type,FD_VOID,
                            fd_oid_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(driverfns_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));
-
   fd_idefn(driverfns_module,
-           fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
+           fd_make_cprimn("MAKE-OIDPOOL",_fd_make_oidpool_deprecated,3));
 
-  fd_idefn(driverfns_module,fd_make_cprim2x("LABEL-FILE-POOL!",label_file_pool,2,
-                                         fd_string_type,FD_VOID,
-                                         fd_string_type,FD_VOID));
-
+  fd_idefn(driverfns_module,fd_make_cprim2x("LABEL-FILE-POOL!",
+                                            _fd_deprecated_label_file_pool_prim,2,
+                                            fd_string_type,FD_VOID,
+                                            fd_string_type,FD_VOID));
+  
   fd_idefn(driverfns_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
                                          fd_string_type,FD_VOID));
   fd_idefn(driverfns_module,
@@ -683,22 +416,25 @@ FD_EXPORT void fd_init_driverfns_c()
   
 
   fd_idefn(driverfns_module,
-           fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
+           fd_make_cprim4x("POPULATE-HASH-INDEX",
+                           _fd_populate_hash_index_deprecated,2,
                            -1,FD_VOID,-1,FD_VOID,
                            fd_fixnum_type,FD_VOID,-1,FD_VOID));
   fd_idefn(driverfns_module,
-           fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
+           fd_make_cprim6x("MAKE-HASH-INDEX",
+                           _fd_make_hash_index_deprecated,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
                            -1,FD_FALSE));
   fd_idefn(driverfns_module,
-           fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
+           fd_make_cprim3x("HASH-INDEX-BUCKET",
+                           _fd_hash_index_bucket_deprecated,2,
                            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(driverfns_module,
-           fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
+           fd_make_cprim1("HASH-INDEX-SLOTIDS",_fd_hash_index_slotids_deprecated,1));
   fd_idefn(driverfns_module,
-           fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
+           fd_make_cprim1("HASH-INDEX-STATS",_fd_hash_index_stats_deprecated,1));
 
 
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));

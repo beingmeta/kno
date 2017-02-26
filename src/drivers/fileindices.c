@@ -18,6 +18,8 @@
 #include "framerd/indices.h"
 #include "framerd/drivers.h"
 
+#include "headers/fileindices.h"
+
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
@@ -1228,6 +1230,32 @@ static fd_index file_index_create(u8_string spec,void *type_data,
     return fd_open_index(spec,flags);
   else return NULL;
 }
+
+/* */
+
+FD_EXPORT fdtype _fd_deprecated_make_file_index_prim(fdtype fname,
+                                                     fdtype size,
+                                                     fdtype metadata)
+{
+  int retval=
+    fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
+                       fd_getint(size));
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
+                                                            fdtype size,
+                                                            fdtype metadata)
+{
+  int retval=
+    fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
+                       fd_getint(size));
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+
 
 
 /* The handler struct */
