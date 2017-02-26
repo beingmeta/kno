@@ -171,12 +171,12 @@ FD_EXPORT fd_stream fd_init_file_stream
     fd=open(localname,O_RDONLY,0666);
     if (fd>0) writing=0;}
   if (fd>0) {
-    fd_init_stream(stream,fname,fd,FD_STREAM_OWNS_FILENO,bufsiz);
+    fd_init_stream(stream,fname,fd,
+                   (FD_DEFAULT_FILESTREAM_FLAGS |
+                    ((lock) ? (FD_STREAM_NEEDS_LOCK) : (0)) |
+                    ((writing) ? (0) : (FD_STREAM_READ_ONLY))),
+                   bufsiz);
     stream->streamid=u8_strdup(fname);
-    stream->stream_flags|=FD_STREAM_CAN_SEEK;
-    if (lock) stream->stream_flags|=FD_STREAM_NEEDS_LOCK;
-    if (writing == 0)
-      stream->stream_flags|=FD_STREAM_READ_ONLY;
     stream->stream_maxpos=lseek(fd,0,SEEK_END);
     stream->stream_filepos=lseek(fd,0,SEEK_SET);
     u8_init_mutex(&(stream->stream_lock));
@@ -205,7 +205,6 @@ FD_EXPORT fd_stream fd_open_filestream
 FD_EXPORT void fd_close_stream(fd_stream s,int flags)
 {
   int dofree   =   (U8_BITP(flags,FD_STREAM_FREE));
-  int close_fd = ! (U8_BITP(flags,FD_STREAM_NOCLOSE));
   int flush    = !  (U8_BITP(flags,FD_STREAM_NOFLUSH));
 
   /* Already closed */
@@ -219,7 +218,8 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
     fd_flush_stream(s);
     fsync(s->stream_fileno);}
 
-  if (close_fd) {
+  if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
+      (!(flags&FD_STREAM_NOCLOSE))) {
     if (s->stream_flags&FD_STREAM_SOCKET)
       shutdown(s->stream_fileno,SHUT_RDWR);
     close(s->stream_fileno);}
@@ -239,9 +239,9 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
   else fd_unlock_stream(s);
 }
 
-FD_EXPORT void fd_free_stream(fd_stream s,int flags)
+FD_EXPORT void fd_free_stream(fd_stream s)
 {
-  fd_close_stream(s,flags|FD_STREAM_FREE);
+  fd_close_stream(s,FD_STREAM_FREE);
 }
 
 FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz)
@@ -256,6 +256,7 @@ FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz)
     buf->bufpoint=buf->buffer+ptroff; buf->buflim=buf->buffer+endoff;
     buf->buflen=bufsiz;
   }
+  s->buf.raw.buf_flags|=FD_BUFFER_IS_MALLOCD;
   fd_unlock_stream(s);
 }
 
@@ -273,7 +274,7 @@ static int unparse_stream(struct U8_OUTPUT *out,fdtype x)
 static void recycle_stream(struct FD_RAW_CONS *c)
 {
   struct FD_STREAM *stream=(struct FD_STREAM *)c;
-  fd_close_stream(stream,(stream->stream_flags&FD_STREAM_OWNS_FILENO));
+  fd_close_stream(stream,FD_STREAM_FREE);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -646,7 +647,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
         fd_read_byte(in);
         result=fd_zread_dtype(in);}
       else result=fd_read_dtype(in);
-      fd_free_stream(opened,1);
+      fd_free_stream(opened);
       return result;}
     else {
       u8_free(stream);
@@ -663,7 +664,7 @@ FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
     size_t len=(zip)?
       (fd_zwrite_dtype(fd_writebuf(opened),object)):
       (fd_write_dtype(fd_writebuf(opened),object));
-    fd_free_stream(opened,1);
+    fd_free_stream(opened);
     return len;}
   else return -1;
 }

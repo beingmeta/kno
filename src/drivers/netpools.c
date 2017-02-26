@@ -83,13 +83,13 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   request=fd_make_list(2,pool_data_symbol,fd_incref(client_id));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_write_dtype(outstream,request)<0) {
-    fd_close_stream(stream,0);
+    fd_free_stream(stream);
     fd_decref(request);
     return FD_ERROR_VALUE;}
   fd_decref(request);
   result=fd_read_dtype(fd_readbuf(stream));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
-  fd_close_stream(stream,0);
+  fd_free_stream(stream);
   return result;
 }
 

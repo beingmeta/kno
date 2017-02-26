@@ -294,7 +294,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
     else {
       fd_seterr("Bad SLOTIDS data","open_hash_index",
                 u8_strdup(fname),FD_VOID);
-      fd_close_stream(stream,0);
+      fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
   else {
@@ -317,7 +317,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
     else {
       fd_seterr("Bad BASEOIDS data","open_hash_index",
                 u8_strdup(fname),FD_VOID);
-      fd_close_stream(stream,0);
+      fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
   else {
@@ -407,7 +407,7 @@ FD_EXPORT int fd_make_hash_index
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_hash_index",u8_strdup(fname));
-    fd_close_stream(stream,0);
+    fd_free_stream(stream);
     return -1;}
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   if (n_buckets_arg<0) n_buckets=-n_buckets_arg;
@@ -487,7 +487,7 @@ FD_EXPORT int fd_make_hash_index
     fd_write_4bytes(outstream,metadata_size);}
 
   fd_flush_stream(stream);
-  fd_close_stream(stream,0);
+  fd_free_stream(stream);
   
   return 0;
 }
@@ -2559,7 +2559,7 @@ static void hash_index_close(fd_index ix)
 #endif
     hx->index_offdata=NULL;
     hx->index_cache_level=-1;}
-  fd_free_stream(&(hx->index_stream),1);
+  fd_close_stream(&(hx->index_stream),0);
   u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->index_idstring);
   fd_unlock_index(hx);
 }

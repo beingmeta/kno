@@ -633,7 +633,7 @@ static void file_pool_close(fd_pool p)
   fd_lock_pool(fp);
   if (write_file_pool_load(fp)<0)
     u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_idstring);
-  fd_free_stream(&(fp->pool_stream),1);
+  fd_close_stream(&(fp->pool_stream),0);
   if (fp->pool_offsets) {
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
@@ -677,7 +677,7 @@ int fd_make_file_pool
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
-    fd_close_stream(stream,FD_STREAM_FREE);
+    fd_free_stream(stream);
     return -1;}
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_setpos(stream,0);
@@ -693,7 +693,7 @@ int fd_make_file_pool
   fd_write_4bytes(outstream,0xFFFFFFFE);
   fd_write_4bytes(outstream,40);
   i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
-  fd_close_stream(stream,FD_STREAM_FREE);
+  fd_free_stream(stream);
   return 1;
 }
 

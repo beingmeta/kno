@@ -57,7 +57,7 @@ static fdtype label_file_pool(fdtype fname,fdtype label)
         fd_setpos(stream,20);
         if (fd_write_4bytes((fd_writebuf(stream)),(unsigned int)endpos)>=0) {
           retval=1; 
-          fd_free_stream(stream,1);}}}}
+          fd_free_stream(stream);}}}}
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -393,10 +393,10 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
       fd_stream_setbuf(out,FD_FIX2INT(bufsiz));
     bytes=fd_write_dtype(outstream,object);
     if (bytes<0) {
-      fd_free_stream(out,FD_STREAM_CLOSE_FULL);
+      fd_free_stream(out);
       u8_free(temp_name);
       return FD_ERROR_VALUE;}
-    fd_free_stream(out,FD_STREAM_CLOSE_FULL);
+    fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
@@ -425,10 +425,10 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
       fd_stream_setbuf(stream,FD_FIX2INT(bufsiz));
     bytes=fd_zwrite_dtype(out,object);
     if (bytes<0) {
-      fd_free_stream(stream,FD_STREAM_CLOSE_FULL);
+      fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
       u8_free(temp_name);
       return FD_ERROR_VALUE;}
-    fd_free_stream(stream,FD_STREAM_CLOSE_FULL);
+    fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
@@ -459,7 +459,7 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
     else out=fd_writebuf(stream);
     fd_endpos(stream);
     bytes=fd_write_dtype(out,object);
-    fd_free_stream(stream,FD_STREAM_CLOSE_FULL);
+    fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
     return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *out=
@@ -480,7 +480,7 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
     if (out==NULL) return FD_ERROR_VALUE;
     fd_endpos(out);
     bytes=fd_zwrite_dtype(fd_writebuf(out),object);
-    fd_free_stream(out,FD_STREAM_CLOSE_FULL);
+    fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *out=
@@ -514,7 +514,7 @@ static fdtype zipfile2dtype(fdtype filename)
     in=fd_open_stream(FD_STRDATA(filename),FD_STREAM_READ);
     if (in==NULL) return FD_ERROR_VALUE;
     else object=fd_zread_dtype(fd_readbuf(in));
-    fd_free_stream(in,FD_STREAM_CLOSE_FULL);
+    fd_close_stream(in,FD_STREAM_CLOSE_FULL);
     return object;}
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
@@ -544,7 +544,7 @@ static fdtype file2dtypes(fdtype filename)
       while (!(FD_EODP(object))) {
         FD_ADD_TO_CHOICE(results,object);
         object=fd_read_dtype(inbuf);}
-      fd_free_stream(in,FD_STREAM_CLOSE_FULL);
+      fd_close_stream(in,FD_STREAM_CLOSE_FULL);
       return results;}}
   else return fd_type_error(_("string"),"file2dtypes",filename);
 }
@@ -562,7 +562,7 @@ static fdtype zipfile2dtypes(fdtype filename)
       while (!(FD_EODP(object))) {
         FD_ADD_TO_CHOICE(results,object);
         object=fd_zread_dtype(inbuf);}
-      fd_free_stream(in,FD_STREAM_CLOSE_FULL);
+      fd_close_stream(in,FD_STREAM_CLOSE_FULL);
       return results;}}
   else return fd_type_error(_("string"),"zipfile2dtypes",filename);;
 }

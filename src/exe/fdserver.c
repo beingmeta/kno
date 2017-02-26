@@ -658,7 +658,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
-  fd_close_stream(&(client->fd_clientstream),FD_STREAM_NOCLOSE);
+  fd_close_stream(&(client->fd_clientstream),0);
   fd_decref((fdtype)((fd_client)ucl)->env);
   ucl->socket=-1;
   return 1;

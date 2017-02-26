@@ -1157,13 +1157,14 @@ static void file_index_close(fd_index ix)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   fd_lock_index(fx);
-  fd_free_stream(&(fx->index_stream),1);
+  fd_close_stream(&(fx->index_stream),0);
   if (fx->index_offsets) {
 #if HAVE_MMAP
     int retval=munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
     if (retval<0) {
       u8_log(LOG_CRIT,u8_strerror(errno),
-             "[%d:%d] file_index_close:munmap %s",retval,errno,fx->index_source);
+             "[%d:%d] file_index_close:munmap %s",
+             retval,errno,fx->index_source);
       errno=0;}
 #else
     u8_free(fx->index_offsets);
@@ -1198,7 +1199,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
-    fd_close_stream(stream,FD_STREAM_FREE);
+    fd_free_stream(stream);
     return -1;}
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
@@ -1210,7 +1211,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   fd_write_4bytes(outstream,0xFFFFFFFE);
   fd_write_4bytes(outstream,40);
   i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
-  fd_close_stream(stream,FD_STREAM_FREE);
+  fd_free_stream(stream);
   return 1;
 }
 

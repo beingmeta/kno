@@ -63,6 +63,9 @@ typedef struct FD_STREAM *fd_stream;
 #define FD_STREAM_IS_MALLOCD     (FD_STREAM_FLAGS << 8)
 #define FD_STREAM_OWNS_FILENO    (FD_STREAM_FLAGS << 9)
 
+#define FD_DEFAULT_FILESTREAM_FLAGS \
+  (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO|FD_STREAM_CAN_SEEK)
+
 typedef enum FD_STREAM_MODE {
   FD_STREAM_READ, /* Read only, must exist */
   FD_STREAM_MODIFY, /* Read/write, must exist */
@@ -106,7 +109,7 @@ FD_EXPORT fd_stream fd_open_filestream
 #define FD_STREAM_CLOSE_FULL FD_STREAM_FREE
 
 FD_EXPORT void fd_close_stream(fd_stream s,int flags);
-FD_EXPORT void fd_free_stream(fd_stream s,int flags);
+FD_EXPORT void fd_free_stream(fd_stream s);
 
 FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
 FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype,u8_string,size_t,int);

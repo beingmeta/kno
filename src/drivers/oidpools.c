@@ -513,7 +513,7 @@ FD_EXPORT int fd_make_oidpool
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_oidpool",u8_strdup(fname));
-    fd_close_stream(stream,0);
+    fd_free_stream(stream);
     return -1;}
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_lock_stream(stream);
@@ -602,7 +602,7 @@ FD_EXPORT int fd_make_oidpool
 
   fd_flush_stream(stream);
   fd_unlock_stream(stream);
-  fd_close_stream(stream,0);
+  fd_free_stream(stream);
   return 0;
 }
 
