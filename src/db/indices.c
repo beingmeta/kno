@@ -117,7 +117,9 @@ static void init_cache_level(fd_index ix)
 
 FD_EXPORT void fd_register_index(fd_index ix)
 {
-  if (ix->index_serialno<0) {
+  if (ix->index_flags&FDB_UNREGISTERED)
+    return;
+  else if (ix->index_serialno<0) {
     fd_lock_mutex(&indices_lock);
     if (ix->index_serialno>=0) { /* Handle race condition */
       fd_unlock_mutex(&indices_lock); return;}

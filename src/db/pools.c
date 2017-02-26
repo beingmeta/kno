@@ -175,7 +175,8 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   int baseindex=fd_get_oid_base_index(p->pool_base,1);
   if (p->pool_serialno>=0) return 0;
   else if (baseindex<0) return baseindex;
-  fd_lock_mutex(&pool_registry_lock);
+  else if (p->pool_flags&FDB_UNREGISTERED) return 0;
+  else fd_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
   serial_no=p->pool_serialno=fd_pool_serial_count++; fd_n_pools++;
   fd_pool_serial_table[serial_no]=p;
@@ -715,7 +716,9 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       (pick_writes(p,FD_EMPTY_CHOICE));
     if (writes.len) {
       u8_log(fddb_loglevel,"PoolCommit",
-             "####### Saving %d/%d OIDs in %s",writes.len,p->pool_idstring);
+             "####### Saving %d/%d OIDs in %s",
+             writes.len,p->pool_changes.n_keys,
+             p->pool_idstring);
       init_cache_level(p);
       retval=p->pool_handler->storen(p,writes.len,writes.oids,writes.values);}
     else retval=0;
@@ -1112,7 +1115,7 @@ FD_EXPORT fdtype fd_pool2lisp(fd_pool p)
   if (p==NULL)
     return FD_ERROR_VALUE;
   else if (p->pool_serialno<0)
-    return fd_err(fd_UnregisteredPool,"fd_pool2lisp",p->pool_idstring,FD_VOID);
+    return fd_incref((fdtype) p);
   else return FDTYPE_IMMEDIATE(fd_pool_type,p->pool_serialno);
 }
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
