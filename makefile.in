@@ -268,6 +268,12 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
+CLEANDIRS=src/cons src/db src/drivers src/scheme \
+	src/texttools src/fdweb \
+	include/framerd src/drivers/headers \
+	src/cmodules src/cmodules/sundown src/cmodules/tidy5 \
+	etc
+
 FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVERS_HEADERS) $(SCHEME_HEADERS)
 
@@ -708,23 +714,21 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@ls -l SCHEMETAGS
 
 profile-clean:
-	find . -name "*.gcda" | xargs rm -f
-	find . -name "*.gcno" | xargs rm -f
-	find . -name "*.gcov" | xargs rm -f
-	find . -name "*.bb" | xargs rm -f
-	find . -name "*.bbg" | xargs rm -f
-	find . -name "*.da" | xargs rm -f
-	find . -name "gmon.out" | xargs rm -f
+	@find . -name "*.gcda" | xargs rm -f
+	@find . -name "*.gcno" | xargs rm -f
+	@find . -name "*.gcov" | xargs rm -f
+	@find . -name "*.bb" | xargs rm -f
+	@find . -name "*.bbg" | xargs rm -f
+	@find . -name "*.da" | xargs rm -f
+	@find . -name "gmon.out" | xargs rm -f
 tidy: profile-clean
-	rm -f src/cons/*~ src/db/*~ src/scheme/*~ src/fdweb/*~
-	rm -f include/framerd/*~
-	rm -f tests/cons/*~ tests/db/*.o tests/scheme/*.o
+	@for dir in ${CLEANDIRS}; do \
+	  rm -f $${dir}/*~ $${dir}/*.o; \
+	done
 	rm -f config.log
 clean: tidy
 	rm -f buildmode
-	rm -f src/cons/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o 
-	rm -f src/cmodules/*.o src/texttools/*.o exe/*.o
-	rm -f src/cmodules/sundown/*.o
+	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
 	rm -f lib/*@suffix@.so.*
