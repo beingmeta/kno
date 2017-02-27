@@ -13,8 +13,20 @@
 #include "chunkrefs.h"
 
 #define FD_BIGPOOL_MAGIC_NUMBER ((2<<24)|(7<<16)|(16<<8)|(12))
+#define FD_BIGPOOL_TO_RECOVER ((2<<24)|(7<<16)|(16<<8)|(0xFF))
 
-/* OID Pools */
+
+#ifndef FD_INIT_ZBUF_SIZE
+#define FD_INIT_ZBUF_SIZE 24000
+#endif
+
+#define FD_BIGPOOL_LOAD_POS      0x10
+
+#define FD_BIGPOOL_LABEL_POS             0x18
+#define FD_BIGPOOL_METADATA_POS          0x24
+#define FD_BIGPOOL_SLOTIDS_POS           0x54
+
+#define FD_BIGPOOL_FETCHBUF_SIZE 8000
 
 #define FD_BIGPOOL_OFFMODE     0x07
 #define FD_BIGPOOL_COMPRESSION 0x78
@@ -30,11 +42,10 @@ typedef struct FD_BIGPOOL {
   unsigned int pool_load;
   unsigned int *pool_offdata, pool_offdata_length;
   unsigned char *pool_mmap; size_t pool_mmap_size;
-  fdtype *slotids;
-  unsigned int n_slotids, slotids_length;
+  fdtype *slotids, *old_slotids;
+  unsigned int n_slotids, slotids_length, added_slotids;
   struct FD_HASHTABLE slotcodes;
   time_t pool_modtime;
   U8_MUTEX_DECL(file_lock);} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;
-
 
