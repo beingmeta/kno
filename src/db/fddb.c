@@ -480,8 +480,6 @@ FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
 FD_EXPORT void fd_init_indexes_c(void);
 FD_EXPORT void fd_init_dtcall_c(void);
-FD_EXPORT void fd_init_netpools_c(void);
-FD_EXPORT void fd_init_netindexes_c(void);
 FD_EXPORT void fd_init_xtables_c(void);
 FD_EXPORT void fd_init_dtproc_c(void);
 FD_EXPORT void fd_init_frames_c(void);
@@ -508,8 +506,6 @@ FD_EXPORT int fd_init_dblib()
   fd_init_frames_c();
   fd_init_drivers_c();
   fd_init_dtcall_c();
-  fd_init_netpools_c();
-  fd_init_netindexes_c();
   fd_init_dtproc_c();
 #if FD_IPEVAL_ENABLED
   fd_init_ipeval_c();

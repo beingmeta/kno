@@ -1638,7 +1638,7 @@ static u8_string match_pool_name(u8_string spec,void *data)
       return NULL;}}
 }
 
-FD_EXPORT void fd_init_oidpools_c()
+FD_EXPORT void fd_init_oidpool_c()
 {
   u8_register_source_file(_FILEINFO);
 

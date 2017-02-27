@@ -244,7 +244,7 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   NULL  /* poolop */
 }; /* sync */
 
-FD_EXPORT void fd_init_extpools_c()
+FD_EXPORT void fd_init_extpool_c()
 {
   lock_symbol=fd_intern("LOCK");
   unlock_symbol=fd_intern("UNLOCK");

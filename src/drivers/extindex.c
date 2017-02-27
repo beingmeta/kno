@@ -205,7 +205,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL  /* indexop */
 };
 
-FD_EXPORT void fd_init_extindexes_c()
+FD_EXPORT void fd_init_extindex_c()
 {
   set_symbol=fd_intern("set");
   drop_symbol=fd_intern("drop");

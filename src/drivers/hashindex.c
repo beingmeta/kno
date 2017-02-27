@@ -2797,7 +2797,7 @@ static u8_string match_index_name(u8_string spec,void *data)
       return NULL;}}
 }
 
-FD_EXPORT void fd_init_hashindexes_c()
+FD_EXPORT void fd_init_hashindex_c()
 {
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");

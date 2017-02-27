@@ -169,7 +169,7 @@ FD_EXPORT int fd_reset_mempool(fd_pool p)
     return 0;}
 }
 
-FD_EXPORT void fd_init_mempools_c()
+FD_EXPORT void fd_init_mempool_c()
 {
   u8_register_source_file(_FILEINFO);
 

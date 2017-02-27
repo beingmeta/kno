@@ -789,7 +789,7 @@ static u8_string match_pool_name(u8_string spec,void *data)
 
 /* Module (file) Initialization */
 
-FD_EXPORT void fd_init_file_pools_c()
+FD_EXPORT void fd_init_file_pool_c()
 {
   u8_register_source_file(_FILEINFO);
 

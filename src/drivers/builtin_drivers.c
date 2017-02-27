@@ -37,17 +37,17 @@ FD_EXPORT int fd_init_builtindbs_c()
   return builtindbs_c_initialized;
 }
 
-int fd_init_memindexes_c(void);
-int fd_init_extindexes_c(void);
-int fd_init_netindexes_c(void);
-int fd_init_fileindexes_c(void);
-int fd_init_hashindexes_c(void);
+int fd_init_memindex_c(void);
+int fd_init_extindex_c(void);
+int fd_init_netindex_c(void);
+int fd_init_fileindex_c(void);
+int fd_init_hashindex_c(void);
 
-int fd_init_mempools_c(void);
-int fd_init_extpools_c(void);
-int fd_init_netpools_c(void);
-int fd_init_file_pools_c(void);
-int fd_init_oidpools_c(void);
+int fd_init_mempool_c(void);
+int fd_init_extpool_c(void);
+int fd_init_netpool_c(void);
+int fd_init_file_pool_c(void);
+int fd_init_oidpool_c(void);
 
 int dbs_initialized=0;
 
@@ -57,19 +57,19 @@ FD_EXPORT int fd_init_dbs()
   dbs_initialized=307*fd_init_dblib();
 
   fd_init_builtindbs_c();
-  fd_init_mempools_c();
-  fd_init_extpools_c();
-  fd_init_netpools_c();
+  fd_init_mempool_c();
+  fd_init_extpool_c();
+  fd_init_netpool_c();
 
-  fd_init_file_pools_c();
-  fd_init_oidpools_c();
+  fd_init_file_pool_c();
+  fd_init_oidpool_c();
 
-  fd_init_extindexes_c();
-  fd_init_memindexes_c();
-  fd_init_netindexes_c();
+  fd_init_extindex_c();
+  fd_init_memindex_c();
+  fd_init_netindex_c();
 
-  fd_init_fileindexes_c();
-  fd_init_hashindexes_c();
+  fd_init_fileindex_c();
+  fd_init_hashindex_c();
 
   u8_register_source_file(_FILEINFO);
 

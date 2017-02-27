@@ -1295,7 +1295,7 @@ static u8_string match_index_name(u8_string spec,void *data)
       return NULL;}}
 }
 
-FD_EXPORT void fd_init_fileindexes_c()
+FD_EXPORT void fd_init_fileindex_c()
 {
   u8_register_source_file(_FILEINFO);
 

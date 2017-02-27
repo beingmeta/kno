@@ -123,7 +123,7 @@ DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
 	src/db/drivers.o 						\
 	@ipevalo@ src/db/frames.o
 DBDRIVERS_OBJS=\
-	src/drivers/builtindbs.o 					\
+	src/drivers/builtin_drivers.o 					\
 	src/drivers/filepool.o src/drivers/oidpool.o 		\
 	src/drivers/netpool.o src/drivers/extpool.o 		\
 	src/drivers/mempool.o 					\
@@ -285,7 +285,7 @@ FRAMERD_SOURCES=\
 	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
 	src/db/dtproc.c src/db/dtcall.c		\
 	src/db/ipeval.c 	       					\
-	src/drivers/builtindbs.c  					\
+	src/drivers/builtin_drivers.c  					\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\
 	src/drivers/fileindex.c src/drivers/hashindex.c		\
 	src/drivers/memindex.c src/drivers/extindex.c		\

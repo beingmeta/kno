@@ -583,10 +583,10 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
   ptr->n_allocd=space; ptr->n_slots=len;
-  while (i<len) {
-    kv[i].fd_kvkey=data[i].fd_kvkey;
-    kv[i].fd_keyval=data[i].fd_keyval;
-    i++;}
+  if (data) while (i<len) {
+      kv[i].fd_kvkey=data[i].fd_kvkey;
+      kv[i].fd_keyval=data[i].fd_keyval;
+      i++;}
   while (i<space) {
     kv[i].fd_kvkey=FD_VOID;
     kv[i].fd_keyval=FD_VOID;

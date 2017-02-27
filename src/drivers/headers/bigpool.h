@@ -5,6 +5,11 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+/* BIGPOOL OID pools are an updated version of oidpools. */
+/* The file layout has a 256-byte header block followed by
+   offset information, using the same B64/B40/B32 representation
+   as oidpools and hashindices. */
+
 #include "chunkrefs.h"
 
 #define FD_BIGPOOL_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
@@ -26,9 +31,9 @@ typedef struct FD_BIGPOOL {
   unsigned int pool_load;
   unsigned int *pool_offdata, pool_offdata_length;
   unsigned char *pool_mmap; size_t pool_mmap_size;
-  fdtype *pool_slotids;
-  unsigned int pool_n_slotids, pool_slotids_length;
-  struct FD_HASHTABLE pool_slotid_indices;
+  fdtype *slotids;
+  unsigned int n_slotids, slotids_length;
+  struct FD_HASHTABLE slotcodes;
   time_t pool_modtime;
   U8_MUTEX_DECL(file_lock);} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;

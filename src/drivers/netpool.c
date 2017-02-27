@@ -271,7 +271,7 @@ static void init_client_id()
   fd_unlock_mutex(&client_id_lock);
 }
 
-FD_EXPORT void fd_init_netpools_c()
+FD_EXPORT void fd_init_netpool_c()
 {
   u8_register_source_file(_FILEINFO);
 

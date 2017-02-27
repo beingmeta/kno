@@ -61,10 +61,6 @@ static int recover_bigpool(struct FD_BIGPOOL *);
 
 static struct FD_POOL_HANDLER bigpool_handler;
 
-fd_exception fd_InvalidSchemaDef=_("Invalid schema definition data");
-fd_exception fd_InvalidSchemaRef=_("Invalid encoded schema reference");
-fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value data");
-
 static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
 
 #ifndef FD_INIT_ZBUF_SIZE
@@ -75,7 +71,7 @@ static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
 
 #define FD_BIGPOOL_LABEL_POS             0x18
 #define FD_BIGPOOL_METADATA_POS          0x24
-#define FD_BIGPOOL_SCHEMAS_POS           0x30
+#define FD_BIGPOOL_SCHEMAS_POS           0x54
 
 #define FD_BIGPOOL_FETCHBUF_SIZE 8000
 
@@ -102,23 +98,24 @@ static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
    0x0c XXXX     Capacity of pool
    0x10 XXXX     Load of pool
    0x14 XXXX     Pool information bits/flags
-   0x18 XXXX     file offset of the pool label (8 bytes)
+   0x18 XXXX     file offset of the pool label (a dtype) (8 bytes)
         XXXX
-   0x20 XXXX     byte length of label dtype representation (4 bytes)
-   0x24 XXXX     file offset of pool metadata (8 bytes)
+   0x20 XXXX     byte length of label dtype (4 bytes)
+   0x24 XXXX     file offset of pool metadata (a dtype) (8 bytes)
         XXXX
-   0x2c XXXX     byte length of pool metadata dtype representation (4 bytes)
-   0x30 XXXX     file offset of the schemas record (8 bytes)
+   0x2c XXXX     byte length of pool metadata representation (4 bytes)
+   0x30 XXXX     pool creation time_t (8 bytes)
         XXXX
-   0x38 XXXX     size of schemas record dtype representation
-   0x3c XXXX     pool creation time_t (8 bytes)
+   0x38 XXXX     pool repack time_t (8 bytes)
         XXXX
-   0x44 XXXX     pool repack time_t (8 bytes)
+   0x40 XXXX     pool modification time_t (8 bytes)
         XXXX
-   0x4c XXXX     pool modification time_t (8 bytes)
+   0x48 XXXX     repack generation (8 bytes)
         XXXX
-   0x54 XXXX     repack generation (8 bytes)
+   0x50 XXXX     number of registered slotids
+   0x54 XXXX     file offset of the slotids block
         XXXX
+   0x5c XXXX     size of slotids dtype representation
 
    The flags are divided as follows:
      MASK        INTERPRETATION
@@ -134,11 +131,13 @@ static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
                     3-7 reserved for future use
      0x0020      Set if this pool is intended to be read-only
 
-   The offsets block starts at 0x100 and goes for either capacity*8 or capacity*12
-    bytes.  The offset values are stored as pairs of big-endian binary representations.
-    For the 32B and 64B forms, these are just straightforward integers of the same size.
-    For the 40B form, which is designed to better use memory and cache, the high 8
-    bits of the second word are taken as the high eight bits of a forty-byte offset.
+   The offsets block starts at 0x100 and goes for either capacity*8 or
+    capacity*12 bytes.  The offset values are stored as pairs of
+    big-endian binary representations.  For the 32B and 64B forms,
+    these are just straightforward integers of the same size.  For the
+    40B form, which is designed to better use memory and cache, the
+    high 8 bits of the second word are taken as the high eight bits of
+    a forty-byte offset.
 
 */
 
@@ -181,8 +180,8 @@ static int init_schemas(fd_bigpool,fdtype);
 static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
 {
   FD_OID base=FD_NULL_OID_INIT;
-  unsigned int hi, lo, magicno, capacity, load;
-  fd_off_t label_loc, schemas_loc; fdtype label;
+  unsigned int hi, lo, magicno, capacity, load, n_slotids;
+  fd_off_t label_loc, slotids_loc; fdtype label;
   struct FD_BIGPOOL *pool=u8_alloc(struct FD_BIGPOOL);
   int read_only=U8_BITP(flags,FDB_READ_ONLY);
   fd_stream_mode mode=
@@ -191,7 +190,7 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
   struct FD_STREAM *stream=
     fd_init_file_stream(&(pool->pool_stream),fname,mode,fd_driver_bufsize);
   struct FD_INBUF *instream=fd_readbuf(stream);
- 
+
   /* See if it ended up read only */
   if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only=1;
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
@@ -225,9 +224,10 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
   /* label_size=*/ fd_read_4bytes(instream);
   /* Skip the metadata field */
   fd_read_8bytes(instream);
-  fd_read_4bytes(instream); /* Ignore size */
-  /* Read and initialize the schemas_loc */
-  schemas_loc=fd_read_8bytes(instream);
+  /* metadata size */ fd_read_4bytes(instream);
+  n_slotids=fd_read_4bytes(instream);
+  /* Read and initialize the slotids_loc */
+  slotids_loc=fd_read_8bytes(instream);
   fd_read_4bytes(instream); /* Ignore size */
   if (label_loc) {
     if (fd_setpos(stream,label_loc)>0) {
@@ -242,16 +242,28 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
       fd_close_stream(stream,0);
       u8_free(rname); u8_free(pool);
       return NULL;}}
-  if (schemas_loc) {
-    fdtype schemas;
-    fd_setpos(stream,schemas_loc);
-    schemas=fd_read_dtype(instream);
-    init_schemas(pool,schemas);
-    fd_decref(schemas);}
-  else init_schemas(pool,FD_VOID);
-  /* Offsets size is the malloc'd size (in unsigned ints) of the offsets.
-     We don't fill this in until we actually need it. */
-  pool->pool_offsets=NULL; pool->pool_offsets_size=0;
+  if (n_slotids&&slotids_loc) {
+    int slotids_length=(n_slotids>256)?(n_slotids*2):(256);
+    fdtype *slotids=u8_zalloc_n(slotids_length,fdtype);
+    struct FD_HASHTABLE slotcodes=&(pool->slotcodes);
+    int i=0;
+    fd_init_hashtable(slotcodes,n_slotids,NULL);
+    fd_setpos(stream,slotids_loc);
+    while (i<n_slotids) {
+      fdtype slotid=fd_read_dtype(instream);
+      slotids[i]=slotid;
+      fd_hashtable_store(slotcodes,slotid,FD_INT(i));
+      i++;}
+    pool->slotids=slotids;
+    pool->n_slotids=n_slotids;
+    pool->slotids_length=slotids_length;}
+  else {
+    pool->slotids=fd_alloc_n(256,fdtype);
+    pool->n_slotids=0; pool->slotids_length=256;
+    fd_hashtable_init(&(pool->slotcodes),256,NULL);}
+  /* Offsets size is the malloc'd size (in unsigned ints) of the
+     offsets.  We don't fill this in until we actually need it. */
+  pool->pool_offdata=NULL; pool->pool_offdata_size=0;
   if (read_only)
     U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
@@ -271,146 +283,55 @@ static void update_modtime(struct FD_BIGPOOL *fp)
   else fp->pool_modtime=fileinfo.st_mtime;
 }
 
-/* Maintaing the schema table */
+/* Getting slotids */
 
-static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec);
-static int compare_schema_vals(const void *p1,const void *p2);
-static void sort_schema(fdtype *v,int n);
-
-static int init_schemas(fd_bigpool op,fdtype schema_vec)
+FD_FASTOP int probe_slotcode(struct FD_BIGPOOL *fp,fdtype slotid)
 {
-  if (!(FD_VECTORP(schema_vec))) {
-    op->pool_n_schemas=0; op->pool_schemas=NULL; op->pool_schbyval=NULL;
-    op->pool_max_slotids=0;
-    return 0;}
+  fdtype codeval=fd_hashtable_get(&(fp->slotcodes),slotid,FD_VOID);
+  if (FD_VOIDP(codeval)) return -1;
+  else if (FD_FIXNUMP(codeval)) return FD_INT(indexval);
   else {
-    int i=0, n=FD_VECTOR_LENGTH(schema_vec), max_slotids=0;
-    struct FD_SCHEMA_ENTRY *schemas=u8_alloc_n(n,FD_SCHEMA_ENTRY);
-    struct FD_SCHEMA_LOOKUP *schbyval=u8_alloc_n(n,FD_SCHEMA_LOOKUP);
-    while (i<n) {
-      fdtype slotids=FD_VECTOR_REF(schema_vec,i);
-      int n_slotids;
-      if (FD_VECTORP(slotids)) n_slotids=FD_VECTOR_LENGTH(slotids);
-      else {
-        u8_free(schemas); u8_free(schbyval);
-        return fd_reterr
-          (fd_InvalidSchemaDef,"bigpool/init_schemas",NULL,schema_vec);}
-      if (n_slotids>max_slotids) max_slotids=n_slotids;
-      init_schema_entry(&(schemas[i]),i,slotids);
-      schbyval[i].fd_schema_id=i; schbyval[i].fd_nslots=n_slotids;
-      schbyval[i].fd_slotids=schemas[i].fd_slotids;
-      i++;}
-    op->pool_schemas=schemas; op->pool_schbyval=schbyval;
-    op->pool_max_slotids=max_slotids; op->pool_n_schemas=n;
-    qsort(schbyval,n,sizeof(struct FD_SCHEMA_LOOKUP),
-          compare_schema_vals);
-    return n;}
+    u8_log(LOGWARN,_("CorruptedBigPool"),"Bad slotid code map for %q",slotid);
+    return -1;}
 }
 
-static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
+FD_FASTOP int get_slotcode(struct FD_BIGPOOL *fp,fdtype slotid)
 {
-  int i=0, len=FD_VECTOR_LENGTH(vec);
-  fdtype *slotids=u8_alloc_n((len+1),fdtype);
-  unsigned int *mapin=u8_alloc_n(len,unsigned int);
-  unsigned int *mapout=u8_alloc_n(len,unsigned int);
-  e->fd_schema_id=pos; e->fd_nslots=len; e->normal=fd_incref(vec);
-  e->fd_slotids=slotids; e->fd_slotmapin=mapin; e->fd_slotmapout=mapout;
-  while (i<len) {
-    fdtype val=FD_VECTOR_REF(vec,i);
-    slotids[i]=fd_incref(val); i++;}
-  sort_schema(slotids,len);
-  /* This will make it fast to get the pos from the schema pointer */
-  slotids[len]=FD_INT(pos);
-  i=0; while (i<len) {
-    fdtype val=FD_VECTOR_REF(vec,i);
-    int j=0; while (j<len)
-      if (slotids[j]==val) break;
-      else j++;
-    /* assert(i<len); assert(j<len); */
-    mapin[i]=j; mapout[j]=i;
-    i++;}
-  return 0;
+  fdtype v=fd_hashtable_get(slotcodes,slotid,FD_VOID);
+  if (FD_FIXNUMP(v)) return FD_FIX2INT(v);
+  else if (FD_CONSP(slotid)) return -1;
+  else return add_slotcode(fp,slotid);
 }
 
-static int compare_schema_vals(const void *p1,const void *p2)
+static int add_slotcode(struct FD_BIGPOOL *fp,fdtype slotid)
 {
-  struct FD_SCHEMA_LOOKUP *se1=(struct FD_SCHEMA_LOOKUP *)p1;
-  struct FD_SCHEMA_LOOKUP *se2=(struct FD_SCHEMA_LOOKUP *)p2;
-  if (se1->fd_nslots<se2->fd_nslots) return -1;
-  else if (se1->fd_nslots>se2->fd_nslots) return 1;
-  else {
-    fdtype *slotids1=se1->fd_slotids, *slotids2=se2->fd_slotids;
-    int i=0, n=se1->fd_nslots; while (i<n) {
-      if (slotids1[i]<slotids2[i]) return -1;
-      else if (slotids1[i]<slotids2[i]) return 1;
-      else i++;}
-    return 0;}
+  struct FD_HASHTABLE *slotcodes=&(fp->slotcodes);
+  u8_write_lock(&(slotcodes->lock)); {
+    fdtype *slotids=fp->slotids;
+    fdtype v=fd_hashtable_get_nolock(slotcodes,slotid,FD_VOID);
+    int use_code=fp->n_slotids++;
+    if (FD_FIXNUMP(v)) {
+      u8_rw_unlock(&(slotcodes->lock));
+      return FD_FIX2INT(v);}
+    if (use_index>=fp->slotids_length) {
+      fdtype *newslotids=u8_alloc_n(fp->slotids_length*2,fdtype);
+      if (newslotids==NULL) {
+        u8_rw_unlock(&(slotcodes->lock));
+        /* This keeps lookup for trying again */
+        fd_hashtable_store(slotcodes,slotid,FD_INT(-1));
+        return -1;}
+      memcpy(newslotids,slotids,sizeof(fdtype)*fp->slotids_length);
+      if (fp->old_slotids) u8_free(fp->old_slotids);
+      fp->old_slotids=slotids;
+      fp->slotids=slotids=newslotids;}
+    slotids[use_code]=slotid;
+    fd_hashtable_op_nolock(codemap,table_store_value,slotid,slotid,
+                           FD_INT(use_code));
+    u8_rw_unlock(&(slotcodes->lock));
+    return use_code;}
 }
 
-static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,fdtype *slotids,int n)
-{
-  if (n<e->fd_nslots) return -1;
-  else if (n>e->fd_nslots) return 1;
-  else {
-    fdtype *oslotids=e->fd_slotids;
-    int i=0; while (i<n)
-      if (slotids[i]<oslotids[i]) return -1;
-      else if (slotids[i]>oslotids[i]) return 1;
-      else i++;
-    return 0;}
-}
-
-static int find_schema_byval(fd_bigpool op,fdtype *slotids,int n)
-{
-  int size=op->pool_n_schemas, cmp;
-  struct FD_SCHEMA_LOOKUP *table=op->pool_schbyval, *max=table+size;
-  struct FD_SCHEMA_LOOKUP *bot=table, *top=max, *middle=bot+(size)/2;
-  while (top>bot) {
-    cmp=compare_schemas(middle,slotids,n);
-    if (cmp==0) return middle->fd_schema_id;
-    else if (cmp<0) {
-      top=middle-1; middle=bot+(top-bot)/2;}
-    else {
-      bot=middle+1; middle=bot+(top-bot)/2;}}
-  if ((middle<max) && (middle>=table) &&
-      (compare_schemas(middle,slotids,n)==0))
-    return middle->fd_schema_id;
-  else return -1;
-}
-
-FD_FASTOP void lispv_swap(fdtype *a,fdtype *b)
-{
-  fdtype t;
-  t = *a;
-  *a = *b;
-  *b = t;
-}
-
-static void sort_schema(fdtype *v,int n)
-{
-  unsigned i, j, ln, rn;
-  while (n > 1) {
-    lispv_swap(&v[0], &v[n/2]);
-    for (i = 0, j = n; ; ) {
-      do --j; while (v[j] > v[0]);
-      do ++i; while (i < j && v[i] < v[0]);
-      if (i >= j) break; else {}
-      lispv_swap(&v[i], &v[j]);}
-    lispv_swap(&v[j], &v[0]);
-    ln = j;
-    rn = n - ++j;
-    if (ln < rn) {
-      fd_sort_schema(ln, v); v += j; n = rn;}
-    else {fd_sort_schema(rn,v + j); n = ln;}}
-}
-
-U8_MAYBE_UNUSED static int schema_sortedp(fdtype *v,int n)
-{
-  int i=0; while (i<n-1)
-    if (v[i]<v[i+1]) i++;
-    else return 0;
-  return 1;
-}
+/* Load reading and updates */
 
 /* These assume that the pool itself is locked */
 static int write_bigpool_load(fd_bigpool op)
@@ -493,12 +414,12 @@ static int lock_bigpool_file(struct FD_BIGPOOL *op,int use_mutex)
 FD_EXPORT int fd_make_bigpool
   (u8_string fname,u8_string label,
    FD_OID base,unsigned int capacity,unsigned int load,
-   unsigned int flags,fdtype schemas_init,
+   unsigned int flags,fdtype slotids_init,
    time_t ctime,time_t mtime,int cycles)
 {
   time_t now=time(NULL);
-  fd_off_t schemas_pos=0, metadata_pos=0, label_pos=0;
-  size_t schemas_size=0, metadata_size=0, label_size=0;
+  fd_off_t slotids_pos=0, metadata_pos=0, label_pos=0;
+  size_t slotids_size=0, metadata_size=0, label_size=0;
   struct FD_STREAM _stream, *stream=
     fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,8192);
   fd_outbuf outstream=fd_writebuf(stream);
@@ -521,11 +442,8 @@ FD_EXPORT int fd_make_bigpool
   fd_write_8bytes(outstream,0); /* Pool label */
   fd_write_4bytes(outstream,0); /* Pool label */
 
-  fd_write_8bytes(outstream,0); /* metdata */
-  fd_write_4bytes(outstream,0); /* metdata */
-
-  fd_write_8bytes(outstream,0); /* schema data */
-  fd_write_4bytes(outstream,0); /* schema data */
+  fd_write_8bytes(outstream,0); /* metadata */
+  fd_write_4bytes(outstream,0); /* metadata */
 
   /* Write the index creation time */
   if (ctime<0) ctime=now;
@@ -545,6 +463,13 @@ FD_EXPORT int fd_make_bigpool
   if (mtime<0) mtime=now;
   fd_write_4bytes(outstream,0);
   fd_write_4bytes(outstream,cycles);
+
+  /* Write number of slotids (if any) */
+  if (FD_VECTORP(slotids_init))
+    fd_write_4bytes(outstream,FD_VECTOR_LENGTH(slotids_init));
+  else fd_write_4bytes(outstream,0);
+  fd_write_8bytes(outstream,0); /* slotids offset (may be changed) */
+  fd_write_4bytes(outstream,0); /* slotids dtype length (may be changed) */
 
   /* Fill the rest of the space. */
   {
@@ -576,9 +501,13 @@ FD_EXPORT int fd_make_bigpool
 
   /* Write the schemas */
   if (FD_VECTORP(schemas_init)) {
-    schemas_pos=fd_getpos(stream);
-    fd_write_dtype(outstream,schemas_init);
-    schemas_size=fd_getpos(stream)-schemas_pos;}
+    int i=0, len=FD_VECTOR_LENGTH(schemas_init);
+    slotids_pos=fd_getpos(stream);
+    while (i<len) {
+      fdtype slotid=FD_VECTOR_REF(slotids_init,i);
+      fd_write_dtype(outstream,slotid);
+      i++;}
+    slotids_size=fd_getpos(stream)-schemas_pos;}
 
   if (label_pos) {
     fd_setpos(stream,FD_BIGPOOL_LABEL_POS);
@@ -588,10 +517,10 @@ FD_EXPORT int fd_make_bigpool
     fd_setpos(stream,FD_BIGPOOL_METADATA_POS);
     fd_write_8bytes(outstream,metadata_pos);
     fd_write_4bytes(outstream,metadata_size);}
-  if (schemas_pos) {
-    fd_setpos(stream,FD_BIGPOOL_SCHEMAS_POS);
-    fd_write_8bytes(outstream,schemas_pos);
-    fd_write_4bytes(outstream,schemas_size);}
+  if (slotids_pos) {
+    fd_setpos(stream,FD_BIGPOOL_SLOTIDS_POS);
+    fd_write_8bytes(outstream,slotids_pos);
+    fd_write_4bytes(outstream,slotids_size);}
 
   fd_flush_stream(stream);
   fd_unlock_stream(stream);
@@ -620,26 +549,27 @@ static fdtype read_oid_value(fd_bigpool op,
                              fd_inbuf in,
                              const u8_string cxt)
 {
-  int zip_code;
-  zip_code=fd_read_zint(in);
-  if (FD_EXPECT_FALSE(zip_code>(op->pool_n_schemas)))
-    return fd_err(fd_InvalidSchemaRef,"bigpool_fetch",op->pool_idstring,FD_VOID);
-  else if (zip_code==0)
-    return fd_read_dtype(in);
-  else {
-    struct FD_SCHEMA_ENTRY *se=&(op->pool_schemas[zip_code-1]);
-    int n_vals=fd_read_zint(in), n_slotids=se->fd_nslots;
-    if (FD_EXPECT_TRUE(n_vals==n_slotids)) {
-      fdtype *values=u8_alloc_n(n_vals,fdtype);
-      unsigned int i=0, *mapin=se->fd_slotmapin;
-      /* We reorder the values coming in to agree with the
-         schema sorting done in memory for fast lookup. That
-         translation is stored in the mapin field. */
-      while (i<n_vals) {
-        values[mapin[i]]=fd_read_dtype(in); i++;}
-      return fd_make_schemap(NULL,n_vals,FD_SCHEMAP_SORTED|FD_SCHEMAP_TAGGED,
-                             se->fd_slotids,values);}
-    else return fd_err(fd_SchemaInconsistency,cxt,op->pool_idstring,FD_VOID);}
+  int byte0=fd_probe_byte(in);
+  if (byte0==0xF0) {
+    /* Encoded slotmap/schemap */
+    unsigned int n_slots= (fd_read_byte(in), fd_read_zint(in));
+    struct FD_SLOTMAP *sm=fd_init_slotmap(NULL,n_slots+1,NULL);
+    struct FD_KEYVAL *data=FD_XSLOTMAP_KEYVALS(sm);
+    int i=0; while (i<n) {
+      int slot_byte0=fd_probe_byte(in);
+      if (slot_byte==0xE0) {
+        long long slotcode= (fd_read_byte(in), fd_read_zint(in));
+        if ((slotcode>=0)&&(slotcode<op->n_slotids))
+          kv[i].fd_kvkey=op->slotids[slotcode];
+        else {
+          fd_seterr(_("BadSlotCode"),cxt,op->pool_idstring,FD_VOID);
+          fd_decref((fdtype)sm);
+          return FD_ERROR_VALUE;}}
+      else kv[i].fd_keyvalue=fd_read_dtype(in);
+      i++;}
+    return (fdtype) sm;} /* close (byte0==0xF0) */
+  /* Just a regular dtype */
+  else return fd_read_dtype(in);
 }
 
 static fdtype read_oid_value_at(fd_bigpool op,
@@ -654,7 +584,8 @@ static fdtype read_oid_value_at(fd_bigpool op,
       FD_INIT_BYTE_INPUT(&in,op->pool_mmap+ref.off,ref.size);
       return read_oid_value(op,&in,cxt);}
   else {
-    unsigned char _buf[FD_BIGPOOL_FETCHBUF_SIZE], *buf; int free_buf=0;
+    unsigned char _buf[FD_BIGPOOL_FETCHBUF_SIZE], *buf;
+    int free_buf=0;
     if (op->pool_mmap) buf=op->pool_mmap+ref.off;
     else if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE) {
       buf=read_chunk(&(op->pool_stream),op->pool_mmap,
@@ -663,46 +594,16 @@ static fdtype read_oid_value_at(fd_bigpool op,
     else buf=read_chunk(&(op->pool_stream),op->pool_mmap,
                         ref.off,ref.size,_buf,unlock);
     if (buf==NULL) return FD_ERROR_VALUE;
-    else if (op->pool_compression==FD_NOCOMPRESS)
-      if (free_buf) {
-        FD_INBUF in;
-        FD_INIT_BYTE_INPUT(&in,buf,ref.size);
-        fdtype result=read_oid_value(op,&in,cxt);
-        u8_free(buf);
-        return result;}
-      else {
-        FD_INBUF in;
-        FD_INIT_BYTE_INPUT(&in,buf,ref.size);
-        return read_oid_value(op,&in,cxt);}
+    else if (free_buf) {
+      FD_INBUF in;
+      FD_INIT_BYTE_INPUT(&in,buf,ref.size);
+      fdtype result=read_oid_value(op,&in,cxt);
+      u8_free(buf);
+      return result;}
     else {
-      unsigned char _ubuf[FD_BIGPOOL_FETCHBUF_SIZE*3], *ubuf=_ubuf;
-      unsigned int ubuf_size=FD_BIGPOOL_FETCHBUF_SIZE*3;
-      switch (op->pool_compression) {
-      case FD_ZLIB:
-        if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE)
-          ubuf=do_zuncompress(buf,ref.size,&ubuf_size,NULL);
-        else ubuf=do_zuncompress(buf,ref.size,&ubuf_size,_ubuf);
-        break;
-      default:
-        if (free_buf) u8_free(buf);
-        if (ubuf!=_ubuf) u8_free(ubuf);
-        return fd_err(_("Bad compress level"),"bigpool_fetch",op->pool_idstring,
-                      FD_VOID);}
-      if (ubuf==NULL) {
-        if (free_buf) u8_free(buf);
-        if (ubuf!=_ubuf) u8_free(ubuf);
-        return FD_ERROR_VALUE;}
-      else if ((free_buf) || (ubuf!=_ubuf)) {
-        FD_INBUF in; fdtype result;
-        FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
-        result=read_oid_value(op,&in,cxt);
-        if (free_buf) u8_free(buf);
-        if (ubuf!=_ubuf) u8_free(ubuf);
-        return result;}
-      else {
-        FD_INBUF in;
-        FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
-        return read_oid_value(op,&in,cxt);}}}
+      FD_INBUF in;
+      FD_INIT_BYTE_INPUT(&in,buf,ref.size);
+      return read_oid_value(op,&in,cxt);}}
 }
 
 static fdtype bigpool_fetch(fd_pool p,fdtype oid)
@@ -822,37 +723,6 @@ static int compare_oidoffs(const void *p1,const void *p2)
   else return 0;
 }
 
-static int get_schema_id(fd_bigpool op,fdtype value)
-{
-  if ( (FD_SCHEMAPP(value)) && (FD_SCHEMAP_SORTEDP(value)) ) {
-    struct FD_SCHEMAP *sm=(fd_schemap)value;
-    fdtype *slotids=sm->table_schema, size=sm->schema_length;
-    if (sm->schemap_tagged) {
-      fdtype pos=slotids[size];
-      int intpos=fd_getint(pos);
-      if ((intpos<op->pool_n_schemas) &&
-          (op->pool_schemas[intpos].fd_slotids==slotids))
-        return intpos;}
-    return find_schema_byval(op,slotids,size);}
-  else if (FD_SLOTMAPP(value)) {
-    fdtype _tmp_slotids[32], *tmp_slotids;
-    struct FD_SLOTMAP *sm=(fd_slotmap)value;
-    int i=0, size=FD_XSLOTMAP_NUSED(sm);
-    if (size<32)
-      tmp_slotids=_tmp_slotids;
-    else tmp_slotids=u8_alloc_n(size,fdtype);
-    while (i<size) {
-      tmp_slotids[i]=sm->sm_keyvals[i].fd_kvkey; i++;}
-    /* assert(schema_sortedp(tmp_slotids,size)); */
-    if (tmp_slotids==_tmp_slotids)
-      return find_schema_byval(op,tmp_slotids,size);
-    else {
-      int retval=find_schema_byval(op,tmp_slotids,size);
-      u8_free(tmp_slotids);
-      return retval;}}
-  else return -1;
-}
-
 static int bigpool_write_value(fdtype value,fd_stream stream,
                                fd_bigpool p,struct FD_OUTBUF *tmpout,
                                unsigned char **zbuf,int *zbuf_size)
@@ -862,51 +732,45 @@ static int bigpool_write_value(fdtype value,fd_stream stream,
     fd_write_byte(outstream,0);
     return 1+fd_write_dtype(outstream,value);}
   tmpout->bufwrite=tmpout->buffer;
-  if (p->pool_n_schemas==0) {
-    fd_write_byte(tmpout,0);
-    fd_write_dtype(tmpout,value);}
-  else if ((FD_SCHEMAPP(value)) || (FD_SLOTMAPP(value))) {
-    int schema_id=get_schema_id(p,value);
-    if (schema_id<0) {
-      fd_write_byte(tmpout,0);
-      fd_write_dtype(tmpout,value);}
-    else {
-      struct FD_SCHEMA_ENTRY *se=&(p->pool_schemas[schema_id]);
-      fd_write_zint(tmpout,schema_id+1);
-      if (FD_SCHEMAPP(value)) {
-        struct FD_SCHEMAP *sm=(fd_schemap)value;
-        fdtype *values=sm->schema_values;
-        int i=0, size=sm->schema_length;
-        fd_write_zint(tmpout,size);
-        while (i<size) {
-          fd_write_dtype(tmpout,values[se->fd_slotmapout[i]]);
-          i++;}}
+  if (FD_SCHEMAPP(value)) {
+    struct FD_SCHEMAP *sm=(fd_schemap)value;
+    fdtype *schema=sm->table_schema;
+    fdtype *values=sm->schema_values;
+    int i=0, size=sm->schema_length;
+    fd_write_byte(tmpout,0xF0);
+    fd_write_zint(tmpout,size);
+    while (i<size) {
+      fdtype slotid=schema[i], value=values[i];
+      int slotcode=get_slotcode(p,slotid);
+      if (slotcode<0)
+        fd_write_dtype(tmpout,slotid);
       else {
-        struct FD_SLOTMAP *sm=(fd_slotmap)value;
-        struct FD_KEYVAL *data=sm->sm_keyvals;
-        int i=0, size=FD_XSLOTMAP_NUSED(sm);
-        fd_write_zint(tmpout,size);
-        while (i<size) {
-          fd_write_dtype(tmpout,data[se->fd_slotmapin[i]].fd_keyval);
-          i++;}}}}
+        fd_write_byte(tmpout,0xE0);
+        fd_write_zint(tmpout,slotcode);}
+      fd_write_dtype(tmpout,value);
+      i++;}}
+  else if (FD_SLOTMAPP(value)) {
+    struct FD_SLOTMAP *sm=(fd_slotmap)value;
+    struct FD_KEYVAL *keyvals=sm->sm_keyvals;
+    int i=0, size=sm->n_slots;
+    fd_write_byte(tmpout,0xF0);
+    fd_write_zint(tmpout,size);
+    while (i<size) {
+      fdtype slotid=keyvals[i].fd_kvkey;
+      fdtype value=keyvals[i].fd_keyval;
+      int slotcode=get_slotcode(p,slotid);
+      if (slotcode<0)
+        fd_write_dtype(tmpout,slotid);
+      else {
+        fd_write_byte(tmpout,0xE0);
+        fd_write_zint(tmpout,slotcode);}
+      fd_write_dtype(tmpout,value);
+      i++;}}
   else {
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
-  if (p->pool_compression==FD_NOCOMPRESS) {
-    fd_write_bytes(outstream,tmpout->buffer,tmpout->bufwrite-tmpout->buffer);
-    return tmpout->bufwrite-tmpout->buffer;}
-  else if (p->pool_compression==FD_ZLIB) {
-    unsigned char _cbuf[FD_BIGPOOL_FETCHBUF_SIZE], *cbuf;
-    int cbuf_size=FD_BIGPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->buffer,tmpout->bufwrite-tmpout->buffer,
-                      &cbuf_size,_cbuf,9);
-    fd_write_bytes(outstream,cbuf,cbuf_size);
-    if (cbuf!=_cbuf) u8_free(cbuf);
-    return cbuf_size;}
-  else {
-    u8_log(LOG_WARN,_("Out of luck"),
-           "Compressed bigpools of this type are not yet yet supported");
-    exit(-1);}
+  fd_write_bytes(outstream,tmpout->buffer,tmpout->bufwrite-tmpout->buffer);
+  return tmpout->bufwrite-tmpout->buffer;
 }
 
 static int bigpool_finalize

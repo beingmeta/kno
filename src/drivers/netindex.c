@@ -258,7 +258,7 @@ static struct FD_INDEX_HANDLER netindex_handler={
   NULL  /* indexop */
 };
 
-FD_EXPORT void fd_init_netindexes_c()
+FD_EXPORT void fd_init_netindex_c()
 {
   u8_register_source_file(_FILEINFO);
 
