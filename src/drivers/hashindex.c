@@ -71,10 +71,10 @@
 #include "framerd/numbers.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
-#include "headers/hashindices.h"
+#include "headers/hashindex.h"
 
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
@@ -91,8 +91,8 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
-#ifndef FD_DEBUG_HASHINDICES
-#define FD_DEBUG_HASHINDICES 0
+#ifndef FD_DEBUG_HASHINDEXES
+#define FD_DEBUG_HASHINDEXES 0
 #endif
 
 #ifndef FD_DEBUG_DTYPEIO
@@ -102,7 +102,7 @@
 #define LOCK_STREAM 1
 #define DONT_LOCK_STREAM 0
 
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
 #define CHECK_POS(pos,stream)                                      \
   if ((pos)!=(fd_getpos(stream)))                                  \
     u8_log(LOG_CRIT,"FILEPOS error","position mismatch %ld/%ld",   \
@@ -748,7 +748,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   fd_off_t vblock_off; size_t vblock_size;
   FD_CHUNK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,64);
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
   /* u8_message("Fetching the key %q from %s",key,hx->index_idstring); */
 #endif
   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
@@ -757,7 +757,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
     fdtype slotid=FD_CAR(key);
     if (((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) &&
         (get_slotid_index(hx,slotid)<0)) {
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
       u8_message("The slotid %q isn't indexed in %s, returning {}",
                  slotid,hx->index_idstring);
 #endif
@@ -939,7 +939,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
   struct VALUE_SCHEDULE *vsched=u8_alloc_n(n,struct VALUE_SCHEDULE);
   int i=0, n_entries=0, vsched_size=0;
   int oddkeys=((hx->fdb_xformat)&(FD_HASH_INDEX_ODDKEYS));
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->index_idstring);
 #endif
   FD_INIT_BYTE_OUTBUF(&out,n*16);
@@ -1129,7 +1129,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
             read++;}}}}
     if (vbuf) u8_free(vbuf);}
   u8_free(vsched);
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
   u8_message("Finished reading %d keys from %s",n,hx->index_idstring);
 #endif
   fd_close_outbuf(&out);
@@ -2132,12 +2132,12 @@ static int hash_index_commit(struct FD_INDEX *ix)
        We process all of the edits, getting values if neccessary.
        Then we process all the adds. */
     fd_init_hashset(&taken,3*(hx->index_edits.table_n_keys),FD_STACK_CONS);
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Adding %d edits to the schedule",hx->index_edits.table_n_keys);
 #endif
     /* Get all the keys we need to write.  */
     schedule_size=process_edits(hx,&taken,schedule,schedule_size);
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Adding %d adds to the schedule",hx->index_adds.table_n_keys);
 #endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
@@ -2158,7 +2158,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       out.buf_flags=out.buf_flags|FD_USE_DTYPEV2;
       newkeys.buf_flags=newkeys.buf_flags|FD_USE_DTYPEV2;}
     /* Compute all the buckets for all the keys */
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Computing the buckets for %d scheduled keys",schedule_size);
 #endif
     /* Compute the hashes and the buckets for all of the keys
@@ -2174,7 +2174,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     /* Get all the bucket locations.  It may be that we can fold this
        into the phase above when we have the offsets table in
        memory. */
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Fetching bucket locations");
 #endif
     qsort(schedule,schedule_size,sizeof(struct INDEX_COMMIT_SCHEDULE),
@@ -2195,7 +2195,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
        that would entail moving the writing of values out of the
        bucket extension (since both want to get at the file) Could we
        have two pointers into the file?  */
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Reading all the %d changed buckets in order",
                changed_buckets);
 #endif
@@ -2209,7 +2209,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       i++;}
     /* Now all the keybuckets have been read and buckets have been
        created for keys that didn't have buckets before. */
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Created %d new buckets",new_buckets);
 #endif
     /* bucket_locs should still be sorted by bucket. */
@@ -2219,7 +2219,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
           sort_kb_by_bucket);
     qsort(bucket_locs,changed_buckets,sizeof(struct INDEX_BUCKET_REF),
           sort_br_by_bucket);
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Extending for %d keys over %d buckets",
                schedule_size,changed_buckets);
 #endif
@@ -2254,7 +2254,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
         bucket_locs[bscan].ref.size=endpos-startpos;}
       i=j; bscan++;}
     fd_flush_stream(&(hx->index_stream));
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Cleaning up");
 #endif
     /* Free all the buckets */
@@ -2277,7 +2277,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     n_keys=schedule_size;}
   if (fd_acid_files) {
     int i=0;
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Writing recovery data");
 #endif
     /* Write the new offsets information to the end of the file
@@ -2301,14 +2301,14 @@ static int hash_index_commit(struct FD_INDEX *ix)
     fd_flush_stream(stream);
     fsync(stream->stream_fileno);
   }
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
   u8_message("Writing offset data changes");
 #endif
   update_hash_index_ondisk
     (hx,hx->fdb_xformat,total_keys,changed_buckets,bucket_locs);
   if (fd_acid_files) {
     int retval=0;
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
     u8_message("Erasing old recovery information");
 #endif
     fd_flush_stream(stream);
@@ -2337,7 +2337,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     hx->index_mmap=
       mmap(NULL,hx->index_mmap_size,PROT_READ,MMAP_FLAGS,
            hx->index_stream.stream_fileno,0);}
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
   u8_message("Resetting tables");
 #endif
 
@@ -2347,7 +2347,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_unlock_stream(stream);
   fd_unlock_index(hx);
 
-#if FD_DEBUG_HASHINDICES
+#if FD_DEBUG_HASHINDEXES
   u8_message("Returning from hash_index_commit()");
 #endif
 
@@ -2797,7 +2797,7 @@ static u8_string match_index_name(u8_string spec,void *data)
       return NULL;}}
 }
 
-FD_EXPORT void fd_init_hashindices_c()
+FD_EXPORT void fd_init_hashindexes_c()
 {
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");

@@ -427,9 +427,9 @@ static int start_fcgi_server(char *socketspec)
    portfile=u8_strdup(socketspec);}
 
  u8_log(LOG_NOTICE,NULL,
-        "FramerD (%s) fdcgiexec servlet running, %d/%d pools/indices",
+        "FramerD (%s) fdcgiexec servlet running, %d/%d pools/indexes",
         FRAMERD_REVISION,fd_n_pools,
-        fd_n_primary_indices+fd_n_secondary_indices);
+        fd_n_primary_indexes+fd_n_secondary_indexes);
  u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
  each_thread=0; while (each_thread<servlet_threads) {
    void *threadval;

@@ -16,7 +16,7 @@
 #include "framerd/numbers.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/stream.h"
 #include "framerd/drivers.h"
 
@@ -24,7 +24,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
-#include "headers/filepools.h"
+#include "headers/filepool.h"
 
 #include <errno.h>
 #include <sys/stat.h>

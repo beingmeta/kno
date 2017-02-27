@@ -873,9 +873,9 @@ int main(int argc,char **argv)
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="us";}
-    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indices",
+    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indexes",
                u8_appid(),startup_time,units,fd_n_pools,
-               fd_n_primary_indices+fd_n_secondary_indices);}
+               fd_n_primary_indexes+fd_n_secondary_indexes);}
   if (dotload) {
     dotloader("~/.fdconfig",NULL);
     dotloader(".fdconfig",NULL);

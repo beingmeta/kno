@@ -16,12 +16,12 @@
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
 fdtype set_symbol, drop_symbol;
 
-/* FETCH indices */
+/* FETCH indexes */
 
 FD_EXPORT
 fd_index fd_make_extindex
@@ -205,7 +205,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL  /* indexop */
 };
 
-FD_EXPORT void fd_init_extindices_c()
+FD_EXPORT void fd_init_extindexes_c()
 {
   set_symbol=fd_intern("set");
   drop_symbol=fd_intern("drop");

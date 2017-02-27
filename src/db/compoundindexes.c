@@ -25,9 +25,9 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
   fdtype combined=FD_EMPTY_CHOICE;
   int i=0, lim;
   fd_lock_index(cix);
-  lim=cix->n_indices;
+  lim=cix->n_indexes;
   while (i < lim) {
-    fd_index eix=cix->indices[i++];
+    fd_index eix=cix->indexes[i++];
     fdtype value;
     if (eix->index_cache_level<0) {
       eix->index_cache_level=fd_default_cache_level;
@@ -59,9 +59,9 @@ static int compound_prefetch(fd_index ix,fdtype keys)
     u8_free(keyv); u8_free(valuev);
     return 0;}
   fd_lock_index(cix);
-  lim=cix->n_indices;
+  lim=cix->n_indexes;
   while (i < lim) {
-    int j=0; fd_index eix=cix->indices[i];
+    int j=0; fd_index eix=cix->indexes[i];
     fdtype *values=
       eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
@@ -105,9 +105,9 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
     u8_free(keyv); u8_free(posmap);
     return valuev;}
   fd_lock_index(cix);
-  lim=cix->n_indices;
+  lim=cix->n_indexes;
   while (i < lim) {
-    int j=0; fd_index eix=cix->indices[i];
+    int j=0; fd_index eix=cix->indexes[i];
     fdtype *values=
       eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
@@ -135,9 +135,9 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
   fdtype combined=FD_EMPTY_CHOICE;
   int i=0, lim;
   fd_lock_index(cix);
-  lim=cix->n_indices;
+  lim=cix->n_indexes;
   while (i < lim) {
-    fd_index eix=cix->indices[i++];
+    fd_index eix=cix->indexes[i++];
     fdtype keys=fd_index_keys(eix);
     if (FD_ABORTP(keys)) {
       fd_decref(combined);
@@ -166,26 +166,26 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
   }
 }
 
-static u8_string get_compound_id(int n,fd_index *indices)
+static u8_string get_compound_id(int n,fd_index *indexes)
 {
   if (n) {
     struct U8_OUTPUT out; int i=0;
     U8_INIT_OUTPUT(&out,80);
     while (i < n) {
       if (i) u8_puts(&out,"|"); else u8_puts(&out,"{");
-      u8_puts(&out,indices[i]->index_idstring); i++;}
+      u8_puts(&out,indexes[i]->index_idstring); i++;}
     u8_puts(&out,"}");
     return out.u8_outbuf;}
   else return u8_strdup("compound");
 }
 
-FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices)
+FD_EXPORT fd_index fd_make_compound_index(int n_indexes,fd_index *indexes)
 {
   struct FD_COMPOUND_INDEX *cix=u8_alloc(struct FD_COMPOUND_INDEX);
-  u8_string cid=get_compound_id(n_indices,indices);
+  u8_string cid=get_compound_id(n_indexes,indexes);
   fd_init_index((fd_index)cix,&compoundindex_handler,cid,0);
   fd_init_mutex(&(cix->index_lock)); u8_free(cid);
-  cix->n_indices=n_indices; cix->indices=indices;
+  cix->n_indexes=n_indexes; cix->indexes=indexes;
   fd_register_index((fd_index)cix);
   return (fd_index) cix;
 }
@@ -193,15 +193,15 @@ FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices)
 FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
 {
   if (cix->index_handler == &compoundindex_handler) {
-    int i=0, n=cix->n_indices;
+    int i=0, n=cix->n_indexes;
     while (i < n)
-      if (cix->indices[i] == add) {
+      if (cix->indexes[i] == add) {
         fd_unlock_index(cix); return 0;}
       else i++;
-    if (cix->indices)
-      cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
-    else cix->indices=u8_alloc_n(1,fd_index);
-    cix->indices[cix->n_indices++]=add;
+    if (cix->indexes)
+      cix->indexes=u8_realloc_n(cix->indexes,cix->n_indexes+1,fd_index);
+    else cix->indexes=u8_alloc_n(1,fd_index);
+    cix->indexes[cix->n_indexes++]=add;
     if (add->index_serialno<0) {
       fdtype alix=(fdtype)add; fd_incref(alix);}
     if ((cix->index_idstring) || (cix->index_source)) {
@@ -210,7 +210,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
       else {
         if (cix->index_idstring) {u8_free(cix->index_idstring); cix->index_idstring=NULL;}
         if (cix->index_source) {u8_free(cix->index_source); cix->index_source=NULL;}}}
-    cix->index_idstring=cix->index_source=get_compound_id(cix->n_indices,cix->indices);
+    cix->index_idstring=cix->index_source=get_compound_id(cix->n_indexes,cix->indexes);
     fd_reset_hashtable(&(cix->index_cache),-1,1);
     return 1;}
   else return fd_reterr(fd_TypeError,("compound_index"),NULL,FD_VOID);
@@ -232,7 +232,7 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
   NULL /* sync */
 };
 
-FD_EXPORT void fd_init_compoundindices_c()
+FD_EXPORT void fd_init_compoundindexes_c()
 {
   u8_register_source_file(_FILEINFO);
 }

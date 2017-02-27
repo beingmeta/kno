@@ -97,8 +97,8 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
 static fd_index l2x(fdtype lix)
 {
   int serial=FD_GET_IMMEDIATE(lix,fd_index_type);
-  if (serial<FD_N_PRIMARY_INDICES) return fd_primary_indices[serial];
-  else return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];
+  if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
+  else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
 }
 
 static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
@@ -166,8 +166,8 @@ FD_EXPORT int fd_pool_setop(fd_pool p,fdtype op,fdtype slotid,
    slotid from an OID gets the OID's value and then gets the slotid
    from that value (whatever type of object it is).  The exception to
    this case is that certain pools can declare that certain keys
-   (slotids) are stored in external indices.  These indices, called
-   adjunct indices, allow another layer of description. */
+   (slotids) are stored in external index.  These indexes, called
+   adjunct indexes, allow another layer of description. */
 FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
 {
   fd_pool p=fd_oid2pool(f);

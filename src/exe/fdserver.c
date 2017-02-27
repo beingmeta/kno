@@ -1486,9 +1486,9 @@ static int run_server(u8_string server_spec)
   write_state_files();
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
   u8_log(LOG_NOTICE,ServerStartup,
-         "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
+         "FramerD (%s) fdserver %s running, %d/%d pools/indexes, %d ports",
          FRAMERD_REVISION,server_spec,fd_n_pools,
-         fd_n_primary_indices+fd_n_secondary_indices,n_ports);
+         fd_n_primary_indexes+fd_n_secondary_indexes,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit=1;
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");

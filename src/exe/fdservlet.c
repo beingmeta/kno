@@ -2158,9 +2158,9 @@ static int launch_servlet(u8_string socket_spec)
     exit(1);}
 
   u8_log(LOG_INFO,ServletStartup,
-         "FramerD (%s) FDServlet running, %d/%d pools/indices",
+         "FramerD (%s) FDServlet running, %d/%d pools/indexes",
          FRAMERD_REVISION,fd_n_pools,
-         fd_n_primary_indices+fd_n_secondary_indices);
+         fd_n_primary_indexes+fd_n_secondary_indexes);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",

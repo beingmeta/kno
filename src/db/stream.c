@@ -194,7 +194,7 @@ FD_EXPORT fd_stream fd_open_filestream
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
   struct FD_STREAM *opened;
   FD_INIT_CONS(stream,fd_stream_type);
-  if (opened=fd_init_file_stream(stream,fname,mode,bufsiz)) {
+  if ((opened=fd_init_file_stream(stream,fname,mode,bufsiz))) {
     opened->stream_flags|=FD_STREAM_IS_MALLOCD;
     return opened;}
   else {

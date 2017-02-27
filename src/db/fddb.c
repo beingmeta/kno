@@ -14,7 +14,7 @@
 #include "framerd/fddb.h"
 #include "framerd/apply.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
@@ -29,7 +29,7 @@ fd_exception fd_InternalError=_("FramerD Database internal error"),
   fd_AmbiguousObjectName=_("Ambiguous object name"),
   fd_UnknownObjectName=_("Unknown object name"),
   fd_BadServerResponse=_("bad server response"),
-  fd_NoBackground=_("No default background indices"),
+  fd_NoBackground=_("No default background indexes"),
   fd_UnallocatedOID=_("Reference to unallocated OID");
 fd_exception fd_ConnectionFailed=_("Connection to server failed");
 u8_condition fd_Commitment=_("COMMIT");
@@ -290,16 +290,16 @@ static int config_use_pool(fdtype var,fdtype spec,void *data)
 
 /* Config methods */
 
-static fdtype config_get_indices(fdtype var,void *data)
+static fdtype config_get_indexes(fdtype var,void *data)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  int i=0; while (i < fd_n_primary_indices) {
-    fdtype lindex=fd_index2lisp(fd_primary_indices[i]);
+  int i=0; while (i < fd_n_primary_indexes) {
+    fdtype lindex=fd_index2lisp(fd_primary_indexes[i]);
     FD_ADD_TO_CHOICE(results,lindex);
     i++;}
-  if (i>=fd_n_primary_indices) return results;
-  i=0; while (i < fd_n_secondary_indices) {
-    fdtype lindex=fd_index2lisp(fd_secondary_indices[i]);
+  if (i>=fd_n_primary_indexes) return results;
+  i=0; while (i < fd_n_secondary_indexes) {
+    fdtype lindex=fd_index2lisp(fd_secondary_indexes[i]);
     FD_ADD_TO_CHOICE(results,lindex);
     i++;}
   return results;
@@ -319,11 +319,11 @@ static fdtype config_get_background(fdtype var,void *data)
   fdtype results=FD_EMPTY_CHOICE;
   if (fd_background==NULL) return results;
   else {
-    int i=0, n; fd_index *indices;
+    int i=0, n; fd_index *indexes;
     fd_lock_mutex(&(fd_background->index_lock));
-    n=fd_background->n_indices; indices=fd_background->indices;
+    n=fd_background->n_indexes; indexes=fd_background->indexes;
     while (i<n) {
-      fdtype lix=fd_index2lisp(indices[i]); i++;
+      fdtype lix=fd_index2lisp(indexes[i]); i++;
       FD_ADD_TO_CHOICE(results,lix);}
     fd_unlock_mutex(&(fd_background->index_lock));
     return results;}
@@ -347,13 +347,13 @@ static int config_use_index(fdtype var,fdtype spec,void *data)
 FD_EXPORT int fd_commit_all()
 {
   /* Not really ACID, but probably better than doing pools first. */
-  if (fd_commit_indices()<0) return -1;
+  if (fd_commit_indexes()<0) return -1;
   else return fd_commit_pools();
 }
 
 FD_EXPORT void fd_swapout_all()
 {
-  fd_swapout_indices();
+  fd_swapout_indexes();
   fd_swapout_pools();
 }
 
@@ -409,7 +409,7 @@ FD_EXPORT void fd_fast_swapout_all()
   struct HASHVECS_TODO todo;
   todo.to_free=u8_alloc_n(128,struct HASHVEC_TO_FREE);
   todo.n_to_free=0; todo.max_to_free=128;
-  fd_for_indices(fast_swapout_index,(void *)&todo);
+  fd_for_indexes(fast_swapout_index,(void *)&todo);
   fd_for_pools(fast_swapout_pool,(void *)&todo);
   while (i<todo.n_to_free) {
     fd_free_hashvec(todo.to_free[i].slots,todo.to_free[i].n_slots);
@@ -470,7 +470,7 @@ static void register_header_files()
 {
   u8_register_source_file(FRAMERD_FDDB_H_INFO);
   u8_register_source_file(FRAMERD_POOLS_H_INFO);
-  u8_register_source_file(FRAMERD_INDICES_H_INFO);
+  u8_register_source_file(FRAMERD_INDEXES_H_INFO);
   u8_register_source_file(FRAMERD_DBDRIVER_H_INFO);
 }
 
@@ -478,10 +478,10 @@ FD_EXPORT void fd_init_stream_c(void);
 FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
-FD_EXPORT void fd_init_indices_c(void);
+FD_EXPORT void fd_init_indexes_c(void);
 FD_EXPORT void fd_init_dtcall_c(void);
 FD_EXPORT void fd_init_netpools_c(void);
-FD_EXPORT void fd_init_netindices_c(void);
+FD_EXPORT void fd_init_netindexes_c(void);
 FD_EXPORT void fd_init_xtables_c(void);
 FD_EXPORT void fd_init_dtproc_c(void);
 FD_EXPORT void fd_init_frames_c(void);
@@ -504,12 +504,12 @@ FD_EXPORT int fd_init_dblib()
   fd_init_xtables_c();
   fd_init_cachecall_c();
   fd_init_pools_c();
-  fd_init_indices_c();
+  fd_init_indexes_c();
   fd_init_frames_c();
   fd_init_drivers_c();
   fd_init_dtcall_c();
   fd_init_netpools_c();
-  fd_init_netindices_c();
+  fd_init_netindexes_c();
   fd_init_dtproc_c();
 #if FD_IPEVAL_ENABLED
   fd_init_ipeval_c();
@@ -550,10 +550,10 @@ FD_EXPORT int fd_init_dblib()
     ("POOLS",_("pools used for OID resolution"),
      config_get_pools,config_use_pool,NULL);
   fd_register_config
-    ("INDICES",_("indices opened"),
-     config_get_indices,config_open_index,NULL);
+    ("INDEXES",_("indexes opened"),
+     config_get_indexes,config_open_index,NULL);
   fd_register_config
-    ("BACKGROUND",_("indices in the default search background"),
+    ("BACKGROUND",_("indexes in the default search background"),
      config_get_background,config_use_index,NULL);
   
   fd_register_config

@@ -13,7 +13,7 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
 #include <libu8/libu8io.h>
@@ -178,7 +178,7 @@ fd_pool fd_unregistered_file_pool(u8_string filename)
   return NULL;
 }
 
-/* Opening indices */
+/* Opening indexes */
 
 static struct FD_INDEX_TYPEINFO *index_typeinfo;
 static int n_index_types=0;
@@ -309,7 +309,7 @@ FD_EXPORT int fd_init_drivers_c()
   fd_file_index_type=fd_open_index;
 
   fd_register_config("ACIDFILES",
-                     "Maintain acidity of individual file pools and indices",
+                     "Maintain acidity of individual file pools and indexes",
                      fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
   fd_register_config("DRIVERBUFSIZE",
                      "The size of file streams used in database files",
@@ -354,7 +354,7 @@ static fdtype load_caches_prim(fdtype arg)
 {
   if (FD_VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);
-    fd_for_indices(load_index_cache,NULL);}
+    fd_for_indexes(load_index_cache,NULL);}
   else if (FD_TYPEP(arg,fd_index_type))
     load_index_cache(fd_indexptr(arg),NULL);
   else if (FD_TYPEP(arg,fd_pool_type))

@@ -15,10 +15,10 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
-#include "headers/fileindices.h"
+#include "headers/fileindex.h"
 
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
@@ -587,7 +587,7 @@ static fdtype *file_index_fetchn(fd_index ix,int n,fdtype *keys)
   return results;
 }
 
-/* Committing indices */
+/* Committing indexes */
 
 /* This is more complicated than you might think because the structure
    is optimized for adding new values to a key.  So when we commit, we have
@@ -1184,7 +1184,7 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
   fd_unlock_index(fx);
 }
 
-/* Making file indices */
+/* Making file indexes */
 
 FD_EXPORT
 /* fd_make_file_index:
@@ -1295,7 +1295,7 @@ static u8_string match_index_name(u8_string spec,void *data)
       return NULL;}}
 }
 
-FD_EXPORT void fd_init_fileindices_c()
+FD_EXPORT void fd_init_fileindexes_c()
 {
   u8_register_source_file(_FILEINFO);
 

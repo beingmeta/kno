@@ -18,7 +18,7 @@
 #include "framerd/eval.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 

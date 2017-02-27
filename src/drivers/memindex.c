@@ -15,7 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
 /* The in-memory index */
@@ -143,7 +143,7 @@ fd_index fd_make_mem_index(fddb_flags flags)
 }
 
 
-FD_EXPORT void fd_init_memindices_c()
+FD_EXPORT void fd_init_memindexes_c()
 {
   u8_register_source_file(_FILEINFO);
 

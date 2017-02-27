@@ -11,7 +11,7 @@
 #define FRAMERD_FRAMES_H_INFO "include/framerd/frames.h"
 #endif
 
-/* Adjuncts: these are indices which function as slotids. */
+/* Adjuncts: these are indexes which function as slotids. */
 
 FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype table);
 FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
@@ -86,10 +86,10 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy);
 
 /* Finding frames */
 
-FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotid,fdtype value);
-FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals);
+FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotid,fdtype value);
+FD_EXPORT fdtype fd_finder(fdtype indexes,int n,fdtype *slotvals);
 FD_EXPORT fdtype fd_bgfinder(int n,fdtype *slotvals);
-FD_EXPORT fdtype fd_find_frames(fdtype indices,...);
+FD_EXPORT fdtype fd_find_frames(fdtype indexes,...);
 FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...);
 FD_EXPORT int fd_bg_prefetch(fdtype keys);
 

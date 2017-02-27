@@ -15,7 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 /* Mem pools */
 

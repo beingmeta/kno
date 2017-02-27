@@ -17,7 +17,7 @@
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>

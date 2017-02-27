@@ -18,7 +18,7 @@
 #include "framerd/eval.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 #include "framerd/frames.h"
 #include "framerd/methods.h"
@@ -28,7 +28,7 @@
 
 #include "libu8/u8printf.h"
 
-static fdtype pools_symbol, indices_symbol, id_symbol, drop_symbol;
+static fdtype pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 
 static fdtype slotidp(fdtype arg)
 {
@@ -124,10 +124,10 @@ static void hashtable_index_frame(fdtype ix,
 }
 
 static fdtype index_frame_prim
-  (fdtype indices,fdtype frames,fdtype slotids,fdtype values)
+  (fdtype indexes,fdtype frames,fdtype slotids,fdtype values)
 {
-  if (FD_CHOICEP(indices)) {
-    FD_DO_CHOICES(index,indices)
+  if (FD_CHOICEP(indexes)) {
+    FD_DO_CHOICES(index,indexes)
       if (FD_HASHTABLEP(index))
         hashtable_index_frame(index,frames,slotids,values);
       else {
@@ -136,13 +136,13 @@ static fdtype index_frame_prim
           return fd_type_error("index","index_frame_prim",index);
         else if (fd_index_frame(ix,frames,slotids,values)<0)
           return FD_ERROR_VALUE;}}
-  else if (FD_HASHTABLEP(indices)) {
-    hashtable_index_frame(indices,frames,slotids,values);
+  else if (FD_HASHTABLEP(indexes)) {
+    hashtable_index_frame(indexes,frames,slotids,values);
     return FD_VOID;}
   else {
-    fd_index ix=fd_indexptr(indices);
+    fd_index ix=fd_indexptr(indexes);
     if (FD_EXPECT_FALSE(ix==NULL))
-      return fd_type_error("index","index_frame_prim",indices);
+      return fd_type_error("index","index_frame_prim",indexes);
     else if (fd_index_frame(ix,frames,slotids,values)<0)
       return FD_ERROR_VALUE;}
   return FD_VOID;
@@ -261,7 +261,7 @@ static fdtype use_index(fdtype arg)
   else if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
-         we can return the choice of indices. */
+         we can return the choice of index. */
       fdtype results=FD_EMPTY_CHOICE;
       u8_byte *copy=u8_strdup(FD_STRDATA(arg));
       u8_byte *start=copy, *end=strchr(start,';');
@@ -294,7 +294,7 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
-         we can return the choice of indices. */
+         we can return the choice of index. */
       fdtype results=FD_EMPTY_CHOICE;
       u8_byte *copy=u8_strdup(FD_STRDATA(arg));
       u8_byte *start=copy, *end=strchr(start,';');
@@ -572,7 +572,7 @@ static fdtype extpool_state(fdtype pool)
   else return fd_type_error("extpool","extpool_state",pool);
 }
 
-/* External indices */
+/* External indexes */
 
 static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
                             fdtype state,fdtype usecache)
@@ -612,7 +612,7 @@ static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
   else return fd_type_error("extindex","extindex_cacheadd",index);
   if (fdtc) {
     struct FD_PAIR tempkey;
-    struct FD_HASHTABLE *h=&(fdtc->indices);
+    struct FD_HASHTABLE *h=&(fdtc->indexes);
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
     if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
@@ -636,13 +636,13 @@ static fdtype extindex_decache(fdtype index,fdtype key)
   else return fd_type_error("extindex","extindex_decache",index);
   if ((fdtc)&&(!(FD_VOIDP(key)))) {
     struct FD_PAIR tempkey;
-    struct FD_HASHTABLE *h=&(fdtc->indices);
+    struct FD_HASHTABLE *h=&(fdtc->indexes);
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
     if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
       fd_hashtable_store(h,(fdtype)&tempkey,FD_VOID);}}
   else if (fdtc) {
-    struct FD_HASHTABLE *h=&(fdtc->indices);
+    struct FD_HASHTABLE *h=&(fdtc->indexes);
     fdtype keys=fd_hashtable_keys(h), drop=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(key,keys) {
       if ((FD_PAIRP(key))&&(FD_CAR(key)==lix)) {
@@ -720,7 +720,7 @@ static fdtype set_pool_op(fdtype pool_arg,fdtype op,fdtype slotid,fdtype handler
 static fdtype swapout_lexpr(int n,fdtype *args)
 {
   if (n == 0) {
-    fd_swapout_indices();
+    fd_swapout_indexes();
     fd_swapout_pools();
     return FD_VOID;}
   else if (n == 1) {
@@ -768,7 +768,7 @@ static fdtype swapout_lexpr(int n,fdtype *args)
 static fdtype commit_lexpr(int n,fdtype *args)
 {
   if (n == 0) {
-    if (fd_commit_indices()<0)
+    if (fd_commit_indexes()<0)
       return FD_ERROR_VALUE;
     if (fd_commit_pools()<0)
       return FD_ERROR_VALUE;
@@ -850,7 +850,7 @@ static fdtype clearcaches()
 {
   fd_clear_callcache(FD_VOID);
   fd_clear_slotcaches();
-  fd_swapout_indices();
+  fd_swapout_indexes();
   fd_swapout_pools();
   return FD_VOID;
 }
@@ -1117,7 +1117,7 @@ static fdtype cachecount(fdtype arg)
   else if (FD_EQ(arg,pools_symbol)) {
     int count=fd_object_cache_load();
     return FD_INT(count);}
-  else if (FD_EQ(arg,indices_symbol)) {
+  else if (FD_EQ(arg,indexes_symbol)) {
     int count=fd_index_cache_load();
     return FD_INT(count);}
   else if ((p=(fd_lisp2pool(arg)))) {
@@ -3159,7 +3159,7 @@ FD_EXPORT void fd_init_dbfns_c()
   id_symbol=fd_intern("%ID");
   adjunct_symbol=fd_intern("%ADJUNCT");
   pools_symbol=fd_intern("POOLS");
-  indices_symbol=fd_intern("INDICES");
+  indexes_symbol=fd_intern("INDEXES");
   drop_symbol=fd_intern("DROP");
 
 }

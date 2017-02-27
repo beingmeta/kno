@@ -44,7 +44,7 @@ FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
   /* These may do customized things for some of the tables. */
   fd_recycle_hashtable(&(tc->calls));
   fd_recycle_hashtable(&(tc->oids));
-  fd_recycle_hashtable(&(tc->indices));
+  fd_recycle_hashtable(&(tc->indexes));
   fd_recycle_hashtable(&(tc->bground));
   tc->fdtc_inuse=0;
   u8_free(tc);
@@ -85,8 +85,8 @@ FD_EXPORT fd_thread_cache fd_cons_thread_cache
   FD_INIT_STATIC_CONS(&(tc->bground),fd_hashtable_type);
   fd_make_hashtable(&(tc->bground),bcsize);
 
-  FD_INIT_STATIC_CONS(&(tc->indices),fd_hashtable_type);
-  fd_make_hashtable(&(tc->indices),kcsize);
+  FD_INIT_STATIC_CONS(&(tc->indexes),fd_hashtable_type);
+  fd_make_hashtable(&(tc->indexes),kcsize);
 
   tc->fdtc_prev=NULL;
   return tc;

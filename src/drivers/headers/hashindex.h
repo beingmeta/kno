@@ -7,7 +7,7 @@
 
 #include "chunkrefs.h"
 
-/* Hash indices */
+/* Hash indexes */
 
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 

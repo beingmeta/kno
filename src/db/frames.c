@@ -983,11 +983,11 @@ static fdtype make_features(fdtype slotids,fdtype values)
   return results;
 }
 
-FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
+FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotids,fdtype values)
 {
-  if (FD_CHOICEP(indices)) {
+  if (FD_CHOICEP(indexes)) {
     fdtype combined=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(index,indices)
+    FD_DO_CHOICES(index,indexes)
       if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type))) {
         fd_index ix=fd_indexptr(index);
         if (ix==NULL) {
@@ -1011,18 +1011,18 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
         fd_decref(combined);
         return fd_type_error(_("index"),"fd_prim_find",index);}
     return combined;}
-  else if (FD_TABLEP(indices)) {
+  else if (FD_TABLEP(indexes)) {
     fdtype combined=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
         fdtype key=fd_make_pair(slotid,value);
-        fdtype result=fd_get(indices,key,FD_EMPTY_CHOICE);
+        fdtype result=fd_get(indexes,key,FD_EMPTY_CHOICE);
         FD_ADD_TO_CHOICE(combined,result);
         fd_decref(key);}}
     return combined;}
   else {
     fdtype combined=FD_EMPTY_CHOICE;
-    fd_index ix=fd_indexptr(indices);
+    fd_index ix=fd_indexptr(indexes);
     if (ix==NULL) {
       fd_decref(combined);
       return FD_ERROR_VALUE;}
@@ -1036,14 +1036,14 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
       return combined;}}
 }
 
-FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals)
+FD_EXPORT fdtype fd_finder(fdtype indexes,int n,fdtype *slotvals)
 {
   int i=0, n_conjuncts=n/2;
   fdtype _conjuncts[6], *conjuncts=_conjuncts, result;
-  if (FD_EMPTY_CHOICEP(indices)) return FD_EMPTY_CHOICE;
+  if (FD_EMPTY_CHOICEP(indexes)) return FD_EMPTY_CHOICE;
   if (n_conjuncts>6) conjuncts=u8_alloc_n(n_conjuncts,fdtype);
   while (i < n_conjuncts) {
-    conjuncts[i]=fd_prim_find(indices,slotvals[i*2],slotvals[i*2+1]);
+    conjuncts[i]=fd_prim_find(indexes,slotvals[i*2],slotvals[i*2+1]);
     if (FD_ABORTP(conjuncts[i])) {
       fdtype error=conjuncts[i];
       int j=0; while (j<i) {fd_decref(conjuncts[j]); j++;}
@@ -1060,11 +1060,11 @@ FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals)
   return result;
 }
 
-FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
+FD_EXPORT fdtype fd_find_frames(fdtype indexes,...)
 {
   fdtype _slotvals[64], *slotvals=_slotvals, val;
   int n_slotvals=0, max_slotvals=64; va_list args;
-  va_start(args,indices); val=va_arg(args,fdtype);
+  va_start(args,indexes); val=va_arg(args,fdtype);
   while (!(FD_VOIDP(val))) {
     if (n_slotvals>=max_slotvals) {
       if (max_slotvals == 64) {
@@ -1079,10 +1079,10 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
     if (slotvals != _slotvals) u8_free(slotvals);
     return fd_err(OddFindFramesArgs,"fd_find_frames",NULL,FD_VOID);}
   if (slotvals != _slotvals) {
-    fdtype result=fd_finder(indices,n_slotvals,slotvals);
+    fdtype result=fd_finder(indexes,n_slotvals,slotvals);
     u8_free(slotvals);
     return result;}
-  else return fd_finder(indices,n_slotvals,slotvals);
+  else return fd_finder(indexes,n_slotvals,slotvals);
 }
 
 

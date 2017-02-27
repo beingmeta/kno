@@ -16,7 +16,7 @@
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
 fdtype lock_symbol, unlock_symbol;

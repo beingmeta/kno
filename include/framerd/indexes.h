@@ -5,16 +5,16 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FRAMERD_INDICES_H
-#define FRAMERD_INDICES_H 1
-#ifndef FRAMERD_INDICES_H_INFO
-#define FRAMERD_INDICES_H_INFO "include/framerd/indices.h"
+#ifndef FRAMERD_INDEXES_H
+#define FRAMERD_INDEXES_H 1
+#ifndef FRAMERD_INDEXES_H_INFO
+#define FRAMERD_INDEXES_H_INFO "include/framerd/indexes.h"
 #endif
 
 #include "stream.h"
 
 FD_EXPORT fd_exception
-  fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec,
+  fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndexes, fd_BadIndexSpec,
   fd_IndexCommitError, fd_EphemeralIndex;
 
 FD_EXPORT u8_condition fd_IndexCommit;
@@ -35,7 +35,7 @@ FD_EXPORT int fd_index_adds_init;
 #define FD_INDEX_IN_BACKGROUND   (FDB_INDEX_FLAG(4))
 #define FD_INDEX_NOSWAP          (FDB_INDEX_FLAG(5))
 
-#define FD_N_PRIMARY_INDICES 128
+#define FD_N_PRIMARY_INDEXES 128
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;						   \
@@ -50,8 +50,8 @@ FD_EXPORT int fd_index_adds_init;
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
 
-FD_EXPORT fd_index fd_primary_indices[], *fd_secondary_indices;
-FD_EXPORT int fd_n_primary_indices, fd_n_secondary_indices;
+FD_EXPORT fd_index fd_primary_indexes[], *fd_secondary_indexes;
+FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
 
 fd_index (*fd_file_index_type)(u8_string spec,fddb_flags flags);
 
@@ -102,7 +102,7 @@ struct FD_INDEX_HANDLER some_handler={
 };
 #endif
 
-FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);
+FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index,void *),void *data);
 
 FD_EXPORT void fd_init_index
   (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fddb_flags flags);
@@ -133,10 +133,10 @@ FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
 FD_EXPORT fd_index fd_use_index(u8_string spec,fddb_flags);
 
-FD_EXPORT void fd_swapout_indices(void);
-FD_EXPORT void fd_close_indices(void);
-FD_EXPORT int fd_commit_indices(void);
-FD_EXPORT int fd_commit_indices_noerr(void);
+FD_EXPORT void fd_swapout_indexes(void);
+FD_EXPORT void fd_close_indexes(void);
+FD_EXPORT int fd_commit_indexes(void);
+FD_EXPORT int fd_commit_indexes_noerr(void);
 FD_EXPORT long fd_index_cache_load(void);
 FD_EXPORT fdtype fd_cached_keys(fd_index p);
 
@@ -145,7 +145,7 @@ FD_EXPORT fdtype fd_index2lisp(fd_index ix);
 
 FD_EXPORT int fd_add_to_background(fd_index ix);
 
-/* Network indices */
+/* Network indexes */
 
 typedef struct FD_NETWORK_INDEX {
   FD_INDEX_FIELDS;
@@ -162,7 +162,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fddb_flags flags);
 #define FD_ISERVER_DROP 4
 #define FD_ISERVER_RESET 8
 
-/* MEM indices */
+/* MEM indexes */
 
 typedef struct FD_MEM_INDEX {
   FD_INDEX_FIELDS;
@@ -171,7 +171,7 @@ typedef struct FD_MEM_INDEX *fd_mem_index;
 
 FD_EXPORT fd_index fd_make_mem_index(fddb_flags flags);
 
-/* EXTernal indices */
+/* EXTernal indexes */
 
 typedef struct FD_EXTINDEX {
   FD_INDEX_FIELDS;
@@ -183,22 +183,22 @@ FD_EXPORT fd_index fd_make_extindex
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 
-/* Compound indices */
+/* Compound indexes */
 
 typedef struct FD_COMPOUND_INDEX {
   FD_INDEX_FIELDS;
-  unsigned int n_indices; fd_index *indices;
+  unsigned int n_indexes; fd_index *indexes;
   U8_MUTEX_DECL(index_lock);} FD_COMPOUND_INDEX;
 typedef struct FD_COMPOUND_INDEX *fd_compound_index;
 
 FD_EXPORT int fd_add_to_compound_index(fd_compound_index ix,fd_index add);
-FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices);
+FD_EXPORT fd_index fd_make_compound_index(int n_indexes,fd_index *indexes);
 
 FD_EXPORT struct FD_COMPOUND_INDEX *fd_background;
 
 /* Inline index adds */
 
-#if FD_INLINE_INDICES
+#if FD_INLINE_INDEXES
 FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
 {
   fdtype cached;
@@ -207,7 +207,7 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
   if (fdtc) {
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
-    cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
+    cached=fd_hashtable_get(&(fdtc->indexes),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
 #endif
   if (ix->index_cache_level==0) cached=FD_VOID;
@@ -218,7 +218,7 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
   if (FD_VOIDP(cached)) cached=fd_index_fetch(ix,key);
 #if FD_USE_THREADCACHE
   if (fdtc) {
-    fd_hashtable_store(&(fdtc->indices),(fdtype)&tempkey,cached);}
+    fd_hashtable_store(&(fdtc->indexes),(fdtype)&tempkey,cached);}
 #endif
   return cached;
 }
@@ -252,13 +252,13 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     if (rv<0) return rv;
     rv=fd_hashtable_op(cache,fd_table_add_if_present,key,value);}
   if (rv<0) return rv;
-  if ( (fdtc) && (fdtc->indices.table_n_keys) ) {
+  if ( (fdtc) && (fdtc->indexes.table_n_keys) ) {
     FD_DO_CHOICES(akey,key) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
       tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=akey;
-      if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
-	fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}}
+      if (fd_hashtable_probe(&fdtc->indexes,(fdtype)&tempkey)) {
+	fd_hashtable_add(&fdtc->indexes,(fdtype)&tempkey,value);}}}
 
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) && 
       (fd_background->index_cache.table_n_keys)) {
@@ -266,7 +266,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
       unsigned int n=FD_CHOICE_SIZE(key);
-      /* This will force it to be re-read from the source indices */
+      /* This will force it to be re-read from the source indexes */
       rv=fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,FD_VOID);}
     else rv=fd_hashtable_op(bgcache,fd_table_replace,key,FD_VOID);}
 
@@ -287,10 +287,10 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
   if (FD_IMMEDIATEP(x)) {
     int serial=FD_GET_IMMEDIATE(x,fd_index_type);
     if (serial<0) return NULL;
-    else if (serial<FD_N_PRIMARY_INDICES)
-      return fd_primary_indices[serial];
-    else if (serial<(FD_N_PRIMARY_INDICES+fd_n_secondary_indices))
-      return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];
+    else if (serial<FD_N_PRIMARY_INDEXES)
+      return fd_primary_indexes[serial];
+    else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
+      return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
     else return NULL;}
   else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_raw_index_type)))
     return (fd_index)x;
@@ -312,4 +312,4 @@ FD_EXPORT void fd_init_index_delays(void);
 FD_EXPORT fdtype *fd_get_index_delays(void);
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data);
 
-#endif /* FRAMERD_INDICES_H */
+#endif /* FRAMERD_INDEXES_H */

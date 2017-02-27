@@ -90,9 +90,9 @@ static fdtype chain_prim(int n,fdtype *args)
       else i++;}
     cargv[cargc++]=NULL;
     fflush(stdout); fflush(stderr);
-    u8_log(LOG_INFO,"CHAIN","Closing pools and indices");
+    u8_log(LOG_INFO,"CHAIN","Closing pools and indexes");
     fd_close_pools();
-    fd_close_indices();
+    fd_close_indexes();
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
            exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
@@ -278,9 +278,9 @@ int do_main(int argc,char **argv,
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="ms";}
-    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indices",
+    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indexes",
                u8_appid(),startup_time,units,fd_n_pools,
-               fd_n_primary_indices+fd_n_secondary_indices);}
+               fd_n_primary_indexes+fd_n_secondary_indexes);}
 
   if (!(FD_ABORTP(result))) {
     fdtype main_symbol=fd_intern("MAIN");

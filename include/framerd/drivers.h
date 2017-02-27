@@ -61,7 +61,7 @@ FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
 
 FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
 
-/* File indices */
+/* File indexes */
 
 struct FD_INDEX_TYPEINFO {
   u8_string index_typename;

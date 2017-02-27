@@ -231,7 +231,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 typedef struct FD_THREAD_CACHE {
   int fdtc_inuse; u8_string fdtc_id;
   struct FD_HASHTABLE oids;
-  struct FD_HASHTABLE indices;
+  struct FD_HASHTABLE indexes;
   struct FD_HASHTABLE bground;
   struct FD_HASHTABLE calls;
   struct FD_THREAD_CACHE *fdtc_prev;} FD_THREAD_CACHE;
@@ -261,7 +261,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache(void);
 /* Include other stuff */
 
 #include "pools.h"
-#include "indices.h"
+#include "indexes.h"
 #include "frames.h"
 
 FD_EXPORT fdtype (*fd_get_oid_name)(fd_pool,fdtype);

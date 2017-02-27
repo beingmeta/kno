@@ -13,7 +13,7 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
 #include <libu8/libu8io.h>
@@ -37,11 +37,11 @@ FD_EXPORT int fd_init_builtindbs_c()
   return builtindbs_c_initialized;
 }
 
-int fd_init_memindices_c(void);
-int fd_init_extindices_c(void);
-int fd_init_netindices_c(void);
-int fd_init_fileindices_c(void);
-int fd_init_hashindices_c(void);
+int fd_init_memindexes_c(void);
+int fd_init_extindexes_c(void);
+int fd_init_netindexes_c(void);
+int fd_init_fileindexes_c(void);
+int fd_init_hashindexes_c(void);
 
 int fd_init_mempools_c(void);
 int fd_init_extpools_c(void);
@@ -64,12 +64,12 @@ FD_EXPORT int fd_init_dbs()
   fd_init_file_pools_c();
   fd_init_oidpools_c();
 
-  fd_init_extindices_c();
-  fd_init_memindices_c();
-  fd_init_netindices_c();
+  fd_init_extindexes_c();
+  fd_init_memindexes_c();
+  fd_init_netindexes_c();
 
-  fd_init_fileindices_c();
-  fd_init_hashindices_c();
+  fd_init_fileindexes_c();
+  fd_init_hashindexes_c();
 
   u8_register_source_file(_FILEINFO);
 

@@ -17,7 +17,7 @@
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>
@@ -102,7 +102,7 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
 #endif
     point=u8_elapsed_time();
     fd_for_pools(fd_execute_pool_delays,NULL);
-    fd_for_indices(fd_execute_index_delays,NULL);
+    fd_for_indexes(fd_execute_index_delays,NULL);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
       ipeval_done_msg(ipeval_fetch,ipeval_count,time_since(point));
@@ -169,7 +169,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
 #endif
     point=u8_elapsed_time();
     fd_for_pools(fd_execute_pool_delays,NULL);
-    fd_for_indices(fd_execute_index_delays,NULL);
+    fd_for_indexes(fd_execute_index_delays,NULL);
     fetch_time=time_since(point);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)

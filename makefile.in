@@ -80,7 +80,7 @@ DB_HEADERS=\
  include/framerd/stream.h                        \
  include/framerd/fddb.h                              \
  include/framerd/pools.h                             \
- include/framerd/indices.h                           \
+ include/framerd/indexes.h                           \
  include/framerd/dtproc.h                            \
  include/framerd/dtcall.h                            \
  include/framerd/frames.h                            \
@@ -96,10 +96,10 @@ SRC_HEADERS=src/dtype/biginternals.h 		\
 	src/scheme/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
-	src/drivers/headers/filepools.h 	\
-	src/drivers/headers/fileindices.h 	\
-	src/drivers/headers/oidpools.h	 	\
-	src/drivers/headers/hashindices.h	\
+	src/drivers/headers/filepool.h 	\
+	src/drivers/headers/fileindex.h 	\
+	src/drivers/headers/oidpool.h	 	\
+	src/drivers/headers/hashindex.h	\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o 			\
@@ -116,7 +116,7 @@ CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
-	src/db/pools.o src/db/indices.o	src/db/compoundindices.o	\
+	src/db/pools.o src/db/indexes.o	src/db/compoundindexes.o	\
 	src/db/dtproc.o src/db/dtcall.o 				\
 	src/db/methods.o src/db/xtables.o 				\
 	src/db/cachecall.o src/db/threadcache.o 			\
@@ -124,12 +124,12 @@ DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
 	@ipevalo@ src/db/frames.o
 DBDRIVERS_OBJS=\
 	src/drivers/builtindbs.o 					\
-	src/drivers/filepools.o src/drivers/oidpools.o 		\
-	src/drivers/netpools.o src/drivers/extpools.o 		\
-	src/drivers/mempools.o 					\
-	src/drivers/fileindices.o src/drivers/hashindices.o 	\
-	src/drivers/memindices.o src/drivers/extindices.o 	\
-	src/drivers/netindices.o
+	src/drivers/filepool.o src/drivers/oidpool.o 		\
+	src/drivers/netpool.o src/drivers/extpool.o 		\
+	src/drivers/mempool.o 					\
+	src/drivers/fileindex.o src/drivers/hashindex.o 	\
+	src/drivers/memindex.o src/drivers/extindex.o 	\
+	src/drivers/netindex.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o           \
                  src/scheme/threadprims.o src/scheme/quasiquote.o \
@@ -257,8 +257,8 @@ SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
 	etc/fdrestart etc/fdctl \
 	etc/fdcleanup
-SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-               exe/scripts/make-hash-index \
+SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-indexes.\
+               exe/scripts/make-hash-indexes.\
                exe/scripts/make-oidpool \
 	       exe/scripts/ovmerge \
 	       exe/scripts/fdpkg
@@ -279,18 +279,18 @@ FRAMERD_SOURCES=\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
 	src/db/fddb.c src/db/stream.c src/db/hashdtype.c		\
-	src/db/drivers.c src/db/indices.c src/db/pools.c 		\
+	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\
-	src/db/compoundindices.c  			\
+	src/db/compoundindexes.c  			\
 	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
 	src/db/dtproc.c src/db/dtcall.c		\
 	src/db/ipeval.c 	       					\
 	src/drivers/builtindbs.c  					\
-	src/drivers/filepools.c src/drivers/oidpools.c 			\
-	src/drivers/fileindices.c src/drivers/hashindices.c		\
-	src/drivers/memindices.c src/drivers/extindices.c		\
-	src/drivers/mempools.c src/drivers/extpools.c			\
-	src/drivers/netpools.c src/drivers/netindices.c			\
+	src/drivers/filepool.c src/drivers/oidpool.c 			\
+	src/drivers/fileindex.c src/drivers/hashindex.c		\
+	src/drivers/memindex.c src/drivers/extindex.c		\
+	src/drivers/mempool.c src/drivers/extpool.c			\
+	src/drivers/netpool.c src/drivers/netindex.c			\
 	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     \
 	src/scheme/conditionals.c src/scheme/iterators.c               \
         src/scheme/threadprims.c src/scheme/quasiquote.c               \
@@ -1551,10 +1551,10 @@ $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 # Driver dependencies
-src/drivers/filepools.o: src/drivers/headers/filepools.h
-src/drivers/fileindices.o: src/drivers/headers/fileindices.h
-src/drivers/oidpools.o: src/drivers/headers/oidpools.h
-src/drivers/hashindices.o: src/drivers/headers/hashindices.h 
+src/drivers/filepool.o: src/drivers/headers/filepool.h
+src/drivers/fileindex.o: src/drivers/headers/fileindex.h
+src/drivers/oidpool.o: src/drivers/headers/oidpool.h
+src/drivers/hashindex.o: src/drivers/headers/hashindex.h 
 
 # We've stopped using makedpend for the time being
 

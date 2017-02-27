@@ -803,7 +803,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
   else return fd_reterr(fd_BadIndexSpec,"serve_index",NULL,val);
 }
 
-static fdtype get_served_indices(fdtype var,void *data)
+static fdtype get_served_indexes(fdtype var,void *data)
 {
   return fd_index2lisp((fd_index)(primary_index));
 }
@@ -890,8 +890,8 @@ void fd_init_dbserv_c()
                      get_primary_pool,
                      serve_primary_pool,
                      NULL);
-  fd_register_config("SERVEINDICES","indices to be served",
-                     get_served_indices,
+  fd_register_config("SERVEINDEXES","indexes to be served",
+                     get_served_indexes,
                      serve_index,
                      NULL);
   fd_register_config("LOCKSFILE","location of the persistent locks file",

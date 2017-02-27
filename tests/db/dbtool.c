@@ -87,10 +87,10 @@ int main(int argc,char **argv)
           fd_decref(toadd); fd_decref(todrop); fd_decref(current);}}}
     fd_decref(frames); fd_decref(slotids); fd_decref(values);}
   fd_commit_pools();
-  fd_commit_indices();
+  fd_commit_indexes();
 #if 1
   fd_swapout_pools();
-  fd_swapout_indices();
+  fd_swapout_indexes();
   fd_clear_slotcaches();
   fd_clear_callcache(FD_VOID);
 #endif
