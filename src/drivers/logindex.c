@@ -22,24 +22,27 @@
 
 /* The in-memory index */
 
-static fdtype *log_index_fetchn(fd_index ix,int n,fdtype *keys)
-{
-  fdtype *results=u8_alloc_n(n,fdtype);
-  int i=0; while (i<n) {
-    results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],FD_EMPTY_CHOICE);
-    i++;}
-  return results;
-}
-
 static fdtype *log_index_fetchkeys(fd_index ix,int *n)
 {
-  fdtype keys=fd_hashtable_keys(&(ix->index_cache));
-  int n_elts=FD_CHOICE_SIZE(keys);
-  fdtype *result=u8_alloc_n(n_elts,fdtype);
-  int j=0;
-  FD_DO_CHOICES(key,keys) {result[j++]=key;}
-  *n=n_elts;
-  return result;
+  fdtype keys=fd_getkeys(&(ix->index_cache));
+  if (FD_EMPTY_CHOICEP(keys)) {
+    *n=0; return NULL;}
+  else {
+    if (FD_ACHOICEP(keys)) keys=fd_simplify_achoice(keys);
+    int n_elts=FD_CHOICE_SIZE(keys);
+    if (n_elts==1) {
+      fdtype *results=u8_alloc_n(1,fdtype);
+      results[0]=keys;
+      *n=1;
+      u8_free(keys);
+      return results;}
+    else {
+      fdtype *results=u8_alloc_n(n_elts,fdtype);
+      fdtype *values=FD_XCHOICE_DATA(keys);
+      memcpy(results,values,sizeof(fdtype)*n_elts);
+      u8_free(keys);
+      *n=n_elts;
+      return results;}}
 }
 
 static int log_index_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
@@ -67,32 +70,15 @@ static struct FD_KEY_SIZE *log_index_fetchsizes(fd_index ix,int *n)
 
 static int log_index_commit(fd_index ix)
 {
-  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
-  if ((mix->index_source) && (mix->commitfn))
-    return (mix->commitfn)(mix,mix->index_source);
-  else {
-    fd_seterr(fd_EphemeralIndex,"log_index_commit",
-	      u8_strdup(ix->index_idstring),FD_VOID);
-    return -1;}
-}
-
-static int log_index_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
-{
-  struct FD_STREAM stream, *rstream;
-  if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
-    rstream=fd_init_file_stream
-      (&stream,file,FD_STREAM_CREATE,fd_driver_bufsize);
-    if (rstream==NULL) return -1;
-    stream.stream_flags&=~FD_STREAM_IS_MALLOCD;
-    fd_write_dtype(fd_writebuf(&stream),(fdtype)&(ix->index_cache));
-    fd_free_stream(&stream);
-    return 1;}
-  else return 0;
+  struct FD_LOG_INDEX *logix=(struct FD_LOG_INDEX *)ix;
+  fd_stream s=&(logix->index_stream);
+  fd_lock_stream(s);
+  fd_unlock_stream(s);
 }
 
 static fd_index open_log_index(u8_string file,fddb_flags flags)
 {
-  struct FD_MEM_INDEX *mix=(fd_mem_index)fd_make_mem_index(flags);
+  struct FD_LOG_INDEX *mix=(fd_mem_index)fd_make_mem_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_STREAM stream;
   fd_init_file_stream
@@ -124,7 +110,7 @@ static struct FD_INDEX_HANDLER log_index_handler={
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */
-  log_index_fetchn, /* fetchn */
+  NULL, /* fetchn */
   log_index_fetchkeys, /* fetchkeys */
   log_index_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
