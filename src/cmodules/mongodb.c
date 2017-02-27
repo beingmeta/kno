@@ -739,13 +739,13 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     const bson_t *doc;
     bson_t *q=fd_dtype2bson(query,flags,opts);
     bson_t *findopts=getfindopts(opts,flags);
-    mongoc_read_prefs_t *readprefs=get_read_prefs(opts);
+    mongoc_read_prefs_t *rp=get_read_prefs(opts);
     fdtype *vec=NULL; size_t n=0, max=0;
     int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
     if (q)
-      cursor=mongoc_collection_find_with_opts(collection,q,findopts,readprefs);
+      cursor=mongoc_collection_find_with_opts(collection,q,findopts,rp);
     if (cursor) {
       while (mongoc_cursor_next(cursor,&doc)) {
         /* u8_string json=bson_as_json(doc,NULL); */
@@ -766,9 +766,10 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
         else {
           FD_ADD_TO_CHOICE(results,r);}}
       if (findopts) bson_destroy(findopts);
-      if (readprefs) mongoc_read_prefs_destroy(rp);
+      if (rp) mongoc_read_prefs_destroy(rp);
       mongoc_cursor_destroy(cursor);}
-    else results=fd_err(fd_MongoDB_Error,"mongodb_find","couldn't get cursor",opts);
+    else results=fd_err(fd_MongoDB_Error,"mongodb_find",
+                        "couldn't get cursor",opts);
     if (q) bson_destroy(q);
     if (findopts) bson_destroy(findopts);
     collection_done(collection,client,domain);
@@ -808,8 +809,12 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
         u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
       if (q) cursor=mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
-                FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
-                q,fields,rp);
+                FD_FIX2INT(skip_arg),
+                FD_FIX2INT(limit_arg),
+                FD_FIX2INT(batch_arg),
+                q,
+                fields,
+                rp);
       if (cursor) {
         while (mongoc_cursor_next(cursor,&doc)) {
           /* u8_string json=bson_as_json(doc,NULL); */
@@ -864,7 +869,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     mongoc_cursor_t *cursor;
     const bson_t *doc;
     bson_t *q, *findopts=getfindopts(opts,flags);
-    mongoc_read_prefs_t *readprefs=get_read_prefs(opts);
+    mongoc_read_prefs_t *rp=get_read_prefs(opts);
     if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
       q=fd_dtype2bson(query,flags,opts);
     else {
@@ -876,14 +881,14 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
       q=out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
-    if (q) cursor=mongoc_collection_find_with_opts(collection,q,findopts,readprefs);
+    if (q) cursor=mongoc_collection_find_with_opts
+             (collection,q,findopts,rp);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result=fd_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
     if (rp) mongoc_read_prefs_destroy(rp);
     if (findopts) bson_destroy(findopts);
     if (q) bson_destroy(q);
-    if (fields) bson_destroy(fields);
     fd_decref(opts);
     collection_done(collection,client,domain);
     return result;}
@@ -1227,10 +1232,11 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
   mongoc_cursor_t *cursor=NULL;
   mongoc_collection_t *collection=open_collection(domain,&connection,flags);
   bson_t *bq=fd_dtype2bson(query,flags,opts);
-  bson_t findopts=getfindopts(opts,flags);
-  mongoc_read_prefs_t *readprefs=get_read_prefs(opts);
+  bson_t *findopts=getfindopts(opts,flags);
+  mongoc_read_prefs_t *rp=get_read_prefs(opts);
   if (collection) {
-    cursor=mongoc_collection_find_with_opts(collection,bq,findopts,readprefs);}
+    cursor=mongoc_collection_find_with_opts
+      (collection,bq,findopts,rp);}
   if (cursor) {
     struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
     FD_INIT_CONS(consed,fd_mongoc_cursor);
@@ -1240,7 +1246,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     consed->cursor_query=query; fd_incref(query);
     consed->cursor_query_bson=bq;
     consed->cursor_readprefs=rp;
-    consed->cursor_opts=findopts;
+    consed->cursor_opts=opts;
     consed->cursor_connection=connection;
     consed->cursor_collection=collection;
     consed->mongoc_cursor=cursor;
@@ -1248,7 +1254,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
   else {
     fd_decref(opts);
     if (findopts) bson_destroy(findopts);
-    if (readprefs) mongoc_read_prefs_destroy(readprefs);
+    if (rp) mongoc_read_prefs_destroy(rp);
     if (bq) bson_destroy(bq);
     if (collection) collection_done(collection,connection,domain);
     return FD_ERROR_VALUE;}
@@ -2105,7 +2111,7 @@ static fdtype mongovecp(fdtype arg)
   else return FD_FALSE;
 }
 
-/* MongoDB pools and indices */
+/* MongoDB pools and indexes */
 
 /* These are now implemented in Scheme */
 

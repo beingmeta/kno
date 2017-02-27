@@ -820,7 +820,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -983,7 +982,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1236,15 +1234,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1382,7 +1371,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1535,7 +1524,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -10813,21 +10801,52 @@ if test x$with_imagick = "xyes"; then
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-mongodb was given.
-if test "${with_mongodb+set}" = set; then :
-  withval=$with_mongodb;
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for mongoc_collection_find_with_opts in -lmongoc-1.0" >&5
+$as_echo_n "checking for mongoc_collection_find_with_opts in -lmongoc-1.0... " >&6; }
+if ${ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts+:} false; then :
+  $as_echo_n "(cached) " >&6
 else
-  with_mongodb=$with_mongodb_default
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmongoc-1.0  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char mongoc_collection_find_with_opts ();
+int
+main ()
+{
+return mongoc_collection_find_with_opts ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts=yes
+else
+  ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts" >&5
+$as_echo "$ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts" >&6; }
+if test "x$ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBMONGOC_1_0 1
+_ACEOF
+
+  LIBS="-lmongoc-1.0 $LIBS"
+
 fi
 
-if test x$with_mongodb = "xyes"; then
-  CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}"
-fi
-
-if test "${with_mongodb}" = "yes"; then
-   for ac_func in mongoc_collection_find_with_opts
+for ac_func in mongoc_collection_find_with_opts
 do :
   ac_fn_c_check_func "$LINENO" "mongoc_collection_find_with_opts" "ac_cv_func_mongoc_collection_find_with_opts"
 if test "x$ac_cv_func_mongoc_collection_find_with_opts" = xyes; then :
@@ -10838,7 +10857,20 @@ _ACEOF
 fi
 done
 
+
+
+# Check whether --with-mongodb was given.
+if test "${with_mongodb+set}" = set; then :
+  withval=$with_mongodb;
+else
+  with_mongodb=$with_mongodb_default
 fi
+
+
+if test "$with_mongodb" = "yes"; then
+   CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
+   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+fi;
 
 
 # Check whether --with-leveldb was given.

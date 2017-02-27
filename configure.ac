@@ -1224,15 +1224,15 @@ if test x$with_imagick = "xyes"; then
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(mongodb,--with-mongodb Build and install MongoDB library,,with_mongodb=$with_mongodb_default)
-if test x$with_mongodb = "xyes"; then
-  CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}"
-fi
+AC_CHECK_LIB(mongoc-1.0,mongoc_collection_find_with_opts)
+AC_CHECK_FUNCS(mongoc_collection_find_with_opts)
 
-if test "${with_mongodb}" = "yes"; then
-   AC_CHECK_FUNCS(mongoc_collection_find_with_opts)
-fi	
+AC_ARG_WITH(mongodb,--with-mongodb Build and install MongoDB library,,with_mongodb=$with_mongodb_default)
+
+if test "$with_mongodb" = "yes"; then
+   CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
+   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+fi;
 
 AC_ARG_WITH(leveldb,--with-leveldb Build and install LevelDB library,,with_leveldb=$with_leveldb_default)
 if test x$with_leveldb = "xyes"; then
