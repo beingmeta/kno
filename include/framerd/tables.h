@@ -136,6 +136,8 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_SLOTMAP_CLEAR_MODIFIED(x) \
   FD_XSLOTMAP_CLEAR_MODIFIED(FD_XSLOTMAP(x))
 
+#define FD_SLOTMAP_KEYVALS(sm) (FD_XSLOTMAP_KEYVALS(FD_XSLOTMAP(sm)))
+
 #define fd_slotmap_size(x) (FD_XSLOTMAP_NUSED(FD_XSLOTMAP(x)))
 #define fd_slotmap_modifiedp(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 
