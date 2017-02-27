@@ -68,6 +68,8 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
   u8_seterr(cond,caller,u8_strdup(error->message));
 }
 
+#define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,6,0))
+
 #define MONGODB_CLIENT_BLOCK 1
 #define MONGODB_CLIENT_NOBLOCK 0
 
@@ -724,7 +726,7 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
     return FD_ERROR_VALUE;}
 }
 
-#if HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
+#if HAVE_MONGOC_OPTS_FUNCTIONS
 static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
@@ -855,7 +857,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 }
 #endif
 
-#if HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
+#if HAVE_MONGOC_OPTS_FUNCTIONS
 static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 {
   fdtype result=FD_EMPTY_CHOICE;
@@ -1221,7 +1223,7 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
 
 /* Cursor creation */
 
-#if HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
+#if HAVE_MONGOC_OPTS_FUNCTIONS
 static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;

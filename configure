@@ -10801,63 +10801,6 @@ if test x$with_imagick = "xyes"; then
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for mongoc_collection_find_with_opts in -lmongoc-1.0" >&5
-$as_echo_n "checking for mongoc_collection_find_with_opts in -lmongoc-1.0... " >&6; }
-if ${ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lmongoc-1.0  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char mongoc_collection_find_with_opts ();
-int
-main ()
-{
-return mongoc_collection_find_with_opts ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts=yes
-else
-  ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts" >&5
-$as_echo "$ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts" >&6; }
-if test "x$ac_cv_lib_mongoc_1_0_mongoc_collection_find_with_opts" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBMONGOC_1_0 1
-_ACEOF
-
-  LIBS="-lmongoc-1.0 $LIBS"
-
-fi
-
-for ac_func in mongoc_collection_find_with_opts
-do :
-  ac_fn_c_check_func "$LINENO" "mongoc_collection_find_with_opts" "ac_cv_func_mongoc_collection_find_with_opts"
-if test "x$ac_cv_func_mongoc_collection_find_with_opts" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS 1
-_ACEOF
-
-fi
-done
-
-
 
 # Check whether --with-mongodb was given.
 if test "${with_mongodb+set}" = set; then :
@@ -12388,7 +12331,7 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/dtype/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest tests/scheme/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/cons/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest tests/scheme/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13092,13 +13035,13 @@ do
     "makefile") CONFIG_FILES="$CONFIG_FILES makefile" ;;
     "etc/version") CONFIG_FILES="$CONFIG_FILES etc/version" ;;
     "etc/makefile.include") CONFIG_FILES="$CONFIG_FILES etc/makefile.include" ;;
-    "tests/dtype/makefile") CONFIG_FILES="$CONFIG_FILES tests/dtype/makefile" ;;
+    "tests/cons/makefile") CONFIG_FILES="$CONFIG_FILES tests/cons/makefile" ;;
     "tests/db/makefile") CONFIG_FILES="$CONFIG_FILES tests/db/makefile" ;;
     "tests/scheme/makefile") CONFIG_FILES="$CONFIG_FILES tests/scheme/makefile" ;;
     "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "exe/.gdbinit") CONFIG_FILES="$CONFIG_FILES exe/.gdbinit" ;;
-    "tests/dtype/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/dtype/.gdbinit" ;;
+    "tests/cons/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/cons/.gdbinit" ;;
     "tests/db/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/db/.gdbinit" ;;
     "tests/scheme/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/scheme/.gdbinit" ;;
     "etc/fdstart") CONFIG_FILES="$CONFIG_FILES etc/fdstart" ;;

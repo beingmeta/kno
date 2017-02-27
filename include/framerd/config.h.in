@@ -503,7 +503,4 @@
 /* The number of pointer locks to use */
 #undef FD_N_PTRLOCKS
 
-/* Check if you've got the new mongoc_collection_find_with_opts */
-#undef HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
-
 #endif

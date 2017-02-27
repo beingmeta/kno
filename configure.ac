@@ -1224,9 +1224,6 @@ if test x$with_imagick = "xyes"; then
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
-AC_CHECK_LIB(mongoc-1.0,mongoc_collection_find_with_opts)
-AC_CHECK_FUNCS(mongoc_collection_find_with_opts)
-
 AC_ARG_WITH(mongodb,--with-mongodb Build and install MongoDB library,,with_mongodb=$with_mongodb_default)
 
 if test "$with_mongodb" = "yes"; then
@@ -1587,14 +1584,17 @@ if (test ! -f src/modules/gpath.scm); then
 fi;
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
-           tests/dtype/makefile tests/db/makefile tests/scheme/makefile DIY/makefile 
+           tests/cons/makefile tests/db/makefile
+	   tests/scheme/makefile DIY/makefile 
            etc/gdbinit
-	   exe/.gdbinit tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
+	   exe/.gdbinit tests/cons/.gdbinit
+	   tests/db/.gdbinit tests/scheme/.gdbinit
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
-	   tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest
+	   tests/scheme/vgleaktest tests/scheme/gheaptest 
+	   tests/scheme/vgheaptest
 	   tests/scheme/runtest tests/scheme/fdexectest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
