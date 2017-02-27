@@ -861,12 +861,12 @@ static int commit_edits(struct FD_FILE_INDEX *f,
          We need to retrieve their values on disk in order to write
          out a new value. */
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
-      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_kvkey;
+        fdtype key=kvscan->kv_key;
         if ((FD_PAIRP(key)) &&
             (FD_EQ(FD_CAR(key),drop_symbol)) &&
-            (!(FD_VOIDP(kvscan->fd_keyval)))) {
+            (!(FD_VOIDP(kvscan->kv_val)))) {
           fdtype cached=fd_hashtable_get(&(f->index_cache),FD_CDR(key),FD_VOID);
           if (!(FD_VOIDP(cached))) {
             /* If the value of the key is cached, it will be up to date with
@@ -876,7 +876,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,
                it anyway. */
             struct FD_PAIR *pair=
               fd_consptr(struct FD_PAIR *,key,fd_pair_type);
-            fd_decref(kvscan->fd_keyval); kvscan->fd_keyval=cached;
+            fd_decref(kvscan->kv_val); kvscan->kv_val=cached;
             pair->fd_car=set_symbol;}
           else dropkeys[n_drops++]=FD_CDR(key);}
         kvscan++;}
@@ -892,24 +892,24 @@ static int commit_edits(struct FD_FILE_INDEX *f,
     fd_outbuf outstream=fd_writebuf(stream);
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
-      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_kvkey;
-        if (FD_VOIDP(kvscan->fd_keyval)) kvscan++;
+        fdtype key=kvscan->kv_key;
+        if (FD_VOIDP(kvscan->kv_val)) kvscan++;
         else if (FD_PAIRP(key)) {
           kdata[n_edits].key=FD_CDR(key); kdata[n_edits].pos=filepos;
           if (FD_EQ(FD_CAR(key),set_symbol)) {
             /* If it's a set edit, just write out the whole thing */
-            if (FD_EMPTY_CHOICEP(kvscan->fd_keyval)) {
+            if (FD_EMPTY_CHOICEP(kvscan->kv_val)) {
               kdata[n_edits].n_values=0; kdata[n_edits].pos=0;}
             else filepos=filepos+
                    write_values(stream,outstream,
-                                kvscan->fd_keyval,0,
+                                kvscan->kv_val,0,
                                 &(kdata[n_edits].n_values));}
           else if (FD_EQ(FD_CAR(key),drop_symbol)) {
             /* If it's a drop edit, you got the value, so compute
                the difference and write that out.*/
-            fdtype new_value=fd_difference(dropvals[i],kvscan->fd_keyval);
+            fdtype new_value=fd_difference(dropvals[i],kvscan->kv_val);
             if (FD_EMPTY_CHOICEP(new_value)) {
               kdata[n_edits].n_values=0; kdata[n_edits].pos=0;}
             else filepos=filepos+write_values
@@ -1007,9 +1007,9 @@ static int file_index_commit(struct FD_INDEX *ix)
     while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
-          fdtype key=kvscan->fd_kvkey;
+          fdtype key=kvscan->kv_key;
           /* It would be nice to update slotids here, but we'll
              decline for now and require that those be managed
              manually. */
@@ -1056,12 +1056,12 @@ static int file_index_commit(struct FD_INDEX *ix)
       filepos=fd_endpos(stream);
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           fd_off_t writepos=filepos; int new_values;
           filepos=filepos+
             write_values(stream,outstream,
-                         kvscan->fd_keyval,kdata[i].pos,
+                         kvscan->kv_val,kdata[i].pos,
                          &new_values);
           kdata[i].pos=writepos-pos_offset;
           kdata[i].n_values=kdata[i].n_values+new_values;

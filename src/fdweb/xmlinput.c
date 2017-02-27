@@ -714,9 +714,9 @@ static void cleanup_attribs(fdtype table)
       if (unlock) fd_rw_unlock(&sm->table_rwlock);
       return;}
     while (scan < limit) {
-      fdtype val=scan->fd_keyval;
+      fdtype val=scan->kv_val;
       if (FD_ACHOICEP(val))
-        scan->fd_keyval=fd_simplify_choice(val);
+        scan->kv_val=fd_simplify_choice(val);
       scan++;}
     if (unlock) fd_rw_unlock(&sm->table_rwlock);}
 }

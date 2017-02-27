@@ -560,12 +560,12 @@ static fdtype read_oid_value(fd_bigpool op,
       if (slot_byte==0xE0) {
         long long slotcode= (fd_read_byte(in), fd_read_zint(in));
         if ((slotcode>=0)&&(slotcode<op->n_slotids))
-          kv[i].fd_kvkey=op->slotids[slotcode];
+          kv[i].kv_key=op->slotids[slotcode];
         else {
           fd_seterr(_("BadSlotCode"),cxt,op->pool_idstring,FD_VOID);
           fd_decref((fdtype)sm);
           return FD_ERROR_VALUE;}}
-      else kv[i].fd_keyvalue=fd_read_dtype(in);
+      else kv[i].kv_val=fd_read_dtype(in);
       i++;}
     return (fdtype) sm;} /* close (byte0==0xF0) */
   /* Just a regular dtype */
@@ -756,8 +756,8 @@ static int bigpool_write_value(fdtype value,fd_stream stream,
     fd_write_byte(tmpout,0xF0);
     fd_write_zint(tmpout,size);
     while (i<size) {
-      fdtype slotid=keyvals[i].fd_kvkey;
-      fdtype value=keyvals[i].fd_keyval;
+      fdtype slotid=keyvals[i].kv_key;
+      fdtype value=keyvals[i].kv_val;
       int slotcode=get_slotcode(p,slotid);
       if (slotcode<0)
         fd_write_dtype(tmpout,slotid);

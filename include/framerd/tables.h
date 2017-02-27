@@ -88,9 +88,9 @@ FD_EXPORT int   fd_init_hash_size;
 /* Slotmaps */
 
 struct FD_KEYVAL {
-  fdtype fd_kvkey, fd_keyval;};
+  fdtype kv_key, kv_val;};
 
-typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
+typedef int (*kv_valfn)(fdtype,fdtype,void *);
 typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
 
 typedef struct FD_SLOTMAP {
@@ -174,11 +174,11 @@ static struct FD_KEYVAL *fd_keyvec_get
   const struct FD_KEYVAL *scan=keyvals, *limit=scan+size;
   if (FD_ATOMICP(key))
     while (scan<limit)
-      if (scan->fd_kvkey==key)
+      if (scan->kv_key==key)
 	return (struct FD_KEYVAL *)scan;
       else scan++;
   else while (scan<limit)
-	 if (FDTYPE_EQUAL(scan->fd_kvkey,key))
+	 if (FDTYPE_EQUAL(scan->kv_key,key))
 	   return (struct FD_KEYVAL *) scan;
 	 else scan++;
   return NULL;
@@ -196,15 +196,15 @@ static U8_MAYBE_UNUSED struct FD_KEYVAL *fd_sortvec_get
       while (top>=bottom) {
         middle=bottom+(top-bottom)/2;
         if (middle>=limit) break;
-        else if (key==middle->fd_kvkey) {found=1; break;}
-        else if (FD_CONSP(middle->fd_kvkey)) top=middle-1;
-        else if (key<middle->fd_kvkey) top=middle-1;
+        else if (key==middle->kv_key) {found=1; break;}
+        else if (FD_CONSP(middle->kv_key)) top=middle-1;
+        else if (key<middle->kv_key) top=middle-1;
         else bottom=middle+1;}
     else while (top>=bottom) {
       int comparison;
       middle=bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      comparison=cons_compare(key,middle->fd_kvkey);
+      comparison=cons_compare(key,middle->kv_key);
       if (comparison==0) {found=1; break;}
       else if (comparison<0) top=middle-1;
       else bottom=middle+1;}
@@ -235,7 +235,7 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_get
   size=FD_XSLOTMAP_NUSED(sm);
   result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
-    fdtype v=fd_incref(result->fd_keyval);
+    fdtype v=fd_incref(result->kv_val);
     if (unlock) fd_rw_unlock(&sm->table_rwlock);
     return v;}
   else {
@@ -256,7 +256,7 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_test
   size=FD_XSLOTMAP_NUSED(sm);
   result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
-    fdtype current=result->fd_keyval; int cmp;
+    fdtype current=result->kv_val; int cmp;
     if (FD_VOIDP(val)) cmp=1;
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
@@ -424,7 +424,7 @@ static U8_MAYBE_UNUSED fdtype fd_schemap_test
 
 typedef struct FD_HASH_BUCKET {
   int fd_n_entries;
-  struct FD_KEYVAL fd_keyval0;} FD_HASH_BUCKET;
+  struct FD_KEYVAL kv_val0;} FD_HASH_BUCKET;
 typedef struct FD_HASH_BUCKET *fd_hash_bucket;
 
 typedef struct FD_HASHTABLE {
@@ -517,7 +517,7 @@ FD_EXPORT fdtype fd_hashtable_keys(fd_hashtable ht);
 FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
   (fd_hashtable ht,int *sizep,int lock);
 FD_EXPORT int fd_for_hashtable
-  (fd_hashtable ht,fd_keyvalfn f,void *data,int lock);
+  (fd_hashtable ht,kv_valfn f,void *data,int lock);
 FD_EXPORT int fd_for_hashtable_kv
   (struct FD_HASHTABLE *ht,fd_kvfn f,void *data,int lock);
 

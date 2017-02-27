@@ -753,7 +753,7 @@ static int table_indexstore(fdtype ixarg,fdtype key,fdtype value)
 static int merge_kv_into_adds(struct FD_KEYVAL *kv,void *data)
 {
   struct FD_HASHTABLE *adds=(fd_hashtable) data;
-  fd_hashtable_op_nolock(adds,fd_table_add,kv->fd_kvkey,kv->fd_keyval);
+  fd_hashtable_op_nolock(adds,fd_table_add,kv->kv_key,kv->kv_val);
   return 0;
 }
 

@@ -246,7 +246,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       int i=0, len=FD_SLOTMAP_NUSED(obj);
       struct FD_KEYVAL *kv=(FD_XSLOTMAP(obj))->sm_keyvals;
       while (i<len) {
-        envcount=envcount+count_envrefs(kv[i].fd_keyval,env,depth-1); i++;}
+        envcount=envcount+count_envrefs(kv[i].kv_val,env,depth-1); i++;}
       return envcount;}
     case fd_choice_type: {
       struct FD_CHOICE *ch=(struct FD_CHOICE *)obj;
@@ -286,9 +286,9 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         if (slots[i]) {
           struct FD_HASH_BUCKET *hashentry=slots[i++];
           int j=0, n_keyvals=hashentry->fd_n_entries;
-          struct FD_KEYVAL *keyvals=&(hashentry->fd_keyval0);
+          struct FD_KEYVAL *keyvals=&(hashentry->kv_val0);
           while (j<n_keyvals) {
-            envcount=envcount+count_envrefs(keyvals[j].fd_keyval,env,depth-1);
+            envcount=envcount+count_envrefs(keyvals[j].kv_val,env,depth-1);
             j++;}}
         else i++;
       fd_unlock_table(ht);

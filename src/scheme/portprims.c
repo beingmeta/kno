@@ -962,7 +962,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
-      fdtype key=scan->fd_kvkey, val=scan->fd_keyval;
+      fdtype key=scan->kv_key, val=scan->kv_val;
       int newcol=output_keyval(out,key,val,col,maxcol,first_kv);
       if (newcol>=0) {
         col=newcol; scan++; first_kv=0;
@@ -972,9 +972,9 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
         if (prefix) u8_puts(out,prefix);
         while (i>0) {u8_putc(out,' '); i--;}
         col=indent+((prefix) ? (u8_strlen(prefix)) : (0));}
-      col=fd_pprint(out,scan->fd_kvkey,prefix,indent+2,col,maxcol,first_kv);
+      col=fd_pprint(out,scan->kv_key,prefix,indent+2,col,maxcol,first_kv);
       u8_putc(out,' '); col++;
-      col=fd_pprint(out,scan->fd_keyval,prefix,indent+4,col,maxcol,0);
+      col=fd_pprint(out,scan->kv_val,prefix,indent+4,col,maxcol,0);
       first_kv=0;
       scan++;}
     u8_puts(out,"]");
@@ -1088,9 +1088,9 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
-      col=fd_xpprint(out,scan->fd_kvkey,prefix,
+      col=fd_xpprint(out,scan->kv_key,prefix,
                      indent+2,col,maxcol,first_pair,fn,data);
-      col=fd_xpprint(out,scan->fd_keyval,
+      col=fd_xpprint(out,scan->kv_val,
                      prefix,indent+4,col,maxcol,0,fn,data);
       first_pair=0;
       scan++;}
@@ -1198,9 +1198,9 @@ static int embeddedp(fdtype focus,fdtype expr)
     slotmap_size=FD_XSLOTMAP_NUSED(sm);
     scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     while (scan<limit)
-      if (embeddedp(focus,scan->fd_kvkey)) {
+      if (embeddedp(focus,scan->kv_key)) {
         fd_unlock_table(sm); return 1;}
-      else if (embeddedp(focus,scan->fd_keyval)) {
+      else if (embeddedp(focus,scan->kv_val)) {
         fd_unlock_table(sm); return 1;}
       else scan++;
     fd_unlock_table(sm);

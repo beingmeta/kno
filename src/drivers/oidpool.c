@@ -850,7 +850,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
       tmp_slotids=_tmp_slotids;
     else tmp_slotids=u8_alloc_n(size,fdtype);
     while (i<size) {
-      tmp_slotids[i]=sm->sm_keyvals[i].fd_kvkey; i++;}
+      tmp_slotids[i]=sm->sm_keyvals[i].kv_key; i++;}
     /* assert(schema_sortedp(tmp_slotids,size)); */
     if (tmp_slotids==_tmp_slotids)
       return find_schema_byval(op,tmp_slotids,size);
@@ -895,7 +895,7 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
         int i=0, size=FD_XSLOTMAP_NUSED(sm);
         fd_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,data[se->fd_slotmapin[i]].fd_keyval);
+          fd_write_dtype(tmpout,data[se->fd_slotmapin[i]].kv_val);
           i++;}}}}
   else {
     fd_write_byte(tmpout,0);

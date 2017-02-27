@@ -142,9 +142,9 @@ static int extindex_commit(fd_index ix)
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(exi->index_edits),&n_edits,0);
     struct FD_KEYVAL *scan=kvals, *limit=kvals+n_edits;
     while (scan<limit) {
-      fdtype key=scan->fd_kvkey;
+      fdtype key=scan->kv_key;
       if (FD_PAIRP(key)) {
-        fdtype kind=FD_CAR(key), realkey=FD_CDR(key), value=scan->fd_keyval;
+        fdtype kind=FD_CAR(key), realkey=FD_CDR(key), value=scan->kv_val;
         fdtype assoc=fd_conspair(realkey,value);
         if (FD_EQ(kind,set_symbol)) {
           stores[n_stores++]=assoc; fd_incref(realkey);}
@@ -154,9 +154,9 @@ static int extindex_commit(fd_index ix)
       else u8_raise(_("Bad edit key in index"),"fd_extindex_commit",NULL);
       scan++;}
     scan=kvals; while (scan<kvals) {
-      fd_decref(scan->fd_kvkey);
+      fd_decref(scan->kv_key);
       /* Not neccessary because we used the pointer above. */
-      /* fd_decref(scan->fd_keyval); */
+      /* fd_decref(scan->kv_val); */
       scan++;}}
   if (exi->index_adds.table_n_keys) {
     int add_len;
@@ -165,7 +165,7 @@ static int extindex_commit(fd_index ix)
        their pointers will become in the assocs in the adds vector. */
     struct FD_KEYVAL *scan=kvals, *limit=kvals+add_len;
     while (scan<limit) {
-      fdtype key=scan->fd_kvkey, value=scan->fd_keyval;
+      fdtype key=scan->kv_key, value=scan->kv_val;
       fdtype assoc=fd_conspair(key,value);
       adds[n_adds++]=assoc;
       scan++;}}

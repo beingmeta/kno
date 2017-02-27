@@ -143,11 +143,11 @@ define showslotmap
   print (*((struct FD_SLOTMAP *)$arg0))
 end
 define showslotmapk
-  print ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].fd_kvkey)
+  print ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_key)
   showtype $
 end
 define showslotmapv
-  print ((((fd_slotmap)$arg0)->sm_keyvals)[($arg1)].fd_keyval)
+  print ((((fd_slotmap)$arg0)->sm_keyvals)[($arg1)].kv_val)
   showtype $
 end
 define findelt

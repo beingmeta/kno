@@ -602,11 +602,11 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     int j=0; while (j<n_cols) {
       int coltype=sqlite3_column_type(stmt,j); fdtype value;
       if (coltype<0) {
-        int k=0; while (k<j) {fd_decref(kv[k].fd_keyval);  k++;}
+        int k=0; while (k<j) {fd_decref(kv[k].kv_val);  k++;}
         u8_free(kv);
         fd_decref(results); u8_free(out.u8_outbuf);
         return FD_ERROR_VALUE;}
-      kv[j].fd_kvkey=colnames[j];
+      kv[j].kv_key=colnames[j];
       switch (coltype) {
       case SQLITE_INTEGER: {
         long long intval=sqlite3_column_int(stmt,j);
@@ -639,30 +639,30 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       case SQLITE_NULL: default:
         value=FD_EMPTY_CHOICE; break;}
       if (FD_VOIDP(colmaps[j]))
-        kv[j].fd_keyval=value;
+        kv[j].kv_val=value;
       else if (FD_APPLICABLEP(colmaps[j])) {
-        kv[j].fd_keyval=fd_apply(colmaps[j],1,&value);
+        kv[j].kv_val=fd_apply(colmaps[j],1,&value);
         fd_decref(value);}
       else if (FD_OIDP(colmaps[j]))
         if (FD_STRINGP(value)) {
-          kv[j].fd_keyval=fd_parse(FD_STRDATA(value));
+          kv[j].kv_val=fd_parse(FD_STRDATA(value));
           fd_decref(value);}
         else {
           FD_OID base=FD_OID_ADDR(colmaps[j]);
           int offset=fd_getint(value);
-          if (offset<0) kv[j].fd_keyval=value;
+          if (offset<0) kv[j].kv_val=value;
           else {
-            kv[j].fd_keyval=fd_make_oid(base+offset);
+            kv[j].kv_val=fd_make_oid(base+offset);
             fd_decref(value);}}
       else if (colmaps[j]==FD_TRUE)
         if (FD_STRINGP(value)) {
-          kv[j].fd_keyval=fd_parse(FD_STRDATA(value));
+          kv[j].kv_val=fd_parse(FD_STRDATA(value));
           fd_decref(value);}
-        else kv[j].fd_keyval=value;
-      else kv[j].fd_keyval=value;
+        else kv[j].kv_val=value;
+      else kv[j].kv_val=value;
       j++;}
     if ((n_cols==1) && (FD_TRUEP(mergefn))) {
-      result=kv[0].fd_keyval;
+      result=kv[0].kv_val;
       u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) ||
              (FD_FALSEP(mergefn)) ||

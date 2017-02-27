@@ -892,9 +892,9 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
     while (scan < lim) {
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int fd_n_entries=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+fd_n_entries;
         while (kvscan<kvlimit) {
-          fdtype key=kvscan->fd_kvkey, val=kvscan->fd_keyval;
+          fdtype key=kvscan->kv_key, val=kvscan->kv_val;
           if (val==FD_LOCKHOLDER) {kvscan++; continue;}
           else if (savep(val,finished)) {
             *oidv++=key; *values++=val; fd_incref(val);}
