@@ -20,7 +20,7 @@
 
 #include "chunkrefs.h"
 
-#define FD_LOG_INDEX_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
+#define FD_LOG_INDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
 
 typedef struct FD_LOG_INDEX {
   FD_INDEX_FIELDS;

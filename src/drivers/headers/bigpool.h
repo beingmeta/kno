@@ -12,8 +12,7 @@
 
 #include "chunkrefs.h"
 
-#define FD_BIGPOOL_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
-#define FD_BIGPOOL_TO_RECOVER ((0x11<<24)|(0x09<<16)|(0x04<<8)|(0x12))
+#define FD_BIGPOOL_MAGIC_NUMBER ((2<<24)|(7<<16)|(16<<8)|(12))
 
 /* OID Pools */
 
