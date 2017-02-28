@@ -788,12 +788,12 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
     else if (FD_HASHTABLEP(v)) {
       if (!(FD_HASHTABLE_MODIFIEDP(v))) {
         *unlock++=oids[i];}}
-    else {}
+    else *unlock++=oids[i];
     fd_decref(v);
     i++;}
   u8_free(writes.values); writes.values=NULL;
   unlock_count=unlock-oids;
-  if (p->pool_handler->unlock) {
+  if ((p->pool_handler->unlock)&&(unlock_count)) {
     fdtype to_unlock=fd_init_choice(NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
     int retval=p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
