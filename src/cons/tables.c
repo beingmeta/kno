@@ -2249,6 +2249,39 @@ FD_EXPORT int fd_fast_reset_hashtable
   if ((lock) && (ht->table_uselock)) fd_unlock_table(ht);
   return n_slots;
 }
+
+
+FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
+                                struct FD_HASHTABLE *dest,
+                                int n_keys,int locked)
+{
+#define COPYFIELD(src,dest,field) dest->field=src->field
+  int n_slots=fd_get_hashtable_size(n_keys), unlock=0;
+  struct FD_HASH_BUCKET **slots;
+  if (!(locked)) {
+    if (src->table_uselock) {
+      u8_write_lock(&(src->table_rwlock));
+      unlock=1;}}
+  memset(dest,0,sizeof(struct FD_HASHTABLE));
+  FD_SET_CONS_TYPE(dest,fd_hashtable_type);
+  COPYFIELD(src,dest,table_n_keys);
+  COPYFIELD(src,dest,table_load_factor);
+  COPYFIELD(src,dest,ht_n_buckets);
+  COPYFIELD(src,dest,ht_buckets);
+#if FD_THREADS_ENABLED
+  dest->table_uselock=1;
+  fd_init_rwlock(&(dest->table_rwlock));
+#else
+  dest->table_uselock=1;
+#endif
+  src->ht_n_buckets=n_slots; src->table_n_keys=0;
+  src->table_modified=0; src->table_readonly=0;
+  src->ht_buckets=slots=u8_zalloc_n(n_slots,struct FD_HASH_BUCKET *);
+  memset(slots,0,sizeof(struct FD_HASH_BUCKET *)*n_slots);
+  if (unlock) u8_rw_unlock(&(src->table_rwlock));
+#undef COPYFIELD
+}
+
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
 {
   int n_conversions=0;

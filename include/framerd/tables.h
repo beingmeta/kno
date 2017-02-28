@@ -478,6 +478,10 @@ FD_EXPORT fdtype fd_init_hashtable
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype,struct FD_HASH_BUCKET **,int);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *);
+FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
+				  struct FD_HASHTABLE *dest,
+				  int n_keys,int locked);
+
 FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
 				 int (*testfn)(fdtype,fdtype,void *),
 				 void *testdata);
