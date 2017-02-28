@@ -124,6 +124,9 @@ fd_index fd_make_log_index(fddb_flags flags)
   struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
   FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
   fd_init_index((fd_index)mix,&log_index_handler,"ephemeral",flags);
+
+  u8_log(LOG_INFO,"CreateLogIndex","Creating a logindex '%s'",filename);
+
   mix->index_cache_level=1;
   U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDB_READ_ONLY));
   fd_register_index((fd_index)mix);

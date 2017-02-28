@@ -508,7 +508,8 @@ FD_EXPORT int fd_make_oidpool
   fd_off_t schemas_pos=0, metadata_pos=0, label_pos=0;
   size_t schemas_size=0, metadata_size=0, label_size=0;
   struct FD_STREAM _stream, *stream=
-    fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,8192);
+    fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,
+                        fd_driver_bufsize);
   fd_outbuf outstream=fd_writebuf(stream);
   fd_offset_type offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   if (stream==NULL) return -1;
@@ -516,6 +517,11 @@ FD_EXPORT int fd_make_oidpool
     fd_seterr3(fd_CantWrite,"fd_make_oidpool",u8_strdup(fname));
     fd_free_stream(stream);
     return -1;}
+
+  u8_log(LOG_INFO,"CreateOIDPool",
+         "Creating an oidpool '%s' for %u OIDs based at %x/%x",
+         fname,capacity,FD_OID_HI(base),FD_OID_LO(base));
+
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_lock_stream(stream);
   fd_setpos(stream,0);

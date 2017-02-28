@@ -1196,16 +1196,22 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   int i, n_slots;
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
-    fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,8192);
+    fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,fd_driver_bufsize);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
     fd_free_stream(stream);
     return -1;}
+
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
   else n_slots=fd_get_hashtable_size(n_slots_arg);
+
+  u8_log(LOG_INFO,"CreateFileIndex",
+         "Creating a file index '%s' with %ld slots",
+         filename,n_slots);
+
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,magicno);
   fd_write_4bytes(outstream,n_slots);
