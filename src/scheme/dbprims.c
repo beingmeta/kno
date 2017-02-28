@@ -322,7 +322,9 @@ static fdtype make_pool(fdtype path,fdtype opts)
   fd_pool p=NULL;
   fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
   fddb_flags flags=getdbflags(opts);
-  if (FD_SYMBOLP(type))
+  if (FD_VOIDP(type))
+    return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
+  else if (FD_SYMBOLP(type))
     p=fd_make_pool(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
     p=fd_make_pool(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
@@ -344,7 +346,9 @@ static fdtype make_index(fdtype path,fdtype opts)
   fd_index ix=NULL;
   fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
   fddb_flags flags=getdbflags(opts);
-  if (FD_SYMBOLP(type))
+  if (FD_VOIDP(type))
+    return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
+  else if (FD_SYMBOLP(type))
     ix=fd_make_index(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
     ix=fd_make_index(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
