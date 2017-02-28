@@ -13,8 +13,6 @@
 
 fd_exception fd_IsWriteBuf, fd_IsReadBuf;
 
-fd_exception fd_IsWriteBuf, fd_IsReadBuf;
-
 /* Byte Streams */
 
 typedef struct FD_RAWBUF *fd_rawbuf;
@@ -57,6 +55,7 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 #define FD_IS_WRITING        (FD_BUFIO_FLAGS << 0)
 #define FD_BUFFER_IS_MALLOCD (FD_BUFIO_FLAGS << 1)
 #define FD_IN_STREAM         (FD_BUFIO_FLAGS << 2)
+#define FD_BUFFER_NO_FLUSH   (FD_BUFIO_FLAGS << 3)
 #define FD_BUFIO_MAX_FLAG    (FD_BUFIO_FLAGS << 10)
 
 #define FD_ISWRITING(buf) (((buf)->buf_flags)&(FD_IS_WRITING))

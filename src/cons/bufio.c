@@ -82,6 +82,16 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
   size_t new_limit=current_limit;
   size_t need_size=current_size+delta;
   unsigned char *new;
+  if ((b->buf_flushfn)&&(!(b->buf_flags&FD_BUFFER_NO_FLUSH))) {
+    ssize_t result=b->buf_flushfn(b,b->buf_data);
+    if (result<0) {
+      u8_log(LOGWARN,"WriteFailed",
+	     "Can't flush output to file");
+      return result;}
+    /* See if that fixed it */
+    else if (b->bufwrite+delta<b->buflim) 
+      return 1;
+    else {/* Go ahead and grow the buffer */}}
   if (new_limit<=0) new_limit=1000;
   while (new_limit < need_size)
     if (new_limit>=250000) new_limit=new_limit+250000;

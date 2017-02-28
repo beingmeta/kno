@@ -59,6 +59,10 @@ static ssize_t stream_fillfn(fd_inbuf buf,size_t n,void *vdata)
 {
   return fd_fill_stream((struct FD_STREAM *)vdata,n);
 }
+static ssize_t stream_flushfn(fd_outbuf buf,void *vdata)
+{
+  return fd_flush_stream((struct FD_STREAM *)vdata);
+}
 
 static U8_MAYBE_UNUSED u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
@@ -129,6 +133,9 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
     struct FD_RAWBUF *bufptr=&(stream->buf.raw);
     /* If you can't get a whole buffer, try smaller */
     while ((bufsiz>=1024) && (buf==NULL)) {
+      u8_log(LOGWARN,"BigBuffer",
+             "Can't allocate %lld bytes for buffering %s, trying %lld",
+             bufsiz,(U8ALT(streamid,"somestream")),bufsiz/2);
       bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
     FD_SET_CONS_TYPE(stream,fd_stream_type);
     /* Initializing the stream fields */
@@ -143,7 +150,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
     FD_INIT_BYTE_INPUT((struct FD_INBUF *)bufptr,buf,bufsiz);
     bufptr->buflim=bufptr->bufpoint; bufptr->buflen=bufsiz;
     bufptr->buf_fillfn=stream_fillfn;
-    bufptr->buf_flushfn=NULL;
+    bufptr->buf_flushfn=stream_flushfn;
     bufptr->buf_flags|=FD_BUFFER_IS_MALLOCD|FD_IN_STREAM;
     bufptr->buf_data=(void *)stream;
     return stream;}
