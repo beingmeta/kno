@@ -209,45 +209,27 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
   else return fd_type_error("pool or index","set_cache_level",arg);
 }
 
-static fdtype use_pool(fdtype arg1,fdtype arg2)
+static fdtype load_pool(fdtype arg1)
+{
+  if (FD_POOLP(arg1)) return fd_incref(arg1);
+  else if (!(FD_STRINGP(arg1)))
+    return fd_type_error(_("string"),"load_pool",arg1);
+  else {
+    fd_pool p=fd_get_pool(FD_STRDATA(arg1),0);
+    if (p) return fd_pool2lisp(p);
+    else return FD_FALSE;}
+}
+
+static fdtype use_pool(fdtype arg1)
 {
   if (FD_POOLP(arg1)) return fd_incref(arg1);
   else if (!(FD_STRINGP(arg1)))
     return fd_type_error(_("string"),"use_pool",arg1);
-  else if (FD_VOIDP(arg2)) {
-    fdtype results=FD_EMPTY_CHOICE;
-    u8_byte *copy=u8_strdup(FD_STRDATA(arg1));
-    u8_byte *start=copy, *end=strchr(start,';');
-    if (end) *end='\0'; 
-    while (start) {
-      if (strchr(start,'@')) {
-        fdtype temp;
-        if (fd_use_pool(start,0)==NULL) {
-          fd_decref(results); u8_free(copy);
-          return FD_ERROR_VALUE;}
-        else temp=fd_find_pools_by_cid(start);
-        FD_ADD_TO_CHOICE(results,temp);}
-      else {
-        fd_pool p=fd_use_pool(start,0);
-        if (p==NULL) {
-          fd_decref(results); u8_free(copy);
-          return FD_ERROR_VALUE;}
-        else {
-          fdtype pval=fd_pool2lisp(p);
-          FD_ADD_TO_CHOICE(results,pval);}}
-      if ((end) && (end[1])) {
-        start=end+1; end=strchr(start,';');
-        if (end) *end='\0';}
-      else start=NULL;}
-    u8_free(copy);
-    return results;}
-  else if (!(FD_STRINGP(arg2)))
-    return fd_type_error(_("string"),"use_pool",arg2);
   else {
-    fd_pool p=fd_name2pool(FD_STRDATA(arg2));
-    if (p==NULL) p=fd_use_pool(FD_STRDATA(arg1),0);
+    fd_pool p=fd_get_pool(FD_STRDATA(arg1),0);
     if (p) return fd_pool2lisp(p);
-    else return FD_ERROR_VALUE;}
+    else return fd_err(fd_NoSuchPool,"use_pool",
+                       FD_STRDATA(arg1),FD_VOID);}
 }
 
 static fdtype use_index(fdtype arg)
@@ -2933,7 +2915,8 @@ FD_EXPORT void fd_init_dbfns_c()
            fd_make_cprim2x("VALID-OID?",validoidp,1,
                            fd_oid_type,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("USE-POOL",use_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("LOAD-POOL",load_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("USE-INDEX",use_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("OPEN-INDEX",open_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("CACHECOUNT",cachecount,0));

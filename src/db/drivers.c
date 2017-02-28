@@ -117,7 +117,7 @@ FD_EXPORT void fd_register_pool_type
 
 static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 {
-  struct FD_POOL_TYPEINFO *ptype=pool_typeinfo; 
+  struct FD_POOL_TYPEINFO *ptype=pool_typeinfo;
   while (ptype) {
     if (strcasecmp(name,ptype->pool_typename)==0)
       return ptype;
@@ -138,7 +138,6 @@ fd_pool fd_open_pool(u8_string spec,fddb_flags flags)
         return opened;}
       else ptype=ptype->next_type;}
     else ptype=ptype->next_type;}
-  fd_seterr(fd_UnknownPoolType,"fd_open_pool",spec,FD_VOID);
   return NULL;
 }
 
