@@ -77,12 +77,9 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 
 static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
-  size_t current_size=b->bufwrite-b->buffer;
-  size_t current_limit=b->buflim-b->buffer;
-  size_t new_limit=current_limit;
-  size_t need_size=current_size+delta;
-  unsigned char *new;
-  if ((b->buf_flushfn)&&(!(b->buf_flags&FD_BUFFER_NO_FLUSH))) {
+  if ((b->buf_flushfn)&&
+      (b->bufwrite>b->buffer)&&
+      (!(b->buf_flags&FD_BUFFER_NO_FLUSH))) {
     ssize_t result=b->buf_flushfn(b,b->buf_data);
     if (result<0) {
       u8_log(LOGWARN,"WriteFailed",
@@ -92,6 +89,11 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
     else if (b->bufwrite+delta<b->buflim) 
       return 1;
     else {/* Go ahead and grow the buffer */}}
+  size_t current_size=b->bufwrite-b->buffer;
+  size_t current_limit=b->buflim-b->buffer;
+  size_t new_limit=current_limit;
+  size_t need_size=current_size+delta;
+  unsigned char *new;
   if (new_limit<=0) new_limit=1000;
   while (new_limit < need_size)
     if (new_limit>=250000) new_limit=new_limit+250000;
