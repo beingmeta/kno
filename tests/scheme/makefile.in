@@ -301,11 +301,11 @@ dbtest:
 dbtests:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
 	make dbtest
-	make FD_HASHINDEX="(B32)" dbtest
-	make FD_HASHINDEX="(B64)" dbtest
-	make FD_OIDPOOL="FD_OIDPOOL=(B32)" dbtest
-	make FD_OIDPOOL="FD_OIDPOOL=(B64)" dbtest
-	make FD_OIDPOOL="FD_OIDPOOL=(COMPRESS)" dbtest
+	make POOLTYPE=oidpool dbtest
+	make POOLTYPE=bigpool dbtest
+	make POOLTYPE=oidpool OFFTYPE=B64 dbtest
+	make POOLTYPE=bigpool OFFTYPE=B64 dbtest
+	make POOLTYPE=oidpool INDEXTYPE=hashindex dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
 cryptotests:

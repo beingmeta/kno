@@ -27,7 +27,7 @@
 		    (frame-create #f
 		      'type (config 'pooltype 'filepool)
 		      'base @17/0 'capacity 65000
-		      'offtype (config 'pooloff {}))))))
+		      'offtype (config 'pooloff (config 'offtype {})))))))
 
 (define (sourceindex source)
   (cond ((position #\@ source)
@@ -41,7 +41,7 @@
 		     (frame-create #f
 		      'type (config 'indextype 'hashindex)
 		      'slots 65000
-		      'offtype (config 'indexoff {}))))))
+		      'offtype (config 'indexoff (config 'offtype {})))))))
 
 (define (initdb source)
   (set! testpool (sourcepool source))
