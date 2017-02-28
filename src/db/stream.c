@@ -554,7 +554,7 @@ FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off)
   else return -1;
 }
 
-FD_EXPORT int fd_write8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off)
+FD_EXPORT int fd_write_8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off)
 {
   fd_outbuf out= (off>=0) ? (fd_start_write(s,off)) : (fd_writebuf(s)) ;
   *(out->bufwrite++)=((w>>56)&0xFF);

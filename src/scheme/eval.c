@@ -2029,6 +2029,7 @@ FD_EXPORT void fd_init_sequences_c(void);
 FD_EXPORT void fd_init_modules_c(void);
 FD_EXPORT void fd_init_load_c(void);
 FD_EXPORT void fd_init_portfns_c(void);
+FD_EXPORT void fd_init_streamprims_c(void);
 FD_EXPORT void fd_init_timeprims_c(void);
 FD_EXPORT void fd_init_numeric_c(void);
 FD_EXPORT void fd_init_side_effects_c(void);
@@ -2058,6 +2059,7 @@ static void init_core_builtins()
   fd_init_modules_c();
   fd_init_load_c();
   fd_init_portfns_c();
+  fd_init_streamprims_c();
   fd_init_timeprims_c();
   fd_init_numeric_c();
   fd_init_side_effects_c();
