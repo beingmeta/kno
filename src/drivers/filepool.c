@@ -675,13 +675,19 @@ int fd_make_file_pool
   int i, hi, lo;
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
-    fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,8192);
+    fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,
+                        fd_driver_bufsize);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
     fd_free_stream(stream);
     return -1;}
+
+  u8_log(LOG_INFO,"CreateFilePool",
+         "Creating a file pool '%s' for %u OIDs based at %x/%x",
+         filename,capacity,FD_OID_HI(base),FD_OID_LO(base));
+
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_setpos(stream,0);
   hi=FD_OID_HI(base); lo=FD_OID_LO(base);

@@ -402,7 +402,7 @@ FD_EXPORT int fd_make_hash_index
   size_t slotids_size=0, baseoids_size=0, metadata_size=0;
   int offtype=(fd_offset_type)(((flags)&(FD_HASH_INDEX_OFFTYPE_MASK))>>4);
   struct FD_STREAM _stream, *stream=
-    fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,8192);
+    fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,fd_driver_bufsize);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
@@ -412,6 +412,11 @@ FD_EXPORT int fd_make_hash_index
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   if (n_buckets_arg<0) n_buckets=-n_buckets_arg;
   else n_buckets=fd_get_hashtable_size(n_buckets_arg);
+
+  u8_log(LOG_INFO,"CreateHashIndex",
+         "Creating a hashindex '%s' with %ld buckets",
+         fname,n_buckets);
+
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,FD_HASH_INDEX_MAGIC_NUMBER);
   fd_write_4bytes(outstream,n_buckets);
@@ -2578,7 +2583,6 @@ static int interpret_hash_index_flags(fdtype opts)
 {
   int flags=0;
   fdtype offtype=fd_intern("OFFTYPE");
-  fdtype compression=fd_intern("COMPRESSION");
   if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
        fd_testopt(opts,offtype,FD_INT(64)))
     flags|=(FD_B64<<4);

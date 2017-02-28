@@ -830,29 +830,6 @@ static void recycle_compound(struct FD_RAW_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int compare_compounds(fdtype x,fdtype y,fd_compare_flags flags)
-{
-  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
-  struct FD_COMPOUND *yc=fd_consptr(struct FD_COMPOUND *,y,fd_compound_type);
-  fdtype xtag=xc->compound_typetag, ytag=yc->compound_typetag;
-  int cmp;
-  if (xc == yc) return 0;
-  else if ((xc->compound_isopaque) || (yc->compound_isopaque))
-    if (xc>yc) return 1; else return -1;
-  else if ((cmp=(FDTYPE_COMPARE(xtag,ytag,flags))))
-    return cmp;
-  else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
-  else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
-  else {
-    int i=0, len=xc->fd_n_elts;
-    fdtype *xdata=&(xc->compound_0), *ydata=&(yc->compound_0);
-    while (i<len)
-      if ((cmp=(FDTYPE_COMPARE(xdata[i],ydata[i],flags)))==0)
-        i++;
-      else return cmp;
-    return 0;}
-}
-
 static int dtype_compound(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
@@ -1227,18 +1204,6 @@ static fdtype copy_timestamp(fdtype x,int deep)
   return FDTYPE_CONS(newtm);
 }
 
-static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
-{
-  struct FD_TIMESTAMP *xtm=
-    fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
-  struct FD_TIMESTAMP *ytm=
-    fd_consptr(struct FD_TIMESTAMP *,y,fd_timestamp_type);
-  double diff=u8_xtime_diff(&(xtm->fd_u8xtime),&(ytm->fd_u8xtime));
-  if (diff<0.0) return -1;
-  else if (diff == 0.0) return 0;
-  else return 1;
-}
-
 static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_TIMESTAMP *xtm=
@@ -1361,13 +1326,6 @@ static fdtype copy_uuid(fdtype x,int deep)
   FD_INIT_CONS(nuuid,fd_uuid_type);
   memcpy(nuuid->fd_uuid16,uuid->fd_uuid16,16);
   return FDTYPE_CONS(nuuid);
-}
-
-static int compare_uuids(fdtype x,fdtype y,fd_compare_flags flags)
-{
-  struct FD_UUID *xuuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-  struct FD_UUID *yuuid=fd_consptr(struct FD_UUID *,y,fd_uuid_type);
-  return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
 }
 
 #define MU U8_MAYBE_UNUSED
