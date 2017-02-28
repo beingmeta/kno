@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FRAMERD_DBDRIVER_H
-#define FRAMERD_DBDRIVER_H 1
-#ifndef FRAMERD_DBDRIVER_H_INFO
-#define FRAMERD_DBDRIVER_H_INFO "include/framerd/drivers.h"
+#ifndef FRAMERD_DRIVERS_H
+#define FRAMERD_DRIVERS_H 1
+#ifndef FRAMERD_DRIVERS_H_INFO
+#define FRAMERD_DRIVERS_H_INFO "include/framerd/drivers.h"
 #endif
 
 FD_EXPORT size_t fd_driver_bufsize;
@@ -101,4 +101,4 @@ unsigned int fd_hash_dtype_rep(fdtype x);
   (FD_EXPECT_TRUE((fn==FD_VOID)||(fn==FD_FALSE)||(FD_APPLICABLEP(fn))))
 
 
-#endif /* #ifndef FRAMERD_DBDRIVER_H */
+#endif /* #ifndef FRAMERD_DRIVERS_H */
