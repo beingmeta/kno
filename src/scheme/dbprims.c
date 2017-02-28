@@ -2130,14 +2130,20 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
       result=fd_deep_copy(args[0]);
     else result=fd_new_frame(args[0],FD_VOID,0);}
   else result=fd_new_frame(FD_TRUE,FD_VOID,0);
-  if (FD_OIDP(result))
+  if (FD_ABORTP(result))
+    return result;
+  else if (FD_OIDP(result))
     while (i<n) {
-      FD_DO_CHOICES(slotid,args[i])
-        fd_frame_add(result,slotid,args[i+1]);
+      FD_DO_CHOICES(slotid,args[i]) {
+        if (fd_frame_add(result,slotid,args[i+1])<0) {
+          FD_STOP_DO_CHOICES;
+          return FD_ERROR_VALUE;}}
       i=i+2;}
   else while (i<n) {
-      FD_DO_CHOICES(slotid,args[i])
-        fd_add(result,slotid,args[i+1]);
+      FD_DO_CHOICES(slotid,args[i]) {
+        if (fd_add(result,slotid,args[i+1])<0) {
+          FD_STOP_DO_CHOICES;
+          return FD_ERROR_VALUE;}}
       i=i+2;}
   return result;
 }
