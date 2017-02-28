@@ -129,7 +129,7 @@ DBDRIVERS_OBJS=\
 	src/drivers/mempool.o src/drivers/bigpool.o	\
 	src/drivers/fileindex.o src/drivers/hashindex.o 	\
 	src/drivers/memindex.o src/drivers/extindex.o 	\
-	src/drivers/netindex.o
+	src/drivers/logindex.o src/drivers/netindex.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=\
 	src/scheme/eval.o\
@@ -311,49 +311,52 @@ FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVERS_HEADERS) $(SCHEME_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           \
+	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
         src/cons/compare.c src/cons/fcnids.c       			\
-	src/cons/choices.c src/cons/tables.c 			\
-        src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 	\
+	src/cons/choices.c src/cons/tables.c 				\
+        src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
 	src/cons/fdtype.c src/cons/support.c 				\
-	src/cons/apply.c src/cons/ffi.c       			\
+	src/cons/apply.c src/cons/ffi.c       				\
 	src/db/fddb.c src/db/stream.c src/db/hashdtype.c		\
 	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\
-	src/db/compoundindexes.c  			\
+	src/db/compoundindexes.c  					\
 	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
-	src/db/dtproc.c src/db/dtcall.c		\
+	src/db/dtproc.c src/db/dtcall.c					\
 	src/db/ipeval.c 	       					\
 	src/drivers/builtin_drivers.c  					\
-	src/drivers/filepool.c src/drivers/oidpool.c src/drivers/bigpool.c 			\
-	src/drivers/fileindex.c src/drivers/hashindex.c		\
-	src/drivers/memindex.c src/drivers/extindex.c		\
+	src/drivers/filepool.c src/drivers/oidpool.c 			\
+	src/drivers/bigpool.c 						\
+	src/drivers/fileindex.c src/drivers/hashindex.c			\
+	src/drivers/memindex.c src/drivers/extindex.c			\
 	src/drivers/mempool.c src/drivers/extpool.c			\
-	src/drivers/netpool.c src/drivers/netindex.c			\
-	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     \
-	src/scheme/conditionals.c src/scheme/iterators.c               \
-        src/scheme/threadprims.c src/scheme/quasiquote.c               \
-	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
-	src/scheme/compounds.c src/scheme/coreprims.c                  \
-	src/scheme/arithprims.c src/scheme/side-effects.c              \
-	src/scheme/dbprims.c \
-	src/scheme/portprims.c \
-	src/scheme/streamprims.c                    \
-	src/scheme/tableprims.c src/scheme/choiceprims.c               \
-	src/scheme/seqprims.c src/scheme/stringprims.c                 \
-	src/scheme/fileprims.c src/scheme/driverprims.c                \
-	src/scheme/loader.c                                            \
-	src/scheme/timeprims.c  src/scheme/extdb.c                     \
-	src/scheme/reqstate.c                                          \
-	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            \
-	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
-	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   \
-	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            \
-	src/texttools/texttools.c src/texttools/match.c                \
-	src/texttools/porter.c src/texttools/phonetic.c                \
-	src/exe/fdconsole.c                                            \
-	src/exe/fdexec.c src/exe/fdbatch.c                             \
-	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
+	src/drivers/netpool.c src/drivers/netindex.c 			\
+	src/drivers/logindex.c						\
+	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     	\
+	src/scheme/conditionals.c src/scheme/iterators.c               	\
+        src/scheme/threadprims.c src/scheme/quasiquote.c               	\
+	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c 	\
+	src/scheme/compounds.c src/scheme/coreprims.c                  	\
+	src/scheme/arithprims.c src/scheme/side-effects.c              	\
+	src/scheme/dbprims.c						\
+	src/scheme/portprims.c						\
+	src/scheme/streamprims.c                    			\
+	src/scheme/tableprims.c src/scheme/choiceprims.c               	\
+	src/scheme/seqprims.c src/scheme/stringprims.c                 	\
+	src/scheme/fileprims.c src/scheme/driverprims.c                	\
+	src/scheme/loader.c                                           	\
+	src/scheme/timeprims.c  src/scheme/extdb.c                    	\
+	src/scheme/reqstate.c                                          	\
+	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            	\
+	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c 	\
+	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   	\
+	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            	\
+	src/texttools/texttools.c src/texttools/match.c                	\
+	src/texttools/porter.c src/texttools/phonetic.c                	\
+	src/exe/fdconsole.c                                            	\
+	src/exe/fdexec.c src/exe/fdbatch.c                             	\
+	src/exe/fdservlet.c src/exe/fdcgiexec.c 			\
+	src/exe/fdserver.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \

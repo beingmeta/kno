@@ -9,9 +9,8 @@
    by just appending to the disk file (like a log) */
 /* The file layout has a 256-byte header block consisting of
      0x00 Magic number (4 bytes)
-     0x04 Number of keys (8 bytes)
      0x10 Valid data size (8 bytes)
-
+     
    The header block is followed by key value entries
    each of which consists of a 1-byte code followed by 4 bytes of
    length and the dtype representations of a key and a value.
@@ -24,7 +23,13 @@
 
 typedef struct FD_LOG_INDEX {
   FD_INDEX_FIELDS;
-  struct FD_STREAM log_stream;} FD_LOG_INDEX;
+  unsigned int lix_n_commits;
+  unsigned int lix_n_keys, lix_n_entries;
+  unsigned int lix_n_slotids, lix_n_added;
+  unsigned int lix_slotids_length;
+  fdtype *lix_slotids;
+  size_t lix_valid_data;
+  struct FD_STREAM index_stream;} FD_LOG_INDEX;
 typedef struct FD_LOG_INDEX *fd_log_index;
 
 
