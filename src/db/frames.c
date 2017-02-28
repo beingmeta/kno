@@ -947,7 +947,7 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
     if (fd_default_pool) p=fd_default_pool;
     else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,FD_VOID);
   else if ((p=fd_lisp2pool(pool_spec))==NULL)
-    return fd_err(fd_UnresolvedPool,"frame_create_lexpr",NULL,pool_spec);
+    return fd_err(fd_NoSuchPool,"frame_create_lexpr",NULL,pool_spec);
   /* At this point, we have p!=NULL and we get an OID */
   oid=fd_pool_alloc(p,1);
   if (FD_ABORTP(oid)) return oid;

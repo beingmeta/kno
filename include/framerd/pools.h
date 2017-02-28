@@ -119,7 +119,7 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
-  fd_PoolCommitError, fd_UnresolvedPool, fd_DataFileOverflow;
+  fd_PoolCommitError, fd_NoSuchPool, fd_DataFileOverflow;
 
 FD_EXPORT u8_condition fd_PoolCommit;
 

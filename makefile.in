@@ -1262,8 +1262,6 @@ install-data: \
 	$(DESTDIR)@config_dir@/boot/framerd.service	\
 	$(DESTDIR)@config_dir@/boot/framerd-rc.d 	\
 	$(DESTDIR)@config_dir@/boot/framerd.conf 	\
-	$(DESTDIR)@config_dir@/boot/fdserver.conf 	\
-	$(DESTDIR)@config_dir@/boot/fdservlet.conf 	\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
 install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
