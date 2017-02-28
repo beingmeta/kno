@@ -471,7 +471,7 @@ static void register_header_files()
   u8_register_source_file(FRAMERD_FDDB_H_INFO);
   u8_register_source_file(FRAMERD_POOLS_H_INFO);
   u8_register_source_file(FRAMERD_INDEXES_H_INFO);
-  u8_register_source_file(FRAMERD_DBDRIVER_H_INFO);
+  u8_register_source_file(FRAMERD_DRIVERS_H_INFO);
 }
 
 FD_EXPORT void fd_init_stream_c(void);
