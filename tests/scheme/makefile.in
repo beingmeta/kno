@@ -284,8 +284,8 @@ hashindextests:
 
 dbtest:
 	@echo "*** Running database layer tests"
-	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb init COUNT=$(TESTSIZE) \
-		$(DBTEST_FILES) \
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb init \
+		COUNT=$(TESTSIZE) $(DBTEST_FILES) \
 		${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb COUNT=$(TESTSIZE) ${TESTCONFIG} 
 	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb COUNT=$(TESTSIZE) \
@@ -300,12 +300,12 @@ dbtest:
 
 dbtests:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
+	make TESTCONFIG="POOLTYPE=oidpool" dbtest
+	make TESTCONFIG="POOLTYPE=bigpool" dbtest
+	make TESTCONFIG="POOLTYPE=oidpool OFFTYPE=B64" dbtest
+	make TESTCONFIG="POOLTYPE=bigpool OFFTYPE=B64" dbtest
+	make TESTCONFIG="POOLTYPE=oidpool INDEXTYPE=hashindex" dbtest
 	make dbtest
-	make POOLTYPE=oidpool dbtest
-	make POOLTYPE=bigpool dbtest
-	make POOLTYPE=oidpool OFFTYPE=B64 dbtest
-	make POOLTYPE=bigpool OFFTYPE=B64 dbtest
-	make POOLTYPE=oidpool INDEXTYPE=hashindex dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
 cryptotests:
