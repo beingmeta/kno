@@ -534,7 +534,7 @@ FD_EXPORT int fd_init_dblib()
      set_oid_display_level,
      NULL);
   fd_register_config
-    ("FDDBLOGLEVEL",_("Default log level for database messages"),
+    ("DBLOGLEVEL",_("Default log level for database messages"),
      fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
   
   fd_register_config
