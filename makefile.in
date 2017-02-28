@@ -131,82 +131,97 @@ CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 DB_OBJS=\
-	src/db/fddb.o \
-	src/db/stream.o \
-	src/db/hashdtype.o 		\
-	src/db/pools.o \
-	src/db/indexes.o \
+	src/db/fddb.o			\
+	src/db/stream.o			\
+	src/db/hashdtype.o		\
+	src/db/pools.o			\
+	src/db/indexes.o		\
 	src/db/compoundindexes.o	\
-	src/db/dtproc.o \
-	src/db/dtcall.o 				\
-	src/db/methods.o \
-	src/db/xtables.o 				\
-	src/db/cachecall.o \
-	src/db/threadcache.o 			\
-	src/db/drivers.o 						\
-	@ipevalo@  \
+	src/db/dtproc.o			\
+	src/db/dtcall.o			\
+	src/db/methods.o		\
+	src/db/xtables.o		\
+	src/db/cachecall.o		\
+	src/db/threadcache.o		\
+	src/db/drivers.o		\
+	@ipevalo@			\
 	src/db/frames.o
 DBDRIVERS_OBJS=\
-	src/drivers/builtin_drivers.o 			\
-	src/drivers/filepool.o \
-	src/drivers/oidpool.o 	\
-	src/drivers/netpool.o \
-	src/drivers/extpool.o 	\
-	src/drivers/mempool.o \
-	src/drivers/bigpool.o	\
-	src/drivers/fileindex.o \
-	src/drivers/hashindex.o \
-	src/drivers/memindex.o \
-	src/drivers/extindex.o 	\
+	src/drivers/builtin_drivers.o	\
+	src/drivers/filepool.o		\
+	src/drivers/oidpool.o		\
+	src/drivers/netpool.o		\
+	src/drivers/extpool.o		\
+	src/drivers/mempool.o		\
+	src/drivers/bigpool.o		\
+	src/drivers/fileindex.o		\
+	src/drivers/hashindex.o		\
+	src/drivers/memindex.o		\
+	src/drivers/extindex.o		\
 	src/drivers/netindex.o
+
 FDBSERV_OBJS=src/db/dbserv.o
-CORE_SCHEME_OBJS=\
-	src/scheme/eval.o \
-	src/scheme/binders.o           \
-	src/scheme/threadprims.o \
-	src/scheme/quasiquote.o \
-	src/scheme/errors.o                              \
-	src/scheme/conditionals.o \
+
+CORE_SCHEME_OBJS=			\
+	src/scheme/eval.o		\
+	src/scheme/binders.o		\
+	src/scheme/threadprims.o	\
+	src/scheme/quasiquote.o		\
+	src/scheme/errors.o		\
+	src/scheme/conditionals.o	\
 	src/scheme/iterators.o
-SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
-	src/scheme/modules.o \
-	src/scheme/load.o \
-	src/scheme/history.o \
-	src/scheme/reflection.o \
-	src/scheme/compounds.o              \
-	src/scheme/coreprims.o \
-	src/scheme/dbprims.o                 \
-	src/scheme/tableprims.o \
-	src/scheme/choiceprims.o            \
-	src/scheme/seqprims.o \
-	src/scheme/stringprims.o              \
-	src/scheme/portprims.o \
-	src/scheme/timeprims.o               \
-	src/scheme/arithprims.o \
-	src/scheme/side-effects.o           \
-	src/scheme/regex.o  \
-	src/scheme/reqstate.o \
+
+SCHEME_OBJS=$(CORE_SCHEME_OBJS) 	\
+	src/scheme/modules.o		\
+	src/scheme/load.o		\
+	src/scheme/history.o		\
+	src/scheme/reflection.o		\
+	src/scheme/compounds.o		\
+	src/scheme/coreprims.o		\
+	src/scheme/dbprims.o		\
+	src/scheme/tableprims.o		\
+	src/scheme/choiceprims.o	\
+	src/scheme/seqprims.o		\
+	src/scheme/stringprims.o	\
+	src/scheme/streamprims.o	\
+	src/scheme/portprims.o		\
+	src/scheme/timeprims.o		\
+	src/scheme/arithprims.o		\
+	src/scheme/side-effects.o	\
+	src/scheme/regex.o		\
+	src/scheme/reqstate.o		\
 	src/scheme/extdb.o
+
 SCHEMEIO_OBJS=\
-	src/scheme/fileprims.o \
-	src/scheme/driverprims.o \
+	src/scheme/fileprims.o\
+	src/scheme/driverprims.o\
 	src/scheme/loader.o
+
 FDWEB_OBJS=\
-	src/fdweb/fdweb.o \
-	src/fdweb/xmloutput.o \
-	src/fdweb/xmlinput.o \
-	src/fdweb/xmldata.o \
-	src/fdweb/mime.o src/fdweb/email.o          \
-	src/fdweb/uriprims.o \
-	src/fdweb/xmleval.o \
-	src/fdweb/cgiexec.o    \
-	src/fdweb/json.o \
-	@ldnso@ @curlo@
-TEXTTOOLS_OBJS=\
-	src/texttools/texttools.o \
-	src/texttools/match.o \
-	src/texttools/porter.o \
+	src/fdweb/fdweb.o		\
+	src/fdweb/xmloutput.o		\
+	src/fdweb/xmlinput.o		\
+	src/fdweb/xmldata.o		\
+	src/fdweb/mime.o 		\
+	 src/fdweb/email.o		\
+	src/fdweb/uriprims.o		\
+	src/fdweb/xmleval.o		\
+	src/fdweb/cgiexec.o		\
+	src/fdweb/json.o		\
+	src/scheme/streamprims.o	\
+	src/scheme/timeprims.o		\
+	src/scheme/arithprims.o		\
+	src/scheme/side-effects.o	\
+	src/scheme/regex.o		\
+	src/scheme/reqstate.o		\
+	src/scheme/extdb.o
+
+TEXTTOOLS_OBJS=				\
+	src/texttools/texttools.o	\
+	src/texttools/match.o		\
+	src/texttools/porter.o		\
 	src/texttools/phonetic.o
+
 SUNDOWN_OBJS=\
 	src/cmodules/sundown/autolink.o		\
 	src/cmodules/sundown/buffer.o 		\
@@ -307,17 +322,17 @@ TIDY_H_FILES=\
 	src/cmodules/tidy5/win32tc.h
 
 CMODULE_OBJS=\
-	src/cmodules/odbc.o \
-	src/cmodules/sqlite.o	\
-	src/modules/crypto.o \
-	src/cmodules/ldap.o 	\
-	src/cmodules/dbus.o \
-	src/cmodules/mysql.o 	\
-	src/cmodules/qrcode.o 			\
-	src/cmodules/ziptools.o 			\
-	src/cmodules/zlib.o \
-	src/cmodules/imagick.o \
-	src/cmodules/hyphenate.o 			\
+	src/cmodules/odbc.o 		\
+	src/cmodules/sqlite.o		\
+	src/modules/crypto.o 		\
+	src/cmodules/ldap.o 		\
+	src/cmodules/dbus.o 		\
+	src/cmodules/mysql.o 		\
+	src/cmodules/qrcode.o 		\
+	src/cmodules/ziptools.o 	\
+	src/cmodules/zlib.o 		\
+	src/cmodules/imagick.o 		\
+	src/cmodules/hyphenate.o 	\
 	${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ 	\
@@ -383,7 +398,9 @@ FRAMERD_SOURCES=\
 	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
 	src/scheme/compounds.c src/scheme/coreprims.c                  \
 	src/scheme/arithprims.c src/scheme/side-effects.c              \
-	src/scheme/dbprims.c src/scheme/portprims.c                    \
+	src/scheme/dbprims.c \
+	src/scheme/portprims.c \
+	src/scheme/streamprims.c                    \
 	src/scheme/tableprims.c src/scheme/choiceprims.c               \
 	src/scheme/seqprims.c src/scheme/stringprims.c                 \
 	src/scheme/fileprims.c src/scheme/driverprims.c                \
