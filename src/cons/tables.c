@@ -2321,6 +2321,7 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,
   if (ptr == NULL) {
     ptr=u8_alloc(struct FD_HASHTABLE);
     FD_INIT_FRESH_CONS(ptr,fd_hashtable_type);}
+  else {FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
   ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0;
   ptr->table_load_factor=default_hashtable_loading;
   ptr->table_modified=0; ptr->table_readonly=0; ptr->table_uselock=1;

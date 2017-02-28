@@ -48,6 +48,7 @@ int fd_init_extpool_c(void);
 int fd_init_netpool_c(void);
 int fd_init_file_pool_c(void);
 int fd_init_oidpool_c(void);
+int fd_init_bigpool_c(void);
 
 int dbs_initialized=0;
 
@@ -63,6 +64,8 @@ FD_EXPORT int fd_init_dbs()
 
   fd_init_file_pool_c();
   fd_init_oidpool_c();
+
+  fd_init_bigpool_c();
 
   fd_init_extindex_c();
   fd_init_memindex_c();

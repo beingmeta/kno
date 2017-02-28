@@ -86,13 +86,20 @@ DB_HEADERS=\
  include/framerd/frames.h                            \
  include/framerd/methods.h
 
-DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
-LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
-		include/framerd/mongodb.h include/framerd/leveldb.h
+DRIVERS_H=\
+	include/framerd/drivers.h
+SCHEME_HEADERS=\
+	include/framerd/eval.h \
+	include/framerd/sequences.h
+LIB_HEADERS= \
+	include/framerd/texttools.h \
+	include/framerd/fdweb.h \
+	include/framerd/mongodb.h \
+	include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
-SRC_HEADERS=src/cons/biginternals.h 		\
+SRC_HEADERS=\
+	src/cons/biginternals.h 		\
 	src/scheme/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
@@ -102,70 +109,131 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 	src/drivers/headers/hashindex.h	\
 	src/cmodules/fdsqlite.h			\
 
-DTYPE_OBJS=src/cons/cons.o src/cons/oids.o 			\
-	  src/cons/fcnids.o src/cons/bufio.o			\
-	  src/cons/symbols.o src/cons/numbers.o 		\
-	  src/cons/compare.o					\
-	  src/cons/apply.o src/cons/ffi.o			\
-          src/cons/choices.o src/cons/tables.o		\
-          src/cons/dtypeio.o src/cons/textio.o		\
-	  src/cons/fdtype.o src/cons/support.o
+DTYPE_OBJS=\
+	src/cons/cons.o 	\
+	src/cons/oids.o    	\
+	src/cons/fcnids.o  	\
+	src/cons/bufio.o   	\
+	src/cons/symbols.o 	\
+	src/cons/numbers.o 	\
+	src/cons/compare.o	\
+	src/cons/apply.o 	\
+	src/cons/ffi.o		\
+	src/cons/choices.o 	\
+	src/cons/tables.o	\
+	src/cons/dtypeio.o 	\
+	src/cons/textio.o	\
+	src/cons/fdtype.o 	\
+	src/cons/support.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
-	src/db/pools.o src/db/indexes.o	src/db/compoundindexes.o	\
-	src/db/dtproc.o src/db/dtcall.o 				\
-	src/db/methods.o src/db/xtables.o 				\
-	src/db/cachecall.o src/db/threadcache.o 			\
+DB_OBJS=\
+	src/db/fddb.o \
+	src/db/stream.o \
+	src/db/hashdtype.o 		\
+	src/db/pools.o \
+	src/db/indexes.o \
+	src/db/compoundindexes.o	\
+	src/db/dtproc.o \
+	src/db/dtcall.o 				\
+	src/db/methods.o \
+	src/db/xtables.o 				\
+	src/db/cachecall.o \
+	src/db/threadcache.o 			\
 	src/db/drivers.o 						\
-	@ipevalo@ src/db/frames.o
+	@ipevalo@  \
+	src/db/frames.o
 DBDRIVERS_OBJS=\
-	src/drivers/builtin_drivers.o 					\
-	src/drivers/filepool.o src/drivers/oidpool.o 		\
-	src/drivers/netpool.o src/drivers/extpool.o 		\
-	src/drivers/mempool.o src/drivers/bigpool.o	\
-	src/drivers/fileindex.o src/drivers/hashindex.o 	\
-	src/drivers/memindex.o src/drivers/extindex.o 	\
+	src/drivers/builtin_drivers.o 			\
+	src/drivers/filepool.o \
+	src/drivers/oidpool.o 	\
+	src/drivers/netpool.o \
+	src/drivers/extpool.o 	\
+	src/drivers/mempool.o \
+	src/drivers/bigpool.o	\
+	src/drivers/fileindex.o \
+	src/drivers/hashindex.o \
+	src/drivers/memindex.o \
+	src/drivers/extindex.o 	\
 	src/drivers/netindex.o
 FDBSERV_OBJS=src/db/dbserv.o
-CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o           \
-                 src/scheme/threadprims.o src/scheme/quasiquote.o \
-		 src/scheme/errors.o                              \
-	         src/scheme/conditionals.o src/scheme/iterators.o
+CORE_SCHEME_OBJS=\
+	src/scheme/eval.o \
+	src/scheme/binders.o           \
+	src/scheme/threadprims.o \
+	src/scheme/quasiquote.o \
+	src/scheme/errors.o                              \
+	src/scheme/conditionals.o \
+	src/scheme/iterators.o
 SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
-	    src/scheme/modules.o src/scheme/load.o src/scheme/history.o \
-	    src/scheme/reflection.o src/scheme/compounds.o              \
-	    src/scheme/coreprims.o src/scheme/dbprims.o                 \
-	    src/scheme/tableprims.o src/scheme/choiceprims.o            \
-	    src/scheme/seqprims.o src/scheme/stringprims.o              \
-	    src/scheme/portprims.o src/scheme/timeprims.o               \
-	    src/scheme/arithprims.o src/scheme/side-effects.o           \
-	    src/scheme/regex.o src/scheme/reqstate.o src/scheme/extdb.o
-SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/driverprims.o src/scheme/loader.o
-FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
-	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o          \
-	src/fdweb/uriprims.o src/fdweb/xmleval.o src/fdweb/cgiexec.o    \
-	src/fdweb/json.o @ldnso@ @curlo@
-TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
-	src/texttools/porter.o src/texttools/phonetic.o
-SUNDOWN_OBJS= src/cmodules/sundown/autolink.o \
-	src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/houdini_href_e.o \
-	src/cmodules/sundown/houdini_html_e.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
+	src/scheme/modules.o \
+	src/scheme/load.o \
+	src/scheme/history.o \
+	src/scheme/reflection.o \
+	src/scheme/compounds.o              \
+	src/scheme/coreprims.o \
+	src/scheme/dbprims.o                 \
+	src/scheme/tableprims.o \
+	src/scheme/choiceprims.o            \
+	src/scheme/seqprims.o \
+	src/scheme/stringprims.o              \
+	src/scheme/portprims.o \
+	src/scheme/timeprims.o               \
+	src/scheme/arithprims.o \
+	src/scheme/side-effects.o           \
+	src/scheme/regex.o  \
+	src/scheme/reqstate.o \
+	src/scheme/extdb.o
+SCHEMEIO_OBJS=\
+	src/scheme/fileprims.o \
+	src/scheme/driverprims.o \
+	src/scheme/loader.o
+FDWEB_OBJS=\
+	src/fdweb/fdweb.o \
+	src/fdweb/xmloutput.o \
+	src/fdweb/xmlinput.o \
+	src/fdweb/xmldata.o \
+	src/fdweb/mime.o src/fdweb/email.o          \
+	src/fdweb/uriprims.o \
+	src/fdweb/xmleval.o \
+	src/fdweb/cgiexec.o    \
+	src/fdweb/json.o \
+	@ldnso@ @curlo@
+TEXTTOOLS_OBJS=\
+	src/texttools/texttools.o \
+	src/texttools/match.o \
+	src/texttools/porter.o \
+	src/texttools/phonetic.o
+SUNDOWN_OBJS=\
+	src/cmodules/sundown/autolink.o		\
+	src/cmodules/sundown/buffer.o 		\
+	src/cmodules/sundown/houdini_href_e.o 	\
+	src/cmodules/sundown/houdini_html_e.o 	\
+	src/cmodules/sundown/html.o 		\
+	src/cmodules/sundown/html_smartypants.o \
+	src/cmodules/sundown/markdown.o 	\
+	src/cmodules/sundown/stack.o 		\
 	src/cmodules/sundown/sundown.o
 
-SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
-SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
-	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
-	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
+SUNDOWN_OBJECTS=\
+	src/cmodules/sundown/autolink.o \
+	src/cmodules/sundown/buffer.o 		\
+	src/cmodules/sundown/markdown.o 	\
+	src/cmodules/sundown/stack.o 		\
+	src/cmodules/sundown/html.o 		\
+	src/cmodules/sundown/html_smartypants.o \
+	src/cmodules/sundown/houdini_href_e.o 	\
+	src/cmodules/sundown/houdini_html_e.o
+SUNDOWN_H_FILES=\
+	src/cmodules/sundown/autolink.h \
+	src/cmodules/sundown/buffer.h 		\
+	src/cmodules/sundown/markdown.h 	\
+	src/cmodules/sundown/stack.h 		\
+	src/cmodules/sundown/html_blocks.h 	\
+	src/cmodules/sundown/html.h 		\
 	src/cmodules/sundown/houdini.h
 
 TIDY_OBJECTS=\
@@ -238,29 +306,40 @@ TIDY_H_FILES=\
 	src/cmodules/tidy5/version.h 	\
 	src/cmodules/tidy5/win32tc.h
 
-CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/modules/crypto.o src/cmodules/ldap.o \
-	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o \
-	     src/cmodules/ziptools.o \
-	     src/cmodules/zlib.o src/cmodules/imagick.o \
-	     src/cmodules/hyphenate.o \
-	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
+CMODULE_OBJS=\
+	src/cmodules/odbc.o \
+	src/cmodules/sqlite.o	\
+	src/modules/crypto.o \
+	src/cmodules/ldap.o 	\
+	src/cmodules/dbus.o \
+	src/cmodules/mysql.o 	\
+	src/cmodules/qrcode.o 			\
+	src/cmodules/ziptools.o 			\
+	src/cmodules/zlib.o \
+	src/cmodules/imagick.o \
+	src/cmodules/hyphenate.o 			\
+	${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
-EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
-	    exe/fdservlet@suffix@ exe/fdserver@suffix@
-STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
-	static/fdbatch@suffix@ \
-	static/fdservlet@suffix@ static/fdserver@suffix@
-SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
-	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
-	etc/fdrestart etc/fdctl \
+EXECUTABLES=exe/fdexec@suffix@ 	\
+	exe/fdconsole@suffix@ 	\
+	exe/fdbatch@suffix@  	\
+	exe/fdservlet@suffix@ 	\
+	exe/fdserver@suffix@
+STATIC_EXECUTABLES= \
+	static/fdexec@suffix@ 		\
+	static/fdconsole@suffix@	\
+	static/fdbatch@suffix@		\
+	static/fdservlet@suffix@ 	\
+	static/fdserver@suffix@
+SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig 	\
+	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall 	\
+	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  	\
+	etc/fdrestart etc/fdctl 				\
 	etc/fdcleanup
-SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-               exe/scripts/make-hash-index \
-               exe/scripts/make-oidpool \
-	       exe/scripts/ovmerge \
+SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index	\
+               exe/scripts/make-hash-index 			\
+               exe/scripts/make-oidpool 			\
+	       exe/scripts/ovmerge 				\
 	       exe/scripts/fdpkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
@@ -278,23 +357,24 @@ FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVERS_HEADERS) $(SCHEME_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           \
+	src/cons/cons.c src/cons/oids.c src/cons/symbols.c              \
         src/cons/compare.c src/cons/fcnids.c       			\
-	src/cons/choices.c src/cons/tables.c 			\
-        src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 	\
+	src/cons/choices.c src/cons/tables.c 				\
+        src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
 	src/cons/fdtype.c src/cons/support.c 				\
-	src/cons/apply.c src/cons/ffi.c       			\
+	src/cons/apply.c src/cons/ffi.c       				\
 	src/db/fddb.c src/db/stream.c src/db/hashdtype.c		\
 	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\
-	src/db/compoundindexes.c  			\
+	src/db/compoundindexes.c  					\
 	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
-	src/db/dtproc.c src/db/dtcall.c		\
+	src/db/dtproc.c src/db/dtcall.c					\
 	src/db/ipeval.c 	       					\
 	src/drivers/builtin_drivers.c  					\
-	src/drivers/filepool.c src/drivers/oidpool.c src/drivers/bigpool.c 			\
-	src/drivers/fileindex.c src/drivers/hashindex.c		\
-	src/drivers/memindex.c src/drivers/extindex.c		\
+	src/drivers/filepool.c src/drivers/oidpool.c 			\
+	src/drivers/bigpool.c src/drivers/mempool.c 			\
+	src/drivers/fileindex.c src/drivers/hashindex.c			\
+	src/drivers/memindex.c src/drivers/extindex.c			\
 	src/drivers/mempool.c src/drivers/extpool.c			\
 	src/drivers/netpool.c src/drivers/netindex.c			\
 	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     \
@@ -318,19 +398,31 @@ FRAMERD_SOURCES=\
 	src/texttools/porter.c src/texttools/phonetic.c                \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
-	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
+	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c	
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
-	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
-	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
-	src/cmodules/tidy5/tidy.c src/cmodules/imagick.c               \
-	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
+	src/cmodules/odbc.c \
+	src/cmodules/sqlite.c \
+	src/cmodules/ldap.c  \
+	src/cmodules/crypto.c \
+	src/cmodules/dbus.c \
+	src/cmodules/mysql.c \
+	src/cmodules/qrcode.c \
+	src/cmodules/ziptools.c                  \
+	src/cmodules/tidy5/tidy.c \
+	src/cmodules/imagick.c               \
+	src/cmodules/hyphenate.c \
+	src/cmodules/sundown/sundown.c
 
-STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
-        lib/libfdbserv@suffix@.a lib/libfddbdrivers@suffix@.a     \
-	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
-	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
+STATIC_LIBS=\
+	lib/libfdtype@suffix@.a \
+	lib/libfddb@suffix@.a	\
+        lib/libfdbserv@suffix@.a \
+	lib/libfddbdrivers@suffix@.a	\
+	lib/libfdscheme@suffix@.a \
+	lib/libfdschemeio@suffix@.a	\
+	lib/libfdweb@suffix@.a \
+	lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfddb@suffix@.@shared_suffix@        		\
@@ -349,19 +441,24 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
 	lib/libtexttools@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
-	src/modules/aws/*.scm src/modules/brico/*.scm \
-	src/modules/facebook/*.scm src/modules/google/*.scm \
-	src/modules/paypal/*.scm src/modules/twitter/*.scm \
-	src/modules/dropbox/*.scm \
-	src/modules/misc/*.scm src/modules/tests/*.scm \
-	src/modules/safe/domutils/*.scm src/modules/safe/knodules/*.scm \
-	src/modules/safe/textindex/*.scm src/modules/safe/jwt/*.scm \
-	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
+SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm 		\
+	src/modules/aws/*.scm src/modules/brico/*.scm 		\
+	src/modules/facebook/*.scm src/modules/google/*.scm 	\
+	src/modules/paypal/*.scm src/modules/twitter/*.scm 	\
+	src/modules/dropbox/*.scm 				\
+	src/modules/misc/*.scm src/modules/tests/*.scm 		\
+	src/modules/safe/domutils/*.scm 			\
+	src/modules/safe/knodules/*.scm 			\
+	src/modules/safe/textindex/*.scm 			\
+	src/modules/safe/jwt/*.scm 				\
+	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm	\
 	src/beingmeta/gnosys/*.scm
 
-MODULE_SO=lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so
+MODULE_SO=\
+	lib/libfdtype@suffix@.so \
+	lib/libfddb@suffix@.so \
+	lib/libfddb@suffix@.so \
+	lib/libfdscheme@suffix@.so
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -795,7 +892,8 @@ lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 	lib/libfddbdrivers@suffix@.dylib         \
 	lib/libfddb@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
+	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+			$(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
@@ -1020,8 +1118,10 @@ staging/framerd_@FDVERSION@: \
 	            -o staging/framerd_@FDVERSION@.tar HEAD;
 	cd src/modules; git archive --prefix=framerd_@FDVERSION@/src/modules/ \
 	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
-	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
-	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
+	cd staging; tar -xf framerd_@FDVERSION@.tar; \
+		rm framerd_@FDVERSION@.tar;
+	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; \
+		rm framerd_modules_@FDVERSION@.tar;
 	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
 		> staging/framerd_@FDVERSION@/etc/revision.h;
 	cd staging; tar -czvf framerd_@FDVERSION@.orig.tar.gz \
