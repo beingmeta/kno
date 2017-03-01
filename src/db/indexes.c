@@ -252,33 +252,38 @@ static void delay_index_fetch(fd_index ix,fdtype keys);
 FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
 {
   fdtype v;
+  fd_hashtable cache=&(ix->index_cache);
+  fd_hashtable adds=&(ix->index_adds);
+  fd_hashtable edits=&(ix->index_edits);
   init_cache_level(ix);
   if (ix->index_edits.table_n_keys) {
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
-    fdtype set_value=fd_hashtable_get(&(ix->index_edits),set_key,FD_VOID);
+    fdtype set_value=fd_hashtable_get(edits,set_key,FD_VOID);
     if (!(FD_VOIDP(set_value))) {
-      if (ix->index_cache_level>0) fd_hashtable_store(&(ix->index_cache),key,set_value);
+      if (ix->index_cache_level>0) fd_hashtable_store(cache,key,set_value);
       fd_decref(drop_key); fd_decref(set_key);
       return set_value;}
     else {
-      fdtype adds=fd_hashtable_get(&(ix->index_adds),key,FD_EMPTY_CHOICE);
-      fdtype drops=fd_hashtable_get(&(ix->index_edits),drop_key,FD_EMPTY_CHOICE);
+      fdtype added=fd_hashtable_get(adds,key,FD_EMPTY_CHOICE);
+      fdtype dropped=fd_hashtable_get(edits,drop_key,FD_EMPTY_CHOICE);
       if (ix->index_handler->fetch)
         v=ix->index_handler->fetch(ix,key);
       else v=FD_EMPTY_CHOICE;
-      if (FD_EMPTY_CHOICEP(drops)) {
-        FD_ADD_TO_CHOICE(v,adds);}
+      if (FD_EMPTY_CHOICEP(dropped)) {
+        FD_ADD_TO_CHOICE(v,added);}
       else {
         fdtype newv;
-        FD_ADD_TO_CHOICE(v,adds);
-        newv=fd_difference(v,drops);
-        fd_decref(v); fd_decref(drops);
+        FD_ADD_TO_CHOICE(v,added);
+        newv=fd_difference(v,dropped);
+        fd_decref(v); fd_decref(dropped);
         v=newv;}}}
   else if (ix->index_adds.table_n_keys) {
-    fdtype adds=fd_hashtable_get(&(ix->index_adds),key,FD_EMPTY_CHOICE);
-    v=ix->index_handler->fetch(ix,key);
-    FD_ADD_TO_CHOICE(v,adds);}
+    fdtype added=fd_hashtable_get(&(ix->index_adds),key,FD_EMPTY_CHOICE);
+    if (ix->index_handler->fetch)
+      v=ix->index_handler->fetch(ix,key);
+    else v=FD_EMPTY_CHOICE;
+    FD_ADD_TO_CHOICE(v,added);}
   else if (ix->index_handler->fetch) {
     if ((fd_ipeval_status())&&
         ((ix->index_handler->prefetch)||
@@ -665,6 +670,10 @@ static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
 
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
 {
+  fd_hashtable cache=&(ix->index_cache);
+  fd_hashtable edits=&(ix->index_edits);
+  fd_hashtable adds=&(ix->index_adds);
+  fd_hashtable bg_cache=&(fd_background->index_cache);
   if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",
               u8_strdup(ix->index_idstring),FD_VOID);
@@ -674,20 +683,20 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
     FD_DO_CHOICES(eachkey,key) {
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
-      fd_hashtable_add(&(ix->index_edits),drop_key,value);
-      fd_hashtable_drop(&(ix->index_edits),set_key,value);
-      fd_hashtable_drop(&(ix->index_adds),eachkey,value);
+      fd_hashtable_add(edits,drop_key,value);
+      fd_hashtable_drop(edits,set_key,value);
+      fd_hashtable_drop(adds,eachkey,value);
       if (ix->index_cache_level>0)
-        fd_hashtable_drop(&(ix->index_cache),eachkey,value);
+        fd_hashtable_drop(cache,eachkey,value);
       fd_decref(set_key); fd_decref(drop_key);}}
   else {
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fdtype set_key=fd_make_pair(set_symbol,key);
-    fd_hashtable_add(&(ix->index_edits),drop_key,value);
-    fd_hashtable_drop(&(ix->index_edits),set_key,value);
-    fd_hashtable_drop(&(ix->index_adds),key,value);
+    fd_hashtable_add(edits,drop_key,value);
+    fd_hashtable_drop(edits,set_key,value);
+    fd_hashtable_drop(adds,key,value);
     if (ix->index_cache_level>0)
-      fd_hashtable_drop(&(ix->index_cache),key,value);
+      fd_hashtable_drop(cache,key,value);
     fd_decref(set_key); fd_decref(drop_key);}
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
@@ -695,8 +704,8 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
       const fdtype *keys=FD_CHOICE_DATA(key);
       unsigned int n=FD_CHOICE_SIZE(key);
       fd_hashtable_iterkeys
-        (&(fd_background->index_cache),fd_table_replace,n,keys,FD_VOID);}
-    else fd_hashtable_op(&(fd_background->index_cache),fd_table_replace,key,FD_VOID);}
+        (bg_cache,fd_table_replace,n,keys,FD_VOID);}
+    else fd_hashtable_op(bg_cache,fd_table_replace,key,FD_VOID);}
   return 1;
 }
 static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
@@ -708,6 +717,10 @@ static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
 
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
 {
+  fd_hashtable cache=&(ix->index_cache);
+  fd_hashtable edits=&(ix->index_edits);
+  fd_hashtable adds=&(ix->index_adds);
+  fd_hashtable bg_cache=&(fd_background->index_cache);
   if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
               u8_strdup(ix->index_idstring),FD_VOID);
@@ -717,29 +730,28 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
     FD_DO_CHOICES(eachkey,key) {
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
-      fd_hashtable_store(&(ix->index_edits),set_key,value);
-      fd_hashtable_op(&(ix->index_edits),fd_table_replace,drop_key,FD_EMPTY_CHOICE);
+      fd_hashtable_store(edits,set_key,value);
+      fd_hashtable_drop(edits,drop_key,FD_VOID);
       if (ix->index_cache_level>0) {
-        fd_hashtable_store(&(ix->index_cache),eachkey,value);
-        fd_hashtable_op(&(ix->index_adds),fd_table_replace,eachkey,FD_VOID);}
+        fd_hashtable_store(cache,eachkey,value);
+        fd_hashtable_drop(adds,eachkey,FD_VOID);}
       fd_decref(set_key); fd_decref(drop_key);}}
   else {
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
-    fd_hashtable_store(&(ix->index_edits),set_key,value);
-    fd_hashtable_op(&(ix->index_edits),fd_table_replace,drop_key,FD_EMPTY_CHOICE);
+    fd_hashtable_store(edits,set_key,value);
+    fd_hashtable_drop(edits,drop_key,FD_EMPTY_CHOICE);
     if (ix->index_cache_level>0) {
-      fd_hashtable_store(&(ix->index_cache),key,value);
-      fd_hashtable_op(&(ix->index_adds),fd_table_replace,key,FD_VOID);}
+      fd_hashtable_store(cache,key,value);
+      fd_hashtable_drop(adds,key,FD_VOID);}
     fd_decref(set_key); fd_decref(drop_key);}
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
       unsigned int n=FD_CHOICE_SIZE(key);
-      fd_hashtable_iterkeys
-        (&(fd_background->index_cache),fd_table_replace,n,keys,FD_VOID);}
-    else fd_hashtable_op(&(fd_background->index_cache),fd_table_replace,key,FD_VOID);}
+      fd_hashtable_iterkeys(bg_cache,fd_table_replace,n,keys,FD_VOID);}
+    else fd_hashtable_op(bg_cache,fd_table_replace,key,FD_VOID);}
   return 1;
 }
 

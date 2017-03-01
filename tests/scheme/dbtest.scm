@@ -126,9 +126,14 @@
  	(index-frame index expr-frame
  	  '{in-file created defines expr atoms type})
  	(index-frame index expr-frame 'has (getkeys expr-frame))))
-     (index-frame index file-frame
-       '{filename created contents-as-choice contents-as-frames type})
-     (index-frame index file-frame 'has (getkeys file-frame))))
+     (index-frame index file-frame 'type)
+     (index-frame index file-frame 'has (getkeys file-frame))
+     (index-file-frame file-frame)))
+
+(define (index-file-frame file-frame (index testindex) )
+  (index-frame index file-frame 'contents-as-frames)
+  (index-frame index file-frame
+    '{filename created contents-as-choice contents-as-frames type}))
 
 (define (makedb pool index files)
   (message "Building DB")
@@ -280,13 +285,15 @@
   (initdb source)
   (when (equal? operation "init")
     (makedb testpool testindex files)
-    (checkdb (config 'COUNT 200) testpool testindex)
+    (checkdb (config 'COUNT 1000) testpool testindex)
     (commit)
-    (swapout))
-  (checkdb (config 'COUNT 200) testpool testindex)
-  (swapout)
-  (checkdb (config 'COUNT 200) testpool testindex)
-  (swapout))
+    ;;(swapout)
+    )
+  (checkdb (config 'COUNT 1000) testpool testindex)
+  ;; (swapout)
+  (checkdb (config 'COUNT 1000) testpool testindex)
+  ;; (swapout)
+  )
 
 
 

@@ -31,9 +31,32 @@ static struct FD_INDEX_HANDLER log_index_handler;
 
 /* The in-memory index */
 
+static fdtype *log_index_fetchn(fd_index ix,int n,fdtype *keys)
+{
+  fdtype *results=u8_alloc_n(n,fdtype);
+  fd_hashtable cache=&(ix->index_cache);
+  int i=0;
+  u8_read_lock(&(cache->table_rwlock));
+  while (i<n) {
+    results[i]=fd_hashtable_get_nolock
+      (&(ix->index_cache),keys[i],FD_EMPTY_CHOICE);
+    i++;}
+  u8_rw_unlock(&(cache->table_rwlock));
+  return results;
+}
+
 static fdtype *log_index_fetchkeys(fd_index ix,int *n)
 {
   fdtype keys=fd_hashtable_keys(&(ix->index_cache));
+  fdtype added=fd_hashtable_keys(&(ix->index_adds));
+  fdtype edits=fd_hashtable_keys(&(ix->index_adds));
+  FD_ADD_TO_CHOICE(keys,added);
+  FD_DO_CHOICES(key,edits) {
+    if (FD_PAIRP(key)) {
+      fdtype real_key=FD_CDR(key);
+      fd_incref(real_key);
+      FD_ADD_TO_CHOICE(keys,real_key);}}
+  fd_decref(edits);
   if (FD_EMPTY_CHOICEP(keys)) {
     *n=0; return NULL;}
   else {
@@ -54,30 +77,16 @@ static fdtype *log_index_fetchkeys(fd_index ix,int *n)
       return results;}}
 }
 
-static int log_index_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
-{
-  struct FD_KEY_SIZE **key_size_ptr=(struct FD_KEY_SIZE **)ptr;
-  (*key_size_ptr)->keysizekey=fd_incref(key);
-  (*key_size_ptr)->keysizenvals=FD_CHOICE_SIZE(value);
-  *key_size_ptr=(*key_size_ptr)+1;
-  return 0;
-}
-
-static struct FD_KEY_SIZE *log_index_fetchsizes(fd_index ix,int *n)
-{
-  if (ix->index_cache.table_n_keys) {
-    struct FD_KEY_SIZE *sizes, *write; int n_keys;
-    n_keys=ix->index_cache.table_n_keys;
-    sizes=u8_alloc_n(n_keys,FD_KEY_SIZE); write=&(sizes[0]);
-    fd_for_hashtable(&(ix->index_cache),log_index_fetchsizes_helper,
-                     (void *)write,1);
-    *n=n_keys;
-    return sizes;}
-  else {
-    *n=0; return NULL;}
-}
-
 static fdtype drop_symbol, set_symbol;
+
+static int hashtable_probe_key(struct FD_HASHTABLE *ht,fdtype key)
+{
+  struct FD_KEYVAL *result; int unlock=0;
+  if (ht->table_n_keys == 0) return 0;
+  else if (fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets))
+    return 1;
+  else return 0;
+}
 
 static int write_add(struct FD_KEYVAL *kv,void *lixptr)
 {
@@ -87,7 +96,14 @@ static int write_add(struct FD_KEYVAL *kv,void *lixptr)
   fd_write_byte(out,1);
   fd_write_dtype(out,kv->kv_key);
   fd_write_dtype(out,kv->kv_val);
-  return 1;
+  return 0;
+}
+
+static int merge_adds(struct FD_KEYVAL *kv,void *cacheptr)
+{
+  fd_hashtable cache=(fd_hashtable)cacheptr;
+  fd_hashtable_op_nolock(cache,fd_table_add,kv->kv_key,kv->kv_val);
+  return 0;
 }
 
 static int write_edit(struct FD_KEYVAL *kv,void *lixptr)
@@ -107,21 +123,45 @@ static int write_edit(struct FD_KEYVAL *kv,void *lixptr)
       fd_write_dtype(out,kv->kv_val);}
     else {}}
   else {}
-  return 1;
+  return 0;
+}
+
+static int merge_edits(struct FD_KEYVAL *kv,void *cacheptr)
+{
+  fd_hashtable cache=(fd_hashtable)cacheptr;
+  fdtype key=kv->kv_key;
+  if ((FD_PAIRP(key))&&(FD_CAR(key)==drop_symbol)) {
+    fdtype real_key=FD_CDR(key);
+    fd_hashtable_op_nolock(cache,fd_table_drop,real_key,kv->kv_val);}
+  return 0;
 }
 
 static int log_index_commit(fd_index ix)
 {
   struct FD_LOG_INDEX *logix=(struct FD_LOG_INDEX *)ix;
-  struct FD_HASHTABLE *adds=&(ix->index_cache), *edits=&(ix->index_cache);
+  struct FD_HASHTABLE *adds=&(ix->index_adds), *edits=&(ix->index_edits);
+  struct FD_HASHTABLE *cache=&(ix->index_cache);
   struct FD_HASHTABLE _adds, _edits;
+
+  /* Update the cache from the adds and edits */
+  fd_write_lock(&(cache->table_rwlock));
+  fd_read_lock(&(adds->table_rwlock));
+  fd_read_lock(&(edits->table_rwlock));
+  fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
+  fd_for_hashtable_kv(edits,merge_edits,(void *)cache,0);
+  fd_swap_hashtable(adds,&_adds,256,1);
+  fd_swap_hashtable(edits,&_edits,256,1);
+  fd_rw_unlock(&(cache->table_rwlock));
+  fd_rw_unlock(&(adds->table_rwlock));
+  fd_rw_unlock(&(edits->table_rwlock));
+
+  /* Now write the adds and edits to disk */
   fd_stream stream=&(logix->index_stream);
   fd_inbuf in=( fd_lock_stream(stream), fd_start_read(stream,0x08) );
   unsigned long long n_entries=fd_read_8bytes(in);
   size_t end=fd_read_8bytes(in);
   fd_outbuf out=fd_start_write(stream,end);
 
-  fd_swap_hashtable(adds,&_adds,256,0);
   n_entries=n_entries+_adds.table_n_keys;
   fd_for_hashtable_kv(&_adds,write_add,(void *)logix,0);
   fd_recycle_hashtable(&_adds);
@@ -147,9 +187,12 @@ static fd_index open_log_index(u8_string file,fddb_flags flags)
 {
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_LOG_INDEX *logix=u8_alloc(struct FD_LOG_INDEX);
-  struct FD_STREAM *stream=&(logix->index_stream);
-  fd_init_index((fd_index)logix,&log_index_handler,file,flags);
-  fd_init_file_stream(stream,file,FD_STREAM_READ,fd_driver_bufsize);
+  fd_init_index((fd_index)logix,&log_index_handler,file,flags|FD_INDEX_NOSWAP);
+  struct FD_STREAM *stream=
+    fd_init_file_stream(&(logix->index_stream),file,
+			FD_STREAM_MODIFY,
+			fd_driver_bufsize);
+  if (!(stream)) return NULL;
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   unsigned int magic_no=fd_read_4bytes(fd_readbuf(stream));
   if (magic_no!=FD_LOG_INDEX_MAGIC_NUMBER) {
@@ -184,6 +227,8 @@ static fd_index open_log_index(u8_string file,fddb_flags flags)
       fd_decref(key);
       if (op<0) fd_decref(value);
       i++;}
+    if (!(U8_BITP(flags,FDB_ISCONSED)))
+      fd_register_index((fd_index)logix);
     return (fd_index)logix;}
 }
 
@@ -237,9 +282,9 @@ static struct FD_INDEX_HANDLER log_index_handler={
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */
-  NULL, /* fetchn */
+  log_index_fetchn, /* fetchn */
   log_index_fetchkeys, /* fetchkeys */
-  log_index_fetchsizes, /* fetchsizes */
+  NULL, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* sync */
   log_index_create, /* create */
