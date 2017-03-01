@@ -1536,7 +1536,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
 
 /* The init function */
 
-FD_EXPORT void fd_init_portfns_c()
+FD_EXPORT void fd_init_portprims_c()
 {
   u8_register_source_file(_FILEINFO);
 

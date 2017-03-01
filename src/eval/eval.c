@@ -1503,7 +1503,7 @@ static fdtype apply_lexpr(int n,fdtype *args)
 
 fd_ptr_type fd_environment_type, fd_specform_type;
 
-extern void fd_init_corefns_c(void);
+extern void fd_init_coreprims_c(void);
 
 static fdtype lispenv_get(fdtype e,fdtype s,fdtype d)
 {
@@ -2016,19 +2016,21 @@ static void init_localfns()
 
 FD_EXPORT void fd_init_errors_c(void);
 FD_EXPORT void fd_init_compounds_c(void);
-FD_EXPORT void fd_init_threadprims_c(void);
+FD_EXPORT void fd_init_threads_c(void);
 FD_EXPORT void fd_init_conditionals_c(void);
 FD_EXPORT void fd_init_iterators_c(void);
 FD_EXPORT void fd_init_choicefns_c(void);
 FD_EXPORT void fd_init_binders_c(void);
-FD_EXPORT void fd_init_corefns_c(void);
+FD_EXPORT void fd_init_sprocs_c(void);
+FD_EXPORT void fd_init_macros_c(void);
+FD_EXPORT void fd_init_coreprims_c(void);
 FD_EXPORT void fd_init_tablefns_c(void);
-FD_EXPORT void fd_init_strings_c(void);
-FD_EXPORT void fd_init_dbfns_c(void);
-FD_EXPORT void fd_init_sequences_c(void);
+FD_EXPORT void fd_init_stringprims_c(void);
+FD_EXPORT void fd_init_dbprims_c(void);
+FD_EXPORT void fd_init_seqprims_c(void);
 FD_EXPORT void fd_init_modules_c(void);
 FD_EXPORT void fd_init_load_c(void);
-FD_EXPORT void fd_init_portfns_c(void);
+FD_EXPORT void fd_init_portprims_c(void);
 FD_EXPORT void fd_init_streamprims_c(void);
 FD_EXPORT void fd_init_timeprims_c(void);
 FD_EXPORT void fd_init_numeric_c(void);
@@ -2038,34 +2040,37 @@ FD_EXPORT void fd_init_history_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
 FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
-FD_EXPORT void fd_init_extdbi_c(void);
+FD_EXPORT void fd_init_extdb_c(void);
 
 static void init_core_builtins()
 {
   init_localfns();
-  fd_init_threadprims_c();
+  fd_init_threads_c();
   fd_init_errors_c();
   fd_init_conditionals_c();
   fd_init_iterators_c();
   fd_init_choicefns_c();
   fd_init_binders_c();
-  fd_init_corefns_c();
+  fd_init_sprocs_c();
+  fd_init_macros_c();
+
+  fd_init_coreprims_c();
   fd_init_tablefns_c();
   fd_init_compounds_c();
-  fd_init_strings_c();
-  fd_init_dbfns_c();
-  fd_init_sequences_c();
+  fd_init_stringprims_c();
+  fd_init_dbprims_c();
+  fd_init_seqprims_c();
   fd_init_quasiquote_c();
   fd_init_modules_c();
   fd_init_load_c();
-  fd_init_portfns_c();
+  fd_init_portprims_c();
   fd_init_streamprims_c();
   fd_init_timeprims_c();
   fd_init_numeric_c();
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_history_c();
-  fd_init_extdbi_c();
+  fd_init_extdb_c();
   fd_init_reqstate_c();
   fd_init_regex_c();
 

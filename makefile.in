@@ -93,7 +93,7 @@ LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/cons/biginternals.h 		\
-	src/scheme/eval_internals.h 		\
+	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
 	src/drivers/headers/filepool.h 	\
@@ -122,6 +122,7 @@ DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
 	src/db/cachecall.o src/db/threadcache.o 			\
 	src/db/drivers.o 						\
 	@ipevalo@ src/db/frames.o
+
 DBDRIVERS_OBJS=\
 	src/drivers/builtin_drivers.o 					\
 	src/drivers/filepool.o src/drivers/oidpool.o 		\
@@ -130,57 +131,62 @@ DBDRIVERS_OBJS=\
 	src/drivers/fileindex.o src/drivers/hashindex.o 	\
 	src/drivers/htindex.o src/drivers/extindex.o 	\
 	src/drivers/memindex.o src/drivers/netindex.o
+
 FDBSERV_OBJS=src/db/dbserv.o
+
 CORE_SCHEME_OBJS=\
-	src/scheme/eval.o\
-	src/scheme/binders.o           \
-	src/scheme/threadprims.o\
-	src/scheme/quasiquote.o \
-	src/scheme/errors.o                              \
-	src/scheme/conditionals.o\
-	src/scheme/iterators.o
+	src/eval/eval.o\
+	src/eval/binders.o\
+	src/eval/sprocs.o\
+	src/eval/macros.o\
+	src/eval/threads.o\
+	src/eval/quasiquote.o \
+	src/eval/errors.o\
+	src/eval/conditionals.o\
+	src/eval/iterators.o
+
 SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
-	src/scheme/modules.o \
-	src/scheme/load.o \
-	src/scheme/history.o \
-	src/scheme/reflection.o\
-	src/scheme/compounds.o              \
-	src/scheme/coreprims.o\
-	src/scheme/dbprims.o                 \
-	src/scheme/tableprims.o\
-	src/scheme/choiceprims.o            \
-	src/scheme/seqprims.o \
-	src/scheme/stringprims.o              \
-	src/scheme/portprims.o \
-	src/scheme/streamprims.o\
-	src/scheme/timeprims.o               \
-	src/scheme/arithprims.o\
-	src/scheme/side-effects.o           \
-	src/scheme/regex.o \
-	src/scheme/reqstate.o\
-	src/scheme/extdb.o
+	src/eval/modules.o \
+	src/eval/load.o \
+	src/eval/history.o \
+	src/eval/reflection.o \
+	src/eval/compounds.o \
+	src/eval/choiceops.o \
+	src/eval/arith.o \
+	src/eval/side-effects.o \
+	src/eval/regex.o \
+	src/eval/reqstate.o \
+	src/prims/coreprims.o \
+	src/prims/dbprims.o \
+	src/prims/tableprims.o \
+	src/prims/seqprims.o \
+	src/prims/stringprims.o \
+	src/prims/portprims.o \
+	src/prims/streamprims.o \
+	src/prims/timeprims.o \
+	src/prims/extdbprims.o
 
 SCHEMEIO_OBJS=\
-	src/scheme/fileprims.o\
-	src/scheme/driverprims.o\
-	src/scheme/loader.o
+	src/prims/fileprims.o\
+	src/prims/driverprims.o\
+	src/eval/loader.o
 
 FDWEB_OBJS=\
-	src/fdweb/fdweb.o\
-	src/fdweb/xmloutput.o\
+	src/fdweb/fdweb.o \
+	src/fdweb/xmloutput.o \
 	src/fdweb/xmlinput.o \
-	src/fdweb/xmldata.o\
-	src/fdweb/mime.o\
-	src/fdweb/email.o          \
-	src/fdweb/uriprims.o\
-	src/fdweb/xmleval.o\
-	src/fdweb/cgiexec.o    \
-	src/fdweb/json.o\
+	src/fdweb/xmldata.o \
+	src/fdweb/mime.o \
+	src/fdweb/email.o \
+	src/fdweb/uriprims.o \
+	src/fdweb/xmleval.o \
+	src/fdweb/cgiexec.o \
+	src/fdweb/json.o \
 	@ldnso@ @curlo@
 TEXTTOOLS_OBJS=\
 	src/texttools/texttools.o \
 	src/texttools/match.o \
-	src/texttools/porter.o\
+	src/texttools/porter.o \
 	src/texttools/phonetic.o
 SUNDOWN_OBJS=\
 	src/cmodules/sundown/autolink.o \
@@ -332,21 +338,24 @@ FRAMERD_SOURCES=\
 	src/drivers/mempool.c src/drivers/extpool.c			\
 	src/drivers/netpool.c src/drivers/netindex.c 			\
 	src/drivers/memindex.c						\
-	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     	\
-	src/scheme/conditionals.c src/scheme/iterators.c               	\
-        src/scheme/threadprims.c src/scheme/quasiquote.c               	\
-	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c 	\
-	src/scheme/compounds.c src/scheme/coreprims.c                  	\
-	src/scheme/arithprims.c src/scheme/side-effects.c              	\
-	src/scheme/dbprims.c						\
-	src/scheme/portprims.c						\
-	src/scheme/streamprims.c                    			\
-	src/scheme/tableprims.c src/scheme/choiceprims.c               	\
-	src/scheme/seqprims.c src/scheme/stringprims.c                 	\
-	src/scheme/fileprims.c src/scheme/driverprims.c                	\
-	src/scheme/loader.c                                           	\
-	src/scheme/timeprims.c  src/scheme/extdb.c                    	\
-	src/scheme/reqstate.c                                          	\
+	src/drivers/netpool.c src/drivers/netindex.c			\
+	src/eval/eval.c src/eval/binders.c src/eval/sprocs.c 		\
+	src/eval/macros.c src/eval/errors.c     			\
+	src/eval/conditionals.c src/eval/iterators.c               	\
+        src/eval/threads.c src/eval/quasiquote.c               		\
+	src/eval/modules.c src/eval/load.c src/eval/reflection.c 	\
+	src/eval/compounds.c 						\
+	src/prims/coreprims.c                  				\
+	src/eval/arith.c src/eval/side-effects.c              		\
+	src/prims/dbprims.c 						\
+	src/prims/portprims.c						\
+	src/prims/streamprims.c                    			\
+	src/prims/tableprims.c src/eval/choiceops.c               	\
+	src/prims/seqprims.c src/prims/stringprims.c                 	\
+	src/prims/fileprims.c src/prims/driverprims.c                	\
+	src/eval/loader.c                                            	\
+	src/prims/timeprims.c src/prims/extdbprims.c                    \
+	src/eval/reqstate.c                                          	\
 	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            	\
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c 	\
 	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   	\
@@ -355,8 +364,7 @@ FRAMERD_SOURCES=\
 	src/texttools/porter.c src/texttools/phonetic.c                	\
 	src/exe/fdconsole.c                                            	\
 	src/exe/fdexec.c src/exe/fdbatch.c                             	\
-	src/exe/fdservlet.c src/exe/fdcgiexec.c 			\
-	src/exe/fdserver.c
+	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
@@ -366,7 +374,7 @@ CMODULE_SOURCES=\
 	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
-        lib/libfdbserv@suffix@.a lib/libfddbdrivers@suffix@.a     \
+        lib/libfdbserv@suffix@.a lib/libfddbdrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
@@ -413,8 +421,8 @@ normal:
 debugging:
 	@echo Building DEBUGGING configuration
 	@+make XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
-	       XLDFLAGS="@debugldflags@ $(XLDFLAGS)" 			\
-	       OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)"          	\
+	       XLDFLAGS="@debugldflags@ $(XLDFLAGS)"	\
+	       OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" \
 	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
@@ -710,14 +718,14 @@ uninstall: uninstall-core
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
+		src/cons/*.c src/db/*.c src/eval/*.c src/prims/*.c src/fdweb/*.c     \
 		src/texttools/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES} tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	      etc/*.in include/framerd/*.h ${SRC_HEADERS};
-	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c src/scheme/*.c;
+	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c src/eval/*.c src/prims/*.c;
 	@etags -o TAGS -a src/fdweb/*.c src/texttools/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/cmodules/sundown/sundown.c;
 	@etags -o TAGS -a tests/cons/*.c tests/db/*.c tests/scheme/*.c tests/scheme/*.scm;
@@ -729,14 +737,14 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
+		src/cons/*.c src/db/*.c src/eval/*.c src/fdweb/*.c     \
 		src/texttools/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-	      src/cons/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
+	      src/cons/*.c src/db/*.c src/eval/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/cmodules/*.c         \
 	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
@@ -796,17 +804,17 @@ pull:
 
 # Custom dependencies
 
-src/scheme/eval.o: src/scheme/eval.c src/scheme/opcodes.c \
-	src/scheme/eval_internals.h \
+src/eval/eval.o: src/eval/eval.c src/eval/opcodes.c \
+	src/eval/eval_internals.h \
 	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
-src/scheme/binders.o src/scheme/conditionals.o src/scheme/iterators.o: \
-	src/scheme/eval_internals.h
+src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
+	src/eval/eval_internals.h
 
 src/cons/dtypeio.o src/cons/bufio.o src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
 src/db/stream.o : XCFLAGS="${OPTFLAGS}"
-src/scheme/eval.o : XCFLAGS="${OPTFLAGS}"
-src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="${OPTFLAGS}"
-src/scheme/opcodes.o : XCFLAGS="${OPTFLAGS}"
+src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
+src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
+src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
