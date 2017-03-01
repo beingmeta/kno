@@ -957,7 +957,7 @@ static fdtype force_sigfpe()
 
 /* The init function */
 
-FD_EXPORT void fd_init_corefns_c()
+FD_EXPORT void fd_init_coreprims_c()
 {
   u8_register_source_file(_FILEINFO);
 

@@ -1317,7 +1317,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
 
 /* Initialization */
 
-FD_EXPORT void fd_init_strings_c()
+FD_EXPORT void fd_init_stringprims_c()
 {
   u8_register_source_file(_FILEINFO);
 

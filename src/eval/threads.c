@@ -616,7 +616,7 @@ static fdtype set_stack_limit_prim(fdtype arg)
 #endif
 
 #if FD_THREADS_ENABLED
-FD_EXPORT void fd_init_threadprims_c()
+FD_EXPORT void fd_init_threads_c()
 {
   fd_thread_type=fd_register_cons_type(_("thread"));
   fd_recyclers[fd_thread_type]=recycle_thread_struct;
@@ -680,7 +680,7 @@ FD_EXPORT void fd_init_threadprims_c()
   u8_register_source_file(_FILEINFO);
 }
 #else
-FD_EXPORT void fd_init_threadprims_c()
+FD_EXPORT void fd_init_threads_c()
 {
   u8_register_source_file(_FILEINFO);
 }

@@ -2190,7 +2190,7 @@ static struct FD_SEQFNS secret_seqfns={
   seqsecret};
 
 
-FD_EXPORT void fd_init_sequences_c()
+FD_EXPORT void fd_init_seqprims_c()
 {
   int i=0; while (i<FD_TYPE_MAX) fd_seqfns[i++]=NULL;
   fd_seqfns[fd_pair_type]=&pair_seqfns;

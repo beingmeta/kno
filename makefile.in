@@ -122,6 +122,7 @@ DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
 	src/db/cachecall.o src/db/threadcache.o 			\
 	src/db/drivers.o 						\
 	@ipevalo@ src/db/frames.o
+
 DBDRIVERS_OBJS=\
 	src/drivers/builtin_drivers.o 					\
 	src/drivers/filepool.o src/drivers/oidpool.o 		\
@@ -130,34 +131,39 @@ DBDRIVERS_OBJS=\
 	src/drivers/fileindex.o src/drivers/hashindex.o 	\
 	src/drivers/memindex.o src/drivers/extindex.o 	\
 	src/drivers/netindex.o
+
 FDBSERV_OBJS=src/db/dbserv.o
+
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
-	src/eval/binders.o           \
+	src/eval/binders.o\
+	src/eval/sprocs.o\
+	src/eval/macros.o\
 	src/eval/threads.o\
 	src/eval/quasiquote.o \
-	src/eval/errors.o                              \
+	src/eval/errors.o\
 	src/eval/conditionals.o\
 	src/eval/iterators.o
+
 SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	src/eval/modules.o \
 	src/eval/load.o \
 	src/eval/history.o \
 	src/eval/reflection.o\
 	src/eval/compounds.o              \
+	src/eval/choiceops.o            \
+	src/eval/arith.o\
+	src/eval/side-effects.o           \
+	src/eval/regex.o \
+	src/eval/reqstate.o\
 	src/prims/coreprims.o\
 	src/prims/dbprims.o                 \
 	src/prims/tableprims.o\
-	src/prims/choiceprims.o            \
 	src/prims/seqprims.o \
 	src/prims/stringprims.o              \
 	src/prims/portprims.o \
 	src/prims/streamprims.o\
 	src/prims/timeprims.o               \
-	src/prims/arithprims.o\
-	src/eval/side-effects.o           \
-	src/eval/regex.o \
-	src/eval/reqstate.o\
 	src/eval/extdb.o
 
 SCHEMEIO_OBJS=\
@@ -330,20 +336,20 @@ FRAMERD_SOURCES=\
 	src/drivers/memindex.c src/drivers/extindex.c		\
 	src/drivers/mempool.c src/drivers/extpool.c			\
 	src/drivers/netpool.c src/drivers/netindex.c			\
-	src/eval/eval.c src/eval/binders.c src/eval/errors.c     \
+	src/eval/eval.c src/eval/binders.c src/eval/sprocs.c src/eval/macros.c src/eval/errors.c     \
 	src/eval/conditionals.c src/eval/iterators.c               \
         src/eval/threads.c src/eval/quasiquote.c               \
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c \
 	src/eval/compounds.c src/prims/coreprims.c                  \
-	src/prims/arithprims.c src/eval/side-effects.c              \
+	src/eval/arith.c src/eval/side-effects.c              \
 	src/prims/dbprims.c \
 	src/prims/portprims.c \
 	src/prims/streamprims.c                    \
-	src/prims/tableprims.c src/prims/choiceprims.c               \
+	src/prims/tableprims.c src/eval/choiceops.c               \
 	src/prims/seqprims.c src/prims/stringprims.c                 \
 	src/prims/fileprims.c src/prims/driverprims.c                \
 	src/eval/loader.c                                            \
-	src/prims/timeprims.c src/eval/extdb.c                     \
+	src/prims/timeprims.c src/prims/extdbprims.c                     \
 	src/eval/reqstate.c                                          \
 	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            \
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
@@ -707,14 +713,14 @@ uninstall: uninstall-core
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/db/*.c src/eval/*.c src/fdweb/*.c     \
+		src/cons/*.c src/db/*.c src/eval/*.c src/prims/*.c src/fdweb/*.c     \
 		src/texttools/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES} tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	      etc/*.in include/framerd/*.h ${SRC_HEADERS};
-	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c src/eval/*.c;
+	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c src/eval/*.c src/prims/*.c;
 	@etags -o TAGS -a src/fdweb/*.c src/texttools/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/cmodules/sundown/sundown.c;
 	@etags -o TAGS -a tests/cons/*.c tests/db/*.c tests/scheme/*.c tests/scheme/*.scm;
