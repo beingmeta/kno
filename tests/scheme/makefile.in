@@ -305,8 +305,8 @@ dbtests:
 	make TESTCONFIG="POOLTYPE=oidpool OFFTYPE=B64" dbtest
 	make TESTCONFIG="POOLTYPE=bigpool OFFTYPE=B64" dbtest
 	make TESTCONFIG="POOLTYPE=oidpool INDEXTYPE=hashindex" dbtest
-	make TESTCONFIG="POOLTYPE=oidpool INDEXTYPE=logindex" dbtest
-	make TESTCONFIG="POOLTYPE=bigpool INDEXTYPE=logindex" dbtest
+	make TESTCONFIG="POOLTYPE=oidpool INDEXTYPE=memindex" dbtest
+	make TESTCONFIG="POOLTYPE=bigpool INDEXTYPE=memindex" dbtest
 	make dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
