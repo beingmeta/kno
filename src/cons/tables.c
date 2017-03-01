@@ -2258,7 +2258,7 @@ FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
 #define COPYFIELD(src,dest,field) dest->field=src->field
   int n_slots=fd_get_hashtable_size(n_keys), unlock=0;
   struct FD_HASH_BUCKET **slots;
-  FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  FD_CHECK_TYPE_RET(src,fd_hashtable_type);
   if (!(locked)) {
     if (src->table_uselock) {
       u8_write_lock(&(src->table_rwlock));
