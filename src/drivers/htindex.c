@@ -18,6 +18,8 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
+#include "headers/htindex.h"
+
 /* The in-memory index */
 
 static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
@@ -65,7 +67,7 @@ static struct FD_KEY_SIZE *htindex_fetchsizes(fd_index ix,int *n)
 
 static int htindex_commit(fd_index ix)
 {
-  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  struct FD_HT_INDEX *mix=(struct FD_HT_INDEX *)ix;
   if ((mix->index_source) && (mix->commitfn))
     return (mix->commitfn)(mix,mix->index_source);
   else {
@@ -74,7 +76,7 @@ static int htindex_commit(fd_index ix)
     return -1;}
 }
 
-static int htindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
+static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
 {
   struct FD_STREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
@@ -90,7 +92,7 @@ static int htindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
 
 static fd_index open_htindex(u8_string file,fddb_flags flags)
 {
-  struct FD_MEM_INDEX *mix=(fd_mem_index)fd_make_mem_index(flags);
+  struct FD_HT_INDEX *mix=(fd_mem_index)fd_make_ht_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_STREAM stream;
   fd_init_file_stream
@@ -114,7 +116,7 @@ static fd_index open_htindex(u8_string file,fddb_flags flags)
 }
 
 static struct FD_INDEX_HANDLER htindex_handler={
-  "htindex", 1, sizeof(struct FD_MEM_INDEX), 12,
+  "htindex", 1, sizeof(struct FD_HT_INDEX), 12,
   NULL, /* close */
   htindex_commit, /* commit */
   NULL, /* setcache */
@@ -131,10 +133,10 @@ static struct FD_INDEX_HANDLER htindex_handler={
 };
 
 FD_EXPORT
-fd_index fd_make_mem_index(fddb_flags flags)
+fd_index fd_make_ht_index(fddb_flags flags)
 {
-  struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
-  FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
+  struct FD_HT_INDEX *mix=u8_alloc(struct FD_HT_INDEX);
+  FD_INIT_STRUCT(mix,struct FD_HT_INDEX);
   fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",flags);
   mix->index_cache_level=1;
   U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDB_READ_ONLY));

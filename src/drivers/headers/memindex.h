@@ -19,9 +19,9 @@
 
 #include "chunkrefs.h"
 
-#define FD_LOG_INDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
+#define FD_MEM_INDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
 
-typedef struct FD_LOG_INDEX {
+typedef struct FD_MEM_INDEX {
   FD_INDEX_FIELDS;
   unsigned int lix_n_commits;
   unsigned int lix_n_keys, lix_n_entries;

@@ -162,16 +162,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fddb_flags flags);
 #define FD_ISERVER_DROP 4
 #define FD_ISERVER_RESET 8
 
-/* MEM indexes */
-
-typedef struct FD_MEM_INDEX {
-  FD_INDEX_FIELDS;
-  int (*commitfn)(struct FD_MEM_INDEX *,u8_string);} FD_MEM_INDEX;
-typedef struct FD_MEM_INDEX *fd_mem_index;
-
-FD_EXPORT fd_index fd_make_mem_index(fddb_flags flags);
-
-/* EXTernal indexes */
+/* External indexes */
 
 typedef struct FD_EXTINDEX {
   FD_INDEX_FIELDS;

@@ -18,20 +18,20 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
-#include "headers/logindex.h"
+#include "headers/memindex.h"
 
 #include "libu8/u8filefns.h"
 #include "libu8/u8printf.h"
 
-static int logindex_cache_init=10000;
-static int logindex_adds_init=5000;
-static int logindex_edits_init=1000;
+static int memindex_cache_init=10000;
+static int memindex_adds_init=5000;
+static int memindex_edits_init=1000;
 
-static struct FD_INDEX_HANDLER log_index_handler;
+static struct FD_INDEX_HANDLER mem_index_handler;
 
 /* The in-memory index */
 
-static fdtype *log_index_fetchn(fd_index ix,int n,fdtype *keys)
+static fdtype *mem_index_fetchn(fd_index ix,int n,fdtype *keys)
 {
   fdtype *results=u8_alloc_n(n,fdtype);
   fd_hashtable cache=&(ix->index_cache);
@@ -45,7 +45,7 @@ static fdtype *log_index_fetchn(fd_index ix,int n,fdtype *keys)
   return results;
 }
 
-static fdtype *log_index_fetchkeys(fd_index ix,int *n)
+static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
 {
   fdtype keys=fd_hashtable_keys(&(ix->index_cache));
   fdtype added=fd_hashtable_keys(&(ix->index_adds));
@@ -90,7 +90,7 @@ static int hashtable_probe_key(struct FD_HASHTABLE *ht,fdtype key)
 
 static int write_add(struct FD_KEYVAL *kv,void *lixptr)
 {
-  struct FD_LOG_INDEX *logix=(struct FD_LOG_INDEX *)lixptr;
+  struct FD_MEM_INDEX *logix=(struct FD_MEM_INDEX *)lixptr;
   struct FD_STREAM *stream=&(logix->index_stream);
   struct FD_OUTBUF *out=fd_writebuf(stream);
   fd_write_byte(out,1);
@@ -108,7 +108,7 @@ static int merge_adds(struct FD_KEYVAL *kv,void *cacheptr)
 
 static int write_edit(struct FD_KEYVAL *kv,void *lixptr)
 {
-  struct FD_LOG_INDEX *logix=(struct FD_LOG_INDEX *)lixptr;
+  struct FD_MEM_INDEX *logix=(struct FD_MEM_INDEX *)lixptr;
   struct FD_STREAM *stream=&(logix->index_stream);
   struct FD_OUTBUF *out=fd_writebuf(stream);
   fdtype key=kv->kv_key;
@@ -136,9 +136,9 @@ static int merge_edits(struct FD_KEYVAL *kv,void *cacheptr)
   return 0;
 }
 
-static int log_index_commit(fd_index ix)
+static int mem_index_commit(fd_index ix)
 {
-  struct FD_LOG_INDEX *logix=(struct FD_LOG_INDEX *)ix;
+  struct FD_MEM_INDEX *logix=(struct FD_MEM_INDEX *)ix;
   struct FD_HASHTABLE *adds=&(ix->index_adds), *edits=&(ix->index_edits);
   struct FD_HASHTABLE *cache=&(ix->index_cache);
   struct FD_HASHTABLE _adds, _edits;
@@ -183,11 +183,11 @@ static int log_index_commit(fd_index ix)
   fd_unlock_stream(stream);
 }
 
-static fd_index open_log_index(u8_string file,fddb_flags flags)
+static fd_index open_mem_index(u8_string file,fddb_flags flags)
 {
   fdtype lispval; struct FD_HASHTABLE *h;
-  struct FD_LOG_INDEX *logix=u8_alloc(struct FD_LOG_INDEX);
-  fd_init_index((fd_index)logix,&log_index_handler,file,flags|FD_INDEX_NOSWAP);
+  struct FD_MEM_INDEX *logix=u8_alloc(struct FD_MEM_INDEX);
+  fd_init_index((fd_index)logix,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(logix->index_stream),file,
 			FD_STREAM_MODIFY,
@@ -195,8 +195,8 @@ static fd_index open_log_index(u8_string file,fddb_flags flags)
   if (!(stream)) return NULL;
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   unsigned int magic_no=fd_read_4bytes(fd_readbuf(stream));
-  if (magic_no!=FD_LOG_INDEX_MAGIC_NUMBER) {
-    fd_seterr(_("NotLogIndex"),"open_log_index",u8_strdup(file),FD_VOID);
+  if (magic_no!=FD_MEM_INDEX_MAGIC_NUMBER) {
+    fd_seterr(_("NotMemindex"),"open_mem_index",u8_strdup(file),FD_VOID);
     fd_close_stream(stream,0);
     u8_free(logix);
     return NULL;}
@@ -208,11 +208,11 @@ static fd_index open_log_index(u8_string file,fddb_flags flags)
     logix->lix_valid_data=fd_read_8bytes(in);
     ftruncate(stream->stream_fileno,logix->lix_valid_data);
     fd_setpos(stream,256);
-    if (n_entries<logindex_cache_init)
-      fd_resize_hashtable(&(logix->index_cache),logindex_cache_init);
+    if (n_entries<memindex_cache_init)
+      fd_resize_hashtable(&(logix->index_cache),memindex_cache_init);
     else fd_resize_hashtable(&(logix->index_cache),1.5*n_entries);
-    fd_resize_hashtable(&(logix->index_adds),logindex_adds_init);
-    fd_resize_hashtable(&(logix->index_edits),logindex_edits_init);
+    fd_resize_hashtable(&(logix->index_adds),memindex_adds_init);
+    fd_resize_hashtable(&(logix->index_edits),memindex_edits_init);
     in=fd_readbuf(stream);
     while (i<n_entries) {
       char op=fd_read_byte(in);
@@ -232,14 +232,14 @@ static fd_index open_log_index(u8_string file,fddb_flags flags)
     return (fd_index)logix;}
 }
 
-FD_EXPORT int fd_make_log_index(u8_string spec)
+FD_EXPORT int fd_make_mem_index(u8_string spec)
 {
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
     fd_init_file_stream(&_stream,spec,FD_STREAM_CREATE,fd_driver_bufsize);
   fd_outbuf out=fd_writebuf(stream);
   int i=24;
-  fd_write_4bytes(out,FD_LOG_INDEX_MAGIC_NUMBER);
+  fd_write_4bytes(out,FD_MEM_INDEX_MAGIC_NUMBER);
   fd_write_4bytes(out,0); /* n_keys */
   fd_write_8bytes(out,0); /* n_entries */
   fd_write_8bytes(out,256); /* valid_data */
@@ -248,10 +248,10 @@ FD_EXPORT int fd_make_log_index(u8_string spec)
   return 1;
 }
 
-static fd_index log_index_create(u8_string spec,void *type_data,
+static fd_index mem_index_create(u8_string spec,void *type_data,
 				 fddb_flags flags,fdtype opts)
 {
-  if (fd_make_log_index(spec)>=0)
+  if (fd_make_mem_index(spec)>=0)
     return fd_open_index(spec,flags);
   else return NULL;
 }
@@ -273,34 +273,34 @@ static u8_string match_index_name(u8_string spec,void *data)
       return NULL;}}
 }
 
-static struct FD_INDEX_HANDLER log_index_handler={
-  "logindex", 1, sizeof(struct FD_LOG_INDEX), 12,
+static struct FD_INDEX_HANDLER mem_index_handler={
+  "memindex", 1, sizeof(struct FD_MEM_INDEX), 12,
   NULL, /* close */
-  log_index_commit, /* commit */
+  mem_index_commit, /* commit */
   NULL, /* setcache */
   NULL, /* setbuf */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */
-  log_index_fetchn, /* fetchn */
-  log_index_fetchkeys, /* fetchkeys */
+  mem_index_fetchn, /* fetchn */
+  mem_index_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* sync */
-  log_index_create, /* create */
+  mem_index_create, /* create */
   NULL  /* indexop */
 };
 
-FD_EXPORT void fd_init_logindex_c()
+FD_EXPORT void fd_init_memindex_c()
 {
   drop_symbol=fd_intern("DROP");
   set_symbol=fd_intern("SET");
 
-  fd_register_index_type("logindex",
-                         &log_index_handler,
-                         open_log_index,
+  fd_register_index_type("memindex",
+                         &mem_index_handler,
+                         open_mem_index,
                          match_index_name,
-                         (void *) U8_INT2PTR(FD_LOG_INDEX_MAGIC_NUMBER));
+                         (void *) U8_INT2PTR(FD_MEM_INDEX_MAGIC_NUMBER));
 
   u8_register_source_file(_FILEINFO);
 }
