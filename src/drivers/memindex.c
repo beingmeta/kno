@@ -143,17 +143,31 @@ static int mem_index_commit(fd_index ix)
   struct FD_HASHTABLE *cache=&(ix->index_cache);
   struct FD_HASHTABLE _adds, _edits;
 
+  if ((adds->table_n_keys==0)&&(edits->table_n_keys==0)) 
+    return 0;
+
   /* Update the cache from the adds and edits */
   fd_write_lock(&(cache->table_rwlock));
   fd_read_lock(&(adds->table_rwlock));
   fd_read_lock(&(edits->table_rwlock));
   fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
   fd_for_hashtable_kv(edits,merge_edits,(void *)cache,0);
+
+  /* Now copy the adds and edits into the hashtables on the stack */
   fd_swap_hashtable(adds,&_adds,256,1);
   fd_swap_hashtable(edits,&_edits,256,1);
   fd_rw_unlock(&(cache->table_rwlock));
   fd_rw_unlock(&(adds->table_rwlock));
   fd_rw_unlock(&(edits->table_rwlock));
+
+  /* At this point, the index tables are unlocked and can start being
+     used by other threads. We'll now write the changes to the
+     disk. */
+
+  /* We don't currently have recovery provisions here. One possibility
+     would be to write all of the values to a separate file before
+     returning. Another would be to wait with unlocking the adds and
+     edits until they've been written. */
 
   /* Now write the adds and edits to disk */
   fd_stream stream=&(logix->index_stream);
@@ -181,6 +195,8 @@ static int mem_index_commit(fd_index ix)
   fd_flush_stream(stream);
 
   fd_unlock_stream(stream);
+
+  return 1;
 }
 
 static fd_index open_mem_index(u8_string file,fddb_flags flags)
