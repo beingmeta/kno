@@ -716,24 +716,24 @@ uninstall: uninstall-core
 
 # Utility targets
 
-TAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/db/*.c src/eval/*.c src/prims/*.c src/fdweb/*.c     \
-		src/texttools/*.c src/cmodules/*.c         \
-		src/cmodules/sundown/sundown.c include/framerd/*.h        \
-		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES} tests/scheme/*.scm 
+TAGS: makefile.in configure.ac include/framerd/config.h.in		\
+		tests/cons/*.c tests/db/*.c tests/scheme/*.c 		\
+		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
+		src/cons/*.c src/db/*.c src/drivers/*.c 		\
+		src/eval/*.c src/prims/*.c     				\
+		src/texttools/*.c src/fdweb/*.c 			\
+		src/cmodules/sundown/sundown.c         			\
+		etc/*.in ${SRC_HEADERS} 				\
+		tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	      etc/*.in include/framerd/*.h ${SRC_HEADERS};
-	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c src/eval/*.c src/prims/*.c;
-	@etags -o TAGS -a src/fdweb/*.c src/texttools/*.c src/cmodules/*.c;
+	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c
+	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
+	@etags -o TAGS -a src/fdweb/*.c src/texttools/*.c;
 	@etags -o TAGS -a src/cmodules/sundown/sundown.c;
-	@etags -o TAGS -a tests/cons/*.c tests/db/*.c tests/scheme/*.c tests/scheme/*.scm;
-	@# We skip module.scm files because they are always links
-	@#  to other files (with more distinctive names).
-	@find src/modules src/modules/safe src/fdweb/xhtml -name "*.scm" | \
-		grep -v module.scm | \
-		xargs etags -o TAGS -a
+	@etags -o TAGS -a tests/cons/*.c tests/db/*.c;
+	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \

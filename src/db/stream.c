@@ -656,7 +656,6 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
 {
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
   ssize_t filesize=u8_file_size(filename);
-  ssize_t bufsize=(filesize+1024);
   if (filesize<0) {
     fd_seterr(fd_FileNotFound,"fd_file2dtype",u8_strdup(filename),FD_VOID);
     return FD_ERROR_VALUE;}
@@ -665,7 +664,8 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
     return FD_ERROR_VALUE;}
   else {
     struct FD_STREAM *opened=
-      fd_init_file_stream(stream,filename,FD_STREAM_READ,bufsize);
+      fd_init_file_stream(stream,filename,FD_STREAM_READ,
+                          fd_filestream_bufsize);
     if (opened) {
       fdtype result=FD_VOID;
       struct FD_INBUF *in=fd_readbuf(opened);

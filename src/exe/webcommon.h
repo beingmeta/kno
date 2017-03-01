@@ -283,7 +283,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
       fd_close_stream(reqlog,0); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
     reqlog=u8_alloc(struct FD_STREAM);
-    if (fd_init_file_stream(reqlog,filename,FD_STREAM_WRITE,16384)) {
+    if (fd_init_file_stream(reqlog,filename,FD_STREAM_WRITE,30000)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
       fdtype logstart_entry=fd_lispstring(logstart);
