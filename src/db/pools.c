@@ -215,20 +215,22 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     return -1;}
   fd_unlock_mutex(&pool_registry_lock);
   if (p->pool_label) {
-    u8_byte *dot=strchr(p->pool_label,'.');
+    u8_string base=u8_string_subst(p->pool_label,"/","_");
+    u8_byte *dot=strchr(base,'.');
     fdtype pkey=FD_VOID, probe=FD_VOID;
     if (dot) {
-      pkey=fd_substring(p->pool_label,dot);
+      pkey=fd_substring(base,dot);
       probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
       if (FD_EMPTY_CHOICEP(probe)) {
         fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
         p->pool_prefix=FD_STRDATA(pkey);}
       else fd_decref(pkey);}
-    pkey=fd_substring(p->pool_label,NULL);
+    else pkey=fd_substring(base,NULL);
     probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
     if (FD_EMPTY_CHOICEP(probe)) {
       fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
-      if (p->pool_prefix == NULL) p->pool_prefix=FD_STRDATA(pkey);}}
+      if (p->pool_prefix == NULL) p->pool_prefix=FD_STRDATA(pkey);}
+    u8_free(base);}
   return 1;
 }
 
