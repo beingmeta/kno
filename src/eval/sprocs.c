@@ -634,6 +634,7 @@ FD_EXPORT void fd_init_sprocs_c()
   u8_register_source_file(_FILEINFO);
 
   tail_symbol=fd_intern("%TAIL");
+  moduleid_symbol=fd_intern("%MODULEID");
 
   fd_applyfns[fd_sproc_type]=sproc_applier;
   fd_functionp[fd_sproc_type]=1;

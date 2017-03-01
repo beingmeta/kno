@@ -2042,31 +2042,31 @@ FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
 FD_EXPORT void fd_init_extdbprims_c(void);
 
-static void init_core_builtins()
+static void init_eval_core()
 {
   init_localfns();
+  fd_init_tableprims_c();
+  fd_init_modules_c();
+  fd_init_arith_c();
   fd_init_threads_c();
   fd_init_errors_c();
+  fd_init_load_c();
   fd_init_conditionals_c();
   fd_init_iterators_c();
   fd_init_choicefns_c();
   fd_init_binders_c();
   fd_init_sprocs_c();
   fd_init_macros_c();
-  fd_init_arith_c();
   fd_init_compounds_c();
   fd_init_quasiquote_c();
   fd_init_side_effects_c();
   fd_init_reflection_c();
   fd_init_reqstate_c();
-  fd_init_modules_c();
-  fd_init_load_c();
 
   fd_init_regex_c();
   fd_init_history_c();
 
   fd_init_coreprims_c();
-  fd_init_tableprims_c();
   fd_init_stringprims_c();
   fd_init_dbprims_c();
   fd_init_seqprims_c();
@@ -2079,6 +2079,10 @@ static void init_core_builtins()
 
   fd_finish_module(fd_scheme_module);
   fd_finish_module(fd_xscheme_module);
+}
+
+static void init_core_prims()
+{
 }
 
 FD_EXPORT int fd_load_fdscheme()
@@ -2101,7 +2105,7 @@ FD_EXPORT int fd_init_fdscheme()
     u8_register_source_file(_FILEINFO);
 
     init_scheme_module();
-    init_core_builtins();
+    init_eval_core();
 
     return fdscheme_initialized;}
 }

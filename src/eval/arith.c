@@ -130,6 +130,290 @@ static fdtype negativep(fdtype x)
   if (sgn<0) return FD_TRUE; else return FD_FALSE;
 }
 
+/* Basic ops */
+
+/* Arithmetic */
+
+static fdtype plus_lexpr(int n,fdtype *args)
+{
+  if (n==0)
+    return FD_FIXNUM_ZERO;
+  else if (n==1) {
+    fdtype x=args[0];
+    if (FD_FIXNUMP(x)) return x;
+    else return fd_incref(x);}
+  else if (n==2) 
+    return fd_plus(args[0],args[1]);
+  else {
+    int i=0; int floating=0, generic=0, vector=0;
+    while (i < n)
+      if (FD_FIXNUMP(args[i])) i++;
+      else if (FD_FLONUMP(args[i])) {floating=1; i++;}
+      else if ((FD_VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
+        generic=1; vector=1; i++;}
+      else {generic=1; i++;}
+    if ((floating==0) && (generic==0)) {
+      int fixresult=0;
+      i=0; while (i < n) {
+        int val=0;
+        if (FD_FIXNUMP(args[i])) val=fd_getint(args[i]);
+        fixresult=fixresult+val; i++;}
+      return FD_INT(fixresult);}
+    else if (generic == 0) {
+      double floresult=0.0;
+      i=0; while (i < n) {
+        double val;
+        if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
+        else if (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
+        floresult=floresult+val;
+        i++;}
+      return fd_init_double(NULL,floresult);}
+    else if (vector) {
+      fdtype result=fd_plus(args[0],args[1]);
+      if (FD_ABORTP(result)) return result;
+      i=2; while (i < n) {
+        fdtype newv=fd_plus(result,args[i]);
+        if (FD_ABORTP(newv)) {
+          fd_decref(result); return newv;}
+        fd_decref(result); result=newv; i++;}
+      return result;}
+    else {
+      fdtype result=FD_INT(0);
+      i=0; while (i < n) {
+        fdtype newv=fd_plus(result,args[i]);
+        if (FD_ABORTP(newv)) {
+          fd_decref(result); return newv;}
+        fd_decref(result); result=newv; i++;}
+      return result;}
+  }
+}
+
+static fdtype plus1(fdtype x)
+{
+  if (FD_FIXNUMP(x)) {
+    int iv=fd_getint(x); iv++;
+    return FD_INT2DTYPE(iv);}
+  else if (FD_FLONUMP(x)) {
+    fd_double iv=FD_FLONUM(x); iv=iv+1;
+    return fd_make_flonum(iv);}
+  else {
+    fdtype args[2]; args[0]=x; args[1]=FD_INT(1);
+    return plus_lexpr(2,args);}
+}
+static fdtype minus1(fdtype x)
+{
+  if (FD_FIXNUMP(x)) {
+    int iv=fd_getint(x); iv--;
+    return FD_INT2DTYPE(iv);}
+  else if (FD_FLONUMP(x)) {
+    fd_double iv=FD_FLONUM(x); iv=iv-1;
+    return fd_make_flonum(iv);}
+  else {
+    fdtype args[2]; args[0]=x; args[1]=FD_INT(-1);
+    return plus_lexpr(2,args);}
+}
+
+static fdtype times_lexpr(int n,fdtype *args)
+{
+  int i=0; int floating=0, generic=0;
+  if (n==1) {
+    fdtype arg=args[0];
+    if (FD_FIXNUMP(arg)) return arg;
+    else if (FD_NUMBERP(arg))
+      return  fd_incref(arg);
+    else if ((FD_NUMVECP(arg))||(FD_VECTORP(arg)))
+      return fd_incref(arg);
+    return fd_type_error(_("number"),"times_lexpr",fd_incref(arg));}
+  else if (n==2) 
+    return fd_multiply(args[0],args[1]);
+  else {
+    while (i < n)
+      if (FD_FIXNUMP(args[i])) i++;
+      else if (FD_FLONUMP(args[i])) {floating=1; i++;}
+      else {generic=1; i++;}
+    if ((floating==0) && (generic==0)) {
+      long long fixresult=1;
+      i=0; while (i < n) {
+        long long mult=fd_getint(args[i]);
+        if (mult==0) return FD_INT(0);
+        else {
+          int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
+          if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
+            fdtype bigresult=fd_multiply(FD_INT(fixresult),args[i]);
+            i++; while (i<n) {
+              fdtype bigprod=fd_multiply(bigresult,args[i]);
+              fd_decref(bigresult); bigresult=bigprod; i++;}
+            return bigresult;}
+          else fixresult=fixresult*mult;}
+        i++;}
+      return FD_INT(fixresult);}
+    else if (generic == 0) {
+      double floresult=1.0;
+      i=0; while (i < n) {
+        double val;
+        if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
+        else if  (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
+        floresult=floresult*val;
+        i++;}
+      return fd_init_double(NULL,floresult);}
+    else {
+      fdtype result=FD_INT(1);
+      i=0; while (i < n) {
+        fdtype newv=fd_multiply(result,args[i]);
+        fd_decref(result); result=newv; i++;}
+      return result;}
+  }
+}
+
+static fdtype minus_lexpr(int n,fdtype *args)
+{
+  if (n == 1) {
+    fdtype arg=args[0];
+    if (FD_FIXNUMP(arg))
+      return FD_INT(-(FD_FIX2INT(arg)));
+    else if (FD_FLONUMP(arg))
+      return fd_init_double(NULL,-(FD_FLONUM(arg)));
+    else if ((FD_VECTORP(arg))||(FD_NUMVECP(arg)))
+      return fd_multiply(arg,FD_FIX2INT(-1));
+    else return fd_subtract(FD_INT(0),arg);}
+  else if (n == 2)
+    return fd_subtract(args[0],args[1]);
+  else {
+    int i=0; int floating=0, generic=0, vector=0;
+    while (i < n) {
+      if (FD_FIXNUMP(args[i])) i++;
+      else if (FD_FLONUMP(args[i])) {floating=1; i++;}
+      else if ((FD_VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
+        vector=1; generic=1;}
+      else {generic=1; i++;}}
+    if ((floating==0) && (generic==0)) {
+      int fixresult=0;
+      i=0; while (i < n) {
+        int val=0;
+        if (FD_FIXNUMP(args[i])) val=FD_FIX2INT(args[i]);
+        else if  (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        if (i==0) fixresult=val; else fixresult=fixresult-val;
+        i++;}
+      return FD_INT(fixresult);}
+    else if (generic == 0) {
+      double floresult=0.0;
+      i=0; while (i < n) {
+        double val;
+        if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
+        else if  (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
+        if (i==0) floresult=val; else floresult=floresult-val;
+        i++;}
+      return fd_init_double(NULL,floresult);}
+    else if (vector) {
+      fdtype result=fd_subtract(args[0],args[1]);
+      i=2; while (i < n) {
+        fdtype newv=fd_subtract(result,args[i]);
+        fd_decref(result); result=newv; i++;}
+      return result;}
+    else {
+      fdtype result=fd_incref(args[0]);
+      i=1; while (i < n) {
+        fdtype newv=fd_subtract(result,args[i]);
+        fd_decref(result); result=newv; i++;}
+      return result;}}
+}
+
+static double todouble(fdtype x)
+{
+  if (FD_FIXNUMP(x))
+    return (double)(FD_FIX2INT(x));
+  else if (FD_BIGINTP(x))
+    return (double)fd_bigint_to_double((fd_bigint)x);
+  else if (FD_FLONUMP(x))
+    return (((struct FD_FLONUM *)x)->fd_dblval);
+  else {
+    /* This won't really work, but we should catch the error before
+       this point.  */
+    fd_seterr(fd_TypeError,"todouble",NULL,x);
+    return -1.0;}
+}
+
+static fdtype div_lexpr(int n,fdtype *args)
+{
+  int all_double=1, i=0;
+  while (i<n)
+    if (FD_FLONUMP(args[i])) i++;
+    else {all_double=0; break;}
+  if (all_double)
+    if (n == 1)
+      return fd_init_double(NULL,(1.0/(FD_FLONUM(args[0]))));
+    else {
+      double val=FD_FLONUM(args[0]); i=1;
+      while (i<n) {val=val/FD_FLONUM(args[i]); i++;}
+      return fd_init_double(NULL,val);}
+  else if (n==1)
+    return fd_divide(FD_INT(1),args[0]);
+  else {
+    fdtype value=fd_incref(args[0]); i=1;
+    while (i<n) {
+      fdtype newv=fd_divide(value,args[i]);
+      fd_decref(value); value=newv; i++;}
+    return value;}
+}
+
+static fdtype idiv_lexpr(int n,fdtype *args)
+{
+  int all_double=1, i=0;
+  while (i<n)
+    if (FD_FLONUMP(args[i])) i++;
+    else if (!((FD_FIXNUMP(args[i])) || (FD_BIGINTP(args[i]))))
+      return fd_type_error(_("scalar"),"idiv_lexpr",args[i]);
+    else {all_double=0; i++;}
+  if (all_double)
+    if (n == 1)
+      return fd_init_double(NULL,(1.0/(FD_FLONUM(args[0]))));
+    else {
+      double val=FD_FLONUM(args[0]); i=1;
+      while (i<n) {val=val/FD_FLONUM(args[i]); i++;}
+      return fd_init_double(NULL,val);}
+  else if (n==1) {
+    double d=todouble(args[0]);
+    return fd_init_double(NULL,(1.0/d));}
+  else {
+    double val=todouble(args[0]); i=1;
+    while (i<n) {
+      double dval=todouble(args[i]);
+      val=val/dval; i++;}
+    return fd_init_double(NULL,val);}
+}
+
+static fdtype remainder_prim(fdtype x,fdtype m)
+{
+  if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(m))) {
+    int ix=FD_FIX2INT(x), im=FD_FIX2INT(m);
+    int r=ix%im;
+    return FD_INT(r);}
+  else return fd_remainder(x,m);
+}
+
+static fdtype random_prim(fdtype maxarg)
+{
+  if (FD_INTEGERP(maxarg)) {
+    int max=fd_getint(maxarg), n=u8_random(max);
+    return FD_INT(n);}
+  else if (FD_FLONUMP(maxarg)) {
+    double flomax = FD_FLONUM(maxarg);
+    int intmax=(int)flomax;
+    int n=u8_random(intmax);
+    double rval=(double) n;
+    return fd_make_flonum(rval);}
+  else return fd_type_error("integer or flonum","random_prim",maxarg);
+}
+
+/* Making some numbers */
+
 static fdtype make_rational(fdtype n,fdtype d)
 {
   return fd_make_rational(n,d);
@@ -176,7 +460,7 @@ static fdtype imag_part_prim(fdtype x)
   else return fd_type_error("number","imag_part_prim",x);
 }
 
-static double todouble(fdtype x,fdtype *whoops)
+static double doublearg(fdtype x,fdtype *whoops)
 {
   if (FD_FIXNUMP(x))
     return (double)(FD_FIX2INT(x));
@@ -185,7 +469,7 @@ static double todouble(fdtype x,fdtype *whoops)
   else if (FD_FLONUMP(x))
     return (((struct FD_FLONUM *)x)->fd_dblval);
   else {
-    *whoops=fd_type_error("number","todouble",x);
+    *whoops=fd_type_error("number","doublearg",x);
     return 0;}
 }
 
@@ -238,7 +522,7 @@ static fdtype toexact(fdtype x,fdtype direction)
 
 #define arithdef(sname,lname,cname) \
   static fdtype lname(fdtype x) { \
-    fdtype err=FD_VOID; double val=todouble(x,&err); \
+    fdtype err=FD_VOID; double val=doublearg(x,&err); \
     errno=0; \
     if (FD_VOIDP(err)) { \
       double result=cname(val); \
@@ -260,9 +544,9 @@ arithdef("EXP",lexp,exp);
 #define arithdef2(sname,lname,cname) \
   static fdtype lname(fdtype x,fdtype y) { \
     fdtype err=FD_VOID; double xval, yval; \
-    xval=todouble(x,&err);                  \
+    xval=doublearg(x,&err);                  \
     if (!(FD_VOIDP(err))) return err;       \
-    yval=todouble(y,&err);                  \
+    yval=doublearg(y,&err);                  \
     errno=0;                                \
     if (FD_VOIDP(err)) {                    \
       double result=cname(xval,yval);       \
@@ -290,8 +574,8 @@ static fdtype pow_prim(fdtype v,fdtype n)
     return prod;}
   else {
     fdtype err=FD_VOID;
-    fdtype dv = todouble(v,&err);
-    fdtype dn = (FD_VOIDP(err)) ? todouble(n,&err) : (0);
+    fdtype dv = doublearg(v,&err);
+    fdtype dn = (FD_VOIDP(err)) ? doublearg(n,&err) : (0);
     if (FD_ABORTP(err)) return err;
     else {
       double result=pow(dv,dn);
@@ -301,8 +585,8 @@ static fdtype pow_prim(fdtype v,fdtype n)
 static fdtype nthroot_prim(fdtype v,fdtype n)
 {
   fdtype err=FD_VOID;
-  double dv = todouble(v,&err);
-  double dn = (FD_VOIDP(err)) ? (todouble(n,&err)) :(0);
+  double dv = doublearg(v,&err);
+  double dn = (FD_VOIDP(err)) ? (doublearg(n,&err)) :(0);
   double dexp= (FD_VOIDP(err)) ? (1/dn) : (0);
   if (FD_ABORTP(err))
     return err;
@@ -329,8 +613,8 @@ static fdtype nthroot_prim(fdtype v,fdtype n)
 static fdtype inexact_nthroot_prim(fdtype v,fdtype n)
 {
   fdtype err=FD_VOID;
-  double dv = todouble(v,&err);
-  double dn = (FD_VOIDP(err)) ? (todouble(n,&err)) :(0);
+  double dv = doublearg(v,&err);
+  double dn = (FD_VOIDP(err)) ? (doublearg(n,&err)) :(0);
   double dexp= (FD_VOIDP(err)) ? (1/dn) : (0);
   if (FD_ABORTP(err))
     return err;
@@ -359,7 +643,7 @@ static fdtype min_prim(int n,fdtype *args)
         return fd_incref(result);
       else {
         fdtype err=FD_VOID;
-        double asdouble=todouble(result,&err);
+        double asdouble=doublearg(result,&err);
         if (FD_VOIDP(err))
           return fd_init_double(NULL,asdouble);
         else return err;}
@@ -382,7 +666,7 @@ static fdtype max_prim(int n,fdtype *args)
         return fd_incref(result);
       else {
         fdtype err=FD_VOID;
-        double asdouble=todouble(result,&err);
+        double asdouble=doublearg(result,&err);
         if (FD_VOIDP(err))
           return fd_init_double(NULL,asdouble);
         else return err;}
@@ -558,6 +842,24 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
     int ival=scaled;
     return fd_conspair(FD_INT(ival),scalearg);}
   else return FD_EMPTY_CHOICE;
+}
+
+/* More simple arithmetic functions */
+
+static fdtype quotient_prim(fdtype x,fdtype y)
+{
+  if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
+    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
+    int q=ix/iy;
+    return FD_INT(q);}
+  else return fd_quotient(x,y);
+}
+
+static fdtype sqrt_prim(fdtype x)
+{
+  double v=todouble(x);
+  double sqr=sqrt(v);
+  return fd_init_double(NULL,sqr);
 }
 
 /* Log and exponent functions */
@@ -809,6 +1111,26 @@ FD_EXPORT void fd_init_arith_c()
 
   arithdef2("ATAN2",latan2,atan2);
   arithdef2("POW~",lpow,lpow);
+
+  fd_idefn(fd_scheme_module,fd_make_cprimn("+",plus_lexpr,-1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("-",minus_lexpr,-1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("*",times_lexpr,-1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("/",div_lexpr,-1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("/~",idiv_lexpr,-1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("REMAINDER",remainder_prim,2));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("RANDOM",random_prim,1));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("1+",plus1,1));
+  {
+    fdtype minusone=fd_make_cprim1("-1+",minus1,1);
+    fd_idefn(fd_scheme_module,minusone);
+    fd_store(fd_scheme_module,fd_intern("1-"),minusone);
+  }
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2("QUOTIENT",quotient_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SQRT",sqrt_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("ROUND",round_prim,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("POW",pow_prim,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("NTHROOT",nthroot_prim,2));

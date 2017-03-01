@@ -76,6 +76,7 @@ FD_EXPORT void fd_init_macros_c()
 
   fd_macro_type=fd_register_cons_type(_("scheme syntactic macro"));
 
+  moduleid_symbol=fd_intern("%MODULEID");
   lambda_symbol=fd_intern("LAMBDA");
 
   fd_unparsers[fd_macro_type]=unparse_macro;
