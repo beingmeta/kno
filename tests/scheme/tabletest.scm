@@ -237,7 +237,7 @@
 	(commit))))
 
 (define (main filename (size #f))
-  (message "■■■■■■■■ TABLETEST " (write filename) 
+  (message "■■■■■■■■ TABLETEST " (write filename) " ■■■■■■■■■■■■■■■■ "
     (when size (printout " BUILD=" size))
     " cache=" (config 'cachlevel) " "
     (when (config 'hashindex) (printout "index=" (config 'hashindex)))
