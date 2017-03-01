@@ -20,7 +20,7 @@
 
 /* The in-memory index */
 
-static fdtype *memindex_fetchn(fd_index ix,int n,fdtype *keys)
+static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
   fdtype *results=u8_alloc_n(n,fdtype);
   int i=0; while (i<n) {
@@ -29,7 +29,7 @@ static fdtype *memindex_fetchn(fd_index ix,int n,fdtype *keys)
   return results;
 }
 
-static fdtype *memindex_fetchkeys(fd_index ix,int *n)
+static fdtype *htindex_fetchkeys(fd_index ix,int *n)
 {
   fdtype keys=fd_hashtable_keys(&(ix->index_cache));
   int n_elts=FD_CHOICE_SIZE(keys);
@@ -40,7 +40,7 @@ static fdtype *memindex_fetchkeys(fd_index ix,int *n)
   return result;
 }
 
-static int memindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
+static int htindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
 {
   struct FD_KEY_SIZE **key_size_ptr=(struct FD_KEY_SIZE **)ptr;
   (*key_size_ptr)->keysizekey=fd_incref(key);
@@ -49,13 +49,13 @@ static int memindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
   return 0;
 }
 
-static struct FD_KEY_SIZE *memindex_fetchsizes(fd_index ix,int *n)
+static struct FD_KEY_SIZE *htindex_fetchsizes(fd_index ix,int *n)
 {
   if (ix->index_cache.table_n_keys) {
     struct FD_KEY_SIZE *sizes, *write; int n_keys;
     n_keys=ix->index_cache.table_n_keys;
     sizes=u8_alloc_n(n_keys,FD_KEY_SIZE); write=&(sizes[0]);
-    fd_for_hashtable(&(ix->index_cache),memindex_fetchsizes_helper,
+    fd_for_hashtable(&(ix->index_cache),htindex_fetchsizes_helper,
                      (void *)write,1);
     *n=n_keys;
     return sizes;}
@@ -63,18 +63,18 @@ static struct FD_KEY_SIZE *memindex_fetchsizes(fd_index ix,int *n)
     *n=0; return NULL;}
 }
 
-static int memindex_commit(fd_index ix)
+static int htindex_commit(fd_index ix)
 {
   struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
   if ((mix->index_source) && (mix->commitfn))
     return (mix->commitfn)(mix,mix->index_source);
   else {
-    fd_seterr(fd_EphemeralIndex,"memindex_commit",
+    fd_seterr(fd_EphemeralIndex,"htindex_commit",
 	      u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
 }
 
-static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
+static int htindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
 {
   struct FD_STREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
@@ -88,7 +88,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
   else return 0;
 }
 
-static fd_index open_memindex(u8_string file,fddb_flags flags)
+static fd_index open_htindex(u8_string file,fddb_flags flags)
 {
   struct FD_MEM_INDEX *mix=(fd_mem_index)fd_make_mem_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
@@ -104,7 +104,7 @@ static fd_index open_memindex(u8_string file,fddb_flags flags)
     return NULL;}
   if (mix->index_idstring) u8_free(mix->index_idstring);
   mix->index_source=mix->index_idstring=u8_strdup(file);
-  mix->commitfn=memindex_commitfn;
+  mix->commitfn=htindex_commitfn;
   mix->index_cache.ht_n_buckets=h->ht_n_buckets;
   mix->index_cache.table_n_keys=h->table_n_keys;
   mix->index_cache.table_load_factor=h->table_load_factor;
@@ -113,18 +113,18 @@ static fd_index open_memindex(u8_string file,fddb_flags flags)
   return (fd_index)mix;
 }
 
-static struct FD_INDEX_HANDLER memindex_handler={
-  "memindex", 1, sizeof(struct FD_MEM_INDEX), 12,
+static struct FD_INDEX_HANDLER htindex_handler={
+  "htindex", 1, sizeof(struct FD_MEM_INDEX), 12,
   NULL, /* close */
-  memindex_commit, /* commit */
+  htindex_commit, /* commit */
   NULL, /* setcache */
   NULL, /* setbuf */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */
-  memindex_fetchn, /* fetchn */
-  memindex_fetchkeys, /* fetchkeys */
-  memindex_fetchsizes, /* fetchsizes */
+  htindex_fetchn, /* fetchn */
+  htindex_fetchkeys, /* fetchkeys */
+  htindex_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* sync */
   NULL  /* indexop */
@@ -135,7 +135,7 @@ fd_index fd_make_mem_index(fddb_flags flags)
 {
   struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
   FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
-  fd_init_index((fd_index)mix,&memindex_handler,"ephemeral",flags);
+  fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",flags);
   mix->index_cache_level=1;
   U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDB_READ_ONLY));
   fd_register_index((fd_index)mix);
@@ -143,23 +143,23 @@ fd_index fd_make_mem_index(fddb_flags flags)
 }
 
 
-FD_EXPORT void fd_init_memindex_c()
+FD_EXPORT void fd_init_htindex_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_register_index_type("memindex1",
-			 &memindex_handler,open_memindex,
+  fd_register_index_type("htindex1",
+			 &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42c20000);
-  fd_register_index_type("memindex2",
-			 &memindex_handler,open_memindex,
+  fd_register_index_type("htindex2",
+			 &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42c20100);
-  fd_register_index_type("memindex3",
-			 &memindex_handler,open_memindex,
+  fd_register_index_type("htindex3",
+			 &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42820200);
-  fd_register_index_type("memindex4",
-			 &memindex_handler,open_memindex,
+  fd_register_index_type("htindex4",
+			 &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42820300);
-  fd_register_index_type("memindex5",
-			 &memindex_handler,open_memindex,
+  fd_register_index_type("htindex5",
+			 &htindex_handler,open_htindex,
                            fd_match4bytes,(void *)0x42820400);
 }

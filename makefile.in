@@ -128,7 +128,7 @@ DBDRIVERS_OBJS=\
 	src/drivers/netpool.o src/drivers/extpool.o 		\
 	src/drivers/mempool.o src/drivers/bigpool.o	\
 	src/drivers/fileindex.o src/drivers/hashindex.o 	\
-	src/drivers/memindex.o src/drivers/extindex.o 	\
+	src/drivers/htindex.o src/drivers/extindex.o 	\
 	src/drivers/logindex.o src/drivers/netindex.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=\
@@ -328,7 +328,7 @@ FRAMERD_SOURCES=\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\
 	src/drivers/bigpool.c 						\
 	src/drivers/fileindex.c src/drivers/hashindex.c			\
-	src/drivers/memindex.c src/drivers/extindex.c			\
+	src/drivers/htindex.c src/drivers/extindex.c			\
 	src/drivers/mempool.c src/drivers/extpool.c			\
 	src/drivers/netpool.c src/drivers/netindex.c 			\
 	src/drivers/logindex.c						\
