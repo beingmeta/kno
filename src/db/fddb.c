@@ -201,7 +201,8 @@ static int print_oid_name(u8_output out,fdtype name,int top)
         return -1;
       i++;}
     return u8_puts(out,")");}
-  else return 0;
+  else if (top) return 0;
+  else return fd_unparse(out,name);
 }
 
 static int better_unparse_oid(u8_output out,fdtype x)
