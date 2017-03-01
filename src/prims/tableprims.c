@@ -947,7 +947,7 @@ static fdtype choice2hashset(fdtype arg)
 
 /* Initialization code */
 
-FD_EXPORT void fd_init_tablefns_c()
+FD_EXPORT void fd_init_tableprims_c()
 {
   u8_register_source_file(_FILEINFO);
 

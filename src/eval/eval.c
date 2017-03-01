@@ -2024,7 +2024,7 @@ FD_EXPORT void fd_init_binders_c(void);
 FD_EXPORT void fd_init_sprocs_c(void);
 FD_EXPORT void fd_init_macros_c(void);
 FD_EXPORT void fd_init_coreprims_c(void);
-FD_EXPORT void fd_init_tablefns_c(void);
+FD_EXPORT void fd_init_tableprims_c(void);
 FD_EXPORT void fd_init_stringprims_c(void);
 FD_EXPORT void fd_init_dbprims_c(void);
 FD_EXPORT void fd_init_seqprims_c(void);
@@ -2033,14 +2033,14 @@ FD_EXPORT void fd_init_load_c(void);
 FD_EXPORT void fd_init_portprims_c(void);
 FD_EXPORT void fd_init_streamprims_c(void);
 FD_EXPORT void fd_init_timeprims_c(void);
-FD_EXPORT void fd_init_numeric_c(void);
+FD_EXPORT void fd_init_arith_c(void);
 FD_EXPORT void fd_init_side_effects_c(void);
 FD_EXPORT void fd_init_reflection_c(void);
 FD_EXPORT void fd_init_history_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
 FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
-FD_EXPORT void fd_init_extdb_c(void);
+FD_EXPORT void fd_init_extdbprims_c(void);
 
 static void init_core_builtins()
 {
@@ -2053,26 +2053,27 @@ static void init_core_builtins()
   fd_init_binders_c();
   fd_init_sprocs_c();
   fd_init_macros_c();
+  fd_init_arith_c();
+  fd_init_compounds_c();
+  fd_init_quasiquote_c();
+  fd_init_side_effects_c();
+  fd_init_reflection_c();
+  fd_init_reqstate_c();
+  fd_init_modules_c();
+  fd_init_load_c();
+
+  fd_init_regex_c();
+  fd_init_history_c();
 
   fd_init_coreprims_c();
-  fd_init_tablefns_c();
-  fd_init_compounds_c();
+  fd_init_tableprims_c();
   fd_init_stringprims_c();
   fd_init_dbprims_c();
   fd_init_seqprims_c();
-  fd_init_quasiquote_c();
-  fd_init_modules_c();
-  fd_init_load_c();
   fd_init_portprims_c();
   fd_init_streamprims_c();
   fd_init_timeprims_c();
-  fd_init_numeric_c();
-  fd_init_side_effects_c();
-  fd_init_reflection_c();
-  fd_init_history_c();
-  fd_init_extdb_c();
-  fd_init_reqstate_c();
-  fd_init_regex_c();
+  fd_init_extdbprims_c();
 
   u8_threadcheck();
 

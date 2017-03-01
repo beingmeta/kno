@@ -295,7 +295,7 @@ static fdtype extdb_proc_params(fdtype extdb)
 
 int extdb_initialized=0;
 
-FD_EXPORT void fd_init_extdbi_c()
+FD_EXPORT void fd_init_extdbprims_c()
 {
   fdtype extdb_module;
   if (extdb_initialized) return;

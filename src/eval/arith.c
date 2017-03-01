@@ -793,7 +793,7 @@ static fdtype itoa_prim(fdtype arg,fdtype base_arg)
 #define arithdef2(sname,lname,cname) \
   fd_idefn(fd_scheme_module,fd_make_cprim2(sname,lname,2))
 
-FD_EXPORT void fd_init_numeric_c()
+FD_EXPORT void fd_init_arith_c()
 {
   u8_register_source_file(_FILEINFO);
 
