@@ -295,7 +295,7 @@ dbtest:
 		 ${TESTCONFIG} CACHELEVEL=2
 	@echo "*** Finished database layer tests"
 
-frames:
+dbtests frames:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
 	make TESTCONFIG="POOLTYPE=oidpool" dbtest
 	make TESTCONFIG="POOLTYPE=bigpool" dbtest
