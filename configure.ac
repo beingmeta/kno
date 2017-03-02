@@ -1165,6 +1165,11 @@ if (test "$have_libz" = "yes"); then
   INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
 fi
 
+AC_CHECK_HEADER(snappy-c.h,have_snappyc_h="yes",have_snappyc_h="no")
+if test "${have_snappyc_h}" = "yes"; then
+   AC_CHECK_LIB(snappy,snappy_compress)
+   AC_DEFINE(HAVE_SNAPPYC_H,1)
+fi;
 
 AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools=$with_ziptools_default)
 

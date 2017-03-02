@@ -457,6 +457,12 @@
 /* Whether we have the wait4 function */
 #undef HAVE_WAIT4
 
+/* Whether we have the libsnappy c header file */
+#undef HAVE_SNAPPYC_H
+
+/* Whether we have the libsnappy c header file */
+#undef HAVE_LIBSNAPPY
+
 /* Whether we have the libzip library */
 #undef HAVE_LIBZIP
 
