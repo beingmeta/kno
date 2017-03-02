@@ -672,6 +672,7 @@ static void recycle_slotmap(struct FD_RAW_CONS *c)
     if (sm->sm_free_keyvals) u8_free(sm->sm_keyvals);
     fd_unlock_table(sm);
     fd_destroy_rwlock(&(sm->table_rwlock));
+    u8_free(sm);
   }
 }
 static int unparse_slotmap(u8_output out,fdtype x)
@@ -1078,7 +1079,7 @@ static void recycle_schemap(struct FD_RAW_CONS *c)
     if (sm->schema_values) u8_free(sm->schema_values);
     fd_unlock_table(sm);
     fd_destroy_rwlock(&(sm->table_rwlock));
-    if (!(FD_STATIC_CONSP(sm))) u8_free(sm);
+    u8_free(sm);
   }
 }
 static int unparse_schemap(u8_output out,fdtype x)
