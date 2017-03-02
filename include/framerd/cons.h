@@ -616,6 +616,17 @@ typedef struct FD_TIMESTAMP *fd_timestamp;
 FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm);
 FD_EXPORT fdtype fd_time2timestamp(time_t moment);
 
+/* Consblocks */
+
+typedef struct FD_CONSBLOCK {
+  FD_CONS_HEADER;
+  unsigned int *consdata;
+  fdtype cons_root;
+  fdtype cons_directory;
+  ssize_t consdata_size;
+  ssize_t consdata_lenth;} FD_CONSBLOCK;
+typedef struct FD_CONSBLOCK *fd_consblock;
+
 /* Compounds */
 
 typedef struct FD_COMPOUND_TYPEINFO *fd_compound_typeinfo;
