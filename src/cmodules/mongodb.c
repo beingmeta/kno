@@ -485,6 +485,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   result->domain_db=server;
   result->domain_opts=opts;
   result->domain_flags=flags;
+  result->collection_name=collection_name;
   return (fdtype) result;
 }
 static void recycle_collection(struct FD_RAW_CONS *c)
