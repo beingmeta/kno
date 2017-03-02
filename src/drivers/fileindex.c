@@ -692,6 +692,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
   struct RESERVATIONS reserved;
   struct FD_STREAM *stream=&(fx->index_stream);
   unsigned int pos_offset=fx->index_n_slots*4, chain_length=0;
+  unsigned long long total_probes=0;
   int i=0, max=n, new_keys=0;
   if (offsets == NULL) {
     reserved.slotnos=u8_malloc(SLOTSIZE*64);
@@ -792,7 +793,8 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
     if (max==i)
       if (chain_length>256) {
         if (offsets == NULL) u8_free(reserved.slotnos);
-        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",u8_strdup(fx->index_idstring),FD_VOID);}
+        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",
+                         u8_strdup(fx->index_idstring),FD_VOID);}
       else chain_length++;
     else chain_length=0;
     max=i;}
@@ -974,6 +976,7 @@ static int file_index_commit(struct FD_INDEX *ix)
   struct FD_STREAM *stream=&(fx->index_stream);
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->index_n_slots*4, newcount;
+  double started=u8_elapsed_time();
   fd_write_lock_table(&(ix->index_adds));
   fd_write_lock_table(&(ix->index_edits));
   fd_lock_index(fx);
@@ -1097,6 +1100,11 @@ static int file_index_commit(struct FD_INDEX *ix)
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
+
+    u8_log(fddb_loglevel,"FileIndexCommit",
+           "Saved mappings for %d keys to %s in %f secs",
+           n_changes,ix->index_idstring,u8_elapsed_time()-started);
+
     fd_reset_hashtable(&(ix->index_adds),67,0);
     fd_unlock_table(&(ix->index_adds));
     fd_reset_hashtable(&(ix->index_edits),67,0);

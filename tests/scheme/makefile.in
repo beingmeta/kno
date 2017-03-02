@@ -160,8 +160,8 @@ fdcgiexec: ../../src/exe/webcommon.h
 # Test targets
 
 alltests: schemetests exectests tabletests \
-	  indextests hashindextests dbtests optmods \
-	  chaintests batchtests batchchaintests
+	  pooltests indextests dbtests \
+	  optmods chaintests batchtests batchchaintests
 	@echo "*** Done with alltests"
 
 cmdtests: exectests chaintests batchtests batchchaintests
@@ -211,82 +211,54 @@ pooltests:
 	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=oidpool
 	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=bigpool
 
-indextests:
+runindextests:
 	@echo "*** Running scheme tests to exercise various kinds of file indexes"
 	@rm -f edit.dtype
 	# The cache is off by default
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} $(TESTSIZE) ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} ${TESTCONFIG}
 	# Test reading with the cache on, consed indices, and both
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index CACHELEVEL=2  ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index CONSINDEX=yes  ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index \
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} CACHELEVEL=2  ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} CONSINDEX=yes  ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} \
 		${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
 	# Do test edits (no cache)
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype ${TESTCONFIG}
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype ${TESTCONFIG}
 	# New test, building with cache enabled
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) CACHELEVEL=2 ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index CACHELEVEL=2 ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} $(TESTSIZE) CACHELEVEL=2 ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} CACHELEVEL=2 ${TESTCONFIG}
 	# Try testing without the cache
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} ${TESTCONFIG}
 	# Do test edits (with cache)
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype ${TESTCONFIG}
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype ${TESTCONFIG}
 	# Build with both cache and consindices
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) \
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} $(TESTSIZE) \
 		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index \
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} \
 		${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} ${TESTCONFIG}
 	# Do test edits (with cache and consindex)
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype
 		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise file indices "
 
+fileindextests:
+	@echo "*** Testing file indices "	
+	@make TEST_SUFFIX=index runindextests
+	@echo "*** Done testing file indices "	
+
 hashindextests:
-	@echo "*** Running scheme tests to exercise hash indices "
-	# The cache is off by default
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex $(TESTSIZE) ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG}
-	# Test reading with the cache on, consed indices, and both
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
-		${TESTCONFIG} CACHELEVEL=2  
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
-		${TESTCONFIG} CONSINDEX=yes 
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
-		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
-	# Do test edits (no cache)
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
-	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
-	# New test, building with cache enabled
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex $(TESTSIZE) \
-		${TESTCONFIG} CACHELEVEL=2
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
-		${TESTCONFIG} CACHELEVEL=2
-	# Try testing without the cache
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG}
-	# Do test edits (with cache)
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
-	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
-	# Build with both cache and consindices
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex $(TESTSIZE) \
-		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG} \
-		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG}
-	# Do test edits (with cache and consindex)
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype \
-		${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
-	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
-	@echo "*** Completed scheme tests to exercise hash indices "
+	@echo "*** Testing hash indices "	
+	@make TEST_SUFFIX=hashindex runindextests
+	@echo "*** Done testing hash indices "	
+
+indextests: fileindextests hashindextests
 
 dbtest:
 	@echo "*** Running database layer tests"
@@ -336,7 +308,6 @@ memtests: @memtest_prefix@memtests
 memschemetests: @memtest_prefix@memschemetests
 memtabletests: @memtest_prefix@memtabletests
 memindextests: @memtest_prefix@memindextests
-memhashindextests: @memtest_prefix@memhashindextests
 memdbtests: @memtest_prefix@memdbtests
 memdbhashtests: @memtest_prefix@memdbhashtests
 memcryptotests: @memtest_prefix@memcryptotests
@@ -356,14 +327,14 @@ vg_memtabletests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) tabletests
 	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
 
+vg_mempooltests:
+	@echo "*** Running tests on pools with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) pooltests
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
 vg_memindextests:
 	@echo "*** Running tests on table/index layers with valgrind memory debugging"
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) indextests
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
-
-vg_memhashindextests:
-	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) hashindextests
 	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
 
 vg_memdbtests:
@@ -389,14 +360,14 @@ builtin_memtabletests:
 	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 tabletests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
+builtin_mempooltests:
+	@echo "*** Running tests on pools with gperftools memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 pooltests
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
 builtin_memindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
 	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indextests
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_memhashindextests:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 hashindextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
 builtin_memdbtests:
@@ -410,6 +381,7 @@ builtin_memcryptotests:
 heaptests: @heaptest_prefix@heaptests
 heapschemetests: @heaptest_prefix@heapschemetests
 heaptabletests: @heaptest_prefix@heaptabletests
+poolheaptests: @heaptest_prefix@heappooltests
 heapindextests: @heaptest_prefix@heapindextests
 heapdbtests: @heaptest_prefix@heapdbtests
 heapoptmods: @heaptest_prefix@heapoptmods
@@ -427,6 +399,11 @@ vg_heapschemetests:
 vg_heaptabletests:
 	@echo "*** Running tests on table/index layers with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tabletests
+	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
+
+vg_heappooltests:
+	@echo "*** Running tests on pools with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indextests
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
 vg_heapindextests:
@@ -460,6 +437,11 @@ builtin_heapschemetests:
 builtin_heaptabletests:
 	@echo "*** Running tests on table/index layers with gperftools memory debugging"
 	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) tabletests
+	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
+
+builtin_heappooltests:
+	@echo "*** Running tests on pools with gperftools memory debugging"
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) pooltests
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
 builtin_heapindextests:

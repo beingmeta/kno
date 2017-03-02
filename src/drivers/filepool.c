@@ -350,8 +350,9 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   /* Make sure that pos_limit fits into an int, in case fd_off_t is an int. */
   fd_off_t endpos, pos_limit=0xFFFFFFFF;
-  int i=0, retcode=n, load;
   unsigned int *tmp_offsets=NULL, old_size=0;
+  int i=0, retcode=n, load;
+  double started=u8_elapsed_time();
   fd_lock_pool(fp); load=fp->pool_load;
   /* Get the endpos after the file pool structure is locked. */
   fd_lock_stream(stream);
@@ -464,6 +465,9 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
   fd_unlock_pool(fp);
+  u8_log(fddb_loglevel,"FilePoolStore",
+         "Stored %d oid values in oidpool %s in %f seconds",
+         n,p->pool_idstring,u8_elapsed_time()-started);
   return retcode;
 }
 
@@ -847,7 +851,7 @@ FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label)
       if (bytes>0) {
         fd_setpos(stream,20);
         if (fd_write_4bytes((fd_writebuf(stream)),(unsigned int)endpos)>=0) {
-          retval=1; 
+          retval=1;
           fd_free_stream(stream);}}}}
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;

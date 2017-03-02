@@ -2117,6 +2117,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct INDEX_BUCKET_REF *bucket_locs;
   fd_off_t recovery_start, recovery_pos;
   ssize_t endpos, maxpos=get_maxpos(hx);
+  double started=u8_elapsed_time();
   fd_lock_index(hx);
   fd_lock_stream(stream);
   fd_write_lock_table(&(hx->index_adds));
@@ -2351,6 +2352,11 @@ static int hash_index_commit(struct FD_INDEX *ix)
   /* And unlock all the locks. */
   fd_unlock_stream(stream);
   fd_unlock_index(hx);
+
+  u8_log(fddb_loglevel,"HashIndexCommit",
+         "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
+         n_keys,new_keys,total_keys,
+         ix->index_idstring,u8_elapsed_time()-started);
 
 #if FD_DEBUG_HASHINDEXES
   u8_message("Returning from hash_index_commit()");
