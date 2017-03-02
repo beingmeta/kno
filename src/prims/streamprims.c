@@ -301,7 +301,7 @@ static fdtype file2dtypes(fdtype filename)
       while (!(FD_EODP(object))) {
         FD_ADD_TO_CHOICE(results,object);
         object=fd_read_dtype(inbuf);}
-      fd_close_stream(in,FD_STREAM_CLOSE_FULL);
+      fd_free_stream(in);
       return results;}}
   else return fd_type_error(_("string"),"file2dtypes",filename);
 }
