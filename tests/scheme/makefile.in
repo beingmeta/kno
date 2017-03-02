@@ -205,8 +205,14 @@ tabletests:
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise the table/index layer"
 
+pooltests:
+	@echo "*** Running scheme tests to exercise various kinds of file pools"
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=filepool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=oidpool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=bigpool
+
 indextests:
-	@echo "*** Running scheme tests to exercise file indices "
+	@echo "*** Running scheme tests to exercise various kinds of file indexes"
 	@rm -f edit.dtype
 	# The cache is off by default
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) ${TESTCONFIG}
