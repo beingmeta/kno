@@ -159,15 +159,22 @@ fdcgiexec: ../../src/exe/webcommon.h
 
 # Test targets
 
-alltests: schemetests exectests tabletests \
-	  pooltests indextests dbtests \
-	  optmods chaintests batchtests batchchaintests
+alltests: \
+	scheme tables pools indexes frames \
+	execscripts chainscripts batchscripts  \
+	chained_batchscripts optimize_modules
 	@echo "*** Done with alltests"
 
-cmdtests: exectests chaintests batchtests batchchaintests
+alltests_but_optmod: \
+	scheme tables pools indexes frames \
+	execscripts chainscripts batchscripts  \
+	chained_batchscripts
 	@echo "*** Done with alltests"
 
-schemetests:
+cmdtests: execscripts chainscripts batchscripts chained_batchscripts
+	@echo "*** Done with alltests"
+
+scheme:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ r4rs.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes r4rs.scm ${TESTCONFIG}
@@ -194,24 +201,36 @@ optimizer-tests:
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes choicetest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes seqtest.scm ${TESTCONFIG}
 
-loadmods: optmods
+loadmods: optimize_modules
 	$(RUNTEST) ./fdexec@suffix@ loadmods.scm ${TESTCONFIG}
-optmods:
+optimize_modules:
 	$(RUNTEST) ./fdexec@suffix@ optmods.scm ${TESTCONFIG}
 
-tabletests:
+tables:
 	@echo "*** Running scheme tests to exercise the table/index layer"
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table $(TESTSIZE) ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise the table/index layer"
 
-pooltests:
-	@echo "*** Running scheme tests to exercise various kinds of file pools"
-	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=filepool
-	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=oidpool
-	$(RUNTEST) ./fdexec@suffix@ pooltest.scm POOLTYPE=bigpool
+pools:
+	@echo "*** Running file pool tests ****"
+	@rm -f temp.pool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} POOLTYPE=filepool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=1
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=2
+	@echo "*** Running oidpool tests ****"
+	@rm -f temp.pool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} POOLTYPE=iodpool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=1
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=2
+	@echo "*** Running bigpool tests ****"
+	@rm -f temp.pool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} POOLTYPE=iodpool
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=1
+	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=2
 
-runindextests:
+
+runindexes:
 	@echo "*** Running scheme tests to exercise various kinds of file indexes"
 	@rm -f edit.dtype
 	# The cache is off by default
@@ -248,17 +267,17 @@ runindextests:
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.${TEST_SUFFIX} edit.dtype ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise file indices "
 
-fileindextests:
+fileindexes:
 	@echo "*** Testing file indices "	
-	@make TEST_SUFFIX=index runindextests
+	@make TEST_SUFFIX=index runindexes
 	@echo "*** Done testing file indices "	
 
-hashindextests:
+hashindexes:
 	@echo "*** Testing hash indices "	
-	@make TEST_SUFFIX=hashindex runindextests
+	@make TEST_SUFFIX=hashindex runindexes
 	@echo "*** Done testing hash indices "	
 
-indextests: fileindextests hashindextests
+indexes: fileindexes hashindexes
 
 dbtest:
 	@echo "*** Running database layer tests"
@@ -276,7 +295,7 @@ dbtest:
 		 ${TESTCONFIG} CACHELEVEL=2
 	@echo "*** Finished database layer tests"
 
-dbtests:
+frames:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
 	make TESTCONFIG="POOLTYPE=oidpool" dbtest
 	make TESTCONFIG="POOLTYPE=bigpool" dbtest
@@ -288,7 +307,7 @@ dbtests:
 	make dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
-cryptotests:
+crypto:
 	@echo "*** Running crypto tests ***"
 	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm $(TESTCONFIG)
 	@echo "*** Completed crypto tests ***"
@@ -297,182 +316,26 @@ xmltests:
 	@echo "*** Running xml tests ***"
 	$(RUNTEST) ./fdexec@suffix@ xmltests.scm $(TESTCONFIG)
 	@echo "*** Completed xml tests ***"
-exectests:
+execscripts:
 	@echo "*** Running exec tests ***"
 	./fdexec ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@echo "*** Running exec test as script ***"
 	./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@echo "*** Done with exec tests ***"
 
-memtests: @memtest_prefix@memtests
-memschemetests: @memtest_prefix@memschemetests
-memtabletests: @memtest_prefix@memtabletests
-memindextests: @memtest_prefix@memindextests
-memdbtests: @memtest_prefix@memdbtests
-memdbhashtests: @memtest_prefix@memdbhashtests
-memcryptotests: @memtest_prefix@memcryptotests
-
-vg_memtests:
-	@echo "*** Running alltests with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) alltests
-	@echo "*** Finished running alltests with valgrind memory debugging"
-
-vg_memschemetests:
-	@echo "*** Running tests on data/eval layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) schemetests
-	@echo "*** Finished running tests on data/eval layers with valgrind memory debugging"
-
-vg_memtabletests:
-	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) tabletests
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
-
-vg_mempooltests:
-	@echo "*** Running tests on pools with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) pooltests
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
-
-vg_memindextests:
-	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) indextests
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
-
-vg_memdbtests:
-	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) dbtests
-	@echo "*** Finished running tests on database layers with valgrind memory debugging"
-
-vg_memcryptotests:
-	make "TESTPROG=$(VALGRIND)" cryptotests
-
-builtin_memtests:
-	@echo "*** Running alltests with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 alltests
-	@echo "*** Finished running alltests with memory debugging"
-
-builtin_memschemetests:
-	@echo "*** Running tests on data/eval layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 schemetests
-	@echo "*** Finished running tests on data/eval layers with memory debugging"
-
-builtin_memtabletests:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 tabletests
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_mempooltests:
-	@echo "*** Running tests on pools with gperftools memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 pooltests
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_memindextests:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indextests
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_memdbtests:
-	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 dbtests
-	@echo "*** Finished running tests on database layers with memory debugging"
-
-builtin_memcryptotests:
-	make @memtest_env@ cryptotests
-
-heaptests: @heaptest_prefix@heaptests
-heapschemetests: @heaptest_prefix@heapschemetests
-heaptabletests: @heaptest_prefix@heaptabletests
-poolheaptests: @heaptest_prefix@heappooltests
-heapindextests: @heaptest_prefix@heapindextests
-heapdbtests: @heaptest_prefix@heapdbtests
-heapoptmods: @heaptest_prefix@heapoptmods
-
-vg_heaptests:
-	@echo "*** Running alltests with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
-	@echo "*** Finished running alltests with valgrind heap debugging"
-
-vg_heapschemetests:
-	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) schemetests
-	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
-
-vg_heaptabletests:
-	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tabletests
-	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
-
-vg_heappooltests:
-	@echo "*** Running tests on pools with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indextests
-	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
-
-vg_heapindextests:
-	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indextests
-	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
-
-vg_heapdbtests:
-	@echo "*** Running tests on database layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) dbtests
-	@echo "*** Finished running tests on database layers with valgrind heap debugging"
-
-vg_heapcryptotests:
-	make TESTPROG="$(VALGRINDHEAP)" cryptotests
-
-vg_heapoptmods:
-	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) optmods
-	@echo "*** Finished running tests on optimization with valgrind heap debugging"
-
-builtin_heaptests:
-	@echo "*** Running alltests with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) alltests
-	@echo "*** Finished running alltests with gperftools memory debugging"
-
-builtin_heapschemetests:
-	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) schemetests
-	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
-
-builtin_heaptabletests:
-	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) tabletests
-	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
-
-builtin_heappooltests:
-	@echo "*** Running tests on pools with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) pooltests
-	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
-
-builtin_heapindextests:
-	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) indextests
-	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
-
-builtin_heapdbtests:
-	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) dbtests
-	@echo "*** Finished running tests on database layers with gperftools memory debugging"
-
-builtin_heapcryptotests:
-	make @heaptest_env@ cryptotests
-
-builtin_heapoptmods:
-	make @heaptest_env@ optmods
-
 randomtests:
 	@echo "*** Running alltests with a really random seed"
 	make TESTCONFIG="RANDOMSEED=TIME ${TESTCONFIG}" alltests
 	@echo "*** Finished alltests with a really random seed"
 
-chaintests:
+chainscripts:
 	@echo "*** Testing scripts which call CHAIN"
 	./fdexec chaintest.scm
 	./fdexec chaintest.scm 0 30
 	./fdexec chaintest.scm 10 50
 	@echo "*** Done testing scripts which call CHAIN"
 
-batchtests:
+batchscripts:
 	@echo "*** Testing fdbatch execution success and cleanliness"
 	@rm -f _countup.log _countup.err _countup.done
 	@rm -f  _countup.finished _countup.died _countup.pid
@@ -551,8 +414,282 @@ batchtests:
 	 fi;
 	@echo "*** "Done with fdbatch kill test""
 
-batchchaintests:
+chained_batchscripts:
 	@echo "*** Testing batch scripts which call CHAIN"
 	@rm -f _chaintest.*
 	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
+
+# Memory tests
+
+memtest_all: memtest_scheme memtest_tables memtest_pools \
+	memtest_indexes memtest_frames memtest_crypto \
+	memtest_load_modules memtest_optimize_modules
+
+memtest_scheme: @memtest_prefix@_memtest_scheme
+memtest_tables: @memtest_prefix@_memtest_tables
+memtest_indexes: @memtest_prefix@_memtest_indexes
+memtest_frames: @memtest_prefix@_memtest_frames
+memtest_crypto: @memtest_prefix@memcrypto
+
+
+
+vg_memtest_all:
+	@echo "*** Running alltests with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) alltests
+	@echo "*** Finished running alltests with valgrind memory debugging"
+
+vg_memtest_scheme:
+	@echo "*** Running tests on data/eval layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) scheme
+	@echo "*** Finished running tests on data/eval layers with valgrind memory debugging"
+
+vg_memtest_tables:
+	@echo "*** Running tests on table/index layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) tables
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
+vg_memtest_pools:
+	@echo "*** Running tests on pools with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) pools
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
+vg_memtest_indexes:
+	@echo "*** Running tests on table/index layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) indexes
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
+vg_memtest_frames:
+	@echo "*** Running tests on database layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) frames
+	@echo "*** Finished running tests on database layers with valgrind memory debugging"
+
+vg_memtest_crypto:
+	make "TESTPROG=$(VALGRIND)" crypto
+
+vg_memtest_load_modules:
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) load_modules
+
+vg_memtest_optimize_modules:
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) optimize_modules
+
+# Gperftools memtests
+
+gperf_memtest_all:
+	@echo "*** Running alltests with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 alltests
+	@echo "*** Finished running alltests with memory debugging"
+
+gperf_memtest_scheme:
+	@echo "*** Running tests on data/eval layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 scheme
+	@echo "*** Finished running tests on data/eval layers with memory debugging"
+
+gperf_memtest_tables:
+	@echo "*** Running tests on table/index layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 tables
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
+gperf_memtest_pools:
+	@echo "*** Running tests on pools with gperftools memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 pools
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
+gperf_memtest_indexes:
+	@echo "*** Running tests on table/index layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indexes
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
+gperf_memtest_frames:
+	@echo "*** Running tests on database layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 frames
+	@echo "*** Finished running tests on database layers with memory debugging"
+
+gperf_memtest_crypto:
+	make @memtest_env@ crypto
+
+gperf_memtest_load_modules:
+	make @memtest_env@ load_modules
+
+gperf_memtest_optimize_modules:
+	make @memtest_env@ optimize_modules
+
+# Embedded Debugging Tools memtests
+
+builtin_memtest_all:
+	@echo "*** Running alltests with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 alltests
+	@echo "*** Finished running alltests with memory debugging"
+
+builtin_memtest_scheme:
+	@echo "*** Running tests on data/eval layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 scheme
+	@echo "*** Finished running tests on data/eval layers with memory debugging"
+
+builtin_memtest_tables:
+	@echo "*** Running tests on table/index layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 tables
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
+builtin_memtest_pools:
+	@echo "*** Running tests on pools with embedded debugging tools memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 pools
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
+builtin_memtest_indexes:
+	@echo "*** Running tests on table/index layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indexes
+	@echo "*** Finished running tests on table/index layers with memory debugging"
+
+builtin_memtest_frames:
+	@echo "*** Running tests on database layers with memory debugging"
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 frames
+	@echo "*** Finished running tests on database layers with memory debugging"
+
+builtin_memtest_crypto:
+	make @memtest_env@ crypto
+
+builtin_memtest_load_modules:
+	make @memtest_env@ load_modules
+
+builtin_memtest_optimize_modules:
+	make @memtest_env@ optimize_modules
+
+# Heapchecks
+
+heapcheck_all: heapcheck_scheme heapcheck_tables \
+	heapcheck_pools heapcheck_indexes heapcheck_frames \
+	heapcheck_crypto heapcheck_load_modules heapcheck_optimize_modules
+
+heapcheck_scheme: @heapcheck_prefix@heapcheck_scheme
+heapcheck_tables: @heapcheck_prefix@heacheck_ptables
+heapcheck_pools: @heapcheck_prefix@heapcheck_pools
+heapcheck_indexes: @heapcheck_prefix@heapcheck_indexes
+heapcheck_frames: @heapcheck_prefix@heapcheck_frames
+heapcheck_crypto: @heapcheck_prefix@heapcheck_crypto
+heapcheck_load_modules: @heapcheck_prefix@heapcheck_load_modules
+heapcheck_optimize_modules: @heapcheck_prefix@heapcheck_optimize_modules
+
+# Valgrind heapcheck rules
+
+vg_heapcheck_all:
+	@echo "*** Running alltests with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
+	@echo "*** Finished running alltests with valgrind heap debugging"
+
+vg_heapcheck_scheme:
+	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) scheme
+	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
+
+vg_heapcheck_tables:
+	@echo "*** Running tests on table/index layers with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tables
+	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
+
+vg_heapcheck_pools:
+	@echo "*** Running tests on pools with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
+	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
+
+vg_heapcheck_indexes:
+	@echo "*** Running tests on table/index layers with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
+	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
+
+vg_heapcheck_frames:
+	@echo "*** Running tests on database layers with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) frames
+	@echo "*** Finished running tests on database layers with valgrind heap debugging"
+
+vg_heapcheck_crypto:
+	make TESTPROG="$(VALGRINDHEAP)" crypto
+
+vg_heapcheck_load_modules:
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) load_modules
+
+vg_heapcheck_optimize_modules:
+	@echo "Skipping leaktest for optimize modules"
+
+# Gperftools heapcheck rules
+
+gperf_heapcheck_all:
+	@echo "*** Running alltests with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
+	@echo "*** Finished running alltests with gperftools memory debugging"
+
+gperf_heapcheck_scheme:
+	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
+	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
+
+gperf_heapcheck_tables:
+	@echo "*** Running tests on table/index layers with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) tables
+	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
+
+gperf_heapcheck_pools:
+	@echo "*** Running tests on pools with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) pools
+	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
+
+gperf_heapcheck_indexes:
+	@echo "*** Running tests on table/index layers with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
+	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
+
+gperf_heapcheck_frames:
+	@echo "*** Running tests on database layers with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) frames
+	@echo "*** Finished running tests on database layers with gperftools memory debugging"
+
+gperf_heapcheck_crypto:
+	make @heapcheck_env@ crypto
+
+gperf_heapcheck_load_modules:
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
+
+gperf_heapcheck_optimize_modules:
+	echo "Skip leak-checking for optimize modules"
+
+# Embedded Debugging Tools heapcheck rules
+
+builtin_heapcheck_all:
+	@echo "*** Running alltests with gperftools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
+	@echo "*** Finished running alltests with gperftools memory debugging"
+
+builtin_heapcheck_scheme:
+	@echo "*** Running tests on data/eval layers with embedded debugging tools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
+	@echo "*** Finished running tests on data/eval layers with embedded debugging tools memory debugging"
+
+builtin_heapcheck_tables:
+	@echo "*** Running tests on table/index layers with embedded debugging tools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) tables
+	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
+
+builtin_heapcheck_pools:
+	@echo "*** Running tests on pools with embedded debugging tools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) pools
+	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
+
+builtin_heapcheck_indexes:
+	@echo "*** Running tests on table/index layers with embedded debugging tools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
+	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
+
+builtin_heapcheck_frames:
+	@echo "*** Running tests on database layers with embedded debugging tools memory debugging"
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) frames
+	@echo "*** Finished running tests on database layers with embedded debugging tools memory debugging"
+
+builtin_heapcheck_crypto:
+	make @heapcheck_env@ crypto
+
+builtin_heapcheck_load_modules:
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
+
+builtin_heapcheck_optimize_modules:
+	echo "Skip leak-checking for optimize modules"
+

@@ -6,28 +6,22 @@
 
 (config! 'CHECKDTSIZE #t)
 
-(define poolfile (get-component "test.pool"))
+(define poolfile "test.pool")
 (define pooltype 'bigpool)
 (varconfig! poolfile poolfile)
 (varconfig! pooltype pooltype)
 
 (define testpool #f)
 
-(define (open-pool (fresh #t))
+(define (open-pool (poolfile poolfile))
   (cond (testpool testpool)
-	((and fresh (file-exists? poolfile))
-	 (remove-file poolfile)
-	 (open-pool poolfile))
-	((file-exists? poolfile)
-	 (use-pool poolfile))
+	((file-exists? poolfile) (use-pool poolfile))
 	(else
-	 (set! testpool
-	       (make-pool poolfile
-			  `#[type ,pooltype
-			     base @b001/0 
-			     capacity 100000
-			     offtype ,(config 'offtype 'B40)]))
-	 testpool)))
+	 (make-pool poolfile
+		    `#[type ,pooltype
+		       base @b001/0 
+		       capacity 100000
+		       offtype ,(config 'offtype 'B40)]))))
 
 (define (make-random-frame pool (interrupt #f))
   (let* ((seed (random 1000))
@@ -38,21 +32,19 @@
 	 (n-slots (random 43))
 	 (rslots {}))
     (store! frame (intern (glom "SEED" seed)) frame)
-    (store! frame 'n-slots (+ 4 n-slots))
-    (dotimes (i (random 50))
+    (dotimes (i n-slots)
       (let* ((r (random 200))
 	     (rslot (intern (stringout "SLOT" (* r seed)))))
 	(store! frame rslot (* (random 4000000) seed))
 	(add! frame 'rslots rslot)))
+    (store! frame 'n-slots (1+ (choice-size (getkeys frame))))
     frame))
 
-(define (test-random-frame frame (interrupt #f))
+(define (test-frame frame (interrupt #f))
   (debug%watch "Testing" frame)
   (and (exists number? (get frame 'seed))
        (exists number? (get frame 'n-slots))
        (= (get frame 'n-slots) (choice-size (getkeys frame)))
-       (= (choice-size (get frame 'rslots)) 
-	  (+ (get frame 'n-slots) 4))
        (let ((seed (get frame 'seed))
 	     (failed #f))
 	 (do-choices (rslot (get frame 'rslots))
@@ -64,7 +56,29 @@
 	       (set! failed #t))))
 	 (not failed))))
 
-(define (main)
-  (let ((pool (open-pool #t)))
-    (dotimes (i 1000) (make-random-frame pool))
-    (commit pool)))
+(define (main (testcount 250) (poolfile poolfile) (reset (config 'RESET #f)))
+  (when (and reset (file-exists? poolfile))
+    (remove-file poolfile))
+  (let ((init (not (file-exists? poolfile)))
+	(pool (open-pool poolfile)))
+    (set! testpool pool)
+    (if init
+	(logwarn |FreshPool| pool)
+	(logwarn |ExistingPool| pool))
+    (when init
+      (dotimes (i (* testcount 4)) (make-random-frame pool)))
+    (dotimes (i (quotient testcount 4)) 
+      (applytest #t test-frame (random-oid pool)))
+    (logwarn |PoolTests1| "Passed some tests on " pool)
+    (commit pool)
+    (dotimes (i (quotient testcount 4)) 
+      (applytest #t test-frame (random-oid pool)))
+    (logwarn |PoolTests2| "Passed some more tests on " pool)
+    (swapout)
+    (dotimes (i (quotient testcount 4)) 
+      (applytest #t test-frame (random-oid pool)))
+    (logwarn |PoolTests3| "Passed still some more tests on " pool)))
+
+
+
+
