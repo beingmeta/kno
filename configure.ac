@@ -164,8 +164,8 @@ debugldflags=""
 debuglibs=""
 memtest_env=""
 heapcheck_env=""
-memtest_prefix=builtin_
-heapcheck_prefix=builtin_
+memtest_prefix=default_
+heapcheck_prefix=default_
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
@@ -382,8 +382,8 @@ elif test "$with_sanitize" = "address" ||
    test_static=""
    install_static=""
    custom_malloc="asan"
-   memtest_prefix=builtin_
-   heapcheck_prefix=builtin_
+   memtest_prefix=default_
+   heapcheck_prefix=default_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
 elif test "$with_sanitize" = "leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
@@ -392,8 +392,8 @@ elif test "$with_sanitize" = "leak"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
-   memtest_prefix=builtin_
-   heapcheck_prefix=builtin_
+   memtest_prefix=default_
+   heapcheck_prefix=default_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
 elif test "$CLANG" = "none"; then
   echo "No clang for sanitizing $with_sanitize";
@@ -407,8 +407,8 @@ elif test "$with_sanitize" = "memory"; then
    test_static=""
    install_static=""
    custom_malloc="msan-full"
-   memtest_prefix=builtin_
-   heapcheck_prefix=builtin_
+   memtest_prefix=default_
+   heapcheck_prefix=default_
    TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
 elif test "$with_sanitize" = "thread"; then
    CC=$CLANG
@@ -419,8 +419,8 @@ elif test "$with_sanitize" = "thread"; then
    test_static=""
    install_static=""
    custom_malloc="msan"
-   memtest_prefix=builtin_
-   heapcheck_prefix=builtin_
+   memtest_prefix=default_
+   heapcheck_prefix=default_
    TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
 fi
 

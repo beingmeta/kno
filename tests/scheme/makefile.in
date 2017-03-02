@@ -422,6 +422,8 @@ chained_batchscripts:
 
 # Memory tests
 
+memtest memcheck: memtest_all
+
 memtest_all: memtest_scheme memtest_tables memtest_pools \
 	memtest_indexes memtest_frames memtest_crypto \
 	memtest_load_modules memtest_optimize_modules
@@ -432,7 +434,27 @@ memtest_indexes: @memtest_prefix@_memtest_indexes
 memtest_frames: @memtest_prefix@_memtest_frames
 memtest_crypto: @memtest_prefix@memcrypto
 
-
+.PHONY: memtest memcheck \
+	memtest_all memtest_scheme memtest_tables \
+	memtest_pools memtest_indexes memtest_frames \
+	memtest_crypto memtest_load_modules \
+	memtest_optimize_modules \
+	vg_memtest_all vg_memtest_scheme vg_memtest_tables \
+	vg_memtest_pools vg_memtest_indexes vg_memtest_frames \
+	vg_memtest_crypto vg_memtest_load_modules \
+	vg_memtest_optimize_modules \
+	gperf_memtest_all gperf_memtest_scheme gperf_memtest_tables \
+	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_frames \
+	gperf_memtest_crypto gperf_memtest_load_modules \
+	gperf_memtest_optimize_modules \
+	gperf_memtest_all gperf_memtest_scheme gperf_memtest_tables \
+	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_frames \
+	default_memtest_crypto default_memtest_load_modules 
+	default_memtest_optimize_modules \
+	default_memtest_all default_memtest_scheme default_memtest_tables \
+	default_memtest_pools default_memtest_indexes default_memtest_frames \
+	default_memtest_crypto default_memtest_load_modules \
+	default_memtest_optimize_modules
 
 vg_memtest_all:
 	@echo "*** Running alltests with valgrind memory debugging"
@@ -557,6 +579,8 @@ builtin_memtest_optimize_modules:
 
 # Heapchecks
 
+heapcheck heaptest: heapcheck_all
+
 heapcheck_all: heapcheck_scheme heapcheck_tables \
 	heapcheck_pools heapcheck_indexes heapcheck_frames \
 	heapcheck_crypto heapcheck_load_modules heapcheck_optimize_modules
@@ -569,6 +593,28 @@ heapcheck_frames: @heapcheck_prefix@heapcheck_frames
 heapcheck_crypto: @heapcheck_prefix@heapcheck_crypto
 heapcheck_load_modules: @heapcheck_prefix@heapcheck_load_modules
 heapcheck_optimize_modules: @heapcheck_prefix@heapcheck_optimize_modules
+
+.PHONY: heapcheck heaptest
+.PHONY:	heapcheck_all heapcheck_scheme heapcheck_tables
+.PHONY:	heapcheck_pools heapcheck_indexes heapcheck_frames
+.PHONY:	heapcheck_crypto heapcheck_load_modules
+.PHONY:	heapcheck_optimize_modules
+.PHONY:	vg_heapcheck_all vg_heapcheck_scheme vg_heapcheck_tables
+.PHONY:	vg_heapcheck_pools vg_heapcheck_indexes vg_heapcheck_frames
+.PHONY:	vg_heapcheck_crypto vg_heapcheck_load_modules
+.PHONY:	vg_heapcheck_optimize_modules
+.PHONY:	gperf_heapcheck_all gperf_heapcheck_scheme gperf_heapcheck_tables
+.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_frames
+.PHONY:	gperf_heapcheck_crypto gperf_heapcheck_load_modules
+.PHONY:	gperf_heapcheck_optimize_modules
+.PHONY:	gperf_heapcheck_all gperf_heapcheck_scheme gperf_heapcheck_tables
+.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_frames
+.PHONY:	default_heapcheck_crypto default_heapcheck_load_modules
+.PHONY:	default_heapcheck_optimize_modules
+.PHONY:	default_heapcheck_all default_heapcheck_scheme default_heapcheck_tables
+.PHONY:	default_heapcheck_pools default_heapcheck_indexes default_heapcheck_frames
+.PHONY:	default_heapcheck_crypto default_heapcheck_load_modules
+.PHONY:	default_heapcheck_optimize_modules
 
 # Valgrind heapcheck rules
 
