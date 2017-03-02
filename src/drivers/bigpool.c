@@ -167,7 +167,7 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids;
   fd_off_t label_loc, slotids_loc; fdtype label;
-  struct FD_BIGPOOL *pool=u8_alloc(struct FD_BIGPOOL);
+  struct FD_BIGPOOL *pool=u8_zalloc(struct FD_BIGPOOL);
   int read_only=U8_BITP(flags,FDB_READ_ONLY);
   fd_stream_mode mode=
     ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
@@ -257,7 +257,7 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
     pool->n_slotids=n_slotids;
     pool->slotids_length=slotids_length;}
   else {
-    pool->slotids=u8_alloc_n(256,fdtype);
+    pool->slotids=u8_zalloc_n(256,fdtype);
     pool->n_slotids=0; pool->slotids_length=256;
     fd_init_hashtable(&(pool->slotcodes),256,NULL);}
   /* Offsets size is the malloc'd size (in unsigned ints) of the
@@ -294,32 +294,46 @@ FD_FASTOP int probe_slotcode(struct FD_BIGPOOL *bp,fdtype slotid)
     return -1;}
 }
 
+static int grow_slotcodes(struct FD_BIGPOOL *bp)
+{
+  fdtype *slotids=bp->slotids;
+  size_t cur_length=bp->slotids_length;
+  size_t new_length=cur_length*2;
+  fdtype *newslotids=u8_zalloc_n(new_length,fdtype);
+  if (newslotids==NULL) return -1;
+  else {
+    memcpy(newslotids,slotids,sizeof(fdtype)*cur_length);
+    if (bp->old_slotids) u8_free(bp->old_slotids);
+    bp->slotids_length=new_length;
+    bp->old_slotids=slotids;
+    bp->slotids=newslotids;
+    return 1;}
+}
+
 static int add_slotcode(struct FD_BIGPOOL *bp,fdtype slotid)
 {
   struct FD_HASHTABLE *slotcodes=&(bp->slotcodes);
   u8_write_lock(&(slotcodes->table_rwlock)); {
     fdtype *slotids=bp->slotids;
     fdtype v=fd_hashtable_get_nolock(slotcodes,slotid,FD_VOID);
-    int use_code=bp->n_slotids++;
     if (FD_FIXNUMP(v)) {
+      /* Another thread got here first */
       u8_rw_unlock(&(slotcodes->table_rwlock));
       return FD_FIX2INT(v);}
-    if (use_code>=bp->slotids_length) {
-      fdtype *newslotids=u8_alloc_n(bp->slotids_length*2,fdtype);
-      if (newslotids==NULL) {
-        u8_rw_unlock(&(slotcodes->table_rwlock));
-        /* This keeps lookup for trying again */
-        fd_hashtable_store(slotcodes,slotid,FD_INT(-1));
-        return -1;}
-      memcpy(newslotids,slotids,sizeof(fdtype)*bp->slotids_length);
-      if (bp->old_slotids) u8_free(bp->old_slotids);
-      bp->old_slotids=slotids;
-      bp->slotids=slotids=newslotids;}
-    slotids[use_code]=slotid;
-    bp->added_slotids++;
-    fd_hashtable_op_nolock(slotcodes,fd_table_store,slotid,FD_INT(use_code));
-    u8_rw_unlock(&(slotcodes->table_rwlock));
-    return use_code;}
+    else {
+      if (bp->n_slotids>=bp->slotids_length) {
+        if (grow_slotcodes(bp)<0) {
+          u8_rw_unlock(&(slotcodes->table_rwlock));
+          /* This keeps lookup from trying again */
+          fd_hashtable_store(slotcodes,slotid,FD_INT(-1));
+          return -1;}
+        else slotids=bp->slotids;}
+      int use_code=bp->n_slotids++;
+      slotids[use_code]=slotid;
+      bp->added_slotids++;
+      fd_hashtable_op_nolock(slotcodes,fd_table_store,slotid,FD_INT(use_code));
+      u8_rw_unlock(&(slotcodes->table_rwlock));
+      return use_code;}}
 }
 
 FD_FASTOP int get_slotcode(struct FD_BIGPOOL *bp,fdtype slotid)
@@ -394,6 +408,7 @@ static int write_bigpool_slotids(fd_bigpool bp)
       fd_write_4bytes_at(stream,n_slotids,0x50);
       fd_write_8bytes_at(stream,start_pos,0x54);
       fd_write_4bytes_at(stream,end_pos-start_pos,0x5c);
+      bp->added_slotids=0;
       return 1;}
     else return 0;}
   else return 0;
@@ -897,10 +912,10 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
 {
   unsigned int min_off=bp->pool_capacity, max_off=0;
   fd_outbuf outstream=fd_writebuf(stream);
+  double started=u8_elapsed_time();
   int i=0;
   u8_log(fddb_loglevel+1,"BigpoolFinalize",
-         "Finalizing %d oid values %s in %f seconds",
-         n,bp->pool_idstring);
+         "Finalizing %d oid values for %s",n,bp->pool_idstring);
   while (i<n) {
     unsigned int oidoff=saveinfo[i++].oidoff;
     if (oidoff>max_off) max_off=oidoff;
@@ -1026,6 +1041,9 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
     bp->pool_mmap=
       mmap(NULL,bp->pool_mmap_size,PROT_READ,MMAP_FLAGS,
            bp->pool_stream.stream_fileno,0);}
+  u8_log(fddb_loglevel+1,"BigpoolFinalize",
+         "Finalized %d oid values for %s in %f seconds",
+         n,bp->pool_idstring,u8_elapsed_time()-started);
   return 0;
 }
 
