@@ -290,8 +290,7 @@ static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 static void open_server_lock_stream(u8_string file)
 {
   if (u8_file_existsp(file)) {
-    struct FD_STREAM *stream=
-      fd_open_filestream(file,FD_STREAM_READ,65536);
+    struct FD_STREAM *stream=fd_open_file(file,FD_FILE_READ);
     fd_inbuf in=fd_readbuf(stream);
     fdtype a=fd_read_dtype(in), b=fd_read_dtype(in);
     while (!(FD_EOFP(a))) {
@@ -299,7 +298,7 @@ static void open_server_lock_stream(u8_string file)
       a=fd_read_dtype(in); b=fd_read_dtype(in);}
     fd_close_stream(stream,0);
     u8_removefile(file);}
-  locks_file=fd_open_filestream(file,FD_STREAM_CREATE,65536);
+  locks_file=fd_open_file(file,FD_FILE_CREATE);
   locks_filename=u8_strdup(file);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_flush_stream(locks_file);
@@ -318,7 +317,7 @@ static void update_server_lock_file()
   temp_file=u8_mkstring("%s.bak",locks_filename);
   if (locks_file) fd_close_stream(locks_file,0);
   u8_movefile(locks_filename,temp_file);
-  locks_file=fd_open_filestream(locks_filename,FD_STREAM_CREATE,65536);
+  locks_file=fd_open_file(locks_filename,FD_FILE_CREATE);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_flush_stream(locks_file);
   u8_removefile(temp_file);

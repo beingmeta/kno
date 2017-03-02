@@ -66,15 +66,19 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
   int consed=U8_BITP(flags,FDB_ISCONSED);
   unsigned int magicno;
   fd_stream_mode mode=
-    ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
+    ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   fd_init_index((fd_index)index,&file_index_handler,fname,consed);
-  if (fd_init_file_stream(s,fname,mode,fd_driver_bufsize) == NULL) {
+  if (fd_init_file_stream(s,fname,mode,
+                          ((read_only)?
+                           (FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
+                           (FD_DEFAULT_FILESTREAM_FLAGS)),
+                          fd_driver_bufsize) == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only=1;
-  s->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  s->stream_flags&=~FD_STREAM_IS_CONSED;
   magicno=fd_read_4bytes_at(s,0);
   index->index_n_slots=fd_read_4bytes_at(s,4);
   if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
@@ -1204,7 +1208,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   int i, n_slots;
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
-    fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,fd_driver_bufsize);
+    fd_init_file_stream(&_stream,filename,FD_FILE_CREATE,-1,fd_driver_bufsize);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
@@ -1212,7 +1216,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
     fd_free_stream(stream);
     return -1;}
 
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
   else n_slots=fd_get_hashtable_size(n_slots_arg);
 

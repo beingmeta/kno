@@ -142,7 +142,7 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
   else if (FD_STRINGP(filename)) {
     u8_string temp_name=u8_mkstring("%s.part",FD_STRDATA(filename));
     struct FD_STREAM *out=
-      fd_open_stream(temp_name,FD_STREAM_CREATE);
+      fd_open_file(temp_name,FD_FILE_CREATE);
     struct FD_OUTBUF *outstream=NULL;
     int bytes;
     if (out==NULL) return FD_ERROR_VALUE;
@@ -154,7 +154,7 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
       fd_free_stream(out);
       u8_free(temp_name);
       return FD_ERROR_VALUE;}
-    fd_close_stream(out,FD_STREAM_CLOSE_FULL);
+    fd_free_stream(out);
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
@@ -172,7 +172,7 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
   if (FD_STRINGP(filename)) {
     u8_string temp_name=u8_mkstring("%s.part",FD_STRDATA(filename));
     struct FD_STREAM *stream=
-      fd_open_stream(temp_name,FD_STREAM_CREATE);
+      fd_open_file(temp_name,FD_FILE_CREATE);
     fd_outbuf out=NULL;
     int bytes;
     if (stream==NULL) {
@@ -211,8 +211,8 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
     struct FD_STREAM *stream; int bytes;
     struct FD_OUTBUF *out;
     if (u8_file_existsp(FD_STRDATA(filename)))
-      stream=fd_open_stream(FD_STRDATA(filename),FD_STREAM_MODIFY);
-    else stream=fd_open_stream(FD_STRDATA(filename),FD_STREAM_CREATE);
+      stream=fd_open_file(FD_STRDATA(filename),FD_FILE_MODIFY);
+    else stream=fd_open_file(FD_STRDATA(filename),FD_FILE_CREATE);
     if (stream==NULL) return FD_ERROR_VALUE;
     else out=fd_writebuf(stream);
     fd_endpos(stream);
@@ -233,8 +233,8 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
   if (FD_STRINGP(filename)) {
     struct FD_STREAM *out; int bytes;
     if (u8_file_existsp(FD_STRDATA(filename)))
-      out=fd_open_stream(FD_STRDATA(filename),FD_STREAM_MODIFY);
-    else out=fd_open_stream(FD_STRDATA(filename),FD_STREAM_CREATE);
+      out=fd_open_file(FD_STRDATA(filename),FD_FILE_WRITE);
+    else out=fd_open_file(FD_STRDATA(filename),FD_FILE_WRITE);
     if (out==NULL) return FD_ERROR_VALUE;
     fd_endpos(out);
     bytes=fd_zwrite_dtype(fd_writebuf(out),object);
@@ -269,7 +269,7 @@ static fdtype zipfile2dtype(fdtype filename)
   if (FD_STRINGP(filename)) {
     struct FD_STREAM *in;
     fdtype object=FD_VOID;
-    in=fd_open_stream(FD_STRDATA(filename),FD_STREAM_READ);
+    in=fd_open_file(FD_STRDATA(filename),FD_FILE_READ);
     if (in==NULL) return FD_ERROR_VALUE;
     else object=fd_zread_dtype(fd_readbuf(in));
     fd_close_stream(in,FD_STREAM_CLOSE_FULL);
@@ -292,8 +292,7 @@ static fdtype file2dtypes(fdtype filename)
        (u8_has_suffix(FD_STRDATA(filename),".gz",1)))) {
     return zipfile2dtypes(filename);}
   else if (FD_STRINGP(filename)) {
-    struct FD_STREAM *in=
-      fd_open_stream(FD_STRDATA(filename),FD_STREAM_READ);
+    struct FD_STREAM *in=fd_open_file(FD_STRDATA(filename),FD_FILE_READ);
     fdtype results=FD_EMPTY_CHOICE, object=FD_VOID;
     if (in==NULL) return FD_ERROR_VALUE;
     else {
@@ -311,7 +310,7 @@ static fdtype zipfile2dtypes(fdtype filename)
 {
   if (FD_STRINGP(filename)) {
     struct FD_STREAM *in=
-      fd_open_stream(FD_STRDATA(filename),FD_STREAM_READ);
+      fd_open_file(FD_STRDATA(filename),FD_FILE_READ);
     fdtype results=FD_EMPTY_CHOICE, object=FD_VOID;
     if (in==NULL) return FD_ERROR_VALUE;
     else {
@@ -330,8 +329,8 @@ static fdtype open_dtype_output_file(fdtype fname)
   u8_string filename=FD_STRDATA(fname);
   struct FD_STREAM *dts=
     (u8_file_existsp(filename)) ?
-    (fd_open_stream(filename,FD_STREAM_MODIFY)) :
-    (fd_open_stream(filename,FD_STREAM_CREATE));
+    (fd_open_file(filename,FD_FILE_MODIFY)) :
+    (fd_open_file(filename,FD_FILE_CREATE));
   if (dts) {
     U8_CLEAR_ERRNO();
     return FDTYPE_CONS(dts);}
@@ -349,7 +348,7 @@ static fdtype open_dtype_input_file(fdtype fname)
               u8_strdup(filename),FD_VOID);
     return FD_ERROR_VALUE;}
   else return (fdtype)
-         fd_open_stream(filename,FD_STREAM_READ_ONLY);
+	 fd_open_file(filename,FD_STREAM_READ_ONLY);
 }
 
 static fdtype extend_dtype_file(fdtype fname)
@@ -357,9 +356,9 @@ static fdtype extend_dtype_file(fdtype fname)
   u8_string filename=FD_STRDATA(fname);
   if (u8_file_existsp(filename))
     return (fdtype)
-      fd_open_stream(filename,FD_STREAM_MODIFY);
+      fd_open_file(filename,FD_FILE_MODIFY);
   else return (fdtype)
-         fd_open_stream(filename,FD_STREAM_CREATE);
+	 fd_open_file(filename,FD_FILE_CREATE);
 }
 
 static fdtype streamp(fdtype arg)

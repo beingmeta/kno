@@ -1460,7 +1460,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
        else {
          fd_decref(slotmap);
          return fd_type_error("symbol","fd_snapshot",sym);}}
-    out=fd_open_stream(filename,FD_STREAM_CREATE);
+    out=fd_open_file(filename,FD_FILE_CREATE);
     if (out==NULL) {
       fd_decref(slotmap);
       return -1;}
@@ -1483,7 +1483,7 @@ int fd_snapback(fd_lispenv env,u8_string filename)
 {
   struct FD_STREAM *in;
   fdtype slotmap; int actions=0;
-  in=fd_open_stream(filename,FD_STREAM_READ);
+  in=fd_open_file(filename,FD_FILE_READ);
   if (in==NULL) return -1;
   else slotmap=fd_read_dtype(fd_readbuf(in));
   if (FD_ABORTP(slotmap)) {

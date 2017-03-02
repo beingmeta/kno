@@ -206,10 +206,10 @@ static fd_index open_mem_index(u8_string file,fddb_flags flags)
   fd_init_index((fd_index)logix,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(logix->index_stream),file,
-			FD_STREAM_MODIFY,
+			FD_FILE_MODIFY,-1,
 			fd_driver_bufsize);
   if (!(stream)) return NULL;
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   unsigned int magic_no=fd_read_4bytes(fd_readbuf(stream));
   if (magic_no!=FD_MEM_INDEX_MAGIC_NUMBER) {
     fd_seterr(_("NotMemindex"),"open_mem_index",u8_strdup(file),FD_VOID);
@@ -252,7 +252,7 @@ FD_EXPORT int fd_make_mem_index(u8_string spec)
 {
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
-    fd_init_file_stream(&_stream,spec,FD_STREAM_CREATE,fd_driver_bufsize);
+    fd_init_file_stream(&_stream,spec,FD_FILE_CREATE,-1,fd_driver_bufsize);
   fd_outbuf out=fd_writebuf(stream);
   int i=24;
   fd_write_4bytes(out,FD_MEM_INDEX_MAGIC_NUMBER);

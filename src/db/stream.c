@@ -137,7 +137,9 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
              "Can't allocate %lld bytes for buffering %s, trying %lld",
              bufsiz,(U8ALT(streamid,"somestream")),bufsiz/2);
       bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
-    FD_SET_CONS_TYPE(stream,fd_stream_type);
+    if (flags&FD_STREAM_IS_CONSED) {
+      FD_INIT_FRESH_CONS(stream,fd_stream_type);}
+    else {FD_INIT_STATIC_CONS(stream,fd_stream_type);}
     /* Initializing the stream fields */
     stream->stream_fileno=fileno;
     stream->streamid=u8dup(streamid);
@@ -157,32 +159,39 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
 }
 
 FD_EXPORT fd_stream fd_init_file_stream
-   (fd_stream stream,u8_string fname,fd_stream_mode mode,ssize_t bufsiz)
+   (fd_stream stream,u8_string fname,
+    fd_stream_mode mode,
+    fd_stream_flags stream_flags,
+    ssize_t bufsiz)
 {
   if (bufsiz<0) bufsiz=fd_filestream_bufsize;
-  int fd, flags=POSIX_OPEN_FLAGS, lock=0, writing=0;
+  if (stream_flags<0)
+    stream_flags=FD_DEFAULT_FILESTREAM_FLAGS;
+  int fd, open_flags=POSIX_OPEN_FLAGS;
   char *localname=u8_localpath(fname);
   switch (mode) {
-  case FD_STREAM_READ:
-    flags=flags|O_RDONLY; break;
-  case FD_STREAM_MODIFY:
-    flags=flags|O_RDWR; lock=1; writing=1; break;
-  case FD_STREAM_WRITE:
-    flags=flags|O_RDWR|O_CREAT; lock=1; writing=1; break;
-  case FD_STREAM_CREATE:
-    flags=flags|O_CREAT|O_TRUNC|O_RDWR; lock=1; writing=1; break;
-  }
-  fd=open(localname,flags,0666);
+  case FD_FILE_READ:
+    open_flags|=O_RDONLY;
+    stream_flags|=FD_STREAM_READ_ONLY;
+    break;
+  case FD_FILE_MODIFY:
+    open_flags|=O_RDWR;
+    stream_flags|=FD_STREAM_NEEDS_LOCK;
+    break;
+  case FD_FILE_WRITE:
+    open_flags|=O_RDWR|O_CREAT;
+    stream_flags|=FD_STREAM_NEEDS_LOCK;
+    break;
+  case FD_FILE_CREATE:
+    open_flags|=O_CREAT|O_TRUNC|O_RDWR;
+    stream_flags|=FD_STREAM_NEEDS_LOCK;
+    break;}
+  fd=open(localname,open_flags,0666);
   /* If we fail and we're modifying, try to open read-only */
-  if ((fd<0) && (mode == FD_STREAM_MODIFY)) {
-    fd=open(localname,O_RDONLY,0666);
-    if (fd>0) writing=0;}
+  if ((fd<0) && (mode == FD_FILE_MODIFY)) {
+    fd=open(localname,O_RDONLY,0666);}
   if (fd>0) {
-    fd_init_stream(stream,fname,fd,
-                   (FD_DEFAULT_FILESTREAM_FLAGS |
-                    ((lock) ? (FD_STREAM_NEEDS_LOCK) : (0)) |
-                    ((writing) ? (0) : (FD_STREAM_READ_ONLY))),
-                   bufsiz);
+    fd_init_stream(stream,fname,fd,stream_flags,bufsiz);
     stream->stream_maxpos=lseek(fd,0,SEEK_END);
     stream->stream_filepos=lseek(fd,0,SEEK_SET);
     u8_init_mutex(&(stream->stream_lock));
@@ -193,15 +202,13 @@ FD_EXPORT fd_stream fd_init_file_stream
     return NULL;}
 }
 
-FD_EXPORT fd_stream fd_open_filestream
-   (u8_string fname,fd_stream_mode mode,ssize_t bufsiz)
+FD_EXPORT fd_stream fd_open_file(u8_string fname,fd_stream_mode mode)
 {
-  if (bufsiz<0) bufsiz=fd_filestream_bufsize;
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
   struct FD_STREAM *opened;
+  fd_stream_flags flags=FD_STREAM_IS_CONSED|FD_DEFAULT_FILESTREAM_FLAGS;
   FD_INIT_CONS(stream,fd_stream_type);
-  if ((opened=fd_init_file_stream(stream,fname,mode,bufsiz))) {
-    opened->stream_flags|=FD_STREAM_IS_MALLOCD;
+  if ((opened=fd_init_file_stream(stream,fname,mode,flags,-1))) {
     return opened;}
   else {
     u8_free(stream);
@@ -663,7 +670,9 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
     return FD_ERROR_VALUE;}
   else {
     struct FD_STREAM *opened=
-      fd_init_file_stream(stream,filename,FD_STREAM_READ,
+      fd_init_file_stream(stream,filename,
+                          FD_FILE_READ,
+                          FD_STREAM_IS_CONSED,
                           fd_filestream_bufsize);
     if (opened) {
       fdtype result=FD_VOID;
@@ -676,7 +685,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
         fd_read_byte(in);
         result=fd_zread_dtype(in);}
       else result=fd_read_dtype(in);
-      fd_close_stream(opened,FD_STREAM_FREEDATA);
+      fd_free_stream(opened);
       return result;}
     else {
       u8_free(stream);
@@ -688,12 +697,15 @@ FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
 {
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
   struct FD_STREAM *opened=
-    fd_init_file_stream(stream,filename,FD_STREAM_WRITE,bufsize);
+    fd_init_file_stream(stream,filename,
+                        FD_FILE_WRITE,
+                        FD_STREAM_IS_CONSED,
+                        bufsize);
   if (opened) {
     size_t len=(zip)?
       (fd_zwrite_dtype(fd_writebuf(opened),object)):
       (fd_write_dtype(fd_writebuf(opened),object));
-    fd_close_stream(opened,FD_STREAM_FREEDATA);
+    fd_free_stream(opened);
     return len;}
   else return -1;
 }

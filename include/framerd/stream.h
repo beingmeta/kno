@@ -34,21 +34,7 @@ FD_EXPORT size_t fd_stream_bufsize;
 FD_EXPORT size_t fd_network_bufsize;
 FD_EXPORT size_t fd_filestream_bufsize;
 
-FD_EXPORT fd_exception fd_ReadOnlyStream;
-FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
-FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
-
-typedef struct FD_STREAM {
-  FD_CONS_HEADER;
-  int stream_flags, stream_fileno;
-  fd_off_t stream_filepos, stream_maxpos;
-  u8_string streamid;
-  union {
-    struct FD_INBUF in;
-    struct FD_OUTBUF out;
-    struct FD_RAWBUF raw;} buf;
-  u8_mutex stream_lock;} FD_STREAM;
-typedef struct FD_STREAM *fd_stream;
+typedef int fd_stream_flags;
 
 #define FD_STREAM_NOFLAGS        (0x00)
 #define FD_STREAM_FLAGS          (0x1)
@@ -60,17 +46,30 @@ typedef struct FD_STREAM *fd_stream;
 #define FD_STREAM_FILE_LOCKED    (FD_STREAM_FLAGS << 5)
 #define FD_STREAM_SOCKET         (FD_STREAM_FLAGS << 6)
 #define FD_STREAM_DOSYNC         (FD_STREAM_FLAGS << 7)
-#define FD_STREAM_IS_MALLOCD     (FD_STREAM_FLAGS << 8)
+#define FD_STREAM_IS_CONSED     (FD_STREAM_FLAGS << 8)
 #define FD_STREAM_OWNS_FILENO    (FD_STREAM_FLAGS << 9)
 
 #define FD_DEFAULT_FILESTREAM_FLAGS \
   (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO|FD_STREAM_CAN_SEEK)
 
+typedef struct FD_STREAM {
+  FD_CONS_HEADER;
+  fd_stream_flags stream_flags;
+  int stream_fileno;
+  fd_off_t stream_filepos, stream_maxpos;
+  u8_string streamid;
+  union {
+    struct FD_INBUF in;
+    struct FD_OUTBUF out;
+    struct FD_RAWBUF raw;} buf;
+  u8_mutex stream_lock;} FD_STREAM;
+typedef struct FD_STREAM *fd_stream;
+
 typedef enum FD_STREAM_MODE {
-  FD_STREAM_READ, /* Read only, must exist */
-  FD_STREAM_MODIFY, /* Read/write, must exist */
-  FD_STREAM_WRITE, /* Read/write, may exist */
-  FD_STREAM_CREATE /* Read/write, truncated */
+  FD_FILE_READ, /* Read only, must exist */
+  FD_FILE_MODIFY, /* Read/write, must exist */
+  FD_FILE_WRITE, /* Read/write, may exist */
+  FD_FILE_CREATE /* Read/write, truncated */
 } fd_stream_mode;
 
 typedef enum FD_BYTEFLOW {
@@ -93,15 +92,12 @@ struct FD_STREAM *fd_init_stream(fd_stream s,
 
 FD_EXPORT
 fd_stream fd_init_file_stream (fd_stream stream,
-				       u8_string filename,
-				       fd_stream_mode mode,
+			       u8_string filename,
+			       fd_stream_mode mode,
+			       fd_stream_flags flags,
 			       ssize_t bufsiz);
 
-FD_EXPORT fd_stream fd_open_filestream
-  (u8_string filename,fd_stream_mode mode,ssize_t bufsiz);
-
-#define fd_open_stream(filename,mode) \
-  fd_open_filestream(filename,mode,fd_filestream_bufsize)
+FD_EXPORT fd_stream fd_open_file(u8_string filename,fd_stream_mode mode);
 
 #define FD_STREAM_FREEDATA    1
 #define FD_STREAM_NOCLOSE 2
@@ -247,5 +243,11 @@ FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
 
 FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz);
+
+/* Exceptions */
+
+FD_EXPORT fd_exception fd_ReadOnlyStream;
+FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
+FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
 #endif /* FD_STREAM_H */

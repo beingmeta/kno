@@ -431,7 +431,9 @@ static fdtype that_symbol, histref_symbol;
 
 static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 {
-  u8_string abspath=((dumpfile)?(u8_abspath(dumpfile,NULL)):(fd_tempdir(NULL,0)));
+  u8_string abspath=((dumpfile)?
+                     (u8_abspath(dumpfile,NULL)):
+                     (fd_tempdir(NULL,0)));
   if (u8_directoryp(abspath)) {
     changemode(abspath,0755);
     if (html_backtrace) {
@@ -459,15 +461,18 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
   else if ((u8_has_suffix(dumpfile,".scm",1))||
            (u8_has_suffix(dumpfile,".lisp",1))||
            (u8_has_suffix(dumpfile,".lispdata",1))) {
-    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    u8_output outfile=(u8_output)
+      u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
     u8_log(LOG_ERROR,ex->u8x_cond,"Backtrace object written to %s",abspath);}
 #if FD_HTMLDUMP_ENABLED
-  else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
-    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+  else if ((u8_has_suffix(dumpfile,".html",1))||
+           (u8_has_suffix(dumpfile,".htm",1))) {
+    u8_output outfile=(u8_output)
+      u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     u8_string bugurl=NULL;
     fd_xhtmldebugpage(outfile,ex);
     u8_close((u8_stream)outfile);
@@ -486,14 +491,15 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       u8_free(cmd.u8_outbuf);}
     if (bugurl) u8_free(bugurl);}
 #else
-  else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
+  else if ((u8_has_suffix(dumpfile,".html",1))||
+           (u8_has_suffix(dumpfile,".htm",1))) {
     u8_log(LOG_WARN,"BACKTRACE","No built-in support for HTML backtraces");}
 #endif
   else if (u8_has_suffix(dumpfile,".dtype",1)) {
     struct FD_STREAM *out; int bytes=0;
     fdtype backtrace=fd_exception_backtrace(ex);
     u8_string temp_name=u8_mkstring("%s.part",abspath);
-    out=fd_open_stream(temp_name,FD_STREAM_CREATE);
+    out=fd_open_file(temp_name,FD_FILE_CREATE);
     if (out==NULL) {
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);
@@ -511,7 +517,8 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       changemode(abspath,0444);
       u8_log(LOG_ERROR,ex->u8x_cond,"DType backtrace written to %s",abspath);}}
   else {
-    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    u8_output outfile=(u8_output)u8_open_output_file
+      (abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
     u8_close((u8_stream)outfile);

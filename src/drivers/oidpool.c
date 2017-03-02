@@ -194,15 +194,15 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
   int read_only=U8_BITP(flags,FDB_READ_ONLY);
   fd_stream_mode mode=
-    ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
+    ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
   struct FD_STREAM *stream=
-    fd_init_file_stream(&(pool->pool_stream),fname,mode,fd_driver_bufsize);
+    fd_init_file_stream(&(pool->pool_stream),fname,mode,-1,fd_driver_bufsize);
   struct FD_INBUF *instream=fd_readbuf(stream);
  
   /* See if it ended up read only */
   if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only=1;
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   magicno=fd_read_4bytes(instream);
   /* Read POOL base etc. */
   hi=fd_read_4bytes(instream); lo=fd_read_4bytes(instream);
@@ -215,7 +215,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
     fd_close_stream(stream,0);
-    fd_init_file_stream(stream,fname,FD_STREAM_READ,fd_driver_bufsize);
+    fd_init_file_stream(stream,fname,FD_FILE_READ,-1,fd_driver_bufsize);
     fd_lock_stream(stream);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->pool_offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
@@ -508,8 +508,7 @@ FD_EXPORT int fd_make_oidpool
   fd_off_t schemas_pos=0, metadata_pos=0, label_pos=0;
   size_t schemas_size=0, metadata_size=0, label_size=0;
   struct FD_STREAM _stream, *stream=
-    fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,
-                        fd_driver_bufsize);
+    fd_init_file_stream(&_stream,fname,FD_FILE_CREATE,-1,fd_driver_bufsize);
   fd_outbuf outstream=fd_writebuf(stream);
   fd_offset_type offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   if (stream==NULL) return -1;
@@ -522,7 +521,7 @@ FD_EXPORT int fd_make_oidpool
          "Creating an oidpool '%s' for %u OIDs based at %x/%x",
          fname,capacity,FD_OID_HI(base),FD_OID_LO(base));
 
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   fd_lock_stream(stream);
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);

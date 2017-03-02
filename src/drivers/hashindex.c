@@ -236,16 +236,16 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
   fd_off_t slotids_pos, baseoids_pos;
   fd_size_t slotids_size, baseoids_size;
   fd_stream_mode mode=
-    ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
+    ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   fd_init_index((fd_index)index,&hash_index_handler,fname,flags);
-  if (fd_init_file_stream(stream,fname,mode,fd_driver_bufsize)
+  if (fd_init_file_stream(stream,fname,mode,-1,fd_driver_bufsize)
       == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only=1;
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   index->index_mmap=NULL;
   magicno=fd_read_4bytes_at(stream,0);
   index->index_n_buckets=fd_read_4bytes_at(stream,4);
@@ -402,14 +402,14 @@ FD_EXPORT int fd_make_hash_index
   size_t slotids_size=0, baseoids_size=0, metadata_size=0;
   int offtype=(fd_offset_type)(((flags)&(FD_HASH_INDEX_OFFTYPE_MASK))>>4);
   struct FD_STREAM _stream, *stream=
-    fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,fd_driver_bufsize);
+    fd_init_file_stream(&_stream,fname,FD_FILE_CREATE,-1,fd_driver_bufsize);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_hash_index",u8_strdup(fname));
     fd_free_stream(stream);
     return -1;}
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   if (n_buckets_arg<0) n_buckets=-n_buckets_arg;
   else n_buckets=fd_get_hashtable_size(n_buckets_arg);
 

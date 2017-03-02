@@ -20,7 +20,7 @@ int main(int argc,char **argv)
   fdtype object;
   struct FD_STREAM *in; u8_string srep;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_open_stream(argv[1],FD_STREAM_READ);
+  in=fd_open_file(argv[1],FD_FILE_READ);
   object=fd_read_dtype(fd_readbuf(in));
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   /* For coverage tests */

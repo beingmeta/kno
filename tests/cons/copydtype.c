@@ -21,8 +21,8 @@ int main(int argc,char **argv)
   struct FD_STREAM *in, *out;
   int bytes=0;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_open_stream(argv[1],FD_STREAM_READ);
-  out=fd_open_stream(argv[2],FD_STREAM_CREATE);
+  in=fd_open_file(argv[1],FD_FILE_READ);
+  out=fd_open_file(argv[2],FD_FILE_CREATE);
   object=fd_read_dtype(fd_readbuf(in));
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   copied=fd_copy(object); fd_decref(copied);

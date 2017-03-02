@@ -62,12 +62,11 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
   fd_off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
   fd_stream_mode mode=
-    ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
-  fd_init_file_stream(&(pool->pool_stream),fname,mode,
-                            fd_driver_bufsize);
+    ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
+  fd_init_file_stream(&(pool->pool_stream),fname,mode,-1,fd_driver_bufsize);
   /* See if it ended up read only */
   if (s->stream_flags&FD_STREAM_READ_ONLY) read_only=1;
-  s->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  s->stream_flags&=~FD_STREAM_IS_CONSED;
   magicno=fd_read_4bytes_at(s,0);
   hi=fd_read_4bytes_at(s,4); lo=fd_read_4bytes_at(s,8);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
@@ -679,8 +678,7 @@ int fd_make_file_pool
   int i, hi, lo;
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
-    fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,
-                        fd_driver_bufsize);
+    fd_init_file_stream(&_stream,filename,FD_FILE_CREATE,-1,fd_driver_bufsize);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
@@ -692,7 +690,7 @@ int fd_make_file_pool
          "Creating a file pool '%s' for %u OIDs based at %x/%x",
          filename,capacity,FD_OID_HI(base),FD_OID_LO(base));
 
-  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
+  stream->stream_flags&=~FD_STREAM_IS_CONSED;
   fd_setpos(stream,0);
   hi=FD_OID_HI(base); lo=FD_OID_LO(base);
   fd_write_4bytes(outstream,magicno);
@@ -706,7 +704,7 @@ int fd_make_file_pool
   fd_write_4bytes(outstream,0xFFFFFFFE);
   fd_write_4bytes(outstream,40);
   i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
-  fd_close_stream(stream,0);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
   return 1;
 }
 
@@ -842,7 +840,7 @@ FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label)
 {
   int retval=-1;
   fd_stream stream=
-    fd_open_stream(FD_STRING_DATA(fname),FD_STREAM_MODIFY);
+    fd_open_file(FD_STRING_DATA(fname),FD_FILE_MODIFY);
   fd_outbuf outstream=fd_writebuf(stream);
   if (stream) {
     fd_off_t endpos=fd_endpos(stream);

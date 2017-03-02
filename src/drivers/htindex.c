@@ -81,9 +81,9 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
   struct FD_STREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
     rstream=fd_init_file_stream
-      (&stream,file,FD_STREAM_CREATE,fd_driver_bufsize);
+      (&stream,file,FD_FILE_CREATE,-1,fd_driver_bufsize);
     if (rstream==NULL) return -1;
-    stream.stream_flags&=~FD_STREAM_IS_MALLOCD;
+    stream.stream_flags&=~FD_STREAM_IS_CONSED;
     fd_write_dtype(fd_writebuf(&stream),(fdtype)&(ix->index_cache));
     fd_free_stream(&stream);
     return 1;}
@@ -96,8 +96,8 @@ static fd_index open_htindex(u8_string file,fddb_flags flags)
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_STREAM stream;
   fd_init_file_stream
-    (&stream,file,FD_STREAM_READ,fd_driver_bufsize);
-  stream.stream_flags&=~FD_STREAM_IS_MALLOCD;
+    (&stream,file,FD_FILE_READ,-1,fd_driver_bufsize);
+  stream.stream_flags&=~FD_STREAM_IS_CONSED;
   lispval=fd_read_dtype(fd_readbuf(&stream));
   fd_free_stream(&stream);
   if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;
