@@ -183,7 +183,6 @@ FD_EXPORT fd_stream fd_init_file_stream
                     ((lock) ? (FD_STREAM_NEEDS_LOCK) : (0)) |
                     ((writing) ? (0) : (FD_STREAM_READ_ONLY))),
                    bufsiz);
-    stream->streamid=u8_strdup(fname);
     stream->stream_maxpos=lseek(fd,0,SEEK_END);
     stream->stream_filepos=lseek(fd,0,SEEK_SET);
     u8_init_mutex(&(stream->stream_lock));
