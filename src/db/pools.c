@@ -397,7 +397,9 @@ FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid)
 {
   fdtype v;
   init_cache_level(p);
-  v=p->pool_handler->fetch(p,oid);
+  if (p->pool_handler->fetch)
+    v=p->pool_handler->fetch(p,oid);
+  else v=fd_hashtable_get(&(p->pool_cache),oid,FD_EMPTY_CHOICE);
   if (FD_ABORTP(v)) return v;
   /* If it's locked, store it in the locks table */
   if ( (p->pool_changes.table_n_keys) &&
@@ -423,7 +425,8 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   else init_cache_level(p);
   cachelevel=p->pool_cache_level;
   /* if (p->pool_cache_level<1) return 0; */
-  if ( (p->pool_handler->fetchn==NULL) || (!(p->pool_flags&(FDB_BATCHABLE))) ) {
+  if ( (p->pool_handler->fetchn==NULL) ||
+       (!(p->pool_flags&(FDB_BATCHABLE))) ) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oids);
       return 0;}
@@ -536,7 +539,9 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     p->pool_handler->swapout(p,oids);
     u8_log(fddb_loglevel+1,"PoolDB",
            "Finished custom swapout for pool %s",p->pool_idstring);}
-  if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))  {
+  else if (p->pool_flags&FDB_NOSWAP)
+    return 0;
+  else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))  {
     int rv=FD_CHOICE_SIZE(oids);
     fd_hashtable_iterkeys(cache,fd_table_replace,
                           FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),

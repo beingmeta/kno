@@ -54,21 +54,21 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 
 typedef unsigned int fddb_flags;
 
-#define FDB_ISPOOL                 0x01
-#define FDB_ISINDEX                0x02
-#define FDB_READ_ONLY              0x04
-#define FDB_BATCHABLE              0x08
-#define FDB_STICKY_CACHESIZE       0x10
-#define FDB_ISCONSED               0x20
-#define FDB_UNREGISTERED           0x20
-#define FDB_CACHE_VALUES           0x40
-#define FDB_MAX_INIT_BITS          0x100
-/* Whether the database is currently readonly. */
-#define FDB_CACHE_OFFSETS          0x200
-#define FDB_MAX_STATE_BITS         0x1000
+#define FDB_ISPOOL		   0x01
+#define FDB_ISINDEX		   0x02
+#define FDB_READ_ONLY		   0x04
+#define FDB_BATCHABLE		   0x08
+#define FDB_STICKY_CACHESIZE	   0x10
+#define FDB_ISCONSED		   0x20
+#define FDB_UNREGISTERED	   0x20
+#define FDB_CACHE_VALUES	   0x40
+#define FDB_NOSWAP		   0x80
+#define FDB_MAX_INIT_BITS	   0x800
+#define FDB_CACHE_OFFSETS	   0x1000
+#define FDB_MAX_STATE_BITS	   0x1000
 
-#define FDB_POOL_FLAG(n)           ((0x1000)<<n)
-#define FDB_INDEX_FLAG(n)          ((0x1000)<<n)
+#define FDB_POOL_FLAG(n)	   ((0x10000)<<n)
+#define FDB_INDEX_FLAG(n)	   ((0x10000)<<n)
 
 #ifndef FDBSERV_MAX_POOLS
 #define FDBSERV_MAX_POOLS 128
