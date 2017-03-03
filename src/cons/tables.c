@@ -3081,7 +3081,7 @@ FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
   FD_TABLE_CHECKPTR(key,"fd_get/dflt");
   if (FD_EMPTY_CHOICEP(arg)) 
     return FD_EMPTY_CHOICE;
-  else if (FD_VALID_TYPEP(argtype)) {
+  else if (FD_VALID_TYPECODEP(argtype)) {
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->get!=NULL))
         if (FD_CHOICEP(key)) {
@@ -3106,7 +3106,7 @@ FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
   FD_TABLE_CHECKPTR(arg,"fd_store/table");
   FD_TABLE_CHECKPTR(key,"fd_store/key");
   FD_TABLE_CHECKPTR(value,"fd_store/value");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->store!=NULL))
         if (FD_CHOICEP(key)) {
@@ -3127,7 +3127,7 @@ FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
   FD_TABLE_CHECKPTR(arg,"fd_add/table");
   FD_TABLE_CHECKPTR(key,"fd_add/key");
   FD_TABLE_CHECKPTR(value,"fd_add/value");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->add!=NULL))
         if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
@@ -3169,7 +3169,7 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
   FD_TABLE_CHECKPTR(key,"fd_drop/key");
   FD_TABLE_CHECKPTR(value,"fd_drop/value");
   if (FD_EMPTY_CHOICEP(arg)) return 0;
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->drop!=NULL))
         if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) ||
@@ -3219,7 +3219,7 @@ FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
   FD_TABLE_CHECKPTR(key,"fd_test/key");
   FD_TABLE_CHECKPTR(value,"fd_test/value");
   if (FD_EMPTY_CHOICEP(arg)) return 0;
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->test!=NULL))
         if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
@@ -3259,7 +3259,7 @@ FD_EXPORT int fd_getsize(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_getsize/table");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->getsize)
         return (fd_tablefns[argtype]->getsize)(arg);
@@ -3280,7 +3280,7 @@ FD_EXPORT int fd_modifiedp(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_modifiedp/table");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->modified)
         return (fd_tablefns[argtype]->modified)(arg,-1);
@@ -3293,7 +3293,7 @@ FD_EXPORT int fd_set_modified(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->modified)
         return (fd_tablefns[argtype]->modified)(arg,flag);
@@ -3306,7 +3306,7 @@ FD_EXPORT int fd_readonlyp(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_readonlyp/table");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->readonly)
         return (fd_tablefns[argtype]->readonly)(arg,-1);
@@ -3319,7 +3319,7 @@ FD_EXPORT int fd_set_readonly(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_set_readonly/table");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->modified)
         return (fd_tablefns[argtype]->modified)(arg,flag);
@@ -3332,7 +3332,7 @@ FD_EXPORT fdtype fd_getkeys(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_getkeys/table");
-  if (FD_VALID_TYPEP(argtype))
+  if (FD_VALID_TYPECODEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->keys)
         return (fd_tablefns[argtype]->keys)(arg);

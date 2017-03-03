@@ -198,7 +198,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
         default:
           fd_seterr(_("Invalid constant"),NULL,NULL,x);
           return -1;}
-      else if ((FD_VALID_TYPEP(itype)) && (fd_dtype_writers[itype]))
+      else if ((FD_VALID_TYPECODEP(itype)) && (fd_dtype_writers[itype]))
         return fd_dtype_writers[itype](out,x);
       else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
         return write_opaque(out,x);
@@ -315,7 +315,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
         return write_mystery(out,(struct FD_MYSTERY_DTYPE *) cons);
       default: {
         fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
-        if ((FD_VALID_TYPEP(ctype)) && (fd_dtype_writers[ctype]))
+        if ((FD_VALID_TYPECODEP(ctype)) && (fd_dtype_writers[ctype]))
           return fd_dtype_writers[ctype](out,x);
         else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
           return write_opaque(out,x);

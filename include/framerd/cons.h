@@ -101,13 +101,15 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode)))		\
     return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x);
 
-#define type2name(tc) \
-   ((tc<0)?((u8_string)"oddtype"):(fd_type_names[(short)tc]))
+#define fd_type2name(tc)	       \
+  (((tc<0)||(tc>FD_TYPE_MAX))? \
+   ((u8_string)"oddtype"):     \
+   (fd_type_names[(short)tc]))
 
 #define FD_PTR2CONS(x,typecode,typecast)                                \
   (((typecode<0) || (FD_TYPEP(x,typecode))) ?                       \
    ((typecast)(FD_CONS_DATA(x))) :					\
-   ((typecast)(u8_raise(fd_TypeError,type2name(typecode),NULL),		\
+   ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),		\
                 NULL)))
 
 /* Hash locking for pointers */
@@ -140,8 +142,8 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 #define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
-#define FD_STATIC_CONSP(x)  ((FD_CONSBITS(x)&0x80)==0)
 #define FD_MALLOCD_CONSP(x) ((FD_CONSBITS(x))>=0x80)
+#define FD_STATIC_CONSP(x)  (!(FD_MALLOCD_CONSP(x)))
 
 #define FD_STATICP(x) ((!(FD_CONSP(x)))||(FD_STATIC_CONSP((fd_cons)x)))
 

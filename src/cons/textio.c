@@ -418,7 +418,7 @@ int fd_unparse(u8_output out,fdtype x)
     else {/* output cons */
       struct FD_CONS *cons=FD_CONS_DATA(x);
       fd_ptr_type ct=FD_CONS_TYPE(cons);
-      if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct])) {
+      if ((FD_VALID_TYPECODEP(ct)) && (fd_unparsers[ct])) {
         int uv=fd_unparsers[ct](out,x);
         if (uv<0) {
           char buf[128];

@@ -196,7 +196,11 @@ typedef struct FD_RAW_CONS *fd_raw_cons;
 #define FD_CONS_TYPE_MASK (0x7f)
 #define FD_CONS_TYPE_OFF  (0x84)
 
-#define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
+#define FD_VALID_TYPECODEP(x)				       \
+  (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
+		  (((int)x)<256) &&			       \
+		  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
+		   ((x>=0x84)&&((x)<fd_next_cons_type)))))
 
 #if FD_CHECKFDTYPE
 FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
@@ -259,6 +263,7 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_GET_IMMEDIATE(x,tcode) (((FDTYPE(x))>>2)&0x7FFFFF)
 #define FD_IMMEDIATE_TYPE_FIELD(x) (((FDTYPE(x))>>25)&0x7F)
 #define FD_IMMEDIATE_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
+#define FD_IMMEDIATE_DATA(x) ((FDTYPE(x))>>2)
 #define FD_IMM_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
 
 #if FD_PTR_TYPE_MACRO

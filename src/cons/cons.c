@@ -1006,8 +1006,10 @@ static void recycle_mystery(struct FD_RAW_CONS *c)
 static u8_mutex type_registry_lock;
 #endif
 
-unsigned int fd_next_cons_type=FD_CONS_TYPECODE(FD_BUILTIN_CONS_TYPES);
-unsigned int fd_next_immediate_type=FD_IMMEDIATE_TYPECODE(FD_BUILTIN_IMMEDIATE_TYPES);
+unsigned int fd_next_cons_type=
+  FD_CONS_TYPECODE(FD_BUILTIN_CONS_TYPES);
+unsigned int fd_next_immediate_type=
+  FD_IMMEDIATE_TYPECODE(FD_BUILTIN_IMMEDIATE_TYPES);
 
 FD_EXPORT int fd_register_cons_type(char *name)
 {
@@ -1045,7 +1047,9 @@ struct FD_COMPOUND_TYPEINFO *fd_compound_entries=NULL;
 static u8_mutex compound_registry_lock;
 #endif
 
-FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
+FD_EXPORT
+struct FD_COMPOUND_TYPEINFO
+*fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   fd_lock_mutex(&compound_registry_lock);
