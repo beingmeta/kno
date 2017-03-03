@@ -142,14 +142,21 @@ static int mem_index_commit(fd_index ix)
   struct FD_HASHTABLE *adds=&(ix->index_adds), *edits=&(ix->index_edits);
   struct FD_HASHTABLE *cache=&(ix->index_cache);
   struct FD_HASHTABLE _adds, _edits;
+  unsigned long long n_updates=0;
 
-  if ((adds->table_n_keys==0)&&(edits->table_n_keys==0)) 
+  if ((adds->table_n_keys==0)&&(edits->table_n_keys==0))
     return 0;
 
   /* Update the cache from the adds and edits */
   fd_write_lock(&(cache->table_rwlock));
   fd_read_lock(&(adds->table_rwlock));
   fd_read_lock(&(edits->table_rwlock));
+
+  n_updates=adds->table_n_keys+edits->table_n_keys;
+
+  u8_log(fddb_loglevel+1,"MemIndex/Commit",
+	 "Saving %d updates to %s",n_updates,ix->index_idstring);
+
   fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
   fd_for_hashtable_kv(edits,merge_edits,(void *)cache,0);
 
@@ -159,6 +166,11 @@ static int mem_index_commit(fd_index ix)
   fd_rw_unlock(&(cache->table_rwlock));
   fd_rw_unlock(&(adds->table_rwlock));
   fd_rw_unlock(&(edits->table_rwlock));
+
+
+  u8_log(fddb_loglevel+1,"MemIndex/Commit",
+	 "Updated in-memory cache with %d updates to %s, writing to disk",
+	 n_updates,ix->index_idstring);
 
   /* At this point, the index tables are unlocked and can start being
      used by other threads. We'll now write the changes to the
@@ -180,7 +192,6 @@ static int mem_index_commit(fd_index ix)
   fd_for_hashtable_kv(&_adds,write_add,(void *)logix,0);
   fd_recycle_hashtable(&_adds);
 
-  fd_swap_hashtable(edits,&_edits,256,0);
   n_entries=n_entries+_edits.table_n_keys;
   fd_for_hashtable_kv(&_edits,write_edit,(void *)logix,0);
   fd_recycle_hashtable(&_edits);
@@ -195,6 +206,10 @@ static int mem_index_commit(fd_index ix)
   fd_flush_stream(stream);
 
   fd_unlock_stream(stream);
+
+  u8_log(fddb_loglevel,"MemIndex/Finished",
+	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
+	 n_updates,n_entries,ix->index_idstring,end);
 
   return 1;
 }
