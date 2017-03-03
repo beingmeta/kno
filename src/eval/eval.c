@@ -670,6 +670,66 @@ static fdtype watchcall_plus_handler(fdtype expr,fd_lispenv env)
   return watchcall(expr,env,1);
 }
 
+static u8_string get_label(fdtype arg,u8_byte *buf,size_t buflen)
+{
+  if (FD_SYMBOLP(arg))
+    return FD_SYMBOL_NAME(arg);
+  else if (FD_STRINGP(arg))
+    return FD_STRDATA(arg);
+  else if (FD_FIXNUMP(arg))
+    return u8_write_long_long((FD_FIX2INT(arg)),buf,buflen);
+  else if ((FD_BIGINTP(arg))&&(fd_modest_bigintp((fd_bigint)arg)))
+    return u8_write_long_long
+      (fd_bigint2int64((fd_bigint)arg),buf,buflen);
+  else return NULL;
+}
+
+static fdtype watchptr(fdtype val,fdtype label_arg)
+{
+  u8_byte buf[64];
+  u8_string label=get_label(label_arg,buf,64);
+  if (FD_IMMEDIATEP(val)) {
+    unsigned long long itype=FD_IMMEDIATE_TYPE(val);
+    unsigned long long data=FD_IMMEDIATE_DATA(val);
+    u8_string type_name=fd_type2name(itype);;
+    u8_log(-10,"Immediate pointer",
+           "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] == %q",
+           U8OPTSTR("",label,": "),
+           ((unsigned long long)val),itype,type_name,data,val);}
+  else if (FD_FIXNUMP(val))
+    u8_log(-10,"%s%s%sFixnum","0x%llx == %d",
+           U8OPTSTR("",label,": "),
+           ((unsigned long long)val),FD_FIX2INT(val));
+  else if (FD_OIDP(val)) {
+    FD_OID addr=FD_OID_ADDR(val);
+    u8_log(-10,"OID",
+           "%s%s%s0x%llx [ base=%llx off=%llx ] == %llx/%llx",
+           U8OPTSTR("",label,": "),
+           ((unsigned long long)val),
+           (FD_OID_BASE_ID(val)),(FD_OID_BASE_OFFSET(val)),
+           FD_OID_HI(addr),FD_OID_LO(addr));}
+  else if (FD_STATICP(val)) {
+    fd_ptr_type ptype = FD_CONS_TYPE((fd_cons)val);
+    u8_string type_name=fd_type2name(ptype);
+    u8_log(-10,"Static pointer",
+           "%s%s%s0x%llx [ T0x%llx(%s) ] == %q",
+           U8OPTSTR("",label,": "),
+           ((unsigned long long)val),
+           ptype,type_name,val);}
+  else if (FD_CONSP(val)) {
+    fd_cons c = (fd_cons) val;
+    fd_ptr_type ptype = FD_CONS_TYPE(c);
+    u8_string type_name=fd_type2name(ptype);
+    unsigned int refcount=FD_CONS_REFCOUNT(c);
+    u8_log(-10,"Consed pointer",
+           "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q",
+           U8OPTSTR("",label,": "),
+           ((unsigned long long)val),
+           ptype,type_name,refcount,val);}
+  else {}
+  return fd_incref(val);
+}
+
 static fdtype watched_eval(fdtype expr,fd_lispenv env)
 {
   fdtype toeval=fd_get_arg(expr,1);
@@ -1972,6 +2032,8 @@ static void init_localfns()
 
   fd_defspecial(fd_scheme_module,"TIMEVAL",timed_eval);
   fd_defspecial(fd_scheme_module,"%TIMEVAL",timed_evalx);
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim2("%WATCHPTR",watchptr,1)));
   fd_defspecial(fd_scheme_module,"%WATCH",watched_eval);
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
   fd_defspecial(fd_scheme_module,"%WATCHCALL",watchcall_handler);
