@@ -15,7 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 #include "framerd/fddb.h"
-#include "framerd/stream.h"
+#include "framerd/streams.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
@@ -269,7 +269,6 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
   if (read_only)
     U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
-  pool->pool_mmap=NULL; pool->pool_mmap_size=0;
   u8_init_mutex(&(pool->file_lock));
   if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
@@ -611,21 +610,13 @@ static fdtype read_oid_value_at(fd_bigpool bp,
                                 u8_mutex *unlock)
 {
   if (ref.off==0) return FD_VOID;
-  else if ( (bp->pool_compression==FD_NOCOMPRESS) && (bp->pool_mmap) ) {
-      FD_INBUF in;
-      if (unlock) u8_unlock_mutex(unlock);
-      FD_INIT_BYTE_INPUT(&in,bp->pool_mmap+ref.off,ref.size);
-      return read_oid_value(bp,&in,cxt);}
   else {
     unsigned char _buf[FD_BIGPOOL_FETCHBUF_SIZE], *buf;
     int free_buf=0;
-    if (bp->pool_mmap) buf=bp->pool_mmap+ref.off;
-    else if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE) {
-      buf=read_chunk(&(bp->pool_stream),bp->pool_mmap,
-                     ref.off,ref.size,NULL,unlock);
+    if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE) {
+      buf=read_chunk(&(bp->pool_stream),ref.off,ref.size,NULL,unlock);
       free_buf=1;}
-    else buf=read_chunk(&(bp->pool_stream),bp->pool_mmap,
-                        ref.off,ref.size,_buf,unlock);
+    else buf=read_chunk(&(bp->pool_stream),ref.off,ref.size,_buf,unlock);
     if (buf==NULL) return FD_ERROR_VALUE;
     else if (free_buf) {
       FD_INBUF in;
@@ -722,16 +713,8 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
     qsort(schedule,n,sizeof(struct BIGPOOL_FETCH_SCHEDULE),
           compare_offsets);
     i=0; while (i<n) {
-      fdtype value;
-#if ((BIGPOOL_PREFETCH_WINDOW)>0)
-      if (bp->pool_mmap) {
-        unsigned char *fd_vecelts=bp->pool_mmap;
-        int j=i, lim=(((i+BIGPOOL_PREFETCH_WINDOW)>n) ? (n) : (i+4));
-        while (j<lim) {
-          FD_PREFETCH(&(fd_vecelts[schedule[j].location.off]));
-          j++;}}
-#endif
-      value=read_oid_value_at(bp,schedule[i].location,"bigpool_fetchn",NULL);
+      fdtype value=read_oid_value_at
+        (bp,schedule[i].location,"bigpool_fetchn",NULL);
       if (FD_ABORTP(value)) {
         int j=0; while (j<i) { fd_decref(values[j]); j++;}
         u8_free(schedule); u8_free(values);
@@ -1017,17 +1000,6 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
       exit(-1);}
   write_bigpool_load(bp);
   write_bigpool_slotids(bp);
-  if (bp->pool_mmap) {
-    int retval=munmap(bp->pool_mmap,bp->pool_mmap_size);
-    if (retval<0) {
-      u8_log(LOG_WARN,"MUNMAP",
-             "bigpool MUNMAP failed with %s",
-             u8_strerror(errno));
-      errno=0;}
-    bp->pool_mmap_size=u8_file_size(bp->pool_idstring);
-    bp->pool_mmap=
-      mmap(NULL,bp->pool_mmap_size,PROT_READ,MMAP_FLAGS,
-           bp->pool_stream.stream_fileno,0);}
   u8_log(fddb_loglevel+1,"BigpoolFinalize",
          "Finalized %d oid values for %s in %f seconds",
          n,bp->pool_idstring,u8_elapsed_time()-started);
@@ -1128,16 +1100,6 @@ static void bigpool_setcache(fd_pool p,int level)
     bp->pool_offdata=NULL;
     bp->pool_offdata_length=0;}
 
-  if ( (level < 3) && (bp->pool_mmap) ) {
-    /* Unmap the file */
-    int retval=munmap(bp->pool_mmap,bp->pool_mmap_size);
-    if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "hash_index_setcache:munmap %s",bp->pool_idstring);
-      U8_CLEAR_ERRNO();}
-    bp->pool_mmap=NULL;
-    bp->pool_mmap_size=-1;}
-
   if ( (LOCK_POOLSTREAM(bp,"bigpool_setcache")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
            "During bigpool_setcache for %s",bp->pool_idstring);
@@ -1164,29 +1126,6 @@ static void bigpool_setcache(fd_pool p,int level)
     else {
       bp->pool_offdata=offsets=newmmap+64;
       bp->pool_offdata_length=offsets_size;} }
-
-  if ( (level >= 3) && (bp->pool_mmap == NULL) ) {
-      unsigned char *mmapped=NULL;
-      ssize_t mmap_size=u8_file_size(bp->pool_idstring);
-      if (mmap_size<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),
-               "bigpool u8_file_size for mmap %s",bp->pool_source);
-        errno=0;
-        UNLOCK_POOLSTREAM(bp);
-        fd_unlock_pool(bp);
-        return;}
-      mmapped=
-        mmap(NULL,mmap_size,PROT_READ,MMAP_FLAGS,
-             bp->pool_stream.stream_fileno,0);
-      if (mmapped) {
-        bp->pool_mmap=mmapped;
-        bp->pool_mmap_size=mmap_size;}
-      else {
-        u8_log(LOG_WARN,u8_strerror(errno),
-               "bigpool_setcache:mmap %s",bp->pool_source);
-        bp->pool_mmap=mmapped;
-        bp->pool_mmap_size=mmap_size;
-        errno=0;}}
 
   UNLOCK_POOLSTREAM(bp);
   fd_unlock_pool(bp);
@@ -1293,14 +1232,6 @@ static void bigpool_close(fd_pool p)
 #endif
     bp->pool_offdata=NULL; bp->pool_offdata_length=0;
     bp->pool_cache_level=-1;}
-#if HAVE_MMAP
-  if (bp->pool_mmap) {
-    int retval=munmap(bp->pool_mmap,bp->pool_mmap_size);
-    if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "bigpool_close:munmap %s",bp->pool_idstring);
-      errno=0;}}
-#endif
   if (POOLFILE_LOCKEDP(bp))
     write_bigpool_load(bp);
   fd_close_stream(&(bp->pool_stream),0);

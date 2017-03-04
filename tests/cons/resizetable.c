@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/stream.h"
+#include "framerd/streams.h"
 
 #include <strings.h>
 #include <stdlib.h>

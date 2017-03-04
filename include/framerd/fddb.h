@@ -15,7 +15,7 @@
 #define FD_DBDRIVER_BUFSIZE 100000
 #endif
 
-#include "stream.h"
+#include "streams.h"
 
 FD_EXPORT size_t fd_dbdriver_bufsize;
 

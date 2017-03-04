@@ -77,7 +77,7 @@ DTYPE_HEADERS=\
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 DB_HEADERS=\
- include/framerd/stream.h                            \
+ include/framerd/streams.h                            \
  include/framerd/fddb.h                              \
  include/framerd/pools.h                             \
  include/framerd/indexes.h                           \
@@ -323,7 +323,7 @@ FRAMERD_SOURCES=\
         src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
 	src/cons/fdtype.c src/cons/support.c 				\
 	src/cons/apply.c src/cons/ffi.c       				\
-	src/db/fddb.c src/db/stream.c src/db/hashdtype.c		\
+	src/db/fddb.c src/db/streams.c src/db/hashdtype.c		\
 	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\
 	src/db/compoundindexes.c  					\

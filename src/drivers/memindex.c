@@ -79,15 +79,6 @@ static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
 
 static fdtype drop_symbol, set_symbol;
 
-static int hashtable_probe_key(struct FD_HASHTABLE *ht,fdtype key)
-{
-  int unlock=0;
-  if (ht->table_n_keys == 0) return 0;
-  else if (fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets))
-    return 1;
-  else return 0;
-}
-
 static int write_add(struct FD_KEYVAL *kv,void *lixptr)
 {
   struct FD_MEM_INDEX *logix=(struct FD_MEM_INDEX *)lixptr;

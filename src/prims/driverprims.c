@@ -48,18 +48,6 @@ FD_EXPORT fdtype _fd_hash_index_bucket_deprecated(fdtype ix_arg,fdtype key,fdtyp
 FD_EXPORT fdtype _fd_hash_index_stats_deprecated(fdtype ix_arg);
 FD_EXPORT fdtype _fd_hash_index_slotids_deprecated(fdtype ix_arg);
 
-/* Cache forcing */
-
-/* This forces the cache into memory for a pool or index.
-   It's relevant when the cache is MMAPd. */
-
-static unsigned int load_cache(unsigned int *cache,int length)
-{
-  unsigned int combo=0;
-  int i=0; while (i<length) combo=combo^cache[i++];
-  return combo;
-}
-
 /* Hashing functions */
 
 static fdtype lisphashdtype1(fdtype x)

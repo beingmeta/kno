@@ -11,7 +11,7 @@
 #define FRAMERD_INDEXES_H_INFO "include/framerd/indexes.h"
 #endif
 
-#include "stream.h"
+#include "streams.h"
 
 FD_EXPORT fd_exception
   fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndexes, fd_BadIndexSpec,

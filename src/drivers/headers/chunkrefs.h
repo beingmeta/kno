@@ -134,24 +134,18 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,
 }
 
 static unsigned char *read_chunk(fd_stream stream,
-                                 unsigned char *mmap,
                                  fd_off_t off,uint size,
-                                 uchar *usebuf,
-                                 u8_mutex *unlock)
+				 unsigned char *usebuf,
+				 u8_mutex *unlock)
 {
-  uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size)) ;
-  if (mmap) {
-    memcpy(buf,mmap+off,size);
-    if (unlock) u8_unlock_mutex(unlock);
-    return buf;}
-  else {
-    fd_inbuf in=fd_start_read(stream,off);
-    int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
-    if (unlock) u8_unlock_mutex(unlock);
-    if (bytes_read<0) {
-      if (usebuf==NULL) u8_free(buf);
-      return NULL;}
-    else return buf;}
+  uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size));
+  fd_inbuf in=fd_start_read(stream,off);
+  int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
+  if (unlock) u8_unlock_mutex(unlock);
+  if (bytes_read<0) {
+    if (usebuf==NULL) u8_free(buf);
+    return NULL;}
+  else return buf;
 }
 
 /* Compression functions */

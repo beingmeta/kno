@@ -41,7 +41,6 @@ typedef struct FD_BIGPOOL {
   struct FD_STREAM pool_stream;
   unsigned int pool_load;
   unsigned int *pool_offdata, pool_offdata_length;
-  unsigned char *pool_mmap; size_t pool_mmap_size;
   fdtype *slotids, *old_slotids;
   unsigned int n_slotids, slotids_length, added_slotids;
   struct FD_HASHTABLE slotcodes;

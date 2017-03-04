@@ -16,7 +16,7 @@
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/frames.h"
-#include "framerd/stream.h"
+#include "framerd/streams.h"
 #include "framerd/dtypeio.h"
 #include "framerd/ports.h"
 

@@ -67,7 +67,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/dtypeio.h"
-#include "framerd/stream.h"
+#include "framerd/streams.h"
 #include "framerd/numbers.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
@@ -202,7 +202,7 @@ FD_FASTOP fd_inbuf open_block
   u8_mutex *streamlock=&(hx->index_stream.stream_lock);
   int use_lock=(dolock)&&(hx->index_mmap==NULL);
   if (use_lock) u8_lock_mutex(streamlock); {
-    if (read_chunk(&(hx->index_stream),hx->index_mmap,off,size,buf,
+    if (read_chunk(&(hx->index_stream),off,size,buf,
                    ((use_lock) ? (streamlock) : (NULL)))) {
       FD_INIT_BYTE_INPUT(tmpbuf,buf,size);
       return tmpbuf;}

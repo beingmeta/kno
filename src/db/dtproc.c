@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/stream.h"
+#include "framerd/streams.h"
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/dtproc.h"

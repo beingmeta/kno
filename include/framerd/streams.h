@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FD_STREAM_H
-#define FD_STREAM_H 1
-#ifndef FRAMERD_STREAM_H_INFO
-#define FRAMERD_STREAM_H_INFO "include/framerd/stream.h"
+#ifndef FD_STREAMS_H
+#define FD_STREAMS_H 1
+#ifndef FRAMERD_STREAMS_H_INFO
+#define FRAMERD_STREAMS_H_INFO "include/framerd/streams.h"
 #endif
 
 #include "dtype.h"
@@ -46,8 +46,9 @@ typedef int fd_stream_flags;
 #define FD_STREAM_FILE_LOCKED    (FD_STREAM_FLAGS << 5)
 #define FD_STREAM_SOCKET         (FD_STREAM_FLAGS << 6)
 #define FD_STREAM_DOSYNC         (FD_STREAM_FLAGS << 7)
-#define FD_STREAM_IS_CONSED     (FD_STREAM_FLAGS << 8)
+#define FD_STREAM_IS_CONSED      (FD_STREAM_FLAGS << 8)
 #define FD_STREAM_OWNS_FILENO    (FD_STREAM_FLAGS << 9)
+#define FD_STREAM_MMAPPED        (FD_STREAM_FLAGS << 10)
 
 #define FD_DEFAULT_FILESTREAM_FLAGS \
   (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO|FD_STREAM_CAN_SEEK)
@@ -250,4 +251,4 @@ FD_EXPORT fd_exception fd_ReadOnlyStream;
 FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
 FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
-#endif /* FD_STREAM_H */
+#endif /* FD_STREAMS_H */

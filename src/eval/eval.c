@@ -2143,10 +2143,6 @@ static void init_eval_core()
   fd_finish_module(fd_xscheme_module);
 }
 
-static void init_core_prims()
-{
-}
-
 FD_EXPORT int fd_load_fdscheme()
 {
   return fd_init_fdscheme();

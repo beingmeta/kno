@@ -42,7 +42,6 @@ typedef struct FD_OIDPOOL {
   struct FD_SCHEMA_LOOKUP *pool_schbyval;
   unsigned int pool_load, *pool_offsets, pool_offsets_size;
   struct FD_STREAM pool_stream;
-  size_t pool_mmap_size; unsigned char *pool_mmap;
   U8_MUTEX_DECL(file_lock);} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 

@@ -17,7 +17,7 @@
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
-#include "framerd/stream.h"
+#include "framerd/streams.h"
 #include "framerd/drivers.h"
 
 #include <libu8/u8pathfns.h>
