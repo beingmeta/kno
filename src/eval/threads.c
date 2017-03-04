@@ -46,8 +46,6 @@ static fdtype logexit_symbol=FD_VOID;
 
 /* Thread functions */
 
-#if FD_HAVE_THREADS
-
 int fd_thread_backtrace=0;
 
 fd_ptr_type fd_thread_type;
@@ -613,9 +611,6 @@ static fdtype set_stack_limit_prim(fdtype arg)
   return FD_INT2DTYPE(limit);
 }
 
-#endif
-
-#if FD_HAVE_THREADS
 FD_EXPORT void fd_init_threads_c()
 {
   fd_thread_type=fd_register_cons_type(_("thread"));
@@ -679,13 +674,6 @@ FD_EXPORT void fd_init_threads_c()
 
   u8_register_source_file(_FILEINFO);
 }
-#else
-FD_EXPORT void fd_init_threads_c()
-{
-  u8_register_source_file(_FILEINFO);
-}
-#endif
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -341,13 +341,14 @@ typedef double fd_double;
 
 #if defined(__APPLE__)
 #define qsorter(vec,n_elts,elt_size,compare,vdata) \
-  qsort_r(vec,n_elts,elt_size,vdata,(int (* _Nonnull)(void *, const void *, const void *))compare)
+  qsort_r(vec,n_elts,elt_size,vdata,\
+	  (int (* _Nonnull)(void *, const void *, const void *))compare)
 #elif ( defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) )
 #define qsorter(vec,n_elts,elt_size,compare,vdata) \
   qsort_r(vec,n_elts,elt_size,vdata,compare)
 #else
 #define qsorter(vec,n_elts,elt_size,compare,vdata) \
-  qsort_r(vec,n_elts,elt_size,vdata,compare)
+  qsort_r(vec,n_elts,elt_size,compare,vdata)
 #endif
 
 /* How to implement OIDs */

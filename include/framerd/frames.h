@@ -71,11 +71,11 @@ FD_EXPORT void fd_inhibit_overlays(int flag);
 
 /* Overlay inhibition */
 
-#if FD_USE__THREAD
-FD_EXPORT __thread int fd_inhibit_overlay;
-#else
+#if FD_USE_TLS
 FD_EXPORT u8_tld_key _fd_inhibit_overlay_key;
-#define fd_inhibit_overlay ((int)(u8_tld_get(_fd_inhibit_overlay_key)!=NULL))
+#define fd_inhibit_overlay ((int)((u8_tld_get(_fd_inhibit_overlay_key))))
+#else
+FD_EXPORT __thread int fd_inhibit_overlay;
 #endif
 
 /* Making frames */

@@ -368,7 +368,6 @@ typedef struct FD_CONTINUATION *fd_continuation;
 
 /* Threading stuff */
 
-#if FD_HAVE_THREADS
 #define FD_THREAD_DONE 1
 #define FD_EVAL_THREAD 2
 #define FD_THREAD_TRACE_EXIT 4
@@ -391,8 +390,6 @@ FD_EXPORT fd_ptr_type fd_thread_type;
 FD_EXPORT fd_ptr_type fd_condvar_type;
 FD_EXPORT fd_thread_struct fd_thread_call(fdtype *,fdtype,int,fdtype *,int);
 FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
-#endif /* FD_HAVE_THREADS */
-
 
 /* Opcodes */
 
