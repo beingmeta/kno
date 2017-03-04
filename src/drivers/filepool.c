@@ -120,23 +120,18 @@ static int write_file_pool_load(fd_file_pool fp)
     /* Update the load */
     long long load;
     fd_stream stream=&(fp->pool_stream);
-    fd_lock_stream(stream);
     load=fd_read_4bytes_at(stream,16);
     if (load<0) {
-      fd_unlock_stream(stream);
       return -1;}
     else if (load>fp->pool_capacity) {
       u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->pool_idstring));
       fd_unlockfile(stream);
-      fd_unlock_stream(stream);
       return -1;}
     else if (fp->pool_load>load) {
       int rv=fd_write_4bytes_at(stream,fp->pool_load,16);
-      fd_unlock_stream(stream);
       if (rv<0) return rv;
       return 1;}
     else {
-      fd_unlock_stream(stream);
       return 0;}}
   else return 0;
 }
@@ -147,20 +142,16 @@ static int read_file_pool_load(fd_file_pool fp)
   fd_stream stream=&(fp->pool_stream);
   if (FD_POOLFILE_LOCKEDP(fp)) {
     return fp->pool_load;}
-  else fd_lock_stream(stream);
   if (fd_lockfile(stream)<0) return -1;
   load=fd_read_4bytes_at(stream,16);
   if (load<0) {
     fd_unlockfile(stream);
-    fd_unlock_stream(stream);
     return -1;}
   else if (load>fp->pool_capacity) {
     u8_seterr("InvalidLoad","read_file_pool_load",u8_strdup(fp->pool_idstring));
     fd_unlockfile(stream);
-    fd_unlock_stream(stream);
     return -1;}
   fd_unlockfile(stream);
-  fd_unlock_stream(stream);
   fp->pool_load=load;
   fd_unlock_pool(fp);
   return load;
@@ -174,7 +165,9 @@ static int file_pool_load(fd_pool p)
   else {
     int pool_load;
     fd_lock_pool(fp);
+    fd_lock_stream(&(fp->pool_stream));
     pool_load=read_file_pool_load(fp);
+    fd_unlock_stream(&(fp->pool_stream));
     fd_unlock_pool(fp);
     return pool_load;}
 }

@@ -347,18 +347,14 @@ static int write_bigpool_load(fd_bigpool bp)
     /* Update the load */
     long long load;
     fd_stream stream=&(bp->pool_stream);
-    LOCK_POOLSTREAM(bp,"write_bigpool_load");
     load=fd_read_4bytes_at(stream,16);
     if (load<0) {
-      UNLOCK_POOLSTREAM(bp);
       return -1;}
     else if (bp->pool_load>load) {
       int rv=fd_write_4bytes_at(stream,bp->pool_load,16);
-      UNLOCK_POOLSTREAM(bp);
       if (rv<0) return rv;
       else return rv;}
     else {
-      UNLOCK_POOLSTREAM(bp);
       return 0;}}
   else return 0;
 }
@@ -369,15 +365,12 @@ static int read_bigpool_load(fd_bigpool bp)
   fd_stream stream=&(bp->pool_stream);
   if (POOLFILE_LOCKEDP(bp)) {
     return bp->pool_load;}
-  else {LOCK_POOLSTREAM(bp,"read_bigpool_load");}
-  if (fd_lockfile(stream)<0) return -1;
+   if (fd_lockfile(stream)<0) return -1;
   load=fd_read_4bytes_at(stream,16);
   if (load<0) {
     fd_unlockfile(stream);
-    UNLOCK_POOLSTREAM(bp);
-    return -1;}
+     return -1;}
   fd_unlockfile(stream);
-  UNLOCK_POOLSTREAM(bp);
   bp->pool_load=load;
   fd_unlock_pool(bp);
   return load;

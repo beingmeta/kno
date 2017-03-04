@@ -427,18 +427,14 @@ static int write_oidpool_load(fd_oidpool op)
     /* Update the load */
     long long load;
     fd_stream stream=&(op->pool_stream);
-    fd_lock_stream(stream);
     load=fd_read_4bytes_at(stream,16);
     if (load<0) {
-      fd_unlock_stream(stream);
       return -1;}
     else if (op->pool_load>load) {
       int rv=fd_write_4bytes_at(stream,op->pool_load,16);
-      fd_unlock_stream(stream);
       if (rv<0) return rv;
       else return rv;}
     else {
-      fd_unlock_stream(stream);
       return 0;}}
   else return 0;
 }
@@ -449,15 +445,12 @@ static int read_oidpool_load(fd_oidpool op)
   fd_stream stream=&(op->pool_stream);
   if (FD_POOLFILE_LOCKEDP(op)) {
     return op->pool_load;}
-  else fd_lock_stream(stream);
   if (fd_lockfile(stream)<0) return -1;
   load=fd_read_4bytes_at(stream,16);
   if (load<0) {
     fd_unlockfile(stream);
-    fd_unlock_stream(stream);
     return -1;}
   fd_unlockfile(stream);
-  fd_unlock_stream(stream);
   op->pool_load=load;
   fd_unlock_pool(op);
   return load;
@@ -624,7 +617,9 @@ static int oidpool_load(fd_pool p)
     /* Otherwise, we need to read the load from the file */
     int load;
     fd_lock_pool(op);
+    fd_lock_stream(&(op->pool_stream));
     load=read_oidpool_load(op);
+    fd_unlock_stream(&(op->pool_stream));
     fd_unlock_pool(op);
     return load;}
 }
