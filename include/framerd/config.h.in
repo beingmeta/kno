@@ -33,9 +33,6 @@
 /* Define to specify whether large files are to be used  */
 #undef FD_LARGEFILES_ENABLED
 
-/* Define to compile with multi threading */
-#undef FD_THREADS_ENABLED
-
 /* Define to have frame operations prefetch when possible */
 #undef FD_PREFETCHING_ENABLED
 

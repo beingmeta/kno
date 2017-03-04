@@ -1001,20 +1001,6 @@ fi
 dnl If possible, compile for multi-threaded execution.  This both makes
 dnl  the library threadsafe and enables Scheme primitives for spawning threads
 dnl  and parallel execution
-AC_ARG_ENABLE(threads,--en[dis]able-threads Enable multi-threading,,enable_threads=$threads_default)
-if test $enable_threads = "yes"; then
-   AC_CHECK_HEADERS(pthread.h)
-   REENTRANT=-D_REENTRANT	
-   LIBS="$PTHREAD_LIBS $LIBS"
-   CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-   AC_DEFINE(FD_THREADS_ENABLED,1)
-else
-  AC_DEFINE(FD_THREADS_ENABLED,0)
-fi
-
-dnl If possible, compile for multi-threaded execution.  This both makes
-dnl  the library threadsafe and enables Scheme primitives for spawning threads
-dnl  and parallel execution
 AC_ARG_WITH(nptrlocks,--with-nptrlocks Sets the number of pointer hash locks to use)
 if test ! -z $with_nptrlocks; then
    AC_DEFINE_UNQUOTED(FD_N_PTRLOCKS,$with_nptrlocks)

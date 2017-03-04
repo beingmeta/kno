@@ -820,7 +820,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -896,7 +895,6 @@ enable_async
 enable_dtblock
 with_i18n
 enable_checkptrs
-enable_threads
 with_nptrlocks
 enable_mmap_prefetch
 with_editline
@@ -983,7 +981,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1236,15 +1233,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1382,7 +1370,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1535,7 +1523,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1575,7 +1562,6 @@ Optional Features:
 --endisable-async Enable async I/O features
 --endisable-dtblock DTBlock dtype for net I/O
 --endisable-checkfdtype Enable compile-time checking for fdtype pointers
---endisable-threads Enable multi-threading
 --endisable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --endisable-largefiles Enable use of large (> 2GB) file support
 --endisable-prefetching make frame operations prefetch when they can
@@ -9651,36 +9637,6 @@ if test "$enable_checkfdtype" = "yes"; then
 
 else
   $as_echo "#define FD_DEFAULT_CHECKFDTYPE 0" >>confdefs.h
-
-fi
-
-# Check whether --enable-threads was given.
-if test "${enable_threads+set}" = set; then :
-  enableval=$enable_threads;
-else
-  enable_threads=$threads_default
-fi
-
-if test $enable_threads = "yes"; then
-   for ac_header in pthread.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "pthread.h" "ac_cv_header_pthread_h" "$ac_includes_default"
-if test "x$ac_cv_header_pthread_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_PTHREAD_H 1
-_ACEOF
-
-fi
-
-done
-
-   REENTRANT=-D_REENTRANT
-   LIBS="$PTHREAD_LIBS $LIBS"
-   CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-   $as_echo "#define FD_THREADS_ENABLED 1" >>confdefs.h
-
-else
-  $as_echo "#define FD_THREADS_ENABLED 0" >>confdefs.h
 
 fi
 
