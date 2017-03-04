@@ -31,10 +31,7 @@ fd_exception fd_FCNIDOverflow=_("No more valid persistent pointers");
 
 struct FD_CONS **_fd_fcnids[FD_FCNID_NBLOCKS];
 int _fd_fcnid_count=0;
-
-#if FD_THREADS_ENABLED
 u8_mutex _fd_fcnid_lock;
-#endif
 
 FD_EXPORT fdtype fd_resolve_fcnid(fdtype x)
 {
@@ -46,9 +43,9 @@ FD_EXPORT fdtype fd_register_fcnid(fdtype x)
   int serialno;
   if (!(FD_CONSP(x)))
     return fd_type_error("cons","fd_register_fcnid",x);
-  fd_lock_mutex(&_fd_fcnid_lock);
+  u8_lock_mutex(&_fd_fcnid_lock);
   if (_fd_fcnid_count>=FD_FCNID_MAX) {
-    fd_unlock_mutex(&_fd_fcnid_lock);
+    u8_unlock_mutex(&_fd_fcnid_lock);
     return fd_err(fd_FCNIDOverflow,"fd_register_fcnid",NULL,x);}
   serialno=_fd_fcnid_count++;
   if ((serialno%FD_FCNID_BLOCKSIZE)==0) {
@@ -59,7 +56,7 @@ FD_EXPORT fdtype fd_register_fcnid(fdtype x)
   fd_incref(x);
   _fd_fcnids[serialno/FD_FCNID_BLOCKSIZE][serialno%FD_FCNID_BLOCKSIZE]=
     (struct FD_CONS *)x;
-  fd_unlock_mutex(&_fd_fcnid_lock);
+  u8_unlock_mutex(&_fd_fcnid_lock);
   return FDTYPE_IMMEDIATE(fd_fcnid_type,serialno);
 }
 
@@ -72,18 +69,18 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
   else if (!(FD_FUNCTIONP(value)))
     return fd_type_error("function","fd_set_fcnid",value);
   else {
-    fd_lock_mutex(&_fd_fcnid_lock);
+    u8_lock_mutex(&_fd_fcnid_lock);
     int serialno=FD_GET_IMMEDIATE(id,fd_fcnid_type);
     int block_num=serialno/FD_FCNID_BLOCKSIZE;
     int block_off=serialno%FD_FCNID_BLOCKSIZE;
     if (serialno>=_fd_fcnid_count) {
-      fd_unlock_mutex(&_fd_fcnid_lock);
+      u8_unlock_mutex(&_fd_fcnid_lock);
       return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
     else {
       struct FD_CONS **block=_fd_fcnids[block_num];
       if (!(block)) {
         /* We should never get here, but let's check anyway */
-        fd_unlock_mutex(&_fd_fcnid_lock);
+        u8_unlock_mutex(&_fd_fcnid_lock);
         return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
       else {
         struct FD_CONS *current=block[block_off];
@@ -92,7 +89,7 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
         block[block_off]=(fd_cons)value;
         fd_incref(value);
         fd_decref(value);
-        fd_unlock_mutex(&_fd_fcnid_lock);
+        u8_unlock_mutex(&_fd_fcnid_lock);
         return id;}}}
 }
 
@@ -132,9 +129,7 @@ FD_EXPORT void fd_init_fcnids_c()
 {
   fd_type_names[fd_fcnid_type]=_("persistent pointer");
   fd_unparsers[fd_fcnid_type]=unparse_fcnid;
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&_fd_fcnid_lock);
-#endif
+  u8_init_mutex(&_fd_fcnid_lock);
   u8_register_source_file(_FILEINFO);
 }
 

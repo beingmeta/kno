@@ -339,10 +339,10 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
                 (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
                 (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
     if (reqlog) fd_flush_stream(reqlog);
-    fd_unlock_mutex(&log_lock);
+    u8_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
@@ -582,10 +582,10 @@ static int simplecgi(fdtype path)
                 (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
                 (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
     if (reqlog) fd_flush_stream(reqlog);
-    fd_unlock_mutex(&log_lock);
+    u8_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
@@ -677,9 +677,7 @@ int main(int argc,char **argv)
   fd_register_config("CGISOCK",_("The socket file used by this server for use with external versions"),
                      fd_sconfig_get,fd_sconfig_set,&socketspec);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&log_lock);
-#endif
+  u8_init_mutex(&log_lock);
 
   while (i<argc) {
     if (isconfig(argv[i])) {

@@ -228,7 +228,7 @@ static int statlog_set(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_string filename=FD_STRDATA(val);
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (statlog) {
       fclose(statlog); statlog=NULL;
       u8_free(statlogfile); statlogfile=NULL;}
@@ -242,12 +242,12 @@ static int statlog_set(fdtype var,fdtype val,void *data)
       tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
       u8_chmod(statlogfile,0774);
       fputs(tmp,statlog);
-      fd_unlock_mutex(&log_lock);
+      u8_unlock_mutex(&log_lock);
       u8_free(tmp);
       return 1;}
     else {
       u8_log(LOG_WARN,"no file","Couldn't open %s",statlogfile);
-      fd_unlock_mutex(&log_lock);
+      u8_unlock_mutex(&log_lock);
       u8_free(statlogfile); statlogfile=NULL;
       return 0;}}
   else if (FD_FALSEP(val)) {
@@ -373,7 +373,7 @@ static void update_status()
   FILE *log=statlog; int mon=statusout;
   if (((mon<0)&&(statfile))||
       ((!(log))&&(statlogfile))) {
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (statusout>=0) mon=statusout;
     else if (statfile) {
       mon=statusout=(open(statfile,O_WRONLY|O_CREAT,0644));
@@ -383,7 +383,7 @@ static void update_status()
     else if (statlogfile)
       log=statlog=(u8_fopen_locked(statlogfile,"a"));
     else log=NULL;
-    fd_unlock_mutex(&log_lock);}
+    u8_unlock_mutex(&log_lock);}
   if (mon>=0) {
     off_t rv=lseek(mon,0,SEEK_SET);
     if (rv>=0) rv=ftruncate(mon,0);
@@ -605,9 +605,9 @@ static void write_cmd_file(int argc,char **argv)
 static void close_statlog()
 {
   if (statlog) {
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     fclose(statlog); statlog=NULL;
-    fd_unlock_mutex(&log_lock);}
+    u8_unlock_mutex(&log_lock);}
 }
 
 static fdtype servlet_status()
@@ -1514,10 +1514,10 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,cond," after: %s",after);
       u8_free(before); u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
     if (reqlog) fd_flush_stream(reqlog);
-    fd_unlock_mutex(&log_lock);
+    u8_unlock_mutex(&log_lock);
     fd_decref(xredirect);
     fd_decref(redirect);
     fd_decref(sendfile);
@@ -2057,13 +2057,11 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)server_env,
            fd_make_cprim0("SERVLET-STATUS",servlet_status,0));
 
-#if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
      An alternative would be to log to a data structure and have a separate thread writing
      to the log.  Of course, if we have problems writing to the log, we probably have all sorts
      of other problems too! */
-  fd_init_mutex(&log_lock);
-#endif
+  u8_init_mutex(&log_lock);
 
   u8_log(LOG_NOTICE,Startup,"FDServlet %s",socket_spec);
   

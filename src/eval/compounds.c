@@ -58,14 +58,14 @@ static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
   int off=FD_FIX2INT(offset), len=compound->fd_n_elts;
-  if (compound->compound_ismutable) fd_lock_struct(compound);
+  if (compound->compound_ismutable) u8_lock_mutex(&(compound->compound_lock));
   if (((compound->compound_typetag==tag) || (FD_VOIDP(tag))) && (off<len)) {
     fdtype value=*((&(compound->compound_0))+off);
     fd_incref(value);
-    if (compound->compound_ismutable) fd_unlock_struct(compound);
+    if (compound->compound_ismutable) u8_unlock_mutex(&(compound->compound_lock));
     return value;}
   /* Unlock and figure out the details of the error */
-  if (compound->compound_ismutable) fd_unlock_struct(compound);
+  if (compound->compound_ismutable) u8_unlock_mutex(&(compound->compound_lock));
   if ((compound->compound_typetag!=tag) && (!(FD_VOIDP(tag)))) {
     u8_string type_string=fd_dtype2string(tag);
     fd_seterr(fd_TypeError,"compound_ref",type_string,x);
@@ -89,13 +89,14 @@ static fdtype unpack_compound(fdtype x,fdtype tag)
   else {
     int len=compound->fd_n_elts;
     fdtype *elts=&(compound->compound_0), result=FD_VOID;
-    if (compound->compound_ismutable) fd_lock_struct(compound);
+    if (compound->compound_ismutable) 
+      u8_lock_mutex(&(compound->compound_lock));
     {
       fdtype *scan=elts, *lim=elts+len; while (scan<lim) {
         fdtype v=*scan++; fd_incref(v);}}
     result=fd_init_pair(NULL,fd_incref(compound->compound_typetag),
                         fd_make_vector(len,elts));
-    if (compound->compound_ismutable) fd_unlock_struct(compound);
+    if (compound->compound_ismutable) u8_unlock_mutex(&(compound->compound_lock));
     return result;}
 }
 
@@ -119,15 +120,15 @@ static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
         ((compound->compound_typetag==tag) || (FD_VOIDP(tag))) &&
         (off<len)) {
       fdtype *valuep=((&(compound->compound_0))+off), old_value;
-      fd_lock_struct(compound);
+      u8_lock_mutex(&(compound->compound_lock));
       old_value=*valuep;
       fd_incref(value);
       *valuep=value;
       fd_decref(old_value);
-      fd_unlock_struct(compound);
+      u8_unlock_mutex(&(compound->compound_lock));
       return FD_VOID;}
     /* Unlock and figure out the details of the error */
-    fd_unlock_struct(compound);
+    u8_unlock_mutex(&(compound->compound_lock));
     if (compound->compound_ismutable==0) {
       fd_seterr(_("Immutable record"),"set_compound",NULL,x);
       return FD_ERROR_VALUE;}
@@ -179,7 +180,7 @@ static fdtype make_mutable_compound(int n,fdtype *args)
   int i=1; fdtype *write=&(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag=fd_incref(args[0]); compound->fd_n_elts=n-1; compound->compound_ismutable=1;
-  fd_init_mutex(&(compound->fd_lock));
+  u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return FDTYPE_CONS(compound);
@@ -194,7 +195,7 @@ static fdtype make_opaque_mutable_compound(int n,fdtype *args)
   compound->compound_typetag=fd_incref(args[0]);
   compound->fd_n_elts=n-1; compound->compound_ismutable=1;
   compound->compound_isopaque=1;
-  fd_init_mutex(&(compound->fd_lock));
+  u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return FDTYPE_CONS(compound);
@@ -212,7 +213,7 @@ static fdtype vector2compound(fdtype vector,fdtype tag,
   if (FD_FALSEP(mutable)) compound->compound_ismutable=0;
   else {
     compound->compound_ismutable=1;
-    fd_init_mutex(&(compound->fd_lock));}
+    u8_init_mutex(&(compound->compound_lock));}
   if (FD_FALSEP(opaque)) compound->compound_isopaque=0;
   else {
     compound->compound_isopaque=1;}

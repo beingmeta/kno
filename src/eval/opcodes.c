@@ -653,10 +653,12 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
   if ((FD_VOIDP(tag)) || ((c->compound_typetag)==tag))
     if (i<c->fd_n_elts) {
       fdtype *values=&(c->compound_0), value;
-      if (c->compound_ismutable) fd_lock_struct(c);
+      if (c->compound_ismutable) 
+        u8_lock_mutex(&(c->compound_lock));
       value=values[i];
       fd_incref(value);
-      if (c->compound_ismutable) fd_unlock_struct(c);
+      if (c->compound_ismutable) 
+        u8_unlock_mutex(&(c->compound_lock));
       return value;}
     else {
       fd_seterr(fd_RangeError,"xref",NULL,x);

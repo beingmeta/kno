@@ -45,10 +45,7 @@ static int served_poolp(fd_pool p)
 
 static int init_timestamp=0;
 static int change_count=0;
-
-#if FD_THREADS_ENABLED
 static u8_mutex changelog_lock;
-#endif
 
 struct FD_CHANGELOG_ENTRY {
   int moment; fdtype keys;};
@@ -71,7 +68,7 @@ static void init_changelog(struct FD_CHANGELOG *clog,int size)
 static struct FD_CHANGELOG *get_subindex_changelog(fd_index ix,int make)
 {
   struct FD_CHANGELOG *clog=NULL; int i=0;
-  fd_lock_mutex(&changelog_lock);
+  u8_lock_mutex(&changelog_lock);
   while (i < n_subindex_changelogs)
     if (subindex_changelogs[i].ix == ix) break; else i++;
   if (subindex_changelogs[i].ix == ix) clog=(subindex_changelogs[i].clog);
@@ -86,14 +83,14 @@ static struct FD_CHANGELOG *get_subindex_changelog(fd_index ix,int make)
     subindex_changelogs[n_subindex_changelogs].ix=ix; subindex_changelogs[n_subindex_changelogs].clog=clog;
     init_changelog(clog,1024);
     n_subindex_changelogs++;}
-  fd_unlock_mutex(&changelog_lock);
+  u8_unlock_mutex(&changelog_lock);
   return clog;
 }
 
 static void add_to_changelog(struct FD_CHANGELOG *clog,fdtype keys)
 {
   struct FD_CHANGELOG_ENTRY *entries; int point;
-  fd_lock_mutex(&changelog_lock);
+  u8_lock_mutex(&changelog_lock);
   entries=clog->entries; point=clog->point;
   if (clog->full) {
     fd_decref(entries[point].keys);}
@@ -105,13 +102,13 @@ static void add_to_changelog(struct FD_CHANGELOG *clog,fdtype keys)
   else if (clog->point == clog->max) {
     clog->point=0; clog->full=1;}
   else clog->point++;
-  fd_unlock_mutex(&changelog_lock);
+  u8_unlock_mutex(&changelog_lock);
 }
 
 static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
 {
   fdtype result;
-  fd_lock_mutex(&changelog_lock);
+  u8_lock_mutex(&changelog_lock);
   {
     int bottom=((clog->full) ? (clog->point) : 0);
     int top=((clog->full) ? ((clog->point) ? (clog->point-1) : (clog->max)) : (clog->point-1));
@@ -136,7 +133,7 @@ static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
             FD_ADD_TO_CHOICE(changes,key);}
           else break;}
       result=changes;}}
-  fd_unlock_mutex(&changelog_lock);
+  u8_unlock_mutex(&changelog_lock);
   return result;
 }
 
@@ -195,33 +192,31 @@ static void update_server_lock_file();
 fd_exception OIDNotLocked=_("The OID is not locked");
 fd_exception CantLockOID=_("Can't lock OID");
 
-#if FD_THREADS_ENABLED
 static u8_mutex server_locks_lock;
-#endif
 
 static int lock_oid(fdtype oid,fdtype id)
 {
   fdtype holder;
   if (locking == 0) return 1;
-  fd_lock_mutex(&server_locks_lock);
+  u8_lock_mutex(&server_locks_lock);
   holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(holder)) {
     fd_pool p=fd_oid2pool(oid);
     if ((fd_pool_lock(p,oid)) == 0) {
-      fd_unlock_mutex(&server_locks_lock); return 0;}
+      u8_unlock_mutex(&server_locks_lock); return 0;}
     fd_hashtable_store(&server_locks,oid,id); n_locks++;
     fd_hashtable_add(&server_locks_inv,id,oid);
     if (locks_file) {
       fd_write_dtype(fd_writebuf(locks_file),oid);
       fd_write_dtype(fd_writebuf(locks_file),id);
       fd_flush_stream(locks_file);}
-    fd_unlock_mutex(&server_locks_lock);
+    u8_unlock_mutex(&server_locks_lock);
     return 1;}
   else if (FDTYPE_EQUAL(id,holder)) {
-    fd_unlock_mutex(&server_locks_lock); fd_decref(holder);
+    u8_unlock_mutex(&server_locks_lock); fd_decref(holder);
     return 1;}
   else {
-    fd_unlock_mutex(&server_locks_lock);
+    u8_unlock_mutex(&server_locks_lock);
     fd_decref(holder);
     return 0;}
 }
@@ -239,9 +234,9 @@ static int clear_server_lock(fdtype oid,fdtype id)
 {
   fdtype holder;
   if (locking == 0) return 1;
-  fd_lock_mutex(&server_locks_lock);
+  u8_lock_mutex(&server_locks_lock);
   holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
-  if (FD_EMPTY_CHOICEP(holder)) {fd_unlock_mutex(&server_locks_lock); return 0;}
+  if (FD_EMPTY_CHOICEP(holder)) {u8_unlock_mutex(&server_locks_lock); return 0;}
   else if (FDTYPE_EQUAL(id,holder)) {
     fdtype all_locks=fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
     int lock_count=FD_CHOICE_SIZE(all_locks);
@@ -257,25 +252,25 @@ static int clear_server_lock(fdtype oid,fdtype id)
       fd_write_dtype(fd_writebuf(locks_file),id);
       fd_write_dtype(fd_writebuf(locks_file),oid);
       fd_flush_stream(locks_file);}
-    fd_unlock_mutex(&server_locks_lock);
+    u8_unlock_mutex(&server_locks_lock);
     return 1;}
   else {
     fd_decref(holder);
-    fd_unlock_mutex(&server_locks_lock);
+    u8_unlock_mutex(&server_locks_lock);
     return 0;}
 }
 
 static void remove_all_server_locks(fdtype id)
 {
   if (locking == 0) return;
-  fd_lock_mutex(&server_locks_lock);
+  u8_lock_mutex(&server_locks_lock);
   {
     fdtype locks=fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(oid,locks) {
       fd_hashtable_drop(&server_locks,oid,FD_VOID);}
     fd_decref(locks);
     fd_hashtable_store(&server_locks_inv,id,FD_EMPTY_CHOICE);
-    fd_unlock_mutex(&server_locks_lock);
+    u8_unlock_mutex(&server_locks_lock);
   }
 }
 
@@ -313,7 +308,7 @@ static void update_server_lock_file()
 {
   u8_string temp_file;
   if (locks_filename == NULL) return;
-  fd_lock_mutex(&server_locks_lock);
+  u8_lock_mutex(&server_locks_lock);
   temp_file=u8_mkstring("%s.bak",locks_filename);
   if (locks_file) fd_close_stream(locks_file,0);
   u8_movefile(locks_filename,temp_file);
@@ -322,7 +317,7 @@ static void update_server_lock_file()
   fd_flush_stream(locks_file);
   u8_removefile(temp_file);
   u8_free(temp_file);
-  fd_unlock_mutex(&server_locks_lock);
+  u8_unlock_mutex(&server_locks_lock);
 }
 
 static fdtype config_get_locksfile(fdtype var,void U8_MAYBE_UNUSED *data)
@@ -826,10 +821,8 @@ void fd_init_dbserv_c()
   fd_init_hashtable(&server_locks,0,NULL);
   fd_init_hashtable(&server_locks_inv,0,NULL);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&server_locks_lock);
-  fd_init_mutex(&changelog_lock);
-#endif
+  u8_init_mutex(&server_locks_lock);
+  u8_init_mutex(&changelog_lock);
 
   module=fd_make_hashtable(NULL,67);
 

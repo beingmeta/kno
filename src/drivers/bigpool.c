@@ -270,7 +270,7 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
     U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
   pool->pool_mmap=NULL; pool->pool_mmap_size=0;
-  fd_init_mutex(&(pool->file_lock));
+  u8_init_mutex(&(pool->file_lock));
   if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);

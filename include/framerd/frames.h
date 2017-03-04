@@ -73,11 +73,9 @@ FD_EXPORT void fd_inhibit_overlays(int flag);
 
 #if FD_USE__THREAD
 FD_EXPORT __thread int fd_inhibit_overlay;
-#elif FD_THREADS_ENABLED
+#else
 FD_EXPORT u8_tld_key _fd_inhibit_overlay_key;
 #define fd_inhibit_overlay ((int)(u8_tld_get(_fd_inhibit_overlay_key)!=NULL))
-#else
-FD_EXPORT int fd_inhibit_overlay;
 #endif
 
 /* Making frames */

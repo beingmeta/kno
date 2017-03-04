@@ -1287,9 +1287,7 @@ static fdtype global_browseinfo=FD_EMPTY_CHOICE;
 static u8_string default_browse_uri=NULL;
 static u8_string default_browse_class=NULL;
 
-#if FD_THREADS_ENABLED
 static u8_mutex browseinfo_lock;
-#endif
 
 static fdtype get_browseinfo(fdtype arg)
 {
@@ -2333,9 +2331,7 @@ FD_EXPORT void fd_init_xmloutput_c()
      _("Default HTML CSS class for OID references"),
      fd_sconfig_get,fd_sconfig_set,&default_browse_class);
 
-#if (FD_THREADS_ENABLED)
   u8_init_mutex(&browseinfo_lock);
-#endif
 
   u8_register_source_file(_FILEINFO);
 

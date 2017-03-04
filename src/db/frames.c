@@ -30,25 +30,19 @@ static fdtype add_effects, drop_effects;
 
 static fdtype slot_overlay=FD_VOID, index_overlay=FD_VOID;
 
-#if FD_THREADS_ENABLED
 static u8_mutex slotcache_lock;
-#endif
 
 /* Frame overlays */
 
-#if FD_USE__THREAD
-__thread int fd_inhibit_overlay=0;
-FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
-#elif FD_THREADS_ENABLED
+#if FD_USE_TLS
 u8_tld_key _fd_inhibit_overlay_key;
 FD_EXPORT void fd_inhibit_overlays(int flag)
 {
   fd_wideint iflag=flag;
-  fd_tld_set(_fd_inhibit_overlay_key,(void *)iflag);
+  u8_tld_set(_fd_inhibit_overlay_key,(void *)iflag);
 }
-#else
-int fd_inhibit_overlay=0;
-FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
+#else /* FD_USE__THREAD */
+__thread int fd_inhibit_overlay=0;
 #endif
 
 static fdtype _overlay_get
@@ -390,12 +384,10 @@ static int overlay_config_set(fdtype ignored,fdtype v,void *vptr)
      associated with the dependency mechanism implemented below.
 */
 
-#if FD_USE__THREAD
-static __thread struct FD_FRAMEOP_STACK *opstack=NULL;
-#elif FD_THREADS_ENABLED
+#if FD_USE_TLS
 static u8_tld_key opstack_key;
 #else
-static struct FD_FRAMEOP_STACK *opstack=NULL;
+static __thread struct FD_FRAMEOP_STACK *opstack=NULL;
 #endif
 
 static struct FD_FRAMEOP_STACK *get_opstack()
@@ -431,7 +423,7 @@ FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *op)
   op->next=ops;
   op->dependencies=NULL;
   op->n_deps=op->max_deps=0;
-#if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
+#if (FD_USE_TLS)
   u8_tld_set(opstack_key,op);
 #else
   opstack=op;
@@ -452,7 +444,7 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
         fd_decref(scan->frame); fd_decref(scan->slotid); fd_decref(scan->value);
         scan++;}
       u8_free(op->dependencies);}}
-#if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
+#if (FD_USE_TLS)
   u8_tld_set(opstack_key,op->next);
 #else
   opstack=op->next;
@@ -490,29 +482,29 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
 static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17);
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,table);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
 static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17);
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&test_caches,slotid,table);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
 FD_EXPORT void fd_clear_slotcache(fdtype slotid)
 {
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   if (fd_hashtable_probe(&slot_caches,slotid))
     fd_hashtable_store(&slot_caches,slotid,FD_VOID);
   if (fd_hashtable_probe(&test_caches,slotid))
     fd_hashtable_store(&test_caches,slotid,FD_VOID);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
 }
 
 FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
@@ -654,14 +646,14 @@ FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
 
 FD_EXPORT void fd_clear_slotcaches()
 {
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   if (slot_caches.table_n_keys)
     fd_reset_hashtable(&slot_caches,17,1);
   if (test_caches.table_n_keys)
     fd_reset_hashtable(&test_caches,17,1);
   if (implications.table_n_keys)
     fd_reset_hashtable(&implications,17,1);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
 }
 
 
@@ -1293,12 +1285,11 @@ FD_EXPORT void fd_init_frames_c()
                      overlay_config_set,
                      &index_overlay);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&slotcache_lock);
+  u8_init_mutex(&slotcache_lock);
+
 #if FD_USE_TLS
   u8_new_threadkey(&_fd_inhibit_overlay_key,NULL);
   u8_new_threadkey(&opstack_key,NULL);
-#endif
 #endif
 
 }

@@ -123,9 +123,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fddb_flags flags);
 
 int fd_ignore_anonymous_oids=0;
 
-#if FD_THREADS_ENABLED
 static u8_mutex pool_registry_lock;
-#endif
 
 FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
 {
@@ -176,14 +174,14 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   if (p->pool_serialno>=0) return 0;
   else if (baseindex<0) return baseindex;
   else if (p->pool_flags&FDB_UNREGISTERED) return 0;
-  else fd_lock_mutex(&pool_registry_lock);
+  else u8_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
   serial_no=p->pool_serialno=fd_pool_serial_count++; fd_n_pools++;
   fd_pool_serial_table[serial_no]=p;
   if ((capacity>=FD_TOP_POOL_SIZE) && ((p->pool_base)%FD_TOP_POOL_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",
               u8_strdup(p->pool_idstring),FD_VOID);
-    fd_unlock_mutex(&pool_registry_lock);
+    u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   if (capacity>=FD_TOP_POOL_SIZE) {
     int i=0, lim=capacity/FD_TOP_POOL_SIZE;
@@ -192,11 +190,11 @@ FD_EXPORT int fd_register_pool(fd_pool p)
       FD_OID base=FD_OID_PLUS(p->pool_base,(FD_TOP_POOL_SIZE*i));
       int baseid=fd_get_oid_base_index(base,1);
       if (baseid<0) {
-        fd_unlock_mutex(&pool_registry_lock);
+        u8_unlock_mutex(&pool_registry_lock);
         return -1;}
       else if (fd_top_pools[baseid]) {
         pool_conflict(p,fd_top_pools[baseid]);
-        fd_unlock_mutex(&pool_registry_lock);
+        u8_unlock_mutex(&pool_registry_lock);
         return -1;}
       else fd_top_pools[baseid]=p;
       i++;}}
@@ -204,16 +202,16 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     struct FD_GLUEPOOL *gluepool=make_gluepool(fd_base_oids[baseindex]);
     fd_top_pools[baseindex]=(struct FD_POOL *)gluepool;
     if (add_to_gluepool(gluepool,p)<0) {
-      fd_unlock_mutex(&pool_registry_lock);
+      u8_unlock_mutex(&pool_registry_lock);
       return -1;}}
   else if (fd_top_pools[baseindex]->pool_capacity) {
     pool_conflict(p,fd_top_pools[baseindex]);
-    fd_unlock_mutex(&pool_registry_lock);
+    u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   else if (add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[baseindex],p)<0) {
-    fd_unlock_mutex(&pool_registry_lock);
+    u8_unlock_mutex(&pool_registry_lock);
     return -1;}
-  fd_unlock_mutex(&pool_registry_lock);
+  u8_unlock_mutex(&pool_registry_lock);
   if (p->pool_label) {
     u8_string base=u8_string_subst(p->pool_label,"/","_");
     u8_byte *dot=strchr(base,'.');
@@ -888,7 +886,7 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
   struct FD_POOL_WRITES writes;
   fd_hashtable changes=&(p->pool_changes); int unlock=0;
   if (changes->table_uselock) {
-    fd_read_lock(&(changes->table_rwlock)); 
+    u8_read_lock(&(changes->table_rwlock)); 
     unlock=1;}
   int n=changes->table_n_keys;
   fdtype *oidv, *values;
@@ -913,7 +911,7 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
         scan++;}
       else scan++;}
   }
-  if (unlock) fd_rw_unlock(&(changes->table_rwlock));
+  if (unlock) u8_rw_unlock(&(changes->table_rwlock));
   writes.len=oidv-writes.oids;
   if (writes.len==0) {
     u8_free(writes.oids); writes.oids=NULL;
@@ -1545,11 +1543,11 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
   fdtype todo=fd_pool_delays[p->pool_serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
-    /* fd_lock_mutex(&(fd_ipeval_lock)); */
+    /* u8_lock_mutex(&(fd_ipeval_lock)); */
     todo=fd_pool_delays[p->pool_serialno];
     fd_pool_delays[p->pool_serialno]=FD_EMPTY_CHOICE;
     todo=fd_simplify_choice(todo);
-    /* fd_unlock_mutex(&(fd_ipeval_lock)); */
+    /* u8_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
       u8_log(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s: %q",

@@ -36,10 +36,7 @@ static u8_condition UnconfiguredSource="Unconfigured source";
 /* Getting sources */
 
 static struct FD_SOURCEFN *sourcefns=NULL;
-
-#if FD_THREADS_ENABLED
 static u8_mutex sourcefns_lock;
-#endif
 
 FD_EXPORT u8_string fd_get_source
   (u8_string path,u8_string enc,u8_string *basepathp,time_t *timep)
@@ -76,12 +73,12 @@ FD_EXPORT void fd_register_sourcefn
  void *sourcefn_data)
 {
   struct FD_SOURCEFN *new_entry=u8_alloc(struct FD_SOURCEFN);
-  fd_lock_mutex(&sourcefns_lock);
+  u8_lock_mutex(&sourcefns_lock);
   new_entry->fd_getsource=fn;
   new_entry->fd_next_sourcefn=sourcefns;
   new_entry->fd_getsource_data=sourcefn_data;
   sourcefns=new_entry;
-  fd_unlock_mutex(&sourcefns_lock);
+  u8_unlock_mutex(&sourcefns_lock);
 }
 
 /* Tracking the current source base */
@@ -103,7 +100,7 @@ static void restore_sourcebase(u8_string old)
   u8_tld_set(sourcebase_key,old);
 }
 #else
-static FD_THREADVAR u8_string sourcebase;
+static __thread u8_string sourcebase;
 FD_EXPORT u8_string fd_sourcebase()
 {
   return sourcebase;
@@ -514,20 +511,18 @@ static fdtype lisp_read_config(fdtype arg)
 
 /* Config config */
 
-#if FD_THREADS_ENABLED
 static u8_mutex config_file_lock;
-#endif
 
 static FD_CONFIG_RECORD *config_records=NULL, *config_stack=NULL;
 
 static fdtype get_config_files(fdtype var,void U8_MAYBE_UNUSED *data)
 {
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
-  fd_lock_mutex(&config_file_lock);
+  u8_lock_mutex(&config_file_lock);
   scan=config_records; while (scan) {
     result=fd_conspair(fdtype_string(scan->fd_config_source),result);
     scan=scan->fd_config_next;}
-  fd_unlock_mutex(&config_file_lock);
+  u8_unlock_mutex(&config_file_lock);
   return result;
 }
 
@@ -542,10 +537,10 @@ static int add_config_file_helper(fdtype var,fdtype val,
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
     u8_string sourcebase=fd_sourcebase();
     u8_string pathname=u8_abspath(FD_STRDATA(val),sourcebase);
-    fd_lock_mutex(&config_file_lock);
+    u8_lock_mutex(&config_file_lock);
     scan=config_stack; while (scan) {
       if (strcmp(scan->fd_config_source,pathname)==0) {
-        fd_unlock_mutex(&config_file_lock);
+        u8_unlock_mutex(&config_file_lock);
         u8_free(pathname);
         return 0;}
       else scan=scan->fd_config_next;}
@@ -553,26 +548,26 @@ static int add_config_file_helper(fdtype var,fdtype val,
     on_stack.fd_config_source=pathname;
     on_stack.fd_config_next=config_stack;
     config_stack=&on_stack;
-    fd_unlock_mutex(&config_file_lock);
+    u8_unlock_mutex(&config_file_lock);
     if (isdflt)
       retval=fd_load_default_config(pathname);
     else retval=fd_load_config(pathname);
-    fd_lock_mutex(&config_file_lock);
+    u8_lock_mutex(&config_file_lock);
     if (retval<0) {
       if (isopt) {
         u8_free(pathname); config_stack=on_stack.fd_config_next;
-        fd_unlock_mutex(&config_file_lock);
+        u8_unlock_mutex(&config_file_lock);
         u8_pop_exception();
         return 0;}
       u8_free(pathname); config_stack=on_stack.fd_config_next;
-      fd_unlock_mutex(&config_file_lock);
+      u8_unlock_mutex(&config_file_lock);
       return retval;}
     newrec=u8_alloc(struct FD_CONFIG_RECORD);
     newrec->fd_config_source=pathname;
     newrec->fd_config_next=config_records;
     config_records=newrec;
     config_stack=on_stack.fd_config_next;
-    fd_unlock_mutex(&config_file_lock);
+    u8_unlock_mutex(&config_file_lock);
     return retval;}
 }
 
@@ -597,10 +592,9 @@ FD_EXPORT void fd_init_load_c()
 {
   u8_register_source_file(_FILEINFO);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&sourcefns_lock);
-  fd_init_mutex(&config_file_lock);
-#endif
+  u8_init_mutex(&sourcefns_lock);
+  u8_init_mutex(&config_file_lock);
+
 #if FD_USE_TLS
   u8_new_threadkey(&sourcebase_key,NULL);
 #endif

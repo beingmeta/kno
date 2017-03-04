@@ -29,9 +29,7 @@ fd_exception fd_BadPtr=_("bad dtype pointer");
 fd_exception fd_DoubleGC=_("Freeing already freed CONS");
 fd_exception fd_UsingFreedCons=_("Using freed CONS");
 fd_exception fd_FreeingNonHeapCons=_("Freeing non-heap cons");
-#if FD_THREADS_ENABLED
 u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
-#endif
 
 u8_string fd_type_names[FD_TYPE_MAX];
 fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
@@ -42,9 +40,7 @@ fd_copy_fn fd_copiers[FD_TYPE_MAX];
 fd_hashfn fd_hashfns[FD_TYPE_MAX];
 fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
-#if FD_THREADS_ENABLED
 static u8_mutex constant_registry_lock;
-#endif
 int fd_n_constants=FD_N_BUILTIN_CONSTANTS;
 
 ssize_t fd_max_strlen=-1;
@@ -776,8 +772,11 @@ FD_EXPORT fdtype fd_init_compound
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) fd_init_mutex(&(p->fd_lock));
-  p->compound_typetag=fd_incref(tag); p->compound_ismutable=mutable; p->fd_n_elts=n; p->compound_isopaque=0;
+  if (mutable) u8_init_mutex(&(p->compound_lock));
+  p->compound_typetag=fd_incref(tag); 
+  p->compound_ismutable=mutable; 
+  p->compound_isopaque=0;
+  p->fd_n_elts=n;
   if (n>0) {
     write=&(p->compound_0); limit=write+n;
     va_start(args,n);
@@ -804,7 +803,7 @@ FD_EXPORT fdtype fd_init_compound_from_elts
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) fd_init_mutex(&(p->fd_lock));
+  if (mutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag=fd_incref(tag);
   p->compound_ismutable=mutable;
   p->fd_n_elts=n; p->compound_isopaque=0;
@@ -826,7 +825,7 @@ static void recycle_compound(struct FD_RAW_CONS *c)
   int i=0, n=compound->fd_n_elts; fdtype *data=&(compound->compound_0);
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->compound_typetag);
-  if (compound->compound_ismutable) fd_destroy_mutex(&(compound->fd_lock));
+  if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -861,7 +860,7 @@ static fdtype copy_compound(fdtype x,int flags)
     struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
     fdtype *data=&(xc->compound_0), *write=&(nc->compound_0);
     FD_INIT_CONS(nc,fd_compound_type);
-    if (xc->compound_ismutable) fd_init_mutex(&(nc->fd_lock));
+    if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
     nc->compound_ismutable=xc->compound_ismutable; nc->compound_isopaque=1;
     nc->compound_typetag=fd_incref(xc->compound_typetag); nc->fd_n_elts=xc->fd_n_elts;
     if (flags)
@@ -1002,9 +1001,7 @@ static void recycle_mystery(struct FD_RAW_CONS *c)
 
 /* Registering new primitive types */
 
-#if FD_THREADS_ENABLED
 static u8_mutex type_registry_lock;
-#endif
 
 unsigned int fd_next_cons_type=
   FD_CONS_TYPECODE(FD_BUILTIN_CONS_TYPES);
@@ -1014,45 +1011,43 @@ unsigned int fd_next_immediate_type=
 FD_EXPORT int fd_register_cons_type(char *name)
 {
   int typecode;
-  fd_lock_mutex(&type_registry_lock);
+  u8_lock_mutex(&type_registry_lock);
   if (fd_next_cons_type>=FD_MAX_CONS_TYPE) {
-    fd_unlock_mutex(&type_registry_lock);
+    u8_unlock_mutex(&type_registry_lock);
     return -1;}
   typecode=fd_next_cons_type;
   fd_next_cons_type++;
   fd_type_names[typecode]=name;
-  fd_unlock_mutex(&type_registry_lock);
+  u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
 
 FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
 {
   int typecode;
-  fd_lock_mutex(&type_registry_lock);
+  u8_lock_mutex(&type_registry_lock);
   if (fd_next_immediate_type>=FD_MAX_IMMEDIATE_TYPE) {
-    fd_unlock_mutex(&type_registry_lock);
+    u8_unlock_mutex(&type_registry_lock);
     return -1;}
   typecode=fd_next_immediate_type;
   fd_immediate_checkfns[typecode]=fn;
   fd_next_immediate_type++;
   fd_type_names[typecode]=name;
-  fd_unlock_mutex(&type_registry_lock);
+  u8_unlock_mutex(&type_registry_lock);
   return typecode;
 }
 
 /* Compound type information */
 
 struct FD_COMPOUND_TYPEINFO *fd_compound_entries=NULL;
-#if FD_THREADS_ENABLED
 static u8_mutex compound_registry_lock;
-#endif
 
 FD_EXPORT
 struct FD_COMPOUND_TYPEINFO
 *fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
-  fd_lock_mutex(&compound_registry_lock);
+  u8_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
@@ -1067,7 +1062,7 @@ struct FD_COMPOUND_TYPEINFO
       if (corep) {
         if (scan->fd_compound_corelen<0) scan->fd_compound_corelen=*corep;
         else *corep=scan->fd_compound_corelen;}
-      fd_unlock_mutex(&compound_registry_lock);
+      u8_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->fd_compound_nextinfo;
   newrec=u8_alloc(struct FD_COMPOUND_TYPEINFO);
@@ -1083,7 +1078,7 @@ struct FD_COMPOUND_TYPEINFO
   newrec->fd_compound_restorefn=NULL;
   newrec->fd_compund_tablefns=NULL;
   fd_compound_entries=newrec;
-  fd_unlock_mutex(&compound_registry_lock);
+  u8_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
 
@@ -1091,7 +1086,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
           *fd_declare_compound(fdtype symbol,fdtype data,int core_slots)
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
-  fd_lock_mutex(&compound_registry_lock);
+  u8_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
@@ -1100,7 +1095,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
         scan->fd_compound_metadata=fd_incref(data);
         fd_decref(old_data);}
       if (core_slots>0) scan->fd_compound_corelen=core_slots;
-      fd_unlock_mutex(&compound_registry_lock);
+      u8_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->fd_compound_nextinfo;
   newrec=u8_alloc(struct FD_COMPOUND_TYPEINFO);
@@ -1114,7 +1109,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   newrec->fd_compound_restorefn=NULL;
   newrec->fd_compund_tablefns=NULL;
   fd_compound_entries=newrec;
-  fd_unlock_mutex(&compound_registry_lock);
+  u8_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
 
@@ -1384,17 +1379,13 @@ static U8_MAYBE_UNUSED int some_false(fdtype arg)
 void fd_init_cons_c()
 {
   int i;
-#if FD_THREADS_ENABLED
-  i=0; while (i < FD_N_PTRLOCKS) fd_init_mutex(&_fd_ptr_locks[i++]);
-#endif
+  i=0; while (i < FD_N_PTRLOCKS) u8_init_mutex(&_fd_ptr_locks[i++]);
 
   u8_register_source_file(_FILEINFO);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&constant_registry_lock);
-  fd_init_mutex(&compound_registry_lock);
-  fd_init_mutex(&type_registry_lock);
-#endif
+  u8_init_mutex(&constant_registry_lock);
+  u8_init_mutex(&compound_registry_lock);
+  u8_init_mutex(&type_registry_lock);
 
   i=0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_type_names[i++]=NULL;

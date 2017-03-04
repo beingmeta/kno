@@ -70,9 +70,7 @@ u8_string fd_netspecp(u8_string spec,void *ignored)
 /* Opening pools */
 
 static struct FD_POOL_TYPEINFO *pool_typeinfo;
-#if FD_THREADS_ENABLED
 static u8_mutex pool_typeinfo_lock;
-#endif
 
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
@@ -102,7 +100,7 @@ FD_EXPORT void fd_register_pool_type
       else break;}
     else ptype=ptype->next_type;}
   if (ptype) {
-    fd_unlock_mutex(&pool_typeinfo_lock);
+    u8_unlock_mutex(&pool_typeinfo_lock);
     return;}
   ptype=u8_alloc(struct FD_POOL_TYPEINFO);
   ptype->pool_typename=u8_strdup(name);
@@ -112,7 +110,7 @@ FD_EXPORT void fd_register_pool_type
   ptype->type_data=type_data;
   ptype->next_type=pool_typeinfo;
   pool_typeinfo=ptype;
-  fd_unlock_mutex(&pool_typeinfo_lock);
+  u8_unlock_mutex(&pool_typeinfo_lock);
 }
 
 static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
@@ -180,9 +178,7 @@ fd_pool fd_unregistered_file_pool(u8_string filename)
 /* Opening indexes */
 
 static struct FD_INDEX_TYPEINFO *index_typeinfo;
-#if FD_THREADS_ENABLED
 static u8_mutex index_typeinfo_lock;
-#endif
 
 FD_EXPORT void fd_register_index_type
   (u8_string name,
@@ -212,7 +208,7 @@ FD_EXPORT void fd_register_index_type
       else break;}
     else ixtype=ixtype->next_type;}
   if (ixtype) {
-    fd_unlock_mutex(&index_typeinfo_lock);
+    u8_unlock_mutex(&index_typeinfo_lock);
     return;}
   ixtype=u8_alloc(struct FD_INDEX_TYPEINFO);
   ixtype->index_typename=u8_strdup(name);
@@ -222,7 +218,7 @@ FD_EXPORT void fd_register_index_type
   ixtype->type_data=type_data;
   ixtype->next_type=index_typeinfo;
   index_typeinfo=ixtype;
-  fd_unlock_mutex(&index_typeinfo_lock);
+  u8_unlock_mutex(&index_typeinfo_lock);
 }
 
 static fd_index_typeinfo get_index_typeinfo(u8_string name)
@@ -298,10 +294,8 @@ FD_EXPORT int fd_init_drivers_c()
   packtime_symbol=fd_intern("PACKTIME");
   modtime_symbol=fd_intern("MODTIME");
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&pool_typeinfo_lock);
-  fd_init_mutex(&index_typeinfo_lock);
-#endif
+  u8_init_mutex(&pool_typeinfo_lock);
+  u8_init_mutex(&index_typeinfo_lock);
 
   fd_file_pool_type=fd_open_pool;
   fd_file_index_type=fd_open_index;

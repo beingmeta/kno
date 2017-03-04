@@ -96,7 +96,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.table_schema=vars; bindings.schema_values=vals;
   bindings.schemap_onstack=1;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -131,7 +131,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.table_rwlock));
+    u8_destroy_rwlock(&(bindings.table_rwlock));
     if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
     return FD_VOID;}
 }
@@ -165,7 +165,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.table_schema=vars; bindings.schema_values=vals;
   bindings.schemap_onstack=1;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -202,7 +202,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.table_rwlock));
+    u8_destroy_rwlock(&(bindings.table_rwlock));
     if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
     return fd_simplify_choice(results);}
 }
@@ -236,7 +236,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.table_schema=vars; bindings.schema_values=vals;
   bindings.schemap_onstack=1;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -276,7 +276,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.table_rwlock));
+    u8_destroy_rwlock(&(bindings.table_rwlock));
     if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
     return fd_simplify_choice(results);}
 }
@@ -311,7 +311,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.table_schema=vars; bindings.schema_values=vals;
   bindings.schemap_onstack=1;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -349,7 +349,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
       i++;}
     *vloc=FD_VOID;
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.table_rwlock));
+    u8_destroy_rwlock(&(bindings.table_rwlock));
     if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
     return fd_simplify_choice(results);}
 }
@@ -396,7 +396,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.table_schema=vars; bindings.schema_values=vals;
   bindings.schemap_onstack=1;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -469,7 +469,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
         else u8_free((struct FD_CHOICE *)v);}
       i++;}}
   fd_decref(choices);
-  fd_destroy_rwlock(&(bindings.table_rwlock));
+  u8_destroy_rwlock(&(bindings.table_rwlock));
   if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
   return FD_VOID;
 }

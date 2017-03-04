@@ -321,12 +321,12 @@ static fdtype config_get_background(fdtype var,void *data)
   if (fd_background==NULL) return results;
   else {
     int i=0, n; fd_index *indexes;
-    fd_lock_mutex(&(fd_background->index_lock));
+    u8_lock_mutex(&(fd_background->index_lock));
     n=fd_background->n_indexes; indexes=fd_background->indexes;
     while (i<n) {
       fdtype lix=fd_index2lisp(indexes[i]); i++;
       FD_ADD_TO_CHOICE(results,lix);}
-    fd_unlock_mutex(&(fd_background->index_lock));
+    u8_unlock_mutex(&(fd_background->index_lock));
     return results;}
 }
 static int config_use_index(fdtype var,fdtype spec,void *data)
@@ -425,9 +425,7 @@ FD_EXPORT void fd_fast_swapout_all()
 
 static size_t membase=0;
 
-#if FD_THREADS_ENABLED
 u8_mutex fd_swapcheck_lock;
-#endif
 
 #if 0
 static int cache_load()
@@ -448,7 +446,7 @@ FD_EXPORT int fd_swapcheck()
     return -1;}
   else return 0;
   if (usage<(membase+memgap)) return 0;
-  fd_lock_mutex(&fd_swapcheck_lock);
+  u8_lock_mutex(&fd_swapcheck_lock);
   if (usage>(membase+memgap)) {
     u8_log(LOG_NOTICE,SwapCheck,"Swapping because %ld>%ld+%ld",
            usage,membase,memgap);
@@ -459,9 +457,9 @@ FD_EXPORT int fd_swapcheck()
     u8_log(LOG_NOTICE,SwapCheck,
            "Swapped out, next swap at=%ld, swap at %d=%d+%d",
            membase+memgap,membase,memgap);
-    fd_unlock_mutex(&fd_swapcheck_lock);}
+    u8_unlock_mutex(&fd_swapcheck_lock);}
   else {
-    fd_unlock_mutex(&fd_swapcheck_lock);}
+    u8_unlock_mutex(&fd_swapcheck_lock);}
   return 1;
 }
 
@@ -518,9 +516,7 @@ FD_EXPORT int fd_init_dblib()
   fd_unparsers[fd_oid_type]=better_unparse_oid;
   oid_name_slotids=fd_make_list(2,fd_intern("%ID"),fd_intern("OBJ-NAME"));
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&fd_swapcheck_lock);
-#endif
+  u8_init_mutex(&fd_swapcheck_lock);
 
   u8_threadcheck();
 

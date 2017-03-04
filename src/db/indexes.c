@@ -43,11 +43,8 @@ int fd_index_adds_init   = FD_INDEX_ADDS_INIT;
 fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES], *fd_secondary_indexes=NULL;
 int fd_n_primary_indexes=0, fd_n_secondary_indexes=0;
 
-#if FD_THREADS_ENABLED
-static u8_mutex background_lock;
-#endif
-
 struct FD_COMPOUND_INDEX *fd_background=NULL;
+static u8_mutex background_lock;
 
 #if FD_GLOBAL_IPEVAL
 static fdtype *index_delays;
@@ -90,9 +87,7 @@ FD_EXPORT fdtype *fd_get_index_delays() { return get_index_delays(); }
 
 static fdtype set_symbol, drop_symbol;
 
-#if FD_THREADS_ENABLED
 static u8_mutex indexes_lock;
-#endif
 
 /* Index cache levels */
 
@@ -120,9 +115,9 @@ FD_EXPORT void fd_register_index(fd_index ix)
   if (ix->index_flags&FDB_UNREGISTERED)
     return;
   else if (ix->index_serialno<0) {
-    fd_lock_mutex(&indexes_lock);
+    u8_lock_mutex(&indexes_lock);
     if (ix->index_serialno>=0) { /* Handle race condition */
-      fd_unlock_mutex(&indexes_lock); return;}
+      u8_unlock_mutex(&indexes_lock); return;}
     if (fd_n_primary_indexes<FD_N_PRIMARY_INDEXES) {
       ix->index_serialno=fd_n_primary_indexes;
       fd_primary_indexes[fd_n_primary_indexes++]=ix;}
@@ -133,7 +128,7 @@ FD_EXPORT void fd_register_index(fd_index ix)
       else fd_secondary_indexes=u8_alloc_n(1,fd_index);
       ix->index_serialno=fd_n_secondary_indexes+FD_N_PRIMARY_INDEXES;
       fd_secondary_indexes[fd_n_secondary_indexes++]=ix;}
-    fd_unlock_mutex(&indexes_lock);}
+    u8_unlock_mutex(&indexes_lock);}
 }
 
 FD_EXPORT fdtype fd_index2lisp(fd_index ix)
@@ -209,7 +204,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
     fdtype lix=(fdtype)ix; fd_incref(lix);
     fd_seterr(fd_TypeError,"fd_add_to_background","static index",lix);
     return -1;}
-  fd_lock_mutex(&background_lock);
+  u8_lock_mutex(&background_lock);
   ix->index_flags=ix->index_flags|FD_INDEX_IN_BACKGROUND;
   if (fd_background)
     fd_add_to_compound_index(fd_background,ix);
@@ -218,7 +213,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
     indexes[0]=ix;
     fd_background=
       (struct FD_COMPOUND_INDEX *)fd_make_compound_index(1,indexes);}
-  fd_unlock_mutex(&background_lock);
+  u8_unlock_mutex(&background_lock);
   return 1;
 }
 
@@ -1033,10 +1028,10 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
     int retval=-1;
-    /* fd_lock_mutex(&(fd_ipeval_lock)); */
+    /* u8_lock_mutex(&(fd_ipeval_lock)); */
     todo=delays[ix->index_serialno];
     delays[ix->index_serialno]=FD_EMPTY_CHOICE;
-    /* fd_unlock_mutex(&(fd_ipeval_lock)); */
+    /* u8_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
       u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s: %q",
@@ -1138,10 +1133,10 @@ FD_EXPORT void fd_init_indexes_c()
   set_symbol=fd_make_symbol("SET",3);
   drop_symbol=fd_make_symbol("DROP",4);
   fd_unparsers[fd_index_type]=unparse_index;
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&indexes_lock);
-  fd_init_mutex(&background_lock);
-#endif
+
+  u8_init_mutex(&indexes_lock);
+  u8_init_mutex(&background_lock);
+
 #if (FD_USE_TLS)
   u8_new_threadkey(&index_delays_key,NULL);
 #endif

@@ -133,9 +133,7 @@ static fdtype bind_default_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_VOID;}}
 }
 
-#if FD_THREADS_ENABLED
 static u8_mutex sset_lock;
-#endif
 
 /* This implements a simple version of globally synchronized set, which
    wraps a mutex around a regular set call, including evaluation of the
@@ -151,21 +149,21 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_NotAnIdentifier,"SSET!",NULL,expr);
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
-  fd_lock_mutex(&sset_lock);
+  u8_lock_mutex(&sset_lock);
   value=fasteval(val_expr,env);
   if (FD_ABORTED(value)) {
-    fd_unlock_mutex(&sset_lock);
+    u8_unlock_mutex(&sset_lock);
     return value;}
   else if ((retval=(fd_set_value(var,value,env)))) {
-    fd_decref(value); fd_unlock_mutex(&sset_lock);
+    fd_decref(value); u8_unlock_mutex(&sset_lock);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else if ((retval=(fd_bind_value(var,value,env)))) {
-    fd_decref(value); fd_unlock_mutex(&sset_lock);
+    fd_decref(value); u8_unlock_mutex(&sset_lock);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else {
-    fd_unlock_mutex(&sset_lock);
+    u8_unlock_mutex(&sset_lock);
     return fd_err(fd_BindError,"SSET!",FD_SYMBOL_NAME(var),var);}
 }
 
@@ -203,7 +201,7 @@ FD_FASTOP fd_lispenv init_static_env
   bindings->table_schema=vars;
   bindings->schema_values=vals;
   bindings->schema_length=n;
-  fd_init_rwlock(&(bindings->table_rwlock));
+  u8_init_rwlock(&(bindings->table_rwlock));
   envstruct->env_bindings=FDTYPE_CONS((bindings));
   envstruct->env_exports=FD_VOID;
   envstruct->env_parent=parent;
@@ -656,9 +654,7 @@ FD_EXPORT void fd_init_binders_c()
 
   moduleid_symbol=fd_intern("%MODULEID");
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&sset_lock);
-#endif
+  u8_init_mutex(&sset_lock);
 
   fd_unparsers[fd_fcnid_type]=unparse_extended_fcnid;
 

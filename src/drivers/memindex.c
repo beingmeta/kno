@@ -148,9 +148,9 @@ static int mem_index_commit(fd_index ix)
     return 0;
 
   /* Update the cache from the adds and edits */
-  fd_write_lock(&(cache->table_rwlock));
-  fd_read_lock(&(adds->table_rwlock));
-  fd_read_lock(&(edits->table_rwlock));
+  u8_write_lock(&(cache->table_rwlock));
+  u8_read_lock(&(adds->table_rwlock));
+  u8_read_lock(&(edits->table_rwlock));
 
   n_updates=adds->table_n_keys+edits->table_n_keys;
 
@@ -163,9 +163,9 @@ static int mem_index_commit(fd_index ix)
   /* Now copy the adds and edits into the hashtables on the stack */
   fd_swap_hashtable(adds,&_adds,256,1);
   fd_swap_hashtable(edits,&_edits,256,1);
-  fd_rw_unlock(&(cache->table_rwlock));
-  fd_rw_unlock(&(adds->table_rwlock));
-  fd_rw_unlock(&(edits->table_rwlock));
+  u8_rw_unlock(&(cache->table_rwlock));
+  u8_rw_unlock(&(adds->table_rwlock));
+  u8_rw_unlock(&(edits->table_rwlock));
 
 
   u8_log(fddb_loglevel+1,"MemIndex/Commit",

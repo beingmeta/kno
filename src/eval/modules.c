@@ -29,11 +29,9 @@ static struct MODULE_LOADER {
   int (*loader)(fdtype,int,void *); void *data;
   struct MODULE_LOADER *next;} *module_loaders=NULL;
 
-#if FD_THREADS_ENABLED
 static u8_mutex module_loaders_lock;
 static u8_mutex module_wait_lock;
 static u8_condvar module_wait;
-#endif
 
 static int trace_dload=0;
 static int auto_fix_modules=0;
@@ -509,23 +507,21 @@ static fdtype safe_accessing_module(fdtype expr,fd_lispenv env)
 
 /* Exporting from modules */
 
-#if FD_THREADS_ENABLED
 static u8_mutex exports_lock;
-#endif
 
 static fd_hashtable get_exports(fd_lispenv env)
 {
   fd_hashtable exports;
   fdtype moduleid=fd_get(env->env_bindings,moduleid_symbol,FD_VOID);
-  fd_lock_mutex(&exports_lock);
+  u8_lock_mutex(&exports_lock);
   if (FD_HASHTABLEP(env->env_exports)) {
-    fd_unlock_mutex(&exports_lock);
+    u8_unlock_mutex(&exports_lock);
     fd_decref(moduleid);
     return (fd_hashtable) env->env_exports;}
   exports=(fd_hashtable)(env->env_exports=fd_make_hashtable(NULL,16));
   if (!(FD_VOIDP(moduleid)))
     fd_hashtable_store(exports,moduleid_symbol,moduleid);
-  fd_unlock_mutex(&exports_lock);
+  u8_unlock_mutex(&exports_lock);
   return exports;
 }
 
@@ -790,12 +786,10 @@ static fdtype loadmodule_sandbox_config_get(fdtype var,void *ignored)
 
 FD_EXPORT void fd_init_modules_c()
 {
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&module_loaders_lock);
-  fd_init_mutex(&module_wait_lock);
+  u8_init_mutex(&module_loaders_lock);
+  u8_init_mutex(&module_wait_lock);
   u8_init_condvar(&module_wait);
-  fd_init_mutex(&exports_lock);
-#endif
+  u8_init_mutex(&exports_lock);
 
   fd_add_module_loader(load_dynamic_module,NULL);
   init_dloadpath();

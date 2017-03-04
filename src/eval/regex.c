@@ -43,7 +43,7 @@ FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
                   fd_init_string(NULL,-1,src));}
   else {
     ptr->fd_rxflags=flags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fd_lock)); ptr->fd_rxactive=1;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -63,7 +63,7 @@ static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
     return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),FD_VOID);}
   else {
     ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fd_lock)); ptr->fd_rxactive=1;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -85,7 +85,7 @@ static fdtype parse_regex(u8_string src_arg,u8_string opts)
     return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
   else {
     ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fd_lock)); ptr->fd_rxactive=1;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -99,7 +99,7 @@ static void recycle_regex(struct FD_RAW_CONS *c)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)c;
   regfree(&(rx->fd_rxcompiled));
-  u8_destroy_mutex(&(rx->fd_lock));
+  u8_destroy_mutex(&(rx->fdrx_lock));
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -132,17 +132,17 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
   else if (eflags==2) eflags=REG_NOTEOL;
   else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
   else eflags=0;
-  u8_lock_mutex(&(ptr->fd_lock));
+  u8_lock_mutex(&(ptr->fdrx_lock));
   retval=regexec(&(ptr->fd_rxcompiled),FD_STRDATA(string),1,results,eflags);
   if (retval==REG_NOMATCH) {
-    u8_unlock_mutex(&(ptr->fd_lock));
+    u8_unlock_mutex(&(ptr->fdrx_lock));
     return FD_FALSE;}
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-    u8_unlock_mutex(&(ptr->fd_lock));
+    u8_unlock_mutex(&(ptr->fdrx_lock));
     return fd_err(fd_RegexError,"regex_search",u8_strdup(buf),FD_VOID);}
-  else u8_unlock_mutex(&(ptr->fd_lock));
+  else u8_unlock_mutex(&(ptr->fdrx_lock));
   if (results[0].rm_so<0) return FD_FALSE;
   else switch (op) {
     case rx_search: return getcharoff(s,results[0].rm_so);
@@ -176,18 +176,18 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
   else if (eflags==2) eflags=REG_NOTEOL;
   else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
   else eflags=0;
-  u8_lock_mutex(&(ptr->fd_lock));
+  u8_lock_mutex(&(ptr->fdrx_lock));
   retval=regexec(&(ptr->fd_rxcompiled),s,1,results,eflags);
   if (retval==REG_NOMATCH) {
-    u8_unlock_mutex(&(ptr->fd_lock));
+    u8_unlock_mutex(&(ptr->fdrx_lock));
     return -1;}
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-    u8_unlock_mutex(&(ptr->fd_lock));
+    u8_unlock_mutex(&(ptr->fdrx_lock));
     fd_seterr(fd_RegexError,"fd_regex_op",u8_strdup(buf),FD_VOID);
     return -2;}
-  else u8_unlock_mutex(&(ptr->fd_lock));
+  else u8_unlock_mutex(&(ptr->fdrx_lock));
   if (results[0].rm_so<0) return -1;
   else switch (op) {
     case rx_search: return u8_charoffset(s,results[0].rm_so);

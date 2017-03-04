@@ -543,9 +543,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #endif
 FD_EXPORT fdtype *fd_symbol_names;
 FD_EXPORT int fd_n_symbols;
-#if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex fd_symbol_lock;
-#endif
 
 #define FD_SYMBOLP(x) \
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
@@ -578,9 +576,7 @@ FD_EXPORT fdtype fd_all_symbols(void);
 
 FD_EXPORT struct FD_CONS **_fd_fcnids[];
 FD_EXPORT int _fd_fcnid_count;
-#if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex _fd_fcnid_lock;
-#endif
 
 #ifndef FD_FCNID_BLOCKSIZE
 #define FD_FCNID_BLOCKSIZE 256

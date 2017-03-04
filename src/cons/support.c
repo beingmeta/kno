@@ -78,11 +78,9 @@ struct FD_CONFIG_HANDLER *config_handlers=NULL;
 
 static fdtype configuration_table;
 
-#if FD_THREADS_ENABLED
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
 static u8_mutex atexit_handlers_lock;
-#endif
 
 static struct FD_CONFIG_FINDER *config_lookupfns=NULL;
 
@@ -111,12 +109,12 @@ void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *ldata)
 {
   struct FD_CONFIG_FINDER *entry=
     u8_alloc(struct FD_CONFIG_FINDER);
-  fd_lock_mutex(&config_lookup_lock);
+  u8_lock_mutex(&config_lookup_lock);
   entry->fdcfg_lookup=fn;
   entry->fdcfg_lookup_data=ldata;
   entry->fd_next_finder=config_lookupfns;
   config_lookupfns=entry;
-  fd_unlock_mutex(&config_lookup_lock);
+  u8_unlock_mutex(&config_lookup_lock);
 }
 
 static fdtype config_get(u8_string var)
@@ -299,7 +297,7 @@ FD_EXPORT int fd_register_config_x
   fdtype symbol=config_intern(var), current=config_get(var);
   int retval=0;
   struct FD_CONFIG_HANDLER *scan;
-  fd_lock_mutex(&config_register_lock);
+  u8_lock_mutex(&config_register_lock);
   scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->fd_configname,symbol)) {
@@ -325,7 +323,7 @@ FD_EXPORT int fd_register_config_x
     scan->fd_configdata=data;
     scan->fd_nextconfig=config_handlers;
     config_handlers=scan;}
-  fd_unlock_mutex(&config_register_lock);
+  u8_unlock_mutex(&config_register_lock);
   if (FD_ABORTP(current)) {
     fd_clear_errors(1);
     retval=-1;}
@@ -363,7 +361,7 @@ FD_EXPORT fdtype fd_all_configs(int with_docs)
 {
   fdtype results=FD_EMPTY_CHOICE;
   struct FD_CONFIG_HANDLER *scan;
-  fd_lock_mutex(&config_register_lock); {
+  u8_lock_mutex(&config_register_lock); {
     scan=config_handlers;
     while (scan) {
       fdtype var=scan->fd_configname;
@@ -375,7 +373,7 @@ FD_EXPORT fdtype fd_all_configs(int with_docs)
         FD_ADD_TO_CHOICE(results,pair);}
       else {fd_incref(var); FD_ADD_TO_CHOICE(results,var);}
       scan=scan->fd_nextconfig;}}
-  fd_unlock_mutex(&config_register_lock);
+  u8_unlock_mutex(&config_register_lock);
   return results;
 }
 
@@ -1365,27 +1363,8 @@ static void recycle_thread_table()
   u8_tld_set(threadtable_key,(void*)NULL);
   if (table) fd_decref(table);
 }
-#elif FD_THREADS_ENABLED
-static fdtype __thread thread_table=FD_VOID;
-static fdtype get_threadtable()
-{
-  if (FD_TABLEP(thread_table)) return thread_table;
-  else return (thread_table=fd_empty_slotmap());
-}
-FD_EXPORT void fd_reset_threadvars()
-{
-  fdtype table=thread_table;
-  thread_table=fd_empty_slotmap();
-  fd_decref(table);
-}
-static void recycle_thread_table()
-{
-  fdtype table=thread_table;
-  thread_table=FD_VOID;
-  if (table) fd_decref(table);
-}
 #else
-static fdtype thread_table=FD_VOID;
+static fdtype __thread thread_table=FD_VOID;
 static fdtype get_threadtable()
 {
   if (FD_TABLEP(thread_table)) return thread_table;
@@ -1446,11 +1425,7 @@ static void set_reqinfo(fdtype table)
   u8_tld_set(reqinfo_key,(void *)table);
 }
 #else
-#if FD_THREADS_ENABLED
 static fdtype __thread reqinfo=FD_VOID;
-#else
-static fdtype reqinfo=FD_VOID;
-#endif
 static fdtype try_reqinfo()
 {
   if ((reqinfo)&&(FD_TABLEP(reqinfo))) return reqinfo;
@@ -1639,11 +1614,7 @@ static void set_reqlog(struct U8_OUTPUT *stream)
   u8_tld_set(reqlog_key,(void *)stream);
 }
 #else
-#if FD_THREADS_ENABLED
 static struct U8_OUTPUT __thread *reqlog=NULL;
-#else
-static struct U8_OUTPUT *reqlog=FD_VOID;
-#endif
 static struct U8_OUTPUT *try_reqlog()
 {
   return reqlog;
@@ -1986,13 +1957,13 @@ static int n_atexit_handlers=0;
 static fdtype config_atexit_get(fdtype var,void *data)
 {
   struct FD_ATEXIT *scan; int i=0; fdtype result;
-  fd_lock_mutex(&atexit_handlers_lock);
+  u8_lock_mutex(&atexit_handlers_lock);
   result=fd_make_vector(n_atexit_handlers,NULL);
   scan=atexit_handlers; while (scan) {
     fdtype handler=scan->fd_exit_handler; fd_incref(handler);
     FD_VECTOR_SET(result,i,handler);
     scan=scan->fd_next_atexit; i++;}
-  fd_unlock_mutex(&atexit_handlers_lock);
+  u8_unlock_mutex(&atexit_handlers_lock);
   return result;
 }
 
@@ -2002,11 +1973,11 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
   if (!(FD_APPLICABLEP(val))) {
     fd_type_error("applicable","config_atexit",val);
     return -1;}
-  fd_lock_mutex(&atexit_handlers_lock);
+  u8_lock_mutex(&atexit_handlers_lock);
   fresh->fd_next_atexit=atexit_handlers; fresh->fd_exit_handler=val;
   fd_incref(val);
   n_atexit_handlers++; atexit_handlers=fresh;
-  fd_unlock_mutex(&atexit_handlers_lock);
+  u8_unlock_mutex(&atexit_handlers_lock);
   return 1;
 }
 
@@ -2023,11 +1994,11 @@ FD_EXPORT void fd_doexit(fdtype arg)
   if (!(atexit_handlers)) {
     u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
     return;}
-  fd_lock_mutex(&atexit_handlers_lock);
+  u8_lock_mutex(&atexit_handlers_lock);
   u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
          n_atexit_handlers);
   scan=atexit_handlers; atexit_handlers=NULL;
-  fd_unlock_mutex(&atexit_handlers_lock);
+  u8_unlock_mutex(&atexit_handlers_lock);
   while (scan) {
     fdtype handler=scan->fd_exit_handler, result=FD_VOID;
     u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
@@ -2252,9 +2223,7 @@ static fdtype framerd_logfns=FD_EMPTY_CHOICE;
 static fdtype framerd_logfn=FD_VOID;
 static int using_fd_logger=0;
 static int req_loglevel=-1, req_logonly=-1;
-#if FD_THREADS_ENABLED
 static u8_mutex log_lock;
-#endif
 
 #define MAX_LOGLEVEL 8
 static char *loglevel_names[]=
@@ -2590,20 +2559,12 @@ static int sigconfig_default_setfn(fdtype var,fdtype val,void *data)
 
 /* Initialize stack limits */
 
-#if FD_THREADS_ENABLED
 FD_EXPORT ssize_t fd_init_stack()
 {
   if (fd_default_stack_limit > 0)
     fd_stack_limit_set( fd_default_stack_limit );
   return -1;
 }
-#else
-FD_EXPORT ssize_t fd_init_stack()
-{
-  if (fd_default_stack_limit > 0)
-    fd_stack_limit_set( fd_default_stack_limit );
-}
-#endif
 
 static int init_thread_stack_limit()
 {
@@ -2633,12 +2594,10 @@ void fd_init_support_c()
 #endif
   configuration_table=fd_make_hashtable(NULL,16);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&config_lookup_lock);
-  fd_init_mutex(&config_register_lock);
-  fd_init_mutex(&atexit_handlers_lock);
-  fd_init_mutex(&log_lock);
-#endif
+  u8_init_mutex(&config_lookup_lock);
+  u8_init_mutex(&config_register_lock);
+  u8_init_mutex(&atexit_handlers_lock);
+  u8_init_mutex(&log_lock);
 
   fd_register_config_lookup(getenv_config_lookup,NULL);
 

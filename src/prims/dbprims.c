@@ -1864,7 +1864,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
         if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
           if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
           *write++=c; fd_incref(c);}}
-      if (unlock) fd_rw_unlock(&(ht->table_rwlock));
+      if (unlock) u8_rw_unlock(&(ht->table_rwlock));
       fd_decref(simple);
       if (write==keep) {
         u8_free(keep); return FD_EMPTY_CHOICE;}

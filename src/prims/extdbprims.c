@@ -52,12 +52,9 @@ static fdtype exec_enabled_symbol;
 static fd_exception NoMakeProc=
   _("No implementation for prepared SQL statements");
 
+static u8_mutex extdb_handlers_lock;
 static struct FD_EXTDB_HANDLER *extdb_handlers[128];
 int n_extdbs=0;
-
-#if FD_THREADS_ENABLED
-static u8_mutex extdb_handlers_lock;
-#endif
 
 FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h)
 {
@@ -304,9 +301,7 @@ FD_EXPORT void fd_init_extdbprims_c()
   extdb_module=fd_new_module("EXTDB",(0));
   u8_register_source_file(_FILEINFO);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&extdb_handlers_lock);
-#endif
+  u8_init_mutex(&extdb_handlers_lock);
 
   exec_enabled_symbol=fd_intern("%EXECOK");
 

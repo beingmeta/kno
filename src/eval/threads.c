@@ -46,7 +46,7 @@ static fdtype logexit_symbol=FD_VOID;
 
 /* Thread functions */
 
-#if FD_THREADS_ENABLED
+#if FD_HAVE_THREADS
 
 int fd_thread_backtrace=0;
 
@@ -92,7 +92,7 @@ static fdtype make_condvar()
   int rv=0;
   struct FD_CONSED_CONDVAR *cv=u8_alloc(struct FD_CONSED_CONDVAR);
   FD_INIT_FRESH_CONS(cv,fd_condvar_type);
-  rv=fd_init_mutex(&(cv->fd_cvlock));
+  rv=u8_init_mutex(&(cv->fd_cvlock));
   if (rv) {
     u8_graberr(-1,"make_condvar",NULL);
     return FD_ERROR_VALUE;}
@@ -112,7 +112,7 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
   if (FD_VOIDP(timeout))
-    if ((rv=fd_condvar_wait(&(cv->fd_cvar),&(cv->fd_cvlock)))==0)
+    if ((rv=u8_condvar_wait(&(cv->fd_cvar),&(cv->fd_cvlock)))==0)
       return FD_TRUE;
     else {
       return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
@@ -160,7 +160,7 @@ static fdtype condvar_lock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
-  fd_lock_mutex(&(cv->fd_cvlock));
+  u8_lock_mutex(&(cv->fd_cvlock));
   return FD_TRUE;
 }
 
@@ -615,7 +615,7 @@ static fdtype set_stack_limit_prim(fdtype arg)
 
 #endif
 
-#if FD_THREADS_ENABLED
+#if FD_HAVE_THREADS
 FD_EXPORT void fd_init_threads_c()
 {
   fd_thread_type=fd_register_cons_type(_("thread"));

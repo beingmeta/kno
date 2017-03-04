@@ -123,9 +123,7 @@ void fd_urify(u8_output out,fdtype val)
 static struct FD_PROTECTED_CGI {
   fdtype field;
   struct FD_PROTECTED_CGI *next;} *protected_cgi;
-#if FD_THREADS_ENABLED
 static u8_mutex protected_cgi_lock;
-#endif
 
 static int isprotected(fdtype field)
 {
@@ -1271,9 +1269,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   module=fd_new_module("FDWEB",(0));
   xhtmlout_module=fd_new_module("XHTML",FD_MODULE_SAFE);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&protected_cgi_lock);
-#endif
+  u8_init_mutex(&protected_cgi_lock);
 
   fd_defspecial(module,"HTTPHEADER",httpheader);
   fd_idefn(module,fd_make_cprim1("HTTPHEADER!",addhttpheader,1));

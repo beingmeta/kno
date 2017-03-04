@@ -808,9 +808,9 @@ static u8_string tempdir_core(fdtype template_arg,int keep)
   if (tempname) {
     if (!(keep)) {
       fdtype result=fd_make_string(NULL,-1,tempname);
-      fd_lock_mutex(&tempdirs_lock);
+      u8_lock_mutex(&tempdirs_lock);
       FD_ADD_TO_CHOICE(tempdirs,result);
-      fd_unlock_mutex(&tempdirs_lock);}
+      u8_unlock_mutex(&tempdirs_lock);}
     if (consed) u8_free(consed);
     return tempname;}
   else {
@@ -928,9 +928,9 @@ static int tempdirs_add(fdtype sym,fdtype value,void *ignore)
     fd_type_error("string","tempdirs_add",value);
     return -1;}
   else fd_incref(value);
-  fd_lock_mutex(&tempdirs_lock);
+  u8_lock_mutex(&tempdirs_lock);
   FD_ADD_TO_CHOICE(tempdirs,value);
-  fd_unlock_mutex(&tempdirs_lock);
+  u8_unlock_mutex(&tempdirs_lock);
   return 1;
 }
 
@@ -966,9 +966,9 @@ static int keepdirs_add(fdtype sym,fdtype value,void *ignore)
       delete_tempdirs_on_exit=val;
       return 1;}}
   else fd_incref(value);
-  fd_lock_mutex(&tempdirs_lock);
+  u8_lock_mutex(&tempdirs_lock);
   FD_ADD_TO_CHOICE(keeptemp,value);
-  fd_unlock_mutex(&tempdirs_lock);
+  u8_unlock_mutex(&tempdirs_lock);
   return 1;
 }
 
@@ -1588,10 +1588,7 @@ static fdtype snapback_handler(fdtype expr,fd_lispenv env)
 
 static u8_string stackdump_filename=NULL;
 static FILE *stackdump_file=NULL;
-
-#if FD_THREADS_ENABLED
 static u8_mutex stackdump_lock;
-#endif
 
 FD_EXPORT void stackdump_dump(u8_string dump)
 {
@@ -1673,10 +1670,8 @@ FD_EXPORT void fd_init_fileio_c()
   u8_register_source_file(_FILEINFO);
 
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&stackdump_lock);
-  fd_init_mutex(&tempdirs_lock);
-#endif
+  u8_init_mutex(&stackdump_lock);
+  u8_init_mutex(&tempdirs_lock);
 
   u8_init_xinput(&u8stdin,0,NULL);
   u8_init_xoutput(&u8stdout,1,NULL);

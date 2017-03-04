@@ -98,7 +98,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
   if (read_only)
     U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
-  fd_init_mutex(&(pool->file_lock));
+  u8_init_mutex(&(pool->file_lock));
   if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);

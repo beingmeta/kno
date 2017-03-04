@@ -121,17 +121,12 @@ U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod)
   return (intrep * FD_PTRHASH_CONSTANT) % mod;
 }
 
-#if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_PTR_LOCK_OFFSET(ptr) (hashptrval((ptr),FD_N_PTRLOCKS))
 #define FD_LOCK_PTR(ptr) \
-  fd_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
+  u8_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 #define FD_UNLOCK_PTR(ptr) \
-  fd_unlock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
-#else
-#define FD_LOCK_PTR(ptr)
-#define FD_UNLOCK_PTR(ptr)
-#endif
+  u8_unlock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 
 /* Reference counting GC */
 
@@ -450,9 +445,7 @@ typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
   fdtype compound_typetag;
   u8_byte compound_ismutable, compound_isopaque, fd_n_elts;
-#if FD_THREADS_ENABLED
-  u8_mutex fd_lock;
-#endif
+  u8_mutex compound_lock;
   fdtype compound_0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
 

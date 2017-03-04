@@ -43,9 +43,7 @@ static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v);
 static int write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v);
 static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v);
 
-#if FD_THREADS_ENABLED
 static u8_mutex dtype_unpacker_lock;
-#endif
 
 static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
@@ -834,7 +832,7 @@ FD_EXPORT int fd_register_vector_unpacker
   int replaced=0;
   if ((package<0x40) || (package>0x80)) return -1;
   else if ((code&0x80)==0) return -2;
-  fd_lock_mutex(&dtype_unpacker_lock);
+  u8_lock_mutex(&dtype_unpacker_lock);
   if (dtype_packages[package_offset]==NULL) {
     struct FD_DTYPE_PACKAGE *pkg=
       dtype_packages[package_offset]=
@@ -844,7 +842,7 @@ FD_EXPORT int fd_register_vector_unpacker
   else if (dtype_packages[package_offset]->vectorfns[code_offset])
     replaced=1;
   dtype_packages[package_offset]->vectorfns[code_offset]=f;
-  fd_unlock_mutex(&dtype_unpacker_lock);
+  u8_unlock_mutex(&dtype_unpacker_lock);
   return replaced;
 }
 
@@ -855,7 +853,7 @@ FD_EXPORT int fd_register_packet_unpacker
   int replaced=0;
   if ((package<0x40) || (package>0x80)) return -1;
   else if ((code&0x80)) return -2;
-  fd_lock_mutex(&dtype_unpacker_lock);
+  u8_lock_mutex(&dtype_unpacker_lock);
   if (dtype_packages[package_offset]==NULL) {
     struct FD_DTYPE_PACKAGE *pkg=
       dtype_packages[package_offset]=
@@ -865,7 +863,7 @@ FD_EXPORT int fd_register_packet_unpacker
   else if (dtype_packages[package_offset]->packetfns[code_offset])
     replaced=1;
   dtype_packages[package_offset]->packetfns[code_offset]=f;
-  fd_unlock_mutex(&dtype_unpacker_lock);
+  u8_unlock_mutex(&dtype_unpacker_lock);
   return replaced;
 }
 
@@ -1230,9 +1228,7 @@ FD_EXPORT void fd_init_dtypeio_c()
     ("CHECKDTSIZE",_("whether to check returned and real dtype sizes"),
      fd_boolconfig_get,fd_boolconfig_set,&fd_check_dtsize);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&(dtype_unpacker_lock));
-#endif
+  u8_init_mutex(&(dtype_unpacker_lock));
 }
 
 /* Emacs local variables

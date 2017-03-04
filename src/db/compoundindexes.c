@@ -184,7 +184,7 @@ FD_EXPORT fd_index fd_make_compound_index(int n_indexes,fd_index *indexes)
   struct FD_COMPOUND_INDEX *cix=u8_alloc(struct FD_COMPOUND_INDEX);
   u8_string cid=get_compound_id(n_indexes,indexes);
   fd_init_index((fd_index)cix,&compoundindex_handler,cid,0);
-  fd_init_mutex(&(cix->index_lock)); u8_free(cid);
+  u8_init_mutex(&(cix->index_lock)); u8_free(cid);
   cix->n_indexes=n_indexes; cix->indexes=indexes;
   fd_register_index((fd_index)cix);
   return (fd_index) cix;

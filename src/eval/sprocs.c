@@ -59,7 +59,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.table_schema=fn->sproc_vars;
   bindings.schema_length=n_vars;
   bindings.schemap_onstack=1;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings=FDTYPE_CONS(&bindings);
   envstruct.env_exports=FD_VOID;
   envstruct.env_parent=fn->sproc_env; envstruct.env_copy=NULL;
@@ -67,10 +67,10 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.schema_values=vals;
   if (fn->fcn_arity>0) {
     if (n<fn->fcn_min_arity) {
-      fd_destroy_rwlock(&(bindings.table_rwlock));
+      u8_destroy_rwlock(&(bindings.table_rwlock));
       return fd_err(fd_TooFewArgs,fn->fcn_name,NULL,FD_VOID);}
     else if (n>fn->fcn_arity) {
-      fd_destroy_rwlock(&(bindings.table_rwlock));
+      u8_destroy_rwlock(&(bindings.table_rwlock));
       return fd_err(fd_TooManyArgs,fn->fcn_name,NULL,FD_VOID);}
     else {
       /* This code handles argument defaults for sprocs */
@@ -200,7 +200,7 @@ static fdtype _make_sproc(u8_string name,
   else s->sproc_env=fd_copy_env(env); /* s->sproc_env=env; */
   if (sync) {
     s->sproc_synchronized=1;
-    fd_init_mutex(&(s->sproc_lock));}
+    u8_init_mutex(&(s->sproc_lock));}
   else s->sproc_synchronized=0;
   scan=arglist; i=0; while (FD_PAIRP(scan)) {
     fdtype argspec=FD_CAR(scan);
@@ -242,7 +242,7 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
     /* fd_recycle_environment(sproc->sproc_env->env_copy); */
   }
   if (sproc->sproc_synchronized)
-    fd_destroy_mutex(&(sproc->sproc_lock));
+    u8_destroy_mutex(&(sproc->sproc_lock));
   if (sproc->fcn_filename) u8_free(sproc->fcn_filename);
   if (mallocd) {
     memset(sproc,0,sizeof(struct FD_SPROC));
@@ -329,7 +329,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
       fresh->fcn_defaults=fd_copy_vec(sproc->fcn_defaults,arity,NULL,flags);
 
     if (fresh->sproc_synchronized)
-      fd_init_mutex(&(fresh->sproc_lock));
+      u8_init_mutex(&(fresh->sproc_lock));
 
     if (U8_BITP(flags,FD_STATIC_COPY)) {
       FD_MAKE_CONS_STATIC(fresh);}
@@ -548,7 +548,7 @@ fdtype fd_xapply_sproc
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.table_schema=fn->sproc_vars;
   bindings.schema_length=fn->sproc_n_vars;
-  fd_init_rwlock(&(bindings.table_rwlock));
+  u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings=FDTYPE_CONS(&bindings);
   envstruct.env_exports=FD_VOID;
   envstruct.env_parent=fn->sproc_env; envstruct.env_copy=NULL;
@@ -604,7 +604,7 @@ fdtype fd_xapply_sproc
   /* If we're synchronized, unlock the mutex. */
   if (fn->sproc_synchronized)
     u8_unlock_mutex(&(fn->sproc_lock));
-  fd_destroy_rwlock(&(bindings.table_rwlock));
+  u8_destroy_rwlock(&(bindings.table_rwlock));
   if (envstruct.env_copy) {
     fd_recycle_environment(envstruct.env_copy);
     envstruct.env_copy=NULL;}

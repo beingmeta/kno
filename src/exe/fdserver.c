@@ -117,9 +117,7 @@ static int no_fddb=0;
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=60, fastfail_wait=60;
 
-#if FD_THREADS_ENABLED
 static u8_mutex init_server_lock;
-#endif
 
 static void init_server(void);
 
@@ -341,10 +339,10 @@ static fdtype config_get_dtype_server_flag(fdtype var,void *data)
 {
   fd_ptrbits bigmask=(fd_ptrbits)data;
   unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF), flags;
-  fd_lock_mutex(&init_server_lock);
+  u8_lock_mutex(&init_server_lock);
   if (server_initialized) flags=dtype_server.flags;
   else flags=server_flags;
-  fd_unlock_mutex(&init_server_lock);
+  u8_unlock_mutex(&init_server_lock);
   if ((flags)&(mask)) return FD_TRUE; else return FD_FALSE;
 }
 
@@ -352,7 +350,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
 {
   fd_ptrbits bigmask=(fd_ptrbits)data;
   unsigned int mask=(bigmask&0xFFFFFFFF), *flagsp, flags;
-  fd_lock_mutex(&init_server_lock);
+  u8_lock_mutex(&init_server_lock);
   if (server_initialized) {
     flags=dtype_server.flags; flagsp=&(dtype_server.flags);}
   else {
@@ -370,7 +368,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
                  (-1));
       if (guess<0) {
         u8_log(LOG_WARN,ServerConfig,"Unknown boolean setting %s for %q",s,var);
-        fd_unlock_mutex(&init_server_lock);
+        u8_unlock_mutex(&init_server_lock);
         return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
       else u8_log(LOG_WARN,ServerConfig,
                   "Unfamiliar boolean setting %s for %q, assuming %s",
@@ -379,7 +377,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
     if (bool) *flagsp=flags|mask;
     else *flagsp=flags&(~(mask));}
   else *flagsp=flags|mask;
-  fd_unlock_mutex(&init_server_lock);
+  u8_unlock_mutex(&init_server_lock);
   return 1;
 }
 
@@ -904,7 +902,7 @@ static u8_string state_dir=NULL;
 
 static void init_server()
 {
-  fd_lock_mutex(&init_server_lock);
+  u8_lock_mutex(&init_server_lock);
   if (server_initialized) return;
   server_initialized=1;
   u8_init_server
@@ -921,7 +919,7 @@ static void init_server()
      U8_SERVER_FLAGS,server_flags,
      U8_SERVER_END_INIT);
   dtype_server.xserverfn=server_loopfn;
-  fd_unlock_mutex(&init_server_lock);
+  u8_unlock_mutex(&init_server_lock);
 }
 
 FD_EXPORT int fd_init_fddbserv(void);

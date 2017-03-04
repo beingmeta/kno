@@ -97,7 +97,7 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
   index->index_offsets=NULL;
   if (read_only)
     U8_SETBITS(index->index_flags,FDB_READ_ONLY);
-  fd_init_mutex(&(index->index_lock));
+  u8_init_mutex(&(index->index_lock));
   index->slotids=FD_VOID;
   {
     fdtype slotids=file_index_fetch((fd_index)index,slotids_symbol);
@@ -228,7 +228,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       thiskey=fd_read_dtype(instream);
       if (FDTYPE_EQUAL(key,thiskey)) {
         if (n_vals==0) {
-          fd_unlock_mutex(&fx->index_lock);
+          u8_unlock_mutex(&fx->index_lock);
           fd_decref(thiskey);
           return FD_EMPTY_CHOICE;}
         else {
@@ -246,14 +246,14 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
             if ((atomicp) && (FD_CONSP(v))) atomicp=0;
             values[i++]=v;
             next_pos=fd_read_4bytes(instream);}
-          fd_unlock_mutex(&fx->index_lock); fd_decref(thiskey);
+          u8_unlock_mutex(&fx->index_lock); fd_decref(thiskey);
           return fd_init_choice(result,i,NULL,
                                 FD_CHOICE_DOSORT|
                                 ((atomicp)?(FD_CHOICE_ISATOMIC):
                                  (FD_CHOICE_ISCONSES))|
                                 FD_CHOICE_REALLOC);}}
       else if (n_probes>256) {
-        fd_unlock_mutex(&fx->index_lock);
+        u8_unlock_mutex(&fx->index_lock);
         fd_decref(thiskey);
         return fd_err(fd_FileIndexOverflow,"file_index_fetch",
                       u8_strdup(fx->index_source),thiskey);}
@@ -262,7 +262,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
         fd_decref(thiskey);
         probe=(probe+chain_width)%(fx->index_n_slots);
         keypos=((offsets) ? (offget(offsets,probe)) : (get_offset(fx,probe)));}}
-    fd_unlock_mutex(&fx->index_lock);
+    u8_unlock_mutex(&fx->index_lock);
     return FD_EMPTY_CHOICE;}
 }
 
@@ -292,12 +292,12 @@ static int file_index_fetchsize(fd_index ix,fdtype key)
         fd_unlock_index(fx);
         return n_vals;}
       else if (n_probes>256) {
-        fd_unlock_mutex(&fx->index_lock);
+        u8_unlock_mutex(&fx->index_lock);
         return fd_err(fd_FileIndexOverflow,
                       "file_index_fetchsize",
                       u8_strdup(fx->index_source),FD_VOID);}
       else {n_probes++; probe=(probe+chain_width)%(fx->index_n_slots);}}
-    fd_unlock_mutex(&fx->index_lock);
+    u8_unlock_mutex(&fx->index_lock);
     return FD_EMPTY_CHOICE;}
 }
 

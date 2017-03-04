@@ -168,7 +168,7 @@ FD_EXPORT int fd_reset_mempool(fd_pool p)
        _("mempool"),fd_pool2lisp(p));
   else {
     struct FD_MEMPOOL *mp=(struct FD_MEMPOOL *)p;
-    fd_lock_mutex(&(mp->pool_lock));
+    u8_lock_mutex(&(mp->pool_lock));
     fd_reset_hashtable(&(p->pool_changes),-1,1);
     fd_reset_hashtable(&(p->pool_cache),-1,1);
     mp->pool_load=0;

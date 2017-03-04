@@ -698,7 +698,7 @@ static fdtype textract
     else if (retval) {
       u8_byte buf[512];
       regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-      u8_unlock_mutex(&(ptr->fd_lock));
+      u8_unlock_mutex(&(ptr->fdrx_lock));
       return fd_err(fd_RegexError,"fd_text_extract",
                     u8_strdup(buf),FD_VOID);}
     else {

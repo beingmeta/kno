@@ -33,9 +33,7 @@ static fdtype boundp, bulk_commit_symbol, quote_symbol;
 
 static fdtype client_id=FD_VOID;
 static void init_client_id(void);
-#if FD_THREADS_ENABLED
 static u8_mutex client_id_lock;
-#endif
 
 static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
 {
@@ -266,18 +264,16 @@ static struct FD_POOL_HANDLER netpool_handler={
 
 static void init_client_id()
 {
-  fd_lock_mutex(&client_id_lock);
+  u8_lock_mutex(&client_id_lock);
   if (FD_VOIDP(client_id)) client_id=fdtype_string(u8_sessionid());
-  fd_unlock_mutex(&client_id_lock);
+  u8_unlock_mutex(&client_id_lock);
 }
 
 FD_EXPORT void fd_init_netpool_c()
 {
   u8_register_source_file(_FILEINFO);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&client_id_lock);
-#endif
+  u8_init_mutex(&client_id_lock);
 
   pool_data_symbol=fd_intern("POOL-DATA");
   new_oid_symbol=fd_intern("NEW-OID");

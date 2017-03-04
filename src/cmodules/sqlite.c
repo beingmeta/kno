@@ -37,18 +37,16 @@ u8_condition NoSuchFile=_("No such file");
 
 typedef struct FD_SQLITE {
   FD_EXTDB_FIELDS;
-#if FD_THREADS_ENABLED
-  u8_mutex fd_lock;
-#endif
+  u8_mutex sqlite_lock;
   u8_string sqlitefile, sqlitevfs;
   sqlite3 *sqlitedb;} FD_SQLITE;
 typedef struct FD_SQLITE *fd_sqlite;
 
 typedef struct FD_SQLITE_PROC {
   FD_EXTDB_PROC_FIELDS;
-#if FD_THREADS_ENABLED
-  u8_mutex plock;
-#endif
+
+  u8_mutex sqliteproc_lock;
+
   int *sqltypes;
   sqlite3 *sqlitedb; sqlite3_stmt *stmt;} FD_SQLITE_PROC;
 typedef struct FD_SQLITE_PROC *fd_sqlite_proc;
@@ -121,9 +119,9 @@ static int open_fdsqlite(struct FD_SQLITE *fdbptr)
   u8_log(LOG_WARN,"open_fdsqlite",
          "Opening SQLite database %s info=%s, filename=%s",
          fdbptr->extdb_spec,fdbptr->extdb_info,fdbptr->sqlitefile);
-  u8_lock_mutex(&(fdbptr->fd_lock));
+  u8_lock_mutex(&(fdbptr->sqlite_lock));
   if (fdbptr->sqlitedb) {
-    u8_unlock_mutex(&(fdbptr->fd_lock));
+    u8_unlock_mutex(&(fdbptr->sqlite_lock));
     return 0;}
   else {
     sqlite3 *db=NULL; int retval;
@@ -139,7 +137,7 @@ static int open_fdsqlite(struct FD_SQLITE *fdbptr)
       fd_seterr(SQLiteError,"open_sqlite",msg,
                 fdtype_string(fdbptr->sqlitefile));
       if (db) {closedb(db); fdbptr->sqlitedb=NULL;}
-      u8_unlock_mutex(&(fdbptr->fd_lock));
+      u8_unlock_mutex(&(fdbptr->sqlite_lock));
       return -1;}
     fdbptr->sqlitedb=db;
     if (fdbptr->extdb_n_procs) {
@@ -152,7 +150,7 @@ static int open_fdsqlite(struct FD_SQLITE *fdbptr)
         if (retval)
           u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
                  sqlite3_errmsg(db),sp->extdb_qtext);}}
-    u8_unlock_mutex(&(fdbptr->fd_lock));
+    u8_unlock_mutex(&(fdbptr->sqlite_lock));
     return 1;}
 }
 
@@ -198,7 +196,7 @@ static fdtype sqlite_open_prim(fdtype filename,fdtype colinfo,fdtype options)
   sqlcons->extdb_spec=sqlcons->extdb_info=u8_strdup(FD_STRDATA(filename));
   sqlcons->sqlitedb=NULL;
   sqlcons->sqlitevfs=vfs;
-  u8_init_mutex(&(sqlcons->fd_lock));
+  u8_init_mutex(&(sqlcons->sqlite_lock));
   u8_init_mutex(&(sqlcons->extdb_proclock));
   retval=open_fdsqlite(sqlcons);
   if (retval<0) {
@@ -222,7 +220,7 @@ static fdtype sqlite_reopen_prim(fdtype db)
 static void close_fdsqlite(struct FD_SQLITE *dbp,int lock)
 {
   u8_log(LOG_WARN,"Closing SQLITE db %s",dbp->extdb_spec);
-  if (lock) u8_lock_mutex(&(dbp->fd_lock)); {
+  if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
     sqlite3 *db=dbp->sqlitedb;
     struct FD_EXTDB_PROC **scan=dbp->extdb_procs;
     struct FD_EXTDB_PROC **limit=scan+dbp->extdb_n_procs;
@@ -230,7 +228,7 @@ static void close_fdsqlite(struct FD_SQLITE *dbp,int lock)
       close_fdsqliteproc((struct FD_SQLITE_PROC *)(*scan++));
     closedb(db);
     dbp->sqlitedb=NULL;}
-  if (lock) u8_unlock_mutex(&(dbp->fd_lock));
+  if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
 }
 
 static fdtype sqlite_close_prim(fdtype db)
@@ -245,13 +243,13 @@ static fdtype sqlite_close_prim(fdtype db)
 static void recycle_fdsqlite(struct FD_EXTDB *c)
 {
   struct FD_SQLITE *dbp=(struct FD_SQLITE *)c;
-  u8_lock_mutex(&(dbp->fd_lock)); {
+  u8_lock_mutex(&(dbp->sqlite_lock)); {
     close_fdsqlite(dbp,0);
     if (dbp->extdb_info!=dbp->extdb_spec) u8_free(dbp->extdb_info);
     u8_free(dbp->extdb_spec);
     fd_decref(dbp->extdb_options);
     fd_decref(dbp->extdb_colinfo);
-    u8_destroy_mutex(&(dbp->fd_lock));}
+    u8_destroy_mutex(&(dbp->sqlite_lock));}
 }
 
 #if HAVE_SQLITE3_OPEN_V2
@@ -303,7 +301,7 @@ static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
   sqlite3_stmt *stmt;
   const char *errmsg="er, err";
   int retval;
-  u8_lock_mutex(&(fds->fd_lock));
+  u8_lock_mutex(&(fds->sqlite_lock));
   retval=newstmt(dbp,FD_STRDATA(string),FD_STRLEN(string),&stmt);
   if (FD_VOIDP(colinfo)) colinfo=fds->extdb_colinfo;
   if (retval==SQLITE_OK) {
@@ -313,14 +311,14 @@ static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
       fd_seterr(SQLiteError,"fdsqlite_call",
                 u8_strdup(errmsg),fd_incref(string));}
     sqlite3_finalize(stmt);
-    u8_unlock_mutex(&(fds->fd_lock));
+    u8_unlock_mutex(&(fds->sqlite_lock));
     return values;}
   else {
     fdtype dbptr=(fdtype)fds;
     fd_incref(dbptr);
     errmsg=sqlite3_errmsg(dbp);
     fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),dbptr);
-    u8_unlock_mutex(&(fds->fd_lock));
+    u8_unlock_mutex(&(fds->sqlite_lock));
     return FD_ERROR_VALUE;}
 }
 
@@ -329,9 +327,9 @@ static fdtype sqliteexechandler(struct FD_EXTDB *extdb,fdtype string,
 {
   if (extdb->extdb_handler==&sqlite_handler) {
     struct FD_SQLITE *sdb=(struct FD_SQLITE *)extdb;
-    u8_lock_mutex(&(sdb->fd_lock));
+    u8_lock_mutex(&(sdb->sqlite_lock));
     if (!(sdb->sqlitedb)) {
-      u8_unlock_mutex(&(sdb->fd_lock));
+      u8_unlock_mutex(&(sdb->sqlite_lock));
       if (extdb->extdb_spec!=extdb->extdb_info)
         u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
                extdb->extdb_spec,extdb->extdb_info);
@@ -355,9 +353,9 @@ static fdtype sqlitemakeproc
   struct FD_SQLITE_PROC *sqlcons;
   int n_params, retval;
   if (!(db)) {
-    u8_lock_mutex(&(dbp->fd_lock));
+    u8_lock_mutex(&(dbp->sqlite_lock));
     if (!(dbp->sqlitedb)) {
-      u8_unlock_mutex(&(dbp->fd_lock));
+      u8_unlock_mutex(&(dbp->sqlite_lock));
       if (dbp->extdb_spec!=dbp->extdb_info)
         u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
                dbp->extdb_spec,dbp->extdb_info);
@@ -380,7 +378,7 @@ static fdtype sqlitemakeproc
   sqlcons->extdbptr=(fdtype)dbp;
   fd_incref(sqlcons->extdbptr);
   sqlcons->sqlitedb=db; sqlcons->stmt=stmt;
-  u8_init_mutex(&(sqlcons->plock));
+  u8_init_mutex(&(sqlcons->sqliteproc_lock));
   sqlcons->fcn_filename=sqlcons->extdb_spec=u8_strdup(dbp->extdb_spec);
   /* include NUL */
   sqlcons->fcn_name=sqlcons->extdb_qtext=_memdup((u8_byte *)sql,sql_len+1);
@@ -479,14 +477,14 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
                 fds->extdb_spec,dbproc->extdb_qtext);
     open_fdsqlite(fds);
     if (!(fds->sqlitedb)) return FD_ERROR_VALUE;}
-  u8_lock_mutex(&(dbproc->plock));
+  u8_lock_mutex(&(dbproc->sqliteproc_lock));
   while (i<n) {
     fdtype arg=args[i]; int dofree=0;
     if (!(FD_VOIDP(dbproc->extdb_paramtypes[i])))
       if (FD_APPLICABLEP(dbproc->extdb_paramtypes[i])) {
         arg=fd_apply(dbproc->extdb_paramtypes[i],1,&arg);
         if (FD_ABORTP(arg)) {
-          u8_unlock_mutex(&(dbproc->plock));
+          u8_unlock_mutex(&(dbproc->sqliteproc_lock));
           return arg;}
         else dofree=1;}
     if (FD_EMPTY_CHOICEP(arg)) {
@@ -541,14 +539,14 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
       fd_seterr(SQLiteError,"fdsqlite_call",
                 u8_strdup(errmsg),fd_incref((fdtype)fn));
-      u8_unlock_mutex(&(dbproc->plock));
+      u8_unlock_mutex(&(dbproc->sqliteproc_lock));
       return FD_ERROR_VALUE;}
     i++;}
-  u8_lock_mutex(&(fds->fd_lock));
+  u8_lock_mutex(&(fds->sqlite_lock));
   values=sqlite_values(dbproc->sqlitedb,dbproc->stmt,dbproc->extdb_colinfo);
-  u8_unlock_mutex(&(fds->fd_lock));
+  u8_unlock_mutex(&(fds->sqlite_lock));
   sqlite3_reset(dbproc->stmt);
-  u8_unlock_mutex(&(dbproc->plock));
+  u8_unlock_mutex(&(dbproc->sqliteproc_lock));
   if (FD_ABORTP(values)) {
     const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
     fd_seterr(SQLiteError,"fdsqlite_call",

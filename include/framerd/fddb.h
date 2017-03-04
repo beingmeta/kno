@@ -41,9 +41,7 @@ FD_EXPORT fdtype fd_fdbserv_module;
 
 FD_EXPORT int fd_swapcheck(void);
 
-#if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex fd_swapcheck_lock;
-#endif
 
 /*
    FramerD database objects have a 32-bit wide index_flags field.  The
@@ -183,9 +181,7 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data);
 typedef int (*fd_ipevalfn)(void *);
 
 FD_EXPORT int fd_trace_ipeval;
-#if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex fd_ipeval_lock;
-#endif
 
 #else /* FD_IPEVAL_ENABLED */
 #define fd_trace_ipeval (0)

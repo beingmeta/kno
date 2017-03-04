@@ -39,14 +39,14 @@ static void recycle_achoice(struct FD_RAW_CONS *c)
       ch->achoice_choicedata=NULL;
       ch->achoice_mallocd=0;}}
   fd_decref(ch->achoice_normalized);
-  fd_destroy_mutex(&(ch->achoice_lock));
+  u8_destroy_mutex(&(ch->achoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 
 static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
 {
   fd_decref(ch->achoice_normalized);
-  fd_destroy_mutex(&(ch->achoice_lock));
+  u8_destroy_mutex(&(ch->achoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 static int write_achoice_dtype(struct FD_OUTBUF *s,fdtype x)
@@ -312,7 +312,8 @@ fdtype fd_make_achoice(fdtype x,fdtype y)
     if ((FD_CHOICEP(ny)) && (FD_ATOMIC_CHOICEP(ny))) {}
     else ch->achoice_atomic=0;}
   ch->achoice_write=ch->achoice_write+2;
-  ch->achoice_uselock=1; fd_init_mutex(&(ch->achoice_lock));
+  ch->achoice_uselock=1; 
+  u8_init_mutex(&(ch->achoice_lock));
   return FDTYPE_CONS(ch);
 }
 
@@ -334,7 +335,7 @@ fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
   ch->achoice_nested=0; ch->achoice_muddled=0; ch->achoice_atomic=1; ch->achoice_mallocd=1;
   ch->achoice_normalized=FD_VOID;
   ch->achoice_uselock=uselock;
-  fd_init_mutex(&(ch->achoice_lock));
+  u8_init_mutex(&(ch->achoice_lock));
   return FDTYPE_CONS(ch);
 }
 

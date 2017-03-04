@@ -29,9 +29,7 @@
 static fdtype dotsize_symbol, margin_symbol, version_symbol, robustness_symbol;
 static fdtype l_sym, m_sym, q_sym, h_sym;
 
-#if FD_THREADS_ENABLED
 static u8_mutex qrencode_lock;
-#endif
 
 FD_EXPORT int fd_init_qrcode(void) FD_LIBINIT_FN;
 
@@ -153,7 +151,7 @@ static fdtype qrencode_prim(fdtype string,fdtype opts)
   {
     fdtype result;
     QRcode *qrcode=
-      ((fd_lock_mutex(&qrencode_lock)),
+      ((u8_lock_mutex(&qrencode_lock)),
        QRcode_encodeString8bit
        (FD_STRDATA(string),FD_FIX2INT(version_arg),eclevel));
     u8_unlock_mutex(&qrencode_lock);

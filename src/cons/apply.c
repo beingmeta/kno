@@ -72,38 +72,7 @@ static void out_escaped(FILE *f,u8_string name)
 /* Stack checking */
 
 #if FD_STACKCHECK
-#if (!(FD_THREADS_ENABLED))
-static ssize_t apply_stack_limit=-1;
-static int stackcheck()
-{
-  if (apply_stack_limit>16384) {
-    ssize_t depth=u8_stack_depth();
-    if ((u8_stack_direction>0) ?
-        (depth>apply_stack_limit) :
-        (apply_stack_limit>depth))
-      return 0;
-    else return 1;}
-  else return 1;
-}
-FD_EXPORT ssize_t fd_stack_limit()
-{
-  if (apply_stack_limit<0)
-    return u8_stack_size;
-  else return apply_stack_limit;
-}
-FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
-{
-  if (limit<8192) { /* Arbitrarily chosen */
-    char *detailsbuf = u8_malloc(64);
-    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
-              u8_write_long_long(limit,detailsbuf,64));
-    return -1;}
-  else {
-    ssize_t oldlimit=apply_stack_limit;
-    apply_stack_limit=limit;
-    return oldlimit;}
-}
-#elif HAVE_THREAD_STORAGE_CLASS
+#if HAVE_THREAD_STORAGE_CLASS
 static __thread ssize_t apply_stack_limit=-1;
 static int stackcheck()
 {
@@ -197,35 +166,33 @@ FD_EXPORT int fd_stackcheck()
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
 
-#if FD_THREADS_ENABLED
 u8_mutex calltrack_sensor_lock;
-#endif
 
 static struct FD_CALLTRACK_SENSOR calltrack_sensors[FD_MAX_CALLTRACK_SENSORS];
 static int n_calltrack_sensors=0;
 
 FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int create)
 {
-  int i=0; fd_lock_mutex(&calltrack_sensor_lock);
+  int i=0; u8_lock_mutex(&calltrack_sensor_lock);
   while (i<n_calltrack_sensors)
     if (strcmp(id,calltrack_sensors[i].name)==0) {
-      fd_unlock_mutex(&calltrack_sensor_lock);
+      u8_unlock_mutex(&calltrack_sensor_lock);
       return &(calltrack_sensors[i]);}
     else i++;
   if (create==0) {
-    fd_unlock_mutex(&calltrack_sensor_lock);
+    u8_unlock_mutex(&calltrack_sensor_lock);
     return NULL;}
   else if (i<FD_MAX_CALLTRACK_SENSORS) {
     calltrack_sensors[i].name=u8_strdup(id);
     calltrack_sensors[i].enabled=0;
     calltrack_sensors[i].intfcn=NULL;
     calltrack_sensors[i].dblfcn=NULL;
-    fd_unlock_mutex(&calltrack_sensor_lock);
+    u8_unlock_mutex(&calltrack_sensor_lock);
     return &calltrack_sensors[n_calltrack_sensors++];}
   else {
     fd_seterr(TooManyCalltrackSensors,"fd_get_calltrack_sensor",
               u8_strdup(id),FD_VOID);
-    fd_unlock_mutex(&calltrack_sensor_lock);
+    u8_unlock_mutex(&calltrack_sensor_lock);
     return NULL;}
 }
 
@@ -316,8 +283,8 @@ FD_EXPORT int fd_start_calltrack(u8_string filename)
     return -1;}
 }
 #else
-static FD_THREADVAR FILE *calltrack_logfile;
-static FD_THREADVAR char *calltrack_logfilename;
+static __thread FILE *calltrack_logfile;
+static __thread char *calltrack_logfilename;
 #define get_calltrack_logfile() (calltrack_logfile)
 FD_EXPORT int fd_start_calltrack(u8_string filename)
 {
@@ -478,25 +445,25 @@ static fdtype config_get_calltrack_sensors(fdtype sym,void U8_MAYBE_UNUSED *data
 {
   if (sym==calltrack_sense) {
     fdtype results=FD_EMPTY_CHOICE; int i=0;
-    fd_lock_mutex(&calltrack_sensor_lock);
+    u8_lock_mutex(&calltrack_sensor_lock);
     while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled) {
         fdtype sensorname=fd_make_string(NULL,-1,calltrack_sensors[i].name);
         FD_ADD_TO_CHOICE(results,sensorname);
         i++;}
       else i++;
-    fd_unlock_mutex(&calltrack_sensor_lock);
+    u8_unlock_mutex(&calltrack_sensor_lock);
     return fd_simplify_choice(results);}
   else if (sym==calltrack_ignore) {
     fdtype results=FD_EMPTY_CHOICE; int i=0;
-    fd_lock_mutex(&calltrack_sensor_lock);
+    u8_lock_mutex(&calltrack_sensor_lock);
     while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled) i++;
       else {
         fdtype sensorname=fd_make_string(NULL,-1,calltrack_sensors[i].name);
         FD_ADD_TO_CHOICE(results,sensorname);
         i++;}
-    fd_unlock_mutex(&calltrack_sensor_lock);
+    u8_unlock_mutex(&calltrack_sensor_lock);
     return fd_simplify_choice(results);}
   else return FD_EMPTY_CHOICE;
 }
@@ -1353,7 +1320,7 @@ FD_EXPORT void fd_init_apply_c()
                      _("File used for calltrack profiling (#f disables calltrack)"),
                      get_calltrack,set_calltrack,NULL);
 
-#if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
+#if (FD_USE_TLS)
   u8_new_threadkey(&calltrack_log_key,free_calltrack_log);
   u8_new_threadkey(&stack_limit_key,free_calltrack_log);
 #endif
@@ -1377,9 +1344,7 @@ FD_EXPORT void fd_init_apply_c()
     ("CALLTRACK/IGNORE",_("Ignore calltrack sensors"),
      config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
 
-#if (FD_THREADS_ENABLED)
   u8_init_mutex(&calltrack_sensor_lock);
-#endif
 
 }
 

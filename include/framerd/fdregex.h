@@ -20,7 +20,7 @@ typedef struct FD_REGEX {
   u8_string fd_rxsrc;
   unsigned int fd_rxactive;
   int fd_rxflags;
-  u8_mutex fd_lock;
+  u8_mutex fdrx_lock;
   regex_t fd_rxcompiled;} FD_REGEX;
 typedef struct FD_REGEX *fd_regex;
 

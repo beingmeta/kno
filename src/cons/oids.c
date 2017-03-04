@@ -23,9 +23,7 @@ static fd_exception OIDBaseOverflow;
 static FD_OID _base_oids[1024];
 FD_OID *fd_base_oids=_base_oids;
 int fd_n_base_oids=0;
-#if FD_THREADS_ENABLED
 static u8_mutex base_oid_lock;
-#endif
 
 static int get_base_oid_index(FD_OID base)
 {
@@ -41,14 +39,14 @@ static int add_base_oid_index(FD_OID base)
 {
   int boi=get_base_oid_index(base);
   if (boi>=0) return boi;
-  fd_lock_mutex(&base_oid_lock);
+  u8_lock_mutex(&base_oid_lock);
   if (fd_n_base_oids >= 1024) {
-    fd_unlock_mutex(&base_oid_lock);
+    u8_unlock_mutex(&base_oid_lock);
     return -1;}
   else {
     boi=fd_n_base_oids;
     fd_base_oids[fd_n_base_oids++]=base;
-    fd_unlock_mutex(&base_oid_lock);
+    u8_unlock_mutex(&base_oid_lock);
     return boi;}
 }
 
@@ -181,9 +179,7 @@ void fd_init_oids_c()
 
   _fd_oid_info=_simple_oid_info;
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&(base_oid_lock));
-#endif
+  u8_init_mutex(&(base_oid_lock));
 
   init_oids();
 }

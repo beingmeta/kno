@@ -81,7 +81,7 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
     retval=fcn(data);
     if (tc) fd_pop_threadcache(tc);
     return retval;}
-  fd_lock_mutex(&global_ipeval_lock);
+  u8_lock_mutex(&global_ipeval_lock);
 #endif
   saved_state=state=fd_ipeval_status();
   start=u8_elapsed_time(); point=start;
@@ -128,7 +128,7 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
            ipeval_count,time_since(start));}
 #endif
 #if FD_GLOBAL_IPEVAL
-  fd_unlock_mutex(&global_ipeval_lock);
+  u8_unlock_mutex(&global_ipeval_lock);
 #endif
   if (tc) fd_pop_threadcache(tc);
   return retval;
@@ -148,7 +148,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
   if (fd_ipeval_status()>0) {
     if (tc) fd_pop_threadcache(tc);
     return fcn(data);}
-  fd_lock_mutex(&global_ipeval_lock);
+  u8_lock_mutex(&global_ipeval_lock);
 #endif
   saved_state=state=fd_ipeval_status();
   start=u8_elapsed_time(); point=start;
@@ -210,7 +210,7 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
            ipeval_count,time_since(start));}
 #endif
 #if FD_GLOBAL_IPEVAL
-  fd_unlock_mutex(&global_ipeval_lock);
+  u8_unlock_mutex(&global_ipeval_lock);
 #endif
   if (tc) fd_pop_threadcache(tc);
   return retval;
@@ -224,7 +224,7 @@ FD_EXPORT void fd_init_ipeval_c()
   fd_register_config("TRACEIPEVAL",_("Trace ipeval execution"),
                      fd_boolconfig_get,fd_boolconfig_set,&fd_trace_ipeval);
 #if FD_GLOBAL_IPEVAL
-  fd_init_mutex(&global_ipeval_lock);
+  u8_init_mutex(&global_ipeval_lock);
 #endif
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_ipeval_state_key,NULL);
