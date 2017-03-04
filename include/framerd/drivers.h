@@ -18,7 +18,11 @@ FD_EXPORT int fd_acid_files;
 FD_EXPORT int fd_init_dbs(void) FD_LIBINIT_FN;
 
 typedef enum FD_OFFSET_TYPE { FD_B32=0, FD_B40=1, FD_B64=2 } fd_offset_type;
-typedef enum FD_COMPRESSION_TYPE { FD_NOCOMPRESS=0, FD_ZLIB=1, FD_BZ2=2 }
+typedef enum FD_COMPRESSION_TYPE {
+  FD_NOCOMPRESS=0,
+  FD_ZLIB=1,
+  FD_BZ2=2,
+  FD_SNAPPY=3 }
   fd_compression_type;
 
 FD_EXPORT fd_exception fd_FileIndexError;

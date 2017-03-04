@@ -98,6 +98,7 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 	src/drivers/headers/chunkrefs.h 	\
 	src/drivers/headers/filepool.h 	\
 	src/drivers/headers/fileindex.h 	\
+	src/drivers/headers/memindex.h	 	\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h	\
 	src/cmodules/fdsqlite.h			\

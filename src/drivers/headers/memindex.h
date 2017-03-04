@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-/* LOGIX indexes keep themselves in memory but support fast commits
+/* MEMIDX indexes keep themselves in memory but support fast commits
    by just appending to the disk file (like a log) */
 /* The file layout has a 256-byte header block consisting of
      0x00 Magic number (4 bytes)
@@ -21,12 +21,12 @@
 
 typedef struct FD_MEM_INDEX {
   FD_INDEX_FIELDS;
-  unsigned int lix_n_commits;
-  unsigned int lix_n_keys, lix_n_entries;
-  unsigned int lix_n_slotids, lix_n_added;
-  unsigned int lix_slotids_length;
-  fdtype *lix_slotids;
-  size_t lix_valid_data;
+  unsigned int mix_n_commits;
+  unsigned int mix_n_keys, mix_n_entries;
+  unsigned int mix_n_slotids, mix_n_added;
+  unsigned int mix_slotids_length;
+  fdtype *mix_slotids, *mix_baseoids;
+  size_t mix_valid_data;
   struct FD_STREAM index_stream;} FD_LOG_INDEX;
 typedef struct FD_LOG_INDEX *fd_log_index;
 
