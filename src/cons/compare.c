@@ -169,7 +169,13 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 
 /* Sorting DTYPEs based on a set of comparison flags */
 
-static int dtype_sort_compare(const void *x,const void *y,void *flags);
+static int dtype_sort_compare(const void *vx,const void *vy,void *vflags)
+{
+  fdtype *xp=(fdtype *)vx, *yp=(fdtype *)vy;
+  unsigned long long flagv=(unsigned long long)vflags;
+  fd_compare_flags flags=(fd_compare_flags)(flagv&0xFFF);
+  return fdtype_compare(*xp,*yp,flags);
+}
 
 FD_EXPORT
 /* fdtype_sort:
@@ -178,16 +184,8 @@ FD_EXPORT
   Returns a function corresponding to a generic sort of two dtype pointers. */
 void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags)
 {
-  qsort_r(v,n,sizeof(fdtype),dtype_sort_compare,
-          (void *)((unsigned long long)flags));
-}
-
-static int dtype_sort_compare(const void *vx,const void *vy,void *vflags)
-{
-  fdtype *xp=(fdtype *)vx, *yp=(fdtype *)vy;
-  unsigned long long flagv=(unsigned long long)vflags;
-  fd_compare_flags flags=(fd_compare_flags)(flagv&0xFFF);
-  return fdtype_compare(*xp,*yp,flags);
+  qsorter(v,n,sizeof(fdtype),dtype_sort_compare,
+	  (void *)((unsigned long long)flags));
 }
 
 static int compare_compounds(fdtype x,fdtype y,fd_compare_flags flags)

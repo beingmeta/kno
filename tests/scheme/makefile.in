@@ -160,13 +160,13 @@ fdcgiexec: ../../src/exe/webcommon.h
 # Test targets
 
 alltests: \
-	scheme tables pools indexes frames \
+	scheme tables pools indexes db \
 	execscripts chainscripts batchscripts  \
 	chained_batchscripts optimize_modules
 	@echo "*** Done with alltests"
 
 alltests_but_optmod: \
-	scheme tables pools indexes frames \
+	scheme tables pools indexes db \
 	execscripts chainscripts batchscripts  \
 	chained_batchscripts
 	@echo "*** Done with alltests"
@@ -174,7 +174,7 @@ alltests_but_optmod: \
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 	@echo "*** Done with alltests"
 
-scheme:
+schemetests scheme:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ r4rs.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes r4rs.scm ${TESTCONFIG}
@@ -206,13 +206,13 @@ loadmods: optimize_modules
 optimize_modules:
 	$(RUNTEST) ./fdexec@suffix@ optmods.scm ${TESTCONFIG}
 
-tables:
+tabletests tables:
 	@echo "*** Running scheme tests to exercise the table/index layer"
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table $(TESTSIZE) ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise the table/index layer"
 
-pools:
+pooltests pools:
 	@echo "*** Running file pool tests ****"
 	@rm -f temp.pool
 	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} POOLTYPE=filepool
@@ -277,7 +277,7 @@ hashindexes:
 	@make TEST_SUFFIX=hashindex runindexes
 	@echo "*** Done testing hash indices "	
 
-indexes: fileindexes hashindexes
+indextests indexes: fileindexes hashindexes
 
 dbtest:
 	@echo "*** Running database layer tests"
@@ -295,7 +295,7 @@ dbtest:
 		 ${TESTCONFIG} CACHELEVEL=2
 	@echo "*** Finished database layer tests"
 
-dbtests frames:
+dbtests db:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
 	make TESTCONFIG="POOLTYPE=oidpool" dbtest
 	make TESTCONFIG="POOLTYPE=bigpool" dbtest
@@ -307,12 +307,12 @@ dbtests frames:
 	make dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
-crypto:
+cryptotests crypto:
 	@echo "*** Running crypto tests ***"
 	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm $(TESTCONFIG)
 	@echo "*** Completed crypto tests ***"
 
-xmltests:
+xmltests xml:
 	@echo "*** Running xml tests ***"
 	$(RUNTEST) ./fdexec@suffix@ xmltests.scm $(TESTCONFIG)
 	@echo "*** Completed xml tests ***"
@@ -425,34 +425,34 @@ chained_batchscripts:
 memtest memcheck: memtest_all
 
 memtest_all: memtest_scheme memtest_tables memtest_pools \
-	memtest_indexes memtest_frames memtest_crypto \
+	memtest_indexes memtest_db memtest_crypto \
 	memtest_load_modules memtest_optimize_modules
 
-memtest_scheme: @memtest_prefix@_memtest_scheme
-memtest_tables: @memtest_prefix@_memtest_tables
+memtest_scheme:  @memtest_prefix@_memtest_scheme
+memtest_tables:  @memtest_prefix@_memtest_tables
 memtest_indexes: @memtest_prefix@_memtest_indexes
-memtest_frames: @memtest_prefix@_memtest_frames
-memtest_crypto: @memtest_prefix@memcrypto
+memtest_db:      @memtest_prefix@_memtest_db
+memtest_crypto:  @memtest_prefix@memcrypto
 
 .PHONY: memtest memcheck \
 	memtest_all memtest_scheme memtest_tables \
-	memtest_pools memtest_indexes memtest_frames \
+	memtest_pools memtest_indexes memtest_db \
 	memtest_crypto memtest_load_modules \
 	memtest_optimize_modules \
 	vg_memtest_all vg_memtest_scheme vg_memtest_tables \
-	vg_memtest_pools vg_memtest_indexes vg_memtest_frames \
+	vg_memtest_pools vg_memtest_indexes vg_memtest_db \
 	vg_memtest_crypto vg_memtest_load_modules \
 	vg_memtest_optimize_modules \
 	gperf_memtest_all gperf_memtest_scheme gperf_memtest_tables \
-	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_frames \
+	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_db \
 	gperf_memtest_crypto gperf_memtest_load_modules \
 	gperf_memtest_optimize_modules \
 	gperf_memtest_all gperf_memtest_scheme gperf_memtest_tables \
-	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_frames \
+	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_db \
 	default_memtest_crypto default_memtest_load_modules 
 	default_memtest_optimize_modules \
 	default_memtest_all default_memtest_scheme default_memtest_tables \
-	default_memtest_pools default_memtest_indexes default_memtest_frames \
+	default_memtest_pools default_memtest_indexes default_memtest_db \
 	default_memtest_crypto default_memtest_load_modules \
 	default_memtest_optimize_modules
 
@@ -481,9 +481,9 @@ vg_memtest_indexes:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
 
-vg_memtest_frames:
+vg_memtest_db:
 	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) frames
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with valgrind memory debugging"
 
 vg_memtest_crypto:
@@ -522,9 +522,9 @@ gperf_memtest_indexes:
 	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indexes
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-gperf_memtest_frames:
+gperf_memtest_db:
 	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 frames
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 db
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 gperf_memtest_crypto:
@@ -563,9 +563,9 @@ builtin_memtest_indexes:
 	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indexes
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-builtin_memtest_frames:
+builtin_memtest_db:
 	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 frames
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 db
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 builtin_memtest_crypto:
@@ -582,37 +582,37 @@ builtin_memtest_optimize_modules:
 heapcheck heaptest: heapcheck_all
 
 heapcheck_all: heapcheck_scheme heapcheck_tables \
-	heapcheck_pools heapcheck_indexes heapcheck_frames \
+	heapcheck_pools heapcheck_indexes heapcheck_db \
 	heapcheck_crypto heapcheck_load_modules heapcheck_optimize_modules
 
 heapcheck_scheme: @heapcheck_prefix@heapcheck_scheme
 heapcheck_tables: @heapcheck_prefix@heacheck_ptables
 heapcheck_pools: @heapcheck_prefix@heapcheck_pools
 heapcheck_indexes: @heapcheck_prefix@heapcheck_indexes
-heapcheck_frames: @heapcheck_prefix@heapcheck_frames
+heapcheck_db: @heapcheck_prefix@heapcheck_db
 heapcheck_crypto: @heapcheck_prefix@heapcheck_crypto
 heapcheck_load_modules: @heapcheck_prefix@heapcheck_load_modules
 heapcheck_optimize_modules: @heapcheck_prefix@heapcheck_optimize_modules
 
 .PHONY: heapcheck heaptest
 .PHONY:	heapcheck_all heapcheck_scheme heapcheck_tables
-.PHONY:	heapcheck_pools heapcheck_indexes heapcheck_frames
+.PHONY:	heapcheck_pools heapcheck_indexes heapcheck_db
 .PHONY:	heapcheck_crypto heapcheck_load_modules
 .PHONY:	heapcheck_optimize_modules
 .PHONY:	vg_heapcheck_all vg_heapcheck_scheme vg_heapcheck_tables
-.PHONY:	vg_heapcheck_pools vg_heapcheck_indexes vg_heapcheck_frames
+.PHONY:	vg_heapcheck_pools vg_heapcheck_indexes vg_heapcheck_db
 .PHONY:	vg_heapcheck_crypto vg_heapcheck_load_modules
 .PHONY:	vg_heapcheck_optimize_modules
 .PHONY:	gperf_heapcheck_all gperf_heapcheck_scheme gperf_heapcheck_tables
-.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_frames
+.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_db
 .PHONY:	gperf_heapcheck_crypto gperf_heapcheck_load_modules
 .PHONY:	gperf_heapcheck_optimize_modules
 .PHONY:	gperf_heapcheck_all gperf_heapcheck_scheme gperf_heapcheck_tables
-.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_frames
+.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_db
 .PHONY:	default_heapcheck_crypto default_heapcheck_load_modules
 .PHONY:	default_heapcheck_optimize_modules
 .PHONY:	default_heapcheck_all default_heapcheck_scheme default_heapcheck_tables
-.PHONY:	default_heapcheck_pools default_heapcheck_indexes default_heapcheck_frames
+.PHONY:	default_heapcheck_pools default_heapcheck_indexes default_heapcheck_db
 .PHONY:	default_heapcheck_crypto default_heapcheck_load_modules
 .PHONY:	default_heapcheck_optimize_modules
 
@@ -643,9 +643,9 @@ vg_heapcheck_indexes:
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
-vg_heapcheck_frames:
+vg_heapcheck_db:
 	@echo "*** Running tests on database layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) frames
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
 vg_heapcheck_crypto:
@@ -684,9 +684,9 @@ gperf_heapcheck_indexes:
 	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
-gperf_heapcheck_frames:
+gperf_heapcheck_db:
 	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) frames
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with gperftools memory debugging"
 
 gperf_heapcheck_crypto:
@@ -725,9 +725,9 @@ builtin_heapcheck_indexes:
 	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
 
-builtin_heapcheck_frames:
+builtin_heapcheck_db:
 	@echo "*** Running tests on database layers with embedded debugging tools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) frames
+	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with embedded debugging tools memory debugging"
 
 builtin_heapcheck_crypto:
