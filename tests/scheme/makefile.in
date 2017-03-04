@@ -422,7 +422,7 @@ chained_batchscripts:
 
 # Memory tests
 
-memtest memcheck: memtest_all
+memtest memtests memcheck memchecks: memtest_all
 
 memtest_all: memtest_scheme memtest_tables memtest_pools \
 	memtest_indexes memtest_db memtest_crypto \
@@ -579,7 +579,7 @@ builtin_memtest_optimize_modules:
 
 # Leaktests
 
-leaktest heaptest: leaktest_all
+leaktest heaptest leaktests: leaktest_all
 
 leaktest_all: leaktest_scheme leaktest_tables \
 	leaktest_pools leaktest_indexes leaktest_db \
