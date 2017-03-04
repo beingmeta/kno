@@ -163,9 +163,9 @@ debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
 memtest_env=""
-heapcheck_env=""
+leaktest_env=""
 memtest_prefix=default_
-heapcheck_prefix=default_
+leaktest_prefix=default_
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
@@ -247,8 +247,8 @@ AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
 AC_SUBST(memtest_prefix)
 AC_SUBST(memtest_env)
-AC_SUBST(heapcheck_prefix)
-AC_SUBST(heapcheck_env)
+AC_SUBST(leaktest_prefix)
+AC_SUBST(leaktest_env)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -366,7 +366,7 @@ CODENAME=$with_codename
 
 if test "${VALGRIND}" != "none"; then
   memtest_prefix=vg_
-  heapcheck_prefix=vg_
+  leaktest_prefix=vg_
 fi
 
 AC_ARG_WITH(sanitize,--with-sanitize[=address*|memory|thread],with_sanitize=$withval,with_sanitize="none")
@@ -383,7 +383,7 @@ elif test "$with_sanitize" = "address" ||
    install_static=""
    custom_malloc="asan"
    memtest_prefix=default_
-   heapcheck_prefix=default_
+   leaktest_prefix=default_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
 elif test "$with_sanitize" = "leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
@@ -393,7 +393,7 @@ elif test "$with_sanitize" = "leak"; then
    install_static=""
    custom_malloc="asan"
    memtest_prefix=default_
-   heapcheck_prefix=default_
+   leaktest_prefix=default_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
 elif test "$CLANG" = "none"; then
   echo "No clang for sanitizing $with_sanitize";
@@ -408,7 +408,7 @@ elif test "$with_sanitize" = "memory"; then
    install_static=""
    custom_malloc="msan-full"
    memtest_prefix=default_
-   heapcheck_prefix=default_
+   leaktest_prefix=default_
    TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
 elif test "$with_sanitize" = "thread"; then
    CC=$CLANG
@@ -420,7 +420,7 @@ elif test "$with_sanitize" = "thread"; then
    install_static=""
    custom_malloc="msan"
    memtest_prefix=default_
-   heapcheck_prefix=default_
+   leaktest_prefix=default_
    TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
 fi
 
@@ -1254,9 +1254,9 @@ if test $with_gperftools = "yes"; then
     AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
     AC_CHECK_HEADERS(gperftools/heap-checker.h)
     memtest_prefix=gperf_
-    heapcheck_prefix=gperf_
+    leaktest_prefix=gperf_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    heapcheck_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
+    leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
     memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
   fi; 
 elif test $with_gperftools = "debug"; then
@@ -1264,9 +1264,9 @@ elif test $with_gperftools = "debug"; then
   AC_CHECK_LIB(profiler,ProfilerStart)
   AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
-  heapcheck_prefix=gperf_
+  leaktest_prefix=gperf_
   memtest_prefix=gpref_
-  heapcheck_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
+  leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
   memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"" 
 fi
 

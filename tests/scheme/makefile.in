@@ -577,165 +577,165 @@ builtin_memtest_load_modules:
 builtin_memtest_optimize_modules:
 	make @memtest_env@ optimize_modules
 
-# Heapchecks
+# Leaktests
 
-heapcheck heaptest: heapcheck_all
+leaktest heaptest: leaktest_all
 
-heapcheck_all: heapcheck_scheme heapcheck_tables \
-	heapcheck_pools heapcheck_indexes heapcheck_db \
-	heapcheck_crypto heapcheck_load_modules heapcheck_optimize_modules
+leaktest_all: leaktest_scheme leaktest_tables \
+	leaktest_pools leaktest_indexes leaktest_db \
+	leaktest_crypto leaktest_load_modules leaktest_optimize_modules
 
-heapcheck_scheme: @heapcheck_prefix@heapcheck_scheme
-heapcheck_tables: @heapcheck_prefix@heacheck_ptables
-heapcheck_pools: @heapcheck_prefix@heapcheck_pools
-heapcheck_indexes: @heapcheck_prefix@heapcheck_indexes
-heapcheck_db: @heapcheck_prefix@heapcheck_db
-heapcheck_crypto: @heapcheck_prefix@heapcheck_crypto
-heapcheck_load_modules: @heapcheck_prefix@heapcheck_load_modules
-heapcheck_optimize_modules: @heapcheck_prefix@heapcheck_optimize_modules
+leaktest_scheme: @leaktest_prefix@leaktest_scheme
+leaktest_tables: @leaktest_prefix@heacheck_ptables
+leaktest_pools: @leaktest_prefix@leaktest_pools
+leaktest_indexes: @leaktest_prefix@leaktest_indexes
+leaktest_db: @leaktest_prefix@leaktest_db
+leaktest_crypto: @leaktest_prefix@leaktest_crypto
+leaktest_load_modules: @leaktest_prefix@leaktest_load_modules
+leaktest_optimize_modules: @leaktest_prefix@leaktest_optimize_modules
 
-.PHONY: heapcheck heaptest
-.PHONY:	heapcheck_all heapcheck_scheme heapcheck_tables
-.PHONY:	heapcheck_pools heapcheck_indexes heapcheck_db
-.PHONY:	heapcheck_crypto heapcheck_load_modules
-.PHONY:	heapcheck_optimize_modules
-.PHONY:	vg_heapcheck_all vg_heapcheck_scheme vg_heapcheck_tables
-.PHONY:	vg_heapcheck_pools vg_heapcheck_indexes vg_heapcheck_db
-.PHONY:	vg_heapcheck_crypto vg_heapcheck_load_modules
-.PHONY:	vg_heapcheck_optimize_modules
-.PHONY:	gperf_heapcheck_all gperf_heapcheck_scheme gperf_heapcheck_tables
-.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_db
-.PHONY:	gperf_heapcheck_crypto gperf_heapcheck_load_modules
-.PHONY:	gperf_heapcheck_optimize_modules
-.PHONY:	gperf_heapcheck_all gperf_heapcheck_scheme gperf_heapcheck_tables
-.PHONY:	gperf_heapcheck_pools gperf_heapcheck_indexes gperf_heapcheck_db
-.PHONY:	default_heapcheck_crypto default_heapcheck_load_modules
-.PHONY:	default_heapcheck_optimize_modules
-.PHONY:	default_heapcheck_all default_heapcheck_scheme default_heapcheck_tables
-.PHONY:	default_heapcheck_pools default_heapcheck_indexes default_heapcheck_db
-.PHONY:	default_heapcheck_crypto default_heapcheck_load_modules
-.PHONY:	default_heapcheck_optimize_modules
+.PHONY: leaktest heaptest
+.PHONY:	leaktest_all leaktest_scheme leaktest_tables
+.PHONY:	leaktest_pools leaktest_indexes leaktest_db
+.PHONY:	leaktest_crypto leaktest_load_modules
+.PHONY:	leaktest_optimize_modules
+.PHONY:	vg_leaktest_all vg_leaktest_scheme vg_leaktest_tables
+.PHONY:	vg_leaktest_pools vg_leaktest_indexes vg_leaktest_db
+.PHONY:	vg_leaktest_crypto vg_leaktest_load_modules
+.PHONY:	vg_leaktest_optimize_modules
+.PHONY:	gperf_leaktest_all gperf_leaktest_scheme gperf_leaktest_tables
+.PHONY:	gperf_leaktest_pools gperf_leaktest_indexes gperf_leaktest_db
+.PHONY:	gperf_leaktest_crypto gperf_leaktest_load_modules
+.PHONY:	gperf_leaktest_optimize_modules
+.PHONY:	gperf_leaktest_all gperf_leaktest_scheme gperf_leaktest_tables
+.PHONY:	gperf_leaktest_pools gperf_leaktest_indexes gperf_leaktest_db
+.PHONY:	default_leaktest_crypto default_leaktest_load_modules
+.PHONY:	default_leaktest_optimize_modules
+.PHONY:	default_leaktest_all default_leaktest_scheme default_leaktest_tables
+.PHONY:	default_leaktest_pools default_leaktest_indexes default_leaktest_db
+.PHONY:	default_leaktest_crypto default_leaktest_load_modules
+.PHONY:	default_leaktest_optimize_modules
 
-# Valgrind heapcheck rules
+# Valgrind leaktest rules
 
-vg_heapcheck_all:
+vg_leaktest_all:
 	@echo "*** Running alltests with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
 	@echo "*** Finished running alltests with valgrind heap debugging"
 
-vg_heapcheck_scheme:
+vg_leaktest_scheme:
 	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) scheme
 	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
 
-vg_heapcheck_tables:
+vg_leaktest_tables:
 	@echo "*** Running tests on table/index layers with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tables
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
-vg_heapcheck_pools:
+vg_leaktest_pools:
 	@echo "*** Running tests on pools with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
-vg_heapcheck_indexes:
+vg_leaktest_indexes:
 	@echo "*** Running tests on table/index layers with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
-vg_heapcheck_db:
+vg_leaktest_db:
 	@echo "*** Running tests on database layers with valgrind heap debugging"
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
-vg_heapcheck_crypto:
+vg_leaktest_crypto:
 	make TESTPROG="$(VALGRINDHEAP)" crypto
 
-vg_heapcheck_load_modules:
+vg_leaktest_load_modules:
 	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) load_modules
 
-vg_heapcheck_optimize_modules:
+vg_leaktest_optimize_modules:
 	@echo "Skipping leaktest for optimize modules"
 
-# Gperftools heapcheck rules
+# Gperftools leaktest rules
 
-gperf_heapcheck_all:
+gperf_leaktest_all:
 	@echo "*** Running alltests with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
 	@echo "*** Finished running alltests with gperftools memory debugging"
 
-gperf_heapcheck_scheme:
+gperf_leaktest_scheme:
 	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
 	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
 
-gperf_heapcheck_tables:
+gperf_leaktest_tables:
 	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) tables
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) tables
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
-gperf_heapcheck_pools:
+gperf_leaktest_pools:
 	@echo "*** Running tests on pools with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) pools
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) pools
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
-gperf_heapcheck_indexes:
+gperf_leaktest_indexes:
 	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
-gperf_heapcheck_db:
+gperf_leaktest_db:
 	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) db
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with gperftools memory debugging"
 
-gperf_heapcheck_crypto:
-	make @heapcheck_env@ crypto
+gperf_leaktest_crypto:
+	make @leaktest_env@ crypto
 
-gperf_heapcheck_load_modules:
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
+gperf_leaktest_load_modules:
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
 
-gperf_heapcheck_optimize_modules:
+gperf_leaktest_optimize_modules:
 	echo "Skip leak-checking for optimize modules"
 
-# Embedded Debugging Tools heapcheck rules
+# Embedded Debugging Tools leaktest rules
 
-builtin_heapcheck_all:
+builtin_leaktest_all:
 	@echo "*** Running alltests with gperftools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
 	@echo "*** Finished running alltests with gperftools memory debugging"
 
-builtin_heapcheck_scheme:
+builtin_leaktest_scheme:
 	@echo "*** Running tests on data/eval layers with embedded debugging tools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
 	@echo "*** Finished running tests on data/eval layers with embedded debugging tools memory debugging"
 
-builtin_heapcheck_tables:
+builtin_leaktest_tables:
 	@echo "*** Running tests on table/index layers with embedded debugging tools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) tables
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) tables
 	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
 
-builtin_heapcheck_pools:
+builtin_leaktest_pools:
 	@echo "*** Running tests on pools with embedded debugging tools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) pools
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) pools
 	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
 
-builtin_heapcheck_indexes:
+builtin_leaktest_indexes:
 	@echo "*** Running tests on table/index layers with embedded debugging tools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
 	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
 
-builtin_heapcheck_db:
+builtin_leaktest_db:
 	@echo "*** Running tests on database layers with embedded debugging tools memory debugging"
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) db
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) db
 	@echo "*** Finished running tests on database layers with embedded debugging tools memory debugging"
 
-builtin_heapcheck_crypto:
-	make @heapcheck_env@ crypto
+builtin_leaktest_crypto:
+	make @leaktest_env@ crypto
 
-builtin_heapcheck_load_modules:
-	make @heapcheck_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
+builtin_leaktest_load_modules:
+	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
 
-builtin_heapcheck_optimize_modules:
+builtin_leaktest_optimize_modules:
 	echo "Skip leak-checking for optimize modules"
 
