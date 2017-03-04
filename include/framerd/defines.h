@@ -25,6 +25,8 @@
 #define WORDS_BIGENDIAN 0
 #endif
 
+#define FD_THREADS_ENABLED 1
+
 #ifndef FD_FASTOP
 #define FD_FASTOP static inline
 #endif

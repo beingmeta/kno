@@ -175,6 +175,21 @@ FD_EXPORT fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 FD_EXPORT int fd_register_cons_type(char *name);
 FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
 
+FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
+
+#define fd_ptr_typename(tc) \
+  ( (tc<fd_next_cons_type) ? (fd_type_names[tc]) : ((u8_string)"oddtype"))
+#define fd_type2name(tc)	\
+  (((tc<0)||(tc>FD_TYPE_MAX))?	\
+   ((u8_string)"oddtype"):	\
+   (fd_type_names[tc]))
+
+#define FD_VALID_TYPECODEP(x)				       \
+  (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
+		  (((int)x)<256) &&			       \
+		  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
+		   ((x>=0x84)&&((x)<fd_next_cons_type)))))
+
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
 #define FD_PTR_MANIFEST_TYPE(x) ((x)&(0x3))
@@ -186,21 +201,26 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
 #define FD_INT_DATA(x) ((x)>>2)
 #define FD_EQ(x,y) ((x)==(y))
 
+/* Basic cons structs */
+
 typedef unsigned int fd_consbits;
 #define FD_CONS_HEADER const fd_consbits fd_conshead
+
+/* The header for typed data structures */
 typedef struct FD_CONS { FD_CONS_HEADER;} FD_CONS;
 typedef struct FD_CONS *fd_cons;
+
+/* Raw conses have consbits which can change */
 typedef struct FD_RAW_CONS { fd_consbits fd_conshead;} FD_RAW_CONS;
 typedef struct FD_RAW_CONS *fd_raw_cons;
 
+/* The bottom 7 bits of the conshead indicates the type of the cons.  The
+   rest is the reference count or zero for "static" (non-reference
+   counted) conses.  The 7 bit type code is converted to a real type by
+   adding 0x84. */
+
 #define FD_CONS_TYPE_MASK (0x7f)
 #define FD_CONS_TYPE_OFF  (0x84)
-
-#define FD_VALID_TYPECODEP(x)				       \
-  (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
-		  (((int)x)<256) &&			       \
-		  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
-		   ((x>=0x84)&&((x)<fd_next_cons_type)))))
 
 #if FD_CHECKFDTYPE
 FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
@@ -649,7 +669,6 @@ typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
 typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
 typedef fdtype (*fd_copy_fn)(fdtype,int);
 
-FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
 FD_EXPORT fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];

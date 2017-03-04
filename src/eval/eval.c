@@ -710,7 +710,7 @@ static fdtype watchptr(fdtype val,fdtype label_arg)
            FD_OID_HI(addr),FD_OID_LO(addr));}
   else if (FD_STATICP(val)) {
     fd_ptr_type ptype = FD_CONS_TYPE((fd_cons)val);
-    u8_string type_name=fd_type2name(ptype);
+    u8_string type_name=fd_ptr_typename(ptype);
     u8_log(-10,"Static pointer",
            "%s%s%s0x%llx [ T0x%llx(%s) ] == %q",
            U8OPTSTR("",label,": "),
@@ -719,7 +719,7 @@ static fdtype watchptr(fdtype val,fdtype label_arg)
   else if (FD_CONSP(val)) {
     fd_cons c = (fd_cons) val;
     fd_ptr_type ptype = FD_CONS_TYPE(c);
-    u8_string type_name=fd_type2name(ptype);
+    u8_string type_name=fd_ptr_typename(ptype);
     unsigned int refcount=FD_CONS_REFCOUNT(c);
     u8_log(-10,"Consed pointer",
            "%s%s%s0x%llx [ T0x%llx(%s) refs=%d ] == %q",

@@ -537,9 +537,12 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
   u8_log(fddb_loglevel,"PoolDB","Swapping out pool %s",p->pool_idstring);
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
-    u8_log(fddb_loglevel+1,"PoolDB",
-           "Finished custom swapout for pool %s",p->pool_idstring);}
-  else if (p->pool_flags&FDB_NOSWAP)
+    u8_log(fddb_loglevel+1,"SwapPool",
+           "Finished custom swapout for pool %s, clearing caches...",
+           p->pool_idstring);}
+  else u8_log(fddb_loglevel+1,"SwapPool",
+              "No custom swapout clearing caches for %s",p->pool_idstring);
+  if (p->pool_flags&FDB_NOSWAP)
     return 0;
   else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))  {
     int rv=FD_CHOICE_SIZE(oids);

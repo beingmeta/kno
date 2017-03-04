@@ -27,9 +27,6 @@ fd_exception fd_NoSuchKey=_("No such key");
 fd_exception fd_ReadOnlyHashtable=_("Read-Only hashtable");
 static fd_exception HashsetOverflow=_("Hashset Overflow");
 static u8_string NotATable=_("Not a table");
-static u8_string CantGet=_("Table doesn't support get");
-static u8_string CantSet=_("Table doesn't support set");
-static u8_string CantAdd=_("Table doesn't support add");
 static u8_string CantDrop=_("Table doesn't support drop");
 static u8_string CantTest=_("Table doesn't support test");
 static u8_string CantGetKeys=_("Table doesn't support getkeys");
@@ -3069,105 +3066,115 @@ static int hashsetstore(fdtype x,fdtype key,fdtype val)
 
 struct FD_TABLEFNS *fd_tablefns[FD_TYPE_MAX];
 
-#define FD_TABLE_CHECKPTR(arg,cxt)             \
+#define CHECKPTR(arg,cxt)             \
   if (FD_EXPECT_FALSE((!(FD_CHECK_PTR(arg))))) \
     _fd_bad_pointer(arg,cxt); else {}
+
+#define NOT_TABLEP(arg,argtype,cxt)                     \
+  (FD_EXPECT_FALSE((fd_tablefns[argtype]==NULL))) ?     \
+  (fd_seterr(NotATable,cxt,NULL,arg), 1 ) :             \
+  (0)
+
+#define BAD_TABLEP(arg,type,meth,cxt)                   \
+  (FD_EXPECT_FALSE((fd_tablefns[type]==NULL))) ?        \
+  (fd_seterr(NotATable,cxt,NULL,arg), 1 ) :             \
+  (FD_EXPECT_FALSE(fd_tablefns[type]->meth==NULL)) ?    \
+  (fd_seterr(fd_NoMethod,cxt,NULL,arg), 1 ) :           \
+  (0)
 
 FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_get/table");
-  FD_TABLE_CHECKPTR(key,"fd_get/key");
-  FD_TABLE_CHECKPTR(key,"fd_get/dflt");
-  if (FD_EMPTY_CHOICEP(arg)) 
+  CHECKPTR(arg,"fd_get/table"); CHECKPTR(key,"fd_get/key"); CHECKPTR(key,"fd_get/dflt");
+  if ((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key)))
     return FD_EMPTY_CHOICE;
-  else if (FD_VALID_TYPECODEP(argtype)) {
-    if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
-      if (FD_EXPECT_TRUE(fd_tablefns[argtype]->get!=NULL))
-        if (FD_CHOICEP(key)) {
-          fdtype results=FD_EMPTY_CHOICE;
-          fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
-          FD_DO_CHOICES(each,key) {
-            fdtype values=getfn(arg,each,FD_EMPTY_CHOICE);
-            if (FD_ABORTP(values)) {
-              fd_decref(results); return values;}
-            FD_ADD_TO_CHOICE(results,values);}
-          if (FD_EMPTY_CHOICEP(results)) return fd_incref(dflt);
-          else return results;}
-        else return (fd_tablefns[argtype]->get)(arg,key,dflt);
-      else return fd_err(fd_NoMethod,CantGet,NULL,arg);
-    else return fd_err(NotATable,"fd_get",NULL,arg);}
-  else return fd_err(fd_BadPtr,"fd_get",NULL,arg);
+  else if (FD_UNAMBIGP(key)) {
+    if (BAD_TABLEP(arg,argtype,get,"fd_get"))
+      return FD_ERROR_VALUE;
+    else return (fd_tablefns[argtype]->get)(arg,key,dflt);}
+  else if (BAD_TABLEP(arg,argtype,get,"fd_get")) 
+    return FD_ERROR_VALUE;
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
+    FD_DO_CHOICES(each,key) {
+      fdtype values=getfn(arg,each,FD_EMPTY_CHOICE);
+      if (FD_ABORTP(values)) {
+        fd_decref(results); return values;}
+      FD_ADD_TO_CHOICE(results,values);}
+    if (FD_EMPTY_CHOICEP(results)) return fd_incref(dflt);
+    else return results;}
 }
 
 FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_store/table");
-  FD_TABLE_CHECKPTR(key,"fd_store/key");
-  FD_TABLE_CHECKPTR(value,"fd_store/value");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
-      if (FD_EXPECT_TRUE(fd_tablefns[argtype]->store!=NULL))
-        if (FD_CHOICEP(key)) {
-          int (*storefn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->store;
-          FD_DO_CHOICES(each,key) {
-            int retval=storefn(arg,each,value);
-            if (retval<0) return retval;}
-          return 1;}
-        else return (fd_tablefns[argtype]->store)(arg,key,value);
-      else return fd_reterr(fd_NoMethod,CantSet,NULL,arg);
-    else return fd_reterr(NotATable,"fd_store",NULL,arg);
-  else return fd_reterr(fd_BadPtr,"fd_store",NULL,arg);
+  CHECKPTR(arg,"fd_store/table"); CHECKPTR(key,"fd_store/key"); CHECKPTR(value,"fd_store/value");
+  if ((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key)))
+    return 0;
+  else if (FD_UNAMBIGP(key)) {
+    if (BAD_TABLEP(arg,argtype,store,"fd_store"))
+      return -1;
+    else return (fd_tablefns[argtype]->store)(arg,key,value);}
+  else if (BAD_TABLEP(arg,argtype,store,"fd_store")) 
+    return -1;
+  else {
+    int (*storefn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->store;
+    FD_DO_CHOICES(each,key) {
+      int retval=storefn(arg,each,value);
+      if (retval<0) return retval;}
+    return 1;}
 }
 
 FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_add/table");
-  FD_TABLE_CHECKPTR(key,"fd_add/key");
-  FD_TABLE_CHECKPTR(value,"fd_add/value");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
-      if (FD_EXPECT_TRUE(fd_tablefns[argtype]->add!=NULL))
-        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
-                            (FD_EMPTY_CHOICEP(key))))
-          return 0;
-        else if (FD_CHOICEP(key)) {
-          int (*addfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->add;
-          FD_DO_CHOICES(each,key) {
-            int retval=addfn(arg,each,value);
-            if (retval<0) return retval;}
-          return 1;}
-        else return (fd_tablefns[argtype]->add)(arg,key,value);
-      else if ((fd_tablefns[argtype]->store) &&
-               (fd_tablefns[argtype]->get))
-        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
-                            (FD_EMPTY_CHOICEP(key))))
-          return 0;
-        else {
-          int (*storefn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->store;
-          fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
-          FD_DO_CHOICES(each,key) {
-            fdtype values=getfn(arg,each,FD_EMPTY_CHOICE);
-            fdtype svalues;
-            fd_incref(value);
-            FD_ADD_TO_CHOICE(values,value);
-            svalues=fd_make_simple_choice(values);
-            storefn(arg,each,svalues);
-            fd_decref(values); fd_decref(svalues);}
-          return 1;}
-      else return fd_reterr(fd_NoMethod,CantAdd,NULL,arg);
-    else return fd_reterr(NotATable,"fd_add",NULL,arg);
-  else return fd_reterr(fd_BadPtr,"fd_add",NULL,arg);
+  CHECKPTR(arg,"fd_add/table"); CHECKPTR(key,"fd_add/key"); CHECKPTR(value,"fd_add/value");
+  if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key))))
+    return 0;
+  else if (FD_UNAMBIGP(key)) {
+    if (NOT_TABLEP(arg,argtype,"fd_add"))
+      return -1;
+    else if (fd_tablefns[argtype]->add)
+      return (fd_tablefns[argtype]->add)(arg,key,value);
+    else if ((fd_tablefns[argtype]->store) &&
+             (fd_tablefns[argtype]->get)) {
+      int (*storefn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->store;
+      fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
+      FD_DO_CHOICES(each,key) {
+        int store_rv=0;
+        fdtype values=getfn(arg,each,FD_EMPTY_CHOICE);
+        fdtype to_store;
+        if (FD_ABORTP(values)) {
+          FD_STOP_DO_CHOICES;
+          return -1;}
+        fd_incref(value);
+        FD_ADD_TO_CHOICE(values,value);
+        to_store=fd_make_simple_choice(values);
+        store_rv=storefn(arg,each,to_store);
+        fd_decref(values); 
+        fd_decref(to_store);
+        if (store_rv<0) {
+          FD_STOP_DO_CHOICES;
+          return -1;}}
+      return 1;}
+    else return fd_err(fd_NoMethod,"fd_add",NULL,arg);}
+  else if (BAD_TABLEP(arg,argtype,add,"fd_add")) 
+    return -1;
+  else  {
+    int (*addfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->add;
+    FD_DO_CHOICES(each,key) {
+      int retval=addfn(arg,each,value);
+      if (retval<0) return retval;}
+    return 1;}
 }
 
 FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_drop/table");
-  FD_TABLE_CHECKPTR(key,"fd_drop/key");
-  FD_TABLE_CHECKPTR(value,"fd_drop/value");
+  CHECKPTR(arg,"fd_drop/table");
+  CHECKPTR(key,"fd_drop/key");
+  CHECKPTR(value,"fd_drop/value");
   if (FD_EMPTY_CHOICEP(arg)) return 0;
   if (FD_VALID_TYPECODEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
@@ -3215,135 +3222,115 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_test/table");
-  FD_TABLE_CHECKPTR(key,"fd_test/key");
-  FD_TABLE_CHECKPTR(value,"fd_test/value");
-  if (FD_EMPTY_CHOICEP(arg)) return 0;
-  if (FD_VALID_TYPECODEP(argtype))
-    if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
-      if (FD_EXPECT_TRUE(fd_tablefns[argtype]->test!=NULL))
-        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
-                            (FD_EMPTY_CHOICEP(key))))
+  CHECKPTR(arg,"fd_test/table"); CHECKPTR(key,"fd_test/key"); CHECKPTR(value,"fd_test/value");
+  if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key))))
+    return 0;
+  if ((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key)))
+    return 0;
+  else if (NOT_TABLEP(arg,argtype,"fd_test"))
+    return -1;
+  else if (FD_EXPECT_TRUE(fd_tablefns[argtype]->test!=NULL))
+    if (FD_CHOICEP(key)) {
+      int (*testfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->test;
+      FD_DO_CHOICES(each,key)
+        if (testfn(arg,each,value)) return 1;
+      return 0;}
+    else return (fd_tablefns[argtype]->test)(arg,key,value);
+  else if (fd_tablefns[argtype]->get) {
+    fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
+    FD_DO_CHOICES(each,key) {
+      fdtype values=getfn(arg,key,FD_EMPTY_CHOICE);
+      if (FD_VOIDP(value))
+        if (FD_EMPTY_CHOICEP(values))
           return 0;
-        else if (FD_CHOICEP(key)) {
-          int (*testfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->test;
-          FD_DO_CHOICES(each,key)
-            if (testfn(arg,each,value)) return 1;
-          return 0;}
-        else return (fd_tablefns[argtype]->test)(arg,key,value);
-      else if (fd_tablefns[argtype]->get)
-        if (FD_EXPECT_FALSE ((FD_EMPTY_CHOICEP(value)) || 
-                             (FD_EMPTY_CHOICEP(key))))
-          return 0;
-        else {
-          fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
-          FD_DO_CHOICES(each,key) {
-            fdtype values=getfn(arg,key,FD_EMPTY_CHOICE);
-            if (FD_VOIDP(value))
-              if (FD_EMPTY_CHOICEP(values))
-                return 0;
-              else {fd_decref(values); return 1;}
-            else if (FD_EMPTY_CHOICEP(values)) {}
-            else if (FD_EQ(value,values)) {
-              fd_decref(values); return 1;}
-            else if (fd_overlapp(value,values)) {
-              fd_decref(values); return 1;}
-            else fd_decref(values);}
-          return 0;}
-      else return fd_reterr(fd_NoMethod,CantTest,NULL,arg);
-    else return fd_reterr(NotATable,"fd_test",NULL,arg);
-  else return fd_reterr(fd_BadPtr,"fd_test",NULL,arg);
+        else {fd_decref(values); return 1;}
+      else if (FD_EMPTY_CHOICEP(values)) {}
+      else if (FD_EQ(value,values)) {
+        fd_decref(values); return 1;}
+      else if (fd_overlapp(value,values)) {
+        fd_decref(values); return 1;}
+      else fd_decref(values);}
+    return 0;}
+  else return fd_reterr(fd_NoMethod,CantTest,NULL,arg);
 }
 
 FD_EXPORT int fd_getsize(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_getsize/table");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (fd_tablefns[argtype])
-      if (fd_tablefns[argtype]->getsize)
-        return (fd_tablefns[argtype]->getsize)(arg);
-      else if (fd_tablefns[argtype]->keys) {
-        fdtype values=(fd_tablefns[argtype]->keys)(arg);
-        if (FD_ABORTP(values))
-          return fd_interr(values);
-        else {
-          int size=FD_CHOICE_SIZE(values);
-          fd_decref(values);
-          return size;}}
-      else return fd_err(fd_NoMethod,CantGetKeys,NULL,arg);
-    else return fd_err(NotATable,"fd_getkeys",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_getkeys",NULL,arg);
+  CHECKPTR(arg,"fd_getsize/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->getsize)
+      return (fd_tablefns[argtype]->getsize)(arg);
+    else if (fd_tablefns[argtype]->keys) {
+      fdtype values=(fd_tablefns[argtype]->keys)(arg);
+      if (FD_ABORTP(values))
+        return fd_interr(values);
+      else {
+        int size=FD_CHOICE_SIZE(values);
+        fd_decref(values);
+        return size;}}
+    else return fd_err(fd_NoMethod,CantGetKeys,NULL,arg);
+  else return fd_err(NotATable,"fd_getkeys",NULL,arg);
 }
 
 FD_EXPORT int fd_modifiedp(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_modifiedp/table");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (fd_tablefns[argtype])
-      if (fd_tablefns[argtype]->modified)
-        return (fd_tablefns[argtype]->modified)(arg,-1);
-      else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
-    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
+  CHECKPTR(arg,"fd_modifiedp/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->modified)
+      return (fd_tablefns[argtype]->modified)(arg,-1);
+    else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
+  else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
 }
 
 FD_EXPORT int fd_set_modified(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (fd_tablefns[argtype])
-      if (fd_tablefns[argtype]->modified)
-        return (fd_tablefns[argtype]->modified)(arg,flag);
-      else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
-    else return fd_err(NotATable,"fd_set_modified",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_set_modified",NULL,arg);
+  CHECKPTR(arg,"fd_set_modified/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->modified)
+      return (fd_tablefns[argtype]->modified)(arg,flag);
+    else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
+  else return fd_err(NotATable,"fd_set_modified",NULL,arg);
 }
 
 FD_EXPORT int fd_readonlyp(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_readonlyp/table");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (fd_tablefns[argtype])
-      if (fd_tablefns[argtype]->readonly)
-        return (fd_tablefns[argtype]->readonly)(arg,-1);
-      else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
-    else return fd_err(NotATable,"fd_readonlyp",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_readonlyp",NULL,arg);
+  CHECKPTR(arg,"fd_readonlyp/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->readonly)
+      return (fd_tablefns[argtype]->readonly)(arg,-1);
+    else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
+  else return fd_err(NotATable,"fd_readonlyp",NULL,arg);
 }
 
 FD_EXPORT int fd_set_readonly(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_set_readonly/table");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (fd_tablefns[argtype])
-      if (fd_tablefns[argtype]->modified)
-        return (fd_tablefns[argtype]->modified)(arg,flag);
-      else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
-    else return fd_err(NotATable,"fd_set_readonly",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_set_readonly",NULL,arg);
+  CHECKPTR(arg,"fd_set_readonly/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->modified)
+      return (fd_tablefns[argtype]->modified)(arg,flag);
+    else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
+  else return fd_err(NotATable,"fd_set_readonly",NULL,arg);
 }
 
 FD_EXPORT fdtype fd_getkeys(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  FD_TABLE_CHECKPTR(arg,"fd_getkeys/table");
-  if (FD_VALID_TYPECODEP(argtype))
-    if (fd_tablefns[argtype])
-      if (fd_tablefns[argtype]->keys)
-        return (fd_tablefns[argtype]->keys)(arg);
-      else return fd_err(fd_NoMethod,CantGetKeys,NULL,arg);
-    else return fd_err(NotATable,"fd_getkeys",NULL,arg);
-  else return fd_err(fd_BadPtr,"fd_getkeys",NULL,arg);
+  CHECKPTR(arg,"fd_getkeys/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->keys)
+      return (fd_tablefns[argtype]->keys)(arg);
+    else return fd_err(fd_NoMethod,CantGetKeys,NULL,arg);
+  else return fd_err(NotATable,"fd_getkeys",NULL,arg);
 }
 
 FD_EXPORT fdtype fd_getvalues(fdtype arg)
 {
-  FD_TABLE_CHECKPTR(arg,"fd_getvalues/table");
+  CHECKPTR(arg,"fd_getvalues/table");
   /* Eventually, these might be fd_tablefns fields */
   if (FD_TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_values(FD_XHASHTABLE(arg));
@@ -3370,7 +3357,7 @@ FD_EXPORT fdtype fd_getvalues(fdtype arg)
 
 FD_EXPORT fdtype fd_getassocs(fdtype arg)
 {
-  FD_TABLE_CHECKPTR(arg,"fd_getassocs/table");
+  CHECKPTR(arg,"fd_getassocs/table");
   /* Eventually, these might be fd_tablefns fields */
   if (FD_TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_assocs(FD_XHASHTABLE(arg));

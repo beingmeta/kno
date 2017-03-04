@@ -17,8 +17,6 @@
    The code is either -1 (drop), 0 (store), or 1 (add).
 */
 
-#include "chunkrefs.h"
-
 #define FD_MEM_INDEX_MAGIC_NUMBER ((12<<24)|(7<<16)|(9<<8)|(24))
 
 typedef struct FD_MEM_INDEX {

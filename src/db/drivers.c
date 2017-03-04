@@ -180,7 +180,6 @@ fd_pool fd_unregistered_file_pool(u8_string filename)
 /* Opening indexes */
 
 static struct FD_INDEX_TYPEINFO *index_typeinfo;
-static int n_index_types=0;
 #if FD_THREADS_ENABLED
 static u8_mutex index_typeinfo_lock;
 #endif

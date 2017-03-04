@@ -407,7 +407,7 @@ FD_EXPORT int fd_default_config_assignment(u8_string assignment)
   u8_byte *equals;
   if ((equals=(strchr(assignment,'=')))) {
     u8_byte _namebuf[64], *namebuf;
-    int namelen=equals-assignment, retval;
+    int namelen=equals-assignment, retval=0;
     fdtype value=fd_parse_arg(equals+1);
     if (FD_ABORTP(value))
       return fd_interr(value);

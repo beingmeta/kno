@@ -1474,7 +1474,7 @@ static int interpret_pool_flags(fdtype opts)
     flags|=((FD_BZ2)<<3);
   else if (fd_testopt(opts,compression,FD_VOID))
     flags|=((FD_ZLIB)<<3);
-  else flags=flags;
+  else {}
 
   if (fd_testopt(opts,fd_intern("DTYPEV2"),FD_VOID))
     flags|=FD_OIDPOOL_DTYPEV2;

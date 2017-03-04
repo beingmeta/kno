@@ -696,7 +696,6 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
   struct RESERVATIONS reserved;
   struct FD_STREAM *stream=&(fx->index_stream);
   unsigned int pos_offset=fx->index_n_slots*4, chain_length=0;
-  unsigned long long total_probes=0;
   int i=0, max=n, new_keys=0;
   if (offsets == NULL) {
     reserved.slotnos=u8_malloc(SLOTSIZE*64);

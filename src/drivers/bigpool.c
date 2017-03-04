@@ -287,16 +287,6 @@ static void update_modtime(struct FD_BIGPOOL *fp)
 
 /* Getting slotids */
 
-FD_FASTOP int probe_slotcode(struct FD_BIGPOOL *bp,fdtype slotid)
-{
-  fdtype codeval=fd_hashtable_get(&(bp->slotcodes),slotid,FD_VOID);
-  if (FD_VOIDP(codeval)) return -1;
-  else if (FD_FIXNUMP(codeval)) return FD_INT(codeval);
-  else {
-    u8_log(LOGWARN,_("CorruptedBigPool"),"Bad slotid code map for %q",slotid);
-    return -1;}
-}
-
 static int grow_slotcodes(struct FD_BIGPOOL *bp)
 {
   fdtype *slotids=bp->slotids;
@@ -1356,7 +1346,7 @@ static int interpret_pool_flags(fdtype opts)
     flags|=((FD_BZ2)<<3);
   else if (fd_testopt(opts,compression,FD_VOID))
     flags|=((FD_ZLIB)<<3);
-  else flags=flags;
+  else {}
 
   if (fd_testopt(opts,fd_intern("DTYPEV2"),FD_VOID))
     flags|=FD_BIGPOOL_DTYPEV2;

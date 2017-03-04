@@ -101,15 +101,10 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode)))		\
     return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x);
 
-#define fd_type2name(tc)	       \
-  (((tc<0)||(tc>FD_TYPE_MAX))? \
-   ((u8_string)"oddtype"):     \
-   (fd_type_names[(short)tc]))
-
-#define FD_PTR2CONS(x,typecode,typecast)                                \
+#define FD_PTR2CONS(x,typecode,typecast)			    \
   (((typecode<0) || (FD_TYPEP(x,typecode))) ?                       \
-   ((typecast)(FD_CONS_DATA(x))) :					\
-   ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),		\
+   ((typecast)(FD_CONS_DATA(x))) :				    \
+   ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
                 NULL)))
 
 /* Hash locking for pointers */

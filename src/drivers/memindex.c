@@ -81,7 +81,7 @@ static fdtype drop_symbol, set_symbol;
 
 static int hashtable_probe_key(struct FD_HASHTABLE *ht,fdtype key)
 {
-  struct FD_KEYVAL *result; int unlock=0;
+  int unlock=0;
   if (ht->table_n_keys == 0) return 0;
   else if (fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets))
     return 1;
@@ -216,7 +216,6 @@ static int mem_index_commit(fd_index ix)
 
 static fd_index open_mem_index(u8_string file,fddb_flags flags)
 {
-  fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_MEM_INDEX *logix=u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)logix,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
   struct FD_STREAM *stream=
@@ -233,7 +232,7 @@ static fd_index open_mem_index(u8_string file,fddb_flags flags)
     return NULL;}
   else {
     fd_inbuf in=fd_readbuf(stream);
-    unsigned int not_used=fd_read_4bytes(in);
+    unsigned U8_MAYBE_UNUSED int not_used=fd_read_4bytes(in);
     long long i=0, n_entries=fd_read_8bytes(in);
     fd_hashtable cache=&(logix->index_cache);
     logix->lix_valid_data=fd_read_8bytes(in);
