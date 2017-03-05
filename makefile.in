@@ -116,7 +116,7 @@ REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
+DB_OBJS=src/db/fddb.o src/db/streams.o src/db/hashdtype.o 		\
 	src/db/pools.o src/db/indexes.o	src/db/compoundindexes.o	\
 	src/db/dtproc.o src/db/dtcall.o 				\
 	src/db/methods.o src/db/xtables.o 				\
@@ -812,7 +812,7 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
 src/cons/dtypeio.o src/cons/bufio.o src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
-src/db/stream.o : XCFLAGS="${OPTFLAGS}"
+src/db/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
 src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
