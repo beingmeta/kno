@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_BUFIO 1
+#define FD_INLINE_STREAMIO 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -35,9 +36,6 @@
 #else
 #define POSIX_OPEN_FLAGS 0
 #endif
-
-#define lock_stream(s) u8_lock_mutex(&(s->stream_lock))
-#define unlock_stream(s) u8_unlock_mutex(&(s->stream_lock))
 
 size_t fd_stream_bufsize=FD_STREAM_BUFSIZE;
 size_t fd_filestream_bufsize=FD_FILESTREAM_BUFSIZE;
@@ -226,7 +224,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
     if (!(buf->buffer)) return;}
 
   /* Lock before closing */
-  lock_stream(s);
+  fd_lock_stream(s);
 
   /* Flush data */
   if ((flush)&&
@@ -257,7 +255,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
     if (buf->buffer) {
       u8_free(buf->buffer);
       buf->buffer=buf->bufpoint=buf->buflim=NULL;}
-    unlock_stream(s);
+    fd_unlock_stream(s);
     u8_destroy_mutex(&(s->stream_lock));}
   else fd_unlock_stream(s);
 }
@@ -395,14 +393,14 @@ int fd_flush_stream(fd_stream stream)
 
 /* Locking and unlocking */
 
-FD_EXPORT void fd_lock_stream(fd_stream s)
+FD_EXPORT int _fd_lock_stream(fd_stream s)
 {
-  lock_stream(s);
+  return fd_lock_stream(s);
 }
 
-FD_EXPORT void fd_unlock_stream(fd_stream s)
+FD_EXPORT int _fd_unlock_stream(fd_stream s)
 {
-  unlock_stream(s);
+  return fd_unlock_stream(s);
 }
 
 FD_EXPORT int fd_lockfile(fd_stream s)

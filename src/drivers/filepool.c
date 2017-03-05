@@ -94,7 +94,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
       fd_close_stream(&(pool->pool_stream),0);
       u8_free(rname); u8_free(pool);
       return NULL;}}
-  pool->pool_load=load; pool->pool_offsets=NULL; pool->pool_offsets_size=0;
+  pool->pool_load=load; pool->pool_offdata=NULL; pool->pool_offdata_size=0;
   if (read_only)
     U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
@@ -190,7 +190,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
     fstat(s->stream_fileno,&fileinfo);
     if (fileinfo.st_mtime>fp->pool_modtime) {
       /* Make sure we're up to date. */
-      if (fp->pool_offsets) reload_file_pool_cache(fp,0);
+      if (fp->pool_offdata) reload_file_pool_cache(fp,0);
       else {
         fd_reset_hashtable(&(fp->pool_cache),-1,1);
         fd_reset_hashtable(&(fp->pool_changes),32,1);}}
@@ -211,10 +211,9 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   if (FD_EXPECT_FALSE(offset>=fp->pool_load)) {
     fd_unlock_pool(fp);
     return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->pool_idstring,oid);}
-  else if (fp->pool_offsets) data_pos=offget(fp->pool_offsets,offset);
+  else if (fp->pool_offdata) data_pos=offget(fp->pool_offdata,offset);
   else {
-    fd_lock_stream(stream);
-    stream_locked=1;
+    fd_lock_stream(stream); stream_locked=1;
     if (fd_setpos(stream,24+4*offset)<0) {
       fd_unlock_stream(stream);
       fd_unlock_pool(fp);
@@ -227,15 +226,17 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
        we've stored a >32 bit offset into a 32-bit sized location
        and it got truncated down. */
     fd_unlock_pool(fp);
+    if (stream_locked) fd_unlock_stream(stream);
     return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->pool_idstring,FD_VOID);}
   else {
-    if (!(stream_locked)) fd_lock_stream(stream);
+    if (!(stream_locked)) {
+      fd_lock_stream(stream); stream_locked=1;}
     if (fd_setpos(&(fp->pool_stream),data_pos)<0) {
       fd_unlock_stream(stream);
       fd_unlock_pool(fp);
       return FD_ERROR_VALUE;}
-    value=fd_read_dtype(fd_readbuf(stream));
-    fd_unlock_stream(stream);}
+    value=fd_read_dtype(fd_readbuf(stream));}
+  if (stream_locked) fd_unlock_stream(stream);
   fd_unlock_pool(fp);
   return value;
 }
@@ -260,8 +261,8 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
   fdtype *result=u8_alloc_n(n,fdtype);
   int i=0, min_file_pos=24+fp->pool_capacity*4, load;
   fd_lock_pool(fp); load=fp->pool_load;
-  if (fp->pool_offsets) {
-    unsigned int *offsets=fp->pool_offsets;
+  if (fp->pool_offdata) {
+    unsigned int *offsets=fp->pool_offdata;
     int i=0; while (i < n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base), file_off;
@@ -282,12 +283,14 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
         fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->pool_idstring),oid);
         return NULL;}
       else schedule[i].filepos=file_off;
-      i++;}}
+      i++;}
+    fd_lock_stream(stream);}
   else {
-    int i=0; while (i < n) {
+    int i=0; fd_lock_stream(stream);
+    while (i < n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base), file_off;
-      schedule[i].vpos=i; fd_lock_stream(stream);
+      schedule[i].vpos=i;
       if (fd_setpos(stream,24+4*off)<0) {
         u8_free(schedule);
         u8_free(result);
@@ -369,16 +372,16 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Write recovery information which can be used to restore the
      offsets table and load. */
   if (retcode<0) {}
-  else if ((fp->pool_offsets) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
+  else if ((fp->pool_offdata) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
     fd_seterr(fd_FileSizeOverflow,
               "file_pool_storen",u8_strdup(fp->pool_idstring),
               FD_VOID);
     retcode=-1;}
-  else if (fp->pool_offsets) {
+  else if (fp->pool_offdata) {
     int i=0, load=fp->pool_load;
-    unsigned int *old_offsets=fp->pool_offsets;
-    old_size=fp->pool_offsets_size;
+    unsigned int *old_offsets=fp->pool_offdata;
+    old_size=fp->pool_offdata_size;
     tmp_offsets=u8_alloc_n(load,unsigned int);
     /* Initialize tmp_offsets from the current offsets */
     if (HAVE_MMAP) {
@@ -421,7 +424,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     /* Now, we set the file's magic number back to something
        that doesn't require recovery and truncate away the saved
        recovery information. */
-    if (fp->pool_offsets) {
+    if (fp->pool_offdata) {
       fd_off_t end=fd_endpos(stream); int retval;
       fd_setpos(stream,0);
       /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
@@ -434,26 +437,26 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
         retcode=-1; u8_graberr(errno,"file_pool_storen",fp->pool_idstring);}}
     else fd_flush_stream(stream);
     /* Update the offsets, if you have any */
-    if (fp->pool_offsets==NULL) {}
+    if (fp->pool_offdata==NULL) {}
     else if (HAVE_MMAP) {
-      int retval=munmap((fp->pool_offsets)-6,4*old_size+24);
+      int retval=munmap((fp->pool_offdata)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->pool_idstring);
-        fp->pool_offsets=NULL; errno=0;}
+        fp->pool_offdata=NULL; errno=0;}
       newmmap=mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
                    MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->pool_idstring);
-        fp->pool_offsets=NULL; fp->pool_offsets_size=0; errno=0;}
+        fp->pool_offdata=NULL; fp->pool_offdata_size=0; errno=0;}
       else {
-        fp->pool_offsets=newmmap+6;
-        fp->pool_offsets_size=fp->pool_load;}
+        fp->pool_offdata=newmmap+6;
+        fp->pool_offdata_size=fp->pool_load;}
       u8_free(tmp_offsets);}
     else {
-      u8_free(fp->pool_offsets);
-      fp->pool_offsets=tmp_offsets;
-      fp->pool_offsets_size=fp->pool_load;}}
+      u8_free(fp->pool_offdata);
+      fp->pool_offdata=tmp_offsets;
+      fp->pool_offdata_size=fp->pool_load;}}
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
   fd_unlock_pool(fp);
@@ -549,12 +552,12 @@ static void file_pool_setcache(fd_pool p,int level)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   if (level == 2)
-    if (fp->pool_offsets) return;
+    if (fp->pool_offdata) return;
     else {
       fd_stream s=&(fp->pool_stream);
       unsigned int *offsets, *newmmap;
       fd_lock_pool(fp);
-      if (fp->pool_offsets) {
+      if (fp->pool_offdata) {
         fd_unlock_pool(fp);
         return;}
 #if HAVE_MMAP
@@ -565,9 +568,9 @@ static void file_pool_setcache(fd_pool p,int level)
              MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->pool_idstring);
-        fp->pool_offsets=NULL; fp->pool_offsets_size=0; errno=0;}
-      fp->pool_offsets=offsets=newmmap+6;
-      fp->pool_offsets_size=fp->pool_load;
+        fp->pool_offdata=NULL; fp->pool_offdata_size=0; errno=0;}
+      fp->pool_offdata=offsets=newmmap+6;
+      fp->pool_offdata_size=fp->pool_load;
 #else
       fd_inbuf ins=fd_readbuf(s);
       fd_setpos(s,12);
@@ -575,25 +578,25 @@ static void file_pool_setcache(fd_pool p,int level)
       offsets=u8_alloc_n(load,unsigned int);
       fd_setpos(s,24);
       fd_read_ints(ins,load,offsets);
-      fp->pool_offsets=offsets; fp->pool_offsets_size=load;
+      fp->pool_offdata=offsets; fp->pool_offdata_size=load;
 #endif
       fd_unlock_pool(fp);}
   else if (level < 2) {
-    if (fp->pool_offsets == NULL) return;
+    if (fp->pool_offdata == NULL) return;
     else {
       int retval;
       fd_lock_pool(fp);
 #if HAVE_MMAP
       /* Since we were just reading, the buffer was only as big
          as the load, not the capacity. */
-      retval=munmap((fp->pool_offsets)-6,4*fp->pool_load+24);
+      retval=munmap((fp->pool_offdata)-6,4*fp->pool_load+24);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->pool_idstring);
-        fp->pool_offsets=NULL; errno=0;}
+        fp->pool_offdata=NULL; errno=0;}
 #else
-      u8_free(fp->pool_offsets);
+      u8_free(fp->pool_offdata);
 #endif
-      fp->pool_offsets=NULL; fp->pool_offsets_size=0;}}
+      fp->pool_offdata=NULL; fp->pool_offdata_size=0;}}
 }
 
 static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
@@ -607,7 +610,7 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
      only void those OIDs */
   unsigned int new_load, *offsets, *nscan, *oscan, *olim;
   if (lock) fd_lock_pool(fp);
-  oscan=fp->pool_offsets; olim=oscan+fp->pool_offsets_size;
+  oscan=fp->pool_offdata; olim=oscan+fp->pool_offdata_size;
   fd_setpos(s,16); new_load=fd_read_4bytes(ins);
   nscan=offsets=u8_alloc_n(new_load,unsigned int);
   fd_setpos(s,24);
@@ -619,8 +622,8 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
       fdtype changed_oid=fd_make_oid(addr);
       fd_hashtable_op(&(fp->pool_cache),fd_table_replace,changed_oid,FD_VOID);
       oscan++; nscan++;}
-  u8_free(fp->pool_offsets);
-  fp->pool_offsets=offsets; fp->pool_load=fp->pool_offsets_size=new_load;
+  u8_free(fp->pool_offdata);
+  fp->pool_offdata=offsets; fp->pool_load=fp->pool_offdata_size=new_load;
   update_modtime(fp);
   if (lock) fd_unlock_pool(fp);
 #endif
@@ -633,18 +636,18 @@ static void file_pool_close(fd_pool p)
   if (write_file_pool_load(fp)<0)
     u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_idstring);
   fd_close_stream(&(fp->pool_stream),0);
-  if (fp->pool_offsets) {
+  if (fp->pool_offdata) {
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
-    int retval=munmap((fp->pool_offsets)-6,4*fp->pool_offsets_size+24);
+    int retval=munmap((fp->pool_offdata)-6,4*fp->pool_offdata_size+24);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->pool_idstring);
       errno=0;}
 #else
-    u8_free(fp->pool_offsets);
+    u8_free(fp->pool_offdata);
 #endif
-    fp->pool_offsets=NULL; fp->pool_offsets_size=0;
+    fp->pool_offdata=NULL; fp->pool_offdata_size=0;
     fp->pool_cache_level=-1;}
   fd_unlock_pool(fp);
 }

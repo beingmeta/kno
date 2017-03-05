@@ -1,4 +1,5 @@
 #include <zlib.h>
+#include <snappy-c.h>
 
 #define STREAM_UNLOCKED 0
 #define STREAM_LOCKED 1
@@ -14,65 +15,48 @@ typedef struct FD_CHUNK_REF *fd_chunk_ref;
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static FD_CHUNK_REF read_chunk_ref(struct FD_STREAM *stream,
-                                   fd_off_t base,fd_offset_type offtype,
-                                   unsigned int offset);
-
-static FD_CHUNK_REF get_chunk_ref(struct FD_STREAM *stream,
-				  unsigned int *offsets,
-				  fd_off_t base,fd_offset_type offtype,
-				  unsigned int offset,
-				  unsigned int stream_locked)
+static FD_CHUNK_REF get_chunk_ref(unsigned int *offsets,
+				  fd_offset_type offtype,
+				  unsigned int offset)
 {
-  FD_CHUNK_REF result;
-  if (offsets) {
-    switch (offtype) {
-    case FD_B32: {
+  struct FD_CHUNK_REF result;
+  switch (offtype) {
+  case FD_B32: {
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      unsigned int word1=fd_flip_word((offsets)[offset*2]);
-      unsigned int word2=fd_flip_word((offsets)[offset*2+1]);
+    unsigned int word1=fd_flip_word((offsets)[offset*2]);
+    unsigned int word2=fd_flip_word((offsets)[offset*2+1]);
 #else
-      unsigned int word1=(offsets)[offset*2];
-      unsigned int word2=(offsets)[offset*2+1];
+    unsigned int word1=(offsets)[offset*2];
+    unsigned int word2=(offsets)[offset*2+1];
 #endif
-      result.off=word1; result.size=word2;
-      break;}
-    case FD_B40: {
+    result.off=word1; result.size=word2;
+    break;}
+  case FD_B40: {
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      unsigned int word1=fd_flip_word((offsets)[offset*2]);
-      unsigned int word2=fd_flip_word((offsets)[offset*2+1]);
+    unsigned int word1=fd_flip_word((offsets)[offset*2]);
+    unsigned int word2=fd_flip_word((offsets)[offset*2+1]);
 #else
-      unsigned int word1=(offsets)[offset*2];
-      unsigned int word2=(offsets)[offset*2+1];
+    unsigned int word1=(offsets)[offset*2];
+    unsigned int word2=(offsets)[offset*2+1];
 #endif
-      result.off=(((((ull)(word2))&(0xFF000000))<<8)|((ull)word1));
-      result.size=((word2)&(0x00FFFFFF));
-      break;}
-    case FD_B64: {
+    result.off=(((((ull)(word2))&(0xFF000000))<<8)|((ull)word1));
+    result.size=((word2)&(0x00FFFFFF));
+    break;}
+  case FD_B64: {
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      unsigned int word1=fd_flip_word((offsets)[offset*3]);
-      unsigned int word2=fd_flip_word((offsets)[offset*3+1]);
-      unsigned int word3=fd_flip_word((offsets)[offset*3+2]);
+    unsigned int word1=fd_flip_word((offsets)[offset*3]);
+    unsigned int word2=fd_flip_word((offsets)[offset*3+1]);
+    unsigned int word3=fd_flip_word((offsets)[offset*3+2]);
 #else
-      unsigned int word1=(offsets)[offset*3];
-      unsigned int word2=(offsets)[offset*3+1];
-      unsigned int word3=(offsets)[offset*3+2];
+    unsigned int word1=(offsets)[offset*3];
+    unsigned int word2=(offsets)[offset*3+1];
+    unsigned int word3=(offsets)[offset*3+2];
 #endif
-      result.off=(fd_off_t) ((((ll)word1)<<32)|(((ll)word2)));
-      result.size=(size_t) word3;
-      break;}
-    default:
-      u8_seterr(fd_InvalidOffsetType,"get_chunkref",NULL);
-      result.off=-1; result.size=-1;} /* switch (offtype) */
-  } /* if (offsets) */
-  else if ((stream)&&(stream_locked)) 
-    result=read_chunk_ref(stream,256,offtype,offset);
-  else if (stream) {
-    u8_lock_mutex(&(stream->stream_lock));
-    result=read_chunk_ref(stream,256,offtype,offset);
-    u8_unlock_mutex(&(stream->stream_lock));}
-  else {
-    u8_seterr("NoStream","get_chunkref",NULL);
+    result.off=(fd_off_t) ((((ll)word1)<<32)|(((ll)word2)));
+    result.size=(size_t) word3;
+    break;}
+  default:
+    u8_seterr(fd_InvalidOffsetType,"get_chunkref",NULL);
     result.off=-1; result.size=-1;}
   return result;
 }
@@ -85,8 +69,9 @@ static int chunk_ref_size(fd_offset_type offtype)
   return -1;
 }
 
-static FD_CHUNK_REF read_chunk_ref(struct FD_STREAM *stream,
-                                   fd_off_t base,fd_offset_type offtype,
+static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
+                                   fd_off_t base,
+				   fd_offset_type offtype,
 				   unsigned int offset)
 {
   FD_CHUNK_REF result; int chunk_size = chunk_ref_size(offtype);
@@ -135,13 +120,11 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,
 
 static unsigned char *read_chunk(fd_stream stream,
                                  fd_off_t off,uint size,
-				 unsigned char *usebuf,
-				 u8_mutex *unlock)
+				 unsigned char *usebuf)
 {
   uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size));
   fd_inbuf in=fd_start_read(stream,off);
   int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
-  if (unlock) u8_unlock_mutex(unlock);
   if (bytes_read<0) {
     if (usebuf==NULL) u8_free(buf);
     return NULL;}

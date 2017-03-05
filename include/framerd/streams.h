@@ -30,6 +30,10 @@
 #define FD_NETWORK_BUFSIZE 16000
 #endif
 
+#ifndef FD_INLINE_STREAMIO
+#define FD_INLINE_STREAMIO 0
+#endif
+
 FD_EXPORT size_t fd_stream_bufsize;
 FD_EXPORT size_t fd_network_bufsize;
 FD_EXPORT size_t fd_filestream_bufsize;
@@ -63,6 +67,7 @@ typedef struct FD_STREAM {
     struct FD_INBUF in;
     struct FD_OUTBUF out;
     struct FD_RAWBUF raw;} buf;
+  long long stream_locker;
   u8_mutex stream_lock;} FD_STREAM;
 typedef struct FD_STREAM *fd_stream;
 
@@ -237,13 +242,55 @@ FD_EXPORT int fd_set_read(fd_stream s,int read);
 
 FD_EXPORT int fd_flush_stream(fd_stream s);
 
-FD_EXPORT void fd_lock_stream(fd_stream s);
-FD_EXPORT void fd_unlock_stream(fd_stream s);
-
 FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
 
 FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz);
+
+FD_EXPORT int _fd_lock_stream(fd_stream s);
+FD_EXPORT int _fd_unlock_stream(fd_stream s);
+
+#if FD_INLINE_STREAMIO
+FD_FASTOP int fd_lock_stream(fd_stream s)
+{
+  long long tid=u8_threadid();
+  if (s->stream_locker==tid) {
+    u8_string id=s->streamid;
+    u8_log(LOGCRIT,"RecursiveStreamLock",
+	   "Recursively locking stream %s%s0x%llx",
+	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
+	   (U8_PTR2INT(s)));
+    u8_seterr("RecursiveStreamLock","fd_lock_stream",id);
+    return -1;}
+  else {
+    int rv=u8_lock_mutex(&(s->stream_lock));
+    if (rv) {
+      u8_seterr("MutexLockFailed","fd_lock_stream",s->streamid);
+      return -1;}
+    s->stream_locker=tid;
+    return 1;}
+}
+FD_FASTOP int fd_unlock_stream(fd_stream s)
+{
+  long long tid=u8_threadid();
+  if (tid != s->stream_locker) {
+    u8_string id=s->streamid;
+    u8_log(LOGCRIT,"BadStreamUnlock",
+           "Stream %s 0x%llx is owned by T%lld, not current T%lld",
+	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
+           (U8_PTR2INT(s)),s->stream_locker,tid);
+    u8_seterr("BadStreamUnlock","fd_lock_stream",s->streamid);
+    return -1;}
+  s->stream_locker=0;
+  int rv=u8_unlock_mutex(&(s->stream_lock));
+  if (rv) {
+    return -1;}
+  return 1;
+}
+#else
+#define fd_lock_stream(s) _fd_lock_stream(s)
+#define fd_unlock_stream(s) _fd_unlock_stream(s)
+#endif
 
 /* Exceptions */
 
