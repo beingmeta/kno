@@ -190,14 +190,13 @@ TEXTTOOLS_OBJS=\
 	src/texttools/porter.o \
 	src/texttools/phonetic.o
 SUNDOWN_OBJS=\
-	src/cmodules/sundown/autolink.o \
-	src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/houdini_href_e.o \
-	src/cmodules/sundown/houdini_html_e.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/markdown.o \
-	src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/sundown.o
+	src/cmodules/ext/sundown/autolink.o \
+	src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/houdini_href_e.o \
+	src/cmodules/ext/sundown/houdini_html_e.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/markdown.o \
+	src/cmodules/ext/sundown/stack.o
 
 SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
 	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
@@ -992,10 +991,11 @@ lib/framerd/leveldb.o: src/cmodules/leveldb.c
 lib/framerd/leveldb.so: src/cmodules/leveldb.o ${MODULE_SO}
 lib/framerd/leveldb.dylib: src/cmodules/leveldb.o
 
-lib/framerd/sundown.so: src/cmodules/sundown/sundown.c \
-		$(SUNDOWN_OBJECTS) $(MODULE_SO)
+src/cmodules/ext/libsundown.a: $(SUNDOWN_OBJECTS)
+lib/framerd/sundown.so: src/cmodules/sundown.c src/cmodules/ext/libsundown.a \
+		$(MODULE_SO)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c \
-		$(SUNDOWN_OBJECTS) $(MODULE_SO)
+		src/cmodules/ext/libsundown.a $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
