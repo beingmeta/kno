@@ -321,11 +321,11 @@ static int load_pool_cache(fd_pool p,void *ignored)
     return 0;
   else if (strcmp(p->pool_handler->name,"file_pool")==0) {
     struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-    if (fp->pool_offsets) load_cache(fp->pool_offsets,fp->pool_offsets_size);}
+    if (fp->pool_offdata) load_cache(fp->pool_offdata,fp->pool_offdata_size);}
   else if (strcmp(p->pool_handler->name,"oidpool")==0) {
     struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
-    if (fp->pool_offsets)
-      load_cache(fp->pool_offsets,fp->pool_offsets_size);}
+    if (fp->pool_offdata)
+      load_cache(fp->pool_offdata,fp->pool_offdata_size);}
   return 0;
 }
 

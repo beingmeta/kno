@@ -289,6 +289,7 @@
     (commit)
     ;;(swapout)
     )
+  (dbg #f)
   (checkdb (config 'COUNT 1000) testpool testindex)
   ;; (swapout)
   (checkdb (config 'COUNT 1000) testpool testindex)

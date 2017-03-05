@@ -13,7 +13,7 @@
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
   time_t pool_modtime;
-  unsigned int pool_load, *pool_offsets, pool_offsets_size;
+  unsigned int pool_load, *pool_offdata, pool_offdata_size;
   struct FD_STREAM pool_stream;
   U8_MUTEX_DECL(file_lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;

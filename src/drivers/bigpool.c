@@ -135,10 +135,6 @@ static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static FD_CHUNK_REF read_chunk_ref(fd_stream stream,
-                                   fd_off_t base,fd_offset_type offtype,
-                                   unsigned int offset);
-
 static int get_chunk_ref_size(fd_bigpool p)
 {
   switch (p->pool_offtype) {
@@ -576,9 +572,7 @@ static int bigpool_load(fd_pool p)
     return load;}
 }
 
-static fdtype read_oid_value(fd_bigpool bp,
-                             fd_inbuf in,
-                             const u8_string cxt)
+static fdtype read_oid_value(fd_bigpool bp,fd_inbuf in,const u8_string cxt)
 {
   int byte0=fd_probe_byte(in);
   if (byte0==0xF0) {
@@ -604,19 +598,16 @@ static fdtype read_oid_value(fd_bigpool bp,
   else return fd_read_dtype(in);
 }
 
-static fdtype read_oid_value_at(fd_bigpool bp,
-                                FD_CHUNK_REF ref,
-                                const u8_string cxt,
-                                u8_mutex *unlock)
+static fdtype read_oid_value_at(fd_bigpool bp,FD_CHUNK_REF ref,const u8_string cxt)
 {
   if (ref.off==0) return FD_VOID;
   else {
     unsigned char _buf[FD_BIGPOOL_FETCHBUF_SIZE], *buf;
     int free_buf=0;
     if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE) {
-      buf=read_chunk(&(bp->pool_stream),ref.off,ref.size,NULL,unlock);
+      buf=read_chunk(&(bp->pool_stream),ref.off,ref.size,NULL);
       free_buf=1;}
-    else buf=read_chunk(&(bp->pool_stream),ref.off,ref.size,_buf,unlock);
+    else buf=read_chunk(&(bp->pool_stream),ref.off,ref.size,_buf);
     if (buf==NULL) return FD_ERROR_VALUE;
     else if (free_buf) {
       FD_INBUF in;
@@ -638,35 +629,35 @@ static fdtype bigpool_fetch(fd_pool p,fdtype oid)
   if (FD_EXPECT_FALSE(offset>=bp->pool_load)) {
     /* Double check by going to disk */
     if (offset>=(bigpool_load(p)))
-      return fd_err(fd_UnallocatedOID,"file_pool_fetch",bp->pool_idstring,oid);}
+      return fd_err(fd_UnallocatedOID,"file_pool_fetch",
+                    bp->pool_idstring,oid);}
   if (bp->pool_offdata) {
-    FD_CHUNK_REF ref=get_chunk_ref(&(bp->pool_stream),
-                                   bp->pool_offdata,
-                                   256,bp->pool_offtype,
-                                   offset,STREAM_UNLOCKED);
+    FD_CHUNK_REF ref=get_chunk_ref(bp->pool_offdata,bp->pool_offtype,offset);
     if (ref.off<0) return FD_ERROR_VALUE;
     else if (ref.off==0)
       return FD_EMPTY_CHOICE;
     else {
       fdtype value;
       fd_lock_stream(&(bp->pool_stream));
-      value=read_oid_value_at(bp,ref,"bigpool_fetch",
-                              &(bp->pool_stream.stream_lock));
+      value=read_oid_value_at(bp,ref,"bigpool_fetch");
+      fd_unlock_stream(&(bp->pool_stream));
       return value;}}
   else {
     fd_lock_stream(&(bp->pool_stream)); {
-      FD_CHUNK_REF ref=read_chunk_ref(&(bp->pool_stream),
-                                      256,bp->pool_offtype,
-                                      offset);
-      if (ref.off<=0) fd_unlock_stream(&(bp->pool_stream));
-      if (ref.off<0)
-        return FD_ERROR_VALUE;
-      else if (ref.off==0)
-        return FD_EMPTY_CHOICE;
+      FD_CHUNK_REF ref=
+        fetch_chunk_ref(&(bp->pool_stream),
+                        256,bp->pool_offtype,
+                        offset);
+      if (ref.off<0) {
+        fd_unlock_stream(&(bp->pool_stream));
+        return FD_ERROR_VALUE;}
+      else if (ref.off==0) {
+        fd_unlock_stream(&(bp->pool_stream));
+        return FD_EMPTY_CHOICE;}
       else {
         fdtype value;
-        value=read_oid_value_at(bp,ref,"bigpool_fetch",
-                                &(bp->pool_stream.stream_lock));
+        value=read_oid_value_at(bp,ref,"bigpool_fetch");
+        fd_unlock_stream(&(bp->pool_stream));
         return value;}}}
 }
 struct BIGPOOL_FETCH_SCHEDULE {
@@ -691,6 +682,7 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
       values[i]=bigpool_fetch(p,oids[i]); i++;}
     return values;}
   else {
+    unsigned int *offdata=bp->pool_offdata;
     struct BIGPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct BIGPOOL_FETCH_SCHEDULE);
     fd_lock_stream(&(bp->pool_stream));
@@ -699,9 +691,7 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base);
       schedule[i].value_at=i;
-      schedule[i].location=get_chunk_ref(NULL,bp->pool_offdata,
-                                         256,bp->pool_offtype,
-                                         off,STREAM_LOCKED);
+      schedule[i].location=get_chunk_ref(offdata,bp->pool_offtype,off);
       if (schedule[i].location.off<0) {
         fd_seterr(InvalidOffset,"bigpool_fetchn",p->pool_idstring,oid);
         u8_free(schedule); u8_free(values);
@@ -713,8 +703,7 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
     qsort(schedule,n,sizeof(struct BIGPOOL_FETCH_SCHEDULE),
           compare_offsets);
     i=0; while (i<n) {
-      fdtype value=read_oid_value_at
-        (bp,schedule[i].location,"bigpool_fetchn",NULL);
+      fdtype value=read_oid_value_at(bp,schedule[i].location,"bigpool_fetchn");
       if (FD_ABORTP(value)) {
         int j=0; while (j<i) { fd_decref(values[j]); j++;}
         u8_free(schedule); u8_free(values);
