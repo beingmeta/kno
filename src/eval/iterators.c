@@ -140,7 +140,8 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
           u8_destroy_rwlock(&(bindings.table_rwlock));
           return val;}
         else if (FD_ABORTED(val)) {
-          fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT(i)));
+          fd_push_error_context(":DOTIMES",FD_SYMBOL_NAME(var),
+                                iterenv1(limit_val,var,FD_INT(i)));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(vals[0]);
           u8_destroy_rwlock(&(bindings.table_rwlock));
@@ -207,7 +208,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(vals[0]); fd_decref(seq);
           u8_destroy_rwlock(&(bindings.table_rwlock));
-          fd_push_error_context(":DOSEQ",errbind);
+          fd_push_error_context(":DOSEQ",FD_SYMBOL_NAME(var),errbind);
           return val;}
         fd_decref(val);}}
     /* Every iteration is a new environment */
@@ -274,7 +275,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
           u8_destroy_rwlock(&(bindings.table_rwlock));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(vals[0]); fd_decref(seq);
-          fd_push_error_context(":FORSEQ",errbind);
+          fd_push_error_context(":FORSEQ",FD_SYMBOL_NAME(var),errbind);
           return val;}}}
     if (envstruct.env_copy) {
       fd_recycle_environment(envstruct.env_copy);
@@ -348,7 +349,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
           u8_destroy_rwlock(&(bindings.table_rwlock));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(elt); fd_decref(seq);
-          fd_push_error_context(":TRYSEQ",errbind);
+          fd_push_error_context(":TRYSEQ",FD_SYMBOL_NAME(var),errbind);
           return val;}}}
     if (envstruct.env_copy) {
       fd_recycle_environment(envstruct.env_copy);
@@ -410,7 +411,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
             fd_decref(list); fd_decref(*vloc);
             u8_destroy_rwlock(&(bindings.table_rwlock));
-            fd_push_error_context(":DOLIST",errenv);
+            fd_push_error_context(":DOLIST",FD_SYMBOL_NAME(var),errenv);
             return val;}
           fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -428,7 +429,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
 
 static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 {
-  return eval_body("BEGIN",begin_expr,1,env);
+  return eval_body("BEGIN",NULL,begin_expr,1,env);
 }
 
 static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)

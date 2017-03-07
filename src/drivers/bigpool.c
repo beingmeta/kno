@@ -707,7 +707,8 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
       if (FD_ABORTP(value)) {
         int j=0; while (j<i) { fd_decref(values[j]); j++;}
         u8_free(schedule); u8_free(values);
-        fd_push_error_context("bigpool_fetchn/read",oids[schedule[i].value_at]);
+        fd_push_error_context("bigpool_fetchn/read",bp->pool_idstring,
+                              oids[schedule[i].value_at]);
         fd_unlock_stream(&(bp->pool_stream));
         return NULL;}
       else values[schedule[i].value_at]=value;

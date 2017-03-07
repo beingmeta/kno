@@ -652,37 +652,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
   else return fd_type_error("applicable","DAPPLY",fp);
 }
 
-static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
-                          int static_args);
-
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
-{
-  fdtype result; u8_string name=((f->fcn_name!=NULL)?(f->fcn_name):((u8_string)"DCALL"));
-  if (errno) {
-    u8_string cond=u8_strerror(errno);
-    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
-           errno,cond,U8ALT(name,"primcall"));
-    errno=0;}
-  if (stackcheck()) {
-    U8_WITH_CONTOUR(f->fcn_name,0)
-      result=dcall_inner(f,n,args,static_args);
-    U8_ON_EXCEPTION {
-      U8_CLEAR_CONTOUR();
-      result = FD_ERROR_VALUE;}
-    U8_END_EXCEPTION;
-    if (errno) {
-      u8_string cond=u8_strerror(errno);
-      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
-             errno,cond,U8ALT(name,"primcall"));
-      errno=0;}
-    return result;}
-  else {
-    u8_string limit=u8_mkstring("%lld",fd_stack_limit());
-    fdtype depth=FD_INT2DTYPE(u8_stack_depth());
-    return fd_err(fd_StackOverflow,name,limit,depth);}
-}
-
-static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
+FD_FASTOP fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
                           int static_args)
 {
   if (FD_INTERRUPTED()) {
@@ -724,6 +694,33 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
         fdtype result=f->fcn_handler.calln(n,args);
         u8_free(args);
         return result;}}
+}
+
+static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
+{
+  fdtype result; u8_string name=((f->fcn_name!=NULL)?(f->fcn_name):((u8_string)"DCALL"));
+  if (errno) {
+    u8_string cond=u8_strerror(errno);
+    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
+           errno,cond,U8ALT(name,"primcall"));
+    errno=0;}
+  if (stackcheck()) {
+    U8_WITH_CONTOUR(f->fcn_name,0)
+      result=dcall_inner(f,n,args,static_args);
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      result = FD_ERROR_VALUE;}
+    U8_END_EXCEPTION;
+    if (errno) {
+      u8_string cond=u8_strerror(errno);
+      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
+             errno,cond,U8ALT(name,"primcall"));
+      errno=0;}
+    return result;}
+  else {
+    u8_string limit=u8_mkstring("%lld",fd_stack_limit());
+    fdtype depth=FD_INT2DTYPE(u8_stack_depth());
+    return fd_err(fd_StackOverflow,name,limit,depth);}
 }
 
 /* Calling non-deterministically */

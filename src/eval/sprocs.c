@@ -42,7 +42,7 @@ static u8_string sproc_id(struct FD_SPROC *fn)
 
 /* SPROCs */
 
-FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
+FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
   fdtype _vals[6], *vals=_vals, lexpr_arg=FD_EMPTY_LIST, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -140,7 +140,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
-  result=eval_body(":SPROC",fn->sproc_body,0,&envstruct);
+  result=eval_body(":SPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
   if (fn->sproc_synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if (FD_ABORTED(result))
@@ -155,6 +155,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   free_environment(&envstruct);
   if (vals!=_vals) u8_free(vals);
   return result;
+}
+
+FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
+{
+  return fd_apply_sproc(fn,n,args);
 }
 
 static fdtype sproc_applier(fdtype f,int n,fdtype *args)
@@ -593,7 +598,7 @@ fdtype fd_xapply_sproc
   assert(i==fn->sproc_n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
-  result=eval_body(":XPROC",fn->sproc_body,0,&envstruct);
+  result=eval_body(":XPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
   /* if (fn->sproc_synchronized) result=fd_finish_call(result); */
   /* We always finish tail calls here */
   result=fd_finish_call(result);

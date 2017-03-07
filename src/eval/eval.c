@@ -921,7 +921,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       else result=fd_err(fd_NotAFunction,NULL,NULL,headval);
       if (FD_THROWP(result)) {}
       else if (FD_ABORTED(result)) {
-        fd_push_error_context(fd_eval_context,fd_incref(expr));
+        fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
         return result;}
       if (gchead) fd_decref(headval);
       return result;}}
@@ -1091,7 +1091,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     else avec[0]=fd_intern("LAMBDA");
     if (free_argv) u8_free(argv);
     call_context=fd_init_vector(NULL,arg_count+1,avec);
-    fd_push_error_context(fd_apply_context,call_context);
+    fd_push_error_context(fd_apply_context,fcn->fcn_name,call_context);
     return result;}
   else if (args_need_gc) {
     int i=0; while (i < arg_count) {

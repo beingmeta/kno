@@ -252,7 +252,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
           return return_error_env(value,":LET",inner_env);
         else {
           vars[i]=var; vals[i]=value; i++;}}}
-    result=eval_body(":LET",expr,2,inner_env);
+    result=eval_body(":LET",FD_SYMBOL_NAME(vars[0]),expr,2,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -290,7 +290,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       else {
         vars[i]=var; vals[i]=value;}
       i++;}}
-    result=eval_body(":LET*",expr,2,inner_env);
+    result=eval_body(":LET*",FD_SYMBOL_NAME(vars[0]),expr,2,inner_env);
     free_environment(inner_env);
     return result;}
 }
@@ -388,7 +388,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
     result=testval;
     if (FD_PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
-      result=eval_body(":DO",exitexprs,1,inner_env);}
+      result=eval_body(":DO",FD_SYMBOL_NAME(vars[0]),exitexprs,1,inner_env);}
     /* Free the environment. */
     free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}

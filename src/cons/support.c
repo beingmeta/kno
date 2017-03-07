@@ -1121,15 +1121,14 @@ FD_EXPORT fdtype fd_err
   return FD_ERROR_VALUE;
 }
 
-FD_EXPORT void fd_push_error_context(u8_context cxt,fdtype data)
+FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data)
 {
   u8_exception ex = u8_current_exception;
   u8_condition condition = (ex==NULL) ? (NULL) : (ex->u8x_cond);
   if ( condition == fd_StackOverflow ) {
     fd_decref(data);
     return;}
-  else u8_push_exception(NULL,cxt,NULL,
-                         (void *)data,
+  else u8_push_exception(NULL,cxt,u8dup(label),(void *)data,
                          fd_free_exception_xdata);
 }
 
@@ -1251,8 +1250,8 @@ int compact_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg,
         details=NULL;}
     if ( (depth) && ((cond) || (context) || (details)) ) {
       if (skipped)
-        u8_printf(out," << %d… << ",skipped);
-      else u8_puts(out," << ");}
+        u8_printf(out," >> %d… >> ",skipped);
+      else u8_puts(out," >> ");}
     if ((cond) && (context) && (details))
       u8_printf(out,"%m <%s> (%s)",cond,context,details);
     else if ((cond) && (context))
@@ -1291,7 +1290,7 @@ void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
     else if ((stacklen-(show_bottom+show_top))==0) {
       elided=1; prev=NULL;}
     else {
-      u8_printf(out," << %d/%d calls... ",
+      u8_printf(out," >> %d/%d calls... ",
                 stacklen-(show_bottom+show_top),
                 stacklen);
       skipped=0;
