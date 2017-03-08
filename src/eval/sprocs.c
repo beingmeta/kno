@@ -143,8 +143,11 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   result=eval_body(":SPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
   if (fn->sproc_synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if (FD_ABORTED(result))
-    u8_current_exception->u8x_details=sproc_id(fn);
+  else if (FD_ABORTED(result)) {
+    u8_exception ex;
+    ex=u8_current_exception;
+    if (ex->u8x_details) u8_free(ex->u8x_details);
+    ex->u8x_details=sproc_id(fn);}
   else {}
   /* If we're synchronized, unlock the mutex. */
   if (fn->sproc_synchronized) u8_unlock_mutex(&(fn->sproc_lock));
