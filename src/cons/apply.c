@@ -39,28 +39,7 @@ fd_exception fd_TooFewArgs=_("too few arguments");
 fd_exception fd_NoDefault=_("no default value for #default argument");
 fd_exception fd_ProfilingDisabled=_("profiling not built");
 
-static int needs_escape(u8_string string)
-{
-  const u8_byte *scan=string; int c;
-  while ((c=u8_sgetc(&scan))>0)
-    if (c>=128) return 1;
-    else if (u8_isspace(c)) return 1;
-    else {}
-  return 0;
-}
-
-static void out_escaped(FILE *f,u8_string name)
-{
-  const u8_byte *scan=name;
-  while (*scan) {
-    int c=u8_sgetc(&scan);
-    if (c=='"') fprintf(f,"\\\"");
-    else if (c>=128) {
-      fprintf(f,"\\u%04x",c);}
-    else if (c=='\n') fputs("\\n",f);
-    else if (c=='\r') fputs("\\r",f);
-    else putc(c,f);}
-}
+const int fd_calltrack_enabled=FD_CALLTRACK_ENABLED;
 
 /* Stack checking */
 
@@ -235,22 +214,19 @@ static fdtype dcall9(struct FD_FUNCTION *f,
 
 /* Generic calling function */
 
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args);
-
 FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
 {
   /* Check typeinfo */
-  int *typeinfo=f->fcn_typeinfo;
-  int i=0;
-  while (i<n) {
-    fdtype arg=args[i]; int argtype=typeinfo[i];
-    if (argtype<0) i++;
-    else if (FD_TYPEP(arg,argtype)) i++;
-    else if ( (FD_VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
-    else {
-      u8_string type_name=fd_type2name(argtype);
-      fd_seterr(fd_TypeError,type_name,u8dup(f->fcn_name),args[i]);
-      return -1;}}
+  int *typeinfo=f->fcn_typeinfo; int i=0;
+  if (typeinfo) while (i<n) {
+      fdtype arg=args[i]; int argtype=typeinfo[i];
+      if (argtype<0) i++;
+      else if (FD_TYPEP(arg,argtype)) i++;
+      else if ( (FD_VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
+      else {
+        u8_string type_name=fd_type2name(argtype);
+        fd_seterr(fd_TypeError,type_name,u8dup(f->fcn_name),args[i]);
+        return -1;}}
   return 0;
 }
 
@@ -283,7 +259,7 @@ FD_FASTOP fdtype *fill_argvec(struct FD_FUNCTION *f,int n,fdtype *argvec,
     return args;}
 }
 
-FD_FASTOP fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args)
+FD_FASTOP fdtype dcall(u8_string fname,fd_function f,int n,fdtype *args)
 {
   if (FD_INTERRUPTED()) return FD_ERROR_VALUE;
   else if (f->fcn_handler.fnptr)
@@ -318,22 +294,65 @@ FD_FASTOP fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args)
 
 FD_EXPORT fdtype fd_dcall(struct FD_FUNCTION *f,int n,fdtype *args)
 {
-  return dcall(f,n,args);
+  return dcall(f->fcn_name,f,n,args);
 }
 
-FD_EXPORT fdtype fd_determinstic_apply(fdtype fn,int n,fdtype *argvec)
+FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
 {
-  fdtype _argbuf[8], *args;
+  fdtype fnptr=(fdtype)f;
+  fdtype argbuf[8], *args;
+  if (f->fcn_arity<0) { /* Is a LEXPR */
+    if (n<(f->fcn_min_arity))
+      return fd_err(fd_TooFewArgs,"fd_dapply",f->fcn_name,fnptr);
+    else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
+      return f->fcn_handler.xcalln(f,n,argvec);
+    else if (f->fcn_handler.calln)
+      return f->fcn_handler.calln(n,argvec);
+    else {
+      /* There's no explicit method on this function object */
+      int ctype=FD_CONS_TYPE(f);
+      if (fd_applyfns[ctype])
+        return fd_applyfns[ctype]((fdtype)f,n,argvec);
+      else return fd_err("NotApplicable","fd_apply",f->fcn_name,fnptr);}}
+  else args=fill_argvec(f,n,argvec,argbuf,8);
+  if (args==NULL)
+    return FD_ERROR_VALUE;
+  else if (check_typeinfo(f,n,args)<0)
+    return FD_ERROR_VALUE;
+  else if ((args==argbuf)||(args==argvec))
+    return dcall(name,f,n,args);
+  else {
+    fdtype result=dcall(name,f,n,args);
+    u8_free(args);
+    return result;}
+}
+
+FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
+{
+  u8_byte namebuf[60];
+  u8_string fname=NULL;
   fd_ptr_type ftype=FD_PRIM_TYPE(fn);
-  if (fdtype==fd_fcnid_type) {
+  struct FD_FUNCTION *f=NULL;
+
+  if (ftype==fd_fcnid_type) {
     fn=fd_fcnid_ref(fn);
     ftype=FD_PTR_TYPE(fn);}
+
   if (fd_functionp[ftype]) {
-    
+    f=(struct FD_FUNCTION *)fn;
+    if (f->fcn_name)
+      fname=f->fcn_name;}
+  else if (fd_applyfns[ftype]) {
+    sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
+    fname=namebuf;}
+  else return fd_type_error("applicable","fd_determinstic_apply",fn);
+
+  /* Make the call */
   if (stackcheck()) {
-    U8_WITH_CONTOUR(f->fcn_name,0)
-        
-      result=inner_apply(fn,n,args);
+    fdtype result=FD_VOID;
+    U8_WITH_CONTOUR(fname,0)
+      if (f) result=apply_fcn(fname,f,n,argvec);
+      else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR_VALUE;}
@@ -341,66 +360,13 @@ FD_EXPORT fdtype fd_determinstic_apply(fdtype fn,int n,fdtype *argvec)
     if (errno) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
-             errno,cond,U8ALT(name,"primcall"));
+             errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
     return result;}
-  else  {
+  else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit());
     fdtype depth=FD_INT2DTYPE(u8_stack_depth());
-    return fd_err(fd_StackOverflow,name,limit,depth);}
-}
-static fdtype inner_apply(fdtype fn)
-{
-  if (fd_functionp[ftype]) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
-    fdtype argbuf[8], *args;
-    if (f->fcn_arity<0) { /* Is a LEXPR */
-      if (n<(f->fcn_min_arity))
-        return fd_err(fd_TooFewArgs,"fd_dapply",f->fcn_name,fntr);
-      else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
-        return f->fcn_handler.xcalln((struct FD_FUNCTION *)fn,n,argvec);
-      else if (f->fcn_handler.calln)
-        return f->fcn_handler.calln(n,argvec);
-      else {
-        /* There's no explicit method on this function object */
-        int ctype=FD_CONS_TYPE(f);
-        if (fd_applyfns[ctype])
-          return fd_applyfns[ctype]((fdtype)f,n,argvec);
-        else return fd_err("NotApplicable","fd_apply",f->fcn_name,fntr);}}
-    else args=fill_argvec(f,n,argvec,_argbuf,8);
-    if (args==NULL) return FD_ERROR_VALUE;
-    else if (check_typeinfo(f,n,args)<0) return FD_ERROR_VALUE;
-    else return dcall(f,n,args,((args==argbuf)||(args==argvec)));}
-  else if (fd_applyfns[ftype])
-    return fd_applyfns[ftype](fn,n,argvec);
-  else return fd_type_error("applicable","fd_determinstic_apply",fn);
-}
-
-
-
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
-{
-  fdtype result;
-  u8_string name=((f->fcn_name)?(f->fcn_name):((u8_string)"DCALL"));
-  if (errno) {
-    u8_string cond=u8_strerror(errno);
-    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
-           errno,cond,U8ALT(name,"primcall"));
-    errno=0;}
-  if (stackcheck()) {
-    U8_WITH_CONTOUR(f->fcn_name,0)
-      result=dcall_inner(f,n,args,static_args);
-    U8_ON_EXCEPTION {
-      U8_CLEAR_CONTOUR();
-      result = FD_ERROR_VALUE;}
-    U8_END_EXCEPTION;
-    if (errno) {
-      u8_string cond=u8_strerror(errno);
-      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
-             errno,cond,U8ALT(name,"primcall"));
-      errno=0;}
-    return result;}
-  else 
+    return fd_err(fd_StackOverflow,fname,limit,depth);}
 }
 
 /* Calling non-deterministically */
@@ -984,6 +950,13 @@ FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from)
   fd_decref(v);
 }
 
+void fd_init_calltrack_c(void);
+
+static fdtype dapply(fdtype f,int n_args,fdtype *argvec)
+{
+  return fd_dapply(f,n_args,argvec);
+}
+
 FD_EXPORT void fd_init_apply_c()
 {
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
@@ -993,16 +966,12 @@ FD_EXPORT void fd_init_apply_c()
 
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(FRAMERD_APPLY_H_INFO);
-  fd_register_config("CALLTRACK",
-                     _("File used for calltrack profiling (#f disables calltrack)"),
-                     get_calltrack,set_calltrack,NULL);
 
 #if (FD_USE_TLS)
-  u8_new_threadkey(&calltrack_log_key,free_calltrack_log);
   u8_new_threadkey(&stack_limit_key,free_calltrack_log);
 #endif
 
-  fd_applyfns[fd_primfcn_type]=(fd_applyfn)fd_dapply;
+  fd_applyfns[fd_primfcn_type]=dapply;
   fd_functionp[fd_primfcn_type]=1;
 
   fd_unparsers[fd_primfcn_type]=unparse_primitive;
@@ -1012,16 +981,7 @@ FD_EXPORT void fd_init_apply_c()
   fd_recyclers[fd_tailcall_type]=recycle_tail_call;
   fd_type_names[fd_tailcall_type]="tailcall";
 
-  calltrack_sense=fd_intern("CALLTRACK/SENSE");
-  calltrack_ignore=fd_intern("CALLTRACK/IGNORE");
-  fd_register_config
-    ("CALLTRACK/SENSE",_("Active calltrack sensors"),
-     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
-  fd_register_config
-    ("CALLTRACK/IGNORE",_("Ignore calltrack sensors"),
-     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
-
-  u8_init_mutex(&calltrack_sensor_lock);
+  fd_init_calltrack_c();
 
 }
 

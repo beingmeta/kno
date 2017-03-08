@@ -790,6 +790,7 @@ ipevalo
 exifo
 ldnso
 curlo
+calltracko
 curlconfig
 rpath
 dynamic_cflag
@@ -2866,7 +2867,6 @@ enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
-ipevalo=""
 webuser=""
 wwwinstall=""
 admin_group=""
@@ -2875,8 +2875,10 @@ fdaemon=""
 fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
+calltracko=""
 curlo=""
 ldnso=""
+ipevalo=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -3031,6 +3033,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -11622,6 +11625,7 @@ else
 fi
 
 if test $enable_calltrack = "yes"; then
+  calltracko="src/cons/calltrack.o"
   $as_echo "#define FD_CALLTRACK_ENABLED 1" >>confdefs.h
 
 else

@@ -44,7 +44,6 @@ enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
-ipevalo=""
 webuser=""
 wwwinstall=""
 admin_group=""
@@ -53,8 +52,10 @@ fdaemon=""
 fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
+calltracko=""
 curlo=""
 ldnso=""
+ipevalo=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -192,6 +193,7 @@ AC_SUBST(mmshared_suffix)
 AC_SUBST(dynamic_cflag)
 AC_SUBST(rpath)
 AC_SUBST(curlconfig)
+AC_SUBST(calltracko)
 AC_SUBST(curlo)
 AC_SUBST(ldnso)
 AC_SUBST(exifo)
@@ -1347,6 +1349,7 @@ fi
 dnl This builds in Scheme level profiling for the interpreter.
 AC_ARG_ENABLE(calltrack,--en[dis]able-calltrack enable internal scheme profiling,,enable_calltrack="yes")
 if test $enable_calltrack = "yes"; then
+  calltracko="src/cons/calltrack.o"
   AC_DEFINE(FD_CALLTRACK_ENABLED,1)
 else
   AC_DEFINE(FD_CALLTRACK_ENABLED,0)
