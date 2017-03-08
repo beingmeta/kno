@@ -996,9 +996,9 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
                             unsigned int load)
 {
   fd_outbuf outstream=fd_writebuf(stream);
+  double started=u8_elapsed_time(), taken;
   u8_log(fddb_loglevel+1,"OIDPoolFinalize",
-         "Finalizing %d oid values %s in %f seconds",
-         n,op->pool_idstring);
+         "Finalizing %d oid values from %s",n,op->pool_idstring);
 
   if (op->pool_offdata) {
 #if HAVE_MMAP
@@ -1106,6 +1106,15 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
       u8_free(saveinfo);
       exit(-1);}
   write_oidpool_load(op);
+
+  taken=u8_elapsed_time()-started;
+  if (taken>1)
+    u8_log(fddb_loglevel,"OIDPoolFinalize",
+           "Finalized %d oid values from %s in %f secs",
+           n,op->pool_idstring,taken);
+  else u8_log(fddb_loglevel+1,"OIDPoolFinalize",
+              "Finalized %d oid values from %s in %f secs",
+              n,op->pool_idstring,taken);
   return 0;
 }
 
