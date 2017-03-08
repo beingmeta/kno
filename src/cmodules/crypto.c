@@ -37,7 +37,8 @@ static fdtype doencrypt(fdtype data,fdtype key,
   const unsigned char *payload; size_t payload_len; int free_payload=0;
   const unsigned char *ivdata; size_t iv_len;
   unsigned char *outbuf; size_t outlen;
-  if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
+  if (!(FD_PACKETP(key)))
+    return fd_type_error("packet/secret","doencrypt",key);
   if ((!(dtype))&& (FD_STRINGP(data))) {
     payload=FD_STRDATA(data); payload_len=FD_STRLEN(data);}
   else if ((!(dtype))&&(FD_PACKETP(data))) {

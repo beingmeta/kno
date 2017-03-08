@@ -78,17 +78,21 @@ static fdtype reqsetup()
   fd_reset_threadvars();
   /* Update modules */
   if (fd_update_file_modules(0)<0) {
-    u8_condition c; u8_context cxt; u8_string details=NULL;
-    fdtype irritant;
+    u8_condition c=NULL; u8_context cxt=NULL;
+    u8_string details=NULL;
+    fdtype irritant=FD_VOID;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);}
+    if (details) u8_free(details);
+    fd_decref(irritant);}
   else if (update_preloads()<0) {
-    u8_condition c; u8_context cxt; u8_string details=NULL;
+    u8_condition c=NULL; u8_context cxt=NULL;
+    u8_string details=NULL;
     fdtype irritant;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);}
+    if (details) u8_free(details);
+    fd_decref(irritant);}
   return result;
 }
 

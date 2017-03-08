@@ -923,7 +923,8 @@ static int webservefn(u8_client ucl)
     setup_time=parse_time=u8_elapsed_time();
     if (fd_poperr(&c,&cxt,&details,&irritant))
       proc=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);
+    if (details) u8_free(details);
+    fd_decref(irritant);
     setup_time=u8_elapsed_time();
     cgidata=fd_read_dtype(inbuf);}
   else if (update_preloads()<0) {
@@ -933,7 +934,8 @@ static int webservefn(u8_client ucl)
     u8_log(LOG_CRIT,"PreloadUpdateFailed","Failure updating preloads");
     if (fd_poperr(&c,&cxt,&details,&irritant))
       proc=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);
+    if (details) u8_free(details);
+    fd_decref(irritant);
     setup_time=u8_elapsed_time();
     cgidata=fd_read_dtype(inbuf);}
   else {
