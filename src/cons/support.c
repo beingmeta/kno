@@ -1123,12 +1123,18 @@ FD_EXPORT fdtype fd_err
 
 FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data)
 {
-  u8_exception ex = u8_current_exception;
-  u8_condition condition = (ex==NULL) ? (NULL) : (ex->u8x_cond);
+  u8_exception ex;
+  u8_condition condition=NULL;
+  ex=u8_current_exception;
+  if (ex) condition=ex->u8x_cond;
   if ( condition == fd_StackOverflow ) {
     fd_decref(data);
     return;}
-  else u8_push_exception(NULL,cxt,u8dup(label),(void *)data,
+  else if (label) {
+    u8_string copied=u8_strdup(label);
+    u8_push_exception(NULL,cxt,copied,(void *)data,
+                      fd_free_exception_xdata);}
+  else u8_push_exception(NULL,cxt,NULL,(void *)data,
                          fd_free_exception_xdata);
 }
 
@@ -1332,7 +1338,7 @@ int fd_clear_errors(int report)
       u8_free(sum);}
     scan=scan->u8x_prev;
     n_errs++;}
-  u8_free_exception(ex,1);
+  if (ex) u8_free_exception(ex,1);
   return n_errs;
 }
 

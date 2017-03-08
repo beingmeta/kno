@@ -900,9 +900,10 @@ static FD_XML *handle_fdxml_pi
           u8_string filename=fd_get_component(arg);
           int retval=fd_load_config(filename);
           if (retval<0) {
-            u8_condition c; u8_context cxt; u8_string details;
-            fdtype irritant;
-            if (fd_poperr(&c,&cxt,&details,&irritant))
+            u8_condition c=NULL; u8_context cxt=NULL;
+            u8_string details=NULL;
+            fdtype irritant=FD_VOID;
+            if (fd_poperr(&c,&cxt,&details,&irritant)) {
               if ((FD_VOIDP(irritant)) && (details==NULL) && (cxt==NULL))
                 u8_log(LOG_WARN,"FDXML_CONFIG",
                        _("In config '%s' %m"),filename,c);
@@ -915,6 +916,8 @@ static FD_XML *handle_fdxml_pi
               else u8_log(LOG_WARN,"FDXML_CONFIG",
                           _("In config '%s' [%m@%s] %s %q"),
                           filename,c,cxt,details,irritant);
+              if (details) u8_free(details);
+              fd_decref(irritant);}
             else u8_log(LOG_WARN,"FDXML_CONFIG",
                         _("In config '%s', unknown error"),filename);}}}
       else if ((strncmp(attribs[i],"module=",7))==0) {

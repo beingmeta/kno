@@ -39,35 +39,7 @@ fd_exception fd_TooFewArgs=_("too few arguments");
 fd_exception fd_NoDefault=_("no default value for #default argument");
 fd_exception fd_ProfilingDisabled=_("profiling not built");
 
-static fd_exception NoSuchCalltrackSensor=
-  _("designated calltrack sensor does not exist");
-static fd_exception TooManyCalltrackSensors=
-  _("Too many calltrack sensors");
-
-FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
-
-static int needs_escape(u8_string string)
-{
-  const u8_byte *scan=string; int c;
-  while ((c=u8_sgetc(&scan))>0)
-    if (c>=128) return 1;
-    else if (u8_isspace(c)) return 1;
-    else {}
-  return 0;
-}
-
-static void out_escaped(FILE *f,u8_string name)
-{
-  const u8_byte *scan=name;
-  while (*scan) {
-    int c=u8_sgetc(&scan);
-    if (c=='"') fprintf(f,"\\\"");
-    else if (c>=128) {
-      fprintf(f,"\\u%04x",c);}
-    else if (c=='\n') fputs("\\n",f);
-    else if (c=='\r') fputs("\\r",f);
-    else putc(c,f);}
-}
+const int fd_calltrack_enabled=FD_CALLTRACK_ENABLED;
 
 /* Stack checking */
 
@@ -161,343 +133,6 @@ FD_EXPORT int fd_stackcheck()
   return stackcheck();
 }
 
-/* Internal profiling support */
-
-#if FD_CALLTRACK_ENABLED
-#include <stdio.h>
-
-u8_mutex calltrack_sensor_lock;
-
-static struct FD_CALLTRACK_SENSOR calltrack_sensors[FD_MAX_CALLTRACK_SENSORS];
-static int n_calltrack_sensors=0;
-
-FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int create)
-{
-  int i=0; u8_lock_mutex(&calltrack_sensor_lock);
-  while (i<n_calltrack_sensors)
-    if (strcmp(id,calltrack_sensors[i].name)==0) {
-      u8_unlock_mutex(&calltrack_sensor_lock);
-      return &(calltrack_sensors[i]);}
-    else i++;
-  if (create==0) {
-    u8_unlock_mutex(&calltrack_sensor_lock);
-    return NULL;}
-  else if (i<FD_MAX_CALLTRACK_SENSORS) {
-    calltrack_sensors[i].name=u8_strdup(id);
-    calltrack_sensors[i].enabled=0;
-    calltrack_sensors[i].intfcn=NULL;
-    calltrack_sensors[i].dblfcn=NULL;
-    u8_unlock_mutex(&calltrack_sensor_lock);
-    return &calltrack_sensors[n_calltrack_sensors++];}
-  else {
-    fd_seterr(TooManyCalltrackSensors,"fd_get_calltrack_sensor",
-              u8_strdup(id),FD_VOID);
-    u8_unlock_mutex(&calltrack_sensor_lock);
-    return NULL;}
-}
-
-FD_EXPORT fdtype fd_calltrack_sensors()
-{
-  int n=n_calltrack_sensors+1, i=0;
-  fdtype *data=u8_alloc_n(n,fdtype);
-  data[i++]=fd_intern("TIME");
-  while (i<n) {
-    data[i]=fd_intern(calltrack_sensors[i-1].name); i++;}
-  return fd_init_vector(NULL,n,data);
-}
-
-FD_EXPORT fdtype fd_calltrack_sense(int trackall)
-{
-  int n=n_calltrack_sensors+1, i=0;
-  fdtype *data=u8_alloc_n(n,fdtype), *write=data+1;
-  data[0]=fd_init_flonum(NULL,u8_elapsed_time());
-  while (i<n_calltrack_sensors)
-    if ((trackall==0) &&
-        (calltrack_sensors[i].enabled==0))
-      write[i++]=(FD_FIXNUM_ZERO);
-    else if (calltrack_sensors[i].intfcn) {
-      long lv=calltrack_sensors[i].intfcn();
-      fdtype dv=(fdtype)FD_INT(lv);
-      write[i++]=dv;}
-    else  if (calltrack_sensors[i].dblfcn) {
-      double fv=calltrack_sensors[i].dblfcn();
-      fdtype dv=fd_init_flonum(NULL,fv);
-      write[i++]=dv;}
-    else write[i++]=(FD_FIXNUM_ZERO);
-  return fd_init_vector(NULL,n,data);
-}
-
-/* Generic calltrack */
-
-#if (FD_USE_TLS)
-static u8_tld_key calltrack_log_key;
-struct CALLTRACK_DATA {
-  FILE *calltrack_output;
-  char *calltrack_filename;};
-
-static void free_calltrack_log(void *ptr)
-{
-  struct CALLTRACK_DATA *data=ptr;
-  if (data) {
-    fclose(data->calltrack_output);
-    u8_free(data->calltrack_filename); 
-    u8_free(data);}
-}
-FD_FASTOP FILE *get_calltrack_logfile()
-{
-  struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
-  if (cd)
-    return cd->calltrack_output;
-  else return NULL;
-}
-FD_EXPORT int fd_start_calltrack(u8_string filename)
-{
-  struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
-  int current=0;
-  FILE *output;
-  if (cd) {
-    current=1; 
-    fclose(cd->calltrack_output);
-    u8_free(cd->calltrack_filename);
-    u8_free(cd); cd=NULL;
-    u8_tld_set(calltrack_log_key,NULL);}
-  if (filename==NULL) return 1;
-  if (*filename=='+')
-    output=fopen(filename+1,"a+");
-  else output=fopen(filename,"w+");
-  if (output) {
-    fprintf(output,"# Calltrack start\n");
-    cd=u8_alloc(struct CALLTRACK_DATA);
-    cd->calltrack_output=output; 
-    cd->calltrack_filename=u8_strdup(filename);
-    fprintf(output,":TIME");
-    {int i=0; while (i<n_calltrack_sensors)
-      if (calltrack_sensors[i].enabled)
-        fprintf(output," %s",calltrack_sensors[i++].name);
-      else i++;
-      fprintf(output,"\n");
-      u8_tld_set(calltrack_log_key,cd);
-      return current;}}
-  else {
-    u8_graberr(-1,"fd_start_calltrack",u8_strdup(filename));
-    return -1;}
-}
-#else
-static __thread FILE *calltrack_logfile;
-static __thread char *calltrack_logfilename;
-#define get_calltrack_logfile() (calltrack_logfile)
-FD_EXPORT int fd_start_calltrack(u8_string filename)
-{
-  int retval=0; FILE *output;
-  if ((calltrack_logfilename) &&
-      (filename) &&
-      (strcmp(filename,calltrack_logfilename)==0)) {
-    fflush(calltrack_logfile); sync();
-    return 0;}
-  if (calltrack_logfile) {
-    fclose(calltrack_logfile); retval=1;}
-  if (filename==NULL) {
-    u8_free(calltrack_logfilename);
-    calltrack_logfilename=NULL;
-    calltrack_logfile=NULL;
-    return 1;}
-  if (*filename=='+')
-    output=fopen(filename+1,"a+");
-  else output=fopen(filename,"w");
-  if (output) {
-    fprintf(output,"# Calltrack start\n");
-    calltrack_logfilename=u8_strdup(filename);
-    calltrack_logfile=output;
-    fprintf(output,":TIME");
-    {int i=0; while (i<n_calltrack_sensors)
-      if (calltrack_sensors[i].enabled)
-        fprintf(output," %s",calltrack_sensors[i++].name);
-      else i++;}
-    fprintf(output,"\n");
-    return retval;}
-  else {
-    u8_graberr(-1,"fd_start_calltrack",u8_strdup(filename));
-    return -1;}
-}
-#endif
-static void calltrack_call(u8_string name)
-{
-  FILE *output=get_calltrack_logfile();
-  if (output) {
-    double timer=u8_elapsed_time(); int i=0;
-    if (needs_escape(name)) {
-      fprintf(output,"> \"");
-      out_escaped(output,name);
-      fprintf(output,"\" %f",timer);}
-    else fprintf(output,"> %s %f",name,timer);
-    while (i<n_calltrack_sensors)
-      if (calltrack_sensors[i].enabled)
-        if (calltrack_sensors[i].dblfcn)
-          fprintf(output," %f",calltrack_sensors[i++].dblfcn());
-        else if (calltrack_sensors[i].intfcn)
-          fprintf(output," %ld",calltrack_sensors[i++].intfcn());
-        else fprintf(output," 0");
-      else i++;
-    fprintf(output,"\n");}
-}
-static void calltrack_return(u8_string name)
-{
-  FILE *output=get_calltrack_logfile();
-  if (output) {
-    double timer=u8_elapsed_time(); int i=0;
-    if (needs_escape(name)) {
-      fprintf(output,"< \"");
-      out_escaped(output,name);
-      fprintf(output,"\" %f",timer);}
-    else fprintf(output,"< %s %f",name,timer);
-    while (i<n_calltrack_sensors)
-      if (calltrack_sensors[i].enabled)
-        if (calltrack_sensors[i].dblfcn)
-          fprintf(output," %f",calltrack_sensors[i++].dblfcn());
-        else if (calltrack_sensors[i].intfcn)
-          fprintf(output," %ld",calltrack_sensors[i++].intfcn());
-        else fprintf(output," 0");
-      else i++;
-    fprintf(output,"\n");}
-}
-FD_EXPORT
-void fd_calltrack_call(u8_string name)
-{
-  calltrack_call(name);
-}
-
-FD_EXPORT
-void fd_calltrack_return(u8_string name)
-{
-  calltrack_return(name);
-}
-
-#else
-#define get_calltrack_logfile() (NULL)
-#define calltrack_call(x) (x)
-#define calltrack_return(x) (x)
-#endif
-
-/* Calltrack configuration */
-
-static int set_calltrack(fdtype ignored,fdtype path_arg,void U8_MAYBE_UNUSED *data)
-{
-#if FD_CALLTRACK_ENABLED
-  if (FD_STRINGP(path_arg))
-    return fd_start_calltrack(FD_STRDATA(path_arg));
-  else if (FD_FALSEP(path_arg))
-    return fd_start_calltrack(NULL);
-  else if (FD_TRUEP(path_arg))
-    return fd_start_calltrack("+calltrack.log");
-  else {
-    fd_seterr(fd_TypeError,"config_set_calltrack",
-              u8_strdup(_("not a pathname")),fd_incref(path_arg));
-    return -1;}
-#else
-  fd_seterr(fd_ProfilingDisabled,"config_set_calltrack",NULL,FD_VOID);
-  return -1;
-#endif
-}
-
-static fdtype get_calltrack(fdtype ignored,void *lval)
-{
-#if FD_CALLTRACK_ENABLED
-#if FD_USE_TLS
-  struct CALLTRACK_DATA *info=u8_tld_get(calltrack_log_key);
-  if (info) return fdtype_string(info->calltrack_filename);
-  else return FD_EMPTY_CHOICE;
-#else
-  if (calltrack_logfilename)
-    return fdtype_string(calltrack_logfilename);
-  else return FD_EMPTY_CHOICE;
-#endif
-#else
-    return FD_EMPTY_CHOICE;
-#endif
-}
-
-static fdtype calltrack_sense, calltrack_ignore;
-
-static int config_set_calltrack_sensors(fdtype sym,fdtype value,
-                                        void U8_MAYBE_UNUSED *data)
-{
-  u8_string sensor_name; fd_calltrack_sensor sensor;
-  if (FD_STRINGP(value)) sensor_name=FD_STRDATA(value);
-  else if (FD_SYMBOLP(value)) sensor_name=FD_SYMBOL_NAME(value);
-  else {
-    fd_seterr(fd_TypeError,"config_set_calltrack_sensor",NULL,value);
-    return -1;}
-  sensor=fd_get_calltrack_sensor(sensor_name,0);
-  if (sensor==NULL) {
-    fd_seterr(NoSuchCalltrackSensor,"config_set_calltrack_sensor",NULL,value);
-    return -1;}
-  if (FD_EQ(sym,calltrack_sense))
-    if (sensor->enabled) return 0;
-    else {sensor->enabled=1; return 1;}
-  else if (FD_EQ(sym,calltrack_ignore))
-    if (!(sensor->enabled)) return 0;
-    else {sensor->enabled=0; return 1;}
-  else {
-    fd_seterr(fd_TypeError,"config_set_calltrack_sensor",NULL,value);
-    return -1;}
-}
-static fdtype config_get_calltrack_sensors(fdtype sym,void U8_MAYBE_UNUSED *data)
-{
-  if (sym==calltrack_sense) {
-    fdtype results=FD_EMPTY_CHOICE; int i=0;
-    u8_lock_mutex(&calltrack_sensor_lock);
-    while (i<n_calltrack_sensors)
-      if (calltrack_sensors[i].enabled) {
-        fdtype sensorname=fd_make_string(NULL,-1,calltrack_sensors[i].name);
-        FD_ADD_TO_CHOICE(results,sensorname);
-        i++;}
-      else i++;
-    u8_unlock_mutex(&calltrack_sensor_lock);
-    return fd_simplify_choice(results);}
-  else if (sym==calltrack_ignore) {
-    fdtype results=FD_EMPTY_CHOICE; int i=0;
-    u8_lock_mutex(&calltrack_sensor_lock);
-    while (i<n_calltrack_sensors)
-      if (calltrack_sensors[i].enabled) i++;
-      else {
-        fdtype sensorname=fd_make_string(NULL,-1,calltrack_sensors[i].name);
-        FD_ADD_TO_CHOICE(results,sensorname);
-        i++;}
-    u8_unlock_mutex(&calltrack_sensor_lock);
-    return fd_simplify_choice(results);}
-  else return FD_EMPTY_CHOICE;
-}
-
-/* Instrumented apply */
-
-#if FD_CALLTRACK_ENABLED
-FD_EXPORT fdtype _fd_dapply_ct(fdtype fp,int n,fdtype *args);
-FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
-{
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  fdtype result; u8_byte buf[64]; u8_string name;
-  if (f->fcn_name==NULL) {
-    sprintf(buf,"FN%lx",(unsigned long int)f); name=buf;}
-  else name=f->fcn_name;
-  calltrack_call(name);
-  result=_fd_dapply_ct((fdtype)f,n,args);
-  /* If we don't compile with calltrack, we don't get pointer checking.
-     We may want to change this at some point and move the pointer checking
-     into the FD_DAPPLY (fd_dapply_ct/fd_dapply) code. */
-  if (!(FD_CHECK_PTR(result)))
-    return fd_err(fd_BadPtr,"fd_dapply",f->fcn_name,(fdtype)f);
-  else if (FD_TROUBLEP(result))
-    if (u8_current_exception==NULL) {
-      fd_exception ex=fd_retcode_to_exception(result);
-      if (ex) result=fd_err(ex,NULL,NULL,FD_VOID);}
-  calltrack_return(name);
-  return result;
-}
-#define FD_DAPPLY _fd_dapply_ct
-#else
-#define FD_DAPPLY fd_dapply
-#endif
-
 /* Calling primitives */
 
 static fdtype dcall0(struct FD_FUNCTION *f)
@@ -579,134 +214,152 @@ static fdtype dcall9(struct FD_FUNCTION *f,
 
 /* Generic calling function */
 
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args);
-
-FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
+FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
 {
-  fd_ptr_type ftype=FD_PRIM_TYPE(fp);
-  if (FD_FCNIDP(fp)) {
-    fp=fd_fcnid_ref(fp);
-    ftype=FD_PTR_TYPE(fp);}
-  if (fd_functionp[ftype]) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-    fdtype argbuf[8], *args;
-    if (FD_EXPECT_FALSE(f->fcn_arity<0)) { /* Is a LEXPR */
-      if (n<(f->fcn_min_arity))
-        return fd_err(fd_TooFewArgs,"fd_dapply",f->fcn_name,FDTYPE_CONS(f));
+  /* Check typeinfo */
+  int *typeinfo=f->fcn_typeinfo; int i=0;
+  if (typeinfo) while (i<n) {
+      fdtype arg=args[i]; int argtype=typeinfo[i];
+      if (argtype<0) i++;
+      else if (FD_TYPEP(arg,argtype)) i++;
+      else if ( (FD_VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
       else {
-        if (FD_EXPECT_FALSE((f->fcn_xcall) &&  (f->fcn_handler.fnptr==NULL))) {
-          /* There's no explicit method for this type */
-          int ctype=FD_CONS_TYPE(f);
-          return fd_applyfns[ctype]((fdtype)f,n,argvec);}
-        /* Use the explicit handler */
-        else if (f->fcn_xcall)
-          return f->fcn_handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
-        else return f->fcn_handler.calln(n,argvec);}}
-    /* Fill in the rest of the argvec */
-    if (FD_EXPECT_TRUE((n <= f->fcn_arity) && (n>=f->fcn_min_arity))) {
-      if (FD_EXPECT_FALSE(n<f->fcn_arity)) {
-        /* Fill in defaults */
-        int i=0; fdtype *defaults=f->fcn_defaults;
-        if (f->fcn_arity<=8) args=argbuf;
-        else args=u8_alloc_n((f->fcn_arity),fdtype);
-        while (i<n) {
-          fdtype a=argvec[i];
-          if (a==FD_DEFAULT_VALUE) {
-            fdtype d=((defaults)?(defaults[i]):(FD_VOID));
-            if (FD_VOIDP(d)) args[i]=a;
-            else {
-              fd_incref(d); args[i]=d;}}
-          else args[i]=a;
-          i++;}
-        if (defaults)
-          /* If there are defaults, use them (they'll cover the rest of the args) */
-          while (i<f->fcn_arity) {
-            fdtype d=defaults[i];
-            args[i]=d; fd_incref(d);
-            i++;}
-        else while (i<f->fcn_arity) {args[i]=FD_VOID; i++;}}
-      else args=argvec;
-      /* Check typeinfo */
-      if (FD_EXPECT_FALSE((f->fcn_typeinfo!=NULL))) {
-        /* Check typeinfo */
-        int *typeinfo=f->fcn_typeinfo;
-        int i=0;
-        while (i<n)
-          if (typeinfo[i]>=0)
-            if (FD_TYPEP(args[i],typeinfo[i])) i++;
-        /* Don't signal errors on unspecified (VOID) args. */
-            else if (FD_VOIDP(args[i])) i++;
-            else {
-              u8_string type_name=
-                ((typeinfo[i]<256) ? (fd_type_names[typeinfo[i]]) : (NULL));
-              if (type_name)
-                return fd_type_error(type_name,f->fcn_name,args[i]);
-              else return fd_type_error(type_name,f->fcn_name,args[i]);}
-          else i++;}
-      return dcall(f,n,args,((args==argbuf)||(args==argvec)));}
-    else {
-      fd_exception ex=((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-      return fd_err(ex,"fd_dapply",f->fcn_name,FDTYPE_CONS(f));}}
-  else if (fd_applyfns[ftype])
-    return fd_applyfns[ftype](fp,n,argvec);
-  else return fd_type_error("applicable","DAPPLY",fp);
+        u8_string type_name=fd_type2name(argtype);
+        fd_seterr(fd_TypeError,type_name,u8dup(f->fcn_name),args[i]);
+        return -1;}}
+  return 0;
 }
 
-FD_FASTOP fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
-                          int static_args)
+FD_FASTOP fdtype *fill_argvec(struct FD_FUNCTION *f,int n,fdtype *argvec,
+                              fdtype *argbuf,int argbuf_len)
 {
-  if (FD_INTERRUPTED()) {
-    return FD_ERROR_VALUE;}
-  else if (FD_EXPECT_FALSE((f->fcn_xcall) &&  (f->fcn_handler.fnptr==NULL))) {
-    int ctype=FD_CONS_TYPE(f);
-    if (static_args)
-      return fd_applyfns[ctype]((fdtype)f,n,args);
-    else {
-      fdtype result=fd_applyfns[ctype]((fdtype)f,n,args);
-      u8_free(args);
-      return result;}}
-  else switch (f->fcn_arity) {
-    case 0: return dcall0(f); break;
-    case 1: return dcall1(f,args[0]); break;
-    case 2: return dcall2(f,args[0],args[1]); break;
-    case 3: return dcall3(f,args[0],args[1],args[2]); break;
-    case 4: return dcall4(f,args[0],args[1],args[2],args[3]); break;
-    case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);  break;
+  int arity=f->fcn_arity, min_arity=f->fcn_min_arity;
+  fdtype fptr=(fdtype)f;
+  if ((min_arity>0) && (n<min_arity)) {
+    fd_seterr(fd_TooFewArgs,"fd_dapply",u8dup(f->fcn_name),fd_incref(fptr));
+    return NULL;}
+  else if ((arity>=0) && (n>arity)) {
+    fd_seterr(fd_TooManyArgs,"fd_dapply",f->fcn_name,fd_incref(fptr));
+    return NULL;}
+  else if ((arity<0)||(arity==n))
+    return argvec;
+  else {
+    fdtype *args=
+      (arity>=argbuf_len) ?
+      (u8_zalloc_n(arity,fdtype)) :
+      (argbuf);
+    int i=0; while (i<n) { args[i]=argvec[i]; i++; }
+    if (f->fcn_defaults) {
+      fdtype *defaults=f->fcn_defaults;
+      while (i<arity) {
+        fdtype dflt=args[i]=defaults[i];
+        fd_incref(dflt);
+        i++;}}
+    else while (i<arity) args[i++]=FD_VOID;
+    return args;}
+}
+
+FD_FASTOP fdtype dcall(u8_string fname,fd_function f,int n,fdtype *args)
+{
+  if (FD_INTERRUPTED()) return FD_ERROR_VALUE;
+  else if (f->fcn_handler.fnptr)
+    switch (f->fcn_arity) {
+    case 0: return dcall0(f);
+    case 1: return dcall1(f,args[0]);
+    case 2: return dcall2(f,args[0],args[1]);
+    case 3: return dcall3(f,args[0],args[1],args[2]);
+    case 4: return dcall4(f,args[0],args[1],args[2],args[3]);
+    case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);
     case 6:
       return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
-      break;
     case 7:
       return dcall7(f,args[0],args[1],args[2],args[3],
-                      args[4],args[5],args[6]);
-      break;
+                    args[4],args[5],args[6]);
     case 8:
       return dcall8(f,args[0],args[1],args[2],args[3],
-                      args[4],args[5],args[6],args[7]);
-      break;
+                    args[4],args[5],args[6],args[7]);
     case 9:
       return dcall9(f,args[0],args[1],args[2],args[3],
-                      args[4],args[5],args[6],args[7],args[8]);
-      break;
+                    args[4],args[5],args[6],args[7],args[8]);
     default:
-      if (static_args)
+      if (f->fcn_xcall)
         return f->fcn_handler.calln(n,args);
-      else {
-        fdtype result=f->fcn_handler.calln(n,args);
-        u8_free(args);
-        return result;}}
+      else return f->fcn_handler.calln(n,args);}
+  else {
+    int ctype=FD_CONS_TYPE(f);
+    if (fd_applyfns[ctype])
+      return fd_applyfns[ctype]((fdtype)f,n,args);
+    else return fd_type_error("applicable","dcall",(fdtype)f);}
 }
 
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
+FD_EXPORT fdtype fd_dcall(struct FD_FUNCTION *f,int n,fdtype *args)
 {
-  fdtype result; u8_string name=((f->fcn_name!=NULL)?(f->fcn_name):((u8_string)"DCALL"));
-  if (errno) {
-    u8_string cond=u8_strerror(errno);
-    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
-           errno,cond,U8ALT(name,"primcall"));
-    errno=0;}
+  return dcall(f->fcn_name,f,n,args);
+}
+
+FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
+{
+  fdtype fnptr=(fdtype)f;
+  fdtype argbuf[8], *args;
+  if (FD_EXPECT_FALSE(n<0))
+    return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
+  else if (f->fcn_arity<0) { /* Is a LEXPR */
+    if (n<(f->fcn_min_arity))
+      return fd_err(fd_TooFewArgs,"fd_dapply",f->fcn_name,fnptr);
+    else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
+      return f->fcn_handler.xcalln(f,n,argvec);
+    else if (f->fcn_handler.calln)
+      return f->fcn_handler.calln(n,argvec);
+    else {
+      /* There's no explicit method on this function object, so we use
+         the method on the type (if there is one) */
+      int ctype=FD_CONS_TYPE(f);
+      if (fd_applyfns[ctype])
+        return fd_applyfns[ctype]((fdtype)f,n,argvec);
+      else return fd_err("NotApplicable","apply_fcn",f->fcn_name,fnptr);}}
+  else if (n==0)
+    return dcall(name,f,n,argvec);
+  else if (FD_EXPECT_FALSE(argvec==NULL))
+    return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
+  else args=fill_argvec(f,n,argvec,argbuf,8);
+  if (args==NULL)
+    return FD_ERROR_VALUE;
+  else if (check_typeinfo(f,n,args)<0)
+    return FD_ERROR_VALUE;
+  else if ((args==argbuf)||(args==argvec))
+    return dcall(name,f,n,args);
+  else {
+    fdtype result=dcall(name,f,n,args);
+    u8_free(args);
+    return result;}
+}
+
+FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
+{
+  u8_byte namebuf[60];
+  u8_string fname=NULL;
+  fd_ptr_type ftype=FD_PRIM_TYPE(fn);
+  struct FD_FUNCTION *f=NULL;
+
+  if (ftype==fd_fcnid_type) {
+    fn=fd_fcnid_ref(fn);
+    ftype=FD_PTR_TYPE(fn);}
+
+  if (fd_functionp[ftype]) {
+    f=(struct FD_FUNCTION *)fn;
+    if (f->fcn_name)
+      fname=f->fcn_name;}
+  else if (fd_applyfns[ftype]) {
+    sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
+    fname=namebuf;}
+  else return fd_type_error("applicable","fd_determinstic_apply",fn);
+
+  /* Make the call */
   if (stackcheck()) {
-    U8_WITH_CONTOUR(f->fcn_name,0)
-      result=dcall_inner(f,n,args,static_args);
+    fdtype result=FD_VOID;
+    U8_WITH_CONTOUR(fname,0)
+      if (f) result=apply_fcn(fname,f,n,argvec);
+      else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR_VALUE;}
@@ -714,13 +367,15 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
     if (errno) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
-             errno,cond,U8ALT(name,"primcall"));
+             errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
-    return result;}
+    if (FD_CHECK_PTR(result))
+      return result;
+    else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
   else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit());
     fdtype depth=FD_INT2DTYPE(u8_stack_depth());
-    return fd_err(fd_StackOverflow,name,limit,depth);}
+    return fd_err(fd_StackOverflow,fname,limit,depth);}
 }
 
 /* Calling non-deterministically */
@@ -756,24 +411,34 @@ static fdtype ndapply_loop
 
 FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  if ((f->fcn_arity < 0) || ((n <= f->fcn_arity) && (n>=f->fcn_min_arity))) {
-    fdtype argbuf[6], *d_args;
-    fdtype retval, results=FD_EMPTY_CHOICE;
-    /* Initialize the d_args vector */
-    if (n>6) d_args=u8_alloc_n(n,fdtype);
-    else d_args=argbuf;
-    retval=ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
-    if (FD_ABORTP(retval)) {
-      fd_decref(results);
-      if (d_args!=argbuf) u8_free(d_args);
-      return retval;}
+  fdtype handler=(FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
+  fd_ptr_type fntype=FD_PTR_TYPE(handler);
+  if (fd_functionp[fntype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(handler);
+    if (f->fcn_arity == 0)
+      return fd_dapply(handler,n,args);
+    else if ((f->fcn_arity < 0) ?
+             (n >= (f->fcn_min_arity)) :
+             ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
+      fdtype argbuf[6], *d_args;
+      fdtype retval, results=FD_EMPTY_CHOICE;
+      /* Initialize the d_args vector */
+      if (n>6) d_args=u8_alloc_n(n,fdtype);
+      else d_args=argbuf;
+      retval=ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
+      if (FD_ABORTP(retval)) {
+        fd_decref(results);
+        if (d_args!=argbuf) u8_free(d_args);
+        return retval;}
+      else {
+        if (d_args!=argbuf) u8_free(d_args);
+        return fd_simplify_choice(results);}}
     else {
-      if (d_args!=argbuf) u8_free(d_args);
-      return fd_simplify_choice(results);}}
-  else {
-    fd_exception ex=((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-    return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}
+      fd_exception ex=((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+      return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}}
+  else if (fd_applyfns[fntype])
+    return (fd_applyfns[fntype])(handler,n,args);
+  else return fd_type_error("Applicable","fd_ndapply",handler);
 }
 
 /* The default apply function */
@@ -1304,6 +969,13 @@ FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from)
   fd_decref(v);
 }
 
+void fd_init_calltrack_c(void);
+
+static fdtype dapply(fdtype f,int n_args,fdtype *argvec)
+{
+  return fd_dapply(f,n_args,argvec);
+}
+
 FD_EXPORT void fd_init_apply_c()
 {
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
@@ -1313,16 +985,12 @@ FD_EXPORT void fd_init_apply_c()
 
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(FRAMERD_APPLY_H_INFO);
-  fd_register_config("CALLTRACK",
-                     _("File used for calltrack profiling (#f disables calltrack)"),
-                     get_calltrack,set_calltrack,NULL);
 
 #if (FD_USE_TLS)
-  u8_new_threadkey(&calltrack_log_key,free_calltrack_log);
   u8_new_threadkey(&stack_limit_key,free_calltrack_log);
 #endif
 
-  fd_applyfns[fd_primfcn_type]=(fd_applyfn)fd_dapply;
+  fd_applyfns[fd_primfcn_type]=dapply;
   fd_functionp[fd_primfcn_type]=1;
 
   fd_unparsers[fd_primfcn_type]=unparse_primitive;
@@ -1332,16 +1000,7 @@ FD_EXPORT void fd_init_apply_c()
   fd_recyclers[fd_tailcall_type]=recycle_tail_call;
   fd_type_names[fd_tailcall_type]="tailcall";
 
-  calltrack_sense=fd_intern("CALLTRACK/SENSE");
-  calltrack_ignore=fd_intern("CALLTRACK/IGNORE");
-  fd_register_config
-    ("CALLTRACK/SENSE",_("Active calltrack sensors"),
-     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
-  fd_register_config
-    ("CALLTRACK/IGNORE",_("Ignore calltrack sensors"),
-     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
-
-  u8_init_mutex(&calltrack_sensor_lock);
+  fd_init_calltrack_c();
 
 }
 

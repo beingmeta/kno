@@ -1,10 +1,10 @@
 EXE=$1; shift;
-echo "Running test" $*
+echo "Running Valgrind heap test for " ${EXE} $1;
 FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm: \
 	   LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib    \
 	   FD_DLOADPATH=../../lib/framerd FD_DLOAD:TRACE=yes        \
 	   FD_SKIP_DOTLOAD=yes FD_SHOWTIME=0.0                      \
 	   FD_DISPLAYMAXELTS=36 FD_DISPLAYMAXCHARS=1024             \
-	   exec valgrind --tool=memcheck 			    \
-	   	--vgdb=full --vgdb-error=0 --num-callers=24	    \
+	   exec valgrind --tool=memcheck --leak-check=full	    \
+	   	--num-callers=24	    			    \
 		${EXE} INVALGRIND=yes MEMCHECKING=yes $*
