@@ -78,7 +78,6 @@ setup_target="setup-unix"
 extra_src=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
-TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
@@ -163,14 +162,23 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+
+test_env=
 memtest_env=""
-leaktest_env=""
-memtest_prefix=default_
-leaktest_prefix=default_
+leaktester_env=""
+tester=
+memtester=
+leaktester=
+test_config="TESTSIZE=64"
+memtest_config=
+leaktester_config=
+
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
 CODENAME="beingmeta"
+
+gperftools_default="yes"
 
 if which lsb_release 2>&1 > /dev/null; then
    CODENAME=`lsb_release -cs || echo beingmeta`
@@ -247,17 +255,23 @@ AC_SUBST(extra_src)
 AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
-AC_SUBST(memtest_prefix)
+
+AC_SUBST(test_env)
 AC_SUBST(memtest_env)
-AC_SUBST(leaktest_prefix)
 AC_SUBST(leaktest_env)
+AC_SUBST(tester)
+AC_SUBST(memtester)
+AC_SUBST(leaktester)
+AC_SUBST(test_config)
+AC_SUBST(memtest_config)
+AC_SUBST(leaktest_config)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
 AC_SUBST(SHARED_LIB_TARGET)
 AC_SUBST(SHARED_LIB)
 AC_SUBST(SHARED_LIBV)
-AC_SUBST(TESTENV)
+AC_SUBST(test_env)
 AC_SUBST(TESTLDFLAGS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(EXELDFLAGS)
@@ -366,11 +380,6 @@ CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
 
-if test "${VALGRIND}" != "none"; then
-  memtest_prefix=vg_
-  leaktest_prefix=vg_
-fi
-
 AC_ARG_WITH(sanitize,--with-sanitize[=address*|memory|thread],with_sanitize=$withval,with_sanitize="none")
 
 if test "$with_sanitize" = "none"; then
@@ -384,9 +393,8 @@ elif test "$with_sanitize" = "address" ||
    test_static=""
    install_static=""
    custom_malloc="asan"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
 elif test "$with_sanitize" = "leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=leak $LDFLAGS"
@@ -394,9 +402,8 @@ elif test "$with_sanitize" = "leak"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
 elif test "$CLANG" = "none"; then
   echo "No clang for sanitizing $with_sanitize";
   exit;
@@ -409,9 +416,7 @@ elif test "$with_sanitize" = "memory"; then
    test_static=""
    install_static=""
    custom_malloc="msan-full"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
 elif test "$with_sanitize" = "thread"; then
    CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
@@ -421,9 +426,7 @@ elif test "$with_sanitize" = "thread"; then
    test_static=""
    install_static=""
    custom_malloc="msan"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
 fi
 
 AC_DEFINE_UNQUOTED(FD_SANITIZE,"$with_sanitize")
@@ -482,7 +485,7 @@ elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
 elif test "$with_duma" != "no"; then
   AC_CHECK_LIB(duma,malloc)
   AC_CHECK_HEADERS(duma.h)
-  TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
+  test_env="DUMA_ALIGNMENT=4 $test_env";
   custom_malloc="DUMA";
 fi
 
@@ -702,6 +705,7 @@ case $host_os in
    RPATHFLAGS=" -rpath \$(RPATH) "
    ifmacosx=""
    setup_target="setup-osx"
+   gperftools_default="no"
    ;;
 esac  
 
@@ -1240,7 +1244,12 @@ if test "$with_fileinfo" = "yes" ; then
    versionsh="include/framerd/versions.h"
 fi
 
-AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools="yes")
+AC_ARG_WITH(stdlib,--with[out]-stdlib Force the use of stdlib)
+if test "$with_stdlib"; then
+   gperftools_default="no";
+fi;
+
+AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=gperftools_default)
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
@@ -1252,32 +1261,25 @@ if test $with_gperftools = "yes"; then
      echo "No tcmalloc, skipping further tests";
      with_gperftools="no";
   else
+    custom_malloc="tcmalloc"
     AC_CHECK_LIB(profiler,ProfilerStart)
     AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
     AC_CHECK_HEADERS(gperftools/heap-checker.h)
-    memtest_prefix=gperf_
-    leaktest_prefix=gperf_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    debug_lib=
-    if test -f "${prefix}/lib/libtcmalloc_debug.so"; then
-      debug_lib="${prefix}/lib/libtcmalloc_debug.so";
-    fi
-    if test -z "${debug_lib}"; then
-      memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"";
-    else   
-        memtest_env="TESTENV=\"TCMALLOC_DEBUG=5 LD_PRELOAD=${debug_lib}\"";
-    fi;					
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
+    memtest_env="TCMALLOC_DEBUG=5"
   fi; 
 elif test $with_gperftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
   AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
-  leaktest_prefix=gperf_
-  memtest_prefix=gperf_
-  leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"" 
+  custom_malloc="tcmalloc"
+fi
+
+if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
+  memtester="./vgmemtest "
+  leaktester="./vgleaktest "
 fi
 
 AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate="yes")
@@ -1599,9 +1601,9 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
-	   tests/scheme/vgleaktest tests/scheme/gheaptest
-	   tests/scheme/vgheaptest
+	   tests/scheme/vgleaktest tests/scheme/vgmemtest
 	   tests/scheme/runtest tests/scheme/fdexectest
+	   tests/scheme/tcdebug tests/scheme/vgdebug
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
 	   etc/logrotate
@@ -1613,7 +1615,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.load
 	   etc/install-script 
 	   dist/framerd-4.0.spec],
-	   [chmod a+x etc/fd* tests/scheme/*test])
+	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
 
 if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";

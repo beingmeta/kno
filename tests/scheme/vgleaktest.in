@@ -1,6 +1,8 @@
 EXE=$1; shift;
+echo "Running leak test for ${EXE} $1 +++";
 FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm: \
  LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib	\
+ MEMCHECKING=yes LEAKCHECKING=yes HEAPCHECK=yes 	\
  exec valgrind --tool=memcheck --leak-check=full	\
       	       --num-callers=24			    	\
       ${EXE} $*						\

@@ -46,14 +46,21 @@ exec_prefix	= @exec_prefix@
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
-VALGRIND	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --num-callers=9
-VALGRINDHEAP	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
-TESTENV		= @TESTENV@
+MEMTESTER	= @memtester@
+LEAKTESTER	= @leaktester@
+TESTENV		= @test_env@
+MEMTESTENV	= @memtest_env@
+LEAKTESTENV	= @leaktest_env@
 TESTSIZE	= 512
 SMALLTESTSIZE	= 64
-TESTCONFIG	= LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm
-RUNTEST		= $(TESTENV) $(TESTPROG)
+BASETESTCONFIG	= LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm
+TESTCONFIG	= @test_config@
+MEMTESTCONFIG	= @memtest_config@
+LEAKTESTCONFIG	= @leaktest_config@
+RUNTEST		= ${TESTENV} $(TESTPROG)
+MEMTEST		= ${TESTENV} ${MEMTESTENV} ${MEMTESTER:-${TESTPROG}}
+LEAKTEST	= ${TESTENV} ${LEAKTESTENV} ${LEAKTESTER:-${TESTPROG}}
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
@@ -159,16 +166,10 @@ fdcgiexec: ../../src/exe/webcommon.h
 
 # Test targets
 
-alltests: \
-	scheme tables pools indexes db \
+all_tests alltests: \
+	scheme optscheme tables pools indexes db \
 	execscripts chainscripts batchscripts  \
 	chained_batchscripts optimize_modules
-	@echo "*** Done with alltests"
-
-alltests_but_optmod: \
-	scheme tables pools indexes db \
-	execscripts chainscripts batchscripts  \
-	chained_batchscripts
 	@echo "*** Done with alltests"
 
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
@@ -177,12 +178,9 @@ cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 schemetests scheme:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ r4rs.scm ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes r4rs.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ exceptions.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ choicetest.scm ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes choicetest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ seqtest.scm ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes seqtest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ numvecs.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ picktest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ cachecall.scm ${TESTCONFIG}
@@ -192,14 +190,14 @@ schemetests scheme:
 	$(RUNTEST) ./fdexec@suffix@ threadtest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ i18n.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ misctest.scm ${TESTCONFIG}
-	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes misctest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ xmltest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
-optimizer-tests:
+optscheme:
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes r4rs.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes choicetest.scm ${TESTCONFIG}
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes seqtest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes misctest.scm ${TESTCONFIG}
 
 loadmods: optimize_modules
 	$(RUNTEST) ./fdexec@suffix@ loadmods.scm ${TESTCONFIG}
@@ -420,324 +418,111 @@ chained_batchscripts:
 	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
 
-# Memory tests
+# Memory integrity tests
 
-memtest memtests memcheck memchecks: memtest_all
+heaptest memtest memtests: all_memtests
 
-memtest_all: memtest_scheme memtest_tables memtest_pools \
-	memtest_indexes memtest_db memtest_crypto \
-	memtest_load_modules memtest_optimize_modules
+all_memtests: scheme_memtests table_memtests \
+	pool_memtests index_memtests db_memtests \
+	crypto_memtests load_modules_memtest
 
-memtest_scheme:  @memtest_prefix@memtest_scheme
-memtest_tables:  @memtest_prefix@memtest_tables
-memtest_indexes: @memtest_prefix@memtest_indexes
-memtest_db:      @memtest_prefix@memtest_db
-memtest_crypto:  @memtest_prefix@memtest_crypto
-memtest_load_modules:  @memtest_prefix@memtest_load_modules
-memtest_optimize_modules:  @memtest_prefix@memtest_optimize_modules
+scheme_memtests:
+	@echo "*** Running heap integrity tests on scheme/scripting layer"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" scheme
+	@echo "*** Finished heap integrity tests on scheme/scripting layer"
 
-.PHONY: memtest memcheck \
-	memtest_all memtest_scheme memtest_tables \
-	memtest_pools memtest_indexes memtest_db \
-	memtest_crypto memtest_load_modules \
-	memtest_optimize_modules \
-	vg_memtest_all vg_memtest_scheme vg_memtest_tables \
-	vg_memtest_pools vg_memtest_indexes vg_memtest_db \
-	vg_memtest_crypto vg_memtest_load_modules \
-	vg_memtest_optimize_modules \
-	gperf_memtest_all gperf_memtest_scheme gperf_memtest_tables \
-	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_db \
-	gperf_memtest_crypto gperf_memtest_load_modules \
-	gperf_memtest_optimize_modules \
-	gperf_memtest_all gperf_memtest_scheme gperf_memtest_tables \
-	gperf_memtest_pools gperf_memtest_indexes gperf_memtest_db \
-	default_memtest_crypto default_memtest_load_modules 
-	default_memtest_optimize_modules \
-	default_memtest_all default_memtest_scheme default_memtest_tables \
-	default_memtest_pools default_memtest_indexes default_memtest_db \
-	default_memtest_crypto default_memtest_load_modules \
-	default_memtest_optimize_modules
+table_memtests:
+	@echo "*** Running heap integrity tests on tables"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" tables
+	@echo "*** Finished heap integrity tests tables"
 
-vg_memtest_all:
-	@echo "*** Running alltests with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) alltests
-	@echo "*** Finished running alltests with valgrind memory debugging"
+pool_memtests:
+	@echo "*** Running heap integrity tests on pools"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" indexes
+	@echo "*** Finished heap integrity tests on pools"
 
-vg_memtest_scheme:
-	@echo "*** Running tests on data/eval layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) scheme
-	@echo "*** Finished running tests on data/eval layers with valgrind memory debugging"
+index_memtests:
+	@echo "*** Running heap integrity tests on indexes and index drivers"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" indexes
+	@echo "*** Finished heap integrity tests on indexes and index drivers"
 
-vg_memtest_tables:
-	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) tables
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+frames_memtests db_memtests:
+	@echo "*** Running heap integrity tests on database layers"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" db
+	@echo "*** Finished heap integrity tests on database layers"
 
-vg_memtest_pools:
-	@echo "*** Running tests on pools with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) pools
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+crypto_memtests:
+	@echo "*** Running heap integrity tests on crypto functions"
+	make TESTPROG="$(VALGRINDHEAP)" crypto
+	@echo "*** Finished heap integrity tests on crypto functions"
 
-vg_memtest_indexes:
-	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) indexes
-	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+load_modules_memtest:
+	@echo "*** Running heap integrity tests on builtin modules"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" load_modules
+	@echo "*** Finished heap integrity tests on builtin modules"
 
-vg_memtest_db:
-	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) db
-	@echo "*** Finished running tests on database layers with valgrind memory debugging"
+optimize_modules_memtest:
+	@echo "*** Running heap integrity tests on optimized builtin modules"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" TEST_CONFIG="${MEMTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" optimize_modules
+	@echo "*** Finished heap integrity tests on optimized builtin modules"
 
-vg_memtest_crypto:
-	make "TESTPROG=$(VALGRIND)" crypto
-
-vg_memtest_load_modules:
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) load_modules
-
-vg_memtest_optimize_modules:
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) optimize_modules
-
-# Gperftools memtests
-
-gperf_memtest_all:
-	@echo "*** Running alltests with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 alltests
-	@echo "*** Finished running alltests with memory debugging"
-
-gperf_memtest_scheme:
-	@echo "*** Running tests on data/eval layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 scheme
-	@echo "*** Finished running tests on data/eval layers with memory debugging"
-
-gperf_memtest_tables:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 tables
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-gperf_memtest_pools:
-	@echo "*** Running tests on pools with gperftools memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 pools
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-gperf_memtest_indexes:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indexes
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-gperf_memtest_db:
-	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 db
-	@echo "*** Finished running tests on database layers with memory debugging"
-
-gperf_memtest_crypto:
-	make @memtest_env@ crypto
-
-gperf_memtest_load_modules:
-	make @memtest_env@ load_modules
-
-gperf_memtest_optimize_modules:
-	make @memtest_env@ optimize_modules
-
-# Embedded Debugging Tools memtests
-
-builtin_memtest_all:
-	@echo "*** Running alltests with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 alltests
-	@echo "*** Finished running alltests with memory debugging"
-
-builtin_memtest_scheme:
-	@echo "*** Running tests on data/eval layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 scheme
-	@echo "*** Finished running tests on data/eval layers with memory debugging"
-
-builtin_memtest_tables:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 tables
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_memtest_pools:
-	@echo "*** Running tests on pools with embedded debugging tools memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 pools
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_memtest_indexes:
-	@echo "*** Running tests on table/index layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 indexes
-	@echo "*** Finished running tests on table/index layers with memory debugging"
-
-builtin_memtest_db:
-	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 db
-	@echo "*** Finished running tests on database layers with memory debugging"
-
-builtin_memtest_crypto:
-	make @memtest_env@ crypto
-
-builtin_memtest_load_modules:
-	make @memtest_env@ load_modules
-
-builtin_memtest_optimize_modules:
-	make @memtest_env@ optimize_modules
+.PHONY: memtest memtest
+.PHONY:	all_memtests scheme_memtests table_memtests
+.PHONY:	pool_memtests index_memtests db_memtests
+.PHONY:	crypto_memtests load_modules_memtest
+.PHONY:	optimize_modules_memtest
 
 # Leaktests
 
-leaktest heaptest leaktests: leaktest_all
+heaptest leaktest leaktests: all_leaktests
 
-leaktest_all: leaktest_scheme leaktest_tables \
-	leaktest_pools leaktest_indexes leaktest_db \
-	leaktest_crypto leaktest_load_modules leaktest_optimize_modules
+all_leaktests: scheme_leaktests table_leaktests \
+	pool_leaktests index_leaktests db_leaktests \
+	crypto_leaktest load_modules_leaktest
 
-leaktest_scheme: @leaktest_prefix@leaktest_scheme
-leaktest_tables: @leaktest_prefix@heacheck_ptables
-leaktest_pools: @leaktest_prefix@leaktest_pools
-leaktest_indexes: @leaktest_prefix@leaktest_indexes
-leaktest_db: @leaktest_prefix@leaktest_db
-leaktest_crypto: @leaktest_prefix@leaktest_crypto
-leaktest_load_modules: @leaktest_prefix@leaktest_load_modules
-leaktest_optimize_modules: @leaktest_prefix@leaktest_optimize_modules
+scheme_leaktests:
+	@echo "*** Running leak tests on scheme/scripting layer"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" scheme
+	@echo "*** Finished leak tests on scheme/scripting layer"
 
-.PHONY: leaktest heaptest
-.PHONY:	leaktest_all leaktest_scheme leaktest_tables
-.PHONY:	leaktest_pools leaktest_indexes leaktest_db
-.PHONY:	leaktest_crypto leaktest_load_modules
-.PHONY:	leaktest_optimize_modules
-.PHONY:	vg_leaktest_all vg_leaktest_scheme vg_leaktest_tables
-.PHONY:	vg_leaktest_pools vg_leaktest_indexes vg_leaktest_db
-.PHONY:	vg_leaktest_crypto vg_leaktest_load_modules
-.PHONY:	vg_leaktest_optimize_modules
-.PHONY:	gperf_leaktest_all gperf_leaktest_scheme gperf_leaktest_tables
-.PHONY:	gperf_leaktest_pools gperf_leaktest_indexes gperf_leaktest_db
-.PHONY:	gperf_leaktest_crypto gperf_leaktest_load_modules
-.PHONY:	gperf_leaktest_optimize_modules
-.PHONY:	gperf_leaktest_all gperf_leaktest_scheme gperf_leaktest_tables
-.PHONY:	gperf_leaktest_pools gperf_leaktest_indexes gperf_leaktest_db
-.PHONY:	default_leaktest_crypto default_leaktest_load_modules
-.PHONY:	default_leaktest_optimize_modules
-.PHONY:	default_leaktest_all default_leaktest_scheme default_leaktest_tables
-.PHONY:	default_leaktest_pools default_leaktest_indexes default_leaktest_db
-.PHONY:	default_leaktest_crypto default_leaktest_load_modules
-.PHONY:	default_leaktest_optimize_modules
+table_leaktests:
+	@echo "*** Running leak tests on tables"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" tables
+	@echo "*** Finished leak tests tables"
 
-# Valgrind leaktest rules
+pool_leaktests:
+	@echo "*** Running leak tests on pools"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" indexes
+	@echo "*** Finished leak tests on pools"
 
-vg_leaktest_all:
-	@echo "*** Running alltests with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
-	@echo "*** Finished running alltests with valgrind heap debugging"
+index_leaktests:
+	@echo "*** Running leak tests on indexes and index drivers"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" indexes
+	@echo "*** Finished leak tests on indexes and index drivers"
 
-vg_leaktest_scheme:
-	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) scheme
-	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
+frames_leaktest db_leaktests:
+	@echo "*** Running leak tests on database layers"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" db
+	@echo "*** Finished leak tests on database layers"
 
-vg_leaktest_tables:
-	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tables
-	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
-
-vg_leaktest_pools:
-	@echo "*** Running tests on pools with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
-	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
-
-vg_leaktest_indexes:
-	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indexes
-	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
-
-vg_leaktest_db:
-	@echo "*** Running tests on database layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) db
-	@echo "*** Finished running tests on database layers with valgrind heap debugging"
-
-vg_leaktest_crypto:
+crypto_leaktest:
+	@echo "*** Running leak tests on crypto functions"
 	make TESTPROG="$(VALGRINDHEAP)" crypto
+	@echo "*** Finished leak tests on crypto functions"
 
-vg_leaktest_load_modules:
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) load_modules
+load_modules_leaktest:
+	@echo "*** Running leak tests on builtin modules"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" load_modules
+	@echo "*** Finished leak tests on builtin modules"
 
-vg_leaktest_optimize_modules:
-	@echo "Skipping leaktest for optimize modules"
+optimize_modules_leaktest:
+	@echo "*** Running leak tests on optimized builtin modules"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" TEST_CONFIG="${LEAKTEST_CONFIG}" TESTSIZE="${SMALLTESTSIZE}" optimize_modules
+	@echo "*** Finished leak tests on optimized builtin modules"
 
-# Gperftools leaktest rules
-
-gperf_leaktest_all:
-	@echo "*** Running alltests with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
-	@echo "*** Finished running alltests with gperftools memory debugging"
-
-gperf_leaktest_scheme:
-	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
-	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
-
-gperf_leaktest_tables:
-	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) tables
-	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
-
-gperf_leaktest_pools:
-	@echo "*** Running tests on pools with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) pools
-	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
-
-gperf_leaktest_indexes:
-	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
-	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
-
-gperf_leaktest_db:
-	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) db
-	@echo "*** Finished running tests on database layers with gperftools memory debugging"
-
-gperf_leaktest_crypto:
-	make @leaktest_env@ crypto
-
-gperf_leaktest_load_modules:
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
-
-gperf_leaktest_optimize_modules:
-	echo "Skip leak-checking for optimize modules"
-
-# Embedded Debugging Tools leaktest rules
-
-builtin_leaktest_all:
-	@echo "*** Running alltests with gperftools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) alltests_but_optmod
-	@echo "*** Finished running alltests with gperftools memory debugging"
-
-builtin_leaktest_scheme:
-	@echo "*** Running tests on data/eval layers with embedded debugging tools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) scheme
-	@echo "*** Finished running tests on data/eval layers with embedded debugging tools memory debugging"
-
-builtin_leaktest_tables:
-	@echo "*** Running tests on table/index layers with embedded debugging tools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) tables
-	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
-
-builtin_leaktest_pools:
-	@echo "*** Running tests on pools with embedded debugging tools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) pools
-	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
-
-builtin_leaktest_indexes:
-	@echo "*** Running tests on table/index layers with embedded debugging tools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) indexes
-	@echo "*** Finished running tests on table/index layers with embedded debugging tools memory debugging"
-
-builtin_leaktest_db:
-	@echo "*** Running tests on database layers with embedded debugging tools memory debugging"
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) db
-	@echo "*** Finished running tests on database layers with embedded debugging tools memory debugging"
-
-builtin_leaktest_crypto:
-	make @leaktest_env@ crypto
-
-builtin_leaktest_load_modules:
-	make @leaktest_env@ TESTSIZE=$(SMALLTESTSIZE) load_modules
-
-builtin_leaktest_optimize_modules:
-	echo "Skip leak-checking for optimize modules"
+.PHONY: leaktest leaktest
+.PHONY:	all_leaktest scheme_leaktest table_leaktests
+.PHONY:	pool_leaktests index_leaktests db_leaktests
+.PHONY:	crypto_leaktest load_modules_leaktest
+.PHONY:	optimize_modules_leaktest
 

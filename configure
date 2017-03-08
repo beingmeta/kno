@@ -727,16 +727,20 @@ RPATHFLAGS
 EXELDFLAGS
 TESTLIBS
 TESTLDFLAGS
-TESTENV
 SHARED_LIBV
 SHARED_LIB
 SHARED_LIB_TARGET
 DREENTRANT
 TAGS
+leaktest_config
+memtest_config
+test_config
+leaktester
+memtester
+tester
 leaktest_env
-leaktest_prefix
 memtest_env
-memtest_prefix
+test_env
 debuglibs
 debugldflags
 debugcflags
@@ -911,6 +915,7 @@ with_imagick
 with_mongodb
 with_leveldb
 with_fileinfo
+with_stdlib
 with_gperftools
 with_hyphenate
 enable_largefiles
@@ -1648,6 +1653,7 @@ Optional Packages:
 --with-mongodb Build and install MongoDB library
 --with-leveldb Build and install LevelDB library
 --without-fileinfo record fileinfo
+--without-stdlib Force the use of stdlib
 --without-google Use the Google perftools
 --with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
@@ -2901,7 +2907,6 @@ setup_target="setup-unix"
 extra_src=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
-TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
@@ -2986,14 +2991,23 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+
+test_env=
 memtest_env=""
-leaktest_env=""
-memtest_prefix=default_
-leaktest_prefix=default_
+leaktester_env=""
+tester=
+memtester=
+leaktester=
+test_config="TESTSIZE=64"
+memtest_config=
+leaktester_config=
+
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
 CODENAME="beingmeta"
+
+gperftools_default="yes"
 
 if which lsb_release 2>&1 > /dev/null; then
    CODENAME=`lsb_release -cs || echo beingmeta`
@@ -3033,6 +3047,12 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
+
+
+
+
 
 
 
@@ -5403,11 +5423,6 @@ fi
 
 CODENAME=$with_codename
 
-if test "${VALGRIND}" != "none"; then
-  memtest_prefix=vg_
-  leaktest_prefix=vg_
-fi
-
 
 # Check whether --with-sanitize was given.
 if test "${with_sanitize+set}" = set; then :
@@ -5428,9 +5443,8 @@ elif test "$with_sanitize" = "address" ||
    test_static=""
    install_static=""
    custom_malloc="asan"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
 elif test "$with_sanitize" = "leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=leak $LDFLAGS"
@@ -5438,9 +5452,8 @@ elif test "$with_sanitize" = "leak"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
 elif test "$CLANG" = "none"; then
   echo "No clang for sanitizing $with_sanitize";
   exit;
@@ -5453,9 +5466,7 @@ elif test "$with_sanitize" = "memory"; then
    test_static=""
    install_static=""
    custom_malloc="msan-full"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
 elif test "$with_sanitize" = "thread"; then
    CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
@@ -5465,9 +5476,7 @@ elif test "$with_sanitize" = "thread"; then
    test_static=""
    install_static=""
    custom_malloc="msan"
-   memtest_prefix=default_
-   leaktest_prefix=default_
-   TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -6406,7 +6415,7 @@ fi
 
 done
 
-  TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
+  test_env="DUMA_ALIGNMENT=4 $test_env";
   custom_malloc="DUMA";
 fi
 
@@ -6743,6 +6752,7 @@ case $host_os in
    RPATHFLAGS=" -rpath \$(RPATH) "
    ifmacosx=""
    setup_target="setup-osx"
+   gperftools_default="no"
    ;;
 esac
 
@@ -10886,11 +10896,21 @@ if test "$with_fileinfo" = "yes" ; then
 fi
 
 
+# Check whether --with-stdlib was given.
+if test "${with_stdlib+set}" = set; then :
+  withval=$with_stdlib;
+fi
+
+if test "$with_stdlib"; then
+   gperftools_default="no";
+fi;
+
+
 # Check whether --with-gperftools was given.
 if test "${with_gperftools+set}" = set; then :
   withval=$with_gperftools;
 else
-  with_gperftools="yes"
+  with_gperftools=gperftools_default
 fi
 
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
@@ -10948,6 +10968,7 @@ fi
      echo "No tcmalloc, skipping further tests";
      with_gperftools="no";
   else
+    custom_malloc="tcmalloc"
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
 $as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
 if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
@@ -11018,19 +11039,9 @@ fi
 
 done
 
-    memtest_prefix=gperf_
-    leaktest_prefix=gperf_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    debug_lib=
-    if test -f "${prefix}/lib/libtcmalloc_debug.so"; then
-      debug_lib="${prefix}/lib/libtcmalloc_debug.so";
-    fi
-    if test -z "${debug_lib}"; then
-      memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"";
-    else
-        memtest_env="TESTENV=\"TCMALLOC_DEBUG=5 LD_PRELOAD=${debug_lib}\"";
-    fi;
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
+    memtest_env="TCMALLOC_DEBUG=5"
   fi;
 elif test $with_gperftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -11148,10 +11159,12 @@ fi
 
 done
 
-  leaktest_prefix=gperf_
-  memtest_prefix=gperf_
-  leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
+  custom_malloc="tcmalloc"
+fi
+
+if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
+  memtester="./vgmemtest "
+  leaktester="./vgleaktest "
 fi
 
 
@@ -12384,7 +12397,7 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/cons/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest tests/scheme/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/cons/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runtest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13113,10 +13126,11 @@ do
     "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
     "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;
     "tests/scheme/vgleaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgleaktest" ;;
-    "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
-    "tests/scheme/vgheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgheaptest" ;;
+    "tests/scheme/vgmemtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgmemtest" ;;
     "tests/scheme/runtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/runtest" ;;
     "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
+    "tests/scheme/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/tcdebug" ;;
+    "tests/scheme/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgdebug" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
@@ -13684,7 +13698,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/fd* tests/scheme/*test ;;
+    "default":C) chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug ;;
 
   esac
 done # for ac_tag
