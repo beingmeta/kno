@@ -27,6 +27,15 @@
 
 #include <stdarg.h>
 
+#if FD_USE_TLS
+u8_tld_key _fd_calltracking_key;
+#define fd_calltracking (u8_tld_get(_fd_calltacking_key))
+#elif HAVE__THREAD
+ __thread int fd_calltracking;
+#else
+int fd_calltracking;
+#endif
+
 static fd_exception NoSuchCalltrackSensor=
   _("designated calltrack sensor does not exist");
 static fd_exception TooManyCalltrackSensors=
@@ -34,13 +43,33 @@ static fd_exception TooManyCalltrackSensors=
 
 FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
 
+static int needs_escape(u8_string string)
+{
+  const u8_byte *scan=string; int c;
+  while ((c=u8_sgetc(&scan))>0)
+    if (c>=128) return 1;
+    else if (u8_isspace(c)) return 1;
+    else {}
+  return 0;
+}
+
+static void out_escaped(FILE *f,u8_string name)
+{
+  const u8_byte *scan=name;
+  while (*scan) {
+    int c=u8_sgetc(&scan);
+    if (c=='"') fprintf(f,"\\\"");
+    else if (c>=128) {
+      fprintf(f,"\\u%04x",c);}
+    else if (c=='\n') fputs("\\n",f);
+    else if (c=='\r') fputs("\\r",f);
+    else putc(c,f);}
+}
+
 /* Internal profiling support */
 
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
-
-FD_EXPORT const int fd_calltrack_available=1;
-FD_EXPORT int fd_calltrack_enabled=0;
 
 u8_mutex calltrack_sensor_lock;
 
@@ -132,19 +161,24 @@ FD_EXPORT int fd_start_calltrack(u8_string filename)
   int current=0;
   FILE *output;
   if (cd) {
-    current=1; 
+    current=1;
     fclose(cd->calltrack_output);
     u8_free(cd->calltrack_filename);
     u8_free(cd); cd=NULL;
     u8_tld_set(calltrack_log_key,NULL);}
-  if (filename==NULL) return 1;
+  if (filename==NULL) {
+    if (fd_calltracking) {
+      u8_tld_set(_fd_calltracking_key,(void *)0);
+      return 1;}
+    else return 0;}
   if (*filename=='+')
     output=fopen(filename+1,"a+");
   else output=fopen(filename,"w+");
   if (output) {
-    fprintf(output,"# Calltrack start\n");
+    u8_log(LOGWARN,"CalltrackStart","=> %s",filename);
+    u8_tld_set(_fd_calltracking_key,(void *)1);
     cd=u8_alloc(struct CALLTRACK_DATA);
-    cd->calltrack_output=output; 
+    cd->calltrack_output=output;
     cd->calltrack_filename=u8_strdup(filename);
     fprintf(output,":TIME");
     {int i=0; while (i<n_calltrack_sensors)
@@ -176,12 +210,14 @@ FD_EXPORT int fd_start_calltrack(u8_string filename)
     u8_free(calltrack_logfilename);
     calltrack_logfilename=NULL;
     calltrack_logfile=NULL;
+    fd_calltracking=0;
     return 1;}
   if (*filename=='+')
     output=fopen(filename+1,"a+");
   else output=fopen(filename,"w");
   if (output) {
-    fprintf(output,"# Calltrack start\n");
+    u8_log(LOGWARN,"CalltrackStart","=> %s",filename);
+    fd_calltracking=1;
     calltrack_logfilename=u8_strdup(filename);
     calltrack_logfile=output;
     fprintf(output,":TIME");
@@ -354,7 +390,7 @@ FD_EXPORT fdtype fd_calltrack_apply(fdtype fp,int n,fdtype *args)
     sprintf(buf,"FN%lx",(unsigned long int)f); name=buf;}
   else name=f->fcn_name;
   calltrack_call(name);
-  result=_fd_determinstic_apply((fdtype)f,n,args);
+  result=fd_deterministic_apply((fdtype)f,n,args);
   /* If we don't compile with calltrack, we don't get pointer checking.
      We may want to change this at some point and move the pointer checking
      into the fd_determinstic_apply (fd_dapply_ct/fd_dapply) code. */
@@ -366,4 +402,30 @@ FD_EXPORT fdtype fd_calltrack_apply(fdtype fp,int n,fdtype *args)
       if (ex) result=fd_err(ex,NULL,NULL,FD_VOID);}
   calltrack_return(name);
   return result;
+}
+
+void fd_init_calltrack_c()
+{
+  u8_register_source_file(_FILEINFO);
+
+  fd_register_config("CALLTRACK",
+                     _("File used for calltrack profiling (#f disables calltrack)"),
+                     get_calltrack,set_calltrack,NULL);
+
+#if (FD_USE_TLS)
+  u8_new_threadkey(&fd_calltracking_key,NULL);
+  u8_new_threadkey(&calltrack_log_key,free_calltrack_log);
+#endif
+
+  calltrack_sense=fd_intern("CALLTRACK/SENSE");
+  calltrack_ignore=fd_intern("CALLTRACK/IGNORE");
+
+  fd_register_config
+    ("CALLTRACK/SENSE",_("Active calltrack sensors"),
+     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
+  fd_register_config
+    ("CALLTRACK/IGNORE",_("Ignore calltrack sensors"),
+     config_get_calltrack_sensors,config_set_calltrack_sensors,NULL);
+
+  u8_init_mutex(&calltrack_sensor_lock);
 }
