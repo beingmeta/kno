@@ -290,7 +290,8 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
       return FD_ERROR_VALUE;}
     else {
       double diff=u8_xtime_diff(&(t1->fd_u8xtime),&(t2->fd_u8xtime));
-      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      if (free1) u8_free(t1);
+      if (free2) u8_free(t2);
       return fd_init_double(NULL,diff);}}
 }
 
@@ -307,42 +308,54 @@ static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
 {
   int free1=0;
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
-  if (t1==NULL) return FD_ERROR_VALUE;
+  if (t1==NULL)
+    return FD_ERROR_VALUE;
   else if (FD_VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
-    if (free1) u8_free(t1);
     diff=u8_xtime_diff(&xtime,&(t1->fd_u8xtime));
-    if (diff>0) return FD_TRUE; else return FD_FALSE;}
+    if (free1) u8_free(t1);
+    if (diff>0)
+      return FD_TRUE;
+    else return FD_FALSE;}
   else {
     double diff; int free2=0;
     struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
     if (t2 == NULL) {
-      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      if (free1) u8_free(t1);
+      if (free2) u8_free(t2);
       return FD_ERROR_VALUE;}
     else diff=u8_xtime_diff(&(t1->fd_u8xtime),&(t2->fd_u8xtime));
-    if (diff>0) return FD_TRUE; else return FD_FALSE;}
+    if (diff>0)
+      return FD_TRUE;
+    else return FD_FALSE;}
 }
 
 static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
 {
   int free1=0;
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
-  if (t1==NULL) return FD_ERROR_VALUE;
+  if (t1==NULL)
+    return FD_ERROR_VALUE;
   else if (FD_VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
-    if (free1) u8_free(t1);
     diff=u8_xtime_diff(&xtime,&(t1->fd_u8xtime));
-    if (diff<0) return FD_TRUE; else return FD_FALSE;}
+    if (free1) u8_free(t1);
+    if (diff<0)
+      return FD_TRUE;
+    else return FD_FALSE;}
   else {
     double diff; int free2=0;
     struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
     if (t2 == NULL) {
-      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      if (free1) u8_free(t1);
+      if (free2) u8_free(t2);
       return FD_ERROR_VALUE;}
     else diff=u8_xtime_diff(&(t1->fd_u8xtime),&(t2->fd_u8xtime));
-    if (diff<0) return FD_TRUE; else return FD_FALSE;}
+    if (diff<0)
+      return FD_TRUE;
+    else return FD_FALSE;}
 }
 
 FD_EXPORT
