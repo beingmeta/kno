@@ -301,7 +301,9 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
 {
   fdtype fnptr=(fdtype)f;
   fdtype argbuf[8], *args;
-  if (f->fcn_arity<0) { /* Is a LEXPR */
+  if (FD_EXPECT_FALSE(n<0))
+    return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
+  else if (f->fcn_arity<0) { /* Is a LEXPR */
     if (n<(f->fcn_min_arity))
       return fd_err(fd_TooFewArgs,"fd_dapply",f->fcn_name,fnptr);
     else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
@@ -309,11 +311,16 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
     else if (f->fcn_handler.calln)
       return f->fcn_handler.calln(n,argvec);
     else {
-      /* There's no explicit method on this function object */
+      /* There's no explicit method on this function object, so we use
+         the method on the type (if there is one) */
       int ctype=FD_CONS_TYPE(f);
       if (fd_applyfns[ctype])
         return fd_applyfns[ctype]((fdtype)f,n,argvec);
-      else return fd_err("NotApplicable","fd_apply",f->fcn_name,fnptr);}}
+      else return fd_err("NotApplicable","apply_fcn",f->fcn_name,fnptr);}}
+  else if (n==0)
+    return dcall(name,f,n,argvec);
+  else if (FD_EXPECT_FALSE(argvec==NULL))
+    return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
   else args=fill_argvec(f,n,argvec,argbuf,8);
   if (args==NULL)
     return FD_ERROR_VALUE;
@@ -402,24 +409,34 @@ static fdtype ndapply_loop
 
 FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 {
-  struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  if ((f->fcn_arity < 0) || ((n <= f->fcn_arity) && (n>=f->fcn_min_arity))) {
-    fdtype argbuf[6], *d_args;
-    fdtype retval, results=FD_EMPTY_CHOICE;
-    /* Initialize the d_args vector */
-    if (n>6) d_args=u8_alloc_n(n,fdtype);
-    else d_args=argbuf;
-    retval=ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
-    if (FD_ABORTP(retval)) {
-      fd_decref(results);
-      if (d_args!=argbuf) u8_free(d_args);
-      return retval;}
+  fdtype handler=(FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
+  fd_ptr_type fntype=FD_PTR_TYPE(handler);
+  if (fd_functionp[fntype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(handler);
+    if (f->fcn_arity == 0)
+      return fd_dapply(handler,n,args);
+    else if ((f->fcn_arity < 0) ?
+             (n >= (f->fcn_min_arity)) :
+             ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
+      fdtype argbuf[6], *d_args;
+      fdtype retval, results=FD_EMPTY_CHOICE;
+      /* Initialize the d_args vector */
+      if (n>6) d_args=u8_alloc_n(n,fdtype);
+      else d_args=argbuf;
+      retval=ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
+      if (FD_ABORTP(retval)) {
+        fd_decref(results);
+        if (d_args!=argbuf) u8_free(d_args);
+        return retval;}
+      else {
+        if (d_args!=argbuf) u8_free(d_args);
+        return fd_simplify_choice(results);}}
     else {
-      if (d_args!=argbuf) u8_free(d_args);
-      return fd_simplify_choice(results);}}
-  else {
-    fd_exception ex=((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-    return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}
+      fd_exception ex=((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+      return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}}
+  else if (fd_applyfns[fntype])
+    return (fd_applyfns[fntype])(handler,n,args);
+  else return fd_type_error("Applicable","fd_ndapply",handler);
 }
 
 /* The default apply function */

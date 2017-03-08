@@ -853,7 +853,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       fdtype headval = (FD_FCNIDP(head))?
         (fd_fcnid_ref(head)) :
         (fasteval(head,env));
-      int gchead=((FD_CONSP(head))||(FD_SYMBOLP(head)));
+      int gchead=((FD_PAIRP(head))||(FD_SYMBOLP(head)));
       int headtype=FD_PTR_TYPE(headval);
       if (fd_functionp[headtype]) {
         struct FD_FUNCTION *f=(struct FD_FUNCTION *) headval;
@@ -862,13 +862,13 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           /* call_function pushes the eval context itself */
           push_context=0;}
         else return call_function(f->fcn_name,f,expr,env);}
-      else if (fd_applyfns[headtype])
+      else if (fd_applyfns[headtype]) {
         if (gchead) {
           /* call_special_function pushes the eval context itself */
           result=call_special_function(headval,expr,env);
           push_context=0;}
-        else return call_special_function(headval,expr,env);
-      else if (FD_TYPEP(headval,fd_specform_type)) {
+        else return call_special_function(headval,expr,env);}
+      else if (headtype==fd_specform_type) {
         /* These are special forms which do all the evaluating themselves */
         struct FD_SPECIAL_FORM *handler=(fd_special_form)headval;
         /* fd_calltrack_call(handler->name); */
@@ -876,7 +876,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         if (gchead)
           result=handler->fexpr_handler(expr,env);
         else return handler->fexpr_handler(expr,env);}
-      else if (FD_TYPEP(headval,fd_macro_type)) {
+      else if (headtype==fd_macro_type) {
         /* These are special forms which do all the evaluating themselves */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
