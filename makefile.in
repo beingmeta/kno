@@ -165,6 +165,7 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	src/prims/portprims.o \
 	src/prims/streamprims.o \
 	src/prims/timeprims.o \
+	src/prims/sysprims.o \
 	src/prims/extdbprims.o
 
 SCHEMEIO_OBJS=\
@@ -355,7 +356,8 @@ FRAMERD_SOURCES=\
 	src/prims/seqprims.c src/prims/stringprims.c                 	\
 	src/prims/fileprims.c src/prims/driverprims.c                	\
 	src/eval/loader.c                                            	\
-	src/prims/timeprims.c src/prims/extdbprims.c                    \
+	src/prims/timeprims.c src/prims/sysprims.c 			\
+	src/prims/extdbprims.c                    			\
 	src/eval/reqstate.c                                          	\
 	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            	\
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c 	\

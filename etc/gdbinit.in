@@ -250,11 +250,6 @@ define dontload
   set env FD_SKIP_DOTLOAD yes
 end
 
-
-define preload
-  set env LD_PRELOAD=$1
-end
-
 define cast
   print (($2)($1))
 end

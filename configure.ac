@@ -1245,11 +1245,11 @@ if test "$with_fileinfo" = "yes" ; then
 fi
 
 AC_ARG_WITH(stdlib,--with[out]-stdlib Force the use of stdlib)
-if test "$with_stdlib"; then
+if test ! -z "${with_stdlib}"; then
    gperftools_default="no";
 fi;
 
-AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=gperftools_default)
+AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=${gperftools_default})
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;

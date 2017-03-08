@@ -10901,7 +10901,7 @@ if test "${with_stdlib+set}" = set; then :
   withval=$with_stdlib;
 fi
 
-if test "$with_stdlib"; then
+if test ! -z "${with_stdlib}"; then
    gperftools_default="no";
 fi;
 
@@ -10910,7 +10910,7 @@ fi;
 if test "${with_gperftools+set}" = set; then :
   withval=$with_gperftools;
 else
-  with_gperftools=gperftools_default
+  with_gperftools=${gperftools_default}
 fi
 
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then

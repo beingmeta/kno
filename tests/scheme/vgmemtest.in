@@ -1,0 +1,11 @@
+EXE=$1; shift;
+echo "Running Valgrind memory integrity test for ${EXE} $1 +++";
+FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm: \
+	   LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib    \
+	   FD_DLOADPATH=../../lib/framerd			    \
+	   MEMCHECKING=yes LEAKCHECKING=yes HEAPCHECK=yes 	    \
+	   FD_SKIP_DOTLOAD=yes FD_SHOWTIME=0.0                      \
+	   exec valgrind --tool=memcheck --num-callers=24	    \
+		${EXE} INVALGRIND=yes MEMCHECKING=yes $* 	    \
+		DLOAD:TRACE=yes DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024
+
