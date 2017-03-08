@@ -853,8 +853,9 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       fdtype headval = (FD_FCNIDP(head))?
         (fd_fcnid_ref(head)) :
         (fasteval(head,env));
-      int gchead=((FD_PAIRP(head))||(FD_SYMBOLP(head)));
       int headtype=FD_PTR_TYPE(headval);
+      int gchead=(((FD_SYMBOLP(head))||(FD_CONSP(head)))&&
+                  (!(FD_STATICP(headval))));
       if (fd_functionp[headtype]) {
         struct FD_FUNCTION *f=(struct FD_FUNCTION *) headval;
         if (gchead) {
