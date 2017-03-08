@@ -428,11 +428,13 @@ memtest_all: memtest_scheme memtest_tables memtest_pools \
 	memtest_indexes memtest_db memtest_crypto \
 	memtest_load_modules memtest_optimize_modules
 
-memtest_scheme:  @memtest_prefix@_memtest_scheme
-memtest_tables:  @memtest_prefix@_memtest_tables
-memtest_indexes: @memtest_prefix@_memtest_indexes
-memtest_db:      @memtest_prefix@_memtest_db
-memtest_crypto:  @memtest_prefix@memcrypto
+memtest_scheme:  @memtest_prefix@memtest_scheme
+memtest_tables:  @memtest_prefix@memtest_tables
+memtest_indexes: @memtest_prefix@memtest_indexes
+memtest_db:      @memtest_prefix@memtest_db
+memtest_crypto:  @memtest_prefix@memtest_crypto
+memtest_load_modules:  @memtest_prefix@memtest_load_modules
+memtest_optimize_modules:  @memtest_prefix@memtest_optimize_modules
 
 .PHONY: memtest memcheck \
 	memtest_all memtest_scheme memtest_tables \
