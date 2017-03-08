@@ -250,6 +250,27 @@ define dontload
   set env FD_SKIP_DOTLOAD yes
 end
 
+
+define preload
+  set env LD_PRELOAD=$1
+end
+
+define cast
+  print (($2)($1))
+end
+
+define pcast
+  print *(($2)($1))
+end
+
+define pfield
+  print *(($1)->$2)
+end
+
+define sfield
+  print *(($1).$2)
+end
+
 # Init some tracing configurations
 set env FD_TRACEWEB=yes
 set env FD_DLOAD:TRACE=yes
