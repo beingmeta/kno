@@ -11022,7 +11022,15 @@ done
     leaktest_prefix=gperf_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
+    debug_lib=
+    if test -f "${prefix}/lib/libtcmalloc_debug.so"; then
+      debug_lib="${prefix}/lib/libtcmalloc_debug.so";
+    fi
+    if test -z "${debug_lib}"; then
+      memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"";
+    else
+        memtest_env="TESTENV=\"TCMALLOC_DEBUG=5 LD_PRELOAD=${debug_lib}\"";
+    fi;
   fi;
 elif test $with_gperftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -11141,7 +11149,7 @@ fi
 done
 
   leaktest_prefix=gperf_
-  memtest_prefix=gpref_
+  memtest_prefix=gperf_
   leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
 fi

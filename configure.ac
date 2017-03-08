@@ -1259,7 +1259,15 @@ if test $with_gperftools = "yes"; then
     leaktest_prefix=gperf_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
+    debug_lib=
+    if test -f "${prefix}/lib/libtcmalloc_debug.so"; then
+      debug_lib="${prefix}/lib/libtcmalloc_debug.so";
+    fi
+    if test -z "${debug_lib}"; then
+      memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"";
+    else   
+        memtest_env="TESTENV=\"TCMALLOC_DEBUG=5 LD_PRELOAD=${debug_lib}\"";
+    fi;					
   fi; 
 elif test $with_gperftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
@@ -1267,7 +1275,7 @@ elif test $with_gperftools = "debug"; then
   AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   leaktest_prefix=gperf_
-  memtest_prefix=gpref_
+  memtest_prefix=gperf_
   leaktest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
   memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"" 
 fi
