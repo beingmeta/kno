@@ -25,11 +25,12 @@ fd_exception fd_MallocFailed=_("malloc/realloc failed");
 fd_exception fd_StringOverflow=_("allocating humongous string past limit");
 fd_exception fd_StackOverflow=_("Scheme stack overflow");
 fd_exception fd_TypeError=_("Type error"), fd_RangeError=_("Range error");
-fd_exception fd_BadPtr=_("bad dtype pointer");
 fd_exception fd_DoubleGC=_("Freeing already freed CONS");
 fd_exception fd_UsingFreedCons=_("Using freed CONS");
 fd_exception fd_FreeingNonHeapCons=_("Freeing non-heap cons");
 u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
+
+fd_exception fd_BadPtr=_("bad dtype pointer");
 
 u8_string fd_type_names[FD_TYPE_MAX];
 fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
@@ -1280,6 +1281,32 @@ int fd_ptr_debug_density=1;
 FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
 {
   u8_raise(fd_BadPtr,cxt,NULL);
+}
+
+fd_exception get_pointer_exception(fdtype x)
+{
+  if (FD_OIDP(x)) return _("BadOIDPtr");
+  else if (FD_CONSP(x)) return _("BadCONSPtr");
+  else if (FD_IMMEDIATEP(x)) {
+    int ptype=FD_IMMEDIATE_TYPE(x);
+    if (ptype>=fd_next_immediate_type)
+      return _("BadImmediateType");
+    else switch (ptype) {
+      case fd_symbol_type: return _("BadSymbol");
+      case fd_constant_type: return _("BadConstant");
+      case fd_fcnid_type: return _("BadFCNId");
+      case fd_opcode_type: return _("BadOpcode");
+      case fd_lexref_type: return _("BadLexref");
+      default:
+        return _("BadImmediate");}}
+  else return fd_BadPtr;
+}
+
+FD_EXPORT fdtype fd_badptr_err(fdtype result,u8_context cxt,u8_string details)
+{
+  fd_seterr( get_pointer_exception(result), cxt,
+             u8dup(details), FD_UINT2DTYPE(result) );
+  return FD_ERROR_VALUE;
 }
 
 

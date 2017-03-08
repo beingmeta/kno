@@ -24,6 +24,8 @@
 #include "framerd/ports.h"
 #include "framerd/dtcall.h"
 
+#include "eval_internals.h"
+
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8logging.h>
@@ -72,7 +74,8 @@ FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
   struct FD_THREAD_STRUCT *th=(struct FD_THREAD_STRUCT *)c;
   if (th->flags&FD_EVAL_THREAD) {
     fd_decref(th->evaldata.expr);
-    fd_decref((fdtype)(th->evaldata.env));}
+    if (th->evaldata.env) {
+      fd_decref((fdtype)(th->evaldata.env));}}
   else {
     int i=0, n=th->applydata.n_args; fdtype *args=th->applydata.args;
     while (i<n) {fd_decref(args[i]); i++;}
@@ -319,6 +322,7 @@ static void *thread_call(void *data)
   else {}
 
   u8_threadexit();
+
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify();
     fdtype exobj=fd_init_exception(NULL,ex);
@@ -351,6 +355,9 @@ static void *thread_call(void *data)
       *(tstruct->resultptr)=result;
       fd_incref(result);}}
   tstruct->flags=tstruct->flags|FD_THREAD_DONE;
+  if (tstruct->flags&FD_EVAL_THREAD) {
+    free_environment(tstruct->evaldata.env);
+    tstruct->evaldata.env=NULL;}
   fd_decref((fdtype)tstruct);
   return NULL;
 }
@@ -375,7 +382,7 @@ fd_thread_struct fd_thread_call(fdtype *resultptr,
   tstruct->flags=flags;
   pthread_attr_init(&(tstruct->attr));
   tstruct->applydata.fn=fd_incref(fn);
-  tstruct->applydata.n_args=n; 
+  tstruct->applydata.n_args=n;
   tstruct->applydata.args=rail;
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((fdtype)tstruct);
@@ -395,7 +402,7 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,
     return NULL;}
   FD_INIT_FRESH_CONS(tstruct,fd_thread_type);
   if (resultptr) {
-    tstruct->resultptr=resultptr; 
+    tstruct->resultptr=resultptr;
     *resultptr=FD_NULL;
     tstruct->result=FD_NULL;}
   else {
@@ -468,9 +475,10 @@ static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
   fdtype to_eval=fd_get_arg(expr,1);
   fdtype env_arg=fd_eval(fd_get_arg(expr,2),env);
   fdtype opts_arg=fd_eval(fd_get_arg(expr,3),env);
-  fdtype opts=((FD_VOIDP(opts_arg))&&
-               (!(FD_ENVIRONMENTP(env_arg)))&&
-               (FD_TABLEP(env_arg)))?
+  fdtype opts=
+    ((FD_VOIDP(opts_arg))&&
+     (!(FD_ENVIRONMENTP(env_arg)))&&
+     (FD_TABLEP(env_arg)))?
     (env_arg):
     (opts_arg);
   fd_lispenv use_env=
@@ -490,7 +498,9 @@ static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
     FD_DO_CHOICES(thread_expr,to_eval) {
       fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
       FD_ADD_TO_CHOICE(results,thread);}
-    fd_decref(envptr); fd_decref(env_arg); fd_decref(opts_arg);
+    fd_decref(envptr);
+    fd_decref(env_arg);
+    fd_decref(opts_arg);
     return results;}
 }
 

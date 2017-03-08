@@ -122,7 +122,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
             else env=retenv1(var,elt);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_push_error_context(":DO-CHOICES",env);
+            fd_push_error_context(":DO-CHOICES",FD_SYMBOL_NAME(var),env);
             return val;}
           fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -151,7 +151,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
   else if (FD_ABORTED(choices)) {
-    fd_push_error_context("trychoices_handler",expr);
+    fd_push_error_context("trychoices_handler",NULL,expr);
     return choices;}
   else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
@@ -192,7 +192,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
             else env=retenv1(var,elt);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_push_error_context(":TRY-CHOICES",env);
+            fd_push_error_context(":TRY-CHOICES",NULL,env);
             return val;}}}
       if (!(FD_EMPTY_CHOICEP(val))) {
         FD_STOP_DO_CHOICES;
@@ -265,7 +265,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
             else env=retenv1(var,elt);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_push_error_context(":FOR-CHOICES",env);
+            fd_push_error_context(":FOR-CHOICES",FD_SYMBOL_NAME(var),env);
             fd_decref(results);
             FD_STOP_DO_CHOICES;
             return val;}}}
@@ -336,7 +336,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
         else env=retenv1(var,elt);
         fd_decref(choices);
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-        fd_push_error_context(":FILTER-CHOICES",env);
+        fd_push_error_context(":FILTER-CHOICES",FD_SYMBOL_NAME(var),env);
         return val;}
       else if (FD_FALSEP(val)) {}
       else {
@@ -442,7 +442,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
             if (free_v) fd_decref(v);
-            fd_push_error_context(":DO-SUBSETS",env);
+            fd_push_error_context(":DO-SUBSETS",FD_SYMBOL_NAME(var),env);
             return val;}
           fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -616,12 +616,12 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
     fd_decref(value);
     value=fd_eval(clause,env);
     if (FD_ABORTED(value)) {
-      fd_incref(clause); fd_push_error_context("TRY",clause);
-      fd_incref(expr); fd_push_error_context("TRY",expr);
+      fd_incref(clause); fd_push_error_context("TRY",NULL,clause);
+      fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
       return value;}
     else if (FD_VOIDP(value)) {
       fd_seterr(fd_VoidArgument,"try_handler",NULL,clause);
-      fd_incref(expr); fd_push_error_context("TRY",expr);
+      fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
       return FD_ERROR_VALUE;}
     else if (!(FD_EMPTY_CHOICEP(value))) return value;
     else if (fd_ipeval_status()!=ipe_state) return value;}
@@ -640,7 +640,7 @@ static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
   else value=fd_eval(value_expr,env);
   if (FD_ABORTED(value)) {
-    fd_incref(expr); fd_push_error_context("ifexists_handler",expr);
+    fd_incref(expr); fd_push_error_context("ifexists_handler",NULL,expr);
     return value;}
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
   else return value;

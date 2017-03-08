@@ -822,7 +822,8 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 
 /* The evaluator itself */
 
-static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env);
+static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env);
+static fdtype call_function(u8_string nm,fd_function f,fdtype x,fd_lispenv env);
 static fdtype apply_functions(fdtype fn,fdtype expr,fd_lispenv env);
 
 FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
@@ -835,6 +836,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
                     FD_SYMBOL_NAME(expr),expr);
     else return val;}
   case fd_pair_type: {
+    int push_context=1; /* On error, that is */
     fdtype head=(FD_CAR(expr));
     if (FD_OPCODEP(head))
       return opcode_dispatch(head,expr,env);
@@ -851,17 +853,31 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       fdtype headval = (FD_FCNIDP(head))?
         (fd_fcnid_ref(head)) :
         (fasteval(head,env));
-      int gchead=((FD_CONSP(head))||(FD_SYMBOLP(head)));
       int headtype=FD_PTR_TYPE(headval);
-      if (fd_applyfns[headtype])
-        result=apply_function(headval,expr,env);
-      else if (FD_TYPEP(headval,fd_specform_type)) {
+      int gchead=(((FD_SYMBOLP(head))||(FD_CONSP(head)))&&
+                  (!(FD_STATICP(headval))));
+      if (fd_functionp[headtype]) {
+        struct FD_FUNCTION *f=(struct FD_FUNCTION *) headval;
+        if (gchead) {
+          result=call_function(f->fcn_name,f,expr,env);
+          /* call_function pushes the eval context itself */
+          push_context=0;}
+        else return call_function(f->fcn_name,f,expr,env);}
+      else if (fd_applyfns[headtype]) {
+        if (gchead) {
+          /* call_special_function pushes the eval context itself */
+          result=call_special_function(headval,expr,env);
+          push_context=0;}
+        else return call_special_function(headval,expr,env);}
+      else if (headtype==fd_specform_type) {
         /* These are special forms which do all the evaluating themselves */
         struct FD_SPECIAL_FORM *handler=(fd_special_form)headval;
         /* fd_calltrack_call(handler->name); */
         /* fd_calltrack_return(handler->name); */
-        result=handler->fexpr_handler(expr,env);}
-      else if (FD_TYPEP(headval,fd_macro_type)) {
+        if (gchead)
+          result=handler->fexpr_handler(expr,env);
+        else return handler->fexpr_handler(expr,env);}
+      else if (headtype==fd_macro_type) {
         /* These are special forms which do all the evaluating themselves */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
@@ -921,7 +937,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       else result=fd_err(fd_NotAFunction,NULL,NULL,headval);
       if (FD_THROWP(result)) {}
       else if (FD_ABORTED(result)) {
-        fd_push_error_context(fd_eval_context,fd_incref(expr));
+        if (push_context)
+          fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
         return result;}
       if (gchead) fd_decref(headval);
       return result;}}
@@ -989,10 +1006,10 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
   return results;
 }
 
-static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
+static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
+                            fdtype expr,fd_lispenv env)
 {
-  fdtype result=FD_VOID;
-  struct FD_FUNCTION *fcn=(fd_function)fn;
+  fdtype result=FD_VOID, fn=(fdtype)fcn;
   fdtype _argv[FD_STACK_ARGS], *argv;
   int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
   int nd_args=0, prune=0, nd_prim=fcn->fcn_ndcall;
@@ -1008,9 +1025,9 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   if (max_arity<0) argv_length=n_args;
   /* Check if there are too many arguments. */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
-    return fd_err(fd_TooManyArgs,"apply_function",fcn->fcn_name,expr);
+    return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
-    return fd_err(fd_TooFewArgs,"apply_function",fcn->fcn_name,expr);
+    return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
   if (argv_length>FD_STACK_ARGS) {
     /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
     argv=u8_alloc_n(argv_length,fdtype);
@@ -1028,7 +1045,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
         /* Break if one of the arguments returns an error */
         result=argval; break;}
       if (FD_VOIDP(argval)) {
-        result=fd_err(fd_VoidArgument,"apply_function",fcn->fcn_name,elt);
+        result=fd_err(fd_VoidArgument,"call_function",fcn->fcn_name,elt);
         break;}
       if ((FD_EMPTY_CHOICEP(argval)) && (!(nd_prim))) {
         /* Break if the method isn't non-deterministic and one of the
@@ -1091,7 +1108,8 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     else avec[0]=fd_intern("LAMBDA");
     if (free_argv) u8_free(argv);
     call_context=fd_init_vector(NULL,arg_count+1,avec);
-    fd_push_error_context(fd_apply_context,call_context);
+    fd_push_error_context(fd_apply_context,fname,call_context);
+    fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
     return result;}
   else if (args_need_gc) {
     int i=0; while (i < arg_count) {
@@ -1100,7 +1118,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   return result;
 }
 
-static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
+static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID;
   fdtype _argv[FD_STACK_ARGS], *argv;
@@ -1124,25 +1142,19 @@ static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
             int j=0; while (j<i) {fdtype arg=argv[j++]; fd_decref(arg);}}
           if (free_argv) u8_free(argv);
           if (FD_VOIDP(argval)) {
-            fd_seterr(fd_VoidArgument,"apply_weird_function",NULL,expr);
+            fd_seterr(fd_VoidArgument,"call_special_function",NULL,expr);
             return FD_ERROR_VALUE;}
           else return argval;}
         else {
           argv[i++]=argval; if (FD_CONSP(argval)) args_need_gc=1;}}}
   result=fd_apply(fn,n_args,argv);
-  if (args_need_gc) {
+  if (FD_ABORTP(result))
+    fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
+ if (args_need_gc) {
     i=0; while (i<n_args) {
       fdtype argval=argv[i++]; fd_decref(argval);}}
   if (free_argv) u8_free(argv);
   return result;
-}
-
-static fdtype apply_function(fdtype fn,fdtype expr,fd_lispenv env)
-{
-  fd_ptr_type fntype=FD_PRIM_TYPE(fn);
-  if (fd_functionp[fntype])
-    return apply_normal_function(fn,expr,env);
-  else return apply_weird_function(fn,expr,env);
 }
 
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)

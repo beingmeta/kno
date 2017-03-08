@@ -121,7 +121,7 @@ static fdtype loading_symbol;
 static void record_error_source(u8_string sourceid)
 {
   fdtype entry=fd_make_list(2,loading_symbol,fd_make_string(NULL,-1,sourceid));
-  fd_push_error_context("fd_load_source",entry);
+  fd_push_error_context("fd_load_source",sourceid,entry);
 }
 
 FD_EXPORT fdtype fd_load_source_with_date

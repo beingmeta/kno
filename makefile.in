@@ -103,11 +103,11 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 	src/drivers/headers/hashindex.h	\
 	src/cmodules/fdsqlite.h			\
 
-DTYPE_OBJS=src/cons/cons.o src/cons/oids.o 			\
-	  src/cons/fcnids.o src/cons/bufio.o			\
-	  src/cons/symbols.o src/cons/numbers.o 		\
-	  src/cons/compare.o					\
-	  src/cons/apply.o src/cons/ffi.o			\
+DTYPE_OBJS=src/cons/cons.o src/cons/oids.o		\
+	  src/cons/fcnids.o src/cons/bufio.o		\
+	  src/cons/symbols.o src/cons/numbers.o		\
+	  src/cons/compare.o				\
+	  src/cons/apply.o @calltracko@ src/cons/ffi.o	\
           src/cons/choices.o src/cons/tables.o		\
           src/cons/dtypeio.o src/cons/textio.o		\
 	  src/cons/fdtype.o src/cons/support.o
@@ -125,11 +125,11 @@ DB_OBJS=src/db/fddb.o src/db/streams.o src/db/hashdtype.o 		\
 	@ipevalo@ src/db/frames.o
 
 DBDRIVERS_OBJS=\
-	src/drivers/builtin_drivers.o 					\
-	src/drivers/filepool.o src/drivers/oidpool.o 		\
-	src/drivers/netpool.o src/drivers/extpool.o 		\
+	src/drivers/builtin_drivers.o			\
+	src/drivers/filepool.o src/drivers/oidpool.o	\
+	src/drivers/netpool.o src/drivers/extpool.o	\
 	src/drivers/mempool.o src/drivers/bigpool.o	\
-	src/drivers/fileindex.o src/drivers/hashindex.o 	\
+	src/drivers/fileindex.o src/drivers/hashindex.o	\
 	src/drivers/htindex.o src/drivers/extindex.o 	\
 	src/drivers/memindex.o src/drivers/netindex.o
 
@@ -322,7 +322,7 @@ FRAMERD_SOURCES=\
 	src/cons/choices.c src/cons/tables.c 				\
         src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
 	src/cons/fdtype.c src/cons/support.c 				\
-	src/cons/apply.c src/cons/ffi.c       				\
+	src/cons/apply.c src/cons/calltrack.c src/cons/ffi.c       	\
 	src/db/fddb.c src/db/streams.c src/db/hashdtype.c		\
 	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\

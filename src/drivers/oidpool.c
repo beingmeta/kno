@@ -782,7 +782,8 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
       if (FD_ABORTP(value)) {
         int j=0; while (j<i) { fd_decref(values[j]); j++;}
         u8_free(schedule); u8_free(values);
-        fd_push_error_context("oidpool_fetchn/read",oids[schedule[i].value_at]);
+        fd_push_error_context("oidpool_fetchn/read",op->pool_idstring,
+                              oids[schedule[i].value_at]);
         fd_unlock_stream(&(op->pool_stream));
         return NULL;}
       else values[schedule[i].value_at]=value;
@@ -995,9 +996,9 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
                             unsigned int load)
 {
   fd_outbuf outstream=fd_writebuf(stream);
+  double started=u8_elapsed_time(), taken;
   u8_log(fddb_loglevel+1,"OIDPoolFinalize",
-         "Finalizing %d oid values %s in %f seconds",
-         n,op->pool_idstring);
+         "Finalizing %d oid values from %s",n,op->pool_idstring);
 
   if (op->pool_offdata) {
 #if HAVE_MMAP
@@ -1105,6 +1106,15 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
       u8_free(saveinfo);
       exit(-1);}
   write_oidpool_load(op);
+
+  taken=u8_elapsed_time()-started;
+  if (taken>1)
+    u8_log(fddb_loglevel,"OIDPoolFinalize",
+           "Finalized %d oid values from %s in %f secs",
+           n,op->pool_idstring,taken);
+  else u8_log(fddb_loglevel+1,"OIDPoolFinalize",
+              "Finalized %d oid values from %s in %f secs",
+              n,op->pool_idstring,taken);
   return 0;
 }
 

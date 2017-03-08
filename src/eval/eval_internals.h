@@ -84,12 +84,13 @@ FD_INLINE_FCN fdtype return_error_env
   if (FD_THROWP(error)) {
     free_environment(env);
     return error;}
-  fd_push_error_context(cxt,error_bindings(env));
+  fd_push_error_context(cxt,NULL,error_bindings(env));
   free_environment(env);
   return error;
 }
 
-FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
+FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
+                           fdtype expr,int offset,
                            fd_lispenv inner_env)
 {
   fdtype result=FD_VOID, body=fd_get_body(expr,offset);
@@ -101,13 +102,13 @@ FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
       else if ( (u8_current_exception)->u8x_cond == fd_StackOverflow )
         return result;
       else {
-        fd_push_error_context(cxt,error_bindings(inner_env));
+        fd_push_error_context(cxt,label,error_bindings(inner_env));
         return result;}}
     else {fd_decref(result);}
     result=fast_tail_eval(bodyexpr,inner_env);}
   if (FD_THROWP(result)) return result;
   else if (FD_ABORTP(result)) {
-    fd_push_error_context(cxt,error_bindings(inner_env));
+    fd_push_error_context(cxt,label,error_bindings(inner_env));
     return result;}
   else return result;
 }

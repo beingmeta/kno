@@ -900,9 +900,10 @@ static FD_XML *handle_fdxml_pi
           u8_string filename=fd_get_component(arg);
           int retval=fd_load_config(filename);
           if (retval<0) {
-            u8_condition c; u8_context cxt; u8_string details;
-            fdtype irritant;
-            if (fd_poperr(&c,&cxt,&details,&irritant))
+            u8_condition c=NULL; u8_context cxt=NULL;
+            u8_string details=NULL;
+            fdtype irritant=FD_VOID;
+            if (fd_poperr(&c,&cxt,&details,&irritant)) {
               if ((FD_VOIDP(irritant)) && (details==NULL) && (cxt==NULL))
                 u8_log(LOG_WARN,"FDXML_CONFIG",
                        _("In config '%s' %m"),filename,c);
@@ -915,6 +916,8 @@ static FD_XML *handle_fdxml_pi
               else u8_log(LOG_WARN,"FDXML_CONFIG",
                           _("In config '%s' [%m@%s] %s %q"),
                           filename,c,cxt,details,irritant);
+              if (details) u8_free(details);
+              fd_decref(irritant);}
             else u8_log(LOG_WARN,"FDXML_CONFIG",
                         _("In config '%s', unknown error"),filename);}}}
       else if ((strncmp(attribs[i],"module=",7))==0) {
@@ -1569,7 +1572,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         fd_decref(elt); fd_decref(seq);
-        fd_push_error_context(":FDXMLSEQ",errbind);
+        fd_push_error_context(":FDXMLSEQ",FD_SYMBOL_NAME(var),errbind);
         return val;}
       fd_decref(val);}}
     if (envstruct.env_copy) {
@@ -1628,7 +1631,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
           else env=retenv1(var,elt);
           fd_decref(choices);
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-          fd_push_error_context(":FDXMLCHOICE",env);
+          fd_push_error_context(":FDXMLCHOICE",FD_SYMBOL_NAME(var),env);
           return val;}
         fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -1668,7 +1671,8 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
     {FD_DOELTS(expr,body,count) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
-        fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT(i)));
+        fd_push_error_context(":FXMLRANGE",FD_SYMBOL_NAME(var),
+                              iterenv1(limit_val,var,FD_INT(i)));
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         return val;}

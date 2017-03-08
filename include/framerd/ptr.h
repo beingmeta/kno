@@ -184,6 +184,8 @@ FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
    ((u8_string)"oddtype"):	\
    (fd_type_names[tc]))
 
+FD_EXPORT fdtype fd_badptr_err(fdtype badx,u8_context cxt,u8_string details);
+
 #define FD_VALID_TYPECODEP(x)				       \
   (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
 		  (((int)x)<256) &&			       \
@@ -446,6 +448,11 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
     (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
 	      (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
 #define FD_INT(x) (FD_INT2DTYPE(x))
+
+#define FD_UINT2DTYPE(x) \
+  (((to64u(x)) > (to64(FD_MAX_FIXNUM))) ?			\
+   (fd_make_bigint(to64u(x))) :					\
+   ((fdtype) (((to64u(x))*4)|fd_fixnum_type)))
 
 #define FD_SHORT2DTYPE(x)				\
   ((fdtype)						\

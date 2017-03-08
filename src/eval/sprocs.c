@@ -42,7 +42,7 @@ static u8_string sproc_id(struct FD_SPROC *fn)
 
 /* SPROCs */
 
-FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
+FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
   fdtype _vals[6], *vals=_vals, lexpr_arg=FD_EMPTY_LIST, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -140,27 +140,26 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
-  result=eval_body(":SPROC",fn->sproc_body,0,&envstruct);
+  result=eval_body(":SPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
   if (fn->sproc_synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if (FD_ABORTED(result))
-    u8_current_exception->u8x_details=sproc_id(fn);
+  else if (FD_ABORTED(result)) {
+    u8_exception ex;
+    ex=u8_current_exception;
+    if (ex->u8x_details) u8_free(ex->u8x_details);
+    ex->u8x_details=sproc_id(fn);}
   else {}
   /* If we're synchronized, unlock the mutex. */
   if (fn->sproc_synchronized) u8_unlock_mutex(&(fn->sproc_lock));
   fd_decref(lexpr_arg);
-  if (envstruct.env_copy) {
-    fd_recycle_environment(envstruct.env_copy);
-    envstruct.env_copy=NULL;}
   free_environment(&envstruct);
   if (vals!=_vals) u8_free(vals);
   return result;
 }
 
-static fdtype sproc_applier(fdtype f,int n,fdtype *args)
+FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
-  struct FD_SPROC *s=fd_consptr(fd_sproc,f,fd_sproc_type);
-  return fd_apply_sproc(s,n,args);
+  return apply_sproc(fn,n,args);
 }
 
 static fdtype _make_sproc(u8_string name,
@@ -593,7 +592,7 @@ fdtype fd_xapply_sproc
   assert(i==fn->sproc_n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
-  result=eval_body(":XPROC",fn->sproc_body,0,&envstruct);
+  result=eval_body(":XPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
   /* if (fn->sproc_synchronized) result=fd_finish_call(result); */
   /* We always finish tail calls here */
   result=fd_finish_call(result);
@@ -636,7 +635,7 @@ FD_EXPORT void fd_init_sprocs_c()
   tail_symbol=fd_intern("%TAIL");
   moduleid_symbol=fd_intern("%MODULEID");
 
-  fd_applyfns[fd_sproc_type]=sproc_applier;
+  fd_applyfns[fd_sproc_type]=(fd_applyfn)apply_sproc;
   fd_functionp[fd_sproc_type]=1;
 
   fd_unparsers[fd_sproc_type]=unparse_sproc;
