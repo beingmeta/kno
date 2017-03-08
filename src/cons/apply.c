@@ -369,7 +369,9 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
-    return result;}
+    if (FD_CHECK_PTR(result))
+      return result;
+    else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
   else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit());
     fdtype depth=FD_INT2DTYPE(u8_stack_depth());
