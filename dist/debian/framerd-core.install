@@ -1,11 +1,11 @@
 usr/lib/libfdtype.so.*
-usr/lib/libfddb.so.*
-usr/lib/libfddbdrivers.so.*
+usr/lib/libfdkbase.so.*
+usr/lib/libfdkbdrivers.so.*
 usr/lib/libfdbserv.so*
 usr/lib/libfdscheme.so.*
 usr/lib/libfdschemeio.so.*
 usr/lib/libfdweb.so*
-usr/lib/libtexttools.so*
+usr/lib/libfdtext.so*
 usr/lib/framerd/crypto.so*
 usr/lib/framerd/ziptools.so*
 usr/lib/framerd/hyphenate.so*
