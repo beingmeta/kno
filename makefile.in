@@ -1433,20 +1433,9 @@ enable-sysv: setup-sysv
 
 startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-setup-upstart: $(DESTDIR)/etc/init/fdserver.conf \
-	$(DESTDIR)/etc/init/fdservlet.conf \
-	$(DESTDIR)/etc/init/framerd.conf \
-	startupdirs
+setup-upstart: $(DESTDIR)/etc/init/framerd.conf startupdirs
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
-$(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdserver Upstart config to $(DESTDIR)/etc/init/fdserver.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/fdserver.conf $(DESTDIR)/etc/init/fdserver.conf
-$(DESTDIR)/etc/init/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdservlet Upstart config to $(DESTDIR)/etc/init/fdservlet.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/fdservlet.conf $(DESTDIR)/etc/init/fdservlet.conf
 $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
