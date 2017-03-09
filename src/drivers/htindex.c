@@ -90,7 +90,7 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
   else return 0;
 }
 
-static fd_index open_htindex(u8_string file,fdkbase_flags flags)
+static fd_index open_htindex(u8_string file,fdkb_flags flags)
 {
   struct FD_HT_INDEX *mix=(fd_mem_index)fd_make_ht_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
@@ -133,7 +133,7 @@ static struct FD_INDEX_HANDLER htindex_handler={
 };
 
 FD_EXPORT
-fd_index fd_make_ht_index(fdkbase_flags flags)
+fd_index fd_make_ht_index(fdkb_flags flags)
 {
   struct FD_HT_INDEX *mix=u8_alloc(struct FD_HT_INDEX);
   FD_INIT_STRUCT(mix,struct FD_HT_INDEX);

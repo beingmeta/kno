@@ -555,7 +555,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-o $@ $<                                           \
 		-lfdkbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
-		-ltexttools@suffix@ -lfdscheme@suffix@ \
+		-lfdtext@suffix@ -lfdscheme@suffix@ \
 		-lfdkbdrivers@suffix@ -lfdkbase@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<

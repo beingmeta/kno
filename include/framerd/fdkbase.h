@@ -32,7 +32,7 @@ FD_EXPORT int fd_init_fdkbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
-FD_EXPORT int fdkbase_loglevel;
+FD_EXPORT int fdkb_loglevel;
 FD_EXPORT int fd_prefetch;
 FD_EXPORT fd_exception fd_InternalError;
 FD_EXPORT fd_exception fd_BadServerResponse;
@@ -50,7 +50,7 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
    remaining 12 bits are for flags for particular implementations.
 */
 
-typedef unsigned int fdkbase_flags;
+typedef unsigned int fdkb_flags;
 
 #define FDKB_ISPOOL		   0x01
 #define FDKB_ISINDEX		   0x02

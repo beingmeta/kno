@@ -271,7 +271,7 @@ static fdtype use_index(fdtype arg)
 static fdtype open_index(fdtype arg,fdtype consed_arg)
 {
   int unregistered=(!((FD_FALSEP(consed_arg))||(FD_VOIDP(consed_arg))));
-  fdkbase_flags flags=((unregistered)?(FDKB_UNREGISTERED):(0));
+  fdkb_flags flags=((unregistered)?(FDKB_UNREGISTERED):(0));
   fd_index ix=NULL;
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
@@ -303,9 +303,9 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
   if (ix) return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
-static fdkbase_flags getdbflags(fdtype opts)
+static fdkb_flags getdbflags(fdtype opts)
 {
-  fdkbase_flags flags=0;
+  fdkb_flags flags=0;
   if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
     flags|=FDKB_READ_ONLY;
   if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
@@ -321,7 +321,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
 {
   fd_pool p=NULL;
   fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
-  fdkbase_flags flags=getdbflags(opts);
+  fdkb_flags flags=getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
   else if (FD_SYMBOLP(type))
@@ -336,7 +336,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
 
 static fdtype open_pool(fdtype path,fdtype opts)
 {
-  fdkbase_flags flags=getdbflags(opts);
+  fdkb_flags flags=getdbflags(opts);
   fd_pool p=fd_open_pool(FD_STRDATA(path),flags|FDKB_UNREGISTERED);
   return (fdtype)p;
 }
@@ -345,7 +345,7 @@ static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix=NULL;
   fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
-  fdkbase_flags flags=getdbflags(opts);
+  fdkb_flags flags=getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
   else if (FD_SYMBOLP(type))

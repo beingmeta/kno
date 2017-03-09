@@ -35,7 +35,7 @@ typedef struct FD_HASH_INDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int fdkbase_xformat, index_custom, table_n_keys;
+  unsigned int fdkb_xformat, index_custom, table_n_keys;
   fd_offset_type index_offtype;
 
   /* This is used to store compressed keys and values. */

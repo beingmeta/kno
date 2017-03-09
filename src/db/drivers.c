@@ -75,7 +75,7 @@ static u8_mutex pool_typeinfo_lock;
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
    fd_pool_handler handler,
-   fd_pool (*opener)(u8_string filename,fdkbase_flags flags),
+   fd_pool (*opener)(u8_string filename,fdkb_flags flags),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -124,7 +124,7 @@ static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fdkbase_flags flags)
+fd_pool fd_open_pool(u8_string spec,fdkb_flags flags)
 {
   struct FD_POOL_TYPEINFO *ptype;
   ptype=pool_typeinfo; while (ptype) {
@@ -152,7 +152,7 @@ FD_EXPORT
 fd_pool fd_make_pool(
                      u8_string spec,
                      u8_string pooltype,
-                     fdkbase_flags flags,
+                     fdkb_flags flags,
                      fdtype opts)
 {
   fd_pool_typeinfo ptype=get_pool_typeinfo(pooltype);
@@ -183,7 +183,7 @@ static u8_mutex index_typeinfo_lock;
 FD_EXPORT void fd_register_index_type
   (u8_string name,
    fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fdkbase_flags flags),
+   fd_index (*opener)(u8_string filename,fdkb_flags flags),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -232,7 +232,7 @@ static fd_index_typeinfo get_index_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_index fd_open_index(u8_string spec,fdkbase_flags flags)
+fd_index fd_open_index(u8_string spec,fdkb_flags flags)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
   ixtype=index_typeinfo; while (ixtype) {
@@ -262,7 +262,7 @@ FD_EXPORT
 fd_index fd_make_index(
                        u8_string spec,
                        u8_string indextype,
-                       fdkbase_flags flags,
+                       fdkb_flags flags,
                        fdtype opts)
 {
   fd_index_typeinfo ixtype=get_index_typeinfo(indextype);

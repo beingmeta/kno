@@ -39,7 +39,7 @@ fd_exception fd_BadMetaData=_("Error getting metadata");
 
 int fd_default_cache_level=1;
 int fd_oid_display_level=2;
-int fdkbase_loglevel=LOG_NOTICE;
+int fdkb_loglevel=LOG_NOTICE;
 int fd_prefetch=FD_PREFETCHING_ENABLED;
 
 size_t fd_dbdriver_bufsize=FDKB_DRIVER_BUFSIZE;
@@ -532,7 +532,7 @@ FD_EXPORT int fd_init_dblib()
      NULL);
   fd_register_config
     ("DBLOGLEVEL",_("Default log level for database messages"),
-     fd_intconfig_get,fd_intconfig_set,&fdkbase_loglevel);
+     fd_intconfig_get,fd_intconfig_set,&fdkb_loglevel);
   
   fd_register_config
     ("PREFETCH",_("Whether to prefetch for large operations"),
