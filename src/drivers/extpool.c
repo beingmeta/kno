@@ -14,7 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/apply.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -54,7 +54,7 @@ fd_pool fd_make_extpool(u8_string label,
     struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
     memset(xp,0,sizeof(struct FD_EXTPOOL));
     fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
-    if (FD_VOIDP(savefn)) xp->pool_flags|=FDB_READ_ONLY;
+    if (FD_VOIDP(savefn)) xp->pool_flags|=FDKB_READ_ONLY;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);
@@ -98,7 +98,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if (!(xp->pool_flags&(FDB_BATCHABLE))) return NULL;
+  if (!(xp->pool_flags&(FDKB_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.fd_veclen=n; vstruct.fd_vecelts=oids;
   vstruct.fd_freedata=0;

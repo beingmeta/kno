@@ -14,7 +14,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/frames.h"
 #include "framerd/tables.h"

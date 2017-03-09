@@ -16,7 +16,7 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/eval.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/ports.h"
 #include "framerd/fdweb.h"
 #include "framerd/support.h"

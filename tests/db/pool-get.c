@@ -7,7 +7,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/drivers.h"
 
 #include <libu8/libu8.h>

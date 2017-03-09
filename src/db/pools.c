@@ -15,7 +15,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/apply.h"
 
 #include <libu8/libu8.h>
@@ -119,7 +119,7 @@ static void pool_conflict(fd_pool upstart,fd_pool holder);
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base);
 static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdb_flags flags);
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkbase_flags flags);
 
 int fd_ignore_anonymous_oids=0;
 
@@ -153,7 +153,7 @@ void fd_reset_pool_tables(fd_pool p,
                           ssize_t cacheval,
                           ssize_t locksval)
 {
-  int read_only=U8_BITP(p->pool_flags,FDB_READ_ONLY);
+  int read_only=U8_BITP(p->pool_flags,FDKB_READ_ONLY);
   fd_hashtable cache=&(p->pool_cache), locks=&(p->pool_changes);
   fd_reset_hashtable(cache,((cacheval==0)?(fd_pool_cache_init):(cacheval)),1);
   if (locks->table_n_keys==0) {
@@ -173,7 +173,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   int baseindex=fd_get_oid_base_index(p->pool_base,1);
   if (p->pool_serialno>=0) return 0;
   else if (baseindex<0) return baseindex;
-  else if (p->pool_flags&FDB_UNREGISTERED) return 0;
+  else if (p->pool_flags&FDKB_UNREGISTERED) return 0;
   else u8_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
   serial_no=p->pool_serialno=fd_pool_serial_count++; fd_n_pools++;
@@ -236,7 +236,7 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
 {
   struct FD_GLUEPOOL *pool=u8_alloc(struct FD_GLUEPOOL);
   pool->pool_base=base; pool->pool_capacity=0;
-  pool->pool_flags=FDB_READ_ONLY;
+  pool->pool_flags=FDKB_READ_ONLY;
   pool->pool_serialno=fd_get_oid_base_index(base,1);
   pool->pool_label="gluepool";
   pool->pool_source=NULL;
@@ -424,7 +424,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   cachelevel=p->pool_cache_level;
   /* if (p->pool_cache_level<1) return 0; */
   if ( (p->pool_handler->fetchn==NULL) ||
-       (!(p->pool_flags&(FDB_BATCHABLE))) ) {
+       (!(p->pool_flags&(FDKB_BATCHABLE))) ) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oids);
       return 0;}
@@ -532,15 +532,15 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 {
   fd_hashtable cache=&(p->pool_cache);
   oids=fd_make_simple_choice(oids);
-  u8_log(fdb_loglevel,"PoolDB","Swapping out pool %s",p->pool_idstring);
+  u8_log(fdkbase_loglevel,"PoolDB","Swapping out pool %s",p->pool_idstring);
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
-    u8_log(fdb_loglevel+1,"SwapPool",
+    u8_log(fdkbase_loglevel+1,"SwapPool",
            "Finished custom swapout for pool %s, clearing caches...",
            p->pool_idstring);}
-  else u8_log(fdb_loglevel+1,"SwapPool",
+  else u8_log(fdkbase_loglevel+1,"SwapPool",
               "No custom swapout clearing caches for %s",p->pool_idstring);
-  if (p->pool_flags&FDB_NOSWAP)
+  if (p->pool_flags&FDKB_NOSWAP)
     return 0;
   else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))  {
     int rv=FD_CHOICE_SIZE(oids);
@@ -552,7 +552,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     return rv;}
   else {
     int rv=cache->table_n_keys;
-    if ((p->pool_flags)&(FDB_STICKY_CACHESIZE))
+    if ((p->pool_flags)&(FDKB_STICKY_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
@@ -634,7 +634,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
 }
 
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,
-                             fdb_unlock_flag flags)
+                             fdkbase_unlock_flag flags)
 {
   struct FD_HASHTABLE *changes=&(p->pool_changes);
   if (changes->table_n_keys==0)
@@ -672,7 +672,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,
     return n_unlocked+n_committed;}
 }
 
-FD_EXPORT int fd_pool_unlock_all(fd_pool p,fdb_unlock_flag flags)
+FD_EXPORT int fd_pool_unlock_all(fd_pool p,fdkbase_unlock_flag flags)
 {
   return fd_pool_unlock(p,FD_FALSE,flags);
 }
@@ -708,11 +708,11 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
   struct FD_HASHTABLE *locks=&(p->pool_changes);
 
   if (locks->table_n_keys==0) {
-    u8_log(fdb_loglevel+1,fd_PoolCommit,
+    u8_log(fdkbase_loglevel+1,fd_PoolCommit,
            "####### No locked oids in %s",p->pool_idstring);
     return 0;}
   else if (p->pool_handler->storen==NULL) {
-    u8_log(fdb_loglevel+1,fd_PoolCommit,
+    u8_log(fdkbase_loglevel+1,fd_PoolCommit,
            "####### Unlocking OIDs in %s",p->pool_idstring);
     int rv=fd_pool_unlock(p,oids,leave_modified);
     return rv;}
@@ -725,7 +725,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       (FD_TRUEP(oids)) ? (pick_modified(p,1)):
       (pick_writes(p,FD_EMPTY_CHOICE));
     if (writes.len) {
-      u8_log(fdb_loglevel,"PoolCommit",
+      u8_log(fdkbase_loglevel,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
              writes.len,p->pool_changes.table_n_keys,
              p->pool_idstring);
@@ -741,7 +741,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       abort_commit(p,writes);
       return retval;}
     else if (writes.len) {
-      u8_log(fdb_loglevel,fd_PoolCommit,
+      u8_log(fdkbase_loglevel,fd_PoolCommit,
              "####### Saved %d OIDs to %s in %f secs",
              writes.len,p->pool_idstring,u8_elapsed_time()-start_time);
       finish_commit(p,writes);}
@@ -1011,7 +1011,7 @@ static int unlock_and_discard(fd_pool p,fdtype oids)
   return fd_pool_unlock(p,oids,discard_modified);
 }
 
-FD_EXPORT int fd_unlock_oids(fdtype oids_arg,fdb_unlock_flag flags)
+FD_EXPORT int fd_unlock_oids(fdtype oids_arg,fdkbase_unlock_flag flags)
 {
   switch (flags) {
   case commit_modified:
@@ -1378,7 +1378,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->pool_base=base; p->pool_capacity=capacity;
   p->pool_serialno=-1; p->pool_cache_level=-1;
-  p->pool_flags=((h->fetchn)?(FDB_BATCHABLE):(0));
+  p->pool_flags=((h->fetchn)?(FDKB_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(p->pool_cache),fd_pool_cache_init);
@@ -1424,9 +1424,9 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL /* sync */
 };
 
-fd_pool (*fd_file_pool_type)(u8_string spec,fdb_flags)=NULL;
+fd_pool (*fd_file_pool_type)(u8_string spec,fdkbase_flags)=NULL;
 
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdb_flags flags)
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkbase_flags flags)
 {
   if (strchr(spec,';')) {
     fd_pool p=NULL;
@@ -1450,9 +1450,9 @@ FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdb_flags flags)
     else return fd_open_pool(spec,flags);}
 }
 
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdb_flags flags)
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkbase_flags flags)
 {
-  return fd_get_pool(spec,flags&(~FDB_UNREGISTERED));
+  return fd_get_pool(spec,flags&(~FDKB_UNREGISTERED));
 }
 
 FD_EXPORT fd_pool fd_name2pool(u8_string spec)

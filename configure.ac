@@ -1309,7 +1309,7 @@ AC_CHECK_LIB(uuid,uuid_generate_time)
 AC_CHECK_FUNCS(uuid_generate_time)
 
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
-dnl  Note that the basic FramerD/fdb data files are still limited to 4GB, but
+dnl  Note that the basic FramerD/fdkbase data files are still limited to 4GB, but
 dnl  this lets you use all 4GB.
 AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then

@@ -15,7 +15,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 #include "framerd/apply.h"
@@ -34,7 +34,7 @@ fd_exception fd_IndexCommitError=_("can't save changes to index");
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
-fd_index (*fd_file_index_type)(u8_string,fdb_flags)=NULL;
+fd_index (*fd_file_index_type)(u8_string,fdkbase_flags)=NULL;
 
 int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
 int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
@@ -112,7 +112,7 @@ static void init_cache_level(fd_index ix)
 
 FD_EXPORT void fd_register_index(fd_index ix)
 {
-  if (ix->index_flags&FDB_UNREGISTERED)
+  if (ix->index_flags&FDKB_UNREGISTERED)
     return;
   else if (ix->index_serialno<0) {
     u8_lock_mutex(&indexes_lock);
@@ -171,7 +171,7 @@ FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fd_index fd_get_index(u8_string spec,fdb_flags flags)
+FD_EXPORT fd_index fd_get_index(u8_string spec,fdkbase_flags flags)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
@@ -217,7 +217,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   return 1;
 }
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fdb_flags flags)
+FD_EXPORT fd_index fd_use_index(u8_string spec,fdkbase_flags flags)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
@@ -325,7 +325,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       delay_index_fetch(ix,keys);
       return 0;}
     else return ix->index_handler->prefetch(ix,keys);
-  else if ((ix->index_handler->fetchn==NULL)||(!((ix->index_flags)&(FDB_BATCHABLE)))) {
+  else if ((ix->index_handler->fetchn==NULL)||(!((ix->index_flags)&(FDKB_BATCHABLE)))) {
     if (fd_ipeval_status()) {
       delay_index_fetch(ix,keys);
       return 0;}
@@ -607,7 +607,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
   FDTC *fdtc=fd_threadcache;
   fd_hashtable adds=&(ix->index_adds), cache=&(ix->index_cache);
-  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
+  if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
   else init_cache_level(ix);
@@ -669,7 +669,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
   fd_hashtable edits=&(ix->index_edits);
   fd_hashtable adds=&(ix->index_adds);
   fd_hashtable bg_cache=&(fd_background->index_cache);
-  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
+  if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",
               u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
@@ -716,7 +716,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
   fd_hashtable edits=&(ix->index_edits);
   fd_hashtable adds=&(ix->index_adds);
   fd_hashtable bg_cache=&(fd_background->index_cache);
-  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
+  if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
               u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
@@ -768,7 +768,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
 {
   /* Ignoring this for now */
   fd_hashtable adds=&(ix->index_adds);
-  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
+  if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
               u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
@@ -795,7 +795,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   if ((ix->index_adds.ht_n_buckets) || (ix->index_edits.ht_n_buckets)) {
     int n_keys=ix->index_adds.table_n_keys+ix->index_edits.table_n_keys, retval=0;
     if (n_keys==0) return 0;
-    u8_log(fdb_loglevel,fd_IndexCommit,
+    u8_log(fdkbase_loglevel,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->index_idstring);
     double start_time=u8_elapsed_time();
     if (ix->index_cache_level<0) {
@@ -808,7 +808,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
              _("!!!!!!! Error saving %d keys to %s after %f secs"),
              n_keys,ix->index_idstring,u8_elapsed_time()-start_time);
     else if (retval>0)
-      u8_log(fdb_loglevel,fd_IndexCommit,
+      u8_log(fdkbase_loglevel,fd_IndexCommit,
              _("####### Saved %d updated keys to %s in %f secs"),
              retval,ix->index_idstring,u8_elapsed_time()-start_time);
     else {}
@@ -821,7 +821,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix)
 {
   if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
-    if ((ix->index_flags)&(FDB_STICKY_CACHESIZE))
+    if ((ix->index_flags)&(FDKB_STICKY_CACHESIZE))
       fd_reset_hashtable(&(ix->index_cache),-1,1);
     else fd_reset_hashtable(&(ix->index_cache),0,1);}
 }
@@ -835,14 +835,14 @@ FD_EXPORT void fd_index_close(fd_index ix)
 /* Common init function */
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fdb_flags flags)
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fdkbase_flags flags)
 {
-  U8_SETBITS(flags,FDB_ISINDEX);
-  if (U8_BITP(flags,FDB_ISCONSED)) {
+  U8_SETBITS(flags,FDKB_ISINDEX);
+  if (U8_BITP(flags,FDKB_ISCONSED)) {
     FD_INIT_CONS(ix,fd_raw_index_type);}
   else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
-  if (U8_BITP(flags,FDB_READ_ONLY)) { U8_SETBITS(flags,FDB_READ_ONLY); };
-  if (h->fetchn) { U8_SETBITS(flags,FDB_BATCHABLE); };
+  if (U8_BITP(flags,FDKB_READ_ONLY)) { U8_SETBITS(flags,FDKB_READ_ONLY); };
+  if (h->fetchn) { U8_SETBITS(flags,FDKB_BATCHABLE); };
   ix->index_serialno=-1; ix->index_cache_level=-1; ix->index_flags=flags;
   FD_INIT_STATIC_CONS(&(ix->index_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->index_adds),fd_hashtable_type);
@@ -860,7 +860,7 @@ FD_EXPORT void fd_init_index
 FD_EXPORT void fd_reset_index_tables
   (fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize)
 {
-  int readonly=U8_BITP(ix->index_flags,FDB_READ_ONLY);
+  int readonly=U8_BITP(ix->index_flags,FDKB_READ_ONLY);
   fd_hashtable cache=&(ix->index_cache);
   fd_hashtable edits=&(ix->index_edits);
   fd_hashtable adds=&(ix->index_adds);

@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/dtcall.h"
 #include "framerd/drivers.h"
 
@@ -45,7 +45,7 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdb_flags flags)
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkbase_flags flags)
 {
   struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;
@@ -60,8 +60,8 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdb_flags flags)
   writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||
       (!(FD_FALSEP(writable_response))))
-    U8_SETBITS(ix->index_flags,(FDB_READ_ONLY));
-  else U8_CLEARBITS(ix->index_flags,(FDB_READ_ONLY));
+    U8_SETBITS(ix->index_flags,(FDKB_READ_ONLY));
+  else U8_CLEARBITS(ix->index_flags,(FDKB_READ_ONLY));
   fd_decref(writable_response);
 
   ix->capabilities=0;
@@ -70,7 +70,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdb_flags flags)
   if (server_supportsp(ix,iserver_drop)) ix->capabilities|=FD_ISERVER_DROP;
   if (server_supportsp(ix,iserver_reset)) ix->capabilities|=FD_ISERVER_RESET;
 
-  if ((ix)&&(!(U8_BITP(flags,FDB_ISCONSED))))
+  if ((ix)&&(!(U8_BITP(flags,FDKB_ISCONSED))))
     fd_register_index((fd_index)ix);
 
   return (fd_index) ix;

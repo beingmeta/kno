@@ -11,7 +11,7 @@
 #include "framerd/numbers.h"
 #include "framerd/support.h"
 #include "framerd/tables.h"
-#include "framerd/fdb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
@@ -112,7 +112,7 @@ static int shutdown_grace=30000000; /* 30 seconds */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
 static int backtrace_width=FD_BACKTRACE_WIDTH;
 
-static int no_fdb=0;
+static int no_fdkbase=0;
 
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=60, fastfail_wait=60;
@@ -487,7 +487,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
                  client->idstring,sock,FD_STREAM_SOCKET,
                  FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
-     into the stream's id (fdb). */
+     into the stream's id (fdkbase). */
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -922,7 +922,7 @@ static void init_server()
   u8_unlock_mutex(&init_server_lock);
 }
 
-FD_EXPORT int fd_init_fdbserv(void);
+FD_EXPORT int fd_init_fdkbserv(void);
 static void init_configs(void);
 static fd_lispenv init_core_env(void);
 static int launch_server(u8_string source_file,fd_lispenv env);
@@ -936,7 +936,7 @@ int main(int argc,char **argv)
   int u8_version=u8_initialize(), fd_version;
   u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
   /* This is the base of the environment used to be passed to the server.
-     It is augmented by the fdbserv module, all of the modules declared by
+     It is augmented by the fdkbserv module, all of the modules declared by
      MODULE= configurations, and either the exports or the definitions of
      the server control file from the command line.
      It starts out built on the default safe environment, but loses that if
@@ -981,7 +981,7 @@ int main(int argc,char **argv)
     source_file=server_spec;
   else server_port=server_spec;
 
-  fdb_loglevel=LOG_INFO;
+  fdkbase_loglevel=LOG_INFO;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,
@@ -1064,10 +1064,10 @@ int main(int argc,char **argv)
 
   /* Create the exposed environment.  This may be further modified by
      MODULE configs. */
-  if (no_fdb)
+  if (no_fdkbase)
     exposed_environment=core_env;
   else exposed_environment=
-         fd_make_env(fd_incref(fd_fdbserv_module),core_env);
+         fd_make_env(fd_incref(fd_fdkbserv_module),core_env);
 
   /* Now process all the configuration arguments */
   fd_handle_argv(argc,argv,arg_mask,NULL);
@@ -1204,18 +1204,18 @@ static void init_configs()
      _("Whether to automatically reload changed files"),
      fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
   fd_register_config
-    ("NOFDB",
+    ("NOFDKBASE",
      _("Whether to disable exported FramerD DB API"),
-     fd_boolconfig_get,fd_boolconfig_set,&no_fdb);
+     fd_boolconfig_get,fd_boolconfig_set,&no_fdkbase);
 }
 
 static fd_lispenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lispenv core_env=fd_safe_working_environment();
-  fd_init_fdbserv();
-  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdbserv_module);
+  fd_init_fdkbserv();
+  fd_register_module("FDKBSERV",fd_incref(fd_fdkbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_fdkbserv_module);
 
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);

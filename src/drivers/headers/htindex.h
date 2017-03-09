@@ -22,5 +22,5 @@ typedef struct FD_HT_INDEX {
   int (*commitfn)(struct FD_HT_INDEX *,u8_string);} FD_HT_INDEX;
 typedef struct FD_HT_INDEX *fd_mem_index;
 
-FD_EXPORT fd_index fd_make_ht_index(fdb_flags flags);
+FD_EXPORT fd_index fd_make_ht_index(fdkbase_flags flags);
 
