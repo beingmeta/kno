@@ -14,9 +14,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/streams.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -158,13 +158,13 @@ static size_t get_maxpos(fd_bigpool p)
 
 /* Making and opening bigpools */
 
-static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
+static fd_pool open_bigpool(u8_string fname,fdkbase_flags flags)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids;
   fd_off_t label_loc, slotids_loc; fdtype label;
   struct FD_BIGPOOL *pool=u8_zalloc(struct FD_BIGPOOL);
-  int read_only=U8_BITP(flags,FDB_READ_ONLY);
+  int read_only=U8_BITP(flags,FDKB_READ_ONLY);
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
@@ -186,7 +186,7 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
   pool->pool_load=load=fd_read_4bytes(instream);
   flags=fd_read_4bytes(instream);
   pool->pool_xformat=flags;
-  if (U8_BITP(flags,FDB_READ_ONLY)) {
+  if (U8_BITP(flags,FDKB_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
     fd_close_stream(stream,0);
@@ -263,10 +263,10 @@ static fd_pool open_bigpool(u8_string fname,fddb_flags flags)
      offsets.  We don't fill this in until we actually need it. */
   pool->pool_offdata=NULL; pool->pool_offdata_length=0;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
+    U8_SETBITS(pool->pool_flags,FDKB_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FDKB_READ_ONLY);
   u8_init_mutex(&(pool->file_lock));
-  if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
+  if (!(U8_BITP(pool->pool_flags,FDKB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
@@ -784,7 +784,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(bp,"bigpool_storen"))<0) return -1;
   double started=u8_elapsed_time();
-  u8_log(fddb_loglevel+1,"BigpoolStore",
+  u8_log(fdkbase_loglevel+1,"BigpoolStore",
          "Storing %d oid values in bigpool %s",n,p->pool_idstring);
   struct BIGPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct BIGPOOL_SAVEINFO);
@@ -834,7 +834,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  u8_log(fddb_loglevel,"BigpoolStore",
+  u8_log(fdkbase_loglevel,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->pool_idstring,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(bp);
@@ -874,7 +874,7 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
   fd_outbuf outstream=fd_writebuf(stream);
   double started=u8_elapsed_time();
   int i=0;
-  u8_log(fddb_loglevel+1,"BigpoolFinalize",
+  u8_log(fdkbase_loglevel+1,"BigpoolFinalize",
          "Finalizing %d oid values for %s",n,bp->pool_idstring);
   while (i<n) {
     unsigned int oidoff=saveinfo[i++].oidoff;
@@ -990,7 +990,7 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
       exit(-1);}
   write_bigpool_load(bp);
   write_bigpool_slotids(bp);
-  u8_log(fddb_loglevel+1,"BigpoolFinalize",
+  u8_log(fdkbase_loglevel+1,"BigpoolFinalize",
          "Finalized %d oid values for %s in %f seconds",
          n,bp->pool_idstring,u8_elapsed_time()-started);
   return 0;
@@ -1272,7 +1272,7 @@ static int interpret_pool_flags(fdtype opts)
 }
 
 static fd_pool bigpool_create(u8_string spec,void *type_data,
-                              fddb_flags flags,fdtype opts)
+                              fdkbase_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

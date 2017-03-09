@@ -339,10 +339,10 @@
 (define-tester (testfn x (y constval))
   x)
 (define (testoptfree)
-  (message "Running big TESTOPTFREE test")
+  (message "Running big REFOVERFLOW test")
   ;; This is enough to overflow the refcount for 32-bit consdata
   (dotimes (i 17000000) (testfn "bar"))
-  (message "Finished big TESTOPTFREE test (whew)")
+  (message "Finished big REFOVERFLOW test (whew)")
   #t)
 (unless (or (getenv "MEMCHECKING") (getenv "HEAPCHECK"))
   (applytest #t testoptfree))

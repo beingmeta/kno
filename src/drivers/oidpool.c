@@ -22,9 +22,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/streams.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -182,13 +182,13 @@ static size_t get_maxpos(fd_oidpool p)
 
 static int init_schemas(fd_oidpool,fdtype);
 
-static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
+static fd_pool open_oidpool(u8_string fname,fdkbase_flags flags)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
-  int read_only=U8_BITP(flags,FDB_READ_ONLY);
+  int read_only=U8_BITP(flags,FDKB_READ_ONLY);
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
@@ -207,7 +207,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   pool->pool_load=load=fd_read_4bytes(instream);
   flags=fd_read_4bytes(instream);
   pool->pool_xformat=flags;
-  if (U8_BITP(flags,FDB_READ_ONLY)) {
+  if (U8_BITP(flags,FDKB_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
     fd_close_stream(stream,0);
@@ -257,10 +257,10 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
      We don't fill this in until we actually need it. */
   pool->pool_offdata=NULL; pool->pool_offdata_size=0;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
+    U8_SETBITS(pool->pool_flags,FDKB_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FDKB_READ_ONLY);
   u8_init_mutex(&(pool->file_lock));
-  if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
+  if (!(U8_BITP(pool->pool_flags,FDKB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
@@ -904,7 +904,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(op,"oidpool_storen"))<0) return -1;
   double started=u8_elapsed_time();
-  u8_log(fddb_loglevel+1,"OIDPoolStore",
+  u8_log(fdkbase_loglevel+1,"OIDPoolStore",
          "Storing %d oid values in oidpool %s",n,p->pool_idstring);
   struct OIDPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct OIDPOOL_SAVEINFO);
@@ -983,7 +983,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  u8_log(fddb_loglevel,"OIDPoolStore",
+  u8_log(fdkbase_loglevel,"OIDPoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->pool_idstring,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(op);
@@ -997,7 +997,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
 {
   fd_outbuf outstream=fd_writebuf(stream);
   double started=u8_elapsed_time(), taken;
-  u8_log(fddb_loglevel+1,"OIDPoolFinalize",
+  u8_log(fdkbase_loglevel+1,"OIDPoolFinalize",
          "Finalizing %d oid values from %s",n,op->pool_idstring);
 
   if (op->pool_offdata) {
@@ -1109,10 +1109,10 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
 
   taken=u8_elapsed_time()-started;
   if (taken>1)
-    u8_log(fddb_loglevel,"OIDPoolFinalize",
+    u8_log(fdkbase_loglevel,"OIDPoolFinalize",
            "Finalized %d oid values from %s in %f secs",
            n,op->pool_idstring,taken);
-  else u8_log(fddb_loglevel+1,"OIDPoolFinalize",
+  else u8_log(fdkbase_loglevel+1,"OIDPoolFinalize",
               "Finalized %d oid values from %s in %f secs",
               n,op->pool_idstring,taken);
   return 0;
@@ -1421,7 +1421,7 @@ static int interpret_pool_flags(fdtype opts)
 }
 
 static fd_pool oidpool_create(u8_string spec,void *type_data,
-                              fddb_flags flags,fdtype opts)
+                              fdkbase_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

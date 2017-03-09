@@ -15,7 +15,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
@@ -26,7 +26,7 @@
 #include <libu8/u8srvfns.h>
 
 static fd_pool primary_pool=NULL;
-static fd_pool served_pools[FDBSERV_MAX_POOLS];
+static fd_pool served_pools[FDKBSERV_MAX_POOLS];
 static int n_served_pools=0;
 struct FD_COMPOUND_INDEX *primary_index=NULL;
 static int read_only=0, locking=1;
@@ -586,7 +586,7 @@ static fdtype server_pool_data(fdtype session_id)
     fd_pool p=served_pools[i];
     fdtype base=fd_make_oid(p->pool_base);
     fdtype capacity=FD_INT(p->pool_capacity);
-    fdtype ro=(U8_BITP(p->pool_flags,FDB_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
+    fdtype ro=(U8_BITP(p->pool_flags,FDKB_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
     elts[i++]=
       ((p->pool_label) ?
        (fd_make_list(4,base,capacity,ro,fdtype_string(p->pool_label))) :
@@ -733,7 +733,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
-    else if (n_served_pools>=FDBSERV_MAX_POOLS) {
+    else if (n_served_pools>=FDKBSERV_MAX_POOLS) {
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
@@ -804,7 +804,7 @@ static fdtype get_served_indexes(fdtype var,void *data)
 
 /* Initialization */
 
-fdtype fd_fdbserv_module;
+fdtype fd_fdkbserv_module;
 
 static int dbserv_init=0;
 
@@ -893,15 +893,15 @@ void fd_init_dbserv_c()
 
   primary_index=(fd_compound_index)fd_make_compound_index(0,NULL);
 
-  fd_fdbserv_module=module;
+  fd_fdkbserv_module=module;
 }
 
-static int fddbserv_initialized=0;
+static int fdkbserv_initialized=0;
 
-FD_EXPORT int fd_init_fddbserv()
+FD_EXPORT int fd_init_fdkbserv()
 {
-  if (fddbserv_initialized) return fddbserv_initialized;
-  fddbserv_initialized=211*fd_init_dblib();
+  if (fdkbserv_initialized) return fdkbserv_initialized;
+  fdkbserv_initialized=211*fd_init_dblib();
 
   u8_register_source_file(_FILEINFO);
   fd_init_dbserv_c();

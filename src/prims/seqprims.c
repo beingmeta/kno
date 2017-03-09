@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/eval.h"
 #include "framerd/sequences.h"
 #include "framerd/numbers.h"
@@ -1791,6 +1791,100 @@ static fdtype vec2elts_prim(fdtype x)
   else return fd_incref(x);
 }
 
+/* Vector length predicates */
+
+static fdtype veclen_lt_prim(fdtype x,fdtype len)
+{
+  if (!(FD_VECTORP(x)))
+    return FD_FALSE;
+  else if (FD_VECTOR_LENGTH(x)<FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype veclen_lte_prim(fdtype x,fdtype len)
+{
+  if (!(FD_VECTORP(x)))
+    return FD_FALSE;
+  else if (FD_VECTOR_LENGTH(x)<=FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype veclen_gt_prim(fdtype x,fdtype len)
+{
+  if (!(FD_VECTORP(x)))
+    return FD_FALSE;
+  else if (FD_VECTOR_LENGTH(x)>FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype veclen_gte_prim(fdtype x,fdtype len)
+{
+  if (!(FD_VECTORP(x)))
+    return FD_FALSE;
+  else if (FD_VECTOR_LENGTH(x)>=FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype veclen_eq_prim(fdtype x,fdtype len)
+{
+  if (!(FD_VECTORP(x)))
+    return FD_FALSE;
+  else if (FD_VECTOR_LENGTH(x)==FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+/* Sequence length predicates */
+
+static fdtype seqlen_lt_prim(fdtype x,fdtype len)
+{
+  if (!(FD_SEQUENCEP(x)))
+    return FD_FALSE;
+  else if (fd_seq_length(x)<FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype seqlen_lte_prim(fdtype x,fdtype len)
+{
+  if (!(FD_SEQUENCEP(x)))
+    return FD_FALSE;
+  else if (fd_seq_length(x)<=FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype seqlen_gt_prim(fdtype x,fdtype len)
+{
+  if (!(FD_SEQUENCEP(x)))
+    return FD_FALSE;
+  else if (fd_seq_length(x)>FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype seqlen_gte_prim(fdtype x,fdtype len)
+{
+  if (!(FD_SEQUENCEP(x)))
+    return FD_FALSE;
+  else if (fd_seq_length(x)>=FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype seqlen_eq_prim(fdtype x,fdtype len)
+{
+  if (!(FD_SEQUENCEP(x)))
+    return FD_FALSE;
+  else if (fd_seq_length(x)==FD_FIX2INT(len))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* Matching vectors */
 
 static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
@@ -2347,6 +2441,28 @@ FD_EXPORT void fd_init_seqprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim4("EVERY?",every_prim,2));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("VECTOR->ELTS",vec2elts_prim,1));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("VECLEN>=?",veclen_gte_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("VECLEN>?",veclen_gt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("VECLEN=?",veclen_eq_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("VECLEN<?",veclen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("VECLEN<=?",veclen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("SEQLEN>=?",seqlen_gte_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("SEQLEN>?",seqlen_gt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("SEQLEN=?",seqlen_eq_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("SEQLEN<?",seqlen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("SEQLEN<=?",seqlen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("SORTVEC",sortvec_prim,1,

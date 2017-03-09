@@ -15,7 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/apply.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 

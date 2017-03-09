@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"

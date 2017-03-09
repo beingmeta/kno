@@ -78,7 +78,7 @@ DTYPE_HEADERS=\
  include/framerd/dtypeio.h
 DB_HEADERS=\
  include/framerd/streams.h                            \
- include/framerd/fddb.h                              \
+ include/framerd/fdkbase.h                              \
  include/framerd/pools.h                             \
  include/framerd/indexes.h                           \
  include/framerd/dtproc.h                            \
@@ -96,27 +96,31 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
-	src/drivers/headers/filepool.h 	\
+	src/drivers/headers/filepool.h 		\
+	src/drivers/headers/htindex.h		\
 	src/drivers/headers/fileindex.h 	\
 	src/drivers/headers/memindex.h	 	\
 	src/drivers/headers/oidpool.h	 	\
-	src/drivers/headers/hashindex.h	\
+	src/drivers/headers/hashindex.h		\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=src/cons/cons.o src/cons/oids.o		\
-	  src/cons/fcnids.o src/cons/bufio.o		\
-	  src/cons/symbols.o src/cons/numbers.o		\
-	  src/cons/compare.o				\
-	  src/cons/apply.o @calltracko@ src/cons/ffi.o	\
-          src/cons/choices.o src/cons/tables.o		\
-          src/cons/dtypeio.o src/cons/textio.o		\
-	  src/cons/fdtype.o src/cons/support.o
+	src/cons/fcnids.o src/cons/bufio.o		\
+	src/cons/symbols.o src/cons/numbers.o		\
+	src/cons/compare.o				\
+	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
+	src/cons/choices.o src/cons/tables.o		\
+	src/cons/dtypeio.o src/cons/textio.o		\
+	src/cons/fdtype.o src/cons/support.o		\
+	src/cons/config.o src/cons/err.o 		\
+	src/cons/logging.o src/cons/getopt.o 		\
+	src/cons/startup.o src/cons/fluid.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/db/fddb.o src/db/streams.o src/db/hashdtype.o 		\
+DB_OBJS=src/db/fdkbase.o src/db/streams.o src/db/hashdtype.o 		\
 	src/db/pools.o src/db/indexes.o	src/db/compoundindexes.o	\
 	src/db/dtproc.o src/db/dtcall.o 				\
 	src/db/methods.o src/db/xtables.o 				\
@@ -133,7 +137,7 @@ DBDRIVERS_OBJS=\
 	src/drivers/htindex.o src/drivers/extindex.o 	\
 	src/drivers/memindex.o src/drivers/netindex.o
 
-FDBSERV_OBJS=src/db/dbserv.o
+FDKBSERV_OBJS=src/db/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -165,6 +169,7 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	src/prims/portprims.o \
 	src/prims/streamprims.o \
 	src/prims/timeprims.o \
+	src/prims/sysprims.o \
 	src/prims/extdbprims.o
 
 SCHEMEIO_OBJS=\
@@ -173,22 +178,22 @@ SCHEMEIO_OBJS=\
 	src/eval/loader.o
 
 FDWEB_OBJS=\
-	src/fdweb/fdweb.o \
-	src/fdweb/xmloutput.o \
-	src/fdweb/xmlinput.o \
-	src/fdweb/xmldata.o \
-	src/fdweb/mime.o \
-	src/fdweb/email.o \
-	src/fdweb/uriprims.o \
-	src/fdweb/xmleval.o \
-	src/fdweb/cgiexec.o \
-	src/fdweb/json.o \
+	src/web/fdweb.o \
+	src/web/xmloutput.o \
+	src/web/xmlinput.o \
+	src/web/xmldata.o \
+	src/web/mime.o \
+	src/web/email.o \
+	src/web/uriprims.o \
+	src/web/xmleval.o \
+	src/web/cgiexec.o \
+	src/web/json.o \
 	@ldnso@ @curlo@
 TEXTTOOLS_OBJS=\
-	src/texttools/texttools.o \
-	src/texttools/match.o \
-	src/texttools/porter.o \
-	src/texttools/phonetic.o
+	src/text/texttools.o \
+	src/text/match.o \
+	src/text/porter.o \
+	src/text/phonetic.o
 SUNDOWN_OBJS=\
 	src/cmodules/ext/sundown/autolink.o \
 	src/cmodules/ext/sundown/buffer.o \
@@ -321,9 +326,11 @@ FRAMERD_SOURCES=\
         src/cons/compare.c src/cons/fcnids.c       			\
 	src/cons/choices.c src/cons/tables.c 				\
         src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
-	src/cons/fdtype.c src/cons/support.c 				\
+	src/cons/fdtype.c src/cons/support.c src/cons/config.c		\
+	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\
+	src/cons/startup.c src/cons/fluid.c				\
 	src/cons/apply.c src/cons/calltrack.c src/cons/ffi.c       	\
-	src/db/fddb.c src/db/streams.c src/db/hashdtype.c		\
+	src/db/fdkbase.c src/db/streams.c src/db/hashdtype.c		\
 	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\
 	src/db/compoundindexes.c  					\
@@ -354,14 +361,15 @@ FRAMERD_SOURCES=\
 	src/prims/seqprims.c src/prims/stringprims.c                 	\
 	src/prims/fileprims.c src/prims/driverprims.c                	\
 	src/eval/loader.c                                            	\
-	src/prims/timeprims.c src/prims/extdbprims.c                    \
+	src/prims/timeprims.c src/prims/sysprims.c 			\
+	src/prims/extdbprims.c                    			\
 	src/eval/reqstate.c                                          	\
-	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            	\
-	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c 	\
-	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   	\
-	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            	\
-	src/texttools/texttools.c src/texttools/match.c                	\
-	src/texttools/porter.c src/texttools/phonetic.c                	\
+	src/web/fdweb.c src/web/json.c src/web/ldns.c            	\
+	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 	\
+	src/web/xmleval.c src/web/cgiexec.c src/web/uriprims.c   	\
+	src/web/mime.c src/web/email.c src/web/curl.c            	\
+	src/text/texttools.c src/text/match.c                	\
+	src/text/porter.c src/text/phonetic.c                	\
 	src/exe/fdconsole.c                                            	\
 	src/exe/fdexec.c src/exe/fdbatch.c                             	\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
@@ -373,29 +381,29 @@ CMODULE_SOURCES=\
 	src/cmodules/tidy5/tidy.c src/cmodules/imagick.c               \
 	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
 
-STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
-        lib/libfdbserv@suffix@.a lib/libfddbdrivers@suffix@.a  \
+STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdkbase@suffix@.a      \
+        lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
-	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
+	lib/libfdweb@suffix@.a lib/libfdtext@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
-	lib/libfddb@suffix@.@shared_suffix@        		\
-        lib/libfddbdrivers@suffix@.@shared_suffix@    		\
-	lib/libfdbserv@suffix@.@shared_suffix@     		\
+	lib/libfdkbase@suffix@.@shared_suffix@        		\
+        lib/libfdkbdrivers@suffix@.@shared_suffix@    		\
+	lib/libfdkbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
-	lib/libtexttools@suffix@.@shared_suffix@		\
+	lib/libfdtext@suffix@.@shared_suffix@		\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
-	lib/libfddb@suffix@.@mshared_suffix@        		\
-        lib/libfddbdrivers@suffix@.@mshared_suffix@    		\
-	lib/libfdbserv@suffix@.@mshared_suffix@     		\
+	lib/libfdkbase@suffix@.@mshared_suffix@        		\
+        lib/libfdkbdrivers@suffix@.@mshared_suffix@    		\
+	lib/libfdkbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
-	lib/libtexttools@suffix@.@mshared_suffix@
+	lib/libfdtext@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
+SCHEME_MODULES=src/modules/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
 	src/modules/facebook/*.scm src/modules/google/*.scm \
 	src/modules/paypal/*.scm src/modules/twitter/*.scm \
@@ -406,8 +414,8 @@ SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
-MODULE_SO=lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so
+MODULE_SO=lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -544,10 +552,10 @@ exe/scripts/%: src/scripts/%.scm
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
-		-lfdbserv@suffix@                 	 	   \
+		-lfdkbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfddbdrivers@suffix@ -lfddb@suffix@ -lfdtype@suffix@ \
+		-lfdkbdrivers@suffix@ -lfdkbase@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -651,10 +659,10 @@ exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
 exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
-src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h src/fdweb/backtrace_js.h
-src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
+src/web/xmloutput.o: src/web/backtrace_css.h src/web/backtrace_js.h
+src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
 	./etc/text2include FD_BACKTRACE_CSS $< $@
-src/fdweb/backtrace_js.h: src/fdweb/backtrace.js etc/text2include
+src/web/backtrace_js.h: src/web/backtrace.js etc/text2include
 	./etc/text2include FD_BACKTRACE_JS $< $@
 
 # This can be helpful for some debugging 
@@ -682,8 +690,8 @@ cmodules: @CMODULES@
 
 # Uninstall
 
-LIBBASE=libfdtype libfddb libfddbdrivers libfdbserv \
-	libfdscheme libfdschemeio libfdweb libtexttools
+LIBBASE=libfdtype libfdkbase libfdkbdrivers libfdkbserv \
+	libfdscheme libfdschemeio libfdweb libfdtext
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
@@ -721,31 +729,32 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
 		src/cons/*.c src/db/*.c src/drivers/*.c 		\
 		src/eval/*.c src/prims/*.c     				\
-		src/texttools/*.c src/fdweb/*.c 			\
+		src/text/*.c src/web/*.c 				\
 		src/cmodules/sundown/sundown.c         			\
 		etc/*.in ${SRC_HEADERS} 				\
 		tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
-	      etc/*.in include/framerd/*.h ${SRC_HEADERS};
+	        tests/*/*.in etc/*.in include/framerd/*.h 		\
+		${SRC_HEADERS};
 	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
-	@etags -o TAGS -a src/fdweb/*.c src/texttools/*.c;
+	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a src/cmodules/sundown/sundown.c;
 	@etags -o TAGS -a tests/cons/*.c tests/db/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/db/*.c src/eval/*.c src/fdweb/*.c     \
-		src/texttools/*.c src/cmodules/*.c         \
+		src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
+		src/text/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-	      src/cons/*.c src/db/*.c src/eval/*.c src/fdweb/*.c     \
-	      src/texttools/*.c src/cmodules/*.c         \
+	      src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
+	      src/text/*.c src/cmodules/*.c         \
 	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
 
@@ -754,7 +763,7 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/modules src/fdweb/xhtml -name "*.scm" | \
+	@find src/modules -name "*.scm" | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
@@ -822,57 +831,57 @@ lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.so: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS)
 
-lib/libfddb@suffix@.a: $(DB_OBJS)
-lib/libfddb@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
-lib/libfddb@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
+lib/libfdkbase@suffix@.a: $(DB_OBJS)
+lib/libfdkbase@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
+lib/libfdkbase@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
-lib/libfddbdrivers@suffix@.a: $(DBDRIVERS_OBJS)
-lib/libfddbdrivers@suffix@.so: $(DBDRIVERS_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so
-lib/libfddbdrivers@suffix@.dylib: $(DBDRIVERS_OBJS) \
-	lib/libfddb@suffix@.dylib lib/libfdtype@suffix@.dylib
+lib/libfdkbdrivers@suffix@.a: $(DBDRIVERS_OBJS)
+lib/libfdkbdrivers@suffix@.so: $(DBDRIVERS_OBJS) \
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so
+lib/libfdkbdrivers@suffix@.dylib: $(DBDRIVERS_OBJS) \
+	lib/libfdkbase@suffix@.dylib lib/libfdtype@suffix@.dylib
 
-lib/libfdbserv@suffix@.a: $(FDBSERV_OBJS)
-lib/libfdbserv@suffix@.so: $(FDBSERV_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddbdrivers@suffix@.so
-lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
+lib/libfdkbserv@suffix@.a: $(FDKBSERV_OBJS)
+lib/libfdkbserv@suffix@.so: $(FDKBSERV_OBJS) \
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdkbdrivers@suffix@.so
+lib/libfdkbserv@suffix@.dylib: $(FDKBSERV_OBJS) \
 	lib/libfdscheme@suffix@.dylib         \
-	lib/libfddbdrivers@suffix@.dylib         \
-	lib/libfddb@suffix@.dylib             \
+	lib/libfdkbdrivers@suffix@.dylib         \
+	lib/libfdkbase@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so	\
-	lib/libfddbdrivers@suffix@.so
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so	\
+	lib/libfdkbdrivers@suffix@.so
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libfdtype@suffix@.dylib  lib/libfddb@suffix@.dylib	\
-        lib/libfddbdrivers@suffix@.dylib
+	lib/libfdtype@suffix@.dylib  lib/libfdkbase@suffix@.dylib	\
+        lib/libfdkbdrivers@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
 lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
-	lib/libfdtype@suffix@.so  lib/libfddb@suffix@.so	\
-        lib/libfddbdrivers@suffix@.so 				\
+	lib/libfdtype@suffix@.so  lib/libfdkbase@suffix@.so	\
+        lib/libfdkbdrivers@suffix@.so 				\
 	lib/libfdscheme@suffix@.so
 lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
 	lib/libfdscheme@suffix@.dylib             		\
-	lib/libfdtype@suffix@.dylib  lib/libfddb@suffix@.dylib	\
-        lib/libfddbdrivers@suffix@.dylib
+	lib/libfdtype@suffix@.dylib  lib/libfdkbase@suffix@.dylib	\
+        lib/libfdkbdrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
 	lib/libfdtype@suffix@.so \
-	lib/libfddb@suffix@.so \
-	lib/libfddbdrivers@suffix@.so \
+	lib/libfdkbase@suffix@.so \
+	lib/libfdkbdrivers@suffix@.so \
 	lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
-	lib/libfddbdrivers@suffix@.dylib     \
-	lib/libfddb@suffix@.dylib         \
+	lib/libfdkbdrivers@suffix@.dylib     \
+	lib/libfdkbase@suffix@.dylib         \
         lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -880,15 +889,15 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 		-o $@ $(FDWEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
-lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so \
+lib/libfdtext@suffix@.a: $(TEXTTOOLS_OBJS)
+lib/libfdtext@suffix@.so: $(TEXTTOOLS_OBJS) \
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
-lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
+lib/libfdtext@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
-	lib/libfddbdrivers@suffix@.dylib \
-	lib/libfddb@suffix@.dylib \
+	lib/libfdkbdrivers@suffix@.dylib \
+	lib/libfdkbase@suffix@.dylib \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -1024,7 +1033,7 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ \
+	@XGETTEXT@ --from-code=utf-8 -dfdkbase -oetc/intl/framerd.pot -k_ \
 		$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	@MSGMERGE@ -U $@ $<
@@ -1206,30 +1215,30 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@confi
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
-		$(LIBINSTALLDIR)/libfddb@suffix@.a       \
-		$(LIBINSTALLDIR)/libfddbdrivers@suffix@.a   \
-		$(LIBINSTALLDIR)/libfdbserv@suffix@.a    \
+		$(LIBINSTALLDIR)/libfdkbase@suffix@.a       \
+		$(LIBINSTALLDIR)/libfdkbdrivers@suffix@.a   \
+		$(LIBINSTALLDIR)/libfdkbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
-		$(LIBINSTALLDIR)/libtexttools@suffix@.a
+		$(LIBINSTALLDIR)/libfdtext@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfddbdrivers@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbdrivers@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbdrivers@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbdrivers@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\
@@ -1242,10 +1251,10 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.@shared_suffix@
+    $(LIBINSTALLDIR)/libfdtext@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdtext@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdtext@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdtext@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
@@ -1261,7 +1270,7 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdbserver; 	$(SUDO) ln -s fdserver fdbserver
+	@cd $(BININSTALLDIR); $(SUDO) rm -f fdkbserver; 	$(SUDO) ln -s fdserver fdkbserver
 	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserv; $(SUDO) ln -s fdservlet fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
@@ -1368,16 +1377,6 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modul
           ${SUDO} ln -sf `readlink $${safe_link}` 				\
 		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
-
-install-web-modules: $(DESTDIR)@builtin_module_dir@
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/xhtml
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/fdxml;
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/*.scm \
-		$(DESTDIR)@builtin_module_dir@/xhtml;
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/*.scm \
-		$(DESTDIR)@builtin_module_dir@/fdxml;
-	${SUDO} ln -sf ../xhtml $(DESTDIR)@builtin_safe_module_dir@;
-	${SUDO} ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\

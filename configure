@@ -825,7 +825,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -926,8 +925,6 @@ enable_prefetching
 enable_calltrack
 enable_fileconfig
 enable_schemeio
-enable_fdweb
-enable_texttools
 enable_htmldump
 with_tls
 enable_ipeval
@@ -988,7 +985,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1241,15 +1237,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1387,7 +1374,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1540,7 +1527,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1586,8 +1572,6 @@ Optional Features:
 --endisable-calltrack enable internal scheme profiling
 --endisable-fileconfig enable file-based configuration
 --endisable-schemeio compiled-in schemeio
---endisable-fdweb compiled-in fdweb
---endisable-texttools compiled-in texttools
 --endisable-htmldump write HTML backtraces
 --endisable-ipeval Enable IPEVAL
 
@@ -1662,7 +1646,7 @@ Optional Packages:
 --without-tls Force use of threadlocal storage
 --without-global-ipeval Use global lock and variables for ipeval
 --without-curl Use libcurl in fdweb
---without-dns Use dns in fdweb
+--without-dns Use dns in web
 --without-exif Use libexif in fdweb
 --without-qrcode Create qrcode binary module
 
@@ -2868,8 +2852,6 @@ rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
-enable_fdweb_default="no"
-enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
@@ -10901,7 +10883,7 @@ if test "${with_stdlib+set}" = set; then :
   withval=$with_stdlib;
 fi
 
-if test "$with_stdlib"; then
+if test ! -z "${with_stdlib}"; then
    gperftools_default="no";
 fi;
 
@@ -10910,7 +10892,7 @@ fi;
 if test "${with_gperftools+set}" = set; then :
   withval=$with_gperftools;
 else
-  with_gperftools=gperftools_default
+  with_gperftools=${gperftools_default}
 fi
 
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
@@ -11683,34 +11665,6 @@ if test $enable_schemeio = "yes"; then
   xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
 fi
 
-# Check whether --enable-fdweb was given.
-if test "${enable_fdweb+set}" = set; then :
-  enableval=$enable_fdweb;
-else
-  enable_fdweb=$enable_fdweb_default
-fi
-
-if test $enable_fdweb = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
-  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
-fi
-
-# Check whether --enable-texttools was given.
-if test "${enable_texttools+set}" = set; then :
-  enableval=$enable_texttools;
-else
-  enable_texttools=$enable_texttools_default
-fi
-
-if test $enable_texttools = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_texttools()"
-  xdynamic_scheme_libs="-ltexttools $xdynamic_scheme_libs"
-  xstatic_exe_libs="lib/libtexttools.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libtexttools.a $xstatic_scheme_libs"
-fi
-
 # Check whether --enable-htmldump was given.
 if test "${enable_htmldump+set}" = set; then :
   enableval=$enable_htmldump;
@@ -12024,7 +11978,7 @@ done
 
   $as_echo "#define FD_WITH_CURL 1" >>confdefs.h
 
-  curlo="src/fdweb/curl.o"
+  curlo="src/web/curl.o"
   curlconfig="\`curl-config --libs\`"
 else
   $as_echo "#define FD_WITH_CURL 0" >>confdefs.h
@@ -12175,7 +12129,7 @@ fi
 
   $as_echo "#define FD_WITH_DNS 1" >>confdefs.h
 
-  ldnso="src/fdweb/ldns.o"
+  ldnso="src/web/ldns.o"
 else
   $as_echo "#define FD_WITH_DNS 0" >>confdefs.h
 

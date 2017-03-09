@@ -60,6 +60,9 @@ FD_EXPORT int fd_dblconfig_set(fdtype,fdtype v,void *dblptr);
 FD_EXPORT fdtype fd_dblconfig_get(fdtype,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
 
+FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr);
+FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr);
+
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_default_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_read_config(u8_input in);
@@ -169,6 +172,9 @@ FD_EXPORT int fd_isreqlive(void);
 
 FD_EXPORT struct U8_OUTPUT *fd_reqlog(int force);
 FD_EXPORT int fd_reqlogger(u8_condition,u8_context,u8_string);
+
+FD_EXPORT struct U8_OUTPUT *fd_get_reqlog(void);
+FD_EXPORT struct U8_OUTPUT *fd_try_reqlog(void);
 
 /* Sets the application identifier and runbase */
 

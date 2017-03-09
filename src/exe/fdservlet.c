@@ -12,7 +12,7 @@
 #include "framerd/support.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/fdweb.h"
 #include "framerd/ports.h"
 #include "framerd/fileprims.h"
@@ -75,7 +75,7 @@ static const sigset_t *server_sigmask;
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=15, fastfail_wait=60;
 
-FD_EXPORT int fd_init_fddbserv(void);
+FD_EXPORT int fd_init_fdkbserv(void);
 
 #include "webcommon.h"
 
@@ -1972,7 +1972,7 @@ int main(int argc,char **argv)
   set_exename(argv);
 
   /* Set this here, before processing any configs */
-  fddb_loglevel=LOG_INFO;
+  fdkbase_loglevel=LOG_INFO;
 
   u8_init_mutex(&server_port_lock);
 
@@ -2032,15 +2032,15 @@ int main(int argc,char **argv)
   fd_init_texttools();
   /* May result in innocuous redundant calls */
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fddbserv();
+  fd_init_fdkbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fddbserv();
+  fd_init_fdkbserv();
 #endif
   
   /* This is the module where the data-access API lives */
-  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdbserv_module);
+  fd_register_module("FDKBSERV",fd_incref(fd_fdkbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_fdkbserv_module);
 
   fd_init_fdweb();
   fd_init_dbs();

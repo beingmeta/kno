@@ -14,7 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/streams.h"
@@ -52,12 +52,12 @@ static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
-static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
+static fd_pool open_file_pool(u8_string fname,fdkbase_flags flags)
 {
   struct FD_FILE_POOL *pool=u8_alloc(struct FD_FILE_POOL);
   struct FD_STREAM *s=&(pool->pool_stream);
   FD_OID base=FD_NULL_OID_INIT;
-  unsigned int read_only=(U8_BITP(flags,FDB_READ_ONLY));
+  unsigned int read_only=(U8_BITP(flags,FDKB_READ_ONLY));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
@@ -96,10 +96,10 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
       return NULL;}}
   pool->pool_load=load; pool->pool_offdata=NULL; pool->pool_offdata_size=0;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
+    U8_SETBITS(pool->pool_flags,FDKB_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FDKB_READ_ONLY);
   u8_init_mutex(&(pool->file_lock));
-  if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
+  if (!(U8_BITP(pool->pool_flags,FDKB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
@@ -460,7 +460,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
   fd_unlock_pool(fp);
-  u8_log(fddb_loglevel,"FilePoolStore",
+  u8_log(fdkbase_loglevel,"FilePoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->pool_idstring,u8_elapsed_time()-started);
   return retcode;
@@ -705,7 +705,7 @@ int fd_make_file_pool
 }
 
 static fd_pool filepool_create(u8_string spec,void *type_data,
-                               fddb_flags flags,fdtype opts)
+                               fdkbase_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

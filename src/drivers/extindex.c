@@ -14,7 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/apply.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -41,7 +41,7 @@ fd_index fd_make_extindex
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,name,(!(reg)));
     fetchix->index_cache_level=1;
     if (FD_VOIDP(commitfn))
-      U8_SETBITS(fetchix->index_flags,FDB_READ_ONLY);
+      U8_SETBITS(fetchix->index_flags,FDKB_READ_ONLY);
     fetchix->fetchfn=fd_incref(fetchfn);
     fetchix->commitfn=fd_incref(commitfn);
     fetchix->state=fd_incref(state);
@@ -77,7 +77,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if (!((p->index_flags)&(FDB_BATCHABLE))) return NULL;
+  if (!((p->index_flags)&(FDKB_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.fd_veclen=n; vstruct.fd_vecelts=keys; vstruct.fd_freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);

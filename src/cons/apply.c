@@ -987,7 +987,7 @@ FD_EXPORT void fd_init_apply_c()
   u8_register_source_file(FRAMERD_APPLY_H_INFO);
 
 #if (FD_USE_TLS)
-  u8_new_threadkey(&stack_limit_key,free_calltrack_log);
+  u8_new_threadkey(&stack_limit_key,NULL);
 #endif
 
   fd_applyfns[fd_primfcn_type]=dapply;

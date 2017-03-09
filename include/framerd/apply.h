@@ -144,7 +144,7 @@ FD_EXPORT const int fd_calltrack_enabled;
 #define fd_calltracking (0)
 #elif FD_USE_TLS
 FD_EXPORT u8_tld_key _fd_calltracking_key;
-#define fd_calltracking (u8_tld_get(_fd_calltacking_key))
+#define fd_calltracking (u8_tld_get(_fd_calltracking_key))
 #elif HAVE__THREAD
 FD_EXPORT __thread int fd_calltracking;
 #else

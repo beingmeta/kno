@@ -39,7 +39,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 
 #include "framerd/extdb.h"
 

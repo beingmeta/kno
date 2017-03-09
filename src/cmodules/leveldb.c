@@ -19,7 +19,7 @@
 #include "framerd/texttools.h"
 #include "framerd/bigints.h"
 #include "framerd/fdregex.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -499,7 +499,7 @@ fd_pool fd_use_leveldb_pool(u8_string path,fdtype opts)
 		   u8_strdup(path),rname);
       u8_free(rname);
       if (fd_testopt(opts,SYM("READONLY"),FD_VOID))
-	pool->pool_flags|=FDB_READ_ONLY;
+	pool->pool_flags|=FDKB_READ_ONLY;
       pool->pool_load=FD_FIX2INT(load);
       if (FD_STRINGP(label)) {
 	pool->pool_label=u8_strdup(FD_STRDATA(label));}
@@ -553,7 +553,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,fdtype base,fdtype cap,fdtype opts)
 		 &leveldb_pool_handler,
 		 u8_strdup(path),rname);
     u8_free(rname);
-    pool->pool_flags&=~FDB_READ_ONLY;
+    pool->pool_flags&=~FDKB_READ_ONLY;
     pool->pool_load=FD_FIX2INT(load);
     if (FD_STRINGP(label)) {
       pool->pool_label=u8_strdup(FD_STRDATA(label));}

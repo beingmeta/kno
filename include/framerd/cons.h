@@ -7,7 +7,7 @@
 
 /* Anatomy of a CONS
 
-    CONSES are dynamically allocated structures used by fdb for compound
+    CONSES are dynamically allocated structures used by fdkbase for compound
     objects.  CONSES can be any kind of structure, providing only that the
     first four bytes, an unsigned int called the "fd_conshead," be reserved
     for FramerD's typing and reference counting information.  The lower seven
@@ -16,7 +16,7 @@
     longer needed.
 
     A reference counting garbage collector has known problems with
-    circular structures but fdb discourages such structures while
+    circular structures but fdkbase discourages such structures while
     providing a simple model which an effectively scale to large memory
     spaces.
 
@@ -41,7 +41,7 @@
     parameters.  That this means practically is that if you get a dtype
     pointer from a lower-cased function, you need to either dereference it
     (with FD_DECREF) or use another upper-case consuming operation on it
-    (such as FD_ADD_TO_CHOICE (see <fdb/choices.h>)).
+    (such as FD_ADD_TO_CHOICE (see <fdkbase/choices.h>)).
 
     Because the immediate type information on a dtype pointer distinguishes
     between CONSes and other types (which don't need to be reference
@@ -50,7 +50,7 @@
 
     MULTI THREADING: Reference counting is made threadsafe by using global
     mutexes to protect access to the fd_conshead fields.  In order to reduce
-    contention, fdb uses a strategy called "hash locking" to regulate
+    contention, fdkbase uses a strategy called "hash locking" to regulate
     access to the fd_conshead of CONSes.  An array of mutexes, _fd_ptr_locks,
     and computes an offset into that array by shifting the structure
     address right 16 bits and taking a remainder modulo the number of

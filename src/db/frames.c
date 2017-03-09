@@ -16,7 +16,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/apply.h"
 
 #include <stdarg.h>

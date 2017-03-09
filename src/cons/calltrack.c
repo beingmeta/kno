@@ -29,7 +29,6 @@
 
 #if FD_USE_TLS
 u8_tld_key _fd_calltracking_key;
-#define fd_calltracking (u8_tld_get(_fd_calltacking_key))
 #elif HAVE__THREAD
  __thread int fd_calltracking;
 #else
@@ -413,7 +412,7 @@ void fd_init_calltrack_c()
                      get_calltrack,set_calltrack,NULL);
 
 #if (FD_USE_TLS)
-  u8_new_threadkey(&fd_calltracking_key,NULL);
+  u8_new_threadkey(&_fd_calltracking_key,NULL);
   u8_new_threadkey(&calltrack_log_key,free_calltrack_log);
 #endif
 

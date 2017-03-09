@@ -99,7 +99,7 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
     default:
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
       result.off=-1;
-      result.size=-1;} /* switch (p->fdb_offtype) */
+      result.size=-1;} /* switch (p->fdkbase_offtype) */
   }
   return result;
 }

@@ -17,7 +17,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/support.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/eval.h"
 #include "framerd/dtproc.h"
 #include "framerd/numbers.h"
@@ -2107,6 +2107,7 @@ FD_EXPORT void fd_init_load_c(void);
 FD_EXPORT void fd_init_portprims_c(void);
 FD_EXPORT void fd_init_streamprims_c(void);
 FD_EXPORT void fd_init_timeprims_c(void);
+FD_EXPORT void fd_init_sysprims_c(void);
 FD_EXPORT void fd_init_arith_c(void);
 FD_EXPORT void fd_init_side_effects_c(void);
 FD_EXPORT void fd_init_reflection_c(void);
@@ -2147,6 +2148,7 @@ static void init_eval_core()
   fd_init_portprims_c();
   fd_init_streamprims_c();
   fd_init_timeprims_c();
+  fd_init_sysprims_c();
   fd_init_extdbprims_c();
 
   u8_threadcheck();

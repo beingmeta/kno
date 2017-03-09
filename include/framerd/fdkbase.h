@@ -5,14 +5,14 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FRAMERD_FDDB_H
-#define FRAMERD_FDDB_H 1
-#ifndef FRAMERD_FDDB_H_INFO
-#define FRAMERD_FDDB_H_INFO "include/framerd/fddb.h"
+#ifndef FRAMERD_FDKBASE_H
+#define FRAMERD_FDKBASE_H 1
+#ifndef FRAMERD_FDKBASE_H_INFO
+#define FRAMERD_FDKBASE_H_INFO "include/framerd/fdkbase.h"
 #endif
 
-#ifndef FD_DBDRIVER_BUFSIZE
-#define FD_DBDRIVER_BUFSIZE 100000
+#ifndef FDKB_DRIVER_BUFSIZE
+#define FDKB_DRIVER_BUFSIZE 100000
 #endif
 
 #include "streams.h"
@@ -28,16 +28,16 @@ FD_EXPORT fd_exception fd_ConnectionFailed;
 
 FD_EXPORT int fd_init_dbs(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_init_dblib(void) FD_LIBINIT_FN;
-FD_EXPORT int fd_init_fddbserv(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_fdkbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
-FD_EXPORT int fddb_loglevel;
+FD_EXPORT int fdkbase_loglevel;
 FD_EXPORT int fd_prefetch;
 FD_EXPORT fd_exception fd_InternalError;
 FD_EXPORT fd_exception fd_BadServerResponse;
 
-FD_EXPORT fdtype fd_fdbserv_module;
+FD_EXPORT fdtype fd_fdkbserv_module;
 
 FD_EXPORT int fd_swapcheck(void);
 
@@ -50,26 +50,26 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
    remaining 12 bits are for flags for particular implementations.
 */
 
-typedef unsigned int fddb_flags;
+typedef unsigned int fdkbase_flags;
 
-#define FDB_ISPOOL		   0x01
-#define FDB_ISINDEX		   0x02
-#define FDB_READ_ONLY		   0x04
-#define FDB_BATCHABLE		   0x08
-#define FDB_STICKY_CACHESIZE	   0x10
-#define FDB_ISCONSED		   0x20
-#define FDB_UNREGISTERED	   0x20
-#define FDB_CACHE_VALUES	   0x40
-#define FDB_NOSWAP		   0x80
-#define FDB_MAX_INIT_BITS	   0x800
-#define FDB_CACHE_OFFSETS	   0x1000
-#define FDB_MAX_STATE_BITS	   0x1000
+#define FDKB_ISPOOL		   0x01
+#define FDKB_ISINDEX		   0x02
+#define FDKB_READ_ONLY		   0x04
+#define FDKB_BATCHABLE		   0x08
+#define FDKB_STICKY_CACHESIZE	   0x10
+#define FDKB_ISCONSED		   0x20
+#define FDKB_UNREGISTERED	   0x20
+#define FDKB_CACHE_VALUES	   0x40
+#define FDKB_NOSWAP		   0x80
+#define FDKB_MAX_INIT_BITS	   0x800
+#define FDKB_CACHE_OFFSETS	   0x1000
+#define FDKB_MAX_STATE_BITS	   0x1000
 
-#define FDB_POOL_FLAG(n)	   ((0x10000)<<n)
-#define FDB_INDEX_FLAG(n)	   ((0x10000)<<n)
+#define FDKB_POOL_FLAG(n)	   ((0x10000)<<n)
+#define FDKB_INDEX_FLAG(n)	   ((0x10000)<<n)
 
-#ifndef FDBSERV_MAX_POOLS
-#define FDBSERV_MAX_POOLS 128
+#ifndef FDKBSERV_MAX_POOLS
+#define FDKBSERV_MAX_POOLS 128
 #endif
 
 #ifndef FD_DBCONN_RESERVE_DEFAULT

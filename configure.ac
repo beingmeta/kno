@@ -39,8 +39,6 @@ rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
-enable_fdweb_default="no"
-enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
@@ -1245,11 +1243,11 @@ if test "$with_fileinfo" = "yes" ; then
 fi
 
 AC_ARG_WITH(stdlib,--with[out]-stdlib Force the use of stdlib)
-if test "$with_stdlib"; then
+if test ! -z "${with_stdlib}"; then
    gperftools_default="no";
 fi;
 
-AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=gperftools_default)
+AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=${gperftools_default})
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
@@ -1311,7 +1309,7 @@ AC_CHECK_LIB(uuid,uuid_generate_time)
 AC_CHECK_FUNCS(uuid_generate_time)
 
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
-dnl  Note that the basic FramerD/fdb data files are still limited to 4GB, but
+dnl  Note that the basic FramerD/fdkbase data files are still limited to 4GB, but
 dnl  this lets you use all 4GB.
 AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then
@@ -1382,26 +1380,6 @@ if test $enable_schemeio = "yes"; then
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
   xstatic_exe_libs="lib/libfdschemeio${suffix}.a $xstatic_exe_libs"
   xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
-fi
-
-dnl This integrates the fdweb module into executables by default; otherwise
-dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(fdweb,--en[dis]able-fdweb compiled-in fdweb,,enable_fdweb=$enable_fdweb_default)
-if test $enable_fdweb = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
-  xstatic_exe_libs="lib/libfdweb${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libfdweb${suffix}.a $xstatic_scheme_libs"
-fi
-
-dnl This integrates the texttools module into executables by default; otherwise
-dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(texttools,--en[dis]able-texttools compiled-in texttools,,enable_texttools=$enable_texttools_default)
-if test $enable_texttools = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_texttools()"
-  xdynamic_scheme_libs="-ltexttools $xdynamic_scheme_libs"
-  xstatic_exe_libs="lib/libtexttools.a $xstatic_exe_libs"
-  xstatic_scheme_libs=" ../../lib/libtexttools.a $xstatic_scheme_libs"
 fi
 
 dnl This integrates the fdweb module into executables by default; otherwise
@@ -1527,7 +1505,7 @@ if test $with_curl = "yes"; then
   AC_CHECK_LIB(curl,curl_easy_init)
   AC_CHECK_HEADERS(curl/curl.h)
   AC_DEFINE(FD_WITH_CURL,1)
-  curlo="src/fdweb/curl.o"
+  curlo="src/web/curl.o"
   curlconfig="\`curl-config --libs\`"
 else
   AC_DEFINE(FD_WITH_CURL,0)
@@ -1539,11 +1517,11 @@ AC_CHECK_HEADERS(arpa/nameser.h)
 AC_CHECK_HEADERS(netinet/in.h)
 AC_CHECK_HEADERS(netdb.h)
 AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
-AC_ARG_WITH(dns,--with[out]-dns Use dns in fdweb,,with_dns=$dns_default)
+AC_ARG_WITH(dns,--with[out]-dns Use dns in web,,with_dns=$dns_default)
 if test "$with_dns" = "yes"; then
   AC_CHECK_LIB(ldns,ldns_resolver_query)
   AC_DEFINE(FD_WITH_DNS,1)
-  ldnso="src/fdweb/ldns.o"
+  ldnso="src/web/ldns.o"
 else
   AC_DEFINE(FD_WITH_DNS,0)
 fi
