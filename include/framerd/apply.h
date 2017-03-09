@@ -167,8 +167,8 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 
 #if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
 FD_EXPORT u8_tld_key fd_stack_limit_key;
-#define fd_stack_limit ((ssize_t)u8_tld_get(stack_limit_key))
-#define fd_set_stack_limit(sz) u8_tld_set(stack_limit_key,(void *)(sz))
+#define fd_stack_limit ((ssize_t)u8_tld_get(fd_stack_limit_key))
+#define fd_set_stack_limit(sz) u8_tld_set(fd_stack_limit_key,(void *)(sz))
 #elif ((FD_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
 FD_EXPORT __thread ssize_t fd_stack_limit;
 #define fd_set_stack_limit(sz) fd_stack_limit=(sz)

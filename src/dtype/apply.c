@@ -1363,7 +1363,7 @@ FD_EXPORT void fd_init_apply_c()
 
 #if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
   u8_new_threadkey(&calltrack_log_key,free_calltrack_log);
-  u8_new_threadkey(&stack_limit_key,free_calltrack_log);
+  u8_new_threadkey(&fd_stack_limit_key,free_calltrack_log);
 #endif
 
   fd_applyfns[fd_function_type]=(fd_applyfn)fd_dapply;
