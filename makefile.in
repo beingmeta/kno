@@ -1343,9 +1343,7 @@ MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter dropbox google \
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
 		 aws/templates bugjar/websrc
 
-install-modules: install-builtin-modules install-web-modules
-install-builtin-modules: install-standard-modules install-safe-modules
-
+install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@builtin_module_dir@
