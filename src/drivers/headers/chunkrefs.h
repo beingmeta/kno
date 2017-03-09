@@ -1,5 +1,8 @@
 #include <zlib.h>
+
+#if HAVE_SNAPPYC_H
 #include <snappy-c.h>
+#endif
 
 #define STREAM_UNLOCKED 0
 #define STREAM_LOCKED 1
