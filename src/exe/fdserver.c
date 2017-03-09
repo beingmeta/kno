@@ -11,7 +11,7 @@
 #include "framerd/numbers.h"
 #include "framerd/support.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
@@ -112,7 +112,7 @@ static int shutdown_grace=30000000; /* 30 seconds */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
 static int backtrace_width=FD_BACKTRACE_WIDTH;
 
-static int no_fddb=0;
+static int no_fdb=0;
 
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=60, fastfail_wait=60;
@@ -922,7 +922,7 @@ static void init_server()
   u8_unlock_mutex(&init_server_lock);
 }
 
-FD_EXPORT int fd_init_fddbserv(void);
+FD_EXPORT int fd_init_fdbserv(void);
 static void init_configs(void);
 static fd_lispenv init_core_env(void);
 static int launch_server(u8_string source_file,fd_lispenv env);
@@ -981,7 +981,7 @@ int main(int argc,char **argv)
     source_file=server_spec;
   else server_port=server_spec;
 
-  fddb_loglevel=LOG_INFO;
+  fdb_loglevel=LOG_INFO;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,
@@ -1064,7 +1064,7 @@ int main(int argc,char **argv)
 
   /* Create the exposed environment.  This may be further modified by
      MODULE configs. */
-  if (no_fddb)
+  if (no_fdb)
     exposed_environment=core_env;
   else exposed_environment=
          fd_make_env(fd_incref(fd_fdbserv_module),core_env);
@@ -1204,16 +1204,16 @@ static void init_configs()
      _("Whether to automatically reload changed files"),
      fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
   fd_register_config
-    ("NOFDDB",
+    ("NOFDB",
      _("Whether to disable exported FramerD DB API"),
-     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
+     fd_boolconfig_get,fd_boolconfig_set,&no_fdb);
 }
 
 static fd_lispenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lispenv core_env=fd_safe_working_environment();
-  fd_init_fddbserv();
+  fd_init_fdbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_fdbserv_module);
 

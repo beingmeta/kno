@@ -11,7 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/apply.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
@@ -39,7 +39,7 @@ fd_exception fd_BadMetaData=_("Error getting metadata");
 
 int fd_default_cache_level=1;
 int fd_oid_display_level=2;
-int fddb_loglevel=LOG_NOTICE;
+int fdb_loglevel=LOG_NOTICE;
 int fd_prefetch=FD_PREFETCHING_ENABLED;
 
 size_t fd_dbdriver_bufsize=FD_DBDRIVER_BUFSIZE;
@@ -52,7 +52,7 @@ int fd_dbconn_init_default=FD_DBCONN_INIT_DEFAULT;
 static fdtype id_symbol;
 static fdtype lookupfns=FD_EMPTY_CHOICE;
 
-static int fddb_initialized=0;
+static int fdb_initialized=0;
 
 static fdtype better_parse_oid(u8_string start,int len)
 {
@@ -467,7 +467,7 @@ FD_EXPORT int fd_swapcheck()
 
 static void register_header_files()
 {
-  u8_register_source_file(FRAMERD_FDDB_H_INFO);
+  u8_register_source_file(FRAMERD_FDB_H_INFO);
   u8_register_source_file(FRAMERD_POOLS_H_INFO);
   u8_register_source_file(FRAMERD_INDEXES_H_INFO);
   u8_register_source_file(FRAMERD_DRIVERS_H_INFO);
@@ -489,8 +489,8 @@ FD_EXPORT int fd_init_drivers_c(void);
 
 FD_EXPORT int fd_init_dblib()
 {
-  if (fddb_initialized) return fddb_initialized;
-  fddb_initialized=211*fd_init_dtypelib();
+  if (fdb_initialized) return fdb_initialized;
+  fdb_initialized=211*fd_init_dtypelib();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);
@@ -532,7 +532,7 @@ FD_EXPORT int fd_init_dblib()
      NULL);
   fd_register_config
     ("DBLOGLEVEL",_("Default log level for database messages"),
-     fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
+     fd_intconfig_get,fd_intconfig_set,&fdb_loglevel);
   
   fd_register_config
     ("PREFETCH",_("Whether to prefetch for large operations"),
@@ -565,7 +565,7 @@ FD_EXPORT int fd_init_dblib()
      _("Functions and slotids for lookup up objects by name (@?name)"),
      fd_lconfig_get,fd_lconfig_push,&lookupfns);
 
-  return fddb_initialized;
+  return fdb_initialized;
 }
 
 /* Emacs local variables

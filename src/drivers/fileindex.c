@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -58,7 +58,7 @@ static struct FD_INDEX_HANDLER file_index_handler;
 
 static fdtype file_index_fetch(fd_index ix,fdtype key);
 
-static fd_index open_file_index(u8_string fname,fddb_flags flags)
+static fd_index open_file_index(u8_string fname,fdb_flags flags)
 {
   struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_STREAM *s=&(index->index_stream);
@@ -1104,7 +1104,7 @@ static int file_index_commit(struct FD_INDEX *ix)
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
 
-    u8_log(fddb_loglevel,"FileIndexCommit",
+    u8_log(fdb_loglevel,"FileIndexCommit",
            "Saved mappings for %d keys to %s in %f secs",
            n_changes,ix->index_idstring,u8_elapsed_time()-started);
 
@@ -1235,7 +1235,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
 }
 
 static fd_index file_index_create(u8_string spec,void *type_data,
-                                  fddb_flags flags,fdtype opts)
+                                  fdb_flags flags,fdtype opts)
 {
   fdtype n_slots=fd_getopt(opts,fd_intern("SLOTS"),FD_INT(32000));
   if (!(FD_FIXNUMP(n_slots))) {

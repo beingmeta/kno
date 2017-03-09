@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -146,9 +146,9 @@ static int mem_index_commit(fd_index ix)
   n_updates=adds->table_n_keys+edits->table_n_keys;
 
   if (n_updates>60000)
-    u8_log(fddb_loglevel,"MemIndex/Commit",
+    u8_log(fdb_loglevel,"MemIndex/Commit",
 	   "Saving %d updates to %s",n_updates,ix->index_idstring);
-  else u8_log(fddb_loglevel+1,"MemIndex/Commit",
+  else u8_log(fdb_loglevel+1,"MemIndex/Commit",
 	      "Saving %d updates to %s",n_updates,ix->index_idstring);
 
   fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
@@ -162,7 +162,7 @@ static int mem_index_commit(fd_index ix)
   u8_rw_unlock(&(edits->table_rwlock));
 
 
-  u8_log(fddb_loglevel+1,"MemIndex/Commit",
+  u8_log(fdb_loglevel+1,"MemIndex/Commit",
 	 "Updated in-memory cache with %d updates to %s, writing to disk",
 	 n_updates,ix->index_idstring);
 
@@ -201,14 +201,14 @@ static int mem_index_commit(fd_index ix)
 
   fd_unlock_stream(stream);
 
-  u8_log(fddb_loglevel,"MemIndex/Finished",
+  u8_log(fdb_loglevel,"MemIndex/Finished",
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
 	 n_updates,n_entries,ix->index_idstring,end);
 
   return 1;
 }
 
-static fd_index open_mem_index(u8_string file,fddb_flags flags)
+static fd_index open_mem_index(u8_string file,fdb_flags flags)
 {
   struct FD_MEM_INDEX *memidx=u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
@@ -273,7 +273,7 @@ FD_EXPORT int fd_make_mem_index(u8_string spec)
 }
 
 static fd_index mem_index_create(u8_string spec,void *type_data,
-				 fddb_flags flags,fdtype opts)
+				 fdb_flags flags,fdtype opts)
 {
   if (fd_make_mem_index(spec)>=0)
     return fd_open_index(spec,flags);

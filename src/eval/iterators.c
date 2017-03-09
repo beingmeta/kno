@@ -15,7 +15,7 @@
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/sequences.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/numbers.h"
 #include "eval_internals.h"
 

@@ -15,7 +15,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
@@ -896,12 +896,12 @@ void fd_init_dbserv_c()
   fd_fdbserv_module=module;
 }
 
-static int fddbserv_initialized=0;
+static int fdbserv_initialized=0;
 
-FD_EXPORT int fd_init_fddbserv()
+FD_EXPORT int fd_init_fdbserv()
 {
-  if (fddbserv_initialized) return fddbserv_initialized;
-  fddbserv_initialized=211*fd_init_dblib();
+  if (fdbserv_initialized) return fdbserv_initialized;
+  fdbserv_initialized=211*fd_init_dblib();
 
   u8_register_source_file(_FILEINFO);
   fd_init_dbserv_c();

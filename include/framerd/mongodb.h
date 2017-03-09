@@ -1,6 +1,6 @@
 #include <bson.h>
 #include <mongoc.h>
-#include "fddb.h"
+#include "fdb.h"
 
 /*
   BSON -> DTYPE mapping

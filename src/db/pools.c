@@ -15,7 +15,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/apply.h"
 
 #include <libu8/libu8.h>
@@ -119,7 +119,7 @@ static void pool_conflict(fd_pool upstart,fd_pool holder);
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base);
 static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fddb_flags flags);
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdb_flags flags);
 
 int fd_ignore_anonymous_oids=0;
 
@@ -532,13 +532,13 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 {
   fd_hashtable cache=&(p->pool_cache);
   oids=fd_make_simple_choice(oids);
-  u8_log(fddb_loglevel,"PoolDB","Swapping out pool %s",p->pool_idstring);
+  u8_log(fdb_loglevel,"PoolDB","Swapping out pool %s",p->pool_idstring);
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
-    u8_log(fddb_loglevel+1,"SwapPool",
+    u8_log(fdb_loglevel+1,"SwapPool",
            "Finished custom swapout for pool %s, clearing caches...",
            p->pool_idstring);}
-  else u8_log(fddb_loglevel+1,"SwapPool",
+  else u8_log(fdb_loglevel+1,"SwapPool",
               "No custom swapout clearing caches for %s",p->pool_idstring);
   if (p->pool_flags&FDB_NOSWAP)
     return 0;
@@ -708,11 +708,11 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
   struct FD_HASHTABLE *locks=&(p->pool_changes);
 
   if (locks->table_n_keys==0) {
-    u8_log(fddb_loglevel+1,fd_PoolCommit,
+    u8_log(fdb_loglevel+1,fd_PoolCommit,
            "####### No locked oids in %s",p->pool_idstring);
     return 0;}
   else if (p->pool_handler->storen==NULL) {
-    u8_log(fddb_loglevel+1,fd_PoolCommit,
+    u8_log(fdb_loglevel+1,fd_PoolCommit,
            "####### Unlocking OIDs in %s",p->pool_idstring);
     int rv=fd_pool_unlock(p,oids,leave_modified);
     return rv;}
@@ -725,7 +725,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       (FD_TRUEP(oids)) ? (pick_modified(p,1)):
       (pick_writes(p,FD_EMPTY_CHOICE));
     if (writes.len) {
-      u8_log(fddb_loglevel,"PoolCommit",
+      u8_log(fdb_loglevel,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
              writes.len,p->pool_changes.table_n_keys,
              p->pool_idstring);
@@ -741,7 +741,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       abort_commit(p,writes);
       return retval;}
     else if (writes.len) {
-      u8_log(fddb_loglevel,fd_PoolCommit,
+      u8_log(fdb_loglevel,fd_PoolCommit,
              "####### Saved %d OIDs to %s in %f secs",
              writes.len,p->pool_idstring,u8_elapsed_time()-start_time);
       finish_commit(p,writes);}
@@ -1424,9 +1424,9 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL /* sync */
 };
 
-fd_pool (*fd_file_pool_type)(u8_string spec,fddb_flags)=NULL;
+fd_pool (*fd_file_pool_type)(u8_string spec,fdb_flags)=NULL;
 
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fddb_flags flags)
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdb_flags flags)
 {
   if (strchr(spec,';')) {
     fd_pool p=NULL;
@@ -1450,7 +1450,7 @@ FD_EXPORT fd_pool fd_get_pool(u8_string spec,fddb_flags flags)
     else return fd_open_pool(spec,flags);}
 }
 
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fddb_flags flags)
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdb_flags flags)
 {
   return fd_get_pool(spec,flags&(~FDB_UNREGISTERED));
 }

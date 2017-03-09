@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/dtcall.h"
 #include "framerd/drivers.h"
 
@@ -45,7 +45,7 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fddb_flags flags)
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdb_flags flags)
 {
   struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;

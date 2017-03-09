@@ -22,9 +22,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/streams.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -182,7 +182,7 @@ static size_t get_maxpos(fd_oidpool p)
 
 static int init_schemas(fd_oidpool,fdtype);
 
-static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
+static fd_pool open_oidpool(u8_string fname,fdb_flags flags)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
@@ -904,7 +904,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(op,"oidpool_storen"))<0) return -1;
   double started=u8_elapsed_time();
-  u8_log(fddb_loglevel+1,"OIDPoolStore",
+  u8_log(fdb_loglevel+1,"OIDPoolStore",
          "Storing %d oid values in oidpool %s",n,p->pool_idstring);
   struct OIDPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct OIDPOOL_SAVEINFO);
@@ -983,7 +983,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  u8_log(fddb_loglevel,"OIDPoolStore",
+  u8_log(fdb_loglevel,"OIDPoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->pool_idstring,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(op);
@@ -997,7 +997,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
 {
   fd_outbuf outstream=fd_writebuf(stream);
   double started=u8_elapsed_time(), taken;
-  u8_log(fddb_loglevel+1,"OIDPoolFinalize",
+  u8_log(fdb_loglevel+1,"OIDPoolFinalize",
          "Finalizing %d oid values from %s",n,op->pool_idstring);
 
   if (op->pool_offdata) {
@@ -1109,10 +1109,10 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
 
   taken=u8_elapsed_time()-started;
   if (taken>1)
-    u8_log(fddb_loglevel,"OIDPoolFinalize",
+    u8_log(fdb_loglevel,"OIDPoolFinalize",
            "Finalized %d oid values from %s in %f secs",
            n,op->pool_idstring,taken);
-  else u8_log(fddb_loglevel+1,"OIDPoolFinalize",
+  else u8_log(fdb_loglevel+1,"OIDPoolFinalize",
               "Finalized %d oid values from %s in %f secs",
               n,op->pool_idstring,taken);
   return 0;
@@ -1421,7 +1421,7 @@ static int interpret_pool_flags(fdtype opts)
 }
 
 static fd_pool oidpool_create(u8_string spec,void *type_data,
-                              fddb_flags flags,fdtype opts)
+                              fdb_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

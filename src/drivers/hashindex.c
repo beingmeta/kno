@@ -69,7 +69,7 @@
 #include "framerd/dtypeio.h"
 #include "framerd/streams.h"
 #include "framerd/numbers.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -211,7 +211,7 @@ static int init_baseoids
   (struct FD_HASH_INDEX *hx,int n_baseoids,fdtype *baseoids_init);
 static int recover_hash_index(struct FD_HASH_INDEX *hx);
 
-static fd_index open_hash_index(u8_string fname,fddb_flags flags)
+static fd_index open_hash_index(u8_string fname,fdb_flags flags)
 {
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
   struct FD_STREAM *stream=&(index->index_stream);
@@ -2349,7 +2349,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_unlock_stream(stream);
   fd_unlock_index(hx);
 
-  u8_log(fddb_loglevel,"HashIndexCommit",
+  u8_log(fdb_loglevel,"HashIndexCommit",
          "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
          n_keys,new_keys,total_keys,
          ix->index_idstring,u8_elapsed_time()-started);
@@ -2609,7 +2609,7 @@ static int good_initval(fdtype val)
 }
 
 static fd_index hash_index_create(u8_string spec,void *typedata,
-                                  fddb_flags flags,fdtype opts)
+                                  fdb_flags flags,fdtype opts)
 {
   int rv=0;
   fdtype slotids_init=fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);

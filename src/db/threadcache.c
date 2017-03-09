@@ -13,7 +13,7 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/apply.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 
 static u8_condition FreeingForeignThreadCache=
   _("Attempt to free foreign threadcache");

@@ -15,7 +15,7 @@
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/drivers.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"

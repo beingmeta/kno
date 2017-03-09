@@ -14,7 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/numbers.h"
 #include "framerd/frames.h"
 #include "framerd/sorting.h"

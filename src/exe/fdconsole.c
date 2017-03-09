@@ -10,7 +10,7 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
+#include "framerd/fdb.h"
 #include "framerd/eval.h"
 #include "framerd/history.h"
 #include "framerd/ports.h"
