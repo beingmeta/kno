@@ -75,6 +75,7 @@ typedef struct FD_INDEX_HANDLER {
   int (*sync)(fd_index p);
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
+  void (*recycle)(fd_index p);
   fdtype (*indexop)(fd_index ix,int indexop,fdtype,fdtype,fdtype);
 } FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;

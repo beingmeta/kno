@@ -2756,6 +2756,7 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   NULL, /* metadata */
   NULL, /* sync */
   hash_index_create, /* create */ 
+  NULL, /* recycle */
   NULL  /* indexop */
 };
 

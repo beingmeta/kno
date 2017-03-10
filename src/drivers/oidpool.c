@@ -1555,6 +1555,7 @@ static struct FD_POOL_HANDLER oidpool_handler={
   NULL, /* metadata */
   NULL, /* sync */
   oidpool_create, /* create */
+  NULL, /* recycle */
   NULL  /* poolop */
 };
 

@@ -1341,6 +1341,7 @@ static struct FD_POOL_HANDLER bigpool_handler={
   NULL, /* metadata */
   NULL, /* sync */
   bigpool_create, /* create */
+  NULL,  /* recycle */
   NULL  /* poolop */
 };
 

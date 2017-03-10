@@ -193,6 +193,7 @@ typedef struct FD_POOL_HANDLER {
   int (*sync)(fd_pool p);
   fd_pool (*create)(u8_string spec,void *typedata,
 		    fdkb_flags flags,fdtype opts);
+  void (*recycle)(fd_pool p);
   fdtype (*poolop)(fd_pool p,int opid,fdtype arg1,fdtype arg2,fdtype arg3);}
   FD_POOL_HANDLER;
 typedef struct FD_POOL_HANDLER *fd_pool_handler;
