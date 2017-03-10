@@ -194,9 +194,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 FD_EXPORT ssize_t fd_default_stack_limit;
 FD_EXPORT ssize_t fd_init_stack(void);
 
-#define FD_INIT_STACK() \
-  U8_SET_STACK_BASE();	\
-  fd_init_stack()
+#define FD_INIT_STACK() fd_init_stack()
 
 /* Signalling */
 

@@ -848,6 +848,11 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         return v;}
     else if (head == comment_symbol)
       return FD_VOID;
+    else if (!(fd_stackcheck())) {
+      u8_byte buf[128]=""; struct U8_OUTPUT out;
+      U8_INIT_FIXED_OUTPUT(&out,128,buf);
+      u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
+      return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
     else {
       fdtype result=FD_VOID;
       fdtype headval = (FD_FCNIDP(head))?
