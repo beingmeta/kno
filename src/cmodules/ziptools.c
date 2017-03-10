@@ -66,7 +66,7 @@ static fdtype zfilerr(u8_context cxt,fd_zipfile zf,struct zip_file *zfile,
 
 /* Zip file utilities */
 
-static void recycle_zipfile(struct FD_CONS *c)
+static void recycle_zipfile(struct FD_RAW_CONS *c)
 {
   struct FD_ZIPFILE *zf=(struct FD_ZIPFILE *)c;
   if (!(zf->closed)) zip_close(zf->zip);
