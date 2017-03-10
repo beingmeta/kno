@@ -733,7 +733,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/sundown/sundown.c         			\
 		etc/*.in ${SRC_HEADERS} 				\
-		tests/scheme/*.scm 
+		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
