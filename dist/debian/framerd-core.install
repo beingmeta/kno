@@ -1,9 +1,9 @@
 usr/lib/libfdtype.so.*
 usr/lib/libfdkbase.so.*
 usr/lib/libfdkbdrivers.so.*
-usr/lib/libfdbserv.so*
 usr/lib/libfdscheme.so.*
 usr/lib/libfdschemeio.so.*
+usr/lib/libfdkbserv.so*
 usr/lib/libfdweb.so*
 usr/lib/libfdtext.so*
 usr/lib/framerd/crypto.so*
