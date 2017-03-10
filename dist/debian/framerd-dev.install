@@ -10,5 +10,5 @@ usr/lib/libfdscheme.so
 usr/lib/libfdschemeio.a
 usr/lib/libfdschemeio.so
 usr/lib/libfdweb.a
-usr/lib/libfdtext.a
+usr/lib/libtexttools.a
 usr/include/framerd/*.h
