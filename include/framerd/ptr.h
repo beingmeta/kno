@@ -556,12 +556,18 @@ FD_EXPORT u8_mutex fd_symbol_lock;
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
    (FD_IMMEDIATE_TYPE(x)==fd_symbol_type))
 
+#define FD_GOOD_SYMBOLP(x) \
+  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x)==fd_symbol_type) && \
+   (FD_GET_IMMEDIATE(x,fd_symbol_type)<fd_n_symbols))
+
 #define FD_SYMBOL2ID(x) (FD_GET_IMMEDIATE(x,fd_symbol_type))
 #define FD_ID2SYMBOL(i) (FDTYPE_IMMEDIATE(fd_symbol_type,i))
 
 #define FD_SYMBOL_NAME(x) \
-  ((FD_SYMBOLP(x)) ? (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) : \
-   ((u8_string )NULL))
+  ((FD_GOOD_SYMBOLP(x)) ? \
+   (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) :	\
+   ((u8_string )("#.bad$ymbol.#")))
 #define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
 FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);
