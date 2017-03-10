@@ -708,21 +708,6 @@ static int boot_config()
   return count;
 }
 
-/* Stack setup */
-
-FD_EXPORT ssize_t fd_init_stack()
-{
-  if (fd_default_stack_limit > 0)
-    fd_stack_limit_set( fd_default_stack_limit );
-  return -1;
-}
-
-static int init_thread_stack_limit()
-{
-  fd_init_stack();
-  return 1;
-}
-
 void fd_init_startup_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -883,11 +868,5 @@ void fd_init_startup_c()
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
-
-  fd_register_config
-    ("STACKLIMIT",_("Size of the stack (in bytes)"),
-     fd_sizeconfig_get,fd_sizeconfig_set,&fd_default_stack_limit);
-
-  u8_register_threadinit(init_thread_stack_limit);
 
 }

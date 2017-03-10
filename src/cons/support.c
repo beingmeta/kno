@@ -47,8 +47,6 @@
 
 int fd_exiting=0;
 
-ssize_t fd_default_stack_limit=-1;
-
 fd_exception fd_UnknownError=_("Unknown error condition");
 
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
