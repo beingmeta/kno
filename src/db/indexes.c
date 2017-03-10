@@ -1051,11 +1051,8 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 static void recycle_raw_index(struct FD_RAW_CONS *c)
 {
   struct FD_INDEX *ix=(struct FD_INDEX *)c;
-  if (ix->index_handler==&fd_extindex_handler) {
-    struct FD_EXTINDEX *ei=(struct FD_EXTINDEX *)c;
-    fd_decref(ei->fetchfn);
-    fd_decref(ei->commitfn);
-    fd_decref(ei->state);}
+  struct FD_INDEX_HANDLER *handler=ix->index_handler;
+  if (handler->recycle) handler->recycle(ix);
   fd_recycle_hashtable(&(ix->index_cache));
   fd_recycle_hashtable(&(ix->index_adds));
   fd_recycle_hashtable(&(ix->index_edits));

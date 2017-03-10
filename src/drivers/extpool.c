@@ -226,6 +226,15 @@ FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value)
           u8_strdup("extpool"),fd_pool2lisp(p));
 }
 
+static void recycle_extpool(fd_pool p)
+{
+  if (p->pool_handler==&fd_extpool_handler) {
+    struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *)p;
+    fd_decref(xp->fetchfn); fd_decref(xp->savefn);
+    fd_decref(xp->lockfn); fd_decref(xp->allocfn); 
+    fd_decref(xp->state);}
+}
+
 struct FD_POOL_HANDLER fd_extpool_handler={
   "extpool", 1, sizeof(struct FD_EXTPOOL), 12,
   NULL, /* close */
@@ -240,9 +249,11 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   NULL, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL,
+  NULL, /* sync */
+  NULL, /* create */
+  recycle_extpool, /* recycle */
   NULL  /* poolop */
-}; /* sync */
+};
 
 FD_EXPORT void fd_init_extpool_c()
 {
@@ -251,3 +262,4 @@ FD_EXPORT void fd_init_extpool_c()
 
   u8_register_source_file(_FILEINFO);
 }
+

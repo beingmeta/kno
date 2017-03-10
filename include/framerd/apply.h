@@ -253,8 +253,6 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
    ((fd_function)(fd_fcnid_ref(x))) : \
    ((fd_function)x))
 
-/* Stack 
-
 /* Unparsing */
 
 FD_EXPORT int fd_unparse_function

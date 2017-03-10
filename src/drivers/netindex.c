@@ -255,6 +255,7 @@ static struct FD_INDEX_HANDLER netindex_handler={
   NULL, /* metadata */
   NULL, /* sync */
   NULL, /* create */
+  NULL, /* recycle */
   NULL  /* indexop */
 };
 

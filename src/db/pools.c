@@ -1636,11 +1636,8 @@ static fdtype raw_pool_keys(fdtype arg)
 static void recycle_raw_pool(struct FD_RAW_CONS *c)
 {
   struct FD_POOL *p=(struct FD_POOL *)c;
-  if (p->pool_handler==&fd_extpool_handler) {
-    struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *)c;
-    fd_decref(xp->fetchfn); fd_decref(xp->savefn);
-    fd_decref(xp->lockfn); fd_decref(xp->allocfn); 
-    fd_decref(xp->state);}
+  struct FD_POOL_HANDLER *handler=p->pool_handler;
+  if (handler->recycle) handler->recycle(p);
   fd_recycle_hashtable(&(p->pool_cache));
   fd_recycle_hashtable(&(p->pool_changes));
   u8_free(p->pool_idstring);
