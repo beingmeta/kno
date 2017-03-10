@@ -1270,10 +1270,6 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserver; \
-		$(SUDO) ln -s fdserver fdbserver
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserv; \
-		$(SUDO) ln -s fdservlet fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:

@@ -13,10 +13,8 @@ usr/lib/framerd/zlib.so*
 usr/bin/fdconsole
 usr/bin/fdexec
 usr/bin/fdserver
-usr/bin/fdbserver
 usr/bin/fdbatch
 usr/bin/fdservlet
-usr/bin/fdserv
 usr/bin/make-hash-index
 usr/bin/make-oidpool
 usr/bin/ovmerge
