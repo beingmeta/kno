@@ -36,7 +36,7 @@ CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	 		../../lib/libfdkbdrivers@suffix@.a \
 			../../lib/libfdkbase@suffix@.a     \
 			../../lib/libfdtype@suffix@.a
-EXTRA_LIBS	= ../../lib/libfdtext@suffix@.a \
+EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
 		  ../../lib/libfdschemeio@suffix@.a
 
@@ -150,8 +150,8 @@ testclean:
 	cd ../..; make lib/libfdkbase@suffix@.a
 ../../lib/libfdkbdrivers@suffix@.a:
 	cd ../..; make lib/libfdkbdrivers@suffix@.a
-../../lib/libfdtext@suffix@.a:
-	cd ../..; make lib/libfdtext@suffix@.a
+../../lib/libtexttools@suffix@.a:
+	cd ../..; make lib/libtexttools@suffix@.a
 ../../lib/libfdkbserv@suffix@.a:
 	cd ../..; make lib/libfdkbserv@suffix@.a
 

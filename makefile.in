@@ -385,7 +385,7 @@ CMODULE_SOURCES=\
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdkbase@suffix@.a      \
         lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
-	lib/libfdweb@suffix@.a lib/libfdtext@suffix@.a
+	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdkbase@suffix@.@shared_suffix@        		\
@@ -394,7 +394,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
-	lib/libfdtext@suffix@.@shared_suffix@		\
+	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
 	lib/libfdkbase@suffix@.@mshared_suffix@        		\
         lib/libfdkbdrivers@suffix@.@mshared_suffix@    		\
@@ -402,7 +402,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
-	lib/libfdtext@suffix@.@mshared_suffix@
+	lib/libtexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/scheme/*.scm \
 	src/scheme/aws/*.scm src/scheme/brico/*.scm \
@@ -555,7 +555,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-o $@ $<                                           \
 		-lfdkbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
-		-lfdtext@suffix@ -lfdscheme@suffix@ \
+		-ltexttools@suffix@ -lfdscheme@suffix@ \
 		-lfdkbdrivers@suffix@ -lfdkbase@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
@@ -692,7 +692,7 @@ cmodules: @CMODULES@
 # Uninstall
 
 LIBBASE=libfdtype libfdkbase libfdkbdrivers libfdkbserv \
-	libfdscheme libfdschemeio libfdweb libfdtext
+	libfdscheme libfdschemeio libfdweb libtexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
@@ -890,12 +890,12 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 		-o $@ $(FDWEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libfdtext@suffix@.a: $(TEXTTOOLS_OBJS)
-lib/libfdtext@suffix@.so: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
+lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
 	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
-lib/libfdtext@suffix@.dylib: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfdkbdrivers@suffix@.dylib \
 	lib/libfdkbase@suffix@.dylib \
@@ -1221,7 +1221,7 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
-		$(LIBINSTALLDIR)/libfdtext@suffix@.a
+		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
@@ -1251,10 +1251,10 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@shared_suffix@
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
