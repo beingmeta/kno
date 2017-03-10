@@ -407,7 +407,6 @@ static fdtype open_mysql
   flags=CLIENT_REMEMBER_OPTIONS;
 
   /* Initialize the other fields */
-<<<<<<< HEAD
   dbp->extdb_handler=&mysql_handler;
   dbp->mysql_hostname=host;
   dbp->mysql_username=username;
@@ -420,24 +419,8 @@ static fdtype open_mysql
   dbp->extdb_spec=spec;
   dbp->extdb_options=options; fd_incref(options);
 
-  u8_mutex_init(&dbp->extdb_proclock);
-  u8_mutex_init(&dbp->mysql_lock);
-=======
-  dbp->dbhandler=&mysql_handler;
-  dbp->hostname=host;
-  dbp->username=username;
-  dbp->passwd=passwd;
-  dbp->dbstring=dbstring;
-  dbp->sockname=sockname;
-  dbp->portno=portno;
-  dbp->flags=flags;
-  dbp->colinfo=fd_incref(colinfo);
-  dbp->spec=spec;
-  dbp->options=options; fd_incref(options);
-
-  u8_init_mutex(&dbp->proclock);
-  u8_init_mutex(&dbp->lock);
->>>>>>> master
+  u8_init_mutex(&dbp->extdb_proclock);
+  u8_init_mutex(&dbp->mysql_lock);
 
   /* Prep the structure */
   retval=open_connection(dbp);
@@ -896,21 +879,12 @@ static fdtype mysqlmakeproc
   FD_INIT_FRESH_CONS(dbproc,fd_extdb_proc_type);
 
   /* Set up fields for EXTDBPROC */
-<<<<<<< HEAD
   dbproc->extdb_handler=&mysql_handler;
   dbproc->extdbptr=(fdtype)dbp; fd_incref(dbproc->extdbptr);
   dbproc->extdb_spec=u8_strdup(dbp->extdb_spec);
   dbproc->extdb_qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
   colinfo=dbproc->extdb_colinfo=merge_colinfo(dbp,colinfo);
-  u8_mutex_init(&(dbproc->mysqlproc_lock));
-=======
-  dbproc->dbhandler=&mysql_handler;
-  dbproc->db=(fdtype)dbp; fd_incref(dbproc->db);
-  dbproc->spec=u8_strdup(dbp->spec);
-  dbproc->qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
-  colinfo=dbproc->colinfo=merge_colinfo(dbp,colinfo);
-  u8_init_mutex(&(dbproc->lock));
->>>>>>> master
+  u8_init_mutex(&(dbproc->mysqlproc_lock));
 
   /* Set up MYSQL specific fields */
   dbproc->mysqldb=db;
@@ -1103,11 +1077,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   u8_free(dbproc->extdb_qtext);
   u8_free(dbproc->mysqlproc_string);
 
-<<<<<<< HEAD
-  u8_mutex_destroy(&(dbproc->mysqlproc_lock));
-=======
-  u8_destroy_mutex(&(dbproc->lock));
->>>>>>> master
+  u8_destroy_mutex(&(dbproc->mysqlproc_lock));
 
   fd_decref(dbproc->extdbptr);
 }
@@ -1477,13 +1447,7 @@ FD_EXPORT int fd_init_mysql()
 
   module=fd_new_module("MYSQL",0);
 
-<<<<<<< HEAD
-  u8_mutex_init(&mysql_connect_lock);
-=======
-#if FD_THREADS_ENABLED
   u8_init_mutex(&mysql_connect_lock);
-#endif
->>>>>>> master
 
   mysql_handler.execute=mysqlexechandler;
   mysql_handler.makeproc=mysqlmakeprochandler;
