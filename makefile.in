@@ -1435,6 +1435,7 @@ enable-sysv: setup-sysv
 startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 setup-upstart: $(DESTDIR)/etc/init/framerd.conf startupdirs
+
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
