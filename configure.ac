@@ -1561,7 +1561,7 @@ else BINDIR="${exec_prefix}/bin";
 fi
 
 dnl Try to init submodules if needed and possible
-if (test ! -f src/modules/gpath.scm); then
+if (test ! -f src/scheme/gpath.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
