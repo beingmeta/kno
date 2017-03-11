@@ -36,6 +36,8 @@ fd_exception fd_RecoveryRequired=_("RECOVERY");
 int fd_acid_files=1;
 size_t fd_driver_bufsize=FDKB_DRIVER_BUFSIZE;
 
+#define CHECK_ERRNO U8_CLEAR_ERRNO
+
 /* Matching word prefixes */
 
 FD_EXPORT
@@ -127,7 +129,7 @@ FD_EXPORT
 fd_pool fd_open_pool(u8_string spec,fdkb_flags flags)
 {
   struct FD_POOL_TYPEINFO *ptype;
-  U8_CHECK_ERRNO();
+  CHECK_ERRNO();
   ptype=pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec=ptype->matcher(spec,ptype->type_data);
@@ -136,7 +138,7 @@ fd_pool fd_open_pool(u8_string spec,fdkb_flags flags)
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ptype=ptype->next_type;
-      U8_CHECK_ERRNO();}
+      CHECK_ERRNO();}
     else ptype=ptype->next_type;}
   return NULL;
 }
@@ -237,7 +239,7 @@ FD_EXPORT
 fd_index fd_open_index(u8_string spec,fdkb_flags flags)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
-  U8_CHECK_ERRNO();
+  CHECK_ERRNO();
   ixtype=index_typeinfo; while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec=ixtype->matcher(spec,ixtype->type_data);
@@ -246,7 +248,7 @@ fd_index fd_open_index(u8_string spec,fdkb_flags flags)
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ixtype=ixtype->next_type;
-      U8_CHECK_ERRNO();}
+      CHECK_ERRNO();}
     else ixtype=ixtype->next_type;}
   return NULL;
 }
