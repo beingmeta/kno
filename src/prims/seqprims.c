@@ -2451,7 +2451,7 @@ FD_EXPORT void fd_init_seqprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("VECLEN<?",veclen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim2x
-           ("VECLEN<=?",veclen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+           ("VECLEN<=?",veclen_lte_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("SEQLEN>=?",seqlen_gte_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
@@ -2462,7 +2462,7 @@ FD_EXPORT void fd_init_seqprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("SEQLEN<?",seqlen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim2x
-           ("SEQLEN<=?",seqlen_lt_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
+           ("SEQLEN<=?",seqlen_lte_prim,2,-1,FD_VOID,fd_fixnum_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("SORTVEC",sortvec_prim,1,
