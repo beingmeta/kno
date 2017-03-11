@@ -52,11 +52,6 @@ Architecture: any
 Depends: framerd-core (= ${binary:Version}), apache2
 Description: The mod_fdserv module for FramerD servlets under Apache
 
-Package: framerd-fakedev
-Architecture: all
-Provides: framerd-dev, framerd-dev (= ${binary:Version})
-Description: Fake version of development files for FramerD
-
 Package: framerd-mysql
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18
@@ -149,19 +144,19 @@ Package: framerd-doc
 Architecture: any
 Description: documentation for framerd
 
-Package: framerd-upstart
+Package: upstart-framerd
 Architecture: any
 Depends: framerd-core
 Conflicts: framerd-sysv, framerd-systemd
 Description: Upstart configuration for FramerD
 
-Package: framerd-sysv
+Package: sysv-framerd
 Architecture: any
 Depends: framerd-core
 Conflicts: framerd-upstart, framerd-systemd
 Description: SYSV init.d configuration for FramerD
 
-Package: framerd-systemd
+Package: systemd-framerd
 Architecture: any
 Depends: framerd-core
 Conflicts: framerd-upstart, framerd-sysv
