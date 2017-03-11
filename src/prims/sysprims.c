@@ -547,9 +547,8 @@ static int get_pagesize()
 
 static int get_physical_pages()
 {
-  int retval=0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
-  retval=sysconf(_SC_PHYS_PAGES);
+  int retval=sysconf(_SC_PHYS_PAGES);
   if (retval>0) return retval;
   if (retval<0) fd_clear_errors(1);
 #endif
@@ -558,9 +557,8 @@ static int get_physical_pages()
 
 static int get_available_pages()
 {
-  int retval=0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
-  retval=sysconf(_SC_AVPHYS_PAGES);
+  int retval=sysconf(_SC_AVPHYS_PAGES);
   if (retval>0) return retval;
   if (retval<0) fd_clear_errors(1);
 #endif
@@ -590,7 +588,7 @@ static long long get_available_memory()
   if (retval>0) return retval*pagesize;
   if (retval<0) fd_clear_errors(1);
 #endif
-  return 0;
+  return retval;
 }
 
 /* CALLTRACK SENSORS */

@@ -53,7 +53,8 @@ static fdtype rdf2dtype ( ldns_rdf *field )
   case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA: 
   case LDNS_RDF_TYPE_LOC: case LDNS_RDF_TYPE_TAG: case LDNS_RDF_TYPE_LONG_STR: {
     fdtype result=FD_VOID;
-    ldns_buffer *tmp = ldns_buffer_new( LDNS_MAX_PACKETLEN ); int rv;
+    ldns_buffer *tmp = ldns_buffer_new( LDNS_MAX_PACKETLEN ); 
+    int rv=-1;
     if (!(tmp)) {}
     else if (field_type == LDNS_RDF_TYPE_DNAME)
       rv = ldns_rdf2buffer_str_dname( tmp, field );
