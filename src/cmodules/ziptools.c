@@ -119,6 +119,7 @@ static fdtype zipopen(u8_string path,int zflags,int oflags)
   u8_string abspath=u8_abspath(path,NULL);
   if ((!(flags&ZIP_CREATE))&&(!(u8_file_existsp(abspath)))) {
     fd_seterr(fd_FileNotFound,"zipopen",abspath,FD_VOID);
+    U8_CLEAR_ERRNO();
     return FD_ERROR_VALUE;}
   else {
     struct zip *zip=zip_open(abspath,flags,&errflag);
@@ -128,8 +129,10 @@ static fdtype zipopen(u8_string path,int zflags,int oflags)
       u8_init_mutex(&(zf->zipfile_lock));
       zf->filename=abspath; zf->flags=zflags; zf->closed=0;
       zf->zip=zip;
+      U8_CLEAR_ERRNO();
       return FDTYPE_CONS(zf);}
     else {
+      U8_CLEAR_ERRNO();
       return znumerr("open_zipfile",errflag,abspath);}}
 }
 static fdtype zipopen_prim(fdtype filename,fdtype create)
