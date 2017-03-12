@@ -477,7 +477,6 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   else if (srv->dbname==NULL) {
     return fd_err(_("MissingDBName"),"mongodb_open",NULL,server);}
   else {
-    db_name=u8_strdup(srv->dbname);
     collection_name=u8_strdup(name);}
   result=u8_alloc(struct FD_MONGODB_COLLECTION);
   FD_INIT_CONS(result,fd_mongoc_collection);
