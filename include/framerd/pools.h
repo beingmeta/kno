@@ -190,7 +190,6 @@ typedef struct FD_POOL_HANDLER {
   int (*storen)(fd_pool p,int n,fdtype *oids,fdtype *vals);
   int (*swapout)(fd_pool p,fdtype oids);
   fdtype (*metadata)(fd_pool p,fdtype);
-  int (*sync)(fd_pool p);
   fd_pool (*create)(u8_string spec,void *typedata,
 		    fdkb_flags flags,fdtype opts);
   void (*recycle)(fd_pool p);
@@ -211,16 +210,16 @@ struct FD_POOL_HANDLER some_handler={
    NULL, /* release */
    NULL, /* storen */
    NULL, /* metadata */
-   NULL, /* sync */
    NULL, /* create */
    NULL  /* pool op */
 };
 #endif
 
-#define FDKB_POOLOP_PRELOAD     (1<<0)
-#define FDKB_POOLOP_STATS       (1<<1)
-#define FDKB_POOLOP_LABEL       (1<<2)
-#define FDKB_POOLOP_POPULATE    (1<<3)
+#define FDKB_POOLOP_SETCACHE    (1<<0)
+#define FDKB_POOLOP_PRELOAD     (1<<1)
+#define FDKB_POOLOP_STATS       (1<<2)
+#define FDKB_POOLOP_LABEL       (1<<3)
+#define FDKB_POOLOP_POPULATE    (1<<4)
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,

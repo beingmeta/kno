@@ -72,7 +72,6 @@ typedef struct FD_INDEX_HANDLER {
   fdtype *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchsizes)(fd_index ix,int *n);
   fdtype (*metadata)(fd_index ix,fdtype);
-  int (*sync)(fd_index p);
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
   void (*recycle)(fd_index p);
@@ -80,10 +79,11 @@ typedef struct FD_INDEX_HANDLER {
 } FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
-#define FDKB_INDEXOP_PRELOAD     (1<<0)
-#define FDKB_INDEXOP_STATS       (1<<1)
-#define FDKB_INDEXOP_LABEL       (1<<2)
-#define FDKB_INDEXOP_POPULATE    (1<<3)
+#define FDKB_INDEXOP_SETCACHE    (1<<0)
+#define FDKB_INDEXOP_PRELOAD     (1<<1)
+#define FDKB_INDEXOP_STATS       (1<<2)
+#define FDKB_INDEXOP_LABEL       (1<<3)
+#define FDKB_INDEXOP_POPULATE    (1<<4)
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={
@@ -97,7 +97,6 @@ struct FD_INDEX_HANDLER some_handler={
   NULL /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
-  NULL /* sync */
   NULL, /* creates */
   NULL /* indexop */
 };

@@ -767,7 +767,6 @@ static struct FD_POOL_HANDLER file_pool_handler={
   file_pool_storen, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL, /* sync */
   filepool_create, /* create */
   NULL, /* recycle */
   NULL  /* poolop */

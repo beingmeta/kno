@@ -211,7 +211,6 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL, /* metadata */
-  NULL, /* sync */
   NULL, /* create */
   recycle_extindex,  /* recycle */
   NULL  /* indexop */

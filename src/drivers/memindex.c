@@ -310,7 +310,6 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   mem_index_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL, /* metadata */
-  NULL, /* sync */
   mem_index_create, /* create */
   NULL, /* recycle */
   NULL  /* indexop */

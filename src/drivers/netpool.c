@@ -257,7 +257,6 @@ static struct FD_POOL_HANDLER netpool_handler={
   network_pool_storen, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL, /* sync */
   NULL, /* create */
   NULL, /* recycle */
   NULL  /* poolop */

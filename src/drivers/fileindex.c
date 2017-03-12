@@ -1290,7 +1290,6 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchkeys, /* fetchkeys */
   file_index_fetchsizes, /* fetchsizes */
   NULL, /* fetchsizes */
-  NULL, /* sync */
   file_index_create, /* create */
   NULL, /* recycle */
   NULL  /* indexop */

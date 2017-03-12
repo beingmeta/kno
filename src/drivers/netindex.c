@@ -253,7 +253,6 @@ static struct FD_INDEX_HANDLER netindex_handler={
   netindex_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
   NULL, /* metadata */
-  NULL, /* sync */
   NULL, /* create */
   NULL, /* recycle */
   NULL  /* indexop */
