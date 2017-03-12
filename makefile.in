@@ -1151,6 +1151,9 @@ dist/debs.signed: dist/debs.built
 		framerd_@FDVERSION@*.changes) && 		\
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               	\
+			sysv-framerd_@FDVERSION@*.deb  		\
+			upstart-framerd_@FDVERSION@*.deb  	\
+			systemd-framerd_@FDVERSION@*.deb  	\
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
 			elpa-fdconsole_@FDVERSION@*.deb  \
 			../dist) &&                             \
