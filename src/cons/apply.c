@@ -438,12 +438,15 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
       U8_CLEAR_CONTOUR();
       result = FD_ERROR_VALUE;}
     U8_END_EXCEPTION;
-    if (errno) {
+    if ((errno)&&(!(FD_TROUBLEP(result)))) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
-    if (FD_CHECK_PTR(result))
+    if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
+      if (errno) u8_graberrno("fd_apply",fname);
+      else fd_seterr(fd_UnknownError,"fd_apply",fname,FD_VOID);}
+    if (FD_EXPECT_TRUE(FD_CHECK_PTR(result)))
       return result;
     else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
   else {
