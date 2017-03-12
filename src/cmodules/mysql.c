@@ -159,9 +159,10 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 
 static int setup_connection(struct FD_MYSQL *dbp)
 {
-  fdtype options=dbp->extdb_options;  char *option=NULL;
   int retval=0;
+  fdtype options=dbp->extdb_options;
   int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
+  char *option=NULL;
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
     fdtype sslca=fd_getopt(options,sslca_symbol,FD_VOID);
