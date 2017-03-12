@@ -393,7 +393,7 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 
 /* Opcodes */
 
-FD_EXPORT const u8_string fd_opcode_names[];
+FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcode_table_len;
 
 #define FD_SPECIAL_OPCODES   FD_OPCODE(0x00)
