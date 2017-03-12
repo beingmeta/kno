@@ -455,7 +455,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_DATABASE *srv;
-  u8_string name=FD_STRDATA(name_arg), db_name=NULL, collection_name=NULL; 
+  u8_string name=FD_STRDATA(name_arg), collection_name=NULL; 
   fdtype opts; int flags;
   if (FD_TYPEP(server,fd_mongoc_server)) {
     srv=(struct FD_MONGODB_DATABASE *)server;
@@ -473,8 +473,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   else return fd_type_error("MongoDB client","mongodb_collection",server);
   if (strchr(name,'/')) {
     char *slash=strchr(name,'/');
-    collection_name=slash+1;
-    db_name=u8_slice(name,slash);}
+    collection_name=slash+1;}
   else if (srv->dbname==NULL) {
     return fd_err(_("MissingDBName"),"mongodb_open",NULL,server);}
   else {
@@ -790,7 +789,6 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
   int flags=getflags(opts_arg,domain->domain_flags);
   fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client=NULL;
@@ -904,7 +902,6 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 {
   fdtype result=FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
   int flags=getflags(opts_arg,domain->domain_flags);
   fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client=NULL;
@@ -1043,7 +1040,6 @@ static fdtype make_command(int n,fdtype *values)
 static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
   int flags=getflags(opts_arg,domain->domain_flags);
   fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   fdtype fields=fd_get(opts,fieldssym,FD_VOID);
@@ -1142,7 +1138,6 @@ static fdtype collection_simple_command(fdtype arg,fdtype command,
                                         fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
   int flags=getflags(opts_arg,domain->domain_flags);
   fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   bson_t *cmd=fd_dtype2bson(command,flags,opts);
