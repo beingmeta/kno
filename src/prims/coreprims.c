@@ -495,16 +495,19 @@ static fdtype config_get(fdtype vars,fdtype dflt)
   else return result;
 }
 
-static fdtype set_config(fdtype var,fdtype val)
+static fdtype set_config(int n,fdtype *args)
 {
-  int retval;
-  if (FD_STRINGP(var))
-    retval=fd_set_config(FD_STRDATA(var),val);
-  else if (FD_SYMBOLP(var))
-    retval=fd_set_config(FD_SYMBOL_NAME(var),val);
-  else return fd_type_error(_("string or symbol"),"set_config",var);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
+  int retval, i=0;
+  if (n%2) return fd_err(fd_SyntaxError,"set_config",NULL,FD_VOID);
+  while (i<n) {
+    fdtype var=args[i++], val=args[i++];
+    if (FD_STRINGP(var))
+      retval=fd_set_config(FD_STRDATA(var),val);
+    else if (FD_SYMBOLP(var))
+      retval=fd_set_config(FD_SYMBOL_NAME(var),val);
+    else return fd_type_error(_("string or symbol"),"set_config",var);
+    if (retval<0) return FD_ERROR_VALUE;}
+  return FD_VOID;
 }
 
 static fdtype config_default(fdtype var,fdtype val)
@@ -722,7 +725,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("CONFIG",config_get,1)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("SET-CONFIG!",set_config,2)));
+           fd_make_ndprim(fd_make_cprimn("SET-CONFIG!",set_config,2)));
   fd_defalias(fd_scheme_module,"CONFIG!","SET-CONFIG!");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
