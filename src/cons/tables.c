@@ -693,7 +693,7 @@ static int compare_slotmaps(fdtype x,fdtype y,fd_compare_flags flags)
   struct FD_SLOTMAP *smx=(struct FD_SLOTMAP *)x;
   struct FD_SLOTMAP *smy=(struct FD_SLOTMAP *)y;
   int compare_lengths=(!(flags&FD_COMPARE_ELTS));
-  int compare_slots=(flags=FD_COMPARE_SLOTS);
+  int compare_slots=(flags&FD_COMPARE_SLOTS);
   if (smx->table_uselock) {fd_read_lock_table(smx); unlockx=1;}
   if (smy->table_uselock) {fd_read_lock_table(smy); unlocky=1;}
   int xsize=FD_XSLOTMAP_NUSED(smx), ysize=FD_XSLOTMAP_NUSED(smy);
