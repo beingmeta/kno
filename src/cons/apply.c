@@ -486,6 +486,90 @@ static fdtype ndapply_loop
   return FD_VOID;
 }
 
+static fdtype ndapply1(fdtype fp,fdtype args1)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(arg1,args1) {
+    fdtype r=fd_dapply(fp,1,&arg1);
+    if (FD_ABORTP(r)) {
+      FD_STOP_DO_CHOICES;
+      fd_decref(results);
+      return r;}
+    else {FD_ADD_TO_CHOICE(results,r);}}
+  return results;
+}
+
+static fdtype ndapply2(fdtype fp,fdtype args0,fdtype args1)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(arg0,args0) {
+    FD_DO_CHOICES(arg1,args1) {
+      fdtype argv[2]={arg0,arg1};
+      fdtype r=fd_dapply(fp,2,argv);
+      if (FD_ABORTP(r)) {
+        fd_decref(results);
+        results=r;
+        FD_STOP_DO_CHOICES;
+        break;}
+      else {FD_ADD_TO_CHOICE(results,r);}}
+    if (FD_ABORTP(results)) {
+      FD_STOP_DO_CHOICES;
+      break;}}
+  return results;
+}
+
+static fdtype ndapply3(fdtype fp,fdtype args0,fdtype args1,fdtype args2)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(arg0,args0) {
+    FD_DO_CHOICES(arg1,args1) {
+      FD_DO_CHOICES(arg2,args2) {
+        fdtype argv[3]={arg0,arg1,arg2};
+        fdtype r=fd_dapply(fp,3,argv);
+        if (FD_ABORTP(r)) {
+          fd_decref(results);
+          results=r;
+          FD_STOP_DO_CHOICES;
+          break;}
+        else {FD_ADD_TO_CHOICE(results,r);}}
+      if (FD_ABORTP(results)) {
+        FD_STOP_DO_CHOICES;
+        break;}}
+    if (FD_ABORTP(results)) {
+      FD_STOP_DO_CHOICES;
+      break;}}
+  return results;
+}
+
+static fdtype ndapply4(fdtype fp,
+                       fdtype args0,fdtype args1,
+                       fdtype args2,fdtype args3)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(arg0,args0) {
+    FD_DO_CHOICES(arg1,args1) {
+      FD_DO_CHOICES(arg2,args2) {
+        FD_DO_CHOICES(arg3,args3) {
+          fdtype argv[4]={arg0,arg1,arg2,arg3};
+          fdtype r=fd_dapply(fp,4,argv);
+          if (FD_ABORTP(r)) {
+            fd_decref(results);
+            results=r;
+            FD_STOP_DO_CHOICES;
+            break;}
+          else {FD_ADD_TO_CHOICE(results,r);}}
+        if (FD_ABORTP(results)) {
+          FD_STOP_DO_CHOICES;
+          break;}}
+      if (FD_ABORTP(results)) {
+        FD_STOP_DO_CHOICES;
+        break;}}
+    if (FD_ABORTP(results)) {
+      FD_STOP_DO_CHOICES;
+      break;}}
+  return results;
+}
+
 FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 {
   fdtype handler=(FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
@@ -502,7 +586,15 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
       /* Initialize the d_args vector */
       if (n>6) d_args=u8_alloc_n(n,fdtype);
       else d_args=argbuf;
-      retval=ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
+      if (n==1)
+        return ndapply1(handler,args[0]);
+      else if (n==2)
+        return ndapply2(handler,args[0],args[1]);
+      else if (n==3)
+        return ndapply3(handler,args[0],args[1],args[2]);
+      else if (n==4)
+        return ndapply4(handler,args[0],args[1],args[2],args[3]);
+      else retval=ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
       if (FD_ABORTP(retval)) {
         fd_decref(results);
         if (d_args!=argbuf) u8_free(d_args);
