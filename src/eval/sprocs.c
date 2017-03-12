@@ -192,6 +192,7 @@ static fdtype _make_sproc(u8_string name,
     s->sproc_arglist=fd_incref(arglist);}
   else {
     s->sproc_body=body; s->sproc_arglist=arglist;}
+  s->sproc_bytecode=NULL;
   if (env==NULL)
     s->sproc_env=env;
   else if ( (copy_env) || (FD_MALLOCD_CONSP(env)) )
@@ -226,7 +227,6 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
   return make_sproc(name,arglist,body,env,nd,sync);
 }
 
-
 FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
 {
   struct FD_SPROC *sproc=(struct FD_SPROC *)c;
@@ -243,6 +243,9 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
   if (sproc->sproc_synchronized)
     u8_destroy_mutex(&(sproc->sproc_lock));
   if (sproc->fcn_filename) u8_free(sproc->fcn_filename);
+  if (sproc->sproc_bytecode) {
+    fdtype bc=(fdtype)(sproc->sproc_bytecode);
+    fd_decref(bc);}
   if (mallocd) {
     memset(sproc,0,sizeof(struct FD_SPROC));
     u8_free(sproc);}
@@ -322,6 +325,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
 
     fresh->sproc_arglist=fd_copier(sproc->sproc_arglist,flags);
     fresh->sproc_body=fd_copier(sproc->sproc_body,flags);
+    fresh->sproc_bytecode=NULL;
     if (sproc->sproc_vars)
       fresh->sproc_vars=fd_copy_vec(sproc->sproc_vars,n_args,NULL,flags);
     if (sproc->fcn_defaults)

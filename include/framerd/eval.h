@@ -145,6 +145,7 @@ typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
   short sproc_n_vars, sproc_synchronized;
   fdtype *sproc_vars, sproc_arglist, sproc_body;
+  struct FD_VECTOR *sproc_bytecode;
   fd_lispenv sproc_env;
   U8_MUTEX_DECL(sproc_lock);
 } FD_SPROC;
