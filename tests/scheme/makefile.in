@@ -268,7 +268,7 @@ runindexes:
 fileindexes:
 	@echo "*** Testing file indices "	
 	@make TEST_SUFFIX=index runindexes
-	@echo "*** Done testing file indices "	
+	@echo "*** Done testing file indices "
 
 hashindexes:
 	@echo "*** Testing hash indices "	
@@ -296,7 +296,9 @@ dbtest:
 dbtests db:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
 	make TESTCONFIG="POOLTYPE=oidpool" dbtest
+	make TESTCONFIG="POOLTYPE=oidpool INDEXTYPE=fileindex" dbtest
 	make TESTCONFIG="POOLTYPE=bigpool" dbtest
+	make TESTCONFIG="POOLTYPE=bigpool INDEXTYPE=fileindex" dbtest
 	make TESTCONFIG="POOLTYPE=oidpool OFFTYPE=B64" dbtest
 	make TESTCONFIG="POOLTYPE=bigpool OFFTYPE=B64" dbtest
 	make TESTCONFIG="POOLTYPE=oidpool INDEXTYPE=hashindex" dbtest
