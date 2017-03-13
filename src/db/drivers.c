@@ -36,6 +36,8 @@ fd_exception fd_RecoveryRequired=_("RECOVERY");
 int fd_acid_files=1;
 size_t fd_driver_bufsize=FDKB_DRIVER_BUFSIZE;
 
+#define CHECK_ERRNO U8_CLEAR_ERRNO
+
 /* Matching word prefixes */
 
 FD_EXPORT
@@ -75,7 +77,7 @@ static u8_mutex pool_typeinfo_lock;
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
    fd_pool_handler handler,
-   fd_pool (*opener)(u8_string filename,fdkbase_flags flags),
+   fd_pool (*opener)(u8_string filename,fdkb_flags flags),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -124,9 +126,10 @@ static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fdkbase_flags flags)
+fd_pool fd_open_pool(u8_string spec,fdkb_flags flags)
 {
   struct FD_POOL_TYPEINFO *ptype;
+  CHECK_ERRNO();
   ptype=pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec=ptype->matcher(spec,ptype->type_data);
@@ -134,7 +137,8 @@ fd_pool fd_open_pool(u8_string spec,fdkbase_flags flags)
         fd_pool opened=ptype->opener(use_spec,flags);
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
-      else ptype=ptype->next_type;}
+      else ptype=ptype->next_type;
+      CHECK_ERRNO();}
     else ptype=ptype->next_type;}
   return NULL;
 }
@@ -152,7 +156,7 @@ FD_EXPORT
 fd_pool fd_make_pool(
                      u8_string spec,
                      u8_string pooltype,
-                     fdkbase_flags flags,
+                     fdkb_flags flags,
                      fdtype opts)
 {
   fd_pool_typeinfo ptype=get_pool_typeinfo(pooltype);
@@ -183,7 +187,7 @@ static u8_mutex index_typeinfo_lock;
 FD_EXPORT void fd_register_index_type
   (u8_string name,
    fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fdkbase_flags flags),
+   fd_index (*opener)(u8_string filename,fdkb_flags flags),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -232,9 +236,10 @@ static fd_index_typeinfo get_index_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_index fd_open_index(u8_string spec,fdkbase_flags flags)
+fd_index fd_open_index(u8_string spec,fdkb_flags flags)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
+  CHECK_ERRNO();
   ixtype=index_typeinfo; while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec=ixtype->matcher(spec,ixtype->type_data);
@@ -242,7 +247,8 @@ fd_index fd_open_index(u8_string spec,fdkbase_flags flags)
         fd_index opened=ixtype->opener(use_spec,flags);
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
-      else ixtype=ixtype->next_type;}
+      else ixtype=ixtype->next_type;
+      CHECK_ERRNO();}
     else ixtype=ixtype->next_type;}
   return NULL;
 }
@@ -262,7 +268,7 @@ FD_EXPORT
 fd_index fd_make_index(
                        u8_string spec,
                        u8_string indextype,
-                       fdkbase_flags flags,
+                       fdkb_flags flags,
                        fdtype opts)
 {
   fd_index_typeinfo ixtype=get_index_typeinfo(indextype);

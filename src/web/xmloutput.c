@@ -110,7 +110,7 @@ FD_INLINE_FCN void entify(u8_output out,u8_string value)
     else u8_putc(out,c);
 }
 
-FD_INLINE_FCN void entify_lower(u8_output out,u8_string value)
+static U8_MAYBE_UNUSED void entify_lower(u8_output out,u8_string value)
 {
   const u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
@@ -214,7 +214,7 @@ static fdtype oid2id(fdtype oid,fdtype prefix)
   return fd_init_string(NULL,tmp.u8_write-tmp.u8_outbuf,tmp.u8_outbuf);
 }
 
-FD_INLINE_FCN fdtype oidunxmlify(fdtype string)
+static U8_MAYBE_UNUSED fdtype oidunxmlify(fdtype string)
 {
   u8_string s=FD_STRDATA(string), addr_start=strchr(s,'_');
   FD_OID addr; unsigned int hi, lo;

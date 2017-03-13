@@ -159,9 +159,10 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 
 static int setup_connection(struct FD_MYSQL *dbp)
 {
-  fdtype options=dbp->extdb_options;  char *option=NULL;
   int retval=0;
+  fdtype options=dbp->extdb_options;
   int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
+  char *option=NULL;
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
     fdtype sslca=fd_getopt(options,sslca_symbol,FD_VOID);
@@ -352,8 +353,8 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
   u8_free(dbp->extdb_procs);
   fd_decref(dbp->extdb_colinfo); fd_decref(dbp->extdb_options);
   u8_free(dbp->extdb_spec); u8_free(dbp->extdb_info);
-  u8_mutex_destroy(&(dbp->extdb_proclock));
-  u8_mutex_destroy(&(dbp->mysql_lock));
+  u8_destroy_mutex(&(dbp->extdb_proclock));
+  u8_destroy_mutex(&(dbp->mysql_lock));
 
   mysql_close(dbp->mysqldb);
 }
@@ -419,8 +420,8 @@ static fdtype open_mysql
   dbp->extdb_spec=spec;
   dbp->extdb_options=options; fd_incref(options);
 
-  u8_mutex_init(&dbp->extdb_proclock);
-  u8_mutex_init(&dbp->mysql_lock);
+  u8_init_mutex(&dbp->extdb_proclock);
+  u8_init_mutex(&dbp->mysql_lock);
 
   /* Prep the structure */
   retval=open_connection(dbp);
@@ -884,7 +885,7 @@ static fdtype mysqlmakeproc
   dbproc->extdb_spec=u8_strdup(dbp->extdb_spec);
   dbproc->extdb_qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
   colinfo=dbproc->extdb_colinfo=merge_colinfo(dbp,colinfo);
-  u8_mutex_init(&(dbproc->mysqlproc_lock));
+  u8_init_mutex(&(dbproc->mysqlproc_lock));
 
   /* Set up MYSQL specific fields */
   dbproc->mysqldb=db;
@@ -1077,7 +1078,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   u8_free(dbproc->extdb_qtext);
   u8_free(dbproc->mysqlproc_string);
 
-  u8_mutex_destroy(&(dbproc->mysqlproc_lock));
+  u8_destroy_mutex(&(dbproc->mysqlproc_lock));
 
   fd_decref(dbproc->extdbptr);
 }
@@ -1447,7 +1448,7 @@ FD_EXPORT int fd_init_mysql()
 
   module=fd_new_module("MYSQL",0);
 
-  u8_mutex_init(&mysql_connect_lock);
+  u8_init_mutex(&mysql_connect_lock);
 
   mysql_handler.execute=mysqlexechandler;
   mysql_handler.makeproc=mysqlmakeprochandler;

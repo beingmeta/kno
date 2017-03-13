@@ -848,6 +848,11 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         return v;}
     else if (head == comment_symbol)
       return FD_VOID;
+    else if (!(fd_stackcheck())) {
+      u8_byte buf[128]=""; struct U8_OUTPUT out;
+      U8_INIT_FIXED_OUTPUT(&out,128,buf);
+      u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
+      return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
     else {
       fdtype result=FD_VOID;
       fdtype headval = (FD_FCNIDP(head))?
@@ -943,7 +948,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       if (gchead) fd_decref(headval);
       return result;}}
   case fd_rail_type:
-    return fd_rail_eval(FD_RAIL_LENGTH(expr)-1,FD_RAIL_DATA(expr)+1,env);
+    return fd_incref(expr);
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   case fd_choice_type: case fd_achoice_type: {
@@ -2120,6 +2125,7 @@ FD_EXPORT void fd_init_extdbprims_c(void);
 static void init_eval_core()
 {
   init_localfns();
+  fd_init_opcodes_c();
   fd_init_tableprims_c();
   fd_init_modules_c();
   fd_init_arith_c();

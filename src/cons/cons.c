@@ -1390,6 +1390,50 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
                      x);
 }
 
+/* Regexes */
+
+fd_exception fd_RegexError=_("Regular expression error");
+
+static int default_regex_flags=REG_EXTENDED|REG_NEWLINE;
+
+static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_REGEX *rx=(struct FD_REGEX *)x;
+  u8_printf(out,"#/%s/%s%s%s%s",rx->fd_rxsrc,
+            (((rx->fd_rxflags)&REG_EXTENDED)?"e":""),
+            (((rx->fd_rxflags)&REG_ICASE)?"i":""),
+            (((rx->fd_rxflags)&REG_ICASE)?"l":""),
+            (((rx->fd_rxflags)&REG_NOSUB)?"s":""));
+  return 1;
+}
+
+static void recycle_regex(struct FD_RAW_CONS *c)
+{
+  struct FD_REGEX *rx=(struct FD_REGEX *)c;
+  regfree(&(rx->fd_rxcompiled));
+  u8_destroy_mutex(&(rx->fdrx_lock));
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
+}
+
+FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
+{
+  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX); int retval;
+  FD_INIT_FRESH_CONS(ptr,fd_regex_type);
+  if (flags<0) flags=default_regex_flags;
+  src=u8_strdup(src);
+  retval=regcomp(&(ptr->fd_rxcompiled),src,flags);
+  if (retval) {
+    u8_byte buf[512];
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
+    u8_free(ptr);
+    return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),
+                  fd_init_string(NULL,-1,src));}
+  else {
+    ptr->fd_rxflags=flags; ptr->fd_rxsrc=src;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
+    return FDTYPE_CONS(ptr);}
+}
+
 /* Testing */
 
 static U8_MAYBE_UNUSED int some_false(fdtype arg)
@@ -1470,6 +1514,9 @@ void fd_init_cons_c()
     struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(uuid_symbol,NULL,NULL);
     e->fd_compound_dumpfn=uuid_dump;
     e->fd_compound_restorefn=uuid_restore;}
+
+  fd_unparsers[fd_regex_type]=unparse_regex;
+  fd_recyclers[fd_regex_type]=recycle_regex;
 
   fd_compound_descriptor_type=
     fd_init_compound

@@ -950,6 +950,9 @@ int main(int argc,char **argv)
       fd_decref(v);
       continue;}
     start_time=u8_elapsed_time();
+    if (errno) {
+      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after read");
+      errno=0;}
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
@@ -962,6 +965,9 @@ int main(int argc,char **argv)
         fd_flush_stream(eval_server);
         result=fd_read_dtype(fd_readbuf(eval_server));}
       else result=fd_eval(expr,env);}
+    if (errno) {
+      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after eval");
+      errno=0;}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
     finish_ocache=fd_object_cache_load();
@@ -1031,6 +1037,9 @@ int main(int argc,char **argv)
     else {
       output_result(out,result,histref,is_histref);
       stat_line=1;}
+    if (errno) {
+      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after output");
+      errno=0;}
     if (stat_line) {
       if (histref<0)
         u8_printf (out,stats_message,

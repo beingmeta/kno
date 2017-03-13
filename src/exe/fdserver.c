@@ -981,7 +981,7 @@ int main(int argc,char **argv)
     source_file=server_spec;
   else server_port=server_spec;
 
-  fdkbase_loglevel=LOG_INFO;
+  fdkb_loglevel=LOG_INFO;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,

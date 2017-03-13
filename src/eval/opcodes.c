@@ -4,63 +4,7 @@ static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
 
 /* Opcode names */
 
-const u8_string fd_opcode_names[256]={
-  /* 0x00 */
-  "quote","begin","and","or","not","fail",
-  "%modref","comment",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x10 */
-  "if","when","unless","ifelse",
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x20 */
-  "ambigp","singeltonp","failp","existsp",
-  "singleton","car","cdr","length",
-  "qchoice","choicesize","pickoids","pickstrings",
-  "pickone","ifexists",NULL,NULL,
-  /* 0x30 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x40 */
-  "minus1","plus1","numberp","zerop",
-  "vectorp","pairp","emptylistp","stringp",
-  "oidp","symbolp","first","second","third","tonumber",NULL,NULL,
-  /* 0x50 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x60 */
-  "numeq","numgt","numgte","numle","numlte",
-  "plus","subtract","multiply","flodiv",
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x70 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x80 */
-  "eq","eqv","equal","elt",NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0x90 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0xA0 */
-  "get","test","xref","%get",
-  "%test",NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,
-  /* 0xB0 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0xC0 */
-  "identicalp","overlaps","contains","union",
-  "intersection","difference",NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0xD0 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0xE0 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  /* 0xF0 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-};
+u8_string fd_opcode_names[1024];
 
 int fd_opcode_table_len=256;
 
@@ -71,7 +15,7 @@ static int unparse_opcode(u8_output out,fdtype opcode)
     u8_printf(out,"##invalidop");
     return 1;}
   else if (fd_opcode_names[opcode_offset]==NULL) {
-    u8_printf(out,"##unknownop");
+    u8_printf(out,"##op_%x",opcode_offset);
     return 1;}
   else {
     u8_printf(out,"##op_%s",fd_opcode_names[opcode_offset]);
@@ -81,8 +25,7 @@ static int unparse_opcode(u8_output out,fdtype opcode)
 static int validate_opcode(fdtype opcode)
 {
   int opcode_offset=(FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if ((opcode_offset>=0) && (opcode_offset<fd_opcode_table_len) &&
-      (fd_opcode_names[opcode_offset] != NULL))
+  if ((opcode_offset>=0) && (opcode_offset<fd_opcode_table_len))
     return 1;
   else return 0;
 }
@@ -93,7 +36,7 @@ static u8_string opcode_name(fdtype opcode)
   if ((opcode_offset<fd_opcode_table_len) &&
       (fd_opcode_names[opcode_offset]))
     return fd_opcode_names[opcode_offset];
-  else return "bad_opcode";
+  else return "anonymous_opcode";
 }
 
 /* OPCODE dispatching */
@@ -657,7 +600,7 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
         u8_lock_mutex(&(c->compound_lock));
       value=values[i];
       fd_incref(value);
-      if (c->compound_ismutable) 
+      if (c->compound_ismutable)
         u8_unlock_mutex(&(c->compound_lock));
       return value;}
     else {
@@ -666,17 +609,9 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
   else return fd_err(fd_TypeError,"xref",fd_dtype2string(tag),x);
 }
 
-/* TODO */
-static fdtype fd_rail_eval(int n,fdtype *start,fd_lispenv env)
-{
-  return FD_VOID;
-}
-
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
-  if (FD_RAILP(expr))
-    return fd_rail_eval(FD_RAIL_LENGTH(expr)-1,FD_RAIL_DATA(expr)+1,env);
-  else if (opcode<FD_MAX_FEXPR_OPCODE)
+  if (opcode<FD_MAX_FEXPR_OPCODE)
     /* These handle the raw expression without evaluation */
     return opcode_special_dispatch(opcode,expr,env);
   else if (!(FD_EXPECT_FALSE(FD_PAIRP(FD_CDR(expr))))) {
@@ -1019,6 +954,74 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
   default: /* Never reached */
     return x;
   }
+}
+
+static void init_opcode_names()
+{
+  fd_opcode_names[0x20]="AMBIGUOUS?";
+  fd_opcode_names[0x21]="SINGLETON?";
+  fd_opcode_names[0x22]="FAIL?";
+  fd_opcode_names[0x22]="EMPTY?";
+  fd_opcode_names[0x23]="EXISTS?";
+  fd_opcode_names[0x24]="SINGLETON";
+  fd_opcode_names[0x25]="CAR";
+  fd_opcode_names[0x26]="CDR";
+  fd_opcode_names[0x27]="LENGTH";
+  fd_opcode_names[0x28]="QCHOICE";
+  fd_opcode_names[0x29]="CHOICE-SIZE";
+  fd_opcode_names[0x2A]="PICKOIDS";
+  fd_opcode_names[0x2B]="PICKSTRINGS";
+  fd_opcode_names[0x2C]="PICK-ONE";
+  fd_opcode_names[0x2D]="IFEXISTS";
+  fd_opcode_names[0x40]="1-";
+  fd_opcode_names[0x40]="-1+";
+  fd_opcode_names[0x41]="1+";
+  fd_opcode_names[0x42]="NUMBER?";
+  fd_opcode_names[0x43]="ZERO?";
+  fd_opcode_names[0x44]="VECTOR?";
+  fd_opcode_names[0x45]="PAIR?";
+  fd_opcode_names[0x46]="NULL?";
+  fd_opcode_names[0x47]="STRING?";
+  fd_opcode_names[0x48]="OID?";
+  fd_opcode_names[0x49]="SYMBOL?";
+  fd_opcode_names[0x4A]="FIRST";
+  fd_opcode_names[0x4B]="SECOND";
+  fd_opcode_names[0x4C]="THIRD";
+  fd_opcode_names[0x4D]="->NUMBER";
+  fd_opcode_names[0x60]="=";
+  fd_opcode_names[0x61]=">";
+  fd_opcode_names[0x62]=">=";
+  fd_opcode_names[0x63]="<";
+  fd_opcode_names[0x64]="<=";
+  fd_opcode_names[0x65]="+";
+  fd_opcode_names[0x66]="-";
+  fd_opcode_names[0x67]="*";
+  fd_opcode_names[0x68]="/~";
+  fd_opcode_names[0x80]="EQ?";
+  fd_opcode_names[0x81]="EQV?";
+  fd_opcode_names[0x82]="EQUAL?";
+  fd_opcode_names[0x83]="ELT";
+  fd_opcode_names[0xA0]="GET";
+  fd_opcode_names[0xA1]="TEST";
+  fd_opcode_names[0xA2]="XREF";
+  fd_opcode_names[0xA3]="%GET";
+  fd_opcode_names[0xA4]="%TEST";
+  fd_opcode_names[0xC0]="IDENTICAL?";
+  fd_opcode_names[0xC1]="OVERLAPS?";
+  fd_opcode_names[0xC2]="CONTAINS?";
+  fd_opcode_names[0xC3]="UNION";
+  fd_opcode_names[0xC4]="INTERSECTION";
+  fd_opcode_names[0xC5]="DIFFERENCE";
+}
+
+static double opcodes_initialized=0;
+
+void fd_init_opcodes_c()
+{
+  if (opcodes_initialized) return;
+  else opcodes_initialized=1;
+  memset(fd_opcode_names,0,sizeof(fd_opcode_names));
+  init_opcode_names();
 }
 
 /* Emacs local variables

@@ -23,29 +23,7 @@
 
 #include <sys/types.h>
 
-fd_exception fd_RegexError=_("Regular expression error");
 fd_exception fd_RegexBadOp=_("Invalid Regex operation");
-
-static int default_regex_flags=REG_EXTENDED|REG_NEWLINE;
-
-FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
-{
-  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX); int retval;
-  FD_INIT_FRESH_CONS(ptr,fd_regex_type);
-  if (flags<0) flags=default_regex_flags;
-  src=u8_strdup(src);
-  retval=regcomp(&(ptr->fd_rxcompiled),src,flags);
-  if (retval) {
-    u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-    u8_free(ptr);
-    return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),
-                  fd_init_string(NULL,-1,src));}
-  else {
-    ptr->fd_rxflags=flags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
-    return FDTYPE_CONS(ptr);}
-}
 
 static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
 {
@@ -67,51 +45,10 @@ static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
     return FDTYPE_CONS(ptr);}
 }
 
-static fdtype parse_regex(u8_string src_arg,u8_string opts)
-{
-  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX);
-  int retval, cflags=REG_EXTENDED;
-  u8_string src=u8_strdup(src_arg);
-  FD_INIT_FRESH_CONS(ptr,fd_regex_type);
-  if (strchr(opts,'i')) cflags=cflags|REG_ICASE;
-  else if (strchr(opts,'c')) cflags=cflags|REG_ICASE;
-  else if (strchr(opts,'m')) cflags=cflags|REG_NEWLINE;
-  else {}
-  retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);
-  if (retval) {
-    u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-    u8_free(ptr);
-    return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
-  else {
-    ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
-    return FDTYPE_CONS(ptr);}
-}
-
 static fdtype regexp_prim(fdtype x)
 {
   if (FD_TYPEP(x,fd_regex_type)) return FD_TRUE;
   else return FD_FALSE;
-}
-
-static void recycle_regex(struct FD_RAW_CONS *c)
-{
-  struct FD_REGEX *rx=(struct FD_REGEX *)c;
-  regfree(&(rx->fd_rxcompiled));
-  u8_destroy_mutex(&(rx->fdrx_lock));
-  if (!(FD_STATIC_CONSP(c))) u8_free(c);
-}
-
-static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
-{
-  struct FD_REGEX *rx=(struct FD_REGEX *)x;
-  u8_printf(out,"#/%s/%s%s%s%s",rx->fd_rxsrc,
-            (((rx->fd_rxflags)&REG_EXTENDED)?"e":""),
-            (((rx->fd_rxflags)&REG_ICASE)?"i":""),
-            (((rx->fd_rxflags)&REG_ICASE)?"l":""),
-            (((rx->fd_rxflags)&REG_NOSUB)?"s":""));
-  return 1;
 }
 
 static fdtype getcharoff(u8_string s,int byteoff)
@@ -266,11 +203,6 @@ FD_EXPORT int fd_init_regex_c()
 
   regex_init=1;
   regex_module=fd_new_module("REGEX",(FD_MODULE_SAFE));
-
-  fd_regex_parser=parse_regex;
-
-  fd_unparsers[fd_regex_type]=unparse_regex;
-  fd_recyclers[fd_regex_type]=recycle_regex;
 
   fd_idefn(regex_module,
            fd_make_cprim3x("REGEX",make_regex,1,

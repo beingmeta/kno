@@ -212,6 +212,35 @@ static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
 	 ("compound procedure","set_compound_procedure_body",x);
 }
 
+static fdtype compound_procedure_bytecode(fdtype arg)
+{
+  fdtype x=fd_fcnid_ref(arg);
+  if (FD_SPROCP(x)) {
+    struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
+    if (proc->sproc_bytecode) {
+      fdtype cur=(fdtype)(proc->sproc_bytecode);
+      fd_incref(cur);
+      return cur;}
+    else return FD_FALSE;}
+  else return fd_type_error
+	 ("compound procedure","compound_procedure_body",x);
+}
+
+static fdtype set_compound_procedure_bytecode(fdtype arg,fdtype bytecode)
+{
+  fdtype x=fd_fcnid_ref(arg);
+  if (FD_SPROCP(x)) {
+    struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
+    if (proc->sproc_bytecode) {
+      fdtype cur=(fdtype)(proc->sproc_bytecode);
+      fd_decref(cur);}
+    fd_incref(bytecode);
+    proc->sproc_bytecode=(struct FD_VECTOR *)bytecode;
+    return FD_VOID;}
+  else return fd_type_error
+	 ("compound procedure","set_compound_procedure_bytecode",x);
+}
+
 /* Function IDs */
 
 static fdtype fcnid_refprim(fdtype arg)
@@ -424,12 +453,19 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ARGS",compound_procedure_args,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BODY",compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-BYTECODE",
+                                 compound_procedure_bytecode,1));
   fd_idefn(module,
            fd_make_cprim2("SET-PROCEDURE-BODY!",
-                          set_compound_procedure_body,1));
+                          set_compound_procedure_body,2));
   fd_idefn(module,
            fd_make_cprim2("SET-PROCEDURE-ARGS!",
-                          set_compound_procedure_args,1));
+                          set_compound_procedure_args,2));
+  fd_idefn(module,
+           fd_make_cprim2x("SET-PROCEDURE-BYTECODE!",
+                           set_compound_procedure_bytecode,2,
+                           -1,FD_VOID,fd_vector_type,FD_VOID));
+
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 
   fd_idefn(module,fd_make_cprim1x

@@ -189,6 +189,15 @@ static int extindex_commit(fd_index ix)
   }
 }
 
+static void recycle_extindex(fd_index ix)
+{
+  if (ix->index_handler==&fd_extindex_handler) {
+    struct FD_EXTINDEX *ei=(struct FD_EXTINDEX *)ix;
+    fd_decref(ei->fetchfn);
+    fd_decref(ei->commitfn);
+    fd_decref(ei->state);}
+}
+
 struct FD_INDEX_HANDLER fd_extindex_handler={
   "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 4,
   NULL, /* close */
@@ -201,7 +210,9 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   extindex_fetchn, /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
-  NULL, /* sync */
+  NULL, /* metadata */
+  NULL, /* create */
+  recycle_extindex,  /* recycle */
   NULL  /* indexop */
 };
 

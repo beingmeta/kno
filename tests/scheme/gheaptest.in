@@ -1,7 +1,7 @@
 #!/bin/bash
 CMD=$1; shift; ARGS=$*;
 echo "Running test for ${CMD} given ${ARGS}";
-FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm: \
+FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm: \
 	   LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib    \
 	   HEAPCHECK=normal PPROF_PATH=@GOOGLE_PPROF@               \
 	   exec ${CMD}                                              \

@@ -283,7 +283,7 @@ TIDY_H_FILES=\
 	src/cmodules/tidy5/win32tc.h
 
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/modules/crypto.o src/cmodules/ldap.o \
+	     src/cmodules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
 	     src/cmodules/qrcode.o \
 	     src/cmodules/ziptools.o \
@@ -384,7 +384,7 @@ CMODULE_SOURCES=\
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdkbase@suffix@.a      \
         lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
-	lib/libfdweb@suffix@.a lib/libfdtext@suffix@.a
+	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdkbase@suffix@.@shared_suffix@        		\
@@ -393,7 +393,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
-	lib/libfdtext@suffix@.@shared_suffix@		\
+	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
 	lib/libfdkbase@suffix@.@mshared_suffix@        		\
         lib/libfdkbdrivers@suffix@.@mshared_suffix@    		\
@@ -401,16 +401,16 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
-	lib/libfdtext@suffix@.@mshared_suffix@
+	lib/libtexttools@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/modules/*.scm \
-	src/modules/aws/*.scm src/modules/brico/*.scm \
-	src/modules/facebook/*.scm src/modules/google/*.scm \
-	src/modules/paypal/*.scm src/modules/twitter/*.scm \
-	src/modules/dropbox/*.scm \
-	src/modules/misc/*.scm src/modules/tests/*.scm \
-	src/modules/safe/domutils/*.scm src/modules/safe/knodules/*.scm \
-	src/modules/safe/textindex/*.scm src/modules/safe/jwt/*.scm \
+SCHEME_MODULES=src/scheme/*.scm \
+	src/scheme/aws/*.scm src/scheme/brico/*.scm \
+	src/scheme/facebook/*.scm src/scheme/google/*.scm \
+	src/scheme/paypal/*.scm src/scheme/twitter/*.scm \
+	src/scheme/dropbox/*.scm \
+	src/scheme/misc/*.scm src/scheme/tests/*.scm \
+	src/scheme/safe/domutils/*.scm src/scheme/safe/knodules/*.scm \
+	src/scheme/safe/textindex/*.scm src/scheme/safe/jwt/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
@@ -691,7 +691,7 @@ cmodules: @CMODULES@
 # Uninstall
 
 LIBBASE=libfdtype libfdkbase libfdkbdrivers libfdkbserv \
-	libfdscheme libfdschemeio libfdweb libfdtext
+	libfdscheme libfdschemeio libfdweb libtexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
@@ -732,7 +732,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/text/*.c src/web/*.c 				\
 		src/cmodules/sundown/sundown.c         			\
 		etc/*.in ${SRC_HEADERS} 				\
-		tests/scheme/*.scm 
+		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
@@ -763,7 +763,7 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/modules -name "*.scm" | \
+	@find src/scheme -name "*.scm" | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
@@ -889,12 +889,12 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 		-o $@ $(FDWEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libfdtext@suffix@.a: $(TEXTTOOLS_OBJS)
-lib/libfdtext@suffix@.so: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
+lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
 	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
-lib/libfdtext@suffix@.dylib: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfdkbdrivers@suffix@.dylib \
 	lib/libfdkbase@suffix@.dylib \
@@ -1074,7 +1074,7 @@ staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD;
-	cd src/modules; git archive --prefix=framerd_@FDVERSION@/src/modules/ \
+	cd src/scheme; git archive --prefix=framerd_@FDVERSION@/src/scheme/ \
 	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
 	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
@@ -1137,11 +1137,6 @@ dist/rpms.zip: dist/rpms.done
 
 # Rules for Debian building
 
-DEBINSTALL=framerd framerd-core framerd-builtin		\
-	framerd-mysql framerd-sqlite framerd-mongodb 	\
-	framerd-imagetools framerd-sundown 		\
-	framerd-full framerd-dev elpa-fdconsole 
-
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
@@ -1151,6 +1146,9 @@ dist/debs.signed: dist/debs.built
 		framerd_@FDVERSION@*.changes) && 		\
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               	\
+			sysv-framerd_@FDVERSION@*.deb  		\
+			upstart-framerd_@FDVERSION@*.deb  	\
+			systemd-framerd_@FDVERSION@*.deb  	\
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
 			elpa-fdconsole_@FDVERSION@*.deb  \
 			../dist) &&                             \
@@ -1160,11 +1158,7 @@ dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	for pkg in ${DEBINSTALL}; do 				\
-	  if test -f dist/$${pkg}_@FDVERSION@*.deb; then 	\
-	    @SUDO@ dpkg -i dist/$${pkg}_@FDVERSION@*.deb;	\
-	  fi;							\
-	done;
+	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
@@ -1221,7 +1215,7 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
-		$(LIBINSTALLDIR)/libfdtext@suffix@.a
+		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
@@ -1251,10 +1245,10 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtext@suffix@.@shared_suffix@
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
@@ -1270,8 +1264,6 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdkbserver; 	$(SUDO) ln -s fdserver fdkbserver
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserv; $(SUDO) ln -s fdservlet fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
@@ -1338,32 +1330,33 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter dropbox google \
-	jwt domutils knodules textindex
+MODULE_DIRS=aws brico bugjar facebook paypal twitter \
+	misc tests dropbox google \
+	jwt domutils knodules textindex \
+	batchtools bench mongodb \
+	xhtml fdxml
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
 		 aws/templates bugjar/websrc
 
-install-modules: install-builtin-modules install-web-modules
-install-builtin-modules: install-standard-modules install-safe-modules
-
+install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm 		\
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/scheme/*.scm 		\
 		$(DESTDIR)@builtin_module_dir@;
 	@for dir in $(MODULE_DIRS); do						\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$${dir}/*.scm	\
+	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/scheme/$${dir}/*.scm	\
 	      $${install_dir};							\
 	done;
 
 install-module-data: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying module data to @builtin_module_dir@;
 	@for dir in $(MODULE_DATA_DIRS); do					\
-	  src_dir="$(BUILD)/src/modules/$${dir}";				\
+	  src_dir="$(BUILD)/src/scheme/$${dir}";				\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
@@ -1373,7 +1366,7 @@ install-module-data: $(DESTDIR)@builtin_module_dir@
 install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modules
 	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
 			to @builtin_safe_module_dir@
-	@for safe_link in $(BUILD)/src/modules/safe/*; do 			\
+	@for safe_link in $(BUILD)/src/scheme/safe/*; do 			\
           ${SUDO} ln -sf `readlink $${safe_link}` 				\
 		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
@@ -1435,20 +1428,10 @@ enable-sysv: setup-sysv
 
 startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-setup-upstart: $(DESTDIR)/etc/init/fdserver.conf \
-	$(DESTDIR)/etc/init/fdservlet.conf \
-	$(DESTDIR)/etc/init/framerd.conf \
-	startupdirs
+setup-upstart: $(DESTDIR)/etc/init/framerd.conf startupdirs
+
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
-$(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdserver Upstart config to $(DESTDIR)/etc/init/fdserver.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/fdserver.conf $(DESTDIR)/etc/init/fdserver.conf
-$(DESTDIR)/etc/init/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdservlet Upstart config to $(DESTDIR)/etc/init/fdservlet.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/fdservlet.conf $(DESTDIR)/etc/init/fdservlet.conf
 $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
@@ -1558,7 +1541,7 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 # Meta operations
 
 update-modules:
-	git submodule update --remote --merge src/modules
+	git submodule update --remote --merge src/scheme
 
 .PHONY: fdserv update-fdserv install-fdserv update-modules
 

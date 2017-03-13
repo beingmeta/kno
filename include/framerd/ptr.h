@@ -121,8 +121,8 @@ typedef enum FD_PTR_TYPE {
   fd_constant_type=FD_IMMEDIATE_TYPECODE(0),
   fd_character_type=FD_IMMEDIATE_TYPECODE(1),
   fd_symbol_type=FD_IMMEDIATE_TYPECODE(2),
+  /* Reserved as constants */
   fd_fcnid_type=FD_IMMEDIATE_TYPECODE(3),
-  /* Reserved as constants for an evaluator */
   fd_lexref_type=FD_IMMEDIATE_TYPECODE(4),
   fd_opcode_type=FD_IMMEDIATE_TYPECODE(5),
   fd_cdrcode_type=FD_IMMEDIATE_TYPECODE(6),
@@ -160,11 +160,12 @@ typedef enum FD_PTR_TYPE {
   fd_numeric_vector_type=FD_CONS_TYPECODE(29),
   fd_consblock_type=FD_CONS_TYPECODE(30),
   fd_port_type=FD_CONS_TYPECODE(31),
-  fd_stream_type=FD_CONS_TYPECODE(32)
+  fd_stream_type=FD_CONS_TYPECODE(32),
+  fd_bytecode_type=FD_CONS_TYPECODE(33)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 33
+#define FD_BUILTIN_CONS_TYPES 34
 #define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
@@ -556,12 +557,18 @@ FD_EXPORT u8_mutex fd_symbol_lock;
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
    (FD_IMMEDIATE_TYPE(x)==fd_symbol_type))
 
+#define FD_GOOD_SYMBOLP(x) \
+  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x)==fd_symbol_type) && \
+   (FD_GET_IMMEDIATE(x,fd_symbol_type)<fd_n_symbols))
+
 #define FD_SYMBOL2ID(x) (FD_GET_IMMEDIATE(x,fd_symbol_type))
 #define FD_ID2SYMBOL(i) (FDTYPE_IMMEDIATE(fd_symbol_type,i))
 
 #define FD_SYMBOL_NAME(x) \
-  ((FD_SYMBOLP(x)) ? (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) : \
-   ((u8_string )NULL))
+  ((FD_GOOD_SYMBOLP(x)) ? \
+   (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) :	\
+   ((u8_string )("#.bad$ymbol.#")))
 #define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
 FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);

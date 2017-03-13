@@ -141,8 +141,8 @@ static struct FD_POOL_HANDLER mempool_handler={
   mempool_storen, /* storen */
   mempool_swapout, /* swapout */
   NULL, /* metadata */
-  NULL, /* sync */
   NULL, /* create */
+  NULL, /* recycle */
   NULL  /* poolop */
 }; 
 

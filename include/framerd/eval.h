@@ -145,6 +145,7 @@ typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
   short sproc_n_vars, sproc_synchronized;
   fdtype *sproc_vars, sproc_arglist, sproc_body;
+  struct FD_VECTOR *sproc_bytecode;
   fd_lispenv sproc_env;
   U8_MUTEX_DECL(sproc_lock);
 } FD_SPROC;
@@ -393,7 +394,7 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 
 /* Opcodes */
 
-FD_EXPORT const u8_string fd_opcode_names[];
+FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcode_table_len;
 
 #define FD_SPECIAL_OPCODES   FD_OPCODE(0x00)

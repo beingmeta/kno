@@ -119,7 +119,7 @@ static fdtype n_cpus_symbol, max_cpus_symbol;
 static fdtype physical_pages_symbol, available_pages_symbol;
 static fdtype physical_memory_symbol, available_memory_symbol;
 static fdtype physicalmb_symbol, availablemb_symbol;
-static fdtype memload_symbol, vmemload_symbol;
+static fdtype memload_symbol, vmemload_symbol, stacksize_symbol;
 static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
 
 static int pagesize=-1;
@@ -160,8 +160,8 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_VOIDP(field)) {
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
-    ssize_t mem=u8_memusage() ,vmem=u8_vmemusage();
-    double memload=u8_memload() ,vmemload=u8_vmemload();
+    ssize_t mem=u8_memusage(), vmem=u8_vmemusage();
+    double memload=u8_memload(), vmemload=u8_vmemload();
     size_t n_cpus=get_n_cpus();
     add_intval(result,data_symbol,r.ru_idrss);
     add_intval(result,stack_symbol,r.ru_isrss);
@@ -177,6 +177,7 @@ static fdtype rusage_prim(fdtype field)
     add_intval(result,vmemusage_symbol,vmem);
     add_flonum(result,memload_symbol,memload);
     add_flonum(result,vmemload_symbol,vmemload);
+    add_intval(result,stacksize_symbol,u8_stack_size);
     add_intval(result,nptrlocks_symbol,FD_N_PTRLOCKS);
     add_intval(result,pid_symbol,pid);
     add_intval(result,ppid_symbol,ppid);
@@ -256,6 +257,8 @@ static fdtype rusage_prim(fdtype field)
     return FD_INT((r.ru_idrss*pagesize)/1024);
   else if (FD_EQ(field,stackkb_symbol))
     return FD_INT((r.ru_isrss*pagesize)/1024);
+  else if (FD_EQ(field,stacksize_symbol))
+    return FD_INT(u8_stack_size);
   else if (FD_EQ(field,privatekb_symbol))
     return FD_INT(((r.ru_idrss+r.ru_isrss)*pagesize)/1024);
   else if (FD_EQ(field,sharedkb_symbol))
@@ -282,7 +285,8 @@ static fdtype rusage_prim(fdtype field)
       if (nsamples==1)
         return fd_make_nvector(1,fd_make_flonum(loadavg[0]));
       else if (nsamples==2)
-        return fd_make_nvector(2,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]));
+        return fd_make_nvector(2,fd_make_flonum(loadavg[0]),
+                               fd_make_flonum(loadavg[1]));
       else return fd_make_nvector
              (3,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]),
               fd_make_flonum(loadavg[2]));}
@@ -400,6 +404,14 @@ static fdtype getppid_prim()
 {
   pid_t pid=getppid();
   return FD_INT(((unsigned long)pid));
+}
+
+static fdtype stacksize_prim()
+{
+  ssize_t size=u8_stacksize();
+  if (size<0)
+    return FD_ERROR_VALUE;
+  else return FD_INT(size);
 }
 
 static fdtype threadid_prim()
@@ -547,9 +559,8 @@ static int get_pagesize()
 
 static int get_physical_pages()
 {
-  int retval=0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
-  retval=sysconf(_SC_PHYS_PAGES);
+  int retval=sysconf(_SC_PHYS_PAGES);
   if (retval>0) return retval;
   if (retval<0) fd_clear_errors(1);
 #endif
@@ -558,9 +569,8 @@ static int get_physical_pages()
 
 static int get_available_pages()
 {
-  int retval=0;
 #if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
-  retval=sysconf(_SC_AVPHYS_PAGES);
+  int retval=sysconf(_SC_AVPHYS_PAGES);
   if (retval>0) return retval;
   if (retval<0) fd_clear_errors(1);
 #endif
@@ -590,7 +600,7 @@ static long long get_available_memory()
   if (retval>0) return retval*pagesize;
   if (retval<0) fd_clear_errors(1);
 #endif
-  return 0;
+  return retval;
 }
 
 /* CALLTRACK SENSORS */
@@ -826,6 +836,7 @@ FD_EXPORT void fd_init_sysprims_c()
   vmemusage_symbol=fd_intern("VMEMUSAGE");
   memload_symbol=fd_intern("MEMLOAD");
   vmemload_symbol=fd_intern("VMEMLOAD");
+  stacksize_symbol=fd_intern("STACKSIZE");
   n_cpus_symbol=fd_intern("NCPUS");
   max_cpus_symbol=fd_intern("MAXCPUS");
   nptrlocks_symbol=fd_intern("NPTRLOCKS");
@@ -867,6 +878,7 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));

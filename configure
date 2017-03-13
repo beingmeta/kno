@@ -825,6 +825,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -985,6 +986,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1237,6 +1239,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1374,7 +1385,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1527,6 +1538,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -2953,8 +2965,8 @@ archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
-with_imagick_default="no"
-with_hyphenate_default="no"
+with_imagick_default="yes"
+with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -6336,7 +6348,7 @@ fi
 if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
   echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
   with_duma="no";
-elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
+elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
   echo "No DUMA executable";
   with_duma="no";
 elif test "$with_duma" != "no"; then
@@ -6483,7 +6495,7 @@ fi
 
 systemd_loc=$with_systemd
 
-if test "$prefix" != "x/ser"; then
+if test "$prefix" != "/usr"; then
   CFLAGS="$CFLAGS -I$prefix/include"
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
@@ -6567,7 +6579,7 @@ else
   with_webuser=$default_webuser
 fi
 
-if test x$with_webuser != "xnone"; then
+if test "$with_webuser" != "none"; then
    webuser=$with_webuser
    wwwinstall="-o $webuser"
 else
@@ -7583,7 +7595,7 @@ fi
 
 
 # Check whether to use an architecture specific library directory
-if test "${libdir}" != "x\${exec_prefix}/ib"; then
+if test "${libdir}" != "\${exec_prefix}/ib"; then
   echo Checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
@@ -10040,18 +10052,18 @@ else
 fi
 
 
-if test x$with_mysql = "xauto"; then
+if test "$with_mysql" = "auto"; then
   MYSQL_CFLAGS=`$mysql_config --cflags`
   MYSQL_LDFLAGS=`$mysql_config --libs_r`
-elif test x$with_mysql = "xyes"; then
+elif test "$with_mysql" = "yes"; then
   MYSQL_CFLAGS=\`$mysql_config --cflags\`
   MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
-elif test x$with_mysql != "xno"; then
+elif test "$with_mysql" != "no"; then
   MYSQL_CFLAGS="-I$with_mysql/include"
   MYSQL_LDFLAGS="-I$with_mysql/lib"
 fi
 
-if test x$with_mysql != "xno"; then
+if test "$with_mysql" != "no"; then
   CMODULES="lib/framerd/mysql.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
@@ -10292,7 +10304,7 @@ else
 fi
 
 fi
-if (test "$have_regex_h" = "xyes") && (test "x$have_regcomp" = "no"); then
+if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for regcomp in -lregex" >&5
 $as_echo_n "checking for regcomp in -lregex... " >&6; }
 if ${ac_cv_lib_regex_regcomp+:} false; then :
@@ -10575,7 +10587,7 @@ fi
 done
 
   fi
-  if (test "$have_zip_h" = "xyes") && (test "x$have_libzip" = "yes"); then
+  if (test "$have_zip_h" = "yes") && (test "$have_libzip" = "yes"); then
     CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
   fi
@@ -10832,7 +10844,7 @@ else
   with_imagick=$with_imagick_default
 fi
 
-if test x$with_imagick = "xyes"; then
+if test "$with_imagick" = "yes"; then
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
@@ -10859,7 +10871,7 @@ else
   with_leveldb=$with_leveldb_default
 fi
 
-if test x$with_leveldb = "xyes"; then
+if test "$with_leveldb" = "yes"; then
   CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
 fi
@@ -11154,10 +11166,10 @@ fi
 if test "${with_hyphenate+set}" = set; then :
   withval=$with_hyphenate;
 else
-  with_hyphenate="yes"
+  with_hyphenate=${with_hyphenate_default}
 fi
 
-if test x$with_hyphenate = "xyes"; then
+if test "$with_hyphenate" = "yes"; then
   for ac_header in hyphen.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "hyphen.h" "ac_cv_header_hyphen_h" "$ac_includes_default"
@@ -11216,9 +11228,9 @@ _ACEOF
 fi
 
 fi
-if test "$with_hyphenate" = "xyes" &&
-   test "x$ac_cv_header_hyphen_h" = "xyes" &&
-   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
+if test "$with_hyphenate" = "yes" &&
+   test "$ac_cv_header_hyphen_h" = "yes" &&
+   test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
@@ -12234,7 +12246,7 @@ else
 fi
 
 
-if (test "$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "yes"); then
+if (test "$with_qrcode" = "yes") && (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_create_write_struct in -lpng" >&5
 $as_echo_n "checking for png_create_write_struct in -lpng... " >&6; }
 if ${ac_cv_lib_png_png_create_write_struct+:} false; then :
@@ -12343,7 +12355,7 @@ if test $exec_prefix == 'NONE';
 else BINDIR="${exec_prefix}/bin";
 fi
 
-if (test ! -f src/modules/gpath.scm); then
+if (test ! -f src/scheme/gpath.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else

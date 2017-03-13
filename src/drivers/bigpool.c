@@ -158,7 +158,7 @@ static size_t get_maxpos(fd_bigpool p)
 
 /* Making and opening bigpools */
 
-static fd_pool open_bigpool(u8_string fname,fdkbase_flags flags)
+static fd_pool open_bigpool(u8_string fname,fdkb_flags flags)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids;
@@ -784,7 +784,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(bp,"bigpool_storen"))<0) return -1;
   double started=u8_elapsed_time();
-  u8_log(fdkbase_loglevel+1,"BigpoolStore",
+  u8_log(fdkb_loglevel+1,"BigpoolStore",
          "Storing %d oid values in bigpool %s",n,p->pool_idstring);
   struct BIGPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct BIGPOOL_SAVEINFO);
@@ -834,7 +834,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  u8_log(fdkbase_loglevel,"BigpoolStore",
+  u8_log(fdkb_loglevel,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->pool_idstring,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(bp);
@@ -874,7 +874,7 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
   fd_outbuf outstream=fd_writebuf(stream);
   double started=u8_elapsed_time();
   int i=0;
-  u8_log(fdkbase_loglevel+1,"BigpoolFinalize",
+  u8_log(fdkb_loglevel+1,"BigpoolFinalize",
          "Finalizing %d oid values for %s",n,bp->pool_idstring);
   while (i<n) {
     unsigned int oidoff=saveinfo[i++].oidoff;
@@ -990,7 +990,7 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
       exit(-1);}
   write_bigpool_load(bp);
   write_bigpool_slotids(bp);
-  u8_log(fdkbase_loglevel+1,"BigpoolFinalize",
+  u8_log(fdkb_loglevel+1,"BigpoolFinalize",
          "Finalized %d oid values for %s in %f seconds",
          n,bp->pool_idstring,u8_elapsed_time()-started);
   return 0;
@@ -1272,7 +1272,7 @@ static int interpret_pool_flags(fdtype opts)
 }
 
 static fd_pool bigpool_create(u8_string spec,void *type_data,
-                              fdkbase_flags flags,fdtype opts)
+                              fdkb_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
@@ -1339,8 +1339,8 @@ static struct FD_POOL_HANDLER bigpool_handler={
   bigpool_storen, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL, /* sync */
   bigpool_create, /* create */
+  NULL,  /* recycle */
   NULL  /* poolop */
 };
 

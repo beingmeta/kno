@@ -34,7 +34,7 @@ fd_exception fd_IndexCommitError=_("can't save changes to index");
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
-fd_index (*fd_file_index_type)(u8_string,fdkbase_flags)=NULL;
+fd_index (*fd_file_index_type)(u8_string,fdkb_flags)=NULL;
 
 int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
 int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
@@ -171,7 +171,7 @@ FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fd_index fd_get_index(u8_string spec,fdkbase_flags flags)
+FD_EXPORT fd_index fd_get_index(u8_string spec,fdkb_flags flags)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
@@ -217,7 +217,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   return 1;
 }
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fdkbase_flags flags)
+FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags flags)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
@@ -795,7 +795,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   if ((ix->index_adds.ht_n_buckets) || (ix->index_edits.ht_n_buckets)) {
     int n_keys=ix->index_adds.table_n_keys+ix->index_edits.table_n_keys, retval=0;
     if (n_keys==0) return 0;
-    u8_log(fdkbase_loglevel,fd_IndexCommit,
+    u8_log(fdkb_loglevel,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->index_idstring);
     double start_time=u8_elapsed_time();
     if (ix->index_cache_level<0) {
@@ -808,7 +808,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
              _("!!!!!!! Error saving %d keys to %s after %f secs"),
              n_keys,ix->index_idstring,u8_elapsed_time()-start_time);
     else if (retval>0)
-      u8_log(fdkbase_loglevel,fd_IndexCommit,
+      u8_log(fdkb_loglevel,fd_IndexCommit,
              _("####### Saved %d updated keys to %s in %f secs"),
              retval,ix->index_idstring,u8_elapsed_time()-start_time);
     else {}
@@ -835,7 +835,7 @@ FD_EXPORT void fd_index_close(fd_index ix)
 /* Common init function */
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fdkbase_flags flags)
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fdkb_flags flags)
 {
   U8_SETBITS(flags,FDKB_ISINDEX);
   if (U8_BITP(flags,FDKB_ISCONSED)) {
@@ -1051,11 +1051,8 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 static void recycle_raw_index(struct FD_RAW_CONS *c)
 {
   struct FD_INDEX *ix=(struct FD_INDEX *)c;
-  if (ix->index_handler==&fd_extindex_handler) {
-    struct FD_EXTINDEX *ei=(struct FD_EXTINDEX *)c;
-    fd_decref(ei->fetchfn);
-    fd_decref(ei->commitfn);
-    fd_decref(ei->state);}
+  struct FD_INDEX_HANDLER *handler=ix->index_handler;
+  if (handler->recycle) handler->recycle(ix);
   fd_recycle_hashtable(&(ix->index_cache));
   fd_recycle_hashtable(&(ix->index_adds));
   fd_recycle_hashtable(&(ix->index_edits));

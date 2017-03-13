@@ -344,9 +344,13 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
     _scan=FD_CHOICE_DATA(_val); _limit=_scan+FD_CHOICE_SIZE(_val);} \
    else if (FD_EMPTY_CHOICEP(_val)) { \
      _scan=_singlev+1; _limit=_scan;}  \
+   else if (FD_QCHOICEP(_val)) { \
+     _singlev[0]=FD_XQCHOICE(_val)->fd_choiceval; \
+     _scan=_singlev; _limit=_scan+1;}\
    else {\
      _singlev[0]=_val; _scan=_singlev; _limit=_scan+1;} \
-  while ((_scan<_limit) ? (elt=*(_scan++)) : ((_need_gc) ? (fd_decref(_val),0) : (0)))
+  while ((_scan<_limit) ? (elt=*(_scan++)) : \
+	 ((_need_gc) ? (fd_decref(_val),0) : (0)))
 
 #define FD_STOP_DO_CHOICES \
    if (_need_gc) fd_decref(_val)

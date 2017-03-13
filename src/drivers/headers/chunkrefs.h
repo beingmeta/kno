@@ -1,5 +1,8 @@
 #include <zlib.h>
+
+#if HAVE_SNAPPYC_H
 #include <snappy-c.h>
+#endif
 
 #define STREAM_UNLOCKED 0
 #define STREAM_LOCKED 1
@@ -99,7 +102,7 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
     default:
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
       result.off=-1;
-      result.size=-1;} /* switch (p->fdkbase_offtype) */
+      result.size=-1;} /* switch (p->fdkb_offtype) */
   }
   return result;
 }

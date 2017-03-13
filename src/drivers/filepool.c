@@ -52,7 +52,7 @@ static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
-static fd_pool open_file_pool(u8_string fname,fdkbase_flags flags)
+static fd_pool open_file_pool(u8_string fname,fdkb_flags flags)
 {
   struct FD_FILE_POOL *pool=u8_alloc(struct FD_FILE_POOL);
   struct FD_STREAM *s=&(pool->pool_stream);
@@ -460,7 +460,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
   fd_unlock_pool(fp);
-  u8_log(fdkbase_loglevel,"FilePoolStore",
+  u8_log(fdkb_loglevel,"FilePoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->pool_idstring,u8_elapsed_time()-started);
   return retcode;
@@ -705,7 +705,7 @@ int fd_make_file_pool
 }
 
 static fd_pool filepool_create(u8_string spec,void *type_data,
-                               fdkbase_flags flags,fdtype opts)
+                               fdkb_flags flags,fdtype opts)
 {
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
@@ -767,8 +767,8 @@ static struct FD_POOL_HANDLER file_pool_handler={
   file_pool_storen, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL, /* sync */
   filepool_create, /* create */
+  NULL, /* recycle */
   NULL  /* poolop */
 };
 

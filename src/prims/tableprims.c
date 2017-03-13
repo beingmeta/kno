@@ -945,6 +945,15 @@ static fdtype choice2hashset(fdtype arg)
   return FDTYPE_CONS(h);
 }
 
+/* Sorting slotmaps */
+
+static fdtype sort_slotmap(fdtype slotmap)
+{
+  if (fd_sort_slotmap(slotmap,1)<0)
+    return FD_ERROR_VALUE;
+  else return fd_incref(slotmap);
+}
+
 /* Initialization code */
 
 FD_EXPORT void fd_init_tableprims_c()
@@ -1015,6 +1024,8 @@ FD_EXPORT void fd_init_tableprims_c()
            ("BLIST->TABLE",fd_blist_to_slotmap,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1
            ("BINDINGS->TABLE",fd_blist_to_slotmap,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1x
+           ("SORT-SLOTMAP",sort_slotmap,1,fd_slotmap_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("TABLE-INCREMENT!",

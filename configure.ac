@@ -140,8 +140,8 @@ archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
-with_imagick_default="no"
-with_hyphenate_default="no"
+with_imagick_default="yes"
+with_hyphenate_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -477,7 +477,7 @@ fi
 if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
   echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
   with_duma="no";
-elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
+elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
   echo "No DUMA executable";
   with_duma="no";
 elif test "$with_duma" != "no"; then
@@ -534,7 +534,7 @@ fi
 AC_ARG_WITH(systemd,--with-systemd Specify systemd install directory,,with_systemd=$default_systemd_loc)
 systemd_loc=$with_systemd
 
-if test "$prefix" != "x/ser"; then
+if test "$prefix" != "/usr"; then
   CFLAGS="$CFLAGS -I$prefix/include"
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
@@ -588,7 +588,7 @@ fi
 dnl Specifies the user which the Web server runs as
 dnl This is used to set up the directories used by fdserv
 AC_ARG_WITH(webuser,--with-webuser The user for the webserver,,with_webuser=$default_webuser)
-if test x$with_webuser != "xnone"; then
+if test "$with_webuser" != "none"; then
    webuser=$with_webuser
    wwwinstall="-o $webuser"
 else
@@ -765,7 +765,7 @@ AC_CHECK_SIZEOF(size_t,8)
 AC_CHECK_TYPES(uchar)
 
 # Check whether to use an architecture specific library directory
-if test "${libdir}" != "x\${exec_prefix}/ib"; then
+if test "${libdir}" != "\${exec_prefix}/ib"; then
   echo Checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
@@ -1099,18 +1099,18 @@ fi
 
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
-if test x$with_mysql = "xauto"; then
+if test "$with_mysql" = "auto"; then
   MYSQL_CFLAGS=`$mysql_config --cflags`
   MYSQL_LDFLAGS=`$mysql_config --libs_r`
-elif test x$with_mysql = "xyes"; then
+elif test "$with_mysql" = "yes"; then
   MYSQL_CFLAGS=\`$mysql_config --cflags\`
   MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
-elif test x$with_mysql != "xno"; then
+elif test "$with_mysql" != "no"; then
   MYSQL_CFLAGS="-I$with_mysql/include"
   MYSQL_LDFLAGS="-I$with_mysql/lib"
 fi
 
-if test x$with_mysql != "xno"; then
+if test "$with_mysql" != "no"; then
   CMODULES="lib/framerd/mysql.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
@@ -1145,7 +1145,7 @@ AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
 if (test "$have_regex_h" = "yes"); then
   AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
 fi
-if (test "$have_regex_h" = "xyes") && (test "x$have_regcomp" = "no"); then
+if (test "$have_regex_h" = "yes") && (test "$have_regcomp" = "no"); then
   AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
 fi
 
@@ -1177,7 +1177,7 @@ if test "$with_ziptools" == "yes"; then
     AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
     AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
   fi
-  if (test "$have_zip_h" = "xyes") && (test "x$have_libzip" = "yes"); then
+  if (test "$have_zip_h" = "yes") && (test "$have_libzip" = "yes"); then
     CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
   fi
@@ -1218,7 +1218,7 @@ fi
 fi
 
 AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_imagick=$with_imagick_default)
-if test x$with_imagick = "xyes"; then
+if test "$with_imagick" = "yes"; then
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
@@ -1231,7 +1231,7 @@ if test "$with_mongodb" = "yes"; then
 fi;
 
 AC_ARG_WITH(leveldb,--with-leveldb Build and install LevelDB library,,with_leveldb=$with_leveldb_default)
-if test x$with_leveldb = "xyes"; then
+if test "$with_leveldb" = "yes"; then
   CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
 fi
@@ -1280,14 +1280,14 @@ if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
   leaktester="./vgleaktest "
 fi
 
-AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate="yes")
-if test x$with_hyphenate = "xyes"; then
+AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate=${with_hyphenate_default})
+if test "$with_hyphenate" = "yes"; then
   AC_CHECK_HEADERS(hyphen.h)
   AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
 fi
-if test "$with_hyphenate" = "xyes" &&
-   test "x$ac_cv_header_hyphen_h" = "xyes" &&
-   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
+if test "$with_hyphenate" = "yes" &&
+   test "$ac_cv_header_hyphen_h" = "yes" &&
+   test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
@@ -1542,7 +1542,7 @@ AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
 
 AC_ARG_WITH(qrcode,--with[out]-qrcode Create qrcode binary module,,with_qrcode="yes")
 
-if (test "$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "yes"); then
+if (test "$with_qrcode" = "yes") && (test "$have_png_h" = "yes") && (test "$have_qrencode_h" = "yes"); then
   AC_CHECK_LIB(png,png_create_write_struct)
   AC_CHECK_LIB(qrencode,QRcode_encodeString8bit)
   CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
@@ -1561,7 +1561,7 @@ else BINDIR="${exec_prefix}/bin";
 fi
 
 dnl Try to init submodules if needed and possible
-if (test ! -f src/modules/gpath.scm); then
+if (test ! -f src/scheme/gpath.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else

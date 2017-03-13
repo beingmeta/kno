@@ -172,15 +172,14 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
 #if (!(FD_NO_GC))
 FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
 {
-  FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>0xFFFFFF80) {
-    FD_UNLOCK_PTR(x);
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
     return (fdtype)NULL;}
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */
     return (fdtype) x;}
   else {
+    FD_LOCK_PTR(x);
 #if HUGE_REFCOUNT
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
@@ -192,15 +191,14 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
 
 FD_INLINE_FCN fdtype _fd_getref(struct FD_RAW_CONS *x)
 {
-  FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>0xFFFFFF80) {
-    FD_UNLOCK_PTR(x);
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
     return (fdtype)NULL;}
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
-    /* Static cons */
+    /* Static cons, which we copy rather than incref */
     return fd_deep_copy((fdtype)x);}
   else {
+    FD_LOCK_PTR(x);
 #if HUGE_REFCOUNT
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
@@ -212,15 +210,26 @@ FD_INLINE_FCN fdtype _fd_getref(struct FD_RAW_CONS *x)
 
 FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
 {
-  FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>=0xFFFFFF80) {
-    FD_UNLOCK_PTR(x);
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */}
   else if (FD_CONSBITS(x)>=0x100) {
-    x->fd_conshead=x->fd_conshead-0x80;
-    FD_UNLOCK_PTR(x);}
+    FD_LOCK_PTR(x);
+    if (FD_CONSBITS(x)>=0x100) {
+      /* If it's still got a refcount > 1, just decrease it */
+      x->fd_conshead=x->fd_conshead-0x80;
+      FD_UNLOCK_PTR(x);}
+    /* There could be a case here for conses which are declared static
+       after they've been in play. and between the check above and the
+       lock. But for now, we're assuming that conses are only declared
+       static when initialized, so we don't have to worry about
+       that. */
+    else {
+      /* Someone else decref'd it before, we got the lock, so we
+	 unlock and recycle it */
+      FD_UNLOCK_PTR(x);
+      fd_recycle_cons(x);}}
   else if (FD_CONSBITS(x)>=0x80) {
     FD_UNLOCK_PTR(x);
     fd_recycle_cons(x);}
@@ -574,7 +583,21 @@ typedef struct FD_COMPLEX *fd_complex;
 
 
 /* Parsing regexes */
-FD_EXPORT fdtype (*fd_regex_parser)(u8_string src,u8_string opts);
+
+#include <regex.h>
+
+FD_EXPORT fd_exception fd_RegexError;
+
+typedef struct FD_REGEX {
+  FD_CONS_HEADER;
+  u8_string fd_rxsrc;
+  unsigned int fd_rxactive;
+  int fd_rxflags;
+  u8_mutex fdrx_lock;
+  regex_t fd_rxcompiled;} FD_REGEX;
+typedef struct FD_REGEX *fd_regex;
+
+FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
 
 /* Mysteries */
 

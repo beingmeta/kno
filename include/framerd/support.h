@@ -189,15 +189,6 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 
-/* Initializing the stack */
-
-FD_EXPORT ssize_t fd_default_stack_limit;
-FD_EXPORT ssize_t fd_init_stack(void);
-
-#define FD_INIT_STACK() \
-  U8_SET_STACK_BASE();	\
-  fd_init_stack()
-
 /* Signalling */
 
 FD_EXPORT struct sigaction *fd_sigaction_catch;
