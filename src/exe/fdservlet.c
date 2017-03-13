@@ -1080,7 +1080,7 @@ static int webservefn(u8_client ucl)
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */
-    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
+    fdtype setup_proc=FD_VOID;
     fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     base_env=base;

@@ -244,7 +244,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
+    fdtype xml=FD_CAR(proc), setup_proc=FD_VOID;
     fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
