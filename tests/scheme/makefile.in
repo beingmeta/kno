@@ -296,9 +296,9 @@ fileindexes fileindex:
 	@make TESTBASE=tmpfile.index RUNCONF="INDEXTYPE=fileindex" indextest
 
 hashindexes hashindex:
-	@make TESTBASE=tmphx40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40" indextest
-	@make TESTBASE=tmphx32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
-	@make TESTBASE=tmphx64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
+	@make TESTBASE=tmphash40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40" indextest
+	@make TESTBASE=tmphash32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
+	@make TESTBASE=tmphash64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
 
 indextests indexes: fileindexes hashindexes
 
