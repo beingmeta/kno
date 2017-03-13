@@ -165,7 +165,6 @@
 	 (make-index file `#[type (config 'indextype 'fileindex)
 			     slots 1000000
 			     offtype ,(config 'offtype 'b40)]))
-	;; ((has-suffix file ".zindex") (make-zindex file))
 	(else (make-hashtable))))
 (define (table-from file)
   (if (or (has-suffix file ".index")
