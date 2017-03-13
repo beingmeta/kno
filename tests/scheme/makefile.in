@@ -199,16 +199,24 @@ optscheme:
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes seqtest.scm ${TEST_CONFIG}
 	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes misctest.scm ${TEST_CONFIG}
 
-loadmods: optimize_modules
+loadmods load_modules:
 	$(RUNTEST) ./fdexec@suffix@ loadmods.scm ${TEST_CONFIG}
-optimize_modules:
+optmods optimize_modules:
 	$(RUNTEST) ./fdexec@suffix@ optmods.scm ${TEST_CONFIG}
+
+.PHONY: scheme schemetests optscheme loadmodes load_modules optmodes optimize_modules
+
+# Table tests
 
 tabletests tables:
 	@echo "*** Running scheme tests to exercise the table/index layer"
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table $(TESTSIZE) ${TEST_CONFIG}
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table ${TEST_CONFIG}
 	@echo "*** Completed scheme tests to exercise the table/index layer"
+
+.PHONY: tabletests tables
+
+# Pool tests
 
 pooltests pools:
 	@echo "*** Running file pool tests ****"
@@ -227,6 +235,10 @@ pooltests pools:
 	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=1
 	$(RUNTEST) ./fdexec@suffix@ pooltest.scm ${TESTSIZE} CACHELEVEL=2
 
+
+.PHONY: pooltests pool
+
+# Index tests
 
 runindexes:
 	@echo "*** Running scheme tests to exercise various kinds of file indexes"
@@ -275,7 +287,11 @@ hashindexes:
 	@make TEST_SUFFIX=hashindex runindexes
 	@echo "*** Done testing hash indices "	
 
-indextests indexes: fileindexes hashindexes
+indextests indexes: fileindexes hashindexes runindexes
+
+.PHONY: indexes indextests fileindexes hashindexes
+
+# Database/frames test
 
 dbtest:
 	@echo "*** Running database layer tests"
@@ -307,6 +323,10 @@ dbtests db:
 	make dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
+.PHONY: dbtests db dbtest
+
+# Miscellanous module tests
+
 cryptotests crypto:
 	@echo "*** Running crypto tests ***"
 	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm $(TEST_CONFIG)
@@ -316,17 +336,22 @@ xmltests xml:
 	@echo "*** Running xml tests ***"
 	$(RUNTEST) ./fdexec@suffix@ xmltests.scm $(TEST_CONFIG)
 	@echo "*** Completed xml tests ***"
+
+randomtests:
+	@echo "*** Running alltests with a really random seed"
+	make TEST_CONFIG="RANDOMSEED=TIME ${TEST_CONFIG}" alltests
+	@echo "*** Finished alltests with a really random seed"
+
+.PHONY: randomtests xml xmltests crypto cryptotests
+
+# Scripting tests
+
 execscripts:
 	@echo "*** Running exec tests ***"
 	./fdexec ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@echo "*** Running exec test as script ***"
 	./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@echo "*** Done with exec tests ***"
-
-randomtests:
-	@echo "*** Running alltests with a really random seed"
-	make TEST_CONFIG="RANDOMSEED=TIME ${TEST_CONFIG}" alltests
-	@echo "*** Finished alltests with a really random seed"
 
 chainscripts:
 	@echo "*** Testing scripts which call CHAIN"
@@ -419,6 +444,8 @@ chained_batchscripts:
 	@rm -f _chaintest.*
 	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
+
+.PHONY: chained_batchscripts batchscripts chainscripts execscripts
 
 # Memory integrity tests
 
