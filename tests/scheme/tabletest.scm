@@ -162,7 +162,7 @@
   (cond ((has-suffix file ".slotmap") (frame-create #f))
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
-	 (make-index file `#[type (config 'indextype 'fileindex)
+	 (make-index file `#[type ,(config 'indextype 'fileindex)
 			     slots 1000000
 			     offtype ,(config 'offtype 'b40)]))
 	(else (make-hashtable))))
