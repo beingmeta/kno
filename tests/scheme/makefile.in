@@ -225,6 +225,55 @@ optmods optimize_modules: optscheme
 
 .PHONY: scheme schemetest schemetests optscheme loadmodes load_modules optmodes optimize_modules
 
+# Individual scheme tests
+
+r4rs:
+	${FDX} r4rs.scm ${RUNCONF}
+	@echo "■■■■ Completed r4rs tests ${RUNCONF}"
+exceptions:
+	${FDX} exceptions.scm ${RUNCONF}
+	@echo "■■■■ Completed exceptions tests ${RUNCONF}"
+choices:
+	${FDX} choicetest.scm ${RUNCONF}
+	@echo "■■■■ Completed choices tests ${RUNCONF}"
+sequences:
+	${FDX} seqtest.scm ${RUNCONF}
+	@echo "■■■■ Completed sequences tests ${RUNCONF}"
+numvecs:
+	${FDX} numvecs.scm ${RUNCONF}
+	@echo "■■■■ Completed numvecs tests ${RUNCONF}"
+picktest:
+	${FDX} picktest.scm ${RUNCONF}
+	@echo "■■■■ Completed picktest tests ${RUNCONF}"
+cachecall:
+	${FDX} cachecall.scm ${RUNCONF}
+	@echo "■■■■ Completed cachecall tests ${RUNCONF}"
+texttools:
+	${FDX} texttest.scm ${RUNCONF}
+	@echo "■■■■ Completed texttools tests ${RUNCONF}"
+fdweb:
+	${FDX} fdwebtest.scm ${RUNCONF}
+	@echo "■■■■ Completed fdweb tests ${RUNCONF}"
+timefns:
+	${FDX} timefns.scm ${RUNCONF}
+	@echo "■■■■ Completed timefns tests ${RUNCONF}"
+threads:
+	${FDX} threadtest.scm ${RUNCONF}
+	@echo "■■■■ Completed threads tests ${RUNCONF}"
+i18n:
+	${FDX} i18n.scm ${RUNCONF}
+	@echo "■■■■ Completed i18n tests ${RUNCONF}"
+misc:
+	${FDX} misctest.scm ${RUNCONF}
+	@echo "■■■■ Completed misc tests ${RUNCONF}"
+xml:
+	${FDX} xmltest.scm ${RUNCONF}
+	@echo "■■■■ Completed xml tests ${RUNCONF}"
+crypto:
+	${FDX} cryptotest.scm ${RUNCONF}
+	@echo "■■■■ Completed crypto tests ${RUNCONF}"
+
+
 # Table tests
 
 tabletests tables:
@@ -235,12 +284,36 @@ tabletests tables:
 
 # Pool tests
 
-pooltests pools:
-	@echo "■■■■■■■■ Running file pool tests ■■■■■■■■■■■■■■■■"
+pooltest:
+	@echo "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -f ${TESTBASE}.pool
 	${FDX} pooltest.scm ${TESTSIZE} ${FILEPOOL}
 	${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1
 	${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2
+
+filepooltest:
+	make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
+
+oidpooltest:
+	make TESTBASE=oidpool RUNCONF="${OIDPOOL} ${RUNCONF}" pooltest
+oidpool32test:
+	make TESTBASE=oidpool32 RUNCONF="${OIDPOOL} ${OFFB32} ${RUNCONF}" pooltest
+oidpool64test:
+	make TESTBASE=oidpool64 RUNCONF="${OIDPOOL} ${OFFB64} ${RUNCONF}" pooltest
+
+bigpooltest:
+	make TESTBASE=bigpool RUNCONF="${BIGPOOL} ${RUNCONF}" pooltest
+bigpool32test:
+	make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB32} ${RUNCONF}" pooltest
+bigpool64test:
+	make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB64} ${RUNCONF}" pooltest
+
+bigpooltests: bigpooltest bigpool32test bigpool64test
+oidpooltests: oidpooltest oidpool32test oidpool64test
+
+pooltests pools: filepooltest oidpooltests bigpooltests
+	make TESTBASE=oidpool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
+	@echo "■■■■■■■■ Running file pool tests ■■■■■■■■■■■■■■■■"
 	@echo "■■■■■■■■ Running oidpool tests ■■■■■■■■■■■■■■■■"
 	@rm -f ${TESTBASE}.pool
 	${FDX} pooltest.scm ${TESTSIZE} POOLTYPE=oidpool
@@ -295,10 +368,14 @@ indextest:
 fileindexes fileindex:
 	@make TESTBASE=tmpfile.index RUNCONF="INDEXTYPE=fileindex" indextest
 
-hashindexes hashindex:
-	@make TESTBASE=tmphash40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40" indextest
+hashindex32:
 	@make TESTBASE=tmphash32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
+hashindex40:
+	@make TESTBASE=tmphash40.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B40" indextest
+hashindex64:
 	@make TESTBASE=tmphash64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
+
+hashindexes hashindex: hashindex32 hashindex40 hashindex 64
 
 indextests indexes: fileindexes hashindexes
 
@@ -321,31 +398,32 @@ dbtest:
 		 ${RUNCONF} CACHELEVEL=2
 	@echo "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${RUNCONF} ■■■■■■■■■■■■■■■■"
 
-dbtests db:
-	@make TESTBASE=tmpdb         dbtest
-	@make TESTBASE=tmpdbop       RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbopfx40   RUNCONF="${OIDPOOL} ${FILEINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbbphx40   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbbpfx40   RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbopfx64   RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" dbtest
-	@make TESTBASE=tmpdbbpfx64   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" dbtest
-	@make TESTBASE=tmpdbopfx32   RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" dbtest
-	@make TESTBASE=tmpdbbpfx32   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" dbtest
-	@make TESTBASE=tmpdbbpmx     RUNCONF="${BIGPOOL} ${MEMINDEX}" dbtest
+dbtest_oidpool32:
+	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" dbtest
+dbtest_oidpool40:
+	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" dbtest
+dbtest_oidpool64:
+	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" dbtest
+dbtest_bigpool32:
+	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" dbtest
+dbtest_bigpool40:
+	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
+dbtest_bigpool64:
+	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" dbtest
+dbtest_fileindex:
+	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" dbtest
+dbtest_memindex:
+	@make TESTBASE=tmpmemindex RUNCONF="${BIGPOOL} ${MEMINDEX} ${OFFB40}" dbtest
+dbtest_base:
+	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
+
+dbtests db: dbtest_base dbtest_oidpool32 dbtest_oidpool40 dbtest_oidpool64 \
+	dbtest_bigpool32 dbtest_bigpool40 dbtest_bigpool64 \
+	dbtest_fileindex dbtest_memindex
 
 .PHONY: dbtests db dbtest
 
 # Miscellanous module tests
-
-cryptotests crypto:
-	@echo "■■■■■■■■ Running crypto tests ■■■■■■■■"
-	${FDX} cryptotest.scm ${RUNCONF}
-	@echo "■■■■■■■■ Completed crypto tests ■■■■■■■■"
-
-xmltests xml:
-	@echo "■■■■■■■■ Running xml tests ■■■■■■■■"
-	${FDX} xmltests.scm ${RUNCONF}
-	@echo "■■■■■■■■ Completed xml tests ■■■■■■■■"
 
 randomtests:
 	@echo "■■■■■■■■ Running alltests with a really random seed"
