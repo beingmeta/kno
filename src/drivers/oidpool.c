@@ -1482,7 +1482,7 @@ static fdtype oidpool_op(fd_pool p,int op,int n,fdtype *args)
   else if (n<0)
     return fd_err("BadPoolOpCall","oidpool_op",fp->pool_idstring,FD_VOID);
   else switch (op) {
-    case FDKB_POOLOP_CACHELEVEL:
+    case FD_POOLOP_CACHELEVEL:
       if (n==0)
         return FD_INT(fp->pool_cache_level);
       else {
@@ -1493,7 +1493,7 @@ static fdtype oidpool_op(fd_pool p,int op,int n,fdtype *args)
           return FD_INT(fp->pool_cache_level);}
         else return fd_type_error
                (_("cachelevel"),"oidpool_op/cachelevel",arg);}
-    case FDKB_POOLOP_BUFSIZE: {
+    case FD_POOLOP_BUFSIZE: {
       if (n==0)
         return FD_INT(fp->pool_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {

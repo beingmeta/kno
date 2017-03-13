@@ -215,13 +215,15 @@ struct FD_POOL_HANDLER some_handler={
 };
 #endif
 
-#define FDKB_POOLOP_CACHELEVEL  (1<<0)
-#define FDKB_POOLOP_BUFSIZE     (1<<1)
-#define FDKB_POOLOP_MMAP        (1<<2)
-#define FDKB_POOLOP_PRELOAD     (1<<3)
-#define FDKB_POOLOP_STATS       (1<<4)
-#define FDKB_POOLOP_LABEL       (1<<5)
-#define FDKB_POOLOP_POPULATE    (1<<6)
+FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args);
+
+#define FD_POOLOP_CACHELEVEL  (1<<0)
+#define FD_POOLOP_BUFSIZE     (1<<1)
+#define FD_POOLOP_MMAP        (1<<2)
+#define FD_POOLOP_PRELOAD     (1<<3)
+#define FD_POOLOP_STATS       (1<<4)
+#define FD_POOLOP_LABEL       (1<<5)
+#define FD_POOLOP_POPULATE    (1<<6)
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,

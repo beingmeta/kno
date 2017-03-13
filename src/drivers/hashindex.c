@@ -2706,7 +2706,7 @@ static fdtype hash_index_op(fd_index ix,int op,int n,fdtype *args)
     return fd_err("BadIndexOpCall","hash_index_op",
                   hx->index_idstring,FD_VOID);
   else switch (op) {
-    case FDKB_INDEXOP_CACHELEVEL:
+    case FD_INDEXOP_CACHELEVEL:
       if (n==0)
         return FD_INT(hx->index_cache_level);
       else {
@@ -2717,14 +2717,14 @@ static fdtype hash_index_op(fd_index ix,int op,int n,fdtype *args)
           return FD_INT(hx->index_cache_level);}
         else return fd_type_error
                (_("cachelevel"),"hash_index_op/cachelevel",arg);}
-    case FDKB_INDEXOP_BUFSIZE: {
+    case FD_INDEXOP_BUFSIZE: {
       if (n==0)
         return FD_INT(hx->index_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
         fd_stream_setbuf(&(hx->index_stream),FD_FIX2INT(args[0]));
         return FD_INT(hx->index_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","hash_index_op/bufsize",args[0]);}
-    case FDKB_INDEXOP_GETBUCKET: {
+    case FD_INDEXOP_GETBUCKET: {
       if (n==0)
         return FD_INT(hx->index_n_buckets);
       else {
@@ -2735,9 +2735,9 @@ static fdtype hash_index_op(fd_index ix,int op,int n,fdtype *args)
         else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))
           return FD_INT(bucket);
         else return FD_INT((bucket%(hx->index_n_buckets)));}}
-    case FDKB_INDEXOP_STATS:
+    case FD_INDEXOP_STATS:
       return fd_hash_index_stats(hx);
-    case FDKB_INDEXOP_SLOTIDS: {
+    case FD_INDEXOP_SLOTIDS: {
       fdtype *elts=u8_alloc_n(hx->index_n_slotids,fdtype);
       fdtype *slotids=hx->index_slotids;
       int i=0, n=hx->index_n_slotids;

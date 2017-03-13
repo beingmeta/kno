@@ -131,21 +131,31 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
   else return fd_err(fd_AnonymousOID,cxt,NULL,oid);
 }
 
+/* Pool ops */
+
+FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args)
+{
+  struct FD_POOL_HANDLER *h=p->pool_handler;
+  if (h->poolop)
+    return h->poolop(p,poolop,n,args);
+  else return FD_FALSE;
+}
+
 /* Pool caching */
 
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 {
-  if (p->pool_handler->setcache) 
-    p->pool_handler->setcache(p,level);
+  fdtype intarg=FD_INT(level);
+  fdtype result=fd_pool_ctl(p,FD_POOLOP_CACHELEVEL,1,&intarg);
+  if (FD_ABORTP(result)) {fd_clear_errors(1);}
+  fd_decref(result);
   p->pool_cache_level=level;
 }
 
 static void init_cache_level(fd_pool p)
 {
   if (FD_EXPECT_FALSE(p->pool_cache_level<0)) {
-    p->pool_cache_level=fd_default_cache_level;
-    if (p->pool_handler->setcache)
-      p->pool_handler->setcache(p,fd_default_cache_level);}
+    fd_pool_setcache(p,p->pool_cache_level);}
 }
 
 FD_EXPORT

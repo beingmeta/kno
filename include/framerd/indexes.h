@@ -79,16 +79,17 @@ typedef struct FD_INDEX_HANDLER {
   FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
-#define FDKB_INDEXOP_CACHELEVEL  (1<<0)
-#define FDKB_INDEXOP_BUFSIZE     (1<<1)
-#define FDKB_INDEXOP_MMAP        (1<<2)
-#define FDKB_INDEXOP_PRELOAD     (1<<3)
-#define FDKB_INDEXOP_STATS       (1<<4)
-#define FDKB_INDEXOP_LABEL       (1<<5)
-#define FDKB_INDEXOP_POPULATE    (1<<6)
-#define FDKB_INDEXOP_GETBUCKET   (1<<7)
-#define FDKB_INDEXOP_SLOTIDS     (1<<8)
+FD_EXPORT fdtype fd_index_ctl(fd_index p,int indexop,int n,fdtype *args);
 
+#define FD_INDEXOP_CACHELEVEL  (1<<0)
+#define FD_INDEXOP_BUFSIZE     (1<<1)
+#define FD_INDEXOP_MMAP        (1<<2)
+#define FD_INDEXOP_PRELOAD     (1<<3)
+#define FD_INDEXOP_STATS       (1<<4)
+#define FD_INDEXOP_LABEL       (1<<5)
+#define FD_INDEXOP_POPULATE    (1<<6)
+#define FD_INDEXOP_GETBUCKET   (1<<7)
+#define FD_INDEXOP_SLOTIDS     (1<<8)
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={

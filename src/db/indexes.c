@@ -89,22 +89,33 @@ static fdtype set_symbol, drop_symbol;
 
 static u8_mutex indexes_lock;
 
+/* Index ops */
+
+FD_EXPORT fdtype fd_index_op(fd_index x,int indexop,int n,fdtype *args)
+{
+  struct FD_INDEX_HANDLER *h=x->index_handler;
+  if (h->indexop)
+    return h->indexop(x,indexop,n,args);
+  else return FD_FALSE;
+}
+
 /* Index cache levels */
 
 /* a cache_level<0 indicates no caching has been done */
 
 FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
-  if (ix->index_handler->setcache) ix->index_handler->setcache(ix,level);
+  fdtype intarg=FD_INT(level);
+  fdtype result=fd_index_op(ix,FD_INDEXOP_CACHELEVEL,1,&intarg);
+  if (FD_ABORTP(result)) {fd_clear_errors(1);}
+  fd_decref(result);
   ix->index_cache_level=level;
 }
 
 static void init_cache_level(fd_index ix)
 {
   if (FD_EXPECT_FALSE(ix->index_cache_level<0)) {
-    ix->index_cache_level=fd_default_cache_level;
-    if (ix->index_handler->setcache)
-      ix->index_handler->setcache(ix,fd_default_cache_level);}
+    fd_index_setcache(ix,ix->index_cache_level);}
 }
 
 
@@ -799,9 +810,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
            "####### Saving %d updates to %s",n_keys,ix->index_idstring);
     double start_time=u8_elapsed_time();
     if (ix->index_cache_level<0) {
-      ix->index_cache_level=fd_default_cache_level;
-      if (ix->index_handler->setcache)
-        ix->index_handler->setcache(ix,fd_default_cache_level);}
+      fd_index_setcache(ix,fd_default_cache_level);}
     retval=ix->index_handler->commit(ix);
     if (retval<0)
       u8_log(LOG_CRIT,fd_IndexCommitError,

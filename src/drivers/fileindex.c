@@ -1204,7 +1204,7 @@ static fdtype file_index_op(fd_index ix,int op,int n,fdtype *args)
     return fd_err("BadIndexOpCall","file_index_op",
                   hx->index_idstring,FD_VOID);
   else switch (op) {
-    case FDKB_INDEXOP_CACHELEVEL:
+    case FD_INDEXOP_CACHELEVEL:
       if (n==0)
         return FD_INT(hx->index_cache_level);
       else {
@@ -1215,14 +1215,14 @@ static fdtype file_index_op(fd_index ix,int op,int n,fdtype *args)
           return FD_INT(hx->index_cache_level);}
         else return fd_type_error
                (_("cachelevel"),"file_index_op/cachelevel",arg);}
-    case FDKB_INDEXOP_BUFSIZE: {
+    case FD_INDEXOP_BUFSIZE: {
       if (n==0)
         return FD_INT(hx->index_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
         file_index_setbuf(ix,FD_FIX2INT(args[0]));
         return FD_INT(hx->index_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","file_index_op/bufsize",args[0]);}
-    case FDKB_INDEXOP_GETBUCKET: {
+    case FD_INDEXOP_GETBUCKET: {
       if (n==0)
         return FD_INT(hx->index_n_slots);
       else {
