@@ -295,7 +295,9 @@ fileindexes fileindex:
 
 hashindexes hashindex:
 	@echo "■■■■■■■■ Testing hash indices "	
-	@make TEST_SUFFIX=hashindex indextest
+	@make TEST_SUFFIX=hashindex TESTBASE=tmphx40 RUNCONF="OFFTYPE=B40" indextest
+	@make TEST_SUFFIX=hashindex TESTBASE=tmphx32 RUNCONF="OFFTYPE=B32" indextest
+	@make TEST_SUFFIX=hashindex TESTBASE=tmphx64 RUNCONF="OFFTYPE=B64" indextest
 	@echo "■■■■■■■■ Done testing hash indices "	
 
 indextests indexes: fileindexes hashindexes
@@ -323,14 +325,14 @@ dbtests db:
 	@echo "■■■■■■■■ Testing frame/database layer with different pool/index cofigurations ■■■■■■■■"
 	@make TESTBASE=tmpdb         dbtest
 	@make TESTBASE=tmpdbop       RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbopfi40   RUNCONF="${OIDPOOL} ${FILEINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbbphi40   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbbpfi40   RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" dbtest
-	@make TESTBASE=tmpdbopfi64   RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" dbtest
-	@make TESTBASE=tmpdbbpfi64   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" dbtest
-	@make TESTBASE=tmpdbopfi32   RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" dbtest
-	@make TESTBASE=tmpdbbpfi32   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" dbtest
-	@make TESTBASE=tmpdbbpmi40   RUNCONF="${BIGPOOL} ${MEMINDEX}" dbtest
+	@make TESTBASE=tmpdbopfx40   RUNCONF="${OIDPOOL} ${FILEINDEX} ${OFFB40}" dbtest
+	@make TESTBASE=tmpdbbphx40   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
+	@make TESTBASE=tmpdbbpfx40   RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" dbtest
+	@make TESTBASE=tmpdbopfx64   RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" dbtest
+	@make TESTBASE=tmpdbbpfx64   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" dbtest
+	@make TESTBASE=tmpdbopfx32   RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" dbtest
+	@make TESTBASE=tmpdbbpfx32   RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" dbtest
+	@make TESTBASE=tmpdbbpmx     RUNCONF="${BIGPOOL} ${MEMINDEX}" dbtest
 	@echo "■■■■■■■■ Finished frame/database tests ■■■■■■■■"
 
 .PHONY: dbtests db dbtest
