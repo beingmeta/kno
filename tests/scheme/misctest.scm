@@ -34,10 +34,13 @@
 (applytest #t equal? f1 (deep-copy f1))
 
 (applytest #f eq? f1 f2)
-(applytest #t equal? f1 f2)
+(applytest #f equal? f1 f2)
 
 (applytest #f eq? f1 f3)
-(applytest #t equal? f1 f3)
+(applytest #f equal? f1 f3)
+
+(applytest #f eq? f2 f3)
+(applytest #t equal? f2 f3)
 
 (applytest #f test f1 'baz)
 (applytest #f test f1 'baz 9)
