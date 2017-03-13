@@ -463,7 +463,7 @@ FD_EXPORT void fd_init_reflection_c()
                           set_compound_procedure_args,2));
   fd_idefn(module,
            fd_make_cprim2x("SET-PROCEDURE-BYTECODE!",
-                           set_compound_procedure_body,2,
+                           set_compound_procedure_bytecode,2,
                            -1,FD_VOID,fd_vector_type,FD_VOID));
 
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));

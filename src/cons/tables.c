@@ -280,8 +280,11 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
     int cur_allocd=FD_XSLOTMAP_NALLOCATED(sm), allocd=cur_allocd;
     struct FD_KEYVAL *cur_keyvals=sm->sm_keyvals;;
     struct FD_KEYVAL *result=
-      fd_keyvec_insert(key, &(sm->sm_keyvals), &nslots, &allocd,
-                       sm->sm_free_keyvals);
+      (sm->sm_sort_keyvals) ?
+      (fd_sortvec_insert(key,&(sm->sm_keyvals),&nslots,&allocd,
+                         sm->sm_free_keyvals)) :
+      (fd_keyvec_insert(key,&(sm->sm_keyvals),&nslots,&allocd,
+                        sm->sm_free_keyvals));
     if (FD_EXPECT_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
       fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
@@ -311,8 +314,11 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
     int cur_space=FD_XSLOTMAP_NALLOCATED(sm), space=cur_space;
     struct FD_KEYVAL *cur_keyvals=sm->sm_keyvals;
     struct FD_KEYVAL *result=
-      fd_keyvec_insert(key,&(sm->sm_keyvals),&size,&space,
-                       sm->sm_free_keyvals);
+      (sm->sm_sort_keyvals) ?
+      (fd_sortvec_insert(key,&(sm->sm_keyvals),&size,&space,
+                         sm->sm_free_keyvals)) :
+      (fd_keyvec_insert(key,&(sm->sm_keyvals),&size,&space,
+                        sm->sm_free_keyvals));
     if (FD_EXPECT_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);
       fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
@@ -562,7 +568,7 @@ FD_EXPORT fdtype fd_init_slotmap
     ptr->sm_keyvals=NULL;}
   ptr->table_modified=ptr->table_readonly=0;
   ptr->table_uselock=1;
-  ptr->sm_free_keyvals=1;
+  ptr->sm_free_keyvals=1; ptr->sm_sort_keyvals=0;
   u8_init_rwlock(&(ptr->table_rwlock));
   return FDTYPE_CONS(ptr);
 }
@@ -589,7 +595,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   ptr->sm_keyvals=kv;
   ptr->table_modified=ptr->table_readonly=0;
   ptr->table_uselock=1;
-  ptr->sm_free_keyvals=0;
+  ptr->sm_free_keyvals=0; ptr->sm_sort_keyvals=0;
   u8_init_rwlock(&(ptr->table_rwlock));
   return FDTYPE_CONS(ptr);
 }
@@ -619,14 +625,20 @@ static fdtype copy_slotmap(fdtype smap,int flags)
   else fresh=u8_alloc(struct FD_SLOTMAP);
   FD_INIT_STRUCT(fresh,struct FD_SLOTMAP);
   FD_INIT_CONS(fresh,fd_slotmap_type);
-  if (cur->table_uselock) {fd_read_lock_table(cur); unlock=1;}
-  fresh->table_modified=fresh->table_readonly=0;
-  fresh->table_uselock=1; fresh->sm_free_keyvals=1;
+  if (cur->table_uselock) {
+    fd_read_lock_table(cur);
+    unlock=1;}
+  fresh->table_modified=0;
+  fresh->table_readonly=0;
+  fresh->table_uselock=1;
+  fresh->sm_free_keyvals=1;
+  fresh->sm_sort_keyvals=0;
   if (FD_XSLOTMAP_NUSED(cur)) {
     int n=FD_XSLOTMAP_NUSED(cur);
     struct FD_KEYVAL *read=cur->sm_keyvals, *read_limit=read+n;
     struct FD_KEYVAL *write=u8_alloc_n(n,struct FD_KEYVAL);
-    fresh->n_allocd=fresh->n_slots=n; fresh->sm_keyvals=write;
+    fresh->n_allocd=fresh->n_slots=n;
+    fresh->sm_keyvals=write;
     memset(write,0,n*sizeof(struct FD_KEYVAL));
     while (read<read_limit) {
       fdtype key=read->kv_key, val=read->kv_val; read++;
@@ -770,6 +782,30 @@ FD_EXPORT fdtype fd_plist_to_slotmap(fdtype plist)
       fd_decref(result);
       return fd_type_error(_("plist"),"fd_plist_to_slotmap",plist);}
     else return result;}
+}
+
+FD_EXPORT int fd_sort_slotmap(fdtype slotmap,int sorted)
+{
+  if (!(FD_TYPEP(slotmap,fd_slotmap_type)))
+    return fd_reterr(fd_TypeError,"fd_sort_slotmap",
+                     u8_strdup("slotmap"),fd_incref(slotmap));
+  else {
+    struct FD_SLOTMAP *sm=(fd_slotmap)slotmap;
+    if (!(sorted)) {
+      if (sm->sm_sort_keyvals) {
+        sm->sm_sort_keyvals=0;
+        return 1;}
+      else return 0;}
+    else if (sm->sm_sort_keyvals)
+      return 0;
+    else if (sm->n_slots==0) {
+      sm->sm_sort_keyvals=1;
+      return 1;}
+    else {
+      struct FD_KEYVAL *keyvals=sm->sm_keyvals;
+      sort_keyvals(keyvals,sm->n_slots);
+      sm->sm_sort_keyvals=1;
+      return 1;}}
 }
 
 FD_EXPORT fdtype fd_alist_to_slotmap(fdtype alist)

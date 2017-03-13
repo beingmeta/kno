@@ -95,6 +95,7 @@ typedef struct FD_SLOTMAP {
   unsigned int table_modified:1;
   unsigned int table_uselock:1;
   unsigned int sm_free_keyvals:1;
+  unsigned int sm_sort_keyvals:1;
   struct FD_KEYVAL *sm_keyvals;
   U8_RWLOCK_DECL(table_rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
@@ -146,6 +147,7 @@ FD_EXPORT int fd_slotmap_drop
 FD_EXPORT int fd_slotmap_delete
   (struct FD_SLOTMAP *sm,fdtype key);
 FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm);
+FD_EXPORT int fd_sort_slotmap(fdtype slotmap,int sorted);
 
 #define fd_empty_slotmap() (fd_init_slotmap(NULL,0,NULL))
 

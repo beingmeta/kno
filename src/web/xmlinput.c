@@ -28,6 +28,14 @@
     Check that PIs get their whole body recorded.
     Handle commments and CDATA. */
 
+static fdtype make_slotmap()
+{
+  fdtype slotmap=fd_empty_slotmap();
+  if (!(FD_ABORTP(slotmap)))
+    fd_sort_slotmap(slotmap,1);
+  return slotmap;
+}
+
 fd_exception fd_XMLParseError=_("XML parsing error");
 
 #define hasprefix(px,str) ((strncmp(px,str,strlen(px))==0))
@@ -267,7 +275,7 @@ static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
 static void init_node_attribs(struct FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->fdxml_attribs))
-    node->fdxml_attribs=fd_empty_slotmap();
+    node->fdxml_attribs=make_slotmap();
   set_elt_name(node,node->fdxml_eltname);
 }
 
@@ -280,7 +288,7 @@ void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name)
 FD_EXPORT void fd_init_xml_attribs(struct FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->fdxml_attribs))
-    node->fdxml_attribs=fd_empty_slotmap();
+    node->fdxml_attribs=make_slotmap();
   set_elt_name(node,node->fdxml_eltname);
 }
 
@@ -634,7 +642,7 @@ FD_EXPORT
 void fd_default_contentfn(FD_XML *node,u8_string s,int len)
 {
   if (strncmp(s,"<!--",4)==0) {
-    fdtype cnode=fd_empty_slotmap();
+    fdtype cnode=make_slotmap();
     fdtype comment_string=fd_substring(s+4,s+(len-3));
     fdtype comment_content=fd_conspair(comment_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,comment_symbol);
@@ -642,7 +650,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fd_decref(comment_content);
     add_content(node,cnode);}
   else if (strncmp(s,"<![CDATA[",9)==0) {
-    fdtype cnode=fd_empty_slotmap();
+    fdtype cnode=make_slotmap();
     fdtype cdata_string=fd_substring(s+9,s+(len-3));
     fdtype cdata_content=fd_conspair(cdata_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,cdata_symbol);
