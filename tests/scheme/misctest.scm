@@ -48,6 +48,13 @@
 (applytest #t test f1 'bar 8)
 (applytest #f test f1 'bar 9)
 
+;; This is a regression test for the TEST primitive for slotmaps using
+;; fd_sortvec_get rather than fd_keyvec_get internally.
+(evaltest #t (and (test f1 'bar 8)
+		  (test f1 'foo 3)
+		  (test f2 'bar 8)
+		  (test f2 'foo 3)))
+
 (applytest 8 get f1 'bar)
 (applytest 3 get f1 'foo)
 (applytest {} get f1 'quux)
