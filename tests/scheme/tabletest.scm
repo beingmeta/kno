@@ -158,12 +158,11 @@
 
 ;;; Top level
 
-(define (table-for file (consed #f))
+(define (table-for file (consed #f) (indextype (config 'indextype 'fileindex)))
   (cond ((has-suffix file ".slotmap") (frame-create #f))
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
-	 (make-index file `#[type ,(config 'indextype 'fileindex)
-			     slots 1000000
+	 (make-index file `#[type ,indextype slots 1000000
 			     offtype ,(config 'offtype 'b40)]))
 	(else (make-hashtable))))
 (define (table-from file)

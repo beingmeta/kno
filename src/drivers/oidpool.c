@@ -1472,69 +1472,36 @@ static fd_pool oidpool_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
-/* Deprecated primitives which access the structure directly */
+/* OIDPOOL ops */
 
-FD_EXPORT fdtype _fd_make_oidpool_deprecated(int n,fdtype *args)
+static fdtype oidpool_op(fd_pool p,int op,int n,fdtype *args)
 {
-  FD_OID base; int retval, flags=0, load, cap; u8_string filename, label;
-  fdtype fname=args[0], base_arg=args[1], capacity=args[2];
-  fdtype label_arg=FD_VOID, flags_arg=FD_VOID, schemas=FD_VOID;
-  fdtype metadata=FD_VOID, load_arg=FD_INT(0);
-  if (n>3) load_arg=args[3];
-  if (n>4) flags_arg=args[4];
-  if (n>5) schemas=args[5];
-  if (n>6) metadata=args[6];
-  if (n>7) label_arg=args[7];
-
-  if (!(FD_OIDP(base_arg)))
-    return fd_type_error(_("OID"),"make_oidpool",base_arg);
-  else base=FD_OID_ADDR(base_arg);
-
-  if (!(FD_STRINGP(fname)))
-    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
-  else filename=FD_STRDATA(fname);
-
-  if (FD_STRINGP(label_arg)) label=FD_STRDATA(label_arg);
-  else if (FD_FALSEP(label_arg)) label=NULL;
-  else if (FD_VOIDP(label_arg)) label=NULL;
-  else return fd_type_error(_("string"),"make_oidpool",capacity);
-
-  if (!(FD_FIXNUMP(capacity)))
-    return fd_type_error(_("fixnum"),"make_oidpool",capacity);
-  else cap=FD_FIX2INT(capacity);
-
-  if (!(FD_FIXNUMP(load_arg)))
-    return fd_type_error(_("fixnum"),"make_oidpool",load_arg);
-  else load=FD_FIX2INT(load_arg);
-
-  if (FD_FALSEP(metadata)) metadata=FD_VOID;
-
-  /* Check that pool alignment is legal */
-
-  {
-    FD_OID end=FD_OID_PLUS(base,cap-1);
-    unsigned int base_lo=FD_OID_LO(base);
-    unsigned int end_lo=FD_OID_LO(end);
-    if (((base_lo)/(1024*1024)) == ((end_lo)/(1024*1024))) {}
-    else if (((base_lo%(1024*1024))==0) && ((cap%(1024*1024))==0)) {}
-    else return fd_err(_("Misaligned pool"),"make_oidpool",NULL,FD_VOID);
-  }
-
-  if (FD_VOIDP(schemas)) {}
-  else if (FD_FALSEP(schemas))  schemas=FD_VOID;
-  else if (FD_VECTORP(schemas)) {}
-  else return fd_type_error(_("vector"),"make_oidpool",schemas);
-
-  flags=interpret_pool_flags(flags_arg);
-
-  retval=fd_make_oidpool(filename,label,
-                         base,cap,load,flags,
-                         schemas,
-                         time(NULL),time(NULL),1);
-
-  if (retval<0)
-    return FD_ERROR_VALUE;
-  else return FD_VOID;
+  struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
+  if ((n>0)&&(args==NULL))
+    return fd_err("BadPoolOpCall","oidpool_op",fp->pool_idstring,FD_VOID);
+  else if (n<0)
+    return fd_err("BadPoolOpCall","oidpool_op",fp->pool_idstring,FD_VOID);
+  else switch (op) {
+    case FDKB_POOLOP_CACHELEVEL:
+      if (n==0)
+        return FD_INT(fp->pool_cache_level);
+      else {
+        fdtype arg=(args)?(args[0]):(FD_VOID);
+        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+            (FD_FIX2INT(arg)<0x100)) {
+          oidpool_setcache(p,FD_FIX2INT(arg));
+          return FD_INT(fp->pool_cache_level);}
+        else return fd_type_error
+               (_("cachelevel"),"oidpool_op/cachelevel",arg);}
+    case FDKB_POOLOP_BUFSIZE: {
+      if (n==0)
+        return FD_INT(fp->pool_stream.buf.raw.buflen);
+      else if (FD_FIXNUMP(args[0])) {
+        oidpool_setbuf(p,FD_FIX2INT(args[0]));
+        return FD_INT(fp->pool_stream.buf.raw.buflen);}
+      else return fd_type_error("buffer size","oidpool_op/bufsize",args[0]);}
+    default:
+      return FD_FALSE;}
 }
 
 /* Module (file) Initialization */
@@ -1555,7 +1522,7 @@ static struct FD_POOL_HANDLER oidpool_handler={
   NULL, /* metadata */
   oidpool_create, /* create */
   NULL, /* recycle */
-  NULL  /* poolop */
+  oidpool_op  /* poolop */
 };
 
 

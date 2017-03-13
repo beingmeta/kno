@@ -75,15 +75,20 @@ typedef struct FD_INDEX_HANDLER {
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
   void (*recycle)(fd_index p);
-  fdtype (*indexop)(fd_index ix,int indexop,fdtype,fdtype,fdtype);
-} FD_INDEX_HANDLER;
+  fdtype (*indexop)(fd_index ix,int opid,int n,fdtype *args);}
+  FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
-#define FDKB_INDEXOP_SETCACHE    (1<<0)
-#define FDKB_INDEXOP_PRELOAD     (1<<1)
-#define FDKB_INDEXOP_STATS       (1<<2)
-#define FDKB_INDEXOP_LABEL       (1<<3)
-#define FDKB_INDEXOP_POPULATE    (1<<4)
+#define FDKB_INDEXOP_CACHELEVEL  (1<<0)
+#define FDKB_INDEXOP_BUFSIZE     (1<<1)
+#define FDKB_INDEXOP_MMAP        (1<<2)
+#define FDKB_INDEXOP_PRELOAD     (1<<3)
+#define FDKB_INDEXOP_STATS       (1<<4)
+#define FDKB_INDEXOP_LABEL       (1<<5)
+#define FDKB_INDEXOP_POPULATE    (1<<6)
+#define FDKB_INDEXOP_GETBUCKET   (1<<7)
+#define FDKB_INDEXOP_SLOTIDS     (1<<8)
+
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={

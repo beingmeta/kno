@@ -93,7 +93,7 @@
 ;;	   #f))
 
 (define memoization-index
-  (make-file-index "memoization.index" 1000))
+  (make-index "memoization.index" #[type fileindex slots 1000]))
 
 (applytest #t real? 0.1)
 (applytest #t real? .1)

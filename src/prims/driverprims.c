@@ -75,14 +75,14 @@ static fdtype lisphashdtyperep(fdtype x)
 
 /* Opening unregistered file pools */
 
-static fdtype open_file_pool(fdtype name)
+static fdtype access_pool_prim(fdtype name)
 {
   fd_pool p=fd_unregistered_file_pool(FD_STRDATA(name));
   if (p) return (fdtype) p;
   else return FD_ERROR_VALUE;
 }
 
-static fdtype file_pool_prefetch(fdtype pool,fdtype oids)
+static fdtype pool_prefetch(fdtype pool,fdtype oids)
 {
   fd_pool p=(fd_pool)pool;
   int retval=fd_pool_prefetch(p,oids);
@@ -107,68 +107,23 @@ FD_EXPORT void fd_init_driverfns_c()
   driverfns_module=fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 
+  fd_idefn(driverfns_module,
+           fd_make_cprim1x("ACCESS-POOL",access_pool_prim,1,
+                           fd_string_type,FD_VOID));
+
+  fd_idefn(driverfns_module,
+           fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,
+                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+
   /* These are all primitives which access the internals of various
      drivers (back when they were exposed). We're leaving them here
      until there are appropriate opaque replacements. */
-
-  fd_idefn(driverfns_module,
-           fd_make_cprim3x("MAKE-FILE-INDEX",
-                           _fd_deprecated_make_file_index_prim,2,
-                           fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_slotmap_type,FD_VOID));
-
-  fd_idefn(driverfns_module,
-           fd_make_cprim3x("MAKE-LEGACY-FILE-INDEX",
-                           _fd_deprecated_make_legacy_file_index_prim,2,
-                           fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_slotmap_type,FD_VOID));
-  fd_idefn(driverfns_module,
-           fd_make_cprim5x("MAKE-FILE-POOL",
-                           _fd_deprecated_make_file_pool_prim,3,
-                           fd_string_type,FD_VOID,
-                           fd_oid_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
-
-  fd_idefn(driverfns_module,
-           fd_make_cprimn("MAKE-OIDPOOL",_fd_make_oidpool_deprecated,3));
-
-  fd_idefn(driverfns_module,
-           fd_make_cprim2x("LABEL-FILE-POOL!",
-                           _fd_deprecated_label_file_pool_prim,2,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID));
-  
-  fd_idefn(driverfns_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
-                                         fd_string_type,FD_VOID));
-  fd_idefn(driverfns_module,
-           fd_make_ndprim
-           (fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
-                            fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
-  
 
   fd_idefn(driverfns_module,
            fd_make_cprim4x("POPULATE-HASH-INDEX",
                            _fd_populate_hash_index_deprecated,2,
                            -1,FD_VOID,-1,FD_VOID,
                            fd_fixnum_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(driverfns_module,
-           fd_make_cprim6x("MAKE-HASH-INDEX",
-                           _fd_make_hash_index_deprecated,2,
-                           fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-                           -1,FD_FALSE));
-  fd_idefn(driverfns_module,
-           fd_make_cprim3x("HASH-INDEX-BUCKET",
-                           _fd_hash_index_bucket_deprecated,2,
-                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
-  fd_idefn(driverfns_module,
-           fd_make_cprim1("HASH-INDEX-SLOTIDS",_fd_hash_index_slotids_deprecated,1));
-  fd_idefn(driverfns_module,
-           fd_make_cprim1("HASH-INDEX-STATS",_fd_hash_index_stats_deprecated,1));
 
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));

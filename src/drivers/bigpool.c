@@ -1236,6 +1236,38 @@ static void bigpool_setbuf(fd_pool p,int bufsiz)
   fd_unlock_pool(bp);
 }
 
+/* Bigpool ops */
+
+static fdtype bigpool_op(fd_pool p,int op,int n,fdtype *args)
+{
+  struct FD_BIGPOOL *fp=(struct FD_BIGPOOL *)p;
+  if ((n>0)&&(args==NULL))
+    return fd_err("BadPoolOpCall","bigpool_op",fp->pool_idstring,FD_VOID);
+  else if (n<0)
+    return fd_err("BadPoolOpCall","bigpool_op",fp->pool_idstring,FD_VOID);
+  else switch (op) {
+    case FDKB_POOLOP_CACHELEVEL:
+      if (n==0)
+        return FD_INT(fp->pool_cache_level);
+      else {
+        fdtype arg=(args)?(args[0]):(FD_VOID);
+        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+            (FD_FIX2INT(arg)<0x100)) {
+          bigpool_setcache(p,FD_FIX2INT(arg));
+          return FD_INT(fp->pool_cache_level);}
+        else return fd_type_error
+               (_("cachelevel"),"bigpool_op/cachelevel",arg);}
+    case FDKB_POOLOP_BUFSIZE: {
+      if (n==0)
+        return FD_INT(fp->pool_stream.buf.raw.buflen);
+      else if (FD_FIXNUMP(args[0])) {
+        bigpool_setbuf(p,FD_FIX2INT(args[0]));
+        return FD_INT(fp->pool_stream.buf.raw.buflen);}
+      else return fd_type_error("buffer size","bigpool_op/bufsize",args[0]);}
+    default:
+      return FD_FALSE;}
+}
+
 /* Creating bigpool */
 
 static int interpret_pool_flags(fdtype opts)
@@ -1341,7 +1373,7 @@ static struct FD_POOL_HANDLER bigpool_handler={
   NULL, /* metadata */
   bigpool_create, /* create */
   NULL,  /* recycle */
-  NULL  /* poolop */
+  bigpool_op  /* poolop */
 };
 
 

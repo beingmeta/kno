@@ -1195,6 +1195,48 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
   fd_unlock_index(fx);
 }
 
+/* File index ops */
+
+static fdtype file_index_op(fd_index ix,int op,int n,fdtype *args)
+{
+  struct FD_FILE_INDEX *hx=(struct FD_FILE_INDEX *)ix;
+  if ( ((n>0)&&(args==NULL)) || (n<0) )
+    return fd_err("BadIndexOpCall","file_index_op",
+                  hx->index_idstring,FD_VOID);
+  else switch (op) {
+    case FDKB_INDEXOP_CACHELEVEL:
+      if (n==0)
+        return FD_INT(hx->index_cache_level);
+      else {
+        fdtype arg=(args)?(args[0]):(FD_VOID);
+        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+            (FD_FIX2INT(arg)<0x100)) {
+          file_index_setcache(ix,FD_FIX2INT(arg));
+          return FD_INT(hx->index_cache_level);}
+        else return fd_type_error
+               (_("cachelevel"),"file_index_op/cachelevel",arg);}
+    case FDKB_INDEXOP_BUFSIZE: {
+      if (n==0)
+        return FD_INT(hx->index_stream.buf.raw.buflen);
+      else if (FD_FIXNUMP(args[0])) {
+        file_index_setbuf(ix,FD_FIX2INT(args[0]));
+        return FD_INT(hx->index_stream.buf.raw.buflen);}
+      else return fd_type_error("buffer size","file_index_op/bufsize",args[0]);}
+    case FDKB_INDEXOP_GETBUCKET: {
+      if (n==0)
+        return FD_INT(hx->index_n_slots);
+      else {
+        fdtype mod_arg=(n>1) ? (args[1]) : (FD_VOID);
+        unsigned int hash=file_index_hash(hx,args[0]);
+        if (FD_FIXNUMP(mod_arg))
+          return FD_INT((hash%FD_FIX2INT(mod_arg)));
+        else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))
+          return FD_INT(hash);
+        else return FD_INT(hash%(hx->index_n_slots));}}
+    default:
+      return FD_FALSE;}
+}
+
 /* Making file indexes */
 
 FD_EXPORT
@@ -1248,32 +1290,6 @@ static fd_index file_index_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
-/* */
-
-FD_EXPORT fdtype _fd_deprecated_make_file_index_prim(fdtype fname,
-                                                     fdtype size,
-                                                     fdtype metadata)
-{
-  int retval=
-    fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
-                       fd_getint(size));
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
-                                                            fdtype size,
-                                                            fdtype metadata)
-{
-  int retval=
-    fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
-                       fd_getint(size));
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-
-
 
 /* The handler struct */
 
@@ -1292,7 +1308,7 @@ static struct FD_INDEX_HANDLER file_index_handler={
   NULL, /* fetchsizes */
   file_index_create, /* create */
   NULL, /* recycle */
-  NULL  /* indexop */
+  file_index_op  /* indexop */
 };
 
 static u8_string match_index_name(u8_string spec,void *data)
