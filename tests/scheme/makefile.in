@@ -188,24 +188,8 @@ all_tests alltests: \
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 	@echo "■■■■■■■■ Done with alltests"
 
-schemetest schemetests scheme:
-	@echo "■■■■■■■■ Running basic scheme tests ${RUNCONF}"
-	${FDX} r4rs.scm ${RUNCONF}
-	${FDX} exceptions.scm ${RUNCONF}
-	${FDX} choicetest.scm ${RUNCONF}
-	${FDX} seqtest.scm ${RUNCONF}
-	${FDX} numvecs.scm ${RUNCONF}
-	${FDX} picktest.scm ${RUNCONF}
-	${FDX} cachecall.scm ${RUNCONF}
-	${FDX} texttest.scm ${RUNCONF}
-	${FDX} fdwebtest.scm ${RUNCONF}
-	${FDX} timefns.scm ${RUNCONF}
-	${FDX} threadtest.scm ${RUNCONF}
-	${FDX} i18n.scm ${RUNCONF}
-	${FDX} misctest.scm ${RUNCONF}
-	${FDX} xmltest.scm ${RUNCONF}
-	${FDX} cryptotest.scm ${RUNCONF}
-	@echo "■■■■■■■■ Completed scheme tests ${RUNCONF}"
+schemetest schemetests scheme: r4rs exceptions choices sequences numvecs \
+	picktest cachecall texttools fdweb timefns threads i18n misc xml crypto
 optscheme: schemetest
 	@echo "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
@@ -332,7 +316,7 @@ pooltests pools: filepooltest oidpooltests bigpooltests
 
 indextest:
 	@echo "■■■■■■■■ Running index tests ${TESTBASE} ${RUNCONF}"
-	@rm -f edit.dtype
+	@rm -f *.edit.dtype
 	# The cache is off by default
 	${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF}
 	${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}
@@ -341,28 +325,28 @@ indextest:
 	${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF}
 	${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
 	# Do test edits (no cache)
-	${FDX} tabletest.scm ${TESTBASE} edit.dtype ${RUNCONF}
+	${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
 	# Verify test edits
-	${FDX} tabletest.scm ${TESTBASE} edit.dtype ${RUNCONF}
+	${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
 	# New test, building with cache enabled
 	${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF}
 	${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF}
 	# Try testing without the cache
 	${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}
 	# Do test edits (with cache)
-	${FDX} tabletest.scm ${TESTBASE} edit.dtype ${RUNCONF}
+	${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
 	# Verify test edits
-	${FDX} tabletest.scm ${TESTBASE} edit.dtype ${RUNCONF}
+	${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
 	# Build with both cache and consindices
 	${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
 	${FDX} tabletest.scm ${TESTBASE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
 	${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}
 	# Do test edits (with cache and consindex)
-	${FDX} tabletest.scm ${TESTBASE} edit.dtype
+	${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype
 		 ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
 	# Verify test edits
-	${FDX} tabletest.scm ${TESTBASE} edit.dtype ${RUNCONF}
+	${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
 	@echo "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
 
 fileindexes fileindex:
@@ -375,7 +359,7 @@ hashindex40:
 hashindex64:
 	@make TESTBASE=tmphash64.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B64" indextest
 
-hashindexes hashindex: hashindex32 hashindex40 hashindex 64
+hashindexes hashindex: hashindex32 hashindex40 hashindex64
 
 indextests indexes: fileindexes hashindexes
 
