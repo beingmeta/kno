@@ -162,9 +162,8 @@
   (cond ((has-suffix file ".slotmap") (frame-create #f))
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
-	 (make-index file #[type fileindex slots 1000000]))
-	((has-suffix file ".hashindex")
-	 (make-index file `#[type hashindex slots 1000000
+	 (make-index file `#[type (config 'indextype 'fileindex)
+			     slots 1000000
 			     offtype ,(config 'offtype 'b40)]))
 	;; ((has-suffix file ".zindex") (make-zindex file))
 	(else (make-hashtable))))
@@ -236,12 +235,11 @@
 	(commit))))
 
 (define (main filename (size #f))
-  (message "■■■■■■■■ TABLETEST " (write filename) 
+  (message "■■ TABLETEST " (write filename) 
     (when size (printout " BUILD=" size))
     " cache=" (config 'cachlevel) " "
     (when (config 'hashindex) (printout "index=" (config 'hashindex)))
-    (when (config 'oidpool) (printout "pool=" (config 'oidpool)))
-    " ■■■■■■■■■■■■■■■■ ")
+    (when (config 'oidpool) (printout "pool=" (config 'oidpool))))
   (if (and size (number? size))
       (let ((table (table-for filename (config 'CONSINDEX #f)))
 	    (atomicp (has-suffix filename ".slotmap")))
