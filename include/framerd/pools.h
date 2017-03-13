@@ -386,6 +386,31 @@ FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
 
+/* External Pools */
+
+typedef struct FD_PROCPOOL {
+  FD_POOL_FIELDS;
+  fdtype pool_state;
+  fdtype allocfn,
+    fetchfn, fetchnfn,
+    lockfn,releasefn,
+    storen,metadatafn,
+    createfn,closefn,ctl;}
+  FD_PROCPOOL;
+typedef struct FD_PROCPOOL *fd_procpool;
+
+FD_EXPORT
+fd_pool fd_make_procpool(u8_string label,
+			 FD_OID base,int cap,int load,fdtype state,
+			 fdtype allocfn,
+			 fdtype fetchfn,fdtype fetchnfn,
+			 fdtype lockfn,fdtype releasefn,
+			 fdtype storen,fdtype metadatafn,
+			 fdtype createfn,fdtype opfn,
+			 fdtype closefn)
+
+FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
+
 /* Memory Pools (only in memory, no fetch/commit) */
 
 typedef struct FD_MEMPOOL {
