@@ -77,7 +77,6 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if (!((p->index_flags)&(FDKB_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.fd_veclen=n; vstruct.fd_vecelts=keys; vstruct.fd_freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);

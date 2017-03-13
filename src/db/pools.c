@@ -423,8 +423,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   else init_cache_level(p);
   cachelevel=p->pool_cache_level;
   /* if (p->pool_cache_level<1) return 0; */
-  if ( (p->pool_handler->fetchn==NULL) ||
-       (!(p->pool_flags&(FDKB_BATCHABLE))) ) {
+  if (p->pool_handler->fetchn==NULL) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oids);
       return 0;}
@@ -552,7 +551,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     return rv;}
   else {
     int rv=cache->table_n_keys;
-    if ((p->pool_flags)&(FDKB_STICKY_CACHESIZE))
+    if ((p->pool_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
@@ -1378,7 +1377,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->pool_base=base; p->pool_capacity=capacity;
   p->pool_serialno=-1; p->pool_cache_level=-1;
-  p->pool_flags=((h->fetchn)?(FDKB_BATCHABLE):(0));
+  p->pool_flags=0;
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(p->pool_cache),fd_pool_cache_init);

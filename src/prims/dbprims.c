@@ -311,9 +311,7 @@ static fdkb_flags getdbflags(fdtype opts)
   if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
     flags|=FDKB_UNREGISTERED;
   if (!(fd_testopt(opts,fd_intern("UNCACHED"),FD_VOID)))
-    flags|=FDKB_CACHE_VALUES;
-  if (fd_testopt(opts,fd_intern("CACHEINDEX"),FD_VOID))
-    flags|=FDKB_CACHE_OFFSETS;
+    flags|=FDKB_NOCACHE;
   return flags;
 }
 
