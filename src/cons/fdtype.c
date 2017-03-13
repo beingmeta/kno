@@ -117,14 +117,6 @@ FD_EXPORT void fd_init_stream_c(void);
 FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 
-FD_EXPORT void fd_boot_message()
-{
-  u8_message("Copyright (C) beingmeta 2004-2017, all rights reserved");
-  u8_message("(%s:%lld) %s %s",
-             u8_appid(),(unsigned long long)getpid(),
-             fd_getrevision(),u8_getrevision());
-}
-
 static double format_secs(double secs,char **units)
 {
   if (secs<0.001) {*units="us"; return secs*1000000;}
