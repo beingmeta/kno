@@ -231,7 +231,6 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
       FD_UNLOCK_PTR(x);
       fd_recycle_cons(x);}}
   else if (FD_CONSBITS(x)>=0x80) {
-    FD_UNLOCK_PTR(x);
     fd_recycle_cons(x);}
   else {}
 }
