@@ -237,8 +237,6 @@ static void recycle_extpool(fd_pool p)
 struct FD_POOL_HANDLER fd_extpool_handler={
   "extpool", 1, sizeof(struct FD_EXTPOOL), 12,
   NULL, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   extpool_alloc, /* alloc */
   extpool_fetch, /* fetch */
   extpool_fetchn, /* fetchn */

@@ -1360,8 +1360,6 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
 static struct FD_POOL_HANDLER bigpool_handler={
   "bigpool", 1, sizeof(struct FD_BIGPOOL), 12,
   bigpool_close, /* close */
-  bigpool_setcache, /* setcache */
-  bigpool_setbuf, /* setbuf */
   bigpool_alloc, /* alloc */
   bigpool_fetch, /* fetch */
   bigpool_fetchn, /* fetchn */

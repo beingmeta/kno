@@ -164,8 +164,6 @@ static fdtype gpool_alloc(fd_pool p,int n)
 static struct FD_POOL_HANDLER gpool_handler={
   "gpool", 1, sizeof(struct FD_GPOOL), 12,
   NULL, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   gpool_alloc, /* alloc */
   gpool_fetch, /* fetch */
   gpool_fetchn, /* fetchn */

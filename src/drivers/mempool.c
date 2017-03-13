@@ -130,8 +130,6 @@ static int mempool_swapout(fd_pool p,fdtype oidvals)
 static struct FD_POOL_HANDLER mempool_handler={
   "mempool", 1, sizeof(struct FD_MEMPOOL), 12,
   NULL, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   mempool_alloc, /* alloc */
   mempool_fetch, /* fetch */
   mempool_fetchn, /* fetchn */

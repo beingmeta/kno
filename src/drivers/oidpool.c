@@ -1509,8 +1509,6 @@ static fdtype oidpool_op(fd_pool p,int op,int n,fdtype *args)
 static struct FD_POOL_HANDLER oidpool_handler={
   "oidpool", 1, sizeof(struct FD_OIDPOOL), 12,
   oidpool_close, /* close */
-  oidpool_setcache, /* setcache */
-  oidpool_setbuf, /* setbuf */
   oidpool_alloc, /* alloc */
   oidpool_fetch, /* fetch */
   oidpool_fetchn, /* fetchn */

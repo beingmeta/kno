@@ -1222,7 +1222,7 @@ static fdtype file_index_op(fd_index ix,int op,int n,fdtype *args)
         file_index_setbuf(ix,FD_FIX2INT(args[0]));
         return FD_INT(hx->index_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","file_index_op/bufsize",args[0]);}
-    case FD_INDEXOP_GETBUCKET: {
+    case FD_INDEXOP_HASH: {
       if (n==0)
         return FD_INT(hx->index_n_slots);
       else {
@@ -1297,8 +1297,6 @@ static struct FD_INDEX_HANDLER file_index_handler={
   "file_index", 1, sizeof(struct FD_FILE_INDEX), 12,
   file_index_close, /* close */
   file_index_commit, /* commit */
-  file_index_setcache, /* setcache */
-  file_index_setbuf, /* setbuf */
   file_index_fetch, /* fetch */
   file_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */

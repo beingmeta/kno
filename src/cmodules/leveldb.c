@@ -809,8 +809,6 @@ static int leveldb_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 static struct FD_POOL_HANDLER leveldb_pool_handler={
   "leveldb_pool", 1, sizeof(struct FD_LEVELDB_POOL), 12,
   leveldb_pool_close, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   leveldb_pool_alloc, /* alloc */
   leveldb_pool_fetchoid, /* fetch */
   leveldb_pool_fetchn, /* fetchn */

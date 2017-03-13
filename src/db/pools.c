@@ -155,7 +155,7 @@ FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 static void init_cache_level(fd_pool p)
 {
   if (FD_EXPECT_FALSE(p->pool_cache_level<0)) {
-    fd_pool_setcache(p,p->pool_cache_level);}
+    fd_pool_setcache(p,fd_default_cache_level);}
 }
 
 FD_EXPORT
@@ -1419,8 +1419,6 @@ FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn)
 static struct FD_POOL_HANDLER gluepool_handler={
   "gluepool", 1, sizeof(struct FD_GLUEPOOL), 11,
   NULL, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   NULL, /* alloc */
   NULL, /* fetch */
   NULL, /* fetchn */

@@ -91,7 +91,7 @@ static u8_mutex indexes_lock;
 
 /* Index ops */
 
-FD_EXPORT fdtype fd_index_op(fd_index x,int indexop,int n,fdtype *args)
+FD_EXPORT fdtype fd_index_ctl(fd_index x,int indexop,int n,fdtype *args)
 {
   struct FD_INDEX_HANDLER *h=x->index_handler;
   if (h->indexop)
@@ -106,7 +106,7 @@ FD_EXPORT fdtype fd_index_op(fd_index x,int indexop,int n,fdtype *args)
 FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
   fdtype intarg=FD_INT(level);
-  fdtype result=fd_index_op(ix,FD_INDEXOP_CACHELEVEL,1,&intarg);
+  fdtype result=fd_index_ctl(ix,FD_INDEXOP_CACHELEVEL,1,&intarg);
   if (FD_ABORTP(result)) {fd_clear_errors(1);}
   fd_decref(result);
   ix->index_cache_level=level;
@@ -115,7 +115,7 @@ FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 static void init_cache_level(fd_index ix)
 {
   if (FD_EXPECT_FALSE(ix->index_cache_level<0)) {
-    fd_index_setcache(ix,ix->index_cache_level);}
+    fd_index_setcache(ix,fd_default_cache_level);}
 }
 
 

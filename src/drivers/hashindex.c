@@ -2724,7 +2724,7 @@ static fdtype hash_index_op(fd_index ix,int op,int n,fdtype *args)
         fd_stream_setbuf(&(hx->index_stream),FD_FIX2INT(args[0]));
         return FD_INT(hx->index_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","hash_index_op/bufsize",args[0]);}
-    case FD_INDEXOP_GETBUCKET: {
+    case FD_INDEXOP_HASH: {
       if (n==0)
         return FD_INT(hx->index_n_buckets);
       else {
@@ -2754,8 +2754,6 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   "hash_index", 1, sizeof(struct FD_HASH_INDEX), 12,
   hash_index_close, /* close */
   hash_index_commit, /* commit */
-  setcache_handler, /* setcache */
-  hash_index_setbuf, /* setbuf */
   hash_index_fetch, /* fetch */
   hash_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */

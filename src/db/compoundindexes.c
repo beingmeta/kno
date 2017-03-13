@@ -219,8 +219,6 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
   "compoundindex", 1, sizeof(struct FD_COMPOUND_INDEX), 12,
   NULL, /* close */
   NULL, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   compound_fetch, /* fetch */
   NULL, /* fetchsize */
   compound_prefetch, /* prefetch */

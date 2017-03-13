@@ -63,8 +63,6 @@ typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
   int (*commit)(fd_index ix);
-  void (*setcache)(fd_index ix,int level);
-  void (*setbuf)(fd_index p,int size);
   fdtype (*fetch)(fd_index ix,fdtype key);
   int (*fetchsize)(fd_index ix,fdtype key);
   int (*prefetch)(fd_index ix,fdtype keys);
@@ -88,7 +86,7 @@ FD_EXPORT fdtype fd_index_ctl(fd_index p,int indexop,int n,fdtype *args);
 #define FD_INDEXOP_STATS       (1<<4)
 #define FD_INDEXOP_LABEL       (1<<5)
 #define FD_INDEXOP_POPULATE    (1<<6)
-#define FD_INDEXOP_GETBUCKET   (1<<7)
+#define FD_INDEXOP_HASH   (1<<7)
 #define FD_INDEXOP_SLOTIDS     (1<<8)
 
 #if 0
@@ -96,8 +94,6 @@ struct FD_INDEX_HANDLER some_handler={
   "somehandler", 1, sizeof(somestruct), 4,
   NULL, /* close */
   NULL, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL /* fetchn */

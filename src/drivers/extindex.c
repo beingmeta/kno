@@ -201,8 +201,6 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 4,
   NULL, /* close */
   extindex_commit, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   extindex_fetch, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */

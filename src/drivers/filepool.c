@@ -823,8 +823,6 @@ static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label)
 static struct FD_POOL_HANDLER file_pool_handler={
   "file_pool", 1, sizeof(struct FD_FILE_POOL), 12,
   file_pool_close, /* close */
-  file_pool_setcache, /* setcache */
-  file_pool_setbuf, /* setbuf */
   file_pool_alloc, /* alloc */
   file_pool_fetch, /* fetch */
   file_pool_fetchn, /* fetchn */
