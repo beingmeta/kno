@@ -11,21 +11,6 @@
 #define FRAMERD_FDREGEX_H_INFO "include/framerd/fdweb.h"
 #endif
 
-#include <regex.h>
-
-FD_EXPORT fd_exception fd_RegexError;
-
-typedef struct FD_REGEX {
-  FD_CONS_HEADER;
-  u8_string fd_rxsrc;
-  unsigned int fd_rxactive;
-  int fd_rxflags;
-  u8_mutex fdrx_lock;
-  regex_t fd_rxcompiled;} FD_REGEX;
-typedef struct FD_REGEX *fd_regex;
-
-FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
-
 enum FD_REGEX_OP {
   rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchpair,
   rx_matchstring};

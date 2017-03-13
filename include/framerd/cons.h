@@ -583,7 +583,21 @@ typedef struct FD_COMPLEX *fd_complex;
 
 
 /* Parsing regexes */
-FD_EXPORT fdtype (*fd_regex_parser)(u8_string src,u8_string opts);
+
+#include <regex.h>
+
+FD_EXPORT fd_exception fd_RegexError;
+
+typedef struct FD_REGEX {
+  FD_CONS_HEADER;
+  u8_string fd_rxsrc;
+  unsigned int fd_rxactive;
+  int fd_rxflags;
+  u8_mutex fdrx_lock;
+  regex_t fd_rxcompiled;} FD_REGEX;
+typedef struct FD_REGEX *fd_regex;
+
+FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
 
 /* Mysteries */
 

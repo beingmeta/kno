@@ -820,12 +820,12 @@ static fdtype parse_string(U8_INPUT *in)
   return result;
 }
 
-fdtype (*fd_regex_parser)(u8_string src,u8_string opts)=NULL;
+static fdtype make_regex(u8_string src_arg,u8_string opts);
 
 static fdtype parse_regex(U8_INPUT *in)
 {
   fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
-  u8_byte opts[16], *optwrite=opts;
+  u8_byte opts[16]="", *optwrite=opts; 
   int c=u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
   while (c>=0) {
     if (c=='\\') {
@@ -841,15 +841,34 @@ static fdtype parse_regex(U8_INPUT *in)
         mc=u8_getc(in);}
       u8_ungetc(in,mc);
       *optwrite++='\0';
-      if (fd_regex_parser)
-        result=fd_regex_parser(src.u8_outbuf,opts);
-      else result=fd_make_nvector(3,fd_intern("NOREGEX"),
-                                  fdtype_string(src.u8_outbuf),
-                                  fdtype_string(opts));
+      result=make_regex(src.u8_outbuf,opts);
       u8_close((u8_stream)&src);
       return result;}
     c=u8_getc(in);}
   return FD_EOF;
+}
+
+static fdtype make_regex(u8_string src_arg,u8_string opts)
+{
+  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX);
+  int retval, cflags=REG_EXTENDED;
+  u8_string src=u8_strdup(src_arg);
+  FD_INIT_FRESH_CONS(ptr,fd_regex_type);
+  if (strchr(opts,'i')) cflags|=REG_ICASE;
+  else if (strchr(opts,'c')) cflags|=REG_ICASE;
+  else if (strchr(opts,'m')) cflags|=REG_NEWLINE;
+  else {}
+  retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);
+  if (retval) {
+    u8_byte buf[512];
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
+    u8_free(ptr);
+    return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
+  else {
+    U8_CLEAR_ERRNO();
+    ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
+    return FDTYPE_CONS(ptr);}
 }
 
 /* Packet parsing functions */
