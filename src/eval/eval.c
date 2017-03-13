@@ -825,6 +825,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env);
 static fdtype call_function(u8_string nm,fd_function f,fdtype x,fd_lispenv env);
 static fdtype apply_functions(fdtype fn,fdtype expr,fd_lispenv env);
+static int applicable_choicep(fdtype choice);
 
 FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 {
@@ -883,54 +884,29 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           result=handler->fexpr_handler(expr,env);
         else return handler->fexpr_handler(expr,env);}
       else if (headtype==fd_macro_type) {
-        /* These are special forms which do all the evaluating themselves */
+        /* These expand into expressions which are then evaluated. */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
         fdtype xformer=macrofn->fd_macro_transformer;
-        int xformer_type=FD_PRIM_TYPE(xformer);
-        if (fd_applyfns[xformer_type]) {
-          fdtype new_expr=(fd_applyfns[xformer_type])(xformer,1,&expr);
-          new_expr=fd_finish_call(new_expr);
-          if (FD_ABORTED(new_expr))
-            result=fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
-          else result=fd_eval(new_expr,env);
-          fd_decref(new_expr);}
-        else result=fd_err(fd_InvalidMacro,NULL,macrofn->fd_macro_name,expr);}
+        fdtype new_expr=fd_apply(xformer,1,&expr);
+        if (FD_ABORTED(new_expr))
+          result=fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
+        else result=fd_eval(new_expr,env);
+        fd_decref(new_expr);}
       else if ((FD_CHOICEP(headval)) || (FD_ACHOICEP(headval))) {
-        int applicable=-1;
-        FD_DO_CHOICES(hv,headval) {
-          int hvtype=FD_PRIM_TYPE(hv);
-          /* Check that all the elements are either applicable or special
-             forms  */
-          if (fd_applyfns[hvtype])
-            if (applicable<0) applicable=1;
-            else if (applicable) {}
-            else result=fd_err
-                   ("Inconsistent NDCALL","fd_tail_eval",NULL,headval);
-          else if (hvtype==fd_specform_type)
-            if (applicable<0) applicable=0;
-            else if (applicable)
-              result=fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headval);
-          /* In this case, all the headvals so far are special forms */
-            else {}
-          else result=fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headval);}
-        if (FD_ABORTED(result)) {}
-        else if (applicable<0)
-          result=fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headval);
+        int applicable=applicable_choicep(headval);
+        if (applicable<0) {
+          if (gchead) fd_decref(headval);
+          return FD_ERROR_VALUE;}
         else if (applicable)
           result=apply_functions(headval,expr,env);
-        else {
-          fdtype results=FD_EMPTY_CHOICE;
-          FD_DO_CHOICES(hv,headval) {
-            struct FD_SPECIAL_FORM *handler=(fd_special_form)hv;
-            /* fd_calltrack_call(handler->name); */
-            /* fd_calltrack_return(handler->name); */
-            fdtype one_result=handler->fexpr_handler(expr,env);
-            if (FD_ABORTED(one_result)) {
-              fd_decref(results);
-              result=one_result;}
-            else {FD_ADD_TO_CHOICE(results,result);}}
-          result=results;}}
+        else if (gchead) {
+          fdtype result=fd_err(fd_SyntaxError,"fd_tail_eval",
+                               "ambiguous special form",headval);
+          fd_decref(headval);
+          return result;}
+        else return fd_err(fd_SyntaxError,"fd_tail_eval",
+                           "ambiguous special form",headval);}
       else if (FD_EXPECT_FALSE(FD_VOIDP(headval)))
         result=fd_err(fd_UnboundIdentifier,"for function",
                       ((FD_SYMBOLP(head))?(FD_SYMBOL_NAME(head)):(NULL)),
@@ -951,10 +927,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     return fd_incref(expr);
   case fd_slotmap_type:
     return fd_deep_copy(expr);
-  case fd_choice_type: case fd_achoice_type: {
-    fdtype exprs=fd_simplify_choice(expr);
-    if (FD_CHOICEP(exprs)) {
-      fdtype result=FD_EMPTY_CHOICE;
+  case fd_choice_type: {
+    fdtype result=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(each_expr,expr) {
         fdtype r=fd_eval(each_expr,env);
         if (FD_ABORTED(r)) {
@@ -962,11 +936,39 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           return r;}
         else {FD_ADD_TO_CHOICE(result,r);}}
       return result;}
-    else return fd_tail_eval(exprs,env);}
+  case fd_achoice_type: {
+    fdtype exprs=fd_make_simple_choice(expr);
+    fdtype result=fd_tail_eval(exprs,env);
+    fd_decref(exprs);
+    return result;}
   default:
     if (FD_TYPEP(expr,fd_lexref_type))
       return fd_lexref(expr,env);
     else return fd_incref(expr);}
+}
+
+static int applicable_choicep(fdtype headvals)
+{
+  int applicable=-1;
+  FD_DO_CHOICES(hv,headvals) {
+    int hvtype=FD_PRIM_TYPE(hv), inconsistent=0;
+    /* Check that all the elements are either applicable or special
+       forms and not mixed */
+    if ( (hvtype==fd_primfcn_type) ||
+         (hvtype==fd_sproc_type) ||
+         (fd_applyfns[hvtype]) ) {
+      if (applicable<0) applicable=1;
+      else if (applicable) {}
+      else inconsistent=1;}
+    else if ((hvtype==fd_specform_type)||(hvtype==fd_macro_type)) {
+      if (applicable<0) applicable=0;
+      else if (applicable) inconsistent=1;}
+    /* In this case, all the headvals so far are special forms */
+    else {}
+    if (inconsistent) {
+      FD_STOP_DO_CHOICES;
+      return fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headvals);}}
+  return applicable;
 }
 
 FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
