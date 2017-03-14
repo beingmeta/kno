@@ -55,15 +55,16 @@ typedef unsigned int fdkb_flags;
 #define FDKB_ISPOOL		   0x01
 #define FDKB_ISINDEX		   0x02
 #define FDKB_READ_ONLY		   0x04
-#define FDKB_BATCHABLE		   0x08
-#define FDKB_STICKY_CACHESIZE	   0x10
-#define FDKB_ISCONSED		   0x20
-#define FDKB_UNREGISTERED	   0x20
-#define FDKB_CACHE_VALUES	   0x40
-#define FDKB_NOSWAP		   0x80
+#define FDKB_ISCONSED		   0x08
+#define FDKB_UNREGISTERED	   0x10
+#define FDKB_NOCACHE		   0x20
+#define FDKB_KEEP_CACHESIZE        0x40
+#define FDKB_CACHELEVEL_SET        0x80
+#define FDKB_NOSWAP		   0x100
 #define FDKB_MAX_INIT_BITS	   0x800
-#define FDKB_CACHE_OFFSETS	   0x1000
 #define FDKB_MAX_STATE_BITS	   0x1000
+
+typedef char fdb_cache_level;
 
 #define FDKB_POOL_FLAG(n)	   ((0x10000)<<n)
 #define FDKB_INDEX_FLAG(n)	   ((0x10000)<<n)

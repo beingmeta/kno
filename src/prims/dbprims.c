@@ -311,9 +311,7 @@ static fdkb_flags getdbflags(fdtype opts)
   if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
     flags|=FDKB_UNREGISTERED;
   if (!(fd_testopt(opts,fd_intern("UNCACHED"),FD_VOID)))
-    flags|=FDKB_CACHE_VALUES;
-  if (fd_testopt(opts,fd_intern("CACHEINDEX"),FD_VOID))
-    flags|=FDKB_CACHE_OFFSETS;
+    flags|=FDKB_NOCACHE;
   return flags;
 }
 
@@ -328,7 +326,9 @@ static fdtype make_pool(fdtype path,fdtype opts)
     p=fd_make_pool(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
     p=fd_make_pool(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
-  else {}
+  else if (FD_STRINGP(path))
+    return fd_err(_("BadPoolType"),"make_pool",FD_STRDATA(path),type);
+  else return fd_err(_("BadPoolType"),"make_pool",NULL,type);
   if (p)
     return fd_pool2lisp(p);
   else return FD_ERROR_VALUE;
@@ -352,7 +352,9 @@ static fdtype make_index(fdtype path,fdtype opts)
     ix=fd_make_index(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
     ix=fd_make_index(FD_STRDATA(path),FD_STRDATA(type),flags,opts);
-  else {}
+  else if (FD_STRINGP(path))
+    return fd_err(_("BadIndexType"),"make_index",FD_STRDATA(path),type);
+  else return fd_err(_("BadIndexType"),"make_index",NULL,type);
   if (ix)
     return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;

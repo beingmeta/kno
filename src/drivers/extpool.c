@@ -98,7 +98,6 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if (!(xp->pool_flags&(FDKB_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.fd_veclen=n; vstruct.fd_vecelts=oids;
   vstruct.fd_freedata=0;
@@ -238,8 +237,6 @@ static void recycle_extpool(fd_pool p)
 struct FD_POOL_HANDLER fd_extpool_handler={
   "extpool", 1, sizeof(struct FD_EXTPOOL), 12,
   NULL, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   extpool_alloc, /* alloc */
   extpool_fetch, /* fetch */
   extpool_fetchn, /* fetchn */

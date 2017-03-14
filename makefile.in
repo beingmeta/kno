@@ -195,13 +195,14 @@ TEXTTOOLS_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 SUNDOWN_OBJS=\
-	src/cmodules/ext/sundown/autolink.o \
-	src/cmodules/ext/sundown/buffer.o \
-	src/cmodules/ext/sundown/houdini_href_e.o \
-	src/cmodules/ext/sundown/houdini_html_e.o \
-	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
-	src/cmodules/ext/sundown/markdown.o \
-	src/cmodules/ext/sundown/stack.o
+	src/cmodules/sundown/autolink.o \
+	src/cmodules/sundown/buffer.o \
+	src/cmodules/sundown/houdini_href_e.o \
+	src/cmodules/sundown/houdini_html_e.o \
+	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
+	src/cmodules/sundown/markdown.o \
+	src/cmodules/sundown/stack.o \
+	src/cmodules/sundown.o
 
 SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
 	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
@@ -375,11 +376,11 @@ FRAMERD_SOURCES=\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
-	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
-	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
-	src/cmodules/tidy5/tidy.c src/cmodules/imagick.c               \
-	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
+	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c   \
+	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c  \
+	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
+	src/cmodules/tidy.c src/cmodules/imagick.c               	\
+	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdkbase@suffix@.a      \
         lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
@@ -730,7 +731,6 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		src/cons/*.c src/db/*.c src/drivers/*.c 		\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
-		src/cmodules/sundown/sundown.c         			\
 		etc/*.in ${SRC_HEADERS} 				\
 		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
@@ -740,7 +740,6 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a src/cmodules/sundown/sundown.c;
 	@etags -o TAGS -a tests/cons/*.c tests/db/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
@@ -1000,31 +999,30 @@ lib/framerd/leveldb.o: src/cmodules/leveldb.c
 lib/framerd/leveldb.so: src/cmodules/leveldb.o ${MODULE_SO}
 lib/framerd/leveldb.dylib: src/cmodules/leveldb.o
 
-src/cmodules/ext/libsundown.a: $(SUNDOWN_OBJECTS)
-lib/framerd/sundown.so: src/cmodules/sundown.c src/cmodules/ext/libsundown.a \
-		$(MODULE_SO)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c \
-		src/cmodules/ext/libsundown.a $(MODULE_SO)
+lib/framerd/sundown.so: src/cmodules/sundown.c \
+		$(SUNDOWN_OBJECTS) $(MODULE_SO)
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c \
+		$(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+lib/framerd/sundown.dylib: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
-		src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+		src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
-lib/framerd/tidy.so: src/cmodules/tidy5/tidy.c \
+lib/framerd/tidy.so: src/cmodules/tidy.c \
 			$(TIDY_OBJECTS) $(MODULE_SO)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy5/tidy.c \
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c \
 		$(TIDY_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/tidy.dylib: src/cmodules/tidy5/tidy.c $(TIDY_OBJECTS)
+lib/framerd/tidy.dylib: src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
-		src/cmodules/tidy5/tidy.c $(TIDY_OBJECTS)
+		src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff

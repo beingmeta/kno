@@ -131,21 +131,31 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
   else return fd_err(fd_AnonymousOID,cxt,NULL,oid);
 }
 
+/* Pool ops */
+
+FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args)
+{
+  struct FD_POOL_HANDLER *h=p->pool_handler;
+  if (h->poolop)
+    return h->poolop(p,poolop,n,args);
+  else return FD_FALSE;
+}
+
 /* Pool caching */
 
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 {
-  if (p->pool_handler->setcache) 
-    p->pool_handler->setcache(p,level);
+  fdtype intarg=FD_INT(level);
+  fdtype result=fd_pool_ctl(p,FD_POOLOP_CACHELEVEL,1,&intarg);
+  if (FD_ABORTP(result)) {fd_clear_errors(1);}
+  fd_decref(result);
   p->pool_cache_level=level;
 }
 
 static void init_cache_level(fd_pool p)
 {
   if (FD_EXPECT_FALSE(p->pool_cache_level<0)) {
-    p->pool_cache_level=fd_default_cache_level;
-    if (p->pool_handler->setcache)
-      p->pool_handler->setcache(p,fd_default_cache_level);}
+    fd_pool_setcache(p,fd_default_cache_level);}
 }
 
 FD_EXPORT
@@ -423,8 +433,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   else init_cache_level(p);
   cachelevel=p->pool_cache_level;
   /* if (p->pool_cache_level<1) return 0; */
-  if ( (p->pool_handler->fetchn==NULL) ||
-       (!(p->pool_flags&(FDKB_BATCHABLE))) ) {
+  if (p->pool_handler->fetchn==NULL) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
       FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oids);
       return 0;}
@@ -552,7 +561,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     return rv;}
   else {
     int rv=cache->table_n_keys;
-    if ((p->pool_flags)&(FDKB_STICKY_CACHESIZE))
+    if ((p->pool_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
@@ -1378,7 +1387,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->pool_base=base; p->pool_capacity=capacity;
   p->pool_serialno=-1; p->pool_cache_level=-1;
-  p->pool_flags=((h->fetchn)?(FDKB_BATCHABLE):(0));
+  p->pool_flags=0;
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(p->pool_cache),fd_pool_cache_init);
@@ -1410,8 +1419,6 @@ FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn)
 static struct FD_POOL_HANDLER gluepool_handler={
   "gluepool", 1, sizeof(struct FD_GLUEPOOL), 11,
   NULL, /* close */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   NULL, /* alloc */
   NULL, /* fetch */
   NULL, /* fetchn */

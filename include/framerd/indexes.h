@@ -63,8 +63,6 @@ typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
   int (*commit)(fd_index ix);
-  void (*setcache)(fd_index ix,int level);
-  void (*setbuf)(fd_index p,int size);
   fdtype (*fetch)(fd_index ix,fdtype key);
   int (*fetchsize)(fd_index ix,fdtype key);
   int (*prefetch)(fd_index ix,fdtype keys);
@@ -75,23 +73,27 @@ typedef struct FD_INDEX_HANDLER {
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
   void (*recycle)(fd_index p);
-  fdtype (*indexop)(fd_index ix,int indexop,fdtype,fdtype,fdtype);
-} FD_INDEX_HANDLER;
+  fdtype (*indexop)(fd_index ix,int opid,int n,fdtype *args);}
+  FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
-#define FDKB_INDEXOP_SETCACHE    (1<<0)
-#define FDKB_INDEXOP_PRELOAD     (1<<1)
-#define FDKB_INDEXOP_STATS       (1<<2)
-#define FDKB_INDEXOP_LABEL       (1<<3)
-#define FDKB_INDEXOP_POPULATE    (1<<4)
+FD_EXPORT fdtype fd_index_ctl(fd_index p,int indexop,int n,fdtype *args);
+
+#define FD_INDEXOP_CACHELEVEL  (1<<0)
+#define FD_INDEXOP_BUFSIZE     (1<<1)
+#define FD_INDEXOP_MMAP        (1<<2)
+#define FD_INDEXOP_PRELOAD     (1<<3)
+#define FD_INDEXOP_STATS       (1<<4)
+#define FD_INDEXOP_LABEL       (1<<5)
+#define FD_INDEXOP_POPULATE    (1<<6)
+#define FD_INDEXOP_HASH   (1<<7)
+#define FD_INDEXOP_SLOTIDS     (1<<8)
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={
   "somehandler", 1, sizeof(somestruct), 4,
   NULL, /* close */
   NULL, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL /* fetchn */

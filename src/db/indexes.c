@@ -89,22 +89,33 @@ static fdtype set_symbol, drop_symbol;
 
 static u8_mutex indexes_lock;
 
+/* Index ops */
+
+FD_EXPORT fdtype fd_index_ctl(fd_index x,int indexop,int n,fdtype *args)
+{
+  struct FD_INDEX_HANDLER *h=x->index_handler;
+  if (h->indexop)
+    return h->indexop(x,indexop,n,args);
+  else return FD_FALSE;
+}
+
 /* Index cache levels */
 
 /* a cache_level<0 indicates no caching has been done */
 
 FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
-  if (ix->index_handler->setcache) ix->index_handler->setcache(ix,level);
+  fdtype intarg=FD_INT(level);
+  fdtype result=fd_index_ctl(ix,FD_INDEXOP_CACHELEVEL,1,&intarg);
+  if (FD_ABORTP(result)) {fd_clear_errors(1);}
+  fd_decref(result);
   ix->index_cache_level=level;
 }
 
 static void init_cache_level(fd_index ix)
 {
   if (FD_EXPECT_FALSE(ix->index_cache_level<0)) {
-    ix->index_cache_level=fd_default_cache_level;
-    if (ix->index_handler->setcache)
-      ix->index_handler->setcache(ix,fd_default_cache_level);}
+    fd_index_setcache(ix,fd_default_cache_level);}
 }
 
 
@@ -325,7 +336,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       delay_index_fetch(ix,keys);
       return 0;}
     else return ix->index_handler->prefetch(ix,keys);
-  else if ((ix->index_handler->fetchn==NULL)||(!((ix->index_flags)&(FDKB_BATCHABLE)))) {
+  else if (ix->index_handler->fetchn==NULL) {
     if (fd_ipeval_status()) {
       delay_index_fetch(ix,keys);
       return 0;}
@@ -799,9 +810,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
            "####### Saving %d updates to %s",n_keys,ix->index_idstring);
     double start_time=u8_elapsed_time();
     if (ix->index_cache_level<0) {
-      ix->index_cache_level=fd_default_cache_level;
-      if (ix->index_handler->setcache)
-        ix->index_handler->setcache(ix,fd_default_cache_level);}
+      fd_index_setcache(ix,fd_default_cache_level);}
     retval=ix->index_handler->commit(ix);
     if (retval<0)
       u8_log(LOG_CRIT,fd_IndexCommitError,
@@ -821,7 +830,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix)
 {
   if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
-    if ((ix->index_flags)&(FDKB_STICKY_CACHESIZE))
+    if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(&(ix->index_cache),-1,1);
     else fd_reset_hashtable(&(ix->index_cache),0,1);}
 }
@@ -842,7 +851,6 @@ FD_EXPORT void fd_init_index
     FD_INIT_CONS(ix,fd_raw_index_type);}
   else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
   if (U8_BITP(flags,FDKB_READ_ONLY)) { U8_SETBITS(flags,FDKB_READ_ONLY); };
-  if (h->fetchn) { U8_SETBITS(flags,FDKB_BATCHABLE); };
   ix->index_serialno=-1; ix->index_cache_level=-1; ix->index_flags=flags;
   FD_INIT_STATIC_CONS(&(ix->index_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->index_adds),fd_hashtable_type);

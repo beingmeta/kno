@@ -231,7 +231,6 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
       FD_UNLOCK_PTR(x);
       fd_recycle_cons(x);}}
   else if (FD_CONSBITS(x)>=0x80) {
-    FD_UNLOCK_PTR(x);
     fd_recycle_cons(x);}
   else {}
 }
@@ -639,6 +638,23 @@ typedef struct FD_CONSBLOCK {
   ssize_t consdata_size;
   ssize_t consdata_lenth;} FD_CONSBLOCK;
 typedef struct FD_CONSBLOCK *fd_consblock;
+
+/* Raw pointers */
+
+typedef void (*fd_raw_recyclefn)(void *);
+
+typedef struct FD_RAWPTR {
+  FD_CONS_HEADER;
+  void *ptrval;
+  u8_string typestring, idstring;
+  fdtype raw_typespec;
+  fd_raw_recyclefn recycler;} FD_RAWPTR;
+typedef struct FD_RAWPTR *fd_rawptr;
+
+FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
+                                 fd_raw_recyclefn recycler,
+                                 fdtype typespec,
+				 u8_string idstring);
 
 /* Compounds */
 

@@ -1434,6 +1434,57 @@ FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
     return FDTYPE_CONS(ptr);}
 }
 
+/* Raw pointers */
+
+FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
+                                 fd_raw_recyclefn recycler,
+                                 fdtype typespec,
+                                 u8_string idstring)
+{
+  struct FD_RAWPTR *rawptr=u8_zalloc(struct FD_RAWPTR);
+  FD_INIT_CONS(rawptr,fd_rawptr_type);
+  rawptr->ptrval=ptrval;
+  rawptr->recycler=recycler;
+  rawptr->raw_typespec=typespec; fd_incref(typespec);
+  if (FD_SYMBOLP(typespec))
+    rawptr->typestring=FD_SYMBOL_NAME(typespec);
+  else if (FD_STRINGP(typespec))
+    rawptr->typestring=FD_STRDATA(typespec);
+  else rawptr->typestring=NULL;
+  rawptr->idstring=idstring;
+  return (fdtype) rawptr;
+}
+
+static int unparse_rawptr(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_RAWPTR *rawptr=(struct FD_RAWPTR *)x;
+  if ((rawptr->typestring)&&(rawptr->idstring))
+    u8_printf(out,"#<RAW '%s' 0x%llx (%s)>",
+              rawptr->typestring,
+              U8_PTR2INT(rawptr->ptrval),
+              rawptr->idstring);
+  else if (rawptr->typestring)
+    u8_printf(out,"#<RAW '%s' 0x%llx>",
+              rawptr->typestring,
+              U8_PTR2INT(rawptr->ptrval));
+  else if (rawptr->idstring)
+    u8_printf(out,"#<RAW 0x%llx (%s)>",
+              U8_PTR2INT(rawptr->ptrval),
+              rawptr->idstring);
+  else u8_printf(out,"#<RAW 0x%llx>",
+                 U8_PTR2INT(rawptr->ptrval));
+  return 1;
+}
+
+static void recycle_rawptr(struct FD_RAW_CONS *c)
+{
+  struct FD_RAWPTR *rawptr=(struct FD_RAWPTR *)c;
+  if (rawptr->idstring) u8_free(rawptr->idstring);
+  fd_decref(rawptr->raw_typespec);
+  if (rawptr->recycler)
+    rawptr->recycler(rawptr->ptrval);
+}
+
 /* Testing */
 
 static U8_MAYBE_UNUSED int some_false(fdtype arg)
@@ -1517,6 +1568,9 @@ void fd_init_cons_c()
 
   fd_unparsers[fd_regex_type]=unparse_regex;
   fd_recyclers[fd_regex_type]=recycle_regex;
+
+  fd_unparsers[fd_rawptr_type]=unparse_rawptr;
+  fd_recyclers[fd_rawptr_type]=recycle_rawptr;
 
   fd_compound_descriptor_type=
     fd_init_compound

@@ -14,27 +14,10 @@
 #include "framerd/eval.h"
 #include "libu8/u8logging.h"
 
-#if HAVE_TIDY_H
-#include <tidy.h>
-#if HAVE_TIDYBUFFIO_H
-#include <tidybuffio.h>
-#else
-#include <buffio.h>
-#endif
-#include <tidyenum.h>
-#elif HAVE_TIDY_TIDY_H
-#include <tidy/tidy.h>
-#if HAVE_TIDY_TIDYBUFFIO_H
-#include <tidy/tidybuffio.h>
-#else
-#include <tidy/buffio.h>
-#endif
-#include <tidy/tidyenum.h>
-#else
-#define UNTIDY_HEADERS 1
-#endif
+#include "tidy5/tidy.h"
+#include "tidy5/tidybuffio.h"
+#include "tidy5/tidyenum.h"
 
-#ifndef UNTIDY_HEADERS
 FD_EXPORT int fd_init_tidy(void) FD_LIBINIT_FN;
 fd_exception fd_TidyError=_("Tidy Error");
 static long long int tidy_init=0;
@@ -304,7 +287,6 @@ FD_EXPORT int fd_init_tidy()
 
   return 1;
 }
-#endif /* ndef UNTIDY_HEADERS */
 
 /* Emacs local variables
    ;;;  Local variables: ***

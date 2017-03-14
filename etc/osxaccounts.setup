@@ -3,9 +3,9 @@ SUDO=sudo
 DOMAIN=.
 LOGINSHELL=/usr/bin/false
 DSCL="sudo dscl"
-if dscl ${DOMAIN} read /Groups/_framerd RecordName 2&>1 > /dev/null; then
+if dscl ${DOMAIN} read /Groups/_framerd RecordName 2>&1 > /dev/null; then
   echo "Group _framerd already exists";
-elif dscl ${DOMAIN} read /Groups/framerd RecordName 2&>1 > /dev/null; then
+elif dscl ${DOMAIN} read /Groups/framerd RecordName 2>&1 > /dev/null; then
   echo "Group framerd already exists";
 elif ! dscl /Local/Default -ls Groups gid | grep -q ^253\$ ; then
 	  echo Creating user/group for _framerd with TID 253
@@ -28,9 +28,9 @@ else  for (( uid = 500;; --uid )) ; do
 	  done;
 
 fi
-if dscl ${DOMAIN} read /Users/_fdaemon RecordName 2&>1 > /dev/null; then
+if dscl ${DOMAIN} read /Users/_fdaemon RecordName 2>&1 > /dev/null; then
   echo "User _fdaemon already exists";
-elif dscl ${DOMAIN} read /Users/_fdaemon RecordName 2&>1 > /dev/null; then
+elif dscl ${DOMAIN} read /Users/_fdaemon RecordName 2>&1 > /dev/null; then
   echo "User fdaemon already exists";
 else for (( uid = 500;; --uid )) ; do
     if ! id -u $uid &>/dev/null; then

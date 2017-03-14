@@ -567,7 +567,8 @@ static void file_pool_setcache(fd_pool p,int level)
         mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
              MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->pool_idstring);
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",
+               fp->pool_idstring);
         fp->pool_offdata=NULL; fp->pool_offdata_size=0; errno=0;}
       fp->pool_offdata=offsets=newmmap+6;
       fp->pool_offdata_size=fp->pool_load;
@@ -591,7 +592,9 @@ static void file_pool_setcache(fd_pool p,int level)
          as the load, not the capacity. */
       retval=munmap((fp->pool_offdata)-6,4*fp->pool_load+24);
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->pool_idstring);
+        u8_log(LOG_WARN,
+               u8_strerror(errno),"file_pool_setcache:munmap %s",
+               fp->pool_idstring);
         fp->pool_offdata=NULL; errno=0;}
 #else
       u8_free(fp->pool_offdata);
@@ -649,14 +652,6 @@ static void file_pool_close(fd_pool p)
 #endif
     fp->pool_offdata=NULL; fp->pool_offdata_size=0;
     fp->pool_cache_level=-1;}
-  fd_unlock_pool(fp);
-}
-
-static void file_pool_setbuf(fd_pool p,int bufsiz)
-{
-  struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  fd_lock_pool(fp);
-  fd_stream_setbuf(&(fp->pool_stream),bufsiz);
   fd_unlock_pool(fp);
 }
 
@@ -751,13 +746,77 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
 }
 
 
+/* File pool ops function */
+
+static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label);
+
+static fdtype file_pool_op(fd_pool p,int op,int n,fdtype *args)
+{
+  struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
+  if ((n>0)&&(args==NULL))
+    return fd_err("BadPoolOpCall","filepool_op",fp->pool_idstring,FD_VOID);
+  else if (n<0)
+    return fd_err("BadPoolOpCall","filepool_op",fp->pool_idstring,FD_VOID);
+  else switch (op) {
+    case FD_POOLOP_CACHELEVEL:
+      if (n==0)
+        return FD_INT(fp->pool_cache_level);
+      else {
+        fdtype arg=(args)?(args[0]):(FD_VOID);
+        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+            (FD_FIX2INT(arg)<0x100)) {
+          file_pool_setcache(p,FD_FIX2INT(arg));
+          return FD_INT(fp->pool_cache_level);}
+        else return fd_type_error
+               (_("cachelevel"),"filepool_op/cachelevel",arg);}
+    case FD_POOLOP_LABEL: {
+      if (n==0) {
+        if (!(fp->pool_label))
+          return FD_FALSE;
+        else return fdtype_string(fp->pool_label);}
+      else {
+        fdtype label=args[0];
+        if (FD_STRINGP(label))
+          return label_file_pool(fp,label);
+        else return fd_type_error("pool label","filepool_op/label",label);}}
+    case FD_POOLOP_BUFSIZE: {
+      if (n==0)
+        return FD_INT(fp->pool_stream.buf.raw.buflen);
+      else if (FD_FIXNUMP(args[0])) {
+        fd_lock_pool(fp);
+        fd_stream_setbuf(&(fp->pool_stream),FD_FIX2INT(args[0]));
+        fd_unlock_pool(fp);
+        return FD_INT(fp->pool_stream.buf.raw.buflen);}
+      else return fd_type_error("buffer size","filepool_op/bufsize",args[0]);}
+    default:
+      return FD_FALSE;}
+}
+
+static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label)
+{
+  int retval=-1;
+  if ((FD_POOLFILE_LOCKEDP(fp)) &&
+      (fd_lock_stream(&(fp->pool_stream))>0)) {
+    fd_stream stream=&(fp->pool_stream);
+    fd_off_t endpos=fd_endpos(stream);
+    if (endpos>0) {
+      fd_outbuf out=fd_writebuf(stream);
+      if (fd_write_dtype(out,label)>=0) {
+        fd_write_4bytes_at(stream,(unsigned int)endpos,20);
+        retval=1;}}
+    fd_unlock_stream(stream);}
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
+
+
+
 /* The handler struct */
 
 static struct FD_POOL_HANDLER file_pool_handler={
   "file_pool", 1, sizeof(struct FD_FILE_POOL), 12,
   file_pool_close, /* close */
-  file_pool_setcache, /* setcache */
-  file_pool_setbuf, /* setbuf */
   file_pool_alloc, /* alloc */
   file_pool_fetch, /* fetch */
   file_pool_fetchn, /* fetchn */
@@ -769,7 +828,7 @@ static struct FD_POOL_HANDLER file_pool_handler={
   NULL, /* metadata */
   filepool_create, /* create */
   NULL, /* recycle */
-  NULL  /* poolop */
+  file_pool_op /* poolop */
 };
 
 /* Matching pool names */
@@ -811,45 +870,6 @@ FD_EXPORT void fd_init_file_pool_c()
      (void *)(U8_INT2PTR(FD_FILE_POOL_TO_RECOVER)));
 }
 
-
-/* Deprecated primitives, placed here for now */
-
-FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
-  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
-{
-  fdtype metadata; unsigned int load;
-  int retval;
-  if (FD_FIXNUMP(opt1)) {
-    load=FD_FIX2INT(opt1); metadata=opt2;}
-  else {load=0; metadata=opt1;}
-  if (FD_VOIDP(metadata)) {}
-  else if (!(FD_SLOTMAPP(metadata)))
-    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
-  retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
-                           FD_OID_ADDR(base),fd_getint(capacity),
-                           load);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label)
-{
-  int retval=-1;
-  fd_stream stream=
-    fd_open_file(FD_STRING_DATA(fname),FD_FILE_MODIFY);
-  fd_outbuf outstream=fd_writebuf(stream);
-  if (stream) {
-    fd_off_t endpos=fd_endpos(stream);
-    if (endpos>0) {
-      int bytes=fd_write_dtype(outstream,label);
-      if (bytes>0) {
-        fd_setpos(stream,20);
-        if (fd_write_4bytes((fd_writebuf(stream)),(unsigned int)endpos)>=0) {
-          retval=1;
-          fd_free_stream(stream);}}}}
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -825,6 +825,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env);
 static fdtype call_function(u8_string nm,fd_function f,fdtype x,fd_lispenv env);
 static fdtype apply_functions(fdtype fn,fdtype expr,fd_lispenv env);
+static int applicable_choicep(fdtype choice);
 
 FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
 {
@@ -883,54 +884,29 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           result=handler->fexpr_handler(expr,env);
         else return handler->fexpr_handler(expr,env);}
       else if (headtype==fd_macro_type) {
-        /* These are special forms which do all the evaluating themselves */
+        /* These expand into expressions which are then evaluated. */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
         fdtype xformer=macrofn->fd_macro_transformer;
-        int xformer_type=FD_PRIM_TYPE(xformer);
-        if (fd_applyfns[xformer_type]) {
-          fdtype new_expr=(fd_applyfns[xformer_type])(xformer,1,&expr);
-          new_expr=fd_finish_call(new_expr);
-          if (FD_ABORTED(new_expr))
-            result=fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
-          else result=fd_eval(new_expr,env);
-          fd_decref(new_expr);}
-        else result=fd_err(fd_InvalidMacro,NULL,macrofn->fd_macro_name,expr);}
+        fdtype new_expr=fd_apply(xformer,1,&expr);
+        if (FD_ABORTED(new_expr))
+          result=fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
+        else result=fd_eval(new_expr,env);
+        fd_decref(new_expr);}
       else if ((FD_CHOICEP(headval)) || (FD_ACHOICEP(headval))) {
-        int applicable=-1;
-        FD_DO_CHOICES(hv,headval) {
-          int hvtype=FD_PRIM_TYPE(hv);
-          /* Check that all the elements are either applicable or special
-             forms  */
-          if (fd_applyfns[hvtype])
-            if (applicable<0) applicable=1;
-            else if (applicable) {}
-            else result=fd_err
-                   ("Inconsistent NDCALL","fd_tail_eval",NULL,headval);
-          else if (hvtype==fd_specform_type)
-            if (applicable<0) applicable=0;
-            else if (applicable)
-              result=fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headval);
-          /* In this case, all the headvals so far are special forms */
-            else {}
-          else result=fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headval);}
-        if (FD_ABORTED(result)) {}
-        else if (applicable<0)
-          result=fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headval);
+        int applicable=applicable_choicep(headval);
+        if (applicable<0) {
+          if (gchead) fd_decref(headval);
+          return FD_ERROR_VALUE;}
         else if (applicable)
           result=apply_functions(headval,expr,env);
-        else {
-          fdtype results=FD_EMPTY_CHOICE;
-          FD_DO_CHOICES(hv,headval) {
-            struct FD_SPECIAL_FORM *handler=(fd_special_form)hv;
-            /* fd_calltrack_call(handler->name); */
-            /* fd_calltrack_return(handler->name); */
-            fdtype one_result=handler->fexpr_handler(expr,env);
-            if (FD_ABORTED(one_result)) {
-              fd_decref(results);
-              result=one_result;}
-            else {FD_ADD_TO_CHOICE(results,result);}}
-          result=results;}}
+        else if (gchead) {
+          fdtype result=fd_err(fd_SyntaxError,"fd_tail_eval",
+                               "ambiguous special form",headval);
+          fd_decref(headval);
+          return result;}
+        else return fd_err(fd_SyntaxError,"fd_tail_eval",
+                           "ambiguous special form",headval);}
       else if (FD_EXPECT_FALSE(FD_VOIDP(headval)))
         result=fd_err(fd_UnboundIdentifier,"for function",
                       ((FD_SYMBOLP(head))?(FD_SYMBOL_NAME(head)):(NULL)),
@@ -951,10 +927,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     return fd_incref(expr);
   case fd_slotmap_type:
     return fd_deep_copy(expr);
-  case fd_choice_type: case fd_achoice_type: {
-    fdtype exprs=fd_simplify_choice(expr);
-    if (FD_CHOICEP(exprs)) {
-      fdtype result=FD_EMPTY_CHOICE;
+  case fd_choice_type: {
+    fdtype result=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(each_expr,expr) {
         fdtype r=fd_eval(each_expr,env);
         if (FD_ABORTED(r)) {
@@ -962,11 +936,39 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           return r;}
         else {FD_ADD_TO_CHOICE(result,r);}}
       return result;}
-    else return fd_tail_eval(exprs,env);}
+  case fd_achoice_type: {
+    fdtype exprs=fd_make_simple_choice(expr);
+    fdtype result=fd_tail_eval(exprs,env);
+    fd_decref(exprs);
+    return result;}
   default:
     if (FD_TYPEP(expr,fd_lexref_type))
       return fd_lexref(expr,env);
     else return fd_incref(expr);}
+}
+
+static int applicable_choicep(fdtype headvals)
+{
+  int applicable=-1;
+  FD_DO_CHOICES(hv,headvals) {
+    int hvtype=FD_PRIM_TYPE(hv), inconsistent=0;
+    /* Check that all the elements are either applicable or special
+       forms and not mixed */
+    if ( (hvtype==fd_primfcn_type) ||
+         (hvtype==fd_sproc_type) ||
+         (fd_applyfns[hvtype]) ) {
+      if (applicable<0) applicable=1;
+      else if (applicable) {}
+      else inconsistent=1;}
+    else if ((hvtype==fd_specform_type)||(hvtype==fd_macro_type)) {
+      if (applicable<0) applicable=0;
+      else if (applicable) inconsistent=1;}
+    /* In this case, all the headvals so far are special forms */
+    else {}
+    if (inconsistent) {
+      FD_STOP_DO_CHOICES;
+      return fd_err("Inconsistent NDCALL","fd_tail_eval",NULL,headvals);}}
+  return applicable;
 }
 
 FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
@@ -1011,24 +1013,61 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
   return results;
 }
 
+static int count_args(fdtype args)
+{
+  int n_args=0; FD_DOLIST(arg,args) {
+    if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) 
+      n_args++;}
+  return n_args;
+}
+
+static fdtype process_arg(fdtype arg,fd_lispenv env)
+{
+  fdtype argval=fasteval(arg,env);
+  if (FD_EXPECT_FALSE(FD_VOIDP(argval)))
+    return fd_err(fd_VoidArgument,"call_function",NULL,arg);
+  else if (FD_EXPECT_FALSE(FD_ABORTED(argval)))
+    return argval;
+  else if ((FD_CONSP(argval))&&(FD_ACHOICEP(argval)))
+    return fd_simplify_choice(argval);
+  else return argval;
+}
+
+static void push_apply_context(fdtype expr,fdtype fn,int arg_count,fdtype *argv)
+{
+  fdtype call_context=fd_init_vector(NULL,arg_count+1,NULL);
+  fdtype *avec=FD_VECTOR_ELTS(call_context);
+  fd_function fcn= (fd_functionp[fn]) ? ((fd_function) fn) : (NULL);
+  if (FD_EXPECT_TRUE(fcn)) {
+    if (fcn->fcn_filename)
+      if (fcn->fcn_name)
+        avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
+                            fdtype_string(fcn->fcn_filename));
+      else avec[0]=
+             fd_conspair(fd_intern("LAMBDA"),
+                         fdtype_string(fcn->fcn_filename));
+    else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
+    else avec[0]=fd_intern("LAMBDA");}
+  else avec[0]=fd_incref(fn);
+  memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
+  fd_push_error_context(fd_apply_context,((fcn)?(fcn->fcn_name):(NULL)),call_context);
+  fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
+}
+
+#define ND_ARGP(v) ((FD_CHOICEP(v))||(FD_QCHOICEP(v)))
+
 static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
                             fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID, fn=(fdtype)fcn;
   fdtype _argv[FD_STACK_ARGS], *argv;
-  int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
-  int nd_args=0, prune=0, nd_prim=fcn->fcn_ndcall;
+  fdtype arg_exprs=fd_get_body(expr,1);
   int max_arity=fcn->fcn_arity, min_arity=fcn->fcn_min_arity;
   int n_params=max_arity, argv_length=max_arity;
-  /* First, count the arguments */
-  {fdtype body=fd_get_body(expr,1);
-    FD_DOLIST(arg,body) {
-      if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
-        n_args++;}}
-    /* If the max_arity is less than zero, it's a lexpr, so the
-       number of args is the number of args. */
+  int n_args=count_args(arg_exprs), arg_count=0, gc_args=0, free_argv=0;
+  int nd_args=1, prune=0, d_prim=(fcn->fcn_ndcall==0);
   if (max_arity<0) argv_length=n_args;
-  /* Check if there are too many arguments. */
+  /* Check arg count early */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
     return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
@@ -1040,85 +1079,38 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   /* Otherwise, just use the stack vector */
   else argv=_argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
-  {fdtype arg_exprs=fd_get_body(expr,1);
-    FD_DOLIST(elt,arg_exprs) {
-      fdtype argval;
-      if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol)))
+  {FD_DOLIST(elt,arg_exprs) {
+      if (FD_EXPECT_FALSE((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         continue;
-      argval=fasteval(elt,env);
-      if (FD_ABORTED(argval)) {
-        /* Break if one of the arguments returns an error */
-        result=argval; break;}
-      if (FD_VOIDP(argval)) {
-        result=fd_err(fd_VoidArgument,"call_function",fcn->fcn_name,elt);
-        break;}
-      if ((FD_EMPTY_CHOICEP(argval)) && (!(nd_prim))) {
-        /* Break if the method isn't non-deterministic and one of the
-           arguments returns an empty choice. */
-        prune=1; break;}
-      /* Convert the argument to a simple choice (or non choice) */
-      argval=fd_simplify_choice(argval);
-      if (FD_CONSP(argval)) args_need_gc=1;
-      /* Keep track of whether there are non-deterministic args
-         which would require calling fd_ndapply. */
-      if (FD_CHOICEP(argval)) nd_args=1;
-      else if (FD_QCHOICEP(argval)) nd_args=1;
-      /* Fill in the slot */
-      argv[arg_count++]=argval;}}
-  /* Now, check if we need to exit, either because some argument returned
-     an error (or throw) or because the call is being pruned. */
-  if ((prune) || (FD_ABORTED(result))) {
-    /* In this case, we won't call the procedure at all, because
-       either a parameter produced an error or because we can prune
-       the call because some parameter is an empty choice. */
-    int i=0;
-    if (args_need_gc) while (i<arg_count) {
+      fdtype argval=process_arg(elt,env);
+      if ((FD_ABORTED(argval))||((d_prim)&&(FD_EMPTY_CHOICEP(argval)))) {
         /* Clean up the arguments we've already evaluated */
-        fdtype arg=argv[i++]; fd_decref(arg);}
-    if (free_argv) u8_free(argv);
-    if (FD_ABORTED(result))
-      /* This could extend the backtrace */
-      return result;
-    else return FD_EMPTY_CHOICE;}
+        if (gc_args) for (int j=0; j < arg_count; j++) {
+            fdtype arg=argv[j++]; fd_decref(arg);}
+        if (free_argv) u8_free(argv);
+        return argval;}
+      else if (FD_CONSP(argval)) {
+        if ((nd_args==0)&&(ND_ARGP(argval))) nd_args=1;
+        gc_args=1;} else {}
+      argv[arg_count++]=argval;}}
   if ((n_params<0) || (fcn->fcn_xcall)) {}
-  /* Don't fill anything in for lexprs or non primitives.  */
+  /* Don't fill anything in for lexprs or non primitives */
   else if (arg_count != argv_length) {
-    if (fcn->fcn_defaults)
-      while (arg_count<argv_length) {
-        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]); arg_count++;}
+    if (fcn->fcn_defaults) {
+      for (;arg_count<argv_length;arg_count++) {
+        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]);}} 
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
   if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
     result=fd_tail_call(fn,arg_count,argv);
-  else if ((nd_prim==0) && (nd_args))
+  else if ((d_prim) && (nd_args))
     result=fd_ndapply(fn,arg_count,argv);
   else {
     result=fd_dapply(fn,arg_count,argv);}
-  if ((FD_ABORTED(result)) &&
-      (!(FD_THROWP(result))) &&
-      (!(FD_SPROCP(fn)))) {
-    /* If it's not an sproc, we add an entry to the backtrace
-       that shows the arguments, since they probably don't show
-       up in an environment on the backtrace. */
-    fdtype *avec=u8_alloc_n((arg_count+1),fdtype), call_context;
-    memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
-    if (fcn->fcn_filename)
-      if (fcn->fcn_name)
-        avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
-                            fdtype_string(fcn->fcn_filename));
-      else avec[0]=
-             fd_conspair(fd_intern("LAMBDA"),
-                         fdtype_string(fcn->fcn_filename));
-    else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
-    else avec[0]=fd_intern("LAMBDA");
-    if (free_argv) u8_free(argv);
-    call_context=fd_init_vector(NULL,arg_count+1,avec);
-    fd_push_error_context(fd_apply_context,fname,call_context);
-    fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
-    return result;}
-  else if (args_need_gc) {
-    int i=0; while (i < arg_count) {
-      fdtype arg=argv[i++]; fd_decref(arg);}}
+  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
+    push_apply_context(expr,(fdtype)fcn,arg_count,argv);
+  else if (gc_args) for (int i=0; i<arg_count; i++) {
+      fdtype arg=argv[i++]; fd_decref(arg);}
   if (free_argv) u8_free(argv);
   return result;
 }
@@ -1127,37 +1119,30 @@ static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID;
   fdtype _argv[FD_STACK_ARGS], *argv;
-  int i=0, n_args=0, args_need_gc=0, free_argv=0;
   fdtype arg_exprs=fd_get_body(expr,1);
-  {FD_DOLIST(elt,arg_exprs) {
-      if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
-        n_args++;}}
+  int n_args=count_args(arg_exprs), arg_count=0;
+  int i=0, gc_args=0, free_argv=0;
   if (n_args>FD_STACK_ARGS) {
-    /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
     argv=u8_alloc_n(n_args,fdtype);
     free_argv=1;}
-  /* Otherwise, just use the stack vector */
   else argv=_argv;
   {FD_DOLIST(arg,arg_exprs)
-      if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) {
-        fdtype argval=fd_eval(arg,env);
-        if ((FD_ABORTED(argval)) || (FD_EMPTY_CHOICEP(argval)) ||
-            (FD_VOIDP(argval))) {
-          if (args_need_gc) {
-            int j=0; while (j<i) {fdtype arg=argv[j++]; fd_decref(arg);}}
-          if (free_argv) u8_free(argv);
-          if (FD_VOIDP(argval)) {
-            fd_seterr(fd_VoidArgument,"call_special_function",NULL,expr);
-            return FD_ERROR_VALUE;}
-          else return argval;}
-        else {
-          argv[i++]=argval; if (FD_CONSP(argval)) args_need_gc=1;}}}
+      if (FD_EXPECT_FALSE((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
+        continue;
+    fdtype argval=process_arg(arg,env);
+       if (FD_ABORTED(argval)) {
+        /* Clean up the arguments we've already evaluated */
+        if (gc_args) for (int j=0; j < arg_count; j++) {
+            fdtype arg=argv[j++]; fd_decref(arg);}
+        if (free_argv) u8_free(argv);
+        return argval;}
+      else if (FD_CONSP(argval)) gc_args=1; else {}
+      argv[arg_count++]=argval;}
   result=fd_apply(fn,n_args,argv);
-  if (FD_ABORTP(result))
-    fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
- if (args_need_gc) {
-    i=0; while (i<n_args) {
-      fdtype argval=argv[i++]; fd_decref(argval);}}
+  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
+    push_apply_context(expr,fn,arg_count,argv);
+  else if (gc_args) for (int i=0; i<arg_count; i++) {
+      fdtype arg=argv[i++]; fd_decref(arg);}
   if (free_argv) u8_free(argv);
   return result;
 }

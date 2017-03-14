@@ -137,8 +137,10 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
       if (retval>0) {
         clearloadlock(spec);
         module=fd_get_module(spec,safe);
-        if (FD_VOIDP(module)) 
-          return fd_err(MissingModule,NULL,NULL,spec);
+        if (FD_VOIDP(module)) {
+          u8_string modname=(FD_SYMBOLP(spec)) ? (FD_SYMBOL_NAME(spec)) :
+            (FD_STRDATA(spec));
+          return fd_err(MissingModule,"fd_find_module",modname,spec);}
         fd_finish_module(module);
         return module;}
       else if (retval<0) {

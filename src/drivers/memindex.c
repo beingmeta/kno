@@ -301,8 +301,6 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   "memindex", 1, sizeof(struct FD_MEM_INDEX), 12,
   NULL, /* close */
   mem_index_commit, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */

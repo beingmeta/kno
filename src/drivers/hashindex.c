@@ -1382,9 +1382,8 @@ static void hash_index_getstats(struct FD_HASH_INDEX *hx,
 
 /* Cache setting */
 
-static void hash_index_setcache(fd_index ix,int level)
+static void hash_index_setcache(struct FD_HASH_INDEX *hx,int level)
 {
-  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   unsigned int chunk_ref_size=get_chunk_ref_size(hx);
   ssize_t mmap_size;
 #if (HAVE_MMAP)
@@ -2571,14 +2570,6 @@ static void hash_index_close(fd_index ix)
   fd_unlock_index(hx);
 }
 
-static void hash_index_setbuf(fd_index ix,int bufsiz)
-{
-  struct FD_HASH_INDEX *fx=(struct FD_HASH_INDEX *)ix;
-  fd_lock_index(fx);
-  fd_stream_setbuf(&(fx->index_stream),bufsiz);
-  fd_unlock_index(fx);
-}
-
 /* Creating a hash index handler */
 
 static int interpret_hash_index_flags(fdtype opts)
@@ -2644,24 +2635,6 @@ static fd_index hash_index_create(u8_string spec,void *typedata,
 
 /* Deprecated primitives */
 
-static int get_make_hash_index_flags(fdtype flags_arg)
-{
-  return ((FD_B40)<<4)|FD_HASH_INDEX_DTYPEV2;
-}
-
-FD_EXPORT fdtype _fd_make_hash_index_deprecated(fdtype fname,fdtype size,
-                                                fdtype slotids,fdtype baseoids,
-                                                fdtype metadata,
-                                                fdtype flags_arg)
-{
-  int retval=
-    fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
-                       get_make_hash_index_flags(flags_arg),0,
-                       slotids,baseoids,-1,-1);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
-}
-
 FD_EXPORT fdtype _fd_populate_hash_index_deprecated
   (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
@@ -2705,37 +2678,56 @@ FD_EXPORT fdtype _fd_populate_hash_index_deprecated
   else return FD_INT(retval);
 }
 
-FD_EXPORT fdtype _fd_hash_index_bucket_deprecated(fdtype ix_arg,fdtype key,fdtype modulus)
-{
-  fd_index ix=fd_indexptr(ix_arg); int bucket;
-  if (!(fd_hash_indexp(ix)))
-    return fd_type_error(_("hash index"),"hash_index_bucket",ix_arg);
-  bucket=fd_hash_index_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
-  if (FD_FIXNUMP(modulus))
-    return FD_INT((bucket%FD_FIX2INT(modulus)));
-  else return FD_INT(bucket);
-}
+/* Hash index ctl handler */
 
-FD_EXPORT fdtype _fd_hash_index_stats_deprecated(fdtype ix_arg)
+static fdtype hash_index_ctl(fd_index ix,int op,int n,fdtype *args)
 {
-  fd_index ix=fd_indexptr(ix_arg);
-  if ((ix==NULL) || (!(fd_hash_indexp(ix))))
-    return fd_type_error(_("hash index"),"hash_index_stats",ix_arg);
-  return fd_hash_index_stats((struct FD_HASH_INDEX *)ix);
-}
-
-FD_EXPORT fdtype _fd_hash_index_slotids_deprecated(fdtype ix_arg)
-{
-  fd_index ix=fd_indexptr(ix_arg);
-  if (!(fd_hash_indexp(ix)))
-    return fd_type_error(_("hash index"),"hash_index_slotids",ix_arg);
-  else {
-    struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
-    fdtype *elts=u8_alloc_n(hx->index_n_slotids,fdtype);
-    fdtype *slotids=hx->index_slotids;
-    int i=0, n=hx->index_n_slotids;
-    while (i< n) {elts[i]=slotids[i]; i++;}
-    return fd_init_vector(NULL,n,elts);}
+  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  if ( ((n>0)&&(args==NULL)) || (n<0) )
+    return fd_err("BadIndexOpCall","hash_index_ctl",
+                  hx->index_idstring,FD_VOID);
+  else switch (op) {
+    case FD_INDEXOP_CACHELEVEL:
+      if (n==0)
+        return FD_INT(hx->index_cache_level);
+      else {
+        fdtype arg=(args)?(args[0]):(FD_VOID);
+        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+            (FD_FIX2INT(arg)<0x100)) {
+          hash_index_setcache(hx,FD_FIX2INT(arg));
+          return FD_INT(hx->index_cache_level);}
+        else return fd_type_error
+               (_("cachelevel"),"hash_index_ctl/cachelevel",arg);}
+    case FD_INDEXOP_BUFSIZE: {
+      if (n==0)
+        return FD_INT(hx->index_stream.buf.raw.buflen);
+      else if (FD_FIXNUMP(args[0])) {
+        fd_lock_index(hx);
+        fd_stream_setbuf(&(hx->index_stream),FD_FIX2INT(args[0]));
+        fd_unlock_index(hx);
+        return FD_INT(hx->index_stream.buf.raw.buflen);}
+      else return fd_type_error("buffer size","hash_index_ctl/bufsize",args[0]);}
+    case FD_INDEXOP_HASH: {
+      if (n==0)
+        return FD_INT(hx->index_n_buckets);
+      else {
+        fdtype mod_arg=(n>1) ? (args[1]) : (FD_VOID);
+        int bucket=fd_hash_index_bucket(hx,args[0],0);
+        if (FD_FIXNUMP(mod_arg))
+          return FD_INT((bucket%FD_FIX2INT(mod_arg)));
+        else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))
+          return FD_INT(bucket);
+        else return FD_INT((bucket%(hx->index_n_buckets)));}}
+    case FD_INDEXOP_STATS:
+      return fd_hash_index_stats(hx);
+    case FD_INDEXOP_SLOTIDS: {
+      fdtype *elts=u8_alloc_n(hx->index_n_slotids,fdtype);
+      fdtype *slotids=hx->index_slotids;
+      int i=0, n=hx->index_n_slotids;
+      while (i< n) {elts[i]=slotids[i]; i++;}
+      return fd_init_vector(NULL,n,elts);}
+    default:
+      return FD_FALSE;}
 }
 
 
@@ -2745,8 +2737,6 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   "hash_index", 1, sizeof(struct FD_HASH_INDEX), 12,
   hash_index_close, /* close */
   hash_index_commit, /* commit */
-  hash_index_setcache, /* setcache */
-  hash_index_setbuf, /* setbuf */
   hash_index_fetch, /* fetch */
   hash_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */
@@ -2756,7 +2746,7 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   NULL, /* metadata */
   hash_index_create, /* create */ 
   NULL, /* recycle */
-  NULL  /* indexop */
+  hash_index_ctl /* indexop */
 };
 
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)

@@ -53,6 +53,9 @@ static u8_mutex atexit_handlers_lock;
 
 static u8_string logdir=NULL, sharedir=NULL, datadir=NULL;
 
+int fd_be_vewy_quiet=0;
+static int boot_message_delivered=0;
+
 /* Processing argc,argv */
 
 fdtype *fd_argv=NULL;
@@ -708,6 +711,19 @@ static int boot_config()
   return count;
 }
 
+/* Bootup message */
+
+FD_EXPORT void fd_boot_message()
+{
+  if (fd_be_vewy_quiet) return;
+  if (boot_message_delivered) return;
+  u8_message("Copyright (C) beingmeta 2004-2017, all rights reserved");
+  u8_message("(%s:%lld) %s %s",
+             u8_appid(),(unsigned long long)getpid(),
+             fd_getrevision(),u8_getrevision());
+  boot_message_delivered=1;
+}
+
 void fd_init_startup_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -719,6 +735,9 @@ void fd_init_startup_c()
 
   boot_config();
 
+  fd_register_config
+    ("QUIET",_("Avoid unneccessary verbiage"),
+     fd_intconfig_get,fd_boolconfig_set,&fd_be_vewy_quiet);
   fd_register_config
     ("PID",_("system process ID (read-only)"),
      config_getpid,NULL,NULL);

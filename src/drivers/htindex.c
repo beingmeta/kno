@@ -119,8 +119,6 @@ static struct FD_INDEX_HANDLER htindex_handler={
   "htindex", 1, sizeof(struct FD_HT_INDEX), 12,
   NULL, /* close */
   htindex_commit, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
   NULL, /* fetch */
   NULL, /* fetchsize */
   NULL, /* prefetch */

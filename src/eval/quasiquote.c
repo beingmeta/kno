@@ -239,11 +239,15 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
     if ((FD_EMPTY_CHOICEP(slotid))||(FD_VOIDP(slotid))) {
       if (free_slotid) fd_decref(slotid);
       i++; continue;}
-    if ((FD_PAIRP(value))||(FD_VECTORP(value))||(FD_SLOTMAPP(value))||
-        (FD_CHOICEP(value))||(FD_ACHOICEP(value))) {
+    if ((FD_PAIRP(value))||
+        (FD_VECTORP(value))||
+        (FD_SLOTMAPP(value))||
+        (FD_CHOICEP(value))||
+        (FD_ACHOICEP(value))) {
       fdtype qval=fd_quasiquote(value,env,level);
       if (FD_ABORTED(qval)) {
         fd_decref(result); return qval;}
+      if (FD_ACHOICEP(qval)) qval=fd_simplify_choice(qval);
       fd_slotmap_store(new_slotmap,slotid,qval);
       fd_decref(qval); i++;}
     else {
@@ -261,7 +265,7 @@ static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
       FD_STOP_DO_CHOICES; fd_decref(result);
       return transformed;}
     FD_ADD_TO_CHOICE(result,transformed);}
-  return result;
+  return fd_simplify_choice(result);
 }
 
 FD_EXPORT
