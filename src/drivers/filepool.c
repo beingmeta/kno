@@ -52,7 +52,7 @@ static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
-static fd_pool open_file_pool(u8_string fname,fdkb_flags flags)
+static fd_pool open_file_pool(u8_string fname,fdkb_flags flags,fdtype opts)
 {
   struct FD_FILE_POOL *pool=u8_alloc(struct FD_FILE_POOL);
   struct FD_STREAM *s=&(pool->pool_stream);
@@ -741,7 +741,7 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
   else rv=fd_make_file_pool(spec,magic_number,
                             FD_OID_ADDR(base_oid),capacity,load);
   if (rv>=0)
-    return fd_open_pool(spec,flags);
+    return fd_open_pool(spec,flags,opts);
   else return NULL;
 }
 
@@ -808,8 +808,6 @@ static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label)
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
-
-
 
 
 /* The handler struct */

@@ -208,7 +208,7 @@ static int mem_index_commit(fd_index ix)
   return 1;
 }
 
-static fd_index open_mem_index(u8_string file,fdkb_flags flags)
+static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
 {
   struct FD_MEM_INDEX *memidx=u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
@@ -276,7 +276,7 @@ static fd_index mem_index_create(u8_string spec,void *type_data,
 				 fdkb_flags flags,fdtype opts)
 {
   if (fd_make_mem_index(spec)>=0)
-    return fd_open_index(spec,flags);
+    return fd_open_index(spec,flags,FD_VOID);
   else return NULL;
 }
 

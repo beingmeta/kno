@@ -679,12 +679,15 @@ typedef int (*fd_unparse_fn)(u8_output,fdtype);
 typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
 typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
 typedef fdtype (*fd_copy_fn)(fdtype,int);
+typedef void (*fd_walker)(fdtype,void *);
+typedef void (*fd_walk_fn)(fd_walker,fdtype,void *);
 
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
 FD_EXPORT fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
 FD_EXPORT fd_compare_fn fd_comparators[FD_TYPE_MAX];
 FD_EXPORT fd_copy_fn fd_copiers[FD_TYPE_MAX];
+FD_EXPORT fd_walk_fn fd_walkers[FD_TYPE_MAX];
 
 typedef u8_string (*fd_oid_info_fn)(fdtype x);
 FD_EXPORT fd_oid_info_fn _fd_oid_info;

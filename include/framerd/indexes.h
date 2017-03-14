@@ -53,8 +53,6 @@ typedef struct FD_INDEX *fd_index;
 FD_EXPORT fd_index fd_primary_indexes[], *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
 
-fd_index (*fd_file_index_type)(u8_string spec,fdkb_flags flags);
-
 typedef struct FD_KEY_SIZE {
   fdtype keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
 typedef struct FD_KEY_SIZE *fd_key_size;
@@ -126,14 +124,14 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix);
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
-FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags);
-FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags);
+FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags,fdtype);
+FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags,fdtype);
 FD_EXPORT fd_index fd_find_index_by_cid(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags);
+FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags,fdtype);
 
 FD_EXPORT void fd_swapout_indexes(void);
 FD_EXPORT void fd_close_indexes(void);
@@ -156,7 +154,7 @@ typedef struct FD_NETWORK_INDEX {
   struct U8_CONNPOOL *index_connpool;} FD_NETWORK_INDEX;
 typedef struct FD_NETWORK_INDEX *fd_network_index;
 
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags);
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags,fdtype opts);
 
 /* Server capabilities */
 #define FD_ISERVER_FETCHN 1

@@ -211,7 +211,7 @@ static int init_baseoids
   (struct FD_HASH_INDEX *hx,int n_baseoids,fdtype *baseoids_init);
 static int recover_hash_index(struct FD_HASH_INDEX *hx);
 
-static fd_index open_hash_index(u8_string fname,fdkb_flags flags)
+static fd_index open_hash_index(u8_string fname,fdkb_flags flags,fdtype opts)
 {
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
   struct FD_STREAM *stream=&(index->index_stream);
@@ -2629,7 +2629,7 @@ static fd_index hash_index_create(u8_string spec,void *typedata,
      slotids_init,baseoids_init,-1,-1);
   if (rv<0)
     return NULL;
-  else return fd_open_index(spec,flags);
+  else return fd_open_index(spec,flags,FD_VOID);
 }
 
 

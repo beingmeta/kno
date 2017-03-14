@@ -39,7 +39,7 @@ FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);
 struct FD_POOL_TYPEINFO {
   u8_string pool_typename;
   fd_pool_handler handler;
-  fd_pool (*opener)(u8_string filename,fdkb_flags flags);
+  fd_pool (*opener)(u8_string filename,fdkb_flags flags,fdtype opts);
   u8_string (*matcher)(u8_string filename,void *);
   void *type_data;
   struct FD_POOL_TYPEINFO *next_type;};
@@ -49,7 +49,7 @@ FD_EXPORT
 void fd_register_pool_type(
 			   u8_string name,
 			   fd_pool_handler pool_handler,
-			   fd_pool (*opener)(u8_string path,fdkb_flags flags),
+			   fd_pool (*opener)(u8_string path,fdkb_flags flags,fdtype opts),
 			   u8_string (*matcher)(u8_string path,void *),
 			   void *type_data);
 
@@ -70,7 +70,7 @@ FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
 struct FD_INDEX_TYPEINFO {
   u8_string index_typename;
   fd_index_handler handler;
-  fd_index (*opener)(u8_string filename,fdkb_flags flags);
+  fd_index (*opener)(u8_string filename,fdkb_flags flags,fdtype opts);
   u8_string (*matcher)(u8_string filename,void *);
   void *type_data;
   struct FD_INDEX_TYPEINFO *next_type;};
@@ -80,7 +80,8 @@ FD_EXPORT
 void fd_register_index_type(u8_string name,
 			    fd_index_handler handler,
 			    fd_index (*opener)(u8_string spec,
-					       fdkb_flags flags),
+					       fdkb_flags flags,
+					       fdtype opts),
 			    u8_string (*matcher)(u8_string spec,
 						 void *),
 			    void *type_data);

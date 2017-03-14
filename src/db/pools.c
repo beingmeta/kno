@@ -1149,7 +1149,7 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
       fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",buf);
       return NULL;}}
   else if (FD_STRINGP(lp))
-    return fd_use_pool(FD_STRDATA(lp),0);
+    return fd_use_pool(FD_STRDATA(lp),0,FD_VOID);
   else {
     fd_seterr(fd_TypeError,_("not a pool"),NULL,lp);
     return NULL;}
@@ -1431,16 +1431,15 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL /* sync */
 };
 
-fd_pool (*fd_file_pool_type)(u8_string spec,fdkb_flags)=NULL;
 
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   if (strchr(spec,';')) {
     fd_pool p=NULL;
     u8_byte *copy=u8_strdup(spec), *start=copy, *brk=strchr(start,';');
     while (brk) {
       if (p==NULL) {
-        *brk='\0'; p=fd_get_pool(start,flags);
+        *brk='\0'; p=fd_get_pool(start,flags,opts);
         if (p) {brk=NULL; start=NULL;}
         else {
           start=brk+1;
@@ -1449,17 +1448,17 @@ FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags)
     else if ((start)&&(*start)) {
       int start_off=start-copy;
       u8_free(copy);
-      return fd_get_pool(spec+start_off,flags);}
+      return fd_get_pool(spec+start_off,flags,opts);}
     else return NULL;}
   else {
     fd_pool known=fd_find_pool_by_cid(spec);
     if (known) return known;
-    else return fd_open_pool(spec,flags);}
+    else return fd_open_pool(spec,flags,opts);}
 }
 
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
-  return fd_get_pool(spec,flags&(~FDKB_UNREGISTERED));
+  return fd_get_pool(spec,flags&(~FDKB_UNREGISTERED),opts);
 }
 
 FD_EXPORT fd_pool fd_name2pool(u8_string spec)
@@ -1520,10 +1519,10 @@ static fdtype pool_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   fd_pool p=NULL;
   if (n<3) return FD_VOID;
   else if (n==3)
-    p=fd_use_pool(FD_STRING_DATA(args[2]),0);
+    p=fd_use_pool(FD_STRING_DATA(args[2]),0,FD_VOID);
   else if ((FD_STRINGP(args[2])) &&
            ((p=fd_find_pool_by_prefix(FD_STRING_DATA(args[2])))==NULL))
-    p=fd_use_pool(FD_STRING_DATA(args[3]),0);
+    p=fd_use_pool(FD_STRING_DATA(args[3]),0,FD_VOID);
   if (p) return fd_pool2lisp(p);
   else return fd_err(fd_CantParseRecord,"pool_parsefn",NULL,FD_VOID);
 }
@@ -1733,7 +1732,7 @@ FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
   fd_pool *ppid=(fd_pool *)vptr;
   if (FD_POOLP(v)) *ppid=fd_lisp2pool(v);
   else if (FD_STRINGP(v)) {
-    fd_pool p=fd_use_pool(FD_STRDATA(v),0);
+    fd_pool p=fd_use_pool(FD_STRDATA(v),0,FD_VOID);
     if (p) *ppid=p; else return -1;}
   else return fd_type_error(_("pool spec"),"pool_config_set",v);
   return 1;

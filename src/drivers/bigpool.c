@@ -158,7 +158,7 @@ static size_t get_maxpos(fd_bigpool p)
 
 /* Making and opening bigpools */
 
-static fd_pool open_bigpool(u8_string fname,fdkb_flags flags)
+static fd_pool open_bigpool(u8_string fname,fdkb_flags flags,fdtype opts)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids;
@@ -1351,7 +1351,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
                           time(NULL),
                           time(NULL),1);
   if (rv>=0)
-    return fd_open_pool(spec,flags);
+    return fd_open_pool(spec,flags,opts);
   else return NULL;
 }
 

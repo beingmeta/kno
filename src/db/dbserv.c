@@ -729,7 +729,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
   else if (FD_POOLP(val)) p=fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
     if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
-      p=fd_use_pool(FD_STRDATA(val),0);}
+      p=fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
@@ -759,7 +759,7 @@ static int serve_primary_pool(fdtype var,fdtype val,void *data)
   if (FD_POOLP(val)) p=fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
     if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
-      p=fd_use_pool(FD_STRDATA(val),0);}
+      p=fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (p==primary_pool) return 0;
@@ -783,7 +783,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
     return 1;}
   else if (FD_INDEXP(val)) ix=fd_indexptr(val);
   else if (FD_STRINGP(val))
-    ix=fd_get_index(FD_STRDATA(val),0);
+    ix=fd_get_index(FD_STRDATA(val),0,FD_VOID);
   else if (val==FD_TRUE)
     if (fd_background) ix=(fd_index)fd_background;
     else {

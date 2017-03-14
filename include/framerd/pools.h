@@ -161,8 +161,6 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
 
-fd_pool (*fd_file_pool_type)(u8_string path,fdkb_flags flags);
-
 FD_EXPORT struct FD_POOL *fd_top_pools[];
 
 FD_EXPORT int fd_n_pools;
@@ -236,9 +234,9 @@ FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
 FD_EXPORT fdtype fd_pool2lisp(fd_pool p);
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp);
-FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags);
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags);
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags);
+FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags,fdtype opts);
 FD_EXPORT fd_pool fd_name2pool(u8_string spec);
 
 FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr);
@@ -385,6 +383,31 @@ fd_pool fd_make_extpool
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
+
+/* External Pools */
+
+typedef struct FD_PROCPOOL {
+  FD_POOL_FIELDS;
+  fdtype pool_state;
+  fdtype allocfn,
+    fetchfn, fetchnfn,
+    lockfn,releasefn,
+    storen,metadatafn,
+    createfn,closefn,ctl;}
+  FD_PROCPOOL;
+typedef struct FD_PROCPOOL *fd_procpool;
+
+FD_EXPORT
+fd_pool fd_make_procpool(u8_string label,
+			 FD_OID base,int cap,int load,fdtype state,
+			 fdtype allocfn,
+			 fdtype fetchfn,fdtype fetchnfn,
+			 fdtype lockfn,fdtype releasefn,
+			 fdtype storen,fdtype metadatafn,
+			 fdtype createfn,fdtype opfn,
+			 fdtype closefn);
+
+FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 
 /* Memory Pools (only in memory, no fetch/commit) */
 

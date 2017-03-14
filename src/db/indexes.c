@@ -34,8 +34,6 @@ fd_exception fd_IndexCommitError=_("can't save changes to index");
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
-fd_index (*fd_file_index_type)(u8_string,fdkb_flags)=NULL;
-
 int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
 int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
 int fd_index_adds_init   = FD_INDEX_ADDS_INIT;
@@ -160,7 +158,7 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
   else if (FD_TYPEP(lix,fd_raw_index_type))
     return (fd_index) lix;
   else if (FD_STRINGP(lix))
-    return fd_get_index(FD_STRDATA(lix),0);
+    return fd_get_index(FD_STRDATA(lix),0,FD_VOID);
   else {
     fd_seterr(fd_TypeError,_("not an index"),NULL,lix);
     return NULL;}
@@ -182,14 +180,14 @@ FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fd_index fd_get_index(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_index fd_get_index(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
     u8_byte *copy=u8_strdup(spec), *start=copy, *brk=strchr(start,';');
     while (brk) {
       if (ix==NULL) {
-        *brk='\0'; ix=fd_get_index(start,flags);
+        *brk='\0'; ix=fd_get_index(start,flags,opts);
         if (ix) {brk=NULL; start=NULL;}
         else {
           start=brk+1;
@@ -198,12 +196,12 @@ FD_EXPORT fd_index fd_get_index(u8_string spec,fdkb_flags flags)
     else if ((start)&&(*start)) {
       int start_off=start-copy;
       u8_free(copy);
-      return fd_get_index(spec+start_off,flags);}
+      return fd_get_index(spec+start_off,flags,opts);}
     else return NULL;}
   else {
     fd_index known=fd_find_index_by_cid(spec);
     if (known) return known;
-    else return fd_open_index(spec,flags);}
+    else return fd_open_index(spec,flags,opts);}
 }
 
 /* Background indexes */
@@ -228,14 +226,14 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   return 1;
 }
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
     u8_byte *copy=u8_strdup(spec);
     u8_byte *start=copy, *end=strchr(start,';');
     *end='\0'; while (start) {
-      ix=fd_get_index(start,flags);
+      ix=fd_get_index(start,flags,opts);
       if (ix==NULL) {
         u8_free(copy); return NULL;}
       else fd_add_to_background(ix);
@@ -246,7 +244,7 @@ FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags flags)
     u8_free(copy);
     return ix;}
   else {
-    fd_index ix=fd_get_index(spec,flags);
+    fd_index ix=fd_get_index(spec,flags,opts);
     if (ix) fd_add_to_background(ix);
     return ix;}
 }
@@ -912,7 +910,7 @@ static fdtype index_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   fd_index ix=NULL;
   if (n<2) return FD_VOID;
   else if (FD_STRINGP(args[2]))
-    ix=fd_get_index(FD_STRING_DATA(args[2]),0);
+    ix=fd_get_index(FD_STRING_DATA(args[2]),0,FD_VOID);
   if (ix) return fd_index2lisp(ix);
   else return fd_err(fd_CantParseRecord,"index_parsefn",NULL,FD_VOID);
 }

@@ -91,7 +91,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   return result;
 }
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   struct FD_NETWORK_POOL *np=u8_alloc(struct FD_NETWORK_POOL);
   u8_string xid=NULL;

@@ -90,7 +90,7 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
   else return 0;
 }
 
-static fd_index open_htindex(u8_string file,fdkb_flags flags)
+static fd_index open_htindex(u8_string file,fdkb_flags flags,fdtype opts)
 {
   struct FD_HT_INDEX *mix=(fd_mem_index)fd_make_ht_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
