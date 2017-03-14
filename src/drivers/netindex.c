@@ -236,10 +236,6 @@ static void netindex_close(fd_index ix)
 {
 }
 
-static void netindex_setbuf(fd_index ix,int bufsiz)
-{
-}
-
 static struct FD_INDEX_HANDLER netindex_handler={
   "netindex", 1, sizeof(struct FD_NETWORK_INDEX), 12,
   netindex_close, /* close */

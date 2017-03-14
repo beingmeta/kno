@@ -227,10 +227,6 @@ static void network_pool_close(fd_pool p)
 {
 }
 
-static void network_pool_setbuf(fd_pool p,int bufsiz)
-{
-}
-
 static fdtype network_pool_alloc(fd_pool p,int n)
 {
   fdtype results=FD_EMPTY_CHOICE, request; int i=0;

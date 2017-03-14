@@ -1473,12 +1473,6 @@ static void hash_index_setcache(struct FD_HASH_INDEX *hx,int level)
       fd_unlock_index(hx);}}
 }
 
-static void setcache_handler(fd_index ix,int level)
-{
-  struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
-  hash_index_setcache(hx,level);
-}
-
 
 /* Populating a hash index
    This writes data into the hashtable but ignores what is already there.
@@ -2576,14 +2570,6 @@ static void hash_index_close(fd_index ix)
   fd_unlock_index(hx);
 }
 
-static void hash_index_setbuf(fd_index ix,int bufsiz)
-{
-  struct FD_HASH_INDEX *fx=(struct FD_HASH_INDEX *)ix;
-  fd_lock_index(fx);
-  fd_stream_setbuf(&(fx->index_stream),bufsiz);
-  fd_unlock_index(fx);
-}
-
 /* Creating a hash index handler */
 
 static int interpret_hash_index_flags(fdtype opts)
@@ -2692,18 +2678,13 @@ FD_EXPORT fdtype _fd_populate_hash_index_deprecated
   else return FD_INT(retval);
 }
 
-static int get_make_hash_index_flags(fdtype flags_arg)
-{
-  return ((FD_B40)<<4)|FD_HASH_INDEX_DTYPEV2;
-}
+/* Hash index ctl handler */
 
-/* */
-
-static fdtype hash_index_op(fd_index ix,int op,int n,fdtype *args)
+static fdtype hash_index_ctl(fd_index ix,int op,int n,fdtype *args)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   if ( ((n>0)&&(args==NULL)) || (n<0) )
-    return fd_err("BadIndexOpCall","hash_index_op",
+    return fd_err("BadIndexOpCall","hash_index_ctl",
                   hx->index_idstring,FD_VOID);
   else switch (op) {
     case FD_INDEXOP_CACHELEVEL:
@@ -2716,14 +2697,16 @@ static fdtype hash_index_op(fd_index ix,int op,int n,fdtype *args)
           hash_index_setcache(hx,FD_FIX2INT(arg));
           return FD_INT(hx->index_cache_level);}
         else return fd_type_error
-               (_("cachelevel"),"hash_index_op/cachelevel",arg);}
+               (_("cachelevel"),"hash_index_ctl/cachelevel",arg);}
     case FD_INDEXOP_BUFSIZE: {
       if (n==0)
         return FD_INT(hx->index_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
+        fd_lock_index(hx);
         fd_stream_setbuf(&(hx->index_stream),FD_FIX2INT(args[0]));
+        fd_unlock_index(hx);
         return FD_INT(hx->index_stream.buf.raw.buflen);}
-      else return fd_type_error("buffer size","hash_index_op/bufsize",args[0]);}
+      else return fd_type_error("buffer size","hash_index_ctl/bufsize",args[0]);}
     case FD_INDEXOP_HASH: {
       if (n==0)
         return FD_INT(hx->index_n_buckets);
@@ -2763,7 +2746,7 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   NULL, /* metadata */
   hash_index_create, /* create */ 
   NULL, /* recycle */
-  hash_index_op /* indexop */
+  hash_index_ctl /* indexop */
 };
 
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)

@@ -655,14 +655,6 @@ static void file_pool_close(fd_pool p)
   fd_unlock_pool(fp);
 }
 
-static void file_pool_setbuf(fd_pool p,int bufsiz)
-{
-  struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  fd_lock_pool(fp);
-  fd_stream_setbuf(&(fp->pool_stream),bufsiz);
-  fd_unlock_pool(fp);
-}
-
 /* Making file pools */
 
 FD_EXPORT
@@ -791,7 +783,9 @@ static fdtype file_pool_op(fd_pool p,int op,int n,fdtype *args)
       if (n==0)
         return FD_INT(fp->pool_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
+        fd_lock_pool(fp);
         fd_stream_setbuf(&(fp->pool_stream),FD_FIX2INT(args[0]));
+        fd_unlock_pool(fp);
         return FD_INT(fp->pool_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","filepool_op/bufsize",args[0]);}
     default:
@@ -807,9 +801,9 @@ static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label)
     fd_off_t endpos=fd_endpos(stream);
     if (endpos>0) {
       fd_outbuf out=fd_writebuf(stream);
-      int bytes=fd_write_dtype(out,label);
-      fd_write_4bytes_at(stream,(unsigned int)endpos,20);
-      retval=1;}
+      if (fd_write_dtype(out,label)>=0) {
+        fd_write_4bytes_at(stream,(unsigned int)endpos,20);
+        retval=1;}}
     fd_unlock_stream(stream);}
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
