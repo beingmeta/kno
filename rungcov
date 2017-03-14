@@ -1,4 +1,0 @@
-#!/bin/sh
-for x in src/lisp/*.c; do gcov -bcpf -o src/lisp $x > all; done
-for x in src/db/*.c; do gcov -bcpf -o src/db $x >> all; done
-for x in src/scheme/*.c; do gcov -bcpf -o src/scheme $x >> all; done
