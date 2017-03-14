@@ -678,15 +678,16 @@ typedef unsigned int fd_walk_flags;
 #define FD_WALK_CONSES      ((fd_walk_flags)(0))
 #define FD_WALK_ALL         ((fd_walk_flags)(1))
 #define FD_WALK_TERMINALS   ((fd_walk_flags)(2))
-#define FD_WALK_CONSTANTS   ((fd_walk_flags)(4))
+#define FD_WALK_CONTAINERS  ((fd_walk_flags)(4))
+#define FD_WALK_CONSTANTS   ((fd_walk_flags)(8))
 
 typedef void (*fd_recycle_fn)(struct FD_RAW_CONS *x);
 typedef int (*fd_unparse_fn)(u8_output,fdtype);
 typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
 typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
 typedef fdtype (*fd_copy_fn)(fdtype,int);
-typedef void (*fd_walker)(fdtype,void *);
-typedef void (*fd_walk_fn)(fd_walker,fdtype,void *,fd_walk_flags,int);
+typedef int (*fd_walker)(fdtype,void *);
+typedef int (*fd_walk_fn)(fd_walker,fdtype,void *,fd_walk_flags,int);
 
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
@@ -731,6 +732,9 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
 #define FD_QCOMPARE(x,y) FD_QUICK_COMPARE(x,y)
 #define FD_COMPARE(x,y) FD_FULL_COMPARE(x,y)
+
+FD_EXPORT int fd_walk(fd_walker walker,fdtype obj,void *walkdata,
+		      fd_walk_flags flags,int depth);
 
 FD_EXPORT void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags);
 
