@@ -1033,22 +1033,24 @@ static fdtype process_arg(fdtype arg,fd_lispenv env)
   else return argval;
 }
 
-static void push_apply_context(fdtype expr,struct FD_FUNCTION *fcn,
-                               int arg_count,fdtype *argv)
+static void push_apply_context(fdtype expr,fdtype fn,int arg_count,fdtype *argv)
 {
   fdtype call_context=fd_init_vector(NULL,arg_count+1,NULL);
   fdtype *avec=FD_VECTOR_ELTS(call_context);
-  if (fcn->fcn_filename)
-    if (fcn->fcn_name)
-      avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
-                          fdtype_string(fcn->fcn_filename));
-    else avec[0]=
-           fd_conspair(fd_intern("LAMBDA"),
-                       fdtype_string(fcn->fcn_filename));
-  else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
-  else avec[0]=fd_intern("LAMBDA");
+  fd_function fcn= (fd_functionp[fn]) ? ((fd_function) fn) : (NULL);
+  if (FD_EXPECT_TRUE(fcn)) {
+    if (fcn->fcn_filename)
+      if (fcn->fcn_name)
+        avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
+                            fdtype_string(fcn->fcn_filename));
+      else avec[0]=
+             fd_conspair(fd_intern("LAMBDA"),
+                         fdtype_string(fcn->fcn_filename));
+    else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
+    else avec[0]=fd_intern("LAMBDA");}
+  else avec[0]=fd_incref(fn);
   memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
-  fd_push_error_context(fd_apply_context,fcn->fcn_name,call_context);
+  fd_push_error_context(fd_apply_context,((fcn)?(fcn->fcn_name):(NULL)),call_context);
   fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
 }
 
@@ -1106,7 +1108,7 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   else {
     result=fd_dapply(fn,arg_count,argv);}
   if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
-    push_apply_context(expr,fcn,arg_count,argv);
+    push_apply_context(expr,(fdtype)fcn,arg_count,argv);
   else if (gc_args) for (int i=0; i<arg_count; i++) {
       fdtype arg=argv[i++]; fd_decref(arg);}
   if (free_argv) u8_free(argv);
@@ -1117,37 +1119,30 @@ static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID;
   fdtype _argv[FD_STACK_ARGS], *argv;
-  int i=0, n_args=0, args_need_gc=0, free_argv=0;
   fdtype arg_exprs=fd_get_body(expr,1);
-  {FD_DOLIST(elt,arg_exprs) {
-      if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
-        n_args++;}}
+  int n_args=count_args(arg_exprs), arg_count=0;
+  int i=0, gc_args=0, free_argv=0;
   if (n_args>FD_STACK_ARGS) {
-    /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
     argv=u8_alloc_n(n_args,fdtype);
     free_argv=1;}
-  /* Otherwise, just use the stack vector */
   else argv=_argv;
   {FD_DOLIST(arg,arg_exprs)
-      if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) {
-        fdtype argval=fd_eval(arg,env);
-        if ((FD_ABORTED(argval)) || (FD_EMPTY_CHOICEP(argval)) ||
-            (FD_VOIDP(argval))) {
-          if (args_need_gc) {
-            int j=0; while (j<i) {fdtype arg=argv[j++]; fd_decref(arg);}}
-          if (free_argv) u8_free(argv);
-          if (FD_VOIDP(argval)) {
-            fd_seterr(fd_VoidArgument,"call_special_function",NULL,expr);
-            return FD_ERROR_VALUE;}
-          else return argval;}
-        else {
-          argv[i++]=argval; if (FD_CONSP(argval)) args_need_gc=1;}}}
+      if (FD_EXPECT_FALSE((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
+        continue;
+    fdtype argval=process_arg(arg,env);
+       if (FD_ABORTED(argval)) {
+        /* Clean up the arguments we've already evaluated */
+        if (gc_args) for (int j=0; j < arg_count; j++) {
+            fdtype arg=argv[j++]; fd_decref(arg);}
+        if (free_argv) u8_free(argv);
+        return argval;}
+      else if (FD_CONSP(argval)) gc_args=1; else {}
+      argv[arg_count++]=argval;}
   result=fd_apply(fn,n_args,argv);
-  if (FD_ABORTP(result))
-    fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
- if (args_need_gc) {
-    i=0; while (i<n_args) {
-      fdtype argval=argv[i++]; fd_decref(argval);}}
+  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
+    push_apply_context(expr,fn,arg_count,argv);
+  else if (gc_args) for (int i=0; i<arg_count; i++) {
+      fdtype arg=argv[i++]; fd_decref(arg);}
   if (free_argv) u8_free(argv);
   return result;
 }

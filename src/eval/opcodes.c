@@ -45,117 +45,6 @@ enum TAILOP { any_op=0, or_op, and_op, try_op };
 static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
                         u8_context cxt,fd_lispenv env);
 
-static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
-{
-  fdtype body=FD_CDR(expr);
-  if (opcode>=FD_IF_OPCODE) {
-    /* It's a conditional opcode */
-    fdtype test_expr=fd_get_arg(expr,1), test=FD_VOID;
-    if (FD_VOIDP(test_expr))
-      return fd_err(fd_SyntaxError,"conditional OPCODE test",NULL,expr);
-    test=op_eval(test_expr,env,0);
-    if (FD_ABORTED(test)) return test;
-    else if (FD_VOIDP(test))
-      return fd_err(fd_VoidArgument,"conditional OPCODE test",NULL,expr);
-    else switch (opcode) {
-      case FD_IF_OPCODE: {
-        fdtype consequent_expr=FD_VOID;
-        if (FD_EMPTY_CHOICEP(test))
-          return FD_EMPTY_CHOICE;
-        else if (FD_FALSEP(test))
-          consequent_expr=fd_get_arg(expr,3);
-        else consequent_expr=fd_get_arg(expr,2);
-        fd_decref(test);
-        if ((FD_PAIRP(consequent_expr))||(FD_RAILP(consequent_expr)))
-          return fd_tail_eval(consequent_expr,env);
-        else return fasteval(consequent_expr,env);}
-      case FD_WHEN_OPCODE: {
-        if (!(FD_FALSEP(test))) {
-          fdtype tmpval=FD_VOID, consequents=fd_get_body(expr,2);
-          FD_DOLIST(stmt,consequents) {
-            FD_DISCARD_RESULT(tmpval);
-            tmpval=op_eval(stmt,env,1);}
-          FD_VOID_RESULT(tmpval);
-          return tmpval;}
-        else {
-          fd_decref(test);
-          return FD_VOID;}}
-      case FD_UNLESS_OPCODE: {
-        if (FD_FALSEP(test)) {
-          fdtype tmpval=FD_VOID, alternates=fd_get_body(expr,2);
-          FD_DOLIST(stmt,alternates) {
-            FD_DISCARD_RESULT(tmpval);
-            tmpval=op_eval(stmt,env,1);}
-          FD_VOID_RESULT(tmpval);
-          return tmpval;}
-        else {
-          fd_decref(test);
-          return FD_VOID;}}
-      case FD_IFELSE_OPCODE: {
-        if (FD_EMPTY_CHOICEP(test))
-          return FD_EMPTY_CHOICE;
-        else if (FD_FALSEP(test))
-          return eval_tail(expr,2,any_op,"IFELSE opcode",env); 
-        else {
-          fdtype consequent_expr=fd_get_arg(expr,1);
-          if (FD_VOIDP(consequent_expr))
-            return fd_err(fd_SyntaxError,"conditional OPCODE then",NULL,expr);
-          fd_decref(test);
-          if ((FD_PAIRP(consequent_expr))||
-              (FD_RAILP(consequent_expr)))
-            return fd_tail_eval(consequent_expr,env);
-          else return fasteval(consequent_expr,env);}}
-      default:
-        return fd_err(_("Invalid opcode"),"opcode eval",NULL,body);
-      } /* switch */
-  } /* not (opcode>=FD_IF_OPCODE) */
-  else switch (opcode) {
-    case FD_QUOTE_OPCODE: {
-      if (FD_PAIRP(body))
-        return fd_incref(FD_CAR(body));
-      else fd_incref(body);}
-    case FD_BEGIN_OPCODE:
-      return eval_tail(expr,1,any_op,"BEGIN opcode",env);
-    case FD_AND_OPCODE:
-      if (FD_EMPTY_LISTP(body))
-        return FD_TRUE;
-      else return eval_tail(expr,1,and_op,"AND opcode",env);
-    case FD_OR_OPCODE:
-      if (FD_EMPTY_LISTP(body))
-        return FD_FALSE;
-      else return eval_tail(expr,1,or_op,"OR opcode",env);
-    case FD_NOT_OPCODE: {
-      fdtype arg1_expr=fd_get_arg(expr,1), arg1;
-      if (FD_VOIDP(arg1_expr))
-        return fd_err(fd_SyntaxError,"NOT opcode",NULL,expr);
-      else arg1=op_eval(arg1_expr,env,0);
-      if (FD_VOIDP(arg1))
-        return fd_err(fd_VoidArgument,"NOT opcode",NULL,arg1_expr);
-      else if (FD_EMPTY_CHOICEP(arg1)) return arg1;
-      else if (FD_FALSEP(arg1)) return FD_TRUE;
-      else {
-        fd_decref(arg1); return FD_FALSE;}}
-    case FD_FAIL_OPCODE: {
-      if (FD_PAIRP(body))
-        return fd_err(fd_SyntaxError,"FAIL opcode",NULL,expr);
-      else return FD_EMPTY_CHOICE;}
-    case FD_MODREF_OPCODE: {
-      fdtype module=fd_get_arg(expr,1);
-      fdtype symbol=fd_get_arg(expr,2);
-      if (FD_EXPECT_FALSE((FD_VOIDP(module))||(FD_VOIDP(symbol))))
-        return fd_err(fd_SyntaxError,"MODREF opcode",NULL,expr);
-      else if (FD_EXPECT_FALSE(!(FD_HASHTABLEP(module))))
-        return fd_type_error("module exports(hashtable)",
-                             "MODREF opcode",module);
-      else if (FD_EXPECT_FALSE((!(FD_SYMBOLP(symbol)))))
-        return fd_type_error("symbol","MODREF opcode",symbol);
-      else return fd_hashtable_get(FD_CONSPTR(fd_hashtable,module),
-                                   symbol,FD_UNBOUND);}
-    case FD_COMMENT_OPCODE: return FD_VOID;
-    default:
-      return fd_err(_("Invalid opcode"),"opcode eval",NULL,expr);}
-}
-
 static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
                         u8_context cxt,fd_lispenv env)
 {
@@ -256,7 +145,7 @@ static fdtype pickone_opcode(fdtype normal)
   else return FD_EMPTY_CHOICE;
 }
 
-static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
+static fdtype nd1_dispatch(fdtype opcode,fdtype arg1)
 {
   switch (opcode) {
   case FD_AMBIGP_OPCODE: 
@@ -382,7 +271,7 @@ static fdtype eltn_opcode(fdtype arg1,int n,u8_context opname)
   else return fd_seq_elt(arg1,n);
 }
 
-static fdtype opcode_unary_dispatch(fdtype opcode,fdtype arg1)
+static fdtype d1_dispatch(fdtype opcode,fdtype arg1)
 {
   int delta=1;
   switch (opcode) {
@@ -450,7 +339,7 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
   else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
 }
 
-static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
+static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 {
   switch (opcode) {
   case FD_NUMEQ_OPCODE:
@@ -563,7 +452,7 @@ static int numeric_argp(fdtype x)
   else return 0;
 }
 
-static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
+static fdtype nd2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 {
   if (FD_EXPECT_FALSE((opcode<FD_EQ_OPCODE) && (!(numeric_argp(arg2))))) {
     fd_decref(arg1);
@@ -572,7 +461,7 @@ static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(a1,arg1) {
       {FD_DO_CHOICES(a2,arg2) {
-          fdtype result=opcode_binary_dispatch(opcode,a1,a2);
+          fdtype result=d2_dispatch(opcode,a1,a2);
           /* If we need to abort due to an error, we need to pop out of
              two choice loops.  So on the inside, we decref results and
              replace it with the error object.  We then break and
@@ -611,10 +500,7 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
-  if (opcode<FD_MAX_FEXPR_OPCODE)
-    /* These handle the raw expression without evaluation */
-    return opcode_special_dispatch(opcode,expr,env);
-  else if (!(FD_EXPECT_FALSE(FD_PAIRP(FD_CDR(expr))))) {
+  if (!(FD_EXPECT_FALSE(FD_PAIRP(FD_CDR(expr))))) {
     /* Otherwise, we should have at least one argument,
        return an error otherwise. */
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
@@ -634,18 +520,18 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       arg1=fd_simplify_choice(arg1);
     else {}
     if (opcode<FD_MAX_ND1_OPCODE)
-      return opcode_unary_nd_dispatch(opcode,arg1);
+      return nd1_dispatch(opcode,arg1);
     else if (opcode<FD_MAX_UNARY_OPCODE) {
       if (FD_EMPTY_CHOICEP(arg1))
         return FD_EMPTY_CHOICE;
       else if (!(FD_CHOICEP(arg1))) {
-        fdtype result=opcode_unary_dispatch(opcode,arg1);
+        fdtype result=d1_dispatch(opcode,arg1);
         fd_decref(arg1);
         return result;}
       else {
         fdtype results=FD_EMPTY_CHOICE;
         FD_DO_CHOICES(arg,arg1) {
-          fdtype result=opcode_unary_dispatch(opcode,arg);
+          fdtype result=d1_dispatch(opcode,arg);
           if (FD_ABORTED(result)) {
             fd_decref(results); fd_decref(arg1);
             FD_STOP_DO_CHOICES;
@@ -675,8 +561,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fd_decref(arg1);
           return FD_EMPTY_CHOICE;}
         else if ((FD_CHOICEP(arg1))||(FD_CHOICEP(arg2)))
-          return opcode_binary_nd_dispatch(opcode,arg1,arg2);
-        else return opcode_binary_dispatch(opcode,arg1,arg2);}}
+          return nd2_dispatch(opcode,arg1,arg2);
+        else return d2_dispatch(opcode,arg1,arg2);}}
     else if (opcode<FD_MAX_BINARY_OPCODE) {
       if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
       else {
@@ -695,11 +581,11 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           /* Prune the call */
           fd_decref(arg1); return arg2;}
         else if ((FD_CHOICEP(arg1)) || (FD_CHOICEP(arg2)))
-          /* opcode_binary_nd_dispatch handles decref of arg1 and arg2 */
-          return opcode_binary_nd_dispatch(opcode,arg1,arg2);
+          /* nd2_dispatch handles decref of arg1 and arg2 */
+          return nd2_dispatch(opcode,arg1,arg2);
         else {
           /* This is the dispatch case where we just go to dispatch. */
-          fdtype result=opcode_binary_dispatch(opcode,arg1,arg2);
+          fdtype result=d2_dispatch(opcode,arg1,arg2);
           fd_decref(arg1); fd_decref(arg2);
           return result;}}}
     else if ((opcode==FD_GET_OPCODE) || (opcode==FD_PGET_OPCODE)) {
@@ -803,14 +689,12 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         fdtype offset_arg=fd_get_arg(expr,2);
         fdtype type_arg=fd_get_arg(expr,3);
         if ((FD_PAIRP(type_arg)) &&
-            ((FD_EQ(FD_CAR(type_arg),quote_symbol))||
-             (FD_EQ(FD_CAR(type_arg),FD_QUOTE_OPCODE))) &&
+            (FD_EQ(FD_CAR(type_arg),quote_symbol)) &&
             (FD_PAIRP(FD_CDR(type_arg))))
           type_arg=FD_CAR(FD_CDR(type_arg));
         else if ((FD_RAILP(type_arg))&&
                  (FD_RAIL_LENGTH(type_arg)>1)&&
-                 ((FD_EQ(FD_RAIL_REF(type_arg,0),FD_QUOTE_OPCODE))||
-                  (FD_EQ(FD_RAIL_REF(type_arg,0),quote_symbol))))
+                 (FD_EQ(FD_RAIL_REF(type_arg,0),quote_symbol)))
           type_arg=fd_get_arg(type_arg,1);
         else {}
         if (FD_CHOICEP(arg1)) {

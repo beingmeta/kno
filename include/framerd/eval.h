@@ -397,26 +397,6 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcode_table_len;
 
-#define FD_SPECIAL_OPCODES   FD_OPCODE(0x00)
-/* Special forms, which may not evaluate or use their first argument. */
-#define FD_QUOTE_OPCODE      FD_OPCODE(0x00)
-#define FD_BEGIN_OPCODE      FD_OPCODE(0x01)
-#define FD_AND_OPCODE        FD_OPCODE(0x02)
-#define FD_OR_OPCODE         FD_OPCODE(0x03)
-#define FD_NOT_OPCODE        FD_OPCODE(0x04)
-#define FD_FAIL_OPCODE       FD_OPCODE(0x05)
-#define FD_MODREF_OPCODE     FD_OPCODE(0x06)
-#define FD_COMMENT_OPCODE    FD_OPCODE(0x07)
-#define FD_TRY_OPCODE        FD_OPCODE(0x07) /* NYI */
-
-#define FD_IF_OPCODE         FD_OPCODE(0x10)
-#define FD_WHEN_OPCODE       FD_OPCODE(0x11)
-#define FD_UNLESS_OPCODE     FD_OPCODE(0x12)
-#define FD_IFELSE_OPCODE     FD_OPCODE(0x13)
-#define FD_TRYIF_OPCODE      FD_OPCODE(0x14) /* NYI */
-/* More to come */
-#define FD_MAX_FEXPR_OPCODE  FD_OPCODE(0x20)
-
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODES        FD_OPCODE(0x20)
 #define FD_AMBIGP_OPCODE      FD_OPCODE(0x20)
@@ -476,7 +456,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
 #define FD_ELT_OPCODE        FD_OPCODE(0x83)
 
-#define FD_MAX_BINARY_OPCODE      FD_OPCODE(0xA0)
+#define FD_MAX_BINARY_OPCODE FD_OPCODE(0xA0)
 #define FD_NARY_OPCODES      FD_OPCODE(0xA0)
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_OPCODE(0xA0)
@@ -492,10 +472,5 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_UNION_OPCODE      FD_OPCODE(0xC3)
 #define FD_INTERSECT_OPCODE  FD_OPCODE(0xC4)
 #define FD_DIFFERENCE_OPCODE FD_OPCODE(0xC5)
-
-#define FD_FEXPR_OPCODES     FD_OPCODE(0xD0)
-#define FD_LET_OPCODE        FD_OPCODE(0xD0)
-#define FD_LETSTAR_OPCODE    FD_OPCODE(0xD1)
-#define FD_COND_OPCODE       FD_OPCODE(0xD2)
 
 #endif /* FRAMERD_EVAL_H */
