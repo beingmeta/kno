@@ -1013,24 +1013,59 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
   return results;
 }
 
+static int count_args(fdtype args)
+{
+  int n_args=0; FD_DOLIST(arg,args) {
+    if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) 
+      n_args++;}
+  return n_args;
+}
+
+static fdtype process_arg(fdtype arg,fd_lispenv env)
+{
+  fdtype argval=fasteval(arg,env);
+  if (FD_EXPECT_FALSE(FD_VOIDP(argval)))
+    return fd_err(fd_VoidArgument,"call_function",NULL,arg);
+  else if (FD_EXPECT_FALSE(FD_ABORTED(argval)))
+    return argval;
+  else if ((FD_CONSP(argval))&&(FD_ACHOICEP(argval)))
+    return fd_simplify_choice(argval);
+  else return argval;
+}
+
+static void push_apply_context(fdtype expr,struct FD_FUNCTION *fcn,
+                               int arg_count,fdtype *argv)
+{
+  fdtype call_context=fd_init_vector(NULL,arg_count+1,NULL);
+  fdtype *avec=FD_VECTOR_ELTS(call_context);
+  if (fcn->fcn_filename)
+    if (fcn->fcn_name)
+      avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
+                          fdtype_string(fcn->fcn_filename));
+    else avec[0]=
+           fd_conspair(fd_intern("LAMBDA"),
+                       fdtype_string(fcn->fcn_filename));
+  else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
+  else avec[0]=fd_intern("LAMBDA");
+  memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
+  fd_push_error_context(fd_apply_context,fcn->fcn_name,call_context);
+  fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
+}
+
+#define ND_ARGP(v) ((FD_CHOICEP(v))||(FD_QCHOICEP(v)))
+
 static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
                             fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID, fn=(fdtype)fcn;
   fdtype _argv[FD_STACK_ARGS], *argv;
-  int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
-  int nd_args=0, prune=0, nd_prim=fcn->fcn_ndcall;
+  fdtype arg_exprs=fd_get_body(expr,1);
   int max_arity=fcn->fcn_arity, min_arity=fcn->fcn_min_arity;
   int n_params=max_arity, argv_length=max_arity;
-  /* First, count the arguments */
-  {fdtype body=fd_get_body(expr,1);
-    FD_DOLIST(arg,body) {
-      if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
-        n_args++;}}
-    /* If the max_arity is less than zero, it's a lexpr, so the
-       number of args is the number of args. */
+  int n_args=count_args(arg_exprs), arg_count=0, gc_args=0, free_argv=0;
+  int nd_args=1, prune=0, d_prim=(fcn->fcn_ndcall==0);
   if (max_arity<0) argv_length=n_args;
-  /* Check if there are too many arguments. */
+  /* Check arg count early */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
     return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
@@ -1042,85 +1077,38 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   /* Otherwise, just use the stack vector */
   else argv=_argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
-  {fdtype arg_exprs=fd_get_body(expr,1);
-    FD_DOLIST(elt,arg_exprs) {
-      fdtype argval;
-      if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol)))
+  {FD_DOLIST(elt,arg_exprs) {
+      if (FD_EXPECT_FALSE((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         continue;
-      argval=fasteval(elt,env);
-      if (FD_ABORTED(argval)) {
-        /* Break if one of the arguments returns an error */
-        result=argval; break;}
-      if (FD_VOIDP(argval)) {
-        result=fd_err(fd_VoidArgument,"call_function",fcn->fcn_name,elt);
-        break;}
-      if ((FD_EMPTY_CHOICEP(argval)) && (!(nd_prim))) {
-        /* Break if the method isn't non-deterministic and one of the
-           arguments returns an empty choice. */
-        prune=1; break;}
-      /* Convert the argument to a simple choice (or non choice) */
-      argval=fd_simplify_choice(argval);
-      if (FD_CONSP(argval)) args_need_gc=1;
-      /* Keep track of whether there are non-deterministic args
-         which would require calling fd_ndapply. */
-      if (FD_CHOICEP(argval)) nd_args=1;
-      else if (FD_QCHOICEP(argval)) nd_args=1;
-      /* Fill in the slot */
-      argv[arg_count++]=argval;}}
-  /* Now, check if we need to exit, either because some argument returned
-     an error (or throw) or because the call is being pruned. */
-  if ((prune) || (FD_ABORTED(result))) {
-    /* In this case, we won't call the procedure at all, because
-       either a parameter produced an error or because we can prune
-       the call because some parameter is an empty choice. */
-    int i=0;
-    if (args_need_gc) while (i<arg_count) {
+      fdtype argval=process_arg(elt,env);
+      if ((FD_ABORTED(argval))||((d_prim)&&(FD_EMPTY_CHOICEP(argval)))) {
         /* Clean up the arguments we've already evaluated */
-        fdtype arg=argv[i++]; fd_decref(arg);}
-    if (free_argv) u8_free(argv);
-    if (FD_ABORTED(result))
-      /* This could extend the backtrace */
-      return result;
-    else return FD_EMPTY_CHOICE;}
+        if (gc_args) for (int j=0; j < arg_count; j++) {
+            fdtype arg=argv[j++]; fd_decref(arg);}
+        if (free_argv) u8_free(argv);
+        return argval;}
+      else if (FD_CONSP(argval)) {
+        if ((nd_args==0)&&(ND_ARGP(argval))) nd_args=1;
+        gc_args=1;} else {}
+      argv[arg_count++]=argval;}}
   if ((n_params<0) || (fcn->fcn_xcall)) {}
-  /* Don't fill anything in for lexprs or non primitives.  */
+  /* Don't fill anything in for lexprs or non primitives */
   else if (arg_count != argv_length) {
-    if (fcn->fcn_defaults)
-      while (arg_count<argv_length) {
-        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]); arg_count++;}
+    if (fcn->fcn_defaults) {
+      for (;arg_count<argv_length;arg_count++) {
+        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]);}} 
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
   if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
     result=fd_tail_call(fn,arg_count,argv);
-  else if ((nd_prim==0) && (nd_args))
+  else if ((d_prim) && (nd_args))
     result=fd_ndapply(fn,arg_count,argv);
   else {
     result=fd_dapply(fn,arg_count,argv);}
-  if ((FD_ABORTED(result)) &&
-      (!(FD_THROWP(result))) &&
-      (!(FD_SPROCP(fn)))) {
-    /* If it's not an sproc, we add an entry to the backtrace
-       that shows the arguments, since they probably don't show
-       up in an environment on the backtrace. */
-    fdtype *avec=u8_alloc_n((arg_count+1),fdtype), call_context;
-    memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
-    if (fcn->fcn_filename)
-      if (fcn->fcn_name)
-        avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
-                            fdtype_string(fcn->fcn_filename));
-      else avec[0]=
-             fd_conspair(fd_intern("LAMBDA"),
-                         fdtype_string(fcn->fcn_filename));
-    else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
-    else avec[0]=fd_intern("LAMBDA");
-    if (free_argv) u8_free(argv);
-    call_context=fd_init_vector(NULL,arg_count+1,avec);
-    fd_push_error_context(fd_apply_context,fname,call_context);
-    fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
-    return result;}
-  else if (args_need_gc) {
-    int i=0; while (i < arg_count) {
-      fdtype arg=argv[i++]; fd_decref(arg);}}
+  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
+    push_apply_context(expr,fcn,arg_count,argv);
+  else if (gc_args) for (int i=0; i<arg_count; i++) {
+      fdtype arg=argv[i++]; fd_decref(arg);}
   if (free_argv) u8_free(argv);
   return result;
 }
