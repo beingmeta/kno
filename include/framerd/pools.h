@@ -161,8 +161,6 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
 
-fd_pool (*fd_file_pool_type)(u8_string path,fdkb_flags flags);
-
 FD_EXPORT struct FD_POOL *fd_top_pools[];
 
 FD_EXPORT int fd_n_pools;
@@ -236,9 +234,9 @@ FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
 FD_EXPORT fdtype fd_pool2lisp(fd_pool p);
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp);
-FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags);
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags);
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags);
+FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags,fdtype opts);
 FD_EXPORT fd_pool fd_name2pool(u8_string spec);
 
 FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr);
@@ -407,7 +405,7 @@ fd_pool fd_make_procpool(u8_string label,
 			 fdtype lockfn,fdtype releasefn,
 			 fdtype storen,fdtype metadatafn,
 			 fdtype createfn,fdtype opfn,
-			 fdtype closefn)
+			 fdtype closefn);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 

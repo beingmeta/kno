@@ -182,7 +182,7 @@ static size_t get_maxpos(fd_oidpool p)
 
 static int init_schemas(fd_oidpool,fdtype);
 
-static fd_pool open_oidpool(u8_string fname,fdkb_flags flags)
+static fd_pool open_oidpool(u8_string fname,fdkb_flags flags,fdtype opts)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
@@ -1468,7 +1468,7 @@ static fd_pool oidpool_create(u8_string spec,void *type_data,
                           time(NULL),
                           time(NULL),1);
   if (rv>=0)
-    return fd_open_pool(spec,flags);
+    return fd_open_pool(spec,flags,opts);
   else return NULL;
 }
 

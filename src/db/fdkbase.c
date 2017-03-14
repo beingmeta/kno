@@ -283,7 +283,8 @@ static fdtype config_get_pools(fdtype var,void *data)
 static int config_use_pool(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_use_pool(FD_STRDATA(spec),0)) return 1;
+    if (fd_use_pool(FD_STRDATA(spec),0,FD_VOID))
+      return 1;
     else return -1;
   else return fd_reterr(fd_TypeError,"config_use_pool",
                         u8_strdup(_("pool spec")),FD_VOID);
@@ -308,7 +309,7 @@ static fdtype config_get_indexes(fdtype var,void *data)
 static int config_open_index(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_get_index(FD_STRDATA(spec),0)) return 1;
+    if (fd_get_index(FD_STRDATA(spec),0,FD_VOID)) return 1;
     else return -1;
   else {
     fd_seterr(fd_TypeError,"config_open_index",NULL,fd_incref(spec));
@@ -332,7 +333,7 @@ static fdtype config_get_background(fdtype var,void *data)
 static int config_use_index(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_use_index(FD_STRDATA(spec),0)) return 1;
+    if (fd_use_index(FD_STRDATA(spec),0,FD_VOID)) return 1;
     else return -1;
   else if (FD_INDEXP(spec))
     if (fd_add_to_background(fd_indexptr(spec))) return 1;

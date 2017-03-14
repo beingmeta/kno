@@ -58,7 +58,7 @@ static struct FD_INDEX_HANDLER file_index_handler;
 
 static fdtype file_index_fetch(fd_index ix,fdtype key);
 
-static fd_index open_file_index(u8_string fname,fdkb_flags flags)
+static fd_index open_file_index(u8_string fname,fdkb_flags flags,fdtype opts)
 {
   struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_STREAM *s=&(index->index_stream);
@@ -1286,7 +1286,7 @@ static fd_index file_index_create(u8_string spec,void *type_data,
   else if (fd_make_file_index(spec,
                               (unsigned int)((unsigned long long)type_data),
                               FD_FIX2INT(n_slots))>=0)
-    return fd_open_index(spec,flags);
+    return fd_open_index(spec,flags,FD_VOID);
   else return NULL;
 }
 
