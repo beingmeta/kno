@@ -137,7 +137,7 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     return sum;}
   else if (FD_QCHOICEP(x)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
-    return hash_dtype1(qc->fd_choiceval);}
+    return hash_dtype1(qc->qchoiceval);}
   else if (FD_CHARACTERP(x)) return (FD_CHARCODE(x))%(MAGIC_MODULUS);
   else if (FD_FLONUMP(x)) {
     unsigned int as_int;
@@ -298,7 +298,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
       return hash_pair_dtype2(x);
     case fd_qchoice_type: {
       struct FD_QCHOICE *qc=FD_XQCHOICE(x);
-      return hash_dtype2(qc->fd_choiceval);}
+      return hash_dtype2(qc->qchoiceval);}
     case fd_choice_type: {
       unsigned int sum=0;
       FD_DO_CHOICES(elt,x)
@@ -438,7 +438,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
       return hash_pair_dtype3(x);
     case fd_qchoice_type: {
       struct FD_QCHOICE *qc=FD_XQCHOICE(x);
-      return hash_dtype3(qc->fd_choiceval);}
+      return hash_dtype3(qc->qchoiceval);}
     case fd_choice_type: {
       unsigned int sum=0;
       FD_DO_CHOICES(elt,x)

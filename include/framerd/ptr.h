@@ -533,7 +533,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_ABORTED(x) (FD_EXPECT_FALSE(FD_ABORTP(x)))
 #define FD_INTERRUPTED() (FD_EXPECT_FALSE(u8_current_exception!=(NULL)))
 
-#define FDTYPE_CONSTANTP(x) \
+#define FD_CONSTANTP(x) \
   ((FD_IMMEDIATEP(x)) && ((FD_IMMEDIATE_TYPE(x))==0))
 
 /* Characters */
@@ -674,13 +674,19 @@ typedef unsigned int fd_compare_flags;
 #define FD_COMPARE_FULL     ((fd_compare_flags)(31))
 #define FD_COMPARE_NOCASE   ((fd_compare_flags)(32))
 
+typedef unsigned int fd_walk_flags;
+#define FD_WALK_CONSES      ((fd_walk_flags)(0))
+#define FD_WALK_ALL         ((fd_walk_flags)(1))
+#define FD_WALK_TERMINALS   ((fd_walk_flags)(2))
+#define FD_WALK_CONSTANTS   ((fd_walk_flags)(4))
+
 typedef void (*fd_recycle_fn)(struct FD_RAW_CONS *x);
 typedef int (*fd_unparse_fn)(u8_output,fdtype);
 typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
 typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
 typedef fdtype (*fd_copy_fn)(fdtype,int);
 typedef void (*fd_walker)(fdtype,void *);
-typedef void (*fd_walk_fn)(fd_walker,fdtype,void *);
+typedef void (*fd_walk_fn)(fd_walker,fdtype,void *,fd_walk_flags,int);
 
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];

@@ -745,8 +745,8 @@ static void unwrap_qchoices(fdtype *args,int n)
       args[j++]=FD_EMPTY_CHOICE;}
     else if (FD_QCHOICEP(v)) {
       struct FD_QCHOICE *qc=(fd_qchoice)v;
-      fd_incref(qc->fd_choiceval);
-      args[j++]=qc->fd_choiceval;
+      fd_incref(qc->qchoiceval);
+      args[j++]=qc->qchoiceval;
       fd_decref(v);}
     else j++;}
 }

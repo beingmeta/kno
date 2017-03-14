@@ -1063,7 +1063,7 @@ int main(int argc,char **argv)
     lastval=result; result=FD_VOID;
     if ((FD_CHECK_PTR(lastval)) &&
         (!(FD_ABORTP(lastval))) &&
-        (!(FDTYPE_CONSTANTP(lastval))))
+        (!(FD_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
   if (eval_server)
     fd_close_stream(eval_server,FD_STREAM_FREEDATA);

@@ -103,6 +103,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_SLOTMAPP(x) (FD_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
   (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
+#define FD_XSLOTMAP_SLOTS(sm) (sm->n_slots)
 #define FD_XSLOTMAP_NUSED(sm) (sm->n_slots)
 #define FD_XSLOTMAP_NALLOCATED(sm) (sm->n_allocd)
 #define FD_XSLOTMAP_KEYVALS(sm) ((sm)->sm_keyvals)
@@ -117,7 +118,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_XSLOTMAP_SET_NSLOTS(sm,sz) (sm)->n_slots=sz
 #define FD_XSLOTMAP_SET_NALLOCATED(sm,sz) (sm)->n_allocd=sz
 
-
+#define FD_SLOTMAP_NSLOTS(x) (FD_XSLOTMAP_NUSED(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_NUSED(x) (FD_XSLOTMAP_NUSED(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_MODIFIEDP(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_READONLYP(x) (FD_XSLOTMAP_READONLYP(FD_XSLOTMAP(x)))
@@ -557,7 +558,7 @@ typedef struct FD_HASHSET {
   char hs_allatomic, hs_modified;
   double hs_load_factor;
   fdtype *hs_slots;
-  U8_MUTEX_DECL(hs_lock);} FD_HASHSET;
+  U8_RWLOCK_DECL(table_rwlock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 
 #define FD_HASHSETP(x) (FD_TYPEP(x,fd_hashset_type))

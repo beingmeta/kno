@@ -1280,7 +1280,7 @@ static fdtype string_matches(fdtype string,fdtype pattern,
 {
   int off, lim, retval;
   fdtype notstring;
-  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->fd_choiceval;
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->qchoiceval;
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
@@ -1314,7 +1314,7 @@ static fdtype string_contains(fdtype string,fdtype pattern,
                               fdtype start_arg,fdtype end_arg)
 {
   int off, lim, retval; fdtype notstring;
-  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->fd_choiceval;
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->qchoiceval;
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
@@ -1352,7 +1352,7 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
 {
   int off, lim;
   fdtype match_result, notstring;
-  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->fd_choiceval;
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->qchoiceval;
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
@@ -1391,7 +1391,7 @@ static fdtype string_ends_with_test(fdtype string,fdtype pattern,
 {
   u8_string data=FD_STRDATA(string); int start;
   fdtype end=FD_INT(lim);
-  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->fd_choiceval;
+  if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->qchoiceval;
   if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
   start=fd_text_search(pattern,NULL,data,off,lim,0);
   /* -2 is an error, -1 is not found */

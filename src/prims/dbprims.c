@@ -1820,7 +1820,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
   if (hs->hs_n_elts==0) {
     if (pick) return FD_EMPTY_CHOICE;
     else return fd_incref(candidates);}
-  u8_lock_mutex(&(hs->hs_lock)); {
+  fd_read_lock_table(hs); {
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), isatomic=1;
     fdtype *slots=hs->hs_slots; int n_slots=hs->hs_n_slots;
@@ -1837,7 +1837,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
       if (((found)&&(pick))||((!(found))&&((!pick)))) {
         if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
         *write++=c; fd_incref(c);}}
-    u8_unlock_mutex(&(hs->hs_lock));
+    fd_unlock_table(hs);
     fd_decref(simple);
     if (write==keep) {
       u8_free(keep); return FD_EMPTY_CHOICE;}

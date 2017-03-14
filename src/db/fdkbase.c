@@ -162,7 +162,7 @@ static int print_oid_name(u8_output out,fdtype name,int top)
     return u8_printf(out,"@%x/%x",hi,lo);}
   else if ((FD_SYMBOLP(name)) ||
            (FD_NUMBERP(name)) ||
-           (FDTYPE_CONSTANTP(name)))
+           (FD_CONSTANTP(name)))
     if (top) {
       int retval=-1;
       u8_puts(out,"{"); retval=fd_unparse(out,name);

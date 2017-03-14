@@ -1033,12 +1033,14 @@ static fdtype process_arg(fdtype arg,fd_lispenv env)
   else return argval;
 }
 
-static void push_apply_context(fdtype expr,fdtype fn,int arg_count,fdtype *argv)
+static void push_apply_context(fdtype expr,fdtype fn,
+                               int arg_count,fdtype *argv)
 {
+  int fntype=FD_PTR_TYPE(fn);
   fdtype call_context=fd_init_vector(NULL,arg_count+1,NULL);
   fdtype *avec=FD_VECTOR_ELTS(call_context);
-  fd_function fcn= (fd_functionp[fn]) ? ((fd_function) fn) : (NULL);
-  if (FD_EXPECT_TRUE(fcn)) {
+  fd_function fcn = (fd_functionp[fntype]) ? ((fd_function) fn) : (NULL);
+  if (FD_EXPECT_TRUE((fcn!=NULL))) {
     if (fcn->fcn_filename)
       if (fcn->fcn_name)
         avec[0]=fd_conspair(fd_intern(fcn->fcn_name),

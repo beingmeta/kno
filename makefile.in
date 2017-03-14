@@ -107,7 +107,7 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 DTYPE_OBJS=src/cons/cons.o src/cons/oids.o		\
 	src/cons/fcnids.o src/cons/bufio.o		\
 	src/cons/symbols.o src/cons/numbers.o		\
-	src/cons/compare.o				\
+	src/cons/compare.o src/cons/walk.o		\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
 	src/cons/choices.o src/cons/tables.o		\
 	src/cons/dtypeio.o src/cons/textio.o		\
@@ -324,7 +324,7 @@ FRAMERD_HEADERS= \
 
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
-        src/cons/compare.c src/cons/fcnids.c       			\
+        src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
 	src/cons/choices.c src/cons/tables.c 				\
         src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
 	src/cons/fdtype.c src/cons/support.c src/cons/config.c		\
