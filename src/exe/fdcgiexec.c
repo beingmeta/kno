@@ -489,7 +489,7 @@ static int simplecgi(fdtype path)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
+    fdtype setup_proc=FD_VOID;
     fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
