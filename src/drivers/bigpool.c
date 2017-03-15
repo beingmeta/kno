@@ -1139,17 +1139,19 @@ static void reload_offdata(fd_bigpool bp,int lock,int write)
   if (write<0)
     retval=msync(bp->pool_offdata-64,bp->pool_offdata_length+256,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
-    u8_log(LOG_WARN,u8_strerror(errno),"bigpool/reload_offsets:msync %s",bp->pool_idstring);
+    u8_log(LOG_WARN,u8_strerror(errno),
+           "bigpool/reload_offsets:msync %s",bp->pool_idstring);
     retval=0;}
   /* Unmap the current buffer */
   retval=munmap((bp->pool_offdata)-64,(bp->pool_offdata_length)+256);
   if (retval<0) {
-    u8_log(LOG_WARN,u8_strerror(errno),"bigpool/reload_offsets:munmap %s",bp->pool_idstring);
+    u8_log(LOG_WARN,u8_strerror(errno),
+           "bigpool/reload_offsets:munmap %s",bp->pool_idstring);
     bp->pool_offdata=NULL; errno=0;}
   else {
     fd_stream s=&(bp->pool_stream);
     size_t mmap_size=(write>0)?
-      (chunk_ref_size*(bp->pool_capacity)):
+     (chunk_ref_size*(bp->pool_capacity)):
       (chunk_ref_size*(bp->pool_load));
     unsigned int *newmmap;
     /* Map with the new load */
@@ -1161,7 +1163,8 @@ static void reload_offdata(fd_bigpool bp,int lock,int write)
            ((write>0) ? (MAP_SHARED) : (MAP_SHARED|MAP_NORESERVE)),
            s->stream_fileno,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_log(LOG_WARN,u8_strerror(errno),"bigpool/reload_offsets:mmap %s",bp->pool_idstring);
+      u8_log(LOG_WARN,u8_strerror(errno),
+             "bigpool/reload_offsets:mmap %s",bp->pool_idstring);
       bp->pool_offdata=NULL; bp->pool_offdata_length=0; errno=0;}
     bp->pool_offdata=newmmap+64;
     bp->pool_offdata_length=mmap_size;}
@@ -1200,7 +1203,8 @@ static void reload_offdata(fd_bigpool bp,int lock,int write)
   UNLOCK_POOLSTREAM(bp)
   if (lock) fd_unlock_pool(bp);
 #endif
-  u8_log(LOGWARN,"ReloadOffsets","Offsets for %s reloaded in %f secs",
+  u8_log(fdkb_loglevel+1,"ReloadOffsets",
+         "Offsets for %s reloaded in %f secs",
          bp->pool_idstring,u8_elapsed_time()-start);
 }
 
