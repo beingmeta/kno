@@ -120,14 +120,14 @@ static int procpool_swapout(fd_pool p,fdtype oid)
     else {fd_decref(result); return -1;}}
 }
 
-static fdtype procpool_metadata(fd_pool p)
+static fdtype procpool_metadata(fd_pool p,fdtype value)
 {
   struct FD_PROCPOOL *pp=(fd_procpool)p;
   fdtype lp=fd_pool2lisp(p);
-  fdtype args[]={lp,pp->pool_state};
+  fdtype args[3]={lp,pp->pool_state,value};
   if (FD_VOIDP(pp->metadatafn))
     return 0;
-  else return fd_dapply(pp->metadatafn,2,args);
+  else return fd_dapply(pp->metadatafn,3,args);
 }
 
 static fdtype procpool_alloc(fd_pool p,int n)
@@ -257,11 +257,11 @@ struct FD_POOL_HANDLER fd_procpool_handler={
   procpool_release, /* release */
   procpool_storen, /* storen */
   procpool_swapout, /* swapout */
-  NULL, /* metadata */
+  procpool_metadata, /* metadata */
   NULL, /* create */
   NULL,  /* walk */
   recycle_procpool, /* recycle */
-  NULL  /* poolctl */
+  procpool_ctl  /* poolctl */
 };
 
 FD_EXPORT void fd_init_procpool_c()
