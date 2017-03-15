@@ -1536,6 +1536,38 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		else sudo ${APXS} -i mod_fdserv.la; fi
 	sleep 5; sudo apachectl start
 
+# Test targets
+
+tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running libtests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j libtests optmods 2>&1 > tests/libtests.log && \
+	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
+libtests: tests/libtests.log
+
+tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
+	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
+schemetests: tests/schemetests.log
+
+tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
+	cp tests/schemtests.log tests/leaktests-`date +%d%b%yT%T`.log;
+leaktests: tests/leaktests.log
+
+tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
+	cp tests/schemtests.log tests/dbtests-`date +%d%b%yT%T`.log;
+dbtests: tests/dbtests.log
+
+.PHONY: alltests
+
 # Meta operations
 
 update-modules:

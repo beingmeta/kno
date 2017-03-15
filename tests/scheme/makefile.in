@@ -65,6 +65,7 @@ MEMTEST		= ${TEST_ENV} ${MEMTEST_ENV} ${MEMTESTER:-${TESTPROG}}
 LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 TESTBASE	= tmptest
+TESTFILE	= ${TESTBASE}.file
 FDX		= ./fdexec@suffix@
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
@@ -151,7 +152,6 @@ testclean:
 	rm -f tmp* utf8-temp* memoization.index test.dtype
 	rm -f logfile thirty2fifty thirtythree 
 
-
 # Static lib targets
 
 ../../lib/libfdweb@suffix@.a:
@@ -182,32 +182,29 @@ fdcgiexec: ../../src/exe/webcommon.h
 
 # Test targets
 
-all_tests alltests: \
-	scheme optscheme tables pools indexes db \
-	execscripts chainscripts batchscripts  \
-	chained_batchscripts optimize_modules
+all_tests alltests: libtests cmdtests optimize_modules
 	@echo "■■■■■■■■ Done with alltests"
 
+libtests: scheme optscheme slotmaps tables pools indexes db
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
-	@echo "■■■■■■■■ Done with alltests"
 
 schemetest schemetests scheme: r4rs exceptions choices sequences numvecs \
 	picktest cachecall texttools fdweb timefns threads i18n misc xml crypto
-optscheme: schemetest
+optscheme: scheme
 	@echo "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
-	${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
-	${RUN} ${FDX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
-	${RUN} ${FDX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
-	${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
 	@echo "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
-loadmods load_modules: schemetest
+loadmods load_modules:
 	@echo "■■■■■■■■ Testing default module loads ${RUNCONF}"
-	${RUN} ${FDX} loadmods.scm ${RUNCONF}
+	@${RUN} ${FDX} loadmods.scm ${RUNCONF}
 	@echo "■■■■■■■■ Finished testing default module loads ${RUNCONF}"
-optmods optimize_modules: optscheme
+optmods optimize_modules: load_modules
 	@echo "■■■■■■■■ Testing optimized module loads ${RUNCONF}"
-	${RUN} ${FDX} optmods.scm ${RUNCONF}
+	@${RUN} ${FDX} optmods.scm ${RUNCONF}
 	@echo "■■■■■■■■ Finished testing optimized module loads ${RUNCONF}"
 
 .PHONY: scheme schemetest schemetests optscheme loadmodes load_modules optmodes optimize_modules
@@ -215,103 +212,97 @@ optmods optimize_modules: optscheme
 # Individual scheme tests
 
 r4rs:
-	${RUN} ${FDX} r4rs.scm ${RUNCONF}
+	@${RUN} ${FDX} r4rs.scm ${RUNCONF}
 	@echo "■■■■ Completed r4rs tests ${RUNCONF}"
 exceptions:
-	${RUN} ${FDX} exceptions.scm ${RUNCONF}
+	@${RUN} ${FDX} exceptions.scm ${RUNCONF}
 	@echo "■■■■ Completed exceptions tests ${RUNCONF}"
 choices:
-	${RUN} ${FDX} choicetest.scm ${RUNCONF}
+	@${RUN} ${FDX} choicetest.scm ${RUNCONF}
 	@echo "■■■■ Completed choices tests ${RUNCONF}"
 sequences:
-	${RUN} ${FDX} seqtest.scm ${RUNCONF}
+	@${RUN} ${FDX} seqtest.scm ${RUNCONF}
 	@echo "■■■■ Completed sequences tests ${RUNCONF}"
 numvecs:
-	${RUN} ${FDX} numvecs.scm ${RUNCONF}
+	@${RUN} ${FDX} numvecs.scm ${RUNCONF}
 	@echo "■■■■ Completed numvecs tests ${RUNCONF}"
 picktest:
-	${RUN} ${FDX} picktest.scm ${RUNCONF}
+	@${RUN} ${FDX} picktest.scm ${RUNCONF}
 	@echo "■■■■ Completed picktest tests ${RUNCONF}"
 cachecall:
-	${RUN} ${FDX} cachecall.scm ${RUNCONF}
+	@${RUN} ${FDX} cachecall.scm ${RUNCONF}
 	@echo "■■■■ Completed cachecall tests ${RUNCONF}"
 texttools:
-	${RUN} ${FDX} texttest.scm ${RUNCONF}
+	@${RUN} ${FDX} texttest.scm ${RUNCONF}
 	@echo "■■■■ Completed texttools tests ${RUNCONF}"
 fdweb:
-	${RUN} ${FDX} fdwebtest.scm ${RUNCONF}
+	@${RUN} ${FDX} fdwebtest.scm ${RUNCONF}
 	@echo "■■■■ Completed fdweb tests ${RUNCONF}"
 timefns:
-	${RUN} ${FDX} timefns.scm ${RUNCONF}
+	@${RUN} ${FDX} timefns.scm ${RUNCONF}
 	@echo "■■■■ Completed timefns tests ${RUNCONF}"
 threads:
-	${RUN} ${FDX} threadtest.scm ${RUNCONF}
+	@${RUN} ${FDX} threadtest.scm ${RUNCONF}
 	@echo "■■■■ Completed threads tests ${RUNCONF}"
 i18n:
-	${RUN} ${FDX} i18n.scm ${RUNCONF}
+	@${RUN} ${FDX} i18n.scm ${RUNCONF}
 	@echo "■■■■ Completed i18n tests ${RUNCONF}"
 misc:
-	${RUN} ${FDX} misctest.scm ${RUNCONF}
+	@${RUN} ${FDX} misctest.scm ${RUNCONF}
 	@echo "■■■■ Completed misc tests ${RUNCONF}"
 xml:
-	${RUN} ${FDX} xmltest.scm ${RUNCONF}
+	@${RUN} ${FDX} xmltest.scm ${RUNCONF}
 	@echo "■■■■ Completed xml tests ${RUNCONF}"
 crypto:
-	${RUN} ${FDX} cryptotest.scm ${RUNCONF}
+	@${RUN} ${FDX} cryptotest.scm ${RUNCONF}
 	@echo "■■■■ Completed crypto tests ${RUNCONF}"
 
 
 # Table tests
 
-tabletests tables:
-	${RUN} ${FDX} tabletest.scm ${TESTBASE}.table ${TESTSIZE} ${RUNCONF}
-	${RUN} ${FDX} tabletest.scm ${TESTBASE}.table ${RUNCONF}
+tabletest:
+	@${RUN} ${FDX} tabletest.scm ${TESTFILE} ${TESTSIZE} ${RUNCONF} && \
+	 ${RUN} ${FDX} tabletest.scm ${TESTFILE} ${RUNCONF} && \
+	 rm ${TESTFILE}
 
-.PHONY: tabletests tables
+slotmaptests slotmaps:
+	@make TESTFILE=${TESTBASE}.slotmap tabletest
+
+tabletests hashtables:
+	@make TESTFILE=${TESTBASE}.hashtable tabletest
+
+.PHONY: slotmaptests slotmaps tabletests tables
 
 # Pool tests
 
 pooltest:
 	@echo "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -f ${TESTBASE}.pool
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${FILEPOOL}
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2
+	@${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${FILEPOOL}
+	@${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1
+	@${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2
 
 filepooltest:
-	make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
 
 oidpooltest:
-	make TESTBASE=oidpool RUNCONF="${OIDPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=oidpool RUNCONF="${OIDPOOL} ${RUNCONF}" pooltest
 oidpool32test:
-	make TESTBASE=oidpool32 RUNCONF="${OIDPOOL} ${OFFB32} ${RUNCONF}" pooltest
+	@make TESTBASE=oidpool32 RUNCONF="${OIDPOOL} ${OFFB32} ${RUNCONF}" pooltest
 oidpool64test:
-	make TESTBASE=oidpool64 RUNCONF="${OIDPOOL} ${OFFB64} ${RUNCONF}" pooltest
+	@make TESTBASE=oidpool64 RUNCONF="${OIDPOOL} ${OFFB64} ${RUNCONF}" pooltest
 
 bigpooltest:
-	make TESTBASE=bigpool RUNCONF="${BIGPOOL} ${RUNCONF}" pooltest
+	@make TESTBASE=bigpool RUNCONF="${BIGPOOL} ${RUNCONF}" pooltest
 bigpool32test:
-	make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB32} ${RUNCONF}" pooltest
+	@make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB32} ${RUNCONF}" pooltest
 bigpool64test:
-	make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB64} ${RUNCONF}" pooltest
+	@make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB64} ${RUNCONF}" pooltest
 
 bigpooltests: bigpooltest bigpool32test bigpool64test
 oidpooltests: oidpooltest oidpool32test oidpool64test
 
 pooltests pools: filepooltest oidpooltests bigpooltests
-	make TESTBASE=oidpool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
-	@echo "■■■■■■■■ Running file pool tests ■■■■■■■■■■■■■■■■"
-	@echo "■■■■■■■■ Running oidpool tests ■■■■■■■■■■■■■■■■"
-	@rm -f ${TESTBASE}.pool
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} POOLTYPE=oidpool
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2
-	@echo "■■■■■■■■ Running bigpool tests ■■■■■■■■■■■■■■■■"
-	@rm -f ${TESTBASE}.pool
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} POOLTYPE=oidpool
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2
-
 
 .PHONY: pooltests pool
 
@@ -320,36 +311,33 @@ pooltests pools: filepooltest oidpooltests bigpooltests
 indextest:
 	@echo "■■■■■■■■ Running index tests ${TESTBASE} ${RUNCONF}"
 	@rm -f *.edit.dtype
-	# The cache is off by default
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF}
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}
-	# Test reading with the cache on, consed indices, and both
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF}
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF}
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
-	# Do test edits (no cache)
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
-	# Verify test edits
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
-	# New test, building with cache enabled
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF}
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF}
-	# Try testing without the cache
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}
-	# Do test edits (with cache)
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
-	# Verify test edits
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
+	# Build with the offsets cache off
+	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	rm ${TESTBASE}
+	# Build with the offsets cache on
+	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
+	rm ${TESTBASE}
 	# Build with both cache and consindices
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
+	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} \
+		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} \
-		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}
-	# Do test edits (with cache and consindex)
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype
-		 ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes
-	# Verify test edits
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF}
+		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
+		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
+		${RUNCONF} && \
+	rm ${TESTBASE}
 	@echo "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
 
 fileindexes fileindex:
@@ -371,19 +359,19 @@ indextests indexes: fileindexes hashindexes
 # Database/frames test
 
 dbtest:
-	@echo "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${RUNCONF}"
-	${RUN} ${FDX} dbtest.scm ${TESTBASE}db init \
+	@echo "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db init \
 		COUNT=${TESTSIZE} ${DBTEST_FILES} \
-		${RUNCONF}
-	${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF} 
-	${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
-		 ${RUNCONF} CACHELEVEL=2 
-	@echo "■■■■■■■■ Testing database creation with CACHELEVEL=2"
-	${RUN} ${FDX} dbtest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
-		${DBTEST_FILES} ${RUNCONF} CACHELEVEL=2 	
-	${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
-		 ${RUNCONF} CACHELEVEL=2
-	@echo "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${RUNCONF} ■■■■■■■■■■■■■■■■"
+		${RUNCONF};
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+		 ${RUNCONF} CACHELEVEL=2;
+	@echo "■■■■■■■■ Testing database creation with CACHELEVEL=2";
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
+		${DBTEST_FILES} ${RUNCONF} CACHELEVEL=2;
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+		 ${RUNCONF} CACHELEVEL=2;
+	@echo "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF} ■■■■■■■■■■■■■■■■";
 
 dbtest_oidpool32:
 	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" dbtest
@@ -526,7 +514,8 @@ chained_batchscripts:
 
 heaptest memtest memtests: all_memtests
 
-all_memtests: scheme_memtests table_memtests \
+all_memtests: scheme_memtests \
+	slotmap_memtests table_memtests \
 	pool_memtests index_memtests db_memtests \
 	crypto_memtests load_modules_memtest
 
@@ -535,6 +524,12 @@ scheme_memtests:
 	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" RUNCONF="${MEMCONF}" \
 	     TESTSIZE="${SMALLTESTSIZE}" scheme
 	@echo "■■■■■■■■ Finished heap integrity tests on scheme/scripting layer"
+
+slotmap_memtests:
+	@echo "■■■■■■■■ Running heap integrity tests on tables"
+	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" RUNCONF="${MEMCONF}" \
+	     TESTSIZE="${SMALLTESTSIZE}" slotmaps
+	@echo "■■■■■■■■ Finished heap integrity tests tables"
 
 table_memtests:
 	@echo "■■■■■■■■ Running heap integrity tests on tables"
@@ -545,7 +540,7 @@ table_memtests:
 pool_memtests:
 	@echo "■■■■■■■■ Running heap integrity tests on pools"
 	make TESTPROG="${MEMTESTER}" TEST_ENV="${MEMTEST_ENV}" RUNCONF="${MEMCONF}" \
-	     TESTSIZE="${SMALLTESTSIZE}" indexes
+	     TESTSIZE="${SMALLTESTSIZE}" pools
 	@echo "■■■■■■■■ Finished heap integrity tests on pools"
 
 index_memtests:
@@ -585,9 +580,10 @@ optimize_modules_memtest:
 
 # Leaktests
 
-heaptest leaktest leaktests: all_leaktests
+heaptests heaptest heap leak leaktest leaktests: all_leaktests
 
-all_leaktests: scheme_leaktests table_leaktests \
+all_leaktests: scheme_leaktests \
+	slotmap_leaktests table_leaktests \
 	pool_leaktests index_leaktests db_leaktests \
 	crypto_leaktest load_modules_leaktest
 
@@ -596,14 +592,19 @@ scheme_leaktests:
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" scheme
 	@echo "■■■■■■■■ Finished leak tests on scheme/scripting layer"
 
+slotmap_leaktests:
+	@echo "■■■■■■■■ Running leak tests on slotmaps"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" slotmaps
+	@echo "■■■■■■■■ Finished leak tests tables"
+
 table_leaktests:
-	@echo "■■■■■■■■ Running leak tests on tables"
+	@echo "■■■■■■■■ Running leak tests on hashtables"
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" tables
 	@echo "■■■■■■■■ Finished leak tests tables"
 
 pool_leaktests:
 	@echo "■■■■■■■■ Running leak tests on pools"
-	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" indexes
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" pools
 	@echo "■■■■■■■■ Finished leak tests on pools"
 
 index_leaktests:
