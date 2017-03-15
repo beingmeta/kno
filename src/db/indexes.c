@@ -802,7 +802,9 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   if (ix==NULL) return -1;
   else init_cache_level(ix);
   if ((ix->index_adds.ht_n_buckets) || (ix->index_edits.ht_n_buckets)) {
-    int n_keys=ix->index_adds.table_n_keys+ix->index_edits.table_n_keys, retval=0;
+    int n_edits=ix->index_edits.table_n_keys;
+    int n_adds=ix->index_adds.table_n_keys;
+    int n_keys=n_edits+n_adds, retval=0;
     if (n_keys==0) return 0;
     u8_log(fdkb_loglevel,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->index_idstring);
@@ -820,14 +822,16 @@ FD_EXPORT int fd_index_commit(fd_index ix)
              retval,ix->index_idstring,u8_elapsed_time()-start_time);
     else {}
     if (retval<0)
-      u8_seterr(fd_IndexCommitError,"fd_index_commit",u8_strdup(ix->index_idstring));
+      u8_seterr(fd_IndexCommitError,"fd_index_commit",
+                u8_strdup(ix->index_idstring));
     return retval;}
   else return 0;
 }
 
 FD_EXPORT void fd_index_swapout(fd_index ix)
 {
-  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
+  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) &&
+      (ix->index_cache.table_n_keys)) {
     if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(&(ix->index_cache),-1,1);
     else fd_reset_hashtable(&(ix->index_cache),0,1);}

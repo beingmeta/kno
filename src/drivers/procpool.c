@@ -28,44 +28,23 @@ fdtype lock_symbol, unlock_symbol;
    a load function but may be extended to be clever about saving in some way. */
 
 FD_EXPORT
-fd_pool fd_make_procpool(u8_string label,
-			 FD_OID base,int cap,int load,fdtype state,
-			 fdtype allocfn,
-			 fdtype fetchfn,fdtype fetchnfn,
-			 fdtype lockfn,fdtype releasefn,
-			 fdtype storen,fdtype metadatafn,
-			 fdtype createfn,fdtype opfn,
-			 fdtype closefn)
+fd_pool fd_make_procpool(FD_OID base,int cap,int load,fdtype opts,fdtype state)
 {
-  if (!(FD_EXPECT_TRUE(FD_APPLICABLEP(fetchfn)))) {
-    fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
-              fd_incref(fetchfn));
-    return NULL;}
-  else if (!(FD_ISFUNARG(savefn))) {
-    fd_seterr(fd_TypeError,"fd_make_extpool","save function",
-              fd_incref(savefn));
-    return NULL;}
-  else if (!(FD_ISFUNARG(lockfn))) {
-    fd_seterr(fd_TypeError,"fd_make_extpool","lock function",
-              fd_incref(lockfn));
-    return NULL;}
-  else if (!(FD_ISFUNARG(allocfn))) {
-    fd_seterr(fd_TypeError,"fd_make_extpool","alloc function",
-              fd_incref(allocfn));
-    return NULL;}
-  else {
-    struct FD_PROCPOOL *pp=u8_alloc(struct FD_PROCPOOL);
-    memset(pp,0,sizeof(struct FD_EXTPOOL));
-    fd_init_pool((fd_pool)pp,base,cap,&fd_procpool_handler,label,label);
-    fd_register_pool((fd_pool)xp);
-    fd_incref(fetchfn); fd_incref(savefn);
-    fd_incref(lockfn); fd_incref(allocfn);
-    fd_incref(state);
-    xp->fetchfn=fetchfn; xp->savefn=savefn;
-    xp->lockfn=lockfn; xp->allocfn=allocfn;
-    xp->state=state; xp->pool_label=label;
-    xp->pool_flags=xp->pool_flags|FD_OIDHOLES_OKAY;
-    return (fd_pool)xp;}
+  struct FD_PROCPOOL *pp=u8_alloc(struct FD_PROCPOOL);
+  memset(pp,0,sizeof(struct FD_EXTPOOL));
+  fd_init_pool((fd_pool)pp,base,cap,&fd_procpool_handler,label,label);
+  fd_register_pool((fd_pool)xp);
+  fd_incref(fetchfn); fd_incref(savefn);
+  fd_incref(lockfn); fd_incref(allocfn);
+  fd_incref(state);
+  xp->fetchfn=fd_getopt(opts,SYM("FETCHFN"),FD_VOID);
+  xp->savefn=savefn;
+  xp->lockfn=lockfn;
+  xp->allocfn=allocfn;
+  xp->state=state;
+  xp->pool_label=label;
+  xp->pool_flags=xp->pool_flags|FD_OIDHOLES_OKAY;
+  return (fd_pool)xp;
 }
 
 static fdtype extpool_fetch(fd_pool p,fdtype oid)
