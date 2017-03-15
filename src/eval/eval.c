@@ -1100,7 +1100,7 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   else if (arg_count != argv_length) {
     if (fcn->fcn_defaults) {
       for (;arg_count<argv_length;arg_count++) {
-        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]);}} 
+        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]);}}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
   if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
@@ -1112,7 +1112,7 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
     push_apply_context(expr,(fdtype)fcn,arg_count,argv);
   else if (gc_args) for (int i=0; i<arg_count; i++) {
-      fdtype arg=argv[i++]; fd_decref(arg);}
+      fdtype arg=argv[i]; fd_decref(arg);}
   if (free_argv) u8_free(argv);
   return result;
 }
