@@ -1305,8 +1305,9 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchsizes, /* fetchsizes */
   NULL, /* fetchsizes */
   file_index_create, /* create */
+  NULL, /* walk */
   NULL, /* recycle */
-  file_index_op  /* indexop */
+  file_index_op  /* indexctl */
 };
 
 static u8_string match_index_name(u8_string spec,void *data)

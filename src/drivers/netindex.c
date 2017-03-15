@@ -248,8 +248,9 @@ static struct FD_INDEX_HANDLER netindex_handler={
   NULL, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* create */
+  NULL, /* walk */
   NULL, /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT void fd_init_netindex_c()

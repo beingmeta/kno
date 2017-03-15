@@ -1474,7 +1474,7 @@ static fd_pool oidpool_create(u8_string spec,void *type_data,
 
 /* OIDPOOL ops */
 
-static fdtype oidpool_op(fd_pool p,int op,int n,fdtype *args)
+static fdtype oidpool_ctl(fd_pool p,int op,int n,fdtype *args)
 {
   struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
   if ((n>0)&&(args==NULL))
@@ -1519,8 +1519,9 @@ static struct FD_POOL_HANDLER oidpool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   oidpool_create, /* create */
+  NULL,  /* walk */
   NULL, /* recycle */
-  oidpool_op  /* poolop */
+  oidpool_ctl  /* poolctl */
 };
 
 

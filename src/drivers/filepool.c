@@ -750,7 +750,7 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
 
 static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label);
 
-static fdtype file_pool_op(fd_pool p,int op,int n,fdtype *args)
+static fdtype file_pool_ctl(fd_pool p,int op,int n,fdtype *args)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   if ((n>0)&&(args==NULL))
@@ -825,8 +825,9 @@ static struct FD_POOL_HANDLER file_pool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   filepool_create, /* create */
+  NULL,  /* walk */
   NULL, /* recycle */
-  file_pool_op /* poolop */
+  file_pool_ctl /* poolctl */
 };
 
 /* Matching pool names */

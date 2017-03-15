@@ -209,8 +209,9 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* create */
+  NULL,  /* walk */
   recycle_extindex,  /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT void fd_init_extindex_c()

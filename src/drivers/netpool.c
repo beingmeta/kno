@@ -252,8 +252,9 @@ static struct FD_POOL_HANDLER netpool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   NULL, /* create */
+  NULL,  /* walk */
   NULL, /* recycle */
-  NULL  /* poolop */
+  NULL  /* poolctl */
 };
 
 static void init_client_id()

@@ -127,7 +127,7 @@ static struct FD_INDEX_HANDLER htindex_handler={
   htindex_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
   NULL, /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT

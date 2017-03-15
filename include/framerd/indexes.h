@@ -70,8 +70,9 @@ typedef struct FD_INDEX_HANDLER {
   fdtype (*metadata)(fd_index ix,fdtype);
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
+  int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_index p);
-  fdtype (*indexop)(fd_index ix,int opid,int n,fdtype *args);}
+  fdtype (*indexctl)(fd_index ix,int opid,int n,fdtype *args);}
   FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
@@ -94,11 +95,15 @@ struct FD_INDEX_HANDLER some_handler={
   NULL, /* commit */
   NULL, /* fetch */
   NULL, /* fetchsize */
+  NULL, /* prefetch */
   NULL /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
-  NULL, /* creates */
-  NULL /* indexop */
+  NULL, /* metadata */
+  NULL, /* create */
+  NULL, /* walk */
+  NULL, /* recycle */
+  NULL /* indexctl */
 };
 #endif
 

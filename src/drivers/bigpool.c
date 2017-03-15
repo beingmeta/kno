@@ -1238,7 +1238,7 @@ static void bigpool_setbuf(fd_pool p,int bufsiz)
 
 /* Bigpool ops */
 
-static fdtype bigpool_op(fd_pool p,int op,int n,fdtype *args)
+static fdtype bigpool_ctl(fd_pool p,int op,int n,fdtype *args)
 {
   struct FD_BIGPOOL *fp=(struct FD_BIGPOOL *)p;
   if ((n>0)&&(args==NULL))
@@ -1370,8 +1370,9 @@ static struct FD_POOL_HANDLER bigpool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   bigpool_create, /* create */
+  NULL,  /* walk */
   NULL,  /* recycle */
-  bigpool_op  /* poolop */
+  bigpool_ctl  /* poolctl */
 };
 
 

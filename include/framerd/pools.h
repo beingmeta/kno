@@ -188,8 +188,9 @@ typedef struct FD_POOL_HANDLER {
   fdtype (*metadata)(fd_pool p,fdtype);
   fd_pool (*create)(u8_string spec,void *typedata,
 		    fdkb_flags flags,fdtype opts);
+  int (*walker)(fd_pool,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_pool p);
-  fdtype (*poolop)(fd_pool p,int opid,int n,fdtype *args);}
+  fdtype (*poolctl)(fd_pool p,int opid,int n,fdtype *args);}
   FD_POOL_HANDLER;
 typedef struct FD_POOL_HANDLER *fd_pool_handler;
 
@@ -205,6 +206,8 @@ struct FD_POOL_HANDLER some_handler={
    NULL, /* storen */
    NULL, /* metadata */
    NULL, /* create */
+   NULL, /* walk */
+   NULL, /* recycle */
    NULL  /* pool op */
 };
 #endif
@@ -389,23 +392,18 @@ FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
 typedef struct FD_PROCPOOL {
   FD_POOL_FIELDS;
   fdtype pool_state;
-  fdtype allocfn,
-    fetchfn, fetchnfn,
-    lockfn,releasefn,
-    storen,metadatafn,
-    createfn,closefn,ctl;}
+  fdtype allocfn, getloadfn,
+    fetchfn, fetchnfn, swapoutfn,
+    lockfn, releasefn,
+    storenfn, metadatafn,
+    createfn, closefn, ctlfn;}
   FD_PROCPOOL;
 typedef struct FD_PROCPOOL *fd_procpool;
 
 FD_EXPORT
-fd_pool fd_make_procpool(u8_string label,
-			 FD_OID base,int cap,int load,fdtype state,
-			 fdtype allocfn,
-			 fdtype fetchfn,fdtype fetchnfn,
-			 fdtype lockfn,fdtype releasefn,
-			 fdtype storen,fdtype metadatafn,
-			 fdtype createfn,fdtype opfn,
-			 fdtype closefn);
+fd_pool fd_make_procpool(FD_OID base,int cap,int load,
+			 fdtype opts,fdtype state,
+			 u8_string label,u8_string cid);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 

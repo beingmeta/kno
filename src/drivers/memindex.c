@@ -309,8 +309,9 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   NULL, /* fetchsizes */
   NULL, /* metadata */
   mem_index_create, /* create */
+  NULL, /* walk */
   NULL, /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT void fd_init_memindex_c()

@@ -136,8 +136,8 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
 FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args)
 {
   struct FD_POOL_HANDLER *h=p->pool_handler;
-  if (h->poolop)
-    return h->poolop(p,poolop,n,args);
+  if (h->poolctl)
+    return h->poolctl(p,poolop,n,args);
   else return FD_FALSE;
 }
 
@@ -1428,7 +1428,10 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL /* sync */
+  NULL, /* create */
+  NULL, /* walker */
+  NULL, /* recycle */
+  NULL  /* poolctl */
 };
 
 

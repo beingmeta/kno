@@ -2745,8 +2745,9 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   hash_index_fetchsizes, /* fetchsizes */
   NULL, /* metadata */
   hash_index_create, /* create */ 
+  NULL, /* walk */
   NULL, /* recycle */
-  hash_index_ctl /* indexop */
+  hash_index_ctl /* indexctl */
 };
 
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)

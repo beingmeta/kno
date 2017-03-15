@@ -61,7 +61,7 @@ FD_EXPORT
     Returns: 1, 0, or -1 (an int)
   Returns a function corresponding to a generic sort of two dtype pointers. */
 int fd_walk(fd_walker walker,fdtype obj,void *walkdata,
-	     fd_walk_flags flags,int depth)
+	    fd_walk_flags flags,int depth)
 {
   return fast_walk(walker,obj,walkdata,flags,depth);
 }

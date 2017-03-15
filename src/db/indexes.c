@@ -92,8 +92,8 @@ static u8_mutex indexes_lock;
 FD_EXPORT fdtype fd_index_ctl(fd_index x,int indexop,int n,fdtype *args)
 {
   struct FD_INDEX_HANDLER *h=x->index_handler;
-  if (h->indexop)
-    return h->indexop(x,indexop,n,args);
+  if (h->indexctl)
+    return h->indexctl(x,indexop,n,args);
   else return FD_FALSE;
 }
 
