@@ -196,93 +196,93 @@ TEXTTOOLS_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 SUNDOWN_OBJS=\
-	src/cmodules/sundown/autolink.o \
-	src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/houdini_href_e.o \
-	src/cmodules/sundown/houdini_html_e.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/markdown.o \
-	src/cmodules/sundown/stack.o \
+	src/cmodules/ext/sundown/autolink.o \
+	src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/houdini_href_e.o \
+	src/cmodules/ext/sundown/houdini_html_e.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/markdown.o \
+	src/cmodules/ext/sundown/stack.o \
 	src/cmodules/sundown.o
 
-SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
-SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
-	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
-	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
-	src/cmodules/sundown/houdini.h
+SUNDOWN_OBJECTS=src/cmodules/ext/sundown/autolink.o src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/markdown.o src/cmodules/ext/sundown/stack.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/houdini_href_e.o src/cmodules/ext/sundown/houdini_html_e.o
+SUNDOWN_H_FILES=src/cmodules/ext/sundown/autolink.h src/cmodules/ext/sundown/buffer.h \
+	src/cmodules/ext/sundown/markdown.h src/cmodules/ext/sundown/stack.h \
+	src/cmodules/ext/sundown/html_blocks.h src/cmodules/ext/sundown/html.h \
+	src/cmodules/ext/sundown/houdini.h
 
 TIDY_OBJECTS=\
-	src/cmodules/tidy5/access.o 	\
-	src/cmodules/tidy5/alloc.o 	\
-	src/cmodules/tidy5/attrask.o 	\
-	src/cmodules/tidy5/attrdict.o 	\
-	src/cmodules/tidy5/attrget.o 	\
-	src/cmodules/tidy5/attrs.o 	\
-	src/cmodules/tidy5/buffio.o 	\
-	src/cmodules/tidy5/charsets.o 	\
-	src/cmodules/tidy5/clean.o 	\
-	src/cmodules/tidy5/config.o 	\
-	src/cmodules/tidy5/entities.o 	\
-	src/cmodules/tidy5/fileio.o 	\
-	src/cmodules/tidy5/gdoc.o 	\
-	src/cmodules/tidy5/iconvtc.o 	\
-	src/cmodules/tidy5/istack.o 	\
-	src/cmodules/tidy5/language.o 	\
-	src/cmodules/tidy5/lexer.o 	\
-	src/cmodules/tidy5/mappedio.o 	\
-	src/cmodules/tidy5/message.o 	\
-	src/cmodules/tidy5/parser.o 	\
-	src/cmodules/tidy5/pprint.o 	\
-	src/cmodules/tidy5/sprtf.o 	\
-	src/cmodules/tidy5/streamio.o 	\
-	src/cmodules/tidy5/tagask.o 	\
-	src/cmodules/tidy5/tags.o 	\
-	src/cmodules/tidy5/tidylib.o 	\
-	src/cmodules/tidy5/tmbstr.o 	\
-	src/cmodules/tidy5/utf8.o 	\
-	src/cmodules/tidy5/win32tc.o
+	src/cmodules/ext/tidy5/access.o 	\
+	src/cmodules/ext/tidy5/alloc.o 	\
+	src/cmodules/ext/tidy5/attrask.o 	\
+	src/cmodules/ext/tidy5/attrdict.o 	\
+	src/cmodules/ext/tidy5/attrget.o 	\
+	src/cmodules/ext/tidy5/attrs.o 	\
+	src/cmodules/ext/tidy5/buffio.o 	\
+	src/cmodules/ext/tidy5/charsets.o 	\
+	src/cmodules/ext/tidy5/clean.o 	\
+	src/cmodules/ext/tidy5/config.o 	\
+	src/cmodules/ext/tidy5/entities.o 	\
+	src/cmodules/ext/tidy5/fileio.o 	\
+	src/cmodules/ext/tidy5/gdoc.o 	\
+	src/cmodules/ext/tidy5/iconvtc.o 	\
+	src/cmodules/ext/tidy5/istack.o 	\
+	src/cmodules/ext/tidy5/language.o 	\
+	src/cmodules/ext/tidy5/lexer.o 	\
+	src/cmodules/ext/tidy5/mappedio.o 	\
+	src/cmodules/ext/tidy5/message.o 	\
+	src/cmodules/ext/tidy5/parser.o 	\
+	src/cmodules/ext/tidy5/pprint.o 	\
+	src/cmodules/ext/tidy5/sprtf.o 	\
+	src/cmodules/ext/tidy5/streamio.o 	\
+	src/cmodules/ext/tidy5/tagask.o 	\
+	src/cmodules/ext/tidy5/tags.o 	\
+	src/cmodules/ext/tidy5/tidylib.o 	\
+	src/cmodules/ext/tidy5/tmbstr.o 	\
+	src/cmodules/ext/tidy5/utf8.o 	\
+	src/cmodules/ext/tidy5/win32tc.o
 
 TIDY_H_FILES=\
-	src/cmodules/tidy5/access.h 	\
-	src/cmodules/tidy5/attrdict.h 	\
-	src/cmodules/tidy5/attrs.h 	\
-	src/cmodules/tidy5/buffio.h 	\
-	src/cmodules/tidy5/charsets.h 	\
-	src/cmodules/tidy5/clean.h 	\
-	src/cmodules/tidy5/config.h 	\
-	src/cmodules/tidy5/entities.h 	\
-	src/cmodules/tidy5/fileio.h 	\
-	src/cmodules/tidy5/forward.h 	\
-	src/cmodules/tidy5/gdoc.h 	\
-	src/cmodules/tidy5/iconvtc.h 	\
-	src/cmodules/tidy5/language_en_gb.h 	\
-	src/cmodules/tidy5/language_en.h 	\
-	src/cmodules/tidy5/language_es.h 	\
-	src/cmodules/tidy5/language_es_mx.h 	\
-	src/cmodules/tidy5/language_fr.h 	\
-	src/cmodules/tidy5/language.h 	\
-	src/cmodules/tidy5/language_zh_cn.h 	\
-	src/cmodules/tidy5/lexer.h 	\
-	src/cmodules/tidy5/mappedio.h 	\
-	src/cmodules/tidy5/message.h 	\
-	src/cmodules/tidy5/parser.h 	\
-	src/cmodules/tidy5/platform.h 	\
-	src/cmodules/tidy5/pprint.h 	\
-	src/cmodules/tidy5/sprtf.h 	\
-	src/cmodules/tidy5/streamio.h 	\
-	src/cmodules/tidy5/tags.h 	\
-	src/cmodules/tidy5/tidybuffio.h 	\
-	src/cmodules/tidy5/tidyenum.h 	\
-	src/cmodules/tidy5/tidy.h 	\
-	src/cmodules/tidy5/tidy-int.h 	\
-	src/cmodules/tidy5/tidyplatform.h 	\
-	src/cmodules/tidy5/tmbstr.h 	\
-	src/cmodules/tidy5/utf8.h 	\
-	src/cmodules/tidy5/version.h 	\
-	src/cmodules/tidy5/win32tc.h
+	src/cmodules/ext/tidy5/access.h 	\
+	src/cmodules/ext/tidy5/attrdict.h 	\
+	src/cmodules/ext/tidy5/attrs.h 	\
+	src/cmodules/ext/tidy5/buffio.h 	\
+	src/cmodules/ext/tidy5/charsets.h 	\
+	src/cmodules/ext/tidy5/clean.h 	\
+	src/cmodules/ext/tidy5/config.h 	\
+	src/cmodules/ext/tidy5/entities.h 	\
+	src/cmodules/ext/tidy5/fileio.h 	\
+	src/cmodules/ext/tidy5/forward.h 	\
+	src/cmodules/ext/tidy5/gdoc.h 	\
+	src/cmodules/ext/tidy5/iconvtc.h 	\
+	src/cmodules/ext/tidy5/language_en_gb.h 	\
+	src/cmodules/ext/tidy5/language_en.h 	\
+	src/cmodules/ext/tidy5/language_es.h 	\
+	src/cmodules/ext/tidy5/language_es_mx.h 	\
+	src/cmodules/ext/tidy5/language_fr.h 	\
+	src/cmodules/ext/tidy5/language.h 	\
+	src/cmodules/ext/tidy5/language_zh_cn.h 	\
+	src/cmodules/ext/tidy5/lexer.h 	\
+	src/cmodules/ext/tidy5/mappedio.h 	\
+	src/cmodules/ext/tidy5/message.h 	\
+	src/cmodules/ext/tidy5/parser.h 	\
+	src/cmodules/ext/tidy5/platform.h 	\
+	src/cmodules/ext/tidy5/pprint.h 	\
+	src/cmodules/ext/tidy5/sprtf.h 	\
+	src/cmodules/ext/tidy5/streamio.h 	\
+	src/cmodules/ext/tidy5/tags.h 	\
+	src/cmodules/ext/tidy5/tidybuffio.h 	\
+	src/cmodules/ext/tidy5/tidyenum.h 	\
+	src/cmodules/ext/tidy5/tidy.h 	\
+	src/cmodules/ext/tidy5/tidy-int.h 	\
+	src/cmodules/ext/tidy5/tidyplatform.h 	\
+	src/cmodules/ext/tidy5/tmbstr.h 	\
+	src/cmodules/ext/tidy5/utf8.h 	\
+	src/cmodules/ext/tidy5/version.h 	\
+	src/cmodules/ext/tidy5/win32tc.h
 
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/crypto.o src/cmodules/ldap.o \
@@ -647,12 +647,12 @@ $(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
-src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ -c $<
+src/cmodules/ext/sundown/%.o: src/cmodules/ext/sundown/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/ext/sundown/ -o $@ -c $<
 	@$(MSG) CC "(SUNDOWN)" $@
 
-src/cmodules/tidy5/%.o: src/cmodules/tidy5/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/tidy5/ -o $@ -c $<
+src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
@@ -749,14 +749,14 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
 		src/text/*.c src/cmodules/*.c         \
-		src/cmodules/sundown/sundown.c include/framerd/*.h        \
+		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
 	      src/text/*.c src/cmodules/*.c         \
-	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
+	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
 
 SCHEMETAGS: ${SCHEME_MODULES}
