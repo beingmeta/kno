@@ -1582,6 +1582,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
 	   tests/scheme/runtest tests/scheme/fdexectest
 	   tests/scheme/tcdebug tests/scheme/vgdebug
+	   tests/scheme/gheaptest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
 	   etc/logrotate
