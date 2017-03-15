@@ -715,8 +715,10 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
 static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
 {
   fd_index ix=fd_indexptr(ixarg);
-  if (ix) return fd_index_drop(ix,key,value);
-  else return -1;
+  if (!(ix)) return -1;
+  else if (FD_VOIDP(value))
+    return fd_index_store(ix,key,FD_EMPTY_CHOICE);
+  else return fd_index_drop(ix,key,value);
 }
 
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
