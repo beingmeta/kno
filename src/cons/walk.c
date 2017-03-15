@@ -52,7 +52,7 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
       return walker(obj,walkdata);}
   else if ((flags)&(FD_WALK_TERMINALS))
     return walker(obj,walkdata);
-  else {}
+  else return 0;
 }
 
 FD_EXPORT
@@ -91,7 +91,6 @@ static int cons_walk(fd_walker walker,int constype,
       i++;}
     return len;}
   case fd_slotmap_type: {
-    int rv=0;
     struct FD_SLOTMAP *slotmap=FD_XSLOTMAP(obj);
     fd_read_lock_table(slotmap);
     int i=0, len=FD_SLOTMAP_NSLOTS(obj);
@@ -107,7 +106,7 @@ static int cons_walk(fd_walker walker,int constype,
   case fd_schemap_type: {
     struct FD_SCHEMAP *schemap=FD_XSCHEMAP(obj);
     fd_read_lock_table(schemap);
-    int i=0, len=FD_SCHEMAP_SIZE(obj), rv=0;
+    int i=0, len=FD_SCHEMAP_SIZE(obj);
     fdtype *slotids=schemap->table_schema;
     fdtype *slotvals=schemap->schema_values;
     while (i<len) {

@@ -1067,7 +1067,7 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   int max_arity=fcn->fcn_arity, min_arity=fcn->fcn_min_arity;
   int n_params=max_arity, argv_length=max_arity;
   int n_args=count_args(arg_exprs), arg_count=0, gc_args=0, free_argv=0;
-  int nd_args=1, prune=0, d_prim=(fcn->fcn_ndcall==0);
+  int nd_args=1, d_prim=(fcn->fcn_ndcall==0);
   if (max_arity<0) argv_length=n_args;
   /* Check arg count early */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
@@ -1123,7 +1123,7 @@ static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
   fdtype _argv[FD_STACK_ARGS], *argv;
   fdtype arg_exprs=fd_get_body(expr,1);
   int n_args=count_args(arg_exprs), arg_count=0;
-  int i=0, gc_args=0, free_argv=0;
+  int gc_args=0, free_argv=0;
   if (n_args>FD_STACK_ARGS) {
     argv=u8_alloc_n(n_args,fdtype);
     free_argv=1;}
