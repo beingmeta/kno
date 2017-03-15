@@ -161,15 +161,15 @@ FD_EXPORT const int fd_calltrack_enabled;
 #define FD_MAX_CALLTRACK_SENSORS 64
 #endif
 
-#if (!(FD_CALLTRACK_ENABLED))
-#define fd_calltracking (0)
-#elif FD_USE_TLS
+#if ( (FD_CALLTRACK_ENABLED) && (FD_USE_TLS) )
 FD_EXPORT u8_tld_key _fd_calltracking_key;
 #define fd_calltracking (u8_tld_get(_fd_calltracking_key))
-#elif HAVE__THREAD
+#elif ( (FD_CALLTRACK_ENABLED) && (HAVE__THREAD) )
 FD_EXPORT __thread int fd_calltracking;
-#else
+#elif (FD_CALLTRACK_ENABLED)
 FD_EXPORT int fd_calltracking;
+#else /* (! FD_CALLTRACK_ENABLED ) */
+#define fd_calltracking (0)
 #endif
 
 typedef long (*fd_int_sensor)(void);
