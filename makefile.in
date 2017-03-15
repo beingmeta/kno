@@ -1558,14 +1558,14 @@ tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
 	@make -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
-	cp tests/schemtests.log tests/leaktests-`date +%d%b%yT%T`.log;
+	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
 leaktests: tests/leaktests.log
 
 tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
 	@make -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
-	cp tests/schemtests.log tests/dbtests-`date +%d%b%yT%T`.log;
+	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
 
 .PHONY: alltests
