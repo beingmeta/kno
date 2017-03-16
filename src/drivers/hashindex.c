@@ -1867,18 +1867,21 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
       struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+n_keyvals;
+      /* We clear the adds as we go */
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->kv_key;
+        fdtype key=kvscan->kv_key, val=kvscan->kv_val;
         if (!(fd_hashset_get(taken,key))) {
           if ((oddkeys==0) && (FD_PAIRP(key)) &&
               ((FD_OIDP(FD_CAR(key))) || (FD_SYMBOLP(FD_CAR(key))))) {
             if (get_slotid_index(hx,key)<0) oddkeys=1;}
           s[i].key=key;
-          s[i].values=fd_make_simple_choice(kvscan->kv_val);
-          s[i].replace=0; 
-          fd_incref(key);
+          s[i].values=fd_simplify_choice(val);
+          s[i].replace=0;
           i++;}
+        else {fd_decref(val); fd_decref(key);}
+        kvscan->kv_key=FD_VOID; kvscan->kv_val=FD_VOID;
         kvscan++;}
+      e->fd_n_entries=0;
       scan++;}
     else scan++;
   if (oddkeys) hx->fdkb_xformat=((hx->fdkb_xformat)|(FD_HASH_INDEX_ODDKEYS));
