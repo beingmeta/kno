@@ -544,6 +544,24 @@ FD_EXPORT fd_off_t fd_movepos(fd_stream s,fd_off_t delta)
   return rv;
 }
 
+FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
+                                size_t count,fd_off_t offset,
+                                int stream_locked)
+{
+  /* This will flush any buffered output */
+  fd_set_direction(s,fd_byteflow_read);
+#if HAVE_PREAD
+  return pread(s->stream_fileno,buf,count,offset);
+#else
+  fd_off_t result=-1;
+  if (!(stream_locked)) fd_lock_stream(s);
+  fd_setpos(s,offset);
+  result=fd_read_bytes(fd_readbuf(s),buf,count);
+  if (!(stream_locked)) fd_unlock_stream(s);
+  return result;
+#endif
+}
+
 FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off)
 {
   fd_outbuf out= (off>=0) ? (fd_start_write(s,off)) : (fd_writebuf(s)) ;

@@ -8340,6 +8340,17 @@ _ACEOF
 fi
 done
 
+for ac_func in pread
+do :
+  ac_fn_c_check_func "$LINENO" "pread" "ac_cv_func_pread"
+if test "x$ac_cv_func_pread" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PREAD 1
+_ACEOF
+
+fi
+done
+
 for ac_func in ftime
 do :
   ac_fn_c_check_func "$LINENO" "ftime" "ac_cv_func_ftime"

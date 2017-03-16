@@ -133,7 +133,7 @@ FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words);
 
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
 
-/* File positions */
+/* Stream position operations */
 
 FD_EXPORT fd_inbuf _fd_readbuf(fd_stream s);
 FD_EXPORT fd_outbuf _fd_writebuf(fd_stream s);
@@ -143,6 +143,10 @@ FD_EXPORT fd_off_t _fd_setpos(fd_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t _fd_endpos(fd_stream s);
 
 FD_EXPORT fd_off_t _fd_getpos(fd_stream s);
+
+FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
+				size_t count,fd_off_t offset,
+				int stream_locked);
 
 #if FD_INLINE_BUFIO
 
@@ -161,14 +165,14 @@ FD_FASTOP fd_off_t fd_getpos(fd_stream s)
 
 FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
 {
-  /* Have the common version do the error handling. */
+  /* Have the linked version do the error handling. */
   if ((((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)||(pos<0))
     return _fd_setpos(s,pos);
-
-  if ((s->stream_filepos>=0)&&
-      (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
-      (pos<s->stream_filepos)&&
-      (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
+  else if ((s->stream_filepos>=0)&&
+	   (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
+	   (pos<s->stream_filepos)&&
+	   (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
+    /* The location is in the read buffer, so just move the pointer */
     fd_off_t delta=pos-s->stream_filepos;
     s->buf.raw.bufpoint=s->buf.raw.buflim+delta;
     return pos;}

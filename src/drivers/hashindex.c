@@ -757,13 +757,17 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.buffer,dtype_len);
   bucket=hashval%(hx->index_n_buckets);
+#if (!(HAVE_PREAD))
   fd_lock_stream(stream);
+#endif
   if (hx->index_offdata)
     keyblock=get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
   else keyblock=
          fetch_chunk_ref(&(hx->index_stream),256,hx->index_offtype,bucket);
   if (keyblock.size==0) {
+#if (!(HAVE_PREAD))
     fd_unlock_stream(stream);
+#endif
     fd_close_outbuf(&out);
     return FD_EMPTY_CHOICE;}
   if (keyblock.size<512)
@@ -771,7 +775,9 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   else {
     inbuf=u8_malloc(keyblock.size);
     open_block(&keystream,hx,keyblock.off,keyblock.size,inbuf);}
+#if (!(HAVE_PREAD))
   fd_unlock_stream(stream);
+#endif
   n_keys=fd_read_zint(&keystream);
   i=0; while (i<n_keys) {
     int key_len=fd_read_zint(&keystream);

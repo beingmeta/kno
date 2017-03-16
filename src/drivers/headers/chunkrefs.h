@@ -77,8 +77,38 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
 				   fd_offset_type offtype,
 				   unsigned int offset)
 {
-  FD_CHUNK_REF result; int chunk_size = chunk_ref_size(offtype);
+  FD_CHUNK_REF result={-1,-1};
+  int chunk_size = chunk_ref_size(offtype);
   fd_off_t ref_off = offset*chunk_size;
+#if HAVE_PREAD
+  struct FD_INBUF _in, *in=&_in;
+  unsigned char buf[16];
+  memset(&_in,0,sizeof(_in));
+  FD_INIT_BYTE_INPUT(&_in,buf,chunk_size);
+  if (fd_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
+    u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
+    return result;}
+  else switch (offtype) {
+  case FD_B32:
+    result.off=fd_read_4bytes(in);
+    result.size=fd_read_4bytes(in);
+    break;
+  case FD_B40: {
+    unsigned int word1, word2;
+    word1=fd_read_4bytes(in);
+    word2=fd_read_4bytes(in);
+    result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
+    result.size=(ll)((word2)&(0x00FFFFFF));}
+    break;
+  case FD_B64:
+    result.off=fd_read_8bytes(in);
+    result.size=fd_read_4bytes(in);
+    break;
+  default:
+    u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
+    result.off=-1;
+    result.size=-1;} /* switch (p->fdkb_offtype) */
+#else
   if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off=(fd_off_t)-1; result.size=(size_t)-1;}
   else {
@@ -104,6 +134,7 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
       result.off=-1;
       result.size=-1;} /* switch (p->fdkb_offtype) */
   }
+#endif
   return result;
 }
 
@@ -126,9 +157,13 @@ static unsigned char *read_chunk(fd_stream stream,
 				 unsigned char *usebuf)
 {
   uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size));
-  fd_inbuf in=fd_start_read(stream,off);
-  int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
+  size_t bytes_read=fd_read_block(stream,buf,size,off,1);
   if (bytes_read<0) {
+    u8_graberr(errno,"read_chunk",u8_strdup(stream->streamid));
+    if (usebuf==NULL) u8_free(buf);
+    return NULL;}
+  else if (bytes_read<size) {
+    u8_seterr("Not enough data","read_chunk",u8_strdup(stream->streamid));
     if (usebuf==NULL) u8_free(buf);
     return NULL;}
   else return buf;
