@@ -1788,11 +1788,12 @@ static int sort_kb_by_bucket(const void *k1,const void *k2)
 }
 */
 
-static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
+static int process_edits(struct FD_HASH_INDEX *hx,
+                        fd_hashtable adds,fd_hashtable edits,
+                         fd_hashset taken,
                          struct INDEX_COMMIT_SCHEDULE *s,
                          int i)
 {
-  fd_hashtable adds=&(hx->index_adds), edits=&(hx->index_edits);
   fd_hashtable cache=&(hx->index_cache);
   fdtype *drops=u8_alloc_n((edits->table_n_keys),fdtype), *drop_values;
   int j=0, n_drops=0, oddkeys=0;
@@ -1863,11 +1864,12 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
   return i;
 }
 
-static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
+static int process_adds(struct FD_HASH_INDEX *hx,
+                        fd_hashtable adds,fd_hashtable edits,
+                        fd_hashset taken,
                         struct INDEX_COMMIT_SCHEDULE *s,int i)
 {
   int oddkeys=((hx->fdkb_xformat)&(FD_HASH_INDEX_ODDKEYS));
-  fd_hashtable adds=&(hx->index_adds);
   struct FD_HASH_BUCKET **scan=adds->ht_buckets, **lim=scan+adds->ht_n_buckets;
   while (scan < lim)
     if (*scan) {
@@ -2129,6 +2131,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct FD_STREAM *stream=&(hx->index_stream);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   struct INDEX_BUCKET_REF *bucket_locs;
+  struct FD_HASHTABLE adds, edits;
   unsigned int *offdata=hx->index_offdata;
   fd_offset_type offtype=hx->index_offtype;
   fd_off_t recovery_start, recovery_pos;
@@ -2138,7 +2141,15 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_lock_stream(stream);
   fd_write_lock_table(&(hx->index_adds));
   fd_write_lock_table(&(hx->index_edits));
-  schedule_max=hx->index_adds.table_n_keys+hx->index_edits.table_n_keys;
+  fd_swap_hashtable(&(hx->index_adds),&adds,
+                    hx->index_adds.table_n_keys,
+                    1);
+  fd_swap_hashtable(&(hx->index_edits),&edits,
+                    hx->index_edits.table_n_keys,
+                    1);
+  fd_unlock_table(&(hx->index_adds));
+  fd_unlock_table(&(hx->index_edits));
+  schedule_max=adds.table_n_keys+edits.table_n_keys;
   bucket_locs=u8_alloc_n(schedule_max,struct INDEX_BUCKET_REF);
   {
     int sched_i=0, bucket_i=0;
@@ -2158,19 +2169,16 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_message("Adding %d edits to the schedule",hx->index_edits.table_n_keys);
 #endif
     /* Get all the keys we need to write.  */
-    schedule_size=process_edits(hx,&taken,schedule,schedule_size);
+    schedule_size=process_edits(hx,&adds,&edits,&taken,schedule,schedule_size);
 #if FD_DEBUG_HASHINDEXES
     u8_message("Adding %d adds to the schedule",hx->index_adds.table_n_keys);
 #endif
-    schedule_size=process_adds(hx,&taken,schedule,schedule_size);
+    schedule_size=process_adds(hx,&adds,&edits,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
 
-    /* Release the modification hashtables, which let's other threads
-       start writing to the index again. */
-    fd_reset_hashtable(&(ix->index_adds),67,0);
-    fd_unlock_table(&(ix->index_adds));
-    fd_reset_hashtable(&(ix->index_edits),67,0);
-    fd_unlock_table(&(ix->index_edits));
+    /* We're done with these tables */
+    fd_reset_hashtable(&adds,0,0);
+    fd_reset_hashtable(&edits,0,0);
 
     /* The commit schedule is now filled and we start generating a bucket schedule. */
     /* We're going to write keys and values, so we create streams to do so. */
