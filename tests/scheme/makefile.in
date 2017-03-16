@@ -310,7 +310,7 @@ pooltests pools: filepooltest oidpooltests bigpooltests
 
 indextest:
 	@echo "■■■■■■■■ Running index tests ${TESTBASE} ${RUNCONF}"
-	@rm -f *.edit.dtype
+	@rm -f *.edit.dtype ${TESTBASE}
 	# Build with the offsets cache off
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
@@ -337,7 +337,7 @@ indextest:
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
 		${RUNCONF} && \
-	rm ${TESTBASE}
+	rm -f ${TESTBASE} *.edit.dtype
 	@echo "■■■■■■■■ Finished index tests ${TESTBASE} ${RUNCONF}"
 
 fileindexes fileindex:
@@ -360,6 +360,7 @@ indextests indexes: fileindexes hashindexes
 
 dbtest:
 	@echo "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
+	rm -f ${TESTBASE}db.pool ${TESTBASE}db.index
 	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db init \
 		COUNT=${TESTSIZE} ${DBTEST_FILES} \
 		${RUNCONF};
