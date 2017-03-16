@@ -1777,7 +1777,6 @@ static int sort_cs_by_bucket(const void *k1,const void *k2)
   else return 0;
 }
 
-/*
 static int sort_kb_by_bucket(const void *k1,const void *k2)
 {
   struct FD_KEYBUCKET **kb1=(struct FD_KEYBUCKET **)k1;
@@ -1786,7 +1785,6 @@ static int sort_kb_by_bucket(const void *k1,const void *k2)
   else if ((*kb1)->fd_bucketno>(*kb2)->fd_bucketno) return 1;
   else return 0;
 }
-*/
 
 static int process_edits(struct FD_HASH_INDEX *hx,
                         fd_hashtable adds,fd_hashtable edits,
@@ -2249,16 +2247,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDEXES
     u8_message("Created %d new buckets",new_buckets);
 #endif
-#if 0
-    /* The schedule was sorted above and keybuckets was populated by
-       iterating over the schedule in bucket order, so we don't need
-       to sort these. */
     qsort(schedule,schedule_size,sizeof(struct INDEX_COMMIT_SCHEDULE),
           sort_cs_by_bucket);
-    /* If you remove this, also remove the commented out sort_kb_by_bucket */
     qsort(keybuckets,changed_buckets,sizeof(struct FD_KEYBUCKET *),
           sort_kb_by_bucket);
-#endif
     /* bucket_locs is currently sorted by offset */
     qsort(bucket_locs,changed_buckets,sizeof(struct INDEX_BUCKET_REF),
           sort_br_by_bucket);
