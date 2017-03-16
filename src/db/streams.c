@@ -548,10 +548,22 @@ FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
                                 size_t count,fd_off_t offset,
                                 int stream_locked)
 {
-  /* This will flush any buffered output */
-  fd_set_direction(s,fd_byteflow_read);
 #if HAVE_PREAD
-  return pread(s->stream_fileno,buf,count,offset);
+  if ((!(stream_locked)) &&
+      (FD_ISWRITING(&(s->buf.raw))) &&
+      ((offset+count)>(s->stream_filepos))) {
+    /* This is the case where the stream is being written to and we're
+       reading from beyond the position it's writing at. In this case,
+       we lock the stream to do our read, which will block until the
+       writer is done. At that point, we'll set the direction on the 
+       stream which will flush any buffered output. */
+    ssize_t result;
+    fd_lock_stream(s);
+    fd_set_direction(s,fd_byteflow_read);
+    result=pread(s->stream_fileno,buf,count,offset);
+    fd_unlock_stream(s);
+    return result;}
+  else return pread(s->stream_fileno,buf,count,offset);
 #else
   fd_off_t result=-1;
   if (!(stream_locked)) fd_lock_stream(s);
