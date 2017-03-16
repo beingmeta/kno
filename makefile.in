@@ -77,14 +77,15 @@ DTYPE_HEADERS=\
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 DB_HEADERS=\
- include/framerd/streams.h                            \
- include/framerd/fdkbase.h                              \
- include/framerd/pools.h                             \
- include/framerd/indexes.h                           \
- include/framerd/dtproc.h                            \
- include/framerd/dtcall.h                            \
- include/framerd/frames.h                            \
- include/framerd/methods.h
+ include/framerd/streams.h			\
+ include/framerd/fdkbase.h			\
+ include/framerd/pools.h			\
+ include/framerd/indexes.h			\
+ include/framerd/dtproc.h			\
+ include/framerd/dtcall.h			\
+ include/framerd/frames.h			\
+ include/framerd/methods.h			\
+ include/framerd/drivers.h
 
 DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
@@ -128,7 +129,7 @@ DB_OBJS=src/db/fdkbase.o src/db/streams.o src/db/hashdtype.o 		\
 	src/db/drivers.o 						\
 	@ipevalo@ src/db/frames.o
 
-DBDRIVERS_OBJS=\
+DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
 	src/drivers/netpool.o src/drivers/extpool.o	\
@@ -321,7 +322,7 @@ CLEANDIRS=src/cons src/db src/drivers src/scheme \
 	etc
 
 FRAMERD_HEADERS= \
-       $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVERS_HEADERS) $(SCHEME_HEADERS)
+       $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) $(DRIVER_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
@@ -836,10 +837,10 @@ lib/libfdkbase@suffix@.a: $(DB_OBJS)
 lib/libfdkbase@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
 lib/libfdkbase@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
-lib/libfdkbdrivers@suffix@.a: $(DBDRIVERS_OBJS)
-lib/libfdkbdrivers@suffix@.so: $(DBDRIVERS_OBJS) \
+lib/libfdkbdrivers@suffix@.a: $(DRIVER_OBJS)
+lib/libfdkbdrivers@suffix@.so: $(DRIVER_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so
-lib/libfdkbdrivers@suffix@.dylib: $(DBDRIVERS_OBJS) \
+lib/libfdkbdrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libfdkbase@suffix@.dylib lib/libfdtype@suffix@.dylib
 
 lib/libfdkbserv@suffix@.a: $(FDKBSERV_OBJS)
@@ -1253,8 +1254,8 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
 		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
-		   $(DRIVERS_H) $(SCHEME_HEADERS)	\
-		   $(LIB_HEADERS) $(REVISION_H)		\
+		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
+		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
 
 install-data: $(DATADIR)
@@ -1602,23 +1603,23 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
-$(DBDRIVERS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(DRIVER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
 $(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
 $(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(DTYPE_OBJS) $(DB_OBJS) $(DBDRIVERS_OBJS):  buildmode
+$(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
-src/drivers/oidpool.o: src/drivers/headers/oidpool.h
-src/drivers/bigpool.o: src/drivers/headers/bigpool.h
-src/drivers/hashindex.o: src/drivers/headers/hashindex.h 
+src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/chunkrefs.h
+src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/chunkrefs.h
+src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/chunkrefs.h
 
 # We've stopped using makedpend for the time being
 
