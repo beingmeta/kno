@@ -148,7 +148,7 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
     if (out==NULL) return FD_ERROR_VALUE;
     else outstream=fd_writebuf(out);
     if (FD_FIXNUMP(bufsiz))
-      fd_stream_setbuf(out,FD_FIX2INT(bufsiz));
+      fd_stream_setbufsize(out,FD_FIX2INT(bufsiz));
     bytes=fd_write_dtype(outstream,object);
     if (bytes<0) {
       fd_free_stream(out);
@@ -180,7 +180,7 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
       return FD_ERROR_VALUE;}
     else out=fd_writebuf(stream);
     if (FD_FIXNUMP(bufsiz))
-      fd_stream_setbuf(stream,FD_FIX2INT(bufsiz));
+      fd_stream_setbufsize(stream,FD_FIX2INT(bufsiz));
     bytes=fd_zwrite_dtype(out,object);
     if (bytes<0) {
       fd_close_stream(stream,FD_STREAM_CLOSE_FULL);

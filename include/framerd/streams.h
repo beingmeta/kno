@@ -105,6 +105,14 @@ fd_stream fd_init_file_stream (fd_stream stream,
 
 FD_EXPORT fd_stream fd_open_file(u8_string filename,fd_stream_mode mode);
 
+typedef enum fd_streamop {
+  fd_stream_close,
+  fd_stream_setbuf,
+  fd_stream_lockfile,
+  fd_stream_unlockfile,
+  fd_stream_setread,
+  fd_stream_setwrite } fd_streamop;
+
 #define FD_STREAM_FREEDATA    1
 #define FD_STREAM_NOCLOSE 2
 #define FD_STREAM_NOFLUSH 4
@@ -132,6 +140,7 @@ FD_EXPORT int fd_write_ints(fd_stream s,int len,unsigned int *words);
 FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words);
 
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
+FD_EXPORT fdtype fd_streamctl(fd_stream s,fd_streamop,void *data);
 
 /* Stream position operations */
 
@@ -249,7 +258,7 @@ FD_EXPORT int fd_flush_stream(fd_stream s);
 FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
 
-FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz);
+FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz);
 
 FD_EXPORT int _fd_lock_stream(fd_stream s);
 FD_EXPORT int _fd_unlock_stream(fd_stream s);

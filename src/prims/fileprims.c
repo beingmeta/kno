@@ -1228,7 +1228,7 @@ static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
   if (FD_TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
       fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
-    fd_stream_setbuf(dts,FD_FIX2INT(insize));
+    fd_stream_setbufsize(dts,FD_FIX2INT(insize));
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=

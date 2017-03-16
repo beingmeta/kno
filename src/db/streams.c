@@ -278,7 +278,7 @@ FD_EXPORT void fd_free_stream(fd_stream s)
   else fd_decref(sptr);
 }
 
-FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz)
+FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz)
 {
   fd_lock_stream(s);
   fd_flush_stream(s);
@@ -671,6 +671,44 @@ FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words)
   else return -1;
 }
 
+
+/* Stream ctl */
+
+FD_EXPORT
+fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
+{
+  switch (op) {
+  case fd_stream_close:
+    fd_close_stream(s,0);
+    return FD_VOID;
+  case fd_stream_setbuf:
+    fd_stream_setbufsize(s,(size_t)data);
+    return FD_VOID;
+  case fd_stream_lockfile: {
+    int rv=fd_lockfile(s);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  case fd_stream_unlockfile: {
+    int rv=fd_unlockfile(s);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  case fd_stream_setread: {
+    int rv=fd_set_direction(s,fd_byteflow_read);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  case fd_stream_setwrite: {
+    int rv=fd_set_direction(s,fd_byteflow_write);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  default:
+    fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,
+              FD_VOID);
+    return FD_ERROR_VALUE;}
+}
 
 /* Files 2 dtypes */
 

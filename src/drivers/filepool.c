@@ -784,7 +784,7 @@ static fdtype file_pool_ctl(fd_pool p,int op,int n,fdtype *args)
         return FD_INT(fp->pool_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
         fd_lock_pool(fp);
-        fd_stream_setbuf(&(fp->pool_stream),FD_FIX2INT(args[0]));
+        fd_stream_setbufsize(&(fp->pool_stream),FD_FIX2INT(args[0]));
         fd_unlock_pool(fp);
         return FD_INT(fp->pool_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","filepool_op/bufsize",args[0]);}

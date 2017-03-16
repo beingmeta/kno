@@ -1381,7 +1381,7 @@ static void oidpool_setbuf(fd_pool p,int bufsiz)
 {
   fd_oidpool op=(fd_oidpool)p;
   fd_lock_pool(op);
-  fd_stream_setbuf(&(op->pool_stream),bufsiz);
+  fd_stream_setbufsize(&(op->pool_stream),bufsiz);
   fd_unlock_pool(op);
 }
 

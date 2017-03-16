@@ -1265,7 +1265,7 @@ static void bigpool_setbuf(fd_pool p,int bufsiz)
 {
   fd_bigpool bp=(fd_bigpool)p;
   fd_lock_pool(bp);
-  fd_stream_setbuf(&(bp->pool_stream),bufsiz);
+  fd_stream_setbufsize(&(bp->pool_stream),(size_t)bufsiz);
   fd_unlock_pool(bp);
 }
 

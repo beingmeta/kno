@@ -2745,7 +2745,7 @@ static fdtype hash_index_ctl(fd_index ix,int op,int n,fdtype *args)
         return FD_INT(hx->index_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
         fd_lock_index(hx);
-        fd_stream_setbuf(&(hx->index_stream),FD_FIX2INT(args[0]));
+        fd_stream_setbufsize(&(hx->index_stream),FD_FIX2INT(args[0]));
         fd_unlock_index(hx);
         return FD_INT(hx->index_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","hash_index_ctl/bufsize",args[0]);}

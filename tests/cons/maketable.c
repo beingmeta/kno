@@ -69,7 +69,7 @@ int main(int argc,char **argv)
     u8_log(LOG_ERR,"No such file","Couldn't open file %s",argv[1]);
     exit(1);}
   else inbuf=fd_readbuf(in);
-  fd_stream_setbuf(in,65536*2);
+  fd_stream_setbufsize(in,65536*2);
   item=fd_read_dtype(inbuf); i=1;
   while (!(FD_EODP(item))) {
     if (i%100000 == 0) {
