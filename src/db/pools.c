@@ -81,9 +81,9 @@ FD_EXPORT void _fd_lock_pool(fd_pool p)
 
 FD_EXPORT void _fd_unlock_pool(fd_pool p)
 {
-  if (p->pool_locked) {
-    u8_unlock_mutex(&((p)->pool_lock));
-    p->pool_locked=0;}
+  if (p->pool_islocked) {
+    p->pool_islocked=0;
+    u8_unlock_mutex(&((p)->pool_lock));}
   else u8_log(LOGCRIT,"PoolUnLockError",                       \
               "Pool '%s' already unlocked!",p->poolid);
 }

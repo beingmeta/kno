@@ -151,7 +151,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_POOL_HANDLER *pool_handler;			\
   int pool_serialno;					\
   short pool_cache_level;				\
-  char pool_locked;					\
+  unsigned char pool_islocked;				\
   U8_MUTEX_DECL(pool_lock);				\
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
@@ -183,15 +183,17 @@ FD_EXPORT void _fd_unlock_pool(fd_pool p);
 FD_FASTOP void fd_lock_pool(fd_pool p)
 {
   u8_lock_mutex(&((p)->pool_lock));
-  p->pool_locked=1;
+  p->pool_islocked=1;
 }
 FD_FASTOP void fd_unlock_pool(fd_pool p)
 {
-  if (p->pool_locked) {
-    u8_unlock_mutex(&((p)->pool_lock));
-    p->pool_locked=0;}
+  if (p->pool_islocked) {
+    p->pool_islocked=0;
+    u8_unlock_mutex(&((p)->pool_lock));}
   else _fd_unlock_pool(p);}
 #else
+#define fd_lock_pool(p) _fd_lock_pool(p)
+#define fd_unlock_pool(p) _fd_unlock_pool(p)
 #endif
 
 /* Pool handlers */
