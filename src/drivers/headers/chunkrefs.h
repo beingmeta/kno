@@ -161,7 +161,7 @@ static unsigned char *read_chunk(fd_stream stream,
 				 unsigned char *usebuf)
 {
   uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size));
-  size_t bytes_read=fd_read_block(stream,buf,size,off,1);
+  ssize_t bytes_read=fd_read_block(stream,buf,size,off,1);
   if (bytes_read<0) {
     u8_graberr(errno,"read_chunk",u8_strdup(stream->streamid));
     if (usebuf==NULL) u8_free(buf);
