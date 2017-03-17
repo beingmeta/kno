@@ -207,145 +207,37 @@ static void recycle_environment(struct FD_RAW_CONS *envp)
     u8_free(envp);}
 }
 
-static int env_recycle_depth=2;
+/* Counting environment refs. This is a bit of a kludge to get around
+   some inherently circular structures. */
 
-static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth);
+static int env_recycle_depth=4;
 
-FD_FASTOP int count_envrefs(fdtype obj,fd_lispenv env,int depth)
+struct ENVCOUNT_STATE {
+  fd_lispenv env;
+  int count;};
+
+static int envcountproc(fdtype v,void *data)
 {
-  if (depth<=0) return 0;
-  else if (FD_ATOMICP(obj)) return 0;
-  else return count_cons_envrefs(obj,env,depth);
+  struct ENVCOUNT_STATE *state=(struct ENVCOUNT_STATE *)data;
+  fd_lispenv env=state->env;
+  if (!(FD_CONSP(v))) return 1;
+  else if (FD_STATICP(v)) return 1;
+  else if (FD_ENVIRONMENTP(v)) {
+    fd_lispenv scan=(fd_lispenv)v;
+    while (scan)
+      if ((scan==env)||(scan->env_copy==env)) {
+        state->count++;
+        return 1;}
+      else scan=scan->env_parent;
+    return 1;}
+  else return 1;
 }
 
-static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
+static int count_envrefs(fdtype root,fd_lispenv env,int depth)
 {
-  struct FD_CONS *cons=(struct FD_CONS *)obj;
-  int constype=FD_CONS_TYPE(cons);
-  if (1) /* (refcount==1) */
-    switch (constype) {
-    case fd_pair_type:
-      return count_envrefs(FD_CAR(obj),env,depth)+
-        count_envrefs(FD_CDR(obj),env,depth);
-    case fd_vector_type: {
-      int envcount=0;
-      int i=0, len=FD_VECTOR_LENGTH(obj);
-      fdtype *elts=FD_VECTOR_DATA(obj);
-      while (i<len) {
-        envcount=envcount+count_envrefs(elts[i],env,depth-1); i++;}
-      return envcount;}
-    case fd_schemap_type: {
-      int envcount=0;
-      int i=0, len=FD_SCHEMAP_SIZE(obj);
-      fdtype *elts=FD_XSCHEMAP(obj)->schema_values;
-      while (i<len) {
-        envcount=envcount+count_envrefs(elts[i],env,depth-1); i++;}
-      return envcount;}
-    case fd_slotmap_type: {
-      int envcount=0;
-      int i=0, len=FD_SLOTMAP_NUSED(obj);
-      struct FD_KEYVAL *kv=(FD_XSLOTMAP(obj))->sm_keyvals;
-      while (i<len) {
-        envcount=envcount+count_envrefs(kv[i].kv_val,env,depth-1); i++;}
-      return envcount;}
-    case fd_choice_type: {
-      struct FD_CHOICE *ch=(struct FD_CHOICE *)obj;
-      const fdtype *data=FD_XCHOICE_DATA(ch);
-      int i=0, len=FD_XCHOICE_SIZE(ch), envcount=0;
-      while (i<len) {
-        fdtype e=data[i++];
-        if ((FD_CONSP(e))) {
-          int etype=FD_CONS_TYPE(((struct FD_CONS *)e));
-          if (!((etype==fd_string_type)||(etype==fd_packet_type)||
-                (etype==fd_bigint_type)||(etype==fd_flonum_type)||
-                (etype==fd_complex_type)||(etype==fd_rational_type)||
-                (etype==fd_timestamp_type)||(etype==fd_uuid_type)))
-            envcount=envcount+count_envrefs(e,env,depth-1);}}
-      return envcount;}
-    case fd_achoice_type: {
-      int envcount=0;
-      struct FD_ACHOICE *ach=(struct FD_ACHOICE *)obj;
-      fdtype *data=ach->achoice_data, *end=ach->achoice_write;
-      while (data<end) {
-        fdtype e=*data++;
-        if ((FD_CONSP(e))) {
-          int etype=FD_CONS_TYPE(((struct FD_CONS *)e));
-          if (!((etype==fd_string_type)||(etype==fd_packet_type)||
-                (etype==fd_bigint_type)||(etype==fd_flonum_type)||
-                (etype==fd_complex_type)||(etype==fd_rational_type)||
-                (etype==fd_timestamp_type)||(etype==fd_uuid_type)))
-            envcount=envcount+count_envrefs(e,env,depth-1);}}
-      return envcount;}
-    case fd_hashtable_type: {
-      int envcount=0;
-      struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
-      int i=0, n_slots; struct FD_HASH_BUCKET **slots;
-      fd_read_lock_table(ht);
-      n_slots=ht->ht_n_buckets; slots=ht->ht_buckets;
-      while (i<n_slots)
-        if (slots[i]) {
-          struct FD_HASH_BUCKET *hashentry=slots[i++];
-          int j=0, n_keyvals=hashentry->fd_n_entries;
-          struct FD_KEYVAL *keyvals=&(hashentry->kv_val0);
-          while (j<n_keyvals) {
-            envcount=envcount+count_envrefs(keyvals[j].kv_val,env,depth-1);
-            j++;}}
-        else i++;
-      fd_unlock_table(ht);
-      return envcount;}
-    default:
-      if (constype==fd_environment_type) {
-        fd_lispenv scan=FD_CONSPTR(fd_lispenv,obj);
-        while (scan)
-          if ((scan==env)||(scan->env_copy==env))
-            return 1;
-          else scan=scan->env_parent;
-        return 0;}
-      else if (constype==fd_macro_type) {
-        struct FD_MACRO *m=FD_CONSPTR(fd_macro,cons);
-        if ((m)&&(FD_TYPEP((m->fd_macro_transformer),fd_sproc_type)))
-          return count_cons_envrefs(m->fd_macro_transformer,env,depth);
-        else return 0;}
-      else if (constype==fd_sproc_type) {
-        struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,obj);
-        struct FD_ENVIRONMENT *scan=sp->sproc_env;
-        while (scan) {
-          if ((scan==env)||(scan->env_copy==env))
-            return 1;
-          else scan=scan->env_parent;}
-        return 0;}
-      else if (constype==fd_raw_pool_type) {
-        struct FD_POOL *p=(struct FD_POOL *)obj;
-        int count=0;
-        if (FD_VOIDP(p->pool_namefn))
-          count=count+count_envrefs(p->pool_namefn,env,depth);
-        if (p->pool_handler==&fd_extpool_handler) {
-          struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *)obj;
-          if (!(FD_VOIDP(xp->fetchfn)))
-            count=count+count_envrefs(xp->fetchfn,env,depth);
-          if (!(FD_VOIDP(xp->savefn)))
-            count=count+count_envrefs(xp->savefn,env,depth);
-          if (!(FD_VOIDP(xp->lockfn)))
-            count=count+count_envrefs(xp->lockfn,env,depth);
-          if (!(FD_VOIDP(xp->allocfn)))
-            count=count+count_envrefs(xp->allocfn,env,depth);
-          if (!(FD_VOIDP(xp->state)))
-            count=count+count_envrefs(xp->state,env,depth);}
-        return count;}
-      else if (constype==fd_raw_index_type) {
-        struct FD_INDEX *ix=(struct FD_INDEX *)obj;
-        int count=0;
-        if (ix->index_handler==&fd_extindex_handler) {
-          struct FD_EXTINDEX *xi=(struct FD_EXTINDEX *)obj;
-          if (!(FD_VOIDP(xi->fetchfn)))
-            count=count+count_envrefs(xi->fetchfn,env,depth);
-          if (!(FD_VOIDP(xi->commitfn)))
-            count=count+count_envrefs(xi->commitfn,env,depth);
-          if (!(FD_VOIDP(xi->state)))
-            count=count+count_envrefs(xi->state,env,depth);}
-        return count;}
-      else return 0;}
-  else return 0;
+  struct ENVCOUNT_STATE state={env,0};
+  fd_walk(envcountproc,root,&state,FD_WALK_CONSES,depth);
+  return state.count;
 }
 
 FD_EXPORT
@@ -887,7 +779,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         /* These expand into expressions which are then evaluated. */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
-        fdtype xformer=macrofn->fd_macro_transformer;
+        fdtype xformer=macrofn->macro_transformer;
         fdtype new_expr=fd_apply(xformer,1,&expr);
         if (FD_ABORTED(new_expr))
           result=fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);

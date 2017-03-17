@@ -1303,7 +1303,6 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchn, /* fetchn */
   file_index_fetchkeys, /* fetchkeys */
   file_index_fetchsizes, /* fetchsizes */
-  NULL, /* fetchsizes */
   NULL, /* batchadd */
   NULL, /* metadata */
   file_index_create, /* create */

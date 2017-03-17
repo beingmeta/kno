@@ -84,7 +84,7 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
   u8_string fd_macro_name;
-  fdtype fd_macro_transformer;} FD_MACRO;
+  fdtype macro_transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
 
 /* These should probably get their own header file */

@@ -189,7 +189,7 @@ static int walk_compound(fd_walker walker,fdtype x,
   walker(c->compound_typetag,walkdata);
   while (i<len) {
     if (fast_walk(walker,data[i],walkdata,flags,depth-1)<0)
-      return-1;
+      return -1;
     i++;}
   return len;
 }

@@ -31,7 +31,7 @@ FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
     struct FD_MACRO *s=u8_alloc(struct FD_MACRO);
     FD_INIT_CONS(s,fd_macro_type);
     s->fd_macro_name=((name) ? (u8_strdup(name)) : (NULL));
-    s->fd_macro_transformer=fd_incref(xformer);
+    s->macro_transformer=fd_incref(xformer);
     return FDTYPE_CONS(s);}
   else return fd_err(fd_InvalidMacro,NULL,name,xformer);
 }
@@ -56,7 +56,7 @@ FD_EXPORT void recycle_macro(struct FD_RAW_CONS *c)
 {
   struct FD_MACRO *mproc=(struct FD_MACRO *)c;
   if (mproc->fd_macro_name) u8_free(mproc->fd_macro_name);
-  fd_decref(mproc->fd_macro_transformer);
+  fd_decref(mproc->macro_transformer);
   if (FD_MALLOCD_CONSP(c)) u8_free(mproc);
 }
 
@@ -70,6 +70,15 @@ static int unparse_macro(u8_output out,fdtype x)
   return 1;
 }
 
+static int walk_macro(fd_walker walker,fdtype obj,void *walkdata,
+                      fd_walk_flags flags,int depth)
+{
+  struct FD_MACRO *mproc=fd_consptr(struct FD_MACRO *,obj,fd_macro_type);
+  if (fd_walk(walker,mproc->macro_transformer,walkdata,flags,depth-1)<0)
+    return -1;
+  else return 2;
+}
+
 FD_EXPORT void fd_init_macros_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -79,6 +88,7 @@ FD_EXPORT void fd_init_macros_c()
   moduleid_symbol=fd_intern("%MODULEID");
   lambda_symbol=fd_intern("LAMBDA");
 
+  fd_walkers[fd_macro_type]=walk_macro;
   fd_unparsers[fd_macro_type]=unparse_macro;
   fd_recyclers[fd_macro_type]=recycle_macro;
 
