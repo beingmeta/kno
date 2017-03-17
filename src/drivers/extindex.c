@@ -198,7 +198,7 @@ static void recycle_extindex(fd_index ix)
 }
 
 struct FD_INDEX_HANDLER fd_extindex_handler={
-  "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 4,
+  "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 14,
   NULL, /* close */
   extindex_commit, /* commit */
   extindex_fetch, /* fetch */
@@ -207,6 +207,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   extindex_fetchn, /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* create */
   NULL,  /* walk */

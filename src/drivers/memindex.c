@@ -298,7 +298,7 @@ static u8_string match_index_name(u8_string spec,void *data)
 }
 
 static struct FD_INDEX_HANDLER mem_index_handler={
-  "memindex", 1, sizeof(struct FD_MEM_INDEX), 12,
+  "memindex", 1, sizeof(struct FD_MEM_INDEX), 14,
   NULL, /* close */
   mem_index_commit, /* commit */
   NULL, /* fetch */
@@ -307,6 +307,7 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   mem_index_fetchn, /* fetchn */
   mem_index_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   mem_index_create, /* create */
   NULL, /* walk */

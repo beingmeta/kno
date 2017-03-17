@@ -237,7 +237,7 @@ static void netindex_close(fd_index ix)
 }
 
 static struct FD_INDEX_HANDLER netindex_handler={
-  "netindex", 1, sizeof(struct FD_NETWORK_INDEX), 12,
+  "netindex", 1, sizeof(struct FD_NETWORK_INDEX), 14,
   netindex_close, /* close */
   netindex_commit, /* commit */
   netindex_fetch, /* fetch */
@@ -246,6 +246,7 @@ static struct FD_INDEX_HANDLER netindex_handler={
   netindex_fetchn, /* fetchn */
   netindex_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* create */
   NULL, /* walk */

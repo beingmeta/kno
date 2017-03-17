@@ -3141,7 +3141,9 @@ FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  CHECKPTR(arg,"fd_add/table"); CHECKPTR(key,"fd_add/key"); CHECKPTR(value,"fd_add/value");
+  CHECKPTR(arg,"fd_add/table");
+  CHECKPTR(key,"fd_add/key");
+  CHECKPTR(value,"fd_add/value");
   if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key))))
     return 0;
   else if (FD_UNAMBIGP(key)) {
@@ -3164,14 +3166,14 @@ FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
         FD_ADD_TO_CHOICE(values,value);
         to_store=fd_make_simple_choice(values);
         store_rv=storefn(arg,each,to_store);
-        fd_decref(values); 
+        fd_decref(values);
         fd_decref(to_store);
         if (store_rv<0) {
           FD_STOP_DO_CHOICES;
           return -1;}}
       return 1;}
     else return fd_err(fd_NoMethod,"fd_add",NULL,arg);}
-  else if (BAD_TABLEP(arg,argtype,add,"fd_add")) 
+  else if (BAD_TABLEP(arg,argtype,add,"fd_add"))
     return -1;
   else  {
     int (*addfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->add;
@@ -3203,8 +3205,7 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
         else return (fd_tablefns[argtype]->drop)(arg,key,value);
       else if ((fd_tablefns[argtype]->store) &&
                (fd_tablefns[argtype]->get))
-        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
-                            (FD_EMPTY_CHOICEP(key))))
+        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value))||(FD_EMPTY_CHOICEP(key))))
           return 0;
         else if (FD_VOIDP(value)) {
           int retval;

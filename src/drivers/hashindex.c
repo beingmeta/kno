@@ -2770,7 +2770,7 @@ static fdtype hash_index_ctl(fd_index ix,int op,int n,fdtype *args)
 /* The handler struct */
 
 static struct FD_INDEX_HANDLER hash_index_handler={
-  "hash_index", 1, sizeof(struct FD_HASH_INDEX), 12,
+  "hash_index", 1, sizeof(struct FD_HASH_INDEX), 14,
   hash_index_close, /* close */
   hash_index_commit, /* commit */
   hash_index_fetch, /* fetch */
@@ -2779,6 +2779,7 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   hash_index_fetchn, /* fetchn */
   hash_index_fetchkeys, /* fetchkeys */
   hash_index_fetchsizes, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   hash_index_create, /* create */ 
   NULL, /* walk */

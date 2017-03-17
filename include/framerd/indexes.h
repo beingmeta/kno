@@ -67,6 +67,7 @@ typedef struct FD_INDEX_HANDLER {
   fdtype *(*fetchn)(fd_index ix,int n,fdtype *keys);
   fdtype *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchsizes)(fd_index ix,int *n);
+  int (*batchadd)(fd_index ix,fdtype);
   fdtype (*metadata)(fd_index ix,fdtype);
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
@@ -99,6 +100,7 @@ struct FD_INDEX_HANDLER some_handler={
   NULL /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* create */
   NULL, /* walk */
@@ -127,6 +129,7 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_keys(fd_index ix);
 FD_EXPORT fdtype fd_index_sizes(fd_index ix);
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
+FD_EXPORT int fd_batch_add(fd_index ix,fdtype table);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
 FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags,fdtype);

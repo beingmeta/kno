@@ -46,6 +46,7 @@ struct FD_TABLEFNS {
   int (*modified)(fdtype obj,int op);
   int (*getsize)(fdtype obj);
   fdtype (*keys)(fdtype obj);
+  struct FD_KEYVAL (*keyvals)(fdtype obj,int *);
 };
 
 FD_EXPORT struct FD_TABLEFNS *fd_tablefns[];

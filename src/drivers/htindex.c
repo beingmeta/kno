@@ -116,7 +116,7 @@ static fd_index open_htindex(u8_string file,fdkb_flags flags,fdtype opts)
 }
 
 static struct FD_INDEX_HANDLER htindex_handler={
-  "htindex", 1, sizeof(struct FD_HT_INDEX), 12,
+  "htindex", 1, sizeof(struct FD_HT_INDEX), 14,
   NULL, /* close */
   htindex_commit, /* commit */
   NULL, /* fetch */
@@ -125,6 +125,7 @@ static struct FD_INDEX_HANDLER htindex_handler={
   htindex_fetchn, /* fetchn */
   htindex_fetchkeys, /* fetchkeys */
   htindex_fetchsizes, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* recycle */
   NULL  /* indexctl */

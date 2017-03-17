@@ -792,6 +792,37 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
   return 1;
 }
 
+FD_EXPORT int fd_batch_add(fd_index ix,fdtype table)
+{
+  if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
+              u8_strdup(ix->indexid),FD_VOID);
+    return -1;}
+  else init_cache_level(ix);
+  if (FD_HASHTABLEP(table))
+    return fd_index_merge(ix,(fd_hashtable)table);
+  else if (FD_TABLEP(table)) {
+    fd_hashtable adds=&(ix->index_adds);
+    fdtype allkeys=fd_getkeys(table);
+    int i=0, n_keys=FD_CHOICE_SIZE(allkeys), atomic=1;
+    fdtype *keys=u8_alloc_n(n_keys,fdtype);
+    fdtype *values=u8_alloc_n(n_keys,fdtype);
+    FD_DO_CHOICES(key,allkeys) {
+      fdtype v=fd_get(table,key,FD_VOID);
+      if (!(FD_VOIDP(v))) {
+        if (FD_CONSP(v)) atomic=0;
+        keys[i]=key; values[i]=v; i++;}}
+    fd_hashtable_iter(adds,fd_table_add,i,keys,values);
+    if (!(atomic)) for (int j=0;j<i;j++) { fd_decref(values[j]); }
+    u8_free(keys);
+    u8_free(values);
+    fd_decref(allkeys);
+    return i;}
+  else {
+    fd_seterr(fd_TypeError,"fd_batch_add","Not a table",table);
+    return -1;}
+}
+
 static fdtype table_indexkeys(fdtype ixarg)
 {
   fd_index ix=fd_indexptr(ixarg);
