@@ -56,7 +56,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags,fdtype 
   ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec,flags);
   ix->index_connpool=cp;
-  ix->xname=FD_VOID; ix->index_xinfo=xid;
+  ix->xname=FD_VOID; ix->index_source=xid;
   writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||
       (!(FD_FALSEP(writable_response))))
@@ -114,7 +114,7 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netindex_fetchn",
-              u8_strdup(ix->index_idstring),fd_incref(result));
+              u8_strdup(ix->indexid),fd_incref(result));
     return NULL;}
 }
 

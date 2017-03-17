@@ -35,14 +35,13 @@ typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
   unsigned int pool_xformat;
   fd_offset_type pool_offtype;
-  fd_compression_type pool_compression;
+  fd_compress_type pool_compression;
   time_t pool_modtime;
   int pool_n_schemas, pool_max_slotids;
   struct FD_SCHEMA_ENTRY *pool_schemas;
   struct FD_SCHEMA_LOOKUP *pool_schbyval;
   unsigned int pool_load, *pool_offdata, pool_offdata_size;
-  struct FD_STREAM pool_stream;
-  U8_MUTEX_DECL(file_lock);} FD_OIDPOOL;
+  struct FD_STREAM pool_stream;;} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 
 FD_EXPORT int fd_make_oidpool

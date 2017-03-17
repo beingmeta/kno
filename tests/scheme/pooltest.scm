@@ -8,8 +8,10 @@
 
 (define poolfile "test.pool")
 (define pooltype 'bigpool)
+(define compression #f)
 (varconfig! poolfile poolfile)
-(varconfig! pooltype pooltype)
+(varconfig! pooltype pooltype #t)
+(varconfig! compression compression #t)
 
 (define testpool #f)
 
@@ -19,6 +21,7 @@
 	(else
 	 (make-pool poolfile
 		    `#[type ,pooltype
+		       compression ,compression
 		       base @b001/0 
 		       capacity 100000
 		       offtype ,(config 'offtype 'B40)]))))

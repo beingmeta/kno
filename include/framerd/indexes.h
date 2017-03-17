@@ -39,7 +39,7 @@ FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;						   \
-  u8_string index_idstring, index_source, index_xinfo;		   \
+  u8_string indexid, index_source;				   \
   struct FD_INDEX_HANDLER *index_handler;			   \
   fdkb_flags index_flags, modified_flags;			   \
   int index_serialno;						   \
@@ -131,7 +131,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
 FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags,fdtype);
 FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags,fdtype);
-FD_EXPORT fd_index fd_find_index_by_cid(u8_string);
+FD_EXPORT fd_index fd_find_index_by_qname(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);

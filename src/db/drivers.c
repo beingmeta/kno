@@ -153,8 +153,7 @@ fd_pool_handler fd_get_pool_handler(u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_make_pool(
-                     u8_string spec,
+fd_pool fd_make_pool(u8_string spec,
                      u8_string pooltype,
                      fdkb_flags flags,
                      fdtype opts)
@@ -284,6 +283,37 @@ fd_index fd_make_index(
   else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);
 }
 
+/* Getting compression ty pe from options */
+
+static fdtype compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
+
+#if HAVE_SNAPPYC_H
+#define DEFAULT_COMPRESSION FD_SNAPPY
+#else
+#define DEFAULT_COMPRESSION FD_ZLIB9
+#endif
+
+
+FD_EXPORT
+fd_compress_type fd_compression_type(fdtype opts,fd_compress_type dflt)
+{
+  if (fd_testopt(opts,compression_symbol,FD_FALSE))
+    return FD_NOCOMPRESS;
+#if HAVE_SNAPPYC_H
+  else if (fd_testopt(opts,compression_symbol,snappy_symbol))
+    return FD_SNAPPY;
+#endif
+  else if (fd_testopt(opts,compression_symbol,zlib_symbol))
+    return FD_ZLIB;
+  else if (fd_testopt(opts,compression_symbol,zlib9_symbol))
+    return FD_ZLIB9;
+  else if (fd_testopt(opts,compression_symbol,FD_TRUE)) {
+    if (dflt)
+      return dflt;
+    else return DEFAULT_COMPRESSION;}
+  else return dflt;
+}
+
 /* Initialization */
 
 static int drivers_c_initialized=0;
@@ -299,6 +329,10 @@ FD_EXPORT int fd_init_drivers_c()
   gentime_symbol=fd_intern("GENTIME");
   packtime_symbol=fd_intern("PACKTIME");
   modtime_symbol=fd_intern("MODTIME");
+  compression_symbol=fd_intern("COMPRESSION");
+  snappy_symbol=fd_intern("SNAPPY");
+  zlib_symbol=fd_intern("ZLIB");
+  zlib9_symbol=fd_intern("ZLIB9");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

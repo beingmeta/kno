@@ -69,6 +69,8 @@ TESTFILE	= ${TESTBASE}.file
 FDX		= ./fdexec@suffix@
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
+SNAPPY		= COMPRESSION=snappy
+ZPOOL		= COMPRESSION=zlib
 FILEPOOL	= POOLTYPE=filepool
 FILEINDEX	= INDEXTYPE=fileindex
 HASHINDEX	= INDEXTYPE=hashindex
@@ -278,9 +280,9 @@ tabletests hashtables:
 pooltest:
 	@echo "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -f ${TESTBASE}.pool
-	@${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${FILEPOOL}
-	@${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1
-	@${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2
+	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
+	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1 ${RUNCONF}
+	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2 ${RUNCONF}
 
 filepooltest:
 	@make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
@@ -297,9 +299,13 @@ bigpooltest:
 bigpool32test:
 	@make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB32} ${RUNCONF}" pooltest
 bigpool64test:
-	@make TESTBASE=bigpool32 RUNCONF="${BIGPOOL} ${OFFB64} ${RUNCONF}" pooltest
+	@make TESTBASE=bigpool64 RUNCONF="${BIGPOOL} ${OFFB64} ${RUNCONF}" pooltest
+bigpoolsnappytest:
+	@make TESTBASE=bigpoolsnappy RUNCONF="${BIGPOOL} ${SNAPPY} ${RUNCONF}" pooltest
+bigpoolzlibtest:
+	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZPOOL} ${RUNCONF}" pooltest
 
-bigpooltests: bigpooltest bigpool32test bigpool64test
+bigpooltests: bigpooltest bigpool32test bigpool64test bigpoolsnappytest bigpoolzlibtest
 oidpooltests: oidpooltest oidpool32test oidpool64test
 
 pooltests pools: filepooltest oidpooltests bigpooltests

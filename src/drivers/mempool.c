@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define FD_INLINE_POOLS 1
 #define FD_INLINE_BUFIO 1
 
 #include "framerd/fdsource.h"
@@ -33,7 +34,7 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
   mp->pool_flags=FDKB_ISPOOL;
   if (fd_register_pool((fd_pool)mp)<0) {
     u8_destroy_mutex(&(mp->pool_lock));
-    u8_free(mp->pool_source); u8_free(mp->pool_idstring);
+    u8_free(mp->pool_source); u8_free(mp->poolid);
     fd_recycle_hashtable(&(mp->pool_cache));
     fd_recycle_hashtable(&(mp->pool_changes));
     u8_free(mp);
@@ -45,14 +46,14 @@ static fdtype mempool_alloc(fd_pool p,int n)
 {
   struct FD_MEMPOOL *mp=(fd_mempool)p;
   if ((mp->pool_load+n)>=mp->pool_capacity)
-    return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->pool_idstring,FD_VOID);
+    return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,FD_VOID);
   else {
     fdtype results=FD_EMPTY_CHOICE;
     int i=0;
     u8_lock_mutex(&(mp->pool_lock));
     if ((mp->pool_load+n)>=mp->pool_capacity) {
       u8_unlock_mutex(&(mp->pool_lock));
-      return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->pool_idstring,FD_VOID);}
+      return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,FD_VOID);}
     else {
       FD_OID base=FD_OID_PLUS(mp->pool_base,mp->pool_load);
       while (i<n) {
@@ -71,7 +72,7 @@ static fdtype mempool_fetch(fd_pool p,fdtype oid)
   FD_OID addr=FD_OID_ADDR(oid);
   int off=FD_OID_DIFFERENCE(addr,mp->pool_base);
   if ((off>mp->pool_load) && (!((p->pool_flags)&FD_OIDHOLES_OKAY)))
-    return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->pool_idstring,oid);
+    return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->poolid,oid);
   else return fd_hashtable_get(cache,oid,FD_EMPTY_CHOICE);
 }
 
@@ -84,7 +85,7 @@ static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
     FD_OID addr=FD_OID_ADDR(oids[i]);
     int off=FD_OID_DIFFERENCE(addr,mp->pool_base);
     if ((off>mp->pool_load) && (!((p->pool_flags)&FD_OIDHOLES_OKAY))) {
-      fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->pool_idstring),
+      fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->poolid),
 		fd_make_oid(addr));
       return NULL;}
     else i++;}

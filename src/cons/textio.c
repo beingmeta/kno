@@ -1662,18 +1662,18 @@ fdtype fd_read_arg(u8_input in)
         return fdtype_string(":");}
       else return val;}}
   else if ((strchr("@{#(\"|",c))||(isdigit(c))||
-           ((strchr("+-.",c)) && (isdigit(c)))) 
+           ((strchr("+-.",c)) && (isdigit(c))))
     return fd_parser(in);
   else {
     struct U8_OUTPUT out; fdtype result;
     U8_INIT_OUTPUT(&out,256); c=u8_getc(in);
     while ((c>=0)&&(!(u8_isspace(c)))) {
       if (c=='\\') {
-        c=u8_getc(in); 
+        c=u8_getc(in);
         u8_putc(&out,c);
         c=u8_getc(in);}
       else if (c=='|') {
-        c=u8_getc(in); 
+        c=u8_getc(in);
         while ((c>=0)&&(c!='|')) {
           u8_putc(&out,c); c=u8_getc(in);}}
       else {

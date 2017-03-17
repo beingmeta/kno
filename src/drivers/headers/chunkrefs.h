@@ -4,6 +4,10 @@
 #include <snappy-c.h>
 #endif
 
+#ifndef FD_INIT_ZBUF_SIZE
+#define FD_INIT_ZBUF_SIZE 24000
+#endif
+
 #define STREAM_UNLOCKED 0
 #define STREAM_LOCKED 1
 
@@ -172,9 +176,8 @@ static unsigned char *read_chunk(fd_stream stream,
 /* Compression functions */
 
 static U8_MAYBE_UNUSED unsigned char *do_zuncompress
-   (unsigned char *bytes,int n_bytes,
-    unsigned int *dbytes,
-    unsigned char *init_dbuf)
+   (const unsigned char *bytes,size_t n_bytes,
+    ssize_t *dbytes,unsigned char *init_dbuf)
 {
   fd_exception error=NULL; int zerror;
   unsigned long csize=n_bytes, dsize, dsize_max;
@@ -193,7 +196,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
       if (dbuf!=init_dbuf) u8_free(dbuf);
       dbuf=u8_malloc(dsize_max*2);
       if (dbuf==NULL) {
-        error=_("OIDPOOL uncompress ran out of memory"); break;}
+        error=_("pool value uncompress ran out of memory"); break;}
       dsize=dsize_max=dsize_max*2;}
     else if (zerror == Z_DATA_ERROR) {
       error=_("ZLIB uncompress data error"); break;}
@@ -208,17 +211,19 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
 }
 
 static U8_MAYBE_UNUSED unsigned char *do_zcompress
-   (unsigned char *bytes,int n_bytes,
-    int *cbytes,unsigned char *init_cbuf,
+   (unsigned char *bytes,size_t n_bytes,
+    ssize_t *cbytes,unsigned char *init_cbuf,
     int level)
 {
   fd_exception error=NULL; int zerror;
-  unsigned long dsize=n_bytes, csize, csize_max;
+  ssize_t dsize=n_bytes, csize, csize_max;
   Bytef *dbuf=(Bytef *)bytes, *cbuf;
   if (init_cbuf==NULL) {
-    csize=csize_max=dsize; cbuf=u8_malloc(csize_max);}
+    csize=csize_max=dsize;
+    cbuf=u8_malloc(csize_max);}
   else {
-    cbuf=init_cbuf; csize=csize_max=*cbytes;}
+    cbuf=init_cbuf;
+    csize=csize_max=*cbytes;}
   while ((zerror=compress2(cbuf,&csize,dbuf,dsize,level)) < Z_OK)
     if (zerror == Z_MEM_ERROR) {
       error=_("ZLIB ran out of memory"); break;}
@@ -229,7 +234,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
       if (cbuf!=init_cbuf) u8_free(cbuf);
       cbuf=u8_malloc(csize_max*2);
       if (cbuf==NULL) {
-        error=_("OIDPOOL compress ran out of memory"); break;}
+        error=_("pool value compression ran out of memory"); break;}
       csize=csize_max=csize_max*2;}
     else if (zerror == Z_DATA_ERROR) {
       error=_("ZLIB compress data error"); break;}

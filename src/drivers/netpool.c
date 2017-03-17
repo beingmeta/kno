@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define FD_INLINE_POOLS 1
 #define FD_INLINE_BUFIO 1
 
 #include "framerd/fdsource.h"
@@ -101,7 +102,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags,fdtype op
     u8_free(np); u8_free(cid);
     return NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
-  np->pool_idstring=cid; np->pool_xinfo=xid;
+  np->poolid=cid; np->pool_source=xid;
   np->pool_connpool=
     u8_open_connpool(spec,fd_dbconn_reserve_default,
                      fd_dbconn_cap_default,fd_dbconn_init_default);
@@ -129,7 +130,8 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags,fdtype op
       if (n_pools==0) p=np;
       else p=u8_alloc(struct FD_NETWORK_POOL);
       init_network_pool(p,pd,spec,cid,flags);
-      p->pool_xinfo=xid; p->pool_connpool=np->pool_connpool;
+      p->pool_source=xid;
+      p->pool_connpool=np->pool_connpool;
       n_pools++;}}
   else init_network_pool(np,pooldata,spec,cid,flags);
   u8_free(cid);
@@ -171,7 +173,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->pool_idstring),fd_incref(value));
+              u8_strdup(np->poolid),fd_incref(value));
     return NULL;}
 }
 

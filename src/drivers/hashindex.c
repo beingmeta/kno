@@ -739,7 +739,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   FD_CHUNK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,64);
 #if FD_DEBUG_HASHINDEXES
-  /* u8_message("Fetching the key %q from %s",key,hx->index_idstring); */
+  /* u8_message("Fetching the key %q from %s",key,hx->indexid); */
 #endif
   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
      whose slotid isn't in the slotids, the key isn't in the table. */
@@ -749,7 +749,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
         (get_slotid_index(hx,slotid)<0)) {
 #if FD_DEBUG_HASHINDEXES
       u8_message("The slotid %q isn't indexed in %s, returning {}",
-                 slotid,hx->index_idstring);
+                 slotid,hx->indexid);
 #endif
       return FD_EMPTY_CHOICE;}}
   if ((hx->fdkb_xformat)&(FD_HASH_INDEX_DTYPEV2))
@@ -950,7 +950,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
   int oddkeys=((hx->fdkb_xformat)&(FD_HASH_INDEX_ODDKEYS));
   fd_stream stream=&(hx->index_stream);
 #if FD_DEBUG_HASHINDEXES
-  u8_message("Reading %d keys from %s",n,hx->index_idstring);
+  u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
   FD_INIT_BYTE_OUTBUF(&out,n*16);
   if ((hx->fdkb_xformat)&(FD_HASH_INDEX_DTYPEV2))
@@ -1139,7 +1139,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys)
     if (vbuf) u8_free(vbuf);}
   u8_free(vsched);
 #if FD_DEBUG_HASHINDEXES
-  u8_message("Finished reading %d keys from %s",n,hx->index_idstring);
+  u8_message("Finished reading %d keys from %s",n,hx->indexid);
 #endif
   fd_close_outbuf(&out);
   return values;
@@ -1406,7 +1406,7 @@ static void hash_index_setcache(struct FD_HASH_INDEX *hx,int level)
     if (hx->index_mmap) {
       fd_unlock_index(hx);
       return;}
-    mmap_size=u8_file_size(hx->index_idstring);
+    mmap_size=u8_file_size(hx->indexid);
     if (mmap_size>=0) {
       hx->index_mmap_size=(size_t)mmap_size;
       hx->index_mmap=
@@ -1414,7 +1414,7 @@ static void hash_index_setcache(struct FD_HASH_INDEX *hx,int level)
              hx->index_stream.stream_fileno,0);}
     else {
       u8_log(LOG_WARN,"FailedMMAPSize",
-             "Couldn't get mmap size for hash index %s",hx->index_idstring);
+             "Couldn't get mmap size for hash index %s",hx->indexid);
       hx->index_mmap_size=0; hx->index_mmap=NULL;}
     if (hx->index_mmap==NULL) {
       u8_log(LOG_WARN,u8_strerror(errno),
@@ -1632,7 +1632,7 @@ FD_EXPORT int fd_populate_hash_index
         if (cycle_max>overall_max) overall_max=cycle_max;
         cycle_keys=cycle_buckets=cycle_max=0;
         u8_message("Processed %d of %d keys (%.2f%%) from %s in %.2f secs, ~%.2f secs to go (~%.2f secs total)",
-                   i,n_keys,percent,ix->index_idstring,elapsed,togo,total);}
+                   i,n_keys,percent,ix->indexid,elapsed,togo,total);}
       if (i>0)
         u8_message("Overall, distributed %d keys over %d buckets, averaging %.2f keys per bucket (%d keys max)",
                    overall_keys,overall_buckets,
@@ -1640,7 +1640,7 @@ FD_EXPORT int fd_populate_hash_index
                    overall_max);
       fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);
       u8_message("Prefetched %d keys from %s in %.3f seconds",
-                 fetch_max-i,ix->index_idstring,u8_elapsed_time()-fetch_start);}
+                 fetch_max-i,ix->indexid,u8_elapsed_time()-fetch_start);}
 
     while (i<j) {
       fdtype key=psched[i].key, values=fd_get(from,key,FD_EMPTY_CHOICE);
@@ -1997,7 +1997,7 @@ FD_FASTOP fd_off_t extend_keybucket
             u8_free(keyoffs); u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
-                                  hx->index_idstring,endpos,maxpos));
+                                  hx->indexid,endpos,maxpos));
             return -1;}}
         break;}
       else {
@@ -2034,7 +2034,7 @@ FD_FASTOP fd_off_t extend_keybucket
             u8_free(keyoffs); u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
-                                  hx->index_idstring,endpos,maxpos));
+                                  hx->indexid,endpos,maxpos));
             return -1;}}
         break;}}
     /* This is the case where we are adding a new key to the bucket. */
@@ -2055,7 +2055,7 @@ FD_FASTOP fd_off_t extend_keybucket
             u8_free(keyoffs); u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
                       u8_mkstring("%s: %lld >= %lld",
-                                  hx->index_idstring,endpos,maxpos));
+                                  hx->indexid,endpos,maxpos));
             return -1;}}}
       kb->bck_n_keys++;}
     k++;}
@@ -2086,7 +2086,7 @@ FD_FASTOP fd_off_t write_keybucket
     i++;}
   if (endpos>=maxpos) {
     u8_seterr(fd_DataFileOverflow,"write_keybucket",
-              u8_mkstring("%s: %lld >= %lld",hx->index_idstring,endpos,maxpos));
+              u8_mkstring("%s: %lld >= %lld",hx->indexid,endpos,maxpos));
     return -1;}
   return endpos;
 }
@@ -2354,12 +2354,12 @@ static int hash_index_commit(struct FD_INDEX *ix)
     if (recovery_pos!=recovery_start) {
       u8_log(LOG_ERR,"hash_index_commit",
              "Trouble truncating recovery information for %s",
-             hx->index_idstring);}
+             hx->indexid);}
     retval=ftruncate(stream->stream_fileno,recovery_pos);
     if (retval<0)
       u8_log(LOG_ERR,"hash_index_commit",
              "Trouble truncating recovery information for %s",
-             hx->index_idstring);}
+             hx->indexid);}
 
   /* Remap the file */
   if (hx->index_mmap) {
@@ -2368,7 +2368,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       u8_log(LOG_WARN,"MUNMAP","hash_index MUNMAP failed with %s",
              u8_strerror(errno));
       errno=0;}
-    hx->index_mmap_size=u8_file_size(hx->index_idstring);
+    hx->index_mmap_size=u8_file_size(hx->indexid);
     hx->index_mmap=
       mmap(NULL,hx->index_mmap_size,PROT_READ,MMAP_FLAGS,
            hx->index_stream.stream_fileno,0);}
@@ -2385,7 +2385,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   u8_log(fdkb_loglevel,"HashIndexCommit",
          "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
          n_keys,new_keys,total_keys,
-         ix->index_idstring,u8_elapsed_time()-started);
+         ix->indexid,u8_elapsed_time()-started);
 
 #if FD_DEBUG_HASHINDEXES
   u8_message("Returning from hash_index_commit()");
@@ -2399,7 +2399,9 @@ static int make_offsets_writable(fd_hash_index hx)
 {
   unsigned int *newmmap, n_buckets=hx->index_n_buckets;
   size_t chunk_ref_size=get_chunk_ref_size(hx);
-  int retval=munmap(hx->index_offdata-64,(n_buckets*chunk_ref_size)+256);
+  unsigned int *offdata=hx->index_offdata;
+  hx->index_offdata=NULL;
+  int retval=munmap(offdata-64,(n_buckets*chunk_ref_size)+256);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_writable:munmap %s",hx->index_source);
@@ -2409,7 +2411,7 @@ static int make_offsets_writable(fd_hash_index hx)
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_writable:mmap %s",hx->index_source);
-    hx->index_offdata=NULL; errno=0;}
+    errno=0;}
   else hx->index_offdata=newmmap+64;
   return retval;
 }
@@ -2418,14 +2420,14 @@ static int make_offsets_unwritable(fd_hash_index hx)
 {
   unsigned int *newmmap, n_buckets=hx->index_n_buckets;
   size_t chunk_ref_size=get_chunk_ref_size(hx);
-  int retval=msync(hx->index_offdata-64,(n_buckets*chunk_ref_size)+256,
-                   MS_SYNC|MS_INVALIDATE);
+  unsigned int *offdata=hx->index_offdata;
+  int retval=msync(offdata-64,(n_buckets*chunk_ref_size)+256,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_unwritable:msync %s",hx->index_source);
     return retval;}
-  retval=munmap(hx->index_offdata-64,
-                (n_buckets*chunk_ref_size)+256);
+  hx->index_offdata=NULL;
+  retval=munmap(offdata-64,(n_buckets*chunk_ref_size)+256);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_unwritable:munmap %s",hx->index_source);
@@ -2435,7 +2437,7 @@ static int make_offsets_unwritable(fd_hash_index hx)
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_unwritable:mmap %s",hx->index_source);
-    hx->index_offdata=NULL; errno=0;}
+    errno=0;}
   else hx->index_offdata=newmmap+64;
   return retval;
 }
@@ -2584,7 +2586,7 @@ static void hash_index_close(fd_index ix)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   unsigned int chunk_ref_size=get_chunk_ref_size(hx);
-  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->index_idstring);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
   fd_lock_index(hx);
   if (hx->index_offdata) {
 #if HAVE_MMAP
@@ -2600,7 +2602,7 @@ static void hash_index_close(fd_index ix)
     hx->index_offdata=NULL;
     hx->index_cache_level=-1;}
   fd_close_stream(&(hx->index_stream),0);
-  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->index_idstring);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->indexid);
   fd_unlock_index(hx);
 }
 
@@ -2719,7 +2721,7 @@ static fdtype hash_index_ctl(fd_index ix,int op,int n,fdtype *args)
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   if ( ((n>0)&&(args==NULL)) || (n<0) )
     return fd_err("BadIndexOpCall","hash_index_ctl",
-                  hx->index_idstring,FD_VOID);
+                  hx->indexid,FD_VOID);
   else switch (op) {
     case FD_INDEXOP_CACHELEVEL:
       if (n==0)

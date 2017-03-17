@@ -164,17 +164,17 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
     return NULL;}
 }
 
-FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
+FD_EXPORT fd_index fd_find_index_by_qname(u8_string cid)
 {
   int i=0;
   if (cid == NULL) return NULL;
   else while (i<fd_n_primary_indexes)
-    if (strcmp(cid,fd_primary_indexes[i]->index_idstring)==0)
+    if (strcmp(cid,fd_primary_indexes[i]->indexid)==0)
       return fd_primary_indexes[i];
     else i++;
   if (fd_secondary_indexes == NULL) return NULL;
   i=0; while (i<fd_n_secondary_indexes)
-    if (strcmp(cid,fd_secondary_indexes[i]->index_idstring)==0)
+    if (strcmp(cid,fd_secondary_indexes[i]->indexid)==0)
       return fd_secondary_indexes[i];
     else i++;
   return NULL;
@@ -199,7 +199,7 @@ FD_EXPORT fd_index fd_get_index(u8_string spec,fdkb_flags flags,fdtype opts)
       return fd_get_index(spec+start_off,flags,opts);}
     else return NULL;}
   else {
-    fd_index known=fd_find_index_by_cid(spec);
+    fd_index known=fd_find_index_by_qname(spec);
     if (known) return known;
     else return fd_open_index(spec,flags,opts);}
 }
@@ -617,7 +617,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
   FDTC *fdtc=fd_threadcache;
   fd_hashtable adds=&(ix->index_adds), cache=&(ix->index_cache);
   if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->index_idstring),FD_VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   if (FD_EMPTY_CHOICEP(value)) return 0;
@@ -680,7 +680,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
   fd_hashtable bg_cache=&(fd_background->index_cache);
   if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",
-              u8_strdup(ix->index_idstring),FD_VOID);
+              u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   if (FD_CHOICEP(key)) {
@@ -729,7 +729,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
   fd_hashtable bg_cache=&(fd_background->index_cache);
   if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
-              u8_strdup(ix->index_idstring),FD_VOID);
+              u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   if (FD_CHOICEP(key)) {
@@ -781,7 +781,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
   fd_hashtable adds=&(ix->index_adds);
   if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
-              u8_strdup(ix->index_idstring),FD_VOID);
+              u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   fd_write_lock_table(adds);
@@ -809,7 +809,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     int n_keys=n_edits+n_adds, retval=0;
     if (n_keys==0) return 0;
     u8_log(fdkb_loglevel,fd_IndexCommit,
-           "####### Saving %d updates to %s",n_keys,ix->index_idstring);
+           "####### Saving %d updates to %s",n_keys,ix->indexid);
     double start_time=u8_elapsed_time();
     if (ix->index_cache_level<0) {
       fd_index_setcache(ix,fd_default_cache_level);}
@@ -817,15 +817,15 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     if (retval<0)
       u8_log(LOG_CRIT,fd_IndexCommitError,
              _("!!!!!!! Error saving %d keys to %s after %f secs"),
-             n_keys,ix->index_idstring,u8_elapsed_time()-start_time);
+             n_keys,ix->indexid,u8_elapsed_time()-start_time);
     else if (retval>0)
       u8_log(fdkb_loglevel,fd_IndexCommit,
              _("####### Saved %d updated keys to %s in %f secs"),
-             retval,ix->index_idstring,u8_elapsed_time()-start_time);
+             retval,ix->indexid,u8_elapsed_time()-start_time);
     else {}
     if (retval<0)
       u8_seterr(fd_IndexCommitError,"fd_index_commit",
-                u8_strdup(ix->index_idstring));
+                u8_strdup(ix->indexid));
     return retval;}
   else return 0;
 }
@@ -863,9 +863,8 @@ FD_EXPORT void fd_init_index
   fd_make_hashtable(&(ix->index_adds),0);
   fd_make_hashtable(&(ix->index_edits),0);
   ix->index_handler=h;
-  ix->index_idstring=u8_strdup(source);
-  ix->index_source=u8_strdup(source);
-  ix->index_xinfo=NULL;
+  ix->indexid=u8_strdup(source);
+  ix->index_source=NULL;
   ix->index_covers_slotids=FD_VOID;
 }
 
@@ -889,12 +888,14 @@ static int unparse_index(u8_output out,fdtype x)
 {
   fd_index ix=fd_indexptr(x); u8_string type;
   if (ix==NULL) return 0;
-  if ((ix->index_handler) && (ix->index_handler->name)) type=ix->index_handler->name;
+  if ((ix->index_handler) && (ix->index_handler->name)) 
+    type=ix->index_handler->name;
   else type="unrecognized";
-  if ((ix->index_xinfo) && (strcmp(ix->index_source,ix->index_xinfo)))
-    u8_printf(out,_("#<INDEX %s 0x%lx \"%s|%s\">"),
-              type,x,ix->index_source,ix->index_xinfo);
-  else u8_printf(out,_("#<INDEX %s 0x%lx \"%s\">"),type,x,ix->index_source);
+  if (ix->index_source)
+    u8_printf(out,_("#<INDEX %s %s 0x%lx \"%s\">"),
+              type,ix->indexid,x,ix->index_source);
+  else u8_printf(out,_("#<INDEX %s %x 0x%lx>"),
+                 type,ix->indexid,x);
   return 1;
 }
 
@@ -904,10 +905,11 @@ static int unparse_raw_index(u8_output out,fdtype x)
   if (ix==NULL) return 0;
   if ((ix->index_handler) && (ix->index_handler->name)) type=ix->index_handler->name;
   else type="unrecognized";
-  if ((ix->index_xinfo) && (strcmp(ix->index_source,ix->index_xinfo)))
-    u8_printf(out,_("#<INDEX %s 0x%lx \"%s|%s\">"),
-              type,x,ix->index_source,ix->index_xinfo);
-  else u8_printf(out,_("#<INDEX %s 0x%lx \"%s\">"),type,x,ix->index_source);
+  if (ix->index_source)
+    u8_printf(out,_("#<RAWINDEX %s %s 0x%lx \"%s\">"),
+              type,ix->indexid,x,ix->index_source);
+  else u8_printf(out,_("#<RAWINDEX %s %x 0x%lx>"),
+                 type,ix->indexid,x);
   return 1;
 }
 
@@ -961,7 +963,7 @@ FD_EXPORT int fd_commit_indexes_noerr()
     int retval=fd_index_commit(fd_primary_indexes[i]);
     if (retval<0) {
       u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",
-              fd_primary_indexes[i]->index_idstring);
+              fd_primary_indexes[i]->indexid);
       fd_clear_errors(1);
       count=-1;}
     if (count>=0) count=count+retval;
@@ -970,7 +972,7 @@ FD_EXPORT int fd_commit_indexes_noerr()
     int retval=fd_index_commit(fd_secondary_indexes[i]);
     if (retval<0) {
       u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",
-              fd_secondary_indexes[i]->index_idstring);
+              fd_secondary_indexes[i]->indexid);
       fd_clear_errors(1);
       count=-1;}
     if (count>=0) count=count+retval;
@@ -1047,14 +1049,14 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
       u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetching %d keys from %s: %q",
-             FD_CHOICE_SIZE(todo),ix->index_idstring,todo);
+             FD_CHOICE_SIZE(todo),ix->indexid,todo);
     else
 #endif
     retval=fd_index_prefetch(ix,todo);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
       u8_log(LOG_NOTICE,ipeval_ixfetch,"Fetched %d keys from %s",
-             FD_CHOICE_SIZE(todo),ix->index_idstring);
+             FD_CHOICE_SIZE(todo),ix->indexid);
 #endif
     if (retval<0) return retval;
     else return 0;}
@@ -1068,7 +1070,7 @@ static void recycle_raw_index(struct FD_RAW_CONS *c)
   fd_recycle_hashtable(&(ix->index_cache));
   fd_recycle_hashtable(&(ix->index_adds));
   fd_recycle_hashtable(&(ix->index_edits));
-  u8_free(ix->index_idstring);
+  u8_free(ix->indexid);
   u8_free(ix->index_source);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }

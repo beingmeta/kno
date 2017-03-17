@@ -1160,7 +1160,7 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
   return result;
 }
 
-/* This reads a non frame value with compression. */
+/* This writes a non frame value with compression. */
 FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;

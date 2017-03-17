@@ -111,8 +111,9 @@
        synchronizes the pool cache with the resource it gets its values from.
 */
 
-#define fd_lock_pool(p) u8_lock_mutex(&((p)->pool_lock))
-#define fd_unlock_pool(p) u8_unlock_mutex(&((p)->pool_lock))
+#ifndef FD_INLINE_POOLS
+#define FD_INLINE_POOLS 0
+#endif
 
 FD_EXPORT fd_exception
 fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
@@ -143,19 +144,20 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 
 #define FD_POOL_FIELDS \
   FD_CONS_HEADER;					\
+  u8_string poolid, pool_source, pool_label;		\
   FD_OID pool_base;					\
   unsigned int pool_capacity;				\
-  u8_string pool_label, pool_idstring, pool_source;	\
   fdkb_flags pool_flags, modified_flags;		\
   struct FD_POOL_HANDLER *pool_handler;			\
   int pool_serialno;					\
   short pool_cache_level;				\
+  char pool_locked;					\
   U8_MUTEX_DECL(pool_lock);				\
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
   struct FD_HASHTABLE *oid_handlers;			\
-  u8_string pool_prefix, pool_xinfo;			\
+  u8_string pool_prefix;				\
   fdtype pool_namefn
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
@@ -171,6 +173,26 @@ FD_EXPORT fdtype fd_all_pools(void);
 
 FD_EXPORT fd_pool *fd_pool_serial_table;
 FD_EXPORT int fd_pool_serial_count;
+
+/* Locking functions */
+
+FD_EXPORT void _fd_lock_pool(fd_pool p);
+FD_EXPORT void _fd_unlock_pool(fd_pool p);
+
+#if FD_INLINE_POOLS
+FD_FASTOP void fd_lock_pool(fd_pool p)
+{
+  u8_lock_mutex(&((p)->pool_lock));
+  p->pool_locked=1;
+}
+FD_FASTOP void fd_unlock_pool(fd_pool p)
+{
+  if (p->pool_locked) {
+    u8_unlock_mutex(&((p)->pool_lock));
+    p->pool_locked=0;}
+  else _fd_unlock_pool(p);}
+#else
+#endif
 
 /* Pool handlers */
 
@@ -228,8 +250,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
-FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid);
-FD_EXPORT fd_pool fd_find_pool_by_cid(u8_string cid);
+FD_EXPORT fdtype fd_find_pools_by_qname(u8_string cid);
+FD_EXPORT fd_pool fd_find_pool_by_qname(u8_string cid);
 FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
 

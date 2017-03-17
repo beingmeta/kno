@@ -147,9 +147,9 @@ static int mem_index_commit(fd_index ix)
 
   if (n_updates>60000)
     u8_log(fdkb_loglevel,"MemIndex/Commit",
-	   "Saving %d updates to %s",n_updates,ix->index_idstring);
+	   "Saving %d updates to %s",n_updates,ix->indexid);
   else u8_log(fdkb_loglevel+1,"MemIndex/Commit",
-	      "Saving %d updates to %s",n_updates,ix->index_idstring);
+	      "Saving %d updates to %s",n_updates,ix->indexid);
 
   fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
   fd_for_hashtable_kv(edits,merge_edits,(void *)cache,0);
@@ -164,7 +164,7 @@ static int mem_index_commit(fd_index ix)
 
   u8_log(fdkb_loglevel+1,"MemIndex/Commit",
 	 "Updated in-memory cache with %d updates to %s, writing to disk",
-	 n_updates,ix->index_idstring);
+	 n_updates,ix->indexid);
 
   /* At this point, the index tables are unlocked and can start being
      used by other threads. We'll now write the changes to the
@@ -203,7 +203,7 @@ static int mem_index_commit(fd_index ix)
 
   u8_log(fdkb_loglevel,"MemIndex/Finished",
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
-	 n_updates,n_entries,ix->index_idstring,end);
+	 n_updates,n_entries,ix->indexid,end);
 
   return 1;
 }
