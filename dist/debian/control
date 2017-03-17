@@ -2,7 +2,7 @@ Source: framerd
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, sqlite3, apache2-dev, libmysqlclient-dev, libcurl4-openssl-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.5.6), libhyphen-dev, libedit-dev, libsasl2-dev, libbson-dev, libmagickwand-dev, libmongoc-dev, libldns-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, sqlite3, apache2-dev, libmysqlclient-dev, libcurl4-openssl-dev, libexif-dev, libzip-dev, libqrencode-dev, libu8-dev (>= 2.5.6), libhyphen-dev, libedit-dev, libsasl2-dev, libbson-dev, libmagickwand-dev, libmongoc-dev, libldns-dev, libleveldb-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
@@ -100,6 +100,22 @@ Depends:
     libbson-dev,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-mongodb
+
+Package: framerd-leveldb
+Architecture: any
+Depends: framerd-core (= ${binary:Version}), libbson-dev, libmongoc-dev
+Description: Leveldb interface for FramerD
+
+Package: framerd-leveldb-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-leveldb (= ${binary:Version}),
+    libmongoc-dev,
+    libbson-dev,
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-leveldb
 
 Package: framerd-imagetools
 Architecture: any
