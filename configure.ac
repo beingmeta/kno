@@ -1248,8 +1248,6 @@ if test ! -z "${with_stdlib}"; then
    gperftools_default="no";
 fi;
 
-AC_ARG_WITH(profiling,--with[out]-profiling Enable/disable profiling features,,with_profiling="yes")
-
 AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=${gperftools_default})
 if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
@@ -1278,6 +1276,16 @@ elif test $with_gperftools = "debug"; then
   AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   custom_malloc="tcmalloc"
+elif test $with_gperftools = "production"; then
+  AC_CHECK_LIB(tcmalloc,malloc)
+  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
+     echo "No tcmalloc, skipping further tests";
+     with_gperftools="no";
+  else
+    custom_malloc="tcmalloc"
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
+  fi; 
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
