@@ -20,6 +20,8 @@
 #include "framerd/drivers.h"
 #include "framerd/dtcall.h"
 
+#include "headers/netpool.h"
+
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
 

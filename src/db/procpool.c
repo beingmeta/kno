@@ -269,4 +269,3 @@ FD_EXPORT void fd_init_procpool_c()
 {
   u8_register_source_file(_FILEINFO);
 }
-

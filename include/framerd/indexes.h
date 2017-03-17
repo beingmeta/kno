@@ -155,15 +155,6 @@ FD_EXPORT int fd_add_to_background(fd_index ix);
 
 /* Network indexes */
 
-typedef struct FD_NETWORK_INDEX {
-  FD_INDEX_FIELDS;
-  int sock; fdtype xname;
-  int capabilities;
-  struct U8_CONNPOOL *index_connpool;} FD_NETWORK_INDEX;
-typedef struct FD_NETWORK_INDEX *fd_network_index;
-
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags,fdtype opts);
-
 /* Server capabilities */
 #define FD_ISERVER_FETCHN 1
 #define FD_ISERVER_ADDN 2
@@ -174,13 +165,27 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags,fdtype 
 
 typedef struct FD_EXTINDEX {
   FD_INDEX_FIELDS;
-  fdtype fetchfn, commitfn, state;} FD_EXTINDEX;
+  fdtype fetchfn, commitfn, state;}
+  FD_EXTINDEX;
 typedef struct FD_EXTINDEX *fd_extindex;
 
 FD_EXPORT fd_index fd_make_extindex
   (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg);
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
+
+/* Proc indexes */
+
+typedef struct FD_PROCINDEX {
+  FD_INDEX_FIELDS;
+  fdtype closefn, commitfn, fetchfn, fetchsize;
+  fdtype prefetch, fetchn, fetchkeys, fetchsizes;
+  fdtype batchadd, metadata, create, indexctl;
+  fdtype index_state;}
+  FD_PROCINDEX;
+typedef struct FD_PROCINDEX *fd_procindex;
+
+FD_EXPORT struct FD_INDEX_HANDLER fd_procindex_handler;
 
 /* Compound indexes */
 

@@ -381,13 +381,25 @@ typedef struct FD_GPOOL {
   fdtype fetchfn, newfn, loadfn, savefn;} FD_GPOOL;
 typedef struct FD_GPOOL *fd_gpool;
 
-/* Network Pools */
+/* Proc pools */
 
-typedef struct FD_NETWORK_POOL {
+typedef struct FD_PROCPOOL {
   FD_POOL_FIELDS;
-  struct U8_CONNPOOL *pool_connpool;
-  int bulk_commitp;} FD_NETWORK_POOL;
-typedef struct FD_NETWORK_POOL *fd_network_pool;
+  fdtype pool_state;
+  fdtype allocfn, getloadfn,
+    fetchfn, fetchnfn, swapoutfn,
+    lockfn, releasefn,
+    storenfn, metadatafn,
+    createfn, closefn, ctlfn;}
+  FD_PROCPOOL;
+typedef struct FD_PROCPOOL *fd_procpool;
+
+FD_EXPORT
+fd_pool fd_make_procpool(FD_OID base,int cap,int load,
+			 fdtype opts,fdtype state,
+			 u8_string label,u8_string cid);
+
+FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 
 /* External Pools */
 
@@ -409,26 +421,6 @@ FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
 
-/* External Pools */
-
-typedef struct FD_PROCPOOL {
-  FD_POOL_FIELDS;
-  fdtype pool_state;
-  fdtype allocfn, getloadfn,
-    fetchfn, fetchnfn, swapoutfn,
-    lockfn, releasefn,
-    storenfn, metadatafn,
-    createfn, closefn, ctlfn;}
-  FD_PROCPOOL;
-typedef struct FD_PROCPOOL *fd_procpool;
-
-FD_EXPORT
-fd_pool fd_make_procpool(FD_OID base,int cap,int load,
-			 fdtype opts,fdtype state,
-			 u8_string label,u8_string cid);
-
-FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
-
 /* Memory Pools (only in memory, no fetch/commit) */
 
 typedef struct FD_MEMPOOL {
@@ -440,8 +432,10 @@ typedef struct FD_MEMPOOL *fd_mempool;
 FD_EXPORT fd_pool fd_make_mempool
   (u8_string label,FD_OID base,unsigned int cap,unsigned int load,
    unsigned int noswap);
+
 /* Removes deadwood */
 FD_EXPORT int fd_clean_mempool(fd_pool p);
+
 /* Clears all the locks, caches, and load for a mempool. */
 FD_EXPORT int fd_reset_mempool(fd_pool p);
 

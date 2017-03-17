@@ -17,6 +17,8 @@
 #include "framerd/dtcall.h"
 #include "framerd/drivers.h"
 
+#include "headers/netindex.h"
+
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
 

@@ -38,14 +38,11 @@ FD_EXPORT int fd_init_builtindbs_c()
 }
 
 int fd_init_htindex_c(void);
-int fd_init_extindex_c(void);
 int fd_init_netindex_c(void);
 int fd_init_fileindex_c(void);
 int fd_init_hashindex_c(void);
 int fd_init_memindex_c(void);
 
-int fd_init_mempool_c(void);
-int fd_init_extpool_c(void);
 int fd_init_netpool_c(void);
 int fd_init_file_pool_c(void);
 int fd_init_oidpool_c(void);
@@ -59,22 +56,17 @@ FD_EXPORT int fd_init_dbs()
   dbs_initialized=307*fd_init_dblib();
 
   fd_init_builtindbs_c();
-  fd_init_mempool_c();
-  fd_init_extpool_c();
-  fd_init_netpool_c();
 
   fd_init_file_pool_c();
   fd_init_oidpool_c();
-
   fd_init_bigpool_c();
-
-  fd_init_extindex_c();
-  fd_init_htindex_c();
-  fd_init_netindex_c();
-  fd_init_memindex_c();
 
   fd_init_fileindex_c();
   fd_init_hashindex_c();
+
+  fd_init_htindex_c();
+  fd_init_netindex_c();
+  fd_init_memindex_c();
 
   u8_register_source_file(_FILEINFO);
 

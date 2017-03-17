@@ -126,18 +126,18 @@ DB_OBJS=src/db/fdkbase.o src/db/streams.o src/db/hashdtype.o 		\
 	src/db/dtproc.o src/db/dtcall.o 				\
 	src/db/methods.o src/db/xtables.o 				\
 	src/db/cachecall.o src/db/threadcache.o 			\
-	src/db/drivers.o 						\
+	src/db/extindex.o src/db/extpool.o 				\
+	src/db/procpool.o src/db/procindex.o				\
+	src/db/mempool.o src/db/drivers.o				\
 	@ipevalo@ src/db/frames.o
 
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
-	src/drivers/netpool.o src/drivers/extpool.o	\
-	src/drivers/mempool.o src/drivers/bigpool.o	\
-	src/drivers/procpool.o \
+	src/drivers/netpool.o src/drivers/bigpool.o	\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/htindex.o src/drivers/extindex.o 	\
-	src/drivers/memindex.o src/drivers/netindex.o
+	src/drivers/htindex.o src/drivers/memindex.o    \
+	src/drivers/netindex.o
 
 FDKBSERV_OBJS=src/db/dbserv.o
 
@@ -344,10 +344,10 @@ FRAMERD_SOURCES=\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\
 	src/drivers/bigpool.c 						\
 	src/drivers/fileindex.c src/drivers/hashindex.c			\
-	src/drivers/htindex.c src/drivers/extindex.c			\
-	src/drivers/mempool.c src/drivers/extpool.c			\
+	src/drivers/htindex.c src/db/extindex.c				\
+	src/db/mempool.c src/db/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 			\
-	src/drivers/procpool.c 			\
+	src/db/procpool.c src/db/procindex.c 				\
 	src/drivers/memindex.c						\
 	src/drivers/netpool.c src/drivers/netindex.c			\
 	src/eval/eval.c src/eval/binders.c src/eval/sprocs.c 		\

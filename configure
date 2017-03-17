@@ -916,12 +916,12 @@ with_mongodb
 with_leveldb
 with_fileinfo
 with_stdlib
+with_profiling
 with_gperftools
 with_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
-with_profiling
 enable_prefetching
 enable_calltrack
 enable_fileconfig
@@ -1650,6 +1650,7 @@ Optional Packages:
 --with-leveldb Build and install LevelDB library
 --without-fileinfo record fileinfo
 --without-stdlib Force the use of stdlib
+--without-profiling Enable/disable profiling features
 --without-google Use the Google perftools
 --with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
@@ -10911,6 +10912,15 @@ if test ! -z "${with_stdlib}"; then
 fi;
 
 
+# Check whether --with-profiling was given.
+if test "${with_profiling+set}" = set; then :
+  withval=$with_profiling;
+else
+  with_profiling="yes"
+fi
+
+
+
 # Check whether --with-gperftools was given.
 if test "${with_gperftools+set}" = set; then :
   withval=$with_gperftools;
@@ -10974,7 +10984,8 @@ fi
      with_gperftools="no";
   else
     custom_malloc="tcmalloc"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+    if test "${with_profiling}" = "yes"; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
 $as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
 if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11019,6 +11030,7 @@ _ACEOF
 
 fi
 
+    fi;
     for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`

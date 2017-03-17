@@ -18,6 +18,7 @@
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
+
 /* Mem pools */
 
 static struct FD_POOL_HANDLER mempool_handler;

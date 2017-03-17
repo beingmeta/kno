@@ -316,6 +316,12 @@ fd_compress_type fd_compression_type(fdtype opts,fd_compress_type dflt)
 
 /* Initialization */
 
+int fd_init_mempool_c(void);
+int fd_init_extpool_c(void);
+int fd_init_extindex_c(void);
+int fd_init_procpool_c(void);
+int fd_init_procindex_c(void);
+
 static int drivers_c_initialized=0;
 
 FD_EXPORT int fd_init_drivers_c()
@@ -324,6 +330,12 @@ FD_EXPORT int fd_init_drivers_c()
   drivers_c_initialized=307*fd_init_dblib();
 
   u8_register_source_file(_FILEINFO);
+
+  fd_init_extindex_c();
+  fd_init_mempool_c();
+  fd_init_extpool_c();
+  fd_init_procpool_c();
+  fd_init_procindex_c();
 
   rev_symbol=fd_intern("REV");
   gentime_symbol=fd_intern("GENTIME");
