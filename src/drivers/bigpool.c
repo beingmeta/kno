@@ -1121,8 +1121,8 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
 
 static fdtype bigpool_alloc(fd_pool p,int n)
 {
-  fdtype results=FD_EMPTY_CHOICE; int i=0;
   fd_bigpool bp=(fd_bigpool)p;
+  fdtype results=FD_EMPTY_CHOICE; int i=0;
   fd_lock_pool(p);
   if (!(POOLFILE_LOCKEDP(bp))) lock_bigpool_file(bp,0);
   if (bp->pool_load+n>=bp->pool_capacity) {
@@ -1155,48 +1155,9 @@ static int bigpool_unlock(fd_pool p,fdtype oids)
   return 1;
 }
 
-static void bigpool_setcache(fd_pool p,int level)
+#if HAVE_MMAP
+static void setcache(fd_bigpool bp,int level,int chunk_ref_size)
 {
-  fd_bigpool bp=(fd_bigpool)p;
-  int chunk_ref_size=get_chunk_ref_size(bp);
-  if (chunk_ref_size<0) {
-    u8_log(LOG_WARN,fd_CorruptedPool,"Pool structure invalid: %s",p->poolid);
-    return;}
-  if ( ( (level<2) && (bp->pool_offdata == NULL) ) ||
-       ( (level==2) && ( bp->pool_offdata != NULL ) ) )
-    return;
-  fd_lock_pool(p);
-  if ( ( (level<2) && (bp->pool_offdata == NULL) ) ||
-       ( (level==2) && ( bp->pool_offdata != NULL ) ) ) {
-    fd_unlock_pool(p);
-    return;}
-#if (!(HAVE_MMAP))
-  if (level < 2) {
-    if (bp->pool_offdata) {
-      u8_free(bp->pool_offdata);
-      bp->pool_offdata=NULL;}
-    fd_unlock_pool(p);
-    return;}
-  else {
-    unsigned int *offsets;
-    fd_stream s=&(bp->pool_stream);
-    fd_inbuf ins=fd_readbuf(s);
-    if (LOCK_POOLSTREAM(bp)<0) {
-      fd_clear_errors(1);}
-    else {
-      size_t offsets_size=chunk_ref_size*(bp->pool_load);
-      fd_stream_start_read(s);
-      fd_setpos(s,12);
-      bp->pool_load=load=fd_read_4bytes(ins);
-      offsets=u8_malloc(offsets_size);
-      fd_setpos(s,24);
-      fd_read_ints(ins,load,offsets);
-      bp->pool_offdata=offsets;
-      bp->pool_offdata_length=offsets_size;
-      UNLOCK_POOLSTREAM(bp);}
-    fd_unlock_pool(p);
-    return;}
-#else /* HAVE_MMAP */
   if ( (level < 2) && (bp->pool_offdata) ) {
     /* Unmap the offsets cache */
     int retval;
@@ -1217,7 +1178,6 @@ static void bigpool_setcache(fd_pool p,int level)
     u8_log(LOGWARN,"PoolStreamClosed",
            "During bigpool_setcache for %s",bp->poolid);
     UNLOCK_POOLSTREAM(bp);
-    fd_unlock_pool(p);
     return;}
 
   if ( (level >= 2) && (bp->pool_offdata == NULL) ) {
@@ -1241,8 +1201,53 @@ static void bigpool_setcache(fd_pool p,int level)
       bp->pool_offdata_length=offsets_size;} }
 
   UNLOCK_POOLSTREAM(bp);
+}
+#else
+static void setcache(fd_bigpool bp,int level,int chunk_ref_size)
+{
+  if (level < 2) {
+    if (bp->pool_offdata) {
+      u8_free(bp->pool_offdata);
+      bp->pool_offdata=NULL;}
+    return;}
+  else {
+    unsigned int *offsets;
+    fd_stream s=&(bp->pool_stream);
+    fd_inbuf ins=fd_readbuf(s);
+    if (LOCK_POOLSTREAM(bp)<0) {
+      fd_clear_errors(1);}
+    else {
+      size_t offsets_size=chunk_ref_size*(bp->pool_load);
+      fd_stream_start_read(s);
+      fd_setpos(s,12);
+      bp->pool_load=load=fd_read_4bytes(ins);
+      offsets=u8_malloc(offsets_size);
+      fd_setpos(s,24);
+      fd_read_ints(ins,load,offsets);
+      bp->pool_offdata=offsets;
+      bp->pool_offdata_length=offsets_size;
+      UNLOCK_POOLSTREAM(bp);}
+    return;}
+}
+#endif
+
+static void bigpool_setcache(fd_pool p,int level)
+{
+  fd_bigpool bp=(fd_bigpool)p;
+  int chunk_ref_size=get_chunk_ref_size(bp);
+  if (chunk_ref_size<0) {
+    u8_log(LOG_WARN,fd_CorruptedPool,"Pool structure invalid: %s",p->poolid);
+    return;}
+  if ( ( (level<2) && (bp->pool_offdata == NULL) ) ||
+       ( (level==2) && ( bp->pool_offdata != NULL ) ) )
+    return;
+  fd_lock_pool(p);
+  if ( ( (level<2) && (bp->pool_offdata == NULL) ) ||
+       ( (level==2) && ( bp->pool_offdata != NULL ) ) ) {
+    fd_unlock_pool(p);
+    return;}
+  setcache(bp,level,chunk_ref_size);
   fd_unlock_pool(p);
-#endif /* HAVE_MMAP */
 }
 
 /* Write values:
