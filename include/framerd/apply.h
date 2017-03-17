@@ -54,10 +54,12 @@ typedef fdtype (*fd_xprim9)(fd_function,fdtype,fdtype,
 typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
-  FD_CONS_HEADER; u8_string name, filename;                             \
-  short ndcall, xcall;                                                  \
-  short arity, min_arity;                                               \
-  int *typeinfo; fdtype *defaults;                                      \
+  FD_CONS_HEADER;							\
+  u8_string fcn_name, fcn_filename;					\
+  unsigned int fcn_ndcall:1, fcn_xcall:1;				\
+  short fcn_arity, fcn_min_arity;					\
+  int *fcn_typeinfo;							\
+  fdtype *fcn_defaults;						\
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
@@ -68,7 +70,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
     fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;               \
     fd_xprim9 xcall9; fd_xprimn xcalln;                                 \
     void *fnptr;}                                                       \
-  handler
+  fcn_handler
 
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
@@ -105,18 +107,19 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x) \
   ((FD_FUNCTIONP(x)) ? \
-   ((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x)))) : \
+   ((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x)))) : \
    ((struct FD_FUNCTION *)(u8_raise(fd_TypeError,"function",NULL),NULL)))
 #define FD_FUNCTION_ARITY(x)  \
   ((FD_FUNCTIONP(x)) ? \
-   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x))))->arity) : \
+   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x))))->fcn_arity) : \
    (0))
 
-/* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */
-#define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_function_type))
+/* #define FD_XFUNCTION(x) (fd_consptr(struct FD_FUNCTION *,x,fd_primfcn_type)) */
+#define FD_PRIMITIVEP(x) (FD_TYPEP(x,fd_primfcn_type))
 
-/* We define SPROC here because it's part of the big pointer type enum */
-#define FD_SPROCP(x) (FD_PRIM_TYPEP((x),fd_sproc_type))
+/* Forward reference. Note that fd_sproc_type is defined in the
+   pointer type enum in ptr.h. */
+#define FD_SPROCP(x) (FD_TYPEP((x),fd_sproc_type))
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 
@@ -126,42 +129,6 @@ FD_EXPORT void fd_defn(fdtype table,fdtype fcn);
 FD_EXPORT void fd_idefn(fdtype table,fdtype fcn);
 FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from);
 FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from);
-
-/* Apply functions */
-
-typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
-FD_EXPORT fd_applyfn fd_applyfns[];
-
-FD_EXPORT fdtype fd_apply(fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
-
-#define FD_APPLICABLEP(x) ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL)
-
-/* Tail calls */
-
-#define FD_TAIL_CALL_ND_ARGS     1
-#define FD_TAIL_CALL_ATOMIC_ARGS 2
-
-struct FD_TAIL_CALL {
-  FD_CONS_HEADER;
-  int n_elts, flags; fdtype head;};
-
-FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
-FD_EXPORT fdtype fd_step_call(fdtype c);
-FD_EXPORT fdtype _fd_finish_call(fdtype);
-
-FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
-{
-  if (FD_PTR_TYPEP(pt,fd_tail_call_type))
-    return _fd_finish_call(pt);
-  else return pt;
-}
-
-#define FD_DTYPE2FCN(x)		     \
-  ((FD_PPTRP(x)) ?		     \
-   ((fd_function)(fd_pptr_ref(x))) : \
-   ((fd_function)x))
 
 /* Stack checking */
 
@@ -180,13 +147,29 @@ FD_EXPORT ssize_t stack_limit;
 FD_EXPORT ssize_t fd_stack_setsize(ssize_t limit);
 FD_EXPORT ssize_t fd_stack_resize(double factor);
 FD_EXPORT int fd_stackcheck(void);
+FD_EXPORT ssize_t fd_init_stack(void);
+
+#define FD_INIT_STACK() fd_init_stack()
 
 /* Profiling */
+
+FD_EXPORT const int fd_calltrack_enabled;
 
 #if FD_CALLTRACK_ENABLED
 #include <stdio.h>
 #ifndef FD_MAX_CALLTRACK_SENSORS
 #define FD_MAX_CALLTRACK_SENSORS 64
+#endif
+
+#if ( (FD_CALLTRACK_ENABLED) && (FD_USE_TLS) )
+FD_EXPORT u8_tld_key _fd_calltracking_key;
+#define fd_calltracking (u8_tld_get(_fd_calltracking_key))
+#elif ( (FD_CALLTRACK_ENABLED) && (HAVE__THREAD) )
+FD_EXPORT __thread int fd_calltracking;
+#elif (FD_CALLTRACK_ENABLED)
+FD_EXPORT int fd_calltracking;
+#else /* (! FD_CALLTRACK_ENABLED ) */
+#define fd_calltracking (0)
 #endif
 
 typedef long (*fd_int_sensor)(void);
@@ -215,5 +198,64 @@ FD_EXPORT void fd_profile_return(u8_string name);
 #define fd_calltrack_call(name);
 #define fd_calltrack_return(name);
 #endif
+
+/* Apply functions */
+
+typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
+FD_EXPORT fd_applyfn fd_applyfns[];
+
+FD_EXPORT fdtype fd_apply(fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_deterministic_apply(fdtype,int n,fdtype *args);
+
+#if FD_CALLTRACK_ENABLED
+FD_EXPORT fdtype fd_calltrack_apply(fdtype fn,int n_args,fdtype *argv);
+#define fd_dapply(fn,n,argv)			\
+  ((FD_EXPECT_FALSE(fd_calltracking)) ?		\
+   (fd_calltrack_apply(fn,n,argv)) :		\
+   (fd_deterministic_apply(fn,n,argv)))
+#else
+#define fd_dapply fd_deterministic_apply
+#endif
+
+#define FD_APPLICABLEP(x) \
+  ((FD_TYPEP(x,fd_fcnid_type)) ?		\
+   ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :	\
+   ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL))
+
+/* Tail calls */
+
+#define FD_TAILCALL_ND_ARGS     1
+#define FD_TAILCALL_ATOMIC_ARGS 2
+#define FD_TAILCALL_VOID_VALUE  4
+
+typedef struct FD_TAILCALL {
+  FD_CONS_HEADER;
+  int tailcall_flags;
+  int tailcall_arity;
+  fdtype tailcall_head;} *fd_tailcall;
+
+FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
+FD_EXPORT fdtype fd_step_call(fdtype c);
+FD_EXPORT fdtype _fd_finish_call(fdtype);
+
+#define FD_TAILCALLP(x) (FD_TYPEP((x),fd_tailcall_type))
+
+FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
+{
+  if (FD_TAILCALLP(pt))
+    return _fd_finish_call(pt);
+  else return pt;
+}
+
+#define FD_DTYPE2FCN(x)		     \
+  ((FD_FCNIDP(x)) ?		     \
+   ((fd_function)(fd_fcnid_ref(x))) : \
+   ((fd_function)x))
+
+/* Unparsing */
+
+FD_EXPORT int fd_unparse_function
+  (u8_output out,fdtype x,u8_string name,u8_string before,u8_string after);
 
 #endif /* FRAMERD_APPLY_H */

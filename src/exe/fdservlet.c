@@ -12,7 +12,7 @@
 #include "framerd/support.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/fdweb.h"
 #include "framerd/ports.h"
 #include "framerd/fileprims.h"
@@ -53,7 +53,6 @@
 #include <fcntl.h>
 #endif
 
-
 #include "main.h"
 
 /* This is the size of file to return all at once. */
@@ -76,7 +75,7 @@ static const sigset_t *server_sigmask;
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=15, fastfail_wait=60;
 
-FD_EXPORT int fd_init_fddbserv(void);
+FD_EXPORT int fd_init_fdkbserv(void);
 
 #include "webcommon.h"
 
@@ -126,7 +125,7 @@ static int ignore_leftovers=0;
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
   fdtype cgidata;
-  struct FD_DTYPE_STREAM in;
+  struct FD_STREAM in;
   struct U8_OUTPUT out;} FD_WEBCONN;
 typedef struct FD_WEBCONN *fd_webconn;
 
@@ -182,7 +181,7 @@ static int check_for_injection()
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
-          else if (ex->u8x_context!=NULL) 
+          else if (ex->u8x_context!=NULL)
             u8_log(LOGCRIT,"FDServlet/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
@@ -229,7 +228,7 @@ static int statlog_set(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_string filename=FD_STRDATA(val);
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (statlog) {
       fclose(statlog); statlog=NULL;
       u8_free(statlogfile); statlogfile=NULL;}
@@ -243,12 +242,12 @@ static int statlog_set(fdtype var,fdtype val,void *data)
       tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
       u8_chmod(statlogfile,0774);
       fputs(tmp,statlog);
-      fd_unlock_mutex(&log_lock);
+      u8_unlock_mutex(&log_lock);
       u8_free(tmp);
       return 1;}
     else {
       u8_log(LOG_WARN,"no file","Couldn't open %s",statlogfile);
-      fd_unlock_mutex(&log_lock);
+      u8_unlock_mutex(&log_lock);
       u8_free(statlogfile); statlogfile=NULL;
       return 0;}}
   else if (FD_FALSEP(val)) {
@@ -374,7 +373,7 @@ static void update_status()
   FILE *log=statlog; int mon=statusout;
   if (((mon<0)&&(statfile))||
       ((!(log))&&(statlogfile))) {
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (statusout>=0) mon=statusout;
     else if (statfile) {
       mon=statusout=(open(statfile,O_WRONLY|O_CREAT,0644));
@@ -384,7 +383,7 @@ static void update_status()
     else if (statlogfile)
       log=statlog=(u8_fopen_locked(statlogfile,"a"));
     else log=NULL;
-    fd_unlock_mutex(&log_lock);}
+    u8_unlock_mutex(&log_lock);}
   if (mon>=0) {
     off_t rv=lseek(mon,0,SEEK_SET);
     if (rv>=0) rv=ftruncate(mon,0);
@@ -606,9 +605,9 @@ static void write_cmd_file(int argc,char **argv)
 static void close_statlog()
 {
   if (statlog) {
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     fclose(statlog); statlog=NULL;
-    fd_unlock_mutex(&log_lock);}
+    u8_unlock_mutex(&log_lock);}
 }
 
 static fdtype servlet_status()
@@ -824,7 +823,9 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   /* We could do access control here. */
   fd_webconn consed=(fd_webconn)
     u8_client_init(NULL,sizeof(FD_WEBCONN),addr,len,sock,srv);
-  fd_init_dtype_stream(&(consed->in),sock,4096);
+  fd_init_stream(&(consed->in),consed->idstring,sock,
+                 FD_STREAM_SOCKET|FD_STREAM_DOSYNC,
+                 FD_NETWORK_BUFSIZE);
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
@@ -851,7 +852,8 @@ static int webservefn(u8_client ucl)
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
   int forcelog=0, retval=0;
   size_t http_len=0, head_len=0, content_len=0;
-  fd_dtype_stream stream=&(client->in);
+  fd_stream stream=&(client->in);
+  fd_inbuf inbuf=fd_readbuf(stream);
   u8_output outstream=&(client->out);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0, buffered=0, recovered=1, http_status=-1;
@@ -864,12 +866,12 @@ static int webservefn(u8_client ucl)
 
   /* Reset the streams */
   outstream->u8_write=outstream->u8_outbuf;
-  stream->ptr=stream->end=stream->start;
+  inbuf->bufread=inbuf->buflim=inbuf->buffer;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
-    stream->end=stream->start+client->len;}
+    inbuf->buflim=inbuf->buffer+client->len;}
   else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
     return 1;
@@ -883,27 +885,26 @@ static int webservefn(u8_client ucl)
   else {
     /* We read a little to see if we can just queue up what we
        need. */
-    fd_dts_start_read(stream);
-    if ((async)&&
-        (havebytes((fd_byte_input)stream,1))&&
-        ((*(stream->ptr))==dt_block)) {
+    if ( (async) && (havebytes(inbuf,1)) &&
+         ((*(inbuf->bufread))==dt_block)) {
       /* If we can be asynchronous, let's try */
-      int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
-      int nbytes=fd_dtsread_4bytes(stream);
-      if (fd_has_bytes(stream,nbytes)) {
+      int U8_MAYBE_UNUSED dtcode=fd_read_byte(inbuf);
+      int nbytes=fd_read_4bytes(inbuf);
+      if (fd_has_bytes(inbuf,nbytes)) {
         /* We can execute without waiting */}
       else {
         int need_size=5+nbytes;
         /* Allocate enough space for what we need to read */
-        if (stream->bufsiz<need_size) {
-          fd_grow_byte_input((fd_byte_input)stream,need_size);
-          stream->bufsiz=need_size;}
+        if (inbuf->buflen<need_size) {
+          fd_grow_byte_input(fd_readbuf(stream),need_size);
+          inbuf->buflen=need_size;}
+        struct FD_RAWBUF *raw=(struct FD_RAWBUF *)inbuf;
+        size_t byte_offset=raw->buflim-raw->buffer;
         /* Set up the client for async input */
-        if (u8_client_read(ucl,stream->start,5+nbytes,
-                           (stream->end-stream->start))) {
+        if (u8_client_read(ucl,raw->buffer,need_size,byte_offset)) {
           /* We got the whole payload, set up the stream
              for reading it without waiting.  */
-          stream->end=stream->start+client->len;}
+          raw->buflim=raw->buffer+client->len;}
         else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */
@@ -922,9 +923,10 @@ static int webservefn(u8_client ucl)
     setup_time=parse_time=u8_elapsed_time();
     if (fd_poperr(&c,&cxt,&details,&irritant))
       proc=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);
+    if (details) u8_free(details);
+    fd_decref(irritant);
     setup_time=u8_elapsed_time();
-    cgidata=fd_dtsread_dtype(stream);}
+    cgidata=fd_read_dtype(inbuf);}
   else if (update_preloads()<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
@@ -932,16 +934,17 @@ static int webservefn(u8_client ucl)
     u8_log(LOG_CRIT,"PreloadUpdateFailed","Failure updating preloads");
     if (fd_poperr(&c,&cxt,&details,&irritant))
       proc=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);
+    if (details) u8_free(details);
+    fd_decref(irritant);
     setup_time=u8_elapsed_time();
-    cgidata=fd_dtsread_dtype(stream);}
+    cgidata=fd_read_dtype(inbuf);}
   else {
     /* This is where we usually end up, when all the updates
        and preloads go without a hitch. */
     setup_time=u8_elapsed_time();
     /* Now we extract arguments and figure out what we're going to
        run to respond to the request. */
-    cgidata=fd_dtsread_dtype(stream);
+    cgidata=fd_read_dtype(inbuf);
     if (cgidata==FD_EOD) {
       if (traceweb>0)
         u8_log(LOG_NOTICE,"FDServlet/webservefn",
@@ -1051,37 +1054,34 @@ static int webservefn(u8_client ucl)
              (FD_VOIDP(precheck))||
              (FD_EMPTY_CHOICEP(precheck))))
     result=precheck;
-  else if (FD_PRIM_TYPEP(proc,fd_function_type)) {
+  else if (FD_TYPEP(proc,fd_primfcn_type)) {
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with primitive procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
     result=fd_apply(proc,0,NULL);}
   else if (FD_SPROCP(proc)) {
-    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
+    struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,proc);
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
-    base_env=sp->env;
-    threadcache=checkthreadcache(sp->env);
+    base_env=sp->sproc_env;
+    threadcache=checkthreadcache(sp->sproc_env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
            (FD_SPROCP((FD_CAR(proc))))) {
-    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
+    struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,FD_CAR(proc));
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
-    threadcache=checkthreadcache(sp->env);
+    threadcache=checkthreadcache(sp->sproc_env);
     /* This should possibly put the CDR of proc into the environment chain,
        but it no longer does. ?? */
-    base_env=sp->env;
+    base_env=sp->sproc_env;
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */
-    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=
-      ((FD_ENVIRONMENTP(lenv)) ?
-       (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-       (NULL));
+    fdtype setup_proc=FD_VOID;
+    fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     base_env=base;
     if (base) fd_load_latest(NULL,base,NULL);
@@ -1516,10 +1516,10 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,cond," after: %s",after);
       u8_free(before); u8_free(after);}
     /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_dtsflush(reqlog);
-    fd_unlock_mutex(&log_lock);
+    if (reqlog) fd_flush_stream(reqlog);
+    u8_unlock_mutex(&log_lock);
     fd_decref(xredirect);
     fd_decref(redirect);
     fd_decref(sendfile);
@@ -1542,7 +1542,7 @@ static int close_webclient(u8_client ucl)
   u8_log(LOG_INFO,"FDServlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
-  fd_dtsclose(&(client->in),2);
+  fd_close_stream(&(client->in),FD_STREAM_NOCLOSE);
   u8_close((u8_stream)&(client->out));
   return 1;
 }
@@ -1758,6 +1758,104 @@ static int start_servers()
   return i;
 }
 
+/* Initializing configs */
+
+static void register_servlet_configs()
+{
+  init_webcommon_configs();
+
+  fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
+                     fd_dblconfig_get,fd_dblconfig_set,&overtime);
+  fd_register_config("BACKLOG",
+                     _("Number of pending connection requests allowed"),
+                     fd_intconfig_get,fd_intconfig_set,&max_backlog);
+  fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
+                     fd_intconfig_get,fd_intconfig_set,&max_queue);
+  fd_register_config("MAXCONN",
+                     _("Max number of concurrent connections to allow (NYI)"),
+                     fd_intconfig_get,fd_intconfig_set,&max_conn);
+  fd_register_config("INITCONN",
+                     _("Number of clients to prepare for/grow by"),
+                     fd_intconfig_get,fd_intconfig_set,&init_clients);
+
+  fd_register_config("WEBTHREADS",_("Number of threads in the thread pool"),
+                     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
+  /* This one, NTHREADS, is deprecated */
+  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
+                     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
+
+  fd_register_config("STATLOG",_("File for recording status reports"),
+                     statlog_get,statlog_set,NULL);
+  fd_register_config
+    ("STATINTERVAL",_("Milliseconds (roughly) between updates to .status"),
+     statinterval_get,statinterval_set,NULL);
+  fd_register_config
+    ("STATLOGINTERVAL",_("Milliseconds (roughly) between logging status information"),
+     statloginterval_get,statloginterval_set,NULL);
+  fd_register_config("GRACEFULDEATH",
+                     _("How long (μs) to wait for tasks during shutdown"),
+                     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
+
+  fd_register_config("STEALSOCKETS",
+                     _("Remove existing socket files with extreme prejudice"),
+                     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);
+
+  fd_register_config("IGNORELEFTOVERS",
+                     _("Whether to check for existing PID files"),
+                     fd_boolconfig_get,fd_boolconfig_set,&ignore_leftovers);
+
+
+  fd_register_config("PORT",_("Ports for listening for connections"),
+                     getfdservports,addfdservport,NULL);
+  fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
+                     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
+
+  fd_register_config("RESTART",_("Whether to enable auto-restart"),
+                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
+  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
+                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
+  fd_register_config("FASTFAIL",_("Threshold for daemon fastfails"),
+                     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
+  fd_register_config("FASTFAIL_WAIT",
+                     _("How long (secs) to wait after a fastfail"),
+                     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
+
+  fd_register_config("U8LOGLISTEN",
+                     _("Whether to have libu8 log each monitored address"),
+                     config_get_u8server_flag,config_set_u8server_flag,
+                     (void *)(U8_SERVER_LOG_LISTEN));
+  fd_register_config("U8POLLTIMEOUT",
+                     _("Timeout for the poll loop (lower bound of status updates)"),
+                     config_get_u8server_flag,config_set_u8server_flag,
+                     (void *)(U8_SERVER_TIMEOUT));
+  fd_register_config("U8LOGCONNECT",
+                     _("Whether to have libu8 log each connection"),
+                     config_get_u8server_flag,config_set_u8server_flag,
+                     (void *)(U8_SERVER_LOG_CONNECT));
+  fd_register_config("U8LOGTRANSACT",
+                     _("Whether to have libu8 log each transaction"),
+                     config_get_u8server_flag,config_set_u8server_flag,
+                     (void *)(U8_SERVER_LOG_TRANSACT));
+  fd_register_config("U8LOGQUEUE",
+                     _("Whether to have libu8 log queue activity"),
+                     config_get_u8server_flag,config_set_u8server_flag,
+                     (void *)(U8_SERVER_LOG_QUEUE));
+#ifdef U8_SERVER_LOG_TRANSFER
+  fd_register_config
+    ("U8LOGTRANSFER",
+     _("Whether to have libu8 log data transmission/receiption"),
+     config_get_u8server_flag,config_set_u8server_flag,
+     (void *)(U8_SERVER_LOG_TRANSFER));
+#endif
+#ifdef U8_SERVER_ASYNC
+  if (async_mode) fdwebserver.flags=fdwebserver.flags|U8_SERVER_ASYNC;
+  fd_register_config("U8ASYNC",
+                     _("Whether to support thread-asynchronous transactions"),
+                     config_get_u8server_flag,config_set_u8server_flag,
+                     (void *)(U8_SERVER_ASYNC));
+#endif
+}
+
 /* Fallback pages */
 
 static fdtype notfoundpage()
@@ -1778,7 +1876,7 @@ static fdtype notfoundpage()
 
 /* The main() event */
 
-FD_EXPORT void fd_init_dbfile(void);
+FD_EXPORT int fd_init_dbs(void);
 static int launch_servlet(u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec);
 
@@ -1786,22 +1884,48 @@ int main(int argc,char **argv)
 {
   int i=1;
   int u8_version=u8_initialize();
+  int dtype_version=fd_init_dtypelib();
   int fd_version; /* Wait to set this until we have a log file */
   unsigned int arg_mask = 0;  /* Bit map of args to skip */
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
 
+  if (u8_version<0) {
+    u8_log(LOG_CRIT,ServletAbort,"Can't initialize libu8");
+    exit(1);}
+  if (dtype_version<0) {
+    u8_log(LOG_CRIT,ServletAbort,"Can't initialize DTYPE library");
+    exit(1);}
+
   fd_main_errno_ptr=&errno;
 
   server_sigmask=fd_default_sigmask;
 
+  /* Initialize the libu8 stdio library if it won't happen automatically. */
+#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
+  u8_initialize_u8stdio();
+  u8_init_chardata_c();
+#endif
+
+  /* Now we initialize the libu8 logging configuration */
+  u8_log_show_date=1;
+  u8_log_show_elapsed=1;
+  u8_log_show_procinfo=1;
+  u8_log_show_threadinfo=1;
+
+  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
+                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
+
   /* Find the socket spec (the non-config arg) */
   i=1; while (i<argc) {
-    if (isconfig(argv[i])) 
-      u8_log(LOGNOTICE,"FDServletConfig","    %s",argv[i++]);
+    if (isconfig(argv[i])) {
+      u8_log(LOGNOTICE,"FDServletConfig","    %s",argv[i]);
+      if (strncasecmp(argv[i],"foreground=",strlen("foreground="))==0) {
+        fd_config_assignment(argv[i]);}
+      i++;}
     else if (socket_spec) i++;
     else {
-      socket_spec=argv[i++];
+      socket_spec=argv[i];
       if (i<32) arg_mask = arg_mask | (1<<i);
       i++;}
   }
@@ -1847,12 +1971,8 @@ int main(int argc,char **argv)
 
   set_exename(argv);
 
-  if (u8_version<0) {
-    u8_log(LOG_CRIT,ServletAbort,"Can't initialize LIBU8");
-    exit(1);}
-
   /* Set this here, before processing any configs */
-  fddb_loglevel=LOG_INFO;
+  fdkb_loglevel=LOG_INFO;
 
   u8_init_mutex(&server_port_lock);
 
@@ -1862,9 +1982,17 @@ int main(int argc,char **argv)
   else if ((strchr(socket_spec,':'))||(strchr(socket_spec,'@')))
     socket_spec=u8_strdup(socket_spec);
   else {
-    u8_string sockets_dir=u8_mkpath(FD_RUN_DIR,"fdserv");
+    u8_string sockets_dir=u8_mkpath(FD_RUN_DIR,"servlets");
     socket_spec=u8_mkpath(sockets_dir,socket_spec);
     u8_free(sockets_dir);}
+
+  register_servlet_configs();
+  atexit(fd_status_message);
+
+  /* Process the command line */
+  fd_handle_argv(argc,argv,arg_mask,NULL);
+
+  if (load_config) fd_load_config(load_config);
 
   {
     if (argc>2) {
@@ -1885,51 +2013,17 @@ int main(int argc,char **argv)
     max_ports=8; n_ports=1;
     server_id=ports[0]=u8_strdup(socket_spec);}
 
-  fd_register_config("PORT",_("Ports for listening for connections"),
-                     getfdservports,addfdservport,NULL);
-  fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
-                     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
-
-  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
-                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
-  fd_register_config("RESTART",_("Whether to enable auto-restart"),
-                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
-  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
-                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-  fd_register_config("FASTFAIL",_("Threshold for daemon fastfails"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
-  fd_register_config("FASTFAIL_WAIT",
-                     _("How long (secs) to wait after a fastfail"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
-
   fd_version=fd_init_fdscheme();
 
   if (fd_version<0) {
     u8_log(LOG_WARN,ServletAbort,"Couldn't initialize FramerD");
     exit(EXIT_FAILURE);}
 
-  atexit(fd_status_message);
-
-  if (load_config) fd_load_config(load_config);
-
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we
      don't have the "constructor attributes" use to declare init functions,
      we need to call some initializers explicitly. */
-
-  /* Initialize the libu8 stdio library if it won't happen automatically. */
-#if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
-  u8_initialize_u8stdio();
-  u8_init_chardata_c();
-#endif
-
-  /* Now we initialize the libu8 logging configuration */
-  u8_log_show_date=1;
-  u8_log_show_elapsed=1;
-  u8_log_show_procinfo=1;
-  u8_log_show_threadinfo=1;
-  u8_use_syslog(0);
 
   /* And now we initialize FramerD */
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
@@ -1938,19 +2032,18 @@ int main(int argc,char **argv)
   fd_init_texttools();
   /* May result in innocuous redundant calls */
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fddbserv();
+  fd_init_fdkbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fddbserv();
+  fd_init_fdkbserv();
 #endif
-
+  
   /* This is the module where the data-access API lives */
-  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdbserv_module);
-  fd_persist_module(fd_fdbserv_module);
+  fd_register_module("FDKBSERV",fd_incref(fd_fdkbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_fdkbserv_module);
 
   fd_init_fdweb();
-  fd_init_dbfile();
+  fd_init_dbs();
 
   init_webcommon_data();
   init_webcommon_symbols();
@@ -1966,59 +2059,16 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)server_env,
            fd_make_cprim0("SERVLET-STATUS",servlet_status,0));
 
-  init_webcommon_configs();
-  fd_register_config("OVERTIME",_("Trace web transactions over N seconds"),
-                     fd_dblconfig_get,fd_dblconfig_set,&overtime);
-  fd_register_config("BACKLOG",
-                     _("Number of pending connection requests allowed"),
-                     fd_intconfig_get,fd_intconfig_set,&max_backlog);
-  fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
-                     fd_intconfig_get,fd_intconfig_set,&max_queue);
-  fd_register_config("MAXCONN",
-                     _("Max number of concurrent connections to allow (NYI)"),
-                     fd_intconfig_get,fd_intconfig_set,&max_conn);
-  fd_register_config("INITCONN",
-                     _("Number of clients to prepare for/grow by"),
-                     fd_intconfig_get,fd_intconfig_set,&init_clients);
-  fd_register_config("WEBTHREADS",_("Number of threads in the thread pool"),
-                     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
-  /* This one, NTHREADS, is deprecated */
-  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
-                     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
-  fd_register_config("STATLOG",_("File for recording status reports"),
-                     statlog_get,statlog_set,NULL);
-  fd_register_config
-    ("STATINTERVAL",_("Milliseconds (roughly) between updates to .status"),
-     statinterval_get,statinterval_set,NULL);
-  fd_register_config
-    ("STATLOGINTERVAL",_("Milliseconds (roughly) between logging status information"),
-     statloginterval_get,statloginterval_set,NULL);
-  fd_register_config("GRACEFULDEATH",
-                     _("How long (μs) to wait for tasks during shutdown"),
-                     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
-
-  fd_register_config("STEALSOCKETS",
-                     _("Remove existing socket files with extreme prejudice"),
-                     fd_boolconfig_get,fd_boolconfig_set,&stealsockets);
-
-  fd_register_config("IGNORELEFTOVERS",
-                     _("Whether to check for existing PID files"),
-                     fd_boolconfig_get,fd_boolconfig_set,&ignore_leftovers);
-
-#if FD_THREADS_ENABLED
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
      An alternative would be to log to a data structure and have a separate thread writing
      to the log.  Of course, if we have problems writing to the log, we probably have all sorts
      of other problems too! */
-  fd_init_mutex(&log_lock);
-#endif
+  u8_init_mutex(&log_lock);
 
   u8_log(LOG_NOTICE,Startup,"FDServlet %s",socket_spec);
-
-  /* Process the command line */
-  fd_handle_argv(argc,argv,arg_mask,NULL);
-
-  u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
+  
+  if (!(FD_VOIDP(default_notfoundpage)))
+    u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {
     u8_log(LOG_CRIT,"USAGE","fdservlet <socket> [config]*");
     fprintf(stderr,"Usage: fdservlet <socket> [config]*\n");
@@ -2047,6 +2097,8 @@ int main(int argc,char **argv)
     fdtype result=getcontent(path);
     fd_decref(path); fd_decref(result);}
   else {}
+
+  u8_use_syslog(0);
 
   if (foreground)
     return launch_servlet(socket_spec);
@@ -2095,41 +2147,6 @@ static int launch_servlet(u8_string socket_spec)
   fdwebserver.xserverfn=server_loopfn;
   fdwebserver.xclientfn=client_loopfn;
 
-  fd_register_config("U8LOGLISTEN",
-                     _("Whether to have libu8 log each monitored address"),
-                     config_get_u8server_flag,config_set_u8server_flag,
-                     (void *)(U8_SERVER_LOG_LISTEN));
-  fd_register_config("U8POLLTIMEOUT",
-                     _("Timeout for the poll loop (lower bound of status updates)"),
-                     config_get_u8server_flag,config_set_u8server_flag,
-                     (void *)(U8_SERVER_TIMEOUT));
-  fd_register_config("U8LOGCONNECT",
-                     _("Whether to have libu8 log each connection"),
-                     config_get_u8server_flag,config_set_u8server_flag,
-                     (void *)(U8_SERVER_LOG_CONNECT));
-  fd_register_config("U8LOGTRANSACT",
-                     _("Whether to have libu8 log each transaction"),
-                     config_get_u8server_flag,config_set_u8server_flag,
-                     (void *)(U8_SERVER_LOG_TRANSACT));
-  fd_register_config("U8LOGQUEUE",
-                     _("Whether to have libu8 log queue activity"),
-                     config_get_u8server_flag,config_set_u8server_flag,
-                     (void *)(U8_SERVER_LOG_QUEUE));
-#ifdef U8_SERVER_LOG_TRANSFER
-  fd_register_config
-    ("U8LOGTRANSFER",
-     _("Whether to have libu8 log data transmission/receiption"),
-     config_get_u8server_flag,config_set_u8server_flag,
-     (void *)(U8_SERVER_LOG_TRANSFER));
-#endif
-#ifdef U8_SERVER_ASYNC
-  if (async_mode) fdwebserver.flags=fdwebserver.flags|U8_SERVER_ASYNC;
-  fd_register_config("U8ASYNC",
-                     _("Whether to support thread-asynchronous transactions"),
-                     config_get_u8server_flag,config_set_u8server_flag,
-                     (void *)(U8_SERVER_ASYNC));
-#endif
-
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
   sigactions_init();
@@ -2141,9 +2158,9 @@ static int launch_servlet(u8_string socket_spec)
     exit(1);}
 
   u8_log(LOG_INFO,ServletStartup,
-         "FramerD (%s) FDServlet running, %d/%d pools/indices",
+         "FramerD (%s) FDServlet running, %d/%d pools/indexes",
          FRAMERD_REVISION,fd_n_pools,
-         fd_n_primary_indices+fd_n_secondary_indices);
+         fd_n_primary_indexes+fd_n_secondary_indexes);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
@@ -2339,7 +2356,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -88,52 +88,6 @@ FD_EXPORT fd_exception fd_CantOpenFile, fd_FileNotFound;
 #include "malloc.h"
 #include "dtypeio.h"
 
-/* Threads */
-
-#if FD_THREADS_ENABLED
-#define fd_lock_mutex(x) u8_lock_mutex(x)
-#define fd_unlock_mutex(x) u8_unlock_mutex(x)
-#define fd_read_lock(x) u8_read_lock(x)
-#define fd_write_lock(x) u8_write_lock(x)
-#define fd_rw_unlock(x) u8_rw_unlock(x)
-#define fd_init_mutex(x) u8_init_mutex(x)
-#define fd_destroy_mutex(x) u8_destroy_mutex(x)
-#define fd_init_rwlock(x) u8_init_rwlock(x)
-#define fd_destroy_rwlock(x) u8_destroy_rwlock(x)
-#define fd_condvar_wait(x,y) u8_condvar_wait(x,y)
-#define fd_init_condvar(x) u8_init_condvar(x)
-#define fd_destroy_condvar(x) u8_destroy_condvar(x)
-#define fd_tld_get(key) (u8_tld_get(key))
-#define fd_tld_set(key,v) (u8_tld_set(key,v))
-#define fd_lock_struct(p) (u8_lock_mutex(&((p)->lock)))
-#define fd_unlock_struct(p) (u8_unlock_mutex(&((p)->lock)))
-#define fd_locked_struct(p) (u8_lock_mutex(&((p)->lock)),(p))
-#define fd_read_lock_struct(p) (u8_read_lock(&((p)->rwlock)))
-#define fd_write_lock_struct(p) (u8_write_lock(&((p)->rwlock)))
-#define fd_rw_unlock_struct(p) (u8_rw_unlock(&((p)->rwlock)))
-
-#else
-typedef void *u8_tld_key;
-#define fd_lock_mutex(x)
-#define fd_unlock_mutex(x)
-#define fd_read_lock(x)
-#define fd_write_lock(x)
-#define fd_rw_unlock(x)
-#define fd_init_mutex(x)
-#define fd_destroy_mutex(x)
-#define fd_condvar_wait(x,y) (1)
-#define fd_init_condvar(x)
-#define fd_destroy_condvar(x)
-#define fd_lock_struct(p)
-#define fd_unlock_struct(p)
-#define fd_read_lock_struct(p)
-#define fd_write_lock_struct(p)
-#define fd_rw_unlock_struct(p)
-#define fd_locked_struct(p) (p)
-#define fd_tld_get(key) ((*key))
-#define fd_tld_set(key,v) ((*key)=v)
-#endif
-
 /* Generic support */
 
 #include "support.h"

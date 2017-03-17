@@ -92,7 +92,7 @@
     (applytest #t = sightings touches)
     (message "CONDVARS: sightings=touches=" touches)))
 
-(define (do-choices-mt-test)
+(define (test-do-choices-mt)
   (let ((ids {}))
     (do-choices-mt (num (mt/nrange 0 2000))
       (set+! ids (threadid)))
@@ -103,6 +103,6 @@
 (test-spawn)
 (test-threadcall)
 ;;(test-condvars)
-(when (threadid) (do-choices-mt-test))
+(when (threadid) (test-do-choices-mt))
 
 (test-finished "THREADTEST")

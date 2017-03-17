@@ -68,6 +68,8 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
   u8_seterr(cond,caller,u8_strdup(error->message));
 }
 
+#define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,6,0))
+
 #define MONGODB_CLIENT_BLOCK 1
 #define MONGODB_CLIENT_NOBLOCK 0
 
@@ -76,12 +78,12 @@ static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
   mongoc_client_t *client;
   if (block) {
     u8_log(client_loglevel,_("MongoDB/getclient"),
-           "Getting client from server %llx (%s)",server->pool,server->spec);
-    client=mongoc_client_pool_pop(server->pool);}
-  else client=mongoc_client_pool_try_pop(server->pool);
+           "Getting client from server %llx (%s)",server->dbclients,server->dbspec);
+    client=mongoc_client_pool_pop(server->dbclients);}
+  else client=mongoc_client_pool_try_pop(server->dbclients);
   u8_log(client_loglevel,_("MongoDB/gotclient"),
          "Got client %llx from server %llx (%s)",
-         client,server->pool,server->spec);
+         client,server->dbclients,server->dbspec);
   return client;
 }
 
@@ -89,8 +91,8 @@ static void release_client(FD_MONGODB_DATABASE *server,mongoc_client_t *client)
 {
   u8_log(client_loglevel,_("MongoDB/freeclient"),
          "Releasing client %llx to server %llx (%s)",
-         client,server->pool,server->spec);
-  mongoc_client_pool_push(server->pool,client);
+         client,server->dbclients,server->dbspec);
+  mongoc_client_pool_push(server->dbclients,client);
 }
 
 static int boolopt(fdtype opts,fdtype key,int dflt)
@@ -114,9 +116,9 @@ static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
     if ((FD_VOIDP(v))||(FD_FALSEP(v))) {
       if (dflt==NULL) return dflt;
       else return u8_strdup(dflt);}
-    else if (FD_STRINGP(v)) 
+    else if (FD_STRINGP(v))
       return u8_strdup(FD_STRDATA(v));
-    else if (FD_PRIM_TYPEP(v,fd_secret_type))
+    else if (FD_TYPEP(v,fd_secret_type))
       return u8_strdup(FD_STRDATA(v));
     else {
       u8_log(LOG_WARN,"Invalid string option","%q=%q",key,v);
@@ -288,6 +290,39 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
     return opts;}
 }
 
+static bson_t *getfindopts(fdtype opts,int flags)
+{
+  fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
+  fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
+  fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
+  fdtype projection=fd_getopt(opts,returnsym,FD_VOID);
+  struct FD_BSON_OUTPUT out; bson_t *doc=bson_new();
+  out.bson_doc=doc;
+  out.bson_opts=opts;
+  out.bson_flags=flags;
+  out.bson_fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
+  if (FD_FIXNUMP(skip_arg))
+    bson_append_dtype(out,"skip",4,skip_arg);
+  else fd_decref(skip_arg);
+  if (FD_FIXNUMP(limit_arg))
+    bson_append_dtype(out,"limit",5,limit_arg);
+  else fd_decref(limit_arg);
+  if (FD_FIXNUMP(batch_arg))
+    bson_append_dtype(out,"batchSize",9,batch_arg);
+  else fd_decref(batch_arg);
+  if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
+    struct FD_BSON_OUTPUT fields; bson_t proj;
+    int ok=bson_append_document_begin(doc,"projection",10,&proj);
+    fields.bson_doc=&proj;
+    fields.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+    fields.bson_opts=opts;
+    fields.bson_fieldmap=out.bson_fieldmap;
+    fd_bson_output(fields,projection);
+    bson_append_document_end(doc,&proj);}
+  fd_decref(out.bson_fieldmap);
+  return out.bson_doc;
+}
+
 static int mongodb_getflags(fdtype mongodb);
 
 /* Consing MongoDB clients, collections, and cursors */
@@ -304,7 +339,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
   mongoc_uri_t *info; u8_string uri;
   mongoc_ssl_opt_t ssl_opts={ 0 };
   int add_ssl=boolopt(opts,sslsym,default_ssl);
-  if ((FD_STRINGP(arg))||(FD_PRIM_TYPEP(arg,fd_secret_type))) {
+  if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
     uri=modify_ssl(FD_STRDATA(arg),add_ssl);
     info=mongoc_uri_new(uri);}
   else if (FD_SYMBOLP(arg)) {
@@ -312,7 +347,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((FD_STRINGP(conf_val))||
-             (FD_PRIM_TYPEP(conf_val,fd_secret_type))) {
+             (FD_TYPEP(conf_val,fd_secret_type))) {
       uri=modify_ssl(FD_STRDATA(conf_val),add_ssl);
       info=mongoc_uri_new(FD_STRDATA(conf_val));
       fd_decref(conf_val);}
@@ -339,34 +374,34 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
       mongoc_client_pool_min_size(client_pool,pmin);}
     fd_decref(poolmax); fd_decref(poolmin);
     FD_INIT_CONS(srv,fd_mongoc_server);
-    srv->uri=uri; 
+    srv->dburi=uri; 
     if (dbname==NULL) 
       srv->dbname=NULL;
     else srv->dbname=u8_strdup(dbname);
-    srv->spec=get_connection_spec(info);
-    srv->info=info; srv->pool=client_pool;
-    srv->opts=opts; fd_incref(opts);
-    srv->flags=flags;
+    srv->dbspec=get_connection_spec(info);
+    srv->dburi_info=info; srv->dbclients=client_pool;
+    srv->dbopts=opts; fd_incref(opts);
+    srv->dbflags=flags;
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/open",
-             "Opened %s with %s",dbname,srv->spec);
+             "Opened %s with %s",dbname,srv->dbspec);
     return (fdtype)srv;}
   else {
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
 }
-static void recycle_server(struct FD_CONS *c)
+static void recycle_server(struct FD_RAW_CONS *c)
 {
   struct FD_MONGODB_DATABASE *s=(struct FD_MONGODB_DATABASE *)c;
-  mongoc_uri_destroy(s->info);
-  mongoc_client_pool_destroy(s->pool);
-  fd_decref(s->opts);
-  u8_free(c);
+  mongoc_uri_destroy(s->dburi_info);
+  mongoc_client_pool_destroy(s->dbclients);
+  fd_decref(s->dbopts);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_server(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_MONGODB_DATABASE *srv=(struct FD_MONGODB_DATABASE *)x;
-  u8_printf(out,"#<MongoDB/Server %s/%s>",srv->spec,srv->dbname);
+  u8_printf(out,"#<MongoDB/Server %s/%s>",srv->dbspec,srv->dbname);
   return 1;
 }
 
@@ -420,52 +455,51 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_DATABASE *srv;
-  u8_string name=FD_STRDATA(name_arg), db_name=NULL, collection_name=NULL; 
+  u8_string name=FD_STRDATA(name_arg), collection_name=NULL; 
   fdtype opts; int flags;
-  if (FD_PRIM_TYPEP(server,fd_mongoc_server)) {
+  if (FD_TYPEP(server,fd_mongoc_server)) {
     srv=(struct FD_MONGODB_DATABASE *)server;
-    flags=getflags(opts_arg,srv->flags);
-    opts=combine_opts(opts_arg,srv->opts);
+    flags=getflags(opts_arg,srv->dbflags);
+    opts=combine_opts(opts_arg,srv->dbopts);
     fd_incref(server);}
   else if ((FD_STRINGP(server))||
            (FD_SYMBOLP(server))||
-           (FD_PRIM_TYPEP(server,fd_secret_type))) {
+           (FD_TYPEP(server,fd_secret_type))) {
     fdtype consed=mongodb_open(server,opts_arg);
     if (FD_ABORTP(consed)) return consed;
     server=consed; srv=(struct FD_MONGODB_DATABASE *)consed;
-    flags=srv->flags; 
-    opts=combine_opts(opts_arg,srv->opts);}
+    flags=getflags(opts_arg,srv->dbflags);
+    opts=combine_opts(opts_arg,srv->dbopts);}
   else return fd_type_error("MongoDB client","mongodb_collection",server);
   if (strchr(name,'/')) {
     char *slash=strchr(name,'/');
-    collection_name=slash+1;
-    db_name=u8_slice(name,slash);}
+    collection_name=slash+1;}
   else if (srv->dbname==NULL) {
     return fd_err(_("MissingDBName"),"mongodb_open",NULL,server);}
   else {
-    db_name=u8_strdup(srv->dbname);
     collection_name=u8_strdup(name);}
   result=u8_alloc(struct FD_MONGODB_COLLECTION);
   FD_INIT_CONS(result,fd_mongoc_collection);
-  result->server=server;
-  result->uri=u8_strdup(srv->uri);
-  result->server_spec=u8_strdup(srv->spec);
-  result->dbname=db_name; result->name=collection_name;
-  result->opts=opts; result->flags=flags;
+  result->domain_db=server;
+  result->domain_opts=opts;
+  result->domain_flags=flags;
+  result->collection_name=collection_name;
   return (fdtype) result;
 }
-static void recycle_collection(struct FD_CONS *c)
+static void recycle_collection(struct FD_RAW_CONS *c)
 {
   struct FD_MONGODB_COLLECTION *collection=(struct FD_MONGODB_COLLECTION *)c;
-  u8_free(collection->dbname); u8_free(collection->name);
-  fd_decref(collection->server); fd_decref(collection->opts);
-  u8_free(collection);
+  fd_decref(collection->domain_db);
+  fd_decref(collection->domain_opts);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_collection(struct U8_OUTPUT *out,fdtype x)
 {
-  struct FD_MONGODB_COLLECTION *cl=(struct FD_MONGODB_COLLECTION *)x;
+  struct FD_MONGODB_COLLECTION *coll=(struct FD_MONGODB_COLLECTION *)x;
+  struct FD_MONGODB_DATABASE *db=
+    (struct FD_MONGODB_DATABASE *) (coll->domain_db);
   u8_printf(out,"#<MongoDB/Collection %s/%s/%s>",
-            cl->server_spec,cl->dbname,cl->name);
+            db->dbspec,db->dbname,coll->collection_name);
   return 1;
 }
 
@@ -478,11 +512,13 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
                                      int flags)
 {
   struct FD_MONGODB_DATABASE *server=
-    (struct FD_MONGODB_DATABASE *)(domain->server);
+    (struct FD_MONGODB_DATABASE *)(domain->domain_db);
+  u8_string dbname=server->dbname;
+  u8_string collection_name=domain->collection_name;
   mongoc_client_t *client=get_client(server,(!(flags&FD_MONGODB_NOBLOCK)));
   if (client) {
     mongoc_collection_t *collection=
-      mongoc_client_get_collection(client,domain->dbname,domain->name);
+      mongoc_client_get_collection(client,dbname,collection_name);
     if (collection) {
       *clientp=client;
       return collection;}
@@ -496,13 +532,13 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
    a server or a collection (which is followed to its server). */
 static void client_done(fdtype arg,mongoc_client_t *client)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
+  if (FD_TYPEP(arg,fd_mongoc_server)) {
     struct FD_MONGODB_DATABASE *server=(struct FD_MONGODB_DATABASE *)arg;
     release_client(server,client);}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+  else if (FD_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
     struct FD_MONGODB_DATABASE *server=
-      (struct FD_MONGODB_DATABASE *)(domain->server);
+      (struct FD_MONGODB_DATABASE *)(domain->domain_db);
     release_client(server,client);}
   else {
     u8_log(LOG_WARN,"BAD client_done call","Wrong type for %q",arg);}
@@ -513,7 +549,8 @@ static void collection_done(mongoc_collection_t *collection,
                             mongoc_client_t *client,
                             struct FD_MONGODB_COLLECTION *domain)
 {
-  struct FD_MONGODB_DATABASE *server=(fd_mongodb_database)domain->server;
+  struct FD_MONGODB_DATABASE *server=
+    (fd_mongodb_database)domain->domain_db;
   mongoc_collection_destroy(collection);
   release_client(server,client);
 }
@@ -523,11 +560,14 @@ static void collection_done(mongoc_collection_t *collection,
 static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  if (FD_EMPTY_CHOICEP(obj)) 
+  struct FD_MONGODB_DATABASE *db=
+    (struct FD_MONGODB_DATABASE *) (domain->domain_db);
+  if (FD_EMPTY_CHOICEP(obj))
     return FD_EMPTY_CHOICE;
   else {
-    fdtype opts=combine_opts(opts_arg,domain->opts), result=FD_VOID;
-    int flags=getflags(opts,domain->flags);
+    fdtype result;
+    int flags=getflags(opts_arg,domain->domain_flags);
+    fdtype opts=combine_opts(opts_arg,db->dbopts);
     mongoc_client_t *client=NULL; bool retval;
     mongoc_collection_t *collection=open_collection(domain,&client,flags);
     if (collection) {
@@ -551,7 +591,8 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
         else {
           fd_seterr(fd_MongoDB_Error,"mongodb_insert",
                     u8_mkstring("%s>%s>%s:%s",
-                                domain->uri,domain->dbname,domain->name,
+                                db->dburi,db->dbname,
+                                domain->collection_name,
                                 error.message),
                     fd_incref(obj));
           result=FD_ERROR_VALUE;}
@@ -566,7 +607,8 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
           if (doc) bson_destroy(doc);
           fd_seterr(fd_MongoDB_Error,"mongodb_insert",
                     u8_mkstring("%s>%s>%s:%s",
-                                domain->uri,domain->dbname,domain->name,
+                                db->dburi,db->dbname,
+                                domain->collection_name,
                                 error.message),
                     fd_incref(obj));
           result=FD_ERROR_VALUE;}}
@@ -579,19 +621,24 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
 
 static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
 {
+  fdtype result=FD_VOID;
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts), result=FD_VOID;
-  int flags=getflags(opts,FD_MONGODB_DEFAULTS), hasid=1;
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  fdtype opts=combine_opts(opts_arg,db->dbopts);
+  int flags=getflags(opts_arg,domain->domain_flags), hasid=1;
   mongoc_client_t *client=NULL;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
     struct FD_BSON_OUTPUT q; bson_error_t error;
     mongoc_write_concern_t *wc=get_write_concern(opts);
-    q.doc=bson_new(); q.opts=opts; q.flags=flags; q.fieldmap=FD_VOID;
+    q.bson_doc=bson_new();
+    q.bson_opts=opts;
+    q.bson_flags=flags;
+    q.bson_fieldmap=FD_VOID;
     if (FD_TABLEP(obj)) {
       fdtype id=fd_get(obj,idsym,FD_VOID);
       if (FD_VOIDP(id)) {
-        q.fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
+        q.bson_fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
         fd_bson_output(q,obj);
         hasid=0;}
       else {
@@ -603,19 +650,19 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
     if (mongoc_collection_remove(collection,
                                  ((hasid)?(MONGOC_REMOVE_SINGLE_REMOVE):
                                   (MONGOC_REMOVE_NONE)),
-                                 q.doc,wc,&error)) {
+                                 q.bson_doc,wc,&error)) {
       result=FD_TRUE;}
     else {
       fd_seterr(fd_MongoDB_Error,"mongodb_remove",
                 u8_mkstring("%s>%s>%s:%s",
-                            domain->uri,domain->dbname,domain->name,
+                            db->dburi,db->dbname,domain->collection_name,
                             error.message),
                 fd_incref(obj));
       result=FD_ERROR_VALUE;}
     collection_done(collection,client,domain);
     if (wc) mongoc_write_concern_destroy(wc);
-    fd_decref(q.fieldmap);
-    bson_destroy(q.doc);}
+    fd_decref(q.bson_fieldmap);
+    bson_destroy(q.bson_doc);}
   else result=FD_ERROR_VALUE;
   fd_decref(opts);
   return result;
@@ -625,8 +672,9 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
                              fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts);
-  int flags=getflags(opts,domain->flags);
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client=NULL;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
@@ -654,20 +702,22 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
       if ((q)&&(u))
         u8_log(LOG_WARN,"mongodb_update",
                "Error %s on %s>%s>%s with query\nquery=  %q\nupdate=  %q\nflags= %q",
-               error.message,domain->uri,domain->dbname,domain->name,query,update,opts);
+               error.message,db->dburi,db->dbname,
+               domain->collection_name,query,update,opts);
       else u8_log(LOG_WARN,"mongodb_update",
                   "Error %s on %s>%s>%s with query\nquery=  %q\nupdate=  %q\nflags= %q",
-                  error.message,domain->uri,domain->dbname,domain->name,query,update,opts);
+                  error.message,db->dburi,db->dbname,
+                  domain->collection_name,query,update,opts);
       return FD_FALSE;}
     else if ((q)&&(u))
       fd_seterr(fd_MongoDB_Error,"mongodb_update/call",
                 u8_mkstring("%s>%s>%s:%s",
-                            domain->uri,domain->dbname,domain->name,
+                            db->dburi,db->dbname,domain->collection_name,
                             error.message),
                 fd_make_pair(query,update));
     else fd_seterr(fd_BSON_Error,"mongodb_update/prep",
                    u8_mkstring("%s>%s>%s:%s",
-                               domain->uri,domain->dbname,domain->name),
+                               db->dburi,db->dbname,domain->collection_name),
                    fd_make_pair(query,update));
     return FD_ERROR_VALUE;}
   else {
@@ -675,11 +725,71 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
     return FD_ERROR_VALUE;}
 }
 
+#if HAVE_MONGOC_OPTS_FUNCTIONS
 static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts);
-  int flags=getflags(opts,domain->flags);
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *client=NULL;
+  mongoc_collection_t *collection=open_collection(domain,&client,flags);
+  if (collection) {
+    fdtype results=FD_EMPTY_CHOICE;
+    mongoc_cursor_t *cursor=NULL;
+    const bson_t *doc;
+    bson_t *q=fd_dtype2bson(query,flags,opts);
+    bson_t *findopts=getfindopts(opts,flags);
+    mongoc_read_prefs_t *rp=get_read_prefs(opts);
+    fdtype *vec=NULL; size_t n=0, max=0;
+    int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
+    if (q)
+      cursor=mongoc_collection_find_with_opts(collection,q,findopts,rp);
+    if (cursor) {
+      while (mongoc_cursor_next(cursor,&doc)) {
+        /* u8_string json=bson_as_json(doc,NULL); */
+        fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+        if (FD_ABORTP(r)) {
+          fd_decref(results);
+          free_dtype_vec(vec,n);
+          results=FD_ERROR_VALUE;
+          sort_results=0;}
+        else if (sort_results) {
+          if (n>=max) {
+            if (!(grow_dtype_vec(&vec,n,&max))) {
+              free_dtype_vec(vec,n);
+              results=FD_ERROR_VALUE;
+              sort_results=0;
+              break;}}
+          vec[n++]=r;}
+        else {
+          FD_ADD_TO_CHOICE(results,r);}}
+      if (findopts) bson_destroy(findopts);
+      if (rp) mongoc_read_prefs_destroy(rp);
+      mongoc_cursor_destroy(cursor);}
+    else results=fd_err(fd_MongoDB_Error,"mongodb_find",
+                        "couldn't get cursor",opts);
+    if (q) bson_destroy(q);
+    if (findopts) bson_destroy(findopts);
+    collection_done(collection,client,domain);
+    fd_decref(opts);
+    if (sort_results) {
+      if ((vec==NULL)||(n==0)) return fd_make_vector(0,NULL);
+      else results=fd_make_vector(n,vec);
+      if (vec) u8_free(vec);}
+    return results;}
+  else {
+    fd_decref(opts);
+    return FD_ERROR_VALUE;}
+}
+#else
+static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client=NULL;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
@@ -699,8 +809,12 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
         u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
       if (q) cursor=mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
-                FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
-                q,fields,rp);
+                FD_FIX2INT(skip_arg),
+                FD_FIX2INT(limit_arg),
+                FD_FIX2INT(batch_arg),
+                q,
+                fields,
+                rp);
       if (cursor) {
         while (mongoc_cursor_next(cursor,&doc)) {
           /* u8_string json=bson_as_json(doc,NULL); */
@@ -739,12 +853,56 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fd_decref(opts);
     return FD_ERROR_VALUE;}
 }
+#endif
 
+#if HAVE_MONGOC_OPTS_FUNCTIONS
 static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 {
+  fdtype result=FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts), result=FD_EMPTY_CHOICE;
-  int flags=getflags(opts,domain->flags);
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *client=NULL;
+  mongoc_collection_t *collection=open_collection(domain,&client,flags);
+  if (collection) {
+    mongoc_cursor_t *cursor;
+    const bson_t *doc;
+    bson_t *q, *findopts=getfindopts(opts,flags);
+    mongoc_read_prefs_t *rp=get_read_prefs(opts);
+    if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
+      q=fd_dtype2bson(query,flags,opts);
+    else {
+      struct FD_BSON_OUTPUT out;
+      out.bson_doc=bson_new();
+      out.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+      out.bson_opts=opts;
+      bson_append_dtype(out,"_id",3,query);
+      q=out.bson_doc;}
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+    if (q) cursor=mongoc_collection_find_with_opts
+             (collection,q,findopts,rp);
+    if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
+      result=fd_bson2dtype((bson_t *)doc,flags,opts);}
+    if (cursor) mongoc_cursor_destroy(cursor);
+    if (rp) mongoc_read_prefs_destroy(rp);
+    if (findopts) bson_destroy(findopts);
+    if (q) bson_destroy(q);
+    fd_decref(opts);
+    collection_done(collection,client,domain);
+    return result;}
+  else {
+    fd_decref(opts);
+    return FD_ERROR_VALUE;}
+}
+#else
+static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  fdtype result=FD_EMPTY_CHOICE;
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client=NULL;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
@@ -756,11 +914,11 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
       q=fd_dtype2bson(query,flags,opts);
     else {
       struct FD_BSON_OUTPUT out;
-      out.doc=bson_new();
-      out.flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
-      out.opts=opts;
+      out.bson_doc=bson_new();
+      out.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+      out.bson_opts=opts;
       bson_append_dtype(out,"_id",3,query);
-      q=out.doc;}
+      q=out.bson_doc;}
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
     if (q) cursor=mongoc_collection_find
@@ -778,6 +936,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     fd_decref(opts);
     return FD_ERROR_VALUE;}
 }
+#endif
 
 /* Find and Modify */
 
@@ -787,8 +946,9 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
                              fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts);
-  int flags=getflags(opts,domain->flags);
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
@@ -817,7 +977,7 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
     else {
       fd_seterr(fd_MongoDB_Error,"mongodb_modify",
                 u8_mkstring("%s>%s>%s:%s",
-                            domain->uri,domain->dbname,domain->name,
+                            db->dburi,db->dbname,domain->collection_name,
                             error.message),
                 fd_make_pair(query,update));
       result=FD_ERROR_VALUE;}
@@ -876,12 +1036,11 @@ static fdtype make_command(int n,fdtype *values)
     else return fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);}
 }
 
-static fdtype collection_command(fdtype arg,fdtype command,
-                                 fdtype opts_arg)
+static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=getflags(opts_arg,domain->flags);
-  fdtype opts=combine_opts(opts_arg,domain->opts);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   fdtype fields=fd_get(opts,fieldssym,FD_VOID);
   mongoc_client_t *client;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
@@ -917,8 +1076,8 @@ static fdtype db_command(fdtype arg,fdtype command,
                          fdtype opts_arg)
 {
   struct FD_MONGODB_DATABASE *srv=(struct FD_MONGODB_DATABASE *)arg;
-  int flags=getflags(opts_arg,srv->flags);
-  fdtype opts=combine_opts(opts_arg,srv->opts);
+  int flags=getflags(opts_arg,srv->dbflags);
+  fdtype opts=combine_opts(opts_arg,srv->dbopts);
   fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
   mongoc_client_t *client=get_client(srv,MONGODB_CLIENT_BLOCK);
   if (client) {
@@ -965,9 +1124,9 @@ static fdtype mongodb_command(int n,fdtype *args)
     opts=args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
     u8_log(-LOG_INFO,"MongoDB/RESULTS","At %q: %q",arg,command);}
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
+  if (FD_TYPEP(arg,fd_mongoc_server)) 
     result=db_command(arg,command,opts);
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
+  else if (FD_TYPEP(arg,fd_mongoc_collection))
     result=collection_command(arg,command,opts);
   else {}
   fd_decref(command);
@@ -978,8 +1137,8 @@ static fdtype collection_simple_command(fdtype arg,fdtype command,
                                         fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=getflags(opts_arg,domain->flags);
-  fdtype opts=combine_opts(opts_arg,domain->opts);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   bson_t *cmd=fd_dtype2bson(command,flags,opts);
   if (cmd) {
     mongoc_client_t *client;
@@ -1009,8 +1168,8 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
                                 fdtype opts_arg)
 {
   struct FD_MONGODB_DATABASE *srv=(struct FD_MONGODB_DATABASE *)arg;
-  int flags=getflags(opts_arg,srv->flags);
-  fdtype opts=combine_opts(opts_arg,srv->opts);
+  int flags=getflags(opts_arg,srv->dbflags);
+  fdtype opts=combine_opts(opts_arg,srv->dbopts);
   mongoc_client_t *client=get_client(srv,MONGODB_CLIENT_BLOCK);
   if (client) {
     bson_t response; bson_error_t error;
@@ -1048,9 +1207,9 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
     opts=args[1];}
   if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
     u8_log(-LOG_INFO,"MongoDB/DO","At %q: %q",arg,command);}
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
+  if (FD_TYPEP(arg,fd_mongoc_server)) 
     result=db_simple_command(arg,command,opts);
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
+  else if (FD_TYPEP(arg,fd_mongoc_collection))
     result=collection_simple_command(arg,command,opts);
   else {}
   fd_decref(command);
@@ -1059,11 +1218,51 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
 
 /* Cursor creation */
 
+#if HAVE_MONGOC_OPTS_FUNCTIONS
 static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts);
-  int flags=getflags(opts,domain->flags);
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *connection;
+  mongoc_cursor_t *cursor=NULL;
+  mongoc_collection_t *collection=open_collection(domain,&connection,flags);
+  bson_t *bq=fd_dtype2bson(query,flags,opts);
+  bson_t *findopts=getfindopts(opts,flags);
+  mongoc_read_prefs_t *rp=get_read_prefs(opts);
+  if (collection) {
+    cursor=mongoc_collection_find_with_opts
+      (collection,bq,findopts,rp);}
+  if (cursor) {
+    struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
+    FD_INIT_CONS(consed,fd_mongoc_cursor);
+    consed->cursor_domain=arg; fd_incref(arg);
+    consed->cursor_db=domain->domain_db;
+    fd_incref(domain->domain_db);
+    consed->cursor_query=query; fd_incref(query);
+    consed->cursor_query_bson=bq;
+    consed->cursor_readprefs=rp;
+    consed->cursor_opts=opts;
+    consed->cursor_connection=connection;
+    consed->cursor_collection=collection;
+    consed->mongoc_cursor=cursor;
+   return (fdtype) consed;}
+  else {
+    fd_decref(opts);
+    if (findopts) bson_destroy(findopts);
+    if (rp) mongoc_read_prefs_destroy(rp);
+    if (bq) bson_destroy(bq);
+    if (collection) collection_done(collection,connection,domain);
+    return FD_ERROR_VALUE;}
+}
+#else
+static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *connection;
   mongoc_cursor_t *cursor=NULL;
   mongoc_collection_t *collection=open_collection(domain,&connection,flags);
@@ -1084,17 +1283,16 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
   if (cursor) {
     struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
     FD_INIT_CONS(consed,fd_mongoc_cursor);
-    consed->domain=arg; fd_incref(arg);
-    consed->server=domain->server; fd_incref(domain->server);
-    consed->query=query; fd_incref(query);
-    consed->opts=opts;
-    consed->flags=flags;
-    consed->bsonquery=bq;
-    consed->bsonfields=fields;
-    consed->readprefs=rp;
-    consed->connection=connection;
-    consed->collection=collection;
-    consed->cursor=cursor;
+    consed->cursor_domain=arg; fd_incref(arg);
+    consed->cursor_db=domain->domain_db;
+    fd_incref(domain->domain_db);
+    consed->cursor_query=query; fd_incref(query);
+    consed->cursor_query_bson=bq;
+    consed->cursor_opts_bson=fields;
+    consed->cursor_readprefs=rp;
+    consed->cursor_connection=connection;
+    consed->cursor_collection=collection;
+    consed->mongoc_cursor=cursor;
    return (fdtype) consed;}
   else {
     fd_decref(opts);
@@ -1102,28 +1300,33 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     if (collection) collection_done(collection,connection,domain);
     return FD_ERROR_VALUE;}
 }
-static void recycle_cursor(struct FD_CONS *c)
+#endif
+
+static void recycle_cursor(struct FD_RAW_CONS *c)
 {
-  struct FD_MONGODB_CURSOR *cursor=(struct FD_MONGODB_CURSOR *)c;
-  struct FD_MONGODB_DATABASE *s=(struct FD_MONGODB_DATABASE *)cursor->server;
-  mongoc_cursor_destroy(cursor->cursor);
-  mongoc_collection_destroy(cursor->collection);
-  release_client(s,cursor->connection);
-  fd_decref(cursor->domain);
-  fd_decref(cursor->query);
-  fd_decref(cursor->opts);
-  bson_destroy(cursor->bsonquery);
-  if (cursor->bsonfields) bson_destroy(cursor->bsonfields);
-  if (cursor->readprefs) mongoc_read_prefs_destroy(cursor->readprefs); 
-  u8_free(cursor);
+  struct FD_MONGODB_CURSOR *cursor= (struct FD_MONGODB_CURSOR *)c;
+  struct FD_MONGODB_COLLECTION *domain= CURSOR2DOMAIN(cursor);
+  struct FD_MONGODB_DATABASE *s= DOMAIN2DB(domain);
+  mongoc_cursor_destroy(cursor->mongoc_cursor);
+  mongoc_collection_destroy(cursor->cursor_collection);
+  release_client(s,cursor->cursor_connection);
+  fd_decref(cursor->cursor_domain);
+  fd_decref(cursor->cursor_query);
+  fd_decref(cursor->cursor_opts);
+  bson_destroy(cursor->cursor_query_bson);
+  if (cursor->cursor_opts_bson)
+    bson_destroy(cursor->cursor_opts_bson);
+  if (cursor->cursor_readprefs)
+    mongoc_read_prefs_destroy(cursor->cursor_readprefs);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_MONGODB_CURSOR *cursor=(struct FD_MONGODB_CURSOR *)x;
-  struct FD_MONGODB_COLLECTION *domain=
-    (struct FD_MONGODB_COLLECTION *)(cursor->domain);
+  struct FD_MONGODB_COLLECTION *domain=CURSOR2DOMAIN(cursor);
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
   u8_printf(out,"#<MongoDB/Cursor '%s/%s' %q>",
-            domain->dbname,domain->name,cursor->query);
+            db->dbname,domain->collection_name,cursor->cursor_query);
   return 1;
 }
 
@@ -1132,7 +1335,7 @@ static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
 static fdtype mongodb_donep(fdtype cursor)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
-  if (mongoc_cursor_more(c->cursor))
+  if (mongoc_cursor_more(c->mongoc_cursor))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -1141,8 +1344,8 @@ static fdtype mongodb_skip(fdtype cursor,fdtype howmany)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
   int n=FD_FIX2INT(howmany), i=0; const bson_t *doc;
-  while ((i<n)&&(mongoc_cursor_more(c->cursor))) {
-    mongoc_cursor_next(c->cursor,&doc); i++;}
+  while ((i<n)&&(mongoc_cursor_more(c->mongoc_cursor))) {
+    mongoc_cursor_next(c->mongoc_cursor,&doc); i++;}
   if (i==n) return FD_TRUE; else return FD_FALSE;
 }
 
@@ -1152,12 +1355,12 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
   int n=FD_FIX2INT(howmany), i=0;
   if (n==0) return FD_EMPTY_CHOICE;
   else {
-    fdtype results=FD_EMPTY_CHOICE, *vec=NULL, opts=c->opts;
-    mongoc_cursor_t *scan=c->cursor; const bson_t *doc;
-    int flags=c->flags; size_t n=0, vlen=0;
+    fdtype results=FD_EMPTY_CHOICE, *vec=NULL, opts=c->cursor_opts;
+    mongoc_cursor_t *scan=c->mongoc_cursor; const bson_t *doc;
+    int flags=c->cursor_flags; size_t n=0, vlen=0;
     int sorted=fd_testopt(opts,sortedsym,FD_VOID);
     if (!(FD_VOIDP(opts_arg))) {
-      flags=getflags(opts_arg,c->flags);
+      flags=getflags(opts_arg,c->cursor_flags);
       opts=combine_opts(opts_arg,opts);
       sorted=fd_testopt(opts,sortedsym,FD_VOID);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
@@ -1194,10 +1397,11 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
   if (n==0) return fd_make_vector(0,NULL);
   else {
     fdtype result=fd_make_vector(n,NULL);
-    mongoc_cursor_t *scan=c->cursor; const bson_t *doc;
-    int flags=c->flags; fdtype opts=c->opts;
+    mongoc_cursor_t *scan=c->mongoc_cursor; const bson_t *doc;
+    fdtype opts=c->cursor_opts;
+    int flags=c->cursor_flags;
     if (!(FD_VOIDP(opts_arg))) {
-      flags=getflags(opts_arg,c->flags);
+      flags=getflags(opts_arg,c->cursor_flags);
       opts=combine_opts(opts_arg,opts);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
       fdtype dtype=fd_bson2dtype((bson_t *)doc,flags,opts);
@@ -1216,7 +1420,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
                               const char *key,int keylen,
                               fdtype val)
 {
-  bson_t *out=b.doc; int flags=b.flags; bool ok=true;
+  bson_t *out=b.bson_doc; int flags=b.bson_flags; bool ok=true;
   if (FD_CONSP(val)) {
     fd_ptr_type ctype=FD_PTR_TYPE(val);
     switch (ctype) {
@@ -1240,7 +1444,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       ok=bson_append_double(out,key,keylen,d);
       break;}
     case fd_bigint_type: {
-      fd_bigint b=FD_GET_CONS(val,fd_bigint_type,fd_bigint);
+      fd_bigint b=fd_consptr(fd_bigint,val,fd_bigint_type);
       if (fd_bigint_fits_in_word_p(b,32,1)) {
         long int b32=fd_bigint_to_long(b);
         ok=bson_append_int32(out,key,keylen,b32);}
@@ -1254,22 +1458,22 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_timestamp_type: {
       struct FD_TIMESTAMP *fdt=
-        FD_GET_CONS(val,fd_timestamp_type,struct FD_TIMESTAMP* );
-      unsigned long long millis=(fdt->xtime.u8_tick*1000)+
-        ((fdt->xtime.u8_prec>u8_second)?(fdt->xtime.u8_nsecs/1000000):(0));
+        fd_consptr(struct FD_TIMESTAMP* ,val,fd_timestamp_type);
+      unsigned long long millis=(fdt->fd_u8xtime.u8_tick*1000)+
+        ((fdt->fd_u8xtime.u8_prec>u8_second)?(fdt->fd_u8xtime.u8_nsecs/1000000):(0));
       ok=bson_append_date_time(out,key,keylen,millis);
       break;}
     case fd_uuid_type: {
-      struct FD_UUID *uuid=FD_GET_CONS(val,fd_uuid_type,struct FD_UUID *);
-      ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->uuid,16);
+      struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,val,fd_uuid_type);
+      ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->fd_uuid16,16);
       break;}
     case fd_choice_type: case fd_achoice_type: {
       struct FD_BSON_OUTPUT rout;
       bson_t arr; char buf[16];
       ok=bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&arr; rout.flags=b.flags; 
-      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
+      rout.bson_doc=&arr; rout.bson_flags=b.bson_flags; 
+      rout.bson_opts=b.bson_opts; rout.bson_fieldmap=b.bson_fieldmap;
       if (ok) {
         int i=0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
@@ -1281,16 +1485,16 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       struct FD_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct FD_VECTOR *vec=(struct FD_VECTOR *)val;
-      int i=0, lim=vec->length;
-      fdtype *data=vec->data;
+      int i=0, lim=vec->fd_veclen;
+      fdtype *data=vec->fd_vecelts;
       int wrap_vector=((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
       if (wrap_vector) {
         ok=bson_append_array_begin(out,key,keylen,&ch);
         if (ok) ok=bson_append_array_begin(&ch,"0",1,&arr);}
       else ok=bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&arr; rout.flags=b.flags; 
-      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
+      rout.bson_doc=&arr; rout.bson_flags=b.bson_flags; 
+      rout.bson_opts=b.bson_opts; rout.bson_fieldmap=b.bson_fieldmap;
       if (ok) while (i<lim) {
           fdtype v=data[i]; sprintf(buf,"%d",i++);
           ok=bson_append_dtype(rout,buf,strlen(buf),v);
@@ -1306,8 +1510,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       fdtype keys=fd_getkeys(val);
       ok=bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&doc; rout.flags=b.flags; 
-      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
+      rout.bson_doc=&doc; rout.bson_flags=b.bson_flags; 
+      rout.bson_opts=b.bson_opts; rout.bson_fieldmap=b.bson_fieldmap;
       if (ok) {
         FD_DO_CHOICES(key,keys) {
           fdtype value=fd_get(val,key,FD_VOID);
@@ -1320,16 +1524,16 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_regex_type: {
       struct FD_REGEX *fdrx=(struct FD_REGEX *)val;
-      char opts[8], *write=opts; int flags=fdrx->flags;
+      char opts[8], *write=opts; int flags=fdrx->fd_rxflags;
       if (flags&REG_EXTENDED) *write++='x';
       if (flags&REG_ICASE) *write++='i';
       if (flags&REG_NEWLINE) *write++='m';
       *write++='\0';
-      bson_append_regex(out,key,keylen,fdrx->src,opts);
+      bson_append_regex(out,key,keylen,fdrx->fd_rxsrc,opts);
       break;}
     case fd_compound_type: {
       struct FD_COMPOUND *compound=FD_XCOMPOUND(val);
-      fdtype tag=compound->tag, *elts=FD_COMPOUND_ELTS(val);
+      fdtype tag=compound->compound_typetag, *elts=FD_COMPOUND_ELTS(val);
       int len=FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
       bson_t doc;
@@ -1337,8 +1541,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         ok=bson_append_array_begin(out,key,keylen,&doc);
       else ok=bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&doc; rout.flags=b.flags; 
-      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
+      rout.bson_doc=&doc; rout.bson_flags=b.bson_flags; 
+      rout.bson_opts=b.bson_opts; rout.bson_fieldmap=b.bson_fieldmap;
       if (tag==mongomap_symbol) {
         fdtype *scan=elts, *limit=scan+len;
         if ((len%2)==1) ok=0;
@@ -1420,18 +1624,18 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
 
 static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
 {
-  int flags=b.flags;
+  int flags=b.bson_flags;
   struct U8_OUTPUT keyout; unsigned char buf[256];
   const char *keystring=NULL; int keylen; bool ok=true;
-  fdtype fieldmap=b.fieldmap, store_value=val;
+  fdtype fieldmap=b.bson_fieldmap, store_value=val;
   U8_INIT_OUTPUT_BUF(&keyout,256,buf);
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
     if (flags&FD_MONGODB_SLOTIFY) {
       struct FD_KEYVAL *opmap=fd_sortvec_get(key,mongo_opmap,mongo_opmap_size);
       if (FD_EXPECT_FALSE(opmap!=NULL))  {
-        if (FD_STRINGP(opmap->value)) {
-          fdtype mapped=opmap->value;
+        if (FD_STRINGP(opmap->kv_val)) {
+          fdtype mapped=opmap->kv_val;
           keystring=FD_STRDATA(mapped);
           keylen=FD_STRLEN(mapped);}}
       if (keystring==NULL) {
@@ -1506,7 +1710,7 @@ FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
     fd_decref(keys);}
   else if (FD_COMPOUNDP(obj)) {
     struct FD_COMPOUND *compound=FD_XCOMPOUND(obj);
-    fdtype tag=compound->tag, *elts=FD_COMPOUND_ELTS(obj);
+    fdtype tag=compound->compound_typetag, *elts=FD_COMPOUND_ELTS(obj);
     int len=FD_COMPOUND_LENGTH(obj);
     if (tag==mongomap_symbol) {
       fdtype *scan=elts, *limit=scan+len;
@@ -1554,13 +1758,13 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
     return NULL;}
   else {
     struct FD_BSON_OUTPUT out;
-    out.doc=bson_new();
-    out.flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
-    out.opts=opts;
-    out.fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
+    out.bson_doc=bson_new();
+    out.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+    out.bson_opts=opts;
+    out.bson_fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
     fd_bson_output(out,obj);
-    fd_decref(out.fieldmap);
-    return out.doc;}
+    fd_decref(out.bson_fieldmap);
+    return out.bson_doc;}
 }
 
 /* BSON input functions */
@@ -1584,7 +1788,7 @@ static fdtype bson_read_choice(FD_BSON_INPUT b);
 
 static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
 {
-  bson_iter_t *in=b.iter; int flags=b.flags, symbolized=0;
+  bson_iter_t *in=b.bson_iter; int flags=b.bson_flags, symbolized=0;
   const unsigned char *field=bson_iter_key(in);
   bson_type_t bt=bson_iter_type(in);
   fdtype slotid, value=FD_VOID;
@@ -1628,7 +1832,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     if (st==BSON_SUBTYPE_UUID) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(uuid->uuid,data,len);
+      memcpy(uuid->fd_uuid16,data,len);
       value= (fdtype) uuid;}
     else {
       fdtype packet=fd_make_packet(NULL,len,(unsigned char *)data);
@@ -1672,7 +1876,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     unsigned long long millis=bson_iter_date_time(in);
     struct FD_TIMESTAMP *ts=u8_alloc(struct FD_TIMESTAMP);
     FD_INIT_CONS(ts,fd_timestamp_type);
-    u8_init_xtime(&(ts->xtime),millis/1000,u8_millisecond,
+    u8_init_xtime(&(ts->fd_u8xtime),millis/1000,u8_millisecond,
                   ((millis%1000)*1000000),0,0);
     value=(fdtype)ts;
     break;}
@@ -1684,14 +1888,14 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     if (BSON_ITER_HOLDS_DOCUMENT(in)) {
       struct FD_BSON_INPUT r; bson_iter_t child;
       bson_iter_recurse(in,&child);
-      r.iter=&child; r.flags=b.flags; 
-      r.opts=b.opts; r.fieldmap=b.fieldmap;
+      r.bson_iter=&child; r.bson_flags=b.bson_flags; 
+      r.bson_opts=b.bson_opts; r.bson_fieldmap=b.bson_fieldmap;
       value=fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
         bson_read_step(r,value,NULL);
       if (fd_test(value,fdtag_symbol,FD_VOID)) {
         fdtype tag=fd_get(value,fdtag_symbol,FD_VOID), compound;
-        struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(tag);
+        struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(tag);
         fdtype fields[16], keys=fd_getkeys(value);
         int max=-1, i=0, n, ok=1; 
         while (i<16) fields[i++]=FD_VOID;
@@ -1711,20 +1915,20 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
               fields[index]=fd_get(value,key,FD_VOID);}}}
         if (ok) {
           n=max+1;
-          if ((entry)&&(entry->parser))
-            compound=entry->parser(n,fields,entry);
+          if ((entry)&&(entry->fd_compound_parser))
+            compound=entry->fd_compound_parser(n,fields,entry);
           else {
             struct FD_COMPOUND *c=
               u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(fdtype)));
-            fdtype *cdata=&(c->elt0); fd_init_compound(c,tag,0,0);
-            c->n_elts=n;
+            fdtype *cdata=&(c->compound_0); fd_init_compound(c,tag,0,0);
+            c->fd_n_elts=n;
             memcpy(cdata,fields,n);
             compound=FDTYPE_CONS(c);}
           fd_decref(value); 
           value=compound;}
         fd_decref(keys); fd_decref(tag);}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
-      int flags=b.flags, choicevals=(flags&FD_MONGODB_CHOICEVALS);
+      int flags=b.bson_flags, choicevals=(flags&FD_MONGODB_CHOICEVALS);
       if ((choicevals)&&(symbolized))
         value=bson_read_choice(b);
       else value=bson_read_vector(b);}
@@ -1732,11 +1936,11 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       u8_log(LOGWARN,fd_BSON_Input_Error,
              "Can't handle BSON type %d",bt);
       return;}}
-  if (!(FD_VOIDP(b.fieldmap))) {
+  if (!(FD_VOIDP(b.bson_fieldmap))) {
     struct FD_STRING _tempkey;
     fdtype tempkey=fd_init_string(&_tempkey,strlen(field),field);
     fdtype mapfn=FD_VOID, new_value=FD_VOID;
-    fdtype fieldmap=b.fieldmap;
+    fdtype fieldmap=b.bson_fieldmap;
     FD_INIT_STACK_CONS(tempkey,fd_string_type);
     mapfn=fd_get(fieldmap,tempkey,FD_VOID);
     if (FD_VOIDP(mapfn)) {}
@@ -1763,9 +1967,9 @@ static fdtype bson_read_vector(FD_BSON_INPUT b)
 {
   struct FD_BSON_INPUT r; bson_iter_t child;
   fdtype result, *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
-  bson_iter_recurse(b.iter,&child);
-  r.iter=&child; r.flags=b.flags; 
-  r.opts=b.opts; r.fieldmap=b.fieldmap;
+  bson_iter_recurse(b.bson_iter,&child);
+  r.bson_iter=&child; r.bson_flags=b.bson_flags; 
+  r.bson_opts=b.bson_opts; r.bson_fieldmap=b.bson_fieldmap;
   while (bson_iter_next(&child)) {
     if (write>=lim) {
       int len=lim-data;
@@ -1783,9 +1987,9 @@ static fdtype bson_read_choice(FD_BSON_INPUT b)
 {
   struct FD_BSON_INPUT r; bson_iter_t child;
   fdtype *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
-  bson_iter_recurse(b.iter,&child);
-  r.iter=&child; r.flags=b.flags; 
-  r.opts=b.opts; r.fieldmap=b.fieldmap;
+  bson_iter_recurse(b.bson_iter,&child);
+  r.bson_iter=&child; r.bson_flags=b.bson_flags; 
+  r.bson_opts=b.bson_opts; r.bson_fieldmap=b.bson_fieldmap;
   while (bson_iter_next(&child)) {
     if (write>=lim) {
       int len=lim-data;
@@ -1816,8 +2020,8 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
     fdtype result, fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
     struct FD_BSON_INPUT b;
     memset(&b,0,sizeof(struct FD_BSON_INPUT));
-    b.iter=&iter; b.flags=flags; 
-    b.opts=opts; b.fieldmap=fieldmap;
+    b.bson_iter=&iter; b.bson_flags=flags; 
+    b.bson_opts=opts; b.bson_fieldmap=fieldmap;
     result=fd_init_slotmap(NULL,0,NULL);
     while (bson_iter_next(&iter)) bson_read_step(b,result,NULL);
     fd_decref(fieldmap);
@@ -1904,98 +2108,10 @@ static fdtype mongovecp(fdtype arg)
   else return FD_FALSE;
 }
 
-/* MongoDB pools and indices */
+/* MongoDB pools and indexes */
 
-/* Notes:
+/* These are now implemented in Scheme */
 
-   1.  Pools are collections which map OID offsets into integer _id
-   fields.
-
-   2.  The _id:poolinfo records in the collection records the base
-   OID, the capacity, and any names or aliases.
-
-   3.  OID allocation is handled by a record which specifies a base, a
-   range, and a load.  find/modify calls are used to pull this record,
-   checking the available capacity, and increment the load.  By
-   default, this record lives in the same collection as the pool
-   itself, but it can be on any client/database/collection/id.  This
-   allows the specification of sharded object pools where different
-   shards have disintct alloc structures.
-
-   4. Locking will be done by adding documents of the form:
-        {_id: someobjid, lock: intoffset, expires: datetime}
-
-*/
-
-/*
-static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
-{
-  struct FD_MONGODB_POOL *mp=(struct FD_MONGODB_POOL *)p;
-  FD_OID base=mp->base, addr=FD_OID_ADDR(oid);
-  mongoc_client_t *client=mongoc_client_pool_pop(mp->clients);
-  mongoc_collection_t *domain=
-    mongoc_client_get_collection(client,mp->dbname,mp->collection);
-  mongoc_cursor_t *cursor;
-  bson_t *q=bson_new(); const bson_t *doc;
-  fdtype fetched=FD_VOID;
-  BSON_APPEND_INT32(q,"_id",FD_OID_LO(addr)-FD_OID_LO(base));
-  cursor=mongoc_collection_find(domain,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
-  if (mongoc_cursor_next(cursor,&doc))
-    fetched=fd_bson2dtype((bson_t *)doc,mp->mdbflags,mp->mdbopts);
-  bson_destroy(q);
-  mongoc_collection_destroy(domain);
-  mongoc_client_pool_push(mp->clients,client);
-  return fetched;
-}
-*/
-
-/*
-static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
-{
-  struct FD_MONGODB_POOL *mp=(struct FD_MONGODB_POOL *)p;
-  mongoc_client_t *client=mongoc_client_pool_pop(mp->clients);
-  mongoc_collection_t *domain=
-    mongoc_client_get_collection(client,mp->dbname,mp->collection);
-  mongoc_cursor_t *cursor;
-  bson_t *q=bson_new(); const bson_t doc, ids, *response;
-
-  fdtype fetched=fd_init_vector(NULL,n,NULL);
-  FD_OID base=mp->base; int i=0;
-  char keybuf[32];
-
-  mongodb_append_document_begin(q,"_id",3,&doc);
-  mongodb_append_array_begin(&doc,"$in",3,&ids);
-  while (i<n) {
-    fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
-    unsigned int oid_off=FD_OID_LO(addr)-FD_OID_LO(base);
-    snprintf(buf,32,"%ud",i); i++;
-    BSON_APPEND_INT32(ids,buf,-1,oid_off);}
-  mongodb_append_array_end(&ids);
-  mongodb_append_document_end(&doc);
-  while (mongoc_cursor_next(cursor,&doc)) {
-    fdtype fetched=fd_bson2dtype((bson_t *)doc,mp->mdbflags,mp->mdbopts);
-    fdtype id=fd_get(fetched,id_symbol);
-    if (FD_FIXNUMP(id)) {
-      unsigned int off=FD_FIX2INT(id);
-      struct FD_OID addr=FD_OID_PLUS(base,off);}}
-  bson_destroy(q);
-  mongoc_collection_destroy(domain);
-  mongoc_client_pool_push(mp->clients,client);
-
-  cursor=mongoc_collection_find(domain,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
-
-  fdtype value=fd_dtcall(np->connpool,2,fetch_oids_symbol,oidvec);
-  fd_decref(oidvec);
-  if (FD_VECTORP(value)) {
-    fdtype *values=u8_alloc_n(n,fdtype);
-    memcpy(values,FD_VECTOR_ELTS(value),sizeof(fdtype)*n);
-    return values;}
-  else {
-    fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->cid),fd_incref(value));
-    return NULL;}
-}
-*/
 
 /* The MongoDB OPMAP */
 
@@ -2013,7 +2129,7 @@ static void add_to_mongo_opmap(u8_string keystring)
                       &mongo_opmap_space,
                       1);
   if (entry) 
-    entry->value=fdtype_string(keystring);
+    entry->kv_val=fdtype_string(keystring);
   else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
 }
 
@@ -2068,16 +2184,17 @@ static void init_mongo_opmap()
 
 static struct FD_MONGODB_DATABASE *getdb(fdtype arg,u8_context cxt)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
-    return FD_GET_CONS(arg,fd_mongoc_server,struct FD_MONGODB_DATABASE *);}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+  if (FD_TYPEP(arg,fd_mongoc_server)) {
+    return fd_consptr(struct FD_MONGODB_DATABASE *,arg,fd_mongoc_server);}
+  else if (FD_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *collection=
-      FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
-    return (struct FD_MONGODB_DATABASE *)collection->server;}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+      fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
+    return (struct FD_MONGODB_DATABASE *)collection->domain_db;}
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
-      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
-    return (struct FD_MONGODB_DATABASE *)cursor->server;}
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    struct FD_MONGODB_COLLECTION *collection=CURSOR2DOMAIN(cursor);
+    return DOMAIN2DB(collection);}
   else {
     fd_seterr(fd_TypeError,cxt,"MongoDB object",arg);
     return NULL;}
@@ -2094,14 +2211,14 @@ static fdtype mongodb_spec(fdtype arg)
 {
   struct FD_MONGODB_DATABASE *db=getdb(arg,"mongodb_spec");
   if (db==NULL) return FD_ERROR_VALUE;
-  else return fdtype_string(db->spec);
+  else return fdtype_string(db->dbspec);
 }
 
 static fdtype mongodb_uri(fdtype arg)
 {
   struct FD_MONGODB_DATABASE *db=getdb(arg,"mongodb_uri");
   if (db==NULL) return FD_ERROR_VALUE;
-  else return fdtype_string(db->uri);
+  else return fdtype_string(db->dburi);
 }
 
 static fdtype mongodb_server(fdtype arg)
@@ -2117,16 +2234,16 @@ static fdtype mongodb_server(fdtype arg)
 static fdtype mongodb_opts(fdtype arg)
 {
   fdtype opts=FD_VOID;
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
-    opts=(FD_GET_CONS(arg,fd_mongoc_server,struct FD_MONGODB_DATABASE *))->opts;}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+  if (FD_TYPEP(arg,fd_mongoc_server)) {
+    opts=(fd_consptr(struct FD_MONGODB_DATABASE *,arg,fd_mongoc_server))->dbopts;}
+  else if (FD_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *collection=
-      FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
-    opts=collection->opts;}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+      fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
+    opts=collection->domain_opts;}
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
-      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
-    opts=cursor->opts;}
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    opts=cursor->cursor_opts;}
   else {
     fd_seterr(fd_TypeError,"mongodb_opts","MongoDB object",arg);
     return FD_ERROR_VALUE;}
@@ -2137,79 +2254,79 @@ static fdtype mongodb_opts(fdtype arg)
 static fdtype mongodb_collection_name(fdtype arg)
 {
   struct FD_MONGODB_COLLECTION *collection=NULL;
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
-    collection=FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+  if (FD_TYPEP(arg,fd_mongoc_collection)) 
+    collection=fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
-      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
-    collection=(struct FD_MONGODB_COLLECTION *)cursor->domain;}
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    collection=(struct FD_MONGODB_COLLECTION *)cursor->cursor_domain;}
   else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
   if (collection)
-    return fd_make_string(NULL,-1,collection->name);
+    return fd_make_string(NULL,-1,collection->collection_name);
   else return FD_FALSE;
 }
 
 static fdtype mongodb_getdb(fdtype arg)
 {
   struct FD_MONGODB_COLLECTION *collection=NULL;
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
+  if (FD_TYPEP(arg,fd_mongoc_server)) 
     return fd_incref(arg);
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
-    collection=FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+  else if (FD_TYPEP(arg,fd_mongoc_collection)) 
+    collection=fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
-      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
-    collection=(struct FD_MONGODB_COLLECTION *)cursor->domain;}
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    collection=(struct FD_MONGODB_COLLECTION *)cursor->cursor_domain;}
   else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
   if (collection)
-    return fd_incref(collection->server);
+    return fd_incref(collection->domain_db);
   else return FD_FALSE;
 }
 
 static int mongodb_getflags(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
+  if (FD_TYPEP(arg,fd_mongoc_server)) {
     struct FD_MONGODB_DATABASE *server=(struct FD_MONGODB_DATABASE *)arg;
-    return server->flags;}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+    return server->dbflags;}
+  else if (FD_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *collection=
-      FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
-    return collection->flags;}
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+      fd_consptr(struct FD_MONGODB_COLLECTION *,arg,fd_mongoc_collection);
+    return collection->domain_flags;}
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
-      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
-    return cursor->flags;}
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    return cursor->cursor_flags;}
   else return -1;
 }
 
 static fdtype mongodb_getcollection(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
+  if (FD_TYPEP(arg,fd_mongoc_collection)) 
     return fd_incref(arg);
-  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+  else if (FD_TYPEP(arg,fd_mongoc_cursor)) {
     struct FD_MONGODB_CURSOR *cursor=
-      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
-    return fd_incref(cursor->domain);}
+      fd_consptr(struct FD_MONGODB_CURSOR *,arg,fd_mongoc_cursor);
+    return fd_incref(cursor->cursor_domain);}
   else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
 }
 
 static fdtype mongodbp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_server))
+  if (FD_TYPEP(arg,fd_mongoc_server))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype mongodb_collectionp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
+  if (FD_TYPEP(arg,fd_mongoc_collection))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype mongodb_cursorp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor))
+  if (FD_TYPEP(arg,fd_mongoc_cursor))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -2228,8 +2345,8 @@ static fdtype mongodb_getinfo(fdtype mongodb,fdtype field)
 {
   fdtype result=fd_make_slotmap(10,0,NULL);
   struct FD_MONGODB_DATABASE *db=
-    FD_GET_CONS(mongodb,fd_mongoc_server,struct FD_MONGODB_DATABASE *);
-  mongoc_uri_t *info=db->info;
+    fd_consptr(struct FD_MONGODB_DATABASE *,mongodb,fd_mongoc_server);
+  mongoc_uri_t *info=db->dburi_info;
   u8_string tmpstring;
   if ((tmpstring=mongoc_uri_get_database(info)))
     add_string(result,dbname_symbol,tmpstring);
@@ -2484,7 +2601,6 @@ FD_EXPORT int fd_init_mongodb()
                      fd_boolconfig_get,fd_boolconfig_set,&logops);
 
   fd_finish_module(module);
-  fd_persist_module(module);
 
   mongoc_init();
   atexit(mongoc_cleanup);
@@ -2503,9 +2619,11 @@ FD_EXPORT int fd_init_mongodb()
   return 1;
 }
 
+/* Future code */
+
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

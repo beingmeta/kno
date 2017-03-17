@@ -21,7 +21,7 @@
      simple set of U8_EXCALLn macros which do function calls in a
      new dynamic context.
 
-    fdb:
+    fdkbase:
 
     Uses dynamic contexts for error handling and handling automatic
      deallocation.

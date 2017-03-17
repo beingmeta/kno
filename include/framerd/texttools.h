@@ -70,15 +70,15 @@ FD_EXPORT fdtype fd_text_subst(fdtype pat,fdtype string);
 
 typedef struct FD_TXCLOSURE {
   FD_CONS_HEADER;
-  fdtype pattern;
-  fd_lispenv env;} FD_TXCLOSURE;
+  fdtype fd_txpattern;
+  fd_lispenv fd_txenv;} FD_TXCLOSURE;
 typedef struct FD_TXCLOSURE *fd_txclosure;
 
 struct FD_TEXTMATCH_OPERATOR {
-  fdtype symbol;
-  tx_matchfn matcher;
-  tx_searchfn searcher;
-  tx_extractfn extract;};
+  fdtype fd_matchop;
+  tx_matchfn fd_matcher;
+  tx_searchfn fd_searcher;
+  tx_extractfn fd_extractor;};
 
 #define FD_MATCH_IGNORE_CASE       (1)
 #define FD_MATCH_IGNORE_DIACRITICS (FD_MATCH_IGNORE_CASE<<1)

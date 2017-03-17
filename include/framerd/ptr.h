@@ -6,12 +6,12 @@
 
    This file implements the basic structures, macros, and function
     prototypes for dealing with dtype pointers as implemented for the
-    fdb library
+    fdkbase library
 */
 
 /* THE ANATOMY OF A POINTER
 
-   The fdb library is built on a dynamically typed "lisp-like" data
+   The fdkbase library is built on a dynamically typed "lisp-like" data
    model which uses an internal pointer format designed for efficency in
    the normal cases and easy extensibility to more advanced cases.
 
@@ -28,7 +28,7 @@
     alignment on 4-byte word boundaries, enables dtype pointers to be
     direclty used as structure pointers and vice versa.  A CONS
     pointer is exactly such a memory reference.  The detailed
-    implementation of CONSes is described at the head of <fdb/cons.h>,
+    implementation of CONSes is described at the head of <fdkbase/cons.h>,
     but it is basically a block of memory whose first 4 bytes encode a
     25-bit reference count and a 7-bit type code.
 
@@ -38,16 +38,18 @@
     a more detailed type code and the remaining 23 bits are available to
     represent particular values of each type.
 
-    The FIXNUM base pointer type is used for small magnitude signed integers.
-    Rather than using a two's complement representation for negative numbers,
-    fdb uses the 32nd bit (the high order bit on 32 bit architectures) as a sign
-    bit and stores the absolute magnitude in the remainder of the word (down to
-    the two bits of type code.  For positive numbers, converting between C ints
-    dtype fixnums is simply a matter of multiply or diving by 4 and adding the
-    type code (when converting to DTYPEs).  For negative numbers, it is trickier but
-    not much, as in FD_INT2DTYPE and FD_DTYPE2INT below.  Currently, fixnums
-    do not take advantage of the full word on 64-bit machines, for a mix
-    of present practical and prospective design reasons.
+    The FIXNUM base pointer type is used for small magnitude signed
+    integers.  Rather than using a two's complement representation for
+    negative numbers, fdkbase uses the 32nd bit (the high order bit on 32
+    bit architectures) as a sign bit and stores the absolute magnitude
+    in the remainder of the word (down to the two bits of type code.
+    For positive numbers, converting between C ints dtype fixnums is
+    simply a matter of multiply or diving by 4 and adding the type
+    code (when converting to DTYPEs).  For negative numbers, it is
+    trickier but not much, as in FD_INT2DTYPE and FD_DTYPE2INT below.
+    Currently, fixnums do not take advantage of the full word on
+    64-bit machines, for a mix of present practical and prospective
+    design reasons.
 
     The OID base pointer type is used to represent object pointers into a
     64-bit object space.  It does this by dividing the 64 bit object space
@@ -101,7 +103,7 @@
 #define FD_CONS_TYPECODE(i) (0x84+i)
 #define FD_IMMEDIATE_TYPECODE(i) (0x04+i)
 #define FD_MAX_CONS_TYPES  0x80
-#define FD_MAX_CONS_TYPE  FD_CONS_TYPECODE(0x80)
+#define FD_MAX_CONS_TYPE   FD_CONS_TYPECODE(0x80)
 #define FD_MAX_IMMEDIATE_TYPES 0x80
 #define FD_MAX_IMMEDIATE_TYPE FD_IMMEDIATE_TYPECODE(0x80)
 
@@ -119,10 +121,11 @@ typedef enum FD_PTR_TYPE {
   fd_constant_type=FD_IMMEDIATE_TYPECODE(0),
   fd_character_type=FD_IMMEDIATE_TYPECODE(1),
   fd_symbol_type=FD_IMMEDIATE_TYPECODE(2),
-  fd_pptr_type=FD_IMMEDIATE_TYPECODE(3),
-  /* Reserved as constants for an evaluator */
+  /* Reserved as constants */
+  fd_fcnid_type=FD_IMMEDIATE_TYPECODE(3),
   fd_lexref_type=FD_IMMEDIATE_TYPECODE(4),
   fd_opcode_type=FD_IMMEDIATE_TYPECODE(5),
+  fd_cdrcode_type=FD_IMMEDIATE_TYPECODE(6),
 
   fd_string_type=FD_CONS_TYPECODE(0),
   fd_packet_type=FD_CONS_TYPECODE(1),
@@ -139,26 +142,32 @@ typedef enum FD_PTR_TYPE {
   fd_hashset_type=FD_CONS_TYPECODE(12),
   fd_wrapper_type=FD_CONS_TYPECODE(13),
   fd_mystery_type=FD_CONS_TYPECODE(14),
-  fd_function_type=FD_CONS_TYPECODE(15),
+  fd_primfcn_type=FD_CONS_TYPECODE(15),
   fd_error_type=FD_CONS_TYPECODE(16),
   fd_complex_type=FD_CONS_TYPECODE(17),
   fd_rational_type=FD_CONS_TYPECODE(18),
   fd_flonum_type=FD_CONS_TYPECODE(19),
   fd_timestamp_type=FD_CONS_TYPECODE(20),
   fd_dtproc_type=FD_CONS_TYPECODE(21),
-  fd_tail_call_type=FD_CONS_TYPECODE(22),
+  fd_tailcall_type=FD_CONS_TYPECODE(22),
   fd_uuid_type=FD_CONS_TYPECODE(23),
   fd_rail_type=FD_CONS_TYPECODE(24),
   fd_secret_type=FD_CONS_TYPECODE(25),
   /* We define these here, early, so they're treated as a constant */
   fd_sproc_type=FD_CONS_TYPECODE(26),
-  fd_regex_type=FD_CONS_TYPECODE(27),
-  fd_numeric_vector_type=FD_CONS_TYPECODE(28)
+  fd_ffi_type=FD_CONS_TYPECODE(27),
+  fd_regex_type=FD_CONS_TYPECODE(28),
+  fd_numeric_vector_type=FD_CONS_TYPECODE(29),
+  fd_consblock_type=FD_CONS_TYPECODE(30),
+  fd_port_type=FD_CONS_TYPECODE(31),
+  fd_stream_type=FD_CONS_TYPECODE(32),
+  fd_bytecode_type=FD_CONS_TYPECODE(33),
+  fd_rawptr_type=FD_CONS_TYPECODE(34)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 29
-#define FD_BUILTIN_IMMEDIATE_TYPES 6
+#define FD_BUILTIN_CONS_TYPES 35
+#define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
 
@@ -168,9 +177,26 @@ FD_EXPORT fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 FD_EXPORT int fd_register_cons_type(char *name);
 FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
 
+FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
+
+#define fd_ptr_typename(tc) \
+  ( (tc<fd_next_cons_type) ? (fd_type_names[tc]) : ((u8_string)"oddtype"))
+#define fd_type2name(tc)	\
+  (((tc<0)||(tc>FD_TYPE_MAX))?	\
+   ((u8_string)"oddtype"):	\
+   (fd_type_names[tc]))
+
+FD_EXPORT fdtype fd_badptr_err(fdtype badx,u8_context cxt,u8_string details);
+
+#define FD_VALID_TYPECODEP(x)				       \
+  (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
+		  (((int)x)<256) &&			       \
+		  (((x<0x84)&&((x)<fd_next_immediate_type)) || \
+		   ((x>=0x84)&&((x)<fd_next_cons_type)))))
+
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
-#define FD_PTR_MANIFEST_TYPE(x) ((x)&0x3)
+#define FD_PTR_MANIFEST_TYPE(x) ((x)&(0x3))
 #define FD_CONSP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_cons_ptr_type)
 #define FD_ATOMICP(x) ((FD_PTR_MANIFEST_TYPE(x))!=fd_cons_ptr_type)
 #define FD_FIXNUMP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_fixnum_ptr_type)
@@ -179,21 +205,35 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
 #define FD_INT_DATA(x) ((x)>>2)
 #define FD_EQ(x,y) ((x)==(y))
 
+/* Basic cons structs */
+
 typedef unsigned int fd_consbits;
-#define FD_CONS_HEADER fd_consbits consbits
-typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
+#define FD_CONS_HEADER const fd_consbits fd_conshead
+
+/* The header for typed data structures */
+typedef struct FD_CONS { FD_CONS_HEADER;} FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
-#define FD_CONS_TYPE_MASK (0x7f)
+/* Raw conses have consbits which can change */
+typedef struct FD_RAW_CONS { fd_consbits fd_conshead;} FD_RAW_CONS;
+typedef struct FD_RAW_CONS *fd_raw_cons;
 
-#define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
+/* The bottom 7 bits of the conshead indicates the type of the cons.  The
+   rest is the reference count or zero for "static" (non-reference
+   counted) conses.  The 7 bit type code is converted to a real type by
+   adding 0x84. */
+
+#define FD_CONS_TYPE_MASK (0x7f)
+#define FD_CONS_TYPE_OFF  (0x84)
 
 #if FD_CHECKFDTYPE
+FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
 FD_FASTOP U8_MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
 FD_FASTOP U8_MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
 FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(_FD_ISDTYPE(x)))
 #else
+#define FD_RAW_CONS(x) ((fd_raw_cons)(x))
 #define FD_CONS_DATA(x) ((fd_cons)(x))
 #define FDTYPE(x) ((fdtype)(x))
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(1))
@@ -206,20 +246,39 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     gets the cons type. */
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
 #define FD_INIT_CONS(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=((type-0x84)|0x80)
+  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
 #define FD_INIT_FRESH_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((struct FD_CONS *)ptr)->consbits=((type-0x84)|0x80)
+  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=(type-0x84)
+  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((struct FD_CONS *)ptr)->consbits=(type-0x84)
-#define FD_CONS_TYPE(x) (( ((x)->consbits) & (FD_CONS_TYPE_MASK) )+0x84)
+  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+#define FD_CONS_TYPE(x) \
+  (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=				\
-    ((((struct FD_CONS *)ptr)->consbits&(~FD_CONS_TYPE_MASK)) | \
-     ( (type-0x84) & (FD_CONS_TYPE_MASK) ))
+  ((fd_raw_cons)ptr)->fd_conshead=\
+    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
+    ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#define FD_CONSPTR_TYPE(x) (FD_CONS_TYPE((fd_cons)x))
+
+#define FD_CONSPTR(cast,x) ((cast)((fd_cons)x))
+#define fd_consptr(cast,x,typecode)					\
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
+   (((FD_CHECK_PTR(x))?							\
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x)):		\
+     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
+    ((cast)NULL)))
+#define fd_xconsptr(cast,x,typecode)					\
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
+   (((FD_CHECK_PTR(x))?							\
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x),		\
+      (_fd_bad_pointer(x,fd_type_names[typecode]))) :			\
+     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x),		\
+      u8_raise(fd_TypeError,fd_type_names[typecode],NULL))),		\
+    ((cast)NULL)))
+
 #define FD_NULL ((fdtype)(NULL))
 #define FD_NULLP(x) (((void *)x)==NULL)
 
@@ -228,6 +287,8 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_GET_IMMEDIATE(x,tcode) (((FDTYPE(x))>>2)&0x7FFFFF)
 #define FD_IMMEDIATE_TYPE_FIELD(x) (((FDTYPE(x))>>25)&0x7F)
 #define FD_IMMEDIATE_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
+#define FD_IMMEDIATE_DATA(x) ((FDTYPE(x))>>2)
+#define FD_IMM_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
 
 #if FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE(x) \
@@ -248,72 +309,93 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
   }
 }
 #endif
+#define FD_PRIM_TYPE(x)         (FD_PTR_TYPE(x))
 
+#define FD_TYPEP(ptr,type)						      \
+  ((type >= 0x84) ? ( (FD_CONSP(ptr)) && (FD_CONSPTR_TYPE(ptr) == type) ) :   \
+   (type >= 0x04) ? ( (FD_IMMEDIATEP(ptr)) && (FD_IMM_TYPE(ptr) == type ) ) : \
+   ( ( (ptr) & (0x3) ) == type) )
+/* Other variants */
+#define FD_CONS_TYPEP(x,type) ( (FD_CONSP(x)) && ((FD_CONS_TYPE(x)) == type) )
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
+#define FD_PRIM_TYPEP(x,tp)     (FD_TYPEP(x,tp))
 
-#define FD_MAKE_STATIC(ptr)  \
-  if (FD_CONSP(ptr))						\
-    (((struct FD_CONS *)ptr)->consbits)&=(FD_CONS_TYPE_MASK);	\
-    else {}
+#define FD_MAKE_STATIC(ptr) \
+  if (FD_CONSP(ptr))							\
+    (((struct FD_RAW_CONS *)ptr)->fd_conshead)&=(FD_CONS_TYPE_MASK);	\
+  else {}
 
 #define FD_MAKE_CONS_STATIC(ptr)  \
-  (ptr)->consbits&=FD_CONS_TYPE_MASK;
+  ((struct FD_RAW_CONS *)ptr)->fd_conshead &= FD_CONS_TYPE_MASK
 
 /* OIDs */
 
 #if FD_STRUCT_OIDS
 typedef struct FD_OID {
-  unsigned int hi, lo;} FD_OID;
+  unsigned int fd_oid_hi, fd_oid_lo;} FD_OID;
 typedef struct FD_OID *fd_oid;
-#define FD_OID_HI(x) x.hi
-#define FD_OID_LO(x) x.lo
+#define FD_OID_HI(x) x.fd_oid_hi
+#define FD_OID_LO(x) x.fd_oid_lo
 FD_FASTOP FD_OID FD_OID_PLUS(FD_OID x,unsigned int increment)
 {
-  x.lo=x.lo+increment;
+  x.fd_oid_lo=x.fd_oid_lo+increment;
   return x;
 }
-#define FD_SET_OID_HI(oid,hiw) oid.hi=hiw
-#define FD_SET_OID_LO(oid,low) oid.lo=low
+#define FD_SET_OID_HI(oid,hiw) oid.fd_oid_hi=hiw
+#define FD_SET_OID_LO(oid,low) oid.fd_oid_lo=low
 #define FD_OID_COMPARE(oid1,oid2) \
-  ((oid1.hi == oid2.hi) ? \
-   ((oid1.lo == oid2.lo) ? (0) : (oid1.lo < oid2.lo) ? (-1) : (1)) :\
-   (oid1.hi < oid2.hi) ? (-1) : (1))
+  ((oid1.fd_oid_hi == oid2.fd_oid_hi) ? \
+   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) :			\
+    (oid1.fd_oid_lo > oid2.fd_oid_lo) ? (1) : (-1)) :		\
+  (oid1.fd_oid_hi > oid2.fd_oid_hi) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
-  ((oid1.lo>oid2.lo) ? (oid1.lo-oid2.lo) : (oid2.lo-oid1.lo))
+  ((oid1.fd_oid_lo>oid2.fd_oid_lo) ? \
+   (oid1.fd_oid_lo-oid2.fd_oid_lo) : \
+   (oid2.fd_oid_lo-oid1.fd_oid_lo))
 #elif FD_INT_OIDS
 typedef unsigned int FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFU)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
 #define FD_SET_OID_HI(oid,hi) oid=(oid&0xFFFFFFFFUL)|((hi)<<32)
-#define FD_SET_OID_LO(oid,lo) oid=((oid&0xFFFFFFFF00000000U)|(((FD_OID)lo)&0xFFFFFFFFU))
-#define FD_OID_COMPARE(oid1,oid2) ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
-#define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define FD_SET_OID_LO(oid,lo) \
+  oid=((oid&0xFFFFFFFF00000000U)|(((FD_OID)lo)&0xFFFFFFFFU))
+#define FD_OID_COMPARE(oid1,oid2) \
+  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+#define FD_OID_DIFFERENCE(oid1,oid2) \
+  ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #elif FD_LONG_OIDS
 typedef unsigned long FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFU)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
-#define FD_SET_OID_HI(oid,hi) oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
-#define FD_SET_OID_LO(oid,lo) oid=(oid&0xFFFFFFFF00000000UL)|((lo)&0xFFFFFFFFUL)
-#define FD_OID_COMPARE(oid1,oid2) ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
-#define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define FD_SET_OID_HI(oid,hi) \
+  oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
+#define FD_SET_OID_LO(oid,lo) \
+  oid=(oid&0xFFFFFFFF00000000UL)|((lo)&0xFFFFFFFFUL)
+#define FD_OID_COMPARE(oid1,oid2) \
+  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+#define FD_OID_DIFFERENCE(oid1,oid2) \
+  ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #elif FD_LONG_LONG_OIDS
 typedef unsigned long long FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFULL)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
-#define FD_SET_OID_HI(oid,hi) oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
+#define FD_SET_OID_HI(oid,hi) \
+  oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
 #define FD_SET_OID_LO(oid,lo) \
   oid=((oid&(0xFFFFFFFF00000000ULL))|((unsigned int)((lo)&(0xFFFFFFFFULL))))
-#define FD_OID_COMPARE(oid1,oid2) ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
-#define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define FD_OID_COMPARE(oid1,oid2) \
+  ((oid1 == oid2) ? (0) : (oid1>oid2) ? (1) : (-1))
+#define FD_OID_DIFFERENCE(oid1,oid2) \
+  ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #endif
 
 #if FD_STRUCT_OIDS
 FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
 {
-  FD_OID result; result.hi=hi; result.lo=lo;
+  FD_OID result; result.fd_oid_hi=hi; result.fd_oid_lo=lo;
   return result;
 }
 #define FD_NULL_OID_INIT {0,0}
@@ -350,32 +432,42 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Fixnums */
 
-#define FD_FIXNUM_SIGN_BIT 0x80000000
-#define FD_FIXNUM_MAGNITUDE_MASK 0x7FFFFFFF
-#define FD_MAX_FIXNUM            0x1FFFFFFF
-#define FD_MIN_FIXNUM           -0x1FFFFFFF
+#define FD_FIXNUM_BITS 30
+#define FD_MAX_FIXNUM ((((long long)1)<<FD_FIXNUM_BITS)-1)
+#define FD_MIN_FIXNUM -((((long long)1)<<FD_FIXNUM_BITS)-1)
 
-#define FD_FIX2INT(x) \
-  ((int)((((int)x)>=0) ? ((x)/4) : (-((x&FD_FIXNUM_MAGNITUDE_MASK)>>2))))
+#define to64(x) ((long long)(x))
+#define to64u(x) ((unsigned long long)(x))
+
+#define FD_FIX2INT(x)   \
+  ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
+
 #define FD_INT2DTYPE(x) \
-  ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?			\
-   (fd_make_bigint(x)) :						\
-   (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :			\
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2))))))
-#define FD_INT(x)					\
-  ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?   \
-   (fd_make_bigint(x)) :				\
-   (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :	\
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|(((u8_wideint)(-(x)))<<2))))))
-#define FD_SHORT2DTYPE(x)			             \
-  (((fdtype)						     \
-    ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \
-     (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
-#define FD_USHORT2DTYPE(x) ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
-#define FD_BYTE2DTYPE(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
-#define FD_BYTE2LISP(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
-#define FD_FIXNUM_MAGNITUDE(x) (x&FD_FIXNUM_MAGNITUDE_MASK)
-#define FD_FIXNUM_NEGATIVEP(x) (x&FD_FIXNUM_SIGN_BIT)
+  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||			\
+    ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?			\
+   (fd_make_bigint(to64(x))) :					\
+   ((fdtype)							\
+    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+	      (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
+#define FD_INT(x) (FD_INT2DTYPE(x))
+
+#define FD_UINT2DTYPE(x) \
+  (((to64u(x)) > (to64(FD_MAX_FIXNUM))) ?			\
+   (fd_make_bigint(to64u(x))) :					\
+   ((fdtype) (((to64u(x))*4)|fd_fixnum_type)))
+
+#define FD_SHORT2DTYPE(x)				\
+  ((fdtype)						\
+   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
+    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
+
+#define FD_SHORT2FIX(x)	(FD_SHORT2DTYPE(x))
+
+#define FD_USHORT2DTYPE(x)     ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
+#define FD_BYTE2DTYPE(x)       ((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
+#define FD_BYTE2LISP(x)        (FD_BYTE2DTYPE(x))
+#define FD_FIXNUM_MAGNITUDE(x) ((x<0)?((-(x))>>2):(x>>2))
+#define FD_FIXNUM_NEGATIVEP(x) (x<0)
 
 #define FD_FIXZERO         (FD_SHORT2DTYPE(0))
 #define FD_FIXNUM_ZERO     (FD_SHORT2DTYPE(0))
@@ -429,11 +521,11 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_THROWP(result) ((result)==(FD_THROW_VALUE))
 
 #define FD_ABORTP(x) \
-  (((FD_PTR_TYPEP(x,fd_constant_type)) && \
+  (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<=15)))
 #define FD_TROUBLEP(x) \
-  (((FD_PTR_TYPEP(x,fd_constant_type)) && \
+  (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<15)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
@@ -441,7 +533,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_ABORTED(x) (FD_EXPECT_FALSE(FD_ABORTP(x)))
 #define FD_INTERRUPTED() (FD_EXPECT_FALSE(u8_current_exception!=(NULL)))
 
-#define FDTYPE_CONSTANTP(x) \
+#define FD_CONSTANTP(x) \
   ((FD_IMMEDIATEP(x)) && ((FD_IMMEDIATE_TYPE(x))==0))
 
 /* Characters */
@@ -456,24 +548,28 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 /* Symbols */
 
 #ifndef FD_CORE_SYMBOLS
-#define FD_CORE_SYMBOLS 4096
+#define FD_CORE_SYMBOLS 8192
 #endif
 FD_EXPORT fdtype *fd_symbol_names;
 FD_EXPORT int fd_n_symbols;
-#if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex fd_symbol_lock;
-#endif
 
 #define FD_SYMBOLP(x) \
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
    (FD_IMMEDIATE_TYPE(x)==fd_symbol_type))
 
+#define FD_GOOD_SYMBOLP(x) \
+  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x)==fd_symbol_type) && \
+   (FD_GET_IMMEDIATE(x,fd_symbol_type)<fd_n_symbols))
+
 #define FD_SYMBOL2ID(x) (FD_GET_IMMEDIATE(x,fd_symbol_type))
 #define FD_ID2SYMBOL(i) (FDTYPE_IMMEDIATE(fd_symbol_type,i))
 
 #define FD_SYMBOL_NAME(x) \
-  ((FD_SYMBOLP(x)) ? (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) : \
-   ((u8_string )NULL))
+  ((FD_GOOD_SYMBOLP(x)) ? \
+   (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)])) :	\
+   ((u8_string )("#.bad$ymbol.#")))
 #define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
 FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);
@@ -489,58 +585,53 @@ FD_EXPORT fdtype fd_all_symbols(void);
    persistent pointers are not subject to GC, so they can
    be passed much more quickly and without thread contention. */
 
-#define FD_PPTRP(x) \
+#define FD_FCNIDP(x) \
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_pptr_type))
+   (FD_IMMEDIATE_TYPE(x)==fd_fcnid_type))
 
-FD_EXPORT struct FD_CONS **_fd_pptrs[];
-FD_EXPORT int _fd_npptrs;
-#if FD_THREADS_ENABLED
-FD_EXPORT u8_mutex _fd_pptr_lock;
+FD_EXPORT struct FD_CONS **_fd_fcnids[];
+FD_EXPORT int _fd_fcnid_count;
+FD_EXPORT u8_mutex _fd_fcnid_lock;
+
+#ifndef FD_FCNID_BLOCKSIZE
+#define FD_FCNID_BLOCKSIZE 256
 #endif
 
-#ifndef FD_PPTR_BLOCKSIZE
-#define FD_PPTR_BLOCKSIZE 256
+#ifndef FD_FCNID_NBLOCKS
+#define FD_FCNID_NBLOCKS 256
 #endif
 
-#ifndef FD_PPTR_NBLOCKS
-#define FD_PPTR_NBLOCKS 256
+#ifndef FD_INLINE_FCNIDS
+#define FD_INLINE_FCNIDS 0
 #endif
 
-#ifndef FD_INLINE_PPTRS
-#define FD_INLINE_PPTRS 0
-#endif
-
-FD_EXPORT fdtype _fd_pptr_ref(fdtype ref);
-FD_EXPORT fdtype fd_pptr_register(fdtype obj);
+FD_EXPORT fdtype fd_resolve_fcnid(fdtype ref);
+FD_EXPORT fdtype fd_register_fcnid(fdtype obj);
+FD_EXPORT fdtype fd_set_fcnid(fdtype ref,fdtype newval);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
 
-FD_EXPORT fd_exception fd_InvalidPPtr, fd_PPtrOverflow;
+FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
 
-#if FD_INLINE_PPTRS
-static fdtype fd_pptr_ref(fdtype ref)
+#if FD_INLINE_FCNIDS
+static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
 {
-  if (FD_PTR_TYPEP(ref,fd_pptr_type)) {
-    int serialno=FD_GET_IMMEDIATE(ref,fd_pptr_type);
-    if (FD_EXPECT_FALSE(serialno>_fd_npptrs))
-      return fd_err(fd_InvalidPPtr,"_fd_pptr_ref",NULL,ref);
-    else return (fdtype) _fd_pptrs[serialno/FD_PPTR_BLOCKSIZE][serialno%FD_PPTR_BLOCKSIZE];}
+  if (FD_TYPEP(ref,fd_fcnid_type)) {
+    int serialno=FD_GET_IMMEDIATE(ref,fd_fcnid_type);
+    if (FD_EXPECT_FALSE(serialno>_fd_fcnid_count))
+      return fd_err(fd_InvalidFCNID,"_fd_fcnid_ref",NULL,ref);
+    else return (fdtype) _fd_fcnids
+	   [serialno/FD_FCNID_BLOCKSIZE]
+	   [serialno%FD_FCNID_BLOCKSIZE];}
   else return ref;
 }
+#define fd_fcnid_ref(x) ((FD_FCNIDP(x))?(_fd_fcnid_ref(x)):(x))
 #else
-#define fd_pptr_ref _fd_pptr_ref
+#define fd_fcnid_ref(x) ((FD_FCNIDP(x))?(fd_resolve_fcnid(x)):(x))
 #endif
 
-#define FD_PRIM_TYPEP(x,tp) \
-  (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-    (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
-   (FD_PTR_TYPEP((fd_pptr_ref(x)),tp)) : (FD_PTR_TYPEP(x,tp)))
-
-#define FD_PRIM_TYPE(x) \
-  (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-    (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
-    (FD_PTR_TYPE(fd_pptr_ref(x))) : (FD_PTR_TYPE(x)))
+#define FD_FCNID_TYPEP(x,tp)    (FD_TYPEP(fd_fcnid_ref(x),tp))
+#define FD_FCNID_TYPE(x)        (FD_PTR_TYPE(fd_fcnid_ref(x)))
 
 /* Opcodes */
 
@@ -559,7 +650,7 @@ static fdtype fd_pptr_ref(fdtype ref)
 
 /* Lexrefs */
 
-#define FD_LEXREFP(x) (FD_PRIM_TYPEP(x,fd_lexref_type))
+#define FD_LEXREFP(x) (FD_TYPEP(x,fd_lexref_type))
 #define FD_LEXREF_UP(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))/32)
 #define FD_LEXREF_ACROSS(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))%32)
 
@@ -573,45 +664,79 @@ static fdtype fd_pptr_ref(fdtype ref)
 
 /* Generic handlers */
 
-typedef void (*fd_recycle_fn)(struct FD_CONS *x);
-typedef int (*fd_unparse_fn)(u8_output,fdtype);
-typedef int (*fd_dtype_fn)(struct FD_BYTE_OUTPUT *,fdtype);
-typedef int (*fd_compare_fn)(fdtype,fdtype,int);
-typedef fdtype (*fd_copy_fn)(fdtype,int);
+typedef unsigned int fd_compare_flags;
+#define FD_COMPARE_QUICK    ((fd_compare_flags)(0))
+#define FD_COMPARE_CODES   ((fd_compare_flags)(1))
+#define FD_COMPARE_ELTS     ((fd_compare_flags)(2))
+#define FD_COMPARE_NATSORT  ((fd_compare_flags)(4))
+#define FD_COMPARE_SLOTS    ((fd_compare_flags)(8))
+#define FD_COMPARE_NUMERIC  ((fd_compare_flags)(16))
+#define FD_COMPARE_FULL     ((fd_compare_flags)(31))
+#define FD_COMPARE_NOCASE   ((fd_compare_flags)(32))
 
-FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
+typedef unsigned int fd_walk_flags;
+#define FD_WALK_CONSES      ((fd_walk_flags)(0))
+#define FD_WALK_ALL         ((fd_walk_flags)(1))
+#define FD_WALK_TERMINALS   ((fd_walk_flags)(2))
+#define FD_WALK_CONTAINERS  ((fd_walk_flags)(4))
+#define FD_WALK_CONSTANTS   ((fd_walk_flags)(8))
+
+typedef void (*fd_recycle_fn)(struct FD_RAW_CONS *x);
+typedef int (*fd_unparse_fn)(u8_output,fdtype);
+typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
+typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
+typedef fdtype (*fd_copy_fn)(fdtype,int);
+typedef int (*fd_walker)(fdtype,void *);
+typedef int (*fd_walk_fn)(fd_walker,fdtype,void *,fd_walk_flags,int);
+
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
 FD_EXPORT fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
 FD_EXPORT fd_compare_fn fd_comparators[FD_TYPE_MAX];
 FD_EXPORT fd_copy_fn fd_copiers[FD_TYPE_MAX];
+FD_EXPORT fd_walk_fn fd_walkers[FD_TYPE_MAX];
 
 typedef u8_string (*fd_oid_info_fn)(fdtype x);
 FD_EXPORT fd_oid_info_fn _fd_oid_info;
 
 #define fd_intcmp(x,y) ((x<y) ? (-1) : (x>y) ? (1) : (0))
-FD_EXPORT int fdtype_compare(fdtype x,fdtype y,int);
+FD_EXPORT int fdtype_compare(fdtype x,fdtype y,fd_compare_flags);
 FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
 #define FD_EQUAL FDTYPE_EQUAL
 #define FD_EQUALP FDTYPE_EQUAL
 #if FD_PROFILING_ENABLED
-#define FDTYPE_EQUAL(x,y) (fdtype_equal(x,y))
-#define FD_QCOMPARE(x,y) (fdtype_compare(x,y,1))
-#define FDTYPE_COMPARE(x,y) (fdtype_compare(x,y,0))
-#define FD_COMPARE(x,y,fast) (fdtype_compare(x,y,fast))
+#define FDTYPE_EQUAL(x,y)          (fdtype_equal(x,y))
+#define FDTYPE_EQUALV(x,y)         (fdtype_equal(x,y))
+#define FDTYPE_COMPARE(x,y,flags)  (fdtype_compare(x,y,flags))
+#define FD_QUICK_COMPARE(x,y)      (fdtype_compare(x,y,FD_COMPARE_QUICK))
+#define FD_FULL_COMPARE(x,y)       (fdtype_compare(x,y,(FD_COMPARE_FULL)))
 #else
 #define FDTYPE_EQUAL(x,y) \
   ((x==y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (fdtype_equal(x,y))))
-#define FD_QCOMPARE(x,y) \
+#define FDTYPE_EQUALV(x,y) \
+  ((x==y) ? (1) :			  \
+   (((FD_FIXNUMP(x)) && (FD_CONSP(x))) || \
+    ((FD_FIXNUMP(y)) && (FD_CONSP(y))) || \
+    ((FD_CONSP(x)) && (FD_CONSP(y)))) ?	  \
+   (fdtype_equal(x,y)) :		  \
+   (0)
+#define FDTYPE_COMPARE(x,y,flags)  ((x==y) ? (0) : (fdtype_compare(x,y,flags)))
+#define FD_QUICK_COMPARE(x,y) \
   (((FD_ATOMICP(x)) && (FD_ATOMICP(y))) ? (fd_intcmp(x,y)) : \
-   (fdtype_compare(x,y,1)))
-#define FDTYPE_COMPARE(x,y) \
-  (fdtype_compare(x,y,0))
-#define FD_COMPARE(x,y,fast) \
-  ((fast) ? (FD_QCOMPARE(x,y)) : (FDTYPE_COMPARE(x,y)))
+   (fdtype_compare(x,y,FD_COMPARE_QUICK)))
+#define FD_FULL_COMPARE(x,y) \
+  ((x==y) ? (0) : (FDTYPE_COMPARE(x,y,(FD_COMPARE_FULL))))
 #endif
+
+#define FD_QCOMPARE(x,y) FD_QUICK_COMPARE(x,y)
+#define FD_COMPARE(x,y) FD_FULL_COMPARE(x,y)
+
+FD_EXPORT int fd_walk(fd_walker walker,fdtype obj,void *walkdata,
+		      fd_walk_flags flags,int depth);
+
+FD_EXPORT void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags);
 
 /* Debugging support */
 
@@ -628,7 +753,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
    (x==0) ? (0) :                                   \
    (FD_CONSP(x)) ?                                  \
-   (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
+   (((((FD_CONS *)x)->fd_conshead)<0xFFFFFF80) &&      \
     (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
     (FD_CONS_TYPE((FD_CONS *)x)<fd_next_cons_type)) : \
    (fd_check_immediate(x))))

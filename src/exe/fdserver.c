@@ -11,7 +11,7 @@
 #include "framerd/numbers.h"
 #include "framerd/support.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
@@ -35,6 +35,14 @@
 
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+
+#ifndef FD_DTBLOCK_THRESH
+#define FD_DTBLOCK_THRESH 256
+#endif
+
+#ifndef FD_BACKTRACE_WIDTH
+#define FD_BACKTRACE_WIDTH 120
 #endif
 
 #include "main.h"
@@ -102,15 +110,14 @@ static int shutdown_grace=30000000; /* 30 seconds */
 /* Controlling trace activity: logeval prints expressions, logtrans reports
    transactions (request/response pairs). */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
+static int backtrace_width=FD_BACKTRACE_WIDTH;
 
-static int no_fddb=0;
+static int no_fdkbase=0;
 
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=60, fastfail_wait=60;
 
-#if FD_THREADS_ENABLED
 static u8_mutex init_server_lock;
-#endif
 
 static void init_server(void);
 
@@ -332,10 +339,10 @@ static fdtype config_get_dtype_server_flag(fdtype var,void *data)
 {
   fd_ptrbits bigmask=(fd_ptrbits)data;
   unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF), flags;
-  fd_lock_mutex(&init_server_lock);
+  u8_lock_mutex(&init_server_lock);
   if (server_initialized) flags=dtype_server.flags;
   else flags=server_flags;
-  fd_unlock_mutex(&init_server_lock);
+  u8_unlock_mutex(&init_server_lock);
   if ((flags)&(mask)) return FD_TRUE; else return FD_FALSE;
 }
 
@@ -343,7 +350,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
 {
   fd_ptrbits bigmask=(fd_ptrbits)data;
   unsigned int mask=(bigmask&0xFFFFFFFF), *flagsp, flags;
-  fd_lock_mutex(&init_server_lock);
+  u8_lock_mutex(&init_server_lock);
   if (server_initialized) {
     flags=dtype_server.flags; flagsp=&(dtype_server.flags);}
   else {
@@ -361,7 +368,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
                  (-1));
       if (guess<0) {
         u8_log(LOG_WARN,ServerConfig,"Unknown boolean setting %s for %q",s,var);
-        fd_unlock_mutex(&init_server_lock);
+        u8_unlock_mutex(&init_server_lock);
         return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
       else u8_log(LOG_WARN,ServerConfig,
                   "Unfamiliar boolean setting %s for %q, assuming %s",
@@ -370,7 +377,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
     if (bool) *flagsp=flags|mask;
     else *flagsp=flags&(~(mask));}
   else *flagsp=flags|mask;
-  fd_unlock_mutex(&init_server_lock);
+  u8_unlock_mutex(&init_server_lock);
   return 1;
 }
 
@@ -465,7 +472,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_DTYPE_STREAM stream;
+  struct FD_STREAM fd_clientstream;
   time_t lastlive; double elapsed;
   fd_lispenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
@@ -475,15 +482,12 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
                                struct sockaddr *addr,size_t len)
 {
   fd_client client=(fd_client)
-    u8_client_init(NULL,sizeof(FD_CLIENT),
-                   addr,len,sock,srv);
-  fd_init_dtype_stream(&(client->stream),sock,4096);
+    u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
+  fd_init_stream(&(client->fd_clientstream),
+                 client->idstring,sock,FD_STREAM_SOCKET,
+                 FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
-     into the stream's id (fdb). */
-  if (client->stream.id==NULL) {
-    if (client->idstring)
-      client->stream.id=u8_strdup(client->idstring);
-    else client->stream.id=u8_strdup("fdserver/dtypestream");}
+     into the stream's id (fdkbase). */
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -497,7 +501,8 @@ static int dtypeserver(u8_client ucl)
 {
   fdtype expr;
   fd_client client=(fd_client)ucl;
-  fd_dtype_stream stream=&(client->stream);
+  fd_stream stream=&(client->fd_clientstream);
+  fd_inbuf inbuf=fd_readbuf(stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
   /* Set the signal mask for the current thread.  By default, this
@@ -508,13 +513,14 @@ static int dtypeserver(u8_client ucl)
 
   if (auto_reload) fd_update_file_modules(0);
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
-    expr=fd_dtsread_dtype(stream);}
+    expr=fd_read_dtype(fd_readbuf(stream));}
   else if ((client->writing>0)&&(u8_client_finished(ucl))) {
+    struct FD_RAWBUF *buf=fd_streambuf(stream);
     /* Reset the stream */
-    stream->ptr=stream->start;
+    buf->bufpoint=buf->buffer;
     /* Update the stream if we were doing asynchronous I/O */
-    if ((client->buf==stream->start)&&(client->len))
-      stream->end=stream->ptr+client->len;
+    if ((client->buf==buf->buffer)&&(client->len))
+      buf->buflim=buf->bufpoint+client->len;
     /* And report that we're finished */
     return 0;}
   else if ((client->reading>0)||(client->writing>0))
@@ -522,22 +528,23 @@ static int dtypeserver(u8_client ucl)
     return 1;
   else if (async) {
     /* See if we can use asynchronous reading */
-    fd_dts_start_read(stream);
-    if (nobytes((fd_byte_input)stream,1)) expr=FD_EOD;
-    else if ((*(stream->ptr))==dt_block) {
-      int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
-      int nbytes=fd_dtsread_4bytes(stream);
-      if (fd_has_bytes(stream,nbytes))
-        expr=fd_dtsread_dtype(stream);
+    if (nobytes(inbuf,1)) expr=FD_EOD;
+    else if ((*(inbuf->bufread))==dt_block) {
+      int U8_MAYBE_UNUSED dtcode=fd_read_byte(inbuf);
+      int nbytes=fd_read_4bytes(inbuf);
+      if (fd_has_bytes(inbuf,nbytes))
+        expr=fd_read_dtype(inbuf);
       else {
+        struct FD_RAWBUF *rawbuf=fd_streambuf(stream);
         /* Allocate enough space */
-        fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
+        fd_grow_inbuf(inbuf,nbytes);
         /* Set up the client for async input */
-        if (u8_client_read(ucl,stream->start,nbytes,stream->end-stream->start))
-          expr=fd_dtsread_dtype(stream);
+        if (u8_client_read(ucl,rawbuf->buffer,nbytes,
+                           rawbuf->buflim-rawbuf->buffer))
+          expr=fd_read_dtype(inbuf);
         else return 1;}}
-    else expr=fd_dtsread_dtype(stream);}
-  else expr=fd_dtsread_dtype(stream);
+    else expr=fd_read_dtype(inbuf);}
+  else expr=fd_read_dtype(inbuf);
   fd_reset_threadvars();
   if (expr == FD_EOD) {
     u8_client_closed(ucl);
@@ -550,6 +557,7 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return -1;}
   else {
+    fd_outbuf outbuf=fd_writebuf(stream);
     fdtype value;
     int tracethis=((logtrans) &&
                    ((client->n_trans==1) ||
@@ -593,7 +601,7 @@ static int dtypeserver(u8_client ucl)
         if (logbacktrace) {
           struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,1024);
           out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
-          fd_print_backtrace(&out,ex,120);
+          fd_print_backtrace(&out,ex,backtrace_width);
           u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
             u8_free(out.u8_outbuf);}}
@@ -610,27 +618,32 @@ static int dtypeserver(u8_client ucl)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
              client->idstring,sock,trans_id,elapsed);
     client->elapsed=client->elapsed+elapsed;
-    /* Currently, fd_dtswrite_dtype writes the whole thing at once,
+    /* Currently, fd_write_dtype writes the whole thing at once,
        so we just use that. */
-    fd_dts_start_write(stream);
-    stream->ptr=stream->start;
+
+    outbuf->bufwrite=outbuf->buffer;
     if (fd_use_dtblock) {
-      int nbytes; unsigned char *ptr;
-      fd_dtswrite_byte(stream,dt_block);
-      fd_dtswrite_4bytes(stream,0);
-      nbytes=fd_dtswrite_dtype(stream,value);
-      ptr=stream->ptr; {
-        /* Rewind temporarily to write the length information */
-        stream->ptr=stream->start+1;
-        fd_dtswrite_4bytes(stream,nbytes);
-        stream->ptr=ptr;}}
-    else fd_dtswrite_dtype(stream,value);
+      size_t start_off=outbuf->bufwrite-outbuf->buffer;
+      size_t nbytes=fd_write_dtype(outbuf,value);
+      if (nbytes>FD_DTBLOCK_THRESH) {
+        unsigned char headbuf[6];
+        size_t head_off=outbuf->bufwrite-outbuf->buffer;
+        unsigned char *buf=outbuf->buffer;
+        fd_write_byte(outbuf,dt_block);
+        fd_write_4bytes(outbuf,nbytes);
+        memcpy(headbuf,buf+head_off,5);
+        memmove(buf+start_off+5,buf+start_off,nbytes);
+        memcpy(buf+start_off,headbuf,5);}}
+    else fd_write_dtype(outbuf,value);
     if (async) {
-      u8_client_write(ucl,stream->start,stream->ptr-stream->start,0);
+      struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
+      size_t n_bytes=rawbuf->bufpoint-rawbuf->buffer;
+      u8_client_write(ucl,rawbuf->buffer,n_bytes,0);
+      rawbuf->bufpoint=rawbuf->buffer;
       return 1;}
     else {
-      fd_dtswrite_dtype(stream,value);
-      fd_dtsflush(stream);}
+      fd_write_dtype(outbuf,value);
+      fd_flush_stream(stream);}
     time(&(client->lastlive));
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
@@ -643,7 +656,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
-  fd_dtsclose(&(client->stream),2);
+  fd_close_stream(&(client->fd_clientstream),0);
   fd_decref((fdtype)((fd_client)ucl)->env);
   ucl->socket=-1;
   return 1;
@@ -672,11 +685,10 @@ static int config_use_module(fdtype var,fdtype val,void *data)
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env=
-      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
-    if (FD_HASHTABLEP(env->exports))
+    FD_ENVIRONMENT *env=FD_CONSPTR(fd_environment,module);
+    if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
-        fd_make_env(fd_incref(env->exports),exposed_environment);}
+        fd_make_env(fd_incref(env->env_exports),exposed_environment);}
   module=fd_find_module(val,0,1);
   if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
@@ -685,11 +697,10 @@ static int config_use_module(fdtype var,fdtype val,void *data)
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env=
-      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
-    if (FD_HASHTABLEP(env->exports))
+    FD_ENVIRONMENT *env=FD_CONSPTR(fd_environment,module);
+    if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
-        fd_make_env(fd_incref(env->exports),exposed_environment);}
+        fd_make_env(fd_incref(env->env_exports),exposed_environment);}
   module_list=fd_conspair(fd_incref(val),module_list);
   return 1;
 }
@@ -891,7 +902,7 @@ static u8_string state_dir=NULL;
 
 static void init_server()
 {
-  fd_lock_mutex(&init_server_lock);
+  u8_lock_mutex(&init_server_lock);
   if (server_initialized) return;
   server_initialized=1;
   u8_init_server
@@ -908,10 +919,10 @@ static void init_server()
      U8_SERVER_FLAGS,server_flags,
      U8_SERVER_END_INIT);
   dtype_server.xserverfn=server_loopfn;
-  fd_unlock_mutex(&init_server_lock);
+  u8_unlock_mutex(&init_server_lock);
 }
 
-FD_EXPORT int fd_init_fddbserv(void);
+FD_EXPORT int fd_init_fdkbserv(void);
 static void init_configs(void);
 static fd_lispenv init_core_env(void);
 static int launch_server(u8_string source_file,fd_lispenv env);
@@ -925,7 +936,7 @@ int main(int argc,char **argv)
   int u8_version=u8_initialize(), fd_version;
   u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
   /* This is the base of the environment used to be passed to the server.
-     It is augmented by the fdbserv module, all of the modules declared by
+     It is augmented by the fdkbserv module, all of the modules declared by
      MODULE= configurations, and either the exports or the definitions of
      the server control file from the command line.
      It starts out built on the default safe environment, but loses that if
@@ -954,14 +965,14 @@ int main(int argc,char **argv)
 
   /* Find the server spec */
   while (i<argc) {
-    if (isconfig(argv[i])) 
+    if (isconfig(argv[i]))
       u8_log(LOGNOTICE,"FDServerConfig","    %s",argv[i++]);
     else if (server_spec) i++;
     else {
       if (i<32) arg_mask = arg_mask | (1<<i);
       server_spec=argv[i++];}} /* while (i<argc) */
   i=1;
-  
+
   if (!(server_spec)) {
     fprintf(stderr,
             "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
@@ -970,7 +981,7 @@ int main(int argc,char **argv)
     source_file=server_spec;
   else server_port=server_spec;
 
-  fddb_loglevel=LOG_INFO;
+  fdkb_loglevel=LOG_INFO;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,
@@ -1053,10 +1064,10 @@ int main(int argc,char **argv)
 
   /* Create the exposed environment.  This may be further modified by
      MODULE configs. */
-  if (no_fddb)
+  if (no_fdkbase)
     exposed_environment=core_env;
   else exposed_environment=
-         fd_make_env(fd_incref(fd_fdbserv_module),core_env);
+         fd_make_env(fd_incref(fd_fdkbserv_module),core_env);
 
   /* Now process all the configuration arguments */
   fd_handle_argv(argc,argv,arg_mask,NULL);
@@ -1092,94 +1103,119 @@ int main(int argc,char **argv)
 
 static void init_configs()
 {
-  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
-                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
-  fd_register_config("RESTART",_("Whether to enable auto-restart"),
-                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
-  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
-                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-  fd_register_config("FASTFAIL",_("Threshold for daemon fastfails"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
-  fd_register_config("FASTFAIL_WAIT",
-                     _("How long (secs) to wait after a fastfail"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
-  fd_register_config("BACKLOG",
-                     _("Number of pending connection requests allowed"),
-                     fd_intconfig_get,fd_intconfig_set,&max_backlog);
-  fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
-                     fd_intconfig_get,fd_intconfig_set,&max_queue);
-  fd_register_config("INITCLIENTS",
-                     _("Number of clients to prepare for/grow by"),
-                     fd_intconfig_get,fd_intconfig_set,&init_clients);
-  fd_register_config("REQTHREADS",_("Number of threads in the thread pool"),
-                     fd_intconfig_get,fd_intconfig_set,&n_threads);
-  /* This version is deprecated. */
-  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
-                     fd_intconfig_get,fd_intconfig_set,&n_threads);
-  fd_register_config("MODULE",_("modules to provide in the server environment"),
-                     config_get_modules,config_use_module,NULL);
-  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpreter"),
-                     config_get_fullscheme,config_set_fullscheme,NULL);
-  fd_register_config("LOGEVAL",_("Whether to log each request and response"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logeval);
-  fd_register_config("LOGTRANS",_("Whether to log each transaction"),
-                     fd_intconfig_get,fd_boolconfig_set,&logtrans);
-  fd_register_config("LOGERRS",
-                     _("Whether to log errors returned by the server to clients"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
-  fd_register_config("LOGBACKTRACE",
-                     _("Whether to include a detailed backtrace when logging errors"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
-  fd_register_config("U8LOGCONNECT",
-                     _("Whether to have libu8 log each connection"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_LOG_CONNECT));
-  fd_register_config("U8LOGTRANSACT",
-                     _("Whether to have libu8 log each transaction"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_LOG_TRANSACT));
+  fd_register_config
+    ("FOREGROUND",_("Whether to run in the foreground"),
+     fd_boolconfig_get,fd_boolconfig_set,&foreground);
+  fd_register_config
+    ("RESTART",_("Whether to enable auto-restart"),
+     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
+  fd_register_config
+    ("PIDWAIT",_("Whether to wait for the servlet PID file"),
+     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
+  fd_register_config
+    ("FASTFAIL",_("Threshold for daemon fastfails"),
+     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
+  fd_register_config
+    ("FASTFAIL_WAIT",
+     _("How long (secs) to wait after a fastfail"),
+     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
+  fd_register_config
+    ("BACKLOG",
+     _("Number of pending connection requests allowed"),
+     fd_intconfig_get,fd_intconfig_set,&max_backlog);
+  fd_register_config
+    ("MAXQUEUE",_("Max number of requests to keep queued"),
+     fd_intconfig_get,fd_intconfig_set,&max_queue);
+  fd_register_config
+    ("INITCLIENTS",
+     _("Number of clients to prepare for/grow by"),
+     fd_intconfig_get,fd_intconfig_set,&init_clients);
+  fd_register_config
+    ("SERVERTHREADS",_("Number of threads in the thread pool"),
+     fd_intconfig_get,fd_intconfig_set,&n_threads);
+  fd_register_config
+    ("MODULE",_("modules to provide in the server environment"),
+     config_get_modules,config_use_module,NULL);
+  fd_register_config
+    ("FULLSCHEME",_("whether to provide full scheme interpreter"),
+     config_get_fullscheme,config_set_fullscheme,NULL);
+  fd_register_config
+    ("LOGEVAL",_("Whether to log each request and response"),
+     fd_boolconfig_get,fd_boolconfig_set,&logeval);
+  fd_register_config
+    ("LOGTRANS",_("Whether to log each transaction"),
+     fd_intconfig_get,fd_boolconfig_set,&logtrans);
+  fd_register_config
+    ("LOGERRS",
+     _("Whether to log errors returned by the server to clients"),
+     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
+  fd_register_config
+    ("LOGBACKTRACE",
+     _("Whether to include a detailed backtrace when logging errors"),
+     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
+  fd_register_config
+    ("BACKTRACEWIDTH",_("Line width for logged backtraces"),
+     fd_intconfig_get,fd_intconfig_set,&backtrace_width);
+  fd_register_config
+    ("U8LOGCONNECT",
+     _("Whether to have libu8 log each connection"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_LOG_CONNECT));
+  fd_register_config
+    ("U8LOGTRANSACT",
+     _("Whether to have libu8 log each transaction"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_LOG_TRANSACT));
 #ifdef U8_SERVER_LOG_TRANSFER
-  fd_register_config("U8LOGTRANSFER",
-                     _("Whether to have libu8 log all data transfers for fine-grained debugging"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_LOG_TRANSFER));
+  fd_register_config
+    ("U8LOGTRANSFER",
+     _("Whether to have libu8 log all data transfers"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_LOG_TRANSFER));
 #endif
-  fd_register_config("U8ASYNC",
-                     _("Whether to support thread-asynchronous transactions"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_ASYNC));
+  fd_register_config
+    ("U8ASYNC",
+     _("Whether to support thread-asynchronous transactions"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_ASYNC));
 
-  fd_register_config("DEBUGMAXCHARS",
-                     _("Max number of string characters to display in debug message"),
-                     fd_intconfig_get,fd_intconfig_set,
-                     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",
-                     _("Max number of list/vector/choice elements to display in debug message"),
-                     fd_intconfig_get,fd_intconfig_set,
-                     &debug_maxelts);
-  fd_register_config("STATEDIR",_("Where to write server pid/nid files"),
-                     fd_sconfig_get,fd_sconfig_set,&state_dir);
-  fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
-                     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
-  fd_register_config("GRACEFULDEATH",
-                     _("How long (μs) to wait for tasks during shutdown"),
-                     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
-  fd_register_config("AUTORELOAD",
-                     _("Whether to automatically reload changed files"),
-                     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
-  fd_register_config("NOFDDB",
-                     _("Whether to disable exported FramerD DB API"),
-                     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
+  fd_register_config
+    ("DEBUGMAXCHARS",
+     _("Max number of string characters to display in debug messages"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxchars);
+  fd_register_config
+    ("DEBUGMAXELTS",
+     _("Max number of object elements to display in debug messages"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxelts);
+  fd_register_config
+    ("STATEDIR",_("Where to write server pid/nid files"),
+     fd_sconfig_get,fd_sconfig_set,&state_dir);
+  fd_register_config
+    ("ASYNCMODE",_("Whether to run in asynchronous mode"),
+     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
+  fd_register_config
+    ("GRACEFULDEATH",
+     _("How long (μs) to wait for tasks during shutdown"),
+     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
+  fd_register_config
+    ("AUTORELOAD",
+     _("Whether to automatically reload changed files"),
+     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
+  fd_register_config
+    ("NOFDKBASE",
+     _("Whether to disable exported FramerD DB API"),
+     fd_boolconfig_get,fd_boolconfig_set,&no_fdkbase);
 }
 
 static fd_lispenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lispenv core_env=fd_safe_working_environment();
-  fd_init_fddbserv();
-  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdbserv_module);
-  fd_persist_module(fd_fdbserv_module);
+  fd_init_fdkbserv();
+  fd_register_module("FDKBSERV",fd_incref(fd_fdkbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_fdkbserv_module);
 
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
@@ -1261,7 +1297,8 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       errno=0;
       exit(1);}
     else u8_log(LOG_INFO,ServerFork,
-                "Process %d become session leader for %s",getpid(),server_spec);
+                "Process %d become session leader for %s",
+                getpid(),server_spec);
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
@@ -1388,24 +1425,28 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
       fdtype startup_proc=fd_symeval(fd_intern("STARTUP"),env);
       shutdown_proc=fd_symeval(fd_intern("SHUTDOWN"),env);
       fd_decref(result); result=FD_VOID;
-      /* If the init file did any exporting, expose those exports to clients.
-         Otherwise, expose all the definitions in the init file.  Note that the clients
-         won't be able to get at the unsafe "empowered" environment but that the
-         procedures defined are closed in that environment. */
-      if (FD_HASHTABLEP(env->exports))
-        server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
-      else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
+      /* If the init file did any exporting, expose those exports to
+         clients.  Otherwise, expose all the definitions in the init
+         file.  Note that the clients won't be able to get at the
+         unsafe "empowered" environment but that the procedures
+         defined are closed in that environment. */
+      if (FD_HASHTABLEP(env->env_exports))
+        server_env=fd_make_env(fd_incref(env->env_exports),
+                               exposed_environment);
+      else server_env=fd_make_env(fd_incref(env->env_bindings),
+                                  exposed_environment);
       if (fullscheme==0) {
         /* Cripple the core environment if requested */
-        fd_decref((fdtype)(core_env->parent));
-        core_env->parent=NULL;}
+        fd_decref((fdtype)(core_env->env_parent));
+        core_env->env_parent=NULL;}
       if (FD_VOIDP(startup_proc)) {}
       else {
         FD_DO_CHOICES(p,startup_proc) {
           fdtype result=fd_apply(p,0,NULL);
           if (FD_ABORTP(result)) {
             u8_exception ex=u8_erreify(), root=ex;
-            int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+            int old_maxelts=fd_unparse_maxelts;
+            int old_maxchars=fd_unparse_maxchars;
             U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
             while (root->u8x_prev) root=root->u8x_prev;
             fd_unparse_maxchars=debug_maxchars;
@@ -1443,9 +1484,9 @@ static int run_server(u8_string server_spec)
   write_state_files();
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
   u8_log(LOG_NOTICE,ServerStartup,
-         "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
+         "FramerD (%s) fdserver %s running, %d/%d pools/indexes, %d ports",
          FRAMERD_REVISION,server_spec,fd_n_pools,
-         fd_n_primary_indices+fd_n_secondary_indices,n_ports);
+         fd_n_primary_indexes+fd_n_secondary_indexes,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit=1;
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");

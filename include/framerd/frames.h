@@ -11,7 +11,7 @@
 #define FRAMERD_FRAMES_H_INFO "include/framerd/frames.h"
 #endif
 
-/* Adjuncts: these are indices which function as slotids. */
+/* Adjuncts: these are indexes which function as slotids. */
 
 FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype table);
 FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
@@ -71,13 +71,11 @@ FD_EXPORT void fd_inhibit_overlays(int flag);
 
 /* Overlay inhibition */
 
-#if FD_USE__THREAD
-FD_EXPORT __thread int fd_inhibit_overlay;
-#elif FD_THREADS_ENABLED
+#if FD_USE_TLS
 FD_EXPORT u8_tld_key _fd_inhibit_overlay_key;
-#define fd_inhibit_overlay ((int)(u8_tld_get(_fd_inhibit_overlay_key)!=NULL))
+#define fd_inhibit_overlay ((int)((u8_tld_get(_fd_inhibit_overlay_key))))
 #else
-FD_EXPORT int fd_inhibit_overlay;
+FD_EXPORT __thread int fd_inhibit_overlay;
 #endif
 
 /* Making frames */
@@ -86,10 +84,10 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy);
 
 /* Finding frames */
 
-FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotid,fdtype value);
-FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals);
+FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotid,fdtype value);
+FD_EXPORT fdtype fd_finder(fdtype indexes,int n,fdtype *slotvals);
 FD_EXPORT fdtype fd_bgfinder(int n,fdtype *slotvals);
-FD_EXPORT fdtype fd_find_frames(fdtype indices,...);
+FD_EXPORT fdtype fd_find_frames(fdtype indexes,...);
 FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...);
 FD_EXPORT int fd_bg_prefetch(fdtype keys);
 

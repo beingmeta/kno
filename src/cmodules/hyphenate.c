@@ -12,9 +12,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 
@@ -289,7 +289,6 @@ FD_EXPORT int fd_init_hyphenate()
                              fd_character_type,FD_CODE2CHAR(0xAD)));
 
   fd_finish_module(hyphenate_module);
-  fd_persist_module(hyphenate_module);
 
   u8_register_source_file(_FILEINFO);
 
@@ -298,7 +297,7 @@ FD_EXPORT int fd_init_hyphenate()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -7,8 +7,8 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
-#include "framerd/dbfile.h"
+#include "framerd/fdkbase.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -48,7 +48,7 @@ static void print_table(fdtype frames,fdtype slotids)
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbfile();
+  int fd_version=fd_init_dbs();
   if (fd_version<0) exit(1);
   fd_set_config("OIDDISPLAY",FD_INT(3));
   if (argc==2) {
@@ -87,10 +87,10 @@ int main(int argc,char **argv)
           fd_decref(toadd); fd_decref(todrop); fd_decref(current);}}}
     fd_decref(frames); fd_decref(slotids); fd_decref(values);}
   fd_commit_pools();
-  fd_commit_indices();
+  fd_commit_indexes();
 #if 1
   fd_swapout_pools();
-  fd_swapout_indices();
+  fd_swapout_indexes();
   fd_clear_slotcaches();
   fd_clear_callcache(FD_VOID);
 #endif

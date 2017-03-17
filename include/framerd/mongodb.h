@@ -1,6 +1,6 @@
 #include <bson.h>
 #include <mongoc.h>
-#include "fddb.h"
+#include "fdkbase.h"
 
 /*
   BSON -> DTYPE mapping
@@ -13,8 +13,8 @@
   other types are also objects, with a _kind attribute,
   including bignums, rational and complex numbers, quoted
   choices, etc.
-  
- */
+
+*/
 
 #define FD_MONGODB_SLOTIFY_IN 1
 #define FD_MONGODB_SLOTIFY_OUT 2
@@ -32,34 +32,44 @@ FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
 FD_EXPORT fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
 typedef struct FD_BSON_OUTPUT {
-  bson_t *doc; fdtype opts, fieldmap; int flags;} FD_BSON_OUTPUT;
+  bson_t *bson_doc;
+  fdtype bson_opts, bson_fieldmap;
+  int bson_flags;} FD_BSON_OUTPUT;
 typedef struct FD_BSON_INPUT {
-  bson_iter_t *iter; fdtype opts, fieldmap; int flags;} FD_BSON_INPUT;
+  bson_iter_t *bson_iter;
+  fdtype bson_opts, bson_fieldmap;
+  int bson_flags;} FD_BSON_INPUT;
 typedef struct FD_BSON_INPUT *fd_bson_input;
 
 typedef struct FD_MONGODB_DATABASE {
   FD_CONS_HEADER;
-  u8_string uri, dbname, spec;
-  fdtype opts; int flags;
-  mongoc_client_pool_t *pool;
-  mongoc_uri_t *info;} FD_MONGODB_DATABASE;
+  u8_string dburi, dbname, dbspec;
+  fdtype dbopts;
+  int dbflags;
+  mongoc_client_pool_t *dbclients;
+  mongoc_uri_t *dburi_info;} FD_MONGODB_DATABASE;
 typedef struct FD_MONGODB_DATABASE *fd_mongodb_database;
 
 typedef struct FD_MONGODB_COLLECTION {
   FD_CONS_HEADER;
-  fdtype server; u8_string dbname, name, server_spec;
-  u8_string uri; fdtype opts; int flags;} FD_MONGODB_COLLECTION;
+  u8_string collection_name;
+  fdtype domain_db;
+  fdtype domain_opts;
+  int domain_flags;}
+  FD_MONGODB_COLLECTION;
 typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
 typedef struct FD_MONGODB_CURSOR {
   FD_CONS_HEADER;
-  fdtype server, domain, query, opts; int flags;
-  mongoc_client_t *connection;
-  mongoc_collection_t *collection;
-  bson_t *bsonquery;
-  bson_t *bsonfields;
-  mongoc_read_prefs_t *readprefs;
-  mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
+  fdtype cursor_db, cursor_domain, cursor_query;
+  fdtype cursor_opts; int cursor_flags;
+  mongoc_client_t *cursor_connection;
+  mongoc_collection_t *cursor_collection;
+  bson_t *cursor_query_bson;
+  bson_t *cursor_opts_bson;
+  mongoc_read_prefs_t *cursor_readprefs;
+  mongoc_cursor_t *mongoc_cursor;}
+  FD_MONGODB_CURSOR;
 typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
 
 FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in);
@@ -68,17 +78,7 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *,int,fdtype);
 FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT,fdtype);
 FD_EXPORT int fd_init_mongodb(void);
 
-typedef struct FD_MONGODB_POOL {
-  FD_POOL_FIELDS;
-  mongoc_client_pool_t *clients;
-  u8_string dbname, collection;
-  fdtype mdbopts; int mdbflags;} FD_MONGODB_POOL;
-typedef struct FD_MONGODB_POOL *fd_mongodb_pool;
-
-typedef struct FD_MONGODB_INDEX {
-  FD_INDEX_FIELDS;
-  mongoc_client_pool_t *clients;
-  u8_string dbname, collection;
-  fdtype mdbopts; int mdbflags;} FD_MONGODB_INDEX;
-typedef struct FD_MONGODB_INDEX *fd_mongodb_index;
-
+#define DOMAIN2DB(dom) \
+  ((struct FD_MONGODB_DATABASE *) ((dom)->domain_db))
+#define CURSOR2DOMAIN(cursor) \
+  (struct FD_MONGODB_COLLECTION *) (cursor->cursor_collection);

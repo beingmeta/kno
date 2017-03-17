@@ -144,11 +144,11 @@ static int unparse_imagick(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static void recycle_imagick(struct FD_CONS *c)
+static void recycle_imagick(struct FD_RAW_CONS *c)
 {
   struct FD_IMAGICK *wrapper=(struct FD_IMAGICK *)c;
   DestroyMagickWand(wrapper->wand);
-  u8_free(c);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 fdtype file2imagick(fdtype arg)
@@ -186,7 +186,7 @@ fdtype imagick2file(fdtype fdwand,fdtype filename)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickWriteImage(wand,FD_STRDATA(filename));
   if (retval==MagickFalse) {
@@ -199,7 +199,7 @@ fdtype imagick2packet(fdtype fdwand)
 {
   unsigned char *data=NULL; size_t n_bytes;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   MagickResetIterator(wand);
   data=MagickGetImageBlob(wand,&n_bytes);
@@ -215,7 +215,7 @@ fdtype imagick2packet(fdtype fdwand)
 fdtype imagick2imagick(fdtype fdwand)
 {
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   struct FD_IMAGICK *fresh=u8_alloc(struct FD_IMAGICK);
   MagickWand *wand=CloneMagickWand(wrapper->wand);
   FD_INIT_FRESH_CONS(fresh,fd_imagick_type);
@@ -232,7 +232,7 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
 {
   /* enum result_type {imbool,imint,imdouble,imsize,imbox,imtrans} rt; */
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   if (FD_EQ(field,format)) {
     const char *fmt=MagickGetImageFormat(wand);
@@ -302,7 +302,7 @@ static fdtype imagick_format(fdtype fdwand,fdtype format)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickSetImageFormat(wand,FD_STRDATA(format));
   if (retval==MagickFalse) {
@@ -316,7 +316,7 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   int width=FD_FIX2INT(w_arg), height=FD_FIX2INT(h_arg);
   size_t iwidth=MagickGetImageWidth(wand);
@@ -341,7 +341,7 @@ static fdtype imagick_interlace(fdtype fdwand,fdtype scheme)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   InterlaceType it;
   if ((FD_FALSEP(scheme))||(FD_VOIDP(scheme)))
@@ -364,7 +364,7 @@ static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   size_t width=FD_FIX2INT(w_arg), height=FD_FIX2INT(h_arg);
   size_t xoff=FD_FIX2INT(x_arg), yoff=FD_FIX2INT(y_arg);
@@ -384,7 +384,7 @@ static fdtype imagick_charcoal(fdtype fdwand,fdtype radius,fdtype sigma)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   double r=FD_FLONUM(radius), s=FD_FLONUM(sigma);
   retval=MagickCharcoalImage(wand,r,s);
@@ -398,7 +398,7 @@ static fdtype imagick_emboss(fdtype fdwand,fdtype radius,fdtype sigma)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   double r=FD_FLONUM(radius), s=FD_FLONUM(sigma);
   retval=MagickEmbossImage(wand,r,s);
@@ -412,7 +412,7 @@ static fdtype imagick_blur(fdtype fdwand,fdtype radius,fdtype sigma)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   double r=FD_FLONUM(radius), s=FD_FLONUM(sigma);
   retval=MagickGaussianBlurImage(wand,r,s);
@@ -426,7 +426,7 @@ static fdtype imagick_edge(fdtype fdwand,fdtype radius)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   double r=FD_FLONUM(radius);
   retval=MagickEdgeImage(wand,r);
@@ -443,7 +443,7 @@ static fdtype imagick_crop(fdtype fdwand,
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   size_t w=fd_getint(width), h=fd_getint(height);
   ssize_t x=fd_getint(xoff), y=fd_getint(yoff);
@@ -458,7 +458,7 @@ static fdtype imagick_flip(fdtype fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickFlipImage(wand);
   if (retval==MagickFalse) {
@@ -471,7 +471,7 @@ static fdtype imagick_flop(fdtype fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickFlopImage(wand);
   if (retval==MagickFalse) {
@@ -484,7 +484,7 @@ static fdtype imagick_equalize(fdtype fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickEqualizeImage(wand);
   if (retval==MagickFalse) {
@@ -497,7 +497,7 @@ static fdtype imagick_despeckle(fdtype fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickDespeckleImage(wand);
   if (retval==MagickFalse) {
@@ -510,7 +510,7 @@ static fdtype imagick_enhance(fdtype fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   retval=MagickEnhanceImage(wand);
   if (retval==MagickFalse) {
@@ -523,7 +523,7 @@ static fdtype imagick_deskew(fdtype fdwand,fdtype threshold)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   double t=FD_FLONUM(threshold);
   retval=MagickEdgeImage(wand,t);
@@ -537,7 +537,7 @@ static fdtype imagick_display(fdtype fdwand,fdtype display_name)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   u8_string display=
     ((FD_VOIDP(display_name))?((u8_string)":0.0"):(FD_STRDATA(display_name)));
@@ -551,7 +551,7 @@ static fdtype imagick_display(fdtype fdwand,fdtype display_name)
 static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
 {
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   const char *pname=((FD_SYMBOLP(property))?(FD_SYMBOL_NAME(property)):
                      (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
@@ -568,7 +568,7 @@ static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
 static fdtype imagick_getkeys(fdtype fdwand)
 {
   struct FD_IMAGICK *wrapper=
-    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+    fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
   size_t n_keys=0;
   char **properties=MagickGetImageProperties(wand,"",&n_keys);
@@ -735,7 +735,7 @@ int fd_init_imagick()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

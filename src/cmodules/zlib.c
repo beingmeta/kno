@@ -12,9 +12,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 
@@ -152,7 +152,6 @@ FD_EXPORT int fd_init_zlib()
                            fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
 
   fd_finish_module(zlib_module);
-  fd_persist_module(zlib_module);
 
   u8_register_source_file(_FILEINFO);
 
@@ -162,7 +161,7 @@ FD_EXPORT int fd_init_zlib()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

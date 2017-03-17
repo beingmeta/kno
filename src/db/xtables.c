@@ -16,7 +16,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/apply.h"
 
 #include <stdarg.h>
@@ -37,7 +37,7 @@ static struct FD_ADJUNCT *global_adjuncts=NULL;
 static fd_adjunct get_adjunct(fd_pool p,fdtype slotid)
 {
   if (p) {
-    struct FD_ADJUNCT *scan=p->adjuncts, *limit=scan+p->n_adjuncts;
+    struct FD_ADJUNCT *scan=p->pool_adjuncts, *limit=scan+p->pool_n_adjuncts;
     while (scan<limit)
       if (scan->slotid==slotid) return scan;
       else scan++;
@@ -74,7 +74,7 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
   else {
     struct FD_ADJUNCT *adjuncts; int n, max;
     if (p) {
-      adjuncts=p->adjuncts; n=p->n_adjuncts; max=p->max_adjuncts;}
+      adjuncts=p->pool_adjuncts; n=p->pool_n_adjuncts; max=p->pool_adjuncts_len;}
     else {
       adjuncts=global_adjuncts; n=n_global_adjuncts; max=max_global_adjuncts;}
     if (n>=max) {
@@ -82,13 +82,13 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
       struct FD_ADJUNCT *newadj=
         u8_realloc(adjuncts,sizeof(struct FD_ADJUNCT)*new_max);
       if (p) {
-        adjuncts=p->adjuncts=newadj; p->max_adjuncts=new_max;}
+        adjuncts=p->pool_adjuncts=newadj; p->pool_adjuncts_len=new_max;}
       else {
         adjuncts=global_adjuncts=newadj; max_global_adjuncts=new_max;}}
     adjuncts[n].pool=p; adjuncts[n].slotid=slotid;
     adjuncts[n].table=adjtable; fd_incref(adjtable);
     adj=&(adjuncts[n]);
-    if (p) p->n_adjuncts++; else n_global_adjuncts++;
+    if (p) p->pool_n_adjuncts++; else n_global_adjuncts++;
     return 1;}
 }
 
@@ -97,8 +97,8 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
 static fd_index l2x(fdtype lix)
 {
   int serial=FD_GET_IMMEDIATE(lix,fd_index_type);
-  if (serial<FD_N_PRIMARY_INDICES) return fd_primary_indices[serial];
-  else return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];
+  if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
+  else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
 }
 
 static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
@@ -108,7 +108,7 @@ static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
     ((FD_HASHTABLEP(store)) ?
      (fd_hashtable_get((fd_hashtable)store,frame,FD_VOID)) :
      (FD_INDEXP(store)) ? (fd_index_get(l2x(store),frame)) :
-     (FD_PRIM_TYPEP(store,fd_raw_index_type)) ? (fd_index_get(((fd_index)store),frame)) :
+     (FD_TYPEP(store,fd_raw_index_type)) ? (fd_index_get(((fd_index)store),frame)) :
      (fd_get(store,frame,FD_VOID)));
 }
 
@@ -139,20 +139,20 @@ static fdtype dot_symbol, question_symbol;
 
 static fdtype get_op_handler(fd_pool p,fdtype symbol,fdtype slotid)
 {
-  struct FD_HASHTABLE *handlers=p->op_handlers; struct FD_PAIR pair;
+  struct FD_HASHTABLE *handlers=p->oid_handlers; struct FD_PAIR pair;
   if (handlers) {
     FD_INIT_STATIC_CONS(&pair,fd_pair_type);
-    pair.car=symbol; pair.cdr=slotid;
-    return fd_hashtable_get(p->op_handlers,(fdtype)(&pair),FD_VOID);}
+    pair.fd_car=symbol; pair.fd_cdr=slotid;
+    return fd_hashtable_get(p->oid_handlers,(fdtype)(&pair),FD_VOID);}
   else return FD_VOID;
 }
 
 FD_EXPORT int fd_pool_setop(fd_pool p,fdtype op,fdtype slotid,
                             fdtype handler)
 {
-  struct FD_HASHTABLE *handlers=p->op_handlers; fdtype key; int retval;
+  struct FD_HASHTABLE *handlers=p->oid_handlers; fdtype key; int retval;
   if (handlers==NULL)
-    handlers=p->op_handlers=(struct FD_HASHTABLE *)
+    handlers=p->oid_handlers=(struct FD_HASHTABLE *)
       fd_make_hashtable(NULL,17);
   key=fd_conspair(op,slotid);
   retval=fd_hashtable_store(handlers,key,handler);
@@ -166,8 +166,8 @@ FD_EXPORT int fd_pool_setop(fd_pool p,fdtype op,fdtype slotid,
    slotid from an OID gets the OID's value and then gets the slotid
    from that value (whatever type of object it is).  The exception to
    this case is that certain pools can declare that certain keys
-   (slotids) are stored in external indices.  These indices, called
-   adjunct indices, allow another layer of description. */
+   (slotids) are stored in external index.  These indexes, called
+   adjunct indexes, allow another layer of description. */
 FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
 {
   fd_pool p=fd_oid2pool(f);
@@ -182,7 +182,7 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
     fd_adjunct adj=get_adjunct(p,slotid); fdtype smap; int free_smap=0;
     if (adj)
       return adjunct_fetch(adj,f,dflt);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,dot_symbol,slotid);
       if (FD_VOIDP(handler)) {smap=fd_fetch_oid(p,f); free_smap=1;}
       else {
@@ -223,7 +223,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_add(adj,f,value);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,plus_symbol,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
@@ -258,7 +258,7 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,value);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,equals_symbol,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
@@ -295,7 +295,7 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,FD_EMPTY_CHOICE);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,minus_symbol,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
@@ -330,7 +330,7 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_drop(adj,f,value);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,minus_symbol,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
@@ -363,7 +363,7 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
   else if (FD_VOIDP(value)) {
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,question_symbol,slotid);
       if (FD_VOIDP(handler)) {
         fdtype v=fd_oid_get(f,slotid,FD_VOID);
@@ -385,7 +385,7 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
-    else if (p->op_handlers) {
+    else if (p->oid_handlers) {
       fdtype handler=get_op_handler(p,question_symbol,slotid);
       if (FD_VOIDP(handler)) smap=fd_fetch_oid(p,f);
       else {
@@ -586,7 +586,7 @@ FD_EXPORT void fd_init_xtables_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

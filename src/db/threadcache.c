@@ -13,7 +13,7 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/apply.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 
 static u8_condition FreeingForeignThreadCache=
   _("Attempt to free foreign threadcache");
@@ -44,7 +44,7 @@ FD_EXPORT int fd_free_thread_cache(struct FD_THREAD_CACHE *tc)
   /* These may do customized things for some of the tables. */
   fd_recycle_hashtable(&(tc->calls));
   fd_recycle_hashtable(&(tc->oids));
-  fd_recycle_hashtable(&(tc->indices));
+  fd_recycle_hashtable(&(tc->indexes));
   fd_recycle_hashtable(&(tc->bground));
   tc->fdtc_inuse=0;
   u8_free(tc);
@@ -61,7 +61,7 @@ FD_EXPORT int fd_pop_threadcache(struct FD_THREAD_CACHE *tc)
   else {
     struct FD_THREAD_CACHE *prev=tc->fdtc_prev;
 #if FD_USE_TLS
-    fd_tld_set(fd_threadcache_key,prev);
+    u8_tld_set(fd_threadcache_key,prev);
 #else
     fd_threadcache=prev;
 #endif
@@ -85,8 +85,8 @@ FD_EXPORT fd_thread_cache fd_cons_thread_cache
   FD_INIT_STATIC_CONS(&(tc->bground),fd_hashtable_type);
   fd_make_hashtable(&(tc->bground),bcsize);
 
-  FD_INIT_STATIC_CONS(&(tc->indices),fd_hashtable_type);
-  fd_make_hashtable(&(tc->indices),kcsize);
+  FD_INIT_STATIC_CONS(&(tc->indexes),fd_hashtable_type);
+  fd_make_hashtable(&(tc->indexes),kcsize);
 
   tc->fdtc_prev=NULL;
   return tc;
@@ -112,7 +112,7 @@ FD_EXPORT fd_thread_cache fd_push_threadcache(struct FD_THREAD_CACHE *tc)
   if (tc==fd_threadcache) return tc;
   tc->fdtc_prev=fd_threadcache;
 #if FD_USE_TLS
-  fd_tld_set(fd_threadcache_key,tc);
+  u8_tld_set(fd_threadcache_key,tc);
 #else
   fd_threadcache=tc;
 #endif
@@ -136,7 +136,7 @@ FD_EXPORT fd_thread_cache fd_set_threadcache(struct FD_THREAD_CACHE *tc)
     if (oldtc->fdtc_inuse<=0) fd_free_thread_cache(oldtc);}
   tc->fdtc_inuse++;
 #if FD_USE_TLS
-  fd_tld_set(fd_threadcache_key,tc);
+  u8_tld_set(fd_threadcache_key,tc);
 #else
   fd_threadcache=tc;
 #endif
@@ -150,7 +150,7 @@ FD_EXPORT fd_thread_cache fd_use_threadcache()
     struct FD_THREAD_CACHE *tc=fd_new_thread_cache();
     tc->fdtc_prev=NULL; tc->fdtc_inuse++;
 #if FD_USE_TLS
-    fd_tld_set(fd_threadcache_key,tc);
+    u8_tld_set(fd_threadcache_key,tc);
 #else
     fd_threadcache=tc;
 #endif
@@ -169,7 +169,7 @@ FD_EXPORT void fd_init_threadcache_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -12,7 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/dtcall.h"
-#include "framerd/dtypestream.h"
+#include "framerd/streams.h"
 
 #include <libu8/u8netfns.h>
 
@@ -27,26 +27,32 @@ static int default_async=FD_DEFAULT_ASYNC;
 
 static fdtype dteval_sock(u8_socket conn,fdtype expr)
 {
-  int retval;
-  struct FD_DTYPE_STREAM stream;
-  fd_init_dtype_stream(&stream,conn,8192);
-  stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
+  fdtype response; int retval;
+  struct FD_STREAM _stream, *stream;
+  struct FD_OUTBUF *out;
+  memset(&_stream,0,sizeof(_stream));
+  stream=fd_init_stream
+    (&_stream,NULL,conn,
+     FD_STREAM_DOSYNC|FD_STREAM_SOCKET|FD_STREAM_OWNS_FILENO,
+     fd_network_bufsize);
+  out=fd_writebuf(stream);
   if (log_eval_request)
     u8_log(LOG_DEBUG,"DTEVAL","On #%d: %q",conn,expr);
-  retval=fd_dtswrite_dtype(&stream,expr);
-  if ((retval<0) || (fd_dtsflush(&stream)<0)) {
+  retval=fd_write_dtype(out,expr);
+  if ((retval<0) || (fd_flush_stream(stream)<0)) {
+    fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOCLOSE);
     return FD_ERROR_VALUE;}
-  if (log_eval_response) {
-    fdtype response=fd_dtsread_dtype(&stream);
+  else response=fd_read_dtype(fd_readbuf(stream));
+  if (log_eval_response)
     u8_log(LOG_DEBUG,"DTEVAL","On #%d: REQUEST %q\n\t==>\t%q",
            conn,response);
-    return response;}
-  else return fd_dtsread_dtype(&stream);
+  fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOCLOSE);
+  return response;
 }
-static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
+static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
 {
   fdtype result; int retval;
-  struct FD_DTYPE_STREAM stream;
+  struct FD_STREAM stream;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
   if (log_eval_request)
@@ -54,22 +60,25 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
            cpool->u8cp_id,conn,expr);
-  fd_init_dtype_stream(&stream,conn,8192);
+  memset(&stream,0,sizeof(stream));
+  fd_init_stream(&stream,cpool->u8cp_id,conn,
+                 FD_STREAM_SOCKET,
+                 fd_network_bufsize);
   if ((async)&&(fd_use_dtblock)) { /*  */
     size_t dtype_len;
-    struct FD_BYTE_OUTPUT *binout=
-      (struct FD_BYTE_OUTPUT *)&stream;
-    retval=fd_write_byte(binout,dt_block);
-    if (retval>0) retval=fd_write_4bytes(binout,0);
-    if (retval>0) retval=fd_write_dtype(binout,expr);
-    dtype_len=(binout->ptr-binout->start)-5;
-    binout->ptr=binout->start+1;
-    fd_write_4bytes(binout,dtype_len);
-    binout->ptr=binout->start+(dtype_len+5);}
+    fd_outbuf out=fd_writebuf(&stream);
+    retval=fd_write_byte(out,dt_block);
+    if (retval>0) retval=fd_write_4bytes(out,0);
+    if (retval>0) retval=fd_write_dtype(out,expr);
+    dtype_len=(out->bufwrite-out->buffer)-5;
+    out->bufwrite=out->buffer+1;
+    fd_write_4bytes(out,dtype_len);
+    out->bufwrite=out->buffer+(dtype_len+5);}
   else {
-    stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
-    retval=fd_dtswrite_dtype(&stream,expr);}
-  if ((retval<0)||(fd_dtsflush(&stream)<0)) {
+    fd_outbuf out=fd_writebuf(&stream);
+    stream.stream_flags|=FD_STREAM_DOSYNC;
+    retval=fd_write_dtype(out,expr);}
+  if ((retval<0)||(fd_flush_stream(&stream)<0)) {
     u8_log(LOG_ERR,"DTEVAL","Error with request to %s%s#%d for: %q",
            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
@@ -91,16 +100,16 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
               (async)?(" (async) "):("")),
              cpool->u8cp_id,conn,expr);}
-    fd_dtsflush(&stream);}
-  result=fd_dtsread_dtype(&stream);
+    fd_flush_stream(&stream);}
+  result=fd_read_dtype(fd_readbuf(&stream));
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
-        (fd_dtswrite_dtype(&stream,expr)<0) ||
-        (fd_dtsflush(&stream)<0)) {
+        (fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
+        (fd_flush_stream(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
-    else result=fd_dtsread_dtype(&stream);
+    else result=fd_read_dtype(fd_readbuf(&stream));
     if (FD_EQ(result,FD_EOD)) {
       u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
@@ -114,21 +123,21 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
                 (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
                  (async)?(" (async) "):("")),
                 cpool->u8cp_id,conn,result);}
-  fd_dtsclose(&stream,0);
+  fd_close_stream(&stream,FD_STREAM_FREEDATA);
   u8_return_connection(cpool,conn);
   return result;
 }
 FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr,default_async);
+  return dteval_connpool(cp,expr,default_async);
 }
 FD_EXPORT fdtype fd_dteval_sync(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr,0);
+  return dteval_connpool(cp,expr,0);
 }
 FD_EXPORT fdtype fd_dteval_async(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr,1);
+  return dteval_connpool(cp,expr,1);
 }
 FD_EXPORT fdtype fd_sock_dteval(u8_socket sock,fdtype expr)
 {
@@ -155,7 +164,7 @@ static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
     n--;}
   if (dorefs) fd_incref(args[0]);
   request=fd_conspair(args[0],request);
-  result=dteval_pool(cp,request,default_async);
+  result=dteval_connpool(cp,request,default_async);
   fd_decref(request);
   return result;
 }
@@ -231,7 +240,7 @@ FD_EXPORT void fd_init_dtcall_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

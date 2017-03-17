@@ -16,7 +16,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/apply.h"
 
 #include <stdarg.h>
@@ -30,24 +30,19 @@ static fdtype add_effects, drop_effects;
 
 static fdtype slot_overlay=FD_VOID, index_overlay=FD_VOID;
 
-#if FD_THREADS_ENABLED
 static u8_mutex slotcache_lock;
-#endif
 
 /* Frame overlays */
 
-#if FD_USE__THREAD
-__thread int fd_inhibit_overlay=0;
-FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
-#elif FD_THREADS_ENABLED
+#if FD_USE_TLS
 u8_tld_key _fd_inhibit_overlay_key;
 FD_EXPORT void fd_inhibit_overlays(int flag)
 {
   fd_wideint iflag=flag;
-  fd_tld_set(_fd_inhibit_overlay_key,(void *)iflag);
+  u8_tld_set(_fd_inhibit_overlay_key,(void *)iflag);
 }
 #else
-int fd_inhibit_overlay=0;
+__thread int fd_inhibit_overlay=0;
 FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay=flag; }
 #endif
 
@@ -62,7 +57,7 @@ static fdtype _overlay_get
     struct FD_HASHTABLE *h=(fd_hashtable)overlay;
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
-    p.car=car; p.cdr=cdr;
+    p.fd_car=car; p.fd_cdr=cdr;
     if (fd_hashtable_probe(h,tmp_key)) {
       fdtype v=fd_hashtable_get(h,tmp_key,FD_VOID);
       if ((FD_VOIDP(v)) || (FD_EMPTY_CHOICEP(v)))
@@ -92,7 +87,7 @@ static fdtype _overlay_get
     struct FD_PAIR p;
     fd_index ix=fd_indexptr(overlay);
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    p.car=car; p.cdr=cdr;
+    p.fd_car=car; p.fd_cdr=cdr;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);
     if ((FD_VOIDP(mods)) || (FD_EMPTY_CHOICEP(mods)))
@@ -136,7 +131,7 @@ static int _overlay_test
     struct FD_PAIR p;
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
-    p.car=slotid; p.cdr=frame;
+    p.fd_car=slotid; p.fd_cdr=frame;
     if (fd_hashtable_probe((fd_hashtable)slot_overlay,tmp_key)) {
       int retval;
       fdtype v=fd_hashtable_get((fd_hashtable)slot_overlay,tmp_key,FD_VOID);
@@ -159,7 +154,7 @@ static int _overlay_test
     struct FD_PAIR p;
     fd_index ix=fd_indexptr(overlay);
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    p.car=slotid; p.cdr=frame;
+    p.fd_car=slotid; p.fd_cdr=frame;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);
     if (FD_EMPTY_CHOICEP(mods)) return dflt;
@@ -345,7 +340,7 @@ static int overlay_config_set(fdtype ignored,fdtype v,void *vptr)
   if ((FD_HASHTABLEP(v)) || (FD_INDEXP(v))) {
     new=v; fd_incref(v);}
   else if (FD_STRINGP(v)) {
-    fd_index ix=fd_open_index(FD_STRDATA(v));
+    fd_index ix=fd_get_index(FD_STRDATA(v),0,FD_VOID);
     if (ix==NULL) return FD_ERROR_VALUE;
     new=fd_index2lisp(ix);}
   else if (FD_TRUEP(v))
@@ -390,12 +385,10 @@ static int overlay_config_set(fdtype ignored,fdtype v,void *vptr)
      associated with the dependency mechanism implemented below.
 */
 
-#if FD_USE__THREAD
-static __thread struct FD_FRAMEOP_STACK *opstack=NULL;
-#elif FD_THREADS_ENABLED
+#if FD_USE_TLS
 static u8_tld_key opstack_key;
 #else
-static struct FD_FRAMEOP_STACK *opstack=NULL;
+static __thread struct FD_FRAMEOP_STACK *opstack=NULL;
 #endif
 
 static struct FD_FRAMEOP_STACK *get_opstack()
@@ -431,7 +424,7 @@ FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *op)
   op->next=ops;
   op->dependencies=NULL;
   op->n_deps=op->max_deps=0;
-#if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
+#if (FD_USE_TLS)
   u8_tld_set(opstack_key,op);
 #else
   opstack=op;
@@ -452,7 +445,7 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
         fd_decref(scan->frame); fd_decref(scan->slotid); fd_decref(scan->value);
         scan++;}
       u8_free(op->dependencies);}}
-#if ((FD_THREADS_ENABLED) && (!(FD_USE__THREAD)))
+#if (FD_USE_TLS)
   u8_tld_set(opstack_key,op->next);
 #else
   opstack=op->next;
@@ -490,29 +483,29 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
 static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17);
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,table);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
 static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
 {
   fdtype table=fd_make_hashtable(NULL,17);
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&test_caches,slotid,table);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
 FD_EXPORT void fd_clear_slotcache(fdtype slotid)
 {
-  fd_lock_mutex(&slotcache_lock);
+  u8_lock_mutex(&slotcache_lock);
   if (fd_hashtable_probe(&slot_caches,slotid))
     fd_hashtable_store(&slot_caches,slotid,FD_VOID);
   if (fd_hashtable_probe(&test_caches,slotid))
     fd_hashtable_store(&test_caches,slotid,FD_VOID);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
 }
 
 FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
@@ -654,14 +647,14 @@ FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
 
 FD_EXPORT void fd_clear_slotcaches()
 {
-  fd_lock_mutex(&slotcache_lock);
-  if (slot_caches.n_keys)
+  u8_lock_mutex(&slotcache_lock);
+  if (slot_caches.table_n_keys)
     fd_reset_hashtable(&slot_caches,17,1);
-  if (test_caches.n_keys)
+  if (test_caches.table_n_keys)
     fd_reset_hashtable(&test_caches,17,1);
-  if (implications.n_keys)
+  if (implications.table_n_keys)
     fd_reset_hashtable(&implications,17,1);
-  fd_unlock_mutex(&slotcache_lock);
+  u8_unlock_mutex(&slotcache_lock);
 }
 
 
@@ -752,7 +745,8 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
             value=fd_finish_call(fd_dapply((fdtype)fn,2,args));
             if (FD_ABORTP(value)) {
               fd_push_error_context
-                (fd_apply_context,fd_make_nvector(3,method,f,slotid));
+                (fd_apply_context,NULL,
+                 fd_make_nvector(3,method,f,slotid));
               fd_decref(computed); fd_decref(methods);
               fd_pop_opstack(&fop,0);
               fd_decref(cachev);
@@ -837,7 +831,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
               fdtype v=fd_apply((fdtype)fn,3,args);
               if (FD_ABORTP(v)) {
                 fd_push_error_context
-                  (fd_apply_context,
+                  (fd_apply_context,NULL,
                    fd_make_nvector(4,method,f,slotid,fd_incref(value)));
                 fd_decref(methods); fd_decref(cachev);
                 fd_pop_opstack(&fop,0);
@@ -947,7 +941,7 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
     if (fd_default_pool) p=fd_default_pool;
     else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,FD_VOID);
   else if ((p=fd_lisp2pool(pool_spec))==NULL)
-    return fd_err(fd_UnresolvedPool,"frame_create_lexpr",NULL,pool_spec);
+    return fd_err(fd_NoSuchPool,"frame_create_lexpr",NULL,pool_spec);
   /* At this point, we have p!=NULL and we get an OID */
   oid=fd_pool_alloc(p,1);
   if (FD_ABORTP(oid)) return oid;
@@ -983,12 +977,12 @@ static fdtype make_features(fdtype slotids,fdtype values)
   return results;
 }
 
-FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
+FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotids,fdtype values)
 {
-  if (FD_CHOICEP(indices)) {
+  if (FD_CHOICEP(indexes)) {
     fdtype combined=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(index,indices)
-      if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type))) {
+    FD_DO_CHOICES(index,indexes)
+      if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type))) {
         fd_index ix=fd_indexptr(index);
         if (ix==NULL) {
           fd_decref(combined);
@@ -1011,18 +1005,18 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
         fd_decref(combined);
         return fd_type_error(_("index"),"fd_prim_find",index);}
     return combined;}
-  else if (FD_TABLEP(indices)) {
+  else if (FD_TABLEP(indexes)) {
     fdtype combined=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
         fdtype key=fd_make_pair(slotid,value);
-        fdtype result=fd_get(indices,key,FD_EMPTY_CHOICE);
+        fdtype result=fd_get(indexes,key,FD_EMPTY_CHOICE);
         FD_ADD_TO_CHOICE(combined,result);
         fd_decref(key);}}
     return combined;}
   else {
     fdtype combined=FD_EMPTY_CHOICE;
-    fd_index ix=fd_indexptr(indices);
+    fd_index ix=fd_indexptr(indexes);
     if (ix==NULL) {
       fd_decref(combined);
       return FD_ERROR_VALUE;}
@@ -1036,14 +1030,14 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
       return combined;}}
 }
 
-FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals)
+FD_EXPORT fdtype fd_finder(fdtype indexes,int n,fdtype *slotvals)
 {
   int i=0, n_conjuncts=n/2;
   fdtype _conjuncts[6], *conjuncts=_conjuncts, result;
-  if (FD_EMPTY_CHOICEP(indices)) return FD_EMPTY_CHOICE;
+  if (FD_EMPTY_CHOICEP(indexes)) return FD_EMPTY_CHOICE;
   if (n_conjuncts>6) conjuncts=u8_alloc_n(n_conjuncts,fdtype);
   while (i < n_conjuncts) {
-    conjuncts[i]=fd_prim_find(indices,slotvals[i*2],slotvals[i*2+1]);
+    conjuncts[i]=fd_prim_find(indexes,slotvals[i*2],slotvals[i*2+1]);
     if (FD_ABORTP(conjuncts[i])) {
       fdtype error=conjuncts[i];
       int j=0; while (j<i) {fd_decref(conjuncts[j]); j++;}
@@ -1060,11 +1054,11 @@ FD_EXPORT fdtype fd_finder(fdtype indices,int n,fdtype *slotvals)
   return result;
 }
 
-FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
+FD_EXPORT fdtype fd_find_frames(fdtype indexes,...)
 {
   fdtype _slotvals[64], *slotvals=_slotvals, val;
   int n_slotvals=0, max_slotvals=64; va_list args;
-  va_start(args,indices); val=va_arg(args,fdtype);
+  va_start(args,indexes); val=va_arg(args,fdtype);
   while (!(FD_VOIDP(val))) {
     if (n_slotvals>=max_slotvals) {
       if (max_slotvals == 64) {
@@ -1079,10 +1073,10 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
     if (slotvals != _slotvals) u8_free(slotvals);
     return fd_err(OddFindFramesArgs,"fd_find_frames",NULL,FD_VOID);}
   if (slotvals != _slotvals) {
-    fdtype result=fd_finder(indices,n_slotvals,slotvals);
+    fdtype result=fd_finder(indexes,n_slotvals,slotvals);
     u8_free(slotvals);
     return result;}
-  else return fd_finder(indices,n_slotvals,slotvals);
+  else return fd_finder(indexes,n_slotvals,slotvals);
 }
 
 
@@ -1097,7 +1091,7 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
 FD_EXPORT
 int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
 {
-  if ((ix->handler->fetchn)==NULL) {
+  if ((ix->index_handler->fetchn)==NULL) {
     fdtype keys=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
@@ -1115,8 +1109,8 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
       FD_DO_CHOICES(value,values) {
         fdtype key=fd_conspair(slotid,value);
         keyv[n_keys++]=key;}}
-    valuev=(ix->handler->fetchn)(ix,n_keys,keyv);
-    fd_hashtable_iter(&(ix->cache),fd_table_add_empty_noref,
+    valuev=(ix->index_handler->fetchn)(ix,n_keys,keyv);
+    fd_hashtable_iter(&(ix->index_cache),fd_table_add_empty_noref,
                       n_keys,keyv,valuev);
     u8_free(keyv); u8_free(valuev);
     return 1;}
@@ -1251,7 +1245,7 @@ static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
   if (FD_HASHTABLEP(v)) {
     fd_hashtable h=(fd_hashtable)v;
     int *count=(int *)ptr;
-    *count=*count+h->n_keys;}
+    *count=*count+h->table_n_keys;}
   return 0;
 }
 
@@ -1293,19 +1287,18 @@ FD_EXPORT void fd_init_frames_c()
                      overlay_config_set,
                      &index_overlay);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&slotcache_lock);
+  u8_init_mutex(&slotcache_lock);
+
 #if FD_USE_TLS
   u8_new_threadkey(&_fd_inhibit_overlay_key,NULL);
   u8_new_threadkey(&opstack_key,NULL);
-#endif
 #endif
 
 }
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

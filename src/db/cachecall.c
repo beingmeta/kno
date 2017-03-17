@@ -15,9 +15,9 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/apply.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8filefns.h>
@@ -33,8 +33,8 @@ static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
   if (FD_VOIDP(cache)) {
     cache=fd_make_hashtable(NULL,512);
     fd_hashtable_store(&fcn_caches,fcn,cache);
-    return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);}
-  else return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);
+    return fd_consptr(struct FD_HASHTABLE *,cache,fd_hashtable_type);}
+  else return fd_consptr(struct FD_HASHTABLE *,cache,fd_hashtable_type);
 }
 
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
@@ -42,10 +42,10 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
   fdtype vec, cached;
   struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.freedata=0;
-  vecstruct.data=((n==0) ? (NULL) : (args));
+  memset(&vecstruct,0,sizeof(vecstruct));
+  vecstruct.fd_veclen=n;
+  vecstruct.fd_freedata=0;
+  vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
   cached=fd_hashtable_get(cache,vec,FD_VOID);
@@ -74,10 +74,10 @@ FD_EXPORT fdtype fd_xcachecall
 {
   fdtype vec, cached;
   struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.freedata=0;
-  vecstruct.data=((n==0) ? (NULL) : (args));
+  memset(&vecstruct,0,sizeof(vecstruct));
+  vecstruct.fd_veclen=n;
+  vecstruct.fd_freedata=0;
+  vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
   cached=fd_hashtable_get(cache,vec,FD_VOID);
@@ -100,7 +100,7 @@ FD_EXPORT fdtype fd_xcachecall
 
 FD_EXPORT void fd_clear_callcache(fdtype arg)
 {
-  if (fcn_caches.n_keys==0) return;
+  if (fcn_caches.table_n_keys==0) return;
   if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
   else if ((FD_VECTORP(arg)) && (FD_VECTOR_LENGTH(arg)>0)) {
     fdtype fcn=FD_VECTOR_REF(arg,0);
@@ -126,7 +126,7 @@ static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
   if (FD_HASHTABLEP(v)) {
     fd_hashtable h=(fd_hashtable)v;
     int *count=(int *)ptr;
-    *count=*count+h->n_keys;}
+    *count=*count+h->table_n_keys;}
   return 0;
 }
 
@@ -142,10 +142,10 @@ FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args)
   fdtype vec; int iscached=0;
   struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.freedata=0;
-  vecstruct.data=((n==0) ? (NULL) : (args));
+  memset(&vecstruct,0,sizeof(vecstruct));
+  vecstruct.fd_veclen=n;
+  vecstruct.fd_freedata=0;
+  vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
   iscached=fd_hashtable_probe(cache,vec);
@@ -157,10 +157,10 @@ FD_EXPORT int fd_xcachecall_probe(struct FD_HASHTABLE *cache,fdtype fcn,int n,fd
 {
   fdtype vec; int iscached=0;
   struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.freedata=0;
-  vecstruct.data=((n==0) ? (NULL) : (args));
+  memset(&vecstruct,0,sizeof(vecstruct));
+  vecstruct.fd_veclen=n;
+  vecstruct.fd_freedata=0;
+  vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
   iscached=fd_hashtable_probe(cache,vec);
@@ -172,10 +172,10 @@ FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args)
   fdtype vec; fdtype value;
   struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.freedata=0;
-  vecstruct.data=((n==0) ? (NULL) : (args));
+  memset(&vecstruct,0,sizeof(vecstruct));
+  vecstruct.fd_veclen=n;
+  vecstruct.fd_freedata=0;
+  vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
   value=fd_hashtable_get(cache,vec,FD_VOID);
@@ -188,10 +188,10 @@ FD_EXPORT fdtype fd_xcachecall_try(struct FD_HASHTABLE *cache,fdtype fcn,int n,f
 {
   fdtype vec; fdtype value;
   struct FD_VECTOR vecstruct;
-  vecstruct.consbits=0;
-  vecstruct.length=n;
-  vecstruct.freedata=0;
-  vecstruct.data=((n==0) ? (NULL) : (args));
+  memset(&vecstruct,0,sizeof(vecstruct));
+  vecstruct.fd_veclen=n;
+  vecstruct.fd_freedata=0;
+  vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec=FDTYPE_CONS(&vecstruct);
   value=fd_hashtable_get(cache,vec,FD_VOID);
@@ -210,9 +210,9 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     struct FD_VECTOR vecstruct;
     fdtype _elts[TCACHECALL_STACK_ELTS], *elts=NULL, vec, cached;
     /* Initialize the stack vector */
-    vecstruct.consbits=0;
-    vecstruct.freedata=0;
-    vecstruct.length=n+1;
+    memset(&vecstruct,0,sizeof(vecstruct));
+    vecstruct.fd_freedata=0;
+    vecstruct.fd_veclen=n+1;
     FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
     /* Allocate an elements vector if neccessary */
     if ((n+1)>(TCACHECALL_STACK_ELTS))
@@ -220,7 +220,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     else elts=_elts;
     /* Initialize the elements */
     elts[0]=fcn; memcpy(elts+1,args,sizeof(fdtype)*n);
-    vecstruct.data=elts;
+    vecstruct.fd_vecelts=elts;
     vec=FDTYPE_CONS(&vecstruct);
     /* Look it up in the cache. */
     cached=fd_hashtable_get_nolock(&(tc->calls),vec,FD_VOID);
@@ -265,7 +265,7 @@ FD_EXPORT void fd_init_cachecall_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -15,8 +15,8 @@
 
 typedef struct FD_DTPROC {
   FD_FUNCTION_FIELDS;
-  u8_string server; fdtype fcnsym;
-  struct U8_CONNPOOL *connpool;} FD_DTPROC;
+  u8_string fd_dtprocserver; fdtype fd_dtprocname;
+  struct U8_CONNPOOL *fd_connpool;} FD_DTPROC;
 typedef struct FD_DTPROC *fd_dtproc;
 
 FD_EXPORT fdtype fd_make_dtproc

@@ -29,9 +29,7 @@
 static fdtype dotsize_symbol, margin_symbol, version_symbol, robustness_symbol;
 static fdtype l_sym, m_sym, q_sym, h_sym;
 
-#if FD_THREADS_ENABLED
 static u8_mutex qrencode_lock;
-#endif
 
 FD_EXPORT int fd_init_qrcode(void) FD_LIBINIT_FN;
 
@@ -55,7 +53,7 @@ static int geteclevel(fdtype level_arg)
 
 static void packet_write_data(png_structp pngptr,png_bytep data,png_size_t len)
 {
-  struct FD_BYTE_OUTPUT *out=(struct FD_BYTE_OUTPUT *)png_get_io_ptr(pngptr);
+  struct FD_OUTBUF *out=(struct FD_OUTBUF *)png_get_io_ptr(pngptr);
   int retval=fd_write_bytes(out,(unsigned char *)data,(size_t)len);
   if (retval<0)
     u8_log(LOG_CRIT,"PNG write error","Error writing PNG file");
@@ -93,12 +91,12 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
     png_destroy_write_struct(&png_ptr, &info_ptr);
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);}
   else {
-    struct FD_BYTE_OUTPUT buf;
+    struct FD_OUTBUF buf;
     int qrwidth=qrcode->width, qrheight=qrwidth;
     int fullwidth=(qrwidth+(margin*2))*dotsize;
     int rowlen=(fullwidth+7)/8;
     unsigned char *row=u8_malloc(rowlen);
-    FD_INIT_BYTE_OUTPUT(&buf,2048);
+    FD_INIT_BYTE_OUTBUF(&buf,2048);
     png_set_write_fn(png_ptr,(void *)&buf,packet_write_data,packet_flush_data);
     png_set_IHDR(png_ptr, info_ptr,
                  fullwidth,fullwidth,1,
@@ -142,7 +140,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
 
     u8_free(row);
 
-    return fd_init_packet(NULL,buf.ptr-buf.start,buf.start);}
+    return fd_init_packet(NULL,buf.bufwrite-buf.buffer,buf.buffer);}
 }
 
 static fdtype qrencode_prim(fdtype string,fdtype opts)
@@ -153,7 +151,7 @@ static fdtype qrencode_prim(fdtype string,fdtype opts)
   {
     fdtype result;
     QRcode *qrcode=
-      ((fd_lock_mutex(&qrencode_lock)),
+      ((u8_lock_mutex(&qrencode_lock)),
        QRcode_encodeString8bit
        (FD_STRDATA(string),FD_FIX2INT(version_arg),eclevel));
     u8_unlock_mutex(&qrencode_lock);
@@ -196,7 +194,7 @@ FD_EXPORT int fd_init_qrcode()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

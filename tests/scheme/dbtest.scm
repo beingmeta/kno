@@ -11,30 +11,42 @@
 	 filename created contents-as-choice contents-as-frames
 	 has %id))
 
-(define (initdb source)
-  (cond ((or (position #\@ source)
-	     (file-exists? (append source ".pool")))
-	 (set! dbsource source)
-	 (set! testpool (use-pool source))
-	 (set! testindex (open-index source)))
+(define (add-suffix file suffix)
+  (if (has-suffix file suffix) file
+      (glom file suffix)))
+
+(define (sourcepool source)
+  (cond ((position #\@ source)
+	 (use-pool source))
+	((file-exists? (add-suffix source ".pool"))
+	 (use-pool (add-suffix source ".pool")))
+	((file-exists? source)
+	 (use-pool (add-suffix source ".pool")))
 	(else
-	 (if (config 'oidpool)
-	     (let ((flags (fix-flags (config 'oidpool #()))))
-	       (make-oidpool (append source ".pool") @17/0 64000 0 flags))
-	     (make-file-pool (append source ".pool") @17/0 64000))
-	 (if (config 'hashindex #f)
-	     (let ((flags (fix-flags (config 'hashindex #()))))
-	       (if (position 'COMPRESS flags)
-		   (begin (message "Making compressed hash index for tests")
-		     (make-hash-index (append source ".index") -500000
-				      slotids-vec (vector @17/0) #f flags))
-		   (begin (message "Making hash index for tests")
-		     (make-hash-index (append source ".index") -500000
-				      #() #() #f flags))))
-	     (make-file-index (append source ".index") -500000))
-	 (set! dbsource source)
-	 (set! testpool (use-pool source))
-	 (set! testindex (open-index source))))
+	 (make-pool (add-suffix source ".pool")
+		    (frame-create #f
+		      'type (config 'pooltype 'filepool)
+		      'base @17/0 'capacity 65000
+		      'offtype (config 'pooloff (config 'offtype {})))))))
+
+(define (sourceindex source)
+  (cond ((position #\@ source)
+	 (open-index source))
+	((file-exists? (add-suffix source ".index"))
+	 (open-index (add-suffix source ".index")))
+	((file-exists? source)
+	 (open-index source))
+	(else
+	 (make-index (add-suffix source ".index")
+		     (frame-create #f
+		      'type (config 'indextype 'hashindex)
+		      'slots 65000
+		      'offtype (config 'indexoff (config 'offtype {})))))))
+
+(define (initdb source)
+  (set! testpool (sourcepool source))
+  (set! testindex (sourceindex source))
+  (set! dbsource source)
   (logwarn |Pool| testpool)
   (logwarn |Index| testindex))
 
@@ -114,9 +126,14 @@
  	(index-frame index expr-frame
  	  '{in-file created defines expr atoms type})
  	(index-frame index expr-frame 'has (getkeys expr-frame))))
-     (index-frame index file-frame
-       '{filename created contents-as-choice contents-as-frames type})
-     (index-frame index file-frame 'has (getkeys file-frame))))
+     (index-frame index file-frame 'type)
+     (index-frame index file-frame 'has (getkeys file-frame))
+     (index-file-frame file-frame)))
+
+(define (index-file-frame file-frame (index testindex) )
+  (index-frame index file-frame 'contents-as-frames)
+  (index-frame index file-frame
+    '{filename created contents-as-choice contents-as-frames type}))
 
 (define (makedb pool index files)
   (message "Building DB")
@@ -259,7 +276,7 @@
 (define (main source (operation "test") . files)
   (cond ((not (equal? operation "init")))
 	((position #\@ source)
-	 (unless (zero? (pool-load (use-pool source)))
+	 (unless (zero? (pool-load (use-pool (add-suffix source ".pool"))))
 	   (message "Doing init on non-virgin pool")))
 	(else (remove-file
 	       (append source {".pool" ".index"
@@ -268,13 +285,16 @@
   (initdb source)
   (when (equal? operation "init")
     (makedb testpool testindex files)
-    (checkdb (config 'COUNT 200) testpool testindex)
+    (checkdb (config 'COUNT 1000) testpool testindex)
     (commit)
-    (swapout))
-  (checkdb (config 'COUNT 200) testpool testindex)
-  (swapout)
-  (checkdb (config 'COUNT 200) testpool testindex)
-  (swapout))
+    ;;(swapout)
+    )
+  (dbg #f)
+  (checkdb (config 'COUNT 1000) testpool testindex)
+  ;; (swapout)
+  (checkdb (config 'COUNT 1000) testpool testindex)
+  ;; (swapout)
+  )
 
 
 

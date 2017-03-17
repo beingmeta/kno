@@ -10,7 +10,7 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/eval.h"
 #include "framerd/history.h"
 #include "framerd/ports.h"
@@ -108,7 +108,7 @@ int swallow_whitespace(u8_input in)
   else return c;
 }
 
-static fd_dtype_stream eval_server=NULL;
+static fd_stream eval_server=NULL;
 
 static u8_input inconsole=NULL;
 static u8_output outconsole=NULL;
@@ -431,7 +431,9 @@ static fdtype that_symbol, histref_symbol;
 
 static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 {
-  u8_string abspath=((dumpfile)?(u8_abspath(dumpfile,NULL)):(fd_tempdir(NULL,0)));
+  u8_string abspath=((dumpfile)?
+                     (u8_abspath(dumpfile,NULL)):
+                     (fd_tempdir(NULL,0)));
   if (u8_directoryp(abspath)) {
     changemode(abspath,0755);
     if (html_backtrace) {
@@ -459,15 +461,18 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
   else if ((u8_has_suffix(dumpfile,".scm",1))||
            (u8_has_suffix(dumpfile,".lisp",1))||
            (u8_has_suffix(dumpfile,".lispdata",1))) {
-    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    u8_output outfile=(u8_output)
+      u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
     u8_log(LOG_ERROR,ex->u8x_cond,"Backtrace object written to %s",abspath);}
 #if FD_HTMLDUMP_ENABLED
-  else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
-    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+  else if ((u8_has_suffix(dumpfile,".html",1))||
+           (u8_has_suffix(dumpfile,".htm",1))) {
+    u8_output outfile=(u8_output)
+      u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     u8_string bugurl=NULL;
     fd_xhtmldebugpage(outfile,ex);
     u8_close((u8_stream)outfile);
@@ -486,32 +491,34 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       u8_free(cmd.u8_outbuf);}
     if (bugurl) u8_free(bugurl);}
 #else
-  else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
+  else if ((u8_has_suffix(dumpfile,".html",1))||
+           (u8_has_suffix(dumpfile,".htm",1))) {
     u8_log(LOG_WARN,"BACKTRACE","No built-in support for HTML backtraces");}
 #endif
   else if (u8_has_suffix(dumpfile,".dtype",1)) {
-    struct FD_DTYPE_STREAM *out; int bytes=0;
+    struct FD_STREAM *out; int bytes=0;
     fdtype backtrace=fd_exception_backtrace(ex);
     u8_string temp_name=u8_mkstring("%s.part",abspath);
-    out=fd_dtsopen(temp_name,FD_DTSTREAM_CREATE);
+    out=fd_open_file(temp_name,FD_FILE_CREATE);
     if (out==NULL) {
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);
       u8_free(temp_name);}
-    else bytes=fd_dtswrite_dtype(out,backtrace);
+    else bytes=fd_write_dtype(fd_writebuf(out),backtrace);
     if (bytes<0) {
-      fd_dtsclose(out,FD_DTSCLOSE_FULL);
+      fd_close_stream(out,FD_STREAM_CLOSE_FULL);
       u8_free(temp_name);
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);}
     else {
-      fd_dtsclose(out,FD_DTSCLOSE_FULL);
+      fd_close_stream(out,FD_STREAM_CLOSE_FULL);
       u8_movefile(temp_name,abspath);
       u8_free(temp_name);
       changemode(abspath,0444);
       u8_log(LOG_ERROR,ex->u8x_cond,"DType backtrace written to %s",abspath);}}
   else {
-    u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
+    u8_output outfile=(u8_output)u8_open_output_file
+      (abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
     u8_close((u8_stream)outfile);
@@ -835,15 +842,17 @@ int main(int argc,char **argv)
   if (source_file==NULL) {}
   else if (strchr(source_file,'@')) {
     int sock=u8_connect(source_file);
-    struct FD_DTYPE_STREAM *newstream;
+    struct FD_STREAM *newstream;
     if (sock<0) {
       u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",
              source_file);
       exit(-1);}
-    newstream=u8_alloc(struct FD_DTYPE_STREAM);
-    fd_init_dtype_stream(newstream,sock,65536);
-    fd_use_pool(source_file);
-    fd_use_index(source_file);
+    newstream=u8_alloc(struct FD_STREAM);
+    fd_init_stream(newstream,source_file,sock,
+                   FD_STREAM_SOCKET|FD_STREAM_DOSYNC,
+                   fd_network_bufsize);
+    fd_use_pool(source_file,0,FD_VOID);
+    fd_use_index(source_file,0,FD_VOID);
     eval_server=newstream;}
   else if (u8_file_existsp(source_file)) {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
@@ -871,9 +880,9 @@ int main(int argc,char **argv)
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="us";}
-    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indices",
+    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indexes",
                u8_appid(),startup_time,units,fd_n_pools,
-               fd_n_primary_indices+fd_n_secondary_indices);}
+               fd_n_primary_indexes+fd_n_secondary_indexes);}
   if (dotload) {
     dotloader("~/.fdconfig",NULL);
     dotloader(".fdconfig",NULL);
@@ -909,7 +918,7 @@ int main(int argc,char **argv)
     start_icache=fd_index_cache_load();
     u8_flush(out);
     expr=console_read(in,env);
-    if (FD_PRIM_TYPEP(expr,fd_rail_type)) {
+    if (FD_TYPEP(expr,fd_rail_type)) {
       /* Handle commands */
       fdtype head=FD_VECTOR_REF(expr,0);
       if ((head==equals_symbol)&&
@@ -941,6 +950,9 @@ int main(int argc,char **argv)
       fd_decref(v);
       continue;}
     start_time=u8_elapsed_time();
+    if (errno) {
+      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after read");
+      errno=0;}
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
@@ -949,10 +961,13 @@ int main(int argc,char **argv)
       u8_flush((u8_output)out);}
     else {
       if (eval_server) {
-        fd_dtswrite_dtype(eval_server,expr);
-        fd_dtsflush(eval_server);
-        result=fd_dtsread_dtype(eval_server);}
+        fd_write_dtype(fd_writebuf(eval_server),expr);
+        fd_flush_stream(eval_server);
+        result=fd_read_dtype(fd_readbuf(eval_server));}
       else result=fd_eval(expr,env);}
+    if (errno) {
+      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after eval");
+      errno=0;}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
     finish_ocache=fd_object_cache_load();
@@ -1022,6 +1037,9 @@ int main(int argc,char **argv)
     else {
       output_result(out,result,histref,is_histref);
       stat_line=1;}
+    if (errno) {
+      u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after output");
+      errno=0;}
     if (stat_line) {
       if (histref<0)
         u8_printf (out,stats_message,
@@ -1045,9 +1063,10 @@ int main(int argc,char **argv)
     lastval=result; result=FD_VOID;
     if ((FD_CHECK_PTR(lastval)) &&
         (!(FD_ABORTP(lastval))) &&
-        (!(FDTYPE_CONSTANTP(lastval))))
+        (!(FD_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
-  if (eval_server) fd_dtsclose(eval_server,1);
+  if (eval_server)
+    fd_close_stream(eval_server,FD_STREAM_FREEDATA);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);
@@ -1057,8 +1076,8 @@ int main(int argc,char **argv)
      working_environment contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
-  if (FD_HASHTABLEP(env->bindings))
-    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
+  if (FD_HASHTABLEP(env->env_bindings))
+    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   /* Freed as console_env */
   /* fd_recycle_environment(env); */
   exit(0);
@@ -1067,7 +1086,7 @@ int main(int argc,char **argv)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

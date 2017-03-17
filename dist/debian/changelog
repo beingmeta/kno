@@ -1,3 +1,9 @@
+framerd (4.0.0-1) stable; urgency=medium
+
+  * New major revision release candidate
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 10 Feb 2017 09:27:18 -0500
+
 framerd (3.10.1-1) stable; urgency=medium
 
   * Updated to new version/branch

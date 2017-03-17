@@ -11,7 +11,7 @@
 #include "framerd/tables.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/fdweb.h"
 #include "framerd/ports.h"
 #include "framerd/fileprims.h"
@@ -78,17 +78,21 @@ static fdtype reqsetup()
   fd_reset_threadvars();
   /* Update modules */
   if (fd_update_file_modules(0)<0) {
-    u8_condition c; u8_context cxt; u8_string details=NULL;
-    fdtype irritant;
+    u8_condition c=NULL; u8_context cxt=NULL;
+    u8_string details=NULL;
+    fdtype irritant=FD_VOID;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);}
+    if (details) u8_free(details);
+    fd_decref(irritant);}
   else if (update_preloads()<0) {
-    u8_condition c; u8_context cxt; u8_string details=NULL;
+    u8_condition c=NULL; u8_context cxt=NULL;
+    u8_string details=NULL;
     fdtype irritant;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result=fd_err(c,cxt,details,irritant);
-    if (details) u8_free(details); fd_decref(irritant);}
+    if (details) u8_free(details);
+    fd_decref(irritant);}
   return result;
 }
 
@@ -228,23 +232,20 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_SPROCP(proc)) {
-    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
+    struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,proc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc)) && (FD_SPROCP((FD_CAR(proc))))) {
-    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
+    struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,FD_CAR(proc));
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
-                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,
-				  fd_environment)) :
-                     (NULL));
+    fdtype xml=FD_CAR(proc), setup_proc=FD_VOID;
+    fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache=checkthreadcache(base);
@@ -342,10 +343,10 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
                 (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
                 (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_dtsflush(reqlog);
-    fd_unlock_mutex(&log_lock);
+    if (reqlog) fd_flush_stream(reqlog);
+    u8_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
@@ -430,9 +431,9 @@ static int start_fcgi_server(char *socketspec)
    portfile=u8_strdup(socketspec);}
 
  u8_log(LOG_NOTICE,NULL,
-        "FramerD (%s) fdcgiexec servlet running, %d/%d pools/indices",
+        "FramerD (%s) fdcgiexec servlet running, %d/%d pools/indexes",
         FRAMERD_REVISION,fd_n_pools,
-        fd_n_primary_indices+fd_n_secondary_indices);
+        fd_n_primary_indexes+fd_n_secondary_indexes);
  u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
  each_thread=0; while (each_thread<servlet_threads) {
    void *threadval;
@@ -488,11 +489,8 @@ static int simplecgi(fdtype path)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
-                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,
-				  fd_environment)) :
-                     (NULL));
+    fdtype setup_proc=FD_VOID;
+    fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     if (traceweb>1)
@@ -588,10 +586,10 @@ static int simplecgi(fdtype path)
                 (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
                 (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     /* If we're calling traceweb, keep the log files up to date also. */
-    fd_lock_mutex(&log_lock);
+    u8_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_dtsflush(reqlog);
-    fd_unlock_mutex(&log_lock);
+    if (reqlog) fd_flush_stream(reqlog);
+    u8_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);
   fd_decref(result); fd_decref(path);
@@ -600,7 +598,7 @@ static int simplecgi(fdtype path)
 
 /* The main() event */
 
-FD_EXPORT void fd_init_dbfile(void);
+FD_EXPORT int fd_init_dbs(void);
 
 int main(int argc,char **argv)
 {
@@ -664,7 +662,7 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_fdweb();
-  fd_init_dbfile();
+  fd_init_dbs();
 
   init_webcommon_data();
   init_webcommon_symbols();
@@ -683,9 +681,7 @@ int main(int argc,char **argv)
   fd_register_config("CGISOCK",_("The socket file used by this server for use with external versions"),
                      fd_sconfig_get,fd_sconfig_set,&socketspec);
 
-#if FD_THREADS_ENABLED
-  fd_init_mutex(&log_lock);
-#endif
+  u8_init_mutex(&log_lock);
 
   while (i<argc) {
     if (isconfig(argv[i])) {

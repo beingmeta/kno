@@ -1,0 +1,14 @@
+echo "Running test" $*
+FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm:
+export FD_LOADPATH
+FD_DLOADPATH=../../lib/framerd
+export FD_DLOADPATH
+LD_LIBRARY_PATH=../../lib
+export LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../../lib
+export DYLD_LIBRARY_PATH
+PPROF_PATH=@GOOGLE_PPROF@
+export PPROF_PATH
+FD_SKIP_DOTLOAD=yes
+export FD_SKIP_DOTLOAD
+@test_env@ exec ./fdexec $*  DLOAD_TRACE=yes SHOWTIME=1.0 DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024

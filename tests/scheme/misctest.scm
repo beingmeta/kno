@@ -34,10 +34,30 @@
 (applytest #t equal? f1 (deep-copy f1))
 
 (applytest #f eq? f1 f2)
-(applytest #t equal? f1 f2)
+(applytest #f equal? f1 f2)
 
 (applytest #f eq? f1 f3)
-(applytest #t equal? f1 f3)
+(applytest #f equal? f1 f3)
+
+(applytest #f eq? f2 f3)
+(applytest #t equal? f2 f3)
+
+(applytest #f test f1 'baz)
+(applytest #f test f1 'baz 9)
+(applytest #t test f1 'bar)
+(applytest #t test f1 'bar 8)
+(applytest #f test f1 'bar 9)
+
+;; This is a regression test for the TEST primitive for slotmaps using
+;; fd_sortvec_get rather than fd_keyvec_get internally.
+(evaltest #t (and (test f1 'bar 8)
+		  (test f1 'foo 3)
+		  (test f2 'bar 8)
+		  (test f2 'foo 3)))
+
+(applytest 8 get f1 'bar)
+(applytest 3 get f1 'foo)
+(applytest {} get f1 'quux)
 
 ;;; Testing iterative environments
 
@@ -80,7 +100,7 @@
 ;;	   #f))
 
 (define memoization-index
-  (make-file-index "memoization.index" 1000))
+  (make-index "memoization.index" #[type fileindex slots 1000]))
 
 (applytest #t real? 0.1)
 (applytest #t real? .1)
@@ -329,10 +349,10 @@
 (define-tester (testfn x (y constval))
   x)
 (define (testoptfree)
-  (message "Running big TESTOPTFREE test")
+  (message "Running big REFOVERFLOW test")
   ;; This is enough to overflow the refcount for 32-bit consdata
   (dotimes (i 17000000) (testfn "bar"))
-  (message "Finished big TESTOPTFREE test (whew)")
+  (message "Finished big REFOVERFLOW test (whew)")
   #t)
 (unless (or (getenv "MEMCHECKING") (getenv "HEAPCHECK"))
   (applytest #t testoptfree))

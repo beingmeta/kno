@@ -13,26 +13,16 @@
 
 #include <libu8/libu8io.h>
 
-FD_EXPORT fd_ptr_type fd_port_type;
-
-#define FD_PORTP(x) (FD_PRIM_TYPEP((x),fd_port_type))
+#define FD_PORTP(x) (FD_TYPEP((x),fd_port_type))
 
 typedef struct FD_PORT {
   FD_CONS_HEADER;
-  u8_string id; u8_input in; u8_output out;} FD_PORT;
+  u8_string fd_portid;
+  u8_input fd_inport;
+  u8_output fd_outport;} FD_PORT;
 typedef struct FD_PORT *fd_port;
 
-typedef struct FD_DTSTREAM {
-  FD_CONS_HEADER; int owns_socket;
-  struct FD_DTYPE_STREAM *dt_stream;} FD_DTSTREAM;
-typedef struct FD_DTSTREAM *fd_dtstream;
-
-FD_EXPORT fd_ptr_type fd_dtstream_type;
-
 FD_EXPORT fd_exception fd_UnknownEncoding;
-
-FD_EXPORT fdtype fd_printout(fdtype,fd_lispenv);
-FD_EXPORT fdtype fd_printout_to(U8_OUTPUT *,fdtype,fd_lispenv);
 
 FD_EXPORT int fd_pprint
   (u8_output out,fdtype x,
@@ -47,7 +37,5 @@ FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width);
 FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,
 				u8_condition label,int width);
 FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
-
-FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT_FN;
 
 #endif

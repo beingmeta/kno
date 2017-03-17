@@ -1,11 +1,9 @@
-(use-module '{reflection optimize})
+(use-module '{reflection optimize logger})
 
 (define (optimization-leaks)
   (when (and (config 'testoptimized) 
 	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK")))
     (exit)))
-
-(config! 'optimize:rails #t)
 
 (define (qc-wrap x) `(qc ,x))
 

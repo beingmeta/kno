@@ -15,7 +15,7 @@ listpids ( ) {
     done;
 }
 signalp ( ) {
-    if echo $0 | grep -i ${SIGNALNAMES} 2&>1 > /dev/null; then
+    if echo $0 | grep -i ${SIGNALNAMES} 2>&1 > /dev/null; then
 	retval=1;
     else
 	retval=0;

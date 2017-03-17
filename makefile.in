@@ -2,22 +2,22 @@
 # Copyright (C) 2004-2017 beingmeta, inc
 # This file is a part of beingmeta's FramerD implementation
 
-CC	= @CC@
-XCFLAGS=
-ARCHFLAGS = @archflags@
-EXECFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
-DYNAMIC_CFLAG=@dynamic_cflag@
-CFLAGS=-I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
-	$(DYNAMIC_CFLAG) \
-       -I./include $(XCFLAGS)  $(ARCHFLAGS)
-RPATH   = @rpath@
-RPATHFLAGS = @RPATHFLAGS@
-LDFLAGS = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
-DYLIB_FLAGS = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
-EXELDFLAGS = @EXELDFLAGS@
-XLIBS=
-LIBS=$(XLIBS) @LIBS@
-PATH=@BINPATH@
+CC	      = @CC@
+XCFLAGS       =
+OPTFLAGS      = -O3
+ARCHFLAGS     = @archflags@
+EXECFLAGS     = @CFLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
+DYNAMIC_CFLAG = @dynamic_cflag@
+CFLAGS        = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
+		$(DYNAMIC_CFLAG) -I./include $(XCFLAGS)  $(ARCHFLAGS)
+RPATH         = @rpath@
+RPATHFLAGS    = @RPATHFLAGS@
+LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
+DYLIB_FLAGS   = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
+EXELDFLAGS    = @EXELDFLAGS@
+XLIBS         =
+LIBS          = $(XLIBS) @LIBS@
+PATH          = @BINPATH@
 
 DESTDIR		=
 prefix		= @prefix@
@@ -73,151 +73,220 @@ DTYPE_HEADERS=\
  include/framerd/tables.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
+ include/framerd/ffi.h                               \
+ include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 DB_HEADERS=\
- include/framerd/dtypestream.h                       \
- include/framerd/fddb.h                              \
- include/framerd/pools.h                             \
- include/framerd/indices.h                           \
- include/framerd/dtproc.h                            \
- include/framerd/dtcall.h                            \
- include/framerd/frames.h                            \
- include/framerd/methods.h
-DBFILE_HEADERS=include/framerd/dbfile.h
+ include/framerd/streams.h			\
+ include/framerd/fdkbase.h			\
+ include/framerd/pools.h			\
+ include/framerd/indexes.h			\
+ include/framerd/dtproc.h			\
+ include/framerd/dtcall.h			\
+ include/framerd/frames.h			\
+ include/framerd/methods.h			\
+ include/framerd/drivers.h
+
+DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
-		include/framerd/mongodb.h
+		include/framerd/mongodb.h include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
-SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
-	src/exe/webcommon.h src/cmodules/fdsqlite.h 
+SRC_HEADERS=src/cons/biginternals.h 		\
+	src/eval/eval_internals.h 		\
+	src/exe/webcommon.h 			\
+	src/drivers/headers/chunkrefs.h 	\
+	src/drivers/headers/filepool.h 		\
+	src/drivers/headers/htindex.h		\
+	src/drivers/headers/fileindex.h 	\
+	src/drivers/headers/memindex.h	 	\
+	src/drivers/headers/oidpool.h	 	\
+	src/drivers/headers/hashindex.h		\
+	src/cmodules/fdsqlite.h			\
 
-REVISION_H =include/framerd/revision.h
-CONFIG_H   =include/framerd/config.h
+DTYPE_OBJS=src/cons/cons.o src/cons/oids.o		\
+	src/cons/fcnids.o src/cons/bufio.o		\
+	src/cons/symbols.o src/cons/numbers.o		\
+	src/cons/compare.o src/cons/walk.o		\
+	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
+	src/cons/choices.o src/cons/tables.o		\
+	src/cons/dtypeio.o src/cons/textio.o		\
+	src/cons/fdtype.o src/cons/support.o		\
+	src/cons/config.o src/cons/err.o 		\
+	src/cons/logging.o src/cons/getopt.o 		\
+	src/cons/startup.o src/cons/fluid.o
 
-DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o      \
-	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
-          src/dtype/choices.o src/dtype/tables.o                    \
-          src/dtype/dtypeio.o src/dtype/textio.o                    \
-	  src/dtype/fdtype.o src/dtype/support.o
-DB_OBJS=src/db/fddb.o src/db/dtypestream.o                                \
-	src/db/indices.o src/db/netindices.o src/db/compoundindices.o     \
-	src/db/pools.o src/db/netpools.o                                  \
-	src/db/dtproc.o src/db/dtcall.o src/db/methods.o src/db/xtables.o \
-	src/db/cachecall.o src/db/threadcache.o @ipevalo@ src/db/frames.o
-DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o        \
-	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o \
-	    src/db/hashindices.o src/db/oidpools.o
-FDBSERV_OBJS=src/db/dbserv.o
-CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o           \
-                 src/scheme/threadprims.o src/scheme/quasiquote.o \
-		 src/scheme/errors.o                              \
-	         src/scheme/conditionals.o src/scheme/iterators.o
+REVISION_H   =include/framerd/revision.h
+CONFIG_H     =include/framerd/config.h
+CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
+
+DB_OBJS=src/db/fdkbase.o src/db/streams.o src/db/hashdtype.o 		\
+	src/db/pools.o src/db/indexes.o	src/db/compoundindexes.o	\
+	src/db/dtproc.o src/db/dtcall.o 				\
+	src/db/methods.o src/db/xtables.o 				\
+	src/db/cachecall.o src/db/threadcache.o 			\
+	src/db/extindex.o src/db/extpool.o 				\
+	src/db/procpool.o src/db/procindex.o				\
+	src/db/mempool.o src/db/drivers.o				\
+	@ipevalo@ src/db/frames.o
+
+DRIVER_OBJS=\
+	src/drivers/builtin_drivers.o			\
+	src/drivers/filepool.o src/drivers/oidpool.o	\
+	src/drivers/netpool.o src/drivers/bigpool.o	\
+	src/drivers/fileindex.o src/drivers/hashindex.o	\
+	src/drivers/htindex.o src/drivers/memindex.o    \
+	src/drivers/netindex.o
+
+FDKBSERV_OBJS=src/db/dbserv.o
+
+CORE_SCHEME_OBJS=\
+	src/eval/eval.o\
+	src/eval/binders.o\
+	src/eval/sprocs.o\
+	src/eval/macros.o\
+	src/eval/threads.o\
+	src/eval/quasiquote.o \
+	src/eval/errors.o\
+	src/eval/conditionals.o\
+	src/eval/iterators.o
+
 SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
-	    src/scheme/modules.o src/scheme/load.o src/scheme/history.o \
-	    src/scheme/reflection.o src/scheme/compounds.o              \
-	    src/scheme/coreprims.o src/scheme/dbprims.o                 \
-	    src/scheme/tableprims.o src/scheme/choiceprims.o            \
-	    src/scheme/seqprims.o src/scheme/stringprims.o              \
-	    src/scheme/portprims.o src/scheme/timeprims.o               \
-	    src/scheme/arithprims.o src/scheme/side-effects.o           \
-	    src/scheme/regex.o src/scheme/reqstate.o src/scheme/extdb.o
-SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o src/scheme/loader.o
-FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
-	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o          \
-	src/fdweb/uriprims.o src/fdweb/xmleval.o src/fdweb/cgiexec.o    \
-	src/fdweb/json.o @ldnso@ @curlo@
-TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
-	src/texttools/porter.o src/texttools/phonetic.o
-SUNDOWN_OBJS= src/cmodules/sundown/autolink.o \
-	src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/houdini_href_e.o \
-	src/cmodules/sundown/houdini_html_e.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/sundown.o
+	src/eval/modules.o \
+	src/eval/load.o \
+	src/eval/history.o \
+	src/eval/reflection.o \
+	src/eval/compounds.o \
+	src/eval/choiceops.o \
+	src/eval/arith.o \
+	src/eval/side-effects.o \
+	src/eval/regex.o \
+	src/eval/reqstate.o \
+	src/prims/coreprims.o \
+	src/prims/dbprims.o \
+	src/prims/tableprims.o \
+	src/prims/seqprims.o \
+	src/prims/stringprims.o \
+	src/prims/portprims.o \
+	src/prims/streamprims.o \
+	src/prims/timeprims.o \
+	src/prims/sysprims.o \
+	src/prims/extdbprims.o
 
-SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
-SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
-	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
-	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
-	src/cmodules/sundown/houdini.h
+SCHEMEIO_OBJS=\
+	src/prims/fileprims.o\
+	src/prims/driverprims.o\
+	src/eval/loader.o
+
+FDWEB_OBJS=\
+	src/web/fdweb.o \
+	src/web/xmloutput.o \
+	src/web/xmlinput.o \
+	src/web/xmldata.o \
+	src/web/mime.o \
+	src/web/email.o \
+	src/web/uriprims.o \
+	src/web/xmleval.o \
+	src/web/cgiexec.o \
+	src/web/json.o \
+	@ldnso@ @curlo@
+TEXTTOOLS_OBJS=\
+	src/text/texttools.o \
+	src/text/match.o \
+	src/text/porter.o \
+	src/text/phonetic.o
+SUNDOWN_OBJS=\
+	src/cmodules/ext/sundown/autolink.o \
+	src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/houdini_href_e.o \
+	src/cmodules/ext/sundown/houdini_html_e.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/markdown.o \
+	src/cmodules/ext/sundown/stack.o \
+	src/cmodules/sundown.o
+
+SUNDOWN_OBJECTS=src/cmodules/ext/sundown/autolink.o src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/markdown.o src/cmodules/ext/sundown/stack.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/houdini_href_e.o src/cmodules/ext/sundown/houdini_html_e.o
+SUNDOWN_H_FILES=src/cmodules/ext/sundown/autolink.h src/cmodules/ext/sundown/buffer.h \
+	src/cmodules/ext/sundown/markdown.h src/cmodules/ext/sundown/stack.h \
+	src/cmodules/ext/sundown/html_blocks.h src/cmodules/ext/sundown/html.h \
+	src/cmodules/ext/sundown/houdini.h
 
 TIDY_OBJECTS=\
-	src/cmodules/tidy5/access.o 	\
-	src/cmodules/tidy5/alloc.o 	\
-	src/cmodules/tidy5/attrask.o 	\
-	src/cmodules/tidy5/attrdict.o 	\
-	src/cmodules/tidy5/attrget.o 	\
-	src/cmodules/tidy5/attrs.o 	\
-	src/cmodules/tidy5/buffio.o 	\
-	src/cmodules/tidy5/charsets.o 	\
-	src/cmodules/tidy5/clean.o 	\
-	src/cmodules/tidy5/config.o 	\
-	src/cmodules/tidy5/entities.o 	\
-	src/cmodules/tidy5/fileio.o 	\
-	src/cmodules/tidy5/gdoc.o 	\
-	src/cmodules/tidy5/iconvtc.o 	\
-	src/cmodules/tidy5/istack.o 	\
-	src/cmodules/tidy5/language.o 	\
-	src/cmodules/tidy5/lexer.o 	\
-	src/cmodules/tidy5/mappedio.o 	\
-	src/cmodules/tidy5/message.o 	\
-	src/cmodules/tidy5/parser.o 	\
-	src/cmodules/tidy5/pprint.o 	\
-	src/cmodules/tidy5/sprtf.o 	\
-	src/cmodules/tidy5/streamio.o 	\
-	src/cmodules/tidy5/tagask.o 	\
-	src/cmodules/tidy5/tags.o 	\
-	src/cmodules/tidy5/tidylib.o 	\
-	src/cmodules/tidy5/tmbstr.o 	\
-	src/cmodules/tidy5/utf8.o 	\
-	src/cmodules/tidy5/win32tc.o
+	src/cmodules/ext/tidy5/access.o 	\
+	src/cmodules/ext/tidy5/alloc.o 	\
+	src/cmodules/ext/tidy5/attrask.o 	\
+	src/cmodules/ext/tidy5/attrdict.o 	\
+	src/cmodules/ext/tidy5/attrget.o 	\
+	src/cmodules/ext/tidy5/attrs.o 	\
+	src/cmodules/ext/tidy5/buffio.o 	\
+	src/cmodules/ext/tidy5/charsets.o 	\
+	src/cmodules/ext/tidy5/clean.o 	\
+	src/cmodules/ext/tidy5/config.o 	\
+	src/cmodules/ext/tidy5/entities.o 	\
+	src/cmodules/ext/tidy5/fileio.o 	\
+	src/cmodules/ext/tidy5/gdoc.o 	\
+	src/cmodules/ext/tidy5/iconvtc.o 	\
+	src/cmodules/ext/tidy5/istack.o 	\
+	src/cmodules/ext/tidy5/language.o 	\
+	src/cmodules/ext/tidy5/lexer.o 	\
+	src/cmodules/ext/tidy5/mappedio.o 	\
+	src/cmodules/ext/tidy5/message.o 	\
+	src/cmodules/ext/tidy5/parser.o 	\
+	src/cmodules/ext/tidy5/pprint.o 	\
+	src/cmodules/ext/tidy5/sprtf.o 	\
+	src/cmodules/ext/tidy5/streamio.o 	\
+	src/cmodules/ext/tidy5/tagask.o 	\
+	src/cmodules/ext/tidy5/tags.o 	\
+	src/cmodules/ext/tidy5/tidylib.o 	\
+	src/cmodules/ext/tidy5/tmbstr.o 	\
+	src/cmodules/ext/tidy5/utf8.o 	\
+	src/cmodules/ext/tidy5/win32tc.o
 
 TIDY_H_FILES=\
-	src/cmodules/tidy5/access.h 	\
-	src/cmodules/tidy5/attrdict.h 	\
-	src/cmodules/tidy5/attrs.h 	\
-	src/cmodules/tidy5/buffio.h 	\
-	src/cmodules/tidy5/charsets.h 	\
-	src/cmodules/tidy5/clean.h 	\
-	src/cmodules/tidy5/config.h 	\
-	src/cmodules/tidy5/entities.h 	\
-	src/cmodules/tidy5/fileio.h 	\
-	src/cmodules/tidy5/forward.h 	\
-	src/cmodules/tidy5/gdoc.h 	\
-	src/cmodules/tidy5/iconvtc.h 	\
-	src/cmodules/tidy5/language_en_gb.h 	\
-	src/cmodules/tidy5/language_en.h 	\
-	src/cmodules/tidy5/language_es.h 	\
-	src/cmodules/tidy5/language_es_mx.h 	\
-	src/cmodules/tidy5/language_fr.h 	\
-	src/cmodules/tidy5/language.h 	\
-	src/cmodules/tidy5/language_zh_cn.h 	\
-	src/cmodules/tidy5/lexer.h 	\
-	src/cmodules/tidy5/mappedio.h 	\
-	src/cmodules/tidy5/message.h 	\
-	src/cmodules/tidy5/parser.h 	\
-	src/cmodules/tidy5/platform.h 	\
-	src/cmodules/tidy5/pprint.h 	\
-	src/cmodules/tidy5/sprtf.h 	\
-	src/cmodules/tidy5/streamio.h 	\
-	src/cmodules/tidy5/tags.h 	\
-	src/cmodules/tidy5/tidybuffio.h 	\
-	src/cmodules/tidy5/tidyenum.h 	\
-	src/cmodules/tidy5/tidy.h 	\
-	src/cmodules/tidy5/tidy-int.h 	\
-	src/cmodules/tidy5/tidyplatform.h 	\
-	src/cmodules/tidy5/tmbstr.h 	\
-	src/cmodules/tidy5/utf8.h 	\
-	src/cmodules/tidy5/version.h 	\
-	src/cmodules/tidy5/win32tc.h
+	src/cmodules/ext/tidy5/access.h 	\
+	src/cmodules/ext/tidy5/attrdict.h 	\
+	src/cmodules/ext/tidy5/attrs.h 	\
+	src/cmodules/ext/tidy5/buffio.h 	\
+	src/cmodules/ext/tidy5/charsets.h 	\
+	src/cmodules/ext/tidy5/clean.h 	\
+	src/cmodules/ext/tidy5/config.h 	\
+	src/cmodules/ext/tidy5/entities.h 	\
+	src/cmodules/ext/tidy5/fileio.h 	\
+	src/cmodules/ext/tidy5/forward.h 	\
+	src/cmodules/ext/tidy5/gdoc.h 	\
+	src/cmodules/ext/tidy5/iconvtc.h 	\
+	src/cmodules/ext/tidy5/language_en_gb.h 	\
+	src/cmodules/ext/tidy5/language_en.h 	\
+	src/cmodules/ext/tidy5/language_es.h 	\
+	src/cmodules/ext/tidy5/language_es_mx.h 	\
+	src/cmodules/ext/tidy5/language_fr.h 	\
+	src/cmodules/ext/tidy5/language.h 	\
+	src/cmodules/ext/tidy5/language_zh_cn.h 	\
+	src/cmodules/ext/tidy5/lexer.h 	\
+	src/cmodules/ext/tidy5/mappedio.h 	\
+	src/cmodules/ext/tidy5/message.h 	\
+	src/cmodules/ext/tidy5/parser.h 	\
+	src/cmodules/ext/tidy5/platform.h 	\
+	src/cmodules/ext/tidy5/pprint.h 	\
+	src/cmodules/ext/tidy5/sprtf.h 	\
+	src/cmodules/ext/tidy5/streamio.h 	\
+	src/cmodules/ext/tidy5/tags.h 	\
+	src/cmodules/ext/tidy5/tidybuffio.h 	\
+	src/cmodules/ext/tidy5/tidyenum.h 	\
+	src/cmodules/ext/tidy5/tidy.h 	\
+	src/cmodules/ext/tidy5/tidy-int.h 	\
+	src/cmodules/ext/tidy5/tidyplatform.h 	\
+	src/cmodules/ext/tidy5/tmbstr.h 	\
+	src/cmodules/ext/tidy5/utf8.h 	\
+	src/cmodules/ext/tidy5/version.h 	\
+	src/cmodules/ext/tidy5/win32tc.h
 
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/modules/crypto.o src/cmodules/ldap.o \
+	     src/cmodules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
 	     src/cmodules/qrcode.o \
 	     src/cmodules/ziptools.o \
@@ -246,88 +315,111 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
+CLEANDIRS=src/cons src/db src/drivers src/scheme \
+	src/texttools src/fdweb \
+	include/framerd src/drivers/headers \
+	src/cmodules src/cmodules/sundown src/cmodules/tidy5 \
+	etc
+
 FRAMERD_HEADERS= \
-       $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
+       $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) $(DRIVER_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c          \
-        src/dtype/choices.c src/dtype/tables.c src/dtype/pptrs.c       \
-        src/dtype/dtypeio.c src/dtype/textio.c                         \
-	src/dtype/fdtype.c src/dtype/support.c src/dtype/apply.c       \
-	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c            \
-	src/db/indices.c src/db/netindices.c src/db/compoundindices.c  \
-	src/db/pools.c src/db/netpools.c src/db/xtables.c              \
-	src/db/dtproc.c src/db/dtcall.c src/db/ipeval.c 	       \
-	src/db/cachecall.c src/db/threadcache.c 			\
-	src/db/frames.c src/db/methods.c          			\
-	src/db/dbfile.c src/db/hashdtype.c                             \
-	src/db/filepools.c src/db/zpools.c src/db/oidpools.c           \
-	src/db/fileindices.c src/db/hashindices.c src/db/zindices.c    \
-	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     \
-	src/scheme/conditionals.c src/scheme/iterators.c               \
-        src/scheme/threadprims.c src/scheme/quasiquote.c               \
-	src/scheme/modules.c src/scheme/load.c src/scheme/reflection.c \
-	src/scheme/compounds.c src/scheme/coreprims.c                  \
-	src/scheme/arithprims.c src/scheme/side-effects.c              \
-	src/scheme/dbprims.c src/scheme/portprims.c                    \
-	src/scheme/tableprims.c src/scheme/choiceprims.c               \
-	src/scheme/seqprims.c src/scheme/stringprims.c                 \
-	src/scheme/fileprims.c src/scheme/dbfileprims.c                \
-	src/scheme/loader.c                                            \
-	src/scheme/timeprims.c  src/scheme/extdb.c                     \
-	src/scheme/reqstate.c                                          \
-	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            \
-	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
-	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   \
-	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            \
-	src/texttools/texttools.c src/texttools/match.c                \
-	src/texttools/porter.c src/texttools/phonetic.c                \
-	src/exe/fdconsole.c                                            \
-	src/exe/fdexec.c src/exe/fdbatch.c                             \
+	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
+        src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
+	src/cons/choices.c src/cons/tables.c 				\
+        src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
+	src/cons/fdtype.c src/cons/support.c src/cons/config.c		\
+	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\
+	src/cons/startup.c src/cons/fluid.c				\
+	src/cons/apply.c src/cons/calltrack.c src/cons/ffi.c       	\
+	src/db/fdkbase.c src/db/streams.c src/db/hashdtype.c		\
+	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
+	src/db/xtables.c src/db/cachecall.c  				\
+	src/db/compoundindexes.c  					\
+	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
+	src/db/dtproc.c src/db/dtcall.c					\
+	src/db/ipeval.c 	       					\
+	src/drivers/builtin_drivers.c  					\
+	src/drivers/filepool.c src/drivers/oidpool.c 			\
+	src/drivers/bigpool.c 						\
+	src/drivers/fileindex.c src/drivers/hashindex.c			\
+	src/drivers/htindex.c src/db/extindex.c				\
+	src/db/mempool.c src/db/extpool.c				\
+	src/drivers/netpool.c src/drivers/netindex.c 			\
+	src/db/procpool.c src/db/procindex.c 				\
+	src/drivers/memindex.c						\
+	src/drivers/netpool.c src/drivers/netindex.c			\
+	src/eval/eval.c src/eval/binders.c src/eval/sprocs.c 		\
+	src/eval/macros.c src/eval/errors.c     			\
+	src/eval/conditionals.c src/eval/iterators.c               	\
+        src/eval/threads.c src/eval/quasiquote.c               		\
+	src/eval/modules.c src/eval/load.c src/eval/reflection.c 	\
+	src/eval/compounds.c 						\
+	src/prims/coreprims.c                  				\
+	src/eval/arith.c src/eval/side-effects.c              		\
+	src/prims/dbprims.c 						\
+	src/prims/portprims.c						\
+	src/prims/streamprims.c                    			\
+	src/prims/tableprims.c src/eval/choiceops.c               	\
+	src/prims/seqprims.c src/prims/stringprims.c                 	\
+	src/prims/fileprims.c src/prims/driverprims.c                	\
+	src/eval/loader.c                                            	\
+	src/prims/timeprims.c src/prims/sysprims.c 			\
+	src/prims/extdbprims.c                    			\
+	src/eval/reqstate.c                                          	\
+	src/web/fdweb.c src/web/json.c src/web/ldns.c            	\
+	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 	\
+	src/web/xmleval.c src/web/cgiexec.c src/web/uriprims.c   	\
+	src/web/mime.c src/web/email.c src/web/curl.c            	\
+	src/text/texttools.c src/text/match.c                	\
+	src/text/porter.c src/text/phonetic.c                	\
+	src/exe/fdconsole.c                                            	\
+	src/exe/fdexec.c src/exe/fdbatch.c                             	\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
-	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
-	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
-	src/cmodules/tidy5/tidy.c src/cmodules/imagick.c               \
-	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
+	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c   \
+	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c  \
+	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
+	src/cmodules/tidy.c src/cmodules/imagick.c               	\
+	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
-STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
-        lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
+STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdkbase@suffix@.a      \
+        lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
-	lib/libfddb@suffix@.@shared_suffix@        		\
-        lib/libfddbfile@suffix@.@shared_suffix@    		\
-	lib/libfdbserv@suffix@.@shared_suffix@     		\
+	lib/libfdkbase@suffix@.@shared_suffix@        		\
+        lib/libfdkbdrivers@suffix@.@shared_suffix@    		\
+	lib/libfdkbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
-	lib/libfddb@suffix@.@mshared_suffix@        		\
-        lib/libfddbfile@suffix@.@mshared_suffix@    		\
-	lib/libfdbserv@suffix@.@mshared_suffix@     		\
+	lib/libfdkbase@suffix@.@mshared_suffix@        		\
+        lib/libfdkbdrivers@suffix@.@mshared_suffix@    		\
+	lib/libfdkbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
 	lib/libtexttools@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
-	src/modules/aws/*.scm src/modules/brico/*.scm \
-	src/modules/facebook/*.scm src/modules/google/*.scm \
-	src/modules/paypal/*.scm src/modules/twitter/*.scm \
-	src/modules/dropbox/*.scm \
-	src/modules/misc/*.scm src/modules/tests/*.scm \
-	src/modules/safe/domutils/*.scm src/modules/safe/knodules/*.scm \
-	src/modules/safe/textindex/*.scm src/modules/safe/jwt/*.scm \
+SCHEME_MODULES=src/scheme/*.scm \
+	src/scheme/aws/*.scm src/scheme/brico/*.scm \
+	src/scheme/facebook/*.scm src/scheme/google/*.scm \
+	src/scheme/paypal/*.scm src/scheme/twitter/*.scm \
+	src/scheme/dropbox/*.scm \
+	src/scheme/misc/*.scm src/scheme/tests/*.scm \
+	src/scheme/safe/domutils/*.scm src/scheme/safe/knodules/*.scm \
+	src/scheme/safe/textindex/*.scm src/scheme/safe/jwt/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
-MODULE_SO=lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so
+MODULE_SO=lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -340,10 +432,10 @@ normal:
 	@+make testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
-	@+make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
-	     XLDFLAGS="@debugldflags@ $(XLDFLAGS)" \
-	     XLIBS="@debuglibs@ $(XLIBS)"          \
-		testbin exe cmodules etc @TAGS@
+	@+make XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
+	       XLDFLAGS="@debugldflags@ $(XLDFLAGS)"	\
+	       OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" \
+	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@+make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
@@ -392,13 +484,13 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
-tests/dtype/makefile: tests/dtype/makefile.in ./configure
+tests/cons/makefile: tests/cons/makefile.in ./configure
 	./configure
 tests/db/makefile: tests/db/makefile.in ./configure
 	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
 	./configure
-tests/dtype/.gdbinit: tests/dtype/.gdbinit.in ./configure
+tests/cons/.gdbinit: tests/cons/.gdbinit.in ./configure
 	./configure
 tests/db/.gdbinit: tests/db/.gdbinit.in ./configure
 	./configure
@@ -431,7 +523,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit \
+	tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -452,7 +544,7 @@ dbginstall:
 
 # Make rules
 
-%.o: %.c @abs_top_srcdir@/fileinfo ${REVISION_H} ${CONFIG_H}
+%.o: %.c @abs_top_srcdir@/fileinfo ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
@@ -461,17 +553,17 @@ exe/scripts/%: src/scripts/%.scm
 	@chmod a+x $@
 	@$(MSG) MAKESCRIPT $@ $<
 
-exe/%@suffix@: src/exe/%.c ${REVISION_H} ${CONFIG_H}
+exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
-		-lfdbserv@suffix@                 	 	   \
+		-lfdkbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfddbfile@suffix@ -lfddb@suffix@ -lfdtype@suffix@ \
+		-lfdkbdrivers@suffix@ -lfdkbase@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
 
-src/cmodules/%.o: src/cmodules/%.c ${REVISION_H} ${CONFIG_H}
+src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
@@ -556,12 +648,12 @@ $(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
-src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ -c $<
+src/cmodules/ext/sundown/%.o: src/cmodules/ext/sundown/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/ext/sundown/ -o $@ -c $<
 	@$(MSG) CC "(SUNDOWN)" $@
 
-src/cmodules/tidy5/%.o: src/cmodules/tidy5/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/tidy5/ -o $@ -c $<
+src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
@@ -571,10 +663,10 @@ exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
 exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
-src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h src/fdweb/backtrace_js.h
-src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
+src/web/xmloutput.o: src/web/backtrace_css.h src/web/backtrace_js.h
+src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
 	./etc/text2include FD_BACKTRACE_CSS $< $@
-src/fdweb/backtrace_js.h: src/fdweb/backtrace.js etc/text2include
+src/web/backtrace_js.h: src/web/backtrace.js etc/text2include
 	./etc/text2include FD_BACKTRACE_JS $< $@
 
 # This can be helpful for some debugging 
@@ -585,10 +677,10 @@ etc/usememory: etc/usememory.c
 libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
-testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit
+testbin: constestbin dbtestbin schemetestbin etc/usememory
+constestbin: libs tests/cons/makefile tests/cons/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/dtype
+		-C tests/cons
 dbtestbin: libs tests/db/makefile tests/db/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/db
@@ -602,7 +694,7 @@ cmodules: @CMODULES@
 
 # Uninstall
 
-LIBBASE=libfdtype libfddb libfddbfile libfdbserv \
+LIBBASE=libfdtype libfdkbase libfdkbdrivers libfdkbserv \
 	libfdscheme libfdschemeio libfdweb libtexttools
 
 uninstall-core:
@@ -636,37 +728,36 @@ uninstall: uninstall-core
 
 # Utility targets
 
-TAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-		src/texttools/*.c src/cmodules/*.c         \
-		src/cmodules/sundown/sundown.c include/framerd/*.h        \
-		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES} tests/scheme/*.scm 
+TAGS: makefile.in configure.ac include/framerd/config.h.in		\
+		tests/cons/*.c tests/db/*.c tests/scheme/*.c 		\
+		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
+		src/cons/*.c src/db/*.c src/drivers/*.c 		\
+		src/eval/*.c src/prims/*.c     				\
+		src/text/*.c src/web/*.c 				\
+		etc/*.in ${SRC_HEADERS} 				\
+		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
-	@etags makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-	      src/texttools/*.c src/cmodules/*.c         \
-	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
-	      etc/*.in ${SRC_HEADERS} tests/scheme/*.scm 
-	@# We skip module.scm files because they are always links
-	@#  to other files (with more distinctive names).
-	@find src/modules src/modules/safe src/fdweb/xhtml -name "*.scm" | \
-		grep -v module.scm | \
-		xargs etags -o TAGS -a
+	@etags makefile.in configure.ac include/framerd/config.h.in     \
+	        tests/*/*.in etc/*.in include/framerd/*.h 		\
+		${SRC_HEADERS};
+	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c
+	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
+	@etags -o TAGS -a src/web/*.c src/text/*.c;
+	@etags -o TAGS -a tests/cons/*.c tests/db/*.c;
+	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-		src/texttools/*.c src/cmodules/*.c         \
-		src/cmodules/sundown/sundown.c include/framerd/*.h        \
+		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+		src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
+		src/text/*.c src/cmodules/*.c         \
+		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-	      src/texttools/*.c src/cmodules/*.c         \
-	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
+	      tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+	      src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
+	      src/text/*.c src/cmodules/*.c         \
+	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
 
 SCHEMETAGS: ${SCHEME_MODULES}
@@ -674,29 +765,27 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/modules src/fdweb/xhtml -name "*.scm" | \
+	@find src/scheme -name "*.scm" | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
 profile-clean:
-	find . -name "*.gcda" | xargs rm -f
-	find . -name "*.gcno" | xargs rm -f
-	find . -name "*.gcov" | xargs rm -f
-	find . -name "*.bb" | xargs rm -f
-	find . -name "*.bbg" | xargs rm -f
-	find . -name "*.da" | xargs rm -f
-	find . -name "gmon.out" | xargs rm -f
+	@find . -name "*.gcda" | xargs rm -f
+	@find . -name "*.gcno" | xargs rm -f
+	@find . -name "*.gcov" | xargs rm -f
+	@find . -name "*.bb" | xargs rm -f
+	@find . -name "*.bbg" | xargs rm -f
+	@find . -name "*.da" | xargs rm -f
+	@find . -name "gmon.out" | xargs rm -f
 tidy: profile-clean
-	rm -f src/dtype/*~ src/db/*~ src/scheme/*~ src/fdweb/*~
-	rm -f include/framerd/*~
-	rm -f tests/dtype/*~ tests/db/*.o tests/scheme/*.o
+	@for dir in ${CLEANDIRS}; do \
+	  rm -f $${dir}/*~ $${dir}/*.o; \
+	done
 	rm -f config.log
 clean: tidy
 	rm -f buildmode
-	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o 
-	rm -f src/cmodules/*.o src/texttools/*.o exe/*.o
-	rm -f src/cmodules/sundown/*.o
+	@for dir in ${CLEANDIRS}; do rm -f ${dir}/*.o; done
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
 	rm -f lib/*@suffix@.so.*
@@ -706,14 +795,14 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
-	cd tests/dtype; make clean
+	cd tests/cons; make clean
 	cd tests/db; make clean
 	cd tests/scheme; make clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/dtype/makefile tests/db/makefile tests/scheme/makefile
-	rm -f tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/cons/makefile tests/db/makefile tests/scheme/makefile
+	rm -f tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -726,17 +815,17 @@ pull:
 
 # Custom dependencies
 
-src/scheme/eval.o: src/scheme/eval.c src/scheme/opcodes.c \
-	src/scheme/eval_internals.h \
+src/eval/eval.o: src/eval/eval.c src/eval/opcodes.c \
+	src/eval/eval_internals.h \
 	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
-src/scheme/binders.o src/scheme/conditionals.o src/scheme/iterators.o: \
-	src/scheme/eval_internals.h
+src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
+	src/eval/eval_internals.h
 
-src/dtype/dtypeio.o src/dtype/apply.o : XCFLAGS="-O3"
-src/db/dtypestream.o : XCFLAGS="-O3"
-src/scheme/eval.o : XCFLAGS="-O3"
-src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="-O3"
-src/scheme/opcodes.o : XCFLAGS="-O3"
+src/cons/dtypeio.o src/cons/bufio.o src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
+src/db/streams.o : XCFLAGS="${OPTFLAGS}"
+src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
+src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
+src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
@@ -744,56 +833,57 @@ lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.so: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS)
 
-lib/libfddb@suffix@.a: $(DB_OBJS)
-lib/libfddb@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
-lib/libfddb@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
+lib/libfdkbase@suffix@.a: $(DB_OBJS)
+lib/libfdkbase@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
+lib/libfdkbase@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
-lib/libfddbfile@suffix@.a: $(DBFILE_OBJS)
-lib/libfddbfile@suffix@.so: $(DBFILE_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so
-lib/libfddbfile@suffix@.dylib: $(DBFILE_OBJS) \
-	lib/libfddb@suffix@.dylib lib/libfdtype@suffix@.dylib
+lib/libfdkbdrivers@suffix@.a: $(DRIVER_OBJS)
+lib/libfdkbdrivers@suffix@.so: $(DRIVER_OBJS) \
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so
+lib/libfdkbdrivers@suffix@.dylib: $(DRIVER_OBJS) \
+	lib/libfdkbase@suffix@.dylib lib/libfdtype@suffix@.dylib
 
-lib/libfdbserv@suffix@.a: $(FDBSERV_OBJS)
-lib/libfdbserv@suffix@.so: $(FDBSERV_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so
-lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
+lib/libfdkbserv@suffix@.a: $(FDKBSERV_OBJS)
+lib/libfdkbserv@suffix@.so: $(FDKBSERV_OBJS) \
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdkbdrivers@suffix@.so
+lib/libfdkbserv@suffix@.dylib: $(FDKBSERV_OBJS) \
 	lib/libfdscheme@suffix@.dylib         \
-	lib/libfddbfile@suffix@.dylib         \
-	lib/libfddb@suffix@.dylib             \
+	lib/libfdkbdrivers@suffix@.dylib         \
+	lib/libfdkbase@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
-lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so
-lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) \
-	lib/libfddb@suffix@.dylib             \
-        lib/libfdtype@suffix@.dylib
+lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so	\
+	lib/libfdkbdrivers@suffix@.so
+lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
+	lib/libfdtype@suffix@.dylib  lib/libfdkbase@suffix@.dylib	\
+        lib/libfdkbdrivers@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
-lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfddbfile@suffix@.so \
+lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
+	lib/libfdtype@suffix@.so  lib/libfdkbase@suffix@.so	\
+        lib/libfdkbdrivers@suffix@.so 				\
 	lib/libfdscheme@suffix@.so
-lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) \
-	lib/libfdscheme@suffix@.dylib             \
-	lib/libfddbfile@suffix@.dylib             \
-	lib/libfddb@suffix@.dylib                 \
-	lib/libfdtype@suffix@.dylib 
+lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
+	lib/libfdscheme@suffix@.dylib             		\
+	lib/libfdtype@suffix@.dylib  lib/libfdkbase@suffix@.dylib	\
+        lib/libfdkbdrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so \
+	lib/libfdtype@suffix@.so \
+	lib/libfdkbase@suffix@.so \
+	lib/libfdkbdrivers@suffix@.so \
+	lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
-	lib/libfddbfile@suffix@.dylib     \
-	lib/libfddb@suffix@.dylib         \
+	lib/libfdkbdrivers@suffix@.dylib     \
+	lib/libfdkbase@suffix@.dylib         \
         lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -803,13 +893,13 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
 lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so \
+	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
-	lib/libfddbfile@suffix@.dylib \
-	lib/libfddb@suffix@.dylib \
+	lib/libfdkbdrivers@suffix@.dylib \
+	lib/libfdkbase@suffix@.dylib \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -817,8 +907,7 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 		-o $@ $(TEXTTOOLS_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-
-src/cmodules/mysql.o: src/cmodules/mysql.c
+src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MYSQL)" $@
 lib/framerd/mysql.so: src/cmodules/mysql.o ${MODULE_SO}
@@ -833,7 +922,7 @@ lib/framerd/mysql.dylib: src/cmodules/mysql.o
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 
-src/cmodules/mongodb.o: src/cmodules/mongodb.c
+src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS}
 	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MONGODB)" $@
 lib/framerd/mongodb.so: src/cmodules/mongodb.o ${MODULE_SO}
@@ -848,7 +937,7 @@ lib/framerd/mongodb.dylib: src/cmodules/mongodb.o
 		-o $@ src/cmodules/mongodb.o @MONGODB_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MONGODB)" $@
 
-src/cmodules/imagick.o: src/cmodules/imagick.c
+src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
 lib/framerd/imagick.so: src/cmodules/imagick.o ${MODULE_SO}
@@ -863,7 +952,7 @@ lib/framerd/imagick.dylib: src/cmodules/imagick.o
 		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
 
-src/cmodules/ziptools.o: src/cmodules/ziptools.c
+src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.so: src/cmodules/ziptools.o ${MODULE_SO}
@@ -893,42 +982,50 @@ src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/framerd/crypto.so: src/cmodules/crypto.o ${MODULE_SO}
 lib/framerd/crypto.dylib: src/cmodules/crypto.o
 
+lib/framerd/odbc.o: src/cmodules/odbc.c
 lib/framerd/odbc.so: src/cmodules/odbc.o ${MODULE_SO}
 lib/framerd/odbc.dylib: src/cmodules/odbc.o
 
+lib/framerd/sqlite.o: src/cmodules/sqlite.c
 lib/framerd/sqlite.so: src/cmodules/sqlite.o ${MODULE_SO}
 lib/framerd/sqlite.dylib: src/cmodules/sqlite.o
 
+lib/framerd/qrcode.o: src/cmodules/qrcode.c
 lib/framerd/qrcode.so: src/cmodules/qrcode.o ${MODULE_SO}
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 
+lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
-lib/framerd/sundown.so: src/cmodules/sundown/sundown.c \
+lib/framerd/leveldb.o: src/cmodules/leveldb.c
+lib/framerd/leveldb.so: src/cmodules/leveldb.o ${MODULE_SO}
+lib/framerd/leveldb.dylib: src/cmodules/leveldb.o
+
+lib/framerd/sundown.so: src/cmodules/sundown.c \
 		$(SUNDOWN_OBJECTS) $(MODULE_SO)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c \
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown.c \
 		$(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+lib/framerd/sundown.dylib: src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
-		src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+		src/cmodules/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
-lib/framerd/tidy.so: src/cmodules/tidy5/tidy.c \
+lib/framerd/tidy.so: src/cmodules/tidy.c \
 			$(TIDY_OBJECTS) $(MODULE_SO)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy5/tidy.c \
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy.c \
 		$(TIDY_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/tidy.dylib: src/cmodules/tidy5/tidy.c $(TIDY_OBJECTS)
+lib/framerd/tidy.dylib: src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
-		src/cmodules/tidy5/tidy.c $(TIDY_OBJECTS)
+		src/cmodules/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
@@ -937,7 +1034,7 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ \
+	@XGETTEXT@ --from-code=utf-8 -dfdkbase -oetc/intl/framerd.pot -k_ \
 		$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	@MSGMERGE@ -U $@ $<
@@ -978,7 +1075,7 @@ staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD;
-	cd src/modules; git archive --prefix=framerd_@FDVERSION@/src/modules/ \
+	cd src/scheme; git archive --prefix=framerd_@FDVERSION@/src/scheme/ \
 	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
 	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
@@ -1041,11 +1138,6 @@ dist/rpms.zip: dist/rpms.done
 
 # Rules for Debian building
 
-DEBINSTALL=framerd framerd-core framerd-builtin		\
-	framerd-mysql framerd-sqlite framerd-mongodb 	\
-	framerd-imagetools framerd-sundown 		\
-	framerd-full framerd-dev elpa-fdconsole 
-
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
@@ -1055,6 +1147,9 @@ dist/debs.signed: dist/debs.built
 		framerd_@FDVERSION@*.changes) && 		\
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               	\
+			sysv-framerd_@FDVERSION@*.deb  		\
+			upstart-framerd_@FDVERSION@*.deb  	\
+			systemd-framerd_@FDVERSION@*.deb  	\
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
 			elpa-fdconsole_@FDVERSION@*.deb  \
 			../dist) &&                             \
@@ -1064,11 +1159,7 @@ dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	for pkg in ${DEBINSTALL}; do 				\
-	  if test -f dist/$${pkg}_@FDVERSION@*.deb; then 	\
-	    @SUDO@ dpkg -i dist/$${pkg}_@FDVERSION@*.deb;	\
-	  fi;							\
-	done;
+	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
@@ -1119,9 +1210,9 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@confi
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
-		$(LIBINSTALLDIR)/libfddb@suffix@.a       \
-		$(LIBINSTALLDIR)/libfddbfile@suffix@.a   \
-		$(LIBINSTALLDIR)/libfdbserv@suffix@.a    \
+		$(LIBINSTALLDIR)/libfdkbase@suffix@.a       \
+		$(LIBINSTALLDIR)/libfdkbdrivers@suffix@.a   \
+		$(LIBINSTALLDIR)/libfdkbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
@@ -1131,18 +1222,18 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbase@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\
@@ -1163,8 +1254,8 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
 		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
-		   $(DBFILE_HEADERS) $(SCHEME_HEADERS)	\
-		   $(LIB_HEADERS) $(REVISION_H)		\
+		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
+		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
 
 install-data: $(DATADIR)
@@ -1174,8 +1265,6 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdbserver; 	$(SUDO) ln -s fdserver fdbserver
-	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserv; $(SUDO) ln -s fdservlet fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
@@ -1187,8 +1276,6 @@ install-data: \
 	$(DESTDIR)@config_dir@/boot/framerd.service	\
 	$(DESTDIR)@config_dir@/boot/framerd-rc.d 	\
 	$(DESTDIR)@config_dir@/boot/framerd.conf 	\
-	$(DESTDIR)@config_dir@/boot/fdserver.conf 	\
-	$(DESTDIR)@config_dir@/boot/fdservlet.conf 	\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
 install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
@@ -1208,6 +1295,8 @@ install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vsh
 install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
 install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
+install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
+install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@
@@ -1242,32 +1331,33 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter dropbox google \
-	jwt domutils knodules textindex
+MODULE_DIRS=aws brico bugjar facebook paypal twitter \
+	misc tests dropbox google \
+	jwt domutils knodules textindex \
+	batchtools bench mongodb \
+	xhtml fdxml
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
 		 aws/templates bugjar/websrc
 
-install-modules: install-builtin-modules install-web-modules
-install-builtin-modules: install-standard-modules install-safe-modules
-
+install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm 		\
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/scheme/*.scm 		\
 		$(DESTDIR)@builtin_module_dir@;
 	@for dir in $(MODULE_DIRS); do						\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$${dir}/*.scm	\
+	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/scheme/$${dir}/*.scm	\
 	      $${install_dir};							\
 	done;
 
 install-module-data: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying module data to @builtin_module_dir@;
 	@for dir in $(MODULE_DATA_DIRS); do					\
-	  src_dir="$(BUILD)/src/modules/$${dir}";				\
+	  src_dir="$(BUILD)/src/scheme/$${dir}";				\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
@@ -1277,20 +1367,10 @@ install-module-data: $(DESTDIR)@builtin_module_dir@
 install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modules
 	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
 			to @builtin_safe_module_dir@
-	@for safe_link in $(BUILD)/src/modules/safe/*; do 			\
+	@for safe_link in $(BUILD)/src/scheme/safe/*; do 			\
           ${SUDO} ln -sf `readlink $${safe_link}` 				\
 		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
-
-install-web-modules: $(DESTDIR)@builtin_module_dir@
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/xhtml
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/fdxml;
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/*.scm \
-		$(DESTDIR)@builtin_module_dir@/xhtml;
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/*.scm \
-		$(DESTDIR)@builtin_module_dir@/fdxml;
-	${SUDO} ln -sf ../xhtml $(DESTDIR)@builtin_safe_module_dir@;
-	${SUDO} ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
@@ -1349,20 +1429,10 @@ enable-sysv: setup-sysv
 
 startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-setup-upstart: $(DESTDIR)/etc/init/fdserver.conf \
-	$(DESTDIR)/etc/init/fdservlet.conf \
-	$(DESTDIR)/etc/init/framerd.conf \
-	startupdirs
+setup-upstart: $(DESTDIR)/etc/init/framerd.conf startupdirs
+
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
-$(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdserver Upstart config to $(DESTDIR)/etc/init/fdserver.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/fdserver.conf $(DESTDIR)/etc/init/fdserver.conf
-$(DESTDIR)/etc/init/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdservlet Upstart config to $(DESTDIR)/etc/init/fdservlet.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/fdservlet.conf $(DESTDIR)/etc/init/fdservlet.conf
 $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
@@ -1469,10 +1539,42 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		else sudo ${APXS} -i mod_fdserv.la; fi
 	sleep 5; sudo apachectl start
 
+# Test targets
+
+tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running libtests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j libtests optmods 2>&1 > tests/libtests.log && \
+	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
+libtests: tests/libtests.log
+
+tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
+	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
+schemetests: tests/schemetests.log
+
+tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
+	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
+leaktests: tests/leaktests.log
+
+tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
+	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
+dbtests: tests/dbtests.log
+
+.PHONY: alltests
+
 # Meta operations
 
 update-modules:
-	git submodule update --remote --merge --recursive
+	git submodule update --remote --merge src/scheme
 
 .PHONY: fdserv update-fdserv install-fdserv update-modules
 
@@ -1499,20 +1601,25 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
-#$(STATIC_LIBS) $(SHARED_LIBS): buildmode
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
-$(DBFILE_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(REVISION_H)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+$(DRIVER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(DTYPE_OBJS) $(DB_OBJS) $(DBFILE_OBJS):  buildmode
+$(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
+# Driver dependencies
+src/drivers/filepool.o: src/drivers/headers/filepool.h
+src/drivers/fileindex.o: src/drivers/headers/fileindex.h
+src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/chunkrefs.h
+src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/chunkrefs.h
+src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/chunkrefs.h
 
 # We've stopped using makedpend for the time being
 

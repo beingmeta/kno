@@ -188,9 +188,9 @@ int main(int argc,char **argv)
   args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
   fd_register_config("LOGAPPEND",
-                     _("Whether to truncate existing log files"),
-                     fd_boolconfig_get,fd_boolconfig_set,
-                     &logappend);
+		     _("Whether to truncate existing log files"),
+		     fd_boolconfig_get,fd_boolconfig_set,
+		     &logappend);
 
   if (!(logappend)) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
 
@@ -298,8 +298,16 @@ int main(int argc,char **argv)
         u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
         u8_fclose(f);}
       died_file=NULL;}
+    {
+      int free_i=0; while (free_i<n_args) {
+	fd_decref(args[free_i]); free_i++;}
+      u8_free(args);}
     exit(retval);
     return retval;}
+  {
+    int free_i=0; while (free_i<n_args) {
+      fd_decref(args[free_i]); free_i++;}
+    u8_free(args);}
   exit(0);
   return 0;
 }

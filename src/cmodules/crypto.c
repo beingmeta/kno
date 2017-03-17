@@ -12,9 +12,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
+#include "framerd/fdkbase.h"
 #include "framerd/pools.h"
-#include "framerd/indices.h"
+#include "framerd/indexes.h"
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 
@@ -33,19 +33,21 @@ static fdtype doencrypt(fdtype data,fdtype key,
                         u8_string ciphername,fdtype iv,
                         int dtype)
 {
-  struct FD_BYTE_OUTPUT tmp;
+  struct FD_OUTBUF tmp;
   const unsigned char *payload; size_t payload_len; int free_payload=0;
   const unsigned char *ivdata; size_t iv_len;
   unsigned char *outbuf; size_t outlen;
-  if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
+  if (!(FD_PACKETP(key)))
+    return fd_type_error("packet/secret","doencrypt",key);
   if ((!(dtype))&& (FD_STRINGP(data))) {
     payload=FD_STRDATA(data); payload_len=FD_STRLEN(data);}
   else if ((!(dtype))&&(FD_PACKETP(data))) {
     payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);}
   else {
-    FD_INIT_BYTE_OUTPUT(&tmp,512);
+    FD_INIT_BYTE_OUTBUF(&tmp,512);
     fd_write_dtype(&tmp,data);
-    payload=tmp.start; payload_len=tmp.ptr-tmp.start;
+    payload=tmp.buffer;
+    payload_len=tmp.bufwrite-tmp.buffer;
     free_payload=1;}
   if (FD_PACKETP(iv)) {
     ivdata=FD_PACKET_DATA(iv);
@@ -148,7 +150,7 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf) {
-    struct FD_BYTE_INPUT in; fdtype result;
+    struct FD_INBUF in; fdtype result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
     result=fd_read_dtype(&in);
     u8_free(outbuf);
@@ -222,7 +224,6 @@ FD_EXPORT int fd_init_crypto()
                            fd_fixnum_type,FD_VOID,-1,FD_VOID));
 
   fd_finish_module(crypto_module);
-  fd_persist_module(crypto_module);
 
   u8_register_source_file(_FILEINFO);
 
@@ -231,7 +232,7 @@ FD_EXPORT int fd_init_crypto()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -19,17 +19,20 @@ FD_EXPORT fd_exception fd_ReadOnlyConfig;
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {
-  fdtype var; void *data; int flags; u8_string doc;
-  fdtype (*config_get_method)(fdtype var,void *data);
-  int (*config_set_method)(fdtype var,fdtype val,void *data);
-  struct FD_CONFIG_HANDLER *next;} FD_CONFIG_HANDLER;
+  fdtype fd_configname; 
+  void *fd_configdata; 
+  int fd_configflags; 
+  u8_string fd_configdoc;
+  fdtype (*fd_config_get_method)(fdtype var,void *data);
+  int (*fd_config_set_method)(fdtype var,fdtype val,void *data);
+  struct FD_CONFIG_HANDLER *fd_nextconfig;} FD_CONFIG_HANDLER;
 typedef struct FD_CONFIG_HANDLER *fd_config_handler;
 
-typedef struct FD_CONFIG_LOOKUPS {
+typedef struct FD_CONFIG_FINDER {
   fdtype (*fdcfg_lookup)(fdtype var,void *data);
   void *fdcfg_lookup_data;
-  struct FD_CONFIG_LOOKUPS *next;} FD_CONFIG_LOOKUPS;
-typedef struct FD_CONFIG_LOOKUPS *fd_config_lookups;
+  struct FD_CONFIG_FINDER *fd_next_finder;} FD_CONFIG_FINDER;
+typedef struct FD_CONFIG_FINDER *fd_config_finders;
 
 FD_EXPORT fdtype fd_config_get(u8_string var);
 FD_EXPORT int fd_set_config(u8_string var,fdtype val);
@@ -56,6 +59,9 @@ FD_EXPORT fdtype fd_boolconfig_get(fdtype,void *intptr);
 FD_EXPORT int fd_dblconfig_set(fdtype,fdtype v,void *dblptr);
 FD_EXPORT fdtype fd_dblconfig_get(fdtype,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
+
+FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr);
+FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_default_config_assignment(u8_string assign_expr);
@@ -96,7 +102,7 @@ FD_EXPORT int fd_boolstring(u8_string,int);
 FD_EXPORT void fd_free_exception_xdata(void *ptr);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
-FD_EXPORT void fd_push_error_context(u8_context cxt,fdtype data);
+FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data);
 
 FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
 
@@ -106,6 +112,8 @@ FD_EXPORT u8_string fd_errstring(u8_exception e);
 FD_EXPORT fdtype fd_exception_xdata(u8_exception e);
 
 FD_EXPORT U8_NOINLINE void fd_seterr
+  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+FD_EXPORT U8_NOINLINE void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 
 #define fd_seterr3(c,cxt,details) \
@@ -165,6 +173,9 @@ FD_EXPORT int fd_isreqlive(void);
 FD_EXPORT struct U8_OUTPUT *fd_reqlog(int force);
 FD_EXPORT int fd_reqlogger(u8_condition,u8_context,u8_string);
 
+FD_EXPORT struct U8_OUTPUT *fd_get_reqlog(void);
+FD_EXPORT struct U8_OUTPUT *fd_try_reqlog(void);
+
 /* Sets the application identifier and runbase */
 
 FD_EXPORT void fd_setapp(u8_string spec,u8_string dir);
@@ -177,13 +188,6 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
-
-/* Initializing the stack */
-
-FD_EXPORT ssize_t fd_default_stack_limit;
-FD_EXPORT ssize_t fd_init_stack(void);
-
-#define FD_INIT_STACK() fd_init_stack()
 
 /* Signalling */
 

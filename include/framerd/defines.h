@@ -25,6 +25,8 @@
 #define WORDS_BIGENDIAN 0
 #endif
 
+#define FD_THREADS_ENABLED 1
+
 #ifndef FD_FASTOP
 #define FD_FASTOP static inline
 #endif
@@ -147,10 +149,6 @@ typedef int fd_size_t;
 #define ftello(f) ftell(f)
 #endif
 
-#ifndef FD_THREADS_ENABLED
-#define FD_THREADS_ENABLED 1
-#endif
-
 /* This can be configured with --with-nptrlocks.
 
    Larger values for this are useful when you're being more
@@ -163,33 +161,31 @@ typedef int fd_size_t;
 #define FD_N_PTRLOCKS 979
 #endif
 
-#if FD_THREADS_ENABLED
 #if HAVE_PTHREAD_H
 #include <pthread.h>
 #define HAVE_POSIX_THREADS 1
 #else
 #define HAVE_POSIX_THREADS 0
 #endif
-#endif
 
 #ifndef HAVE_THREAD_STORAGE_CLASS
 #define HAVE_THREAD_STORAGE_CLASS 0
 #endif
 
-#if (FD_THREADS_ENABLED==0)
-#define FD_USE_TLS 0
-#define FD_USE__THREAD 0
-#define FD_THREADVAR
-#elif (FD_FORCE_TLS)
+#if ( (FD_FORCE_TLS) || (!(HAVE_THREAD_STORAGE_CLASS)))
 #define FD_USE_TLS 1
 #define FD_USE__THREAD 0
-#elif (!(HAVE_THREAD_STORAGE_CLASS))
-#define FD_USE_TLS 1
-#define FD_USE__THREAD 0
-#else /* Able to use __thread */
+#define FD_HAVE_THREADS 1
+#elif U8_USE__THREAD
 #define FD_USE_TLS 0
 #define FD_USE__THREAD 1
 #define FD_THREADVAR __thread
+#define FD_HAVE_THREADS 1
+#else
+#define FD_USE_TLS 0
+#define FD_USE__THREAD 0
+#define FD_THREADVAR __thread
+#define FD_HAVE_THREADS 0
 #endif
 
 #ifndef FD_INLINE_CHOICES
@@ -216,14 +212,6 @@ typedef int fd_size_t;
 
 #ifndef FD_TYPE_MAX
 #define FD_TYPE_MAX 256
-#endif
-
-#ifndef  FD_N_POOL_OPENERS
-#define FD_N_POOL_OPENERS 32
-#endif
-
-#ifndef  FD_N_INDEX_OPENERS
-#define FD_N_INDEX_OPENERS 32
 #endif
 
 #ifndef FD_TRACE_IPEVAL

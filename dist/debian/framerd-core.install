@@ -1,9 +1,9 @@
 usr/lib/libfdtype.so.*
-usr/lib/libfddb.so.*
-usr/lib/libfddbfile.so.*
-usr/lib/libfdbserv.so*
+usr/lib/libfdkbase.so.*
+usr/lib/libfdkbdrivers.so.*
 usr/lib/libfdscheme.so.*
 usr/lib/libfdschemeio.so.*
+usr/lib/libfdkbserv.so*
 usr/lib/libfdweb.so*
 usr/lib/libtexttools.so*
 usr/lib/framerd/crypto.so*
@@ -13,10 +13,8 @@ usr/lib/framerd/zlib.so*
 usr/bin/fdconsole
 usr/bin/fdexec
 usr/bin/fdserver
-usr/bin/fdbserver
 usr/bin/fdbatch
 usr/bin/fdservlet
-usr/bin/fdserv
 usr/bin/make-hash-index
 usr/bin/make-oidpool
 usr/bin/ovmerge

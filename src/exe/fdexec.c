@@ -15,8 +15,8 @@
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
-#include "framerd/fddb.h"
-#include "framerd/dbfile.h"
+#include "framerd/fdkbase.h"
+#include "framerd/drivers.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
@@ -90,9 +90,9 @@ static fdtype chain_prim(int n,fdtype *args)
       else i++;}
     cargv[cargc++]=NULL;
     fflush(stdout); fflush(stderr);
-    u8_log(LOG_INFO,"CHAIN","Closing pools and indices");
+    u8_log(LOG_INFO,"CHAIN","Closing pools and indexes");
     fd_close_pools();
-    fd_close_indices();
+    fd_close_indexes();
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
            exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
@@ -278,9 +278,9 @@ int do_main(int argc,char **argv,
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="ms";}
-    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indices",
+    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indexes",
                u8_appid(),startup_time,units,fd_n_pools,
-               fd_n_primary_indices+fd_n_secondary_indices);}
+               fd_n_primary_indexes+fd_n_secondary_indexes);}
 
   if (!(FD_ABORTP(result))) {
     fdtype main_symbol=fd_intern("MAIN");
@@ -310,8 +310,8 @@ int do_main(int argc,char **argv,
      working_environment contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
-  if (FD_HASHTABLEP(env->bindings))
-    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
+  if (FD_HASHTABLEP(env->env_bindings))
+    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   fd_recycle_environment(env);
   fd_decref(main_proc);
   return retval;
@@ -329,7 +329,7 @@ int main(int argc,char **argv)
 
   args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
-  retval=do_main(argc,argv,exe_name,source_file,args,n_args);
+  retval = do_main(argc,argv,exe_name,source_file,args,n_args);
 
   i=0; while (i<n_args) {
     fdtype arg=args[i++]; fd_decref(arg);}
@@ -345,7 +345,7 @@ int main(int argc,char **argv)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

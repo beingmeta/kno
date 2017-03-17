@@ -1,7 +1,17 @@
 # -*- Mode: Makefile; -*-
-# Copyright (C) 2004, 2005 beingmeta, inc.
-# This file is a part of beingmeta's FramerD implementation, EFramerD.
-MAKEFILE_VERSION="$Id$"
+# Copyright (C) 2004-2017 beingmeta, inc.
+# This file is a part of beingmeta's FramerD implementation
+
+FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm:
+export FD_LOADPATH
+FD_DLOADPATH=../../lib/framerd
+export FD_DLOADPATH
+LD_LIBRARY_PATH=../../lib
+export LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../../lib
+export DYLD_LIBRARY_PATH
+PPROF_PATH      = @GOOGLE_PPROF@
+export PPROF_PATH
 
 CC	= @CC@
 XCFLAGS=
@@ -47,12 +57,14 @@ all: $(TESTBIN) $(SHAREDBIN)
 	@$(CC) $(CFLAGS) -o $@ $<
 	@echo CC $@ $<
 
-$(TESTBIN): ../../lib/libfddbfile@suffix@.a \
-            ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
+$(TESTBIN): ../../lib/libfdkbdrivers@suffix@.a 	\
+	../../lib/libfdkbase@suffix@.a 		\
+	../../lib/libfdtype@suffix@.a
 
 # Note that we don't add @suffix@ to these executables because they're
 # never installed
-%: %.c ../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
+%: %.c ../../lib/libfdkbdrivers@suffix@.a 	\
+	../../lib/libfdkbase@suffix@.a 		\
 	../../lib/libfdtype@suffix@.a
 	@echo MKTEST_STATIC $@
 	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -61,13 +73,13 @@ $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ $(LIBS)
+		-lfdtype@suffix@ -lfdkbase@suffix@ -lfdkbdrivers@suffix@ $(LIBS)
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype@suffix@.a
-../../lib/libfddb@suffix@.a:
-	cd ../..; make lib/libfddb@suffix@.a
-../../lib/libfddbfile@suffix@.a:
-	cd ../..; make lib/libfddbfile@suffix@.a
+../../lib/libfdkbase@suffix@.a:
+	cd ../..; make lib/libfdkbase@suffix@.a
+../../lib/libfdkbdrivers@suffix@.a:
+	cd ../..; make lib/libfdkbdrivers@suffix@.a
 
 clean:
 	rm -f $(TESTBIN)
@@ -84,14 +96,11 @@ pooltests:
 filepooltests:
 	@echo "***" Running file pool tests
 	make BRICOPOOL=$(FILEBRICOPOOL) pooltests
-zfilepooltests:
-	@echo "***" Running zpool tests
-	make BRICOPOOL=$(ZFILEBRICOPOOL) pooltests
 netpooltests:
 	@echo "***" Running netpool tests
 	make BRICOPOOL=$(NETBRICOPOOL) pooltests
 
-allpooltests: filepooltests zfilepooltests netpooltests
+allpooltests: filepooltests netpooltests
 
 indextests:
 	$(RUNTEST) ./index-get $(BRICOINDEX) "(@1/2c1c7 . \"example\")"
@@ -101,11 +110,8 @@ indextests:
 fileindextests:
 	@echo "***" Running file index tests
 	make BRICOINDEX=$(FILEBRICOINDEX) indextests
-zfileindextests:
-	@echo "***" Running zindex tests
-	make BRICOINDEX=$(ZFILEBRICOINDEX) indextests
 netindextests:
 	@echo "***" Running netindex tests
 	make BRICOINDEX=$(NETBRICOINDEX) indextests
 
-allindextests: fileindextests zfileindextests netindextests
+allindextests: fileindextests netindextests

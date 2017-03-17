@@ -29,7 +29,7 @@ FD_EXPORT fdtype _fd_comment_symbol;
 
 FD_EXPORT int fd_load_fdscheme(void) FD_LIBINIT0_FN;
 FD_EXPORT int fd_init_fdscheme(void);
-FD_EXPORT void fd_init_schemeio(void);
+FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
 FD_EXPORT u8_context fd_eval_context;
 
@@ -49,8 +49,10 @@ FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
 typedef struct FD_ENVIRONMENT {
   FD_CONS_HEADER;
-  fdtype bindings, exports;
-  struct FD_ENVIRONMENT *parent, *copy;} FD_ENVIRONMENT;
+  fdtype env_bindings;
+  fdtype env_exports;
+  struct FD_ENVIRONMENT *env_parent;
+  struct FD_ENVIRONMENT *env_copy;} FD_ENVIRONMENT;
 typedef struct FD_ENVIRONMENT *fd_environment;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
@@ -59,10 +61,10 @@ FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
 
 #define FD_XENV(x) \
-  (FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *))
+  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
 #define FD_XENVIRONMENT(x) \
- (FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *))
-#define FD_ENVIRONMENTP(x) (FD_PTR_TYPEP(x,fd_environment_type))
+  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
+#define FD_ENVIRONMENTP(x) (FD_TYPEP(x,fd_environment_type))
 
 FD_EXPORT int fd_recycle_environment(fd_lispenv env);
 
@@ -72,8 +74,8 @@ typedef fdtype (*fd_evalfn)(fdtype expr,struct FD_ENVIRONMENT *);
 
 typedef struct FD_SPECIAL_FORM {
   FD_CONS_HEADER;
-  u8_string name, filename;
-  fd_evalfn eval;} FD_SPECIAL_FORM;
+  u8_string fexpr_name, fexpr_filename;
+  fd_evalfn fexpr_handler;} FD_SPECIAL_FORM;
 typedef struct FD_SPECIAL_FORM *fd_special_form;
 
 FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
@@ -81,19 +83,24 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
-  u8_string name;
-  fdtype transformer;} FD_MACRO;
+  u8_string fd_macro_name;
+  fdtype macro_transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
+
+/* These should probably get their own header file */
+
+FD_EXPORT fdtype fd_printout(fdtype,fd_lispenv);
+FD_EXPORT fdtype fd_printout_to(U8_OUTPUT *,fdtype,fd_lispenv);
 
 /* DT servers */
 
-FD_EXPORT fd_ptr_type fd_dtserver_type;
+FD_EXPORT fd_ptr_type fd_stream_erver_type;
 
-typedef struct FD_DTSERVER {
+typedef struct FD_STREAM_ERVER {
   FD_CONS_HEADER;
-  u8_string server, addr;
-  struct U8_CONNPOOL *connpool;} FD_DTSERVER;
-typedef struct FD_DTSERVER *fd_dtserver;
+  u8_string fd_serverid, fd_server_address;
+  struct U8_CONNPOOL *fd_connpool;} FD_STREAM_ERVER;
+typedef struct FD_STREAM_ERVER *fd_stream_erver;
 
 /* Modules */
 
@@ -109,7 +116,6 @@ FD_EXPORT int fd_discard_module(fdtype name,int safe);
 
 FD_EXPORT int fd_module_finished(fdtype module,int flags);
 FD_EXPORT int fd_finish_module(fdtype module);
-FD_EXPORT int fd_persist_module(fdtype module);
 FD_EXPORT int fd_static_module(fdtype module);
 FD_EXPORT int fd_lock_exports(fdtype module);
 
@@ -137,10 +143,11 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 
 typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
-  short n_vars, synchronized;
-  fdtype *schema, arglist, body;
-  fd_lispenv env;
-  U8_MUTEX_DECL(lock);
+  short sproc_n_vars, sproc_synchronized;
+  fdtype *sproc_vars, sproc_arglist, sproc_body;
+  struct FD_VECTOR *sproc_bytecode;
+  fd_lispenv sproc_env;
+  U8_MUTEX_DECL(sproc_lock);
 } FD_SPROC;
 typedef struct FD_SPROC *fd_sproc;
 
@@ -155,9 +162,9 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
 /* Loading files and config data */
 
 typedef struct FD_SOURCEFN {
-  u8_string (*getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
-  void *sourcefn_data;
-  struct FD_SOURCEFN *next;} FD_SOURCEFN;
+  u8_string (*fd_getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
+  void *fd_getsource_data;
+  struct FD_SOURCEFN *fd_next_sourcefn;} FD_SOURCEFN;
 typedef struct FD_SOURCEFN *fd_sourcefn;
 
 FD_EXPORT u8_string fd_get_source(u8_string,u8_string,u8_string *,time_t *);
@@ -178,8 +185,8 @@ FD_EXPORT u8_string fd_bind_sourcebase(u8_string sourcebase);
 FD_EXPORT void fd_restore_sourcebase(u8_string sourcebase);
 
 typedef struct FD_CONFIG_RECORD {
-  u8_string source;
-  struct FD_CONFIG_RECORD *next;} FD_CONFIG_RECORD;
+  u8_string fd_config_source;
+  struct FD_CONFIG_RECORD *fd_config_next;} FD_CONFIG_RECORD;
 
 /* The Evaluator */
 
@@ -210,33 +217,33 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
   int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up=code/32, across=code%32;
   while ((env) && (up)) {
-    if (env->copy) env=env->copy;
-    env=env->parent; up--;}
-  if (env->copy) env=env->copy;
+    if (env->env_copy) env=env->env_copy;
+    env=env->env_parent; up--;}
+  if (env->env_copy) env=env->env_copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
-    fdtype bindings=env->bindings;
+    fdtype bindings=env->env_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
-      return fd_incref(s->values[across]);}}
+      return fd_incref(s->schema_values[across]);}}
   return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
 }
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 {
   if (env==NULL) return FD_VOID;
-  if (env->copy) env=env->copy;
+  if (env->env_copy) env=env->env_copy;
   while (env) {
-    fdtype val=fastget(env->bindings,symbol);
+    fdtype val=fastget(env->env_bindings,symbol);
     if (val==FD_UNBOUND)
-      env=env->parent;
+      env=env->env_parent;
     else return val;
-    if ((env) && (env->copy)) env=env->copy;}
+    if ((env) && (env->env_copy)) env=env->env_copy;}
   return FD_VOID;
 }
 
 FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
 {
   fdtype result=fd_tail_eval(x,env);
-  if (FD_PTR_TYPEP(result,fd_tail_call_type))
+  if (FD_TYPEP(result,fd_tailcall_type))
     return _fd_finish_call(result);
   else return result;
 }
@@ -247,7 +254,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+    if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
@@ -258,10 +265,10 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
   case fd_slotmap_type:
     return fd_deep_copy(x);
   case fd_cons_ptr_type:
-    if ((FD_PTR_TYPEP(x,fd_pair_type)) ||
-        (FD_PTR_TYPEP(x,fd_rail_type)) ||
-        (FD_PTR_TYPEP(x,fd_choice_type)) ||
-        (FD_PTR_TYPEP(x,fd_achoice_type)))
+    if ((FD_TYPEP(x,fd_pair_type)) ||
+        (FD_TYPEP(x,fd_rail_type)) ||
+        (FD_TYPEP(x,fd_choice_type)) ||
+        (FD_TYPEP(x,fd_achoice_type)))
       return fd_eval(x,env);
     else return fd_incref(x);
   default: /* Never reached */
@@ -275,7 +282,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+    if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
@@ -301,10 +308,6 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
 
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
-  if (FD_RAILP(expr)) {
-    if (FD_EXPECT_TRUE(i<FD_RAIL_LENGTH(expr)))
-      return FD_RAIL_REF(expr,i);
-    else return FD_VOID;}
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
         (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
@@ -315,10 +318,6 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 }
 FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
-  if (FD_RAILP(expr)) {
-    struct FD_VECTOR *rail=(FD_GET_CONS(expr,fd_rail_type,struct FD_VECTOR *));
-    fdtype *data=rail->data; int len=rail->length;
-    return fd_make_rail(len-i,data+i);}
   while (FD_PAIRP(expr))
     if (i == 0) break;
     else if ((FD_PAIRP(FD_CAR(expr))) &&
@@ -338,41 +337,29 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 
 /* Body iteration */
 
-#define FD_DOBODY(x,list,start)                 \
-  fdtype x, _tmp=list, *raildata=NULL;          \
-  int ispair=0, off=start, lim=0;               \
-  if (FD_PAIRP(_tmp)) {                         \
-    ispair=1; _tmp=fd_get_body(_tmp,off);}      \
-  else if (FD_RAILP(_tmp)) {                    \
-     ispair=0; lim=FD_RAIL_LENGTH(_tmp);        \
-     raildata=FD_RAIL_DATA(_tmp);}              \
-   while ((ispair)?                             \
-          ((FD_PAIRP(_tmp)) ?                   \
-           (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0): \
-          ((off<lim)?(x=raildata[off++],1):0))
-
 /* Bindings iteration */
 
-#define FD_DOBINDINGS(var,val,bnd)		        \
-  fdtype var, val, _tmp=bnd, _elt, *raildata=NULL;	\
-  int ispair=0, off=0, lim=0;                           \
-  if (FD_PAIRP(_tmp)) {ispair=1;}			\
-  else if (FD_RAILP(_tmp)) {				\
-    ispair=0; lim=FD_RAIL_LENGTH(_tmp);			\
-    raildata=FD_RAIL_DATA(_tmp);}			\
-  while ((ispair)?                                      \
-         ((FD_PAIRP(_tmp)) ?				\
-	  (_elt=FD_CAR(_tmp),                           \
-	   ((FD_PAIRP(_elt))?                           \
-	    (var=FD_CAR(_elt),                          \
-	     ((FD_PAIRP(FD_CDR(_elt)))?                 \
-	      (val=FD_CAR(FD_CDR(_elt))):               \
-	      (val=FD_VOID))):                          \
-	    (var=FD_VOID,val=FD_VOID)),                 \
-	   _tmp=FD_CDR(_tmp),1) :                       \
-	  0):                                           \
-         ((off<lim)?                                    \
-          (var=raildata[off++],val=raildata[off++],1):0))
+#define FD_UNPACK_BINDING(pair,var,val)		\
+  if (FD_PAIRP(pair)) {				\
+    fdtype _cdr=FD_CDR(pair);			\
+    var=FD_CAR(pair);				\
+    if (FD_PAIRP(_cdr)) val=FD_CAR(_cdr);	\
+    else val=FD_VOID;}				\
+  else {}
+
+#define FD_DOBINDINGS(var,val,bindings)					\
+  U8_MAYBE_UNUSED fdtype var, val, _scan=bindings, _binding=FD_VOID;	\
+  for (_scan=bindings,							\
+	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
+	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
+	 val=((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
+	      (FD_CAR(FD_CDR(_binding))):(FD_VOID));			\
+       FD_PAIRP(_scan);							\
+       _scan=FD_CDR(_scan),						\
+	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
+	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
+	 val=((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
+	      (FD_CAR(FD_CDR(_binding))):(FD_VOID)) )
 
 /* Simple continuations */
 
@@ -382,7 +369,6 @@ typedef struct FD_CONTINUATION *fd_continuation;
 
 /* Threading stuff */
 
-#if FD_THREADS_ENABLED
 #define FD_THREAD_DONE 1
 #define FD_EVAL_THREAD 2
 #define FD_THREAD_TRACE_EXIT 4
@@ -398,41 +384,21 @@ typedef struct FD_THREAD_STRUCT {
 typedef struct FD_THREAD_STRUCT *fd_thread_struct;
 
 typedef struct FD_CONSED_CONDVAR {
-  FD_CONS_HEADER; u8_mutex lock; u8_condvar cvar;} FD_CONSED_CONDVAR;
+  FD_CONS_HEADER; u8_mutex fd_cvlock; u8_condvar fd_cvar;} FD_CONSED_CONDVAR;
 typedef struct FD_CONDVAR *fd_consed_condvar;
 
 FD_EXPORT fd_ptr_type fd_thread_type;
 FD_EXPORT fd_ptr_type fd_condvar_type;
 FD_EXPORT fd_thread_struct fd_thread_call(fdtype *,fdtype,int,fdtype *,int);
 FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
-#endif /* FD_THREADS_ENABLED */
-
 
 /* Opcodes */
 
-FD_EXPORT const u8_string fd_opcode_names[];
+FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcode_table_len;
 
-#define FD_SPECIAL_OPCODES   FD_OPCODE(0x00)
-/* Special forms, which may not evaluate or use their first argument. */
-#define FD_QUOTE_OPCODE      FD_OPCODE(0x00)
-#define FD_BEGIN_OPCODE      FD_OPCODE(0x01)
-#define FD_AND_OPCODE        FD_OPCODE(0x02)
-#define FD_OR_OPCODE         FD_OPCODE(0x03)
-#define FD_NOT_OPCODE        FD_OPCODE(0x04)
-#define FD_FAIL_OPCODE       FD_OPCODE(0x05)
-#define FD_MODREF_OPCODE     FD_OPCODE(0x06)
-#define FD_COMMENT_OPCODE    FD_OPCODE(0x07)
-#define FD_TRY_OPCODE        FD_OPCODE(0x07) /* NYI */
-
-#define FD_IF_OPCODE         FD_OPCODE(0x10)
-#define FD_WHEN_OPCODE       FD_OPCODE(0x11)
-#define FD_UNLESS_OPCODE     FD_OPCODE(0x12)
-#define FD_IFELSE_OPCODE     FD_OPCODE(0x13)
-#define FD_TRYIF_OPCODE      FD_OPCODE(0x14) /* NYI */
-
-#define FD_UNARY_ND_OPCODES  FD_OPCODE(0x20)
 /* Unary primitives which handle their own non-determinism. */
+#define FD_ND1_OPCODES        FD_OPCODE(0x20)
 #define FD_AMBIGP_OPCODE      FD_OPCODE(0x20)
 #define FD_SINGLETONP_OPCODE  FD_OPCODE(0x21)
 #define FD_FAILP_OPCODE       FD_OPCODE(0x22)
@@ -447,9 +413,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_PICKSTRINGS_OPCODE FD_OPCODE(0x2B)
 #define FD_PICKONE_OPCODE     FD_OPCODE(0x2C)
 #define FD_IFEXISTS_OPCODE    FD_OPCODE(0x2D)
+/* More to come */
+#define FD_MAX_ND1_OPCODE     FD_OPCODE(0x40)
 
-#define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */
+#define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 #define FD_MINUS1_OPCODE     FD_OPCODE(0x40)
 #define FD_PLUS1_OPCODE      FD_OPCODE(0x41)
 #define FD_NUMBERP_OPCODE    FD_OPCODE(0x42)
@@ -464,9 +432,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_SECOND_OPCODE     FD_OPCODE(0x4B)
 #define FD_THIRD_OPCODE      FD_OPCODE(0x4C)
 #define FD_TONUMBER_OPCODE   FD_OPCODE(0x4D)
+/* More to come */
+#define FD_MAX_UNARY_OPCODE  FD_OPCODE(0x60)
 
-#define FD_NUMERIC2_OPCODES   FD_OPCODE(0x60)
 /* Arithmetic primitives with two arguments */
+#define FD_NUM2_OPCODES      FD_OPCODE(0x60)
 #define FD_NUMEQ_OPCODE      FD_OPCODE(0x60)
 #define FD_GT_OPCODE         FD_OPCODE(0x61)
 #define FD_GTE_OPCODE        FD_OPCODE(0x62)
@@ -476,6 +446,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_MINUS_OPCODE      FD_OPCODE(0x66)
 #define FD_TIMES_OPCODE      FD_OPCODE(0x67)
 #define FD_FLODIV_OPCODE     FD_OPCODE(0x68)
+#define FD_MAX_NUM2_OPCODES  FD_OPCODE(0x80)
 
 #define FD_BINARY_OPCODES    FD_OPCODE(0x80)
 /* Other primitives with two arguments that automatically
@@ -485,6 +456,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
 #define FD_ELT_OPCODE        FD_OPCODE(0x83)
 
+#define FD_MAX_BINARY_OPCODE FD_OPCODE(0xA0)
 #define FD_NARY_OPCODES      FD_OPCODE(0xA0)
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_OPCODE(0xA0)
@@ -500,10 +472,5 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_UNION_OPCODE      FD_OPCODE(0xC3)
 #define FD_INTERSECT_OPCODE  FD_OPCODE(0xC4)
 #define FD_DIFFERENCE_OPCODE FD_OPCODE(0xC5)
-
-#define FD_FEXPR_OPCODES     FD_OPCODE(0xD0)
-#define FD_LET_OPCODE        FD_OPCODE(0xD0)
-#define FD_LETSTAR_OPCODE    FD_OPCODE(0xD1)
-#define FD_COND_OPCODE       FD_OPCODE(0xD2)
 
 #endif /* FRAMERD_EVAL_H */
