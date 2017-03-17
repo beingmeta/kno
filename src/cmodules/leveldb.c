@@ -793,11 +793,11 @@ static int leveldb_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       break;
     else i++;}
   if (errval>=0) {
-    u8_lock_mutex(&(pool->pool_lock)); {
+    fd_lock_pool(p); {
       fdtype loadval=FD_INT(pool->pool_load);
       int retval=set_prop(dbptr,"\377LOAD",loadval,sync_writeopts);
       fd_decref(loadval);
-      u8_unlock_mutex(&(pool->pool_lock));
+      fd_unlock_pool(p);
       if (retval<0) return retval;}}
   if (errval<0)
     return errval;
