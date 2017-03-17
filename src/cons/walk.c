@@ -24,7 +24,8 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
 			 void *walkdata,fd_walk_flags flags,
 			 int depth)
 {
-  if (depth==0) return 0;
+  if (depth==0) 
+    return 0;
   else if (FD_CONSP(obj)) {
     int constype=FD_PTR_TYPE(obj);
     switch (constype) {
@@ -49,7 +50,8 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
     return walker(obj,walkdata);
   else if (FD_CONSTANTP(obj)) {
     if ((flags)&(FD_WALK_CONSTANTS))
-      return walker(obj,walkdata);}
+      return walker(obj,walkdata);
+    else return 0;}
   else if ((flags)&(FD_WALK_TERMINALS))
     return walker(obj,walkdata);
   else return 0;
