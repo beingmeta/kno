@@ -1,3 +1,0 @@
-[submodule "src/scheme"]
-	path = src/scheme
-	url = git@github.com:beingmeta/framerd-modules.git
