@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-03-16 14:18-0400\n"
+"POT-Creation-Date: 2017-03-17 21:58+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -328,8 +328,8 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/cons/fdtype.c:61 src/cons/config.c:534 src/eval/eval.c:1525
-#: src/prims/dbprims.c:2109 src/prims/portprims.c:604 src/eval/choiceops.c:1190
+#: src/cons/fdtype.c:61 src/cons/config.c:534 src/eval/eval.c:1417
+#: src/prims/dbprims.c:2097 src/prims/portprims.c:604 src/eval/choiceops.c:1190
 #: src/eval/choiceops.c:1211 src/eval/choiceops.c:1231
 #: src/eval/choiceops.c:1251 src/eval/choiceops.c:1262
 #: src/eval/choiceops.c:1266 src/eval/choiceops.c:1267 src/prims/seqprims.c:947
@@ -357,16 +357,16 @@ msgstr ""
 msgid "character"
 msgstr ""
 
-#: src/cons/fdtype.c:66 src/eval/eval.c:1432 src/eval/modules.c:541
+#: src/cons/fdtype.c:66 src/eval/eval.c:1324 src/eval/modules.c:541
 #: src/eval/reflection.c:397
 msgid "symbol"
 msgstr ""
 
-#: src/cons/fdtype.c:67 src/eval/eval.c:1949
+#: src/cons/fdtype.c:67 src/eval/eval.c:1841
 msgid "lexref"
 msgstr ""
 
-#: src/cons/fdtype.c:68 src/eval/eval.c:1933
+#: src/cons/fdtype.c:68 src/eval/eval.c:1825
 msgid "opcode"
 msgstr ""
 
@@ -387,7 +387,8 @@ msgstr ""
 #: src/prims/fileprims.c:679 src/web/xmloutput.c:1835 src/web/cgiexec.c:1233
 #: src/web/cgiexec.c:1260 src/web/uriprims.c:393 src/web/mime.c:110
 #: src/web/curl.c:565 src/text/texttools.c:132 src/text/texttools.c:159
-#: src/text/texttools.c:516 src/exe/fdservlet.c:257
+#: src/text/texttools.c:516 src/exe/fdservlet.c:257 src/exe/webcommon.h:250
+#: src/exe/webcommon.h:309
 msgid "string"
 msgstr ""
 
@@ -403,7 +404,7 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/cons/fdtype.c:74 src/eval/eval.c:1526
+#: src/cons/fdtype.c:74 src/eval/eval.c:1418
 msgid "pair"
 msgstr ""
 
@@ -623,8 +624,8 @@ msgstr ""
 msgid "whether to trace configuration"
 msgstr ""
 
-#: src/cons/err.c:132 src/cons/err.c:139 src/eval/eval.c:1189
-#: src/eval/eval.c:1212
+#: src/cons/err.c:132 src/cons/err.c:139 src/eval/eval.c:1081
+#: src/eval/eval.c:1104
 #, c-format
 msgid "object is not a %m"
 msgstr ""
@@ -974,12 +975,12 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/db/fdkbase.c:290 src/db/pools.c:1740 src/prims/dbprims.c:877
+#: src/db/fdkbase.c:290 src/db/pools.c:1741 src/prims/dbprims.c:877
 #: src/prims/dbprims.c:888 src/prims/dbprims.c:896 src/prims/dbprims.c:904
 #: src/prims/dbprims.c:949 src/prims/dbprims.c:962 src/prims/dbprims.c:972
-#: src/prims/dbprims.c:982 src/prims/dbprims.c:1000 src/prims/dbprims.c:1011
-#: src/prims/dbprims.c:1029 src/prims/dbprims.c:1041 src/prims/dbprims.c:1077
-#: src/prims/dbprims.c:1090 src/prims/dbprims.c:2104 src/prims/dbprims.c:2180
+#: src/prims/dbprims.c:988 src/prims/dbprims.c:1000 src/prims/dbprims.c:1011
+#: src/prims/dbprims.c:1029 src/prims/dbprims.c:1065 src/prims/dbprims.c:1078
+#: src/prims/dbprims.c:2092 src/prims/dbprims.c:2168
 msgid "pool spec"
 msgstr ""
 
@@ -1099,19 +1100,19 @@ msgstr ""
 msgid "RECOVERY"
 msgstr ""
 
-#: src/db/drivers.c:167
+#: src/db/drivers.c:166
 msgid "NoPoolHandler"
 msgstr ""
 
-#: src/db/drivers.c:170 src/db/drivers.c:282
+#: src/db/drivers.c:169 src/db/drivers.c:281
 msgid "NoCreateHandler"
 msgstr ""
 
-#: src/db/drivers.c:276
+#: src/db/drivers.c:275
 msgid "UnknownIndexType"
 msgstr ""
 
-#: src/db/drivers.c:279
+#: src/db/drivers.c:278
 msgid "NoIndexHandler"
 msgstr ""
 
@@ -1147,32 +1148,42 @@ msgstr ""
 msgid "not an index"
 msgstr ""
 
-#: src/db/indexes.c:799 src/db/indexes.c:1113 src/db/frames.c:1006
-#: src/prims/dbprims.c:484 src/prims/dbprims.c:1212 src/prims/dbprims.c:1235
+#: src/db/indexes.c:830 src/db/indexes.c:1146 src/db/frames.c:1006
+#: src/prims/dbprims.c:484 src/prims/dbprims.c:1200 src/prims/dbprims.c:1223
 msgid "index"
 msgstr ""
 
-#: src/db/indexes.c:819
+#: src/db/indexes.c:850
 #, c-format
 msgid "!!!!!!! Error saving %d keys to %s after %f secs"
 msgstr ""
 
-#: src/db/indexes.c:823
+#: src/db/indexes.c:854
 #, c-format
 msgid "####### Saved %d updated keys to %s in %f secs"
 msgstr ""
 
-#: src/db/indexes.c:895 src/db/indexes.c:908
+#: src/db/indexes.c:926
 #, c-format
-msgid "#<INDEX %s 0x%lx \"%s|%s\">"
+msgid "#<INDEX %s %s 0x%lx \"%s\">"
 msgstr ""
 
-#: src/db/indexes.c:897 src/db/indexes.c:910
+#: src/db/indexes.c:928
 #, c-format
-msgid "#<INDEX %s 0x%lx \"%s\">"
+msgid "#<INDEX %s %x 0x%lx>"
 msgstr ""
 
-#: src/db/indexes.c:1114
+#: src/db/indexes.c:940
+#, c-format
+msgid "#<RAWINDEX %s %s 0x%lx \"%s\">"
+msgstr ""
+
+#: src/db/indexes.c:942
+#, c-format
+msgid "#<RAWINDEX %s %x 0x%lx>"
+msgstr ""
+
+#: src/db/indexes.c:1147
 msgid "raw index"
 msgstr ""
 
@@ -1256,43 +1267,43 @@ msgstr ""
 msgid "Pool/Commit"
 msgstr ""
 
-#: src/db/pools.c:344
+#: src/db/pools.c:359
 msgid "Pool conflict"
 msgstr ""
 
-#: src/db/pools.c:348
+#: src/db/pools.c:363
 msgid "Pool confict"
 msgstr ""
 
-#: src/db/pools.c:358
+#: src/db/pools.c:373
 msgid "OID"
 msgstr ""
 
-#: src/db/pools.c:1092 include/framerd/pools.h:337
+#: src/db/pools.c:1107 include/framerd/pools.h:361
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/db/pools.c:1154
+#: src/db/pools.c:1169
 msgid "not a pool"
 msgstr ""
 
-#: src/db/pools.c:1727
+#: src/db/pools.c:1728
 msgid "Config mis-config"
 msgstr ""
 
-#: src/db/pools.c:1762 src/prims/dbprims.c:188 src/prims/dbprims.c:1225
+#: src/db/pools.c:1763 src/prims/dbprims.c:188 src/prims/dbprims.c:1213
 msgid "pool"
 msgstr ""
 
-#: src/db/pools.c:1763
+#: src/db/pools.c:1764
 msgid "raw pool"
 msgstr ""
 
-#: src/db/pools.c:1785
+#: src/db/pools.c:1786
 msgid "whether value of anonymous OIDs are {} or signal an error"
 msgstr ""
 
-#: src/db/pools.c:1788
+#: src/db/pools.c:1789
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1340,50 +1351,50 @@ msgstr ""
 msgid "Trace ipeval execution"
 msgstr ""
 
-#: src/drivers/filepool.c:712 src/drivers/oidpool.c:1434
-#: src/drivers/bigpool.c:1321
+#: src/drivers/filepool.c:714 src/drivers/oidpool.c:1428
+#: src/drivers/bigpool.c:1446
 msgid "FileAlreadyExists"
 msgstr ""
 
-#: src/drivers/filepool.c:771 src/drivers/oidpool.c:1495
-#: src/drivers/bigpool.c:1263 src/drivers/fileindex.c:1217
-#: src/drivers/hashindex.c:2728
+#: src/drivers/filepool.c:773 src/drivers/oidpool.c:1489
+#: src/drivers/bigpool.c:1394 src/drivers/fileindex.c:1217
+#: src/drivers/hashindex.c:2736
 msgid "cachelevel"
 msgstr ""
 
-#: src/drivers/oidpool.c:72
+#: src/drivers/oidpool.c:73
 msgid "Invalid schema definition data"
 msgstr ""
 
-#: src/drivers/oidpool.c:73
+#: src/drivers/oidpool.c:74
 msgid "Invalid encoded schema reference"
 msgstr ""
 
-#: src/drivers/oidpool.c:74
+#: src/drivers/oidpool.c:75
 msgid "Inconsistent schema reference and value data"
 msgstr ""
 
-#: src/drivers/oidpool.c:76
+#: src/drivers/oidpool.c:77
 msgid "Invalid offset in OIDPOOL"
 msgstr ""
 
-#: src/drivers/oidpool.c:683
+#: src/drivers/oidpool.c:678
 msgid "Bad compress level"
 msgstr ""
 
-#: src/drivers/oidpool.c:890
+#: src/drivers/oidpool.c:885
 msgid "Out of luck"
 msgstr ""
 
-#: src/drivers/bigpool.c:62
+#: src/drivers/bigpool.c:63
 msgid "Invalid offset in BIGPOOL"
 msgstr ""
 
-#: src/drivers/bigpool.c:180
+#: src/drivers/bigpool.c:182
 msgid "Not a bigpool"
 msgstr ""
 
-#: src/drivers/bigpool.c:590
+#: src/drivers/bigpool.c:641
 msgid "BadSlotCode"
 msgstr ""
 
@@ -1411,24 +1422,23 @@ msgstr ""
 msgid "hash_index has unknown hash function"
 msgstr ""
 
-#: src/drivers/hashindex.c:2673
+#: src/drivers/hashindex.c:2681
 msgid "hash index"
 msgstr ""
 
-#: src/drivers/extindex.c:152 src/drivers/extindex.c:153
-#: src/drivers/netindex.c:176
+#: src/db/extindex.c:152 src/db/extindex.c:153 src/drivers/netindex.c:178
 msgid "Bad edit key in index"
 msgstr ""
 
-#: src/drivers/mempool.c:153 src/drivers/mempool.c:167
+#: src/db/mempool.c:155 src/db/mempool.c:169
 msgid "mempool"
 msgstr ""
 
-#: src/drivers/extpool.c:181
+#: src/db/extpool.c:182
 msgid "No OID alloc method"
 msgstr ""
 
-#: src/drivers/netindex.c:36
+#: src/drivers/netindex.c:38
 msgid "Server doesn't support method"
 msgstr ""
 
@@ -1484,31 +1494,31 @@ msgstr ""
 msgid "Read only environment"
 msgstr ""
 
-#: src/eval/eval.c:893 src/eval/reflection.c:280
+#: src/eval/eval.c:785 src/eval/reflection.c:280
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1444 src/eval/reflection.c:382 src/eval/reflection.c:409
+#: src/eval/eval.c:1336 src/eval/reflection.c:382 src/eval/reflection.c:409
 msgid "environment"
 msgstr ""
 
-#: src/eval/eval.c:1755
+#: src/eval/eval.c:1647
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/eval/eval.c:1814 src/eval/eval.c:1824
+#: src/eval/eval.c:1706 src/eval/eval.c:1716
 msgid "server"
 msgstr ""
 
-#: src/eval/eval.c:1937
+#: src/eval/eval.c:1829
 msgid "scheme environment"
 msgstr ""
 
-#: src/eval/eval.c:1938
+#: src/eval/eval.c:1830
 msgid "scheme special form"
 msgstr ""
 
-#: src/eval/eval.c:1939
+#: src/eval/eval.c:1831
 msgid "DType server"
 msgstr ""
 
@@ -1528,7 +1538,7 @@ msgstr ""
 msgid "Bad procedure defining form"
 msgstr ""
 
-#: src/eval/macros.c:77
+#: src/eval/macros.c:86
 msgid "scheme syntactic macro"
 msgstr ""
 
@@ -1704,7 +1714,7 @@ msgstr ""
 msgid "pool, index, or OIDs"
 msgstr ""
 
-#: src/prims/dbprims.c:780 src/prims/dbprims.c:1122
+#: src/prims/dbprims.c:780 src/prims/dbprims.c:1110
 msgid "pool or index"
 msgstr ""
 
@@ -1713,11 +1723,11 @@ msgstr ""
 msgid "pool offset"
 msgstr ""
 
-#: src/prims/dbprims.c:1419
+#: src/prims/dbprims.c:1407
 msgid "value test"
 msgstr ""
 
-#: src/prims/dbprims.c:1450 src/prims/tableprims.c:194
+#: src/prims/dbprims.c:1438 src/prims/tableprims.c:194
 #: src/prims/tableprims.c:783 src/prims/tableprims.c:800
 #: src/prims/tableprims.c:815 src/prims/tableprims.c:839
 #: src/web/xmloutput.c:1850 src/web/uriprims.c:197 src/web/uriprims.c:199
@@ -1725,19 +1735,19 @@ msgstr ""
 msgid "table"
 msgstr ""
 
-#: src/prims/dbprims.c:1630
+#: src/prims/dbprims.c:1618
 msgid "test relation"
 msgstr ""
 
-#: src/prims/dbprims.c:1736
+#: src/prims/dbprims.c:1724
 msgid "test object"
 msgstr ""
 
-#: src/prims/dbprims.c:2160
+#: src/prims/dbprims.c:2148
 msgid "wrong number of args"
 msgstr ""
 
-#: src/prims/dbprims.c:2167 src/prims/dbprims.c:2169 src/prims/seqprims.c:124
+#: src/prims/dbprims.c:2155 src/prims/dbprims.c:2157 src/prims/seqprims.c:124
 #: src/prims/seqprims.c:210 src/prims/seqprims.c:654 src/prims/seqprims.c:937
 #: src/prims/seqprims.c:945 src/prims/seqprims.c:951 src/prims/seqprims.c:966
 #: src/prims/seqprims.c:1065 src/prims/seqprims.c:1096
@@ -1752,7 +1762,7 @@ msgstr ""
 msgid "sequence"
 msgstr ""
 
-#: src/prims/dbprims.c:2284
+#: src/prims/dbprims.c:2272
 msgid "offset base"
 msgstr ""
 
@@ -1799,7 +1809,8 @@ msgstr ""
 msgid "No more information"
 msgstr ""
 
-#: src/prims/portprims.c:1510
+#: src/prims/portprims.c:1510 src/drivers/headers/chunkrefs.h:191
+#: src/drivers/headers/chunkrefs.h:229
 msgid "ZLIB ran out of memory"
 msgstr ""
 
@@ -1807,11 +1818,12 @@ msgstr ""
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
-#: src/prims/portprims.c:1521
+#: src/prims/portprims.c:1521 src/drivers/headers/chunkrefs.h:240
 msgid "ZLIB compress data error"
 msgstr ""
 
-#: src/prims/portprims.c:1523
+#: src/prims/portprims.c:1523 src/drivers/headers/chunkrefs.h:204
+#: src/drivers/headers/chunkrefs.h:242
 msgid "Bad ZLIB return code"
 msgstr ""
 
@@ -2822,4 +2834,80 @@ msgstr ""
 
 #: src/cmodules/tidy.c:22
 msgid "Tidy Error"
+msgstr ""
+
+#: src/exe/webcommon.h:630
+msgid "Trace all web transactions"
+msgstr ""
+
+#: src/exe/webcommon.h:632
+msgid "Show backtraces on errors"
+msgstr ""
+
+#: src/exe/webcommon.h:634
+msgid "Allow requests to specify debugging"
+msgstr ""
+
+#: src/exe/webcommon.h:636
+msgid "Default error page for web errors"
+msgstr ""
+
+#: src/exe/webcommon.h:640
+msgid "Default crisis page (for when the error page yields an error)"
+msgstr ""
+
+#: src/exe/webcommon.h:644
+msgid "Default not found page (for when specified content isn't found)"
+msgstr ""
+
+#: src/exe/webcommon.h:648
+msgid "Default no content page (for when content fetch failed generically)"
+msgstr ""
+
+#: src/exe/webcommon.h:652
+msgid "Files to preload into the shared environment"
+msgstr ""
+
+#: src/exe/webcommon.h:654
+msgid "Where to write URLs where were requested"
+msgstr ""
+
+#: src/exe/webcommon.h:656
+msgid "Where to write request objects"
+msgstr ""
+
+#: src/exe/webcommon.h:658
+msgid "Level of transaction logging"
+msgstr ""
+
+#: src/exe/webcommon.h:660
+msgid "Use per-request thread cache"
+msgstr ""
+
+#: src/exe/webcommon.h:662
+msgid "Whether to log all cgidata"
+msgstr ""
+
+#: src/exe/webcommon.h:665
+msgid "File base (directory) for resolving requests"
+msgstr ""
+
+#: src/exe/webcommon.h:668
+msgid "Preflight (before request handling) procedures"
+msgstr ""
+
+#: src/exe/webcommon.h:671
+msgid "POSTFLIGHT (before request handling) procedures"
+msgstr ""
+
+#: src/drivers/headers/chunkrefs.h:199
+msgid "pool value uncompress ran out of memory"
+msgstr ""
+
+#: src/drivers/headers/chunkrefs.h:202
+msgid "ZLIB uncompress data error"
+msgstr ""
+
+#: src/drivers/headers/chunkrefs.h:237
+msgid "pool value compression ran out of memory"
 msgstr ""
