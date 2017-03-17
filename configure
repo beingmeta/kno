@@ -10924,13 +10924,13 @@ if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
 fi
 
 if test $with_gperftools = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_and_profiler" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_and_profiler... " >&6; }
+if ${ac_cv_lib_tcmalloc_and_profiler_malloc+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
+LIBS="-ltcmalloc_and_profiler  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -10950,22 +10950,22 @@ return malloc ();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
+  ac_cv_lib_tcmalloc_and_profiler_malloc=yes
 else
-  ac_cv_lib_tcmalloc_malloc=no
+  ac_cv_lib_tcmalloc_and_profiler_malloc=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_and_profiler_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_and_profiler_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_and_profiler_malloc" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
+#define HAVE_LIBTCMALLOC_AND_PROFILER 1
 _ACEOF
 
-  LIBS="-ltcmalloc $LIBS"
+  LIBS="-ltcmalloc_and_profiler $LIBS"
 
 fi
 
@@ -10974,8 +10974,7 @@ fi
      with_gperftools="no";
   else
     custom_malloc="tcmalloc"
-    if test "${with_profiling}" = "yes"; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
 $as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
 if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11020,7 +11019,6 @@ _ACEOF
 
 fi
 
-    fi;
     for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`

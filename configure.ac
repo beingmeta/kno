@@ -1255,15 +1255,13 @@ if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
 fi
 
 if test $with_gperftools = "yes"; then
-  AC_CHECK_LIB(tcmalloc,malloc)
+  AC_CHECK_LIB(tcmalloc_and_profiler,malloc)
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
      echo "No tcmalloc, skipping further tests";
      with_gperftools="no";
   else
     custom_malloc="tcmalloc"
-    if test "${with_profiling}" = "yes"; then
-        AC_CHECK_LIB(profiler,ProfilerStart)
-    fi;
+    AC_CHECK_LIB(profiler,ProfilerStart)
     AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
     AC_CHECK_HEADERS(gperftools/heap-checker.h)
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
