@@ -443,7 +443,6 @@ static int read_oidpool_load(fd_oidpool op)
     return -1;}
   fd_unlockfile(stream);
   op->pool_load=load;
-  fd_unlock_pool((fd_pool)op);
   return load;
 }
 
