@@ -75,6 +75,7 @@ typedef fdtype (*fd_evalfn)(fdtype expr,struct FD_ENVIRONMENT *);
 typedef struct FD_SPECIAL_FORM {
   FD_CONS_HEADER;
   u8_string fexpr_name, fexpr_filename;
+  u8_string fexpr_documentation;
   fd_evalfn fexpr_handler;} FD_SPECIAL_FORM;
 typedef struct FD_SPECIAL_FORM *fd_special_form;
 
@@ -91,6 +92,10 @@ typedef struct FD_MACRO *fd_macro;
 
 FD_EXPORT fdtype fd_printout(fdtype,fd_lispenv);
 FD_EXPORT fdtype fd_printout_to(U8_OUTPUT *,fdtype,fd_lispenv);
+
+/* Getting documentation strings */
+
+FD_EXPORT u8_string fd_get_documentation(fdtype x);
 
 /* DT servers */
 

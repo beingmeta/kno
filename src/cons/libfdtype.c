@@ -20,7 +20,7 @@
 #include <duma.h>
 #endif
 
-static int fdtype_initialized=0;
+static int libfdtype_initialized=0;
 double fd_load_start=-1.0;
 
 fd_exception fd_NoMethod=_("Method not supported");
@@ -100,12 +100,17 @@ static void init_type_names()
   fd_type_names[fd_consblock_type]=_("consblock");
 }
 
-static int fdtype_version=101;
+static int libfdtype_version=101;
 
 FD_EXPORT void fd_init_cons_c(void);
 FD_EXPORT void fd_init_compare_c(void);
 FD_EXPORT void fd_init_oids_c(void);
 FD_EXPORT void fd_init_textio_c(void);
+FD_EXPORT void fd_init_parse_c(void);
+FD_EXPORT void fd_init_unparse_c(void);
+FD_EXPORT void fd_init_ports_c(void);
+FD_EXPORT void fd_init_dtread_c(void);
+FD_EXPORT void fd_init_dtwrite_c(void);
 FD_EXPORT void fd_init_tables_c(void);
 FD_EXPORT void fd_init_symbols_c(void);
 FD_EXPORT void fd_init_numbers_c(void);
@@ -158,16 +163,16 @@ FD_EXPORT void fd_status_message()
        heapsize,heapu);}
 }
 
-FD_EXPORT int fd_init_dtypelib()
+FD_EXPORT int fd_init_libfdtype()
 {
   int u8_version;
 #if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
   DUMA_SET_ALIGNMENT(4);
 #endif
-  if (fdtype_initialized) return fdtype_initialized;
+  if (libfdtype_initialized) return libfdtype_initialized;
   fd_load_start=u8_elapsed_time();
   u8_version=u8_initialize();
-  fdtype_initialized=fdtype_version*u8_version;
+  libfdtype_initialized=libfdtype_version*u8_version;
 
   u8_register_source_file(_FILEINFO);
 
@@ -176,21 +181,24 @@ FD_EXPORT int fd_init_dtypelib()
   u8_init_mutex(&fd_symbol_lock);
   fd_init_cons_c();
   init_type_names();
-  fd_init_compare_c();
   fd_init_oids_c();
-  fd_init_textio_c();
   fd_init_tables_c();
   fd_init_symbols_c();
   fd_init_numbers_c();
   fd_init_choices_c();
+  fd_init_compare_c();
+  fd_init_parse_c();
+  fd_init_unparse_c();
   fd_init_support_c();
   fd_init_apply_c();
   fd_init_ffi_c();
+  fd_init_dtread_c();
+  fd_init_dtwrite_c();
   fd_init_fcnids_c();
 
   u8_threadcheck();
 
-  return fdtype_initialized;
+  return libfdtype_initialized;
 }
 
 /* Emacs local variables

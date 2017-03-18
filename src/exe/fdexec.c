@@ -157,7 +157,7 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
     *source_filep=source_file;}
   else {}
 
-  fd_init_dtypelib();
+  fd_init_libfdtype();
 
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 

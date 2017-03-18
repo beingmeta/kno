@@ -121,43 +121,9 @@ static fdtype procedure_id(fdtype x)
 
 static fdtype procedure_documentation(fdtype x)
 {
-  fdtype proc=(FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
-  fd_ptr_type proctype=FD_PTR_TYPE(proc);
-  if (proctype==fd_sproc_type) {
-    struct FD_SPROC *sproc=(fd_sproc)proc;
-    if (sproc->fcn_documentation)
-      return fdtype_string(sproc->fcn_documentation);
-    else {
-      struct U8_OUTPUT out; u8_byte _buf[256];
-      U8_INIT_OUTPUT_BUF(&out,256,_buf);
-      fdtype arglist=sproc->sproc_arglist, scan=arglist;
-      if (sproc->fcn_name)
-        u8_puts(&out,sproc->fcn_name);
-      else u8_puts(&out,"λ");
-      while (FD_PAIRP(scan)) {
-        fdtype arg=FD_CAR(scan);
-        if (FD_SYMBOLP(arg))
-          u8_printf(&out," %ls",FD_SYMBOL_NAME(arg));
-        else if ((FD_PAIRP(arg))&&(FD_SYMBOLP(FD_CAR(arg))))
-          u8_printf(&out," [%ls]",FD_SYMBOL_NAME(FD_CAR(arg)));
-        else u8_printf(&out," %q",arg);
-        scan=FD_CDR(scan);}
-      if (FD_SYMBOLP(scan))
-        u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
-      if (out.u8_outbuf==_buf)
-        return fdtype_string(_buf);
-      else return fd_init_string(NULL,out.u8_write-out.u8_outbuf,
-                                 out.u8_outbuf);}}
-  else if (fd_functionp[proctype]) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(proc);
-    if (f->fcn_documentation)
-      return fdtype_string(f->fcn_documentation);
-    else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf=GETSPECFORM(proc);
-    if (sf->fexpr_documentation)
-      return fdtype_string(sf->fexpr_documentation);
-    else FD_FALSE;}
+  u8_string doc=fd_get_documentation(x);
+  if (doc)
+    return fdtype_string(doc);
   else return FD_FALSE;
 }
 

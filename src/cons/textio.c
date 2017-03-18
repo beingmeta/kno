@@ -1774,9 +1774,6 @@ FD_EXPORT void fd_init_textio_c()
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
 
-  fd_unparsers[fd_port_type]=unparse_port;
-  fd_recyclers[fd_port_type]=recycle_port;
-
   quote_symbol=fd_intern("QUOTE");
   quasiquote_symbol=fd_intern("QUASIQUOTE");
   unquote_symbol=fd_intern("UNQUOTE");

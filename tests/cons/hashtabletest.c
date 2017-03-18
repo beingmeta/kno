@@ -51,7 +51,7 @@ int main(int argc,char **argv)
 {
   FILE *f=fopen(argv[1],"rb");
   fdtype ht, slotid, value;
-  FD_DO_LIBINIT(fd_init_dtypelib);
+  FD_DO_LIBINIT(fd_init_libfdtype);
   if (f) {
     ht=read_dtype_from_file(f); fclose(f);}
   else ht=fd_make_hashtable(NULL,64);

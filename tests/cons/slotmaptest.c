@@ -50,7 +50,7 @@ int main(int argc,char **argv)
 {
   FILE *f=fopen(argv[1],"rb");
   fdtype smap;
-  FD_DO_LIBINIT(fd_init_dtypelib);
+  FD_DO_LIBINIT(fd_init_libfdtype);
   if (f) {
     smap=read_dtype_from_file(f); fclose(f);}
   else smap=fd_empty_slotmap();

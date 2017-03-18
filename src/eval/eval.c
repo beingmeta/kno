@@ -1788,6 +1788,51 @@ static fdtype evaltest(fdtype expr,fd_lispenv env)
       return err;}}
 }
 
+/* Getting documentation */
+
+FD_EXPORT
+u8_string fd_get_documentation(fdtype x)
+{
+  fdtype proc=(FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  fd_ptr_type proctype=FD_PTR_TYPE(proc);
+  if (proctype==fd_sproc_type) {
+    struct FD_SPROC *sproc=(fd_sproc)proc;
+    if (sproc->fcn_documentation)
+      return sproc->fcn_documentation;
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,120);
+      fdtype arglist=sproc->sproc_arglist, scan=arglist;
+      if (sproc->fcn_name)
+        u8_puts(&out,sproc->fcn_name);
+      else u8_puts(&out,"λ");
+      while (FD_PAIRP(scan)) {
+        fdtype arg=FD_CAR(scan);
+        if (FD_SYMBOLP(arg))
+          u8_printf(&out," %ls",FD_SYMBOL_NAME(arg));
+        else if ((FD_PAIRP(arg))&&(FD_SYMBOLP(FD_CAR(arg))))
+          u8_printf(&out," [%ls]",FD_SYMBOL_NAME(FD_CAR(arg)));
+        else u8_printf(&out," %q",arg);
+        scan=FD_CDR(scan);}
+      if (FD_SYMBOLP(scan))
+        u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
+      sproc->fcn_documentation=out.u8_outbuf;
+      return out.u8_outbuf;}}
+  else if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(proc);
+    return f->fcn_documentation;}
+  else if (FD_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=(fd_special_form)proc;
+    return sf->fexpr_documentation;}
+  else return NULL;
+}
+
+static fdtype get_documentation(fdtype x)
+{
+  u8_string doc=fd_get_documentation(x);
+  if (doc) return fdtype_string(doc);
+  else return FD_FALSE;
+}
+
 /* Debugging assistance */
 
 FD_EXPORT fdtype _fd_dbg(fdtype x)
@@ -1870,11 +1915,18 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"%ENV",env_handler);
   fd_defspecial(fd_scheme_module,"%MODREF",modref_handler);
   fd_defspecial(fd_scheme_module,"DEFAULT",default_handler);
-  fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
-  fd_idefn(fd_scheme_module,fd_make_cprim2x("%LEXREF",lexref_prim,2,
-                                            fd_fixnum_type,FD_VOID,
-                                            fd_fixnum_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1("DOCUMENTATION",get_documentation,1));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("%LEXREF",lexref_prim,2,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID));
 
   fd_defspecial(fd_scheme_module,"WITHENV",withenv_safe_handler);
   fd_defspecial(fd_xscheme_module,"WITHENV",withenv_handler);

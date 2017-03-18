@@ -61,7 +61,7 @@ int main(int argc,char **argv)
   struct FD_STREAM *in, *out;
   struct FD_INBUF *inbuf;
   double span;
-  FD_DO_LIBINIT(fd_init_dtypelib);
+  FD_DO_LIBINIT(fd_init_libfdtype);
   span=get_elapsed(); /* Start the timer */
   ht=fd_make_hashtable(NULL,64);
   in=fd_open_file(argv[1],FD_FILE_READ);

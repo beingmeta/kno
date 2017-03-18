@@ -1884,7 +1884,7 @@ int main(int argc,char **argv)
 {
   int i=1;
   int u8_version=u8_initialize();
-  int dtype_version=fd_init_dtypelib();
+  int dtype_version=fd_init_libfdtype();
   int fd_version; /* Wait to set this until we have a log file */
   unsigned int arg_mask = 0;  /* Bit map of args to skip */
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;

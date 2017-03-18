@@ -52,7 +52,7 @@ int main(int argc,char **argv)
 {
   struct FD_STREAM *in; fdtype ht;
   struct FD_INBUF *inbuf;
-  FD_DO_LIBINIT(fd_init_dtypelib);
+  FD_DO_LIBINIT(fd_init_libfdtype);
   in=fd_open_file(argv[1],FD_FILE_READ);
   inbuf=fd_readbuf(in);
   ht=fd_read_dtype(inbuf);

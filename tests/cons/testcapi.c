@@ -25,7 +25,7 @@ static int write_dtype_to_file(fdtype object,FILE *f)
 
 int main(int argc,char **argv)
 {
-  int lispv=fd_init_dtypelib();
+  int lispv=fd_init_libfdtype();
   fdtype fix1=FD_INT(33994);
   fdtype dbl1=fd_init_flonum(NULL,3.445);
   fdtype dbl2=fd_init_flonum(u8_alloc(struct FD_FLONUM),-3.9994);

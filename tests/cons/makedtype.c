@@ -48,7 +48,7 @@ int main(int argc,char **argv)
 {
   fdtype object;
   FILE *f=fopen(argv[1],"wb");
-  FD_DO_LIBINIT(fd_init_dtypelib);
+  FD_DO_LIBINIT(fd_init_libfdtype);
   if ((argv[2][0]=='-') && (argv[2][1]=='f')) {
     unsigned char *buf=read_text_file(argv[2]+2);
     object=fd_parse(buf);

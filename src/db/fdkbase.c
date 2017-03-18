@@ -491,7 +491,7 @@ FD_EXPORT int fd_init_drivers_c(void);
 FD_EXPORT int fd_init_dblib()
 {
   if (fdkbase_initialized) return fdkbase_initialized;
-  fdkbase_initialized=211*fd_init_dtypelib();
+  fdkbase_initialized=211*fd_init_libfdtype();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);

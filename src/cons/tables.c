@@ -3097,14 +3097,16 @@ struct FD_TABLEFNS *fd_tablefns[FD_TYPE_MAX];
 FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  CHECKPTR(arg,"fd_get/table"); CHECKPTR(key,"fd_get/key"); CHECKPTR(key,"fd_get/dflt");
+  CHECKPTR(arg,"fd_get/table");
+  CHECKPTR(key,"fd_get/key");
+  CHECKPTR(key,"fd_get/dflt");
   if ((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key)))
     return FD_EMPTY_CHOICE;
   else if (FD_UNAMBIGP(key)) {
     if (BAD_TABLEP(arg,argtype,get,"fd_get"))
       return FD_ERROR_VALUE;
     else return (fd_tablefns[argtype]->get)(arg,key,dflt);}
-  else if (BAD_TABLEP(arg,argtype,get,"fd_get")) 
+  else if (BAD_TABLEP(arg,argtype,get,"fd_get"))
     return FD_ERROR_VALUE;
   else {
     fdtype results=FD_EMPTY_CHOICE;

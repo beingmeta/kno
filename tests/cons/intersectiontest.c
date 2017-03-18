@@ -66,7 +66,7 @@ int main(int argc,char **argv)
   int i=2, j=0, write_binary=0;
   fdtype *args=u8_alloc_n(argc-2,fdtype), common;
   double starttime, inputtime, donetime;
-  FD_DO_LIBINIT(fd_init_dtypelib);
+  FD_DO_LIBINIT(fd_init_libfdtype);
   starttime=get_elapsed();
   while (i < argc)
     if (strchr(argv[i],'='))

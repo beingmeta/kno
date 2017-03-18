@@ -37,31 +37,11 @@
 #define atombreakp(c) \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
-fd_exception fd_CantOpenFile=_("Can't open file");
-fd_exception fd_FileNotFound=_("File not found");
-fd_exception fd_BadEscapeSequence=_("Invalid escape sequence");
-fd_exception fd_InvalidConstant=_("Invalid constant reference");
-fd_exception fd_InvalidCharacterConstant=_("Invalid character constant");
-fd_exception fd_BadAtom=_("Bad atomic expression");
-fd_exception fd_NoPointerExpressions=_("no pointer expressions allowed");
-fd_exception fd_BadPointerRef=_("bad pointer reference");
-fd_exception fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
-fd_exception fd_ParseError=_("LISP expression parse error");
-fd_exception fd_InvalidHexCharacter=_("Invalid hex character");
-fd_exception fd_InvalidBase64Character=_("Invalid base64 character");
-fd_exception fd_MissingCloseQuote=_("Unclosed double quotation mark (\")");
-fd_exception fd_MissingOpenQuote=_("Missing open quotation mark (\")");
-fd_exception fd_ParseArgError=_("External LISP argument parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
-fd_exception fd_CantParseRecord=_("Can't parse record object");
-fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
-fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment");
 
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
 int fd_packet_outfmt=-1;
-
-int fd_interpret_pointers=1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
@@ -446,6 +426,14 @@ u8_string fd_dtype2buf(fdtype x,size_t n,u8_byte *buf)
   return out.u8_outbuf;
 }
 
+static fdtype get_compound_tag(fdtype tag)
+{
+  if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
+    struct FD_COMPOUND *c=FD_XCOMPOUND(tag);
+    return fd_incref(c->compound_typetag);}
+  else return tag;
+}
+
 static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
@@ -563,9 +551,6 @@ FD_EXPORT void fd_init_unparse_c()
   fd_unparsers[fd_rail_type]=unparse_rail;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
-
-  fd_unparsers[fd_port_type]=unparse_port;
-  fd_recyclers[fd_port_type]=recycle_port;
 
   quote_symbol=fd_intern("QUOTE");
   quasiquote_symbol=fd_intern("QUASIQUOTE");

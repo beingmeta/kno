@@ -1254,36 +1254,33 @@ if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   exit;
 fi
 
-if test $with_gperftools = "yes"; then
-  AC_CHECK_LIB(tcmalloc_and_profiler,malloc)
-  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
-     echo "No tcmalloc, skipping further tests";
-     with_gperftools="no";
-  else
-    custom_malloc="tcmalloc"
-    AC_CHECK_LIB(profiler,ProfilerStart)
-    AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
-    AC_CHECK_HEADERS(gperftools/heap-checker.h)
-    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
-    memtest_env="TCMALLOC_DEBUG=5"
-  fi; 
-elif test $with_gperftools = "debug"; then
-  AC_CHECK_LIB(tcmalloc_debug,malloc)
-  AC_CHECK_LIB(profiler,ProfilerStart)
-  AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
+if test "$with_gperftools" != "no"; then
+  AC_CHECK_HEADERS(gperftools/profiler.h)
+  AC_CHECK_HEADERS(gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
-  custom_malloc="tcmalloc"
-elif test $with_gperftools = "production"; then
-  AC_CHECK_LIB(tcmalloc,malloc)
-  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
-     echo "No tcmalloc, skipping further tests";
-     with_gperftools="no";
+  if test "$with_gperftools" = "debug"; then
+    AC_CHECK_LIB(tcmalloc_debug,malloc)
+    AC_CHECK_LIB(profiler,ProfilerStart)
+  elif test "$with_gperftools" = "profile"; then
+    AC_CHECK_LIB(tcmalloc_and_profiler,malloc)
+    AC_CHECK_LIB(profiler,ProfilerStart)
+  elif test "$with_gperftools" = "production"; then
+    AC_CHECK_LIB(tcmalloc,malloc)
   else
-    custom_malloc="tcmalloc"
+    AC_CHECK_LIB(tcmalloc,malloc)
+    AC_CHECK_LIB(profiler,ProfilerStart)
+  fi;
+  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
+    custom_malloc="tcmalloc";
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
-  fi; 
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
+    memtest_env="TCMALLOC_DEBUG=5";
+  else
+    echo "No tcmalloc available";
+    with_gperftools="no";
+  fi
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
