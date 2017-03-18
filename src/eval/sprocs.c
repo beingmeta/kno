@@ -213,7 +213,7 @@ static fdtype _make_sproc(u8_string name,
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
       fdtype scan=arglist;
-      u8_puts(&out,"```(");
+      u8_puts(&out,"`(");
       if (name) u8_puts(&out,name); else u8_puts(&out,"λ");
       while (FD_PAIRP(scan)) {
         fdtype arg=FD_CAR(scan);
@@ -225,7 +225,7 @@ static fdtype _make_sproc(u8_string name,
         scan=FD_CDR(scan);}
       if (FD_SYMBOLP(scan))
         u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
-      u8_puts(&out,")```");
+      u8_puts(&out,")`");
       if (docstring) {
         u8_puts(&out,"\n\n");
         u8_puts(&out,docstring);}
