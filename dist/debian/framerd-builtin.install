@@ -1,7 +1,7 @@
 usr/share/framerd/modules/builtin/*.scm
 usr/share/framerd/modules/builtin/aws/*.scm
 usr/share/framerd/modules/builtin/aws/templates/*.json
-usr/share/framerd/modules/builtin/batchtools/*.scm
+usr/share/framerd/modules/builtin/batch/*.scm
 usr/share/framerd/modules/builtin/bench/*.scm
 usr/share/framerd/modules/builtin/brico/*.scm
 usr/share/framerd/modules/builtin/brico/data/*
@@ -15,9 +15,9 @@ usr/share/framerd/modules/builtin/dropbox/*.scm
 usr/share/framerd/modules/builtin/facebook/*.scm
 usr/share/framerd/modules/builtin/fdxml/*.scm
 usr/share/framerd/modules/builtin/google/*.scm
-usr/share/framerd/modules/builtin/jwt/*.scm
 usr/share/framerd/modules/builtin/knodules/*.scm
 usr/share/framerd/modules/builtin/knodules/data/*
+usr/share/framerd/modules/builtin/jwt/*.scm
 usr/share/framerd/modules/builtin/misc/*.scm
 usr/share/framerd/modules/builtin/mongodb/*.scm
 usr/share/framerd/modules/builtin/paypal/*.scm
@@ -27,5 +27,3 @@ usr/share/framerd/modules/builtin/textindex/*.scm
 usr/share/framerd/modules/builtin/textindex/data/*
 usr/share/framerd/modules/builtin/twitter/*.scm
 usr/share/framerd/modules/builtin/xhtml/*.scm
-usr/share/framerd/modules/builtin/safe/*
-
