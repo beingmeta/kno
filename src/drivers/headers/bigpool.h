@@ -37,14 +37,14 @@ typedef struct FD_BIGPOOL {
   FD_POOL_FIELDS;
   unsigned int pool_xformat;
   fd_offset_type pool_offtype;
-  fd_compression_type pool_compression;
+  fd_compress_type pool_compression;
   struct FD_STREAM pool_stream;
   unsigned int pool_load;
-  unsigned int *pool_offdata, pool_offdata_length;
+  unsigned int *pool_offdata;
+  size_t pool_offdata_length;
   fdtype *slotids, *old_slotids;
   unsigned int n_slotids, slotids_length, added_slotids;
   struct FD_HASHTABLE slotcodes;
-  time_t pool_modtime;
-  U8_MUTEX_DECL(file_lock);} FD_BIGPOOL;
+  time_t pool_modtime;} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;
 

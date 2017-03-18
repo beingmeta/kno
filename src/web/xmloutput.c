@@ -740,7 +740,7 @@ static void output_value(u8_output s,fdtype val,
       u8_puts(s,"\n\t</table>\n");
       if (tag) u8_printf(s,"</%s>\n",tag);}
     else if ((FD_CHOICEP(val))||(FD_ACHOICEP(val))||(FD_QCHOICEP(val))) {
-      fdtype choice=((FD_QCHOICEP(val))?(FD_XQCHOICE(val)->fd_choiceval):(val));
+      fdtype choice=((FD_QCHOICEP(val))?(FD_XQCHOICE(val)->qchoiceval):(val));
       int size=FD_CHOICE_SIZE(choice); int count=0;
       FD_DO_CHOICES(x,choice) {
         if (count==0) {
@@ -873,7 +873,7 @@ static int embeddedp(fdtype focus,fdtype expr)
     return 0;}
   else if (FD_QCHOICEP(expr)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(expr);
-    FD_DO_CHOICES(elt,qc->fd_choiceval)
+    FD_DO_CHOICES(elt,qc->qchoiceval)
       if (embeddedp(focus,elt)) return 1;
     return 0;}
   else if (FD_SLOTMAPP(expr)) {

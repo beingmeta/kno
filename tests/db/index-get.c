@@ -22,7 +22,7 @@
 int main(int argc,char **argv)
 {
   int fd_version=fd_init_dbs();
-  fd_index ix=((fd_version>0)?(fd_get_index(argv[1],0)):(NULL));
+  fd_index ix=((fd_version>0)?(fd_get_index(argv[1],0,FD_VOID)):(NULL));
   fdtype keys=FD_EMPTY_CHOICE;
   int i=2;
   if (ix==NULL) {

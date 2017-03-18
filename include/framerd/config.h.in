@@ -137,6 +137,9 @@
 #undef HAVE_SYSCTL
 
 /* Define if you have the flock function.  */
+#undef HAVE_PREAD
+
+/* Define if you have the flock function.  */
 #undef HAVE_MMAP
 
 /* Define if you have the mkstemp function.  */

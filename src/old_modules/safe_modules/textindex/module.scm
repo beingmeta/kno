@@ -1,1 +1,0 @@
-textindex.scm

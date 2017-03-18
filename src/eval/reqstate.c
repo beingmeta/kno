@@ -113,7 +113,7 @@ static fdtype reqget_prim(fdtype vars,fdtype dflt)
   else if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
   else if (FD_QCHOICEP(dflt)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(dflt);
-    return fd_make_simple_choice(qc->fd_choiceval);}
+    return fd_make_simple_choice(qc->qchoiceval);}
   else return fd_incref(dflt);
 }
 
@@ -146,7 +146,7 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
   else if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
   else if (FD_QCHOICEP(dflt)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(dflt);
-    return fd_make_simple_choice(qc->fd_choiceval);}
+    return fd_make_simple_choice(qc->qchoiceval);}
   else return fd_incref(dflt);
 }
 

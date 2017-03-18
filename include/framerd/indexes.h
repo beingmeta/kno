@@ -39,7 +39,7 @@ FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;						   \
-  u8_string index_idstring, index_source, index_xinfo;		   \
+  u8_string indexid, index_source;				   \
   struct FD_INDEX_HANDLER *index_handler;			   \
   fdkb_flags index_flags, modified_flags;			   \
   int index_serialno;						   \
@@ -52,8 +52,6 @@ typedef struct FD_INDEX *fd_index;
 
 FD_EXPORT fd_index fd_primary_indexes[], *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
-
-fd_index (*fd_file_index_type)(u8_string spec,fdkb_flags flags);
 
 typedef struct FD_KEY_SIZE {
   fdtype keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
@@ -69,11 +67,13 @@ typedef struct FD_INDEX_HANDLER {
   fdtype *(*fetchn)(fd_index ix,int n,fdtype *keys);
   fdtype *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchsizes)(fd_index ix,int *n);
+  int (*batchadd)(fd_index ix,fdtype);
   fdtype (*metadata)(fd_index ix,fdtype);
   fd_index (*create)(u8_string spec,void *type_data,
 		     fdkb_flags flags,fdtype opts);
+  int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_index p);
-  fdtype (*indexop)(fd_index ix,int opid,int n,fdtype *args);}
+  fdtype (*indexctl)(fd_index ix,int opid,int n,fdtype *args);}
   FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
@@ -96,11 +96,16 @@ struct FD_INDEX_HANDLER some_handler={
   NULL, /* commit */
   NULL, /* fetch */
   NULL, /* fetchsize */
+  NULL, /* prefetch */
   NULL /* fetchn */
   NULL, /* fetchkeys */
   NULL, /* fetchsizes */
-  NULL, /* creates */
-  NULL /* indexop */
+  NULL, /* batchadd */
+  NULL, /* metadata */
+  NULL, /* create */
+  NULL, /* walk */
+  NULL, /* recycle */
+  NULL /* indexctl */
 };
 #endif
 
@@ -124,16 +129,17 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_keys(fd_index ix);
 FD_EXPORT fdtype fd_index_sizes(fd_index ix);
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
+FD_EXPORT int fd_batch_add(fd_index ix,fdtype table);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
-FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags);
-FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags);
-FD_EXPORT fd_index fd_find_index_by_cid(u8_string);
+FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags,fdtype);
+FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags,fdtype);
+FD_EXPORT fd_index fd_find_index_by_qname(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags);
+FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags,fdtype);
 
 FD_EXPORT void fd_swapout_indexes(void);
 FD_EXPORT void fd_close_indexes(void);
@@ -149,15 +155,6 @@ FD_EXPORT int fd_add_to_background(fd_index ix);
 
 /* Network indexes */
 
-typedef struct FD_NETWORK_INDEX {
-  FD_INDEX_FIELDS;
-  int sock; fdtype xname;
-  int capabilities;
-  struct U8_CONNPOOL *index_connpool;} FD_NETWORK_INDEX;
-typedef struct FD_NETWORK_INDEX *fd_network_index;
-
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags);
-
 /* Server capabilities */
 #define FD_ISERVER_FETCHN 1
 #define FD_ISERVER_ADDN 2
@@ -168,13 +165,27 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags);
 
 typedef struct FD_EXTINDEX {
   FD_INDEX_FIELDS;
-  fdtype fetchfn, commitfn, state;} FD_EXTINDEX;
+  fdtype fetchfn, commitfn, state;}
+  FD_EXTINDEX;
 typedef struct FD_EXTINDEX *fd_extindex;
 
 FD_EXPORT fd_index fd_make_extindex
   (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg);
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
+
+/* Proc indexes */
+
+typedef struct FD_PROCINDEX {
+  FD_INDEX_FIELDS;
+  fdtype closefn, commitfn, fetchfn, fetchsize;
+  fdtype prefetch, fetchn, fetchkeys, fetchsizes;
+  fdtype batchadd, metadata, create, indexctl;
+  fdtype index_state;}
+  FD_PROCINDEX;
+typedef struct FD_PROCINDEX *fd_procindex;
+
+FD_EXPORT struct FD_INDEX_HANDLER fd_procindex_handler;
 
 /* Compound indexes */
 

@@ -72,7 +72,7 @@ static int htindex_commit(fd_index ix)
     return (mix->commitfn)(mix,mix->index_source);
   else {
     fd_seterr(fd_EphemeralIndex,"htindex_commit",
-	      u8_strdup(ix->index_idstring),FD_VOID);
+	      u8_strdup(ix->indexid),FD_VOID);
     return -1;}
 }
 
@@ -90,7 +90,7 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
   else return 0;
 }
 
-static fd_index open_htindex(u8_string file,fdkb_flags flags)
+static fd_index open_htindex(u8_string file,fdkb_flags flags,fdtype opts)
 {
   struct FD_HT_INDEX *mix=(fd_mem_index)fd_make_ht_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
@@ -104,8 +104,8 @@ static fd_index open_htindex(u8_string file,fdkb_flags flags)
   else {
     fd_decref(lispval);
     return NULL;}
-  if (mix->index_idstring) u8_free(mix->index_idstring);
-  mix->index_source=mix->index_idstring=u8_strdup(file);
+  if (mix->indexid) u8_free(mix->indexid);
+  mix->index_source=mix->indexid=u8_strdup(file);
   mix->commitfn=htindex_commitfn;
   mix->index_cache.ht_n_buckets=h->ht_n_buckets;
   mix->index_cache.table_n_keys=h->table_n_keys;
@@ -116,7 +116,7 @@ static fd_index open_htindex(u8_string file,fdkb_flags flags)
 }
 
 static struct FD_INDEX_HANDLER htindex_handler={
-  "htindex", 1, sizeof(struct FD_HT_INDEX), 12,
+  "htindex", 1, sizeof(struct FD_HT_INDEX), 14,
   NULL, /* close */
   htindex_commit, /* commit */
   NULL, /* fetch */
@@ -125,9 +125,10 @@ static struct FD_INDEX_HANDLER htindex_handler={
   htindex_fetchn, /* fetchn */
   htindex_fetchkeys, /* fetchkeys */
   htindex_fetchsizes, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT

@@ -553,7 +553,7 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
     else if (FD_TABLEP(values))
       return fd_xmleval(NULL,values,env);
     else if (FD_QCHOICEP(values)) {
-      fdtype result=FD_XQCHOICE(values)->fd_choiceval;
+      fdtype result=FD_XQCHOICE(values)->qchoiceval;
       fd_incref(result); fd_decref(values);
       return result;}
     else return values;}

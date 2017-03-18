@@ -72,6 +72,22 @@ static int modifiedp(fdtype v);
 struct FD_POOL_WRITES {
   int len; fdtype *oids, *values;};
 
+/* Locking functions for external libraries */
+
+FD_EXPORT void _fd_lock_pool(fd_pool p)
+{
+  fd_lock_pool(p);
+}
+
+FD_EXPORT void _fd_unlock_pool(fd_pool p)
+{
+  if (p->pool_islocked) {
+    p->pool_islocked=0;
+    u8_unlock_mutex(&((p)->pool_lock));}
+  else u8_log(LOGCRIT,"PoolUnLockError",                       \
+              "Pool '%s' already unlocked!",p->poolid);
+}
+
 /* Pool delays for IPEVAL */
 
 #if FD_GLOBAL_IPEVAL
@@ -136,8 +152,8 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
 FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args)
 {
   struct FD_POOL_HANDLER *h=p->pool_handler;
-  if (h->poolop)
-    return h->poolop(p,poolop,n,args);
+  if (h->poolctl)
+    return h->poolctl(p,poolop,n,args);
   else return FD_FALSE;
 }
 
@@ -190,7 +206,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   fd_pool_serial_table[serial_no]=p;
   if ((capacity>=FD_TOP_POOL_SIZE) && ((p->pool_base)%FD_TOP_POOL_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",
-              u8_strdup(p->pool_idstring),FD_VOID);
+              u8_strdup(p->poolid),FD_VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   if (capacity>=FD_TOP_POOL_SIZE) {
@@ -250,7 +266,6 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   pool->pool_serialno=fd_get_oid_base_index(base,1);
   pool->pool_label="gluepool";
   pool->pool_source=NULL;
-  pool->pool_xinfo=NULL;
   pool->n_subpools=0; pool->subpools=NULL;
   pool->pool_handler=&gluepool_handler;
   FD_INIT_STATIC_CONS(&(pool->pool_cache),fd_hashtable_type);
@@ -305,7 +320,7 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
 FD_EXPORT u8_string fd_pool_id(fd_pool p)
 {
   if (p->pool_label!=NULL) return p->pool_label;
-  else if (p->pool_idstring!=NULL) return p->pool_idstring;
+  else if (p->poolid!=NULL) return p->poolid;
   else if (p->pool_source!=NULL) return p->pool_source;
   else return NULL;
 }
@@ -541,14 +556,14 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 {
   fd_hashtable cache=&(p->pool_cache);
   oids=fd_make_simple_choice(oids);
-  u8_log(fdkb_loglevel,"PoolDB","Swapping out pool %s",p->pool_idstring);
+  u8_log(fdkb_loglevel,"PoolDB","Swapping out pool %s",p->poolid);
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
     u8_log(fdkb_loglevel+1,"SwapPool",
            "Finished custom swapout for pool %s, clearing caches...",
-           p->pool_idstring);}
+           p->poolid);}
   else u8_log(fdkb_loglevel+1,"SwapPool",
-              "No custom swapout clearing caches for %s",p->pool_idstring);
+              "No custom swapout clearing caches for %s",p->poolid);
   if (p->pool_flags&FDKB_NOSWAP)
     return 0;
   else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))  {
@@ -616,7 +631,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
     else n=write-oidv;
     if (p->pool_handler->lock==NULL) {
       fd_seterr(fd_CantLockOID,"fd_pool_lock",
-                u8_strdup(p->pool_idstring),oids);
+                u8_strdup(p->poolid),oids);
       return -1;}
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->pool_handler->lock(p,needy);
@@ -718,11 +733,11 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
 
   if (locks->table_n_keys==0) {
     u8_log(fdkb_loglevel+1,fd_PoolCommit,
-           "####### No locked oids in %s",p->pool_idstring);
+           "####### No locked oids in %s",p->poolid);
     return 0;}
   else if (p->pool_handler->storen==NULL) {
     u8_log(fdkb_loglevel+1,fd_PoolCommit,
-           "####### Unlocking OIDs in %s",p->pool_idstring);
+           "####### Unlocking OIDs in %s",p->poolid);
     int rv=fd_pool_unlock(p,oids,leave_modified);
     return rv;}
   else {
@@ -737,7 +752,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       u8_log(fdkb_loglevel,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
              writes.len,p->pool_changes.table_n_keys,
-             p->pool_idstring);
+             p->poolid);
       init_cache_level(p);
       retval=p->pool_handler->storen(p,writes.len,writes.oids,writes.values);}
     else retval=0;
@@ -745,14 +760,14 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
     if (retval<0) {
       u8_log(LOGCRIT,fd_PoolCommitError,
              "Error %d (%s) saving oids to %s",
-             errno,u8_strerror(errno),p->pool_idstring);
-      u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->pool_idstring));
+             errno,u8_strerror(errno),p->poolid);
+      u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->poolid));
       abort_commit(p,writes);
       return retval;}
     else if (writes.len) {
       u8_log(fdkb_loglevel,fd_PoolCommit,
              "####### Saved %d OIDs to %s in %f secs",
-             writes.len,p->pool_idstring,u8_elapsed_time()-start_time);
+             writes.len,p->poolid,u8_elapsed_time()-start_time);
       finish_commit(p,writes);}
     else {}
     return retval;}
@@ -814,7 +829,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
     fdtype to_unlock=fd_init_choice(NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
     int retval=p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
-      u8_log(LOGCRIT,"UnlockFailed","Error unlocking pool %s",p->pool_idstring);
+      u8_log(LOGCRIT,"UnlockFailed","Error unlocking pool %s",p->poolid);
       fd_clear_errors(1);}
     fd_decref(to_unlock);}
   fd_hashtable_iterkeys(changes,fd_table_replace,unlock_count,oids,FD_VOID);
@@ -1069,7 +1084,7 @@ FD_EXPORT int fd_pool_load(fd_pool p)
     return (p->pool_handler->getload)(p);
   else {
     fd_seterr(fd_UnhandledOperation,"fd_pool_load",
-              u8_strdup(p->pool_idstring),FD_VOID);
+              u8_strdup(p->poolid),FD_VOID);
     return -1;}
 }
 
@@ -1149,7 +1164,7 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
       fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",buf);
       return NULL;}}
   else if (FD_STRINGP(lp))
-    return fd_use_pool(FD_STRDATA(lp),0);
+    return fd_use_pool(FD_STRDATA(lp),0,FD_VOID);
   else {
     fd_seterr(fd_TypeError,_("not a pool"),NULL,lp);
     return NULL;}
@@ -1199,7 +1214,7 @@ FD_EXPORT fdtype fd_all_pools()
   return results;
 }
 
-FD_EXPORT fd_pool fd_find_pool_by_cid(u8_string cid)
+FD_EXPORT fd_pool fd_find_pool_by_qname(u8_string cid)
 {
   int i=0; u8_string canonical;
   if (cid==NULL) return NULL;
@@ -1209,8 +1224,8 @@ FD_EXPORT fd_pool fd_find_pool_by_cid(u8_string cid)
   while (i < 1024)
     if (fd_top_pools[i] == NULL) i++;
     else if (fd_top_pools[i]->pool_capacity)
-      if ((fd_top_pools[i]->pool_idstring) &&
-          ((strcmp(canonical,fd_top_pools[i]->pool_idstring)) == 0)) {
+      if ((fd_top_pools[i]->poolid) &&
+          ((strcmp(canonical,fd_top_pools[i]->poolid)) == 0)) {
         u8_free(canonical);
         return fd_top_pools[i];}
       else i++;
@@ -1219,8 +1234,8 @@ FD_EXPORT fd_pool fd_find_pool_by_cid(u8_string cid)
       fd_pool *subpools=gp->subpools; int j=0;
       while (j<gp->n_subpools)
         if ((subpools[j]) &&
-            (subpools[j]->pool_idstring) &&
-            (strcmp(canonical,subpools[j]->pool_idstring)==0)) {
+            (subpools[j]->poolid) &&
+            (strcmp(canonical,subpools[j]->poolid)==0)) {
           u8_free(canonical);
           return subpools[j];}
         else j++;}
@@ -1228,7 +1243,7 @@ FD_EXPORT fd_pool fd_find_pool_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid)
+FD_EXPORT fdtype fd_find_pools_by_qname(u8_string cid)
 {
   fdtype results=FD_EMPTY_CHOICE; u8_string canonical;
   int i=0;
@@ -1239,8 +1254,8 @@ FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid)
   while (i < 1024)
     if (fd_top_pools[i] == NULL) i++;
     else if (fd_top_pools[i]->pool_capacity)
-      if ((fd_top_pools[i]->pool_idstring) &&
-          ((strcmp(canonical,fd_top_pools[i]->pool_idstring)) == 0)) {
+      if ((fd_top_pools[i]->poolid) &&
+          ((strcmp(canonical,fd_top_pools[i]->poolid)) == 0)) {
         fdtype poolv=fd_pool2lisp(fd_top_pools[i]); i++;
         fd_incref(poolv);
         FD_ADD_TO_CHOICE(results,poolv);}
@@ -1249,7 +1264,7 @@ FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid)
       struct FD_GLUEPOOL *gp=(struct FD_GLUEPOOL *)fd_top_pools[i++];
       fd_pool *subpools=gp->subpools; int j=0;
       while (j<gp->n_subpools)
-        if ((subpools[j]->pool_idstring) && (strcmp(canonical,subpools[j]->pool_idstring)==0)) {
+        if ((subpools[j]->poolid) && (strcmp(canonical,subpools[j]->poolid)==0)) {
           fdtype poolv=fd_pool2lisp(subpools[j]); j++;
           fd_incref(poolv);
           FD_ADD_TO_CHOICE(results,poolv);}
@@ -1313,7 +1328,7 @@ static int do_commit(fd_pool p,void *data)
   if (retval<0)
     if (data) {
       u8_log(LOG_CRIT,"POOL_COMMIT_FAIL",
-             "Error when committing pool %s",p->pool_idstring);
+             "Error when committing pool %s",p->poolid);
       return 0;}
     else return -1;
   else return 0;
@@ -1399,8 +1414,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->oid_handlers=NULL;
   p->pool_handler=h;
   p->pool_source=u8_strdup(source);
-  p->pool_idstring=u8_strdup(cid);
-  p->pool_xinfo=NULL;
+  p->poolid=u8_strdup(cid);
   p->pool_label=NULL;
   p->pool_prefix=NULL;
   p->pool_namefn=FD_VOID;
@@ -1428,19 +1442,21 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL, /* storen */
   NULL, /* swapout */
   NULL, /* metadata */
-  NULL /* sync */
+  NULL, /* create */
+  NULL, /* walker */
+  NULL, /* recycle */
+  NULL  /* poolctl */
 };
 
-fd_pool (*fd_file_pool_type)(u8_string spec,fdkb_flags)=NULL;
 
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   if (strchr(spec,';')) {
     fd_pool p=NULL;
     u8_byte *copy=u8_strdup(spec), *start=copy, *brk=strchr(start,';');
     while (brk) {
       if (p==NULL) {
-        *brk='\0'; p=fd_get_pool(start,flags);
+        *brk='\0'; p=fd_get_pool(start,flags,opts);
         if (p) {brk=NULL; start=NULL;}
         else {
           start=brk+1;
@@ -1449,17 +1465,17 @@ FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags)
     else if ((start)&&(*start)) {
       int start_off=start-copy;
       u8_free(copy);
-      return fd_get_pool(spec+start_off,flags);}
+      return fd_get_pool(spec+start_off,flags,opts);}
     else return NULL;}
   else {
-    fd_pool known=fd_find_pool_by_cid(spec);
+    fd_pool known=fd_find_pool_by_qname(spec);
     if (known) return known;
-    else return fd_open_pool(spec,flags);}
+    else return fd_open_pool(spec,flags,opts);}
 }
 
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
-  return fd_get_pool(spec,flags&(~FDKB_UNREGISTERED));
+  return fd_get_pool(spec,flags&(~FDKB_UNREGISTERED),opts);
 }
 
 FD_EXPORT fd_pool fd_name2pool(u8_string spec)
@@ -1475,43 +1491,48 @@ static int unparse_pool(u8_output out,fdtype x)
 {
   fd_pool p=fd_lisp2pool(x); u8_string type; char addrbuf[128];
   if (p==NULL) return 0;
-  if ((p->pool_handler) && (p->pool_handler->name)) type=p->pool_handler->name;
+  if ((p->pool_handler) && (p->pool_handler->name))
+    type=p->pool_handler->name;
   else type="unrecognized";
   sprintf(addrbuf,"@%x/%x+0x%x",
           FD_OID_HI(p->pool_base),FD_OID_LO(p->pool_base),
           p->pool_capacity);
-  if (p->pool_label)
-    if ((p->pool_xinfo) && (strcmp(p->pool_source,p->pool_xinfo)))
-      u8_printf(out,"#<POOL %s %s #!%lx \"%s\" \"%s|%s\">",
-                type,addrbuf,x,p->pool_label,p->pool_source,p->pool_xinfo);
-    else u8_printf(out,"#<POOL %s %s #!%lx \"%s\" \"%s\">",
-                   type,addrbuf,x,p->pool_label,p->pool_source);
+  if ((p->pool_source)&&(p->pool_label))
+    u8_printf(out,"#<POOL %s (%s) %s #!%lx '%s' \"%s\">",
+              p->poolid,type,addrbuf,x,
+              p->pool_label,p->pool_source);
+  else if (p->pool_label)
+    u8_printf(out,"#<POOL %s (%s) #!%lx '%s'>",
+              type,addrbuf,x,p->pool_label);
   else if (p->pool_source)
-    if ((p->pool_xinfo) && (strcmp(p->pool_source,p->pool_xinfo)))
-      u8_printf(out,"#<POOL %s %s #!%lx \"%s|%s\">",
-                type,addrbuf,x,p->pool_source,p->pool_xinfo);
-    else u8_printf(out,"#<POOL %s %s #!%lx \"%s\">",
-                   type,addrbuf,x,p->pool_source);
-  else u8_printf(out,"#<POOL %s,0x%lx>",type,addrbuf,x);
+    u8_printf(out,"#<POOL %s (%s) %s #!%lx \"%s\">",
+              p->poolid,type,addrbuf,x,p->pool_source);
+  else u8_printf(out,"#<POOL %s (%s) %s #!%lx \"%s\">",
+                 p->poolid,type,addrbuf,x);
   return 1;
 }
 
 static int unparse_raw_pool(u8_output out,fdtype x)
 {
-  fd_pool p=(fd_pool)x; u8_string type;
+  fd_pool p=(fd_pool)x; u8_string type; char addrbuf[128];
   if (p==NULL) return 0;
   if ((p->pool_handler) && (p->pool_handler->name)) type=p->pool_handler->name;
   else type="unrecognized";
-  if (p->pool_label)
-    if ((p->pool_xinfo) && (strcmp(p->pool_source,p->pool_xinfo)))
-      u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s|%s\">",
-                type,x,p->pool_label,p->pool_source,p->pool_xinfo);
-    else u8_printf(out,"#<POOL %s 0x%lx \"%s\" \"%s\">",type,x,p->pool_label,p->pool_source);
+  sprintf(addrbuf,"@%x/%x+0x%x",
+          FD_OID_HI(p->pool_base),FD_OID_LO(p->pool_base),
+          p->pool_capacity);
+  if ((p->pool_source)&&(p->pool_label))
+    u8_printf(out,"#<RAWPOOL %s (%s) %s #!%lx '%s' \"%s\">",
+              p->poolid,type,addrbuf,x,
+              p->pool_label,p->pool_source);
+  else if (p->pool_label)
+    u8_printf(out,"#<RAWPOOL %s (%s) #!%lx '%s'>",
+              type,addrbuf,x,p->pool_label);
   else if (p->pool_source)
-    if ((p->pool_xinfo) && (strcmp(p->pool_source,p->pool_xinfo)))
-      u8_printf(out,"#<POOL %s 0x%lx \"%s|%s\">",type,x,p->pool_source,p->pool_xinfo);
-    else u8_printf(out,"#<POOL %s 0x%lx \"%s\">",type,x,p->pool_source);
-  else u8_printf(out,"#<POOL %s,0x%lx>",type,x);
+    u8_printf(out,"#<RAWPOOL %s (%s) %s #!%lx \"%s\">",
+              p->poolid,type,addrbuf,x,p->pool_source);
+  else u8_printf(out,"#<RAWPOOL %s (%s) %s #!%lx \"%s\">",
+                 p->poolid,type,addrbuf,x);
   return 1;
 }
 
@@ -1520,10 +1541,10 @@ static fdtype pool_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   fd_pool p=NULL;
   if (n<3) return FD_VOID;
   else if (n==3)
-    p=fd_use_pool(FD_STRING_DATA(args[2]),0);
+    p=fd_use_pool(FD_STRING_DATA(args[2]),0,FD_VOID);
   else if ((FD_STRINGP(args[2])) &&
            ((p=fd_find_pool_by_prefix(FD_STRING_DATA(args[2])))==NULL))
-    p=fd_use_pool(FD_STRING_DATA(args[3]),0);
+    p=fd_use_pool(FD_STRING_DATA(args[3]),0,FD_VOID);
   if (p) return fd_pool2lisp(p);
   else return fd_err(fd_CantParseRecord,"pool_parsefn",NULL,FD_VOID);
 }
@@ -1558,16 +1579,16 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
       u8_log(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s: %q",
-             FD_CHOICE_SIZE(todo),p->pool_idstring,todo);
+             FD_CHOICE_SIZE(todo),p->poolid,todo);
     else if (fd_trace_ipeval)
       u8_log(LOG_NOTICE,ipeval_objfetch,"Fetching %d oids from %s",
-             FD_CHOICE_SIZE(todo),p->pool_idstring);
+             FD_CHOICE_SIZE(todo),p->poolid);
 #endif
     fd_pool_prefetch(p,todo);
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
       u8_log(LOG_NOTICE,ipeval_objfetch,"Fetched %d oids from %s",
-             FD_CHOICE_SIZE(todo),p->pool_idstring);
+             FD_CHOICE_SIZE(todo),p->poolid);
 #endif
     return 0;}
 }
@@ -1647,9 +1668,8 @@ static void recycle_raw_pool(struct FD_RAW_CONS *c)
   if (handler->recycle) handler->recycle(p);
   fd_recycle_hashtable(&(p->pool_cache));
   fd_recycle_hashtable(&(p->pool_changes));
-  u8_free(p->pool_idstring);
+  u8_free(p->poolid);
   u8_free(p->pool_source);
-  if (p->pool_xinfo) u8_free(p->pool_xinfo);
   if (p->pool_label) u8_free(p->pool_label);
   if (p->pool_prefix) u8_free(p->pool_prefix);
   fd_decref(p->pool_namefn); fd_decref(p->pool_namefn);
@@ -1685,32 +1705,15 @@ static u8_string _more_oid_info(fdtype oid)
     unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
     if (p==NULL)
       sprintf(oid_info_buf,"@%x/%x in no pool",hi,lo);
+    else if ((p->pool_label)&&(p->pool_source))
+      sprintf(oid_info_buf,"@%x/%x in %s from %s = %s",
+              hi,lo,p->pool_label,p->pool_source,p->poolid);
     else if (p->pool_label)
-      if (p->pool_source)
-        if (p->pool_idstring)
-          if (p->pool_xinfo)
-            sprintf(oid_info_buf,"@%x/%x in %s from %s = %s = %s",
-                    hi,lo,p->pool_label,p->pool_source,p->pool_idstring,
-                    p->pool_xinfo);
-          else sprintf(oid_info_buf,"@%x/%x in %s from %s = %s",
-                       hi,lo,p->pool_label,p->pool_source,p->pool_idstring);
-        else sprintf(oid_info_buf,"@%x/%x in %s from %s",
-                     hi,lo,p->pool_label,p->pool_source);
-      else sprintf(oid_info_buf,"@%x/%x in %s",hi,lo,p->pool_label);
+      sprintf(oid_info_buf,"@%x/%x in %s",hi,lo,p->pool_label);
     else if (p->pool_source)
-      if (p->pool_idstring)
-        if (p->pool_xinfo)
-          sprintf(oid_info_buf,"@%x/%x from %s = %s = %s",
-                  hi,lo,p->pool_source,p->pool_idstring,p->pool_xinfo);
-        else sprintf(oid_info_buf,"@%x/%x from %s = %s",
-                     hi,lo,p->pool_source,p->pool_idstring);
-      else sprintf(oid_info_buf,"@%x/%x from %s",hi,lo,p->pool_source);
-    else if (p->pool_idstring)
-      if (p->pool_xinfo)
-        sprintf(oid_info_buf,"@%x/%x from %s = %s",
-                hi,lo,p->pool_idstring,p->pool_xinfo);
-      else sprintf(oid_info_buf,"@%x/%x from %s",hi,lo,p->pool_idstring);
-    else sprintf(oid_info_buf,"@%x/%x in stub pool",hi,lo);
+      sprintf(oid_info_buf,"@%x/%x from %s = %s",
+              hi,lo,p->pool_source,p->poolid);
+    else sprintf(oid_info_buf,"@%x/%x from %s",hi,lo,p->poolid);
     return oid_info_buf;}
   else return "not an oid!";
 }
@@ -1733,7 +1736,7 @@ FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
   fd_pool *ppid=(fd_pool *)vptr;
   if (FD_POOLP(v)) *ppid=fd_lisp2pool(v);
   else if (FD_STRINGP(v)) {
-    fd_pool p=fd_use_pool(FD_STRDATA(v),0);
+    fd_pool p=fd_use_pool(FD_STRDATA(v),0,FD_VOID);
     if (p) *ppid=p; else return -1;}
   else return fd_type_error(_("pool spec"),"pool_config_set",v);
   return 1;

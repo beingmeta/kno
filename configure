@@ -8340,6 +8340,17 @@ _ACEOF
 fi
 done
 
+for ac_func in pread
+do :
+  ac_fn_c_check_func "$LINENO" "pread" "ac_cv_func_pread"
+if test "x$ac_cv_func_pread" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PREAD 1
+_ACEOF
+
+fi
+done
+
 for ac_func in ftime
 do :
   ac_fn_c_check_func "$LINENO" "ftime" "ac_cv_func_ftime"
@@ -10913,13 +10924,13 @@ if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
 fi
 
 if test $with_gperftools = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_and_profiler" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_and_profiler... " >&6; }
+if ${ac_cv_lib_tcmalloc_and_profiler_malloc+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
+LIBS="-ltcmalloc_and_profiler  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -10939,22 +10950,22 @@ return malloc ();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
+  ac_cv_lib_tcmalloc_and_profiler_malloc=yes
 else
-  ac_cv_lib_tcmalloc_malloc=no
+  ac_cv_lib_tcmalloc_and_profiler_malloc=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_and_profiler_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_and_profiler_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_and_profiler_malloc" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
+#define HAVE_LIBTCMALLOC_AND_PROFILER 1
 _ACEOF
 
-  LIBS="-ltcmalloc $LIBS"
+  LIBS="-ltcmalloc_and_profiler $LIBS"
 
 fi
 
@@ -11154,6 +11165,60 @@ fi
 done
 
   custom_malloc="tcmalloc"
+elif test $with_gperftools = "production"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
+fi
+
+  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
+     echo "No tcmalloc, skipping further tests";
+     with_gperftools="no";
+  else
+    custom_malloc="tcmalloc"
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
+  fi;
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
@@ -12363,7 +12428,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/cons/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runtest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/cons/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runtest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13097,6 +13162,7 @@ do
     "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
     "tests/scheme/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/tcdebug" ;;
     "tests/scheme/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgdebug" ;;
+    "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;

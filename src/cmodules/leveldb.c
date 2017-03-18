@@ -661,7 +661,7 @@ static fdtype leveldb_pool_alloc(fd_pool p,int n)
   u8_lock_mutex(&(pool->pool_lock));
   if (pool->pool_load+n>=pool->pool_capacity) {
     u8_unlock_mutex(&(pool->pool_lock));
-    return fd_err(fd_ExhaustedPool,"leveldb_pool_alloc",pool->pool_idstring,FD_VOID);}
+    return fd_err(fd_ExhaustedPool,"leveldb_pool_alloc",pool->poolid,FD_VOID);}
   start=pool->pool_load;
   pool->pool_load=start+n;
   u8_unlock_mutex(&(pool->pool_lock));
@@ -793,11 +793,11 @@ static int leveldb_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       break;
     else i++;}
   if (errval>=0) {
-    u8_lock_mutex(&(pool->pool_lock)); {
+    fd_lock_pool(p); {
       fdtype loadval=FD_INT(pool->pool_load);
       int retval=set_prop(dbptr,"\377LOAD",loadval,sync_writeopts);
       fd_decref(loadval);
-      u8_unlock_mutex(&(pool->pool_lock));
+      fd_unlock_pool(p);
       if (retval<0) return retval;}}
   if (errval<0)
     return errval;

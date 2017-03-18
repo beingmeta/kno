@@ -172,7 +172,7 @@ static u8_string get_compound_id(int n,fd_index *indexes)
     U8_INIT_OUTPUT(&out,80);
     while (i < n) {
       if (i) u8_puts(&out,"|"); else u8_puts(&out,"{");
-      u8_puts(&out,indexes[i]->index_idstring); i++;}
+      u8_puts(&out,indexes[i]->indexid); i++;}
     u8_puts(&out,"}");
     return out.u8_outbuf;}
   else return u8_strdup("compound");
@@ -203,20 +203,20 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     cix->indexes[cix->n_indexes++]=add;
     if (add->index_serialno<0) {
       fdtype alix=(fdtype)add; fd_incref(alix);}
-    if ((cix->index_idstring) || (cix->index_source)) {
-      if ((cix->index_idstring)==(cix->index_source)) {
-        u8_free(cix->index_idstring); cix->index_idstring=cix->index_source=NULL;}
+    if ((cix->indexid) || (cix->index_source)) {
+      if ((cix->indexid)==(cix->index_source)) {
+        u8_free(cix->indexid); cix->indexid=cix->index_source=NULL;}
       else {
-        if (cix->index_idstring) {u8_free(cix->index_idstring); cix->index_idstring=NULL;}
+        if (cix->indexid) {u8_free(cix->indexid); cix->indexid=NULL;}
         if (cix->index_source) {u8_free(cix->index_source); cix->index_source=NULL;}}}
-    cix->index_idstring=cix->index_source=get_compound_id(cix->n_indexes,cix->indexes);
+    cix->indexid=cix->index_source=get_compound_id(cix->n_indexes,cix->indexes);
     fd_reset_hashtable(&(cix->index_cache),-1,1);
     return 1;}
   else return fd_reterr(fd_TypeError,("compound_index"),NULL,FD_VOID);
 }
 
 static struct FD_INDEX_HANDLER compoundindex_handler={
-  "compoundindex", 1, sizeof(struct FD_COMPOUND_INDEX), 12,
+  "compoundindex", 1, sizeof(struct FD_COMPOUND_INDEX), 14,
   NULL, /* close */
   NULL, /* commit */
   compound_fetch, /* fetch */
@@ -225,8 +225,12 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
   compound_fetchn, /* fetchn */
   compound_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
-  NULL /* sync */
+  NULL, /* create */
+  NULL, /* walk */
+  NULL, /* recycle */
+  NULL /* indexctl */
 };
 
 FD_EXPORT void fd_init_compoundindexes_c()

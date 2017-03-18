@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define FD_INLINE_POOLS 1
 #define FD_INLINE_BUFIO 1
 
 #include "framerd/fdsource.h"
@@ -18,6 +19,8 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 #include "framerd/dtcall.h"
+
+#include "headers/netpool.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
@@ -91,7 +94,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   return result;
 }
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   struct FD_NETWORK_POOL *np=u8_alloc(struct FD_NETWORK_POOL);
   u8_string xid=NULL;
@@ -101,7 +104,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags)
     u8_free(np); u8_free(cid);
     return NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
-  np->pool_idstring=cid; np->pool_xinfo=xid;
+  np->poolid=cid; np->pool_source=xid;
   np->pool_connpool=
     u8_open_connpool(spec,fd_dbconn_reserve_default,
                      fd_dbconn_cap_default,fd_dbconn_init_default);
@@ -129,7 +132,8 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags)
       if (n_pools==0) p=np;
       else p=u8_alloc(struct FD_NETWORK_POOL);
       init_network_pool(p,pd,spec,cid,flags);
-      p->pool_xinfo=xid; p->pool_connpool=np->pool_connpool;
+      p->pool_source=xid;
+      p->pool_connpool=np->pool_connpool;
       n_pools++;}}
   else init_network_pool(np,pooldata,spec,cid,flags);
   u8_free(cid);
@@ -171,7 +175,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->pool_idstring),fd_incref(value));
+              u8_strdup(np->poolid),fd_incref(value));
     return NULL;}
 }
 
@@ -252,8 +256,9 @@ static struct FD_POOL_HANDLER netpool_handler={
   NULL, /* swapout */
   NULL, /* metadata */
   NULL, /* create */
+  NULL,  /* walk */
   NULL, /* recycle */
-  NULL  /* poolop */
+  NULL  /* poolctl */
 };
 
 static void init_client_id()

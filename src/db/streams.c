@@ -278,7 +278,7 @@ FD_EXPORT void fd_free_stream(fd_stream s)
   else fd_decref(sptr);
 }
 
-FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz)
+FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz)
 {
   fd_lock_stream(s);
   fd_flush_stream(s);
@@ -544,6 +544,36 @@ FD_EXPORT fd_off_t fd_movepos(fd_stream s,fd_off_t delta)
   return rv;
 }
 
+FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
+                                size_t count,fd_off_t offset,
+                                int stream_locked)
+{
+#if HAVE_PREAD
+  if ((!(stream_locked)) &&
+      (FD_ISWRITING(&(s->buf.raw))) &&
+      ((offset+count)>(s->stream_filepos))) {
+    /* This is the case where the stream is being written to and we're
+       reading from beyond the position it's writing at. In this case,
+       we lock the stream to do our read, which will block until the
+       writer is done. At that point, we'll set the direction on the 
+       stream which will flush any buffered output. */
+    ssize_t result;
+    fd_lock_stream(s);
+    fd_set_direction(s,fd_byteflow_read);
+    result=pread(s->stream_fileno,buf,count,offset);
+    fd_unlock_stream(s);
+    return result;}
+  else return pread(s->stream_fileno,buf,count,offset);
+#else
+  fd_off_t result=-1;
+  if (!(stream_locked)) fd_lock_stream(s);
+  fd_setpos(s,offset);
+  result=fd_read_bytes(fd_readbuf(s),buf,count);
+  if (!(stream_locked)) fd_unlock_stream(s);
+  return result;
+#endif
+}
+
 FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off)
 {
   fd_outbuf out= (off>=0) ? (fd_start_write(s,off)) : (fd_writebuf(s)) ;
@@ -653,6 +683,44 @@ FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words)
   else return -1;
 }
 
+
+/* Stream ctl */
+
+FD_EXPORT
+fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
+{
+  switch (op) {
+  case fd_stream_close:
+    fd_close_stream(s,0);
+    return FD_VOID;
+  case fd_stream_setbuf:
+    fd_stream_setbufsize(s,(size_t)data);
+    return FD_VOID;
+  case fd_stream_lockfile: {
+    int rv=fd_lockfile(s);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  case fd_stream_unlockfile: {
+    int rv=fd_unlockfile(s);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  case fd_stream_setread: {
+    int rv=fd_set_direction(s,fd_byteflow_read);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  case fd_stream_setwrite: {
+    int rv=fd_set_direction(s,fd_byteflow_write);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv) return FD_TRUE;
+    else return FD_FALSE;}
+  default:
+    fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,
+              FD_VOID);
+    return FD_ERROR_VALUE;}
+}
 
 /* Files 2 dtypes */
 

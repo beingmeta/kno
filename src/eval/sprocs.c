@@ -630,6 +630,23 @@ static fdtype xapply_prim(fdtype proc,fdtype obj)
   return fd_xapply_sproc(sproc,(void *)obj,tablegetval);
 }
 
+/* Walking an sproc */
+
+static int walk_sproc(fd_walker walker,fdtype obj,void *walkdata,
+                      fd_walk_flags flags,int depth)
+{
+  struct FD_SPROC *sproc=(fd_sproc)obj;
+  fdtype env=(fdtype)sproc->sproc_env;
+  if (fd_walk(walker,sproc->sproc_body,walkdata,flags,depth-1)<0)
+    return -1;
+  else if (fd_walk(walker,sproc->sproc_arglist,walkdata,flags,depth-1)<0)
+    return -1;
+  else if ((!(FD_STATICP(env)))&&
+           (fd_walk(walker,sproc->sproc_arglist,walkdata,flags,depth-1)<0))
+    return -1;
+  else return 3;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_sprocs_c()
@@ -644,6 +661,7 @@ FD_EXPORT void fd_init_sprocs_c()
 
   fd_unparsers[fd_sproc_type]=unparse_sproc;
   fd_recyclers[fd_sproc_type]=recycle_sproc;
+  fd_walkers[fd_sproc_type]=walk_sproc;
 
   fd_defspecial(fd_scheme_module,"LAMBDA",lambda_handler);
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);

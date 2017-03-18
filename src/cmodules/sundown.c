@@ -15,10 +15,10 @@
 
 #include <libu8/libu8io.h>
 
-#include "sundown/markdown.h"
-#include "sundown/buffer.h"
-#include "sundown/autolink.h"
-#include "sundown/html.h"
+#include "ext/sundown/markdown.h"
+#include "ext/sundown/buffer.h"
+#include "ext/sundown/autolink.h"
+#include "ext/sundown/html.h"
 
 #define OUTPUT_BUF_UNIT 1024
 #define HTML_RENDER_FLAGS (HTML_USE_XHTML|HTML_ESCAPE|HTML_SAFELINK)

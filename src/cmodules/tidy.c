@@ -14,9 +14,9 @@
 #include "framerd/eval.h"
 #include "libu8/u8logging.h"
 
-#include "tidy5/tidy.h"
-#include "tidy5/tidybuffio.h"
-#include "tidy5/tidyenum.h"
+#include "ext/tidy5/tidy.h"
+#include "ext/tidy5/tidybuffio.h"
+#include "ext/tidy5/tidyenum.h"
 
 FD_EXPORT int fd_init_tidy(void) FD_LIBINIT_FN;
 fd_exception fd_TidyError=_("Tidy Error");

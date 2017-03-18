@@ -135,7 +135,7 @@ static fdtype indexctl_prim(int n,fdtype *args)
     return FD_ERROR_VALUE;
   int op=getindexctlop(args[1]);
   if (op<0)
-    return fd_err("BadIndexOp","index_ctl",ix->index_idstring,args[1]);
+    return fd_err("BadIndexOp","index_ctl",ix->indexid,args[1]);
   else return fd_index_ctl(ix,op,n-1,args+1);
 }
 
@@ -173,7 +173,7 @@ static fdtype poolctl_prim(int n,fdtype *args)
     return FD_ERROR_VALUE;
   int op=getpoolctlop(args[1]);
   if (op<0)
-    return fd_err("BadPoolOp","pool_ctl",p->pool_idstring,args[1]);
+    return fd_err("BadPoolOp","pool_ctl",p->poolid,args[1]);
   else return fd_pool_ctl(p,op,n-2,args+2);
 }
 

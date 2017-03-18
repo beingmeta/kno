@@ -282,12 +282,12 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
       case fd_qchoice_type: {
         struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
         fd_output_byte(out,dt_framerd_package);
-        if (FD_EMPTY_CHOICEP(qv->fd_choiceval)) {
+        if (FD_EMPTY_CHOICEP(qv->qchoiceval)) {
           fd_output_byte(out,dt_small_qchoice);
           fd_output_byte(out,0);
           return 3;}
         else {
-          struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->fd_choiceval);
+          struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->qchoiceval);
           const fdtype *data=FD_XCHOICE_DATA(v);
           int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
           if (len < 256) {
@@ -444,7 +444,7 @@ static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v)
 static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
 {
   int dtype_len;
-  u8_lock_mutex(&(v->hs_lock));
+  fd_read_lock_table(v);
   {
     int size=v->hs_n_elts;
     fdtype *scan=v->hs_slots, *limit=scan+v->hs_n_slots;
@@ -461,11 +461,11 @@ static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
     while (scan < limit)
       if (*scan) {
         if (try_dtype_output(&dtype_len,out,*scan)<0) {
-          u8_unlock_mutex(&(v->hs_lock));
+          fd_unlock_table(v);
           return -1;}
         scan++;}
       else scan++;}
-  u8_unlock_mutex(&(v->hs_lock));
+  fd_unlock_table(v);
   return dtype_len;
 }
 
@@ -1160,7 +1160,7 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
   return result;
 }
 
-/* This reads a non frame value with compression. */
+/* This writes a non frame value with compression. */
 FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;

@@ -147,9 +147,9 @@ static int mem_index_commit(fd_index ix)
 
   if (n_updates>60000)
     u8_log(fdkb_loglevel,"MemIndex/Commit",
-	   "Saving %d updates to %s",n_updates,ix->index_idstring);
+	   "Saving %d updates to %s",n_updates,ix->indexid);
   else u8_log(fdkb_loglevel+1,"MemIndex/Commit",
-	      "Saving %d updates to %s",n_updates,ix->index_idstring);
+	      "Saving %d updates to %s",n_updates,ix->indexid);
 
   fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
   fd_for_hashtable_kv(edits,merge_edits,(void *)cache,0);
@@ -164,7 +164,7 @@ static int mem_index_commit(fd_index ix)
 
   u8_log(fdkb_loglevel+1,"MemIndex/Commit",
 	 "Updated in-memory cache with %d updates to %s, writing to disk",
-	 n_updates,ix->index_idstring);
+	 n_updates,ix->indexid);
 
   /* At this point, the index tables are unlocked and can start being
      used by other threads. We'll now write the changes to the
@@ -203,12 +203,12 @@ static int mem_index_commit(fd_index ix)
 
   u8_log(fdkb_loglevel,"MemIndex/Finished",
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
-	 n_updates,n_entries,ix->index_idstring,end);
+	 n_updates,n_entries,ix->indexid,end);
 
   return 1;
 }
 
-static fd_index open_mem_index(u8_string file,fdkb_flags flags)
+static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
 {
   struct FD_MEM_INDEX *memidx=u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
@@ -276,7 +276,7 @@ static fd_index mem_index_create(u8_string spec,void *type_data,
 				 fdkb_flags flags,fdtype opts)
 {
   if (fd_make_mem_index(spec)>=0)
-    return fd_open_index(spec,flags);
+    return fd_open_index(spec,flags,FD_VOID);
   else return NULL;
 }
 
@@ -298,7 +298,7 @@ static u8_string match_index_name(u8_string spec,void *data)
 }
 
 static struct FD_INDEX_HANDLER mem_index_handler={
-  "memindex", 1, sizeof(struct FD_MEM_INDEX), 12,
+  "memindex", 1, sizeof(struct FD_MEM_INDEX), 14,
   NULL, /* close */
   mem_index_commit, /* commit */
   NULL, /* fetch */
@@ -307,10 +307,12 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   mem_index_fetchn, /* fetchn */
   mem_index_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   mem_index_create, /* create */
+  NULL, /* walk */
   NULL, /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT void fd_init_memindex_c()

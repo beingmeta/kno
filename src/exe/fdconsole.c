@@ -851,8 +851,8 @@ int main(int argc,char **argv)
     fd_init_stream(newstream,source_file,sock,
                    FD_STREAM_SOCKET|FD_STREAM_DOSYNC,
                    fd_network_bufsize);
-    fd_use_pool(source_file,0);
-    fd_use_index(source_file,0);
+    fd_use_pool(source_file,0,FD_VOID);
+    fd_use_index(source_file,0,FD_VOID);
     eval_server=newstream;}
   else if (u8_file_existsp(source_file)) {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
@@ -1063,7 +1063,7 @@ int main(int argc,char **argv)
     lastval=result; result=FD_VOID;
     if ((FD_CHECK_PTR(lastval)) &&
         (!(FD_ABORTP(lastval))) &&
-        (!(FDTYPE_CONSTANTP(lastval))))
+        (!(FD_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
   if (eval_server)
     fd_close_stream(eval_server,FD_STREAM_FREEDATA);

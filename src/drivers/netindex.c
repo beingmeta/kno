@@ -17,6 +17,8 @@
 #include "framerd/dtcall.h"
 #include "framerd/drivers.h"
 
+#include "headers/netindex.h"
+
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
 
@@ -45,7 +47,7 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags)
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;
@@ -56,7 +58,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags)
   ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec,flags);
   ix->index_connpool=cp;
-  ix->xname=FD_VOID; ix->index_xinfo=xid;
+  ix->xname=FD_VOID; ix->index_source=xid;
   writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||
       (!(FD_FALSEP(writable_response))))
@@ -114,7 +116,7 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netindex_fetchn",
-              u8_strdup(ix->index_idstring),fd_incref(result));
+              u8_strdup(ix->indexid),fd_incref(result));
     return NULL;}
 }
 
@@ -237,7 +239,7 @@ static void netindex_close(fd_index ix)
 }
 
 static struct FD_INDEX_HANDLER netindex_handler={
-  "netindex", 1, sizeof(struct FD_NETWORK_INDEX), 12,
+  "netindex", 1, sizeof(struct FD_NETWORK_INDEX), 14,
   netindex_close, /* close */
   netindex_commit, /* commit */
   netindex_fetch, /* fetch */
@@ -246,10 +248,12 @@ static struct FD_INDEX_HANDLER netindex_handler={
   netindex_fetchn, /* fetchn */
   netindex_fetchkeys, /* fetchkeys */
   NULL, /* fetchsizes */
+  NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* create */
+  NULL, /* walk */
   NULL, /* recycle */
-  NULL  /* indexop */
+  NULL  /* indexctl */
 };
 
 FD_EXPORT void fd_init_netindex_c()

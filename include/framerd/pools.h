@@ -111,8 +111,9 @@
        synchronizes the pool cache with the resource it gets its values from.
 */
 
-#define fd_lock_pool(p) u8_lock_mutex(&((p)->pool_lock))
-#define fd_unlock_pool(p) u8_unlock_mutex(&((p)->pool_lock))
+#ifndef FD_INLINE_POOLS
+#define FD_INLINE_POOLS 0
+#endif
 
 FD_EXPORT fd_exception
 fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
@@ -143,25 +144,24 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 
 #define FD_POOL_FIELDS \
   FD_CONS_HEADER;					\
+  u8_string poolid, pool_source, pool_label;		\
   FD_OID pool_base;					\
   unsigned int pool_capacity;				\
-  u8_string pool_label, pool_idstring, pool_source;	\
   fdkb_flags pool_flags, modified_flags;		\
   struct FD_POOL_HANDLER *pool_handler;			\
   int pool_serialno;					\
   short pool_cache_level;				\
+  unsigned char pool_islocked;				\
   U8_MUTEX_DECL(pool_lock);				\
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
   struct FD_HASHTABLE *oid_handlers;			\
-  u8_string pool_prefix, pool_xinfo;			\
+  u8_string pool_prefix;				\
   fdtype pool_namefn
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
-
-fd_pool (*fd_file_pool_type)(u8_string path,fdkb_flags flags);
 
 FD_EXPORT struct FD_POOL *fd_top_pools[];
 
@@ -173,6 +173,28 @@ FD_EXPORT fdtype fd_all_pools(void);
 
 FD_EXPORT fd_pool *fd_pool_serial_table;
 FD_EXPORT int fd_pool_serial_count;
+
+/* Locking functions */
+
+FD_EXPORT void _fd_lock_pool(fd_pool p);
+FD_EXPORT void _fd_unlock_pool(fd_pool p);
+
+#if FD_INLINE_POOLS
+FD_FASTOP void fd_lock_pool(fd_pool p)
+{
+  u8_lock_mutex(&((p)->pool_lock));
+  p->pool_islocked=1;
+}
+FD_FASTOP void fd_unlock_pool(fd_pool p)
+{
+  if (p->pool_islocked) {
+    p->pool_islocked=0;
+    u8_unlock_mutex(&((p)->pool_lock));}
+  else _fd_unlock_pool(p);}
+#else
+#define fd_lock_pool(p) _fd_lock_pool(p)
+#define fd_unlock_pool(p) _fd_unlock_pool(p)
+#endif
 
 /* Pool handlers */
 
@@ -190,8 +212,9 @@ typedef struct FD_POOL_HANDLER {
   fdtype (*metadata)(fd_pool p,fdtype);
   fd_pool (*create)(u8_string spec,void *typedata,
 		    fdkb_flags flags,fdtype opts);
+  int (*walker)(fd_pool,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_pool p);
-  fdtype (*poolop)(fd_pool p,int opid,int n,fdtype *args);}
+  fdtype (*poolctl)(fd_pool p,int opid,int n,fdtype *args);}
   FD_POOL_HANDLER;
 typedef struct FD_POOL_HANDLER *fd_pool_handler;
 
@@ -207,6 +230,8 @@ struct FD_POOL_HANDLER some_handler={
    NULL, /* storen */
    NULL, /* metadata */
    NULL, /* create */
+   NULL, /* walk */
+   NULL, /* recycle */
    NULL  /* pool op */
 };
 #endif
@@ -227,8 +252,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
-FD_EXPORT fdtype fd_find_pools_by_cid(u8_string cid);
-FD_EXPORT fd_pool fd_find_pool_by_cid(u8_string cid);
+FD_EXPORT fdtype fd_find_pools_by_qname(u8_string cid);
+FD_EXPORT fd_pool fd_find_pool_by_qname(u8_string cid);
 FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
 
@@ -236,9 +261,9 @@ FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
 FD_EXPORT fdtype fd_pool2lisp(fd_pool p);
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp);
-FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags);
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags);
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags);
+FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags,fdtype opts);
 FD_EXPORT fd_pool fd_name2pool(u8_string spec);
 
 FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr);
@@ -358,13 +383,25 @@ typedef struct FD_GPOOL {
   fdtype fetchfn, newfn, loadfn, savefn;} FD_GPOOL;
 typedef struct FD_GPOOL *fd_gpool;
 
-/* Network Pools */
+/* Proc pools */
 
-typedef struct FD_NETWORK_POOL {
+typedef struct FD_PROCPOOL {
   FD_POOL_FIELDS;
-  struct U8_CONNPOOL *pool_connpool;
-  int bulk_commitp;} FD_NETWORK_POOL;
-typedef struct FD_NETWORK_POOL *fd_network_pool;
+  fdtype pool_state;
+  fdtype allocfn, getloadfn,
+    fetchfn, fetchnfn, swapoutfn,
+    lockfn, releasefn,
+    storenfn, metadatafn,
+    createfn, closefn, ctlfn;}
+  FD_PROCPOOL;
+typedef struct FD_PROCPOOL *fd_procpool;
+
+FD_EXPORT
+fd_pool fd_make_procpool(FD_OID base,int cap,int load,
+			 fdtype opts,fdtype state,
+			 u8_string label,u8_string cid);
+
+FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 
 /* External Pools */
 
@@ -397,8 +434,10 @@ typedef struct FD_MEMPOOL *fd_mempool;
 FD_EXPORT fd_pool fd_make_mempool
   (u8_string label,FD_OID base,unsigned int cap,unsigned int load,
    unsigned int noswap);
+
 /* Removes deadwood */
 FD_EXPORT int fd_clean_mempool(fd_pool p);
+
 /* Clears all the locks, caches, and load for a mempool. */
 FD_EXPORT int fd_reset_mempool(fd_pool p);
 

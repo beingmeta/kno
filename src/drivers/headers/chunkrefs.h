@@ -4,6 +4,10 @@
 #include <snappy-c.h>
 #endif
 
+#ifndef FD_INIT_ZBUF_SIZE
+#define FD_INIT_ZBUF_SIZE 24000
+#endif
+
 #define STREAM_UNLOCKED 0
 #define STREAM_LOCKED 1
 
@@ -77,8 +81,38 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
 				   fd_offset_type offtype,
 				   unsigned int offset)
 {
-  FD_CHUNK_REF result; int chunk_size = chunk_ref_size(offtype);
+  FD_CHUNK_REF result={-1,-1};
+  int chunk_size = chunk_ref_size(offtype);
   fd_off_t ref_off = offset*chunk_size;
+#if HAVE_PREAD
+  struct FD_INBUF _in, *in=&_in;
+  unsigned char buf[16];
+  memset(&_in,0,sizeof(_in));
+  FD_INIT_BYTE_INPUT(&_in,buf,chunk_size);
+  if (fd_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
+    u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
+    return result;}
+  else switch (offtype) {
+  case FD_B32:
+    result.off=fd_read_4bytes(in);
+    result.size=fd_read_4bytes(in);
+    break;
+  case FD_B40: {
+    unsigned int word1, word2;
+    word1=fd_read_4bytes(in);
+    word2=fd_read_4bytes(in);
+    result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
+    result.size=(ll)((word2)&(0x00FFFFFF));}
+    break;
+  case FD_B64:
+    result.off=fd_read_8bytes(in);
+    result.size=fd_read_4bytes(in);
+    break;
+  default:
+    u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
+    result.off=-1;
+    result.size=-1;} /* switch (p->fdkb_offtype) */
+#else
   if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off=(fd_off_t)-1; result.size=(size_t)-1;}
   else {
@@ -104,6 +138,7 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
       result.off=-1;
       result.size=-1;} /* switch (p->fdkb_offtype) */
   }
+#endif
   return result;
 }
 
@@ -126,9 +161,13 @@ static unsigned char *read_chunk(fd_stream stream,
 				 unsigned char *usebuf)
 {
   uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size));
-  fd_inbuf in=fd_start_read(stream,off);
-  int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
+  ssize_t bytes_read=fd_read_block(stream,buf,size,off,1);
   if (bytes_read<0) {
+    u8_graberr(errno,"read_chunk",u8_strdup(stream->streamid));
+    if (usebuf==NULL) u8_free(buf);
+    return NULL;}
+  else if (bytes_read<size) {
+    u8_seterr("Not enough data","read_chunk",u8_strdup(stream->streamid));
     if (usebuf==NULL) u8_free(buf);
     return NULL;}
   else return buf;
@@ -137,9 +176,8 @@ static unsigned char *read_chunk(fd_stream stream,
 /* Compression functions */
 
 static U8_MAYBE_UNUSED unsigned char *do_zuncompress
-   (unsigned char *bytes,int n_bytes,
-    unsigned int *dbytes,
-    unsigned char *init_dbuf)
+   (const unsigned char *bytes,size_t n_bytes,
+    ssize_t *dbytes,unsigned char *init_dbuf)
 {
   fd_exception error=NULL; int zerror;
   unsigned long csize=n_bytes, dsize, dsize_max;
@@ -158,7 +196,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
       if (dbuf!=init_dbuf) u8_free(dbuf);
       dbuf=u8_malloc(dsize_max*2);
       if (dbuf==NULL) {
-        error=_("OIDPOOL uncompress ran out of memory"); break;}
+        error=_("pool value uncompress ran out of memory"); break;}
       dsize=dsize_max=dsize_max*2;}
     else if (zerror == Z_DATA_ERROR) {
       error=_("ZLIB uncompress data error"); break;}
@@ -173,17 +211,19 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
 }
 
 static U8_MAYBE_UNUSED unsigned char *do_zcompress
-   (unsigned char *bytes,int n_bytes,
-    int *cbytes,unsigned char *init_cbuf,
+   (unsigned char *bytes,size_t n_bytes,
+    ssize_t *cbytes,unsigned char *init_cbuf,
     int level)
 {
   fd_exception error=NULL; int zerror;
-  unsigned long dsize=n_bytes, csize, csize_max;
+  ssize_t dsize=n_bytes, csize, csize_max;
   Bytef *dbuf=(Bytef *)bytes, *cbuf;
   if (init_cbuf==NULL) {
-    csize=csize_max=dsize; cbuf=u8_malloc(csize_max);}
+    csize=csize_max=dsize;
+    cbuf=u8_malloc(csize_max);}
   else {
-    cbuf=init_cbuf; csize=csize_max=*cbytes;}
+    cbuf=init_cbuf;
+    csize=csize_max=*cbytes;}
   while ((zerror=compress2(cbuf,&csize,dbuf,dsize,level)) < Z_OK)
     if (zerror == Z_MEM_ERROR) {
       error=_("ZLIB ran out of memory"); break;}
@@ -194,7 +234,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
       if (cbuf!=init_cbuf) u8_free(cbuf);
       cbuf=u8_malloc(csize_max*2);
       if (cbuf==NULL) {
-        error=_("OIDPOOL compress ran out of memory"); break;}
+        error=_("pool value compression ran out of memory"); break;}
       csize=csize_max=csize_max*2;}
     else if (zerror == Z_DATA_ERROR) {
       error=_("ZLIB compress data error"); break;}

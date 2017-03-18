@@ -58,7 +58,7 @@ static struct FD_INDEX_HANDLER file_index_handler;
 
 static fdtype file_index_fetch(fd_index ix,fdtype key);
 
-static fd_index open_file_index(u8_string fname,fdkb_flags flags)
+static fd_index open_file_index(u8_string fname,fdkb_flags flags,fdtype opts)
 {
   struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_STREAM *s=&(index->index_stream);
@@ -169,7 +169,7 @@ FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,fdtype x)
   case 3:
     return fd_hash_dtype3(x);
   default:
-    u8_raise(_("Bad hash version"),"file_index_hash",fx->index_idstring);}
+    u8_raise(_("Bad hash version"),"file_index_hash",fx->indexid);}
   /* Never reached */
   return -1;
 }
@@ -224,7 +224,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       val_start=fd_read_4bytes(instream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
         u8_log(LOG_CRIT,fd_FileIndexError,
-               "file_index_fetch %s",u8_strdup(ix->index_idstring));
+               "file_index_fetch %s",u8_strdup(ix->indexid));
       thiskey=fd_read_dtype(instream);
       if (FDTYPE_EQUAL(key,thiskey)) {
         if (n_vals==0) {
@@ -240,7 +240,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
             fdtype v;
             if (FD_EXPECT_FALSE(i>=n_vals))
               u8_raise(_("inconsistent file index"),
-                       "file_index_fetch",u8_strdup(ix->index_idstring));
+                       "file_index_fetch",u8_strdup(ix->indexid));
             if (next_pos>1) fd_setpos(stream,next_pos+pos_offset);
             v=fd_read_dtype(instream);
             if ((atomicp) && (FD_CONSP(v))) atomicp=0;
@@ -797,7 +797,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
       if (chain_length>256) {
         if (offsets == NULL) u8_free(reserved.slotnos);
         return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",
-                         u8_strdup(fx->index_idstring),FD_VOID);}
+                         u8_strdup(fx->indexid),FD_VOID);}
       else chain_length++;
     else chain_length=0;
     max=i;}
@@ -1098,7 +1098,7 @@ static int file_index_commit(struct FD_INDEX *ix)
         if (retval<0)
           u8_log(LOG_ERR,"file_index_commit",
                  "Trouble truncating recovery information from %s",
-                 fx->index_idstring);}}
+                 fx->indexid);}}
     fd_unlock_index(fx);
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
@@ -1106,7 +1106,7 @@ static int file_index_commit(struct FD_INDEX *ix)
 
     u8_log(fdkb_loglevel,"FileIndexCommit",
            "Saved mappings for %d keys to %s in %f secs",
-           n_changes,ix->index_idstring,u8_elapsed_time()-started);
+           n_changes,ix->indexid,u8_elapsed_time()-started);
 
     fd_reset_hashtable(&(ix->index_adds),67,0);
     fd_unlock_table(&(ix->index_adds));
@@ -1191,7 +1191,7 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   fd_lock_index(fx);
-  fd_stream_setbuf(&(fx->index_stream),bufsiz);
+  fd_stream_setbufsize(&(fx->index_stream),bufsiz);
   fd_unlock_index(fx);
 }
 
@@ -1202,7 +1202,7 @@ static fdtype file_index_op(fd_index ix,int op,int n,fdtype *args)
   struct FD_FILE_INDEX *hx=(struct FD_FILE_INDEX *)ix;
   if ( ((n>0)&&(args==NULL)) || (n<0) )
     return fd_err("BadIndexOpCall","file_index_op",
-                  hx->index_idstring,FD_VOID);
+                  hx->indexid,FD_VOID);
   else switch (op) {
     case FD_INDEXOP_CACHELEVEL:
       if (n==0)
@@ -1286,7 +1286,7 @@ static fd_index file_index_create(u8_string spec,void *type_data,
   else if (fd_make_file_index(spec,
                               (unsigned int)((unsigned long long)type_data),
                               FD_FIX2INT(n_slots))>=0)
-    return fd_open_index(spec,flags);
+    return fd_open_index(spec,flags,FD_VOID);
   else return NULL;
 }
 
@@ -1303,10 +1303,12 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchn, /* fetchn */
   file_index_fetchkeys, /* fetchkeys */
   file_index_fetchsizes, /* fetchsizes */
-  NULL, /* fetchsizes */
+  NULL, /* batchadd */
+  NULL, /* metadata */
   file_index_create, /* create */
+  NULL, /* walk */
   NULL, /* recycle */
-  file_index_op  /* indexop */
+  file_index_op  /* indexctl */
 };
 
 static u8_string match_index_name(u8_string spec,void *data)

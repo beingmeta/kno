@@ -469,7 +469,7 @@ static fdtype ndapply_loop
       FD_ADD_TO_CHOICE(*results,value);}}
   else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
-    d_args[i]=FD_XQCHOICE(nd_args[i])->fd_choiceval;
+    d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
     retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
     if (FD_ABORTP(retval)) return retval;}
   else if ((!(FD_CHOICEP(nd_args[i]))) ||
@@ -662,7 +662,7 @@ static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
   while (read<limit)
     if (FD_QCHOICEP(*read)) {
       struct FD_QCHOICE *qc=(struct FD_QCHOICE *) (*read++);
-      *write++=qc->fd_choiceval;}
+      *write++=qc->qchoiceval;}
     else *write++=*read++;
   result=fd_dapply(fp,n,nargs);
   if (n>8) u8_free(nargs);
@@ -990,7 +990,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
         atomic=0;
         if (FD_QCHOICEP(v)) {
           struct FD_QCHOICE *qc=(fd_qchoice)v;
-          fdtype cv=qc->fd_choiceval;
+          fdtype cv=qc->qchoiceval;
           fd_incref(cv);
           *write++=cv;}
         else {
@@ -1023,7 +1023,7 @@ FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
         atomic=0;
         if (FD_QCHOICEP(v)) {
           struct FD_QCHOICE *qc=(fd_qchoice)v;
-          fdtype cv=qc->fd_choiceval;
+          fdtype cv=qc->qchoiceval;
           fd_incref(cv);
           *write++=cv;}
         else {

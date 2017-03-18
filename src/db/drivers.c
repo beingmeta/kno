@@ -77,7 +77,7 @@ static u8_mutex pool_typeinfo_lock;
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
    fd_pool_handler handler,
-   fd_pool (*opener)(u8_string filename,fdkb_flags flags),
+   fd_pool (*opener)(u8_string filename,fdkb_flags flags,fdtype opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -126,7 +126,7 @@ static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fdkb_flags flags)
+fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   struct FD_POOL_TYPEINFO *ptype;
   CHECK_ERRNO();
@@ -134,7 +134,7 @@ fd_pool fd_open_pool(u8_string spec,fdkb_flags flags)
     if (ptype->matcher) {
       u8_string use_spec=ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
-        fd_pool opened=ptype->opener(use_spec,flags);
+        fd_pool opened=ptype->opener(use_spec,flags,opts);
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ptype=ptype->next_type;
@@ -153,8 +153,7 @@ fd_pool_handler fd_get_pool_handler(u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_make_pool(
-                     u8_string spec,
+fd_pool fd_make_pool(u8_string spec,
                      u8_string pooltype,
                      fdkb_flags flags,
                      fdtype opts)
@@ -187,7 +186,7 @@ static u8_mutex index_typeinfo_lock;
 FD_EXPORT void fd_register_index_type
   (u8_string name,
    fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fdkb_flags flags),
+   fd_index (*opener)(u8_string filename,fdkb_flags flags,fdtype opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -236,7 +235,7 @@ static fd_index_typeinfo get_index_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_index fd_open_index(u8_string spec,fdkb_flags flags)
+fd_index fd_open_index(u8_string spec,fdkb_flags flags,fdtype opts)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
   CHECK_ERRNO();
@@ -244,7 +243,7 @@ fd_index fd_open_index(u8_string spec,fdkb_flags flags)
     if (ixtype->matcher) {
       u8_string use_spec=ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
-        fd_index opened=ixtype->opener(use_spec,flags);
+        fd_index opened=ixtype->opener(use_spec,flags,opts);
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ixtype=ixtype->next_type;
@@ -284,7 +283,44 @@ fd_index fd_make_index(
   else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);
 }
 
+/* Getting compression ty pe from options */
+
+static fdtype compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
+
+#if HAVE_SNAPPYC_H
+#define DEFAULT_COMPRESSION FD_SNAPPY
+#else
+#define DEFAULT_COMPRESSION FD_ZLIB9
+#endif
+
+
+FD_EXPORT
+fd_compress_type fd_compression_type(fdtype opts,fd_compress_type dflt)
+{
+  if (fd_testopt(opts,compression_symbol,FD_FALSE))
+    return FD_NOCOMPRESS;
+#if HAVE_SNAPPYC_H
+  else if (fd_testopt(opts,compression_symbol,snappy_symbol))
+    return FD_SNAPPY;
+#endif
+  else if (fd_testopt(opts,compression_symbol,zlib_symbol))
+    return FD_ZLIB;
+  else if (fd_testopt(opts,compression_symbol,zlib9_symbol))
+    return FD_ZLIB9;
+  else if (fd_testopt(opts,compression_symbol,FD_TRUE)) {
+    if (dflt)
+      return dflt;
+    else return DEFAULT_COMPRESSION;}
+  else return dflt;
+}
+
 /* Initialization */
+
+int fd_init_mempool_c(void);
+int fd_init_extpool_c(void);
+int fd_init_extindex_c(void);
+int fd_init_procpool_c(void);
+int fd_init_procindex_c(void);
 
 static int drivers_c_initialized=0;
 
@@ -295,16 +331,23 @@ FD_EXPORT int fd_init_drivers_c()
 
   u8_register_source_file(_FILEINFO);
 
+  fd_init_extindex_c();
+  fd_init_mempool_c();
+  fd_init_extpool_c();
+  fd_init_procpool_c();
+  fd_init_procindex_c();
+
   rev_symbol=fd_intern("REV");
   gentime_symbol=fd_intern("GENTIME");
   packtime_symbol=fd_intern("PACKTIME");
   modtime_symbol=fd_intern("MODTIME");
+  compression_symbol=fd_intern("COMPRESSION");
+  snappy_symbol=fd_intern("SNAPPY");
+  zlib_symbol=fd_intern("ZLIB");
+  zlib9_symbol=fd_intern("ZLIB9");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);
-
-  fd_file_pool_type=fd_open_pool;
-  fd_file_index_type=fd_open_index;
 
   fd_register_config("ACIDFILES",
                      "Maintain acidity of individual file pools and indexes",

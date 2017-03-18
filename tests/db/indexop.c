@@ -30,7 +30,7 @@ int main(int argc,char **argv)
     u8_fprintf(stderr,_("Too few (<3) args\n"));
     exit(1);}
   else {
-    ix=fd_get_index(argv[1],0);
+    ix=fd_get_index(argv[1],0,FD_VOID);
     key=fd_parse(argv[2]);}
   if (argc == 3) {
     fdtype value=fd_index_get(ix,key);

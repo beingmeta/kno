@@ -105,6 +105,14 @@ fd_stream fd_init_file_stream (fd_stream stream,
 
 FD_EXPORT fd_stream fd_open_file(u8_string filename,fd_stream_mode mode);
 
+typedef enum fd_streamop {
+  fd_stream_close,
+  fd_stream_setbuf,
+  fd_stream_lockfile,
+  fd_stream_unlockfile,
+  fd_stream_setread,
+  fd_stream_setwrite } fd_streamop;
+
 #define FD_STREAM_FREEDATA    1
 #define FD_STREAM_NOCLOSE 2
 #define FD_STREAM_NOFLUSH 4
@@ -132,8 +140,9 @@ FD_EXPORT int fd_write_ints(fd_stream s,int len,unsigned int *words);
 FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words);
 
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
+FD_EXPORT fdtype fd_streamctl(fd_stream s,fd_streamop,void *data);
 
-/* File positions */
+/* Stream position operations */
 
 FD_EXPORT fd_inbuf _fd_readbuf(fd_stream s);
 FD_EXPORT fd_outbuf _fd_writebuf(fd_stream s);
@@ -143,6 +152,10 @@ FD_EXPORT fd_off_t _fd_setpos(fd_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t _fd_endpos(fd_stream s);
 
 FD_EXPORT fd_off_t _fd_getpos(fd_stream s);
+
+FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
+				size_t count,fd_off_t offset,
+				int stream_locked);
 
 #if FD_INLINE_BUFIO
 
@@ -161,14 +174,14 @@ FD_FASTOP fd_off_t fd_getpos(fd_stream s)
 
 FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
 {
-  /* Have the common version do the error handling. */
+  /* Have the linked version do the error handling. */
   if ((((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)||(pos<0))
     return _fd_setpos(s,pos);
-
-  if ((s->stream_filepos>=0)&&
-      (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
-      (pos<s->stream_filepos)&&
-      (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
+  else if ((s->stream_filepos>=0)&&
+	   (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
+	   (pos<s->stream_filepos)&&
+	   (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
+    /* The location is in the read buffer, so just move the pointer */
     fd_off_t delta=pos-s->stream_filepos;
     s->buf.raw.bufpoint=s->buf.raw.buflim+delta;
     return pos;}
@@ -245,7 +258,7 @@ FD_EXPORT int fd_flush_stream(fd_stream s);
 FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
 
-FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz);
+FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz);
 
 FD_EXPORT int _fd_lock_stream(fd_stream s);
 FD_EXPORT int _fd_unlock_stream(fd_stream s);

@@ -913,6 +913,7 @@ AC_CHECK_FUNCS(sleep)
 AC_CHECK_FUNCS(nanosleep)
 AC_CHECK_FUNCS(fseeko)
 AC_CHECK_FUNCS(mmap)
+AC_CHECK_FUNCS(pread)
 AC_CHECK_FUNCS(ftime)
 AC_CHECK_FUNCS(waitpid)
 AC_CHECK_FUNCS(wait4)
@@ -1254,7 +1255,7 @@ if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
 fi
 
 if test $with_gperftools = "yes"; then
-  AC_CHECK_LIB(tcmalloc,malloc)
+  AC_CHECK_LIB(tcmalloc_and_profiler,malloc)
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
      echo "No tcmalloc, skipping further tests";
      with_gperftools="no";
@@ -1273,6 +1274,16 @@ elif test $with_gperftools = "debug"; then
   AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   custom_malloc="tcmalloc"
+elif test $with_gperftools = "production"; then
+  AC_CHECK_LIB(tcmalloc,malloc)
+  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
+     echo "No tcmalloc, skipping further tests";
+     with_gperftools="no";
+  else
+    custom_malloc="tcmalloc"
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}"
+  fi; 
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
@@ -1582,6 +1593,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
 	   tests/scheme/runtest tests/scheme/fdexectest
 	   tests/scheme/tcdebug tests/scheme/vgdebug
+	   tests/scheme/gheaptest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
 	   etc/logrotate

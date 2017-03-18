@@ -77,14 +77,15 @@ DTYPE_HEADERS=\
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 DB_HEADERS=\
- include/framerd/streams.h                            \
- include/framerd/fdkbase.h                              \
- include/framerd/pools.h                             \
- include/framerd/indexes.h                           \
- include/framerd/dtproc.h                            \
- include/framerd/dtcall.h                            \
- include/framerd/frames.h                            \
- include/framerd/methods.h
+ include/framerd/streams.h			\
+ include/framerd/fdkbase.h			\
+ include/framerd/pools.h			\
+ include/framerd/indexes.h			\
+ include/framerd/dtproc.h			\
+ include/framerd/dtcall.h			\
+ include/framerd/frames.h			\
+ include/framerd/methods.h			\
+ include/framerd/drivers.h
 
 DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
@@ -107,7 +108,7 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 DTYPE_OBJS=src/cons/cons.o src/cons/oids.o		\
 	src/cons/fcnids.o src/cons/bufio.o		\
 	src/cons/symbols.o src/cons/numbers.o		\
-	src/cons/compare.o				\
+	src/cons/compare.o src/cons/walk.o		\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
 	src/cons/choices.o src/cons/tables.o		\
 	src/cons/dtypeio.o src/cons/textio.o		\
@@ -125,17 +126,18 @@ DB_OBJS=src/db/fdkbase.o src/db/streams.o src/db/hashdtype.o 		\
 	src/db/dtproc.o src/db/dtcall.o 				\
 	src/db/methods.o src/db/xtables.o 				\
 	src/db/cachecall.o src/db/threadcache.o 			\
-	src/db/drivers.o 						\
+	src/db/extindex.o src/db/extpool.o 				\
+	src/db/procpool.o src/db/procindex.o				\
+	src/db/mempool.o src/db/drivers.o				\
 	@ipevalo@ src/db/frames.o
 
-DBDRIVERS_OBJS=\
+DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
 	src/drivers/filepool.o src/drivers/oidpool.o	\
-	src/drivers/netpool.o src/drivers/extpool.o	\
-	src/drivers/mempool.o src/drivers/bigpool.o	\
+	src/drivers/netpool.o src/drivers/bigpool.o	\
 	src/drivers/fileindex.o src/drivers/hashindex.o	\
-	src/drivers/htindex.o src/drivers/extindex.o 	\
-	src/drivers/memindex.o src/drivers/netindex.o
+	src/drivers/htindex.o src/drivers/memindex.o    \
+	src/drivers/netindex.o
 
 FDKBSERV_OBJS=src/db/dbserv.o
 
@@ -195,93 +197,93 @@ TEXTTOOLS_OBJS=\
 	src/text/porter.o \
 	src/text/phonetic.o
 SUNDOWN_OBJS=\
-	src/cmodules/sundown/autolink.o \
-	src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/houdini_href_e.o \
-	src/cmodules/sundown/houdini_html_e.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/markdown.o \
-	src/cmodules/sundown/stack.o \
+	src/cmodules/ext/sundown/autolink.o \
+	src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/houdini_href_e.o \
+	src/cmodules/ext/sundown/houdini_html_e.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/markdown.o \
+	src/cmodules/ext/sundown/stack.o \
 	src/cmodules/sundown.o
 
-SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
-SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
-	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
-	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
-	src/cmodules/sundown/houdini.h
+SUNDOWN_OBJECTS=src/cmodules/ext/sundown/autolink.o src/cmodules/ext/sundown/buffer.o \
+	src/cmodules/ext/sundown/markdown.o src/cmodules/ext/sundown/stack.o \
+	src/cmodules/ext/sundown/html.o src/cmodules/ext/sundown/html_smartypants.o \
+	src/cmodules/ext/sundown/houdini_href_e.o src/cmodules/ext/sundown/houdini_html_e.o
+SUNDOWN_H_FILES=src/cmodules/ext/sundown/autolink.h src/cmodules/ext/sundown/buffer.h \
+	src/cmodules/ext/sundown/markdown.h src/cmodules/ext/sundown/stack.h \
+	src/cmodules/ext/sundown/html_blocks.h src/cmodules/ext/sundown/html.h \
+	src/cmodules/ext/sundown/houdini.h
 
 TIDY_OBJECTS=\
-	src/cmodules/tidy5/access.o 	\
-	src/cmodules/tidy5/alloc.o 	\
-	src/cmodules/tidy5/attrask.o 	\
-	src/cmodules/tidy5/attrdict.o 	\
-	src/cmodules/tidy5/attrget.o 	\
-	src/cmodules/tidy5/attrs.o 	\
-	src/cmodules/tidy5/buffio.o 	\
-	src/cmodules/tidy5/charsets.o 	\
-	src/cmodules/tidy5/clean.o 	\
-	src/cmodules/tidy5/config.o 	\
-	src/cmodules/tidy5/entities.o 	\
-	src/cmodules/tidy5/fileio.o 	\
-	src/cmodules/tidy5/gdoc.o 	\
-	src/cmodules/tidy5/iconvtc.o 	\
-	src/cmodules/tidy5/istack.o 	\
-	src/cmodules/tidy5/language.o 	\
-	src/cmodules/tidy5/lexer.o 	\
-	src/cmodules/tidy5/mappedio.o 	\
-	src/cmodules/tidy5/message.o 	\
-	src/cmodules/tidy5/parser.o 	\
-	src/cmodules/tidy5/pprint.o 	\
-	src/cmodules/tidy5/sprtf.o 	\
-	src/cmodules/tidy5/streamio.o 	\
-	src/cmodules/tidy5/tagask.o 	\
-	src/cmodules/tidy5/tags.o 	\
-	src/cmodules/tidy5/tidylib.o 	\
-	src/cmodules/tidy5/tmbstr.o 	\
-	src/cmodules/tidy5/utf8.o 	\
-	src/cmodules/tidy5/win32tc.o
+	src/cmodules/ext/tidy5/access.o 	\
+	src/cmodules/ext/tidy5/alloc.o 	\
+	src/cmodules/ext/tidy5/attrask.o 	\
+	src/cmodules/ext/tidy5/attrdict.o 	\
+	src/cmodules/ext/tidy5/attrget.o 	\
+	src/cmodules/ext/tidy5/attrs.o 	\
+	src/cmodules/ext/tidy5/buffio.o 	\
+	src/cmodules/ext/tidy5/charsets.o 	\
+	src/cmodules/ext/tidy5/clean.o 	\
+	src/cmodules/ext/tidy5/config.o 	\
+	src/cmodules/ext/tidy5/entities.o 	\
+	src/cmodules/ext/tidy5/fileio.o 	\
+	src/cmodules/ext/tidy5/gdoc.o 	\
+	src/cmodules/ext/tidy5/iconvtc.o 	\
+	src/cmodules/ext/tidy5/istack.o 	\
+	src/cmodules/ext/tidy5/language.o 	\
+	src/cmodules/ext/tidy5/lexer.o 	\
+	src/cmodules/ext/tidy5/mappedio.o 	\
+	src/cmodules/ext/tidy5/message.o 	\
+	src/cmodules/ext/tidy5/parser.o 	\
+	src/cmodules/ext/tidy5/pprint.o 	\
+	src/cmodules/ext/tidy5/sprtf.o 	\
+	src/cmodules/ext/tidy5/streamio.o 	\
+	src/cmodules/ext/tidy5/tagask.o 	\
+	src/cmodules/ext/tidy5/tags.o 	\
+	src/cmodules/ext/tidy5/tidylib.o 	\
+	src/cmodules/ext/tidy5/tmbstr.o 	\
+	src/cmodules/ext/tidy5/utf8.o 	\
+	src/cmodules/ext/tidy5/win32tc.o
 
 TIDY_H_FILES=\
-	src/cmodules/tidy5/access.h 	\
-	src/cmodules/tidy5/attrdict.h 	\
-	src/cmodules/tidy5/attrs.h 	\
-	src/cmodules/tidy5/buffio.h 	\
-	src/cmodules/tidy5/charsets.h 	\
-	src/cmodules/tidy5/clean.h 	\
-	src/cmodules/tidy5/config.h 	\
-	src/cmodules/tidy5/entities.h 	\
-	src/cmodules/tidy5/fileio.h 	\
-	src/cmodules/tidy5/forward.h 	\
-	src/cmodules/tidy5/gdoc.h 	\
-	src/cmodules/tidy5/iconvtc.h 	\
-	src/cmodules/tidy5/language_en_gb.h 	\
-	src/cmodules/tidy5/language_en.h 	\
-	src/cmodules/tidy5/language_es.h 	\
-	src/cmodules/tidy5/language_es_mx.h 	\
-	src/cmodules/tidy5/language_fr.h 	\
-	src/cmodules/tidy5/language.h 	\
-	src/cmodules/tidy5/language_zh_cn.h 	\
-	src/cmodules/tidy5/lexer.h 	\
-	src/cmodules/tidy5/mappedio.h 	\
-	src/cmodules/tidy5/message.h 	\
-	src/cmodules/tidy5/parser.h 	\
-	src/cmodules/tidy5/platform.h 	\
-	src/cmodules/tidy5/pprint.h 	\
-	src/cmodules/tidy5/sprtf.h 	\
-	src/cmodules/tidy5/streamio.h 	\
-	src/cmodules/tidy5/tags.h 	\
-	src/cmodules/tidy5/tidybuffio.h 	\
-	src/cmodules/tidy5/tidyenum.h 	\
-	src/cmodules/tidy5/tidy.h 	\
-	src/cmodules/tidy5/tidy-int.h 	\
-	src/cmodules/tidy5/tidyplatform.h 	\
-	src/cmodules/tidy5/tmbstr.h 	\
-	src/cmodules/tidy5/utf8.h 	\
-	src/cmodules/tidy5/version.h 	\
-	src/cmodules/tidy5/win32tc.h
+	src/cmodules/ext/tidy5/access.h 	\
+	src/cmodules/ext/tidy5/attrdict.h 	\
+	src/cmodules/ext/tidy5/attrs.h 	\
+	src/cmodules/ext/tidy5/buffio.h 	\
+	src/cmodules/ext/tidy5/charsets.h 	\
+	src/cmodules/ext/tidy5/clean.h 	\
+	src/cmodules/ext/tidy5/config.h 	\
+	src/cmodules/ext/tidy5/entities.h 	\
+	src/cmodules/ext/tidy5/fileio.h 	\
+	src/cmodules/ext/tidy5/forward.h 	\
+	src/cmodules/ext/tidy5/gdoc.h 	\
+	src/cmodules/ext/tidy5/iconvtc.h 	\
+	src/cmodules/ext/tidy5/language_en_gb.h 	\
+	src/cmodules/ext/tidy5/language_en.h 	\
+	src/cmodules/ext/tidy5/language_es.h 	\
+	src/cmodules/ext/tidy5/language_es_mx.h 	\
+	src/cmodules/ext/tidy5/language_fr.h 	\
+	src/cmodules/ext/tidy5/language.h 	\
+	src/cmodules/ext/tidy5/language_zh_cn.h 	\
+	src/cmodules/ext/tidy5/lexer.h 	\
+	src/cmodules/ext/tidy5/mappedio.h 	\
+	src/cmodules/ext/tidy5/message.h 	\
+	src/cmodules/ext/tidy5/parser.h 	\
+	src/cmodules/ext/tidy5/platform.h 	\
+	src/cmodules/ext/tidy5/pprint.h 	\
+	src/cmodules/ext/tidy5/sprtf.h 	\
+	src/cmodules/ext/tidy5/streamio.h 	\
+	src/cmodules/ext/tidy5/tags.h 	\
+	src/cmodules/ext/tidy5/tidybuffio.h 	\
+	src/cmodules/ext/tidy5/tidyenum.h 	\
+	src/cmodules/ext/tidy5/tidy.h 	\
+	src/cmodules/ext/tidy5/tidy-int.h 	\
+	src/cmodules/ext/tidy5/tidyplatform.h 	\
+	src/cmodules/ext/tidy5/tmbstr.h 	\
+	src/cmodules/ext/tidy5/utf8.h 	\
+	src/cmodules/ext/tidy5/version.h 	\
+	src/cmodules/ext/tidy5/win32tc.h
 
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/crypto.o src/cmodules/ldap.o \
@@ -320,11 +322,11 @@ CLEANDIRS=src/cons src/db src/drivers src/scheme \
 	etc
 
 FRAMERD_HEADERS= \
-       $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVERS_HEADERS) $(SCHEME_HEADERS)
+       $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) $(DRIVER_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
-        src/cons/compare.c src/cons/fcnids.c       			\
+        src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
 	src/cons/choices.c src/cons/tables.c 				\
         src/cons/bufio.c src/cons/dtypeio.c src/cons/textio.c 		\
 	src/cons/fdtype.c src/cons/support.c src/cons/config.c		\
@@ -342,9 +344,10 @@ FRAMERD_SOURCES=\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\
 	src/drivers/bigpool.c 						\
 	src/drivers/fileindex.c src/drivers/hashindex.c			\
-	src/drivers/htindex.c src/drivers/extindex.c			\
-	src/drivers/mempool.c src/drivers/extpool.c			\
+	src/drivers/htindex.c src/db/extindex.c				\
+	src/db/mempool.c src/db/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 			\
+	src/db/procpool.c src/db/procindex.c 				\
 	src/drivers/memindex.c						\
 	src/drivers/netpool.c src/drivers/netindex.c			\
 	src/eval/eval.c src/eval/binders.c src/eval/sprocs.c 		\
@@ -645,12 +648,12 @@ $(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
-src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ -c $<
+src/cmodules/ext/sundown/%.o: src/cmodules/ext/sundown/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/ext/sundown/ -o $@ -c $<
 	@$(MSG) CC "(SUNDOWN)" $@
 
-src/cmodules/tidy5/%.o: src/cmodules/tidy5/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/tidy5/ -o $@ -c $<
+src/cmodules/ext/tidy5/%.o: src/cmodules/ext/tidy5/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/ext/tidy5/ -o $@ -c $<
 	@$(MSG) CC "(TIDY5)" $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
@@ -747,14 +750,14 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
 		src/text/*.c src/cmodules/*.c         \
-		src/cmodules/sundown/sundown.c include/framerd/*.h        \
+		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
 	      src/text/*.c src/cmodules/*.c         \
-	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
+	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
 
 SCHEMETAGS: ${SCHEME_MODULES}
@@ -834,10 +837,10 @@ lib/libfdkbase@suffix@.a: $(DB_OBJS)
 lib/libfdkbase@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
 lib/libfdkbase@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
-lib/libfdkbdrivers@suffix@.a: $(DBDRIVERS_OBJS)
-lib/libfdkbdrivers@suffix@.so: $(DBDRIVERS_OBJS) \
+lib/libfdkbdrivers@suffix@.a: $(DRIVER_OBJS)
+lib/libfdkbdrivers@suffix@.so: $(DRIVER_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so
-lib/libfdkbdrivers@suffix@.dylib: $(DBDRIVERS_OBJS) \
+lib/libfdkbdrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libfdkbase@suffix@.dylib lib/libfdtype@suffix@.dylib
 
 lib/libfdkbserv@suffix@.a: $(FDKBSERV_OBJS)
@@ -1251,8 +1254,8 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
 		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
-		   $(DRIVERS_H) $(SCHEME_HEADERS)	\
-		   $(LIB_HEADERS) $(REVISION_H)		\
+		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
+		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
 
 install-data: $(DATADIR)
@@ -1536,6 +1539,38 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		else sudo ${APXS} -i mod_fdserv.la; fi
 	sleep 5; sudo apachectl start
 
+# Test targets
+
+tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running libtests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j libtests optmods 2>&1 > tests/libtests.log && \
+	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
+libtests: tests/libtests.log
+
+tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
+	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
+schemetests: tests/schemetests.log
+
+tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
+	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
+leaktests: tests/leaktests.log
+
+tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
+	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
+dbtests: tests/dbtests.log
+
+.PHONY: alltests
+
 # Meta operations
 
 update-modules:
@@ -1568,23 +1603,23 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
-$(DBDRIVERS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(DRIVER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
 $(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
 $(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(DTYPE_OBJS) $(DB_OBJS) $(DBDRIVERS_OBJS):  buildmode
+$(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
-src/drivers/oidpool.o: src/drivers/headers/oidpool.h
-src/drivers/bigpool.o: src/drivers/headers/bigpool.h
-src/drivers/hashindex.o: src/drivers/headers/hashindex.h 
+src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/chunkrefs.h
+src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/chunkrefs.h
+src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/chunkrefs.h
 
 # We've stopped using makedpend for the time being
 
