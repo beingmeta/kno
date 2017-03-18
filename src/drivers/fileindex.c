@@ -21,6 +21,7 @@
 #include "headers/fileindex.h"
 
 #include <libu8/u8filefns.h>
+#include <libu8/u8pathfns.h>
 #include <libu8/u8printf.h>
 
 #include <errno.h>
@@ -67,13 +68,16 @@ static fd_index open_file_index(u8_string fname,fdkb_flags flags,fdtype opts)
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_index((fd_index)index,&file_index_handler,fname,consed);
+  fd_init_index((fd_index)index,&file_index_handler,
+                fname,u8_realpath(fname,NULL),
+                consed);
   if (fd_init_file_stream(s,fname,mode,
                           ((read_only)?
                            (FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
                            (FD_DEFAULT_FILESTREAM_FLAGS)),
                           fd_driver_bufsize) == NULL) {
     u8_free(index);
+    u8_free(realpath);
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */

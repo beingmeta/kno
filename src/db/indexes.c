@@ -878,8 +878,10 @@ FD_EXPORT void fd_index_close(fd_index ix)
 
 /* Common init function */
 
-FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fdkb_flags flags)
+FD_EXPORT void fd_init_index(fd_index ix,
+                             struct FD_INDEX_HANDLER *h,
+                             u8_string id,u8_string src,
+                             fdkb_flags flags)
 {
   U8_SETBITS(flags,FDKB_ISINDEX);
   if (U8_BITP(flags,FDKB_ISCONSED)) {
@@ -894,8 +896,10 @@ FD_EXPORT void fd_init_index
   fd_make_hashtable(&(ix->index_adds),0);
   fd_make_hashtable(&(ix->index_edits),0);
   ix->index_handler=h;
-  ix->indexid=u8_strdup(source);
-  ix->index_source=NULL;
+  /* This was what was specified */
+  ix->indexid=u8_strdup(id);
+  /* Don't copy this one */
+  ix->index_source=src;
   ix->index_covers_slotids=FD_VOID;
 }
 

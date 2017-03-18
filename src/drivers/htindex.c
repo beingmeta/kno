@@ -20,6 +20,8 @@
 
 #include "headers/htindex.h"
 
+#include <libu8/u8pathfns.h>
+
 /* The in-memory index */
 
 static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
@@ -105,7 +107,8 @@ static fd_index open_htindex(u8_string file,fdkb_flags flags,fdtype opts)
     fd_decref(lispval);
     return NULL;}
   if (mix->indexid) u8_free(mix->indexid);
-  mix->index_source=mix->indexid=u8_strdup(file);
+  mix->indexid=u8_strdup(file);
+  mix->index_source=u8_realpath(file,NULL);
   mix->commitfn=htindex_commitfn;
   mix->index_cache.ht_n_buckets=h->ht_n_buckets;
   mix->index_cache.table_n_keys=h->table_n_keys;
@@ -136,7 +139,7 @@ fd_index fd_make_ht_index(fdkb_flags flags)
 {
   struct FD_HT_INDEX *mix=u8_alloc(struct FD_HT_INDEX);
   FD_INIT_STRUCT(mix,struct FD_HT_INDEX);
-  fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",flags);
+  fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",NULL,flags);
   mix->index_cache_level=1;
   U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDKB_READ_ONLY));
   fd_register_index((fd_index)mix);

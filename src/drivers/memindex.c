@@ -20,8 +20,9 @@
 
 #include "headers/memindex.h"
 
-#include "libu8/u8filefns.h"
-#include "libu8/u8printf.h"
+#include <libu8/u8filefns.h>
+#include <libu8/u8pathfns.h>
+#include <libu8/u8printf.h>
 
 static int memindex_cache_init=10000;
 static int memindex_adds_init=5000;
@@ -211,7 +212,9 @@ static int mem_index_commit(fd_index ix)
 static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
 {
   struct FD_MEM_INDEX *memidx=u8_alloc(struct FD_MEM_INDEX);
-  fd_init_index((fd_index)memidx,&mem_index_handler,file,flags|FD_INDEX_NOSWAP);
+  fd_init_index((fd_index)memidx,&mem_index_handler,
+		file,u8_realpath(file,NULL),
+		flags|FD_INDEX_NOSWAP);
   struct FD_STREAM *stream=
     fd_init_file_stream(&(memidx->index_stream),file,
 			FD_FILE_MODIFY,-1,

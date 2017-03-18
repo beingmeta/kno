@@ -78,6 +78,7 @@
 
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8pathfns.h>
 
 #include <errno.h>
 #include <math.h>
@@ -222,7 +223,9 @@ static fd_index open_hash_index(u8_string fname,fdkb_flags flags,fdtype opts)
   fd_size_t slotids_size, baseoids_size;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_index((fd_index)index,&hash_index_handler,fname,flags);
+  fd_init_index((fd_index)index,&hash_index_handler,
+                fname,u8_realpath(fname,NULL),
+                flags);
   if (fd_init_file_stream(stream,fname,mode,-1,fd_driver_bufsize)
       == NULL) {
     u8_free(index);

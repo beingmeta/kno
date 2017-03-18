@@ -112,7 +112,10 @@ struct FD_INDEX_HANDLER some_handler={
 FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index,void *),void *data);
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fdkb_flags flags);
+  (fd_index ix,
+   struct FD_INDEX_HANDLER *h,
+   u8_string id,u8_string src,
+   fdkb_flags flags);
 FD_EXPORT void fd_reset_index_tables
   (fd_index ix,ssize_t cache,ssize_t edits,ssize_t adds);
 
