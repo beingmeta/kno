@@ -202,6 +202,34 @@ static fdtype _make_sproc(u8_string name,
     s->sproc_synchronized=1;
     u8_init_mutex(&(s->sproc_lock));}
   else s->sproc_synchronized=0;
+  { /* Write documentation string */
+    u8_string docstring=NULL;
+    if ((FD_PAIRP(body))&&
+        (FD_STRINGP(FD_CAR(body))) &&
+        (FD_PAIRP(FD_CDR(body))))
+      docstring=FD_STRDATA(FD_CAR(body));
+    if ((docstring) && (*docstring=='<'))
+      s->fcn_documentation=u8_strdup(docstring);
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+      fdtype scan=arglist;
+      u8_puts(&out,"```(");
+      if (name) u8_puts(&out,name); else u8_puts(&out,"λ");
+      while (FD_PAIRP(scan)) {
+        fdtype arg=FD_CAR(scan);
+        if (FD_SYMBOLP(arg))
+          u8_printf(&out," %ls",FD_SYMBOL_NAME(arg));
+        else if ((FD_PAIRP(arg))&&(FD_SYMBOLP(FD_CAR(arg))))
+          u8_printf(&out," [%ls]",FD_SYMBOL_NAME(FD_CAR(arg)));
+        else u8_puts(&out," ??");
+        scan=FD_CDR(scan);}
+      if (FD_SYMBOLP(scan))
+        u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
+      u8_puts(&out,")```");
+      if (docstring) {
+        u8_puts(&out,"\n\n");
+        u8_puts(&out,docstring);}
+      s->fcn_documentation=out.u8_outbuf;}}
   scan=arglist; i=0; while (FD_PAIRP(scan)) {
     fdtype argspec=FD_CAR(scan);
     if (FD_PAIRP(argspec)) {
