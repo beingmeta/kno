@@ -56,10 +56,11 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 #define FD_FUNCTION_FIELDS \
   FD_CONS_HEADER;							\
   u8_string fcn_name, fcn_filename;					\
+  u8_stream fcn_documentation;						\
   unsigned int fcn_ndcall:1, fcn_xcall:1;				\
   short fcn_arity, fcn_min_arity;					\
   int *fcn_typeinfo;							\
-  fdtype *fcn_defaults;						\
+  fdtype *fcn_defaults;							\
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
