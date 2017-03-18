@@ -70,19 +70,19 @@ FD_EXPORT int fd_numvec_showmax;
 
 struct FD_NUMERIC_VECTOR {
   FD_CONS_HEADER;
-  unsigned int fd_freedata:1;
-  unsigned int fd_numvec_len:31;
+  unsigned int fdnumvec_free_elts:1;
+  unsigned int fdnumvec_length:31;
   enum fd_num_elt_type {
 	  fd_short_elt, fd_int_elt, fd_long_elt,
 	  fd_float_elt, fd_double_elt }
-    fd_numvec_elt_type;
+    fdnumvec_elt_type;
   union { 
     fd_float *floats;
     fd_double *doubles;
     fd_short *shorts;
     fd_int *ints;
     fd_long *longs;}
-    fd_numvec_elts;};
+    fdnumvec_elts;};
 typedef struct FD_NUMERIC_VECTOR *fd_numeric_vector;
 typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 
@@ -90,18 +90,18 @@ typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 #define FD_XNUMVEC(v) ((fd_numvec)(v))
 #define FD_NUMVECP(v) (FD_TYPEP(v,fd_numeric_vector_type))
 
-#define FD_NUMERIC_VECTOR_LENGTH(v) ((FD_XNUMVEC(v))->fd_numvec_len)
-#define FD_NUMVEC_LENGTH(v) ((FD_XNUMVEC(v))->fd_numvec_len)
+#define FD_NUMERIC_VECTOR_LENGTH(v) ((FD_XNUMVEC(v))->fdnumvec_length)
+#define FD_NUMVEC_LENGTH(v) ((FD_XNUMVEC(v))->fdnumvec_length)
 
-#define FD_NUMERIC_VECTOR_TYPE(v) ((FD_XNUMVEC(v))->fd_numvec_elt_type)
-#define FD_NUMVEC_TYPE(v) ((FD_XNUMVEC(v))->fd_numvec_elt_type)
-#define FD_NUMVEC_TYPEP(v,t) (((FD_XNUMVEC(v))->fd_numvec_elt_type)==t)
+#define FD_NUMERIC_VECTOR_TYPE(v) ((FD_XNUMVEC(v))->fdnumvec_elt_type)
+#define FD_NUMVEC_TYPE(v) ((FD_XNUMVEC(v))->fdnumvec_elt_type)
+#define FD_NUMVEC_TYPEP(v,t) (((FD_XNUMVEC(v))->fdnumvec_elt_type)==t)
 
 #define FD_NUMERIC_VECTOR(v) \
   (fd_consptr(struct FD_NUMERIC_VECTOR *,v,fd_numeric_vector_type))
 #define FD_NUMVEC(v) \
   (fd_consptr(struct FD_NUMERIC_VECTOR *,v,fd_numeric_vector_type))
-#define FD_NUMVEC_ELTS(nv,field) (((fd_numvec)nv)->fd_numvec_elts.field)
+#define FD_NUMVEC_ELTS(nv,field) (((fd_numvec)nv)->fdnumvec_elts.field)
 
 #define FD_NUMVEC_FLOATS(v)		      \
   ((FD_NUMVEC_TYPEP(v,fd_float_elt))?(FD_NUMVEC_ELTS(v,floats)):(NULL))

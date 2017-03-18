@@ -97,7 +97,7 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
           else vals[i++]=FD_VOID;}
       else if (FD_RAILP(fn->sproc_arglist)) {
         struct FD_VECTOR *v=fd_consptr(fd_vector,fn->sproc_arglist,fd_rail_type);
-        int len=v->fd_veclen; fdtype *dflts=v->fd_vecelts;
+        int len=v->fdvec_length; fdtype *dflts=v->fdvec_elts;
         while (i<len) {
           fdtype val=args[i];
           if ((val==FD_DEFAULT_VALUE)&&(dflts))  {

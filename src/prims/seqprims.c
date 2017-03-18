@@ -181,7 +181,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
         if (j==end) return head;
         else if (j>=start) {
           fdtype cons=fd_conspair(fd_incref(FD_CAR(scan)),FD_EMPTY_LIST);
-          *tail=cons; tail=&(((struct FD_PAIR *)cons)->fd_cdr);
+          *tail=cons; tail=&(((struct FD_PAIR *)cons)->cdr);
           j++; scan=FD_CDR(scan);}
         else {j++; scan=FD_CDR(scan);}
       if (j<start) return FD_RANGE_ERROR;
@@ -575,7 +575,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
       fdtype head=FD_EMPTY_LIST, *tail=&head;
       int i=0; while (i < n) {
         fdtype cons=fd_make_pair(v[i],FD_EMPTY_LIST);
-        *tail=cons; tail=&(((struct FD_PAIR *)cons)->fd_cdr);
+        *tail=cons; tail=&(((struct FD_PAIR *)cons)->cdr);
         i++;}
       return head;}
   default:
@@ -1480,7 +1480,7 @@ static fdtype list(int n,fdtype *elts)
   fdtype head=FD_EMPTY_LIST, *tail=&head; int i=0;
   while (i < n) {
     fdtype pair=fd_make_pair(elts[i],FD_EMPTY_LIST);
-    *tail=pair; tail=&((struct FD_PAIR *)pair)->fd_cdr; i++;}
+    *tail=pair; tail=&((struct FD_PAIR *)pair)->cdr; i++;}
   return head;
 }
 
@@ -2184,7 +2184,7 @@ static fdtype make_rail(int n,fdtype *elts)
 static fdtype set_car(fdtype pair,fdtype val)
 {
   struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,pair,fd_pair_type);
-  fdtype oldv=p->fd_car; p->fd_car=fd_incref(val);
+  fdtype oldv=p->car; p->car=fd_incref(val);
   fd_decref(oldv);
   return FD_VOID;
 }
@@ -2192,7 +2192,7 @@ static fdtype set_car(fdtype pair,fdtype val)
 static fdtype set_cdr(fdtype pair,fdtype val)
 {
   struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,pair,fd_pair_type);
-  fdtype oldv=p->fd_cdr; p->fd_cdr=fd_incref(val);
+  fdtype oldv=p->cdr; p->cdr=fd_incref(val);
   fd_decref(oldv);
   return FD_VOID;
 }
@@ -2200,8 +2200,8 @@ static fdtype set_cdr(fdtype pair,fdtype val)
 static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
 {
   struct FD_VECTOR *v=fd_consptr(struct FD_VECTOR *,vec,fd_vector_type);
-  int offset=FD_FIX2INT(index); fdtype *elts=v->fd_vecelts;
-  if (offset>v->fd_veclen) {
+  int offset=FD_FIX2INT(index); fdtype *elts=v->fdvec_elts;
+  if (offset>v->fdvec_length) {
     char buf[256]; sprintf(buf,"%d",offset);
     return fd_err(fd_RangeError,"vector_set",buf,vec);}
   else {

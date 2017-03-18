@@ -80,8 +80,8 @@ static int cons_walk(fd_walker walker,int constype,
       struct FD_PAIR *pair=(fd_pair) scan;
       int rv=walker(scan,walkdata);
       if (rv>0) {
-	fast_walk(walker,pair->fd_car,walkdata,flags,depth-1);
-	scan=pair->fd_cdr;}
+	fast_walk(walker,pair->car,walkdata,flags,depth-1);
+	scan=pair->cdr;}
       else return rv;}
     return fast_walk(walker,scan,walkdata,flags,depth-1);}
   case fd_rail_type: case fd_vector_type: {

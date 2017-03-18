@@ -57,7 +57,7 @@ static fdtype _overlay_get
     struct FD_HASHTABLE *h=(fd_hashtable)overlay;
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
-    p.fd_car=car; p.fd_cdr=cdr;
+    p.car=car; p.cdr=cdr;
     if (fd_hashtable_probe(h,tmp_key)) {
       fdtype v=fd_hashtable_get(h,tmp_key,FD_VOID);
       if ((FD_VOIDP(v)) || (FD_EMPTY_CHOICEP(v)))
@@ -87,7 +87,7 @@ static fdtype _overlay_get
     struct FD_PAIR p;
     fd_index ix=fd_indexptr(overlay);
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    p.fd_car=car; p.fd_cdr=cdr;
+    p.car=car; p.cdr=cdr;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);
     if ((FD_VOIDP(mods)) || (FD_EMPTY_CHOICEP(mods)))
@@ -131,7 +131,7 @@ static int _overlay_test
     struct FD_PAIR p;
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
     tmp_key=(fdtype)&p;
-    p.fd_car=slotid; p.fd_cdr=frame;
+    p.car=slotid; p.cdr=frame;
     if (fd_hashtable_probe((fd_hashtable)slot_overlay,tmp_key)) {
       int retval;
       fdtype v=fd_hashtable_get((fd_hashtable)slot_overlay,tmp_key,FD_VOID);
@@ -154,7 +154,7 @@ static int _overlay_test
     struct FD_PAIR p;
     fd_index ix=fd_indexptr(overlay);
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    p.fd_car=slotid; p.fd_cdr=frame;
+    p.car=slotid; p.cdr=frame;
     tmp_key=(fdtype)&p;
     mods=fd_index_get(ix,tmp_key);
     if (FD_EMPTY_CHOICEP(mods)) return dflt;

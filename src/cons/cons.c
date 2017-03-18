@@ -133,14 +133,14 @@ void fd_recycle_cons(fd_raw_cons c)
     case fd_pair_type: {
       /* This is hairy in order to iteratively free up long lists. */
       struct FD_PAIR *p=(struct FD_PAIR *)c;
-      fdtype cdr=p->fd_cdr, car=p->fd_car;
+      fdtype cdr=p->cdr, car=p->car;
       u8_free(p); fd_decref(car);
       if (FD_CONSP(cdr)) {
         if (FD_PAIRP(cdr)) {
           struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
           FD_LOCK_PTR(xcdr);
           while (FD_CONS_REFCOUNT(xcdr)==1) {
-            car=xcdr->fd_car; cdr=xcdr->fd_cdr;
+            car=xcdr->car; cdr=xcdr->cdr;
             FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
             fd_decref(car);
             if (FD_PAIRP(cdr)) {
@@ -154,15 +154,15 @@ void fd_recycle_cons(fd_raw_cons c)
       break;}
     case fd_string_type: case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *)c;
-      if ((s->fd_bytes)&&(s->fd_freedata)) u8_free(s->fd_bytes);
+      if ((s->fd_bytes)&&(s->fd_freebytes)) u8_free(s->fd_bytes);
       if (!(FD_STATIC_CONSP(s))) u8_free(s);
       break;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=(struct FD_VECTOR *)c;
-      int len=v->fd_veclen; fdtype *scan=v->fd_vecelts, *limit=scan+len;
+      int len=v->fdvec_length; fdtype *scan=v->fdvec_elts, *limit=scan+len;
       if (scan) {
         while (scan<limit) {fd_decref(*scan); scan++;}
-        if (v->fd_freedata) u8_free(v->fd_vecelts);}
+        if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
       if (!(FD_STATIC_CONSP(v))) u8_free(v);
       break;}
     case fd_choice_type: {
@@ -268,19 +268,19 @@ fdtype fd_copier(fdtype x,int flags)
       while (FD_TYPEP(scan,fd_pair_type)) {
         struct FD_PAIR *p=FD_CONSPTR(fd_pair,scan);
         struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
-        fdtype car=p->fd_car;
+        fdtype car=p->car;
         FD_INIT_CONS(newpair,fd_pair_type);
         if (static_copy) {FD_MAKE_STATIC(result);}
         if (FD_CONSP(car)) {
           struct FD_CONS *c=(struct FD_CONS *)car;
           if ( U8_BITP(flags,FD_FULL_COPY) || FD_STATIC_CONSP(c) )
-            newpair->fd_car=fd_copier(car,flags);
-          else {fd_incref(car); newpair->fd_car=car;}}
+            newpair->car=fd_copier(car,flags);
+          else {fd_incref(car); newpair->car=car;}}
         else {
-          fd_incref(car); newpair->fd_car=car;}
+          fd_incref(car); newpair->car=car;}
         *tail=(fdtype)newpair;
-        tail=&(newpair->fd_cdr);
-        scan=p->fd_cdr;}
+        tail=&(newpair->cdr);
+        scan=p->cdr;}
       if (FD_CONSP(scan))
         *tail=fd_copier(scan,flags);
       else *tail=scan;
@@ -288,7 +288,7 @@ fdtype fd_copier(fdtype x,int flags)
       return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_CONSPTR(fd_vector,x);
-      fdtype *olddata=v->fd_vecelts; int i=0, len=v->fd_veclen;
+      fdtype *olddata=v->fdvec_elts; int i=0, len=v->fdvec_length;
       fdtype result=((ctype==fd_vector_type)?
                      (fd_init_vector(NULL,len,NULL)):
                      (fd_init_rail(NULL,len,NULL)));
@@ -416,7 +416,7 @@ fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
   if (ptr == NULL) {
     ptr=u8_alloc(struct FD_STRING);
     FD_INIT_STRUCT(ptr,struct FD_STRING);
-    ptr->fd_freedata=1;}
+    ptr->fd_freebytes=1;}
   FD_INIT_CONS(ptr,fd_string_type);
   if ((len==0) && (string==NULL)) {
     u8_byte *bytes=u8_malloc(1); *bytes='\0';
@@ -446,7 +446,7 @@ fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
       freedata=0;}
     else bytes=(u8_byte *)u8_strndup(start,length+1);
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
+    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,FD_VOID);
 }
@@ -467,7 +467,7 @@ fdtype fd_substring(u8_string start,u8_string end)
     u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=0;
+    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=0;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
 }
@@ -494,7 +494,7 @@ fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes=u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
+  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -515,7 +515,7 @@ fdtype fd_block_string(int len,u8_string string)
   else memset(bytes,'?',length);
   bytes[length]='\0';
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=0;
+  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=0;
   if (string) u8_free(string);
   return FDTYPE_CONS(ptr);
 }
@@ -541,7 +541,7 @@ fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes=u8_mallocz(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
+  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
   /* Free the string */
   u8_free(string);
   return FDTYPE_CONS(ptr);
@@ -564,7 +564,7 @@ FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(ptr,fd_pair_type);
-  ptr->fd_car=car; ptr->fd_cdr=cdr;
+  ptr->car=car; ptr->cdr=cdr;
   return FDTYPE_CONS(ptr);
 }
 
@@ -615,7 +615,9 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
       freedata=1;}
   else elts=data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=freedata;
+  ptr->fdvec_length=len; 
+  ptr->fdvec_elts=elts; 
+  ptr->fdvec_free_elts=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -638,7 +640,9 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
     u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=0;
+  ptr->fdvec_length=len; 
+  ptr->fdvec_elts=elts; 
+  ptr->fdvec_free_elts=0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
   else {while (i < len) {elts[i]=FD_VOID; i++;}}
@@ -666,7 +670,9 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
     elts=data;}
   FD_INIT_CONS(ptr,fd_rail_type);
   if (data==NULL) while (i < len) elts[i++]=FD_VOID;
-  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=freedata;
+  ptr->fdvec_length=len; 
+  ptr->fdvec_elts=elts; 
+  ptr->fdvec_free_elts=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -688,7 +694,9 @@ FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
-  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=0;
+  ptr->fdvec_length=len; 
+  ptr->fdvec_elts=elts; 
+  ptr->fdvec_free_elts=0;
   while (i < len) {elts[i]=data[i]; i++;}
   return FDTYPE_CONS(ptr);
 }
@@ -702,7 +710,7 @@ FD_EXPORT fdtype fd_init_packet
     return fd_make_packet(ptr,len,data);
   if (ptr == NULL) {
     ptr=u8_alloc(struct FD_STRING);
-    ptr->fd_freedata=1;}
+    ptr->fd_freebytes=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
     u8_byte *consed=u8_mallocz(len+1);
@@ -728,7 +736,7 @@ FD_EXPORT fdtype fd_make_packet
     bytes=u8_malloc(len+1);}
   else bytes=(unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
+  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -749,7 +757,7 @@ FD_EXPORT fdtype fd_bytes2packet
     if (data==NULL) memset(bytes,0,len);
     else memcpy(bytes,data,len);}
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
+  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
   if (freedata) u8_free(data);
   return FDTYPE_CONS(ptr);
 }

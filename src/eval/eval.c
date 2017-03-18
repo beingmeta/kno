@@ -364,9 +364,9 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     fd_store(profile_info,tag,profile_data);}
   else {
     struct FD_PAIR *p=fd_consptr(fd_pair,profile_data,fd_pair_type);
-    struct FD_FLONUM *d=fd_consptr(fd_flonum,(p->fd_cdr),fd_flonum_type);
-    p->fd_car=FD_INT(fd_getint(p->fd_car)+1);
-    d->fd_dblval=d->fd_dblval+(finish-start);}
+    struct FD_FLONUM *d=fd_consptr(fd_flonum,(p->cdr),fd_flonum_type);
+    p->car=FD_INT(fd_getint(p->car)+1);
+    d->floval=d->floval+(finish-start);}
   fd_decref(profile_data); fd_decref(profile_info);
   return value;
 }
@@ -1057,7 +1057,7 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
     return val;}
   else if (FD_RAILP(exprs)) {
     struct FD_VECTOR *v=fd_consptr(fd_vector,exprs,fd_rail_type);
-    int len=v->fd_veclen; fdtype *elts=v->fd_vecelts, val=FD_VOID;
+    int len=v->fdvec_length; fdtype *elts=v->fdvec_elts, val=FD_VOID;
     int i=0; while (i<len) {
       fdtype expr=elts[i++];
       fd_decref(val); val=FD_VOID;

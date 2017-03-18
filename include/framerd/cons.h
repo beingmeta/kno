@@ -259,7 +259,7 @@ struct FD_WRAPPER {
 
 typedef struct FD_STRING {
   FD_CONS_HEADER;
-  unsigned int fd_freedata:1;
+  unsigned int fd_freebytes:1;
   unsigned int fd_bytelen:31;
   u8_string fd_bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
@@ -337,28 +337,28 @@ FD_EXPORT struct FD_SYMBOL_TABLE fd_symbol_table;
 
 typedef struct FD_PAIR {
   FD_CONS_HEADER;
-  fdtype fd_car;
-  fdtype fd_cdr;} FD_PAIR;
+  fdtype car;
+  fdtype cdr;} FD_PAIR;
 typedef struct FD_PAIR *fd_pair;
 
 #define FD_PAIRP(x) (FD_PTR_TYPE(x) == fd_pair_type)
-#define FD_CAR(x) ((FD_CONSPTR(FD_PAIR *,x))->fd_car)
-#define FD_CDR(x) ((FD_CONSPTR(FD_PAIR *,x))->fd_cdr)
+#define FD_CAR(x) ((FD_CONSPTR(FD_PAIR *,x))->car)
+#define FD_CDR(x) ((FD_CONSPTR(FD_PAIR *,x))->cdr)
 #define FD_TRY_CAR(x) \
-  ((FD_PAIRP(x)) ? ((FD_CONSPTR(FD_PAIR *,x))->fd_car) : (FD_VOID))
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(FD_PAIR *,x))->car) : (FD_VOID))
 #define FD_TRY_CDR(x) \
-  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,x))->fd_cdr) :	\
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,x))->cdr) :	\
    (FD_VOID))
 #define FD_CADR(x) (FD_CAR(FD_CDR(x)))
 
 #define fd_refcar(x) \
-  fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->fd_car))
+  fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->car))
 #define fd_refcdr(x) \
-  fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->fd_cdr))
+  fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->cdr))
 
 /* These are not threadsafe and they don't worry about GC either */
-#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->fd_car=x
-#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->fd_cdr=x
+#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car=x
+#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr=x
 
 #define FD_DOLIST(x,list) \
   fdtype x, _tmp=list; \
@@ -378,22 +378,22 @@ FD_EXPORT int fd_list_length(fdtype l);
 
 typedef struct FD_VECTOR {
   FD_CONS_HEADER;
-  unsigned int fd_freedata:1;
-  unsigned int fd_veclen:31;
-  fdtype *fd_vecelts;} FD_VECTOR;
+  unsigned int fdvec_free_elts:1;
+  unsigned int fdvec_length:31;
+  fdtype *fdvec_elts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
 
 #define FD_VECTORP(x) (FD_TYPEP((x),fd_vector_type))
 #define FD_VECTOR_LENGTH(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_veclen)
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
 #define FD_VECTOR_DATA(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
 #define FD_VECTOR_ELTS(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
 #define FD_VECTOR_REF(x,i) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
 #define FD_VECTOR_SET(x,i,v) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data);
 FD_EXPORT fdtype fd_make_vector(int len,fdtype *elts);
@@ -405,15 +405,15 @@ FD_EXPORT fdtype fd_make_nvector(int len,...);
 
 #define FD_RAILP(x) (FD_TYPEP((x),fd_rail_type))
 #define FD_RAIL_LENGTH(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_veclen)
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
 #define FD_RAIL_DATA(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
 #define FD_RAIL_ELTS(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
 #define FD_RAIL_REF(x,i) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
 #define FD_RAIL_SET(x,i,v) \
-  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
 
 FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data);
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *elts);
@@ -547,38 +547,38 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
 typedef struct FD_FLONUM {
   FD_CONS_HEADER;
-  double fd_dblval;} FD_FLONUM;
+  double floval;} FD_FLONUM;
 typedef struct FD_FLONUM *fd_flonum;
 
 #define FD_FLONUMP(x) (FD_TYPEP(x,fd_flonum_type))
 #define FD_XFLONUM(x) (fd_consptr(struct FD_FLONUM *,x,fd_flonum_type))
-#define FD_FLONUM(x) ((FD_XFLONUM(x))->fd_dblval)
+#define FD_FLONUM(x) ((FD_XFLONUM(x))->floval)
 
 /* Rational and complex numbers */
 
 typedef struct FD_RATIONAL {
   FD_CONS_HEADER;
-  fdtype fd_numerator;
-  fdtype fd_denominator;} FD_RATIONAL;
+  fdtype numerator;
+  fdtype denominator;} FD_RATIONAL;
 typedef struct FD_RATIONAL *fd_rational;
 
 #define FD_RATIONALP(x) (FD_PTR_TYPE(x) == fd_rational_type)
 #define FD_NUMERATOR(x) \
-  ((fd_consptr(struct FD_RATIONAL *,x,fd_rational_type))->fd_numerator)
+  ((fd_consptr(struct FD_RATIONAL *,x,fd_rational_type))->numerator)
 #define FD_DENOMINATOR(x) \
-  ((fd_consptr(struct FD_RATIONAL *,x,fd_rational_type))->fd_denominator)
+  ((fd_consptr(struct FD_RATIONAL *,x,fd_rational_type))->denominator)
 
 typedef struct FD_COMPLEX {
   FD_CONS_HEADER;
-  fdtype fd_realpart;
-  fdtype fd_imagpart;} FD_COMPLEX;
+  fdtype realpart;
+  fdtype imagpart;} FD_COMPLEX;
 typedef struct FD_COMPLEX *fd_complex;
 
 #define FD_COMPLEXP(x) (FD_PTR_TYPE(x) == fd_complex_type)
 #define FD_REALPART(x) \
-  ((fd_consptr(struct FD_COMPLEX *,x,fd_complex_type))->fd_realpart)
+  ((fd_consptr(struct FD_COMPLEX *,x,fd_complex_type))->realpart)
 #define FD_IMAGPART(x) \
-  ((fd_consptr(struct FD_COMPLEX *,x,fd_complex_type))->fd_imagpart)
+  ((fd_consptr(struct FD_COMPLEX *,x,fd_complex_type))->imagpart)
 
 
 /* Parsing regexes */

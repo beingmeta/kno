@@ -142,7 +142,7 @@ static fdtype get_op_handler(fd_pool p,fdtype symbol,fdtype slotid)
   struct FD_HASHTABLE *handlers=p->oid_handlers; struct FD_PAIR pair;
   if (handlers) {
     FD_INIT_STATIC_CONS(&pair,fd_pair_type);
-    pair.fd_car=symbol; pair.fd_cdr=slotid;
+    pair.car=symbol; pair.cdr=slotid;
     return fd_hashtable_get(p->oid_handlers,(fdtype)(&pair),FD_VOID);}
   else return FD_VOID;
 }

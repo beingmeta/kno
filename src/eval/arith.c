@@ -166,7 +166,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
         if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
         else if (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
+        else val=((struct FD_FLONUM *)args[i])->floval;
         floresult=floresult+val;
         i++;}
       return fd_init_double(NULL,floresult);}
@@ -256,7 +256,7 @@ static fdtype times_lexpr(int n,fdtype *args)
         if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
+        else val=((struct FD_FLONUM *)args[i])->floval;
         floresult=floresult*val;
         i++;}
       return fd_init_double(NULL,floresult);}
@@ -307,7 +307,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
         if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
+        else val=((struct FD_FLONUM *)args[i])->floval;
         if (i==0) floresult=val; else floresult=floresult-val;
         i++;}
       return fd_init_double(NULL,floresult);}
@@ -332,7 +332,7 @@ static double todouble(fdtype x)
   else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_FLONUMP(x))
-    return (((struct FD_FLONUM *)x)->fd_dblval);
+    return (((struct FD_FLONUM *)x)->floval);
   else {
     /* This won't really work, but we should catch the error before
        this point.  */
@@ -467,7 +467,7 @@ static double doublearg(fdtype x,fdtype *whoops)
   else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_FLONUMP(x))
-    return (((struct FD_FLONUM *)x)->fd_dblval);
+    return (((struct FD_FLONUM *)x)->floval);
   else {
     *whoops=fd_type_error("number","doublearg",x);
     return 0;}
@@ -499,8 +499,8 @@ static fdtype toexact(fdtype x,fdtype direction)
       struct FD_FLONUM tmp;
       FD_INIT_STATIC_CONS(&tmp,fd_flonum_type);
       if (dir==1) 
-        tmp.fd_dblval=ceil(d);
-      else tmp.fd_dblval=round(d);
+        tmp.floval=ceil(d);
+      else tmp.floval=round(d);
       return fd_make_exact((fdtype)(&tmp));}}
   else if (FD_COMPLEXP(x)) {
     fdtype real=FD_REALPART(x), imag=FD_IMAGPART(x);
@@ -509,7 +509,7 @@ static fdtype toexact(fdtype x,fdtype direction)
       fdtype xreal=toexact(real,direction);
       fdtype ximag=toexact(imag,direction);
       FD_INIT_CONS(num,fd_complex_type);
-      num->fd_realpart=xreal; num->fd_imagpart=ximag;
+      num->realpart=xreal; num->imagpart=ximag;
       return (fdtype) num;}
     else {
       fd_incref(x);

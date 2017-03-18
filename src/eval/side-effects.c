@@ -30,8 +30,8 @@ static fdtype vector_set(fdtype vec,fdtype offset,fdtype value)
 static fdtype set_car(fdtype pair,fdtype value)
 {
   struct FD_PAIR *p=(fd_pair)pair;
-  fdtype current=p->fd_car;
-  p->fd_car=fd_incref(value);
+  fdtype current=p->car;
+  p->car=fd_incref(value);
   fd_decref(current);
   return FD_VOID;
 }
@@ -39,8 +39,8 @@ static fdtype set_car(fdtype pair,fdtype value)
 static fdtype set_cdr(fdtype pair,fdtype value)
 {
   struct FD_PAIR *p=(fd_pair)pair;
-  fdtype current=p->fd_cdr;
-  p->fd_cdr=fd_incref(value);
+  fdtype current=p->cdr;
+  p->cdr=fd_incref(value);
   fd_decref(current);
   return FD_VOID;
 }

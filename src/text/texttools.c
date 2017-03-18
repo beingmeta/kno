@@ -136,7 +136,7 @@ static fdtype dosegment(u8_string string,fdtype separators)
       return result;}
     pair=fd_conspair(fd_substring(scan,brk),FD_EMPTY_LIST);
     *resultp=pair;
-    resultp=&(((struct FD_PAIR *)pair)->fd_cdr);
+    resultp=&(((struct FD_PAIR *)pair)->cdr);
     scan=brk+FD_STRLEN(sepstring);}
   return result;
 }

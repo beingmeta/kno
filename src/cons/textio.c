@@ -328,13 +328,13 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
 static int unparse_vector(U8_OUTPUT *out,fdtype x)
 {
   struct FD_VECTOR *v=(struct FD_VECTOR *) x;
-  int i=0, len=v->fd_veclen;
+  int i=0, len=v->fdvec_length;
   u8_puts(out,"#(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
       u8_puts(out," "); output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
-    if (i>0) u8_puts(out," "); fd_unparse(out,v->fd_vecelts[i]);
+    if (i>0) u8_puts(out," "); fd_unparse(out,v->fdvec_elts[i]);
     i++;}
   return u8_puts(out,")");
 }
@@ -342,7 +342,7 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
 static int unparse_rail(U8_OUTPUT *out,fdtype x)
 {
   struct FD_VECTOR *v=(struct FD_VECTOR *) x;
-  int i=0, len=v->fd_veclen; fdtype *data=v->fd_vecelts;
+  int i=0, len=v->fdvec_length; fdtype *data=v->fdvec_elts;
   u8_puts(out,"#~(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
@@ -1168,7 +1168,7 @@ static fdtype parse_list(U8_INPUT *in)
         fd_decref(head); return list_elt;}
       new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->fd_cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
         scan=new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
@@ -1187,7 +1187,7 @@ static fdtype parse_list(U8_INPUT *in)
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
       skip_whitespace(in); ch=u8_getc(in);
-      if (ch == ')') {scan->fd_cdr=tail; return head;}
+      if (ch == ')') {scan->cdr=tail; return head;}
       fd_decref(head); fd_decref(tail);
       return FD_PARSE_ERROR;}}
 }
@@ -1231,7 +1231,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
         fd_decref(head); return list_elt;}
       new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->fd_cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
         scan=new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
@@ -1250,7 +1250,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
       skip_whitespace(in); ch=u8_getc(in);
-      if (ch == ')') {scan->fd_cdr=tail; return head;}
+      if (ch == ')') {scan->cdr=tail; return head;}
       fd_decref(head); fd_decref(tail);
       return FD_PARSE_ERROR;}}
 }

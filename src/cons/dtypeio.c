@@ -249,9 +249,9 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
         int len=0; fdtype scan=x;
         while (1) {
           struct FD_PAIR *p=(struct FD_PAIR *) scan;
-          fdtype cdr=p->fd_cdr;
+          fdtype cdr=p->cdr;
           {fd_output_byte(out,dt_pair); len++;}
-          {fd_output_dtype(len,out,p->fd_car);}
+          {fd_output_dtype(len,out,p->car);}
           if (FD_PAIRP(cdr)) scan=cdr;
           else {
             fd_output_dtype(len,out,cdr);
@@ -271,11 +271,11 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
         return len;}
       case fd_vector_type: {
         struct FD_VECTOR *v=(struct FD_VECTOR *) cons;
-        int i=0, length=v->fd_veclen, dtype_len=5;
+        int i=0, length=v->fdvec_length, dtype_len=5;
         fd_output_byte(out,dt_vector);
         fd_output_4bytes(out,length);
         while (i < length) {
-          fd_output_dtype(dtype_len,out,v->fd_vecelts[i]); i++;}
+          fd_output_dtype(dtype_len,out,v->fdvec_elts[i]); i++;}
         return dtype_len;}
       case fd_choice_type:
         return write_choice_dtype(out,(fd_choice)cons);
@@ -646,9 +646,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
           return result;}
         else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {
           struct FD_VECTOR *vec=(struct FD_VECTOR *)cdr;
-          short n_elts=(short)(vec->fd_veclen);
+          short n_elts=(short)(vec->fdvec_length);
           fdtype result=
-            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->fd_vecelts);
+            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->fdvec_elts);
           /* Note that the incref'd values are now stored in the compound,
              so we don't decref them ourselves. */
           u8_free(vec);
@@ -1048,7 +1048,7 @@ static fdtype default_make_rational(fdtype car,fdtype cdr)
 {
   struct FD_PAIR *p=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_rational_type);
-  p->fd_car=car; p->fd_cdr=cdr;
+  p->car=car; p->cdr=cdr;
   return FDTYPE_CONS(p);
 }
 
@@ -1056,14 +1056,14 @@ static void default_unpack_rational
   (fdtype x,fdtype *car,fdtype *cdr)
 {
   struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,x,fd_rational_type);
-  *car=p->fd_car; *cdr=p->fd_cdr;
+  *car=p->car; *cdr=p->cdr;
 }
 
 static fdtype default_make_complex(fdtype car,fdtype cdr)
 {
   struct FD_PAIR *p=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_complex_type);
-  p->fd_car=car; p->fd_cdr=cdr;
+  p->car=car; p->cdr=cdr;
   return FDTYPE_CONS(p);
 }
 
@@ -1071,13 +1071,13 @@ static void default_unpack_complex
   (fdtype x,fdtype *car,fdtype *cdr)
 {
   struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,x,fd_complex_type);
-  *car=p->fd_car; *cdr=p->fd_cdr;
+  *car=p->car; *cdr=p->cdr;
 }
 
 static fdtype default_make_double(double d)
 {
   struct FD_FLONUM *ds=u8_alloc(struct FD_FLONUM);
-  FD_INIT_CONS(ds,fd_flonum_type); ds->fd_dblval=d;
+  FD_INIT_CONS(ds,fd_flonum_type); ds->floval=d;
   return FDTYPE_CONS(ds);
 }
 

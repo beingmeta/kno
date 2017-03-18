@@ -210,7 +210,7 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
   FDTC *fdtc=fd_threadcache; struct FD_PAIR tempkey;
   if (fdtc) {
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-    tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
+    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
     cached=fd_hashtable_get(&(fdtc->indexes),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
 #endif
@@ -260,7 +260,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     FD_DO_CHOICES(akey,key) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-      tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=akey;
+      tempkey.car=fd_index2lisp(ix); tempkey.cdr=akey;
       if (fd_hashtable_probe(&fdtc->indexes,(fdtype)&tempkey)) {
 	fd_hashtable_add(&fdtc->indexes,(fdtype)&tempkey,value);}}}
 

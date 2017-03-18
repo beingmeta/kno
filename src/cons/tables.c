@@ -1244,7 +1244,7 @@ static unsigned int hash_lisp(fdtype x)
     case fd_vector_type: {
       struct FD_VECTOR *v=
         fd_consptr(struct FD_VECTOR *,x,fd_vector_type);
-      return hash_elts(v->fd_vecelts,v->fd_veclen);}
+      return hash_elts(v->fdvec_elts,v->fdvec_length);}
     case fd_compound_type: {
       struct FD_COMPOUND *c=
         fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
@@ -1872,8 +1872,8 @@ static int do_hashtable_op
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
           struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
-            dbl->fd_dblval=dbl->fd_dblval+FD_FIX2INT(v);
-          else dbl->fd_dblval=dbl->fd_dblval+FD_FLONUM(v);}
+            dbl->floval=dbl->floval+FD_FIX2INT(v);
+          else dbl->floval=dbl->floval+FD_FLONUM(v);}
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_plus(current,v);
           if (newnum != current) {
@@ -1905,8 +1905,8 @@ static int do_hashtable_op
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
           struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
-            dbl->fd_dblval=dbl->fd_dblval*FD_FIX2INT(v);
-          else dbl->fd_dblval=dbl->fd_dblval*FD_FLONUM(v);}
+            dbl->floval=dbl->floval*FD_FIX2INT(v);
+          else dbl->floval=dbl->floval*FD_FLONUM(v);}
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_multiply(current,v);
           if (newnum != current) {

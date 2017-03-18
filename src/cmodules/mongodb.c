@@ -1485,8 +1485,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       struct FD_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct FD_VECTOR *vec=(struct FD_VECTOR *)val;
-      int i=0, lim=vec->fd_veclen;
-      fdtype *data=vec->fd_vecelts;
+      int i=0, lim=vec->fdvec_length;
+      fdtype *data=vec->fdvec_elts;
       int wrap_vector=((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
       if (wrap_vector) {
         ok=bson_append_array_begin(out,key,keylen,&ch);
