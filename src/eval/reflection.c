@@ -12,6 +12,9 @@
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 
+#include "libu8/u8streamio.h"
+#include "libu8/u8printf.h"
+
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
@@ -114,6 +117,66 @@ static fdtype procedure_id(fdtype x)
       return fd_intern(sf->fexpr_name);
     else return fd_incref(x);}
   else return fd_incref(x);
+}
+
+static fdtype procedure_documentation(fdtype x)
+{
+  fdtype proc=(FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  fd_ptr_type proctype=FD_PTR_TYPE(proc);
+  if (proctype==fd_sproc_type) {
+    struct FD_SPROC *sproc=(fd_sproc)proc;
+    if (sproc->fcn_documentation)
+      return fdtype_string(sproc->fcn_documentation);
+    else {
+      struct U8_OUTPUT out; u8_byte _buf[256];
+      U8_INIT_OUTPUT_BUF(&out,256,_buf);
+      fdtype arglist=sproc->sproc_arglist, scan=arglist;
+      if (sproc->fcn_name)
+        u8_puts(&out,sproc->fcn_name);
+      else u8_puts(&out,"λ");
+      while (FD_PAIRP(scan)) {
+        fdtype arg=FD_CAR(scan);
+        if (FD_SYMBOLP(arg))
+          u8_printf(&out," %ls",FD_SYMBOL_NAME(arg));
+        else if ((FD_PAIRP(arg))&&(FD_SYMBOLP(FD_CAR(arg))))
+          u8_printf(&out," [%ls]",FD_SYMBOL_NAME(FD_CAR(arg)));
+        else u8_printf(&out," %q",arg);
+        scan=FD_CDR(scan);}
+      if (FD_SYMBOLP(scan))
+        u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
+      if (out.u8_outbuf==_buf)
+        return fdtype_string(_buf);
+      else return fd_init_string(NULL,out.u8_write-out.u8_outbuf,
+                                 out.u8_outbuf);}}
+  else if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(proc);
+    if (f->fcn_documentation)
+      return fdtype_string(f->fcn_documentation);
+    else return FD_FALSE;}
+  else if (FD_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(proc);
+    if (sf->fexpr_documentation)
+      return fdtype_string(sf->fexpr_documentation);
+    else FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static fdtype set_procedure_documentation(fdtype x,fdtype doc)
+{
+  fdtype proc=(FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  fd_ptr_type proctype=FD_PTR_TYPE(proc);
+  if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(proc);
+    if (f->fcn_documentation) u8_free(f->fcn_documentation);
+    f->fcn_documentation=FD_STRDATA(doc);
+    return FD_VOID;}
+  else if (FD_TYPEP(proc,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(proc);
+    if (sf->fexpr_documentation) u8_free(sf->fexpr_documentation);
+    sf->fexpr_documentation=FD_STRDATA(doc);
+    return FD_VOID;}
+  else return fd_err("Not Handled","set_procedure_documentation",
+                     NULL,x);
 }
 
 static fdtype procedure_arity(fdtype x)
@@ -239,6 +302,21 @@ static fdtype set_compound_procedure_bytecode(fdtype arg,fdtype bytecode)
     return FD_VOID;}
   else return fd_type_error
 	 ("compound procedure","set_compound_procedure_bytecode",x);
+}
+
+static fdtype set_compound_procedure_optimizer(fdtype arg,fdtype optimizer)
+{
+  fdtype x=fd_fcnid_ref(arg);
+  if (FD_SPROCP(x)) {
+    struct FD_SPROC *proc=(fd_sproc)x;
+    if (proc->sproc_optimizer) {
+      fdtype cur=(fdtype)(proc->sproc_optimizer);
+      fd_decref(cur);}
+    fd_incref(optimizer);
+    proc->sproc_optimizer=optimizer;
+    return FD_VOID;}
+  else return fd_type_error
+	 ("compound procedure","set_compound_procedure_optimizer",x);
 }
 
 /* Function IDs */
@@ -449,18 +527,30 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ARITY",procedure_arity,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-MIN-ARITY",procedure_min_arity,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-SYMBOL",procedure_symbol,1));
+  fd_idefn(module,fd_make_cprim1("PROCEDURE-DOCUMENTATION",
+                                 procedure_documentation,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ID",procedure_id,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ARGS",compound_procedure_args,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BODY",compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BYTECODE",
                                  compound_procedure_bytecode,1));
+
+  fd_idefn(module,
+           fd_make_cprim2x("SET-PROCEDURE-DOCUMENTATION!",
+                           set_procedure_documentation,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID));
+
   fd_idefn(module,
            fd_make_cprim2("SET-PROCEDURE-BODY!",
                           set_compound_procedure_body,2));
   fd_idefn(module,
            fd_make_cprim2("SET-PROCEDURE-ARGS!",
                           set_compound_procedure_args,2));
+  fd_idefn(module,
+           fd_make_cprim2x("SET-PROCEDURE-OPTIMIZER!",
+                           set_compound_procedure_optimizer,2,
+                           fd_sproc_type,FD_VOID,-1,FD_VOID));
   fd_idefn(module,
            fd_make_cprim2x("SET-PROCEDURE-BYTECODE!",
                            set_compound_procedure_bytecode,2,
