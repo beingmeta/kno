@@ -281,8 +281,8 @@ pooltest:
 	@echo "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
 	@rm -f ${TESTBASE}.pool
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=1 ${RUNCONF}
-	${RUN} ${FDX} pooltest.scm ${TESTSIZE} CACHELEVEL=2 ${RUNCONF}
+	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
+	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
 
 filepooltest:
 	@make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
