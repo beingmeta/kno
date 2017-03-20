@@ -436,10 +436,12 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Fixnums */
 
-#if SIZEOF_VOIDP <= 32
+#ifndef SIZEOF_VOID_P
+#define FD_FIXNUM_BITS 30
+#elif SIZEOF_VOID_P <= 4
 #define FD_FIXNUM_BITS 30
 #else
-#define FD_FIXNUM_BITS ((SIZE_OF_VOIDP*8)-3)
+#define FD_FIXNUM_BITS ((SIZEOF_VOID_P*8)-3)
 #endif
 
 #define FD_MAX_FIXNUM ((((long long)1)<<(FD_FIXNUM_BITS))-1)

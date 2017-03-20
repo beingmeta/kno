@@ -268,8 +268,8 @@ fdtype fd_parse_atom(u8_string start,int len)
     else return fd_make_timestamp(&xt);}
   else if ((start[0]=='#')&&(start[1]=='!')&&(isxdigit(start[2]))) {
     if (fd_interpret_pointers) {
-      unsigned long pval;
-      if (sscanf(start+2,"%lx",&pval)!=1)
+      unsigned long long pval;
+      if (sscanf(start+2,"%llx",&pval)!=1)
         return fd_err
           (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);
       else if (FD_CHECK_PTR(pval))
