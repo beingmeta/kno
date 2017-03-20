@@ -825,7 +825,8 @@ src/eval/eval.o: src/eval/eval.c src/eval/opcodes.c \
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
-src/cons/dtypeio.o src/cons/bufio.o src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
+src/cons/dtread.o src/cons/dtwrite.o : XCFLAGS="${OPTFLAGS}"
+src/cons/bufio.o src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
 src/db/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
