@@ -1857,114 +1857,6 @@ static fdtype copy_bigint(fdtype x,int deep)
   return FDTYPE_CONS(bigint_copy(bi));
 }
 
-static void output_bigint_digit(unsigned char **digits,int digit)
-{
-  **digits=digit; (*digits)++;
-}
-static int output_bigint(struct U8_OUTPUT *out,fd_bigint bi,int base)
-{
-  int n_bytes=fd_bigint_length_in_bytes(bi), n_digits=n_bytes*3;
-  unsigned char _digits[128], *digits, *scan;
-  if (n_digits>128) scan=digits=u8_alloc_n(n_digits,unsigned char);
-  else scan=digits=_digits;
-  if (bigint_test(bi)==fd_bigint_less) {
-    base=10; u8_putc(out,'-');}
-  fd_bigint_to_digit_stream
-    (bi,base,(bigint_consumer)output_bigint_digit,(void *)&scan);
-  scan--; while (scan>=digits) {
-    int digit=*scan--;
-    if (digit<10) u8_putc(out,'0'+digit);
-    else if (digit<16) u8_putc(out,'a'+(digit-10));
-    else u8_putc(out,'?');}
-  if (digits != _digits) u8_free(digits);
-  return 1;
-}
-static int unparse_bigint(struct U8_OUTPUT *out,fdtype x)
-{
-  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
-  output_bigint(out,bi,10);
-  return 1;
-}
-
-static void output_bigint_byte(unsigned char **scan,int digit)
-{
-  **scan=digit; (*scan)++;
-}
-static int dtype_bigint(struct FD_OUTBUF *out,fdtype x)
-{
-  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
-  if (fd_bigint_fits_in_word_p(bi,32,1)) {
-    long fixed=fd_bigint_to_long(bi);
-    fd_write_byte(out,dt_fixnum);
-    fd_write_4bytes(out,fixed);
-    return 5;}
-  else {
-    int n_bytes=fd_bigint_length_in_bytes(bi), dtype_size;
-    unsigned char _bytes[64], *bytes, *scan;
-    if (n_bytes>=64) scan=bytes=u8_malloc(n_bytes);
-    else scan=bytes=_bytes;
-    fd_bigint_to_digit_stream
-      (bi,256,(bigint_consumer)output_bigint_byte,(void *)&scan);
-    fd_write_byte(out,dt_numeric_package);
-    n_bytes=scan-bytes;
-    if (n_bytes+1<256) {
-      dtype_size=3+n_bytes+1;
-      fd_write_byte(out,dt_small_bigint);
-      fd_write_byte(out,(n_bytes+1));}
-    else {
-      dtype_size=6+n_bytes+1;
-      fd_write_byte(out,dt_bigint);
-      fd_write_4bytes(out,(n_bytes+1));}
-    if (BIGINT_NEGATIVE_P(bi)) fd_write_byte(out,1);
-    else fd_write_byte(out,0);
-    scan--; while (scan>=bytes) {
-      int digit=*scan--; fd_write_byte(out,digit);}
-    if (bytes != _bytes) u8_free(bytes);
-    return dtype_size;}
-}
-
-static int compare_bigint(fdtype x,fdtype y,fd_compare_flags flags)
-{
-  fd_bigint bx=fd_consptr(fd_bigint,x,fd_bigint_type);
-  fd_bigint by=fd_consptr(fd_bigint,y,fd_bigint_type);
-  enum fd_bigint_comparison cmp=fd_bigint_compare(bx,by);
-  switch (cmp) {
-  case fd_bigint_greater: return 1;
-  case fd_bigint_less: return -1;
-  default: return 0;}
-}
-
-static fd_bigint bigint_magic_modulus;
-
-static int hash_bigint(fdtype x,unsigned int (*fn)(fdtype))
-{
-  fdtype rem=fd_remainder(x,(fdtype)bigint_magic_modulus);
-  if (FD_FIXNUMP(rem)) {
-    int irem=FD_FIX2INT(rem);
-    if (irem<0) return -irem; else return irem;}
-  else if (FD_BIGINTP(rem)) {
-    struct FD_CONS *brem=(struct FD_CONS *) rem;
-    long irem=fd_bigint_to_long((fd_bigint)rem);
-    if (FD_MALLOCD_CONSP(brem)) u8_free(brem);
-    if (irem<0) return -irem; else return irem;}
-  else return fd_err(_("bad bigint"),"hash_bigint",NULL,x);
-}
-
-static int read_bigint_byte(unsigned char **data)
-{
-  int val=**data; (*data)++;
-  return val;
-}
-static fdtype unpack_bigint(unsigned int n,unsigned char *packet)
-{
-  int n_digits=n-1; unsigned char *scan=packet+1;
-  fd_bigint bi=fd_digit_stream_to_bigint
-    (n_digits,(bigint_producer)read_bigint_byte,(void *)&scan,256,packet[0]);
-  u8_free(packet);
-  if (bi) return (fdtype)bi;
-  else return FD_VOID;
-}
-
 static void recycle_bigint(struct FD_RAW_CONS *c)
 {
   if (FD_MALLOCD_CONSP(c)) {
@@ -2065,213 +1957,6 @@ static int hash_flonum(fdtype x,unsigned int (*fn)(fdtype))
   return asint%256001281;
 }
 
-/* Parsing numbers */
-
-static fdtype parse_bigint(u8_string string,int base,int negativep);
-static fdtype make_complex(fdtype real,fdtype imag);
-static fdtype make_rational(fdtype n,fdtype d);
-
-FD_EXPORT
-fdtype fd_string2number(u8_string string,int base)
-{
-  int len=strlen(string);
-  if (string[0]=='#') {
-    switch (string[1]) {
-    case 'o': case 'O':
-      return fd_string2number(string+2,8);
-    case 'x': case 'X':
-      return fd_string2number(string+2,16);
-    case 'd': case 'D':
-      return fd_string2number(string+2,10);
-    case 'b': case 'B':
-      return fd_string2number(string+2,2);
-    case 'i': case 'I': {
-      fdtype result=fd_string2number(string+2,base);
-	if (FD_EXPECT_TRUE(FD_NUMBERP(result))) {
-	  double dbl=todouble(result);
-	  fdtype inexresult=fd_init_flonum(NULL,dbl);
-	  fd_decref(result);
-	  return inexresult;}
-	else return FD_FALSE;}
-    case 'e': case 'E': {
-      if (strchr(string,'.')) {
-	fdtype num, den=FD_INT(1);
-	u8_byte *copy=u8_strdup(string+2);
-	u8_byte *dot=strchr(copy,'.'), *scan=dot+1;
-	*dot='\0'; num=fd_string2number(copy,10);
-	if (FD_EXPECT_FALSE(!(FD_NUMBERP(num)))) {
-	  u8_free(copy);
-	  return FD_FALSE;}
-	while (*scan)
-	  if (isdigit(*scan)) {
-	    fdtype numx10=fd_multiply(num,FD_INT(10));
-	    int uchar=*scan;
-	    int numweight=u8_digit_weight(uchar);
-	    fdtype add_digit=FD_INT(numweight);
-	    fdtype nextnum=fd_plus(numx10,add_digit);
-	    fdtype nextden=fd_multiply(den,FD_INT(10));
-	    fd_decref(numx10); fd_decref(num); fd_decref(den);
-	    num=nextnum; den=nextden;
-	    scan++;}
-	  else if (strchr("sSeEfFlL",*scan)) {
-	    int i=0, exponent=strtol(scan+1,NULL,10);
-	    if (exponent>=0)
-	      while (i<exponent) {
-		fdtype nextnum=fd_multiply(num,FD_INT(10));
-		fd_decref(num); num=nextnum; i++;}
-	    else {
-	      exponent=-exponent;
-	      while (i<exponent) {
-		fdtype nextden=fd_multiply(den,FD_INT(10));
-		fd_decref(den); den=nextden; i++;}}
-	    break;}
-	  else {
-	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
-		       u8_strdup(string));
-	    return FD_PARSE_ERROR;}
-	return make_rational(num,den);}
-      else return fd_string2number(string+2,base);}
-    default:
-      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
-		 u8_strdup(string));
-      return FD_PARSE_ERROR;}}
-  else if ((strchr(string,'i')) || (strchr(string,'I'))) {
-    u8_byte *copy=u8_strdup(string);
-    u8_byte *iend, *istart; fdtype real, imag;
-    iend=strchr(copy,'i');
-    if (iend==NULL) iend=strchr(copy,'I');
-    if (iend[1]!='\0') {u8_free(copy); return FD_FALSE;}
-    else *iend='\0';
-    if ((*copy == '+') || (*copy =='-')) {
-      istart=strchr(copy+1,'+');
-      if (istart==NULL) istart=strchr(copy+1,'-');}
-    else {
-      istart=strchr(copy,'+');
-      if (istart==NULL) istart=strchr(copy,'-');}
-    if ((istart) && ((istart[-1]=='e') || (istart[-1]=='E'))) {
-      u8_byte *estart=istart;
-      istart=strchr(estart+1,'+');
-      if (istart==NULL) istart=strchr(estart+1,'-');}
-    if (istart == NULL) {
-      imag=fd_string2number(copy,base);
-      if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
-	fd_decref(imag); u8_free(copy); return FD_FALSE;}
-      real=FD_INT(0);}
-    else {
-      imag=fd_string2number(istart,base); *istart='\0';
-      if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
-	fd_decref(imag); u8_free(copy); return FD_FALSE;}
-      real=fd_string2number(copy,base);
-      if (FD_EXPECT_FALSE(!(FD_NUMBERP(real)))) {
-	fd_decref(imag); fd_decref(real); u8_free(copy);
-	return FD_FALSE;}}
-    u8_free(copy);
-    return make_complex(real,imag);}
-  else if (strchr(string,'/')) {
-    u8_byte *copy=u8_strdup(string);
-    u8_byte *slash=strchr(copy,'/');
-    fdtype num, denom;
-    *slash='\0';
-    num=fd_string2number(copy,base);
-    if (FD_FALSEP(num)) {u8_free(copy); return FD_FALSE;}
-    denom=fd_string2number(slash+1,base);
-    if (FD_FALSEP(denom)) {
-      fd_decref(num); u8_free(copy); return FD_FALSE;}
-    u8_free(copy);
-    return make_rational(num,denom);}
-  else if (string[0]=='\0') return FD_FALSE;
-  else if (((string[0]=='+')|| (string[0]=='-') ||
-	    (isdigit(string[0])) ||
-	    ((string[0]=='.') && (isdigit(string[1])))) &&
-	   (strchr(string,'.'))) {
-    double flonum; u8_byte *end=NULL;
-    flonum=strtod(string,(char **)&end);
-    U8_CLEAR_ERRNO();
-    if ((end>string) && ((end-string)==len))
-      return fd_make_flonum(flonum);
-    else return FD_FALSE;}
-  else if (strchr(string+1,'+')) return FD_FALSE;
-  else if (strchr(string+1,'-')) return FD_FALSE;
-  else {
-    fdtype result;
-    long long fixnum, nbase=0;
-    const u8_byte *start=string, *end=NULL;
-    if (string[0]=='0') {
-      if (string[1]=='\0') return FD_INT(0);
-      else if ((string[1]=='x') || (string[1]=='X')) {
-	start=string+2; nbase=16;}}
-    if ((base<0) && (nbase)) base=nbase;
-    else if (base<0) base=10;
-    errno=0;
-    fixnum=strtoll(start,(char **)&end,base);
-    U8_CLEAR_ERRNO();
-    if (!((end>string) && ((end-string)==len)))
-      return FD_FALSE;
-    else if ((fixnum) && 
-             ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM)))
-      return FD_INT(fixnum);
-    else if ((fixnum==0) && (end) && (*end=='\0'))
-      return FD_INT(0);
-    else if ((errno) && (errno != ERANGE)) return FD_FALSE;
-    else errno=0;
-    if (!(base)) base=10;
-    if (*string =='-')
-      result=parse_bigint(string+1,base,1);
-    else if (*string =='+')
-      result=parse_bigint(string+1,base,0);
-    else result=parse_bigint(start,base,0);
-    return result;}
-}
-
-fdtype (*_fd_parse_number)(u8_string,int)=fd_string2number;
-
-static int read_digit_weight(const u8_byte **scan)
-{
-  int c=u8_sgetc(scan), wt=c-'0';
-  if ((wt>=0) && (wt<10)) return wt;
-  wt=c-'a'; if ((wt>=0) && (wt<6)) return wt+10;
-  wt=c-'A'; if ((wt>=0) && (wt<6)) return wt+10;
-  return -1;
-}
-
-static fdtype parse_bigint(u8_string string,int base,int negative)
-{
-  int n_digits=u8_strlen(string);
-  const u8_byte *scan=string;
-  if (n_digits) {
-    fd_bigint bi=fd_digit_stream_to_bigint
-      (n_digits,(bigint_producer)read_digit_weight,(void *)&scan,base,negative);
-    if (bi) return (fdtype)bi;
-    else return FD_VOID;}
-  else return FD_VOID;
-}
-
-FD_EXPORT
-int fd_output_number(u8_output out,fdtype num,int base)
-{
-  if (FD_FIXNUMP(num)) {
-    long long fixnum=FD_FIX2INT(num);
-    if (base==10) u8_printf(out,"%lld",fixnum);
-    else if (base==16) u8_printf(out,"%llx",fixnum);
-    else if (base == 8) u8_printf(out,"%llo",fixnum);
-    else {
-      fd_bigint bi=fd_long_to_bigint(fixnum);
-      output_bigint(out,bi,base);
-      return 1;}
-    return 1;}
-  else if (FD_FLONUMP(num)) {
-    unsigned char buf[256];
-    struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,num,fd_flonum_type);
-    sprintf(buf,"%f",d->floval);
-    u8_puts(out,buf);
-    return 1;}
-  else if (FD_BIGINTP(num)) {
-    fd_bigint bi=fd_consptr(fd_bigint,num,fd_bigint_type);
-    output_bigint(out,bi,base);
-    return 1;}
-  else return 0;
-}
-
 /* Utility fucntions and macros. */
 
 
@@ -2328,7 +2013,7 @@ static fd_bigint tobigint(fdtype x)
 static fdtype simplify_bigint(fd_bigint bi)
 {
   if (fd_bigint_fits_in_word_p(bi,FD_FIXNUM_BITS,1)) {
-    int intval=fd_bigint_to_long(bi);
+    long long intval=fd_bigint_to_long(bi);
     fd_decref((fdtype)bi);
     return FD_INT(intval);}
   else return (fdtype)bi;
@@ -3680,6 +3365,327 @@ static fdtype vector_scale(fdtype vec,fdtype scalar)
         u8_free(scaled);}
       return result;}}
   else return generic_vector_scale(vec,scalar);
+}
+
+/* bigint i/o */
+
+static void output_bigint_digit(unsigned char **digits,int digit)
+{
+  **digits=digit; (*digits)++;
+}
+static int output_bigint(struct U8_OUTPUT *out,fd_bigint bi,int base)
+{
+  int n_bytes=fd_bigint_length_in_bytes(bi), n_digits=n_bytes*3;
+  unsigned char _digits[128], *digits, *scan;
+  if (n_digits>128) scan=digits=u8_alloc_n(n_digits,unsigned char);
+  else scan=digits=_digits;
+  if (bigint_test(bi)==fd_bigint_less) {
+    base=10; u8_putc(out,'-');}
+  fd_bigint_to_digit_stream
+    (bi,base,(bigint_consumer)output_bigint_digit,(void *)&scan);
+  scan--; while (scan>=digits) {
+    int digit=*scan--;
+    if (digit<10) u8_putc(out,'0'+digit);
+    else if (digit<16) u8_putc(out,'a'+(digit-10));
+    else u8_putc(out,'?');}
+  if (digits != _digits) u8_free(digits);
+  return 1;
+}
+static int unparse_bigint(struct U8_OUTPUT *out,fdtype x)
+{
+  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
+  output_bigint(out,bi,10);
+  return 1;
+}
+
+static void output_bigint_byte(unsigned char **scan,int digit)
+{
+  **scan=digit; (*scan)++;
+}
+static int dtype_bigint(struct FD_OUTBUF *out,fdtype x)
+{
+  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
+  if (fd_bigint_fits_in_word_p(bi,32,1)) {
+    /* We'll only get here if fixnums are smaller than 32 bits */
+    long fixed=fd_bigint_to_long(bi);
+    fd_write_byte(out,dt_fixnum);
+    fd_write_4bytes(out,fixed);
+    return 5;}
+  else {
+    int n_bytes=fd_bigint_length_in_bytes(bi), dtype_size;
+    unsigned char _bytes[64], *bytes, *scan;
+    if (n_bytes>=64) scan=bytes=u8_malloc(n_bytes);
+    else scan=bytes=_bytes;
+    fd_bigint_to_digit_stream
+      (bi,256,(bigint_consumer)output_bigint_byte,(void *)&scan);
+    fd_write_byte(out,dt_numeric_package);
+    n_bytes=scan-bytes;
+    if (n_bytes+1<256) {
+      dtype_size=3+n_bytes+1;
+      fd_write_byte(out,dt_small_bigint);
+      fd_write_byte(out,(n_bytes+1));}
+    else {
+      dtype_size=6+n_bytes+1;
+      fd_write_byte(out,dt_bigint);
+      fd_write_4bytes(out,(n_bytes+1));}
+    if (BIGINT_NEGATIVE_P(bi)) fd_write_byte(out,1);
+    else fd_write_byte(out,0);
+    scan--; while (scan>=bytes) {
+      int digit=*scan--; fd_write_byte(out,digit);}
+    if (bytes != _bytes) u8_free(bytes);
+    return dtype_size;}
+}
+
+static int compare_bigint(fdtype x,fdtype y,fd_compare_flags flags)
+{
+  fd_bigint bx=fd_consptr(fd_bigint,x,fd_bigint_type);
+  fd_bigint by=fd_consptr(fd_bigint,y,fd_bigint_type);
+  enum fd_bigint_comparison cmp=fd_bigint_compare(bx,by);
+  switch (cmp) {
+  case fd_bigint_greater: return 1;
+  case fd_bigint_less: return -1;
+  default: return 0;}
+}
+
+static fd_bigint bigint_magic_modulus;
+
+static int hash_bigint(fdtype x,unsigned int (*fn)(fdtype))
+{
+  fdtype rem=fd_remainder(x,(fdtype)bigint_magic_modulus);
+  if (FD_FIXNUMP(rem)) {
+    int irem=FD_FIX2INT(rem);
+    if (irem<0) return -irem; else return irem;}
+  else if (FD_BIGINTP(rem)) {
+    struct FD_CONS *brem=(struct FD_CONS *) rem;
+    long irem=fd_bigint_to_long((fd_bigint)rem);
+    if (FD_MALLOCD_CONSP(brem)) u8_free(brem);
+    if (irem<0) return -irem; else return irem;}
+  else return fd_err(_("bad bigint"),"hash_bigint",NULL,x);
+}
+
+static int read_bigint_byte(unsigned char **data)
+{
+  int val=**data; (*data)++;
+  return val;
+}
+static fdtype unpack_bigint(unsigned int n,unsigned char *packet)
+{
+  int n_digits=n-1; unsigned char *scan=packet+1;
+  fd_bigint bi=fd_digit_stream_to_bigint
+    (n_digits,(bigint_producer)read_bigint_byte,(void *)&scan,256,packet[0]);
+  u8_free(packet);
+  if (bi) {
+    if (n_digits>8)
+      return (fdtype)bi;
+    else return simplify_bigint(bi);}
+  else return FD_VOID;
+}
+
+/* Parsing numbers */
+
+static fdtype parse_bigint(u8_string string,int base,int negativep);
+static fdtype make_complex(fdtype real,fdtype imag);
+static fdtype make_rational(fdtype n,fdtype d);
+
+FD_EXPORT
+fdtype fd_string2number(u8_string string,int base)
+{
+  int len=strlen(string);
+  if (string[0]=='#') {
+    switch (string[1]) {
+    case 'o': case 'O':
+      return fd_string2number(string+2,8);
+    case 'x': case 'X':
+      return fd_string2number(string+2,16);
+    case 'd': case 'D':
+      return fd_string2number(string+2,10);
+    case 'b': case 'B':
+      return fd_string2number(string+2,2);
+    case 'i': case 'I': {
+      fdtype result=fd_string2number(string+2,base);
+	if (FD_EXPECT_TRUE(FD_NUMBERP(result))) {
+	  double dbl=todouble(result);
+	  fdtype inexresult=fd_init_flonum(NULL,dbl);
+	  fd_decref(result);
+	  return inexresult;}
+	else return FD_FALSE;}
+    case 'e': case 'E': {
+      if (strchr(string,'.')) {
+	fdtype num, den=FD_INT(1);
+	u8_byte *copy=u8_strdup(string+2);
+	u8_byte *dot=strchr(copy,'.'), *scan=dot+1;
+	*dot='\0'; num=fd_string2number(copy,10);
+	if (FD_EXPECT_FALSE(!(FD_NUMBERP(num)))) {
+	  u8_free(copy);
+	  return FD_FALSE;}
+	while (*scan)
+	  if (isdigit(*scan)) {
+	    fdtype numx10=fd_multiply(num,FD_INT(10));
+	    int uchar=*scan;
+	    int numweight=u8_digit_weight(uchar);
+	    fdtype add_digit=FD_INT(numweight);
+	    fdtype nextnum=fd_plus(numx10,add_digit);
+	    fdtype nextden=fd_multiply(den,FD_INT(10));
+	    fd_decref(numx10); fd_decref(num); fd_decref(den);
+	    num=nextnum; den=nextden;
+	    scan++;}
+	  else if (strchr("sSeEfFlL",*scan)) {
+	    int i=0, exponent=strtol(scan+1,NULL,10);
+	    if (exponent>=0)
+	      while (i<exponent) {
+		fdtype nextnum=fd_multiply(num,FD_INT(10));
+		fd_decref(num); num=nextnum; i++;}
+	    else {
+	      exponent=-exponent;
+	      while (i<exponent) {
+		fdtype nextden=fd_multiply(den,FD_INT(10));
+		fd_decref(den); den=nextden; i++;}}
+	    break;}
+	  else {
+	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
+		       u8_strdup(string));
+	    return FD_PARSE_ERROR;}
+	return make_rational(num,den);}
+      else return fd_string2number(string+2,base);}
+    default:
+      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
+		 u8_strdup(string));
+      return FD_PARSE_ERROR;}}
+  else if ((strchr(string,'i')) || (strchr(string,'I'))) {
+    u8_byte *copy=u8_strdup(string);
+    u8_byte *iend, *istart; fdtype real, imag;
+    iend=strchr(copy,'i');
+    if (iend==NULL) iend=strchr(copy,'I');
+    if (iend[1]!='\0') {u8_free(copy); return FD_FALSE;}
+    else *iend='\0';
+    if ((*copy == '+') || (*copy =='-')) {
+      istart=strchr(copy+1,'+');
+      if (istart==NULL) istart=strchr(copy+1,'-');}
+    else {
+      istart=strchr(copy,'+');
+      if (istart==NULL) istart=strchr(copy,'-');}
+    if ((istart) && ((istart[-1]=='e') || (istart[-1]=='E'))) {
+      u8_byte *estart=istart;
+      istart=strchr(estart+1,'+');
+      if (istart==NULL) istart=strchr(estart+1,'-');}
+    if (istart == NULL) {
+      imag=fd_string2number(copy,base);
+      if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
+	fd_decref(imag); u8_free(copy); return FD_FALSE;}
+      real=FD_INT(0);}
+    else {
+      imag=fd_string2number(istart,base); *istart='\0';
+      if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
+	fd_decref(imag); u8_free(copy); return FD_FALSE;}
+      real=fd_string2number(copy,base);
+      if (FD_EXPECT_FALSE(!(FD_NUMBERP(real)))) {
+	fd_decref(imag); fd_decref(real); u8_free(copy);
+	return FD_FALSE;}}
+    u8_free(copy);
+    return make_complex(real,imag);}
+  else if (strchr(string,'/')) {
+    u8_byte *copy=u8_strdup(string);
+    u8_byte *slash=strchr(copy,'/');
+    fdtype num, denom;
+    *slash='\0';
+    num=fd_string2number(copy,base);
+    if (FD_FALSEP(num)) {u8_free(copy); return FD_FALSE;}
+    denom=fd_string2number(slash+1,base);
+    if (FD_FALSEP(denom)) {
+      fd_decref(num); u8_free(copy); return FD_FALSE;}
+    u8_free(copy);
+    return make_rational(num,denom);}
+  else if (string[0]=='\0') return FD_FALSE;
+  else if (((string[0]=='+')|| (string[0]=='-') ||
+	    (isdigit(string[0])) ||
+	    ((string[0]=='.') && (isdigit(string[1])))) &&
+	   (strchr(string,'.'))) {
+    double flonum; u8_byte *end=NULL;
+    flonum=strtod(string,(char **)&end);
+    U8_CLEAR_ERRNO();
+    if ((end>string) && ((end-string)==len))
+      return fd_make_flonum(flonum);
+    else return FD_FALSE;}
+  else if (strchr(string+1,'+')) return FD_FALSE;
+  else if (strchr(string+1,'-')) return FD_FALSE;
+  else {
+    fdtype result;
+    long long fixnum, nbase=0;
+    const u8_byte *start=string, *end=NULL;
+    if (string[0]=='0') {
+      if (string[1]=='\0') return FD_INT(0);
+      else if ((string[1]=='x') || (string[1]=='X')) {
+	start=string+2; nbase=16;}}
+    if ((base<0) && (nbase)) base=nbase;
+    else if (base<0) base=10;
+    errno=0;
+    fixnum=strtoll(start,(char **)&end,base);
+    U8_CLEAR_ERRNO();
+    if (!((end>string) && ((end-string)==len)))
+      return FD_FALSE;
+    else if ((fixnum) && 
+             ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM)))
+      return FD_INT(fixnum);
+    else if ((fixnum==0) && (end) && (*end=='\0'))
+      return FD_INT(0);
+    else if ((errno) && (errno != ERANGE)) return FD_FALSE;
+    else errno=0;
+    if (!(base)) base=10;
+    if (*string =='-')
+      result=parse_bigint(string+1,base,1);
+    else if (*string =='+')
+      result=parse_bigint(string+1,base,0);
+    else result=parse_bigint(start,base,0);
+    return result;}
+}
+
+fdtype (*_fd_parse_number)(u8_string,int)=fd_string2number;
+
+static int read_digit_weight(const u8_byte **scan)
+{
+  int c=u8_sgetc(scan), wt=c-'0';
+  if ((wt>=0) && (wt<10)) return wt;
+  wt=c-'a'; if ((wt>=0) && (wt<6)) return wt+10;
+  wt=c-'A'; if ((wt>=0) && (wt<6)) return wt+10;
+  return -1;
+}
+
+static fdtype parse_bigint(u8_string string,int base,int negative)
+{
+  int n_digits=u8_strlen(string);
+  const u8_byte *scan=string;
+  if (n_digits) {
+    fd_bigint bi=fd_digit_stream_to_bigint
+      (n_digits,(bigint_producer)read_digit_weight,(void *)&scan,base,negative);
+    if (bi) return (fdtype)bi;
+    else return FD_VOID;}
+  else return FD_VOID;
+}
+
+FD_EXPORT
+int fd_output_number(u8_output out,fdtype num,int base)
+{
+  if (FD_FIXNUMP(num)) {
+    long long fixnum=FD_FIX2INT(num);
+    if (base==10) u8_printf(out,"%lld",fixnum);
+    else if (base==16) u8_printf(out,"%llx",fixnum);
+    else if (base == 8) u8_printf(out,"%llo",fixnum);
+    else {
+      fd_bigint bi=fd_long_to_bigint(fixnum);
+      output_bigint(out,bi,base);
+      return 1;}
+    return 1;}
+  else if (FD_FLONUMP(num)) {
+    unsigned char buf[256];
+    struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,num,fd_flonum_type);
+    sprintf(buf,"%f",d->floval);
+    u8_puts(out,buf);
+    return 1;}
+  else if (FD_BIGINTP(num)) {
+    fd_bigint bi=fd_consptr(fd_bigint,num,fd_bigint_type);
+    output_bigint(out,bi,base);
+    return 1;}
+  else return 0;
 }
 
 

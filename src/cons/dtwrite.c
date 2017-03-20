@@ -125,10 +125,21 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
       fd_output_4bytes(out,FD_OID_LO(addr));
       return 9;}
     case fd_fixnum_ptr_type: { /* output fixnum */
-      int val=FD_FIX2INT(x);
-      fd_output_byte(out,dt_fixnum);
-      fd_output_4bytes(out,val);
-      return 5;}
+      long long val=FD_FIX2INT(x);
+      if ((val<=INT_MAX) && (val>=INT_MIN)) {
+        fd_output_byte(out,dt_fixnum);
+        fd_output_4bytes(out,val);
+        return 5;}
+      else {
+        fd_write_byte(out,dt_numeric_package);
+        fd_write_byte(out,dt_small_bigint);
+        fd_write_byte(out,9);
+        if (val<0) {
+          fd_write_byte(out,1);
+          val=-val;}
+        else fd_write_byte(out,0);
+        fd_write_8bytes(out,val);
+        return 3+1+8;}}
     case fd_immediate_ptr_type: { /* output constant */
       fd_ptr_type itype=FD_IMMEDIATE_TYPE(x);
       int data=FD_GET_IMMEDIATE(x,itype), retval=0;
