@@ -959,7 +959,7 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   int max_arity=fcn->fcn_arity, min_arity=fcn->fcn_min_arity;
   int n_params=max_arity, argv_length=max_arity;
   int n_args=count_args(arg_exprs), arg_count=0, gc_args=0, free_argv=0;
-  int nd_args=1, d_prim=(fcn->fcn_ndcall==0);
+  int nd_args=0, d_prim=(fcn->fcn_ndcall==0);
   if (max_arity<0) argv_length=n_args;
   /* Check arg count early */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
