@@ -39,58 +39,6 @@ static u8_string opcode_name(fdtype opcode)
   else return "anonymous_opcode";
 }
 
-/* OPCODE dispatching */
-
-enum TAILOP { any_op=0, or_op, and_op, try_op };
-static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
-                        u8_context cxt,fd_lispenv env);
-
-static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
-                        u8_context cxt,fd_lispenv env)
-{
-  if (FD_RAILP(expr)) {
-    int n_elts=FD_RAIL_LENGTH(expr), n_butlast=n_elts-1;
-    fdtype *rail_data=FD_RAIL_DATA(expr), final_expr=rail_data[n_butlast];
-    int i=start; while (i<n_butlast) {
-      fdtype each=rail_data[i++];
-      fdtype each_value=op_eval(each,env,0);
-      if (FD_ABORTED(each_value)) return each_value;
-      else if (op==any_op) fd_decref(each_value);
-      else if ((op==and_op)&&(FD_FALSEP(each_value)))
-        return each_value;
-      else if ((op==or_op)&&(!(FD_FALSEP(each_value))))
-        return each_value;
-      else if ((op==try_op)&&(!(FD_EMPTY_CHOICEP(each_value))))
-        return each_value;
-      else fd_decref(each_value);}
-    if ((FD_PAIRP(final_expr))||(FD_RAILP(final_expr)))
-      return op_eval(final_expr,env,1);
-    else return op_eval(final_expr,env,1);}
-  else {
-    fdtype exprs=expr, next=FD_CDR(expr); int i=0;
-    while ((i<start)&&(FD_PAIRP(next))) {
-      exprs=next; next=FD_CDR(exprs); i++;}
-    while (FD_PAIRP(next)) {
-      fdtype each=FD_CAR(exprs);
-      fdtype each_value=op_eval(each,env,0);
-      if (FD_ABORTED(each_value)) return each_value;
-      else if (op==any_op) fd_decref(each_value);
-      else if ((op==and_op)&&(FD_FALSEP(each_value)))
-        return each_value;
-      else if ((op==or_op)&&(!(FD_FALSEP(each_value))))
-        return each_value;
-      else if ((op==try_op)&&(!(FD_EMPTY_CHOICEP(each_value))))
-        return each_value;
-      else fd_decref(each_value);
-      exprs=next; next=FD_CDR(exprs);}
-    if (FD_PAIRP(exprs)) {
-      fdtype final=FD_CAR(exprs);
-      if ((FD_PAIRP(final))||(FD_RAILP(final)))
-        return op_eval(final,env,1);
-      else return op_eval(final,env,1);}
-    else return fd_err(fd_SyntaxError,cxt,NULL,exprs);}
-}
-
 static fdtype pickoids_opcode(fdtype arg1)
 {
   if (FD_OIDP(arg1)) return arg1;
@@ -278,7 +226,7 @@ static fdtype d1_dispatch(fdtype opcode,fdtype arg1)
   case FD_MINUS1_OPCODE: delta=-1;
   case FD_PLUS1_OPCODE: 
     if (FD_FIXNUMP(arg1)) {
-      int iarg=FD_FIX2INT(arg1);
+      long long iarg=FD_FIX2INT(arg1);
       return FD_INT(iarg+delta);}
     else if (FD_NUMBERP(arg1))
       return fd_plus(arg1,FD_FIX2INT(-1));
@@ -324,14 +272,14 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
     fd_decref(arg2); return arg1;}
   else if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
     fdtype result;
-    int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
+    long long off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
     if (off<0) off=len+off;
     result=fd_seq_elt(arg1,off);
     if (result == FD_TYPE_ERROR)
       return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
     else if (result == FD_RANGE_ERROR) {
       char buf[32];
-      sprintf(buf,"%d",off);
+      sprintf(buf,"%lld",off);
       return fd_err(fd_RangeError,"FD_OPCODE_ELT",u8_strdup(buf),arg1);}
     else return result;}
   else if (!(FD_SEQUENCEP(arg1)))
@@ -395,7 +343,7 @@ static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     break;}
   case FD_PLUS_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
-      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      long long m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
       return FD_INT(m+n);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
@@ -403,7 +351,7 @@ static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     else return fd_plus(arg1,arg2);
   case FD_MINUS_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
-      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      long long m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
       return FD_INT(m-n);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
@@ -411,7 +359,7 @@ static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     else return fd_subtract(arg1,arg2);
   case FD_TIMES_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
-      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      long long m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
       return FD_INT(m*n);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
@@ -419,7 +367,7 @@ static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     else return fd_multiply(arg1,arg2);
   case FD_FLODIV_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
-      int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
+      long long m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
       double x=(double)m, y=(double)n;
       return fd_init_double(NULL,x/y);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {

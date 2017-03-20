@@ -2187,14 +2187,15 @@ fdtype fd_string2number(u8_string string,int base)
     double flonum; u8_byte *end=NULL;
     flonum=strtod(string,(char **)&end);
     U8_CLEAR_ERRNO();
-    if ((end>string) && ((end-string)==len)) 
+    if ((end>string) && ((end-string)==len))
       return fd_make_flonum(flonum);
     else return FD_FALSE;}
   else if (strchr(string+1,'+')) return FD_FALSE;
   else if (strchr(string+1,'-')) return FD_FALSE;
   else {
     fdtype result;
-    long fixnum, nbase=0; const u8_byte *start=string, *end=NULL;
+    long long fixnum, nbase=0;
+    const u8_byte *start=string, *end=NULL;
     if (string[0]=='0') {
       if (string[1]=='\0') return FD_INT(0);
       else if ((string[1]=='x') || (string[1]=='X')) {
@@ -2202,11 +2203,12 @@ fdtype fd_string2number(u8_string string,int base)
     if ((base<0) && (nbase)) base=nbase;
     else if (base<0) base=10;
     errno=0;
-    fixnum=strtol(start,(char **)&end,base);
+    fixnum=strtoll(start,(char **)&end,base);
     U8_CLEAR_ERRNO();
     if (!((end>string) && ((end-string)==len)))
       return FD_FALSE;
-    else if ((fixnum) && ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM))) 
+    else if ((fixnum) && 
+             ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM)))
       return FD_INT(fixnum);
     else if ((fixnum==0) && (end) && (*end=='\0'))
       return FD_INT(0);
@@ -2248,10 +2250,10 @@ FD_EXPORT
 int fd_output_number(u8_output out,fdtype num,int base)
 {
   if (FD_FIXNUMP(num)) {
-    int fixnum=FD_FIX2INT(num);
-    if (base==10) u8_printf(out,"%d",fixnum);
-    else if (base==16) u8_printf(out,"%x",fixnum);
-    else if (base == 8) u8_printf(out,"%o",fixnum);
+    long long fixnum=FD_FIX2INT(num);
+    if (base==10) u8_printf(out,"%lld",fixnum);
+    else if (base==16) u8_printf(out,"%llx",fixnum);
+    else if (base == 8) u8_printf(out,"%llo",fixnum);
     else {
       fd_bigint bi=fd_long_to_bigint(fixnum);
       output_bigint(out,bi,base);
@@ -2325,7 +2327,7 @@ static fd_bigint tobigint(fdtype x)
 }
 static fdtype simplify_bigint(fd_bigint bi)
 {
-  if (fd_bigint_fits_in_word_p(bi,30,1)) {
+  if (fd_bigint_fits_in_word_p(bi,FD_FIXNUM_BITS,1)) {
     int intval=fd_bigint_to_long(bi);
     fd_decref((fdtype)bi);
     return FD_INT(intval);}
@@ -2541,10 +2543,15 @@ fdtype fd_plus(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int result=FD_FIX2INT(x)+FD_FIX2INT(y);
-    if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
-      return FD_INT(result);
-    else return (fdtype) fd_long_long_to_bigint(result);}
+    long long ix=FD_FIX2INT(x);
+    long long iy=FD_FIX2INT(y);
+    if (ix==0) return y;
+    else if (iy==0) return x;
+    else {
+      long long result=ix+iy;
+      if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
+        return FD_INT(result);
+      else return (fdtype) fd_long_long_to_bigint(result);}}
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double result=FD_FLONUM(x)+FD_FLONUM(y);
     return fd_init_flonum(NULL,result);}
@@ -2559,33 +2566,38 @@ fdtype fd_plus(fdtype x,fdtype y)
     return fd_type_error(_("number"),"fd_plus",x);
   else if (!(NUMBERP(y)))
     return fd_type_error(_("number"),"fd_plus",y);
-  else if ((COMPLEXP(x)) || (COMPLEXP(y))) {
-    fdtype realx=REALPART(x), imagx=IMAGPART(x);
-    fdtype realy=REALPART(y), imagy=IMAGPART(y);
-    fdtype real=fd_plus(realx,realy);
-    fdtype imag=fd_plus(imagx,imagy);
-    return make_complex(real,imag);}
-  else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
-    double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_flonum(NULL,dx+dy);}
-  else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
-    fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
-    fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
-    fdtype new_numP1, new_numP2, new_num, new_denom, result;
-    new_denom=fd_multiply(xden,yden);
-    new_numP1=fd_multiply(xnum,yden);
-    new_numP2=fd_multiply(ynum,xden);
-    new_num=fd_plus(new_numP1,new_numP2);
-    result=fd_make_rational(new_num,new_denom);
-    fd_decref(new_numP1); fd_decref(new_numP2);
-    fd_decref(new_denom); fd_decref(new_num);
-    return result;}
   else {
-    fd_bigint bx=tobigint(x), by=tobigint(y);
-    fd_bigint result=fd_bigint_add(bx,by);
-    if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-    if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
-    return simplify_bigint(result);}
+    long long ix=(FD_FIX2INT(x)>=0) ? (FD_FIX2INT(x)) : -1;
+    long long iy=(FD_FIX2INT(y)>=0) ? (FD_FIX2INT(y)) : -1;
+    if (ix==0) return fd_incref(y);
+    else if (iy==0) return fd_incref(x);
+    else if ((xt==fd_complex_type) || (yt==fd_complex_type)) {
+      fdtype realx=REALPART(x), imagx=IMAGPART(x);
+      fdtype realy=REALPART(y), imagy=IMAGPART(y);
+      fdtype real=fd_plus(realx,realy);
+      fdtype imag=fd_plus(imagx,imagy);
+      return make_complex(real,imag);}
+    else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
+      double dx=todoublex(x,xt), dy=todoublex(y,yt);
+      return fd_init_flonum(NULL,dx+dy);}
+    else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
+      fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
+      fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
+      fdtype new_numP1, new_numP2, new_num, new_denom, result;
+      new_denom=fd_multiply(xden,yden);
+      new_numP1=fd_multiply(xnum,yden);
+      new_numP2=fd_multiply(ynum,xden);
+      new_num=fd_plus(new_numP1,new_numP2);
+      result=fd_make_rational(new_num,new_denom);
+      fd_decref(new_numP1); fd_decref(new_numP2);
+      fd_decref(new_denom); fd_decref(new_num);
+      return result;}
+    else {
+      fd_bigint bx=tobigint(x), by=tobigint(y);
+      fd_bigint result=fd_bigint_add(bx,by);
+      if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
+      if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+      return simplify_bigint(result);}}
 }
 
 FD_EXPORT
@@ -2593,9 +2605,11 @@ fdtype fd_multiply(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y), q;
-    long long result;
-    if (iy==0) return FD_INT(0);
+    long long ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
+    long long q, result;
+    if ((iy==0)||(ix==0)) return FD_INT(0);
+    else if (ix==1) return fd_incref(y);
+    else if (iy==1) return fd_incref(x);
     q=((iy>0)?(FD_MAX_FIXNUM/iy):(FD_MIN_FIXNUM/iy));
     if ((ix>0)?(ix>q):((-ix)>q)) {
       /* This is the overflow case (?) */
@@ -2625,33 +2639,39 @@ fdtype fd_multiply(fdtype x,fdtype y)
     return fd_type_error(_("number"),"fd_multiply",x);
   else if (!(NUMBERP(y)))
     return fd_type_error(_("number"),"fd_multiply",y);
-  else if ((COMPLEXP(x)) || (COMPLEXP(y))) {
-    fdtype realx=REALPART(x), imagx=IMAGPART(x);
-    fdtype realy=REALPART(y), imagy=IMAGPART(y);
-    fdtype t1, t2, t3, t4, realr, imagr, result;
-    t1=fd_multiply(realx,realy); t2=fd_multiply(imagx,imagy);
-    t3=fd_multiply(realx,imagy); t4=fd_multiply(imagx,realy);
-    realr=fd_subtract(t1,t2); imagr=fd_plus(t3,t4);    
-    result=make_complex(realr,imagr);
-    fd_decref(t1); fd_decref(t2); fd_decref(t3); fd_decref(t4);
-    return result;}
-  else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
-    double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_flonum(NULL,dx*dy);}
-  else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
-    fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
-    fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
-    fdtype new_denom, new_num, result;
-    new_num=fd_multiply(xnum,ynum);
-    new_denom=fd_multiply(xden,yden);
-    result=make_rational(new_num,new_denom);
-    return result;}
   else {
-    fd_bigint bx=tobigint(x), by=tobigint(y);
-    fd_bigint result=fd_bigint_multiply(bx,by);
-    if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-    if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
-    return simplify_bigint(result);}
+    long long ix=(FD_FIX2INT(x)>=0) ? (FD_FIX2INT(x)) : -1;
+    long long iy=(FD_FIX2INT(y)>=0) ? (FD_FIX2INT(y)) : -1;
+    if ((ix==0)||(iy==0)) return FD_FIXZERO;
+    else if (ix==1) return fd_incref(y);
+    else if (iy==1) return fd_incref(x);
+    else if ((COMPLEXP(x)) || (COMPLEXP(y))) {
+      fdtype realx=REALPART(x), imagx=IMAGPART(x);
+      fdtype realy=REALPART(y), imagy=IMAGPART(y);
+      fdtype t1, t2, t3, t4, realr, imagr, result;
+      t1=fd_multiply(realx,realy); t2=fd_multiply(imagx,imagy);
+      t3=fd_multiply(realx,imagy); t4=fd_multiply(imagx,realy);
+      realr=fd_subtract(t1,t2); imagr=fd_plus(t3,t4);
+      result=make_complex(realr,imagr);
+      fd_decref(t1); fd_decref(t2); fd_decref(t3); fd_decref(t4);
+      return result;}
+    else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
+      double dx=todoublex(x,xt), dy=todoublex(y,yt);
+      return fd_init_flonum(NULL,dx*dy);}
+    else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
+      fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
+      fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
+      fdtype new_denom, new_num, result;
+      new_num=fd_multiply(xnum,ynum);
+      new_denom=fd_multiply(xden,yden);
+      result=make_rational(new_num,new_denom);
+      return result;}
+    else {
+      fd_bigint bx=tobigint(x), by=tobigint(y);
+      fd_bigint result=fd_bigint_multiply(bx,by);
+      if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
+      if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+      return simplify_bigint(result);}}
 }
 
 FD_EXPORT
@@ -2659,7 +2679,7 @@ fdtype fd_subtract(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int result=(FD_FIX2INT(x))-(FD_FIX2INT(y));
+    long long result=(FD_FIX2INT(x))-(FD_FIX2INT(y));
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT(result);
     else return (fdtype) fd_long_long_to_bigint(result);}
@@ -2754,7 +2774,7 @@ fdtype fd_inexact_divide(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int result=FD_FIX2INT(x)/FD_FIX2INT(y);
+    long long result=FD_FIX2INT(x)/FD_FIX2INT(y);
     if ((FD_FIX2INT(x)) == (result*(FD_FIX2INT(y))))
       return FD_INT(result);
     else {
@@ -2777,7 +2797,7 @@ fdtype fd_quotient(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int result=FD_FIX2INT(x)/FD_FIX2INT(y);
+    long long result=FD_FIX2INT(x)/FD_FIX2INT(y);
     return FD_INT(result);}
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fd_bigint bx=tobigint(x), by=tobigint(y);
@@ -2795,7 +2815,7 @@ fdtype fd_remainder(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int result=FD_FIX2INT(x)%FD_FIX2INT(y);
+    long long result=FD_FIX2INT(x)%FD_FIX2INT(y);
     return FD_INT(result);}
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fd_bigint bx=tobigint(x), by=tobigint(y);
@@ -2831,7 +2851,7 @@ fdtype fd_pow(fdtype x,fdtype y)
 static int signum(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int ival=FD_FIX2INT(x);
+    long long ival=FD_FIX2INT(x);
     if (ival<0) return -1;
     else if (ival>0) return 1;
     else return 0;}
@@ -2872,7 +2892,7 @@ int fd_numcompare(fdtype x,fdtype y)
 {
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
-    int dx=FD_FIX2INT(x), dy=FD_FIX2INT(y);
+    long long dx=FD_FIX2INT(x), dy=FD_FIX2INT(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double dx=FD_FLONUM(x), dy=FD_FLONUM(y);
@@ -2944,7 +2964,7 @@ fdtype fd_make_exact(fdtype x)
 #if 0
     else {
       double top=significand(d)*1048576;
-      int exp=ilogb(d);
+      long long exp=ilogb(d);
       fd_bigint itop=fd_double_to_bigint(top);
       fd_bigint ibottom=bigint_make_one(0);
       bigint_destructive_scale_up(ibottom,1024);
@@ -3132,22 +3152,22 @@ static int unparse_numeric_vector(struct U8_OUTPUT *out,fdtype x)
   u8_printf(out,"#<%s",typename);
   if (n>fd_numvec_showmax) switch (type) {
       case fd_short_elt: {
-        int sum=0, dot=0; while (i<n) {
-          int v=FD_NUMVEC_SHORT(vec,i);
+        long long sum=0, dot=0; while (i<n) {
+          long long v=FD_NUMVEC_SHORT(vec,i);
           sum=sum+v; dot=dot+v*v; i++;}
-        u8_printf(out," sum=%d/dot=%d/n=%d",sum,dot,n);
+        u8_printf(out," sum=%lld/dot=%d/n=%lld",sum,dot,n);
         break;}
       case fd_int_elt: {
         long long sum=0, dot=0; while (i<n) {
-          int v=FD_NUMVEC_INT(vec,i);
+          long long v=FD_NUMVEC_INT(vec,i);
           sum=sum+v; dot=dot+v*v; i++;}
-        u8_printf(out," sum=%d/dot=%d/n=%d",sum,dot,n);
+        u8_printf(out," sum=%lld/dot=%lld/n=%lld",sum,dot,n);
         break;}
       case fd_long_elt: {
         long long sum=0, dot=0; while (i<n) {
           int v=FD_NUMVEC_LONG(vec,i);
           sum=sum+v; dot=dot+v*v; i++;}
-        u8_printf(out," sum=%d/dot=%d/n=%d",sum,dot,n);
+        u8_printf(out," sum=%lld/dot=%lld/n=%lld",sum,dot,n);
         break;}
       case fd_float_elt: {
         double sum=0, dot=0; while (i<n) {

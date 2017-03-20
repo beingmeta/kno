@@ -57,7 +57,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     else return -1;
   else if ((compare_atomic) && (FD_ATOMICP(y))) return 1;
   else if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
-    int xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
+    long long xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
     /* The == case is handled by the x==y above. */
     if (xval>yval) return 1; else return -1;}
   else if ((FD_OIDP(x)) && (FD_OIDP(y))) {

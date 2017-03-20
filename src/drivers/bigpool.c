@@ -600,13 +600,16 @@ static fdtype read_oid_value(fd_bigpool bp,fd_inbuf in,const u8_context cxt)
         (NULL);
       snappy_status inflate_rv=
         snappy_uncompress(in->bufread,data_len,ubuf,&ubuf_size);
-      FD_INIT_BYTE_INPUT(&inflated,ubuf,ubuf_size);
-      if (ubuf==_ubuf)
-        return read_oid_value(bp,&inflated,cxt);
-      else {
-        fdtype result=read_oid_value(bp,&inflated,cxt);
-        u8_free(ubuf);
-        return result;}}
+      if (inflate_rv==SNAPPY_OK) {
+        FD_INIT_BYTE_INPUT(&inflated,ubuf,ubuf_size);
+        if (ubuf==_ubuf)
+          return read_oid_value(bp,&inflated,cxt);
+        else {
+          fdtype result=read_oid_value(bp,&inflated,cxt);
+          u8_free(ubuf);
+          return result;}}
+      else return fd_err("SnappyUncompressFailed",cxt,
+                         bp->poolid,FD_VOID);}
 #endif
     case FD_ZLIB: {
       unsigned char _ubuf[FD_INIT_ZBUF_SIZE*3], *ubuf=_ubuf;
@@ -1409,7 +1412,6 @@ static int interpret_pool_flags(fdtype opts)
 {
   int flags=0;
   fdtype offtype=fd_intern("OFFTYPE");
-  fdtype compression=fd_intern("COMPRESSION");
   if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
        fd_testopt(opts,offtype,FD_INT(64)))
     flags|=FD_B64;

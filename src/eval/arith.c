@@ -87,7 +87,7 @@ static fdtype inexactp(fdtype x)
 static fdtype oddp(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int ival=FD_FIX2INT(x);
+    long long ival=FD_FIX2INT(x);
     if (ival%2) return FD_TRUE; else return FD_FALSE;}
   else if (FD_BIGINTP(x)) {
     fdtype remainder=fd_remainder(x,FD_INT(2));
@@ -102,7 +102,7 @@ static fdtype oddp(fdtype x)
 static fdtype evenp(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int ival=FD_FIX2INT(x);
+    long long ival=FD_FIX2INT(x);
     if (ival%2) return FD_FALSE; else return FD_TRUE;}
   else if (FD_BIGINTP(x)) {
     fdtype remainder=fd_remainder(x,FD_INT(2));
@@ -153,11 +153,13 @@ static fdtype plus_lexpr(int n,fdtype *args)
         generic=1; vector=1; i++;}
       else {generic=1; i++;}
     if ((floating==0) && (generic==0)) {
-      int fixresult=0;
+      long long fixresult=0;
       i=0; while (i < n) {
-        int val=0;
-        if (FD_FIXNUMP(args[i])) val=fd_getint(args[i]);
-        fixresult=fixresult+val; i++;}
+        long long val=0;
+        if (FD_FIXNUMP(args[i]))
+          val=fd_getint(args[i]);
+        fixresult=fixresult+val;
+        i++;}
       return FD_INT(fixresult);}
     else if (generic == 0) {
       double floresult=0.0;
@@ -193,7 +195,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
 static fdtype plus1(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int iv=fd_getint(x); iv++;
+    long long iv=fd_getint(x); iv++;
     return FD_INT2DTYPE(iv);}
   else if (FD_FLONUMP(x)) {
     fd_double iv=FD_FLONUM(x); iv=iv+1;
@@ -205,7 +207,7 @@ static fdtype plus1(fdtype x)
 static fdtype minus1(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int iv=fd_getint(x); iv--;
+    long long iv=fd_getint(x); iv--;
     return FD_INT2DTYPE(iv);}
   else if (FD_FLONUMP(x)) {
     fd_double iv=FD_FLONUM(x); iv=iv-1;
@@ -291,9 +293,9 @@ static fdtype minus_lexpr(int n,fdtype *args)
         vector=1; generic=1;}
       else {generic=1; i++;}}
     if ((floating==0) && (generic==0)) {
-      int fixresult=0;
+      long long fixresult=0;
       i=0; while (i < n) {
-        int val=0;
+        long long val=0;
         if (FD_FIXNUMP(args[i])) val=FD_FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
@@ -392,8 +394,8 @@ static fdtype idiv_lexpr(int n,fdtype *args)
 static fdtype remainder_prim(fdtype x,fdtype m)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(m))) {
-    int ix=FD_FIX2INT(x), im=FD_FIX2INT(m);
-    int r=ix%im;
+    long long ix=FD_FIX2INT(x), im=FD_FIX2INT(m);
+    long long r=ix%im;
     return FD_INT(r);}
   else return fd_remainder(x,m);
 }
@@ -401,12 +403,14 @@ static fdtype remainder_prim(fdtype x,fdtype m)
 static fdtype random_prim(fdtype maxarg)
 {
   if (FD_INTEGERP(maxarg)) {
-    int max=fd_getint(maxarg), n=u8_random(max);
-    return FD_INT(n);}
+    long long max=fd_getint(maxarg), n=u8_random(max);
+    if ((max<=0)||(max>0x80000000))
+      return fd_type_error("Small positive integer","random_prim",maxarg);
+    else return FD_INT(n);}
   else if (FD_FLONUMP(maxarg)) {
     double flomax = FD_FLONUM(maxarg);
-    int intmax=(int)flomax;
-    int n=u8_random(intmax);
+    long long  intmax=(long long)flomax;
+    long long n=u8_random(intmax);
     double rval=(double) n;
     return fd_make_flonum(rval);}
   else return fd_type_error("integer or flonum","random_prim",maxarg);
@@ -566,7 +570,7 @@ static fdtype pow_prim(fdtype v,fdtype n)
   if ((FD_EXACTP(v))&&
       (FD_FIXNUMP(n))&&(FD_FIX2INT(n)>0)&&
       (FD_FIX2INT(n)<1000000)) {
-    int i=0, how_many=FD_FIX2INT(n);
+    long long i=0, how_many=FD_FIX2INT(n);
     fdtype prod=FD_INT(1); while (i<how_many) {
       fdtype tmp=fd_multiply(prod,v);
       fd_decref(prod); prod=tmp;
@@ -654,7 +658,8 @@ static fdtype max_prim(int n,fdtype *args)
 {
   if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
   else {
-    fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
+    fdtype result=args[0];
+    int i=1, inexact=FD_FLONUMP(args[0]);
     while (i<n) {
       int cmp=fd_numcompare(args[i],result);
       if (cmp>1) return FD_ERROR_VALUE;
@@ -690,16 +695,16 @@ static fdtype abs_prim(fdtype x)
 static fdtype modulo_prim(fdtype x,fdtype b)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(b))) {
-    int ix=FD_FIX2INT(x), ib=FD_FIX2INT(b);
+    long long ix=FD_FIX2INT(x), ib=FD_FIX2INT(b);
     if (ix==0) return FD_INT(0);
     else if (ib==0)
       return fd_type_error("nonzero","modulo_prim",b);
     else if (((ix>0) && (ib>0)) || ((ix<0) && (ib<0)))
       return FD_INT((ix%ib));
     else {
-      int rem=ix%ib;
+      long long rem=ix%ib;
       if (rem) return FD_INT(ib+rem);
-      else return rem;}}
+      else return FD_INT(rem);}}
   else {
     int xsign=fd_numcompare(x,FD_INT(0));
     int bsign=fd_numcompare(b,FD_INT(0));
@@ -819,17 +824,17 @@ static double doround(double x)
 
 static fdtype scalerep_prim(fdtype x,fdtype scalearg)
 {
-  int scale=fd_getint(scalearg);
+  long long scale=fd_getint(scalearg);
   if (scale<0)
     if (FD_FIXNUMP(x)) return x;
     else if (FD_FLONUMP(x)) {
-      int factor=-scale;
+      long long factor=-scale;
       double val=FD_FLONUM(x), factor_up=doround(val*factor);
-      int ival=factor_up;
+      long long ival=factor_up;
       return fd_conspair(FD_INT(ival),scalearg);}
     else return FD_EMPTY_CHOICE;
   else if (FD_FIXNUMP(x)) {
-    int ival=FD_FIX2INT(x), rem=ival%scale, base=(ival/scale);
+    long long ival=FD_FIX2INT(x), rem=ival%scale, base=(ival/scale);
     if (rem==0) return fd_conspair(x,scalearg);
     else if (rem*2>scale)
       if (ival>0)
@@ -839,7 +844,7 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
   else if (FD_FLONUMP(x)) {
     double dv=FD_FLONUM(x);
     double scaled=doround(dv/scale)*scale;
-    int ival=scaled;
+    long long ival=scaled;
     return fd_conspair(FD_INT(ival),scalearg);}
   else return FD_EMPTY_CHOICE;
 }
@@ -849,8 +854,8 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
 static fdtype quotient_prim(fdtype x,fdtype y)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
-    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
-    int q=ix/iy;
+    long long ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
+    long long q=ix/iy;
     return FD_INT(q);}
   else return fd_quotient(x,y);
 }
@@ -866,8 +871,8 @@ static fdtype sqrt_prim(fdtype x)
 
 static fdtype ilog_prim(fdtype n,fdtype base_arg)
 {
-  int base=fd_getint(base_arg), limit=fd_getint(n);
-  int count=0, exp=1;
+  long long base=fd_getint(base_arg), limit=fd_getint(n);
+  long long count=0, exp=1;
   while (exp<limit) {
     count++; exp=exp*base;}
   return FD_INT(count);
@@ -896,10 +901,10 @@ static fdtype hashref_prim(fdtype x)
 static fdtype ptrlock_prim(fdtype x,fdtype mod)
 {
   unsigned long long intval=(unsigned long long)x;
-  int modval=((FD_VOIDP(mod))?
-              (FD_N_PTRLOCKS):
-              (FD_FIX2INT(mod)));
-  if (modval==0) 
+  long long int modval=((FD_VOIDP(mod))?
+                        (FD_N_PTRLOCKS):
+                        (FD_FIX2INT(mod)));
+  if (modval==0)
     return (fdtype)fd_ulong_long_to_bigint(intval);
   else {
     unsigned long long hashval=hashptrval((void *)x,modval);
@@ -911,7 +916,7 @@ static fdtype ptrlock_prim(fdtype x,fdtype mod)
 static fdtype knuth_hash(fdtype arg)
 {
   if ((FD_FIXNUMP(arg))||(FD_BIGINTP(arg))) {
-    long long int num=
+    int num=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_long_long((fd_bigint)arg)));
     if ((num<0)||(num>=0x100000000ll))
@@ -970,8 +975,8 @@ static fdtype flip32(fdtype arg)
   if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
-    unsigned int word=fd_getint(arg);
-    unsigned int flipped=fd_flip_word(word);
+    int word=fd_getint(arg);
+    int flipped=fd_flip_word(word);
     return FD_INT(flipped);}
   else return fd_type_error("uint32","flip32",arg);
 }
@@ -1054,7 +1059,7 @@ static fdtype cityhash128(fdtype arg)
 
 static fdtype itoa_prim(fdtype arg,fdtype base_arg)
 {
-  int base=FD_FIX2INT(base_arg); char buf[32];
+  long long base=FD_FIX2INT(base_arg); char buf[32];
   if (FD_FIXNUMP(arg)) {
     if (base==10) u8_itoa10(FD_FIX2INT(arg),buf);
     else if (FD_FIX2INT(arg)<0)

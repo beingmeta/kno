@@ -407,9 +407,13 @@ FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
 #define FD_NULL_OID_INIT 0
 #endif
 
+#define FD_OID_BUCKET_WIDTH 10
+#define FD_OID_BUCKET_MASK (((1<<(2+FD_OID_BUCKET_WIDTH))-1)-7)
+
 /* An OID references has 10 bits of base index and 20 bits of offset.
    This is encoded in a DTYPE pointer with the offset in the high 20 bits
    and the base in the lower portion. */
+
 FD_EXPORT FD_OID *fd_base_oids;
 FD_EXPORT int fd_n_base_oids;
 /* An OID in 32 bits:
@@ -432,9 +436,14 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Fixnums */
 
+#if SIZEOF_VOIDP <= 32
 #define FD_FIXNUM_BITS 30
-#define FD_MAX_FIXNUM ((((long long)1)<<FD_FIXNUM_BITS)-1)
-#define FD_MIN_FIXNUM -((((long long)1)<<FD_FIXNUM_BITS)-1)
+#else
+#define FD_FIXNUM_BITS ((SIZE_OF_VOIDP*8)-3)
+#endif
+
+#define FD_MAX_FIXNUM ((((long long)1)<<(FD_FIXNUM_BITS))-1)
+#define FD_MIN_FIXNUM -((((long long)1)<<(FD_FIXNUM_BITS))-1)
 
 #define to64(x) ((long long)(x))
 #define to64u(x) ((unsigned long long)(x))

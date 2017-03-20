@@ -677,31 +677,6 @@ static unsigned char *do_uncompress
   return xdata;
 }
 
-static unsigned char *do_compress(unsigned char *bytes,size_t n_bytes,
-                                  ssize_t *zbytes)
-{
-  int error; Bytef *zdata;
-  uLongf zlen, zlim;
-  zlen=zlim=2*n_bytes; zdata=u8_malloc(zlen);
-  while ((error=compress2(zdata,&zlen,bytes,n_bytes,FD_DEFAULT_ZLEVEL)) < Z_OK)
-    if (error == Z_MEM_ERROR) {
-      u8_free(zdata);
-      fd_seterr1("ZLIB Out of Memory");
-      return NULL;}
-    else if (error == Z_BUF_ERROR) {
-      zdata=u8_realloc(zdata,zlim*2); zlen=zlim=zlim*2;}
-    else if (error == Z_DATA_ERROR) {
-      u8_free(zdata);
-      fd_seterr1("ZLIB Data error");
-      return NULL;}
-    else {
-      u8_free(zdata);
-      fd_seterr1("Bad ZLIB return code");
-      return NULL;}
-  *zbytes=zlen;
-  return zdata;
-}
-
 /* This reads a non frame value with compression. */
 FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
 {

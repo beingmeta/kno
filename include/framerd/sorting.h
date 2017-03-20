@@ -28,8 +28,8 @@ static int _fd_sort_helper(const void *vx,const void *vy)
         FD_OID yaddr=FD_OID_ADDR(sy->fd_sortkey);
         return FD_OID_COMPARE(xaddr,yaddr);}
       else if (FD_FIXNUMP(sx->fd_sortkey)) {
-        int xval=FD_FIX2INT(sx->fd_sortkey);
-        int yval=FD_FIX2INT(sy->fd_sortkey);
+        long long xval=FD_FIX2INT(sx->fd_sortkey);
+        long long yval=FD_FIX2INT(sy->fd_sortkey);
         if (xval<yval) return -1; else return 1;}
       else return FD_FULL_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
     else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
@@ -67,8 +67,8 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
         FD_OID yaddr=FD_OID_ADDR(sy->fd_sortkey);
         return FD_OID_COMPARE(xaddr,yaddr);}
       else if (FD_FIXNUMP(sx->fd_sortkey)) {
-        int xval=FD_FIX2INT(sx->fd_sortkey);
-        int yval=FD_FIX2INT(sy->fd_sortkey);
+        long long xval=FD_FIX2INT(sx->fd_sortkey);
+        long long yval=FD_FIX2INT(sy->fd_sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype==fd_string_type)
         return (strcoll(FD_STRDATA(sx->fd_sortkey),

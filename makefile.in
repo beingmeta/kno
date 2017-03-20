@@ -1618,6 +1618,7 @@ $(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
+src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h

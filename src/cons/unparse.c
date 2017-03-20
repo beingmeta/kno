@@ -48,29 +48,6 @@ int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 static fdtype quote_symbol, histref_symbol, comment_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
-/* Tables */
-
-static u8_string character_constant_names[]={
-  "SPACE","NEWLINE","RETURN",
-  "TAB","VTAB","VERTICALTAB",
-  "PAGE","BACKSPACE",
-  "ATTENTION","BELL","DING",
-  "SLASH","BACKSLASH","SEMICOLON",
-  "OPENPAREN","CLOSEPAREN",
-  "OPENBRACE","CLOSEBRACE",
-  "OPENBRACKET","CLOSEBRACKET",
-  NULL};
-static fdtype character_constants[]={
-  FD_CODE2CHAR(' '),FD_CODE2CHAR('\n'),FD_CODE2CHAR('\r'),
-  FD_CODE2CHAR('\t'),FD_CODE2CHAR('\v'),FD_CODE2CHAR('\v'),
-  FD_CODE2CHAR('\f'),FD_CODE2CHAR('\b'),
-  FD_CODE2CHAR('\a'),FD_CODE2CHAR('\a'),FD_CODE2CHAR('\a'),
-  FD_CODE2CHAR('/'),FD_CODE2CHAR('\\'),FD_CODE2CHAR(';'),
-  FD_CODE2CHAR('('),FD_CODE2CHAR(')'),
-  FD_CODE2CHAR('{'),FD_CODE2CHAR('}'),
-  FD_CODE2CHAR('['),FD_CODE2CHAR(']'),
-  0};
-
 /* Unparsing */
 
 static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
@@ -337,7 +314,8 @@ int fd_unparse(u8_output out,fdtype x)
       sprintf(buf,"@%x/%x",hi,lo);
       return u8_puts(out,buf);}
   case fd_fixnum_ptr_type: { /* output fixnum */
-    long long val=FD_FIX2INT(x); char buf[128]; sprintf(buf,"%lld",val);
+    long long val=FD_FIX2INT(x);
+    char buf[128]; sprintf(buf,"%lld",val);
     return u8_puts(out,buf);}
   case fd_immediate_type: { /* output constant */
     fd_ptr_type itype=FD_IMMEDIATE_TYPE(x);
@@ -486,36 +464,6 @@ u8_string fd_unparse_arg(fdtype arg)
   else {
     u8_putc(&out,':'); fd_unparse(&out,arg);}
   return out.u8_outbuf;
-}
-
-/* The port type */
-
-static int unparse_port(struct U8_OUTPUT *out,fdtype x)
-{
-  struct FD_PORT *p=fd_consptr(fd_port,x,fd_port_type);
-  if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
-    u8_printf(out,"#<I/O Port (%s) #!%x>",p->fd_portid,x);
-  else if ((p->fd_inport) && (p->fd_outport))
-    u8_printf(out,"#<I/O Port #!%x>",x);
-  else if ((p->fd_inport)&&(p->fd_portid))
-    u8_printf(out,"#<Input Port (%s) #!%x>",p->fd_portid,x);
-  else if (p->fd_inport)
-    u8_printf(out,"#<Input Port #!%x>",x);
-  else if (p->fd_portid)
-    u8_printf(out,"#<Output Port (%s) #!%x>",p->fd_portid,x);
-  else u8_printf(out,"#<Output Port #!%x>",x);
-  return 1;
-}
-
-static void recycle_port(struct FD_RAW_CONS *c)
-{
-  struct FD_PORT *p=(struct FD_PORT *)c;
-  if (p->fd_inport) {
-    u8_close_input(p->fd_inport);}
-  if (p->fd_outport) {
-    u8_close_output(p->fd_outport);}
-  if (p->fd_portid) u8_free(p->fd_portid);
- if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* U8_PRINTF extensions */

@@ -333,7 +333,7 @@
 ;;; With this bug, the passed in argument Y to break-defaults
 ;;; is GC'd one time too many.
 
-(message "Checking for over-GC bug in optional arguments")
+(message "Checking for double-GC bug in optional arguments defaults")
 (define external-state (vector 3))
 (define (break-defaults x (y) (z (vector))) (set! y 5) 3)
 (break-defaults 8 external-state)
