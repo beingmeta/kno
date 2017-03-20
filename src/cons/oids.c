@@ -18,10 +18,9 @@
 #include <ctype.h>
 
 fd_exception fd_NotAnOID=_("Not an OID");
-static fd_exception OIDBaseOverflow;
+static fd_exception OIDBucketOverflow="Out of OID buckets";
 
-static FD_OID _base_oids[1024];
-FD_OID *fd_base_oids=_base_oids;
+FD_OID fd_base_oids[FD_N_OID_BUCKETS];
 int fd_n_base_oids=0;
 static u8_mutex base_oid_lock;
 
@@ -40,12 +39,12 @@ static int add_base_oid_index(FD_OID base)
   int boi=get_base_oid_index(base);
   if (boi>=0) return boi;
   u8_lock_mutex(&base_oid_lock);
-  if (fd_n_base_oids >= 1024) {
+  if (fd_n_base_oids >= FD_N_OID_BUCKETS) {
     u8_unlock_mutex(&base_oid_lock);
     return -1;}
   else {
-    boi=fd_n_base_oids;
-    fd_base_oids[fd_n_base_oids++]=base;
+    boi=fd_n_base_oids++;
+    fd_base_oids[boi]=base;
     u8_unlock_mutex(&base_oid_lock);
     return boi;}
 }
@@ -56,7 +55,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
   FD_SET_OID_LO(base,((FD_OID_LO(base))&0xFFF00000U));
   if (add) {
     int retval=add_base_oid_index(base);
-    if (retval<0) fd_seterr1(OIDBaseOverflow);
+    if (retval<0) fd_seterr1(OIDBucketOverflow);
     return retval;}
   else return get_base_oid_index(base);
 }
@@ -65,8 +64,9 @@ FD_EXPORT fdtype fd_make_oid(FD_OID addr)
 {
   FD_OID base=addr;
   int boi=0;
-  unsigned int offset=FD_OID_LO(addr)&0xFFFFFU;
-  FD_SET_OID_LO(base,(FD_OID_LO(base)&0xFFF00000U));
+  unsigned int offset=FD_OID_LO(addr)&(FD_OID_OFFSET_MASK);
+  unsigned int bucket_base=FD_OID_LO(base)&(~(FD_OID_OFFSET_MASK));
+  FD_SET_OID_LO(base,bucket_base);
   boi=add_base_oid_index(base);
   return FD_CONSTRUCT_OID(boi,offset);
 }
@@ -89,7 +89,7 @@ static u8_string _simple_oid_info(fdtype oid)
 
 /* B32 representation */
 
-static char b32_chars[]="0123456789abcdefghjklmnpqrtvwxyz";
+static char b32_chars[32]="0123456789abcdefghjkmnpqrtuvwxyz";
 static char b32_weights[]=
   {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,

@@ -407,28 +407,51 @@ FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
 #define FD_NULL_OID_INIT 0
 #endif
 
-#define FD_OID_BUCKET_WIDTH 10
-#define FD_OID_BUCKET_MASK (((1<<(2+FD_OID_BUCKET_WIDTH))-1)-7)
+#if SIZEOF_VOID_P == 4
+#define FD_OID_BUCKET_WIDTH 10 /* (1024 buckets) */
+#else
+#define FD_OID_BUCKET_WIDTH 16 /* (65536 buckets) */
+#endif
+
+#define FD_OID_OFFSET_WIDTH 20
+#define FD_OID_BUCKET_SIZE  (1<<FD_OID_OFFSET_WIDTH)
+#define FD_OID_OFFSET_MASK  ((FD_OID_BUCKET_SIZE)-1)
+
+#define FD_OID_BUCKET_MASK ((1<<(FD_OID_BUCKET_WIDTH))-1)
+#define FD_N_OID_BUCKETS   (1<<(2+FD_OID_BUCKET_WIDTH))
 
 /* An OID references has 10 bits of base index and 20 bits of offset.
    This is encoded in a DTYPE pointer with the offset in the high 20 bits
    and the base in the lower portion. */
 
-FD_EXPORT FD_OID *fd_base_oids;
+FD_EXPORT FD_OID fd_base_oids[FD_N_OID_BUCKETS];
 FD_EXPORT int fd_n_base_oids;
-/* An OID in 32 bits:
-    xxxxxxxxxxxxxxxxxxxxbbbbbbbbbb11
-    x=offset, b=baseid, 1=typecode
+
+/* We represent OIDs using an indexed representation where k bits are
+   used to represent 2^k possible buckets of 2^20 OIDs starting at
+   "base oids". */
+/*
+  The bit layout of an OID pointer is:
+  pos:  |                 k*4          2  0
+        | offset from base | bucket id |11|
+  size: |    (20 bits)     | (k bits)  |
+*/
+
+/*  In 32-bit words, this fills the whole word. In 64-bit words,
+    there's a lot of room at the top, based on whatever value is
+    selected for k (FD_OID_BUCKET_WIDTH).
+
 */
 #define FD_OID_ADDR(x) \
-  (FD_OID_PLUS(fd_base_oids[((x>>2)&0x3FF)],(x>>12)))
-#define FD_CONSTRUCT_OID(base,offset) ((fdtype) (((base)<<2)|((offset)<<12)|3))
+  (FD_OID_PLUS(fd_base_oids[((x>>2)&(FD_OID_BUCKET_MASK))],\
+	       (x>>((FD_OID_BUCKET_WIDTH)+2))))
+#define FD_CONSTRUCT_OID(baseid,offset) \
+  ((fdtype) (((baseid)<<2)|((offset)<<((FD_OID_BUCKET_WIDTH)+2))|3))
 FD_EXPORT fdtype fd_make_oid(FD_OID addr);
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 
-#define FD_OID_BASE_ID(x) (((x)>>2)&0x3FF)
-#define FD_OID_BASE_OFFSET(x) ((x)>>12)
-#define FD_OID_BUCKET_SIZE    (1<<12)
+#define FD_OID_BASE_ID(x)     (((x)>>2)&(FD_OID_BUCKET_MASK))
+#define FD_OID_BASE_OFFSET(x) ((x)>>(FD_OID_BUCKET_WIDTH+2))
 
 FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len);
 FD_EXPORT int fd_b32_to_ulonglong(const char *digits,unsigned long long *out);

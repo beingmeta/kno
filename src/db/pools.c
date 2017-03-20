@@ -52,7 +52,7 @@ int fd_pool_lock_init  = FD_POOL_CHANGES_INIT;
 
 int fd_n_pools=0;
 fd_pool fd_default_pool=NULL;
-struct FD_POOL *fd_top_pools[1024];
+struct FD_POOL *fd_top_pools[FD_N_OID_BUCKETS];
 
 static struct FD_HASHTABLE poolid_table;
 
@@ -60,9 +60,7 @@ static u8_condition ipeval_objfetch="OBJFETCH";
 
 static fdtype lock_symbol, unlock_symbol;
 
-fd_pool init_pool_serial_table[1024],
-  *fd_pool_serial_table=init_pool_serial_table;
-int fd_pool_serial_count=0;
+fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
 
 static int savep(fdtype v,int only_finished);
 static int modifiedp(fdtype v);
@@ -187,33 +185,30 @@ void fd_reset_pool_tables(fd_pool p,
     fd_reset_hashtable(locks,level,1);}
 }
 
-
-
 /* Registering pools */
-
-#define FD_TOP_POOL_SIZE 0x100000
 
 FD_EXPORT int fd_register_pool(fd_pool p)
 {
   unsigned int capacity=p->pool_capacity, serial_no;
-  int baseindex=fd_get_oid_base_index(p->pool_base,1);
+  int bix=fd_get_oid_base_index(p->pool_base,1);
   if (p->pool_serialno>=0) return 0;
-  else if (baseindex<0) return baseindex;
+  else if (bix<0) return bix;
   else if (p->pool_flags&FDKB_UNREGISTERED) return 0;
   else u8_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
-  serial_no=p->pool_serialno=fd_pool_serial_count++; fd_n_pools++;
-  fd_pool_serial_table[serial_no]=p;
-  if ((capacity>=FD_TOP_POOL_SIZE) && ((p->pool_base)%FD_TOP_POOL_SIZE)) {
+  serial_no=p->pool_serialno=fd_n_pools++;
+  fd_pools_by_serialno[serial_no]=p;
+  if ((capacity>=FD_OID_BUCKET_SIZE) &&
+      ((p->pool_base)%FD_OID_BUCKET_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",
               u8_strdup(p->poolid),FD_VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
-  if (capacity>=FD_TOP_POOL_SIZE) {
-    int i=0, lim=capacity/FD_TOP_POOL_SIZE;
-    /* Now get a baseid and register the pool in top_pools */
+  if (capacity>=FD_OID_BUCKET_SIZE) {
+    int i=0, lim=capacity/FD_OID_BUCKET_SIZE;
+    /* Now get baseids for the pool and save them in fd_top_pools */
     while (i<lim) {
-      FD_OID base=FD_OID_PLUS(p->pool_base,(FD_TOP_POOL_SIZE*i));
+      FD_OID base=FD_OID_PLUS(p->pool_base,(FD_OID_BUCKET_SIZE*i));
       int baseid=fd_get_oid_base_index(base,1);
       if (baseid<0) {
         u8_unlock_mutex(&pool_registry_lock);
@@ -224,17 +219,24 @@ FD_EXPORT int fd_register_pool(fd_pool p)
         return -1;}
       else fd_top_pools[baseid]=p;
       i++;}}
-  else if (fd_top_pools[baseindex] == NULL) {
-    struct FD_GLUEPOOL *gluepool=make_gluepool(fd_base_oids[baseindex]);
-    fd_top_pools[baseindex]=(struct FD_POOL *)gluepool;
+  else if (fd_top_pools[bix] == NULL) {
+    /* If the pool is smaller than an OID bucket, and there isn't a
+       pool in fd_top_pools, create a gluepool and place it there */
+    struct FD_GLUEPOOL *gluepool=make_gluepool(fd_base_oids[bix]);
+    fd_top_pools[bix]=(struct FD_POOL *)gluepool;
     if (add_to_gluepool(gluepool,p)<0) {
       u8_unlock_mutex(&pool_registry_lock);
       return -1;}}
-  else if (fd_top_pools[baseindex]->pool_capacity) {
-    pool_conflict(p,fd_top_pools[baseindex]);
+  else if (fd_top_pools[bix]->pool_capacity) {
+    /* If the top pool has a capacity (i.e. it's not a gluepool), we
+       have a pool conflict. Complain and error. */
+    pool_conflict(p,fd_top_pools[bix]);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
-  else if (add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[baseindex],p)<0) {
+  else if (add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[bix],p)<0) {
+    /* Otherwise, it is a gluepool, so try to add the pool to it. This
+       will error if there is a pool conflict within the glue pool, so
+       we check. */
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   u8_unlock_mutex(&pool_registry_lock);
@@ -272,6 +274,7 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   FD_INIT_STATIC_CONS(&(pool->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(pool->pool_cache),64);
   fd_make_hashtable(&(pool->pool_changes),64);
+  /* There was a redundant serial number call here */
   return pool;
 }
 
@@ -312,8 +315,6 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
        leaking the old subpools because we're avoiding locking on lookup. */
     p->pool_serialno=((gp->pool_serialno)<<10)+(gp->n_subpools+1);
     gp->subpools=new; gp->n_subpools++;}
-  p->pool_serialno=fd_pool_serial_count++;
-  fd_pool_serial_table[p->pool_serialno]=p;
   return 1;
 }
 
@@ -1156,8 +1157,8 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 {
   if (FD_TYPEP(lp,fd_pool_type)) {
     int serial=FD_GET_IMMEDIATE(lp,fd_pool_type);
-    if (serial<fd_pool_serial_count)
-      return fd_pool_serial_table[serial];
+    if (serial<fd_n_pools)
+      return fd_pools_by_serialno[serial];
     else {
       char buf[32];
       sprintf(buf,"serial=0x%x",serial);
@@ -1689,7 +1690,7 @@ static int check_pool(fdtype x)
 {
   int serial=FD_GET_IMMEDIATE(x,fd_pool_type);
   if (serial<0) return 0;
-  else if (serial<fd_pool_serial_count) return 1;
+  else if (serial<fd_n_pools) return 1;
   else return 0;
 }
 
@@ -1767,6 +1768,9 @@ FD_EXPORT void fd_init_pools_c()
 
   lock_symbol=fd_intern("LOCK");  
   unlock_symbol=fd_intern("UNLOCK");
+
+  memset(&fd_top_pools,0,sizeof(fd_top_pools));
+  memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));
 
   {
     struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(fd_intern("POOL"),NULL,NULL);

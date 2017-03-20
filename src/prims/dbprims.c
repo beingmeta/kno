@@ -1068,6 +1068,7 @@ static fdtype random_oid(fdtype arg)
     if (load>0) {
       FD_OID base=p->pool_base; int i=u8_random(load);
       return fd_make_oid(FD_OID_PLUS(base,i));}
+    fd_seterr("No OIDs","random_oid",p->poolid,arg);
     return FD_ERROR_VALUE;}
 }
 
@@ -1082,7 +1083,9 @@ static fdtype pool_vec(fdtype arg)
     else {
       fdtype result=fd_init_vector(NULL,lim,NULL);
       FD_OID base=p->pool_base;
-      if (lim<0) return FD_ERROR_VALUE;
+      if (lim<0) {
+        fd_seterr("No OIDs","pool_vec",p->poolid,arg);
+        return FD_ERROR_VALUE;}
       else while (i<lim) {
           fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
           FD_VECTOR_SET(result,i,each); i++;}

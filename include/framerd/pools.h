@@ -115,6 +115,10 @@
 #define FD_INLINE_POOLS 0
 #endif
 
+#ifndef FD_MAX_POOLS
+#define FD_MAX_POOLS (FD_N_OID_BUCKETS*2)
+#endif
+
 FD_EXPORT fd_exception
 fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
@@ -144,12 +148,12 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 
 #define FD_POOL_FIELDS \
   FD_CONS_HEADER;					\
+  int pool_serialno;					\
   u8_string poolid, pool_source, pool_label;		\
   FD_OID pool_base;					\
   unsigned int pool_capacity;				\
   fdkb_flags pool_flags, modified_flags;		\
   struct FD_POOL_HANDLER *pool_handler;			\
-  int pool_serialno;					\
   short pool_cache_level;				\
   unsigned char pool_islocked;				\
   U8_MUTEX_DECL(pool_lock);				\
@@ -163,16 +167,16 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
 
-FD_EXPORT struct FD_POOL *fd_top_pools[];
-
+/* This is an index of all pools by the base IDs they contain. */
+FD_EXPORT fd_pool fd_top_pools[FD_N_OID_BUCKETS];
+/* This is an index of all pools by their serial numbers (if registered) */
+FD_EXPORT fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
 FD_EXPORT int fd_n_pools;
+
 FD_EXPORT fd_pool fd_default_pool;
+
 FD_EXPORT int fd_register_pool(fd_pool p);
-
 FD_EXPORT fdtype fd_all_pools(void);
-
-FD_EXPORT fd_pool *fd_pool_serial_table;
-FD_EXPORT int fd_pool_serial_count;
 
 /* Locking functions */
 
@@ -365,8 +369,8 @@ FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
 FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 {
   int serial=FD_GET_IMMEDIATE(x,fd_pool_type);
-  if (serial<fd_pool_serial_count)
-    return fd_pool_serial_table[serial];
+  if (serial<fd_n_pools)
+    return fd_pools_by_serialno[serial];
   else return NULL;
 }
 #else
