@@ -428,7 +428,7 @@ static fdtype use_strftime(char *format,struct U8_XTIME *xt)
 static int tzvalueok(fdtype value,int *off,u8_context caller)
 {
   if (FD_FIXNUMP(value)) {
-    int fixval=FD_FIX2INT(value);
+    long long fixval=FD_FIX2INT(value);
     if ((fixval<(48*3600))&&(fixval>(-48*3600))) {
       if ((fixval>=0)&&(fixval<48)) *off=fixval*3600;
       else if ((fixval<=0)&&(fixval>=(-48))) *off=fixval*3600;
@@ -792,7 +792,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 {
   time_t tick=xt->u8_tick; int rv=-1;
   if (FD_EQ(slotid,year_symbol))
-    if (FD_FIXNUMP(value))
+    if (FD_UINTP(value))
       xt->u8_year=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("year")),value);
   else if (FD_EQ(slotid,month_symbol))
@@ -980,7 +980,7 @@ static fdtype microtime_prim()
 static fdtype secs2string(fdtype secs,fdtype prec_arg)
 {
   struct U8_OUTPUT out;
-  int precision=((FD_FIXNUMP(prec_arg)) ? (FD_FIX2INT(prec_arg)) :
+  int precision=((FD_UINTP(prec_arg)) ? (FD_FIX2INT(prec_arg)) :
                  (FD_FALSEP(prec_arg)) ?
                  (-1) :
                  (0));
@@ -1136,7 +1136,7 @@ static fdtype secs2short(fdtype secs)
 fdtype sleep_prim(fdtype arg)
 {
   if (FD_FIXNUMP(arg)) {
-    int ival=FD_FIX2INT(arg);
+    long long ival=FD_FIX2INT(arg);
     if (ival<0)
       return fd_type_error(_("positive fixnum time interval"),"sleep_prim",arg);
     sleep(ival);

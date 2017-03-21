@@ -120,7 +120,7 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
   else {
     struct timespec tm;
     if ((FD_FIXNUMP(timeout)) && (FD_FIX2INT(timeout)>=0)) {
-      int ival=FD_FIX2INT(timeout);
+      long long ival=FD_FIX2INT(timeout);
       tm.tv_sec=time(NULL)+ival; tm.tv_nsec=0;}
 #if 0 /* Define this later.  This allows sub-second waits but
          is a little bit tricky. */

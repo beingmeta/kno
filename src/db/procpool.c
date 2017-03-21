@@ -202,7 +202,7 @@ static int procpool_getload(fd_pool p)
   else {
     fdtype args[2]={lp,pp->pool_state};
     fdtype result=fd_dapply(pp->getloadfn,2,args);
-    if (FD_FIXNUMP(result))
+    if (FD_UINTP(result))
       return FD_FIX2INT(result);
     else {
       fd_decref(result);

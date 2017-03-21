@@ -441,7 +441,7 @@ static fdtype set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_CAINFO,FD_STRDATA(val));
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,verifyhost_symbol))
-    if (FD_FIXNUMP(val))
+    if (FD_UINTP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,FD_FIX2INT(val));
     else if (FD_FALSEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,0);
@@ -929,7 +929,7 @@ static fdtype responsetest(fdtype response,int min,int max)
   fdtype status=((FD_TABLEP(response))?
                  (fd_get(response,response_code_slotid,FD_VOID)):
                  (FD_FIXNUMP(response))?(response):(FD_VOID));
-  if ((FD_FIXNUMP(status))&&
+  if ((FD_UINTP(status))&&
       ((FD_FIX2INT(status))>=min)&&
       ((FD_FIX2INT(status))<max))
     return FD_TRUE;
@@ -1024,7 +1024,7 @@ static fdtype testresponseprim(fdtype response,fdtype arg1,fdtype arg2)
       if (fd_choice_containsp(status,arg1))
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_FIXNUMP(arg1))&&(FD_FIXNUMP(arg2))) {
+    else if ((FD_UINTP(arg1))&&(FD_UINTP(arg2))) {
       int min=FD_FIX2INT(arg1), max=FD_FIX2INT(arg2);
       int rval=FD_FIX2INT(status);
       if ((rval>=min)&&(rval<max)) return FD_TRUE;
@@ -1356,7 +1356,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
       fdtype result=fetchurlhead(NULL,uri);
       fdtype status=fd_get(result,response_code_slotid,FD_VOID);
       if ((FD_VOIDP(status))||
-          ((FD_FIXNUMP(status))&&
+          ((FD_UINTP(status))&&
            (FD_FIX2INT(status)<200)&&
            (FD_FIX2INT(status)>=400)))
         return NULL;

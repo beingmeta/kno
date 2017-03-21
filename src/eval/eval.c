@@ -67,9 +67,14 @@ u8_context fd_eval_context="EVAL";
 
 static fdtype lexref_prim(fdtype upv,fdtype acrossv)
 {
-  int up=FD_FIX2INT(upv), across=FD_FIX2INT(acrossv);
-  int combined=((up<<5)|(across));
-  return FDTYPE_IMMEDIATE(fd_lexref_type,combined);
+  long long up=FD_FIX2INT(upv), across=FD_FIX2INT(acrossv);
+  long long combined=((up<<5)|(across));
+  /* Not the exact range limits, but good enough */
+  if ((up>=0)&&(across>=0)&&(up<256)&&(across<256))
+    return FDTYPE_IMMEDIATE(fd_lexref_type,combined);
+  else if ((up<0)||(up>256))
+    return fd_type_error("short","lexref_prim",up);
+  else return fd_type_error("short","lexref_prim",across);
 }
 
 static int unparse_lexref(u8_output out,fdtype lexref)
@@ -1408,7 +1413,7 @@ static fdtype withenv_safe_handler(fdtype expr,fd_lispenv env)
 static fdtype get_arg_prim(fdtype expr,fdtype elt,fdtype dflt)
 {
   if (FD_PAIRP(expr))
-    if (FD_FIXNUMP(elt)) {
+    if (FD_UINTP(elt)) {
       int i=0, lim=FD_FIX2INT(elt); fdtype scan=expr;
       while ((i<lim) && (FD_PAIRP(scan))) {
         scan=FD_CDR(scan); i++;}
@@ -1620,7 +1625,9 @@ static fdtype use_threadcache_prim(fdtype arg)
 
 /* Making DTPROCs */
 
-static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arity,fdtype minsock,fdtype maxsock,fdtype initsock)
+static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,
+                          fdtype arity,fdtype minsock,fdtype maxsock,
+                          fdtype initsock)
 {
   fdtype result;
   if (FD_VOIDP(min_arity))
@@ -1729,7 +1736,9 @@ static fdtype dtcall(int n,fdtype *args)
 
 static fdtype open_bytstrerver(fdtype server,fdtype bufsiz)
 {
-  return fd_open_bytstrerver(FD_STRDATA(server),((FD_VOIDP(bufsiz)) ? (-1) : (FD_FIX2INT(bufsiz))));
+  return fd_open_bytstrerver(FD_STRDATA(server),
+                             ((FD_VOIDP(bufsiz)) ? (-1) :
+                              (FD_FIX2INT(bufsiz))));
 }
 
 /* Test functions */

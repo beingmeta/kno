@@ -188,7 +188,7 @@ FD_EXPORT void fd_histinit(int size)
   fdtype history=fd_thread_get(history_symbol);
   if (size<=0) {
     fdtype configval=fd_config_get("HISTORYSIZE");
-    if (FD_FIXNUMP(configval))
+    if (FD_UINTP(configval))
       size=FD_FIX2INT(configval);
     else {
       fd_decref(configval);
@@ -202,6 +202,11 @@ FD_EXPORT void fd_histinit(int size)
     fdtype newvec=fd_init_vector(NULL,size,NULL);
     fdtype oldvec=FD_VECTOR_REF(history,1);
     fdtype topval=FD_VECTOR_REF(history,0);
+    if (!(FD_UINTP(topval))) {
+      u8_log(LOGWARN,"Bad history data",
+             "Negative topval in %q",history);
+      fd_decref(newvec);
+      return;}
     int i=0, n=FD_VECTOR_LENGTH(oldvec), top=FD_FIX2INT(topval);
     int top_at=top%n;
     if (top<n) n=top;
@@ -224,7 +229,7 @@ FD_EXPORT void fd_histclear(int size)
 
 static fdtype histref_prim(fdtype arg)
 {
-  if (!(FD_FIXNUMP(arg)))
+  if (!(FD_UINTP(arg)))
     return fd_err(fd_SyntaxError,"histref_prim",
                   _("Invalid history references"),arg);
   else {
@@ -250,7 +255,7 @@ static fdtype histclear_prim(fdtype arg)
     return FD_VOID;}
   else {
     /* Get the arg */
-    if (FD_FIXNUMP(arg)) {
+    if (FD_UINTP(arg)) {
       fdtype history=fd_thread_get(history_symbol);
       if (FD_VOIDP(history)) return FD_TRUE;
       else fd_history_set(history,FD_FIX2INT(arg),FD_VOID);

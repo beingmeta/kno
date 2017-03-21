@@ -1864,8 +1864,8 @@ static int do_hashtable_op
       fdtype current=result->kv_val;
       FD_DO_CHOICES(v,value)
         if ((FD_FIXNUMP(current)) && (FD_FIXNUMP(v))) {
-          int cval=FD_FIX2INT(current);
-          int delta=FD_FIX2INT(v);
+          long long cval=FD_FIX2INT(current);
+          long long delta=FD_FIX2INT(v);
           result->kv_val=FD_INT(cval+delta);}
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
@@ -1877,7 +1877,7 @@ static int do_hashtable_op
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_plus(current,v);
           if (newnum != current) {
-            fd_decref(current); 
+            fd_decref(current);
             result->kv_val=newnum;}}
         else {
           fd_seterr(fd_TypeError,"fd_table_increment",
@@ -1896,9 +1896,9 @@ static int do_hashtable_op
     else {
       fdtype current=result->kv_val;
       FD_DO_CHOICES(v,value)
-        if ((FD_FIXNUMP(current)) && (FD_FIXNUMP(v))) {
-          int cval=FD_FIX2INT(current);
-          int factor=FD_FIX2INT(v);
+        if ((FD_INTP(current)) && (FD_INTP(v))) {
+          long long cval=FD_FIX2INT(current);
+          long long factor=FD_FIX2INT(v);
           result->kv_val=FD_INT(cval*factor);}
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
@@ -1910,7 +1910,7 @@ static int do_hashtable_op
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_multiply(current,v);
           if (newnum != current) {
-            fd_decref(current); 
+            fd_decref(current);
             result->kv_val=newnum;}}
         else {
           fd_seterr(fd_TypeError,"table_multiply_op",

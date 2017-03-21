@@ -154,7 +154,7 @@ static void emit_xmlattrib
               FD_OID_HI(FD_OID_ADDR(value)),
               FD_OID_LO(FD_OID_ADDR(value)));
   else if (FD_FIXNUMP(value))
-    u8_printf(out,"%d",FD_FIX2INT(value));
+    u8_printf(out,"%lld",FD_FIX2INT(value));
   else if (FD_FLONUMP(value))
     u8_printf(out,"%f",FD_FLONUM(value));
   else if (tmp) {
@@ -1988,7 +1988,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
         else val=fd_incref(elt);
         if (FD_VOIDP(val)) {}
         else if (FD_FIXNUMP(val))
-          u8_printf(out,"%d",FD_FIX2INT(val));
+          u8_printf(out,"%lld",FD_FIX2INT(val));
         else if (FD_FLONUMP(val))
           u8_printf(out,"%f",FD_FLONUM(val));
         else if (FD_STRINGP(val)) {

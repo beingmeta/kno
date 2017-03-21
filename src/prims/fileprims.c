@@ -273,7 +273,7 @@ static fdtype simple_system(fdtype expr,fd_lispenv env)
 
 static fdtype exit_prim(fdtype arg)
 {
-  if (FD_FIXNUMP(arg)) exit(FD_FIX2INT(arg));
+  if (FD_INTP(arg)) exit(FD_FIX2INT(arg));
   else exit(0);
   return FD_VOID;
 }
@@ -289,13 +289,16 @@ static fdtype ispid_prim(fdtype pid_arg)
 
 static fdtype pid_kill_prim(fdtype pid_arg,fdtype sig_arg)
 {
-  pid_t pid=FD_FIX2INT(pid_arg); int sig=FD_FIX2INT(sig_arg);
-  int rv=kill(pid,sig);
-  if (rv<0) {
-    char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
-    u8_graberr(-1,"os_kill_prim",u8_strdup(buf));
-    return FD_ERROR_VALUE;}
-  else return FD_TRUE;
+  pid_t pid=FD_FIX2INT(pid_arg);
+  int sig=FD_FIX2INT(sig_arg);
+  if ((sig>0)&&(sig<256)) {
+    int rv=kill(pid,sig);
+    if (rv<0) {
+      char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
+      u8_graberr(-1,"os_kill_prim",u8_strdup(buf));
+      return FD_ERROR_VALUE;}
+    else return FD_TRUE;}
+  else return fd_type_error("signal","pid_kill_prim",sig_arg);
 }
 
 #define FD_IS_SCHEME 1
@@ -710,14 +713,14 @@ static fdtype runfile_prim(fdtype suffix)
 static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
 {
   mode_t mode=
-    ((FD_FIXNUMP(mode_arg))?((mode_t)(FD_FIX2INT(mode_arg))):((mode_t)0777));
+    ((FD_UINTP(mode_arg))?((mode_t)(FD_FIX2INT(mode_arg))):((mode_t)0777));
   int retval=u8_mkdir(FD_STRDATA(dirname),mode);
   if (retval<0) {
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"mkdir_prim",NULL,dirname);}
   else if (retval) {
     /* Force the mode to be set if provided */
-    if (FD_FIXNUMP(mode_arg))
+    if (FD_UINTP(mode_arg))
       u8_chmod(FD_STRDATA(dirname),((mode_t)(FD_FIX2INT(mode_arg))));
     return FD_TRUE;}
   else return FD_FALSE;
@@ -736,7 +739,7 @@ static fdtype rmdir_prim(fdtype dirname)
 static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
 {
   mode_t mode=
-    ((FD_FIXNUMP(mode_arg))?((mode_t)(FD_FIX2INT(mode_arg))):((mode_t)0777));
+    ((FD_UINTP(mode_arg))?((mode_t)(FD_FIX2INT(mode_arg))):((mode_t)0777));
   int retval=u8_mkdirs(FD_STRDATA(pathname),mode);
   if (retval<0) {
     u8_condition cond=u8_strerror(errno); errno=0;

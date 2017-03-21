@@ -315,7 +315,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
   int flags=0;
   if (FD_FALSEP(flags_arg)) {}
   else if (FD_TRUEP(flags_arg)) flags=FD_JSON_COLONIZE;
-  else if (FD_FIXNUMP(flags_arg))
+  else if (FD_UINTP(flags_arg))
     flags=FD_FIX2INT(flags_arg);
   else return fd_type_error("int","jsonparseprim",flags_arg);
   if (FD_PORTP(in)) {
@@ -408,9 +408,11 @@ static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype s
     return 1;}
 }
 
-static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
+                         fdtype oidfn,fdtype miscfn)
 {
-  if (FD_FIXNUMP(x)) u8_printf(out,"%d",FD_FIX2INT(x));
+  if (FD_FIXNUMP(x))
+    u8_printf(out,"%lld",FD_FIX2INT(x));
   else if (FD_OIDP(x)) {
     fdtype oidval=((FD_VOIDP(oidfn))?(FD_VOID):
                    (fd_finish_call(fd_dapply(oidfn,1,&x))));
@@ -508,7 +510,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,
   int flags=
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
-     (FD_FIXNUMP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
+     (FD_UINTP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
@@ -516,13 +518,14 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,
   return FD_VOID;
 }
 
-static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,
+                         fdtype oidfn,fdtype miscfn)
 {
   struct U8_OUTPUT tmpout;
   int flags=
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
-     (FD_FIXNUMP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
+     (FD_UINTP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   U8_INIT_OUTPUT(&tmpout,128);

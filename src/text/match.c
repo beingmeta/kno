@@ -420,12 +420,12 @@ fdtype fd_text_domatch
         else if (FD_ABORTED(answer)) {
           FD_STOP_DO_CHOICES;
           return answer;}
-        else if (FD_FIXNUMP(answer)) {
+        else if (FD_UINTP(answer)) {
           u8_byteoff val=FD_FIX2INT(answer);
           if (val>max) max=val;}
         else if (FD_CHOICEP(answer)) {
           FD_DO_CHOICES(a,answer)
-            if (FD_FIXNUMP(a)) {
+            if (FD_UINTP(a)) {
               u8_byteoff val=FD_FIX2INT(a);
               if (val>max) max=val;}
             else {
@@ -832,7 +832,7 @@ static fdtype extract_repeatedly
   else if (FD_ABORTP(top)) return top;
   else {
     FD_DO_CHOICES(each,top)
-      if ((FD_PAIRP(each)) && (FD_FIXNUMP(FD_CAR(each))) &&
+      if ((FD_PAIRP(each)) && (FD_UINTP(FD_CAR(each))) &&
           ((FD_FIX2INT(FD_CAR(each))) != off)) {
         fdtype size=FD_CAR(each);
         fdtype extraction=FD_CDR(each);
@@ -1373,7 +1373,7 @@ static fdtype word_match
       return core_result;}
     else {
       FD_DO_CHOICES(offset,core_result) {
-        if (FD_FIXNUMP(offset)) {
+        if (FD_UINTP(offset)) {
           u8_byteoff noff=FD_FIX2INT(offset), complete_word=0;
           if (noff == lim) complete_word=1;
           else {
@@ -3261,7 +3261,7 @@ static fdtype anumber_match
 {
   fdtype base_arg=fd_get_arg(pat,1);
   fdtype sep_arg=fd_get_arg(pat,2);
-  int base=((FD_FIXNUMP(base_arg)) ? (FD_FIX2INT(base_arg)) : (10));
+  int base=((FD_UINTP(base_arg)) ? (FD_FIX2INT(base_arg)) : (10));
   u8_string sepchars=
     ((FD_VOIDP(sep_arg)) ? ((u8_string)".,") :
      (FD_STRINGP(sep_arg)) ? (FD_STRDATA(sep_arg)) : ((u8_string)(NULL)));
@@ -3298,7 +3298,7 @@ static u8_byteoff anumber_search
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype base_arg=fd_get_arg(pat,1);
-  int base=((FD_FIXNUMP(base_arg)) ? (FD_FIX2INT(base_arg)) : (10));
+  int base=((FD_UINTP(base_arg)) ? (FD_FIX2INT(base_arg)) : (10));
   const u8_byte *scan=string+off, *limit=string+lim;
   while (scan < limit) {
     const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
@@ -3501,7 +3501,7 @@ static fdtype maxlen_match
   fdtype lim_arg=fd_get_arg(pat,2);
   if ((FD_VOIDP(lim_arg)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"maxlen_match",NULL,pat);
-  else if (!(FD_FIXNUMP(lim_arg)))
+  else if (!(FD_UINTP(lim_arg)))
     return fd_type_error(_("fixnum"),"maxlen_match",pat);
   else {
     int maxlen=FD_FIX2INT(lim_arg);
@@ -3547,7 +3547,7 @@ static fdtype minlen_match
     return fd_err(fd_MatchSyntaxError,"maxlen_match",NULL,pat);
   else if (FD_VOIDP(lim_arg))
     min_len=1;
-  else if (!(FD_FIXNUMP(lim_arg)))
+  else if (!(FD_UINTP(lim_arg)))
     return fd_type_error(_("fixnum"),"maxlen_match",pat);
   else {
     min_len=FD_FIX2INT(lim_arg);
@@ -3556,14 +3556,14 @@ static fdtype minlen_match
   inner_results=fd_text_domatch(cpat,next,env,string,off,lim,flags);
   if (FD_ABORTED(inner_results)) return inner_results;
   else if (FD_EMPTY_CHOICEP(inner_results)) return inner_results;
-  else if (FD_FIXNUMP(inner_results)) {
+  else if (FD_UINTP(inner_results)) {
     if ((FD_FIX2INT(inner_results)-off)<min_len)
       return FD_EMPTY_CHOICE;
     else return inner_results;}
   else {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(r,inner_results) {
-      if (FD_FIXNUMP(r)) {
+      if (FD_UINTP(r)) {
         int rint=FD_FIX2INT(r); int diff=rint-off;
         if (diff>=min_len) {FD_ADD_TO_CHOICE(results,r);}}}
     fd_decref(inner_results);

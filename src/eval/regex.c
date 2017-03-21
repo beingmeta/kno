@@ -173,23 +173,33 @@ FD_EXPORT ssize_t fd_regex_matchlen(fdtype pat,u8_string s,ssize_t len)
 
 static fdtype regex_search(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_search,pat,string,FD_FIX2INT(ef));
+  if (FD_UINTP(ef))
+    return regex_searchop(rx_search,pat,string,FD_FIX2INT(ef));
+  else return fd_type_error("unsigned int","regex_search",ef);
 }
 static fdtype regex_matchlen(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_matchlen,pat,string,FD_FIX2INT(ef));
+  if (FD_UINTP(ef))
+    return regex_searchop(rx_matchlen,pat,string,FD_FIX2INT(ef));
+  else return fd_type_error("unsigned int","regex_matchlen",ef);
 }
 static fdtype regex_exactmatch(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_exactmatch,pat,string,FD_FIX2INT(ef));
+  if (FD_UINTP(ef))
+    return regex_searchop(rx_exactmatch,pat,string,FD_FIX2INT(ef));
+  else return fd_type_error("unsigned int","regex_exactmatch",ef);
 }
 static fdtype regex_matchstring(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_matchstring,pat,string,FD_FIX2INT(ef));
+  if (FD_UINTP(ef))
+    return regex_searchop(rx_matchstring,pat,string,FD_FIX2INT(ef));
+  else return fd_type_error("unsigned int","regex_matchstring",ef);
 }
 static fdtype regex_matchpair(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_matchstring,pat,string,FD_FIX2INT(ef));
+  if (FD_UINTP(ef))
+    return regex_searchop(rx_matchstring,pat,string,FD_FIX2INT(ef));
+  else return fd_type_error("unsigned int","regex_matchpair",ef);
 }
 
 /* Initialization */

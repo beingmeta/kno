@@ -270,16 +270,16 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
 {
   if (FD_EMPTY_CHOICEP(arg1)) {
     fd_decref(arg2); return arg1;}
-  else if ((FD_SEQUENCEP(arg1)) && (FD_FIXNUMP(arg2))) {
+  else if ((FD_SEQUENCEP(arg1)) && (FD_UINTP(arg2))) {
     fdtype result;
-    long long off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
+    unsigned int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
     if (off<0) off=len+off;
     result=fd_seq_elt(arg1,off);
     if (result == FD_TYPE_ERROR)
       return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
     else if (result == FD_RANGE_ERROR) {
       char buf[32];
-      sprintf(buf,"%lld",off);
+      sprintf(buf,"%d",off);
       return fd_err(fd_RangeError,"FD_OPCODE_ELT",u8_strdup(buf),arg1);}
     else return result;}
   else if (!(FD_SEQUENCEP(arg1)))

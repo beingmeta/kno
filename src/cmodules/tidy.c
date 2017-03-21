@@ -52,7 +52,7 @@ static U8_MAYBE_UNUSED int copyBoolOpt(fdtype opts,
 static U8_MAYBE_UNUSED int tidySetIntOpt(TidyDoc tdoc,
                                          TidyOptionId optname,
                                          fdtype value){
-  if (FD_FIXNUMP(value))
+  if (FD_INTP(value))
     return tidyOptSetInt(tdoc,optname,FD_FIX2INT(value));
   else {
     fd_incref(value);
@@ -67,7 +67,7 @@ static U8_MAYBE_UNUSED int copyIntOpt(fdtype opts,TidyDoc tdoc,
   fdtype value=getoption(opts,optstring,FD_VOID);
   if (FD_VOIDP(value))
     rc=tidyOptSetInt(tdoc,optname,dflt);
-  else if (FD_FIXNUMP(value))
+  else if (FD_INTP(value))
     rc=tidyOptSetInt(tdoc,optname,FD_FIX2INT(value));
   else {
     fd_incref(value);
@@ -171,7 +171,7 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   */
   if (rc>=0) {
     fdtype wrap=fd_getopt(opts,wrap_symbol,FD_VOID);
-    if (FD_FIXNUMP(wrap))
+    if (FD_INTP(wrap))
       rc=tidyOptSetInt(tdoc,TidyWrapLen,FD_FIX2INT(wrap));
     else if (!((FD_FALSEP(wrap))||(FD_VOIDP(wrap))))
       rc=tidyOptSetInt(tdoc,TidyWrapLen,80);
@@ -179,7 +179,7 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   if (rc>=0) {
     fdtype indent=fd_getopt(opts,doctype_symbol,FD_VOID);
     if (FD_FALSEP(indent)) {}
-    else if (FD_FIXNUMP(indent)) {
+    else if (FD_INTP(indent)) {
       rc=tidyOptSetValue(tdoc,TidyIndentContent,"auto");
       if (rc>=0)
         rc=tidyOptSetInt(tdoc,TidyIndentSpaces,FD_FIX2INT(indent));}

@@ -242,11 +242,13 @@ static int better_unparse_oid(u8_output out,fdtype x)
 
 static int set_default_cache_level(fdtype var,fdtype val,void *data)
 {
-  if (FD_FIXNUMP(val)) {
+  if (FD_INTP(val)) {
     int new_level=FD_FIX2INT(val);
     fd_default_cache_level=new_level;
     return 1;}
-  else return -1;
+  else {
+    fd_type_error("small fixnum","set_default_cache_level",val);
+    return -1;}
 }
 static fdtype get_default_cache_level(fdtype var,void *data)
 {
@@ -255,10 +257,12 @@ static fdtype get_default_cache_level(fdtype var,void *data)
 
 static int set_oid_display_level(fdtype var,fdtype val,void *data)
 {
-  if (FD_FIXNUMP(val)) {
+  if (FD_INTP(val)) {
     fd_oid_display_level=FD_FIX2INT(val);
     return 1;}
-  else return -1;
+  else {
+    fd_type_error("small fixnum","set_oid_display_level",val);
+    return -1;}
 }
 static fdtype get_oid_display_level(fdtype var,void *data)
 {
@@ -438,7 +442,7 @@ static int cache_load()
 
 FD_EXPORT int fd_swapcheck()
 {
-  int memgap; ssize_t usage=u8_memusage();
+  long long memgap; ssize_t usage=u8_memusage();
   fdtype l_memgap=fd_config_get("SWAPCHECK");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {

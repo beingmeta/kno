@@ -489,7 +489,7 @@ static fdtype inexact2exact(fdtype x)
 
 static fdtype toexact(fdtype x,fdtype direction)
 {
-  int dir=-1;
+  long long dir=-1;
   if ((FD_VOIDP(direction))||(FD_FALSEP(direction)))
     dir=-1;
   else if (FD_FIXNUMP(direction))
@@ -568,14 +568,16 @@ arithdef2("POW",lpow,pow);
 static fdtype pow_prim(fdtype v,fdtype n)
 {
   if ((FD_EXACTP(v))&&
-      (FD_FIXNUMP(n))&&(FD_FIX2INT(n)>0)&&
+      (FD_FIXNUMP(n))&&(FD_FIX2INT(n)>=0)&&
       (FD_FIX2INT(n)<1000000)) {
-    long long i=0, how_many=FD_FIX2INT(n);
-    fdtype prod=FD_INT(1); while (i<how_many) {
-      fdtype tmp=fd_multiply(prod,v);
-      fd_decref(prod); prod=tmp;
-      i++;}
-    return prod;}
+    if (FD_ZEROP(v)) return FD_FIXNUM_ONE;
+    else {
+      long long i=0, how_many=FD_FIX2INT(n);
+      fdtype prod=FD_INT(1); while (i<how_many) {
+        fdtype tmp=fd_multiply(prod,v);
+        fd_decref(prod); prod=tmp;
+        i++;}
+      return prod;}}
   else {
     fdtype err=FD_VOID;
     fdtype dv = doublearg(v,&err);
@@ -597,7 +599,7 @@ static fdtype nthroot_prim(fdtype v,fdtype n)
   else {
     double result = pow(dv,dexp);
     if ((remainder(result,1.0)==0)&&
-        (FD_FIXNUMP(n))&&(FD_FIX2INT(n)<1024)&&
+        (FD_UINTP(n))&&(FD_FIX2INT(n)<1024)&&
         ((FD_FIXNUMP(v))||(FD_BIGINTP(v)))) {
       long long introot=(long long) floor(result);
       fdtype root=FD_INT(introot), prod=FD_INT(1);
@@ -916,7 +918,7 @@ static fdtype ptrlock_prim(fdtype x,fdtype mod)
 static fdtype knuth_hash(fdtype arg)
 {
   if ((FD_FIXNUMP(arg))||(FD_BIGINTP(arg))) {
-    int num=
+    long long num=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_long_long((fd_bigint)arg)));
     if ((num<0)||(num>=0x100000000ll))
@@ -931,7 +933,7 @@ static fdtype wang_hash32(fdtype arg)
 {
   /* Adapted from Thomas Wang
      http://www.cris.com/~Ttwang/tech/inthash.htm */
-  if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
+  if (((FD_UINTP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
     unsigned long long num=
@@ -972,7 +974,7 @@ static fdtype wang_hash64(fdtype arg)
 
 static fdtype flip32(fdtype arg)
 {
-  if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
+  if (((FD_UINTP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
     int word=fd_getint(arg);

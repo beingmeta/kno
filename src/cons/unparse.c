@@ -339,7 +339,7 @@ int fd_unparse(u8_output out,fdtype x)
     else {
       char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
       return u8_puts(out,buf);}}
-  case fd_cons_ptr_type: 
+  case fd_cons_ptr_type:
     if (x==FD_NULL)
       return u8_puts(out,"#null");
     else {/* output cons */

@@ -57,7 +57,9 @@ static fdtype compound_opaquep(fdtype x)
 static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
-  int off=FD_FIX2INT(offset), len=compound->fd_n_elts;
+  if (!(FD_UINTP(offset)))
+    return fd_type_error("unsigned int","compound_ref",offset);
+  unsigned int off=FD_FIX2INT(offset), len=compound->fd_n_elts;
   if (compound->compound_ismutable) u8_lock_mutex(&(compound->compound_lock));
   if (((compound->compound_typetag==tag) || (FD_VOIDP(tag))) && (off<len)) {
     fdtype value=*((&(compound->compound_0))+off);
@@ -115,7 +117,9 @@ static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
     return FD_VOID;}
   else {
     struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
-    int off=FD_FIX2INT(offset), len=compound->fd_n_elts;
+    if (!(FD_UINTP(offset)))
+      return fd_type_error("unsigned int","compound_ref",offset);
+    unsigned int off=FD_FIX2INT(offset), len=compound->fd_n_elts;
     if ((compound->compound_ismutable) &&
         ((compound->compound_typetag==tag) || (FD_VOIDP(tag))) &&
         (off<len)) {
@@ -239,7 +243,11 @@ static fdtype compound_corelen_prim(fdtype tag)
 
 static fdtype compound_set_corelen_prim(fdtype tag,fdtype slots_arg)
 {
-  int core_slots=FD_FIX2INT(slots_arg);
+  if (!(FD_UINTP(slots_arg)))
+    return fd_type_error("unsigned int",
+                         "compound_set_corelen_prim",
+                         slots_arg);
+  unsigned int core_slots=FD_FIX2INT(slots_arg);
   fd_declare_compound(tag,FD_VOID,core_slots);
   return fd_incref(tag);
 }

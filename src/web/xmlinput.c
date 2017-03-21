@@ -1018,7 +1018,7 @@ void *fd_walk_xml(U8_INPUT *in,
 
 FD_EXPORT int fd_xmlparseoptions(fdtype x)
 {
-  if (FD_FIXNUMP(x)) return FD_FIX2INT(x);
+  if (FD_UINTP(x)) return FD_FIX2INT(x);
   else if (FD_FALSEP(x)) return FD_SLOPPY_XML;
   else if (FD_TRUEP(x)) return 0;
   else if (FD_VOIDP(x)) return 0;
@@ -1128,7 +1128,7 @@ static fdtype fdxml_load(fdtype input,fdtype sloppy)
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
-  if (FD_FIXNUMP(sloppy))
+  if (FD_UINTP(sloppy))
     flags=FD_FIX2INT(sloppy);
   else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
     flags=flags|FD_SLOPPY_XML;
@@ -1160,7 +1160,7 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
-  if (FD_FIXNUMP(sloppy))
+  if (FD_UINTP(sloppy))
     flags=FD_FIX2INT(sloppy);
   else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
     flags=flags|FD_SLOPPY_XML;

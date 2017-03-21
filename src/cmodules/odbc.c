@@ -464,8 +464,8 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
           u8_unlock_mutex(&(dbp->odbc_proc_lock));
           return arg;}
         else dofree=1;}
-    if (FD_TYPEP(arg,fd_fixnum_type)) {
-      int intval=FD_FIX2INT(arg);
+    if (FD_FIXNUMP(arg)) {
+      long long intval=FD_FIX2INT(arg);
       SQLBindParameter(dbp->stmt,i+1,
                        SQL_PARAM_INPUT,SQL_C_SLONG,
                        dbp->sqltypes[i],0,0,&intval,0,NULL);}

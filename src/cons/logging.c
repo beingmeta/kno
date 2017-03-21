@@ -199,7 +199,10 @@ static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
     if (req_loglevel>=0) {req_loglevel=-1; return 1;}
     else return 0;}
   else if (FD_FIXNUMP(val)) {
-    int level=FD_FIX2INT(val);
+    long long level=FD_FIX2INT(val);
+    if ((level>INT_MAX)||(level<INT_MIN)) {
+      fd_seterr("Invalid loglevel","config_set_reqloglevel",NULL,val);
+      return -1;}
     if (level==req_loglevel) return 0;
     else if (level>=0) use_fd_logger();
     else {}
@@ -225,7 +228,10 @@ static int config_set_reqlogonly(fdtype var,fdtype val,void *data)
     if (req_logonly>=0) {req_logonly=-1; return 1;}
     else return 0;}
   else if (FD_FIXNUMP(val)) {
-    int level=FD_FIX2INT(val);
+    long long level=FD_FIX2INT(val);
+    if ((level>INT_MAX)||(level<INT_MIN)) {
+      fd_seterr("Invalid loglevel","config_set_reqloglevel",NULL,val);
+      return -1;}
     if (level==req_logonly) return 0;
     else if (level>=0) use_fd_logger();
     else {}

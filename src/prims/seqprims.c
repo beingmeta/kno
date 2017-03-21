@@ -232,8 +232,8 @@ FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
         else i=i+delta;}
       return -1;}
     case fd_packet_type: case fd_secret_type: {
-      int intval=(FD_FIXNUMP(key))?(FD_FIX2INT(key)):(-1);
-      if ((FD_FIXNUMP(key))&&(intval>=0)&&(intval<0x100)) {
+      int intval=(FD_INTP(key))?(FD_FIX2INT(key)):(-1);
+      if ((FD_UINTP(key))&&(intval>=0)&&(intval<0x100)) {
         const unsigned char *data=FD_PACKET_DATA(seq);
         int i=start; while (i!=end) {
           if (intval==data[i]) return i;
@@ -540,7 +540,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
     U8_INIT_OUTPUT(&out,n*2);
     while (i < n) {
       if (FD_CHARACTERP(v[i])) u8_putc(&out,FD_CHAR2CODE(v[i]));
-      else if (FD_FIXNUMP(v[i])) u8_putc(&out,FD_FIX2INT(v[i]));
+      else if (FD_UINTP(v[i])) u8_putc(&out,FD_FIX2INT(v[i]));
       else {
         u8_free(out.u8_outbuf);
         return fd_type_error(_("character"),"fd_makeseq",v[i]);}
@@ -550,7 +550,7 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
     fdtype result=FD_VOID;
     unsigned char *bytes=u8_malloc(n); int i=0;
     while (i < n) {
-      if (FD_FIXNUMP(v[i])) bytes[i]=FD_FIX2INT(v[i]);
+      if (FD_UINTP(v[i])) bytes[i]=FD_FIX2INT(v[i]);
       else if (FD_CHARACTERP(v[i])) {
         unsigned int code=FD_CHAR2CODE(v[i]);
         bytes[i]=code&0xFF;}
@@ -713,7 +713,7 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
     else if ((result_type == fd_packet_type)||
              (result_type == fd_secret_type)) {
       if (FD_FIXNUMP(new_elt)) {
-        int intval=FD_FIX2INT(new_elt);
+        long long intval=FD_FIX2INT(new_elt);
         if ((intval<0) || (intval>=0x100))
           result_type=fd_vector_type;}
       else result_type=fd_vector_type;}
@@ -771,7 +771,7 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
     else if ((result_type == fd_packet_type)||
              (result_type == fd_secret_type)) {
       if (FD_FIXNUMP(new_elt)) {
-        int intval=FD_FIX2INT(new_elt);
+        long long intval=FD_FIX2INT(new_elt);
         if ((intval<0) || (intval>=0x100))
           result_type=fd_vector_type;}
       else result_type=fd_vector_type;}
@@ -805,7 +805,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
       else if ((result_type == fd_packet_type)||
                (result_type == fd_secret_type)) {
         if (FD_FIXNUMP(new_elt)) {
-          int intval=FD_FIX2INT(new_elt);
+          long long intval=FD_FIX2INT(new_elt);
           if ((intval<0) || (intval>=0x100))
             result_type=fd_vector_type;}
         else result_type=fd_vector_type;}
@@ -943,7 +943,7 @@ static fdtype seqelt_prim(fdtype x,fdtype offset)
   char buf[16]; int off; fdtype result;
   if (!(FD_SEQUENCEP(x)))
     return fd_type_error(_("sequence"),"seqelt_prim",x);
-  else if (FD_FIXNUMP(offset)) off=FD_FIX2INT(offset);
+  else if (FD_INTP(offset)) off=FD_FIX2INT(offset);
   else return fd_type_error(_("fixnum"),"seqelt_prim",offset);
   if (off<0) off=fd_seq_length(x)+off;
   result=fd_seq_elt(x,off);
@@ -964,7 +964,7 @@ static int has_length_helper(fdtype x,fdtype length_arg,enum COMPARISON cmp)
 {
   int seqlen=fd_seq_length(x), testlen;
   if (seqlen<0) return fd_type_error(_("sequence"),"seqlen",x);
-  else if (FD_FIXNUMP(length_arg))
+  else if (FD_INTP(length_arg))
     testlen=(FD_FIX2INT(length_arg));
   else return fd_type_error(_("fixnum"),"has-length?",x);
   switch (cmp) {
@@ -1063,7 +1063,7 @@ static fdtype check_range(u8_string prim,fdtype seq,
     return check_empty_list_range(prim,seq,start_arg,end_arg,startp,endp);
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error(_("sequence"),prim,seq);
-  else if (FD_FIXNUMP(start_arg)) {
+  else if (FD_INTP(start_arg)) {
     int arg=FD_FIX2INT(start_arg);
     if (arg<0)
       return fd_err(fd_RangeError,prim,"start",start_arg);
@@ -1073,7 +1073,7 @@ static fdtype check_range(u8_string prim,fdtype seq,
   else return fd_type_error("fixnum",prim,start_arg);
   if ((FD_VOIDP(end_arg)) || (FD_FALSEP(end_arg)))
     *endp=fd_seq_length(seq);
-  else if (FD_FIXNUMP(end_arg)) {
+  else if (FD_INTP(end_arg)) {
     int arg=FD_FIX2INT(end_arg);
     if (arg<0) {
       int len=fd_seq_length(seq), off=len+arg;
@@ -1584,7 +1584,7 @@ static fdtype seq2packet(fdtype seq)
     fdtype *data=fd_elts(seq,&n);
     unsigned char *bytes=u8_malloc(n);
     while (i<n) {
-      if (FD_FIXNUMP(data[i])) {
+      if (FD_BYTEP(data[i])) {
         bytes[i]=FD_FIX2INT(data[i]); i++;}
       else {
         fdtype bad=fd_incref(data[i]);
@@ -1617,8 +1617,8 @@ static fdtype x2string(fdtype seq)
     U8_INIT_OUTPUT(&out,n*2);
     while (i<n) {
       if (FD_FIXNUMP(data[i])) {
-        int charcode=FD_FIX2INT(data[i]);
-        if (charcode>=0x10000) {
+        long long charcode=FD_FIX2INT(data[i]);
+        if ((charcode<0)||(charcode>=0x10000)) {
           fdtype bad=fd_incref(data[i]);
           i=0; while (i<n) {fd_decref(data[i]); i++;}
           u8_free(data);
@@ -1889,6 +1889,8 @@ static fdtype seqlen_eq_prim(fdtype x,fdtype len)
 
 static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
 {
+  if (!(FD_UINTP(startarg)))
+    return fd_type_error("uint","seqmatchprim",startarg);
   int start=FD_FIX2INT(startarg);
   if ((FD_VECTORP(prefix))&&(FD_VECTORP(seq))) {
     int plen=FD_VECTOR_LENGTH(prefix);
@@ -2005,9 +2007,7 @@ static fdtype make_short_vector(int n,fdtype *from_elts)
   fd_short *elts=FD_NUMVEC_SHORTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
-    if ((FD_FIXNUMP(elt))&&
-        (FD_FIX2INT(elt)<=SHRT_MAX)&&
-        (FD_FIX2INT(elt)>SHRT_MIN))
+    if (FD_SHORTP(elt))
       elts[i++]=(fd_short)(FD_FIX2INT(elt));
     else {
       u8_free((struct FD_CONS *)vec); fd_incref(elt);
@@ -2039,7 +2039,7 @@ static fdtype make_int_vector(int n,fdtype *from_elts)
   fd_int *elts=FD_NUMVEC_INTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
-    if (FD_FIXNUMP(elt))
+    if (FD_INTP(elt))
       elts[i++]=((fd_int)(FD_FIX2INT(elt)));
     else if ((FD_BIGINTP(elt))&&
              (fd_bigint_fits_in_word_p((fd_bigint)elt,sizeof(fd_int),1)))
@@ -2200,6 +2200,7 @@ static fdtype set_cdr(fdtype pair,fdtype val)
 static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
 {
   struct FD_VECTOR *v=fd_consptr(struct FD_VECTOR *,vec,fd_vector_type);
+  if (!(FD_UINTP(index))) return fd_type_error("uint","vector_set",index);
   int offset=FD_FIX2INT(index); fdtype *elts=v->fdvec_elts;
   if (offset>v->fdvec_length) {
     char buf[256]; sprintf(buf,"%d",offset);

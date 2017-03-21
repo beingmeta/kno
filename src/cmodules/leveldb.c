@@ -67,22 +67,22 @@ static leveldb_options_t *get_leveldb_options(fdtype opts)
   else {}
   if (fd_testopt(opts,SYM("PARANOID"),FD_VOID)) {
     leveldb_options_set_paranoid_checks(ldbopts,1);}
-  if (FD_FIXNUMP(bufsize_spec))
+  if (FD_UINTP(bufsize_spec))
     leveldb_options_set_write_buffer_size(ldbopts,FD_FIX2INT(bufsize_spec));
   else if (default_writebuf_size>0)
     leveldb_options_set_write_buffer_size(ldbopts,default_writebuf_size);
   else {}
-  if (FD_FIXNUMP(maxfiles_spec))
+  if (FD_UINTP(maxfiles_spec))
     leveldb_options_set_max_open_files(ldbopts,FD_FIX2INT(maxfiles_spec));
   else if (default_maxfiles>0)
     leveldb_options_set_max_open_files(ldbopts,default_maxfiles);
   else {}
-  if (FD_FIXNUMP(blocksize_spec))
+  if (FD_UINTP(blocksize_spec))
     leveldb_options_set_block_size(ldbopts,FD_FIX2INT(blocksize_spec));
   else if (default_block_size>0)
     leveldb_options_set_block_size(ldbopts,default_block_size);
   else {}
-  if (FD_FIXNUMP(restart_spec))
+  if (FD_UINTP(restart_spec))
     leveldb_options_set_block_restart_interval(ldbopts,FD_FIX2INT(restart_spec));
   else if (default_block_size>0)
     leveldb_options_set_block_restart_interval(ldbopts,default_restart_interval);
@@ -100,7 +100,7 @@ static leveldb_cache_t *get_leveldb_cache(leveldb_options_t *ldbopts,
 {
   leveldb_cache_t *cache=NULL;
   fdtype cache_size=fd_getopt(opts,SYM("CACHESIZE"),FD_VOID);
-  if (FD_FIXNUMP(cache_size))
+  if (FD_UINTP(cache_size))
     cache=leveldb_cache_create_lru(FD_FIX2INT(cache_size));
   else if (default_cache_size>0)
       cache=leveldb_cache_create_lru(default_cache_size);
@@ -490,7 +490,7 @@ fd_pool fd_use_leveldb_pool(u8_string path,fdtype opts)
     fdtype base=get_prop(dbptr,"\377BASE",FD_VOID);
     fdtype cap=get_prop(dbptr,"\377CAPACITY",FD_VOID);
     fdtype load=get_prop(dbptr,"\377LOAD",FD_VOID);
-    if ((FD_OIDP(base)) && (FD_FIXNUMP(cap)) && (FD_FIXNUMP(load))) {
+    if ((FD_OIDP(base)) && (FD_UINTP(cap)) && (FD_UINTP(load))) {
       u8_string rname=u8_realpath(path,NULL);
       fdtype label=get_prop(dbptr,"\377LABEL",FD_VOID);
       fd_init_pool((fd_pool)pool,
@@ -519,7 +519,7 @@ fd_pool fd_make_leveldb_pool(u8_string path,fdtype base,fdtype cap,fdtype opts)
   struct FD_LEVELDB_POOL *pool=u8_zalloc(struct FD_LEVELDB_POOL);
   fdtype load=fd_getopt(opts,SYM("LOAD"),FD_FIXZERO);
   fdtype label=fd_getopt(opts,SYM("LABEL"),FD_VOID);
-  if ((!(FD_OIDP(base)))||(!(FD_FIXNUMP(cap)))) {
+  if ((!(FD_OIDP(base)))||(!(FD_UINTP(cap)))||(!(FD_UINTP(load)))) {
     u8_free(pool);
     fd_seterr("Not enough information to create a pool",
 	      "fd_make_leveldb_pool",path,opts);

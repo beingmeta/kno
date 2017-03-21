@@ -266,7 +266,7 @@ static fdtype statlog_get(fdtype var,void *data)
 
 static int statinterval_set(fdtype var,fdtype val,void *data)
 {
-  if (FD_FIXNUMP(val)) {
+  if (FD_UINTP(val)) {
     int intval=FD_FIX2INT(val);
     if (intval>=0)  status_interval=intval*1000;
     else {
@@ -294,12 +294,12 @@ static int statinterval_set(fdtype var,fdtype val,void *data)
 static fdtype statloginterval_get(fdtype var,void *data)
 {
   if (statlog_interval<0) return FD_FALSE;
-  else return FD_FIX2INT(statlog_interval);
+  else return FD_INT(statlog_interval);
 }
 
 static int statloginterval_set(fdtype var,fdtype val,void *data)
 {
-  if (FD_FIXNUMP(val)) {
+  if (FD_UINTP(val)) {
     int intval=FD_FIX2INT(val);
     if (intval>=0)  statlog_interval=intval*1000;
     else {
@@ -328,7 +328,7 @@ static int statloginterval_set(fdtype var,fdtype val,void *data)
 static fdtype statinterval_get(fdtype var,void *data)
 {
   if (status_interval<0) return FD_FALSE;
-  else return FD_FIX2INT(status_interval);
+  else return FD_INT(status_interval);
 }
 
 #define STATUS_LINE_CURRENT \
@@ -1700,7 +1700,7 @@ static int addfdservport(fdtype var,fdtype val,void *data)
                 u8_abspath(spec,NULL));
       return -1;}}
   else if (FD_FIXNUMP(val))
-    new_port=u8_mkstring("%d",FD_FIX2INT(val));
+    new_port=u8_mkstring("%lld",FD_FIX2INT(val));
   else {
     fd_incref(val);
     fd_seterr(fd_TypeError,"setportconfig",NULL,val);

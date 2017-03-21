@@ -113,7 +113,7 @@ static fdtype packet2dtype(fdtype packet)
 
 static fdtype dtype2packet(fdtype object,fdtype initsize)
 {
-  int size=FD_FIX2INT(initsize);
+  size_t size=FD_FIX2INT(initsize);
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,size);
   int bytes=fd_write_dtype(&out,object);
@@ -190,7 +190,7 @@ static fdtype putchar_prim(fdtype char_arg,fdtype port)
   if (out) {
     if (FD_CHARACTERP(char_arg))
       ch=FD_CHAR2CODE(char_arg);
-    else if (FD_FIXNUMP(char_arg))
+    else if (FD_UINTP(char_arg))
       ch=FD_FIX2INT(char_arg);
     else return fd_type_error("character","putchar_prim",char_arg);
     u8_putc(out,ch);
@@ -255,9 +255,13 @@ static fdtype substringout(fdtype arg,fdtype start,fdtype end)
   u8_output output=u8_current_output;
   u8_string string=FD_STRDATA(arg); unsigned int len=FD_STRLEN(arg);
   if (FD_VOIDP(start)) u8_putn(output,string,len);
+  else if (!(FD_UINTP(start)))
+    return fd_type_error("uint","substringout",start);
   else if (FD_VOIDP(end)) {
     unsigned int byte_start=u8_byteoffset(string,FD_FIX2INT(start),len);
     u8_putn(output,string+byte_start,len-byte_start);}
+  else if (!(FD_UINTP(end)))
+    return fd_type_error("uint","substringout",end);
   else {
     unsigned int byte_start=u8_byteoffset(string,FD_FIX2INT(start),len);
     unsigned int byte_end=u8_byteoffset(string,FD_FIX2INT(end),len);
@@ -381,7 +385,7 @@ static fdtype warning_handler(fdtype expr,fd_lispenv env)
 
 static int get_loglevel(fdtype level_arg)
 {
-  if (FD_FIXNUMP(level_arg)) return FD_FIX2INT(level_arg);
+  if (FD_INTP(level_arg)) return FD_FIX2INT(level_arg);
   else return -1;
 }
 
@@ -467,7 +471,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
   else if (FD_VOIDP(loglevel_arg))
     return fd_reterr(fd_SyntaxError,"logif_plus_handler",
                      _("LOGIF+ loglevel invalid"),expr);
-  else if (!(FD_FIXNUMP(loglevel_arg)))
+  else if (!(FD_INTP(loglevel_arg)))
     return fd_reterr(fd_TypeError,"logif_plus_handler",
                      _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
@@ -528,7 +532,8 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
   else if (FD_TRUEP(eof_marker)) eof_marker=FD_EOF;
   else {}
   if (in) {
-    u8_string data, eos; int lim, size=0;
+    u8_string data, eos;
+    int lim, size=0;
     if (in==NULL)
       return fd_type_error(_("input port"),"getline_prim",port);
     if (FD_VOIDP(eos_arg)) eos="\n";
@@ -693,7 +698,7 @@ static fdtype lisp2string(fdtype x)
 static fdtype inexact2string(fdtype x,fdtype precision)
 {
   if (FD_FLONUMP(x))
-    if ((FD_FIXNUMP(precision)) || (FD_VOIDP(precision))) {
+    if ((FD_UINTP(precision)) || (FD_VOIDP(precision))) {
       int prec=((FD_VOIDP(precision)) ? (2) : (FD_FIX2INT(precision)));
       char buf[128]; char cmd[16];
       sprintf(cmd,"%%.%df",prec);
@@ -715,7 +720,7 @@ static fdtype number2string(fdtype x,fdtype base)
 static fdtype number2locale(fdtype x,fdtype precision)
 {
   if (FD_FLONUMP(x))
-    if ((FD_FIXNUMP(precision)) || (FD_VOIDP(precision))) {
+    if ((FD_UINTP(precision)) || (FD_VOIDP(precision))) {
       int prec=((FD_VOIDP(precision)) ? (2) : (FD_FIX2INT(precision)));
       char buf[128]; char cmd[16];
       sprintf(cmd,"%%'.%df",prec);
@@ -1322,7 +1327,7 @@ static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype margina
 {
   struct U8_OUTPUT tmpout;
   U8_OUTPUT *out=get_output_port(portarg);
-  int width=((FD_FIXNUMP(widtharg)) ? (FD_FIX2INT(widtharg)) : (60));
+  int width=((FD_UINTP(widtharg)) ? (FD_FIX2INT(widtharg)) : (60));
   if ((out==NULL)&&(!(FD_FALSEP(portarg))))
     return fd_type_error(_("port"),"lisp_pprint",portarg);
   U8_INIT_OUTPUT(&tmpout,512);
@@ -1330,7 +1335,7 @@ static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype margina
     fd_pprint(&tmpout,x,NULL,0,0,width,1);
   else if (FD_STRINGP(marginarg))
     fd_pprint(&tmpout,x,FD_STRDATA(marginarg),0,0,width,1);
-  else if ((FD_FIXNUMP(marginarg))&&(FD_FIX2INT(marginarg)>=0))
+  else if ((FD_UINTP(marginarg))&&(FD_FIX2INT(marginarg)>=0))
     fd_pprint(&tmpout,x,NULL,(FD_FIX2INT(marginarg)),0,width,1);
   else fd_pprint(&tmpout,x,NULL,0,0,width,1);
   if (out) {

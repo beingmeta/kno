@@ -378,8 +378,8 @@ static fdtype sigmask2dtype(sigset_t *mask)
 
 static int arg2signum(fdtype arg)
 {
-  int sig=-1;
-  if (FD_FIXNUMP(arg)) 
+  long long sig=-1;
+  if (FD_FIXNUMP(arg))
     sig=FD_FIX2INT(arg);
   else if (FD_SYMBOLP(arg))
     sig=u8_name2signal(FD_SYMBOL_NAME(arg));

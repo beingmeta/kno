@@ -307,7 +307,7 @@ static int add_slotcode(struct FD_BIGPOOL *bp,fdtype slotid)
   u8_write_lock(&(slotcodes->table_rwlock)); {
     fdtype *slotids=bp->slotids;
     fdtype v=fd_hashtable_get_nolock(slotcodes,slotid,FD_VOID);
-    if (FD_FIXNUMP(v)) {
+    if (FD_UINTP(v)) {
       /* Another thread got here first */
       u8_rw_unlock(&(slotcodes->table_rwlock));
       return FD_FIX2INT(v);}

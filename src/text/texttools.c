@@ -386,10 +386,10 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
   int i=0, n=FD_VECTOR_LENGTH(vec), minspan=1, maxspan;
   fdtype *data=FD_VECTOR_DATA(vec), results=FD_EMPTY_CHOICE;
   int with_affixes=(!(FD_FALSEP(with_affix)));
-  if (FD_FIXNUMP(window)) maxspan=FD_FIX2INT(window);
+  if (FD_INTP(window)) maxspan=FD_FIX2INT(window);
   else if ((FD_PAIRP(window))&&
-           (FD_FIXNUMP(FD_CAR(window)))&&
-           (FD_FIXNUMP(FD_CDR(window)))) {
+           (FD_INTP(FD_CAR(window)))&&
+           (FD_INTP(FD_CDR(window)))) {
     minspan=FD_FIX2INT(FD_CAR(window));
     maxspan=FD_FIX2INT(FD_CDR(window));}
   else if ((FD_VOIDP(window))||(FD_FALSEP(window)))
@@ -469,14 +469,17 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
   if (FD_EXPECT_FALSE(!(FD_SEQUENCEP(arg))))
     return fd_type_error("sequence","seq2phrase_prim",arg);
   else if (FD_STRINGP(arg)) return fd_incref(arg);
+  else if (!(FD_UINTP(start_arg)))
+    return fd_type_error("uint","seq2phrase_prim",start_arg);
   else {
-    int dospace=0, start=FD_FIX2INT(start_arg), end, len=fd_seq_length(arg);
+    int dospace=0, start=FD_FIX2INT(start_arg), end;
+    int len=fd_seq_length(arg);
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     if (start<0) start=len+start;
     if ((start<0) || (start>len)) {
       char buf[32]; sprintf(buf,"%lld",FD_FIX2INT(start_arg));
       return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}
-    if (!(FD_FIXNUMP(end_arg))) end=len;
+    if (!(FD_INTP(end_arg))) end=len;
     else {
       end=FD_FIX2INT(end_arg);
       if (end<0) end=len+end;
@@ -770,7 +773,7 @@ static fdtype return_offsets(u8_string s,fdtype results)
 {
   fdtype final_results=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(off,results)
-    if (FD_FIXNUMP(off)) {
+    if (FD_UINTP(off)) {
       u8_charoff charoff=u8_charoffset(s,FD_FIX2INT(off));
       FD_ADD_TO_CHOICE(final_results,FD_INT(charoff));}
     else {}
@@ -784,7 +787,7 @@ static void convert_offsets
 (fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
 {
   u8_charoff offval=fd_getint(offset);
-  if (FD_FIXNUMP(limit)) {
+  if (FD_INTP(limit)) {
     int intlim=FD_FIX2INT(limit), len=FD_STRLEN(string);
     u8_string data=FD_STRDATA(string);
     if (intlim<0) {
@@ -1609,7 +1612,7 @@ static int interpret_keep_arg(fdtype keep_arg)
 {
   if (FD_FALSEP(keep_arg)) return 0;
   else if (FD_TRUEP(keep_arg)) return 1;
-  else if (FD_FIXNUMP(keep_arg))
+  else if (FD_INTP(keep_arg))
     return FD_FIX2INT(keep_arg);
   else if (FD_EQ(keep_arg,suffix_symbol))
     return 1;
@@ -1799,10 +1802,13 @@ static int match_end(fdtype sep,u8_string data,int off,int lim)
   fdtype matches=fd_text_matcher(sep,NULL,data,off,lim,FD_MATCH_BE_GREEDY);
   if (FD_ABORTP(matches)) return -1;
   else if (FD_EMPTY_CHOICEP(matches)) return off+1;
-  else if (FD_FIXNUMP(matches)) return FD_FIX2INT(matches);
+  else if (FD_UINTP(matches))
+    return FD_FIX2INT(matches);
+  else if (FD_FIXNUMP(matches))
+    return off+1;
   else {
     int max=off+1; FD_DO_CHOICES(match,matches) {
-      int matchlen=((FD_FIXNUMP(match))?(FD_FIX2INT(match)):(-1));
+      int matchlen=((FD_UINTP(match))?(FD_FIX2INT(match)):(-1));
       if (matchlen>max) max=matchlen;}
     return max;}
 }
@@ -2032,7 +2038,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   if (in==NULL)
     return fd_type_error(_("input port"),"record_reader",port);
   if (FD_VOIDP(limit_arg)) lim=0;
-  else if (FD_FIXNUMP(limit_arg)) lim=FD_FIX2INT(limit_arg);
+  else if (FD_UINTP(limit_arg)) lim=FD_FIX2INT(limit_arg);
   else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
   ssize_t buflen=in->u8_inlim-in->u8_read; int eof=0;
   off_t start=fd_text_search(pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);

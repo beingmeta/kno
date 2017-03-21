@@ -2646,7 +2646,7 @@ static fd_index hash_index_create(u8_string spec,void *typedata,
   fdtype baseoids_init=fd_getopt(opts,fd_intern("BASEOIDS"),FD_VOID);
   fdtype nbuckets_arg=fd_getopt(opts,fd_intern("SLOTS"),FD_VOID);
   fdtype hashconst=fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
-  if (!(FD_FIXNUMP(nbuckets_arg))) {
+  if (!(FD_UINTP(nbuckets_arg))) {
     fd_seterr("InvalidBucketCount","hash_index_create",spec,nbuckets_arg);
     rv=-1;}
   else if (!(good_initval(baseoids_init))) {
@@ -2683,7 +2683,7 @@ FD_EXPORT fdtype _fd_populate_hash_index_deprecated
   unsigned int n_keys; fdtype keys_choice=FD_VOID;
   if (!(fd_hash_indexp(ix)))
     return fd_type_error(_("hash index"),"populate_hash_index",ix_arg);
-  if (FD_FIXNUMP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
+  if (FD_UINTP(blocksize_arg)) blocksize=FD_FIX2INT(blocksize_arg);
   if (FD_CHOICEP(keys)) {
     keyvec=FD_CHOICE_DATA(keys); n_keys=FD_CHOICE_SIZE(keys);}
   else if (FD_VECTORP(keys)) {

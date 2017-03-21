@@ -463,15 +463,16 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
       randomseed=(unsigned int)tick;
       u8_randomize(randomseed);
       return 1;}}
-  else if (FD_FIXNUMP(val)) {
-    randomseed=FD_FIX2INT(val);
+  else if ((FD_FIXNUMP(val))&&
+	   (FD_FIX2INT(val)>0)&&
+	   (FD_FIX2INT(val)<UINT_MAX)) {
+    long long intval=FD_FIX2INT(val);
+    randomseed=(unsigned int)intval;
     u8_randomize(randomseed);
     return 1;}
-  else if (FD_BIGINTP(val)) {
-    randomseed=(unsigned int)(fd_bigint_to_long((fd_bigint)val));
-    u8_randomize(randomseed);
-    return 1;}
-  else return -1;
+  else {
+    fd_type_error("random seed (small fixnum)","config_setrandomseed",val);
+    return -1;}
 }
 
 /* RUNBASE */

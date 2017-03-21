@@ -62,6 +62,7 @@ typedef unsigned char uchar;
 
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #ifndef FD_INLINE_FCN
 #define FD_INLINE_FCN U8_INLINE_FCN

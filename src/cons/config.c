@@ -527,11 +527,27 @@ FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *vptr)
 FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
 {
   int *ptr=vptr;
+  if (FD_INTP(v)) {
+    *ptr=FD_FIX2INT(v);
+    return 1;}
+  return fd_reterr(fd_TypeError,"fd_intconfig_set",
+		   u8_strdup(_("small fixnum")),v);
+}
+
+/* For configuration variables which get/set ints. */
+FD_EXPORT fdtype fd_longconfig_get(fdtype ignored,void *vptr)
+{
+  long long *ptr=vptr;
+  return FD_INT(*ptr);
+}
+FD_EXPORT int fd_longconfig_set(fdtype ignored,fdtype v,void *vptr)
+{
+  long long *ptr=vptr;
   if (FD_FIXNUMP(v)) {
     *ptr=FD_FIX2INT(v);
     return 1;}
-  else return
-         fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
+  else return fd_reterr(fd_TypeError,"fd_longconfig_set",
+			u8_strdup(_("fixnum")),v);
 }
 
 /* For configuration variables which get/set ints. */
@@ -578,7 +594,7 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
   else if (FD_FLONUMP(v)) {
     *ptr=FD_FLONUM(v);}
   else if (FD_FIXNUMP(v)) {
-    int intval=FD_FIX2INT(v);
+    long long intval=FD_FIX2INT(v);
     double dblval=(double)intval;
     *ptr=dblval;}
   else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
@@ -605,7 +621,12 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
     /* Strictly speaking, this isn't exactly right, but it's not uncommon
        to have int-valued config variables where 1 is a default setting
        but others are possible. */
-    *ptr=FD_FIX2INT(v); return 1;}
+    if (FD_FIX2INT(v)<=0)
+      *ptr=0;
+    else if (FD_FIX2INT(v)<INT_MAX)
+      *ptr=FD_FIX2INT(v);
+    else *ptr=INT_MAX;
+    return 1;}
   else if ((FD_STRINGP(v)) && (false_stringp(FD_STRDATA(v)))) {
     *ptr=0; return 1;}
   else if ((FD_STRINGP(v)) && (true_stringp(FD_STRDATA(v)))) {
@@ -688,8 +709,9 @@ static fdtype u8major_config_get(fdtype var,void *data)
 
 static int loglevelconfig_set(fdtype var,fdtype val,void *data)
 {
-  if (FD_FIXNUMP(val)) {
-    int *valp=(int *)data; *valp=FD_FIX2INT(val);
+  if (FD_INTP(val)) {
+    int *valp=(int *)data;
+    *valp=FD_FIX2INT(val);
     return 1;}
   else if ((FD_STRINGP(val)) || (FD_SYMBOLP(val))) {
     u8_string *scan=u8_loglevels; int loglevel=-1;

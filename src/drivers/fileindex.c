@@ -1284,7 +1284,7 @@ static fd_index file_index_create(u8_string spec,void *type_data,
                                   fdkb_flags flags,fdtype opts)
 {
   fdtype n_slots=fd_getopt(opts,fd_intern("SLOTS"),FD_INT(32000));
-  if (!(FD_FIXNUMP(n_slots))) {
+  if (!(FD_UINTP(n_slots))) {
     fd_seterr("NumberOfIndexSlots","file_index_create",spec,n_slots);
     return NULL;}
   else if (fd_make_file_index(spec,

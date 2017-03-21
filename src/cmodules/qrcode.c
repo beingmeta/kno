@@ -80,10 +80,10 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
   else info_ptr = png_create_info_struct(png_ptr);
   if (info_ptr==NULL)
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);
-  if ((FD_FIXNUMP(dotsize_arg)) && ((FD_FIXNUMP(dotsize_arg))>0))
+  if ((FD_INTP(dotsize_arg)) && ((FD_FIX2INT(dotsize_arg))>0))
     dotsize=FD_FIX2INT(dotsize_arg);
   else return fd_type_error("positive fixnum","write_png_packet",dotsize_arg);
-  if ((FD_FIXNUMP(margin_arg)) && ((FD_FIX2INT(margin_arg))>=0))
+  if ((FD_INTP(margin_arg)) && ((FD_FIX2INT(margin_arg))>=0))
     margin=FD_FIX2INT(margin_arg);
   else return fd_type_error("positive fixnum","write_png_packet",margin_arg);
   /* Start building the PNG, using setjmp */
@@ -147,6 +147,9 @@ static fdtype qrencode_prim(fdtype string,fdtype opts)
 {
   fdtype level_arg=fd_getopt(opts,robustness_symbol,FD_FALSE);
   fdtype version_arg=fd_getopt(opts,version_symbol,FD_INT(0));
+  if (!(FD_UINTP(version_arg))) {
+    fd_decref(level_arg);
+    return fd_type_error("uint","qrencode_prim",version_arg);}
   QRecLevel eclevel=geteclevel(level_arg);
   {
     fdtype result;
@@ -157,6 +160,7 @@ static fdtype qrencode_prim(fdtype string,fdtype opts)
     u8_unlock_mutex(&qrencode_lock);
     result=write_png_packet(qrcode,opts);
     QRcode_free(qrcode);
+    fd_decref(level_arg);
     return result;
   }
 }

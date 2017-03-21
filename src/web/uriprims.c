@@ -255,7 +255,7 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
       if (FD_STRINGP(userinfo))
         u8_printf(&out,"//%s@%s",FD_STRDATA(userinfo),FD_STRDATA(hostname));
       else u8_printf(&out,"//%s",FD_STRDATA(hostname));
-      if (FD_FIXNUMP(port))
+      if (FD_UINTP(port))
         if (((FD_FIX2INT(port))==80) &&
             ((!(FD_STRINGP(scheme))) ||
              (strcmp(FD_STRING_DATA(scheme),"http")==0)))

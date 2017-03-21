@@ -147,7 +147,7 @@ static int network_pool_load(fd_pool p)
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype value;
   value=fd_dtcall(np->pool_connpool,2,get_load_symbol,fd_make_oid(p->pool_base));
-  if (FD_FIXNUMP(value)) return FD_FIX2INT(value);
+  if (FD_UINTP(value)) return FD_FIX2INT(value);
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {

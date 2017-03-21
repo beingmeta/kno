@@ -102,7 +102,7 @@ static fdtype index_slotids(fdtype index_arg)
 
 static int getindexctlop(fdtype x)
 {
-  if (FD_FIXNUMP(x))
+  if (FD_INTP(x))
     return FD_FIX2INT(x);
   else if (FD_SYMBOLP(x)) {
     u8_string pname=FD_SYMBOL_NAME(x);
@@ -141,7 +141,7 @@ static fdtype indexctl_prim(int n,fdtype *args)
 
 static int getpoolctlop(fdtype x)
 {
-  if (FD_FIXNUMP(x))
+  if (FD_INTP(x))
     return FD_FIX2INT(x);
   else if (FD_SYMBOLP(x)) {
     u8_string pname=FD_SYMBOL_NAME(x);

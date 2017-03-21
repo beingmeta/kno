@@ -140,6 +140,8 @@ static fdtype capitalizedp(fdtype string)
 
 static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
 {
+  if (!(FD_UINTP(window_arg)))
+    return fd_type_error("uint","some_capitalizedp",window_arg);
   int window=FD_FIX2INT(window_arg);
   const u8_byte *scan=FD_STRDATA(string);
   int c=u8_sgetc(&scan), i=0;
@@ -968,6 +970,8 @@ static fdtype strmatchp_prim(fdtype pat,fdtype string,fdtype ef)
         FD_STOP_DO_CHOICES;
         return r;}}
     return FD_FALSE;}
+  else if (!(FD_UINTP(ef)))
+    return fd_type_error("uint","strmatchp_prim",ef);
   else {
     if (FD_TYPEP(pat,fd_regex_type)) {
       int off=fd_regex_op(rx_search,pat,

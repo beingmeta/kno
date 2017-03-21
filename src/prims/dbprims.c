@@ -194,7 +194,7 @@ static fdtype set_pool_namefn(fdtype arg,fdtype method)
 
 static fdtype set_cache_level(fdtype arg,fdtype level)
 {
-  if (!(FD_FIXNUMP(level)))
+  if (!(FD_UINTP(level)))
     return fd_type_error("fixnum","set_cache_level",level);
   else if (FD_POOLP(arg)) {
     fd_pool p=fd_lisp2pool(arg);
@@ -487,8 +487,12 @@ static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
 static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,
                            fdtype load,fdtype noswap)
 {
+  if (!(FD_UINTP(cap))) return fd_type_error("uint","make_mempool",cap);
+  if (!(FD_UINTP(load))) return fd_type_error("uint","make_mempool",load);
   fd_pool p=fd_make_mempool
-    (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),FD_FIX2INT(load),
+    (FD_STRDATA(label),FD_OID_ADDR(base),
+     FD_FIX2INT(cap),
+     FD_FIX2INT(load),
      (!(FD_FALSEP(noswap))));
   if (p==NULL) return FD_ERROR_VALUE;
   else return fd_pool2lisp(p);
@@ -513,6 +517,7 @@ static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
                            fdtype lockfn,fdtype allocfn,
                            fdtype state,fdtype cache)
 {
+  if (!(FD_UINTP(cap))) return fd_type_error("uint","make_mempool",cap);
   fd_pool p=fd_make_extpool
     (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),
      fetchfn,savefn,lockfn,allocfn,state);
@@ -903,19 +908,20 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
-    int i=0, lim=fd_pool_load(p);
+    unsigned int i=0, lim=fd_pool_load(p);
     fdtype result=FD_EMPTY_CHOICE;
     FD_OID base=p->pool_base;
     if (lim<0) return FD_ERROR_VALUE;
     if (FD_VOIDP(start)) {}
-    else if (FD_FIXNUMP(start))
+    else if (FD_UINTP(start))
       if (FD_FIX2INT(start)<0)
         return fd_type_error(_("pool offset"),"pool_elts",start);
       else i=FD_FIX2INT(start);
-    else if (FD_OIDP(start)) i=FD_OID_DIFFERENCE(FD_OID_ADDR(start),base);
+    else if (FD_OIDP(start))
+      i=FD_OID_DIFFERENCE(FD_OID_ADDR(start),base);
     else return fd_type_error(_("pool offset"),"pool_elts",start);
     if (FD_VOIDP(count)) {}
-    else if (FD_FIXNUMP(count)) {
+    else if (FD_UINTP(count)) {
       int count_arg=FD_FIX2INT(count);
       if (count_arg<0)
         return fd_type_error(_("pool offset"),"pool_elts",count);
@@ -2097,7 +2103,7 @@ static fdtype allocate_oids(fdtype pool,fdtype howmany)
     return fd_type_error(_("pool spec"),"allocate_oids",pool);
   if (FD_VOIDP(howmany))
     return fd_pool_alloc(p,1);
-  else if (FD_FIXNUMP(howmany))
+  else if (FD_UINTP(howmany))
     return fd_pool_alloc(p,FD_FIX2INT(howmany));
   else return fd_type_error(_("fixnum"),"allocate_oids",howmany);
 }
@@ -2311,7 +2317,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
     return fd_make_oid(oid);}
   else if (FD_OIDP(high)) {
     FD_OID base=FD_OID_ADDR(high), oid; unsigned int off;
-    if (FD_FIXNUMP(low))
+    if (FD_UINTP(low))
       off=FD_FIX2INT(low);
     else if (FD_BIGINTP(low)) {
       if ((off=fd_bigint2uint((struct FD_BIGINT *)low))==0)
@@ -2328,7 +2334,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
 #endif
     FD_SET_OID_HI(addr,0); FD_SET_OID_LO(addr,0);
     if (FD_FIXNUMP(high))
-      if ((FD_FIX2INT(high))<0)
+      if (((FD_FIX2INT(high))<0)||((FD_FIX2INT(high))>UINT_MAX))
         return fd_type_error("uint32","make_oid_prim",high);
       else hi=FD_FIX2INT(high);
     else if (FD_BIGINTP(high)) {
@@ -2336,7 +2342,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
       if (hi==0) return fd_type_error("uint32","make_oid_prim",high);}
     else return fd_type_error("uint32","make_oid_prim",high);
     if (FD_FIXNUMP(low))
-      if ((FD_FIX2INT(low))<0)
+      if (((FD_FIX2INT(low))<0)||((FD_FIX2INT(low))>UINT_MAX))
         return fd_type_error("uint32","make_oid_prim",low);
       else lo=FD_FIX2INT(low);
     else if (FD_BIGINTP(low)) {
@@ -2419,7 +2425,7 @@ static fdtype oidplus(FD_OID base,int delta)
 
 static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
 {
-  long offset;
+  long long offset;
   if (FD_STRINGP(arg))
     offset=strtol(FD_STRDATA(arg),NULL,16);
   else if (FD_FIXNUMP(arg))

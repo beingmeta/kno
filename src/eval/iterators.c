@@ -118,7 +118,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
-  else if (!(FD_FIXNUMP(limit_val)))
+  else if (!(FD_UINTP(limit_val)))
     return fd_type_error("fixnum","dotimes_handler",limit_val);
   else limit=FD_FIX2INT(limit_val);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);

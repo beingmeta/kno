@@ -318,6 +318,8 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
+  if (!(FD_UINTP(w_arg))) return fd_type_error("uint","imagick_fit",w_arg);
+  else if (!(FD_UINTP(h_arg))) return fd_type_error("uint","imagick_fit",h_arg);
   int width=FD_FIX2INT(w_arg), height=FD_FIX2INT(h_arg);
   size_t iwidth=MagickGetImageWidth(wand);
   size_t iheight=MagickGetImageHeight(wand);
@@ -366,6 +368,10 @@ static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
   MagickWand *wand=wrapper->wand;
+  if (!(FD_UINTP(w_arg))) return fd_type_error("uint","imagick_fit",w_arg);
+  if (!(FD_UINTP(h_arg))) return fd_type_error("uint","imagick_fit",h_arg);
+  if (!(FD_UINTP(x_arg))) return fd_type_error("uint","imagick_fit",x_arg);
+  if (!(FD_UINTP(y_arg))) return fd_type_error("uint","imagick_fit",y_arg);
   size_t width=FD_FIX2INT(w_arg), height=FD_FIX2INT(h_arg);
   size_t xoff=FD_FIX2INT(x_arg), yoff=FD_FIX2INT(y_arg);
   if (FD_STRINGP(bgcolor)) {

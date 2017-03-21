@@ -144,13 +144,17 @@ static fdtype get_syncstamp_prim()
 
 static fdtype oid_server_changes(fdtype sid,fdtype xid)
 {
-  if (FD_FIX2INT(sid) != init_timestamp) return FD_FALSE;
+  if (FD_FIX2INT(sid) != init_timestamp)
+    return FD_FALSE;
   else {
     int new_syncstamp;
-    fdtype changes=get_changes(&oid_changelog,FD_FIX2INT(xid),&new_syncstamp);
+    fdtype changes=
+      get_changes(&oid_changelog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
-      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)));
-    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)),
+      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
+                                         FD_INT(new_syncstamp)));
+    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),
+                                         FD_INT(new_syncstamp)),
                             changes);}
 }
 
@@ -159,10 +163,13 @@ static fdtype iserver_changes(fdtype sid,fdtype xid)
   if (FD_FIX2INT(sid) != init_timestamp) return FD_FALSE;
   else {
     int new_syncstamp;
-    fdtype changes=get_changes(&index_changelog,FD_FIX2INT(xid),&new_syncstamp);
+    fdtype changes=
+      get_changes(&index_changelog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
-      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)));
-    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)),
+      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
+                                         FD_INT(new_syncstamp)));
+    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),
+                                         FD_INT(new_syncstamp)),
                             changes);}
 }
 
@@ -176,8 +183,10 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
     int new_syncstamp;
     fdtype changes=get_changes(clog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
-      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)));
-    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)),
+      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
+                                         FD_INT(new_syncstamp)));
+    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),
+                                         FD_INT(new_syncstamp)),
                             changes);}
 }
 

@@ -366,7 +366,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   fdtype vars[2], vals[2];
   fdtype control_spec=fd_get_arg(expr,1);
-  fdtype bsize; int blocksize;
+  fdtype bsize; long long blocksize;
   if (!((FD_PAIRP(control_spec)) &&
         (FD_SYMBOLP(FD_CAR(control_spec))) &&
         (FD_PAIRP(FD_CDR(control_spec))) &&
@@ -482,7 +482,7 @@ static int compare_lisp(fdtype x,fdtype y)
   if (xtype == ytype)
     switch (xtype) {
     case fd_fixnum_type: {
-      int xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
+      long long xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
       if (xval < yval) return -1;
       else if (xval > yval) return 1;
       else return 0;}
@@ -1028,12 +1028,16 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
 {
   if (FD_FIXNUMP(count)) {
     fdtype normal=fd_make_simple_choice(x);
-    int n=FD_CHOICE_SIZE(normal), howmany=fd_getint(count), start;
+    int n=FD_CHOICE_SIZE(normal), howmany=fd_getint(count);
+    int start;
     if (!(FD_CHOICEP(normal))) return normal;
     if (n<=howmany) return normal;
-    else if (FD_FIXNUMP(offset)) {
+    else if (FD_INTP(offset)) {
       start=FD_FIX2INT(offset);
       if ((n-start)<howmany) howmany=n-start;}
+    else if ((FD_FIXNUMP(offset))||(FD_BIGINTP(offset))) {
+      fd_decref(normal);
+      return fd_type_error("small fixnum","pickn",offset);}
     else start=u8_random(n-howmany);
     if (n) {
       struct FD_CHOICE *base=
@@ -1172,8 +1176,8 @@ static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep)
 
 static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
 {
-  if (FD_FIXNUMP(karg)) {
-    int k=FD_FIX2INT(karg);
+  if (FD_UINTP(karg)) {
+    unsigned int k=FD_FIX2INT(karg);
     struct FD_SORT_ENTRY *entries=NULL;
     fdtype results=select_helper(choices,keyfn,k,1,&entries);
     if (FD_VOIDP(results)) {
@@ -1192,8 +1196,8 @@ static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
 
 static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
 {
-  if (FD_FIXNUMP(karg)) {
-    int k=FD_FIX2INT(karg);
+  if (FD_UINTP(karg)) {
+    unsigned int k=FD_FIX2INT(karg);
     struct FD_SORT_ENTRY *entries=NULL;
     fdtype results=select_helper(choices,keyfn,k,1,&entries);
     if (FD_VOIDP(results)) {
@@ -1213,8 +1217,8 @@ static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
 
 static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
 {
-  if (FD_FIXNUMP(karg)) {
-    int k=FD_FIX2INT(karg);
+  if (FD_UINTP(karg)) {
+    unsigned int k=FD_FIX2INT(karg);
     struct FD_SORT_ENTRY *entries=NULL;
     fdtype results=select_helper(choices,keyfn,k,0,&entries);
     if (FD_VOIDP(results)) {
@@ -1233,8 +1237,8 @@ static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
 
 static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
 {
-  if (FD_FIXNUMP(karg)) {
-    int k=FD_FIX2INT(karg);
+  if (FD_UINTP(karg)) {
+    unsigned int k=FD_FIX2INT(karg);
     struct FD_SORT_ENTRY *entries=NULL;
     fdtype results=select_helper(choices,keyfn,k,0,&entries);
     if (FD_VOIDP(results)) {
@@ -1255,7 +1259,7 @@ static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
 
 static fdtype getrange_prim(fdtype arg1,fdtype endval)
 {
-  int start, end; fdtype results=FD_EMPTY_CHOICE;
+  long long start, end; fdtype results=FD_EMPTY_CHOICE;
   if (FD_VOIDP(endval))
     if (FD_FIXNUMP(arg1)) {
       start=0; end=FD_FIX2INT(arg1);}

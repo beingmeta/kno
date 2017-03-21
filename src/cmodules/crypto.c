@@ -160,8 +160,10 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
 
 FD_EXPORT fdtype random_packet_prim(fdtype arg)
 {
-  return fd_init_packet(NULL,FD_FIX2INT(arg),
-                        u8_random_vector(FD_FIX2INT(arg)));
+  if (FD_UINTP(arg))
+    return fd_init_packet(NULL,FD_FIX2INT(arg),
+                          u8_random_vector(FD_FIX2INT(arg)));
+  else return fd_type_error("uint","random_packet_prim",arg);
 }
 
 FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
@@ -174,6 +176,8 @@ FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
     byte_init=1;
   else if (!(FD_FIXNUMP(init)))
     return fd_type_error(_("Byte init value"),"fill_packet_prim",init);
+  else if (!(FD_UINTP(len)))
+    return fd_type_error(_("uint len"),"fill_packet_prim",len);
   else {
     byte_init=FD_FIX2INT(init);
     if ((byte_init<0)||(byte_init>=256))

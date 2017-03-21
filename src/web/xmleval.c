@@ -302,7 +302,7 @@ static fdtype get_markup_string(fdtype xml,
           if (FD_STRINGP(value))
             fd_attrib_entify(&out,FD_STRDATA(value));
           else if (FD_FIXNUMP(value))
-            u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
+            u8_printf(&out,"\"%lld\"",FD_FIX2INT(value));
           else if (cache_result)
             cache_result=output_attribval
               (&out,FD_NULL,value,scheme_env,xml_env,1);
@@ -352,7 +352,7 @@ static fdtype get_markup_string(fdtype xml,
               attrib_entify_x(&out,FD_STRDATA(value),NULL);
               u8_putc(&out,'"');}}
           else if (FD_FIXNUMP(value))
-            u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
+            u8_printf(&out,"\"%lld\"",FD_FIX2INT(value));
           else if (cache_result)
             cache_result=output_attribval
               (&out,FD_NULL,value,scheme_env,xml_env,1);
@@ -1644,7 +1644,8 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
     return FD_VOID;}
 }
 
-static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
+static fdtype fdxml_range_loop(fdtype var,fdtype count_var,
+                               fdtype xpr,fd_lispenv env)
 {
   u8_output out=u8_current_output; int i=0, limit;
   fdtype limit_val=fdxml_get(xpr,max_symbol,env);
@@ -1652,12 +1653,14 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
-  else if (!(FD_FIXNUMP(limit_val)))
+  else if (!(FD_UINTP(limit_val)))
     return fd_type_error("fixnum","dotimes_handler",limit_val);
   else limit=FD_FIX2INT(limit_val);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.table_schema=vars; bindings.schema_values=vals; bindings.schema_length=1;
+  bindings.table_schema=vars;
+  bindings.schema_values=vals;
+  bindings.schema_length=1;
   bindings.schemap_onstack=1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;

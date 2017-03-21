@@ -301,7 +301,8 @@ FD_EXPORT fdtype reqlog_handler(fdtype expr,fd_lispenv env)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout=fd_reqlog(1);
-  u8_string cond=NULL, cxt=NULL; int body_off=1, level=-1;
+  u8_string cond=NULL, cxt=NULL;
+  long long body_off=1, level=-1;
   fdtype arg1=fd_get_arg(expr,1), arg2=fd_get_arg(expr,2);
   fdtype arg3=fd_get_arg(expr,3), body, outval;
   if (FD_FIXNUMP(arg1)) {

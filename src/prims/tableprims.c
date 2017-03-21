@@ -60,20 +60,24 @@ FD_EXPORT fdtype make_hashset(fdtype arg)
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
   if (FD_VOIDP(arg))
     fd_init_hashset(h,17,FD_MALLOCD_CONS);
-  else fd_init_hashset(h,FD_FIX2INT(arg),FD_MALLOCD_CONS);
+  else if (FD_UINTP(arg))
+    fd_init_hashset(h,FD_FIX2INT(arg),FD_MALLOCD_CONS);
+  else return fd_type_error("uint","make_hashset",arg);
   FD_INIT_CONS(h,fd_hashset_type);
   return FDTYPE_CONS(h);
 }
 
 static fdtype make_hashtable(fdtype size)
 {
-  if (FD_FIXNUMP(size))
+  if (FD_UINTP(size))
     return fd_make_hashtable(NULL,FD_FIX2INT(size));
   else return fd_make_hashtable(NULL,0);
 }
 
 static fdtype pick_hashtable_size(fdtype count_arg)
 {
+  if (!(FD_UINTP(count_arg)))
+    return fd_type_error("uint","pick_hashtable_size",count_arg);
   int count=FD_FIX2INT(count_arg);
   int size=fd_get_hashtable_size(count);
   return FD_INT(size);
@@ -81,6 +85,8 @@ static fdtype pick_hashtable_size(fdtype count_arg)
 
 static fdtype reset_hashtable(fdtype table,fdtype n_slots)
 {
+  if (!(FD_UINTP(n_slots)))
+    return fd_type_error("uint","reset_hashtable",n_slots);
   fd_reset_hashtable((fd_hashtable)table,FD_FIX2INT(n_slots),1);
   return FD_VOID;
 }
@@ -192,6 +198,8 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
 {
   if (!(FD_TABLEP(table)))
     return fd_type_error(_("table"),"lisp_pick_key",table);
+  else if (!(FD_UINTP(howmany_arg)))
+    return fd_type_error(_("uint"),"lisp_pick_key",howmany_arg);
   else {
     fdtype x=fd_getkeys(table);
     fdtype normal=fd_make_simple_choice(x);
@@ -264,7 +272,8 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,increment)<0)
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,
+                             increment)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
@@ -273,7 +282,7 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
       if (FD_VOIDP(cur))
         fd_store(table,key,increment);
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
-        int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
+        long long sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
         fdtype lsum=FD_INT(sum);
         fd_store(table,key,lsum);
         fd_decref(lsum);}
@@ -334,7 +343,8 @@ static fdtype table_increment_existing
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
-    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,increment)<0)
+    else if (fd_hashtable_op(FD_XHASHTABLE(table),fd_table_increment,keys,
+                             increment)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
@@ -342,7 +352,7 @@ static fdtype table_increment_existing
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
-        int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
+        long long sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
         fdtype lsum=FD_INT(sum);
         fd_store(table,key,lsum);
         fd_decref(lsum);}

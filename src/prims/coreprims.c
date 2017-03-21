@@ -170,7 +170,7 @@ static fdtype get_refcount(fdtype x,fdtype delta)
   if (FD_CONSP(x)) {
     struct FD_CONS *cons=(struct FD_CONS *)x;
     int refcount=FD_CONS_REFCOUNT(cons);
-    int d=FD_FIX2INT(delta);
+    long long d=FD_FIX2INT(delta);
     if (d<0) d=-d;
     if (refcount<1)
       return fd_reterr("Bad REFCOUNT","get_refcount",
@@ -227,7 +227,7 @@ static fdtype containsp(fdtype x,fdtype y)
 static int numeric_compare(const fdtype x,const fdtype y)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
-    int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
+    long long ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
     if (ix>iy) return 1; else if (ix<iy) return -1; else return 0;}
   else if ((FD_FLONUMP(x)) && (FD_FLONUMP(y))) {
     double dx=FD_FLONUM(x), dy=FD_FLONUM(y);

@@ -51,6 +51,8 @@ FD_EXPORT fdtype fd_lconfig_get(fdtype,void *lispp);
 FD_EXPORT int fd_sconfig_set(fdtype,fdtype v,void *stringptr);
 FD_EXPORT fdtype fd_sconfig_get(fdtype,void *stringptr);
 FD_EXPORT int fd_intconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_longconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_longconfig_set(fdtype,fdtype v,void *intptr);
 FD_EXPORT fdtype fd_intconfig_get(fdtype,void *intptr);
 FD_EXPORT int fd_sizeconfig_set(fdtype,fdtype v,void *intptr);
 FD_EXPORT fdtype fd_sizeconfig_get(fdtype,void *intptr);

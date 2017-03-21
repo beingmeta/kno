@@ -304,7 +304,7 @@ static int config_serve_port(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   if (server_initialized==0) init_server();
   if (n_ports<0) return -1;
-  else if (FD_FIXNUMP(val)) {
+  else if (FD_UINTP(val)) {
     int retval=u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
     if (retval<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);

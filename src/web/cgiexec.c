@@ -820,7 +820,7 @@ FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   int keep_doctype=0, http_status=-1;
   if ((FD_STRINGP(redirect))&&(FD_VOIDP(status))) {
     status=FD_INT(303); http_status=303;}
-  if (FD_FIXNUMP(status)) {
+  if (FD_UINTP(status)) {
     u8_printf(out,"Status: %d\r\n",FD_FIX2INT(status));
     http_status=FD_FIX2INT(status);}
   else if (FD_STRINGP(status)) {

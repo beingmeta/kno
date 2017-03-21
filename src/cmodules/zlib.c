@@ -32,7 +32,7 @@ static u8_condition zlibDataError=_("Bad ZLIB input data");
 
 static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
 {
-  int level=((FD_FIXNUMP(level_arg))?(FD_FIX2INT(level_arg)):(9));
+  int level=((FD_UINTP(level_arg))?(FD_FIX2INT(level_arg)):(9));
   const Bytef *input; uLongf input_len=0;
   Bytef *output; uLongf output_len=0;
   int retval;
@@ -67,7 +67,7 @@ static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
 
 static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_factor)
 {
-  int init_grow=((FD_FIXNUMP(init_factor))?(FD_FIX2INT(init_factor)):(5));
+  int init_grow=((FD_UINTP(init_factor))?(FD_FIX2INT(init_factor)):(5));
   const Bytef *input; uLongf input_len=0;
   Bytef *output; uLongf output_len=0, buf_len=0;
   int retval;

@@ -933,7 +933,9 @@ int main(int argc,char **argv)
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
       fd_decref(result); break;}
     /* Clear the buffer (should do more?) */
-    if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
+    if (((FD_PAIRP(expr)) &&
+         ((FD_EQ(FD_CAR(expr),histref_symbol))) &&
+         (FD_PAIRP(FD_CDR(expr))) && (FD_UINTP(FD_CADR(expr)))) ||
         (FD_EQ(expr,that_symbol))) {
       if (!(FD_EQ(expr,that_symbol)))
         is_histref=1;

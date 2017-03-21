@@ -176,7 +176,7 @@ static int getflags(fdtype opts,int dflt)
   if ((FD_VOIDP(opts)||(FD_FALSEP(opts))||(FD_DEFAULTP(opts))))
     if (dflt<0) return mongodb_defaults;
     else return dflt;
-  else if (FD_FIXNUMP(opts)) return FD_FIX2INT(opts);
+  else if (FD_UINTP(opts)) return FD_FIX2INT(opts);
   else if ((FD_CHOICEP(opts))||(FD_SYMBOLP(opts))) {
     int flags=FD_MONGODB_DEFAULTS;
     if (fd_overlapp(opts,raw)) flags=0;
@@ -213,7 +213,7 @@ static int get_write_flags(fdtype val)
     return MONGOC_WRITE_CONCERN_W_MAJORITY;
   else if ((FD_FIXNUMP(val))&&(FD_FIX2INT(val)<0))
     return MONGOC_WRITE_CONCERN_W_ERRORS_IGNORED;
-  else if ((FD_FIXNUMP(val))&&(FD_FIX2INT(val)>0))
+  else if ((FD_UINTP(val))&&(FD_FIX2INT(val)>0))
     return FD_FIX2INT(val);
   else {
     u8_log(LOGWARN,"mongodb/get_write_concern","Bad MongoDB write concern %q",val);
@@ -230,7 +230,7 @@ static mongoc_write_concern_t *get_write_concern(fdtype opts)
     if (!(FD_VOIDP(val))) {
       int w=get_write_flags(val);
       mongoc_write_concern_set_w(wc,w);}
-    if (FD_FIXNUMP(wait)) {
+    if (FD_UINTP(wait)) {
       int msecs=FD_FIX2INT(wait);
       mongoc_write_concern_set_wtimeout(wc,msecs);}
     fd_decref(wait);
@@ -366,10 +366,10 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     if ((mongoc_uri_get_ssl(info))&& 
         (setup_ssl(&ssl_opts,info,opts)))
       mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
-    if (FD_FIXNUMP(poolmax)) {
+    if (FD_UINTP(poolmax)) {
       int pmax=FD_FIX2INT(poolmax);
       mongoc_client_pool_max_size(client_pool,pmax);}
-    if (FD_FIXNUMP(poolmin)) {
+    if (FD_UINTP(poolmin)) {
       int pmin=FD_FIX2INT(poolmin);
       mongoc_client_pool_min_size(client_pool,pmin);}
     fd_decref(poolmax); fd_decref(poolmin);
@@ -801,7 +801,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
     int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
     fdtype *vec=NULL; size_t n=0, max=0;
-    if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
+    if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))&&(FD_UINTP(batch_arg))) {
       bson_t *q=fd_dtype2bson(query,flags,opts);
       bson_t *fields=get_projection(opts,flags);
       mongoc_read_prefs_t *rp=get_read_prefs(opts);
@@ -1053,16 +1053,21 @@ static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
       fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
       fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
-      if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
+      if ((FD_UINTP(skip_arg))&&
+          (FD_UINTP(limit_arg))&&
+          (FD_UINTP(batch_arg))) {
         mongoc_cursor_t *cursor=mongoc_collection_command
           (collection,MONGOC_QUERY_EXHAUST,
-           (FD_FIX2INT(skip_arg)),(FD_FIX2INT(limit_arg)),(FD_FIX2INT(batch_arg)),
+           (FD_FIX2INT(skip_arg)),
+           (FD_FIX2INT(limit_arg)),
+           (FD_FIX2INT(batch_arg)),
            cmd,flds,NULL);
         while (mongoc_cursor_next(cursor,&doc)) {
           fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
           FD_ADD_TO_CHOICE(results,r);}
         mongoc_cursor_destroy(cursor);}
-      else results=fd_err(fd_TypeError,"collection_command","bad skip/limit/batch",opts);
+      else results=fd_err(fd_TypeError,"collection_command",
+                          "bad skip/limit/batch",opts);
       mongoc_collection_destroy(collection);
       client_done(arg,client);
       bson_destroy(cmd); fd_decref(opts);
@@ -1089,16 +1094,21 @@ static fdtype db_command(fdtype arg,fdtype command,
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
       fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
       fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
-      if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
+      if ((FD_UINTP(skip_arg))&&
+          (FD_UINTP(limit_arg))&&
+          (FD_UINTP(batch_arg))) {
         mongoc_cursor_t *cursor=mongoc_client_command
           (client,srv->dbname,MONGOC_QUERY_EXHAUST,
-           (FD_FIX2INT(skip_arg)),(FD_FIX2INT(limit_arg)),(FD_FIX2INT(batch_arg)),
+           (FD_FIX2INT(skip_arg)),
+           (FD_FIX2INT(limit_arg)),
+           (FD_FIX2INT(batch_arg)),
            cmd,flds,NULL);
         while (mongoc_cursor_next(cursor,&doc)) {
           fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
           FD_ADD_TO_CHOICE(results,r);}
         mongoc_cursor_destroy(cursor);}
-      else results=fd_err(fd_TypeError,"collection_command","bad skip/limit/batch",opts);
+      else results=fd_err(fd_TypeError,"collection_command",
+                          "bad skip/limit/batch",opts);
       client_done(arg,client);
       bson_destroy(cmd); fd_decref(opts);
       return results;}
@@ -1273,12 +1283,14 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
   bson_t *fields=get_projection(opts,flags);
   mongoc_read_prefs_t *rp=get_read_prefs(opts);
   if ((collection)&&
-      (FD_FIXNUMP(skip_arg))&&
-      (FD_FIXNUMP(limit_arg))&&
-      (FD_FIXNUMP(batch_arg))) {
+      (FD_UINTP(skip_arg))&&
+      (FD_UINTP(limit_arg))&&
+      (FD_UINTP(batch_arg))) {
     cursor=mongoc_collection_find
       (collection,MONGOC_QUERY_NONE,
-       FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
+       FD_FIX2INT(skip_arg),
+       FD_FIX2INT(limit_arg),
+       FD_FIX2INT(batch_arg),
        bq,fields,rp);}
   if (cursor) {
     struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
@@ -1343,6 +1355,7 @@ static fdtype mongodb_donep(fdtype cursor)
 static fdtype mongodb_skip(fdtype cursor,fdtype howmany)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
   int n=FD_FIX2INT(howmany), i=0; const bson_t *doc;
   while ((i<n)&&(mongoc_cursor_more(c->mongoc_cursor))) {
     mongoc_cursor_next(c->mongoc_cursor,&doc); i++;}
@@ -1352,6 +1365,7 @@ static fdtype mongodb_skip(fdtype cursor,fdtype howmany)
 static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
   int n=FD_FIX2INT(howmany), i=0;
   if (n==0) return FD_EMPTY_CHOICE;
   else {
@@ -1393,6 +1407,7 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
 static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
   int n=FD_FIX2INT(howmany), i=0;
   if (n==0) return fd_make_vector(0,NULL);
   else {
@@ -1570,8 +1585,10 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     default: break;}
     return ok;}
+  else if (FD_INTP(val))
+    return bson_append_int32(out,key,keylen,((int)(FD_FIX2INT(val))));
   else if (FD_FIXNUMP(val))
-    return bson_append_int32(out,key,keylen,FD_FIX2INT(val));
+    return bson_append_int64(out,key,keylen,FD_FIX2INT(val));
   else if (FD_OIDP(val)) {
     unsigned char bytes[12];
     FD_OID addr=FD_OID_ADDR(val); bson_oid_t oid;
@@ -1901,7 +1918,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
         while (i<16) fields[i++]=FD_VOID;
         {FD_DO_CHOICES(key,keys) {
             if (FD_FIXNUMP(key)) {
-              int index=FD_FIX2INT(key);
+              long long index=FD_FIX2INT(key);
               if ((index<0) || (index>=16)) {
                 i=0; while (i<16) {
                   fdtype value=fields[i++];
