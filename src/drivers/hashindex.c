@@ -2677,7 +2677,8 @@ static fd_index hash_index_create(u8_string spec,void *typedata,
 FD_EXPORT fdtype _fd_populate_hash_index_deprecated
   (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
-  fd_index ix=fd_indexptr(ix_arg); int blocksize=-1, retval;
+  fd_index ix=fd_indexptr(ix_arg);
+  long long blocksize=-1, retval;
   const fdtype *keyvec; fdtype *consed_keyvec=NULL;
   unsigned int n_keys; fdtype keys_choice=FD_VOID;
   if (!(fd_hash_indexp(ix)))

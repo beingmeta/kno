@@ -446,7 +446,8 @@ FD_EXPORT int fd_n_base_oids;
   (FD_OID_PLUS(fd_base_oids[((x>>2)&(FD_OID_BUCKET_MASK))],\
 	       (x>>((FD_OID_BUCKET_WIDTH)+2))))
 #define FD_CONSTRUCT_OID(baseid,offset) \
-  ((fdtype) (((baseid)<<2)|((offset)<<((FD_OID_BUCKET_WIDTH)+2))|3))
+  ((fdtype) ((((fd_ptrbits)baseid)<<2)|\
+	     (((fd_ptrbits)offset)<<((FD_OID_BUCKET_WIDTH)+2))|3))
 FD_EXPORT fdtype fd_make_oid(FD_OID addr);
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 
