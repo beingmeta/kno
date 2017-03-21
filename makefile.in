@@ -161,11 +161,11 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	src/eval/reflection.o \
 	src/eval/compounds.o \
 	src/eval/choiceops.o \
+	src/eval/coreops.o \
 	src/eval/arith.o \
 	src/eval/side-effects.o \
 	src/eval/regex.o \
 	src/eval/reqstate.o \
-	src/prims/coreprims.o \
 	src/prims/dbprims.o \
 	src/prims/tableprims.o \
 	src/prims/seqprims.o \
@@ -360,7 +360,7 @@ FRAMERD_SOURCES=\
         src/eval/threads.c src/eval/quasiquote.c               		\
 	src/eval/modules.c src/eval/load.c src/eval/reflection.c 	\
 	src/eval/compounds.c 						\
-	src/prims/coreprims.c                  				\
+	src/eval/coreops.c                  				\
 	src/eval/arith.c src/eval/side-effects.c              		\
 	src/prims/dbprims.c 						\
 	src/prims/portprims.c						\
