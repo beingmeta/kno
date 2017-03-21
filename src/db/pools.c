@@ -556,8 +556,14 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 {
   fd_hashtable cache=&(p->pool_cache);
-  oids=fd_make_simple_choice(oids);
-  u8_log(fdkb_loglevel,"PoolDB","Swapping out pool %s",p->poolid);
+  if (FD_ACHOICEP(oids))
+    oids=fd_make_simple_choice(oids);
+  if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))
+    u8_log(fdkb_loglevel,"SwapPool",
+           "Swapping out %d oids in pool %s",
+           FD_CHOICE_SIZE(oids),p->poolid);
+  else u8_log(fdkb_loglevel,"SwapPool",
+              "Swapping out oids in pool %s",p->poolid);
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
     u8_log(fdkb_loglevel+1,"SwapPool",
