@@ -37,7 +37,7 @@ int main(int argc,char **argv)
       u8_fprintf(stderr,_("Value of %q is %q\n"),key,value);
       fd_decref(value);}}
   fd_decref(keys);
-  fd_index_swapout(ix);
+  fd_index_swapout(ix,FD_VOID);
   fd_index_close(ix);
   return 0;
 }

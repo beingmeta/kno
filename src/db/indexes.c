@@ -861,13 +861,27 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   else return 0;
 }
 
-FD_EXPORT void fd_index_swapout(fd_index ix)
+FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
 {
-  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) &&
-      (ix->index_cache.table_n_keys)) {
+  struct FD_HASHTABLE *cache=&(ix->index_cache);
+  if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0)) 
+    return;
+  else if (FD_VOIDP(keys)) {
     if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(&(ix->index_cache),-1,1);
     else fd_reset_hashtable(&(ix->index_cache),0,1);}
+  else if (FD_CHOICEP(keys)) {
+    struct FD_CHOICE *ch=(fd_choice)keys;
+    fd_hashtable_iterkeys(cache,fd_table_replace,ch->choice_size,
+                          FD_XCHOICE_DATA(ch),FD_VOID);
+    fd_devoid_hashtable(cache,0);
+    return;}
+  else if (FD_ACHOICEP(keys)) {
+    fdtype simplified=fd_simplify_choice(keys);
+    fd_index_swapout(ix,simplified);
+    fd_decref(simplified);}
+  else {
+    fd_hashtable_store(&(ix->index_cache),keys,FD_VOID);}
 }
 
 FD_EXPORT void fd_index_close(fd_index ix)
@@ -963,9 +977,9 @@ static fdtype index_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
 FD_EXPORT void fd_swapout_indexes()
 {
   int i=0; while (i < fd_n_primary_indexes) {
-    fd_index_swapout(fd_primary_indexes[i]); i++;}
+    fd_index_swapout(fd_primary_indexes[i],FD_VOID); i++;}
   i=0; while (i < fd_n_secondary_indexes) {
-    fd_index_swapout(fd_secondary_indexes[i]); i++;}
+    fd_index_swapout(fd_secondary_indexes[i],FD_VOID); i++;}
 }
 
 FD_EXPORT void fd_close_indexes()

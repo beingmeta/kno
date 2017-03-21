@@ -729,9 +729,9 @@ static fdtype swapout_lexpr(int n,fdtype *args)
         else if (FD_POOLP(e))
           fd_pool_swapout(fd_lisp2pool(e),FD_VOID);
         else if (FD_INDEXP(e))
-          fd_index_swapout(fd_indexptr(e));
+          fd_index_swapout(fd_indexptr(e),FD_VOID);
         else if (FD_TYPEP(e,fd_raw_index_type))
-          fd_index_swapout(fd_indexptr(e));
+          fd_index_swapout(fd_indexptr(e),FD_VOID);
         else if (FD_TYPEP(arg,fd_raw_pool_type))
           fd_pool_swapout((fd_pool)arg,FD_VOID);
         else if (FD_STRINGP(e)) {
@@ -750,16 +750,34 @@ static fdtype swapout_lexpr(int n,fdtype *args)
       return FD_VOID;}
     else if (FD_OIDP(arg)) fd_swapout_oid(arg);
     else if (FD_TYPEP(arg,fd_index_type))
-      fd_index_swapout(fd_indexptr(arg));
+      fd_index_swapout(fd_indexptr(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_pool_type))
       fd_pool_swapout(fd_lisp2pool(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_raw_index_type))
-      fd_index_swapout(fd_indexptr(arg));
+      fd_index_swapout(fd_indexptr(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_raw_pool_type))
       fd_pool_swapout((fd_pool)arg,FD_VOID);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     return FD_VOID;}
-  else return fd_err(fd_TooManyArgs,"swapout",NULL,FD_VOID);
+  else if (n>2)
+    return fd_err(fd_TooManyArgs,"swapout",NULL,FD_VOID);
+  else {
+    fdtype arg, keys;
+    if ((FD_TYPEP(args[0],fd_pool_type))||
+        (FD_TYPEP(args[0],fd_index_type))||
+        (FD_TYPEP(args[0],fd_raw_pool_type))||
+        (FD_TYPEP(args[0],fd_raw_index_type))) {
+      arg=args[0]; keys=args[1];}
+    else {arg=args[0]; keys=args[1];}
+    if (FD_TYPEP(arg,fd_index_type))
+      fd_index_swapout(fd_indexptr(arg),keys);
+    else if (FD_TYPEP(arg,fd_pool_type))
+      fd_pool_swapout(fd_lisp2pool(arg),keys);
+    else if (FD_TYPEP(arg,fd_raw_index_type))
+      fd_index_swapout(fd_indexptr(arg),keys);
+    else if (FD_TYPEP(arg,fd_raw_pool_type))
+      fd_pool_swapout((fd_pool)arg,keys);
+    else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);}
 }
 
 static fdtype commit_lexpr(int n,fdtype *args)

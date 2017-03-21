@@ -49,7 +49,7 @@ int main(int argc,char **argv)
     fd_decref(value); value=FD_VOID;
     fd_index_commit(ix);}
   fd_decref(key); key=FD_VOID;
-  fd_index_swapout(ix);
+  fd_index_swapout(ix,FD_VOID);
   fd_index_close(ix);
   return 0;
 }

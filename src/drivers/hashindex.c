@@ -1534,7 +1534,7 @@ static int populate_prefetch
 {
   fdtype prefetch=FD_EMPTY_CHOICE;
   int k=i, lim=k+blocksize, final_bckt;
-  fd_index_swapout(ix);
+  fd_index_swapout(ix,FD_VOID);
   if (lim>n_keys) lim=n_keys;
   while (k<lim) {
     fdtype key=psched[k++].key; fd_incref(key);

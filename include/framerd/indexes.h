@@ -139,7 +139,7 @@ FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags,fdtype);
 FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags,fdtype);
 FD_EXPORT fd_index fd_find_index_by_qname(u8_string);
 
-FD_EXPORT void fd_index_swapout(fd_index ix);
+FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
 FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags,fdtype);
