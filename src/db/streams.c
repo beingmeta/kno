@@ -188,8 +188,10 @@ FD_EXPORT fd_stream fd_init_file_stream
   fd=open(localname,open_flags,0666);
   /* If we fail and we're modifying, try to open read-only */
   if ((fd<0) && (mode == FD_FILE_MODIFY)) {
+    U8_CLEAR_ERRNO();
     fd=open(localname,O_RDONLY,0666);}
   if (fd>0) {
+    U8_CLEAR_ERRNO();
     fd_init_stream(stream,fname,fd,stream_flags,bufsiz);
     stream->stream_maxpos=lseek(fd,0,SEEK_END);
     stream->stream_filepos=lseek(fd,0,SEEK_SET);
