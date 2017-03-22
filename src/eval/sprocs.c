@@ -186,7 +186,8 @@ static fdtype _make_sproc(u8_string name,
   if (n_vars)
     s->sproc_vars=schema=u8_alloc_n((n_vars+1),fdtype);
   else s->sproc_vars=NULL;
-  s->fcn_defaults=NULL; s->fcn_filename=NULL; s->fcn_attribs=NULL;
+  s->fcn_defaults=NULL; s->fcn_filename=NULL;
+  s->fcn_attribs=FD_VOID;
   if (incref) {
     s->sproc_body=fd_incref(body);
     s->sproc_arglist=fd_incref(arglist);}
@@ -353,7 +354,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     if (sproc->fcn_typeinfo)
       fresh->fcn_typeinfo=copy_intvec(sproc->fcn_typeinfo,arity,NULL);
 
-    fresh->fcn_attribs=FD_NULL;
+    fresh->fcn_attribs=FD_VOID;
     fresh->sproc_arglist=fd_copier(sproc->sproc_arglist,flags);
     fresh->sproc_body=fd_copier(sproc->sproc_body,flags);
     fresh->sproc_bytecode=NULL;
