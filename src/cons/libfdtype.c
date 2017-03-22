@@ -12,6 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include <libu8/u8rusage.h>
+#include <libu8/u8stdio.h>
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
@@ -151,16 +152,18 @@ FD_EXPORT void fd_status_message()
     double systime=format_secs
       (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
        &stu);
+    u8_byte prefix_buf[256];
+    u8_string prefix=u8_message_prefix(prefix_buf,256);
     if (heapbytes>10000000000) {
       heapsize=floor(((double)heapbytes)/1000000000); heapu="GB";}
     else if (heapbytes>1500000) {
       heapsize=floor(((double)heapbytes)/1000000); heapu="MB";}
     else {heapsize=floor(((double)heapbytes)/1000); heapu="KB";}
-    u8_message
-      ("%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s",
-       FRAMERD_REVISION,u8_appid(),getpid(),
-       elapsed,etu,usertime,utu,systime,stu,
-       heapsize,heapu);}
+    u8_fprintf(stderr,
+               ";;; %s %s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
+               prefix,FRAMERD_REVISION,u8_appid(),getpid(),
+               elapsed,etu,usertime,utu,systime,stu,
+               heapsize,heapu);}
 }
 
 FD_EXPORT int fd_init_libfdtype()
