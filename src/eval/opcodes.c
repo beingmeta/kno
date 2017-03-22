@@ -270,16 +270,16 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
 {
   if (FD_EMPTY_CHOICEP(arg1)) {
     fd_decref(arg2); return arg1;}
-  else if ((FD_SEQUENCEP(arg1)) && (FD_UINTP(arg2))) {
+  else if ((FD_SEQUENCEP(arg1)) && (FD_INTP(arg2))) {
     fdtype result;
-    unsigned int off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
+    long long off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
     if (off<0) off=len+off;
     result=fd_seq_elt(arg1,off);
     if (result == FD_TYPE_ERROR)
       return fd_type_error(_("sequence"),"FD_OPCODE_ELT",arg1);
     else if (result == FD_RANGE_ERROR) {
       char buf[32];
-      sprintf(buf,"%d",off);
+      sprintf(buf,"%lld",off);
       return fd_err(fd_RangeError,"FD_OPCODE_ELT",u8_strdup(buf),arg1);}
     else return result;}
   else if (!(FD_SEQUENCEP(arg1)))
@@ -427,11 +427,11 @@ static fdtype nd2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     return results;}
 }
 
-static fdtype xref_opcode(fdtype x,int i,fdtype tag)
+static fdtype xref_opcode(fdtype x,long long i,fdtype tag)
 {
   struct FD_COMPOUND *c=(fd_compound)x;
   if ((FD_VOIDP(tag)) || ((c->compound_typetag)==tag))
-    if (i<c->fd_n_elts) {
+    if ((i>0) && (i<c->fd_n_elts)) {
       fdtype *values=&(c->compound_0), value;
       if (c->compound_ismutable) 
         u8_lock_mutex(&(c->compound_lock));
