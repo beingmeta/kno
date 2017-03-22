@@ -58,13 +58,17 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
             if (FD_ABORTED(splice_at_end)) {
               fd_decref(head);
               return splice_at_end;}
+            else if (FD_VOIDP(splice_at_end)) {
+              fd_seterr(fd_VoidArgument,"quasiquote_list",NULL,FD_CADR(obj));
+              fd_decref(head);
+              return FD_ERROR_VALUE;}
             else {
               *tail=splice_at_end;
               return head;}}
           else {
             fdtype splice_at_end=fd_quasiquote(FD_CADR(obj),env,level-1);
             if (FD_ABORTED(splice_at_end)) {
-              fd_decref(head); 
+              fd_decref(head);
               return splice_at_end;}
             else {
               fdtype with_unquote=fd_conspair(unquote,splice_at_end);
@@ -79,8 +83,10 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
         fd_decref(head);
         return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,elt);}
       else if (FD_EQ(FD_CAR(elt),unquote)) {
-        if (level==1)
+        if (level==1) {
           new_elt=fd_eval(FD_CADR(elt),env);
+          if (FD_VOIDP(new_elt))
+            new_elt=fd_err(fd_VoidArgument,"quasiquote_list",NULL,FD_CADR(elt));}
         else {
           fdtype embed=fd_quasiquote(FD_CADR(elt),env,level-1);
           if (FD_ABORTED(embed)) new_elt=embed;
@@ -94,6 +100,10 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
           if (FD_ABORTED(insertion)) {
               fd_decref(head);
               return insertion;}
+          else if (FD_VOIDP(insertion)) {
+            fd_seterr(fd_VoidArgument,"quasiquote_list",NULL,FD_CADR(elt));
+            fd_decref(head);
+            return FD_ERROR_VALUE;}
           else if (FD_EMPTY_LISTP(insertion)) {}
           else if (FD_PAIRP(insertion)) {
             fdtype scan=insertion, last=FD_VOID;
@@ -171,6 +181,11 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
             int k=0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
             return insertion;}
+          else if (FD_VOIDP(insertion)) {
+            fd_seterr(fd_VoidArgument,"quasiquote_vector",NULL,FD_CADR(elt));
+            int k=0; while (k<j) {fd_decref(newelts[k]); k++;}
+            u8_free(newelts);
+            return FD_ERROR_VALUE;}
           if (FD_EMPTY_LISTP(insertion)) {}
           else if (FD_PAIRP(insertion)) {
             fdtype scan=insertion; while (FD_PAIRP(scan)) {
