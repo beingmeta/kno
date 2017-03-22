@@ -1526,7 +1526,7 @@ static fdtype callcc (fdtype proc)
 {
   fdtype continuation, value;
   struct FD_CONTINUATION *f=u8_alloc(struct FD_CONTINUATION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name="continuation"; f->fcn_filename=NULL;
   f->fcn_ndcall=1; f->fcn_xcall=1; f->fcn_arity=1; f->fcn_min_arity=1;
   f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;

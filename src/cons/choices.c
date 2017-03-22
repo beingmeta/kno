@@ -291,7 +291,7 @@ fdtype fd_make_achoice(fdtype x,fdtype y)
 {
   struct FD_ACHOICE *ch=u8_alloc(struct FD_ACHOICE);
   fdtype nx=fd_simplify_choice(x), ny=fd_simplify_choice(y);
-  FD_INIT_CONS(ch,fd_achoice_type);
+  FD_INIT_FRESH_CONS(ch,fd_achoice_type);
   ch->achoice_choicedata=fd_alloc_choice(64);
   ch->achoice_write=ch->achoice_data=(fdtype *)FD_XCHOICE_DATA(ch->achoice_choicedata);
   ch->achoice_limit=ch->achoice_data+64; ch->achoice_normalized=FD_VOID;
@@ -328,7 +328,7 @@ FD_EXPORT
 fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
 {
   if (ch==NULL) ch=u8_alloc(struct FD_ACHOICE);
-  FD_INIT_CONS(ch,fd_achoice_type);
+  FD_INIT_FRESH_CONS(ch,fd_achoice_type);
   ch->achoice_choicedata=fd_alloc_choice(lim);
   ch->achoice_write=ch->achoice_data=(fdtype *)FD_XCHOICE_DATA(ch->achoice_choicedata);
   ch->achoice_limit=ch->achoice_data+lim; ch->achoice_size=0;
@@ -724,7 +724,7 @@ FD_EXPORT
 fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice)
 {
   if (ptr==NULL) ptr=u8_alloc(struct FD_QCHOICE);
-  FD_INIT_CONS(ptr,fd_qchoice_type);
+  FD_INIT_FRESH_CONS(ptr,fd_qchoice_type);
   ptr->qchoiceval=choice;
   return FDTYPE_CONS(ptr);
 }
@@ -746,7 +746,7 @@ static fdtype copy_qchoice(fdtype x,int deep)
 {
   struct FD_QCHOICE *copied=u8_alloc(struct FD_QCHOICE);
   struct FD_QCHOICE *qc=FD_XQCHOICE(x);
-  FD_INIT_CONS(copied,fd_qchoice_type);
+  FD_INIT_FRESH_CONS(copied,fd_qchoice_type);
   if (deep)
     copied->qchoiceval=fd_deep_copy(qc->qchoiceval);
   else {

@@ -84,7 +84,7 @@ FD_EXPORT fd_exception fd_MissingOpenQuote, fd_MissingCloseQuote;
 FD_EXPORT fd_exception fd_InvalidHexChar, fd_InvalidBase64Char;
 FD_EXPORT fd_exception fd_InvalidCharacterConstant, fd_BadAtom;
 FD_EXPORT fd_exception fd_NoPointerExpressions, fd_BadPointerRef;
-FD_EXPORT fd_exception fd_CantOpenFile, fd_FileNotFound;
+FD_EXPORT fd_exception fd_FileNotFound, fd_NoSuchFile;
 
 #include "malloc.h"
 #include "dtypeio.h"

@@ -2541,7 +2541,7 @@ FD_EXPORT int fd_init_mongodb()
                                   -1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/REMOVE!",mongodb_remove,2,
                                   fd_mongoc_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+                                  -1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim4x("MONGODB/UPDATE!",mongodb_update,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID,

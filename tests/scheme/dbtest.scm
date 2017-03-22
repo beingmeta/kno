@@ -287,14 +287,12 @@
     (makedb testpool testindex files)
     (checkdb (config 'COUNT 1000) testpool testindex)
     (commit)
-    ;;(swapout)
-    )
+    (swapout))
   (dbg #f)
   (checkdb (config 'COUNT 1000) testpool testindex)
-  ;; (swapout)
+  (swapout)
   (checkdb (config 'COUNT 1000) testpool testindex)
-  ;; (swapout)
-  )
+  (swapout))
 
 
 

@@ -132,7 +132,7 @@ static fdtype set_procedure_documentation(fdtype x,fdtype doc)
   fdtype proc=(FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
   fd_ptr_type proctype=FD_PTR_TYPE(proc);
   if (fd_functionp[proctype]) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(proc);
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     if (f->fcn_documentation) u8_free(f->fcn_documentation);
     f->fcn_documentation=FD_STRDATA(doc);
     return FD_VOID;}
@@ -185,6 +185,87 @@ static fdtype procedure_min_arity(fdtype x)
     return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_min_arity",x);
 }
+
+/* Procedure attribs */
+
+
+static fdtype get_proc_attribs(fdtype x,int create)
+{
+  fd_ptr_type proctype=FD_PTR_TYPE(x);
+  if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    fdtype attribs=f->fcn_attribs;
+    if (!(create)) {
+      if ((attribs!=FD_NULL)&&(FD_TABLEP(attribs)))
+        return attribs;
+      else return FD_VOID;}
+    if (attribs!=FD_NULL) fd_decref(attribs);
+    f->fcn_attribs=attribs=fd_init_slotmap(NULL,4,NULL);
+    return attribs;}
+  else if (create) {
+    fd_seterr("NoAttribs","get_proc_attribs",NULL,x);
+    return FD_ERROR_VALUE;}
+  else return FD_VOID;
+}
+
+static fdtype set_procedure_attribs(fdtype x,fdtype value)
+{
+  fd_ptr_type proctype=FD_PTR_TYPE(x);
+  if (fd_functionp[proctype]) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    fdtype table=f->fcn_attribs;
+    if (table!=FD_NULL) fd_decref(table);
+    f->fcn_attribs=fd_incref(value);
+    return FD_VOID;}
+  else return fd_err("Not Handled","set_procedure_documentation",
+                     NULL,x);
+}
+
+static fdtype attribs_get(fdtype x,fdtype attrib)
+{
+  fdtype attribs=get_proc_attribs(x,0);
+  if (FD_TABLEP(attribs))
+    return fd_get(attribs,attrib,FD_FALSE);
+  else return FD_FALSE;
+}
+
+static fdtype attribs_store(fdtype x,fdtype attrib,fdtype value)
+{
+  fdtype attribs=get_proc_attribs(x,1);
+  if (FD_ABORTP(attribs)) return attribs;
+  else if (FD_TABLEP(attribs)) {
+    int rv=fd_store(attribs,attrib,value);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv==0) return FD_FALSE;
+    else return FD_INT(rv);}
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype attribs_add(fdtype x,fdtype attrib,fdtype value)
+{
+  fdtype attribs=get_proc_attribs(x,1);
+  if (FD_ABORTP(attribs)) return attribs;
+  else if (FD_TABLEP(attribs)) {
+    int rv=fd_add(attribs,attrib,value);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv==0) return FD_FALSE;
+    else return FD_INT(rv);}
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype attribs_drop(fdtype x,fdtype attrib,fdtype value)
+{
+  fdtype attribs=get_proc_attribs(x,1);
+  if (FD_ABORTP(attribs)) return attribs;
+  else if (FD_TABLEP(attribs)) {
+    int rv=fd_drop(attribs,attrib,value);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv==0) return FD_FALSE;
+    else return FD_INT(rv);}
+  else return FD_ERROR_VALUE;
+}
+
+/* SPROC functions */
 
 static fdtype compound_procedure_args(fdtype arg)
 {
@@ -501,6 +582,10 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BYTECODE",
                                  compound_procedure_bytecode,1));
+  fd_idefn(module,fd_make_cprim2("PROCEDURE-GET",attribs_get,2));
+  fd_idefn(module,fd_make_cprim3("PROCEDURE-STORE!",attribs_store,3));
+  fd_idefn(module,fd_make_cprim3("PROCEDURE-ADD!",attribs_add,3));
+  fd_idefn(module,fd_make_cprim3("PROCEDURE-DROP!",attribs_drop,2));
 
   fd_idefn(module,
            fd_make_cprim2x("SET-PROCEDURE-DOCUMENTATION!",

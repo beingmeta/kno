@@ -3094,7 +3094,8 @@ FD_EXPORT void fd_init_dbprims_c()
                                           -1,FD_VOID,
                                           fd_pool_type,FD_VOID)));
   fd_idefn(fd_xscheme_module,
-           fd_make_ndprim(fd_make_cprim1x("COMMIT-OIDS",commit_oids,1)));
+           fd_make_ndprim(fd_make_cprim1x("COMMIT-OIDS",commit_oids,
+                                          1,-1,FD_VOID)));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("COMMIT-POOL",commit_pool,1,
                            fd_pool_type,FD_VOID,-1,FD_VOID));

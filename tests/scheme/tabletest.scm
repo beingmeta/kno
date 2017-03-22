@@ -235,9 +235,9 @@
 (define (main filename (size #f))
   (message "■■ TABLETEST " (write filename) 
     (when size (printout " BUILD=" size))
-    " cache=" (config 'cachlevel) " "
-    (when (config 'hashindex) (printout "index=" (config 'hashindex)))
-    (when (config 'oidpool) (printout "pool=" (config 'oidpool))))
+    " cache=" (config 'cachlevel) 
+    (when (config 'indextype) (printout " type=" (config 'indextype)))
+    (when (config 'offtype) (printout " offtype=" (config 'offtype))))
   (if (and size (number? size))
       (let ((table (table-for filename (config 'CONSINDEX #f)))
 	    (atomicp (has-suffix filename ".slotmap")))

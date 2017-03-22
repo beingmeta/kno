@@ -3123,14 +3123,16 @@ FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  CHECKPTR(arg,"fd_store/table"); CHECKPTR(key,"fd_store/key"); CHECKPTR(value,"fd_store/value");
+  CHECKPTR(arg,"fd_store/table");
+  CHECKPTR(key,"fd_store/key");
+  CHECKPTR(value,"fd_store/value");
   if ((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key)))
     return 0;
   else if (FD_UNAMBIGP(key)) {
     if (BAD_TABLEP(arg,argtype,store,"fd_store"))
       return -1;
     else return (fd_tablefns[argtype]->store)(arg,key,value);}
-  else if (BAD_TABLEP(arg,argtype,store,"fd_store")) 
+  else if (BAD_TABLEP(arg,argtype,store,"fd_store"))
     return -1;
   else {
     int (*storefn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->store;

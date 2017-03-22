@@ -877,7 +877,7 @@ FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
     fd_devoid_hashtable(cache,0);
     return;}
   else if (FD_ACHOICEP(keys)) {
-    fdtype simplified=fd_simplify_choice(keys);
+    fdtype simplified=fd_make_simple_choice(keys);
     fd_index_swapout(ix,simplified);
     fd_decref(simplified);}
   else {

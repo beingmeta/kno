@@ -170,7 +170,7 @@ static fdtype _make_sproc(u8_string name,
   int i=0, n_vars=0, min_args=0;
   fdtype scan=arglist, *schema=NULL;
   struct FD_SPROC *s=u8_alloc(struct FD_SPROC);
-  FD_INIT_CONS(s,fd_sproc_type);
+  FD_INIT_FRESH_CONS(s,fd_sproc_type);
   s->fcn_name=((name) ? (u8_strdup(name)) : (NULL));
   while (FD_PAIRP(scan)) {
     fdtype argspec=FD_CAR(scan);
@@ -186,7 +186,7 @@ static fdtype _make_sproc(u8_string name,
   if (n_vars)
     s->sproc_vars=schema=u8_alloc_n((n_vars+1),fdtype);
   else s->sproc_vars=NULL;
-  s->fcn_defaults=NULL; s->fcn_filename=NULL;
+  s->fcn_defaults=NULL; s->fcn_filename=NULL; s->fcn_attribs=NULL;
   if (incref) {
     s->sproc_body=fd_incref(body);
     s->sproc_arglist=fd_incref(arglist);}
@@ -262,6 +262,8 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
   if (sproc->fcn_name) u8_free(sproc->fcn_name);
   if (sproc->fcn_typeinfo) u8_free(sproc->fcn_typeinfo);
   if (sproc->fcn_defaults) u8_free(sproc->fcn_defaults);
+  if (sproc->fcn_documentation) u8_free(sproc->fcn_documentation);
+  if (sproc->fcn_attribs) fd_decref(sproc->fcn_attribs);
   fd_decref(sproc->sproc_arglist); fd_decref(sproc->sproc_body);
   u8_free(sproc->sproc_vars);
   if (sproc->sproc_env->env_copy) {
@@ -343,7 +345,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     memcpy(fresh,sproc,sizeof(struct FD_SPROC));
 
     /* This sets a new reference count or declares it static */
-    FD_INIT_CONS(fresh,fd_sproc_type);
+    FD_INIT_FRESH_CONS(fresh,fd_sproc_type);
 
     if (sproc->fcn_name) fresh->fcn_name=u8_strdup(sproc->fcn_name);
     if (sproc->fcn_filename)
@@ -351,6 +353,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     if (sproc->fcn_typeinfo)
       fresh->fcn_typeinfo=copy_intvec(sproc->fcn_typeinfo,arity,NULL);
 
+    fresh->fcn_attribs=FD_NULL;
     fresh->sproc_arglist=fd_copier(sproc->sproc_arglist,flags);
     fresh->sproc_body=fd_copier(sproc->sproc_body,flags);
     fresh->sproc_bytecode=NULL;

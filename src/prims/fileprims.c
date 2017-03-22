@@ -59,7 +59,6 @@ static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
 
-static fd_exception NoSuchFile=_("file does not exist");
 static fd_exception RemoveFailed=_("File removal failed");
 static fd_exception LinkFailed=_("File link failed");
 static fd_exception OpenFailed=_("File open failed");
@@ -105,7 +104,7 @@ static fdtype open_output_file(fdtype fname,fdtype encid,fdtype escape_char)
   else return fd_err(fd_UnknownEncoding,"OPEN-OUTPUT-FILE",NULL,encid);
   f=u8_open_output_file(filename,enc,0,0);
   if (f==NULL)
-    return fd_err(fd_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
+    return fd_err(u8_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
   if (FD_CHARACTERP(escape_char)) {
     int escape=FD_CHAR2CODE(escape_char);
     f->u8_xescape=escape;}
@@ -124,7 +123,7 @@ static fdtype extend_output_file(fdtype fname,fdtype encid,fdtype escape_char)
   else return fd_err(fd_UnknownEncoding,"EXTEND-OUTPUT-FILE",NULL,encid);
   f=u8_open_output_file(filename,enc,O_APPEND|O_CREAT|O_WRONLY,0);
   if (f==NULL)
-    return fd_err(fd_CantOpenFile,"EXTEND-OUTPUT-FILE",NULL,fname);
+    return fd_err(u8_CantOpenFile,"EXTEND-OUTPUT-FILE",NULL,fname);
   if (FD_CHARACTERP(escape_char)) {
     int escape=FD_CHAR2CODE(escape_char);
     f->u8_xescape=escape;}
@@ -143,7 +142,7 @@ static fdtype open_input_file(fdtype fname,fdtype encid)
   else return fd_err(fd_UnknownEncoding,"OPEN-INPUT_FILE",NULL,encid);
   f=(u8_input)u8_open_input_file(filename,enc,0,0);
   if (f==NULL)
-    return fd_err(fd_CantOpenFile,"OPEN-INPUT-FILE",NULL,fname);
+    return fd_err(u8_CantOpenFile,"OPEN-INPUT-FILE",NULL,fname);
   else return make_port((u8_input)f,NULL,u8_strdup(filename));
 }
 
@@ -230,7 +229,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
     f=(u8_output)u8_open_output_file(FD_STRDATA(filename_val),NULL,0,0);
     if (f==NULL) {
       fd_decref(filename_val);
-      return fd_err(fd_CantOpenFile,"FILEOUT",NULL,filename_val);}
+      return fd_err(u8_CantOpenFile,"FILEOUT",NULL,filename_val);}
     doclose=1;}
   else {
     fd_decref(filename_val);
@@ -486,7 +485,7 @@ static fdtype remove_file_prim(fdtype arg,fdtype must_exist)
     else return FD_TRUE;}
   else if (FD_TRUEP(must_exist)) {
     u8_string absolute=u8_abspath(filename,NULL);
-    fdtype err=fd_err(NoSuchFile,"remove_file_prim",absolute,arg);
+    fdtype err=fd_err(fd_NoSuchFile,"remove_file_prim",absolute,arg);
     u8_free(absolute);
     return err;}
   else return FD_FALSE;
@@ -502,7 +501,7 @@ static fdtype remove_tree_prim(fdtype arg,fdtype must_exist)
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist)) {
     u8_string absolute=u8_abspath(filename,NULL);
-    fdtype err=fd_err(NoSuchFile,"remove_tree_prim",absolute,arg);
+    fdtype err=fd_err(fd_NoSuchFile,"remove_tree_prim",absolute,arg);
     u8_free(absolute);
     return err;}
   else return FD_FALSE;
@@ -517,7 +516,7 @@ static fdtype move_file_prim(fdtype from,fdtype to,fdtype must_exist)
       return err;}
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist))
-    return fd_err(NoSuchFile,"move_file_prim",NULL,from);
+    return fd_err(fd_NoSuchFile,"move_file_prim",NULL,from);
   else return FD_FALSE;
 }
 
@@ -530,7 +529,7 @@ static fdtype link_file_prim(fdtype from,fdtype to,fdtype must_exist)
       return err;}
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist))
-    return fd_err(NoSuchFile,"link_file_prim",NULL,from);
+    return fd_err(fd_NoSuchFile,"link_file_prim",NULL,from);
   else return FD_FALSE;
 }
 

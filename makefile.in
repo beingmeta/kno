@@ -112,8 +112,7 @@ DTYPE_OBJS=\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
 	src/cons/choices.o src/cons/tables.o		\
 	src/cons/parse.o src/cons/unparse.o		\
-	src/cons/ports.o src/cons/bufio.o		\
-	src/cons/dtread.o src/cons/dtwrite.o		\
+	src/cons/bufio.o src/cons/dtread.o src/cons/dtwrite.o		\
 	src/cons/libfdtype.o src/cons/support.o		\
 	src/cons/config.o src/cons/err.o 		\
 	src/cons/logging.o src/cons/getopt.o 		\
@@ -330,8 +329,7 @@ FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
         src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
 	src/cons/choices.c src/cons/tables.c 				\
-        src/cons/bufio.c src/cons/ports.c 				\
-	src/cons/dtread.c src/cons/dtread.c 				\
+        src/cons/bufio.c src/cons/dtread.c src/cons/dtread.c 		\
 	src/cons/parse.c src/cons/unparse.c 				\
 	src/cons/libfdtype.c src/cons/support.c src/cons/config.c	\
 	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\

@@ -1539,11 +1539,46 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
     return fd_init_packet(NULL,out.bufwrite-out.buffer,out.buffer);}
 }
 
+/* Port type operations */
+
+/* The port type */
+
+static int unparse_port(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_PORT *p=fd_consptr(fd_port,x,fd_port_type);
+  if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
+    u8_printf(out,"#<I/O Port (%s) #!%x>",p->fd_portid,x);
+  else if ((p->fd_inport) && (p->fd_outport))
+    u8_printf(out,"#<I/O Port #!%x>",x);
+  else if ((p->fd_inport)&&(p->fd_portid))
+    u8_printf(out,"#<Input Port (%s) #!%x>",p->fd_portid,x);
+  else if (p->fd_inport)
+    u8_printf(out,"#<Input Port #!%x>",x);
+  else if (p->fd_portid)
+    u8_printf(out,"#<Output Port (%s) #!%x>",p->fd_portid,x);
+  else u8_printf(out,"#<Output Port #!%x>",x);
+  return 1;
+}
+
+static void recycle_port(struct FD_RAW_CONS *c)
+{
+  struct FD_PORT *p=(struct FD_PORT *)c;
+  if (p->fd_inport) {
+    u8_close_input(p->fd_inport);}
+  if (p->fd_outport) {
+    u8_close_output(p->fd_outport);}
+  if (p->fd_portid) u8_free(p->fd_portid);
+ if (FD_MALLOCD_CONSP(c)) u8_free(c);
+}
+
 /* The init function */
 
 FD_EXPORT void fd_init_portprims_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  fd_unparsers[fd_port_type]=unparse_port;
+  fd_recyclers[fd_port_type]=recycle_port;
 
   u8_printf_handlers['Q']=lisp_pprintf_handler;
 

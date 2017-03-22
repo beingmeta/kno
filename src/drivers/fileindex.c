@@ -22,6 +22,7 @@
 
 #include <libu8/u8filefns.h>
 #include <libu8/u8pathfns.h>
+#include <libu8/libu8io.h>
 #include <libu8/u8printf.h>
 
 #include <errno.h>
@@ -78,7 +79,7 @@ static fd_index open_file_index(u8_string fname,fdkb_flags flags,fdtype opts)
                           fd_driver_bufsize) == NULL) {
     u8_free(index);
     u8_free(realpath);
-    fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
+    fd_seterr3(u8_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only=1;

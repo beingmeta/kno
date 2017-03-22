@@ -700,6 +700,8 @@ static void recycle_primitive(struct FD_RAW_CONS *c)
   struct FD_FUNCTION *fn=(struct FD_FUNCTION *)c;
   if (fn->fcn_typeinfo) u8_free(fn->fcn_typeinfo);
   if (fn->fcn_defaults) u8_free(fn->fcn_defaults);
+  if (fn->fcn_documentation) u8_free(fn->fcn_documentation);
+  if (fn->fcn_attribs) fd_decref(fn->fcn_attribs);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -708,7 +710,7 @@ static void recycle_primitive(struct FD_RAW_CONS *c)
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity;
   f->fcn_arity=-1;
@@ -721,7 +723,7 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=0; 
   f->fcn_typeinfo=NULL;
@@ -733,7 +735,7 @@ FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=1; 
   f->fcn_typeinfo=NULL;
@@ -745,7 +747,7 @@ FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=2; 
   f->fcn_typeinfo=NULL;
@@ -757,7 +759,7 @@ FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=3; 
   f->fcn_typeinfo=NULL;
@@ -769,7 +771,7 @@ FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=4; 
   f->fcn_typeinfo=NULL;
@@ -781,7 +783,7 @@ FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=5; 
   f->fcn_typeinfo=NULL;
@@ -793,7 +795,7 @@ FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=6; 
   f->fcn_typeinfo=NULL;
@@ -805,7 +807,7 @@ FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=7; 
   f->fcn_typeinfo=NULL;
@@ -817,7 +819,7 @@ FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=8;
   f->fcn_typeinfo=NULL;
@@ -829,7 +831,7 @@ FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity)
 FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
-  FD_INIT_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
   f->fcn_min_arity=min_arity; f->fcn_arity=9;
   f->fcn_typeinfo=NULL;
@@ -859,110 +861,183 @@ static void init_fn_info(struct FD_FUNCTION *f,va_list args)
 }
 
 FD_EXPORT fdtype fd_make_cprim1x
- (u8_string name,fd_cprim1 fn,int min_arity,...)
+ (u8_string name,fd_cprim1 fn,int min_arity,int type0,fdtype dflt0)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim1(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(1,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(1,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim2x
-  (u8_string name,fd_cprim2 fn,int min_arity,...)
+(u8_string name,fd_cprim2 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim2(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(2,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(2,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim3x
-  (u8_string name,fd_cprim3 fn,int min_arity,...)
+(u8_string name,fd_cprim3 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim3(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(3,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(3,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim4x
-  (u8_string name,fd_cprim4 fn,int min_arity,...)
+(u8_string name,fd_cprim4 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim4(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(4,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(4,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim5x
-   (u8_string name,fd_cprim5 fn,int min_arity,...)
+(u8_string name,fd_cprim5 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim5(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(5,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(5,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim6x
-   (u8_string name,fd_cprim6 fn,int min_arity,...)
+(u8_string name,fd_cprim6 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4,
+ int type5,fdtype dflt5)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim6(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(6,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(6,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim7x
-   (u8_string name,fd_cprim7 fn,int min_arity,...)
+(u8_string name,fd_cprim7 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4,
+ int type5,fdtype dflt5,int type6,fdtype dflt6)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim7(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(7,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(7,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim8x
-   (u8_string name,fd_cprim8 fn,int min_arity,...)
+(u8_string name,fd_cprim8 fn,
+ int min_arity,int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4,
+ int type5,fdtype dflt5,int type6,fdtype dflt6,
+ int type7,fdtype dflt7)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim8(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(8,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(8,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_cprim9x
-   (u8_string name,fd_cprim9 fn,int min_arity,...)
+   (u8_string name,fd_cprim9 fn,
+    int min_arity,int type0,fdtype dflt0,
+    int type1,fdtype dflt1,int type2,fdtype dflt2,
+    int type3,fdtype dflt3,int type4,fdtype dflt4,
+    int type5,fdtype dflt5,int type6,fdtype dflt6,
+    int type7,fdtype dflt7,int type8,fdtype dflt8)
 {
   va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim9(name,fn,min_arity);
-  va_start(args,min_arity);
-  init_fn_info(f,args);
-  va_end(args);
+  int *types; fdtype *defaults;
+  f->fcn_typeinfo=types=u8_zalloc_n(9,int);
+  f->fcn_defaults=defaults=u8_zalloc_n(9,fdtype);
+  types[0]=type0; defaults[0]=dflt0;
+  types[1]=type1; defaults[1]=dflt1;
+  types[2]=type2; defaults[2]=dflt2;
+  types[3]=type3; defaults[3]=dflt3;
+  types[4]=type4; defaults[4]=dflt4;
+  types[5]=type5; defaults[5]=dflt5;
+  types[6]=type6; defaults[6]=dflt6;
+  types[7]=type7; defaults[7]=dflt7;
+  types[8]=type8; defaults[8]=dflt8;
   return FDTYPE_CONS(f);
 }
 
@@ -980,7 +1055,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     struct FD_TAILCALL *tc=(struct FD_TAILCALL *)
       u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(fdtype)*n);
     fdtype *write=&(tc->tailcall_head), *write_limit=write+(n+1), *read=vec;
-    FD_INIT_CONS(tc,fd_tailcall_type);
+    FD_INIT_FRESH_CONS(tc,fd_tailcall_type);
     tc->tailcall_arity=n+1;
     tc->tailcall_flags=0;
     *write++=fd_incref(fcn);
@@ -1013,7 +1088,7 @@ FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
     struct FD_TAILCALL *tc=(struct FD_TAILCALL *)
       u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(fdtype)*n);
     fdtype *write=&(tc->tailcall_head), *write_limit=write+(n+1), *read=vec;
-    FD_INIT_CONS(tc,fd_tailcall_type);
+    FD_INIT_FRESH_CONS(tc,fd_tailcall_type);
     tc->tailcall_arity=n+1;
     tc->tailcall_flags=FD_TAILCALL_VOID_VALUE;
     *write++=fd_incref(fcn);

@@ -556,12 +556,25 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 {
   fd_hashtable cache=&(p->pool_cache);
-  if (FD_ACHOICEP(oids))
-    oids=fd_make_simple_choice(oids);
-  if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))
+  if (FD_ACHOICEP(oids)) {
+    fdtype simple=fd_make_simple_choice(oids);
+    int rv=fd_pool_swapout(p,simple);
+    fd_decref(simple);
+    return rv;}
+  else if (FD_VOIDP(oids)) {
+    int rv=cache->table_n_keys;
+    if ((p->pool_flags)&(FDKB_KEEP_CACHESIZE))
+      fd_reset_hashtable(cache,-1,1);
+    else fd_reset_hashtable(cache,fd_pool_cache_init,1);
+    return rv;}
+  else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))
     u8_log(fdkb_loglevel,"SwapPool",
            "Swapping out %d oids in pool %s",
            FD_CHOICE_SIZE(oids),p->poolid);
+  else if (FD_ACHOICEP(oids))
+    u8_log(fdkb_loglevel,"SwapPool",
+           "Swapping out ~%d oids in pool %s",
+           FD_ACHOICE_SIZE(oids),p->poolid);
   else u8_log(fdkb_loglevel,"SwapPool",
               "Swapping out oids in pool %s",p->poolid);
   if (p->pool_handler->swapout) {
@@ -573,13 +586,14 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
               "No custom swapout clearing caches for %s",p->poolid);
   if (p->pool_flags&FDKB_NOSWAP)
     return 0;
-  else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))  {
+  else if (FD_OIDP(oids))
+    fd_hashtable_store(cache,oids,FD_VOID);
+  else if (FD_CHOICEP(oids)) {
     int rv=FD_CHOICE_SIZE(oids);
     fd_hashtable_iterkeys(cache,fd_table_replace,
                           FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),
                           FD_VOID);
     fd_devoid_hashtable(cache,0);
-    fd_decref(oids);
     return rv;}
   else {
     int rv=cache->table_n_keys;
@@ -619,7 +633,8 @@ FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
 
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
 {
-  struct FD_HASHTABLE *locks=&(p->pool_changes); int decref_oids=0;
+  int decref_oids=0;
+  struct FD_HASHTABLE *locks=&(p->pool_changes);
   if (p->pool_handler->lock==NULL)
     return 0;
   if (FD_ACHOICEP(oids)) {

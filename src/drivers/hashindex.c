@@ -79,6 +79,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8pathfns.h>
+#include <libu8/libu8io.h>
 
 #include <errno.h>
 #include <math.h>
@@ -229,7 +230,7 @@ static fd_index open_hash_index(u8_string fname,fdkb_flags flags,fdtype opts)
   if (fd_init_file_stream(stream,fname,mode,-1,fd_driver_bufsize)
       == NULL) {
     u8_free(index);
-    fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
+    fd_seterr3(u8_CantOpenFile,"open_hash_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only=1;

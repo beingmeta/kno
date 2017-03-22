@@ -48,8 +48,9 @@
 int fd_exiting=0;
 
 fd_exception fd_UnknownError=_("Unknown error condition");
-
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
+fd_exception fd_FileNotFound=_("File not found");
+fd_exception fd_NoSuchFile=_("File does not exist");
 
 /* Req logging */
 

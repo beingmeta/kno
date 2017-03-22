@@ -324,15 +324,15 @@ FD_EXPORT void fd_init_extdbprims_c()
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC+",extdb_proc_plus,2));
 
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type,FD_VOID));
 
   fd_register_config("SQLEXEC",
                      _("whether direct execution of SQL strings is allowed"),

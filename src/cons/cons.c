@@ -466,7 +466,7 @@ fdtype fd_substring(u8_string start,u8_string end)
     struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
     u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
-    FD_INIT_CONS(ptr,fd_string_type);
+    FD_INIT_FRESH_CONS(ptr,fd_string_type);
     ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=0;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
@@ -509,7 +509,7 @@ fdtype fd_block_string(int len,u8_string string)
 {
   u8_byte *bytes=NULL;
   int length=((len>=0)?(len):(strlen(string)));
-  struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+  struct FD_STRING *ptr=u8_mallocz(sizeof(struct FD_STRING)+length+1);
   bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
   if (string) memcpy(bytes,string,length);
   else memset(bytes,'?',length);
@@ -562,7 +562,7 @@ fdtype fdtype_string(u8_string string)
 
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr)
 {
-  if (ptr == NULL) ptr=u8_alloc(struct FD_PAIR);
+  if (ptr == NULL) ptr=u8_zalloc(struct FD_PAIR);
   FD_INIT_CONS(ptr,fd_pair_type);
   ptr->car=car; ptr->cdr=cdr;
   return FDTYPE_CONS(ptr);

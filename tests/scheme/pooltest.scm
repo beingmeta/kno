@@ -81,7 +81,3 @@
     (dotimes (i (quotient testcount 4)) 
       (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests3| "Passed still some more tests on " pool)))
-
-
-
-

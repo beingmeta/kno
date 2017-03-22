@@ -20,6 +20,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8fileio.h>
 #include <libu8/u8printf.h>
+#include <libu8/libu8io.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -196,7 +197,7 @@ FD_EXPORT fd_stream fd_init_file_stream
     u8_free(localname);
     return stream;}
   else {
-    fd_seterr3(fd_CantOpenFile,"fd_init_file_stream",localname);
+    fd_seterr3(u8_CantOpenFile,"fd_init_file_stream",localname);
     return NULL;}
 }
 

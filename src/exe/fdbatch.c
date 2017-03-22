@@ -224,7 +224,7 @@ int main(int argc,char **argv)
 
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
-    u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
+    u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open pid file %s",pid_file);
     exit(-1);}
   
   /* Remove any pre-existing state files. */
@@ -236,13 +236,13 @@ int main(int argc,char **argv)
   if (isatty(1)) {
     log_file=get_logfile();
     if ((log_fd=u8_open_fd(log_file,logopen_flags,LOGMODE))<0) {
-      u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open log file %s",log_file);
+      u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
       exit(-1);}}
   if (isatty(2)) {
     err_file=get_errfile();
     if ((err_fd=u8_open_fd(err_file,logopen_flags,LOGMODE))<0) {
-      u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open err file %s",err_file);
+      u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
       if ((log_file)&&(log_fd>=0)) close(log_fd);
       exit(-1);}}

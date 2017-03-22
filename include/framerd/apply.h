@@ -59,6 +59,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
   u8_string fcn_documentation;						\
   unsigned int fcn_ndcall:1, fcn_xcall:1;				\
   short fcn_arity, fcn_min_arity;					\
+  fdtype fcn_attribs;							\
   int *fcn_typeinfo;							\
   fdtype *fcn_defaults;							\
   union {                                                               \
@@ -83,27 +84,64 @@ FD_EXPORT short fd_functionp[];
 /* Various primitive defining functions.  Declare an explicit type,
    like fd_cprim1, as an argument, will generate warnings when
    the declaration and the implementation don't match.  */
-FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int mina);
-FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int mina);
-FD_EXPORT fdtype fd_make_cprim0x(u8_string name,fd_cprim0 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim1x(u8_string name,fd_cprim1 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim2x(u8_string name,fd_cprim2 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim3x(u8_string name,fd_cprim3 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim4x(u8_string name,fd_cprim4 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim5x(u8_string name,fd_cprim5 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim6x(u8_string name,fd_cprim6 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim7x(u8_string name,fd_cprim7 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim8x(u8_string name,fd_cprim8 fn,int mina,...);
-FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
+FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim0x(u8_string name,fd_cprim0 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim1x
+(u8_string name,fd_cprim1 fn,int min_arity,int type0,fdtype dflt0);
+FD_EXPORT fdtype fd_make_cprim2x
+(u8_string name,fd_cprim2 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1);
+FD_EXPORT fdtype fd_make_cprim3x
+(u8_string name,fd_cprim3 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2);
+FD_EXPORT fdtype fd_make_cprim4x
+(u8_string name,fd_cprim4 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2,
+   int type3,fdtype dflt3);
+FD_EXPORT fdtype fd_make_cprim5x
+(u8_string name,fd_cprim5 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2,
+   int type3,fdtype dflt3,int type4,fdtype dflt4);
+FD_EXPORT fdtype fd_make_cprim6x
+(u8_string name,fd_cprim6 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2,
+   int type3,fdtype dflt3,int type4,fdtype dflt4,
+   int type5,fdtype dflt5);
+FD_EXPORT fdtype fd_make_cprim7x
+(u8_string name,fd_cprim7 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2,
+   int type3,fdtype dflt3,int type4,fdtype dflt4,
+   int type5,fdtype dflt5,int type6,fdtype dflt6);
+FD_EXPORT fdtype fd_make_cprim8x
+(u8_string name,fd_cprim8 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2,
+   int type3,fdtype dflt3,int type4,fdtype dflt4,
+   int type5,fdtype dflt5,int type6,fdtype dflt6,
+   int type7,fdtype dflt7);
+FD_EXPORT fdtype fd_make_cprim9x
+(u8_string name,fd_cprim9 fn,
+   int min_arity,int type0,fdtype dflt0,
+   int type1,fdtype dflt1,int type2,fdtype dflt2,
+   int type3,fdtype dflt3,int type4,fdtype dflt4,
+   int type5,fdtype dflt5,int type6,fdtype dflt6,
+   int type7,fdtype dflt7,int type8,fdtype dflt8);
 
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x) \
