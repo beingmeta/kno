@@ -94,23 +94,29 @@ FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
                            fd_lispenv inner_env)
 {
   fdtype result=FD_VOID, body=fd_get_body(expr,offset);
-  FD_DOLIST(bodyexpr,body) {
-    if (FD_TYPEP(result,fd_tailcall_type))
-      result=_fd_finish_call(result);
-    if (FD_ABORTP(result)) {
-      if (FD_THROWP(result)) return result;
-      else if ( (u8_current_exception)->u8x_cond == fd_StackOverflow )
-        return result;
-      else {
-        fd_push_error_context(cxt,label,error_bindings(inner_env));
-        return result;}}
-    else {fd_decref(result);}
-    result=fast_tail_eval(bodyexpr,inner_env);}
-  if (FD_THROWP(result)) return result;
-  else if (FD_ABORTP(result)) {
-    fd_push_error_context(cxt,label,error_bindings(inner_env));
-    return result;}
-  else return result;
+  if (FD_EMPTY_LISTP(body))
+    return FD_VOID;
+  else if (!(FD_PAIRP(body))) {
+    fd_seterr(fd_SyntaxError,"eval_body",u8_strdup(label),fd_incref(expr));
+    return FD_ERROR_VALUE;}
+  else {
+    FD_DOLIST(bodyexpr,body) {
+      if (FD_TYPEP(result,fd_tailcall_type))
+        result=_fd_finish_call(result);
+      if (FD_ABORTP(result)) {
+        if (FD_THROWP(result)) return result;
+        else if ( (u8_current_exception)->u8x_cond == fd_StackOverflow )
+          return result;
+        else {
+          fd_push_error_context(cxt,label,error_bindings(inner_env));
+          return result;}}
+      else {fd_decref(result);}
+      result=fast_tail_eval(bodyexpr,inner_env);}
+    if (FD_THROWP(result)) return result;
+    else if (FD_ABORTP(result)) {
+      fd_push_error_context(cxt,label,error_bindings(inner_env));
+      return result;}
+    else return result;}
 }
 
 FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
