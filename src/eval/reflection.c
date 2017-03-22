@@ -221,7 +221,7 @@ static fdtype set_procedure_attribs(fdtype x,fdtype value)
                      NULL,x);
 }
 
-static fdtype attribs_get(fdtype x,fdtype attrib)
+static fdtype reflect_get(fdtype x,fdtype attrib)
 {
   fdtype attribs=get_proc_attribs(x,0);
   if (FD_TABLEP(attribs))
@@ -229,7 +229,7 @@ static fdtype attribs_get(fdtype x,fdtype attrib)
   else return FD_FALSE;
 }
 
-static fdtype attribs_store(fdtype x,fdtype attrib,fdtype value)
+static fdtype reflect_store(fdtype x,fdtype attrib,fdtype value)
 {
   fdtype attribs=get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
@@ -241,7 +241,7 @@ static fdtype attribs_store(fdtype x,fdtype attrib,fdtype value)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype attribs_add(fdtype x,fdtype attrib,fdtype value)
+static fdtype reflect_add(fdtype x,fdtype attrib,fdtype value)
 {
   fdtype attribs=get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
@@ -253,7 +253,7 @@ static fdtype attribs_add(fdtype x,fdtype attrib,fdtype value)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype attribs_drop(fdtype x,fdtype attrib,fdtype value)
+static fdtype reflect_drop(fdtype x,fdtype attrib,fdtype value)
 {
   fdtype attribs=get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
@@ -582,10 +582,10 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BYTECODE",
                                  compound_procedure_bytecode,1));
-  fd_idefn(module,fd_make_cprim2("PROCEDURE-GET",attribs_get,2));
-  fd_idefn(module,fd_make_cprim3("PROCEDURE-STORE!",attribs_store,3));
-  fd_idefn(module,fd_make_cprim3("PROCEDURE-ADD!",attribs_add,3));
-  fd_idefn(module,fd_make_cprim3("PROCEDURE-DROP!",attribs_drop,2));
+  fd_idefn(module,fd_make_cprim2("REFLECT/GET",reflect_get,2));
+  fd_idefn(module,fd_make_cprim3("REFLECT/STORE!",reflect_store,3));
+  fd_idefn(module,fd_make_cprim3("REFLECT/ADD!",reflect_add,3));
+  fd_idefn(module,fd_make_cprim3("REFLECT/DROP!",reflect_drop,2));
 
   fd_idefn(module,
            fd_make_cprim2x("SET-PROCEDURE-DOCUMENTATION!",
