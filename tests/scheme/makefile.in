@@ -191,7 +191,8 @@ libtests: scheme optscheme slotmaps tables pools indexes db
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 
 schemetest schemetests scheme: r4rs exceptions choices sequences numvecs \
-	picktest cachecall texttools fdweb timefns threads i18n misc xml crypto
+	picktest cachecall texttools fdweb timefns threads i18n misc gctests \
+	xml crypto
 optscheme: scheme
 	@echo "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
@@ -252,6 +253,9 @@ i18n:
 misc:
 	@${RUN} ${FDX} misctest.scm ${RUNCONF}
 	@echo "■■■■ Completed misc tests ${RUNCONF}"
+gctests:
+	@${RUN} ${FDX} gctests.scm ${RUNCONF}
+	@echo "■■■■ Completed GC tests ${RUNCONF}"
 xml:
 	@${RUN} ${FDX} xmltest.scm ${RUNCONF}
 	@echo "■■■■ Completed xml tests ${RUNCONF}"
