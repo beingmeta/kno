@@ -1,16 +1,18 @@
 #!/bin/sh
 TARGETS="@servlet_rundir@/ @daemon_rundir@/"
-if test $# -gt 0; then TARGETS="$*"; fi
+if [ $# -gt 0 ]; then TARGETS="$*"; fi
 KILLWAIT=2
 checkpid ( ) {
-    if ps -p $0 2>&1 > /dev/null; then
-	retval=1
+    if [ -z "$0" ]; then
+	retval=0;
+    elif ps -p $0 2>&1 > /dev/null; then
+	retval=1;
     else
 	retval=0;
     fi;}
 for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
-	if test `basename ${ppid}` != "*.ppid"; then
+	if [ `basename ${ppid}` != "*.ppid" ]; then
             export pidnum=`cat ${ppid}`;
             echo "fdstop: Terminating manager ${ppid} (${pidnum})";
      	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${pidnum};
@@ -20,19 +22,19 @@ done;
 #sleep ${KILLWAIT};
 for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
-	if test -f ${ppid}; then
+	if [ -f ${ppid} ]; then
 	    export base=`basename ${ppid} .ppid`;
             export pidnum=`cat ${ppid}`;
 	    echo "fdstop: Waiting for stubborn manager ${ppid} (${pidnum})";
-	    if test -f ${ppid}; then sleep 1; fi
-	    if test -f ${ppid}; then sleep 2; fi
-	    if test -f ${ppid}; then sleep 4; fi
+	    if [ -f ${ppid} ]; then sleep 1; fi
+	    if [ -f ${ppid} ]; then sleep 2; fi
+	    if [ -f ${ppid} ]; then sleep 4; fi
 	    echo "fdstop: Killing stubborn manager ${ppid} (${pidnum})";
      	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	            sudo kill -9 ${pidnum} &&
     		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	            sudo rm -f ${ppid} ${rundir}/${base}.nospawn;
-	    if test -f ${ppid}; then\
+	    if [ -f ${ppid}]; then\
 	      echo "Warning: (fdstop) Server manager ${ppid} (${pidnum}) couldn't be terminated or killed"; 
 	    fi;
 	fi;
@@ -41,13 +43,13 @@ done;
 #sleep ${KILLWAIT};
 for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
-	if test -f ${pid};
+	if [ -f ${pid} ]; then
 	   export pidnum=`cat ${pid}`
 	   echo "fdstop: Waiting for stubborn server ${pid} (${pidnum})";
-	   if test -f ${pid}; then kill ${pidnum}; sleep 1; fi
-	   if test -f ${pid} && checkpid ${pidnum}; then sleep 2; fi
-	   if test -f ${pid} && checkpid ${pidnum}; then sleep 4; fi
-     	   if test -f ${pid}; then 
+	   if [ -f ${pid} ]; then kill ${pidnum}; sleep 1; fi
+	   if [ -f ${pid} ] && checkpid ${pidnum}; then sleep 2; fi
+	   if [ -f ${pid} ] && checkpid ${pidnum}; then sleep 4; fi
+     	   if [ -f ${pid} ]; then 
 	       echo "fdstop: Terminating server ${pid} (${pidnum})";
 	       unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	         sudo kill ${pidnum}; 
@@ -58,8 +60,8 @@ done;
 #sleep ${KILLWAIT};
 for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
-	if test `basename ${pid}` != "*.pid"; then
-     	    if test -f ${pid}; then 
+	if [ `basename ${pid}` != "*.pid" ]; then
+     	    if [ -f ${pid} ]; then 
 		export pidnum=`cat ${pid}`
 		if checkpid ${pidnum}; then
 		    echo "fdstop: Killing stubborn server ${pid} (${pidnum})";
@@ -67,10 +69,10 @@ for rundir in ${TARGETS}; do
 		      sudo kill -9 ${pidnum} && 
 			  unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 		            sudo rm -f ${pid};
-		    if test -f ${pid}; then
+		    if [ -f ${pid} ]; then
 			sleep 1;
-			if test -f ${pid}; then sleep 1; fi
-			if test -f ${pid}; then sleep 1; fi
+			if [ -f ${pid} ]; then sleep 1; fi
+			if [ -f ${pid} ]; then sleep 1; fi
 			# If the file still exists, check the process
 			if checkpid ${pidnum}; then
 			    echo "Warning: (fdstop) Server ${pid} (${pidnum}) didn't die";
