@@ -30,10 +30,31 @@ static int memindex_edits_init=1000;
 
 static struct FD_INDEX_HANDLER mem_index_handler;
 
+static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache);
+
 /* The in-memory index */
+
+static fdtype mem_index_fetch(fd_index ix,fdtype key)
+{
+  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  if (mix->mix_loaded==0) load_mem_index(mix,1);
+  return fd_hashtable_get(&(ix->index_cache),key,FD_EMPTY_CHOICE);
+}
+
+static int mem_index_fetchsize(fd_index ix,fdtype key)
+{
+  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  if (mix->mix_loaded==0) load_mem_index(mix,1);
+  fdtype v=fd_hashtable_get(&(ix->index_cache),key,FD_EMPTY_CHOICE);
+  int size=FD_CHOICE_SIZE(v);
+  fd_decref(v);
+  return size;
+}
 
 static fdtype *mem_index_fetchn(fd_index ix,int n,fdtype *keys)
 {
+  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  if (mix->mix_loaded==0) load_mem_index(mix,1);
   fdtype *results=u8_alloc_n(n,fdtype);
   fd_hashtable cache=&(ix->index_cache);
   int i=0;
@@ -48,6 +69,8 @@ static fdtype *mem_index_fetchn(fd_index ix,int n,fdtype *keys)
 
 static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
 {
+  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  if (mix->mix_loaded==0) load_mem_index(mix,1);
   fdtype keys=fd_hashtable_keys(&(ix->index_cache));
   fdtype added=fd_hashtable_keys(&(ix->index_adds));
   fdtype edits=fd_hashtable_keys(&(ix->index_adds));
@@ -76,6 +99,35 @@ static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
       u8_free(keys);
       *n=n_elts;
       return results;}}
+}
+
+struct FETCHSIZES_STATE {
+  struct FD_KEY_SIZE *sizes;
+  int i, n;};
+
+static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
+{
+  struct FETCHSIZES_STATE *state=(struct FETCHSIZES_STATE *)data;
+  int i=state->i;
+  if (i<state->n) {
+    fdtype key=kv->kv_key, value=kv->kv_val;
+    int size=FD_CHOICE_SIZE(value);
+    state->sizes[i].keysizekey=key; fd_incref(key);
+    state->sizes[i].keysizenvals=FD_INT(size);
+    i++;}
+  return 0;
+}
+
+static struct FD_KEY_SIZE *mem_index_fetchsizes(fd_index ix,int *n)
+{
+  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  if (mix->mix_loaded==0) load_mem_index(mix,1);
+  int n_keys=ix->index_cache.table_n_keys;
+  struct FD_KEY_SIZE *keysizes=u8_alloc_n(n_keys,struct FD_KEY_SIZE);
+  struct FETCHSIZES_STATE state={keysizes,0,n_keys};
+  fd_for_hashtable_kv(&(ix->index_cache),gather_keysizes,(void *)&state,1);
+  *n=n_keys;
+  return keysizes;
 }
 
 static fdtype drop_symbol, set_symbol;
@@ -209,6 +261,54 @@ static int mem_index_commit(fd_index ix)
   return 1;
 }
 
+static int simplify_choice(struct FD_KEYVAL *kv,void *data)
+{
+  if (FD_ACHOICEP(kv->kv_val))
+    kv->kv_val=fd_simplify_choice(kv->kv_val);
+}
+
+static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
+{
+  struct FD_STREAM *stream=&(memidx->index_stream);
+  if (memidx->mix_loaded) return 0;
+  else if (fd_lock_stream(stream)<0) return -1;
+  else if (memidx->mix_loaded) {
+    fd_unlock_stream(stream);
+    return 0;}
+  fd_inbuf in=fd_start_read(stream,8);
+  long long i=0, n_entries=fd_read_8bytes(in);
+  fd_hashtable cache=&(memidx->index_cache);
+  u8_log(LOGNOTICE,"MemIndexLoad",
+	 "Loading %lld entries for %s",n_entries,memidx->indexid);
+  memidx->mix_valid_data=fd_read_8bytes(in);
+  ftruncate(stream->stream_fileno,memidx->mix_valid_data);
+  fd_setpos(stream,256);
+  if (n_entries<memindex_cache_init)
+    fd_resize_hashtable(&(memidx->index_cache),memindex_cache_init);
+  else fd_resize_hashtable(&(memidx->index_cache),1.5*n_entries);
+  if (lock_cache) u8_write_lock(&(cache->table_rwlock));
+  in=fd_readbuf(stream);
+  while (i<n_entries) {
+    char op=fd_read_byte(in);
+    fdtype key=fd_read_dtype(in);
+    fdtype value=fd_read_dtype(in);
+    fd_hashtable_op_nolock
+      (cache,
+       ((op<0)?(fd_table_drop):
+	(op==0)?(fd_table_store_noref):
+	(fd_table_add_noref)),
+       key,value);
+    fd_decref(key);
+    if (op<0) fd_decref(value);
+    i++;}
+  fd_for_hashtable_kv(cache,simplify_choice,NULL,0);
+  if (lock_cache) u8_rw_unlock(&(cache->table_rwlock));
+  memidx->mix_loaded=1;
+  return 1;
+}
+
+static fdtype preload_opt;
+
 static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
 {
   struct FD_MEM_INDEX *memidx=u8_alloc(struct FD_MEM_INDEX);
@@ -219,6 +319,7 @@ static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
     fd_init_file_stream(&(memidx->index_stream),file,
 			FD_FILE_MODIFY,-1,
 			fd_driver_bufsize);
+  fdtype preload=fd_getopt(opts,preload_opt,FD_TRUE);
   if (!(stream)) return NULL;
   stream->stream_flags&=~FD_STREAM_IS_CONSED;
   unsigned int magic_no=fd_read_4bytes(fd_readbuf(stream));
@@ -240,23 +341,12 @@ static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
     else fd_resize_hashtable(&(memidx->index_cache),1.5*n_entries);
     fd_resize_hashtable(&(memidx->index_adds),memindex_adds_init);
     fd_resize_hashtable(&(memidx->index_edits),memindex_edits_init);
-    in=fd_readbuf(stream);
-    while (i<n_entries) {
-      char op=fd_read_byte(in);
-      fdtype key=fd_read_dtype(in);
-      fdtype value=fd_read_dtype(in);
-      fd_hashtable_op_nolock
-	(cache,
-	 ((op<0)?(fd_table_drop):
-	  (op==0)?(fd_table_store_noref):
-	  (fd_table_add_noref)),
-	 key,value);
-      fd_decref(key);
-      if (op<0) fd_decref(value);
-      i++;}
+    if (!(FD_FALSEP(preload)))
+      load_mem_index(memidx,0);
     if (!(U8_BITP(flags,FDKB_ISCONSED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
+
 }
 
 FD_EXPORT int fd_make_mem_index(u8_string spec)
@@ -304,12 +394,12 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   "memindex", 1, sizeof(struct FD_MEM_INDEX), 14,
   NULL, /* close */
   mem_index_commit, /* commit */
-  NULL, /* fetch */
-  NULL, /* fetchsize */
+  mem_index_fetch, /* fetch */
+  mem_index_fetchsize, /* fetchsize */
   NULL, /* prefetch */
   mem_index_fetchn, /* fetchn */
   mem_index_fetchkeys, /* fetchkeys */
-  NULL, /* fetchsizes */
+  mem_index_fetchsizes, /* fetchsizes */
   NULL, /* batchadd */
   NULL, /* metadata */
   mem_index_create, /* create */
@@ -322,6 +412,8 @@ FD_EXPORT void fd_init_memindex_c()
 {
   drop_symbol=fd_intern("DROP");
   set_symbol=fd_intern("SET");
+
+  preload_opt=fd_intern("PRELOAD");
 
   fd_register_index_type("memindex",
                          &mem_index_handler,
