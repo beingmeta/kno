@@ -296,20 +296,22 @@ int do_main(int argc,char **argv,
     U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
     fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
     while (root->u8x_prev) root=root->u8x_prev;
-    fd_print_exception(&out,root);
-    fd_print_backtrace(&out,e,80);
-    fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+    if (root) {fd_print_exception(&out,root); root=NULL;}
+    if (e) {
+      fd_print_backtrace(&out,e,80);
+      u8_free_exception(e,1);
+      e=NULL;}
+    fd_unparse_maxelts=old_maxelts;
+    fd_unparse_maxchars=old_maxchars;
     fputs(out.u8_outbuf,stderr);
     u8_free(out.u8_outbuf);
-    u8_free_exception(e,1);
     retval=-1;}
   fd_decref(result);
-  /* Hollow out the environment, which should let you reclaim it.
-     This patches around the classic issue with circular references in
-     a reference counting garbage collector.  If the
-     working_environment contains procedures which are closed in the
-     working environment, it will not be GC'd because of those
-     circular pointers. */
+  /* Hollow out the environment, which should let it be reclaimed.
+     This patches around some of the circular references that might
+     exist because working_environment may contain procedures which
+     are closed in the working environment, so the working environment
+     itself won't be GC'd because of those circular pointers. */
   if (FD_HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   fd_recycle_environment(env);
