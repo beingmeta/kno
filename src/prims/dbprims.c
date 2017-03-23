@@ -270,11 +270,15 @@ static fdtype use_index(fdtype arg,fdtype opts)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype open_index(fdtype arg,fdtype consed_arg)
+static fdtype register_opt;
+
+static fdtype open_index(fdtype arg,fdtype opts)
 {
-  int unregistered=(!((FD_FALSEP(consed_arg))||(FD_VOIDP(consed_arg))));
+  fdtype regopt=fd_getopt(opts,register_opt,FD_VOID);
+  int unregistered=
+    ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)));
   fdkb_flags flags=((unregistered)?(FDKB_UNREGISTERED):(0));
-  fd_index ix=NULL;
+  fd_index ix=NULL; fd_decref(regopt);
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
@@ -283,7 +287,7 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
       u8_byte *copy=u8_strdup(FD_STRDATA(arg));
       u8_byte *start=copy, *end=strchr(start,';');
       *end='\0'; while (start) {
-        fd_index ix=fd_get_index(start,flags,consed_arg);
+        fd_index ix=fd_get_index(start,flags,opts);
         if (ix==NULL) {
           u8_free(copy);
           fd_decref(results);
@@ -297,7 +301,7 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
         else start=NULL;}
       u8_free(copy);
       return results;}
-    else return fd_index2lisp(fd_get_index(FD_STRDATA(arg),flags,consed_arg));
+    else return fd_index2lisp(fd_get_index(FD_STRDATA(arg),flags,opts));
   else if (FD_INDEXP(arg)) return arg;
   else if (FD_TYPEP(arg,fd_raw_index_type))
     return fd_incref(arg);
@@ -3176,6 +3180,7 @@ FD_EXPORT void fd_init_dbprims_c()
   pools_symbol=fd_intern("POOLS");
   indexes_symbol=fd_intern("INDEXES");
   drop_symbol=fd_intern("DROP");
+  register_opt=fd_intern("REGISTER");
 
 }
 
