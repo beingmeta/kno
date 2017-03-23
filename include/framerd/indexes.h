@@ -86,8 +86,9 @@ FD_EXPORT fdtype fd_index_ctl(fd_index p,int indexop,int n,fdtype *args);
 #define FD_INDEXOP_STATS       (1<<4)
 #define FD_INDEXOP_LABEL       (1<<5)
 #define FD_INDEXOP_POPULATE    (1<<6)
-#define FD_INDEXOP_HASH   (1<<7)
+#define FD_INDEXOP_HASH        (1<<7)
 #define FD_INDEXOP_SLOTIDS     (1<<8)
+#define FD_INDEXOP_HASHTABLE   (1<<16)
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={

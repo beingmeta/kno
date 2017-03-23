@@ -349,6 +349,24 @@ static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
 
 }
 
+static fdtype mem_index_ctl(fd_index ix,int op,int n,fdtype *args)
+{
+  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
+  if ( ((n>0)&&(args==NULL)) || (n<0) )
+    return fd_err("BadIndexOpCall","hash_index_ctl",
+		  mix->indexid,FD_VOID);
+  else switch (op) {
+    case FD_INDEXOP_CACHELEVEL:
+      if (mix->mix_loaded)
+	return FD_INT(3);
+      else return FD_INT(0);
+    case FD_INDEXOP_HASHTABLE:
+      if (mix->mix_loaded==0) load_mem_index(mix,1);
+      return fd_copy_hashtable(NULL,&(ix->index_cache));
+    default:
+      return FD_FALSE;}
+}
+
 FD_EXPORT int fd_make_mem_index(u8_string spec)
 {
   struct FD_STREAM _stream;
@@ -405,7 +423,7 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   mem_index_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */
-  NULL  /* indexctl */
+  mem_index_ctl  /* indexctl */
 };
 
 FD_EXPORT void fd_init_memindex_c()

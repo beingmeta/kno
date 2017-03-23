@@ -23,8 +23,10 @@ typedef struct FD_MEM_INDEX {
   FD_INDEX_FIELDS;
   unsigned int mix_n_commits;
   unsigned int mix_n_keys, mix_n_entries;
-  unsigned int mix_n_slotids, mix_n_added;
+  unsigned int mix_n_slotids, mix_added_slotids;
   unsigned int mix_slotids_length;
+  unsigned int mix_n_baseoids, mix_added_baseoids;
+  unsigned int mix_baseoids_length;
   unsigned int mix_loaded;
   fdtype *mix_slotids, *mix_baseoids;
   size_t mix_valid_data;
