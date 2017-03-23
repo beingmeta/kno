@@ -10,6 +10,7 @@
 #endif
 
 #define FD_INLINE_FCNIDS 1
+#define FD_INLINE_STACKS 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -205,6 +206,48 @@ static int init_thread_stack_limit()
 {
   fd_init_stack();
   return 1;
+}
+
+/* Call stack (not used yet) */
+
+#if (U8_USE_TLS)
+u8_tld_key fd_call_stack_key;
+#elif (U8_USE__THREAD)
+__thread struct FD_STACK *fd_call_stack=NULL;
+#else
+struct FD_STACK *fd_call_stack=NULL;
+#endif
+
+FD_EXPORT struct FD_STACK *
+_fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
+                u8_string label,fdtype op,
+                short n_args,fdtype *args)
+{
+  return fd_setup_stack(stack,caller,label,op,n_args,args);
+}
+
+FD_EXPORT
+void _fd_push_stack(struct FD_STACK *stack,struct FD_STACK *caller,
+                        u8_string label,fdtype op,
+                        short n_args,fdtype *args)
+{
+  return fd_push_stack(stack,caller,label,op,n_args,args);
+}
+
+FD_EXPORT void _fd_free_stack(struct FD_STACK *stack)
+{
+  fd_pop_stack(stack);
+}
+
+FD_EXPORT void _fd_pop_stack(struct FD_STACK *stack)
+{
+  fd_pop_stack(stack);
+}
+
+FD_EXPORT struct FD_STACK_CLEANUP *_fd_push_cleanup
+(struct FD_STACK *stack,fd_stack_cleanop op)
+{
+  return fd_push_cleanup(stack,op);
 }
 
 /* Calling primitives */
@@ -1232,6 +1275,7 @@ FD_EXPORT void fd_init_apply_c()
 
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_stack_limit_key,NULL);
+  u8_new_threadkey(&fd_call_stack_key,NULL);
 #endif
 
   fd_applyfns[fd_primfcn_type]=dapply;

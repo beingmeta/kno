@@ -162,11 +162,12 @@ typedef enum FD_PTR_TYPE {
   fd_port_type=FD_CONS_TYPECODE(31),
   fd_stream_type=FD_CONS_TYPECODE(32),
   fd_bytecode_type=FD_CONS_TYPECODE(33),
-  fd_rawptr_type=FD_CONS_TYPECODE(34)
+  fd_stackframe_type=FD_CONS_TYPECODE(34),
+  fd_rawptr_type=FD_CONS_TYPECODE(35)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 35
+#define FD_BUILTIN_CONS_TYPES 36
 #define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
