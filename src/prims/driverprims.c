@@ -122,6 +122,8 @@ static int getindexctlop(fdtype x)
       return FD_INDEXOP_PRELOAD;
     else if (strcasecmp(pname,"POPULATE")==0)
       return FD_INDEXOP_POPULATE;
+    else if (strcasecmp(pname,"HASHTABLE")==0)
+      return FD_INDEXOP_HASHTABLE;
     else {
       fd_seterr("UnknownIndexOp","indexctl_prim",NULL,x);
       return -1;}}
@@ -161,7 +163,7 @@ static int getpoolctlop(fdtype x)
     else if (strcasecmp(pname,"POPULATE")==0)
       return FD_POOLOP_POPULATE;
     else {
-      fd_seterr("UnknownIndexOp","indexctl_prim",NULL,x);
+      fd_seterr("UnknownPoolOp","poolctl_prim",NULL,x);
       return -1;}}
   else return -1;
 }

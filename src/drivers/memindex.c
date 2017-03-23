@@ -363,6 +363,9 @@ static fdtype mem_index_ctl(fd_index ix,int op,int n,fdtype *args)
     case FD_INDEXOP_HASHTABLE:
       if (mix->mix_loaded==0) load_mem_index(mix,1);
       return fd_copy_hashtable(NULL,&(ix->index_cache));
+    case FD_INDEXOP_PRELOAD:
+      if (mix->mix_loaded==0) load_mem_index(mix,1);
+      return FD_TRUE;
     default:
       return FD_FALSE;}
 }
