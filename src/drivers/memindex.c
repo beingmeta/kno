@@ -311,7 +311,7 @@ static fdtype preload_opt;
 
 static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
 {
-  struct FD_MEM_INDEX *memidx=u8_alloc(struct FD_MEM_INDEX);
+  struct FD_MEM_INDEX *memidx=u8_zalloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,
 		file,u8_realpath(file,NULL),
 		flags|FD_INDEX_NOSWAP);
@@ -346,7 +346,6 @@ static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
     if (!(U8_BITP(flags,FDKB_ISCONSED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
-
 }
 
 static fdtype mem_index_ctl(fd_index ix,int op,int n,fdtype *args)
