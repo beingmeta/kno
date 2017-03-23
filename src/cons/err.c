@@ -115,10 +115,13 @@ FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data)
   u8_condition condition=NULL;
   ex=u8_current_exception;
   if (ex) condition=ex->u8x_cond;
+  if (condition==NULL) condition=fd_UnknownError;
   if ( condition == fd_StackOverflow ) {
     fd_decref(data);
     return;}
-  else if (label) {
+  else if (errno) u8_graberrno(cxt,u8_strdup(label));
+  else {}
+  if (label) {
     u8_string copied=u8_strdup(label);
     u8_push_exception(NULL,cxt,copied,(void *)data,
                       fd_free_exception_xdata);}
