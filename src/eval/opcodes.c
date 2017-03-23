@@ -431,7 +431,7 @@ static fdtype xref_opcode(fdtype x,long long i,fdtype tag)
 {
   struct FD_COMPOUND *c=(fd_compound)x;
   if ((FD_VOIDP(tag)) || ((c->compound_typetag)==tag))
-    if ((i>0) && (i<c->fd_n_elts)) {
+    if ((i>=0) && (i<c->fd_n_elts)) {
       fdtype *values=&(c->compound_0), value;
       if (c->compound_ismutable) 
         u8_lock_mutex(&(c->compound_lock));
