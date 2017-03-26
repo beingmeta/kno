@@ -265,6 +265,7 @@ static int simplify_choice(struct FD_KEYVAL *kv,void *data)
 {
   if (FD_ACHOICEP(kv->kv_val))
     kv->kv_val=fd_simplify_choice(kv->kv_val);
+  return 0;
 }
 
 static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
@@ -304,6 +305,7 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   fd_for_hashtable_kv(cache,simplify_choice,NULL,0);
   if (lock_cache) u8_rw_unlock(&(cache->table_rwlock));
   memidx->mix_loaded=1;
+  fd_unlock_stream(stream);
   return 1;
 }
 
