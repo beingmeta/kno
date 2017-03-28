@@ -331,8 +331,11 @@ fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
 #define fd_push_cleanup(stack,op) (_fd_push_cleanup(stack op))
 #endif
 
-
 #define fd_return(v) return (fd_pop_stack(_fdstack),(v))
+
+#define FD_WITH_STACK(label,caller,op,n,args) \
+  struct FD_STACK __fdstack, *_fdstack=&__fdstack; \
+  fd_setup_stack(stack,label,caller,op,n,args)
 
 /* Stack checking */
 
