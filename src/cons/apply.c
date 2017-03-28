@@ -892,21 +892,9 @@ FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 
 /* Providing type info and defaults */
 
-static void init_fn_info(struct FD_FUNCTION *f,va_list args)
-{
-  int *typeinfo=u8_alloc_n(f->fcn_arity,int), i=0;
-  fdtype *defaults=u8_alloc_n(f->fcn_arity,fdtype);
-  while (i < f->fcn_arity) {
-    int tcode=va_arg(args,int); fdtype dflt=va_arg(args,fdtype);
-    typeinfo[i]=tcode; defaults[i]=dflt; i++;}
-  f->fcn_filename=NULL;
-  f->fcn_typeinfo=typeinfo; f->fcn_defaults=defaults;
-}
-
 FD_EXPORT fdtype fd_make_cprim1x
  (u8_string name,fd_cprim1 fn,int min_arity,int type0,fdtype dflt0)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim1(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -921,7 +909,6 @@ FD_EXPORT fdtype fd_make_cprim2x
  int min_arity,int type0,fdtype dflt0,
  int type1,fdtype dflt1)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim2(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -937,7 +924,6 @@ FD_EXPORT fdtype fd_make_cprim3x
  int min_arity,int type0,fdtype dflt0,
  int type1,fdtype dflt1,int type2,fdtype dflt2)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim3(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -955,7 +941,6 @@ FD_EXPORT fdtype fd_make_cprim4x
  int type1,fdtype dflt1,int type2,fdtype dflt2,
  int type3,fdtype dflt3)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim4(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -974,7 +959,6 @@ FD_EXPORT fdtype fd_make_cprim5x
  int type1,fdtype dflt1,int type2,fdtype dflt2,
  int type3,fdtype dflt3,int type4,fdtype dflt4)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim5(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -995,7 +979,6 @@ FD_EXPORT fdtype fd_make_cprim6x
  int type3,fdtype dflt3,int type4,fdtype dflt4,
  int type5,fdtype dflt5)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim6(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -1017,7 +1000,6 @@ FD_EXPORT fdtype fd_make_cprim7x
  int type3,fdtype dflt3,int type4,fdtype dflt4,
  int type5,fdtype dflt5,int type6,fdtype dflt6)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim7(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -1041,7 +1023,6 @@ FD_EXPORT fdtype fd_make_cprim8x
  int type5,fdtype dflt5,int type6,fdtype dflt6,
  int type7,fdtype dflt7)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim8(name,fn,min_arity);
   int *types; fdtype *defaults;
@@ -1066,7 +1047,6 @@ FD_EXPORT fdtype fd_make_cprim9x
     int type5,fdtype dflt5,int type6,fdtype dflt6,
     int type7,fdtype dflt7,int type8,fdtype dflt8)
 {
-  va_list args;
   struct FD_FUNCTION *f=
     (struct FD_FUNCTION *)fd_make_cprim9(name,fn,min_arity);
   int *types; fdtype *defaults;

@@ -734,7 +734,6 @@ FD_FASTOP fdtype read_zvalue(fd_hash_index hx,fd_inbuf in)
 static fdtype hash_index_fetch(fd_index ix,fdtype key)
 {
   struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
-  struct FD_STREAM *stream=&(hx->index_stream);
   struct FD_OUTBUF out; unsigned char buf[64];
   struct FD_INBUF keystream;
   unsigned char _inbuf[512], *inbuf=NULL;

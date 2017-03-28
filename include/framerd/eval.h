@@ -403,6 +403,16 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcode_table_len;
 
+#define FD_SPECIAL_OPCODES    FD_OPCODE(0x10)
+#define FD_BRANCH_OPCODE      FD_OPCODE(0x10)
+#define FD_NOT_OPCODE         FD_OPCODE(0x11)
+#define FD_UNTIL_OPCODE       FD_OPCODE(0x12)
+#define FD_BEGIN_OPCODE       FD_OPCODE(0x13)
+#define FD_QUOTE_OPCODE       FD_OPCODE(0x14)
+#define FD_SETVAL_OPCODE      FD_OPCODE(0x15)
+#define FD_SETPLUS_OPCODE     FD_OPCODE(0x16)
+#define FD_VOID_OPCODE        FD_OPCODE(0x17)
+
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODES        FD_OPCODE(0x20)
 #define FD_AMBIGP_OPCODE      FD_OPCODE(0x20)
@@ -437,7 +447,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_FIRST_OPCODE      FD_OPCODE(0x4A)
 #define FD_SECOND_OPCODE     FD_OPCODE(0x4B)
 #define FD_THIRD_OPCODE      FD_OPCODE(0x4C)
-#define FD_TONUMBER_OPCODE   FD_OPCODE(0x4D)
+#define FD_CADR_OPCODE       FD_OPCODE(0x4D)
+#define FD_CDDR_OPCODE       FD_OPCODE(0x4E)
+#define FD_CADDR_OPCODE      FD_OPCODE(0x4F)
+#define FD_CDDDR_OPCODE      FD_OPCODE(0x50)
+#define FD_TONUMBER_OPCODE   FD_OPCODE(0x51)
 /* More to come */
 #define FD_MAX_UNARY_OPCODE  FD_OPCODE(0x60)
 
@@ -461,8 +475,8 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_EQV_OPCODE        FD_OPCODE(0x81)
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
 #define FD_ELT_OPCODE        FD_OPCODE(0x83)
-
 #define FD_MAX_BINARY_OPCODE FD_OPCODE(0xA0)
+
 #define FD_NARY_OPCODES      FD_OPCODE(0xA0)
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_OPCODE(0xA0)

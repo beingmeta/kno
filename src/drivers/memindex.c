@@ -333,8 +333,7 @@ static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
   else {
     fd_inbuf in=fd_readbuf(stream);
     unsigned U8_MAYBE_UNUSED int not_used=fd_read_4bytes(in);
-    long long i=0, n_entries=fd_read_8bytes(in);
-    fd_hashtable cache=&(memidx->index_cache);
+    long long n_entries=fd_read_8bytes(in);
     memidx->mix_valid_data=fd_read_8bytes(in);
     ftruncate(stream->stream_fileno,memidx->mix_valid_data);
     fd_setpos(stream,256);

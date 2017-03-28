@@ -178,7 +178,6 @@ FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from)
 typedef enum FD_STACK_CLEANOP {
   FD_FREE_MEMORY,
   FD_DECREF,
-  FD_FREE_VEC,
   FD_UNLOCK_MUTEX,
   FD_UNLOCK_RWLOCK,
   FD_DECREF_VEC} fd_stack_cleanop;
@@ -194,11 +193,11 @@ typedef struct FD_STACK {
   FD_CONS_HEADER; /* We're not using this right now */
   u8_string stack_label;
   fdtype stack_op;
-  fdtype stack_argbuf[FD_STACK_DEFAULT_ARGVEC];
   fdtype *stack_args;
-  unsigned int stack_retvoid:1, stack_ndcall:1, stack_apply:1;
-  unsigned int stack_free_op:1, stack_free_args:1, stack_free_argvec:1;
-  unsigned int stack_mallocd:1;
+  fdtype stack_argbuf[FD_STACK_DEFAULT_ARGVEC];
+  unsigned int stack_retvoid:1, stack_ndcall:1;
+  unsigned int stack_decref_op:1, stack_decref_args:1;
+  unsigned int stack_free_struct:1, stack_free_argvec:1;
   short stack_n_args, stack_n_cleanups;
   struct FD_STACK_CLEANUP _stack_cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *stack_cleanups;
@@ -261,8 +260,8 @@ FD_FASTOP void fd_push_stack(struct FD_STACK *stack,struct FD_STACK *caller,
 
 FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 {
-  if (stack->stack_free_op) fd_decref(stack->stack_op);
-  if ((stack->stack_free_args)&&(stack->stack_args)) {
+  if (stack->stack_decref_op) fd_decref(stack->stack_op);
+  if ((stack->stack_decref_args)&&(stack->stack_args)) {
     fdtype *args=stack->stack_args;
     int i=0, n=stack->stack_n_args; while (i<n) {
       fdtype arg=args[i++]; fd_decref(arg);}}
@@ -284,7 +283,7 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
       case FD_UNLOCK_RWLOCK: {
 	u8_rwlock *lock=(u8_rwlock *)cleanups[i].arg0;
 	u8_rw_unlock(lock); break;}
-      case FD_FREE_VEC: {
+      case FD_DECREF_VEC: {
 	fdtype *vec=(fdtype *)cleanups[i].arg0;
 	ssize_t *sizep=(ssize_t *)cleanups[i].arg1;
 	ssize_t size=*sizep;
