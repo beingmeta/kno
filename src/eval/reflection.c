@@ -199,8 +199,8 @@ static fdtype get_proc_attribs(fdtype x,int create)
       if ((attribs!=FD_NULL)&&(FD_TABLEP(attribs)))
         return attribs;
       else return FD_VOID;}
-    if (attribs!=FD_NULL) fd_decref(attribs);
-    f->fcn_attribs=attribs=fd_init_slotmap(NULL,4,NULL);
+    if ((attribs==FD_NULL)||(!(FD_TABLEP(attribs))))
+      f->fcn_attribs=attribs=fd_init_slotmap(NULL,4,NULL);
     return attribs;}
   else if (create) {
     fd_seterr("NoAttribs","get_proc_attribs",NULL,x);
@@ -594,7 +594,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim3("REFLECT/STORE!",reflect_store,3));
   fd_idefn(module,fd_make_cprim3("REFLECT/ADD!",reflect_add,3));
   fd_idefn(module,fd_make_cprim3("REFLECT/DROP!",reflect_drop,2));
-  fd_idefn(module,fd_make_cprim1("REFLECT/ATTRIBS",get_procedure_attribs,2));
+  fd_idefn(module,fd_make_cprim1("REFLECT/ATTRIBS",get_procedure_attribs,1));
   fd_idefn(module,fd_make_cprim2("REFLECT/SET-ATTRIBS!",
                                  set_procedure_attribs,2));
   fd_idefn(module,
