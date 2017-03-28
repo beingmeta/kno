@@ -517,9 +517,17 @@ static fdtype setop_call(fdtype opcode,fdtype expr,fd_lispenv env,
   return result;
 }
 
+static fdtype xref_type_error(fdtype x,fdtype tag)
+{
+  if (FD_VOIDP(tag))
+    fd_seterr(fd_TypeError,"XREF_OPCODE",u8_strdup("compound"),x);
+  else fd_seterr(fd_TypeError,"XREF_OPCODE",fd_dtype2string(tag),x);
+  return FD_ERROR_VALUE;
+}
+
 static fdtype xref_op(struct FD_COMPOUND *c,long long i,fdtype tag)
 {
-  if ((FD_VOIDP(tag)) || ((c->compound_typetag)==tag))
+  if ((FD_VOIDP(tag)) || ((c->compound_typetag)==tag)) {
     if ((i>=0) && (i<c->fd_n_elts)) {
       fdtype *values=&(c->compound_0), value;
       if (c->compound_ismutable)
@@ -531,15 +539,8 @@ static fdtype xref_op(struct FD_COMPOUND *c,long long i,fdtype tag)
       return value;}
     else {
       fd_seterr(fd_RangeError,"xref",NULL,(fdtype)c);
-     return FD_ERROR_VALUE;}
-}
-
-static fdtype xref_type_error(fdtype x,fdtype tag)
-{
-  if (FD_VOIDP(tag))
-    fd_seterr(fd_TypeError,"XREF_OPCODE",u8_strdup("compound"),x);
-  else fd_seterr(fd_TypeError,"XREF_OPCODE",fd_dtype2string(tag),x);
-  return FD_ERROR_VALUE;
+      return FD_ERROR_VALUE;}}
+  else return xref_type_error((fdtype)c,tag);
 }
 
 static fdtype xref_opcode(fdtype x,long long i,fdtype tag)

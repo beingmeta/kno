@@ -162,7 +162,7 @@ static int setup_connection(struct FD_MYSQL *dbp)
   int retval=0;
   fdtype options=dbp->extdb_options;
   int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
-  char *option=NULL;
+  U8_MAYBE_UNUSED char *option=NULL;
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
     fdtype sslca=fd_getopt(options,sslca_symbol,FD_VOID);

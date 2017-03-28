@@ -57,7 +57,7 @@ static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
 static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym, readsym;
 static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
-static fdtype max_clients_symbol, max_ready_symbol, returnsym, originalsym;
+static fdtype returnsym, originalsym;
 static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
 static fdtype poolmaxsym, poolminsym;
 static fdtype mongomap_symbol, mongovec_symbol;
@@ -290,7 +290,7 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
     return opts;}
 }
 
-static bson_t *getfindopts(fdtype opts,int flags)
+static U8_MAYBE_UNUSED bson_t *getfindopts(fdtype opts,int flags)
 {
   fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
   fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
@@ -313,13 +313,17 @@ static bson_t *getfindopts(fdtype opts,int flags)
   if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
     struct FD_BSON_OUTPUT fields; bson_t proj;
     int ok=bson_append_document_begin(doc,"projection",10,&proj);
-    fields.bson_doc=&proj;
-    fields.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
-    fields.bson_opts=opts;
-    fields.bson_fieldmap=out.bson_fieldmap;
-    fd_bson_output(fields,projection);
-    bson_append_document_end(doc,&proj);}
-  fd_decref(out.bson_fieldmap);
+    if (ok) {
+      fields.bson_doc=&proj;
+      fields.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+      fields.bson_opts=opts;
+      fields.bson_fieldmap=out.bson_fieldmap;
+      fd_bson_output(fields,projection);
+      bson_append_document_end(doc,&proj);}
+    else {
+      fd_seterr(fd_BSON_Error,"getfindopts(mongodb)",NULL,opts);
+      fd_decref(out.bson_fieldmap);
+      return NULL;}}
   return out.bson_doc;
 }
 
@@ -1270,7 +1274,6 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
   int flags=getflags(opts_arg,domain->domain_flags);
   fdtype opts=combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *connection;

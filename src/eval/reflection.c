@@ -208,6 +208,14 @@ static fdtype get_proc_attribs(fdtype x,int create)
   else return FD_VOID;
 }
 
+static fdtype get_procedure_attribs(fdtype x)
+{
+  fdtype attribs=get_proc_attribs(x,1);
+  if (FD_ABORTP(attribs)) return attribs;
+  else fd_incref(attribs);
+  return attribs;
+}
+
 static fdtype set_procedure_attribs(fdtype x,fdtype value)
 {
   fd_ptr_type proctype=FD_PTR_TYPE(x);
@@ -586,7 +594,9 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim3("REFLECT/STORE!",reflect_store,3));
   fd_idefn(module,fd_make_cprim3("REFLECT/ADD!",reflect_add,3));
   fd_idefn(module,fd_make_cprim3("REFLECT/DROP!",reflect_drop,2));
-
+  fd_idefn(module,fd_make_cprim1("REFLECT/ATTRIBS",get_procedure_attribs,2));
+  fd_idefn(module,fd_make_cprim2("REFLECT/SET-ATTRIBS!",
+                                 set_procedure_attribs,2));
   fd_idefn(module,
            fd_make_cprim2x("SET-PROCEDURE-DOCUMENTATION!",
                            set_procedure_documentation,2,

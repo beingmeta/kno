@@ -171,8 +171,10 @@ struct FRAMERD_LEVELDB *fd_setup_leveldb
    (struct FRAMERD_LEVELDB *db,u8_string path,fdtype opts)
 {
   char *errmsg;
+  /*
   u8_string usepath=db->path=u8_strdup(path);
   fdtype useopts=db->opts=fd_incref(opts);
+  */
   leveldb_options_t *options=get_leveldb_options(opts);
   leveldb_cache_t *cache=get_leveldb_cache(options,opts);
   leveldb_env_t *env=get_leveldb_env(options,opts);
@@ -191,7 +193,7 @@ struct FRAMERD_LEVELDB *fd_setup_leveldb
   db->optionsptr=options;
   db->cacheptr=cache;
   db->envptr=env;
-  if (db->dbptr=leveldb_open(options,path,&errmsg)) {
+  if ((db->dbptr=leveldb_open(options,path,&errmsg))) {
     db->dbstatus=leveldb_opened;
     u8_unlock_mutex(&(db->leveldb_lock));
     return db;}
@@ -232,7 +234,6 @@ int fd_close_leveldb(framerd_leveldb db)
 FD_EXPORT
 framerd_leveldb fd_open_leveldb(framerd_leveldb db)
 {
-  char *errmsg;
   if ( (db->dbstatus==leveldb_opened) ||
        (db->dbstatus==leveldb_opening) )
     return db;
@@ -244,7 +245,7 @@ framerd_leveldb fd_open_leveldb(framerd_leveldb db)
       u8_unlock_mutex(&(db->leveldb_lock));
       return db;}
     db->dbstatus=leveldb_opening;
-    if (db->dbptr=leveldb_open(db->optionsptr,db->path,&errmsg)) {
+    if ((db->dbptr=(leveldb_open(db->optionsptr,db->path,&errmsg)))) {
       db->dbstatus=leveldb_opened;
       u8_unlock_mutex(&(db->leveldb_lock));
       return db;}
@@ -367,7 +368,6 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
   struct FD_LEVELDB *db=(fd_leveldb)leveldb;
   struct FRAMERD_LEVELDB *fdldb=&(db->leveldb);
   if ((FD_PACKETP(key))&&(FD_PACKETP(value))) {
-    ssize_t binary_size;
     leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
     leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
     leveldb_put(db->leveldb.dbptr,writeopts,
@@ -409,11 +409,9 @@ static fdtype leveldb_drop_prim(fdtype leveldb,fdtype key,fdtype opts)
   char *errmsg=NULL;
   struct FD_LEVELDB *db=(fd_leveldb)leveldb;
   struct FRAMERD_LEVELDB *fdldb=&(db->leveldb);
+  leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
   leveldb_writeoptions_t *writeopts=get_write_options(fdldb,opts);
   if (FD_PACKETP(key)) {
-    ssize_t binary_size;
-    leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
-    leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
     leveldb_delete(db->leveldb.dbptr,writeopts,
 		   FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
 		   &errmsg);
@@ -427,8 +425,6 @@ static fdtype leveldb_drop_prim(fdtype leveldb,fdtype key,fdtype opts)
       u8_free(keyout.buffer);
       return FD_ERROR_VALUE;}
     else {
-      leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
-      leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
       leveldb_delete(db->leveldb.dbptr,writeopts,
 		     keyout.buffer,keyout.bufwrite-keyout.buffer,
 		     &errmsg);
@@ -463,7 +459,7 @@ static fdtype get_prop(leveldb_t *dbptr,char *key,fdtype dflt)
 static ssize_t set_prop(leveldb_t *dbptr,char *key,fdtype value,
 			leveldb_writeoptions_t *writeopts)
 {
-  ssize_t data_size; ssize_t dtype_len; char *errmsg=NULL;
+  ssize_t dtype_len; char *errmsg=NULL;
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,512);
   if ((dtype_len=fd_write_dtype(&out,value))>0) {
@@ -638,7 +634,6 @@ static int queue_oid_value(fd_leveldb_pool ldp,
 			   leveldb_writebatch_t *batch)
 {
   struct FD_OUTBUF out; ssize_t dtype_len;
-  leveldb_t *dbptr=ldp->leveldb.dbptr;
   unsigned char buf[5];
   buf[0]=0xFE;
   buf[1]=((offset>>24)&0XFF);

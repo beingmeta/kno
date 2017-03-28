@@ -725,48 +725,54 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     fd_swapout_pools();
     return FD_VOID;}
   else if (n == 1) {
+    long long rv_sum=0;
     fdtype arg=args[0];
     if (FD_CHOICEP(arg)) {
-      fdtype oids=FD_EMPTY_CHOICE;
+      fdtype oids=FD_EMPTY_CHOICE; int rv=0;
       FD_DO_CHOICES(e,arg) {
         if (FD_OIDP(e)) {FD_ADD_TO_CHOICE(oids,e);}
         else if (FD_POOLP(e))
-          fd_pool_swapout(fd_lisp2pool(e),FD_VOID);
+          rv=fd_pool_swapout(fd_lisp2pool(e),FD_VOID);
         else if (FD_INDEXP(e))
           fd_index_swapout(fd_indexptr(e),FD_VOID);
         else if (FD_TYPEP(e,fd_raw_index_type))
           fd_index_swapout(fd_indexptr(e),FD_VOID);
         else if (FD_TYPEP(arg,fd_raw_pool_type))
-          fd_pool_swapout((fd_pool)arg,FD_VOID);
+          rv=fd_pool_swapout((fd_pool)arg,FD_VOID);
         else if (FD_STRINGP(e)) {
           fd_pool p=fd_name2pool(FD_STRDATA(e));
           if (!(p)) {
             fd_decref(oids);
             return fd_type_error(_("pool, index, or OIDs"),
                                  "swapout_lexpr",e);}
-          else fd_pool_swapout(p,FD_VOID);}
+          else rv=fd_pool_swapout(p,FD_VOID);}
         else {
           fd_decref(oids);
           return fd_type_error(_("pool, index, or OIDs"),
-                               "swapout_lexpr",e);}}
+                               "swapout_lexpr",e);}
+        if (rv<0) {
+          u8_log(LOGWARN,"SwapoutFailed","Error swapping out %q",e);
+          fd_clear_errors(1);}
+        else rv_sum=rv_sum+rv;}
       fd_swapout_oids(oids);
       fd_decref(oids);
-      return FD_VOID;}
-    else if (FD_OIDP(arg)) fd_swapout_oid(arg);
+      return FD_INT(rv_sum);}
+    else if (FD_OIDP(arg)) 
+      rv_sum=fd_swapout_oid(arg);
     else if (FD_TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_pool_type))
-      fd_pool_swapout(fd_lisp2pool(arg),FD_VOID);
+      rv_sum=fd_pool_swapout(fd_lisp2pool(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_raw_index_type))
       fd_index_swapout(fd_indexptr(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_raw_pool_type))
-      fd_pool_swapout((fd_pool)arg,FD_VOID);
+      rv_sum=fd_pool_swapout((fd_pool)arg,FD_VOID);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
-    return FD_VOID;}
+    return FD_INT(rv_sum);}
   else if (n>2)
     return fd_err(fd_TooManyArgs,"swapout",NULL,FD_VOID);
   else {
-    fdtype arg, keys;
+    fdtype arg, keys; int rv_sum=0;
     if ((FD_TYPEP(args[0],fd_pool_type))||
         (FD_TYPEP(args[0],fd_index_type))||
         (FD_TYPEP(args[0],fd_raw_pool_type))||
@@ -776,12 +782,14 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     if (FD_TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
     else if (FD_TYPEP(arg,fd_pool_type))
-      fd_pool_swapout(fd_lisp2pool(arg),keys);
+      rv_sum=fd_pool_swapout(fd_lisp2pool(arg),keys);
     else if (FD_TYPEP(arg,fd_raw_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
     else if (FD_TYPEP(arg,fd_raw_pool_type))
-      fd_pool_swapout((fd_pool)arg,keys);
-    else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);}
+      rv_sum=fd_pool_swapout((fd_pool)arg,keys);
+    else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
+    if (rv_sum<0) return FD_ERROR_VALUE;
+    else return FD_INT(rv_sum);}
 }
 
 static fdtype commit_lexpr(int n,fdtype *args)
@@ -980,16 +988,6 @@ static fdtype pool_label(fdtype arg,fdtype use_source)
   else if (FD_FALSEP(use_source)) return FD_FALSE;
   else if (p->pool_source)
     return fdtype_string(p->pool_source);
-  else return FD_FALSE;
-}
-
-static fdtype poolid(fdtype arg)
-{
-  fd_pool p=arg2pool(arg);
-  if (p==NULL)
-    return fd_type_error(_("pool spec"),"poolid",arg);
-  else if (p->poolid)
-    return fdtype_string(p->poolid);
   else return FD_FALSE;
 }
 

@@ -587,7 +587,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
   if (p->pool_flags&FDKB_NOSWAP)
     return 0;
   else if (FD_OIDP(oids))
-    fd_hashtable_store(cache,oids,FD_VOID);
+    return fd_hashtable_store(cache,oids,FD_VOID);
   else if (FD_CHOICEP(oids)) {
     int rv=FD_CHOICE_SIZE(oids);
     fd_hashtable_iterkeys(cache,fd_table_replace,
