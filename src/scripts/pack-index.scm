@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)
-(use-module '{optimize mttools logger varconfig})
+(use-module '{optimize mttools logger stringfmts varconfig})
 
 (define (getflags)
   (choice->vector
@@ -51,11 +51,11 @@
 	(append (if slotids (->vector slotids) #())
 		(file->dtype slotids-config))
 	(let ((table (make-hashtable)))
-	  (message "Computing slotids based on " (length keyvec) " keys")
+	  (message "Computing slotids based on " ($num (length keyvec)) " keys")
 	  (doseq (key keyvec)
 	    (when (pair? key) (hashtable-increment! table (car key))))
 	  (message "Found " (choice-size (getkeys table))
-		   " slotids across " (length keyvec) " keys")
+		   " slotids across " ($num (length keyvec)) " keys")
 	  (if slotids (drop! table (elts slotids)))
 	  (append (if slotids (->vector slotids) #())
 		  (rsorted (getkeys table) table))))))
@@ -75,33 +75,39 @@
   (message "Constructing new index " (write filename) " based on "
 	   (index-source old))
   (cond ((config 'STDINDEX #f)
-	 (make-file-index filename (max (* 2 (length keys))
-					(get-new-size (length keys))))
-	 (open-index filename))
+	 (make-index filename 
+		     #[type fileindex
+		       slots ,(max (* 2 (length keys))
+				   (get-new-size (length keys)))]))
 	((config 'HASHINDEX #f)
-	 (make-hash-index filename (get-new-size (length keys))
-			  (compute-slotids keys) (sorted baseoids)
-			  (get-metadata))
-	 (open-index filename))
+	 (make-index filename 
+		     `#[type hashindex
+			slots ,(get-new-size (length keys))
+			slotids ,(compute-slotids keys)
+			baseoids ,(sorted baseoids)
+			metadata ,(get-metadata)]))
 	(else
-	 (make-hash-index filename (get-new-size (length keys))
-			  (compute-slotids keys) (sorted baseoids)
-			  (get-metadata))
-	 (open-index filename))))
+	 (make-index filename
+		     `#[type hashindex
+			slots ,(get-new-size (length keys))
+			slotids ,(compute-slotids keys)
+			baseoids ,(sorted baseoids)
+			metadata ,(get-metadata)])))
+  (open-index filename))
 
 (define (copy-keys keyv old new)
   (message "Copying " (length keyv) " keys" 
-	   " from " (or (index-source old) old)
-	   " into " (or (index-source new) new))
+    " from " (or (index-source old) old)
+    " into " (or (index-source new) new))
   (let* ((prefetcher (lambda (keys done)
 		       (when done (commit) (clearcaches))
 		       (unless done
 			 (prefetch-keys! old keys)))))
-    (do-vector-mt (key keyv (config 'nthreads 4)
-		       prefetcher (config 'blocksize 50000)
+    (do-vector-mt (key keyv (mt/threadcount) prefetcher 
+		       (config 'blocksize (quotient (length keyv) 100))
 		       (mt/custom-progress "Copying keys"))
-		  (unless (or (void? (get old key)) (fail? (get old key)))
-		    (add! new key (get old key))))))
+      (unless (or (void? (get old key)) (fail? (get old key)))
+	(add! new key (get old key))))))
 
 (define (main from (to #f))
   (optimize! copy-keys) (optimize! compute-slotids)
@@ -136,8 +142,4 @@
     (onerror (move-file tmpfile from)
 	     (lambda (ex) (system "mv " tmpfile " " from)))))
 
-
-
-
-
-
+(optimize!)
