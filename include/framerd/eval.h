@@ -404,7 +404,7 @@ FD_EXPORT u8_string fd_opcode_names[];
 FD_EXPORT int fd_opcode_table_len;
 
 #define FD_SPECIAL_OPCODES    FD_OPCODE(0x10)
-#define FD_IF_OPCODE          FD_OPCODE(0x10)
+#define FD_BRANCH_OPCODE      FD_OPCODE(0x10)
 #define FD_NOT_OPCODE         FD_OPCODE(0x11)
 #define FD_UNTIL_OPCODE       FD_OPCODE(0x12)
 #define FD_BEGIN_OPCODE       FD_OPCODE(0x13)
