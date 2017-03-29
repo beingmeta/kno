@@ -107,6 +107,56 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
                 NULL)))
 
+/* Initializing CONSes */
+
+void _FD_INIT_CONS(void *ptr,fd_ptr_type type);
+void _FD_INIT_FRESH_CONS(void *ptr,fd_ptr_type type);
+void _FD_INIT_STACK_CONS(void *ptr,fd_ptr_type type);
+void _FD_INIT_STATIC_CONS(void *ptr,fd_ptr_type type);
+void _FD_SET_CONS_TYPE(void *ptr,fd_ptr_type type);
+
+#if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS)
+#define FD_HEAD_INIT(type) (ATOMIC_VAR_INIT((type-(FD_CONS_TYPE_OFF))|0x80))
+#define FD_STATIC_INIT(type) (ATOMIC_VAR_INIT((type-(FD_CONS_TYPE_OFF))))
+#define FD_INIT_CONS(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
+#define FD_INIT_FRESH_CONS(ptr,type) \
+  memset(ptr,0,sizeof(*(ptr))); \
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
+#define FD_INIT_STACK_CONS(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
+#define FD_INIT_STATIC_CONS(ptr,type) \
+  memset(ptr,0,sizeof(*(ptr))); \
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_STATIC_INIT(type))
+#define FD_CBITS(x) (((fd_ref_cons)x)->fd_conshead)
+#define FD_SET_CONS_TYPE(ptr,type)				\
+  atomic_store							\
+  (&(FD_CBITS(ptr)),						\
+    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
+     ((type-(FD_CONS_TYPE_OFF))&0x7f)))
+#elif FD_INLINE_REFCOUNTS
+#define FD_INIT_CONS(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x200)
+#define FD_INIT_FRESH_CONS(ptr,type) \
+  memset(ptr,0,sizeof(*(ptr))); \
+  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x200)
+#define FD_INIT_STACK_CONS(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+#define FD_INIT_STATIC_CONS(ptr,type) \
+  memset(ptr,0,sizeof(*(ptr))); \
+  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+#define FD_SET_CONS_TYPE(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=\
+    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
+    ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#else
+#define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
+#endif
+
 /* Hash locking for pointers */
 
 #if (SIZEOF_VOID_P == 8)
@@ -202,11 +252,12 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
   fd_consbits cb=atomic_load(&(x->fd_conshead));
   if (cb>=0xFFFFFF80) {
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
-  else if ((cb&(~0x7F)) == 0) {
+  else if (cb<0x80) {
     /* Static cons */}
   else {
-    fd_consbits dcb=atomic_fetch_sub(&(x->fd_conshead),0x80);
-    if (dcb<=0x80) {
+    atomic_fetch_sub(&(x->fd_conshead),0x80);
+    fd_consbits dcb=atomic_load(&(x->fd_conshead));
+    if (dcb<0x80) {
       fd_recycle_cons((fd_raw_cons)x);}}
 }
 

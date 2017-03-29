@@ -468,6 +468,8 @@ buildmode:
 	@echo normal > buildmode
 showbuildmode showmode showbuild: buildmode
 	@cat buildmode
+cleandebug: clean
+	make debug
 
 # configure/autoconf stuff
 

@@ -213,7 +213,7 @@ typedef unsigned int fd_consbits;
 #if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
 #define FD_ATOMIC_CONSHEAD _Atomic
 #else
-#define FD_ATOMIC_CONSHEAD _Atomic
+#define FD_ATOMIC_CONSHEAD
 #endif
 
 #define FD_CONS_HEADER const fd_consbits fd_conshead
@@ -263,53 +263,6 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     this here so that we can define a pointer type procedure which
     gets the cons type. */
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
-
-void _FD_INIT_CONS(void *ptr,fd_ptr_type type);
-void _FD_INIT_FRESH_CONS(void *ptr,fd_ptr_type type);
-void _FD_INIT_STACK_CONS(void *ptr,fd_ptr_type type);
-void _FD_INIT_STATIC_CONS(void *ptr,fd_ptr_type type);
-void _FD_SET_CONS_TYPE(void *ptr,fd_ptr_type type);
-
-#if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS)
-#define FD_HEAD_INIT(v) (ATOMIC_VAR_INIT(v))
-#define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT((type-(FD_CONS_TYPE_OFF))|0x80))
-#define FD_INIT_FRESH_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT((type-(FD_CONS_TYPE_OFF))|0x80))
-#define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type-(FD_CONS_TYPE_OFF)))
-#define FD_INIT_STATIC_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type-(FD_CONS_TYPE_OFF)))
-#define FD_CBITS(x) (((fd_ref_cons)x)->fd_conshead)
-#define FD_SET_CONS_TYPE(ptr,type)				\
-  atomic_store							\
-  (&(FD_CBITS(ptr)),						\
-    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
-     ((type-(FD_CONS_TYPE_OFF))&0x7f)))
-#elif FD_INLINE_REFCOUNTS
-#define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
-#define FD_INIT_FRESH_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
-#define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_INIT_STATIC_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=\
-    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
-    ((type-(FD_CONS_TYPE_OFF))&0x7f)
-#else
-#define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((struct FD_RAW_CONS *)ptr,type)
-#define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((struct FD_RAW_CONS *)ptr,type)
-#define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((struct FD_RAW_CONS *)ptr,type)
-#define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((struct FD_RAW_CONS *)ptr,type)
-#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
-#endif
 
 #define FD_CONS_TYPE(x) \
   (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
