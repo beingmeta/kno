@@ -225,7 +225,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
 #define fd_decref(x) ((void)(x))
 #else
 FD_EXPORT void _fd_decref_fn(struct FD_RAW_CONS *x);
-FD_INLINE_FCN fdtype _fd_incref_fn(struct FD_RAW_CONS *x);
+FD_EXPORT fdtype _fd_incref_fn(struct FD_RAW_CONS *x);
 #define fd_incref(x) \
    ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(FD_RAW_CONS(x))))
 #define fd_decref(x) \
