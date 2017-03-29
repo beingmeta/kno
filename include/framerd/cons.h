@@ -258,6 +258,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
     atomic_fetch_sub(&(x->fd_conshead),0x80);
     fd_consbits dcb=atomic_load(&(x->fd_conshead));
     if (dcb<0x80) {
+      atomic_store(&(x->fd_conshead),(dcb|0xFFFFFF80));
       fd_recycle_cons((fd_raw_cons)x);}}
 }
 
