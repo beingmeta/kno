@@ -115,7 +115,7 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 #define FD_PTRHASH_CONSTANT 2654435761
 #endif
 
-U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod) 
+U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod)
 {
   u8_wideint intrep = ((u8_wideint) ptr)>>4;
   return (intrep * FD_PTRHASH_CONSTANT) % mod;
@@ -130,8 +130,17 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 /* Reference counting GC */
 
+#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
+#define FD_CONSBITS(x)      (atomic_load(&((x)->fd_conshead)))
+#define FD_CONS_REFCOUNT(x) (FD_CONSBITS(x)>>7)
+#elif FD_INLINE_REFCOUNTS
 #define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#else
+#define FD_CONSBITS(x)      ((x)->fd_conshead)
+#define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#endif
+
 #define FD_MALLOCD_CONSP(x) ((FD_CONSBITS(x))>=0x80)
 #define FD_STATIC_CONSP(x)  (!(FD_MALLOCD_CONSP(x)))
 
