@@ -9655,6 +9655,19 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+for ac_header in stdatomic.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "stdatomic.h" "ac_cv_header_stdatomic_h" "$ac_includes_default"
+if test "x$ac_cv_header_stdatomic_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_STDATOMIC_H 1
+_ACEOF
+
+fi
+
+done
+
+
 # Check whether --enable-checkptrs was given.
 if test "${enable_checkptrs+set}" = set; then :
   enableval=$enable_checkptrs;

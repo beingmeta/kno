@@ -23,6 +23,9 @@
 /* Define if integers should be aligned  */
 #undef FD_WORDS_ARE_ALIGNED
 
+/* Whether you can use the stdatomic.h header file */
+#undef HAVE_STDATOMIC_H
+
 /* Whether to use inline functions to provide compile-time checking of
    whether fdtype arguments are correct*/
 #undef FD_DEFAULT_CHECKFDTYPE
