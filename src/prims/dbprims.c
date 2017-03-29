@@ -938,7 +938,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
-    unsigned int i=0, lim=fd_pool_load(p);
+    int i=0, lim=fd_pool_load(p);
     fdtype result=FD_EMPTY_CHOICE;
     FD_OID base=p->pool_base;
     if (lim<0) return FD_ERROR_VALUE;
