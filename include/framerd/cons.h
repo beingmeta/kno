@@ -169,7 +169,7 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
    is never reference counted.
 */
 
-#if (!(FD_NO_GC))
+#if FD_INLINE_REFCOUNTS
 FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
 {
   if (FD_CONSBITS(x)>0xFFFFFF80) {
@@ -178,25 +178,6 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */
     return (fdtype) x;}
-  else {
-    FD_LOCK_PTR(x);
-#if HUGE_REFCOUNT
-    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
-      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
-#endif
-    x->fd_conshead=x->fd_conshead+0x80;
-    FD_UNLOCK_PTR(x);
-    return (fdtype) x;}
-}
-
-FD_INLINE_FCN fdtype _fd_getref(struct FD_RAW_CONS *x)
-{
-  if (FD_CONSBITS(x)>0xFFFFFF80) {
-    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
-    return (fdtype)NULL;}
-  else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
-    /* Static cons, which we copy rather than incref */
-    return fd_deep_copy((fdtype)x);}
   else {
     FD_LOCK_PTR(x);
 #if HUGE_REFCOUNT
@@ -234,15 +215,22 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
     fd_recycle_cons(x);}
   else {}
 }
-
 #define fd_incref(x) \
-   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref(FD_RAW_CONS(x))))
+  ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_RAW_CONS(x))))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
 	  (_fd_decref(FD_RAW_CONS(x)),FD_VOID)))
-#else
+#elif (FD_NO_GC)
 #define fd_incref(x) (x)
 #define fd_decref(x) ((void)(x))
+#else
+FD_EXPORT void _fd_decref_fn(struct FD_RAW_CONS *x);
+FD_INLINE_FCN fdtype _fd_incref_fn(struct FD_RAW_CONS *x);
+#define fd_incref(x) \
+   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(FD_RAW_CONS(x))))
+#define fd_decref(x) \
+  ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
+	  (_fd_decref_fn(FD_RAW_CONS(x)),FD_VOID)))
 #endif
 
 /* Conses */

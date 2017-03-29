@@ -114,6 +114,41 @@ int fd_check_immediate(fdtype x)
   else return 0;
 }
 
+/* CONS methods for external calls */
+
+FD_EXPORT void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_CONS(ptr,type);
+}
+FD_EXPORT void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_FRESH_CONS(ptr,type);
+}
+FD_EXPORT void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_STACK_CONS(ptr,type);
+}
+FD_EXPORT void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_STATIC_CONS(ptr,type);
+}
+FD_EXPORT void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_SET_CONS_TYPE(ptr,type);
+}
+
+FD_EXPORT fdtype _fd_incref_fn(fdtype ptr)
+{
+  return fd_incref(ptr);
+}
+
+FD_EXPORT void _fd_decref_fn(fdtype ptr)
+{
+  fd_decref(ptr);
+}
+
+
+
 /* Other methods */
 
 FD_EXPORT
