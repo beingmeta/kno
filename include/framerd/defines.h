@@ -192,14 +192,18 @@ typedef int fd_size_t;
 #define FD_INLINE_CHOICES 0
 #endif
 
+#ifndef FD_INLINE_TABLES
+#define FD_INLINE_TABLES 0
+#endif
+
 #if ((FD_INLINE_CHOICES)||(FD_INLINE_TABLES))
 #define FD_INLINE_COMPARE 1
 #elif (!(defined(FD_INLINE_COMPARE)))
 #define FD_INLINE_COMPARE 0
 #endif
 
-#ifndef FD_INLINE_TABLES
-#define FD_INLINE_TABLES 0
+#ifndef FD_INLINE_REFCOUNTS
+#define FD_INLINE_REFCOUNTS 1
 #endif
 
 #ifndef FD_USE_THREADCACHE

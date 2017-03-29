@@ -216,8 +216,18 @@ typedef struct FD_CONS { FD_CONS_HEADER;} FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
 /* Raw conses have consbits which can change */
+#if FD_INLINE_REFCOUNTS
+typedef struct FD_REF_CONS { fd_consbits fd_conshead;} FD_REF_CONS;
+typedef struct FD_REF_CONS *fd_ref_cons;
+#endif
+
 typedef struct FD_RAW_CONS { fd_consbits fd_conshead;} FD_RAW_CONS;
 typedef struct FD_RAW_CONS *fd_raw_cons;
+#if FD_CHECKFDTYPE
+FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
+#else
+#define FD_RAW_CONS(x) ((fd_raw_cons)(x))
+#endif
 
 /* The bottom 7 bits of the conshead indicates the type of the cons.  The
    rest is the reference count or zero for "static" (non-reference
@@ -228,13 +238,11 @@ typedef struct FD_RAW_CONS *fd_raw_cons;
 #define FD_CONS_TYPE_OFF  (0x84)
 
 #if FD_CHECKFDTYPE
-FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
 FD_FASTOP U8_MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
 FD_FASTOP U8_MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
 FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(_FD_ISDTYPE(x)))
 #else
-#define FD_RAW_CONS(x) ((fd_raw_cons)(x))
 #define FD_CONS_DATA(x) ((fd_cons)(x))
 #define FDTYPE(x) ((fdtype)(x))
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(1))
@@ -246,6 +254,14 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     this here so that we can define a pointer type procedure which
     gets the cons type. */
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
+
+void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type);
+
+#if FD_INLINE_REFCOUNTS
 #define FD_INIT_CONS(ptr,type) \
   ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
 #define FD_INIT_FRESH_CONS(ptr,type) \
@@ -256,12 +272,20 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
   ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_CONS_TYPE(x) \
-  (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
 #define FD_SET_CONS_TYPE(ptr,type) \
   ((fd_raw_cons)ptr)->fd_conshead=\
     ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#else
+#define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((fd_raw_cons)ptr,type)
+#define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((fd_raw_cons)ptr,type)
+#define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((fd_raw_cons)ptr,type)
+#define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((fd_raw_cons)ptr,type)
+#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((fd_raw_cons)ptr,type)
+#endif
+
+#define FD_CONS_TYPE(x) \
+  (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
 #define FD_CONSPTR_TYPE(x) (FD_CONS_TYPE((fd_cons)x))
 
 #define FD_CONSPTR(cast,x) ((cast)((fd_cons)x))
