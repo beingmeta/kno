@@ -265,7 +265,7 @@
 		(set+! threads (threadcall fill-table! table size atomicp)))
 	      (threadjoin threads))
 	    (fill-table! table size atomicp))
-	(table-report table)
+	(unless (config 'noreport) (table-report table))
 	(message "Checking consistency....")
 	(if rthreads
 	    (let ((threads {}))
@@ -278,7 +278,7 @@
 	(message "Table saved, reloaded...")
  	(set! table (table-from filename))
 	(set! outtable table)
-	(table-report table "Reloaded table ")
+	(unless (config 'noreport) (table-report table "Reloaded table"))
 	(message "Checking consistency of reloaded table...")
 	(if rthreads
 	    (let ((threads {}))
@@ -294,7 +294,7 @@
 	  (let* ((table (table-from filename))
 		 (atomicp (has-suffix filename ".slotmap"))
 		 (objectcount (count-objects table)))
-	    (table-report table "Restored table")
+	    (unless (config 'noreport) (table-report table "Restored table"))
 	    (message "Checking restored table for consistency...")
 	    (if rthreads
 		(let ((threads {}))
