@@ -169,8 +169,41 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
    is never reference counted.
 */
 
-#if FD_INLINE_REFCOUNTS
-FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
+#if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
+FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
+{
+  fd_consbits cb=atomic_load(&(x->fd_conshead));
+  if (cb>0xFFFFFF80) {
+    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
+    return (fdtype)NULL;}
+  else if ((cb&(~0x7F)) == 0) {
+    /* Static cons */
+    return (fdtype) x;}
+  else {
+    atomic_fetch_add(&(x->fd_conshead),0x80);
+#if HUGE_REFCOUNT
+    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
+      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
+#endif
+    return (fdtype) x;}
+}
+
+FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
+{
+  fd_consbits cb=atomic_load(&(x->fd_conshead));
+  if (cb>=0xFFFFFF80) {
+    u8_raise(fd_DoubleGC,"fd_decref",NULL);}
+  else if ((cb&(~0x7F)) == 0) {
+    /* Static cons */}
+  else {
+    fd_consbits dcb=atomic_fetch_sub(&(x->fd_conshead),0x80);
+    if (dcb<=0x80) {
+      fd_recycle_cons((fd_raw_cons)x);}}
+}
+
+#elif FD_INLINE_REFCOUNTS
+
+FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
 {
   if (FD_CONSBITS(x)>0xFFFFFF80) {
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
@@ -189,7 +222,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
     return (fdtype) x;}
 }
 
-FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
+FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 {
   if (FD_CONSBITS(x)>=0xFFFFFF80) {
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
@@ -210,27 +243,32 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
       /* Someone else decref'd it before, we got the lock, so we
 	 unlock and recycle it */
       FD_UNLOCK_PTR(x);
-      fd_recycle_cons(x);}}
+      fd_recycle_cons((fd_raw_cons)x);}}
   else if (FD_CONSBITS(x)>=0x80) {
-    fd_recycle_cons(x);}
+    /* This should never happen */
+    fd_recycle_cons((fd_raw_cons)x);}
   else {}
 }
-#define fd_incref(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_RAW_CONS(x))))
-#define fd_decref(x) \
-  ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
-	  (_fd_decref(FD_RAW_CONS(x)),FD_VOID)))
-#elif (FD_NO_GC)
+#endif
+
+FD_EXPORT void _fd_decref_fn(fdtype);
+FD_EXPORT fdtype _fd_incref_fn(fdtype);
+
+#if (FD_NO_GC)
 #define fd_incref(x) (x)
 #define fd_decref(x) ((void)(x))
-#else
-FD_EXPORT void _fd_decref_fn(struct FD_RAW_CONS *x);
-FD_INLINE_FCN fdtype _fd_incref_fn(struct FD_RAW_CONS *x);
+#elif FD_INLINE_REFCOUNTS
 #define fd_incref(x) \
-   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(FD_RAW_CONS(x))))
+  ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_REF_CONS(x))))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
-	  (_fd_decref_fn(FD_RAW_CONS(x)),FD_VOID)))
+	  (_fd_decref(FD_REF_CONS(x)),FD_VOID)))
+#else
+#define fd_incref(x) \
+   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(x)))
+#define fd_decref(x) \
+  ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
+	  (_fd_decref_fn(x),FD_VOID)))
 #endif
 
 /* Conses */

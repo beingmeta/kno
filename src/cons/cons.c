@@ -116,24 +116,29 @@ int fd_check_immediate(fdtype x)
 
 /* CONS methods for external calls */
 
-FD_EXPORT void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_CONS(ptr,type);
 }
-FD_EXPORT void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_FRESH_CONS(ptr,type);
 }
-FD_EXPORT void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_STACK_CONS(ptr,type);
 }
-FD_EXPORT void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_STATIC_CONS(ptr,type);
 }
-FD_EXPORT void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_SET_CONS_TYPE(ptr,type);
 }
 
