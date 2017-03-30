@@ -16,4 +16,3 @@
 (when optimized
   (optimize! '{bench bench/threads bench/miscfns})
   (optimize!))
-

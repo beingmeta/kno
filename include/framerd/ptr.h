@@ -677,6 +677,7 @@ FD_EXPORT int _fd_leak_fcnids;
 FD_EXPORT fdtype fd_resolve_fcnid(fdtype ref);
 FD_EXPORT fdtype fd_register_fcnid(fdtype obj);
 FD_EXPORT fdtype fd_set_fcnid(fdtype ref,fdtype newval);
+FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
 

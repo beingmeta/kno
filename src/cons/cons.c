@@ -1544,7 +1544,9 @@ static U8_MAYBE_UNUSED int some_false(fdtype arg)
 void fd_init_cons_c()
 {
   int i;
-  i=0; while (i < FD_N_PTRLOCKS) u8_init_mutex(&_fd_ptr_locks[i++]);
+  i=0; while (i < FD_N_PTRLOCKS) {
+    u8_init_mutex(&_fd_ptr_locks[i]);
+    i++;}
 
   u8_register_source_file(_FILEINFO);
 

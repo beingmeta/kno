@@ -629,7 +629,7 @@ FD_EXPORT void fd_init_load_c()
                           fd_string_type,FD_VOID,
                           fd_string_type,FD_VOID));
  fd_idefn(fd_scheme_module,
-          fd_make_cprim0("GET-SOURCE",lisp_get_source,0));
+          fd_make_cprim0("GET-SOURCE",lisp_get_source));
 
  fd_register_config("CONFIG","Add a CONFIG file/URI to process",
                     get_config_files,add_config_file,NULL);

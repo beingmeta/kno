@@ -3109,9 +3109,9 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim0("CLEARCACHES",clearcaches,0));
+           fd_make_cprim0("CLEARCACHES",clearcaches));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim,0));
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));

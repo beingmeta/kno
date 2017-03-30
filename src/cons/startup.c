@@ -890,4 +890,8 @@ void fd_init_startup_c()
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
 
+  u8_log(LOGWARN,"PtrLocks",
+	 "The starting address of the pointer locks is 0x%llx",
+	 &_fd_ptr_locks);
+
 }

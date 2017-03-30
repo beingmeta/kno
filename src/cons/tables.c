@@ -1620,7 +1620,6 @@ static int add_to_hashtable(fd_hashtable ht,fdtype key,fdtype value)
     return fd_interr(value);
   else fd_incref(value);
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_write_lock_table(ht);
   if (ht->ht_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
   n_keys=ht->table_n_keys;
   result=fd_hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));

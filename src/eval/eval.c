@@ -1462,8 +1462,6 @@ static fdtype apply_lexpr(int n,fdtype *args)
 
 /* Initialization */
 
-fd_ptr_type fd_environment_type, fd_specform_type;
-
 extern void fd_init_coreprims_c(void);
 
 static fdtype lispenv_get(fdtype e,fdtype s,fdtype d)
@@ -1880,10 +1878,6 @@ void fd_init_eval_c()
   fd_unparsers[fd_opcode_type]=unparse_opcode;
   fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
 
-  fd_environment_type=fd_register_cons_type(_("scheme environment"));
-  fd_specform_type=fd_register_cons_type(_("scheme special form"));
-  fd_stream_erver_type=fd_register_cons_type(_("DType server"));
-
   fd_tablefns[fd_environment_type]=fns;
   fd_copiers[fd_environment_type]=lisp_copy_environment;
   fd_recyclers[fd_environment_type]=recycle_environment;
@@ -2007,7 +2001,8 @@ static void init_localfns()
 
 #if USING_GOOGLE_PROFILER
   fd_defspecial(fd_scheme_module,"GOOGLE/PROFILE",gprofile_handler);
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop,0));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop));
 #endif
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
