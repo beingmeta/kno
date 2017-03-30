@@ -282,7 +282,7 @@ static fdtype compound_metadata_prim(fdtype compound,fdtype field)
 static fdtype cons_compound(int n,fdtype *args,fd_compound_typeinfo e)
 {
   if (e->fd_compound_metadata) {
-    fdtype method=fd_get(e->fd_compound_metadata,consfn_symbol,FD_VOID);
+    fdtype method=fd_get(e->fd_compound_metadata,FDSYM_CONS,FD_VOID);
     if (FD_VOIDP(method)) return FD_VOID;
     else {
       fdtype result=fd_apply(method,n,args);
@@ -315,14 +315,14 @@ static fdtype compound_set_consfn_prim(fdtype tag,fdtype consfn)
     if (FD_FALSEP(consfn)) {
       fdtype slotmap=tag_slotdata(tag);
       struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
-      fd_drop(slotmap,consfn_symbol,FD_VOID);
+      fd_drop(slotmap,FDSYM_CONS,FD_VOID);
       fd_decref(slotmap);
       e->fd_compound_parser=NULL;
       return FD_VOID;}
     else if (FD_APPLICABLEP(consfn)) {
       fdtype slotmap=tag_slotdata(tag);
       struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
-      fd_store(slotmap,consfn_symbol,consfn);
+      fd_store(slotmap,FDSYM_CONS,consfn);
       fd_decref(slotmap);
       e->fd_compound_parser=cons_compound;
       return FD_VOID;}
@@ -360,7 +360,6 @@ FD_EXPORT void fd_init_compounds_c()
 
   consfn_symbol=fd_intern("CONS");
   stringfn_symbol=fd_intern("STRINGIFY");
-  tag_symbol=fd_intern("TAG");
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));

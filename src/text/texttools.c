@@ -963,7 +963,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
    rewrites all the substrings matching a pattern.
 */
 
-static fdtype star_symbol, plus_symbol, label_symbol, subst_symbol, opt_symbol;
+static fdtype subst_symbol;
 static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args);
 static int dorewrite(u8_output out,fdtype xtract)
 {
@@ -977,14 +977,14 @@ static int dorewrite(u8_output out,fdtype xtract)
       if (retval<0) return retval; else i++;}}
   else if (FD_PAIRP(xtract)) {
     fdtype sym=FD_CAR(xtract);
-    if ((sym==star_symbol) || (sym==plus_symbol) || (sym==opt_symbol)) {
+    if ((sym==FDSYM_STAR) || (sym==FDSYM_PLUS) || (sym==FDSYM_OPT)) {
       fdtype elts=FD_CDR(xtract);
       if (FD_EMPTY_LISTP(elts)) {}
       else {
         FD_DOLIST(elt,elts) {
           int retval=dorewrite(out,elt);
           if (retval<0) return retval;}}}
-    else if (sym==label_symbol) {
+    else if (sym==FDSYM_LABEL) {
       fdtype content=fd_get_arg(xtract,2);
       if (FD_VOIDP(content)) {
         fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
@@ -1464,14 +1464,14 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
       if (retval<0) return retval; else i++;}}
   else if (FD_PAIRP(xtract)) {
     fdtype sym=FD_CAR(xtract);
-    if ((sym==star_symbol) || (sym==plus_symbol) || (sym==opt_symbol)) {
+    if ((sym==FDSYM_STAR) || (sym==FDSYM_PLUS) || (sym==FDSYM_OPT)) {
       fdtype elts=FD_CDR(xtract);
       if (FD_EMPTY_LISTP(elts)) {}
       else {
         FD_DOLIST(elt,elts) {
           int retval=framify(f,out,elt);
           if (retval<0) return retval;}}}
-    else if (sym==label_symbol) {
+    else if (sym==FDSYM_LABEL) {
       fdtype slotid=fd_get_arg(xtract,1);
       fdtype content=fd_get_arg(xtract,2);
       if (FD_VOIDP(content)) {
@@ -1606,19 +1606,17 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 
 /* Slicing */
 
-static fdtype suffix_symbol, prefix_symbol, sep_symbol;
-
 static int interpret_keep_arg(fdtype keep_arg)
 {
   if (FD_FALSEP(keep_arg)) return 0;
   else if (FD_TRUEP(keep_arg)) return 1;
   else if (FD_INTP(keep_arg))
     return FD_FIX2INT(keep_arg);
-  else if (FD_EQ(keep_arg,suffix_symbol))
+  else if (FD_EQ(keep_arg,FDSYM_SUFFIX))
     return 1;
-  else if (FD_EQ(keep_arg,prefix_symbol))
+  else if (FD_EQ(keep_arg,FDSYM_PREFIX))
     return -1;
-  else if (FD_EQ(keep_arg,sep_symbol))
+  else if (FD_EQ(keep_arg,FDSYM_SEP))
     return 2;
   else return 0;
 }
@@ -2723,14 +2721,7 @@ void fd_init_texttools()
                            fd_string_type,FD_VOID));
 
 
-  star_symbol=fd_intern("*");
-  plus_symbol=fd_intern("+");
-  label_symbol=fd_intern("LABEL");
   subst_symbol=fd_intern("SUBST");
-  opt_symbol=fd_intern("OPT");
-  suffix_symbol=fd_intern("SUFFIX");
-  prefix_symbol=fd_intern("PREFIX");
-  sep_symbol=fd_intern("SEP");
 
   u8_threadcheck();
 

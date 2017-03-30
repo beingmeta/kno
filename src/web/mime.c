@@ -28,7 +28,7 @@ static fd_exception NoMultiPartSeparator=_("Multipart MIME document has no separ
 
 static fdtype content_type_slotid, headers_slotid, content_disposition_slotid, content_slotid;
 static fdtype charset_slotid, encoding_slotid, separator_slotid;
-static fdtype multipart_symbol, text_symbol, preamble_slotid, parts_slotid;
+static fdtype multipart_symbol, preamble_slotid, parts_slotid;
 
 static fdtype parse_fieldname(u8_string start,u8_string end)
 {
@@ -179,7 +179,7 @@ static fdtype convert_content(const char *start,const char *end,
                               fdtype majtype,fdtype dataenc,fdtype charenc)
 {
   if (end==NULL) end=start+strlen(start);
-  if ((FD_STRINGP(charenc)) || (FD_EQ(majtype,text_symbol)))
+  if ((FD_STRINGP(charenc)) || (FD_EQ(majtype,FDSYM_TEXT)))
     return convert_text(start,end,dataenc,charenc);
   else return convert_data(start,end,dataenc,FD_VOIDP(majtype));
 }
@@ -299,7 +299,6 @@ void fd_init_mime_c()
   separator_slotid=fd_intern("BOUNDARY");
   multipart_symbol=fd_intern("MULTIPART");
   headers_slotid=fd_intern("HEADERS");
-  text_symbol=fd_intern("TEXT");
   preamble_slotid=fd_intern("PREAMBLE");
   parts_slotid=fd_intern("PARTS");
 

@@ -2361,7 +2361,9 @@ FD_EXPORT void fd_init_seqprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SEVENTH",seventh,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("REST",rest,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("NULL?",nullp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("EMPTY-LIST?",nullp,1));
+  fd_defalias(fd_scheme_module,"NULL?","EMPTY-LIST?");
+  fd_defalias(fd_scheme_module,"NIL?","EMPTY-LIST?");
 
   /* Standard pair functions */
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONS",cons,2));

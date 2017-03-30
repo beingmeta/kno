@@ -1621,7 +1621,7 @@ void fd_init_cons_c()
     fd_init_compound
     (NULL,FD_VOID,9,
      fd_intern("COMPOUNDTYPE"),FD_INT(9),
-     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),
+     fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
                      fd_intern("FIELDS"),fd_intern("INITFN"),
                      fd_intern("FREEFN"),fd_intern("COMPAREFN"),
                      fd_intern("STRINGFN"),fd_intern("DUMPFN"),

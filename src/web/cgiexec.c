@@ -35,7 +35,7 @@ static fdtype get_method, post_method, browseinfo_symbol;
 static fdtype redirect_field, sendfile_field, xredirect_field;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
-static fdtype outcookies_symbol, incookies_symbol, bad_cookie, text_symbol;
+static fdtype outcookies_symbol, incookies_symbol, bad_cookie;
 static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid;
 static fdtype body_attribs_slotid, body_classes_slotid, html_classes_slotid;
 static fdtype class_symbol;
@@ -264,7 +264,7 @@ static void get_form_args(fd_slotmap c)
             fdtype ctype=fd_get(elt,content_type,FD_EMPTY_CHOICE);
             fd_add((fdtype)c,intern_compound(nstring,"_TYPE"),ctype);
             fd_decref(ctype);}
-          if ((FD_VOIDP(ctype)) || (fd_overlapp(ctype,text_symbol))) {
+          if ((FD_VOIDP(ctype)) || (fd_overlapp(ctype,FDSYM_TEXT))) {
             if (FD_STRINGP(content)) {
               u8_string chars=FD_STRDATA(content); int len=FD_STRLEN(content);
               /* Remove trailing \r\n from the MIME field */
@@ -1371,7 +1371,6 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   filename_slotid=fd_intern("FILENAME");
   name_slotid=fd_intern("NAME");
-  text_symbol=fd_intern("TEXT");
   parts_slotid=fd_intern("PARTS");
 
   remote_user_symbol=fd_intern("REMOTE_USER");

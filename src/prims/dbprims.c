@@ -324,7 +324,7 @@ static fdkb_flags getdbflags(fdtype opts)
 static fdtype make_pool(fdtype path,fdtype opts)
 {
   fd_pool p=NULL;
-  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fdtype type=fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   fdkb_flags flags=getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
@@ -352,7 +352,7 @@ static fdtype open_pool(fdtype path,fdtype opts)
 static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix=NULL;
-  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fdtype type=fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   fdkb_flags flags=getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
