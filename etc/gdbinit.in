@@ -30,8 +30,8 @@ define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
 end
 define showtype
-  print (((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
-  printf "type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
+  typecode=(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
+  printf "type is 0x%x: %s\n",${typecode},fd_type_names[${typecode}]
 end
 define dtypeout
   call _fd_dtype2stderr($arg0)
@@ -51,19 +51,16 @@ define refcount
   end
 end
 define watchcons
-  watch ((struct FD_CONS *)($arg0))->fd_conshead
-end
-define xrefcount
-  printf "cons refcount=%d\n",((((struct FD_CONS *)$arg0)->fd_conshead)>>7)
+  watch/x ((struct FD_CONS *)($arg0))->fd_conshead
 end
 define showstruct 
-  print *((struct $arg1 *)($arg0))
+  print/x *((struct $arg1 *)($arg0))
 end
 define showcons
-  print ((struct FD_CONS *)($arg0))
+  print/x ((struct FD_CONS *)($arg0))
 end
 define showfield
-  print ((struct $arg1 *)($arg0))->$arg2
+  print/x ((struct $arg1 *)($arg0))->$arg2
 end
 define showstring
   set print elements 0
