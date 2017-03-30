@@ -62,6 +62,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
   u8_string fcn_name, fcn_filename;					\
   u8_string fcn_documentation;						\
   unsigned int fcn_ndcall:1, fcn_xcall:1;				\
+  fdtype fcnid;								\
   short fcn_arity, fcn_min_arity;					\
   fdtype fcn_attribs;							\
   int *fcn_typeinfo;							\
