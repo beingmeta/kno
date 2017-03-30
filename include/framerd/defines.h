@@ -64,6 +64,15 @@
 
 #define FD_WRITETHROUGH_THREADCACHE 1
 
+/* Whether to have FD_CHECK_PTR check underlying CONS structs */
+#ifdef FD_FULL_CHECK_PTR
+#define FD_FULL_CHECK_PTR 1
+/* It can be helpful to turn this off when doing certain kinds of
+   thread debugging, since checking that a CONS is legitimate without
+   locking counts as a race condition to some thread error
+   detectors. */
+#endif
+
 /* This is set to make incref/decref into no-ops, which is helpful
    for ablative benchmarking.  */
 #ifndef FD_NO_GC

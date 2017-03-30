@@ -90,7 +90,7 @@ FD_EXPORT short fd_functionp[];
    like fd_cprim1, as an argument, will generate warnings when
    the declaration and the implementation don't match.  */
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn);
 FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity);

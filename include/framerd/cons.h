@@ -107,6 +107,37 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
                 NULL)))
 
+/* Initializing CONSes */
+
+void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type);
+void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type);
+
+#if FD_INLINE_REFCOUNTS
+#define FD_INIT_CONS(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
+#define FD_INIT_FRESH_CONS(ptr,type) \
+  memset(ptr,0,sizeof(*(ptr))); \
+  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
+#define FD_INIT_STACK_CONS(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+#define FD_INIT_STATIC_CONS(ptr,type) \
+  memset(ptr,0,sizeof(*(ptr))); \
+  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+#define FD_SET_CONS_TYPE(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=\
+    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
+    ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#else
+#define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((fd_raw_cons)ptr,type)
+#define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((fd_raw_cons)ptr,type)
+#define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((fd_raw_cons)ptr,type)
+#define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((fd_raw_cons)ptr,type)
+#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((fd_raw_cons)ptr,type)
+#endif
+
 /* Hash locking for pointers */
 
 #if (SIZEOF_VOID_P == 8)
@@ -124,7 +155,7 @@ U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod)
 FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_PTR_LOCK_OFFSET(ptr) (hashptrval((ptr),FD_N_PTRLOCKS))
 #define FD_LOCK_PTR(ptr) \
-  u8_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
+  u8_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)]);
 #define FD_UNLOCK_PTR(ptr) \
   u8_unlock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 
