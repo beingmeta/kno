@@ -521,6 +521,22 @@ chained_batchscripts:
 
 .PHONY: chained_batchscripts batchscripts chainscripts execscripts
 
+# SMP tests
+
+smp smptests: smp_hashtables smp_slotmaps smp_indexes smp_pools
+
+smp_hashtables:
+	make RUNCONF="NTHREADS=5" hashtables
+
+smp_slotmaps:
+	make RUNCONF="NTHREADS=5" slotmaps
+
+smp_indexes:
+	make RUNCONF="NTHREADS=5" indexes
+
+smp_pools:
+	make RUNCONF="NTHREADS=5" pools
+
 # Memory integrity tests
 
 heaptest memtest memtests: all_memtests

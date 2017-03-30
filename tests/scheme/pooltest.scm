@@ -27,7 +27,7 @@
 		       offtype ,(config 'offtype 'B40)]))))
 
 (define (make-random-frame pool (interrupt #f))
-  (let* ((seed (random 1000))
+  (let* ((seed (1+ (random 1000)))
 	 (frame (frame-create pool
 		  '%id (stringout seed)
 		  'type 'test
@@ -59,7 +59,31 @@
 	       (set! failed #t))))
 	 (not failed))))
 
-(define (main (testcount 250) (poolfile poolfile) (reset (config 'RESET #f)))
+(define (get-rthreads)
+  (config 'RTHREADS 
+	  (and (CONFIG 'NTHREADS) 
+	       (* 3 (CONFIG 'NTHREADS #f)))))
+(define (get-wthreads) (config 'WTHREADS (CONFIG 'NTHREADS #f)))
+
+(define (make-n-frames count pool)
+  (dotimes (i count) (make-random-frame pool)))
+(define (test-n-frames count pool)
+  (dotimes (i count) 
+    (applytest #t test-frame (random-oid pool))))
+(define (test-n-frames rthreads count pool)
+  (if rthreads
+      (let ((n-per-thread (1+ (quotient testcount rthreads)))
+	    (threads {}))
+	(dotimes (i wthreads)
+	  (set+! threads (threadcall test-n-frames n-per-thread pool)))
+	(threadjoin threads))
+      (test-n-frames count pool)))
+
+(define (main (testcount 250) (poolfile poolfile) 
+	      (reset (config 'RESET #f))
+	      (rthreads (get-rthreads))
+	      (wthreads (get-wthreads)))
+  (set! testcount (floor testcount))
   (when (and reset (file-exists? poolfile))
     (remove-file poolfile))
   (let ((init (not (file-exists? poolfile)))
@@ -69,7 +93,15 @@
 	(logwarn |FreshPool| pool)
 	(logwarn |ExistingPool| pool))
     (when init
-      (dotimes (i (* testcount 4)) (make-random-frame pool)))
+      (if wthreads
+	  (let ((n-per-thread (1+ (quotient (* testcount 4) wthreads)))
+		(threads {}))
+	    (dotimes (i wthreads)
+	      (set+! threads 
+		     (threadcall make-n-frames n-per-thread pool)))
+	    (threadjoin threads))
+	  (dotimes (i (* testcount 4))
+	    (make-random-frame pool))))
     (dotimes (i (quotient testcount 4)) 
       (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests1| "Passed some tests on " pool)
