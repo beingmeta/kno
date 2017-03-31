@@ -646,7 +646,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fdtype comment_string=fd_substring(s+4,s+(len-3));
     fdtype comment_content=fd_conspair(comment_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,comment_symbol);
-    fd_store(cnode,FDSYM_CONTENT,comment_content);
+    fd_store(cnode,FDSYM_PCONTENT,comment_content);
     fd_decref(comment_content);
     add_content(node,cnode);}
   else if (strncmp(s,"<![CDATA[",9)==0) {
@@ -654,7 +654,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fdtype cdata_string=fd_substring(s+9,s+(len-3));
     fdtype cdata_content=fd_conspair(cdata_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,cdata_symbol);
-    fd_store(cnode,FDSYM_CONTENT,cdata_content);
+    fd_store(cnode,FDSYM_PCONTENT,cdata_content);
     fd_decref(cdata_content);
     add_content(node,cnode);}
   else add_content(node,fd_make_string(NULL,len,s));
@@ -687,7 +687,7 @@ FD_XML *fd_default_popfn(FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->fdxml_attribs)) init_node_attribs(node);
   if (FD_PAIRP(node->fdxml_head))
-    fd_add(node->fdxml_attribs,FDSYM_CONTENT,node->fdxml_head);
+    fd_add(node->fdxml_attribs,FDSYM_PCONTENT,node->fdxml_head);
   cleanup_attribs(node->fdxml_attribs);
   if (((node->fdxml_bits&FD_XML_NOCONTENTS)==0) ||
       (node->fdxml_parent==NULL) ||
