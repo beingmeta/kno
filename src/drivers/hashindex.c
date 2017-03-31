@@ -1805,34 +1805,9 @@ FD_EXPORT int fd_populate_hash_index
    information started to the end of the file and set the initial word
    of the file to the code FD_HASH_INDEX_TO_RECOVER. 
 
-   
-
-   After we've written all of the new value chunks to disk, we 
-   
-
-   We then read each of the buckets we're going to change from disk,
-   
-
-   Then, the chunk refs in the commit schedule are set up for any keys
-   already in the table (we use the offdata table, or go to disk).
-
-   Sort the commit schedule by ref and read data for some number of
-   buckets, parsing each bucket data into a FD_KEYBUCKET structure made
-   up of FD_KEYENTRY structs.
-
-   Add buckref values to each commit entry for the retrieved keybucket
-   it is in.
-
-   Iterate over the commit schedule, updating the keybucket structure
-   for each key, potentially writing value blocks to disk.
-
-   Then iterate over the keybucket structure, outputting keyblocks and
-   updating a global bucket/blockrefs mapping.
-
-   On a first pass implementation, don't process it in chunks.  The
-   disadvantage is that you'll have lots of keyblocks in memory, but
-   we can deal with that for now.
-
+   After the recovery data is written, we write the new offset data
+   and change the initial word. Then we truncate the file to remove
+   the recovery data. And that's it.
 */
 
 struct INDEX_COMMIT_SCHEDULE {
@@ -1841,7 +1816,7 @@ struct INDEX_COMMIT_SCHEDULE {
   int commit_bucket;};
 
 struct FD_KEYENTRY {
-  int ke_dtrep_size, ke_nvals;
+  int ke_nvals, ke_dtrep_size; 
   /* This points to the point in keybucket's kb_keybuf
      where the dtype representation of the key begins. */
   const unsigned char *ke_dtstart;
@@ -1895,12 +1870,16 @@ static int process_edits(struct FD_HASH_INDEX *hx,
                 ((FD_OIDP(FD_CAR(real_key))) ||
                  (FD_SYMBOLP(FD_CAR(real_key))))) {
               if (get_slotid_index(hx,key)<0) oddkeys=1;}
+            fdtype save_value=fd_incref(kvscan->kv_val);
+            fdtype added=fd_hashtable_get_nolock(adds,real_key,FD_EMPTY_CHOICE);
+            FD_ADD_TO_CHOICE(save_value,added);
             s[i].commit_key=real_key;
-            s[i].commit_values=fd_make_simple_choice(kvscan->kv_val);
+            s[i].commit_values=fd_simplify_choice(save_value);
             s[i].commit_replace=1;
             i++;}
           else if ((FD_CAR(key))==drop_symbol) {
             fdtype cached=fd_hashtable_get(cache,real_key,FD_VOID);
+            fd_hashset_add(replaced_keys,real_key);
             if (FD_VOIDP(cached))
               drops[n_drops++]=FD_CDR(key);
             else {
@@ -2005,7 +1984,8 @@ FD_FASTOP void parse_keybucket(fd_hash_index hx,struct FD_KEYBUCKET *kb,
     in->bufread=in->bufread+dt_size;
     entry->ke_nvals=n_values=fd_read_zint(in);
     if (n_values==0) entry->ke_values=FD_EMPTY_CHOICE;
-    else if (n_values==1) entry->ke_values=read_zvalue(hx,in);
+    else if (n_values==1) 
+      entry->ke_values=read_zvalue(hx,in);
     else {
       entry->ke_values=FD_VOID;
       entry->ke_vref.off=fd_read_zint(in);
@@ -2084,10 +2064,7 @@ FD_FASTOP fd_off_t extend_keybucket
         else if (n_values==1) {
           /* If there is only one value, we write it as part of the
              keyblock (that's what being in .ke_values means) */
-          ke[key_i].ke_values=schedule[k].commit_values;
-          /* We don't need to incref this because any value in
-             it comes from the key schedule, so we won't decref it when
-             we reclaim the keybuckets. */
+          ke[key_i].ke_values=fd_incref(schedule[k].commit_values);
           ke[key_i].ke_vref.off=0;
           ke[key_i].ke_vref.size=0;}
         else {
@@ -2154,7 +2131,7 @@ FD_FASTOP fd_off_t extend_keybucket
         /* As above, we don't need to incref this because any value in
            it comes from the key schedule, so we won't decref it when
            we reclaim the keybuckets. */
-        ke[n_keys].ke_values=schedule[k].commit_values;
+        ke[n_keys].ke_values=fd_incref(schedule[k].commit_values);
       else {
         ke[n_keys].ke_values=FD_VOID;
         ke[n_keys].ke_vref=
@@ -2189,8 +2166,10 @@ FD_FASTOP fd_off_t write_keybucket
     endpos=endpos+fd_write_bytes(outstream,ke[i].ke_dtstart,dtype_size);
     endpos=endpos+fd_write_zint(outstream,n_values);
     if (n_values==0) {}
-    else if (n_values==1)
+    else if (n_values==1) {
       endpos=endpos+write_zvalue(hx,outstream,ke[i].ke_values);
+      fd_decref(ke[i].ke_values); 
+      ke[i].ke_values=FD_VOID;}
     else {
       endpos=endpos+fd_write_zint(outstream,ke[i].ke_vref.off);
       endpos=endpos+fd_write_zint(outstream,ke[i].ke_vref.size);}
