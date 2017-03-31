@@ -196,9 +196,10 @@ typedef struct FD_STACK {
   fdtype stack_op;
   fdtype *stack_args;
   fdtype stack_argbuf[FD_STACK_DEFAULT_ARGVEC];
+  struct FD_ENV *stack_env;
   unsigned int stack_retvoid:1, stack_ndcall:1;
   unsigned int stack_decref_op:1, stack_decref_args:1;
-  unsigned int stack_free_struct:1, stack_free_argvec:1;
+  unsigned int stack_free_struct:1, stack_free_args:1;
   short stack_n_args, stack_n_cleanups;
   struct FD_STACK_CLEANUP _stack_cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *stack_cleanups;
@@ -238,13 +239,13 @@ fd_stack fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
     stack->stack_caller=caller;
   else stack->stack_caller=fd_call_stack;
   if (label) stack->stack_label=label;
+  stack->stack_env=NULL;
   if (n_args>0) {
     stack->stack_n_args=n_args;
     if (args) {
       stack->stack_args=args;}
-    else if (n_args>5) {
+    else if (n_args>5) 
       stack->stack_args=u8_alloc_n(n_args,fdtype);
-      stack->stack_free_argvec=1;}
     else stack->stack_args=stack->stack_argbuf;}
   else stack->stack_n_args=n_args;
   stack->stack_cleanups=stack->_stack_cleanups;
@@ -266,8 +267,9 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
     fdtype *args=stack->stack_args;
     int i=0, n=stack->stack_n_args; while (i<n) {
       fdtype arg=args[i++]; fd_decref(arg);}}
-  if (stack->stack_free_argvec) {
-    if (stack->stack_args) u8_free(stack->stack_args);}
+  if ((stack->stack_args) && (stack->stack_free_args) &&
+      (stack->stack_args!=stack->stack_argbuf)) {
+    u8_free(stack->stack_args);}
   if (stack->stack_n_cleanups) {
     struct FD_STACK_CLEANUP *cleanups=stack->stack_cleanups;
     int i=0, n=stack->stack_n_cleanups;
