@@ -685,7 +685,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
               u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if (FD_CHOICEP(key)) {
+  if ((FD_CHOICEP(key)) || (FD_ACHOICEP(key))) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
@@ -734,7 +734,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
               u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if (FD_CHOICEP(key)) {
+  if ((FD_CHOICEP(key))||(FD_ACHOICEP(key))) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
@@ -748,7 +748,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fd_hashtable_store(edits,set_key,value);
-    fd_hashtable_drop(edits,drop_key,FD_EMPTY_CHOICE);
+    fd_hashtable_drop(edits,drop_key,FD_VOID);
     if (ix->index_cache_level>0) {
       fd_hashtable_store(cache,key,value);
       fd_hashtable_drop(adds,key,FD_VOID);}
