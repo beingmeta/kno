@@ -607,7 +607,7 @@ optimize_modules_memtest:
 
 # Leaktests
 
-heaptests heaptest heap leak leaktest leaktests: all_leaktests
+heaptests heaptest heap leak leaks leaktest leaktests: all_leaktests
 
 all_leaktests: scheme_leaktests \
 	slotmap_leaktests table_leaktests \
