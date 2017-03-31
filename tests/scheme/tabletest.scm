@@ -22,7 +22,7 @@
     (let ((vector (make-vector len)))
       (dotimes (i len)
 	(vector-set! vector i (random 256)))
-      (vector->packet vector))))
+      (->packet vector))))
 (define (random-character)
   (integer->char (random 0x1000)))
 (define (random-string)
@@ -52,7 +52,7 @@
       (cons (random-primobj)
 	    (randomelts (1- n)))))
 
-(define (random-list)
+(define (random-pair)
   (randomelts (if (zero? (random 10)) 
 		  (random 25)
 		  (random 7))))
@@ -64,7 +64,7 @@
 (define (random-object)
   (let ((branch (random 9)))
     (cond ((= branch 0) (random-vector))
-	  ((= branch 1) (random-list))
+	  ((= branch 1) (random-pair))
 	  ((= branch 2) (random-slotmap))
 	  (else (random-primobj)))))
 
@@ -123,7 +123,12 @@
 ;;; Generating random tables
 
 (define (fill-table! table size (atomicp #f))
-  (let ((items {}) (totalsize 0))
+  (let ((items ({random-fixnum random-bignum 
+		 random-packet random-character
+		 random-string random-symbol
+		 random-pair random-vector 
+		 random-slotmap}))
+	(totalsize 0))
     (until (> totalsize size)
       (let ((item (random-object)))
 	(set+! items item)
@@ -255,7 +260,7 @@
 	     (drop (try (pick-one (pick items {vector? slotmap? pair?}))
 			(pick-one items))))
 	(store! table '%xitems drop)
-	(message "Dropping item " drop)
+	(message "Dropping item " (write drop))
 	(drop! table '%items drop)
 	(dtype->file drop editfile)
 	(commit))))
