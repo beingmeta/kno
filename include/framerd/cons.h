@@ -155,7 +155,7 @@ U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod)
 FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_PTR_LOCK_OFFSET(ptr) (hashptrval((ptr),FD_N_PTRLOCKS))
 #define FD_LOCK_PTR(ptr) \
-  u8_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
+  u8_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)]);
 #define FD_UNLOCK_PTR(ptr) \
   u8_unlock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 
@@ -226,15 +226,25 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */}
-  else {
+  else if (FD_CONSBITS(x)>=0x100) {
     FD_LOCK_PTR(x);
     if (FD_CONSBITS(x)>=0x100) {
       /* If it's still got a refcount > 1, just decrease it */
       x->fd_conshead=x->fd_conshead-0x80;
       FD_UNLOCK_PTR(x);}
+    /* There could be a case here for conses which are declared static
+       after they've been in play. and between the check above and the
+       lock. But for now, we're assuming that conses are only declared
+       static when initialized, so we don't have to worry about
+       that. */
     else {
-      x->fd_conshead=x->fd_conshead-0x80;
+      /* Someone else decref'd it before, we got the lock, so we
+	 unlock and recycle it */
+      FD_UNLOCK_PTR(x);
       fd_recycle_cons(x);}}
+  else if (FD_CONSBITS(x)>=0x80) {
+    fd_recycle_cons(x);}
+  else {}
 }
 #define fd_incref(x) \
   ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_RAW_CONS(x))))
