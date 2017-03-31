@@ -20,9 +20,6 @@
 
 #include <libu8/u8printf.h>
 
-/* For sprintf */
-#include <stdio.h>
-
 fd_exception fd_NoSuchKey=_("No such key");
 fd_exception fd_ReadOnlyHashtable=_("Read-Only hashtable");
 static fd_exception HashsetOverflow=_("Hashset Overflow");
@@ -2604,8 +2601,7 @@ static fdtype copy_hashset(fdtype table,int deep)
 static int unparse_hashtable(u8_output out,fdtype x)
 {
   struct FD_HASHTABLE *ht=FD_XHASHTABLE(x); char buf[128];
-  sprintf(buf,"#<HASHTABLE %d/%d>",ht->table_n_keys,ht->ht_n_buckets);
-  u8_puts(out,buf);
+  u8_printf(out,"#<HASHTABLE %d/%d>",ht->table_n_keys,ht->ht_n_buckets);
   return 1;
 }
 
@@ -3048,10 +3044,9 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
 static int unparse_hashset(u8_output out,fdtype x)
 {
   struct FD_HASHSET *hs=((struct FD_HASHSET *)x); char buf[128];
-  sprintf(buf,"#<HASHSET%s %d/%d>",
-          ((hs->hs_modified)?("(m)"):("")),
-          hs->hs_n_elts,hs->hs_n_slots);
-  u8_puts(out,buf);
+  u8_printf(out,"#<HASHSET%s %d/%d>",
+            ((hs->hs_modified)?("(m)"):("")),
+            hs->hs_n_elts,hs->hs_n_slots);
   return 1;
 }
 
