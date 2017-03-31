@@ -135,24 +135,6 @@ static ssize_t get_maxpos(fd_hash_index p)
     return -1;}
 }
 
-#ifndef HASHINDEX_PREFETCH_WINDOW
-#ifdef FD_MMAP_PREFETCH_WINDOW
-#define HASHINDEX_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
-#else
-#define HASHINDEX_PREFETCH_WINDOW 0
-#endif
-#endif
-
-/* Used to generate hash codes */
-#define MAGIC_MODULUS 16777213 /* 256000001 */
-#define MIDDLIN_MODULUS 573786077 /* 256000001 */
-#define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
-
-#define FD_HASH_INDEX_KEYCOUNT_POS 16
-#define FD_HASH_INDEX_SLOTIDS_POS 20
-#define FD_HASH_INDEX_BASEOIDS_POS 32
-#define FD_HASH_INDEX_METADATA_POS 44
-
 static fdtype read_zvalues(fd_hash_index,int,fd_off_t,size_t);
 
 static struct FD_INDEX_HANDLER hash_index_handler;
@@ -187,7 +169,7 @@ static int get_chunk_ref_size(fd_hash_index ix)
 /* Opening database blocks */
 
 FD_FASTOP fd_inbuf open_block
-  (struct FD_INBUF *tmpbuf,FD_HASH_INDEX *hx,
+  (struct FD_INBUF *tmpbuf,struct FD_HASH_INDEX *hx,
    fd_off_t off,fd_size_t size,unsigned char *buf)
 {
   fd_stream stream=&(hx->index_stream);
@@ -909,17 +891,6 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
 
 /* Fetching multiple keys */
 
-struct KEY_SCHEDULE {
-  int ksched_i; fdtype ksched_key;
-  unsigned int ksched_keyoff, ksched_dtsize;
-  int ksched_bucket;
-  FD_CHUNK_REF ksched_chunk;};
-struct VALUE_SCHEDULE {
-  int vsched_i; 
-  fdtype *vsched_write; 
-  int vsched_atomicp; 
-  FD_CHUNK_REF vsched_chunk;};
-
 static int sort_ks_by_bucket(const void *k1,const void *k2)
 {
   struct KEY_SCHEDULE *ks1=(struct KEY_SCHEDULE *)k1;
@@ -1502,18 +1473,10 @@ static void hash_index_setcache(struct FD_HASH_INDEX *hx,int level)
    This writes data into the hashtable but ignores what is already there.
    It is commonly used when initializing a hash ksched_i. */
 
-struct INDEX_POP_SCHEDULE {
-  fdtype key; unsigned int fd_bucketno;
-  unsigned int size;};
-struct INDEX_BUCKET_REF {
-  /* max_new is only used when committing. */
-  unsigned int bucketno, max_new;
-  FD_CHUNK_REF bck_ref;};
-
 static int sort_ps_by_bucket(const void *p1,const void *p2)
 {
-  struct INDEX_POP_SCHEDULE *ps1=(struct INDEX_POP_SCHEDULE *)p1;
-  struct INDEX_POP_SCHEDULE *ps2=(struct INDEX_POP_SCHEDULE *)p2;
+  struct POPULATE_SCHEDULE *ps1=(struct POPULATE_SCHEDULE *)p1;
+  struct POPULATE_SCHEDULE *ps2=(struct POPULATE_SCHEDULE *)p2;
   if (ps1->fd_bucketno<ps2->fd_bucketno) return -1;
   else if (ps1->fd_bucketno>ps2->fd_bucketno) return 1;
   else return 0;
@@ -1521,8 +1484,8 @@ static int sort_ps_by_bucket(const void *p1,const void *p2)
 
 static int sort_br_by_bucket(const void *p1,const void *p2)
 {
-  struct INDEX_BUCKET_REF *ps1=(struct INDEX_BUCKET_REF *)p1;
-  struct INDEX_BUCKET_REF *ps2=(struct INDEX_BUCKET_REF *)p2;
+  struct BUCKET_REF *ps1=(struct BUCKET_REF *)p1;
+  struct BUCKET_REF *ps2=(struct BUCKET_REF *)p2;
   if (ps1->bucketno<ps2->bucketno) return -1;
   else if (ps1->bucketno>ps2->bucketno) return 1;
   else return 0;
@@ -1530,15 +1493,15 @@ static int sort_br_by_bucket(const void *p1,const void *p2)
 
 static int sort_br_by_off(const void *p1,const void *p2)
 {
-  struct INDEX_BUCKET_REF *ps1=(struct INDEX_BUCKET_REF *)p1;
-  struct INDEX_BUCKET_REF *ps2=(struct INDEX_BUCKET_REF *)p2;
+  struct BUCKET_REF *ps1=(struct BUCKET_REF *)p1;
+  struct BUCKET_REF *ps2=(struct BUCKET_REF *)p2;
   if (ps1->bck_ref.off<ps2->bck_ref.off) return -1;
   else if (ps1->bck_ref.off>ps2->bck_ref.off) return 1;
   else return 0;
 }
 
 static int populate_prefetch
-   (struct INDEX_POP_SCHEDULE *psched,fd_index ix,int i,int blocksize,int n_keys)
+   (struct POPULATE_SCHEDULE *psched,fd_index ix,int i,int blocksize,int n_keys)
 {
   fdtype prefetch=FD_EMPTY_CHOICE;
   int k=i, lim=k+blocksize, final_bckt;
@@ -1567,9 +1530,9 @@ FD_EXPORT int fd_populate_hash_index
   int filled_buckets=0, bucket_count=0, fetch_max=-1;
   int cycle_buckets=0, cycle_keys=0, cycle_max=0;
   int overall_buckets=0, overall_keys=0, overall_max=0;
-  struct INDEX_POP_SCHEDULE *psched=u8_alloc_n(n_keys,struct INDEX_POP_SCHEDULE);
+  struct POPULATE_SCHEDULE *psched=u8_alloc_n(n_keys,struct POPULATE_SCHEDULE);
   struct FD_OUTBUF out; FD_INIT_BYTE_OUTBUF(&out,8192);
-  struct INDEX_BUCKET_REF *bucket_refs; fd_index ix=NULL;
+  struct BUCKET_REF *bucket_refs; fd_index ix=NULL;
   fd_stream stream=&(hx->index_stream);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   fd_off_t endpos=fd_endpos(stream);
@@ -1591,7 +1554,7 @@ FD_EXPORT int fd_populate_hash_index
     out.buf_flags=out.buf_flags|FD_USE_DTYPEV2;
 
   /* Fill the key schedule and count the number of buckets used */
-  memset(psched,0,n_keys*sizeof(struct INDEX_POP_SCHEDULE));
+  memset(psched,0,n_keys*sizeof(struct POPULATE_SCHEDULE));
   {
     int cur_bucket=-1;
     const fdtype *keyscan=keys, *keylim=keys+n_keys;
@@ -1607,10 +1570,10 @@ FD_EXPORT int fd_populate_hash_index
       if (bucket!=cur_bucket) {cur_bucket=bucket; filled_buckets++;}
       i++;}
     /* Allocate the bucket_refs */
-    bucket_refs=u8_alloc_n(filled_buckets,struct INDEX_BUCKET_REF);}
+    bucket_refs=u8_alloc_n(filled_buckets,struct BUCKET_REF);}
 
   /* Sort the key schedule by bucket */
-  qsort(psched,n_keys,sizeof(struct INDEX_POP_SCHEDULE),sort_ps_by_bucket);
+  qsort(psched,n_keys,sizeof(struct POPULATE_SCHEDULE),sort_ps_by_bucket);
 
   i=0; while (i<n_keys) {
     struct FD_OUTBUF keyblock; int retval;
@@ -1707,7 +1670,7 @@ FD_EXPORT int fd_populate_hash_index
     endpos=endpos+retval;
     CHECK_POS(endpos,stream);
     bucket_count++;}
-  qsort(bucket_refs,bucket_count,sizeof(struct INDEX_BUCKET_REF),sort_br_by_bucket);
+  qsort(bucket_refs,bucket_count,sizeof(struct BUCKET_REF),sort_br_by_bucket);
   /* This would probably be faster if we put it all in a huge vector and wrote it
      out all at once.  */
   i=0; while (i<bucket_count) {
@@ -1764,7 +1727,7 @@ FD_EXPORT int fd_populate_hash_index
    We then figure out which buckets each of the keys goes in and sort
    the commit schedule by bucket. For each bucket, we then get the
    location of the bucket data on disk (either from offdata or by
-   going to disk). This is stored in an INDEX_BUCKET_REF array, which
+   going to disk). This is stored in an BUCKET_REF array, which
    we sort by file position and read the buckets we're changing in
    order. Each bucket is read from disk and stored into an array of
    KEYBUCKET structs.
@@ -1795,12 +1758,12 @@ FD_EXPORT int fd_populate_hash_index
 
    After the values are all written, we write the keybucket itself to
    disk. The new location of the keybucket is saved in the same
-   INDEX_BUCKET_REF array used to fetch the keybuckets in the first
+   BUCKET_REF array used to fetch the keybuckets in the first
    place.
 
    After the keybuckets (and their values) have been written to disk,
    we may (if fd_acid_files is not zero) write recovery data in the
-   form of the changed buckets from the INDEX_BUCKET_REF array. Once
+   form of the changed buckets from the BUCKET_REF array. Once
    this is written to disk, we write the position where the recovery
    information started to the end of the file and set the initial word
    of the file to the code FD_HASH_INDEX_TO_RECOVER. 
@@ -1810,28 +1773,10 @@ FD_EXPORT int fd_populate_hash_index
    the recovery data. And that's it.
 */
 
-struct INDEX_COMMIT_SCHEDULE {
-  fdtype commit_key, commit_values; 
-  short commit_replace;
-  int commit_bucket;};
-
-struct FD_KEYENTRY {
-  int ke_nvals, ke_dtrep_size; 
-  /* This points to the point in keybucket's kb_keybuf
-     where the dtype representation of the key begins. */
-  const unsigned char *ke_dtstart;
-  fdtype ke_values; 
-  FD_CHUNK_REF ke_vref;};
-
-struct FD_KEYBUCKET {
-  int kb_bucketno, kb_n_keys;
-  unsigned char *kb_keybuf;
-  struct FD_KEYENTRY kb_elt0;};
-
 static int sort_cs_by_bucket(const void *k1,const void *k2)
 {
-  struct INDEX_COMMIT_SCHEDULE *ks1=(struct INDEX_COMMIT_SCHEDULE *)k1;
-  struct INDEX_COMMIT_SCHEDULE *ks2=(struct INDEX_COMMIT_SCHEDULE *)k2;
+  struct COMMIT_SCHEDULE *ks1=(struct COMMIT_SCHEDULE *)k1;
+  struct COMMIT_SCHEDULE *ks2=(struct COMMIT_SCHEDULE *)k2;
   if (ks1->commit_bucket<ks2->commit_bucket) return -1;
   else if (ks1->commit_bucket>ks2->commit_bucket) return 1;
   else return 0;
@@ -1839,8 +1784,8 @@ static int sort_cs_by_bucket(const void *k1,const void *k2)
 
 static int sort_kb_by_bucket(const void *k1,const void *k2)
 {
-  struct FD_KEYBUCKET **kb1=(struct FD_KEYBUCKET **)k1;
-  struct FD_KEYBUCKET **kb2=(struct FD_KEYBUCKET **)k2;
+  struct KEYBUCKET **kb1=(struct KEYBUCKET **)k1;
+  struct KEYBUCKET **kb2=(struct KEYBUCKET **)k2;
   if ((*kb1)->kb_bucketno<(*kb2)->kb_bucketno) return -1;
   else if ((*kb1)->kb_bucketno>(*kb2)->kb_bucketno) return 1;
   else return 0;
@@ -1849,7 +1794,7 @@ static int sort_kb_by_bucket(const void *k1,const void *k2)
 static int process_edits(struct FD_HASH_INDEX *hx,
                         fd_hashtable adds,fd_hashtable edits,
                          fd_hashset replaced_keys,
-                         struct INDEX_COMMIT_SCHEDULE *s,
+                         struct COMMIT_SCHEDULE *s,
                          int i)
 {
   fd_hashtable cache=&(hx->index_cache);
@@ -1943,7 +1888,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,
 static int process_adds(struct FD_HASH_INDEX *hx,
                         fd_hashtable adds,fd_hashtable edits,
                         fd_hashset replaced_keys,
-                        struct INDEX_COMMIT_SCHEDULE *s,int i)
+                        struct COMMIT_SCHEDULE *s,int i)
 {
   int oddkeys=((hx->fdkb_xformat)&(FD_HASH_INDEX_ODDKEYS));
   struct FD_HASH_BUCKET **scan=adds->ht_buckets, **lim=scan+adds->ht_n_buckets;
@@ -1972,14 +1917,14 @@ static int process_adds(struct FD_HASH_INDEX *hx,
   return i;
 }
 
-FD_FASTOP void parse_keybucket(fd_hash_index hx,struct FD_KEYBUCKET *kb,
+FD_FASTOP void parse_keybucket(fd_hash_index hx,struct KEYBUCKET *kb,
                                fd_inbuf in,int n_keys)
 {
-  int i=0; struct FD_KEYENTRY *base_entry=&(kb->kb_elt0);
+  int i=0; struct KEYENTRY *base_entry=&(kb->kb_elt0);
   kb->kb_n_keys=n_keys;
   while (i<n_keys) {
     int dt_size=fd_read_zint(in), n_values;
-    struct FD_KEYENTRY *entry=base_entry+i;
+    struct KEYENTRY *entry=base_entry+i;
     entry->ke_dtrep_size=dt_size; entry->ke_dtstart=in->bufread;
     in->bufread=in->bufread+dt_size;
     entry->ke_nvals=n_values=fd_read_zint(in);
@@ -2024,8 +1969,8 @@ FD_FASTOP FD_CHUNK_REF write_value_block
 /* This adds new entries to a keybucket, writing value blocks to the
    file where neccessary (more than one value). */
 FD_FASTOP fd_off_t extend_keybucket
-  (fd_hash_index hx,struct FD_KEYBUCKET *kb,
-   struct INDEX_COMMIT_SCHEDULE *schedule,int i,int j,
+  (fd_hash_index hx,struct KEYBUCKET *kb,
+   struct COMMIT_SCHEDULE *schedule,int i,int j,
    fd_outbuf newkeys,
    fd_off_t endpos,ssize_t maxpos)
 {
@@ -2044,7 +1989,7 @@ FD_FASTOP fd_off_t extend_keybucket
     k++;}
   k=i; while (k<j) {
     unsigned char *keydata=newkeys->buffer+keyoffs[k-i];
-    struct FD_KEYENTRY *ke=&(kb->kb_elt0);
+    struct KEYENTRY *ke=&(kb->kb_elt0);
     int keysize=keysizes[k-i];
     int key_i=0, n_keys=kb->kb_n_keys, n_values;
     while (key_i<n_keys) {
@@ -2153,11 +2098,11 @@ FD_FASTOP fd_off_t extend_keybucket
 FD_FASTOP fd_off_t write_keybucket
 (fd_hash_index hx,
  fd_stream stream,
- struct FD_KEYBUCKET *kb,
+ struct KEYBUCKET *kb,
  fd_off_t endpos,fd_off_t maxpos)
 {
   int i=0, n_keys=kb->kb_n_keys;
-  struct FD_KEYENTRY *ke=&(kb->kb_elt0);
+  struct KEYENTRY *ke=&(kb->kb_elt0);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   endpos=endpos+fd_write_zint(outstream,n_keys);
   while (i<n_keys) {
@@ -2181,26 +2126,26 @@ FD_FASTOP fd_off_t write_keybucket
   return endpos;
 }
 
-FD_FASTOP struct FD_KEYBUCKET *read_keybucket
+FD_FASTOP struct KEYBUCKET *read_keybucket
   (fd_hash_index hx,int bucket,FD_CHUNK_REF ref,int extra)
 {
   int n_keys;
   struct FD_INBUF keyblock;
-  struct FD_KEYBUCKET *kb; unsigned char *keybuf;
+  struct KEYBUCKET *kb; unsigned char *keybuf;
   if (ref.size) {
     keybuf=u8_malloc(ref.size);
     open_block(&keyblock,hx,ref.off,ref.size,keybuf);
     n_keys=fd_read_zint(&keyblock);
-    kb=(struct FD_KEYBUCKET *)
-      u8_malloc(sizeof(struct FD_KEYBUCKET)+
-                sizeof(struct FD_KEYENTRY)*((extra+n_keys)-1));
+    kb=(struct KEYBUCKET *)
+      u8_malloc(sizeof(struct KEYBUCKET)+
+                sizeof(struct KEYENTRY)*((extra+n_keys)-1));
     kb->kb_bucketno=bucket;
     kb->kb_n_keys=n_keys; kb->kb_keybuf=keybuf;
     parse_keybucket(hx,kb,&keyblock,n_keys);}
   else {
-    kb=(struct FD_KEYBUCKET *)
-      u8_malloc(sizeof(struct FD_KEYBUCKET)+
-                sizeof(struct FD_KEYENTRY)*(extra-1));
+    kb=(struct KEYBUCKET *)
+      u8_malloc(sizeof(struct KEYBUCKET)+
+                sizeof(struct KEYENTRY)*(extra-1));
     kb->kb_bucketno=bucket;
     kb->kb_n_keys=0; kb->kb_keybuf=NULL;}
   return kb;
@@ -2208,9 +2153,9 @@ FD_FASTOP struct FD_KEYBUCKET *read_keybucket
 
 static int update_hash_index_ondisk
   (fd_hash_index hx,unsigned int flags,unsigned int new_keys,
-   unsigned int changed_buckets,struct INDEX_BUCKET_REF *bucket_locs);
+   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs);
 
-static void free_keybuckets(int n,struct FD_KEYBUCKET **keybuckets);
+static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
 static int hash_index_commit(struct FD_INDEX *ix)
 {
@@ -2219,7 +2164,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   struct FD_STREAM *stream=&(hx->index_stream);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
-  struct INDEX_BUCKET_REF *bucket_locs;
+  struct BUCKET_REF *bucket_locs;
   struct FD_HASHTABLE adds, edits;
   unsigned int *offdata=hx->index_offdata;
   fd_offset_type offtype=hx->index_offtype;
@@ -2239,15 +2184,15 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_unlock_table(&(hx->index_adds));
   fd_unlock_table(&(hx->index_edits));
   schedule_max=adds.table_n_keys+edits.table_n_keys;
-  bucket_locs=u8_alloc_n(schedule_max,struct INDEX_BUCKET_REF);
+  bucket_locs=u8_alloc_n(schedule_max,struct BUCKET_REF);
   /* This is where we write everything to disk */
   {
     int sched_i=0, bucket_i=0;
     int schedule_size=0;
-    struct INDEX_COMMIT_SCHEDULE *schedule=
-      u8_alloc_n(schedule_max,struct INDEX_COMMIT_SCHEDULE);
-    struct FD_KEYBUCKET **keybuckets=
-      u8_alloc_n(schedule_max,struct FD_KEYBUCKET *);
+    struct COMMIT_SCHEDULE *schedule=
+      u8_alloc_n(schedule_max,struct COMMIT_SCHEDULE);
+    struct KEYBUCKET **keybuckets=
+      u8_alloc_n(schedule_max,struct KEYBUCKET *);
     struct FD_HASHSET replaced_keys;
     struct FD_OUTBUF out, newkeys;
     /* First, we populate the commit schedule.
@@ -2300,7 +2245,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDEXES
     u8_message("Fetching bucket locations");
 #endif
-    qsort(schedule,schedule_size,sizeof(struct INDEX_COMMIT_SCHEDULE),
+    qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
           sort_cs_by_bucket);
     sched_i=0; bucket_i=0; while (sched_i<schedule_size) {
       int bucket=schedule[sched_i].commit_bucket;
@@ -2330,7 +2275,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_message("Reading all the %d changed buckets in order",
                changed_buckets);
 #endif
-    qsort(bucket_locs,changed_buckets,sizeof(struct INDEX_BUCKET_REF),
+    qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
           sort_br_by_off);
     bucket_i=0; while (bucket_i<changed_buckets) {
       keybuckets[bucket_i]=
@@ -2345,12 +2290,12 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDEXES
     u8_message("Created %d new buckets",new_buckets);
 #endif
-    qsort(schedule,schedule_size,sizeof(struct INDEX_COMMIT_SCHEDULE),
+    qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
           sort_cs_by_bucket);
-    qsort(keybuckets,changed_buckets,sizeof(struct FD_KEYBUCKET *),
+    qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),
           sort_kb_by_bucket);
     /* bucket_locs is currently sorted by offset */
-    qsort(bucket_locs,changed_buckets,sizeof(struct INDEX_BUCKET_REF),
+    qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
           sort_br_by_bucket);
 
 #if FD_DEBUG_HASHINDEXES
@@ -2363,7 +2308,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
        structure. */
     sched_i=0; bucket_i=0; endpos=fd_endpos(stream);
     while (sched_i<schedule_size) {
-      struct FD_KEYBUCKET *kb=keybuckets[bucket_i];
+      struct KEYBUCKET *kb=keybuckets[bucket_i];
       int bucket=schedule[sched_i].commit_bucket, j=sched_i, cur_keys;
       assert(bucket==kb->kb_bucketno);
       while ((j<schedule_size) && (schedule[j].commit_bucket==bucket)) j++;
@@ -2495,10 +2440,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
   return n_keys;
 }
 
-static void free_keybuckets(int n,struct FD_KEYBUCKET **keybuckets)
+static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
 {
   int i=0; while (i<n) {
-    struct FD_KEYBUCKET *kb=keybuckets[i++];
+    struct KEYBUCKET *kb=keybuckets[i++];
     /* We don't need to decref the ke_values of the individual key
        entries, because they're simply copied (without incref) from
        the commit schedule from where they'll be freed. */
@@ -2558,7 +2503,7 @@ static int make_offsets_unwritable(fd_hash_index hx)
 
 static int update_hash_index_ondisk
   (fd_hash_index hx,unsigned int flags,unsigned int cur_keys,
-   unsigned int changed_buckets,struct INDEX_BUCKET_REF *bucket_locs)
+   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs)
 {
   struct FD_STREAM *stream=&(hx->index_stream);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
@@ -2673,7 +2618,7 @@ static int recover_hash_index(struct FD_HASH_INDEX *hx)
   fd_off_t recovery_pos;
   struct FD_STREAM *s=&(hx->index_stream);
   fd_inbuf in=fd_readbuf(s);
-  struct INDEX_BUCKET_REF *bucket_locs;
+  struct BUCKET_REF *bucket_locs;
   unsigned int i=0, flags, cur_keys, n_buckets, retval;
   fd_endpos(s); fd_movepos(s,-8);
   recovery_pos=fd_read_8bytes(in);
@@ -2681,7 +2626,7 @@ static int recover_hash_index(struct FD_HASH_INDEX *hx)
   flags=fd_read_4bytes(in);
   cur_keys=fd_read_4bytes(in);
   n_buckets=fd_read_4bytes(in);
-  bucket_locs=u8_alloc_n(n_buckets,struct INDEX_BUCKET_REF);
+  bucket_locs=u8_alloc_n(n_buckets,struct BUCKET_REF);
   while (i<n_buckets) {
     bucket_locs[i].bucketno=fd_read_4bytes(in);
     bucket_locs[i].bck_ref.off=fd_read_8bytes(in);
