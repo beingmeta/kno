@@ -2009,7 +2009,9 @@ FD_FASTOP fd_off_t extend_keybucket
         else if (n_values==1) {
           /* If there is only one value, we write it as part of the
              keyblock (that's what being in .ke_values means) */
+          fdtype current=ke[key_i].ke_values;
           ke[key_i].ke_values=fd_incref(schedule[k].commit_values);
+          fd_decref(current);
           ke[key_i].ke_vref.off=0;
           ke[key_i].ke_vref.size=0;}
         else {
