@@ -22,8 +22,6 @@
 fd_exception fd_BindError=_("Can't bind variable");
 fd_exception fd_BindSyntaxError=_("Bad binding expression");
 
-fd_ptr_type fd_macro_type;
-
 /* Set operations */
 
 static fdtype set_handler(fdtype expr,fd_lispenv env)

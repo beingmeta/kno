@@ -16,6 +16,15 @@ fdtype *fd_symbol_names;
 int fd_n_symbols=0, fd_max_symbols=0, fd_initial_symbols=1024;
 struct FD_SYMBOL_TABLE fd_symbol_table;
 
+fdtype FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
+  FDSYM_BUFSIZE, FDSYM_BLOCKSIZE, FDSYM_CACHESIZE,
+  FDSYM_MERGE, FDSYM_SORT, FDSYM_SORTED, FDSYM_LAZY, FDSYM_VERSION,
+  FDSYM_QUOTE, FDSYM_PLUS, FDSYM_STAR, FDSYM_OPT,
+  FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK,
+  FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_TAG,
+  FDSYM_TEXT, FDSYM_CONTENT, FDSYM_LENGTH,
+  FDSYM_STRING, FDSYM_CONS;
+
 u8_mutex fd_symbol_lock;
 
 #define MYSTERIOUS_MULTIPLIER 2654435769U
@@ -37,6 +46,8 @@ FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
   return h;
 }
 
+static void init_builtin_symbols(void);
+
 static void init_symbol_tables()
 {
   u8_lock_mutex(&fd_symbol_lock);
@@ -53,7 +64,41 @@ static void init_symbol_tables()
     fd_symbol_table.fd_symbol_entries=new_entries;
     fd_symbol_names=new_symbol_names; fd_max_symbols=new_max;
     u8_unlock_mutex(&fd_symbol_lock);
+    init_builtin_symbols();
   }
+}
+
+static void init_builtin_symbols()
+{
+  FDSYM_TYPE=fd_intern("TYPE");
+  FDSYM_SIZE=fd_intern("SIZE");
+  FDSYM_LABEL=fd_intern("LABEL");
+  FDSYM_NAME=fd_intern("NAME");
+  FDSYM_BUFSIZE=fd_intern("BUFSIZE");
+  FDSYM_BLOCKSIZE=fd_intern("BLOCKSIZE");
+  FDSYM_CACHESIZE=fd_intern("CACHESIZE");
+  FDSYM_MERGE=fd_intern("MERGE");
+  FDSYM_SORTED=fd_intern("SORTED");
+  FDSYM_SORT=fd_intern("SORT");
+  FDSYM_LAZY=fd_intern("LAZY");
+  FDSYM_VERSION=fd_intern("VERSION");
+  FDSYM_QUOTE=fd_intern("QUOTE");
+  FDSYM_OPT=fd_intern("OPT");
+  FDSYM_TEXT=fd_intern("TEXT");
+  FDSYM_CONTENT=fd_intern("CONTENT");
+  FDSYM_LENGTH=fd_intern("LENGTH");
+  FDSYM_STAR=fd_intern("*");
+  FDSYM_PLUS=fd_intern("+");
+  FDSYM_MINUS=fd_intern("-");
+  FDSYM_EQUALS=fd_intern("=");
+  FDSYM_DOT=fd_intern(".");
+  FDSYM_QMARK=fd_intern("?");
+  FDSYM_PREFIX=fd_intern("PREFIX");
+  FDSYM_SUFFIX=fd_intern("SUFFIX");
+  FDSYM_SEP=fd_intern("SEP");
+  FDSYM_TAG=fd_intern("TAG");
+  FDSYM_CONS=fd_intern("CONS");
+  FDSYM_STRING=fd_intern("STRING");
 }
 
 static void grow_symbol_tables()

@@ -2211,7 +2211,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_idefn(xhtml_module,fd_make_cprim1("%XMLOID",xmloid,1));
 
   fd_defspecial(xhtml_module,"XHTML",raw_xhtml_handler);
-  fd_idefn(xhtml_module,fd_make_cprim0("NBSP",nbsp_prim,0));
+  fd_idefn(xhtml_module,fd_make_cprim0("NBSP",nbsp_prim));
 
   fd_store(xhtml_module,fd_intern("DIV"),markupstarblock_prim);
   fd_store(xhtml_module,fd_intern("SPAN"),markupstar_prim);

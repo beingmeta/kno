@@ -9,6 +9,9 @@
 #define _FILEINFO __FILE__
 #endif
 
+/* This avoids potential conflicts with OpenMP */
+#define FD_INLINE_REFCOUNTS 0
+
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"

@@ -129,45 +129,54 @@ typedef enum FD_PTR_TYPE {
 
   fd_string_type=FD_CONS_TYPECODE(0),
   fd_packet_type=FD_CONS_TYPECODE(1),
-  fd_bigint_type=FD_CONS_TYPECODE(2),
-  fd_pair_type=FD_CONS_TYPECODE(3),
-  fd_compound_type=FD_CONS_TYPECODE(4),
-  fd_choice_type=FD_CONS_TYPECODE(5),
-  fd_achoice_type=FD_CONS_TYPECODE(6),
-  fd_qchoice_type=FD_CONS_TYPECODE(7),
-  fd_vector_type=FD_CONS_TYPECODE(8),
-  fd_slotmap_type=FD_CONS_TYPECODE(9),
-  fd_schemap_type=FD_CONS_TYPECODE(10),
-  fd_hashtable_type=FD_CONS_TYPECODE(11),
-  fd_hashset_type=FD_CONS_TYPECODE(12),
-  fd_wrapper_type=FD_CONS_TYPECODE(13),
-  fd_mystery_type=FD_CONS_TYPECODE(14),
-  fd_primfcn_type=FD_CONS_TYPECODE(15),
-  fd_error_type=FD_CONS_TYPECODE(16),
-  fd_complex_type=FD_CONS_TYPECODE(17),
-  fd_rational_type=FD_CONS_TYPECODE(18),
-  fd_flonum_type=FD_CONS_TYPECODE(19),
-  fd_timestamp_type=FD_CONS_TYPECODE(20),
-  fd_dtproc_type=FD_CONS_TYPECODE(21),
-  fd_tailcall_type=FD_CONS_TYPECODE(22),
-  fd_uuid_type=FD_CONS_TYPECODE(23),
-  fd_rail_type=FD_CONS_TYPECODE(24),
-  fd_secret_type=FD_CONS_TYPECODE(25),
-  /* We define these here, early, so they're treated as a constant */
-  fd_sproc_type=FD_CONS_TYPECODE(26),
-  fd_ffi_type=FD_CONS_TYPECODE(27),
-  fd_regex_type=FD_CONS_TYPECODE(28),
-  fd_numeric_vector_type=FD_CONS_TYPECODE(29),
-  fd_consblock_type=FD_CONS_TYPECODE(30),
-  fd_port_type=FD_CONS_TYPECODE(31),
-  fd_stream_type=FD_CONS_TYPECODE(32),
-  fd_bytecode_type=FD_CONS_TYPECODE(33),
-  fd_stackframe_type=FD_CONS_TYPECODE(34),
-  fd_rawptr_type=FD_CONS_TYPECODE(35)
+  fd_secret_type=FD_CONS_TYPECODE(2),
+  fd_bigint_type=FD_CONS_TYPECODE(3),
+  fd_pair_type=FD_CONS_TYPECODE(4),
+
+  fd_compound_type=FD_CONS_TYPECODE(5),
+  fd_choice_type=FD_CONS_TYPECODE(6),
+  fd_achoice_type=FD_CONS_TYPECODE(7),
+  fd_qchoice_type=FD_CONS_TYPECODE(8),
+  fd_vector_type=FD_CONS_TYPECODE(9),
+  fd_rail_type=FD_CONS_TYPECODE(10),
+  fd_numeric_vector_type=FD_CONS_TYPECODE(11),
+
+  fd_slotmap_type=FD_CONS_TYPECODE(12),
+  fd_schemap_type=FD_CONS_TYPECODE(13),
+  fd_hashtable_type=FD_CONS_TYPECODE(14),
+  fd_hashset_type=FD_CONS_TYPECODE(15),
+
+  /* Evaluator/apply types, defined here to be constant */
+  fd_primfcn_type=FD_CONS_TYPECODE(16),
+  fd_environment_type=FD_CONS_TYPECODE(17),
+  fd_specform_type=FD_CONS_TYPECODE(18),
+  fd_macro_type=FD_CONS_TYPECODE(19),
+  fd_dtproc_type=FD_CONS_TYPECODE(20),
+  fd_tailcall_type=FD_CONS_TYPECODE(21),
+  fd_sproc_type=FD_CONS_TYPECODE(22),
+  fd_bytecode_type=FD_CONS_TYPECODE(23),
+  fd_stackframe_type=FD_CONS_TYPECODE(24),
+  fd_ffi_type=FD_CONS_TYPECODE(25),
+  fd_error_type=FD_CONS_TYPECODE(26),
+
+  fd_complex_type=FD_CONS_TYPECODE(27),
+  fd_rational_type=FD_CONS_TYPECODE(28),
+  fd_flonum_type=FD_CONS_TYPECODE(29),
+  fd_timestamp_type=FD_CONS_TYPECODE(30),
+  fd_uuid_type=FD_CONS_TYPECODE(31),
+
+  /* Other types, also defined here to be constant*/
+  fd_mystery_type=FD_CONS_TYPECODE(32),
+  fd_port_type=FD_CONS_TYPECODE(33),
+  fd_stream_type=FD_CONS_TYPECODE(34),
+  fd_regex_type=FD_CONS_TYPECODE(35),
+  fd_consblock_type=FD_CONS_TYPECODE(36),
+  fd_rawptr_type=FD_CONS_TYPECODE(37),
+  fd_dtserver_type=FD_CONS_TYPECODE(38)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 36
+#define FD_BUILTIN_CONS_TYPES 39
 #define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
@@ -216,8 +225,18 @@ typedef struct FD_CONS { FD_CONS_HEADER;} FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
 /* Raw conses have consbits which can change */
+#if FD_INLINE_REFCOUNTS
+typedef struct FD_REF_CONS { fd_consbits fd_conshead;} FD_REF_CONS;
+typedef struct FD_REF_CONS *fd_ref_cons;
+#endif
+
 typedef struct FD_RAW_CONS { fd_consbits fd_conshead;} FD_RAW_CONS;
 typedef struct FD_RAW_CONS *fd_raw_cons;
+#if FD_CHECKFDTYPE
+FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
+#else
+#define FD_RAW_CONS(x) ((fd_raw_cons)(x))
+#endif
 
 /* The bottom 7 bits of the conshead indicates the type of the cons.  The
    rest is the reference count or zero for "static" (non-reference
@@ -228,13 +247,11 @@ typedef struct FD_RAW_CONS *fd_raw_cons;
 #define FD_CONS_TYPE_OFF  (0x84)
 
 #if FD_CHECKFDTYPE
-FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
 FD_FASTOP U8_MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
 FD_FASTOP U8_MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
 FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(_FD_ISDTYPE(x)))
 #else
-#define FD_RAW_CONS(x) ((fd_raw_cons)(x))
 #define FD_CONS_DATA(x) ((fd_cons)(x))
 #define FDTYPE(x) ((fdtype)(x))
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(1))
@@ -246,22 +263,9 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     this here so that we can define a pointer type procedure which
     gets the cons type. */
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
-#define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
-#define FD_INIT_FRESH_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
-#define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_INIT_STATIC_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+
 #define FD_CONS_TYPE(x) \
   (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
-#define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=\
-    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
-    ((type-(FD_CONS_TYPE_OFF))&0x7f)
 #define FD_CONSPTR_TYPE(x) (FD_CONS_TYPE((fd_cons)x))
 
 #define FD_CONSPTR(cast,x) ((cast)((fd_cons)x))
@@ -642,6 +646,16 @@ FD_EXPORT fdtype fd_intern(u8_string string);
 FD_EXPORT fdtype fd_symbolize(u8_string string);
 FD_EXPORT fdtype fd_all_symbols(void);
 
+FD_EXPORT fdtype FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME;
+FD_EXPORT fdtype FDSYM_BUFSIZE, FDSYM_BLOCKSIZE, FDSYM_CACHESIZE;
+FD_EXPORT fdtype FDSYM_MERGE, FDSYM_SORT, FDSYM_SORTED;
+FD_EXPORT fdtype FDSYM_LAZY, FDSYM_VERSION;
+FD_EXPORT fdtype FDSYM_QUOTE, FDSYM_STAR, FDSYM_PLUS;
+FD_EXPORT fdtype FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK;
+FD_EXPORT fdtype FDSYM_CONTENT;
+FD_EXPORT fdtype FDSYM_TEXT, FDSYM_LENGTH, FDSYM_TAG, FDSYM_CONS, FDSYM_STRING;
+FD_EXPORT fdtype FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_OPT;
+
 /* Persistent pointers */
 
 /* Persistent pointers are immediate values which refer to
@@ -656,6 +670,7 @@ FD_EXPORT fdtype fd_all_symbols(void);
 FD_EXPORT struct FD_CONS **_fd_fcnids[];
 FD_EXPORT int _fd_fcnid_count;
 FD_EXPORT u8_mutex _fd_fcnid_lock;
+FD_EXPORT int _fd_leak_fcnids;
 
 #ifndef FD_FCNID_BLOCKSIZE
 #define FD_FCNID_BLOCKSIZE 256
@@ -672,6 +687,7 @@ FD_EXPORT u8_mutex _fd_fcnid_lock;
 FD_EXPORT fdtype fd_resolve_fcnid(fdtype ref);
 FD_EXPORT fdtype fd_register_fcnid(fdtype obj);
 FD_EXPORT fdtype fd_set_fcnid(fdtype ref,fdtype newval);
+FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
 
@@ -811,7 +827,7 @@ FD_EXPORT fdtype _fd_debug(fdtype x);
 
 FD_EXPORT int fd_check_immediate(fdtype);
 
-#define FD_CHECK_PTR(x)                             \
+#define FD_CHECK_CONS_PTR(x)                          \
  ((FD_ISDTYPE(x))&&                                   \
   ((FD_FIXNUMP(x)) ? (1) :                          \
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
@@ -827,8 +843,14 @@ FD_EXPORT int fd_check_immediate(fdtype);
   ((FD_FIXNUMP(x)) ? (1) :                          \
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
    (x==0) ? (0) :                                   \
-   (FD_CONSP(x)) ? (1) :                            \
+   (FD_CONSP(x)) ? ((x==FD_NULL) ? (0) : (1)) :	    \
    (fd_check_immediate(x))))
+
+#if FD_FULL_CHECK_PTR
+#define FD_CHECK_PTR FD_CHECK_CONS_PTR
+#else
+#define FD_CHECK_PTR FD_CHECK_ATOMIC_PTR
+#endif
 
 #ifdef FD_PTR_DEBUG_LEVEL
 #if (FD_PTR_DEBUG_LEVEL>2)

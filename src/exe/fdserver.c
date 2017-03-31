@@ -1219,11 +1219,11 @@ static fd_lispenv init_core_env()
 
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
-  fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
-  fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime,0));
-  fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok,0));
+  fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime));
+  fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok));
   fd_idefn((fdtype)core_env,
-           fd_make_cprim0("SERVER-STATUS",get_server_status,0));
+           fd_make_cprim0("SERVER-STATUS",get_server_status));
 
   return core_env;
 }

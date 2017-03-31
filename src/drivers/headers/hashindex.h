@@ -19,14 +19,25 @@
 #define FD_HASH_INDEX_DTYPEV2       0x40
 #define FD_HASH_INDEX_ODDKEYS       (FD_HASH_INDEX_DTYPEV2<<1)
 
+#ifndef HASHINDEX_PREFETCH_WINDOW
+#ifdef FD_MMAP_PREFETCH_WINDOW
+#define HASHINDEX_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
+#else
+#define HASHINDEX_PREFETCH_WINDOW 0
+#endif
+#endif
 
-typedef struct FD_SLOTID_LOOKUP {
-  int zindex; fdtype slotid;} FD_SLOTID_LOOKUP;
-typedef struct FD_SLOTID_LOOKUP *fd_slotid_lookup;
+/* Used to generate hash codes */
+#define MAGIC_MODULUS 16777213 /* 256000001 */
+#define MIDDLIN_MODULUS 573786077 /* 256000001 */
+#define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
-typedef struct FD_BASEOID_LOOKUP {
-  unsigned int zindex; FD_OID baseoid;} FD_BASEOID_LOOKUP;
-typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
+#define FD_HASH_INDEX_KEYCOUNT_POS 16
+#define FD_HASH_INDEX_SLOTIDS_POS 20
+#define FD_HASH_INDEX_BASEOIDS_POS 32
+#define FD_HASH_INDEX_METADATA_POS 44
+
+/* The hash index structure */
 
 typedef struct FD_HASH_INDEX {
   FD_INDEX_FIELDS;
@@ -52,8 +63,67 @@ typedef struct FD_HASH_INDEX {
      for modification if the file is memmaped. */
   struct FD_STREAM index_stream;
   /* When non-null, a memmapped pointer to the file contents. */
-  size_t index_mmap_size; unsigned char *index_mmap;} FD_HASH_INDEX;
-typedef struct FD_HASH_INDEX *fd_hash_index;
+  size_t index_mmap_size; unsigned char *index_mmap;} *fd_hash_index;
+
+/* Structure definitions */
+
+struct KEY_SCHEDULE {
+  int ksched_i; fdtype ksched_key;
+  unsigned int ksched_keyoff, ksched_dtsize;
+  int ksched_bucket;
+  FD_CHUNK_REF ksched_chunk;};
+struct VALUE_SCHEDULE {
+  int vsched_i; 
+  fdtype *vsched_write; 
+  int vsched_atomicp; 
+  FD_CHUNK_REF vsched_chunk;};
+
+struct POPULATE_SCHEDULE {
+  fdtype key; unsigned int fd_bucketno;
+  unsigned int size;};
+struct BUCKET_REF {
+  /* max_new is only used when committing. */
+  unsigned int bucketno, max_new;
+  FD_CHUNK_REF bck_ref;};
+
+struct COMMIT_SCHEDULE {
+  fdtype commit_key, commit_values; 
+  short commit_replace;
+  int commit_bucket;};
+
+struct KEYENTRY {
+  int ke_nvals, ke_dtrep_size; 
+  /* This points to the point in keybucket's kb_keybuf
+     where the dtype representation of the key begins. */
+  const unsigned char *ke_dtstart;
+  fdtype ke_values; 
+  FD_CHUNK_REF ke_vref;};
+
+struct KEYBUCKET {
+  int kb_bucketno, kb_n_keys;
+  unsigned char *kb_keybuf;
+  struct KEYENTRY kb_elt0;};
+
+typedef struct FD_SLOTID_LOOKUP {
+  int zindex; fdtype slotid;} FD_SLOTID_LOOKUP;
+typedef struct FD_SLOTID_LOOKUP *fd_slotid_lookup;
+
+typedef struct FD_BASEOID_LOOKUP {
+  unsigned int zindex; FD_OID baseoid;} FD_BASEOID_LOOKUP;
+typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
+
+/* Utilities for DTYPE I/O */
+
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+
+#define output_byte(out,b) \
+  if (fd_write_byte(out,b)<0) return -1; else {}
+#define output_4bytes(out,w) \
+  if (fd_write_4bytes(out,w)<0) return -1; else {}
+#define output_bytes(out,bytes,n) \
+  if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
+
 
 FD_EXPORT int fd_populate_hash_index
   (struct FD_HASH_INDEX *hx,fdtype from,

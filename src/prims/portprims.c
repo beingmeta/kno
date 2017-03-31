@@ -1609,7 +1609,7 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTID",portid,1));
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim0("OPEN-OUTPUT-STRING",open_output_string,0));
+           fd_make_cprim0("OPEN-OUTPUT-STRING",open_output_string));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTDATA",portdata,1));

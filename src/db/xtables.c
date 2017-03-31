@@ -134,9 +134,6 @@ static int adjunct_test(fd_adjunct adj,fdtype frame,fdtype value)
 
 /* Using the ops handlers */
 
-static fdtype plus_symbol,  minus_symbol, equals_symbol;
-static fdtype dot_symbol, question_symbol;
-
 static fdtype get_op_handler(fd_pool p,fdtype symbol,fdtype slotid)
 {
   struct FD_HASHTABLE *handlers=p->oid_handlers; struct FD_PAIR pair;
@@ -183,7 +180,7 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
     if (adj)
       return adjunct_fetch(adj,f,dflt);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,dot_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_DOT,slotid);
       if (FD_VOIDP(handler)) {smap=fd_fetch_oid(p,f); free_smap=1;}
       else {
         fdtype args[3], result;
@@ -224,7 +221,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_add(adj,f,value);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,plus_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_PLUS,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
         fdtype args[3], result;
@@ -259,7 +256,7 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,value);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,equals_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_EQUALS,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
         fdtype args[3], result;
@@ -296,7 +293,7 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,FD_EMPTY_CHOICE);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,minus_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_MINUS,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
         fdtype args[3], result;
@@ -331,7 +328,7 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_drop(adj,f,value);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,minus_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_MINUS,slotid);
       if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
       else {
         fdtype args[3], result;
@@ -364,7 +361,7 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,question_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_QMARK,slotid);
       if (FD_VOIDP(handler)) {
         fdtype v=fd_oid_get(f,slotid,FD_VOID);
         if (FD_VOIDP(v)) return 0;
@@ -386,7 +383,7 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else if (p->oid_handlers) {
-      fdtype handler=get_op_handler(p,question_symbol,slotid);
+      fdtype handler=get_op_handler(p,FDSYM_QMARK,slotid);
       if (FD_VOIDP(handler)) smap=fd_fetch_oid(p,f);
       else {
         fdtype args[3], result;
@@ -545,12 +542,6 @@ FD_EXPORT void fd_init_xtables_c()
 
   fd_adjunct_slotids=FD_EMPTY_CHOICE;
 
-  /* Symbols */
-  dot_symbol=fd_intern(".");
-  plus_symbol=fd_intern("+");
-  minus_symbol=fd_intern("-");
-  equals_symbol=fd_intern("=");
-  question_symbol=fd_intern("?");
 
   /* Table functions for OIDs */
   fd_tablefns[fd_oid_type]=u8_zalloc(struct FD_TABLEFNS);

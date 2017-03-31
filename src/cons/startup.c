@@ -442,12 +442,13 @@ static int config_setutf8err(fdtype var,fdtype val,void *data)
 
 static fd_exception TimeFailed="call to time() failed";
 
-static unsigned int randomseed=0x327b23c6;
+static long long randomseed=0x327b23c6;
 
 static fdtype config_getrandomseed(fdtype var,void *data)
 {
-  if (randomseed<FD_MAX_FIXNUM) return FD_INT(randomseed);
-  else return (fdtype)fd_ulong_to_bigint(randomseed);
+  if (randomseed<FD_MAX_FIXNUM) 
+    return FD_INT(randomseed);
+  else return (fdtype)fd_long_long_to_bigint(randomseed);
 }
 
 static int config_setrandomseed(fdtype var,fdtype val,void *data)
@@ -888,5 +889,4 @@ void fd_init_startup_c()
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
-
 }

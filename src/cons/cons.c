@@ -114,6 +114,41 @@ int fd_check_immediate(fdtype x)
   else return 0;
 }
 
+/* CONS methods for external calls */
+
+FD_EXPORT void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_CONS(ptr,type);
+}
+FD_EXPORT void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_FRESH_CONS(ptr,type);
+}
+FD_EXPORT void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_STACK_CONS(ptr,type);
+}
+FD_EXPORT void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_INIT_STATIC_CONS(ptr,type);
+}
+FD_EXPORT void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type)
+{
+  FD_SET_CONS_TYPE(ptr,type);
+}
+
+FD_EXPORT fdtype _fd_incref_fn(fdtype ptr)
+{
+  return fd_incref(ptr);
+}
+
+FD_EXPORT void _fd_decref_fn(fdtype ptr)
+{
+  fd_decref(ptr);
+}
+
+
+
 /* Other methods */
 
 FD_EXPORT
@@ -1509,7 +1544,9 @@ static U8_MAYBE_UNUSED int some_false(fdtype arg)
 void fd_init_cons_c()
 {
   int i;
-  i=0; while (i < FD_N_PTRLOCKS) u8_init_mutex(&_fd_ptr_locks[i++]);
+  i=0; while (i < FD_N_PTRLOCKS) {
+    u8_init_mutex(&_fd_ptr_locks[i]);
+    i++;}
 
   u8_register_source_file(_FILEINFO);
 
@@ -1584,7 +1621,7 @@ void fd_init_cons_c()
     fd_init_compound
     (NULL,FD_VOID,9,
      fd_intern("COMPOUNDTYPE"),FD_INT(9),
-     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),
+     fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
                      fd_intern("FIELDS"),fd_intern("INITFN"),
                      fd_intern("FREEFN"),fd_intern("COMPAREFN"),
                      fd_intern("STRINGFN"),fd_intern("DUMPFN"),

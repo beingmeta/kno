@@ -729,7 +729,8 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_defalias(fd_scheme_module,"CONFIG!","SET-CONFIG!");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("CONFIGS?",find_configs,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("FIND-CONFIGS",find_configs,1));
+  fd_defalias(fd_scheme_module,"CONFIG?","FIND-CONFIGS");
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("CONFIG-DEF!",config_def,2,
@@ -751,11 +752,11 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("PARSE-ARG",lisp_parse_arg,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UNPARSE-ARG",lisp_unparse_arg,1));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETSOURCEINFO",lisp_getsourceinfo,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("ALLSYMBOLS",lisp_all_symbols,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETSOURCEINFO",lisp_getsourceinfo));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("ALLSYMBOLS",lisp_all_symbols));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("SEGFAULT",force_sigsegv,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("FPERROR",force_sigfpe,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("SEGFAULT",force_sigsegv));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("FPERROR",force_sigfpe));
 
 }
 

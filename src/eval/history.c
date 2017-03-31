@@ -283,7 +283,7 @@ FD_EXPORT void fd_init_history_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(history_module,fd_make_cprim1("%HISTREF",histref_prim,1));
-  fd_idefn(history_module,fd_make_cprim0("%HISTORY",history_prim,0));
+  fd_idefn(history_module,fd_make_cprim0("%HISTORY",history_prim));
   fd_idefn(history_module,fd_make_cprim1("%HISTCLEAR",histclear_prim,0));
 
   history_symbol=fd_intern("%HISTORY");

@@ -1426,7 +1426,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("GMTIMESTAMP",gmtimestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIMESTAMP",timestamp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ELAPSED-TIME",elapsed_time,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("TIMESTRING",timestring,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("TIMESTRING",timestring));
 
   fd_idefn(fd_scheme_module,fd_make_cprim3("MODTIME",modtime_prim,1));
 
@@ -1452,9 +1452,9 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLEEP",sleep_prim,1));
 #endif
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("TIME",time_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MILLITIME",millitime_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MICROTIME",microtime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("TIME",time_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MILLITIME",millitime_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MICROTIME",microtime_prim));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("UUID?",uuidp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("GETUUID",getuuid_prim,0));

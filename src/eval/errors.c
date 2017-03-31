@@ -526,7 +526,7 @@ FD_EXPORT void fd_init_errors_c()
   fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_handler);
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim0("CLEAR-ERRORS!",clear_errors,0));
+           fd_make_cprim0("CLEAR-ERRORS!",clear_errors));
 
 }
 

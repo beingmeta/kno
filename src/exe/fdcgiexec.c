@@ -669,8 +669,8 @@ int main(int argc,char **argv)
 
   if (server_env==NULL)
     server_env=fd_working_environment();
-  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
-  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
+  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime));
 
   init_webcommon_configs();
   fd_register_config("BACKLOG",

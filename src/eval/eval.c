@@ -1462,8 +1462,6 @@ static fdtype apply_lexpr(int n,fdtype *args)
 
 /* Initialization */
 
-fd_ptr_type fd_environment_type, fd_specform_type;
-
 extern void fd_init_coreprims_c(void);
 
 static fdtype lispenv_get(fdtype e,fdtype s,fdtype d)
@@ -1868,6 +1866,66 @@ static fdtype void_prim(int n,fdtype *args)
   return FD_VOID;
 }
 
+/* Checking version numbers */
+
+static int check_num(fdtype arg,int num)
+{
+  if ((!(FD_FIXNUMP(arg)))||(FD_FIX2INT(arg)<0)) {
+    fd_xseterr(fd_TypeError,"check_version_prim",NULL,arg);
+    return -1;}
+  else {
+    int n=FD_FIX2INT(arg);
+    if (num>=n) 
+      return 1;
+    else return 0;}
+}
+
+static fdtype check_version_prim(int n,fdtype *args)
+{
+  int rv=check_num(args[0],FD_MAJOR_VERSION);
+  if (rv<0) return FD_ERROR_VALUE; 
+  else if (rv==0) return FD_FALSE;
+  else if (n==1) return FD_TRUE;
+  else rv=check_num(args[1],FD_MINOR_VERSION);
+  if (rv<0) return FD_ERROR_VALUE; 
+  else if (rv==0) return FD_FALSE;
+  else if (n==2) return FD_TRUE;
+  else rv=check_num(args[2],FD_RELEASE_VERSION);
+  if (rv<0) return FD_ERROR_VALUE; 
+  else if (rv==0) return FD_FALSE;
+  else if (n==3) return FD_TRUE;
+  else rv=check_num(args[2],FD_RELEASE_VERSION-1);
+  /* The fourth argument should be a patch level, but we're not
+     getting that in builds yet. So if there are more arguments,
+     we see if required release number is larger than release-1 
+     (which means that we should be okay, since patch levels
+     are reset with releases. */
+  if (rv<0) return FD_ERROR_VALUE;
+  else if (rv) {
+    int i=3; while (i<n) {
+      if (!(FD_FIXNUMP(args[i]))) {
+        fd_xseterr(fd_TypeError,"check_version_prim",NULL,args[i]);
+        return -1;}
+      else i++;}
+    return FD_TRUE;}
+  else return FD_FALSE;
+}
+
+static fdtype require_version_prim(int n,fdtype *args)
+{
+  fdtype result=check_version_prim(n,args);
+  if (FD_ABORTP(result))
+    return result;
+  else if (FD_TRUEP(result))
+    return result;
+  else {
+    fd_seterr("VersionError","require_version_prim",
+              u8_mkstring("Version is %s",FRAMERD_REVISION),
+              /* We know that args are all fixnums or we would have had an error. */
+              fd_make_vector(n,args));
+    return FD_ERROR_VALUE;}
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
@@ -1879,10 +1937,6 @@ void fd_init_eval_c()
   fd_type_names[fd_opcode_type]=_("opcode");
   fd_unparsers[fd_opcode_type]=unparse_opcode;
   fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
-
-  fd_environment_type=fd_register_cons_type(_("scheme environment"));
-  fd_specform_type=fd_register_cons_type(_("scheme special form"));
-  fd_stream_erver_type=fd_register_cons_type(_("DType server"));
 
   fd_tablefns[fd_environment_type]=fns;
   fd_copiers[fd_environment_type]=lisp_copy_environment;
@@ -2007,7 +2061,8 @@ static void init_localfns()
 
 #if USING_GOOGLE_PROFILER
   fd_defspecial(fd_scheme_module,"GOOGLE/PROFILE",gprofile_handler);
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop,0));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop));
 #endif
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
@@ -2018,6 +2073,8 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
 
+  fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("REQUIRE-VERSION",require_version_prim,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("DTCALL",dtcall,2));

@@ -62,6 +62,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
   u8_string fcn_name, fcn_filename;					\
   u8_string fcn_documentation;						\
   unsigned int fcn_ndcall:1, fcn_xcall:1;				\
+  fdtype fcnid;								\
   short fcn_arity, fcn_min_arity;					\
   fdtype fcn_attribs;							\
   int *fcn_typeinfo;							\
@@ -89,7 +90,7 @@ FD_EXPORT short fd_functionp[];
    like fd_cprim1, as an argument, will generate warnings when
    the declaration and the implementation don't match.  */
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity);
+FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn);
 FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity);
@@ -166,6 +167,13 @@ FD_EXPORT fdtype fd_make_cprim9x
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 
+/* Primitive defining macros */
+
+#define FD_CPRIM(cname,scm_name, ...) \
+  static fdtype cname(__VA_ARGS__)
+#define FD_NDPRIM(cname,scm_name, ...) \
+  static fdtype cname(__VA_ARGS__)
+
 /* Definining functions in tables. */
 
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn);
@@ -195,9 +203,10 @@ typedef struct FD_STACK {
   fdtype stack_op;
   fdtype *stack_args;
   fdtype stack_argbuf[FD_STACK_DEFAULT_ARGVEC];
+  struct FD_ENV *stack_env;
   unsigned int stack_retvoid:1, stack_ndcall:1;
   unsigned int stack_decref_op:1, stack_decref_args:1;
-  unsigned int stack_free_struct:1, stack_free_argvec:1;
+  unsigned int stack_free_struct:1, stack_free_args:1;
   short stack_n_args, stack_n_cleanups;
   struct FD_STACK_CLEANUP _stack_cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *stack_cleanups;
@@ -237,13 +246,13 @@ fd_stack fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
     stack->stack_caller=caller;
   else stack->stack_caller=fd_call_stack;
   if (label) stack->stack_label=label;
+  stack->stack_env=NULL;
   if (n_args>0) {
     stack->stack_n_args=n_args;
     if (args) {
       stack->stack_args=args;}
-    else if (n_args>5) {
+    else if (n_args>5) 
       stack->stack_args=u8_alloc_n(n_args,fdtype);
-      stack->stack_free_argvec=1;}
     else stack->stack_args=stack->stack_argbuf;}
   else stack->stack_n_args=n_args;
   stack->stack_cleanups=stack->_stack_cleanups;
@@ -265,8 +274,9 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
     fdtype *args=stack->stack_args;
     int i=0, n=stack->stack_n_args; while (i<n) {
       fdtype arg=args[i++]; fd_decref(arg);}}
-  if (stack->stack_free_argvec) {
-    if (stack->stack_args) u8_free(stack->stack_args);}
+  if ((stack->stack_args) && (stack->stack_free_args) &&
+      (stack->stack_args!=stack->stack_argbuf)) {
+    u8_free(stack->stack_args);}
   if (stack->stack_n_cleanups) {
     struct FD_STACK_CLEANUP *cleanups=stack->stack_cleanups;
     int i=0, n=stack->stack_n_cleanups;

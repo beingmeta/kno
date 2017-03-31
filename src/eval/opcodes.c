@@ -605,9 +605,9 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   fdtype args=FD_CDR(expr);
   switch (opcode) {
   case FD_QUOTE_OPCODE:
-    return fd_incref(args);
+    return fd_incref(pop_arg(args));
   case FD_NOT_OPCODE: {
-    fdtype arg_val=op_eval(args,env,0);
+    fdtype arg_val=op_eval(pop_arg(args),env,0);
     if (FD_FALSEP(arg_val))
       return FD_TRUE;
     else {

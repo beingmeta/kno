@@ -547,7 +547,7 @@ FD_EXPORT void fd_hash_quality
    unsigned int *ncollisionsp);
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
-FD_EXPORT int fd_free_hashvec(struct FD_HASH_BUCKET **slots,int slots_to_free);
+FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,int slots_to_free);
 
 FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly);
 

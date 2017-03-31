@@ -839,7 +839,7 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim1("OID-VALUE",server_oid_value,1));
   fd_defn(module,fd_make_cprim1("FETCH-OIDS",server_fetch_oids,1));
   fd_defn(module,fd_make_cprim1("GET-LOAD",server_get_load,0));
-  fd_defn(module,fd_make_cprim0("UPDATE-LOCKS!",update_locks_prim,0));
+  fd_defn(module,fd_make_cprim0("UPDATE-LOCKS!",update_locks_prim));
   fd_defn(module,fd_make_cprim2("STORE-OID!",store_oid_proc,2));
   fd_defn(module,fd_make_cprim2("BULK-COMMIT",bulk_commit_cproc,2));
 
@@ -851,9 +851,9 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
                                  fd_vector_type,FD_VOID));
   fd_defn(module,fd_make_cprim1("ISERVER-GET-SIZE",iserver_get_size,1));
-  fd_defn(module,fd_make_cprim0("ISERVER-KEYS",iserver_keys,0));
-  fd_defn(module,fd_make_cprim0("ISERVER-SIZES",iserver_sizes,0));
-  fd_defn(module,fd_make_cprim0("ISERVER-WRITABLE?",iserver_writablep,0));
+  fd_defn(module,fd_make_cprim0("ISERVER-KEYS",iserver_keys));
+  fd_defn(module,fd_make_cprim0("ISERVER-SIZES",iserver_sizes));
+  fd_defn(module,fd_make_cprim0("ISERVER-WRITABLE?",iserver_writablep));
   fd_defn(module,fd_make_cprim2("ISERVER-CHANGES",iserver_changes,2));
 
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET",ixserver_get,2,
@@ -874,7 +874,7 @@ void fd_init_dbserv_c()
                                  -1,FD_VOID));
   fd_defn(module,fd_make_cprim3("IXSERVER-CHANGES",ixserver_changes,3));
 
-  fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim,0));
+  fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim));
   fd_defn(module,fd_make_cprim2("LOCK-OID",lock_oid_prim,2));
   fd_defn(module,fd_make_cprim3("UNLOCK-OID",unlock_oid_prim,3));
   fd_defn(module,fd_make_cprim2("CLEAR-OID-LOCK",clear_server_lock_prim,2));

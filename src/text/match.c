@@ -221,7 +221,7 @@ fd_exception fd_TXInvalidPattern=_("Not a valid TX text pattern");
 
 fd_ptr_type fd_txclosure_type;
 
-static fdtype subst_symbol, label_symbol, star_symbol, plus_symbol, opt_symbol;
+static fdtype subst_symbol;
 static fdtype match_env;
 
 #define string_ref(s) ((*(s) < 0x80) ? (*(s)) : (u8_string_ref(s)))
@@ -913,7 +913,7 @@ static fdtype extract_star
       FD_DO_CHOICES(extraction,extractions) {
         fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
         fdtype pair=
-          fd_conspair(size,fd_conspair(star_symbol,fd_incref(data)));
+          fd_conspair(size,fd_conspair(FDSYM_STAR,fd_incref(data)));
         FD_ADD_TO_CHOICE(answer,pair);}
       fd_decref(extractions);
       return answer;}}
@@ -951,7 +951,7 @@ static fdtype extract_plus
     FD_DO_CHOICES(extraction,extractions) {
       fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
       fdtype pair=
-        fd_conspair(size,fd_conspair(plus_symbol,fd_incref(data)));
+        fd_conspair(size,fd_conspair(FDSYM_PLUS,fd_incref(data)));
       FD_ADD_TO_CHOICE(answer,pair);}
     fd_decref(extractions);
     return answer;}
@@ -984,7 +984,7 @@ static fdtype extract_opt
     fdtype extraction=textract(pat_arg,next,NULL,string,off,lim,flags);
     if (FD_EMPTY_CHOICEP(extraction))
       return fd_conspair(FD_INT(off),
-                         fd_make_list(1,opt_symbol));
+                         fd_make_list(1,FDSYM_OPT));
     else return extraction;}
 }
 
@@ -3931,11 +3931,7 @@ void fd_init_match_c()
   fd_add_match_operator("MAXLEN",maxlen_match,maxlen_search,NULL);
   fd_add_match_operator("MINLEN",minlen_match,minlen_search,NULL);
 
-  label_symbol=fd_intern("LABEL");
   subst_symbol=fd_intern("SUBST");
-  star_symbol=fd_intern("*");
-  plus_symbol=fd_intern("+");
-  opt_symbol=fd_intern("OPT");
 }
 
 /* Emacs local variables

@@ -324,7 +324,7 @@ static fdkb_flags getdbflags(fdtype opts)
 static fdtype make_pool(fdtype path,fdtype opts)
 {
   fd_pool p=NULL;
-  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fdtype type=fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   fdkb_flags flags=getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
@@ -352,7 +352,7 @@ static fdtype open_pool(fdtype path,fdtype opts)
 static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix=NULL;
-  fdtype type=fd_getopt(opts,fd_intern("TYPE"),FD_VOID);
+  fdtype type=fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   fdkb_flags flags=getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
@@ -938,7 +938,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
-    unsigned int i=0, lim=fd_pool_load(p);
+    int i=0, lim=fd_pool_load(p);
     fdtype result=FD_EMPTY_CHOICE;
     FD_OID base=p->pool_base;
     if (lim<0) return FD_ERROR_VALUE;
@@ -3109,9 +3109,9 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim0("CLEARCACHES",clearcaches,0));
+           fd_make_cprim0("CLEARCACHES",clearcaches));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim,0));
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));

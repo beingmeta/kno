@@ -75,8 +75,6 @@ static int set_prompt(fdtype ignored,fdtype v,void *vptr)
 
 static int use_editline=0;
 
-static fdtype equals_symbol;
-
 #if USING_EDITLINE
 static char *editline_promptfn(EditLine *ignored)
 {
@@ -361,7 +359,7 @@ static fdtype stream_read(u8_input in,fd_lispenv env)
     fdtype sym=fd_parser(in);
     if (FD_SYMBOLP(sym)) {
       swallow_whitespace(in);
-      return fd_make_nrail(2,equals_symbol,sym);}
+      return fd_make_nrail(2,FDSYM_EQUALS,sym);}
     else {
       fd_decref(sym);
       u8_printf(errconsole,_(";; Bad assignment expression!\n"));
@@ -390,7 +388,7 @@ static fdtype console_read(u8_input in,fd_lispenv env)
     if (line[0]=='=') {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       expr=fd_parser(&scan);
-      return fd_make_nrail(2,equals_symbol,expr);}
+      return fd_make_nrail(2,FDSYM_EQUALS,expr);}
     /* Handle command line parsing here */
     /* else if ((line[0]=='=')||(line[0]==',')) {} */
     else {
@@ -822,7 +820,6 @@ int main(int argc,char **argv)
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
-  equals_symbol=fd_intern("=");
 
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
@@ -921,7 +918,7 @@ int main(int argc,char **argv)
     if (FD_TYPEP(expr,fd_rail_type)) {
       /* Handle commands */
       fdtype head=FD_VECTOR_REF(expr,0);
-      if ((head==equals_symbol)&&
+      if ((head==FDSYM_EQUALS)&&
           (FD_VECTOR_LENGTH(expr)==2)&&
           (FD_SYMBOLP(FD_VECTOR_REF(expr,1)))) {
         fdtype sym=FD_VECTOR_REF(expr,1);

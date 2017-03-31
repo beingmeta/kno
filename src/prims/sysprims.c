@@ -853,35 +853,35 @@ FD_EXPORT void fd_init_sysprims_c()
   load_symbol=fd_intern("LOAD");
   loadavg_symbol=fd_intern("LOADAVG");
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("GETENV",getenv_prim,1,
                            fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMUSAGE",vmemusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMUSAGE",vmemusage_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PHYSMEM",physmem_prim,0));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMLOAD",memload_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMLOAD",vmemload_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMLOAD",memload_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMLOAD",vmemload_prim));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("UNAME",uname_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("UNAME",uname_prim));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
 
   fd_register_config
@@ -892,7 +892,7 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("GPERF/HEAP/PROFILE!",gperf_heap_profile,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim0("GPERF/HEAP?",gperf_profiling_heap,0));
+           fd_make_cprim0("GPERF/HEAP?",gperf_profiling_heap));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("GPERF/DUMPHEAP",gperf_dump_heap,1));
 #endif

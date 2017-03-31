@@ -1404,7 +1404,7 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("CHOICE",choice_prim,0)));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("FAIL",fail_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("FAIL",fail_prim));
   {
     fdtype qc_prim=
       fd_make_ndprim(fd_make_cprimn("QCHOICE",qchoice_prim,0));

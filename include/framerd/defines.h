@@ -64,6 +64,15 @@
 
 #define FD_WRITETHROUGH_THREADCACHE 1
 
+/* Whether to have FD_CHECK_PTR check underlying CONS structs */
+#ifdef FD_FULL_CHECK_PTR
+#define FD_FULL_CHECK_PTR 1
+/* It can be helpful to turn this off when doing certain kinds of
+   thread debugging, since checking that a CONS is legitimate without
+   locking counts as a race condition to some thread error
+   detectors. */
+#endif
+
 /* This is set to make incref/decref into no-ops, which is helpful
    for ablative benchmarking.  */
 #ifndef FD_NO_GC
@@ -192,14 +201,18 @@ typedef int fd_size_t;
 #define FD_INLINE_CHOICES 0
 #endif
 
+#ifndef FD_INLINE_TABLES
+#define FD_INLINE_TABLES 0
+#endif
+
 #if ((FD_INLINE_CHOICES)||(FD_INLINE_TABLES))
 #define FD_INLINE_COMPARE 1
 #elif (!(defined(FD_INLINE_COMPARE)))
 #define FD_INLINE_COMPARE 0
 #endif
 
-#ifndef FD_INLINE_TABLES
-#define FD_INLINE_TABLES 0
+#ifndef FD_INLINE_REFCOUNTS
+#define FD_INLINE_REFCOUNTS 1
 #endif
 
 #ifndef FD_USE_THREADCACHE

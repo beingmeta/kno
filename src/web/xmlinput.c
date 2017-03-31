@@ -91,9 +91,9 @@ FD_EXPORT fdtype fd_convert_entities(u8_string arg,u8_string lim)
   return fd_stream2string(&out);
 }
 
-static fdtype rawtag_symbol;
+static fdtype rawtag_symbol, content_symbol;
 static fdtype namespace_symbol, xmltag_symbol, qname_symbol, xmlns_symbol;
-static fdtype attribs_symbol, content_symbol, type_symbol;
+static fdtype attribs_symbol, type_symbol;
 
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
 static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol;
@@ -1198,7 +1198,6 @@ FD_EXPORT void fd_init_xmlinput_c()
   fd_defn(full_module,fdxml_read_prim); fd_idefn(safe_module,fdxml_read_prim);
 
   attribs_symbol=fd_intern("%ATTRIBS");
-  content_symbol=fd_intern("%CONTENT");
   type_symbol=fd_intern("%TYPE");
 
   namespace_symbol=fd_intern("%NAMESPACE");
@@ -1206,6 +1205,7 @@ FD_EXPORT void fd_init_xmlinput_c()
   rawtag_symbol=fd_intern("%RAWTAG");
   qname_symbol=fd_intern("%QNAME");
   xmlns_symbol=fd_intern("%XMLNS");
+  content_symbol=fd_intern("%CONTENT");
 
   comment_symbol=fd_intern("%COMMENT");
   cdata_symbol=fd_intern("%CDATA");
