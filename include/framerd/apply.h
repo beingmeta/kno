@@ -167,6 +167,13 @@ FD_EXPORT fdtype fd_make_cprim9x
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 
+/* Primitive defining macros */
+
+#define FD_CPRIM(cname,scm_name, ...) \
+  static fdtype cname(__VA_ARGS__)
+#define FD_NDPRIM(cname,scm_name, ...) \
+  static fdtype cname(__VA_ARGS__)
+
 /* Definining functions in tables. */
 
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn);

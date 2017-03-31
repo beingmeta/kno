@@ -8,6 +8,7 @@
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
+/* FD_MODULE=scheme */
 
 #define FD_INLINE_FCNIDS 1
 
@@ -230,7 +231,9 @@ FD_EXPORT fdtype fd_foreach(fdtype fn,int n_seqs,fdtype *sequences)
     else {fd_decref(new_elt); i++;}}
   return FD_VOID;
 }
-static fdtype foreach_prim(int n,fdtype *args)
+FD_CPRIM(foreach_prim,"FOR-EACH",int n,fdtype *args)
+/* This iterates over a sequence or set of sequences and applies
+   FN to each of the elements. */
 {
   return fd_foreach(args[0],n-1,args+1);
 }
@@ -608,7 +611,12 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     return FD_FALSE;}
 }
 
-static fdtype removeif_prim(fdtype test,fdtype sequence)
+FD_CPRIM(removeif_prim,"REMOVE-IF",fdtype test,fdtype sequence)
+/* Removes elements of sequence which pass the predicate 'test'.
+   The element E is removed when:
+   * if FN is a function, applying FN to E returns true
+   * if FN is a table, FN contains E as a KEY
+   * or, if E is a table, E contains the key FN. */
 {
   if (FD_EMPTY_CHOICEP(sequence)) return sequence;
   else if (FD_CHOICEP(sequence)) {
