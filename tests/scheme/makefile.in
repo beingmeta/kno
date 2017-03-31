@@ -333,7 +333,6 @@ indextest:
 	# Build with the offsets cache on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
@@ -342,7 +341,6 @@ indextest:
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
