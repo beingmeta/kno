@@ -731,8 +731,6 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
         fd_unlock_stream(&(op->pool_stream));
         return value;}}}
 }
-struct OIDPOOL_FETCH_SCHEDULE {
-  unsigned int value_at; FD_CHUNK_REF location;};
 
 static int compare_offsets(const void *x1,const void *x2)
 {
@@ -787,9 +785,6 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     u8_free(schedule);
     return values;}
 }
-
-struct OIDPOOL_SAVEINFO {
-  FD_CHUNK_REF chunk; unsigned int oidoff;} OIDPOOL_SAVEINFO;
 
 static int compare_oidoffs(const void *p1,const void *p2)
 {

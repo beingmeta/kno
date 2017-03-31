@@ -58,3 +58,9 @@ typedef struct FD_SCHEMA_TABLE {
   fdtype *fdst_schema;} FD_SCHEMA_TABLE;
 typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 
+struct OIDPOOL_FETCH_SCHEDULE {
+  unsigned int value_at; FD_CHUNK_REF location;};
+
+struct OIDPOOL_SAVEINFO {
+  FD_CHUNK_REF chunk; unsigned int oidoff;} OIDPOOL_SAVEINFO;
+

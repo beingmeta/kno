@@ -737,8 +737,6 @@ static fdtype bigpool_fetch(fd_pool p,fdtype oid)
 #endif
   }
 }
-struct BIGPOOL_FETCH_SCHEDULE {
-  unsigned int value_at; FD_CHUNK_REF location;};
 
 static int compare_offsets(const void *x1,const void *x2)
 {
@@ -800,9 +798,6 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
     u8_free(schedule);
     return values;}
 }
-
-struct BIGPOOL_SAVEINFO {
-  FD_CHUNK_REF chunk; unsigned int oidoff;} BIGPOOL_SAVEINFO;
 
 static int bigpool_write_value(fdtype value,fd_stream stream,
                                fd_bigpool p,struct FD_OUTBUF *tmpout,
