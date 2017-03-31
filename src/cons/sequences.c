@@ -16,7 +16,8 @@
 #include "framerd/dtype.h"
 #include "framerd/sequences.h"
 #include "framerd/numbers.h"
-#include "framerd/sorting.h"
+#include "framerd/apply.h"
+
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
@@ -37,9 +38,6 @@ static fdtype make_double_vector(int n,fdtype *from_elts);
 static fdtype make_short_vector(int n,fdtype *from_elts);
 static fdtype make_int_vector(int n,fdtype *from_elts);
 static fdtype make_long_vector(int n,fdtype *from_elts);
-
-static fd_exception SequenceMismatch=_("Mismatch of sequence lengths");
-static fd_exception EmptyReduce=_("No sequence elements to reduce");
 
 struct FD_SEQFNS *fd_seqfns[FD_TYPE_MAX];
 FD_EXPORT int fd_seq_length(fdtype x)
@@ -666,158 +664,6 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     return result;}
 }
 
-/* Mapping */
-
-FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
-{
-  int i=1, n_seqs=n-1, seqlen=-1;
-  fdtype fn=args[0], *sequences=args+1, firstseq=sequences[0];
-  fdtype result, *results, _argvec[8], *argvec=NULL;
-  fd_ptr_type result_type=FD_PTR_TYPE(firstseq);
-  if (FD_FCNIDP(fn)) fn=fd_fcnid_ref(fn);
-  if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
-    if (n_seqs>1)
-      return fd_err(fd_TooManyArgs,"fd_foreach",NULL,fn);
-    else if (FD_EMPTY_LISTP(firstseq)) return firstseq;}
-  if (!(FD_SEQUENCEP(firstseq)))
-    return fd_type_error("sequence","fd_mapseq",firstseq);
-  else seqlen=fd_seq_length(firstseq);
-  while (i<n_seqs)
-    if (!(FD_SEQUENCEP(sequences[i])))
-      return fd_type_error("sequence","fd_mapseq",sequences[i]);
-    else if (seqlen!=fd_seq_length(sequences[i]))
-      return fd_err(SequenceMismatch,"fd_foreach",NULL,sequences[i]);
-    else i++;
-  if (seqlen==0) return fd_incref(firstseq);
-  results=u8_alloc_n(seqlen,fdtype);
-  if (FD_APPLICABLEP(fn)) {
-    if (n_seqs<8) argvec=_argvec;
-    else argvec=u8_alloc_n(n_seqs,fdtype);}
-  i=0; while (i < seqlen) {
-    fdtype elt=fd_seq_elt(firstseq,i), new_elt;
-    if (FD_APPLICABLEP(fn)) {
-      int j=1; while (j<n_seqs) {
-        argvec[j]=fd_seq_elt(sequences[j],i); j++;}
-      argvec[0]=elt;
-      new_elt=fd_apply(fn,n_seqs,argvec);
-      j=1; while (j<n_seqs) {fd_decref(argvec[j]); j++;}}
-    else if (FD_TABLEP(fn))
-      new_elt=fd_get(fn,elt,elt);
-    else if (FD_OIDP(elt))
-      new_elt=fd_frame_get(elt,fn);
-    else new_elt=fd_get(elt,fn,elt);
-    fd_decref(elt);
-    if (result_type == fd_string_type) {
-      if (!(FD_TYPEP(new_elt,fd_character_type)))
-        result_type=fd_vector_type;}
-    else if ((result_type == fd_packet_type)||
-             (result_type == fd_secret_type)) {
-      if (FD_FIXNUMP(new_elt)) {
-        long long intval=FD_FIX2INT(new_elt);
-        if ((intval<0) || (intval>=0x100))
-          result_type=fd_vector_type;}
-      else result_type=fd_vector_type;}
-    if (FD_ABORTED(new_elt)) {
-      int j=0; while (j<i) {fd_decref(results[j]); j++;}
-      u8_free(results);
-      return new_elt;}
-    else results[i++]=new_elt;}
-  result=fd_makeseq(result_type,seqlen,results);
-  i=0; while (i<seqlen) {fd_decref(results[i]); i++;}
-  u8_free(results);
-  return result;
-}
-
-FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
-{
-  int i=1, n_seqs=n-1, seqlen=-1;
-  fdtype fn=args[0], *sequences=args+1, firstseq=sequences[0];
-  fdtype _argvec[8], *argvec=NULL;
-  fd_ptr_type result_type=FD_PTR_TYPE(firstseq);
-  if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
-    if (n_seqs>1)
-      return fd_err(fd_TooManyArgs,"fd_foreach",NULL,fn);
-    else if (FD_EMPTY_LISTP(firstseq)) return firstseq;}
-  if (!(FD_SEQUENCEP(firstseq)))
-    return fd_type_error("sequence","fd_mapseq",firstseq);
-  else seqlen=fd_seq_length(firstseq);
-  while (i<n_seqs)
-    if (!(FD_SEQUENCEP(sequences[i])))
-      return fd_type_error("sequence","fd_mapseq",sequences[i]);
-    else if (seqlen!=fd_seq_length(sequences[i]))
-      return fd_err(SequenceMismatch,"fd_foreach",NULL,sequences[i]);
-    else i++;
-  if (seqlen==0) return FD_VOID;
-  if (FD_APPLICABLEP(fn)) {
-    if (n_seqs<8) argvec=_argvec;
-    else argvec=u8_alloc_n(n_seqs,fdtype);}
-  i=0; while (i < seqlen) {
-    fdtype elt=fd_seq_elt(firstseq,i), new_elt;
-    if (FD_TABLEP(fn))
-      new_elt=fd_get(fn,elt,elt);
-    else if (FD_OIDP(elt))
-      new_elt=fd_frame_get(elt,fn);
-    else if (FD_APPLICABLEP(fn)) {
-      int j=1; while (j<n_seqs) {
-        argvec[j]=fd_seq_elt(sequences[j],i); j++;}
-      argvec[0]=elt;
-      new_elt=fd_apply(fn,n_seqs,argvec);
-      j=1; while (j<n_seqs) {fd_decref(argvec[j]); j++;}}
-    else new_elt=fd_get(elt,fn,elt);
-    fd_decref(elt);
-    if (result_type == fd_string_type) {
-      if (!(FD_TYPEP(new_elt,fd_character_type)))
-        result_type=fd_vector_type;}
-    else if ((result_type == fd_packet_type)||
-             (result_type == fd_secret_type)) {
-      if (FD_FIXNUMP(new_elt)) {
-        long long intval=FD_FIX2INT(new_elt);
-        if ((intval<0) || (intval>=0x100))
-          result_type=fd_vector_type;}
-      else result_type=fd_vector_type;}
-    if (FD_ABORTED(new_elt)) return new_elt;
-    else {fd_decref(new_elt); i++;}}
-  return FD_VOID;
-}
-
-FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
-{
-  if (!(FD_SEQUENCEP(sequence)))
-    return fd_type_error("sequence","fd_mapseq",sequence);
-  else if (FD_EMPTY_LISTP(sequence)) return sequence;
-  else if ((FD_APPLICABLEP(fn)) || (FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
-    int i=0, len=fd_seq_length(sequence);
-    fd_ptr_type result_type=FD_PTR_TYPE(sequence);
-    fdtype *results=u8_alloc_n(len,fdtype);
-    while (i < len) {
-      fdtype elt=fd_seq_elt(sequence,i), new_elt;
-      if (FD_TABLEP(fn))
-        new_elt=fd_get(fn,elt,elt);
-      else if (FD_APPLICABLEP(fn))
-        new_elt=fd_apply(fn,1,&elt);
-      else if (FD_OIDP(elt))
-        new_elt=fd_frame_get(elt,fn);
-      else new_elt=fd_get(elt,fn,elt);
-      fd_decref(elt);
-      if (result_type == fd_string_type) {
-        if (!(FD_TYPEP(new_elt,fd_character_type)))
-          result_type=fd_vector_type;}
-      else if ((result_type == fd_packet_type)||
-               (result_type == fd_secret_type)) {
-        if (FD_FIXNUMP(new_elt)) {
-          long long intval=FD_FIX2INT(new_elt);
-          if ((intval<0) || (intval>=0x100))
-            result_type=fd_vector_type;}
-        else result_type=fd_vector_type;}
-      if (FD_ABORTED(new_elt)) {
-        int j=0; while (j<i) {fd_decref(results[j]); j++;}
-        u8_free(results);
-        return new_elt;}
-      else results[i++]=new_elt;}
-    return fd_make_choice(len,results,0);}
-  else return fd_err(fd_NotAFunction,"MAP",NULL,fn);
-}
-
 /* removal */
 
 FD_EXPORT fdtype fd_remove(fdtype item,fdtype sequence)
@@ -844,99 +690,101 @@ FD_EXPORT fdtype fd_remove(fdtype item,fdtype sequence)
       return fd_incref(sequence);}}
 }
 
-FD_EXPORT int applytest(fdtype test,fdtype elt)
-{
-  if (FD_HASHSETP(test))
-    return fd_hashset_get(FD_XHASHSET(test),elt);
-  else if (FD_HASHTABLEP(test))
-    return fd_hashtable_probe(FD_XHASHTABLE(test),elt);
-  else if ((FD_SYMBOLP(test)) || (FD_OIDP(test)))
-    return fd_test(elt,test,FD_VOID);
-  else if (FD_TABLEP(test))
-    return fd_test(test,elt,FD_VOID);
-  else if (FD_APPLICABLEP(test)) {
-    fdtype result=fd_apply(test,1,&elt);
-    if (FD_FALSEP(result)) return 0;
-    else {fd_decref(result); return 1;}}
-  else if (FD_EMPTY_CHOICEP(test)) return 0;
-  else if (FD_CHOICEP(test)) {
-    FD_DO_CHOICES(each_test,test) {
-      int result=applytest(each_test,elt);
-      if (result<0) return result;
-      else if (result) return result;}
-    return 0;}
-  else {
-    fd_seterr(fd_TypeError,"removeif",u8_strdup(_("test")),test);
-    return -1;}
-}
 
-FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert)
+/* Making particular types of sequences */
+
+static fdtype make_short_vector(int n,fdtype *from_elts)
 {
-  if (!(FD_SEQUENCEP(sequence)))
-    return fd_type_error("sequence","fd_remove",sequence);
-  else if (FD_EMPTY_LISTP(sequence)) return sequence;
-  else {
-    int i=0, j=0, removals=0, len=fd_seq_length(sequence);
-    fd_ptr_type result_type=FD_PTR_TYPE(sequence);
-    fdtype *results=u8_alloc_n(len,fdtype), result;
-    while (i < len) {
-      fdtype elt=fd_seq_elt(sequence,i);
-      int compare=applytest(test,elt); i++;
-      if (compare<0) {u8_free(results); return -1;}
-      else if ((invert) ? (!(compare)) : (compare)) {
-        removals++; fd_decref(elt);}
-      else results[j++]=elt;}
-    if (removals) {
-      result=fd_makeseq(result_type,j,results);
-      i=0; while (i<j) {fd_decref(results[i]); i++;}
-      u8_free(results);
-      return result;}
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_short_elt);
+  fd_short *elts=FD_NUMVEC_SHORTS(vec);
+  while (i<n) {
+    fdtype elt=from_elts[i];
+    if (FD_SHORTP(elt))
+      elts[i++]=(fd_short)(FD_FIX2INT(elt));
     else {
-      i=0; while (i<j) {fd_decref(results[i]); i++;}
-      u8_free(results);
-      return fd_incref(sequence);}}
+      u8_free((struct FD_CONS *)vec); fd_incref(elt);
+      return fd_type_error(_("short element"),"make_short_vector",elt);}}
+  return vec;
 }
 
-
-/* Reduction */
-
-FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
+static fdtype make_int_vector(int n,fdtype *from_elts)
 {
-  int i=0, len=fd_seq_length(sequence);
-  if (len==0)
-    if (FD_VOIDP(result))
-      return fd_err(EmptyReduce,"fd_reduce",NULL,sequence);
-    else return fd_incref(result);
-  else if (len<0)
-    return FD_ERROR_VALUE;
-  else if (!(FD_APPLICABLEP(fn)))
-    return fd_err(fd_NotAFunction,"MAP",NULL,fn);
-  else if (FD_VOIDP(result)) {
-    result=fd_seq_elt(sequence,0); i=1;}
-  while (i < len) {
-    fdtype elt=fd_seq_elt(sequence,i), rail[2], new_result;
-    rail[0]=elt; rail[1]=result;
-    new_result=fd_apply(fn,2,rail);
-    fd_decref(result); fd_decref(elt);
-    if (FD_ABORTP(new_result)) return new_result;
-    result=new_result;
-    i++;}
-  return result;
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int_elt);
+  fd_int *elts=FD_NUMVEC_INTS(vec);
+  while (i<n) {
+    fdtype elt=from_elts[i];
+    if (FD_INTP(elt))
+      elts[i++]=((fd_int)(FD_FIX2INT(elt)));
+    else if ((FD_BIGINTP(elt))&&
+             (fd_bigint_fits_in_word_p((fd_bigint)elt,sizeof(fd_int),1)))
+      elts[i++]=fd_bigint_to_long((fd_bigint)elt);
+    else {
+      u8_free((struct FD_CONS *)vec); fd_incref(elt);
+      return fd_type_error(_("int element"),"make_int_vector",elt);}}
+  return vec;
+}
+
+static fdtype make_long_vector(int n,fdtype *from_elts)
+{
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_long_elt);
+  fd_long *elts=FD_NUMVEC_LONGS(vec);
+  while (i<n) {
+    fdtype elt=from_elts[i];
+    if (FD_FIXNUMP(elt))
+      elts[i++]=((fd_long)(FD_FIX2INT(elt)));
+    else if (FD_BIGINTP(elt))
+      elts[i++]=fd_bigint_to_long_long((fd_bigint)elt);
+    else {
+      u8_free((struct FD_CONS *)vec); fd_incref(elt);
+      return fd_type_error(_("flonum element"),"make_long_vector",elt);}}
+  return vec;
+}
+
+static fdtype make_float_vector(int n,fdtype *from_elts)
+{
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_float_elt);
+  float *elts=FD_NUMVEC_FLOATS(vec);
+  while (i<n) {
+    fdtype elt=from_elts[i];
+    if (FD_FLONUMP(elt))
+      elts[i++]=FD_FLONUM(elt);
+    else if (FD_NUMBERP(elt))
+      elts[i++]=fd_todouble(elt);
+    else {
+      u8_free((struct FD_CONS *)vec); fd_incref(elt);
+      return fd_type_error(_("float element"),"make_float_vector",elt);}}
+  return vec;
+}
+
+static fdtype make_double_vector(int n,fdtype *from_elts)
+{
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_double_elt);
+  double *elts=FD_NUMVEC_DOUBLES(vec);
+  while (i<n) {
+    fdtype elt=from_elts[i];
+    if (FD_FLONUMP(elt))
+      elts[i++]=FD_FLONUM(elt);
+    else if (FD_NUMBERP(elt))
+      elts[i++]=fd_todouble(elt);
+    else {
+      u8_free((struct FD_CONS *)vec); fd_incref(elt);
+      return fd_type_error(_("double(float) element"),"make_double_vector",elt);}}
+  return vec;
 }
 
 /* Miscellaneous sequence creation functions */
 
-static fdtype seqpair(int n,fdtype *elts) {
+static fdtype makepair(int n,fdtype *elts) {
   return fd_makeseq(fd_pair_type,n,elts);}
-static fdtype seqstring(int n,fdtype *elts) {
+static fdtype makestring(int n,fdtype *elts) {
   return fd_makeseq(fd_string_type,n,elts);}
-static fdtype seqpacket(int n,fdtype *elts) {
+static fdtype makepacket(int n,fdtype *elts) {
   return fd_makeseq(fd_packet_type,n,elts);}
-static fdtype seqsecret(int n,fdtype *elts) {
+static fdtype makesecret(int n,fdtype *elts) {
   return fd_makeseq(fd_secret_type,n,elts);}
-static fdtype seqvector(int n,fdtype *elts) {
+static fdtype makevector(int n,fdtype *elts) {
   return fd_makeseq(fd_vector_type,n,elts);}
-static fdtype seqrail(int n,fdtype *elts) {
+static fdtype makerail(int n,fdtype *elts) {
   return fd_makeseq(fd_rail_type,n,elts);}
 
 static struct FD_SEQFNS pair_seqfns={
@@ -946,7 +794,7 @@ static struct FD_SEQFNS pair_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqpair};
+  makepair};
 static struct FD_SEQFNS string_seqfns={
   fd_seq_length,
   fd_seq_elt,
@@ -954,7 +802,7 @@ static struct FD_SEQFNS string_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqstring};
+  makestring};
 static struct FD_SEQFNS packet_seqfns={
   fd_seq_length,
   fd_seq_elt,
@@ -962,7 +810,7 @@ static struct FD_SEQFNS packet_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqpacket};
+  makepacket};
 static struct FD_SEQFNS vector_seqfns={
   fd_seq_length,
   fd_seq_elt,
@@ -970,7 +818,7 @@ static struct FD_SEQFNS vector_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqvector};
+  makevector};
 static struct FD_SEQFNS numeric_vector_seqfns={
   fd_seq_length,
   fd_seq_elt,
@@ -978,7 +826,7 @@ static struct FD_SEQFNS numeric_vector_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqvector};
+  makevector};
 static struct FD_SEQFNS rail_seqfns={
   fd_seq_length,
   fd_seq_elt,
@@ -986,7 +834,7 @@ static struct FD_SEQFNS rail_seqfns={
   fd_position,
   fd_search,
   fd_elts,
-  seqrail};
+  makerail};
 static struct FD_SEQFNS secret_seqfns={
   fd_seq_length,
   NULL,
@@ -994,10 +842,10 @@ static struct FD_SEQFNS secret_seqfns={
   NULL,
   NULL,
   NULL,
-  seqsecret};
+  makesecret};
 
 
-FD_EXPORT void fd_init_seqprims_c()
+FD_EXPORT void fd_init_sequences_c()
 {
   int i=0; while (i<FD_TYPE_MAX) fd_seqfns[i++]=NULL;
   fd_seqfns[fd_pair_type]=&pair_seqfns;
