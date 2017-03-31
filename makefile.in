@@ -89,7 +89,7 @@ DB_HEADERS=\
  include/framerd/drivers.h
 
 DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
+SCHEME_HEADERS=include/framerd/eval.h include/framerd/seqprims.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
