@@ -2188,28 +2188,29 @@ FD_EXPORT fdtype fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
   return fd_simplify_choice(results);
 }
 
-static int free_hashvec
+static int free_buckets
 (struct FD_HASH_BUCKET **slots,int slots_to_free)
 {
   if ((slots) && (slots_to_free)) {
     struct FD_HASH_BUCKET **scan=slots, **lim=scan+slots_to_free;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan; int fd_n_entries=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+fd_n_entries;
+        struct FD_HASH_BUCKET *e=*scan; int n_entries=e->fd_n_entries;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+n_entries;
         while (kvscan<kvlimit) {
           fd_decref(kvscan->kv_key);
           fd_decref(kvscan->kv_val);
           kvscan++;}
-        u8_free(*scan);
-        *scan++=NULL;}
+        *scan++=NULL;
+        u8_free(e);}
       else scan++;}
+  if (slots) u8_free(slots);
   return 0;
 }
 
-FD_EXPORT int fd_free_hashvec(struct FD_HASH_BUCKET **slots,int slots_to_free)
+FD_EXPORT int fd_free_buckets(struct FD_HASH_BUCKET **slots,int slots_to_free)
 {
-  return free_hashvec(slots,slots_to_free);
+  return free_buckets(slots,slots_to_free);
 }
 
 FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
@@ -2236,9 +2237,7 @@ FD_EXPORT int fd_reset_hashtable(struct FD_HASHTABLE *ht,int n_slots,int lock)
   /* Free the lock, letting other processes use this hashtable. */
   if ((lock) && (ht->table_uselock)) fd_unlock_table(ht);
   /* Now, free the old data... */
-  if (slots_to_free) {
-    free_hashvec(slots,slots_to_free);
-    u8_free(slots);}
+  free_buckets(slots,slots_to_free);
   return n_slots;
 }
 
@@ -2297,7 +2296,6 @@ FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
   src->ht_n_buckets=n_slots; src->table_n_keys=0;
   src->table_modified=0; src->table_readonly=0;
   src->ht_buckets=slots=u8_zalloc_n(n_slots,struct FD_HASH_BUCKET *);
-  memset(slots,0,sizeof(struct FD_HASH_BUCKET *)*n_slots);
   if (unlock) u8_rw_unlock(&(src->table_rwlock));
 #undef COPYFIELD
   return 1;

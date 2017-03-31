@@ -418,7 +418,7 @@ FD_EXPORT void fd_fast_swapout_all()
   fd_for_indexes(fast_swapout_index,(void *)&todo);
   fd_for_pools(fast_swapout_pool,(void *)&todo);
   while (i<todo.n_to_free) {
-    fd_free_hashvec(todo.to_free[i].slots,todo.to_free[i].n_slots);
+    fd_free_buckets(todo.to_free[i].slots,todo.to_free[i].n_slots);
     u8_free(todo.to_free[i].slots);
     i++;}
   u8_free(todo.to_free);
