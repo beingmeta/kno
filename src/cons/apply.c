@@ -498,6 +498,54 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
     return fd_err(fd_StackOverflow,fname,limit,depth);}
 }
 
+FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *argvec)
+{
+  u8_byte namebuf[60];
+  u8_string fname=NULL;
+  fd_ptr_type ftype=FD_PRIM_TYPE(fn);
+  struct FD_FUNCTION *f=NULL;
+
+  if (ftype==fd_fcnid_type) {
+    fn=fd_fcnid_ref(fn);
+    ftype=FD_PTR_TYPE(fn);}
+
+  if (fd_functionp[ftype]) {
+    f=(struct FD_FUNCTION *)fn;
+    if (f->fcn_name)
+      fname=f->fcn_name;}
+  else if (fd_applyfns[ftype]) {
+    sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
+    fname=namebuf;}
+  else return fd_type_error("applicable","fd_determinstic_apply",fn);
+
+  /* Make the call */
+  if (stackcheck()) {
+    fdtype result=FD_VOID;
+    FD_WITH_STACK(fname||"apply",caller,fn,n,argvec);
+    U8_WITH_CONTOUR(fname,0)
+      if (f) result=apply_fcn(fname,f,n,argvec);
+      else result=fd_applyfns[ftype](fn,n,argvec);
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      result = FD_ERROR_VALUE;}
+    U8_END_EXCEPTION;
+    if ((errno)&&(!(FD_TROUBLEP(result)))) {
+      u8_string cond=u8_strerror(errno);
+      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
+             errno,cond,U8ALT(fname,"primcall"));
+      errno=0;}
+    if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
+      if (errno) u8_graberrno("fd_apply",fname);
+      else fd_seterr(fd_UnknownError,"fd_apply",fname,FD_VOID);}
+    if (FD_EXPECT_TRUE(FD_CHECK_PTR(result)))
+      return result;
+    else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
+  else {
+    u8_string limit=u8_mkstring("%lld",fd_stack_limit);
+    fdtype depth=FD_INT2DTYPE(u8_stack_depth());
+    return fd_err(fd_StackOverflow,fname,limit,depth);}
+}
+
 /* Calling non-deterministically */
 static fdtype ndapply_loop
   (struct FD_FUNCTION *f,fdtype *results,int *typeinfo,
