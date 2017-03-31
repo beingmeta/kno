@@ -233,9 +233,12 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
       x->fd_conshead=x->fd_conshead-0x80;
       FD_UNLOCK_PTR(x);}
     else {
-      x->fd_conshead=x->fd_conshead-0x80;
+      /* Someone else decref'd it before we got the lock, so we
+	 unlock and recycle it */
+      FD_UNLOCK_PTR(x);
       fd_recycle_cons(x);}}
 }
+
 #define fd_incref(x) \
   ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_RAW_CONS(x))))
 #define fd_decref(x) \

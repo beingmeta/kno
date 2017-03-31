@@ -261,7 +261,6 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
 {
   struct FD_SPROC *sproc=(struct FD_SPROC *)c;
   int mallocd=FD_MALLOCD_CONSP(c);
-  if (sproc->fcn_name) u8_free(sproc->fcn_name);
   if (sproc->fcn_typeinfo) u8_free(sproc->fcn_typeinfo);
   if (sproc->fcn_defaults) u8_free(sproc->fcn_defaults);
   if (sproc->fcn_documentation) u8_free(sproc->fcn_documentation);
@@ -274,10 +273,12 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
   }
   if (sproc->sproc_synchronized)
     u8_destroy_mutex(&(sproc->sproc_lock));
-  if (sproc->fcn_filename) u8_free(sproc->fcn_filename);
   if (sproc->sproc_bytecode) {
     fdtype bc=(fdtype)(sproc->sproc_bytecode);
     fd_decref(bc);}
+  /* Put these last to help with debugging, when needed */
+  if (sproc->fcn_name) u8_free(sproc->fcn_name);
+  if (sproc->fcn_filename) u8_free(sproc->fcn_filename);
   if (mallocd) {
     memset(sproc,0,sizeof(struct FD_SPROC));
     u8_free(sproc);}

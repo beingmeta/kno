@@ -485,7 +485,9 @@ static int edit_key_fn(fdtype key,fdtype val,void *data)
   if (FD_PAIRP(key)) {
     struct FD_PAIR *pair=(struct FD_PAIR *)key;
     if (pair->car==set_symbol) {
-      *((*write)++)=pair->cdr; fd_incref(pair->cdr);}}
+      fdtype real_key=pair->cdr;
+      fd_incref(real_key);
+      *((*write)++)=real_key;}}
   /* Means keep going */
   return 0;
 }
@@ -864,7 +866,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
 {
   struct FD_HASHTABLE *cache=&(ix->index_cache);
-  if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0)) 
+  if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0))
     return;
   else if (FD_VOIDP(keys)) {
     if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))
