@@ -289,7 +289,7 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
   if (ch->achoice_uselock)
     u8_unlock_mutex(&(ch->achoice_lock));
 }
-static fdtype _add_to_choice(fdtype current,fdtype new)
+static U8_MAYBE_UNUSED fdtype _add_to_choice(fdtype current,fdtype new)
 {
   FD_PTR_CHECK1(new,"_add_to_choice");
   if (FD_EMPTY_CHOICEP(new)) return current;

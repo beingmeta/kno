@@ -36,7 +36,7 @@ static pthread_mutex_t *ssl_lockarray;
 #endif
 
 static fdtype curl_defaults, url_symbol;
-static fdtype content_type_symbol, charset_symbol, type_symbol;
+static fdtype content_type_symbol, charset_symbol;
 static fdtype content_length_symbol, etag_symbol, content_encoding_symbol;
 static fdtype verbose_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;

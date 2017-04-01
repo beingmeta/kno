@@ -2600,7 +2600,7 @@ static fdtype copy_hashset(fdtype table,int deep)
 
 static int unparse_hashtable(u8_output out,fdtype x)
 {
-  struct FD_HASHTABLE *ht=FD_XHASHTABLE(x); char buf[128];
+  struct FD_HASHTABLE *ht=FD_XHASHTABLE(x);
   u8_printf(out,"#<HASHTABLE %d/%d>",ht->table_n_keys,ht->ht_n_buckets);
   return 1;
 }
@@ -3043,7 +3043,7 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
 
 static int unparse_hashset(u8_output out,fdtype x)
 {
-  struct FD_HASHSET *hs=((struct FD_HASHSET *)x); char buf[128];
+  struct FD_HASHSET *hs=((struct FD_HASHSET *)x);
   u8_printf(out,"#<HASHSET%s %d/%d>",
             ((hs->hs_modified)?("(m)"):("")),
             hs->hs_n_elts,hs->hs_n_slots);
