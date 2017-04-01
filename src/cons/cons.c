@@ -152,9 +152,103 @@ FD_EXPORT void _fd_decref_fn(fdtype ptr)
   fd_decref(ptr);
 }
 
+/* Builtin recyclers */
 
+static void recycle_string(struct FD_STRING *s)
+{
+  if ((s->fd_bytes)&&(s->fd_freebytes)) u8_free(s->fd_bytes);
+  if (!(FD_STATIC_CONSP(s))) u8_free(s);
+}
 
-/* Other methods */
+static void recycle_vector(struct FD_VECTOR *v)
+{
+  int len=v->fdvec_length; fdtype *scan=v->fdvec_elts, *limit=scan+len;
+  if (scan) {
+    while (scan<limit) {fd_decref(*scan); scan++;}
+    if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
+  if (!(FD_STATIC_CONSP(v))) u8_free(v);
+}
+
+static void recycle_choice(struct FD_CHOICE *cv)
+{
+  if (!(cv->choice_isatomic)) {
+    int len=cv->choice_size;
+    const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
+    if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
+  if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
+}
+
+static void recycle_qchoice(struct FD_QCHOICE *qc)
+{
+  fd_decref(qc->qchoiceval);
+  if (!(FD_STATIC_CONSP(qc))) u8_free(qc);
+}
+
+/* Recycling pairs directly */
+
+static void recycle_pair(struct FD_PAIR *pair)
+{
+  fdtype car=pair->car, cdr=pair->cdr;
+  fd_decref(car); fd_decref(cdr);
+  if (!(FD_STATIC_CONSP(pair))) u8_free(pair);
+}
+
+/* Recycling pairs iteratively CDR-wise */
+
+/* We want to avoid deep call stacks for freeing long lists, so
+   we iterate in the CDR direction. */
+static void recycle_list(struct FD_PAIR *base_pair)
+{
+  fdtype base_car=base_pair->car, base_cdr=base_pair->cdr;
+  u8_free(base_pair); fd_decref(base_car);
+  if (!(FD_PAIRP(base_cdr))) {
+    fd_decref(base_cdr);
+    return;}
+#if FD_LOCKFREE_REFCOUNTS
+  while (1) {
+    struct FD_PAIR *pair=(struct FD_PAIR *)base_cdr;
+    if (FD_STATIC_CONSP(pair)) return;
+    struct FD_REF_CONS *cons=(struct FD_REF_CONS *)pair;
+    fdtype car=pair->car, cdr=pair->cdr;
+    fd_consbits newbits=atomic_fetch_sub(&(cons->fd_conshead),0x80)-0x80;
+    if (newbits<0x80) {
+      fd_decref(car);
+      if (FD_PAIRP(cdr)) {
+        atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
+        base_cdr=cdr;
+        u8_free(pair);}
+      else {
+        atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
+        fd_decref(cdr);
+        u8_free(pair);
+        return;}}
+    else return;}
+#else
+  if (FD_CONSP(cdr)) {
+    if (FD_PAIRP(cdr)) {
+      struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
+      FD_LOCK_PTR(xcdr);
+      while (FD_CONS_REFCOUNT(xcdr)==1) {
+        car=xcdr->car; cdr=xcdr->cdr;
+        FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
+        fd_decref(car);
+        if (FD_PAIRP(cdr)) {
+          xcdr=(fd_pair)cdr;
+          FD_LOCK_PTR(xcdr);
+          continue;}
+        else {xcdr=NULL; break;}}
+      if (xcdr) FD_UNLOCK_PTR(xcdr);
+      fd_decref(cdr);}
+    else fd_decref(cdr);}
+#endif
+}
+
+static void recycle_rawptr(struct FD_RAW_CONS *c);
+static void recycle_regex(struct FD_RAW_CONS *c);
+static void recycle_exception(struct FD_RAW_CONS *c);
+static void recycle_compound(struct FD_RAW_CONS *c);
+
+/* The main function */
 
 FD_EXPORT
 /* fd_recycle_cons:
@@ -165,62 +259,39 @@ void fd_recycle_cons(fd_raw_cons c)
 {
   int ctype=FD_CONS_TYPE(c);
   switch (ctype) {
-    case fd_rational_type:
-    case fd_complex_type:
-      if (fd_recyclers[ctype]) {
-        fd_recyclers[ctype](c);
-        return;}
-    case fd_pair_type: {
-      /* This is hairy in order to iteratively free up long lists. */
-      struct FD_PAIR *p=(struct FD_PAIR *)c;
-      fdtype cdr=p->cdr, car=p->car;
-      u8_free(p); fd_decref(car);
-      if (FD_CONSP(cdr)) {
-        if (FD_PAIRP(cdr)) {
-          struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
-          FD_LOCK_PTR(xcdr);
-          while (FD_CONS_REFCOUNT(xcdr)==1) {
-            car=xcdr->car; cdr=xcdr->cdr;
-            FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
-            fd_decref(car);
-            if (FD_PAIRP(cdr)) {
-              xcdr=(fd_pair)cdr;
-              FD_LOCK_PTR(xcdr);
-              continue;}
-            else {xcdr=NULL; break;}}
-          if (xcdr) FD_UNLOCK_PTR(xcdr);
-          fd_decref(cdr);}
-        else fd_decref(cdr);}
-      break;}
-    case fd_string_type: case fd_packet_type: case fd_secret_type: {
-      struct FD_STRING *s=(struct FD_STRING *)c;
-      if ((s->fd_bytes)&&(s->fd_freebytes)) u8_free(s->fd_bytes);
-      if (!(FD_STATIC_CONSP(s))) u8_free(s);
-      break;}
-    case fd_vector_type: case fd_rail_type: {
-      struct FD_VECTOR *v=(struct FD_VECTOR *)c;
-      int len=v->fdvec_length; fdtype *scan=v->fdvec_elts, *limit=scan+len;
-      if (scan) {
-        while (scan<limit) {fd_decref(*scan); scan++;}
-        if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
-      if (!(FD_STATIC_CONSP(v))) u8_free(v);
-      break;}
-    case fd_choice_type: {
-      struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
-      int len=cv->choice_size, atomicp=cv->choice_isatomic;
-      const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
-      if (scan == NULL) break;
-      if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
-      if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
-      break;}
-    case fd_qchoice_type: {
-      struct FD_QCHOICE *qc=(struct FD_QCHOICE *)c;
-      fd_decref(qc->qchoiceval);
-      if (!(FD_STATIC_CONSP(qc))) u8_free(qc);
-      break;}
-    default: {
-      if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
-    }
+  case fd_string_type: case fd_packet_type: case fd_secret_type: 
+    recycle_string((struct FD_STRING *)c);
+    return;
+  case fd_vector_type: case fd_rail_type:
+    recycle_vector((struct FD_VECTOR *)c);
+    return;
+  case fd_choice_type: 
+    recycle_choice((struct FD_CHOICE *)c);
+    return;
+  case fd_pair_type:
+    recycle_list((struct FD_PAIR *)c);
+    return;
+  case fd_compound_type:
+    recycle_compound(c);
+    return;
+  case fd_rational_type: case fd_complex_type:
+    recycle_pair((struct FD_PAIR *)c);
+    return;
+  case fd_uuid_type: case fd_timestamp_type:
+    u8_free(c);
+    return;
+  case fd_regex_type:
+    recycle_regex(c);
+    return;
+  case fd_rawptr_type:
+    recycle_rawptr(c);
+    return;
+  case fd_qchoice_type: 
+    recycle_qchoice((struct FD_QCHOICE *)c);
+    return;
+  default: {
+    if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
+  }
 }
 
 FD_EXPORT
