@@ -55,7 +55,7 @@ static fdtype idsym, maxkey, minkey;
 static fdtype oidtag, mongofun, mongouser, mongomd5;
 static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
-static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym, readsym;
+static fdtype skipsym, limitsym, batchsym, writesym, readsym;
 static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static fdtype returnsym, originalsym;
 static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
@@ -746,7 +746,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     bson_t *findopts=getfindopts(opts,flags);
     mongoc_read_prefs_t *rp=get_read_prefs(opts);
     fdtype *vec=NULL; size_t n=0, max=0;
-    int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
+    int sort_results=fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
     if (q)
@@ -803,7 +803,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
     fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
     fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
-    int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
+    int sort_results=fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     fdtype *vec=NULL; size_t n=0, max=0;
     if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))&&(FD_UINTP(batch_arg))) {
       bson_t *q=fd_dtype2bson(query,flags,opts);
@@ -957,7 +957,7 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
     fdtype result=FD_VOID;
-    fdtype sort=fd_getopt(opts,sortsym,FD_VOID);
+    fdtype sort=fd_getopt(opts,FDSYM_SORT,FD_VOID);
     fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
     fdtype upsert=fd_getopt(opts,upsertsym,FD_FALSE);
     fdtype remove=fd_getopt(opts,removesym,FD_FALSE);
@@ -1375,11 +1375,11 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
     fdtype results=FD_EMPTY_CHOICE, *vec=NULL, opts=c->cursor_opts;
     mongoc_cursor_t *scan=c->mongoc_cursor; const bson_t *doc;
     int flags=c->cursor_flags; size_t n=0, vlen=0;
-    int sorted=fd_testopt(opts,sortedsym,FD_VOID);
+    int sorted=fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     if (!(FD_VOIDP(opts_arg))) {
       flags=getflags(opts_arg,c->cursor_flags);
       opts=combine_opts(opts_arg,opts);
-      sorted=fd_testopt(opts,sortedsym,FD_VOID);}
+      sorted=fd_testopt(opts,FDSYM_SORTED,FD_VOID);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
       /* u8_string json=bson_as_json(doc,NULL); */
       fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
@@ -2462,7 +2462,6 @@ FD_EXPORT int fd_init_mongodb()
   skipsym=fd_intern("SKIP");
   limitsym=fd_intern("LIMIT");
   batchsym=fd_intern("BATCH");
-  sortsym=fd_intern("SORT");
   fieldssym=fd_intern("FIELDS");
   upsertsym=fd_intern("UPSERT");
   singlesym=fd_intern("SINGLE");
@@ -2473,7 +2472,6 @@ FD_EXPORT int fd_init_mongodb()
   originalsym=fd_intern("ORIGINAL");
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
-  sortedsym=fd_intern("SORTED");
   softfailsym=fd_intern("SOFTFAIL");
 
   sslsym=fd_intern("SSL");

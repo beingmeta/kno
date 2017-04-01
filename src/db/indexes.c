@@ -485,7 +485,9 @@ static int edit_key_fn(fdtype key,fdtype val,void *data)
   if (FD_PAIRP(key)) {
     struct FD_PAIR *pair=(struct FD_PAIR *)key;
     if (pair->car==set_symbol) {
-      *((*write)++)=pair->cdr; fd_incref(pair->cdr);}}
+      fdtype real_key=pair->cdr;
+      fd_incref(real_key);
+      *((*write)++)=real_key;}}
   /* Means keep going */
   return 0;
 }
@@ -683,7 +685,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
               u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if (FD_CHOICEP(key)) {
+  if ((FD_CHOICEP(key)) || (FD_ACHOICEP(key))) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
@@ -732,7 +734,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
               u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if (FD_CHOICEP(key)) {
+  if ((FD_CHOICEP(key))||(FD_ACHOICEP(key))) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype set_key=fd_make_pair(set_symbol,eachkey);
       fdtype drop_key=fd_make_pair(drop_symbol,eachkey);
@@ -746,7 +748,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fd_hashtable_store(edits,set_key,value);
-    fd_hashtable_drop(edits,drop_key,FD_EMPTY_CHOICE);
+    fd_hashtable_drop(edits,drop_key,FD_VOID);
     if (ix->index_cache_level>0) {
       fd_hashtable_store(cache,key,value);
       fd_hashtable_drop(adds,key,FD_VOID);}
@@ -864,7 +866,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
 {
   struct FD_HASHTABLE *cache=&(ix->index_cache);
-  if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0)) 
+  if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0))
     return;
   else if (FD_VOIDP(keys)) {
     if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))

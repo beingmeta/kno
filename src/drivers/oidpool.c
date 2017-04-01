@@ -731,8 +731,6 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
         fd_unlock_stream(&(op->pool_stream));
         return value;}}}
 }
-struct OIDPOOL_FETCH_SCHEDULE {
-  unsigned int value_at; FD_CHUNK_REF location;};
 
 static int compare_offsets(const void *x1,const void *x2)
 {
@@ -787,9 +785,6 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     u8_free(schedule);
     return values;}
 }
-
-struct OIDPOOL_SAVEINFO {
-  FD_CHUNK_REF chunk; unsigned int oidoff;} OIDPOOL_SAVEINFO;
 
 static int compare_oidoffs(const void *p1,const void *p2)
 {
@@ -1420,7 +1415,7 @@ static fd_pool oidpool_create(u8_string spec,void *type_data,
   fdtype base_oid=fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg=fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
   fdtype load_arg=fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
-  fdtype label=fd_getopt(opts,fd_intern("LABEL"),FD_VOID);
+  fdtype label=fd_getopt(opts,FDSYM_LABEL,FD_VOID);
   fdtype schemas=fd_getopt(opts,fd_intern("SCHEMAS"),FD_VOID);
   unsigned int capacity, load;
   int rv=0;

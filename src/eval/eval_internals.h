@@ -133,14 +133,14 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
 
 #define FD_VOID_RESULT(result)                          \
   if (FD_ABORTP(result)) return result;                 \
-  else if (FD_TYPEP(result,fd_tailcall_type)) {    \
+  else if (FD_TYPEP(result,fd_tailcall_type)) {         \
     struct FD_TAILCALL *tc=(fd_tailcall)result;         \
     tc->tailcall_flags|=FD_TAILCALL_VOID_VALUE;}        \
   else { fd_decref(result); result=FD_VOID; }
 
-#define FD_DISCARD_RESULT(result)        \
-  if (FD_ABORTP(result)) return result;  \
-  result=fd_finish_call(result);         \
+#define FD_DISCARD_RESULT(result)               \
+  if (FD_ABORTP(result)) return result;         \
+  result=fd_finish_call(result);                \
   if (FD_ABORTP(result)) return result;         \
   else { fd_decref(result); result=FD_VOID;}
 

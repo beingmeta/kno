@@ -19,7 +19,6 @@
 
 #include <libu8/u8printf.h>
 
-fd_ptr_type fd_macro_type;
 static fdtype lambda_symbol;
 
 /* Macros */
@@ -82,8 +81,6 @@ static int walk_macro(fd_walker walker,fdtype obj,void *walkdata,
 FD_EXPORT void fd_init_macros_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  fd_macro_type=fd_register_cons_type(_("scheme syntactic macro"));
 
   moduleid_symbol=fd_intern("%MODULEID");
   lambda_symbol=fd_intern("LAMBDA");

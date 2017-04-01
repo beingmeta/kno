@@ -81,11 +81,10 @@ static void init_type_names()
   fd_type_names[fd_schemap_type]=_("schemap");
   fd_type_names[fd_hashtable_type]=_("hashtable");
   fd_type_names[fd_flonum_type]=_("flonum");
-  fd_type_names[fd_wrapper_type]=_("wrapper");
   fd_type_names[fd_mystery_type]=_("mystery");
   fd_type_names[fd_qchoice_type]=_("quoted choice");
   fd_type_names[fd_hashset_type]=_("hashset");
-  fd_type_names[fd_primfcn_type]=_("function");
+  fd_type_names[fd_primfcn_type]=_("builtin function");
   fd_type_names[fd_error_type]=_("error");
   fd_type_names[fd_complex_type]=_("complex");
   fd_type_names[fd_rational_type]=_("rational");
@@ -99,6 +98,14 @@ static void init_type_names()
   fd_type_names[fd_regex_type]=_("regex");
   fd_type_names[fd_numeric_vector_type]=_("numeric vector");
   fd_type_names[fd_consblock_type]=_("consblock");
+  fd_type_names[fd_specform_type]=_("special form");
+  fd_type_names[fd_macro_type]=_("macro");
+  fd_type_names[fd_bytecode_type]=_("bytecode");
+  fd_type_names[fd_stackframe_type]=_("stackframe");
+  fd_type_names[fd_ffi_type]=_("ffiproc");
+  fd_type_names[fd_environment_type]=_("environment");
+  fd_type_names[fd_rawptr_type]=_("raw pointer");
+  fd_type_names[fd_dtserver_type]=_("dtype server");
 }
 
 static int libfdtype_version=101;
@@ -117,10 +124,9 @@ FD_EXPORT void fd_init_symbols_c(void);
 FD_EXPORT void fd_init_numbers_c(void);
 FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
+FD_EXPORT void fd_init_sequences_c(void);
 FD_EXPORT void fd_init_ffi_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
-FD_EXPORT void fd_init_stream_c(void);
-FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 
 static double format_secs(double secs,char **units)
@@ -187,16 +193,17 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_oids_c();
   fd_init_tables_c();
   fd_init_symbols_c();
+  fd_init_support_c();
+  fd_init_dtread_c();
+  fd_init_dtwrite_c();
   fd_init_numbers_c();
   fd_init_choices_c();
   fd_init_compare_c();
   fd_init_parse_c();
   fd_init_unparse_c();
-  fd_init_support_c();
   fd_init_apply_c();
+  fd_init_sequences_c();
   fd_init_ffi_c();
-  fd_init_dtread_c();
-  fd_init_dtwrite_c();
   fd_init_fcnids_c();
 
   u8_threadcheck();

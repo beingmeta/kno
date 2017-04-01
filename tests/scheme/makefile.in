@@ -333,7 +333,6 @@ indextest:
 	# Build with the offsets cache on
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} CACHELEVEL=2 ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2 ${RUNCONF} && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
 	rm ${TESTBASE}
@@ -342,7 +341,6 @@ indextest:
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
-	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
 		${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype \
@@ -521,6 +519,22 @@ chained_batchscripts:
 
 .PHONY: chained_batchscripts batchscripts chainscripts execscripts
 
+# SMP tests
+
+smp smptests: smp_hashtables smp_slotmaps smp_indexes smp_pools
+
+smp_hashtables:
+	make RUNCONF="NTHREADS=5" hashtables
+
+smp_slotmaps:
+	make RUNCONF="NTHREADS=5" slotmaps
+
+smp_indexes:
+	make RUNCONF="NTHREADS=5" indexes
+
+smp_pools:
+	make RUNCONF="NTHREADS=5" pools
+
 # Memory integrity tests
 
 heaptest memtest memtests: all_memtests
@@ -591,7 +605,7 @@ optimize_modules_memtest:
 
 # Leaktests
 
-heaptests heaptest heap leak leaktest leaktests: all_leaktests
+heaptests heaptest heap leak leaks leaktest leaktests: all_leaktests
 
 all_leaktests: scheme_leaktests \
 	slotmap_leaktests table_leaktests \

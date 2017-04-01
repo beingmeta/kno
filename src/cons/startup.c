@@ -889,5 +889,4 @@ void fd_init_startup_c()
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
-
 }

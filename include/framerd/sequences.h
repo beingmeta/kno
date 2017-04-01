@@ -30,7 +30,13 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i);
 FD_EXPORT fdtype fd_seq_elts(fdtype x);
 FD_EXPORT fdtype fd_slice(fdtype x,int start,int end);
 FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end);
+FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end);
 FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end);
+FD_EXPORT fdtype fd_append(int n,fdtype *sequences);
+
+FD_EXPORT fdtype fd_reverse(fdtype sequence);
+FD_EXPORT fdtype fd_remove(fdtype item,fdtype sequence);
+FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert);
 
 FD_EXPORT int fd_generic_position(fdtype key,fdtype x,int start,int end);
 FD_EXPORT int fd_generic_search(fdtype subseq,fdtype seq,int start,int end);

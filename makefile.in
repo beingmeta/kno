@@ -71,6 +71,7 @@ DTYPE_HEADERS=\
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
+ include/framerd/sequences.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
  include/framerd/ffi.h                               \
@@ -88,7 +89,7 @@ DB_HEADERS=\
  include/framerd/drivers.h
 
 DRIVERS_H=include/framerd/drivers.h
-SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
+SCHEME_HEADERS=include/framerd/eval.h include/framerd/seqprims.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
@@ -110,7 +111,7 @@ DTYPE_OBJS=\
 	src/cons/cons.o src/cons/numbers.o		\
 	src/cons/compare.o src/cons/walk.o		\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
-	src/cons/choices.o src/cons/tables.o		\
+	src/cons/choices.o src/cons/tables.o src/cons/sequences.o		\
 	src/cons/parse.o src/cons/unparse.o		\
 	src/cons/bufio.o src/cons/dtread.o src/cons/dtwrite.o		\
 	src/cons/libfdtype.o src/cons/support.o		\
@@ -328,7 +329,7 @@ FRAMERD_HEADERS= \
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
         src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
-	src/cons/choices.c src/cons/tables.c 				\
+	src/cons/choices.c src/cons/tables.c src/cons/sequences.c	\
         src/cons/bufio.c src/cons/dtread.c src/cons/dtread.c 		\
 	src/cons/parse.c src/cons/unparse.c 				\
 	src/cons/libfdtype.c src/cons/support.c src/cons/config.c	\
@@ -825,12 +826,17 @@ src/eval/eval.o: src/eval/eval.c src/eval/opcodes.c \
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
-src/cons/dtread.o src/cons/dtwrite.o : XCFLAGS="${OPTFLAGS}"
-src/cons/bufio.o src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
+# Custom rules
+
+src/cons/dtread.o src/cons/dtwrite.o src/cons/bufio.o : XCFLAGS="${OPTFLAGS}"
+src/cons/tables.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/cons/numbers.o src/cons/compare.o : XCFLAGS="${OPTFLAGS}"
+src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
 src/db/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
 src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
+src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
@@ -1627,16 +1633,3 @@ src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/chunkre
 src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/chunkrefs.h
 src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/chunkrefs.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h
-
-# We've stopped using makedpend for the time being
-
-# Making dependency information
-
-#depend:
-#	makedepend -- $(CFLAGS) -- $(FRAMERD_SOURCES) $(CMODULE_SOURCES)
-#depend.in:
-#	makedepend -fmakefile.in -Y -- $(CFLAGS) -- $(FRAMERD_SOURCES) $(CMODULE_SOURCES)
-
-
-# DO NOT DELETE THIS LINE -- make depend depends on it.
-

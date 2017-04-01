@@ -2048,16 +2048,16 @@ int main(int argc,char **argv)
   init_webcommon_data();
   init_webcommon_symbols();
 
-  fallback_notfoundpage=fd_make_cprim0("NOTFOUND404",notfoundpage,0);
+  fallback_notfoundpage=fd_make_cprim0("NOTFOUND404",notfoundpage);
 
   /* This is the root of all client service environments */
   if (server_env==NULL) server_env=fd_working_environment();
-  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
-  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime,0));
+  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime));
   fd_idefn((fdtype)server_env,
-           fd_make_cprim0("SERVLET-STATUS->STRING",servlet_status_string,0));
+           fd_make_cprim0("SERVLET-STATUS->STRING",servlet_status_string));
   fd_idefn((fdtype)server_env,
-           fd_make_cprim0("SERVLET-STATUS",servlet_status,0));
+           fd_make_cprim0("SERVLET-STATUS",servlet_status));
 
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
      An alternative would be to log to a data structure and have a separate thread writing

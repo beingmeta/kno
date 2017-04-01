@@ -439,16 +439,19 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
       const fdtype *scan=ch->achoice_data, *lim=ch->achoice_write; fdtype result;
       fdtype *write;
-      int n_entries=ch->achoice_write-ch->achoice_data, n_vals=n_entries-ch->achoice_nested;
+      int n_entries=ch->achoice_write-ch->achoice_data;
+      int n_vals=n_entries-ch->achoice_nested;
       int i=0, n_choices;
       /* Figure out how many choices we need to merge. */
-      if (n_vals) n_choices=ch->achoice_nested+1; else n_choices=ch->achoice_nested;
+      if (n_vals)
+        n_choices=ch->achoice_nested+1;
+      else n_choices=ch->achoice_nested;
       /* We try to use a stack mallocd choices vector. */
       if (n_choices>16)
         choices=u8_alloc_n(n_choices,struct FD_CHOICE *);
       else choices=_choices;
-      /* If we are using a tmp_choice, we initialize it and fill it while copying
-         choice elements. */
+      /* If we are using a tmp_choice, we initialize it and fill it
+         while copying choice elements. */
       if (n_vals) {
         int flags=FD_CHOICE_DOSORT, atomicp=1;
         tmp_choice=fd_alloc_choice(n_vals);
@@ -995,7 +998,8 @@ fdtype fd_difference(fdtype value,fdtype remove)
   if (FD_EMPTY_CHOICEP(value)) return value;
   else if (FD_EMPTY_CHOICEP(remove)) return fd_incref(value);
   else if ((FD_ACHOICEP(value)) || (FD_ACHOICEP(remove))) {
-    fdtype svalue=fd_make_simple_choice(value), sremove=fd_make_simple_choice(remove);
+    fdtype svalue=fd_make_simple_choice(value);
+    fdtype sremove=fd_make_simple_choice(remove);
     fdtype result=fd_difference(svalue,sremove);
     fd_decref(svalue); fd_decref(sremove);
     return result;}
@@ -1004,8 +1008,9 @@ fdtype fd_difference(fdtype value,fdtype remove)
       if (fd_choice_containsp(remove,value)) {
         struct FD_CHOICE *vchoice=
           fd_consptr(struct FD_CHOICE *,value,fd_choice_type);
-        int size=FD_XCHOICE_SIZE(vchoice), atomicp=FD_XCHOICE_ATOMICP(vchoice);
-        if (size==1) 
+        int size=FD_XCHOICE_SIZE(vchoice);
+        int atomicp=FD_XCHOICE_ATOMICP(vchoice);
+        if (size==1)
           return FD_EMPTY_CHOICE;
         else if (size==2)
           if (FDTYPE_EQUAL(remove,(FD_XCHOICE_DATA(vchoice))[0]))
@@ -1017,8 +1022,12 @@ fdtype fd_difference(fdtype value,fdtype remove)
           const fdtype *read=FD_XCHOICE_DATA(vchoice), *lim=read+size;
           int flags=((atomicp)?(FD_CHOICE_ISATOMIC):(0))|FD_CHOICE_REALLOC;
           while (read < lim)
-            if (FDTYPE_EQUAL(*read,remove)) read++;
-            else {*write=fd_incref(*read); write++; read++;}
+            if (FDTYPE_EQUAL(*read,remove))
+              read++;
+            else {
+              *write=fd_incref(*read);
+              write++;
+              read++;}
           return fd_init_choice(new_choice,size-1,newv,flags);}}
       else return fd_incref(value);
     else return compute_choice_difference

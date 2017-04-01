@@ -341,11 +341,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
             write->kv_key=fd_read_dtype(in);
             write->kv_val=fd_read_dtype(in);
             write++;}
-          if (n_slots<7) {
-            fdtype result=fd_make_slotmap(n_slots,n_slots,keyvals);
-            u8_free(keyvals);
-            return result;}
-          else return fd_init_slotmap(NULL,n_slots,keyvals);}
+          return fd_init_slotmap(NULL,n_slots,keyvals);}
       case dt_hashtable: case dt_small_hashtable:
         if (len==0)
           return fd_init_hashtable(NULL,0,NULL);

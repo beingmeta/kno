@@ -647,7 +647,7 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim));
   fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
@@ -665,7 +665,7 @@ FD_EXPORT void fd_init_threads_c()
 
   logexit_symbol=fd_intern("LOGEXIT");
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar));
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-WAIT",condvar_wait,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-SIGNAL",condvar_signal,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-LOCK",condvar_lock,1));
@@ -675,8 +675,8 @@ FD_EXPORT void fd_init_threads_c()
   fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_handler);
 
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-LIMIT",stack_limit_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-LIMIT",stack_limit_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("STACK-LIMIT!",set_stack_limit_prim,1,
                                             fd_fixnum_type,FD_VOID));
 

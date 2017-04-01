@@ -526,7 +526,7 @@ FD_EXPORT int fd_init_ziptools()
                            fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-    fd_make_cprim0("ZIP/FEATURES",zipfeatures_prim,0));
+    fd_make_cprim0("ZIP/FEATURES",zipfeatures_prim));
 
   fd_idefn(ziptools_module,
            fd_make_cprim1x("ZIP/FILENAME",zipfilename_prim,1,

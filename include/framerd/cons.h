@@ -109,15 +109,15 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 /* Initializing CONSes */
 
-void _FD_INIT_CONS(void *ptr,fd_ptr_type type);
-void _FD_INIT_FRESH_CONS(void *ptr,fd_ptr_type type);
-void _FD_INIT_STACK_CONS(void *ptr,fd_ptr_type type);
-void _FD_INIT_STATIC_CONS(void *ptr,fd_ptr_type type);
-void _FD_SET_CONS_TYPE(void *ptr,fd_ptr_type type);
-
-#if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS)
+#if FD_LOCKFREE_REFCOUNTS
 #define FD_HEAD_INIT(type) (ATOMIC_VAR_INIT((type-(FD_CONS_TYPE_OFF))|0x80))
 #define FD_STATIC_INIT(type) (ATOMIC_VAR_INIT((type-(FD_CONS_TYPE_OFF))))
+#else
+#define FD_HEAD_INIT(type)   ((type-(FD_CONS_TYPE_OFF))|0x80)
+#define FD_STATIC_INIT(type) (type-(FD_CONS_TYPE_OFF))
+#endif
+
+#if FD_INLINE_REFCOUNTS
 #define FD_INIT_CONS(ptr,type) \
   ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_FRESH_CONS(ptr,type) \
@@ -128,34 +128,29 @@ void _FD_SET_CONS_TYPE(void *ptr,fd_ptr_type type);
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
   ((fd_raw_cons)ptr)->fd_conshead=(FD_STATIC_INIT(type))
-#define FD_CBITS(x) (((fd_ref_cons)x)->fd_conshead)
-#define FD_SET_CONS_TYPE(ptr,type)				\
-  atomic_store							\
-  (&(FD_CBITS(ptr)),						\
-    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
-     ((type-(FD_CONS_TYPE_OFF))&0x7f)))
-#elif FD_INLINE_REFCOUNTS
-#define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x200)
-#define FD_INIT_FRESH_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x200)
-#define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_INIT_STATIC_CONS(ptr,type) \
-  memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=\
-    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
-    ((type-(FD_CONS_TYPE_OFF))&0x7f)
 #else
 #define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((struct FD_RAW_CONS *)ptr,type)
 #define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((struct FD_RAW_CONS *)ptr,type)
 #define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((struct FD_RAW_CONS *)ptr,type)
 #define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((struct FD_RAW_CONS *)ptr,type)
+#endif
+
+#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
+#define FD_CBITS(x) (((fd_ref_cons)x)->fd_conshead)
+#define FD_SET_CONS_TYPE(ptr,type) \
+  atomic_store							\
+  (&(FD_CBITS(ptr)),						\
+    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
+     ((type-(FD_CONS_TYPE_OFF))&0x7f)))
+#elif FD_INLINE_REFCOUNTS
+#define FD_SET_CONS_TYPE(ptr,type) \
+  ((fd_raw_cons)ptr)->fd_conshead=\
+    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
+    ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#else
 #define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
 #endif
+
 
 /* Hash locking for pointers */
 
@@ -228,6 +223,9 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
    is never reference counted.
 */
 
+FD_EXPORT void _fd_decref_fn(fdtype);
+FD_EXPORT fdtype _fd_incref_fn(fdtype);
+
 #if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
 FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
 {
@@ -289,47 +287,35 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */}
-  else if (FD_CONSBITS(x)>=0x100) {
+  else {
     FD_LOCK_PTR(x);
     if (FD_CONSBITS(x)>=0x100) {
       /* If it's still got a refcount > 1, just decrease it */
       x->fd_conshead=x->fd_conshead-0x80;
       FD_UNLOCK_PTR(x);}
-    /* There could be a case here for conses which are declared static
-       after they've been in play. and between the check above and the
-       lock. But for now, we're assuming that conses are only declared
-       static when initialized, so we don't have to worry about
-       that. */
     else {
-      /* Someone else decref'd it before, we got the lock, so we
+      /* Someone else decref'd it before we got the lock, so we
 	 unlock and recycle it */
       FD_UNLOCK_PTR(x);
-      fd_recycle_cons((fd_raw_cons)x);}}
-  else if (FD_CONSBITS(x)>=0x80) {
-    /* This should never happen */
-    fd_recycle_cons((fd_raw_cons)x);}
-  else {}
+      fd_recycle_cons(x);}}
 }
 #endif
 
-FD_EXPORT void _fd_decref_fn(fdtype);
-FD_EXPORT fdtype _fd_incref_fn(fdtype);
+#if FD_INLINE_REFCOUNTS
 
-#if (FD_NO_GC)
-#define fd_incref(x) (x)
-#define fd_decref(x) ((void)(x))
-#elif FD_INLINE_REFCOUNTS
 #define fd_incref(x) \
   ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_REF_CONS(x))))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
 	  (_fd_decref(FD_REF_CONS(x)),FD_VOID)))
 #else
+
 #define fd_incref(x) \
    ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(x)))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
 	  (_fd_decref_fn(x),FD_VOID)))
+
 #endif
 
 /* Conses */
