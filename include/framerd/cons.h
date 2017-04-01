@@ -107,6 +107,17 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
                 NULL)))
 
+/* External functions */
+
+FD_EXPORT void _fd_decref_fn(fdtype);
+FD_EXPORT fdtype _fd_incref_fn(fdtype);
+
+FD_EXPORT void _FD_INIT_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
+
 /* Initializing CONSes */
 
 #if FD_LOCKFREE_REFCOUNTS
@@ -177,7 +188,7 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 #if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
 #define FD_CONSBITS(x)      (atomic_load(&((x)->fd_conshead)))
-#define FD_CONS_REFCOUNT(x) (FD_CONSBITS(x)>>7)
+#define FD_CONS_REFCOUNT(x)  (FD_CONSBITS(x)>>7)
 #elif FD_INLINE_REFCOUNTS
 #define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
@@ -185,6 +196,7 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
 #endif
+
 
 #define FD_MALLOCD_CONSP(x) ((FD_CONSBITS(x))>=0x80)
 #define FD_STATIC_CONSP(x)  (!(FD_MALLOCD_CONSP(x)))
@@ -222,9 +234,6 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
    A zero reference count indicates a static CONS, which
    is never reference counted.
 */
-
-FD_EXPORT void _fd_decref_fn(fdtype);
-FD_EXPORT fdtype _fd_incref_fn(fdtype);
 
 #if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
 FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
