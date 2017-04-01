@@ -829,15 +829,28 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       FD_DO_CHOICES(each_expr,expr) {
         fdtype r=fd_eval(each_expr,env);
         if (FD_ABORTED(r)) {
+          FD_STOP_DO_CHOICES;
           fd_decref(result);
           return r;}
         else {FD_ADD_TO_CHOICE(result,r);}}
       return result;}
   case fd_achoice_type: {
     fdtype exprs=fd_make_simple_choice(expr);
-    fdtype result=fd_tail_eval(exprs,env);
-    fd_decref(exprs);
-    return result;}
+    if (FD_CHOICEP(exprs)) {
+      fdtype results=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(expr,exprs) {
+        fdtype result=fd_eval(expr,env);
+        if (FD_ABORTP(result)) {
+          FD_STOP_DO_CHOICES;
+          fd_decref(results);
+          return result;}
+        else {FD_ADD_TO_CHOICE(results,result);}}
+      fd_decref(exprs);
+      return results;}
+    else {
+      fdtype result=fd_tail_eval(exprs,env);
+      fd_decref(exprs);
+      return result;}}
   default:
     if (FD_TYPEP(expr,fd_lexref_type))
       return fd_lexref(expr,env);
