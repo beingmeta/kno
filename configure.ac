@@ -998,6 +998,14 @@ AX_PTHREAD(threads_default="yes",threads_default="no")
 
 AC_CHECK_HEADERS(stdatomic.h)
 
+AC_ARG_ENABLE(lockfree,--en[dis]able-lockfree Enables lock-free reference counting,,enable_lockfree="yes")
+if test "$enable_lockfree" = "yes"; then
+  AC_DEFINE(FD_ENABLE_LOCKFREE,1)
+else
+  AC_DEFINE(FD_ENABLE_LOCKFREE,0)
+fi
+
+
 AC_ARG_ENABLE(checkptrs,--en[dis]able-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
 if test "$enable_checkfdtype" = "yes"; then
   AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,1)

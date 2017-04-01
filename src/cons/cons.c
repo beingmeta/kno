@@ -197,26 +197,27 @@ static void recycle_pair(struct FD_PAIR *pair)
 
 /* We want to avoid deep call stacks for freeing long lists, so
    we iterate in the CDR direction. */
-static void recycle_list(struct FD_PAIR *base_pair)
+static void recycle_list(struct FD_PAIR *pair)
 {
-  fdtype base_car=base_pair->car, base_cdr=base_pair->cdr;
-  u8_free(base_pair); fd_decref(base_car);
-  if (!(FD_PAIRP(base_cdr))) {
-    fd_decref(base_cdr);
+  fdtype car=pair->car, cdr=pair->cdr;
+  u8_free(pair); fd_decref(car);
+  if (!(FD_PAIRP(cdr))) {
+    fd_decref(cdr);
     return;}
+  else pair=(fd_pair)cdr;
 #if FD_LOCKFREE_REFCOUNTS
   while (1) {
-    struct FD_PAIR *pair=(struct FD_PAIR *)base_cdr;
-    if (FD_STATIC_CONSP(pair)) return;
     struct FD_REF_CONS *cons=(struct FD_REF_CONS *)pair;
-    fdtype car=pair->car, cdr=pair->cdr;
+    if (FD_STATIC_CONSP(pair)) return;
+    else {
+      car=pair->car; cdr=pair->cdr;}
     fd_consbits newbits=atomic_fetch_sub(&(cons->fd_conshead),0x80)-0x80;
     if (newbits<0x80) {
       fd_decref(car);
       if (FD_PAIRP(cdr)) {
         atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
-        base_cdr=cdr;
-        u8_free(pair);}
+        u8_free(pair);
+        pair=(fd_pair)cdr;}
       else {
         atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
         fd_decref(cdr);

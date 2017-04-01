@@ -26,6 +26,9 @@
 /* Whether you can use the stdatomic.h header file */
 #undef HAVE_STDATOMIC_H
 
+/* Whether you can use the stdatomic.h header file */
+#undef FD_ENABLE_LOCKFREE
+
 /* Whether to use inline functions to provide compile-time checking of
    whether fdtype arguments are correct*/
 #undef FD_DEFAULT_CHECKFDTYPE

@@ -900,6 +900,7 @@ enable_shared
 enable_async
 enable_dtblock
 with_i18n
+enable_lockfree
 enable_checkptrs
 with_nptrlocks
 enable_mmap_prefetch
@@ -1577,6 +1578,7 @@ Optional Features:
 --endisable-shared Build with/without shared libraries
 --endisable-async Enable async I/O features
 --endisable-dtblock DTBlock dtype for net I/O
+--endisable-lockfree Enables lock-free reference counting
 --endisable-checkfdtype Enable compile-time checking for fdtype pointers
 --endisable-mmap-prefetch Enable prefetching on access to memory mapped databases
 --endisable-largefiles Enable use of large (> 2GB) file support
@@ -9666,6 +9668,22 @@ _ACEOF
 fi
 
 done
+
+
+# Check whether --enable-lockfree was given.
+if test "${enable_lockfree+set}" = set; then :
+  enableval=$enable_lockfree;
+else
+  enable_lockfree="yes"
+fi
+
+if test "$enable_lockfree" = "yes"; then
+  $as_echo "#define FD_ENABLE_LOCKFREE 1" >>confdefs.h
+
+else
+  $as_echo "#define FD_ENABLE_LOCKFREE 0" >>confdefs.h
+
+fi
 
 
 # Check whether --enable-checkptrs was given.

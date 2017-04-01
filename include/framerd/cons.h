@@ -306,7 +306,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
       /* Someone else decref'd it before we got the lock, so we
 	 unlock and recycle it */
       FD_UNLOCK_PTR(x);
-      fd_recycle_cons(x);}}
+      fd_recycle_cons((struct FD_RAW_CONS *)x);}}
 }
 #endif
 
