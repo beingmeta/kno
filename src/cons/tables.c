@@ -1412,17 +1412,17 @@ FD_EXPORT fdtype fd_hashtable_get
     return fd_incref(dflt);}
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
   if (result) {
-    fdtype rv=result->kv_val;
+    fdtype rv=fd_incref(result->kv_val);
     if (FD_VOIDP(rv)) {
       if (unlock) fd_unlock_table(ht);
       return fd_incref(dflt);}
     else if (FD_ACHOICEP(rv)) {
-      fdtype simple=fd_make_simple_choice(rv);
+      fdtype simple=fd_simplify_choice(rv);
       if (unlock) fd_unlock_table(ht);
       return simple;}
     else {
       if (unlock) fd_unlock_table(ht);
-      return fd_incref(rv);}}
+      return rv;}}
   else {
     if (unlock) fd_unlock_table(ht);
     return fd_incref(dflt);}
@@ -1436,11 +1436,11 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
   if (ht->table_n_keys == 0) return fd_incref(dflt);
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
   if (result) {
-    fdtype rv=result->kv_val;
+    fdtype rv=fd_incref(result->kv_val);
     fdtype v=((FD_VOIDP(rv))?(fd_incref(dflt),dflt):
-              (FD_ACHOICEP(rv))?
-              (fd_make_simple_choice(rv)) :
-              (fd_incref(rv)));
+              (FD_ACHOICEP(rv)) ? 
+              (fd_simplify_choice(rv)) : 
+              (rv));
     return v;}
   else {
     return fd_incref(dflt);}
