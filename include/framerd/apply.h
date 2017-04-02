@@ -199,7 +199,7 @@ struct FD_STACK_CLEANUP {
 
 typedef struct FD_STACK {
   FD_CONS_HEADER; /* We're not using this right now */
-  u8_string stack_label;
+  u8_string stack_label, stack_state;
   fdtype stack_op;
   fdtype *stack_args;
   fdtype stack_argbuf[FD_STACK_DEFAULT_ARGVEC];
@@ -210,7 +210,8 @@ typedef struct FD_STACK {
   short stack_n_args, stack_n_cleanups;
   struct FD_STACK_CLEANUP _stack_cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *stack_cleanups;
-  struct FD_STACK *stack_caller;} *fd_stack;
+  struct FD_STACK *stack_caller;
+  struct FD_STACK *stack_root;} *fd_stack;
 
 #if (U8_USE_TLS)
 FD_EXPORT u8_tld_key fd_call_stack_key;
@@ -245,7 +246,9 @@ fd_stack fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
   if (caller)
     stack->stack_caller=caller;
   else stack->stack_caller=fd_call_stack;
-  if (label) stack->stack_label=label;
+  if (label) {
+    stack->stack_label=label;
+    stack->stack_state=label;}
   stack->stack_env=NULL;
   if (n_args>0) {
     stack->stack_n_args=n_args;
