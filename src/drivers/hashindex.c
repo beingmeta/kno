@@ -1194,12 +1194,12 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref=get_chunk_ref(offdata,offtype,i);
-      if (ref.size) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref=fetch_chunk_ref(s,256,offtype,i);
-      if (ref.size) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}
     fd_unlock_stream(s);}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
@@ -1266,12 +1266,12 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref=get_chunk_ref(offdata,offtype,i);
-      if (ref.size) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref=fetch_chunk_ref(s,256,offtype,i);
-      if (ref.size) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}
     fd_unlock_stream(s);}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
@@ -1327,6 +1327,7 @@ static void hash_index_getstats(struct FD_HASH_INDEX *hx,
   fd_offset_type offtype=hx->index_offtype;
   unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
   FD_CHUNK_REF *buckets;
+  fd_lock_index(hx);
   fd_lock_stream(s);
   fd_setpos(s,16); total_keys=fd_read_4bytes(ins);
   if (total_keys==0) {
@@ -1340,17 +1341,17 @@ static void hash_index_getstats(struct FD_HASH_INDEX *hx,
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref=get_chunk_ref(offdata,offtype,i);
-      if (ref.size) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref=fetch_chunk_ref(s,256,offtype,i);
-      if (ref.size) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}
     fd_unlock_stream(s);}
   *nf=n_to_fetch;
   /* Now we actually unlock it if we kept it locked. */
-  if (hx->index_offdata==NULL) fd_unlock_index(hx);
+  fd_unlock_index(hx);
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   i=0; while (i<n_to_fetch) {
     struct FD_INBUF keyblock; int n_keys;
@@ -2134,7 +2135,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
   int n_keys;
   struct FD_INBUF keyblock;
   struct KEYBUCKET *kb; unsigned char *keybuf;
-  if (ref.size) {
+  if (ref.size>0) {
     keybuf=u8_malloc(ref.size);
     open_block(&keyblock,hx,ref.off,ref.size,keybuf);
     n_keys=fd_read_zint(&keyblock);

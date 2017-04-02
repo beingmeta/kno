@@ -644,7 +644,7 @@ static fdtype read_oid_value_at(fd_oidpool op,
                                 FD_CHUNK_REF ref,
                                 const u8_string cxt)
 {
-  if (ref.off==0) return FD_VOID;
+  if (ref.off<=0) return FD_VOID;
   else {
     unsigned char _buf[FD_OIDPOOL_FETCHBUF_SIZE], *buf; int free_buf=0;
     if (ref.size>FD_OIDPOOL_FETCHBUF_SIZE) {
