@@ -384,8 +384,8 @@ static int load_index_cache(fd_index ix,void *ignored)
   else if (strcmp(ix->index_handler->name,"file_index")==0) {
     struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
     if (fx->index_offsets) load_cache(fx->index_offsets,fx->index_n_slots);}
-  else if (strcmp(ix->index_handler->name,"hash_index")==0) {
-    struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
+  else if (strcmp(ix->index_handler->name,"hashindex")==0) {
+    struct FD_HASHINDEX *hx=(struct FD_HASHINDEX *)ix;
     if (hx->index_offdata)
       load_cache(hx->index_offdata,hx->index_n_buckets*2);}
   return 0;

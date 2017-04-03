@@ -11,13 +11,13 @@
 
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
-#define FD_HASH_INDEX_MAGIC_NUMBER 0x8011308
-#define FD_HASH_INDEX_TO_RECOVER 0x8011328
+#define FD_HASHINDEX_MAGIC_NUMBER 0x8011308
+#define FD_HASHINDEX_TO_RECOVER 0x8011328
 
-#define FD_HASH_INDEX_FN_MASK       0x0F
-#define FD_HASH_INDEX_OFFTYPE_MASK  0x30
-#define FD_HASH_INDEX_DTYPEV2       0x40
-#define FD_HASH_INDEX_ODDKEYS       (FD_HASH_INDEX_DTYPEV2<<1)
+#define FD_HASHINDEX_FN_MASK       0x0F
+#define FD_HASHINDEX_OFFTYPE_MASK  0x30
+#define FD_HASHINDEX_DTYPEV2       0x40
+#define FD_HASHINDEX_ODDKEYS       (FD_HASHINDEX_DTYPEV2<<1)
 
 #ifndef HASHINDEX_PREFETCH_WINDOW
 #ifdef FD_MMAP_PREFETCH_WINDOW
@@ -32,14 +32,14 @@
 #define MIDDLIN_MODULUS 573786077 /* 256000001 */
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
-#define FD_HASH_INDEX_KEYCOUNT_POS 16
-#define FD_HASH_INDEX_SLOTIDS_POS 20
-#define FD_HASH_INDEX_BASEOIDS_POS 32
-#define FD_HASH_INDEX_METADATA_POS 44
+#define FD_HASHINDEX_KEYCOUNT_POS 16
+#define FD_HASHINDEX_SLOTIDS_POS 20
+#define FD_HASHINDEX_BASEOIDS_POS 32
+#define FD_HASHINDEX_METADATA_POS 44
 
 /* The hash index structure */
 
-typedef struct FD_HASH_INDEX {
+typedef struct FD_HASHINDEX {
   FD_INDEX_FIELDS;
   U8_MUTEX_DECL(index_lock);
 
@@ -63,7 +63,7 @@ typedef struct FD_HASH_INDEX {
      for modification if the file is memmaped. */
   struct FD_STREAM index_stream;
   /* When non-null, a memmapped pointer to the file contents. */
-  size_t index_mmap_size; unsigned char *index_mmap;} *fd_hash_index;
+  size_t index_mmap_size; unsigned char *index_mmap;} *fd_hashindex;
 
 /* Structure definitions */
 
@@ -125,13 +125,13 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
 
-FD_EXPORT int fd_populate_hash_index
-  (struct FD_HASH_INDEX *hx,fdtype from,
+FD_EXPORT int fd_populate_hashindex
+  (struct FD_HASHINDEX *hx,fdtype from,
    const fdtype *keys,int n_keys, int blocksize);
-FD_EXPORT int fd_make_hash_index
+FD_EXPORT int fd_make_hashindex
   (u8_string,int,unsigned int,unsigned int,
    fdtype,fdtype,time_t,time_t);
-FD_EXPORT int fd_hash_index_bucket
-   (struct FD_HASH_INDEX *hx,fdtype key,int modulate);
-FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
-FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *ix);
+FD_EXPORT int fd_hashindex_bucket
+   (struct FD_HASHINDEX *hx,fdtype key,int modulate);
+FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
+FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *ix);
