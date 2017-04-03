@@ -71,6 +71,7 @@ DTYPE_HEADERS=\
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
+ include/framerd/bloom.h  			     \
  include/framerd/sequences.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
@@ -111,9 +112,11 @@ DTYPE_OBJS=\
 	src/cons/cons.o src/cons/numbers.o		\
 	src/cons/compare.o src/cons/walk.o		\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
-	src/cons/choices.o src/cons/tables.o src/cons/sequences.o		\
+	src/cons/tables.o src/cons/bloom.o		\
+	src/cons/sequences.o src/cons/choices.o 	\
 	src/cons/parse.o src/cons/unparse.o		\
-	src/cons/bufio.o src/cons/dtread.o src/cons/dtwrite.o		\
+	src/cons/bufio.o 				\
+	src/cons/dtread.o src/cons/dtwrite.o		\
 	src/cons/libfdtype.o src/cons/support.o		\
 	src/cons/config.o src/cons/err.o 		\
 	src/cons/logging.o src/cons/getopt.o 		\
@@ -329,7 +332,8 @@ FRAMERD_HEADERS= \
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
         src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
-	src/cons/choices.c src/cons/tables.c src/cons/sequences.c	\
+	src/cons/choices.c src/cons/sequences.c				\
+	src/cons/tables.c src/cons/bloom.c				\
         src/cons/bufio.c src/cons/dtread.c src/cons/dtread.c 		\
 	src/cons/parse.c src/cons/unparse.c 				\
 	src/cons/libfdtype.c src/cons/support.c src/cons/config.c	\
@@ -829,7 +833,8 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 # Custom rules
 
 src/cons/dtread.o src/cons/dtwrite.o src/cons/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/cons/tables.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/cons/choices.o : XCFLAGS="${OPTFLAGS}"
+src/cons/tables.o src/cons/bloom.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
 src/cons/numbers.o src/cons/compare.o : XCFLAGS="${OPTFLAGS}"
 src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
 src/db/streams.o : XCFLAGS="${OPTFLAGS}"
