@@ -184,6 +184,7 @@ typedef struct FD_ACHOICE *fd_achoice;
   (((FD_XACHOICE(x))->achoice_write)-((FD_XACHOICE(x))->achoice_data))
 FD_EXPORT fdtype fd_make_achoice(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock);
+FD_EXPORT struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags);
 FD_EXPORT fdtype _fd_add_to_choice(fdtype current,fdtype add);
 FD_EXPORT fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices);
 FD_EXPORT int _fd_choice_size(fdtype x);

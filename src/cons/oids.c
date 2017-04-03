@@ -19,10 +19,10 @@
 
 fd_exception fd_NotAnOID=_("Not an OID");
 
-fdtype fd_zeropool_values[4096]={FD_VOID};
-fdtype *fd_zeropool_buckets[1024]={NULL};
-unsigned int fd_zeropool_load=0;
-static u8_mutex zeropool_lock;
+fdtype fd_zero_pool_values[4096]={FD_VOID};
+fdtype *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096]={fd_zero_pool_values,NULL};
+unsigned int fd_zero_pool_load=0;
+static u8_mutex zero_pool_lock;
 
 FD_OID fd_base_oids[FD_N_OID_BUCKETS];
 int fd_n_base_oids=0;
@@ -162,7 +162,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits)
 
 /* Zero pool OIDs */
 
-FD_EXPORT fdtype fd_zeropool_value(fdtype oid)
+FD_EXPORT fdtype fd_zero_pool_value(fdtype oid)
 {
   if (FD_EXPECT_TRUE(FD_OIDP(oid))) {
     FD_OID addr=FD_OID_ADDR(oid);
@@ -170,15 +170,15 @@ FD_EXPORT fdtype fd_zeropool_value(fdtype oid)
       unsigned int off=FD_OID_LO(addr);
       unsigned int bucket_no=off/4096;
       unsigned int bucket_off=off%4096;
-      if (off<fd_zeropool_load) {
-        if (fd_zeropool_buckets[bucket_no])
-          return fd_incref(fd_zeropool_buckets[bucket_no][bucket_off]);
+      if (off<fd_zero_pool_load) {
+        if (fd_zero_pool_buckets[bucket_no])
+          return fd_incref(fd_zero_pool_buckets[bucket_no][bucket_off]);
         else return FD_VOID;}
       else return FD_VOID;}
-    else return fd_type_error("zeropool oid","fd_zeropool_value",oid);}
-  else return fd_type_error("oid","fd_zeropool_value",oid);
+    else return fd_type_error("zero_pool oid","fd_zero_pool_value",oid);}
+  else return fd_type_error("oid","fd_zero_pool_value",oid);
 }
-FD_EXPORT fdtype fd_zeropool_store(fdtype oid,fdtype value)
+FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value)
 {
   if (FD_EXPECT_TRUE(FD_OIDP(oid))) {
     FD_OID addr=FD_OID_ADDR(oid);
@@ -186,18 +186,21 @@ FD_EXPORT fdtype fd_zeropool_store(fdtype oid,fdtype value)
       unsigned int off=FD_OID_LO(addr);
       unsigned int bucket_no=off/4096;
       unsigned int bucket_off=off%4096;
-      u8_lock_mutex(&zeropool_lock);
-      fdtype *bucket=fd_zeropool_buckets[bucket_no];
-      if (FD_EXPECT_FALSE(bucket==NULL)) {
-        bucket=u8_alloc_n(4096,fdtype);
-        fd_zeropool_buckets[bucket_no]=bucket;}
-      fdtype current=bucket[bucket_off];
-      fd_decref(current);
-      bucket[bucket_off]=fd_incref(value);
-      u8_unlock_mutex(&zeropool_lock);
-      return FD_VOID;}
-    else return fd_type_error("zeropool oid","fd_zeropool_store",oid);}
-  else return fd_type_error("oid","fd_zeropool_store",oid);
+      if (off>=FD_ZERO_POOL_MAX)
+        return FD_VOID;
+      else {
+        u8_lock_mutex(&zero_pool_lock);
+        fdtype *bucket=fd_zero_pool_buckets[bucket_no];
+        if (FD_EXPECT_FALSE(bucket==NULL)) {
+          bucket=u8_alloc_n(4096,fdtype);
+          fd_zero_pool_buckets[bucket_no]=bucket;}
+        fdtype current=bucket[bucket_off];
+        fd_decref(current);
+        bucket[bucket_off]=fd_incref(value);
+        u8_unlock_mutex(&zero_pool_lock);
+        return FD_VOID;}}
+    else return fd_type_error("zero_pool oid","fd_zero_pool_store",oid);}
+  else return fd_type_error("oid","fd_zero_pool_store",oid);
 }
 
 fdtype fd_preoids=FD_EMPTY_CHOICE;
@@ -214,21 +217,20 @@ static void init_oids()
       base=FD_OID_PLUS(base,FD_OID_BUCKET_SIZE);
       j++;}
     i++;}
-  u8_init_mutex(&zeropool_lock);
-  memset(fd_zeropool_buckets,0,sizeof(fd_zeropool_buckets));
+  u8_init_mutex(&zero_pool_lock);
+  memset(fd_zero_pool_buckets,0,sizeof(fd_zero_pool_buckets));
 }
 
 void fd_init_oids_c()
 {
   u8_register_source_file(_FILEINFO);
-
   fd_type_names[fd_oid_type]="OID";
-
   _fd_oid_info=_simple_oid_info;
-
   u8_init_mutex(&(base_oid_lock));
-
   init_oids();
+
+  u8_init_mutex(&zero_pool_lock);
+  memset(fd_zero_pool_values,0,sizeof(fd_zero_pool_values));
 }
 
 /* Emacs local variables

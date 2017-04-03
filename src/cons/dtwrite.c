@@ -121,7 +121,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
     case fd_oid_ptr_type: { /* output OID */
       FD_OID addr=FD_OID_ADDR(x);
       if ((FD_OID_HI(addr))==0) {
-        fdtype val=fd_zeropool_value(x);
+        fdtype val=fd_zero_pool_value(x);
         if (!(FD_VOIDP(val))) {
           int rv=fd_write_dtype(out,val);
           fd_decref(val);
