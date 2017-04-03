@@ -937,7 +937,7 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
      pool (use the pool!) */
   if (FD_FALSEP(pool_spec))
     return fd_empty_slotmap();
-  else if ((FD_TRUEP(pool_spec)) || (FD_VOIDP(pool_spec)))
+  else if ((FD_DEFAULTP(pool_spec)) || (FD_VOIDP(pool_spec)))
     if (fd_default_pool) p=fd_default_pool;
     else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,FD_VOID);
   else if ((p=fd_lisp2pool(pool_spec))==NULL)
