@@ -172,11 +172,12 @@ typedef enum FD_PTR_TYPE {
   fd_regex_type=FD_CONS_TYPECODE(35),
   fd_consblock_type=FD_CONS_TYPECODE(36),
   fd_rawptr_type=FD_CONS_TYPECODE(37),
-  fd_dtserver_type=FD_CONS_TYPECODE(38)
+  fd_dtserver_type=FD_CONS_TYPECODE(38),
+  fd_bloom_filter_type=FD_CONS_TYPECODE(39)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 39
+#define FD_BUILTIN_CONS_TYPES 40
 #define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;

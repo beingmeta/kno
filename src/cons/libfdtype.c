@@ -106,6 +106,7 @@ static void init_type_names()
   fd_type_names[fd_environment_type]=_("environment");
   fd_type_names[fd_rawptr_type]=_("raw pointer");
   fd_type_names[fd_dtserver_type]=_("dtype server");
+  fd_type_names[fd_bloom_filter_type]=_("bloom filter");
 }
 
 static int libfdtype_version=101;
@@ -120,6 +121,7 @@ FD_EXPORT void fd_init_ports_c(void);
 FD_EXPORT void fd_init_dtread_c(void);
 FD_EXPORT void fd_init_dtwrite_c(void);
 FD_EXPORT void fd_init_tables_c(void);
+FD_EXPORT void fd_init_bloom_c(void);
 FD_EXPORT void fd_init_symbols_c(void);
 FD_EXPORT void fd_init_numbers_c(void);
 FD_EXPORT void fd_init_choices_c(void);
@@ -201,6 +203,7 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_compare_c();
   fd_init_parse_c();
   fd_init_unparse_c();
+  fd_init_bloom_c();
   fd_init_apply_c();
   fd_init_sequences_c();
   fd_init_ffi_c();
