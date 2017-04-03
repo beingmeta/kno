@@ -1163,7 +1163,7 @@ static int write_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
         u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
         u8_free(saveinfo);
         exit(-1);}    
-    retval=msync(offdata-64,bp->pool_offdata_length+256,MS_SYNC|MS_INVALIDATE);
+    retval=msync(offdata-64,256+offdata_byte_length,MS_SYNC|MS_INVALIDATE);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "oidpool:write_offdata:msync %s",bp->poolid);
