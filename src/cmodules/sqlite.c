@@ -514,12 +514,12 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
       struct FD_TIMESTAMP *tstamp=
         fd_consptr(struct FD_TIMESTAMP *,arg,fd_timestamp_type);
-      if ((tstamp->fd_u8xtime.u8_tzoff)||(tstamp->fd_u8xtime.u8_dstoff)) {
+      if ((tstamp->ts_u8xtime.u8_tzoff)||(tstamp->ts_u8xtime.u8_dstoff)) {
         u8_xtime_to_iso8601_x
-          (&out,&(tstamp->fd_u8xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+          (&out,&(tstamp->ts_u8xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
         u8_puts(&out," localtime");}
       else u8_xtime_to_iso8601_x
-        (&out,&(tstamp->fd_u8xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+        (&out,&(tstamp->ts_u8xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
       ret=sqlite3_bind_text
         (dbproc->stmt,i+1,
          out.u8_outbuf,out.u8_write-out.u8_outbuf,

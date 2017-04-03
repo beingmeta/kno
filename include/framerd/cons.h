@@ -684,15 +684,15 @@ FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
 
 typedef struct FD_MYSTERY_DTYPE {
   FD_CONS_HEADER;
-  unsigned char fd_dtpackage, fd_dtcode; unsigned int fd_dtlen;
+  unsigned char myst_dtpackage, myst_dtcode; unsigned int myst_dtsize;
   union {
-    fdtype *fd_dtelts; unsigned char *fd_dtbytes;} fd_mystery_payload;} FD_MYSTERY;
+    fdtype *elts; unsigned char *bytes;} mystery_payload;} FD_MYSTERY;
 typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
-  FD_CONS_HEADER; u8_exception fd_u8ex;} FD_EXCEPTION_OBJECT;
+  FD_CONS_HEADER; u8_exception fdex_u8ex;} FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
@@ -704,7 +704,7 @@ FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
 
 typedef struct FD_TIMESTAMP {
   FD_CONS_HEADER;
-  struct U8_XTIME fd_u8xtime;} FD_TIMESTAMP;
+  struct U8_XTIME ts_u8xtime;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
 FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm);

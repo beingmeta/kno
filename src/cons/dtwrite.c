@@ -343,24 +343,24 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
 
 static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
 {
-  int size=v->fd_dtlen, dtype_size=2;
-  int vectorp=(v->fd_dtcode)&0x80;
-  fd_output_byte(out,v->fd_dtpackage);
+  int size=v->myst_dtsize, dtype_size=2;
+  int vectorp=(v->myst_dtcode)&0x80;
+  fd_output_byte(out,v->myst_dtpackage);
   if (size>256) {
-    fd_output_byte(out,v->fd_dtcode|0x40);
+    fd_output_byte(out,v->myst_dtcode|0x40);
     fd_output_4bytes(out,size);
     dtype_size=dtype_size+4;}
   else {
-    fd_output_byte(out,v->fd_dtcode&(~0x40));
+    fd_output_byte(out,v->myst_dtcode&(~0x40));
     fd_output_byte(out,size);
     dtype_size=dtype_size+1;}
   if (vectorp) {
-    fdtype *elts=v->fd_mystery_payload.fd_dtelts, *limit=elts+size;
+    fdtype *elts=v->mystery_payload.elts, *limit=elts+size;
     while (elts<limit) {
       fd_output_dtype(dtype_size,out,*elts); elts++;}
     return dtype_size;}
   else {
-    fd_output_bytes(out,v->fd_mystery_payload.fd_dtbytes,size);
+    fd_output_bytes(out,v->mystery_payload.bytes,size);
     return dtype_size+size;}
 }
 
