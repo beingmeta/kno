@@ -888,7 +888,7 @@ static int bigpool_write_value(fdtype value,fd_stream stream,
   return tmpout->bufwrite-tmpout->buffer;
 }
 
-static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
+static int write_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
                           int n, struct BIGPOOL_SAVEINFO *saveinfo);
 
 /*
@@ -949,7 +949,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_lock_pool(p);
 
   write_bigpool_slotids(bp);
-  update_offdata(bp,stream,n,saveinfo);
+  write_offdata(bp,stream,n,saveinfo);
   write_bigpool_load(bp);
 
   u8_free(saveinfo);
@@ -965,32 +965,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   return n;
 }
 
-/*
-static fd_off_t write_recovery_info
-  (struct FD_BIGPOOL *fp,fd_stream stream,
-   int n,struct BIGPOOL_SAVEINFO *saveinfo,
-   unsigned int load,unsigned int n_slotids,
-   fd_off_t slotids_loc,size_t slotids_size)
-{
-  fd_off_t recovery_pos=endpos;
-  qsort(saveinfo,n,sizeof(struct BIGPOOL_SAVEINFO),compare_oidoffs);
-  fd_write_4bytes(outstream,load);
-  fd_write_4bytes(outstream,n);
-  i=0; while (i<n) {
-    fd_write_4bytes(outstream,saveinfo[i].oidoff);
-    fd_write_8bytes(outstream,saveinfo[i].chunk.off);
-    fd_write_4bytes(outstream,saveinfo[i].chunk.size);
-    endpos=endpos+16; i++;}
-  fd_write_8bytes(outstream,recovery_pos);
-  fd_setpos(stream,0);
-  fd_write_4bytes(outstream,FD_BIGPOOL_TO_RECOVER);
-  fd_flush_stream(stream);
-  fsync(stream->stream_fileno);
-  return recovery_pos;
-}
-*/
-
-static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
+static int write_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
                           int n, struct BIGPOOL_SAVEINFO *saveinfo)
 {
   unsigned int min_off=bp->pool_capacity, max_off=0;
@@ -998,14 +973,13 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
   int chunk_ref_size=get_chunk_ref_size(bp);
   double started=u8_elapsed_time();
   int i=0, retval=-1;
-  u8_log(fdkb_loglevel+1,"bigpool:update_offdata",
+  u8_log(fdkb_loglevel+1,"bigpool:write_offdata",
          "Finalizing %d oid values for %s",n,bp->poolid);
   fd_offset_type offtype=bp->pool_offtype;
   if (!((offtype==FD_B32)||(offtype=FD_B40)||(offtype=FD_B64))) {
-    u8_log(LOG_WARN,"Corrupted bigpool (in memory)",
-           "Bad offset type code=%d for %s",
-           (int)offtype,bp->poolid);
-    u8_seterr("CorruptedBigpoolStruct","update_offdata",
+    u8_log(LOG_WARN,"Corrupted bigpool struct",
+           "Bad offset type code (%d) for %s",(int)offtype,bp->poolid);
+    u8_seterr("CorruptedBigpoolStruct","bigpool:write_offdata",
               u8_strdup(bp->poolid));
     u8_free(saveinfo);
     return -1;}
@@ -1025,7 +999,7 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
            stream->stream_fileno,0);
     if (memblock) offdata=memblock+64;
     if (offdata==NULL) 
-      u8_graberrno("bigpool:update_offdata:mmap",u8_strdup(bp->poolid));
+      u8_graberrno("bigpool:write_offdata:mmap",u8_strdup(bp->poolid));
     else switch (bp->pool_offtype) {
       case FD_B64: {
         int k=0; while (k<n) {
@@ -1054,25 +1028,25 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
         u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
         u8_free(saveinfo);
         exit(-1);}    
-    retval=msync(offdata-64,bp->pool_offdata_length+256,MS_SYNC|MS_INVALIDATE);
+    retval=msync(offdata-64,256+offdata_byte_length,MS_SYNC|MS_INVALIDATE);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "bigpool/bigpool_storen:msync %s",bp->poolid);
-      u8_graberrno("bigpool_storen",u8_strdup(bp->poolid));}
+             "bigpool:write_offdata:msync %s",bp->poolid);
+      u8_graberrno("bigpool_write_offdata",u8_strdup(bp->poolid));}
     retval=munmap(offdata-64,256+offdata_byte_length);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "bigpool/bigpool_storen:msync %s",bp->poolid);
-      u8_graberrno("bigpool_storen",u8_strdup(bp->poolid));}
+             "bigpool/bigpool_write_offdata:msync %s",bp->poolid);
+      u8_graberrno("bigpool_write_offdata",u8_strdup(bp->poolid));}
 #else
     size_t offdata_modified_length=chunk_ref_size*(max_off-min_off);
     size_t offdata_modified_start=chunk_ref_size*min_off;
-    unsigned int *offdata=u8_malloc(offdata_byte_length);
+    unsigned int *offdata=u8_mallocz(offdata_byte_length);
     if (offdata) 
       memcpy(offdata+offdata_modified_start,bp->pool_offdata+offdata_modified_start,
              offdata_modified_length);
     if (offdata==NULL)
-      u8_graberrno("bigpool:update_offdata:malloc",u8_strdump(bp->poolid));
+      u8_graberrno("bigpool:write_offdata:malloc",u8_strdump(bp->poolid));
     else switch (bp->pool_offtype) {
       case FD_B64: {
         int k=0; while (k<n) {
@@ -1135,7 +1109,7 @@ static int update_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
       u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
       u8_free(saveinfo);
       exit(-1);}
-  u8_log(fdkb_loglevel+1,"bigpool:update_offdata",
+  u8_log(fdkb_loglevel+1,"bigpool:write_offdata",
          "Finalized %d oid values for %s in %f seconds",
          n,bp->poolid,u8_elapsed_time()-started);
   return 0;
@@ -1149,7 +1123,7 @@ static fdtype bigpool_alloc(fd_pool p,int n)
   if (!(POOLFILE_LOCKEDP(bp))) lock_bigpool_file(bp,0);
   if (bp->pool_load+n>=bp->pool_capacity) {
     fd_unlock_pool(p);
-    return fd_err(fd_ExhaustedPool,"file_pool_alloc",
+    return fd_err(fd_ExhaustedPool,"bigpool_alloc",
                   p->poolid,FD_VOID);}
   while (i < n) {
     FD_OID new_addr=FD_OID_PLUS(bp->pool_base,bp->pool_load);

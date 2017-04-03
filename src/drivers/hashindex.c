@@ -1452,20 +1452,22 @@ static void hash_index_setcache(struct FD_HASH_INDEX *hx,int level)
     if (hx->index_offdata == NULL) return;
     else {
       int retval;
+      unsigned int *offdata=NULL;
       fd_lock_index(hx);
       if (hx->index_offdata==NULL) {
         fd_unlock_index(hx);
         return;}
+      offdata=hx->index_offdata;
+      hx->index_offdata=NULL;
 #if HAVE_MMAP
-      retval=munmap((hx->index_offdata)-64,((hx->index_n_buckets)*chunk_ref_size)+256);
+      retval=munmap(offdata-64,((hx->index_n_buckets)*chunk_ref_size)+256);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
                "hash_index_setcache:munmap %s",hx->index_source);
-        hx->index_offdata=NULL; errno=0;}
+        errno=0;}
 #else
-      u8_free(hx->index_offdata);
+      u8_free(offdata);
 #endif
-      hx->index_offdata=NULL;
       fd_unlock_index(hx);}}
 }
 
@@ -2169,11 +2171,17 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   struct BUCKET_REF *bucket_locs;
   struct FD_HASHTABLE adds, edits;
-  unsigned int *offdata=hx->index_offdata;
   fd_offset_type offtype=hx->index_offtype;
+  if (!((offtype==FD_B32)||(offtype=FD_B40)||(offtype=FD_B64))) {
+    u8_log(LOG_WARN,"Corrupted hashindex (in memory)",
+           "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
+    u8_seterr("CorruptedHashIndex","hashindex_commit",u8_strdup(ix->indexid));
+    return -1;}
   fd_off_t recovery_start, recovery_pos;
   ssize_t endpos, maxpos=get_maxpos(hx);
   double started=u8_elapsed_time();
+  unsigned int n_buckets=hx->index_n_buckets;
+  unsigned int *offdata=hx->index_offdata;
   fd_lock_index(hx);
   fd_lock_stream(stream);
   fd_write_lock_table(&(hx->index_adds));
@@ -2239,8 +2247,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       out.bufwrite=out.buffer;
       write_zkey(hx,&out,key);
       schedule[sched_i].commit_bucket=bucket=
-        hash_bytes(out.buffer,out.bufwrite-out.buffer)%
-        (hx->index_n_buckets);
+        hash_bytes(out.buffer,out.bufwrite-out.buffer)%n_buckets;
       sched_i++;}
     /* Get all the bucket locations.  It may be that we can fold this
        into the phase above when we have the offsets table in
@@ -2455,107 +2462,79 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
   u8_free(keybuckets);
 }
 
-#if HAVE_MMAP
-static int make_offsets_writable(fd_hash_index hx)
-{
-  unsigned int *newmmap, n_buckets=hx->index_n_buckets;
-  size_t chunk_ref_size=get_chunk_ref_size(hx);
-  unsigned int *offdata=hx->index_offdata;
-  hx->index_offdata=NULL;
-  int retval=munmap(offdata-64,(n_buckets*chunk_ref_size)+256);
-  if (retval<0) {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_writable:munmap %s",hx->index_source);
-    return retval;}
-  newmmap=mmap(NULL,(n_buckets*chunk_ref_size)+256,
-               PROT_READ|PROT_WRITE,MMAP_FLAGS,hx->index_stream.stream_fileno,0);
-  if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_writable:mmap %s",hx->index_source);
-    errno=0;}
-  else hx->index_offdata=newmmap+64;
-  return retval;
-}
-
-static int make_offsets_unwritable(fd_hash_index hx)
-{
-  unsigned int *newmmap, n_buckets=hx->index_n_buckets;
-  size_t chunk_ref_size=get_chunk_ref_size(hx);
-  unsigned int *offdata=hx->index_offdata;
-  int retval=msync(offdata-64,(n_buckets*chunk_ref_size)+256,MS_SYNC|MS_INVALIDATE);
-  if (retval<0) {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_unwritable:msync %s",hx->index_source);
-    return retval;}
-  hx->index_offdata=NULL;
-  retval=munmap(offdata-64,(n_buckets*chunk_ref_size)+256);
-  if (retval<0) {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_unwritable:munmap %s",hx->index_source);
-    return retval;}
-  newmmap=mmap(NULL,(n_buckets*chunk_ref_size)+256,
-               PROT_READ,MMAP_FLAGS,hx->index_stream.stream_fileno,0);
-  if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-    u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_unwritable:mmap %s",hx->index_source);
-    errno=0;}
-  else hx->index_offdata=newmmap+64;
-  return retval;
-}
-#endif
-
 static int update_hash_index_ondisk
   (fd_hash_index hx,unsigned int flags,unsigned int cur_keys,
    unsigned int changed_buckets,struct BUCKET_REF *bucket_locs)
 {
   struct FD_STREAM *stream=&(hx->index_stream);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
-  int i=0; unsigned int *buckets=hx->index_offdata;
-#if (HAVE_MMAP)
-  if (buckets) {
-    make_offsets_writable(hx);
-    buckets=hx->index_offdata;}
+  int i=0; 
+  unsigned int *current=hx->index_offdata, *offdata=NULL;
+  unsigned int n_buckets=hx->index_n_buckets;
+  unsigned int chunk_ref_size=get_chunk_ref_size(hx);
+  ssize_t offdata_byte_length=n_buckets*chunk_ref_size;
+  if (current) {
+#if HAVE_MMAP
+    unsigned int *memblock=
+      mmap(NULL,256+offdata_byte_length,
+           PROT_READ|PROT_WRITE,
+           MMAP_FLAGS,
+           hx->index_stream.stream_fileno,
+           0);
+    if (memblock) offdata=memblock+64;
+    else {
+      u8_graberrno("update_hash_index_ondisk:mmap",u8_strdup(hx->indexid));
+      return -1;}
+#else
+    size_t offdata_length=n_buckets*chunk_ref_size;
+    offdata=u8_mallocz(offdata_length);
+    int rv=fd_read_ints(stream,offdata_length/4,offdata);
+    if (rv<0) {
+      u8_graberrno("update_hash_index_ondisk:fd_read_ints",u8_strdup(hx->indexid));
+      u8_free(offdata);
+      return -1;}
 #endif
+  }
   /* Update the buckets if you have them */
-  if ((buckets) && (hx->index_offtype==FD_B64)) {
+  if ((offdata) && (hx->index_offtype==FD_B64)) {
     while (i<changed_buckets) {
       unsigned int word1, word2, word3, bucket=bucket_locs[i].bucketno;
       word1=(((bucket_locs[i].bck_ref.off)>>32)&(0xFFFFFFFF));
       word2=(((bucket_locs[i].bck_ref.off))&(0xFFFFFFFF));
       word3=(bucket_locs[i].bck_ref.size);
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      buckets[bucket*3]=fd_flip_word(word1);
-      buckets[bucket*3+1]=fd_flip_word(word2);
-      buckets[bucket*3+2]=fd_flip_word(word3);
+      offdata[bucket*3]=fd_flip_word(word1);
+      offdata[bucket*3+1]=fd_flip_word(word2);
+      offdata[bucket*3+2]=fd_flip_word(word3);
 #else
-      buckets[bucket*3]=word1;
-      buckets[bucket*3+1]=word2;
-      buckets[bucket*3+2]=word3;
+      offdata[bucket*3]=word1;
+      offdata[bucket*3+1]=word2;
+      offdata[bucket*3+2]=word3;
 #endif
       i++;}}
-  else if ((buckets) && (hx->index_offtype==FD_B32)) {
+  else if ((offdata) && (hx->index_offtype==FD_B32)) {
     while (i<changed_buckets) {
       unsigned int word1, word2, bucket=bucket_locs[i].bucketno;
       word1=((bucket_locs[i].bck_ref.off)&(0xFFFFFFFF));
       word2=(bucket_locs[i].bck_ref.size);
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      buckets[bucket*2]=fd_flip_word(word1);
-      buckets[bucket*2+1]=fd_flip_word(word2);
+      offdata[bucket*2]=fd_flip_word(word1);
+      offdata[bucket*2+1]=fd_flip_word(word2);
 #else
-      buckets[bucket*2]=word1;
-      buckets[bucket*2+1]=word2;
+      offdata[bucket*2]=word1;
+      offdata[bucket*2+1]=word2;
 #endif
       i++;}}
-  else if ((buckets) && (hx->index_offtype==FD_B40)) {
+  else if ((offdata) && (hx->index_offtype==FD_B40)) {
     while (i<changed_buckets) {
       unsigned int word1=0, word2=0, bucket=bucket_locs[i].bucketno;
       convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
-      buckets[bucket*2]=fd_flip_word(word1);
-      buckets[bucket*2+1]=fd_flip_word(word2);
+      offdata[bucket*2]=fd_flip_word(word1);
+      offdata[bucket*2+1]=fd_flip_word(word2);
 #else
-      buckets[bucket*2]=word1;
-      buckets[bucket*2+1]=word2;
+      offdata[bucket*2]=word1;
+      offdata[bucket*2+1]=word2;
 #endif
       i++;}}
   /* If you don't have offsets in memory, write them by hand, stepping
@@ -2598,14 +2577,23 @@ static int update_hash_index_ondisk
 #if (HAVE_MMAP)
     /* If you have MMAP, make them unwritable which swaps them out to
        the file. */
-    make_offsets_unwritable(hx);
+    int retval=msync(offdata-64,
+                     256+offdata_byte_length,
+                     MS_SYNC|MS_INVALIDATE);
+    if (retval<0) {
+      u8_log(LOG_WARN,u8_strerror(errno),
+             "update_hash_index_ondisk:msync %s",hx->indexid);
+      u8_graberrno("update_hash_index_ondisk:msync",u8_strdup(hx->indexid));}
+    retval=munmap(offdata-64,256+offdata_byte_length);
+    if (retval<0) {
+      u8_log(LOG_WARN,u8_strerror(errno),
+             "update_hash_index_ondisk:munmap %s",hx->indexid);
+      u8_graberrno("update_hash_index_ondisk:msync",u8_strdup(hx->indexid));}
 #else
     struct FD_OUTBUF *out=fd_start_write(stream,256);
     if (hx->index_offtype==FD_B64)
-      fd_write_ints(outstream,3*SIZEOF_INT*(hx->index_n_buckets),
-                    hx->index_offdata);
-    else fd_write_ints(outstream,2*SIZEOF_INT*(hx->index_n_buckets),
-                       hx->index_offdata);
+      fd_write_ints(outstream,3*SIZEOF_INT*n_buckets,offdata);
+    else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
 #endif
   }
   /* Write any changed flags */

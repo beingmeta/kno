@@ -878,7 +878,7 @@ static int oidpool_finalize
    int n,struct OIDPOOL_SAVEINFO *saveinfo,
    unsigned int load);
 
-static int update_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
+static int write_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
                           int n, struct OIDPOOL_SAVEINFO *saveinfo);
 
 static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
@@ -930,7 +930,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   u8_free(zbuf);
 
   fd_lock_pool(p);
-  update_offdata(op,stream,n,saveinfo);
+  write_offdata(op,stream,n,saveinfo);
   write_oidpool_load(op);
 
   u8_free(saveinfo);
@@ -1099,7 +1099,7 @@ static int recover_oidpool(struct FD_OIDPOOL *fp)
     return 0;}
 }
 
-static int update_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
+static int write_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
                           int n, struct OIDPOOL_SAVEINFO *saveinfo)
 {
   unsigned int min_off=bp->pool_capacity, max_off=0;
@@ -1111,10 +1111,11 @@ static int update_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
          "Finalizing %d oid values for %s",n,bp->poolid);
   fd_offset_type offtype=bp->pool_offtype;
   if (!((offtype==FD_B32)||(offtype=FD_B40)||(offtype=FD_B64))) {
-    u8_log(LOG_WARN,"Corrupted oidpool (in memory)",
+    u8_log(LOG_WARN,"Corrupted OIDPOOL struct",
            "Bad offset type code=%d for %s",
            (int)offtype,bp->poolid);
-    u8_seterr("CorruptedOidpoolStruct","update_offdata",u8_strdup(bp->poolid));
+    u8_seterr("Corrupted OIDPOOL struct",
+              "oidpool:write_offdata",u8_strdup(bp->poolid));
     u8_free(saveinfo);
     return -1;}
   else while (i<n) {
@@ -1133,7 +1134,7 @@ static int update_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
            stream->stream_fileno,0);
     if (memblock) offdata=memblock+64;
     if (offdata==NULL) 
-      u8_graberrno("oidpool_update_offdata:mmap",u8_strdup(bp->poolid));
+      u8_graberrno("oidpool_write_offdata:mmap",u8_strdup(bp->poolid));
     else switch (bp->pool_offtype) {
       case FD_B64: {
         int k=0; while (k<n) {
@@ -1165,13 +1166,13 @@ static int update_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
     retval=msync(offdata-64,bp->pool_offdata_length+256,MS_SYNC|MS_INVALIDATE);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "oidpool/oidpool_storen:msync %s",bp->poolid);
-      u8_graberrno("oidpool_storen",u8_strdup(bp->poolid));}
+             "oidpool:write_offdata:msync %s",bp->poolid);
+      u8_graberrno("oidpool:write_offdata:msync",u8_strdup(bp->poolid));}
     retval=munmap(offdata-64,256+offdata_byte_length);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "oidpool/oidpool_storen:msync %s",bp->poolid);
-      u8_graberrno("oidpool_storen",u8_strdup(bp->poolid));}
+             "oidpool:write_offdata:munmap %s",bp->poolid);
+      u8_graberrno("oidpool:write_offdata:munmap",u8_strdup(bp->poolid));}
 #else
     size_t offdata_modified_length=chunk_ref_size*(max_off-min_off);
     size_t offdata_modified_start=chunk_ref_size*min_off;
@@ -1180,7 +1181,7 @@ static int update_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
       memcpy(offdata+offdata_modified_start,bp->pool_offdata+offdata_modified_start,
              offdata_modified_length);
     if (offdata==NULL)
-      u8_graberrno("oidpool_update_offdata:malloc",u8_strdump(bp->poolid));
+      u8_graberrno("oidpool:write_offdata:malloc",u8_strdump(bp->poolid));
     else switch (bp->pool_offtype) {
       case FD_B64: {
         int k=0; while (k<n) {
@@ -1258,7 +1259,7 @@ static fdtype oidpool_alloc(fd_pool p,int n)
   if (!(FD_OIDPOOL_LOCKED(op))) lock_oidpool_file(op,0);
   if (op->pool_load+n>=op->pool_capacity) {
     fd_unlock_pool((fd_pool)op);
-    return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->poolid,FD_VOID);}
+    return fd_err(fd_ExhaustedPool,"oidpool_alloc",p->poolid,FD_VOID);}
   while (i < n) {
     FD_OID new_addr=FD_OID_PLUS(op->pool_base,op->pool_load);
     fdtype new_oid=fd_make_oid(new_addr);
