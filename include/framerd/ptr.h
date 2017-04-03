@@ -173,7 +173,7 @@ typedef enum FD_PTR_TYPE {
   fd_consblock_type=FD_CONS_TYPECODE(36),
   fd_rawptr_type=FD_CONS_TYPECODE(37),
   fd_dtserver_type=FD_CONS_TYPECODE(38),
-  fd_bloomfilter_type=FD_CONS_TYPECODE(39)
+  fd_bloom_filter_type=FD_CONS_TYPECODE(39)
 
   } fd_ptr_type;
 

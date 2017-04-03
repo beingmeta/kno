@@ -27,6 +27,7 @@
 struct FD_BLOOM
 {
   FD_CONS_HEADER;
+  unsigned long long bloom_adds;
   // These fields are part of the public interface of this structure.
   // Client code may read these values if desired. Client code MUST NOT
   // modify any of these.
@@ -41,7 +42,6 @@ struct FD_BLOOM
   // on these.
   double bpe;
   unsigned char * bf;
-  int ready;
 };
 
 
@@ -71,15 +71,7 @@ struct FD_BLOOM
  *     1 - on failure
  *
  */
-int fd_bloom_init(struct FD_BLOOM * bloom, int entries, double error);
-
-
-/** ***************************************************************************
- * Deprecated, use bloom_init()
- *
- */
-int fd_bloom_init_size(struct FD_BLOOM * bloom, int entries, double error,
-                    unsigned int cache_size);
+struct FD_BLOOM *fd_init_bloom_filter(struct FD_BLOOM * bloom, int entries, double error);
 
 
 /** ***************************************************************************

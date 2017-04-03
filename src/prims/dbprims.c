@@ -20,6 +20,7 @@
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
+#include "framerd/bloom.h"
 #include "framerd/frames.h"
 #include "framerd/methods.h"
 #include "framerd/sequences.h"
@@ -2827,6 +2828,96 @@ static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
+/* Bloom filters */
+
+static fdtype make_bloom_filter(fdtype n_entries,fdtype allowed_error)
+{
+  struct FD_BLOOM *filter=(FD_VOIDP(allowed_error))?
+    (fd_init_bloom_filter(NULL,FD_FIX2INT(n_entries),0.0004)) :
+    (fd_init_bloom_filter(NULL,FD_FIX2INT(n_entries),FD_FLONUM(allowed_error)));
+  if (filter)
+    return (fdtype) filter;
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype bloom_add(fdtype filter,fdtype value,fdtype raw_arg)
+{
+  struct FD_BLOOM *bloom=(struct FD_BLOOM *)filter;
+  int raw=(!(FD_FALSEP(raw_arg)));
+  if ((raw)&&(FD_STRINGP(value))) {
+    int rv=fd_bloom_add(bloom,FD_STRDATA(value),FD_STRLEN(value));
+    if (rv) 
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if ((raw)&&(FD_PACKETP(value))) {
+    int rv=fd_bloom_add(bloom,FD_PACKET_DATA(value),
+                        FD_PACKET_LENGTH(value));
+    if (rv) 
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (raw) 
+    return fd_type_error("string or packet","bloom_add",value);
+  else {
+    struct FD_OUTBUF out; 
+    unsigned char bytebuf[1024];
+    FD_INIT_FIXED_BYTE_OUTBUF(&out,bytebuf,1024);
+    fd_write_dtype(&out,value);
+    int rv=fd_bloom_add(bloom,out.buffer,
+                        out.bufwrite-out.buffer);
+    fd_close_outbuf(&out);
+    if (rv) 
+      return FD_TRUE;
+    else return FD_FALSE;}
+}
+
+static fdtype bloom_check(fdtype filter,fdtype value,fdtype raw_arg)
+{
+  struct FD_BLOOM *bloom=(struct FD_BLOOM *)filter;
+  int raw=(!(FD_FALSEP(raw_arg)));
+  if ((raw)&&(FD_STRINGP(value))) {
+    int rv=fd_bloom_check(bloom,FD_STRDATA(value),FD_STRLEN(value));
+    if (rv) 
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if ((raw)&&(FD_PACKETP(value))) {
+    int rv=fd_bloom_check(bloom,FD_PACKET_DATA(value),
+                        FD_PACKET_LENGTH(value));
+    if (rv) 
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (raw) 
+    return fd_type_error("string or packet","bloom_add",value);
+  else {
+    struct FD_OUTBUF out; 
+    unsigned char bytebuf[1024];
+    FD_INIT_FIXED_BYTE_OUTBUF(&out,bytebuf,1024);
+    fd_write_dtype(&out,value);
+    int rv=fd_bloom_check(bloom,out.buffer,
+                          out.bufwrite-out.buffer);
+    fd_close_outbuf(&out);
+    if (rv) 
+      return FD_TRUE;
+    else return FD_FALSE;}
+}
+
+static fdtype bloom_size(fdtype filter)
+{
+  struct FD_BLOOM *bloom=(struct FD_BLOOM *)filter;
+  return FD_INT(bloom->entries);
+}
+
+static fdtype bloom_count(fdtype filter)
+{
+  struct FD_BLOOM *bloom=(struct FD_BLOOM *)filter;
+  return FD_INT(bloom->bloom_adds);
+}
+
+static fdtype bloom_error(fdtype filter)
+{
+  struct FD_BLOOM *bloom=(struct FD_BLOOM *)filter;
+  return fd_make_double(bloom->error);
+}
+
 /* Initializing */
 
 FD_EXPORT void fd_init_dbprims_c()
@@ -3172,6 +3263,29 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim4("SET-POOL-OP!",set_pool_op,4));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("MAKE-BLOOM-FILTER",make_bloom_filter,1,
+                           fd_fixnum_type,FD_VOID,
+                           fd_flonum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim3x("BLOOM/ADD!",bloom_add,1,
+                           fd_bloom_filter_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim3x("BLOOM/CHECK",bloom_check,1,
+                           fd_bloom_filter_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("BLOOM-SIZE",bloom_size,1,
+                           fd_bloom_filter_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("BLOOM-COUNT",bloom_count,1,
+                           fd_bloom_filter_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("BLOOM-ERROR",bloom_error,1,
+                           fd_bloom_filter_type,FD_VOID));
+
 
   id_symbol=fd_intern("%ID");
   adjunct_symbol=fd_intern("%ADJUNCT");

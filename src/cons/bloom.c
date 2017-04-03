@@ -16,6 +16,11 @@
 #include "framerd/hash.h"
 #include "framerd/tables.h"
 #include "framerd/numbers.h"
+#include "framerd/bloom.h"
+
+#include <libu8/u8printf.h>
+
+#include <math.h>
 
 /* Original license/file headers (attributions) at the bottom of the file. */
 
@@ -32,72 +37,57 @@
 
 static unsigned int murmurhash2(const void * key, int len, const unsigned int seed)
 {
-	// 'm' and 'r' are mixing constants generated offline.
-	// They're not really 'magic', they just happen to work well.
+  // 'm' and 'r' are mixing constants generated offline.
+  // They're not really 'magic', they just happen to work well.
 
-	const unsigned int m = 0x5bd1e995;
-	const int r = 24;
+  const unsigned int m = 0x5bd1e995;
+  const int r = 24;
 
-	// Initialize the hash to a 'random' value
+  // Initialize the hash to a 'random' value
 
-	unsigned int h = seed ^ len;
+  unsigned int h = seed ^ len;
 
-	// Mix 4 bytes at a time into the hash
+  // Mix 4 bytes at a time into the hash
 
-	const unsigned char * data = (const unsigned char *)key;
+  const unsigned char * data = (const unsigned char *)key;
 
-	while(len >= 4)
-	{
-		unsigned int k = *(unsigned int *)data;
+  while(len >= 4)
+    {
+      unsigned int k = *(unsigned int *)data;
 
-		k *= m;
-		k ^= k >> r;
-		k *= m;
+      k *= m;
+      k ^= k >> r;
+      k *= m;
 
-		h *= m;
-		h ^= k;
+      h *= m;
+      h ^= k;
 
-		data += 4;
-		len -= 4;
-	}
+      data += 4;
+      len -= 4;
+    }
 
-	// Handle the last few bytes of the input array
+  // Handle the last few bytes of the input array
 
-	switch(len)
-	{
-	case 3: h ^= data[2] << 16;
-	case 2: h ^= data[1] << 8;
-	case 1: h ^= data[0];
-	        h *= m;
-	};
+  switch(len)
+    {
+    case 3: h ^= data[2] << 16;
+    case 2: h ^= data[1] << 8;
+    case 1: h ^= data[0];
+      h *= m;
+    };
 
-	// Do a few final mixes of the hash to ensure the last few
-	// bytes are well-incorporated.
+  // Do a few final mixes of the hash to ensure the last few
+  // bytes are well-incorporated.
 
-	h ^= h >> 13;
-	h *= m;
-	h ^= h >> 15;
+  h ^= h >> 13;
+  h *= m;
+  h ^= h >> 15;
 
-	return h;
+  return h;
 }
-
-#include <assert.h>
-#include <fcntl.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include "bloom.h"
-#include "murmurhash2.h"
 
 #define MAKESTRING(n) STRING(n)
 #define STRING(n) #n
-
 
 inline static int test_bit_set_bit(unsigned char * buf,
                                    unsigned int x, int set_bit)
@@ -120,11 +110,6 @@ inline static int test_bit_set_bit(unsigned char * buf,
 static int bloom_check_add(struct FD_BLOOM * bloom,
                            const void * buffer, int len, int add)
 {
-  if (bloom->ready == 0) {
-    printf("bloom at %p not initialized!\n", (void *)bloom);
-    return -1;
-  }
-
   int hits = 0;
   register unsigned int a = murmurhash2(buffer, len, 0x9747b28c);
   register unsigned int b = murmurhash2(buffer, len, a);
@@ -142,16 +127,33 @@ static int bloom_check_add(struct FD_BLOOM * bloom,
     return 1;                // 1 == element already in (or collision)
   }
 
+  if (add) bloom->bloom_adds++;
+
   return 0;
 }
 
-static int fd_bloom_init(struct FD_BLOOM * bloom, int entries, double error)
+FD_EXPORT
+struct FD_BLOOM *
+fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 {
-  bloom->ready = 0;
+  struct FD_BLOOM *bloom=NULL;
+  if (entries < 1) {
+    fd_seterr(fd_TypeError,"fd_bloom_init",
+	      u8_strdup("bad n_entries arg"),
+	      FD_INT(entries));
+    return NULL;}
+  else if (error <= 0) {
+    fd_seterr(fd_TypeError,"fd_bloom_init",
+	      u8_strdup("bad allowed error value"),
+	      fd_make_double(error));
+    return NULL;}
+  else if (use_bloom==NULL)
+    bloom=u8_zalloc(struct FD_BLOOM);
+  else bloom=use_bloom;
 
-  if (entries < 1 || error == 0) {
-    return 1;
-  }
+  if (use_bloom) {
+    FD_SET_CONS_TYPE(bloom,fd_bloom_filter_type);}
+  else FD_INIT_CONS(bloom,fd_bloom_filter_type);
 
   bloom->entries = entries;
   bloom->error = error;
@@ -171,13 +173,13 @@ static int fd_bloom_init(struct FD_BLOOM * bloom, int entries, double error)
 
   bloom->hashes = (int)ceil(0.693147180559945 * bloom->bpe);  // ln(2)
 
-  bloom->bf = (unsigned char *)calloc(bloom->bytes, sizeof(unsigned char));
+  bloom->bf = u8_mallocz(bloom->bytes);
   if (bloom->bf == NULL) {
-    return 1;
-  }
+    u8_graberrno("fd_bloom_init:mallocbytes",NULL);
+    if (use_bloom==NULL) u8_free(bloom);
+    return NULL;}
 
-  bloom->ready = 1;
-  return 0;
+  return bloom;
 }
 
 
@@ -193,34 +195,32 @@ int fd_bloom_add(struct FD_BLOOM * bloom, const void * buffer, int len)
 }
 
 
-void bloom_print(struct FD_BLOOM * bloom)
+int unparse_bloom(u8_output out,fdtype x)
 {
-  printf("bloom at %p\n", (void *)bloom);
-  printf(" ->entries = %d\n", bloom->entries);
-  printf(" ->error = %f\n", bloom->error);
-  printf(" ->bits = %d\n", bloom->bits);
-  printf(" ->bits per elem = %f\n", bloom->bpe);
-  printf(" ->bytes = %d\n", bloom->bytes);
-  printf(" ->hash functions = %d\n", bloom->hashes);
+  struct FD_BLOOM *filter=(struct FD_BLOOM *)x;
+  u8_printf(out,"#<BLOOM #!%llx %lld/%lld(%f)>",
+	    (U8_PTR2INT(filter)),
+	    filter->bloom_adds,
+	    filter->entries,
+	    filter->error);
+  return 1;
 }
 
 
-void bloom_free(struct FD_BLOOM * bloom)
+void recycle_bloom(struct FD_RAW_CONS *c)
 {
-  if (bloom->ready) {
-    free(bloom->bf);
-  }
-  bloom->ready = 0;
+  struct FD_BLOOM * bloom=(struct FD_BLOOM *)c;
+  if (bloom->bf) free(bloom->bf);
+  if (!(FD_STATIC_CONSP(bloom))) u8_free(bloom);
 }
 
-
-const char * bloom_version()
-{
-  return MAKESTRING(BLOOM_VERSION);
-}
 
 void fd_init_bloom_c()
 {
+
+  fd_unparsers[fd_bloom_filter_type]=unparse_bloom;
+  fd_recyclers[fd_bloom_filter_type]=recycle_bloom;
+
 }
 
 /* Original headers and license information */
