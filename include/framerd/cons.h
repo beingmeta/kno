@@ -806,4 +806,20 @@ static int cons_compare(fdtype x,fdtype y)
 #include "tables.h"
 #include "fdregex.h"
 
+/* The zero-pool */
+
+/* OIDs with a high address of zero are treated specially. They are
+   "ephemeral OIDs" whose values are limited to the current runtime
+   session. */
+
+#ifndef FD_ZERO_POOL_MAX
+#define FD_ZERO_POOL_MAX 0x10000
+#endif
+
+FD_EXPORT fdtype fd_zero_pool_values0[4096];
+FD_EXPORT fdtype *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096];
+FD_EXPORT unsigned int fd_zero_pool_load;
+FD_EXPORT fdtype fd_zero_pool_value(fdtype oid);
+FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value);
+
 #endif /* ndef FRAMERD_CONS_H */

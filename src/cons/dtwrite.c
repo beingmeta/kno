@@ -120,6 +120,12 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
   else switch (FD_PTR_MANIFEST_TYPE(x)) {
     case fd_oid_ptr_type: { /* output OID */
       FD_OID addr=FD_OID_ADDR(x);
+      if ((FD_OID_HI(addr))==0) {
+        fdtype val=fd_zero_pool_value(x);
+        if (!(FD_VOIDP(val))) {
+          int rv=fd_write_dtype(out,val);
+          fd_decref(val);
+          return rv;}}
       fd_output_byte(out,dt_oid);
       fd_output_4bytes(out,FD_OID_HI(addr));
       fd_output_4bytes(out,FD_OID_LO(addr));
