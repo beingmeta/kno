@@ -36,7 +36,7 @@ static pthread_mutex_t *ssl_lockarray;
 #endif
 
 static fdtype curl_defaults, url_symbol;
-static fdtype content_type_symbol, charset_symbol, type_symbol;
+static fdtype content_type_symbol, charset_symbol;
 static fdtype content_length_symbol, etag_symbol, content_encoding_symbol;
 static fdtype verbose_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;
@@ -1345,7 +1345,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
         u8_string sdata=u8_strdup(FD_STRDATA(content));
         if ((FD_STRINGP(eurl))&&(path)) *path=u8_strdup(FD_STRDATA(eurl));
         if ((FD_TYPEP(filetime,fd_timestamp_type))&&(timep))
-          *timep=u8_mktime(&(((fd_timestamp)filetime)->fd_u8xtime));
+          *timep=u8_mktime(&(((fd_timestamp)filetime)->ts_u8xtime));
         fd_decref(filetime); fd_decref(eurl);
         fd_decref(content); fd_decref(result);
         return sdata;}
@@ -1365,7 +1365,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
         fdtype filetime=fd_get(result,filetime_slotid,FD_VOID);
         if ((FD_STRINGP(eurl))&&(path)) *path=u8_strdup(FD_STRDATA(eurl));
         if ((FD_TYPEP(filetime,fd_timestamp_type))&&(timep))
-          *timep=u8_mktime(&(((fd_timestamp)filetime)->fd_u8xtime));
+          *timep=u8_mktime(&(((fd_timestamp)filetime)->ts_u8xtime));
         return "exists";}}}
   else return NULL;
 }

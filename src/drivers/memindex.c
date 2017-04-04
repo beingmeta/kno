@@ -353,7 +353,7 @@ static fdtype mem_index_ctl(fd_index ix,int op,int n,fdtype *args)
 {
   struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
   if ( ((n>0)&&(args==NULL)) || (n<0) )
-    return fd_err("BadIndexOpCall","hash_index_ctl",
+    return fd_err("BadIndexOpCall","hashindex_ctl",
 		  mix->indexid,FD_VOID);
   else switch (op) {
     case FD_INDEXOP_CACHELEVEL:

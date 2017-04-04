@@ -228,7 +228,7 @@ static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   struct FD_TIMESTAMP *ytm=
     fd_consptr(struct FD_TIMESTAMP *,y,fd_timestamp_type);
-  double diff=u8_xtime_diff(&(xtm->fd_u8xtime),&(ytm->fd_u8xtime));
+  double diff=u8_xtime_diff(&(xtm->ts_u8xtime),&(ytm->ts_u8xtime));
   if (diff<0.0) return -1;
   else if (diff == 0.0) return 0;
   else return 1;

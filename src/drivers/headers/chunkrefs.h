@@ -90,6 +90,9 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
   memset(&_in,0,sizeof(_in));
   FD_INIT_BYTE_INPUT(&_in,buf,chunk_size);
   if (fd_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
+    u8_log(LOGCRIT,"BlockReadFailed",
+	   "Reading %d-byte block from stream %s failed",
+	   chunk_size,stream->streamid);
     u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
     return result;}
   else switch (offtype) {
@@ -109,6 +112,9 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
     result.size=fd_read_4bytes(in);
     break;
   default:
+    u8_log(LOGCRIT,"InvalidOffsetType",
+	   "Invalid offset type 0x%x for data stream %s",
+	   offtype,stream->streamid);
     u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
     result.off=-1;
     result.size=-1;} /* switch (p->fdkb_offtype) */
@@ -134,6 +140,9 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
       result.size=fd_read_4bytes(in);
       break;
     default:
+      u8_log(LOGCRIT,"InvalidOffsetType",
+	     "Invalid offset type 0x%x for data stream %s",
+	     offtype,stream->streamid);
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
       result.off=-1;
       result.size=-1;} /* switch (p->fdkb_offtype) */

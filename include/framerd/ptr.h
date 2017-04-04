@@ -172,11 +172,12 @@ typedef enum FD_PTR_TYPE {
   fd_regex_type=FD_CONS_TYPECODE(35),
   fd_consblock_type=FD_CONS_TYPECODE(36),
   fd_rawptr_type=FD_CONS_TYPECODE(37),
-  fd_dtserver_type=FD_CONS_TYPECODE(38)
+  fd_dtserver_type=FD_CONS_TYPECODE(38),
+  fd_bloom_filter_type=FD_CONS_TYPECODE(39)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 39
+#define FD_BUILTIN_CONS_TYPES 40
 #define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
@@ -218,6 +219,13 @@ FD_EXPORT fdtype fd_badptr_err(fdtype badx,u8_context cxt,u8_string details);
 /* Basic cons structs */
 
 typedef unsigned int fd_consbits;
+
+#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
+#define FD_ATOMIC_CONSHEAD _Atomic
+#else
+#define FD_ATOMIC_CONSHEAD
+#endif
+
 #define FD_CONS_HEADER const fd_consbits fd_conshead
 
 /* The header for typed data structures */
@@ -225,13 +233,15 @@ typedef struct FD_CONS { FD_CONS_HEADER;} FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
 /* Raw conses have consbits which can change */
+struct FD_RAW_CONS { fd_consbits fd_conshead;};
+typedef struct FD_RAW_CONS *fd_raw_cons;
+
 #if FD_INLINE_REFCOUNTS
-typedef struct FD_REF_CONS { fd_consbits fd_conshead;} FD_REF_CONS;
+struct FD_REF_CONS { FD_ATOMIC_CONSHEAD fd_consbits fd_conshead;};
 typedef struct FD_REF_CONS *fd_ref_cons;
+#define FD_REF_CONS(x) ((struct FD_REF_CONS *)(x))
 #endif
 
-typedef struct FD_RAW_CONS { fd_consbits fd_conshead;} FD_RAW_CONS;
-typedef struct FD_RAW_CONS *fd_raw_cons;
 #if FD_CHECKFDTYPE
 FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
 #else

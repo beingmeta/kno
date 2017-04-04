@@ -40,7 +40,7 @@ typedef struct FD_OIDPOOL {
   int pool_n_schemas, pool_max_slotids;
   struct FD_SCHEMA_ENTRY *pool_schemas;
   struct FD_SCHEMA_LOOKUP *pool_schbyval;
-  unsigned int pool_load, *pool_offdata, pool_offdata_size;
+  unsigned int pool_load, *pool_offdata, pool_offdata_length;
   struct FD_STREAM pool_stream;;} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 
@@ -57,4 +57,10 @@ typedef struct FD_SCHEMA_TABLE {
   int fdst_nslots;
   fdtype *fdst_schema;} FD_SCHEMA_TABLE;
 typedef struct FD_SCHEMA_TABLE *fd_schema_table;
+
+struct OIDPOOL_FETCH_SCHEDULE {
+  unsigned int value_at; FD_CHUNK_REF location;};
+
+struct OIDPOOL_SAVEINFO {
+  FD_CHUNK_REF chunk; unsigned int oidoff;} OIDPOOL_SAVEINFO;
 

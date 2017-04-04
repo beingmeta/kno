@@ -576,7 +576,7 @@ static fdtype getcontent(fdtype path)
 	u8_graberr(-1,"getcontent",u8_strdup(FD_STRDATA(path)));
 	u8_free(lpath); fd_decref(value);
 	return FD_ERROR_VALUE;}
-      else if (fileinfo.st_mtime>lmtime->fd_u8xtime.u8_tick) {
+      else if (fileinfo.st_mtime>lmtime->ts_u8xtime.u8_tick) {
 	fdtype new_content=loadcontent(path);
 	struct U8_XTIME mtime;
 	fdtype content_record;

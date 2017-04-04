@@ -547,6 +547,16 @@ FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *
 }
 
 /* Calling non-deterministically */
+
+#define FD_ADD_RESULT(to,result)                \
+  if (to==FD_EMPTY_CHOICE) to=result;           \
+  else {                                        \
+    if (FD_TYPEP(to,fd_tailcall_type))          \
+      to=fd_finish_call(to);                    \
+    if (FD_TYPEP(result,fd_tailcall_type))      \
+      result=fd_finish_call(result);            \
+  FD_ADD_TO_CHOICE(to,result);}
+
 static fdtype ndapply_loop
   (struct FD_FUNCTION *f,fdtype *results,int *typeinfo,
    int i,int n,fdtype *nd_args,fdtype *d_args)
@@ -557,7 +567,7 @@ static fdtype ndapply_loop
     else {
       value=fd_finish_call(value);
       if (FD_ABORTP(value)) return value;
-      FD_ADD_TO_CHOICE(*results,value);}}
+      FD_ADD_RESULT(*results,value);}}
   else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
     d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
@@ -586,7 +596,7 @@ static fdtype ndapply1(fdtype fp,fdtype args1)
       FD_STOP_DO_CHOICES;
       fd_decref(results);
       return r;}
-    else {FD_ADD_TO_CHOICE(results,r);}}
+    else {FD_ADD_RESULT(results,r);}}
   return results;
 }
 
@@ -602,7 +612,7 @@ static fdtype ndapply2(fdtype fp,fdtype args0,fdtype args1)
         results=r;
         FD_STOP_DO_CHOICES;
         break;}
-      else {FD_ADD_TO_CHOICE(results,r);}}
+      else {FD_ADD_RESULT(results,r);}}
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
@@ -622,7 +632,7 @@ static fdtype ndapply3(fdtype fp,fdtype args0,fdtype args1,fdtype args2)
           results=r;
           FD_STOP_DO_CHOICES;
           break;}
-        else {FD_ADD_TO_CHOICE(results,r);}}
+        else {FD_ADD_RESULT(results,r);}}
       if (FD_ABORTP(results)) {
         FD_STOP_DO_CHOICES;
         break;}}
@@ -648,7 +658,7 @@ static fdtype ndapply4(fdtype fp,
             results=r;
             FD_STOP_DO_CHOICES;
             break;}
-          else {FD_ADD_TO_CHOICE(results,r);}}
+          else {FD_ADD_RESULT(results,r);}}
         if (FD_ABORTP(results)) {
           FD_STOP_DO_CHOICES;
           break;}}

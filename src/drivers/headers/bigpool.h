@@ -48,3 +48,8 @@ typedef struct FD_BIGPOOL {
   time_t pool_modtime;} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;
 
+struct BIGPOOL_FETCH_SCHEDULE {
+  unsigned int value_at; FD_CHUNK_REF location;};
+
+struct BIGPOOL_SAVEINFO {
+  FD_CHUNK_REF chunk; unsigned int oidoff;} BIGPOOL_SAVEINFO;

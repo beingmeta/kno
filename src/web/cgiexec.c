@@ -624,7 +624,7 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
       else if (FD_TYPEP(expires,fd_timestamp_type)) {
         struct FD_TIMESTAMP *tstamp=(fd_timestamp)expires;
         char buf[512]; struct tm tptr;
-        u8_xtime_to_tptr(&(tstamp->fd_u8xtime),&tptr);
+        u8_xtime_to_tptr(&(tstamp->ts_u8xtime),&tptr);
         strftime(buf,512,"%A, %d-%b-%Y %T GMT",&tptr);
         u8_printf(out,"; Expires=%s",buf);}
       if (!((FD_VOIDP(secure))||(FD_FALSEP(secure))))

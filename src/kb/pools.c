@@ -51,7 +51,6 @@ int fd_pool_cache_init = FD_POOL_CACHE_INIT;
 int fd_pool_lock_init  = FD_POOL_CHANGES_INIT;
 
 int fd_n_pools=0;
-fd_pool fd_default_pool=NULL;
 struct FD_POOL *fd_top_pools[FD_N_OID_BUCKETS];
 
 static struct FD_HASHTABLE poolid_table;
@@ -568,39 +567,44 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
   else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))
-    u8_log(fdkb_loglevel,"SwapPool",
+    u8_log(fdkb_loglevel+2,"SwapPool",
            "Swapping out %d oids in pool %s",
            FD_CHOICE_SIZE(oids),p->poolid);
   else if (FD_ACHOICEP(oids))
-    u8_log(fdkb_loglevel,"SwapPool",
+    u8_log(fdkb_loglevel+2,"SwapPool",
            "Swapping out ~%d oids in pool %s",
            FD_ACHOICE_SIZE(oids),p->poolid);
-  else u8_log(fdkb_loglevel,"SwapPool",
+  else u8_log(fdkb_loglevel+2,"SwapPool",
               "Swapping out oids in pool %s",p->poolid);
+  int rv=-1;
+  double started=u8_elapsed_time();
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
     u8_log(fdkb_loglevel+1,"SwapPool",
            "Finished custom swapout for pool %s, clearing caches...",
            p->poolid);}
-  else u8_log(fdkb_loglevel+1,"SwapPool",
+  else u8_log(fdkb_loglevel+2,"SwapPool",
               "No custom swapout clearing caches for %s",p->poolid);
   if (p->pool_flags&FDKB_NOSWAP)
     return 0;
-  else if (FD_OIDP(oids))
-    return fd_hashtable_store(cache,oids,FD_VOID);
+  else if (FD_OIDP(oids)) {
+    fd_hashtable_store(cache,oids,FD_VOID);
+    rv=1;}
   else if (FD_CHOICEP(oids)) {
-    int rv=FD_CHOICE_SIZE(oids);
+    rv=FD_CHOICE_SIZE(oids);
     fd_hashtable_iterkeys(cache,fd_table_replace,
                           FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),
                           FD_VOID);
-    fd_devoid_hashtable(cache,0);
-    return rv;}
+    fd_devoid_hashtable(cache,0);}
   else {
-    int rv=cache->table_n_keys;
+    rv=cache->table_n_keys;
     if ((p->pool_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
-    else fd_reset_hashtable(cache,fd_pool_cache_init,1);
-    return rv;}
+    else fd_reset_hashtable(cache,fd_pool_cache_init,1);}
+  u8_log(fdkb_loglevel+1,"SwapPool",
+         "Swapped out %d oids from pool '%s' in %f",
+         rv,p->poolid,u8_elapsed_time()-started);
+  return rv;
 }
 
 
@@ -771,7 +775,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       (FD_TRUEP(oids)) ? (pick_modified(p,1)):
       (pick_writes(p,FD_EMPTY_CHOICE));
     if (writes.len) {
-      u8_log(fdkb_loglevel,"PoolCommit",
+      u8_log(fdkb_loglevel+1,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
              writes.len,p->pool_changes.table_n_keys,
              p->poolid);
@@ -1764,6 +1768,106 @@ FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
   return 1;
 }
 
+/* The zero pool */
+
+struct FD_POOL zero_pool;
+static u8_mutex zero_pool_alloc_lock;
+struct FD_POOL *fd_zero_pool=&zero_pool;
+fd_pool fd_default_pool=&zero_pool;
+
+static fdtype zero_pool_alloc(fd_pool p,int n)
+{
+  int start=-1;
+  u8_lock_mutex(&zero_pool_alloc_lock);
+  start=fd_zero_pool_load;
+  fd_zero_pool_load=start+n;
+  u8_unlock_mutex(&zero_pool_alloc_lock);
+  if (n==1) 
+    return fd_make_oid(FD_MAKE_OID(0,start));
+  else {
+    struct FD_CHOICE *ch=fd_alloc_choice(n);
+    FD_INIT_CONS(ch,fd_cons_type);
+    ch->choice_size=n;
+    fdtype *results=&(ch->choice_0);
+    int i=0; while (i<n) {
+      FD_OID addr=FD_MAKE_OID(0,start+i);
+      fdtype oid=fd_make_oid(addr);
+      results[i]=oid;
+      i++;}
+    return (fdtype)fd_cleanup_choice(ch,FD_CHOICE_DOSORT);}
+}
+
+static int zero_pool_getload(fd_pool p)
+{
+  return fd_zero_pool_load;
+}
+
+static fdtype zero_pool_fetch(fd_pool p,fdtype oid)
+{
+  return fd_zero_pool_value(oid);
+}
+
+static fdtype *zero_pool_fetchn(fd_pool p,int n,fdtype *oids)
+{
+  fdtype *results=u8_alloc_n(n,fdtype);
+  int i=0; while (i<n) {
+    results[i]=fd_zero_pool_value(oids[i]);
+    i++;}
+  return results;
+}
+
+static int zero_pool_lock(fd_pool p,fdtype oids)
+{
+  return 1;
+}
+static int zero_pool_unlock(fd_pool p,fdtype oids)
+{
+  return 0;
+}
+
+static struct FD_POOL_HANDLER zero_pool_handler={
+  "zero_pool", 1, sizeof(struct FD_POOL), 12,
+  NULL, /* close */
+  zero_pool_alloc, /* alloc */
+  zero_pool_fetch, /* fetch */
+  zero_pool_fetchn, /* fetchn */
+  zero_pool_getload, /* getload */
+  zero_pool_lock, /* lock */
+  zero_pool_unlock, /* release */
+  NULL, /* storen */
+  NULL, /* swapout */
+  NULL, /* metadata */
+  NULL, /* create */
+  NULL,  /* walk */
+  NULL,  /* recycle */
+  NULL  /* poolctl */
+};
+
+static void init_zero_pool()
+{
+  FD_INIT_STATIC_CONS(&zero_pool,fd_pool_type);
+  zero_pool.pool_serialno=-1;
+  zero_pool.poolid=u8_strdup("zero_pool");
+  zero_pool.pool_source=u8_strdup("initzero_pool");
+  zero_pool.pool_label=u8_strdup("zero_pool");
+  zero_pool.pool_base=0;
+  zero_pool.pool_capacity=0x100000; /* About a million */
+  zero_pool.pool_flags=0;
+  zero_pool.modified_flags=0;
+  zero_pool.pool_handler=&zero_pool_handler;
+  zero_pool.pool_islocked=0;
+  u8_init_mutex(&(zero_pool.pool_lock));
+  fd_init_hashtable(&(zero_pool.pool_cache),0,0);
+  fd_init_hashtable(&(zero_pool.pool_changes),0,0);
+  zero_pool.pool_n_adjuncts=0;
+  zero_pool.pool_adjuncts_len=0;
+  zero_pool.pool_adjuncts=NULL;
+  zero_pool.oid_handlers=NULL;
+  zero_pool.pool_prefix="";
+  zero_pool.pool_namefn=FD_VOID;
+  fd_register_pool(&zero_pool);
+}
+
 /* Lisp pointers to Pool pointers */
 
 FD_EXPORT fd_pool _fd_get_poolptr(fdtype x)
@@ -1826,6 +1930,8 @@ FD_EXPORT void fd_init_pools_c()
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("OIDS",1);
     cts->enabled=1; cts->intfcn=fd_object_cache_load;}
 #endif
+
+  init_zero_pool();
 
 }
 

@@ -210,6 +210,32 @@ int fd_choice_containsp(fdtype key,fdtype x)
 }
 
 FD_EXPORT
+struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
+{
+  if (ch==NULL) {
+    u8_log(LOGCRIT,"fd_cleanup_choice",
+           "The argument to fd_cleanup_choice is NULL");
+    fd_seterr("choice arg is NULL","fd_make_choice",NULL,FD_VOID);
+    return NULL;}
+  else {
+    int atomicp; int n=ch->choice_size, newlen;
+    fdtype *base=&(ch->choice_0), *scan=base, *limit=scan+n;
+    FD_SET_CONS_TYPE(ch,fd_choice_type);
+    if (flags&FD_CHOICE_ISATOMIC) atomicp=1;
+    else if (flags&FD_CHOICE_ISCONSES) atomicp=0;
+    else while (scan<limit) {
+        if (FD_ATOMICP(*scan)) scan++; else {atomicp=0; break;}}
+    /* Now sort and compress it if requested */
+    if (flags&FD_CHOICE_DOSORT) {
+      if (atomicp) atomic_sort((fdtype *)base,n);
+      else cons_sort((fdtype *)base,n);}
+    if (flags&FD_CHOICE_COMPRESS)
+      newlen=compress_choice((fdtype *)base,n,atomicp);
+    else ch->choice_size=newlen;
+    return ch;}
+}
+
+FD_EXPORT
 fdtype fd_init_choice
   (struct FD_CHOICE *ch,int n,const fdtype *data,int flags)
 {

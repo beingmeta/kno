@@ -117,6 +117,14 @@
 #define FD_TESTCONFIG 0
 #endif
 
+#ifndef FD_LOCKFREE_REFCOUNTS
+#if HAVE_STDATOMIC_H
+#define FD_LOCKFREE_REFCOUNTS FD_ENABLE_LOCKFREE
+#else
+#define FD_LOCKFREE_REFCOUNTS 0
+#endif
+#endif
+
 #if (HAVE_OFF_T)
 #if ((FD_LARGEFILES_ENABLED)&&(SIZEOF_OFF_T==8))
 typedef off_t fd_off_t;

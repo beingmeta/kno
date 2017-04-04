@@ -17,6 +17,10 @@
 
 #include "defines.h"
 
+#if ( HAVE_STDATOMIC_H && FD_LOCKFREE_REFCOUNTS && FD_INLINE_REFCOUNTS )
+#include <stdatomic.h>
+#endif
+
 /* Utility structures and definitions */
 
 #if (SIZEOF_LONG_LONG == SIZEOF_VOID_P)

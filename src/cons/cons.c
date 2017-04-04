@@ -116,24 +116,29 @@ int fd_check_immediate(fdtype x)
 
 /* CONS methods for external calls */
 
-FD_EXPORT void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_CONS(ptr,type);
 }
-FD_EXPORT void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_FRESH_CONS(ptr,type);
 }
-FD_EXPORT void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_STACK_CONS(ptr,type);
 }
-FD_EXPORT void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_INIT_STATIC_CONS(ptr,type);
 }
-FD_EXPORT void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type)
+FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type)
 {
+  fd_raw_cons ptr=(fd_raw_cons)vptr;
   FD_SET_CONS_TYPE(ptr,type);
 }
 
@@ -147,9 +152,104 @@ FD_EXPORT void _fd_decref_fn(fdtype ptr)
   fd_decref(ptr);
 }
 
+/* Builtin recyclers */
 
+static void recycle_string(struct FD_STRING *s)
+{
+  if ((s->fd_bytes)&&(s->fd_freebytes)) u8_free(s->fd_bytes);
+  if (!(FD_STATIC_CONSP(s))) u8_free(s);
+}
 
-/* Other methods */
+static void recycle_vector(struct FD_VECTOR *v)
+{
+  int len=v->fdvec_length; fdtype *scan=v->fdvec_elts, *limit=scan+len;
+  if (scan) {
+    while (scan<limit) {fd_decref(*scan); scan++;}
+    if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
+  if (!(FD_STATIC_CONSP(v))) u8_free(v);
+}
+
+static void recycle_choice(struct FD_CHOICE *cv)
+{
+  if (!(cv->choice_isatomic)) {
+    int len=cv->choice_size;
+    const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
+    if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
+  if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
+}
+
+static void recycle_qchoice(struct FD_QCHOICE *qc)
+{
+  fd_decref(qc->qchoiceval);
+  if (!(FD_STATIC_CONSP(qc))) u8_free(qc);
+}
+
+/* Recycling pairs directly */
+
+static void recycle_pair(struct FD_PAIR *pair)
+{
+  fdtype car=pair->car, cdr=pair->cdr;
+  fd_decref(car); fd_decref(cdr);
+  if (!(FD_STATIC_CONSP(pair))) u8_free(pair);
+}
+
+/* Recycling pairs iteratively CDR-wise */
+
+/* We want to avoid deep call stacks for freeing long lists, so
+   we iterate in the CDR direction. */
+static void recycle_list(struct FD_PAIR *pair)
+{
+  fdtype car=pair->car, cdr=pair->cdr;
+  u8_free(pair); fd_decref(car);
+  if (!(FD_PAIRP(cdr))) {
+    fd_decref(cdr);
+    return;}
+  else pair=(fd_pair)cdr;
+#if FD_LOCKFREE_REFCOUNTS
+  while (1) {
+    struct FD_REF_CONS *cons=(struct FD_REF_CONS *)pair;
+    if (FD_STATIC_CONSP(pair)) return;
+    else {
+      car=pair->car; cdr=pair->cdr;}
+    fd_consbits newbits=atomic_fetch_sub(&(cons->fd_conshead),0x80)-0x80;
+    if (newbits<0x80) {
+      fd_decref(car);
+      if (FD_PAIRP(cdr)) {
+        atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
+        u8_free(pair);
+        pair=(fd_pair)cdr;}
+      else {
+        atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
+        fd_decref(cdr);
+        u8_free(pair);
+        return;}}
+    else return;}
+#else
+  if (FD_CONSP(cdr)) {
+    if (FD_PAIRP(cdr)) {
+      struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
+      FD_LOCK_PTR(xcdr);
+      while (FD_CONS_REFCOUNT(xcdr)==1) {
+        car=xcdr->car; cdr=xcdr->cdr;
+        FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
+        fd_decref(car);
+        if (FD_PAIRP(cdr)) {
+          xcdr=(fd_pair)cdr;
+          FD_LOCK_PTR(xcdr);
+          continue;}
+        else {xcdr=NULL; break;}}
+      if (xcdr) FD_UNLOCK_PTR(xcdr);
+      fd_decref(cdr);}
+    else fd_decref(cdr);}
+#endif
+}
+
+static void recycle_rawptr(struct FD_RAW_CONS *c);
+static void recycle_regex(struct FD_RAW_CONS *c);
+static void recycle_exception(struct FD_RAW_CONS *c);
+static void recycle_compound(struct FD_RAW_CONS *c);
+
+/* The main function */
 
 FD_EXPORT
 /* fd_recycle_cons:
@@ -160,62 +260,39 @@ void fd_recycle_cons(fd_raw_cons c)
 {
   int ctype=FD_CONS_TYPE(c);
   switch (ctype) {
-    case fd_rational_type:
-    case fd_complex_type:
-      if (fd_recyclers[ctype]) {
-        fd_recyclers[ctype](c);
-        return;}
-    case fd_pair_type: {
-      /* This is hairy in order to iteratively free up long lists. */
-      struct FD_PAIR *p=(struct FD_PAIR *)c;
-      fdtype cdr=p->cdr, car=p->car;
-      u8_free(p); fd_decref(car);
-      if (FD_CONSP(cdr)) {
-        if (FD_PAIRP(cdr)) {
-          struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
-          FD_LOCK_PTR(xcdr);
-          while (FD_CONS_REFCOUNT(xcdr)==1) {
-            car=xcdr->car; cdr=xcdr->cdr;
-            FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
-            fd_decref(car);
-            if (FD_PAIRP(cdr)) {
-              xcdr=(fd_pair)cdr;
-              FD_LOCK_PTR(xcdr);
-              continue;}
-            else {xcdr=NULL; break;}}
-          if (xcdr) FD_UNLOCK_PTR(xcdr);
-          fd_decref(cdr);}
-        else fd_decref(cdr);}
-      break;}
-    case fd_string_type: case fd_packet_type: case fd_secret_type: {
-      struct FD_STRING *s=(struct FD_STRING *)c;
-      if ((s->fd_bytes)&&(s->fd_freebytes)) u8_free(s->fd_bytes);
-      if (!(FD_STATIC_CONSP(s))) u8_free(s);
-      break;}
-    case fd_vector_type: case fd_rail_type: {
-      struct FD_VECTOR *v=(struct FD_VECTOR *)c;
-      int len=v->fdvec_length; fdtype *scan=v->fdvec_elts, *limit=scan+len;
-      if (scan) {
-        while (scan<limit) {fd_decref(*scan); scan++;}
-        if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
-      if (!(FD_STATIC_CONSP(v))) u8_free(v);
-      break;}
-    case fd_choice_type: {
-      struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
-      int len=cv->choice_size, atomicp=cv->choice_isatomic;
-      const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
-      if (scan == NULL) break;
-      if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
-      if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
-      break;}
-    case fd_qchoice_type: {
-      struct FD_QCHOICE *qc=(struct FD_QCHOICE *)c;
-      fd_decref(qc->qchoiceval);
-      if (!(FD_STATIC_CONSP(qc))) u8_free(qc);
-      break;}
-    default: {
-      if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
-    }
+  case fd_string_type: case fd_packet_type: case fd_secret_type: 
+    recycle_string((struct FD_STRING *)c);
+    return;
+  case fd_vector_type: case fd_rail_type:
+    recycle_vector((struct FD_VECTOR *)c);
+    return;
+  case fd_choice_type: 
+    recycle_choice((struct FD_CHOICE *)c);
+    return;
+  case fd_pair_type:
+    recycle_list((struct FD_PAIR *)c);
+    return;
+  case fd_compound_type:
+    recycle_compound(c);
+    return;
+  case fd_rational_type: case fd_complex_type:
+    recycle_pair((struct FD_PAIR *)c);
+    return;
+  case fd_uuid_type: case fd_timestamp_type:
+    u8_free(c);
+    return;
+  case fd_regex_type:
+    recycle_regex(c);
+    return;
+  case fd_rawptr_type:
+    recycle_rawptr(c);
+    return;
+  case fd_qchoice_type: 
+    recycle_qchoice((struct FD_QCHOICE *)c);
+    return;
+  default: {
+    if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
+  }
 }
 
 FD_EXPORT
@@ -921,7 +998,7 @@ FD_EXPORT fdtype fd_init_exception
    (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
 {
   if (exo==NULL) exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_error_type); exo->fd_u8ex=ex;
+  FD_INIT_CONS(exo,fd_error_type); exo->fdex_u8ex=ex;
   return FDTYPE_CONS(exo);
 }
 
@@ -936,28 +1013,28 @@ FD_EXPORT fdtype fd_make_exception
     xdata=(void *) content;
     freefn=fd_free_exception_xdata;}
   ex=u8_make_exception(c,cxt,details,xdata,freefn);
-  FD_INIT_CONS(exo,fd_error_type); exo->fd_u8ex=ex;
+  FD_INIT_CONS(exo,fd_error_type); exo->fdex_u8ex=ex;
   return FDTYPE_CONS(exo);
 }
 
 static void recycle_exception(struct FD_RAW_CONS *c)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
-  if (exo->fd_u8ex) {
-    u8_free_exception(exo->fd_u8ex,1);
-    exo->fd_u8ex=NULL;}
+  if (exo->fdex_u8ex) {
+    u8_free_exception(exo->fdex_u8ex,1);
+    exo->fdex_u8ex=NULL;}
   if (!(FD_STATIC_CONSP(exo))) u8_free(exo);
 }
 
 static int dtype_exception(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)x;
-  if (exo->fd_u8ex==NULL) {
+  if (exo->fdex_u8ex==NULL) {
     u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
     fd_write_byte(out,dt_void);
     return 1;}
   else {
-    u8_exception ex=exo->fd_u8ex;
+    u8_exception ex=exo->fdex_u8ex;
     fdtype irritant=fd_exception_xdata(ex);
     int veclen=((FD_VOIDP(irritant)) ? (3) : (4));
     fdtype vector=fd_init_vector(NULL,veclen,NULL);
@@ -981,12 +1058,12 @@ static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex=xo->fd_u8ex;
+  u8_exception ex=xo->fdex_u8ex;
   if (ex==NULL)
     u8_printf(out,"#<!OLDEXCEPTION>");
   else {
     u8_printf(out,"#<!EXCEPTION ");
-    fd_sum_exception(out,xo->fd_u8ex);
+    fd_sum_exception(out,xo->fdex_u8ex);
     u8_printf(out,"!>");}
   return 1;
 }
@@ -1015,7 +1092,7 @@ static fdtype copy_exception(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  return fd_init_exception(NULL,copy_exception_helper(xo->fd_u8ex,deep));
+  return fd_init_exception(NULL,copy_exception_helper(xo->fdex_u8ex,deep));
 }
 
 
@@ -1025,11 +1102,11 @@ static int unparse_mystery(u8_output out,fdtype x)
 {
   struct FD_MYSTERY_DTYPE *d=fd_consptr(struct FD_MYSTERY_DTYPE *,x,fd_mystery_type);
   char buf[128];
-  if (d->fd_dtcode&0x80)
+  if (d->myst_dtcode&0x80)
     sprintf(buf,_("#<MysteryVector 0x%x/0x%x %d elements>"),
-            d->fd_dtpackage,d->fd_dtcode,d->fd_dtlen);
+            d->myst_dtpackage,d->myst_dtcode,d->myst_dtsize);
   else sprintf(buf,_("#<MysteryPacket 0x%x/0x%x %d bytes>"),
-               d->fd_dtpackage,d->fd_dtcode,d->fd_dtlen);
+               d->myst_dtpackage,d->myst_dtcode,d->myst_dtsize);
   u8_puts(out,buf);
   return 1;
 }
@@ -1037,9 +1114,9 @@ static int unparse_mystery(u8_output out,fdtype x)
 static void recycle_mystery(struct FD_RAW_CONS *c)
 {
   struct FD_MYSTERY_DTYPE *myst=(struct FD_MYSTERY_DTYPE *)c;
-  if (myst->fd_dtcode&0x80)
-    u8_free(myst->fd_mystery_payload.fd_dtelts);
-  else u8_free(myst->fd_mystery_payload.fd_dtbytes);
+  if (myst->myst_dtcode&0x80)
+    u8_free(myst->mystery_payload.elts);
+  else u8_free(myst->mystery_payload.bytes);
   if (!(FD_STATIC_CONSP(myst))) u8_free(myst);
 }
 
@@ -1182,8 +1259,8 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm)
   memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   if (tm)
-    memcpy(&(tstamp->fd_u8xtime),tm,sizeof(struct U8_XTIME));
-  else u8_now(&(tstamp->fd_u8xtime));
+    memcpy(&(tstamp->ts_u8xtime),tm,sizeof(struct U8_XTIME));
+  else u8_now(&(tstamp->ts_u8xtime));
   return FDTYPE_CONS(tstamp);
 }
 
@@ -1207,11 +1284,11 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   if (reversible_time) {
     u8_puts(out,"#T");
-    u8_xtime_to_iso8601(out,&(tm->fd_u8xtime));
+    u8_xtime_to_iso8601(out,&(tm->ts_u8xtime));
     return 1;}
   else {
     u8_printf(out,"#<TIMESTAMP 0x%x \"",(unsigned int)x);
-    u8_xtime_to_iso8601(out,&(tm->fd_u8xtime));
+    u8_xtime_to_iso8601(out,&(tm->ts_u8xtime));
     u8_printf(out,"\">");
     return 1;}
 }
@@ -1227,7 +1304,7 @@ static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   else if ((n==3) && (FD_STRINGP(args[2])))
     timestring=FD_STRDATA(args[2]);
   else return fd_err(fd_CantParseRecord,"TIMESTAMP",NULL,FD_VOID);
-  u8_iso8601_to_xtime(timestring,&(tm->fd_u8xtime));
+  u8_iso8601_to_xtime(timestring,&(tm->ts_u8xtime));
   return FDTYPE_CONS(tm);
 }
 
@@ -1243,7 +1320,7 @@ static fdtype copy_timestamp(fdtype x,int deep)
   struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP);
   memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(newtm,fd_timestamp_type);
-  memcpy(&(newtm->fd_u8xtime),&(tm->fd_u8xtime),sizeof(struct U8_XTIME));
+  memcpy(&(newtm->ts_u8xtime),&(tm->ts_u8xtime),sizeof(struct U8_XTIME));
   return FDTYPE_CONS(newtm);
 }
 
@@ -1254,15 +1331,15 @@ static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
   int size=1;
   fd_write_byte(out,dt_compound);
   size=size+fd_write_dtype(out,timestamp_symbol);
-  if ((xtm->fd_u8xtime.u8_prec == u8_second) && (xtm->fd_u8xtime.u8_tzoff==0)) {
-    fdtype xval=FD_INT(xtm->fd_u8xtime.u8_tick);
+  if ((xtm->ts_u8xtime.u8_prec == u8_second) && (xtm->ts_u8xtime.u8_tzoff==0)) {
+    fdtype xval=FD_INT(xtm->ts_u8xtime.u8_tick);
     size=size+fd_write_dtype(out,xval);}
   else {
     fdtype vec=fd_init_vector(NULL,4,NULL);
-    int tzoff=xtm->fd_u8xtime.u8_tzoff;
-    FD_VECTOR_SET(vec,0,FD_INT(xtm->fd_u8xtime.u8_tick));
-    FD_VECTOR_SET(vec,1,FD_INT(xtm->fd_u8xtime.u8_nsecs));
-    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->fd_u8xtime.u8_prec));
+    int tzoff=xtm->ts_u8xtime.u8_tzoff;
+    FD_VECTOR_SET(vec,0,FD_INT(xtm->ts_u8xtime.u8_tick));
+    FD_VECTOR_SET(vec,1,FD_INT(xtm->ts_u8xtime.u8_nsecs));
+    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->ts_u8xtime.u8_prec));
     FD_VECTOR_SET(vec,3,FD_INT(tzoff));
     size=size+fd_write_dtype(out,vec);
     fd_decref(vec);}
@@ -1275,14 +1352,14 @@ static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->fd_u8xtime),FD_FIX2INT(x),u8_second,0,0,0);
+    u8_init_xtime(&(tm->ts_u8xtime),FD_FIX2INT(x),u8_second,0,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->fd_u8xtime),tval,u8_second,0,0,0);
+    u8_init_xtime(&(tm->ts_u8xtime),tval,u8_second,0,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_VECTORP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -1292,7 +1369,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
     int tzoff=fd_getint(FD_VECTOR_REF(x,3));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->fd_u8xtime),secs,iprec,nsecs,tzoff,0);
+    u8_init_xtime(&(tm->ts_u8xtime),secs,iprec,nsecs,tzoff,0);
     return FDTYPE_CONS(tm);}
   else return fd_err(fd_DTypeError,"bad timestamp compound",NULL,x);
 }

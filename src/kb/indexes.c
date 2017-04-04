@@ -841,7 +841,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
     int n_adds=ix->index_adds.table_n_keys;
     int n_keys=n_edits+n_adds, retval=0;
     if (n_keys==0) return 0;
-    u8_log(fdkb_loglevel,fd_IndexCommit,
+    u8_log(fdkb_loglevel+1,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->indexid);
     double start_time=u8_elapsed_time();
     if (ix->index_cache_level<0) {

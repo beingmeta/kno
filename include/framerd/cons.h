@@ -107,36 +107,61 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
    ((typecast)(u8_raise(fd_TypeError,fd_type2name(typecode),NULL),  \
                 NULL)))
 
+/* External functions */
+
+FD_EXPORT void _fd_decref_fn(fdtype);
+FD_EXPORT fdtype _fd_incref_fn(fdtype);
+
+FD_EXPORT void _FD_INIT_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
+
 /* Initializing CONSes */
 
-void _FD_INIT_CONS(fd_raw_cons ptr,fd_ptr_type type);
-void _FD_INIT_FRESH_CONS(fd_raw_cons ptr,fd_ptr_type type);
-void _FD_INIT_STACK_CONS(fd_raw_cons ptr,fd_ptr_type type);
-void _FD_INIT_STATIC_CONS(fd_raw_cons ptr,fd_ptr_type type);
-void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type);
+#if FD_LOCKFREE_REFCOUNTS
+#define FD_HEAD_INIT(type) (ATOMIC_VAR_INIT((type-(FD_CONS_TYPE_OFF))|0x80))
+#define FD_STATIC_INIT(type) (ATOMIC_VAR_INIT((type-(FD_CONS_TYPE_OFF))))
+#else
+#define FD_HEAD_INIT(type)   ((type-(FD_CONS_TYPE_OFF))|0x80)
+#define FD_STATIC_INIT(type) (type-(FD_CONS_TYPE_OFF))
+#endif
 
 #if FD_INLINE_REFCOUNTS
 #define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_FRESH_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+  ((fd_raw_cons)ptr)->fd_conshead=(FD_STATIC_INIT(type))
+#else
+#define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((struct FD_RAW_CONS *)ptr,type)
+#define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((struct FD_RAW_CONS *)ptr,type)
+#endif
+
+#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
+#define FD_CBITS(x) (((fd_ref_cons)x)->fd_conshead)
+#define FD_SET_CONS_TYPE(ptr,type) \
+  atomic_store							\
+  (&(FD_CBITS(ptr)),						\
+    (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
+     ((type-(FD_CONS_TYPE_OFF))&0x7f)))
+#elif FD_INLINE_REFCOUNTS
 #define FD_SET_CONS_TYPE(ptr,type) \
   ((fd_raw_cons)ptr)->fd_conshead=\
     ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
 #else
-#define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((fd_raw_cons)ptr,type)
-#define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((fd_raw_cons)ptr,type)
-#define FD_INIT_STACK_CONS(ptr,type) _FD_INIT_STACK_CONS((fd_raw_cons)ptr,type)
-#define FD_INIT_STATIC_CONS(ptr,type) _FD_INIT_STATIC_CONS((fd_raw_cons)ptr,type)
-#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((fd_raw_cons)ptr,type)
+#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
 #endif
+
 
 /* Hash locking for pointers */
 
@@ -146,7 +171,7 @@ void _FD_SET_CONS_TYPE(fd_raw_cons ptr,fd_ptr_type type);
 #define FD_PTRHASH_CONSTANT 2654435761
 #endif
 
-U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod) 
+U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod)
 {
   u8_wideint intrep = ((u8_wideint) ptr)>>4;
   return (intrep * FD_PTRHASH_CONSTANT) % mod;
@@ -161,8 +186,18 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 /* Reference counting GC */
 
+#if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
+#define FD_CONSBITS(x)      (atomic_load(&((x)->fd_conshead)))
+#define FD_CONS_REFCOUNT(x)  (FD_CONSBITS(x)>>7)
+#elif FD_INLINE_REFCOUNTS
 #define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#else
+#define FD_CONSBITS(x)      ((x)->fd_conshead)
+#define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#endif
+
+
 #define FD_MALLOCD_CONSP(x) ((FD_CONSBITS(x))>=0x80)
 #define FD_STATIC_CONSP(x)  (!(FD_MALLOCD_CONSP(x)))
 
@@ -200,8 +235,43 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
    is never reference counted.
 */
 
-#if FD_INLINE_REFCOUNTS
-FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
+#if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
+FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
+{
+  fd_consbits cb=atomic_load(&(x->fd_conshead));
+  if (cb>0xFFFFFF80) {
+    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
+    return (fdtype)NULL;}
+  else if ((cb&(~0x7F)) == 0) {
+    /* Static cons */
+    return (fdtype) x;}
+  else {
+    atomic_fetch_add(&(x->fd_conshead),0x80);
+#if HUGE_REFCOUNT
+    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
+      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
+#endif
+    return (fdtype) x;}
+}
+
+FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
+{
+  fd_consbits cb=atomic_load(&(x->fd_conshead));
+  if (cb>=0xFFFFFF80) {
+    u8_raise(fd_DoubleGC,"fd_decref",NULL);}
+  else if (cb<0x80) {
+    /* Static cons */}
+  else {
+    atomic_fetch_sub(&(x->fd_conshead),0x80);
+    fd_consbits dcb=atomic_load(&(x->fd_conshead));
+    if (dcb<0x80) {
+      atomic_store(&(x->fd_conshead),(dcb|0xFFFFFF80));
+      fd_recycle_cons((fd_raw_cons)x);}}
+}
+
+#elif FD_INLINE_REFCOUNTS
+
+FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
 {
   if (FD_CONSBITS(x)>0xFFFFFF80) {
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
@@ -220,7 +290,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
     return (fdtype) x;}
 }
 
-FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
+FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 {
   if (FD_CONSBITS(x)>=0xFFFFFF80) {
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
@@ -236,25 +306,25 @@ FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
       /* Someone else decref'd it before we got the lock, so we
 	 unlock and recycle it */
       FD_UNLOCK_PTR(x);
-      fd_recycle_cons(x);}}
+      fd_recycle_cons((struct FD_RAW_CONS *)x);}}
 }
+#endif
+
+#if FD_INLINE_REFCOUNTS
 
 #define fd_incref(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_RAW_CONS(x))))
+  ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_REF_CONS(x))))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
-	  (_fd_decref(FD_RAW_CONS(x)),FD_VOID)))
-#elif (FD_NO_GC)
-#define fd_incref(x) (x)
-#define fd_decref(x) ((void)(x))
+	  (_fd_decref(FD_REF_CONS(x)),FD_VOID)))
 #else
-FD_EXPORT void _fd_decref_fn(struct FD_RAW_CONS *x);
-FD_EXPORT fdtype _fd_incref_fn(struct FD_RAW_CONS *x);
+
 #define fd_incref(x) \
-   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(FD_RAW_CONS(x))))
+   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref_fn(x)))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
-	  (_fd_decref_fn(FD_RAW_CONS(x)),FD_VOID)))
+	  (_fd_decref_fn(x),FD_VOID)))
+
 #endif
 
 /* Conses */
@@ -614,15 +684,15 @@ FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
 
 typedef struct FD_MYSTERY_DTYPE {
   FD_CONS_HEADER;
-  unsigned char fd_dtpackage, fd_dtcode; unsigned int fd_dtlen;
+  unsigned char myst_dtpackage, myst_dtcode; unsigned int myst_dtsize;
   union {
-    fdtype *fd_dtelts; unsigned char *fd_dtbytes;} fd_mystery_payload;} FD_MYSTERY;
+    fdtype *elts; unsigned char *bytes;} mystery_payload;} FD_MYSTERY;
 typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
-  FD_CONS_HEADER; u8_exception fd_u8ex;} FD_EXCEPTION_OBJECT;
+  FD_CONS_HEADER; u8_exception fdex_u8ex;} FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
@@ -634,7 +704,7 @@ FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
 
 typedef struct FD_TIMESTAMP {
   FD_CONS_HEADER;
-  struct U8_XTIME fd_u8xtime;} FD_TIMESTAMP;
+  struct U8_XTIME ts_u8xtime;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
 FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm);
@@ -735,5 +805,21 @@ static int cons_compare(fdtype x,fdtype y)
 #include "choices.h"
 #include "tables.h"
 #include "fdregex.h"
+
+/* The zero-pool */
+
+/* OIDs with a high address of zero are treated specially. They are
+   "ephemeral OIDs" whose values are limited to the current runtime
+   session. */
+
+#ifndef FD_ZERO_POOL_MAX
+#define FD_ZERO_POOL_MAX 0x10000
+#endif
+
+FD_EXPORT fdtype fd_zero_pool_values0[4096];
+FD_EXPORT fdtype *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096];
+FD_EXPORT unsigned int fd_zero_pool_load;
+FD_EXPORT fdtype fd_zero_pool_value(fdtype oid);
+FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value);
 
 #endif /* ndef FRAMERD_CONS_H */

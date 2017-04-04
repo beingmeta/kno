@@ -71,6 +71,7 @@ DTYPE_HEADERS=\
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
+ include/framerd/bloom.h  			     \
  include/framerd/sequences.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
@@ -111,9 +112,11 @@ DTYPE_OBJS=\
 	src/cons/cons.o src/cons/numbers.o		\
 	src/cons/compare.o src/cons/walk.o		\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
-	src/cons/choices.o src/cons/tables.o src/cons/sequences.o		\
+	src/cons/tables.o src/cons/bloom.o		\
+	src/cons/sequences.o src/cons/choices.o 	\
 	src/cons/parse.o src/cons/unparse.o		\
-	src/cons/bufio.o src/cons/dtread.o src/cons/dtwrite.o		\
+	src/cons/bufio.o 				\
+	src/cons/dtread.o src/cons/dtwrite.o		\
 	src/cons/libfdtype.o src/cons/support.o		\
 	src/cons/config.o src/cons/err.o 		\
 	src/cons/logging.o src/cons/getopt.o 		\
@@ -123,15 +126,15 @@ REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/db/fdkbase.o src/db/streams.o src/db/hashdtype.o 		\
-	src/db/pools.o src/db/indexes.o	src/db/compoundindexes.o	\
-	src/db/dtproc.o src/db/dtcall.o 				\
-	src/db/methods.o src/db/xtables.o 				\
-	src/db/cachecall.o src/db/threadcache.o 			\
-	src/db/extindex.o src/db/extpool.o 				\
-	src/db/procpool.o src/db/procindex.o				\
-	src/db/mempool.o src/db/drivers.o				\
-	@ipevalo@ src/db/frames.o
+DB_OBJS=src/kb/fdkbase.o src/kb/streams.o src/kb/hashdtype.o 		\
+	src/kb/pools.o src/kb/indexes.o	src/kb/compoundindexes.o	\
+	src/kb/dtproc.o src/kb/dtcall.o 				\
+	src/kb/methods.o src/kb/xtables.o 				\
+	src/kb/cachecall.o src/kb/threadcache.o 			\
+	src/kb/extindex.o src/kb/extpool.o 				\
+	src/kb/procpool.o src/kb/procindex.o				\
+	src/kb/mempool.o src/kb/drivers.o				\
+	@ipevalo@ src/kb/frames.o
 
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
@@ -141,7 +144,7 @@ DRIVER_OBJS=\
 	src/drivers/htindex.o src/drivers/memindex.o    \
 	src/drivers/netindex.o
 
-FDKBSERV_OBJS=src/db/dbserv.o
+FDKBSERV_OBJS=src/kb/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -329,28 +332,29 @@ FRAMERD_HEADERS= \
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
         src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
-	src/cons/choices.c src/cons/tables.c src/cons/sequences.c	\
+	src/cons/choices.c src/cons/sequences.c				\
+	src/cons/tables.c src/cons/bloom.c				\
         src/cons/bufio.c src/cons/dtread.c src/cons/dtread.c 		\
 	src/cons/parse.c src/cons/unparse.c 				\
 	src/cons/libfdtype.c src/cons/support.c src/cons/config.c	\
 	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\
 	src/cons/startup.c src/cons/fluid.c				\
 	src/cons/apply.c src/cons/calltrack.c src/cons/ffi.c       	\
-	src/db/fdkbase.c src/db/streams.c src/db/hashdtype.c		\
-	src/db/drivers.c src/db/indexes.c src/db/pools.c 		\
-	src/db/xtables.c src/db/cachecall.c  				\
-	src/db/compoundindexes.c  					\
-	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
-	src/db/dtproc.c src/db/dtcall.c					\
-	src/db/ipeval.c 	       					\
+	src/kb/fdkbase.c src/kb/streams.c src/kb/hashdtype.c		\
+	src/kb/drivers.c src/kb/indexes.c src/kb/pools.c 		\
+	src/kb/xtables.c src/kb/cachecall.c  				\
+	src/kb/compoundindexes.c  					\
+	src/kb/threadcache.c src/kb/frames.c src/kb/methods.c		\
+	src/kb/dtproc.c src/kb/dtcall.c					\
+	src/kb/ipeval.c 	       					\
 	src/drivers/builtin_drivers.c  					\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\
 	src/drivers/bigpool.c 						\
 	src/drivers/fileindex.c src/drivers/hashindex.c			\
-	src/drivers/htindex.c src/db/extindex.c				\
-	src/db/mempool.c src/db/extpool.c				\
+	src/drivers/htindex.c src/kb/extindex.c				\
+	src/kb/mempool.c src/kb/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 			\
-	src/db/procpool.c src/db/procindex.c 				\
+	src/kb/procpool.c src/kb/procindex.c 				\
 	src/drivers/memindex.c						\
 	src/drivers/netpool.c src/drivers/netindex.c			\
 	src/eval/eval.c src/eval/binders.c src/eval/sprocs.c 		\
@@ -469,6 +473,8 @@ buildmode:
 	@echo normal > buildmode
 showbuildmode showmode showbuild: buildmode
 	@cat buildmode
+cleandebug: clean
+	make debug
 
 # configure/autoconf stuff
 
@@ -489,13 +495,13 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 
 tests/cons/makefile: tests/cons/makefile.in ./configure
 	./configure
-tests/db/makefile: tests/db/makefile.in ./configure
+tests/kb/makefile: tests/kb/makefile.in ./configure
 	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
 	./configure
 tests/cons/.gdbinit: tests/cons/.gdbinit.in ./configure
 	./configure
-tests/db/.gdbinit: tests/db/.gdbinit.in ./configure
+tests/kb/.gdbinit: tests/kb/.gdbinit.in ./configure
 	./configure
 tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
 	./configure
@@ -526,7 +532,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit \
+	tests/cons/.gdbinit tests/kb/.gdbinit tests/scheme/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -684,9 +690,9 @@ testbin: constestbin dbtestbin schemetestbin etc/usememory
 constestbin: libs tests/cons/makefile tests/cons/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/cons
-dbtestbin: libs tests/db/makefile tests/db/.gdbinit
+dbtestbin: libs tests/kb/makefile tests/kb/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/db
+		-C tests/kb
 schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/scheme testbin
@@ -732,9 +738,9 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/cons/*.c tests/db/*.c tests/scheme/*.c 		\
+		tests/cons/*.c tests/kb/*.c tests/scheme/*.c 		\
 		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
-		src/cons/*.c src/db/*.c src/drivers/*.c 		\
+		src/cons/*.c src/kb/*.c src/drivers/*.c 		\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		etc/*.in ${SRC_HEADERS} 				\
@@ -743,22 +749,22 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/cons/*.c src/db/*.c src/drivers/*.c
+	@etags -o TAGS -a src/cons/*.c src/kb/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/cons/*.c tests/db/*.c;
+	@etags -o TAGS -a tests/cons/*.c tests/kb/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
+		tests/cons/*.c tests/kb/*.c tests/scheme/*.c src/exe/*.c \
+		src/cons/*.c src/kb/*.c src/eval/*.c src/web/*.c     \
 		src/text/*.c src/cmodules/*.c         \
 		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/cons/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-	      src/cons/*.c src/db/*.c src/eval/*.c src/web/*.c     \
+	      tests/cons/*.c tests/kb/*.c tests/scheme/*.c src/exe/*.c \
+	      src/cons/*.c src/kb/*.c src/eval/*.c src/web/*.c     \
 	      src/text/*.c src/cmodules/*.c         \
 	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
@@ -799,13 +805,13 @@ clean: tidy
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
 	cd tests/cons; make clean
-	cd tests/db; make clean
+	cd tests/kb; make clean
 	cd tests/scheme; make clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/cons/makefile tests/db/makefile tests/scheme/makefile
-	rm -f tests/cons/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/cons/makefile tests/kb/makefile tests/scheme/makefile
+	rm -f tests/cons/.gdbinit tests/kb/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -827,10 +833,11 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 # Custom rules
 
 src/cons/dtread.o src/cons/dtwrite.o src/cons/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/cons/tables.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/cons/choices.o : XCFLAGS="${OPTFLAGS}"
+src/cons/tables.o src/cons/bloom.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
 src/cons/numbers.o src/cons/compare.o : XCFLAGS="${OPTFLAGS}"
 src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
-src/db/streams.o : XCFLAGS="${OPTFLAGS}"
+src/kb/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
 src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"

@@ -996,6 +996,16 @@ fi
 AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
 
+AC_CHECK_HEADERS(stdatomic.h)
+
+AC_ARG_ENABLE(lockfree,--en[dis]able-lockfree Enables lock-free reference counting,,enable_lockfree="yes")
+if test "$enable_lockfree" = "yes"; then
+  AC_DEFINE(FD_ENABLE_LOCKFREE,1)
+else
+  AC_DEFINE(FD_ENABLE_LOCKFREE,0)
+fi
+
+
 AC_ARG_ENABLE(checkptrs,--en[dis]able-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
 if test "$enable_checkfdtype" = "yes"; then
   AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,1)
@@ -1491,7 +1501,7 @@ fi
 dnl This enables the ipeval implementation within FramerD
 AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
 if test $enable_ipeval = "yes"; then
-  ipevalo=src/db/ipeval.o
+  ipevalo=src/kb/ipeval.o
   AC_DEFINE(FD_IPEVAL_ENABLED,1)
 else
   AC_DEFINE(FD_IPEVAL_ENABLED,0)
@@ -1578,11 +1588,11 @@ if (test ! -f src/scheme/gpath.scm); then
 fi;
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
-           tests/cons/makefile tests/db/makefile
+           tests/cons/makefile tests/kb/makefile
 	   tests/scheme/makefile DIY/makefile 
            etc/gdbinit
 	   exe/.gdbinit tests/cons/.gdbinit
-	   tests/db/.gdbinit tests/scheme/.gdbinit
+	   tests/kb/.gdbinit tests/scheme/.gdbinit
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl

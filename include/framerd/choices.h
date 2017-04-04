@@ -184,6 +184,7 @@ typedef struct FD_ACHOICE *fd_achoice;
   (((FD_XACHOICE(x))->achoice_write)-((FD_XACHOICE(x))->achoice_data))
 FD_EXPORT fdtype fd_make_achoice(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock);
+FD_EXPORT struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags);
 FD_EXPORT fdtype _fd_add_to_choice(fdtype current,fdtype add);
 FD_EXPORT fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices);
 FD_EXPORT int _fd_choice_size(fdtype x);
@@ -289,7 +290,7 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
   if (ch->achoice_uselock)
     u8_unlock_mutex(&(ch->achoice_lock));
 }
-static fdtype _add_to_choice(fdtype current,fdtype new)
+static U8_MAYBE_UNUSED fdtype _add_to_choice(fdtype current,fdtype new)
 {
   FD_PTR_CHECK1(new,"_add_to_choice");
   if (FD_EMPTY_CHOICEP(new)) return current;
