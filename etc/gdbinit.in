@@ -23,6 +23,16 @@ define heapcheck
   set env HEAPPROFILE=/tmp/heap.profiles/heapprof
   set env HEAPCHECK=normal # strict|draconian
 end
+define xp
+  print/x $1
+end
+define xpp
+  if ((!($2)) || ($2=="") )
+    print/x *$1
+  else
+    print/x *(($2)($1))
+  end
+end
 define dtype
   printf "%s\n",fd_dtype2string($arg0)
 end
@@ -30,7 +40,7 @@ define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
 end
 define showtype
-  typecode=(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
+  set $typecode (((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
   printf "type is 0x%x: %s\n",${typecode},fd_type_names[${typecode}]
 end
 define dtypeout
