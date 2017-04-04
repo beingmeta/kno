@@ -33,8 +33,22 @@ define xpp
     print/x *(($2)($1))
   end
 end
+define xp
+  print/x $arg0
+end
+define xpp
+  if ($argc == 1)
+    print/x *$arg0
+  else
+    print *(($arg1)($arg0))
+  end
+end
 define dtype
   printf "%s\n",fd_dtype2string($arg0)
+end
+define showtype
+  set $t = (((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
+  printf "type is 0x%x: %s\n",$t,fd_type_names[$t]
 end
 define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
