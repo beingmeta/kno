@@ -501,7 +501,7 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
 FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *argvec)
 {
   u8_byte namebuf[60];
-  u8_string fname=NULL;
+  u8_string fname="apply";
   fd_ptr_type ftype=FD_PRIM_TYPE(fn);
   struct FD_FUNCTION *f=NULL;
 
@@ -521,7 +521,7 @@ FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *
   /* Make the call */
   if (stackcheck()) {
     fdtype result=FD_VOID;
-    FD_WITH_STACK(fname||"apply",caller,fn,n,argvec);
+    FD_WITH_STACK(fname,caller,fn,n,argvec);
     U8_WITH_CONTOUR(fname,0)
       if (f) result=apply_fcn(fname,f,n,argvec);
       else result=fd_applyfns[ftype](fn,n,argvec);

@@ -347,7 +347,7 @@ fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
 
 #define FD_WITH_STACK(label,caller,op,n,args) \
   struct FD_STACK __fdstack, *_fdstack=&__fdstack; \
-  fd_setup_stack(stack,label,caller,op,n,args)
+  fd_setup_stack(_fdstack,caller,label,op,n,args)
 
 /* Stack checking */
 
