@@ -567,39 +567,44 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
   else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))
-    u8_log(fdkb_loglevel,"SwapPool",
+    u8_log(fdkb_loglevel+2,"SwapPool",
            "Swapping out %d oids in pool %s",
            FD_CHOICE_SIZE(oids),p->poolid);
   else if (FD_ACHOICEP(oids))
-    u8_log(fdkb_loglevel,"SwapPool",
+    u8_log(fdkb_loglevel+2,"SwapPool",
            "Swapping out ~%d oids in pool %s",
            FD_ACHOICE_SIZE(oids),p->poolid);
-  else u8_log(fdkb_loglevel,"SwapPool",
+  else u8_log(fdkb_loglevel+2,"SwapPool",
               "Swapping out oids in pool %s",p->poolid);
+  int rv=-1;
+  double started=u8_elapsed_time();
   if (p->pool_handler->swapout) {
     p->pool_handler->swapout(p,oids);
     u8_log(fdkb_loglevel+1,"SwapPool",
            "Finished custom swapout for pool %s, clearing caches...",
            p->poolid);}
-  else u8_log(fdkb_loglevel+1,"SwapPool",
+  else u8_log(fdkb_loglevel+2,"SwapPool",
               "No custom swapout clearing caches for %s",p->poolid);
   if (p->pool_flags&FDKB_NOSWAP)
     return 0;
-  else if (FD_OIDP(oids))
-    return fd_hashtable_store(cache,oids,FD_VOID);
+  else if (FD_OIDP(oids)) {
+    fd_hashtable_store(cache,oids,FD_VOID);
+    rv=1;}
   else if (FD_CHOICEP(oids)) {
-    int rv=FD_CHOICE_SIZE(oids);
+    rv=FD_CHOICE_SIZE(oids);
     fd_hashtable_iterkeys(cache,fd_table_replace,
                           FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),
                           FD_VOID);
-    fd_devoid_hashtable(cache,0);
-    return rv;}
+    fd_devoid_hashtable(cache,0);}
   else {
-    int rv=cache->table_n_keys;
+    rv=cache->table_n_keys;
     if ((p->pool_flags)&(FDKB_KEEP_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
-    else fd_reset_hashtable(cache,fd_pool_cache_init,1);
-    return rv;}
+    else fd_reset_hashtable(cache,fd_pool_cache_init,1);}
+  u8_log(fdkb_loglevel+1,"SwapPool",
+         "Swapped out %d oids from pool '%s' in %f",
+         rv,p->poolid,u8_elapsed_time()-started);
+  return rv;
 }
 
 
@@ -770,7 +775,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
       (FD_TRUEP(oids)) ? (pick_modified(p,1)):
       (pick_writes(p,FD_EMPTY_CHOICE));
     if (writes.len) {
-      u8_log(fdkb_loglevel,"PoolCommit",
+      u8_log(fdkb_loglevel+1,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
              writes.len,p->pool_changes.table_n_keys,
              p->poolid);
