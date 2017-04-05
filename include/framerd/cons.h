@@ -187,11 +187,11 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 /* Reference counting GC */
 
 #if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
-#define FD_CONSBITS(x)      (atomic_load(&((x)->fd_conshead)))
+#define FD_CONSBITS(x)       (atomic_load(&(((fd_ref_cons)x)->fd_conshead)))
 #define FD_CONS_REFCOUNT(x)  (FD_CONSBITS(x)>>7)
 #elif FD_INLINE_REFCOUNTS
-#define FD_CONSBITS(x)      ((x)->fd_conshead)
-#define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#define FD_CONSBITS(x)       ((x)->fd_conshead)
+#define FD_CONS_REFCOUNT(x)  (((x)->fd_conshead)>>7)
 #else
 #define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
