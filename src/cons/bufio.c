@@ -75,7 +75,7 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 
 /* Growing buffers */
 
-static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
+static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
   if ((b->buf_flushfn)&&
       (b->bufwrite>b->buffer)&&
@@ -87,7 +87,14 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
       return result;}
     /* See if that fixed it */
     else if (b->bufwrite+delta<b->buflim) 
-      return 1;
+      return b->buflen;
+    else if (((b->bufwrite-b->buffer)+delta)<b->buflen) {
+      /* You've got the space in the buffer */
+      b->buflim=b->bufwrite+delta;
+      return (b->bufwrite+delta)-b->buffer;}
+    else if (U8_BITP(b->buf_flags,FD_BUFFER_NO_GROW)) {
+      u8_log(LOGWARN,"WriteFailed","Can't grow buffer");
+      return -1;}
     else {/* Go ahead and grow the buffer */}}
   size_t current_size=b->bufwrite-b->buffer;
   size_t current_limit=b->buflim-b->buffer;
@@ -111,15 +118,18 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
   return 1;
 }
 
-static int grow_input_buffer(struct FD_INBUF *in,int delta)
+static ssize_t grow_input_buffer(struct FD_INBUF *in,int delta)
 {
   struct FD_RAWBUF *b=(struct FD_RAWBUF *)in;
-  size_t current_size=b->bufpoint-b->buffer;
+  size_t current_point=b->bufpoint-b->buffer;
   size_t current_limit=b->buflim-b->buffer;
   size_t new_limit=current_limit;
-  size_t need_size=current_size+delta;
+  size_t need_size=current_point+delta;
   unsigned char *new;
   if (new_limit<=0) new_limit=1000;
+  else if (new_limit<current_limit) 
+    new_limit=current_limit;
+  else {}
   while (new_limit < need_size)
     if (new_limit>=250000) new_limit=new_limit+25000;
     else new_limit=new_limit*2;
@@ -127,13 +137,13 @@ static int grow_input_buffer(struct FD_INBUF *in,int delta)
     new=u8_realloc(b->buffer,new_limit);
   else {
     new=u8_malloc(new_limit);
-    if (new) memcpy(new,b->buffer,current_size);
+    if (new) memcpy(new,b->buffer,current_point);
     b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
-  b->buffer=new; b->bufpoint=new+current_size;
-  b->buflim=b->buffer+new_limit;
+  b->buffer=new; b->bufpoint=new+current_point;
+  b->buflim=b->buffer+current_limit;
   b->buflen=new_limit;
-  return 1;
+  return new_limit;
 }
 
 FD_EXPORT int fd_needs_space(struct FD_OUTBUF *b,size_t delta)

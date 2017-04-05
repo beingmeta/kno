@@ -32,10 +32,18 @@
 #include <sys/socket.h>
 #endif
 
+#if HAVE_MMAP
+#include <sys/mman.h>
+#endif
+
 #if ((FD_LARGEFILES_ENABLED) && (defined(O_LARGEFILE)))
 #define POSIX_OPEN_FLAGS O_LARGEFILE
 #else
 #define POSIX_OPEN_FLAGS 0
+#endif
+
+#ifndef FD_MMAP_GROW
+#define FD_MMAP_GROW 0x40000000
 #endif
 
 size_t fd_stream_bufsize=FD_STREAM_BUFSIZE;
@@ -54,6 +62,7 @@ fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
 #define FD_DEBUG_DTYPEIO 0
 
 FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
+
 static ssize_t stream_fillfn(fd_inbuf buf,size_t n,void *vdata)
 {
   return fd_fill_stream((struct FD_STREAM *)vdata,n);
@@ -61,6 +70,74 @@ static ssize_t stream_fillfn(fd_inbuf buf,size_t n,void *vdata)
 static ssize_t stream_flushfn(fd_outbuf buf,void *vdata)
 {
   return fd_flush_stream((struct FD_STREAM *)vdata);
+}
+static ssize_t mmap_read_update(struct FD_STREAM *stream)
+{
+  struct FD_RAWBUF *buf=&(stream->buf.raw);
+  int fd=stream->stream_fileno;
+  struct stat fileinfo;
+  if (fstat(fd,&fileinfo)<0) {
+    u8_graberrno("mmap_stream_fillfn:fstat",u8_strdup(stream->streamid));
+    return -1;}
+  else {
+    size_t old_size=buf->buflen, new_size=fileinfo.st_size;
+    unsigned char *newbuf, *oldbuf=buf->buffer;
+    int prot=(U8_BITP(stream->stream_flags,FD_STREAM_READ_ONLY)) ?
+      (PROT_READ) : (PROT_READ|PROT_WRITE) ;
+    int flags=(U8_BITP(stream->stream_flags,FD_STREAM_READ_ONLY)) ?
+      (MAP_NORESERVE|MAP_SHARED) :
+      (MAP_SHARED);
+    if (mmap(&newbuf,new_size,prot,flags,fd,0)<0) {
+      u8_graberrno("mmap_stream_fillfn:mmap",u8_strdup(stream->streamid));
+      return -1;}
+    unsigned int point_off=(oldbuf)?(buf->bufpoint-buf->buffer):(0);
+    buf->buflen=new_size; 
+    buf->buffer=newbuf; 
+    buf->bufpoint=newbuf+point_off;
+    buf->buflim=newbuf+fileinfo.st_size;
+    if ((oldbuf)&&(munmap(oldbuf,old_size)<0)) {
+      u8_graberrno("mmap_stream_fillfn:munmap",u8_strdup(stream->streamid));
+      return -1;}
+    else return new_size;}
+}
+
+static ssize_t mmap_write_update(struct FD_STREAM *stream,int grow)
+{
+  struct FD_RAWBUF *buf=&(stream->buf.raw);
+  int fd=stream->stream_fileno;
+  struct stat fileinfo;
+  if (fstat(fd,&fileinfo)<0) {
+    u8_graberrno("mmap_stream_flushfn:fstat",u8_strdup(stream->streamid));
+    return -1;}
+  else {
+    if (msync(buf->buffer,buf->buflen,MS_SYNC|MS_INVALIDATE)<0) {
+      u8_graberrno("mmap_stream_flushfn:msync",u8_strdup(stream->streamid));
+      return -1;}
+    size_t point_off=buf->bufpoint-buf->buffer, old_size=buf->buflen;
+    if (munmap(buf->buffer,buf->buflen)<0) {
+      u8_graberrno("mmap_stream_flushfn:munmap",u8_strdup(stream->streamid));
+      return -1;}
+    else {
+      buf->buffer=NULL; buf->bufpoint=NULL; buf->buflim=NULL; buf->buflen=0;
+      size_t min_size=fileinfo.st_size, new_size=old_size;
+      unsigned char *newbuf, *oldbuf=buf->buffer;
+      if (grow) {
+        if (old_size<FD_MMAP_GROW) 
+          while (new_size<min_size) new_size=new_size*2;
+        else while (new_size<min_size) new_size=new_size+FD_MMAP_GROW;
+        if (ftruncate(fd,new_size)<0) {
+          u8_graberrno("mmap_stream_flushfn:ftruncate",u8_strdup(stream->streamid));
+          return -1;}}
+      else new_size=fileinfo.st_size;
+      if (mmap(&newbuf,new_size,(PROT_READ|PROT_WRITE),MAP_SHARED,fd,0)<0) {
+        u8_graberrno("mmap_stream_flushfn:mmap",u8_strdup(stream->streamid));
+        return -1;}
+      else {
+        buf->buflen=new_size; 
+        buf->buffer=newbuf; 
+        buf->bufpoint=newbuf+point_off;
+        buf->buflim=newbuf+fileinfo.st_size;
+        return new_size;}}}
 }
 
 static U8_MAYBE_UNUSED u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
