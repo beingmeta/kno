@@ -26,8 +26,8 @@ FD_EXPORT u8_condition fd_Commitment;
 FD_EXPORT fd_exception fd_BadMetaData;
 FD_EXPORT fd_exception fd_ConnectionFailed;
 
-FD_EXPORT int fd_init_dbs(void) FD_LIBINIT_FN;
-FD_EXPORT int fd_init_dblib(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_kbdrivers(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_kblib(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_init_fdkbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT int fd_default_cache_level;

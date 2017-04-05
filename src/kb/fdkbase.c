@@ -493,7 +493,7 @@ FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
 FD_EXPORT int fd_init_drivers_c(void);
 
-FD_EXPORT int fd_init_dblib()
+FD_EXPORT int fd_init_kblib()
 {
   if (fdkbase_initialized) return fdkbase_initialized;
   fdkbase_initialized=211*fd_init_libfdtype();

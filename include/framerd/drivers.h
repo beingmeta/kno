@@ -15,7 +15,7 @@ FD_EXPORT size_t fd_driver_bufsize;
 
 FD_EXPORT int fd_acid_files;
 
-FD_EXPORT int fd_init_dbs(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_kbdrivers(void) FD_LIBINIT_FN;
 
 typedef enum FD_OFFSET_TYPE { FD_B32=0, FD_B40=1, FD_B64=2 } fd_offset_type;
 typedef enum FD_COMPRESS_TYPE {

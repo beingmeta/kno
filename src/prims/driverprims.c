@@ -192,7 +192,7 @@ FD_EXPORT void fd_init_driverfns_c()
   if (scheme_driverfns_initialized) return;
   scheme_driverfns_initialized=1;
   fd_init_fdscheme();
-  fd_init_dbs();
+  fd_init_kbdrivers();
   driverfns_module=fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 

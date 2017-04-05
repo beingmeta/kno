@@ -598,7 +598,7 @@ static int simplecgi(fdtype path)
 
 /* The main() event */
 
-FD_EXPORT int fd_init_dbs(void);
+FD_EXPORT int fd_init_kbdrivers(void);
 
 int main(int argc,char **argv)
 {
@@ -662,7 +662,7 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_fdweb();
-  fd_init_dbs();
+  fd_init_kbdrivers();
 
   init_webcommon_data();
   init_webcommon_symbols();

@@ -2182,7 +2182,7 @@ FD_EXPORT int fd_init_fdscheme()
 {
   if (fdscheme_initialized) return fdscheme_initialized;
   else {
-    fdscheme_initialized=401*fd_init_dblib()*u8_initialize();
+    fdscheme_initialized=401*fd_init_kblib()*u8_initialize();
 
     fd_init_eval_c();
 
