@@ -174,7 +174,12 @@ FD_EXPORT fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
 FD_EXPORT int fd_n_pools;
 
 FD_EXPORT fd_pool fd_default_pool;
-FD_EXPORT fd_pool fd_zero_pool;
+FD_EXPORT struct FD_POOL _fd_zero_pool;
+#define fd_zero_pool (&(_fd_zero_pool))
+
+FD_EXPORT fdtype fd_zero_pool_value(fdtype oid);
+FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype);
+
 
 FD_EXPORT int fd_register_pool(fd_pool p);
 FD_EXPORT fdtype fd_all_pools(void);

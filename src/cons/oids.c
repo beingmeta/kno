@@ -195,7 +195,8 @@ FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value)
           bucket=u8_alloc_n(4096,fdtype);
           fd_zero_pool_buckets[bucket_no]=bucket;}
         fdtype current=bucket[bucket_off];
-        fd_decref(current);
+        if ((current)&&(FD_CONSP(current)))
+          fd_decref(current);
         bucket[bucket_off]=fd_incref(value);
         u8_unlock_mutex(&zero_pool_lock);
         return FD_VOID;}}
@@ -231,6 +232,8 @@ void fd_init_oids_c()
 
   u8_init_mutex(&zero_pool_lock);
   memset(fd_zero_pool_values,0,sizeof(fd_zero_pool_values));
+  memset(fd_zero_pool_buckets,0,sizeof(fd_zero_pool_buckets));
+  fd_zero_pool_buckets[0]=fd_zero_pool_values;
 }
 
 /* Emacs local variables

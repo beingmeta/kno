@@ -317,8 +317,6 @@ static fdkb_flags getdbflags(fdtype opts)
     flags|=FDKB_READ_ONLY;
   if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
     flags|=FDKB_UNREGISTERED;
-  if (!(fd_testopt(opts,fd_intern("UNCACHED"),FD_VOID)))
-    flags|=FDKB_NOCACHE;
   return flags;
 }
 

@@ -57,10 +57,8 @@ typedef unsigned int fdkb_flags;
 #define FDKB_READ_ONLY		   0x04
 #define FDKB_ISCONSED		   0x08
 #define FDKB_UNREGISTERED	   0x10
-#define FDKB_NOCACHE		   0x20
-#define FDKB_KEEP_CACHESIZE        0x40
-#define FDKB_CACHELEVEL_SET        0x80
-#define FDKB_NOSWAP		   0x100
+#define FDKB_KEEP_CACHESIZE        0x20
+#define FDKB_NOSWAP		   0x40
 #define FDKB_MAX_INIT_BITS	   0x800
 #define FDKB_MAX_STATE_BITS	   0x1000
 
