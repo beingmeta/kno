@@ -2319,10 +2319,10 @@ static int hashindex_commit(struct FD_INDEX *ix)
     sched_i=0; bucket_i=0; endpos=fd_endpos(stream);
     while (sched_i<schedule_size) {
       struct KEYBUCKET *kb=keybuckets[bucket_i];
-      int bucket=schedule[sched_i].commit_bucket, j=sched_i, cur_keys;
+      int bucket=schedule[sched_i].commit_bucket;
+      int j=sched_i, cur_keys=kb->kb_n_keys;
       assert(bucket==kb->kb_bucketno);
       while ((j<schedule_size) && (schedule[j].commit_bucket==bucket)) j++;
-      cur_keys=kb->kb_n_keys;
       /* This may write values to disk, so we use the returned endpos */
       endpos=extend_keybucket(hx,kb,schedule,sched_i,j,&newkeys,endpos,maxpos);
       CHECK_POS(endpos,&(hx->index_stream));
