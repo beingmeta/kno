@@ -95,7 +95,26 @@ static fdtype static_hashtable(fdtype table)
 {
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
   fd_write_lock_table(ht);
+  fd_static_hashtable(ht,-1);
   ht->table_uselock=0;
+  fd_unlock_table(ht);
+  return fd_incref(table);
+}
+
+static fdtype unsafe_hashtable(fdtype table)
+{
+  struct FD_HASHTABLE *ht=(fd_hashtable)table;
+  fd_write_lock_table(ht);
+  ht->table_uselock=0;
+  fd_unlock_table(ht);
+  return fd_incref(table);
+}
+
+static fdtype resafe_hashtable(fdtype table)
+{
+  struct FD_HASHTABLE *ht=(fd_hashtable)table;
+  fd_write_lock_table(ht);
+  ht->table_uselock=1;
   fd_unlock_table(ht);
   return fd_incref(table);
 }
@@ -982,6 +1001,8 @@ FD_EXPORT void fd_init_tableprims_c()
                            fd_fixnum_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("STATIC-HASHTABLE",static_hashtable,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("UNSAFE-HASHTABLE",unsafe_hashtable,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("RESAFE-HASHTABLE",resafe_hashtable,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PICK-HASHTABLE-SIZE",pick_hashtable_size,1,

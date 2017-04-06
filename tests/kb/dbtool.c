@@ -48,7 +48,7 @@ static void print_table(fdtype frames,fdtype slotids)
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbs();
+  int fd_version=fd_init_kbdrivers();
   if (fd_version<0) exit(1);
   fd_set_config("OIDDISPLAY",FD_INT(3));
   if (argc==2) {

@@ -15,6 +15,12 @@ FD_EXPORT fd_exception fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;
 
 FD_EXPORT u8_context fd_apply_context;
 
+FD_EXPORT int fd_wrap_apply;
+
+#ifndef FD_WRAP_APPLY_DEFAULT
+#define FD_WRAP_APPLY_DEFAULT 0
+#endif
+
 #ifndef FD_INLINE_STACKS
 #define FD_INLINE_STACKS 0
 #endif
@@ -61,7 +67,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
   FD_CONS_HEADER;							\
   u8_string fcn_name, fcn_filename;					\
   u8_string fcn_documentation;						\
-  unsigned int fcn_ndcall:1, fcn_xcall:1;				\
+  unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1;		\
   fdtype fcnid;								\
   short fcn_arity, fcn_min_arity;					\
   fdtype fcn_attribs;							\

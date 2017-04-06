@@ -377,6 +377,8 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
 {
   if (p->pool_handler->lock==NULL) {
     return fd_fetch_oid(p,oid);}
+  else if (p==fd_zero_pool)
+    return fd_zero_pool_value(oid);
   else {
     fdtype smap=fd_hashtable_get(&(p->pool_changes),oid,FD_VOID);
     if (FD_VOIDP(smap)) {
@@ -402,6 +404,8 @@ FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
   fd_pool p=fd_oid2pool(oid);
   if (p==NULL)
     return fd_reterr(fd_AnonymousOID,"SET-OID_VALUE!",NULL,oid);
+  else if (p==fd_zero_pool)
+    return fd_zero_pool_store(oid,value);
   else {
     if ((FD_SLOTMAPP(value))||(FD_SCHEMAPP(value))||(FD_HASHTABLEP(value)))
       fd_set_modified(value,1);
@@ -418,19 +422,27 @@ FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
 
 FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid)
 {
-  fdtype v;
+  fdtype v=FD_VOID;
   init_cache_level(p);
-  if (p->pool_handler->fetch)
+  if (p==fd_zero_pool)
+    return fd_zero_pool_value(oid);
+  else if (p->pool_handler->fetch)
     v=p->pool_handler->fetch(p,oid);
-  else v=fd_hashtable_get(&(p->pool_cache),oid,FD_EMPTY_CHOICE);
+  else if (p->pool_cache_level)
+    v=fd_hashtable_get(&(p->pool_cache),oid,FD_EMPTY_CHOICE);
+  else {}
   if (FD_ABORTP(v)) return v;
-  /* If it's locked, store it in the locks table */
-  if ( (p->pool_changes.table_n_keys) &&
-       (fd_hashtable_op(&(p->pool_changes),fd_table_replace_novoid,oid,v)) )
+  else if (p->pool_cache_level == 0)
     return v;
-  if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
+  /* If it's locked, store it in the locks table */
+  else if ( (p->pool_changes.table_n_keys) &&
+            (fd_hashtable_op(&(p->pool_changes),fd_table_replace_novoid,oid,v)) )
+    return v;
+  else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
   else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}
-  if (p->pool_cache_level>0) fd_hashtable_store(&(p->pool_cache),oid,v);
+  else {}
+  if (p->pool_cache_level>0)
+    fd_hashtable_store(&(p->pool_cache),oid,v);
   return v;
 }
 
@@ -461,7 +473,8 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
         n_fetches++; fd_decref(v);}
       return n_fetches;}}
   if (FD_ACHOICEP(oids)) {
-    oids=fd_make_simple_choice(oids); decref_oids=1;}
+    oids=fd_make_simple_choice(oids); 
+    decref_oids=1;}
   if (fd_ipeval_status()) {
     FD_HASHTABLE *cache=&(p->pool_cache); int n_to_fetch=0;
     /* fdtype oidschoice=fd_make_simple_choice(oids); */
@@ -613,7 +626,9 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
 {
   fdtype result=p->pool_handler->alloc(p,n);
-  if (FD_OIDP(result)) {
+  if (p==fd_zero_pool)
+    return result;
+  else if (FD_OIDP(result)) {
     if (p->pool_handler->lock)
       fd_hashtable_store(&(p->pool_changes),result,FD_EMPTY_CHOICE);
     else fd_hashtable_store(&(p->pool_cache),result,FD_EMPTY_CHOICE);
@@ -1145,7 +1160,10 @@ FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid)
     if (!(FD_VOIDP(value))) return value;}
   if (p==NULL) p=fd_oid2pool(oid);
   if (p==NULL) return fd_anonymous_oid("fd_fetch_oid",oid);
-  else if ( (p->pool_changes.table_n_keys) &&
+  else if (p==fd_zero_pool)
+    return fd_zero_pool_value(oid);
+  else if ( (p->pool_cache_level) &&
+            (p->pool_changes.table_n_keys) &&
             (fd_hashtable_probe_novoid(&(p->pool_changes),oid)) ) {
     /* This is where the OID is 'locked' (has an entry in the changes
        table */
@@ -1421,7 +1439,8 @@ fdtype fd_cached_oids(fd_pool p)
 
 /* Common pool initialization stuff */
 
-FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
+FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
+                            unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
                             u8_string source,u8_string cid)
 {
@@ -1770,10 +1789,9 @@ FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
 
 /* The zero pool */
 
-struct FD_POOL zero_pool;
+struct FD_POOL _fd_zero_pool;
 static u8_mutex zero_pool_alloc_lock;
-struct FD_POOL *fd_zero_pool=&zero_pool;
-fd_pool fd_default_pool=&zero_pool;
+fd_pool fd_default_pool=&_fd_zero_pool;
 
 static fdtype zero_pool_alloc(fd_pool p,int n)
 {
@@ -1845,27 +1863,27 @@ static struct FD_POOL_HANDLER zero_pool_handler={
 
 static void init_zero_pool()
 {
-  FD_INIT_STATIC_CONS(&zero_pool,fd_pool_type);
-  zero_pool.pool_serialno=-1;
-  zero_pool.poolid=u8_strdup("zero_pool");
-  zero_pool.pool_source=u8_strdup("initzero_pool");
-  zero_pool.pool_label=u8_strdup("zero_pool");
-  zero_pool.pool_base=0;
-  zero_pool.pool_capacity=0x100000; /* About a million */
-  zero_pool.pool_flags=0;
-  zero_pool.modified_flags=0;
-  zero_pool.pool_handler=&zero_pool_handler;
-  zero_pool.pool_islocked=0;
-  u8_init_mutex(&(zero_pool.pool_lock));
-  fd_init_hashtable(&(zero_pool.pool_cache),0,0);
-  fd_init_hashtable(&(zero_pool.pool_changes),0,0);
-  zero_pool.pool_n_adjuncts=0;
-  zero_pool.pool_adjuncts_len=0;
-  zero_pool.pool_adjuncts=NULL;
-  zero_pool.oid_handlers=NULL;
-  zero_pool.pool_prefix="";
-  zero_pool.pool_namefn=FD_VOID;
-  fd_register_pool(&zero_pool);
+  FD_INIT_STATIC_CONS(&_fd_zero_pool,fd_pool_type);
+  _fd_zero_pool.pool_serialno=-1;
+  _fd_zero_pool.poolid=u8_strdup("_fd_zero_pool");
+  _fd_zero_pool.pool_source=u8_strdup("init_fd_zero_pool");
+  _fd_zero_pool.pool_label=u8_strdup("_fd_zero_pool");
+  _fd_zero_pool.pool_base=0;
+  _fd_zero_pool.pool_capacity=0x100000; /* About a million */
+  _fd_zero_pool.pool_flags=0;
+  _fd_zero_pool.modified_flags=0;
+  _fd_zero_pool.pool_handler=&zero_pool_handler;
+  _fd_zero_pool.pool_islocked=0;
+  u8_init_mutex(&(_fd_zero_pool.pool_lock));
+  fd_init_hashtable(&(_fd_zero_pool.pool_cache),0,0);
+  fd_init_hashtable(&(_fd_zero_pool.pool_changes),0,0);
+  _fd_zero_pool.pool_n_adjuncts=0;
+  _fd_zero_pool.pool_adjuncts_len=0;
+  _fd_zero_pool.pool_adjuncts=NULL;
+  _fd_zero_pool.oid_handlers=NULL;
+  _fd_zero_pool.pool_prefix="";
+  _fd_zero_pool.pool_namefn=FD_VOID;
+  fd_register_pool(&_fd_zero_pool);
 }
 
 /* Lisp pointers to Pool pointers */

@@ -393,7 +393,8 @@ static void fast_reset_hashtable
 static int fast_swapout_index(fd_index ix,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
-  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
+  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && 
+      (ix->index_cache.table_n_keys)) {
     if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))
       fast_reset_hashtable(&(ix->index_cache),-1,todo);
     else fast_reset_hashtable(&(ix->index_cache),0,todo);}
@@ -492,7 +493,7 @@ FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
 FD_EXPORT int fd_init_drivers_c(void);
 
-FD_EXPORT int fd_init_dblib()
+FD_EXPORT int fd_init_kblib()
 {
   if (fdkbase_initialized) return fdkbase_initialized;
   fdkbase_initialized=211*fd_init_libfdtype();

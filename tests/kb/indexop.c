@@ -21,7 +21,7 @@
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbs();
+  int fd_version=fd_init_kbdrivers();
   fd_index ix; fdtype key;
   if (fd_version<0) {
     u8_fprintf(stderr,_("Unable to initialize FramerD\n"));

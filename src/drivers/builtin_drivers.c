@@ -50,10 +50,10 @@ int fd_init_bigpool_c(void);
 
 int dbs_initialized=0;
 
-FD_EXPORT int fd_init_dbs()
+FD_EXPORT int fd_init_kbdrivers()
 {
   if (dbs_initialized) return dbs_initialized;
-  dbs_initialized=307*fd_init_dblib();
+  dbs_initialized=307*fd_init_kblib();
 
   fd_init_builtindbs_c();
 

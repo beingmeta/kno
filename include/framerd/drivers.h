@@ -15,7 +15,7 @@ FD_EXPORT size_t fd_driver_bufsize;
 
 FD_EXPORT int fd_acid_files;
 
-FD_EXPORT int fd_init_dbs(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_kbdrivers(void) FD_LIBINIT_FN;
 
 typedef enum FD_OFFSET_TYPE { FD_B32=0, FD_B40=1, FD_B64=2 } fd_offset_type;
 typedef enum FD_COMPRESS_TYPE {
@@ -48,12 +48,12 @@ struct FD_POOL_TYPEINFO {
 typedef struct FD_POOL_TYPEINFO *fd_pool_typeinfo;
 
 FD_EXPORT
-void fd_register_pool_type(
-			   u8_string name,
-			   fd_pool_handler pool_handler,
-			   fd_pool (*opener)(u8_string path,fdkb_flags flags,fdtype opts),
-			   u8_string (*matcher)(u8_string path,void *),
-			   void *type_data);
+void fd_register_pool_type
+(u8_string name,
+ fd_pool_handler pool_handler,
+ fd_pool (*opener)(u8_string path,fdkb_flags flags,fdtype opts),
+ u8_string (*matcher)(u8_string path,void *),
+ void *type_data);
 
 FD_EXPORT fd_pool_handler fd_get_pool_handler(u8_string name);
 
@@ -79,14 +79,15 @@ struct FD_INDEX_TYPEINFO {
 typedef struct FD_INDEX_TYPEINFO *fd_index_typeinfo;
 
 FD_EXPORT
-void fd_register_index_type(u8_string name,
-			    fd_index_handler handler,
-			    fd_index (*opener)(u8_string spec,
-					       fdkb_flags flags,
-					       fdtype opts),
-			    u8_string (*matcher)(u8_string spec,
-						 void *),
-			    void *type_data);
+void fd_register_index_type
+(u8_string name,
+ fd_index_handler handler,
+ fd_index (*opener)(u8_string spec,
+		    fdkb_flags flags,
+		    fdtype opts),
+ u8_string (*matcher)(u8_string spec,
+		      void *),
+ void *type_data);
 
 FD_EXPORT fd_index_handler fd_get_index_handler(u8_string name);
 

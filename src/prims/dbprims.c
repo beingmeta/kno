@@ -317,8 +317,6 @@ static fdkb_flags getdbflags(fdtype opts)
     flags|=FDKB_READ_ONLY;
   if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
     flags|=FDKB_UNREGISTERED;
-  if (!(fd_testopt(opts,fd_intern("UNCACHED"),FD_VOID)))
-    flags|=FDKB_NOCACHE;
   return flags;
 }
 
@@ -2141,7 +2139,9 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
         (FD_OIDP(args[0])))
       result=fd_deep_copy(args[0]);
     else result=fd_new_frame(args[0],FD_VOID,0);}
-  else result=fd_new_frame(FD_TRUE,FD_VOID,0);
+  else if ((FD_SYMBOLP(args[0]))||(FD_OIDP(args[0])))
+    result=fd_new_frame(FD_DEFAULT_VALUE,FD_VOID,0);
+  else return fd_err(fd_SyntaxError,"frame_create_lexpr",NULL,FD_VOID);
   if (FD_ABORTP(result))
     return result;
   else if (FD_OIDP(result))

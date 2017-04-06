@@ -1876,7 +1876,7 @@ static fdtype notfoundpage()
 
 /* The main() event */
 
-FD_EXPORT int fd_init_dbs(void);
+FD_EXPORT int fd_init_kbdrivers(void);
 static int launch_servlet(u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec);
 
@@ -2043,7 +2043,7 @@ int main(int argc,char **argv)
   fd_finish_module(fd_fdkbserv_module);
 
   fd_init_fdweb();
-  fd_init_dbs();
+  fd_init_kbdrivers();
 
   init_webcommon_data();
   init_webcommon_symbols();

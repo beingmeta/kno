@@ -57,15 +57,18 @@ fd_exception fd_InternalStackSizeError=
 
 const int fd_calltrack_enabled=FD_CALLTRACK_ENABLED;
 
-/* Stack checking */
-
 #if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
 u8_tld_key fd_stack_limit_key;
+#define 
 #elif ((FD_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
 __thread ssize_t fd_stack_limit=-1;
 #else
 ssize_t stack_limit=-1;
 #endif
+
+/* Stack checking */
+
+int fd_wrap_apply=FD_WRAP_APPLY_DEFAULT;
 
 #if FD_STACKCHECK
 static int stackcheck()
@@ -457,6 +460,7 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
   u8_string fname=NULL;
   fd_ptr_type ftype=FD_PRIM_TYPE(fn);
   struct FD_FUNCTION *f=NULL;
+  int wrap=fd_wrap_apply;
 
   if (ftype==fd_fcnid_type) {
     fn=fd_fcnid_ref(fn);
@@ -464,8 +468,8 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
 
   if (fd_functionp[ftype]) {
     f=(struct FD_FUNCTION *)fn;
-    if (f->fcn_name)
-      fname=f->fcn_name;}
+    if (f->fcn_wrap_calls) wrap=1;
+    if (f->fcn_name) fname=f->fcn_name;}
   else if (fd_applyfns[ftype]) {
     sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
     fname=namebuf;}
@@ -474,13 +478,17 @@ FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
   /* Make the call */
   if (stackcheck()) {
     fdtype result=FD_VOID;
-    U8_WITH_CONTOUR(fname,0)
-      if (f) result=apply_fcn(fname,f,n,argvec);
-      else result=fd_applyfns[ftype](fn,n,argvec);
-    U8_ON_EXCEPTION {
-      U8_CLEAR_CONTOUR();
-      result = FD_ERROR_VALUE;}
-    U8_END_EXCEPTION;
+    if (wrap) {
+      U8_WITH_CONTOUR(fname,0)
+        if (f) result=apply_fcn(fname,f,n,argvec);
+        else result=fd_applyfns[ftype](fn,n,argvec);
+      U8_ON_EXCEPTION {
+        U8_CLEAR_CONTOUR();
+        result = FD_ERROR_VALUE;}
+      U8_END_EXCEPTION;}
+    else if (f)
+      result=apply_fcn(fname,f,n,argvec);
+    else result=fd_applyfns[ftype](fn,n,argvec);
     if ((errno)&&(!(FD_TROUBLEP(result)))) {
       u8_string cond=u8_strerror(errno);
       u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",

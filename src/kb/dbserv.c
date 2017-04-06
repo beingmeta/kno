@@ -817,7 +817,7 @@ fdtype fd_fdkbserv_module;
 
 static int dbserv_init=0;
 
-void fd_init_dbserv_c()
+void fd_init_kbdriverserv_c()
 {
   fdtype module;
 
@@ -910,10 +910,10 @@ static int fdkbserv_initialized=0;
 FD_EXPORT int fd_init_fdkbserv()
 {
   if (fdkbserv_initialized) return fdkbserv_initialized;
-  fdkbserv_initialized=211*fd_init_dblib();
+  fdkbserv_initialized=211*fd_init_kblib();
 
   u8_register_source_file(_FILEINFO);
-  fd_init_dbserv_c();
+  fd_init_kbdriverserv_c();
 
   return 1;
 }
