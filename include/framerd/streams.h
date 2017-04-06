@@ -253,7 +253,7 @@ FD_EXPORT fd_off_t fd_movepos(fd_stream s,fd_off_t delta);
 FD_EXPORT int stream_set_read(fd_stream s,int read);
 FD_EXPORT int fd_set_read(fd_stream s,int read);
 
-FD_EXPORT int fd_flush_stream(fd_stream s);
+FD_EXPORT ssize_t fd_flush_stream(fd_stream s);
 
 FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
