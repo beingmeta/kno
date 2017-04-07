@@ -756,7 +756,7 @@ static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
 
 typedef unsigned int fd_compare_flags;
 #define FD_COMPARE_QUICK    ((fd_compare_flags)(0))
-#define FD_COMPARE_CODES   ((fd_compare_flags)(1))
+#define FD_COMPARE_CODES    ((fd_compare_flags)(1))
 #define FD_COMPARE_ELTS     ((fd_compare_flags)(2))
 #define FD_COMPARE_NATSORT  ((fd_compare_flags)(4))
 #define FD_COMPARE_SLOTS    ((fd_compare_flags)(8))
