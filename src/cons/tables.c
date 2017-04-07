@@ -2313,7 +2313,6 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
         while (kvscan<kvlimit) {
           if ((FD_CONSP(kvscan->kv_val)) &&
               ((type<0) || (FD_TYPEP(kvscan->kv_val,keeptype)))) {
-            fdtype key=kvscan->kv_key;
             fdtype value=kvscan->kv_val;
             if (!(FD_STATICP(value))) {
               fdtype static_value=fd_static_copy(value);
