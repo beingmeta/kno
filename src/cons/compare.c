@@ -48,9 +48,6 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
       else if (xlen<ylen) return -1;
       else return strcmp(xname,yname);}
     else return strcmp(xname,yname);}
-  else if ((natural_sort)&&(FD_OIDP(x))&&(FD_OIDP(y))) {
-    FD_OID xaddr=FD_OID_ADDR(x), yaddr=FD_OID_ADDR(y);
-    return FD_OID_COMPARE(xaddr,yaddr);}
   else if ((compare_atomic) && (FD_ATOMICP(x)))
     if (FD_ATOMICP(y))
       if (x>y) return 1; else if (x<y) return -1; else return 0;
