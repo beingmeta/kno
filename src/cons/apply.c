@@ -59,11 +59,10 @@ const int fd_calltrack_enabled=FD_CALLTRACK_ENABLED;
 
 #if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
 u8_tld_key fd_stack_limit_key;
-#define 
 #elif ((FD_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
 __thread ssize_t fd_stack_limit=-1;
 #else
-ssize_t stack_limit=-1;
+ssize_t fd_stack_limit=-1;
 #endif
 
 /* Stack checking */
