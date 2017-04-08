@@ -701,7 +701,7 @@ static int compare_slotmaps(fdtype x,fdtype y,fd_compare_flags flags)
   int result=0; int unlockx=0, unlocky=0;
   struct FD_SLOTMAP *smx=(struct FD_SLOTMAP *)x;
   struct FD_SLOTMAP *smy=(struct FD_SLOTMAP *)y;
-  int compare_lengths=(!(flags&FD_COMPARE_ELTS));
+  int compare_lengths=(!(flags&FD_COMPARE_RECURSIVE));
   int compare_slots=(flags&FD_COMPARE_SLOTS);
   if (smx->table_uselock) {fd_read_lock_table(smx); unlockx=1;}
   if (smy->table_uselock) {fd_read_lock_table(smy); unlocky=1;}
@@ -2313,7 +2313,6 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
         while (kvscan<kvlimit) {
           if ((FD_CONSP(kvscan->kv_val)) &&
               ((type<0) || (FD_TYPEP(kvscan->kv_val,keeptype)))) {
-            fdtype key=kvscan->kv_key;
             fdtype value=kvscan->kv_val;
             if (!(FD_STATICP(value))) {
               fdtype static_value=fd_static_copy(value);

@@ -755,14 +755,21 @@ static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
 /* Generic handlers */
 
 typedef unsigned int fd_compare_flags;
-#define FD_COMPARE_QUICK    ((fd_compare_flags)(0))
-#define FD_COMPARE_CODES   ((fd_compare_flags)(1))
-#define FD_COMPARE_ELTS     ((fd_compare_flags)(2))
-#define FD_COMPARE_NATSORT  ((fd_compare_flags)(4))
-#define FD_COMPARE_SLOTS    ((fd_compare_flags)(8))
-#define FD_COMPARE_NUMERIC  ((fd_compare_flags)(16))
-#define FD_COMPARE_FULL     ((fd_compare_flags)(31))
-#define FD_COMPARE_NOCASE   ((fd_compare_flags)(32))
+#define FD_COMPARE_QUICK           ((fd_compare_flags)(0))
+#define FD_COMPARE_CODES           ((fd_compare_flags)(1))
+#define FD_COMPARE_RECURSIVE       ((fd_compare_flags)(2))
+#define FD_COMPARE_NATSORT         ((fd_compare_flags)(4))
+#define FD_COMPARE_SLOTS           ((fd_compare_flags)(8))
+#define FD_COMPARE_NUMERIC         ((fd_compare_flags)(16))
+#define FD_COMPARE_ALPHABETICAL    ((fd_compare_flags)(32))
+#define FD_COMPARE_CI              ((fd_compare_flags)(64))
+
+/* Recursive but not natural or length oriented */
+#define FD_COMPARE_FULL     \
+  ((FD_COMPARE_RECURSIVE)|(FD_COMPARE_SLOTS)|(FD_COMPARE_CODES))
+#define FD_COMPARE_NATURAL     \
+  ((FD_COMPARE_RECURSIVE)|(FD_COMPARE_SLOTS)|(FD_COMPARE_NATSORT)|\
+   (FD_COMPARE_NUMERIC)|(FD_COMPARE_ALPHABETICAL))
 
 typedef unsigned int fd_walk_flags;
 #define FD_WALK_CONSES      ((fd_walk_flags)(0))
