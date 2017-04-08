@@ -13,6 +13,8 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
+static int string_compare(u8_string s1,u8_string s2,int ci);
+
 FD_EXPORT
 /* fdtype_compare:
     Arguments: two dtype pointers
@@ -22,16 +24,20 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 {
   int quick=(flags==FD_COMPARE_QUICK);
   int compare_atomic=(!((flags&FD_COMPARE_CODES)));
-  int compare_lengths=(!((flags&FD_COMPARE_ELTS)));
+  int compare_lengths=(!((flags&FD_COMPARE_RECURSIVE)));
   int natural_sort=(flags&FD_COMPARE_NATSORT);
+  int lexical=(flags&FD_COMPARE_ALPHABETICAL);
+  int nocase=(flags&FD_COMPARE_CI);
 
   /* This is just defined for this function */
 #define DOCOMPARE(x,y) \
   (((quick)&&(x==y)) ? (0) : (FDTYPE_COMPARE(x,y,flags)))
 
   if (x == y) return 0;
-  else if ((natural_sort)&&(FD_OIDP(x))&&(FD_OIDP(y))) {
-    if ((FD_OID_BASE_ID(x))==(FD_OID_BASE_ID(y))) {
+  else if ((FD_OIDP(x))&&(FD_OIDP(y))) {
+    if (compare_atomic) {
+      if (x<y) return -1; else if (x>y) return 1; else return 0;}
+    else if ((FD_OID_BASE_ID(x))==(FD_OID_BASE_ID(y))) {
       unsigned int ox=FD_OID_BASE_OFFSET(x);
       unsigned int oy=FD_OID_BASE_OFFSET(y);
       /* The zero case is just x == y above */
@@ -42,24 +48,21 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
       return FD_OID_COMPARE(xaddr,yaddr);}}
   else if ((natural_sort)&&(FD_SYMBOLP(x))&&(FD_SYMBOLP(y))) {
     u8_string xname=FD_SYMBOL_NAME(x), yname=FD_SYMBOL_NAME(y);
-    if (compare_lengths) {
+    if ((compare_lengths)&&(!(lexical))) {
       size_t xlen=strlen(xname), ylen=strlen(yname);
       if (xlen>ylen) return 1;
       else if (xlen<ylen) return -1;
-      else return strcmp(xname,yname);}
-    else return strcmp(xname,yname);}
+      else return string_compare(xname,yname,nocase);}
+    else return string_compare(xname,yname,nocase);}
   else if ((compare_atomic) && (FD_ATOMICP(x)))
-    if (FD_ATOMICP(y))
-      if (x>y) return 1; else if (x<y) return -1; else return 0;
+    if (FD_ATOMICP(y)) {
+      if (x>y) return 1; else if (x<y) return -1; else return 0;}
     else return -1;
   else if ((compare_atomic) && (FD_ATOMICP(y))) return 1;
   else if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
     long long xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
     /* The == case is handled by the x==y above. */
     if (xval>yval) return 1; else return -1;}
-  else if ((FD_OIDP(x)) && (FD_OIDP(y))) {
-    FD_OID xaddr=FD_OID_ADDR(x), yaddr=FD_OID_ADDR(y);
-    return FD_OID_COMPARE(xaddr,yaddr);}
   else {
     fd_ptr_type xtype=FD_PTR_TYPE(x);
     fd_ptr_type ytype=FD_PTR_TYPE(y);
@@ -95,12 +98,13 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
         else return car_cmp;}
       case fd_string_type: {
         int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
-        if (compare_lengths) {
-          if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
-        return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+        if ((compare_lengths)&&(!(lexical))) {
+          if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+	  else return string_compare(FD_STRDATA(x),FD_STRDATA(y),nocase);}
+	else return string_compare(FD_STRDATA(x),FD_STRDATA(y),nocase);}
       case fd_packet_type: case fd_secret_type: {
         int xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
-        if (quick) {
+        if ((quick)||(compare_lengths)) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
         return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
       case fd_vector_type: case fd_rail_type: {
@@ -162,6 +166,15 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     else return 1;}
 
 #undef DOCOMPARE
+}
+
+static int string_compare(u8_string s1,u8_string s2,int ci)
+{
+  if (ci) {
+    int rv=strcasecmp(s1,s2);
+    if (rv) return rv;
+    else return strcmp(s1,s2);}
+  else return strcmp(s1,s2);
 }
 
 /* Sorting DTYPEs based on a set of comparison flags */
@@ -238,9 +251,63 @@ static int compare_uuids(fdtype x,fdtype y,fd_compare_flags flags)
   return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
 }
 
+fdtype compare_quick, compare_recursive, compare_elts, compare_natural,
+  compare_natsort, compare_numeric, compare_lexical, compare_alphabetical,
+  compare_ci, compare_ic, compare_caseinsensitive, compare_case_insensitive,
+  compare_nocase, compare_full; 
+
+FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec)
+{
+  if ((FD_VOIDP(spec))||(FD_FALSEP(spec)))
+    return FD_COMPARE_CODES;
+  else if (FD_TRUEP(spec))
+    return FD_COMPARE_FULL;
+  else if (FD_TABLEP(spec)) {
+    fd_compare_flags flags=0;
+    if (fd_testopt(spec,compare_full,FD_VOID)) 
+      flags=FD_COMPARE_FULL;
+    else if (fd_testopt(spec,compare_quick,FD_VOID)) 
+      flags=0;
+    else {}
+    if ( (fd_testopt(spec,compare_recursive,FD_VOID)) ||
+	 (fd_testopt(spec,compare_elts,FD_VOID)) )
+      flags|=FD_COMPARE_RECURSIVE;
+    if ( (fd_testopt(spec,compare_natural,FD_VOID)) ||
+	 (fd_testopt(spec,compare_natsort,FD_VOID)) )
+      flags|=FD_COMPARE_NATSORT;
+    if ( (fd_testopt(spec,compare_numeric,FD_VOID)) )
+      flags|=FD_COMPARE_NUMERIC;
+    if ( (fd_testopt(spec,compare_lexical,FD_VOID)) ||
+	 (fd_testopt(spec,compare_alphabetical,FD_VOID)))
+      flags|=FD_COMPARE_ALPHABETICAL;
+    if ( (fd_testopt(spec,compare_ci,FD_VOID)) ||
+	 (fd_testopt(spec,compare_ic,FD_VOID)) ||
+	 (fd_testopt(spec,compare_nocase,FD_VOID)) ||
+	 (fd_testopt(spec,compare_caseinsensitive,FD_VOID)) ||
+	 (fd_testopt(spec,compare_case_insensitive,FD_VOID)) )
+      flags|=FD_COMPARE_CI;
+    return flags;}
+  else return FD_COMPARE_QUICK;
+}
+
 void fd_init_compare_c()
 {
   fd_comparators[fd_compound_type]=compare_compounds;
   fd_comparators[fd_timestamp_type]=compare_timestamps;
   fd_comparators[fd_uuid_type]=compare_uuids;
+
+  compare_quick=fd_intern("QUICK");
+  compare_recursive=fd_intern("RECURSIVE");
+  compare_elts=fd_intern("ELTS");
+  compare_natural=fd_intern("NATURAL");
+  compare_natsort=fd_intern("NATSORT");
+  compare_numeric=fd_intern("NUMERIC");
+  compare_lexical=fd_intern("LEXICAL");
+  compare_alphabetical=fd_intern("ALPHABETICAL");
+  compare_ci=fd_intern("CI");
+  compare_ic=fd_intern("IC");
+  compare_caseinsensitive=fd_intern("CASEINSENSITIVE");
+  compare_case_insensitive=fd_intern("CASE-INSENSITIVE");
+  compare_nocase=fd_intern("NOCASE");
+  compare_full=fd_intern("FULL");
 }

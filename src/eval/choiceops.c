@@ -859,12 +859,33 @@ static fdtype difference_lexpr(int n,fdtype *args)
 
 /* Conversion functions */
 
-static fdtype choice2vector(fdtype x)
+static fdtype choice2vector(fdtype x,fdtype sortspec)
 {
-  int i=0, n=FD_CHOICE_SIZE(x);
-  fdtype *elts=u8_alloc_n(n,fdtype);
-  FD_DO_CHOICES(elt,x) elts[i++]=fd_incref(elt);
-  return fd_init_vector(NULL,i,elts);
+  fd_compare_flags flags=fd_get_compare_flags(sortspec);
+  if (FD_ACHOICEP(x)) {
+    fdtype normal=fd_make_simple_choice(x);
+    fdtype result=choice2vector(normal,sortspec);
+    fd_decref(normal);
+    return result;}
+  else if (FD_CHOICEP(x)) {
+    int i=0, n=FD_CHOICE_SIZE(x);
+    struct FD_CHOICE *ch=(fd_choice)x;
+    fdtype vector=fd_make_vector(n,NULL);
+    fdtype *vector_elts=FD_VECTOR_DATA(vector);
+    const fdtype *choice_elts=FD_XCHOICE_DATA(ch);
+    if (FD_XCHOICE_ATOMICP(ch))
+      memcpy(vector_elts,choice_elts,sizeof(fdtype)*n);
+    else while (i<n) {
+        vector_elts[i]=fd_incref(choice_elts[i]);
+        i++;}
+    if ((FD_VOIDP(sortspec))||(FD_FALSEP(sortspec))) 
+      return vector;
+    else {
+      fdtype_sort(vector_elts,n,flags);
+      return vector;}}
+  else {
+    fd_incref(x);
+    return fd_make_vector(1,&x);}
 }
 
 static fdtype choice2list(fdtype x)
@@ -1062,7 +1083,8 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
   else return fd_type_error("integer","topn",count);
 }
 
-static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,int lexsort)
+static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,
+                            int lexsort)
 {
   if (FD_EMPTY_CHOICEP(choices))
     return fd_init_vector(NULL,0,NULL);
@@ -1154,8 +1176,9 @@ static fdtype select_helper(fdtype choices,fdtype keyfn,
             fd_decref(worst);
             entries[worst_off].fd_sortval=elt;
             entries[worst_off].fd_sortkey=key;
-            /* This could be done faster by either by just finding where to insert it,
-               either by iterating O(n) or binary search O(log n). */
+            /* This could be done faster by either by just finding
+               where to insert it, either by iterating O(n) or binary
+               search O(log n). */
             qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
             worst=entries[worst_off].fd_sortkey;}}}
       return FD_VOID;}}
@@ -1485,7 +1508,7 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim1("SIMPLIFY",simplify,1)));
 
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("CHOICE->VECTOR",choice2vector,1)));
+           fd_make_ndprim(fd_make_cprim2("CHOICE->VECTOR",choice2vector,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("CHOICE->LIST",choice2list,1)));
   fd_idefn(fd_scheme_module,
