@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <dlfcn.h>
 
 u8_condition fd_ffi_BadTypeinfo=_("Bad FFI type info");
 u8_condition fd_ffi_BadABI=_("Bad FFI ABI value");
@@ -40,9 +41,6 @@ static fdtype ffi_caller(struct FD_FUNCTION *fn,int n,fdtype *args);
 
     Make fd_make_ffi_proc take fdtypes for the return type and
     argtypes, and convert them into ffi_types to be passed in.
-
-     
-
 **/
 
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
@@ -71,6 +69,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fcn_min_arity=0;
     proc->fcn_arity=-1;
     proc->fcn_handler.xcalln=fd_ffi_call;
+    proc->fcn_dlsym=dlsym(RTLD_DEFAULT,name);
     return proc;}
   else {
     u8_free(cif);
@@ -85,8 +84,23 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
-    /* struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn; */
-    return FD_VOID;}
+    struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
+    int arity=proc->fcn->arity;
+    void *argvalues=u8_alloc_n(arity,void *);
+    void **argptrs=u8_alloc_n(arity,void *);
+    fdtype lispval; unsigned char *bytesval; long long ival;
+    int i=0, rv=-1; while (i<arity) {argptrs[i]=&(argvalues[i]); i++;}
+    i=0; while (i<arity) {
+      fdtype arg=args[i];
+      ffi_type *argtype=proc->ffi_argtypes[i];
+      argvalues[i]=0;
+      i++;}
+    if (1)
+      rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&bytesval);
+    else if (1)
+      rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&ival);
+    else rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&lispval);
+    return result;}
   else return fd_err(_("Not an foreign function interface"),
 		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);
 }
