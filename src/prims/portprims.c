@@ -1356,7 +1356,9 @@ static u8_string lisp_pprintf_handler
   int width=80; fdtype value;
   if (strchr(cmd,'*'))
     width=va_arg(*args,int);
-  else width=strtol(cmd,NULL,10);
+  else {
+    width=strtol(cmd,NULL,10);
+    U8_CLEAR_ERRNO();}
   value=va_arg(*args,fdtype);
   U8_INIT_OUTPUT(&tmpout,512);
   fd_pprint(&tmpout,value,NULL,0,0,width,1);
