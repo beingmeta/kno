@@ -395,6 +395,9 @@ FD_EXPORT fd_ptr_type fd_condvar_type;
 FD_EXPORT fd_thread_struct fd_thread_call(fdtype *,fdtype,int,fdtype *,int);
 FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 
-#include "opcodes.h"
+/* Opcodes */
+
+FD_EXPORT fdtype fd_opcode_dispatch
+(fdtype opcode,fdtype expr,fd_lispenv env);
 
 #endif /* FRAMERD_EVAL_H */

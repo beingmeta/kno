@@ -713,14 +713,12 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
     return value;}
 }
 
-/* The opcode evaluator */
-
-#include "opcodes.c"
-
 /* The evaluator itself */
 
-static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env);
-static fdtype call_function(u8_string nm,fd_function f,fdtype x,fd_lispenv env);
+static fdtype call_special_function
+(fdtype fn,fdtype expr,fd_lispenv env);
+static fdtype call_function
+(u8_string nm,fd_function f,fdtype x,fd_lispenv env);
 static fdtype apply_functions(fdtype fn,fdtype expr,fd_lispenv env);
 static int applicable_choicep(fdtype choice);
 
@@ -737,7 +735,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     int push_context=1; /* On error, that is */
     fdtype head=(FD_CAR(expr));
     if (FD_OPCODEP(head))
-      return opcode_dispatch(head,expr,env);
+      return fd_opcode_dispatch(head,expr,env);
     else if (head == quote_symbol)
       if (FD_PAIRP(expr))
         return fd_refcar(FD_CDR(expr));
@@ -1947,10 +1945,6 @@ void fd_init_eval_c()
   fns->get=lispenv_get; fns->store=lispenv_store;
   fns->add=NULL; fns->drop=NULL; fns->test=NULL;
 
-  fd_type_names[fd_opcode_type]=_("opcode");
-  fd_unparsers[fd_opcode_type]=unparse_opcode;
-  fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
-
   fd_tablefns[fd_environment_type]=fns;
   fd_copiers[fd_environment_type]=lisp_copy_environment;
   fd_recyclers[fd_environment_type]=recycle_environment;
@@ -2127,6 +2121,7 @@ FD_EXPORT void fd_init_arith_c(void);
 FD_EXPORT void fd_init_side_effects_c(void);
 FD_EXPORT void fd_init_reflection_c(void);
 FD_EXPORT void fd_init_history_c(void);
+FD_EXPORT void fd_init_opcodes_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
 FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);

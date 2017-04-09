@@ -1,4 +1,40 @@
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
+
+/* Copyright (C) 2004-2017 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
+   and a valuable trade secret of beingmeta, inc.
+*/
+
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
+#define FD_PROVIDE_FASTEVAL 1
+#define FD_INLINE_CHOICES 1
+#define FD_INLINE_TABLES 1
+#define FD_INLINE_FCNIDS 1
+
+#include "framerd/fdsource.h"
+#include "framerd/dtype.h"
+#include "framerd/support.h"
+#include "framerd/fdkbase.h"
+#include "framerd/eval.h"
+#include "framerd/opcodes.h"
+#include "framerd/dtproc.h"
+#include "framerd/numbers.h"
+#include "framerd/sequences.h"
 #include "framerd/dbprims.h"
+#include "framerd/ports.h"
+#include "framerd/dtcall.h"
+
+#include "eval_internals.h"
+
+#include <libu8/u8timefns.h>
+#include <libu8/u8printf.h>
+
+#include <math.h>
+#include <pthread.h>
+#include <errno.h>
 
 static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
 
@@ -16,14 +52,14 @@ FD_FASTOP fdtype _pop_arg(fdtype *scan)
 
 /* Opcode names */
 
-u8_string fd_opcode_names[1024];
+u8_string fd_opcode_names[0x800]={NULL};
 
-int fd_opcode_table_len=256;
+int fd_opcodes_length=0x800;
 
 static int unparse_opcode(u8_output out,fdtype opcode)
 {
   int opcode_offset=(FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if (opcode_offset>fd_opcode_table_len) {
+  if (opcode_offset>fd_opcodes_length) {
     u8_printf(out,"##invalidop");
     return 1;}
   else if (fd_opcode_names[opcode_offset]==NULL) {
@@ -37,7 +73,7 @@ static int unparse_opcode(u8_output out,fdtype opcode)
 static int validate_opcode(fdtype opcode)
 {
   int opcode_offset=(FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if ((opcode_offset>=0) && (opcode_offset<fd_opcode_table_len))
+  if ((opcode_offset>=0) && (opcode_offset<fd_opcodes_length))
     return 1;
   else return 0;
 }
@@ -45,7 +81,7 @@ static int validate_opcode(fdtype opcode)
 static u8_string opcode_name(fdtype opcode)
 {
   int opcode_offset=(FD_GET_IMMEDIATE(opcode,fd_opcode_type));
-  if ((opcode_offset<fd_opcode_table_len) &&
+  if ((opcode_offset<fd_opcodes_length) &&
       (fd_opcode_names[opcode_offset]))
     return fd_opcode_names[opcode_offset];
   else return "anonymous_opcode";
@@ -767,7 +803,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         else result=FD_FALSE;
         fd_decref(arg1); fd_decref(slotids); fd_decref(values);
         return result;}}
-    else if (FD_SETOP_OPCODEP(opcode))
+    else if (FD_ND2_OPCODEP(opcode))
       return setop_call(opcode,arg1,op_eval(arg2_expr,env,0));
     else {
       fd_decref(arg1);
@@ -814,81 +850,126 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
   }
 }
 
+static void set_opcode_name(fdtype opcode,u8_string name)
+{
+  int off=FD_OPCODE_NUM(opcode);
+  fd_opcode_names[off]=name;
+}
+
 static void init_opcode_names()
 {
-  fd_opcode_names[0x10]="IFOP";
-  fd_opcode_names[0x11]="NOT";
-  fd_opcode_names[0x12]="UNTILOP";
-  fd_opcode_names[0x13]="BEGIN";
-  fd_opcode_names[0x14]="QUOTEOP";
-  fd_opcode_names[0x15]="SET!OP";
-  fd_opcode_names[0x16]="SET+!OP";
-  fd_opcode_names[0x17]="VOIDOP";
+  set_opcode_name(FD_BRANCH_OPCODE,"IFOP");
+  set_opcode_name(FD_NOT_OPCODE,"NOT");
+  set_opcode_name(FD_UNTIL_OPCODE,"UNTILOP");
+  set_opcode_name(FD_BEGIN_OPCODE,"BEGIN");
+  set_opcode_name(FD_QUOTE_OPCODE,"QUOTEOP");
+  set_opcode_name(FD_SETVAL_OPCODE,"SET!OP");
+  set_opcode_name(FD_SETPLUS_OPCODE,"SET+!OP");
+  set_opcode_name(FD_VOID_OPCODE,"VOIDOP");
 
-  fd_opcode_names[0x20]="AMBIGUOUS?";
-  fd_opcode_names[0x21]="SINGLETON?";
-  fd_opcode_names[0x22]="FAIL?";
-  fd_opcode_names[0x22]="EMPTY?";
-  fd_opcode_names[0x23]="EXISTS?";
-  fd_opcode_names[0x24]="SINGLETON";
-  fd_opcode_names[0x25]="CAR";
-  fd_opcode_names[0x26]="CDR";
-  fd_opcode_names[0x27]="LENGTH";
-  fd_opcode_names[0x28]="QCHOICE";
-  fd_opcode_names[0x29]="CHOICE-SIZE";
-  fd_opcode_names[0x2A]="PICKOIDS";
-  fd_opcode_names[0x2B]="PICKSTRINGS";
-  fd_opcode_names[0x2C]="PICK-ONE";
-  fd_opcode_names[0x2D]="IFEXISTS";
-  fd_opcode_names[0x40]="1-";
-  fd_opcode_names[0x40]="-1+";
-  fd_opcode_names[0x41]="1+";
-  fd_opcode_names[0x42]="NUMBER?";
-  fd_opcode_names[0x43]="ZERO?";
-  fd_opcode_names[0x44]="VECTOR?";
-  fd_opcode_names[0x45]="PAIR?";
-  fd_opcode_names[0x46]="NULL?";
-  fd_opcode_names[0x47]="STRING?";
-  fd_opcode_names[0x48]="OID?";
-  fd_opcode_names[0x49]="SYMBOL?";
-  fd_opcode_names[0x4A]="FIRST";
-  fd_opcode_names[0x4B]="SECOND";
-  fd_opcode_names[0x4C]="THIRD";
-  fd_opcode_names[0x4D]="->NUMBER";
-  fd_opcode_names[0x60]="=";
-  fd_opcode_names[0x61]=">";
-  fd_opcode_names[0x62]=">=";
-  fd_opcode_names[0x63]="<";
-  fd_opcode_names[0x64]="<=";
-  fd_opcode_names[0x65]="+";
-  fd_opcode_names[0x66]="-";
-  fd_opcode_names[0x67]="*";
-  fd_opcode_names[0x68]="/~";
-  fd_opcode_names[0x80]="EQ?";
-  fd_opcode_names[0x81]="EQV?";
-  fd_opcode_names[0x82]="EQUAL?";
-  fd_opcode_names[0x83]="ELT";
-  fd_opcode_names[0xA0]="GET";
-  fd_opcode_names[0xA1]="TEST";
-  fd_opcode_names[0xA2]="XREF";
-  fd_opcode_names[0xA3]="%GET";
-  fd_opcode_names[0xA4]="%TEST";
-  fd_opcode_names[0xC0]="IDENTICAL?";
-  fd_opcode_names[0xC1]="OVERLAPS?";
-  fd_opcode_names[0xC2]="CONTAINS?";
-  fd_opcode_names[0xC3]="UNION";
-  fd_opcode_names[0xC4]="INTERSECTION";
-  fd_opcode_names[0xC5]="DIFFERENCE";
+  set_opcode_name(FD_AMBIGP_OPCODE,"AMBIGUOUS?");
+  set_opcode_name(FD_SINGLETONP_OPCODE,"SINGLETON?");
+  set_opcode_name(FD_FAILP_OPCODE,"FAIL?");
+  set_opcode_name(FD_FAILP_OPCODE,"EMPTY?");
+  set_opcode_name(FD_EXISTSP_OPCODE,"EXISTS?");
+  set_opcode_name(FD_SINGLETON_OPCODE,"SINGLETON");
+  set_opcode_name(FD_CAR_OPCODE,"CAR");
+  set_opcode_name(FD_CDR_OPCODE,"CDR");
+  set_opcode_name(FD_LENGTH_OPCODE,"LENGTH");
+  set_opcode_name(FD_QCHOICE_OPCODE,"QCHOICE");
+  set_opcode_name(FD_CHOICE_SIZE_OPCODE,"CHOICE-SIZE");
+  set_opcode_name(FD_PICKOIDS_OPCODE,"PICKOIDS");
+  set_opcode_name(FD_PICKSTRINGS_OPCODE,"PICKSTRINGS");
+  set_opcode_name(FD_PICKONE_OPCODE,"PICK-ONE");
+  set_opcode_name(FD_IFEXISTS_OPCODE,"IFEXISTS");
+  set_opcode_name(FD_MINUS1_OPCODE,"-1+");
+  set_opcode_name(FD_PLUS1_OPCODE,"1+");
+  set_opcode_name(FD_NUMBERP_OPCODE,"NUMBER?");
+  set_opcode_name(FD_ZEROP_OPCODE,"ZERO?");
+  set_opcode_name(FD_VECTORP_OPCODE,"VECTOR?");
+  set_opcode_name(FD_PAIRP_OPCODE,"PAIR?");
+  set_opcode_name(FD_NULLP_OPCODE,"NULL?");
+  set_opcode_name(FD_STRINGP_OPCODE,"STRING?");
+  set_opcode_name(FD_OIDP_OPCODE,"OID?");
+  set_opcode_name(FD_SYMBOLP_OPCODE,"SYMBOL?");
+  set_opcode_name(FD_FIRST_OPCODE,"FIRST");
+  set_opcode_name(FD_SECOND_OPCODE,"SECOND");
+  set_opcode_name(FD_THIRD_OPCODE,"THIRD");
+  set_opcode_name(FD_CADR_OPCODE,"CADR");
+  set_opcode_name(FD_CDDR_OPCODE,"CADR");
+  set_opcode_name(FD_CADDR_OPCODE,"CADDR");
+  set_opcode_name(FD_CDDDR_OPCODE,"CDDDR");
+  set_opcode_name(FD_TONUMBER_OPCODE,"->NUMBER");
+  set_opcode_name(FD_NUMEQ_OPCODE,"=");
+  set_opcode_name(FD_GT_OPCODE,">");
+  set_opcode_name(FD_GTE_OPCODE,">=");
+  set_opcode_name(FD_LT_OPCODE,"<");
+  set_opcode_name(FD_LTE_OPCODE,"<=");
+  set_opcode_name(FD_PLUS_OPCODE,"+");
+  set_opcode_name(FD_MINUS_OPCODE,"-");
+  set_opcode_name(FD_TIMES_OPCODE,"*");
+  set_opcode_name(FD_FLODIV_OPCODE,"/~");
+  set_opcode_name(FD_IDENTICAL_OPCODE,"IDENTICAL?");
+  set_opcode_name(FD_OVERLAPS_OPCODE,"OVERLAPS?");
+  set_opcode_name(FD_CONTAINSP_OPCODE,"CONTAINS?");
+  set_opcode_name(FD_UNION_OPCODE,"UNION");
+  set_opcode_name(FD_INTERSECT_OPCODE,"INTERSECTION");
+  set_opcode_name(FD_DIFFERENCE_OPCODE,"DIFFERENCE");
+  set_opcode_name(FD_EQ_OPCODE,"EQ?");
+  set_opcode_name(FD_EQV_OPCODE,"EQV?");
+  set_opcode_name(FD_EQUAL_OPCODE,"EQUAL?");
+  set_opcode_name(FD_ELT_OPCODE,"ELT");
+  set_opcode_name(FD_GET_OPCODE,"GET");
+  set_opcode_name(FD_ADD_OPCODE,"ADD");
+  set_opcode_name(FD_DROP_OPCODE,"ADD");
+  set_opcode_name(FD_TEST_OPCODE,"TEST");
+  set_opcode_name(FD_STORE_OPCODE,"ADD");
+  set_opcode_name(FD_XREF_OPCODE,"XREF");
+  set_opcode_name(FD_PGET_OPCODE,"%GET");
+  set_opcode_name(FD_PADD_OPCODE,"%ADD");
+  set_opcode_name(FD_PDROP_OPCODE,"%DROP");
+  set_opcode_name(FD_PSTORE_OPCODE,"%TEST");
+}
+
+FD_EXPORT fdtype fd_get_opcode(u8_string name)
+{
+  int i=0; while (i<fd_opcodes_length) {
+    u8_string opname=fd_opcode_names[i];
+    if ((name)&&(strcasecmp(name,opname)==0)) 
+      return FD_OPCODE(i);
+    else i++;}
+  return FD_FALSE;
+}
+
+static fdtype get_opcode_prim(fdtype arg)
+{
+  return fd_get_opcode(FD_STRDATA(arg));
 }
 
 static double opcodes_initialized=0;
+
+FD_EXPORT
+fdtype fd_opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
+{
+  return opcode_dispatch(opcode,expr,env);
+}
 
 void fd_init_opcodes_c()
 {
   if (opcodes_initialized) return;
   else opcodes_initialized=1;
+
+  fd_type_names[fd_opcode_type]=_("opcode");
+  fd_unparsers[fd_opcode_type]=unparse_opcode;
+  fd_immediate_checkfns[fd_opcode_type]=validate_opcode;
+
   memset(fd_opcode_names,0,sizeof(fd_opcode_names));
+
   init_opcode_names();
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("GET-OPCODE",get_opcode_prim,1,
+                           fd_string_type,FD_VOID));
 }
 
 /* Emacs local variables

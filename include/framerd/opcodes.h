@@ -8,13 +8,16 @@
 #ifndef FRAMERD_OPCODES_H
 #define FRAMERD_OPCODES_H 1
 #ifndef FRAMERD_OPCODES_H_INFO
-#define FRAMERD_OPCODES_H_INFO "include/framerd/eval.h"
+#define FRAMERD_OPCODES_H_INFO "include/framerd/opcodes.h"
 #endif
+
+FD_EXPORT fdtype fd_opcode_dispatch
+(fdtype opcode,fdtype expr,fd_lispenv env);
 
 /* Opcodes */
 
 FD_EXPORT u8_string fd_opcode_names[];
-FD_EXPORT int fd_opcode_table_len;
+FD_EXPORT int fd_opcodes_length;
 
 #define FD_SPECIAL_OPCODE(x)  FD_OPCODE(x+0x00)
 #define FD_SPECIAL_OPCODEP(x) ((x>FD_OPCODE(0x00))&&(x<FD_OPCODE(0x100)))
