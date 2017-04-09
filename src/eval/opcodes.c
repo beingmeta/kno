@@ -656,11 +656,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
   else {
     /* We have at least one argument to evaluate and we also get the body. */
-    fdtype arg1_expr=pop_arg(args), arg1;
+    fdtype arg1_expr=pop_arg(args), arg1=op_eval(arg1_expr,env,0);
     fdtype arg2_expr=pop_arg(args), arg2;
-    if (FD_EXPECT_FALSE((opcode<FD_MAX_UNARY_OPCODE)&&(!(FD_VOIDP(arg2_expr)))))
-      return fd_err(fd_TooManyArgs,opcode_name(opcode),NULL,expr);
-    else arg1=op_eval(arg1_expr,env,0);
     /* Now, check the result of the first argument expression */
     if (FD_ABORTED(arg1)) return arg1;
     else if (FD_VOIDP(arg1))
@@ -668,12 +665,12 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else if (FD_ACHOICEP(arg1))
       arg1=fd_simplify_choice(arg1);
     else {}
-    if (opcode<FD_MAX_ND1_OPCODE)
+    if (FD_ND1_OPCODEP(opcode))
       return nd1_dispatch(opcode,arg1);
-    else if (opcode<FD_MAX_UNARY_OPCODE)
+    else if (FD_D1_OPCODEP(opcode))
       return d1_call(opcode,arg1);
     /* Check the type for numeric arguments here. */
-    else if ((opcode>=FD_NUM2_OPCODES) && (opcode<FD_MAX_NUM2_OPCODES)) {
+    else if (FD_NUMERIC_OPCODEP(opcode)) {
       if (FD_EXPECT_FALSE(FD_EMPTY_CHOICEP(arg1)))
         return FD_EMPTY_CHOICE;
       else if (FD_EXPECT_FALSE(!(numeric_argp(arg1)))) {
@@ -695,7 +692,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         else if ((FD_CHOICEP(arg1))||(FD_CHOICEP(arg2)))
           return nd2_dispatch(opcode,arg1,arg2);
         else return d2_dispatch(opcode,arg1,arg2);}}
-    else if (opcode<FD_MAX_BINARY_OPCODE) {
+    else if (FD_ND2_OPCODEP(opcode)) {
       if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
       else {
         if (FD_VOIDP(arg2_expr)) {
@@ -770,8 +767,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         else result=FD_FALSE;
         fd_decref(arg1); fd_decref(slotids); fd_decref(values);
         return result;}}
-    else if ((opcode>=FD_SETOPS_OPCODES) &&
-             (opcode<=FD_DIFFERENCE_OPCODE))
+    else if (FD_SETOP_OPCODEP(opcode))
       return setop_call(opcode,arg1,op_eval(arg2_expr,env,0));
     else {
       fd_decref(arg1);
