@@ -800,6 +800,8 @@ static int cons_compare(fdtype x,fdtype y)
 }
 #endif
 
+FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec);
+
 /* Choices, tables, regexes */
 
 #include "choices.h"

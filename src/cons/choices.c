@@ -218,7 +218,7 @@ struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
     fd_seterr("choice arg is NULL","fd_make_choice",NULL,FD_VOID);
     return NULL;}
   else {
-    int atomicp; int n=ch->choice_size, newlen;
+    int atomicp; int n=ch->choice_size;
     fdtype *base=&(ch->choice_0), *scan=base, *limit=scan+n;
     FD_SET_CONS_TYPE(ch,fd_choice_type);
     if (flags&FD_CHOICE_ISATOMIC) atomicp=1;
@@ -230,8 +230,8 @@ struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
       if (atomicp) atomic_sort((fdtype *)base,n);
       else cons_sort((fdtype *)base,n);}
     if (flags&FD_CHOICE_COMPRESS)
-      newlen=compress_choice((fdtype *)base,n,atomicp);
-    else ch->choice_size=newlen;
+      ch->choice_size=compress_choice((fdtype *)base,n,atomicp);
+    else ch->choice_size=n;
     return ch;}
 }
 
