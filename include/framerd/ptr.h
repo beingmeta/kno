@@ -735,7 +735,7 @@ static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
    (FD_IMMEDIATE_TYPE(x)==fd_opcode_type))
 
 #define FD_OPCODE(num) (FDTYPE_IMMEDIATE(fd_opcode_type,num))
-#define FD_OPCODE_NUM(num) (FD_GET_IMMEDIATE(x,fd_opcode_type))
+#define FD_OPCODE_NUM(op) (FD_GET_IMMEDIATE(op,fd_opcode_type))
 #define FD_NEXT_OPCODE(op) \
   (FDTYPE_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
 
