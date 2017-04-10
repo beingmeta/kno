@@ -17,18 +17,17 @@
 
 typedef struct FD_FFI_PROC {
   FD_FUNCTION_FIELDS;
-  ffi_cif *fd_ffi_cif; 
-  ffi_type *fd_ffi_rtype;
-  ffi_type *fd_ffi_argtypes;
-  fdtype *fd_ffi_defaults; 
-  int fd_ffi_arity; 
-  int table_uselock;
-  U8_MUTEX_DECL(lock);
+  ffi_cif *ffi_cif; 
+  ffi_type *ffi_return_type;
+  ffi_type *ffi_argtypes;
+  int ffi_uselock;
+  void (*ffi_dlsym)(void);
+  U8_MUTEX_DECL(ffi_lock);
 } FD_FFI_PROC;
 typedef struct FD_FFI_PROC *fd_ffi_proc;
 
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
-  (u8_string name,int arity,
+  (u8_string name,u8_string filename,int arity,
    ffi_type *return_type,ffi_type *argtypes,
    fdtype *defaults);
 

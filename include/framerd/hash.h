@@ -69,7 +69,8 @@ static unsigned int hash_multr(unsigned int x,unsigned int y,
 #endif
 #endif
 
-static unsigned int hash_combine(unsigned int x,unsigned int y)
+static U8_MAYBE_UNUSED
+unsigned int hash_combine(unsigned int x,unsigned int y)
 {
   if ((x == 0) && (y == 0))
     return MYSTERIOUS_MODULUS+2;

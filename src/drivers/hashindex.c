@@ -1674,8 +1674,8 @@ FD_EXPORT int fd_populate_hashindex
     CHECK_POS(endpos,stream);
     bucket_count++;}
   qsort(bucket_refs,bucket_count,sizeof(struct BUCKET_REF),sort_br_by_bucket);
-  /* This would probably be faster if we put it all in a huge vector and wrote it
-     out all at once.  */
+  /* This would probably be faster if we put it all in a huge vector
+     and wrote it out all at once.  */
   i=0; while (i<bucket_count) {
     fd_setpos(stream,256+bucket_refs[i].bucketno*8);
     fd_write_4bytes(outstream,bucket_refs[i].bck_ref.off);
