@@ -60,13 +60,13 @@ static int unparse_opcode(u8_output out,fdtype opcode)
 {
   int opcode_offset=(FD_GET_IMMEDIATE(opcode,fd_opcode_type));
   if (opcode_offset>fd_opcodes_length) {
-    u8_printf(out,"##invalidop");
+    u8_printf(out,"#<INVALIDOPCODE>");
     return 1;}
   else if (fd_opcode_names[opcode_offset]==NULL) {
-    u8_printf(out,"##op_%x",opcode_offset);
+    u8_printf(out,"#<OPCODE_0x%x>",opcode_offset);
     return 1;}
   else {
-    u8_printf(out,"##op_%s",fd_opcode_names[opcode_offset]);
+    u8_printf(out,"#<OPCODE_%s>",fd_opcode_names[opcode_offset]);
     return 1;}
 }
 
@@ -870,7 +870,6 @@ static void init_opcode_names()
   set_opcode_name(FD_AMBIGP_OPCODE,"AMBIGUOUS?");
   set_opcode_name(FD_SINGLETONP_OPCODE,"SINGLETON?");
   set_opcode_name(FD_FAILP_OPCODE,"FAIL?");
-  set_opcode_name(FD_FAILP_OPCODE,"EMPTY?");
   set_opcode_name(FD_EXISTSP_OPCODE,"EXISTS?");
   set_opcode_name(FD_SINGLETON_OPCODE,"SINGLETON");
   set_opcode_name(FD_CAR_OPCODE,"CAR");
@@ -935,15 +934,19 @@ FD_EXPORT fdtype fd_get_opcode(u8_string name)
 {
   int i=0; while (i<fd_opcodes_length) {
     u8_string opname=fd_opcode_names[i];
-    if ((name)&&(strcasecmp(name,opname)==0)) 
+    if ((opname)&&(strcasecmp(name,opname)==0)) 
       return FD_OPCODE(i);
     else i++;}
   return FD_FALSE;
 }
 
-static fdtype get_opcode_prim(fdtype arg)
+static fdtype name2opcode_prim(fdtype arg)
 {
-  return fd_get_opcode(FD_STRDATA(arg));
+  if (FD_SYMBOLP(arg))
+    return fd_get_opcode(FD_SYMBOL_NAME(arg));
+  else if (FD_STRINGP(arg))
+    return fd_get_opcode(FD_STRDATA(arg));
+  else return fd_type_error(_("opcode name"),"name2opcode_prim",arg);
 }
 
 static double opcodes_initialized=0;
@@ -967,9 +970,7 @@ void fd_init_opcodes_c()
 
   init_opcode_names();
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("GET-OPCODE",get_opcode_prim,1,
-                           fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("NAME->OPCODE",name2opcode_prim,1));
 }
 
 /* Emacs local variables
