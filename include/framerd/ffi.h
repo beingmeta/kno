@@ -20,8 +20,8 @@ typedef struct FD_FFI_PROC {
   ffi_cif *ffi_cif; 
   ffi_type *ffi_return_type;
   ffi_type *ffi_argtypes;
-  fdtype *ffi_defaults; 
-  int fd_ffi_arity; 
+  fdtype *ffi_defaults;
+  int ffi_arity;
   int ffi_uselock;
   void (*ffi_dlsym)(void);
   U8_MUTEX_DECL(ffi_lock);

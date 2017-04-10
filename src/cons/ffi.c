@@ -61,7 +61,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fcn_filename=NULL;
     proc->ffi_arity=arity;
     proc->ffi_defaults=defaults;
-    proc->ffi_rtype=return_type;
+    proc->ffi_return_type=return_type;
     proc->ffi_argtypes=argtypes;
     proc->fcn_ndcall=0;
     proc->fcn_xcall=1;
@@ -69,7 +69,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fcn_min_arity=0;
     proc->fcn_arity=-1;
     proc->fcn_handler.xcalln=fd_ffi_call;
-    proc->fcn_dlsym=dlsym(RTLD_DEFAULT,name);
+    proc->ffi_dlsym=dlsym(RTLD_DEFAULT,name);
     return proc;}
   else {
     u8_free(cif);
@@ -84,8 +84,10 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
+    fdtype result=FD_VOID;
+#if 0
     struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
-    int arity=proc->fcn->arity;
+    int arity=proc->fcn_arity;
     void *argvalues=u8_alloc_n(arity,void *);
     void **argptrs=u8_alloc_n(arity,void *);
     fdtype lispval; unsigned char *bytesval; long long ival;
@@ -96,10 +98,11 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
       argvalues[i]=0;
       i++;}
     if (1)
-      rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&bytesval);
+      rv=ffi_call(proc->ffi_cif,proc->ffi_dlsym,&bytesval);
     else if (1)
-      rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&ival);
-    else rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&lispval);
+      rv=ffi_call(proc->ffi_cif,proc->ffi_dlsym,&ival);
+    else rv=ffi_call(proc->ffi_cif,proc->ffi_dlsym,&lispval);
+#endif
     return result;}
   else return fd_err(_("Not an foreign function interface"),
 		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);
@@ -116,9 +119,9 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
     int i=0; while (i<arity) {
       fdtype v=values[i++]; fd_decref(v);}
     u8_free(values);}
-  u8_free(ffi->fcn_name); 
-  u8_free(ffi->ffi_cif); 
-  u8_free(ffi->ffi_rtype); 
+  u8_free(ffi->fcn_name);
+  u8_free(ffi->ffi_cif);
+  u8_free(ffi->ffi_return_type);
   u8_free(ffi->ffi_argtypes);
   u8_xfree(ffi->ffi_defaults);
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
