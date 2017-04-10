@@ -295,6 +295,14 @@ static fdtype d1_dispatch(fdtype opcode,fdtype arg1)
     if (FD_OIDP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_SYMBOLP_OPCODE: 
     if (FD_SYMBOLP(arg1)) return FD_TRUE; else return FD_FALSE;
+  case FD_FIXNUMP_OPCODE: 
+    if (FD_FIXNUMP(arg1)) return FD_TRUE; else return FD_FALSE;
+  case FD_FLONUMP_OPCODE: 
+    if (FD_FLONUMP(arg1)) return FD_TRUE; else return FD_FALSE;
+  case FD_TABLEP_OPCODE: 
+    if (FD_TABLEP(arg1)) return FD_TRUE; else return FD_FALSE;
+  case FD_SEQUENCEP_OPCODE: 
+    if (FD_SEQUENCEP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_CADR_OPCODE: {
     fdtype cdr=FD_CDR(arg1);
     if (FD_PAIRP(cdr)) return fd_incref(FD_CAR(cdr));
@@ -361,9 +369,7 @@ static fdtype d1_call(fdtype opcode,fdtype arg1)
 
 static fdtype elt_opcode(fdtype arg1,fdtype arg2)
 {
-  if (FD_EMPTY_CHOICEP(arg1)) {
-    fd_decref(arg2); return arg1;}
-  else if ((FD_SEQUENCEP(arg1)) && (FD_INTP(arg2))) {
+  if ((FD_SEQUENCEP(arg1)) && (FD_INTP(arg2))) {
     fdtype result;
     long long off=FD_FIX2INT(arg2), len=fd_seq_length(arg1);
     if (off<0) off=len+off;
@@ -418,22 +424,6 @@ static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
       else return FD_FALSE;
     else if (fd_numcompare(arg1,arg2)<=0) return FD_TRUE;
     else return FD_FALSE;
-  case FD_EQ_OPCODE: {
-    if (arg1==arg2) return FD_TRUE; else return FD_FALSE;
-    break;}
-  case FD_EQV_OPCODE: {
-    if (arg1==arg2) return FD_TRUE;
-    else if ((FD_NUMBERP(arg1)) && (FD_NUMBERP(arg2)))
-      if (fd_numcompare(arg1,arg2)==0)
-	return FD_TRUE; else return FD_FALSE;
-    else return FD_FALSE;
-    break;}
-  case FD_EQUAL_OPCODE: {
-    if ((FD_ATOMICP(arg1)) && (FD_ATOMICP(arg2)))
-      if (arg1==arg2) return FD_TRUE; else return FD_FALSE;
-    else if (FD_EQUAL(arg1,arg2)) return FD_TRUE;
-    else return FD_FALSE;
-    break;}
   case FD_PLUS_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
       long long m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
@@ -471,6 +461,24 @@ static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
       return fd_init_double(NULL,x/y);}
   case FD_ELT_OPCODE:
     return elt_opcode(arg1,arg2);
+  case FD_CONS_OPCODE:
+    return fd_init_pair(NULL,arg1,arg2);
+  case FD_EQ_OPCODE: {
+    if (arg1==arg2) return FD_TRUE; else return FD_FALSE;
+    break;}
+  case FD_EQV_OPCODE: {
+    if (arg1==arg2) return FD_TRUE;
+    else if ((FD_NUMBERP(arg1)) && (FD_NUMBERP(arg2)))
+      if (fd_numcompare(arg1,arg2)==0)
+	return FD_TRUE; else return FD_FALSE;
+    else return FD_FALSE;
+    break;}
+  case FD_EQUAL_OPCODE: {
+    if ((FD_ATOMICP(arg1)) && (FD_ATOMICP(arg2)))
+      if (arg1==arg2) return FD_TRUE; else return FD_FALSE;
+    else if (FD_EQUAL(arg1,arg2)) return FD_TRUE;
+    else return FD_FALSE;
+    break;}
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
   }
@@ -501,31 +509,27 @@ FD_FASTOP int numeric_argp(fdtype x)
       return 0;}
 }
 
-static fdtype nd2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
+static fdtype d2_call(fdtype opcode,fdtype arg1,fdtype arg2)
 {
-  if (FD_EXPECT_FALSE((opcode<FD_EQ_OPCODE) && (!(numeric_argp(arg2))))) {
-    fd_decref(arg1);
-    return fd_type_error(_("number"),"numeric opcode",arg2);}
-  else {
-    fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(a1,arg1) {
-      {FD_DO_CHOICES(a2,arg2) {
-          fdtype result=d2_dispatch(opcode,a1,a2);
-          /* If we need to abort due to an error, we need to pop out of
-             two choice loops.  So on the inside, we decref results and
-             replace it with the error object.  We then break and
-             do FD_STOP_DO_CHOICES (for potential cleanup). */
-          if (FD_ABORTED(result)) {
-            fd_decref(results); results=result;
-            FD_STOP_DO_CHOICES; break;}
-          else {FD_ADD_TO_CHOICE(results,result);}}}
-      /* If the inner loop aborted due to an error, results is now bound
-         to the error, so we just FD_STOP_DO_CHOICES (this time for the
-         outer loop) and break; */
-      if (FD_ABORTED(results)) {
-        FD_STOP_DO_CHOICES; break;}}
-    fd_decref(arg1); fd_decref(arg2);
-    return results;}
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(a1,arg1) {
+    {FD_DO_CHOICES(a2,arg2) {
+        fdtype result=d2_dispatch(opcode,a1,a2);
+        /* If we need to abort due to an error, we need to pop out of
+           two choice loops.  So on the inside, we decref results and
+           replace it with the error object.  We then break and
+           do FD_STOP_DO_CHOICES (for potential cleanup). */
+        if (FD_ABORTED(result)) {
+          fd_decref(results); results=result;
+          FD_STOP_DO_CHOICES; break;}
+        else {FD_ADD_TO_CHOICE(results,result);}}}
+    /* If the inner loop aborted due to an error, results is now bound
+       to the error, so we just FD_STOP_DO_CHOICES (this time for the
+       outer loop) and break; */
+    if (FD_ABORTED(results)) {
+      FD_STOP_DO_CHOICES; break;}}
+  fd_decref(arg1); fd_decref(arg2);
+  return results;
 }
 
 static fdtype setop_call(fdtype opcode,fdtype arg1,fdtype arg2)
@@ -662,8 +666,6 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return FD_VOID;}
   case FD_UNTIL_OPCODE:
     return until_opcode(expr,env);
-  case FD_VOID_OPCODE: {
-    return FD_VOID;}
   case FD_BRANCH_OPCODE: {
     fdtype test_expr=pop_arg(args);
     if (FD_VOIDP(test_expr))
@@ -671,11 +673,46 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype test_val=op_eval(test_expr,env,0);
     if (FD_ABORTED(test_val)) return test_val;
     if (!(FD_FALSEP(test_val))) {
+      fdtype then=pop_arg(args);
+      fdtype ignore=pop_arg(args);
       fd_decref(test_val);
-      return op_eval(pop_arg(args),env,1);}
+      return op_eval(then,env,1);}
     else {
       pop_arg(args);
       return op_eval(pop_arg(args),env,1);}}
+  case FD_SETVAL_OPCODE: case FD_SETPLUS_OPCODE: {
+    fdtype var=pop_arg(args);
+    fdtype val_expr=pop_arg(args);
+    if (FD_LEXREFP(var)) {
+      fdtype set_value=op_eval(val_expr,env,0);
+      int up=FD_LEXREF_UP(var);
+      int across=FD_LEXREF_ACROSS(var);
+      if (FD_ABORTP(set_value)) return set_value;
+      else {
+        fd_lispenv scan=( (env->env_copy) ? (env->env_copy) : (env) );
+        while ((up)&&(scan)) {
+          fd_lispenv parent = scan->env_parent;
+          if ((parent) && (parent->env_copy))
+            scan=parent->env_copy;
+          else scan=parent;}
+        if (FD_EXPECT_TRUE(scan!=NULL)) {
+          fdtype bindings=scan->env_bindings;
+          if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
+            struct FD_SCHEMAP *skimap=(struct FD_SCHEMAP *)bindings;
+            if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
+              if (opcode==FD_SETVAL_OPCODE) {
+                fdtype cur=skimap->schema_values[across];
+                skimap->schema_values[across]=set_value;
+                fd_decref(cur);}
+              else {
+                fdtype *values=skimap->schema_values;
+                FD_ADD_TO_CHOICE(values[across],set_value);}
+              return FD_VOID;}}}}
+      fd_decref(set_value);}
+    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
+  }
+  case FD_VOID_OPCODE: {
+    return FD_VOID;}
   case FD_XREF_OPCODE: {
     fdtype obj_expr=pop_arg(args);
     fdtype off_arg=pop_arg(args);
@@ -726,7 +763,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fd_decref(arg1);
           return FD_EMPTY_CHOICE;}
         else if ((FD_CHOICEP(arg1))||(FD_CHOICEP(arg2)))
-          return nd2_dispatch(opcode,arg1,arg2);
+          return d2_call(opcode,arg1,arg2);
         else return d2_dispatch(opcode,arg1,arg2);}}
     else if (FD_ND2_OPCODEP(opcode)) {
       if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
@@ -746,7 +783,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fd_decref(arg1); return arg2;}
         else if ((FD_CHOICEP(arg1)) || (FD_CHOICEP(arg2)))
           /* nd2_dispatch handles decref of arg1 and arg2 */
-          return nd2_dispatch(opcode,arg1,arg2);
+          return d2_call(opcode,arg1,arg2);
         else {
           /* This is the dispatch case where we just go to dispatch. */
           fdtype result=d2_dispatch(opcode,arg1,arg2);
