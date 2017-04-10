@@ -59,10 +59,10 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     /* Set up generic function fields */
     proc->fcn_name=u8_strdup(name);
     proc->fcn_filename=NULL;
-    proc->fd_ffi_arity=arity;
-    proc->fd_ffi_defaults=defaults;
-    proc->fd_ffi_rtype=return_type;
-    proc->fd_ffi_argtypes=argtypes;
+    proc->ffi_arity=arity;
+    proc->ffi_defaults=defaults;
+    proc->ffi_rtype=return_type;
+    proc->ffi_argtypes=argtypes;
     proc->fcn_ndcall=0;
     proc->fcn_xcall=1;
     // Defer arity checking to fd_ffi_call
@@ -110,17 +110,17 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 static void recycle_ffi_proc(struct FD_RAW_CONS *c)
 {
   struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)c;
-  int arity=ffi->fd_ffi_arity;
-  if (ffi->fd_ffi_defaults) {
-    fdtype *values=ffi->fd_ffi_defaults;
+  int arity=ffi->ffi_arity;
+  if (ffi->ffi_defaults) {
+    fdtype *values=ffi->ffi_defaults;
     int i=0; while (i<arity) {
       fdtype v=values[i++]; fd_decref(v);}
     u8_free(values);}
   u8_free(ffi->fcn_name); 
-  u8_free(ffi->fd_ffi_cif); 
-  u8_free(ffi->fd_ffi_rtype); 
-  u8_free(ffi->fd_ffi_argtypes);
-  u8_xfree(ffi->fd_ffi_defaults);
+  u8_free(ffi->ffi_cif); 
+  u8_free(ffi->ffi_rtype); 
+  u8_free(ffi->ffi_argtypes);
+  u8_xfree(ffi->ffi_defaults);
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
 }
 
