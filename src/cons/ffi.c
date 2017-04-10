@@ -28,6 +28,11 @@ u8_condition fd_ffi_BadTypeinfo=_("Bad FFI type info");
 u8_condition fd_ffi_BadABI=_("Bad FFI ABI value");
 u8_condition fd_ffi_FFIError=_("Unknown libffi error");
 
+static fdtype fd_uint_symbol, fd_sint_symbol, fd_ushort_symbol, fd_sshort_symbol;
+static fdtype fd_ulong_symbol, fd_slong_symbol, fd_uchar_symbol, fd_schar_symbol;
+static fdtype fd_string_symbol, fd_packet_symbol, fd_ptr_symbol, fd_cons_symbol;
+static fdtype fd_float_symbol, fd_double_symbol, fd_size_symbol, fd_lisp_symbol;
+
 #if HAVE_FFI_H && HAVE_LIBFFI
 #include <ffi.h>
 
@@ -44,11 +49,15 @@ static fdtype ffi_caller(struct FD_FUNCTION *fn,int n,fdtype *args);
 **/
 
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
- (u8_string name,int arity,
-  ffi_type *return_type,ffi_type *argtypes,
-  fdtype *defaults)
+(u8_string name,u8_string filename,int arity,
+ ffi_type *return_type,ffi_type *argtypes,
+ fdtype *defaults)
 {
   ffi_cif *cif = u8_zalloc_for("fd_make_ffi_proc",ffi_cif);
+  void *mod_arg=(filename==NULL) ? ((void *)NULL) : 
+    (u8_dynamic_load(filename));
+  if (FD_EXPECT_FALSE((filename) && (mod_arg==NULL)))
+    return NULL;
   ffi_status rv=
     ffi_prep_cif(cif, FFI_DEFAULT_ABI, arity,
 		 return_type,&argtypes);
@@ -58,18 +67,24 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     FD_INIT_CONS(proc,fd_ffi_type);
     /* Set up generic function fields */
     proc->fcn_name=u8_strdup(name);
-    proc->fcn_filename=NULL;
-    proc->ffi_arity=arity;
-    proc->ffi_defaults=defaults;
-    proc->ffi_rtype=return_type;
-    proc->ffi_argtypes=argtypes;
+    proc->fcn_filename=u8_strdup(filename);
+    proc->fcn_arity=arity;
+    proc->fcn_defaults=defaults;
     proc->fcn_ndcall=0;
     proc->fcn_xcall=1;
+    proc->fcn_arity=arity;
+    if (defaults==NULL)
+      proc->fcn_min_arity=arity;
+    else {
+      int min=0, i=0; while (i<arity) {
+	if (FD_VOIDP(defaults[i])) break;
+	else min=i++;}
+      proc->fcn_min_arity=min;}
+    proc->ffi_return_type=return_type;
+    proc->ffi_argtypes=argtypes;
     // Defer arity checking to fd_ffi_call
-    proc->fcn_min_arity=0;
-    proc->fcn_arity=-1;
     proc->fcn_handler.xcalln=fd_ffi_call;
-    proc->fcn_dlsym=dlsym(RTLD_DEFAULT,name);
+    proc->ffi_dlsym=u8_dynamic_symbol(name,mod_arg);
     return proc;}
   else {
     u8_free(cif);
@@ -85,21 +100,22 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
     struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
-    int arity=proc->fcn->arity;
-    void *argvalues=u8_alloc_n(arity,void *);
-    void **argptrs=u8_alloc_n(arity,void *);
+    int arity=proc->fcn_arity;
+    void **argvalues=u8_alloc_n(arity,void *);
+    fdtype result=FD_VOID;
     fdtype lispval; unsigned char *bytesval; long long ival;
-    int i=0, rv=-1; while (i<arity) {argptrs[i]=&(argvalues[i]); i++;}
+    int i=0, rv=-1;
     i=0; while (i<arity) {
       fdtype arg=args[i];
-      ffi_type *argtype=proc->ffi_argtypes[i];
+      ffi_type argtype=proc->ffi_argtypes[i];
+      /* Do the right thing here */
       argvalues[i]=0;
       i++;}
     if (1)
-      rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&bytesval);
+      ffi_call(proc->ffi_cif,proc->ffi_dlsym,&bytesval,argvalues);
     else if (1)
-      rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&ival);
-    else rv=ffi_call(proc->ffi_cif,proc->ffi_fcn,&lispval);
+      ffi_call(proc->ffi_cif,proc->ffi_dlsym,&ival,argvalues);
+    else ffi_call(proc->ffi_cif,proc->ffi_dlsym,&lispval,argvalues);
     return result;}
   else return fd_err(_("Not an foreign function interface"),
 		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);
@@ -110,17 +126,19 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 static void recycle_ffi_proc(struct FD_RAW_CONS *c)
 {
   struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)c;
-  int arity=ffi->ffi_arity;
-  if (ffi->ffi_defaults) {
-    fdtype *values=ffi->ffi_defaults;
+  int arity=ffi->fcn_arity;
+  if (ffi->fcn_defaults) {
+    fdtype *values=ffi->fcn_defaults;
     int i=0; while (i<arity) {
       fdtype v=values[i++]; fd_decref(v);}
     u8_free(values);}
-  u8_free(ffi->fcn_name); 
-  u8_free(ffi->ffi_cif); 
-  u8_free(ffi->ffi_rtype); 
   u8_free(ffi->ffi_argtypes);
-  u8_xfree(ffi->ffi_defaults);
+  if (ffi->fcn_typeinfo) u8_xfree(ffi->fcn_typeinfo);
+  if (ffi->fcn_defaults) u8_xfree(ffi->fcn_defaults);
+  u8_free(ffi->fcn_name); 
+  if (ffi->fcn_filename) u8_free(ffi->fcn_filename); 
+  u8_free(ffi->ffi_cif); 
+  u8_free(ffi->ffi_return_type); 
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
 }
 
@@ -148,6 +166,25 @@ FD_EXPORT void fd_init_ffi_c()
 FD_EXPORT void fd_init_ffi_c()
 {
   fd_type_names[fd_ffi_type]="foreign-function";
+
+  fd_double_symbol=fd_intern("DOUBLE");
+  fd_float_symbol=fd_intern("FLOAT");
+  fd_uint_symbol=fd_intern("UNSIGNEDINT");
+  fd_sint_symbol=fd_intern("SIGNEDINT");
+  fd_ushort_symbol=fd_intern("UNSIGNEDSHORT");
+  fd_sshort_symbol=fd_intern("SIGNEDSHORT");
+  fd_ulong_symbol=fd_intern("UNSIGNEDLONG");
+  fd_slong_symbol=fd_intern("SIGNEDLONG");
+  fd_uchar_symbol=fd_intern("UNSIGNEDCHAR");
+  fd_byte_symbol=fd_intern("BYTE");
+  fd_size_t_symbol=fd_intern("SIZE");
+  fd_bool_symbol=fd_intern("BOOLEAN");
+  fd_schar_symbol=fd_intern("SIGNEDCHAR");
+  fd_string_symbol=fd_intern("STRING");
+  fd_packet_symbol=fd_intern("PACKET");
+  fd_ptr_symbol=fd_intern("PTR");
+  fd_cons_symbol=fd_intern("CONS");
+  fd_lisp_symbol=fd_intern("LISP");
 
   u8_register_source_file(_FILEINFO);
 }
