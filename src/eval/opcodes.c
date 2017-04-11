@@ -287,7 +287,7 @@ static fdtype d1_dispatch(fdtype opcode,fdtype arg1)
     if (FD_VECTORP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_PAIRP_OPCODE: 
     if (FD_PAIRP(arg1)) return FD_TRUE; else return FD_FALSE;
-  case FD_NULLP_OPCODE: 
+  case FD_EMPTY_LISTP_OPCODE: 
     if (arg1==FD_EMPTY_LIST) return FD_TRUE; else return FD_FALSE;
   case FD_STRINGP_OPCODE: 
     if (FD_STRINGP(arg1)) return FD_TRUE; else return FD_FALSE;
