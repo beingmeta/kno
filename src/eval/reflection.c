@@ -61,11 +61,13 @@ static fdtype procedurep(fdtype x)
 
 static fdtype procedure_name(fdtype x)
 {
-  if (FD_APPLICABLEP(x)) {
+  if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
+  else if (FD_APPLICABLEP(x)) 
+    return FD_FALSE;
   else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
     if (sf->fexpr_name)

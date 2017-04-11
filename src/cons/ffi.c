@@ -32,6 +32,7 @@ static fdtype fd_uint_symbol, fd_sint_symbol, fd_ushort_symbol, fd_sshort_symbol
 static fdtype fd_ulong_symbol, fd_slong_symbol, fd_uchar_symbol, fd_schar_symbol;
 static fdtype fd_string_symbol, fd_packet_symbol, fd_ptr_symbol, fd_cons_symbol;
 static fdtype fd_float_symbol, fd_double_symbol, fd_size_symbol, fd_lisp_symbol;
+static fdtype fd_byte_symbol, fd_bool_symbol;
 
 #if HAVE_FFI_H && HAVE_LIBFFI
 #include <ffi.h>
@@ -70,6 +71,8 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fcn_filename=u8_strdup(filename);
     proc->fcn_arity=arity;
     proc->fcn_defaults=defaults;
+    proc->ffi_return_type=return_type;
+    proc->ffi_argtypes=argtypes;
     proc->fcn_ndcall=0;
     proc->fcn_xcall=1;
     proc->fcn_arity=arity;
@@ -99,10 +102,10 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
+    fdtype result=FD_VOID;
     struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
     int arity=proc->fcn_arity;
     void **argvalues=u8_alloc_n(arity,void *);
-    fdtype result=FD_VOID;
     fdtype lispval; unsigned char *bytesval; long long ival;
     int i=0, rv=-1;
     i=0; while (i<arity) {
@@ -111,7 +114,7 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
       /* Do the right thing here */
       argvalues[i]=0;
       i++;}
-    if (1)
+    if (1) /* Branch on return_type */
       ffi_call(proc->ffi_cif,proc->ffi_dlsym,&bytesval,argvalues);
     else if (1)
       ffi_call(proc->ffi_cif,proc->ffi_dlsym,&ival,argvalues);
@@ -127,16 +130,15 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
 {
   struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)c;
   int arity=ffi->fcn_arity;
-  if (ffi->fcn_defaults) {
-    fdtype *values=ffi->fcn_defaults;
-    int i=0; while (i<arity) {
-      fdtype v=values[i++]; fd_decref(v);}
-    u8_free(values);}
-  u8_free(ffi->ffi_argtypes);
-  if (ffi->fcn_typeinfo) u8_xfree(ffi->fcn_typeinfo);
-  if (ffi->fcn_defaults) u8_xfree(ffi->fcn_defaults);
-  u8_free(ffi->fcn_name); 
+  if (ffi->fcn_name) u8_free(ffi->fcn_name);
   if (ffi->fcn_filename) u8_free(ffi->fcn_filename); 
+  if (ffi->fcn_typeinfo) u8_free(ffi->fcn_typeinfo);
+  if (ffi->fcn_defaults) {
+    fdtype *default_values=ffi->fcn_defaults;
+    int i=0; while (i<arity) {
+      fdtype v=default_values[i++]; fd_decref(v);}
+    u8_free(default_values);}
+  u8_free(ffi->ffi_argtypes);
   u8_free(ffi->ffi_cif); 
   u8_free(ffi->ffi_return_type); 
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
@@ -177,7 +179,7 @@ FD_EXPORT void fd_init_ffi_c()
   fd_slong_symbol=fd_intern("SIGNEDLONG");
   fd_uchar_symbol=fd_intern("UNSIGNEDCHAR");
   fd_byte_symbol=fd_intern("BYTE");
-  fd_size_t_symbol=fd_intern("SIZE");
+  fd_size_symbol=fd_intern("SIZE");
   fd_bool_symbol=fd_intern("BOOLEAN");
   fd_schar_symbol=fd_intern("SIGNEDCHAR");
   fd_string_symbol=fd_intern("STRING");
