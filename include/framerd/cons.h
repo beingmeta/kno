@@ -213,7 +213,8 @@ FD_EXPORT fdtype fd_deep_copy(fdtype x);
 FD_EXPORT fdtype fd_static_copy(fdtype x);
 
 FD_EXPORT fdtype *fd_copy_vec(fdtype *vec,int n,fdtype *into,int copy_flags);
-FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
+FD_EXPORT void fd_incref_vec(fdtype *vec,int n);
+FD_EXPORT void fd_decref_vec(fdtype *vec,int n,int free_vec);
 
 #define FD_DEEP_COPY 2   /* Make a deep copy */
 #define FD_FULL_COPY 4   /* Copy non-static objects */

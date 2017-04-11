@@ -93,22 +93,22 @@ static ffi_type *get_ffi_type(fdtype arg)
 
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 (u8_string name,u8_string filename,int arity,
- fdtype return_type,fdtype *argspecs)
+ fdtype return_spec,fdtype *argspecs)
 {
   void *mod_arg=(filename==NULL) ? ((void *)NULL) : 
     (u8_dynamic_load(filename));
   if (FD_EXPECT_FALSE((filename) && (mod_arg==NULL)))
     return NULL;
-  ffi_type *ffi_return_type=get_ffi_type(return_type);
-  if (ffi_return_type==NULL) return NULL;
+  ffi_type *return_type=get_ffi_type(return_spec);
+  if (return_type==NULL) return NULL;
   fdtype *savespecs=u8_alloc_n(arity,fdtype);
   ffi_type **ffi_argtypes=u8_alloc_n(arity,ffi_type *);
   int i=0; while (i<arity) {
     fdtype argspec=argspecs[i];
     ffi_type *ffi_argtype=get_ffi_type(argspec);
-    if (ffitype==NULL) {
-      u8_free(savespecs);
+    if (ffi_argtype==NULL) {
       u8_free(argtypes);
+      u8_free(savespecs);
       return NULL;}
     ffi_argtypes[i]=ffi_argtype;
     savespecs[i]=argspec;
@@ -121,13 +121,15 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 		 ffi_return_type,ffi_argtypes);
   if (rv == FFI_OK) {
     /* Set up generic function fields */
-    i=0; while (i<arity) {fd_incref(savespecs[i]); i++;}
+    fd_incref_vec(arity,savespecs);
     proc->fcn_name=u8_strdup(name);
     proc->fcn_filename=u8_strdup(filename);
     proc->fcn_arity=arity;
     proc->fcn_defaults=NULL;
     proc->ffi_return_type=ffi_return_type;
     proc->ffi_argtypes=ffi_argtypes;
+    proc->ffi_return_spec=return_spec; fd_incref(return_spec);
+    proc->ffi_argspecs=argspecs;
     proc->fcn_ndcall=0;
     proc->fcn_xcall=1;
     proc->fcn_arity=arity;
@@ -195,7 +197,6 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
       fdtype v=default_values[i++]; fd_decref(v);}
     u8_free(default_values);}
   u8_free(ffi->ffi_argtypes);
-  u8_free(ffi->ffi_cif); 
   u8_free(ffi->ffi_return_type); 
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
 }
@@ -205,6 +206,12 @@ static int unparse_ffi_proc(u8_output out,fdtype x)
   struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)x;
   u8_printf(out,"#<FFI '%s' #!%llx>",ffi->fcn_name,(long long) ffi);
   return 1;
+}
+
+FD_EXPORT long long fd_test_ffi(int x,int y)
+{
+  long long result=x+y;
+  return result;
 }
 
 /* Initializations */
