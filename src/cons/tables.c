@@ -659,8 +659,8 @@ static fdtype copy_slotmap(fdtype smap,int flags)
 
 static void recycle_slotmap(struct FD_RAW_CONS *c)
 {
-  struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c;
-  fd_write_lock_table(sm);
+  struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c; int unlock=0;
+  if (sm->table_uselock) {fd_write_lock_table(sm); unlock=1;}
   {
     int slotmap_size=FD_XSLOTMAP_NUSED(sm);
     const struct FD_KEYVAL *scan=sm->sm_keyvals;
@@ -670,7 +670,7 @@ static void recycle_slotmap(struct FD_RAW_CONS *c)
       fd_decref(scan->kv_val);
       scan++;}
     if (sm->sm_free_keyvals) u8_free(sm->sm_keyvals);
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     u8_destroy_rwlock(&(sm->table_rwlock));
     u8_free(sm);
   }
@@ -954,10 +954,12 @@ FD_EXPORT fdtype fd_init_schemap
   FD_INIT_CONS(ptr,fd_schemap_type);
   news=u8_alloc_n(size,fdtype);
   ptr->schema_values=newv=u8_alloc_n(size,fdtype);
-  ptr->schema_length=size; ptr->schemap_sorted=1;
+  ptr->schema_length=size; ptr->schemap_sorted=1; 
   sort_keyvals(init,size);
   while (i<size) {
-    news[i]=init[i].kv_key; newv[i]=init[i].kv_val; i++;}
+    news[i]=init[i].kv_key; 
+    newv[i]=init[i].kv_val;
+    i++;}
   ptr->table_schema=fd_register_schema(size,news);
   if (ptr->table_schema != news) {
     ptr->schemap_shared=1;
@@ -2633,11 +2635,11 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly)
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 {
-  struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)c;
+  struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)c; int unlock=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_write_lock_table(ht);
+  if (ht->table_uselock) { fd_write_lock_table(ht); unlock=1;}
   if (ht->ht_n_buckets==0) {
-    fd_unlock_table(ht);
+    if (unlock) fd_unlock_table(ht);
     u8_destroy_rwlock(&(ht->table_rwlock));
     if (!(FD_STATIC_CONSP(ht))) u8_free(ht);
     return 0;}
@@ -2656,7 +2658,7 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
       else scan++;
     u8_free(ht->ht_buckets);}
   ht->ht_buckets=NULL; ht->ht_n_buckets=0; ht->table_n_keys=0;
-  fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   u8_destroy_rwlock(&(ht->table_rwlock));
   if (!(FD_STATIC_CONSP(ht))) u8_free(ht);
   return 0;
