@@ -17,9 +17,10 @@
 
 typedef struct FD_FFI_PROC {
   FD_FUNCTION_FIELDS;
-  ffi_cif *ffi_cif; 
+  ffi_cif ffi_interface; 
   ffi_type *ffi_return_type;
   ffi_type *ffi_argtypes;
+  fdtype ffi_return_spec, *ffi_argspecs;
   int ffi_uselock;
   void (*ffi_dlsym)(void);
   U8_MUTEX_DECL(ffi_lock);
@@ -28,8 +29,7 @@ typedef struct FD_FFI_PROC *fd_ffi_proc;
 
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
   (u8_string name,u8_string filename,int arity,
-   ffi_type *return_type,ffi_type *argtypes,
-   fdtype *defaults);
+   fdtype return_type,fdtype *argspecs);
 
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args);
 
