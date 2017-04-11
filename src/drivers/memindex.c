@@ -258,7 +258,7 @@ static int mem_index_commit(fd_index ix)
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
 	 n_updates,n_entries,ix->indexid,end);
 
-  return 1;
+  return n_updates;
 }
 
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)

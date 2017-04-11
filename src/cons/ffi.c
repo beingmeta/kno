@@ -28,8 +28,8 @@ u8_condition fd_ffi_BadTypeinfo=_("Bad FFI type info");
 u8_condition fd_ffi_BadABI=_("Bad FFI ABI value");
 u8_condition fd_ffi_FFIError=_("Unknown libffi error");
 
-static fdtype uint_symbol, sint_symbol, ushort_symbol, sshort_symbol;
-static fdtype ulong_symbol, slong_symbol, uchar_symbol, schar_symbol;
+static fdtype uint_symbol, int_symbol, ushort_symbol, short_symbol;
+static fdtype ulong_symbol, long_symbol, uchar_symbol, char_symbol;
 static fdtype string_symbol, packet_symbol, ptr_symbol, cons_symbol;
 static fdtype float_symbol, double_symbol, size_symbol, lisp_symbol;
 static fdtype byte_symbol, basetype_symbol;
@@ -41,7 +41,7 @@ static fdtype byte_symbol, basetype_symbol;
 #define u8_xfree(ptr) if (ptr) free((char *)ptr); else ptr=ptr;
 #endif
 
-static fdtype ffi_caller(struct FD_FUNCTION *fn,int n,fdtype *args);
+FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args);
 
 static ffi_type *get_ffi_type(fdtype arg)
 {
@@ -59,19 +59,19 @@ static ffi_type *get_ffi_type(fdtype arg)
     return NULL;}
   else if ((arg==ulong_symbol) || (arg==lisp_symbol))
     return &ffi_type_uint64;
-  else if ((arg==slong_symbol)||(size_symbol))
+  else if ((arg==long_symbol)||(arg==size_symbol))
     return &ffi_type_sint64;
   else if (arg==uint_symbol)
     return &ffi_type_uint32;
-  else if (arg==sint_symbol)
+  else if (arg==int_symbol)
     return &ffi_type_sint32;
   else if (arg==ushort_symbol)
     return &ffi_type_uint16;
-  else if (arg==sshort_symbol)
+  else if (arg==short_symbol)
     return &ffi_type_sint16;
   else if ((arg==uchar_symbol)||(arg==byte_symbol))
     return &ffi_type_uint8;
-  else if (arg==schar_symbol)
+  else if (arg==char_symbol)
     return &ffi_type_sint8;
   else if (arg==float_symbol)
     return &ffi_type_float;
@@ -148,27 +148,79 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     return NULL;}
 }
 
+static int handle_ffi_arg(fdtype arg,fdtype spec,void **valptr,void **argptr)
+{
+  if (spec==lisp_symbol) {
+    *argptr=valptr;
+    return 1;}
+  else if (spec==cons_symbol) {
+    if (FD_CONSP(arg)) {
+      *argptr=(void *)arg;
+      return 1;}
+    else {
+      fd_xseterr("NotACons","handle_ffi_arg",NULL,arg);
+      return -1;}}
+  else if (FD_FIXNUMP(arg)) {
+    long long ival=FD_FIX2INT(arg);
+    if (spec==int_symbol) 
+      *valptr=(void *)ival;
+    else if (spec==uint_symbol)
+      *valptr=(void *)ival;
+    else if (spec==long_symbol)
+      *valptr=(void *)ival;
+    else if (spec==ulong_symbol)
+      *valptr=(void *)ival;
+    else {
+      fd_xseterr("BadIntType","handle_ffi_arg",NULL,spec);
+      return -1;}
+    *argptr=valptr;
+    return 1;}
+  else if (FD_STRINGP(arg)) {
+    *argptr=(void *)FD_STRDATA(arg);
+    return 1;}
+  else {
+    fd_seterr("BadFFIArg","handle_ffi_arg",NULL,arg);
+    return -1;}
+}
+
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
-    fdtype result=FD_VOID;
     struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
+    fdtype *argspecs=proc->ffi_argspecs;
+    fdtype return_spec=proc->ffi_return_spec;
+    void *vals[10], *argptrs[10];
     int arity=proc->fcn_arity;
-    void **argvalues=u8_alloc_n(arity,void *);
-    fdtype lispval; unsigned char *bytesval; long long ival;
-    int i=0, rv=-1;
+    int i=0;
     i=0; while (i<arity) {
-      fdtype arg=args[i];
-      ffi_type *argtype=proc->ffi_argtypes[i];
-      /* Do the right thing here */
-      argvalues[i]=0;
-      i++;}
-    if (1) /* Branch on return_type */
-      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&bytesval,argvalues);
-    else if (1)
-      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&ival,argvalues);
-    else ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&lispval,argvalues);
-    return result;}
+      int rv=handle_ffi_arg(args[i],argspecs[i],&(vals[i]),&argptrs[i]);
+      if (rv<0) return FD_ERROR_VALUE;
+      else i++;}
+    if (return_spec==lisp_symbol) {
+      fdtype result;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
+      return result;}
+    else if (return_spec==string_symbol) {
+      u8_string stringval=NULL;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&stringval,argptrs);
+      return fd_make_string(NULL,-1,stringval);}
+    else if (return_spec==int_symbol) {
+      int intval=-1;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      return FD_INT(intval);}
+    else if (return_spec==uint_symbol) {
+      unsigned int intval=0;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      return FD_INT(intval);}
+    else if ((return_spec==long_symbol)||(return_spec==size_symbol)) {
+      long long intval=-1;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      return FD_INT(intval);}
+    else if (return_spec==ulong_symbol) {
+      unsigned long long intval=-1;
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      return FD_INT(intval);}
+    else return FD_VOID;}
   else return fd_err(_("Not an foreign function interface"),
 		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);
 }
@@ -199,11 +251,17 @@ static int unparse_ffi_proc(u8_output out,fdtype x)
   return 1;
 }
 
-FD_EXPORT long long fd_test_ffi(int x,int y)
+FD_EXPORT long long fd_test_ffi_plus(int x,int y)
 {
   long long result=x+y;
   return result;
 }
+
+FD_EXPORT size_t fd_test_ffi_strlen(u8_string s)
+{
+  return strlen(s);
+}
+
 
 /* Initializations */
 
@@ -225,16 +283,16 @@ FD_EXPORT void fd_init_ffi_c()
 
   double_symbol=fd_intern("DOUBLE");
   float_symbol=fd_intern("FLOAT");
-  uint_symbol=fd_intern("UNSIGNEDINT");
-  sint_symbol=fd_intern("SIGNEDINT");
-  ushort_symbol=fd_intern("UNSIGNEDSHORT");
-  sshort_symbol=fd_intern("SIGNEDSHORT");
-  ulong_symbol=fd_intern("UNSIGNEDLONG");
-  slong_symbol=fd_intern("SIGNEDLONG");
-  uchar_symbol=fd_intern("UNSIGNEDCHAR");
+  uint_symbol=fd_intern("UINT");
+  int_symbol=fd_intern("INT");
+  ushort_symbol=fd_intern("USHORT");
+  short_symbol=fd_intern("SHORT");
+  ulong_symbol=fd_intern("ULONG");
+  long_symbol=fd_intern("LONG");
+  uchar_symbol=fd_intern("UCHAR");
   byte_symbol=fd_intern("BYTE");
   size_symbol=fd_intern("SIZE");
-  schar_symbol=fd_intern("SIGNEDCHAR");
+  char_symbol=fd_intern("CHAR");
   string_symbol=fd_intern("STRING");
   packet_symbol=fd_intern("PACKET");
   ptr_symbol=fd_intern("PTR");

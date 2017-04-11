@@ -2573,7 +2573,7 @@ static int update_hashindex_ondisk
       fd_write_4bytes(outstream,word2);
       i++;}}
   /* The offsets have now been updated in memory */
-  if (hx->index_offdata) {
+  if (offdata) {
 #if (HAVE_MMAP)
     /* If you have MMAP, make them unwritable which swaps them out to
        the file. */

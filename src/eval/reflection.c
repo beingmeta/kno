@@ -11,6 +11,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
+#include "framerd/ffi.h"
 
 #include "libu8/u8streamio.h"
 #include "libu8/u8printf.h"
@@ -557,6 +558,21 @@ static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
   return modules;
 }
 
+/* FFI */
+
+static fdtype ffi_proc(int n,fdtype *args)
+{
+  fdtype name_arg=args[0], filename_arg=args[1];
+  fdtype return_type=args[2];
+  u8_string name = (FD_STRINGP(name_arg)) ? (FD_STRDATA(name_arg)) : (NULL);
+  u8_string filename = (FD_STRINGP(filename_arg)) ? (FD_STRDATA(filename_arg)) : (NULL);
+  if (!(name))
+    return fd_type_error("String","ffi_proc/name",name_arg);
+  else if (!((FD_STRINGP(filename_arg))||(FD_FALSEP(filename_arg))))
+    return fd_type_error("String","ffi_proc/filename",filename_arg);    
+  else return (fdtype)fd_make_ffi_proc(name,filename,n-3,return_type,args+3);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_reflection_c()
@@ -636,6 +652,8 @@ FD_EXPORT void fd_init_reflection_c()
 
   fd_defspecial(module,"WHEREFROM",wherefrom_handler);
   fd_defspecial(module,"GETMODULES",getmodules_handler);
+
+  fd_idefn(module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
 
   fd_finish_module(module);
 }
