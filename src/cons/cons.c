@@ -296,8 +296,17 @@ void fd_recycle_cons(fd_raw_cons c)
 }
 
 FD_EXPORT
-/* Frees a vector of LISP pointers */
-void fd_free_vec(fdtype *vec,int n,int free_vec)
+/* Increfs the elements of a vector of LISP pointers */
+void fd_incref_vec(fdtype *vec,int n)
+{
+  int i=0; while (i<n) {
+    fdtype elt=vec[i++];
+    fd_incref(elt);}
+}
+
+FD_EXPORT
+/* Decrefs the elements of a vector of LISP pointers */
+void fd_decref_vec(fdtype *vec,int n,int free_vec)
 {
   int i=0; while (i<n) {
     fdtype elt=vec[i++];
