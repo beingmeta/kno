@@ -107,7 +107,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     fdtype argspec=argspecs[i];
     ffi_type *ffi_argtype=get_ffi_type(argspec);
     if (ffi_argtype==NULL) {
-      u8_free(argtypes);
+      u8_free(ffi_argtypes);
       u8_free(savespecs);
       return NULL;}
     ffi_argtypes[i]=ffi_argtype;
@@ -118,30 +118,21 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
   FD_INIT_CONS(proc,fd_ffi_type);
   ffi_status rv=
     ffi_prep_cif(&(proc->ffi_interface), FFI_DEFAULT_ABI, arity,
-		 ffi_return_type,ffi_argtypes);
+		 return_type,ffi_argtypes);
   if (rv == FFI_OK) {
     /* Set up generic function fields */
-    fd_incref_vec(arity,savespecs);
+    fd_incref_vec(savespecs,arity);
     proc->fcn_name=u8_strdup(name);
     proc->fcn_filename=u8_strdup(filename);
     proc->fcn_arity=arity;
+    proc->fcn_min_arity=arity;
     proc->fcn_defaults=NULL;
-    proc->ffi_return_type=ffi_return_type;
+    proc->ffi_return_type=return_type;
     proc->ffi_argtypes=ffi_argtypes;
     proc->ffi_return_spec=return_spec; fd_incref(return_spec);
     proc->ffi_argspecs=argspecs;
     proc->fcn_ndcall=0;
     proc->fcn_xcall=1;
-    proc->fcn_arity=arity;
-    if (defaults==NULL)
-      proc->fcn_min_arity=arity;
-    else {
-      int min=0, i=0; while (i<arity) {
-	if (FD_VOIDP(defaults[i])) break;
-	else min=i++;}
-      proc->fcn_min_arity=min;}
-    proc->ffi_return_type=return_type;
-    proc->ffi_argtypes=argtypes;
     // Defer arity checking to fd_ffi_call
     proc->fcn_handler.xcalln=fd_ffi_call;
     proc->ffi_dlsym=u8_dynamic_symbol(name,mod_arg);
@@ -168,15 +159,15 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
     int i=0, rv=-1;
     i=0; while (i<arity) {
       fdtype arg=args[i];
-      ffi_type argtype=proc->ffi_argtypes[i];
+      ffi_type *argtype=proc->ffi_argtypes[i];
       /* Do the right thing here */
       argvalues[i]=0;
       i++;}
     if (1) /* Branch on return_type */
-      ffi_call(proc->ffi_cif,proc->ffi_dlsym,&bytesval,argvalues);
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&bytesval,argvalues);
     else if (1)
-      ffi_call(proc->ffi_cif,proc->ffi_dlsym,&ival,argvalues);
-    else ffi_call(proc->ffi_cif,proc->ffi_dlsym,&lispval,argvalues);
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&ival,argvalues);
+    else ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&lispval,argvalues);
     return result;}
   else return fd_err(_("Not an foreign function interface"),
 		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);

@@ -19,7 +19,7 @@ typedef struct FD_FFI_PROC {
   FD_FUNCTION_FIELDS;
   ffi_cif ffi_interface; 
   ffi_type *ffi_return_type;
-  ffi_type *ffi_argtypes;
+  ffi_type **ffi_argtypes;
   fdtype ffi_return_spec, *ffi_argspecs;
   int ffi_uselock;
   void (*ffi_dlsym)(void);
