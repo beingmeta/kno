@@ -104,8 +104,8 @@
 		       (unless done
 			 (prefetch-keys! old keys)))))
     (do-vector-mt (key keyv (mt/threadcount) prefetcher 
-		       (config 'blocksize (quotient (length keyv) 
-						    (config 'nchunks 100)))
+		       (config 'blocksize (quotient (length keyv)
+						    (config 'nchunks 20)))
 		       (mt/custom-progress "Copying keys"))
       (unless (or (void? (get old key)) (fail? (get old key)))
 	(add! new key (get old key))))))
