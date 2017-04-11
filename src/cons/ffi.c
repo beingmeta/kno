@@ -32,6 +32,7 @@ static fdtype fd_uint_symbol, fd_sint_symbol, fd_ushort_symbol, fd_sshort_symbol
 static fdtype fd_ulong_symbol, fd_slong_symbol, fd_uchar_symbol, fd_schar_symbol;
 static fdtype fd_string_symbol, fd_packet_symbol, fd_ptr_symbol, fd_cons_symbol;
 static fdtype fd_float_symbol, fd_double_symbol, fd_size_symbol, fd_lisp_symbol;
+static fdtype fd_byte_symbol, fd_bool_symbol;
 
 #if HAVE_FFI_H && HAVE_LIBFFI
 #include <ffi.h>
@@ -178,7 +179,7 @@ FD_EXPORT void fd_init_ffi_c()
   fd_slong_symbol=fd_intern("SIGNEDLONG");
   fd_uchar_symbol=fd_intern("UNSIGNEDCHAR");
   fd_byte_symbol=fd_intern("BYTE");
-  fd_size_t_symbol=fd_intern("SIZE");
+  fd_size_symbol=fd_intern("SIZE");
   fd_bool_symbol=fd_intern("BOOLEAN");
   fd_schar_symbol=fd_intern("SIGNEDCHAR");
   fd_string_symbol=fd_intern("STRING");
