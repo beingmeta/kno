@@ -766,7 +766,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           return d2_call(opcode,arg1,arg2);
         else return d2_dispatch(opcode,arg1,arg2);}}
     else if (FD_D2_OPCODEP(opcode)) {
-      if (FD_EMPTY_CHOICEP(arg1)) 
+      if (FD_EMPTY_CHOICEP(arg1))
         return FD_EMPTY_CHOICE;
       else {
         if (FD_VOIDP(arg2_expr)) {
