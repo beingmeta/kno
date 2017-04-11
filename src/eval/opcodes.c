@@ -765,8 +765,9 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         else if ((FD_CHOICEP(arg1))||(FD_CHOICEP(arg2)))
           return d2_call(opcode,arg1,arg2);
         else return d2_dispatch(opcode,arg1,arg2);}}
-    else if (FD_ND2_OPCODEP(opcode)) {
-      if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
+    else if (FD_D2_OPCODEP(opcode)) {
+      if (FD_EMPTY_CHOICEP(arg1)) 
+        return FD_EMPTY_CHOICE;
       else {
         if (FD_VOIDP(arg2_expr)) {
           fd_decref(arg1);
@@ -924,7 +925,7 @@ static void init_opcode_names()
   set_opcode_name(FD_ZEROP_OPCODE,"ZERO?");
   set_opcode_name(FD_VECTORP_OPCODE,"VECTOR?");
   set_opcode_name(FD_PAIRP_OPCODE,"PAIR?");
-  set_opcode_name(FD_NULLP_OPCODE,"NULL?");
+  set_opcode_name(FD_EMPTY_LISTP_OPCODE,"EMPTY-LIST?");
   set_opcode_name(FD_STRINGP_OPCODE,"STRING?");
   set_opcode_name(FD_OIDP_OPCODE,"OID?");
   set_opcode_name(FD_SYMBOLP_OPCODE,"SYMBOL?");
