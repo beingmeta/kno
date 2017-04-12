@@ -485,7 +485,7 @@ FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
 FD_EXPORT void fd_init_indexes_c(void);
 FD_EXPORT void fd_init_dtcall_c(void);
-FD_EXPORT void fd_init_xtables_c(void);
+FD_EXPORT void fd_init_oidobj_c(void);
 FD_EXPORT void fd_init_dtproc_c(void);
 FD_EXPORT void fd_init_frames_c(void);
 FD_EXPORT void fd_init_cachecall_c(void);
@@ -504,7 +504,7 @@ FD_EXPORT int fd_init_kblib()
   fd_init_threadcache_c();
   fd_init_stream_c();
   fd_init_hashdtype_c();
-  fd_init_xtables_c();
+  fd_init_oidobj_c();
   fd_init_cachecall_c();
   fd_init_pools_c();
   fd_init_indexes_c();

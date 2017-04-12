@@ -536,7 +536,7 @@ FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumu
 
 /* Initialization */
 
-FD_EXPORT void fd_init_xtables_c()
+FD_EXPORT void fd_init_oidobj_c()
 {
   u8_register_source_file(_FILEINFO);
 

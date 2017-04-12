@@ -132,7 +132,7 @@ CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 		\
 	src/storage/pools.o src/storage/indexes.o	src/storage/compoundindexes.o	\
 	src/storage/dtproc.o src/storage/dtcall.o 				\
-	src/storage/methods.o src/storage/xtables.o 				\
+	src/storage/methods.o src/storage/oidobj.o 				\
 	src/storage/cachecall.o src/storage/threadcache.o 			\
 	src/storage/extindex.o src/storage/extpool.o 				\
 	src/storage/procpool.o src/storage/procindex.o				\
@@ -347,7 +347,7 @@ FRAMERD_SOURCES=\
 	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
-	src/storage/xtables.c src/storage/cachecall.c  				\
+	src/storage/oidobj.c src/storage/cachecall.c  				\
 	src/storage/compoundindexes.c  					\
 	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
 	src/storage/dtproc.c src/storage/dtcall.c					\
