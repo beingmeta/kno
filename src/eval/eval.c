@@ -1937,6 +1937,45 @@ static fdtype require_version_prim(int n,fdtype *args)
     return FD_ERROR_VALUE;}
 }
 
+/* Choice functions */
+
+static fdtype fixchoice_prim(fdtype arg)
+{
+  if (FD_ACHOICEP(arg))
+    return fd_make_simple_choice(arg);
+  else fd_incref(arg);
+}
+
+static fdtype choiceref_prim(fdtype arg,fdtype off)
+{
+  if (FD_EXPECT_TRUE(FD_FIXNUMP(off))) {
+    long long i=FD_FIX2INT(off);
+    if (i==0) {
+      if (FD_EMPTY_CHOICEP(arg)) {
+        fd_seterr(fd_RangeError,"choiceref_prim",u8dup("0"),arg);
+        return FD_ERROR_VALUE;}
+      else return fd_incref(arg);}
+    else if (FD_CHOICEP(arg)) {
+      struct FD_CHOICE *ch=(fd_choice)arg;
+      if (i>ch->choice_size) {
+        fd_seterr(fd_RangeError,"choiceref_prim",
+                  u8_mkstring("%lld",i),fd_incref(arg));
+        return FD_ERROR_VALUE;}
+      else {
+        fdtype elt=FD_XCHOICE_DATA(ch)[i];
+        return fd_incref(elt);}}
+    else if (FD_ACHOICEP(arg)) {
+      fdtype simplified=fd_make_simple_choice(arg); 
+      fdtype result=choiceref_prim(simplified,off);
+      fd_decref(simplified);
+      return result;}
+    else {
+      fd_seterr(fd_RangeError,"choiceref_prim",
+                u8_mkstring("%lld",i),fd_incref(arg));
+      return FD_ERROR_VALUE;}}
+  else return fd_type_error("fixnum","choiceref_prim",off);
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
@@ -1997,6 +2036,12 @@ static void init_localfns()
            fd_make_cprim2x("%LEXREF",lexref_prim,2,
                            fd_fixnum_type,FD_VOID,
                            fd_fixnum_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim2("%CHOICEREF",choiceref_prim,2)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("%FIXCHOICE",fixchoice_prim,2)));
+
 
   fd_defspecial(fd_scheme_module,"WITHENV",withenv_safe_handler);
   fd_defspecial(fd_xscheme_module,"WITHENV",withenv_handler);
