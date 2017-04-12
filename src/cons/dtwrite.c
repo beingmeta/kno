@@ -28,6 +28,8 @@ int fd_use_dtblock=FD_USE_DTBLOCK;
 
 unsigned int fd_check_dtsize=1;
 
+fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
+
 int (*fd_dtype_error)
      (struct FD_OUTBUF *,fdtype x,u8_string details)=NULL;
 
@@ -569,11 +571,38 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
   else return size;
 }
 
+/* Custom compounds */
+
+static int dtype_compound(struct FD_OUTBUF *out,fdtype x)
+{
+  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
+  int n_bytes=1;
+  fd_write_byte(out,dt_compound);
+  n_bytes=n_bytes+fd_write_dtype(out,xc->compound_typetag);
+  if (xc->fd_n_elts==1)
+    n_bytes=n_bytes+fd_write_dtype(out,xc->compound_0);
+  else {
+    int i=0, n=xc->fd_n_elts; fdtype *data=&(xc->compound_0);
+    fd_write_byte(out,dt_vector);
+    fd_write_4bytes(out,xc->fd_n_elts);
+    n_bytes=n_bytes+5;
+    while (i<n) {
+      int written=fd_write_dtype(out,data[i]);
+      if (written<0) return written;
+      else n_bytes=n_bytes+written;
+      i++;}}
+  return n_bytes;
+}
+
 /* File initialization */
 
 FD_EXPORT void fd_init_dtwrite_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  int i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
+
+  fd_dtype_writers[fd_compound_type]=dtype_compound;
 
   error_symbol=fd_intern("%ERROR");
 

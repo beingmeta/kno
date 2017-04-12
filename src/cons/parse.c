@@ -493,7 +493,7 @@ static fdtype make_regex(u8_string src_arg,u8_string opts)
   u8_string src=u8_strdup(src_arg);
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
   if (strchr(opts,'i')) cflags|=REG_ICASE;
-  else if (strchr(opts,'c')) cflags|=REG_ICASE;
+  else if (strchr(opts,'c')) cflags&=~REG_ICASE;
   else if (strchr(opts,'m')) cflags|=REG_NEWLINE;
   else {}
   retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);

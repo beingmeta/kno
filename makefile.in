@@ -109,8 +109,10 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=\
-	src/cons/oids.o src/cons/fcnids.o src/cons/symbols.o \
-	src/cons/cons.o src/cons/numbers.o		\
+	src/cons/oids.o src/cons/fcnids.o 		\
+	src/cons/symbols.o src/cons/cons.o 		\
+	src/cons/recycle.o src/cons/copy.o 		\
+	src/cons/misctypes.o src/cons/numbers.o		\
 	src/cons/compare.o src/cons/walk.o		\
 	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
 	src/cons/tables.o src/cons/bloom.o		\
@@ -333,6 +335,7 @@ FRAMERD_HEADERS= \
 
 FRAMERD_SOURCES=\
 	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
+	src/cons/copy.c src/cons/recycle.c src/cons/misctypes.c       	\
         src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
 	src/cons/choices.c src/cons/sequences.c				\
 	src/cons/tables.c src/cons/bloom.c				\
