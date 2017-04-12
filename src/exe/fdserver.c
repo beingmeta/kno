@@ -922,7 +922,7 @@ static void init_server()
   u8_unlock_mutex(&init_server_lock);
 }
 
-FD_EXPORT int fd_init_fdkbserv(void);
+FD_EXPORT int fd_init_fddbserv(void);
 static void init_configs(void);
 static fd_lispenv init_core_env(void);
 static int launch_server(u8_string source_file,fd_lispenv env);
@@ -936,7 +936,7 @@ int main(int argc,char **argv)
   int u8_version=u8_initialize(), fd_version;
   u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
   /* This is the base of the environment used to be passed to the server.
-     It is augmented by the fdkbserv module, all of the modules declared by
+     It is augmented by the fddbserv module, all of the modules declared by
      MODULE= configurations, and either the exports or the definitions of
      the server control file from the command line.
      It starts out built on the default safe environment, but loses that if
@@ -1067,7 +1067,7 @@ int main(int argc,char **argv)
   if (no_fdkbase)
     exposed_environment=core_env;
   else exposed_environment=
-         fd_make_env(fd_incref(fd_fdkbserv_module),core_env);
+         fd_make_env(fd_incref(fd_dbserv_module),core_env);
 
   /* Now process all the configuration arguments */
   fd_handle_argv(argc,argv,arg_mask,NULL);
@@ -1213,9 +1213,9 @@ static fd_lispenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lispenv core_env=fd_safe_working_environment();
-  fd_init_fdkbserv();
-  fd_register_module("FDKBSERV",fd_incref(fd_fdkbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdkbserv_module);
+  fd_init_fddbserv();
+  fd_register_module("FDDBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_dbserv_module);
 
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);

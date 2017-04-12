@@ -28,7 +28,7 @@ FD_EXPORT fd_exception fd_ConnectionFailed;
 
 FD_EXPORT int fd_init_kbdrivers(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_init_kblib(void) FD_LIBINIT_FN;
-FD_EXPORT int fd_init_fdkbserv(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_fddbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
@@ -37,7 +37,7 @@ FD_EXPORT int fd_prefetch;
 FD_EXPORT fd_exception fd_InternalError;
 FD_EXPORT fd_exception fd_BadServerResponse;
 
-FD_EXPORT fdtype fd_fdkbserv_module;
+FD_EXPORT fdtype fd_dbserv_module;
 
 FD_EXPORT int fd_swapcheck(void);
 
@@ -67,8 +67,8 @@ typedef char fdb_cache_level;
 #define FDKB_POOL_FLAG(n)	   ((0x10000)<<n)
 #define FDKB_INDEX_FLAG(n)	   ((0x10000)<<n)
 
-#ifndef FDKBSERV_MAX_POOLS
-#define FDKBSERV_MAX_POOLS 128
+#ifndef FDDBSERV_MAX_POOLS
+#define FDDBSERV_MAX_POOLS 128
 #endif
 
 #ifndef FD_DBCONN_RESERVE_DEFAULT
