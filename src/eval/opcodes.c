@@ -768,6 +768,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           return FD_EMPTY_CHOICE;}
         else if ((FD_CHOICEP(arg1))||(FD_CHOICEP(arg2)))
           return d2_call(opcode,arg1,arg2);
+        else if ((FD_CONSP(arg1))||(FD_CONSP(arg2))) {
+          fdtype result=d2_dispatch(opcode,arg1,arg2);
+          fd_decref(arg1); fd_decref(arg2);
+          return result;}
         else return d2_dispatch(opcode,arg1,arg2);}}
     else if (FD_D2_OPCODEP(opcode)) {
       if (FD_EMPTY_CHOICEP(arg1))
