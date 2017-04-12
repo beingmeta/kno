@@ -34,7 +34,7 @@ static fdtype string_symbol, packet_symbol, ptr_symbol, cons_symbol;
 static fdtype float_symbol, double_symbol, size_symbol, lisp_symbol;
 static fdtype byte_symbol, basetype_symbol;
 
-#if HAVE_FFI_H && HAVE_LIBFFI
+#if FD_ENABLE_FFI
 #include <ffi.h>
 
 #ifndef u8_xfree

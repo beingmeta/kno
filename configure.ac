@@ -713,6 +713,8 @@ if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
+AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
+
 AC_CHECK_HEADERS(ffi.h)
 AC_CHECK_LIB(ffi,ffi_prep_cif)
 AC_CHECK_HEADERS(archive.h)
