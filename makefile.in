@@ -756,7 +756,8 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/types/*.c src/apply.c src/storage/*.c src/drivers/*.c
+	@etags -o TAGS -a src/types/*.c src/apply/*.c 
+	@etags -o TAGS -a src/storage/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
