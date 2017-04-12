@@ -911,9 +911,10 @@ void *fd_walk_xml(U8_INPUT *in,
                   int (*attribfn)(FD_XML *,u8_string,u8_string,int),
                   FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
                   FD_XML *(*popfn)(FD_XML *),
-                  FD_XML *node)
+                  FD_XML *root)
 {
   ssize_t bufsize=1024, size=bufsize;
+  FD_XML *node=root;
   u8_byte *buf=u8_malloc(1024); const u8_byte *rbuf;
   while (1) {
     fd_xmlelt_type type;
@@ -1008,8 +1009,10 @@ void *fd_walk_xml(U8_INPUT *in,
         return NULL;}
       node=xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);}
     if (node==NULL) break;}
-  while ((node)&&((node->fdxml_bits)&(FD_XML_AUTOCLOSE))) {
+  while ((node)&&(node!=root)&&
+         ((node->fdxml_bits)&(FD_XML_AUTOCLOSE))) {
     struct FD_XML *next=popfn(node);
+    free_node(node,1);
     if (next) node=next; else break;}
   u8_free(buf);
   return node;
@@ -1021,6 +1024,7 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
 {
   if (FD_UINTP(x)) return FD_FIX2INT(x);
   else if (FD_FALSEP(x)) return FD_SLOPPY_XML;
+  else if (FD_DEFAULTP(x)) return 0;
   else if (FD_TRUEP(x)) return 0;
   else if (FD_VOIDP(x)) return 0;
   else if (FD_SYMBOLP(x))
@@ -1100,7 +1104,8 @@ static fdtype xmlparse_core(fdtype input,int flags)
                ((root->fdxml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
     struct FD_XML *cleanup=retval, *next;
     while ((cleanup)&&(cleanup!=root)) {
-      fd_xseterr("XMLPARSE error","xmlparse_core",NULL,cleanup->fdxml_attribs);
+      fd_xseterr("XMLPARSE error","xmlparse_core",cleanup->fdxml_eltname,
+                 cleanup->fdxml_attribs);
       next=cleanup->fdxml_parent;
       free_node(cleanup,1);
       cleanup=next;}
