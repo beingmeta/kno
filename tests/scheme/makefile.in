@@ -351,6 +351,9 @@ indextest:
 fileindexes fileindex:
 	@make TESTBASE=tmpfile.index RUNCONF="INDEXTYPE=fileindex" indextest
 
+memindexes memindex:
+	@make TESTBASE=memfile.index RUNCONF="INDEXTYPE=memindex" indextest
+
 hashindex32:
 	@make TESTBASE=tmphash32.index RUNCONF="INDEXTYPE=hashindex OFFTYPE=B32" indextest
 hashindex40:
@@ -360,9 +363,9 @@ hashindex64:
 
 hashindexes hashindex: hashindex32 hashindex40 hashindex64
 
-indextests indexes: fileindexes hashindexes
+indextests indexes: fileindexes hashindexes memindexes
 
-.PHONY: indexes indextests fileindexes hashindexes
+.PHONY: indexes indextests fileindexes hashindexes memindexes
 
 # Database/frames test
 
