@@ -11,7 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fdkbase.h"
+#include "framerd/storage.h"
 #include "framerd/apply.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
@@ -52,7 +52,7 @@ int fd_dbconn_init_default=FD_DBCONN_INIT_DEFAULT;
 static fdtype id_symbol;
 static fdtype lookupfns=FD_EMPTY_CHOICE;
 
-static int fdkbase_initialized=0;
+static int fdstorage_initialized=0;
 
 static fdtype better_parse_oid(u8_string start,int len)
 {
@@ -473,7 +473,7 @@ FD_EXPORT int fd_swapcheck()
 
 static void register_header_files()
 {
-  u8_register_source_file(FRAMERD_FDKBASE_H_INFO);
+  u8_register_source_file(FRAMERD_STORAGE_H_INFO);
   u8_register_source_file(FRAMERD_POOLS_H_INFO);
   u8_register_source_file(FRAMERD_INDEXES_H_INFO);
   u8_register_source_file(FRAMERD_DRIVERS_H_INFO);
@@ -495,8 +495,8 @@ FD_EXPORT int fd_init_drivers_c(void);
 
 FD_EXPORT int fd_init_kblib()
 {
-  if (fdkbase_initialized) return fdkbase_initialized;
-  fdkbase_initialized=211*fd_init_libfdtype();
+  if (fdstorage_initialized) return fdstorage_initialized;
+  fdstorage_initialized=211*fd_init_libfdtype();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);
@@ -571,7 +571,7 @@ FD_EXPORT int fd_init_kblib()
      _("Functions and slotids for lookup up objects by name (@?name)"),
      fd_lconfig_get,fd_lconfig_push,&lookupfns);
 
-  return fdkbase_initialized;
+  return fdstorage_initialized;
 }
 
 /* Emacs local variables

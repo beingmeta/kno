@@ -5,10 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FRAMERD_FDKBASE_H
-#define FRAMERD_FDKBASE_H 1
-#ifndef FRAMERD_FDKBASE_H_INFO
-#define FRAMERD_FDKBASE_H_INFO "include/framerd/fdkbase.h"
+#ifndef FRAMERD_STORAGE_H
+#define FRAMERD_STORAGE_H 1
+#ifndef FRAMERD_STORAGE_H_INFO
+#define FRAMERD_STORAGE_H_INFO "include/framerd/storage.h"
 #endif
 
 #ifndef FDKB_DRIVER_BUFSIZE

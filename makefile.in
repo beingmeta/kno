@@ -80,7 +80,7 @@ DTYPE_HEADERS=\
  include/framerd/dtypeio.h
 DB_HEADERS=\
  include/framerd/streams.h			\
- include/framerd/fdkbase.h			\
+ include/framerd/storage.h			\
  include/framerd/pools.h			\
  include/framerd/indexes.h			\
  include/framerd/dtproc.h			\
@@ -129,15 +129,15 @@ REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/kb/fdkbase.o src/kb/streams.o src/kb/hashdtype.o 		\
-	src/kb/pools.o src/kb/indexes.o	src/kb/compoundindexes.o	\
-	src/kb/dtproc.o src/kb/dtcall.o 				\
-	src/kb/methods.o src/kb/xtables.o 				\
-	src/kb/cachecall.o src/kb/threadcache.o 			\
-	src/kb/extindex.o src/kb/extpool.o 				\
-	src/kb/procpool.o src/kb/procindex.o				\
-	src/kb/mempool.o src/kb/drivers.o				\
-	@ipevalo@ src/kb/frames.o
+DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 		\
+	src/storage/pools.o src/storage/indexes.o	src/storage/compoundindexes.o	\
+	src/storage/dtproc.o src/storage/dtcall.o 				\
+	src/storage/methods.o src/storage/xtables.o 				\
+	src/storage/cachecall.o src/storage/threadcache.o 			\
+	src/storage/extindex.o src/storage/extpool.o 				\
+	src/storage/procpool.o src/storage/procindex.o				\
+	src/storage/mempool.o src/storage/drivers.o				\
+	@ipevalo@ src/storage/frames.o
 
 DRIVER_OBJS=\
 	src/drivers/builtin_drivers.o			\
@@ -147,7 +147,7 @@ DRIVER_OBJS=\
 	src/drivers/htindex.o src/drivers/memindex.o    \
 	src/drivers/netindex.o
 
-FDKBSERV_OBJS=src/kb/dbserv.o
+FDKBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -345,21 +345,21 @@ FRAMERD_SOURCES=\
 	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\
 	src/cons/startup.c src/cons/fluid.c				\
 	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
-	src/kb/fdkbase.c src/kb/streams.c src/kb/hashdtype.c		\
-	src/kb/drivers.c src/kb/indexes.c src/kb/pools.c 		\
-	src/kb/xtables.c src/kb/cachecall.c  				\
-	src/kb/compoundindexes.c  					\
-	src/kb/threadcache.c src/kb/frames.c src/kb/methods.c		\
-	src/kb/dtproc.c src/kb/dtcall.c					\
-	src/kb/ipeval.c 	       					\
+	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
+	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
+	src/storage/xtables.c src/storage/cachecall.c  				\
+	src/storage/compoundindexes.c  					\
+	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
+	src/storage/dtproc.c src/storage/dtcall.c					\
+	src/storage/ipeval.c 	       					\
 	src/drivers/builtin_drivers.c  					\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\
 	src/drivers/bigpool.c 						\
 	src/drivers/fileindex.c src/drivers/hashindex.c			\
-	src/drivers/htindex.c src/kb/extindex.c				\
-	src/kb/mempool.c src/kb/extpool.c				\
+	src/drivers/htindex.c src/storage/extindex.c				\
+	src/storage/mempool.c src/storage/extpool.c				\
 	src/drivers/netpool.c src/drivers/netindex.c 			\
-	src/kb/procpool.c src/kb/procindex.c 				\
+	src/storage/procpool.c src/storage/procindex.c 				\
 	src/drivers/memindex.c						\
 	src/drivers/netpool.c src/drivers/netindex.c			\
 	src/eval/eval.c src/eval/opcodes.c 				\
@@ -398,13 +398,13 @@ CMODULE_SOURCES=\
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
-STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdkbase@suffix@.a      \
+STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdstorage@suffix@.a      \
         lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
-	lib/libfdkbase@suffix@.@shared_suffix@        		\
+	lib/libfdstorage@suffix@.@shared_suffix@        		\
         lib/libfdkbdrivers@suffix@.@shared_suffix@    		\
 	lib/libfdkbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
@@ -412,7 +412,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
-	lib/libfdkbase@suffix@.@mshared_suffix@        		\
+	lib/libfdstorage@suffix@.@mshared_suffix@        		\
         lib/libfdkbdrivers@suffix@.@mshared_suffix@    		\
 	lib/libfdkbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
@@ -431,8 +431,8 @@ SCHEME_MODULES=src/scheme/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
-MODULE_SO=lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
-	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so
+MODULE_SO=lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
+	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
 
 ALL=testbin exe cmodules @TAGS@
 
@@ -501,13 +501,13 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 
 tests/cons/makefile: tests/cons/makefile.in ./configure
 	./configure
-tests/kb/makefile: tests/kb/makefile.in ./configure
+tests/storage/makefile: tests/storage/makefile.in ./configure
 	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
 	./configure
 tests/cons/.gdbinit: tests/cons/.gdbinit.in ./configure
 	./configure
-tests/kb/.gdbinit: tests/kb/.gdbinit.in ./configure
+tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
 tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
 	./configure
@@ -538,7 +538,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/cons/.gdbinit tests/kb/.gdbinit tests/scheme/.gdbinit \
+	tests/cons/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -574,7 +574,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-lfdkbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfdkbdrivers@suffix@ -lfdkbase@suffix@ -lfdtype@suffix@ \
+		-lfdkbdrivers@suffix@ -lfdstorage@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -696,9 +696,9 @@ testbin: constestbin dbtestbin schemetestbin etc/usememory
 constestbin: libs tests/cons/makefile tests/cons/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/cons
-dbtestbin: libs tests/kb/makefile tests/kb/.gdbinit
+dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/kb
+		-C tests/storage
 schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/scheme testbin
@@ -709,7 +709,7 @@ cmodules: @CMODULES@
 
 # Uninstall
 
-LIBBASE=libfdtype libfdkbase libfdkbdrivers libfdkbserv \
+LIBBASE=libfdtype libfdstorage libfdkbdrivers libfdkbserv \
 	libfdscheme libfdschemeio libfdweb libtexttools
 
 uninstall-core:
@@ -744,9 +744,9 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/cons/*.c tests/kb/*.c tests/scheme/*.c 		\
+		tests/cons/*.c tests/storage/*.c tests/scheme/*.c 		\
 		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
-		src/cons/*.c src/kb/*.c src/drivers/*.c 		\
+		src/cons/*.c src/storage/*.c src/drivers/*.c 		\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		etc/*.in ${SRC_HEADERS} 				\
@@ -755,22 +755,22 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/cons/*.c src/kb/*.c src/drivers/*.c
+	@etags -o TAGS -a src/cons/*.c src/storage/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/cons/*.c tests/kb/*.c;
+	@etags -o TAGS -a tests/cons/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/cons/*.c tests/kb/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/kb/*.c src/eval/*.c src/web/*.c     \
+		tests/cons/*.c tests/storage/*.c tests/scheme/*.c src/exe/*.c \
+		src/cons/*.c src/storage/*.c src/eval/*.c src/web/*.c     \
 		src/text/*.c src/cmodules/*.c         \
 		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/cons/*.c tests/kb/*.c tests/scheme/*.c src/exe/*.c \
-	      src/cons/*.c src/kb/*.c src/eval/*.c src/web/*.c     \
+	      tests/cons/*.c tests/storage/*.c tests/scheme/*.c src/exe/*.c \
+	      src/cons/*.c src/storage/*.c src/eval/*.c src/web/*.c     \
 	      src/text/*.c src/cmodules/*.c         \
 	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
@@ -811,13 +811,13 @@ clean: tidy
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
 	cd tests/cons; make clean
-	cd tests/kb; make clean
+	cd tests/storage; make clean
 	cd tests/scheme; make clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/cons/makefile tests/kb/makefile tests/scheme/makefile
-	rm -f tests/cons/.gdbinit tests/kb/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/cons/makefile tests/storage/makefile tests/scheme/makefile
+	rm -f tests/cons/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -842,7 +842,7 @@ src/cons/choices.o : XCFLAGS="${OPTFLAGS}"
 src/cons/tables.o src/cons/bloom.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
 src/cons/numbers.o src/cons/compare.o : XCFLAGS="${OPTFLAGS}"
 src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
-src/kb/streams.o : XCFLAGS="${OPTFLAGS}"
+src/storage/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"
 src/eval/opcodes.o : XCFLAGS="${OPTFLAGS}"
@@ -854,57 +854,57 @@ lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.so: $(DTYPE_OBJS)
 lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS)
 
-lib/libfdkbase@suffix@.a: $(DB_OBJS)
-lib/libfdkbase@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
-lib/libfdkbase@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
+lib/libfdstorage@suffix@.a: $(DB_OBJS)
+lib/libfdstorage@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
+lib/libfdstorage@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
 lib/libfdkbdrivers@suffix@.a: $(DRIVER_OBJS)
 lib/libfdkbdrivers@suffix@.so: $(DRIVER_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so
+	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so
 lib/libfdkbdrivers@suffix@.dylib: $(DRIVER_OBJS) \
-	lib/libfdkbase@suffix@.dylib lib/libfdtype@suffix@.dylib
+	lib/libfdstorage@suffix@.dylib lib/libfdtype@suffix@.dylib
 
 lib/libfdkbserv@suffix@.a: $(FDKBSERV_OBJS)
 lib/libfdkbserv@suffix@.so: $(FDKBSERV_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
+	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfdkbdrivers@suffix@.so
 lib/libfdkbserv@suffix@.dylib: $(FDKBSERV_OBJS) \
 	lib/libfdscheme@suffix@.dylib         \
 	lib/libfdkbdrivers@suffix@.dylib         \
-	lib/libfdkbase@suffix@.dylib             \
+	lib/libfdstorage@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
-	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so	\
+	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so	\
 	lib/libfdkbdrivers@suffix@.so
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libfdtype@suffix@.dylib  lib/libfdkbase@suffix@.dylib	\
+	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
         lib/libfdkbdrivers@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
 lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
-	lib/libfdtype@suffix@.so  lib/libfdkbase@suffix@.so	\
+	lib/libfdtype@suffix@.so  lib/libfdstorage@suffix@.so	\
         lib/libfdkbdrivers@suffix@.so 				\
 	lib/libfdscheme@suffix@.so
 lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
 	lib/libfdscheme@suffix@.dylib             		\
-	lib/libfdtype@suffix@.dylib  lib/libfdkbase@suffix@.dylib	\
+	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
         lib/libfdkbdrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
 	lib/libfdtype@suffix@.so \
-	lib/libfdkbase@suffix@.so \
+	lib/libfdstorage@suffix@.so \
 	lib/libfdkbdrivers@suffix@.so \
 	lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
 	lib/libfdkbdrivers@suffix@.dylib     \
-	lib/libfdkbase@suffix@.dylib         \
+	lib/libfdstorage@suffix@.dylib         \
         lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -914,13 +914,13 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
 lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfdkbase@suffix@.so \
-	lib/libfdkbase@suffix@.so lib/libfdscheme@suffix@.so \
+	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
+	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfdkbdrivers@suffix@.dylib \
-	lib/libfdkbase@suffix@.dylib \
+	lib/libfdstorage@suffix@.dylib \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -1055,7 +1055,7 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdkbase -oetc/intl/framerd.pot -k_ \
+	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/framerd.pot -k_ \
 		$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	@MSGMERGE@ -U $@ $<
@@ -1231,7 +1231,7 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@confi
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
-		$(LIBINSTALLDIR)/libfdkbase@suffix@.a       \
+		$(LIBINSTALLDIR)/libfdstorage@suffix@.a       \
 		$(LIBINSTALLDIR)/libfdkbdrivers@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdkbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
@@ -1243,10 +1243,10 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdtype@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdkbase@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdkbase@suffix@.@mmshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdkbase@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdkbase@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdstorage@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdstorage@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdstorage@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdstorage@suffix@.@shared_suffix@			\
     $(LIBINSTALLDIR)/libfdkbserv@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mshared_suffix@		\
