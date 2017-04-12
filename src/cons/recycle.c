@@ -13,8 +13,6 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
-fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
-
 /* Builtin recyclers */
 
 static void recycle_string(struct FD_STRING *s)
@@ -229,7 +227,6 @@ void fd_decref_vec(fdtype *vec,int n,int free_vec)
 
 void fd_init_recycle_c()
 {
-  int i=0; while (i < FD_TYPE_MAX) fd_recyclers[i++]=NULL;
 
   fd_recyclers[fd_error_type]=recycle_exception;
   fd_recyclers[fd_mystery_type]=recycle_mystery;

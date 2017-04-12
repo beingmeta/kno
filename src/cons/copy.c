@@ -13,8 +13,6 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
-fd_copy_fn fd_copiers[FD_TYPE_MAX];
-
 
 FD_EXPORT
 /* fd_deep_copy:
@@ -191,8 +189,6 @@ static fdtype copy_compound(fdtype x,int flags)
 void fd_init_copy_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  int i=0; while (i < FD_TYPE_MAX) fd_copiers[i++]=NULL;
 
   fd_copiers[fd_compound_type]=copy_compound;
 

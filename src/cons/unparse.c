@@ -45,8 +45,6 @@ int fd_packet_outfmt=-1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
-fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
-
 static fdtype quote_symbol, histref_symbol, comment_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
@@ -562,8 +560,6 @@ FD_EXPORT void fd_init_unparse_c()
   u8_register_source_file(_FILEINFO);
 
   u8_printf_handlers['q']=lisp_printf_handler;
-
-  int i=0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;
 
   fd_unparsers[fd_compound_type]=unparse_compound;
   fd_unparsers[fd_string_type]=unparse_string;
