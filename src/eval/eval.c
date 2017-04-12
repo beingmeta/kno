@@ -2040,7 +2040,7 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%CHOICEREF",choiceref_prim,2)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("%FIXCHOICE",fixchoice_prim,2)));
+           fd_make_ndprim(fd_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
 
 
   fd_defspecial(fd_scheme_module,"WITHENV",withenv_safe_handler);
