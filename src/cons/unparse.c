@@ -45,6 +45,8 @@ int fd_packet_outfmt=-1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
+fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
+
 static fdtype quote_symbol, histref_symbol, comment_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
@@ -466,6 +468,76 @@ u8_string fd_unparse_arg(fdtype arg)
   return out.u8_outbuf;
 }
 
+/* Custom unparsers */
+
+static int unparse_uuid(u8_output out,fdtype x)
+{
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
+  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
+  u8_printf(out,"#U%s",buf);
+  return 1;
+}
+
+static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
+  u8_exception ex=xo->fdex_u8ex;
+  if (ex==NULL)
+    u8_printf(out,"#<!OLDEXCEPTION>");
+  else {
+    u8_printf(out,"#<!EXCEPTION ");
+    fd_sum_exception(out,xo->fdex_u8ex);
+    u8_printf(out,"!>");}
+  return 1;
+}
+
+static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_REGEX *rx=(struct FD_REGEX *)x;
+  u8_printf(out,"#/%s/%s%s%s%s",rx->fd_rxsrc,
+            (((rx->fd_rxflags)&REG_EXTENDED)?"e":""),
+            (((rx->fd_rxflags)&REG_ICASE)?"i":""),
+            (((rx->fd_rxflags)&REG_ICASE)?"l":""),
+            (((rx->fd_rxflags)&REG_NOSUB)?"s":""));
+  return 1;
+}
+
+static int unparse_mystery(u8_output out,fdtype x)
+{
+  struct FD_MYSTERY_DTYPE *d=
+    fd_consptr(struct FD_MYSTERY_DTYPE *,x,fd_mystery_type);
+  char buf[128];
+  if (d->myst_dtcode&0x80)
+    sprintf(buf,_("#<MysteryVector 0x%x/0x%x %d elements>"),
+            d->myst_dtpackage,d->myst_dtcode,d->myst_dtsize);
+  else sprintf(buf,_("#<MysteryPacket 0x%x/0x%x %d bytes>"),
+               d->myst_dtpackage,d->myst_dtcode,d->myst_dtsize);
+  u8_puts(out,buf);
+  return 1;
+}
+
+static int unparse_rawptr(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_RAWPTR *rawptr=(struct FD_RAWPTR *)x;
+  if ((rawptr->typestring)&&(rawptr->idstring))
+    u8_printf(out,"#<RAW '%s' 0x%llx (%s)>",
+              rawptr->typestring,
+              U8_PTR2INT(rawptr->ptrval),
+              rawptr->idstring);
+  else if (rawptr->typestring)
+    u8_printf(out,"#<RAW '%s' 0x%llx>",
+              rawptr->typestring,
+              U8_PTR2INT(rawptr->ptrval));
+  else if (rawptr->idstring)
+    u8_printf(out,"#<RAW 0x%llx (%s)>",
+              U8_PTR2INT(rawptr->ptrval),
+              rawptr->idstring);
+  else u8_printf(out,"#<RAW 0x%llx>",
+                 U8_PTR2INT(rawptr->ptrval));
+  return 1;
+}
+
 /* U8_PRINTF extensions */
 
 static u8_string lisp_printf_handler
@@ -491,6 +563,8 @@ FD_EXPORT void fd_init_unparse_c()
 
   u8_printf_handlers['q']=lisp_printf_handler;
 
+  int i=0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;
+
   fd_unparsers[fd_compound_type]=unparse_compound;
   fd_unparsers[fd_string_type]=unparse_string;
   fd_unparsers[fd_packet_type]=unparse_packet;
@@ -499,6 +573,15 @@ FD_EXPORT void fd_init_unparse_c()
   fd_unparsers[fd_rail_type]=unparse_rail;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
+
+  if (fd_unparsers[fd_error_type]==NULL)
+    fd_unparsers[fd_error_type]=unparse_exception;
+
+  if (fd_unparsers[fd_mystery_type]==NULL)
+    fd_unparsers[fd_mystery_type]=unparse_mystery;
+
+  fd_unparsers[fd_uuid_type]=unparse_uuid;
+  fd_unparsers[fd_regex_type]=unparse_regex;
 
   quote_symbol=fd_intern("QUOTE");
   quasiquote_symbol=fd_intern("QUASIQUOTE");

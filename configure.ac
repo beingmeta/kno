@@ -713,6 +713,8 @@ if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
+AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
+
 AC_CHECK_HEADERS(ffi.h)
 AC_CHECK_LIB(ffi,ffi_prep_cif)
 AC_CHECK_HEADERS(archive.h)
@@ -1327,8 +1329,6 @@ AC_CHECK_LIB(uuid,uuid_generate_time)
 AC_CHECK_FUNCS(uuid_generate_time)
 
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
-dnl  Note that the basic FramerD/fdkbase data files are still limited to 4GB, but
-dnl  this lets you use all 4GB.
 AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then
   AC_DEFINE(FD_LARGEFILES_ENABLED,1)
@@ -1375,7 +1375,7 @@ fi
 dnl This builds in Scheme level profiling for the interpreter.
 AC_ARG_ENABLE(calltrack,--en[dis]able-calltrack enable internal scheme profiling,,enable_calltrack="yes")
 if test $enable_calltrack = "yes"; then
-  calltracko="src/cons/calltrack.o"
+  calltracko="src/apply/calltrack.o"
   AC_DEFINE(FD_CALLTRACK_ENABLED,1)
 else
   AC_DEFINE(FD_CALLTRACK_ENABLED,0)
@@ -1501,7 +1501,7 @@ fi
 dnl This enables the ipeval implementation within FramerD
 AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
 if test $enable_ipeval = "yes"; then
-  ipevalo=src/kb/ipeval.o
+  ipevalo=src/storage/ipeval.o
   AC_DEFINE(FD_IPEVAL_ENABLED,1)
 else
   AC_DEFINE(FD_IPEVAL_ENABLED,0)
@@ -1588,11 +1588,11 @@ if (test ! -f src/scheme/gpath.scm); then
 fi;
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
-           tests/cons/makefile tests/kb/makefile
+           tests/cons/makefile tests/storage/makefile
 	   tests/scheme/makefile DIY/makefile 
            etc/gdbinit
 	   exe/.gdbinit tests/cons/.gdbinit
-	   tests/kb/.gdbinit tests/scheme/.gdbinit
+	   tests/storage/.gdbinit tests/scheme/.gdbinit
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl

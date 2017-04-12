@@ -64,6 +64,23 @@
 
 #define FD_WRITETHROUGH_THREADCACHE 1
 
+#if defined(FD_ENABLE_FFI)
+
+#if ( (FD_ENABLE_FFI) && ( ! ( (HAVE_FFI_H) && (HAVE_LIBFFI) ) ) )
+#undef FD_ENABLE_FFI
+#define FD_ENABLE_FFI 0
+#endif
+
+#else /* not defined(FD_ENABLE_FFI) */
+
+#if ( (HAVE_FFI_H) && (HAVE_LIBFFI) )
+#define FD_ENABLE_FFI 1
+#else
+#define FD_ENABLE_FFI 0
+#endif
+
+#endif
+
 /* Whether to have FD_CHECK_PTR check underlying CONS structs */
 #ifdef FD_FULL_CHECK_PTR
 #define FD_FULL_CHECK_PTR 1

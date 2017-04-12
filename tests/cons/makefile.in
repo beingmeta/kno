@@ -272,7 +272,7 @@ bigbricotests: ../data/brico.dump
 
 # Note that we don't add @suffix@ to these executables because they're
 # never installed
-$(TESTBIN): ../../src/kb/streams.o ../../lib/libfdtype@suffix@.a
+$(TESTBIN): ../../src/storage/streams.o ../../lib/libfdtype@suffix@.a
 %: %.c
 	@echo MKTEST_STATIC $@
 	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -281,12 +281,12 @@ $(TESTBIN): ../../src/kb/streams.o ../../lib/libfdtype@suffix@.a
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ \
-		../../src/kb/streams.o $(LIBS) -lfdtype@suffix@ $(LIBS)
+		../../src/storage/streams.o $(LIBS) -lfdtype@suffix@ $(LIBS)
 
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
-../../src/kb/streams.o:
-	cd ../..; make lib/libfddb.a
+../../src/storage/streams.o:
+	cd ../..; make lib/libfdstorage.a
 
 testclean:
 	@rm -f *.data *.dump *.table *.sorted

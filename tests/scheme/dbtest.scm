@@ -177,7 +177,9 @@
     (index-frame index noslots-oid '%id 'noslots)
     
     ;; Analyze the specified files
-    (dolist (file files) (analyze-file file pool index)))
+    (dolist (file files) 
+      (analyze-file file pool index)
+      (commit)))
   (message "Done building DB"))
   
 (define (checkoids pool index)

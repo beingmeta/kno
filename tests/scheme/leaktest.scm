@@ -1,20 +1,16 @@
-(define dpool (make-mempool "dpool" @18/0 (* 1024 1024)))
-(config! 'dompool dpool)
-(load "/srv/sbooks/ops/daemons/upcoder.fdz")
-;;(config! 'maxcore 1000000000)
-(use-module '{sbooks/dom/parse sbooks/import/epub sbooks/import/read
-	      domutils mttools reflection})
-;;(dbg)
-(define t (tasks/find 'upcode @d0c5/6ad))
-(define tt (sample-n (tasks/find 'upcode @1961/1) 15))
-(sbooks/dotask t)
-;;(do-choices-mt (t tt 5) (sbooks/dotask t))
-;;(do-choices (t tt) (sbooks/dotask t))
-;;(define x (sbooks/readepub (zip/gopen (get t 'input))))
-;;(void (sbooks/readepub (zip/open (get-component "small.epub"))))
-;;(void (dom/oidify (sbooks/parse-file (get-component "source.html")) dpool #f))
-;;(void (sbooks/read-file (get-component "source.html")))
-;;(reset-mempool dpool)
-;;(define content (sbooks/readepub (->gpath (get t 'input))))
+(use-module 'optimize)
 
+(define (make-list n)
+  (if (= n 0) '() (cons n (make-list (-1+ n)))))
 
+(define (make-list-iter n (l '()))
+  (if (= n 0) 
+      (if (and (not (empty-list? l)) (number? (car l)))
+	  l
+	  l)
+      (make-list-iter (-1+ n) (cons n l))))
+
+(define (main)
+  (lineout (make-list-iter 15)))
+
+(optimize!)

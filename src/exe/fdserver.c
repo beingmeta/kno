@@ -11,7 +11,7 @@
 #include "framerd/numbers.h"
 #include "framerd/support.h"
 #include "framerd/tables.h"
-#include "framerd/fdkbase.h"
+#include "framerd/storage.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
@@ -487,7 +487,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
                  client->idstring,sock,FD_STREAM_SOCKET,
                  FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
-     into the stream's id (fdkbase). */
+     into the stream's id (fdstorage). */
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
