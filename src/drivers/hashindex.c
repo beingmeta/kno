@@ -2051,6 +2051,7 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->index_stream),schedule[k].commit_values,
                               current,0,0,endpos);
           endpos=ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
+          fd_decref(current);
           ke[key_i].ke_values=FD_VOID;}
         else {
           ke[key_i].ke_vref=
