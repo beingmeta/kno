@@ -744,9 +744,10 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/types/*.c tests/storage/*.c tests/scheme/*.c 		\
+		tests/types/*.c tests/storage/*.c tests/scheme/*.c 	\
 		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
-		src/types/*.c src/storage/*.c src/drivers/*.c 		\
+		src/types/*.c src/apply/*.c 				\
+		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		etc/*.in ${SRC_HEADERS} 				\
@@ -755,25 +756,26 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/types/*.c src/storage/*.c src/drivers/*.c
+	@etags -o TAGS -a src/types/*.c src/apply.c src/storage/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
-CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/types/*.c tests/storage/*.c tests/scheme/*.c src/exe/*.c \
-		src/types/*.c src/storage/*.c src/eval/*.c src/web/*.c     \
-		src/text/*.c src/cmodules/*.c         \
-		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
-		etc/*.in ${SRC_HEADERS}
+CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
+	tests/types/*.c tests/storage/*.c tests/scheme/*.c	\
+	src/types/*.c src/apply/*.c src/storage/*.c 		\
+	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
+	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
+	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
-	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/types/*.c tests/storage/*.c tests/scheme/*.c src/exe/*.c \
-	      src/types/*.c src/storage/*.c src/eval/*.c src/web/*.c     \
-	      src/text/*.c src/cmodules/*.c         \
-	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
-	      etc/*.in ${SRC_HEADERS}
+	@etags -o CTAGS 
+	      makefile.in configure.ac include/framerd/config.h.in      \
+	      tests/types/*.c tests/apply/*.c tests/storage/*.c 	\
+	      tests/eval/*.c tests/prims/*.c src/exe/*.c 		\
+	      src/types/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
+	      src/web/*.c src/text/*.c src/cmodules/*.c         	\
+	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file
