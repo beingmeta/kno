@@ -1068,11 +1068,13 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
     return -1;}
 }
 
+#define FORCE_CLOSE_FLAGS \
+  ((FD_XML_AUTOCLOSE)|(FD_XML_BADCLOSE)|(FD_XML_ISHTML))
+
 static fdtype xmlparse_core(fdtype input,int flags)
 {
-  struct FD_XML object, *retval;
+  struct FD_XML xml_root, *root=&xml_root, *retval;
   struct U8_INPUT *in, _in;
-  unsigned int errpos;
   if (flags<0) return FD_ERROR_VALUE;
   if (FD_PORTP(input)) {
     struct FD_PORT *p=fd_consptr(struct FD_PORT *,input,fd_port_type);
@@ -1084,18 +1086,37 @@ static fdtype xmlparse_core(fdtype input,int flags)
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
-  init_node(&object,NULL,u8_strdup("top")); object.fdxml_bits=flags;
+  init_node(root,NULL,u8_strdup("top")); xml_root.fdxml_bits=flags;
   retval=fd_walk_xml(in,fd_default_contentfn,NULL,NULL,NULL,
                      fd_default_popfn,
-                     &object);
-  if (retval) {
-    fdtype result=fd_incref(object.fdxml_head);
-    free_node(&object,0);
-    return result;}
-  errpos=_in.u8_read-_in.u8_inbuf;
-  fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
-  free_node(&object,0);
-  return FD_ERROR_VALUE;
+                     root);
+  if (retval==NULL) {
+    size_t errpos=_in.u8_read-_in.u8_inbuf;
+    fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
+    free_node(root,0);
+    return FD_ERROR_VALUE;}
+  else if ( (retval!=root) && 
+            (!(((retval->fdxml_bits) & (FORCE_CLOSE_FLAGS)) ||
+               ((root->fdxml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
+    struct FD_XML *cleanup=retval, *next;
+    while ((cleanup)&&(cleanup!=root)) {
+      fd_xseterr("XMLPARSE error","xmlparse_core",NULL,cleanup->fdxml_attribs);
+      next=cleanup->fdxml_parent;
+      free_node(cleanup,1);
+      cleanup=next;}
+    free_node(root,0);
+    return FD_ERROR_VALUE;}
+
+  if (retval!=root) {
+    struct FD_XML *scan=retval;
+    while ((scan)&&(scan!=root)) {
+      struct FD_XML *next=fd_default_popfn(scan);
+      free_node(scan,1);
+      scan=next;}}
+  
+  fdtype result=fd_incref(root->fdxml_head);
+  free_node(root,0);
+  return result;
 }
 
 static fdtype xmlparse(fdtype input,fdtype options)
