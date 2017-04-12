@@ -114,7 +114,7 @@ DTYPE_OBJS=\
 	src/cons/recycle.o src/cons/copy.o 		\
 	src/cons/misctypes.o src/cons/numbers.o		\
 	src/cons/compare.o src/cons/walk.o		\
-	src/cons/apply.o @calltracko@ src/cons/ffi.o	\
+	src/apply/apply.o @calltracko@ src/apply/ffi.o	\
 	src/cons/tables.o src/cons/bloom.o		\
 	src/cons/sequences.o src/cons/choices.o 	\
 	src/cons/parse.o src/cons/unparse.o		\
@@ -344,7 +344,7 @@ FRAMERD_SOURCES=\
 	src/cons/libfdtype.c src/cons/support.c src/cons/config.c	\
 	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\
 	src/cons/startup.c src/cons/fluid.c				\
-	src/cons/apply.c src/cons/calltrack.c src/cons/ffi.c       	\
+	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
 	src/kb/fdkbase.c src/kb/streams.c src/kb/hashdtype.c		\
 	src/kb/drivers.c src/kb/indexes.c src/kb/pools.c 		\
 	src/kb/xtables.c src/kb/cachecall.c  				\
@@ -841,7 +841,7 @@ src/cons/dtread.o src/cons/dtwrite.o src/cons/bufio.o : XCFLAGS="${OPTFLAGS}"
 src/cons/choices.o : XCFLAGS="${OPTFLAGS}"
 src/cons/tables.o src/cons/bloom.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
 src/cons/numbers.o src/cons/compare.o : XCFLAGS="${OPTFLAGS}"
-src/cons/apply.o : XCFLAGS="${OPTFLAGS}"
+src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
 src/kb/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
 src/eval/conditionals.o src/eval/iterators.o : XCFLAGS="${OPTFLAGS}"

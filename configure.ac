@@ -1377,7 +1377,7 @@ fi
 dnl This builds in Scheme level profiling for the interpreter.
 AC_ARG_ENABLE(calltrack,--en[dis]able-calltrack enable internal scheme profiling,,enable_calltrack="yes")
 if test $enable_calltrack = "yes"; then
-  calltracko="src/cons/calltrack.o"
+  calltracko="src/apply/calltrack.o"
   AC_DEFINE(FD_CALLTRACK_ENABLED,1)
 else
   AC_DEFINE(FD_CALLTRACK_ENABLED,0)
