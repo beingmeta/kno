@@ -47,8 +47,8 @@ void *inherit_node_data(FD_XML *node)
 {
   FD_XML *scan=node;
   while (scan)
-    if (scan->fdxml_data) return scan->fdxml_data;
-    else scan=scan->fdxml_parent;
+    if (scan->xml_data) return scan->xml_data;
+    else scan=scan->xml_parent;
   return NULL;
 }
 
@@ -702,24 +702,24 @@ FD_EXPORT int fd_xmleval_attribfn
       (FD_EOFP(slotval))||(FD_EODP(slotval))||
       (FD_EOXP(slotval)))
     slotval=fdtype_string(val);
-  if (FD_EMPTY_CHOICEP(xml->fdxml_attribs)) fd_init_xml_attribs(xml);
-  xml->fdxml_bits=xml->fdxml_bits|FD_XML_HASDATA;
+  if (FD_EMPTY_CHOICEP(xml->xml_attribs)) fd_init_xml_attribs(xml);
+  xml->xml_bits=xml->xml_bits|FD_XML_HASDATA;
   if (slotid==if_symbol) {
     u8_string sv=FD_STRDATA(slotval);
     fdtype sval=((sv[0]=='$')?(fd_parse(sv+1)):(fd_parse(sv)));
-    fd_add(xml->fdxml_attribs,pif_symbol,sval);
+    fd_add(xml->xml_attribs,pif_symbol,sval);
     fd_decref(sval);}
-  fd_add(xml->fdxml_attribs,slotid,slotval);
+  fd_add(xml->xml_attribs,slotid,slotval);
   if (namespace) {
-    fd_add(xml->fdxml_attribs,parse_attribname(attrib_name),slotval);
+    fd_add(xml->xml_attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       fd_make_nvector(3,fdtype_string(name),
                       fd_make_qid(attrib_name,namespace),
                       fd_incref(slotval));}
   else attrib_entry=
          fd_make_nvector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
-  fd_add(xml->fdxml_attribs,attribids,slotid);
-  fd_add(xml->fdxml_attribs,attribs_slotid,attrib_entry);
+  fd_add(xml->xml_attribs,attribids,slotid);
+  fd_add(xml->xml_attribs,attribs_slotid,attrib_entry);
   fd_decref(attrib_entry); fd_decref(slotval);
   return 1;
 }
@@ -783,32 +783,32 @@ FD_EXPORT
 FD_XML *fd_xmleval_popfn(FD_XML *node)
 {
   /* Get your content */
-  if (FD_EMPTY_CHOICEP(node->fdxml_attribs)) fd_init_xml_attribs(node);
-  if (FD_PAIRP(node->fdxml_head)) {
-    fd_add(node->fdxml_attribs,content_slotid,node->fdxml_head);}
-  if (node->fdxml_parent==NULL) return NULL;
+  if (FD_EMPTY_CHOICEP(node->xml_attribs)) fd_init_xml_attribs(node);
+  if (FD_PAIRP(node->xml_head)) {
+    fd_add(node->xml_attribs,content_slotid,node->xml_head);}
+  if (node->xml_parent==NULL) return NULL;
   else {
     fdtype data=(fdtype)(inherit_node_data(node));
     fdtype cutaway=(((data==FD_NULL)||(FD_IMMEDIATEP(data)))?
                     (xattrib_slotid):
                     (fd_get(data,xattrib_overlay,xattrib_slotid)));
-    fdtype xid=fd_get(node->fdxml_attribs,cutaway,FD_VOID);
+    fdtype xid=fd_get(node->xml_attribs,cutaway,FD_VOID);
 
     /* Check if you go on the parent's attribs or in its body. */
     if (FD_VOIDP(xid)) {
-      fd_add_content(node->fdxml_parent,node->fdxml_attribs);
-      node->fdxml_attribs=FD_EMPTY_CHOICE;}
+      fd_add_content(node->xml_parent,node->xml_attribs);
+      node->xml_attribs=FD_EMPTY_CHOICE;}
     else if (FD_STRINGP(xid)) {
       fdtype slotid=fd_parse(FD_STRING_DATA(xid));
-      fd_add(node->fdxml_parent->fdxml_attribs,slotid,node->fdxml_attribs);
-      fd_decref(node->fdxml_attribs);
-      node->fdxml_attribs=FD_EMPTY_CHOICE;
+      fd_add(node->xml_parent->xml_attribs,slotid,node->xml_attribs);
+      fd_decref(node->xml_attribs);
+      node->xml_attribs=FD_EMPTY_CHOICE;
       fd_decref(xid);}
     else {
-      fd_add(node->fdxml_parent->fdxml_attribs,xid,node->fdxml_attribs);
-      fd_decref(node->fdxml_attribs);
-      node->fdxml_attribs=FD_EMPTY_CHOICE;}
-    return node->fdxml_parent;}
+      fd_add(node->xml_parent->xml_attribs,xid,node->xml_attribs);
+      fd_decref(node->xml_attribs);
+      node->xml_attribs=FD_EMPTY_CHOICE;}
+    return node->xml_parent;}
 }
 /* Handling the FDXML PI */
 
@@ -832,12 +832,12 @@ static u8_string get_pi_string(u8_string start)
 
 static fd_lispenv get_xml_env(FD_XML *xml)
 {
-  return (fd_lispenv)fd_symeval(xml_env_symbol,(fd_lispenv)(xml->fdxml_data));
+  return (fd_lispenv)fd_symeval(xml_env_symbol,(fd_lispenv)(xml->xml_data));
 }
 
 static void set_xml_env(FD_XML *xml,fd_lispenv newenv)
 {
-  fd_set_value(xml_env_symbol,(fdtype)newenv,(fd_lispenv)(xml->fdxml_data));
+  fd_set_value(xml_env_symbol,(fdtype)newenv,(fd_lispenv)(xml->xml_data));
 }
 
 static int test_piescape(FD_XML *xml,u8_string content,int len)
@@ -866,7 +866,7 @@ static int test_piescape(FD_XML *xml,u8_string content,int len)
 static FD_XML *handle_fdxml_pi
   (u8_input in,FD_XML *xml,u8_string content,int len)
 {
-  fd_lispenv env=(fd_lispenv)(xml->fdxml_data), xml_env=NULL;
+  fd_lispenv env=(fd_lispenv)(xml->xml_data), xml_env=NULL;
   if (strncmp(content,"?fdxml ",6)==0) {
     u8_byte *copy=(u8_byte *)u8_strdup(content);
     u8_byte *scan=copy; u8_string attribs[16];
@@ -941,7 +941,7 @@ static FD_XML *handle_fdxml_pi
       else if ((strncmp(attribs[i],"scheme_load=",12))==0) {
         u8_string arg=get_pi_string(attribs[i]+12);
         u8_string filename=fd_get_component(arg);
-        fd_lispenv env=(fd_lispenv)(xml->fdxml_data);
+        fd_lispenv env=(fd_lispenv)(xml->xml_data);
         if (fd_load_latest(filename,env,NULL)<0) {
           u8_free(arg); u8_free(filename);
           return NULL;}
@@ -951,7 +951,7 @@ static FD_XML *handle_fdxml_pi
         u8_string arg=get_pi_string(attribs[i]+14);
         fdtype module_name=fd_parse(arg);
         fdtype module=fd_find_module(module_name,0,1);
-        fd_lispenv scheme_env=(fd_lispenv)(xml->fdxml_data);
+        fd_lispenv scheme_env=(fd_lispenv)(xml->xml_data);
         u8_free(arg); fd_decref(module_name);
         if ((FD_ENVIRONMENTP(module)) &&
             (FD_TABLEP(((fd_environment)module)->env_exports))) {
@@ -1229,7 +1229,7 @@ struct FD_XML *fd_load_fdxml(u8_input in,int bits)
   fd_lispenv working_env=fd_working_environment();
   fd_bind_value(xml_env_symbol,(fdtype)fdxml_module,working_env);
   fd_init_xml_node(xml,NULL,u8_strdup("top"));
-  xml->fdxml_bits=bits; xml->fdxml_data=working_env;
+  xml->xml_bits=bits; xml->xml_data=working_env;
   retval=fd_walk_xml(in,fd_xmleval_contentfn,
                      handle_fdxml_pi,
                      fd_xmleval_attribfn,
@@ -1248,7 +1248,7 @@ struct FD_XML *fd_parse_fdxml(u8_input in,int bits)
 {
   struct FD_XML *xml=u8_alloc(struct FD_XML), *retval;
   fd_init_xml_node(xml,NULL,u8_strdup("top"));
-  xml->fdxml_bits=bits; xml->fdxml_data=NULL;
+  xml->xml_bits=bits; xml->xml_data=NULL;
   retval=fd_walk_xml(in,fd_xmleval_contentfn,
                      handle_eval_pi,
                      fd_xmleval_attribfn,

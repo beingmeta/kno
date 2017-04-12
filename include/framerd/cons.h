@@ -9,7 +9,7 @@
 
     CONSES are dynamically allocated structures used by fdkbase for compound
     objects.  CONSES can be any kind of structure, providing only that the
-    first four bytes, an unsigned int called the "fd_conshead," be reserved
+    first four bytes, an unsigned int called the "conshead," be reserved
     for FramerD's typing and reference counting information.  The lower seven
     bits of this header contain type information; the reset contain a
     reference count which is used for reclaiming structures which are no
@@ -20,7 +20,7 @@
     providing a simple model which an effectively scale to large memory
     spaces.
 
-    The fd_conshead consist of a seven bit type field and 25 bit reference
+    The conshead consist of a seven bit type field and 25 bit reference
     count field, which allows for about 32 million inbound references and
     this limit has not been a problem to date.  Two reference count values
     have special meanings:
@@ -32,7 +32,7 @@
          CONS has been freed and is no longer in use.  Attempting to
          increment or decrement such a reference count yields an error.
     Because the reference count is in the high 30 bits, referencing and
-    dereferencing actually increments or decrements the fd_conshead by
+    dereferencing actually increments or decrements the conshead by
     4, after checking for the boundary cases of a static CONS (zero reference
     count) or freed cons (maximal reference count).
 
@@ -49,9 +49,9 @@
     very cheap.
 
     MULTI THREADING: Reference counting is made threadsafe by using global
-    mutexes to protect access to the fd_conshead fields.  In order to reduce
+    mutexes to protect access to the conshead fields.  In order to reduce
     contention, fdkbase uses a strategy called "hash locking" to regulate
-    access to the fd_conshead of CONSes.  An array of mutexes, _fd_ptr_locks,
+    access to the conshead of CONSes.  An array of mutexes, _fd_ptr_locks,
     and computes an offset into that array by shifting the structure
     address right 16 bits and taking a remainder modulo the number of
     pointer locks (32 by default).  The shift size was chosen after a
@@ -130,15 +130,15 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
 
 #if FD_INLINE_REFCOUNTS
 #define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_FRESH_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead=(FD_HEAD_INIT(type))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->fd_conshead=(FD_STATIC_INIT(type))
+  ((fd_raw_cons)ptr)->conshead=(FD_STATIC_INIT(type))
 #else
 #define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((struct FD_RAW_CONS *)ptr,type)
 #define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((struct FD_RAW_CONS *)ptr,type)
@@ -147,7 +147,7 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
 #endif
 
 #if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
-#define FD_CBITS(x) (((fd_ref_cons)x)->fd_conshead)
+#define FD_CBITS(x) (((fd_ref_cons)x)->conshead)
 #define FD_SET_CONS_TYPE(ptr,type) \
   atomic_store							\
   (&(FD_CBITS(ptr)),						\
@@ -155,8 +155,8 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
      ((type-(FD_CONS_TYPE_OFF))&0x7f)))
 #elif FD_INLINE_REFCOUNTS
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->fd_conshead=\
-    ((((fd_raw_cons)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
+  ((fd_raw_cons)ptr)->conshead=\
+    ((((fd_raw_cons)ptr)->conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
 #else
 #define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
@@ -187,14 +187,14 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 /* Reference counting GC */
 
 #if FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS
-#define FD_CONSBITS(x)       (atomic_load(&(((fd_ref_cons)x)->fd_conshead)))
+#define FD_CONSBITS(x)       (atomic_load(&(((fd_ref_cons)x)->conshead)))
 #define FD_CONS_REFCOUNT(x)  (FD_CONSBITS(x)>>7)
 #elif FD_INLINE_REFCOUNTS
-#define FD_CONSBITS(x)       ((x)->fd_conshead)
-#define FD_CONS_REFCOUNT(x)  (((x)->fd_conshead)>>7)
+#define FD_CONSBITS(x)       ((x)->conshead)
+#define FD_CONS_REFCOUNT(x)  (((x)->conshead)>>7)
 #else
-#define FD_CONSBITS(x)      ((x)->fd_conshead)
-#define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#define FD_CONSBITS(x)      ((x)->conshead)
+#define FD_CONS_REFCOUNT(x) (((x)->conshead)>>7)
 #endif
 
 
@@ -239,7 +239,7 @@ FD_EXPORT void fd_decref_vec(fdtype *vec,int n,int free_vec);
 #if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
 FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
 {
-  fd_consbits cb=atomic_load(&(x->fd_conshead));
+  fd_consbits cb=atomic_load(&(x->conshead));
   if (cb>0xFFFFFF80) {
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
     return (fdtype)NULL;}
@@ -247,7 +247,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
     /* Static cons */
     return (fdtype) x;}
   else {
-    atomic_fetch_add(&(x->fd_conshead),0x80);
+    atomic_fetch_add(&(x->conshead),0x80);
 #if HUGE_REFCOUNT
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
@@ -257,16 +257,16 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
 
 FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 {
-  fd_consbits cb=atomic_load(&(x->fd_conshead));
+  fd_consbits cb=atomic_load(&(x->conshead));
   if (cb>=0xFFFFFF80) {
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
   else if (cb<0x80) {
     /* Static cons */}
   else {
-    atomic_fetch_sub(&(x->fd_conshead),0x80);
-    fd_consbits dcb=atomic_load(&(x->fd_conshead));
+    atomic_fetch_sub(&(x->conshead),0x80);
+    fd_consbits dcb=atomic_load(&(x->conshead));
     if (dcb<0x80) {
-      atomic_store(&(x->fd_conshead),(dcb|0xFFFFFF80));
+      atomic_store(&(x->conshead),(dcb|0xFFFFFF80));
       fd_recycle_cons((fd_raw_cons)x);}}
 }
 
@@ -286,7 +286,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
 #endif
-    x->fd_conshead=x->fd_conshead+0x80;
+    x->conshead=x->conshead+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}
 }
@@ -301,7 +301,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
     FD_LOCK_PTR(x);
     if (FD_CONSBITS(x)>=0x100) {
       /* If it's still got a refcount > 1, just decrease it */
-      x->fd_conshead=x->fd_conshead-0x80;
+      x->conshead=x->conshead-0x80;
       FD_UNLOCK_PTR(x);}
     else {
       /* Someone else decref'd it before we got the lock, so we

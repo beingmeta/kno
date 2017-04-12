@@ -62,14 +62,14 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_DEFAULT_BITS 0
 
 typedef struct FD_XML {
-  u8_string fdxml_eltname; int fdxml_bits;
-  fdtype fdxml_head, fdxml_attribs;
-  u8_string fdxml_namespace;
-  u8_string *fdxml_nsmap; 
-  int fdxml_size, fdxml_limit;
-  struct FD_PAIR *fdxml_content_tail; 
-  void *fdxml_data;
-  struct FD_XML *fdxml_parent;} FD_XML;
+  u8_string xml_eltname; int xml_bits;
+  fdtype xml_head, xml_attribs;
+  u8_string xml_namespace;
+  u8_string *xml_nsmap; 
+  int xml_size, xml_limit;
+  struct FD_PAIR *xml_content_tail; 
+  void *xml_data;
+  struct FD_XML *xml_parent;} FD_XML;
 
 typedef enum FD_XMLELT_TYPE {
   xmlopen, xmlclose, xmlempty, xmlpi, xmldoctype, xmlcomment, xmlcdata }

@@ -74,15 +74,15 @@ static void recycle_list(struct FD_PAIR *pair)
     if (FD_STATIC_CONSP(pair)) return;
     else {
       car=pair->car; cdr=pair->cdr;}
-    fd_consbits newbits=atomic_fetch_sub(&(cons->fd_conshead),0x80)-0x80;
+    fd_consbits newbits=atomic_fetch_sub(&(cons->conshead),0x80)-0x80;
     if (newbits<0x80) {
       fd_decref(car);
       if (FD_PAIRP(cdr)) {
-        atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
+        atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
         u8_free(pair);
         pair=(fd_pair)cdr;}
       else {
-        atomic_store(&(cons->fd_conshead),(newbits|0xFFFFFF80));
+        atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
         fd_decref(cdr);
         u8_free(pair);
         return;}}

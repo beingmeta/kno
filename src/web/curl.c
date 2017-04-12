@@ -892,21 +892,21 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
       fd_decref(conn);
       return FD_ERROR_VALUE;}
     fd_init_xml_node(&xmlnode,NULL,FD_STRDATA(url));
-    xmlnode.fdxml_bits=flags;
+    xmlnode.xml_bits=flags;
     xmlret=fd_walk_xml(&in,fd_default_contentfn,NULL,NULL,NULL,
                        fd_default_popfn,
                        &xmlnode);
     fd_decref(conn);
     if (xmlret) {
-      {FD_DOLIST(elt,xmlret->fdxml_head) {
+      {FD_DOLIST(elt,xmlret->xml_head) {
         if (FD_SLOTMAPP(elt)) {
           fdtype name=fd_get(elt,name_symbol,FD_EMPTY_CHOICE);
           if (FD_SYMBOLP(name)) fd_add(result,name,elt);
           else if ((FD_CHOICEP(name)) || (FD_ACHOICEP(name))) {
             FD_DO_CHOICES(nm,name) {
               if (FD_SYMBOLP(nm)) fd_add(result,nm,elt);}}}}}
-      fd_add(result,FDSYM_CONTENT,xmlret->fdxml_head);
-      u8_free(buf); fd_decref(xmlret->fdxml_head);
+      fd_add(result,FDSYM_CONTENT,xmlret->xml_head);
+      u8_free(buf); fd_decref(xmlret->xml_head);
       return result;}
     else {
       fd_decref(result); u8_free(buf);
