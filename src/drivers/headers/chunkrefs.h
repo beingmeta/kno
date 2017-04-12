@@ -215,7 +215,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
     *dbytes=dsize;
     return dbuf;}
   else {
-    fd_seterr(error,"do_zuncompress",NULL,FD_VOID);
+    fd_seterr2(error,"do_zuncompress");
     return NULL;}
 }
 
@@ -253,7 +253,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
     *cbytes=csize;
     return cbuf;}
   else {
-    fd_seterr(error,"do_zcompress",NULL,FD_VOID);
+    fd_seterr2(error,"do_zcompress");
     return NULL;}
 }
 

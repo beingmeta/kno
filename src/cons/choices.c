@@ -215,7 +215,7 @@ struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
   if (ch==NULL) {
     u8_log(LOGCRIT,"fd_cleanup_choice",
            "The argument to fd_cleanup_choice is NULL");
-    fd_seterr("choice arg is NULL","fd_make_choice",NULL,FD_VOID);
+    fd_seterr2("choice arg is NULL","fd_make_choice");
     return NULL;}
   else {
     int atomicp; int n=ch->choice_size;
@@ -251,7 +251,7 @@ fdtype fd_init_choice
     if (ch) u8_free(ch);
     if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
     if (elt==FD_NULL) {
-      fd_seterr(_("BadInitData"),"fd_init_choice",NULL,FD_VOID);
+      fd_seterr2(_("BadInitData"),"fd_init_choice");
       return FD_ERROR_VALUE;}
     else {
       return elt;}}
