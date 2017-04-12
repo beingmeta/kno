@@ -96,7 +96,7 @@ LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
-SRC_HEADERS=src/cons/biginternals.h 		\
+SRC_HEADERS=src/types/biginternals.h 		\
 	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
@@ -109,21 +109,21 @@ SRC_HEADERS=src/cons/biginternals.h 		\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=\
-	src/cons/oids.o src/cons/fcnids.o 		\
-	src/cons/symbols.o src/cons/cons.o 		\
-	src/cons/recycle.o src/cons/copy.o 		\
-	src/cons/misctypes.o src/cons/numbers.o		\
-	src/cons/compare.o src/cons/walk.o		\
+	src/types/oids.o src/types/fcnids.o 		\
+	src/types/symbols.o src/types/cons.o 		\
+	src/types/recycle.o src/types/copy.o 		\
+	src/types/misctypes.o src/types/numbers.o		\
+	src/types/compare.o src/types/walk.o		\
 	src/apply/apply.o @calltracko@ src/apply/ffi.o	\
-	src/cons/tables.o src/cons/bloom.o		\
-	src/cons/sequences.o src/cons/choices.o 	\
-	src/cons/parse.o src/cons/unparse.o		\
-	src/cons/bufio.o 				\
-	src/cons/dtread.o src/cons/dtwrite.o		\
-	src/cons/libfdtype.o src/cons/support.o		\
-	src/cons/config.o src/cons/err.o 		\
-	src/cons/logging.o src/cons/getopt.o 		\
-	src/cons/startup.o src/cons/fluid.o
+	src/types/tables.o src/types/bloom.o		\
+	src/types/sequences.o src/types/choices.o 	\
+	src/types/parse.o src/types/unparse.o		\
+	src/types/bufio.o 				\
+	src/types/dtread.o src/types/dtwrite.o		\
+	src/types/libfdtype.o src/types/support.o		\
+	src/types/config.o src/types/err.o 		\
+	src/types/logging.o src/types/getopt.o 		\
+	src/types/startup.o src/types/fluid.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
@@ -147,7 +147,7 @@ DRIVER_OBJS=\
 	src/drivers/htindex.o src/drivers/memindex.o    \
 	src/drivers/netindex.o
 
-FDKBSERV_OBJS=src/storage/dbserv.o
+FDDBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -324,7 +324,7 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
-CLEANDIRS=src/cons src/db src/drivers src/scheme \
+CLEANDIRS=src/types src/db src/drivers src/scheme \
 	src/texttools src/fdweb \
 	include/framerd src/drivers/headers \
 	src/cmodules src/cmodules/sundown src/cmodules/tidy5 \
@@ -334,16 +334,16 @@ FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) $(DRIVER_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/cons/cons.c src/cons/oids.c src/cons/symbols.c           	\
-	src/cons/copy.c src/cons/recycle.c src/cons/misctypes.c       	\
-        src/cons/compare.c src/cons/walk.c src/cons/fcnids.c		\
-	src/cons/choices.c src/cons/sequences.c				\
-	src/cons/tables.c src/cons/bloom.c				\
-        src/cons/bufio.c src/cons/dtread.c src/cons/dtread.c 		\
-	src/cons/parse.c src/cons/unparse.c 				\
-	src/cons/libfdtype.c src/cons/support.c src/cons/config.c	\
-	src/cons/err.c src/cons/logging.c src/cons/getopt.c		\
-	src/cons/startup.c src/cons/fluid.c				\
+	src/types/cons.c src/types/oids.c src/types/symbols.c           	\
+	src/types/copy.c src/types/recycle.c src/types/misctypes.c       	\
+        src/types/compare.c src/types/walk.c src/types/fcnids.c		\
+	src/types/choices.c src/types/sequences.c				\
+	src/types/tables.c src/types/bloom.c				\
+        src/types/bufio.c src/types/dtread.c src/types/dtread.c 		\
+	src/types/parse.c src/types/unparse.c 				\
+	src/types/libfdtype.c src/types/support.c src/types/config.c	\
+	src/types/err.c src/types/logging.c src/types/getopt.c		\
+	src/types/startup.c src/types/fluid.c				\
 	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
@@ -399,22 +399,22 @@ CMODULE_SOURCES=\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdstorage@suffix@.a      \
-        lib/libfdkbserv@suffix@.a lib/libfdkbdrivers@suffix@.a  \
+        lib/libfddbserv@suffix@.a lib/libfddrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdstorage@suffix@.@shared_suffix@        		\
-        lib/libfdkbdrivers@suffix@.@shared_suffix@    		\
-	lib/libfdkbserv@suffix@.@shared_suffix@     		\
+        lib/libfddrivers@suffix@.@shared_suffix@    		\
+	lib/libfddbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
 	lib/libfdstorage@suffix@.@mshared_suffix@        		\
-        lib/libfdkbdrivers@suffix@.@mshared_suffix@    		\
-	lib/libfdkbserv@suffix@.@mshared_suffix@     		\
+        lib/libfddrivers@suffix@.@mshared_suffix@    		\
+	lib/libfddbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
@@ -499,13 +499,13 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
-tests/cons/makefile: tests/cons/makefile.in ./configure
+tests/types/makefile: tests/types/makefile.in ./configure
 	./configure
 tests/storage/makefile: tests/storage/makefile.in ./configure
 	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
 	./configure
-tests/cons/.gdbinit: tests/cons/.gdbinit.in ./configure
+tests/types/.gdbinit: tests/types/.gdbinit.in ./configure
 	./configure
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
@@ -538,7 +538,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/cons/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
+	tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -571,10 +571,10 @@ exe/scripts/%: src/scripts/%.scm
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
-		-lfdkbserv@suffix@                 	 	   \
+		-lfddbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfdkbdrivers@suffix@ -lfdstorage@suffix@ -lfdtype@suffix@ \
+		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdtype@suffix@ \
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -693,9 +693,9 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: constestbin dbtestbin schemetestbin etc/usememory
-constestbin: libs tests/cons/makefile tests/cons/.gdbinit
+constestbin: libs tests/types/makefile tests/types/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/cons
+		-C tests/types
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
@@ -709,7 +709,7 @@ cmodules: @CMODULES@
 
 # Uninstall
 
-LIBBASE=libfdtype libfdstorage libfdkbdrivers libfdkbserv \
+LIBBASE=libfdtype libfdstorage libfddrivers libfddbserv \
 	libfdscheme libfdschemeio libfdweb libtexttools
 
 uninstall-core:
@@ -744,9 +744,10 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/cons/*.c tests/storage/*.c tests/scheme/*.c 		\
+		tests/types/*.c tests/storage/*.c tests/scheme/*.c 	\
 		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
-		src/cons/*.c src/storage/*.c src/drivers/*.c 		\
+		src/types/*.c src/apply/*.c 				\
+		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
 		etc/*.in ${SRC_HEADERS} 				\
@@ -755,25 +756,27 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/cons/*.c src/storage/*.c src/drivers/*.c
+	@etags -o TAGS -a src/types/*.c src/apply/*.c 
+	@etags -o TAGS -a src/storage/*.c src/drivers/*.c
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/cons/*.c tests/storage/*.c;
+	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 
-CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
-		tests/cons/*.c tests/storage/*.c tests/scheme/*.c src/exe/*.c \
-		src/cons/*.c src/storage/*.c src/eval/*.c src/web/*.c     \
-		src/text/*.c src/cmodules/*.c         \
-		src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
-		etc/*.in ${SRC_HEADERS}
+CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
+	tests/types/*.c tests/storage/*.c tests/scheme/*.c	\
+	src/types/*.c src/apply/*.c src/storage/*.c 		\
+	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
+	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
+	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
-	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/cons/*.c tests/storage/*.c tests/scheme/*.c src/exe/*.c \
-	      src/cons/*.c src/storage/*.c src/eval/*.c src/web/*.c     \
-	      src/text/*.c src/cmodules/*.c         \
-	      src/cmodules/ext/sundown/sundown.c include/framerd/*.h        \
-	      etc/*.in ${SRC_HEADERS}
+	@etags -o CTAGS 
+	      makefile.in configure.ac include/framerd/config.h.in      \
+	      tests/types/*.c tests/apply/*.c tests/storage/*.c 	\
+	      tests/eval/*.c tests/prims/*.c src/exe/*.c 		\
+	      src/types/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
+	      src/web/*.c src/text/*.c src/cmodules/*.c         	\
+	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file
@@ -810,14 +813,14 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
-	cd tests/cons; make clean
+	cd tests/types; make clean
 	cd tests/storage; make clean
 	cd tests/scheme; make clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/cons/makefile tests/storage/makefile tests/scheme/makefile
-	rm -f tests/cons/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/types/makefile tests/storage/makefile tests/scheme/makefile
+	rm -f tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -837,10 +840,10 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 
 # Custom rules
 
-src/cons/dtread.o src/cons/dtwrite.o src/cons/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/cons/choices.o : XCFLAGS="${OPTFLAGS}"
-src/cons/tables.o src/cons/bloom.o src/cons/sequences.o : XCFLAGS="${OPTFLAGS}"
-src/cons/numbers.o src/cons/compare.o : XCFLAGS="${OPTFLAGS}"
+src/types/dtread.o src/types/dtwrite.o src/types/bufio.o : XCFLAGS="${OPTFLAGS}"
+src/types/choices.o : XCFLAGS="${OPTFLAGS}"
+src/types/tables.o src/types/bloom.o src/types/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/types/numbers.o src/types/compare.o : XCFLAGS="${OPTFLAGS}"
 src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
 src/storage/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
@@ -858,19 +861,19 @@ lib/libfdstorage@suffix@.a: $(DB_OBJS)
 lib/libfdstorage@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
 lib/libfdstorage@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
-lib/libfdkbdrivers@suffix@.a: $(DRIVER_OBJS)
-lib/libfdkbdrivers@suffix@.so: $(DRIVER_OBJS) \
+lib/libfddrivers@suffix@.a: $(DRIVER_OBJS)
+lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so
-lib/libfdkbdrivers@suffix@.dylib: $(DRIVER_OBJS) \
+lib/libfddrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libfdstorage@suffix@.dylib lib/libfdtype@suffix@.dylib
 
-lib/libfdkbserv@suffix@.a: $(FDKBSERV_OBJS)
-lib/libfdkbserv@suffix@.so: $(FDKBSERV_OBJS) \
+lib/libfddbserv@suffix@.a: $(FDDBSERV_OBJS)
+lib/libfddbserv@suffix@.so: $(FDDBSERV_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
-	lib/libfdkbdrivers@suffix@.so
-lib/libfdkbserv@suffix@.dylib: $(FDKBSERV_OBJS) \
+	lib/libfddrivers@suffix@.so
+lib/libfddbserv@suffix@.dylib: $(FDDBSERV_OBJS) \
 	lib/libfdscheme@suffix@.dylib         \
-	lib/libfdkbdrivers@suffix@.dylib         \
+	lib/libfddrivers@suffix@.dylib         \
 	lib/libfdstorage@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
@@ -879,31 +882,31 @@ lib/libfdkbserv@suffix@.dylib: $(FDKBSERV_OBJS) \
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
 	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so	\
-	lib/libfdkbdrivers@suffix@.so
+	lib/libfddrivers@suffix@.so
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
 	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
-        lib/libfdkbdrivers@suffix@.dylib
+        lib/libfddrivers@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
 lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
 	lib/libfdtype@suffix@.so  lib/libfdstorage@suffix@.so	\
-        lib/libfdkbdrivers@suffix@.so 				\
+        lib/libfddrivers@suffix@.so 				\
 	lib/libfdscheme@suffix@.so
 lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
 	lib/libfdscheme@suffix@.dylib             		\
 	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
-        lib/libfdkbdrivers@suffix@.dylib
+        lib/libfddrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
 	lib/libfdtype@suffix@.so \
 	lib/libfdstorage@suffix@.so \
-	lib/libfdkbdrivers@suffix@.so \
+	lib/libfddrivers@suffix@.so \
 	lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
-	lib/libfdkbdrivers@suffix@.dylib     \
+	lib/libfddrivers@suffix@.dylib     \
 	lib/libfdstorage@suffix@.dylib         \
         lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
@@ -919,7 +922,7 @@ lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
 	lib/libfdschemeio@suffix@.so
 lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
-	lib/libfdkbdrivers@suffix@.dylib \
+	lib/libfddrivers@suffix@.dylib \
 	lib/libfdstorage@suffix@.dylib \
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
@@ -1232,8 +1235,8 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@confi
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
 		$(LIBINSTALLDIR)/libfdstorage@suffix@.a       \
-		$(LIBINSTALLDIR)/libfdkbdrivers@suffix@.a   \
-		$(LIBINSTALLDIR)/libfdkbserv@suffix@.a    \
+		$(LIBINSTALLDIR)/libfddrivers@suffix@.a   \
+		$(LIBINSTALLDIR)/libfddbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
@@ -1247,14 +1250,14 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdkbserv@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdkbdrivers@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbserv@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbserv@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbserv@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfddrivers@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddrivers@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddrivers@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddrivers@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\

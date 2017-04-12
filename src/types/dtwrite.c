@@ -28,8 +28,6 @@ int fd_use_dtblock=FD_USE_DTBLOCK;
 
 unsigned int fd_check_dtsize=1;
 
-fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
-
 int (*fd_dtype_error)
      (struct FD_OUTBUF *,fdtype x,u8_string details)=NULL;
 
@@ -599,8 +597,6 @@ static int dtype_compound(struct FD_OUTBUF *out,fdtype x)
 FD_EXPORT void fd_init_dtwrite_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  int i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
 
   fd_dtype_writers[fd_compound_type]=dtype_compound;
 

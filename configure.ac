@@ -1588,10 +1588,10 @@ if (test ! -f src/scheme/gpath.scm); then
 fi;
 
 AC_OUTPUT([makefile etc/version etc/makefile.include
-           tests/cons/makefile tests/storage/makefile
+           tests/types/makefile tests/storage/makefile
 	   tests/scheme/makefile DIY/makefile 
            etc/gdbinit
-	   exe/.gdbinit tests/cons/.gdbinit
+	   exe/.gdbinit tests/types/.gdbinit
 	   tests/storage/.gdbinit tests/scheme/.gdbinit
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
