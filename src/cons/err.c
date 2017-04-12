@@ -49,7 +49,8 @@ FD_EXPORT void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
   fd_incref(irritant);
-  u8_push_exception(c,cxt,details,(void *)irritant,fd_free_exception_xdata);
+  u8_push_exception(c,cxt,u8dup(details),
+		    (void *)irritant,fd_free_exception_xdata);
 }
 
 FD_EXPORT int fd_poperr
@@ -105,7 +106,7 @@ FD_EXPORT fdtype fd_err
     else fd_seterr(ex,cxt,NULL,fd_incref(irritant));}
   else if (details)
     fd_seterr(ex,cxt,u8_strdup(details),FD_VOID);
-  else fd_seterr(ex,cxt,NULL,FD_VOID);
+  else fd_seterr2(ex,cxt);
   return FD_ERROR_VALUE;
 }
 

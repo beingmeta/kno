@@ -760,7 +760,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     u8_free(elts);
     if (ch<0) {
       *size=ch;
-      fd_seterr(fd_UnexpectedEOF,"parse_vec",NULL,FD_VOID);}
+      fd_seterr2(fd_UnexpectedEOF,"parse_vec");}
     else {
       *size=-1;
       fd_seterr(fd_MismatchedClose,"parse_vec",NULL,FD_CODE2CHAR(end_char));}

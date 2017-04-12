@@ -458,7 +458,7 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
     time_t tick=time(NULL);
     if (tick<0) {
       u8_graberr(-1,"time",NULL);
-      fd_seterr(TimeFailed,"setrandomseed",NULL,FD_VOID);
+      fd_seterr2(TimeFailed,"setrandomseed");
       return -1;}
     else {
       randomseed=(unsigned int)tick;

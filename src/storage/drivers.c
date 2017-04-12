@@ -160,13 +160,13 @@ fd_pool fd_make_pool(u8_string spec,
 {
   fd_pool_typeinfo ptype=get_pool_typeinfo(pooltype);
   if (ptype==NULL) {
-    fd_seterr(fd_UnknownPoolType,"fd_make_pool",pooltype,FD_VOID);
+    fd_xseterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler==NULL) {
-    fd_seterr(_("NoPoolHandler"),"fd_make_pool",pooltype,FD_VOID);
+    fd_xseterr3(_("NoPoolHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler->create==NULL) {
-    fd_seterr(_("NoCreateHandler"),"fd_make_pool",pooltype,FD_VOID);
+    fd_xseterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
 }
@@ -272,13 +272,13 @@ fd_index fd_make_index(
 {
   fd_index_typeinfo ixtype=get_index_typeinfo(indextype);
   if (ixtype==NULL) {
-    fd_seterr(_("UnknownIndexType"),"fd_make_index",indextype,FD_VOID);
+    fd_xseterr3(_("UnknownIndexType"),"fd_make_index",indextype);
     return NULL;}
   else if (ixtype->handler==NULL) {
-    fd_seterr(_("NoIndexHandler"),"fd_make_index",indextype,FD_VOID);
+    fd_xseterr3(_("NoIndexHandler"),"fd_make_index",indextype);
     return NULL;}
   else if (ixtype->handler->create==NULL) {
-    fd_seterr(_("NoCreateHandler"),"fd_make_index",indextype,FD_VOID);
+    fd_xseterr3(_("NoCreateHandler"),"fd_make_index",indextype);
     return NULL;}
   else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);
 }

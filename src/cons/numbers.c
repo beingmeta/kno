@@ -2245,7 +2245,7 @@ fdtype fd_plus(fdtype x,fdtype y)
            ((FD_VECTORP(x))||(FD_NUMVECP(y)))) {
     int x_len=numvec_length(x), y_len=numvec_length(y);
     if (x_len != y_len) {
-      fd_seterr(_("Vector size mismatch"),"fd_plus",NULL,FD_VOID);
+      fd_seterr2(_("Vector size mismatch"),"fd_plus");
       return FD_ERROR_VALUE;}
     return vector_add(x,y,1);}
   else if (!(NUMBERP(x)))
@@ -2319,7 +2319,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
            ((FD_VECTORP(y))||(FD_NUMVECP(y)))) {
     int x_len=numvec_length(x), y_len=numvec_length(y);
     if (x_len != y_len) {
-      fd_seterr(_("Vector size mismatch"),"fd_subtract",NULL,FD_VOID);
+      fd_seterr2(_("Vector size mismatch"),"fd_multiply");
       return FD_ERROR_VALUE;}
     return vector_dotproduct(x,y);}
   else if (!(NUMBERP(x)))
@@ -2377,7 +2377,7 @@ fdtype fd_subtract(fdtype x,fdtype y)
            ((FD_VECTORP(x))||(FD_NUMVECP(y)))) {
     int x_len=numvec_length(x), y_len=numvec_length(y);
     if (x_len != y_len) {
-      fd_seterr(_("Vector size mismatch"),"fd_subtract",NULL,FD_VOID);
+      fd_seterr2(_("Vector size mismatch"),"fd_subtract");
       return FD_ERROR_VALUE;}
     return vector_add(x,y,-1);}
   else if (!(NUMBERP(x)))
@@ -3064,7 +3064,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
 {
   int x_len=numvec_length(x), y_len=numvec_length(y);
   if (x_len!=y_len) {
-    fd_seterr("Dimensional conflict","vector_add",NULL,FD_VOID);
+    fd_seterr2("Dimensional conflict","vector_add");
     return FD_ERROR_VALUE;}
   else if ((FD_NUMVECP(x))&&(FD_NUMVECP(y))) {
     struct FD_NUMERIC_VECTOR *vx=(struct FD_NUMERIC_VECTOR *)x;
@@ -3177,7 +3177,7 @@ static fdtype vector_dotproduct(fdtype x,fdtype y)
 {
   int x_len=numvec_length(x), y_len=numvec_length(y);
   if (x_len!=y_len) {
-    fd_seterr("Dimensional conflict","vector_add",NULL,FD_VOID);
+    fd_seterr2("Dimensional conflict","vector_add");
     return FD_ERROR_VALUE;}
   else if ((FD_NUMVECP(x))&&(FD_NUMVECP(y))) {
     struct FD_NUMERIC_VECTOR *vx=(struct FD_NUMERIC_VECTOR *)x;

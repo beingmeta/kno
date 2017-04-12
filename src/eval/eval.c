@@ -269,7 +269,7 @@ int fd_recycle_environment(fd_lispenv env)
       struct FD_RAW_CONS *envstruct=(struct FD_RAW_CONS *)env;
       fd_decref(env->env_bindings); fd_decref(env->env_exports);
       if (env->env_parent) fd_decref((fdtype)(env->env_parent));
-      envstruct->fd_conshead=(0xFFFFFF80|(env->fd_conshead&0x7F));
+      envstruct->conshead=(0xFFFFFF80|(env->conshead&0x7F));
       u8_free(env);
       return 1;}
     else {fd_decref((fdtype)env); return 0;}}

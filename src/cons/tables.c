@@ -284,7 +284,7 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
                         sm->sm_free_keyvals));
     if (FD_EXPECT_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&(sm->table_rwlock));
-      fd_seterr(fd_MallocFailed,"fd_slotmap_store",NULL,FD_VOID);
+      fd_seterr2(fd_MallocFailed,"fd_slotmap_store");
       return -1;}
     if (sm->sm_keyvals!=cur_keyvals) sm->sm_free_keyvals=1;
     fd_decref(result->kv_val);
@@ -318,7 +318,7 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
                         sm->sm_free_keyvals));
     if (FD_EXPECT_FALSE(result==NULL)) {
       if (unlock) u8_rw_unlock(&sm->table_rwlock);
-      fd_seterr(fd_MallocFailed,"fd_slotmap_add",NULL,FD_VOID);
+      fd_seterr2(fd_MallocFailed,"fd_slotmap_add");
       return -1;}
     /* If this allocated a new keyvals structure, it needs to be
        freed.  (sm_free_kevyvals==0) when the keyvals are allocated at
@@ -1767,7 +1767,7 @@ static int do_hashtable_op
   struct FD_KEYVAL *result; int added=0, was_achoice=0;
   if (FD_EMPTY_CHOICEP(key)) return 0;
   if ((ht->table_readonly) && (op!=fd_table_test)) {
-    fd_seterr(fd_ReadOnlyHashtable,"do_hashtable_op",NULL,FD_VOID);
+    fd_seterr2(fd_ReadOnlyHashtable,"do_hashtable_op");
     return -1;}
   switch (op) {
   case fd_table_replace: case fd_table_replace_novoid: case fd_table_drop:
@@ -2620,8 +2620,8 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly)
     if ((ht->table_readonly) && (ht->table_uselock==0))
       return 0;
     else if ((!(ht->table_readonly)) && (ht->table_uselock==0)) {
-      fd_seterr("Can't lock modifiable which isn't currently locking",
-                "fd_lock_hashtable",NULL,FD_VOID);
+      fd_seterr2("Can't lock modifiable which isn't currently locking",
+                "fd_lock_hashtable");
       return -1;}
     fd_read_lock_table(ht);
     ht->table_readonly=1; ht->table_uselock=0;

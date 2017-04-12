@@ -355,10 +355,10 @@ FD_FASTOP fdtype *fill_argvec(struct FD_FUNCTION *f,int n,fdtype *argvec,
   int arity=f->fcn_arity, min_arity=f->fcn_min_arity;
   fdtype fptr=(fdtype)f;
   if ((min_arity>0) && (n<min_arity)) {
-    fd_seterr(fd_TooFewArgs,"fd_dapply",u8dup(f->fcn_name),fd_incref(fptr));
+    fd_xseterr(fd_TooFewArgs,"fd_dapply",f->fcn_name,fptr);
     return NULL;}
   else if ((arity>=0) && (n>arity)) {
-    fd_seterr(fd_TooManyArgs,"fd_dapply",f->fcn_name,fd_incref(fptr));
+    fd_xseterr(fd_TooManyArgs,"fd_dapply",f->fcn_name,fptr);
     return NULL;}
   else if ((arity<0)||(arity==n))
     return argvec;
