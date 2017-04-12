@@ -11,7 +11,7 @@
 #define FRAMERD_METHODS_H_INFO "include/framerd/methods.h"
 #endif
 
-#include "fdkbase.h"
+#include "storage.h"
 
 /* Data structures */
 

@@ -113,6 +113,10 @@ static int libfdtype_version=101;
 
 FD_EXPORT void fd_init_cons_c(void);
 FD_EXPORT void fd_init_compare_c(void);
+FD_EXPORT void fd_init_recycle_c(void);
+FD_EXPORT void fd_init_copy_c(void);
+FD_EXPORT void fd_init_compare_c(void);
+FD_EXPORT void fd_init_misctypes_c(void);
 FD_EXPORT void fd_init_oids_c(void);
 FD_EXPORT void fd_init_textio_c(void);
 FD_EXPORT void fd_init_parse_c(void);
@@ -192,6 +196,10 @@ FD_EXPORT int fd_init_libfdtype()
   u8_init_mutex(&fd_symbol_lock);
   fd_init_cons_c();
   init_type_names();
+  fd_init_recycle_c();
+  fd_init_copy_c();
+  fd_init_compare_c();
+  fd_init_misctypes_c();
   fd_init_oids_c();
   fd_init_tables_c();
   fd_init_symbols_c();
@@ -200,7 +208,6 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_dtwrite_c();
   fd_init_numbers_c();
   fd_init_choices_c();
-  fd_init_compare_c();
   fd_init_parse_c();
   fd_init_unparse_c();
   fd_init_bloom_c();

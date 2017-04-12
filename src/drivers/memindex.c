@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/fdkbase.h"
+#include "framerd/storage.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -258,7 +258,7 @@ static int mem_index_commit(fd_index ix)
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
 	 n_updates,n_entries,ix->indexid,end);
 
-  return 1;
+  return n_updates;
 }
 
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)
@@ -279,8 +279,9 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   fd_inbuf in=fd_start_read(stream,8);
   long long i=0, n_entries=fd_read_8bytes(in);
   fd_hashtable cache=&(memidx->index_cache);
-  u8_log(LOGNOTICE,"MemIndexLoad",
-	 "Loading %lld entries for %s",n_entries,memidx->indexid);
+  double started=u8_elapsed_time();
+  u8_log(fdkb_loglevel+1,"MemIndexLoad",
+	 "Loading %lld entries for '%s'",n_entries,memidx->indexid);
   memidx->mix_valid_data=fd_read_8bytes(in);
   ftruncate(stream->stream_fileno,memidx->mix_valid_data);
   fd_setpos(stream,256);
@@ -306,6 +307,9 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   if (lock_cache) u8_rw_unlock(&(cache->table_rwlock));
   memidx->mix_loaded=1;
   fd_unlock_stream(stream);
+  u8_log(fdkb_loglevel,"MemIndexLoad",
+	 "Loaded %lld entries for '%s' in %fs",
+	 n_entries,memidx->indexid,u8_elapsed_time()-started);
   return 1;
 }
 

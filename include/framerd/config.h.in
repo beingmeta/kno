@@ -406,6 +406,9 @@
 /* Whether we've got the sqlite3_errstr function (introduced 2012) */
 #undef HAVE_SQLITE3_ERRSTR
 
+/* Whether you can use the stdatomic.h header file */
+#undef FD_ENABLE_FFI
+
 /* Whether we have the FFI headers */
 #undef HAVE_FFI_H
 

@@ -457,7 +457,8 @@ static void set_elt_name(FD_XML *xml,u8_string name)
     fd_store(xml->fdxml_attribs,rawtag_symbol,fd_intern(name));
     fd_add(xml->fdxml_attribs,namespace_symbol,namespace);
     fd_add(xml->fdxml_attribs,qname_symbol,qname);
-    fd_decref(qname); fd_decref(namespace);}
+    fd_decref(namespace);
+    fd_decref(qname);}
   fd_add(xml->fdxml_attribs,xmltag_symbol,lispname);
   fd_add(xml->fdxml_attribs,qname_symbol,qlispname);
   fd_decref(qlispname);
@@ -1093,6 +1094,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
     return result;}
   errpos=_in.u8_read-_in.u8_inbuf;
   fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
+  free_node(&object,0);
   return FD_ERROR_VALUE;
 }
 

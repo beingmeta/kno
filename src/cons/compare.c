@@ -13,6 +13,8 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
+fd_compare_fn fd_comparators[FD_TYPE_MAX];
+
 static int string_compare(u8_string s1,u8_string s2,int ci);
 
 FD_EXPORT
@@ -292,6 +294,10 @@ FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec)
 
 void fd_init_compare_c()
 {
+  u8_register_source_file(_FILEINFO);
+
+  int i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
+
   fd_comparators[fd_compound_type]=compare_compounds;
   fd_comparators[fd_timestamp_type]=compare_timestamps;
   fd_comparators[fd_uuid_type]=compare_uuids;

@@ -69,7 +69,7 @@
 #include "framerd/dtypeio.h"
 #include "framerd/streams.h"
 #include "framerd/numbers.h"
-#include "framerd/fdkbase.h"
+#include "framerd/storage.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -2051,6 +2051,7 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->index_stream),schedule[k].commit_values,
                               current,0,0,endpos);
           endpos=ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
+          fd_decref(current);
           ke[key_i].ke_values=FD_VOID;}
         else {
           ke[key_i].ke_vref=
@@ -2573,7 +2574,7 @@ static int update_hashindex_ondisk
       fd_write_4bytes(outstream,word2);
       i++;}}
   /* The offsets have now been updated in memory */
-  if (hx->index_offdata) {
+  if (offdata) {
 #if (HAVE_MMAP)
     /* If you have MMAP, make them unwritable which swaps them out to
        the file. */

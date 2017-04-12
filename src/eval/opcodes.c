@@ -17,7 +17,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/support.h"
-#include "framerd/fdkbase.h"
+#include "framerd/storage.h"
 #include "framerd/eval.h"
 #include "framerd/opcodes.h"
 #include "framerd/dtproc.h"
@@ -738,8 +738,12 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else if (FD_ACHOICEP(arg1))
       arg1=fd_simplify_choice(arg1);
     else {}
-    if (FD_ND1_OPCODEP(opcode))
-      return nd1_dispatch(opcode,arg1);
+    if (FD_ND1_OPCODEP(opcode)) {
+      if (FD_CONSP(arg1)) {
+        fdtype result=nd1_dispatch(opcode,arg1);
+        fd_decref(arg1);
+        return result;}
+      else return nd1_dispatch(opcode,arg1);}
     else if (FD_D1_OPCODEP(opcode))
       return d1_call(opcode,arg1);
     /* Check the type for numeric arguments here. */
@@ -764,6 +768,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           return FD_EMPTY_CHOICE;}
         else if ((FD_CHOICEP(arg1))||(FD_CHOICEP(arg2)))
           return d2_call(opcode,arg1,arg2);
+        else if ((FD_CONSP(arg1))||(FD_CONSP(arg2))) {
+          fdtype result=d2_dispatch(opcode,arg1,arg2);
+          fd_decref(arg1); fd_decref(arg2);
+          return result;}
         else return d2_dispatch(opcode,arg1,arg2);}}
     else if (FD_D2_OPCODEP(opcode)) {
       if (FD_EMPTY_CHOICEP(arg1))
