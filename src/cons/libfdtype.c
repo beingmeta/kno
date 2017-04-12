@@ -201,6 +201,8 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_compare_c();
   fd_init_misctypes_c();
   fd_init_oids_c();
+  fd_init_unparse_c();
+  fd_init_parse_c();
   fd_init_tables_c();
   fd_init_symbols_c();
   fd_init_support_c();
@@ -208,8 +210,6 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_dtwrite_c();
   fd_init_numbers_c();
   fd_init_choices_c();
-  fd_init_parse_c();
-  fd_init_unparse_c();
   fd_init_bloom_c();
   fd_init_apply_c();
   fd_init_sequences_c();
