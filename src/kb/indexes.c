@@ -262,15 +262,16 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
   init_cache_level(ix);
   if (ix->index_edits.table_n_keys) {
     fdtype set_key=fd_make_pair(set_symbol,key);
-    fdtype drop_key=fd_make_pair(drop_symbol,key);
     fdtype set_value=fd_hashtable_get(edits,set_key,FD_VOID);
+    fd_decref(set_key);
     if (!(FD_VOIDP(set_value))) {
       if (ix->index_cache_level>0) fd_hashtable_store(cache,key,set_value);
-      fd_decref(drop_key); fd_decref(set_key);
       return set_value;}
     else {
+      fdtype drop_key=fd_make_pair(drop_symbol,key);
       fdtype added=fd_hashtable_get(adds,key,FD_EMPTY_CHOICE);
       fdtype dropped=fd_hashtable_get(edits,drop_key,FD_EMPTY_CHOICE);
+      fd_decref(drop_key);
       if (ix->index_handler->fetch)
         v=ix->index_handler->fetch(ix,key);
       else v=FD_EMPTY_CHOICE;
@@ -406,6 +407,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
           fdtype adds=fd_hashtable_get(&(ix->index_adds),key,FD_EMPTY_CHOICE);
           fdtype drops=
             fd_hashtable_get(&(ix->index_edits),drop_key,FD_EMPTY_CHOICE);
+          fd_decref(drop_key);
           if (FD_EMPTY_CHOICEP(drops))
             if (FD_EMPTY_CHOICEP(adds)) {
               if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],values[i]);
@@ -694,7 +696,8 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
       fd_hashtable_drop(adds,eachkey,value);
       if (ix->index_cache_level>0)
         fd_hashtable_drop(cache,eachkey,value);
-      fd_decref(set_key); fd_decref(drop_key);}}
+      fd_decref(set_key); 
+      fd_decref(drop_key);}}
   else {
     fdtype drop_key=fd_make_pair(drop_symbol,key);
     fdtype set_key=fd_make_pair(set_symbol,key);
@@ -703,7 +706,8 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
     fd_hashtable_drop(adds,key,value);
     if (ix->index_cache_level>0)
       fd_hashtable_drop(cache,key,value);
-    fd_decref(set_key); fd_decref(drop_key);}
+    fd_decref(set_key);
+    fd_decref(drop_key);}
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     if (FD_CHOICEP(key)) {
@@ -743,7 +747,8 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
       if (ix->index_cache_level>0) {
         fd_hashtable_store(cache,eachkey,value);
         fd_hashtable_drop(adds,eachkey,FD_VOID);}
-      fd_decref(set_key); fd_decref(drop_key);}}
+      fd_decref(set_key); 
+      fd_decref(drop_key);}}
   else {
     fdtype set_key=fd_make_pair(set_symbol,key);
     fdtype drop_key=fd_make_pair(drop_symbol,key);
@@ -752,7 +757,8 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
     if (ix->index_cache_level>0) {
       fd_hashtable_store(cache,key,value);
       fd_hashtable_drop(adds,key,FD_VOID);}
-    fd_decref(set_key); fd_decref(drop_key);}
+    fd_decref(set_key);
+    fd_decref(drop_key);}
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     if (FD_CHOICEP(key)) {
