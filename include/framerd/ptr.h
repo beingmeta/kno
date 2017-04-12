@@ -227,18 +227,18 @@ typedef unsigned int fd_consbits;
 #define FD_ATOMIC_CONSHEAD
 #endif
 
-#define FD_CONS_HEADER const fd_consbits fd_conshead
+#define FD_CONS_HEADER const fd_consbits conshead
 
 /* The header for typed data structures */
 typedef struct FD_CONS { FD_CONS_HEADER;} FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
 /* Raw conses have consbits which can change */
-struct FD_RAW_CONS { fd_consbits fd_conshead;};
+struct FD_RAW_CONS { fd_consbits conshead;};
 typedef struct FD_RAW_CONS *fd_raw_cons;
 
 #if FD_INLINE_REFCOUNTS
-struct FD_REF_CONS { FD_ATOMIC_CONSHEAD fd_consbits fd_conshead;};
+struct FD_REF_CONS { FD_ATOMIC_CONSHEAD fd_consbits conshead;};
 typedef struct FD_REF_CONS *fd_ref_cons;
 #define FD_REF_CONS(x) ((struct FD_REF_CONS *)(x))
 #endif
@@ -276,7 +276,7 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
 
 #define FD_CONS_TYPE(x) \
-  (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
+  (( ((x)->conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
 #define FD_CONSPTR_TYPE(x) (FD_CONS_TYPE((fd_cons)x))
 
 #define FD_CONSPTR(cast,x) ((cast)((fd_cons)x))
@@ -338,11 +338,11 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 
 #define FD_MAKE_STATIC(ptr) \
   if (FD_CONSP(ptr))							\
-    (((struct FD_RAW_CONS *)ptr)->fd_conshead)&=(FD_CONS_TYPE_MASK);	\
+    (((struct FD_RAW_CONS *)ptr)->conshead)&=(FD_CONS_TYPE_MASK);	\
   else {}
 
 #define FD_MAKE_CONS_STATIC(ptr)  \
-  ((struct FD_RAW_CONS *)ptr)->fd_conshead &= FD_CONS_TYPE_MASK
+  ((struct FD_RAW_CONS *)ptr)->conshead &= FD_CONS_TYPE_MASK
 
 /* OIDs */
 
@@ -851,7 +851,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
    (x==0) ? (0) :                                   \
    (FD_CONSP(x)) ?                                  \
-   (((((FD_CONS *)x)->fd_conshead)<0xFFFFFF80) &&      \
+   (((((FD_CONS *)x)->conshead)<0xFFFFFF80) &&      \
     (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
     (FD_CONS_TYPE((FD_CONS *)x)<fd_next_cons_type)) : \
    (fd_check_immediate(x))))

@@ -37,7 +37,7 @@ define dtype
   printf "%s\n",fd_dtype2string($arg0)
 end
 define showtype
-  printf "type is 0x%x: %s\n",(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
+  printf "type is 0x%x: %s\n",(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
 end
 define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
@@ -55,12 +55,12 @@ define refcount
   if (($arg0)&3)
   print "not a cons" 
   else
-  printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->fd_conshead)>>7)
+  printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->conshead)>>7)
   print ((struct FD_CONS *)($arg0))
   end
 end
 define watchcons
-  watch ((struct FD_CONS *)($arg0))->fd_conshead
+  watch ((struct FD_CONS *)($arg0))->conshead
 end
 define showstruct 
   print/x *((struct $arg1 *)($arg0))
@@ -245,7 +245,7 @@ define useinstalledmodules
 end
 
 define dtx
-  typecode=(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->fd_conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
+  typecode=(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
   printf "type is 0x%x: %s\n",${typecode},fd_type_names[${typecode}]
   if ${typecode} = fd_f
 end 

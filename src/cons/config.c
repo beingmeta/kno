@@ -632,8 +632,7 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
   else if ((FD_STRINGP(v)) && (true_stringp(FD_STRDATA(v)))) {
     *ptr=1; return 1;}
   else if (FD_STRINGP(v)) {
-    fd_seterr(fd_TypeError,"fd_boolconfig_set",
-              u8_strdup(FD_XSYMBOL_NAME(var)),fd_incref(v));
+    fd_xseterr(fd_TypeError,"fd_boolconfig_set",FD_XSYMBOL_NAME(var),v);
     return -1;}
   else {*ptr=1; return 1;}
 }
@@ -726,14 +725,10 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
       int *valp=(int *)data; *valp=loglevel;
       return 1;}
     else {
-      fd_seterr(fd_TypeError,"config_setloglevel",
-                u8_strdup(FD_XSYMBOL_NAME(var)),
-                fd_incref(val));
+      fd_xseterr(fd_TypeError,"loglevelconfig_set",FD_XSYMBOL_NAME(var),val);
       return -1;}}
   else {
-    fd_seterr(fd_TypeError,"config_setloglevel",
-              u8_strdup(FD_XSYMBOL_NAME(var)),
-              fd_incref(val));
+    fd_xseterr(fd_TypeError,"loglevelconfig_set",FD_XSYMBOL_NAME(var),val);
     return -1;}
 }
 

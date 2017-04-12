@@ -248,10 +248,10 @@ FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (buf->bufread==buf->buffer) {
-    fd_seterr(BadUnReadByte,"_fd_unread_byte",NULL,FD_VOID);
+    fd_seterr2(BadUnReadByte,"_fd_unread_byte");
     return -1;}
   else if (buf->bufread[-1]!=byte) {
-    fd_seterr(BadUnReadByte,"_fd_unread_byte",NULL,FD_VOID);
+    fd_seterr2(BadUnReadByte,"_fd_unread_byte");
     return -1;}
   else {buf->bufread--; return 0;}
 }
