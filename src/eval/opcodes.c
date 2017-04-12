@@ -738,8 +738,12 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else if (FD_ACHOICEP(arg1))
       arg1=fd_simplify_choice(arg1);
     else {}
-    if (FD_ND1_OPCODEP(opcode))
-      return nd1_dispatch(opcode,arg1);
+    if (FD_ND1_OPCODEP(opcode)) {
+      if (FD_CONSP(arg1)) {
+        fdtype result=nd1_dispatch(opcode,arg1);
+        fd_decref(arg1);
+        return result;}
+      else return nd1_dispatch(opcode,arg1);}
     else if (FD_D1_OPCODEP(opcode))
       return d1_call(opcode,arg1);
     /* Check the type for numeric arguments here. */
