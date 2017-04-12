@@ -75,7 +75,7 @@ static const sigset_t *server_sigmask;
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=15, fastfail_wait=60;
 
-FD_EXPORT int fd_init_fdkbserv(void);
+FD_EXPORT int fd_init_fddbserv(void);
 
 #include "webcommon.h"
 
@@ -2032,15 +2032,15 @@ int main(int argc,char **argv)
   fd_init_texttools();
   /* May result in innocuous redundant calls */
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fdkbserv();
+  fd_init_fddbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fdkbserv();
+  fd_init_fddbserv();
 #endif
   
   /* This is the module where the data-access API lives */
-  fd_register_module("FDKBSERV",fd_incref(fd_fdkbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdkbserv_module);
+  fd_register_module("FDDBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_dbserv_module);
 
   fd_init_fdweb();
   fd_init_kbdrivers();

@@ -36,6 +36,12 @@ u8_string fd_type_names[FD_TYPE_MAX];
 fd_hashfn fd_hashfns[FD_TYPE_MAX];
 fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
+fd_copy_fn fd_copiers[FD_TYPE_MAX];
+fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
+fd_dtype_fn fd_dtype_writers[FD_TYPE_MAX];
+fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
+fd_compare_fn fd_comparators[FD_TYPE_MAX];
+
 static u8_mutex constant_registry_lock;
 int fd_n_constants=FD_N_BUILTIN_CONSTANTS;
 
@@ -840,6 +846,12 @@ void fd_init_cons_c()
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
   i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4)
          fd_immediate_checkfns[i++]=NULL;
+
+  i=0; while (i < FD_TYPE_MAX) fd_recyclers[i++]=NULL;
+  i=0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;
+  i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
+  i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
+  i=0; while (i < FD_TYPE_MAX) fd_copiers[i++]=NULL;
 
   fd_immediate_checkfns[fd_constant_type]=validate_constant;
 
