@@ -256,13 +256,15 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
   else if (cb<0x80) {
     /* Static cons */}
   else {
-    fd_consbits modcb=atomic_fetch_sub(&(x->conshead),0x80);
-    if ((modcb>0x80)&&(modcb<0x100)) {
+    fd_consbits oldcb=atomic_fetch_sub(&(x->conshead),0x80);
+    if ((oldcb>=0x80)&&(oldcb<0x100)) {
       /* If the modified consbits indicated a refcount of 1,
 	 we've reduced it to zero, so we recycle it. Otherwise,
 	 someone got in to free it or incref it in the meanwhile. */
-      atomic_store(&(x->conshead),(dcb|0xFFFFFF80));
-      fd_recycle_cons((fd_raw_cons)x);}}
+      atomic_store(&(x->conshead),((oldcb&0x7F)|0xFFFFFF80));
+      fd_recycle_cons((fd_raw_cons)x);}
+    else if (oldcb!=cb)
+      u8_log(LOGWARN,"DecrefRace","cb=0x%x oldcb=0x%x",cb,oldcb);}
 }
 
 #elif FD_INLINE_REFCOUNTS

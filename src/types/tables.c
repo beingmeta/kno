@@ -581,12 +581,8 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   ptr->n_allocd=space; ptr->n_slots=len;
   if (data) while (i<len) {
       fdtype key=data[i].kv_key, val=data[i].kv_val;
-      if ((FD_CONSP(key)) && (FD_STATIC_CONSP(key)))
-        kv[i].kv_key=fd_copy(key);
-      else kv[i].kv_key=key;
-      if ((FD_CONSP(val)) && (FD_STATIC_CONSP(val)))
-        kv[i].kv_val=fd_copy(val);
-      else kv[i].kv_val=val;
+      kv[i].kv_key=fd_getref(key);
+      kv[i].kv_val=fd_getref(val);
       i++;}
   while (i<space) {
     kv[i].kv_key=FD_VOID;
@@ -642,8 +638,10 @@ static fdtype copy_slotmap(fdtype smap,int flags)
     memset(write,0,n*sizeof(struct FD_KEYVAL));
     while (read<read_limit) {
       fdtype key=read->kv_key, val=read->kv_val; read++;
-      if (FD_CONSP(key))
-        write->kv_key=fd_copy(key);
+      if (FD_CONSP(key)) {
+        if ((flags&FD_FULL_COPY)||(FD_STATICP(key)))
+          write->kv_key=fd_copy(key);
+        else write->kv_key=fd_incref(key);}
       else write->kv_key=key;
       if (FD_CONSP(val))
         if (FD_ACHOICEP(val))
@@ -2579,16 +2577,8 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
       newhe->fd_n_entries=n; kvlimit=kvread+n;
       while (kvread<kvlimit) {
         fdtype key=kvread->kv_key, val=kvread->kv_val; kvread++;
-        if (FD_CONSP(key))
-          kvwrite->kv_key=fd_copy(key);
-        else kvwrite->kv_key=key;
-        if (FD_CONSP(val))
-          if (FD_ACHOICEP(val))
-            kvwrite->kv_val=fd_make_simple_choice(val);
-          else if (FD_STATICP(val))
-            kvwrite->kv_val=fd_copy(val);
-          else {fd_incref(val); kvwrite->kv_val=val;}
-        else kvwrite->kv_val=val;
+        kvwrite->kv_key=fd_getref(key);
+        kvwrite->kv_val=fd_getref(val);
         kvwrite++;}}
   if (unlock) fd_unlock_table(ptr);
 
