@@ -80,8 +80,8 @@ static fdtype chain_prim(int n,fdtype *args)
         u8_free(as_string);
         cargv[cargc]=libc_string;
         i++; cargc++;}
-    u8_puts(&argstring," LOGAPPEND = yes");
-    cargv[cargc++]=u8_strdup("LOGAPPEND = yes");
+    u8_puts(&argstring," LOGAPPEND=yes");
+    cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i = 0; while (i<n_configs) {
       char *config = configs[i];
       if (strncmp(config,"LOGAPPEND=",10)) {
