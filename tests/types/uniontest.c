@@ -19,14 +19,14 @@
 #include <time.h>
 
 static struct timeval start;
-static int started=0;
+static int started = 0;
 
 double get_elapsed()
 {
   struct timeval now;
   if (started == 0) {
     gettimeofday(&start,NULL);
-    started=1;
+    started = 1;
     return 0;}
   else {
     gettimeofday(&now,NULL);
@@ -36,10 +36,10 @@ double get_elapsed()
 
 static fdtype read_choice(char *file)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  FILE *f=fopen(file,"r"); char buf[8192];
+  fdtype results = FD_EMPTY_CHOICE;
+  FILE *f = fopen(file,"r"); char buf[8192];
   while (fgets(buf,8192,f)) {
-    fdtype item=fd_parse(buf);
+    fdtype item = fd_parse(buf);
     if (FD_ABORTP(item)) {
       fd_decref(results);
       return item;}
@@ -50,11 +50,11 @@ static fdtype read_choice(char *file)
 
 static int write_dtype_to_file(fdtype x,char *file)
 {
-  FILE *f=fopen(file,"wb"); int retval;
+  FILE *f = fopen(file,"wb"); int retval;
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,x);
-  retval=fwrite(out.buffer,out.bufwrite-out.buffer,1,f);
+  retval = fwrite(out.buffer,out.bufwrite-out.buffer,1,f);
   u8_free(out.buffer);
   fclose(f);
   return retval;
@@ -62,22 +62,22 @@ static int write_dtype_to_file(fdtype x,char *file)
 
 int main(int argc,char **argv)
 {
-  FILE *f=NULL;
-  char *output_file=NULL;
-  fdtype combined_inputs=FD_EMPTY_CHOICE, scombined_inputs;
+  FILE *f = NULL;
+  char *output_file = NULL;
+  fdtype combined_inputs = FD_EMPTY_CHOICE, scombined_inputs;
   fdtype *inputv;
-  int i=1, write_binary=0, n_inputs=0;
+  int i = 1, write_binary = 0, n_inputs = 0;
   double starttime, inputtime, donetime;
   FD_DO_LIBINIT(fd_init_libfdtype);
-  inputv=u8_alloc_n(argc,fdtype);
-  starttime=get_elapsed();
+  inputv = u8_alloc_n(argc,fdtype);
+  starttime = get_elapsed();
   while (i < argc)
     if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
-    else if (output_file==NULL)
-      output_file=argv[i++];
+    else if (output_file == NULL)
+      output_file = argv[i++];
     else {
-      fdtype item=read_choice(argv[i]);
+      fdtype item = read_choice(argv[i]);
       if (FD_ABORTP(item)) {
         if (!(FD_THROWP(item)))
           u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
@@ -85,19 +85,19 @@ int main(int argc,char **argv)
       u8_fprintf(stderr,"Read %d items from %s\n",
                  FD_CHOICE_SIZE(item),argv[i]);
       inputv[n_inputs++]=item; i++;}
-  i=0; while (i < n_inputs) {
-    fdtype item=inputv[i++];
+  i = 0; while (i < n_inputs) {
+    fdtype item = inputv[i++];
     FD_ADD_TO_CHOICE(combined_inputs,item);}
-  inputtime=get_elapsed();
-  scombined_inputs=fd_make_simple_choice(combined_inputs);
-  donetime=get_elapsed();
+  inputtime = get_elapsed();
+  scombined_inputs = fd_make_simple_choice(combined_inputs);
+  donetime = get_elapsed();
   write_dtype_to_file(combined_inputs,"union.dtype");
   fprintf(stderr,
           "CHOICE_SIZE(combined_inputs)=%d; read time=%f; run time=%f\n",
           fd_choice_size(scombined_inputs),
           inputtime-starttime,donetime-inputtime);
-  if ((output_file[0]=='-') && (output_file[1]=='b')) write_binary=1;
-  else f=fopen(output_file,"w");
+  if ((output_file[0]=='-') && (output_file[1]=='b')) write_binary = 1;
+  else f = fopen(output_file,"w");
   if (write_binary)
     write_dtype_to_file(combined_inputs,argv[1]+2);
   else {

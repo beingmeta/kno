@@ -120,7 +120,7 @@ FD_EXPORT void _fd_set_ipeval_state(fd_wideint s);
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
 FD_INLINE_FCN fd_wideint fd_ipeval_delay(int n)
 {
-  fd_wideint current= (fd_wideint) u8_tld_get(fd_ipeval_state_key);
+  fd_wideint current = (fd_wideint) u8_tld_get(fd_ipeval_state_key);
   if (current<1) return 0;
   else {
     u8_tld_set(fd_ipeval_state_key,(void *)(current+n));
@@ -143,7 +143,7 @@ FD_INLINE_FCN fd_wideint fd_ipeval_delay(int n)
 {
   if (fd_ipeval_state<1) return 0;
   else {
-    fd_ipeval_state=fd_ipeval_state+n;
+    fd_ipeval_state = fd_ipeval_state+n;
     return 1;}
 }
 FD_INLINE_FCN fd_wideint fd_ipeval_status()
@@ -156,7 +156,7 @@ FD_INLINE_FCN fd_wideint fd_ipeval_failp()
 }
 FD_INLINE_FCN void fd_set_ipeval_state(fd_wideint s)
 {
-  fd_ipeval_state=s;
+  fd_ipeval_state = s;
 }
 #endif
 #else

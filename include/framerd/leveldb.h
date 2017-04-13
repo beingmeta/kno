@@ -2,7 +2,7 @@ typedef struct FRAMERD_LEVELDB {
   u8_string path; fdtype opts;
   unsigned int readonly:1;
   enum leveldb_status {
-    leveldb_raw=0,
+    leveldb_raw = 0,
     leveldb_sketchy,
     leveldb_closed,
     leveldb_opened,

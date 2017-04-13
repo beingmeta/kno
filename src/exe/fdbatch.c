@@ -27,7 +27,7 @@
 
 static u8_string get_pidfile()
 {
-  fdtype as_configured=fd_config_get("PIDFILE");
+  fdtype as_configured = fd_config_get("PIDFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else return fd_runbase_filename(".pid");
@@ -35,7 +35,7 @@ static u8_string get_pidfile()
 
 static u8_string get_cmdfile()
 {
-  fdtype as_configured=fd_config_get("CMDFILE");
+  fdtype as_configured = fd_config_get("CMDFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else return fd_runbase_filename(".cmd");
@@ -43,7 +43,7 @@ static u8_string get_cmdfile()
 
 static u8_string get_logfile()
 {
-  fdtype as_configured=fd_config_get("LOGFILE");
+  fdtype as_configured = fd_config_get("LOGFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else return fd_runbase_filename(".log");
@@ -51,7 +51,7 @@ static u8_string get_logfile()
 
 static u8_string get_errfile()
 {
-  fdtype as_configured=fd_config_get("ERRFILE");
+  fdtype as_configured = fd_config_get("ERRFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else return fd_runbase_filename(".err");
@@ -59,7 +59,7 @@ static u8_string get_errfile()
 
 static u8_string get_donefile()
 {
-  fdtype as_configured=fd_config_get("DONEFILE");
+  fdtype as_configured = fd_config_get("DONEFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else return fd_runbase_filename(".done");
@@ -67,7 +67,7 @@ static u8_string get_donefile()
 
 static u8_string get_diedfile()
 {
-  fdtype as_configured=fd_config_get("DIEDFILE");
+  fdtype as_configured = fd_config_get("DIEDFILE");
   if (FD_STRINGP(as_configured))
     return u8_strdup(FD_STRDATA(as_configured));
   else return fd_runbase_filename(".died");
@@ -75,7 +75,7 @@ static u8_string get_diedfile()
 
 /* End stuff */
 
-static u8_string pid_file=NULL, died_file=NULL, cmd_file=NULL;
+static u8_string pid_file = NULL, died_file = NULL, cmd_file = NULL;
 
 static void fdbatch_atexit()
 {
@@ -91,7 +91,7 @@ static void signal_shutdown(int sig)
   if ((pid_file) && (u8_file_existsp(pid_file)))
     u8_removefile(pid_file);
   if (died_file) {
-    FILE *f=u8_fopen(died_file,"w");
+    FILE *f = u8_fopen(died_file,"w");
     if (f) {
       /* Output the current data/time with millisecond precision. */
       u8_fprintf(f,"Process died unexpectedly at %*iMSt with signal %d\n",
@@ -107,7 +107,7 @@ static u8_condition job_terminated="Job terminated";
 
 static void wait_for_the_end(pid_t pid)
 {
-  int status=0;
+  int status = 0;
   waitpid(pid,&status,0);
   while (WIFSTOPPED(status)) {
     u8_log(LOG_CRIT,job_stopped,"%s <%d> has been stopped with the signal %d",
@@ -122,7 +122,7 @@ static void wait_for_the_end(pid_t pid)
     if ((pid_file) && (u8_file_existsp(pid_file)))
       u8_removefile(pid_file);
     if (died_file) {
-      FILE *f=u8_fopen(died_file,"w");
+      FILE *f = u8_fopen(died_file,"w");
       if (f) {
         u8_fprintf(f,"Process %s <%d> killed at %*iMSt with signal %d\n",
                    u8_appid(),pid,WTERMSIG(status));
@@ -139,25 +139,25 @@ static void wait_for_the_end(pid_t pid)
 
 static void write_cmd_file(int argc,char **argv)
 {
-  const char *abspath=u8_abspath(cmd_file,NULL);
-  int i=0, fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
+  const char *abspath = u8_abspath(cmd_file,NULL);
+  int i = 0, fd = open(abspath,O_CREAT|O_RDWR|O_TRUNC,
                    S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
   u8_byte buf[512]; struct U8_OUTPUT out;
   U8_INIT_OUTPUT_BUF(&out,512,buf);
   while (i<argc) {
-    char *arg=argv[i];
-    u8_string argstring=u8_fromlibc(arg);
+    char *arg = argv[i];
+    u8_string argstring = u8_fromlibc(arg);
     if (i>0) u8_putc(&out,' '); i++;
     if (need_escape(argstring)) {
-      u8_string scan=argstring; 
-      int c=u8_sgetc(&scan); u8_putc(&out,'"');
+      u8_string scan = argstring; 
+      int c = u8_sgetc(&scan); u8_putc(&out,'"');
       while (c>=0) {
         if (c=='\\') {
-          u8_putc(&out,'\\'); c=u8_sgetc(&scan);}
+          u8_putc(&out,'\\'); c = u8_sgetc(&scan);}
         else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
           u8_putc(&out,'\\');}
         if (c>=0) u8_putc(&out,c);
-        c=u8_sgetc(&scan);}
+        c = u8_sgetc(&scan);}
       u8_putc(&out,'"');}
     else u8_puts(&out,argstring);
     if (argstring!=((u8_string)arg)) u8_free(argstring);}
@@ -168,48 +168,48 @@ static void write_cmd_file(int argc,char **argv)
 
 /* The main event */
 
-static int logappend=0;
+static int logappend = 0;
 
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd=-1, err_fd=-1, chained=0;
-  int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
-  u8_string source_file=NULL, exe_name=NULL;
-  u8_string done_file, log_file=NULL, err_file=NULL;
-  fdtype *args=NULL; size_t n_args;
+  int pid_fd, log_fd = -1, err_fd = -1, chained = 0;
+  int logopen_flags = O_WRONLY|O_APPEND|O_CREAT;
+  u8_string source_file = NULL, exe_name = NULL;
+  u8_string done_file, log_file = NULL, err_file = NULL;
+  fdtype *args = NULL; size_t n_args;
 
-  fd_main_errno_ptr=&errno;
+  fd_main_errno_ptr = &errno;
   FD_INIT_STACK();
 
   /* We just initialize this for now. */
-  u8_log_show_procinfo=1;
+  u8_log_show_procinfo = 1;
 
-  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
+  args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
   fd_register_config("LOGAPPEND",
 		     _("Whether to truncate existing log files"),
 		     fd_boolconfig_get,fd_boolconfig_set,
 		     &logappend);
 
-  if (!(logappend)) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
+  if (!(logappend)) logopen_flags = O_WRONLY|O_CREAT|O_TRUNC;
 
-  pid_file=get_pidfile();
+  pid_file = get_pidfile();
 
   if (u8_file_existsp(pid_file)) {
-    FILE *f=u8_fopen(pid_file,"r");
-    int ival=-1, retval; pid_t pid=getpid();
-    if (f==NULL) retval=-1;
-    else retval=fscanf(f,"%d",&ival);
+    FILE *f = u8_fopen(pid_file,"r");
+    int ival = -1, retval; pid_t pid = getpid();
+    if (f == NULL) retval = -1;
+    else retval = fscanf(f,"%d",&ival);
     fclose(f);
     if (retval<0) {
       u8_log(LOG_CRIT,"Launch error","Error reading PID file %s (retval=%d)",
              pid_file,retval);
       exit(1);}
-    else if (((pid_t)ival)==pid) {
+    else if (((pid_t)ival) == pid) {
       u8_log(LOG_NOTICE,"CHAINED",
              "Chained fdbatch invocation, pid=%d",ival);
-      chained=1;}
+      chained = 1;}
     else {
       u8_log(LOG_CRIT,"Launch scrubbed",
              "PID file %s exists, with pid %d != %d",
@@ -218,12 +218,12 @@ int main(int argc,char **argv)
 
   atexit(exit_fdexec);
 
-  cmd_file=get_cmdfile();
-  done_file=get_donefile();
-  died_file=get_diedfile();
+  cmd_file = get_cmdfile();
+  done_file = get_donefile();
+  died_file = get_diedfile();
 
   /* We only redirect stdio going to ttys. */
-  if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
+  if ((pid_fd = u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open pid file %s",pid_file);
     exit(-1);}
   
@@ -234,14 +234,14 @@ int main(int argc,char **argv)
 
   /* If either stdout or stderr are interactive, redirect them to files. */
   if (isatty(1)) {
-    log_file=get_logfile();
-    if ((log_fd=u8_open_fd(log_file,logopen_flags,LOGMODE))<0) {
+    log_file = get_logfile();
+    if ((log_fd = u8_open_fd(log_file,logopen_flags,LOGMODE))<0) {
       u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
       exit(-1);}}
   if (isatty(2)) {
-    err_file=get_errfile();
-    if ((err_fd=u8_open_fd(err_file,logopen_flags,LOGMODE))<0) {
+    err_file = get_errfile();
+    if ((err_fd = u8_open_fd(err_file,logopen_flags,LOGMODE))<0) {
       u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
       if ((log_file)&&(log_fd>=0)) close(log_fd);
@@ -251,10 +251,10 @@ int main(int argc,char **argv)
 
   /* Now, do the fork. */
   if ((chained==0) && (fork())) exit(0);
-  else if ((chained==0) && (pid=fork())) {
+  else if ((chained==0) && (pid = fork())) {
     char buf[256]; int retval;
     sprintf(buf,"%d",pid);
-    retval=write(pid_fd,buf,strlen(buf));
+    retval = write(pid_fd,buf,strlen(buf));
     if (retval<=0) {
       u8_log(LOG_ERROR,"Aborted","Can't write pid %d to %s",pid_file);
       exit(1);}
@@ -272,16 +272,16 @@ int main(int argc,char **argv)
     /* The child process redirects stdio, runs fdexec, and
        removes the pid file and writes the done file when
        when it exits normally. */
-    int retval=-1;
+    int retval = -1;
     if (log_file) {
       dup2(log_fd,1); u8_free(log_file); close(log_fd);}
     if (err_file) {
       dup2(err_fd,2); u8_free(err_file); close(err_fd);}
     atexit(fdbatch_atexit);
-    retval=do_main(argc,argv,exe_name,source_file,
+    retval = do_main(argc,argv,exe_name,source_file,
 		   args,n_args);
     if (retval>=0) {
-      FILE *f=u8_fopen(done_file,"w");
+      FILE *f = u8_fopen(done_file,"w");
       if (f) {
         /* Output the current data/time with millisecond precision. */
         u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",u8_appid(),retval);
@@ -290,22 +290,22 @@ int main(int argc,char **argv)
           if (u8_file_existsp(died_file))
             u8_removefile(died_file);
           u8_free(died_file);
-          died_file=NULL;}}}
+          died_file = NULL;}}}
     else {
-      FILE *f=u8_fopen(died_file,"w");
+      FILE *f = u8_fopen(died_file,"w");
       if (f) {
         /* Output the current data/time with millisecond precision. */
         u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
         u8_fclose(f);}
-      died_file=NULL;}
+      died_file = NULL;}
     {
-      int free_i=0; while (free_i<n_args) {
+      int free_i = 0; while (free_i<n_args) {
 	fd_decref(args[free_i]); free_i++;}
       u8_free(args);}
     exit(retval);
     return retval;}
   {
-    int free_i=0; while (free_i<n_args) {
+    int free_i = 0; while (free_i<n_args) {
       fd_decref(args[free_i]); free_i++;}
     u8_free(args);}
   exit(0);

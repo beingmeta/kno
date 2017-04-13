@@ -40,11 +40,11 @@ typedef enum dt_type_code {
   dt_oid = 0x0e,
   dt_zstring = 0x0f,
   /* These are all for DTYPE protocol V2 */
-  dt_tiny_symbol=0x10,
-  dt_tiny_string=0x11,
-  dt_tiny_choice=0x12,
-  dt_empty_choice=0x13,
-  dt_block=0x14,
+  dt_tiny_symbol = 0x10,
+  dt_tiny_string = 0x11,
+  dt_tiny_choice = 0x12,
+  dt_empty_choice = 0x13,
+  dt_block = 0x14,
 
   dt_character_package = 0x40,
   dt_numeric_package = 0x41,
@@ -57,25 +57,25 @@ typedef enum dt_type_code {
 typedef unsigned char dt_subcode;
 
 enum dt_numeric_subcodes {
-  dt_small_bigint=0x00, dt_bigint=0x40, dt_double=0x01,
-  dt_rational=0x81, dt_complex=0x82,
-  dt_short_int_vector=0x03, dt_int_vector=0x43,
-  dt_short_short_vector=0x04, dt_short_vector=0x44,
-  dt_short_float_vector=0x05, dt_float_vector=0x45,
-  dt_short_double_vector=0x06, dt_double_vector=0x46,
-  dt_short_long_vector=0x07, dt_long_vector=0x47};
+  dt_small_bigint = 0x00, dt_bigint = 0x40, dt_double = 0x01,
+  dt_rational = 0x81, dt_complex = 0x82,
+  dt_short_int_vector = 0x03, dt_int_vector = 0x43,
+  dt_short_short_vector = 0x04, dt_short_vector = 0x44,
+  dt_short_float_vector = 0x05, dt_float_vector = 0x45,
+  dt_short_double_vector = 0x06, dt_double_vector = 0x46,
+  dt_short_long_vector = 0x07, dt_long_vector = 0x47};
 enum dt_character_subcodes
-     { dt_ascii_char=0x00, dt_unicode_char=0x01,
-       dt_unicode_string=0x42, dt_unicode_short_string=0x02,
-       dt_unicode_symbol=0x43, dt_unicode_short_symbol=0x03,
-       dt_unicode_zstring=0x44, dt_unicode_short_zstring=0x04,
-       dt_secret_packet=0x45, dt_short_secret_packet=0x05};
+     { dt_ascii_char = 0x00, dt_unicode_char = 0x01,
+       dt_unicode_string = 0x42, dt_unicode_short_string = 0x02,
+       dt_unicode_symbol = 0x43, dt_unicode_short_symbol = 0x03,
+       dt_unicode_zstring = 0x44, dt_unicode_short_zstring = 0x04,
+       dt_secret_packet = 0x45, dt_short_secret_packet = 0x05};
 enum dt_framerd_subtypes
-  { dt_choice=0xC0, dt_small_choice=0x80,
-    dt_slotmap=0xC1, dt_small_slotmap=0x81,
-    dt_hashtable=0xC2, dt_small_hashtable=0x82,
-    dt_qchoice=0xC3, dt_small_qchoice=0x83,
-    dt_hashset=0xC4, dt_small_hashset=0x84};
+  { dt_choice = 0xC0, dt_small_choice = 0x80,
+    dt_slotmap = 0xC1, dt_small_slotmap = 0x81,
+    dt_hashtable = 0xC2, dt_small_hashtable = 0x82,
+    dt_qchoice = 0xC3, dt_small_qchoice = 0x83,
+    dt_hashset = 0xC4, dt_small_hashset = 0x84};
 
 FD_EXPORT int fd_use_dtblock;
 

@@ -95,7 +95,7 @@ typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 
 #define FD_NUMERIC_VECTOR_TYPE(v) ((FD_XNUMVEC(v))->fdnumvec_elt_type)
 #define FD_NUMVEC_TYPE(v) ((FD_XNUMVEC(v))->fdnumvec_elt_type)
-#define FD_NUMVEC_TYPEP(v,t) (((FD_XNUMVEC(v))->fdnumvec_elt_type)==t)
+#define FD_NUMVEC_TYPEP(v,t) (((FD_XNUMVEC(v))->fdnumvec_elt_type) == t)
 
 #define FD_NUMERIC_VECTOR(v) \
   (fd_consptr(struct FD_NUMERIC_VECTOR *,v,fd_numeric_vector_type))

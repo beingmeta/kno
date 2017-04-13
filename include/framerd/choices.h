@@ -131,7 +131,7 @@ typedef struct FD_CHOICE *fd_choice;
 
 #define FD_INIT_XCHOICE(ch,sz,atomicp) \
   FD_INIT_CONS(ch,fd_choice_type); \
-  ch->choice_size=sz; ch->choice_isatomic=atomicp
+  ch->choice_size = sz; ch->choice_isatomic = atomicp
 
 #define fd_alloc_choice(n) \
   (assert(n>0),u8_mallocz(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
@@ -227,7 +227,7 @@ static U8_MAYBE_UNUSED fdtype fd_make_simple_choice(fdtype x)
 #define fd_make_simple_choice(x) _fd_make_simple_choice(x)
 #endif
 
-#define FD_SIMPLIFY_CHOICE(ref) ((ref)=fd_simplify_choice(ref))
+#define FD_SIMPLIFY_CHOICE(ref) ((ref) = fd_simplify_choice(ref))
 
 /* Quoted choices */
 
@@ -254,38 +254,38 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
   int old_size, new_size, write_off, comparison;
   fdtype nv;
   if (FD_ACHOICEP(v)) {
-    nv=fd_simplify_choice(v);}
-  else nv=v;
+    nv = fd_simplify_choice(v);}
+  else nv = v;
   if (FD_EMPTY_CHOICEP(nv)) return;
   else if (ch->achoice_write>ch->achoice_data)
-    if (FD_EQ(nv,*(ch->achoice_write-1))) comparison=0;
-    else comparison=cons_compare(*(ch->achoice_write-1),nv);
-  else comparison=1;
+    if (FD_EQ(nv,*(ch->achoice_write-1))) comparison = 0;
+    else comparison = cons_compare(*(ch->achoice_write-1),nv);
+  else comparison = 1;
   if (comparison==0) {fd_decref(nv); return;}
   if (ch->achoice_uselock) u8_lock_mutex(&(ch->achoice_lock));
   if (ch->achoice_write >= ch->achoice_limit) {
     struct FD_CHOICE *achoice_choicedata;
-    old_size=ch->achoice_limit-ch->achoice_data;
-    write_off=ch->achoice_write-ch->achoice_data;
-    if (old_size<0x10000) new_size=old_size*2;
-    else new_size=old_size+0x20000;
-    achoice_choicedata=u8_realloc(ch->achoice_choicedata,
+    old_size = ch->achoice_limit-ch->achoice_data;
+    write_off = ch->achoice_write-ch->achoice_data;
+    if (old_size<0x10000) new_size = old_size*2;
+    else new_size = old_size+0x20000;
+    achoice_choicedata = u8_realloc(ch->achoice_choicedata,
 			      sizeof(struct FD_CHOICE)+
 			      (sizeof(fdtype)*(new_size-1)));
-    ch->achoice_choicedata=achoice_choicedata;
-    ch->achoice_data=((fdtype *)FD_XCHOICE_DATA(achoice_choicedata));
-    ch->achoice_write=ch->achoice_data+write_off;
-    ch->achoice_limit=ch->achoice_data+new_size;}
-  *(ch->achoice_write++)=nv;
-  fd_decref(ch->achoice_normalized); ch->achoice_normalized=FD_VOID;
-  if (comparison>0) ch->achoice_muddled=1;
+    ch->achoice_choicedata = achoice_choicedata;
+    ch->achoice_data = ((fdtype *)FD_XCHOICE_DATA(achoice_choicedata));
+    ch->achoice_write = ch->achoice_data+write_off;
+    ch->achoice_limit = ch->achoice_data+new_size;}
+  *(ch->achoice_write++) = nv;
+  fd_decref(ch->achoice_normalized); ch->achoice_normalized = FD_VOID;
+  if (comparison>0) ch->achoice_muddled = 1;
   if (FD_CHOICEP(nv)) {
-    ch->achoice_nested++; ch->achoice_muddled=1;
+    ch->achoice_nested++; ch->achoice_muddled = 1;
     if (ch->achoice_atomic)
-      if (!(FD_ATOMIC_CHOICEP(nv))) ch->achoice_atomic=0;
-    ch->achoice_size=ch->achoice_size+FD_CHOICE_SIZE(nv);}
+      if (!(FD_ATOMIC_CHOICEP(nv))) ch->achoice_atomic = 0;
+    ch->achoice_size = ch->achoice_size+FD_CHOICE_SIZE(nv);}
   else if ((ch->achoice_atomic) && (FD_CONSP(nv))) {
-    ch->achoice_size++; ch->achoice_atomic=0;}
+    ch->achoice_size++; ch->achoice_atomic = 0;}
   else ch->achoice_size++;
   if (ch->achoice_uselock)
     u8_unlock_mutex(&(ch->achoice_lock));
@@ -300,7 +300,7 @@ static U8_MAYBE_UNUSED fdtype _add_to_choice(fdtype current,fdtype new)
         return fd_simplify_choice(new);
       else return new;
     else return new;
-  else if (current==new) {
+  else if (current == new) {
     fd_decref(new); return current;}
   else if (FD_ACHOICEP(current)) {
     _achoice_add((struct FD_ACHOICE *)current,new);
@@ -314,17 +314,17 @@ static U8_MAYBE_UNUSED fdtype _add_to_choice(fdtype current,fdtype new)
    solely of atoms.  */
 static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 {
-  if (FD_ATOMICP(ch)) return (x==ch);
+  if (FD_ATOMICP(ch)) return (x == ch);
   else {
-    struct FD_CHOICE *qchoiceval=fd_consptr(fd_choice,ch,fd_choice_type);
-    int achoice_size=FD_XCHOICE_SIZE(qchoiceval);
-    const fdtype *bottom=FD_XCHOICE_DATA(qchoiceval), *top=bottom+(achoice_size-1);
+    struct FD_CHOICE *qchoiceval = fd_consptr(fd_choice,ch,fd_choice_type);
+    int achoice_size = FD_XCHOICE_SIZE(qchoiceval);
+    const fdtype *bottom = FD_XCHOICE_DATA(qchoiceval), *top = bottom+(achoice_size-1);
     while (top>=bottom) {
-      const fdtype *middle=bottom+(top-bottom)/2;
+      const fdtype *middle = bottom+(top-bottom)/2;
       if (x == *middle) return 1;
-      else if (FD_CONSP(*middle)) top=middle-1;
-      else if (x < *middle) top=middle-1;
-      else bottom=middle+1;}
+      else if (FD_CONSP(*middle)) top = middle-1;
+      else if (x < *middle) top = middle-1;
+      else bottom = middle+1;}
     return 0;}
 }
 #else
@@ -335,14 +335,14 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 #endif
 
 #define FD_DO_CHOICES(elt,valexpr) \
-  fdtype elt, _val=valexpr, _singlev[1]; \
+  fdtype elt, _val = valexpr, _singlev[1]; \
   const fdtype *_scan, *_limit;          \
-  int _need_gc=0; \
+  int _need_gc = 0; \
   FD_PTR_CHECK1(_val,"FD_DO_CHOICES");              \
   if (FD_ACHOICEP(_val)) {\
-    _need_gc=1; _val=fd_make_simple_choice(_val);} \
+    _need_gc = 1; _val = fd_make_simple_choice(_val);} \
    if (FD_CHOICEP(_val)) {\
-    _scan=FD_CHOICE_DATA(_val); _limit=_scan+FD_CHOICE_SIZE(_val);} \
+    _scan = FD_CHOICE_DATA(_val); _limit=_scan+FD_CHOICE_SIZE(_val);} \
    else if (FD_EMPTY_CHOICEP(_val)) { \
      _scan=_singlev+1; _limit=_scan;}  \
    else if (FD_QCHOICEP(_val)) { \
@@ -350,7 +350,7 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
      _scan=_singlev; _limit=_scan+1;}\
    else {\
      _singlev[0]=_val; _scan=_singlev; _limit=_scan+1;} \
-  while ((_scan<_limit) ? (elt=*(_scan++)) : \
+  while ((_scan<_limit) ? (elt = *(_scan++)) : \
 	 ((_need_gc) ? (fd_decref(_val),0) : (0)))
 
 #define FD_STOP_DO_CHOICES \

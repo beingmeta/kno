@@ -30,15 +30,15 @@
 fd_ptr_type fd_libarchive_type;
 FD_EXPORT int fd_init_libarchive(void) FD_LIBINIT_FN;
 
-static long long int libarchive_initialized=0;
+static long long int libarchive_initialized = 0;
 
 FD_EXPORT void fd_init_libarchive_c()
 {
   if (libarchive_initialized)
     return;
-  else libarchive_initialized=u8_millitime();
+  else libarchive_initialized = u8_millitime();
 
-  fd_libarchive_type=fd_register_cons_type("file archive");
+  fd_libarchive_type = fd_register_cons_type("file archive");
 
   u8_register_source_file(_FILEINFO);
 }

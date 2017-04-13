@@ -54,24 +54,24 @@ static fd_exception NoMakeProc=
 
 static u8_mutex extdb_handlers_lock;
 static struct FD_EXTDB_HANDLER *extdb_handlers[128];
-int n_extdbs=0;
+int n_extdbs = 0;
 
 FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h)
 {
-  int i=0, retval=-1;
+  int i = 0, retval = -1;
   u8_lock_mutex(&extdb_handlers_lock);
   while (i<n_extdbs)
     if (strcasecmp(h->name,extdb_handlers[i]->name)==0)
-      if (h==extdb_handlers[i]) {retval=0; break;}
-      else {extdb_handlers[i]=h; retval=1; break;}
+      if (h == extdb_handlers[i]) {retval = 0; break;}
+      else {extdb_handlers[i]=h; retval = 1; break;}
     else i++;
   if (retval<0) {
     if (n_extdbs<128) {
       extdb_handlers[n_extdbs++]=h;
-      retval=2;}
+      retval = 2;}
     else {
       u8_seterr(_("Too many extdb handlers"),"fd_register_extdb_handler",NULL);
-      retval=-1;}}
+      retval = -1;}}
   u8_unlock_mutex(&extdb_handlers_lock);
   return retval;
 }
@@ -81,23 +81,23 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
   struct FD_EXTDB *db=
     FD_GET_CONS(proc->extdbptr,fd_extdb_type,struct FD_EXTDB *);
   u8_lock_mutex(&(db->extdb_proclock)); {
-    int i=0, n=db->extdb_n_procs;
-    struct FD_EXTDB_PROC **dbprocs=db->extdb_procs;
+    int i = 0, n = db->extdb_n_procs;
+    struct FD_EXTDB_PROC **dbprocs = db->extdb_procs;
     while (i<n)
-      if ((dbprocs[i])==proc) {
+      if ((dbprocs[i]) == proc) {
         u8_unlock_mutex(&(db->extdb_proclock));
         return 0;}
       else i++;
     if (i>=db->extdb_procslen) {
       struct FD_EXTDB_PROC **newprocs=
         u8_realloc(dbprocs,sizeof(struct FD_EXTDB *)*(db->extdb_procslen+32));
-      if (newprocs==NULL) {
+      if (newprocs == NULL) {
         u8_unlock_mutex(&(db->extdb_proclock));
         u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->extdb_spec));
         return -1;}
       else {
-        db->extdb_procs=dbprocs=newprocs;
-        db->extdb_procslen=db->extdb_procslen+32;}}
+        db->extdb_procs = dbprocs = newprocs;
+        db->extdb_procslen = db->extdb_procslen+32;}}
     dbprocs[i]=proc; db->extdb_n_procs++;}
   u8_unlock_mutex(&(db->extdb_proclock));
   return 1;
@@ -112,10 +112,10 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
               u8_strdup(proc->extdb_qtext));
     return -1;}
   u8_lock_mutex(&(db->extdb_proclock)); {
-    int n=db->extdb_n_procs, i=n-1;
-    struct FD_EXTDB_PROC **dbprocs=db->extdb_procs;
+    int n = db->extdb_n_procs, i = n-1;
+    struct FD_EXTDB_PROC **dbprocs = db->extdb_procs;
     while (i>=0)
-      if ((dbprocs[i])==proc) {
+      if ((dbprocs[i]) == proc) {
         memmove(dbprocs+i,dbprocs+i+1,(n-(i+1))*sizeof(struct FD_EXTDB_PROC *));
         db->extdb_n_procs--;
         u8_unlock_mutex(&(db->extdb_proclock));
@@ -130,21 +130,21 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
 
 static int unparse_extdb(u8_output out,fdtype x)
 {
-  struct FD_EXTDB *dbp=(struct FD_EXTDB *)x;
+  struct FD_EXTDB *dbp = (struct FD_EXTDB *)x;
   u8_printf(out,"#<EXTDB/%s %s>",dbp->extdb_handler->name,dbp->extdb_info);
   return 1;
 }
 
 static void recycle_extdb(struct FD_RAW_CONS *c)
 {
-  struct FD_EXTDB *dbp=(struct FD_EXTDB *)c;
+  struct FD_EXTDB *dbp = (struct FD_EXTDB *)c;
   dbp->extdb_handler->recycle_db(dbp);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static int unparse_extdb_proc(u8_output out,fdtype x)
 {
-  struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)x;
+  struct FD_EXTDB_PROC *dbp = (struct FD_EXTDB_PROC *)x;
   u8_printf(out,"#<DBλ/%s %s: %s>",
             dbp->extdb_handler->name,dbp->extdb_spec,dbp->extdb_qtext);
   return 1;
@@ -152,7 +152,7 @@ static int unparse_extdb_proc(u8_output out,fdtype x)
 
 static void recycle_extdb_proc(struct FD_RAW_CONS *c)
 {
-  struct FD_EXTDB_PROC *dbproc=(struct FD_EXTDB_PROC *)c;
+  struct FD_EXTDB_PROC *dbproc = (struct FD_EXTDB_PROC *)c;
   if (dbproc->extdb_handler == NULL)
     u8_log(LOG_WARN,_("recycle failed"),"Bad extdb proc");
   else if (dbproc->extdb_handler->recycle_proc)
@@ -165,17 +165,17 @@ static void recycle_extdb_proc(struct FD_RAW_CONS *c)
 
 static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
 {
-  struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)xdbproc;
+  struct FD_EXTDB_PROC *dbp = (struct FD_EXTDB_PROC *)xdbproc;
   return dbp->fcn_handler.xcalln(xdbproc,n,args);
 }
 
 /* EXTDB primitives */
 
-static int exec_enabled=0;
+static int exec_enabled = 0;
 
 static int check_exec_enabled(fdtype opts)
 {
-  fdtype v=fd_getopt(opts,exec_enabled_symbol,FD_VOID);
+  fdtype v = fd_getopt(opts,exec_enabled_symbol,FD_VOID);
   if (FD_VOIDP(v)) return 0;
   else if (FD_FALSEP(v)) return 0;
   fd_decref(v);
@@ -184,7 +184,7 @@ static int check_exec_enabled(fdtype opts)
 
 static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
 {
-  struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
+  struct FD_EXTDB *extdb = FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
   if ((exec_enabled)||
       ((fd_testopt(extdb->extdb_options,exec_enabled_symbol,FD_VOID))&&
        (check_exec_enabled(extdb->extdb_options))))
@@ -199,12 +199,12 @@ static fdtype extdb_makeproc(int n,fdtype *args)
       ((FD_PRIM_TYPEP(args[0],fd_extdb_type)) && (FD_STRINGP(args[1])))) {
     struct FD_EXTDB *extdb=
       FD_GET_CONS(args[0],fd_extdb_type,struct FD_EXTDB *);
-    fdtype dbspec=args[0], query=args[1];
-    fdtype colinfo=((n>2) ? (args[2]) : (FD_VOID));
-    if (extdb==NULL) return FD_ERROR_VALUE;
+    fdtype dbspec = args[0], query = args[1];
+    fdtype colinfo = ((n>2) ? (args[2]) : (FD_VOID));
+    if (extdb == NULL) return FD_ERROR_VALUE;
     else if (!(FD_STRINGP(query)))
       return fd_type_error("string","extdb_makeproc",query);
-    else if ((extdb->extdb_handler->makeproc)==NULL)
+    else if ((extdb->extdb_handler->makeproc) == NULL)
       return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
     else return extdb->extdb_handler->makeproc
            (extdb,FD_STRDATA(query),FD_STRLEN(query),
@@ -219,26 +219,26 @@ static fdtype extdb_makeproc(int n,fdtype *args)
 
 static fdtype extdb_proc_plus(int n,fdtype *args)
 {
-  fdtype arg1=args[0], result=FD_VOID;
+  fdtype arg1 = args[0], result = FD_VOID;
   struct FD_EXTDB_PROC *extdbproc=
     FD_GET_CONS(arg1,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
-  fdtype extdbptr=extdbproc->extdbptr;
+  fdtype extdbptr = extdbproc->extdbptr;
   struct FD_EXTDB *extdb=
     FD_GET_CONS(extdbptr,fd_extdb_type,struct FD_EXTDB *);
-  u8_string base_qtext=extdbproc->extdb_qtext, new_qtext=
+  u8_string base_qtext = extdbproc->extdb_qtext, new_qtext=
     u8_string_append(base_qtext," ",FD_STRDATA(args[1]),NULL);
-  fdtype colinfo=extdbproc->extdb_colinfo;
-  int n_base_params=extdbproc->fcn_n_params, n_params=(n-2)+n_base_params;
-  fdtype *params=((n_params)?(u8_alloc_n(n_params,fdtype)):(NULL));
-  fdtype *base_params=extdbproc->extdb_paramtypes, param_count=0;
-  int i=n-1; while (i>=2) {
-    fdtype param=args[i--]; fd_incref(param);
+  fdtype colinfo = extdbproc->extdb_colinfo;
+  int n_base_params = extdbproc->fcn_n_params, n_params = (n-2)+n_base_params;
+  fdtype *params = ((n_params)?(u8_alloc_n(n_params,fdtype)):(NULL));
+  fdtype *base_params = extdbproc->extdb_paramtypes, param_count = 0;
+  int i = n-1; while (i>=2) {
+    fdtype param = args[i--]; fd_incref(param);
     params[param_count++]=param;}
-  i=n_base_params-1; while (i>=0) {
-    fdtype param=base_params[i--]; fd_incref(param);
+  i = n_base_params-1; while (i>=0) {
+    fdtype param = base_params[i--]; fd_incref(param);
     params[param_count++]=param;}
   fd_incref(colinfo);
-  result=extdb->extdb_handler->makeproc
+  result = extdb->extdb_handler->makeproc
     (extdb,new_qtext,strlen(new_qtext),colinfo,param_count,params);
   u8_free(new_qtext);
   return result;
@@ -248,41 +248,41 @@ static fdtype extdb_proc_plus(int n,fdtype *args)
 
 static fdtype extdb_proc_query(fdtype extdb)
 {
-  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+  struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   return fdtype_string(xdbp->extdb_qtext);
 }
 
 static fdtype extdb_proc_spec(fdtype extdb)
 {
-  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+  struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   return fdtype_string(xdbp->extdb_spec);
 }
 
 static fdtype extdb_proc_db(fdtype extdb)
 {
-  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+  struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   return fd_incref(xdbp->extdbptr);
 }
 
 static fdtype extdb_proc_typemap(fdtype extdb)
 {
-  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+  struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   return fd_incref(xdbp->extdb_colinfo);
 }
 
 static fdtype extdb_proc_params(fdtype extdb)
 {
-  struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
+  struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
-  int n=xdbp->fcn_n_params;
-  fdtype *paramtypes=xdbp->extdb_paramtypes;
-  fdtype result=fd_make_vector(n,NULL);
-  int i=0; while (i<n) {
-    fdtype param_info=paramtypes[i]; fd_incref(param_info);
+  int n = xdbp->fcn_n_params;
+  fdtype *paramtypes = xdbp->extdb_paramtypes;
+  fdtype result = fd_make_vector(n,NULL);
+  int i = 0; while (i<n) {
+    fdtype param_info = paramtypes[i]; fd_incref(param_info);
     FD_VECTOR_SET(result,i,param_info);
     i++;}
   return result;
@@ -290,26 +290,26 @@ static fdtype extdb_proc_params(fdtype extdb)
 
 /* Initializations */
 
-int extdb_initialized=0;
+int extdb_initialized = 0;
 
 FD_EXPORT void fd_init_extdbprims_c()
 {
   fdtype extdb_module;
   if (extdb_initialized) return;
-  extdb_initialized=1;
+  extdb_initialized = 1;
   fd_init_fdscheme();
-  extdb_module=fd_new_module("EXTDB",(0));
+  extdb_module = fd_new_module("EXTDB",(0));
   u8_register_source_file(_FILEINFO);
 
   u8_init_mutex(&extdb_handlers_lock);
 
-  exec_enabled_symbol=fd_intern("%EXECOK");
+  exec_enabled_symbol = fd_intern("%EXECOK");
 
-  fd_extdb_type=fd_register_cons_type("EXTDB");
+  fd_extdb_type = fd_register_cons_type("EXTDB");
   fd_recyclers[fd_extdb_type]=recycle_extdb;
   fd_unparsers[fd_extdb_type]=unparse_extdb;
 
-  fd_extdb_proc_type=fd_register_cons_type("EXTDBPROC");
+  fd_extdb_proc_type = fd_register_cons_type("EXTDBPROC");
   fd_recyclers[fd_extdb_proc_type]=recycle_extdb_proc;
   fd_unparsers[fd_extdb_proc_type]=unparse_extdb_proc;
   fd_applyfns[fd_extdb_proc_type]=(fd_applyfn)callextdbproc;

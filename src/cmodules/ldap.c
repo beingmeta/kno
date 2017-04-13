@@ -27,11 +27,11 @@ FD_EXPORT void fd_init_ldap_c(void) FD_LIBINIT_FN;
 
 static fdtype entry2slotmap(LDAP *ld,LDAPMessage *entry)
 {
-  BerElement *berp=NULL;
-  char *result=ldap_first_attribute(ld,entry,&berp);
+  BerElement *berp = NULL;
+  char *result = ldap_first_attribute(ld,entry,&berp);
   while (result) {
-    char **data=ldap_get_values(ld,entry,result);
-    result=ldap_next_attribute(ld,entry,berp);}
+    char **data = ldap_get_values(ld,entry,result);
+    result = ldap_next_attribute(ld,entry,berp);}
 }
 
 FD_EXPORT void fd_init_ldap_c()

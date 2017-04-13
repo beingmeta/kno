@@ -3,40 +3,40 @@ FD_EXPORT void fd_init_texttools(void);
 
 /* Logging declarations */
 static u8_mutex log_lock;
-static u8_string urllogname=NULL;
-static FILE *urllog=NULL;
-static u8_string reqlogname=NULL;
-static fd_stream reqlog=NULL;
-static int reqloglevel=0;
-static int traceweb=0;
-static int webdebug=0;
-static int weballowdebug=1;
+static u8_string urllogname = NULL;
+static FILE *urllog = NULL;
+static u8_string reqlogname = NULL;
+static fd_stream reqlog = NULL;
+static int reqloglevel = 0;
+static int traceweb = 0;
+static int webdebug = 0;
+static int weballowdebug = 1;
 
 #define MU U8_MAYBE_UNUSED
 
-static MU int cgitrace=0;
-static MU int trace_cgidata=0;
+static MU int cgitrace = 0;
+static MU int trace_cgidata = 0;
 
-static MU int use_threadcache=0;
+static MU int use_threadcache = 0;
 
 /* When non-null, this overrides the document root coming from the
    server.  It is for cases where fdservlet is running on a different
    machine than the HTTP server. */
-static u8_string docroot=NULL;
+static u8_string docroot = NULL;
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
 
 /* Files that may be used */
-static char *portfile=NULL;
-static char *pidfile=NULL;
-static int U8_MAYBE_UNUSED pid_fd=-1;
+static char *portfile = NULL;
+static char *pidfile = NULL;
+static int U8_MAYBE_UNUSED pid_fd = -1;
 
 #define FD_REQERRS 1 /* records only transactions which return errors */
 #define FD_ALLREQS 2 /* records all requests */
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
-static fd_lispenv server_env=NULL;
+static fd_lispenv server_env = NULL;
 
 static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename;
 static MU fdtype uri_slotid, response_symbol, err_symbol, status_symbol;
@@ -55,52 +55,52 @@ static MU fdtype errorpage_symbol, crisispage_symbol;
 static MU fdtype redirect_slotid, xredirect_slotid;
 static MU fdtype sendfile_slotid, filedata_slotid;
 
-static fdtype default_errorpage=FD_VOID;
-static fdtype default_crisispage=FD_VOID;
-static fdtype default_notfoundpage=FD_VOID;
-static fdtype default_nocontentpage=FD_VOID;
+static fdtype default_errorpage = FD_VOID;
+static fdtype default_crisispage = FD_VOID;
+static fdtype default_notfoundpage = FD_VOID;
+static fdtype default_nocontentpage = FD_VOID;
 
 static void init_webcommon_symbols()
 {
-  uri_slotid=fd_intern("REQUEST_URI");
-  query_slotid=fd_intern("QUERY_STRING");
-  main_symbol=fd_intern("MAIN");
-  setup_symbol=fd_intern("SETUP");
-  cgisymbol=fd_intern("CGIDATA");
-  script_filename=fd_intern("SCRIPT_FILENAME");
-  document_root=fd_intern("DOCUMENT_ROOT");
-  doctype_slotid=fd_intern("DOCTYPE");
-  xmlpi_slotid=fd_intern("XMLPI");
-  content_type=fd_intern("CONTENT-TYPE");
-  content_slotid=fd_intern("CONTENT");
-  sendfile_slotid=fd_intern("_SENDFILE");
-  cleanup_slotid=fd_intern("CLEANUP");
-  html_headers=fd_intern("HTML-HEADERS");
-  http_headers=fd_intern("HTTP-HEADERS");
-  tracep_slotid=fd_intern("TRACEP");
-  err_symbol=fd_intern("%ERR");
-  status_symbol=fd_intern("STATUS");
-  response_symbol=fd_intern("%RESPONSE");
-  browseinfo_symbol=fd_intern("BROWSEINFO");
-  threadcache_symbol=fd_intern("%THREADCACHE");
-  referer_slotid=fd_intern("HTTP_REFERER");
-  remote_info=fd_intern("REMOTE_INFO");
-  forcelog_slotid=fd_intern("FORCELOG");
-  webdebug_symbol=fd_intern("WEBDEBUG");
-  errorpage_symbol=fd_intern("ERRORPAGE");
-  crisispage_symbol=fd_intern("CRISISPAGE");
-  output_symbol=fd_intern("OUTPUT");
-  error_symbol=fd_intern("REQERROR");
-  reqdata_symbol=fd_intern("REQDATA");
-  request_method=fd_intern("REQUEST_METHOD");
-  redirect_slotid=fd_intern("_REDIRECT");
-  xredirect_slotid=fd_intern("_XREDIRECT");
-  filedata_slotid=fd_intern("_FILEDATA");
+  uri_slotid = fd_intern("REQUEST_URI");
+  query_slotid = fd_intern("QUERY_STRING");
+  main_symbol = fd_intern("MAIN");
+  setup_symbol = fd_intern("SETUP");
+  cgisymbol = fd_intern("CGIDATA");
+  script_filename = fd_intern("SCRIPT_FILENAME");
+  document_root = fd_intern("DOCUMENT_ROOT");
+  doctype_slotid = fd_intern("DOCTYPE");
+  xmlpi_slotid = fd_intern("XMLPI");
+  content_type = fd_intern("CONTENT-TYPE");
+  content_slotid = fd_intern("CONTENT");
+  sendfile_slotid = fd_intern("_SENDFILE");
+  cleanup_slotid = fd_intern("CLEANUP");
+  html_headers = fd_intern("HTML-HEADERS");
+  http_headers = fd_intern("HTTP-HEADERS");
+  tracep_slotid = fd_intern("TRACEP");
+  err_symbol = fd_intern("%ERR");
+  status_symbol = fd_intern("STATUS");
+  response_symbol = fd_intern("%RESPONSE");
+  browseinfo_symbol = fd_intern("BROWSEINFO");
+  threadcache_symbol = fd_intern("%THREADCACHE");
+  referer_slotid = fd_intern("HTTP_REFERER");
+  remote_info = fd_intern("REMOTE_INFO");
+  forcelog_slotid = fd_intern("FORCELOG");
+  webdebug_symbol = fd_intern("WEBDEBUG");
+  errorpage_symbol = fd_intern("ERRORPAGE");
+  crisispage_symbol = fd_intern("CRISISPAGE");
+  output_symbol = fd_intern("OUTPUT");
+  error_symbol = fd_intern("REQERROR");
+  reqdata_symbol = fd_intern("REQDATA");
+  request_method = fd_intern("REQUEST_METHOD");
+  redirect_slotid = fd_intern("_REDIRECT");
+  xredirect_slotid = fd_intern("_XREDIRECT");
+  filedata_slotid = fd_intern("_FILEDATA");
 }
 
 /* Preflight/postflight */
 
-static fdtype preflight=FD_EMPTY_LIST;
+static fdtype preflight = FD_EMPTY_LIST;
 
 static int preflight_set(fdtype var,fdtype val,void *data)
 {
@@ -108,29 +108,29 @@ static int preflight_set(fdtype var,fdtype val,void *data)
   if (!(FD_APPLICABLEP(val)))
     return fd_reterr(fd_TypeError,"preflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
-    vf=FD_DTYPE2FCN(val);
+    vf = FD_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
-      fdtype scan=preflight; while (FD_PAIRP(scan)) {
-	fdtype fn=FD_CAR(scan);
-	if (val==fn) return 0;
+      fdtype scan = preflight; while (FD_PAIRP(scan)) {
+	fdtype fn = FD_CAR(scan);
+	if (val == fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
-	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
+	  struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
 	  if ((f->fcn_name)&&(f->fcn_filename)&&
 	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
 	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-	    struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
-	    p->car=val; fd_incref(val); fd_decref(fn);
+	    struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
+	    p->car = val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
-	scan=FD_CDR(scan);}}
-    preflight=fd_conspair(val,preflight);
+	scan = FD_CDR(scan);}}
+    preflight = fd_conspair(val,preflight);
     fd_incref(val);
     return 1;}
   else {
-    fdtype scan=preflight; while (FD_PAIRP(scan)) {
-      fdtype fn=FD_CAR(scan);
-      if (val==fn) return 0;
-      scan=FD_CDR(scan);}
-    preflight=fd_conspair(val,preflight);
+    fdtype scan = preflight; while (FD_PAIRP(scan)) {
+      fdtype fn = FD_CAR(scan);
+      if (val == fn) return 0;
+      scan = FD_CDR(scan);}
+    preflight = fd_conspair(val,preflight);
     fd_incref(val);
     return 1;}
 }
@@ -143,7 +143,7 @@ static fdtype preflight_get(fdtype var,void *data)
 static MU fdtype run_preflight()
 {
   FD_DOLIST(fn,preflight) {
-    fdtype v=fd_apply(fn,0,NULL);
+    fdtype v = fd_apply(fn,0,NULL);
     if (FD_ABORTP(v)) return v;
     else if (FD_VOIDP(v)) {}
     else if (FD_EMPTY_CHOICEP(v)) {}
@@ -152,7 +152,7 @@ static MU fdtype run_preflight()
   return FD_FALSE;
 }
 
-static fdtype postflight=FD_EMPTY_LIST;
+static fdtype postflight = FD_EMPTY_LIST;
 
 static int postflight_set(fdtype var,fdtype val,void *data)
 {
@@ -160,29 +160,29 @@ static int postflight_set(fdtype var,fdtype val,void *data)
   if (!(FD_APPLICABLEP(val)))
     return fd_reterr(fd_TypeError,"postflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
-    vf=FD_DTYPE2FCN(val);
+    vf = FD_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
-      fdtype scan=postflight; while (FD_PAIRP(scan)) {
-	fdtype fn=FD_CAR(scan);
-	if (val==fn) return 0;
+      fdtype scan = postflight; while (FD_PAIRP(scan)) {
+	fdtype fn = FD_CAR(scan);
+	if (val == fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
-	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
+	  struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
 	  if ((f->fcn_name)&&(f->fcn_filename)&&
 	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
 	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-	    struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
-	    p->car=val; fd_incref(val); fd_decref(fn);
+	    struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
+	    p->car = val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
-	scan=FD_CDR(scan);}}
-    postflight=fd_conspair(val,postflight);
+	scan = FD_CDR(scan);}}
+    postflight = fd_conspair(val,postflight);
     fd_incref(val);
     return 1;}
   else {
-    fdtype scan=postflight; while (FD_PAIRP(scan)) {
-      fdtype fn=FD_CAR(scan);
-      if (val==fn) return 0;
-      scan=FD_CDR(scan);}
-    postflight=fd_conspair(val,postflight);
+    fdtype scan = postflight; while (FD_PAIRP(scan)) {
+      fdtype fn = FD_CAR(scan);
+      if (val == fn) return 0;
+      scan = FD_CDR(scan);}
+    postflight = fd_conspair(val,postflight);
     fd_incref(val);
     return 1;}
 }
@@ -195,7 +195,7 @@ static fdtype postflight_get(fdtype var,void *data)
 static MU void run_postflight()
 {
   FD_DOLIST(fn,postflight) {
-    fdtype v=fd_apply(fn,0,NULL);
+    fdtype v = fd_apply(fn,0,NULL);
     if (FD_ABORTP(v)) {
       u8_log(LOG_CRIT,"postflight","Error from postflight %q",fn);
       fd_clear_errors(1);}
@@ -224,16 +224,16 @@ static fdtype get_uptime()
 static int urllog_set(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
-    u8_string filename=FD_STRDATA(val);
+    u8_string filename = FD_STRDATA(val);
     u8_lock_mutex(&log_lock);
     if (urllog) {
-      fclose(urllog); urllog=NULL;
-      u8_free(urllogname); urllogname=NULL;}
-    urllog=u8_fopen_locked(filename,"a");
+      fclose(urllog); urllog = NULL;
+      u8_free(urllogname); urllogname = NULL;}
+    urllog = u8_fopen_locked(filename,"a");
     if (urllog) {
       u8_string tmp;
-      urllogname=u8_strdup(filename);
-      tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
+      urllogname = u8_strdup(filename);
+      tmp = u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
       fputs(tmp,urllog);
       u8_unlock_mutex(&log_lock);
       u8_free(tmp);
@@ -242,8 +242,8 @@ static int urllog_set(fdtype var,fdtype val,void *data)
   else if (FD_FALSEP(val)) {
     u8_lock_mutex(&log_lock);
     if (urllog) {
-      fclose(urllog); urllog=NULL;
-      u8_free(urllogname); urllogname=NULL;}
+      fclose(urllog); urllog = NULL;
+      u8_free(urllogname); urllogname = NULL;}
     u8_unlock_mutex(&log_lock);
     return 0;}
   else return fd_reterr
@@ -273,24 +273,24 @@ static fdtype urllog_get(fdtype var,void *data)
 static int reqlog_set(fdtype var,fdtype val,void *data)
 {
   if (FD_STRINGP(val)) {
-    u8_string filename=FD_STRDATA(val);
+    u8_string filename = FD_STRDATA(val);
     u8_lock_mutex(&log_lock);
     if ((reqlogname) && (strcmp(filename,reqlogname)==0)) {
       fd_flush_stream(reqlog);
       u8_unlock_mutex(&log_lock);
       return 0;}
     else if (reqlog) {
-      fd_close_stream(reqlog,0); reqlog=NULL;
-      u8_free(reqlogname); reqlogname=NULL;}
-    reqlog=u8_alloc(struct FD_STREAM);
+      fd_close_stream(reqlog,0); reqlog = NULL;
+      u8_free(reqlogname); reqlogname = NULL;}
+    reqlog = u8_alloc(struct FD_STREAM);
     if (fd_init_file_stream(reqlog,filename,
 			    FD_FILE_WRITE,-1,
 			    30000)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
-      fdtype logstart_entry=fd_lispstring(logstart);
+      fdtype logstart_entry = fd_lispstring(logstart);
       fd_endpos(reqlog);
-      reqlogname=u8_strdup(filename);
+      reqlogname = u8_strdup(filename);
       fd_write_dtype(fd_writebuf(reqlog),logstart_entry);
       fd_decref(logstart_entry);
       u8_unlock_mutex(&log_lock);
@@ -301,8 +301,8 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
   else if (FD_FALSEP(val)) {
     u8_lock_mutex(&log_lock);
     if (reqlog) {
-      fd_close_stream(reqlog,0); reqlog=NULL;
-      u8_free(reqlogname); reqlogname=NULL;}
+      fd_close_stream(reqlog,0); reqlog = NULL;
+      u8_free(reqlogname); reqlogname = NULL;}
     u8_unlock_mutex(&log_lock);
     return 0;}
   else return fd_reterr
@@ -330,8 +330,8 @@ static void dolog
   if (FD_NULLP(val)) {
     /* This is pre execution */
     if (urllog) {
-      fdtype uri=fd_get(cgidata,uri_slotid,FD_VOID);
-      u8_string tmp=u8_mkstring(">%s\n@%*lt %g/%g\n",
+      fdtype uri = fd_get(cgidata,uri_slotid,FD_VOID);
+      u8_string tmp = u8_mkstring(">%s\n@%*lt %g/%g\n",
 				FD_STRDATA(uri),
 				exectime,
 				u8_elapsed_time());
@@ -339,20 +339,20 @@ static void dolog
       fd_decref(uri);}}
   else if (FD_ABORTP(val)) {
     if (urllog) {
-      fdtype uri=fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
+      fdtype uri = fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
       if (FD_TROUBLEP(val)) {
-	u8_exception ex=u8_erreify();
-	if (ex==NULL)
-	  tmp=u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_STRDATA(uri),
+	u8_exception ex = u8_erreify();
+	if (ex == NULL)
+	  tmp = u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_STRDATA(uri),
 			  exectime,u8_elapsed_time());
 
 	else if (ex->u8x_context)
-	  tmp=u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
+	  tmp = u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
 			  exectime,u8_elapsed_time(),
 			  ex->u8x_cond,ex->u8x_context);
-	else tmp=u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_STRDATA(uri),
+	else tmp = u8_mkstring("!%s\n@%*lt %g/%g %s\n",FD_STRDATA(uri),
 			     exectime,u8_elapsed_time(),ex->u8x_cond);}
-      else tmp=u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_STRDATA(uri),
+      else tmp = u8_mkstring("!%s\n@%*lt %g/%g %q\n",FD_STRDATA(uri),
 			   exectime,u8_elapsed_time(),val);
       fputs(tmp,urllog); u8_free(tmp);}
     if (reqlog) {
@@ -360,8 +360,8 @@ static void dolog
       fd_write_dtype(fd_writebuf(reqlog),cgidata);}}
   else {
     if (urllog) {
-      fdtype uri=fd_get(cgidata,uri_slotid,FD_VOID);
-      u8_string tmp=u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
+      fdtype uri = fd_get(cgidata,uri_slotid,FD_VOID);
+      u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
 				len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2))
@@ -376,17 +376,17 @@ static void dolog
 struct FD_PRELOAD_LIST {
   u8_string preload_filename;
   time_t preload_mtime;
-  struct FD_PRELOAD_LIST *next_preload;} *preloads=NULL;
+  struct FD_PRELOAD_LIST *next_preload;} *preloads = NULL;
 
 static u8_mutex preload_lock;
 
 static fdtype preload_get(fdtype var,void *ignored)
 {
-  fdtype results=FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
+  fdtype results = FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
   u8_lock_mutex(&preload_lock);
-  scan=preloads; while (scan) {
-    results=fd_conspair(fdtype_string(scan->preload_filename),results);
-    scan=scan->next_preload;}
+  scan = preloads; while (scan) {
+    results = fd_conspair(fdtype_string(scan->preload_filename),results);
+    scan = scan->next_preload;}
   u8_unlock_mutex(&preload_lock);
   return results;
 }
@@ -400,54 +400,54 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
     return 0;
   else {
     struct FD_PRELOAD_LIST *scan;
-    u8_string filename=FD_STRDATA(val); time_t mtime;
+    u8_string filename = FD_STRDATA(val); time_t mtime;
     if (!(u8_file_existsp(filename)))
       return fd_reterr(fd_FileNotFound,"preload_config_set",
 		       u8_strdup(filename),FD_VOID);
     u8_lock_mutex(&preload_lock);
-    scan=preloads; while (scan) {
+    scan = preloads; while (scan) {
       if (strcmp(filename,scan->preload_filename)==0) {
-	mtime=u8_file_mtime(filename);
+	mtime = u8_file_mtime(filename);
 	if (mtime>scan->preload_mtime) break;
 	u8_unlock_mutex(&preload_lock);
 	return 0;}
-      else scan=scan->next_preload;}
-    if (server_env==NULL) server_env=fd_working_environment();
-    scan=u8_alloc(struct FD_PRELOAD_LIST);
-    scan->preload_filename=u8_strdup(filename);
-    scan->preload_mtime=(time_t)-1;
-    scan->next_preload=preloads;
-    preloads=scan;
+      else scan = scan->next_preload;}
+    if (server_env == NULL) server_env = fd_working_environment();
+    scan = u8_alloc(struct FD_PRELOAD_LIST);
+    scan->preload_filename = u8_strdup(filename);
+    scan->preload_mtime = (time_t)-1;
+    scan->next_preload = preloads;
+    preloads = scan;
     u8_unlock_mutex(&preload_lock);
     return 1;}
 }
 
-double last_preload_update=-1.0;
+double last_preload_update = -1.0;
 
 static int update_preloads()
 {
   if ((last_preload_update<0) ||
       ((u8_elapsed_time()-last_preload_update)>1.0)) {
-    struct FD_PRELOAD_LIST *scan; int n_reloads=0;
+    struct FD_PRELOAD_LIST *scan; int n_reloads = 0;
     u8_lock_mutex(&preload_lock);
     if ((u8_elapsed_time()-last_preload_update)<1.0) {
       u8_unlock_mutex(&preload_lock);
       return 0;}
-    scan=preloads; while (scan) {
-      time_t mtime=u8_file_mtime(scan->preload_filename);
+    scan = preloads; while (scan) {
+      time_t mtime = u8_file_mtime(scan->preload_filename);
       if (mtime>scan->preload_mtime) {
 	fdtype load_result;
 	u8_unlock_mutex(&preload_lock);
-	load_result=fd_load_source(scan->preload_filename,server_env,"auto");
+	load_result = fd_load_source(scan->preload_filename,server_env,"auto");
 	if (FD_ABORTP(load_result)) {
 	  return fd_interr(load_result);}
 	n_reloads++;
 	fd_decref(load_result);
 	u8_lock_mutex(&preload_lock);
 	if (mtime>scan->preload_mtime)
-	  scan->preload_mtime=mtime;}
-      scan=scan->next_preload;}
-    last_preload_update=u8_elapsed_time();
+	  scan->preload_mtime = mtime;}
+      scan = scan->next_preload;}
+    last_preload_update = u8_elapsed_time();
     u8_unlock_mutex(&preload_lock);
     return n_reloads;}
   else return 0;
@@ -460,20 +460,20 @@ static FD_HASHTABLE pagemap;
 
 static int whitespace_stringp(u8_string s)
 {
-  if (s==NULL) return 1;
+  if (s == NULL) return 1;
   else {
-    int c=u8_sgetc(&s);
+    int c = u8_sgetc(&s);
     while (c>0)
-      if (u8_isspace(c)) c=u8_sgetc(&s);
+      if (u8_isspace(c)) c = u8_sgetc(&s);
       else return 0;
     return 1;}
 }
 
 static fdtype loadcontent(fdtype path)
 {
-  u8_string pathname=FD_STRDATA(path), oldsource;
-  double load_start=u8_elapsed_time();
-  u8_string content=u8_filestring(pathname,NULL);
+  u8_string pathname = FD_STRDATA(path), oldsource;
+  double load_start = u8_elapsed_time();
+  u8_string content = u8_filestring(pathname,NULL);
   if (traceweb>0)
     u8_log(LOG_NOTICE,"LOADING","Loading %s",pathname);
   if (!(content)) {
@@ -483,24 +483,24 @@ static fdtype loadcontent(fdtype path)
     U8_INPUT in; FD_XML *xml; fd_lispenv env;
     fdtype lenv, ldata, parsed;
     U8_INIT_STRING_INPUT(&in,strlen(content),content);
-    oldsource=fd_bind_sourcebase(pathname);
-    xml=fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
+    oldsource = fd_bind_sourcebase(pathname);
+    xml = fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
     fd_restore_sourcebase(oldsource);
-    if (xml==NULL) {
+    if (xml == NULL) {
       u8_free(content);
-      if (u8_current_exception==NULL) {
+      if (u8_current_exception == NULL) {
 	u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
       u8_log(LOG_CRIT,Startup,"ERROR","Error parsing %s",pathname);
       return FD_ERROR_VALUE;}
-    parsed=xml->xml_head;
+    parsed = xml->xml_head;
     while ((FD_PAIRP(parsed)) &&
 	   (FD_STRINGP(FD_CAR(parsed))) &&
 	   (whitespace_stringp(FD_STRDATA(FD_CAR(parsed))))) {
-      struct FD_PAIR *old_parsed=(struct FD_PAIR *)parsed;
-      parsed=FD_CDR(parsed);
-      old_parsed->cdr=FD_EMPTY_LIST;}
-    ldata=parsed;
-    env=(fd_lispenv)xml->xml_data; lenv=(fdtype)env;
+      struct FD_PAIR *old_parsed = (struct FD_PAIR *)parsed;
+      parsed = FD_CDR(parsed);
+      old_parsed->cdr = FD_EMPTY_LIST;}
+    ldata = parsed;
+    env = (fd_lispenv)xml->xml_data; lenv = (fdtype)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
@@ -519,14 +519,14 @@ static fdtype loadcontent(fdtype path)
        evaluate a source string (fd_eval_source?).  This could then
        use that. */
     u8_free(content);
-    load_result=fd_load_source(pathname,newenv,NULL);
+    load_result = fd_load_source(pathname,newenv,NULL);
     if (FD_TROUBLEP(load_result)) {
-      if (u8_current_exception==NULL) {
+      if (u8_current_exception == NULL) {
 	u8_seterr("LoadSourceFailed","loadcontent/scheme",
 		  u8_strdup(pathname));}
       return load_result;}
     fd_decref(load_result);
-    main_proc=fd_eval(main_symbol,newenv);
+    main_proc = fd_eval(main_symbol,newenv);
     if (!(FD_APPLICABLEP(main_proc))) {
       u8_log(LOG_CRIT,"ServletMainNotApplicable",
 	     "From loading %s",pathname);
@@ -542,34 +542,34 @@ static fdtype loadcontent(fdtype path)
 static fdtype getcontent(fdtype path)
 {
   if ((FD_STRINGP(path))&&(u8_file_existsp(FD_STRDATA(path)))) {
-    fdtype value=fd_hashtable_get(&pagemap,path,FD_VOID);
+    fdtype value = fd_hashtable_get(&pagemap,path,FD_VOID);
     if (FD_VOIDP(value)) {
       fdtype table_value, content;
       struct stat fileinfo; struct U8_XTIME mtime;
-      char *lpath=u8_localpath(FD_STRDATA(path));
-      int retval=stat(lpath,&fileinfo);
+      char *lpath = u8_localpath(FD_STRDATA(path));
+      int retval = stat(lpath,&fileinfo);
       if (retval<0) {
 	u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
 	       lpath,errno);
 	u8_graberr(-1,"getcontent",lpath);
 	return FD_ERROR_VALUE;}
       u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
-      content=loadcontent(path);
+      content = loadcontent(path);
       if (FD_ABORTP(content)) {
 	u8_free(lpath);
 	return content;}
-      table_value=fd_conspair(fd_make_timestamp(&mtime),
+      table_value = fd_conspair(fd_make_timestamp(&mtime),
 			      fd_incref(content));
       fd_hashtable_store(&pagemap,path,table_value);
       u8_free(lpath);
       fd_decref(table_value);
       return content;}
     else {
-      fdtype tval=FD_CAR(value), cval=FD_CDR(value);
+      fdtype tval = FD_CAR(value), cval = FD_CDR(value);
       struct FD_TIMESTAMP *lmtime=
 	fd_consptr(fd_timestamp,tval,fd_timestamp_type);
       struct stat fileinfo;
-      char *lpath=u8_localpath(FD_STRDATA(path));
+      char *lpath = u8_localpath(FD_STRDATA(path));
       if (stat(lpath,&fileinfo)<0) {
 	u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
 	       lpath,errno);
@@ -577,7 +577,7 @@ static fdtype getcontent(fdtype path)
 	u8_free(lpath); fd_decref(value);
 	return FD_ERROR_VALUE;}
       else if (fileinfo.st_mtime>lmtime->ts_u8xtime.u8_tick) {
-	fdtype new_content=loadcontent(path);
+	fdtype new_content = loadcontent(path);
 	struct U8_XTIME mtime;
 	fdtype content_record;
 	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
@@ -588,13 +588,13 @@ static fdtype getcontent(fdtype path)
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
 	    (FD_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
-	  fd_lispenv env=(fd_lispenv)(FD_CDR(FD_CDR(value)));
+	  fd_lispenv env = (fd_lispenv)(FD_CDR(FD_CDR(value)));
 	  if (FD_HASHTABLEP(env->env_bindings))
 	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
 	fd_decref(value);
 	return new_content;}
       else {
-	fdtype retval=fd_incref(cval);
+	fdtype retval = fd_incref(cval);
 	fd_decref(value);
 	u8_free(lpath);
 	return retval;}}}
@@ -610,7 +610,7 @@ static fdtype getcontent(fdtype path)
 
 static MU struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
 {
-  fdtype tcval=fd_symeval(threadcache_symbol,env);
+  fdtype tcval = fd_symeval(threadcache_symbol,env);
   if (FD_FALSEP(tcval)) return NULL;
   else if ((FD_VOIDP(tcval))&&(!(use_threadcache)))
     return NULL;
@@ -676,20 +676,20 @@ static void shutdown_server(u8_condition why);
 
 static void webcommon_shutdown(u8_condition why)
 {
-  u8_string exit_filename=fd_runbase_filename(".exit");
-  FILE *exitfile=u8_fopen(exit_filename,"w");
+  u8_string exit_filename = fd_runbase_filename(".exit");
+  FILE *exitfile = u8_fopen(exit_filename,"w");
   u8_log(LOG_CRIT,"web_shutdown","Shutting down server on %s",
-	 ((why==NULL)?((u8_condition)"a whim"):(why)));
+	 ((why == NULL)?((u8_condition)"a whim"):(why)));
   if (portfile)
     if (remove(portfile)>=0) {
-      u8_free(portfile); portfile=NULL;}
+      u8_free(portfile); portfile = NULL;}
   if (pidfile) {
     u8_removefile(pidfile);}
-  pidfile=NULL;
+  pidfile = NULL;
   fd_recycle_hashtable(&pagemap);
   if (exitfile) {
     struct U8_XTIME xt; struct U8_OUTPUT out;
-    char timebuf[64]; double elapsed=u8_elapsed_time();
+    char timebuf[64]; double elapsed = u8_elapsed_time();
     u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
     u8_xtime_to_iso8601(&out,&xt);
     if (why)
@@ -699,7 +699,7 @@ static void webcommon_shutdown(u8_condition why)
   u8_free(exit_filename);
 }
 
-static int server_shutdown=0;
+static int server_shutdown = 0;
 
 static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
 {
@@ -709,22 +709,22 @@ static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
 	   sig);
     return;}
 #ifdef SIGHUP
-  if (sig==SIGHUP) {
-    server_shutdown=1;
+  if (sig == SIGHUP) {
+    server_shutdown = 1;
     shutdown_server("SIGHUP"); return;}
 #endif
 #ifdef SIGHUP
-  if (sig==SIGQUIT) {
-    server_shutdown=1;
+  if (sig == SIGQUIT) {
+    server_shutdown = 1;
     shutdown_server("SIGQUIT"); return;}
 #endif
 #ifdef SIGHUP
-  if (sig==SIGTERM) {
-    server_shutdown=1;
+  if (sig == SIGTERM) {
+    server_shutdown = 1;
     shutdown_server("SIGTERM"); return;}
 #endif
   sprintf(buf,"SIG%d",sig);
-  server_shutdown=1;
+  server_shutdown = 1;
   shutdown_server((u8_condition)buf);
   fd_doexit(FD_INT(sig));
   return;  
@@ -736,7 +736,7 @@ static struct sigaction sigaction_shutdown;
 static void shutdown_on_exit()
 {
   if (server_shutdown) return;
-  server_shutdown=1;
+  server_shutdown = 1;
   shutdown_server("EXIT");
 }
 
@@ -745,11 +745,11 @@ static void init_webcommon_finalize()
   atexit(shutdown_on_exit);
 
   memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
-  sigaction_ignore.sa_handler=SIG_IGN;
+  sigaction_ignore.sa_handler = SIG_IGN;
   
   memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
-  sigaction_shutdown.sa_sigaction=shutdown_onsignal;
-  sigaction_shutdown.sa_flags=SA_SIGINFO;
+  sigaction_shutdown.sa_sigaction = shutdown_onsignal;
+  sigaction_shutdown.sa_flags = SA_SIGINFO;
 
 #ifdef SIGHUP
   sigaction(SIGHUP,&sigaction_shutdown,NULL);
@@ -797,17 +797,17 @@ static void init_webcommon_finalize()
 static fdtype webcommon_adjust_docroot(fdtype cgidata,u8_string docroot)
 {
   if (docroot) {
-    fdtype incoming_docroot=fd_get(cgidata,document_root,FD_VOID);
+    fdtype incoming_docroot = fd_get(cgidata,document_root,FD_VOID);
     if (FD_STRINGP(incoming_docroot)) {
-      fdtype scriptname=fd_get(cgidata,script_filename,FD_VOID);
-      fdtype lisp_docroot=fdtype_string(docroot);
+      fdtype scriptname = fd_get(cgidata,script_filename,FD_VOID);
+      fdtype lisp_docroot = fdtype_string(docroot);
       fd_store(cgidata,document_root,lisp_docroot);
       if ((FD_STRINGP(scriptname))&&
 	  ((strncmp(FD_STRDATA(scriptname),FD_STRDATA(incoming_docroot),
 		    FD_STRLEN(incoming_docroot)))==0)) {
-	u8_string local_scriptname=u8_string_append
+	u8_string local_scriptname = u8_string_append
 	  (docroot,FD_STRDATA(scriptname)+FD_STRLEN(incoming_docroot),NULL);
-	fdtype new_scriptname=fd_init_string(NULL,-1,local_scriptname);
+	fdtype new_scriptname = fd_init_string(NULL,-1,local_scriptname);
 	fd_store(cgidata,script_filename,new_scriptname);
 	fd_decref(new_scriptname);}
       fd_decref(lisp_docroot); fd_decref(scriptname);}

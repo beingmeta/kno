@@ -20,8 +20,8 @@
 
 static fdtype vector_set(fdtype vec,fdtype offset,fdtype value)
 {
-  int off=fd_getint(offset);
-  fdtype current=FD_VECTOR_REF(vec,off);
+  int off = fd_getint(offset);
+  fdtype current = FD_VECTOR_REF(vec,off);
   FD_VECTOR_SET(vec,off,value);
   fd_incref(value); fd_decref(current);
   return FD_VOID;
@@ -29,25 +29,25 @@ static fdtype vector_set(fdtype vec,fdtype offset,fdtype value)
 
 static fdtype set_car(fdtype pair,fdtype value)
 {
-  struct FD_PAIR *p=(fd_pair)pair;
-  fdtype current=p->car;
-  p->car=fd_incref(value);
+  struct FD_PAIR *p = (fd_pair)pair;
+  fdtype current = p->car;
+  p->car = fd_incref(value);
   fd_decref(current);
   return FD_VOID;
 }
 
 static fdtype set_cdr(fdtype pair,fdtype value)
 {
-  struct FD_PAIR *p=(fd_pair)pair;
-  fdtype current=p->cdr;
-  p->cdr=fd_incref(value);
+  struct FD_PAIR *p = (fd_pair)pair;
+  fdtype current = p->cdr;
+  p->cdr = fd_incref(value);
   fd_decref(current);
   return FD_VOID;
 }
 
 FD_EXPORT void fd_init_side_effects_c()
 {
-  fdtype module=fd_new_module("SIDE-EFFECTS",FD_MODULE_SAFE);
+  fdtype module = fd_new_module("SIDE-EFFECTS",FD_MODULE_SAFE);
   fd_idefn(module,fd_make_cprim3x("VECTOR-SET!",vector_set,3,
                                   fd_vector_type,FD_VOID,
                                   fd_fixnum_type,FD_VOID,

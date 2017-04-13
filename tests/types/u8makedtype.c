@@ -29,9 +29,9 @@ static void write_dtype_to_file(fdtype object,FILE *f)
 int main(int argc,char **argv)
 {
   fdtype object;
-  FILE *f=fopen(argv[1],"wb");
+  FILE *f = fopen(argv[1],"wb");
   FD_DO_LIBINIT(fd_init_libfdtype);
-  object=fd_parse(argv[2]);
+  object = fd_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stderr,"dumped %q\n",object);
   fd_decref(object);

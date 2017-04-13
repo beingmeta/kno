@@ -18,6 +18,7 @@ EXELDFLAGS    = @EXELDFLAGS@
 XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
+INDENTOPTS    = -br -ce -psl -Tfdtype -Tu8_string -Tfd_stream -Tfd_inbuf -Tfd_outbuf -Tfd_rawbuf -Tfd_function -Tfd_pair -Tfd_choice
 
 DESTDIR		=
 prefix		= @prefix@

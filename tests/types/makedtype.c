@@ -19,26 +19,26 @@ static int write_dtype_to_file(fdtype object,FILE *f)
   struct FD_OUTBUF out; int n;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,object);
-  n=fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
+  n = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
   u8_free(out.buffer);
   return n;
 }
 
 char *read_text_file(char *filename)
 {
-  FILE *f=fopen(filename,"r");
-  char *buf=u8_malloc(1024), *ptr=buf, *buflim=buf+1024;
-  int c=getc(f);
+  FILE *f = fopen(filename,"r");
+  char *buf = u8_malloc(1024), *ptr = buf, *buflim = buf+1024;
+  int c = getc(f);
   while (c>=0) {
     if (ptr>=buflim) {
-      unsigned int off=ptr-buf, old_size=(buflim-buf);
-      buf=u8_realloc(buf,old_size*2);
-      ptr=buf+off; buflim=buf+old_size*2;}
-    *ptr++=c; c=getc(f);}
+      unsigned int off = ptr-buf, old_size = (buflim-buf);
+      buf = u8_realloc(buf,old_size*2);
+      ptr = buf+off; buflim = buf+old_size*2;}
+    *ptr++=c; c = getc(f);}
   if (ptr>=buflim) {
-    unsigned int off=ptr-buf, old_size=(buflim-buf);
-    buf=u8_realloc(buf,old_size*2);
-    ptr=buf+off; buflim=buf+old_size*2;}
+    unsigned int off = ptr-buf, old_size = (buflim-buf);
+    buf = u8_realloc(buf,old_size*2);
+    ptr = buf+off; buflim = buf+old_size*2;}
   *ptr='\0';
   fclose(f);
   return buf;
@@ -47,17 +47,17 @@ char *read_text_file(char *filename)
 int main(int argc,char **argv)
 {
   fdtype object;
-  FILE *f=fopen(argv[1],"wb");
+  FILE *f = fopen(argv[1],"wb");
   FD_DO_LIBINIT(fd_init_libfdtype);
   if ((argv[2][0]=='-') && (argv[2][1]=='f')) {
-    unsigned char *buf=read_text_file(argv[2]+2);
-    object=fd_parse(buf);
+    unsigned char *buf = read_text_file(argv[2]+2);
+    object = fd_parse(buf);
     u8_free(buf);}
-  else object=fd_parse(argv[2]);
+  else object = fd_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stdout,"Dumped the %s %q\n",
              fd_type_names[FD_PTR_TYPE(object)],object);
-  fd_decref(object); object=FD_VOID;
+  fd_decref(object); object = FD_VOID;
   fclose(f);
   exit(0);
 }

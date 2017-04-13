@@ -30,10 +30,10 @@ fd_exception fd_InvalidFCNID=_("Invalid persistent pointer reference");
 fd_exception fd_FCNIDOverflow=_("No more valid persistent pointers");
 
 struct FD_CONS **_fd_fcnids[FD_FCNID_NBLOCKS];
-int _fd_fcnid_count=0;
+int _fd_fcnid_count = 0;
 u8_mutex _fd_fcnid_lock;
 
-int _fd_leak_fcnids=0;
+int _fd_leak_fcnids = 0;
 
 FD_EXPORT fdtype fd_resolve_fcnid(fdtype x)
 {
@@ -51,8 +51,8 @@ FD_EXPORT fdtype fd_register_fcnid(fdtype x)
     return fd_err(fd_FCNIDOverflow,"fd_register_fcnid",NULL,x);}
   serialno=_fd_fcnid_count++;
   if ((serialno%FD_FCNID_BLOCKSIZE)==0) {
-    struct FD_CONS **block=u8_alloc_n(FD_FCNID_BLOCKSIZE,struct FD_CONS *);
-    int i=0, n=FD_FCNID_BLOCKSIZE;
+    struct FD_CONS **block = u8_alloc_n(FD_FCNID_BLOCKSIZE,struct FD_CONS *);
+    int i = 0, n = FD_FCNID_BLOCKSIZE;
     while (i<n) block[i++]=NULL;
     _fd_fcnids[serialno/FD_FCNID_BLOCKSIZE]=block;}
   fd_incref(x);
@@ -60,8 +60,8 @@ FD_EXPORT fdtype fd_register_fcnid(fdtype x)
     (struct FD_CONS *)x;
   u8_unlock_mutex(&_fd_fcnid_lock);
   if (FD_FUNCTIONP(x)) {
-    struct FD_FUNCTION *f=(fd_function)x;
-    f->fcnid=FDTYPE_IMMEDIATE(fd_fcnid_type,serialno);}
+    struct FD_FUNCTION *f = (fd_function)x;
+    f->fcnid = FDTYPE_IMMEDIATE(fd_fcnid_type,serialno);}
   return FDTYPE_IMMEDIATE(fd_fcnid_type,serialno);
 }
 
@@ -76,26 +76,26 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
     return fd_type_error("function/fexpr","fd_set_fcnid",value);
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
-    int serialno=FD_GET_IMMEDIATE(id,fd_fcnid_type);
-    int block_num=serialno/FD_FCNID_BLOCKSIZE;
-    int block_off=serialno%FD_FCNID_BLOCKSIZE;
+    int serialno = FD_GET_IMMEDIATE(id,fd_fcnid_type);
+    int block_num = serialno/FD_FCNID_BLOCKSIZE;
+    int block_off = serialno%FD_FCNID_BLOCKSIZE;
     if (serialno>=_fd_fcnid_count) {
       u8_unlock_mutex(&_fd_fcnid_lock);
       return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
     else {
       struct FD_CONS **block=_fd_fcnids[block_num];
-      struct FD_FUNCTION *fcn=(fd_function)value;
+      struct FD_FUNCTION *fcn = (fd_function)value;
       if (!(block)) {
         /* We should never get here, but let's check anyway */
         u8_unlock_mutex(&_fd_fcnid_lock);
         return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
       else {
-        struct FD_CONS *current=block[block_off];
-        if (current==((fd_cons)value))
+        struct FD_CONS *current = block[block_off];
+        if (current == ((fd_cons)value))
           return id;
         block[block_off]=(fd_cons)value;
         fd_incref(value);
-        fcn->fcnid=id;
+        fcn->fcnid = id;
         if (!(_fd_leak_fcnids)) {
           /* This is dangerous if, for example, a module is being reloaded
              (and fcnid's redefined) while another thread is using the old 
@@ -117,9 +117,9 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
     return 0;
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
-    int serialno=FD_GET_IMMEDIATE(id,fd_fcnid_type);
-    int block_num=serialno/FD_FCNID_BLOCKSIZE;
-    int block_off=serialno%FD_FCNID_BLOCKSIZE;
+    int serialno = FD_GET_IMMEDIATE(id,fd_fcnid_type);
+    int block_num = serialno/FD_FCNID_BLOCKSIZE;
+    int block_off = serialno%FD_FCNID_BLOCKSIZE;
     if (serialno>=_fd_fcnid_count) {
       u8_unlock_mutex(&_fd_fcnid_lock);
       fd_xseterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
@@ -132,7 +132,7 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
         fd_xseterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
         return -1;}
       else {
-        struct FD_CONS *current=block[block_off];
+        struct FD_CONS *current = block[block_off];
         /* No longer registered */
         if (current!=((fd_cons)value)) return 0;
         else block[block_off]=(fd_cons)NULL;
@@ -142,18 +142,18 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
 
 static int unparse_fcnid(u8_output out,fdtype x)
 {
-  fdtype lp=fd_fcnid_ref(x);
+  fdtype lp = fd_fcnid_ref(x);
   if (FD_TYPEP(lp,fd_primfcn_type)) {
-    struct FD_FUNCTION *fcn=(fd_function)lp;
-    u8_string name=fcn->fcn_name;
-    u8_string filename=fcn->fcn_filename;
+    struct FD_FUNCTION *fcn = (fd_function)lp;
+    u8_string name = fcn->fcn_name;
+    u8_string filename = fcn->fcn_filename;
     u8_byte arity[16]=""; u8_byte codes[16]="";
-    if ((filename)&&(filename[0]=='\0')) filename=NULL;
-    if (name==NULL) name=fcn->fcn_name;
+    if ((filename)&&(filename[0]=='\0')) filename = NULL;
+    if (name == NULL) name = fcn->fcn_name;
     if (fcn->fcn_ndcall) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
       strcat(arity,"…");
-    else if (fcn->fcn_arity==fcn->fcn_min_arity)
+    else if (fcn->fcn_arity == fcn->fcn_min_arity)
       sprintf(arity,"[%d]",fcn->fcn_min_arity);
     else if (fcn->fcn_arity<0)
       sprintf(arity,"[%d,…]",fcn->fcn_min_arity);

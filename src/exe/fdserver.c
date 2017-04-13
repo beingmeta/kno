@@ -51,17 +51,17 @@ FD_EXPORT int fd_update_file_modules(int force);
 
 #include "main.c"
 
-static int daemonize=0, foreground=0, pidwait=1;
+static int daemonize = 0, foreground = 0, pidwait = 1;
 
-static long long state_files_written=0;
+static long long state_files_written = 0;
 
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
-static int async_mode=1;
-static int auto_reload=0;
+static int async_mode = 1;
+static int auto_reload = 0;
 
-static int debug_maxelts=32, debug_maxchars=80;
+static int debug_maxelts = 32, debug_maxchars = 80;
 
 /* Various exceptions */
 static fd_exception BadPortSpec=_("Bad port spec");
@@ -81,11 +81,11 @@ static const sigset_t *server_sigmask;
 
 static u8_condition Incoming=_("Incoming"), Outgoing=_("Outgoing");
 
-static u8_string pid_file=NULL, nid_file=NULL, cmd_file=NULL, inject_file=NULL;
+static u8_string pid_file = NULL, nid_file = NULL, cmd_file = NULL, inject_file = NULL;
 
 /* This is the global lisp environment for all servers.
    It is modified to include various modules, including dbserv. */
-static fd_lispenv working_env=NULL, server_env=NULL;
+static fd_lispenv working_env = NULL, server_env = NULL;
 
 /* This is the server struct used to establish the server. */
 static struct U8_SERVER dtype_server;
@@ -96,26 +96,26 @@ static int server_flags=
 static struct U8_XTIME boot_time;
 
 /*  Total number of queued requests, served threads, etc. */
-static int max_queue=128, init_clients=32, n_threads=4, server_initialized=0;
+static int max_queue = 128, init_clients = 32, n_threads = 4, server_initialized = 0;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
-static int max_backlog=-1;
+static int max_backlog = -1;
 /* This is the maximum number of concurrent connections allowed.
    Note that this currently is handled by libu8. */
-static int max_conn=0;
+static int max_conn = 0;
 /* This is how long to wait for clients to finish when shutting down the
    server.  Note that the server stops listening for new connections right
    away, so we can start another server.  */
-static int shutdown_grace=30000000; /* 30 seconds */
+static int shutdown_grace = 30000000; /* 30 seconds */
 /* Controlling trace activity: logeval prints expressions, logtrans reports
    transactions (request/response pairs). */
-static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
-static int backtrace_width=FD_BACKTRACE_WIDTH;
+static int logeval = 0, logerrs = 0, logtrans = 0, logbacktrace = 0;
+static int backtrace_width = FD_BACKTRACE_WIDTH;
 
-static int no_fdkbase=0;
+static int no_fdkbase = 0;
 
-static time_t last_launch=(time_t)-1;
-static int fastfail_threshold=60, fastfail_wait=60;
+static time_t last_launch = (time_t)-1;
+static int fastfail_threshold = 60, fastfail_wait = 60;
 
 static u8_mutex init_server_lock;
 
@@ -123,29 +123,29 @@ static void init_server(void);
 
 /* Managing your dependent (for restarting servers) */
 
-static int sustaining=0;
-static pid_t dependent=-1;
+static int sustaining = 0;
+static pid_t dependent = -1;
 static void kill_dependent_onexit()
 {
-  u8_string ppid_file=fd_runbase_filename(".ppid");
-  pid_t dep=dependent; dependent=-1;
-  sustaining=0;
+  u8_string ppid_file = fd_runbase_filename(".ppid");
+  pid_t dep = dependent; dependent = -1;
+  sustaining = 0;
   if (dep>0) kill(dep,SIGTERM);
   if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
     u8_removefile(ppid_file);
     u8_free(ppid_file);
-    ppid_file=NULL;}
+    ppid_file = NULL;}
   if ((inject_file)&&(u8_file_existsp(inject_file))) {
     u8_removefile(inject_file);
     u8_free(inject_file);
-    inject_file=NULL;}
+    inject_file = NULL;}
 }
 
 static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
 {
-  u8_string ppid_file=fd_runbase_filename(".ppid");
-  pid_t dep=dependent; dependent=-1;
-  sustaining=0;
+  u8_string ppid_file = fd_runbase_filename(".ppid");
+  pid_t dep = dependent; dependent = -1;
+  sustaining = 0;
   if (dep>0)
     u8_log(LOG_WARN,ServerSignal,
            "FDServer controller %d got signal %d, passing to %d",
@@ -154,11 +154,11 @@ static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
   if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
     u8_removefile(ppid_file);
     u8_free(ppid_file);
-    ppid_file=NULL;}
+    ppid_file = NULL;}
   if ((inject_file)&&(u8_file_existsp(inject_file))) {
     u8_removefile(inject_file);
     u8_free(inject_file);
-    inject_file=NULL;}
+    inject_file = NULL;}
 }
 
 static struct sigaction sigaction_ignore;
@@ -168,15 +168,15 @@ static struct sigaction sigaction_shutdown;
 static void sigactions_init()
 {
   memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
-  sigaction_ignore.sa_handler=SIG_IGN;
+  sigaction_ignore.sa_handler = SIG_IGN;
   
   memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
-  sigaction_abraham.sa_sigaction=kill_dependent_onsignal;
-  sigaction_abraham.sa_flags=SA_SIGINFO;
+  sigaction_abraham.sa_sigaction = kill_dependent_onsignal;
+  sigaction_abraham.sa_flags = SA_SIGINFO;
 
   memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
-  sigaction_shutdown.sa_sigaction=kill_dependent_onsignal;
-  sigaction_shutdown.sa_flags=SA_SIGINFO;
+  sigaction_shutdown.sa_sigaction = kill_dependent_onsignal;
+  sigaction_shutdown.sa_flags = SA_SIGINFO;
 
 }
 
@@ -184,11 +184,11 @@ static void sigactions_init()
 
 static int check_for_injection()
 {
-  if (working_env==NULL) return 0;
-  else if (inject_file==NULL) return 0;
+  if (working_env == NULL) return 0;
+  else if (inject_file == NULL) return 0;
   else if (u8_file_existsp(inject_file)) {
-    u8_string temp_file=u8_string_append(inject_file,".loading",NULL);
-    int rv=u8_movefile(inject_file,temp_file);
+    u8_string temp_file = u8_string_append(inject_file,".loading",NULL);
+    int rv = u8_movefile(inject_file,temp_file);
     if (rv<0) {
       u8_log(LOGWARN,"FDServlet/InjectionIgnored",
              "Can't stage injection file %s to %s",
@@ -197,8 +197,8 @@ static int check_for_injection()
       u8_free(temp_file);
       return 0;}
     else {
-      u8_string content=u8_filestring(temp_file,NULL);
-      if (content==NULL)  {
+      u8_string content = u8_filestring(temp_file,NULL);
+      if (content == NULL)  {
         u8_log(LOGWARN,"FDServlet/InjectionCantRead",
                "Can't read %s",temp_file);
         fd_clear_errors(1);
@@ -208,9 +208,9 @@ static int check_for_injection()
         fdtype result;
         u8_log(LOGWARN,"FDServlet/InjectLoad",
                "From %s\n\"%s\"",temp_file,content);
-        result=fd_load_source(temp_file,working_env,NULL);
+        result = fd_load_source(temp_file,working_env,NULL);
         if (FD_ABORTP(result)) {
-          u8_exception ex=u8_current_exception;
+          u8_exception ex = u8_current_exception;
           if (!(ex)) {
             u8_log(LOGCRIT,"FDServlet/InjectError",
                    "Unknown error processing injection from %s: \"%s\"",
@@ -233,7 +233,7 @@ static int check_for_injection()
         else {
           u8_log(LOGWARN,"FDServlet/InjectionDone",
                  "Finished from %s",inject_file);}
-        rv=u8_removefile(temp_file);
+        rv = u8_removefile(temp_file);
         if (rv<0) {
           u8_log(LOGCRIT,"FDServlet/InjectionCleanup",
                  "Error removing %s",temp_file);
@@ -255,17 +255,17 @@ static int server_loopfn(struct U8_SERVER *server)
 
 u8_condition LogFileError=_("Log file error");
 
-static u8_string log_filename=NULL;
-static int log_fd=-1;
+static u8_string log_filename = NULL;
+static int log_fd = -1;
 static int set_logfile(u8_string logfile,int exitonfail)
 {
-  int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
+  int logsync = ((getenv("LOGSYNC") == NULL)?(0):(O_SYNC));
   if (!(logfile)) {
     u8_log(LOG_WARN,ServerConfig,"Can't specify NULL log file");
     if (exitonfail) exit(1);
     u8_seterr(LogFileError,"set_logfile",u8_strdup("Can't set NULL log file"));
     return -1;}
-  int new_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
+  int new_fd = open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
   if (new_fd<0) {
     u8_log(LOG_WARN,ServerConfig,"Couldn't open log file %s",logfile);
     if (exitonfail) exit(1);
@@ -278,9 +278,9 @@ static int set_logfile(u8_string logfile,int exitonfail)
   dup2(new_fd,1);
   dup2(new_fd,2);
   if (log_fd>=0) close(log_fd);
-  log_fd=new_fd;
+  log_fd = new_fd;
   if (log_filename) u8_free(log_filename);
-  log_filename=u8_strdup(logfile);
+  log_filename = u8_strdup(logfile);
   return 1;
 }
 
@@ -298,25 +298,25 @@ static int set_logfile(u8_string logfile,int exitonfail)
     the server is listening on localhost (e.g. port@localhost) which
     is often not aliased to the hostname. */
 
-static int n_ports=0;
+static int n_ports = 0;
 
 static int config_serve_port(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   if (server_initialized==0) init_server();
   if (n_ports<0) return -1;
   else if (FD_UINTP(val)) {
-    int retval=u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
+    int retval = u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
     if (retval<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
-    else n_ports=n_ports+retval;
+    else n_ports = n_ports+retval;
     return retval;}
   else if (FD_STRINGP(val)) {
-    int retval=u8_add_server(&dtype_server,FD_STRDATA(val),0);
+    int retval = u8_add_server(&dtype_server,FD_STRDATA(val),0);
     if (retval<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
-    else n_ports=n_ports+retval;
+    else n_ports = n_ports+retval;
     return retval;}
   else {
     fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
@@ -325,10 +325,10 @@ static int config_serve_port(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 
 static fdtype config_get_ports(fdtype var,void U8_MAYBE_UNUSED *data)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  int i=0, lim=dtype_server.n_servers;
+  fdtype results = FD_EMPTY_CHOICE;
+  int i = 0, lim = dtype_server.n_servers;
   while (i<lim) {
-    fdtype id=fdstring(dtype_server.server_info[i].idstring);
+    fdtype id = fdstring(dtype_server.server_info[i].idstring);
     FD_ADD_TO_CHOICE(results,id); i++;}
   return results;
 }
@@ -337,33 +337,33 @@ static fdtype config_get_ports(fdtype var,void U8_MAYBE_UNUSED *data)
 
 static fdtype config_get_dtype_server_flag(fdtype var,void *data)
 {
-  fd_ptrbits bigmask=(fd_ptrbits)data;
-  unsigned int mask=(unsigned int)(bigmask&0xFFFFFFFF), flags;
+  fd_ptrbits bigmask = (fd_ptrbits)data;
+  unsigned int mask = (unsigned int)(bigmask&0xFFFFFFFF), flags;
   u8_lock_mutex(&init_server_lock);
-  if (server_initialized) flags=dtype_server.flags;
-  else flags=server_flags;
+  if (server_initialized) flags = dtype_server.flags;
+  else flags = server_flags;
   u8_unlock_mutex(&init_server_lock);
   if ((flags)&(mask)) return FD_TRUE; else return FD_FALSE;
 }
 
 static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
 {
-  fd_ptrbits bigmask=(fd_ptrbits)data;
-  unsigned int mask=(bigmask&0xFFFFFFFF), *flagsp, flags;
+  fd_ptrbits bigmask = (fd_ptrbits)data;
+  unsigned int mask = (bigmask&0xFFFFFFFF), *flagsp, flags;
   u8_lock_mutex(&init_server_lock);
   if (server_initialized) {
-    flags=dtype_server.flags; flagsp=&(dtype_server.flags);}
+    flags = dtype_server.flags; flagsp = &(dtype_server.flags);}
   else {
-    flags=server_flags; flagsp=&(server_flags);}
+    flags = server_flags; flagsp = &(server_flags);}
   if (FD_FALSEP(val))
-    *flagsp=flags&(~(mask));
+    *flagsp = flags&(~(mask));
   else if ((FD_STRINGP(val))&&(FD_STRLEN(val)==0))
-    *flagsp=flags&(~(mask));
+    *flagsp = flags&(~(mask));
   else if (FD_STRINGP(val)) {
-    u8_string s=FD_STRDATA(val);
-    int bool=fd_boolstring(FD_STRDATA(val),-1);
+    u8_string s = FD_STRDATA(val);
+    int bool = fd_boolstring(FD_STRDATA(val),-1);
     if (bool<0) {
-      int guess=(((s[0]=='y')||(s[0]=='Y'))?(1):
+      int guess = (((s[0]=='y')||(s[0]=='Y'))?(1):
                  ((s[0]=='N')||(s[0]=='n'))?(0):
                  (-1));
       if (guess<0) {
@@ -373,10 +373,10 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
       else u8_log(LOG_WARN,ServerConfig,
                   "Unfamiliar boolean setting %s for %q, assuming %s",
                   s,var,((guess)?("true"):("false")));
-      if (!(guess<0)) bool=guess;}
-    if (bool) *flagsp=flags|mask;
-    else *flagsp=flags&(~(mask));}
-  else *flagsp=flags|mask;
+      if (!(guess<0)) bool = guess;}
+    if (bool) *flagsp = flags|mask;
+    else *flagsp = flags&(~(mask));}
+  else *flagsp = flags|mask;
   u8_unlock_mutex(&init_server_lock);
   return 1;
 }
@@ -386,12 +386,12 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
    a full scheme interpreter, they still only have access to "safe" functions,
    and can't access the filesystem, network, etc. */
 
-static int fullscheme=0;
+static int fullscheme = 0;
 
 static int config_set_fullscheme(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
-  int oldval=fullscheme;
-  if (FD_TRUEP(val))  fullscheme=1; else fullscheme=0;
+  int oldval = fullscheme;
+  if (FD_TRUEP(val))  fullscheme = 1; else fullscheme = 0;
   return (oldval!=fullscheme);
 }
 
@@ -413,25 +413,25 @@ static fdtype config_get_fullscheme(fdtype var,void U8_MAYBE_UNUSED *data)
 
 static void write_cmd_file(int argc,char **argv)
 {
-  const char *abspath=u8_abspath(cmd_file,NULL);
-  int i=0, fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
+  const char *abspath = u8_abspath(cmd_file,NULL);
+  int i = 0, fd = open(abspath,O_CREAT|O_RDWR|O_TRUNC,
                    S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
   u8_byte buf[512]; struct U8_OUTPUT out;
   U8_INIT_OUTPUT_BUF(&out,512,buf);
   while (i<argc) {
-    char *arg=argv[i];
-    u8_string argstring=u8_fromlibc(arg);
+    char *arg = argv[i];
+    u8_string argstring = u8_fromlibc(arg);
     if (i>0) u8_putc(&out,' '); i++;
     if (need_escape(argstring)) {
-      u8_string scan=argstring; 
-      int c=u8_sgetc(&scan); u8_putc(&out,'"');
+      u8_string scan = argstring; 
+      int c = u8_sgetc(&scan); u8_putc(&out,'"');
       while (c>=0) {
         if (c=='\\') {
-          u8_putc(&out,'\\'); c=u8_sgetc(&scan);}
+          u8_putc(&out,'\\'); c = u8_sgetc(&scan);}
         else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
           u8_putc(&out,'\\');}
         if (c>=0) u8_putc(&out,c);
-        c=u8_sgetc(&scan);}
+        c = u8_sgetc(&scan);}
       u8_putc(&out,'"');}
     else u8_puts(&out,argstring);
     if (argstring!=((u8_string)arg)) u8_free(argstring);}
@@ -443,24 +443,24 @@ static void write_cmd_file(int argc,char **argv)
 static void cleanup_state_files()
 {
   if (state_files_written) {
-    u8_string exit_filename=fd_runbase_filename(".exit");
-    FILE *exitfile=u8_fopen(exit_filename,"w");
+    u8_string exit_filename = fd_runbase_filename(".exit");
+    FILE *exitfile = u8_fopen(exit_filename,"w");
     if (pid_file) {
       if (u8_file_existsp(pid_file)) u8_removefile(pid_file);
-      u8_free(pid_file); pid_file=NULL;}
+      u8_free(pid_file); pid_file = NULL;}
     if (cmd_file) {
       if (u8_file_existsp(cmd_file)) u8_removefile(cmd_file);
-      u8_free(cmd_file); cmd_file=NULL;}
+      u8_free(cmd_file); cmd_file = NULL;}
     if (nid_file) {
       if (u8_file_existsp(nid_file)) u8_removefile(nid_file);
-      u8_free(nid_file); nid_file=NULL;}
+      u8_free(nid_file); nid_file = NULL;}
     if (inject_file) {
       if (u8_file_existsp(inject_file)) u8_removefile(inject_file);
       u8_free(inject_file);
-      inject_file=NULL;}
+      inject_file = NULL;}
     if (exitfile) {
       struct U8_XTIME xt; struct U8_OUTPUT out;
-      char timebuf[64]; double elapsed=u8_elapsed_time();
+      char timebuf[64]; double elapsed = u8_elapsed_time();
       u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
       u8_xtime_to_iso8601(&out,&xt);
       fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
@@ -481,15 +481,15 @@ typedef struct FD_CLIENT *fd_client;
 static u8_client simply_accept(u8_server srv,u8_socket sock,
                                struct sockaddr *addr,size_t len)
 {
-  fd_client client=(fd_client)
+  fd_client client = (fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
   fd_init_stream(&(client->fd_clientstream),
                  client->idstring,sock,FD_STREAM_SOCKET,
                  FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdstorage). */
-  client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
-  client->elapsed=0; client->lastlive=((time_t)(-1));
+  client->env = fd_make_env(fd_make_hashtable(NULL,16),server_env);
+  client->elapsed = 0; client->lastlive = ((time_t)(-1));
   u8_set_nodelay(sock,1);
   return (u8_client) client;
 }
@@ -500,10 +500,10 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 static int dtypeserver(u8_client ucl)
 {
   fdtype expr;
-  fd_client client=(fd_client)ucl;
-  fd_stream stream=&(client->fd_clientstream);
-  fd_inbuf inbuf=fd_readbuf(stream);
-  int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
+  fd_client client = (fd_client)ucl;
+  fd_stream stream = &(client->fd_clientstream);
+  fd_inbuf inbuf = fd_readbuf(stream);
+  int async = ((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
   /* Set the signal mask for the current thread.  By default, this
      only accepts synchronoyus signals. */
@@ -513,14 +513,14 @@ static int dtypeserver(u8_client ucl)
 
   if (auto_reload) fd_update_file_modules(0);
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
-    expr=fd_read_dtype(fd_readbuf(stream));}
+    expr = fd_read_dtype(fd_readbuf(stream));}
   else if ((client->writing>0)&&(u8_client_finished(ucl))) {
-    struct FD_RAWBUF *buf=fd_streambuf(stream);
+    struct FD_RAWBUF *buf = fd_streambuf(stream);
     /* Reset the stream */
-    buf->bufpoint=buf->buffer;
+    buf->bufpoint = buf->buffer;
     /* Update the stream if we were doing asynchronous I/O */
-    if ((client->buf==buf->buffer)&&(client->len))
-      buf->buflim=buf->bufpoint+client->len;
+    if ((client->buf == buf->buffer)&&(client->len))
+      buf->buflim = buf->bufpoint+client->len;
     /* And report that we're finished */
     return 0;}
   else if ((client->reading>0)||(client->writing>0))
@@ -528,23 +528,23 @@ static int dtypeserver(u8_client ucl)
     return 1;
   else if (async) {
     /* See if we can use asynchronous reading */
-    if (nobytes(inbuf,1)) expr=FD_EOD;
-    else if ((*(inbuf->bufread))==dt_block) {
-      int U8_MAYBE_UNUSED dtcode=fd_read_byte(inbuf);
-      int nbytes=fd_read_4bytes(inbuf);
+    if (nobytes(inbuf,1)) expr = FD_EOD;
+    else if ((*(inbuf->bufread)) == dt_block) {
+      int U8_MAYBE_UNUSED dtcode = fd_read_byte(inbuf);
+      int nbytes = fd_read_4bytes(inbuf);
       if (fd_has_bytes(inbuf,nbytes))
-        expr=fd_read_dtype(inbuf);
+        expr = fd_read_dtype(inbuf);
       else {
-        struct FD_RAWBUF *rawbuf=fd_streambuf(stream);
+        struct FD_RAWBUF *rawbuf = fd_streambuf(stream);
         /* Allocate enough space */
         fd_grow_inbuf(inbuf,nbytes);
         /* Set up the client for async input */
         if (u8_client_read(ucl,rawbuf->buffer,nbytes,
                            rawbuf->buflim-rawbuf->buffer))
-          expr=fd_read_dtype(inbuf);
+          expr = fd_read_dtype(inbuf);
         else return 1;}}
-    else expr=fd_read_dtype(inbuf);}
-  else expr=fd_read_dtype(inbuf);
+    else expr = fd_read_dtype(inbuf);}
+  else expr = fd_read_dtype(inbuf);
   fd_reset_threadvars();
   if (expr == FD_EOD) {
     u8_client_closed(ucl);
@@ -557,13 +557,13 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return -1;}
   else {
-    fd_outbuf outbuf=fd_writebuf(stream);
+    fd_outbuf outbuf = fd_writebuf(stream);
     fdtype value;
-    int tracethis=((logtrans) &&
+    int tracethis = ((logtrans) &&
                    ((client->n_trans==1) ||
                     (((client->n_trans)%logtrans)==0)));
-    int trans_id=client->n_trans, sock=client->socket;
-    double xstart=(u8_elapsed_time()), elapsed=-1.0;
+    int trans_id = client->n_trans, sock = client->socket;
+    double xstart = (u8_elapsed_time()), elapsed = -1.0;
     if (logeval)
       u8_log(LOG_INFO,Incoming,"%s[%d/%d]: > %q",
              client->idstring,sock,trans_id,expr);
@@ -571,11 +571,11 @@ static int dtypeserver(u8_client ucl)
       u8_log(LOG_INFO,Incoming,
              "%s[%d/%d]: Received request for execution",
              client->idstring,sock,trans_id);
-    value=fd_eval(expr,client->env);
-    elapsed=u8_elapsed_time()-xstart;
+    value = fd_eval(expr,client->env);
+    elapsed = u8_elapsed_time()-xstart;
     if (FD_ABORTP(value)) {
-      u8_exception ex=u8_erreify(), root=u8_exception_root(ex);
-      fdtype irritant=fd_exception_xdata(root);
+      u8_exception ex = u8_erreify(), root = u8_exception_root(ex);
+      fdtype irritant = fd_exception_xdata(root);
       if ((logeval) || (logerrs) || (tracethis)) {
         if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
           u8_log(LOG_ERR,Outgoing,
@@ -600,12 +600,12 @@ static int dtypeserver(u8_client ucl)
                     root->u8x_cond,root->u8x_context,elapsed);
         if (logbacktrace) {
           struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,1024);
-          out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
+          out.u8_write = out.u8_outbuf; out.u8_outbuf[0]='\0';
           fd_print_backtrace(&out,ex,backtrace_width);
           u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
             u8_free(out.u8_outbuf);}}
-      value=fd_make_exception
+      value = fd_make_exception
         (ex->u8x_cond,ex->u8x_context,
          ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
          fd_incref(irritant));
@@ -617,18 +617,18 @@ static int dtypeserver(u8_client ucl)
     else if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
              client->idstring,sock,trans_id,elapsed);
-    client->elapsed=client->elapsed+elapsed;
+    client->elapsed = client->elapsed+elapsed;
     /* Currently, fd_write_dtype writes the whole thing at once,
        so we just use that. */
 
-    outbuf->bufwrite=outbuf->buffer;
+    outbuf->bufwrite = outbuf->buffer;
     if (fd_use_dtblock) {
-      size_t start_off=outbuf->bufwrite-outbuf->buffer;
-      size_t nbytes=fd_write_dtype(outbuf,value);
+      size_t start_off = outbuf->bufwrite-outbuf->buffer;
+      size_t nbytes = fd_write_dtype(outbuf,value);
       if (nbytes>FD_DTBLOCK_THRESH) {
         unsigned char headbuf[6];
-        size_t head_off=outbuf->bufwrite-outbuf->buffer;
-        unsigned char *buf=outbuf->buffer;
+        size_t head_off = outbuf->bufwrite-outbuf->buffer;
+        unsigned char *buf = outbuf->buffer;
         fd_write_byte(outbuf,dt_block);
         fd_write_4bytes(outbuf,nbytes);
         memcpy(headbuf,buf+head_off,5);
@@ -636,10 +636,10 @@ static int dtypeserver(u8_client ucl)
         memcpy(buf+start_off,headbuf,5);}}
     else fd_write_dtype(outbuf,value);
     if (async) {
-      struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
-      size_t n_bytes=rawbuf->bufpoint-rawbuf->buffer;
+      struct FD_RAWBUF *rawbuf = (struct FD_RAWBUF *)inbuf;
+      size_t n_bytes = rawbuf->bufpoint-rawbuf->buffer;
       u8_client_write(ucl,rawbuf->buffer,n_bytes,0);
-      rawbuf->bufpoint=rawbuf->buffer;
+      rawbuf->bufpoint = rawbuf->buffer;
       return 1;}
     else {
       fd_write_dtype(outbuf,value);
@@ -655,23 +655,23 @@ static int dtypeserver(u8_client ucl)
 
 static int close_fdclient(u8_client ucl)
 {
-  fd_client client=(fd_client)ucl;
+  fd_client client = (fd_client)ucl;
   fd_close_stream(&(client->fd_clientstream),0);
   fd_decref((fdtype)((fd_client)ucl)->env);
-  ucl->socket=-1;
+  ucl->socket = -1;
   return 1;
 }
 
 /* Module configuration */
 
 /* A list of exposed modules */
-static fdtype module_list=FD_EMPTY_LIST;
+static fdtype module_list = FD_EMPTY_LIST;
 /* This is the exposed environment. */
-static fd_lispenv exposed_environment=NULL;
+static fd_lispenv exposed_environment = NULL;
 /* This is the shutdown procedure to be called when the
    server shutdowns. */
-static fdtype shutdown_proc=FD_EMPTY_CHOICE;
-static int normal_exit=0;
+static fdtype shutdown_proc = FD_EMPTY_CHOICE;
+static int normal_exit = 0;
 
 static fdtype config_get_modules(fdtype var,void *data)
 {
@@ -679,17 +679,17 @@ static fdtype config_get_modules(fdtype var,void *data)
 }
 static int config_use_module(fdtype var,fdtype val,void *data)
 {
-  fdtype safe_module=fd_find_module(val,1,1), module=safe_module;
+  fdtype safe_module = fd_find_module(val,1,1), module = safe_module;
   if (FD_VOIDP(module)) {}
   else if (FD_HASHTABLEP(module))
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env=FD_CONSPTR(fd_environment,module);
+    FD_ENVIRONMENT *env = FD_CONSPTR(fd_environment,module);
     if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
         fd_make_env(fd_incref(env->env_exports),exposed_environment);}
-  module=fd_find_module(val,0,1);
+  module = fd_find_module(val,0,1);
   if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
     else return 1;
@@ -697,11 +697,11 @@ static int config_use_module(fdtype var,fdtype val,void *data)
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env=FD_CONSPTR(fd_environment,module);
+    FD_ENVIRONMENT *env = FD_CONSPTR(fd_environment,module);
     if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
         fd_make_env(fd_incref(env->env_exports),exposed_environment);}
-  module_list=fd_conspair(fd_incref(val),module_list);
+  module_list = fd_conspair(fd_incref(val),module_list);
   return 1;
 }
 
@@ -713,10 +713,10 @@ static void shutdown_dtypeserver_onexit()
   u8_server_shutdown(&dtype_server,shutdown_grace);
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype shutval, value;
-    if (normal_exit) shutval=FD_FALSE; else shutval=FD_TRUE;
+    if (normal_exit) shutval = FD_FALSE; else shutval = FD_TRUE;
     u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",
            shutdown_proc);
-    value=fd_apply(shutdown_proc,1,&shutval);
+    value = fd_apply(shutdown_proc,1,&shutval);
     fd_decref(value);}
   cleanup_state_files();
   u8_log(LOG_WARN,ServerShutdown,"Done shutting down server");
@@ -737,7 +737,7 @@ static fdtype get_uptime()
 
 static fdtype get_server_status()
 {
-  fdtype result=fd_init_slotmap(NULL,0,NULL);
+  fdtype result = fd_init_slotmap(NULL,0,NULL);
   struct U8_SERVER_STATS stats, livestats, curstats;
 
   fd_store(result,fd_intern("NTHREADS"),FD_INT(dtype_server.n_threads));
@@ -883,11 +883,11 @@ static fdtype asyncok()
 
 static fdtype boundp_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype symbol=fd_get_arg(expr,1);
+  fdtype symbol = fd_get_arg(expr,1);
   if (!(FD_SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
   else {
-    fdtype val=fd_symeval(symbol,env);
+    fdtype val = fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
     else if (val == FD_UNBOUND) return FD_FALSE;
     else {
@@ -896,7 +896,7 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
 
 /* State dir */
 
-static u8_string state_dir=NULL;
+static u8_string state_dir = NULL;
 
 /* The main() event */
 
@@ -904,7 +904,7 @@ static void init_server()
 {
   u8_lock_mutex(&init_server_lock);
   if (server_initialized) return;
-  server_initialized=1;
+  server_initialized = 1;
   u8_init_server
     (&dtype_server,
      simply_accept, /* acceptfn */
@@ -918,7 +918,7 @@ static void init_server()
      U8_SERVER_MAX_CLIENTS,max_conn,
      U8_SERVER_FLAGS,server_flags,
      U8_SERVER_END_INIT);
-  dtype_server.xserverfn=server_loopfn;
+  dtype_server.xserverfn = server_loopfn;
   u8_unlock_mutex(&init_server_lock);
 }
 
@@ -931,22 +931,22 @@ static int run_server(u8_string source_file);
 
 int main(int argc,char **argv)
 {
-  int i=1; 
-  unsigned int arg_mask=0; /* Bit map of args to skip */
-  int u8_version=u8_initialize(), fd_version;
-  u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
+  int i = 1; 
+  unsigned int arg_mask = 0; /* Bit map of args to skip */
+  int u8_version = u8_initialize(), fd_version;
+  u8_string server_spec = NULL, source_file = NULL, server_port = NULL;
   /* This is the base of the environment used to be passed to the server.
      It is augmented by the fddbserv module, all of the modules declared by
-     MODULE= configurations, and either the exports or the definitions of
+     MODULE = configurations, and either the exports or the definitions of
      the server control file from the command line.
      It starts out built on the default safe environment, but loses that if
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env;
 
-  fd_main_errno_ptr=&errno;
+  fd_main_errno_ptr = &errno;
 
-  server_sigmask=fd_default_sigmask;
+  server_sigmask = fd_default_sigmask;
   sigactions_init();
 
   /* Close and reopen STDIN */
@@ -970,18 +970,18 @@ int main(int argc,char **argv)
     else if (server_spec) i++;
     else {
       if (i<32) arg_mask = arg_mask | (1<<i);
-      server_spec=argv[i++];}} /* while (i<argc) */
-  i=1;
+      server_spec = argv[i++];}} /* while (i<argc) */
+  i = 1;
 
   if (!(server_spec)) {
     fprintf(stderr,
-            "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
+            "Usage: fdserver [conf = val]* (port|control_file) [conf = val]*\n");
     return 1;}
   else if (u8_file_existsp(server_spec))
-    source_file=server_spec;
-  else server_port=server_spec;
+    source_file = server_spec;
+  else server_port = server_spec;
 
-  fdkb_loglevel=LOG_INFO;
+  fdkb_loglevel = LOG_INFO;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,
@@ -989,19 +989,19 @@ int main(int argc,char **argv)
   else if ((!(log_filename))&&(getenv("LOGFILE")))
     set_logfile(getenv("LOGFILE"),1);
   if ((!(log_filename))&&(getenv("LOGDIR"))) {
-    u8_string base=u8_basename(server_spec,"*");
-    u8_string logname=u8_mkstring("%s.log",base);
-    u8_string logfile=u8_mkpath(getenv("LOGDIR"),logname);
+    u8_string base = u8_basename(server_spec,"*");
+    u8_string logname = u8_mkstring("%s.log",base);
+    u8_string logfile = u8_mkpath(getenv("LOGDIR"),logname);
     set_logfile(logfile,1);
     u8_free(base); u8_free(logname);}
 
   {
     if (argc>2) {
-      struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
+      struct U8_OUTPUT out; unsigned char buf[2048]; int i = 1;
       U8_INIT_OUTPUT_BUF(&out,2048,buf);
       while (i<argc) {
-        unsigned char *arg=argv[i++];
-        if (arg==server_spec) u8_puts(&out," @");
+        unsigned char *arg = argv[i++];
+        if (arg == server_spec) u8_puts(&out," @");
         else {u8_putc(&out,' '); u8_puts(&out,arg);}}
       u8_log(LOG_WARN,Startup,"Starting beingmeta fdserver %s with:\n  %s",
              server_spec,out.u8_outbuf);
@@ -1010,7 +1010,7 @@ int main(int argc,char **argv)
     u8_log(LOG_WARN,Startup,
            "Copyright (C) beingmeta 2004-2017, all rights reserved");}
 
-  fd_version=fd_init_fdscheme();
+  fd_version = fd_init_fdscheme();
 
   if (fd_version<0) {
     fprintf(stderr,"Can't initialize FramerD libraries\n");
@@ -1031,10 +1031,10 @@ int main(int argc,char **argv)
 #endif
 
   /* Now we initialize the libu8 logging configuration */
-  u8_log_show_date=1;
-  u8_log_show_elapsed=1;
-  u8_log_show_procinfo=1;
-  u8_log_show_threadinfo=1;
+  u8_log_show_date = 1;
+  u8_log_show_elapsed = 1;
+  u8_log_show_procinfo = 1;
+  u8_log_show_threadinfo = 1;
   u8_use_syslog(1);
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
@@ -1050,9 +1050,9 @@ int main(int argc,char **argv)
   if (getenv("STDLOG")) {}
   else if (log_filename) {}
   else if ((!(foreground))&&(server_spec)) {
-    u8_string base=u8_basename(server_spec,"*");
-    u8_string logname=u8_mkstring("%s.log",base);
-    u8_string logfile=u8_mkpath(FD_DAEMON_LOG_DIR,logname);
+    u8_string base = u8_basename(server_spec,"*");
+    u8_string logname = u8_mkstring("%s.log",base);
+    u8_string logfile = u8_mkpath(FD_DAEMON_LOG_DIR,logname);
     set_logfile(logfile,1);
     u8_free(base); u8_free(logname);}
   else {
@@ -1060,12 +1060,12 @@ int main(int argc,char **argv)
 
 
   /* Get the core environment */
-  core_env=init_core_env();
+  core_env = init_core_env();
 
   /* Create the exposed environment.  This may be further modified by
      MODULE configs. */
   if (no_fdkbase)
-    exposed_environment=core_env;
+    exposed_environment = core_env;
   else exposed_environment=
          fd_make_env(fd_incref(fd_dbserv_module),core_env);
 
@@ -1076,23 +1076,23 @@ int main(int argc,char **argv)
      environment. */
   fd_setapp(server_spec,state_dir);
   if (source_file) {
-    fdtype interpreter=fd_lispstring(u8_fromlibc(argv[0]));
-    fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
+    fdtype interpreter = fd_lispstring(u8_fromlibc(argv[0]));
+    fdtype src = fd_lispstring(u8_realpath(source_file,NULL));
     fd_set_config("INTERPRETER",interpreter);
     fd_set_config("SOURCE",src);
     fd_decref(interpreter); fd_decref(src);}
   if (server_port) {
-    fdtype sval=fdstring(server_port);
+    fdtype sval = fdstring(server_port);
     fd_set_config("PORT",sval);
     fd_decref(sval);}
 
   fd_boot_message();
   u8_now(&boot_time);
 
-  pid_file=fd_runbase_filename(".pid");
-  nid_file=fd_runbase_filename(".nid");
-  cmd_file=fd_runbase_filename(".cmd");
-  inject_file=fd_runbase_filename(".inj");
+  pid_file = fd_runbase_filename(".pid");
+  nid_file = fd_runbase_filename(".nid");
+  cmd_file = fd_runbase_filename(".cmd");
+  inject_file = fd_runbase_filename(".inj");
 
   write_cmd_file(argc,argv);
 
@@ -1212,7 +1212,7 @@ static void init_configs()
 static fd_lispenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
-  fd_lispenv core_env=fd_safe_working_environment();
+  fd_lispenv core_env = fd_safe_working_environment();
   fd_init_fddbserv();
   fd_register_module("FDDBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
@@ -1234,11 +1234,11 @@ static int sustain_server(pid_t grandchild,
 
 static int fork_server(u8_string server_spec,fd_lispenv env)
 {
-  pid_t child, grandchild; double start=u8_elapsed_time();
+  pid_t child, grandchild; double start = u8_elapsed_time();
   if ((foreground)&&(daemonize>0)) {
     /* This is the scenario where we stay in the foreground but
        restart automatically.  */
-    if ((child=fork())) {
+    if ((child = fork())) {
       if (child<0) {
         u8_log(LOG_CRIT,ServerFork,"Fork failed for %s",server_spec);
         exit(1);}
@@ -1247,10 +1247,10 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
                server_spec,child);
         return sustain_server(child,server_spec,env);}}
     else return launch_server(server_spec,env);}
-  else if ((child=fork()))  {
+  else if ((child = fork()))  {
     /* The grandparent waits until the parent exits and then
        waits until the .pid file has been written. */
-    int count=60; double done; int status=0;
+    int count = 60; double done; int status = 0;
     if (child<0) {
       u8_log(LOG_CRIT,ServerFork,"Fork failed for %s\n",server_spec);
       exit(1);}
@@ -1275,7 +1275,7 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       if ((count%10)==0)
         u8_log(LOG_WARN,Startup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
-    done=u8_elapsed_time();
+    done = u8_elapsed_time();
     if (u8_file_existsp(pid_file))
       u8_log(LOG_NOTICE,Startup,"Server %s launched in %02fs",
              server_spec,done-start);
@@ -1290,11 +1290,11 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
   else {
     /* If we get here, we're the parent, and we start by trying to
        become session leader */
-    if (setsid()==-1) {
+    if (setsid()== -1) {
       u8_log(LOG_CRIT,ServerAbort,
              "Process %d failed to become session leader for %s (%s)",
              getpid(),server_spec,strerror(errno));
-      errno=0;
+      errno = 0;
       exit(1);}
     else u8_log(LOG_INFO,ServerFork,
                 "Process %d become session leader for %s",
@@ -1302,7 +1302,7 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
-    if ((grandchild=fork())) {
+    if ((grandchild = fork())) {
       if (grandchild<0) {
         u8_log(LOG_CRIT,ServerAbort,"Second fork failed for %s",server_spec);
         exit(1);}
@@ -1315,7 +1315,7 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       exit(0);}
     else if (daemonize>0) {
       pid_t worker;
-      if ((worker=fork())) {
+      if ((worker = fork())) {
         if (worker<0)
           u8_log(LOG_CRIT,ServerAbort,"Worker fork failed for %s",server_spec);
         else {
@@ -1330,11 +1330,11 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
 static int sustain_server(pid_t grandchild,
                           u8_string server_spec,fd_lispenv env)
 {
-  u8_string ppid_filename=fd_runbase_filename(".ppid");
-  FILE *f=fopen(ppid_filename,"w");
-  int status=-1, sleepfor=daemonize;
+  u8_string ppid_filename = fd_runbase_filename(".ppid");
+  FILE *f = fopen(ppid_filename,"w");
+  int status = -1, sleepfor = daemonize;
   tweak_exename("fdserv",2,'x');
-  sustaining=1;
+  sustaining = 1;
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
@@ -1343,12 +1343,12 @@ static int sustain_server(pid_t grandchild,
     u8_log(LOG_WARN,"CantWritePPID","Couldn't write ppid file %s",
            ppid_filename);
     u8_free(ppid_filename);}
-  last_launch=time(NULL);
+  last_launch = time(NULL);
   /* Don't try to catch an error here */
-  if (sleepfor>60) sleepfor=60;
-  errno=0;
+  if (sleepfor>60) sleepfor = 60;
+  errno = 0;
   /* Update the global variable with our current dependent grandchild */
-  dependent=grandchild;
+  dependent = grandchild;
   /* Setup atexit and signal handlers to kill our dependent when we're
      gone. */
   u8_log(LOG_WARN,ServerLoop,"Monitoring %s pid=%d",server_spec,grandchild);
@@ -1363,7 +1363,7 @@ static int sustain_server(pid_t grandchild,
   sigaction(SIGQUIT,&sigaction_abraham,NULL);
 #endif
   while ((sustaining)&&(waitpid(grandchild,&status,0))) {
-    time_t now=time(NULL);
+    time_t now = time(NULL);
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,ServerRestart,
              "Server %s(%d) terminated on signal %d",
@@ -1384,12 +1384,12 @@ static int sustain_server(pid_t grandchild,
       sleep(fastfail_wait);}
     else if (sleepfor>0) sleep(sleepfor);
     else {}
-    last_launch=time(NULL);
-    if ((grandchild=fork())) {
+    last_launch = time(NULL);
+    if ((grandchild = fork())) {
       u8_log(LOG_NOTICE,ServerRestart,
              "Server %s restarted with pid %d",
              server_spec,grandchild);
-      dependent=grandchild;
+      dependent = grandchild;
       continue;}
     else return launch_server(server_spec,env);}
   exit(0);
@@ -1407,11 +1407,11 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
   if (u8_file_existsp(server_spec)) {
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */
-    u8_string source_file=u8_abspath(server_spec,NULL);
-    fd_lispenv env=working_env=fd_working_environment();
-    fdtype result=fd_load_source(source_file,env,NULL);
+    u8_string source_file = u8_abspath(server_spec,NULL);
+    fd_lispenv env = working_env = fd_working_environment();
+    fdtype result = fd_load_source(source_file,env,NULL);
     if (FD_TROUBLEP(result)) {
-      u8_exception e=u8_erreify();
+      u8_exception e = u8_erreify();
       U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
       fd_print_exception(&out,e);
       fd_print_backtrace(&out,e,80);
@@ -1422,44 +1422,44 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
       fd_decref((fdtype)env);
       return -1;}
     else {
-      fdtype startup_proc=fd_symeval(fd_intern("STARTUP"),env);
-      shutdown_proc=fd_symeval(fd_intern("SHUTDOWN"),env);
-      fd_decref(result); result=FD_VOID;
+      fdtype startup_proc = fd_symeval(fd_intern("STARTUP"),env);
+      shutdown_proc = fd_symeval(fd_intern("SHUTDOWN"),env);
+      fd_decref(result); result = FD_VOID;
       /* If the init file did any exporting, expose those exports to
          clients.  Otherwise, expose all the definitions in the init
          file.  Note that the clients won't be able to get at the
          unsafe "empowered" environment but that the procedures
          defined are closed in that environment. */
       if (FD_HASHTABLEP(env->env_exports))
-        server_env=fd_make_env(fd_incref(env->env_exports),
+        server_env = fd_make_env(fd_incref(env->env_exports),
                                exposed_environment);
-      else server_env=fd_make_env(fd_incref(env->env_bindings),
+      else server_env = fd_make_env(fd_incref(env->env_bindings),
                                   exposed_environment);
       if (fullscheme==0) {
         /* Cripple the core environment if requested */
         fd_decref((fdtype)(core_env->env_parent));
-        core_env->env_parent=NULL;}
+        core_env->env_parent = NULL;}
       if (FD_VOIDP(startup_proc)) {}
       else {
         FD_DO_CHOICES(p,startup_proc) {
-          fdtype result=fd_apply(p,0,NULL);
+          fdtype result = fd_apply(p,0,NULL);
           if (FD_ABORTP(result)) {
-            u8_exception ex=u8_erreify(), root=ex;
-            int old_maxelts=fd_unparse_maxelts;
-            int old_maxchars=fd_unparse_maxchars;
+            u8_exception ex = u8_erreify(), root = ex;
+            int old_maxelts = fd_unparse_maxelts;
+            int old_maxchars = fd_unparse_maxchars;
             U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
-            while (root->u8x_prev) root=root->u8x_prev;
-            fd_unparse_maxchars=debug_maxchars;
-            fd_unparse_maxelts=debug_maxelts;
+            while (root->u8x_prev) root = root->u8x_prev;
+            fd_unparse_maxchars = debug_maxchars;
+            fd_unparse_maxelts = debug_maxelts;
             fd_print_exception(&out,root);
             fd_print_backtrace(&out,ex,80);
-            fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+            fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
             fputs(out.u8_outbuf,stderr);
             u8_free(out.u8_outbuf);
             u8_free_exception(ex,1);
             exit(fd_interr(result));}
           else fd_decref(result);}}}}
-  else server_env=exposed_environment;
+  else server_env = exposed_environment;
 
   return run_server(server_spec);
 }
@@ -1488,25 +1488,25 @@ static int run_server(u8_string server_spec)
          FRAMERD_REVISION,server_spec,fd_n_pools,
          fd_n_primary_indexes+fd_n_secondary_indexes,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
-  u8_server_loop(&dtype_server); normal_exit=1;
+  u8_server_loop(&dtype_server); normal_exit = 1;
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
   exit(0);
 }
 
 static void write_state_files()
 {
-  FILE *f=u8_fopen(pid_file,"w"); if (f) {
+  FILE *f = u8_fopen(pid_file,"w"); if (f) {
     fprintf(f,"%d\n",getpid());
     fclose(f);}
   else {
     u8_log(LOG_WARN,u8_strerror(errno),
            "Couldn't write PID %d to '%s'",
            getpid(),pid_file);
-    errno=0;}
+    errno = 0;}
   /* Write the NID file */
-  f=u8_fopen(nid_file,"w"); if (f) {
+  f = u8_fopen(nid_file,"w"); if (f) {
     if (dtype_server.n_servers) {
-      int i=0; while (i<dtype_server.n_servers) {
+      int i = 0; while (i<dtype_server.n_servers) {
         fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
         i++;}}
     fclose(f);}
@@ -1515,13 +1515,13 @@ static void write_state_files()
            "Couldn't write NID info to '%s'",
            pid_file);
     if (dtype_server.n_servers) {
-      int i=0; while (i<dtype_server.n_servers) {
+      int i = 0; while (i<dtype_server.n_servers) {
         u8_log(LOG_NOTICE,Startup,"%s\n",
                dtype_server.server_info[i].idstring);
         i++;}}
     else u8_log(LOG_NOTICE,Startup,"temp.socket\n");
-    errno=0;}
-  state_files_written=u8_microtime();
+    errno = 0;}
+  state_files_written = u8_microtime();
   atexit(cleanup_state_files);
 }
 
