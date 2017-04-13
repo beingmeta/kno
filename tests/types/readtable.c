@@ -15,14 +15,14 @@
 #include <time.h>
 
 static struct timeval start;
-static int started=0;
+static int started = 0;
 
 double get_elapsed()
 {
   struct timeval now;
   if (started == 0) {
     gettimeofday(&start,NULL);
-    started=1;
+    started = 1;
     return 0;}
   else {
     gettimeofday(&now,NULL);
@@ -53,11 +53,11 @@ int main(int argc,char **argv)
   struct FD_STREAM *in; fdtype ht;
   struct FD_INBUF *inbuf;
   FD_DO_LIBINIT(fd_init_libfdtype);
-  in=fd_open_file(argv[1],FD_FILE_READ);
-  inbuf=fd_readbuf(in);
-  ht=fd_read_dtype(inbuf);
+  in = fd_open_file(argv[1],FD_FILE_READ);
+  inbuf = fd_readbuf(in);
+  ht = fd_read_dtype(inbuf);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   report_on_hashtable(ht);
-  fd_decref(ht); ht=FD_VOID;
+  fd_decref(ht); ht = FD_VOID;
   exit(0);
 }

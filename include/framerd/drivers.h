@@ -17,12 +17,12 @@ FD_EXPORT int fd_acid_files;
 
 FD_EXPORT int fd_init_kbdrivers(void) FD_LIBINIT_FN;
 
-typedef enum FD_OFFSET_TYPE { FD_B32=0, FD_B40=1, FD_B64=2 } fd_offset_type;
+typedef enum FD_OFFSET_TYPE { FD_B32 = 0, FD_B40 = 1, FD_B64 = 2 } fd_offset_type;
 typedef enum FD_COMPRESS_TYPE {
-  FD_NOCOMPRESS=0,
-  FD_ZLIB=1,
-  FD_ZLIB9=2,
-  FD_SNAPPY=3}
+  FD_NOCOMPRESS = 0,
+  FD_ZLIB = 1,
+  FD_ZLIB9 = 2,
+  FD_SNAPPY = 3}
   fd_compress_type;
 
 FD_EXPORT fd_compress_type fd_compression_type(fdtype,fd_compress_type);
@@ -106,7 +106,7 @@ unsigned int fd_hash_dtype_rep(fdtype x);
 /* Functional arguments */
 
 #define FD_ISFUNARG(fn) \
-  (FD_EXPECT_TRUE((fn==FD_VOID)||(fn==FD_FALSE)||(FD_APPLICABLEP(fn))))
+  (FD_EXPECT_TRUE((fn == FD_VOID)||(fn == FD_FALSE)||(FD_APPLICABLEP(fn))))
 
 
 #endif /* #ifndef FRAMERD_DRIVERS_H */

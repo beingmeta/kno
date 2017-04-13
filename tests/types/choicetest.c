@@ -16,25 +16,25 @@
 
 int main(int argc,char **argv)
 {
-  struct FD_OUTBUF out; FILE *f=fopen(argv[1],"wb");
-  fdtype value=FD_EMPTY_CHOICE, svalue, tval; int i=2, retval;
+  struct FD_OUTBUF out; FILE *f = fopen(argv[1],"wb");
+  fdtype value = FD_EMPTY_CHOICE, svalue, tval; int i = 2, retval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   FD_DO_LIBINIT(fd_init_libfdtype);
-  tval=fd_parse(argv[i++]);
+  tval = fd_parse(argv[i++]);
   while (i < argc) {
-    fdtype object=fd_parse(argv[i]);
+    fdtype object = fd_parse(argv[i]);
     FD_ADD_TO_CHOICE(value,object); i++;}
-  svalue=fd_make_simple_choice(value);
+  svalue = fd_make_simple_choice(value);
   {FD_DO_CHOICES(x,svalue)
      u8_fprintf(stdout," %q\n",x);}
   if (fd_choice_containsp(tval,svalue))
     u8_fprintf(stdout,"Containment is true\n");
   else u8_fprintf(stdout,"Containment is false\n");
   fd_write_dtype(&out,svalue);
-  retval=fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
+  retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
   if (retval<0) exit(1);
   fd_decref(value); fd_decref(svalue); u8_free(out.buffer);
-  value=FD_VOID; svalue=FD_VOID;
+  value = FD_VOID; svalue = FD_VOID;
   exit(0);
 }
 

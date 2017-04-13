@@ -25,7 +25,7 @@
 
 FD_EXPORT int fd_init_crypto(void) FD_LIBINIT_FN;
 
-static long long int crypto_init=0;
+static long long int crypto_init = 0;
 
 fdtype (*unpacker)(unsigned char *,size_t len);
 
@@ -34,26 +34,26 @@ static fdtype doencrypt(fdtype data,fdtype key,
                         int dtype)
 {
   struct FD_OUTBUF tmp;
-  const unsigned char *payload; size_t payload_len; int free_payload=0;
+  const unsigned char *payload; size_t payload_len; int free_payload = 0;
   const unsigned char *ivdata; size_t iv_len;
   unsigned char *outbuf; size_t outlen;
   if (!(FD_PACKETP(key)))
     return fd_type_error("packet/secret","doencrypt",key);
   if ((!(dtype))&& (FD_STRINGP(data))) {
-    payload=FD_STRDATA(data); payload_len=FD_STRLEN(data);}
+    payload = FD_STRDATA(data); payload_len = FD_STRLEN(data);}
   else if ((!(dtype))&&(FD_PACKETP(data))) {
-    payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);}
+    payload = FD_PACKET_DATA(data); payload_len = FD_PACKET_LENGTH(data);}
   else {
     FD_INIT_BYTE_OUTBUF(&tmp,512);
     fd_write_dtype(&tmp,data);
-    payload=tmp.buffer;
-    payload_len=tmp.bufwrite-tmp.buffer;
-    free_payload=1;}
+    payload = tmp.buffer;
+    payload_len = tmp.bufwrite-tmp.buffer;
+    free_payload = 1;}
   if (FD_PACKETP(iv)) {
-    ivdata=FD_PACKET_DATA(iv);
-    iv_len=FD_PACKET_LENGTH(iv);}
-  else {ivdata=NULL; iv_len=0;}
-  outbuf=u8_encrypt(payload,payload_len,(char *)ciphername,
+    ivdata = FD_PACKET_DATA(iv);
+    iv_len = FD_PACKET_LENGTH(iv);}
+  else {ivdata = NULL; iv_len = 0;}
+  outbuf = u8_encrypt(payload,payload_len,(char *)ciphername,
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf) {
@@ -64,19 +64,19 @@ static fdtype doencrypt(fdtype data,fdtype key,
 
 static fdtype encrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
 {
-  u8_string ciphername=NULL;
-  if (FD_SYMBOLP(cipher)) ciphername=FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername=FD_STRDATA(cipher);
-  else if (FD_VOIDP(cipher)) ciphername=NULL;
+  u8_string ciphername = NULL;
+  if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","encrypt_prim",cipher);
   return doencrypt(data,key,ciphername,iv,0);
 }
 static fdtype encrypt_dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
 {
   u8_string ciphername;
-  if (FD_SYMBOLP(cipher)) ciphername=FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername=FD_STRDATA(cipher);
-  else if (FD_VOIDP(cipher)) ciphername=NULL;
+  if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","encrypt_dtype",cipher);
   return doencrypt(data,key,ciphername,iv,1);
 }
@@ -89,16 +89,16 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
   u8_string ciphername;
   if (!(FD_PACKETP(key)))
     return fd_type_error("packet/secret","doencrypt",key);
-  if (FD_SYMBOLP(cipher)) ciphername=FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername=FD_STRDATA(cipher);
-  else if (FD_VOIDP(cipher)) ciphername=NULL;
+  if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   if (FD_PACKETP(iv)) {
-    ivdata=FD_PACKET_DATA(iv);
-    iv_len=FD_PACKET_LENGTH(iv);}
-  else {ivdata=NULL; iv_len=0;}
-  payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt(payload,payload_len,(char *)ciphername,
+    ivdata = FD_PACKET_DATA(iv);
+    iv_len = FD_PACKET_LENGTH(iv);}
+  else {ivdata = NULL; iv_len = 0;}
+  payload = FD_PACKET_DATA(data); payload_len = FD_PACKET_LENGTH(data);
+  outbuf = u8_decrypt(payload,payload_len,(char *)ciphername,
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf)
@@ -113,16 +113,16 @@ static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv
   const unsigned char *ivdata; size_t iv_len;
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
-  if (FD_SYMBOLP(cipher)) ciphername=FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername=FD_STRDATA(cipher);
-  else if (FD_VOIDP(cipher)) ciphername=NULL;
+  if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   if (FD_PACKETP(iv)) {
-    ivdata=FD_PACKET_DATA(iv);
-    iv_len=FD_PACKET_LENGTH(iv);}
-  else {ivdata=NULL; iv_len=0;}
-  payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt(payload,payload_len,ciphername,
+    ivdata = FD_PACKET_DATA(iv);
+    iv_len = FD_PACKET_LENGTH(iv);}
+  else {ivdata = NULL; iv_len = 0;}
+  payload = FD_PACKET_DATA(data); payload_len = FD_PACKET_LENGTH(data);
+  outbuf = u8_decrypt(payload,payload_len,ciphername,
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf)
@@ -137,22 +137,22 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
   const unsigned char *ivdata; size_t iv_len;
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
-  if (FD_SYMBOLP(cipher)) ciphername=FD_SYMBOL_NAME(cipher);
-  else if (FD_STRINGP(cipher)) ciphername=FD_STRDATA(cipher);
-  else if (FD_VOIDP(cipher)) ciphername=NULL;
+  if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
+  else if (FD_STRINGP(cipher)) ciphername = FD_STRDATA(cipher);
+  else if (FD_VOIDP(cipher)) ciphername = NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   if (FD_PACKETP(iv)) {
-    ivdata=FD_PACKET_DATA(iv);
-    iv_len=FD_PACKET_LENGTH(iv);}
-  else {ivdata=NULL; iv_len=0;}
-  payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt(payload,payload_len,ciphername,
+    ivdata = FD_PACKET_DATA(iv);
+    iv_len = FD_PACKET_LENGTH(iv);}
+  else {ivdata = NULL; iv_len = 0;}
+  payload = FD_PACKET_DATA(data); payload_len = FD_PACKET_LENGTH(data);
+  outbuf = u8_decrypt(payload,payload_len,ciphername,
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf) {
     struct FD_INBUF in; fdtype result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
-    result=fd_read_dtype(&in);
+    result = fd_read_dtype(&in);
     u8_free(outbuf);
     return result;}
   else return FD_ERROR_VALUE;
@@ -169,21 +169,21 @@ FD_EXPORT fdtype random_packet_prim(fdtype arg)
 FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
 {
   fdtype result; unsigned char *bytes;
-  int byte_init, packet_len=FD_FIX2INT(len);
+  int byte_init, packet_len = FD_FIX2INT(len);
   if ((FD_VOIDP(init))||(FD_FALSEP(init))||(FD_DEFAULTP(init)))
-    byte_init=0;
+    byte_init = 0;
   else if (FD_FALSEP(init))
-    byte_init=1;
+    byte_init = 1;
   else if (!(FD_FIXNUMP(init)))
     return fd_type_error(_("Byte init value"),"fill_packet_prim",init);
   else if (!(FD_UINTP(len)))
     return fd_type_error(_("uint len"),"fill_packet_prim",len);
   else {
-    byte_init=FD_FIX2INT(init);
+    byte_init = FD_FIX2INT(init);
     if ((byte_init<0)||(byte_init>=256))
       return fd_type_error(_("Byte init value"),"fill_packet_prim",init);}
-  result=fd_init_packet(NULL,packet_len,NULL);
-  bytes=(unsigned char *)FD_PACKET_DATA(result);
+  result = fd_init_packet(NULL,packet_len,NULL);
+  bytes = (unsigned char *)FD_PACKET_DATA(result);
   memset(bytes,byte_init,packet_len);
   return result;
 }
@@ -193,8 +193,8 @@ FD_EXPORT int fd_init_crypto()
   fdtype crypto_module;
   if (crypto_init) return 0;
 
-  crypto_init=u8_millitime();
-  crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));
+  crypto_init = u8_millitime();
+  crypto_module = fd_new_module("CRYPTO",(FD_MODULE_SAFE));
 
   u8_init_cryptofns();
 

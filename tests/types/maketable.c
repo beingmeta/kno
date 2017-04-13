@@ -18,14 +18,14 @@
 #include <time.h>
 
 static struct timeval start;
-static int started=0;
+static int started = 0;
 
 double get_elapsed()
 {
   struct timeval now;
   if (started == 0) {
     gettimeofday(&start,NULL);
-    started=1;
+    started = 1;
     return 0;}
   else {
     gettimeofday(&now,NULL);
@@ -57,39 +57,39 @@ static void report_on_hashtable(fdtype ht)
 
 int main(int argc,char **argv)
 {
-  fdtype ht, item, key=FD_VOID; int i=0;
+  fdtype ht, item, key = FD_VOID; int i = 0;
   struct FD_STREAM *in, *out;
   struct FD_INBUF *inbuf;
   double span;
   FD_DO_LIBINIT(fd_init_libfdtype);
-  span=get_elapsed(); /* Start the timer */
-  ht=fd_make_hashtable(NULL,64);
-  in=fd_open_file(argv[1],FD_FILE_READ);
-  if (in==NULL) {
+  span = get_elapsed(); /* Start the timer */
+  ht = fd_make_hashtable(NULL,64);
+  in = fd_open_file(argv[1],FD_FILE_READ);
+  if (in == NULL) {
     u8_log(LOG_ERR,"No such file","Couldn't open file %s",argv[1]);
     exit(1);}
-  else inbuf=fd_readbuf(in);
+  else inbuf = fd_readbuf(in);
   fd_stream_setbufsize(in,65536*2);
-  item=fd_read_dtype(inbuf); i=1;
+  item = fd_read_dtype(inbuf); i = 1;
   while (!(FD_EODP(item))) {
     if (i%100000 == 0) {
-      double tmp=get_elapsed();
+      double tmp = get_elapsed();
       u8_fprintf(stderr,"%d: %f %f %ld\n",i,tmp,(tmp-span),fd_getpos(in));
-      span=tmp;}
+      span = tmp;}
     if (FD_PAIRP(item)) {
-      fd_decref(key); key=fd_incref(item);}
+      fd_decref(key); key = fd_incref(item);}
     else fd_hashtable_add
 	   (fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
             key,item);
-    fd_decref(item); item=fd_read_dtype(inbuf);
-    i=i+1;}
+    fd_decref(item); item = fd_read_dtype(inbuf);
+    i = i+1;}
   report_on_hashtable(ht);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
-  out=fd_open_file(argv[2],FD_FILE_CREATE);
+  out = fd_open_file(argv[2],FD_FILE_CREATE);
   if (out) {
-    struct FD_OUTBUF *outbuf=fd_writebuf(out);
+    struct FD_OUTBUF *outbuf = fd_writebuf(out);
     fd_write_dtype(outbuf,ht);
     fd_close_stream(out,FD_STREAM_CLOSE_FULL);}
-  fd_decref(ht); ht=FD_VOID;
+  fd_decref(ht); ht = FD_VOID;
   exit(0);
 }

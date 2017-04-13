@@ -23,7 +23,7 @@ static void recycle_string(struct FD_STRING *s)
 
 static void recycle_vector(struct FD_VECTOR *v)
 {
-  int len=v->fdvec_length; fdtype *scan=v->fdvec_elts, *limit=scan+len;
+  int len = v->fdvec_length; fdtype *scan = v->fdvec_elts, *limit = scan+len;
   if (scan) {
     while (scan<limit) {fd_decref(*scan); scan++;}
     if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
@@ -33,8 +33,8 @@ static void recycle_vector(struct FD_VECTOR *v)
 static void recycle_choice(struct FD_CHOICE *cv)
 {
   if (!(cv->choice_isatomic)) {
-    int len=cv->choice_size;
-    const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
+    int len = cv->choice_size;
+    const fdtype *scan = FD_XCHOICE_DATA(cv), *limit = scan+len;
     if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
   if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
 }
@@ -49,7 +49,7 @@ static void recycle_qchoice(struct FD_QCHOICE *qc)
 
 static void recycle_pair(struct FD_PAIR *pair)
 {
-  fdtype car=pair->car, cdr=pair->cdr;
+  fdtype car = pair->car, cdr = pair->cdr;
   fd_decref(car); fd_decref(cdr);
   if (!(FD_STATIC_CONSP(pair))) u8_free(pair);
 }
@@ -60,25 +60,25 @@ static void recycle_pair(struct FD_PAIR *pair)
    we iterate in the CDR direction. */
 static void recycle_list(struct FD_PAIR *pair)
 {
-  fdtype car=pair->car, cdr=pair->cdr;
+  fdtype car = pair->car, cdr = pair->cdr;
   u8_free(pair); fd_decref(car);
   if (!(FD_PAIRP(cdr))) {
     fd_decref(cdr);
     return;}
-  else pair=(fd_pair)cdr;
+  else pair = (fd_pair)cdr;
 #if FD_LOCKFREE_REFCOUNTS
   while (1) {
-    struct FD_REF_CONS *cons=(struct FD_REF_CONS *)pair;
+    struct FD_REF_CONS *cons = (struct FD_REF_CONS *)pair;
     if (FD_STATIC_CONSP(pair)) return;
     else {
-      car=pair->car; cdr=pair->cdr;}
-    fd_consbits newbits=atomic_fetch_sub(&(cons->conshead),0x80)-0x80;
+      car = pair->car; cdr = pair->cdr;}
+    fd_consbits newbits = atomic_fetch_sub(&(cons->conshead),0x80)-0x80;
     if (newbits<0x80) {
       fd_decref(car);
       if (FD_PAIRP(cdr)) {
         atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
         u8_free(pair);
-        pair=(fd_pair)cdr;}
+        pair = (fd_pair)cdr;}
       else {
         atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
         fd_decref(cdr);
@@ -88,17 +88,17 @@ static void recycle_list(struct FD_PAIR *pair)
 #else
   if (FD_CONSP(cdr)) {
     if (FD_PAIRP(cdr)) {
-      struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
+      struct FD_PAIR *xcdr = (struct FD_PAIR *)cdr;
       FD_LOCK_PTR(xcdr);
       while (FD_CONS_REFCOUNT(xcdr)==1) {
-        car=xcdr->car; cdr=xcdr->cdr;
+        car = xcdr->car; cdr = xcdr->cdr;
         FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
         fd_decref(car);
         if (FD_PAIRP(cdr)) {
-          xcdr=(fd_pair)cdr;
+          xcdr = (fd_pair)cdr;
           FD_LOCK_PTR(xcdr);
           continue;}
-        else {xcdr=NULL; break;}}
+        else {xcdr = NULL; break;}}
       if (xcdr) FD_UNLOCK_PTR(xcdr);
       fd_decref(cdr);}
     else fd_decref(cdr);}
@@ -112,10 +112,10 @@ static void recycle_uuid(struct FD_RAW_CONS *c)
 
 static void recycle_exception(struct FD_RAW_CONS *c)
 {
-  struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
+  struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)c;
   if (exo->fdex_u8ex) {
     u8_free_exception(exo->fdex_u8ex,1);
-    exo->fdex_u8ex=NULL;}
+    exo->fdex_u8ex = NULL;}
   if (!(FD_STATIC_CONSP(exo))) u8_free(exo);
 }
 
@@ -126,7 +126,7 @@ static void recycle_timestamp(struct FD_RAW_CONS *c)
 
 static void recycle_regex(struct FD_RAW_CONS *c)
 {
-  struct FD_REGEX *rx=(struct FD_REGEX *)c;
+  struct FD_REGEX *rx = (struct FD_REGEX *)c;
   regfree(&(rx->fd_rxcompiled));
   u8_destroy_mutex(&(rx->fdrx_lock));
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
@@ -134,7 +134,7 @@ static void recycle_regex(struct FD_RAW_CONS *c)
 
 static void recycle_rawptr(struct FD_RAW_CONS *c)
 {
-  struct FD_RAWPTR *rawptr=(struct FD_RAWPTR *)c;
+  struct FD_RAWPTR *rawptr = (struct FD_RAWPTR *)c;
   if (rawptr->idstring) u8_free(rawptr->idstring);
   fd_decref(rawptr->raw_typespec);
   if (rawptr->recycler)
@@ -143,8 +143,8 @@ static void recycle_rawptr(struct FD_RAW_CONS *c)
 
 static void recycle_compound(struct FD_RAW_CONS *c)
 {
-  struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
-  int i=0, n=compound->fd_n_elts; fdtype *data=&(compound->compound_0);
+  struct FD_COMPOUND *compound = (struct FD_COMPOUND *)c;
+  int i = 0, n = compound->fd_n_elts; fdtype *data = &(compound->compound_0);
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->compound_typetag);
   if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
@@ -153,7 +153,7 @@ static void recycle_compound(struct FD_RAW_CONS *c)
 
 static void recycle_mystery(struct FD_RAW_CONS *c)
 {
-  struct FD_MYSTERY_DTYPE *myst=(struct FD_MYSTERY_DTYPE *)c;
+  struct FD_MYSTERY_DTYPE *myst = (struct FD_MYSTERY_DTYPE *)c;
   if (myst->myst_dtcode&0x80)
     u8_free(myst->mystery_payload.elts);
   else u8_free(myst->mystery_payload.bytes);
@@ -169,7 +169,7 @@ FD_EXPORT
  Recycles a cons cell */
 void fd_recycle_cons(fd_raw_cons c)
 {
-  int ctype=FD_CONS_TYPE(c);
+  int ctype = FD_CONS_TYPE(c);
   switch (ctype) {
   case fd_string_type: case fd_packet_type: case fd_secret_type: 
     recycle_string((struct FD_STRING *)c);
@@ -210,8 +210,8 @@ FD_EXPORT
 /* Increfs the elements of a vector of LISP pointers */
 void fd_incref_vec(fdtype *vec,int n)
 {
-  int i=0; while (i<n) {
-    fdtype elt=vec[i++];
+  int i = 0; while (i<n) {
+    fdtype elt = vec[i++];
     fd_incref(elt);}
 }
 
@@ -219,8 +219,8 @@ FD_EXPORT
 /* Decrefs the elements of a vector of LISP pointers */
 void fd_decref_vec(fdtype *vec,int n,int free_vec)
 {
-  int i=0; while (i<n) {
-    fdtype elt=vec[i++];
+  int i = 0; while (i<n) {
+    fdtype elt = vec[i++];
     fd_decref(elt);}
   if (free_vec) u8_free(vec);
 }

@@ -16,36 +16,36 @@ struct FD_SORT_ENTRY {
 
 static int _fd_sort_helper(const void *vx,const void *vy)
 {
-  const struct FD_SORT_ENTRY *sx=(struct FD_SORT_ENTRY *)vx;
-  const struct FD_SORT_ENTRY *sy=(struct FD_SORT_ENTRY *)vy;
-  if (sx->fd_sortkey==sy->fd_sortkey) return 0;
+  const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
+  const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
+  if (sx->fd_sortkey == sy->fd_sortkey) return 0;
   else {
-    fd_ptr_type xtype=FD_PTR_TYPE(sx->fd_sortkey);
-    fd_ptr_type ytype=FD_PTR_TYPE(sy->fd_sortkey);
-    if (xtype==ytype)
+    fd_ptr_type xtype = FD_PTR_TYPE(sx->fd_sortkey);
+    fd_ptr_type ytype = FD_PTR_TYPE(sy->fd_sortkey);
+    if (xtype == ytype)
       if (FD_OIDP(sx->fd_sortkey)) {
-        FD_OID xaddr=FD_OID_ADDR(sx->fd_sortkey);
-        FD_OID yaddr=FD_OID_ADDR(sy->fd_sortkey);
+        FD_OID xaddr = FD_OID_ADDR(sx->fd_sortkey);
+        FD_OID yaddr = FD_OID_ADDR(sy->fd_sortkey);
         return FD_OID_COMPARE(xaddr,yaddr);}
       else if (FD_FIXNUMP(sx->fd_sortkey)) {
-        long long xval=FD_FIX2INT(sx->fd_sortkey);
-        long long yval=FD_FIX2INT(sy->fd_sortkey);
+        long long xval = FD_FIX2INT(sx->fd_sortkey);
+        long long yval = FD_FIX2INT(sy->fd_sortkey);
         if (xval<yval) return -1; else return 1;}
       else return FD_FULL_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
-    else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
-              (xtype==fd_flonum_type) || (xtype==fd_rational_type) ||
-              (xtype==fd_complex_type))
-      if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-          (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
-          (ytype==fd_complex_type)) {
-        int cmp=fd_numcompare(sx->fd_sortkey,sy->fd_sortkey);
+    else if ((xtype == fd_fixnum_type) || (xtype == fd_bigint_type) ||
+              (xtype == fd_flonum_type) || (xtype == fd_rational_type) ||
+              (xtype == fd_complex_type))
+      if ((ytype == fd_fixnum_type) || (ytype == fd_bigint_type) ||
+          (ytype == fd_flonum_type) || (ytype == fd_rational_type) ||
+          (ytype == fd_complex_type)) {
+        int cmp = fd_numcompare(sx->fd_sortkey,sy->fd_sortkey);
         if (cmp) return cmp;
         else if (xtype<ytype) return -1;
         else return 1;}
       else return -1;
-    else if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-             (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
-             (ytype==fd_complex_type))
+    else if ((ytype == fd_fixnum_type) || (ytype == fd_bigint_type) ||
+             (ytype == fd_flonum_type) || (ytype == fd_rational_type) ||
+             (ytype == fd_complex_type))
       return 1;
     else if (xtype<ytype) return -1;
     else if (xtype>ytype) return 1;
@@ -55,42 +55,42 @@ static int _fd_sort_helper(const void *vx,const void *vy)
 
 static int _fd_lexsort_helper(const void *vx,const void *vy)
 {
-  const struct FD_SORT_ENTRY *sx=(struct FD_SORT_ENTRY *)vx;
-  const struct FD_SORT_ENTRY *sy=(struct FD_SORT_ENTRY *)vy;
-  if (sx->fd_sortkey==sy->fd_sortkey) return 0;
+  const struct FD_SORT_ENTRY *sx = (struct FD_SORT_ENTRY *)vx;
+  const struct FD_SORT_ENTRY *sy = (struct FD_SORT_ENTRY *)vy;
+  if (sx->fd_sortkey == sy->fd_sortkey) return 0;
   else {
-    fd_ptr_type xtype=FD_PTR_TYPE(sx->fd_sortkey);
-    fd_ptr_type ytype=FD_PTR_TYPE(sy->fd_sortkey);
-    if (xtype==ytype)
+    fd_ptr_type xtype = FD_PTR_TYPE(sx->fd_sortkey);
+    fd_ptr_type ytype = FD_PTR_TYPE(sy->fd_sortkey);
+    if (xtype == ytype)
       if (FD_OIDP(sx->fd_sortkey)) {
-        FD_OID xaddr=FD_OID_ADDR(sx->fd_sortkey);
-        FD_OID yaddr=FD_OID_ADDR(sy->fd_sortkey);
+        FD_OID xaddr = FD_OID_ADDR(sx->fd_sortkey);
+        FD_OID yaddr = FD_OID_ADDR(sy->fd_sortkey);
         return FD_OID_COMPARE(xaddr,yaddr);}
       else if (FD_FIXNUMP(sx->fd_sortkey)) {
-        long long xval=FD_FIX2INT(sx->fd_sortkey);
-        long long yval=FD_FIX2INT(sy->fd_sortkey);
+        long long xval = FD_FIX2INT(sx->fd_sortkey);
+        long long yval = FD_FIX2INT(sy->fd_sortkey);
         if (xval<yval) return -1; else return 1;}
-      else if (xtype==fd_string_type)
+      else if (xtype == fd_string_type)
         return (strcoll(FD_STRDATA(sx->fd_sortkey),
 			FD_STRDATA(sy->fd_sortkey)));
-      else if (xtype==fd_symbol_type)
+      else if (xtype == fd_symbol_type)
         return (strcoll(FD_XSYMBOL_NAME(sx->fd_sortkey),
 			FD_XSYMBOL_NAME(sy->fd_sortkey)));
       else return FD_FULL_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
-    else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
-              (xtype==fd_flonum_type) || (xtype==fd_rational_type) ||
-              (xtype==fd_complex_type))
-      if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-          (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
-          (ytype==fd_complex_type)) {
-        int cmp=fd_numcompare(sx->fd_sortkey,sy->fd_sortkey);
+    else if ((xtype == fd_fixnum_type) || (xtype == fd_bigint_type) ||
+              (xtype == fd_flonum_type) || (xtype == fd_rational_type) ||
+              (xtype == fd_complex_type))
+      if ((ytype == fd_fixnum_type) || (ytype == fd_bigint_type) ||
+          (ytype == fd_flonum_type) || (ytype == fd_rational_type) ||
+          (ytype == fd_complex_type)) {
+        int cmp = fd_numcompare(sx->fd_sortkey,sy->fd_sortkey);
         if (cmp) return cmp;
         else if (xtype<ytype) return -1;
         else return 1;}
       else return -1;
-    else if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-             (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
-             (ytype==fd_complex_type))
+    else if ((ytype == fd_fixnum_type) || (ytype == fd_bigint_type) ||
+             (ytype == fd_flonum_type) || (ytype == fd_rational_type) ||
+             (ytype == fd_complex_type))
       return 1;
     else if (xtype<ytype) return -1;
     else if (xtype>ytype) return 1;
@@ -105,13 +105,13 @@ static fdtype _fd_apply_keyfn(fdtype x,fdtype keyfn)
   else if (FD_OIDP(keyfn)) return fd_frame_get(x,keyfn);
   else if (FD_TABLEP(keyfn)) return fd_get(keyfn,x,FD_EMPTY_CHOICE);
   else if (FD_APPLICABLEP(keyfn)) {
-    fd_ptr_type keytype=FD_PRIM_TYPE(keyfn);
-    fdtype result=fd_applyfns[keytype](keyfn,1,&x);
+    fd_ptr_type keytype = FD_PRIM_TYPE(keyfn);
+    fdtype result = fd_applyfns[keytype](keyfn,1,&x);
     return fd_finish_call(result);}
   else if (FD_VECTORP(keyfn)) {
-    int i=0, len=FD_VECTOR_LENGTH(keyfn);
-    fdtype *keyfns=FD_VECTOR_DATA(keyfn);
-    fdtype *vecdata=u8_alloc_n(len,fdtype);
+    int i = 0, len = FD_VECTOR_LENGTH(keyfn);
+    fdtype *keyfns = FD_VECTOR_DATA(keyfn);
+    fdtype *vecdata = u8_alloc_n(len,fdtype);
     while (i<len) {vecdata[i]=_fd_apply_keyfn(x,keyfns[i]); i++;}
     return fd_init_vector(NULL,len,vecdata);}
   else if ((FD_OIDP(x)) && (FD_SYMBOLP(keyfn)))

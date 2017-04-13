@@ -205,7 +205,7 @@ FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
 #if FD_PROVIDE_FASTEVAL
 FD_FASTOP fdtype fastget(fdtype table,fdtype key)
 {
-  fd_ptr_type argtype=FD_PTR_TYPE(table);
+  fd_ptr_type argtype = FD_PTR_TYPE(table);
   switch (argtype) {
   case fd_schemap_type:
     return fd_schemap_get((fd_schemap)table,key,FD_UNBOUND);
@@ -217,35 +217,35 @@ FD_FASTOP fdtype fastget(fdtype table,fdtype key)
 }
 FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
 {
-  int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
-  int up=code/32, across=code%32;
+  int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
+  int up = code/32, across = code%32;
   while ((env) && (up)) {
-    if (env->env_copy) env=env->env_copy;
-    env=env->env_parent; up--;}
-  if (env->env_copy) env=env->env_copy;
+    if (env->env_copy) env = env->env_copy;
+    env = env->env_parent; up--;}
+  if (env->env_copy) env = env->env_copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
-    fdtype bindings=env->env_bindings;
+    fdtype bindings = env->env_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
-      struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
+      struct FD_SCHEMAP *s = (struct FD_SCHEMAP *)bindings;
       return fd_incref(s->schema_values[across]);}}
   return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
 }
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 {
-  if (env==NULL) return FD_VOID;
-  if (env->env_copy) env=env->env_copy;
+  if (env == NULL) return FD_VOID;
+  if (env->env_copy) env = env->env_copy;
   while (env) {
-    fdtype val=fastget(env->env_bindings,symbol);
-    if (val==FD_UNBOUND)
-      env=env->env_parent;
+    fdtype val = fastget(env->env_bindings,symbol);
+    if (val == FD_UNBOUND)
+      env = env->env_parent;
     else return val;
-    if ((env) && (env->env_copy)) env=env->env_copy;}
+    if ((env) && (env->env_copy)) env = env->env_copy;}
   return FD_VOID;
 }
 
 FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
 {
-  fdtype result=fd_tail_eval(x,env);
+  fdtype result = fd_tail_eval(x,env);
   if (FD_TYPEP(result,fd_tailcall_type))
     return _fd_finish_call(result);
   else return result;
@@ -260,7 +260,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
-      fdtype val=fd_symeval(x,env);
+      fdtype val = fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
         return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
@@ -288,13 +288,13 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
     if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
-      fdtype val=fd_symeval(x,env);
+      fdtype val = fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
         return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
   case fd_cons_ptr_type: {
-    fd_ptr_type ctype=FD_PTR_TYPE(x);
+    fd_ptr_type ctype = FD_PTR_TYPE(x);
     switch (ctype) {
     case fd_pair_type: case fd_rail_type:
       return fd_tail_eval(x,env);
@@ -314,9 +314,9 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
         (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
-      expr=FD_CDR(expr);
+      expr = FD_CDR(expr);
     else if (i == 0) return FD_CAR(expr);
-    else {expr=FD_CDR(expr); i--;}
+    else {expr = FD_CDR(expr); i--;}
   return FD_VOID;
 }
 FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
@@ -325,8 +325,8 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
     if (i == 0) break;
     else if ((FD_PAIRP(FD_CAR(expr))) &&
              (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
-      expr=FD_CDR(expr);
-    else {expr=FD_CDR(expr); i--;}
+      expr = FD_CDR(expr);
+    else {expr = FD_CDR(expr); i--;}
   return expr;
 }
 #else
@@ -344,24 +344,24 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 
 #define FD_UNPACK_BINDING(pair,var,val)		\
   if (FD_PAIRP(pair)) {				\
-    fdtype _cdr=FD_CDR(pair);			\
-    var=FD_CAR(pair);				\
-    if (FD_PAIRP(_cdr)) val=FD_CAR(_cdr);	\
-    else val=FD_VOID;}				\
+    fdtype _cdr = FD_CDR(pair);			\
+    var = FD_CAR(pair);				\
+    if (FD_PAIRP(_cdr)) val = FD_CAR(_cdr);	\
+    else val = FD_VOID;}				\
   else {}
 
 #define FD_DOBINDINGS(var,val,bindings)					\
-  U8_MAYBE_UNUSED fdtype var, val, _scan=bindings, _binding=FD_VOID;	\
-  for (_scan=bindings,							\
-	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
-	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
-	 val=((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
+  U8_MAYBE_UNUSED fdtype var, val, _scan = bindings, _binding = FD_VOID;	\
+  for (_scan = bindings,							\
+	 _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
+	 var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
+	 val = ((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
 	      (FD_CAR(FD_CDR(_binding))):(FD_VOID));			\
        FD_PAIRP(_scan);							\
-       _scan=FD_CDR(_scan),						\
-	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
-	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
-	 val=((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
+       _scan = FD_CDR(_scan),						\
+	 _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
+	 var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
+	 val = ((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
 	      (FD_CAR(FD_CDR(_binding))):(FD_VOID)) )
 
 /* Simple continuations */

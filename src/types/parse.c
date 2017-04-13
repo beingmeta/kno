@@ -30,7 +30,7 @@
 
 /* Common macros, functions and declarations */
 
-#define PARSE_ERRORP(x) ((x==FD_EOX) || (x==FD_PARSE_ERROR) || (x==FD_OOM))
+#define PARSE_ERRORP(x) ((x == FD_EOX) || (x == FD_PARSE_ERROR) || (x == FD_OOM))
 
 #define odigitp(c) ((c>='0')&&(c<='8'))
 #define spacecharp(c) ((c>0) && (c<128) && (isspace(c)))
@@ -54,31 +54,31 @@ fd_exception fd_CantParseRecord=_("Can't parse record object");
 fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
 fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment");
 
-int fd_interpret_pointers=1;
+int fd_interpret_pointers = 1;
 
 static fdtype quote_symbol, histref_symbol, comment_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 static int skip_whitespace(u8_input s)
 {
-  int c=u8_getc(s);
+  int c = u8_getc(s);
   if (c<-1) return c;
   while (1) {
-    while ((c>0) && (spacecharp(c))) c=u8_getc(s);
+    while ((c>0) && (spacecharp(c))) c = u8_getc(s);
     if (c==';') {
-      while ((c>=0) && (c != '\n')) c=u8_getc(s);
+      while ((c>=0) && (c != '\n')) c = u8_getc(s);
       if (c<0) return -1;}
     else if ((c=='#')&&(u8_peekc(s)<0)) {
       u8_ungetc(s,c); 
       return c;}
     else if ((c=='#') && (u8_probec(s)=='|')) {
-      int bar=0; c=u8_getc(s);
+      int bar = 0; c = u8_getc(s);
       /* Read block comment */
-      while ((c=u8_getc(s))>=0)
-        if (c=='|') bar=1;
+      while ((c = u8_getc(s))>=0)
+        if (c=='|') bar = 1;
         else if ((bar) && (c=='#')) break;
-        else bar=0;
-      if (c=='#') c=u8_getc(s);}
+        else bar = 0;
+      if (c=='#') c = u8_getc(s);}
     else break;}
   if (c<0) return c;
   u8_ungetc(s,c);
@@ -118,17 +118,17 @@ static fdtype character_constants[]={
 static int parse_unicode_escape(u8_string arg)
 {
   u8_string s;
-  if (arg[0] == '\\') s=arg+1; else s=arg;
+  if (arg[0] == '\\') s = arg+1; else s = arg;
   if (s[0] == 'u') {
     if ((strlen(s)==5) &&
         (isxdigit(s[1])) && (isxdigit(s[2])) &&
         (isxdigit(s[3])) && (isxdigit(s[4]))) {
-      int code=-1;
-      if (sscanf(s+1,"%4x",&code)<1) code=-1;
+      int code = -1;
+      if (sscanf(s+1,"%4x",&code)<1) code = -1;
       return code;}
     else if (s[1]=='{') {
-      int code=-1;
-      if (sscanf(s+1,"{%x}",&code)<1) code=-1;
+      int code = -1;
+      if (sscanf(s+1,"{%x}",&code)<1) code = -1;
       return code;}
     else {
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
@@ -139,12 +139,12 @@ static int parse_unicode_escape(u8_string arg)
         (isxdigit(s[3])) && (isxdigit(s[4])) &&
         (isxdigit(s[5])) && (isxdigit(s[6])) &&
         (isxdigit(s[7])) && (isxdigit(s[8]))) {
-      int code=-1;
-      if (sscanf(s+1,"%8x",&code)<1) code=-1;
+      int code = -1;
+      if (sscanf(s+1,"%8x",&code)<1) code = -1;
       return code;}
     else if (s[1]=='{') {
-      int code=-1;
-      if (sscanf(s+1,"{%x}",&code)<1) code=-1;
+      int code = -1;
+      if (sscanf(s+1,"{%x}",&code)<1) code = -1;
       return code;}
     else {
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
@@ -160,7 +160,7 @@ static int parse_unicode_escape(u8_string arg)
 static int read_escape(u8_input in)
 {
   int c;
-  switch (c=u8_getc(in)) {
+  switch (c = u8_getc(in)) {
   case 't': return '\t';
   case 'n': return '\n';
   case 'r': return '\r';
@@ -175,16 +175,16 @@ static int read_escape(u8_input in)
   case '\'': return '\'';
   case 'x': {
     u8_byte buf[16]; int len;
-    u8_string parsed=u8_gets_x(buf,16,in,";",&len);
+    u8_string parsed = u8_gets_x(buf,16,in,";",&len);
     if (parsed) {
-      int code=-1;
-      if (sscanf(buf,"%x",&code)<1) code=-1;
+      int code = -1;
+      if (sscanf(buf,"%x",&code)<1) code = -1;
       return code;}
     else {
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",NULL);
       return -1;}}
   case 'u': {
-    char buf[16]; int nc=u8_probec(in), len;
+    char buf[16]; int nc = u8_probec(in), len;
     if (nc=='{') {
       buf[0]='\\'; buf[1]='u';
       u8_gets_x(buf+2,13,in,"}",&len);}
@@ -195,16 +195,16 @@ static int read_escape(u8_input in)
     buf[0]='\\'; buf[1]='U'; u8_getn(buf+2,8,in);
     return parse_unicode_escape(buf);}
   case '0': case '1': case '2': case '3': {
-    char buf[16]; int code=-1;
+    char buf[16]; int code = -1;
     buf[0]='\\'; buf[1]=c; u8_getn(buf+2,2,in); buf[5]='\0';
     if (strlen(buf)==4) {
-      if (sscanf(buf+1,"%o",&code)<1) code=-1;
+      if (sscanf(buf+1,"%o",&code)<1) code = -1;
       if (code<0)
         fd_seterr3(fd_BadEscapeSequence,"read_escape",u8_strdup(buf));
       return code;}
     else return -1;}
   case '&': {
-    int code=u8_get_entity(in);
+    int code = u8_get_entity(in);
     if (code<0)
       fd_seterr3(fd_BadEscapeSequence,"read_escape",NULL);
     return code;}
@@ -230,19 +230,19 @@ static fdtype constant_values[]={
 
 static int copy_atom(u8_input s,u8_output a)
 {
-  int c=u8_getc(s), vbar=0;
-  if (c=='|') {vbar=1; c=u8_getc(s);}
+  int c = u8_getc(s), vbar = 0;
+  if (c=='|') {vbar = 1; c = u8_getc(s);}
   while ((c>=0) && ((vbar) || (!(atombreakp(c))))) {
-    if (c == '|') if (vbar) vbar=0; else vbar=1;
+    if (c == '|') if (vbar) vbar = 0; else vbar = 1;
     else if (c == '\\') {
       int realc;
-      realc=read_escape(s);
+      realc = read_escape(s);
       u8_putc(a,realc);}
     else if (vbar) u8_putc(a,c);
     else {
-      int upper=u8_toupper(c);
+      int upper = u8_toupper(c);
       u8_putc(a,upper);}
-    c=u8_getc(s);}
+    c = u8_getc(s);}
   if (c>=0) u8_ungetc(s,c);
   return c;
 }
@@ -252,7 +252,7 @@ fdtype fd_parse_atom(u8_string start,int len)
   /* fprintf(stderr,"fd_parse_atom %d: %s\n",len,start); */
   if (FD_EXPECT_FALSE(len==0)) return FD_EOX;
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
-    struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+    struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
     FD_INIT_CONS(uuid,fd_uuid_type);
     if (u8_parseuuid(start+2,(u8_uuid)&(uuid->fd_uuid16)))
       return FDTYPE_CONS(uuid);
@@ -261,7 +261,7 @@ fdtype fd_parse_atom(u8_string start,int len)
       return FD_PARSE_ERROR;}}
   else if ((start[0]=='#')&&(start[1]=='T')&&(isdigit(start[2]))) {
     struct U8_XTIME xt;
-    int retval=u8_iso8601_to_xtime(start+2,&xt);
+    int retval = u8_iso8601_to_xtime(start+2,&xt);
     if (retval<0) {
       fd_seterr("Invalid timestamp","fd_parse_atom",u8_strdup(start),FD_VOID);
       return FD_PARSE_ERROR;}
@@ -281,12 +281,12 @@ fdtype fd_parse_atom(u8_string start,int len)
             u8_strdup(start),FD_VOID);}
   else if (start[0]=='#') { /* It might be a constant */
     /* Check for constant names with values (many to one) */
-    int i=0; while (constant_names[i])
+    int i = 0; while (constant_names[i])
                if (strcmp(start,constant_names[i]) == 0)
                  return constant_values[i];
                else i++;
     /* Check for uniquely named constants */
-    i=0; while (i<256)
+    i = 0; while (i<256)
            if ((fd_constant_names[i])&&
                (strcasecmp(start,fd_constant_names[i])==0))
              return FD_CONSTANT(i);
@@ -314,12 +314,12 @@ static fdtype parse_character(U8_INPUT *in)
 {
   char buf[128];
   struct U8_OUTPUT tmpbuf;
-  int c, n_chars=0;
+  int c, n_chars = 0;
   /* First, copy an entire atom. */
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-  c=u8_getc(in);
+  c = u8_getc(in);
   if ((c=='&')&&(!(atombreakp(*(in->u8_read))))) {
-    int code=u8_get_entity(in);
+    int code = u8_get_entity(in);
     if (code<0)
       if (atombreakp(*(in->u8_read)))
         return FD_CODE2CHAR('&');
@@ -330,20 +330,20 @@ static fdtype parse_character(U8_INPUT *in)
   if ((c<128) && (ispunct(c))) {
     return FD_CODE2CHAR(c);}
   while ((c>=0) && (!(atombreakp(c)))) {
-    n_chars++; u8_putc(&tmpbuf,c); c=u8_getc(in);}
+    n_chars++; u8_putc(&tmpbuf,c); c = u8_getc(in);}
   if (n_chars==0) return FD_CODE2CHAR(c);
   else u8_ungetc(in,c);
   if (n_chars==1) {
-    const u8_byte *scan=buf; int c=u8_sgetc(&scan);
+    const u8_byte *scan = buf; int c = u8_sgetc(&scan);
     return FD_CODE2CHAR(c);}
   else if ((tmpbuf.u8_outbuf[0]=='u') || (tmpbuf.u8_outbuf[0]=='U'))
-    c=parse_unicode_escape(tmpbuf.u8_outbuf);
-  else c=-1;
+    c = parse_unicode_escape(tmpbuf.u8_outbuf);
+  else c = -1;
   if (c>=0) return FD_CODE2CHAR(c);
-  else if ((c=u8_entity2code(tmpbuf.u8_outbuf))>=0)
+  else if ((c = u8_entity2code(tmpbuf.u8_outbuf))>=0)
     return FD_CODE2CHAR(c);
   else {
-    int i=0; while (character_constant_names[i])
+    int i = 0; while (character_constant_names[i])
       if (strcasecmp(buf,character_constant_names[i]) == 0)
         return character_constants[i];
       else i++;
@@ -354,7 +354,7 @@ static fdtype parse_character(U8_INPUT *in)
 
 /* OID parsing */
 
-static fdtype (*oid_parser)(u8_string start,int len)=NULL;
+static fdtype (*oid_parser)(u8_string start,int len) = NULL;
 
 FD_EXPORT
 /* fd_set_oid_parser:
@@ -364,7 +364,7 @@ FD_EXPORT
 */
 void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len))
   {
-  oid_parser=parsefn;
+  oid_parser = parsefn;
 }
 
 typedef unsigned long long ull;
@@ -372,25 +372,25 @@ typedef unsigned long long ull;
 static fdtype default_parse_oid(u8_string start,int len)
 {
   u8_byte buf[64];
-  FD_OID oid=FD_NULL_OID_INIT;
+  FD_OID oid = FD_NULL_OID_INIT;
   unsigned int hi, lo;
   if (len>64) {
     fd_seterr("BadOIDReference","default_parse_oid",start,FD_VOID);
     return FD_PARSE_ERROR;}
   strncpy(buf,start,len); buf[len]='\0';
   if (strchr(buf,'/')) {
-    int items=sscanf(buf,"@%x/%x",&hi,&lo);
+    int items = sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
       fd_seterr("BadOIDReference","default_parse_oid",start,FD_VOID);
       return FD_PARSE_ERROR;}}
   else {
     unsigned long long addr;
-    int items=sscanf(buf,"@%llx",&addr);
+    int items = sscanf(buf,"@%llx",&addr);
     if (items!=1) {
       fd_seterr("BadOIDReference","default_parse_oid",start,FD_VOID);
       return FD_PARSE_ERROR;}
-    hi=((addr>>32)&((ull)0xFFFFFFFF));
-    lo=(addr&((ull)0xFFFFFFFF));}
+    hi = ((addr>>32)&((ull)0xFFFFFFFF));
+    lo = (addr&((ull)0xFFFFFFFF));}
   FD_SET_OID_HI(oid,hi); FD_SET_OID_LO(oid,lo);
   return fd_make_oid(oid);
 }
@@ -410,21 +410,21 @@ static fdtype parse_oid(U8_INPUT *in)
   /* First, copy the data into a buffer.
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
-  c=copy_atom(in,&tmpbuf);
+  c = copy_atom(in,&tmpbuf);
   if ((c=='"')&&((tmpbuf.u8_write-tmpbuf.u8_outbuf)==2)&&
       (buf[0]=='@')&&(ispunct(buf[1]))&&
-      (strchr("(){}[]<>",buf[1])==NULL)) {
+      (strchr("(){}[]<>",buf[1]) == NULL)) {
     copy_string(in,&tmpbuf); c='@';}
   if (tmpbuf.u8_write<=tmpbuf.u8_outbuf)
     return FD_EOX;
   else if (oid_parser)
-    result=oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-  else result=default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+    result = oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+  else result = default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   if (FD_ABORTP(result)) return result;
   if (strchr("({\"",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */
-    fdtype label=fd_parser(in);
+    fdtype label = fd_parser(in);
     fd_decref(label);}
   if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
@@ -434,26 +434,26 @@ static fdtype parse_oid(U8_INPUT *in)
 
 static fdtype parse_string(U8_INPUT *in)
 {
-  fdtype result=FD_VOID; u8_byte buf[256];
-  struct U8_OUTPUT out; int c=u8_getc(in);
+  fdtype result = FD_VOID; u8_byte buf[256];
+  struct U8_OUTPUT out; int c = u8_getc(in);
   U8_INIT_OUTPUT_X(&out,256,buf,0);
-  while ((c=u8_getc(in))>=0)
+  while ((c = u8_getc(in))>=0)
     if (c == '"') break;
     else if (c == '\\') {
-      int nextc=u8_getc(in);
+      int nextc = u8_getc(in);
       if (nextc=='\n') {
-        while (u8_isspace(nextc)) nextc=u8_getc(in);
+        while (u8_isspace(nextc)) nextc = u8_getc(in);
         u8_putc(&out,nextc);
         continue;}
       else u8_ungetc(in,nextc);
-      c=read_escape(in);
+      c = read_escape(in);
       if (c<0) {
         if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
           u8_free(out.u8_outbuf);
         return FD_PARSE_ERROR;}
       u8_putc(&out,c);}
     else u8_putc(&out,c);
-  result=fd_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
+  result = fd_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
   u8_close_output(&out);
   return result;
 }
@@ -463,40 +463,40 @@ static fdtype make_regex(u8_string src_arg,u8_string opts);
 static fdtype parse_regex(U8_INPUT *in)
 {
   fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
-  u8_byte opts[16]="", *optwrite=opts; 
-  int c=u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
+  u8_byte opts[16]="", *optwrite = opts; 
+  int c = u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
   while (c>=0) {
     if (c=='\\') {
-      c=u8_getc(in); if (c>0) u8_putc(&src,c);}
+      c = u8_getc(in); if (c>0) u8_putc(&src,c);}
     else if (c!='/') u8_putc(&src,c);
     else {
-      int mc=u8_getc(in);
+      int mc = u8_getc(in);
       while ((mc<128)&&(u8_isalpha(mc))) {
         if (strchr("eils",mc)) *optwrite++=(char)mc;
         else {
           fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,FD_VOID);
           return FD_PARSE_ERROR;}
-        mc=u8_getc(in);}
+        mc = u8_getc(in);}
       u8_ungetc(in,mc);
       *optwrite++='\0';
-      result=make_regex(src.u8_outbuf,opts);
+      result = make_regex(src.u8_outbuf,opts);
       u8_close((u8_stream)&src);
       return result;}
-    c=u8_getc(in);}
+    c = u8_getc(in);}
   return FD_EOF;
 }
 
 static fdtype make_regex(u8_string src_arg,u8_string opts)
 {
-  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX);
-  int retval, cflags=REG_EXTENDED;
-  u8_string src=u8_strdup(src_arg);
+  struct FD_REGEX *ptr = u8_alloc(struct FD_REGEX);
+  int retval, cflags = REG_EXTENDED;
+  u8_string src = u8_strdup(src_arg);
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
-  if (strchr(opts,'i')) cflags|=REG_ICASE;
-  else if (strchr(opts,'c')) cflags&=~REG_ICASE;
-  else if (strchr(opts,'m')) cflags|=REG_NEWLINE;
+  if (strchr(opts,'i')) cflags |= REG_ICASE;
+  else if (strchr(opts,'c')) cflags &= ~REG_ICASE;
+  else if (strchr(opts,'m')) cflags |= REG_NEWLINE;
   else {}
-  retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);
+  retval = regcomp(&(ptr->fd_rxcompiled),src,cflags);
   if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->fd_rxcompiled),buf,512);
@@ -504,8 +504,8 @@ static fdtype make_regex(u8_string src_arg,u8_string opts)
     return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
   else {
     U8_CLEAR_ERRNO();
-    ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
+    ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -513,17 +513,17 @@ static fdtype make_regex(u8_string src_arg,u8_string opts)
 
 static fdtype parse_text_packet(U8_INPUT *in)
 {
-  char *data=u8_malloc(128);
-  int max=128, len=0, c=u8_getc(in);
+  char *data = u8_malloc(128);
+  int max = 128, len = 0, c = u8_getc(in);
   while ((c>=0) && (c<128) && (c!='"')) {
     if (len>=max) {
-      data=u8_realloc(data,max+128);
-      max=max+128;}
+      data = u8_realloc(data,max+128);
+      max = max+128;}
     if (c == '\\') {
       char obuf[8];
-      obuf[0]=c=u8_getc(in);
+      obuf[0]=c = u8_getc(in);
       if (obuf[0]=='\n') {
-        while (u8_isspace(c)) c=u8_getc(in);
+        while (u8_isspace(c)) c = u8_getc(in);
         continue;}
       else switch (c) {
         case '\\':
@@ -545,14 +545,14 @@ static fdtype parse_text_packet(U8_INPUT *in)
         case '#':
           data[len++]='#'; break;
         case 'x': {
-          int c1=u8_getc(in), c2=u8_getc(in);
+          int c1 = u8_getc(in), c2 = u8_getc(in);
           if ((c1<0)||(c2<0)) {
             u8_free(data);
             return FD_EOX;}
           if ((isxdigit(c1))&&(isxdigit(c2))) {
             char xbuf[4];
             xbuf[0]=(char) c1; xbuf[1]=(char) c2; xbuf[2]='\0';
-            c=strtol(xbuf,NULL,16);
+            c = strtol(xbuf,NULL,16);
             data[len++]=c;
             break;}
           else {
@@ -566,7 +566,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
             u8_free(data);
             return FD_PARSE_ERROR;}}
         case '0': case '1': case '2': case '3': {
-          int i=1; while ((i<3)&&((c=u8_getc(in))>=0)&&(odigitp(c))) {
+          int i = 1; while ((i<3)&&((c = u8_getc(in))>=0)&&(odigitp(c))) {
             obuf[i++]=c;}
           obuf[i]='\0';
           if (c<0) {
@@ -578,7 +578,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
                       u8_strdup(obuf));
             return FD_PARSE_ERROR;}
           else {
-            c=strtol(obuf,NULL,8);
+            c = strtol(obuf,NULL,8);
             if (c<256) {
               data[len++]=c; 
               break;}
@@ -590,9 +590,9 @@ static fdtype parse_text_packet(U8_INPUT *in)
         default: 
           data[len++]=c;}}
     else data[len++]=c;
-    c=u8_getc(in);}
+    c = u8_getc(in);}
   if (c=='"') {
-    fdtype packet=fd_bytes2packet(NULL,len,data);
+    fdtype packet = fd_bytes2packet(NULL,len,data);
     u8_free(data);
     return packet;}
   else {
@@ -605,20 +605,20 @@ static fdtype parse_text_packet(U8_INPUT *in)
 
 static fdtype parse_hex_packet(U8_INPUT *in)
 {
-  char *data=u8_malloc(128);
-  int max=128, len=0, c=u8_getc(in);
+  char *data = u8_malloc(128);
+  int max = 128, len = 0, c = u8_getc(in);
   while (isxdigit(c)) {
-    int nc=u8_getc(in), byte=0; char xbuf[3];
-    if (!(isxdigit(nc))) {c=nc; break;}
+    int nc = u8_getc(in), byte = 0; char xbuf[3];
+    if (!(isxdigit(nc))) {c = nc; break;}
     if (len>=max) {
-      data=u8_realloc(data,max+128);
-      max=max+128;}
+      data = u8_realloc(data,max+128);
+      max = max+128;}
     xbuf[0]=c; xbuf[1]=nc; xbuf[2]='\0';
-    byte=strtol(xbuf,NULL,16);
+    byte = strtol(xbuf,NULL,16);
     data[len++]=byte;
-    c=u8_getc(in);}
+    c = u8_getc(in);}
   if (c=='"') {
-    fdtype result=fd_bytes2packet(NULL,len,data);
+    fdtype result = fd_bytes2packet(NULL,len,data);
     u8_free(data);
     return result;}
   else if (c<0) {
@@ -636,12 +636,12 @@ static fdtype parse_hex_packet(U8_INPUT *in)
 
 static fdtype parse_base64_packet(U8_INPUT *in)
 {
-  char *data=u8_malloc(128);
-  int max=128, len=0, c=u8_getc(in);
+  char *data = u8_malloc(128);
+  int max = 128, len = 0, c = u8_getc(in);
   while ((c>=0)&&(c!='"')) {
     if (len>=max) {
-      data=u8_realloc(data,max+128);
-      max=max+128;}
+      data = u8_realloc(data,max+128);
+      max = max+128;}
     if (!((isalnum(c))||
           (isspace(c))||(u8_isspace(c))||
           (c=='+')||(c=='/')||(c=='='))) {
@@ -653,15 +653,15 @@ static fdtype parse_base64_packet(U8_INPUT *in)
       u8_free(data);
       return FD_PARSE_ERROR;}
     data[len++]=c;
-    c=u8_getc(in);}
+    c = u8_getc(in);}
   if (c<0) {
     u8_free(data);
     return FD_EOX;}
   else if (c=='"') {
-    int n_bytes=0;
-    unsigned char *bytes=u8_read_base64(data,data+len,&n_bytes);
+    int n_bytes = 0;
+    unsigned char *bytes = u8_read_base64(data,data+len,&n_bytes);
     if (bytes) {
-      fdtype result=fd_make_packet(NULL,n_bytes,bytes);
+      fdtype result = fd_make_packet(NULL,n_bytes,bytes);
       u8_free(bytes); u8_free(data);
       return result;}
     else {
@@ -680,13 +680,13 @@ static fdtype parse_packet(U8_INPUT *in,int nextc)
   else if (nextc=='"') 
     return parse_text_packet(in);
   else if ((nextc=='X')||(nextc=='x')) {
-    int nc=u8_getc(in);
+    int nc = u8_getc(in);
     if (nc=='"') return parse_hex_packet(in);
     else {
       u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
       return FD_PARSE_ERROR;}}
   else if (nextc=='@') {
-    int nc=u8_getc(in);
+    int nc = u8_getc(in);
     if (nc=='"') return parse_base64_packet(in);
     else {
       u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
@@ -698,21 +698,21 @@ static fdtype parse_packet(U8_INPUT *in,int nextc)
 
 static int copy_string(u8_input s,u8_output a)
 {
-  int c=u8_getc(s);
+  int c = u8_getc(s);
   if (c!='"') return c;
   u8_putc(a,c);
-  while ((c=u8_getc(s))>=0) {
+  while ((c = u8_getc(s))>=0) {
       if (c == '"') {
         u8_putc(a,c);
         return c;}
       else if (c == '\\') {
-        int nextc=u8_getc(s);
+        int nextc = u8_getc(s);
         if (nextc=='\n') {
-          while (u8_isspace(nextc)) nextc=u8_getc(s);
+          while (u8_isspace(nextc)) nextc = u8_getc(s);
           u8_putc(a,nextc);
           continue;}
         else u8_ungetc(s,nextc);
-        c=read_escape(s);
+        c = read_escape(s);
         if (c<0) return c;
         u8_putc(a,c);}
       else u8_putc(a,c);}
@@ -725,44 +725,44 @@ static int copy_string(u8_input s,u8_output a)
 
 static fdtype *parse_vec(u8_input in,char end_char,int *size)
 {
-  fdtype *elts=u8_alloc_n(32,fdtype);
-  unsigned int n_elts=0, max_elts=32;
-  int ch=skip_whitespace(in);
+  fdtype *elts = u8_alloc_n(32,fdtype);
+  unsigned int n_elts = 0, max_elts = 32;
+  int ch = skip_whitespace(in);
   while ((ch>=0) && (ch != end_char) && (!(iscloser(ch)))) {
-    fdtype elt=fd_parser(in);
+    fdtype elt = fd_parser(in);
     if (FD_ABORTP(elt)) {
-      int i=0; while (i < n_elts) {
+      int i = 0; while (i < n_elts) {
         fd_decref(elts[i]); i++;}
       u8_free(elts);
-      if (elt == FD_EOX) *size=-1;
-      else if (elt == FD_PARSE_ERROR) *size=-2;
-      else *size=-3;
+      if (elt == FD_EOX) *size = -1;
+      else if (elt == FD_PARSE_ERROR) *size = -2;
+      else *size = -3;
       if (FD_ABORTP(elt)) fd_interr(elt);
       return NULL;}
     else if (n_elts == max_elts) {
-      fdtype *new_elts=u8_realloc_n(elts,max_elts*2,fdtype);
-      if (new_elts) {elts=new_elts; max_elts=max_elts*2;}
+      fdtype *new_elts = u8_realloc_n(elts,max_elts*2,fdtype);
+      if (new_elts) {elts = new_elts; max_elts = max_elts*2;}
       else {
-        int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
-        u8_free(elts); *size=n_elts;
+        int i = 0; while (i < n_elts) {fd_decref(elts[i]); i++;}
+        u8_free(elts); *size = n_elts;
         return NULL;}}
     elts[n_elts++]=elt;
-    ch=skip_whitespace(in);}
+    ch = skip_whitespace(in);}
   if (ch == end_char) {
-    *size=n_elts;
-    ch=u8_getc(in); /* Skip the end char */
+    *size = n_elts;
+    ch = u8_getc(in); /* Skip the end char */
     if (n_elts) return elts;
     else {
       u8_free(elts);
       return NULL;}}
   else {
-    int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
+    int i = 0; while (i < n_elts) {fd_decref(elts[i]); i++;}
     u8_free(elts);
     if (ch<0) {
-      *size=ch;
+      *size = ch;
       fd_seterr2(fd_UnexpectedEOF,"parse_vec");}
     else {
-      *size=-1;
+      *size = -1;
       fd_seterr(fd_MismatchedClose,"parse_vec",NULL,FD_CODE2CHAR(end_char));}
     return NULL;}
 }
@@ -770,9 +770,9 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
 static fdtype parse_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch=skip_whitespace(in); fdtype head=FD_VOID;
+  int ch = skip_whitespace(in); fdtype head = FD_VOID;
   if (ch<0)
-    if (ch==-1) return FD_EOX;
+    if (ch== -1) return FD_EOX;
     else return FD_PARSE_ERROR;
   else if (ch == ')') {
     /* The empty list case */
@@ -784,48 +784,48 @@ static fdtype parse_list(U8_INPUT *in)
     /* This is where we build the list.  We recur in the CAR direction and
        iterate in the CDR direction to avoid growing the stack. */
     struct FD_PAIR *scan;
-    fdtype car=fd_parser(in), head;
+    fdtype car = fd_parser(in), head;
     if (FD_ABORTP(car))
       return car;
     else {
-      scan=u8_alloc(struct FD_PAIR);
+      scan = u8_alloc(struct FD_PAIR);
       FD_INIT_CONS(scan,fd_pair_type);
       if (scan == NULL) {fd_decref(car); return FD_OOM;}
-      else head=fd_init_pair(scan,car,FD_EMPTY_LIST);}
-    ch=skip_whitespace(in);
+      else head = fd_init_pair(scan,car,FD_EMPTY_LIST);}
+    ch = skip_whitespace(in);
     while ((ch>=0) && (ch != ')')) {
       /* After starting with the head, we iterate until we get to
          the closing paren, except for the dotted pair exit clause. */
       fdtype list_elt; struct FD_PAIR *new_pair;
       if (ch == '.') {
-        int nextch=u8_getc(in), probed=u8_probec(in);
+        int nextch = u8_getc(in), probed = u8_probec(in);
         if (u8_isspace(probed)) break;
         else u8_ungetc(in,nextch);}
-      list_elt=fd_parser(in);
+      list_elt = fd_parser(in);
       if (FD_ABORTP(list_elt)) {
         fd_decref(head); return list_elt;}
-      new_pair=u8_alloc(struct FD_PAIR);
+      new_pair = u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
-        scan=new_pair;}
+        scan->cdr = fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan = new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
         return FD_OOM;}
-      ch=skip_whitespace(in);}
+      ch = skip_whitespace(in);}
     if (ch<0) {
       fd_decref(head);
-      if (ch==-1) return FD_EOX;
+      if (ch== -1) return FD_EOX;
       else return FD_PARSE_ERROR;}
     else if (ch == ')') {
       u8_getc(in);
       return head;}
     else {
       fdtype tail;
-      tail=fd_parser(in);
+      tail = fd_parser(in);
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
-      skip_whitespace(in); ch=u8_getc(in);
-      if (ch == ')') {scan->cdr=tail; return head;}
+      skip_whitespace(in); ch = u8_getc(in);
+      if (ch == ')') {scan->cdr = tail; return head;}
       fd_decref(head); fd_decref(tail);
       return FD_PARSE_ERROR;}}
 }
@@ -833,9 +833,9 @@ static fdtype parse_list(U8_INPUT *in)
 static fdtype parse_bracket_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch=skip_whitespace(in); fdtype head=FD_VOID;
+  int ch = skip_whitespace(in); fdtype head = FD_VOID;
   if (ch<0)
-    if (ch==-1) return FD_EOX;
+    if (ch== -1) return FD_EOX;
     else return FD_PARSE_ERROR;
   else if (ch == ']') {
     /* The empty list case */
@@ -847,56 +847,56 @@ static fdtype parse_bracket_list(U8_INPUT *in)
     /* This is where we build the list.  We recur in the CAR direction and
        iterate in the CDR direction to avoid growing the stack. */
     struct FD_PAIR *scan;
-    fdtype car=fd_parser(in), head;
+    fdtype car = fd_parser(in), head;
     if (FD_ABORTP(car))
       return car;
     else {
-      scan=u8_alloc(struct FD_PAIR);
+      scan = u8_alloc(struct FD_PAIR);
       FD_INIT_CONS(scan,fd_pair_type);
       if (scan == NULL) {fd_decref(car); return FD_OOM;}
-      else head=fd_init_pair(scan,car,FD_EMPTY_LIST);}
-    ch=skip_whitespace(in);
+      else head = fd_init_pair(scan,car,FD_EMPTY_LIST);}
+    ch = skip_whitespace(in);
     while ((ch>=0) && (ch != ']')) {
       /* After starting with the head, we iterate until we get to
          the closing paren, except for the dotted pair exit clause. */
       fdtype list_elt; struct FD_PAIR *new_pair;
       if (ch == '.') {
-        int nextch=u8_getc(in), probed=u8_probec(in);
+        int nextch = u8_getc(in), probed = u8_probec(in);
         if (u8_isspace(probed)) break;
         else u8_ungetc(in,nextch);}
-      list_elt=fd_parser(in);
+      list_elt = fd_parser(in);
       if (FD_ABORTP(list_elt)) {
         fd_decref(head); return list_elt;}
-      new_pair=u8_alloc(struct FD_PAIR);
+      new_pair = u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
-        scan=new_pair;}
+        scan->cdr = fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan = new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
         return FD_OOM;}
-      ch=skip_whitespace(in);}
+      ch = skip_whitespace(in);}
     if (ch<0) {
       fd_decref(head);
-      if (ch==-1) return FD_EOX;
+      if (ch== -1) return FD_EOX;
       else return FD_PARSE_ERROR;}
     else if (ch == ']') {
       u8_getc(in);
       return head;}
     else {
       fdtype tail;
-      tail=fd_parser(in);
+      tail = fd_parser(in);
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
-      skip_whitespace(in); ch=u8_getc(in);
-      if (ch == ')') {scan->cdr=tail; return head;}
+      skip_whitespace(in); ch = u8_getc(in);
+      if (ch == ')') {scan->cdr = tail; return head;}
       fd_decref(head); fd_decref(tail);
       return FD_PARSE_ERROR;}}
 }
 
 static fdtype parse_vector(U8_INPUT *in)
 {
-  int n_elts=-2;
-  fdtype *elts=parse_vec(in,')',&n_elts);
+  int n_elts = -2;
+  fdtype *elts = parse_vec(in,')',&n_elts);
   if (n_elts>=0)
     return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
@@ -904,8 +904,8 @@ static fdtype parse_vector(U8_INPUT *in)
 
 static fdtype parse_rail(U8_INPUT *in)
 {
-  int n_elts=-2;
-  fdtype *elts=parse_vec(in,')',&n_elts);
+  int n_elts = -2;
+  fdtype *elts = parse_vec(in,')',&n_elts);
   if (n_elts>=0)
     return fd_init_rail(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
@@ -913,37 +913,37 @@ static fdtype parse_rail(U8_INPUT *in)
 
 static fdtype parse_slotmap(U8_INPUT *in)
 {
-  int n_elts=-2;
-  fdtype *elts=parse_vec(in,']',&n_elts);
+  int n_elts = -2;
+  fdtype *elts = parse_vec(in,']',&n_elts);
   if (FD_EXPECT_FALSE(n_elts<0)) return FD_PARSE_ERROR;
   else if (n_elts>7)
     return fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
   else {
-    fdtype result=fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
+    fdtype result = fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
     u8_free(elts);
     return result;}
 }
 
 static fdtype parse_choice(U8_INPUT *in)
 {
-  int ch=skip_whitespace(in);
+  int ch = skip_whitespace(in);
   if (ch == '}') {
     u8_getc(in); return FD_EMPTY_CHOICE;}
   else if (ch < 0)
-    if (ch==-1) return FD_EOX; else return FD_PARSE_ERROR;
+    if (ch== -1) return FD_EOX; else return FD_PARSE_ERROR;
   else {
-    int n_elts=-2; fdtype *elts=parse_vec(in,'}',&n_elts);
+    int n_elts = -2; fdtype *elts = parse_vec(in,'}',&n_elts);
     if (n_elts==0) return FD_EMPTY_CHOICE;
-    else if (elts==NULL)
+    else if (elts == NULL)
       return FD_PARSE_ERROR;
     else if (n_elts==1) {
-      fdtype v=elts[0]; u8_free(elts);
+      fdtype v = elts[0]; u8_free(elts);
       return v;}
     else if ((elts) && (n_elts>0)) {
-      struct FD_CHOICE *ch=fd_alloc_choice(n_elts);
-      fdtype result=fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
+      struct FD_CHOICE *ch = fd_alloc_choice(n_elts);
+      fdtype result = fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
       if (FD_XCHOICE_SIZE(ch)==1) {
-        result=FD_XCHOICE_DATA(ch)[0];
+        result = FD_XCHOICE_DATA(ch)[0];
         u8_free(ch);}
       u8_free(elts);
       return result;}
@@ -952,23 +952,23 @@ static fdtype parse_choice(U8_INPUT *in)
 
 static fdtype parse_qchoice(U8_INPUT *in)
 {
-  int n_elts=-2;
-  fdtype *elts=parse_vec(in,'}',&n_elts);
+  int n_elts = -2;
+  fdtype *elts = parse_vec(in,'}',&n_elts);
   if (n_elts==0)
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
                            FD_EMPTY_CHOICE);
   else if (n_elts==1) {
-    fdtype result=elts[0]; u8_free(elts);
+    fdtype result = elts[0]; u8_free(elts);
     return result;}
   else if (n_elts>1) {
-    struct FD_CHOICE *xch=fd_alloc_choice(n_elts);
-    fdtype choice=fd_init_choice(xch,n_elts,elts,FD_CHOICE_DOSORT);
+    struct FD_CHOICE *xch = fd_alloc_choice(n_elts);
+    fdtype choice = fd_init_choice(xch,n_elts,elts,FD_CHOICE_DOSORT);
     if (FD_XCHOICE_SIZE(xch)==1) {
-      fdtype result=FD_XCHOICE_DATA(xch)[0];
+      fdtype result = FD_XCHOICE_DATA(xch)[0];
       u8_free(elts); return result;}
     u8_free(elts);
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),choice);}
-  else if (n_elts==-1) return FD_EOX;
+  else if (n_elts== -1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
 
@@ -976,10 +976,10 @@ static fdtype parse_qchoice(U8_INPUT *in)
 
 static fdtype recreate_record(int n,fdtype *v)
 {
-  int i=0;
-  struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(v[0]);
+  int i = 0;
+  struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(v[0]);
   if ((entry) && (entry->fd_compound_parser)) {
-    fdtype result=entry->fd_compound_parser(n,v,entry);
+    fdtype result = entry->fd_compound_parser(n,v,entry);
     if (!(FD_VOIDP(result))) {
       while (i<n) {fd_decref(v[i]); i++;}
       if (v) u8_free(v);
@@ -987,9 +987,9 @@ static fdtype recreate_record(int n,fdtype *v)
   {
     struct FD_COMPOUND *c=
       u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
-    fdtype *data=&(c->compound_0); fd_init_compound(c,v[0],0,0);
-    c->fd_n_elts=n-1;
-    i=1; while (i<n) {data[i-1]=v[i]; i++;}
+    fdtype *data = &(c->compound_0); fd_init_compound(c,v[0],0,0);
+    c->fd_n_elts = n-1;
+    i = 1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);
     return FDTYPE_CONS(c);}
 }
@@ -997,12 +997,12 @@ static fdtype recreate_record(int n,fdtype *v)
 static fdtype parse_record(U8_INPUT *in)
 {
   int n_elts;
-  fdtype *elts=parse_vec(in,')',&n_elts);
+  fdtype *elts = parse_vec(in,')',&n_elts);
   if (n_elts>0)
     return recreate_record(n_elts,elts);
   else if (n_elts==0)
     return fd_err(fd_CantParseRecord,"parse_record","empty record",FD_VOID);
-  else if (n_elts==-1) return FD_EOX;
+  else if (n_elts== -1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
 
@@ -1019,9 +1019,9 @@ FD_EXPORT
 */
 fdtype fd_parser(u8_input in)
 {
-  int inchar=skip_whitespace(in);
+  int inchar = skip_whitespace(in);
   if (inchar<0) {
-    if (inchar==-1) return FD_EOX;
+    if (inchar== -1) return FD_EOX;
     else return FD_PARSE_ERROR;}
   else switch (inchar) {
   case ')': case ']': case '}': {
@@ -1043,20 +1043,20 @@ fdtype fd_parser(u8_input in)
   case '\'': {
     fdtype content;
     u8_getc(in); /* Skip the quote mark */
-    content=fd_parser(in);
+    content = fd_parser(in);
     if (FD_ABORTP(content)) return content;
     else return fd_make_list(2,quote_symbol,content);}
   case '`': {
     fdtype content;
     u8_getc(in); /* Skip the quote mark */
-    content=fd_parser(in);
+    content = fd_parser(in);
     if (FD_ABORTP(content)) return content;
     else return fd_make_list(2,quasiquote_symbol,content);}
   case ',': {
-    fdtype content; int c=u8_getc(in); c=u8_getc(in);
+    fdtype content; int c = u8_getc(in); c = u8_getc(in);
     /* Skip the quote mark and check for an atsign. */
     if (c != '@') u8_ungetc(in,c);
-    content=fd_parser(in);
+    content = fd_parser(in);
     if (FD_ABORTP(content)) return content;
     else if (c == '@')
       return fd_make_list(2,unquotestar_symbol,content);
@@ -1065,36 +1065,36 @@ fdtype fd_parser(u8_input in)
     struct U8_OUTPUT tmpbuf; char buf[128];
     fdtype result; U8_MAYBE_UNUSED int c;
     U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-    c=copy_atom(in,&tmpbuf);
-    result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+    c = copy_atom(in,&tmpbuf);
+    result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
     if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
     return result;}
   case '#': {
     /* Absorb the # and set ch to the next character, dispatching on
        that */
-    int ch=u8_getc(in); ch=u8_getc(in);
+    int ch = u8_getc(in); ch = u8_getc(in);
     switch (ch) {
     case '(': return parse_vector(in);
     case '~': {
-      ch=u8_getc(in); if (ch<0) return FD_EOX;
+      ch = u8_getc(in); if (ch<0) return FD_EOX;
       if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
       return parse_rail(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '|': {
-      int bar=0;
+      int bar = 0;
       /* Skip block #|..|# comment */
-      while ((ch=u8_getc(in))>=0)
-        if (ch=='|') bar=1;
+      while ((ch = u8_getc(in))>=0)
+        if (ch=='|') bar = 1;
         else if ((bar) && (ch=='#')) break;
-        else bar=0;
+        else bar = 0;
       if (ch<0) {
         u8_seterr(fd_UnterminatedBlockComment,"fd_parser",NULL);
         return FD_PARSE_ERROR;}
       else return fd_parser(in);}
     case '*': {
-      int nextc=u8_getc(in);
-      fdtype result=parse_packet(in,nextc);
+      int nextc = u8_getc(in);
+      fdtype result = parse_packet(in,nextc);
       if (FD_PACKETP(result)) {
         FD_SET_CONS_TYPE(result,fd_secret_type);}
       return result;}
@@ -1104,12 +1104,12 @@ fdtype fd_parser(u8_input in)
     case '<':
       return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
     case ';': {
-      fdtype content=fd_parser(in);
+      fdtype content = fd_parser(in);
       if (FD_ABORTP(content)) return content;
       else return fd_conspair(comment_symbol,
                               fd_conspair(content,FD_EMPTY_LIST));}
     case '%': {
-      int c=u8_getc(in);
+      int c = u8_getc(in);
       if (c=='(') return parse_record(in);
       else return FD_PARSE_ERROR;}
     case '\\': return parse_character(in);
@@ -1124,18 +1124,18 @@ fdtype fd_parser(u8_input in)
         u8_byte buf[16]; struct U8_OUTPUT out; int nch;
         fdtype punct_code, punct_code_arg;
         U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
-        u8_putc(&out,'#'); u8_putc(&out,ch); nch=u8_getc(in);
+        u8_putc(&out,'#'); u8_putc(&out,ch); nch = u8_getc(in);
         while ((u8_ispunct(nch))&&
-               ((nch>128)||(strchr("\"([{",nch)==NULL))) {
+               ((nch>128)||(strchr("\"([{",nch) == NULL))) {
           u8_putc(&out,nch);
           if ((out.u8_write-out.u8_outbuf)>11) {
             fd_seterr(fd_ParseError,"fd_parser","invalid hash # prefix",
                       fd_stream2string(&out));
             return FD_PARSE_ERROR;}
-          else nch=u8_getc(in);}
+          else nch = u8_getc(in);}
         u8_ungetc(in,nch);
-        punct_code=fd_intern(buf);
-        punct_code_arg=fd_parser(in);
+        punct_code = fd_intern(buf);
+        punct_code_arg = fd_parser(in);
         return fd_make_list(2,punct_code,punct_code_arg);}
       else {
         /* In this case, it's just an atom */
@@ -1154,11 +1154,11 @@ static fdtype parse_atom(u8_input in,int ch1,int ch2)
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
-  c=copy_atom(in,&tmpbuf);
-  if (tmpbuf.u8_write==tmpbuf.u8_outbuf) result=FD_EOX;
+  c = copy_atom(in,&tmpbuf);
+  if (tmpbuf.u8_write == tmpbuf.u8_outbuf) result = FD_EOX;
   else if (ch1 == '|')
-    result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-  else result=fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+    result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+  else result = fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
 }
@@ -1174,7 +1174,7 @@ FD_EXPORT
 */
 fdtype fd_parse_expr(u8_input in)
 {
-  int inchar=skip_whitespace(in);
+  int inchar = skip_whitespace(in);
   if (inchar<0)
     return FD_EOF;
   else return fd_parser(in);
@@ -1215,7 +1215,7 @@ fdtype fd_parse_arg(u8_string arg)
   else if (*arg == ':')
     if (arg[1]=='\0') return fdtype_string(arg);
     else {
-      fdtype val=fd_parse(arg+1);
+      fdtype val = fd_parse(arg+1);
       if (FD_ABORTP(val)) {
         u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
         fd_clear_errors(1);
@@ -1225,14 +1225,14 @@ fdtype fd_parse_arg(u8_string arg)
   else if ((isdigit(arg[0])) ||
            ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
            ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
-    fdtype num=fd_string2number(arg,-1);
+    fdtype num = fd_string2number(arg,-1);
     if (FD_NUMBERP(num)) return num;
     else return fdtype_string(arg);}
   else if (strchr("@{#(\"|",arg[0])) {
     fdtype result;
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
-    result=fd_parser(&stream);
+    result = fd_parser(&stream);
     if (fd_skip_whitespace(&stream)>0) {
       fd_decref(result);
       return fdtype_string(arg);}
@@ -1251,13 +1251,13 @@ FD_EXPORT
 */
 fdtype fd_read_arg(u8_input in)
 {
-  int c=skip_whitespace(in);
+  int c = skip_whitespace(in);
   if (c<0) return  fdtype_string("");
   else if (c == ':') {
-    int nc=u8_getc(in); nc=u8_probec(in);
+    int nc = u8_getc(in); nc = u8_probec(in);
     if (nc<0) return fdtype_string(":");
     else {
-      fdtype val=fd_parser(in);
+      fdtype val = fd_parser(in);
       if (FD_ABORTP(val)) {
         u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg");
         fd_clear_errors(1);
@@ -1268,20 +1268,20 @@ fdtype fd_read_arg(u8_input in)
     return fd_parser(in);
   else {
     struct U8_OUTPUT out; fdtype result;
-    U8_INIT_OUTPUT(&out,256); c=u8_getc(in);
+    U8_INIT_OUTPUT(&out,256); c = u8_getc(in);
     while ((c>=0)&&(!(u8_isspace(c)))) {
       if (c=='\\') {
-        c=u8_getc(in);
+        c = u8_getc(in);
         u8_putc(&out,c);
-        c=u8_getc(in);}
+        c = u8_getc(in);}
       else if (c=='|') {
-        c=u8_getc(in);
+        c = u8_getc(in);
         while ((c>=0)&&(c!='|')) {
-          u8_putc(&out,c); c=u8_getc(in);}}
+          u8_putc(&out,c); c = u8_getc(in);}}
       else {
         u8_putc(&out,c);
-        c=u8_getc(in);}}
-    result=fd_stream_string(&out);
+        c = u8_getc(in);}}
+    result = fd_stream_string(&out);
     u8_close((u8_stream)&out);
     return result;}
 }
@@ -1290,12 +1290,12 @@ FD_EXPORT void fd_init_parse_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  quote_symbol=fd_intern("QUOTE");
-  quasiquote_symbol=fd_intern("QUASIQUOTE");
-  unquote_symbol=fd_intern("UNQUOTE");
-  unquotestar_symbol=fd_intern("UNQUOTE*");
-  histref_symbol=fd_intern("%HISTREF");
-  comment_symbol=fd_intern("COMMENT");
+  quote_symbol = fd_intern("QUOTE");
+  quasiquote_symbol = fd_intern("QUASIQUOTE");
+  unquote_symbol = fd_intern("UNQUOTE");
+  unquotestar_symbol = fd_intern("UNQUOTE*");
+  histref_symbol = fd_intern("%HISTREF");
+  comment_symbol = fd_intern("COMMENT");
 }
 
 /* Emacs local variables
