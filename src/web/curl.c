@@ -36,7 +36,7 @@ static pthread_mutex_t *ssl_lockarray;
 #endif
 
 static fdtype curl_defaults, url_symbol;
-static fdtype content_type_symbol, charset_symbol;
+static fdtype content_type_symbol, charset_symbol, pcontent_symbol;
 static fdtype content_length_symbol, etag_symbol, content_encoding_symbol;
 static fdtype verbose_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;
@@ -684,7 +684,7 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,
   else {
     cval=fd_make_packet(NULL,data->size,data->bytes);
     u8_free(data->bytes);}
-  fd_add(result,FDSYM_CONTENT,cval);
+  fd_add(result,pcontent_symbol,cval);
   {
     char *urlbuf; long filetime;
     CURLcode rv=curl_easy_getinfo(h->handle,CURLINFO_EFFECTIVE_URL,&urlbuf);
@@ -818,7 +818,7 @@ static fdtype urlcontent(fdtype url,fdtype curl)
   if (FD_ABORTP(result)) {
     return result;}
   else {
-    content=fd_get(result,FDSYM_CONTENT,FD_EMPTY_CHOICE);
+    content=fd_get(result,pcontent_symbol,FD_EMPTY_CHOICE);
     fd_decref(result);
     return content;}
 }
@@ -905,7 +905,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
           else if ((FD_CHOICEP(name)) || (FD_ACHOICEP(name))) {
             FD_DO_CHOICES(nm,name) {
               if (FD_SYMBOLP(nm)) fd_add(result,nm,elt);}}}}}
-      fd_add(result,FDSYM_CONTENT,xmlret->xml_head);
+      fd_add(result,pcontent_symbol,xmlret->xml_head);
       u8_free(buf); fd_decref(xmlret->xml_head);
       return result;}
     else {
@@ -914,7 +914,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   else {
     fdtype err;
     cval=fd_make_packet(NULL,data.size,data.bytes);
-    fd_add(result,FDSYM_CONTENT,cval); fd_decref(cval);
+    fd_add(result,pcontent_symbol,cval); fd_decref(cval);
     err=fd_err(NonTextualContent,"urlxml",FD_STRDATA(url),result);
     fd_decref(result);
     u8_free(data.bytes);
@@ -1326,7 +1326,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
       ((strncmp(uri,"ftp:",4))==0)) {
     if (fetch)  {
       fdtype result=fetchurl(NULL,uri);
-      fdtype content=fd_get(result,FDSYM_CONTENT,FD_EMPTY_CHOICE);
+      fdtype content=fd_get(result,pcontent_symbol,FD_EMPTY_CHOICE);
       if (FD_PACKETP(content)) {
         u8_encoding enc=
           ((enc_name==NULL)?(u8_get_default_encoding()):
@@ -1457,6 +1457,7 @@ FD_EXPORT void fd_init_curl_c()
   atexit(global_curl_cleanup);
 
   url_symbol=fd_intern("URL");
+  pcontent_symbol=fd_intern("%CONTENT");
   content_type_symbol=fd_intern("CONTENT-TYPE");
   content_length_symbol=fd_intern("CONTENT-LENGTH");
   content_encoding_symbol=fd_intern("CONTENT-ENCODING");

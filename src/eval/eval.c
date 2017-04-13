@@ -1943,7 +1943,7 @@ static fdtype fixchoice_prim(fdtype arg)
 {
   if (FD_ACHOICEP(arg))
     return fd_make_simple_choice(arg);
-  else fd_incref(arg);
+  else return fd_incref(arg);
 }
 
 static fdtype choiceref_prim(fdtype arg,fdtype off)
