@@ -495,14 +495,27 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_FIX2UINT(x)   \
   ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
 
+#define FD_INT2FIX(x)						\
+  ((fdtype)							\
+   ((FD_EXPECT_FALSE(x>FD_MAX_FIXNUM)) ? (FD_MAX_FIXNUM) :	\
+    (FD_EXPECT_FALSE(x<FD_MIN_FIXNUM)) ? (FD_MIN_FIXNUM) :	\
+    ((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
+
+#define FD_MAKE_FIXNUM(x) \
+  ((fdtype)							\
+   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+    (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) )))
+
 #define FD_INT2DTYPE(x) \
   ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||			\
     ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?			\
    (fd_make_bigint(to64(x))) :					\
    ((fdtype)							\
     (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
-	      (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
+     (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
 #define FD_INT(x) (FD_INT2DTYPE(x))
+#define FD_MAKEINT(x) (FD_INT2DTYPE(x))
 
 #define FD_UINT2DTYPE(x) \
   (((to64u(x)) > (to64(FD_MAX_FIXNUM))) ?			\
@@ -530,11 +543,15 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #if FD_FIXNUM_BITS <= 30
 #define FD_INTP(x) (FD_FIXNUMP(x))
 #define FD_UINTP(x) ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0))
+#define FD_LONGP(x) (FD_FIXNUMP(x))
+#define FD_ULONGP(x) ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0))
 #else
 #define FD_INTP(x) \
   ((FD_FIXNUMP(x))&&(FD_FIX2INT(x)<=INT_MAX)&&(FD_FIX2INT(x)>=INT_MIN))
 #define FD_UINTP(x) \
   ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0)&&(FD_FIX2INT(x)<=INT_MAX))
+#define FD_LONGP(x) (FD_FIXNUMP(x))
+#define FD_ULONGP(x) ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0))
 #endif
 
 #define FD_BYTEP(x) \
