@@ -25,17 +25,17 @@
 #endif
 #include <libu8/u8srvfns.h>
 
-static fd_pool primary_pool=NULL;
+static fd_pool primary_pool = NULL;
 static fd_pool served_pools[FDDBSERV_MAX_POOLS];
-static int n_served_pools=0;
-struct FD_COMPOUND_INDEX *primary_index=NULL;
-static int read_only=0, locking=1;
+static int n_served_pools = 0;
+struct FD_COMPOUND_INDEX *primary_index = NULL;
+static int read_only = 0, locking = 1;
 
 fd_exception fd_PrivateOID=_("private OID");
 
 static int served_poolp(fd_pool p)
 {
-  int i=0; while (i<n_served_pools)
+  int i = 0; while (i<n_served_pools)
              if (served_pools[i]==p) return 1;
              else i++;
   return 0;
@@ -43,8 +43,8 @@ static int served_poolp(fd_pool p)
 
 /* Change logs */
 
-static int init_timestamp=0;
-static int change_count=0;
+static int init_timestamp = 0;
+static int change_count = 0;
 static u8_mutex changelog_lock;
 
 struct FD_CHANGELOG_ENTRY {
@@ -56,31 +56,31 @@ struct FD_CHANGELOG {
 
 static struct FD_CHANGELOG oid_changelog, index_changelog;
 static struct FD_SUBINDEX_CHANGELOG {
-  fd_index ix; struct FD_CHANGELOG *clog;} *subindex_changelogs=NULL;
-static int n_subindex_changelogs=0;
+  fd_index ix; struct FD_CHANGELOG *clog;} *subindex_changelogs = NULL;
+static int n_subindex_changelogs = 0;
 
 static void init_changelog(struct FD_CHANGELOG *clog,int size)
 {
-  clog->entries=u8_alloc_n(size,struct FD_CHANGELOG_ENTRY);
-  clog->max=size; clog->point=0; clog->full=0;
+  clog->entries = u8_alloc_n(size,struct FD_CHANGELOG_ENTRY);
+  clog->max = size; clog->point = 0; clog->full = 0;
 }
 
 static struct FD_CHANGELOG *get_subindex_changelog(fd_index ix,int make)
 {
-  struct FD_CHANGELOG *clog=NULL; int i=0;
+  struct FD_CHANGELOG *clog = NULL; int i = 0;
   u8_lock_mutex(&changelog_lock);
   while (i < n_subindex_changelogs)
     if (subindex_changelogs[i].ix == ix) break; else i++;
-  if (subindex_changelogs[i].ix == ix) clog=(subindex_changelogs[i].clog);
-  else if (make == 0) clog=NULL;
+  if (subindex_changelogs[i].ix == ix) clog = (subindex_changelogs[i].clog);
+  else if (make == 0) clog = NULL;
   else {
-    clog=u8_alloc(struct FD_CHANGELOG);
+    clog = u8_alloc(struct FD_CHANGELOG);
     if (subindex_changelogs)
       subindex_changelogs=
         u8_realloc_n(subindex_changelogs,n_subindex_changelogs+1,
                      struct FD_SUBINDEX_CHANGELOG);
-    else subindex_changelogs=u8_alloc(struct FD_SUBINDEX_CHANGELOG);
-    subindex_changelogs[n_subindex_changelogs].ix=ix; subindex_changelogs[n_subindex_changelogs].clog=clog;
+    else subindex_changelogs = u8_alloc(struct FD_SUBINDEX_CHANGELOG);
+    subindex_changelogs[n_subindex_changelogs].ix = ix; subindex_changelogs[n_subindex_changelogs].clog = clog;
     init_changelog(clog,1024);
     n_subindex_changelogs++;}
   u8_unlock_mutex(&changelog_lock);
@@ -91,16 +91,16 @@ static void add_to_changelog(struct FD_CHANGELOG *clog,fdtype keys)
 {
   struct FD_CHANGELOG_ENTRY *entries; int point;
   u8_lock_mutex(&changelog_lock);
-  entries=clog->entries; point=clog->point;
+  entries = clog->entries; point = clog->point;
   if (clog->full) {
     fd_decref(entries[point].keys);}
-  entries[point].moment=change_count++;
-  entries[point].keys=fd_incref(keys);
+  entries[point].moment = change_count++;
+  entries[point].keys = fd_incref(keys);
   if (clog->full)
-    if (clog->point == clog->max) clog->point=0;
+    if (clog->point == clog->max) clog->point = 0;
     else clog->point++;
   else if (clog->point == clog->max) {
-    clog->point=0; clog->full=1;}
+    clog->point = 0; clog->full = 1;}
   else clog->point++;
   u8_unlock_mutex(&changelog_lock);
 }
@@ -110,29 +110,29 @@ static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
   fdtype result;
   u8_lock_mutex(&changelog_lock);
   {
-    int bottom=((clog->full) ? (clog->point) : 0);
-    int top=((clog->full) ? ((clog->point) ? (clog->point-1) : (clog->max)) : (clog->point-1));
-    struct FD_CHANGELOG_ENTRY *entries=clog->entries;
-    *new_cstamp=change_count;
-    if ((clog->full == 0) && (clog->point == 0)) result=FD_EMPTY_CHOICE; /* Changelog is empty */
-    else if (cstamp < entries[bottom].moment) result=FD_FALSE; /* Too far back. */
-    else if (cstamp > entries[top].moment) result=FD_EMPTY_CHOICE; /* No changes. */
+    int bottom = ((clog->full) ? (clog->point) : 0);
+    int top = ((clog->full) ? ((clog->point) ? (clog->point-1) : (clog->max)) : (clog->point-1));
+    struct FD_CHANGELOG_ENTRY *entries = clog->entries;
+    *new_cstamp = change_count;
+    if ((clog->full == 0) && (clog->point == 0)) result = FD_EMPTY_CHOICE; /* Changelog is empty */
+    else if (cstamp < entries[bottom].moment) result = FD_FALSE; /* Too far back. */
+    else if (cstamp > entries[top].moment) result = FD_EMPTY_CHOICE; /* No changes. */
     else {
-      fdtype changes=FD_EMPTY_CHOICE;
-      int i=top, point=clog->point; while (i >= 0)
+      fdtype changes = FD_EMPTY_CHOICE;
+      int i = top, point = clog->point; while (i >= 0)
         if (cstamp <= entries[i].moment) {
-          fdtype key=entries[i--].keys;
+          fdtype key = entries[i--].keys;
           fd_incref(key);
           FD_ADD_TO_CHOICE(changes,key);}
         else break;
       if (cstamp > entries[i].moment) {
-        i=clog->max; while (i >= point)
+        i = clog->max; while (i >= point)
           if (cstamp <= entries[i].moment) {
-            fdtype key=entries[i--].keys;
+            fdtype key = entries[i--].keys;
             fd_incref(key);
             FD_ADD_TO_CHOICE(changes,key);}
           else break;}
-      result=changes;}}
+      result = changes;}}
   u8_unlock_mutex(&changelog_lock);
   return result;
 }
@@ -175,13 +175,13 @@ static fdtype iserver_changes(fdtype sid,fdtype xid)
 
 static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
 {
-  fd_index ix=fd_indexptr(index);
-  struct FD_CHANGELOG *clog=get_subindex_changelog(ix,0);
+  fd_index ix = fd_indexptr(index);
+  struct FD_CHANGELOG *clog = get_subindex_changelog(ix,0);
   if (clog == NULL) return FD_EMPTY_CHOICE;
   else if (FD_FIX2INT(sid) != init_timestamp) return FD_FALSE;
   else {
     int new_syncstamp;
-    fdtype changes=get_changes(clog,FD_FIX2INT(xid),&new_syncstamp);
+    fdtype changes = get_changes(clog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
                                          FD_INT(new_syncstamp)));
@@ -193,9 +193,9 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
 /** OID Locking **/
 
 static struct FD_HASHTABLE server_locks, server_locks_inv;
-static unsigned int n_locks=0;
-static FD_STREAM *locks_file=NULL;
-static u8_string locks_filename=NULL;
+static unsigned int n_locks = 0;
+static FD_STREAM *locks_file = NULL;
+static u8_string locks_filename = NULL;
 static void update_server_lock_file();
 
 fd_exception OIDNotLocked=_("The OID is not locked");
@@ -208,9 +208,9 @@ static int lock_oid(fdtype oid,fdtype id)
   fdtype holder;
   if (locking == 0) return 1;
   u8_lock_mutex(&server_locks_lock);
-  holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
+  holder = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(holder)) {
-    fd_pool p=fd_oid2pool(oid);
+    fd_pool p = fd_oid2pool(oid);
     if ((fd_pool_lock(p,oid)) == 0) {
       u8_unlock_mutex(&server_locks_lock); return 0;}
     fd_hashtable_store(&server_locks,oid,id); n_locks++;
@@ -232,7 +232,7 @@ static int lock_oid(fdtype oid,fdtype id)
 
 static int check_server_lock(fdtype oid,fdtype id)
 {
-  fdtype holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
+  fdtype holder = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(holder)) return 0;
   else if (FDTYPE_EQUAL(id,holder)) {
     fd_decref(holder); return 1;}
@@ -244,11 +244,11 @@ static int clear_server_lock(fdtype oid,fdtype id)
   fdtype holder;
   if (locking == 0) return 1;
   u8_lock_mutex(&server_locks_lock);
-  holder=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
+  holder = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(holder)) {u8_unlock_mutex(&server_locks_lock); return 0;}
   else if (FDTYPE_EQUAL(id,holder)) {
-    fdtype all_locks=fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
-    int lock_count=FD_CHOICE_SIZE(all_locks);
+    fdtype all_locks = fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
+    int lock_count = FD_CHOICE_SIZE(all_locks);
     fd_decref(holder);
     fd_hashtable_store(&server_locks,oid,FD_EMPTY_CHOICE);
     if (lock_count == 0)
@@ -274,7 +274,7 @@ static void remove_all_server_locks(fdtype id)
   if (locking == 0) return;
   u8_lock_mutex(&server_locks_lock);
   {
-    fdtype locks=fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
+    fdtype locks = fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(oid,locks) {
       fd_hashtable_drop(&server_locks,oid,FD_VOID);}
     fd_decref(locks);
@@ -285,7 +285,7 @@ static void remove_all_server_locks(fdtype id)
 
 static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 {
-  struct FD_STREAM *out=(fd_stream )outfilep;
+  struct FD_STREAM *out = (fd_stream )outfilep;
   fd_write_dtype(fd_writebuf(out),key);
   fd_write_dtype(fd_writebuf(out),value);
   return 0;
@@ -294,16 +294,16 @@ static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 static void open_server_lock_stream(u8_string file)
 {
   if (u8_file_existsp(file)) {
-    struct FD_STREAM *stream=fd_open_file(file,FD_FILE_READ);
-    fd_inbuf in=fd_readbuf(stream);
-    fdtype a=fd_read_dtype(in), b=fd_read_dtype(in);
+    struct FD_STREAM *stream = fd_open_file(file,FD_FILE_READ);
+    fd_inbuf in = fd_readbuf(stream);
+    fdtype a = fd_read_dtype(in), b = fd_read_dtype(in);
     while (!(FD_EOFP(a))) {
       if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
-      a=fd_read_dtype(in); b=fd_read_dtype(in);}
+      a = fd_read_dtype(in); b = fd_read_dtype(in);}
     fd_close_stream(stream,0);
     u8_removefile(file);}
-  locks_file=fd_open_file(file,FD_FILE_CREATE);
-  locks_filename=u8_strdup(file);
+  locks_file = fd_open_file(file,FD_FILE_CREATE);
+  locks_filename = u8_strdup(file);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_flush_stream(locks_file);
 }
@@ -318,10 +318,10 @@ static void update_server_lock_file()
   u8_string temp_file;
   if (locks_filename == NULL) return;
   u8_lock_mutex(&server_locks_lock);
-  temp_file=u8_mkstring("%s.bak",locks_filename);
+  temp_file = u8_mkstring("%s.bak",locks_filename);
   if (locks_file) fd_close_stream(locks_file,0);
   u8_movefile(locks_filename,temp_file);
-  locks_file=fd_open_file(locks_filename,FD_FILE_CREATE);
+  locks_file = fd_open_file(locks_filename,FD_FILE_CREATE);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_flush_stream(locks_file);
   u8_removefile(temp_file);
@@ -361,13 +361,13 @@ static fdtype lock_oid_prim(fdtype oid,fdtype id)
 static fdtype unlock_oid_prim(fdtype oid,fdtype id,fdtype value)
 {
   if (locking == 0) {
-    fd_pool p=fd_oid2pool(oid);
+    fd_pool p = fd_oid2pool(oid);
     fd_set_oid_value(oid,value);
     add_to_changelog(&oid_changelog,oid);
     fd_pool_unlock(p,oid,commit_modified);
     return FD_TRUE;}
   else {
-    fd_pool p=fd_oid2pool(oid);
+    fd_pool p = fd_oid2pool(oid);
     if (check_server_lock(oid,id)) {
       fd_set_oid_value(oid,value);
       clear_server_lock(oid,id);
@@ -389,7 +389,7 @@ static fdtype break_server_lock_prim(fdtype oid)
 {
   if (locking == 0) return FD_TRUE;
   else {
-    fdtype id=fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
+    fdtype id = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
     if (FD_EMPTY_CHOICEP(id)) return FD_FALSE;
     else {
       clear_server_lock(oid,id);
@@ -412,8 +412,8 @@ static fdtype update_locks_prim()
 
 static fdtype store_oid_proc(fdtype oid,fdtype value)
 {
-  fd_pool p=fd_oid2pool(oid);
-  int i=0; while (i < n_served_pools)
+  fd_pool p = fd_oid2pool(oid);
+  int i = 0; while (i < n_served_pools)
     if (served_pools[i] == p) {
       fd_set_oid_value(oid,value);
       add_to_changelog(&oid_changelog,oid);
@@ -429,30 +429,30 @@ static fdtype store_oid_proc(fdtype oid,fdtype value)
 
 static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
 {
-  int i=0, l=FD_VECTOR_LENGTH(vec);
-  fdtype changed_oids=FD_EMPTY_CHOICE;
+  int i = 0, l = FD_VECTOR_LENGTH(vec);
+  fdtype changed_oids = FD_EMPTY_CHOICE;
   /* First check that all the OIDs were really locked under the assigned ID. */
   if (locking) {
-    i=0; while (i < l) {
-      fdtype oid=FD_VECTOR_REF(vec,i);
-      if (!(FD_OIDP(oid))) i=i+2;
-      else if (check_server_lock(oid,id)) i=i+2;
+    i = 0; while (i < l) {
+      fdtype oid = FD_VECTOR_REF(vec,i);
+      if (!(FD_OIDP(oid))) i = i+2;
+      else if (check_server_lock(oid,id)) i = i+2;
       else return fd_err(OIDNotLocked,"bulk_commit_proc",NULL,oid);}}
   /* Then set the corresponding OID value, but don't commit yet. */
-  i=0; while (i < l) {
-    fdtype oid=FD_VECTOR_REF(vec,i);
-    fdtype value=FD_VECTOR_REF(vec,i+1);
+  i = 0; while (i < l) {
+    fdtype oid = FD_VECTOR_REF(vec,i);
+    fdtype value = FD_VECTOR_REF(vec,i+1);
     if (FD_OIDP(oid)) {
       fd_set_oid_value(oid,value);
       FD_ADD_TO_CHOICE(changed_oids,oid);}
-    i=i+2;}
+    i = i+2;}
   fd_commit_oids(changed_oids);
   fd_unlock_oids(changed_oids,leave_modified);
   if (locking) {
-    i=0; while (i < l) {
-      fdtype oid=FD_VECTOR_REF(vec,i);
+    i = 0; while (i < l) {
+      fdtype oid = FD_VECTOR_REF(vec,i);
       if (FD_OIDP(oid)) clear_server_lock(oid,id);
-      i=i+2;}}
+      i = i+2;}}
   add_to_changelog(&oid_changelog,changed_oids); fd_decref(changed_oids);
   return FD_TRUE;
 }
@@ -466,8 +466,8 @@ static fdtype iserver_add(fdtype key,fdtype values)
 
 static fdtype ixserver_add(fdtype ixarg,fdtype key,fdtype values)
 {
-  fd_index ix=fd_indexptr(ixarg);
-  struct FD_CHANGELOG *clog=get_subindex_changelog(ix,1);
+  fd_index ix = fd_indexptr(ixarg);
+  struct FD_CHANGELOG *clog = get_subindex_changelog(ix,1);
   fd_index_add(ix,key,values);
   add_to_changelog(clog,key);
   return FD_TRUE;
@@ -475,14 +475,14 @@ static fdtype ixserver_add(fdtype ixarg,fdtype key,fdtype values)
 
 static fdtype iserver_bulk_add(fdtype vec)
 {
-  if ((read_only) || (primary_index==NULL)) return FD_FALSE;
+  if ((read_only) || (primary_index == NULL)) return FD_FALSE;
   else if (FD_VECTORP(vec)) {
-    fdtype *data=FD_VECTOR_DATA(vec), keys=FD_EMPTY_CHOICE;
-    int i=0, limit=FD_VECTOR_LENGTH(vec);
+    fdtype *data = FD_VECTOR_DATA(vec), keys = FD_EMPTY_CHOICE;
+    int i = 0, limit = FD_VECTOR_LENGTH(vec);
     while (i < limit) {
       if (FD_VOIDP(data[i])) break;
       else {
-        fdtype key=data[i++], value=data[i++];
+        fdtype key = data[i++], value = data[i++];
         fd_index_add((fd_index)primary_index,key,value);
         fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(&index_changelog,keys); fd_decref(keys);
@@ -494,14 +494,14 @@ static fdtype ixserver_bulk_add(fdtype ixarg,fdtype vec)
 {
   if (read_only) return FD_FALSE;
   else if (FD_VECTORP(vec)) {
-    fd_index ix=fd_indexptr(ixarg);
-    struct FD_CHANGELOG *clog=get_subindex_changelog(ix,1);
-    fdtype *data=FD_VECTOR_DATA(vec), keys=FD_EMPTY_CHOICE;
-    int i=0, limit=FD_VECTOR_LENGTH(vec);
+    fd_index ix = fd_indexptr(ixarg);
+    struct FD_CHANGELOG *clog = get_subindex_changelog(ix,1);
+    fdtype *data = FD_VECTOR_DATA(vec), keys = FD_EMPTY_CHOICE;
+    int i = 0, limit = FD_VECTOR_LENGTH(vec);
     while (i < limit) {
       if (FD_VOIDP(data[i])) break;
       else {
-        fdtype key=data[i++], value=data[i++];
+        fdtype key = data[i++], value = data[i++];
         fd_index_add(ix,key,value);
         fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(clog,keys); fd_decref(keys);
@@ -518,8 +518,8 @@ static fdtype iserver_drop(fdtype key,fdtype values)
 
 static fdtype ixserver_drop(fdtype ixarg,fdtype key,fdtype values)
 {
-  fd_index ix=fd_indexptr(ixarg);
-  struct FD_CHANGELOG *clog=get_subindex_changelog(ix,1);
+  fd_index ix = fd_indexptr(ixarg);
+  struct FD_CHANGELOG *clog = get_subindex_changelog(ix,1);
   fd_index_drop(ix,key,values);
   add_to_changelog(clog,key);
   return FD_TRUE;
@@ -531,13 +531,13 @@ static fdtype server_get_load(fdtype oid_arg)
 {
   if (FD_VOIDP(oid_arg))
     if (primary_pool) {
-      int load=fd_pool_load(primary_pool);
+      int load = fd_pool_load(primary_pool);
       if (load<0) return FD_ERROR_VALUE;
       else return FD_INT(load);}
     else return fd_err(_("No primary pool"),"server_get_load",NULL,FD_VOID);
   else if (FD_OIDP(oid_arg)) {
-    fd_pool p=fd_oid2pool(oid_arg);
-    int load=fd_pool_load(p);
+    fd_pool p = fd_oid2pool(oid_arg);
+    int load = fd_pool_load(p);
     if (load<0) return FD_ERROR_VALUE;
     else return FD_INT(load);}
   else return fd_type_error("OID","server_get_load",oid_arg);
@@ -545,8 +545,8 @@ static fdtype server_get_load(fdtype oid_arg)
 
 static fdtype server_oid_value(fdtype x)
 {
-  fd_pool p=fd_oid2pool(x);
-  if (p==NULL)
+  fd_pool p = fd_oid2pool(x);
+  if (p == NULL)
     return fd_err(fd_AnonymousOID,"server_oid_value",NULL,x);
   else if (served_poolp(p))
     return fd_fetch_oid(p,x);
@@ -557,30 +557,30 @@ static fdtype server_fetch_oids(fdtype oidvec)
 {
   /* We assume here that all the OIDs in oidvec are in the same pool.  This should
      be the case because clients see the different pools and sort accordingly.  */
-  fd_pool p=NULL;
-  int n=FD_VECTOR_LENGTH(oidvec), fetchn=0;
-  fdtype *elts=FD_VECTOR_DATA(oidvec);
+  fd_pool p = NULL;
+  int n = FD_VECTOR_LENGTH(oidvec), fetchn = 0;
+  fdtype *elts = FD_VECTOR_DATA(oidvec);
   if (n==0)
     return fd_init_vector(NULL,0,NULL);
   else if (!(FD_OIDP(elts[0])))
     return fd_type_error(_("oid vector"),"server_fetch_oids",oidvec);
-  else if ((p=(fd_oid2pool(elts[0]))))
+  else if ((p = (fd_oid2pool(elts[0]))))
     if (served_poolp(p)) {
-      fdtype *results=u8_alloc_n(n,fdtype);
+      fdtype *results = u8_alloc_n(n,fdtype);
       if (p->pool_handler->fetchn) {
-        fdtype *fetch=u8_alloc_n(n,fdtype);
-        fd_hashtable cache=&(p->pool_cache), locks=&(p->pool_changes);
-        int i=0; while (i<n)
+        fdtype *fetch = u8_alloc_n(n,fdtype);
+        fd_hashtable cache = &(p->pool_cache), locks = &(p->pool_changes);
+        int i = 0; while (i<n)
                    if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
                        (fd_hashtable_probe_novoid(locks,elts[i])==0))
                      fetch[fetchn++]=elts[i++];
                    else i++;
         p->pool_handler->fetchn(p,fetchn,fetch);
-        i=0; while (i<n) {
+        i = 0; while (i<n) {
           results[i]=fd_fetch_oid(p,elts[i]); i++;}
         return fd_init_vector(NULL,n,results);}
       else {
-        int i=0; while (i<n) {
+        int i = 0; while (i<n) {
           results[i]=fd_fetch_oid(p,elts[i]); i++;}
         return fd_init_vector(NULL,n,results);}}
     else return fd_err(fd_PrivateOID,"server_oid_value",NULL,elts[0]);
@@ -589,13 +589,13 @@ static fdtype server_fetch_oids(fdtype oidvec)
 
 static fdtype server_pool_data(fdtype session_id)
 {
-  int len=n_served_pools;
-  fdtype *elts=u8_alloc_n(len,fdtype);
-  int i=0; while (i<len) {
-    fd_pool p=served_pools[i];
-    fdtype base=fd_make_oid(p->pool_base);
-    fdtype capacity=FD_INT(p->pool_capacity);
-    fdtype ro=(U8_BITP(p->pool_flags,FDKB_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
+  int len = n_served_pools;
+  fdtype *elts = u8_alloc_n(len,fdtype);
+  int i = 0; while (i<len) {
+    fd_pool p = served_pools[i];
+    fdtype base = fd_make_oid(p->pool_base);
+    fdtype capacity = FD_INT(p->pool_capacity);
+    fdtype ro = (U8_BITP(p->pool_flags,FDKB_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
     elts[i++]=
       ((p->pool_label) ?
        (fd_make_list(4,base,capacity,ro,fdtype_string(p->pool_label))) :
@@ -612,12 +612,12 @@ static fdtype iserver_get(fdtype key)
 static fdtype iserver_bulk_get(fdtype keys)
 {
   if (FD_VECTORP(keys)) {
-    int i=0, n=FD_VECTOR_LENGTH(keys), retval;
-    fdtype *data=FD_VECTOR_DATA(keys), *results=u8_alloc_n(n,fdtype);
+    int i = 0, n = FD_VECTOR_LENGTH(keys), retval;
+    fdtype *data = FD_VECTOR_DATA(keys), *results = u8_alloc_n(n,fdtype);
     /* |FD_CHOICE_ISATOMIC */
-    fdtype aschoice=fd_make_choice
+    fdtype aschoice = fd_make_choice
       (n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
-    retval=fd_index_prefetch((fd_index)(primary_index),aschoice);
+    retval = fd_index_prefetch((fd_index)(primary_index),aschoice);
     if (retval<0) {
       fd_decref(aschoice); u8_free(results);
       return FD_ERROR_VALUE;}
@@ -629,8 +629,8 @@ static fdtype iserver_bulk_get(fdtype keys)
 }
 static fdtype iserver_get_size(fdtype key)
 {
-  fdtype value=fd_index_get((fd_index)(primary_index),key);
-  int size=FD_CHOICE_SIZE(value);
+  fdtype value = fd_index_get((fd_index)(primary_index),key);
+  int size = FD_CHOICE_SIZE(value);
   fd_decref(value);
   return FD_INT(size);
 }
@@ -659,10 +659,10 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 {
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
     if (FD_VECTORP(keys)) {
-      fd_index ix=fd_indexptr(index);
-      int i=0, n=FD_VECTOR_LENGTH(keys);
-      fdtype *data=FD_VECTOR_DATA(keys),
-        *results=u8_alloc_n(n,fdtype);
+      fd_index ix = fd_indexptr(index);
+      int i = 0, n = FD_VECTOR_LENGTH(keys);
+      fdtype *data = FD_VECTOR_DATA(keys),
+        *results = u8_alloc_n(n,fdtype);
       fdtype aschoice=
         fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
       fd_index_prefetch(ix,aschoice);
@@ -673,9 +673,9 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
     else return fd_type_error("vector","ixserver_bulk_get",keys);
   else if (FD_TABLEP(index))
     if (FD_VECTORP(keys)) {
-      int i=0, n=FD_VECTOR_LENGTH(keys);
-      fdtype *data=FD_VECTOR_DATA(keys),
-        *results=u8_alloc_n(n,fdtype);
+      int i = 0, n = FD_VECTOR_LENGTH(keys);
+      fdtype *data = FD_VECTOR_DATA(keys),
+        *results = u8_alloc_n(n,fdtype);
       while (i<n) {
         results[i]=fd_get(index,data[i],FD_EMPTY_CHOICE);
         i++;}
@@ -686,13 +686,13 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 static fdtype ixserver_get_size(fdtype index,fdtype key)
 {
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type))) {
-    fdtype value=fd_index_get(fd_indexptr(index),key);
-    int size=FD_CHOICE_SIZE(value);
+    fdtype value = fd_index_get(fd_indexptr(index),key);
+    int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
     return FD_INT(size);}
   else if (FD_TABLEP(index)) {
-    fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
-    int size=FD_CHOICE_SIZE(value);
+    fdtype value = fd_get(index,key,FD_EMPTY_CHOICE);
+    int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
     return FD_INT(size);}
   else return fd_type_error("index","ixserver_get",FD_VOID);
@@ -710,10 +710,10 @@ static fdtype ixserver_sizes(fdtype index)
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
     return fd_index_sizes(fd_indexptr(index));
   else if (FD_TABLEP(index)) {
-    fdtype results=FD_EMPTY_CHOICE, keys=fd_getkeys(index);
+    fdtype results = FD_EMPTY_CHOICE, keys = fd_getkeys(index);
     FD_DO_CHOICES(key,keys) {
-      fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
-      fdtype keypair=fd_conspair(fd_incref(key),FD_INT(FD_CHOICE_SIZE(value)));
+      fdtype value = fd_get(index,key,FD_EMPTY_CHOICE);
+      fdtype keypair = fd_conspair(fd_incref(key),FD_INT(FD_CHOICE_SIZE(value)));
       FD_ADD_TO_CHOICE(results,keypair);
       fd_decref(value);}
     fd_decref(keys);
@@ -732,13 +732,13 @@ static int serve_pool(fdtype var,fdtype val,void *data)
   fd_pool p;
   if (FD_CHOICEP(val)) {
     FD_DO_CHOICES(v,val) {
-      int retval=serve_pool(var,v,data);
+      int retval = serve_pool(var,v,data);
       if (retval<0) return retval;}
     return 1;}
-  else if (FD_POOLP(val)) p=fd_lisp2pool(val);
+  else if (FD_POOLP(val)) p = fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
-    if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
-      p=fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
+    if ((p = fd_name2pool(FD_STRDATA(val))) == NULL)
+      p = fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
@@ -754,10 +754,10 @@ static int serve_pool(fdtype var,fdtype val,void *data)
 
 static fdtype get_served_pools(fdtype var,void *data)
 {
-  fdtype result=FD_EMPTY_CHOICE;
-  int i=0; while (i<n_served_pools) {
-    fd_pool p=served_pools[i++];
-    fdtype lp=fd_pool2lisp(p);
+  fdtype result = FD_EMPTY_CHOICE;
+  int i = 0; while (i<n_served_pools) {
+    fd_pool p = served_pools[i++];
+    fdtype lp = fd_pool2lisp(p);
     FD_ADD_TO_CHOICE(result,lp);}
   return result;
 }
@@ -765,14 +765,14 @@ static fdtype get_served_pools(fdtype var,void *data)
 static int serve_primary_pool(fdtype var,fdtype val,void *data)
 {
   fd_pool p;
-  if (FD_POOLP(val)) p=fd_lisp2pool(val);
+  if (FD_POOLP(val)) p = fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
-    if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
-      p=fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
+    if ((p = fd_name2pool(FD_STRDATA(val))) == NULL)
+      p = fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
-    if (p==primary_pool) return 0;
-    else {primary_pool=p; return 1;}
+    if (p == primary_pool) return 0;
+    else {primary_pool = p; return 1;}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
 }
 
@@ -784,17 +784,17 @@ static fdtype get_primary_pool(fdtype var,void *data)
 
 static int serve_index(fdtype var,fdtype val,void *data)
 {
-  fd_index ix=NULL;
+  fd_index ix = NULL;
   if (FD_CHOICEP(val)) {
     FD_DO_CHOICES(v,val) {
-      int retval=serve_index(var,v,data);
+      int retval = serve_index(var,v,data);
       if (retval<0) return retval;}
     return 1;}
-  else if (FD_INDEXP(val)) ix=fd_indexptr(val);
+  else if (FD_INDEXP(val)) ix = fd_indexptr(val);
   else if (FD_STRINGP(val))
-    ix=fd_get_index(FD_STRDATA(val),0,FD_VOID);
-  else if (val==FD_TRUE)
-    if (fd_background) ix=(fd_index)fd_background;
+    ix = fd_get_index(FD_STRDATA(val),0,FD_VOID);
+  else if (val == FD_TRUE)
+    if (fd_background) ix = (fd_index)fd_background;
     else {
       u8_log(LOG_WARN,_("No background"),"No current background index");
       return 0;}
@@ -815,15 +815,15 @@ static fdtype get_served_indexes(fdtype var,void *data)
 
 fdtype fd_dbserv_module;
 
-static int dbserv_init=0;
+static int dbserv_init = 0;
 
 void fd_init_kbdriverserv_c()
 {
   fdtype module;
 
-  if (dbserv_init) return; else dbserv_init=1;
+  if (dbserv_init) return; else dbserv_init = 1;
 
-  init_timestamp=(int)time(NULL);
+  init_timestamp = (int)time(NULL);
 
   FD_INIT_STATIC_CONS(&server_locks,fd_hashtable_type);
   FD_INIT_STATIC_CONS(&server_locks_inv,fd_hashtable_type);
@@ -833,7 +833,7 @@ void fd_init_kbdriverserv_c()
   u8_init_mutex(&server_locks_lock);
   u8_init_mutex(&changelog_lock);
 
-  module=fd_make_hashtable(NULL,67);
+  module = fd_make_hashtable(NULL,67);
 
   fd_defn(module,fd_make_cprim1("POOL-DATA",server_pool_data,0));
   fd_defn(module,fd_make_cprim1("OID-VALUE",server_oid_value,1));
@@ -900,17 +900,17 @@ void fd_init_kbdriverserv_c()
                      config_set_locksfile,
                      NULL);
 
-  primary_index=(fd_compound_index)fd_make_compound_index(0,NULL);
+  primary_index = (fd_compound_index)fd_make_compound_index(0,NULL);
 
-  fd_dbserv_module=module;
+  fd_dbserv_module = module;
 }
 
-static int fddbserv_initialized=0;
+static int fddbserv_initialized = 0;
 
 FD_EXPORT int fd_init_fddbserv()
 {
   if (fddbserv_initialized) return fddbserv_initialized;
-  fddbserv_initialized=211*fd_init_kblib();
+  fddbserv_initialized = 211*fd_init_kblib();
 
   u8_register_source_file(_FILEINFO);
   fd_init_kbdriverserv_c();

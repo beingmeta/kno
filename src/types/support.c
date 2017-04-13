@@ -45,7 +45,7 @@
 #include <grp.h>
 #endif
 
-int fd_exiting=0;
+int fd_exiting = 0;
 
 fd_exception fd_UnknownError=_("Unknown error condition");
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
@@ -152,7 +152,7 @@ void fd_init_support_c()
      &fd_numvec_showmax);
   fd_register_config
     ("PACKETFMT",
-     _("How to dump packets to ASCII (16=hex,64=base64,dflt=ascii-ish)"),
+     _("How to dump packets to ASCII (16 = hex,64 = base64,dflt = ascii-ish)"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_packet_outfmt);
 

@@ -23,7 +23,7 @@
 
 #include <ldns/ldns.h>
 
-static int dns_initialized=0;
+static int dns_initialized = 0;
 
 #ifndef NSBUF_SIZE
 #define NSBUF_SIZE 4096
@@ -52,9 +52,9 @@ static fdtype rdf2dtype ( ldns_rdf *field )
     return FD_INT2DTYPE( val );}
   case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA: 
   case LDNS_RDF_TYPE_LOC: case LDNS_RDF_TYPE_TAG: case LDNS_RDF_TYPE_LONG_STR: {
-    fdtype result=FD_VOID;
+    fdtype result = FD_VOID;
     ldns_buffer *tmp = ldns_buffer_new( LDNS_MAX_PACKETLEN ); 
-    int rv=-1;
+    int rv = -1;
     if (!(tmp)) {}
     else if (field_type == LDNS_RDF_TYPE_DNAME)
       rv = ldns_rdf2buffer_str_dname( tmp, field );
@@ -70,8 +70,8 @@ static fdtype rdf2dtype ( ldns_rdf *field )
       rv = ldns_rdf2buffer_str_long_str( tmp, field );
     else {}
     if (rv != LDNS_STATUS_OK) 
-      result=fd_err("Unexpected LDNS condition","rdf2dtype",NULL,FD_VOID);
-    else result=fd_make_string(NULL,tmp->_position,tmp->_data);
+      result = fd_err("Unexpected LDNS condition","rdf2dtype",NULL,FD_VOID);
+    else result = fd_make_string(NULL,tmp->_position,tmp->_data);
     ldns_buffer_free( tmp );
     return result;}
   default: 
@@ -81,7 +81,7 @@ static fdtype rdf2dtype ( ldns_rdf *field )
 
 static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
 {
-  fdtype results=FD_EMPTY_CHOICE;
+  fdtype results = FD_EMPTY_CHOICE;
   ldns_resolver *res;
   ldns_rr_type rr_type = ldns_get_rr_type_by_name( FD_SYMBOL_NAME( type_arg ) );
   ldns_rdf *domain = ldns_dname_new_frm_str( FD_STRDATA(domain_arg) );
@@ -97,8 +97,8 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
         ldns_pkt_rr_list_by_type( p, rr_type, LDNS_SECTION_ANSWER );
       if (!(result_list)) {}
       else {
-        size_t i=0, lim=result_list->_rr_count;
-        ldns_rr **records=result_list->_rrs;
+        size_t i = 0, lim = result_list->_rr_count;
+        ldns_rr **records = result_list->_rrs;
         while ( i < lim ) {
           ldns_rr *record = records[i++];
           size_t n_fields = record->_rd_count;
@@ -111,7 +111,7 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
             fdtype vec = fd_init_vector(NULL, n_fields, NULL);
             int j = 0; while (j < n_fields) {
               ldns_rdf *field = fields[j];
-              fdtype value=rdf2dtype( field );
+              fdtype value = rdf2dtype( field );
               FD_VECTOR_SET( vec, j, value);
               j++;}
             FD_ADD_TO_CHOICE(results,vec);}}
@@ -130,10 +130,10 @@ FD_EXPORT void fd_init_dns_c()
 {
   fdtype module;
   if (dns_initialized) return;
-  dns_initialized=1;
+  dns_initialized = 1;
   fd_init_fdscheme();
 
-  module=fd_new_module("FDWEB",(0));
+  module = fd_new_module("FDWEB",(0));
 
   fd_idefn(module,fd_make_cprim2x
            ("DNS/GET",dns_query,1,

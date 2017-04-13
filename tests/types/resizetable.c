@@ -15,14 +15,14 @@
 #include <time.h>
 
 static struct timeval start;
-static int started=0;
+static int started = 0;
 
 double get_elapsed()
 {
   struct timeval now;
   if (started == 0) {
     gettimeofday(&start,NULL);
-    started=1;
+    started = 1;
     return 0;}
   else {
     gettimeofday(&now,NULL);
@@ -51,13 +51,13 @@ static void report_on_hashtable(fdtype ht)
 static void check_consistency
   (unsigned int *buf,struct FD_HASH_BUCKET **slots,int n_slots)
 {
-  int i=0; while (i < n_slots)
+  int i = 0; while (i < n_slots)
     if (((buf[i]==0) && (slots[i] == NULL)) ||
         ((buf[i]) && (slots[i]) &&
-         (slots[i]->fd_n_entries==buf[i])) )
+         (slots[i]->fd_n_entries == buf[i])) )
       i++;
     else {
-      int real_values=((slots[i]==NULL) ? 0 : (slots[i]->fd_n_entries));
+      int real_values = ((slots[i]==NULL) ? 0 : (slots[i]->fd_n_entries));
       fprintf(stderr,"Trouble in slot %d, %ud differs from %ud\n",
               i,buf[i],real_values);
       i++;}
@@ -66,37 +66,37 @@ static void check_consistency
 static unsigned int read_size_from_stdin()
 {
   unsigned int size; int retval;
-  retval=fscanf(stdin,"%ud\n",&size);
+  retval = fscanf(stdin,"%ud\n",&size);
   if (retval<0) return retval;
   else return size;
 }
 
 int main(int argc,char **argv)
 {
-  int i=0, n_tries;
+  int i = 0, n_tries;
   unsigned int n_slots, n_keys, *hashv;
   unsigned int *tmpbuf, tmpbuf_size;
   int best_size, best_buckets;
   struct FD_STREAM *in, *out;
   struct FD_INBUF *inbuf;
   struct FD_OUTBUF *outbuf;
-  fdtype ht, keys, watch_for=FD_VOID;
+  fdtype ht, keys, watch_for = FD_VOID;
   FD_DO_LIBINIT(fd_init_libfdtype);
-  n_tries=atol(argv[2]);
-  in=fd_open_file(argv[1],FD_FILE_READ);
-  inbuf=fd_readbuf(in);
-  ht=fd_read_dtype(inbuf);
+  n_tries = atol(argv[2]);
+  in = fd_open_file(argv[1],FD_FILE_READ);
+  inbuf = fd_readbuf(in);
+  ht = fd_read_dtype(inbuf);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   report_on_hashtable(ht);
-  n_keys=FD_HASHTABLE_NKEYS(ht);
-  n_slots=FD_HASHTABLE_NBUCKETS(ht);
-  tmpbuf=u8_alloc_n(n_keys*6,unsigned int);
-  tmpbuf_size=n_keys*6;
-  hashv=u8_alloc_n(n_keys,unsigned int);
-  keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
+  n_keys = FD_HASHTABLE_NKEYS(ht);
+  n_slots = FD_HASHTABLE_NBUCKETS(ht);
+  tmpbuf = u8_alloc_n(n_keys*6,unsigned int);
+  tmpbuf_size = n_keys*6;
+  hashv = u8_alloc_n(n_keys,unsigned int);
+  keys = fd_hashtable_keys(FD_XHASHTABLE(ht));
   {
     FD_DO_CHOICES(key,keys) {
-      int hash=fd_hash_lisp(key);
+      int hash = fd_hash_lisp(key);
       if (FDTYPE_EQUAL(key,watch_for))
         fprintf(stderr,"Hashing key\n");
       if (hash==0)
@@ -114,7 +114,7 @@ int main(int argc,char **argv)
             n_slots,((double)(1.0*n_keys))/n_buckets,
             max_bucket,n_buckets,n_collisions);
     check_consistency(tmpbuf,FD_XHASHTABLE(ht)->ht_buckets,n_slots);
-    best_size=n_slots; best_buckets=n_buckets;}
+    best_size = n_slots; best_buckets = n_buckets;}
   {
     unsigned int n_buckets, max_bucket, n_collisions;
     fd_hash_quality(hashv,n_keys,n_keys,
@@ -125,9 +125,9 @@ int main(int argc,char **argv)
             n_keys,((double)(1.0*n_keys))/n_buckets,
             max_bucket,n_buckets,n_collisions);
     if (n_buckets<best_buckets) {
-      best_size=n_keys; best_buckets=n_buckets;}}
-  i=0; while (i < n_tries) {
-    unsigned int trial_slots=read_size_from_stdin();
+      best_size = n_keys; best_buckets = n_buckets;}}
+  i = 0; while (i < n_tries) {
+    unsigned int trial_slots = read_size_from_stdin();
     unsigned int n_buckets, max_bucket, n_collisions;
     fd_hash_quality(hashv,n_keys,trial_slots,
                     tmpbuf,tmpbuf_size,
@@ -137,16 +137,16 @@ int main(int argc,char **argv)
             trial_slots,((double)(1.0*n_keys))/n_buckets,
             max_bucket,n_buckets,n_collisions);
     if (n_buckets<best_buckets) {
-      best_size=trial_slots; best_buckets=n_buckets;}
+      best_size = trial_slots; best_buckets = n_buckets;}
     i++;}
   fd_resize_hashtable(FD_XHASHTABLE(ht),best_size);
   report_on_hashtable(ht);
-  if (argc>3) out=fd_open_file(argv[3],FD_FILE_CREATE);
-  else out=fd_open_file(argv[1],FD_FILE_CREATE);
-  outbuf=fd_writebuf(out);
+  if (argc>3) out = fd_open_file(argv[3],FD_FILE_CREATE);
+  else out = fd_open_file(argv[1],FD_FILE_CREATE);
+  outbuf = fd_writebuf(out);
   fd_write_dtype(outbuf,ht);
   fd_close_stream(out,FD_STREAM_CLOSE_FULL);
   report_on_hashtable(ht);
-  fd_decref(ht); ht=FD_VOID;
+  fd_decref(ht); ht = FD_VOID;
   exit(0);
 }

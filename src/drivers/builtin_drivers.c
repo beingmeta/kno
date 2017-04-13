@@ -24,13 +24,13 @@
 
 #include <stdio.h>
 
-int builtindbs_c_initialized=0;
+int builtindbs_c_initialized = 0;
 
 FD_EXPORT int fd_init_builtindbs_c()
 {
   if (builtindbs_c_initialized)
     return builtindbs_c_initialized;
-  builtindbs_c_initialized=u8_millitime();
+  builtindbs_c_initialized = u8_millitime();
 
   u8_register_source_file(_FILEINFO);
 
@@ -48,12 +48,12 @@ int fd_init_file_pool_c(void);
 int fd_init_oidpool_c(void);
 int fd_init_bigpool_c(void);
 
-int dbs_initialized=0;
+int dbs_initialized = 0;
 
 FD_EXPORT int fd_init_kbdrivers()
 {
   if (dbs_initialized) return dbs_initialized;
-  dbs_initialized=307*fd_init_kblib();
+  dbs_initialized = 307*fd_init_kblib();
 
   fd_init_builtindbs_c();
 

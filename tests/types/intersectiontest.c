@@ -17,14 +17,14 @@
 #include <time.h>
 
 static struct timeval start;
-static int started=0;
+static int started = 0;
 
 double get_elapsed()
 {
   struct timeval now;
   if (started == 0) {
     gettimeofday(&start,NULL);
-    started=1;
+    started = 1;
     return 0;}
   else {
     gettimeofday(&now,NULL);
@@ -34,10 +34,10 @@ double get_elapsed()
 
 static fdtype read_choice(char *file)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  FILE *f=fopen(file,"r"); char buf[8192];
+  fdtype results = FD_EMPTY_CHOICE;
+  FILE *f = fopen(file,"r"); char buf[8192];
   while (fgets(buf,8192,f)) {
-    fdtype item=fd_parse(buf);
+    fdtype item = fd_parse(buf);
     if (FD_ABORTP(item)) {
       fd_decref(results);
       return item;}
@@ -48,46 +48,46 @@ static fdtype read_choice(char *file)
 
 static int write_dtype_to_file(fdtype x,char *file)
 {
-  FILE *f=fopen(file,"wb"); int retval;
+  FILE *f = fopen(file,"wb"); int retval;
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,x);
-  retval=fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
+  retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
   u8_free(out.buffer);
   fclose(f);
   return retval;
 }
 
-#define free_var(var) fd_decref(var); var=FD_VOID
+#define free_var(var) fd_decref(var); var = FD_VOID
 
 int main(int argc,char **argv)
 {
-  FILE *f=NULL;
-  int i=2, j=0, write_binary=0;
-  fdtype *args=u8_alloc_n(argc-2,fdtype), common;
+  FILE *f = NULL;
+  int i = 2, j = 0, write_binary = 0;
+  fdtype *args = u8_alloc_n(argc-2,fdtype), common;
   double starttime, inputtime, donetime;
   FD_DO_LIBINIT(fd_init_libfdtype);
-  starttime=get_elapsed();
+  starttime = get_elapsed();
   while (i < argc)
     if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
     else {
-      fdtype item=read_choice(argv[i]);
+      fdtype item = read_choice(argv[i]);
       if (FD_ABORTP(item)) {
         if (!(FD_THROWP(item)))
           u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
         return -1;}
       u8_fprintf(stderr,"Read %d items from %s\n",FD_CHOICE_SIZE(item),argv[i]);
       args[j++]=item; i++;}
-  inputtime=get_elapsed();
-  common=fd_intersection(args,j);
-  donetime=get_elapsed();
+  inputtime = get_elapsed();
+  common = fd_intersection(args,j);
+  donetime = get_elapsed();
   u8_fprintf(stderr,"CHOICE_SIZE(common)=%d read time=%f; run time=%f\n",
              FD_CHOICE_SIZE(common),
              inputtime-starttime,donetime-inputtime);
   write_dtype_to_file(common,"intersection.dtype");
-  if ((argv[1][0]=='-') && (argv[1][1]=='b')) write_binary=1;
-  else f=fopen(argv[1],"w");
+  if ((argv[1][0]=='-') && (argv[1][1]=='b')) write_binary = 1;
+  else f = fopen(argv[1],"w");
   if (write_binary)
     write_dtype_to_file(common,argv[1]+2);
   else {
@@ -98,7 +98,7 @@ int main(int argc,char **argv)
       fputs(os.u8_outbuf,f); fputs("\n",f);
       free(os.u8_outbuf);}}
   free_var(common);
-  i=0; while (i < j) {fd_decref(args[i]); i++;}
+  i = 0; while (i < j) {fd_decref(args[i]); i++;}
   u8_free(args);
   if (f) fclose(f);
   exit(0);

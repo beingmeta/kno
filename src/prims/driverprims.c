@@ -52,24 +52,24 @@ FD_EXPORT fdtype _fd_hashindex_slotids_deprecated(fdtype ix_arg);
 
 static fdtype lisphashdtype1(fdtype x)
 {
-  int hash=fd_hash_dtype1(x);
+  int hash = fd_hash_dtype1(x);
   return FD_INT(hash);
 }
 static fdtype lisphashdtype2(fdtype x)
 {
-  int hash=fd_hash_dtype2(x);
+  int hash = fd_hash_dtype2(x);
   return FD_INT(hash);
 }
 
 static fdtype lisphashdtype3(fdtype x)
 {
-  int hash=fd_hash_dtype3(x);
+  int hash = fd_hash_dtype3(x);
   return FD_INT(hash);
 }
 
 static fdtype lisphashdtyperep(fdtype x)
 {
-  unsigned int hash=fd_hash_dtype_rep(x);
+  unsigned int hash = fd_hash_dtype_rep(x);
   return FD_INT(hash);
 }
 
@@ -77,15 +77,15 @@ static fdtype lisphashdtyperep(fdtype x)
 
 static fdtype access_pool_prim(fdtype name)
 {
-  fd_pool p=fd_unregistered_file_pool(FD_STRDATA(name));
+  fd_pool p = fd_unregistered_file_pool(FD_STRDATA(name));
   if (p) return (fdtype) p;
   else return FD_ERROR_VALUE;
 }
 
 static fdtype pool_prefetch(fdtype pool,fdtype oids)
 {
-  fd_pool p=(fd_pool)pool;
-  int retval=fd_pool_prefetch(p,oids);
+  fd_pool p = (fd_pool)pool;
+  int retval = fd_pool_prefetch(p,oids);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -94,8 +94,8 @@ static fdtype pool_prefetch(fdtype pool,fdtype oids)
 
 static fdtype index_slotids(fdtype index_arg)
 {
-  struct FD_INDEX *ix=fd_lisp2index(index_arg);
-  if (ix==NULL)
+  struct FD_INDEX *ix = fd_lisp2index(index_arg);
+  if (ix == NULL)
     return FD_ERROR_VALUE;
   else return fd_index_ctl(ix,FD_INDEXOP_SLOTIDS,0,NULL);
 }
@@ -105,7 +105,7 @@ static int getindexctlop(fdtype x)
   if (FD_INTP(x))
     return FD_FIX2INT(x);
   else if (FD_SYMBOLP(x)) {
-    u8_string pname=FD_SYMBOL_NAME(x);
+    u8_string pname = FD_SYMBOL_NAME(x);
     if ((strcasecmp(pname,"CACHELEVEL")==0)||
         (strcasecmp(pname,"SETCACHELEVEL")==0))
       return FD_INDEXOP_CACHELEVEL;
@@ -132,10 +132,10 @@ static int getindexctlop(fdtype x)
 
 static fdtype indexctl_prim(int n,fdtype *args)
 {
-  struct FD_INDEX *ix=fd_lisp2index(args[0]);
-  if (ix==NULL)
+  struct FD_INDEX *ix = fd_lisp2index(args[0]);
+  if (ix == NULL)
     return FD_ERROR_VALUE;
-  int op=getindexctlop(args[1]);
+  int op = getindexctlop(args[1]);
   if (op<0)
     return fd_err("BadIndexOp","index_ctl",ix->indexid,args[1]);
   else return fd_index_ctl(ix,op,n-1,args+1);
@@ -146,7 +146,7 @@ static int getpoolctlop(fdtype x)
   if (FD_INTP(x))
     return FD_FIX2INT(x);
   else if (FD_SYMBOLP(x)) {
-    u8_string pname=FD_SYMBOL_NAME(x);
+    u8_string pname = FD_SYMBOL_NAME(x);
     if (strcasecmp(pname,"CACHELEVEL")==0)
       return FD_POOLOP_CACHELEVEL;
     else if ((strcasecmp(pname,"BUFSIZE")==0)||
@@ -170,10 +170,10 @@ static int getpoolctlop(fdtype x)
 
 static fdtype poolctl_prim(int n,fdtype *args)
 {
-  struct FD_POOL *p=fd_lisp2pool(args[0]);
-  if (p==NULL)
+  struct FD_POOL *p = fd_lisp2pool(args[0]);
+  if (p == NULL)
     return FD_ERROR_VALUE;
-  int op=getpoolctlop(args[1]);
+  int op = getpoolctlop(args[1]);
   if (op<0)
     return fd_err("BadPoolOp","pool_ctl",p->poolid,args[1]);
   else return fd_pool_ctl(p,op,n-2,args+2);
@@ -181,19 +181,19 @@ static fdtype poolctl_prim(int n,fdtype *args)
 
 /* The init function */
 
-static int scheme_driverfns_initialized=0;
+static int scheme_driverfns_initialized = 0;
 
 FD_EXPORT void fd_init_driverfns_c()
 {
   fdtype driverfns_module;
 
-  baseoids_symbol=fd_intern("%BASEOIDS");
+  baseoids_symbol = fd_intern("%BASEOIDS");
 
   if (scheme_driverfns_initialized) return;
-  scheme_driverfns_initialized=1;
+  scheme_driverfns_initialized = 1;
   fd_init_fdscheme();
   fd_init_kbdrivers();
-  driverfns_module=fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
+  driverfns_module = fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(driverfns_module,

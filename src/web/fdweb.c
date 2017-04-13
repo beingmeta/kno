@@ -23,17 +23,17 @@
 #include "framerd/fdweb.h"
 #include "framerd/support.h"
 
-static int fdweb_init_done=0;
+static int fdweb_init_done = 0;
 
 FD_EXPORT void fd_init_fdweb()
 {
   if (fdweb_init_done) return;
   else {
-    int fdscheme_version=fd_init_fdscheme();
-    fdtype fdweb_module=fd_new_module("FDWEB",0);
-    fdtype safe_fdweb_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
-    fdtype xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
-    fdweb_init_done=fdscheme_version;
+    int fdscheme_version = fd_init_fdscheme();
+    fdtype fdweb_module = fd_new_module("FDWEB",0);
+    fdtype safe_fdweb_module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
+    fdtype xhtml_module = fd_new_module("XHTML",FD_MODULE_SAFE);
+    fdweb_init_done = fdscheme_version;
     fd_init_xmloutput_c();
     fd_init_xmldata_c();
     fd_init_xmlinput_c();

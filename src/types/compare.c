@@ -22,34 +22,34 @@ FD_EXPORT
   Returns a function corresponding to a generic sort of two dtype pointers. */
 int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 {
-  int quick=(flags==FD_COMPARE_QUICK);
-  int compare_atomic=(!((flags&FD_COMPARE_CODES)));
-  int compare_lengths=(!((flags&FD_COMPARE_RECURSIVE)));
-  int natural_sort=(flags&FD_COMPARE_NATSORT);
-  int lexical=(flags&FD_COMPARE_ALPHABETICAL);
-  int nocase=(flags&FD_COMPARE_CI);
+  int quick = (flags == FD_COMPARE_QUICK);
+  int compare_atomic = (!((flags&FD_COMPARE_CODES)));
+  int compare_lengths = (!((flags&FD_COMPARE_RECURSIVE)));
+  int natural_sort = (flags&FD_COMPARE_NATSORT);
+  int lexical = (flags&FD_COMPARE_ALPHABETICAL);
+  int nocase = (flags&FD_COMPARE_CI);
 
   /* This is just defined for this function */
 #define DOCOMPARE(x,y) \
-  (((quick)&&(x==y)) ? (0) : (FDTYPE_COMPARE(x,y,flags)))
+  (((quick)&&(x == y)) ? (0) : (FDTYPE_COMPARE(x,y,flags)))
 
   if (x == y) return 0;
   else if ((FD_OIDP(x))&&(FD_OIDP(y))) {
     if (compare_atomic) {
       if (x<y) return -1; else if (x>y) return 1; else return 0;}
-    else if ((FD_OID_BASE_ID(x))==(FD_OID_BASE_ID(y))) {
-      unsigned int ox=FD_OID_BASE_OFFSET(x);
-      unsigned int oy=FD_OID_BASE_OFFSET(y);
+    else if ((FD_OID_BASE_ID(x)) == (FD_OID_BASE_ID(y))) {
+      unsigned int ox = FD_OID_BASE_OFFSET(x);
+      unsigned int oy = FD_OID_BASE_OFFSET(y);
       /* The zero case is just x == y above */
       if (ox>oy) return 1;
       else return -1;}
     else {
-      FD_OID xaddr=FD_OID_ADDR(x), yaddr=FD_OID_ADDR(y);
+      FD_OID xaddr = FD_OID_ADDR(x), yaddr = FD_OID_ADDR(y);
       return FD_OID_COMPARE(xaddr,yaddr);}}
   else if ((natural_sort)&&(FD_SYMBOLP(x))&&(FD_SYMBOLP(y))) {
-    u8_string xname=FD_SYMBOL_NAME(x), yname=FD_SYMBOL_NAME(y);
+    u8_string xname = FD_SYMBOL_NAME(x), yname = FD_SYMBOL_NAME(y);
     if ((compare_lengths)&&(!(lexical))) {
-      size_t xlen=strlen(xname), ylen=strlen(yname);
+      size_t xlen = strlen(xname), ylen = strlen(yname);
       if (xlen>ylen) return 1;
       else if (xlen<ylen) return -1;
       else return string_compare(xname,yname,nocase);}
@@ -60,12 +60,12 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     else return -1;
   else if ((compare_atomic) && (FD_ATOMICP(y))) return 1;
   else if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
-    long long xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
-    /* The == case is handled by the x==y above. */
+    long long xval = FD_FIX2INT(x), yval = FD_FIX2INT(y);
+    /* The == case is handled by the x == y above. */
     if (xval>yval) return 1; else return -1;}
   else {
-    fd_ptr_type xtype=FD_PTR_TYPE(x);
-    fd_ptr_type ytype=FD_PTR_TYPE(y);
+    fd_ptr_type xtype = FD_PTR_TYPE(x);
+    fd_ptr_type ytype = FD_PTR_TYPE(y);
     if (FD_NUMBER_TYPEP(xtype))
       if (FD_NUMBER_TYPEP(ytype))
         return fd_numcompare(x,y);
@@ -73,19 +73,19 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
     else if ((FD_ACHOICEP(x))&&(FD_ACHOICEP(y))) {
-      fdtype sx=fd_make_simple_choice(x);
-      fdtype sy=fd_make_simple_choice(y);
-      int retval=DOCOMPARE(sx,sy);
+      fdtype sx = fd_make_simple_choice(x);
+      fdtype sy = fd_make_simple_choice(y);
+      int retval = DOCOMPARE(sx,sy);
       fd_decref(sx); fd_decref(sy);
       return retval;}
     else if (FD_ACHOICEP(x)) {
-      fdtype sx=fd_make_simple_choice(x);
-      int retval=DOCOMPARE(sx,y);
+      fdtype sx = fd_make_simple_choice(x);
+      int retval = DOCOMPARE(sx,y);
       fd_decref(sx);
       return retval;}
     else if (FD_ACHOICEP(y)) {
-      fdtype sy=fd_make_simple_choice(y);
-      int retval=DOCOMPARE(x,sy);
+      fdtype sy = fd_make_simple_choice(y);
+      int retval = DOCOMPARE(x,sy);
       fd_decref(sy);
       return retval;}
     else if (xtype>ytype) return 1;
@@ -93,28 +93,28 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     else if (FD_CONSP(x))
       switch (xtype) {
       case fd_pair_type: {
-        int car_cmp=DOCOMPARE(FD_CAR(x),FD_CAR(y));
+        int car_cmp = DOCOMPARE(FD_CAR(x),FD_CAR(y));
         if (car_cmp == 0) return (DOCOMPARE(FD_CDR(x),FD_CDR(y)));
         else return car_cmp;}
       case fd_string_type: {
-        int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
+        int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
         if ((compare_lengths)&&(!(lexical))) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
 	  else return string_compare(FD_STRDATA(x),FD_STRDATA(y),nocase);}
 	else return string_compare(FD_STRDATA(x),FD_STRDATA(y),nocase);}
       case fd_packet_type: case fd_secret_type: {
-        int xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
+        int xlen = FD_PACKET_LENGTH(x), ylen = FD_PACKET_LENGTH(y);
         if ((quick)||(compare_lengths)) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
         return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
       case fd_vector_type: case fd_rail_type: {
-        int i=0, xlen=FD_VECTOR_LENGTH(x), ylen=FD_VECTOR_LENGTH(y), lim;
-        fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
+        int i = 0, xlen = FD_VECTOR_LENGTH(x), ylen = FD_VECTOR_LENGTH(y), lim;
+        fdtype *xdata = FD_VECTOR_DATA(x), *ydata = FD_VECTOR_DATA(y);
         if (quick) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
-        if (xlen<ylen) lim=xlen; else lim=ylen;
+        if (xlen<ylen) lim = xlen; else lim = ylen;
         while (i < lim) {
-          int cmp=DOCOMPARE(xdata[i],ydata[i]);
+          int cmp = DOCOMPARE(xdata[i],ydata[i]);
           if (cmp) return cmp; else i++;}
         if (quick)
           if (xlen>ylen) return 1;
@@ -122,9 +122,9 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
           else return 0;
         else return 0;}
       case fd_choice_type: {
-        struct FD_CHOICE *xc=fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
-        struct FD_CHOICE *yc=fd_consptr(struct FD_CHOICE *,y,fd_choice_type);
-        size_t xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
+        struct FD_CHOICE *xc = fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
+        struct FD_CHOICE *yc = fd_consptr(struct FD_CHOICE *,y,fd_choice_type);
+        size_t xlen = FD_XCHOICE_SIZE(xc), ylen = FD_XCHOICE_SIZE(yc);
         if ((compare_lengths) && (xlen>ylen))
           return 1;
         else if ((compare_lengths) && (xlen<ylen))
@@ -135,17 +135,17 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
           fdtype _xnatsorted[17], *xnatsorted=_xnatsorted;
           fdtype _ynatsorted[17], *ynatsorted=_ynatsorted;
           if (natural_sort) {
-            xnatsorted=fd_natsort_choice(xc,_xnatsorted,17);
-            ynatsorted=fd_natsort_choice(yc,_ynatsorted,17);
-            xscan=(const fdtype *)xnatsorted;
-            yscan=(const fdtype *)ynatsorted;}
+            xnatsorted = fd_natsort_choice(xc,_xnatsorted,17);
+            ynatsorted = fd_natsort_choice(yc,_ynatsorted,17);
+            xscan = (const fdtype *)xnatsorted;
+            yscan = (const fdtype *)ynatsorted;}
           else {
-            xscan=FD_XCHOICE_DATA(xc);
-            yscan=FD_XCHOICE_DATA(yc);}
-          if (ylen<xlen) xlim=xscan+ylen;
-          else xlim=xscan+xlen;
+            xscan = FD_XCHOICE_DATA(xc);
+            yscan = FD_XCHOICE_DATA(yc);}
+          if (ylen<xlen) xlim = xscan+ylen;
+          else xlim = xscan+xlen;
           while (xscan<xlim) {
-            cmp=DOCOMPARE(*xscan,*yscan);
+            cmp = DOCOMPARE(*xscan,*yscan);
             if (cmp) break;
             xscan++;
             yscan++;}
@@ -156,7 +156,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
           else if (xlen<ylen) return -1;
           else return 0;}}
       default: {
-        fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
+        fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
         if (fd_comparators[ctype])
           return fd_comparators[ctype](x,y,flags);
         else if (x>y) return 1;
@@ -171,7 +171,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 static int string_compare(u8_string s1,u8_string s2,int ci)
 {
   if (ci) {
-    int rv=strcasecmp(s1,s2);
+    int rv = strcasecmp(s1,s2);
     if (rv) return rv;
     else return strcmp(s1,s2);}
   else return strcmp(s1,s2);
@@ -181,7 +181,7 @@ static int string_compare(u8_string s1,u8_string s2,int ci)
 
 FD_FASTOP void do_swap(fdtype *a,fdtype *b)
 {
-  fdtype tmp=*a;
+  fdtype tmp = *a;
   *a = *b;
   *b = tmp;
 }
@@ -211,22 +211,22 @@ void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags)
 
 static int compare_compounds(fdtype x,fdtype y,fd_compare_flags flags)
 {
-  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
-  struct FD_COMPOUND *yc=fd_consptr(struct FD_COMPOUND *,y,fd_compound_type);
-  fdtype xtag=xc->compound_typetag, ytag=yc->compound_typetag;
+  struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
+  struct FD_COMPOUND *yc = fd_consptr(struct FD_COMPOUND *,y,fd_compound_type);
+  fdtype xtag = xc->compound_typetag, ytag = yc->compound_typetag;
   int cmp;
   if (xc == yc) return 0;
   else if ((xc->compound_isopaque) || (yc->compound_isopaque))
     if (xc>yc) return 1; else return -1;
-  else if ((cmp=(FDTYPE_COMPARE(xtag,ytag,flags))))
+  else if ((cmp = (FDTYPE_COMPARE(xtag,ytag,flags))))
     return cmp;
   else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
   else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
   else {
-    int i=0, len=xc->fd_n_elts;
-    fdtype *xdata=&(xc->compound_0), *ydata=&(yc->compound_0);
+    int i = 0, len = xc->fd_n_elts;
+    fdtype *xdata = &(xc->compound_0), *ydata = &(yc->compound_0);
     while (i<len)
-      if ((cmp=(FDTYPE_COMPARE(xdata[i],ydata[i],flags)))==0)
+      if ((cmp = (FDTYPE_COMPARE(xdata[i],ydata[i],flags)))==0)
         i++;
       else return cmp;
     return 0;}
@@ -238,7 +238,7 @@ static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   struct FD_TIMESTAMP *ytm=
     fd_consptr(struct FD_TIMESTAMP *,y,fd_timestamp_type);
-  double diff=u8_xtime_diff(&(xtm->ts_u8xtime),&(ytm->ts_u8xtime));
+  double diff = u8_xtime_diff(&(xtm->ts_u8xtime),&(ytm->ts_u8xtime));
   if (diff<0.0) return -1;
   else if (diff == 0.0) return 0;
   else return 1;
@@ -246,8 +246,8 @@ static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
 
 static int compare_uuids(fdtype x,fdtype y,fd_compare_flags flags)
 {
-  struct FD_UUID *xuuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-  struct FD_UUID *yuuid=fd_consptr(struct FD_UUID *,y,fd_uuid_type);
+  struct FD_UUID *xuuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
+  struct FD_UUID *yuuid = fd_consptr(struct FD_UUID *,y,fd_uuid_type);
   return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
 }
 
@@ -263,29 +263,29 @@ FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec)
   else if (FD_TRUEP(spec))
     return FD_COMPARE_FULL;
   else if (FD_TABLEP(spec)) {
-    fd_compare_flags flags=0;
+    fd_compare_flags flags = 0;
     if (fd_testopt(spec,compare_full,FD_VOID)) 
-      flags=FD_COMPARE_FULL;
+      flags = FD_COMPARE_FULL;
     else if (fd_testopt(spec,compare_quick,FD_VOID)) 
-      flags=0;
+      flags = 0;
     else {}
     if ( (fd_testopt(spec,compare_recursive,FD_VOID)) ||
 	 (fd_testopt(spec,compare_elts,FD_VOID)) )
-      flags|=FD_COMPARE_RECURSIVE;
+      flags |= FD_COMPARE_RECURSIVE;
     if ( (fd_testopt(spec,compare_natural,FD_VOID)) ||
 	 (fd_testopt(spec,compare_natsort,FD_VOID)) )
-      flags|=FD_COMPARE_NATSORT;
+      flags |= FD_COMPARE_NATSORT;
     if ( (fd_testopt(spec,compare_numeric,FD_VOID)) )
-      flags|=FD_COMPARE_NUMERIC;
+      flags |= FD_COMPARE_NUMERIC;
     if ( (fd_testopt(spec,compare_lexical,FD_VOID)) ||
 	 (fd_testopt(spec,compare_alphabetical,FD_VOID)))
-      flags|=FD_COMPARE_ALPHABETICAL;
+      flags |= FD_COMPARE_ALPHABETICAL;
     if ( (fd_testopt(spec,compare_ci,FD_VOID)) ||
 	 (fd_testopt(spec,compare_ic,FD_VOID)) ||
 	 (fd_testopt(spec,compare_nocase,FD_VOID)) ||
 	 (fd_testopt(spec,compare_caseinsensitive,FD_VOID)) ||
 	 (fd_testopt(spec,compare_case_insensitive,FD_VOID)) )
-      flags|=FD_COMPARE_CI;
+      flags |= FD_COMPARE_CI;
     return flags;}
   else return FD_COMPARE_QUICK;
 }
@@ -298,18 +298,18 @@ void fd_init_compare_c()
   fd_comparators[fd_timestamp_type]=compare_timestamps;
   fd_comparators[fd_uuid_type]=compare_uuids;
 
-  compare_quick=fd_intern("QUICK");
-  compare_recursive=fd_intern("RECURSIVE");
-  compare_elts=fd_intern("ELTS");
-  compare_natural=fd_intern("NATURAL");
-  compare_natsort=fd_intern("NATSORT");
-  compare_numeric=fd_intern("NUMERIC");
-  compare_lexical=fd_intern("LEXICAL");
-  compare_alphabetical=fd_intern("ALPHABETICAL");
-  compare_ci=fd_intern("CI");
-  compare_ic=fd_intern("IC");
-  compare_caseinsensitive=fd_intern("CASEINSENSITIVE");
-  compare_case_insensitive=fd_intern("CASE-INSENSITIVE");
-  compare_nocase=fd_intern("NOCASE");
-  compare_full=fd_intern("FULL");
+  compare_quick = fd_intern("QUICK");
+  compare_recursive = fd_intern("RECURSIVE");
+  compare_elts = fd_intern("ELTS");
+  compare_natural = fd_intern("NATURAL");
+  compare_natsort = fd_intern("NATSORT");
+  compare_numeric = fd_intern("NUMERIC");
+  compare_lexical = fd_intern("LEXICAL");
+  compare_alphabetical = fd_intern("ALPHABETICAL");
+  compare_ci = fd_intern("CI");
+  compare_ic = fd_intern("IC");
+  compare_caseinsensitive = fd_intern("CASEINSENSITIVE");
+  compare_case_insensitive = fd_intern("CASE-INSENSITIVE");
+  compare_nocase = fd_intern("NOCASE");
+  compare_full = fd_intern("FULL");
 }

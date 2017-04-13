@@ -306,11 +306,11 @@ typedef int fd_size_t;
 
 /* Ints that hold pointers */
 
-#if (SIZEOF_VOID_P==SIZEOF_INT)
+#if (SIZEOF_VOID_P == SIZEOF_INT)
 #define FD_INTPTR unsigned int
-#elif (SIZEOF_VOID_P==SIZEOF_LONG)
+#elif (SIZEOF_VOID_P == SIZEOF_LONG)
 #define FD_INTPTR unsigned long
-#elif (SIZEOF_VOID_P==SIZEOF_LONG_LONG)
+#elif (SIZEOF_VOID_P == SIZEOF_LONG_LONG)
 #define FD_INTPTR unsigned long long
 #else
 #define FD_INTPTR unsigned long long

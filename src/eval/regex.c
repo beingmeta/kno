@@ -27,21 +27,21 @@ fd_exception fd_RegexBadOp=_("Invalid Regex operation");
 
 static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
 {
-  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX);
-  int retval, cflags=REG_EXTENDED;
-  u8_string src=u8_strdup(FD_STRDATA(pat));
+  struct FD_REGEX *ptr = u8_alloc(struct FD_REGEX);
+  int retval, cflags = REG_EXTENDED;
+  u8_string src = u8_strdup(FD_STRDATA(pat));
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
-  if (!(FD_FALSEP(nocase))) cflags=cflags|REG_ICASE;
-  if (!(FD_FALSEP(matchnl))) cflags=cflags|REG_NEWLINE;
-  retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);
+  if (!(FD_FALSEP(nocase))) cflags = cflags|REG_ICASE;
+  if (!(FD_FALSEP(matchnl))) cflags = cflags|REG_NEWLINE;
+  retval = regcomp(&(ptr->fd_rxcompiled),src,cflags);
   if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),FD_VOID);}
   else {
-    ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive=1;
+    ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
+    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -53,25 +53,25 @@ static fdtype regexp_prim(fdtype x)
 
 static fdtype getcharoff(u8_string s,int byteoff)
 {
-  int charoff=u8_charoffset(s,byteoff);
+  int charoff = u8_charoffset(s,byteoff);
   return FD_INT(charoff);
 }
 
 static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
                              int eflags)
 {
-  struct FD_REGEX *ptr=fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
+  struct FD_REGEX *ptr = fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
   regmatch_t results[1];
-  int retval, len=FD_STRLEN(string);
-  u8_string s=FD_STRDATA(string);
+  int retval, len = FD_STRLEN(string);
+  u8_string s = FD_STRDATA(string);
   /* Convert numeric eflags value to correct flags field */
-  if (eflags==1) eflags=REG_NOTBOL;
-  else if (eflags==2) eflags=REG_NOTEOL;
-  else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
-  else eflags=0;
+  if (eflags==1) eflags = REG_NOTBOL;
+  else if (eflags==2) eflags = REG_NOTEOL;
+  else if (eflags==3) eflags = REG_NOTEOL|REG_NOTBOL;
+  else eflags = 0;
   u8_lock_mutex(&(ptr->fdrx_lock));
-  retval=regexec(&(ptr->fd_rxcompiled),FD_STRDATA(string),1,results,eflags);
-  if (retval==REG_NOMATCH) {
+  retval = regexec(&(ptr->fd_rxcompiled),FD_STRDATA(string),1,results,eflags);
+  if (retval == REG_NOMATCH) {
     u8_unlock_mutex(&(ptr->fdrx_lock));
     return FD_FALSE;}
   else if (retval) {
@@ -84,7 +84,7 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
   else switch (op) {
     case rx_search: return getcharoff(s,results[0].rm_so);
     case rx_exactmatch:
-      if ((results[0].rm_so==0)&&(results[0].rm_eo==len))
+      if ((results[0].rm_so==0)&&(results[0].rm_eo == len))
         return FD_TRUE;
       else return FD_FALSE;
     case rx_matchlen:
@@ -105,17 +105,17 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
                               u8_string s,size_t len,
                               int eflags)
 {
-  struct FD_REGEX *ptr=fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
+  struct FD_REGEX *ptr = fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
   regmatch_t results[1];
   int retval;
   /* Convert numeric eflags value to correct flags field */
-  if (eflags==1) eflags=REG_NOTBOL;
-  else if (eflags==2) eflags=REG_NOTEOL;
-  else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
-  else eflags=0;
+  if (eflags==1) eflags = REG_NOTBOL;
+  else if (eflags==2) eflags = REG_NOTEOL;
+  else if (eflags==3) eflags = REG_NOTEOL|REG_NOTBOL;
+  else eflags = 0;
   u8_lock_mutex(&(ptr->fdrx_lock));
-  retval=regexec(&(ptr->fd_rxcompiled),s,1,results,eflags);
-  if (retval==REG_NOMATCH) {
+  retval = regexec(&(ptr->fd_rxcompiled),s,1,results,eflags);
+  if (retval == REG_NOMATCH) {
     u8_unlock_mutex(&(ptr->fdrx_lock));
     return -1;}
   else if (retval) {
@@ -129,7 +129,7 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
   else switch (op) {
     case rx_search: return u8_charoffset(s,results[0].rm_so);
     case rx_exactmatch:
-      if ((results[0].rm_so==0)&&(results[0].rm_eo==len))
+      if ((results[0].rm_so==0)&&(results[0].rm_eo == len))
         return 1;
       else return 0;
     case rx_matchlen:
@@ -150,24 +150,24 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
 
 FD_EXPORT int fd_regex_test(fdtype pat,u8_string s,ssize_t len)
  {
-   if (len<0) len=strlen(s);
+   if (len<0) len = strlen(s);
    if (fd_regex_op(rx_search,pat,s,len,0)>=0)
      return 1;
    else return 0;
 }
 FD_EXPORT off_t fd_regex_search(fdtype pat,u8_string s,ssize_t len)
 {
-  if (len<0) len=strlen(s);
+  if (len<0) len = strlen(s);
   return fd_regex_op(rx_search,pat,s,len,0);
 }
 FD_EXPORT ssize_t fd_regex_match(fdtype pat,u8_string s,ssize_t len)
 {
-  if (len<0) len=strlen(s);
+  if (len<0) len = strlen(s);
   return fd_regex_op(rx_exactmatch,pat,s,len,0);
 }
 FD_EXPORT ssize_t fd_regex_matchlen(fdtype pat,u8_string s,ssize_t len)
 {
-  if (len<0) len=strlen(s);
+  if (len<0) len = strlen(s);
   return fd_regex_op(rx_matchlen,pat,s,len,0);
 }
 
@@ -204,15 +204,15 @@ static fdtype regex_matchpair(fdtype pat,fdtype string,fdtype ef)
 
 /* Initialization */
 
-static int regex_init=0;
+static int regex_init = 0;
 
 FD_EXPORT int fd_init_regex_c()
 {
   fdtype regex_module;
   if (regex_init) return 0;
 
-  regex_init=1;
-  regex_module=fd_new_module("REGEX",(FD_MODULE_SAFE));
+  regex_init = 1;
+  regex_module = fd_new_module("REGEX",(FD_MODULE_SAFE));
 
   fd_idefn(regex_module,
            fd_make_cprim3x("REGEX",make_regex,1,

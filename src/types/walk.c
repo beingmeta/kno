@@ -27,18 +27,18 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
   if (depth==0) 
     return 0;
   else if (FD_CONSP(obj)) {
-    int constype=FD_PTR_TYPE(obj);
+    int constype = FD_PTR_TYPE(obj);
     switch (constype) {
     case fd_pair_type: case fd_vector_type: case fd_rail_type:
     case fd_choice_type: case fd_achoice_type: case fd_qchoice_type:
     case fd_slotmap_type: case fd_schemap_type:
     case fd_hashtable_type: case fd_hashset_type: {
-      int rv=walker(obj,walkdata);
+      int rv = walker(obj,walkdata);
       if (rv<=0) return rv;
       else return cons_walk(walker,constype,obj,walkdata,flags,depth);}
     default:
       if (fd_walkers[constype]) {
-	int rv=walker(obj,walkdata);
+	int rv = walker(obj,walkdata);
 	if (rv<0) return rv;
 	else if (rv>0)
 	  return cons_walk(walker,constype,obj,walkdata,flags,depth);
@@ -75,28 +75,28 @@ static int cons_walk(fd_walker walker,int constype,
 {
   switch (constype) {
   case fd_pair_type: {
-    fdtype scan=obj;
+    fdtype scan = obj;
     while (FD_PAIRP(scan)) {
-      struct FD_PAIR *pair=(fd_pair) scan;
-      int rv=walker(scan,walkdata);
+      struct FD_PAIR *pair = (fd_pair) scan;
+      int rv = walker(scan,walkdata);
       if (rv>0) {
 	fast_walk(walker,pair->car,walkdata,flags,depth-1);
-	scan=pair->cdr;}
+	scan = pair->cdr;}
       else return rv;}
     return fast_walk(walker,scan,walkdata,flags,depth-1);}
   case fd_rail_type: case fd_vector_type: {
-    int i=0, len=FD_VECTOR_LENGTH(obj), rv=0;
-    fdtype *elts=FD_VECTOR_DATA(obj);
+    int i = 0, len = FD_VECTOR_LENGTH(obj), rv = 0;
+    fdtype *elts = FD_VECTOR_DATA(obj);
     while (i<len) {
-      rv=fast_walk(walker,elts[i],walkdata,flags,depth-1);
+      rv = fast_walk(walker,elts[i],walkdata,flags,depth-1);
       if (rv<0) return rv;
       i++;}
     return len;}
   case fd_slotmap_type: {
-    struct FD_SLOTMAP *slotmap=FD_XSLOTMAP(obj);
+    struct FD_SLOTMAP *slotmap = FD_XSLOTMAP(obj);
     fd_read_lock_table(slotmap);
-    int i=0, len=FD_SLOTMAP_NSLOTS(obj);
-    struct FD_KEYVAL *keyvals=slotmap->sm_keyvals;
+    int i = 0, len = FD_SLOTMAP_NSLOTS(obj);
+    struct FD_KEYVAL *keyvals = slotmap->sm_keyvals;
     while (i<len) {
       if ((fast_walk(walker,keyvals[i].kv_key,walkdata,flags,depth-1)<0)||
 	  (fast_walk(walker,keyvals[i].kv_val,walkdata,flags,depth-1)<0)) {
@@ -106,11 +106,11 @@ static int cons_walk(fd_walker walker,int constype,
     fd_unlock_table(slotmap);
     return len;}
   case fd_schemap_type: {
-    struct FD_SCHEMAP *schemap=FD_XSCHEMAP(obj);
+    struct FD_SCHEMAP *schemap = FD_XSCHEMAP(obj);
     fd_read_lock_table(schemap);
-    int i=0, len=FD_SCHEMAP_SIZE(obj);
-    fdtype *slotids=schemap->table_schema;
-    fdtype *slotvals=schemap->schema_values;
+    int i = 0, len = FD_SCHEMAP_SIZE(obj);
+    fdtype *slotids = schemap->table_schema;
+    fdtype *slotvals = schemap->schema_values;
     while (i<len) {
       if ((fast_walk(walker,slotids[i],walkdata,flags,depth-1)<0) ||
 	  (fast_walk(walker,slotvals[i],walkdata,flags,depth-1)<0) ) {
@@ -120,37 +120,37 @@ static int cons_walk(fd_walker walker,int constype,
     fd_unlock_table(schemap);
     return len;}
   case fd_choice_type: {
-    struct FD_CHOICE *ch=(struct FD_CHOICE *)obj;
-    const fdtype *data=FD_XCHOICE_DATA(ch);
-    int i=0, len=FD_XCHOICE_SIZE(ch);
+    struct FD_CHOICE *ch = (struct FD_CHOICE *)obj;
+    const fdtype *data = FD_XCHOICE_DATA(ch);
+    int i = 0, len = FD_XCHOICE_SIZE(ch);
     while (i<len) {
-      fdtype e=data[i++];
+      fdtype e = data[i++];
       if (fast_walk(walker,e,walkdata,flags,depth-1)<0)
 	return -1;}
     return len;}
   case fd_achoice_type: {
-    struct FD_ACHOICE *ach=(struct FD_ACHOICE *)obj;
-    fdtype *data=ach->achoice_data, *end=ach->achoice_write;
+    struct FD_ACHOICE *ach = (struct FD_ACHOICE *)obj;
+    fdtype *data = ach->achoice_data, *end = ach->achoice_write;
     while (data<end) {
-	fdtype e=*data++;
+	fdtype e = *data++;
 	if (fast_walk(walker,e,walkdata,flags,depth-1)<0)
 	  return -1;}
     return end-data;}
   case fd_qchoice_type: {
-    struct FD_QCHOICE *qc=(struct FD_QCHOICE *)obj;
+    struct FD_QCHOICE *qc = (struct FD_QCHOICE *)obj;
     return fast_walk(walker,qc->qchoiceval,walkdata,flags,depth-1);}
   case fd_hashtable_type: {
-      struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
-      int i=0, n_buckets, n_keys; struct FD_HASH_BUCKET **buckets;
+      struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *)obj;
+      int i = 0, n_buckets, n_keys; struct FD_HASH_BUCKET **buckets;
       fd_read_lock_table(ht);
-      n_buckets=ht->ht_n_buckets;
-      buckets=ht->ht_buckets;
-      n_keys=ht->table_n_keys;
+      n_buckets = ht->ht_n_buckets;
+      buckets = ht->ht_buckets;
+      n_keys = ht->table_n_keys;
       while (i<n_buckets) {
 	if (buckets[i]) {
-	  struct FD_HASH_BUCKET *hashentry=buckets[i++];
-	  int j=0, n_keyvals=hashentry->fd_n_entries;
-	  struct FD_KEYVAL *keyvals=&(hashentry->kv_val0);
+	  struct FD_HASH_BUCKET *hashentry = buckets[i++];
+	  int j = 0, n_keyvals = hashentry->fd_n_entries;
+	  struct FD_KEYVAL *keyvals = &(hashentry->kv_val0);
 	  while (j<n_keyvals) {
 	    if ((fast_walk(walker,keyvals[j].kv_key,walkdata,flags,depth-1)<0) ||
 		(fast_walk(walker,keyvals[j].kv_val,walkdata,flags,depth-1)<0) ) {
@@ -161,10 +161,10 @@ static int cons_walk(fd_walker walker,int constype,
       fd_unlock_table(ht);
       return n_keys;}
   case fd_hashset_type: {
-    struct FD_HASHSET *hs=(struct FD_HASHSET *)obj;
+    struct FD_HASHSET *hs = (struct FD_HASHSET *)obj;
     fd_read_lock_table(hs); {
-      int i=0, n_slots=hs->hs_n_slots, n_elts=hs->hs_n_elts;
-      fdtype *slots=hs->hs_slots;
+      int i = 0, n_slots = hs->hs_n_slots, n_elts = hs->hs_n_elts;
+      fdtype *slots = hs->hs_slots;
       while (i<n_slots) {
 	if (slots[i]) {
 	  if (fast_walk(walker,slots[i],walkdata,flags,depth-1)<0) {
@@ -185,9 +185,9 @@ static int walk_compound(fd_walker walker,fdtype x,
 			  fd_walk_flags flags,
 			  int depth)
 {
-  struct FD_COMPOUND *c=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
-  int i=0, len=c->fd_n_elts;
-  fdtype *data=&(c->compound_0);
+  struct FD_COMPOUND *c = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
+  int i = 0, len = c->fd_n_elts;
+  fdtype *data = &(c->compound_0);
   walker(c->compound_typetag,walkdata);
   while (i<len) {
     if (fast_walk(walker,data[i],walkdata,flags,depth-1)<0)

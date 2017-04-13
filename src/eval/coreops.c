@@ -83,7 +83,7 @@ static fdtype equalp(fdtype x,fdtype y)
 */
 static fdtype comparefn(fdtype x,fdtype y)
 {
-  int n=FDTYPE_COMPARE(x,y,FD_COMPARE_FULL);
+  int n = FDTYPE_COMPARE(x,y,FD_COMPARE_FULL);
   return FD_INT(n);
 }
 
@@ -109,7 +109,7 @@ static fdtype comparefn(fdtype x,fdtype y)
 */
 static fdtype quickcomparefn(fdtype x,fdtype y)
 {
-  int n=FD_QCOMPARE(x,y);
+  int n = FD_QCOMPARE(x,y);
   return FD_INT(n);
 }
 
@@ -168,10 +168,10 @@ static fdtype dontopt(fdtype x)
 static fdtype get_refcount(fdtype x,fdtype delta)
 {
   if (FD_CONSP(x)) {
-    struct FD_CONS *cons=(struct FD_CONS *)x;
-    int refcount=FD_CONS_REFCOUNT(cons);
-    long long d=FD_FIX2INT(delta);
-    if (d<0) d=-d;
+    struct FD_CONS *cons = (struct FD_CONS *)x;
+    int refcount = FD_CONS_REFCOUNT(cons);
+    long long d = FD_FIX2INT(delta);
+    if (d<0) d = -d;
     if (refcount<1)
       return fd_reterr("Bad REFCOUNT","get_refcount",
                        u8_mkstring("%lx",(unsigned long)x),
@@ -192,13 +192,13 @@ static fdtype get_refcount(fdtype x,fdtype delta)
 */
 static fdtype eqp(fdtype x,fdtype y)
 {
-  if (x==y) return FD_TRUE;
+  if (x == y) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype eqvp(fdtype x,fdtype y)
 {
-  if (x==y) return FD_TRUE;
+  if (x == y) return FD_TRUE;
   else if ((FD_NUMBERP(x)) && (FD_NUMBERP(y)))
     if (fd_numcompare(x,y)==0)
       return FD_TRUE;
@@ -209,7 +209,7 @@ static fdtype eqvp(fdtype x,fdtype y)
 static fdtype overlapsp(fdtype x,fdtype y)
 {
   if (FD_EMPTY_CHOICEP(x)) return FD_FALSE;
-  else if (x==y) return FD_TRUE;
+  else if (x == y) return FD_TRUE;
   else if (FD_EMPTY_CHOICEP(y)) return FD_FALSE;
   else if (fd_overlapp(x,y)) return FD_TRUE;
   else return FD_FALSE;
@@ -218,7 +218,7 @@ static fdtype overlapsp(fdtype x,fdtype y)
 static fdtype containsp(fdtype x,fdtype y)
 {
   if (FD_EMPTY_CHOICEP(x)) return FD_FALSE;
-  else if (x==y) return FD_TRUE;
+  else if (x == y) return FD_TRUE;
   else if (FD_EMPTY_CHOICEP(y)) return FD_FALSE;
   else if (fd_containsp(x,y)) return FD_TRUE;
   else return FD_FALSE;
@@ -227,10 +227,10 @@ static fdtype containsp(fdtype x,fdtype y)
 static int numeric_compare(const fdtype x,const fdtype y)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
-    long long ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
+    long long ix = FD_FIX2INT(x), iy = FD_FIX2INT(y);
     if (ix>iy) return 1; else if (ix<iy) return -1; else return 0;}
   else if ((FD_FLONUMP(x)) && (FD_FLONUMP(y))) {
-    double dx=FD_FLONUM(x), dy=FD_FLONUM(y);
+    double dx = FD_FLONUM(x), dy = FD_FLONUM(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
   else return fd_numcompare(x,y);
 }
@@ -244,7 +244,7 @@ static fdtype lisp_zerop(fdtype x)
   else if (!(FD_NUMBERP(x)))
     return FD_FALSE;
   else {
-    int cmp=fd_numcompare(x,FD_INT(0));
+    int cmp = fd_numcompare(x,FD_INT(0));
     if (cmp==0) return FD_TRUE;
     else if (cmp>1) return FD_ERROR_VALUE;
     else return FD_FALSE;}
@@ -252,8 +252,8 @@ static fdtype lisp_zerop(fdtype x)
 
 static fdtype do_compare(int n,fdtype *v,int testspec[3])
 {
-  int i=1; while (i < n) {
-    int comparison=numeric_compare(v[i-1],v[i]);
+  int i = 1; while (i < n) {
+    int comparison = numeric_compare(v[i-1],v[i]);
     if (comparison>1) return FD_ERROR_VALUE;
     else if (testspec[comparison+1]) i++;
     else return FD_FALSE;}
@@ -298,8 +298,8 @@ static fdtype proper_listp(fdtype x)
 {
   if (FD_EMPTY_LISTP(x)) return FD_TRUE;
   else if (FD_PAIRP(x)) {
-    fdtype scan=x;
-    while (FD_PAIRP(scan)) scan=FD_CDR(scan);
+    fdtype scan = x;
+    while (FD_PAIRP(scan)) scan = FD_CDR(scan);
     if (FD_EMPTY_LISTP(scan)) return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;
@@ -329,7 +329,7 @@ static fdtype flonump(fdtype x)
 static fdtype isnanp(fdtype x)
 {
   if (FD_FLONUMP(x)) {
-    double d=FD_FLONUM(x);
+    double d = FD_FLONUM(x);
     if (isnan(d))
       return FD_TRUE;
     else return FD_FALSE;}
@@ -411,7 +411,7 @@ static fdtype falsep(fdtype x)
 
 static fdtype typeof_prim(fdtype x)
 {
-  fd_ptr_type t=FD_PRIM_TYPE(x);
+  fd_ptr_type t = FD_PRIM_TYPE(x);
   if (fd_type_names[t]) return fdtype_string(fd_type_names[t]);
   else return fdtype_string("??");
 }
@@ -420,12 +420,12 @@ static fdtype typeof_prim(fdtype x)
 static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
-    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
   else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
+    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
     if (sf->fexpr_name)
       return fdtype_string(sf->fexpr_name);
     else return FD_FALSE;}
@@ -460,7 +460,7 @@ static fdtype lisp_parse_arg(fdtype string)
 
 static fdtype lisp_unparse_arg(fdtype obj)
 {
-  u8_string s=fd_unparse_arg(obj);
+  u8_string s = fd_unparse_arg(obj);
   return fd_lispstring(s);
 }
 
@@ -476,13 +476,13 @@ static fdtype lisp_string2symbol(fdtype s)
 
 static fdtype config_get(fdtype vars,fdtype dflt)
 {
-  fdtype result=FD_EMPTY_CHOICE;
+  fdtype result = FD_EMPTY_CHOICE;
   FD_DO_CHOICES(var,vars) {
     fdtype value;
     if (FD_STRINGP(var))
-      value=fd_config_get(FD_STRDATA(var));
+      value = fd_config_get(FD_STRDATA(var));
     else if (FD_SYMBOLP(var))
-      value=fd_config_get(FD_SYMBOL_NAME(var));
+      value = fd_config_get(FD_SYMBOL_NAME(var));
     else {
       fd_decref(result);
       return fd_type_error(_("string or symbol"),"config_get",var);}
@@ -497,14 +497,14 @@ static fdtype config_get(fdtype vars,fdtype dflt)
 
 static fdtype set_config(int n,fdtype *args)
 {
-  int retval, i=0;
+  int retval, i = 0;
   if (n%2) return fd_err(fd_SyntaxError,"set_config",NULL,FD_VOID);
   while (i<n) {
-    fdtype var=args[i++], val=args[i++];
+    fdtype var = args[i++], val = args[i++];
     if (FD_STRINGP(var))
-      retval=fd_set_config(FD_STRDATA(var),val);
+      retval = fd_set_config(FD_STRDATA(var),val);
     else if (FD_SYMBOLP(var))
-      retval=fd_set_config(FD_SYMBOL_NAME(var),val);
+      retval = fd_set_config(FD_SYMBOL_NAME(var),val);
     else return fd_type_error(_("string or symbol"),"set_config",var);
     if (retval<0) return FD_ERROR_VALUE;}
   return FD_VOID;
@@ -514,9 +514,9 @@ static fdtype config_default(fdtype var,fdtype val)
 {
   int retval;
   if (FD_STRINGP(var))
-    retval=fd_default_config(FD_STRDATA(var),val);
+    retval = fd_default_config(FD_STRDATA(var),val);
   else if (FD_SYMBOLP(var))
-    retval=fd_default_config(FD_SYMBOL_NAME(var),val);
+    retval = fd_default_config(FD_SYMBOL_NAME(var),val);
   else return fd_type_error(_("string or symbol"),"config_default",var);
   if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
@@ -525,11 +525,11 @@ static fdtype config_default(fdtype var,fdtype val)
 
 static fdtype find_configs(fdtype pat,fdtype raw)
 {
-  int with_docs=((FD_VOIDP(raw))||(FD_FALSEP(raw))||(FD_DEFAULTP(raw)));
-  fdtype configs=((with_docs)?(fd_all_configs(0)):(fd_all_configs(1)));
-  fdtype results=FD_EMPTY_CHOICE;
+  int with_docs = ((FD_VOIDP(raw))||(FD_FALSEP(raw))||(FD_DEFAULTP(raw)));
+  fdtype configs = ((with_docs)?(fd_all_configs(0)):(fd_all_configs(1)));
+  fdtype results = FD_EMPTY_CHOICE;
   FD_DO_CHOICES(config,configs) {
-    fdtype key=((FD_PAIRP(config))?(FD_CAR(config)):(config));
+    fdtype key = ((FD_PAIRP(config))?(FD_CAR(config)):(config));
     u8_string keystring=
       ((FD_STRINGP(key))?(FD_STRDATA(key)):(FD_SYMBOL_NAME(key)));
     if ((FD_STRINGP(pat))?(strcasestr(keystring,FD_STRDATA(pat))!=NULL):
@@ -541,16 +541,16 @@ static fdtype find_configs(fdtype pat,fdtype raw)
 
 static fdtype lconfig_get(fdtype var,void *data)
 {
-  fdtype proc=(fdtype)data;
-  fdtype result=fd_apply(proc,1,&var);
+  fdtype proc = (fdtype)data;
+  fdtype result = fd_apply(proc,1,&var);
   return result;
 }
 
 static int lconfig_set(fdtype var,fdtype val,void *data)
 {
-  fdtype proc=(fdtype)data, args[2], result;
+  fdtype proc = (fdtype)data, args[2], result;
   args[0]=var; args[1]=val;
-  result=fd_apply(proc,2,args);
+  result = fd_apply(proc,2,args);
   if (FD_ABORTP(result))
     return fd_interr(result);
   else if (FD_TRUEP(result)) {
@@ -563,7 +563,7 @@ static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
   int retval;
   fd_incref(handler);
-  retval=fd_register_config_x(FD_SYMBOL_NAME(var),
+  retval = fd_register_config_x(FD_SYMBOL_NAME(var),
                               ((FD_VOIDP(docstring)) ? (NULL) :
                                (FD_STRDATA(docstring))),
                               lconfig_get,lconfig_set,(void *) handler,
@@ -581,7 +581,7 @@ static int reuse_lconfig(struct FD_CONFIG_HANDLER *e){
 
 static fdtype thread_get(fdtype var)
 {
-  fdtype value=fd_thread_get(var);
+  fdtype value = fd_thread_get(var);
   if (FD_VOIDP(value)) return FD_EMPTY_CHOICE;
   else return value;
 }
@@ -602,20 +602,20 @@ static fdtype thread_add(fdtype var,fdtype val)
 
 static fdtype thread_ref(fdtype expr,fd_lispenv env)
 {
-  fdtype sym_arg=fd_get_arg(expr,1), sym, val;
-  fdtype dflt_expr=fd_get_arg(expr,2);
+  fdtype sym_arg = fd_get_arg(expr,1), sym, val;
+  fdtype dflt_expr = fd_get_arg(expr,2);
   if ((FD_VOIDP(sym_arg))||(FD_VOIDP(dflt_expr)))
     return fd_err(fd_SyntaxError,"thread_ref",NULL,FD_VOID);
-  sym=fd_eval(sym_arg,env);
+  sym = fd_eval(sym_arg,env);
   if (FD_ABORTP(sym)) return sym;
   else if (!(FD_SYMBOLP(sym))) 
     return fd_err(fd_TypeError,"thread_ref",u8_strdup("symbol"),sym);
-  else val=fd_thread_get(sym);
+  else val = fd_thread_get(sym);
   if (FD_ABORTP(val)) return val;
   else if (FD_VOIDP(val)) {
-    fdtype useval=fd_eval(dflt_expr,env); int rv;
+    fdtype useval = fd_eval(dflt_expr,env); int rv;
     if (FD_ABORTP(useval)) return useval;
-    rv=fd_thread_set(sym,useval);
+    rv = fd_thread_set(sym,useval);
     if (rv<0) {
       fd_decref(useval);
       return FD_ERROR_VALUE;}
@@ -627,13 +627,13 @@ static fdtype thread_ref(fdtype expr,fd_lispenv env)
 
 static void add_sourceid(u8_string s,void *vp)
 {
-  fdtype *valp=(fdtype *)vp;
-  *valp=fd_make_pair(fdtype_string(s),*valp);
+  fdtype *valp = (fdtype *)vp;
+  *valp = fd_make_pair(fdtype_string(s),*valp);
 }
 
 static fdtype lisp_getsourceinfo()
 {
-  fdtype result=FD_EMPTY_LIST;
+  fdtype result = FD_EMPTY_LIST;
   u8_for_source_files(add_sourceid,&result);
   return result;
 }
@@ -642,7 +642,7 @@ static fdtype lisp_getsourceinfo()
 
 static fdtype force_sigsegv()
 {
-  fdtype *values=NULL;
+  fdtype *values = NULL;
   fd_incref(values[3]);
   return values[3];
 }

@@ -138,9 +138,9 @@ FD_EXPORT int fd_pool_lock_init;
 FD_EXPORT int fd_ignore_anonymous_oids;
 
 typedef enum fdkb_unlock_flags {
-  commit_modified=1,
-  leave_modified=0,
-  discard_modified=-1 } fdkb_unlock_flag;
+  commit_modified = 1,
+  leave_modified = 0,
+  discard_modified = -1 } fdkb_unlock_flag;
 
 typedef struct FD_ADJUNCT {
   struct FD_POOL *pool; fdtype slotid; fdtype table;} FD_ADJUNCT;
@@ -193,12 +193,12 @@ FD_EXPORT void _fd_unlock_pool(fd_pool p);
 FD_FASTOP void fd_lock_pool(fd_pool p)
 {
   u8_lock_mutex(&((p)->pool_lock));
-  p->pool_islocked=1;
+  p->pool_islocked = 1;
 }
 FD_FASTOP void fd_unlock_pool(fd_pool p)
 {
   if (p->pool_islocked) {
-    p->pool_islocked=0;
+    p->pool_islocked = 0;
     u8_unlock_mutex(&((p)->pool_lock));}
   else _fd_unlock_pool(p);}
 #else
@@ -362,10 +362,10 @@ FD_EXPORT int fd_commit_oids(fdtype oids);
 #if FD_INLINE_POOLS
 FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
 {
-  int baseid=FD_OID_BASE_ID(oid);
-  int baseoff=FD_OID_BASE_OFFSET(oid);
-  struct FD_POOL *top=fd_top_pools[baseid];
-  if (top==NULL) return top;
+  int baseid = FD_OID_BASE_ID(oid);
+  int baseoff = FD_OID_BASE_OFFSET(oid);
+  struct FD_POOL *top = fd_top_pools[baseid];
+  if (top == NULL) return top;
   else if (baseoff<top->pool_capacity) return top;
   else if (top->pool_capacity) {
     u8_raise(_("Corrupted pool table"),"fd_oid2pool",NULL);
@@ -374,7 +374,7 @@ FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
 }
 FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 {
-  int serial=FD_GET_IMMEDIATE(x,fd_pool_type);
+  int serial = FD_GET_IMMEDIATE(x,fd_pool_type);
   if (serial<fd_n_pools)
     return fd_pools_by_serialno[serial];
   else return NULL;
