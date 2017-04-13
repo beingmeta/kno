@@ -93,7 +93,8 @@ fdtype fd_copier(fdtype x,int flags)
       if (FD_ATOMIC_CHOICEP(x))
         memcpy(write,read,sizeof(fdtype)*n);
       else if (flags&FD_FULL_COPY) while (read<limit) {
-          fdtype v = *read++, c = fd_copier(v,flags); *write++=c;}
+          fdtype v = *read++, c = fd_copier(v,flags);
+	  *write++=c;}
       else while (read<limit) {
           fdtype v = *read++, newv = v;
           if (FD_CONSP(newv)) {

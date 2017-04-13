@@ -203,6 +203,11 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 #define FD_STATICP(x) ((!(FD_CONSP(x)))||(FD_STATIC_CONSP((fd_cons)x)))
 
+#define fd_getref(x) \
+  ((FD_CONSP(x)) ? \
+   ((FD_STATIC_CONSP(x)) ? (fd_deep_copy(x)) : (fd_incref(x)) ) : \
+   (x))
+
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
 
