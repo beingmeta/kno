@@ -117,7 +117,6 @@ static struct FD_KEYVAL *fd_keyvec_insert
   if (size<space)  {
     keyvals[size].kv_key=fd_getref(key);
     keyvals[size].kv_val=FD_EMPTY_CHOICE;
-    fd_incref(key);
     *sizep=size+1;
     return &(keyvals[size]);}
   else {
@@ -131,7 +130,6 @@ static struct FD_KEYVAL *fd_keyvec_insert
       *keyvalp=nkeyvals;
     nkeyvals[size].kv_key=fd_getref(key);
     nkeyvals[size].kv_val=FD_EMPTY_CHOICE;
-    fd_incref(key);
     if (spacep) *spacep=new_space;
     *sizep=size+1;
     return &(nkeyvals[size]);}
