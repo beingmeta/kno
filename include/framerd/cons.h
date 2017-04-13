@@ -226,14 +226,6 @@ FD_EXPORT void fd_decref_vec(fdtype *vec,int n,int free_vec);
 #define FD_STRICT_COPY 8 /* Require methods for all objects */
 #define FD_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
 
-/*  Defining this causes a warning to be issued whenever a
-     reference count passes HUGE_REFCOUNT.  This is helpful
-     for rare occasions of reference count debugging.
-*/
-#ifndef HUGE_REFCOUNT
-#define HUGE_REFCOUNT 0
-#endif
-
 /* The consheader is a 32 bit value:
    The lower 7 bits are a cons typecode
    The remaining bits are a reference count, which is always >0
@@ -253,10 +245,6 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
     return (fdtype) x;}
   else {
     atomic_fetch_add(&(x->conshead),0x80);
-#if HUGE_REFCOUNT
-    if ((FD_CONS_REFCOUNT(x)) == HUGE_REFCOUNT)
-      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
-#endif
     return (fdtype) x;}
 }
 
@@ -268,9 +256,11 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
   else if (cb<0x80) {
     /* Static cons */}
   else {
-    atomic_fetch_sub(&(x->conshead),0x80);
-    fd_consbits dcb = atomic_load(&(x->conshead));
-    if (dcb<0x80) {
+    fd_consbits modcb=atomic_fetch_sub(&(x->conshead),0x80);
+    if ((modcb>0x80)&&(modcb<0x100)) {
+      /* If the modified consbits indicated a refcount of 1,
+	 we've reduced it to zero, so we recycle it. Otherwise,
+	 someone got in to free it or incref it in the meanwhile. */
       atomic_store(&(x->conshead),(dcb|0xFFFFFF80));
       fd_recycle_cons((fd_raw_cons)x);}}
 }
@@ -287,10 +277,6 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
     return (fdtype) x;}
   else {
     FD_LOCK_PTR(x);
-#if HUGE_REFCOUNT
-    if ((FD_CONS_REFCOUNT(x)) == HUGE_REFCOUNT)
-      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
-#endif
     x->conshead = x->conshead+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}
