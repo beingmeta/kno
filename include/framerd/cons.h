@@ -207,6 +207,10 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
   ((FD_CONSP(x)) ? \
    ((FD_STATIC_CONSP(x)) ? (fd_deep_copy(x)) : (fd_incref(x)) ) : \
    (x))
+#define fd_not_static(x) \
+  ((FD_CONSP(x)) ? \
+   ((FD_STATIC_CONSP(x)) ? (fd_copy(x)) : (x) ) : \
+   (x))
 
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
@@ -263,8 +267,11 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 	 someone got in to free it or incref it in the meanwhile. */
       atomic_store(&(x->conshead),((oldcb&0x7F)|0xFFFFFF80));
       fd_recycle_cons((fd_raw_cons)x);}
-    else if (oldcb!=cb)
-      u8_log(LOGWARN,"DecrefRace","cb=0x%x oldcb=0x%x",cb,oldcb);}
+#if 0
+    if (oldcb!=cb)
+      u8_log(LOGWARN,"DecrefRace","cb=0x%x oldcb=0x%x",cb,oldcb);
+#endif
+  }
 }
 
 #elif FD_INLINE_REFCOUNTS

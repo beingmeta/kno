@@ -919,7 +919,8 @@ static fdtype parse_slotmap(U8_INPUT *in)
   else if (n_elts>7)
     return fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
   else {
-    fdtype result = fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
+    fdtype result =
+      fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
     u8_free(elts);
     return result;}
 }

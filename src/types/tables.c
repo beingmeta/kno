@@ -581,8 +581,8 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   ptr->n_allocd=space; ptr->n_slots=len;
   if (data) while (i<len) {
       fdtype key=data[i].kv_key, val=data[i].kv_val;
-      kv[i].kv_key=fd_getref(key);
-      kv[i].kv_val=fd_getref(val);
+      kv[i].kv_key=fd_not_static(key);
+      kv[i].kv_val=fd_not_static(val);
       i++;}
   while (i<space) {
     kv[i].kv_key=FD_VOID;
