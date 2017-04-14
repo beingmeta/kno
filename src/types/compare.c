@@ -72,18 +72,18 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
-    else if ((FD_ACHOICEP(x))&&(FD_ACHOICEP(y))) {
+    else if ((FD_PRECHOICEP(x))&&(FD_PRECHOICEP(y))) {
       fdtype sx = fd_make_simple_choice(x);
       fdtype sy = fd_make_simple_choice(y);
       int retval = DOCOMPARE(sx,sy);
       fd_decref(sx); fd_decref(sy);
       return retval;}
-    else if (FD_ACHOICEP(x)) {
+    else if (FD_PRECHOICEP(x)) {
       fdtype sx = fd_make_simple_choice(x);
       int retval = DOCOMPARE(sx,y);
       fd_decref(sx);
       return retval;}
-    else if (FD_ACHOICEP(y)) {
+    else if (FD_PRECHOICEP(y)) {
       fdtype sy = fd_make_simple_choice(y);
       int retval = DOCOMPARE(x,sy);
       fd_decref(sy);

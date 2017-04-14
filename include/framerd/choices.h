@@ -53,42 +53,42 @@
    binary search, M-way unions can be done in MxN linear time by
    advancing along each choice in parallel.
 
-   ACCUMULATING CHOICES (ACHOICEs)
+   PRECHOICEs
 
-   Accumulating choices are designed to support the fast addition of new
+   Prechoices are designed to support the fast addition of new
    elements to a choice and fast conversion to simple choices.  The fast
    conversion is supported by (a) caching conversion results on the
-   ACHOICE and (b) keeping various state variables to determine which
+   PRECHOICE and (b) keeping various state variables to determine which
    algorithm to use for a conversion.
 
    Because one common usage pattern is the conversion and dereferencing
-   of an ACHOICE, special consideration is taken for optimizations
+   of a PRECHOICE, special consideration is taken for optimizations
    possible during *destructive conversion*.  For example, this is
    routine in the interpreter, where a given non-deterministic function
-   call accumulates results in an ACHOICE but then converts the achoice
+   call accumulates results in a PRECHOICE but then converts the prechoice
    to return the values.  Destructive conversion can be faster than
    normal conversion for a variety of reasons, but especially because it
    is possible to avoid redundant incref/decref activity when copying
-   values from the achoice into the choice proper.
+   values from the prechoice into the choice proper.
 
-   Any object can be added to an ACHOICE, but adding an ACHOICE to an
-   ACHOICE forces the achoice to be converted first.  In particular,
-   CHOICEs can be added to ACHOICEs and are added all at once.  During
-   accumulation, the ACHOICE keeps track of the following state
+   Any object can be added to a PRECHOICE, but adding a PRECHOICE to an
+   PRECHOICE forces the prechoice to be converted first.  In particular,
+   CHOICEs can be added to PRECHOICEs and are added all at once.  During
+   accumulation, the PRECHOICE keeps track of the following state
    variables:
     * size: the maximum number of basic (non-choice) elements in the
-       ACHOICE.  This bounds the size of any converted CHOICE but is
+       PRECHOICE.  This bounds the size of any converted CHOICE but is
        not exact because we do not check for overlapping elements among
        component choices.
-    * atomicity: whether any of the basic (non-choice) elements of the ACHOICE
+    * atomicity: whether any of the basic (non-choice) elements of the PRECHOICE
        are CONSes
-    * nestings: how many of the elements of the ACHOICE are choices
-    * muddling: whether the elements of the ACHOICE are disordered, i.e.
+    * nestings: how many of the elements of the PRECHOICE are choices
+    * muddling: whether the elements of the PRECHOICE are disordered, i.e.
        whether they obey the ordering criteria for simple choices.
 
    These properties are used to select the optimal algorithm for
-   converting an ACHOICE into a simple choice.  Adding a value to an
-   ACHOICE automatically updates these properties.  In addition, the
+   converting a PRECHOICE into a simple choice.  Adding a value to an
+   PRECHOICE automatically updates these properties.  In addition, the
    general way of adding an item (FD_ADD_TO_CHOICE) handles the special
    case of adding the same object repeatedly by converting such identical
    additions into no-ops.  (Note that because FD_ADD_TO_CHOICE consumes
@@ -163,27 +163,27 @@ FD_EXPORT fdtype fd_init_choice
 
 /* Accumulating choices */
 
-typedef struct FD_ACHOICE {
+typedef struct FD_PRECHOICE {
   FD_CONS_HEADER;
-  unsigned int achoice_size, achoice_nested;
-  unsigned int achoice_muddled:1, achoice_mallocd:1,
-    achoice_atomic:1, achoice_uselock:1;
-  fdtype *achoice_data, *achoice_write, *achoice_limit;
-  fdtype achoice_normalized;
-  struct FD_CHOICE *achoice_choicedata;
+  unsigned int prechoice_size, prechoice_nested;
+  unsigned int prechoice_muddled:1, prechoice_mallocd:1,
+    prechoice_atomic:1, prechoice_uselock:1;
+  fdtype *prechoice_data, *prechoice_write, *prechoice_limit;
+  fdtype prechoice_normalized;
+  struct FD_CHOICE *prechoice_choicedata;
 #if U8_THREADS_ENABLED
-  u8_mutex achoice_lock;
+  u8_mutex prechoice_lock;
 #endif
-} FD_ACHOICE;
-typedef struct FD_ACHOICE *fd_achoice;
+} FD_PRECHOICE;
+typedef struct FD_PRECHOICE *fd_prechoice;
 
-#define FD_ACHOICEP(x) (FD_TYPEP(x,fd_achoice_type))
-#define FD_XACHOICE(x) (FD_CONSPTR(fd_achoice,x))
-#define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->achoice_size)
-#define FD_ACHOICE_LENGTH(x) \
-  (((FD_XACHOICE(x))->achoice_write)-((FD_XACHOICE(x))->achoice_data))
-FD_EXPORT fdtype fd_make_achoice(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock);
+#define FD_PRECHOICEP(x) (FD_TYPEP(x,fd_prechoice_type))
+#define FD_XPRECHOICE(x) (FD_CONSPTR(fd_prechoice,x))
+#define FD_PRECHOICE_SIZE(x) ((FD_XPRECHOICE(x))->prechoice_size)
+#define FD_PRECHOICE_LENGTH(x) \
+  (((FD_XPRECHOICE(x))->prechoice_write)-((FD_XPRECHOICE(x))->prechoice_data))
+FD_EXPORT fdtype fd_make_prechoice(fdtype x,fdtype y);
+FD_EXPORT fdtype fd_init_prechoice(struct FD_PRECHOICE *ch,int lim,int uselock);
 FD_EXPORT struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags);
 FD_EXPORT fdtype _fd_add_to_choice(fdtype current,fdtype add);
 FD_EXPORT fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices);
@@ -191,14 +191,14 @@ FD_EXPORT int _fd_choice_size(fdtype x);
 FD_EXPORT fdtype _fd_make_simple_choice(fdtype x);
 FD_EXPORT fdtype _fd_simplify_choice(fdtype x);
 
-#define FD_AMBIGP(x)   ((FD_CHOICEP(x))||(FD_ACHOICEP(x)))
+#define FD_AMBIGP(x)   ((FD_CHOICEP(x))||(FD_PRECHOICEP(x)))
 #define FD_UNAMBIGP(x) (!(FD_AMBIGP(x)))
 
 #define FD_CHOICE_SIZE(x) \
   ((FD_EMPTY_CHOICEP(x)) ? (0) : \
    (!(FD_CONSP(x))) ? (1) : \
    (FD_CHOICEP(x)) ? (FD_XCHOICE_SIZE(FD_XCHOICE(x))) : \
-   (FD_ACHOICEP(x)) ? (FD_ACHOICE_SIZE(x)) : (1))
+   (FD_PRECHOICEP(x)) ? (FD_PRECHOICE_SIZE(x)) : (1))
 
 #if FD_INLINE_CHOICES
 static U8_MAYBE_UNUSED int fd_choice_size(fdtype x)
@@ -207,18 +207,18 @@ static U8_MAYBE_UNUSED int fd_choice_size(fdtype x)
   else if (!(FD_CONSP(x))) return 1;
   else if (FD_CHOICEP(x))
     return FD_XCHOICE_SIZE(FD_XCHOICE(x));
-  else if (FD_ACHOICEP(x))
-    return FD_ACHOICE_SIZE(x);
+  else if (FD_PRECHOICEP(x))
+    return FD_PRECHOICE_SIZE(x);
   else return 1;
 }
 static U8_MAYBE_UNUSED fdtype fd_simplify_choice(fdtype x)
 {
-  if (FD_ACHOICEP(x)) return _fd_simplify_choice(x);
+  if (FD_PRECHOICEP(x)) return _fd_simplify_choice(x);
   else return x;
 }
 static U8_MAYBE_UNUSED fdtype fd_make_simple_choice(fdtype x)
 {
-  if (FD_ACHOICEP(x)) return _fd_make_simple_choice(x);
+  if (FD_PRECHOICEP(x)) return _fd_make_simple_choice(x);
   else return fd_incref(x);
 }
 #else
@@ -249,46 +249,46 @@ FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
 /* Generic choice operations */
 
 #if FD_INLINE_CHOICES
-static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
+static void _prechoice_add(struct FD_PRECHOICE *ch,fdtype v)
 {
   int old_size, new_size, write_off, comparison;
   fdtype nv;
-  if (FD_ACHOICEP(v)) {
+  if (FD_PRECHOICEP(v)) {
     nv=fd_simplify_choice(v);}
   else nv=v;
   if (FD_EMPTY_CHOICEP(nv)) return;
-  else if (ch->achoice_write>ch->achoice_data)
-    if (FD_EQ(nv,*(ch->achoice_write-1))) comparison=0;
-    else comparison=cons_compare(*(ch->achoice_write-1),nv);
+  else if (ch->prechoice_write>ch->prechoice_data)
+    if (FD_EQ(nv,*(ch->prechoice_write-1))) comparison=0;
+    else comparison=cons_compare(*(ch->prechoice_write-1),nv);
   else comparison=1;
   if (comparison==0) {fd_decref(nv); return;}
-  if (ch->achoice_uselock) u8_lock_mutex(&(ch->achoice_lock));
-  if (ch->achoice_write >= ch->achoice_limit) {
-    struct FD_CHOICE *achoice_choicedata;
-    old_size=ch->achoice_limit-ch->achoice_data;
-    write_off=ch->achoice_write-ch->achoice_data;
+  if (ch->prechoice_uselock) u8_lock_mutex(&(ch->prechoice_lock));
+  if (ch->prechoice_write >= ch->prechoice_limit) {
+    struct FD_CHOICE *prechoice_choicedata;
+    old_size=ch->prechoice_limit-ch->prechoice_data;
+    write_off=ch->prechoice_write-ch->prechoice_data;
     if (old_size<0x10000) new_size=old_size*2;
     else new_size=old_size+0x20000;
-    achoice_choicedata=u8_realloc(ch->achoice_choicedata,
+    prechoice_choicedata=u8_realloc(ch->prechoice_choicedata,
 			      sizeof(struct FD_CHOICE)+
 			      (sizeof(fdtype)*(new_size-1)));
-    ch->achoice_choicedata=achoice_choicedata;
-    ch->achoice_data=((fdtype *)FD_XCHOICE_DATA(achoice_choicedata));
-    ch->achoice_write=ch->achoice_data+write_off;
-    ch->achoice_limit=ch->achoice_data+new_size;}
-  *(ch->achoice_write++)=nv;
-  fd_decref(ch->achoice_normalized); ch->achoice_normalized=FD_VOID;
-  if (comparison>0) ch->achoice_muddled=1;
+    ch->prechoice_choicedata=prechoice_choicedata;
+    ch->prechoice_data=((fdtype *)FD_XCHOICE_DATA(prechoice_choicedata));
+    ch->prechoice_write=ch->prechoice_data+write_off;
+    ch->prechoice_limit=ch->prechoice_data+new_size;}
+  *(ch->prechoice_write++)=nv;
+  fd_decref(ch->prechoice_normalized); ch->prechoice_normalized=FD_VOID;
+  if (comparison>0) ch->prechoice_muddled=1;
   if (FD_CHOICEP(nv)) {
-    ch->achoice_nested++; ch->achoice_muddled=1;
-    if (ch->achoice_atomic)
-      if (!(FD_ATOMIC_CHOICEP(nv))) ch->achoice_atomic=0;
-    ch->achoice_size=ch->achoice_size+FD_CHOICE_SIZE(nv);}
-  else if ((ch->achoice_atomic) && (FD_CONSP(nv))) {
-    ch->achoice_size++; ch->achoice_atomic=0;}
-  else ch->achoice_size++;
-  if (ch->achoice_uselock)
-    u8_unlock_mutex(&(ch->achoice_lock));
+    ch->prechoice_nested++; ch->prechoice_muddled=1;
+    if (ch->prechoice_atomic)
+      if (!(FD_ATOMIC_CHOICEP(nv))) ch->prechoice_atomic=0;
+    ch->prechoice_size=ch->prechoice_size+FD_CHOICE_SIZE(nv);}
+  else if ((ch->prechoice_atomic) && (FD_CONSP(nv))) {
+    ch->prechoice_size++; ch->prechoice_atomic=0;}
+  else ch->prechoice_size++;
+  if (ch->prechoice_uselock)
+    u8_unlock_mutex(&(ch->prechoice_lock));
 }
 static U8_MAYBE_UNUSED fdtype _add_to_choice(fdtype current,fdtype new)
 {
@@ -299,20 +299,20 @@ static U8_MAYBE_UNUSED fdtype _add_to_choice(fdtype current,fdtype new)
   if (FD_EMPTY_CHOICEP(current))
     if (!(FD_CONSP(new)))
       return new;
-    else if (FD_ACHOICEP(new))
+    else if (FD_PRECHOICEP(new))
       if ((FD_CONS_REFCOUNT(((struct FD_CONS *)new)))>1)
         return fd_simplify_choice(new);
       else return new;
     else return new;
   else if (current==new) {
     fd_decref(new); return current;}
-  else if (FD_ACHOICEP(current)) {
-    _achoice_add((struct FD_ACHOICE *)current,new);
+  else if (FD_PRECHOICEP(current)) {
+    _prechoice_add((struct FD_PRECHOICE *)current,new);
     return current;}
   else if (FDTYPE_EQUAL(current,new)) {
     fd_decref(new); 
     return current;}
-  else return fd_make_achoice(current,new);
+  else return fd_make_prechoice(current,new);
 }
 #define FD_ADD_TO_CHOICE(x,v) x=_add_to_choice(x,v)
 /* This does a simple binary search of a sorted choice vector made up,
@@ -322,8 +322,8 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
   if (FD_ATOMICP(ch)) return (x==ch);
   else {
     struct FD_CHOICE *qchoiceval=fd_consptr(fd_choice,ch,fd_choice_type);
-    int achoice_size=FD_XCHOICE_SIZE(qchoiceval);
-    const fdtype *bottom=FD_XCHOICE_DATA(qchoiceval), *top=bottom+(achoice_size-1);
+    int prechoice_size=FD_XCHOICE_SIZE(qchoiceval);
+    const fdtype *bottom=FD_XCHOICE_DATA(qchoiceval), *top=bottom+(prechoice_size-1);
     while (top>=bottom) {
       const fdtype *middle=bottom+(top-bottom)/2;
       if (x == *middle) return 1;
@@ -344,7 +344,7 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
   const fdtype *_scan, *_limit;          \
   int _need_gc=0; \
   FD_PTR_CHECK1(_val,"FD_DO_CHOICES");              \
-  if (FD_ACHOICEP(_val)) {\
+  if (FD_PRECHOICEP(_val)) {\
     _need_gc=1; _val=fd_make_simple_choice(_val);} \
    if (FD_CHOICEP(_val)) {\
     _scan=FD_CHOICE_DATA(_val); _limit=_scan+FD_CHOICE_SIZE(_val);} \

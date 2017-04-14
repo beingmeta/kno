@@ -438,7 +438,7 @@ FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
 FD_EXPORT fdtype fd_slotmap_values(struct FD_SLOTMAP *sm)
 {
   struct FD_KEYVAL *scan, *limit; int unlock=0;
-  struct FD_ACHOICE *achoice; fdtype results;
+  struct FD_PRECHOICE *prechoice; fdtype results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
@@ -451,12 +451,12 @@ FD_EXPORT fdtype fd_slotmap_values(struct FD_SLOTMAP *sm)
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return value;}
   /* Otherwise, copy the keys into a choice vector. */
-  results=fd_init_achoice(NULL,7*(size),0);
-  achoice=FD_XACHOICE(results);
+  results=fd_init_prechoice(NULL,7*(size),0);
+  prechoice=FD_XPRECHOICE(results);
   while (scan < limit) {
     fdtype value=(scan++)->kv_val;
     if (FD_CONSP(value)) {fd_incref(value);}
-    _achoice_add(achoice,value);}
+    _prechoice_add(prechoice,value);}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
   /* Note that we can assume that the choice is sorted because the keys are. */
   return fd_simplify_choice(results);
@@ -465,7 +465,7 @@ FD_EXPORT fdtype fd_slotmap_values(struct FD_SLOTMAP *sm)
 FD_EXPORT fdtype fd_slotmap_assocs(struct FD_SLOTMAP *sm)
 {
   struct FD_KEYVAL *scan, *limit; int unlock=0;
-  struct FD_ACHOICE *achoice; fdtype results;
+  struct FD_PRECHOICE *prechoice; fdtype results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
@@ -479,13 +479,13 @@ FD_EXPORT fdtype fd_slotmap_assocs(struct FD_SLOTMAP *sm)
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return fd_init_pair(NULL,key,value);}
   /* Otherwise, copy the keys into a choice vector. */
-  results=fd_init_achoice(NULL,7*(size),0);
-  achoice=FD_XACHOICE(results);
+  results=fd_init_prechoice(NULL,7*(size),0);
+  prechoice=FD_XPRECHOICE(results);
   while (scan < limit) {
     fdtype key=scan->kv_key, value=scan->kv_val;
     fdtype assoc=fd_init_pair(NULL,key,value);
     fd_incref(key); fd_incref(value); scan++;
-    _achoice_add(achoice,assoc);}
+    _prechoice_add(prechoice,assoc);}
   if (unlock) u8_rw_unlock(&sm->table_rwlock);
   return fd_simplify_choice(results);
 }
@@ -644,7 +644,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
         else write->kv_key=fd_incref(key);}
       else write->kv_key=key;
       if (FD_CONSP(val))
-        if (FD_ACHOICEP(val))
+        if (FD_PRECHOICEP(val))
           write->kv_val=fd_make_simple_choice(val);
         else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
           write->kv_val=fd_copier(val,flags);
@@ -918,7 +918,7 @@ static fdtype copy_schemap(fdtype schemap,int flags)
     while (i < size) {
       fdtype val=ovalues[i];
       if (FD_CONSP(val))
-        if (FD_ACHOICEP(val))
+        if (FD_PRECHOICEP(val))
           values[i]=fd_make_simple_choice(val);
         else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
           values[i]=fd_copier(val,flags);
@@ -929,7 +929,7 @@ static fdtype copy_schemap(fdtype schemap,int flags)
   else if (flags) {
     fdtype val=ovalues[i];
     if (FD_CONSP(val))
-      if (FD_ACHOICEP(val))
+      if (FD_PRECHOICEP(val))
         values[i]=fd_make_simple_choice(val);
       else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
         values[i]=fd_copier(val,flags);
@@ -1267,7 +1267,7 @@ static unsigned int hash_lisp(fdtype x)
         fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
       int size=FD_XCHOICE_SIZE(ch);
       return hash_elts((fdtype *)(FD_XCHOICE_DATA(ch)),size);}
-    case fd_achoice_type: {
+    case fd_prechoice_type: {
       fdtype simple=fd_make_simple_choice(x);
       int hash=hash_lisp(simple);
       fd_decref(simple);
@@ -1388,15 +1388,15 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
 
 /* Hashtables */
 
-/* Optimizing ACHOICEs in hashtables
+/* Optimizing PRECHOICEs in hashtables
 
-   An ACHOICE in a hashtable should always be a unique value, since
+   An PRECHOICE in a hashtable should always be a unique value, since
    adding to a key in the table shouldn't effect anything else,
-   especially whatever ACHOICE was passed in.
+   especially whatever PRECHOICE was passed in.
 
    We implement this as follows:
 
-   When storing, if we have an ACHOICE, we always copy it and set
+   When storing, if we have a PRECHOICE, we always copy it and set
      uselock to zero in the copy.
 
    When adding, we don't bother locking and just add straight away.
@@ -1424,7 +1424,7 @@ FD_EXPORT fdtype fd_hashtable_get
     if (FD_VOIDP(rv)) {
       if (unlock) fd_unlock_table(ht);
       return fd_incref(dflt);}
-    else if (FD_ACHOICEP(rv)) {
+    else if (FD_PRECHOICEP(rv)) {
       fdtype simple=fd_simplify_choice(rv);
       if (unlock) fd_unlock_table(ht);
       return simple;}
@@ -1446,7 +1446,7 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
   if (result) {
     fdtype rv=fd_incref(result->kv_val);
     fdtype v=((FD_VOIDP(rv))?(fd_incref(dflt),dflt):
-              (FD_ACHOICEP(rv)) ? 
+              (FD_PRECHOICEP(rv)) ? 
               (fd_simplify_choice(rv)) : 
               (rv));
     return v;}
@@ -1470,7 +1470,7 @@ FD_EXPORT fdtype fd_hashtable_get_noref
     if (FD_VOIDP(rv)) {
       if (unlock) fd_unlock_table(ht);
       return dflt;}
-    else if (FD_ACHOICEP(rv)) {
+    else if (FD_PRECHOICEP(rv)) {
       rv=result->kv_val=fd_simplify_choice(rv);
       if (unlock) fd_unlock_table(ht);
       return rv;}
@@ -1492,7 +1492,7 @@ FD_EXPORT fdtype fd_hashtable_get_nolockref
   if (result) {
     fdtype rv=result->kv_val;
     if (FD_VOIDP(rv)) return dflt;
-    else if (FD_ACHOICEP(rv)) {
+    else if (FD_PRECHOICEP(rv)) {
       result->kv_val=fd_simplify_choice(rv);
       return result->kv_val;}
     else return rv;}
@@ -1535,8 +1535,8 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
        into trouble. */
     /* if (FD_EMPTY_CHOICEP(current)) cmp=0; else cmp=1; */
     else if (FD_EQ(val,current)) cmp=1;
-    else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
-             (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
+    else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
+             (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
@@ -1591,8 +1591,8 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
     (key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
   if ( (ht->table_n_keys) > n_keys ) added=1; else added=0;
   ht->table_modified=1; oldv=result->kv_val;
-  if (FD_ACHOICEP(value))
-    /* Copy achoices */
+  if (FD_PRECHOICEP(value))
+    /* Copy prechoices */
     newv=fd_make_simple_choice(value);
   else newv=fd_incref(value);
   if (FD_ABORTP(newv)) {
@@ -1633,12 +1633,12 @@ static int add_to_hashtable(fd_hashtable ht,fdtype key,fdtype value)
   if (FD_VOIDP(result->kv_val))
     result->kv_val=value;
   else {FD_ADD_TO_CHOICE(result->kv_val,value);}
-  /* If the value is an achoice, it doesn't need to be locked because
+  /* If the value is an prechoice, it doesn't need to be locked because
      it will be protected by the hashtable's lock.  However this requires
      that we always normalize the choice when we return it.  */
-  if (FD_ACHOICEP(result->kv_val)) {
-    struct FD_ACHOICE *ch=FD_XACHOICE(result->kv_val);
-    if (ch->achoice_uselock) ch->achoice_uselock=0;}
+  if (FD_PRECHOICEP(result->kv_val)) {
+    struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
+    if (ch->prechoice_uselock) ch->prechoice_uselock=0;}
   fd_unlock_table(ht);
   return added;
 }
@@ -1675,11 +1675,11 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
     check_hashtable_size(ht,3);
   else if (FD_CHOICEP(key))
     check_hashtable_size(ht,FD_CHOICE_SIZE(key));
-  else if (FD_ACHOICEP(key))
-    check_hashtable_size(ht,FD_ACHOICE_SIZE(key));
+  else if (FD_PRECHOICEP(key))
+    check_hashtable_size(ht,FD_PRECHOICE_SIZE(key));
   else check_hashtable_size(ht,3);
   /* These calls unlock the hashtable */
-  if ( (FD_CHOICEP(key)) || (FD_ACHOICEP(key)) ) {
+  if ( (FD_CHOICEP(key)) || (FD_PRECHOICEP(key)) ) {
     FD_DO_CHOICES(eachkey,key) {
       added+=add_to_hashtable(ht,key,value);}}
   else added=add_to_hashtable(ht,key,value);
@@ -1770,7 +1770,7 @@ FD_EXPORT void fd_hash_quality
 static int do_hashtable_op
   (struct FD_HASHTABLE *ht,fd_tableop op,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int added=0, was_achoice=0;
+  struct FD_KEYVAL *result; int added=0, was_prechoice=0;
   if (FD_EMPTY_CHOICEP(key)) return 0;
   if ((ht->table_readonly) && (op!=fd_table_test)) {
     fd_seterr2(fd_ReadOnlyHashtable,"do_hashtable_op");
@@ -1809,7 +1809,7 @@ static int do_hashtable_op
        (op==fd_table_minimize_if_present)||
        (op==fd_table_increment_if_present)))
     return 0;
-  if ((result)&&(FD_ACHOICEP(result->kv_val))) was_achoice=1;
+  if ((result)&&(FD_PRECHOICEP(result->kv_val))) was_prechoice=1;
   switch (op) {
   case fd_table_replace_novoid:
     if (FD_VOIDP(result->kv_val)) return 0;
@@ -1842,9 +1842,9 @@ static int do_hashtable_op
     else return 0;
   case fd_table_test:
     if ((FD_CHOICEP(result->kv_val)) || 
-        (FD_ACHOICEP(result->kv_val)) ||
+        (FD_PRECHOICEP(result->kv_val)) ||
         (FD_CHOICEP(value)) || 
-        (FD_ACHOICEP(value)))
+        (FD_PRECHOICEP(value)))
       return fd_overlapp(value,result->kv_val);
     else if (FDTYPE_EQUAL(value,result->kv_val))
       return 1;
@@ -1977,13 +1977,13 @@ static int do_hashtable_op
     break;
   }
   ht->table_modified=1;
-  if ((was_achoice==0) && (FD_ACHOICEP(result->kv_val))) {
-    /* If we didn't have an achoice before and we do now, that means
-       a new achoice was created with a mutex and everything.  We can
+  if ((was_prechoice==0) && (FD_PRECHOICEP(result->kv_val))) {
+    /* If we didn't have an prechoice before and we do now, that means
+       a new prechoice was created with a mutex and everything.  We can
        safely destroy it and set the choice to not use locking, since
        the value will be protected by the hashtable's lock. */
-    struct FD_ACHOICE *ch=FD_XACHOICE(result->kv_val);
-    if (ch->achoice_uselock) ch->achoice_uselock=0;}
+    struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
+    if (ch->prechoice_uselock) ch->prechoice_uselock=0;}
   return added;
 }
 
@@ -2133,14 +2133,14 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 FD_EXPORT fdtype fd_hashtable_values(struct FD_HASHTABLE *ptr)
 {
   int unlock=0;
-  struct FD_ACHOICE *achoice; fdtype results;
+  struct FD_PRECHOICE *prechoice; fdtype results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
   if (ptr->table_uselock) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
   size=ptr->table_n_keys;
   /* Otherwise, copy the keys into a choice vector. */
-  results=fd_init_achoice(NULL,17*(size),0);
-  achoice=FD_XACHOICE(results);
+  results=fd_init_prechoice(NULL,17*(size),0);
+  prechoice=FD_XPRECHOICE(results);
   {
     struct FD_HASH_BUCKET **scan=ptr->ht_buckets, **lim=scan+ptr->ht_n_buckets;
     while (scan < lim)
@@ -2152,7 +2152,7 @@ FD_EXPORT fdtype fd_hashtable_values(struct FD_HASHTABLE *ptr)
           if ((FD_VOIDP(value))||(FD_EMPTY_CHOICEP(value))) {
             kvscan++; continue;}
           fd_incref(value);
-          _achoice_add(achoice,value);
+          _prechoice_add(prechoice,value);
           kvscan++;}
         scan++;}
       else scan++;}
@@ -2164,14 +2164,14 @@ FD_EXPORT fdtype fd_hashtable_values(struct FD_HASHTABLE *ptr)
 FD_EXPORT fdtype fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
 {
   int unlock=0;
-  struct FD_ACHOICE *achoice; fdtype results;
+  struct FD_PRECHOICE *prechoice; fdtype results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
   if (ptr->table_uselock) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
   size=ptr->table_n_keys;
   /* Otherwise, copy the keys into a choice vector. */
-  results=fd_init_achoice(NULL,17*(size),0);
-  achoice=FD_XACHOICE(results);
+  results=fd_init_prechoice(NULL,17*(size),0);
+  prechoice=FD_XPRECHOICE(results);
   {
     struct FD_HASH_BUCKET **scan=ptr->ht_buckets, **lim=scan+ptr->ht_n_buckets;
     while (scan < lim)
@@ -2184,7 +2184,7 @@ FD_EXPORT fdtype fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
             kvscan++; continue;}
           fd_incref(key); fd_incref(value);
           assoc=fd_init_pair(NULL,key,value);
-          _achoice_add(achoice,assoc);
+          _prechoice_add(prechoice,assoc);
           kvscan++;}
         scan++;}
       else scan++;}
@@ -2454,7 +2454,7 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
             fdtype val=kvscan->kv_val;
             if (FD_CONSP(val)) {
               struct FD_CONS *cval=(struct FD_CONS *)val;
-              if (FD_ACHOICEP(val))
+              if (FD_PRECHOICEP(val))
                 cval=(struct FD_CONS *)
                   (val=kvscan->kv_val=fd_simplify_choice(val));
               if (FD_CONS_REFCOUNT(cval)==1) {
@@ -2532,7 +2532,7 @@ FD_EXPORT int fd_hashtable_stats
           while (kvscan<kvlimit) {
             fdtype val=kvscan->kv_val; int valcount;
             if (FD_CHOICEP(val)) valcount=FD_CHOICE_SIZE(val);
-            else if (FD_ACHOICEP(val)) valcount=FD_ACHOICE_SIZE(val);
+            else if (FD_PRECHOICEP(val)) valcount=FD_PRECHOICE_SIZE(val);
             else valcount=1;
             n_vals=n_vals+valcount;
             if (valcount>max_vals) max_vals=valcount;
@@ -2979,7 +2979,7 @@ FD_EXPORT int fd_hashset_add_raw(struct FD_HASHSET *h,fdtype key)
 /* This adds without locking or incref. */
 FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
 {
-  if ((FD_CHOICEP(keys))||(FD_ACHOICEP(keys))) {
+  if ((FD_CHOICEP(keys))||(FD_PRECHOICEP(keys))) {
     int n_vals=FD_CHOICE_SIZE(keys);
     size_t need_size=n_vals*3+h->hs_n_elts, n_adds=0;
     if (need_size>h->hs_n_slots) fd_grow_hashset(h,need_size);

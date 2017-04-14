@@ -763,7 +763,7 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
       return fd_interr(val);}
     fd_decref(val);
     return 1;}
-  else if ((FD_CHOICEP(nd_args[i])) || (FD_ACHOICEP(nd_args[i]))) {
+  else if ((FD_CHOICEP(nd_args[i])) || (FD_PRECHOICEP(nd_args[i]))) {
     FD_DO_CHOICES(v,nd_args[i]) {
       int retval;
       d_args[i]=v;
@@ -822,7 +822,7 @@ static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
       return fd_interr(val);}
     fd_decref(val);
     return 1;}
-  else if ((FD_CHOICEP(nd_args[i])) || (FD_ACHOICEP(nd_args[i]))) {
+  else if ((FD_CHOICEP(nd_args[i])) || (FD_PRECHOICEP(nd_args[i]))) {
     FD_DO_CHOICES(v,nd_args[i]) {
       int retval;
       d_args[i]=v;
@@ -862,7 +862,7 @@ static fdtype difference_lexpr(int n,fdtype *args)
 static fdtype choice2vector(fdtype x,fdtype sortspec)
 {
   fd_compare_flags flags = fd_get_compare_flags(sortspec);
-  if (FD_ACHOICEP(x)) {
+  if (FD_PRECHOICEP(x)) {
     fdtype normal = fd_make_simple_choice(x);
     fdtype result = choice2vector(normal,sortspec);
     fd_decref(normal);
@@ -1349,7 +1349,7 @@ static fdtype pick_syms_prim(fdtype items)
 
 static fdtype pick_strings_prim(fdtype items)
 {
-  /* I don't think we need to worry about getting an ACHOICE here. */
+  /* I don't think we need to worry about getting a PRECHOICE here. */
   fdtype results = FD_EMPTY_CHOICE; int no_change = 1;
   FD_DO_CHOICES(item,items)
     if (FD_STRINGP(item)) {
@@ -1364,7 +1364,7 @@ static fdtype pick_strings_prim(fdtype items)
 
 static fdtype pick_vecs_prim(fdtype items)
 {
-  /* I don't think we need to worry about getting an ACHOICE here. */
+  /* I don't think we need to worry about getting a PRECHOICE here. */
   fdtype results = FD_EMPTY_CHOICE; int no_change = 1;
   FD_DO_CHOICES(item,items)
     if (FD_VECTORP(item)) {
@@ -1379,7 +1379,7 @@ static fdtype pick_vecs_prim(fdtype items)
 
 static fdtype pick_pairs_prim(fdtype items)
 {
-  /* I don't think we need to worry about getting an ACHOICE here. */
+  /* I don't think we need to worry about getting a PRECHOICE here. */
   fdtype results = FD_EMPTY_CHOICE; int no_change = 1;
   FD_DO_CHOICES(item,items)
     if (FD_PAIRP(item)) {

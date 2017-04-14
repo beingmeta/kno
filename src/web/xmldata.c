@@ -101,7 +101,7 @@ static fdtype xmlget_first(fdtype doc,fdtype attrib_id)
 /* This returns the content field as parsed. */
 static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
 {
-  if ((FD_CHOICEP(doc)) || (FD_ACHOICEP(doc))) {
+  if ((FD_CHOICEP(doc)) || (FD_PRECHOICEP(doc))) {
     fdtype contents = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(docelt,doc) {
       fdtype content = xmlcontents(docelt,attrib_id);
@@ -148,7 +148,7 @@ static fdtype xmlemptyp(fdtype elt,fdtype attribid)
 /* This returns the content field as a string. */
 static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 {
-  if ((FD_CHOICEP(doc)) || (FD_ACHOICEP(doc))) {
+  if ((FD_CHOICEP(doc)) || (FD_PRECHOICEP(doc))) {
     fdtype contents = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(docelt,doc) {
       fdtype content = xmlcontent(docelt,attrib_id);

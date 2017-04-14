@@ -319,7 +319,7 @@ static fdtype get_markup_string(fdtype xml,
     else if (FD_CHOICEP(attribids)) {
       n = FD_CHOICE_SIZE(attribids);
       data = (fdtype *)FD_CHOICE_DATA(attribids);}
-    else if (FD_ACHOICEP(attribids)) {
+    else if (FD_PRECHOICEP(attribids)) {
       to_free = fd_make_simple_choice(attribids);
       data = (fdtype *)FD_CHOICE_DATA(to_free);
       n = FD_CHOICE_SIZE(to_free);}
@@ -395,7 +395,7 @@ fdtype fd_xmlout(u8_output out,fdtype xml,
 {
   if (FD_STRINGP(xml)) {}
   else if (FD_PAIRP(xml)) {}
-  else if ((FD_CHOICEP(xml))||(FD_ACHOICEP(xml))) {
+  else if ((FD_CHOICEP(xml))||(FD_PRECHOICEP(xml))) {
     fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(e,xml) {
       fdtype r = fd_xmlout(out,e,scheme_env,xml_env);

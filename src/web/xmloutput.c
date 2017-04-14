@@ -739,7 +739,7 @@ static void output_value(u8_output s,fdtype val,
         i++;}
       u8_puts(s,"\n\t</table>\n");
       if (tag) u8_printf(s,"</%s>\n",tag);}
-    else if ((FD_CHOICEP(val))||(FD_ACHOICEP(val))||(FD_QCHOICEP(val))) {
+    else if ((FD_CHOICEP(val))||(FD_PRECHOICEP(val))||(FD_QCHOICEP(val))) {
       fdtype choice = ((FD_QCHOICEP(val))?(FD_XQCHOICE(val)->qchoiceval):(val));
       int size = FD_CHOICE_SIZE(choice); int count = 0;
       FD_DO_CHOICES(x,choice) {

@@ -271,7 +271,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     if ((FD_TYPEP(x,fd_pair_type)) ||
         (FD_TYPEP(x,fd_rail_type)) ||
         (FD_TYPEP(x,fd_choice_type)) ||
-        (FD_TYPEP(x,fd_achoice_type)))
+        (FD_TYPEP(x,fd_prechoice_type)))
       return fd_eval(x,env);
     else return fd_incref(x);
   default: /* Never reached */
@@ -300,7 +300,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
       return fd_tail_eval(x,env);
     case fd_slotmap_type:
       return fd_deep_copy(x);
-    case fd_choice_type: case fd_achoice_type:
+    case fd_choice_type: case fd_prechoice_type:
       return fd_eval(x,env);
     default:
       return fd_incref(x);}}

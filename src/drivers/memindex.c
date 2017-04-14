@@ -84,7 +84,7 @@ static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
   if (FD_EMPTY_CHOICEP(keys)) {
     *n = 0; return NULL;}
   else {
-    if (FD_ACHOICEP(keys)) keys = fd_simplify_choice(keys);
+    if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
     int n_elts = FD_CHOICE_SIZE(keys);
     if (n_elts==1) {
       fdtype *results = u8_alloc_n(1,fdtype);
@@ -263,7 +263,7 @@ static int mem_index_commit(fd_index ix)
 
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)
 {
-  if (FD_ACHOICEP(kv->kv_val))
+  if (FD_PRECHOICEP(kv->kv_val))
     kv->kv_val = fd_simplify_choice(kv->kv_val);
   return 0;
 }

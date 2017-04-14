@@ -72,7 +72,7 @@ static u8_input get_input_port(fdtype portarg)
 static size_t getlongmatch(fdtype matches)
 {
   if (FD_EMPTY_CHOICEP(matches)) return -1;
-  else if ((FD_CHOICEP(matches)) || (FD_ACHOICEP(matches))) {
+  else if ((FD_CHOICEP(matches)) || (FD_PRECHOICEP(matches))) {
     u8_byteoff max = -1;
     FD_DO_CHOICES(match,matches) {
       u8_byteoff ival = fd_getint(match);
@@ -1130,7 +1130,7 @@ static fdtype textsubst(fdtype string,
                      "Pattern %q matched '%s' but couldn't extract",
                      pattern,buf);
               u8_putn(&out,data+start,end-start);}
-            else if ((FD_CHOICEP(xtract)) || (FD_ACHOICEP(xtract))) {
+            else if ((FD_CHOICEP(xtract)) || (FD_PRECHOICEP(xtract))) {
               fdtype results = FD_EMPTY_CHOICE;
               FD_DO_CHOICES(xt,xtract) {
                 u8_byteoff newstart = fd_getint(FD_CAR(xt));
@@ -1569,7 +1569,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
       if (FD_ABORTP(extractions)) {
         fd_decref(results);
         return extractions;}
-      else if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
+      else if ((FD_CHOICEP(extractions)) || (FD_PRECHOICEP(extractions))) {
         FD_DO_CHOICES(extraction,extractions) {
           int xlen = fd_getint(FD_CAR(extraction));
           if (xlen == max) {

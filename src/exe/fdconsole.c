@@ -967,7 +967,7 @@ int main(int argc,char **argv)
     if (errno) {
       u8_log(LOGWARN,u8_strerror(errno),"Unexpected errno after eval");
       errno = 0;}
-    if (FD_ACHOICEP(result)) result = fd_simplify_choice(result);
+    if (FD_PRECHOICEP(result)) result = fd_simplify_choice(result);
     finish_time = u8_elapsed_time();
     finish_ocache = fd_object_cache_load();
     finish_icache = fd_index_cache_load();

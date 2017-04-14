@@ -73,7 +73,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
-    if (FD_ACHOICEP(valuev[i])) {
+    if (FD_PRECHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
   /* The operation fd_table_add_empty_noref will create an entry even if the value
@@ -119,7 +119,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
-    if (FD_ACHOICEP(valuev[i])) {
+    if (FD_PRECHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
   /* The operation fd_table_add_empty_noref will create an entry even

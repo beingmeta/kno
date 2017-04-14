@@ -246,7 +246,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     if (rv<0) return rv;
     else if (ix->index_cache_level>0)
       rv = fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);}
-  else if (FD_ACHOICEP(key)) {
+  else if (FD_PRECHOICEP(key)) {
     fdtype normchoice = fd_make_simple_choice(key);
     const fdtype *keys = FD_CHOICE_DATA(key);
     unsigned int n = FD_CHOICE_SIZE(key);

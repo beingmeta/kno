@@ -136,7 +136,7 @@ typedef enum FD_PTR_TYPE {
 
   fd_compound_type = FD_CONS_TYPECODE(5),
   fd_choice_type = FD_CONS_TYPECODE(6),
-  fd_achoice_type = FD_CONS_TYPECODE(7),
+  fd_prechoice_type = FD_CONS_TYPECODE(7),
   fd_qchoice_type = FD_CONS_TYPECODE(8),
   fd_vector_type = FD_CONS_TYPECODE(9),
   fd_rail_type = FD_CONS_TYPECODE(10),
