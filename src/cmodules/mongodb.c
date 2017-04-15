@@ -128,7 +128,7 @@ static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
   else return u8_strdup(dflt);
 }
 
-static bson_t *get_projection(fdtype opts,int flags)
+U8_MAYBE_UNUSED static bson_t *get_projection(fdtype opts,int flags)
 {
   fdtype projection = fd_getopt(opts,returnsym,FD_VOID);
   if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {

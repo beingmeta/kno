@@ -153,7 +153,7 @@ static size_t get_maxpos(fd_bigpool p)
     return ((size_t)(((size_t)1)<<32));
   case FD_B40:
     return ((size_t)(((size_t)1)<<40));
-  case FD_B64: 
+  case FD_B64:
     return ((size_t)(((size_t)1)<<63));
   default:
     return -1;}
@@ -167,16 +167,19 @@ static fd_pool open_bigpool(u8_string fname,fdkb_flags open_flags,fdtype opts)
   unsigned int hi, lo, magicno, capacity, load, n_slotids, flags = 0;
   fd_off_t label_loc, slotids_loc; fdtype label;
   struct FD_BIGPOOL *pool = u8_zalloc(struct FD_BIGPOOL);
-  int read_only = U8_BITP(open_flags,FDKB_READ_ONLY);
+  int read_only = U8_BITP(open_flags,FDKB_READ_ONLY) ||
+    (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   u8_string rname = u8_realpath(fname,NULL);
   struct FD_STREAM *stream=
-    fd_init_file_stream(&(pool->pool_stream),fname,mode,-1,fd_driver_bufsize);
+    fd_init_file_stream(&(pool->pool_stream),fname,mode,
+                        ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+                        FD_STREAM_CAN_SEEK|
+                        FD_STREAM_NEEDS_LOCK,
+                        fd_driver_bufsize);
   struct FD_INBUF *instream = fd_readbuf(stream);
 
-  /* See if it ended up read only */
-  if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes(instream);
   if (magicno!=FD_BIGPOOL_MAGIC_NUMBER) {
@@ -403,7 +406,7 @@ static int write_bigpool_slotids(fd_bigpool bp)
 static int lock_bigpool_file(struct FD_BIGPOOL *bp,int use_mutex)
 {
   if (FD_POOLFILE_LOCKEDP(bp)) return 1;
-  else if ((bp->pool_stream.stream_flags)&(FD_STREAM_READ_ONLY))
+  else if ((bp->pool_flags)&(FDKB_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(bp->pool_stream);

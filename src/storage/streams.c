@@ -45,6 +45,8 @@
 size_t fd_stream_bufsize = FD_STREAM_BUFSIZE;
 size_t fd_filestream_bufsize = FD_FILESTREAM_BUFSIZE;
 
+int fd_mmap_streams = HAVE_MMAP;
+
 fd_exception fd_ReadOnlyStream=_("Read-only stream");
 fd_exception fd_WriteOnlyStream=_("Write-only stream");
 fd_exception fd_CantRead=_("Can't read data");
@@ -72,10 +74,13 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
 {
   struct FD_RAWBUF *buf = &(stream->buf.raw);
   int fd = stream->stream_fileno;
+  ssize_t offset = stream->buf.in.bufread-stream->buf.in.buffer;
   struct stat fileinfo;
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
     return -1;}
+  else if (stream->buf.raw.buflen==fileinfo.st_size)
+    return 0;
   else {
     size_t old_size = buf->buflen, new_size = fileinfo.st_size;
     int prot = (U8_BITP(stream->stream_flags,FD_STREAM_READ_ONLY)) ?
@@ -262,6 +267,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   if (flags&FD_STREAM_IS_CONSED) {
     FD_INIT_FRESH_CONS(stream,fd_stream_type);}
   else {FD_INIT_STATIC_CONS(stream,fd_stream_type);}
+  if (fd_mmap_streams) flags |= FD_STREAM_MMAPPED;
   /* Initializing the stream fields */
   stream->stream_fileno = fileno;
   stream->streamid = u8dup(streamid);
@@ -976,6 +982,11 @@ FD_EXPORT void fd_init_stream_c()
 {
   fd_unparsers[fd_stream_type]=unparse_stream;
   fd_recyclers[fd_stream_type]=recycle_stream;
+
+  fd_register_config("MMAPSTREAMS",
+                     "Use mmap() for streams if available",
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_mmap_streams);
+
 
   u8_register_source_file(_FILEINFO);
 }

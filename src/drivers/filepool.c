@@ -58,15 +58,18 @@ static fd_pool open_file_pool(u8_string fname,fdkb_flags flags,fdtype opts)
   struct FD_FILE_POOL *pool = u8_alloc(struct FD_FILE_POOL);
   struct FD_STREAM *s = &(pool->pool_stream);
   FD_OID base = FD_NULL_OID_INIT;
-  unsigned int read_only = (U8_BITP(flags,FDKB_READ_ONLY));
+  int read_only = U8_BITP(flags,FDKB_READ_ONLY) ||
+    (!(u8_file_writablep(fname)));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; fdtype label;
   u8_string rname = u8_realpath(fname,NULL);
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_file_stream(&(pool->pool_stream),fname,mode,-1,fd_driver_bufsize);
-  /* See if it ended up read only */
-  if (s->stream_flags&FD_STREAM_READ_ONLY) read_only = 1;
+  fd_init_file_stream(&(pool->pool_stream),fname,mode,
+                      ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+                      FD_STREAM_CAN_SEEK|
+                      FD_STREAM_NEEDS_LOCK,
+                      fd_driver_bufsize);
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(s,0);
   hi = fd_read_4bytes_at(s,4); lo = fd_read_4bytes_at(s,8);
@@ -174,7 +177,8 @@ static int file_pool_load(fd_pool p)
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
   if (FD_POOLFILE_LOCKEDP(fp)) return 1;
-  else if ((fp->pool_stream.stream_flags)&(FD_STREAM_READ_ONLY)) return 0;
+  else if ((fp->pool_flags)&(FDKB_READ_ONLY))
+    return 0;
   else {
     struct FD_STREAM *s = &(fp->pool_stream);
     struct stat fileinfo;

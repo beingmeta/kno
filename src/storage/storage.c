@@ -41,6 +41,7 @@ int fd_default_cache_level = 1;
 int fd_oid_display_level = 2;
 int fdkb_loglevel = LOG_NOTICE;
 int fd_prefetch = FD_PREFETCHING_ENABLED;
+int fd_require_mmap = HAVE_MMAP;
 
 size_t fd_dbdriver_bufsize = FDKB_DRIVER_BUFSIZE;
 size_t fd_network_bufsize = FD_NETWORK_BUFSIZE;

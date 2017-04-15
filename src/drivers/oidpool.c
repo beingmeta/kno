@@ -185,14 +185,19 @@ static fd_pool open_oidpool(u8_string fname,fdkb_flags flags,fdtype opts)
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool = u8_alloc(struct FD_OIDPOOL);
-  int read_only = U8_BITP(flags,FDKB_READ_ONLY);
+  int read_only = U8_BITP(flags,FDKB_READ_ONLY) ||
+    (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   u8_string rname = u8_realpath(fname,NULL);
   struct FD_STREAM *stream=
-    fd_init_file_stream(&(pool->pool_stream),fname,mode,-1,fd_driver_bufsize);
+    fd_init_file_stream(&(pool->pool_stream),fname,mode,
+                        ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+                        FD_STREAM_CAN_SEEK|
+                        FD_STREAM_NEEDS_LOCK,
+                        fd_driver_bufsize);
   struct FD_INBUF *instream = fd_readbuf(stream);
- 
+
   /* See if it ended up read only */
   if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
@@ -451,7 +456,7 @@ static int read_oidpool_load(fd_oidpool op)
 static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
 {
   if (POOLFILE_LOCKEDP(op)) return 1;
-  else if ((op->pool_stream.stream_flags)&(FD_STREAM_READ_ONLY))
+  else if ((op->pool_flags)&(FDKB_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(op->pool_stream);

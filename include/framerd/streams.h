@@ -37,6 +37,7 @@
 FD_EXPORT size_t fd_stream_bufsize;
 FD_EXPORT size_t fd_network_bufsize;
 FD_EXPORT size_t fd_filestream_bufsize;
+FD_EXPORT int fd_mmap_streams;
 
 typedef int fd_stream_flags;
 
