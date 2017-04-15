@@ -1005,14 +1005,14 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
         unsigned int oidoff = saveinfo[k].oidoff;
         offsets[oidoff*3]=(saveinfo[k].chunk.off)>>32;
         offsets[oidoff*3+1]=((saveinfo[k].chunk.off)&(0xFFFFFFFF));
-        offsets[oidoff*3+2]=(saveinfo[k].chunk.achoice_size);
+        offsets[oidoff*3+2]=(saveinfo[k].chunk.prechoice_size);
         k++;}
       break;}
     case FD_B32: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff;
         offsets[oidoff*2]=(saveinfo[k].chunk.off);
-        offsets[oidoff*2+1]=(saveinfo[k].chunk.achoice_size);
+        offsets[oidoff*2+1]=(saveinfo[k].chunk.prechoice_size);
         k++;}
       break;}
     case FD_B40: {

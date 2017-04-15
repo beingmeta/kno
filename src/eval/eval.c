@@ -788,7 +788,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           result = fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
         else result = fd_eval(new_expr,env);
         fd_decref(new_expr);}
-      else if ((FD_CHOICEP(headval)) || (FD_ACHOICEP(headval))) {
+      else if ((FD_CHOICEP(headval)) || (FD_PRECHOICEP(headval))) {
         int applicable = applicable_choicep(headval);
         if (applicable<0) {
           if (gchead) fd_decref(headval);
@@ -832,7 +832,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           return r;}
         else {FD_ADD_TO_CHOICE(result,r);}}
       return result;}
-  case fd_achoice_type: {
+  case fd_prechoice_type: {
     fdtype exprs = fd_make_simple_choice(expr);
     if (FD_CHOICEP(exprs)) {
       fdtype results = FD_EMPTY_CHOICE;
@@ -936,7 +936,7 @@ static fdtype process_arg(fdtype arg,fd_lispenv env)
     return fd_err(fd_VoidArgument,"call_function",NULL,arg);
   else if (FD_EXPECT_FALSE(FD_ABORTED(argval)))
     return argval;
-  else if ((FD_CONSP(argval))&&(FD_ACHOICEP(argval)))
+  else if ((FD_CONSP(argval))&&(FD_PRECHOICEP(argval)))
     return fd_simplify_choice(argval);
   else return argval;
 }
@@ -1941,7 +1941,7 @@ static fdtype require_version_prim(int n,fdtype *args)
 
 static fdtype fixchoice_prim(fdtype arg)
 {
-  if (FD_ACHOICEP(arg))
+  if (FD_PRECHOICEP(arg))
     return fd_make_simple_choice(arg);
   else return fd_incref(arg);
 }
@@ -1964,7 +1964,7 @@ static fdtype choiceref_prim(fdtype arg,fdtype off)
       else {
         fdtype elt = FD_XCHOICE_DATA(ch)[i];
         return fd_incref(elt);}}
-    else if (FD_ACHOICEP(arg)) {
+    else if (FD_PRECHOICEP(arg)) {
       fdtype simplified = fd_make_simple_choice(arg); 
       fdtype result = choiceref_prim(simplified,off);
       fd_decref(simplified);

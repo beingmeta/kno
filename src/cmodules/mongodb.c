@@ -68,7 +68,7 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
   u8_seterr(cond,caller,u8_strdup(error->message));
 }
 
-#define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,6,0))
+#define HAVE_MONGOC_OPTS_FUNCTIONS (MONGOC_CHECK_VERSION(1,5,0))
 
 #define MONGODB_CLIENT_BLOCK 1
 #define MONGODB_CLIENT_NOBLOCK 0
@@ -1485,7 +1485,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,val,fd_uuid_type);
       ok = bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->fd_uuid16,16);
       break;}
-    case fd_choice_type: case fd_achoice_type: {
+    case fd_choice_type: case fd_prechoice_type: {
       struct FD_BSON_OUTPUT rout;
       bson_t arr; char buf[16];
       ok = bson_append_array_begin(out,key,keylen,&arr);

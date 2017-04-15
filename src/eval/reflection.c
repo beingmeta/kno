@@ -547,7 +547,7 @@ static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
   while (env) {
     if (fd_test(env->env_bindings,moduleid_symbol,FD_VOID)) {
       fdtype ids = fd_get(env->env_bindings,moduleid_symbol,FD_VOID);
-      if ((FD_CHOICEP(ids))||(FD_ACHOICEP(ids))) {
+      if ((FD_CHOICEP(ids))||(FD_PRECHOICEP(ids))) {
         FD_DO_CHOICES(id,ids) {
           if (FD_SYMBOLP(id)) {FD_ADD_TO_CHOICE(modules,id);}}}
       else if (FD_SYMBOLP(ids)) {FD_ADD_TO_CHOICE(modules,ids);}

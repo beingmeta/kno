@@ -163,8 +163,8 @@ int fdtype_equal(fdtype x,fdtype y)
   if (FD_ATOMICP(x)) return (x == y);
   else if (FD_ATOMICP(y)) return (x == y);
   else if ((FD_CONS_DATA(x)) == (FD_CONS_DATA(y))) return 1;
-  else if ((FD_ACHOICEP(x)) || (FD_ACHOICEP(y))) {
-    int convert_x = FD_ACHOICEP(x), convert_y = FD_ACHOICEP(y);
+  else if ((FD_PRECHOICEP(x)) || (FD_PRECHOICEP(y))) {
+    int convert_x = FD_PRECHOICEP(x), convert_y = FD_PRECHOICEP(y);
     fdtype cx = ((convert_x) ? (fd_make_simple_choice(x)) : (x));
     fdtype cy = ((convert_y) ? (fd_make_simple_choice(y)) : (y));
     int result = fdtype_equal(cx,cy);

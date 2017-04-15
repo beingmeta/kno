@@ -58,7 +58,7 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
       fd_decref(val);
       return shorter;}
     else return val;}
-  else if ((FD_CHOICEP(val))||(FD_ACHOICEP(val))) {
+  else if ((FD_CHOICEP(val))||(FD_PRECHOICEP(val))) {
     fdtype result = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(v,val) {
       if (!(FD_STRINGP(v))) {

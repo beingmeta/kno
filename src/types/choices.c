@@ -19,37 +19,37 @@
 
 int fd_mergesort_threshold = FD_MERGESORT_THRESHOLD;
 
-static fdtype normalize_choice(fdtype x,int free_achoice);
+static fdtype normalize_choice(fdtype x,int free_prechoice);
 
-#define lock_achoice(ach) u8_lock_mutex(&((ach)->achoice_lock))
-#define unlock_achoice(ach) u8_unlock_mutex(&((ach)->achoice_lock))
+#define lock_prechoice(ach) u8_lock_mutex(&((ach)->prechoice_lock))
+#define unlock_prechoice(ach) u8_unlock_mutex(&((ach)->prechoice_lock))
 
-/* Basic operations on ACHOICES */
+/* Basic operations on PRECHOICES */
 
-static void recycle_achoice(struct FD_RAW_CONS *c)
+static void recycle_prechoice(struct FD_RAW_CONS *c)
 {
-  struct FD_ACHOICE *ch = (struct FD_ACHOICE *)c;
-  if (ch->achoice_data) {
-    const fdtype *read = ch->achoice_data, *lim = ch->achoice_write;
-    if ((ch->achoice_atomic==0) || (ch->achoice_nested))
+  struct FD_PRECHOICE *ch = (struct FD_PRECHOICE *)c;
+  if (ch->prechoice_data) {
+    const fdtype *read = ch->prechoice_data, *lim = ch->prechoice_write;
+    if ((ch->prechoice_atomic==0) || (ch->prechoice_nested))
       while (read < lim) {
         fdtype v = *read++; fd_decref(v);}
-    if (ch->achoice_mallocd) {
-      u8_free(ch->achoice_choicedata);
-      ch->achoice_choicedata = NULL;
-      ch->achoice_mallocd = 0;}}
-  fd_decref(ch->achoice_normalized);
-  u8_destroy_mutex(&(ch->achoice_lock));
+    if (ch->prechoice_mallocd) {
+      u8_free(ch->prechoice_choicedata);
+      ch->prechoice_choicedata = NULL;
+      ch->prechoice_mallocd = 0;}}
+  fd_decref(ch->prechoice_normalized);
+  u8_destroy_mutex(&(ch->prechoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 
-static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
+static void recycle_prechoice_wrapper(struct FD_PRECHOICE *ch)
 {
-  fd_decref(ch->achoice_normalized);
-  u8_destroy_mutex(&(ch->achoice_lock));
+  fd_decref(ch->prechoice_normalized);
+  u8_destroy_mutex(&(ch->prechoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
-static int write_achoice_dtype(struct FD_OUTBUF *s,fdtype x)
+static int write_prechoice_dtype(struct FD_OUTBUF *s,fdtype x)
 {
   fdtype sc = fd_make_simple_choice(x);
   int n_bytes = fd_write_dtype(s,sc);
@@ -57,12 +57,12 @@ static int write_achoice_dtype(struct FD_OUTBUF *s,fdtype x)
   return n_bytes;
 }
 
-static fdtype copy_achoice(fdtype x,int deep)
+static fdtype copy_prechoice(fdtype x,int deep)
 {
   return normalize_choice(x,0);
 }
 
-static int unparse_achoice(struct U8_OUTPUT *s,fdtype x)
+static int unparse_prechoice(struct U8_OUTPUT *s,fdtype x)
 {
   fdtype sc = fd_make_simple_choice(x);
   fd_unparse(s,sc);
@@ -70,7 +70,7 @@ static int unparse_achoice(struct U8_OUTPUT *s,fdtype x)
   return 1;
 }
 
-static int compare_achoice(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_prechoice(fdtype x,fdtype y,fd_compare_flags flags)
 {
   fdtype sx = fd_make_simple_choice(x), sy = fd_make_simple_choice(y);
   int compare = FDTYPE_COMPARE(sx,sy,flags);
@@ -197,7 +197,7 @@ int fd_choice_containsp(fdtype key,fdtype x)
 {
   if (FD_CHOICEP(x))
     return choice_containsp(key,(struct FD_CHOICE *)x);
-  else if (FD_ACHOICEP(x)) {
+  else if (FD_PRECHOICEP(x)) {
     int flag = 0;
     fdtype sv = fd_make_simple_choice(x);
     if (FD_CHOICEP(sv))
@@ -306,62 +306,62 @@ fdtype fd_init_choice
 }
 
 FD_EXPORT
-/* fd_make_achoice:
+/* fd_make_prechoice:
      Arguments: two dtype pointers
      Returns: a dtype pointer
-   Allocates and initializes an FD_ACHOICE to include the two arguments.
-   If the elements are themselves ACHOICEs, they are normalized into
+   Allocates and initializes an FD_PRECHOICE to include the two arguments.
+   If the elements are themselves PRECHOICEs, they are normalized into
    simple choices.
 */
-fdtype fd_make_achoice(fdtype x,fdtype y)
+fdtype fd_make_prechoice(fdtype x,fdtype y)
 {
-  struct FD_ACHOICE *ch = u8_alloc(struct FD_ACHOICE);
+  struct FD_PRECHOICE *ch = u8_alloc(struct FD_PRECHOICE);
   fdtype nx = fd_simplify_choice(x), ny = fd_simplify_choice(y);
-  FD_INIT_FRESH_CONS(ch,fd_achoice_type);
-  ch->achoice_choicedata = fd_alloc_choice(64);
-  ch->achoice_write = ch->achoice_data = (fdtype *)FD_XCHOICE_DATA(ch->achoice_choicedata);
-  ch->achoice_limit = ch->achoice_data+64; ch->achoice_normalized = FD_VOID;
-  ch->achoice_mallocd = 1; ch->achoice_nested = 0; ch->achoice_muddled = 0;
-  ch->achoice_size = FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
-  if (FD_CHOICEP(nx)) ch->achoice_nested++;
-  if (FD_CHOICEP(ny)) ch->achoice_nested++;
-  if (ch->achoice_nested) {
-    ch->achoice_write[0]=nx; ch->achoice_write[1]=ny; ch->achoice_muddled = 1;}
+  FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
+  ch->prechoice_choicedata = fd_alloc_choice(64);
+  ch->prechoice_write = ch->prechoice_data = (fdtype *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_limit = ch->prechoice_data+64; ch->prechoice_normalized = FD_VOID;
+  ch->prechoice_mallocd = 1; ch->prechoice_nested = 0; ch->prechoice_muddled = 0;
+  ch->prechoice_size = FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
+  if (FD_CHOICEP(nx)) ch->prechoice_nested++;
+  if (FD_CHOICEP(ny)) ch->prechoice_nested++;
+  if (ch->prechoice_nested) {
+    ch->prechoice_write[0]=nx; ch->prechoice_write[1]=ny; ch->prechoice_muddled = 1;}
   else if (cons_compare(nx,ny)<1) {
-    ch->achoice_write[0]=nx; ch->achoice_write[1]=ny;}
-  else {ch->achoice_write[0]=ny; ch->achoice_write[1]=nx;}
-  ch->achoice_atomic = 1;
+    ch->prechoice_write[0]=nx; ch->prechoice_write[1]=ny;}
+  else {ch->prechoice_write[0]=ny; ch->prechoice_write[1]=nx;}
+  ch->prechoice_atomic = 1;
   if (FD_CONSP(nx)) {
     if ((FD_CHOICEP(nx)) && (FD_ATOMIC_CHOICEP(nx))) {}
-    else ch->achoice_atomic = 0;}
+    else ch->prechoice_atomic = 0;}
   if (FD_CONSP(ny)) {
     if ((FD_CHOICEP(ny)) && (FD_ATOMIC_CHOICEP(ny))) {}
-    else ch->achoice_atomic = 0;}
-  ch->achoice_write = ch->achoice_write+2;
-  ch->achoice_uselock = 1; 
-  u8_init_mutex(&(ch->achoice_lock));
+    else ch->prechoice_atomic = 0;}
+  ch->prechoice_write = ch->prechoice_write+2;
+  ch->prechoice_uselock = 1; 
+  u8_init_mutex(&(ch->prechoice_lock));
   return FDTYPE_CONS(ch);
 }
 
 FD_EXPORT
-/* fd_init_achoice:
-     Arguments: a pointer to an FD_ACHOICE structure, a size, and a flag (int)
+/* fd_init_prechoice:
+     Arguments: a pointer to an FD_PRECHOICE structure, a size, and a flag (int)
      Returns: a dtype pointer
-   Initializes an FD_ACHOICE with an initial vector of slots.
-   If the flag argument is non-zero, the mutex on the FD_ACHOICE will
+   Initializes an FD_PRECHOICE with an initial vector of slots.
+   If the flag argument is non-zero, the mutex on the FD_PRECHOICE will
    be initialized and used in all operations.  If the pointer argument
-   is NULL, an FD_ACHOICE structure is allocated. */
-fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
+   is NULL, an FD_PRECHOICE structure is allocated. */
+fdtype fd_init_prechoice(struct FD_PRECHOICE *ch,int lim,int uselock)
 {
-  if (ch == NULL) ch = u8_alloc(struct FD_ACHOICE);
-  FD_INIT_FRESH_CONS(ch,fd_achoice_type);
-  ch->achoice_choicedata = fd_alloc_choice(lim);
-  ch->achoice_write = ch->achoice_data = (fdtype *)FD_XCHOICE_DATA(ch->achoice_choicedata);
-  ch->achoice_limit = ch->achoice_data+lim; ch->achoice_size = 0;
-  ch->achoice_nested = 0; ch->achoice_muddled = 0; ch->achoice_atomic = 1; ch->achoice_mallocd = 1;
-  ch->achoice_normalized = FD_VOID;
-  ch->achoice_uselock = uselock;
-  u8_init_mutex(&(ch->achoice_lock));
+  if (ch == NULL) ch = u8_alloc(struct FD_PRECHOICE);
+  FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
+  ch->prechoice_choicedata = fd_alloc_choice(lim);
+  ch->prechoice_write = ch->prechoice_data = (fdtype *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_limit = ch->prechoice_data+lim; ch->prechoice_size = 0;
+  ch->prechoice_nested = 0; ch->prechoice_muddled = 0; ch->prechoice_atomic = 1; ch->prechoice_mallocd = 1;
+  ch->prechoice_normalized = FD_VOID;
+  ch->prechoice_uselock = uselock;
+  u8_init_mutex(&(ch->prechoice_lock));
   return FDTYPE_CONS(ch);
 }
 
@@ -379,99 +379,99 @@ fdtype _fd_add_to_choice(fdtype current,fdtype v)
   return _add_to_choice(current,v);
 }
 
-/* Converting achoices to choices */
+/* Converting prechoices to choices */
 
-/* ACHOICEs are accumulating choices which accumulate values.  ACHOICEs
+/* PRECHOICEs are accumulating choices which accumulate values.  PRECHOICEs
    have a ->normalized field which, when non-void, is the simple choice
-   version of the achoice. */
+   version of the prechoice. */
 
-static fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice);
+static fdtype convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice);
 
-static fdtype normalize_choice(fdtype x,int free_achoice)
+static fdtype normalize_choice(fdtype x,int free_prechoice)
 {
-  if (FD_ACHOICEP(x)) {
-    struct FD_ACHOICE *ch=
-      fd_consptr(struct FD_ACHOICE *,x,fd_achoice_type);
+  if (FD_PRECHOICEP(x)) {
+    struct FD_PRECHOICE *ch=
+      fd_consptr(struct FD_PRECHOICE *,x,fd_prechoice_type);
     /* Double check that it's really okay to free it. */
-    if (free_achoice) {
+    if (free_prechoice) {
       if (FD_CONS_REFCOUNT(ch)>1) {
-        free_achoice = 0; fd_decref(x);}}
-    if (ch->achoice_uselock) lock_achoice(ch);
+        free_prechoice = 0; fd_decref(x);}}
+    if (ch->prechoice_uselock) lock_prechoice(ch);
     /* If you have a normalized value, use it. */
-    if (!(FD_VOIDP(ch->achoice_normalized))) {
-      fdtype v = fd_incref(ch->achoice_normalized);
-      if (ch->achoice_uselock) unlock_achoice(ch);
-      if (free_achoice) fd_decref(x);
+    if (!(FD_VOIDP(ch->prechoice_normalized))) {
+      fdtype v = fd_incref(ch->prechoice_normalized);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      if (free_prechoice) fd_decref(x);
       return v;}
     /* If it's really empty, just return the empty choice. */
-    else if ((ch->achoice_write-ch->achoice_data) == 0) {
-      if (ch->achoice_uselock) unlock_achoice(ch);
-      if (free_achoice) recycle_achoice((fd_raw_cons)ch);
-      else ch->achoice_normalized = FD_EMPTY_CHOICE;
+    else if ((ch->prechoice_write-ch->prechoice_data) == 0) {
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      if (free_prechoice) recycle_prechoice((fd_raw_cons)ch);
+      else ch->prechoice_normalized = FD_EMPTY_CHOICE;
       return FD_EMPTY_CHOICE;}
     /* If it's only got one value, return it. */
-    else if ((ch->achoice_write-ch->achoice_data) == 1) {
-      fdtype value = fd_incref(*(ch->achoice_data));
-      if (ch->achoice_uselock) unlock_achoice(ch);
-      if (free_achoice) recycle_achoice((fd_raw_cons)ch);
-      ch->achoice_normalized = fd_incref(value);
+    else if ((ch->prechoice_write-ch->prechoice_data) == 1) {
+      fdtype value = fd_incref(*(ch->prechoice_data));
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      if (free_prechoice) recycle_prechoice((fd_raw_cons)ch);
+      ch->prechoice_normalized = fd_incref(value);
       return value;}
-    /* If you're going to free the achoice and it's not nested, you
+    /* If you're going to free the prechoice and it's not nested, you
        can just use the choice you've been depositing values in,
        appropriately initialized, sorted etc.  */
-    else if ((free_achoice) && (ch->achoice_nested==0)) {
-      struct FD_CHOICE *nch = ch->achoice_choicedata;
-      int flags = FD_CHOICE_REALLOC, n = ch->achoice_size;
-      if (ch->achoice_atomic) flags = flags|FD_CHOICE_ISATOMIC;
+    else if ((free_prechoice) && (ch->prechoice_nested==0)) {
+      struct FD_CHOICE *nch = ch->prechoice_choicedata;
+      int flags = FD_CHOICE_REALLOC, n = ch->prechoice_size;
+      if (ch->prechoice_atomic) flags = flags|FD_CHOICE_ISATOMIC;
       else flags = flags|FD_CHOICE_ISCONSES;
-      if (ch->achoice_muddled) flags = flags|FD_CHOICE_DOSORT;
+      if (ch->prechoice_muddled) flags = flags|FD_CHOICE_DOSORT;
       else flags = flags|FD_CHOICE_COMPRESS;
-      if (ch->achoice_uselock) unlock_achoice(ch);
-      recycle_achoice_wrapper(ch);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      recycle_prechoice_wrapper(ch);
       return fd_init_choice(nch,n,NULL,flags);}
-    else if (ch->achoice_nested==0) {
+    else if (ch->prechoice_nested==0) {
       /* If it's not nested, we can mostly just call fd_make_choice. */
-      int flags = 0, n_elts = ch->achoice_write-ch->achoice_data; fdtype result;
-      if (ch->achoice_atomic) flags = flags|FD_CHOICE_ISATOMIC; else {
+      int flags = 0, n_elts = ch->prechoice_write-ch->prechoice_data; fdtype result;
+      if (ch->prechoice_atomic) flags = flags|FD_CHOICE_ISATOMIC; else {
         /* Incref everything */
-        const fdtype *scan = ch->achoice_data, *write = ch->achoice_write;
+        const fdtype *scan = ch->prechoice_data, *write = ch->prechoice_write;
         while (scan<write) {fd_incref(*scan); scan++;}
         flags = flags|FD_CHOICE_ISCONSES;}
-      if (ch->achoice_muddled) flags = flags|FD_CHOICE_DOSORT;
+      if (ch->prechoice_muddled) flags = flags|FD_CHOICE_DOSORT;
       else flags = flags|FD_CHOICE_COMPRESS;
-      result = fd_make_choice(n_elts,ch->achoice_data,flags);
-      ch->achoice_normalized = fd_incref(result);
-      if (ch->achoice_uselock) unlock_achoice(ch);
+      result = fd_make_choice(n_elts,ch->prechoice_data,flags);
+      ch->prechoice_normalized = fd_incref(result);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
       return result;}
     else if (1) { /* (ch->size<fd_mergesort_threshold)  */
-      /* If the choice is small enough, we can call convert_achoice,
+      /* If the choice is small enough, we can call convert_prechoice,
          which just appends the choices together and relies on sort
          and compression to remove duplicates.  We don't want to do
          this if the choice is really huge, because we don't want to
          sort the huge vector. */
-      fdtype converted = convert_achoice(ch,free_achoice);
-      if (free_achoice) {
-        if (ch->achoice_uselock) unlock_achoice(ch);
+      fdtype converted = convert_prechoice(ch,free_prechoice);
+      if (free_prechoice) {
+        if (ch->prechoice_uselock) unlock_prechoice(ch);
         fd_decref(x);
         return converted;}
       else {
-        ch->achoice_normalized = fd_incref(converted);
-        if (ch->achoice_uselock) unlock_achoice(ch);
+        ch->prechoice_normalized = fd_incref(converted);
+        if (ch->prechoice_uselock) unlock_prechoice(ch);
         return converted;}}
     else {
       /* This is the hairy case, where you are actually merging a bunch
          of choices.  You create a tmp_choice of all the non choices
          and merge this with all the choice elements.*/
       struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
-      const fdtype *scan = ch->achoice_data, *lim = ch->achoice_write; fdtype result;
+      const fdtype *scan = ch->prechoice_data, *lim = ch->prechoice_write; fdtype result;
       fdtype *write;
-      int n_entries = ch->achoice_write-ch->achoice_data;
-      int n_vals = n_entries-ch->achoice_nested;
+      int n_entries = ch->prechoice_write-ch->prechoice_data;
+      int n_vals = n_entries-ch->prechoice_nested;
       int i = 0, n_choices;
       /* Figure out how many choices we need to merge. */
       if (n_vals)
-        n_choices = ch->achoice_nested+1;
-      else n_choices = ch->achoice_nested;
+        n_choices = ch->prechoice_nested+1;
+      else n_choices = ch->prechoice_nested;
       /* We try to use a stack mallocd choices vector. */
       if (n_choices>16)
         choices = u8_alloc_n(n_choices,struct FD_CHOICE *);
@@ -501,12 +501,12 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       if ((n_vals)&&(result!=((fdtype)tmp_choice)))
         u8_free((struct FD_CHOICE *)tmp_choice);
       if (n_choices>16) u8_free(choices);
-      if (ch->achoice_uselock) unlock_achoice(ch);
-      if (free_achoice) {
-        recycle_achoice((fd_raw_cons)ch);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      if (free_prechoice) {
+        recycle_prechoice((fd_raw_cons)ch);
         return result;}
       else {
-        ch->achoice_normalized = result;
+        ch->prechoice_normalized = result;
         return fd_incref(result);}}}
   else return x;
 }
@@ -515,11 +515,11 @@ FD_EXPORT
 /* _fd_make_simple_choice:
       Arguments: a dtype pointer
       Returns: a dtype pointer
-  This returns a normalized choice for an achoice or an incref'd value
+  This returns a normalized choice for an prechoice or an incref'd value
   otherwise. */
 fdtype _fd_make_simple_choice(fdtype x)
 {
-  if (FD_ACHOICEP(x))
+  if (FD_PRECHOICEP(x))
     return normalize_choice(x,0);
   else return fd_incref(x);
 }
@@ -528,11 +528,11 @@ FD_EXPORT
 /* _fd_simplify_choice:
       Arguments: a dtype pointer
       Returns: a dtype pointer
-  This returns a normalized choice for an ACHOICE, or its argument
+  This returns a normalized choice for a PRECHOICE, or its argument
   otherwise. */
 fdtype _fd_simplify_choice(fdtype x)
 {
-  if (FD_ACHOICEP(x))
+  if (FD_PRECHOICEP(x))
     return normalize_choice(x,1);
   else return x;
 }
@@ -683,28 +683,28 @@ fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
 }
 
 static
-/* convert_achoice simply appends together the component choices and then
+/* convert_prechoice simply appends together the component choices and then
    relies on sorting and compression by fd_init_choice to remove duplicates.
    This is a fine approach which the result set is relatively small and
    sorting the resulting choice isn't a big deal. */
-fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice)
+fdtype convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice)
 {
-  struct FD_CHOICE *result = fd_alloc_choice(ch->achoice_size);
+  struct FD_CHOICE *result = fd_alloc_choice(ch->prechoice_size);
   fdtype *base = (fdtype *)FD_XCHOICE_DATA(result);
-  fdtype *write = base, *write_limit = base+(ch->achoice_size);
-  fdtype *scan = ch->achoice_data, *limit = ch->achoice_write;
+  fdtype *write = base, *write_limit = base+(ch->prechoice_size);
+  fdtype *scan = ch->prechoice_data, *limit = ch->prechoice_write;
   while (scan < limit) {
     fdtype v = *scan;
     if (write>=write_limit) {
-      u8_log(LOG_WARN,"achoice_inconsistency",
-              "total size is more than the recorded %d",ch->achoice_size);
+      u8_log(LOG_WARN,"prechoice_inconsistency",
+              "total size is more than the recorded %d",ch->prechoice_size);
       abort();}
     else if (FD_CHOICEP(v)) {
       struct FD_CHOICE *each = (struct FD_CHOICE *)v;
-      int freed = ((freeing_achoice) && (FD_CONS_REFCOUNT(each)==1));
+      int freed = ((freeing_prechoice) && (FD_CONS_REFCOUNT(each)==1));
       if (write+FD_XCHOICE_SIZE(each)>write_limit) {
-        u8_log(LOG_WARN,"achoice_inconsistency",
-                "total size is more than the recorded %d",ch->achoice_size);
+        u8_log(LOG_WARN,"prechoice_inconsistency",
+                "total size is more than the recorded %d",ch->prechoice_size);
         abort();}
       else if (FD_XCHOICE_ATOMICP(each)) {
         memcpy(write,FD_XCHOICE_DATA(each),
@@ -723,7 +723,7 @@ fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice)
         struct FD_CHOICE *ch = (struct FD_CHOICE *)each;
         if (FD_MALLOCD_CONSP(ch)) u8_free(ch);
         *scan = FD_VOID;}}
-    else if (freeing_achoice) {
+    else if (freeing_prechoice) {
       *write++=v; *scan = FD_VOID;}
     else if (FD_ATOMICP(v)) *write++=v;
     else {*write++=fd_incref(v);}
@@ -731,7 +731,7 @@ fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice)
   if ((write-base)>1)
     return fd_init_choice(result,write-base,NULL,
                           (FD_CHOICE_DOSORT|
-                           ((ch->achoice_atomic)?(FD_CHOICE_ISATOMIC):
+                           ((ch->prechoice_atomic)?(FD_CHOICE_ISATOMIC):
                             (FD_CHOICE_ISCONSES))));
   else {
     fdtype v = base[0];
@@ -859,14 +859,14 @@ fdtype fd_intersection(fdtype *v,int n)
        To resolve this, we scan all the items being intersected,
        using result to store the singleton value, with FD_VOID
        indicating we haven't stored anything there. */
-    int i = 0, achoices = 0; while (i < n)
+    int i = 0, prechoices = 0; while (i < n)
       if (FD_EMPTY_CHOICEP(v[i]))
         /* If you find any empty, the intersection is empty. */
         return FD_EMPTY_CHOICE;
       else if (FD_CHOICEP(v[i])) i++; /* Pass any choices */
-      else if (FD_ACHOICEP(v[i])) {
-        /* Count the achoices, because you'll have to convert them. */
-        i++; achoices++;}
+      else if (FD_PRECHOICEP(v[i])) {
+        /* Count the prechoices, because you'll have to convert them. */
+        i++; prechoices++;}
     /* After this point, we know we have a singleton value. */
       else if (FD_VOIDP(result))
         /* This must be our first singleton. */
@@ -883,7 +883,7 @@ fdtype fd_intersection(fdtype *v,int n)
         if (FD_CHOICEP(v[i]))
           if (fd_choice_containsp(result,v[i])) i++;
           else return FD_EMPTY_CHOICE;
-        else if (FD_ACHOICEP(v[i])) {
+        else if (FD_PRECHOICEP(v[i])) {
           /* Arguably, it might not make sense to do this conversion
              right now. */
           fdtype sc = fd_make_simple_choice(v[i]);
@@ -894,11 +894,11 @@ fdtype fd_intersection(fdtype *v,int n)
             return FD_EMPTY_CHOICE;}}
         else i++;
       return fd_incref(result);}
-    /* At this point, all we have is choices and achoices, so we need to
+    /* At this point, all we have is choices and prechoices, so we need to
        make a vector of the choices on which to call fd_intersect_choices.
        We also need to keep track of the values we convert so that
        we can clean them up when we're done. */
-    else if (achoices) {
+    else if (prechoices) {
       /* This is the case where we have choices to convert. */
       struct FD_CHOICE **choices, *_choices[16];
       fdtype *conversions, _conversions[16];
@@ -910,16 +910,16 @@ fdtype fd_intersection(fdtype *v,int n)
       else {choices=_choices; conversions=_conversions;}
       i = 0; while (i < n)
         /* We go down doing conversions.  Note that we do the same thing
-           as above with handling singletons because the ACHOICEs might
+           as above with handling singletons because the PRECHOICEs might
            resolve to singletons. */
         if (FD_CHOICEP(v[i])) {
           choices[n_choices++]=(struct FD_CHOICE *)v[i++];}
-        else if (FD_ACHOICEP(v[i])) {
+        else if (FD_PRECHOICEP(v[i])) {
           fdtype nc = fd_make_simple_choice(v[i++]);
           if (FD_CHOICEP(nc)) {
             choices[n_choices++]=(struct FD_CHOICE *)nc;
             conversions[n_conversions++]=nc;}
-          /* These are all in case an ACHOICE turns out to be
+          /* These are all in case a PRECHOICE turns out to be
              empty or a singleton */
           else if (FD_EMPTY_CHOICEP(nc)) break;
           else if (FD_VOIDP(result)) result = nc;
@@ -932,10 +932,10 @@ fdtype fd_intersection(fdtype *v,int n)
       if (FD_VOIDP(result))
         /* The normal case, just do the intersection */
         result = fd_intersect_choices(choices,n_choices);
-      /* One of the achoices turned out to be empty */
+      /* One of the prechoices turned out to be empty */
       else if (FD_EMPTY_CHOICEP(result)) {}
       else {
-        /* One of the achoices turned out to be a singleton */
+        /* One of the prechoices turned out to be a singleton */
         int k = 0; while (k < n_choices)
           if (choice_containsp(result,choices[k])) k++;
           else {result = FD_EMPTY_CHOICE; break;}}
@@ -1023,7 +1023,7 @@ fdtype fd_difference(fdtype value,fdtype remove)
 {
   if (FD_EMPTY_CHOICEP(value)) return value;
   else if (FD_EMPTY_CHOICEP(remove)) return fd_incref(value);
-  else if ((FD_ACHOICEP(value)) || (FD_ACHOICEP(remove))) {
+  else if ((FD_PRECHOICEP(value)) || (FD_PRECHOICEP(remove))) {
     fdtype svalue = fd_make_simple_choice(value);
     fdtype sremove = fd_make_simple_choice(remove);
     fdtype result = fd_difference(svalue,sremove);
@@ -1082,8 +1082,8 @@ int fd_overlapp(fdtype xarg,fdtype yarg)
   else if (FD_EMPTY_CHOICEP(yarg)) return 0;
   else {
     fdtype x, y; int retval = 0;
-    if (FD_ACHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
-    if (FD_ACHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
+    if (FD_PRECHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
+    if (FD_PRECHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
     if (FD_CHOICEP(x))
       if (FD_CHOICEP(y))
         if (FD_CHOICE_SIZE(x)>FD_CHOICE_SIZE(y)) {
@@ -1095,8 +1095,8 @@ int fd_overlapp(fdtype xarg,fdtype yarg)
       else retval = choice_containsp(y,(fd_choice)x);
     else if (FD_CHOICEP(y)) retval = choice_containsp(x,(fd_choice)y);
     else retval = FDTYPE_EQUAL(x,y);
-    if (FD_ACHOICEP(xarg)) fd_decref(x);
-    if (FD_ACHOICEP(yarg)) fd_decref(y);
+    if (FD_PRECHOICEP(xarg)) fd_decref(x);
+    if (FD_PRECHOICEP(yarg)) fd_decref(y);
     return retval;}
 }
 
@@ -1115,8 +1115,8 @@ int fd_containsp(fdtype xarg,fdtype yarg)
   else if (FD_EMPTY_CHOICEP(yarg)) return 0;
   else {
     fdtype x, y; int retval = 0;
-    if (FD_ACHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
-    if (FD_ACHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
+    if (FD_PRECHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
+    if (FD_PRECHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
     if (FD_CHOICEP(x))
       if (FD_CHOICEP(y)) {
         int contained = 1;
@@ -1128,8 +1128,8 @@ int fd_containsp(fdtype xarg,fdtype yarg)
       else retval = 0;
     else if (FD_CHOICEP(y)) retval = choice_containsp(x,(fd_choice)y);
     else retval = FDTYPE_EQUAL(x,y);
-    if (FD_ACHOICEP(xarg)) fd_decref(x);
-    if (FD_ACHOICEP(yarg)) fd_decref(y);
+    if (FD_PRECHOICEP(xarg)) fd_decref(x);
+    if (FD_PRECHOICEP(yarg)) fd_decref(y);
     return retval;}
 }
 
@@ -1159,13 +1159,13 @@ void fd_init_choices_c()
   fd_unparsers[fd_qchoice_type]=unparse_qchoice;
   fd_copiers[fd_qchoice_type]=copy_qchoice;
 
-  fd_type_names[fd_achoice_type]="achoice";
-  fd_recyclers[fd_achoice_type]=recycle_achoice;
-  fd_dtype_writers[fd_achoice_type]=write_achoice_dtype;
-  fd_comparators[fd_achoice_type]=compare_achoice;
-  fd_comparators[fd_choice_type]=compare_achoice;
-  fd_unparsers[fd_achoice_type]=unparse_achoice;
-  fd_copiers[fd_achoice_type]=copy_achoice;
+  fd_type_names[fd_prechoice_type]="prechoice";
+  fd_recyclers[fd_prechoice_type]=recycle_prechoice;
+  fd_dtype_writers[fd_prechoice_type]=write_prechoice_dtype;
+  fd_comparators[fd_prechoice_type]=compare_prechoice;
+  fd_comparators[fd_choice_type]=compare_prechoice;
+  fd_unparsers[fd_prechoice_type]=unparse_prechoice;
+  fd_copiers[fd_prechoice_type]=copy_prechoice;
 
   fd_type_names[fd_choice_type]="choice";
 }

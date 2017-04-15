@@ -472,7 +472,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
           FD_STOP_DO_CHOICES; return v;}
         n_fetches++; fd_decref(v);}
       return n_fetches;}}
-  if (FD_ACHOICEP(oids)) {
+  if (FD_PRECHOICEP(oids)) {
     oids = fd_make_simple_choice(oids); 
     decref_oids = 1;}
   if (fd_ipeval_status()) {
@@ -568,7 +568,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 {
   fd_hashtable cache = &(p->pool_cache);
-  if (FD_ACHOICEP(oids)) {
+  if (FD_PRECHOICEP(oids)) {
     fdtype simple = fd_make_simple_choice(oids);
     int rv = fd_pool_swapout(p,simple);
     fd_decref(simple);
@@ -583,10 +583,10 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     u8_log(fdkb_loglevel+2,"SwapPool",
            "Swapping out %d oids in pool %s",
            FD_CHOICE_SIZE(oids),p->poolid);
-  else if (FD_ACHOICEP(oids))
+  else if (FD_PRECHOICEP(oids))
     u8_log(fdkb_loglevel+2,"SwapPool",
            "Swapping out ~%d oids in pool %s",
-           FD_ACHOICE_SIZE(oids),p->poolid);
+           FD_PRECHOICE_SIZE(oids),p->poolid);
   else u8_log(fdkb_loglevel+2,"SwapPool",
               "Swapping out oids in pool %s",p->poolid);
   int rv = -1;
@@ -656,7 +656,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
   struct FD_HASHTABLE *locks = &(p->pool_changes);
   if (p->pool_handler->lock == NULL)
     return 0;
-  if (FD_ACHOICEP(oids)) {
+  if (FD_PRECHOICEP(oids)) {
     oids = fd_make_simple_choice(oids); decref_oids = 1;}
   if (FD_CHOICEP(oids)) {
     fdtype needy; int retval, n;
@@ -785,7 +785,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
     int retval = 0; double start_time = u8_elapsed_time();
     struct FD_POOL_WRITES writes=
       ((FD_FALSEP(oids))||(FD_VOIDP(oids))) ? (pick_modified(p,0)):
-      ((FD_OIDP(oids))||(FD_CHOICEP(oids))||(FD_ACHOICEP(oids))) ?
+      ((FD_OIDP(oids))||(FD_CHOICEP(oids))||(FD_PRECHOICEP(oids))) ?
       (pick_writes(p,oids)) :
       (FD_TRUEP(oids)) ? (pick_modified(p,1)):
       (pick_writes(p,FD_EMPTY_CHOICE));

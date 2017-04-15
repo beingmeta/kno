@@ -349,7 +349,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
           if (fdtc) fd_hashtable_store(&(fdtc->indexes),fd_make_pair(lix,key),v);
           fd_decref(v);}
       return n_fetched;}}
-  if (FD_ACHOICEP(keys)) {keys = fd_make_simple_choice(keys); free_keys = 1;}
+  if (FD_PRECHOICEP(keys)) {keys = fd_make_simple_choice(keys); free_keys = 1;}
   if (fd_ipeval_status()) delay_index_fetch(ix,keys);
   else if (!(FD_CHOICEP(keys))) {
     if (!(fd_hashtable_probe(&(ix->index_cache),keys))) {
@@ -625,7 +625,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     return -1;}
   else init_cache_level(ix);
   if (FD_EMPTY_CHOICEP(value)) return 0;
-  else if ((FD_CHOICEP(key)) || (FD_ACHOICEP(key))) {
+  else if ((FD_CHOICEP(key)) || (FD_PRECHOICEP(key))) {
     fdtype keys = fd_make_simple_choice(key);
     const fdtype *keyv = FD_CHOICE_DATA(keys);
     unsigned int n = FD_CHOICE_SIZE(keys);
@@ -687,7 +687,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
               u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if ((FD_CHOICEP(key)) || (FD_ACHOICEP(key))) {
+  if ((FD_CHOICEP(key)) || (FD_PRECHOICEP(key))) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype drop_key = fd_make_pair(drop_symbol,eachkey);
       fdtype set_key = fd_make_pair(set_symbol,eachkey);
@@ -738,7 +738,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
               u8_strdup(ix->indexid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if ((FD_CHOICEP(key))||(FD_ACHOICEP(key))) {
+  if ((FD_CHOICEP(key))||(FD_PRECHOICEP(key))) {
     FD_DO_CHOICES(eachkey,key) {
       fdtype set_key = fd_make_pair(set_symbol,eachkey);
       fdtype drop_key = fd_make_pair(drop_symbol,eachkey);
@@ -884,7 +884,7 @@ FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
                           FD_XCHOICE_DATA(ch),FD_VOID);
     fd_devoid_hashtable(cache,0);
     return;}
-  else if (FD_ACHOICEP(keys)) {
+  else if (FD_PRECHOICEP(keys)) {
     fdtype simplified = fd_make_simple_choice(keys);
     fd_index_swapout(ix,simplified);
     fd_decref(simplified);}

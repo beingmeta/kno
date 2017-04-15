@@ -564,14 +564,14 @@ FD_EXPORT void fd_init_oidobj_c()
   fd_tablefns[fd_choice_type]->getsize = NULL;
 
   /* Table functions for CHOICEs */
-  fd_tablefns[fd_achoice_type]=u8_zalloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_achoice_type]->get = choice_get;
-  fd_tablefns[fd_achoice_type]->add = choice_add;
-  fd_tablefns[fd_achoice_type]->drop = choice_drop;
-  fd_tablefns[fd_achoice_type]->store = choice_store;
-  fd_tablefns[fd_achoice_type]->test = choice_test;
-  fd_tablefns[fd_achoice_type]->keys = choice_keys;
-  fd_tablefns[fd_achoice_type]->getsize = NULL;
+  fd_tablefns[fd_prechoice_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_prechoice_type]->get = choice_get;
+  fd_tablefns[fd_prechoice_type]->add = choice_add;
+  fd_tablefns[fd_prechoice_type]->drop = choice_drop;
+  fd_tablefns[fd_prechoice_type]->store = choice_store;
+  fd_tablefns[fd_prechoice_type]->test = choice_test;
+  fd_tablefns[fd_prechoice_type]->keys = choice_keys;
+  fd_tablefns[fd_prechoice_type]->getsize = NULL;
 
 }
 

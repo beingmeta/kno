@@ -91,7 +91,7 @@ static fdtype pickoids_opcode(fdtype arg1)
 {
   if (FD_OIDP(arg1)) return arg1;
   else if (FD_EMPTY_CHOICEP(arg1)) return arg1;
-  else if ((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1))) {
+  else if ((FD_CHOICEP(arg1)) || (FD_PRECHOICEP(arg1))) {
     fdtype choice, results = FD_EMPTY_CHOICE;
     int free_choice = 0, all_oids = 1;
     if (FD_CHOICEP(arg1)) choice = arg1;
@@ -110,7 +110,7 @@ static fdtype pickoids_opcode(fdtype arg1)
 
 static fdtype pickstrings_opcode(fdtype arg1)
 {
-  if ((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1))) {
+  if ((FD_CHOICEP(arg1)) || (FD_PRECHOICEP(arg1))) {
     fdtype choice, results = FD_EMPTY_CHOICE;
     int free_choice = 0, all_strings = 1;
     if (FD_CHOICEP(arg1)) choice = arg1;
@@ -210,7 +210,7 @@ static fdtype nd1_dispatch(fdtype opcode,fdtype arg1)
     if (FD_CHOICEP(arg1)) {
       fd_incref(arg1);
       return fd_init_qchoice(NULL,arg1);}
-    else if (FD_ACHOICEP(arg1)) 
+    else if (FD_PRECHOICEP(arg1)) 
       return fd_init_qchoice(NULL,fd_make_simple_choice(arg1));
      else if (FD_EMPTY_CHOICEP(arg1))
       return fd_init_qchoice(NULL,FD_EMPTY_CHOICE);
@@ -219,7 +219,7 @@ static fdtype nd1_dispatch(fdtype opcode,fdtype arg1)
     if (FD_CHOICEP(arg1)) {
       int sz = FD_CHOICE_SIZE(arg1);
       return FD_INT(sz);}
-    else if (FD_ACHOICEP(arg1)) {
+    else if (FD_PRECHOICEP(arg1)) {
       fdtype simple = fd_make_simple_choice(arg1);
       int size = FD_CHOICE_SIZE(simple);
       fd_decref(simple);
@@ -240,7 +240,7 @@ static fdtype nd1_dispatch(fdtype opcode,fdtype arg1)
       return FD_VOID;
     else return fd_incref(arg1);
   case FD_FIXCHOICE_OPCODE:
-    if (FD_ACHOICEP(arg1))
+    if (FD_PRECHOICEP(arg1))
       return fd_simplify_choice(arg1);
     else return fd_incref(arg1);
   default:
@@ -501,7 +501,7 @@ FD_FASTOP int numeric_argp(fdtype x)
     case fd_flonum_type: case fd_bigint_type:
     case fd_rational_type: case fd_complex_type:
       return 1;
-    case fd_choice_type: case fd_achoice_type: {
+    case fd_choice_type: case fd_prechoice_type: {
       FD_DO_CHOICES(a,x) {
         if (FD_FIXNUMP(a)) {}
         else if (FD_EXPECT_TRUE(FD_NUMBERP(a))) {}
@@ -539,8 +539,8 @@ static fdtype d2_call(fdtype opcode,fdtype arg1,fdtype arg2)
 static fdtype nd2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 {
   fdtype result = FD_ERROR_VALUE;
-  if (FD_ACHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
-  if (FD_ACHOICEP(arg1)) arg1 = fd_simplify_choice(arg1);
+  if (FD_PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
+  if (FD_PRECHOICEP(arg1)) arg1 = fd_simplify_choice(arg1);
   fdtype argv[2]={arg1,arg2};
   if (FD_ABORTED(arg2)) result = arg2;
   else if (FD_VOIDP(arg2)) {
@@ -757,12 +757,12 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     if (FD_ABORTED(arg1)) return arg1;
     else if (FD_VOIDP(arg1))
       return fd_err(fd_VoidArgument,"opcode eval",NULL,arg1_expr);
-    else if (FD_ACHOICEP(arg1))
+    else if (FD_PRECHOICEP(arg1))
       arg1 = fd_simplify_choice(arg1);
     else {}
     if (FD_ND1_OPCODEP(opcode)) {
       if (opcode == FD_FIXCHOICE_OPCODE) {
-        if (FD_ACHOICEP(arg1))
+        if (FD_PRECHOICEP(arg1))
           return fd_simplify_choice(arg1);
         else return arg1;}
       else if (FD_CONSP(arg1)) {
@@ -785,7 +785,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fd_decref(arg1);
           return fd_err(fd_TooFewArgs,opcode_name(opcode),NULL,expr);}
         else arg2 = op_eval(arg2_expr,env,0);
-        if (FD_ACHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
+        if (FD_PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
         if (FD_ABORTED(arg2)) {
           fd_decref(arg1);
           return arg2;}
@@ -807,7 +807,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fd_decref(arg1);
           return fd_err(fd_TooFewArgs,opcode_name(opcode),NULL,expr);}
         else arg2 = op_eval(arg2_expr,env,0);
-        if (FD_ACHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
+        if (FD_PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
         if (FD_ABORTED(arg2)) {
           fd_decref(arg1); return arg2;}
         else if (FD_VOIDP(arg2)) {
@@ -859,7 +859,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
         else if (FD_EMPTY_CHOICEP(slotids)) {
           fd_decref(arg1); return FD_FALSE;}
-        else if (FD_ACHOICEP(slotids))
+        else if (FD_PRECHOICEP(slotids))
           slotids = fd_simplify_choice(slotids);
         else {}
         if (FD_VOIDP(values_arg))
@@ -912,7 +912,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
       else if (tail)
         return fd_tail_eval(x,env);
       else return fd_eval(x,env);}
-    case fd_choice_type: case fd_achoice_type:
+    case fd_choice_type: case fd_prechoice_type:
       return fd_eval(x,env);
     case fd_slotmap_type:
       return fd_deep_copy(x);

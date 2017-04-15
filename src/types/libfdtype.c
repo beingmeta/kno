@@ -75,7 +75,7 @@ static void init_type_names()
   fd_type_names[fd_pair_type]=_("pair");
   fd_type_names[fd_compound_type]=_("compound");
   fd_type_names[fd_choice_type]=_("choice");
-  fd_type_names[fd_achoice_type]=_("achoice");
+  fd_type_names[fd_prechoice_type]=_("prechoice");
   fd_type_names[fd_vector_type]=_("vector");
   fd_type_names[fd_slotmap_type]=_("slotmap");
   fd_type_names[fd_schemap_type]=_("schemap");
