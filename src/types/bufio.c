@@ -77,9 +77,10 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 
 static ssize_t grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
-  if ((b->buf_flushfn)&&
-      (b->bufwrite>b->buffer)&&
-      (!(b->buf_flags&FD_BUFFER_NO_FLUSH))) {
+  if ((b->buf_flushfn) &&
+      ( (U8_BITP(b->buf_flags,FD_BUFFER_NO_GROW)) ||
+	( (b->bufwrite > b->buffer) &&
+	  (!(b->buf_flags&FD_BUFFER_NO_FLUSH)) ) ) ) {
     ssize_t result = b->buf_flushfn(b,b->buf_data);
     if (result<0) {
       u8_log(LOGWARN,"WriteFailed",
