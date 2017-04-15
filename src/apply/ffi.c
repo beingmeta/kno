@@ -97,6 +97,9 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 {
   void *mod_arg = (filename == NULL) ? ((void *)NULL) : 
     (u8_dynamic_load(filename));
+  if (name==NULL) {
+    u8_seterr("NullArg","fd_make_ffi_proc/name",NULL);
+    return NULL;}
   if (FD_EXPECT_FALSE((filename) && (mod_arg == NULL)))
     return NULL;
   ffi_type *return_type = get_ffi_type(return_spec);
@@ -123,7 +126,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     /* Set up generic function fields */
     fd_incref_vec(savespecs,arity);
     proc->fcn_name = u8_strdup(name);
-    proc->fcn_filename = u8_strdup(filename);
+    proc->fcn_filename = u8dup(filename);
     proc->fcn_arity = arity;
     proc->fcn_min_arity = arity;
     proc->fcn_defaults = NULL;
@@ -134,7 +137,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fcn_ndcall = 0;
     proc->fcn_xcall = 1;
     // Defer arity checking to fd_ffi_call
-    proc->fcn_handler.xcalln = fd_ffi_call;
+    proc->fcn_handler.xcalln = NULL;
     proc->ffi_dlsym = u8_dynamic_symbol(name,mod_arg);
     return proc;}
   else {
@@ -148,39 +151,112 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     return NULL;}
 }
 
-static int handle_ffi_arg(fdtype arg,fdtype spec,void **valptr,void **argptr)
+static int ffi_type_error(u8_context expecting,fdtype arg)
 {
-  if (spec == lisp_symbol) {
-    *argptr = valptr;
-    return 1;}
+  fd_xseterr(_("FFI Type error"),expecting,NULL,arg);
+  return -1;
+}
+
+static int handle_ffi_arg(fdtype arg,fdtype spec,
+			  void **valptr,void **argptr)
+{
+  if (spec == lisp_symbol)
+    *valptr = (void *) arg;
   else if (spec == cons_symbol) {
-    if (FD_CONSP(arg)) {
-      *argptr = (void *)arg;
-      return 1;}
-    else {
-      fd_xseterr("NotACons","handle_ffi_arg",NULL,arg);
-      return -1;}}
+    if (FD_CONSP(arg))
+      *valptr = (void *)arg;
+    else return ffi_type_error("CONS",arg);}
+  else if (spec == ptr_symbol) {
+    if (FD_PRIM_TYPEP(arg,fd_rawptr_type)) {
+      struct FD_RAWPTR *raw=(fd_rawptr)arg;
+      *valptr=raw->ptrval;}
+    else if (FD_CONSP(arg))
+      *valptr = (void *)arg;
+    else return ffi_type_error("pointer",arg);}
   else if (FD_FIXNUMP(arg)) {
     long long ival = FD_FIX2INT(arg);
-    if (spec == int_symbol) 
-      *valptr = (void *)ival;
-    else if (spec == uint_symbol)
-      *valptr = (void *)ival;
-    else if (spec == long_symbol)
-      *valptr = (void *)ival;
-    else if (spec == ulong_symbol)
-      *valptr = (void *)ival;
+    if (spec == int_symbol) {
+      if ((ival <= INT_MAX) && (ival >= INT_MIN))
+	*((int *)valptr) = ival;
+      else return ffi_type_error("int(C)",arg);}
+    else if (spec == uint_symbol) {
+      if ((ival <= UINT_MAX) && (ival >= 0 ))
+	*((unsigned int *)valptr) = ival;
+      else return ffi_type_error("uint(C)",arg);}
+    else if (spec == long_symbol) {
+      if ((ival <= LONG_MAX) && (ival >= LONG_MIN ))
+	*((long *)valptr) = ival;
+      else return ffi_type_error("long(C)",arg);}
+    else if (spec == ulong_symbol) {
+      if ((ival <= ULONG_MAX) && (ival >= 0 ))
+	*((unsigned long *)valptr) = ival;
+      else return ffi_type_error("ulong(C)",arg);}
+    else if (spec == short_symbol) {
+      if ((ival <= SHRT_MAX) && (ival >= SHRT_MIN ))
+	*((short *)valptr) = ival;
+      else return ffi_type_error("short(C)",arg);}
+    else if (spec == ushort_symbol) {
+      if ((ival <= USHRT_MAX) && (ival >= 0 ))
+	*((unsigned short *)valptr) = ival;
+      else return ffi_type_error("ushort(C)",arg);}
+    else if (spec == char_symbol) {
+      if ((ival <= CHAR_MAX) && (ival >= CHAR_MIN ))
+	*((char *)valptr) = ival;
+      else return ffi_type_error("char(C)",arg);}
+    else if (spec == uchar_symbol) {
+      if ((ival <= UCHAR_MAX) && (ival >= 0 ))
+	*((unsigned char *)valptr) = ival;
+      else return ffi_type_error("uchar(C)",arg);}
+    else if (spec == byte_symbol) {
+      if ((ival <= UCHAR_MAX) && (ival >= 0 ))
+	*((unsigned char *)valptr) = ival;
+      else return ffi_type_error("byte/uchar(C)",arg);}
+    else if (spec == size_symbol) {
+      if ((ival <= LONG_MAX) && (ival >= LONG_MIN ))
+	*((ssize_t *)valptr) = ival;
+      else return ffi_type_error("ssize_t(C)",arg);}
+    else if (spec == float_symbol) {
+      float f=(float)ival;
+      *((float *)valptr) = ival;}
+    else if (spec == float_symbol) {
+      double f=(double)ival;
+      *((double *)valptr) = ival;}
     else {
       fd_xseterr("BadIntType","handle_ffi_arg",NULL,spec);
       return -1;}
     *argptr = valptr;
     return 1;}
+  else if (FD_FLONUMP(arg)) {
+    if (spec == float_symbol) {
+      float f=(float)FD_FLONUM(arg);
+      *((float *)valptr)=f;}
+    else if (spec == float_symbol) {
+      double f=(float)FD_FLONUM(arg);
+      *((double *)valptr)=f;}
+    else if (FD_SYMBOLP(spec))
+      return fd_type_error(FD_SYMBOL_NAME(spec),"handle_ffi_arg",spec);
+    else return fd_type_error("ctype","handle_ffi_arg",spec);
+    *argptr = valptr;}
   else if (FD_STRINGP(arg)) {
-    *argptr = (void *)FD_STRDATA(arg);
-    return 1;}
+    if (spec == string_symbol) {
+      *valptr = (void *)FD_STRDATA(arg);
+      *argptr = valptr;
+      return 1;}
+    else if (FD_SYMBOLP(spec))
+      return ffi_type_error(FD_SYMBOL_NAME(spec),arg);
+    else return ffi_type_error("ctype",arg);}
+  else if (FD_PACKETP(arg)) {
+    if (spec == packet_symbol) {
+      *valptr = (void *)FD_STRDATA(arg);
+      *argptr = valptr;
+      return 1;}
+    else if (FD_SYMBOLP(spec))
+      return ffi_type_error(FD_SYMBOL_NAME(spec),arg);
+    else return ffi_type_error("ctype",arg);}
   else {
     fd_seterr("BadFFIArg","handle_ffi_arg",NULL,arg);
     return -1;}
+  *argptr=valptr;
 }
 
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
@@ -193,7 +269,7 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
     int arity = proc->fcn_arity;
     int i = 0;
     i = 0; while (i<arity) {
-      int rv = handle_ffi_arg(args[i],argspecs[i],&(vals[i]),&argptrs[i]);
+      int rv = handle_ffi_arg(args[i],argspecs[i],&(vals[i]),&(argptrs[i]));
       if (rv<0) return FD_ERROR_VALUE;
       else i++;}
     if (return_spec == lisp_symbol) {
@@ -240,7 +316,6 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
       fdtype v = default_values[i++]; fd_decref(v);}
     u8_free(default_values);}
   u8_free(ffi->ffi_argtypes);
-  u8_free(ffi->ffi_return_type); 
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
 }
 
@@ -272,11 +347,33 @@ FD_EXPORT void fd_init_ffi_c()
   fd_unparsers[fd_ffi_type]=unparse_ffi_proc;
   fd_recyclers[fd_ffi_type]=recycle_ffi_proc;
 
+  fd_functionp[fd_ffi_type]=1;
+  fd_applyfns[fd_ffi_type]=fd_ffi_call;
+
+  double_symbol = fd_intern("DOUBLE");
+  float_symbol = fd_intern("FLOAT");
+  uint_symbol = fd_intern("UINT");
+  int_symbol = fd_intern("INT");
+  ushort_symbol = fd_intern("USHORT");
+  short_symbol = fd_intern("SHORT");
+  ulong_symbol = fd_intern("ULONG");
+  long_symbol = fd_intern("LONG");
+  uchar_symbol = fd_intern("UCHAR");
+  byte_symbol = fd_intern("BYTE");
+  size_symbol = fd_intern("SIZE");
+  char_symbol = fd_intern("CHAR");
+  string_symbol = fd_intern("STRING");
+  packet_symbol = fd_intern("PACKET");
+  ptr_symbol = fd_intern("PTR");
+  cons_symbol = fd_intern("CONS");
+  lisp_symbol = fd_intern("LISP");
+
+  basetype_symbol = fd_intern("BASETYPE");
+
   u8_register_source_file(_FILEINFO);
 }
 
 #else /* HAVE_FFI_H && HAVE_LIBFFI */
-/* No FFI */
 FD_EXPORT void fd_init_ffi_c()
 {
   fd_type_names[fd_ffi_type]="foreign-function";

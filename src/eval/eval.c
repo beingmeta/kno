@@ -24,6 +24,7 @@
 #include "framerd/sequences.h"
 #include "framerd/ports.h"
 #include "framerd/dtcall.h"
+#include "framerd/ffi.h"
 
 #include "eval_internals.h"
 
@@ -1976,6 +1977,25 @@ static fdtype choiceref_prim(fdtype arg,fdtype off)
   else return fd_type_error("fixnum","choiceref_prim",off);
 }
 
+/* FFI */
+
+#if FD_ENABLE_FFI
+static fdtype ffi_proc(int n,fdtype *args)
+{
+  fdtype name_arg = args[0], filename_arg = args[1];
+  fdtype return_type = args[2];
+  u8_string name = (FD_STRINGP(name_arg)) ? (FD_STRDATA(name_arg)) : (NULL);
+  u8_string filename = (FD_STRINGP(filename_arg)) ? 
+    (FD_STRDATA(filename_arg)) :
+    (NULL);
+  if (!(name))
+    return fd_type_error("String","ffi_proc/name",name_arg);
+  else if (!((FD_STRINGP(filename_arg))||(FD_FALSEP(filename_arg))))
+    return fd_type_error("String","ffi_proc/filename",filename_arg);    
+  else return (fdtype)fd_make_ffi_proc(name,filename,n-3,return_type,args+3);
+}
+#endif
+
 /* Initialization */
 
 void fd_init_eval_c()
@@ -2133,6 +2153,10 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_bytstrerver,1,
                                             fd_string_type,FD_VOID,
                                             fd_fixnum_type,FD_VOID));
+
+#if FD_ENABLE_FFI
+  fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
+#endif
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",
