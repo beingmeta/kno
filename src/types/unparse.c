@@ -576,6 +576,9 @@ FD_EXPORT void fd_init_unparse_c()
   if (fd_unparsers[fd_mystery_type]==NULL)
     fd_unparsers[fd_mystery_type]=unparse_mystery;
 
+  if (fd_unparsers[fd_rawptr_type]==NULL)
+    fd_unparsers[fd_rawptr_type]=unparse_rawptr;
+
   fd_unparsers[fd_uuid_type]=unparse_uuid;
   fd_unparsers[fd_regex_type]=unparse_regex;
 
