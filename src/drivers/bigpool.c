@@ -1119,19 +1119,21 @@ static fdtype bigpool_alloc(fd_pool p,int n)
 {
   fd_bigpool bp = (fd_bigpool)p;
   fdtype results = FD_EMPTY_CHOICE; int i = 0;
+  FD_OID base=bp->pool_base;
+  unsigned int start;
   fd_lock_pool(p);
   if (!(POOLFILE_LOCKEDP(bp))) lock_bigpool_file(bp,0);
   if (bp->pool_load+n>=bp->pool_capacity) {
     fd_unlock_pool(p);
     return fd_err(fd_ExhaustedPool,"bigpool_alloc",
                   p->poolid,FD_VOID);}
+  start=bp->pool_load; bp->pool_load+=n;
+  fd_unlock_pool(p);
   while (i < n) {
-    FD_OID new_addr = FD_OID_PLUS(bp->pool_base,bp->pool_load);
+    FD_OID new_addr = FD_OID_PLUS(base,start+i);
     fdtype new_oid = fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
     i++;}
-  bp->pool_load+=n;
-  fd_unlock_pool(p);
   return fd_simplify_choice(results);
 }
 

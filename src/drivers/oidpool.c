@@ -1255,18 +1255,20 @@ static fdtype oidpool_alloc(fd_pool p,int n)
 {
   fdtype results = FD_EMPTY_CHOICE; int i = 0;
   fd_oidpool op = (fd_oidpool)p;
+  FD_OID base = op->pool_base;
+  unsigned int start;
   fd_lock_pool((fd_pool)op);
   if (!(FD_OIDPOOL_LOCKED(op))) lock_oidpool_file(op,0);
   if (op->pool_load+n>=op->pool_capacity) {
     fd_unlock_pool((fd_pool)op);
     return fd_err(fd_ExhaustedPool,"oidpool_alloc",p->poolid,FD_VOID);}
+  start=op->pool_load; op->pool_load+=n;
+  fd_unlock_pool(p);
   while (i < n) {
-    FD_OID new_addr = FD_OID_PLUS(op->pool_base,op->pool_load);
+    FD_OID new_addr = FD_OID_PLUS(base,start+i);
     fdtype new_oid = fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
     i++;}
-  op->pool_load+=n;
-  fd_unlock_pool((fd_pool)op);
   return fd_simplify_choice(results);
 }
 
