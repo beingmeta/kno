@@ -297,18 +297,6 @@ fd_exception fd_RegexError=_("Regular expression error");
 
 static int default_regex_flags = REG_EXTENDED|REG_NEWLINE;
 
-static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
-{
-  struct FD_REGEX *rx = (struct FD_REGEX *)x;
-  u8_puts(out,"#/"); u8_puts(out,rx->fd_rxsrc);
-  u8_putc(out,'/');
-  if ((rx->fd_rxflags)&REG_EXTENDED) u8_putc(out,'e');
-  if ((rx->fd_rxflags)&REG_ICASE) u8_putc(out,'i');
-  if ((rx->fd_rxflags)&REG_NEWLINE) u8_putc(out,'m');
-  if ((rx->fd_rxflags)&REG_NOSUB) u8_putc(out,'s');
-  return 1;
-}
-
 FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
 {
   struct FD_REGEX *ptr = u8_alloc(struct FD_REGEX); int retval;
