@@ -259,8 +259,8 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_test
     fdtype current = result->kv_val; int cmp;
     if (FD_VOIDP(val)) cmp = 1;
     else if (FD_EQ(val,current)) cmp = 1;
-    else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
-             (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
+    else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
+             (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
       cmp = fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp = 1;
     else cmp = 0;
@@ -404,8 +404,8 @@ static U8_MAYBE_UNUSED fdtype fd_schemap_test
     fdtype current = sm->schema_values[slotno]; int cmp;
     if (FD_VOIDP(val)) cmp = 1;
     else if (FD_EQ(val,current)) cmp = 1;
-    else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
-             (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
+    else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
+             (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
       cmp = fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp = 1;
     else cmp = 0;

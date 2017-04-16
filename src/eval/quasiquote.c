@@ -258,11 +258,11 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
         (FD_VECTORP(value))||
         (FD_SLOTMAPP(value))||
         (FD_CHOICEP(value))||
-        (FD_ACHOICEP(value))) {
+        (FD_PRECHOICEP(value))) {
       fdtype qval = fd_quasiquote(value,env,level);
       if (FD_ABORTED(qval)) {
         fd_decref(result); return qval;}
-      if (FD_ACHOICEP(qval)) qval = fd_simplify_choice(qval);
+      if (FD_PRECHOICEP(qval)) qval = fd_simplify_choice(qval);
       fd_slotmap_store(new_slotmap,slotid,qval);
       fd_decref(qval); i++;}
     else {

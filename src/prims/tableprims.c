@@ -921,7 +921,7 @@ static fdtype hashsetget(fdtype hs,fdtype key)
 
 static fdtype hashsetadd(fdtype hs,fdtype key)
 {
-  if ((FD_CHOICEP(hs))||(FD_ACHOICEP(hs))) {
+  if ((FD_CHOICEP(hs))||(FD_PRECHOICEP(hs))) {
     fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(h,hs) {
       fdtype value = hashsetadd(h,key);

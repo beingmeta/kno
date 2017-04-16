@@ -445,7 +445,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
         json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
         i++;}
     u8_putc(out,']');}
-  else if ((FD_CHOICEP(x))||(FD_ACHOICEP(x))) {
+  else if ((FD_CHOICEP(x))||(FD_PRECHOICEP(x))) {
     int elt_count = 0; FD_DO_CHOICES(e,x) {
       if (elt_count>0) u8_putc(out,',');
       else u8_puts(out,"[");

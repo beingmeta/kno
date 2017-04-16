@@ -902,7 +902,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
         if (FD_SLOTMAPP(elt)) {
           fdtype name = fd_get(elt,name_symbol,FD_EMPTY_CHOICE);
           if (FD_SYMBOLP(name)) fd_add(result,name,elt);
-          else if ((FD_CHOICEP(name)) || (FD_ACHOICEP(name))) {
+          else if ((FD_CHOICEP(name)) || (FD_PRECHOICEP(name))) {
             FD_DO_CHOICES(nm,name) {
               if (FD_SYMBOLP(nm)) fd_add(result,nm,elt);}}}}}
       fd_add(result,pcontent_symbol,xmlret->xml_head);

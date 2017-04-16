@@ -29,13 +29,6 @@
 #include <math.h>
 #include <sys/time.h>
 
-#if HAVE_GPERFTOOLS_PROFILER_H
-#include <gperftools/profiler.h>
-#endif
-#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-#include <gperftools/heap-profiler.h>
-#endif
-
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
 #include <sys/utsname.h>
 #endif

@@ -518,18 +518,20 @@ static fdtype file_pool_alloc(fd_pool p,int n)
 {
   fdtype results = FD_EMPTY_CHOICE; int i = 0;
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
-  fd_lock_pool(p);
+ FD_OID base=fp->pool_base;
+  unsigned int start;
+   fd_lock_pool(p);
   if (!(FD_POOLFILE_LOCKEDP(fp))) lock_file_pool(fp,0);
   if (fp->pool_load+n>=fp->pool_capacity) {
     fd_unlock_pool(p);
     return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->poolid,FD_VOID);}
+  start=fp->pool_load; fp->pool_load+=n;
+  fd_unlock_pool(p);
   while (i < n) {
-    FD_OID new_addr = FD_OID_PLUS(fp->pool_base,fp->pool_load);
+    FD_OID new_addr = FD_OID_PLUS(base,start+i);
     fdtype new_oid = fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
     i++;}
-  fp->pool_load+=n;
-  fd_unlock_pool(p);
   return results;
 }
 

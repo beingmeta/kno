@@ -41,7 +41,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     return fd_incref(dflt);
   else if (FD_EMPTY_CHOICEP(opts))
     return fd_incref(dflt);
-  else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+  else if ((FD_CHOICEP(opts)) || (FD_PRECHOICEP(opts))) {
     FD_DO_CHOICES(opt,opts) {
       fdtype value = fd_getopt(opt,key,FD_VOID);
       if (!(FD_VOIDP(value))) {
@@ -113,7 +113,7 @@ static int boolopt(fdtype opts,fdtype key)
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
 {
   if (FD_VOIDP(opts)) return 0;
-  else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
+  else if ((FD_CHOICEP(opts)) || (FD_PRECHOICEP(opts))) {
     FD_DO_CHOICES(opt,opts)
       if (fd_testopt(opt,key,val)) {
         FD_STOP_DO_CHOICES; return 1;}

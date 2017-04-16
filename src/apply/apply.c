@@ -739,7 +739,7 @@ FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
       else {
         fd_ptr_type argtype = FD_PTR_TYPE(args[i]);
         if ((argtype == fd_choice_type) ||
-            (argtype == fd_achoice_type)) {
+            (argtype == fd_prechoice_type)) {
           result = fd_ndapply((fdtype)f,n,args);
           return fd_finish_call(result);}
         else if (argtype == fd_qchoice_type) {

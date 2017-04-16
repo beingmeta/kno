@@ -30,7 +30,7 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
     int constype = FD_PTR_TYPE(obj);
     switch (constype) {
     case fd_pair_type: case fd_vector_type: case fd_rail_type:
-    case fd_choice_type: case fd_achoice_type: case fd_qchoice_type:
+    case fd_choice_type: case fd_prechoice_type: case fd_qchoice_type:
     case fd_slotmap_type: case fd_schemap_type:
     case fd_hashtable_type: case fd_hashset_type: {
       int rv = walker(obj,walkdata);
@@ -128,9 +128,9 @@ static int cons_walk(fd_walker walker,int constype,
       if (fast_walk(walker,e,walkdata,flags,depth-1)<0)
 	return -1;}
     return len;}
-  case fd_achoice_type: {
-    struct FD_ACHOICE *ach = (struct FD_ACHOICE *)obj;
-    fdtype *data = ach->achoice_data, *end = ach->achoice_write;
+  case fd_prechoice_type: {
+    struct FD_PRECHOICE *ach = (struct FD_PRECHOICE *)obj;
+    fdtype *data = ach->prechoice_data, *end = ach->prechoice_write;
     while (data<end) {
 	fdtype e = *data++;
 	if (fast_walk(walker,e,walkdata,flags,depth-1)<0)

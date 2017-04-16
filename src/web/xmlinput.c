@@ -724,7 +724,7 @@ static void cleanup_attribs(fdtype table)
       return;}
     while (scan < limit) {
       fdtype val = scan->kv_val;
-      if (FD_ACHOICEP(val))
+      if (FD_PRECHOICEP(val))
         scan->kv_val = fd_simplify_choice(val);
       scan++;}
     if (unlock) u8_rw_unlock(&sm->table_rwlock);}

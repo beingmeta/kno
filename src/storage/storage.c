@@ -172,7 +172,7 @@ static int print_oid_name(u8_output out,fdtype name,int top)
     else return fd_unparse(out,name);
   else if (FD_STRINGP(name))
     return fd_unparse(out,name);
-  else if ((FD_CHOICEP(name)) || (FD_ACHOICEP(name))) {
+  else if ((FD_CHOICEP(name)) || (FD_PRECHOICEP(name))) {
     int i = 0; u8_putc(out,'{'); {
       FD_DO_CHOICES(item,name) {
         if (i++>0) u8_putc(out,' ');

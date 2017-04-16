@@ -932,7 +932,7 @@ static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
     FD_DOLIST(s,strings) {
       if (strmatch(arg,s,ignorecase)) return 1;}
     return 0;}
-  else if ((FD_CHOICEP(strings))||(FD_ACHOICEP(strings))) {
+  else if ((FD_CHOICEP(strings))||(FD_PRECHOICEP(strings))) {
     FD_DO_CHOICES(s,strings) {
       if (strmatch(arg,s,ignorecase)) {
         FD_STOP_DO_CHOICES;

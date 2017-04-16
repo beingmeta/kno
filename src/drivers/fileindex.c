@@ -476,10 +476,10 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
         fd_decref(key); /* No longer needed */
         if (n_values>1)
           if (FD_VOIDP(values[index]))
-            values[index]=fd_init_achoice(NULL,n_values,0);
+            values[index]=fd_init_prechoice(NULL,n_values,0);
           else {
             fdtype val = values[index];
-            values[index]=fd_init_achoice(NULL,n_values,0);
+            values[index]=fd_init_prechoice(NULL,n_values,0);
             FD_ADD_TO_CHOICE(values[index],val);}
         else if (n_values==0) {
           /* If there are no values, store the empty choice and
@@ -579,9 +579,9 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
   else {
     int k = 0; while (k<n) {
       fdtype v = values[k++];
-      if (FD_ACHOICEP(v)) {
-        struct FD_ACHOICE *ac = (struct FD_ACHOICE *)v;
-        ac->achoice_uselock = 1;}}
+      if (FD_PRECHOICEP(v)) {
+        struct FD_PRECHOICE *ac = (struct FD_PRECHOICE *)v;
+        ac->prechoice_uselock = 1;}}
     u8_free(schedule);
     return values;}
 }
@@ -827,7 +827,7 @@ static int write_values(fd_stream stream,
                         unsigned int nextpos,
                         int *n_valuesp)
 {
-  fdtype realval = ((FD_ACHOICEP(values)) ? (fd_make_simple_choice(values)) :
+  fdtype realval = ((FD_PRECHOICEP(values)) ? (fd_make_simple_choice(values)) :
                    (values));
   if (FD_EMPTY_CHOICEP(realval)) {
     *n_valuesp = 0; return 0;}
@@ -841,7 +841,7 @@ static int write_values(fd_stream stream,
       if (scan == limit) fd_write_4bytes(outstream,nextpos);
       else fd_write_4bytes(outstream,1);}
     *n_valuesp = FD_XCHOICE_SIZE(ch);
-    if (FD_ACHOICEP(values)) fd_decref(realval);
+    if (FD_PRECHOICEP(values)) fd_decref(realval);
     return size;}
   else {
     int size = fd_write_dtype(outstream,realval);

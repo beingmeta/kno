@@ -24,6 +24,7 @@
 #include "framerd/sequences.h"
 #include "framerd/ports.h"
 #include "framerd/dtcall.h"
+#include "framerd/ffi.h"
 
 #include "eval_internals.h"
 
@@ -788,7 +789,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           result = fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
         else result = fd_eval(new_expr,env);
         fd_decref(new_expr);}
-      else if ((FD_CHOICEP(headval)) || (FD_ACHOICEP(headval))) {
+      else if ((FD_CHOICEP(headval)) || (FD_PRECHOICEP(headval))) {
         int applicable = applicable_choicep(headval);
         if (applicable<0) {
           if (gchead) fd_decref(headval);
@@ -832,7 +833,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
           return r;}
         else {FD_ADD_TO_CHOICE(result,r);}}
       return result;}
-  case fd_achoice_type: {
+  case fd_prechoice_type: {
     fdtype exprs = fd_make_simple_choice(expr);
     if (FD_CHOICEP(exprs)) {
       fdtype results = FD_EMPTY_CHOICE;
@@ -936,7 +937,7 @@ static fdtype process_arg(fdtype arg,fd_lispenv env)
     return fd_err(fd_VoidArgument,"call_function",NULL,arg);
   else if (FD_EXPECT_FALSE(FD_ABORTED(argval)))
     return argval;
-  else if ((FD_CONSP(argval))&&(FD_ACHOICEP(argval)))
+  else if ((FD_CONSP(argval))&&(FD_PRECHOICEP(argval)))
     return fd_simplify_choice(argval);
   else return argval;
 }
@@ -1941,7 +1942,7 @@ static fdtype require_version_prim(int n,fdtype *args)
 
 static fdtype fixchoice_prim(fdtype arg)
 {
-  if (FD_ACHOICEP(arg))
+  if (FD_PRECHOICEP(arg))
     return fd_make_simple_choice(arg);
   else return fd_incref(arg);
 }
@@ -1964,7 +1965,7 @@ static fdtype choiceref_prim(fdtype arg,fdtype off)
       else {
         fdtype elt = FD_XCHOICE_DATA(ch)[i];
         return fd_incref(elt);}}
-    else if (FD_ACHOICEP(arg)) {
+    else if (FD_PRECHOICEP(arg)) {
       fdtype simplified = fd_make_simple_choice(arg); 
       fdtype result = choiceref_prim(simplified,off);
       fd_decref(simplified);
@@ -1975,6 +1976,25 @@ static fdtype choiceref_prim(fdtype arg,fdtype off)
       return FD_ERROR_VALUE;}}
   else return fd_type_error("fixnum","choiceref_prim",off);
 }
+
+/* FFI */
+
+#if FD_ENABLE_FFI
+static fdtype ffi_proc(int n,fdtype *args)
+{
+  fdtype name_arg = args[0], filename_arg = args[1];
+  fdtype return_type = args[2];
+  u8_string name = (FD_STRINGP(name_arg)) ? (FD_STRDATA(name_arg)) : (NULL);
+  u8_string filename = (FD_STRINGP(filename_arg)) ? 
+    (FD_STRDATA(filename_arg)) :
+    (NULL);
+  if (!(name))
+    return fd_type_error("String","ffi_proc/name",name_arg);
+  else if (!((FD_STRINGP(filename_arg))||(FD_FALSEP(filename_arg))))
+    return fd_type_error("String","ffi_proc/filename",filename_arg);    
+  else return (fdtype)fd_make_ffi_proc(name,filename,n-3,return_type,args+3);
+}
+#endif
 
 /* Initialization */
 
@@ -2133,6 +2153,10 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_bytstrerver,1,
                                             fd_string_type,FD_VOID,
                                             fd_fixnum_type,FD_VOID));
+
+#if FD_ENABLE_FFI
+  fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
+#endif
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",

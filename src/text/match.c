@@ -374,7 +374,7 @@ void fd_add_match_operator
 static fdtype get_longest_match(fdtype matches)
 {
   if (FD_ABORTED(matches)) return matches;
-  else if ((FD_CHOICEP(matches)) || (FD_ACHOICEP(matches))) {
+  else if ((FD_CHOICEP(matches)) || (FD_PRECHOICEP(matches))) {
     u8_byteoff max = -1;
     FD_DO_CHOICES(match,matches) {
       u8_byteoff ival = fd_getint(match);
@@ -411,7 +411,7 @@ fdtype fd_text_domatch
          string,off,lim);
       if (mlen < 0) return FD_EMPTY_CHOICE;
       else return FD_INT(mlen);}
-  else if ((FD_CHOICEP(pat)) || (FD_ACHOICEP(pat))) {
+  else if ((FD_CHOICEP(pat)) || (FD_PRECHOICEP(pat))) {
     if (flags&(FD_MATCH_BE_GREEDY)) {
       u8_byteoff max = -1;
       FD_DO_CHOICES(each,pat) {
@@ -568,7 +568,7 @@ static fdtype extract_text(u8_string string,u8_byteoff start,fdtype ends)
 static fdtype get_longest_extractions(fdtype extractions)
 {
   if (FD_ABORTED(extractions)) return extractions;
-  else if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
+  else if ((FD_CHOICEP(extractions)) || (FD_PRECHOICEP(extractions))) {
     fdtype largest = FD_EMPTY_CHOICE; u8_byteoff max = -1;
     FD_DO_CHOICES(extraction,extractions) {
       u8_byteoff ival = fd_getint(FD_CAR(extraction));
@@ -602,7 +602,7 @@ static fdtype textract
                    string,off,lim);
       if (mlen<0) return FD_EMPTY_CHOICE;
       else return extract_text(string,off,FD_INT(mlen));}
-  else if ((FD_CHOICEP(pat)) || (FD_QCHOICEP(pat)) || (FD_ACHOICEP(pat))) {
+  else if ((FD_CHOICEP(pat)) || (FD_QCHOICEP(pat)) || (FD_PRECHOICEP(pat))) {
     fdtype answers = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(epat,pat) {
       fdtype extractions = textract(epat,next,env,string,off,lim,flags);
@@ -624,7 +624,7 @@ static fdtype textract
         return answers;}
       else {fd_decref(extractions);}}
     if ((flags&FD_MATCH_BE_GREEDY) &&
-        ((FD_CHOICEP(answers)) || (FD_ACHOICEP(answers)))) {
+        ((FD_CHOICEP(answers)) || (FD_PRECHOICEP(answers)))) {
       /* get_longest_extracts frees (decrefs) answers if it doesn't
          return them */
       fdtype result = get_longest_extractions(answers);
@@ -1228,7 +1228,7 @@ static fdtype subst_extract
       FD_DO_CHOICES(match,matches) {
         int matchlen = fd_getint(match);
         fdtype matched = fd_substring(string+off,string+matchlen);
-        if ((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))) {
+        if ((FD_CHOICEP(expanded))||(FD_PRECHOICEP(expanded))) {
           FD_DO_CHOICES(subst_arg,expanded) {
             fdtype new_args = fd_conspair(fd_incref(matched),fd_incref(subst_arg));
             fdtype new_subst = fd_conspair(subst_symbol,new_args);
@@ -1258,8 +1258,8 @@ static fdtype expand_subst_args(fdtype args,fd_lispenv env)
     fdtype cdrchoices = expand_subst_args(FD_CDR(args),env);
     /* Avoid the multiplication of conses by reusing ARGS if it
        hasn't exploded or changed. */
-    if ((FD_CHOICEP(carchoices))||(FD_ACHOICEP(carchoices))||
-        (FD_CHOICEP(cdrchoices))||(FD_ACHOICEP(cdrchoices))) {
+    if ((FD_CHOICEP(carchoices))||(FD_PRECHOICEP(carchoices))||
+        (FD_CHOICEP(cdrchoices))||(FD_PRECHOICEP(cdrchoices))) {
       fdtype conses = FD_EMPTY_CHOICE;
       FD_DO_CHOICES(car,carchoices) {
         FD_DO_CHOICES(cdr,cdrchoices) {
@@ -3708,7 +3708,7 @@ u8_byteoff fd_text_search
         else if (*s < 0x80) s++;
         else s = u8_substring(s,1);}
       return -1;}}
-  else if ((FD_CHOICEP(pat)) || (FD_ACHOICEP(pat))) {
+  else if ((FD_CHOICEP(pat)) || (FD_PRECHOICEP(pat))) {
     int nlim = lim, loc = -1;
     FD_DO_CHOICES(epat,pat) {
       u8_byteoff nxt = fd_text_search(epat,env,string,off,lim,flags);
