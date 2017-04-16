@@ -770,7 +770,6 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
           vec[n++]=r;}
         else {
           FD_ADD_TO_CHOICE(results,r);}}
-      if (findopts) bson_destroy(findopts);
       if (rp) mongoc_read_prefs_destroy(rp);
       mongoc_cursor_destroy(cursor);}
     else results = fd_err(fd_MongoDB_Error,"mongodb_find",
