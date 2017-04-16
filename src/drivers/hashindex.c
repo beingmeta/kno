@@ -663,7 +663,8 @@ FD_FASTOP fdtype read_zkey(fd_hashindex hx,fd_inbuf in)
   else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
 }
 
-FD_EXPORT int fd_hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,int modulate)
+FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,
+                                   ssize_t modulate)
 {
   struct FD_OUTBUF out; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
@@ -673,8 +674,23 @@ FD_EXPORT int fd_hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,int modulat
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
   fd_close_outbuf(&out);
-  if (modulate) return hashval%(hx->index_n_buckets);
-  else return hashval;
+  if (modulate<0)
+    return hashval%(hx->index_n_buckets);
+  else if (modulate==0)
+    return hashval;
+  else return hashval%modulate;
+}
+
+FD_EXPORT ssize_t fd_hashindex_bucket(fdtype ixarg,fdtype key,ssize_t modulate)
+{
+  struct FD_INDEX *ix=fd_lisp2index(ixarg);
+  if (ix==NULL) {
+    fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
+    return -1;}
+  else if (ix->index_handler != &hashindex_handler) {
+    fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
+    return -1;}
+  else return hashindex_bucket(((struct FD_HASHINDEX *)ix),key,modulate);
 }
 
 /* ZVALUEs */
@@ -2799,7 +2815,7 @@ static fdtype hashindex_ctl(fd_index ix,int op,int n,fdtype *args)
         return FD_INT(hx->index_n_buckets);
       else {
         fdtype mod_arg = (n>1) ? (args[1]) : (FD_VOID);
-        int bucket = fd_hashindex_bucket(hx,args[0],0);
+        ssize_t bucket = hashindex_bucket(hx,args[0],0);
         if (FD_FIXNUMP(mod_arg))
           return FD_INT((bucket%FD_FIX2INT(mod_arg)));
         else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))

@@ -96,13 +96,18 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 (u8_string name,u8_string filename,int arity,
  fdtype return_spec,fdtype *argspecs)
 {
-  void *mod_arg = (filename == NULL) ? ((void *)NULL) : 
-    (u8_dynamic_load(filename));
   if (name==NULL) {
     u8_seterr("NullArg","fd_make_ffi_proc/name",NULL);
     return NULL;}
-  if (FD_EXPECT_FALSE((filename) && (mod_arg == NULL)))
+  void *mod_arg = (filename == NULL) ? ((void *)NULL) : 
+    (u8_dynamic_load(filename));
+  if ((filename) && (mod_arg == NULL))
     return NULL;
+  void *symbol=u8_dynamic_symbol(name,mod_arg);
+  if (symbol == NULL) {
+    u8_seterr("NoSuchLink","fd_make_ffi_proc/u8_dynamic_symbol",
+	      u8_strdup(name));
+    return NULL;}
   ffi_type *return_type = get_ffi_type(return_spec);
   if (return_type == NULL) return NULL;
   fdtype *savespecs = u8_alloc_n(arity,fdtype);
@@ -139,7 +144,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fcn_xcall = 1;
     // Defer arity checking to fd_ffi_call
     proc->fcn_handler.xcalln = NULL;
-    proc->ffi_dlsym = u8_dynamic_symbol(name,mod_arg);
+    proc->ffi_dlsym = symbol;
     return proc;}
   else {
     if (rv == FFI_BAD_TYPEDEF)
@@ -234,7 +239,7 @@ static int handle_ffi_arg(fdtype arg,fdtype spec,
     if (spec == float_symbol) {
       float f=(float)FD_FLONUM(arg);
       *((float *)valptr)=f;}
-    else if (spec == float_symbol) {
+    else if (spec == double_symbol) {
       double f=(float)FD_FLONUM(arg);
       *((double *)valptr)=f;}
     else if (FD_SYMBOLP(spec))
