@@ -1980,19 +1980,52 @@ static fdtype choiceref_prim(fdtype arg,fdtype off)
 /* FFI */
 
 #if FD_ENABLE_FFI
-static fdtype ffi_proc(int n,fdtype *args)
+static fdtype ffi_proc_helper(int err,int n,fdtype *args)
 {
   fdtype name_arg = args[0], filename_arg = args[1];
   fdtype return_type = args[2];
   u8_string name = (FD_STRINGP(name_arg)) ? (FD_STRDATA(name_arg)) : (NULL);
-  u8_string filename = (FD_STRINGP(filename_arg)) ? 
+  u8_string filename = (FD_STRINGP(filename_arg)) ?
     (FD_STRDATA(filename_arg)) :
     (NULL);
   if (!(name))
     return fd_type_error("String","ffi_proc/name",name_arg);
   else if (!((FD_STRINGP(filename_arg))||(FD_FALSEP(filename_arg))))
-    return fd_type_error("String","ffi_proc/filename",filename_arg);    
-  else return (fdtype)fd_make_ffi_proc(name,filename,n-3,return_type,args+3);
+    return fd_type_error("String","ffi_proc/filename",filename_arg);
+  else {
+    struct FD_FFI_PROC *fcn=
+      fd_make_ffi_proc(name,filename,n-3,return_type,args+3);
+    if (fcn)
+      return (fdtype) fcn;
+    else {
+      fd_clear_errors(1);
+      return FD_FALSE;}}
+}
+static fdtype ffi_proc(int n,fdtype *args)
+{
+  return ffi_proc_helper(1,n,args);
+}
+static fdtype ffi_probe(int n,fdtype *args)
+{
+  return ffi_proc_helper(0,n,args);
+}
+static fdtype ffi_found_prim(fdtype name,fdtype modname)
+{
+  void *module=NULL, *sym=NULL;
+  if (FD_STRINGP(modname)) {
+    module=u8_dynamic_load(FD_STRDATA(modname));
+    if (module==NULL) {
+      fd_clear_errors(0);
+      return FD_FALSE;}}
+  sym=u8_dynamic_symbol(FD_STRDATA(name),module);
+  if (sym)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+#else
+static fdtype dl_found_prim(fdtype name,fdtype modname)
+{
+  return FD_FALSE;
 }
 #endif
 
@@ -2154,9 +2187,12 @@ static void init_localfns()
                                             fd_string_type,FD_VOID,
                                             fd_fixnum_type,FD_VOID));
 
-#if FD_ENABLE_FFI
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
-#endif
+  fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROBE",ffi_probe,3));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",
