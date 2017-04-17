@@ -189,13 +189,14 @@ static fd_pool open_oidpool(u8_string fname,fdkb_flags flags,fdtype opts)
     (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
+  long long cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
+  int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
+    ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+    ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
   u8_string rname = u8_realpath(fname,NULL);
   struct FD_STREAM *stream=
-    fd_init_file_stream(&(pool->pool_stream),fname,mode,
-                        ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
-                        FD_STREAM_CAN_SEEK|
-                        FD_STREAM_NEEDS_LOCK,
-                        fd_driver_bufsize);
+    fd_init_file_stream(&(pool->pool_stream),fname,
+                        mode,stream_flags,fd_driver_bufsize);
   struct FD_INBUF *instream = fd_readbuf(stream);
 
   /* See if it ended up read only */
@@ -1335,6 +1336,11 @@ static void oidpool_setcache(fd_pool p,int level)
     fd_unlock_pool((fd_pool)op);
     return;}
 #else /* HAVE_MMAP */
+  int stream_flags=op->pool_stream.stream_flags;
+
+  if ( (level < 3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
+    fd_setbufsize(&(op->pool_stream),fd_filestream_bufsize);
+
   if ( (level < 2) && (op->pool_offdata) ) {
     /* Unmap the offsets cache */
     int retval;
@@ -1357,6 +1363,11 @@ static void oidpool_setcache(fd_pool p,int level)
     UNLOCK_POOLSTREAM(op);
     fd_unlock_pool((fd_pool)op);
     return;}
+
+  /* Everything below here requires a file descriptor */
+
+  if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
+    fd_setbufsize(&(op->pool_stream),-1);
 
   if ( (level >= 2) && (op->pool_offdata == NULL) ) {
     unsigned int *offsets, *newmmap;
@@ -1451,11 +1462,11 @@ static void oidpool_close(fd_pool p)
   fd_unlock_pool((fd_pool)op);
 }
 
-static void oidpool_setbuf(fd_pool p,int bufsiz)
+static void oidpool_setbuf(fd_pool p,ssize_t bufsize)
 {
   fd_oidpool op = (fd_oidpool)p;
   fd_lock_pool((fd_pool)op);
-  fd_stream_setbufsize(&(op->pool_stream),bufsiz);
+  fd_setbufsize(&(op->pool_stream),bufsize);
   fd_unlock_pool((fd_pool)op);
 }
 

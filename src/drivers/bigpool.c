@@ -172,12 +172,13 @@ static fd_pool open_bigpool(u8_string fname,fdkb_flags open_flags,fdtype opts)
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   u8_string rname = u8_realpath(fname,NULL);
+  int cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
+  int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
+    ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+    ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
   struct FD_STREAM *stream=
-    fd_init_file_stream(&(pool->pool_stream),fname,mode,
-                        ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
-                        FD_STREAM_CAN_SEEK|
-                        FD_STREAM_NEEDS_LOCK,
-                        fd_driver_bufsize);
+    fd_init_file_stream(&(pool->pool_stream),fname,
+                        mode,stream_flags,fd_driver_bufsize);
   struct FD_INBUF *instream = fd_readbuf(stream);
 
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
@@ -426,7 +427,7 @@ static int lock_bigpool_file(struct FD_BIGPOOL *bp,int use_mutex)
     if ( fileinfo.st_mtime > bp->pool_modtime ) {
       /* Make sure we're up to date. */
       read_bigpool_load(bp);
-      if (bp->pool_offdata) 
+      if (bp->pool_offdata)
         reload_offdata(bp,0);
       else {
         fd_reset_hashtable(&(bp->pool_cache),-1,1);
@@ -1159,6 +1160,8 @@ static int bigpool_unlock(fd_pool p,fdtype oids)
 #if HAVE_MMAP
 static void setcache(fd_bigpool bp,int level,int chunk_ref_size)
 {
+  int stream_flags=bp->pool_stream.stream_flags;
+
   if ( (level < 2) && (bp->pool_offdata) ) {
     /* Unmap the offsets cache */
     int retval;
@@ -1173,13 +1176,28 @@ static void setcache(fd_bigpool bp,int level,int chunk_ref_size)
       bp->pool_offdata = NULL;
       U8_CLEAR_ERRNO();}
     bp->pool_offdata = NULL;
-    bp->pool_offdata_length = 0;}
+    bp->pool_offdata_length = 0;
+    if (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) {
+      fd_setbufsize(&(bp->pool_stream),fd_stream_bufsize);}
+    return;}
 
   if ( (LOCK_POOLSTREAM(bp,"bigpool_setcache")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
            "During bigpool_setcache for %s",bp->poolid);
     UNLOCK_POOLSTREAM(bp);
     return;}
+
+  if ( (level < 3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
+    fd_setbufsize(&(bp->pool_stream),fd_stream_bufsize);
+
+  if (level < 2 ) return;
+
+  /* Everything below here requires a file descriptor */
+
+#if HAVE_MMAP
+  if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
+    fd_setbufsize(&(bp->pool_stream),-1);
+#endif
 
   if ( (level >= 2) && (bp->pool_offdata == NULL) ) {
     unsigned int *offsets, *newmmap;
@@ -1243,6 +1261,7 @@ static void bigpool_setcache(fd_pool p,int level)
        ( (level==2) && ( bp->pool_offdata != NULL ) ) )
     return;
   fd_lock_pool(p);
+  /* Check again, race condition */
   if ( ( (level<2) && (bp->pool_offdata == NULL) ) ||
        ( (level==2) && ( bp->pool_offdata != NULL ) ) ) {
     fd_unlock_pool(p);
@@ -1324,11 +1343,11 @@ static void bigpool_close(fd_pool p)
   fd_unlock_pool(p);
 }
 
-static void bigpool_setbuf(fd_pool p,int bufsiz)
+static void bigpool_setbuf(fd_pool p,ssize_t bufsize)
 {
   fd_bigpool bp = (fd_bigpool)p;
   fd_lock_pool(p);
-  fd_stream_setbufsize(&(bp->pool_stream),(size_t)bufsiz);
+  fd_setbufsize(&(bp->pool_stream),(size_t)bufsize);
   fd_unlock_pool(p);
 }
 

@@ -201,15 +201,21 @@ static fd_index open_hashindex(u8_string fname,fdkb_flags flags,fdtype opts)
   struct FD_STREAM *stream = &(index->index_stream);
   int read_only = U8_BITP(flags,FDKB_READ_ONLY);
   int consed = U8_BITP(flags,FDKB_ISCONSED);
+
   unsigned int magicno, n_keys;
   fd_off_t slotids_pos, baseoids_pos;
   fd_size_t slotids_size, baseoids_size;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
+  long long cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
+  int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
+    ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+    ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
+
   fd_init_index((fd_index)index,&hashindex_handler,
                 fname,u8_realpath(fname,NULL),
                 flags);
-  if (fd_init_file_stream(stream,fname,mode,-1,fd_driver_bufsize)
+  if (fd_init_file_stream(stream,fname,mode,stream_flags,fd_driver_bufsize)
       == NULL) {
     u8_free(index);
     fd_seterr3(u8_CantOpenFile,"open_hashindex",u8_strdup(fname));
@@ -1397,40 +1403,15 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
 static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 {
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
+  int stream_flags=hx->index_stream.stream_flags;
   ssize_t mmap_size;
-#if (HAVE_MMAP)
-  if (level > 2) {
-    if (hx->index_mmap) return;
-    fd_lock_index(hx);
-    if (hx->index_mmap) {
-      fd_unlock_index(hx);
-      return;}
-    mmap_size = u8_file_size(hx->indexid);
-    if (mmap_size>=0) {
-      hx->index_mmap_size = (size_t)mmap_size;
-      hx->index_mmap=
-        mmap(NULL,hx->index_mmap_size,PROT_READ,MMAP_FLAGS,
-             hx->index_stream.stream_fileno,0);}
-    else {
-      u8_log(LOG_WARN,"FailedMMAPSize",
-             "Couldn't get mmap size for hash ksched_i %s",hx->indexid);
-      hx->index_mmap_size = 0; hx->index_mmap = NULL;}
-    if (hx->index_mmap == NULL) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "hashindex_setcache:mmap %s",hx->index_source);
-      hx->index_mmap = NULL; errno = 0;}
-    fd_unlock_index(hx);}
-  if ((level<3) && (hx->index_mmap)) {
-    int retval;
-    fd_lock_index(hx);
-    retval = munmap(hx->index_mmap,hx->index_mmap_size);
-    if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),
-             "hashindex_setcache:munmap %s",hx->index_source);
-      hx->index_mmap = NULL; errno = 0;}
-    fd_unlock_index(hx);}
-#endif
+
   if (level >= 2) {
+    if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
+      fd_setbufsize(&(hx->index_stream),-1);
+    else if (U8_BITP(stream_flags,FD_STREAM_MMAPPED))
+      fd_setbufsize(&(hx->index_stream),fd_filestream_bufsize);
+    else {}
     if (hx->index_offdata) return;
     else {
       fd_stream s = &(hx->index_stream);
@@ -1464,8 +1445,14 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
       fd_unlock_stream(s)
 #endif
       fd_unlock_index(hx);}}
+
   else if (level < 2) {
-    if (hx->index_offdata == NULL) return;
+
+    if (U8_BITP(stream_flags,FD_STREAM_MMAPPED))
+      fd_setbufsize(&(hx->index_stream),fd_filestream_bufsize);
+
+    if (hx->index_offdata == NULL)
+      return;
     else {
       int retval;
       unsigned int *offdata = NULL;
@@ -2806,7 +2793,7 @@ static fdtype hashindex_ctl(fd_index ix,int op,int n,fdtype *args)
         return FD_INT(hx->index_stream.buf.raw.buflen);
       else if (FD_FIXNUMP(args[0])) {
         fd_lock_index(hx);
-        fd_stream_setbufsize(&(hx->index_stream),FD_FIX2INT(args[0]));
+        fd_setbufsize(&(hx->index_stream),FD_FIX2INT(args[0]));
         fd_unlock_index(hx);
         return FD_INT(hx->index_stream.buf.raw.buflen);}
       else return fd_type_error("buffer size","hashindex_ctl/bufsize",args[0]);}

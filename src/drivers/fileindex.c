@@ -1196,7 +1196,7 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
   fd_lock_index(fx);
-  fd_stream_setbufsize(&(fx->index_stream),bufsiz);
+  fd_setbufsize(&(fx->index_stream),bufsiz);
   fd_unlock_index(fx);
 }
 

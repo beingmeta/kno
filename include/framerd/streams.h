@@ -265,10 +265,11 @@ FD_EXPORT ssize_t fd_flush_stream(fd_stream s);
 FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
 
-FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz);
+FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize);
 
 FD_EXPORT int _fd_lock_stream(fd_stream s);
 FD_EXPORT int _fd_unlock_stream(fd_stream s);
+FD_EXPORT int _fd_using_stream(fd_stream s);
 
 #if FD_INLINE_STREAMIO
 FD_FASTOP int fd_lock_stream(fd_stream s)
@@ -290,6 +291,27 @@ FD_FASTOP int fd_lock_stream(fd_stream s)
     s->stream_locker = tid;
     return 1;}
 }
+FD_FASTOP int fd_using_stream(fd_stream s)
+{
+  long long tid = u8_threadid();
+  if (s->stream_locker==0) {
+    int rv=u8_lock_mutex(&(s->stream_lock));
+    if (rv) {
+      u8_seterr("MutexLockFailed","fd_lock_stream",s->streamid);
+      return -1;}
+    s->stream_locker=tid;
+    return 1;}
+  else if (s->stream_locker==tid)
+    return 0;
+  else {
+    int rv=u8_lock_mutex(&(s->stream_lock));
+    u8_string id = s->streamid;
+    if (rv) {
+      u8_seterr("MutexLockFailed","fd_lock_stream",s->streamid);
+      return -1;}
+    s->stream_locker=tid;
+    return 1;}
+}
 FD_FASTOP int fd_unlock_stream(fd_stream s)
 {
   long long tid = u8_threadid();
@@ -299,17 +321,19 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
            "Stream %s 0x%llx is owned by T%lld, not current T%lld",
 	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
            (U8_PTR2INT(s)),s->stream_locker,tid);
-    u8_seterr("BadStreamUnlock","fd_lock_stream",s->streamid);
+    u8_seterr("BadStreamUnlock","fd_unlock_stream",s->streamid);
     return -1;}
   s->stream_locker = 0;
   int rv = u8_unlock_mutex(&(s->stream_lock));
   if (rv) {
+    u8_seterr("MutexUnLockFailed","fd_unlock_stream",s->streamid);
     return -1;}
   return 1;
 }
 #else
 #define fd_lock_stream(s) _fd_lock_stream(s)
 #define fd_unlock_stream(s) _fd_unlock_stream(s)
+#define fd_using_stream(s) _fd_using_stream(s)
 #endif
 
 /* Exceptions */
