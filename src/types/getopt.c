@@ -154,6 +154,22 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
   return 0;
 }
 
+FD_EXPORT
+long long
+fd_fixopt(fdtype opts,u8_string name,int dflt)
+{
+  fdtype val=fd_getopt(opts,fd_intern(name),FD_VOID);
+  if (FD_VOIDP(val))
+    return dflt;
+  else if (FD_FIXNUMP(val))
+    return FD_FIX2INT(val);
+  else {
+    fd_decref(val);
+    return dflt;}
+}
+
+
+
 void fd_init_getopt_c()
 {
   u8_register_source_file(_FILEINFO);
