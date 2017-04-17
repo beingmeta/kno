@@ -287,6 +287,7 @@ pooltest:
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}
+	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=3 ${RUNCONF}
 
 filepooltest:
 	@make TESTBASE=filepool RUNCONF="${FILEPOOL} ${RUNCONF}" pooltest
@@ -325,6 +326,7 @@ indextest:
 	@${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTSIZE} ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF}             && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=2  ${RUNCONF} && \
+	${RUN} ${FDX} tabletest.scm ${TESTBASE} CACHELEVEL=3  ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} CONSINDEX=yes  ${RUNCONF} && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${RUNCONF} CACHELEVEL=2 CONSINDEX=yes && \
 	${RUN} ${FDX} tabletest.scm ${TESTBASE} ${TESTBASE}.edit.dtype ${RUNCONF} && \
@@ -378,11 +380,15 @@ dbtest:
 	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
 	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+		 ${RUNCONF} CACHELEVEL=3;
 	@echo "■■■■■■■■ Testing database creation with CACHELEVEL=2";
 	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
 		${DBTEST_FILES} ${RUNCONF} CACHELEVEL=2;
 	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
+	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+		 ${RUNCONF} CACHELEVEL=3;
 	@echo "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF} ■■■■■■■■■■■■■■■■";
 
 dbtest_oidpool32:
