@@ -45,8 +45,6 @@
 size_t fd_stream_bufsize = FD_STREAM_BUFSIZE;
 size_t fd_filestream_bufsize = FD_FILESTREAM_BUFSIZE;
 
-int fd_mmap_streams = HAVE_MMAP;
-
 fd_exception fd_ReadOnlyStream=_("Read-only stream");
 fd_exception fd_WriteOnlyStream=_("Write-only stream");
 fd_exception fd_CantRead=_("Can't read data");
@@ -267,7 +265,6 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   if (flags&FD_STREAM_IS_CONSED) {
     FD_INIT_FRESH_CONS(stream,fd_stream_type);}
   else {FD_INIT_STATIC_CONS(stream,fd_stream_type);}
-  if (fd_mmap_streams) flags |= FD_STREAM_MMAPPED;
   /* Initializing the stream fields */
   stream->stream_fileno = fileno;
   stream->streamid = u8dup(streamid);
@@ -453,15 +450,24 @@ FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz)
 {
   fd_lock_stream(s);
   fd_flush_stream(s);
-  {
-    struct FD_RAWBUF *buf = &(s->buf.raw);
+  struct FD_RAWBUF *buf = &(s->buf.raw);
+  int flags=s->buf.raw.buf_flags;
+  if (bufsiz) {
     unsigned int ptroff = buf->bufpoint-buf->buffer;
     unsigned int endoff = buf->buflim-buf->buffer;
-    buf->buffer = u8_realloc(buf->buffer,bufsiz);
+    if (flags&FD_BUFFER_IS_MALLOCD)
+      buf->buffer = u8_realloc(buf->buffer,bufsiz);
+    else buf->buffer = u8_mallocz(bufsiz);
     buf->bufpoint = buf->buffer+ptroff; buf->buflim = buf->buffer+endoff;
     buf->buflen = bufsiz;
-  }
-  s->buf.raw.buf_flags |= FD_BUFFER_IS_MALLOCD;
+    s->buf.raw.buf_flags |= FD_BUFFER_IS_MALLOCD;}
+  else {
+    if (flags&FD_BUFFER_IS_MALLOCD) u8_free(buf->buffer);
+    buf->buffer=NULL;
+    buf->bufpoint=NULL;
+    buf->buflim=NULL;
+    buf->buflen=-1;
+    s->buf.raw.buf_flags &= ~FD_BUFFER_IS_MALLOCD;}
   fd_unlock_stream(s);
 }
 
@@ -904,6 +910,29 @@ fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
     if (rv<0) return FD_ERROR_VALUE;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
+  case fd_stream_mmap: {
+    unsigned long long enable = (unsigned long long) data;
+    // Only read-only streams are mmapped for now
+    if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY) )) enable=0;
+    if ( ( (enable) && (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) ) ||
+         ( (!enable) && (!(U8_BITP(s->stream_flags,FD_STREAM_MMAPPED))) ) )
+      return FD_FALSE;
+    else {
+      struct FD_RAWBUF *buf=&(s->buf.raw);
+      fd_flush_stream(s);
+      if (enable) {
+        fd_stream_setbufsize(s,0);
+        mmap_read_update(s);
+        buf->buf_fillfn  = mmap_fillfn;
+        buf->buf_flushfn = mmap_flushfn;
+        s->buf.raw.buf_flags |= FD_STREAM_MMAPPED;}
+      else {
+        release_mmap(s);
+        fd_stream_setbufsize(s,fd_stream_bufsize);
+        buf->buf_fillfn = stream_fillfn;
+        buf->buf_flushfn = stream_flushfn;
+        s->buf.raw.buf_flags &= ~FD_STREAM_MMAPPED;}
+      return FD_TRUE;}}
   default:
     fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,
               FD_VOID);
@@ -982,11 +1011,6 @@ FD_EXPORT void fd_init_stream_c()
 {
   fd_unparsers[fd_stream_type]=unparse_stream;
   fd_recyclers[fd_stream_type]=recycle_stream;
-
-  fd_register_config("MMAPSTREAMS",
-                     "Use mmap() for streams if available",
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_mmap_streams);
-
 
   u8_register_source_file(_FILEINFO);
 }

@@ -37,7 +37,6 @@
 FD_EXPORT size_t fd_stream_bufsize;
 FD_EXPORT size_t fd_network_bufsize;
 FD_EXPORT size_t fd_filestream_bufsize;
-FD_EXPORT int fd_mmap_streams;
 
 typedef int fd_stream_flags;
 
@@ -57,6 +56,12 @@ typedef int fd_stream_flags;
 
 #define FD_DEFAULT_FILESTREAM_FLAGS \
   (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO)
+
+#if HAVE_MMAP
+#define FD_STREAM_USEMMAP (FD_STREAM_MMAPPED)
+#else
+#define FD_STREAM_USEMMAP (0)
+#endif
 
 typedef struct FD_STREAM {
   FD_CONS_HEADER;
@@ -112,7 +117,8 @@ typedef enum fd_streamop {
   fd_stream_lockfile,
   fd_stream_unlockfile,
   fd_stream_setread,
-  fd_stream_setwrite } fd_streamop;
+  fd_stream_setwrite,
+  fd_stream_mmap } fd_streamop;
 
 #define FD_STREAM_FREEDATA    1
 #define FD_STREAM_NOCLOSE 2
