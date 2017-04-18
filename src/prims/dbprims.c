@@ -1,4 +1,4 @@
-/* -*- Mode: C; Character-encoding: utf-8; -*- */
+/* -*- mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
@@ -30,11 +30,35 @@
 #include "libu8/u8printf.h"
 
 static fdtype pools_symbol, indexes_symbol, id_symbol, drop_symbol;
+static fdtype flags_symbol, register_symbol, readonly_symbol;
 
 static fdtype slotidp(fdtype arg)
 {
   if ((FD_OIDP(arg)) || (FD_SYMBOLP(arg))) return FD_TRUE;
   else return FD_FALSE;
+}
+
+static fdkb_flags getdbflags(fdtype opts)
+{
+  if (FD_FIXNUMP(opts)) {
+    long long val=FD_FIX2INT(opts);
+    if (opts<0) return -1;
+    else if (opts>0xFFFFFFFF) return -1;
+    else return val;}
+  else if (FD_TABLEP(opts)) {
+    fdtype flags_val=fd_getopt(opts,flags_symbol,FD_VOID);
+    fdkb_flags flags = (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
+    fdtype regopt = fd_getopt(opts,register_symbol,FD_VOID);
+    if (fd_testopt(opts,readonly_symbol,FD_VOID))
+      flags |= FDKB_READ_ONLY;
+    if ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)))
+      flags |= FDKB_UNREGISTERED;
+    fd_decref(flags_val);
+    fd_decref(regopt);
+    return flags;}
+  else if (FD_FALSEP(opts))
+    return FDKB_UNREGISTERED;
+  else return 0;
 }
 
 /* Finding frames, etc. */
@@ -251,7 +275,7 @@ static fdtype use_index(fdtype arg,fdtype opts)
       u8_byte *copy = u8_strdup(FD_STRDATA(arg));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
-        fd_index ix = fd_use_index(start,0,opts);
+        fd_index ix = fd_use_index(start,getdbflags(opts),opts);
         if (ix == NULL) {
           u8_free(copy);
           fd_decref(results);
@@ -265,21 +289,16 @@ static fdtype use_index(fdtype arg,fdtype opts)
         else start = NULL;}
       u8_free(copy);
       return results;}
-    else ix = fd_use_index(FD_STRDATA(arg),0,opts);
+    else ix = fd_use_index(FD_STRDATA(arg),getdbflags(opts),opts);
   else return fd_type_error(_("index spec"),"use_index",arg);
   if (ix) return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
 
-static fdtype register_opt;
-
 static fdtype open_index(fdtype arg,fdtype opts)
 {
-  fdtype regopt = fd_getopt(opts,register_opt,FD_VOID);
-  int unregistered=
-    ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)));
-  fdkb_flags flags = ((unregistered)?(FDKB_UNREGISTERED):(0));
-  fd_index ix = NULL; fd_decref(regopt);
+  fdkb_flags flags = getdbflags(opts);
+  fd_index ix = NULL;
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
@@ -309,15 +328,6 @@ static fdtype open_index(fdtype arg,fdtype opts)
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
   if (ix) return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
-}
-static fdkb_flags getdbflags(fdtype opts)
-{
-  fdkb_flags flags = 0;
-  if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
-    flags |= FDKB_READ_ONLY;
-  if (fd_testopt(opts,fd_intern("UNREGISTERED"),FD_VOID))
-    flags |= FDKB_UNREGISTERED;
-  return flags;
 }
 
 static fdtype make_pool(fdtype path,fdtype opts)
@@ -3292,7 +3302,9 @@ FD_EXPORT void fd_init_dbprims_c()
   pools_symbol = fd_intern("POOLS");
   indexes_symbol = fd_intern("INDEXES");
   drop_symbol = fd_intern("DROP");
-  register_opt = fd_intern("REGISTER");
+  flags_symbol = fd_intern("FLAGS");
+  register_symbol = fd_intern("REGISTER");
+  readonly_symbol = fd_intern("READONLY");
 
 }
 
