@@ -171,11 +171,11 @@ FD_EXPORT void fd_status_message()
     else if (heapbytes>1500000) {
       heapsize = floor(((double)heapbytes)/1000000); heapu="MB";}
     else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
-    u8_fprintf(stderr,
-               ";;; %s %s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
-               prefix,FRAMERD_REVISION,u8_appid(),getpid(),
-               elapsed,etu,usertime,utu,systime,stu,
-               heapsize,heapu);}
+    u8_log("FramerStatus",
+           "%s %s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
+           FRAMERD_REVISION,u8_appid(),getpid(),
+           elapsed,etu,usertime,utu,systime,stu,
+           heapsize,heapu);}
 }
 
 FD_EXPORT int fd_init_libfdtype()
