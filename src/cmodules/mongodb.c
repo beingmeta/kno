@@ -60,7 +60,7 @@ static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static fdtype returnsym, originalsym;
 static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
 static fdtype poolmaxsym, poolminsym;
-static fdtype mongomap_symbol, mongovec_symbol;
+static fdtype mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
 {
@@ -623,6 +623,7 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
       collection_done(collection,client,domain);}
     else result = FD_ERROR_VALUE;
     fd_decref(opts);
+    U8_CLEAR_ERRNO();
     return result;}
 }
 
@@ -789,12 +790,14 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     return results;}
   else {
     fd_decref(opts);
+    U8_CLEAR_ERRNO();
     return FD_ERROR_VALUE;}
 }
 #else
 static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   fdtype opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -862,6 +865,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     return results;}
   else {
     fd_decref(opts);
+    U8_CLEAR_ERRNO();
     return FD_ERROR_VALUE;}
 }
 #endif
@@ -914,6 +918,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 {
   fdtype result = FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   fdtype opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -948,7 +953,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     return result;}
   else {
     fd_decref(opts);
-    U8_CLEAR_ERRNO();
+     U8_CLEAR_ERRNO();
     return FD_ERROR_VALUE;}
 }
 #endif
@@ -1038,26 +1043,20 @@ static fdtype make_mongovec(fdtype vec);
 static fdtype make_command(int n,fdtype *values)
 {
   if ((n%2)==1)
-    return fd_err(fd_SyntaxError,"mongomap_command",
-                  "Odd number of arguments",FD_VOID);
+    return fd_err(fd_SyntaxError,"make_command","Odd number of arguments",FD_VOID);
   else {
-    int i = 0, fix_vectors = 0; while (i<n) { 
-      fdtype value = values[i++];
-      if (FD_VECTORP(value)) fix_vectors = 1;
-      fd_incref(value);}
-    if (fix_vectors) {
-      fdtype result = fd_init_compound_from_elts
-        (NULL,mongomap_symbol,0,n,values);
-      fdtype *elts = FD_COMPOUND_ELTS(result);
-      int j = 0, n_elts = FD_COMPOUND_LENGTH(result);
-      while (j<n_elts) {
-        fdtype elt = elts[j];
-        if (FD_VECTORP(elt)) {
-          elts[j++]=make_mongovec(elt);
-          fd_decref(elt);}
-        else j++;}
-      return result;}
-    else return fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);}
+    fdtype result = fd_make_slotmap(n/2,n/2,NULL);
+    struct FD_KEYVAL *keyvals = FD_SLOTMAP_KEYVALS(result);
+    int n_slots=n/2;
+    int i = 0; while (i<n_slots) {
+      fdtype key = values[i*2];
+      fdtype value = values[i*2+1];
+      keyvals[i].kv_key=fd_incref(key);
+      if (FD_VECTORP(value))
+        keyvals[i].kv_val=make_mongovec(value);
+      else keyvals[i].kv_val=fd_incref(value);
+      i++;}
+    return result;}
 }
 
 static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
@@ -1604,14 +1603,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
       rout.bson_doc = &doc; rout.bson_flags = b.bson_flags; 
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
-      if (tag == mongomap_symbol) {
-        fdtype *scan = elts, *limit = scan+len;
-        if ((len%2)==1) ok = 0;
-        else while (scan<limit) {
-          fdtype key = *scan++, value = *scan++;
-          ok = bson_append_keyval(rout,key,value);
-          if (!(ok)) break;}}
-      else if (tag == mongovec_symbol) {
+      if (tag == mongovec_symbol) {
         fdtype *scan = elts, *limit = scan+len; int i = 0;
         while (scan<limit) {
           u8_byte buf[16]; sprintf(buf,"%d",i);
@@ -1619,7 +1611,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
           scan++; i++;
           if (!(ok)) break;}}
       else {
-        int i = 0; 
+        int i = 0;
         ok = bson_append_dtype(rout,"%fdtag",6,tag);
         if (ok) while (i<len) {
             char buf[16]; sprintf(buf,"%d",i);
@@ -1775,18 +1767,7 @@ FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
     struct FD_COMPOUND *compound = FD_XCOMPOUND(obj);
     fdtype tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(obj);
     int len = FD_COMPOUND_LENGTH(obj);
-    if (tag == mongomap_symbol) {
-      fdtype *scan = elts, *limit = scan+len;
-      if ((len%2)==1) {
-        fd_seterr(fd_SyntaxError,"fd_bson_output",
-                  u8_strdup("malformed mongomap"),
-                  fd_incref(obj));
-        ok = 0;}
-      else while (scan<limit) {
-          fdtype key = *scan++, value = *scan++;
-          ok = bson_append_keyval(out,key,value);
-          if (!(ok)) break;}}
-    else if (tag == mongovec_symbol) {
+    if (tag == mongovec_symbol) {
       fdtype *scan = elts, *limit = scan+len; int i = 0;
       while (scan<limit) {
         u8_byte buf[16]; sprintf(buf,"%d",i);
@@ -2092,65 +2073,6 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
   else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
 }
 
-/* MONGOMAPS */
-
-/* MONGOMAPs are used to describe documents whose fields are in a fixed
-   order, which is used by parts of MONGODB.  They're represented as
-   compounds with the tag %MONGOMAP. */
-
-static fdtype mongomap_lexpr(int n,fdtype *values)
-{
-  if ((n%2)==1)
-    return fd_err(fd_SyntaxError,"mongomap_lexpr",
-                  "Odd number of arguments",FD_VOID);
-  else {
-    int i = 0, skip = 0; while (i<n) {
-      fdtype field = values[i++];
-      fdtype value = values[i++];
-      if ((FD_EMPTY_CHOICEP(field))||(FD_EMPTY_CHOICEP(value))) skip++;
-      else {fd_incref(field); fd_incref(value);}}
-    if (skip) {
-      fdtype *reduced = u8_alloc_n(n-(skip*2),fdtype), result;
-      int j = 0; i = 0; while (i<n) {
-        fdtype field = values[i++];
-        fdtype value = values[i++];
-        if (!((FD_EMPTY_CHOICEP(field))||(FD_EMPTY_CHOICEP(value)))) {
-          reduced[j++]=field; reduced[j++]=value;}}
-      result = fd_init_compound_from_elts(NULL,mongomap_symbol,0,j,reduced);
-      u8_free(reduced);
-      return result;}
-    else return fd_init_compound_from_elts
-           (NULL,mongomap_symbol,0,n,values);}
-}
-
-static fdtype make_mongomap(fdtype table,fdtype ordered)
-{
-  if (!(FD_TABLEP(table)))
-    return fd_type_error("table","make_mongomap",table);
-  else {
-    fdtype result = FD_VOID;
-    int n_slots = FD_VECTOR_LENGTH(ordered), i = 0;
-    fdtype *values = u8_alloc_n(n_slots*2,fdtype), *write = values;
-    while (i<n_slots) {
-      fdtype key = FD_VECTOR_REF(ordered,i);
-      fdtype value = fd_get(table,key,FD_EMPTY_CHOICE);
-      *write++=key;
-      fd_incref(key);
-      *write++=value;
-      i++;}
-    result = fd_init_compound_from_elts
-      (NULL,mongomap_symbol,0,n_slots*2,values);
-    u8_free(values);
-    return result;}
-}
-
-static fdtype mongomapp(fdtype arg)
-{
-  if (FD_COMPOUND_TYPEP(arg,mongomap_symbol))
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
 static fdtype mongovec_lexpr(int n,fdtype *values)
 {
   int i = 0; while (i<n) { 
@@ -2169,7 +2091,7 @@ static fdtype make_mongovec(fdtype vec)
 
 static fdtype mongovecp(fdtype arg)
 {
-  if (FD_COMPOUND_TYPEP(arg,mongomap_symbol))
+  if (FD_COMPOUND_TYPEP(arg,mongovec_symbol))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -2528,7 +2450,6 @@ FD_EXPORT int fd_init_mongodb()
   cadirsym = fd_intern("CADIR");
   crlsym = fd_intern("CRLFILE");
   
-  mongomap_symbol = fd_intern("%MONGOMAP");
   mongovec_symbol = fd_intern("%MONGOVEC");
 
   bsonflags = fd_intern("BSON");
@@ -2623,10 +2544,6 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprimn("MONGOMAP",mongomap_lexpr,0)));
-  fd_idefn(module,fd_make_cprim2x("->MONGOMAP",make_mongomap,2,
-                                  -1,FD_VOID,fd_vector_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim1("MONGOMAP?",mongomapp,1));
 
   fd_idefn(module,fd_make_ndprim(fd_make_cprimn("MONGOVEC",mongovec_lexpr,0)));
   fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
