@@ -14,7 +14,6 @@
 #include "framerd/preoids.h"
 
 /* For sprintf */
-#include <stdio.h>
 #include <ctype.h>
 
 fd_exception fd_NotAnOID=_("Not an OID");
@@ -87,7 +86,11 @@ static u8_string _simple_oid_info(fdtype oid)
   if (FD_OIDP(oid)) {
     FD_OID addr = FD_OID_ADDR(oid);
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
-    sprintf(oid_info_buf,"@%x/%x",hi,lo);
+    unsigned char tmpbuf[32];
+    strcpy(oid_info_buf,"@");
+    strcat(oid_info_buf,u8_uitoa16(hi,tmpbuf));
+    strcat(oid_info_buf,"/");
+    strcat(oid_info_buf,u8_uitoa16(lo,tmpbuf));
     return oid_info_buf;}
   else return "not an oid!";
 }

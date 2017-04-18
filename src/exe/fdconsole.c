@@ -411,7 +411,7 @@ static void exit_fdconsole()
     if (run_start<0)
       u8_message("<%ld> Exiting FramerD (%s) console before we even started!",
                  (long)getpid(),FRAMERD_REVISION);
-    else fd_status_message();}
+    else fd_log_status();}
   close_consoles();
 #if USING_EDITLINE
   if (edithistory) history_end(edithistory);

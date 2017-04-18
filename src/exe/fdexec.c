@@ -51,7 +51,7 @@ static u8_condition FileWait=_("FILEWAIT");
 
 static void exit_fdexec()
 {
-  if (!(quiet_console)) fd_status_message();
+  if (!(quiet_console)) fd_log_status();
 }
 
 typedef char *charp;

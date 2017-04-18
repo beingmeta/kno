@@ -12,7 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include <libu8/u8rusage.h>
-#include <libu8/u8stdio.h>
+#include <libu8/u8logging.h>
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
@@ -145,13 +145,13 @@ static double format_secs(double secs,char **units)
   if (secs>3600*24) {*units="d"; return secs/3600;}
   return secs;
 }
-FD_EXPORT void fd_status_message()
+FD_EXPORT void fd_log_status()
 {
   struct rusage usage;
   int retval = u8_getrusage(0,&usage);
   if (retval<0) {
     u8_log(LOGCRIT,_("RUSAGE Failed"),
-           "During a call to fd_status_message");
+           "During a call to fd_log_status");
     return;}
   else {
     /* long membytes = (usage.ru_idrss+usage.ru_isrss); double memsize; */
@@ -171,8 +171,8 @@ FD_EXPORT void fd_status_message()
     else if (heapbytes>1500000) {
       heapsize = floor(((double)heapbytes)/1000000); heapu="MB";}
     else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
-    u8_log("FramerStatus",
-           "%s %s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
+    u8_log(-LOG_INFO,"Status",
+           "%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
            FRAMERD_REVISION,u8_appid(),getpid(),
            elapsed,etu,usertime,utu,systime,stu,
            heapsize,heapu);}

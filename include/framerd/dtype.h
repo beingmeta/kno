@@ -45,7 +45,7 @@ int fd_getmajorversion(void);
 
 FD_EXPORT int fd_init_libfdtype(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_boot_message(void);
-FD_EXPORT void fd_status_message(void);
+FD_EXPORT void fd_log_status(void);
 FD_EXPORT int fd_be_vewy_quiet;
 
 FD_EXPORT fdtype fd_parse_expr(struct U8_INPUT *);

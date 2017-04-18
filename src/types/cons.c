@@ -18,9 +18,6 @@
 
 #include <stdarg.h>
 
-/* For sprintf */
-#include <stdio.h>
-
 fd_exception fd_MallocFailed=_("malloc/realloc failed");
 fd_exception fd_StringOverflow=_("allocating humongous string past limit");
 fd_exception fd_StackOverflow=_("Scheme stack overflow");

@@ -1987,7 +1987,7 @@ int main(int argc,char **argv)
     u8_free(sockets_dir);}
 
   register_servlet_configs();
-  atexit(fd_status_message);
+  atexit(fd_log_status);
 
   /* Process the command line */
   fd_handle_argv(argc,argv,arg_mask,NULL);

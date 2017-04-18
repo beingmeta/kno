@@ -1016,7 +1016,7 @@ int main(int argc,char **argv)
     fprintf(stderr,"Can't initialize FramerD libraries\n");
     return -1;}
 
-  atexit(fd_status_message);
+  atexit(fd_log_status);
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
