@@ -2023,7 +2023,17 @@ static fdtype ffi_found_prim(fdtype name,fdtype modname)
   else return FD_FALSE;
 }
 #else
-static fdtype dl_found_prim(fdtype name,fdtype modname)
+static fdtype ffi_proc(int n,fdtype *args)
+{
+  u8_seterr("NotImplemented","ffi_proc",
+            u8_strdup("No FFI support is available in this build of FramerD"));
+  return FD_ERROR_VALUE;
+}
+static fdtype ffi_probe(int n,fdtype *args)
+{
+  return FD_FALSE;
+}
+static fdtype ffi_found_prim(fdtype name,fdtype modname)
 {
   return FD_FALSE;
 }
