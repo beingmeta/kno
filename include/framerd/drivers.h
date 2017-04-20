@@ -27,13 +27,15 @@ typedef enum FD_COMPRESS_TYPE {
 
 FD_EXPORT fd_compress_type fd_compression_type(fdtype,fd_compress_type);
 
-FD_EXPORT fd_exception fd_FileIndexError;
-FD_EXPORT fd_exception fd_FileSizeOverflow;
-FD_EXPORT fd_exception fd_CorruptedPool;
 FD_EXPORT fd_exception fd_InvalidOffsetType;
 FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;
 FD_EXPORT fd_exception fd_MMAPError, fd_MUNMAPError;
 FD_EXPORT fd_exception fd_RecoveryRequired;
+
+FD_EXPORT fd_exception fd_PoolDriverError, fd_IndexDriverError;
+FD_EXPORT fd_exception fd_CantOpenPool, fd_CantOpenIndex;
+FD_EXPORT fd_exception fd_FilePoolSizeOverflow, fd_FileIndexSizeOverflow;
+FD_EXPORT fd_exception fd_CorruptedPool, fd_CorruptedIndex;
 
 FD_EXPORT u8_string fd_match4bytes(u8_string file,void *data);
 FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);

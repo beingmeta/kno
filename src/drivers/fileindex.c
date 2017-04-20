@@ -52,9 +52,6 @@ static int recover_file_index(struct FD_FILE_INDEX *fx);
 
 #define SLOTSIZE (sizeof(unsigned int))
 
-fd_exception fd_FileIndexOverflow=_("file index hash overflow");
-fd_exception fd_FileIndexError=_("Internal error with index file");
-
 static fdtype set_symbol, drop_symbol, slotids_symbol;
 static struct FD_INDEX_HANDLER file_index_handler;
 
@@ -228,7 +225,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       n_vals = fd_read_4bytes(fd_start_read(stream,keypos+pos_offset));
       val_start = fd_read_4bytes(instream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
-        u8_log(LOG_CRIT,fd_FileIndexError,
+        u8_log(LOG_CRIT,fd_IndexDriverError,
                "file_index_fetch %s",u8_strdup(ix->indexid));
       thiskey = fd_read_dtype(instream);
       if (FDTYPE_EQUAL(key,thiskey)) {
@@ -260,7 +257,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       else if (n_probes>256) {
         u8_unlock_mutex(&fx->index_lock);
         fd_decref(thiskey);
-        return fd_err(fd_FileIndexOverflow,"file_index_fetch",
+        return fd_err(fd_FileIndexSizeOverflow,"file_index_fetch",
                       u8_strdup(fx->index_source),thiskey);}
       else {
         n_probes++;
@@ -298,7 +295,7 @@ static int file_index_fetchsize(fd_index ix,fdtype key)
         return n_vals;}
       else if (n_probes>256) {
         u8_unlock_mutex(&fx->index_lock);
-        return fd_err(fd_FileIndexOverflow,
+        return fd_err(fd_FileIndexSizeOverflow,
                       "file_index_fetchsize",
                       u8_strdup(fx->index_source),FD_VOID);}
       else {n_probes++; probe = (probe+chain_width)%(fx->index_n_slots);}}
@@ -680,7 +677,7 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
   insertpos = slotnos+insertoff;
   if (!(((insertpos<=slotnos) || (slotno>insertpos[-1])) &&
         ((insertpos>=(slotnos+r->n_reservations)) || (slotno<insertpos[0]))))
-    u8_log(LOG_CRIT,fd_FileIndexError,
+    u8_log(LOG_CRIT,fd_IndexDriverError,
            "Corrupt reservations table when saving index");
   if (insertoff<r->n_reservations)
     memmove(insertpos+1,insertpos,(SLOTSIZE*(r->n_reservations-insertoff)));
@@ -801,7 +798,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,
     if (max == i)
       if (chain_length>256) {
         if (offsets == NULL) u8_free(reserved.slotnos);
-        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",
+        return fd_reterr(fd_FileIndexSizeOverflow,"fetch_keydata",
                          u8_strdup(fx->indexid),FD_VOID);}
       else chain_length++;
     else chain_length = 0;

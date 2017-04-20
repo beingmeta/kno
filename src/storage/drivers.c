@@ -30,8 +30,16 @@ fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
 fd_exception fd_CorruptedPool=_("Corrupted file pool");
 fd_exception fd_InvalidOffsetType=_("Invalid offset type");
-fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
 fd_exception fd_RecoveryRequired=_("RECOVERY");
+
+fd_exception fd_CantOpenPool=_("Can't open pool");
+fd_exception fd_CantOpenIndex=_("Can't open index");
+
+fd_exception fd_IndexDriverError=_("Internal error with index file");
+fd_exception fd_PoolDriverError=_("Internal error with index file");
+
+fd_exception fd_FilePoolSizeOverflow=_("file pool overflowed file size");
+fd_exception fd_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int fd_acid_files = 1;
 size_t fd_driver_bufsize = FDKB_DRIVER_BUFSIZE;
@@ -140,6 +148,7 @@ fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts)
       else ptype = ptype->next_type;
       CHECK_ERRNO();}
     else ptype = ptype->next_type;}
+  fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
   return NULL;
 }
 
@@ -249,6 +258,7 @@ fd_index fd_open_index(u8_string spec,fdkb_flags flags,fdtype opts)
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
+  fd_xseterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
   return NULL;
 }
 
@@ -264,8 +274,7 @@ fd_index_handler fd_get_index_handler(u8_string name)
 }
 
 FD_EXPORT
-fd_index fd_make_index(
-                       u8_string spec,
+fd_index fd_make_index(u8_string spec,
                        u8_string indextype,
                        fdkb_flags flags,
                        fdtype opts)

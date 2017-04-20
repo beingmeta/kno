@@ -1477,7 +1477,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 
 /* Populating a hash index
    This writes data into the hashtable but ignores what is already there.
-   It is commonly used when initializing a hash ksched_i. */
+   It is commonly used when initializing a hash index. */
 
 static int sort_ps_by_bucket(const void *p1,const void *p2)
 {
@@ -2639,7 +2639,7 @@ static void hashindex_close(fd_index ix)
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
-  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash ksched_i %s",ix->indexid);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
   fd_lock_index(hx);
   if (hx->index_offdata) {
 #if HAVE_MMAP
@@ -2655,7 +2655,7 @@ static void hashindex_close(fd_index ix)
     hx->index_offdata = NULL;
     hx->index_cache_level = -1;}
   fd_close_stream(&(hx->index_stream),0);
-  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash ksched_i %s",ix->indexid);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->indexid);
   fd_unlock_index(hx);
 }
 
@@ -2873,10 +2873,10 @@ static u8_string match_index_name(u8_string spec,void *data)
   if ((u8_file_existsp(spec))&&
       (fd_match4bytes(spec,data)))
     return spec;
-  else if (u8_has_suffix(spec,".ksched_i",1))
+  else if (u8_has_suffix(spec,".index",1))
     return NULL;
   else {
-    u8_string variation = u8_mkstring("%s.ksched_i",spec);
+    u8_string variation = u8_mkstring("%s.index",spec);
     if ((u8_file_existsp(variation))&&
         (fd_match4bytes(variation,data)))
       return variation;
