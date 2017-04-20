@@ -161,13 +161,13 @@ static size_t get_maxpos(fd_bigpool p)
 
 /* Making and opening bigpools */
 
-static fd_pool open_bigpool(u8_string fname,fdkb_flags open_flags,fdtype opts)
+static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,fdtype opts)
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids, flags = 0;
   fd_off_t label_loc, slotids_loc; fdtype label;
   struct FD_BIGPOOL *pool = u8_zalloc(struct FD_BIGPOOL);
-  int read_only = U8_BITP(open_flags,FDKB_READ_ONLY) ||
+  int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
@@ -193,7 +193,7 @@ static fd_pool open_bigpool(u8_string fname,fdkb_flags open_flags,fdtype opts)
   pool->pool_load = load = fd_read_4bytes(instream);
   flags = fd_read_4bytes(instream);
   pool->pool_xformat = flags;
-  if (U8_BITP(flags,FDKB_READ_ONLY)) {
+  if (U8_BITP(flags,FD_STORAGE_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
     fd_close_stream(stream,0);
@@ -272,9 +272,9 @@ static fd_pool open_bigpool(u8_string fname,fdkb_flags open_flags,fdtype opts)
      offsets.  We don't fill this in until we actually need it. */
   pool->pool_offdata = NULL; pool->pool_offdata_length = 0;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FDKB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDKB_READ_ONLY);
-  if (!(U8_BITP(pool->pool_flags,FDKB_UNREGISTERED)))
+    U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
+  if (!(U8_BITP(pool->pool_flags,FD_STORAGE_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
@@ -407,7 +407,7 @@ static int write_bigpool_slotids(fd_bigpool bp)
 static int lock_bigpool_file(struct FD_BIGPOOL *bp,int use_mutex)
 {
   if (FD_POOLFILE_LOCKEDP(bp)) return 1;
-  else if ((bp->pool_flags)&(FDKB_READ_ONLY))
+  else if ((bp->pool_flags)&(FD_STORAGE_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(bp->pool_stream);
@@ -909,7 +909,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(bp,"bigpool_storen"))<0) return -1;
   double started = u8_elapsed_time();
-  u8_log(fdkb_loglevel+1,"BigpoolStore",
+  u8_log(fd_storage_loglevel+1,"BigpoolStore",
          "Storing %d oid values in bigpool %s",n,p->poolid);
   struct BIGPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct BIGPOOL_SAVEINFO);
@@ -961,7 +961,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  u8_log(fdkb_loglevel,"BigpoolStore",
+  u8_log(fd_storage_loglevel,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(bp);
@@ -977,7 +977,7 @@ static int write_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
   int chunk_ref_size = get_chunk_ref_size(bp);
   double started = u8_elapsed_time();
   int i = 0, retval = -1;
-  u8_log(fdkb_loglevel+1,"bigpool:write_offdata",
+  u8_log(fd_storage_loglevel+1,"bigpool:write_offdata",
          "Finalizing %d oid values for %s",n,bp->poolid);
   fd_offset_type offtype = bp->pool_offtype;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
@@ -1113,7 +1113,7 @@ static int write_offdata(struct FD_BIGPOOL *bp, fd_stream stream,
       u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
       u8_free(saveinfo);
       exit(-1);}
-  u8_log(fdkb_loglevel+1,"bigpool:write_offdata",
+  u8_log(fd_storage_loglevel+1,"bigpool:write_offdata",
          "Finalized %d oid values for %s in %f seconds",
          n,bp->poolid,u8_elapsed_time()-started);
   return 0;
@@ -1313,7 +1313,7 @@ static void reload_offdata(fd_bigpool bp,int lock)
   update_modtime(bp);
   UNLOCK_POOLSTREAM(bp)
   if (lock) fd_unlock_pool((fd_pool)bp);
-  u8_log(fdkb_loglevel+1,"ReloadOffsets",
+  u8_log(fd_storage_loglevel+1,"ReloadOffsets",
          "Offsets for %s reloaded in %f secs",
          bp->poolid,u8_elapsed_time()-start);
 }
@@ -1412,7 +1412,7 @@ static int interpret_pool_flags(fdtype opts)
 }
 
 static fd_pool bigpool_create(u8_string spec,void *type_data,
-                              fdkb_flags flags,fdtype opts)
+                              fd_storage_flags flags,fdtype opts)
 {
   fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

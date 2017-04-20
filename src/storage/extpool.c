@@ -55,7 +55,7 @@ fd_pool fd_make_extpool(u8_string label,
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
     memset(xp,0,sizeof(struct FD_EXTPOOL));
     fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
-    if (FD_VOIDP(savefn)) xp->pool_flags |= FDKB_READ_ONLY;
+    if (FD_VOIDP(savefn)) xp->pool_flags |= FD_STORAGE_READ_ONLY;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);

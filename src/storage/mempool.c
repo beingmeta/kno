@@ -32,7 +32,7 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
   mp->pool_label = u8_strdup(label);
   mp->pool_load = load; mp->noswap = noswap;
   u8_init_mutex(&(mp->pool_lock));
-  mp->pool_flags = FDKB_ISPOOL;
+  mp->pool_flags = FD_STORAGE_ISPOOL;
   if (fd_register_pool((fd_pool)mp)<0) {
     u8_destroy_mutex(&(mp->pool_lock));
     u8_free(mp->pool_source); u8_free(mp->poolid);

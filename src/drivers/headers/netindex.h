@@ -14,6 +14,6 @@ typedef struct FD_NETWORK_INDEX {
   struct U8_CONNPOOL *index_connpool;} FD_NETWORK_INDEX;
 typedef struct FD_NETWORK_INDEX *fd_network_index;
 
-FD_EXPORT fd_index fd_open_network_index(u8_string spec,fdkb_flags flags,
+FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,
 					 fdtype opts);
 

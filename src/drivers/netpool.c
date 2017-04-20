@@ -50,7 +50,7 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
 
 static void init_network_pool
   (struct FD_NETWORK_POOL *p,fdtype netinfo,
-   u8_string spec,u8_string cid,fdkb_flags flags)
+   u8_string spec,u8_string cid,fd_storage_flags flags)
 {
   fdtype scan = netinfo;
   FD_OID addr; unsigned int capacity; u8_string label;
@@ -59,7 +59,7 @@ static void init_network_pool
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,cid);
   /* Network pool specific stuff */
   if (FD_FALSEP(FD_CAR(scan)))
-    p->pool_flags |= FDKB_READ_ONLY;
+    p->pool_flags |= FD_STORAGE_READ_ONLY;
   scan = FD_CDR(scan);
   if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan))))
     label = FD_STRDATA(FD_CAR(scan));
@@ -94,7 +94,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   return result;
 }
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fdkb_flags flags,fdtype opts)
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
   struct FD_NETWORK_POOL *np = u8_alloc(struct FD_NETWORK_POOL);
   u8_string xid = NULL;

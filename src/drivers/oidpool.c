@@ -179,13 +179,13 @@ static size_t get_maxpos(fd_oidpool p)
 
 static int init_schemas(fd_oidpool,fdtype);
 
-static fd_pool open_oidpool(u8_string fname,fdkb_flags flags,fdtype opts)
+static fd_pool open_oidpool(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool = u8_alloc(struct FD_OIDPOOL);
-  int read_only = U8_BITP(flags,FDKB_READ_ONLY) ||
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
@@ -210,7 +210,7 @@ static fd_pool open_oidpool(u8_string fname,fdkb_flags flags,fdtype opts)
   pool->pool_load = load = fd_read_4bytes(instream);
   flags = fd_read_4bytes(instream);
   pool->pool_xformat = flags;
-  if (U8_BITP(flags,FDKB_READ_ONLY)) {
+  if (U8_BITP(flags,FD_STORAGE_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
     fd_close_stream(stream,0);
@@ -260,9 +260,9 @@ static fd_pool open_oidpool(u8_string fname,fdkb_flags flags,fdtype opts)
      We don't fill this in until we actually need it. */
   pool->pool_offdata = NULL; pool->pool_offdata_length = 0;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FDKB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDKB_READ_ONLY);
-  if (!(U8_BITP(pool->pool_flags,FDKB_UNREGISTERED)))
+    U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
+  if (!(U8_BITP(pool->pool_flags,FD_STORAGE_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
@@ -457,7 +457,7 @@ static int read_oidpool_load(fd_oidpool op)
 static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
 {
   if (POOLFILE_LOCKEDP(op)) return 1;
-  else if ((op->pool_flags)&(FDKB_READ_ONLY))
+  else if ((op->pool_flags)&(FD_STORAGE_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(op->pool_stream);
@@ -894,7 +894,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(op,"oidpool_storen"))<0) return -1;
   double started = u8_elapsed_time();
-  u8_log(fdkb_loglevel+1,"OidpoolStore",
+  u8_log(fd_storage_loglevel+1,"OidpoolStore",
          "Storing %d oid values in oidpool %s",n,p->poolid);
   struct OIDPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct OIDPOOL_SAVEINFO);
@@ -944,7 +944,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  u8_log(fdkb_loglevel,"OidpoolStore",
+  u8_log(fd_storage_loglevel,"OidpoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(op);
@@ -958,7 +958,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
 {
   fd_outbuf outstream = fd_writebuf(stream);
   double started = u8_elapsed_time(), taken;
-  u8_log(fdkb_loglevel+1,"OIDPoolFinalize",
+  u8_log(fd_storage_loglevel+1,"OIDPoolFinalize",
          "Finalizing %d oid values from %s",n,op->poolid);
 
   if (op->pool_offdata) {
@@ -1069,10 +1069,10 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
 
   taken = u8_elapsed_time()-started;
   if (taken>1)
-    u8_log(fdkb_loglevel,"OIDPoolFinalize",
+    u8_log(fd_storage_loglevel,"OIDPoolFinalize",
            "Finalized %d oid values from %s in %f secs",
            n,op->poolid,taken);
-  else u8_log(fdkb_loglevel+1,"OIDPoolFinalize",
+  else u8_log(fd_storage_loglevel+1,"OIDPoolFinalize",
               "Finalized %d oid values from %s in %f secs",
               n,op->poolid,taken);
   return 0;
@@ -1113,7 +1113,7 @@ static int write_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
   int chunk_ref_size = get_chunk_ref_size(bp);
   double started = u8_elapsed_time();
   int i = 0, retval = -1;
-  u8_log(fdkb_loglevel+1,"OidpoolFinalize",
+  u8_log(fd_storage_loglevel+1,"OidpoolFinalize",
          "Finalizing %d oid values for %s",n,bp->poolid);
   fd_offset_type offtype = bp->pool_offtype;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
@@ -1251,7 +1251,7 @@ static int write_offdata(struct FD_OIDPOOL *bp, fd_stream stream,
       u8_free(saveinfo);
       exit(-1);}
   write_oidpool_load(bp);
-  u8_log(fdkb_loglevel+1,"OidpoolFinalize",
+  u8_log(fd_storage_loglevel+1,"OidpoolFinalize",
          "Finalized %d oid values for %s in %f seconds",
          n,bp->poolid,u8_elapsed_time()-started);
   return 0;
@@ -1432,7 +1432,7 @@ static void reload_offdata(fd_oidpool op,int lock)
   update_modtime(op);
   UNLOCK_POOLSTREAM(op)
   if (lock) fd_unlock_pool((fd_pool)op);
-  u8_log(fdkb_loglevel+1,"ReloadOffsets",
+  u8_log(fd_storage_loglevel+1,"ReloadOffsets",
          "Offsets for %s reloaded in %f secs",
          op->poolid,u8_elapsed_time()-start);
 }
@@ -1504,7 +1504,7 @@ static int interpret_pool_flags(fdtype opts)
 }
 
 static fd_pool oidpool_create(u8_string spec,void *type_data,
-                              fdkb_flags flags,fdtype opts)
+                              fd_storage_flags flags,fdtype opts)
 {
   fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

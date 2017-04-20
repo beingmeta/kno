@@ -1972,7 +1972,7 @@ int main(int argc,char **argv)
   set_exename(argv);
 
   /* Set this here, before processing any configs */
-  fdkb_loglevel = LOG_INFO;
+  fd_storage_loglevel = LOG_INFO;
 
   u8_init_mutex(&server_port_lock);
 

@@ -57,12 +57,12 @@ static struct FD_INDEX_HANDLER file_index_handler;
 
 static fdtype file_index_fetch(fd_index ix,fdtype key);
 
-static fd_index open_file_index(u8_string fname,fdkb_flags flags,fdtype opts)
+static fd_index open_file_index(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   struct FD_FILE_INDEX *index = u8_alloc(struct FD_FILE_INDEX);
   struct FD_STREAM *s = &(index->index_stream);
-  int read_only = U8_BITP(flags,FDKB_READ_ONLY);
-  int consed = U8_BITP(flags,FDKB_ISCONSED);
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+  int consed = U8_BITP(flags,FD_STORAGE_ISCONSED);
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
@@ -98,7 +98,7 @@ static fd_index open_file_index(u8_string fname,fdkb_flags flags,fdtype opts)
     return NULL;}
   index->index_offsets = NULL;
   if (read_only)
-    U8_SETBITS(index->index_flags,FDKB_READ_ONLY);
+    U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);
   u8_init_mutex(&(index->index_lock));
   index->slotids = FD_VOID;
   {
@@ -1106,7 +1106,7 @@ static int file_index_commit(struct FD_INDEX *ix)
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
 
-    u8_log(fdkb_loglevel,"FileIndexCommit",
+    u8_log(fd_storage_loglevel,"FileIndexCommit",
            "Saved mappings for %d keys to %s in %f secs",
            n_changes,ix->indexid,u8_elapsed_time()-started);
 
@@ -1279,7 +1279,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
 }
 
 static fd_index file_index_create(u8_string spec,void *type_data,
-                                  fdkb_flags flags,fdtype opts)
+                                  fd_storage_flags flags,fdtype opts)
 {
   fdtype n_slots = fd_getopt(opts,fd_intern("SLOTS"),FD_INT(32000));
   if (!(FD_UINTP(n_slots))) {

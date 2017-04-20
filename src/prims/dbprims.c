@@ -38,7 +38,7 @@ static fdtype slotidp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdkb_flags getdbflags(fdtype opts)
+static fd_storage_flags getdbflags(fdtype opts)
 {
   if (FD_FIXNUMP(opts)) {
     long long val=FD_FIX2INT(opts);
@@ -47,17 +47,17 @@ static fdkb_flags getdbflags(fdtype opts)
     else return val;}
   else if (FD_TABLEP(opts)) {
     fdtype flags_val=fd_getopt(opts,flags_symbol,FD_VOID);
-    fdkb_flags flags = (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
+    fd_storage_flags flags = (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
     fdtype regopt = fd_getopt(opts,register_symbol,FD_VOID);
     if (fd_testopt(opts,readonly_symbol,FD_VOID))
-      flags |= FDKB_READ_ONLY;
+      flags |= FD_STORAGE_READ_ONLY;
     if ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)))
-      flags |= FDKB_UNREGISTERED;
+      flags |= FD_STORAGE_UNREGISTERED;
     fd_decref(flags_val);
     fd_decref(regopt);
     return flags;}
   else if (FD_FALSEP(opts))
-    return FDKB_UNREGISTERED;
+    return FD_STORAGE_UNREGISTERED;
   else return 0;
 }
 
@@ -297,7 +297,7 @@ static fdtype use_index(fdtype arg,fdtype opts)
 
 static fdtype open_index(fdtype arg,fdtype opts)
 {
-  fdkb_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts);
   fd_index ix = NULL;
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
@@ -334,7 +334,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
 {
   fd_pool p = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fdkb_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
   else if (FD_SYMBOLP(type))
@@ -351,9 +351,9 @@ static fdtype make_pool(fdtype path,fdtype opts)
 
 static fdtype open_pool(fdtype path,fdtype opts)
 {
-  fdkb_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts);
   fd_pool p = fd_open_pool(FD_STRDATA(path),
-                         flags|FDKB_UNREGISTERED,
+                         flags|FD_STORAGE_UNREGISTERED,
                          opts);
   return (fdtype)p;
 }
@@ -362,7 +362,7 @@ static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fdkb_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts);
   if (FD_VOIDP(type))
     return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
   else if (FD_SYMBOLP(type))

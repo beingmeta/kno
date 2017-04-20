@@ -199,9 +199,9 @@ static int mem_index_commit(fd_index ix)
   n_updates = adds->table_n_keys+edits->table_n_keys;
 
   if (n_updates>60000)
-    u8_log(fdkb_loglevel,"MemIndex/Commit",
+    u8_log(fd_storage_loglevel,"MemIndex/Commit",
 	   "Saving %d updates to %s",n_updates,ix->indexid);
-  else u8_log(fdkb_loglevel+1,"MemIndex/Commit",
+  else u8_log(fd_storage_loglevel+1,"MemIndex/Commit",
 	      "Saving %d updates to %s",n_updates,ix->indexid);
 
   fd_for_hashtable_kv(adds,merge_adds,(void *)cache,0);
@@ -215,7 +215,7 @@ static int mem_index_commit(fd_index ix)
   u8_rw_unlock(&(edits->table_rwlock));
 
 
-  u8_log(fdkb_loglevel+1,"MemIndex/Commit",
+  u8_log(fd_storage_loglevel+1,"MemIndex/Commit",
 	 "Updated in-memory cache with %d updates to %s, writing to disk",
 	 n_updates,ix->indexid);
 
@@ -254,7 +254,7 @@ static int mem_index_commit(fd_index ix)
 
   fd_unlock_stream(stream);
 
-  u8_log(fdkb_loglevel,"MemIndex/Finished",
+  u8_log(fd_storage_loglevel,"MemIndex/Finished",
 	 "Finished writing %lld/%lld changes to disk for %s, endpos=%lld",
 	 n_updates,n_entries,ix->indexid,end);
 
@@ -280,7 +280,7 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   long long i = 0, n_entries = fd_read_8bytes(in);
   fd_hashtable cache = &(memidx->index_cache);
   double started = u8_elapsed_time();
-  u8_log(fdkb_loglevel+1,"MemIndexLoad",
+  u8_log(fd_storage_loglevel+1,"MemIndexLoad",
 	 "Loading %lld entries for '%s'",n_entries,memidx->indexid);
   memidx->mix_valid_data = fd_read_8bytes(in);
   ftruncate(stream->stream_fileno,memidx->mix_valid_data);
@@ -307,7 +307,7 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   if (lock_cache) u8_rw_unlock(&(cache->table_rwlock));
   memidx->mix_loaded = 1;
   fd_unlock_stream(stream);
-  u8_log(fdkb_loglevel,"MemIndexLoad",
+  u8_log(fd_storage_loglevel,"MemIndexLoad",
 	 "Loaded %lld entries for '%s' in %fs",
 	 n_entries,memidx->indexid,u8_elapsed_time()-started);
   return 1;
@@ -315,7 +315,7 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
 
 static fdtype preload_opt;
 
-static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
+static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts)
 {
   struct FD_MEM_INDEX *memidx = u8_zalloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,
@@ -348,7 +348,7 @@ static fd_index open_mem_index(u8_string file,fdkb_flags flags,fdtype opts)
     fd_resize_hashtable(&(memidx->index_edits),memindex_edits_init);
     if (!(FD_FALSEP(preload)))
       load_mem_index(memidx,0);
-    if (!(U8_BITP(flags,FDKB_ISCONSED)))
+    if (!(U8_BITP(flags,FD_STORAGE_ISCONSED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
 }
@@ -391,7 +391,7 @@ FD_EXPORT int fd_make_mem_index(u8_string spec)
 }
 
 static fd_index mem_index_create(u8_string spec,void *type_data,
-				 fdkb_flags flags,fdtype opts)
+				 fd_storage_flags flags,fdtype opts)
 {
   if (fd_make_mem_index(spec)>=0)
     return fd_open_index(spec,flags,FD_VOID);

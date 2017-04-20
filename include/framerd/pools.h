@@ -133,14 +133,14 @@ FD_EXPORT u8_condition fd_PoolCommit;
 FD_EXPORT int fd_pool_cache_init;
 FD_EXPORT int fd_pool_lock_init;
 
-#define FD_OIDHOLES_OKAY  (FDKB_POOL_FLAG(1))
+#define FD_OIDHOLES_OKAY  (FD_STORAGE_POOL_FLAG(1))
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
-typedef enum fdkb_unlock_flags {
+typedef enum fd_storage_unlock_flags {
   commit_modified = 1,
   leave_modified = 0,
-  discard_modified = -1 } fdkb_unlock_flag;
+  discard_modified = -1 } fd_storage_unlock_flag;
 
 typedef struct FD_ADJUNCT {
   struct FD_POOL *pool; fdtype slotid; fdtype table;} FD_ADJUNCT;
@@ -152,7 +152,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   u8_string poolid, pool_source, pool_label;		\
   FD_OID pool_base;					\
   unsigned int pool_capacity;				\
-  fdkb_flags pool_flags, modified_flags;		\
+  fd_storage_flags pool_flags, modified_flags;		\
   struct FD_POOL_HANDLER *pool_handler;			\
   short pool_cache_level;				\
   unsigned char pool_islocked;				\
@@ -221,7 +221,7 @@ typedef struct FD_POOL_HANDLER {
   int (*swapout)(fd_pool p,fdtype oids);
   fdtype (*metadata)(fd_pool p,fdtype);
   fd_pool (*create)(u8_string spec,void *typedata,
-		    fdkb_flags flags,fdtype opts);
+		    fd_storage_flags flags,fdtype opts);
   int (*walker)(fd_pool,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_pool p);
   fdtype (*poolctl)(fd_pool p,int opid,int n,fdtype *args);}
@@ -271,9 +271,9 @@ FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
 FD_EXPORT fdtype fd_pool2lisp(fd_pool p);
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp);
-FD_EXPORT fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts);
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fdkb_flags flags,fdtype opts);
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fdkb_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_get_pool(u8_string spec,fd_storage_flags flags,fdtype opts);
+FD_EXPORT fd_pool fd_use_pool(u8_string spec,fd_storage_flags flags,fdtype opts);
 FD_EXPORT fd_pool fd_name2pool(u8_string spec);
 
 FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr);
@@ -339,7 +339,7 @@ FD_EXPORT u8_string fd_pool_id(fd_pool p);
 
 FD_EXPORT fd_pool _fd_get_poolptr(fdtype x);
 
-FD_EXPORT int fd_pool_unlock_all(fd_pool p,fdkb_unlock_flag flags);
+FD_EXPORT int fd_pool_unlock_all(fd_pool p,fd_storage_unlock_flag flags);
 FD_EXPORT int fd_pool_commit_all(fd_pool p);
 
 FD_EXPORT int fd_pool_load(fd_pool p);

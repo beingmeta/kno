@@ -11,8 +11,8 @@
 #define FRAMERD_STORAGE_H_INFO "include/framerd/storage.h"
 #endif
 
-#ifndef FDKB_DRIVER_BUFSIZE
-#define FDKB_DRIVER_BUFSIZE 100000
+#ifndef FD_STORAGE_DRIVER_BUFSIZE
+#define FD_STORAGE_DRIVER_BUFSIZE 100000
 #endif
 
 #include "streams.h"
@@ -32,7 +32,7 @@ FD_EXPORT int fd_init_fddbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
-FD_EXPORT int fdkb_loglevel;
+FD_EXPORT int fd_storage_loglevel;
 FD_EXPORT int fd_prefetch;
 FD_EXPORT fd_exception fd_InternalError;
 FD_EXPORT fd_exception fd_BadServerResponse;
@@ -50,22 +50,22 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
    remaining 12 bits are for flags for particular implementations.
 */
 
-typedef unsigned int fdkb_flags;
+typedef unsigned int fd_storage_flags;
 
-#define FDKB_ISPOOL		   0x01
-#define FDKB_ISINDEX		   0x02
-#define FDKB_READ_ONLY		   0x04
-#define FDKB_ISCONSED		   0x08
-#define FDKB_UNREGISTERED	   0x10
-#define FDKB_KEEP_CACHESIZE        0x20
-#define FDKB_NOSWAP		   0x40
-#define FDKB_MAX_INIT_BITS	   0x800
-#define FDKB_MAX_STATE_BITS	   0x1000
+#define FD_STORAGE_ISPOOL		   0x01
+#define FD_STORAGE_ISINDEX		   0x02
+#define FD_STORAGE_READ_ONLY		   0x04
+#define FD_STORAGE_ISCONSED		   0x08
+#define FD_STORAGE_UNREGISTERED	   0x10
+#define FD_STORAGE_KEEP_CACHESIZE        0x20
+#define FD_STORAGE_NOSWAP		   0x40
+#define FD_STORAGE_MAX_INIT_BITS	   0x800
+#define FD_STORAGE_MAX_STATE_BITS	   0x1000
 
 typedef char fdb_cache_level;
 
-#define FDKB_POOL_FLAG(n)	   ((0x10000)<<n)
-#define FDKB_INDEX_FLAG(n)	   ((0x10000)<<n)
+#define FD_STORAGE_POOL_FLAG(n)	   ((0x10000)<<n)
+#define FD_STORAGE_INDEX_FLAG(n)	   ((0x10000)<<n)
 
 #ifndef FDDBSERV_MAX_POOLS
 #define FDDBSERV_MAX_POOLS 128

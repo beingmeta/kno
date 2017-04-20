@@ -39,11 +39,11 @@ fd_exception fd_BadMetaData=_("Error getting metadata");
 
 int fd_default_cache_level = 1;
 int fd_oid_display_level = 2;
-int fdkb_loglevel = LOG_NOTICE;
+int fd_storage_loglevel = LOG_NOTICE;
 int fd_prefetch = FD_PREFETCHING_ENABLED;
 int fd_require_mmap = HAVE_MMAP;
 
-size_t fd_dbdriver_bufsize = FDKB_DRIVER_BUFSIZE;
+size_t fd_dbdriver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
 size_t fd_network_bufsize = FD_NETWORK_BUFSIZE;
 
 int fd_dbconn_reserve_default = FD_DBCONN_RESERVE_DEFAULT;
@@ -396,7 +396,7 @@ static int fast_swapout_index(fd_index ix,void *data)
   struct HASHVECS_TODO *todo = (struct HASHVECS_TODO *)data;
   if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && 
       (ix->index_cache.table_n_keys)) {
-    if ((ix->index_flags)&(FDKB_KEEP_CACHESIZE))
+    if ((ix->index_flags)&(FD_STORAGE_KEEP_CACHESIZE))
       fast_reset_hashtable(&(ix->index_cache),-1,todo);
     else fast_reset_hashtable(&(ix->index_cache),0,todo);}
   return 0;
@@ -539,7 +539,7 @@ FD_EXPORT int fd_init_kblib()
      NULL);
   fd_register_config
     ("DBLOGLEVEL",_("Default log level for database messages"),
-     fd_intconfig_get,fd_intconfig_set,&fdkb_loglevel);
+     fd_intconfig_get,fd_intconfig_set,&fd_storage_loglevel);
   
   fd_register_config
     ("PREFETCH",_("Whether to prefetch for large operations"),

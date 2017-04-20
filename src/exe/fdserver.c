@@ -112,7 +112,7 @@ static int shutdown_grace = 30000000; /* 30 seconds */
 static int logeval = 0, logerrs = 0, logtrans = 0, logbacktrace = 0;
 static int backtrace_width = FD_BACKTRACE_WIDTH;
 
-static int no_fdkbase = 0;
+static int no_storage_api = 0;
 
 static time_t last_launch = (time_t)-1;
 static int fastfail_threshold = 60, fastfail_wait = 60;
@@ -981,7 +981,7 @@ int main(int argc,char **argv)
     source_file = server_spec;
   else server_port = server_spec;
 
-  fdkb_loglevel = LOG_INFO;
+  fd_storage_loglevel = LOG_INFO;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,
@@ -1064,7 +1064,7 @@ int main(int argc,char **argv)
 
   /* Create the exposed environment.  This may be further modified by
      MODULE configs. */
-  if (no_fdkbase)
+  if (no_storage_api)
     exposed_environment = core_env;
   else exposed_environment=
          fd_make_env(fd_incref(fd_dbserv_module),core_env);
@@ -1204,9 +1204,9 @@ static void init_configs()
      _("Whether to automatically reload changed files"),
      fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
   fd_register_config
-    ("NOFDKBASE",
+    ("NOSTORAGEAPI",
      _("Whether to disable exported FramerD DB API"),
-     fd_boolconfig_get,fd_boolconfig_set,&no_fdkbase);
+     fd_boolconfig_get,fd_boolconfig_set,&no_storage_api);
 }
 
 static fd_lispenv init_core_env()

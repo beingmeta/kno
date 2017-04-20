@@ -55,6 +55,8 @@ fd_exception fd_BadLSEEK=_("lseek() failed");
 fd_exception fd_OverSeek=_("Seeking past end of file");
 fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
 
+fd_exception fd_CantMMAP=_("Can't MMAP stream buffer");
+
 #define FD_DEBUG_DTYPEIO 0
 
 FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
@@ -457,7 +459,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
 #if HAVE_MMAP
     if (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) return 0;
     else if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY))) {
-      u8_log(LOGWARN,"CantMMAP","Stream '%s' not read-only",s->streamid);
+      u8_log(LOGWARN,fd_CantMMAP,"Stream '%s' not read-only",s->streamid);
       if (unlock) fd_unlock_stream(s);
       return -1;}
     else {

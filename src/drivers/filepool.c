@@ -53,12 +53,12 @@ static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
-static fd_pool open_file_pool(u8_string fname,fdkb_flags flags,fdtype opts)
+static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   struct FD_FILE_POOL *pool = u8_alloc(struct FD_FILE_POOL);
   struct FD_STREAM *s = &(pool->pool_stream);
   FD_OID base = FD_NULL_OID_INIT;
-  int read_only = U8_BITP(flags,FDKB_READ_ONLY) ||
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; fdtype label;
@@ -100,9 +100,9 @@ static fd_pool open_file_pool(u8_string fname,fdkb_flags flags,fdtype opts)
       return NULL;}}
   pool->pool_load = load; pool->pool_offdata = NULL; pool->pool_offdata_size = 0;
   if (read_only)
-    U8_SETBITS(pool->pool_flags,FDKB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDKB_READ_ONLY);
-  if (!(U8_BITP(pool->pool_flags,FDKB_UNREGISTERED)))
+    U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
+  if (!(U8_BITP(pool->pool_flags,FD_STORAGE_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
@@ -177,7 +177,7 @@ static int file_pool_load(fd_pool p)
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
   if (FD_POOLFILE_LOCKEDP(fp)) return 1;
-  else if ((fp->pool_flags)&(FDKB_READ_ONLY))
+  else if ((fp->pool_flags)&(FD_STORAGE_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(fp->pool_stream);
@@ -466,7 +466,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   /* Note that if we exited abnormally, the file is still intact. */
   fd_unlock_stream(stream);
   fd_unlock_pool(p);
-  u8_log(fdkb_loglevel,"FilePoolStore",
+  u8_log(fd_storage_loglevel,"FilePoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
   return retcode;
@@ -708,7 +708,7 @@ int fd_make_file_pool
 }
 
 static fd_pool filepool_create(u8_string spec,void *type_data,
-                               fdkb_flags flags,fdtype opts)
+                               fd_storage_flags flags,fdtype opts)
 {
   fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

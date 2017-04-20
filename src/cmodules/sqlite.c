@@ -86,11 +86,11 @@ static int getboolopt(fdtype opts,fdtype sym,int dflt)
 
 static int getv2flags(fdtype options,u8_string filename);
 
-static int open_fdsqlite(struct FD_SQLITE *fdkbaseptr);
+static int open_fdsqlite(struct FD_SQLITE *fdsqlptr);
 static void close_fdsqlite(struct FD_SQLITE *fdptr,int lock);
 static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo);
 
-static int open_fdsqliteproc(struct FD_SQLITE *fdkbase,struct FD_SQLITE_PROC *fdp);
+static int open_fdsqliteproc(struct FD_SQLITE *fdsqlptr,struct FD_SQLITE_PROC *fdp);
 static void close_fdsqliteproc(struct FD_SQLITE_PROC *dbp);
 
 static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo);
@@ -112,43 +112,43 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo);
 static fdtype readonly_symbol, create_symbol, sharedcache_symbol;
 static fdtype execok_symbol, privatecache_symbol, vfs_symbol;
 
-static int open_fdsqlite(struct FD_SQLITE *fdkbaseptr)
+static int open_fdsqlite(struct FD_SQLITE *fdsqlptr)
 {
   u8_log(LOG_WARN,"open_fdsqlite",
          "Opening SQLite database %s info=%s, filename=%s",
-         fdkbaseptr->extdb_spec,fdkbaseptr->extdb_info,fdkbaseptr->sqlitefile);
-  u8_lock_mutex(&(fdkbaseptr->sqlite_lock));
-  if (fdkbaseptr->sqlitedb) {
-    u8_unlock_mutex(&(fdkbaseptr->sqlite_lock));
+         fdsqlptr->extdb_spec,fdsqlptr->extdb_info,fdsqlptr->sqlitefile);
+  u8_lock_mutex(&(fdsqlptr->sqlite_lock));
+  if (fdsqlptr->sqlitedb) {
+    u8_unlock_mutex(&(fdsqlptr->sqlite_lock));
     return 0;}
   else {
     sqlite3 *db = NULL; int retval;
 #if HAVE_SQLITE3_OPEN_V2
-    int flags = getv2flags(fdkbaseptr->extdb_options,fdkbaseptr->sqlitefile);
+    int flags = getv2flags(fdsqlptr->extdb_options,fdsqlptr->sqlitefile);
     if (flags<0) return flags;
-    retval = sqlite3_open_v2(fdkbaseptr->sqlitefile,&db,flags,fdkbaseptr->sqlitevfs);
+    retval = sqlite3_open_v2(fdsqlptr->sqlitefile,&db,flags,fdsqlptr->sqlitevfs);
 #else
-    retval = sqlite3_open(fdkbaseptr->sqlitefile,&db);
+    retval = sqlite3_open(fdsqlptr->sqlitefile,&db);
 #endif
     if (retval) {
       u8_string msg = u8_strdup(sqlite3_errmsg(db));
       fd_seterr(SQLiteError,"open_sqlite",msg,
-                fdtype_string(fdkbaseptr->sqlitefile));
-      if (db) {closedb(db); fdkbaseptr->sqlitedb = NULL;}
-      u8_unlock_mutex(&(fdkbaseptr->sqlite_lock));
+                fdtype_string(fdsqlptr->sqlitefile));
+      if (db) {closedb(db); fdsqlptr->sqlitedb = NULL;}
+      u8_unlock_mutex(&(fdsqlptr->sqlite_lock));
       return -1;}
-    fdkbaseptr->sqlitedb = db;
-    if (fdkbaseptr->extdb_n_procs) {
-      struct FD_EXTDB_PROC **scan = fdkbaseptr->extdb_procs;
-      struct FD_EXTDB_PROC **limit = scan+fdkbaseptr->extdb_n_procs;
+    fdsqlptr->sqlitedb = db;
+    if (fdsqlptr->extdb_n_procs) {
+      struct FD_EXTDB_PROC **scan = fdsqlptr->extdb_procs;
+      struct FD_EXTDB_PROC **limit = scan+fdsqlptr->extdb_n_procs;
       while (scan<limit) {
         struct FD_EXTDB_PROC *edbp = *scan++;
         struct FD_SQLITE_PROC *sp = (struct FD_SQLITE_PROC *)edbp;
-        int retval = open_fdsqliteproc(fdkbaseptr,sp);
+        int retval = open_fdsqliteproc(fdsqlptr,sp);
         if (retval)
           u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
                  sqlite3_errmsg(db),sp->extdb_qtext);}}
-    u8_unlock_mutex(&(fdkbaseptr->sqlite_lock));
+    u8_unlock_mutex(&(fdsqlptr->sqlite_lock));
     return 1;}
 }
 
@@ -422,15 +422,15 @@ static fdtype sqlitemakeprochandler
          ("SQLITE EXTDB","sqlitemakeprochandler",(fdtype)extdb);
 }
 
-static int open_fdsqliteproc(struct FD_SQLITE *fdkbase,struct FD_SQLITE_PROC *fdp)
+static int open_fdsqliteproc(struct FD_SQLITE *fdsqlptr,struct FD_SQLITE_PROC *fdp)
 {
-  sqlite3 *db = fdkbase->sqlitedb; u8_string query = fdp->extdb_qtext;
+  sqlite3 *db = fdsqlptr->sqlitedb; u8_string query = fdp->extdb_qtext;
   sqlite3_stmt *stmt;
   int retval = newstmt(db,query,strlen(query),&stmt);
   if (retval)
     return retval;
   else {
-    fdp->extdbptr = (fdtype)fdkbase;
+    fdp->extdbptr = (fdtype)fdsqlptr;
     fdp->sqlitedb = db;
     fdp->stmt = stmt;
     return 0;}

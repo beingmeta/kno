@@ -206,7 +206,7 @@ define osx_trace_heap
   set env MallocStackLogging YES
 end
 
-# Init fdkbase print limits (init done through the config interface)
+# Init Framer print limits (init done through the config interface)
 define set_fdmaxelts
   set env FD_DISPLAYMAXELTS=36
   set env FD_DISPLAYMAXCHARS=1024

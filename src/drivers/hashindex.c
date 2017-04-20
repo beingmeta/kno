@@ -195,12 +195,12 @@ static int init_baseoids
   (struct FD_HASHINDEX *hx,int n_baseoids,fdtype *baseoids_init);
 static int recover_hashindex(struct FD_HASHINDEX *hx);
 
-static fd_index open_hashindex(u8_string fname,fdkb_flags flags,fdtype opts)
+static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
   struct FD_STREAM *stream = &(index->index_stream);
-  int read_only = U8_BITP(flags,FDKB_READ_ONLY);
-  int consed = U8_BITP(flags,FDKB_ISCONSED);
+  int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
+  int consed = U8_BITP(flags,FD_STORAGE_ISCONSED);
 
   unsigned int magicno, n_keys;
   fd_off_t slotids_pos, baseoids_pos;
@@ -231,16 +231,16 @@ static fd_index open_hashindex(u8_string fname,fdkb_flags flags,fdtype opts)
     recover_hashindex(index);
     magicno = magicno&(~0x20);}
   index->index_offdata = NULL;
-  index->fdkb_xformat = fd_read_4bytes_at(stream,8);
+  index->fd_storage_xformat = fd_read_4bytes_at(stream,8);
   if (read_only)
-    U8_SETBITS(index->index_flags,FDKB_READ_ONLY);
-  if (((index->fdkb_xformat)&(FD_HASHINDEX_FN_MASK))!=0) {
+    U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);
+  if (((index->fd_storage_xformat)&(FD_HASHINDEX_FN_MASK))!=0) {
     u8_free(index);
     fd_seterr3(BadHashFn,"open_hashindex",NULL);
     return NULL;}
 
   index->index_offtype = (fd_offset_type)
-    (((index->fdkb_xformat)&(FD_HASHINDEX_OFFTYPE_MASK))>>4);
+    (((index->fd_storage_xformat)&(FD_HASHINDEX_OFFTYPE_MASK))>>4);
 
   index->index_custom = fd_read_4bytes_at(stream,12);
 
@@ -324,7 +324,7 @@ static int init_slotids(fd_hashindex hx,int n_slotids,fdtype *slotids_init)
   hx->index_slotids = slotids = u8_alloc_n(n_slotids,fdtype);
   hx->slotid_lookup = lookup = u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
   hx->index_n_slotids = n_slotids; hx->index_new_slotids = 0;
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_ODDKEYS))
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_ODDKEYS))
     slotids_choice = FD_VOID;
   while (i<n_slotids) {
     fdtype slotid = slotids_init[i];
@@ -675,7 +675,7 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,
   struct FD_OUTBUF out; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
   FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,1024);
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -750,7 +750,7 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
 #endif
   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
      whose slotid isn't in the slotids, the key isn't in the table. */
-  if ((!((hx->fdkb_xformat)&(FD_HASHINDEX_ODDKEYS))) && (FD_PAIRP(key))) {
+  if ((!((hx->fd_storage_xformat)&(FD_HASHINDEX_ODDKEYS))) && (FD_PAIRP(key))) {
     fdtype slotid = FD_CAR(key);
     if (((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) &&
         (get_slotid_index(hx,slotid)<0)) {
@@ -759,7 +759,7 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
                  slotid,hx->indexid);
 #endif
       return FD_EMPTY_CHOICE;}}
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags |= FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -877,7 +877,7 @@ static int hashindex_fetchsize(fd_index ix,fdtype key)
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   FD_CHUNK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,64);
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
@@ -948,13 +948,13 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
   struct VALUE_SCHEDULE *vsched = u8_alloc_n(n,struct VALUE_SCHEDULE);
   unsigned int *offdata = hx->index_offdata;
   int i = 0, n_entries = 0, vsched_size = 0;
-  int oddkeys = ((hx->fdkb_xformat)&(FD_HASHINDEX_ODDKEYS));
+  int oddkeys = ((hx->fd_storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
   FD_INIT_BYTE_OUTBUF(&out,n*16);
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   /* Fill out a fetch schedule, computing hashes and buckets for each key.
      If we have an offsets table, we compute the offsets during this phase,
@@ -1553,10 +1553,10 @@ FD_EXPORT int fd_populate_hashindex
     ix = fd_indexptr(from);
 
   /* Population doesn't leave any odd keys */
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_ODDKEYS))
-    hx->fdkb_xformat = hx->fdkb_xformat&(~(FD_HASHINDEX_ODDKEYS));
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_ODDKEYS))
+    hx->fd_storage_xformat = hx->fd_storage_xformat&(~(FD_HASHINDEX_ODDKEYS));
 
-  if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2))
+  if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
 
   /* Fill the key schedule and count the number of buckets used */
@@ -1592,7 +1592,7 @@ FD_EXPORT int fd_populate_hashindex
     load = j-i; 
     FD_INIT_FIXED_BYTE_OUTBUF(&keyblock,buf,4096);
 
-    if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2))
+    if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
       keyblock.buf_flags = keyblock.buf_flags|FD_USE_DTYPEV2;
 
     fd_write_zint(&keyblock,load);
@@ -1854,7 +1854,7 @@ static int process_edits(struct FD_HASHINDEX *hx,
     else scan++;
   
   /* Record if there are odd keys */
-  if (oddkeys) hx->fdkb_xformat = ((hx->fdkb_xformat)|(FD_HASHINDEX_ODDKEYS));
+  if (oddkeys) hx->fd_storage_xformat = ((hx->fd_storage_xformat)|(FD_HASHINDEX_ODDKEYS));
   
   /* Get the current values of all the keys you're dropping, to turn
      the drops into stores. */
@@ -1896,7 +1896,7 @@ static int process_adds(struct FD_HASHINDEX *hx,
                         fd_hashset replaced_keys,
                         struct COMMIT_SCHEDULE *s,int i)
 {
-  int oddkeys = ((hx->fdkb_xformat)&(FD_HASHINDEX_ODDKEYS));
+  int oddkeys = ((hx->fd_storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   struct FD_HASH_BUCKET **scan = adds->ht_buckets, **lim = scan+adds->ht_n_buckets;
   while (scan < lim)
     if (*scan) {
@@ -1919,7 +1919,7 @@ static int process_adds(struct FD_HASHINDEX *hx,
       e->fd_n_entries = 0;
       scan++;}
     else scan++;
-  if (oddkeys) hx->fdkb_xformat = ((hx->fdkb_xformat)|(FD_HASHINDEX_ODDKEYS));
+  if (oddkeys) hx->fd_storage_xformat = ((hx->fd_storage_xformat)|(FD_HASHINDEX_ODDKEYS));
   return i;
 }
 
@@ -2237,7 +2237,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
     /* We're going to write keys and values, so we create streams to do so. */
     FD_INIT_BYTE_OUTBUF(&out,1024);
     FD_INIT_BYTE_OUTBUF(&newkeys,schedule_max*16);
-    if ((hx->fdkb_xformat)&(FD_HASHINDEX_DTYPEV2)) {
+    if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
       out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
       newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
     /* Compute all the buckets for all the keys */
@@ -2380,7 +2380,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
       +new_keys;
     recovery_start = fd_endpos(stream);
     outstream = fd_writebuf(stream);
-    fd_write_4bytes(outstream,hx->fdkb_xformat);
+    fd_write_4bytes(outstream,hx->fd_storage_xformat);
     fd_write_4bytes(outstream,total_keys);
     fd_write_4bytes(outstream,changed_buckets);
     while (i<changed_buckets) {
@@ -2399,7 +2399,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
   u8_message("Writing offset data changes");
 #endif
   update_hashindex_ondisk
-    (hx,hx->fdkb_xformat,total_keys,changed_buckets,bucket_locs);
+    (hx,hx->fd_storage_xformat,total_keys,changed_buckets,bucket_locs);
   if (fd_acid_files) {
     int retval = 0;
 #if FD_DEBUG_HASHINDEXES
@@ -2442,7 +2442,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
   fd_unlock_stream(stream);
   fd_unlock_index(hx);
 
-  u8_log(fdkb_loglevel,"HashIndexCommit",
+  u8_log(fd_storage_loglevel,"HashIndexCommit",
          "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
          n_keys,new_keys,total_keys,
          ix->indexid,u8_elapsed_time()-started);
@@ -2689,7 +2689,7 @@ static int good_initval(fdtype val)
 }
 
 static fd_index hashindex_create(u8_string spec,void *typedata,
-                                  fdkb_flags flags,fdtype opts)
+                                  fd_storage_flags flags,fdtype opts)
 {
   int rv = 0;
   fdtype slotids_init = fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);

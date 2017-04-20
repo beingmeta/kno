@@ -6,12 +6,12 @@
 
    This file implements the basic structures, macros, and function
     prototypes for dealing with dtype pointers as implemented for the
-    fdkbase library
+    FramerC library
 */
 
 /* THE ANATOMY OF A POINTER
 
-   The fdkbase library is built on a dynamically typed "lisp-like" data
+   The FramerC library is built on a dynamically typed "lisp-like" data
    model which uses an internal pointer format designed for efficency in
    the normal cases and easy extensibility to more advanced cases.
 
@@ -28,9 +28,10 @@
     alignment on 4-byte word boundaries, enables dtype pointers to be
     direclty used as structure pointers and vice versa.  A CONS
     pointer is exactly such a memory reference.  The detailed
-    implementation of CONSes is described at the head of <fdkbase/cons.h>,
-    but it is basically a block of memory whose first 4 bytes encode a
-    25-bit reference count and a 7-bit type code.
+    implementation of CONSes is described at the head of
+    <include/framerd/cons.h>, but it is basically a block of memory
+    whose first 4 bytes encode a 25-bit reference count and a 7-bit
+    type code.
 
     The IMMEDIATE type is used to represent a number of "constant" data
     types, including booleans, special values (error codes, etc), unicode
@@ -40,7 +41,7 @@
 
     The FIXNUM base pointer type is used for small magnitude signed
     integers.  Rather than using a two's complement representation for
-    negative numbers, fdkbase uses the 32nd bit (the high order bit on 32
+    negative numbers, FramerC uses the 32nd bit (the high order bit on 32
     bit architectures) as a sign bit and stores the absolute magnitude
     in the remainder of the word (down to the two bits of type code.
     For positive numbers, converting between C ints dtype fixnums is

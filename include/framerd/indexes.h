@@ -29,11 +29,11 @@ FD_EXPORT int fd_index_cache_init;
 FD_EXPORT int fd_index_edits_init;
 FD_EXPORT int fd_index_adds_init;
 
-#define FD_INDEX_ADD_CAPABILITY  (FDKB_INDEX_FLAG(1))
-#define FD_INDEX_DROP_CAPABILITY (FDKB_INDEX_FLAG(2))
-#define FD_INDEX_SET_CAPABILITY  (FDKB_INDEX_FLAG(3))
-#define FD_INDEX_IN_BACKGROUND   (FDKB_INDEX_FLAG(4))
-#define FD_INDEX_NOSWAP          (FDKB_INDEX_FLAG(5))
+#define FD_INDEX_ADD_CAPABILITY  (FD_STORAGE_INDEX_FLAG(1))
+#define FD_INDEX_DROP_CAPABILITY (FD_STORAGE_INDEX_FLAG(2))
+#define FD_INDEX_SET_CAPABILITY  (FD_STORAGE_INDEX_FLAG(3))
+#define FD_INDEX_IN_BACKGROUND   (FD_STORAGE_INDEX_FLAG(4))
+#define FD_INDEX_NOSWAP          (FD_STORAGE_INDEX_FLAG(5))
 
 #define FD_N_PRIMARY_INDEXES 128
 
@@ -41,7 +41,7 @@ FD_EXPORT int fd_index_adds_init;
   FD_CONS_HEADER;						   \
   u8_string indexid, index_source;				   \
   struct FD_INDEX_HANDLER *index_handler;			   \
-  fdkb_flags index_flags, modified_flags;			   \
+  fd_storage_flags index_flags, modified_flags;			   \
   int index_serialno;						   \
   short index_cache_level;					   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
@@ -70,7 +70,7 @@ typedef struct FD_INDEX_HANDLER {
   int (*batchadd)(fd_index ix,fdtype);
   fdtype (*metadata)(fd_index ix,fdtype);
   fd_index (*create)(u8_string spec,void *type_data,
-		     fdkb_flags flags,fdtype opts);
+		     fd_storage_flags flags,fdtype opts);
   int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_index p);
   fdtype (*indexctl)(fd_index ix,int opid,int n,fdtype *args);}
@@ -116,7 +116,7 @@ FD_EXPORT void fd_init_index
   (fd_index ix,
    struct FD_INDEX_HANDLER *h,
    u8_string id,u8_string src,
-   fdkb_flags flags);
+   fd_storage_flags flags);
 FD_EXPORT void fd_reset_index_tables
   (fd_index ix,ssize_t cache,ssize_t edits,ssize_t adds);
 
@@ -136,14 +136,14 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_batch_add(fd_index ix,fdtype table);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
-FD_EXPORT fd_index fd_open_index(u8_string,fdkb_flags,fdtype);
-FD_EXPORT fd_index fd_get_index(u8_string,fdkb_flags,fdtype);
+FD_EXPORT fd_index fd_open_index(u8_string,fd_storage_flags,fdtype);
+FD_EXPORT fd_index fd_get_index(u8_string,fd_storage_flags,fdtype);
 FD_EXPORT fd_index fd_find_index_by_qname(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fdkb_flags,fdtype);
+FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags,fdtype);
 
 FD_EXPORT void fd_swapout_indexes(void);
 FD_EXPORT void fd_close_indexes(void);
@@ -236,7 +236,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
   FDTC *fdtc = (FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable cache = &(ix->index_cache);
-  if (U8_BITP(ix->index_flags,FDKB_READ_ONLY)) 
+  if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) 
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
   else if (FD_CHOICEP(key)) {

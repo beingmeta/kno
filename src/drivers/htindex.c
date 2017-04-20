@@ -92,7 +92,7 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
   else return 0;
 }
 
-static fd_index open_htindex(u8_string file,fdkb_flags flags,fdtype opts)
+static fd_index open_htindex(u8_string file,fd_storage_flags flags,fdtype opts)
 {
   struct FD_HT_INDEX *mix = (fd_mem_index)fd_make_ht_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
@@ -135,13 +135,13 @@ static struct FD_INDEX_HANDLER htindex_handler={
 };
 
 FD_EXPORT
-fd_index fd_make_ht_index(fdkb_flags flags)
+fd_index fd_make_ht_index(fd_storage_flags flags)
 {
   struct FD_HT_INDEX *mix = u8_alloc(struct FD_HT_INDEX);
   FD_INIT_STRUCT(mix,struct FD_HT_INDEX);
   fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",NULL,flags);
   mix->index_cache_level = 1;
-  U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDKB_READ_ONLY));
+  U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FD_STORAGE_READ_ONLY));
   fd_register_index((fd_index)mix);
   return (fd_index)mix;
 }

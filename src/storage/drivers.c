@@ -42,7 +42,7 @@ fd_exception fd_FilePoolSizeOverflow=_("file pool overflowed file size");
 fd_exception fd_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int fd_acid_files = 1;
-size_t fd_driver_bufsize = FDKB_DRIVER_BUFSIZE;
+size_t fd_driver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
 
 #define CHECK_ERRNO U8_CLEAR_ERRNO
 
@@ -85,7 +85,7 @@ static u8_mutex pool_typeinfo_lock;
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
    fd_pool_handler handler,
-   fd_pool (*opener)(u8_string filename,fdkb_flags flags,fdtype opts),
+   fd_pool (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -134,7 +134,7 @@ static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fdkb_flags flags,fdtype opts)
+fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
   struct FD_POOL_TYPEINFO *ptype;
   CHECK_ERRNO();
@@ -164,7 +164,7 @@ fd_pool_handler fd_get_pool_handler(u8_string name)
 FD_EXPORT
 fd_pool fd_make_pool(u8_string spec,
                      u8_string pooltype,
-                     fdkb_flags flags,
+                     fd_storage_flags flags,
                      fdtype opts)
 {
   fd_pool_typeinfo ptype = get_pool_typeinfo(pooltype);
@@ -195,7 +195,7 @@ static u8_mutex index_typeinfo_lock;
 FD_EXPORT void fd_register_index_type
   (u8_string name,
    fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fdkb_flags flags,fdtype opts),
+   fd_index (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -244,7 +244,7 @@ static fd_index_typeinfo get_index_typeinfo(u8_string name)
 }
 
 FD_EXPORT
-fd_index fd_open_index(u8_string spec,fdkb_flags flags,fdtype opts)
+fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
   CHECK_ERRNO();
@@ -276,7 +276,7 @@ fd_index_handler fd_get_index_handler(u8_string name)
 FD_EXPORT
 fd_index fd_make_index(u8_string spec,
                        u8_string indextype,
-                       fdkb_flags flags,
+                       fd_storage_flags flags,
                        fdtype opts)
 {
   fd_index_typeinfo ixtype = get_index_typeinfo(indextype);

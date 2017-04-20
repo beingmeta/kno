@@ -595,7 +595,7 @@ static fdtype server_pool_data(fdtype session_id)
     fd_pool p = served_pools[i];
     fdtype base = fd_make_oid(p->pool_base);
     fdtype capacity = FD_INT(p->pool_capacity);
-    fdtype ro = (U8_BITP(p->pool_flags,FDKB_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
+    fdtype ro = (U8_BITP(p->pool_flags,FD_STORAGE_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
     elts[i++]=
       ((p->pool_label) ?
        (fd_make_list(4,base,capacity,ro,fdtype_string(p->pool_label))) :
