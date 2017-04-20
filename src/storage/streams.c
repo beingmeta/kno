@@ -321,6 +321,7 @@ FD_EXPORT fd_stream fd_init_file_stream
   if (bufsiz<0) bufsiz = fd_filestream_bufsize;
   if (stream_flags<0)
     stream_flags = FD_DEFAULT_FILESTREAM_FLAGS;
+  stream_flags |= FD_STREAM_OWNS_FILENO;
   int fd, open_flags = POSIX_OPEN_FLAGS;
   char *localname = u8_localpath(fname);
   switch (mode) {
