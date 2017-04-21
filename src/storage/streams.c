@@ -74,7 +74,6 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
 {
   struct FD_RAWBUF *buf = &(stream->buf.raw);
   int fd = stream->stream_fileno;
-  ssize_t offset = stream->buf.in.bufread-stream->buf.in.buffer;
   struct stat fileinfo;
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
@@ -89,8 +88,8 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       (MAP_NORESERVE|MAP_SHARED) :
       (MAP_SHARED);
     unsigned char *oldbuf = buf->buffer;
-    unsigned int point_off = (oldbuf) ? (buf->bufpoint-buf->buffer) : (0);
     unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
+    ssize_t point_off = (oldbuf) ? (buf->bufpoint-buf->buffer) : (0);
     if (newbuf==NULL) {
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
       return -1;}
@@ -287,7 +286,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
         streambuf->buf_flags   = FD_IN_STREAM|FD_BUFFER_NO_GROW;
         return stream;}
       else {
-        u8_log(LOGWARN,"FailedStreamMMAP",
+        u8_log(LOG_INFO,"FailedStreamMMAP",
                "Unable to mmap '%s'; errno=%d (%s)",
                streamid,errno,u8_strerror(errno));
         stream->stream_flags&=~FD_STREAM_MMAPPED;

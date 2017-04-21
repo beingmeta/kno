@@ -165,7 +165,6 @@ FD_EXPORT void fd_log_status()
       (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
        &stu);
     u8_byte prefix_buf[256];
-    u8_string prefix = u8_message_prefix(prefix_buf,256);
     if (heapbytes>10000000000) {
       heapsize = floor(((double)heapbytes)/1000000000); heapu="GB";}
     else if (heapbytes>1500000) {

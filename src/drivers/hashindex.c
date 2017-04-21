@@ -1404,7 +1404,6 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 {
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   int stream_flags=hx->index_stream.stream_flags;
-  ssize_t mmap_size;
 
   if (level >= 2) {
     if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
