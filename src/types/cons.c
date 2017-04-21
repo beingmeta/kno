@@ -18,9 +18,6 @@
 
 #include <stdarg.h>
 
-/* For sprintf */
-#include <stdio.h>
-
 fd_exception fd_MallocFailed=_("malloc/realloc failed");
 fd_exception fd_StringOverflow=_("allocating humongous string past limit");
 fd_exception fd_StackOverflow=_("Scheme stack overflow");
@@ -43,9 +40,9 @@ fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 fd_compare_fn fd_comparators[FD_TYPE_MAX];
 
 static u8_mutex constant_registry_lock;
-int fd_n_constants=FD_N_BUILTIN_CONSTANTS;
+int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 
-ssize_t fd_max_strlen=-1;
+ssize_t fd_max_strlen = -1;
 
 const char *fd_constant_names[]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
@@ -80,7 +77,7 @@ const char *fd_constant_names[]={
 FD_EXPORT
 fdtype fd_register_constant(u8_string name)
 {
-  int i=0;
+  int i = 0;
   u8_lock_mutex(&constant_registry_lock);
   while (i<fd_n_constants) {
     if (strcasecmp(name,fd_constant_names[i])==0)
@@ -92,7 +89,7 @@ fdtype fd_register_constant(u8_string name)
 
 static int validate_constant(fdtype x)
 {
-  int num=(FD_GET_IMMEDIATE(x,fd_constant_type));
+  int num = (FD_GET_IMMEDIATE(x,fd_constant_type));
   if ((num>=0) && (num<fd_n_constants) &&
       (fd_constant_names[num] != NULL))
     return 1;
@@ -107,7 +104,7 @@ FD_EXPORT
 */
 int fd_check_immediate(fdtype x)
 {
-  int type=FD_IMMEDIATE_TYPE(x);
+  int type = FD_IMMEDIATE_TYPE(x);
   if (type<fd_next_immediate_type)
     if (fd_immediate_checkfns[type])
       return fd_immediate_checkfns[type](x);
@@ -119,27 +116,27 @@ int fd_check_immediate(fdtype x)
 
 FD_EXPORT void _FD_INIT_CONS(void *vptr,fd_ptr_type type)
 {
-  fd_raw_cons ptr=(fd_raw_cons)vptr;
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_INIT_CONS(ptr,type);
 }
 FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type)
 {
-  fd_raw_cons ptr=(fd_raw_cons)vptr;
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_INIT_FRESH_CONS(ptr,type);
 }
 FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type)
 {
-  fd_raw_cons ptr=(fd_raw_cons)vptr;
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_INIT_STACK_CONS(ptr,type);
 }
 FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type)
 {
-  fd_raw_cons ptr=(fd_raw_cons)vptr;
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_INIT_STATIC_CONS(ptr,type);
 }
 FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type)
 {
-  fd_raw_cons ptr=(fd_raw_cons)vptr;
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_SET_CONS_TYPE(ptr,type);
 }
 
@@ -160,14 +157,14 @@ FD_EXPORT
   Returns 1 if the two objects are equal. */
 int fdtype_equal(fdtype x,fdtype y)
 {
-  if (FD_ATOMICP(x)) return (x==y);
-  else if (FD_ATOMICP(y)) return (x==y);
+  if (FD_ATOMICP(x)) return (x == y);
+  else if (FD_ATOMICP(y)) return (x == y);
   else if ((FD_CONS_DATA(x)) == (FD_CONS_DATA(y))) return 1;
-  else if ((FD_ACHOICEP(x)) || (FD_ACHOICEP(y))) {
-    int convert_x=FD_ACHOICEP(x), convert_y=FD_ACHOICEP(y);
-    fdtype cx=((convert_x) ? (fd_make_simple_choice(x)) : (x));
-    fdtype cy=((convert_y) ? (fd_make_simple_choice(y)) : (y));
-    int result=fdtype_equal(cx,cy);
+  else if ((FD_PRECHOICEP(x)) || (FD_PRECHOICEP(y))) {
+    int convert_x = FD_PRECHOICEP(x), convert_y = FD_PRECHOICEP(y);
+    fdtype cx = ((convert_x) ? (fd_make_simple_choice(x)) : (x));
+    fdtype cy = ((convert_y) ? (fd_make_simple_choice(y)) : (y));
+    int result = fdtype_equal(cx,cy);
     if (convert_x) fd_decref(cx);
     if (convert_y) fd_decref(cy);
     return result;}
@@ -195,8 +192,8 @@ int fdtype_equal(fdtype x,fdtype y)
   else if (FD_VECTORP(x))
     if ((FD_VECTOR_LENGTH(x)) != (FD_VECTOR_LENGTH(y))) return 0;
     else {
-      int i=0, len=FD_VECTOR_LENGTH(x);
-      fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
+      int i = 0, len = FD_VECTOR_LENGTH(x);
+      fdtype *xdata = FD_VECTOR_DATA(x), *ydata = FD_VECTOR_DATA(y);
       while (i < len)
         if (FDTYPE_EQUAL(xdata[i],ydata[i])) i++; else return 0;
       return 1;}
@@ -204,7 +201,7 @@ int fdtype_equal(fdtype x,fdtype y)
     if (fd_numcompare(x,y)==0) return 1;
     else return 0;
   else {
-    fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
+    fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
     if (fd_comparators[ctype])
       return (fd_comparators[ctype](x,y,1)==0);
     else return 0;}
@@ -221,16 +218,16 @@ FD_EXPORT
   If the length is negative, it is computed. */
 fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
 {
-  int len=((slen<0) ? (strlen(string)) : (slen));
+  int len = ((slen<0) ? (strlen(string)) : (slen));
   if (ptr == NULL) {
-    ptr=u8_alloc(struct FD_STRING);
+    ptr = u8_alloc(struct FD_STRING);
     FD_INIT_STRUCT(ptr,struct FD_STRING);
-    ptr->fd_freebytes=1;}
+    ptr->fd_freebytes = 1;}
   FD_INIT_CONS(ptr,fd_string_type);
-  if ((len==0) && (string==NULL)) {
-    u8_byte *bytes=u8_malloc(1); *bytes='\0';
-    string=(u8_string)bytes;}
-  ptr->fd_bytelen=len; ptr->fd_bytes=string;
+  if ((len==0) && (string == NULL)) {
+    u8_byte *bytes = u8_malloc(1); *bytes='\0';
+    string = (u8_string)bytes;}
+  ptr->fd_bytelen = len; ptr->fd_bytes = string;
   return FDTYPE_CONS(ptr);
 }
 
@@ -245,17 +242,17 @@ FD_EXPORT
    If the second argument is NULL, the end of the first argument is used. */
 fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
 {
-  ssize_t length=((end==NULL) ? (strlen(start)) : (end-start));
+  ssize_t length = ((end == NULL) ? (strlen(start)) : (end-start));
   if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
-    u8_byte *bytes=NULL; int freedata=1;
+    u8_byte *bytes = NULL; int freedata = 1;
     if (ptr == NULL) {
-      ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
-      bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+      ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
+      bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
       memcpy(bytes,start,length); bytes[length]='\0';
-      freedata=0;}
-    else bytes=(u8_byte *)u8_strndup(start,length+1);
+      freedata = 0;}
+    else bytes = (u8_byte *)u8_strndup(start,length+1);
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
+    ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,FD_VOID);
 }
@@ -270,13 +267,13 @@ FD_EXPORT
    a lisp string based on the region. */
 fdtype fd_substring(u8_string start,u8_string end)
 {
-  ssize_t length=((end==NULL) ? (strlen(start)) : (end-start));
+  ssize_t length = ((end == NULL) ? (strlen(start)) : (end-start));
   if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
-    struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
-    u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    struct FD_STRING *ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
+    u8_byte *bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
     FD_INIT_FRESH_CONS(ptr,fd_string_type);
-    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=0;
+    ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = 0;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
 }
@@ -290,20 +287,20 @@ FD_EXPORT
     the string data is contiguous with the struct. */
 fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
 {
-  int length=((len>=0)?(len):(strlen(string)));
-  u8_byte *bytes=NULL; int freedata=1;
+  int length = ((len>=0)?(len):(strlen(string)));
+  u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
-    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
+    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (string) memcpy(bytes,string,length);
     else memset(bytes,'?',length);
     bytes[length]='\0';
-    freedata=0;}
+    freedata = 0;}
   else {
-    bytes=u8_malloc(length+1);
+    bytes = u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
+  ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -316,15 +313,15 @@ FD_EXPORT
 */
 fdtype fd_block_string(int len,u8_string string)
 {
-  u8_byte *bytes=NULL;
-  int length=((len>=0)?(len):(strlen(string)));
-  struct FD_STRING *ptr=u8_mallocz(sizeof(struct FD_STRING)+length+1);
-  bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+  u8_byte *bytes = NULL;
+  int length = ((len>=0)?(len):(strlen(string)));
+  struct FD_STRING *ptr = u8_mallocz(sizeof(struct FD_STRING)+length+1);
+  bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
   if (string) memcpy(bytes,string,length);
   else memset(bytes,'?',length);
   bytes[length]='\0';
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=0;
+  ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = 0;
   if (string) u8_free(string);
   return FDTYPE_CONS(ptr);
 }
@@ -339,18 +336,18 @@ FD_EXPORT
     the string data is contiguous with the struct. */
 fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
 {
-  int length=((len>0)?(len):(strlen(string)));
-  u8_byte *bytes=NULL; int freedata=1;
+  int length = ((len>0)?(len):(strlen(string)));
+  u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr=u8_mallocz(sizeof(struct FD_STRING)+length+1);
-    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_mallocz(sizeof(struct FD_STRING)+length+1);
+    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,string,length); bytes[length]='\0';
-    freedata=0;}
+    freedata = 0;}
   else {
-    bytes=u8_mallocz(length+1);
+    bytes = u8_mallocz(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
+  ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
   /* Free the string */
   u8_free(string);
   return FDTYPE_CONS(ptr);
@@ -371,9 +368,9 @@ fdtype fdtype_string(u8_string string)
 
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr)
 {
-  if (ptr == NULL) ptr=u8_zalloc(struct FD_PAIR);
+  if (ptr == NULL) ptr = u8_zalloc(struct FD_PAIR);
   FD_INIT_CONS(ptr,fd_pair_type);
-  ptr->car=car; ptr->cdr=cdr;
+  ptr->car = car; ptr->cdr = cdr;
   return FDTYPE_CONS(ptr);
 }
 
@@ -384,21 +381,21 @@ FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr)
 
 FD_EXPORT fdtype fd_make_list(int len,...)
 {
-  va_list args; int i=0;
-  fdtype *elts=u8_alloc_n(len,fdtype), result=FD_EMPTY_LIST;
+  va_list args; int i = 0;
+  fdtype *elts = u8_alloc_n(len,fdtype), result = FD_EMPTY_LIST;
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
-  i=len-1; while (i>=0) {
-    result=fd_init_pair(NULL,elts[i],result); i--;}
+  i = len-1; while (i>=0) {
+    result = fd_init_pair(NULL,elts[i],result); i--;}
   u8_free(elts);
   return result;
 }
 
 FD_EXPORT int fd_list_length(fdtype l)
 {
-  int len=0; fdtype scan=l; while (FD_PAIRP(scan)) {
-    len++; scan=FD_CDR(scan);}
+  int len = 0; fdtype scan = l; while (FD_PAIRP(scan)) {
+    len++; scan = FD_CDR(scan);}
   if (FD_EMPTY_LISTP(scan)) return len;
   else return -len;
 }
@@ -407,36 +404,36 @@ FD_EXPORT int fd_list_length(fdtype l)
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
-  fdtype *elts; int freedata=1;
-  if ((ptr == NULL)&&(data==NULL)) {
-    int i=0;
-    ptr=u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  fdtype *elts; int freedata = 1;
+  if ((ptr == NULL)&&(data == NULL)) {
+    int i = 0;
+    ptr = u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     /* This might be weird on non byte-addressed architectures */
-    elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     while (i < len) elts[i++]=FD_VOID;
-    freedata=0;}
-  else if (ptr==NULL) {
-    ptr=u8_zalloc(struct FD_VECTOR);
-    elts=data;}
-  else if (data==NULL) {
-      int i=0; elts=u8_mallocz(sizeof(fdtype)*len);
+    freedata = 0;}
+  else if (ptr == NULL) {
+    ptr = u8_zalloc(struct FD_VECTOR);
+    elts = data;}
+  else if (data == NULL) {
+      int i = 0; elts = u8_mallocz(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
-      freedata=1;}
-  else elts=data;
+      freedata = 1;}
+  else elts = data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length=len; 
-  ptr->fdvec_elts=elts; 
-  ptr->fdvec_free_elts=freedata;
+  ptr->fdvec_length = len; 
+  ptr->fdvec_elts = elts; 
+  ptr->fdvec_free_elts = freedata;
   return FDTYPE_CONS(ptr);
 }
 
 FD_EXPORT fdtype fd_make_nvector(int len,...)
 {
-  va_list args; int i=0;
+  va_list args; int i = 0;
   fdtype result, *elts;
   va_start(args,len);
-  result=fd_init_vector(NULL,len,NULL);
-  elts=FD_VECTOR_ELTS(result);
+  result = fd_init_vector(NULL,len,NULL);
+  elts = FD_VECTOR_ELTS(result);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
   return result;
@@ -444,14 +441,14 @@ FD_EXPORT fdtype fd_make_nvector(int len,...)
 
 FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 {
-  int i=0;
+  int i = 0;
   struct FD_VECTOR *ptr=
     u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
-  fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+  fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length=len; 
-  ptr->fdvec_elts=elts; 
-  ptr->fdvec_free_elts=0;
+  ptr->fdvec_length = len; 
+  ptr->fdvec_elts = elts; 
+  ptr->fdvec_free_elts = 0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
   else {while (i < len) {elts[i]=FD_VOID; i++;}}
@@ -462,34 +459,34 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 
 FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
-  fdtype *elts; int i=0, freedata=1;
-  if ((ptr == NULL)&&(data==NULL)) {
-    ptr=u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
-    elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
-    freedata=0;}
-  else if (ptr==NULL) {
-    ptr=u8_alloc(struct FD_VECTOR);
-    elts=data;}
-  else if (data==NULL) {
-      int i=0; elts=u8_zalloc(sizeof(fdtype)*len);
+  fdtype *elts; int i = 0, freedata = 1;
+  if ((ptr == NULL)&&(data == NULL)) {
+    ptr = u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+    freedata = 0;}
+  else if (ptr == NULL) {
+    ptr = u8_alloc(struct FD_VECTOR);
+    elts = data;}
+  else if (data == NULL) {
+      int i = 0; elts = u8_zalloc(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
-      freedata=1;}
+      freedata = 1;}
   else {
-    ptr=u8_alloc(struct FD_VECTOR);
-    elts=data;}
+    ptr = u8_alloc(struct FD_VECTOR);
+    elts = data;}
   FD_INIT_CONS(ptr,fd_rail_type);
-  if (data==NULL) while (i < len) elts[i++]=FD_VOID;
-  ptr->fdvec_length=len; 
-  ptr->fdvec_elts=elts; 
-  ptr->fdvec_free_elts=freedata;
+  if (data == NULL) while (i < len) elts[i++]=FD_VOID;
+  ptr->fdvec_length = len; 
+  ptr->fdvec_elts = elts; 
+  ptr->fdvec_free_elts = freedata;
   return FDTYPE_CONS(ptr);
 }
 
 FD_EXPORT fdtype fd_make_nrail(int len,...)
 {
-  va_list args; int i=0;
-  fdtype result=fd_init_rail(NULL,len,NULL);
-  fdtype *elts=FD_RAIL_ELTS(result);
+  va_list args; int i = 0;
+  fdtype result = fd_init_rail(NULL,len,NULL);
+  fdtype *elts = FD_RAIL_ELTS(result);
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
@@ -498,14 +495,14 @@ FD_EXPORT fdtype fd_make_nrail(int len,...)
 
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 {
-  int i=0;
-  struct FD_VECTOR *ptr=u8_mallocz
+  int i = 0;
+  struct FD_VECTOR *ptr = u8_mallocz
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
-  fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
+  fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
-  ptr->fdvec_length=len; 
-  ptr->fdvec_elts=elts; 
-  ptr->fdvec_free_elts=0;
+  ptr->fdvec_length = len; 
+  ptr->fdvec_elts = elts; 
+  ptr->fdvec_free_elts = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return FDTYPE_CONS(ptr);
 }
@@ -515,58 +512,58 @@ FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 FD_EXPORT fdtype fd_init_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
-  if ((ptr==NULL)&&(data==NULL))
+  if ((ptr == NULL)&&(data == NULL))
     return fd_make_packet(ptr,len,data);
   if (ptr == NULL) {
-    ptr=u8_alloc(struct FD_STRING);
-    ptr->fd_freebytes=1;}
+    ptr = u8_alloc(struct FD_STRING);
+    ptr->fd_freebytes = 1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
-    u8_byte *consed=u8_mallocz(len+1);
+    u8_byte *consed = u8_mallocz(len+1);
     memset(consed,0,len+1);
-    data=consed;}
-  ptr->fd_bytelen=len; ptr->fd_bytes=data;
+    data = consed;}
+  ptr->fd_bytelen = len; ptr->fd_bytes = data;
   return FDTYPE_CONS(ptr);
 }
 
 FD_EXPORT fdtype fd_make_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
-  u8_byte *bytes=NULL; int freedata=1;
+  u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr=u8_mallocz(sizeof(struct FD_STRING)+len+1);
-    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_mallocz(sizeof(struct FD_STRING)+len+1);
+    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
       bytes[len]='\0';}
     else memset(bytes,0,len+1);
-    freedata=0;}
-  else if (data==NULL) {
-    bytes=u8_malloc(len+1);}
-  else bytes=(unsigned char *)data;
+    freedata = 0;}
+  else if (data == NULL) {
+    bytes = u8_malloc(len+1);}
+  else bytes = (unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
+  ptr->fd_bytelen = len; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
   return FDTYPE_CONS(ptr);
 }
 
 FD_EXPORT fdtype fd_bytes2packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
-  u8_byte *bytes=NULL; int freedata=(data!=NULL);
+  u8_byte *bytes = NULL; int freedata = (data!=NULL);
   if (ptr == NULL) {
-    ptr=u8_mallocz(sizeof(struct FD_STRING)+len+1);
-    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    ptr = u8_mallocz(sizeof(struct FD_STRING)+len+1);
+    bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
       bytes[len]='\0';}
     else memset(bytes,0,len+1);
-    freedata=0;}
+    freedata = 0;}
   else {
-    bytes=u8_malloc(len);
-    if (data==NULL) memset(bytes,0,len);
+    bytes = u8_malloc(len);
+    if (data == NULL) memset(bytes,0,len);
     else memcpy(bytes,data,len);}
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freebytes=freedata;
+  ptr->fd_bytelen = len; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
   if (freedata) u8_free(data);
   return FDTYPE_CONS(ptr);
 }
@@ -578,7 +575,7 @@ fdtype fd_compound_descriptor_type;
 FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,...)
 {
-  va_list args; int i=0; fdtype *write, *limit, initfn=FD_FALSE;
+  va_list args; int i = 0; fdtype *write, *limit, initfn = FD_FALSE;
   if (FD_EXPECT_FALSE((n<0)||(n>=256))) {
     /* Consume the arguments, just in case the implementation is a
        little flaky. */
@@ -586,24 +583,24 @@ FD_EXPORT fdtype fd_init_compound
     while (i<n) {va_arg(args,fdtype); i++;}
     return fd_type_error
       (_("positive byte"),"fd_init_compound",FD_SHORT2DTYPE(n));}
-  else if (p==NULL) {
-    if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
-    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
+  else if (p == NULL) {
+    if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
+    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) u8_init_mutex(&(p->compound_lock));
-  p->compound_typetag=fd_incref(tag); 
-  p->compound_ismutable=mutable; 
-  p->compound_isopaque=0;
-  p->fd_n_elts=n;
+  p->compound_typetag = fd_incref(tag); 
+  p->compound_ismutable = mutable; 
+  p->compound_isopaque = 0;
+  p->fd_n_elts = n;
   if (n>0) {
-    write=&(p->compound_0); limit=write+n;
+    write = &(p->compound_0); limit = write+n;
     va_start(args,n);
     while (write<limit) {
-      fdtype value=va_arg(args,fdtype);
-      *write=value; write++;}
+      fdtype value = va_arg(args,fdtype);
+      *write = value; write++;}
     va_end(args);
     if (FD_ABORTP(initfn)) {
-      write=&(p->compound_0);
+      write = &(p->compound_0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
     else return FDTYPE_CONS(p);}
@@ -613,24 +610,24 @@ FD_EXPORT fdtype fd_init_compound
 FD_EXPORT fdtype fd_init_compound_from_elts
   (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts)
 {
-  fdtype *write, *limit, *read=elts, initfn=FD_FALSE;
+  fdtype *write, *limit, *read = elts, initfn = FD_FALSE;
   if (FD_EXPECT_FALSE((n<0) || (n>=256)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
                          FD_SHORT2DTYPE(n));
-  else if (p==NULL) {
-    if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
-    else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
+  else if (p == NULL) {
+    if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
+    else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) u8_init_mutex(&(p->compound_lock));
-  p->compound_typetag=fd_incref(tag);
-  p->compound_ismutable=mutable;
-  p->fd_n_elts=n; p->compound_isopaque=0;
+  p->compound_typetag = fd_incref(tag);
+  p->compound_ismutable = mutable;
+  p->fd_n_elts = n; p->compound_isopaque = 0;
   if (n>0) {
-    write=&(p->compound_0); limit=write+n;
+    write = &(p->compound_0); limit = write+n;
     while (write<limit) {
-      *write=*read++; write++;}
+      *write = *read++; write++;}
     if (FD_ABORTP(initfn)) {
-      write=&(p->compound_0);
+      write = &(p->compound_0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
     else return FDTYPE_CONS(p);}
@@ -653,7 +650,7 @@ FD_EXPORT int fd_register_cons_type(char *name)
   if (fd_next_cons_type>=FD_MAX_CONS_TYPE) {
     u8_unlock_mutex(&type_registry_lock);
     return -1;}
-  typecode=fd_next_cons_type;
+  typecode = fd_next_cons_type;
   fd_next_cons_type++;
   fd_type_names[typecode]=name;
   u8_unlock_mutex(&type_registry_lock);
@@ -667,7 +664,7 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
   if (fd_next_immediate_type>=FD_MAX_IMMEDIATE_TYPE) {
     u8_unlock_mutex(&type_registry_lock);
     return -1;}
-  typecode=fd_next_immediate_type;
+  typecode = fd_next_immediate_type;
   fd_immediate_checkfns[typecode]=fn;
   fd_next_immediate_type++;
   fd_type_names[typecode]=name;
@@ -677,7 +674,7 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
 
 /* Compound type information */
 
-struct FD_COMPOUND_TYPEINFO *fd_compound_entries=NULL;
+struct FD_COMPOUND_TYPEINFO *fd_compound_entries = NULL;
 static u8_mutex compound_registry_lock;
 
 FD_EXPORT
@@ -686,36 +683,36 @@ struct FD_COMPOUND_TYPEINFO
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   u8_lock_mutex(&compound_registry_lock);
-  scan=fd_compound_entries;
+  scan = fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
       if (datap) {
-        fdtype data=*datap;
+        fdtype data = *datap;
         if (FD_VOIDP(scan->fd_compound_metadata)) {
-          fd_incref(data); scan->fd_compound_metadata=data;}
+          fd_incref(data); scan->fd_compound_metadata = data;}
         else {
-          fdtype data=*datap; fd_decref(data);
-          data=scan->fd_compound_metadata; fd_incref(data);
-          *datap=data;}}
+          fdtype data = *datap; fd_decref(data);
+          data = scan->fd_compound_metadata; fd_incref(data);
+          *datap = data;}}
       if (corep) {
-        if (scan->fd_compound_corelen<0) scan->fd_compound_corelen=*corep;
-        else *corep=scan->fd_compound_corelen;}
+        if (scan->fd_compound_corelen<0) scan->fd_compound_corelen = *corep;
+        else *corep = scan->fd_compound_corelen;}
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
-    else scan=scan->fd_compound_nextinfo;
-  newrec=u8_alloc(struct FD_COMPOUND_TYPEINFO);
+    else scan = scan->fd_compound_nextinfo;
+  newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
   memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
   if (datap) {
-    fdtype data=*datap; fd_incref(data); newrec->fd_compound_metadata=data;}
-  else newrec->fd_compound_metadata=FD_VOID;
-  newrec->fd_compound_corelen=((corep)?(*corep):(-1));
-  newrec->fd_compound_nextinfo=fd_compound_entries; 
-  newrec->compound_typetag=symbol;
-  newrec->fd_compound_parser=NULL; 
-  newrec->fd_compound_dumpfn=NULL; 
-  newrec->fd_compound_restorefn=NULL;
-  newrec->fd_compund_tablefns=NULL;
-  fd_compound_entries=newrec;
+    fdtype data = *datap; fd_incref(data); newrec->fd_compound_metadata = data;}
+  else newrec->fd_compound_metadata = FD_VOID;
+  newrec->fd_compound_corelen = ((corep)?(*corep):(-1));
+  newrec->fd_compound_nextinfo = fd_compound_entries; 
+  newrec->compound_typetag = symbol;
+  newrec->fd_compound_parser = NULL; 
+  newrec->fd_compound_dumpfn = NULL; 
+  newrec->fd_compound_restorefn = NULL;
+  newrec->fd_compund_tablefns = NULL;
+  fd_compound_entries = newrec;
   u8_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
@@ -725,39 +722,39 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
 {
   struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   u8_lock_mutex(&compound_registry_lock);
-  scan=fd_compound_entries;
+  scan = fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
       if (!(FD_VOIDP(data))) {
-        fdtype old_data=scan->fd_compound_metadata;
-        scan->fd_compound_metadata=fd_incref(data);
+        fdtype old_data = scan->fd_compound_metadata;
+        scan->fd_compound_metadata = fd_incref(data);
         fd_decref(old_data);}
-      if (core_slots>0) scan->fd_compound_corelen=core_slots;
+      if (core_slots>0) scan->fd_compound_corelen = core_slots;
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
-    else scan=scan->fd_compound_nextinfo;
-  newrec=u8_alloc(struct FD_COMPOUND_TYPEINFO);
+    else scan = scan->fd_compound_nextinfo;
+  newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
   memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
-  newrec->fd_compound_metadata=data;
-  newrec->fd_compound_corelen=core_slots;
-  newrec->compound_typetag=symbol;
-  newrec->fd_compound_nextinfo=fd_compound_entries; 
-  newrec->fd_compound_parser=NULL;
-  newrec->fd_compound_dumpfn=NULL;
-  newrec->fd_compound_restorefn=NULL;
-  newrec->fd_compund_tablefns=NULL;
-  fd_compound_entries=newrec;
+  newrec->fd_compound_metadata = data;
+  newrec->fd_compound_corelen = core_slots;
+  newrec->compound_typetag = symbol;
+  newrec->fd_compound_nextinfo = fd_compound_entries; 
+  newrec->fd_compound_parser = NULL;
+  newrec->fd_compound_dumpfn = NULL;
+  newrec->fd_compound_restorefn = NULL;
+  newrec->fd_compund_tablefns = NULL;
+  fd_compound_entries = newrec;
   u8_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
 
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(fdtype symbol)
 {
-  struct FD_COMPOUND_TYPEINFO *scan=fd_compound_entries;
+  struct FD_COMPOUND_TYPEINFO *scan = fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
       return scan;}
-    else scan=scan->fd_compound_nextinfo;
+    else scan = scan->fd_compound_nextinfo;
   return NULL;
 }
 
@@ -765,8 +762,8 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(fdtype symbol)
 
 FD_EXPORT fd_cons fd_cons_data(fdtype x)
 {
-  unsigned long as_int=(x&(~0x3));
-  void *as_addr=(void *) as_int;
+  unsigned long as_int = (x&(~0x3));
+  void *as_addr = (void *) as_int;
   return (fd_cons) as_addr;
 }
 
@@ -777,13 +774,13 @@ FD_EXPORT struct FD_PAIR *fd_pair_data(fdtype x)
 
 FD_EXPORT int _fd_find_elt(fdtype x,fdtype *v,int n)
 {
-  int i=0; while (i<n)
+  int i = 0; while (i<n)
     if (v[i]==x) return i;
     else i++;
   return -1;
 }
 
-int fd_ptr_debug_density=1;
+int fd_ptr_debug_density = 1;
 
 FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
 {
@@ -795,7 +792,7 @@ fd_exception get_pointer_exception(fdtype x)
   if (FD_OIDP(x)) return _("BadOIDPtr");
   else if (FD_CONSP(x)) return _("BadCONSPtr");
   else if (FD_IMMEDIATEP(x)) {
-    int ptype=FD_IMMEDIATE_TYPE(x);
+    int ptype = FD_IMMEDIATE_TYPE(x);
     if (ptype>=fd_next_immediate_type)
       return _("BadImmediateType");
     else switch (ptype) {
@@ -820,9 +817,9 @@ FD_EXPORT fdtype fd_badptr_err(fdtype result,u8_context cxt,u8_string details)
 
 static U8_MAYBE_UNUSED int some_false(fdtype arg)
 {
-  int some_false=0;
+  int some_false = 0;
   FD_DOELTS(elt,arg,count) {
-    if (FD_FALSEP(elt)) some_false=1;}
+    if (FD_FALSEP(elt)) some_false = 1;}
   return some_false;
 }
 
@@ -832,7 +829,7 @@ static U8_MAYBE_UNUSED int some_false(fdtype arg)
 void fd_init_cons_c()
 {
   int i;
-  i=0; while (i < FD_N_PTRLOCKS) {
+  i = 0; while (i < FD_N_PTRLOCKS) {
     u8_init_mutex(&_fd_ptr_locks[i]);
     i++;}
 
@@ -842,16 +839,16 @@ void fd_init_cons_c()
   u8_init_mutex(&compound_registry_lock);
   u8_init_mutex(&type_registry_lock);
 
-  i=0; while (i < FD_TYPE_MAX) fd_type_names[i++]=NULL;
-  i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
-  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4)
+  i = 0; while (i < FD_TYPE_MAX) fd_type_names[i++]=NULL;
+  i = 0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
+  i = 0; while (i<FD_MAX_IMMEDIATE_TYPES+4)
          fd_immediate_checkfns[i++]=NULL;
 
-  i=0; while (i < FD_TYPE_MAX) fd_recyclers[i++]=NULL;
-  i=0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;
-  i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
-  i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
-  i=0; while (i < FD_TYPE_MAX) fd_copiers[i++]=NULL;
+  i = 0; while (i < FD_TYPE_MAX) fd_recyclers[i++]=NULL;
+  i = 0; while (i < FD_TYPE_MAX) fd_unparsers[i++]=NULL;
+  i = 0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
+  i = 0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
+  i = 0; while (i < FD_TYPE_MAX) fd_copiers[i++]=NULL;
 
   fd_immediate_checkfns[fd_constant_type]=validate_constant;
 

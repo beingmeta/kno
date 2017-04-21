@@ -7,7 +7,7 @@
 
 /* Anatomy of a CONS
 
-    CONSES are dynamically allocated structures used by fdkbase for compound
+    CONSES are dynamically allocated structures used by Framer for compound
     objects.  CONSES can be any kind of structure, providing only that the
     first four bytes, an unsigned int called the "conshead," be reserved
     for FramerD's typing and reference counting information.  The lower seven
@@ -16,7 +16,7 @@
     longer needed.
 
     A reference counting garbage collector has known problems with
-    circular structures but fdkbase discourages such structures while
+    circular structures but Framer discourages such structures while
     providing a simple model which an effectively scale to large memory
     spaces.
 
@@ -41,7 +41,7 @@
     parameters.  That this means practically is that if you get a dtype
     pointer from a lower-cased function, you need to either dereference it
     (with FD_DECREF) or use another upper-case consuming operation on it
-    (such as FD_ADD_TO_CHOICE (see <fdkbase/choices.h>)).
+    (such as FD_ADD_TO_CHOICE (see <include/framerd/choices.h>)).
 
     Because the immediate type information on a dtype pointer distinguishes
     between CONSes and other types (which don't need to be reference
@@ -50,7 +50,7 @@
 
     MULTI THREADING: Reference counting is made threadsafe by using global
     mutexes to protect access to the conshead fields.  In order to reduce
-    contention, fdkbase uses a strategy called "hash locking" to regulate
+    contention, FramerC uses a strategy called "hash locking" to regulate
     access to the conshead of CONSes.  An array of mutexes, _fd_ptr_locks,
     and computes an offset into that array by shifting the structure
     address right 16 bits and taking a remainder modulo the number of
@@ -130,15 +130,15 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
 
 #if FD_INLINE_REFCOUNTS
 #define FD_INIT_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead=(FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
 #define FD_INIT_FRESH_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->conshead=(FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead=(FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((fd_raw_cons)ptr)->conshead=(FD_STATIC_INIT(type))
+  ((fd_raw_cons)ptr)->conshead = (FD_STATIC_INIT(type))
 #else
 #define FD_INIT_CONS(ptr,type) _FD_INIT_CONS((struct FD_RAW_CONS *)ptr,type)
 #define FD_INIT_FRESH_CONS(ptr,type) _FD_INIT_FRESH_CONS((struct FD_RAW_CONS *)ptr,type)
@@ -203,6 +203,15 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 #define FD_STATICP(x) ((!(FD_CONSP(x)))||(FD_STATIC_CONSP((fd_cons)x)))
 
+#define fd_getref(x) \
+  ((FD_CONSP(x)) ? \
+   ((FD_STATIC_CONSP(x)) ? (fd_deep_copy(x)) : (fd_incref(x)) ) : \
+   (x))
+#define fd_not_static(x) \
+  ((FD_CONSP(x)) ? \
+   ((FD_STATIC_CONSP(x)) ? (fd_copy(x)) : (x) ) : \
+   (x))
+
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
 
@@ -221,14 +230,6 @@ FD_EXPORT void fd_decref_vec(fdtype *vec,int n,int free_vec);
 #define FD_STRICT_COPY 8 /* Require methods for all objects */
 #define FD_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
 
-/*  Defining this causes a warning to be issued whenever a
-     reference count passes HUGE_REFCOUNT.  This is helpful
-     for rare occasions of reference count debugging.
-*/
-#ifndef HUGE_REFCOUNT
-#define HUGE_REFCOUNT 0
-#endif
-
 /* The consheader is a 32 bit value:
    The lower 7 bits are a cons typecode
    The remaining bits are a reference count, which is always >0
@@ -239,7 +240,7 @@ FD_EXPORT void fd_decref_vec(fdtype *vec,int n,int free_vec);
 #if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
 FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
 {
-  fd_consbits cb=atomic_load(&(x->conshead));
+  fd_consbits cb = atomic_load(&(x->conshead));
   if (cb>0xFFFFFF80) {
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
     return (fdtype)NULL;}
@@ -248,26 +249,29 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
     return (fdtype) x;}
   else {
     atomic_fetch_add(&(x->conshead),0x80);
-#if HUGE_REFCOUNT
-    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
-      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
-#endif
     return (fdtype) x;}
 }
 
 FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 {
-  fd_consbits cb=atomic_load(&(x->conshead));
+  fd_consbits cb = atomic_load(&(x->conshead));
   if (cb>=0xFFFFFF80) {
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
   else if (cb<0x80) {
     /* Static cons */}
   else {
-    atomic_fetch_sub(&(x->conshead),0x80);
-    fd_consbits dcb=atomic_load(&(x->conshead));
-    if (dcb<0x80) {
-      atomic_store(&(x->conshead),(dcb|0xFFFFFF80));
-      fd_recycle_cons((fd_raw_cons)x);}}
+    fd_consbits oldcb=atomic_fetch_sub(&(x->conshead),0x80);
+    if ((oldcb>=0x80)&&(oldcb<0x100)) {
+      /* If the modified consbits indicated a refcount of 1,
+	 we've reduced it to zero, so we recycle it. Otherwise,
+	 someone got in to free it or incref it in the meanwhile. */
+      atomic_store(&(x->conshead),((oldcb&0x7F)|0xFFFFFF80));
+      fd_recycle_cons((fd_raw_cons)x);}
+#if 0
+    if (oldcb!=cb)
+      u8_log(LOGWARN,"DecrefRace","cb=0x%x oldcb=0x%x",cb,oldcb);
+#endif
+  }
 }
 
 #elif FD_INLINE_REFCOUNTS
@@ -282,11 +286,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
     return (fdtype) x;}
   else {
     FD_LOCK_PTR(x);
-#if HUGE_REFCOUNT
-    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
-      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
-#endif
-    x->conshead=x->conshead+0x80;
+    x->conshead = x->conshead+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}
 }
@@ -301,7 +301,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
     FD_LOCK_PTR(x);
     if (FD_CONSBITS(x)>=0x100) {
       /* If it's still got a refcount > 1, just decrease it */
-      x->conshead=x->conshead-0x80;
+      x->conshead = x->conshead-0x80;
       FD_UNLOCK_PTR(x);}
     else {
       /* Someone else decref'd it before we got the lock, so we
@@ -440,13 +440,13 @@ typedef struct FD_PAIR *fd_pair;
   fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->cdr))
 
 /* These are not threadsafe and they don't worry about GC either */
-#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car=x
-#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr=x
+#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car = x
+#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr = x
 
 #define FD_DOLIST(x,list) \
-  fdtype x, _tmp=list; \
+  fdtype x, _tmp = list; \
   while ((FD_PAIRP(_tmp)) ? \
-         (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0)
+         (x = FD_CAR(_tmp),_tmp = FD_CDR(_tmp),1) : 0)
 
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr);
@@ -507,26 +507,26 @@ FD_EXPORT fdtype fd_make_nrail(int len,...);
 /* Generic-ish iteration macro */
 
 #define FD_DOELTS(evar,seq,counter)              \
-  fdtype _seq=seq, evar=FD_VOID, counter=0;      \
-  fdtype _scan=FD_VOID, *_elts;                  \
-  int _i=0, _islist=0, _lim=0, _ok=0;            \
+  fdtype _seq = seq, evar = FD_VOID, counter = 0;      \
+  fdtype _scan = FD_VOID, *_elts;                  \
+  int _i = 0, _islist = 0, _lim = 0, _ok = 0;            \
   if (FD_PAIRP(seq)) {                           \
-     _islist=1; _scan=_seq; _ok=1;}              \
+     _islist = 1; _scan=_seq; _ok = 1;}              \
   else if ((FD_VECTORP(_seq))||                  \
            (FD_RAILP(_seq))) {			 \
-    _lim=FD_VECTOR_LENGTH(_seq);                 \
-    _elts=FD_VECTOR_DATA(_seq);                  \
-    _ok=1;}                                      \
+    _lim = FD_VECTOR_LENGTH(_seq);                 \
+    _elts = FD_VECTOR_DATA(_seq);                  \
+    _ok = 1;}                                      \
   else if ((FD_EMPTY_LISTP(_seq))||              \
            (FD_EMPTY_CHOICEP(_seq))) {           \
-    _ok=-1;}                                     \
+    _ok = -1;}                                     \
   else u8_log(LOG_WARN,fd_TypeError,             \
               "Not a pair or vector: %q",_seq);  \
   if (_ok<0) {}                                  \
   else if (!(_ok)) {}                            \
   else while (((_islist)?(FD_PAIRP(_scan)):(counter<_lim))? \
-	      (evar=(_islist)?(FD_CAR(_scan)):(_elts[_i]),  \
-	       _scan=((_islist)?(FD_CDR(_scan)):(FD_VOID)), \
+	      (evar = (_islist)?(FD_CAR(_scan)):(_elts[_i]),  \
+	       _scan = ((_islist)?(FD_CDR(_scan)):(FD_VOID)), \
 	       counter=_i++,1):				    \
 	      (0))
 
@@ -546,7 +546,7 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_COMPOUND_DATA(x) \
   ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->elt0)
 #define FD_COMPOUND_TYPEP(x,tag)                        \
-  ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x)==tag))
+  ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x) == tag))
 #define FD_COMPOUND_ELTS(x) \
   (&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))
 #define FD_COMPOUND_LENGTH(x) \
@@ -777,8 +777,8 @@ static int cons_compare(fdtype x,fdtype y)
   else if (FD_ATOMICP(y))
     return 1;
   else {
-    fd_ptr_type xtype=FD_PTR_TYPE(x);
-    fd_ptr_type ytype=FD_PTR_TYPE(y);
+    fd_ptr_type xtype = FD_PTR_TYPE(x);
+    fd_ptr_type ytype = FD_PTR_TYPE(y);
     if (FD_NUMBER_TYPEP(xtype))
       if (FD_NUMBER_TYPEP(ytype))
 	return fd_numcompare(x,y);
@@ -789,11 +789,11 @@ static int cons_compare(fdtype x,fdtype y)
     else if (xtype>ytype) return 1;
     else switch (xtype) {
       case fd_pair_type: {
-	int car_cmp=FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
+	int car_cmp = FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
 	if (car_cmp == 0) return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
 	else return car_cmp;}
       case fd_string_type: {
-	int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
+	int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
 	if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
 	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       default:

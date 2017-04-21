@@ -44,8 +44,8 @@ typedef struct FD_FRAMEOP_STACK {
 typedef struct FD_FRAMEOP_STACK fd_frameop_stack;
 
 #define FD_INIT_FRAMEOP_STACK_ENTRY(fse,operation,f,s,v) \
-  fse.op=operation; fse.frame=f; fse.slotid=s; fse.value=v; \
-  fse.n_deps=fse.max_deps=0; fse.dependencies=NULL; fse.next=NULL
+  fse.op = operation; fse.frame = f; fse.slotid = s; fse.value = v; \
+  fse.n_deps = fse.max_deps = 0; fse.dependencies = NULL; fse.next = NULL
 
 FD_EXPORT int fd_in_progressp(struct FD_FRAMEOP_STACK *op);
 FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *);

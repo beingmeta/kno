@@ -26,8 +26,8 @@
 
 static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
-  fdtype *results=u8_alloc_n(n,fdtype);
-  int i=0; while (i<n) {
+  fdtype *results = u8_alloc_n(n,fdtype);
+  int i = 0; while (i<n) {
     results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],FD_EMPTY_CHOICE);
     i++;}
   return results;
@@ -35,21 +35,21 @@ static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
 
 static fdtype *htindex_fetchkeys(fd_index ix,int *n)
 {
-  fdtype keys=fd_hashtable_keys(&(ix->index_cache));
-  int n_elts=FD_CHOICE_SIZE(keys);
-  fdtype *result=u8_alloc_n(n_elts,fdtype);
-  int j=0;
+  fdtype keys = fd_hashtable_keys(&(ix->index_cache));
+  int n_elts = FD_CHOICE_SIZE(keys);
+  fdtype *result = u8_alloc_n(n_elts,fdtype);
+  int j = 0;
   FD_DO_CHOICES(key,keys) {result[j++]=key;}
-  *n=n_elts;
+  *n = n_elts;
   return result;
 }
 
 static int htindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
 {
-  struct FD_KEY_SIZE **key_size_ptr=(struct FD_KEY_SIZE **)ptr;
-  (*key_size_ptr)->keysizekey=fd_incref(key);
-  (*key_size_ptr)->keysizenvals=FD_CHOICE_SIZE(value);
-  *key_size_ptr=(*key_size_ptr)+1;
+  struct FD_KEY_SIZE **key_size_ptr = (struct FD_KEY_SIZE **)ptr;
+  (*key_size_ptr)->keysizekey = fd_incref(key);
+  (*key_size_ptr)->keysizenvals = FD_CHOICE_SIZE(value);
+  *key_size_ptr = (*key_size_ptr)+1;
   return 0;
 }
 
@@ -57,19 +57,19 @@ static struct FD_KEY_SIZE *htindex_fetchsizes(fd_index ix,int *n)
 {
   if (ix->index_cache.table_n_keys) {
     struct FD_KEY_SIZE *sizes, *write; int n_keys;
-    n_keys=ix->index_cache.table_n_keys;
-    sizes=u8_alloc_n(n_keys,FD_KEY_SIZE); write=&(sizes[0]);
+    n_keys = ix->index_cache.table_n_keys;
+    sizes = u8_alloc_n(n_keys,FD_KEY_SIZE); write = &(sizes[0]);
     fd_for_hashtable(&(ix->index_cache),htindex_fetchsizes_helper,
                      (void *)write,1);
-    *n=n_keys;
+    *n = n_keys;
     return sizes;}
   else {
-    *n=0; return NULL;}
+    *n = 0; return NULL;}
 }
 
 static int htindex_commit(fd_index ix)
 {
-  struct FD_HT_INDEX *mix=(struct FD_HT_INDEX *)ix;
+  struct FD_HT_INDEX *mix = (struct FD_HT_INDEX *)ix;
   if ((mix->index_source) && (mix->commitfn))
     return (mix->commitfn)(mix,mix->index_source);
   else {
@@ -82,38 +82,38 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
 {
   struct FD_STREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
-    rstream=fd_init_file_stream
+    rstream = fd_init_file_stream
       (&stream,file,FD_FILE_CREATE,-1,fd_driver_bufsize);
-    if (rstream==NULL) return -1;
-    stream.stream_flags&=~FD_STREAM_IS_CONSED;
+    if (rstream == NULL) return -1;
+    stream.stream_flags &= ~FD_STREAM_IS_CONSED;
     fd_write_dtype(fd_writebuf(&stream),(fdtype)&(ix->index_cache));
     fd_free_stream(&stream);
     return 1;}
   else return 0;
 }
 
-static fd_index open_htindex(u8_string file,fdkb_flags flags,fdtype opts)
+static fd_index open_htindex(u8_string file,fd_storage_flags flags,fdtype opts)
 {
-  struct FD_HT_INDEX *mix=(fd_mem_index)fd_make_ht_index(flags);
+  struct FD_HT_INDEX *mix = (fd_mem_index)fd_make_ht_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_STREAM stream;
   fd_init_file_stream
     (&stream,file,FD_FILE_READ,-1,fd_driver_bufsize);
-  stream.stream_flags&=~FD_STREAM_IS_CONSED;
-  lispval=fd_read_dtype(fd_readbuf(&stream));
+  stream.stream_flags &= ~FD_STREAM_IS_CONSED;
+  lispval = fd_read_dtype(fd_readbuf(&stream));
   fd_free_stream(&stream);
-  if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;
+  if (FD_HASHTABLEP(lispval)) h = (fd_hashtable)lispval;
   else {
     fd_decref(lispval);
     return NULL;}
   if (mix->indexid) u8_free(mix->indexid);
-  mix->indexid=u8_strdup(file);
-  mix->index_source=u8_realpath(file,NULL);
-  mix->commitfn=htindex_commitfn;
-  mix->index_cache.ht_n_buckets=h->ht_n_buckets;
-  mix->index_cache.table_n_keys=h->table_n_keys;
-  mix->index_cache.table_load_factor=h->table_load_factor;
-  mix->index_cache.ht_buckets=h->ht_buckets;
+  mix->indexid = u8_strdup(file);
+  mix->index_source = u8_realpath(file,NULL);
+  mix->commitfn = htindex_commitfn;
+  mix->index_cache.ht_n_buckets = h->ht_n_buckets;
+  mix->index_cache.table_n_keys = h->table_n_keys;
+  mix->index_cache.table_load_factor = h->table_load_factor;
+  mix->index_cache.ht_buckets = h->ht_buckets;
   u8_free(h);
   return (fd_index)mix;
 }
@@ -135,13 +135,13 @@ static struct FD_INDEX_HANDLER htindex_handler={
 };
 
 FD_EXPORT
-fd_index fd_make_ht_index(fdkb_flags flags)
+fd_index fd_make_ht_index(fd_storage_flags flags)
 {
-  struct FD_HT_INDEX *mix=u8_alloc(struct FD_HT_INDEX);
+  struct FD_HT_INDEX *mix = u8_alloc(struct FD_HT_INDEX);
   FD_INIT_STRUCT(mix,struct FD_HT_INDEX);
   fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",NULL,flags);
-  mix->index_cache_level=1;
-  U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDKB_READ_ONLY));
+  mix->index_cache_level = 1;
+  U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FD_STORAGE_READ_ONLY));
   fd_register_index((fd_index)mix);
   return (fd_index)mix;
 }

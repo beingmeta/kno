@@ -33,81 +33,81 @@ static fdtype exif2lisp(ExifEntry *exentry)
       return fd_make_packet(NULL,exentry->size-8,exentry->data+8);
     else return fdtype_string(exentry->data);
   case EXIF_FORMAT_BYTE: case EXIF_FORMAT_SBYTE: {
-    int n=exentry->components, i=0;
-    fdtype *lispdata=u8_alloc_n(n,fdtype);
-    /* ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent); */
-    /* int item_size=exif_format_get_size(exentry->format); */
-    unsigned char *exifdata=exentry->data;
-    if (exentry->format==EXIF_FORMAT_SBYTE)
+    int n = exentry->components, i = 0;
+    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    /* ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent); */
+    /* int item_size = exif_format_get_size(exentry->format); */
+    unsigned char *exifdata = exentry->data;
+    if (exentry->format == EXIF_FORMAT_SBYTE)
       while (i < n) {
-        char ival=exifdata[i];
+        char ival = exifdata[i];
         lispdata[i]=FD_SHORT2DTYPE(ival);
         i++;}
     else while (i < n) {
-      unsigned char ival=exifdata[i];
+      unsigned char ival = exifdata[i];
       lispdata[i]=FD_USHORT2DTYPE(ival);
       i++;}
     if (n==1) {
-      fdtype retval=lispdata[0]; u8_free(lispdata);
+      fdtype retval = lispdata[0]; u8_free(lispdata);
       return retval;}
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_SHORT: case EXIF_FORMAT_SSHORT: {
-    int n=exentry->components, i=0;
-    fdtype *lispdata=u8_alloc_n(n,fdtype);
-    ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
-    int item_size=exif_format_get_size(exentry->format);
-    unsigned char *exifdata=exentry->data;
-    if (exentry->format==EXIF_FORMAT_SSHORT)
+    int n = exentry->components, i = 0;
+    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent);
+    int item_size = exif_format_get_size(exentry->format);
+    unsigned char *exifdata = exentry->data;
+    if (exentry->format == EXIF_FORMAT_SSHORT)
       while (i < n) {
-        short ival=exif_get_short(exifdata+(i*item_size),o);
+        short ival = exif_get_short(exifdata+(i*item_size),o);
         lispdata[i]=FD_SHORT2DTYPE(ival);
         i++;}
     else while (i < n) {
-      unsigned short ival=exif_get_short(exifdata+(i*item_size),o);
+      unsigned short ival = exif_get_short(exifdata+(i*item_size),o);
       lispdata[i]=FD_USHORT2DTYPE(ival);
       i++;}
     if (n==1) {
-      fdtype retval=lispdata[0]; u8_free(lispdata);
+      fdtype retval = lispdata[0]; u8_free(lispdata);
       return retval;}
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_LONG: case EXIF_FORMAT_SLONG: {
-    int n=exentry->components, i=0;
-    fdtype *lispdata=u8_alloc_n(n,fdtype);
-    ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
-    int item_size=exif_format_get_size(exentry->format);
-    unsigned char *exifdata=exentry->data;
-    if (exentry->format==EXIF_FORMAT_SLONG)
+    int n = exentry->components, i = 0;
+    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent);
+    int item_size = exif_format_get_size(exentry->format);
+    unsigned char *exifdata = exentry->data;
+    if (exentry->format == EXIF_FORMAT_SLONG)
       while (i < n) {
-        long int ival=exif_get_long(exifdata+(i*item_size),o);
+        long int ival = exif_get_long(exifdata+(i*item_size),o);
         lispdata[i]=FD_INT(ival);
         i++;}
     else while (i < n) {
-      unsigned long int ival=exif_get_long(exifdata+(i*item_size),o);
+      unsigned long int ival = exif_get_long(exifdata+(i*item_size),o);
       lispdata[i]=FD_INT(ival);
       i++;}
     if (n==1) {
-      fdtype retval=lispdata[0]; u8_free(lispdata);
+      fdtype retval = lispdata[0]; u8_free(lispdata);
       return retval;}
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_RATIONAL: case EXIF_FORMAT_SRATIONAL: {
-    int n=exentry->components, i=0;
-    fdtype *lispdata=u8_alloc_n(n,fdtype);
-    ExifByteOrder o=exif_data_get_byte_order (exentry->parent->parent);
-    int item_size=exif_format_get_size(exentry->format);
-    unsigned char *exifdata=exentry->data;
-    if (exentry->format==EXIF_FORMAT_SRATIONAL)
+    int n = exentry->components, i = 0;
+    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent);
+    int item_size = exif_format_get_size(exentry->format);
+    unsigned char *exifdata = exentry->data;
+    if (exentry->format == EXIF_FORMAT_SRATIONAL)
       while (i < n) {
-        ExifSRational v=exif_get_srational(exifdata+(i*item_size),o);
-        double ratio=((double)(v.numerator))/((double)(v.denominator));
+        ExifSRational v = exif_get_srational(exifdata+(i*item_size),o);
+        double ratio = ((double)(v.numerator))/((double)(v.denominator));
         lispdata[i]=fd_init_double(NULL,ratio);
         i++;}
     else while (i < n) {
-      ExifRational v=exif_get_rational(exifdata+(i*item_size),o);
-        double ratio=((double)(v.numerator))/((double)(v.denominator));
+      ExifRational v = exif_get_rational(exifdata+(i*item_size),o);
+        double ratio = ((double)(v.numerator))/((double)(v.denominator));
         lispdata[i]=fd_init_double(NULL,ratio);
         i++;}
     if (n==1) {
-      fdtype retval=lispdata[0]; int i=1;
+      fdtype retval = lispdata[0]; int i = 1;
       while (i<n) {fd_decref(lispdata[i]); i++;}
       u8_free(lispdata);
       return retval;}
@@ -239,52 +239,52 @@ static fdtype exif_get(fdtype x,fdtype prop)
 {
   ExifData *exdata;
   if (FD_PACKETP(x))
-    exdata=exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
+    exdata = exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
   else if (FD_STRINGP(x)) {
     int n_bytes;
-    unsigned char *data=u8_filedata(FD_STRDATA(x),&n_bytes);
-    exdata=exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
+    unsigned char *data = u8_filedata(FD_STRDATA(x),&n_bytes);
+    exdata = exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
     u8_free(data);}
   else return fd_type_error(_("filename or packet"),"exif_get",x);
   if (FD_VOIDP(prop)) {
-    fdtype slotmap=fd_empty_slotmap();
-    struct TAGINFO *scan=taginfo;
+    fdtype slotmap = fd_empty_slotmap();
+    struct TAGINFO *scan = taginfo;
 
     while (scan->tagname) {
-      ExifEntry *exentry=exif_data_get_entry(exdata,scan->tagid);
+      ExifEntry *exentry = exif_data_get_entry(exdata,scan->tagid);
       if (exentry) {
-        fdtype val=exif2lisp(exentry);
+        fdtype val = exif2lisp(exentry);
         fd_add(slotmap,scan->tagsym,val);
         fd_decref(val);}
       scan++;}
     return slotmap;}
   else {
     ExifEntry *exentry; ExifTag tag;
-    fdtype tagval=fd_hashtable_get(&exif_tagmap,prop,FD_VOID);
+    fdtype tagval = fd_hashtable_get(&exif_tagmap,prop,FD_VOID);
     if (!(FD_FIXNUMP(tagval)))
       return fd_type_error(_("exif tag"),"exif_get",prop);
-    tag=(ExifTag)FD_FIX2INT(tagval);
-    exentry=exif_data_get_entry(exdata,tag);
+    tag = (ExifTag)FD_FIX2INT(tagval);
+    exentry = exif_data_get_entry(exdata,tag);
     if (exentry) return exif2lisp(exentry);
     else return FD_EMPTY_CHOICE;}
 }
 
-static long long int exif_init=0;
+static long long int exif_init = 0;
 
 FD_EXPORT int fd_init_exif()
 {
   fdtype exif_module;
-  struct TAGINFO *scan=taginfo;
+  struct TAGINFO *scan = taginfo;
   if (exif_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
-  exif_init=u8_millitime();
-  exif_module=fd_new_module("EXIF",(FD_MODULE_SAFE));
+  exif_init = u8_millitime();
+  exif_module = fd_new_module("EXIF",(FD_MODULE_SAFE));
   FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {
-    fdtype symbol=fd_intern(scan->tagname);
+    fdtype symbol = fd_intern(scan->tagname);
     fd_hashtable_store(&exif_tagmap,symbol,FD_INT(scan->tagid));
-    scan->tagsym=symbol;
+    scan->tagsym = symbol;
     scan++;}
   fd_idefn(exif_module,fd_make_cprim2("EXIF-GET",exif_get,1));
 

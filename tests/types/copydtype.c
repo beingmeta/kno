@@ -19,21 +19,21 @@ int main(int argc,char **argv)
 {
   fdtype object, copied;
   struct FD_STREAM *in, *out;
-  int bytes=0;
+  int bytes = 0;
   FD_DO_LIBINIT(fd_init_libfdtype);
-  in=fd_open_file(argv[1],FD_FILE_READ);
-  out=fd_open_file(argv[2],FD_FILE_CREATE);
-  object=fd_read_dtype(fd_readbuf(in));
+  in = fd_open_file(argv[1],FD_FILE_READ);
+  out = fd_open_file(argv[2],FD_FILE_CREATE);
+  object = fd_read_dtype(fd_readbuf(in));
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
-  copied=fd_copy(object); fd_decref(copied);
-  copied=fd_deep_copy(object);
-  bytes=fd_write_dtype(fd_writebuf(out),copied);
+  copied = fd_copy(object); fd_decref(copied);
+  copied = fd_deep_copy(object);
+  bytes = fd_write_dtype(fd_writebuf(out),copied);
   if (bytes<0)
     u8_fprintf(stdout,"Error writing %q\n",object);
   else u8_fprintf(stdout,"Wrote %d bytes:\n %q\n",bytes,object);
   fd_close_stream(out,FD_STREAM_CLOSE_FULL);
-  fd_decref(object); object=FD_VOID;
-  fd_decref(copied); copied=FD_VOID;
+  fd_decref(object); object = FD_VOID;
+  fd_decref(copied); copied = FD_VOID;
   exit(0);
 }
 

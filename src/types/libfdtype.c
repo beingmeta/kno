@@ -12,7 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include <libu8/u8rusage.h>
-#include <libu8/u8stdio.h>
+#include <libu8/u8logging.h>
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
@@ -21,16 +21,16 @@
 #include <duma.h>
 #endif
 
-static int libfdtype_initialized=0;
-double fd_load_start=-1.0;
+static int libfdtype_initialized = 0;
+double fd_load_start = -1.0;
 
 fd_exception fd_NoMethod=_("Method not supported");
 
-u8_string fd_version=FD_VERSION;
-u8_string fd_revision=FRAMERD_REVISION;
-int fd_major_version=FD_MAJOR_VERSION;
-int fd_minor_version=FD_MINOR_VERSION;
-int fd_release_version=FD_RELEASE_VERSION;
+u8_string fd_version = FD_VERSION;
+u8_string fd_revision = FRAMERD_REVISION;
+int fd_major_version = FD_MAJOR_VERSION;
+int fd_minor_version = FD_MINOR_VERSION;
+int fd_release_version = FD_RELEASE_VERSION;
 
 FD_EXPORT u8_string fd_getversion(){return FD_VERSION;}
 FD_EXPORT u8_string fd_getrevision(){return FRAMERD_REVISION;}
@@ -75,7 +75,7 @@ static void init_type_names()
   fd_type_names[fd_pair_type]=_("pair");
   fd_type_names[fd_compound_type]=_("compound");
   fd_type_names[fd_choice_type]=_("choice");
-  fd_type_names[fd_achoice_type]=_("achoice");
+  fd_type_names[fd_prechoice_type]=_("prechoice");
   fd_type_names[fd_vector_type]=_("vector");
   fd_type_names[fd_slotmap_type]=_("slotmap");
   fd_type_names[fd_schemap_type]=_("schemap");
@@ -109,7 +109,7 @@ static void init_type_names()
   fd_type_names[fd_bloom_filter_type]=_("bloom filter");
 }
 
-static int libfdtype_version=101;
+static int libfdtype_version = 101;
 
 FD_EXPORT void fd_init_cons_c(void);
 FD_EXPORT void fd_init_compare_c(void);
@@ -145,37 +145,36 @@ static double format_secs(double secs,char **units)
   if (secs>3600*24) {*units="d"; return secs/3600;}
   return secs;
 }
-FD_EXPORT void fd_status_message()
+FD_EXPORT void fd_log_status()
 {
   struct rusage usage;
-  int retval=u8_getrusage(0,&usage);
+  int retval = u8_getrusage(0,&usage);
   if (retval<0) {
     u8_log(LOGCRIT,_("RUSAGE Failed"),
-           "During a call to fd_status_message");
+           "During a call to fd_log_status");
     return;}
   else {
-    /* long membytes=(usage.ru_idrss+usage.ru_isrss); double memsize; */
-    ssize_t heapbytes=u8_memusage(); double heapsize;
+    /* long membytes = (usage.ru_idrss+usage.ru_isrss); double memsize; */
+    ssize_t heapbytes = u8_memusage(); double heapsize;
     char *stu="s", *utu="s", *etu="s", *heapu="KB";
-    double elapsed=format_secs(u8_elapsed_time(),&etu);
-    double usertime=format_secs
+    double elapsed = format_secs(u8_elapsed_time(),&etu);
+    double usertime = format_secs
       (usage.ru_utime.tv_sec+(((double)usage.ru_utime.tv_usec)/1000000),
        &utu);
-    double systime=format_secs
+    double systime = format_secs
       (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
        &stu);
     u8_byte prefix_buf[256];
-    u8_string prefix=u8_message_prefix(prefix_buf,256);
     if (heapbytes>10000000000) {
-      heapsize=floor(((double)heapbytes)/1000000000); heapu="GB";}
+      heapsize = floor(((double)heapbytes)/1000000000); heapu="GB";}
     else if (heapbytes>1500000) {
-      heapsize=floor(((double)heapbytes)/1000000); heapu="MB";}
-    else {heapsize=floor(((double)heapbytes)/1000); heapu="KB";}
-    u8_fprintf(stderr,
-               ";;; %s %s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
-               prefix,FRAMERD_REVISION,u8_appid(),getpid(),
-               elapsed,etu,usertime,utu,systime,stu,
-               heapsize,heapu);}
+      heapsize = floor(((double)heapbytes)/1000000); heapu="MB";}
+    else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
+    u8_log(-LOG_INFO,"Status",
+           "%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
+           FRAMERD_REVISION,u8_appid(),getpid(),
+           elapsed,etu,usertime,utu,systime,stu,
+           heapsize,heapu);}
 }
 
 FD_EXPORT int fd_init_libfdtype()
@@ -185,9 +184,9 @@ FD_EXPORT int fd_init_libfdtype()
   DUMA_SET_ALIGNMENT(4);
 #endif
   if (libfdtype_initialized) return libfdtype_initialized;
-  fd_load_start=u8_elapsed_time();
-  u8_version=u8_initialize();
-  libfdtype_initialized=libfdtype_version*u8_version;
+  fd_load_start = u8_elapsed_time();
+  u8_version = u8_initialize();
+  libfdtype_initialized = libfdtype_version*u8_version;
 
   u8_register_source_file(_FILEINFO);
 

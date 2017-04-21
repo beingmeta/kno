@@ -62,21 +62,21 @@ static int check_suffix(struct WORD w,char *suffix,int suffix_length)
     number of rules. */
 static int get_measure(char *string,char *end)
 {
-  int measure=0;
-  enum STATE {start, consonant, vowel} state=start;
+  int measure = 0;
+  enum STATE {start, consonant, vowel} state = start;
   while (string < end) {
     switch (state) {
     case start:
-      if (isvowel(*string)) {measure++; state=vowel;}
-      else state=consonant;
+      if (isvowel(*string)) {measure++; state = vowel;}
+      else state = consonant;
       string++; break; 
     case vowel:
-      if ((isvowel(*string)) || (*string == 'y')) state=vowel;
-      else state=consonant;
+      if ((isvowel(*string)) || (*string == 'y')) state = vowel;
+      else state = consonant;
       string++; break;
     case consonant:
       if ((isvowel(*string)) || (*string == 'y'))
-	{state=vowel; measure++;}
+	{state = vowel; measure++;}
       string++; break;}}
   if (state == vowel)
     return measure-1;
@@ -100,16 +100,16 @@ static struct WORD apply_rule
 	  w.spelling,w.length);
 #endif
   if (w.changed) return w;
-  else offset=check_suffix(w,suffix,suffix_length);
+  else offset = check_suffix(w,suffix,suffix_length);
 #if (DEBUGGING)
   fprintf(stderr,"Offset=%d\n",offset);
 #endif
   if (offset == 0) return w;
-  measure=get_measure(w.spelling,w.spelling+offset);
+  measure = get_measure(w.spelling,w.spelling+offset);
 #if (DEBUGGING)
   fprintf(stderr,"Measure=%d\n",measure);
 #endif
-  scan=w.spelling; limit=scan+offset;
+  scan = w.spelling; limit = scan+offset;
   switch (cond)
     {
     case none: break;
@@ -169,12 +169,12 @@ static struct WORD apply_rule
 	break;
       else return w;	
     }
-  w.changed=1;
+  w.changed = 1;
   if (single_letter) {
-    w.spelling[offset-1]='\0'; w.length=offset-1;}
+    w.spelling[offset-1]='\0'; w.length = offset-1;}
   else {
     strcpy(w.spelling+offset,replacement);
-    w.length=offset+strlen(replacement);}
+    w.length = offset+strlen(replacement);}
 #if (DEBUGGING)
   fprintf(stderr,"Rule produces %s(%d)\n",w.spelling,w.length);
 #endif
@@ -183,13 +183,13 @@ static struct WORD apply_rule
 
 static int canonicalize_string(const u8_byte *string,char *copy,int space)
 {
-  const u8_byte *read=string; char *write=copy, *limit=copy+space;
+  const u8_byte *read = string; char *write = copy, *limit = copy+space;
   while ((*read) && (write < limit))
     if (*read < 0x80) *write++=tolower(*read++);
     else {
-      int c=u8_sgetc(&read);
-      int bc=u8_base_char(c);
-      int lc=u8_tolower(bc);
+      int c = u8_sgetc(&read);
+      int bc = u8_base_char(c);
+      int lc = u8_tolower(bc);
       if (lc < 0x80) *write++=lc;
       else *write++=((lc)&0x7f); /* Yuck */}
   if (write < limit) {*write='\0'; return write-copy;}
@@ -207,97 +207,97 @@ FD_EXPORT
     the porter stem is usually not itself a word you would recognize. */
 char *fd_stem_english_word(const u8_byte *original)
 {
-  char *copy; int do1b1=0, len=strlen(original);
+  char *copy; int do1b1 = 0, len = strlen(original);
   struct WORD w;
   /* Initialize word */
   if (len==0) return u8_strdup(original);
-  else copy=u8_malloc(len+1);
+  else copy = u8_malloc(len+1);
   memset(copy,0,len+1);
-  w.spelling=copy;
-  w.length=canonicalize_string(original,copy,len+1);
-  w.changed=0;
+  w.spelling = copy;
+  w.length = canonicalize_string(original,copy,len+1);
+  w.changed = 0;
   if (w.length == 0) return copy;
   /* Step 1a rules */
-  if (w.changed == 0) w=apply_rule(w,none,"sses",4,"ss",0);
-  if (w.changed == 0) w=apply_rule(w,none,"ies",3,"i",0);
-  if (w.changed == 0) w=apply_rule(w,none,"ss",2,"ss",0);
-  if (w.changed == 0) w=apply_rule(w,none,"s",1,"",0);
+  if (w.changed == 0) w = apply_rule(w,none,"sses",4,"ss",0);
+  if (w.changed == 0) w = apply_rule(w,none,"ies",3,"i",0);
+  if (w.changed == 0) w = apply_rule(w,none,"ss",2,"ss",0);
+  if (w.changed == 0) w = apply_rule(w,none,"s",1,"",0);
   /* Step 1b rules */
-  w.changed=0;
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"eed",3,"ee",0);
+  w.changed = 0;
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"eed",3,"ee",0);
   if (w.changed == 0) {
-    w=apply_rule(w,contains_vowel,"ed",2,"",0);
-    if (w.changed == 0) w=apply_rule(w,contains_vowel,"ing",3,"",0);
-    if (w.changed) do1b1=1;}
+    w = apply_rule(w,contains_vowel,"ed",2,"",0);
+    if (w.changed == 0) w = apply_rule(w,contains_vowel,"ing",3,"",0);
+    if (w.changed) do1b1 = 1;}
   /* Step 1b1 rules */
   if (do1b1) {
-    w.changed=0;
-    w=apply_rule(w,none,"at",2,"ate",0);
-    if (w.changed == 0) w=apply_rule(w,none,"bl",2,"ble",0);
-    if (w.changed == 0) w=apply_rule(w,none,"iz",2,"ize",0);
-    if (w.changed == 0) w=apply_rule(w,double_const,"",0,"",1);
-    if (w.changed == 0) w=apply_rule(w,m1cvc,"",0,"e",0);}
+    w.changed = 0;
+    w = apply_rule(w,none,"at",2,"ate",0);
+    if (w.changed == 0) w = apply_rule(w,none,"bl",2,"ble",0);
+    if (w.changed == 0) w = apply_rule(w,none,"iz",2,"ize",0);
+    if (w.changed == 0) w = apply_rule(w,double_const,"",0,"",1);
+    if (w.changed == 0) w = apply_rule(w,m1cvc,"",0,"e",0);}
   /* Step 1c rules */
-  w.changed=0;
-  w=apply_rule(w,contains_vowel,"y",1,"i",0);
+  w.changed = 0;
+  w = apply_rule(w,contains_vowel,"y",1,"i",0);
   /* Step 2 rules */
-  w.changed=0;
-  w=apply_rule(w,pos_measure,"ational",7,"ate",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"tional",6,"tion",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"anci",4,"ance",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"izer",4,"ize",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"abli",4,"able",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"entli",5,"ent",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"eli",3,"e",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"ousli",5,"ous",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"ization",7,"ize",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"ation",5,"ate",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"ator",4,"ate",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"alism",5,"al",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"iveness",7,"ive",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"fulness",7,"ful",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"ousness",7,"ous",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"aliti",5,"ive",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"iviti",5,"ive",0);
-  if (w.changed == 0) w=apply_rule(w,pos_measure,"biliti",6,"bli",0);
+  w.changed = 0;
+  w = apply_rule(w,pos_measure,"ational",7,"ate",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"tional",6,"tion",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"anci",4,"ance",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"izer",4,"ize",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"abli",4,"able",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"entli",5,"ent",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"eli",3,"e",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"ousli",5,"ous",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"ization",7,"ize",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"ation",5,"ate",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"ator",4,"ate",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"alism",5,"al",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"iveness",7,"ive",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"fulness",7,"ful",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"ousness",7,"ous",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"aliti",5,"ive",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"iviti",5,"ive",0);
+  if (w.changed == 0) w = apply_rule(w,pos_measure,"biliti",6,"bli",0);
   /* Step 3 rules */
-  w.changed=0;
-  w=apply_rule(w,bigm,"icate",5,"ic",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ative",5,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"alize",5,"al",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"iciti",5,"ic",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ful",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ness",4,"",0);
+  w.changed = 0;
+  w = apply_rule(w,bigm,"icate",5,"ic",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ative",5,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"alize",5,"al",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"iciti",5,"ic",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ful",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ness",4,"",0);
   /* Step 4 rules */
-  w.changed=0;
-  w=apply_rule(w,bigm,"al",2,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ance",4,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ence",4,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"er",2,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ic",2,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"able",4,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ible",4,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ant",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"cement",6,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ment",4,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ent",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm_ts,"ion",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ou",2,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ism",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ate",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"iti",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ous",3,"",0);
+  w.changed = 0;
+  w = apply_rule(w,bigm,"al",2,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ance",4,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ence",4,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"er",2,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ic",2,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"able",4,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ible",4,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ant",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"cement",6,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ment",4,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ent",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm_ts,"ion",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ou",2,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ism",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ate",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"iti",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ous",3,"",0);
   /* Added rule to Porter parser: deductive -> deduc; deduce -> deduc, etc. */
-  if (w.changed == 0) w=apply_rule(w,bigm,"tive",4,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ive",3,"",0);
-  if (w.changed == 0) w=apply_rule(w,bigm,"ize",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"tive",4,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ive",3,"",0);
+  if (w.changed == 0) w = apply_rule(w,bigm,"ize",3,"",0);
   /* Step 5a rules */
-  w.changed=0;
-  w=apply_rule(w,bigm,"e",1,"",0);
-  if (w.changed == 0) w=apply_rule(w,m1notcvc,"e",1,"",0);
+  w.changed = 0;
+  w = apply_rule(w,bigm,"e",1,"",0);
+  if (w.changed == 0) w = apply_rule(w,m1notcvc,"e",1,"",0);
   /* Step 5b rules */
-  w.changed=0;
-  w=apply_rule(w,big_double_l,"",0,"",1);
+  w.changed = 0;
+  w = apply_rule(w,big_double_l,"",0,"",1);
   fflush(stderr);
   return copy;
 }

@@ -192,6 +192,7 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
+FD_EXPORT long long fd_fixopt(fdtype opts,u8_string name,int dflt);
 
 /* Signalling */
 

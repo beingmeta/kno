@@ -55,7 +55,13 @@ typedef int fd_stream_flags;
 #define FD_STREAM_MMAPPED        (FD_STREAM_FLAGS << 10)
 
 #define FD_DEFAULT_FILESTREAM_FLAGS \
-  (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO|FD_STREAM_CAN_SEEK)
+  (FD_STREAM_CAN_SEEK|FD_STREAM_OWNS_FILENO)
+
+#if HAVE_MMAP
+#define FD_STREAM_USEMMAP (FD_STREAM_MMAPPED)
+#else
+#define FD_STREAM_USEMMAP (0)
+#endif
 
 typedef struct FD_STREAM {
   FD_CONS_HEADER;
@@ -111,7 +117,8 @@ typedef enum fd_streamop {
   fd_stream_lockfile,
   fd_stream_unlockfile,
   fd_stream_setread,
-  fd_stream_setwrite } fd_streamop;
+  fd_stream_setwrite,
+  fd_stream_mmap } fd_streamop;
 
 #define FD_STREAM_FREEDATA    1
 #define FD_STREAM_NOCLOSE 2
@@ -182,10 +189,10 @@ FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
 	   (pos<s->stream_filepos)&&
 	   (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.buffer)))) {
     /* The location is in the read buffer, so just move the pointer */
-    fd_off_t delta=pos-s->stream_filepos;
-    s->buf.raw.bufpoint=s->buf.raw.buflim+delta;
+    fd_off_t delta = pos-s->stream_filepos;
+    s->buf.raw.bufpoint = s->buf.raw.buflim+delta;
     return pos;}
-  else if ((s->stream_filepos>=0)&&(fd_getpos(s)==pos))
+  else if ((s->stream_filepos>=0)&&(fd_getpos(s) == pos))
     return pos;
   else return _fd_setpos(s,pos);
 }
@@ -195,7 +202,7 @@ FD_FASTOP fd_off_t fd_endpos(fd_stream s)
   if (((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)
     return _fd_endpos(s);
   else if ((s->stream_filepos>=0)&&(s->stream_maxpos>=0)&&
-	   (s->stream_filepos==s->stream_maxpos))
+	   (s->stream_filepos == s->stream_maxpos))
     if ((s->buf.raw.buf_flags)&(FD_IS_WRITING))
       return s->stream_maxpos+(s->buf.raw.bufpoint-s->buf.raw.buffer);
     else return s->stream_maxpos;
@@ -253,28 +260,49 @@ FD_EXPORT fd_off_t fd_movepos(fd_stream s,fd_off_t delta);
 FD_EXPORT int stream_set_read(fd_stream s,int read);
 FD_EXPORT int fd_set_read(fd_stream s,int read);
 
-FD_EXPORT int fd_flush_stream(fd_stream s);
+FD_EXPORT ssize_t fd_flush_stream(fd_stream s);
 
 FD_EXPORT int fd_lockfile(fd_stream s);
 FD_EXPORT int fd_unlockfile(fd_stream s);
 
-FD_EXPORT void fd_stream_setbufsize(fd_stream s,size_t bufsiz);
+FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize);
 
 FD_EXPORT int _fd_lock_stream(fd_stream s);
 FD_EXPORT int _fd_unlock_stream(fd_stream s);
+FD_EXPORT int _fd_using_stream(fd_stream s);
 
 #if FD_INLINE_STREAMIO
 FD_FASTOP int fd_lock_stream(fd_stream s)
 {
-  long long tid=u8_threadid();
-  if (s->stream_locker==tid) {
-    u8_string id=s->streamid;
+  long long tid = u8_threadid();
+  if (s->stream_locker == tid) {
+    u8_string id = s->streamid;
     u8_log(LOGCRIT,"RecursiveStreamLock",
 	   "Recursively locking stream %s%s0x%llx",
 	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
 	   (U8_PTR2INT(s)));
     u8_seterr("RecursiveStreamLock","fd_lock_stream",id);
     return -1;}
+  else {
+    int rv = u8_lock_mutex(&(s->stream_lock));
+    if (rv) {
+      u8_seterr("MutexLockFailed","fd_lock_stream",s->streamid);
+      return -1;}
+    s->stream_locker = tid;
+    return 1;}
+}
+FD_FASTOP int fd_using_stream(fd_stream s)
+{
+  long long tid = u8_threadid();
+  if (s->stream_locker==0) {
+    int rv=u8_lock_mutex(&(s->stream_lock));
+    if (rv) {
+      u8_seterr("MutexLockFailed","fd_lock_stream",s->streamid);
+      return -1;}
+    s->stream_locker=tid;
+    return 1;}
+  else if (s->stream_locker==tid)
+    return 0;
   else {
     int rv=u8_lock_mutex(&(s->stream_lock));
     if (rv) {
@@ -285,24 +313,26 @@ FD_FASTOP int fd_lock_stream(fd_stream s)
 }
 FD_FASTOP int fd_unlock_stream(fd_stream s)
 {
-  long long tid=u8_threadid();
+  long long tid = u8_threadid();
   if (tid != s->stream_locker) {
-    u8_string id=s->streamid;
+    u8_string id = s->streamid;
     u8_log(LOGCRIT,"BadStreamUnlock",
            "Stream %s 0x%llx is owned by T%lld, not current T%lld",
 	   ((id)?(id):(U8S0())),((id)?((u8_string)" "):(U8S0())),
            (U8_PTR2INT(s)),s->stream_locker,tid);
-    u8_seterr("BadStreamUnlock","fd_lock_stream",s->streamid);
+    u8_seterr("BadStreamUnlock","fd_unlock_stream",s->streamid);
     return -1;}
-  s->stream_locker=0;
-  int rv=u8_unlock_mutex(&(s->stream_lock));
+  s->stream_locker = 0;
+  int rv = u8_unlock_mutex(&(s->stream_lock));
   if (rv) {
+    u8_seterr("MutexUnLockFailed","fd_unlock_stream",s->streamid);
     return -1;}
   return 1;
 }
 #else
 #define fd_lock_stream(s) _fd_lock_stream(s)
 #define fd_unlock_stream(s) _fd_unlock_stream(s)
+#define fd_using_stream(s) _fd_using_stream(s)
 #endif
 
 /* Exceptions */

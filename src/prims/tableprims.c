@@ -30,7 +30,7 @@ static fdtype tablep(fdtype arg)
 static fdtype haskeysp(fdtype arg)
 {
   if (FD_TABLEP(arg)) {
-    fd_ptr_type argtype=FD_PTR_TYPE(arg);
+    fd_ptr_type argtype = FD_PTR_TYPE(arg);
     if ((fd_tablefns[argtype])->keys)
       return FD_TRUE;
     else return FD_FALSE;}
@@ -57,7 +57,7 @@ static fdtype hashtablep(fdtype x)
 
 FD_EXPORT fdtype make_hashset(fdtype arg)
 {
-  struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
+  struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
   if (FD_VOIDP(arg))
     fd_init_hashset(h,17,FD_MALLOCD_CONS);
   else if (FD_UINTP(arg))
@@ -78,8 +78,8 @@ static fdtype pick_hashtable_size(fdtype count_arg)
 {
   if (!(FD_UINTP(count_arg)))
     return fd_type_error("uint","pick_hashtable_size",count_arg);
-  int count=FD_FIX2INT(count_arg);
-  int size=fd_get_hashtable_size(count);
+  int count = FD_FIX2INT(count_arg);
+  int size = fd_get_hashtable_size(count);
   return FD_INT(size);
 }
 
@@ -93,35 +93,35 @@ static fdtype reset_hashtable(fdtype table,fdtype n_slots)
 
 static fdtype static_hashtable(fdtype table)
 {
-  struct FD_HASHTABLE *ht=(fd_hashtable)table;
+  struct FD_HASHTABLE *ht = (fd_hashtable)table;
   fd_write_lock_table(ht);
   fd_static_hashtable(ht,-1);
-  ht->table_uselock=0;
+  ht->table_uselock = 0;
   fd_unlock_table(ht);
   return fd_incref(table);
 }
 
 static fdtype unsafe_hashtable(fdtype table)
 {
-  struct FD_HASHTABLE *ht=(fd_hashtable)table;
+  struct FD_HASHTABLE *ht = (fd_hashtable)table;
   fd_write_lock_table(ht);
-  ht->table_uselock=0;
+  ht->table_uselock = 0;
   fd_unlock_table(ht);
   return fd_incref(table);
 }
 
 static fdtype resafe_hashtable(fdtype table)
 {
-  struct FD_HASHTABLE *ht=(fd_hashtable)table;
+  struct FD_HASHTABLE *ht = (fd_hashtable)table;
   fd_write_lock_table(ht);
-  ht->table_uselock=1;
+  ht->table_uselock = 1;
   fd_unlock_table(ht);
   return fd_incref(table);
 }
 
 static fdtype hash_lisp_prim(fdtype x)
 {
-  int val=fd_hash_lisp(x);
+  int val = fd_hash_lisp(x);
   return FD_INT(val);
 }
 
@@ -147,10 +147,10 @@ static fdtype lisptryget(fdtype table,fdtype key,fdtype dflt)
       return fd_incref(key);
     else return fd_incref(dflt);
   else if (FD_CHOICEP(table)) {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(etable,table) {
       FD_DO_CHOICES(ekey,key) {
-        fdtype v=((FD_VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
+        fdtype v = ((FD_VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
                   (fd_get(etable,ekey,dflt)));
         FD_ADD_TO_CHOICE(results,v);}}
     if (FD_EMPTY_CHOICEP(results))
@@ -159,9 +159,9 @@ static fdtype lisptryget(fdtype table,fdtype key,fdtype dflt)
       else return fd_incref(dflt);
     else return results;}
   else if (FD_CHOICEP(key)) {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(ekey,key) {
-      fdtype v=((FD_VOIDP(dflt)) ? (fd_get(table,ekey,ekey)) :
+      fdtype v = ((FD_VOIDP(dflt)) ? (fd_get(table,ekey,ekey)) :
                 (fd_get(table,ekey,dflt)));
       FD_ADD_TO_CHOICE(results,v);}
     if (FD_EMPTY_CHOICEP(results))
@@ -193,7 +193,7 @@ static fdtype lispstore(fdtype table,fdtype key,fdtype val)
   if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_QCHOICEP(val)) {
-    struct FD_QCHOICE *qch=FD_XQCHOICE(val);
+    struct FD_QCHOICE *qch = FD_XQCHOICE(val);
     if (fd_store(table,key,qch->qchoiceval)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;}
@@ -207,7 +207,7 @@ static fdtype lisptest(fdtype table,fdtype key,fdtype val)
   else if (FD_EMPTY_CHOICEP(key)) return FD_FALSE;
   else if (FD_EMPTY_CHOICEP(val)) return FD_FALSE;
   else {
-    int retval=fd_test(table,key,val);
+    int retval = fd_test(table,key,val);
     if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_TRUE;
     else return FD_FALSE;}
@@ -220,23 +220,23 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
   else if (!(FD_UINTP(howmany_arg)))
     return fd_type_error(_("uint"),"lisp_pick_key",howmany_arg);
   else {
-    fdtype x=fd_getkeys(table);
-    fdtype normal=fd_make_simple_choice(x);
-    int n=FD_CHOICE_SIZE(normal), howmany=FD_FIX2INT(howmany_arg);
+    fdtype x = fd_getkeys(table);
+    fdtype normal = fd_make_simple_choice(x);
+    int n = FD_CHOICE_SIZE(normal), howmany = FD_FIX2INT(howmany_arg);
     if (!(FD_CHOICEP(normal))) return normal;
     if (n<=howmany) return normal;
     else if (howmany==1) {
-      int i=u8_random(n);
-      const fdtype *data=FD_CHOICE_DATA(normal);
-      fdtype result=data[i];
+      int i = u8_random(n);
+      const fdtype *data = FD_CHOICE_DATA(normal);
+      fdtype result = data[i];
       fd_incref(result); fd_decref(normal);
       return result;}
     else if (n) {
       struct FD_HASHSET h;
-      const fdtype *data=FD_CHOICE_DATA(normal);
-      int j=0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
+      const fdtype *data = FD_CHOICE_DATA(normal);
+      int j = 0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
       while (j<howmany) {
-        int i=u8_random(n);
+        int i = u8_random(n);
         if (fd_hashset_mod(&h,data[i],1)) j++;}
       fd_decref(normal);
       return fd_hashset_elts(&h,1);}
@@ -255,11 +255,11 @@ static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT(1);
+  if (FD_VOIDP(increment)) increment = FD_INT(1);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
         return FD_ERROR_VALUE;}
@@ -278,13 +278,13 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT(1);
+  if (FD_VOIDP(increment)) increment = FD_INT(1);
   else if (!(FD_NUMBERP(increment)))
     return fd_type_error("number","table_increment",increment);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
         return FD_ERROR_VALUE;}
@@ -297,16 +297,16 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
         fd_store(table,key,increment);
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
-        long long sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
-        fdtype lsum=FD_INT(sum);
+        long long sum = FD_FIX2INT(cur)+FD_FIX2INT(increment);
+        fdtype lsum = FD_INT(sum);
         fd_store(table,key,lsum);
         fd_decref(lsum);}
       else if (FD_NUMBERP(cur)) {
-        fdtype lsum=fd_plus(cur,increment);
+        fdtype lsum = fd_plus(cur,increment);
         fd_store(table,key,lsum);
         fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_increment",cur);}
@@ -321,12 +321,12 @@ static fdtype hashtable_increment_existing
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT(1);
+  if (FD_VOIDP(increment)) increment = FD_INT(1);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
-      fdtype keys=fd_make_simple_choice(key);
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      fdtype keys = fd_make_simple_choice(key);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
                                 fd_table_increment_if_present,
                                 n_elts,elts,increment)<0) {
@@ -349,13 +349,13 @@ static fdtype table_increment_existing
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT(1);
+  if (FD_VOIDP(increment)) increment = FD_INT(1);
   else if (!(FD_NUMBERP(increment)))
     return fd_type_error("number","table_increment_existing",increment);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
         return FD_ERROR_VALUE;}
@@ -368,15 +368,15 @@ static fdtype table_increment_existing
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
-        long long sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
-        fdtype lsum=FD_INT(sum);
+        long long sum = FD_FIX2INT(cur)+FD_FIX2INT(increment);
+        fdtype lsum = FD_INT(sum);
         fd_store(table,key,lsum);
         fd_decref(lsum);}
       else if (FD_NUMBERP(cur)) {
-        fdtype lsum=fd_plus(cur,increment);
+        fdtype lsum = fd_plus(cur,increment);
         fd_store(table,key,lsum);
         fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_increment_existing",cur);}
@@ -390,12 +390,12 @@ static fdtype hashtable_multiply(fdtype table,fdtype key,fdtype factor)
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT(2);
+  if (FD_VOIDP(factor)) factor = FD_INT(2);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
-      fdtype keys=fd_make_simple_choice(key);
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      fdtype keys = fd_make_simple_choice(key);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
                                 fd_table_multiply,
                                 n_elts,elts,factor)<0) {
@@ -417,13 +417,13 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT(1);
+  if (FD_VOIDP(factor)) factor = FD_INT(1);
   else if (!(FD_NUMBERP(factor)))
     return fd_type_error("number","table_multiply",factor);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_multiply,n_elts,elts,factor)<0) {
         return FD_ERROR_VALUE;}
@@ -435,11 +435,11 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
         fd_store(table,key,factor);
       else if (FD_NUMBERP(cur)) {
-        fdtype lsum=fd_multiply(cur,factor);
+        fdtype lsum = fd_multiply(cur,factor);
         fd_store(table,key,lsum);
         fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_multiply",cur);}
@@ -454,12 +454,12 @@ static fdtype hashtable_multiply_existing
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT(2);
+  if (FD_VOIDP(factor)) factor = FD_INT(2);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
-      fdtype keys=fd_make_simple_choice(key);
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      fdtype keys = fd_make_simple_choice(key);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
                                 fd_table_multiply_if_present,
                                 n_elts,elts,factor)<0) {
@@ -481,13 +481,13 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT(1);
+  if (FD_VOIDP(factor)) factor = FD_INT(1);
   else if (!(FD_NUMBERP(factor)))
     return fd_type_error("number","table_multiply_existing",factor);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_multiply_if_present,n_elts,elts,factor)<0) {
         return FD_ERROR_VALUE;}
@@ -499,10 +499,10 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if (FD_NUMBERP(cur)) {
-        fdtype lsum=fd_multiply(cur,factor);
+        fdtype lsum = fd_multiply(cur,factor);
         fd_store(table,key,lsum);
         fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_multiply_existing",cur);}
@@ -524,8 +524,8 @@ static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
     return fd_type_error("number","table_maximize",maxval);
   else if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
         return FD_ERROR_VALUE;}
@@ -537,7 +537,7 @@ static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
         fd_store(table,key,maxval);
       else if (FD_NUMBERP(cur)) {
@@ -560,8 +560,8 @@ static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
     return fd_type_error("number","table_maximize_existing",maxval);
   else if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
         return FD_ERROR_VALUE;}
@@ -573,7 +573,7 @@ static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if (FD_NUMBERP(cur)) {
         if (fd_numcompare(maxval,cur)>0) {
@@ -593,8 +593,8 @@ static fdtype hashtable_maximize(fdtype table,fdtype keys,fdtype maxval)
   else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
         return FD_ERROR_VALUE;}
@@ -615,8 +615,8 @@ static fdtype hashtable_maximize_existing(fdtype table,fdtype keys,fdtype maxval
   else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
         return FD_ERROR_VALUE;}
@@ -643,8 +643,8 @@ static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
     return fd_type_error("number","table_minimize",minval);
   else if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
         return FD_ERROR_VALUE;}
@@ -656,7 +656,7 @@ static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
         fd_store(table,key,minval);
       else if (FD_NUMBERP(cur)) {
@@ -679,8 +679,8 @@ static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
     return fd_type_error("number","table_minimize_existing",minval);
   else if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
         return FD_ERROR_VALUE;}
@@ -692,7 +692,7 @@ static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
     else return FD_VOID;
   else if (FD_TABLEP(table)) {
     FD_DO_CHOICES(key,keys) {
-      fdtype cur=fd_get(table,key,FD_VOID);
+      fdtype cur = fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if (FD_NUMBERP(cur)) {
         if (fd_numcompare(minval,cur)<0) {
@@ -712,8 +712,8 @@ static fdtype hashtable_minimize(fdtype table,fdtype keys,fdtype minval)
   else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
         return FD_ERROR_VALUE;}
@@ -735,8 +735,8 @@ static fdtype hashtable_minimize_existing(fdtype table,fdtype keys,fdtype minval
   else {}
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
-      const fdtype *elts=FD_CHOICE_DATA(keys);
-      int n_elts=FD_CHOICE_SIZE(keys);
+      const fdtype *elts = FD_CHOICE_DATA(keys);
+      int n_elts = FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
           (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
         return FD_ERROR_VALUE;}
@@ -765,20 +765,20 @@ static fdtype hashtable_skim(fdtype table,fdtype threshold,fdtype scope)
 
 static fdtype hashtable_buckets(fdtype table)
 {
-  fd_hashtable h=fd_consptr(fd_hashtable,table,fd_hashtable_type);
+  fd_hashtable h = fd_consptr(fd_hashtable,table,fd_hashtable_type);
   return FD_INT(h->ht_n_buckets);
 }
 
 static fdtype table_size(fdtype table)
 {
-  int size=fd_getsize(table);
+  int size = fd_getsize(table);
   if (size<0) return FD_ERROR_VALUE;
   else return FD_INT(size);
 }
 
 static fdtype table_modifiedp(fdtype table)
 {
-  int ismod=fd_modifiedp(table);
+  int ismod = fd_modifiedp(table);
   if (ismod == 0)
     return FD_FALSE;
   else if (ismod > 0)
@@ -788,9 +788,9 @@ static fdtype table_modifiedp(fdtype table)
 
 static fdtype table_set_modified(fdtype table,fdtype flag_arg)
 {
-  int flag=((FD_FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):
+  int flag = ((FD_FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):
     (FD_VOIDP(flag_arg))?(0):(1);
-  int retval=fd_set_modified(table,flag);
+  int retval = fd_set_modified(table,flag);
   if (retval == 0)
     return FD_FALSE;
   else if (retval > 0)
@@ -802,10 +802,10 @@ static fdtype table_max(fdtype tables,fdtype scope)
 {
   if (FD_EMPTY_CHOICEP(scope)) return scope;
   else {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(table,tables)
       if (FD_TABLEP(table)) {
-        fdtype result=fd_table_max(table,scope,NULL);
+        fdtype result = fd_table_max(table,scope,NULL);
         FD_ADD_TO_CHOICE(results,result);}
       else {
         fd_decref(results);
@@ -817,11 +817,11 @@ static fdtype table_maxval(fdtype tables,fdtype scope)
 {
   if (FD_EMPTY_CHOICEP(scope)) return scope;
   else {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(table,tables)
       if (FD_TABLEP(table)) {
-        fdtype maxval=FD_EMPTY_CHOICE;
-        fdtype result=fd_table_max(table,scope,&maxval);
+        fdtype maxval = FD_EMPTY_CHOICE;
+        fdtype result = fd_table_max(table,scope,&maxval);
         FD_ADD_TO_CHOICE(results,maxval);
         fd_decref(result);}
       else {
@@ -834,10 +834,10 @@ static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
 {
   if (FD_EMPTY_CHOICEP(scope)) return scope;
   else {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(table,tables)
       if (FD_TABLEP(table)) {
-        fdtype result=fd_table_skim(table,maxval,scope);
+        fdtype result = fd_table_skim(table,maxval,scope);
         FD_ADD_TO_CHOICE(results,result);}
       else {
         fd_decref(results);
@@ -849,18 +849,18 @@ static fdtype table_map_size(fdtype table)
 {
   if (FD_TYPEP(table,fd_hashtable_type)) {
     struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *) table;
-    long long n_values=fd_hashtable_map_size(ht);
+    long long n_values = fd_hashtable_map_size(ht);
     return FD_INT(n_values);}
   else if (FD_TYPEP(table,fd_hashset_type)) {
     struct FD_HASHSET *hs = (struct FD_HASHSET *) table;
     return FD_INT(hs->hs_n_elts);}
   else if (FD_TABLEP(table)) {
-    fdtype keys=fd_getkeys(table);
-    long long count=0;
+    fdtype keys = fd_getkeys(table);
+    long long count = 0;
     FD_DO_CHOICES(key,keys) {
-      fdtype v=fd_get(table,key,FD_VOID);
+      fdtype v = fd_get(table,key,FD_VOID);
       if (!(FD_VOIDP(v))) {
-        int size=FD_CHOICE_SIZE(v);
+        int size = FD_CHOICE_SIZE(v);
         count += size;}
       fd_decref(v);}
     fd_decref(keys);
@@ -872,28 +872,28 @@ static fdtype table_map_size(fdtype table)
 
 static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
 {
-  int n_keys=FD_CHOICE_SIZE(keys);
+  int n_keys = FD_CHOICE_SIZE(keys);
   fdtype table;
-  if (FD_FALSEP(hashp)) table=fd_empty_slotmap();
-  else if (FD_TRUEP(hashp)) table=fd_make_hashtable(NULL,n_keys*2);
+  if (FD_FALSEP(hashp)) table = fd_empty_slotmap();
+  else if (FD_TRUEP(hashp)) table = fd_make_hashtable(NULL,n_keys*2);
   else if (FD_FIXNUMP(hashp))
-    if (n_keys>(FD_FIX2INT(hashp))) table=fd_make_hashtable(NULL,n_keys*2);
-    else table=fd_empty_slotmap();
-  else if (n_keys>8) table=fd_make_hashtable(NULL,n_keys*2);
-  else table=fd_empty_slotmap();
+    if (n_keys>(FD_FIX2INT(hashp))) table = fd_make_hashtable(NULL,n_keys*2);
+    else table = fd_empty_slotmap();
+  else if (n_keys>8) table = fd_make_hashtable(NULL,n_keys*2);
+  else table = fd_empty_slotmap();
   if ((FD_SYMBOLP(fn)) || (FD_OIDP(fn))) {
     FD_DO_CHOICES(k,keys) {
-      fdtype v=((FD_OIDP(k)) ? (fd_frame_get(k,fn)) : (fd_get(k,fn,FD_EMPTY_CHOICE)));
+      fdtype v = ((FD_OIDP(k)) ? (fd_frame_get(k,fn)) : (fd_get(k,fn,FD_EMPTY_CHOICE)));
       fd_add(table,k,v);
       fd_decref(v);}}
   else if (FD_APPLICABLEP(fn)) {
     FD_DO_CHOICES(k,keys) {
-      fdtype v=fd_apply(fn,1,&k);
+      fdtype v = fd_apply(fn,1,&k);
       fd_add(table,k,v);
       fd_decref(v);}}
   else if (FD_TABLEP(fn)) {
     FD_DO_CHOICES(k,keys) {
-      fdtype v=fd_get(fn,k,FD_EMPTY_CHOICE);
+      fdtype v = fd_get(fn,k,FD_EMPTY_CHOICE);
       fd_add(table,k,v);
       fd_decref(v);}}
   else {
@@ -913,7 +913,7 @@ static fdtype hashsetp(fdtype x)
 
 static fdtype hashsetget(fdtype hs,fdtype key)
 {
-  int retval=fd_hashset_get((fd_hashset)hs,key);
+  int retval = fd_hashset_get((fd_hashset)hs,key);
   if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
@@ -921,14 +921,14 @@ static fdtype hashsetget(fdtype hs,fdtype key)
 
 static fdtype hashsetadd(fdtype hs,fdtype key)
 {
-  if ((FD_CHOICEP(hs))||(FD_ACHOICEP(hs))) {
-    fdtype results=FD_EMPTY_CHOICE;
+  if ((FD_CHOICEP(hs))||(FD_PRECHOICEP(hs))) {
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(h,hs) {
-      fdtype value=hashsetadd(h,key);
+      fdtype value = hashsetadd(h,key);
       FD_ADD_TO_CHOICE(results,value);}
     return results;}
   else {
-    int retval=fd_hashset_add((fd_hashset)hs,key);
+    int retval = fd_hashset_add((fd_hashset)hs,key);
     if (retval<0) return FD_ERROR_VALUE;
     else if (retval) return FD_INT(retval);
     else return FD_FALSE;}
@@ -943,7 +943,7 @@ static fdtype hashsetplus(fdtype hs,fdtype values)
 
 static fdtype hashsetdrop(fdtype hs,fdtype key)
 {
-  int retval=fd_hashset_drop((fd_hashset)hs,key);
+  int retval = fd_hashset_drop((fd_hashset)hs,key);
   if (retval<0) return FD_ERROR_VALUE;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
@@ -967,8 +967,8 @@ static fdtype hashsetelts(fdtype hs)
 
 static fdtype choice2hashset(fdtype arg)
 {
-  struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
-  int size=3*FD_CHOICE_SIZE(arg);
+  struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
+  int size = 3*FD_CHOICE_SIZE(arg);
   fd_init_hashset(h,((size<17) ? (17) : (size)),FD_MALLOCD_CONS);
   fd_hashset_add(h,arg);
   return FDTYPE_CONS(h);

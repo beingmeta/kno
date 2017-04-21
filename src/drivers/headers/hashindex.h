@@ -46,7 +46,7 @@ typedef struct FD_HASHINDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int fdkb_xformat, index_custom, table_n_keys;
+  unsigned int fd_storage_xformat, index_custom, table_n_keys;
   fd_offset_type index_offtype;
 
   /* This is used to store compressed keys and values. */
@@ -131,7 +131,6 @@ FD_EXPORT int fd_populate_hashindex
 FD_EXPORT int fd_make_hashindex
   (u8_string,int,unsigned int,unsigned int,
    fdtype,fdtype,time_t,time_t);
-FD_EXPORT int fd_hashindex_bucket
-   (struct FD_HASHINDEX *hx,fdtype key,int modulate);
+FD_EXPORT ssize_t fd_hashindex_bucket(fdtype index,fdtype key,ssize_t modulate);
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
 FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *ix);

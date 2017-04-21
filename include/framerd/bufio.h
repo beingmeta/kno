@@ -56,6 +56,7 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 #define FD_BUFFER_IS_MALLOCD (FD_BUFIO_FLAGS << 1)
 #define FD_IN_STREAM         (FD_BUFIO_FLAGS << 2)
 #define FD_BUFFER_NO_FLUSH   (FD_BUFIO_FLAGS << 3)
+#define FD_BUFFER_NO_GROW    (FD_BUFIO_FLAGS << 4)
 #define FD_BUFIO_MAX_FLAG    (FD_BUFIO_FLAGS << 10)
 
 #define FD_ISWRITING(buf) (((buf)->buf_flags)&(FD_IS_WRITING))
@@ -65,25 +66,25 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* These are for input or output */
 #define FD_INIT_BYTE_OUTBUF(bo,sz)			\
-  (bo)->bufwrite=(bo)->buffer=u8_malloc(sz);		\
-  (bo)->buflim=(bo)->buffer+sz;			\
-  (bo)->buflen=sz;					\
-  (bo)->buf_flags=FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;	\
-  (bo)->buf_fillfn=NULL; (bo)->buf_flushfn=NULL;
+  (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);		\
+  (bo)->buflim = (bo)->buffer+sz;			\
+  (bo)->buflen = sz;					\
+  (bo)->buf_flags = FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;	\
+  (bo)->buf_fillfn = NULL; (bo)->buf_flushfn = NULL;
 
 #define FD_INIT_FIXED_BYTE_OUTBUF(bo,buf,sz) \
-  (bo)->bufwrite=(bo)->buffer=buf;	     \
-  (bo)->buflim=(bo)->buffer+sz;	     \
-  (bo)->buf_fillfn=NULL;		     \
-  (bo)->buf_flushfn=NULL;		     \
-  (bo)->buf_flags=FD_IS_WRITING
+  (bo)->bufwrite = (bo)->buffer = buf;	     \
+  (bo)->buflim = (bo)->buffer+sz;	     \
+  (bo)->buf_fillfn = NULL;		     \
+  (bo)->buf_flushfn = NULL;		     \
+  (bo)->buf_flags = FD_IS_WRITING
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz) \
-  (bi)->bufread=(bi)->buffer=b;   \
-  (bi)->buflim=b+(sz);		    \
-  (bi)->buf_fillfn=NULL;	    \
-  (bi)->buf_flushfn=NULL;	    \
-  (bi)->buf_flags=0;
+  (bi)->bufread = (bi)->buffer = b;   \
+  (bi)->buflim = b+(sz);		    \
+  (bi)->buf_fillfn = NULL;	    \
+  (bi)->buf_flushfn = NULL;	    \
+  (bi)->buf_flags = 0;
 
 /* Utility functions for growing buffers */
 
@@ -145,10 +146,10 @@ FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *,fd_8bytes);
 #define fd_write_4bytes(buf,w)				\
   ((FD_EXPECT_FALSE(FD_ISREADING(buf))) ? (fd_isreadbuf(buf)) : \
    ((FD_EXPECT_TRUE((buf)->bufwrite+4 < (buf)->buflim)) ?	\
-    (*((buf)->bufwrite++)=((unsigned char)((w>>24)&0xFF)),	\
-     *((buf)->bufwrite++)=((unsigned char)((w>>16)&0xFF)),	\
-     *((buf)->bufwrite++)=((unsigned char)((w>>8)&0xFF)),	\
-     *((buf)->bufwrite++)=((unsigned char)((w>>0)&0xFF)),	\
+    (*((buf)->bufwrite++) = ((unsigned char)((w>>24)&0xFF)),	\
+     *((buf)->bufwrite++) = ((unsigned char)((w>>16)&0xFF)),	\
+     *((buf)->bufwrite++) = ((unsigned char)((w>>8)&0xFF)),	\
+     *((buf)->bufwrite++) = ((unsigned char)((w>>0)&0xFF)),	\
      4)								\
     : (_fd_write_4bytes((buf),w))))
 
@@ -156,14 +157,14 @@ FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *,fd_8bytes);
 #define fd_write_8bytes(s,w)			     \
   ((FD_EXPECT_FALSE(FD_ISREADING(s))) ? (fd_isreadbuf(s)) :	\
    ((FD_EXPECT_TRUE(((s)->bufwrite)+8<(s)->buflim)) ?		\
-    ((*(s->bufwrite++)=(((_ull(w))>>56)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>48)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>40)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>32)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>24)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>16)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>8)&0xFF)),			\
-     (*(s->bufwrite++)=(((_ull(w))>>0)&0xFF))) :		\
+    ((*(s->bufwrite++) = (((_ull(w))>>56)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>48)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>40)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>32)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>24)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>16)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>8)&0xFF)),			\
+     (*(s->bufwrite++) = (((_ull(w))>>0)&0xFF))) :		\
     (_fd_write_8bytes((s),(_ull(w))))))
 
 #define fd_write_bytes(buf,bvec,len)  \
@@ -340,8 +341,8 @@ FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_INBUF *buf)
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,4)) {
-    fd_8bytes value=fd_get_4bytes(buf->bufread);
-    buf->bufread=buf->bufread+4;
+    fd_8bytes value = fd_get_4bytes(buf->bufread);
+    buf->bufread = buf->bufread+4;
     return value;}
   else return _fd_read_4bytes(buf);
 }
@@ -351,8 +352,8 @@ FD_FASTOP fd_8bytes fd_read_8bytes(struct FD_INBUF *buf)
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,8)) {
-    fd_8bytes value=fd_get_8bytes(buf->bufread);
-    buf->bufread=buf->bufread+8;
+    fd_8bytes value = fd_get_8bytes(buf->bufread);
+    buf->bufread = buf->bufread+8;
     return value;}
   else return _fd_read_8bytes(buf);
 }
@@ -364,16 +365,16 @@ FD_FASTOP int fd_read_bytes
     return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,len)) {
     memcpy(bytes,buf->bufread,len);
-    buf->bufread=buf->bufread+len;
+    buf->bufread = buf->bufread+len;
     return len;}
   else return -1;
 }
 FD_FASTOP fd_8bytes fd_read_zint(struct FD_INBUF *s)
 {
-  fd_8bytes result=0; int probe;
-  while ((probe=(fd_read_byte(s))))
+  fd_8bytes result = 0; int probe;
+  while ((probe = (fd_read_byte(s))))
     if (probe<0) return -1;
-    else if (probe&0x80) result=result<<7|(probe&0x7F);
+    else if (probe&0x80) result = result<<7|(probe&0x7F);
     else break;
   return result<<7|probe;
 }

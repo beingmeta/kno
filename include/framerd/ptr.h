@@ -6,12 +6,12 @@
 
    This file implements the basic structures, macros, and function
     prototypes for dealing with dtype pointers as implemented for the
-    fdkbase library
+    FramerC library
 */
 
 /* THE ANATOMY OF A POINTER
 
-   The fdkbase library is built on a dynamically typed "lisp-like" data
+   The FramerC library is built on a dynamically typed "lisp-like" data
    model which uses an internal pointer format designed for efficency in
    the normal cases and easy extensibility to more advanced cases.
 
@@ -28,9 +28,10 @@
     alignment on 4-byte word boundaries, enables dtype pointers to be
     direclty used as structure pointers and vice versa.  A CONS
     pointer is exactly such a memory reference.  The detailed
-    implementation of CONSes is described at the head of <fdkbase/cons.h>,
-    but it is basically a block of memory whose first 4 bytes encode a
-    25-bit reference count and a 7-bit type code.
+    implementation of CONSes is described at the head of
+    <include/framerd/cons.h>, but it is basically a block of memory
+    whose first 4 bytes encode a 25-bit reference count and a 7-bit
+    type code.
 
     The IMMEDIATE type is used to represent a number of "constant" data
     types, including booleans, special values (error codes, etc), unicode
@@ -40,7 +41,7 @@
 
     The FIXNUM base pointer type is used for small magnitude signed
     integers.  Rather than using a two's complement representation for
-    negative numbers, fdkbase uses the 32nd bit (the high order bit on 32
+    negative numbers, FramerC uses the 32nd bit (the high order bit on 32
     bit architectures) as a sign bit and stores the absolute magnitude
     in the remainder of the word (down to the two bits of type code.
     For positive numbers, converting between C ints dtype fixnums is
@@ -115,66 +116,66 @@ FD_EXPORT fd_exception fd_BadPtr;
 #define fd_oid_ptr_type (3)
 
 typedef enum FD_PTR_TYPE {
-  fd_cons_type=0, fd_immediate_type=1,
-  fd_fixnum_type=2, fd_oid_type=3,
+  fd_cons_type = 0, fd_immediate_type = 1,
+  fd_fixnum_type = 2, fd_oid_type = 3,
 
-  fd_constant_type=FD_IMMEDIATE_TYPECODE(0),
-  fd_character_type=FD_IMMEDIATE_TYPECODE(1),
-  fd_symbol_type=FD_IMMEDIATE_TYPECODE(2),
+  fd_constant_type = FD_IMMEDIATE_TYPECODE(0),
+  fd_character_type = FD_IMMEDIATE_TYPECODE(1),
+  fd_symbol_type = FD_IMMEDIATE_TYPECODE(2),
   /* Reserved as constants */
-  fd_fcnid_type=FD_IMMEDIATE_TYPECODE(3),
-  fd_lexref_type=FD_IMMEDIATE_TYPECODE(4),
-  fd_opcode_type=FD_IMMEDIATE_TYPECODE(5),
-  fd_type_type=FD_IMMEDIATE_TYPECODE(6),
-  fd_cdrcode_type=FD_IMMEDIATE_TYPECODE(7),
+  fd_fcnid_type = FD_IMMEDIATE_TYPECODE(3),
+  fd_lexref_type = FD_IMMEDIATE_TYPECODE(4),
+  fd_opcode_type = FD_IMMEDIATE_TYPECODE(5),
+  fd_type_type = FD_IMMEDIATE_TYPECODE(6),
+  fd_cdrcode_type = FD_IMMEDIATE_TYPECODE(7),
 
-  fd_string_type=FD_CONS_TYPECODE(0),
-  fd_packet_type=FD_CONS_TYPECODE(1),
-  fd_secret_type=FD_CONS_TYPECODE(2),
-  fd_bigint_type=FD_CONS_TYPECODE(3),
-  fd_pair_type=FD_CONS_TYPECODE(4),
+  fd_string_type = FD_CONS_TYPECODE(0),
+  fd_packet_type = FD_CONS_TYPECODE(1),
+  fd_secret_type = FD_CONS_TYPECODE(2),
+  fd_bigint_type = FD_CONS_TYPECODE(3),
+  fd_pair_type = FD_CONS_TYPECODE(4),
 
-  fd_compound_type=FD_CONS_TYPECODE(5),
-  fd_choice_type=FD_CONS_TYPECODE(6),
-  fd_achoice_type=FD_CONS_TYPECODE(7),
-  fd_qchoice_type=FD_CONS_TYPECODE(8),
-  fd_vector_type=FD_CONS_TYPECODE(9),
-  fd_rail_type=FD_CONS_TYPECODE(10),
-  fd_numeric_vector_type=FD_CONS_TYPECODE(11),
+  fd_compound_type = FD_CONS_TYPECODE(5),
+  fd_choice_type = FD_CONS_TYPECODE(6),
+  fd_prechoice_type = FD_CONS_TYPECODE(7),
+  fd_qchoice_type = FD_CONS_TYPECODE(8),
+  fd_vector_type = FD_CONS_TYPECODE(9),
+  fd_rail_type = FD_CONS_TYPECODE(10),
+  fd_numeric_vector_type = FD_CONS_TYPECODE(11),
 
-  fd_slotmap_type=FD_CONS_TYPECODE(12),
-  fd_schemap_type=FD_CONS_TYPECODE(13),
-  fd_hashtable_type=FD_CONS_TYPECODE(14),
-  fd_hashset_type=FD_CONS_TYPECODE(15),
+  fd_slotmap_type = FD_CONS_TYPECODE(12),
+  fd_schemap_type = FD_CONS_TYPECODE(13),
+  fd_hashtable_type = FD_CONS_TYPECODE(14),
+  fd_hashset_type = FD_CONS_TYPECODE(15),
 
   /* Evaluator/apply types, defined here to be constant */
-  fd_primfcn_type=FD_CONS_TYPECODE(16),
-  fd_environment_type=FD_CONS_TYPECODE(17),
-  fd_specform_type=FD_CONS_TYPECODE(18),
-  fd_macro_type=FD_CONS_TYPECODE(19),
-  fd_dtproc_type=FD_CONS_TYPECODE(20),
-  fd_tailcall_type=FD_CONS_TYPECODE(21),
-  fd_sproc_type=FD_CONS_TYPECODE(22),
-  fd_bytecode_type=FD_CONS_TYPECODE(23),
-  fd_stackframe_type=FD_CONS_TYPECODE(24),
-  fd_ffi_type=FD_CONS_TYPECODE(25),
-  fd_error_type=FD_CONS_TYPECODE(26),
+  fd_primfcn_type = FD_CONS_TYPECODE(16),
+  fd_environment_type = FD_CONS_TYPECODE(17),
+  fd_specform_type = FD_CONS_TYPECODE(18),
+  fd_macro_type = FD_CONS_TYPECODE(19),
+  fd_dtproc_type = FD_CONS_TYPECODE(20),
+  fd_tailcall_type = FD_CONS_TYPECODE(21),
+  fd_sproc_type = FD_CONS_TYPECODE(22),
+  fd_bytecode_type = FD_CONS_TYPECODE(23),
+  fd_stackframe_type = FD_CONS_TYPECODE(24),
+  fd_ffi_type = FD_CONS_TYPECODE(25),
+  fd_error_type = FD_CONS_TYPECODE(26),
 
-  fd_complex_type=FD_CONS_TYPECODE(27),
-  fd_rational_type=FD_CONS_TYPECODE(28),
-  fd_flonum_type=FD_CONS_TYPECODE(29),
-  fd_timestamp_type=FD_CONS_TYPECODE(30),
-  fd_uuid_type=FD_CONS_TYPECODE(31),
+  fd_complex_type = FD_CONS_TYPECODE(27),
+  fd_rational_type = FD_CONS_TYPECODE(28),
+  fd_flonum_type = FD_CONS_TYPECODE(29),
+  fd_timestamp_type = FD_CONS_TYPECODE(30),
+  fd_uuid_type = FD_CONS_TYPECODE(31),
 
   /* Other types, also defined here to be constant*/
-  fd_mystery_type=FD_CONS_TYPECODE(32),
-  fd_port_type=FD_CONS_TYPECODE(33),
-  fd_stream_type=FD_CONS_TYPECODE(34),
-  fd_regex_type=FD_CONS_TYPECODE(35),
-  fd_consblock_type=FD_CONS_TYPECODE(36),
-  fd_rawptr_type=FD_CONS_TYPECODE(37),
-  fd_dtserver_type=FD_CONS_TYPECODE(38),
-  fd_bloom_filter_type=FD_CONS_TYPECODE(39)
+  fd_mystery_type = FD_CONS_TYPECODE(32),
+  fd_port_type = FD_CONS_TYPECODE(33),
+  fd_stream_type = FD_CONS_TYPECODE(34),
+  fd_regex_type = FD_CONS_TYPECODE(35),
+  fd_consblock_type = FD_CONS_TYPECODE(36),
+  fd_rawptr_type = FD_CONS_TYPECODE(37),
+  fd_dtserver_type = FD_CONS_TYPECODE(38),
+  fd_bloom_filter_type = FD_CONS_TYPECODE(39)
 
   } fd_ptr_type;
 
@@ -209,13 +210,13 @@ FD_EXPORT fdtype fd_badptr_err(fdtype badx,u8_context cxt,u8_string details);
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
 #define FD_PTR_MANIFEST_TYPE(x) ((x)&(0x3))
-#define FD_CONSP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_cons_ptr_type)
+#define FD_CONSP(x) ((FD_PTR_MANIFEST_TYPE(x)) == fd_cons_ptr_type)
 #define FD_ATOMICP(x) ((FD_PTR_MANIFEST_TYPE(x))!=fd_cons_ptr_type)
-#define FD_FIXNUMP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_fixnum_ptr_type)
-#define FD_IMMEDIATEP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_immediate_ptr_type)
-#define FD_OIDP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_oid_ptr_type)
+#define FD_FIXNUMP(x) ((FD_PTR_MANIFEST_TYPE(x)) == fd_fixnum_ptr_type)
+#define FD_IMMEDIATEP(x) ((FD_PTR_MANIFEST_TYPE(x)) == fd_immediate_ptr_type)
+#define FD_OIDP(x) ((FD_PTR_MANIFEST_TYPE(x)) == fd_oid_ptr_type)
 #define FD_INT_DATA(x) ((x)>>2)
-#define FD_EQ(x,y) ((x)==(y))
+#define FD_EQ(x,y) ((x) == (y))
 
 /* Basic cons structs */
 
@@ -296,7 +297,7 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     ((cast)NULL)))
 
 #define FD_NULL ((fdtype)(NULL))
-#define FD_NULLP(x) (((void *)x)==NULL)
+#define FD_NULLP(x) (((void *)x) == NULL)
 
 #define FDTYPE_IMMEDIATE(tcode,serial) \
   ((fdtype)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|fd_immediate_ptr_type))
@@ -315,10 +316,10 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #else
 static fd_ptr_type FD_PTR_TYPE(fdtype x)
 {
-  int type_field=(FD_PTR_MANIFEST_TYPE(x));
+  int type_field = (FD_PTR_MANIFEST_TYPE(x));
   switch (type_field) {
   case fd_cons_ptr_type: {
-    struct FD_CONS *cons=(struct FD_CONS *)x;
+    struct FD_CONS *cons = (struct FD_CONS *)x;
     return FD_CONS_TYPE(cons);}
   case fd_cons_immediate_type: return FD_IMMEDIATE_TYPE(x);
   default: return type_field;
@@ -338,11 +339,11 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 
 #define FD_MAKE_STATIC(ptr) \
   if (FD_CONSP(ptr))							\
-    (((struct FD_RAW_CONS *)ptr)->conshead)&=(FD_CONS_TYPE_MASK);	\
+    (((struct FD_RAW_CONS *)ptr)->conshead) &= (FD_CONS_TYPE_MASK);	\
   else {}
 
 #define FD_MAKE_CONS_STATIC(ptr)  \
-  ((struct FD_RAW_CONS *)ptr)->conshead &= FD_CONS_TYPE_MASK
+  ((struct FD_RAW_CONS *)ptr)->conshead  &=  FD_CONS_TYPE_MASK
 
 /* OIDs */
 
@@ -354,11 +355,11 @@ typedef struct FD_OID *fd_oid;
 #define FD_OID_LO(x) x.fd_oid_lo
 FD_FASTOP FD_OID FD_OID_PLUS(FD_OID x,unsigned int increment)
 {
-  x.fd_oid_lo=x.fd_oid_lo+increment;
+  x.fd_oid_lo = x.fd_oid_lo+increment;
   return x;
 }
-#define FD_SET_OID_HI(oid,hiw) oid.fd_oid_hi=hiw
-#define FD_SET_OID_LO(oid,low) oid.fd_oid_lo=low
+#define FD_SET_OID_HI(oid,hiw) oid.fd_oid_hi = hiw
+#define FD_SET_OID_LO(oid,low) oid.fd_oid_lo = low
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1.fd_oid_hi == oid2.fd_oid_hi) ? \
    ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) :			\
@@ -373,9 +374,9 @@ typedef unsigned int FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFU)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
-#define FD_SET_OID_HI(oid,hi) oid=(oid&0xFFFFFFFFUL)|((hi)<<32)
+#define FD_SET_OID_HI(oid,hi) oid = (oid&0xFFFFFFFFUL)|((hi)<<32)
 #define FD_SET_OID_LO(oid,lo) \
-  oid=((oid&0xFFFFFFFF00000000U)|(((FD_OID)lo)&0xFFFFFFFFU))
+  oid = ((oid&0xFFFFFFFF00000000U)|(((FD_OID)lo)&0xFFFFFFFFU))
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
@@ -386,9 +387,9 @@ typedef unsigned long FD_OID;
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFU)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
 #define FD_SET_OID_HI(oid,hi) \
-  oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
+  oid = ((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
 #define FD_SET_OID_LO(oid,lo) \
-  oid=(oid&0xFFFFFFFF00000000UL)|((lo)&0xFFFFFFFFUL)
+  oid = (oid&0xFFFFFFFF00000000UL)|((lo)&0xFFFFFFFFUL)
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
@@ -399,9 +400,9 @@ typedef unsigned long long FD_OID;
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFULL)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
 #define FD_SET_OID_HI(oid,hi) \
-  oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
+  oid = ((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
 #define FD_SET_OID_LO(oid,lo) \
-  oid=((oid&(0xFFFFFFFF00000000ULL))|((unsigned int)((lo)&(0xFFFFFFFFULL))))
+  oid = ((oid&(0xFFFFFFFF00000000ULL))|((unsigned int)((lo)&(0xFFFFFFFFULL))))
 #define FD_OID_COMPARE(oid1,oid2) \
   ((oid1 == oid2) ? (0) : (oid1>oid2) ? (1) : (-1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
@@ -411,7 +412,7 @@ typedef unsigned long long FD_OID;
 #if FD_STRUCT_OIDS
 FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
 {
-  FD_OID result; result.fd_oid_hi=hi; result.fd_oid_lo=lo;
+  FD_OID result; result.fd_oid_hi = hi; result.fd_oid_lo = lo;
   return result;
 }
 #define FD_NULL_OID_INIT {0,0}
@@ -614,7 +615,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_EODP(x) ((x) == (FD_EOD))
 #define FD_EOXP(x) ((x) == (FD_EOX))
 
-#define FD_THROWP(result) ((result)==(FD_THROW_VALUE))
+#define FD_THROWP(result) ((result) == (FD_THROW_VALUE))
 
 #define FD_ABORTP(x) \
   (((FD_TYPEP(x,fd_constant_type)) && \
@@ -635,8 +636,8 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 /* Characters */
 
 #define FD_CHARACTERP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_character_type))
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_character_type))
 #define FD_CODE2CHAR(x) (FDTYPE_IMMEDIATE(fd_character_type,x))
 #define FD_CHARCODE(x) (FD_GET_IMMEDIATE(x,fd_character_type))
 #define FD_CHAR2CODE(x) (FD_GET_IMMEDIATE(x,fd_character_type))
@@ -651,12 +652,12 @@ FD_EXPORT int fd_n_symbols;
 FD_EXPORT u8_mutex fd_symbol_lock;
 
 #define FD_SYMBOLP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_symbol_type))
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_symbol_type))
 
 #define FD_GOOD_SYMBOLP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_symbol_type) && \
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_symbol_type) && \
    (FD_GET_IMMEDIATE(x,fd_symbol_type)<fd_n_symbols))
 
 #define FD_SYMBOL2ID(x) (FD_GET_IMMEDIATE(x,fd_symbol_type))
@@ -692,8 +693,8 @@ FD_EXPORT fdtype FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_OPT;
    be passed much more quickly and without thread contention. */
 
 #define FD_FCNIDP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_fcnid_type))
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_fcnid_type))
 
 FD_EXPORT struct FD_CONS **_fd_fcnids[];
 FD_EXPORT int _fd_fcnid_count;
@@ -725,7 +726,7 @@ FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
 static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
 {
   if (FD_TYPEP(ref,fd_fcnid_type)) {
-    int serialno=FD_GET_IMMEDIATE(ref,fd_fcnid_type);
+    int serialno = FD_GET_IMMEDIATE(ref,fd_fcnid_type);
     if (FD_EXPECT_FALSE(serialno>_fd_fcnid_count))
       return fd_err(fd_InvalidFCNID,"_fd_fcnid_ref",NULL,ref);
     else return (fdtype) _fd_fcnids
@@ -748,8 +749,8 @@ static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
    and dispatch very quickly. */
 
 #define FD_OPCODEP(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_opcode_type))
+  ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
+   (FD_IMMEDIATE_TYPE(x) == fd_opcode_type))
 
 #define FD_OPCODE(num) (FDTYPE_IMMEDIATE(fd_opcode_type,num))
 #define FD_OPCODE_NUM(op) (FD_GET_IMMEDIATE(op,fd_opcode_type))
@@ -765,9 +766,9 @@ static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
 /* Numeric macros */
 
 #define FD_NUMBER_TYPEP(x) \
-  ((x==fd_fixnum_type) || (x==fd_bigint_type) ||   \
-   (x==fd_flonum_type) || (x==fd_rational_type) || \
-   (x==fd_complex_type))
+  ((x == fd_fixnum_type) || (x == fd_bigint_type) ||   \
+   (x == fd_flonum_type) || (x == fd_rational_type) || \
+   (x == fd_complex_type))
 #define FD_NUMBERP(x) (FD_NUMBER_TYPEP(FD_PTR_TYPE(x)))
 
 /* Generic handlers */
@@ -829,20 +830,20 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 #define FD_FULL_COMPARE(x,y)       (fdtype_compare(x,y,(FD_COMPARE_FULL)))
 #else
 #define FDTYPE_EQUAL(x,y) \
-  ((x==y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (fdtype_equal(x,y))))
+  ((x == y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (fdtype_equal(x,y))))
 #define FDTYPE_EQUALV(x,y) \
-  ((x==y) ? (1) :			  \
+  ((x == y) ? (1) :			  \
    (((FD_FIXNUMP(x)) && (FD_CONSP(x))) || \
     ((FD_FIXNUMP(y)) && (FD_CONSP(y))) || \
     ((FD_CONSP(x)) && (FD_CONSP(y)))) ?	  \
    (fdtype_equal(x,y)) :		  \
    (0)
-#define FDTYPE_COMPARE(x,y,flags)  ((x==y) ? (0) : (fdtype_compare(x,y,flags)))
+#define FDTYPE_COMPARE(x,y,flags)  ((x == y) ? (0) : (fdtype_compare(x,y,flags)))
 #define FD_QUICK_COMPARE(x,y) \
   (((FD_ATOMICP(x)) && (FD_ATOMICP(y))) ? (fd_intcmp(x,y)) : \
    (fdtype_compare(x,y,FD_COMPARE_QUICK)))
 #define FD_FULL_COMPARE(x,y) \
-  ((x==y) ? (0) : (FDTYPE_COMPARE(x,y,(FD_COMPARE_FULL))))
+  ((x == y) ? (0) : (FDTYPE_COMPARE(x,y,(FD_COMPARE_FULL))))
 #endif
 
 #define FD_QCOMPARE(x,y) FD_QUICK_COMPARE(x,y)
@@ -878,7 +879,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
   ((FD_FIXNUMP(x)) ? (1) :                          \
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
    (x==0) ? (0) :                                   \
-   (FD_CONSP(x)) ? ((x==FD_NULL) ? (0) : (1)) :	    \
+   (FD_CONSP(x)) ? ((x == FD_NULL) ? (0) : (1)) :	    \
    (fd_check_immediate(x))))
 
 #if FD_FULL_CHECK_PTR
@@ -893,7 +894,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
 #elif (FD_PTR_DEBUG_LEVEL==2)
 #define FD_DEBUG_BADPTRP(x) (FD_EXPECT_FALSE(!(FD_CHECK_ATOMIC_PTR(x))))
 #elif (FD_PTR_DEBUG_LEVEL==1)
-#define FD_DEBUG_BADPTRP(x) (FD_EXPECT_FALSE((x)==FD_NULL))
+#define FD_DEBUG_BADPTRP(x) (FD_EXPECT_FALSE((x) == FD_NULL))
 #else
 #define FD_DEBUG_BADPTRP(x) (0)
 #endif

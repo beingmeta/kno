@@ -37,10 +37,10 @@ static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid,int cons)
   if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc)))
     if ((fd_test(doc,name_slotid,eltid))) {
       fd_incref(doc);
-      if (cons) *result=fd_conspair(doc,*result);
+      if (cons) *result = fd_conspair(doc,*result);
       else {FD_ADD_TO_CHOICE((*result),doc);}}
     else {
-      fdtype content=fd_get(doc,content_slotid,FD_EMPTY_CHOICE);
+      fdtype content = fd_get(doc,content_slotid,FD_EMPTY_CHOICE);
       xmlget_helper(result,content,eltid,cons);
       fd_decref(content);}
   else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
@@ -52,7 +52,7 @@ static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid,int cons)
 
 static fdtype xmlget(fdtype doc,fdtype attrib_id)
 {
-  fdtype results=FD_EMPTY_CHOICE;
+  fdtype results = FD_EMPTY_CHOICE;
   xmlget_helper(&results,doc,attrib_id,0);
   return results;
 }
@@ -61,37 +61,37 @@ static int listlen(fdtype l)
 {
   if (!(FD_PAIRP(l))) return 0;
   else {
-    int len=0; fdtype scan=l;
-    while (FD_PAIRP(scan)) {scan=FD_CDR(scan); len++;}
+    int len = 0; fdtype scan = l;
+    while (FD_PAIRP(scan)) {scan = FD_CDR(scan); len++;}
     return len;}
 }
 
 static fdtype xmlget_sorted(fdtype doc,fdtype attrib_id)
 {
-  fdtype results=FD_EMPTY_LIST;
+  fdtype results = FD_EMPTY_LIST;
   xmlget_helper(&results,doc,attrib_id,1);
   if (FD_EMPTY_LISTP(results))
     return fd_make_vector(0,NULL);
   else {
-    int len=listlen(results), i=len-1;
-    fdtype vec=fd_make_vector(len,NULL), scan=results;
+    int len = listlen(results), i = len-1;
+    fdtype vec = fd_make_vector(len,NULL), scan = results;
     while ((i>=0)&&(FD_PAIRP(scan))) {
-      fdtype car=FD_CAR(scan);
+      fdtype car = FD_CAR(scan);
       FD_VECTOR_SET(vec,i,car); fd_incref(car);
-      scan=FD_CDR(scan); i--;}
+      scan = FD_CDR(scan); i--;}
     fd_decref(results);
     return vec;}
 }
 
 static fdtype xmlget_first(fdtype doc,fdtype attrib_id)
 {
-  fdtype results=FD_EMPTY_LIST;
+  fdtype results = FD_EMPTY_LIST;
   xmlget_helper(&results,doc,attrib_id,1);
   if (FD_EMPTY_LISTP(results))
     return FD_EMPTY_CHOICE;
   else {
-    fdtype last_result=FD_VOID;
-    FD_DOELTS(elt,results,count) {last_result=elt;}
+    fdtype last_result = FD_VOID;
+    FD_DOELTS(elt,results,count) {last_result = elt;}
     fd_incref(last_result);
     fd_decref(results);
     if (FD_VOIDP(last_result)) return FD_EMPTY_CHOICE;
@@ -101,10 +101,10 @@ static fdtype xmlget_first(fdtype doc,fdtype attrib_id)
 /* This returns the content field as parsed. */
 static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
 {
-  if ((FD_CHOICEP(doc)) || (FD_ACHOICEP(doc))) {
-    fdtype contents=FD_EMPTY_CHOICE;
+  if ((FD_CHOICEP(doc)) || (FD_PRECHOICEP(doc))) {
+    fdtype contents = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(docelt,doc) {
-      fdtype content=xmlcontents(docelt,attrib_id);
+      fdtype content = xmlcontents(docelt,attrib_id);
       FD_ADD_TO_CHOICE(contents,content);}
     return contents;}
   else if (FD_VOIDP(attrib_id))
@@ -114,15 +114,15 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
       return fd_get(doc,content_slotid,FD_EMPTY_LIST);
     else return fd_type_error("XML node","xmlcontents",doc);
   else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DOELTS(docelt,doc,count) {
-      fdtype contents=xmlcontents(docelt,attrib_id);
+      fdtype contents = xmlcontents(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
         FD_ADD_TO_CHOICE(results,contents);}}
     return results;}
   else {
-    fdtype value=fd_get(doc,attrib_id,FD_EMPTY_LIST);
-    fdtype contents=xmlcontents(value,FD_VOID);
+    fdtype value = fd_get(doc,attrib_id,FD_EMPTY_LIST);
+    fdtype contents = xmlcontents(value,FD_VOID);
     fd_decref(value);
     return contents;}
 }
@@ -130,11 +130,11 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
 /* This returns the content field as parsed. */
 static fdtype xmlemptyp(fdtype elt,fdtype attribid)
 {
-  if (FD_VOIDP(attribid)) attribid=content_slotid;
+  if (FD_VOIDP(attribid)) attribid = content_slotid;
   if (!(fd_test(elt,attribid,FD_VOID)))
     return FD_TRUE;
   else {
-    fdtype content=fd_get(elt,attribid,FD_EMPTY_LIST);
+    fdtype content = fd_get(elt,attribid,FD_EMPTY_LIST);
     if ((FD_EMPTY_LISTP(content)) ||
         (FD_EMPTY_CHOICEP(content))||
         ((FD_VECTORP(content))&&
@@ -148,10 +148,10 @@ static fdtype xmlemptyp(fdtype elt,fdtype attribid)
 /* This returns the content field as a string. */
 static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 {
-  if ((FD_CHOICEP(doc)) || (FD_ACHOICEP(doc))) {
-    fdtype contents=FD_EMPTY_CHOICE;
+  if ((FD_CHOICEP(doc)) || (FD_PRECHOICEP(doc))) {
+    fdtype contents = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(docelt,doc) {
-      fdtype content=xmlcontent(docelt,attrib_id);
+      fdtype content = xmlcontent(docelt,attrib_id);
       FD_ADD_TO_CHOICE(contents,content);}
     return contents;}
   else if (FD_VOIDP(attrib_id))
@@ -167,21 +167,21 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
           else fd_unparse(&out,docelt);}}
       return fd_stream2string(&out);}
     else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) {
-      fdtype content=fd_get(doc,content_slotid,FD_EMPTY_LIST);
-      fdtype as_string=xmlcontent(content,FD_VOID);
+      fdtype content = fd_get(doc,content_slotid,FD_EMPTY_LIST);
+      fdtype as_string = xmlcontent(content,FD_VOID);
       fd_decref(content);
       return as_string;}
     else return fd_type_error("XML node","xmlcontent",doc);
   else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results = FD_EMPTY_CHOICE;
     FD_DOELTS(docelt,doc,count) {
-      fdtype contents=xmlcontent(docelt,attrib_id);
+      fdtype contents = xmlcontent(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
         FD_ADD_TO_CHOICE(results,contents);}}
     return results;}
   else {
-    fdtype value=fd_get(doc,attrib_id,FD_EMPTY_LIST);
-    fdtype contents=xmlcontent(value,FD_VOID);
+    fdtype value = fd_get(doc,attrib_id,FD_EMPTY_LIST);
+    fdtype contents = xmlcontent(value,FD_VOID);
     fd_decref(value);
     return contents;}
 }
@@ -189,8 +189,8 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
 FD_EXPORT
 void fd_init_xmldata_c()
 {
-  fdtype safe_module=fd_new_module("FDWEB",(0));
-  fdtype module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  fdtype safe_module = fd_new_module("FDWEB",(0));
+  fdtype module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
 
   fd_idefn(module,fd_make_cprim2("XMLATTRIB",xmlattrib,2));
   fd_idefn(module,fd_make_cprim2("XMLGET",xmlget,2));
@@ -208,8 +208,8 @@ void fd_init_xmldata_c()
   fd_idefn(safe_module,fd_make_cprim2("XMLCONTENT",xmlcontent,1));
   fd_idefn(safe_module,fd_make_cprim2("XMLEMPTY?",xmlemptyp,1));
 
-  name_slotid=fd_intern("%XMLTAG");
-  content_slotid=fd_intern("%CONTENT");
+  name_slotid = fd_intern("%XMLTAG");
+  content_slotid = fd_intern("%CONTENT");
 }
 
 /* Emacs local variables

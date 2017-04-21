@@ -136,7 +136,7 @@ FD_EXPORT
 struct FD_BLOOM *
 fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 {
-  struct FD_BLOOM *bloom=NULL;
+  struct FD_BLOOM *bloom = NULL;
   if (entries < 1) {
     fd_seterr(fd_TypeError,"fd_bloom_init",
 	      u8_strdup("bad n_entries arg"),
@@ -147,9 +147,9 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 	      u8_strdup("bad allowed error value"),
 	      fd_make_double(error));
     return NULL;}
-  else if (use_bloom==NULL)
-    bloom=u8_zalloc(struct FD_BLOOM);
-  else bloom=use_bloom;
+  else if (use_bloom == NULL)
+    bloom = u8_zalloc(struct FD_BLOOM);
+  else bloom = use_bloom;
 
   if (use_bloom) {
     FD_SET_CONS_TYPE(bloom,fd_bloom_filter_type);}
@@ -176,7 +176,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
   bloom->bf = u8_mallocz(bloom->bytes);
   if (bloom->bf == NULL) {
     u8_graberrno("fd_bloom_init:mallocbytes",NULL);
-    if (use_bloom==NULL) u8_free(bloom);
+    if (use_bloom == NULL) u8_free(bloom);
     return NULL;}
 
   return bloom;
@@ -197,7 +197,7 @@ int fd_bloom_add(struct FD_BLOOM * bloom, const void * buffer, int len)
 
 int unparse_bloom(u8_output out,fdtype x)
 {
-  struct FD_BLOOM *filter=(struct FD_BLOOM *)x;
+  struct FD_BLOOM *filter = (struct FD_BLOOM *)x;
   u8_printf(out,"#<BLOOM #!%llx %lld/%lld(%f)>",
 	    (U8_PTR2INT(filter)),
 	    filter->bloom_adds,
@@ -209,7 +209,7 @@ int unparse_bloom(u8_output out,fdtype x)
 
 void recycle_bloom(struct FD_RAW_CONS *c)
 {
-  struct FD_BLOOM * bloom=(struct FD_BLOOM *)c;
+  struct FD_BLOOM * bloom = (struct FD_BLOOM *)c;
   if (bloom->bf) free(bloom->bf);
   if (!(FD_STATIC_CONSP(bloom))) u8_free(bloom);
 }

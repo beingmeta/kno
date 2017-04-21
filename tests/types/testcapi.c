@@ -17,29 +17,29 @@ static int write_dtype_to_file(fdtype object,FILE *f)
 {
   struct FD_OUTBUF out; int retval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
-  retval=fd_write_dtype(&out,object);
-  retval=fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
+  retval = fd_write_dtype(&out,object);
+  retval = fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
   u8_free(out.buffer);
   return retval;
 }
 
 int main(int argc,char **argv)
 {
-  int lispv=fd_init_libfdtype();
-  fdtype fix1=FD_INT(33994);
-  fdtype dbl1=fd_init_flonum(NULL,3.445);
-  fdtype dbl2=fd_init_flonum(u8_alloc(struct FD_FLONUM),-3.9994);
-  fdtype string1=fd_make_string(NULL,3,"foo");
-  fdtype string2=fd_init_string(u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
+  int lispv = fd_init_libfdtype();
+  fdtype fix1 = FD_INT(33994);
+  fdtype dbl1 = fd_init_flonum(NULL,3.445);
+  fdtype dbl2 = fd_init_flonum(u8_alloc(struct FD_FLONUM),-3.9994);
+  fdtype string1 = fd_make_string(NULL,3,"foo");
+  fdtype string2 = fd_init_string(u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
   fdtype compound=
     fd_init_compound(NULL,
                      fd_probe_symbol("QUOTE",5),0,1,
                      fd_make_pair(FD_INT(5),FD_TRUE));
-  fdtype vec=fd_make_nvector(3,fix1,dbl1,string1);
-  fdtype lst=fd_make_list(4,vec,string2,dbl2,compound);
-  u8_string as_string=fd_dtype2string(lst);
-  fdtype tmp=fd_parse(as_string);
-  FILE *f=fopen("testcapi.dtype","wb");
+  fdtype vec = fd_make_nvector(3,fix1,dbl1,string1);
+  fdtype lst = fd_make_list(4,vec,string2,dbl2,compound);
+  u8_string as_string = fd_dtype2string(lst);
+  fdtype tmp = fd_parse(as_string);
+  FILE *f = fopen("testcapi.dtype","wb");
   if (lispv<0) {
     u8_log(LOG_WARN,"STARTUP","Couldn't initialize DTypes");
     exit(1);}

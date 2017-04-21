@@ -21,7 +21,7 @@
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_kbdrivers();
+  int fd_version = fd_init_kbdrivers();
   fd_index ix; fdtype key;
   if (fd_version<0) {
     u8_fprintf(stderr,_("Unable to initialize FramerD\n"));
@@ -30,25 +30,25 @@ int main(int argc,char **argv)
     u8_fprintf(stderr,_("Too few (<3) args\n"));
     exit(1);}
   else {
-    ix=fd_get_index(argv[1],0,FD_VOID);
-    key=fd_parse(argv[2]);}
+    ix = fd_get_index(argv[1],0,FD_VOID);
+    key = fd_parse(argv[2]);}
   if (argc == 3) {
-    fdtype value=fd_index_get(ix,key);
+    fdtype value = fd_index_get(ix,key);
     u8_fprintf(stderr,_("The key %q is associated with %d values\n"),
                key,FD_CHOICE_SIZE(value));
     {FD_DO_CHOICES(each,value)
        u8_fprintf(stderr,"\t%q\n",each);}
-    fd_decref(value); value=FD_VOID;}
+    fd_decref(value); value = FD_VOID;}
   else if (argc == 4) {
     fdtype value;
     if ((argv[3][0] == '+') || (argv[3][0] == '-'))
-      value=fd_parse(argv[3]+1);
-    else value=fd_parse(argv[3]);
+      value = fd_parse(argv[3]+1);
+    else value = fd_parse(argv[3]);
     if (argv[3][0] == '-') fd_index_drop(ix,key,value);
     else fd_index_add(ix,key,value);
-    fd_decref(value); value=FD_VOID;
+    fd_decref(value); value = FD_VOID;
     fd_index_commit(ix);}
-  fd_decref(key); key=FD_VOID;
+  fd_decref(key); key = FD_VOID;
   fd_index_swapout(ix,FD_VOID);
   fd_index_close(ix);
   return 0;
