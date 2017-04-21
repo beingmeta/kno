@@ -42,12 +42,13 @@ static fd_storage_flags getdbflags(fdtype opts)
 {
   if (FD_FIXNUMP(opts)) {
     long long val=FD_FIX2INT(opts);
-    if (opts<0) return -1;
-    else if (opts>0xFFFFFFFF) return -1;
+    if (val<0) return -1;
+    else if (val>0xFFFFFFFF) return -1;
     else return val;}
   else if (FD_TABLEP(opts)) {
     fdtype flags_val=fd_getopt(opts,flags_symbol,FD_VOID);
-    fd_storage_flags flags = (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
+    fd_storage_flags flags = 
+      (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
     fdtype regopt = fd_getopt(opts,register_symbol,FD_VOID);
     if (fd_testopt(opts,readonly_symbol,FD_VOID))
       flags |= FD_STORAGE_READ_ONLY;

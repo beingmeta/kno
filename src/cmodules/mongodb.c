@@ -1067,7 +1067,7 @@ static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
   fdtype fields = fd_get(opts,fieldssym,FD_VOID);
   mongoc_client_t *client;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
-  if (collection) U8_CLEAR_ERRNO();
+  if (collection) {U8_CLEAR_ERRNO();}
   if (collection) {
     fdtype results = FD_EMPTY_CHOICE;
     bson_t *cmd = fd_dtype2bson(command,flags,opts);
@@ -1116,7 +1116,7 @@ static fdtype db_command(fdtype arg,fdtype command,
   fdtype opts = combine_opts(opts_arg,srv->dbopts);
   fdtype fields = fd_getopt(opts,fieldssym,FD_VOID);
   mongoc_client_t *client = get_client(srv,MONGODB_CLIENT_BLOCK);
-  if (client) U8_CLEAR_ERRNO();
+  if (client) {U8_CLEAR_ERRNO();}
   if (client) {
     fdtype results = FD_EMPTY_CHOICE;
     bson_t *cmd = fd_dtype2bson(command,flags,opts);
@@ -1196,7 +1196,7 @@ static fdtype collection_simple_command(fdtype arg,fdtype command,
   if (cmd) {
     mongoc_client_t *client;
     mongoc_collection_t *collection = open_collection(domain,&client,flags);
-    if (collection) U8_CLEAR_ERRNO();
+    if (collection) {U8_CLEAR_ERRNO();}
     if (collection) {
       bson_t response; bson_error_t error;
       if (mongoc_collection_command_simple
