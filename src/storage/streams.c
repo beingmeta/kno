@@ -88,9 +88,11 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       (MAP_NORESERVE|MAP_SHARED) :
       (MAP_SHARED);
     unsigned char *oldbuf = buf->buffer;
-    unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
     ssize_t point_off = (oldbuf) ? (buf->bufpoint-buf->buffer) : (0);
-    if (newbuf==NULL) {
+    unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
+    if ((newbuf==NULL)||(newbuf==MAP_FAILED)) {
+      u8_log(LOGWARN,u8_strerror(errno),
+             "mmap_read_update:mmap of %s",stream->streamid);
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
       return -1;}
     buf->buflen = new_size;
@@ -298,7 +300,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   /* If you can't get a whole buffer, try smaller */
   while ((bufsiz>=1024) && (buf == NULL)) {
     u8_log(LOGWARN,"BigBuffer",
-           "Can't allocate %lld bytes for buffering %s, trying %lld",
+           "Can't allocate %lld-byte buffer for %s, trying %lld",
            bufsiz,(U8ALT(streamid,"somestream")),bufsiz/2);
     bufsiz = bufsiz/2; buf = u8_malloc(bufsiz);}
   u8_init_mutex(&(stream->stream_lock));
