@@ -59,6 +59,7 @@ typedef unsigned int fd_storage_flags;
 #define FD_STORAGE_UNREGISTERED	           0x10
 #define FD_STORAGE_KEEP_CACHESIZE          0x20
 #define FD_STORAGE_NOSWAP		   0x40
+#define FD_STORAGE_NOERR		   0x80
 #define FD_STORAGE_MAX_INIT_BITS	   0x800
 #define FD_STORAGE_MAX_STATE_BITS	   0x1000
 

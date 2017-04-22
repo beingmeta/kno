@@ -991,7 +991,8 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
   else argv=_argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
   {FD_DOLIST(elt,arg_exprs) {
-      if (FD_EXPECT_FALSE((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
+      if (FD_EXPECT_FALSE((FD_PAIRP(elt)) &&
+                          (FD_EQ(FD_CAR(elt),comment_symbol))))
         continue;
       fdtype argval = process_arg(elt,env);
       if ((FD_ABORTED(argval))||((d_prim)&&(FD_EMPTY_CHOICEP(argval)))) {
