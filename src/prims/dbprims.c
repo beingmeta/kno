@@ -242,7 +242,7 @@ static fdtype load_pool(fdtype arg1,fdtype opts)
   else if (!(FD_STRINGP(arg1)))
     return fd_type_error(_("string"),"load_pool",arg1);
   else {
-    fd_pool p = fd_get_pool(FD_STRDATA(arg1),0,opts);
+    fd_pool p = fd_get_pool(FD_STRDATA(arg1),FD_STORAGE_NOERR,opts);
     if (p) return fd_pool2lisp(p);
     else return FD_FALSE;}
 }

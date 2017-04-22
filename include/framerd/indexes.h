@@ -138,7 +138,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
 FD_EXPORT fd_index fd_open_index(u8_string,fd_storage_flags,fdtype);
 FD_EXPORT fd_index fd_get_index(u8_string,fd_storage_flags,fdtype);
-FD_EXPORT fd_index fd_find_index_by_qname(u8_string);
+FD_EXPORT fd_index fd_find_index_by_source(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);

@@ -164,30 +164,38 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
     return NULL;}
 }
 
-FD_EXPORT fd_index fd_find_index_by_qname(u8_string cid)
+static int match_index_source(fd_index ix,u8_string source)
+{
+  return ((source)&&(ix->index_source)&&
+          (strcmp(ix->index_source,source) == 0));
+}
+
+FD_EXPORT fd_index fd_find_index_by_source(u8_string source)
 {
   int i = 0;
-  if (cid == NULL) return NULL;
+  if (source == NULL) return NULL;
   else while (i<fd_n_primary_indexes)
-    if (strcmp(cid,fd_primary_indexes[i]->indexid)==0)
-      return fd_primary_indexes[i];
-    else i++;
+         if (match_index_source(fd_primary_indexes[i],source))
+           return fd_primary_indexes[i];
+         else i++;
   if (fd_secondary_indexes == NULL) return NULL;
   i = 0; while (i<fd_n_secondary_indexes)
-    if (strcmp(cid,fd_secondary_indexes[i]->indexid)==0)
-      return fd_secondary_indexes[i];
-    else i++;
+           if (match_index_source(fd_secondary_indexes[i],source))
+             return fd_secondary_indexes[i];
+           else i++;
   return NULL;
 }
 
-FD_EXPORT fd_index fd_get_index(u8_string spec,fd_storage_flags flags,fdtype opts)
+FD_EXPORT fd_index fd_get_index
+(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
   if (strchr(spec,';')) {
     fd_index ix = NULL;
-    u8_byte *copy = u8_strdup(spec), *start = copy, *brk = strchr(start,';');
+    u8_byte *copy = u8_strdup(spec);
+    u8_byte *start = copy, *brk = strchr(start,';');
     while (brk) {
       if (ix == NULL) {
-        *brk='\0'; ix = fd_get_index(start,flags,opts);
+        *brk='\0'; ix = fd_open_index(start,flags,opts);
         if (ix) {brk = NULL; start = NULL;}
         else {
           start = brk+1;
@@ -196,12 +204,9 @@ FD_EXPORT fd_index fd_get_index(u8_string spec,fd_storage_flags flags,fdtype opt
     else if ((start)&&(*start)) {
       int start_off = start-copy;
       u8_free(copy);
-      return fd_get_index(spec+start_off,flags,opts);}
+      return fd_open_index(spec+start_off,flags,opts);}
     else return NULL;}
-  else {
-    fd_index known = fd_find_index_by_qname(spec);
-    if (known) return known;
-    else return fd_open_index(spec,flags,opts);}
+  else return fd_open_index(spec,flags,opts);
 }
 
 /* Background indexes */

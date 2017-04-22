@@ -460,7 +460,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
 #if HAVE_MMAP
     if (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) return 0;
     else if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY))) {
-      u8_log(LOGWARN,fd_CantMMAP,"Stream '%s' not read-only",s->streamid);
+      u8_log(LOG_INFO,fd_CantMMAP,"Stream '%s' not read-only",s->streamid);
       if (unlock) fd_unlock_stream(s);
       return -1;}
     else {

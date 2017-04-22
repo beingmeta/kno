@@ -121,7 +121,7 @@ DTYPE_OBJS=\
 	src/types/tables.o src/types/bloom.o		\
 	src/types/sequences.o src/types/choices.o 	\
 	src/types/parse.o src/types/unparse.o		\
-	src/types/bufio.o 				\
+	src/types/bufio.o src/types/pprint.o				\
 	src/types/dtread.o src/types/dtwrite.o		\
 	src/types/libfdtype.o src/types/support.o		\
 	src/types/config.o src/types/err.o 		\
