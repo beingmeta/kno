@@ -142,7 +142,10 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
-        fd_pool opened = ptype->opener(use_spec,flags,opts);
+        fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
+          (fd_find_pool_by_source(use_spec));
+        fd_pool opened = (found) ? (found) :
+          (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ptype = ptype->next_type;
@@ -252,7 +255,10 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
-        fd_index opened = ixtype->opener(use_spec,flags,opts);
+        fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
+          (fd_find_index_by_source(use_spec));
+        fd_index opened = (found) ? (found) :
+          (ixtype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ixtype = ixtype->next_type;

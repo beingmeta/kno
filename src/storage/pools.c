@@ -1258,62 +1258,56 @@ FD_EXPORT fdtype fd_all_pools()
   return results;
 }
 
-FD_EXPORT fd_pool fd_find_pool_by_qname(u8_string cid)
+static int match_pool_source(fd_pool p,u8_string source)
+{
+  return ((source)&&(p->pool_source)&&
+          (strcmp(p->pool_source,source)==0));
+}
+
+FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)
 {
   int i = 0; u8_string canonical;
-  if (cid == NULL) return NULL;
-  if (strchr(cid,'@'))
-    canonical = u8_canonical_addr(cid);
-  else canonical = u8_realpath(cid,NULL);
+  if (source == NULL) return NULL;
   while (i < 1024)
     if (fd_top_pools[i] == NULL) i++;
-    else if (fd_top_pools[i]->pool_capacity)
-      if ((fd_top_pools[i]->poolid) &&
-          ((strcmp(canonical,fd_top_pools[i]->poolid)) == 0)) {
-        u8_free(canonical);
+    else if (fd_top_pools[i]->pool_capacity) {
+      if (match_pool_source(fd_top_pools[i],source)) {
         return fd_top_pools[i];}
-      else i++;
+      else i++;}
     else {
       struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
       fd_pool *subpools = gp->subpools; int j = 0;
       while (j<gp->n_subpools)
-        if ((subpools[j]) &&
-            (subpools[j]->poolid) &&
-            (strcmp(canonical,subpools[j]->poolid)==0)) {
-          u8_free(canonical);
+        if ((subpools[j]) && (match_pool_source(subpools[j],source))) {
           return subpools[j];}
         else j++;}
-  u8_free(canonical);
   return NULL;
 }
 
-FD_EXPORT fdtype fd_find_pools_by_qname(u8_string cid)
+FD_EXPORT fdtype fd_find_pools_by_source(u8_string source)
 {
-  fdtype results = FD_EMPTY_CHOICE; u8_string canonical;
+  fdtype results = FD_EMPTY_CHOICE;
   int i = 0;
-  if (cid == NULL) return results;
-  if (strchr(cid,'@'))
-    canonical = u8_canonical_addr(cid);
-  else canonical = u8_realpath(cid,NULL);
+  if (source == NULL) return results;
   while (i < 1024)
     if (fd_top_pools[i] == NULL) i++;
     else if (fd_top_pools[i]->pool_capacity)
-      if ((fd_top_pools[i]->poolid) &&
-          ((strcmp(canonical,fd_top_pools[i]->poolid)) == 0)) {
-        fdtype poolv = fd_pool2lisp(fd_top_pools[i]); i++;
+      if (match_pool_source(fd_top_pools[i],source)) {
+        fdtype poolv = fd_pool2lisp(fd_top_pools[i]);
         fd_incref(poolv);
-        FD_ADD_TO_CHOICE(results,poolv);}
+        FD_ADD_TO_CHOICE(results,poolv);
+        i++;}
       else i++;
     else {
       struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
       fd_pool *subpools = gp->subpools; int j = 0;
       while (j<gp->n_subpools)
-        if ((subpools[j]->poolid) && (strcmp(canonical,subpools[j]->poolid)==0)) {
-          fdtype poolv = fd_pool2lisp(subpools[j]); j++;
+        if ((subpools[j]) && (match_pool_source(subpools[j],source))) {
+          fdtype poolv = fd_pool2lisp(subpools[j]);
           fd_incref(poolv);
-          FD_ADD_TO_CHOICE(results,poolv);}
+          FD_ADD_TO_CHOICE(results,poolv);
+          j++;}
         else j++;}
-  u8_free(canonical);
   return results;
 }
 
@@ -1494,14 +1488,16 @@ static struct FD_POOL_HANDLER gluepool_handler={
 };
 
 
-FD_EXPORT fd_pool fd_get_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
+FD_EXPORT fd_pool fd_get_pool
+(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
   if (strchr(spec,';')) {
     fd_pool p = NULL;
-    u8_byte *copy = u8_strdup(spec), *start = copy, *brk = strchr(start,';');
+    u8_byte *copy = u8_strdup(spec), *start = copy;
+    u8_byte *brk = strchr(start,';');
     while (brk) {
       if (p == NULL) {
-        *brk='\0'; p = fd_get_pool(start,flags,opts);
+        *brk='\0'; p = fd_open_pool(start,flags,opts);
         if (p) {brk = NULL; start = NULL;}
         else {
           start = brk+1;
@@ -1510,15 +1506,13 @@ FD_EXPORT fd_pool fd_get_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
     else if ((start)&&(*start)) {
       int start_off = start-copy;
       u8_free(copy);
-      return fd_get_pool(spec+start_off,flags,opts);}
+      return fd_open_pool(spec+start_off,flags,opts);}
     else return NULL;}
-  else {
-    fd_pool known = fd_find_pool_by_qname(spec);
-    if (known) return known;
-    else return fd_open_pool(spec,flags,opts);}
+  else return fd_open_pool(spec,flags,opts);
 }
 
-FD_EXPORT fd_pool fd_use_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
+FD_EXPORT fd_pool fd_use_pool
+(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
   return fd_get_pool(spec,flags&(~FD_STORAGE_UNREGISTERED),opts);
 }
