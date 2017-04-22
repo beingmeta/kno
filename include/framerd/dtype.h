@@ -80,5 +80,21 @@ typedef int (*fd_hashfn)(fdtype x,unsigned int (*hf)(fdtype));
 FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
 
+typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,int,void *);
+
+FD_EXPORT int fd_pprint
+(u8_output out,fdtype x,u8_string prefix,
+ int indent,int col,int maxcol,int is_initial);
+FD_EXPORT int fd_xpprint
+(u8_output out,fdtype x,u8_string prefix,
+ int indent,int col,int maxcol,int is_initial,
+ fd_pprintfn fn,void *data);
+FD_EXPORT void fd_pprint_focus
+(U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
+ int indent,int width,u8_string focus_prefix,
+ u8_string focus_suffix);
+
+
+
 #endif /* ndef FRAMERD_DTYPE_H */
 
