@@ -61,9 +61,7 @@ typedef struct FD_HASHINDEX {
 
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */
-  struct FD_STREAM index_stream;
-  /* When non-null, a memmapped pointer to the file contents. */
-  size_t index_mmap_size; unsigned char *index_mmap;} *fd_hashindex;
+  struct FD_STREAM index_stream;} *fd_hashindex;
 
 /* Structure definitions */
 

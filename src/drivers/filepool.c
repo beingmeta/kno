@@ -452,7 +452,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
         fp->pool_offdata = NULL; errno = 0;}
       newmmap = mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
                    MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->poolid);
         fp->pool_offdata = NULL; fp->pool_offdata_size = 0; errno = 0;}
       else {
@@ -574,10 +574,12 @@ static void file_pool_setcache(fd_pool p,int level)
            big as the file pools load. */
         mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
              MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",
                fp->poolid);
-        fp->pool_offdata = NULL; fp->pool_offdata_size = 0; errno = 0;}
+        fp->pool_offdata = NULL;
+        fp->pool_offdata_size = 0;
+        errno = 0;}
       fp->pool_offdata = offsets = newmmap+6;
       fp->pool_offdata_size = fp->pool_load;
 #else

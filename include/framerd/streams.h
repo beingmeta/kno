@@ -305,7 +305,6 @@ FD_FASTOP int fd_using_stream(fd_stream s)
     return 0;
   else {
     int rv=u8_lock_mutex(&(s->stream_lock));
-    u8_string id = s->streamid;
     if (rv) {
       u8_seterr("MutexLockFailed","fd_lock_stream",s->streamid);
       return -1;}

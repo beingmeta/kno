@@ -223,7 +223,6 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opt
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
-  index->index_mmap = NULL;
   magicno = fd_read_4bytes_at(stream,0);
   index->index_n_buckets = fd_read_4bytes_at(stream,4);
   if (magicno == FD_HASHINDEX_TO_RECOVER) {
@@ -1015,17 +1014,6 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
       fd_off_t blockpos = schedule[j].ksched_chunk.off;
       fd_size_t blocksize = schedule[j].ksched_chunk.size;
       if (schedule[j].ksched_bucket!=bucket) {
-#if HASHINDEX_PREFETCH_WINDOW
-        if (hx->index_mmap) {
-          unsigned char *fd_vecelts = hx->index_mmap;
-          int k = j+1, newbuck = schedule[j].ksched_bucket, n_prefetched = 0;
-          while ((k<n_entries) && (n_prefetched<4))
-            if (schedule[k].ksched_bucket!=newbuck) {
-              newbuck = schedule[k].ksched_bucket;
-              FD_PREFETCH(&fd_vecelts[schedule[k].vsched_chunk.off]);
-              n_prefetched++;}
-            else k++;}
-#endif
         if (blocksize<1024)
           open_block(&keyblock,hx,blockpos,blocksize,_buf);
         else if (buf)
@@ -1404,7 +1392,6 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 {
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   int stream_flags=hx->index_stream.stream_flags;
-  ssize_t mmap_size;
 
   if (level >= 2) {
     if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
@@ -1425,10 +1412,11 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
       newmmap=
         mmap(NULL,(n_buckets*chunk_ref_size)+256,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_WARN,u8_strerror(errno),
                "hashindex_setcache:mmap %s",hx->index_source);
-        hx->index_offdata = NULL; errno = 0;}
+        hx->index_offdata = NULL;
+        errno = 0;}
       else hx->index_offdata = buckets = newmmap+64;
 #else
       fd_lock_stream(s)
@@ -2420,17 +2408,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
              "Trouble truncating recovery information for %s",
              hx->indexid);}
 
-  /* Remap the file */
-  if (hx->index_mmap) {
-    int retval = munmap(hx->index_mmap,hx->index_mmap_size);
-    if (retval<0) {
-      u8_log(LOG_WARN,"MUNMAP","hashindex MUNMAP failed with %s",
-             u8_strerror(errno));
-      errno = 0;}
-    hx->index_mmap_size = u8_file_size(hx->indexid);
-    hx->index_mmap=
-      mmap(NULL,hx->index_mmap_size,PROT_READ,MMAP_FLAGS,
-           hx->index_stream.stream_fileno,0);}
 #if FD_DEBUG_HASHINDEXES
   u8_message("Resetting tables");
 #endif
@@ -2485,10 +2462,10 @@ static int update_hashindex_ondisk
            MMAP_FLAGS,
            hx->index_stream.stream_fileno,
            0);
-    if (memblock) offdata = memblock+64;
-    else {
+    if ((memblock==NULL) || (memblock == MAP_FAILED)) {
       u8_graberrno("update_hashindex_ondisk:mmap",u8_strdup(hx->indexid));
       return -1;}
+    else offdata = memblock+64;
 #else
     size_t offdata_length = n_buckets*chunk_ref_size;
     offdata = u8_mallocz(offdata_length);

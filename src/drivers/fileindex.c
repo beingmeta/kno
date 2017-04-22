@@ -131,7 +131,7 @@ static void file_index_setcache(fd_index ix,int level)
       newmmap=
         mmap(NULL,(fx->index_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "file_index_setcache:mmap %s",fx->index_source);
         fx->index_offsets = NULL; errno = 0;}

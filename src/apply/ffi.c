@@ -226,10 +226,10 @@ static int handle_ffi_arg(fdtype arg,fdtype spec,
       else return ffi_type_error("ssize_t(C)",arg);}
     else if (spec == float_symbol) {
       float f=(float)ival;
-      *((float *)valptr) = ival;}
+      *((float *)valptr) = f;}
     else if (spec == float_symbol) {
       double f=(double)ival;
-      *((double *)valptr) = ival;}
+      *((double *)valptr) = f;}
     else {
       fd_xseterr("BadIntType","handle_ffi_arg",NULL,spec);
       return -1;}
