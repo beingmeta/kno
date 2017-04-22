@@ -63,6 +63,8 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
               fd_decref(head);
               return FD_ERROR_VALUE;}
             else {
+              if (FD_PRECHOICEP(splice_at_end))
+                splice_at_end=fd_simplify_choice(splice_at_end);
               *tail = splice_at_end;
               return head;}}
           else {
@@ -86,7 +88,10 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
         if (level==1) {
           new_elt = fd_eval(FD_CADR(elt),env);
           if (FD_VOIDP(new_elt))
-            new_elt = fd_err(fd_VoidArgument,"quasiquote_list",NULL,FD_CADR(elt));}
+            new_elt = fd_err(fd_VoidArgument,"quasiquote_list",
+                             NULL,FD_CADR(elt));
+          else if (FD_PRECHOICEP(new_elt))
+            new_elt=fd_simplify_choice(new_elt);}
         else {
           fdtype embed = fd_quasiquote(FD_CADR(elt),env,level-1);
           if (FD_ABORTED(embed)) new_elt = embed;
@@ -97,6 +102,8 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
       else if (FD_EQ(FD_CAR(elt),unquotestar))
         if (level==1) {
           fdtype insertion = fd_eval(FD_CADR(elt),env);
+          if (FD_PRECHOICEP(insertion))
+            insertion=fd_simplify_choice(insertion);
           if (FD_ABORTED(insertion)) {
               fd_decref(head);
               return insertion;}
@@ -131,10 +138,11 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
               fd_incref(insert_elt); 
               i++;}}
           else {
-            u8_string details_string = u8_mkstring("RESULT=%q",elt);
+            u8_string details_string = 
+              u8_mkstring("RESULT=%q=%q",elt,insertion);
             fdtype err;
             err = fd_err(fd_SyntaxError,
-                       "splicing UNQUOTE for an improper list",
+                       "splicing UNQUOTE used with a non-squence",
                        details_string,insertion);
             fd_decref(head); u8_free(details_string);
             fd_decref(insertion);
@@ -177,6 +185,8 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
           (FD_PAIRP(FD_CDR(elt))))
         if (level==1) {
           fdtype insertion = fd_eval(FD_CADR(elt),env); int addlen = 0;
+          if (FD_PRECHOICEP(insertion))
+            insertion=fd_simplify_choice(insertion);
           if (FD_ABORTED(insertion)) {
             int k = 0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
@@ -297,8 +307,11 @@ fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
         else return fd_make_list(2,quasiquote,embed);}
       else return fd_err(fd_SyntaxError,"malformed QUASIQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),unquote))
-      if (level==1)
-        return fd_eval(FD_CAR(FD_CDR(obj)),env);
+      if (level==1) {
+        fdtype result=fd_eval(FD_CAR(FD_CDR(obj)),env);
+        if (FD_PRECHOICEP(result)) 
+          result=fd_simplify_choice(result);
+        return result;}
       else {
         fdtype embed = fd_quasiquote(FD_CADR(obj),env,level-1);
         if (FD_ABORTED(embed)) return embed;
