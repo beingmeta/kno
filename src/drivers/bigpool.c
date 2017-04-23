@@ -699,8 +699,7 @@ static fdtype bigpool_fetch(fd_pool p,fdtype oid)
   if (FD_EXPECT_FALSE(offset>=bp->pool_load)) {
     /* Double check by going to disk */
     if (offset>=(bigpool_load(p)))
-      return fd_err(fd_UnallocatedOID,"file_pool_fetch",
-                    bp->poolid,oid);}
+      return fd_err(fd_UnallocatedOID,"bigpool_fetch",bp->poolid,oid);}
   if (bp->pool_offdata) {
     FD_CHUNK_REF ref = get_chunk_ref(bp->pool_offdata,bp->pool_offtype,offset);
     if (ref.off<0) return FD_ERROR_VALUE;
