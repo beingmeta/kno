@@ -73,14 +73,7 @@ static fdtype lisphashdtyperep(fdtype x)
   return FD_INT(hash);
 }
 
-/* Opening unregistered file pools */
-
-static fdtype access_pool_prim(fdtype name)
-{
-  fd_pool p = fd_unregistered_file_pool(FD_STRDATA(name));
-  if (p) return (fdtype) p;
-  else return FD_ERROR_VALUE;
-}
+/* Prefetching from pools */
 
 static fdtype pool_prefetch(fdtype pool,fdtype oids)
 {
@@ -195,10 +188,6 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_init_kbdrivers();
   driverfns_module = fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
-
-  fd_idefn(driverfns_module,
-           fd_make_cprim1x("ACCESS-POOL",access_pool_prim,1,
-                           fd_string_type,FD_VOID));
 
   fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,

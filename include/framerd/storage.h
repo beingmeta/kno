@@ -65,8 +65,8 @@ typedef unsigned int fd_storage_flags;
 
 typedef char fdb_cache_level;
 
-#define FD_STORAGE_POOL_FLAG(n)	   ((0x10000)<<n)
-#define FD_STORAGE_INDEX_FLAG(n)	   ((0x10000)<<n)
+#define FD_POOL_FLAG(n)	           ((0x10000)<<n)
+#define FD_INDEX_FLAG(n)	   ((0x10000)<<n)
 
 #ifndef FDDBSERV_MAX_POOLS
 #define FDDBSERV_MAX_POOLS 128

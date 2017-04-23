@@ -31,6 +31,7 @@
 
 static fdtype pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static fdtype flags_symbol, register_symbol, readonly_symbol;
+static fdtype inbackground_symbol, isadjunct_symbol;;
 
 static fdtype slotidp(fdtype arg)
 {
@@ -38,7 +39,7 @@ static fdtype slotidp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fd_storage_flags getdbflags(fdtype opts)
+static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
 {
   if (FD_FIXNUMP(opts)) {
     long long val=FD_FIX2INT(opts);
@@ -47,19 +48,36 @@ static fd_storage_flags getdbflags(fdtype opts)
     else return val;}
   else if (FD_TABLEP(opts)) {
     fdtype flags_val=fd_getopt(opts,flags_symbol,FD_VOID);
-    fd_storage_flags flags = 
-      (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
+    fd_storage_flags flags =
+      ( (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0) ) |
+      (init_flags);
     fdtype regopt = fd_getopt(opts,register_symbol,FD_VOID);
+    fdtype bgopt = ((flags&FD_STORAGE_ISINDEX) ?
+                    (fd_getopt(opts,inbackground_symbol,FD_VOID)) :
+                    (FD_FALSE));
+    fdtype adjopt = ((flags&FD_STORAGE_ISPOOL) ?
+                     (fd_getopt(opts,isadjunct_symbol,FD_VOID)) :
+                     (FD_FALSE));
     if (fd_testopt(opts,readonly_symbol,FD_VOID))
       flags |= FD_STORAGE_READ_ONLY;
     if ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)))
       flags |= FD_STORAGE_UNREGISTERED;
+    if ( (flags&FD_STORAGE_ISINDEX) &&
+         (!( (FD_VOIDP(bgopt)) ||
+             (FD_FALSEP(bgopt)) ||
+             (FD_ZEROP(bgopt)) ) ) )
+      flags |= FD_INDEX_IN_BACKGROUND;
+    if ( (flags&FD_STORAGE_ISPOOL) &&
+         (!( (FD_VOIDP(adjopt)) ||
+             (FD_FALSEP(adjopt)) ||
+             (FD_ZEROP(adjopt)) ) ) )
+      flags |= FD_POOL_ISADJUNCT;
     fd_decref(flags_val);
     fd_decref(regopt);
     return flags;}
   else if (FD_FALSEP(opts))
-    return FD_STORAGE_UNREGISTERED;
-  else return 0;
+    return init_flags | FD_STORAGE_UNREGISTERED;
+  else return init_flags;
 }
 
 /* Finding frames, etc. */
@@ -235,7 +253,7 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
   else return fd_type_error("pool or index","set_cache_level",arg);
 }
 
-static fdtype load_pool(fdtype arg1,fdtype opts)
+static fdtype try_pool(fdtype arg1,fdtype opts)
 {
   if (FD_POOLP(arg1))
     return fd_incref(arg1);
@@ -243,8 +261,24 @@ static fdtype load_pool(fdtype arg1,fdtype opts)
     return fd_type_error(_("string"),"load_pool",arg1);
   else {
     fd_pool p = fd_get_pool(FD_STRDATA(arg1),FD_STORAGE_NOERR,opts);
-    if (p) return fd_pool2lisp(p);
+    if (p)
+      return fd_pool2lisp(p);
     else return FD_FALSE;}
+}
+
+static fdtype adjunct_pool(fdtype arg1,fdtype opts)
+{
+  if (FD_POOLP(arg1))
+    return fd_incref(arg1);
+  else if (!(FD_STRINGP(arg1)))
+    return fd_type_error(_("string"),"adjunct_pool",arg1);
+  else {
+    fd_storage_flags flags=
+      getdbflags(opts,FD_STORAGE_ISPOOL) | FD_POOL_ISADJUNCT;
+    fd_pool p = fd_get_pool(FD_STRDATA(arg1),flags,opts);
+    if (p)
+      return fd_pool2lisp(p);
+    else return FD_ERROR_VALUE;}
 }
 
 static fdtype use_pool(fdtype arg1,fdtype opts)
@@ -276,7 +310,9 @@ static fdtype use_index(fdtype arg,fdtype opts)
       u8_byte *copy = u8_strdup(FD_STRDATA(arg));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
-        fd_index ix = fd_use_index(start,getdbflags(opts),opts);
+        fd_index ix = fd_use_index(start,
+                                   getdbflags(opts,FD_STORAGE_ISINDEX),
+                                   opts);
         if (ix == NULL) {
           u8_free(copy);
           fd_decref(results);
@@ -290,7 +326,9 @@ static fdtype use_index(fdtype arg,fdtype opts)
         else start = NULL;}
       u8_free(copy);
       return results;}
-    else ix = fd_use_index(FD_STRDATA(arg),getdbflags(opts),opts);
+    else ix = fd_use_index(FD_STRDATA(arg),
+                           getdbflags(opts,FD_STORAGE_ISINDEX),
+                           opts);
   else return fd_type_error(_("index spec"),"use_index",arg);
   if (ix) return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
@@ -298,7 +336,7 @@ static fdtype use_index(fdtype arg,fdtype opts)
 
 static fdtype open_index(fdtype arg,fdtype opts)
 {
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
@@ -335,7 +373,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
 {
   fd_pool p = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   if (FD_VOIDP(type))
     return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
   else if (FD_SYMBOLP(type))
@@ -352,7 +390,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
 
 static fdtype open_pool(fdtype path,fdtype opts)
 {
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   fd_pool p = fd_open_pool(FD_STRDATA(path),
                          flags|FD_STORAGE_UNREGISTERED,
                          opts);
@@ -363,7 +401,7 @@ static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   if (FD_VOIDP(type))
     return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
   else if (FD_SYMBOLP(type))
@@ -3045,10 +3083,12 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_oid_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("LOAD-POOL",load_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("ADUJNCT-POOL",adjunct_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("TRY-POOL",try_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-INDEX",use_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("OPEN-INDEX",open_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("CACHECOUNT",cachecount,0));
+  fd_defalias(fd_xscheme_module,"LOAD-POOL","TRY-POOL");
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("MAKE-INDEX",make_index,2,
@@ -3306,6 +3346,9 @@ FD_EXPORT void fd_init_dbprims_c()
   flags_symbol = fd_intern("FLAGS");
   register_symbol = fd_intern("REGISTER");
   readonly_symbol = fd_intern("READONLY");
+
+  isadjunct_symbol    = fd_intern("ISADJUNCT");
+  inbackground_symbol = fd_intern("INBACKGROUND");
 
 }
 

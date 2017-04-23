@@ -67,8 +67,6 @@ FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
 #define FD_LOCK_POOLFILE(fp) fd_lockfile(&((fp)->pool_stream))
 #define FD_UNLOCK_POOLFILE(fp) fd_unlockfile(&((fp)->pool_stream))
 
-FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
-
 /* File indexes */
 
 struct FD_INDEX_TYPEINFO {

@@ -133,7 +133,8 @@ FD_EXPORT u8_condition fd_PoolCommit;
 FD_EXPORT int fd_pool_cache_init;
 FD_EXPORT int fd_pool_lock_init;
 
-#define FD_OIDHOLES_OKAY  (FD_STORAGE_POOL_FLAG(1))
+#define FD_POOL_ISADJUNCT (FD_POOL_FLAG(1))
+#define FD_OIDHOLES_OKAY  (FD_POOL_FLAG(2))
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 

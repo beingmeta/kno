@@ -190,9 +190,12 @@ FD_EXPORT int fd_register_pool(fd_pool p)
 {
   unsigned int capacity = p->pool_capacity, serial_no;
   int bix = fd_get_oid_base_index(p->pool_base,1);
-  if (p->pool_serialno>=0) return 0;
-  else if (bix<0) return bix;
-  else if (p->pool_flags&FD_STORAGE_UNREGISTERED) return 0;
+  if (p->pool_serialno>=0)
+    return 0;
+  else if (bix<0)
+    return bix;
+  else if (p->pool_flags&FD_STORAGE_UNREGISTERED)
+    return 0;
   else u8_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
   serial_no = p->pool_serialno = fd_n_pools++;
@@ -203,6 +206,9 @@ FD_EXPORT int fd_register_pool(fd_pool p)
               u8_strdup(p->poolid),FD_VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
+  if (p->pool_flags&FD_POOL_ISADJUNCT) {
+    u8_unlock_mutex(&pool_registry_lock);
+    return 1;}
   if (capacity>=FD_OID_BUCKET_SIZE) {
     int i = 0, lim = capacity/FD_OID_BUCKET_SIZE;
     /* Now get baseids for the pool and save them in fd_top_pools */

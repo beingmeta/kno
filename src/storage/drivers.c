@@ -184,13 +184,6 @@ fd_pool fd_make_pool(u8_string spec,
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
 }
 
-/* TODO */
-FD_EXPORT
-fd_pool fd_unregistered_file_pool(u8_string filename)
-{
-  return NULL;
-}
-
 /* Opening indexes */
 
 static struct FD_INDEX_TYPEINFO *index_typeinfo;
