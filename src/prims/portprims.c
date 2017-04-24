@@ -1016,25 +1016,6 @@ static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype margina
   else return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,tmpout.u8_outbuf);
 }
 
-static u8_string lisp_pprintf_handler
-  (u8_output out,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
-{
-  struct U8_OUTPUT tmpout;
-  int width = 80; fdtype value;
-  if (strchr(cmd,'*'))
-    width = va_arg(*args,int);
-  else {
-    width = strtol(cmd,NULL,10);
-    U8_CLEAR_ERRNO();}
-  value = va_arg(*args,fdtype);
-  U8_INIT_OUTPUT(&tmpout,512);
-  fd_pprint(&tmpout,value,NULL,0,0,width,1);
-  u8_puts(out,tmpout.u8_outbuf);
-  u8_free(tmpout.u8_outbuf);
-  if (strchr(cmd,'-')) fd_decref(value);
-  return NULL;
-}
-
 /* Base 64 stuff */
 
 static fdtype from_base64_prim(fdtype string)
@@ -1252,8 +1233,6 @@ FD_EXPORT void fd_init_portprims_c()
 
   fd_unparsers[fd_port_type]=unparse_port;
   fd_recyclers[fd_port_type]=recycle_port;
-
-  u8_printf_handlers['Q']=lisp_pprintf_handler;
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LISP->STRING",lisp2string,1));
   fd_idefn(fd_scheme_module,
