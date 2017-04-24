@@ -1532,52 +1532,50 @@ FD_EXPORT fd_pool fd_name2pool(u8_string spec)
   else return fd_lisp2pool(poolv);
 }
 
+static void display_pool(u8_output out,fd_pool p,fdtype lp)
+{
+  char addrbuf[128], numbuf[32];
+  u8_string type = ((p->pool_handler) && (p->pool_handler->name)) ?
+    (p->pool_handler->name) : ((u8_string)"notype");
+  u8_string tag = (FD_CONSP(lp)) ? ("CONSPOOL") : ("POOL");
+  int n_cached=p->pool_cache.table_n_keys;
+  int n_changed=p->pool_changes.table_n_keys;
+  strcpy(addrbuf,"@");
+  strcat(addrbuf,u8_uitoa16(FD_OID_HI(p->pool_base),numbuf));
+  strcat(addrbuf,"/");
+  strcat(addrbuf,u8_uitoa16(FD_OID_LO(p->pool_base),numbuf));
+  strcat(addrbuf,"+0x0");
+  strcat(addrbuf,u8_uitoa16(p->pool_capacity,numbuf));
+  if ((p->pool_source)&&(p->pool_label))
+    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx '%s' \"%s\">",
+              tag,p->poolid,type,addrbuf,n_cached,n_changed,
+              lp,p->pool_label,p->pool_source);
+  else if (p->pool_label)
+    u8_printf(out,"#<%s %s (%s) oids=%d/%d #!%lx '%s'>",
+              tag,type,addrbuf,n_cached,n_changed,
+              lp,p->pool_label);
+  else if (p->pool_source)
+    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx \"%s\">",
+              tag,p->poolid,type,addrbuf,n_cached,n_changed,
+              lp,p->pool_source);
+  else u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx \"%s\">",
+                 tag,p->poolid,type,addrbuf,n_cached,n_changed,
+                 lp);
+}
+
 static int unparse_pool(u8_output out,fdtype x)
 {
-  fd_pool p = fd_lisp2pool(x); u8_string type; char addrbuf[128];
+  fd_pool p = fd_lisp2pool(x);
   if (p == NULL) return 0;
-  if ((p->pool_handler) && (p->pool_handler->name))
-    type = p->pool_handler->name;
-  else type="unrecognized";
-  sprintf(addrbuf,"@%x/%x+0x%x",
-          FD_OID_HI(p->pool_base),FD_OID_LO(p->pool_base),
-          p->pool_capacity);
-  if ((p->pool_source)&&(p->pool_label))
-    u8_printf(out,"#<POOL %s (%s) %s #!%lx '%s' \"%s\">",
-              p->poolid,type,addrbuf,x,
-              p->pool_label,p->pool_source);
-  else if (p->pool_label)
-    u8_printf(out,"#<POOL %s (%s) #!%lx '%s'>",
-              type,addrbuf,x,p->pool_label);
-  else if (p->pool_source)
-    u8_printf(out,"#<POOL %s (%s) %s #!%lx \"%s\">",
-              p->poolid,type,addrbuf,x,p->pool_source);
-  else u8_printf(out,"#<POOL %s (%s) %s #!%lx \"%s\">",
-                 p->poolid,type,addrbuf,x);
+  display_pool(out,p,x);
   return 1;
 }
 
 static int unparse_consed_pool(u8_output out,fdtype x)
 {
-  fd_pool p = (fd_pool)x; u8_string type; char addrbuf[128];
+  fd_pool p = (fd_pool)x;
   if (p == NULL) return 0;
-  if ((p->pool_handler) && (p->pool_handler->name)) type = p->pool_handler->name;
-  else type="unrecognized";
-  sprintf(addrbuf,"@%x/%x+0x%x",
-          FD_OID_HI(p->pool_base),FD_OID_LO(p->pool_base),
-          p->pool_capacity);
-  if ((p->pool_source)&&(p->pool_label))
-    u8_printf(out,"#<RAWPOOL %s (%s) %s #!%lx '%s' \"%s\">",
-              p->poolid,type,addrbuf,x,
-              p->pool_label,p->pool_source);
-  else if (p->pool_label)
-    u8_printf(out,"#<RAWPOOL %s (%s) #!%lx '%s'>",
-              type,addrbuf,x,p->pool_label);
-  else if (p->pool_source)
-    u8_printf(out,"#<RAWPOOL %s (%s) %s #!%lx \"%s\">",
-              p->poolid,type,addrbuf,x,p->pool_source);
-  else u8_printf(out,"#<RAWPOOL %s (%s) %s #!%lx \"%s\">",
-                 p->poolid,type,addrbuf,x);
+  display_pool(out,p,x);
   return 1;
 }
 
@@ -1937,14 +1935,16 @@ FD_EXPORT void fd_init_pools_c()
 
   u8_register_source_file(_FILEINFO);
 
+  fd_type_names[fd_pool_type]=_("pool");
+  fd_immediate_checkfns[fd_pool_type]=check_pool;
+
   fd_consed_pool_type = fd_register_cons_type("raw pool");
 
-  fd_type_names[fd_pool_type]=_("pool");
   fd_type_names[fd_consed_pool_type]=_("raw pool");
 
   _fd_oid_info=_more_oid_info;
 
-  lock_symbol = fd_intern("LOCK");  
+  lock_symbol = fd_intern("LOCK");
   unlock_symbol = fd_intern("UNLOCK");
 
   memset(&fd_top_pools,0,sizeof(fd_top_pools));

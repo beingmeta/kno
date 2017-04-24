@@ -946,18 +946,33 @@ FD_EXPORT void fd_reset_index_tables
     fd_reset_hashtable(adds,level,1);}
 }
 
+
+static void display_index(u8_output out,fd_index ix,fdtype lix)
+{
+  u8_byte numbuf[32], edits[64];
+  u8_string tag = (FD_CONSP(lix)) ? ("CONSINDEX") : ("INDEX");
+  u8_string type = ((ix->index_handler) && (ix->index_handler->name)) ?
+    (ix->index_handler->name) : ((u8_string)("notype"));
+  if (ix->index_edits.table_n_keys) {
+    strcpy(edits,"~");
+    strcat(edits,u8_itoa10(ix->index_edits.table_n_keys,numbuf));}
+  else strcpy(edits,"");
+  if (ix->index_source)
+    u8_printf(out,_("#<%s %s (%s) cache=%d+%d%s #!%lx \"%s\">"),
+              tag,type,ix->indexid,
+              ix->index_cache.table_n_keys,
+              ix->index_adds.table_n_keys,
+              edits,
+              lix,ix->index_source);
+  else u8_printf(out,_("#<%s %s (%s) cache=%d+%d~%d #!%lx>"),
+                 tag,ix->indexid,type,
+                 lix);
+}
 static int unparse_index(u8_output out,fdtype x)
 {
   fd_index ix = fd_indexptr(x); u8_string type;
   if (ix == NULL) return 0;
-  if ((ix->index_handler) && (ix->index_handler->name)) 
-    type = ix->index_handler->name;
-  else type="unrecognized";
-  if (ix->index_source)
-    u8_printf(out,_("#<INDEX %s %s 0x%lx \"%s\">"),
-              type,ix->indexid,x,ix->index_source);
-  else u8_printf(out,_("#<INDEX %s %x 0x%lx>"),
-                 type,ix->indexid,x);
+  display_index(out,ix,x);
   return 1;
 }
 
@@ -965,13 +980,8 @@ static int unparse_consed_index(u8_output out,fdtype x)
 {
   fd_index ix = (fd_index)(x); u8_string type;
   if (ix == NULL) return 0;
-  if ((ix->index_handler) && (ix->index_handler->name)) type = ix->index_handler->name;
-  else type="unrecognized";
-  if (ix->index_source)
-    u8_printf(out,_("#<RAWINDEX %s %s 0x%lx \"%s\">"),
-              type,ix->indexid,x,ix->index_source);
-  else u8_printf(out,_("#<RAWINDEX %s %x 0x%lx>"),
-                 type,ix->indexid,x);
+  if (ix == NULL) return 0;
+  display_index(out,ix,x);
   return 1;
 }
 
@@ -1171,13 +1181,15 @@ FD_EXPORT void fd_init_indexes_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_consed_index_type = fd_register_cons_type("raw index");
-
   fd_type_names[fd_index_type]=_("index");
+  fd_immediate_checkfns[fd_index_type]=check_index;
+
+  fd_consed_index_type = fd_register_cons_type("raw index");
   fd_type_names[fd_consed_index_type]=_("raw index");
 
   {
-    struct FD_COMPOUND_TYPEINFO *e = fd_register_compound(fd_intern("INDEX"),NULL,NULL);
+    struct FD_COMPOUND_TYPEINFO *e =
+      fd_register_compound(fd_intern("INDEX"),NULL,NULL);
     e->fd_compound_parser = index_parsefn;}
 
   fd_tablefns[fd_index_type]=u8_zalloc(struct FD_TABLEFNS);
