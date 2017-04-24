@@ -84,7 +84,7 @@ static void init_type_names()
   fd_type_names[fd_mystery_type]=_("mystery");
   fd_type_names[fd_qchoice_type]=_("quoted choice");
   fd_type_names[fd_hashset_type]=_("hashset");
-  fd_type_names[fd_primfcn_type]=_("builtin function");
+  fd_type_names[fd_cprim_type]=_("builtin function");
   fd_type_names[fd_error_type]=_("error");
   fd_type_names[fd_complex_type]=_("complex");
   fd_type_names[fd_rational_type]=_("rational");
@@ -132,7 +132,6 @@ FD_EXPORT void fd_init_numbers_c(void);
 FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
 FD_EXPORT void fd_init_sequences_c(void);
-FD_EXPORT void fd_init_ffi_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 
@@ -213,7 +212,6 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_bloom_c();
   fd_init_apply_c();
   fd_init_sequences_c();
-  fd_init_ffi_c();
   fd_init_fcnids_c();
 
   u8_threadcheck();

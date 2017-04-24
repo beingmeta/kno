@@ -151,7 +151,7 @@ typedef enum FD_PTR_TYPE {
   fd_hashset_type = FD_CONS_TYPECODE(15),
 
   /* Evaluator/apply types, defined here to be constant */
-  fd_primfcn_type = FD_CONS_TYPECODE(16),
+  fd_cprim_type = FD_CONS_TYPECODE(16),
   fd_environment_type = FD_CONS_TYPECODE(17),
   fd_specform_type = FD_CONS_TYPECODE(18),
   fd_macro_type = FD_CONS_TYPECODE(19),

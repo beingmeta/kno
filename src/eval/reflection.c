@@ -49,7 +49,7 @@ static fdtype special_formp(fdtype x)
 
 static fdtype primitivep(fdtype x)
 {
-  if (FD_TYPEP(x,fd_primfcn_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_cprim_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -569,8 +569,14 @@ FD_EXPORT void fd_init_reflection_c()
 
   moduleid_symbol = fd_intern("%MODULEID");
 
-  fd_idefn(module,fd_make_cprim1("MACRO?",macrop,1));
-  fd_idefn(module,fd_make_cprim1("APPLICABLE?",applicablep,1));
+  fd_idefn1(module,"MACRO?",macrop,1,
+            "Returns true if its argument is an evaluator macro",
+            -1,FD_VOID);
+  fd_idefn1(module,"APPLICABLE?",applicablep,1,
+            "Returns true if its argument is applicable "
+            "(can be passed to apply, used as a function, etc",
+            -1,FD_VOID);
+
   fd_idefn(module,fd_make_cprim1("COMPOUND-PROCEDURE?",compound_procedurep,1));
   fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",special_formp,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
@@ -592,7 +598,9 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BYTECODE",
                                  compound_procedure_bytecode,1));
-  fd_idefn(module,fd_make_cprim2("REFLECT/GET",reflect_get,2));
+  fd_idefn2(module,"REFLECT/GET",reflect_get,2,
+            "Returns a meta-property of a procedure",
+            -1,FD_VOID,-1,FD_VOID);
   fd_idefn(module,fd_make_cprim3("REFLECT/STORE!",reflect_store,3));
   fd_idefn(module,fd_make_cprim3("REFLECT/ADD!",reflect_add,3));
   fd_idefn(module,fd_make_cprim3("REFLECT/DROP!",reflect_drop,2));

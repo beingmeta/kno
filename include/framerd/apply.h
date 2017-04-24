@@ -92,6 +92,67 @@ struct FD_FUNCTION {
 /* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
 FD_EXPORT short fd_functionp[];
 
+FD_EXPORT fdtype fd_new_cprimn
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprimn fn,int min_arity,int ndcall,int xcall);
+FD_EXPORT fdtype fd_new_cprim1
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim1 fn,int min_arity,int ndcall,int xcall,
+ int type0,fdtype dflt0);
+FD_EXPORT fdtype fd_new_cprim2
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim2 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1);
+FD_EXPORT fdtype fd_new_cprim3
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim3 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2);
+FD_EXPORT fdtype fd_new_cprim4
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim4 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3);
+FD_EXPORT fdtype fd_new_cprim5
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim5 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4);
+FD_EXPORT fdtype fd_new_cprim6
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim6 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4,
+ int type5,fdtype dflt5);
+FD_EXPORT fdtype fd_new_cprim7
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim7 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4,
+ int type5,fdtype dflt5,int type6,fdtype dflt6);
+FD_EXPORT fdtype fd_new_cprim8
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim8 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+ int type1,fdtype dflt1,int type2,fdtype dflt2,
+ int type3,fdtype dflt3,int type4,fdtype dflt4,
+ int type5,fdtype dflt5,int type6,fdtype dflt6,
+ int type7,fdtype dflt7);
+FD_EXPORT fdtype fd_new_cprim9
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim9 fn,int min_arity,int ndcall,int call,
+ int type0,fdtype dflt0,
+    int type1,fdtype dflt1,int type2,fdtype dflt2,
+    int type3,fdtype dflt3,int type4,fdtype dflt4,
+    int type5,fdtype dflt5,int type6,fdtype dflt6,
+ int type7,fdtype dflt7,int type8,fdtype dflt8);
+
+
 /* Various primitive defining functions.  Declare an explicit type,
    like fd_cprim1, as an argument, will generate warnings when
    the declaration and the implementation don't match.  */
@@ -106,53 +167,44 @@ FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim0x(u8_string name,fd_cprim0 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim1x
-(u8_string name,fd_cprim1 fn,int min_arity,int type0,fdtype dflt0);
-FD_EXPORT fdtype fd_make_cprim2x
-(u8_string name,fd_cprim2 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1);
-FD_EXPORT fdtype fd_make_cprim3x
-(u8_string name,fd_cprim3 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2);
-FD_EXPORT fdtype fd_make_cprim4x
-(u8_string name,fd_cprim4 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2,
-   int type3,fdtype dflt3);
-FD_EXPORT fdtype fd_make_cprim5x
-(u8_string name,fd_cprim5 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2,
-   int type3,fdtype dflt3,int type4,fdtype dflt4);
-FD_EXPORT fdtype fd_make_cprim6x
-(u8_string name,fd_cprim6 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2,
-   int type3,fdtype dflt3,int type4,fdtype dflt4,
-   int type5,fdtype dflt5);
-FD_EXPORT fdtype fd_make_cprim7x
-(u8_string name,fd_cprim7 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2,
-   int type3,fdtype dflt3,int type4,fdtype dflt4,
-   int type5,fdtype dflt5,int type6,fdtype dflt6);
-FD_EXPORT fdtype fd_make_cprim8x
-(u8_string name,fd_cprim8 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2,
-   int type3,fdtype dflt3,int type4,fdtype dflt4,
-   int type5,fdtype dflt5,int type6,fdtype dflt6,
-   int type7,fdtype dflt7);
-FD_EXPORT fdtype fd_make_cprim9x
-(u8_string name,fd_cprim9 fn,
-   int min_arity,int type0,fdtype dflt0,
-   int type1,fdtype dflt1,int type2,fdtype dflt2,
-   int type3,fdtype dflt3,int type4,fdtype dflt4,
-   int type5,fdtype dflt5,int type6,fdtype dflt6,
-   int type7,fdtype dflt7,int type8,fdtype dflt8);
+
+#define fd_make_cprim1x(name,fn,min,...) \
+  fd_new_cprim1(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim2x(name,fn,min,...) \
+  fd_new_cprim2(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim3x(name,fn,min,...) \
+  fd_new_cprim3(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim4x(name,fn,min,...) \
+  fd_new_cprim4(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim5x(name,fn,min,...) \
+  fd_new_cprim5(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim6x(name,fn,min,...) \
+  fd_new_cprim6(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim7x(name,fn,min,...) \
+  fd_new_cprim7(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim8x(name,fn,min,...) \
+  fd_new_cprim8(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+#define fd_make_cprim9x(name,fn,min,...) \
+  fd_new_cprim9(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
+
+#define fd_idefn1(module,name,fn,min,doc,...)			\
+  fd_idefn(module,fd_new_cprim1(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn2(module,name,fn,min,doc,...)				\
+  fd_idefn(module,fd_new_cprim2(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn3(module,name,fn,min,doc,...)				\
+  fd_idefn(module,fd_new_cprim3(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn4(module,name,fn,min,doc,...) \
+  fd_idefn(module,fd_new_cprim4(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn5(module,name,fn,min,doc,...) \
+  fd_idefn(module,fd_new_cprim5(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn6(module,name,fn,min,doc,...) \
+  fd_idefn(module,fd_new_cprim6(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn7(module,name,fn,min,doc,...) \
+  fd_idefn(module,fd_new_cprim7(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn8(module,name,fn,min,doc,...) \
+  fd_idefn(module,fd_new_cprim8(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
+#define fd_idefn9(module,name,fn,min,doc,...) \
+  fd_idefn(module,fd_new_cprim8(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))
 
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x) \
@@ -164,8 +216,8 @@ FD_EXPORT fdtype fd_make_cprim9x
    (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x))))->fcn_arity) : \
    (0))
 
-/* #define FD_XFUNCTION(x) (fd_consptr(struct FD_FUNCTION *,x,fd_primfcn_type)) */
-#define FD_PRIMITIVEP(x) (FD_TYPEP(x,fd_primfcn_type))
+/* #define FD_XFUNCTION(x) (fd_consptr(struct FD_FUNCTION *,x,fd_cprim_type)) */
+#define FD_PRIMITIVEP(x) (FD_TYPEP(x,fd_cprim_type))
 
 /* Forward reference. Note that fd_sproc_type is defined in the
    pointer type enum in ptr.h. */

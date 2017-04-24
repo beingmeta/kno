@@ -614,7 +614,7 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
       u8_printf(out," '%s'>>",sproc->fcn_filename);
     else u8_puts(out,">>");
     return 1;}
-  else if (FD_TYPEP(lp,fd_primfcn_type)) {
+  else if (FD_TYPEP(lp,fd_cprim_type)) {
       struct FD_FUNCTION *fcn = (fd_function)lp;
       unsigned long long addr = (unsigned long long) fcn;
       u8_string name = fcn->fcn_name;

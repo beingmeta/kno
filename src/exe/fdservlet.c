@@ -1054,7 +1054,7 @@ static int webservefn(u8_client ucl)
              (FD_VOIDP(precheck))||
              (FD_EMPTY_CHOICEP(precheck))))
     result = precheck;
-  else if (FD_TYPEP(proc,fd_primfcn_type)) {
+  else if (FD_TYPEP(proc,fd_cprim_type)) {
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with primitive procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);

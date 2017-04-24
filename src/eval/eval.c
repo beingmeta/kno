@@ -863,7 +863,7 @@ static int applicable_choicep(fdtype headvals)
     int hvtype = FD_PRIM_TYPE(hv), inconsistent = 0;
     /* Check that all the elements are either applicable or special
        forms and not mixed */
-    if ( (hvtype == fd_primfcn_type) ||
+    if ( (hvtype == fd_cprim_type) ||
          (hvtype == fd_sproc_type) ||
          (fd_applyfns[hvtype]) ) {
       if (applicable<0) applicable = 1;
@@ -1537,7 +1537,7 @@ static fdtype callcc (fdtype proc)
 {
   fdtype continuation, value;
   struct FD_CONTINUATION *f = u8_alloc(struct FD_CONTINUATION);
-  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
   f->fcn_ndcall = 1; f->fcn_xcall = 1; f->fcn_arity = 1; f->fcn_min_arity = 1;
   f->fcn_typeinfo = NULL; f->fcn_defaults = NULL;
