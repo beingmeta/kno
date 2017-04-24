@@ -212,7 +212,7 @@ static fdtype poolp(fdtype arg)
 
 static fdtype indexp(fdtype arg)
 {
-  if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_raw_index_type)))
+  if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type)))
     return FD_TRUE; else return FD_FALSE;
 }
 
@@ -256,7 +256,7 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
     if (p) fd_pool_setcache(p,FD_FIX2INT(level));
     else return FD_ERROR_VALUE;
     return FD_VOID;}
-  else if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_raw_index_type))) {
+  else if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg);
     if (ix) fd_index_setcache(ix,FD_FIX2INT(level));
     else return fd_type_error("index","index_frame_prim",arg);
@@ -375,7 +375,7 @@ static fdtype open_index(fdtype arg,fdtype opts)
       return results;}
     else return fd_index2lisp(fd_get_index(FD_STRDATA(arg),flags,opts));
   else if (FD_INDEXP(arg)) return arg;
-  else if (FD_TYPEP(arg,fd_raw_index_type))
+  else if (FD_TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
   if (ix) return fd_index2lisp(ix);
@@ -514,12 +514,12 @@ static fdtype make_compound_index(int n,fdtype *args)
       fd_index ix = NULL;
       if (FD_STRINGP(source)) ix = fd_get_index(fd_strdata(source),0,FD_VOID);
       else if (FD_INDEXP(source)) ix = fd_indexptr(source);
-      else if (FD_TYPEP(source,fd_raw_index_type)) ix = fd_indexptr(source);
+      else if (FD_TYPEP(source,fd_consed_index_type)) ix = fd_indexptr(source);
       else if (FD_SYMBOLP(source)) {
         fdtype val = fd_config_get(FD_SYMBOL_NAME(source));
         if (FD_STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,FD_VOID);
         else if (FD_INDEXP(val)) ix = fd_indexptr(source);
-        else if (FD_TYPEP(val,fd_raw_index_type)) ix = fd_indexptr(val);}
+        else if (FD_TYPEP(val,fd_consed_index_type)) ix = fd_indexptr(val);}
       else {}
       if (ix) {
         if (n_sources>=max_sources) {
@@ -797,9 +797,9 @@ static fdtype swapout_lexpr(int n,fdtype *args)
           rv = fd_pool_swapout(fd_lisp2pool(e),FD_VOID);
         else if (FD_INDEXP(e))
           fd_index_swapout(fd_indexptr(e),FD_VOID);
-        else if (FD_TYPEP(e,fd_raw_index_type))
+        else if (FD_TYPEP(e,fd_consed_index_type))
           fd_index_swapout(fd_indexptr(e),FD_VOID);
-        else if (FD_TYPEP(arg,fd_raw_pool_type))
+        else if (FD_TYPEP(arg,fd_consed_pool_type))
           rv = fd_pool_swapout((fd_pool)arg,FD_VOID);
         else if (FD_STRINGP(e)) {
           fd_pool p = fd_name2pool(FD_STRDATA(e));
@@ -825,9 +825,9 @@ static fdtype swapout_lexpr(int n,fdtype *args)
       fd_index_swapout(fd_indexptr(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_pool_type))
       rv_sum = fd_pool_swapout(fd_lisp2pool(arg),FD_VOID);
-    else if (FD_TYPEP(arg,fd_raw_index_type))
+    else if (FD_TYPEP(arg,fd_consed_index_type))
       fd_index_swapout(fd_indexptr(arg),FD_VOID);
-    else if (FD_TYPEP(arg,fd_raw_pool_type))
+    else if (FD_TYPEP(arg,fd_consed_pool_type))
       rv_sum = fd_pool_swapout((fd_pool)arg,FD_VOID);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     return FD_INT(rv_sum);}
@@ -837,17 +837,17 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     fdtype arg, keys; int rv_sum = 0;
     if ((FD_TYPEP(args[0],fd_pool_type))||
         (FD_TYPEP(args[0],fd_index_type))||
-        (FD_TYPEP(args[0],fd_raw_pool_type))||
-        (FD_TYPEP(args[0],fd_raw_index_type))) {
+        (FD_TYPEP(args[0],fd_consed_pool_type))||
+        (FD_TYPEP(args[0],fd_consed_index_type))) {
       arg = args[0]; keys = args[1];}
     else {arg = args[0]; keys = args[1];}
     if (FD_TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
     else if (FD_TYPEP(arg,fd_pool_type))
       rv_sum = fd_pool_swapout(fd_lisp2pool(arg),keys);
-    else if (FD_TYPEP(arg,fd_raw_index_type))
+    else if (FD_TYPEP(arg,fd_consed_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
-    else if (FD_TYPEP(arg,fd_raw_pool_type))
+    else if (FD_TYPEP(arg,fd_consed_pool_type))
       rv_sum = fd_pool_swapout((fd_pool)arg,keys);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     if (rv_sum<0) return FD_ERROR_VALUE;
@@ -868,9 +868,9 @@ static fdtype commit_lexpr(int n,fdtype *args)
       retval = fd_index_commit(fd_indexptr(arg));
     else if (FD_TYPEP(arg,fd_pool_type))
       retval = fd_pool_commit_all(fd_lisp2pool(arg));
-    else if (FD_TYPEP(arg,fd_raw_index_type))
+    else if (FD_TYPEP(arg,fd_consed_index_type))
       retval = fd_index_commit(fd_indexptr(arg));
-    else if (FD_TYPEP(arg,fd_raw_pool_type))
+    else if (FD_TYPEP(arg,fd_consed_pool_type))
       retval = fd_pool_commit_all((fd_pool)arg);
     else if (FD_OIDP(arg))
       retval = fd_commit_oids(arg);
@@ -953,7 +953,7 @@ static fdtype swapcheck_prim()
 static fd_pool arg2pool(fdtype arg)
 {
   if (FD_POOLP(arg)) return fd_lisp2pool(arg);
-  else if (FD_TYPEP(arg,fd_raw_pool_type))
+  else if (FD_TYPEP(arg,fd_consed_pool_type))
     return (fd_pool)arg;
   else if (FD_STRINGP(arg)) {
     fd_pool p = fd_name2pool(FD_STRDATA(arg));
@@ -1283,7 +1283,7 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
     else return FD_VOID;}
   else {
     FD_DO_CHOICES(arg,arg1) {
-      if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_raw_index_type))) {
+      if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(arg);
         if (fd_index_prefetch(ix,arg2)<0) {
           FD_STOP_DO_CHOICES;
@@ -2713,7 +2713,7 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
     else if (fd_hashtable_probe(&(fd_background->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_raw_index_type))) {
+  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
@@ -2777,12 +2777,12 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
       if (oidmodifiedp(p,arg1))
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_POOLP(arg1))||(FD_TYPEP(arg1,fd_raw_pool_type))) {
+    else if ((FD_POOLP(arg1))||(FD_TYPEP(arg1,fd_consed_pool_type))) {
       fd_pool p = fd_lisp2pool(arg1);
       if (p->pool_changes.table_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_INDEXP(arg1))||(FD_TYPEP(arg1,fd_raw_index_type))) {
+    else if ((FD_INDEXP(arg1))||(FD_TYPEP(arg1,fd_consed_index_type))) {
       fd_index ix = fd_lisp2index(arg1);
       if ((ix->index_edits.table_n_keys) || (ix->index_adds.table_n_keys))
         return FD_TRUE;
@@ -2795,7 +2795,7 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
         else return FD_FALSE;}
       else return FD_FALSE;}
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_raw_index_type))) {
+  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);

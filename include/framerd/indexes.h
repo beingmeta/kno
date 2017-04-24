@@ -300,7 +300,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
     else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
       return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
     else return NULL;}
-  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_raw_index_type)))
+  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
     return (fd_index)x;
   else return (fd_index)NULL;
 }

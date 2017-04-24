@@ -649,7 +649,7 @@ static fdtype iserver_writablep()
 
 static fdtype ixserver_get(fdtype index,fdtype key)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_get(fd_indexptr(index),key);
   else if (FD_TABLEP(index))
     return fd_get(index,key,FD_EMPTY_CHOICE);
@@ -657,7 +657,7 @@ static fdtype ixserver_get(fdtype index,fdtype key)
 }
 static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     if (FD_VECTORP(keys)) {
       fd_index ix = fd_indexptr(index);
       int i = 0, n = FD_VECTOR_LENGTH(keys);
@@ -685,7 +685,7 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 }
 static fdtype ixserver_get_size(fdtype index,fdtype key)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type))) {
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type))) {
     fdtype value = fd_index_get(fd_indexptr(index),key);
     int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
@@ -699,7 +699,7 @@ static fdtype ixserver_get_size(fdtype index,fdtype key)
 }
 static fdtype ixserver_keys(fdtype index)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_keys(fd_indexptr(index));
   else if (FD_TABLEP(index))
     return fd_getkeys(index);
@@ -707,7 +707,7 @@ static fdtype ixserver_keys(fdtype index)
 }
 static fdtype ixserver_sizes(fdtype index)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_sizes(fd_indexptr(index));
   else if (FD_TABLEP(index)) {
     fdtype results = FD_EMPTY_CHOICE, keys = fd_getkeys(index);

@@ -84,9 +84,12 @@ typedef char fdb_cache_level;
 #define FD_DBCONN_INIT_DEFAULT 1
 #endif
 
-FD_EXPORT int fd_dbconn_reserve_default, fd_dbconn_cap_default, fd_dbconn_init_default;
+FD_EXPORT int fd_dbconn_reserve_default;
+FD_EXPORT int fd_dbconn_cap_default;
+FD_EXPORT int fd_dbconn_init_default;
 
-FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type, fd_raw_index_type, fd_raw_pool_type;
+FD_EXPORT fd_ptr_type fd_consed_index_type;
+FD_EXPORT fd_ptr_type fd_consed_pool_type;
 
 #define FD_INDEXP(x) (FD_TYPEP(x,fd_index_type))
 #define FD_POOLP(x) (FD_TYPEP(x,fd_pool_type))

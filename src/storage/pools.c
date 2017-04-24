@@ -1444,7 +1444,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
                             struct FD_POOL_HANDLER *h,
                             u8_string source,u8_string cid)
 {
-  FD_INIT_CONS(p,fd_raw_pool_type);
+  FD_INIT_CONS(p,fd_consed_pool_type);
   p->pool_base = base; p->pool_capacity = capacity;
   p->pool_serialno = -1; p->pool_cache_level = -1;
   p->pool_flags = 0;
@@ -1557,7 +1557,7 @@ static int unparse_pool(u8_output out,fdtype x)
   return 1;
 }
 
-static int unparse_raw_pool(u8_output out,fdtype x)
+static int unparse_consed_pool(u8_output out,fdtype x)
 {
   fd_pool p = (fd_pool)x; u8_string type; char addrbuf[128];
   if (p == NULL) return 0;
@@ -1680,7 +1680,7 @@ static int pool_store(fd_pool p,fdtype key,fdtype value)
     FD_OID addr = FD_OID_ADDR(key);
     FD_OID base = p->pool_base;
     if (FD_OID_COMPARE(addr,base)<0) {
-      fd_seterr(fd_PoolRangeError,"raw_pool_store",
+      fd_seterr(fd_PoolRangeError,"pool_store",
                 u8_strdup(fd_pool_id(p)),
                 key);
       return -1;}
@@ -1688,7 +1688,7 @@ static int pool_store(fd_pool p,fdtype key,fdtype value)
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
-        fd_seterr(fd_PoolRangeError,"raw_pool_store",
+        fd_seterr(fd_PoolRangeError,"pool_store",
                   u8_strdup(fd_pool_id(p)),
                   key);
         return -1;}
@@ -1697,13 +1697,13 @@ static int pool_store(fd_pool p,fdtype key,fdtype value)
       else if (fd_pool_lock(p,key)) {
         rv = fd_hashtable_store(&(p->pool_changes),key,value);}
       else {
-        fd_seterr(fd_CantLockOID,"raw_pool_store",
+        fd_seterr(fd_CantLockOID,"pool_store",
                   u8_strdup(fd_pool_id(p)),
                   key);
         return -1;}
       return rv;}}
   else {
-    fd_seterr(fd_NotAnOID,"raw_pool_store",
+    fd_seterr(fd_NotAnOID,"pool_store",
               u8_strdup(fd_pool_id(p)),
               fd_incref(key));
     return -1;}
@@ -1742,7 +1742,7 @@ FD_EXPORT fdtype fd_pool_keys(fdtype arg)
     return results;}
 }
 
-static void recycle_raw_pool(struct FD_RAW_CONS *c)
+static void recycle_consed_pool(struct FD_RAW_CONS *c)
 {
   struct FD_POOL *p = (struct FD_POOL *)c;
   struct FD_POOL_HANDLER *handler = p->pool_handler;
@@ -1757,14 +1757,14 @@ static void recycle_raw_pool(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static fdtype copy_raw_pool(fdtype x,int deep)
+static fdtype copy_consed_pool(fdtype x,int deep)
 {
   return x;
 }
 
 /* Initialization */
 
-fd_ptr_type fd_pool_type, fd_raw_pool_type;
+fd_ptr_type fd_consed_pool_type;
 
 static int check_pool(fdtype x)
 {
@@ -1937,11 +1937,10 @@ FD_EXPORT void fd_init_pools_c()
 
   u8_register_source_file(_FILEINFO);
 
-  fd_pool_type = fd_register_immediate_type("pool",check_pool);
-  fd_raw_pool_type = fd_register_cons_type("raw pool");
+  fd_consed_pool_type = fd_register_cons_type("raw pool");
 
   fd_type_names[fd_pool_type]=_("pool");
-  fd_type_names[fd_raw_pool_type]=_("raw pool");
+  fd_type_names[fd_consed_pool_type]=_("raw pool");
 
   _fd_oid_info=_more_oid_info;
 
@@ -1952,7 +1951,8 @@ FD_EXPORT void fd_init_pools_c()
   memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));
 
   {
-    struct FD_COMPOUND_TYPEINFO *e = fd_register_compound(fd_intern("POOL"),NULL,NULL);
+    struct FD_COMPOUND_TYPEINFO *e =
+      fd_register_compound(fd_intern("POOL"),NULL,NULL);
     e->fd_compound_parser = pool_parsefn;}
 
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
@@ -1962,9 +1962,9 @@ FD_EXPORT void fd_init_pools_c()
   u8_new_threadkey(&fd_pool_delays_key,NULL);
 #endif
   fd_unparsers[fd_pool_type]=unparse_pool;
-  fd_unparsers[fd_raw_pool_type]=unparse_raw_pool;
-  fd_recyclers[fd_raw_pool_type]=recycle_raw_pool;
-  fd_copiers[fd_raw_pool_type]=copy_raw_pool;
+  fd_unparsers[fd_consed_pool_type]=unparse_consed_pool;
+  fd_recyclers[fd_consed_pool_type]=recycle_consed_pool;
+  fd_copiers[fd_consed_pool_type]=copy_consed_pool;
   fd_register_config
     ("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
      config_get_anonymousok,
@@ -1978,10 +1978,10 @@ FD_EXPORT void fd_init_pools_c()
   fd_tablefns[fd_pool_type]->store = (fd_table_store_fn)pool_tablestore;
   fd_tablefns[fd_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
 
-  fd_tablefns[fd_raw_pool_type]=u8_zalloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_raw_pool_type]->get = (fd_table_get_fn)pool_tableget;
-  fd_tablefns[fd_raw_pool_type]->store = (fd_table_store_fn)pool_tablestore;
-  fd_tablefns[fd_raw_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
+  fd_tablefns[fd_consed_pool_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_consed_pool_type]->get = (fd_table_get_fn)pool_tableget;
+  fd_tablefns[fd_consed_pool_type]->store = (fd_table_store_fn)pool_tablestore;
+  fd_tablefns[fd_consed_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
 
 #if FD_CALLTRACK_ENABLED
   {

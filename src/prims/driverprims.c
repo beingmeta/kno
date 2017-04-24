@@ -189,7 +189,7 @@ FD_EXPORT void fd_init_driverfns_c()
 
   fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,
-                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+                                          fd_consed_pool_type,FD_VOID,-1,FD_VOID)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");

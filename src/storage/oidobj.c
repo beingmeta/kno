@@ -208,7 +208,7 @@ static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
      (fd_hashtable_get((fd_hashtable)store,frame,FD_VOID)) :
      (FD_INDEXP(store)) ? (fd_index_get(l2x(store),frame)) :
      (FD_POOLP(store)) ? (fd_pool_get(l2p(store),frame)) :
-     (FD_TYPEP(store,fd_raw_index_type)) ?
+     (FD_TYPEP(store,fd_consed_index_type)) ?
      (fd_index_get(((fd_index)store),frame)) :
      (fd_get(store,frame,FD_VOID)));
 }

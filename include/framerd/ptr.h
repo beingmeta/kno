@@ -128,6 +128,8 @@ typedef enum FD_PTR_TYPE {
   fd_opcode_type = FD_IMMEDIATE_TYPECODE(5),
   fd_type_type = FD_IMMEDIATE_TYPECODE(6),
   fd_cdrcode_type = FD_IMMEDIATE_TYPECODE(7),
+  fd_pool_type = FD_IMMEDIATE_TYPECODE(8),
+  fd_index_type = FD_IMMEDIATE_TYPECODE(0),
 
   fd_string_type = FD_CONS_TYPECODE(0),
   fd_packet_type = FD_CONS_TYPECODE(1),

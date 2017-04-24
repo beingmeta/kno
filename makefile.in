@@ -327,10 +327,13 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
-CLEANDIRS=src/types src/db src/drivers src/scheme \
-	src/texttools src/fdweb \
-	include/framerd src/drivers/headers \
-	src/cmodules src/cmodules/sundown src/cmodules/tidy5 \
+CLEANDIRS=include/framerd src/drivers/headers 		\
+	src/types src/apply src/storage src/drivers	\
+	src/eval src/prims				\
+	src/text src/web src/scheme			\
+	src/cmodules					\
+	src/cmodules/ext/sundown 			\
+	src/cmodules/ext/tidy5 				\
 	etc
 
 FRAMERD_HEADERS= \
