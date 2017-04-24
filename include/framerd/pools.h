@@ -133,8 +133,8 @@ FD_EXPORT u8_condition fd_PoolCommit;
 FD_EXPORT int fd_pool_cache_init;
 FD_EXPORT int fd_pool_lock_init;
 
-#define FD_POOL_ISADJUNCT (FD_POOL_FLAG(1))
-#define FD_OIDHOLES_OKAY  (FD_POOL_FLAG(2))
+#define FD_POOL_SPARSE    (FD_POOL_FLAG(0))
+#define FD_POOL_ADJUNCT   (FD_POOL_FLAG(1))
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
@@ -293,6 +293,12 @@ FD_EXPORT fd_pool _fd_oid2pool(fdtype oid);
 FD_EXPORT fdtype fd_oid_value(fdtype oid);
 FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid);
 
+/* Using pools like tables */
+
+FD_EXPORT fdtype fd_pool_get(fd_pool p,fdtype key);
+FD_EXPORT int fd_pool_store(fd_pool p,fdtype key,fdtype value);
+FD_EXPORT fdtype fd_pool_keys(fdtype arg);
+
 /* IPEVAL delays */
 
 #ifndef FD_N_POOL_DELAYS
@@ -386,6 +392,24 @@ FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 #endif
 
 FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
+
+/* Adjuncts */
+
+/* Adjuncts are lisp tables (including indices or even other pools)
+   which are used for the values of particular slotids, either on a
+   pool or globally. */
+
+FD_EXPORT fd_exception fd_BadAdjunct, fd_AdjunctError;
+
+FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts);
+FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype table);
+FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
+FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid);
+
+FD_EXPORT fdtype fd_adjunct_slotids;
+
+FD_EXPORT int fd_pool_setop(fd_pool,fdtype,fdtype,fdtype);
+
 
 /* Generic Pools */
 

@@ -121,6 +121,7 @@ FD_EXPORT void fd_init_oids_c(void);
 FD_EXPORT void fd_init_textio_c(void);
 FD_EXPORT void fd_init_parse_c(void);
 FD_EXPORT void fd_init_unparse_c(void);
+FD_EXPORT void fd_init_pprint_c(void);
 FD_EXPORT void fd_init_ports_c(void);
 FD_EXPORT void fd_init_dtread_c(void);
 FD_EXPORT void fd_init_dtwrite_c(void);
@@ -164,7 +165,6 @@ FD_EXPORT void fd_log_status()
     double systime = format_secs
       (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
        &stu);
-    u8_byte prefix_buf[256];
     if (heapbytes>10000000000) {
       heapsize = floor(((double)heapbytes)/1000000000); heapu="GB";}
     else if (heapbytes>1500000) {
@@ -201,6 +201,7 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_misctypes_c();
   fd_init_oids_c();
   fd_init_unparse_c();
+  fd_init_pprint_c();
   fd_init_parse_c();
   fd_init_tables_c();
   fd_init_symbols_c();

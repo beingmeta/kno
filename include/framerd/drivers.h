@@ -34,7 +34,8 @@ FD_EXPORT fd_exception fd_RecoveryRequired;
 
 FD_EXPORT fd_exception fd_PoolDriverError, fd_IndexDriverError;
 FD_EXPORT fd_exception fd_CantOpenPool, fd_CantOpenIndex;
-FD_EXPORT fd_exception fd_FilePoolSizeOverflow, fd_FileIndexSizeOverflow;
+FD_EXPORT fd_exception fd_CantFindPool, fd_CantFindIndex;
+FD_EXPORT fd_exception fd_PoolFileSizeOverflow, fd_FileIndexSizeOverflow;
 FD_EXPORT fd_exception fd_CorruptedPool, fd_CorruptedIndex;
 
 FD_EXPORT u8_string fd_match4bytes(u8_string file,void *data);

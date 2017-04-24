@@ -369,7 +369,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       retcode = -1; break;}
     else if (FD_EXPECT_FALSE(delta<0)) {retcode = -1; break;}
     else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
-      fd_seterr(fd_FilePoolSizeOverflow,
+      fd_seterr(fd_PoolFileSizeOverflow,
                 "file_pool_storen",u8_strdup(fp->poolid),
                 oids[i]);
       retcode = -1; break;}
@@ -380,7 +380,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   if (retcode<0) {}
   else if ((fp->pool_offdata) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
-    fd_seterr(fd_FilePoolSizeOverflow,
+    fd_seterr(fd_PoolFileSizeOverflow,
               "file_pool_storen",u8_strdup(fp->poolid),
               FD_VOID);
     retcode = -1;}

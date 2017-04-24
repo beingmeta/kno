@@ -72,7 +72,8 @@ static fdtype mempool_fetch(fd_pool p,fdtype oid)
   struct FD_HASHTABLE *cache = &(p->pool_cache);
   FD_OID addr = FD_OID_ADDR(oid);
   int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
-  if ((off>mp->pool_load) && (!((p->pool_flags)&FD_OIDHOLES_OKAY)))
+  if ((off>mp->pool_load) &&
+      (!((p->pool_flags)&FD_POOL_SPARSE)))
     return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->poolid,oid);
   else return fd_hashtable_get(cache,oid,FD_EMPTY_CHOICE);
 }
@@ -85,7 +86,8 @@ static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
   int i = 0; while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
     int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
-    if ((off>mp->pool_load) && (!((p->pool_flags)&FD_OIDHOLES_OKAY))) {
+    if ((off>mp->pool_load) &&
+	(!((p->pool_flags)&FD_POOL_SPARSE))) {
       fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->poolid),
 		fd_make_oid(addr));
       return NULL;}

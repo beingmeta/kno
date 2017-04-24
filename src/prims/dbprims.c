@@ -31,7 +31,7 @@
 
 static fdtype pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static fdtype flags_symbol, register_symbol, readonly_symbol;
-static fdtype inbackground_symbol, isadjunct_symbol;;
+static fdtype background_symbol, isadjunct_symbol, sparse_symbol;
 
 static fdtype slotidp(fdtype arg)
 {
@@ -53,11 +53,14 @@ static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
       (init_flags);
     fdtype regopt = fd_getopt(opts,register_symbol,FD_VOID);
     fdtype bgopt = ((flags&FD_STORAGE_ISINDEX) ?
-                    (fd_getopt(opts,inbackground_symbol,FD_VOID)) :
+                    (fd_getopt(opts,background_symbol,FD_VOID)) :
                     (FD_FALSE));
     fdtype adjopt = ((flags&FD_STORAGE_ISPOOL) ?
                      (fd_getopt(opts,isadjunct_symbol,FD_VOID)) :
                      (FD_FALSE));
+    fdtype sparseopt = ((flags&FD_STORAGE_ISPOOL) ?
+                        (fd_getopt(opts,sparse_symbol,FD_VOID)) :
+                        (FD_FALSE));
     if (fd_testopt(opts,readonly_symbol,FD_VOID))
       flags |= FD_STORAGE_READ_ONLY;
     if ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)))
@@ -71,9 +74,17 @@ static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
          (!( (FD_VOIDP(adjopt)) ||
              (FD_FALSEP(adjopt)) ||
              (FD_ZEROP(adjopt)) ) ) )
-      flags |= FD_POOL_ISADJUNCT;
+      flags |= FD_POOL_ADJUNCT | FD_POOL_SPARSE;
+    else if ( (flags&FD_STORAGE_ISPOOL) &&
+              (!( (FD_VOIDP(sparseopt)) ||
+                  (FD_FALSEP(sparseopt)) ||
+                  (FD_ZEROP(sparseopt)) ) ) )
+      flags |= FD_POOL_SPARSE;
+    else {}
     fd_decref(flags_val);
+    fd_decref(sparseopt);
     fd_decref(regopt);
+    fd_decref(bgopt);
     return flags;}
   else if (FD_FALSEP(opts))
     return init_flags | FD_STORAGE_UNREGISTERED;
@@ -274,7 +285,9 @@ static fdtype adjunct_pool(fdtype arg1,fdtype opts)
     return fd_type_error(_("string"),"adjunct_pool",arg1);
   else {
     fd_storage_flags flags=
-      getdbflags(opts,FD_STORAGE_ISPOOL) | FD_POOL_ISADJUNCT;
+      getdbflags(opts,FD_STORAGE_ISPOOL) |
+      FD_POOL_ADJUNCT |
+      FD_POOL_SPARSE;
     fd_pool p = fd_get_pool(FD_STRDATA(arg1),flags,opts);
     if (p)
       return fd_pool2lisp(p);
@@ -391,9 +404,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
 static fdtype open_pool(fdtype path,fdtype opts)
 {
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
-  fd_pool p = fd_open_pool(FD_STRDATA(path),
-                         flags|FD_STORAGE_UNREGISTERED,
-                         opts);
+  fd_pool p = fd_open_pool(FD_STRDATA(path),flags,opts);
   return (fdtype)p;
 }
 
@@ -732,7 +743,7 @@ static fdtype extindex_state(fdtype index)
 
 /* Adding adjuncts */
 
-static fdtype adjunct_symbol;
+static fdtype padjuncts_symbol;
 
 static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
 {
@@ -741,22 +752,25 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
     if (ix) adjunct = fd_index2lisp(ix);
     else return fd_type_error("adjunct spec","use_adjunct",adjunct);}
   if ((FD_VOIDP(slotid)) && (FD_TABLEP(adjunct)))
-    slotid = fd_get(adjunct,adjunct_symbol,FD_VOID);
+    slotid = fd_get(adjunct,padjuncts_symbol,FD_VOID);
   if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
     if (FD_VOIDP(pool_arg))
-      if (fd_set_adjunct(NULL,slotid,adjunct)<0) return FD_ERROR_VALUE;
+      if (fd_set_adjunct(NULL,slotid,adjunct)<0)
+        return FD_ERROR_VALUE;
       else return FD_VOID;
     else {
       fd_pool p = fd_lisp2pool(pool_arg);
       if (p == NULL) return FD_ERROR_VALUE;
-      else if (fd_set_adjunct(p,slotid,adjunct)<0) return FD_ERROR_VALUE;
+      else if (fd_set_adjunct(p,slotid,adjunct)<0)
+        return FD_ERROR_VALUE;
       else return FD_VOID;}
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
 /* Definiing pool ops */
 
-static fdtype set_pool_op(fdtype pool_arg,fdtype op,fdtype slotid,fdtype handler)
+static fdtype set_pool_op(fdtype pool_arg,fdtype op,fdtype slotid,
+                          fdtype handler)
 {
   fd_pool p = fd_lisp2pool(pool_arg);
   if (p == NULL) return FD_ERROR_VALUE;
@@ -3083,7 +3097,7 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_oid_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("ADUJNCT-POOL",adjunct_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("ADJUNCT-POOL",adjunct_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("TRY-POOL",try_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-INDEX",use_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("OPEN-INDEX",open_index,1));
@@ -3339,7 +3353,7 @@ FD_EXPORT void fd_init_dbprims_c()
 
 
   id_symbol = fd_intern("%ID");
-  adjunct_symbol = fd_intern("%ADJUNCT");
+  padjuncts_symbol = fd_intern("%ADJUNCTS");
   pools_symbol = fd_intern("POOLS");
   indexes_symbol = fd_intern("INDEXES");
   drop_symbol = fd_intern("DROP");
@@ -3347,8 +3361,9 @@ FD_EXPORT void fd_init_dbprims_c()
   register_symbol = fd_intern("REGISTER");
   readonly_symbol = fd_intern("READONLY");
 
+  sparse_symbol    = fd_intern("SPARSE");
   isadjunct_symbol    = fd_intern("ISADJUNCT");
-  inbackground_symbol = fd_intern("INBACKGROUND");
+  background_symbol = fd_intern("BACKGROUND");
 
 }
 

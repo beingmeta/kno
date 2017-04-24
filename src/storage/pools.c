@@ -206,7 +206,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
               u8_strdup(p->poolid),FD_VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
-  if (p->pool_flags&FD_POOL_ISADJUNCT) {
+  if (p->pool_flags&FD_POOL_ADJUNCT) {
     u8_unlock_mutex(&pool_registry_lock);
     return 1;}
   if (capacity>=FD_OID_BUCKET_SIZE) {
@@ -1272,7 +1272,7 @@ static int match_pool_source(fd_pool p,u8_string source)
 
 FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)
 {
-  int i = 0; u8_string canonical;
+  int i = 0;
   if (source == NULL) return NULL;
   while (i < 1024)
     if (fd_top_pools[i] == NULL) i++;
@@ -1640,41 +1640,58 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
 
 /* Raw pool table operations */
 
-static fdtype raw_pool_get(fdtype arg,fdtype key,fdtype dflt)
+static fdtype pool_get(fd_pool p,fdtype key,fdtype dflt)
 {
   if (FD_OIDP(key)) {
-    fd_pool p = (fd_pool)arg;
     FD_OID addr = FD_OID_ADDR(key);
     FD_OID base = p->pool_base;
     if (FD_OID_COMPARE(addr,base)<0)
       return fd_incref(dflt);
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
+      unsigned int capacity = p->pool_capacity;
       int load = fd_pool_load(p);
-      if (load<0) return FD_ERROR_VALUE;
-      else if (offset<load)
+      if (load<0)
+        return FD_ERROR_VALUE;
+      else if ((p->pool_flags&FD_POOL_ADJUNCT) ?
+               (offset<capacity) :
+               (offset<load))
         return fd_fetch_oid(p,key);
       else return fd_incref(dflt);}}
   else return fd_incref(dflt);
 }
 
-static fdtype raw_pool_store(fdtype arg,fdtype key,fdtype value)
+static fdtype pool_tableget(fdtype arg,fdtype key,fdtype dflt)
 {
-  fd_pool p = (fd_pool)arg;
+  fd_pool p=fd_lisp2pool(arg);
+  if (p)
+    return pool_get(p,key,dflt);
+  else return fd_incref(dflt);
+}
+
+FD_EXPORT fdtype fd_pool_get(fd_pool p,fdtype key)
+{
+  return pool_get(p,key,FD_EMPTY_CHOICE);
+}
+
+static int pool_store(fd_pool p,fdtype key,fdtype value)
+{
   if (FD_OIDP(key)) {
     FD_OID addr = FD_OID_ADDR(key);
     FD_OID base = p->pool_base;
-    if (FD_OID_COMPARE(addr,base)<0)
-      return fd_err(fd_PoolRangeError,"raw_pool_store",
-                    u8_strdup(fd_pool_id(p)),
-                    key);
+    if (FD_OID_COMPARE(addr,base)<0) {
+      fd_seterr(fd_PoolRangeError,"raw_pool_store",
+                u8_strdup(fd_pool_id(p)),
+                key);
+      return -1;}
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
       int cap = p->pool_capacity, rv = -1;
-      if (offset>cap)
-        return fd_err(fd_PoolRangeError,"raw_pool_store",
-                      u8_strdup(fd_pool_id(p)),
-                      key);
+      if (offset>cap) {
+        fd_seterr(fd_PoolRangeError,"raw_pool_store",
+                  u8_strdup(fd_pool_id(p)),
+                  key);
+        return -1;}
       else if (p->pool_handler->lock == NULL) {
         rv = fd_hashtable_store(&(p->pool_cache),key,value);}
       else if (fd_pool_lock(p,key)) {
@@ -1683,27 +1700,46 @@ static fdtype raw_pool_store(fdtype arg,fdtype key,fdtype value)
         fd_seterr(fd_CantLockOID,"raw_pool_store",
                   u8_strdup(fd_pool_id(p)),
                   key);
-        return FD_ERROR_VALUE;}
-      if (rv<0) 
-        return FD_ERROR_VALUE;
-      return FD_VOID;}}
-  else return fd_err(fd_NotAnOID,"raw_pool_store",
-                     u8_strdup(fd_pool_id(p)),
-                     key);
+        return -1;}
+      return rv;}}
+  else {
+    fd_seterr(fd_NotAnOID,"raw_pool_store",
+              u8_strdup(fd_pool_id(p)),
+              fd_incref(key));
+    return -1;}
 }
 
-static fdtype raw_pool_keys(fdtype arg)
+static fdtype pool_tablestore(fdtype arg,fdtype key,fdtype val)
+{
+  fd_pool p=fd_lisp2pool(arg);
+  if (p) {
+    int rv=pool_store(p,key,val);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_TRUE;}
+  else return fd_type_error("pool","pool_tablestore",arg);
+}
+
+FD_EXPORT int fd_pool_store(fd_pool p,fdtype key,fdtype value)
+{
+  return pool_store(p,key,value);
+}
+
+FD_EXPORT fdtype fd_pool_keys(fdtype arg)
 {
   fdtype results = FD_EMPTY_CHOICE;
-  fd_pool p = (fd_pool)arg;
-  FD_OID base = p->pool_base;
-  unsigned int i = 0; int load = fd_pool_load(p);
-  if (load<0) return FD_ERROR_VALUE;
-  while (i<load) {
-    fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
-    FD_ADD_TO_CHOICE(results,each);
-    i++;}
-  return results;
+  fd_pool p = fd_lisp2pool(arg);
+  if (p==NULL)
+    return fd_type_error("pool","pool_tablekeys",arg);
+  else {
+    FD_OID base = p->pool_base;
+    unsigned int i = 0; int load = fd_pool_load(p);
+    if (load<0) return FD_ERROR_VALUE;
+    while (i<load) {
+      fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
+      FD_ADD_TO_CHOICE(results,each);
+      i++;}
+    return results;}
 }
 
 static void recycle_raw_pool(struct FD_RAW_CONS *c)
@@ -1937,11 +1973,15 @@ FD_EXPORT void fd_init_pools_c()
                      fd_poolconfig_get,fd_poolconfig_set,
                      &fd_default_pool);
 
-  fd_tablefns[fd_raw_pool_type]=u8_zalloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_raw_pool_type]->get = (fd_table_get_fn)raw_pool_get;
-  fd_tablefns[fd_raw_pool_type]->store = (fd_table_store_fn)raw_pool_store;
-  fd_tablefns[fd_raw_pool_type]->keys = (fd_table_keys_fn)raw_pool_keys;
+  fd_tablefns[fd_pool_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_pool_type]->get = (fd_table_get_fn)pool_tableget;
+  fd_tablefns[fd_pool_type]->store = (fd_table_store_fn)pool_tablestore;
+  fd_tablefns[fd_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
 
+  fd_tablefns[fd_raw_pool_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_raw_pool_type]->get = (fd_table_get_fn)pool_tableget;
+  fd_tablefns[fd_raw_pool_type]->store = (fd_table_store_fn)pool_tablestore;
+  fd_tablefns[fd_raw_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
 
 #if FD_CALLTRACK_ENABLED
   {
