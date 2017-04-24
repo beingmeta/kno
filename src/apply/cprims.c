@@ -80,7 +80,7 @@ static struct FD_FUNCTION *new_cprim(u8_string name,
   f->fcn_documentation = doc;
   if (non_deterministic)
     f->fcn_ndcall = 1;
-  else f->fcn_ndcall = 1;
+  else f->fcn_ndcall = 0;
   if (extended_call)
     f->fcn_xcall = 1;
   else f->fcn_xcall = 0;

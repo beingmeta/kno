@@ -230,7 +230,8 @@ static fdtype downcase(fdtype string)
     while ((c = u8_sgetc(&scan))>=0) {
       int lc = u8_tolower(c); u8_putc(&out,lc);}
     return fd_stream2string(&out);}
-  else return fd_type_error(_("string, symbol, or character"),"downcase",string);
+  else return fd_type_error
+         (_("string, symbol, or character"),"downcase",string);
 
 }
 static fdtype char_downcase(fdtype ch)
