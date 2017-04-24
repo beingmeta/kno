@@ -23,6 +23,7 @@ fdtype FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
   FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK,
   FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_TAG,
   FDSYM_TEXT, FDSYM_CONTENT, FDSYM_LENGTH,
+  FDSYM_READONLY, FDSYM_ISADJUNCT,
   FDSYM_STRING, FDSYM_CONS;
 
 u8_mutex fd_symbol_lock;
@@ -99,6 +100,8 @@ static void init_builtin_symbols()
   FDSYM_TAG = fd_intern("TAG");
   FDSYM_CONS = fd_intern("CONS");
   FDSYM_STRING = fd_intern("STRING");
+  FDSYM_READONLY = fd_intern("READONLY");
+  FDSYM_ISADJUNCT = fd_intern("ISADJUNCT");
 }
 
 static void grow_symbol_tables()
