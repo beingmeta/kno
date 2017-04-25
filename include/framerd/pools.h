@@ -161,7 +161,6 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
-  struct FD_HASHTABLE *oid_handlers;			\
   u8_string pool_prefix;				\
   fdtype pool_namefn
 
@@ -408,9 +407,6 @@ FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
 FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid);
 
 FD_EXPORT fdtype fd_adjunct_slotids;
-
-FD_EXPORT int fd_pool_setop(fd_pool,fdtype,fdtype,fdtype);
-
 
 /* Generic Pools */
 

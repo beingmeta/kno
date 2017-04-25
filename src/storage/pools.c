@@ -1438,7 +1438,6 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_adjuncts = NULL;
   p->pool_adjuncts_len = 0;
   p->pool_n_adjuncts = 0;
-  p->oid_handlers = NULL;
   p->pool_handler = h;
   p->pool_source = u8_strdup(source);
   p->poolid = u8_strdup(cid);
@@ -1896,7 +1895,6 @@ static void init_zero_pool()
   _fd_zero_pool.pool_n_adjuncts = 0;
   _fd_zero_pool.pool_adjuncts_len = 0;
   _fd_zero_pool.pool_adjuncts = NULL;
-  _fd_zero_pool.oid_handlers = NULL;
   _fd_zero_pool.pool_prefix="";
   _fd_zero_pool.pool_namefn = FD_VOID;
   fd_register_pool(&_fd_zero_pool);

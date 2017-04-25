@@ -767,17 +767,6 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-/* Definiing pool ops */
-
-static fdtype set_pool_op(fdtype pool_arg,fdtype op,fdtype slotid,
-                          fdtype handler)
-{
-  fd_pool p = fd_lisp2pool(pool_arg);
-  if (p == NULL) return FD_ERROR_VALUE;
-  else if (fd_pool_setop(p,op,slotid,handler)<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
-}
-
 /* DB control functions */
 
 static fdtype swapout_lexpr(int n,fdtype *args)
@@ -3327,7 +3316,6 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim4("SET-POOL-OP!",set_pool_op,4));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("MAKE-BLOOM-FILTER",make_bloom_filter,1,
