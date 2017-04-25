@@ -189,7 +189,7 @@ FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity);
 #define fd_make_cprim9x(name,fn,min,...) \
   fd_new_cprim9(name,_FILEINFO,NULL,fn,min,0,0,__VA_ARGS__)
 
-#define fd_idefn0(module,name,fn,min,doc)			\
+#define fd_idefn0(module,name,fn,doc)				\
   fd_idefn(module,fd_new_cprim0(name,_FILEINFO,doc,fn,0))
 #define fd_idefn1(module,name,fn,min,doc,...)			\
   fd_idefn(module,fd_new_cprim1(name,_FILEINFO,doc,fn,min,0,0,__VA_ARGS__))

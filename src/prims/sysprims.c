@@ -196,6 +196,10 @@ static fdtype rusage_prim(fdtype field)
         ("generic.current_allocated_bytes",&in_use);
       MallocExtension_GetNumericProperty
         ("generic.heap_size",&heap_size);
+      /* Other properties: */
+      /* "tcmalloc.current_total_thread_cache_bytes" */
+      /* "tcmalloc.pageheap_free_bytes" */
+      /* "tcmalloc.pageheap_unmapped_bytes" */
       add_intval(result,mallocd_symbol,in_use);
       add_intval(result,heap_symbol,heap_size);}
 #elif HAVE_MALLINFO
@@ -866,6 +870,20 @@ static fdtype malloc_stats_prim()
   return FD_VOID;
 }
 
+static fdtype release_memory_prim(fdtype arg)
+{
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+  if (FD_FIXNUMP(arg))
+    MallocExtension_ReleaseToSystem(FD_FIX2INT(arg));
+  else if (FD_VOIDP(arg))
+    MallocExtension_ReleaseFreeMemory();
+  else return fd_type_error("fixnum","release_memory_prim",arg);
+  return FD_TRUE;
+#else
+  return FD_FALSE;
+#endif
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_sysprims_c()
@@ -944,7 +962,11 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim));
 
-  fd_idefn0(fd_scheme_module,"MALLOC-STATS",malloc_stats_prim,1,0);
+  fd_idefn0(fd_scheme_module,"MALLOC-STATS",malloc_stats_prim,
+            "Returns a string report of memory usage");
+  fd_idefn1(fd_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,
+            "Releases memory back to the operating system",
+            fd_fixnum_type,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
