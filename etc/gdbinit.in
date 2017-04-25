@@ -24,6 +24,9 @@ define heapcheck
   set env HEAPPROFILE=/tmp/heap.profiles/heapprof
   set env HEAPCHECK=normal # strict|draconian
 end
+define leakcheck
+  set env HEAPCHECK=normal # strict|draconian
+end
 define xp
   print/x $arg0
 end
