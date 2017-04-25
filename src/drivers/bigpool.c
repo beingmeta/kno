@@ -1016,7 +1016,8 @@ static ssize_t write_offdata
 
   if (bp->bigpool_offdata) {
 #if HAVE_MMAP
-    ssize_t result=mmap_write_offdata(bp,stream,n,saveinfo,min_off,max_off);
+    ssize_t result=
+      mmap_write_offdata(bp,stream,n,saveinfo,min_off,max_off);
     if (result>=0) return result;
 #endif
     result=cache_write_offdata(bp,stream,n,saveinfo,min_off,max_off);
@@ -1037,16 +1038,18 @@ static ssize_t mmap_write_offdata
          "Finalizing %d oid values for %s",n,bp->poolid);
 
   unsigned int *offdata = NULL;
-  size_t offdata_byte_length = chunk_ref_size*(bp->pool_load);
+  size_t byte_length =
+    (bp->pool_flags&FD_POOL_ADJUNCT) ?
+    (chunk_ref_size*(bp->pool_capacity)) :
+    (chunk_ref_size*(bp->pool_load));
   /* Map a second version of offdata to modify */
   unsigned int *memblock=
-    mmap(NULL,256+(offdata_byte_length),
-         (PROT_READ|PROT_WRITE),MAP_SHARED,
+    mmap(NULL,256+(byte_length),(PROT_READ|PROT_WRITE),MAP_SHARED,
          stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
     u8_log(LOGCRIT,u8_strerror(errno),
              "Failed MMAP of %lld bytes of offdata for bigpool %s",
-             256+(offdata_byte_length),bp->poolid);
+             256+(byte_length),bp->poolid);
     U8_CLEAR_ERRNO();
     u8_graberrno("bigpool_write_offdata",u8_strdup(bp->poolid));
     return -1;}
@@ -1079,12 +1082,12 @@ static ssize_t mmap_write_offdata
     u8_log(LOG_WARN,"Bad offset type for %s",bp->poolid);
     u8_free(saveinfo);
     exit(-1);}
-  retval = msync(offdata-64,256+offdata_byte_length,MS_SYNC|MS_INVALIDATE);
+  retval = msync(offdata-64,256+byte_length,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "bigpool:write_offdata:msync %s",bp->poolid);
     u8_graberrno("bigpool_write_offdata:msync",u8_strdup(bp->poolid));}
-  retval = munmap(offdata-64,256+offdata_byte_length);
+  retval = munmap(offdata-64,256+byte_length);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "bigpool/bigpool_write_offdata:munmap %s",bp->poolid);
@@ -1526,6 +1529,9 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
     fd_seterr("Not a valid load","bigpool_create",
               spec,load_arg);
     rv = -1;}
+
+  if (storage_flags&FD_POOL_ADJUNCT) load=capacity;
+
   if (rv<0) return NULL;
   else rv = make_bigpool(spec,
                          ((FD_STRINGP(label)) ? (FD_STRDATA(label)) : (spec)),

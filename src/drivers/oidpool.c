@@ -1063,16 +1063,18 @@ static ssize_t mmap_write_offdata
          "Finalizing %d oid values for %s",n,op->poolid);
 
   unsigned int *offdata = NULL;
-  size_t offdata_byte_length = chunk_ref_size*(op->pool_load);
+  size_t byte_length =
+    (op->pool_flags&FD_POOL_ADJUNCT) ?
+    (chunk_ref_size*(op->pool_capacity)) :
+    (chunk_ref_size*(op->pool_load));
   /* Map a second version of offdata to modify */
   unsigned int *memblock=
-    mmap(NULL,256+(offdata_byte_length),
-         (PROT_READ|PROT_WRITE),MAP_SHARED,
+    mmap(NULL,256+(byte_length),(PROT_READ|PROT_WRITE),MAP_SHARED,
          stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
     u8_log(LOGCRIT,u8_strerror(errno),
              "Failed MMAP of %lld bytes of offdata for oidpool %s",
-             256+(offdata_byte_length),op->poolid);
+             256+(byte_length),op->poolid);
     U8_CLEAR_ERRNO();
     u8_graberrno("oidpool_write_offdata",u8_strdup(op->poolid));
     return -1;}
@@ -1105,12 +1107,12 @@ static ssize_t mmap_write_offdata
     u8_log(LOG_WARN,"Bad offset type for %s",op->poolid);
     u8_free(saveinfo);
     exit(-1);}
-  retval = msync(offdata-64,256+offdata_byte_length,MS_SYNC|MS_INVALIDATE);
+  retval = msync(offdata-64,256+byte_length,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "oidpool:write_offdata:msync %s",op->poolid);
     u8_graberrno("oidpool_write_offdata:msync",u8_strdup(op->poolid));}
-  retval = munmap(offdata-64,256+offdata_byte_length);
+  retval = munmap(offdata-64,256+byte_length);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "oidpool/oidpool_write_offdata:munmap %s",op->poolid);
