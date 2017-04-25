@@ -907,7 +907,8 @@ fi
 AC_CHECK_FUNCS(sigprocmask)
 AC_CHECK_FUNCS(sigsetmask)
 AC_CHECK_FUNCS(strdup strndup)
-AC_CHECK_FUNCS(mstats mtrace muntrace mallinfo)
+AC_CHECK_FUNCS(open_memstream)
+AC_CHECK_FUNCS(mstats mtrace muntrace mallinfo malloc_info)
 AC_CHECK_FUNCS(flock lockf fcntl)
 AC_CHECK_FUNCS(sysconf sysctl)
 AC_CHECK_FUNCS(uname)
@@ -1270,6 +1271,7 @@ if test "$with_gperftools" != "no"; then
   AC_CHECK_HEADERS(gperftools/profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
+  AC_CHECK_HEADERS(gperftools/malloc_extension_c.h)
   if test "$with_gperftools" = "debug"; then
     AC_CHECK_LIB(tcmalloc_debug,malloc)
     AC_CHECK_LIB(profiler,ProfilerStart)

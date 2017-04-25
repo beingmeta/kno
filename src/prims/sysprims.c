@@ -19,6 +19,10 @@
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
 #include <gperftools/heap-profiler.h>
 #endif
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+#include <gperftools/malloc_extension_c.h>
+#endif
+
 
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
@@ -36,6 +40,10 @@
 #include <ctype.h>
 #include <math.h>
 #include <sys/time.h>
+
+#if HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
 #include <sys/utsname.h>
@@ -122,6 +130,7 @@ static fdtype physical_memory_symbol, available_memory_symbol;
 static fdtype physicalmb_symbol, availablemb_symbol;
 static fdtype memload_symbol, vmemload_symbol, stacksize_symbol;
 static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
+static fdtype malloc_bytes, malloc_blocks, mallocinfo_symbol;
 
 static int pagesize = -1;
 static int get_n_cpus(void);
@@ -151,9 +160,23 @@ static void add_flonum(fdtype table,fdtype symbol,double fval)
   fd_decref(flonum);
 }
 
+static u8_string get_malloc_info()
+{
+  char *buf=NULL;
+  size_t buflen=0;
+  FILE *out;
+  out=open_memstream(&buf,&buflen);
+  malloc_info(0,out);
+  fclose(out);
+  return buf;
+}
+
 static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
+#if HAVE_MALLINFO
+  struct mallinfo meminfo;
+#endif
   int pagesize = get_pagesize();
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
@@ -164,6 +187,19 @@ static fdtype rusage_prim(fdtype field)
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
     double memload = u8_memload(), vmemload = u8_vmemload();
     size_t n_cpus = get_n_cpus();
+#if 0 /* HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H */
+    {
+      size_t bytes=0; int blocks=0;
+      int histogram[kMallocExtensionHistogramSize];
+      if (MallocExtension_MallocMemoryStats(&blocks,&bytes,histogram)) {
+        add_intval(result,malloc_bytes,bytes);
+        add_intval(result,malloc_blocks,blocks);}}
+#elif HAVE_MALLINFO
+    if (sizeof(meminfo.arena)>=8) {
+      meminfo=mallinfo();
+      add_intval(result,malloc_bytes,meminfo.arena);}
+#endif
+
     add_intval(result,data_symbol,r.ru_idrss);
     add_intval(result,stack_symbol,r.ru_isrss);
     add_intval(result,shared_symbol,r.ru_ixrss);
@@ -276,6 +312,11 @@ static fdtype rusage_prim(fdtype field)
     return FD_INT(u8_vmemusage());
   else if (FD_EQ(field,nptrlocks_symbol))
     return FD_INT(FD_N_PTRLOCKS);
+  else if (FD_EQ(field,mallocinfo_symbol)) {
+    u8_string info=get_malloc_info();
+    if (info)
+      return fd_init_string(NULL,-1,info);
+    else return FD_EMPTY_CHOICE;}
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
@@ -850,6 +891,10 @@ FD_EXPORT void fd_init_sysprims_c()
   availablemb_symbol = fd_intern("AVAILMB");
   cpusage_symbol = fd_intern("CPU%");
   tcpusage_symbol = fd_intern("CPU%/CPU");
+
+  malloc_bytes = fd_intern("MALLOCD");
+  malloc_blocks = fd_intern("MALLOC-BLOCKS");
+  mallocinfo_symbol = fd_intern("MALLOCINFO");
 
   load_symbol = fd_intern("LOAD");
   loadavg_symbol = fd_intern("LOADAVG");

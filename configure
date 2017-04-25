@@ -8304,7 +8304,18 @@ _ACEOF
 fi
 done
 
-for ac_func in mstats mtrace muntrace mallinfo
+for ac_func in open_memstream
+do :
+  ac_fn_c_check_func "$LINENO" "open_memstream" "ac_cv_func_open_memstream"
+if test "x$ac_cv_func_open_memstream" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OPEN_MEMSTREAM 1
+_ACEOF
+
+fi
+done
+
+for ac_func in mstats mtrace muntrace mallinfo malloc_info
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -11038,6 +11049,18 @@ do :
 if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/malloc_extension_c.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/malloc_extension_c.h" "ac_cv_header_gperftools_malloc_extension_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_malloc_extension_c_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H 1
 _ACEOF
 
 fi

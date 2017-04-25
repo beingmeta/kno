@@ -388,6 +388,9 @@
 /* Whether we've got the perftools heap profiler */
 #undef HAVE_GPERFTOOLS_PROFILER_H
 
+/* Whether we have Google's malloc extension header */
+#undef HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+
 /* Whether we've got ODBC headers */
 #undef HAVE_SQL_H
 
@@ -435,6 +438,12 @@
 
 /* Whether we have the mstats function */
 #undef HAVE_MALLINFO
+
+/* Whether we have the malloc_info function */
+#undef HAVE_MALLOC_INFO
+
+/* Whether we have the malloc_info function */
+#undef HAVE_OPEN_MEMSTREAM
 
 /* Whether we have the mstats function */
 #undef HAVE_MSTATS
