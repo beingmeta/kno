@@ -427,6 +427,21 @@
 /* Whether we're linking agains the duma malloc debugging library */
 #undef HAVE_DUMA_H
 
+/* Whether we've got malloc.h */
+#undef HAVE_MALLOC_H
+
+/* Whether we've got mcheck.h */
+#undef HAVE_MCHECK_H
+
+/* Whether we have the mstats function */
+#undef HAVE_MALLINFO
+
+/* Whether we have the mstats function */
+#undef HAVE_MSTATS
+
+/* Whether we have the mtrace function */
+#undef HAVE_MTRACE
+
 /* Whether we're using the Google profiler library */
 #undef WITH_GOOGLE_PROFILER
 

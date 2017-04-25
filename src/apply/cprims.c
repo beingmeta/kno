@@ -111,19 +111,35 @@ FD_EXPORT fdtype fd_new_cprimn
   return FDTYPE_CONS(f);
 }
 
+FD_EXPORT fdtype fd_new_cprim0
+(u8_string name,u8_string filename,u8_string doc,
+ fd_cprim0 fn,int xcall)
+{
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,0,0,0,xcall);
+  int *types=u8_zalloc_n(1,int);
+  fdtype *defaults=u8_zalloc_n(1,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
+  f->fcn_typeinfo = NULL;
+  f->fcn_defaults = NULL;
+  f->fcn_handler.call0 = fn;
+  return FDTYPE_CONS(f);
+}
+
 FD_EXPORT fdtype fd_new_cprim1
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim1 fn,int min_arity,int ndcall,int xcall,
  int type0,fdtype dflt0)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim1(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(1,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(1,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,1,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(1,int);
+  fdtype *defaults=u8_zalloc_n(1,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
+  f->fcn_handler.call1 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -133,15 +149,15 @@ FD_EXPORT fdtype fd_new_cprim2
  int type0,fdtype dflt0,
  int type1,fdtype dflt1)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim2(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(2,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(2,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,2,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(2,int);
+  fdtype *defaults=u8_zalloc_n(2,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
+  f->fcn_handler.call2 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -151,16 +167,16 @@ FD_EXPORT fdtype fd_new_cprim3
  int type0,fdtype dflt0,
  int type1,fdtype dflt1,int type2,fdtype dflt2)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim3(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(3,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(3,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,3,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(3,int);
+  fdtype *defaults=u8_zalloc_n(3,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
+  f->fcn_handler.call3 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -171,17 +187,17 @@ FD_EXPORT fdtype fd_new_cprim4
  int type1,fdtype dflt1,int type2,fdtype dflt2,
  int type3,fdtype dflt3)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim4(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(4,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(4,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,4,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(4,int);
+  fdtype *defaults=u8_zalloc_n(4,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
   types[3]=type3; defaults[3]=dflt3;
+  f->fcn_handler.call4 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -192,18 +208,18 @@ FD_EXPORT fdtype fd_new_cprim5
  int type1,fdtype dflt1,int type2,fdtype dflt2,
  int type3,fdtype dflt3,int type4,fdtype dflt4)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim5(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(5,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(5,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,5,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(5,int);
+  fdtype *defaults=u8_zalloc_n(5,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
   types[3]=type3; defaults[3]=dflt3;
   types[4]=type4; defaults[4]=dflt4;
+  f->fcn_handler.call5 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -215,19 +231,19 @@ FD_EXPORT fdtype fd_new_cprim6
  int type3,fdtype dflt3,int type4,fdtype dflt4,
  int type5,fdtype dflt5)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim6(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(6,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(6,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,6,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(6,int);
+  fdtype *defaults=u8_zalloc_n(6,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
   types[3]=type3; defaults[3]=dflt3;
   types[4]=type4; defaults[4]=dflt4;
   types[5]=type5; defaults[5]=dflt5;
+  f->fcn_handler.call6 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -239,13 +255,12 @@ FD_EXPORT fdtype fd_new_cprim7
  int type3,fdtype dflt3,int type4,fdtype dflt4,
  int type5,fdtype dflt5,int type6,fdtype dflt6)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim7(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(7,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(7,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,7,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(7,int);
+  fdtype *defaults=u8_zalloc_n(7,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
@@ -253,6 +268,7 @@ FD_EXPORT fdtype fd_new_cprim7
   types[4]=type4; defaults[4]=dflt4;
   types[5]=type5; defaults[5]=dflt5;
   types[6]=type6; defaults[6]=dflt6;
+  f->fcn_handler.call7 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -265,13 +281,10 @@ FD_EXPORT fdtype fd_new_cprim8
  int type5,fdtype dflt5,int type6,fdtype dflt6,
  int type7,fdtype dflt7)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim8(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(8,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(8,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,8,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(8,int);
+  fdtype *defaults=u8_zalloc_n(8,fdtype);
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
@@ -280,6 +293,7 @@ FD_EXPORT fdtype fd_new_cprim8
   types[5]=type5; defaults[5]=dflt5;
   types[6]=type6; defaults[6]=dflt6;
   types[7]=type7; defaults[7]=dflt7;
+  f->fcn_handler.call8 = fn;
   return FDTYPE_CONS(f);
 }
 
@@ -292,13 +306,12 @@ FD_EXPORT fdtype fd_new_cprim9
  int type5,fdtype dflt5,int type6,fdtype dflt6,
  int type7,fdtype dflt7,int type8,fdtype dflt8)
 {
-  struct FD_FUNCTION *f=
-    (struct FD_FUNCTION *)fd_make_cprim9(name,fn,min_arity);
-  int *types; fdtype *defaults;
-  f->fcn_typeinfo = types = u8_zalloc_n(9,int);
-  f->fcn_defaults = defaults = u8_zalloc_n(9,fdtype);
-  f->fcn_documentation=doc;
-  f->fcn_filename=filename;
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)
+    new_cprim(name,filename,doc,9,min_arity,ndcall,xcall);
+  int *types=u8_zalloc_n(9,int);
+  fdtype *defaults=u8_zalloc_n(9,fdtype);
+  f->fcn_typeinfo = types;
+  f->fcn_defaults = defaults;
   types[0]=type0; defaults[0]=dflt0;
   types[1]=type1; defaults[1]=dflt1;
   types[2]=type2; defaults[2]=dflt2;
@@ -308,6 +321,7 @@ FD_EXPORT fdtype fd_new_cprim9
   types[6]=type6; defaults[6]=dflt6;
   types[7]=type7; defaults[7]=dflt7;
   types[8]=type8; defaults[8]=dflt8;
+  f->fcn_handler.call9 = fn;
   return FDTYPE_CONS(f);
 }
 

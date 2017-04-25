@@ -95,6 +95,8 @@ FD_EXPORT short fd_functionp[];
 FD_EXPORT fdtype fd_new_cprimn
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprimn fn,int min_arity,int ndcall,int xcall);
+FD_EXPORT fdtype fd_new_cprim0
+(u8_string name,u8_string filename,u8_string doc,fd_cprim0 fn,int xcall);
 FD_EXPORT fdtype fd_new_cprim1
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim1 fn,int min_arity,int ndcall,int xcall,

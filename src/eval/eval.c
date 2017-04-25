@@ -35,6 +35,10 @@
 #include <pthread.h>
 #include <errno.h>
 
+#if HAVE_MTRACE && HAVE_MCHECK_H
+#include <mcheck.h>
+#endif
+
 static volatile int fdscheme_initialized = 0;
 
 int fd_optimize_tail_calls = 1;
@@ -2040,6 +2044,37 @@ static fdtype ffi_found_prim(fdtype name,fdtype modname)
 }
 #endif
 
+/* MTrace */
+
+static int mtracing=0;
+
+static fdtype mtrace_prim()
+{
+#if HAVE_MTRACE
+  if (mtracing)
+    return FD_TRUE;
+  else if (getenv("MALLOC_TRACE")) {
+    mtrace();
+    mtracing=1;
+    return FD_TRUE;}
+  else return FD_FALSE;
+#else
+  return FD_FALSE;
+#endif
+}
+
+static fdtype muntrace_prim()
+{
+#if HAVE_MTRACE
+  if (mtracing) {
+    muntrace();
+    return FD_TRUE;}
+  else return FD_FALSE;
+#else
+  return FD_FALSE;
+#endif
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
@@ -2204,6 +2239,9 @@ static void init_localfns()
            fd_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
+
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("MTRACE",mtrace_prim));
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("MUNTRACE",muntrace_prim));
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",

@@ -7872,7 +7872,7 @@ else
 fi
 
 
-for ac_header in fcntl.h sys/resource.h
+for ac_header in fcntl.h malloc.h mcheck.h sys/resource.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -7972,6 +7972,37 @@ if test "x$ac_cv_member_struct_rusage_ru_nswap" = xyes; then :
 
 cat >>confdefs.h <<_ACEOF
 #define HAVE_STRUCT_RUSAGE_RU_NSWAP 1
+_ACEOF
+
+
+fi
+
+ac_fn_c_check_member "$LINENO" "struct rusage" "ru_inblock" "ac_cv_member_struct_rusage_ru_inblock" "#include <sys/resource.h>
+"
+if test "x$ac_cv_member_struct_rusage_ru_inblock" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_RUSAGE_RU_INBLOCK 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_member "$LINENO" "struct rusage" "ru_nvcsw" "ac_cv_member_struct_rusage_ru_nvcsw" "#include <sys/resource.h>
+"
+if test "x$ac_cv_member_struct_rusage_ru_nvcsw" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_RUSAGE_RU_NVCSW 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_member "$LINENO" "struct rusage" "ru_nivcsw" "ac_cv_member_struct_rusage_ru_nivcsw" "#include <sys/resource.h>
+"
+if test "x$ac_cv_member_struct_rusage_ru_nivcsw" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_RUSAGE_RU_NIVCSW 1
 _ACEOF
 
 
@@ -8262,6 +8293,18 @@ fi
 done
 
 for ac_func in strdup strndup
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+for ac_func in mstats mtrace muntrace mallinfo
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
