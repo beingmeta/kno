@@ -172,7 +172,7 @@ typedef struct FD_POOL *fd_pool;
 FD_EXPORT fd_pool fd_top_pools[FD_N_OID_BUCKETS];
 /* This is an index of all pools by their serial numbers (if registered) */
 FD_EXPORT fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
-FD_EXPORT int fd_n_pools;
+FD_EXPORT int fd_n_pools, fd_max_pools;
 
 FD_EXPORT fd_pool fd_default_pool;
 FD_EXPORT struct FD_POOL _fd_zero_pool;
@@ -363,6 +363,7 @@ FD_EXPORT int fd_commit_pools_noerr(void);
 FD_EXPORT int fd_unlock_pools(int);
 FD_EXPORT long fd_object_cache_load(void);
 FD_EXPORT fdtype fd_cached_oids(fd_pool p);
+FD_EXPORT fdtype fd_changed_oids(fd_pool p);
 
 FD_EXPORT int fd_commit_oids(fdtype oids);
 

@@ -50,7 +50,10 @@ u8_condition fd_PoolCommit=_("Pool/Commit");
 int fd_pool_cache_init = FD_POOL_CACHE_INIT;
 int fd_pool_lock_init  = FD_POOL_CHANGES_INIT;
 
-int fd_n_pools = 0;
+int fd_n_pools   = 0;
+int fd_max_pools = FD_MAX_POOLS;
+fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
+
 struct FD_POOL *fd_top_pools[FD_N_OID_BUCKETS];
 
 static struct FD_HASHTABLE poolid_table;
@@ -58,8 +61,6 @@ static struct FD_HASHTABLE poolid_table;
 static u8_condition ipeval_objfetch="OBJFETCH";
 
 static fdtype lock_symbol, unlock_symbol;
-
-fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
 
 static int savep(fdtype v,int only_finished);
 static int modifiedp(fdtype v);
@@ -197,6 +198,9 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   else if (p->pool_flags&FD_STORAGE_UNREGISTERED)
     return 0;
   else u8_lock_mutex(&pool_registry_lock);
+  if (fd_n_pools >= fd_max_pools) {
+    fd_seterr(_("n_pools > MAX_POOLS"),"fd_register_pool",NULL,FD_VOID);
+    return -1;}
   /* Set up the serial number */
   serial_no = p->pool_serialno = fd_n_pools++;
   fd_pools_by_serialno[serial_no]=p;
@@ -1224,43 +1228,23 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data)
 {
-  int i = 0, pool_count = 0; fd_pool last_pool = NULL;
-  while (i < 1024)
-    if (fd_top_pools[i]==NULL) i++;
-    else if (fd_top_pools[i]->pool_capacity) {
-      fd_pool p = fd_top_pools[i++];
-      if (p == last_pool) {}
-      else if (fcn(p,data)) return pool_count+1;
-      else {last_pool = p; pool_count++;}}
-    else {
-      struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
-      fd_pool *subpools; int j = 0;
-      subpools = gp->subpools;
-      while (j<gp->n_subpools) {
-        fd_pool p = subpools[j++];
-        int retval = ((p == last_pool) ? (0) : (fcn(p,data)));
-        last_pool = p;
-        if (retval<0) return retval;
-        else if (retval) return pool_count+1;
-        else pool_count++;}}
-  return pool_count;
+  int i=0, n=fd_n_pools, count=0;
+  while (i<n) {
+    fd_pool p = fd_pools_by_serialno[i++];
+    if (fcn(p,data))
+      return count+1;
+    count++;}
+  return count;
 }
 
 FD_EXPORT fdtype fd_all_pools()
 {
-  fdtype results = FD_EMPTY_CHOICE; int i = 0;
-  while (i < 1024)
-    if (fd_top_pools[i]==NULL) i++;
-    else if (fd_top_pools[i]->pool_capacity) {
-      fdtype lp = fd_pool2lisp(fd_top_pools[i]);
-      FD_ADD_TO_CHOICE(results,lp); i++;}
-    else {
-      struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
-      fd_pool *subpools; int j = 0;
-      subpools = gp->subpools;
-      while (j<gp->n_subpools) {
-        fdtype lp = fd_pool2lisp(subpools[j++]);
-        FD_ADD_TO_CHOICE(results,lp);}}
+  fdtype results = FD_EMPTY_CHOICE;
+  int i=0, n=fd_n_pools, count=0;
+  while (i<n) {
+    fd_pool p = fd_pools_by_serialno[i++];
+    fdtype lp = fd_pool2lisp(p);
+    FD_ADD_TO_CHOICE(results,lp);}
   return results;
 }
 
@@ -1272,73 +1256,35 @@ static int match_pool_source(fd_pool p,u8_string source)
 
 FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)
 {
-  int i = 0;
-  if (source == NULL) return NULL;
-  while (i < 1024)
-    if (fd_top_pools[i] == NULL) i++;
-    else if (fd_top_pools[i]->pool_capacity) {
-      if (match_pool_source(fd_top_pools[i],source)) {
-        return fd_top_pools[i];}
-      else i++;}
-    else {
-      struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
-      fd_pool *subpools = gp->subpools; int j = 0;
-      while (j<gp->n_subpools)
-        if ((subpools[j]) && (match_pool_source(subpools[j],source))) {
-          return subpools[j];}
-        else j++;}
+  int i=0, n=fd_n_pools, count=0;
+  while (i<n) {
+    fd_pool p = fd_pools_by_serialno[i++];
+    if (match_pool_source(p,source))
+      return p;}
   return NULL;
 }
 
 FD_EXPORT fdtype fd_find_pools_by_source(u8_string source)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  int i = 0;
-  if (source == NULL) return results;
-  while (i < 1024)
-    if (fd_top_pools[i] == NULL) i++;
-    else if (fd_top_pools[i]->pool_capacity)
-      if (match_pool_source(fd_top_pools[i],source)) {
-        fdtype poolv = fd_pool2lisp(fd_top_pools[i]);
-        fd_incref(poolv);
-        FD_ADD_TO_CHOICE(results,poolv);
-        i++;}
-      else i++;
-    else {
-      struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
-      fd_pool *subpools = gp->subpools; int j = 0;
-      while (j<gp->n_subpools)
-        if ((subpools[j]) && (match_pool_source(subpools[j],source))) {
-          fdtype poolv = fd_pool2lisp(subpools[j]);
-          fd_incref(poolv);
-          FD_ADD_TO_CHOICE(results,poolv);
-          j++;}
-        else j++;}
+  fdtype results=FD_EMPTY_CHOICE;
+  int i=0, n=fd_n_pools, count=0;
+  while (i<n) {
+    fd_pool p = fd_pools_by_serialno[i++];
+    if (match_pool_source(p,source)) {
+      fdtype lp=fd_pool2lisp(p);
+      FD_ADD_TO_CHOICE(results,lp);}}
   return results;
 }
 
 FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix)
 {
-  int i = 0;
-  while (i < 1024)
-    if (fd_top_pools[i] == NULL) i++;
-    else if (fd_top_pools[i]->pool_capacity)
-      if (((fd_top_pools[i]->pool_prefix) &&
-           ((strcasecmp(prefix,fd_top_pools[i]->pool_prefix)) == 0)) ||
-          ((fd_top_pools[i]->pool_label) &&
-           ((strcasecmp(prefix,fd_top_pools[i]->pool_label)) == 0)))
-        return fd_top_pools[i];
-      else i++;
-    else {
-      struct FD_GLUEPOOL *gp = (struct FD_GLUEPOOL *)fd_top_pools[i++];
-      fd_pool *subpools = gp->subpools; int j = 0;
-      while (j<gp->n_subpools)
-        if (((subpools[j]->pool_prefix) &&
-             ((strcasecmp(prefix,subpools[j]->pool_prefix)) == 0)) ||
-            ((subpools[j]->pool_label) &&
-             ((strcasecmp(prefix,subpools[j]->pool_label)) == 0))) {
-          return subpools[j];}
-        else j++;}
+  fdtype results=FD_EMPTY_CHOICE;
+  int i=0, n=fd_n_pools, count=0;
+  while (i<n) {
+    fd_pool p = fd_pools_by_serialno[i++];
+    if (( (p->pool_prefix) && ((strcasecmp(prefix,p->pool_prefix)) == 0) ) ||
+        ( (p->pool_label) && ((strcasecmp(prefix,p->pool_label)) == 0) )) 
+      return p;}
   return NULL;
 }
 
@@ -1435,6 +1381,28 @@ fdtype fd_cached_oids(fd_pool p)
       return FD_ERROR_VALUE;}
     else return result;}
   else return fd_hashtable_keys(&(p->pool_cache));
+}
+
+static int accumulate_changes(fd_pool p,void *ptr)
+{
+  if (p->pool_changes.table_n_keys) {
+    fdtype *vals = (fdtype *)ptr;
+    fdtype keys = fd_hashtable_keys(&(p->pool_changes));
+    FD_ADD_TO_CHOICE(*vals,keys);}
+  return 0;
+}
+
+FD_EXPORT
+fdtype fd_changed_oids(fd_pool p)
+{
+  if (p == NULL) {
+    int retval; fdtype result = FD_EMPTY_CHOICE;
+    retval = fd_for_pools(accumulate_changes,(void *)&result);
+    if (retval<0) {
+      fd_decref(result);
+      return FD_ERROR_VALUE;}
+    else return result;}
+  else return fd_hashtable_keys(&(p->pool_changes));
 }
 
 /* Common pool initialization stuff */
