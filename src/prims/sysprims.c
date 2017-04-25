@@ -130,7 +130,8 @@ static fdtype physical_memory_symbol, available_memory_symbol;
 static fdtype physicalmb_symbol, availablemb_symbol;
 static fdtype memload_symbol, vmemload_symbol, stacksize_symbol;
 static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
-static fdtype malloc_bytes, malloc_blocks, mallocinfo_symbol;
+static fdtype mallocd_symbol, heap_symbol, mallocinfo_symbol;
+static fdtype tcmallocinfo_symbol;
 
 static int pagesize = -1;
 static int get_n_cpus(void);
@@ -187,17 +188,20 @@ static fdtype rusage_prim(fdtype field)
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
     double memload = u8_memload(), vmemload = u8_vmemload();
     size_t n_cpus = get_n_cpus();
-#if 0 /* HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H */
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+    /* This doesn't seem to work, but it should */
     {
-      size_t bytes=0; int blocks=0;
-      int histogram[kMallocExtensionHistogramSize];
-      if (MallocExtension_MallocMemoryStats(&blocks,&bytes,histogram)) {
-        add_intval(result,malloc_bytes,bytes);
-        add_intval(result,malloc_blocks,blocks);}}
+      size_t in_use=0, heap_size=0;
+      MallocExtension_GetNumericProperty
+        ("generic.current_allocated_bytes",&in_use);
+      MallocExtension_GetNumericProperty
+        ("generic.heap_size",&heap_size);
+      add_intval(result,mallocd_symbol,in_use);
+      add_intval(result,heap_symbol,heap_size);}
 #elif HAVE_MALLINFO
     if (sizeof(meminfo.arena)>=8) {
       meminfo=mallinfo();
-      add_intval(result,malloc_bytes,meminfo.arena);}
+      add_intval(result,mallocd_symbol,meminfo.arena);}
 #endif
 
     add_intval(result,data_symbol,r.ru_idrss);
@@ -317,6 +321,12 @@ static fdtype rusage_prim(fdtype field)
     if (info)
       return fd_init_string(NULL,-1,info);
     else return FD_EMPTY_CHOICE;}
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+  else if (FD_EQ(field,tcmallocinfo_symbol)) {
+    char buf[1024];
+    MallocExtension_GetStats(buf,1024);
+    return fd_make_string(NULL,-1,buf);}
+#endif
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
@@ -850,6 +860,12 @@ static fdtype gperf_flush(fdtype arg)
 }
 #endif
 
+static fdtype malloc_stats_prim()
+{
+  malloc_stats();
+  return FD_VOID;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_sysprims_c()
@@ -892,9 +908,10 @@ FD_EXPORT void fd_init_sysprims_c()
   cpusage_symbol = fd_intern("CPU%");
   tcpusage_symbol = fd_intern("CPU%/CPU");
 
-  malloc_bytes = fd_intern("MALLOCD");
-  malloc_blocks = fd_intern("MALLOC-BLOCKS");
+  mallocd_symbol = fd_intern("MALLOCD");
+  heap_symbol = fd_intern("HEAP");
   mallocinfo_symbol = fd_intern("MALLOCINFO");
+  tcmallocinfo_symbol = fd_intern("TCMALLOCINFO");
 
   load_symbol = fd_intern("LOAD");
   loadavg_symbol = fd_intern("LOADAVG");
@@ -926,6 +943,8 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim));
+
+  fd_idefn0(fd_scheme_module,"MALLOC-STATS",malloc_stats_prim,1,0);
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
