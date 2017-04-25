@@ -187,6 +187,8 @@ void fd_reset_pool_tables(fd_pool p,
 
 /* Registering pools */
 
+static void register_pool_label(fd_pool p);
+
 FD_EXPORT int fd_register_pool(fd_pool p)
 {
   unsigned int capacity = p->pool_capacity, serial_no;
@@ -200,20 +202,24 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   else u8_lock_mutex(&pool_registry_lock);
   if (fd_n_pools >= fd_max_pools) {
     fd_seterr(_("n_pools > MAX_POOLS"),"fd_register_pool",NULL,FD_VOID);
+    u8_unlock_mutex(&pool_registry_lock);
     return -1;}
-  /* Set up the serial number */
-  serial_no = p->pool_serialno = fd_n_pools++;
-  fd_pools_by_serialno[serial_no]=p;
   if ((capacity>=FD_OID_BUCKET_SIZE) &&
       ((p->pool_base)%FD_OID_BUCKET_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",
               u8_strdup(p->poolid),FD_VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
+  /* Set up the serial number */
+  serial_no = p->pool_serialno = fd_n_pools++;
+  fd_pools_by_serialno[serial_no]=p;
+
   if (p->pool_flags&FD_POOL_ADJUNCT) {
+    /* Adjunct pools don't get stored in the pool lookup table */
     u8_unlock_mutex(&pool_registry_lock);
     return 1;}
-  if (capacity>=FD_OID_BUCKET_SIZE) {
+  else if (capacity>=FD_OID_BUCKET_SIZE) {
+    /* This is the case where the pool spans several OID buckets */
     int i = 0, lim = capacity/FD_OID_BUCKET_SIZE;
     /* Now get baseids for the pool and save them in fd_top_pools */
     while (i<lim) {
@@ -229,45 +235,53 @@ FD_EXPORT int fd_register_pool(fd_pool p)
       else fd_top_pools[baseid]=p;
       i++;}}
   else if (fd_top_pools[bix] == NULL) {
-    /* If the pool is smaller than an OID bucket, and there isn't a
-       pool in fd_top_pools, create a gluepool and place it there */
-    struct FD_GLUEPOOL *gluepool = make_gluepool(fd_base_oids[bix]);
-    fd_top_pools[bix]=(struct FD_POOL *)gluepool;
-    if (add_to_gluepool(gluepool,p)<0) {
-      u8_unlock_mutex(&pool_registry_lock);
-      return -1;}}
+    if (p->pool_capacity == FD_OID_BUCKET_SIZE)
+      fd_top_pools[bix]=p;
+    else {
+      /* If the pool is smaller than an OID bucket, and there isn't a
+         pool in fd_top_pools, create a gluepool and place it there */
+      struct FD_GLUEPOOL *gluepool = make_gluepool(fd_base_oids[bix]);
+      fd_top_pools[bix]=(struct FD_POOL *)gluepool;
+      if (add_to_gluepool(gluepool,p)<0) {
+        u8_unlock_mutex(&pool_registry_lock);
+        return -1;}}}
   else if (fd_top_pools[bix]->pool_capacity) {
     /* If the top pool has a capacity (i.e. it's not a gluepool), we
        have a pool conflict. Complain and error. */
     pool_conflict(p,fd_top_pools[bix]);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
+  /* Otherwise, it is a gluepool, so try to add the pool to it. */
   else if (add_to_gluepool((struct FD_GLUEPOOL *)fd_top_pools[bix],p)<0) {
-    /* Otherwise, it is a gluepool, so try to add the pool to it. This
-       will error if there is a pool conflict within the glue pool, so
-       we check. */
+    /* If this fails, the registration fails. Note that we've still left
+       the pool registered, so we can't free it. */
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   u8_unlock_mutex(&pool_registry_lock);
-  if (p->pool_label) {
-    u8_string base = u8_string_subst(p->pool_label,"/","_");
-    u8_byte *dot = strchr(base,'.');
-    fdtype pkey = FD_VOID, probe = FD_VOID;
-    if (dot) {
-      pkey = fd_substring(base,dot);
-      probe = fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
-      if (FD_EMPTY_CHOICEP(probe)) {
-        fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
-        p->pool_prefix = FD_STRDATA(pkey);}
-      else fd_decref(pkey);}
-    else pkey = fd_substring(base,NULL);
+  if (p->pool_label) register_pool_label(p);
+  return 1;
+}
+
+static void register_pool_label(fd_pool p)
+{
+  u8_string base = u8_string_subst(p->pool_label,"/","_");
+  u8_byte *dot = strchr(base,'.');
+  fdtype pkey = FD_VOID, probe = FD_VOID;
+  if (dot) {
+    pkey = fd_substring(base,dot);
     probe = fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
     if (FD_EMPTY_CHOICEP(probe)) {
       fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
-      if (p->pool_prefix == NULL) p->pool_prefix = FD_STRDATA(pkey);}
-    u8_free(base);}
-  return 1;
+      p->pool_prefix = FD_STRDATA(pkey);}
+    else fd_decref(pkey);}
+  else pkey = fd_substring(base,NULL);
+  probe = fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
+  if (FD_EMPTY_CHOICEP(probe)) {
+    fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
+    if (p->pool_prefix == NULL) p->pool_prefix = FD_STRDATA(pkey);}
+  u8_free(base);
 }
+
 
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
 {
