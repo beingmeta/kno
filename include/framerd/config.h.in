@@ -433,8 +433,14 @@
 /* Whether we've got malloc.h */
 #undef HAVE_MALLOC_H
 
+/* Whether we've got malloc/malloc.h */
+#undef HAVE_MALLOC_MALLOC_H
+
 /* Whether we've got mcheck.h */
 #undef HAVE_MCHECK_H
+
+/* Check for MacOS malloc info function */
+#undef HAVE_MALLOC_ZONE_STATISTICS
 
 /* Whether we have the mstats function */
 #undef HAVE_MALLINFO
