@@ -1,3 +1,9 @@
+framerd (4.0.0-2) unstable; urgency=medium
+
+  * Updated libu8 dependency
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 26 Apr 2017 12:44:57 +0000
+
 framerd (4.0.0-1) stable; urgency=medium
 
   * New major revision release candidate
