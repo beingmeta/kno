@@ -2468,7 +2468,7 @@ static int update_hashindex_ondisk
     else offdata = memblock+64;
 #else
     size_t offdata_length = n_buckets*chunk_ref_size;
-    offdata = u8_mallocz(offdata_length);
+    offdata = u8_malloc(offdata_length);
     int rv = fd_read_ints(stream,offdata_length/4,offdata);
     if (rv<0) {
       u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));

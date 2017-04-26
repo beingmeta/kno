@@ -148,7 +148,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 	      fd_make_double(error));
     return NULL;}
   else if (use_bloom == NULL)
-    bloom = u8_zalloc(struct FD_BLOOM);
+    bloom = u8_alloc(struct FD_BLOOM);
   else bloom = use_bloom;
 
   if (use_bloom) {
@@ -173,7 +173,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 
   bloom->hashes = (int)ceil(0.693147180559945 * bloom->bpe);  // ln(2)
 
-  bloom->bf = u8_mallocz(bloom->bytes);
+  bloom->bf = u8_malloc(bloom->bytes);
   if (bloom->bf == NULL) {
     u8_graberrno("fd_bloom_init:mallocbytes",NULL);
     if (use_bloom == NULL) u8_free(bloom);

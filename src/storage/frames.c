@@ -571,7 +571,8 @@ static void init_dependencies(fd_frameop_stack *cxt)
     cxt->n_deps = 0; cxt->max_deps = 32;}
 }
 
-static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdtype value)
+static void note_dependency
+(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdtype value)
 {
   fd_frameop_stack *scan = cxt;
   while (scan)
@@ -579,7 +580,8 @@ static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdt
       int n = scan->n_deps; struct FD_DEPENDENCY_RECORD *records = NULL;
       if (scan->n_deps>=scan->max_deps) {
         scan->dependencies = records=
-          u8_realloc_n(scan->dependencies,scan->max_deps*2,struct FD_DEPENDENCY_RECORD);
+          u8_realloc_n(scan->dependencies,scan->max_deps*2,
+                       struct FD_DEPENDENCY_RECORD);
         scan->max_deps = scan->max_deps*2;}
       else records = scan->dependencies;
       records[n].frame = fd_incref(frame);

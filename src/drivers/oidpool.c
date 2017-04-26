@@ -1129,7 +1129,7 @@ static ssize_t cache_write_offdata
   int chunk_ref_size = get_chunk_ref_size(op);
   size_t offdata_modified_length = chunk_ref_size*max_off-min_off;
   size_t offdata_modified_start = chunk_ref_size*min_off;
-  unsigned int *offdata = u8_mallocz(offdata_modified_length);
+  unsigned int *offdata = u8_malloc(offdata_modified_length);
   if (offdata == NULL) {
     u8_graberrno("oidpool:write_offdata:malloc",u8_strdup(op->poolid));
     return -1;}

@@ -956,8 +956,8 @@ struct FD_POOL_WRITES pick_writes(fd_pool p,fdtype oids)
     fdtype *oidv, *values;
     u8_zero_struct(writes);
     writes.len = n;
-    writes.oids = oidv = u8_zalloc_n(n,fdtype);
-    writes.values = values = u8_zalloc_n(n,fdtype);
+    writes.oids = oidv = u8_alloc_n(n,fdtype);
+    writes.values = values = u8_alloc_n(n,fdtype);
     {FD_DO_CHOICES(oid,oids) {
         fd_pool pool = fd_oid2pool(oid);
         if (pool == p) {
@@ -981,8 +981,8 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
   fdtype *oidv, *values;
   u8_zero_struct(writes);
   writes.len = n;
-  writes.oids = oidv = u8_zalloc_n(n,fdtype);
-  writes.values = values = u8_zalloc_n(n,fdtype);
+  writes.oids = oidv = u8_alloc_n(n,fdtype);
+  writes.values = values = u8_alloc_n(n,fdtype);
   {
     struct FD_HASH_BUCKET **scan = changes->ht_buckets;
     struct FD_HASH_BUCKET **lim = scan+changes->ht_n_buckets;
@@ -1953,12 +1953,12 @@ FD_EXPORT void fd_init_pools_c()
                      fd_poolconfig_get,fd_poolconfig_set,
                      &fd_default_pool);
 
-  fd_tablefns[fd_pool_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_pool_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_pool_type]->get = (fd_table_get_fn)pool_tableget;
   fd_tablefns[fd_pool_type]->store = (fd_table_store_fn)pool_tablestore;
   fd_tablefns[fd_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
 
-  fd_tablefns[fd_consed_pool_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_consed_pool_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_consed_pool_type]->get = (fd_table_get_fn)pool_tableget;
   fd_tablefns[fd_consed_pool_type]->store = (fd_table_store_fn)pool_tablestore;
   fd_tablefns[fd_consed_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;

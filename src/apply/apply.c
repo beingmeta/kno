@@ -365,7 +365,7 @@ FD_FASTOP fdtype *fill_argvec(struct FD_FUNCTION *f,int n,fdtype *argvec,
   else {
     fdtype *args=
       (arity>=argbuf_len) ?
-      (u8_zalloc_n(arity,fdtype)) :
+      (u8_alloc_n(arity,fdtype)) :
       (argbuf);
     int i = 0; while (i<n) { args[i]=argvec[i]; i++; }
     if (f->fcn_defaults) {

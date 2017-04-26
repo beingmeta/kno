@@ -388,7 +388,7 @@ fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
     int new_size = size+FD_STACK_CLEANUP_QUANTUM;
     struct FD_STACK_CLEANUP *cleanups = stack->stack_cleanups;
     struct FD_STACK_CLEANUP *new_cleanups=
-      u8_zalloc_n(new_size,struct FD_STACK_CLEANUP);
+      u8_alloc_n(new_size,struct FD_STACK_CLEANUP);
     memcpy(new_cleanups,stack->stack_cleanups,
 	   size*sizeof(struct FD_STACK_CLEANUP));
     stack->stack_cleanups = new_cleanups;

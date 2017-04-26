@@ -168,7 +168,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   unsigned int hi, lo, magicno, capacity, load, n_slotids, bigpool_format = 0;
   fd_off_t label_loc, slotids_loc;
   fdtype label;
-  struct FD_BIGPOOL *pool = u8_zalloc(struct FD_BIGPOOL);
+  struct FD_BIGPOOL *pool = u8_alloc(struct FD_BIGPOOL);
   int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
@@ -260,7 +260,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
       return NULL;}}
   if ((n_slotids)&&(slotids_loc)) {
     int slotids_length = (n_slotids>256)?(n_slotids*2):(256);
-    fdtype *slotids = u8_zalloc_n(slotids_length,fdtype);
+    fdtype *slotids = u8_alloc_n(slotids_length,fdtype);
     struct FD_HASHTABLE *slotcodes = &(pool->slotcodes);
     int i = 0;
     fd_init_hashtable(slotcodes,n_slotids,NULL);
@@ -275,7 +275,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
     pool->bigpool_n_slotids = n_slotids;
     pool->bigpool_slotids_length = slotids_length;}
   else {
-    pool->bigpool_slotids = u8_zalloc_n(256,fdtype);
+    pool->bigpool_slotids = u8_alloc_n(256,fdtype);
     pool->bigpool_n_slotids = 0; pool->bigpool_slotids_length = 256;
     fd_init_hashtable(&(pool->slotcodes),256,NULL);}
   /* Offsets size is the malloc'd size (in unsigned ints) of the
@@ -305,7 +305,7 @@ static int grow_slotcodes(struct FD_BIGPOOL *bp)
   fdtype *slotids = bp->bigpool_slotids;
   size_t cur_length = bp->bigpool_slotids_length;
   size_t new_length = cur_length*2;
-  fdtype *newslotids = u8_zalloc_n(new_length,fdtype);
+  fdtype *newslotids = u8_alloc_n(new_length,fdtype);
   if (newslotids == NULL) return -1;
   else {
     memcpy(newslotids,slotids,sizeof(fdtype)*cur_length);
@@ -1104,7 +1104,7 @@ static ssize_t cache_write_offdata
   int chunk_ref_size = get_chunk_ref_size(bp);
   size_t offdata_modified_length = chunk_ref_size*max_off-min_off;
   size_t offdata_modified_start = chunk_ref_size*min_off;
-  unsigned int *offdata = u8_mallocz(offdata_modified_length);
+  unsigned int *offdata = u8_malloc(offdata_modified_length);
   if (offdata == NULL) {
     u8_graberrno("bigpool:write_offdata:malloc",u8_strdup(bp->poolid));
     return -1;}

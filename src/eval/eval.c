@@ -2079,7 +2079,7 @@ static fdtype muntrace_prim()
 
 void fd_init_eval_c()
 {
-  struct FD_TABLEFNS *fns = u8_zalloc(struct FD_TABLEFNS);
+  struct FD_TABLEFNS *fns = u8_alloc(struct FD_TABLEFNS);
   fns->get = lispenv_get; fns->store = lispenv_store;
   fns->add = NULL; fns->drop = NULL; fns->test = NULL;
 

@@ -488,7 +488,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
       newbuf = u8_malloc(bufsize);}
     else if (flags&FD_BUFFER_IS_MALLOCD)
       newbuf = u8_realloc(buf->buffer,bufsize);
-    else newbuf = u8_mallocz(bufsize);
+    else newbuf = u8_malloc(bufsize);
     if (newbuf == NULL) {
       u8_seterr("MallocFailed","fd_setbufsize",u8_strdup(s->streamid));
       if (unlock) fd_unlock_stream(s);

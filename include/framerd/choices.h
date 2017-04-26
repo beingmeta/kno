@@ -134,7 +134,7 @@ typedef struct FD_CHOICE *fd_choice;
   ch->choice_size=sz; ch->choice_isatomic=atomicp
 
 #define fd_alloc_choice(n) \
-  (assert(n>0),u8_mallocz(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
+  (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 #define fd_realloc_choice(ch,n)                                         \
   (assert(n>0),u8_realloc((ch),sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 
@@ -269,9 +269,10 @@ static void _prechoice_add(struct FD_PRECHOICE *ch,fdtype v)
     write_off=ch->prechoice_write-ch->prechoice_data;
     if (old_size<0x10000) new_size=old_size*2;
     else new_size=old_size+0x20000;
-    prechoice_choicedata=u8_realloc(ch->prechoice_choicedata,
-			      sizeof(struct FD_CHOICE)+
-			      (sizeof(fdtype)*(new_size-1)));
+    prechoice_choicedata=
+      u8_realloc(ch->prechoice_choicedata,
+		 sizeof(struct FD_CHOICE)+
+		 (sizeof(fdtype)*(new_size-1)));
     ch->prechoice_choicedata=prechoice_choicedata;
     ch->prechoice_data=((fdtype *)FD_XCHOICE_DATA(prechoice_choicedata));
     ch->prechoice_write=ch->prechoice_data+write_off;

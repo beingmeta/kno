@@ -122,8 +122,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     ffi_argtypes[i]=ffi_argtype;
     savespecs[i]=argspec;
     i++;}
-  struct FD_FFI_PROC *proc=
-    u8_zalloc_for("fd_make_ffi_proc",struct FD_FFI_PROC);
+  struct FD_FFI_PROC *proc=u8_alloc(struct FD_FFI_PROC);
   FD_INIT_CONS(proc,fd_ffi_type);
   ffi_status rv=
     ffi_prep_cif(&(proc->ffi_interface), FFI_DEFAULT_ABI, arity,
