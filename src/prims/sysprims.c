@@ -163,6 +163,7 @@ static void add_flonum(fdtype table,fdtype symbol,double fval)
 
 static u8_string get_malloc_info()
 {
+#if HAVE_OPEN_MEMSTREAM && HAVE_MALLOC_INFO
   char *buf=NULL;
   size_t buflen=0;
   FILE *out;
@@ -170,6 +171,9 @@ static u8_string get_malloc_info()
   malloc_info(0,out);
   fclose(out);
   return buf;
+#else
+  return u8_strdup("none");
+#endif
 }
 
 static fdtype rusage_prim(fdtype field)
@@ -866,7 +870,12 @@ static fdtype gperf_flush(fdtype arg)
 
 static fdtype malloc_stats_prim()
 {
+#if HAVE_MALLOC_STATS
   malloc_stats();
+#else
+  write(2,"No malloc_stats available\n",
+        strlen("No malloc_stats available\n"));
+#endif
   return FD_VOID;
 }
 
