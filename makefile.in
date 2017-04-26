@@ -1190,7 +1190,8 @@ dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb
+	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb \
+		elpa-fdconsole*@FDVERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \

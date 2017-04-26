@@ -114,7 +114,7 @@ Description: This package contains the debugging symbols for framerd-leveldb
 
 Package: framerd-imagetools
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2, libqrencode3
+Depends: framerd-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2 | libmagickwand-6.q16-3, libqrencode3
 Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
