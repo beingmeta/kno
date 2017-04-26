@@ -25,6 +25,7 @@
 #include <stdio.h>
 
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
+static fdtype adjuncts_symbol;
 
 fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
@@ -33,12 +34,14 @@ fd_exception fd_InvalidOffsetType=_("Invalid offset type");
 fd_exception fd_RecoveryRequired=_("RECOVERY");
 
 fd_exception fd_CantOpenPool=_("Can't open pool");
+fd_exception fd_CantFindPool=_("Can't find pool");
 fd_exception fd_CantOpenIndex=_("Can't open index");
+fd_exception fd_CantFindIndex=_("Can't find index");
 
 fd_exception fd_IndexDriverError=_("Internal error with index file");
 fd_exception fd_PoolDriverError=_("Internal error with index file");
 
-fd_exception fd_FilePoolSizeOverflow=_("file pool overflowed file size");
+fd_exception fd_PoolFileSizeOverflow=_("file pool overflowed file size");
 fd_exception fd_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int fd_acid_files = 1;
@@ -75,7 +78,6 @@ u8_string fd_netspecp(u8_string spec,void *ignored)
     return NULL;
   else return spec;
 }
-
 
 /* Opening pools */
 
@@ -147,12 +149,29 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
         fd_pool opened = (found) ? (found) :
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
-        return opened;}
+        if (opened==NULL) {
+          fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+          return opened;}
+        else if (fd_testopt(opts,adjuncts_symbol,FD_VOID)) {
+          fdtype adjuncts=fd_getopt(opts,adjuncts_symbol,FD_EMPTY_CHOICE);
+          int rv=fd_set_adjuncts(opened,adjuncts);
+          fd_decref(adjuncts);
+          if (rv<0) {
+            if (flags & FD_STORAGE_NOERR) {
+              u8_log(LOGCRIT,fd_AdjunctError,
+                     "Opening pool '%s' with opts=%q",
+                     opened->poolid,opts);
+              fd_clear_errors(1);}
+            else {
+              fd_xseterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+              return NULL;}}
+          else return opened;}
+        else return opened;}
       else ptype = ptype->next_type;
       CHECK_ERRNO();}
     else ptype = ptype->next_type;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+    fd_xseterr(fd_CantFindPool,"fd_open_pool",spec,opts);
   return NULL;
 }
 
@@ -182,13 +201,6 @@ fd_pool fd_make_pool(u8_string spec,
     fd_xseterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
-}
-
-/* TODO */
-FD_EXPORT
-fd_pool fd_unregistered_file_pool(u8_string filename)
-{
-  return NULL;
 }
 
 /* Opening indexes */
@@ -362,6 +374,7 @@ FD_EXPORT int fd_init_drivers_c()
   snappy_symbol = fd_intern("SNAPPY");
   zlib_symbol = fd_intern("ZLIB");
   zlib9_symbol = fd_intern("ZLIB9");
+  adjuncts_symbol = fd_intern("ADJUNCTS");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

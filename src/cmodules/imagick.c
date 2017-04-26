@@ -622,7 +622,7 @@ int fd_init_imagick()
 
   init_symbols();
 
-  fd_tablefns[fd_imagick_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_imagick_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_imagick_type]->get = (fd_table_get_fn)imagick_table_get;
   fd_tablefns[fd_imagick_type]->add = NULL;
   fd_tablefns[fd_imagick_type]->drop = NULL;

@@ -63,7 +63,7 @@ fd_pool fd_make_extpool(u8_string label,
     xp->fetchfn = fetchfn; xp->savefn = savefn;
     xp->lockfn = lockfn; xp->allocfn = allocfn;
     xp->state = state; xp->pool_label = label;
-    xp->pool_flags = xp->pool_flags|FD_OIDHOLES_OKAY;
+    xp->pool_flags = xp->pool_flags|FD_POOL_SPARSE;
     return (fd_pool)xp;}
 }
 
@@ -82,7 +82,7 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
     value = fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
   else if ((FD_EMPTY_CHOICEP(value))||(FD_VOIDP(value)))
-    if ((p->pool_flags)&FD_OIDHOLES_OKAY)
+    if ((p->pool_flags)&FD_POOL_SPARSE)
       return FD_EMPTY_CHOICE;
     else return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->poolid,oid);
   else return value;

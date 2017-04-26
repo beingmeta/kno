@@ -23,6 +23,7 @@ fdtype FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
   FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK,
   FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_TAG,
   FDSYM_TEXT, FDSYM_CONTENT, FDSYM_LENGTH,
+  FDSYM_READONLY, FDSYM_ISADJUNCT,
   FDSYM_STRING, FDSYM_CONS;
 
 u8_mutex fd_symbol_lock;
@@ -56,7 +57,7 @@ static void init_symbol_tables()
   else {
     int new_max = ((fd_max_symbols) ? (fd_max_symbols) : (fd_initial_symbols));
     int new_size = fd_get_hashtable_size(new_max*2);
-    struct FD_SYMBOL_ENTRY **new_entries = u8_zalloc_n(new_size,fd_symbol_entry);
+    struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
     fdtype *new_symbol_names = u8_alloc_n(new_max,fdtype);
     int i = 0, lim = new_size; while (i < lim) new_entries[i++]=NULL;
     i = 0; lim = new_max; while (i < lim) new_symbol_names[i++]=FD_VOID;
@@ -99,6 +100,8 @@ static void init_builtin_symbols()
   FDSYM_TAG = fd_intern("TAG");
   FDSYM_CONS = fd_intern("CONS");
   FDSYM_STRING = fd_intern("STRING");
+  FDSYM_READONLY = fd_intern("READONLY");
+  FDSYM_ISADJUNCT = fd_intern("ISADJUNCT");
 }
 
 static void grow_symbol_tables()
@@ -107,7 +110,7 @@ static void grow_symbol_tables()
   int new_size = fd_get_hashtable_size(new_max*2);
   struct FD_SYMBOL_ENTRY **old_entries = fd_symbol_table.fd_symbol_entries;
   struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
-  fdtype *new_symbol_names = u8_zalloc_n(new_max,fdtype);
+  fdtype *new_symbol_names = u8_alloc_n(new_max,fdtype);
   {
     int i = 0, lim = fd_symbol_table.table_size;
     while (i < new_size) new_entries[i++]=NULL;

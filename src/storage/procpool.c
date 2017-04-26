@@ -53,7 +53,7 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
   pp->pool_state = state;
   fd_incref(state);
   pp->pool_label = label;
-  pp->pool_flags |= FD_OIDHOLES_OKAY;
+  pp->pool_flags |= FD_POOL_SPARSE;
   return (fd_pool)pp;
 }
 

@@ -133,7 +133,8 @@ FD_EXPORT u8_condition fd_PoolCommit;
 FD_EXPORT int fd_pool_cache_init;
 FD_EXPORT int fd_pool_lock_init;
 
-#define FD_OIDHOLES_OKAY  (FD_STORAGE_POOL_FLAG(1))
+#define FD_POOL_SPARSE    (FD_POOL_FLAG(0))
+#define FD_POOL_ADJUNCT   (FD_POOL_FLAG(1))
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
@@ -160,7 +161,6 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
-  struct FD_HASHTABLE *oid_handlers;			\
   u8_string pool_prefix;				\
   fdtype pool_namefn
 
@@ -171,7 +171,7 @@ typedef struct FD_POOL *fd_pool;
 FD_EXPORT fd_pool fd_top_pools[FD_N_OID_BUCKETS];
 /* This is an index of all pools by their serial numbers (if registered) */
 FD_EXPORT fd_pool fd_pools_by_serialno[FD_MAX_POOLS];
-FD_EXPORT int fd_n_pools;
+FD_EXPORT int fd_n_pools, fd_max_pools;
 
 FD_EXPORT fd_pool fd_default_pool;
 FD_EXPORT struct FD_POOL _fd_zero_pool;
@@ -292,6 +292,12 @@ FD_EXPORT fd_pool _fd_oid2pool(fdtype oid);
 FD_EXPORT fdtype fd_oid_value(fdtype oid);
 FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid);
 
+/* Using pools like tables */
+
+FD_EXPORT fdtype fd_pool_get(fd_pool p,fdtype key);
+FD_EXPORT int fd_pool_store(fd_pool p,fdtype key,fdtype value);
+FD_EXPORT fdtype fd_pool_keys(fdtype arg);
+
 /* IPEVAL delays */
 
 #ifndef FD_N_POOL_DELAYS
@@ -356,6 +362,7 @@ FD_EXPORT int fd_commit_pools_noerr(void);
 FD_EXPORT int fd_unlock_pools(int);
 FD_EXPORT long fd_object_cache_load(void);
 FD_EXPORT fdtype fd_cached_oids(fd_pool p);
+FD_EXPORT fdtype fd_changed_oids(fd_pool p);
 
 FD_EXPORT int fd_commit_oids(fdtype oids);
 
@@ -385,6 +392,21 @@ FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 #endif
 
 FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
+
+/* Adjuncts */
+
+/* Adjuncts are lisp tables (including indices or even other pools)
+   which are used for the values of particular slotids, either on a
+   pool or globally. */
+
+FD_EXPORT fd_exception fd_BadAdjunct, fd_AdjunctError;
+
+FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts);
+FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype table);
+FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
+FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid);
+
+FD_EXPORT fdtype fd_adjunct_slotids;
 
 /* Generic Pools */
 

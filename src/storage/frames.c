@@ -571,7 +571,8 @@ static void init_dependencies(fd_frameop_stack *cxt)
     cxt->n_deps = 0; cxt->max_deps = 32;}
 }
 
-static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdtype value)
+static void note_dependency
+(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdtype value)
 {
   fd_frameop_stack *scan = cxt;
   while (scan)
@@ -579,7 +580,8 @@ static void note_dependency(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdt
       int n = scan->n_deps; struct FD_DEPENDENCY_RECORD *records = NULL;
       if (scan->n_deps>=scan->max_deps) {
         scan->dependencies = records=
-          u8_realloc_n(scan->dependencies,scan->max_deps*2,struct FD_DEPENDENCY_RECORD);
+          u8_realloc_n(scan->dependencies,scan->max_deps*2,
+                       struct FD_DEPENDENCY_RECORD);
         scan->max_deps = scan->max_deps*2;}
       else records = scan->dependencies;
       records[n].frame = fd_incref(frame);
@@ -984,7 +986,7 @@ FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotids,fdtype values)
   if (FD_CHOICEP(indexes)) {
     fdtype combined = FD_EMPTY_CHOICE;
     FD_DO_CHOICES(index,indexes)
-      if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type))) {
+      if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(index);
         if (ix == NULL) {
           fd_decref(combined);

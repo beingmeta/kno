@@ -971,9 +971,9 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     fdtype head = FD_VECTOR_REF(entry,0); fd_ptr_type htype;
     if (FD_FCNIDP(head)) head = fd_fcnid_ref(head);
     htype = FD_PTR_TYPE(head);
-    if (htype == fd_primfcn_type) {
+    if (htype == fd_cprim_type) {
       struct FD_FUNCTION *fn=
-        fd_consptr(struct FD_FUNCTION *,head,fd_primfcn_type);
+        fd_consptr(struct FD_FUNCTION *,head,fd_cprim_type);
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='primitive %s%s operator'>%k",
                 ((fn->fcn_ndcall)?("nondeterministic "):("")),

@@ -155,7 +155,7 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
     int serial = FD_GET_IMMEDIATE(lix,fd_index_type);
     if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
     else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];}
-  else if (FD_TYPEP(lix,fd_raw_index_type))
+  else if (FD_TYPEP(lix,fd_consed_index_type))
     return (fd_index) lix;
   else if (FD_STRINGP(lix))
     return fd_get_index(FD_STRDATA(lix),0,FD_VOID);
@@ -912,8 +912,8 @@ FD_EXPORT void fd_init_index(fd_index ix,
 {
   U8_SETBITS(flags,FD_STORAGE_ISINDEX);
   if (U8_BITP(flags,FD_STORAGE_ISCONSED)) {
-    FD_INIT_CONS(ix,fd_raw_index_type);}
-  else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
+    FD_INIT_CONS(ix,fd_consed_index_type);}
+  else {FD_INIT_STATIC_CONS(ix,fd_consed_index_type);}
   if (U8_BITP(flags,FD_STORAGE_READ_ONLY)) { U8_SETBITS(flags,FD_STORAGE_READ_ONLY); };
   ix->index_serialno = -1; ix->index_cache_level = -1; ix->index_flags = flags;
   FD_INIT_STATIC_CONS(&(ix->index_cache),fd_hashtable_type);
@@ -946,32 +946,42 @@ FD_EXPORT void fd_reset_index_tables
     fd_reset_hashtable(adds,level,1);}
 }
 
+
+static void display_index(u8_output out,fd_index ix,fdtype lix)
+{
+  u8_byte numbuf[32], edits[64];
+  u8_string tag = (FD_CONSP(lix)) ? ("CONSINDEX") : ("INDEX");
+  u8_string type = ((ix->index_handler) && (ix->index_handler->name)) ?
+    (ix->index_handler->name) : ((u8_string)("notype"));
+  if (ix->index_edits.table_n_keys) {
+    strcpy(edits,"~");
+    strcat(edits,u8_itoa10(ix->index_edits.table_n_keys,numbuf));}
+  else strcpy(edits,"");
+  if (ix->index_source)
+    u8_printf(out,_("#<%s %s (%s) cache=%d+%d%s #!%lx \"%s\">"),
+              tag,type,ix->indexid,
+              ix->index_cache.table_n_keys,
+              ix->index_adds.table_n_keys,
+              edits,
+              lix,ix->index_source);
+  else u8_printf(out,_("#<%s %s (%s) cache=%d+%d~%d #!%lx>"),
+                 tag,ix->indexid,type,
+                 lix);
+}
 static int unparse_index(u8_output out,fdtype x)
 {
   fd_index ix = fd_indexptr(x); u8_string type;
   if (ix == NULL) return 0;
-  if ((ix->index_handler) && (ix->index_handler->name)) 
-    type = ix->index_handler->name;
-  else type="unrecognized";
-  if (ix->index_source)
-    u8_printf(out,_("#<INDEX %s %s 0x%lx \"%s\">"),
-              type,ix->indexid,x,ix->index_source);
-  else u8_printf(out,_("#<INDEX %s %x 0x%lx>"),
-                 type,ix->indexid,x);
+  display_index(out,ix,x);
   return 1;
 }
 
-static int unparse_raw_index(u8_output out,fdtype x)
+static int unparse_consed_index(u8_output out,fdtype x)
 {
   fd_index ix = (fd_index)(x); u8_string type;
   if (ix == NULL) return 0;
-  if ((ix->index_handler) && (ix->index_handler->name)) type = ix->index_handler->name;
-  else type="unrecognized";
-  if (ix->index_source)
-    u8_printf(out,_("#<RAWINDEX %s %s 0x%lx \"%s\">"),
-              type,ix->indexid,x,ix->index_source);
-  else u8_printf(out,_("#<RAWINDEX %s %x 0x%lx>"),
-                 type,ix->indexid,x);
+  if (ix == NULL) return 0;
+  display_index(out,ix,x);
   return 1;
 }
 
@@ -1124,7 +1134,7 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     else return 0;}
 }
 
-static void recycle_raw_index(struct FD_RAW_CONS *c)
+static void recycle_consed_index(struct FD_RAW_CONS *c)
 {
   struct FD_INDEX *ix = (struct FD_INDEX *)c;
   struct FD_INDEX_HANDLER *handler = ix->index_handler;
@@ -1137,7 +1147,7 @@ static void recycle_raw_index(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static fdtype copy_raw_index(fdtype x,int deep)
+static fdtype copy_consed_index(fdtype x,int deep)
 {
   /* Where might this get us into trouble when not really copying the pool? */
   fd_index ix = (fd_index)x;
@@ -1148,7 +1158,7 @@ static fdtype copy_raw_index(fdtype x,int deep)
 
 /* Initialize */
 
-fd_ptr_type fd_index_type, fd_raw_index_type;
+fd_ptr_type fd_consed_index_type;
 
 static int check_index(fdtype x)
 {
@@ -1171,17 +1181,18 @@ FD_EXPORT void fd_init_indexes_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_index_type = fd_register_immediate_type("index",check_index);
-  fd_raw_index_type = fd_register_cons_type("raw index");
-
   fd_type_names[fd_index_type]=_("index");
-  fd_type_names[fd_raw_index_type]=_("raw index");
+  fd_immediate_checkfns[fd_index_type]=check_index;
+
+  fd_consed_index_type = fd_register_cons_type("raw index");
+  fd_type_names[fd_consed_index_type]=_("raw index");
 
   {
-    struct FD_COMPOUND_TYPEINFO *e = fd_register_compound(fd_intern("INDEX"),NULL,NULL);
+    struct FD_COMPOUND_TYPEINFO *e =
+      fd_register_compound(fd_intern("INDEX"),NULL,NULL);
     e->fd_compound_parser = index_parsefn;}
 
-  fd_tablefns[fd_index_type]=u8_zalloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_index_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_index_type]->get = table_indexget;
   fd_tablefns[fd_index_type]->add = table_indexadd;
   fd_tablefns[fd_index_type]->drop = table_indexdrop;
@@ -1190,18 +1201,18 @@ FD_EXPORT void fd_init_indexes_c()
   fd_tablefns[fd_index_type]->keys = table_indexkeys;
   fd_tablefns[fd_index_type]->getsize = NULL;
 
-  fd_tablefns[fd_raw_index_type]=u8_zalloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_raw_index_type]->get = table_indexget;
-  fd_tablefns[fd_raw_index_type]->add = table_indexadd;
-  fd_tablefns[fd_raw_index_type]->drop = table_indexdrop;
-  fd_tablefns[fd_raw_index_type]->store = table_indexstore;
-  fd_tablefns[fd_raw_index_type]->test = NULL;
-  fd_tablefns[fd_raw_index_type]->keys = table_indexkeys;
-  fd_tablefns[fd_raw_index_type]->getsize = NULL;
+  fd_tablefns[fd_consed_index_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_consed_index_type]->get = table_indexget;
+  fd_tablefns[fd_consed_index_type]->add = table_indexadd;
+  fd_tablefns[fd_consed_index_type]->drop = table_indexdrop;
+  fd_tablefns[fd_consed_index_type]->store = table_indexstore;
+  fd_tablefns[fd_consed_index_type]->test = NULL;
+  fd_tablefns[fd_consed_index_type]->keys = table_indexkeys;
+  fd_tablefns[fd_consed_index_type]->getsize = NULL;
 
-  fd_recyclers[fd_raw_index_type]=recycle_raw_index;
-  fd_unparsers[fd_raw_index_type]=unparse_raw_index;
-  fd_copiers[fd_raw_index_type]=copy_raw_index;
+  fd_recyclers[fd_consed_index_type]=recycle_consed_index;
+  fd_unparsers[fd_consed_index_type]=unparse_consed_index;
+  fd_copiers[fd_consed_index_type]=copy_consed_index;
 
   set_symbol = fd_make_symbol("SET",3);
   drop_symbol = fd_make_symbol("DROP",4);

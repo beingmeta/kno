@@ -34,7 +34,8 @@ FD_EXPORT fd_exception fd_RecoveryRequired;
 
 FD_EXPORT fd_exception fd_PoolDriverError, fd_IndexDriverError;
 FD_EXPORT fd_exception fd_CantOpenPool, fd_CantOpenIndex;
-FD_EXPORT fd_exception fd_FilePoolSizeOverflow, fd_FileIndexSizeOverflow;
+FD_EXPORT fd_exception fd_CantFindPool, fd_CantFindIndex;
+FD_EXPORT fd_exception fd_PoolFileSizeOverflow, fd_FileIndexSizeOverflow;
 FD_EXPORT fd_exception fd_CorruptedPool, fd_CorruptedIndex;
 
 FD_EXPORT u8_string fd_match4bytes(u8_string file,void *data);
@@ -66,8 +67,6 @@ FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
   (((fp)->pool_stream.stream_flags)&FD_STREAM_FILE_LOCKED)
 #define FD_LOCK_POOLFILE(fp) fd_lockfile(&((fp)->pool_stream))
 #define FD_UNLOCK_POOLFILE(fp) fd_unlockfile(&((fp)->pool_stream))
-
-FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
 
 /* File indexes */
 

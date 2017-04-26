@@ -362,9 +362,30 @@ void fd_pprint_focus(U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
              focus_pprint,(void *)&fs);
 }
 
+static u8_string lisp_pprintf_handler
+  (u8_output out,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
+{
+  struct U8_OUTPUT tmpout;
+  int width = 80; fdtype value;
+  if (strchr(cmd,'*'))
+    width = va_arg(*args,int);
+  else {
+    width = strtol(cmd,NULL,10);
+    U8_CLEAR_ERRNO();}
+  value = va_arg(*args,fdtype);
+  U8_INIT_OUTPUT(&tmpout,512);
+  fd_pprint(&tmpout,value,NULL,0,0,width,1);
+  u8_puts(out,tmpout.u8_outbuf);
+  u8_free(tmpout.u8_outbuf);
+  if (strchr(cmd,'-')) fd_decref(value);
+  return NULL;
+}
+
 FD_EXPORT void fd_init_pprint_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  u8_printf_handlers['Q']=lisp_pprintf_handler;
 
   quote_symbol = fd_intern("QUOTE");
   quasiquote_symbol = fd_intern("QUASIQUOTE");

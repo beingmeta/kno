@@ -797,15 +797,14 @@ fi
 
 dnl Some system headers and members
 
-AC_CHECK_HEADERS(fcntl.h sys/resource.h)
+AC_CHECK_HEADERS(fcntl.h malloc.h mcheck.h sys/resource.h)
 AC_CHECK_HEADERS(resource.h sys/resource.h)
 AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h sys/file.h signal.h)
 AC_CHECK_HEADERS(sys/utsname.h sys/vfs.h sys/statfs.h)
 
-AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
-	         [#include <sys/resource.h>])
-AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],
-	         [#include <sys/resource.h>])
+AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],[#include <sys/resource.h>])
+AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],[#include <sys/resource.h>])
+AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],[#include <sys/resource.h>])
 
 dnl Various directory/path configuration options
 
@@ -908,6 +907,8 @@ fi
 AC_CHECK_FUNCS(sigprocmask)
 AC_CHECK_FUNCS(sigsetmask)
 AC_CHECK_FUNCS(strdup strndup)
+AC_CHECK_FUNCS(open_memstream)
+AC_CHECK_FUNCS(mstats mtrace muntrace mallinfo malloc_info)
 AC_CHECK_FUNCS(flock lockf fcntl)
 AC_CHECK_FUNCS(sysconf sysctl)
 AC_CHECK_FUNCS(uname)
@@ -1270,6 +1271,7 @@ if test "$with_gperftools" != "no"; then
   AC_CHECK_HEADERS(gperftools/profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-profiler.h)
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
+  AC_CHECK_HEADERS(gperftools/malloc_extension_c.h)
   if test "$with_gperftools" = "debug"; then
     AC_CHECK_LIB(tcmalloc_debug,malloc)
     AC_CHECK_LIB(profiler,ProfilerStart)

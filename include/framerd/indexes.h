@@ -29,11 +29,11 @@ FD_EXPORT int fd_index_cache_init;
 FD_EXPORT int fd_index_edits_init;
 FD_EXPORT int fd_index_adds_init;
 
-#define FD_INDEX_ADD_CAPABILITY  (FD_STORAGE_INDEX_FLAG(1))
-#define FD_INDEX_DROP_CAPABILITY (FD_STORAGE_INDEX_FLAG(2))
-#define FD_INDEX_SET_CAPABILITY  (FD_STORAGE_INDEX_FLAG(3))
-#define FD_INDEX_IN_BACKGROUND   (FD_STORAGE_INDEX_FLAG(4))
-#define FD_INDEX_NOSWAP          (FD_STORAGE_INDEX_FLAG(5))
+#define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(1))
+#define FD_INDEX_ADD_CAPABILITY  (FD_INDEX_FLAG(2))
+#define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(3))
+#define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(4))
+#define FD_INDEX_NOSWAP          (FD_INDEX_FLAG(5))
 
 #define FD_N_PRIMARY_INDEXES 128
 
@@ -300,7 +300,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
     else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
       return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
     else return NULL;}
-  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_raw_index_type)))
+  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
     return (fd_index)x;
   else return (fd_index)NULL;
 }

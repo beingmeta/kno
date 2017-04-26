@@ -35,6 +35,10 @@
 #include <pthread.h>
 #include <errno.h>
 
+#if HAVE_MTRACE && HAVE_MCHECK_H
+#include <mcheck.h>
+#endif
+
 static volatile int fdscheme_initialized = 0;
 
 int fd_optimize_tail_calls = 1;
@@ -863,7 +867,7 @@ static int applicable_choicep(fdtype headvals)
     int hvtype = FD_PRIM_TYPE(hv), inconsistent = 0;
     /* Check that all the elements are either applicable or special
        forms and not mixed */
-    if ( (hvtype == fd_primfcn_type) ||
+    if ( (hvtype == fd_cprim_type) ||
          (hvtype == fd_sproc_type) ||
          (fd_applyfns[hvtype]) ) {
       if (applicable<0) applicable = 1;
@@ -1537,7 +1541,7 @@ static fdtype callcc (fdtype proc)
 {
   fdtype continuation, value;
   struct FD_CONTINUATION *f = u8_alloc(struct FD_CONTINUATION);
-  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
   f->fcn_ndcall = 1; f->fcn_xcall = 1; f->fcn_arity = 1; f->fcn_min_arity = 1;
   f->fcn_typeinfo = NULL; f->fcn_defaults = NULL;
@@ -2040,11 +2044,42 @@ static fdtype ffi_found_prim(fdtype name,fdtype modname)
 }
 #endif
 
+/* MTrace */
+
+static int mtracing=0;
+
+static fdtype mtrace_prim()
+{
+#if HAVE_MTRACE
+  if (mtracing)
+    return FD_TRUE;
+  else if (getenv("MALLOC_TRACE")) {
+    mtrace();
+    mtracing=1;
+    return FD_TRUE;}
+  else return FD_FALSE;
+#else
+  return FD_FALSE;
+#endif
+}
+
+static fdtype muntrace_prim()
+{
+#if HAVE_MTRACE
+  if (mtracing) {
+    muntrace();
+    return FD_TRUE;}
+  else return FD_FALSE;
+#else
+  return FD_FALSE;
+#endif
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
 {
-  struct FD_TABLEFNS *fns = u8_zalloc(struct FD_TABLEFNS);
+  struct FD_TABLEFNS *fns = u8_alloc(struct FD_TABLEFNS);
   fns->get = lispenv_get; fns->store = lispenv_store;
   fns->add = NULL; fns->drop = NULL; fns->test = NULL;
 
@@ -2204,6 +2239,9 @@ static void init_localfns()
            fd_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
+
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("MTRACE",mtrace_prim));
+  fd_idefn(fd_xscheme_module,fd_make_cprim0("MUNTRACE",muntrace_prim));
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",

@@ -1537,7 +1537,7 @@ FD_EXPORT int fd_populate_hashindex
     fd_seterr(fd_MallocFailed,"populuate_hashindex",NULL,FD_VOID);
     return -1;}
 
-  if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_raw_index_type)))
+  if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_consed_index_type)))
     ix = fd_indexptr(from);
 
   /* Population doesn't leave any odd keys */
@@ -2468,7 +2468,7 @@ static int update_hashindex_ondisk
     else offdata = memblock+64;
 #else
     size_t offdata_length = n_buckets*chunk_ref_size;
-    offdata = u8_mallocz(offdata_length);
+    offdata = u8_malloc(offdata_length);
     int rv = fd_read_ints(stream,offdata_length/4,offdata);
     if (rv<0) {
       u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));
@@ -2716,7 +2716,7 @@ FD_EXPORT fdtype _fd_populate_hashindex_deprecated
   else if (FD_VECTORP(keys)) {
     keyvec = FD_VECTOR_DATA(keys); n_keys = FD_VECTOR_LENGTH(keys);}
   else if (FD_VOIDP(keys)) {
-    if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_raw_index_type))) {
+    if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_consed_index_type))) {
       fd_index ix = fd_indexptr(from);
       if (ix->index_handler->fetchkeys!=NULL) {
         consed_keyvec = ix->index_handler->fetchkeys(ix,&n_keys);

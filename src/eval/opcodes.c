@@ -696,7 +696,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     if (FD_ABORTED(test_val)) return test_val;
     if (!(FD_FALSEP(test_val))) {
       fdtype then = pop_arg(args);
-      fdtype ignore = pop_arg(args);
+      U8_MAYBE_UNUSED fdtype ignore = pop_arg(args);
       fd_decref(test_val);
       return op_eval(then,env,1);}
     else {

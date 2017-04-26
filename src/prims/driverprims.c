@@ -29,8 +29,6 @@ FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
   (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2);
 FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label);
 
-FD_EXPORT fdtype _fd_make_oidpool_deprecated(int n,fdtype *args);
-
 FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
                                                             fdtype size,
                                                             fdtype metadata);
@@ -73,14 +71,7 @@ static fdtype lisphashdtyperep(fdtype x)
   return FD_INT(hash);
 }
 
-/* Opening unregistered file pools */
-
-static fdtype access_pool_prim(fdtype name)
-{
-  fd_pool p = fd_unregistered_file_pool(FD_STRDATA(name));
-  if (p) return (fdtype) p;
-  else return FD_ERROR_VALUE;
-}
+/* Prefetching from pools */
 
 static fdtype pool_prefetch(fdtype pool,fdtype oids)
 {
@@ -197,12 +188,8 @@ FD_EXPORT void fd_init_driverfns_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(driverfns_module,
-           fd_make_cprim1x("ACCESS-POOL",access_pool_prim,1,
-                           fd_string_type,FD_VOID));
-
-  fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,
-                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+                                          fd_consed_pool_type,FD_VOID,-1,FD_VOID)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");

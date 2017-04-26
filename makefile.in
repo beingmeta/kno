@@ -112,30 +112,31 @@ SRC_HEADERS=src/types/biginternals.h 		\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=\
-	src/types/oids.o src/types/fcnids.o 		\
-	src/types/symbols.o src/types/cons.o 		\
-	src/types/recycle.o src/types/copy.o 		\
+	src/types/oids.o src/types/fcnids.o 			\
+	src/types/symbols.o src/types/cons.o 			\
+	src/types/recycle.o src/types/copy.o 			\
 	src/types/misctypes.o src/types/numbers.o		\
-	src/types/compare.o src/types/walk.o		\
-	src/apply/apply.o @calltracko@ src/apply/ffi.o	\
-	src/types/tables.o src/types/bloom.o		\
-	src/types/sequences.o src/types/choices.o 	\
-	src/types/parse.o src/types/unparse.o		\
-	src/types/bufio.o src/types/pprint.o				\
-	src/types/dtread.o src/types/dtwrite.o		\
+	src/types/compare.o src/types/walk.o			\
+	src/apply/apply.o src/apply/cprims.o src/apply/ffi.o	\
+	@calltracko@						\
+	src/types/tables.o src/types/bloom.o			\
+	src/types/sequences.o src/types/choices.o 		\
+	src/types/parse.o src/types/unparse.o			\
+	src/types/bufio.o src/types/pprint.o			\
+	src/types/dtread.o src/types/dtwrite.o			\
 	src/types/libfdtype.o src/types/support.o		\
-	src/types/config.o src/types/err.o 		\
-	src/types/logging.o src/types/getopt.o 		\
+	src/types/config.o src/types/err.o 			\
+	src/types/logging.o src/types/getopt.o 			\
 	src/types/startup.o src/types/fluid.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 		\
-	src/storage/pools.o src/storage/indexes.o	src/storage/compoundindexes.o	\
+DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
+	src/storage/pools.o src/storage/indexes.o src/storage/compoundindexes.o	\
 	src/storage/dtproc.o src/storage/dtcall.o 				\
-	src/storage/methods.o src/storage/oidobj.o 				\
+	src/storage/methods.o src/storage/oidstore.o 				\
 	src/storage/cachecall.o src/storage/threadcache.o 			\
 	src/storage/extindex.o src/storage/extpool.o 				\
 	src/storage/procpool.o src/storage/procindex.o				\
@@ -327,10 +328,13 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
-CLEANDIRS=src/types src/db src/drivers src/scheme \
-	src/texttools src/fdweb \
-	include/framerd src/drivers/headers \
-	src/cmodules src/cmodules/sundown src/cmodules/tidy5 \
+CLEANDIRS=include/framerd src/drivers/headers 		\
+	src/types src/apply src/storage src/drivers	\
+	src/eval src/prims				\
+	src/text src/web src/scheme			\
+	src/cmodules					\
+	src/cmodules/ext/sundown 			\
+	src/cmodules/ext/tidy5 				\
 	etc
 
 FRAMERD_HEADERS= \
@@ -350,7 +354,7 @@ FRAMERD_SOURCES=\
 	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
-	src/storage/oidobj.c src/storage/cachecall.c  				\
+	src/storage/oidstore.c src/storage/cachecall.c  				\
 	src/storage/compoundindexes.c  					\
 	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
 	src/storage/dtproc.c src/storage/dtcall.c					\

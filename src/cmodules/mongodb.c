@@ -737,7 +737,6 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
 static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   fdtype opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -752,7 +751,8 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype *vec = NULL; size_t n = 0, max = 0;
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
-      u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
+      u8_log(-LOG_INFO,"MongoDB/find",
+             "Matches to %q in %q",query,arg);
     if (q)
       cursor = mongoc_collection_find_with_opts(collection,q,findopts,rp);
     if (cursor) {
@@ -775,15 +775,21 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
         else {
           FD_ADD_TO_CHOICE(results,r);}}
       mongoc_cursor_destroy(cursor);}
-    else results = fd_err(fd_MongoDB_Error,"mongodb_find",
-                        "couldn't get cursor",opts);
+    else {
+      fd_seterr(fd_MongoDB_Error,"mongodb_find",
+                u8_mkstring
+                ("couldn't get query cursor over %q with options:\n%Q",
+                 arg,opts),
+                fd_incref(query));
+      results = FD_ERROR_VALUE;}
     if (rp) mongoc_read_prefs_destroy(rp);
     if (q) bson_destroy(q);
     if (findopts) bson_destroy(findopts);
     collection_done(collection,client,domain);
     fd_decref(opts);
     U8_CLEAR_ERRNO();
-    if (sort_results) {
+    if (FD_ABORTED(results)) {}
+    else if (sort_results) {
       if ((vec == NULL)||(n==0)) return fd_make_vector(0,NULL);
       else results = fd_make_vector(n,vec);
       if (vec) u8_free(vec);}
@@ -875,7 +881,6 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 {
   fdtype result = FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   fdtype opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
@@ -1276,7 +1281,6 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
 static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
-  struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
   fdtype opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *connection;

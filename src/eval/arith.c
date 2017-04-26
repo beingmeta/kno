@@ -509,7 +509,7 @@ static fdtype toexact(fdtype x,fdtype direction)
   else if (FD_COMPLEXP(x)) {
     fdtype real = FD_REALPART(x), imag = FD_IMAGPART(x);
     if ((FD_FLONUMP(real))||(FD_FLONUMP(imag))) {
-      struct FD_COMPLEX *num = u8_zalloc(struct FD_COMPLEX);
+      struct FD_COMPLEX *num = u8_alloc(struct FD_COMPLEX);
       fdtype xreal = toexact(real,direction);
       fdtype ximag = toexact(imag,direction);
       FD_INIT_CONS(num,fd_complex_type);
