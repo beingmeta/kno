@@ -45,6 +45,10 @@
 #include <malloc.h>
 #endif
 
+#if HAVE_MALLOC_MALLOC_H
+#include <malloc/malloc.h>
+#endif
+
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
 #include <sys/utsname.h>
 #endif
@@ -171,6 +175,12 @@ static u8_string get_malloc_info()
   malloc_info(0,out);
   fclose(out);
   return buf;
+#elif HAVE_MSTATS
+  struct mstats stats=mstats();
+  size_t used=stats.bytes_used, total=stats.bytes_total;
+  double pct=(100.0*used)/(total*1.0);
+  return u8_mkstring("%lld/%lld (%0.2f%) used/total",
+                     used,total,pct);
 #else
   return u8_strdup("none");
 #endif
@@ -206,6 +216,10 @@ static fdtype rusage_prim(fdtype field)
       /* "tcmalloc.pageheap_unmapped_bytes" */
       add_intval(result,mallocd_symbol,in_use);
       add_intval(result,heap_symbol,heap_size);}
+#elif HAVE_MSTATS
+    struct mstats stats=mstats();
+    add_intval(result,mallocd_symbol,stats.bytes_used);
+    add_intval(result,heap_symbol,stats.bytes_total);
 #elif HAVE_MALLINFO
     if (sizeof(meminfo.arena)>=8) {
       meminfo=mallinfo();

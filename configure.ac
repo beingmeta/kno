@@ -797,7 +797,7 @@ fi
 
 dnl Some system headers and members
 
-AC_CHECK_HEADERS(fcntl.h malloc.h mcheck.h sys/resource.h)
+AC_CHECK_HEADERS(fcntl.h malloc.h mcheck.h sys/resource.h malloc/malloc.h)
 AC_CHECK_HEADERS(resource.h sys/resource.h)
 AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h sys/file.h signal.h)
 AC_CHECK_HEADERS(sys/utsname.h sys/vfs.h sys/statfs.h)
