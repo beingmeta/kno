@@ -53,6 +53,10 @@
 #include <sys/utsname.h>
 #endif
 
+#if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
+#include <sys/sysinfo.h>
+#endif
+
 fd_exception fd_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
@@ -135,6 +139,9 @@ static fdtype physicalmb_symbol, availablemb_symbol;
 static fdtype memload_symbol, vmemload_symbol, stacksize_symbol;
 static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
 static fdtype mallocd_symbol, heap_symbol, mallocinfo_symbol;
+static fdtype uptime_symbol, max_swap_symbol, swap_symbol, total_ram_symbol;
+static fdtype max_vmem_symbol;
+
 static fdtype tcmallocinfo_symbol;
 
 static int pagesize = -1;
@@ -224,6 +231,19 @@ static fdtype rusage_prim(fdtype field)
     if (sizeof(meminfo.arena)>=8) {
       meminfo=mallinfo();
       add_intval(result,mallocd_symbol,meminfo.arena);}
+#endif
+
+#if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
+    struct sysinfo sinfo;
+    if (sysinfo(&sinfo)==0) {
+      unsigned long long total_swap=sinfo.totalswap*sinfo.mem_unit;
+      unsigned long long free_swap=sinfo.freeswap*sinfo.mem_unit;
+      unsigned long long total_ram=sinfo.totalram*sinfo.mem_unit;
+      add_intval(result,uptime_symbol,sinfo.uptime);
+      add_intval(result,max_swap_symbol,total_swap);
+      add_intval(result,swap_symbol,total_swap);
+      add_intval(result,max_vmem_symbol,total_swap+total_ram);
+      add_intval(result,total_ram_symbol,total_ram);}
 #endif
 
     add_intval(result,data_symbol,r.ru_idrss);
@@ -956,6 +976,12 @@ FD_EXPORT void fd_init_sysprims_c()
 
   load_symbol = fd_intern("LOAD");
   loadavg_symbol = fd_intern("LOADAVG");
+
+  uptime_symbol=fd_intern("UPTIME");
+  max_swap_symbol=fd_intern("MAXSWAP");
+  swap_symbol=fd_intern("SWAP");
+  total_ram_symbol=fd_intern("TOTALRAM");
+  max_vmem_symbol=fd_intern("MAXVMEM");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
