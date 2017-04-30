@@ -390,6 +390,51 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
   else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
 }
 
+static fdtype try_op(fdtype exprs,fd_lispenv env)
+{
+  while (FD_PAIRP(exprs)) {
+    fdtype expr = pop_arg(exprs);
+    if (FD_EMPTY_LISTP(exprs))
+      return op_eval(expr,env,1);
+    else {
+      fdtype val  = op_eval(expr,env,0);
+      if (FD_ABORTP(val)) return val;
+      else if (!(FD_EMPTY_CHOICEP(val)))
+        return val;
+      else fd_decref(val);}}
+  return FD_EMPTY_CHOICE;
+}
+
+static fdtype and_op(fdtype exprs,fd_lispenv env)
+{
+  while (FD_PAIRP(exprs)) {
+    fdtype expr = pop_arg(exprs);
+    if (FD_EMPTY_LISTP(exprs))
+      return op_eval(expr,env,1);
+    else {
+      fdtype val  = op_eval(expr,env,0);
+      if (FD_ABORTP(val)) return val;
+      else if (FD_FALSEP(val))
+        return FD_FALSE;
+      else fd_decref(val);}}
+  return FD_TRUE;
+}
+
+static fdtype or_op(fdtype exprs,fd_lispenv env)
+{
+  while (FD_PAIRP(exprs)) {
+    fdtype expr = pop_arg(exprs);
+    if (FD_EMPTY_LISTP(exprs))
+      return op_eval(expr,env,1);
+    else {
+      fdtype val  = op_eval(expr,env,0);
+      if (FD_ABORTP(val)) return val;
+      else if (!(FD_FALSEP(val)))
+        return val;
+      else {}}}
+  return FD_FALSE;
+}
+
 static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 {
   switch (opcode) {
@@ -575,9 +620,9 @@ static fdtype nd2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
         result = fd_incref(arg1);
       else result = fd_difference(arg1,arg2);
       break;
-    case FD_CHOICEREF_OPCODE: 
+    case FD_CHOICEREF_OPCODE:
       if (!(FD_FIXNUMP(arg2))) {
-        fd_decref(arg1); 
+        fd_decref(arg1);
         return fd_err(fd_SyntaxError,"choiceref_opcode",NULL,arg2);}
       else {
         int i = FD_FIX2INT(arg2);
@@ -662,6 +707,167 @@ static fdtype until_opcode(fdtype expr,fd_lispenv env)
   return test_val;
 }
 
+static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
+{
+  if (FD_EMPTY_CHOICEP(arg1)) {
+    switch (opcode) {
+    case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
+      return FD_EMPTY_CHOICE;
+    case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
+      return FD_FALSE;
+    case FD_STORE_OPCODE:
+    case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
+    case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
+      return FD_VOID;
+    default:
+      return FD_VOID;}}
+  else if (opcode == FD_TEST_OPCODE) {
+    int rv = fd_ftest(arg1,arg2,arg3);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv>0) return FD_TRUE;
+    else return FD_FALSE;}
+  else if (opcode == FD_PRIMTEST_OPCODE) {
+    int rv = fd_test(arg1,arg2,arg3);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv>0) return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_CHOICEP(arg1)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(tbl,arg1) {
+      fdtype partial=tableop(opcode,arg1,arg2,arg3);
+      if (FD_ABORTP(partial)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return partial;}
+      else {
+        FD_ADD_TO_CHOICE(results,partial);}}
+    return results;}
+  else {
+    int rv=0;
+    switch (opcode) {
+    case FD_PRIMGET_OPCODE:
+      return fd_get(arg1,arg2,arg3);
+    case FD_PRIMTEST_OPCODE:
+      rv=fd_test(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_ADD_OPCODE:
+      rv=fd_add(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_DROP_OPCODE:
+      rv=fd_drop(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_STORE_OPCODE:
+      rv=fd_store(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_TEST_OPCODE:
+      if (FD_OIDP(arg1))
+        rv=fd_frame_test(arg1,arg2,arg3);
+      else rv=fd_test(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_GET_OPCODE:
+      return fd_fget(arg1,arg2);
+    case FD_ASSERT_OPCODE:
+      if (FD_OIDP(arg1))
+        rv=fd_fassert(arg1,arg2,arg3);
+      else rv=fd_add(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_RETRACT_OPCODE:
+      if (FD_OIDP(arg1))
+        rv=fd_fretract(arg1,arg2,arg3);
+      else rv=fd_drop(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    default:
+      return FD_VOID;}}
+}
+
+static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
+{
+  fdtype value = op_eval(expr,env,0);
+  if (FD_ABORTED(value))
+    return value;
+  else if (FD_LEXREFP(var)) {
+    int up = FD_LEXREF_UP(var);
+    int across = FD_LEXREF_ACROSS(var);
+    fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
+    while ((up)&&(scan)) {
+      fd_lispenv parent = scan->env_parent;
+      if ((parent) && (parent->env_copy))
+        scan = parent->env_copy;
+      else scan = parent;}
+    if (FD_EXPECT_TRUE(scan!=NULL)) {
+      fdtype bindings = scan->env_bindings;
+      if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
+        struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
+        if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
+          fdtype *values = skimap->schema_values;
+          fdtype cur     = values[across];
+          long long intval=0;
+          switch (combiner) {
+          case FD_VOID: case FD_FALSE:
+            values[across]=value;
+            fd_decref(cur); cur=FD_VOID;
+            return FD_VOID;
+          case FD_UNION_OPCODE:
+            FD_ADD_TO_CHOICE(values[across],value);
+            return FD_VOID;
+          case FD_TRUE:
+            if ((cur == FD_DEFAULT_VALUE) ||
+                (cur == FD_UNBOUND) ||
+                (cur == FD_VOID) ||
+                (cur == FD_NULL))
+              values[across]=value;
+            return FD_VOID;
+          case FD_PLUS_OPCODE:
+            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+              long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(value);
+              values[across]=FD_MAKE_FIXNUM(ic+ip);
+              return FD_VOID;}
+            else {
+              fdtype result=fd_plus(cur,value);
+              fd_decref(cur); fd_decref(value);
+              if (FD_ABORTP(result))
+                return result;
+              else skimap->schema_values[across]=result;
+              return FD_VOID;}
+          case FD_MINUS_OPCODE:
+            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+              long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(value);
+              values[across]=FD_MAKE_FIXNUM(ic-im);
+              return FD_VOID;}
+            else {
+              fdtype result=fd_subtract(cur,value);
+              fd_decref(cur); fd_decref(value);
+              if (FD_ABORTP(result))
+                return result;
+              else values[across]=result;
+              return FD_VOID;}}}}}
+    u8_string lexref=u8_mkstring("up%d/across%d",up,across);
+    fdtype env_copy=(fdtype)fd_copy_env(env);
+    return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
+  else if ((FD_PAIRP(var)) &&
+           (FD_SYMBOLP(FD_CAR(var))) &&
+           (FD_TABLEP(FD_CDR(var)))) {
+    fdtype table=FD_CDR(var), sym=FD_CAR(var);
+    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
+    fd_decref(value);
+    return FD_VOID;}
+  return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
+}
+
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
   fdtype args = FD_CDR(expr);
@@ -714,80 +920,17 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else if (FD_TABLEP(refenv))
       return fd_get(refenv,sym,FD_UNBOUND);
     else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
+  case FD_TRY_OPCODE:
+    return try_op(args,env);
+  case FD_AND_OPCODE:
+    return and_op(args,env);
+  case FD_OR_OPCODE:
+    return or_op(args,env);
   case FD_ASSIGN_OPCODE: {
     fdtype var = pop_arg(args);
     fdtype val_expr = pop_arg(args);
     fdtype combiner = pop_arg(args);
-    fdtype set_value = op_eval(val_expr,env,0);
-    if (FD_ABORTED(set_value))
-      return set_value;
-    else if (FD_LEXREFP(var)) {
-      int up = FD_LEXREF_UP(var);
-      int across = FD_LEXREF_ACROSS(var);
-      fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
-      while ((up)&&(scan)) {
-        fd_lispenv parent = scan->env_parent;
-        if ((parent) && (parent->env_copy))
-          scan = parent->env_copy;
-        else scan = parent;}
-      if (FD_EXPECT_TRUE(scan!=NULL)) {
-        fdtype bindings = scan->env_bindings;
-        if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
-          struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
-          if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
-            fdtype *values = skimap->schema_values;
-            fdtype cur     = values[across];
-            long long intval=0;
-            switch (combiner) {
-            case FD_VOID: case FD_FALSE:
-              values[across]=set_value;
-              fd_decref(cur); cur=FD_VOID;
-              return FD_VOID;
-            case FD_UNION_OPCODE:
-              FD_ADD_TO_CHOICE(values[across],set_value);
-              return FD_VOID;
-            case FD_TRUE:
-              if ((cur == FD_DEFAULT_VALUE) ||
-                  (cur == FD_UNBOUND) ||
-                  (cur == FD_VOID) ||
-                  (cur == FD_NULL))
-                values[across]=set_value;
-              return FD_VOID;
-            case FD_PLUS_OPCODE:
-              if ( (FD_FIXNUMP(set_value)) && (FD_FIXNUMP(cur)) ) {
-                long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(set_value);
-                values[across]=FD_MAKE_FIXNUM(ic+ip);
-                return FD_VOID;}
-              else {
-                fdtype result=fd_plus(cur,set_value);
-                fd_decref(cur); fd_decref(set_value);
-                if (FD_ABORTP(result))
-                  return result;
-                else skimap->schema_values[across]=result;
-                return FD_VOID;}
-            case FD_MINUS_OPCODE:
-              if ( (FD_FIXNUMP(set_value)) && (FD_FIXNUMP(cur)) ) {
-                long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(set_value);
-                values[across]=FD_MAKE_FIXNUM(ic-im);
-                return FD_VOID;}
-              else {
-                fdtype result=fd_subtract(cur,set_value);
-                fd_decref(cur); fd_decref(set_value);
-                if (FD_ABORTP(result))
-                  return result;
-                else values[across]=result;
-                return FD_VOID;}}}}}
-      u8_string lexref=u8_mkstring("up%d/across%d",up,across);
-      fdtype env_copy=(fdtype)fd_copy_env(env);
-      return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
-    else if ((FD_PAIRP(var)) &&
-             (FD_SYMBOLP(FD_CAR(var))) &&
-             (FD_TABLEP(FD_CDR(var)))) {
-      fdtype table=FD_CDR(var), sym=FD_CAR(var);
-      return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
-      fd_decref(set_value);
-      return FD_VOID;}
-    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);}
+    return assignop(env,var,val_expr,combiner);}
   case FD_VOID_OPCODE: {
     return FD_VOID;}
   case FD_XREF_OPCODE: {
@@ -799,7 +942,27 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else return xref_opcode(fd_simplify_choice(fasteval(obj_expr,env)),
                             FD_FIX2INT(off_arg),
                             pop_arg(args));}
-  }
+  case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
+  case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
+  case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
+  case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
+  case FD_STORE_OPCODE: {
+    fdtype expr1=pop_arg(args), expr2=pop_arg(args), expr3=pop_arg(args);
+    fdtype arg1=op_eval(expr1,env,0), arg2, arg3;
+    fdtype result=FD_VOID;
+    if (FD_ABORTED(arg1)) return arg1;
+    arg2=op_eval(expr2,env,0);
+    if (FD_ABORTED(arg2)) {
+      fd_decref(arg1);
+      return arg2;}
+    arg3=(FD_VOIDP(expr3))?(FD_VOID):(op_eval(expr3,env,0));
+    if (FD_ABORTED(arg3)) {
+      fd_decref(arg1);
+      fd_decref(arg2);
+      return arg3;}
+    else result=tableop(opcode,arg1,arg2,arg3);
+    fd_decref(arg1); fd_decref(arg2); fd_decref(arg3);
+    return result;}}
   if (!(FD_EXPECT_FALSE(FD_PAIRP(FD_CDR(expr))))) {
     /* Otherwise, we should have at least one argument,
        return an error otherwise. */
@@ -879,57 +1042,6 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fdtype result = d2_dispatch(opcode,arg1,arg2);
           fd_decref(arg1); fd_decref(arg2);
           return result;}}}
-    else if ((opcode == FD_GET_OPCODE) || (opcode == FD_PGET_OPCODE)) {
-      if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
-      else {
-        fdtype slotid_arg = arg2_expr;
-        fdtype slotids = op_eval(slotid_arg,env,0), result;
-        if (FD_ABORTED(slotids)) return slotids;
-        else if (FD_VOIDP(slotids))
-          return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
-        else slotids = fd_simplify_choice(slotids);
-        if (opcode == FD_GET_OPCODE)
-          result = fd_fget(arg1,slotids);
-        else {
-          fdtype dflt_arg = pop_arg(args);
-          if (FD_VOIDP(dflt_arg))
-            result = fd_get(arg1,slotids,FD_EMPTY_CHOICE);
-          else {
-            fdtype dflt = op_eval(dflt_arg,env,0);
-            if (FD_ABORTED(dflt)) result = dflt;
-            else if (FD_VOIDP(dflt)) {
-              result = fd_err(fd_VoidArgument,"OPCODE pget",NULL,
-                            pop_arg(args));}
-            else result = fd_get(arg1,slotids,dflt);
-            fd_decref(dflt);}}
-        fd_decref(arg1); fd_decref(slotids);
-        return result;}}
-    else if ((opcode == FD_TEST_OPCODE) || (opcode == FD_PTEST_OPCODE)) {
-      if (FD_EMPTY_CHOICEP(arg1)) return FD_FALSE;
-      else {
-        fdtype slotid_arg = arg2_expr, values_arg = pop_arg(args);
-        fdtype slotids = op_eval(slotid_arg,env,0), values, result;
-        if (FD_ABORTED(slotids)) return slotids;
-        else if (FD_VOIDP(slotids))
-          return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
-        else if (FD_EMPTY_CHOICEP(slotids)) {
-          fd_decref(arg1); return FD_FALSE;}
-        else if (FD_PRECHOICEP(slotids))
-          slotids = fd_simplify_choice(slotids);
-        else {}
-        if (FD_VOIDP(values_arg))
-          values = FD_VOID;
-        else values = op_eval(values_arg,env,0);
-        if (FD_ABORTED(values)) {
-          fd_decref(arg1); fd_decref(slotids);
-          return values;}
-        if (opcode == FD_TEST_OPCODE)
-          result = fd_ftest(arg1,slotids,values);
-        else if (fd_test(arg1,slotids,values))
-          result = FD_TRUE;
-        else result = FD_FALSE;
-        fd_decref(arg1); fd_decref(slotids); fd_decref(values);
-        return result;}}
     else if (FD_ND2_OPCODEP(opcode))
       /* This decrefs its arguments itself */
       return nd2_dispatch(opcode,arg1,op_eval(arg2_expr,env,0));
@@ -994,6 +1106,9 @@ static void init_opcode_names()
   set_opcode_name(FD_ASSIGN_OPCODE,"ASSIGN!");
   set_opcode_name(FD_SYMREF_OPCODE,"SYMREF");
   set_opcode_name(FD_VOID_OPCODE,"VOIDOP");
+  set_opcode_name(FD_AND_OPCODE,"AND");
+  set_opcode_name(FD_OR_OPCODE,"OR");
+  set_opcode_name(FD_TRY_OPCODE,"TRY");
 
   set_opcode_name(FD_AMBIGP_OPCODE,"AMBIGUOUS?");
   set_opcode_name(FD_SINGLETONP_OPCODE,"SINGLETON?");
@@ -1048,17 +1163,16 @@ static void init_opcode_names()
   set_opcode_name(FD_EQV_OPCODE,"EQV?");
   set_opcode_name(FD_EQUAL_OPCODE,"EQUAL?");
   set_opcode_name(FD_ELT_OPCODE,"ELT");
+  set_opcode_name(FD_ASSERT_OPCODE,"ASSERT!");
+  set_opcode_name(FD_RETRACT_OPCODE,"RETRACT!");
   set_opcode_name(FD_GET_OPCODE,"GET");
+  set_opcode_name(FD_TEST_OPCODE,"TEST");
   set_opcode_name(FD_ADD_OPCODE,"ADD");
   set_opcode_name(FD_DROP_OPCODE,"DROP");
-  set_opcode_name(FD_TEST_OPCODE,"TEST");
-  set_opcode_name(FD_STORE_OPCODE,"STOREOP");
   set_opcode_name(FD_XREF_OPCODE,"XREF");
-  set_opcode_name(FD_PGET_OPCODE,"%GET");
-  set_opcode_name(FD_PADD_OPCODE,"%ADD");
-  set_opcode_name(FD_PDROP_OPCODE,"%DROP");
-  set_opcode_name(FD_PTEST_OPCODE,"%TEST");
-  set_opcode_name(FD_PSTORE_OPCODE,"%STORE");
+  set_opcode_name(FD_PRIMGET_OPCODE,"%GET");
+  set_opcode_name(FD_PRIMTEST_OPCODE,"%TEST");
+  set_opcode_name(FD_STORE_OPCODE,"STORE!");
 }
 
 FD_EXPORT fdtype fd_get_opcode(u8_string name)

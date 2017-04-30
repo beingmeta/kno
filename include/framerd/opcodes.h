@@ -115,15 +115,14 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_ND3_OPCODEP(x)    ((x>FD_OPCODE(0x600))&&(x<FD_OPCODE(0x800))
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_ND3_OPCODE(0x01)
-#define FD_ADD_OPCODE        FD_ND3_OPCODE(0x02)
-#define FD_DROP_OPCODE       FD_ND3_OPCODE(0x03)
+#define FD_ASSERT_OPCODE     FD_ND3_OPCODE(0x02)
+#define FD_RETRACT_OPCODE    FD_ND3_OPCODE(0x03)
 #define FD_TEST_OPCODE       FD_ND3_OPCODE(0x04)
 #define FD_STORE_OPCODE      FD_ND3_OPCODE(0x05)
-#define FD_PGET_OPCODE       FD_ND3_OPCODE(0x06)
-#define FD_PADD_OPCODE       FD_ND3_OPCODE(0x07)
-#define FD_PDROP_OPCODE      FD_ND3_OPCODE(0x08)
-#define FD_PTEST_OPCODE      FD_ND3_OPCODE(0x09)
-#define FD_PSTORE_OPCODE     FD_ND3_OPCODE(0x0a)
+#define FD_PRIMGET_OPCODE    FD_ND3_OPCODE(0x06)
+#define FD_ADD_OPCODE        FD_ND3_OPCODE(0x07)
+#define FD_DROP_OPCODE       FD_ND3_OPCODE(0x08)
+#define FD_PRIMTEST_OPCODE   FD_ND3_OPCODE(0x09)
 #define FD_XREF_OPCODE       FD_ND3_OPCODE(0x20)
 
 #endif /* FRAMERD_OPCODES_H */
