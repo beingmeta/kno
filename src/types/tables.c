@@ -3303,7 +3303,9 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  CHECKPTR(arg,"fd_test/table"); CHECKPTR(key,"fd_test/key"); CHECKPTR(value,"fd_test/value");
+  CHECKPTR(arg,"fd_test/table");
+  CHECKPTR(key,"fd_test/key");
+  CHECKPTR(value,"fd_test/value");
   if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key))))
     return 0;
   if ((FD_EMPTY_CHOICEP(arg))||(FD_EMPTY_CHOICEP(key)))
