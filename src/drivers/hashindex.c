@@ -135,7 +135,7 @@ static ssize_t get_maxpos(fd_hashindex p)
     return -1;}
 }
 
-static fdtype read_zvalues(fd_hashindex,int,fd_off_t,size_t);
+static fdtype read_zvalues(fd_hashindex,fdtype,int,fd_off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
 
@@ -805,7 +805,7 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
         vblock_size = (size_t)fd_read_zint(&keystream);
         if (inbuf) u8_free(inbuf);
         fd_close_outbuf(&out);
-        return read_zvalues(hx,n_values,vblock_off,vblock_size);}}
+        return read_zvalues(hx,key,n_values,vblock_off,vblock_size);}}
     else {
       keystream.bufread = keystream.bufread+key_len;
       n_values = fd_read_zint(&keystream);
@@ -826,7 +826,8 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
 }
 
 static fdtype read_zvalues
-  (fd_hashindex hx,int n_values,fd_off_t vblock_off,size_t vblock_size)
+(fd_hashindex hx,fdtype key,int n_values,
+ fd_off_t vblock_off,size_t vblock_size)
 {
   struct FD_CHOICE *result = fd_alloc_choice(n_values);
   fdtype *values = (fdtype *)FD_XCHOICE_DATA(result), *scan = values;
@@ -854,6 +855,11 @@ static fdtype read_zvalues
     if (vblock_size) vblock_off = fd_read_zint(&instream);
     else vblock_off = 0;}
   if (vbuf) u8_free(vbuf);
+  if (scan-values != n_values)
+    u8_log(LOGWARN,"InconsistentValueSize",
+           "In '%s', the number of stored values "
+           "for %q, %lld != %lld (expected)",
+           hx->indexid,key,scan-values,n_values);
   if (scan == values) {
     u8_free(result);
     return FD_EMPTY_CHOICE;}
@@ -862,7 +868,7 @@ static fdtype read_zvalues
     u8_free(result);
     return v;}
   else return fd_init_choice
-         (result,n_values,NULL, /* scan-values */
+         (result,scan-values,NULL,
           FD_CHOICE_DOSORT|FD_CHOICE_REALLOC|
           ((atomicp)?(FD_CHOICE_ISATOMIC):
            (FD_CHOICE_ISCONSES)));
