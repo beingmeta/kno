@@ -702,37 +702,92 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else {
       pop_arg(args);
       return op_eval(pop_arg(args),env,1);}}
-  case FD_SETVAL_OPCODE: case FD_SETPLUS_OPCODE: {
+  case FD_SYMREF_OPCODE: {
+    fdtype refenv=pop_arg(args);
+    fdtype sym=pop_arg(args);
+    if (!(FD_SYMBOLP(sym)))
+      return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badsym",NULL,expr);
+    if (FD_HASHTABLEP(refenv))
+      return fd_hashtable_get((fd_hashtable)refenv,sym,FD_UNBOUND);
+    else if (FD_ENVIRONMENTP(refenv))
+      return fd_symeval(sym,(fd_lispenv)refenv);
+    else if (FD_TABLEP(refenv))
+      return fd_get(refenv,sym,FD_UNBOUND);
+    else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
+  case FD_ASSIGN_OPCODE: {
     fdtype var = pop_arg(args);
     fdtype val_expr = pop_arg(args);
-    if (FD_LEXREFP(var)) {
-      fdtype set_value = op_eval(val_expr,env,0);
+    fdtype combiner = pop_arg(args);
+    fdtype set_value = op_eval(val_expr,env,0);
+    if (FD_ABORTED(set_value))
+      return set_value;
+    else if (FD_LEXREFP(var)) {
       int up = FD_LEXREF_UP(var);
       int across = FD_LEXREF_ACROSS(var);
-      if (FD_ABORTP(set_value)) return set_value;
-      else {
-        fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
-        while ((up)&&(scan)) {
-          fd_lispenv parent = scan->env_parent;
-          if ((parent) && (parent->env_copy))
-            scan = parent->env_copy;
-          else scan = parent;}
-        if (FD_EXPECT_TRUE(scan!=NULL)) {
-          fdtype bindings = scan->env_bindings;
-          if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
-            struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
-            if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
-              if (opcode == FD_SETVAL_OPCODE) {
-                fdtype cur = skimap->schema_values[across];
-                skimap->schema_values[across]=set_value;
-                fd_decref(cur);}
+      fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
+      while ((up)&&(scan)) {
+        fd_lispenv parent = scan->env_parent;
+        if ((parent) && (parent->env_copy))
+          scan = parent->env_copy;
+        else scan = parent;}
+      if (FD_EXPECT_TRUE(scan!=NULL)) {
+        fdtype bindings = scan->env_bindings;
+        if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
+          struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
+          if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
+            fdtype *values = skimap->schema_values;
+            fdtype cur     = values[across];
+            long long intval=0;
+            switch (combiner) {
+            case FD_VOID: case FD_FALSE:
+              values[across]=set_value;
+              fd_decref(cur); cur=FD_VOID;
+              return FD_VOID;
+            case FD_UNION_OPCODE:
+              FD_ADD_TO_CHOICE(values[across],set_value);
+              return FD_VOID;
+            case FD_TRUE:
+              if ((cur == FD_DEFAULT_VALUE) ||
+                  (cur == FD_UNBOUND) ||
+                  (cur == FD_VOID) ||
+                  (cur == FD_NULL))
+                values[across]=set_value;
+              return FD_VOID;
+            case FD_PLUS_OPCODE:
+              if ( (FD_FIXNUMP(set_value)) && (FD_FIXNUMP(cur)) ) {
+                long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(set_value);
+                values[across]=FD_MAKE_FIXNUM(ic+ip);
+                return FD_VOID;}
               else {
-                fdtype *values = skimap->schema_values;
-                FD_ADD_TO_CHOICE(values[across],set_value);}
-              return FD_VOID;}}}}
-      fd_decref(set_value);}
-    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
-  }
+                fdtype result=fd_plus(cur,set_value);
+                fd_decref(cur); fd_decref(set_value);
+                if (FD_ABORTP(result))
+                  return result;
+                else skimap->schema_values[across]=result;
+                return FD_VOID;}
+            case FD_MINUS_OPCODE:
+              if ( (FD_FIXNUMP(set_value)) && (FD_FIXNUMP(cur)) ) {
+                long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(set_value);
+                values[across]=FD_MAKE_FIXNUM(ic-im);
+                return FD_VOID;}
+              else {
+                fdtype result=fd_subtract(cur,set_value);
+                fd_decref(cur); fd_decref(set_value);
+                if (FD_ABORTP(result))
+                  return result;
+                else values[across]=result;
+                return FD_VOID;}}}}}
+      u8_string lexref=u8_mkstring("up%d/across%d",up,across);
+      fdtype env_copy=(fdtype)fd_copy_env(env);
+      return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
+    else if ((FD_PAIRP(var)) &&
+             (FD_SYMBOLP(FD_CAR(var))) &&
+             (FD_TABLEP(FD_CDR(var)))) {
+      fdtype table=FD_CDR(var), sym=FD_CAR(var);
+      return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
+      fd_decref(set_value);
+      return FD_VOID;}
+    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);}
   case FD_VOID_OPCODE: {
     return FD_VOID;}
   case FD_XREF_OPCODE: {
@@ -936,8 +991,8 @@ static void init_opcode_names()
   set_opcode_name(FD_UNTIL_OPCODE,"UNTILOP");
   set_opcode_name(FD_BEGIN_OPCODE,"BEGIN");
   set_opcode_name(FD_QUOTE_OPCODE,"QUOTEOP");
-  set_opcode_name(FD_SETVAL_OPCODE,"SET!OP");
-  set_opcode_name(FD_SETPLUS_OPCODE,"SET+!OP");
+  set_opcode_name(FD_ASSIGN_OPCODE,"ASSIGN!");
+  set_opcode_name(FD_SYMREF_OPCODE,"SYMREF");
   set_opcode_name(FD_VOID_OPCODE,"VOIDOP");
 
   set_opcode_name(FD_AMBIGP_OPCODE,"AMBIGUOUS?");
@@ -995,14 +1050,15 @@ static void init_opcode_names()
   set_opcode_name(FD_ELT_OPCODE,"ELT");
   set_opcode_name(FD_GET_OPCODE,"GET");
   set_opcode_name(FD_ADD_OPCODE,"ADD");
-  set_opcode_name(FD_DROP_OPCODE,"ADD");
+  set_opcode_name(FD_DROP_OPCODE,"DROP");
   set_opcode_name(FD_TEST_OPCODE,"TEST");
-  set_opcode_name(FD_STORE_OPCODE,"ADD");
+  set_opcode_name(FD_STORE_OPCODE,"STOREOP");
   set_opcode_name(FD_XREF_OPCODE,"XREF");
   set_opcode_name(FD_PGET_OPCODE,"%GET");
   set_opcode_name(FD_PADD_OPCODE,"%ADD");
   set_opcode_name(FD_PDROP_OPCODE,"%DROP");
-  set_opcode_name(FD_PSTORE_OPCODE,"%TEST");
+  set_opcode_name(FD_PTEST_OPCODE,"%TEST");
+  set_opcode_name(FD_PSTORE_OPCODE,"%STORE");
 }
 
 FD_EXPORT fdtype fd_get_opcode(u8_string name)

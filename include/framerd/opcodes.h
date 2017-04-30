@@ -26,10 +26,13 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_UNTIL_OPCODE       FD_SPECIAL_OPCODE(0x03)
 #define FD_BEGIN_OPCODE       FD_SPECIAL_OPCODE(0x04)
 #define FD_QUOTE_OPCODE       FD_SPECIAL_OPCODE(0x05)
-#define FD_SETVAL_OPCODE      FD_SPECIAL_OPCODE(0x06)
-#define FD_SETPLUS_OPCODE     FD_SPECIAL_OPCODE(0x07)
+#define FD_ASSIGN_OPCODE      FD_SPECIAL_OPCODE(0x06)
+#define FD_SYMREF_OPCODE      FD_SPECIAL_OPCODE(0x07)
 #define FD_BIND_OPCODE        FD_SPECIAL_OPCODE(0x08)
 #define FD_VOID_OPCODE        FD_SPECIAL_OPCODE(0x09)
+#define FD_TRY_OPCODE         FD_SPECIAL_OPCODE(0x0A)
+#define FD_AND_OPCODE         FD_SPECIAL_OPCODE(0x0B)
+#define FD_OR_OPCODE          FD_SPECIAL_OPCODE(0x0C)
 
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODE(x)      FD_OPCODE(0x100+x)
@@ -108,7 +111,6 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_DIFFERENCE_OPCODE FD_ND2_OPCODE(0x06)
 #define FD_CHOICEREF_OPCODE  FD_ND2_OPCODE(0x07)
 
- 
 #define FD_ND3_OPCODE(x)     FD_OPCODE(0x700+x)
 #define FD_ND3_OPCODEP(x)    ((x>FD_OPCODE(0x600))&&(x<FD_OPCODE(0x800))
 /* Other primitives with more than two arguments */
