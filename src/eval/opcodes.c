@@ -778,14 +778,14 @@ static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
       return fd_fget(arg1,arg2);
     case FD_ASSERT_OPCODE:
       if (FD_OIDP(arg1))
-        rv=fd_fassert(arg1,arg2,arg3);
+        rv=fd_assert(arg1,arg2,arg3);
       else rv=fd_add(arg1,arg2,arg3);
       if (rv<0) return FD_ERROR_VALUE;
       else if (rv==0) return FD_FALSE;
       else return FD_TRUE;
     case FD_RETRACT_OPCODE:
       if (FD_OIDP(arg1))
-        rv=fd_fretract(arg1,arg2,arg3);
+        rv=fd_retract(arg1,arg2,arg3);
       else rv=fd_drop(arg1,arg2,arg3);
       if (rv<0) return FD_ERROR_VALUE;
       else if (rv==0) return FD_FALSE;

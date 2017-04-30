@@ -1404,7 +1404,7 @@ fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
 }
 
 FD_EXPORT
-fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values)
+fdtype fd_assert(fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_EMPTY_CHOICEP(values)) return FD_VOID;
   else {
@@ -1416,7 +1416,7 @@ fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values)
     return FD_VOID;}
 }
 FD_EXPORT
-fdtype fd_fretract(fdtype frames,fdtype slotids,fdtype values)
+fdtype fd_retract(fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_EMPTY_CHOICEP(values)) return FD_VOID;
   else {
@@ -2985,9 +2985,9 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",fd_ftest,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("TESTP",testp,3)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_fassert,3)));
+           fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_assert,3)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_fretract,2)));
+           fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_retract,2)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("GETSLOTS",fd_getkeys,1)));
   fd_idefn(fd_scheme_module,
