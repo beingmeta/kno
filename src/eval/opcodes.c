@@ -731,7 +731,7 @@ static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
   else if (FD_CHOICEP(arg1)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(tbl,arg1) {
-      fdtype partial=tableop(opcode,arg1,arg2,arg3);
+      fdtype partial=tableop(opcode,tbl,arg2,arg3);
       if (FD_ABORTP(partial)) {
         fd_decref(results);
         FD_STOP_DO_CHOICES;
