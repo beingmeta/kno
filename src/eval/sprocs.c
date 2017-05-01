@@ -44,9 +44,10 @@ static u8_string sproc_id(struct FD_SPROC *fn)
 
 FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
-  fdtype _vals[6], *vals=_vals, lexpr_arg = FD_EMPTY_LIST, result = FD_VOID;
+  fdtype lexpr_arg = FD_EMPTY_LIST, result = FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   int n_vars = fn->sproc_n_vars;
+  fdtype vals[n_vars];
   /* We're optimizing to avoid GC (and thread contention) for the
      simple case where the arguments exactly match the argument list.
      Essentially, we use the args vector as the values vector of
@@ -59,12 +60,11 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.table_schema = fn->sproc_vars;
   bindings.schema_length = n_vars;
   bindings.schemap_onstack = 1;
+  bindings.schema_values = vals;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings = FDTYPE_CONS(&bindings);
   envstruct.env_exports = FD_VOID;
   envstruct.env_parent = fn->sproc_env; envstruct.env_copy = NULL;
-  if (n_vars>6) vals = u8_alloc_n(fn->sproc_n_vars,fdtype);
-  bindings.schema_values = vals;
   if (fn->fcn_arity>0) {
     if (n<fn->fcn_min_arity) {
       u8_destroy_rwlock(&(bindings.table_rwlock));
@@ -153,7 +153,6 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->sproc_synchronized) u8_unlock_mutex(&(fn->sproc_lock));
   fd_decref(lexpr_arg);
   free_environment(&envstruct);
-  if (vals!=_vals) u8_free(vals);
   return result;
 }
 
@@ -321,8 +320,14 @@ static int unparse_sproc(u8_output out,fdtype x)
   else u8_printf(out,"(…%q…)",arglist);
   if (!(sproc->fcn_name))
     u8_printf(out," #!0x%llx",(unsigned long long)sproc);
-  if (sproc->fcn_filename)
-    u8_printf(out," '%s'>",sproc->fcn_filename);
+  if (sproc->fcn_filename) {
+    u8_string filename=sproc->fcn_filename;
+    /* Elide information after the filename (such as time/size/hash) */
+    u8_string space=strchr(filename,' ');
+    u8_puts(out," '");
+    if (space) u8_putn(out,filename,space-filename);
+    else u8_puts(out,filename);
+    u8_puts(out,"'>");}
   else u8_puts(out,">");
   return 1;
 }
@@ -579,19 +584,18 @@ fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype))
 {
   int i = 0;
-  fdtype _vals[12], *vals=_vals, arglist = fn->sproc_arglist, result = FD_VOID;
+  fdtype arglist = fn->sproc_arglist, result = FD_VOID;
+  fdtype vals[fn->sproc_n_vars];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.table_schema = fn->sproc_vars;
   bindings.schema_length = fn->sproc_n_vars;
+  bindings.schema_values = vals;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings = FDTYPE_CONS(&bindings);
   envstruct.env_exports = FD_VOID;
   envstruct.env_parent = fn->sproc_env; envstruct.env_copy = NULL;
-  if (fn->sproc_n_vars>=12)
-    bindings.schema_values = vals = u8_alloc_n(fn->sproc_n_vars,fdtype);
-  else bindings.schema_values = vals=_vals;
   while (FD_PAIRP(arglist)) {
     fdtype argspec = FD_CAR(arglist), argname = FD_VOID, argval;
     if (FD_SYMBOLP(argspec)) argname = argspec;
@@ -604,7 +608,6 @@ fdtype fd_xapply_sproc
         fdtype val = vals[j++];
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
           fd_decref(val);}
-      if (vals!=_vals) u8_free(vals);
       return argval;}
     else if (((FD_VOIDP(argval))||(argval == FD_DEFAULT_VALUE)) &&
              (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec)))) {
@@ -624,7 +627,6 @@ fdtype fd_xapply_sproc
         fdtype val = vals[j++];
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
           fd_decref(val);}}
-      if (vals!=_vals) u8_free(vals);
       return argval;}
     else vals[i++]=argval;}
   assert(i == fn->sproc_n_vars);
@@ -646,7 +648,6 @@ fdtype fd_xapply_sproc
     fd_recycle_environment(envstruct.env_copy);
     envstruct.env_copy = NULL;}
   free_environment(&envstruct);
-  if (vals!=_vals) u8_free(vals);
   return result;
 }
 

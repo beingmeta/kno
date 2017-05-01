@@ -740,7 +740,8 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
       value = fd_parse_arg(buf);
       if (FD_ABORTP(value)) {
         int k = 0; while (k<field) {fd_decref(fields[k]); k++;}
-        u8_free(fields); u8_free(buf);
+        u8_free(fields);
+        u8_free(buf);
         return value;}
       else fields[field++]=value;}
     /* If the parse function is applicable, make a string
@@ -751,20 +752,27 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
       if (field<parselen) fd_decref(parsefn);
       if (FD_ABORTP(value)) {
         int k = 0; while (k<field) {fd_decref(fields[k]); k++;}
-        u8_free(fields); u8_free(buf); fd_decref(stringval);
+        u8_free(fields);
+        u8_free(buf);
+        fd_decref(stringval);
         return value;}
       else {
         fd_decref(stringval);
         fields[field++]=value;}}
     else {
       int k = 0; while (k<field) {fd_decref(fields[k]); k++;}
-      u8_free(fields); u8_free(buf);
+      u8_free(fields);
+      u8_free(buf);
       return fd_type_error(_("column parse function"),
                            "columnize_prim",parsefn);}}
+  u8_free(buf);
   if (FD_FALSEP(parse))
-    while (field<n_fields) fields[field++]=fd_init_string(NULL,0,NULL);
+    while (field<n_fields)
+      fields[field++]=fd_init_string(NULL,0,NULL);
   else while (field<n_fields) fields[field++]=FD_FALSE;
-  return fd_makeseq(FD_PTR_TYPE(cols),n_fields,fields);
+  fdtype result=fd_makeseq(FD_PTR_TYPE(cols),n_fields,fields);
+  u8_free(fields);
+  return result;
 }
 
 /* The Matcher */

@@ -196,9 +196,6 @@ static u8_string get_malloc_info()
 static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
-#if HAVE_MALLINFO
-  struct mallinfo meminfo;
-#endif
   int pagesize = get_pagesize();
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
@@ -228,6 +225,7 @@ static fdtype rusage_prim(fdtype field)
     add_intval(result,mallocd_symbol,stats.bytes_used);
     add_intval(result,heap_symbol,stats.bytes_total);
 #elif HAVE_MALLINFO
+    struct mallinfo meminfo;
     if (sizeof(meminfo.arena)>=8) {
       meminfo=mallinfo();
       add_intval(result,mallocd_symbol,meminfo.arena);}
@@ -237,7 +235,6 @@ static fdtype rusage_prim(fdtype field)
     struct sysinfo sinfo;
     if (sysinfo(&sinfo)==0) {
       unsigned long long total_swap=sinfo.totalswap*sinfo.mem_unit;
-      unsigned long long free_swap=sinfo.freeswap*sinfo.mem_unit;
       unsigned long long total_ram=sinfo.totalram*sinfo.mem_unit;
       add_intval(result,uptime_symbol,sinfo.uptime);
       add_intval(result,max_swap_symbol,total_swap);

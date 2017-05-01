@@ -893,13 +893,12 @@ FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
 static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
 {
   int n_args = 0, i = 0, gc_args = 0;
-  fdtype _argv[FD_STACK_ARGS], *argv, arglist = FD_CDR(expr);
-  fdtype results = FD_EMPTY_CHOICE;
+  fdtype arglist = FD_CDR(expr);
   {FD_DOLIST(elt,arglist)
       if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         n_args++;}
-  if (n_args<FD_STACK_ARGS) argv=_argv;
-  else argv = u8_alloc_n(n_args,fdtype);
+  fdtype results = FD_EMPTY_CHOICE;
+  fdtype argbuf[n_args], *argv=argbuf;
   {FD_DOLIST(arg,arglist) {
       fdtype argval;
       if (FD_EXPECT_FALSE
@@ -907,7 +906,6 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
       else argval = fasteval(arg,env);
       if (FD_ABORTED(argval)) {
         int j = 0; while (j<i) {fd_decref(argv[j]); j++;}
-        if (argv!=_argv) u8_free(argv);
         return argval;}
       argv[i++]=argval;
       if (FD_CONSP(argval)) gc_args = 1;}}
@@ -916,13 +914,11 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
       if (FD_ABORTED(result)) {
         if (gc_args) {
           int j = 0; while (j<n_args) {fd_decref(argv[j]); j++;}}
-        if (argv!=_argv) u8_free(argv);
         fd_decref(results);
         return result;}
       else {FD_ADD_TO_CHOICE(results,result);}}}
   if (gc_args) {
     int j = 0; while (j<n_args) {fd_decref(argv[j]); j++;}}
-  if (argv!=_argv) u8_free(argv);
   return results;
 }
 
@@ -965,45 +961,46 @@ static void push_apply_context(fdtype expr,fdtype fn,
     else avec[0]=fd_intern("LAMBDA");}
   else avec[0]=fd_incref(fn);
   memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
-  fd_push_error_context(fd_apply_context,((fcn)?(fcn->fcn_name):(NULL)),call_context);
+  fd_push_error_context(fd_apply_context,
+                        ((fcn)?(fcn->fcn_name):(NULL)),
+                        call_context);
   fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
 }
 
 #define ND_ARGP(v) ((FD_CHOICEP(v))||(FD_QCHOICEP(v)))
 
+FD_FASTOP int commentp(fdtype arg)
+{
+  return
+    (FD_EXPECT_FALSE
+     ((FD_PAIRP(arg)) &&
+      (FD_EQ(FD_CAR(arg),comment_symbol))));
+}
+
 static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
                             fdtype expr,fd_lispenv env)
 {
   fdtype result = FD_VOID, fn = (fdtype)fcn;
-  fdtype _argv[FD_STACK_ARGS], *argv;
   fdtype arg_exprs = fd_get_body(expr,1);
   int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
   int n_params = max_arity, argv_length = max_arity;
-  int n_args = count_args(arg_exprs), arg_count = 0, gc_args = 0, free_argv = 0;
-  int nd_args = 0, d_prim = (fcn->fcn_ndcall==0);
+  int n_args = count_args(arg_exprs), arg_count = 0;
+  int gc_args = 0, nd_args = 0, d_prim = (fcn->fcn_ndcall==0);
   if (max_arity<0) argv_length = n_args;
   /* Check arg count early */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
     return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
     return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
-  if (argv_length>FD_STACK_ARGS) {
-    /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
-    argv = u8_alloc_n(argv_length,fdtype);
-    free_argv = 1;}
-  /* Otherwise, just use the stack vector */
-  else argv=_argv;
+  fdtype _argbuf[argv_length], *argv=_argbuf;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
   {FD_DOLIST(elt,arg_exprs) {
-      if (FD_EXPECT_FALSE((FD_PAIRP(elt)) &&
-                          (FD_EQ(FD_CAR(elt),comment_symbol))))
-        continue;
+      if (commentp(elt)) continue;
       fdtype argval = process_arg(elt,env);
       if ((FD_ABORTED(argval))||((d_prim)&&(FD_EMPTY_CHOICEP(argval)))) {
         /* Clean up the arguments we've already evaluated */
         if (gc_args) for (int j = 0; j < arg_count; j++) {
             fdtype arg = argv[j++]; fd_decref(arg);}
-        if (free_argv) u8_free(argv);
         return argval;}
       else if (FD_CONSP(argval)) {
         if ((nd_args==0)&&(ND_ARGP(argval))) nd_args = 1;
@@ -1017,49 +1014,49 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
         argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]);}}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
-  if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
-    result = fd_tail_call(fn,arg_count,argv);
-  else if ((d_prim) && (nd_args))
-    result = fd_ndapply(fn,arg_count,argv);
-  else {
-    result = fd_dapply(fn,arg_count,argv);}
-  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
-    push_apply_context(expr,(fdtype)fcn,arg_count,argv);
+  if ((fd_optimize_tail_calls) && (FD_SPROCP(fn))) {
+    if (gc_args)
+      result = fd_tail_call(fn,arg_count,argv);
+    else return fd_tail_call(fn,arg_count,argv);}
+  else if ((d_prim) && (nd_args)) {
+    if (gc_args)
+      result = fd_ndapply(fn,arg_count,argv);
+    else return fd_ndapply(fn,arg_count,argv);}
+  else if (gc_args)
+    result = fd_dapply(fn,arg_count,argv);
+  else return fd_dapply(fn,arg_count,argv);
+  if (FD_TROUBLEP(result)) {
+    /* Push all the args if there was trouble */
+    push_apply_context(expr,(fdtype)fcn,arg_count,argv);}
   else if (gc_args) for (int i = 0; i<arg_count; i++) {
       fdtype arg = argv[i]; fd_decref(arg);}
-  if (free_argv) u8_free(argv);
   return result;
 }
 
 static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result = FD_VOID;
-  fdtype _argv[FD_STACK_ARGS], *argv;
   fdtype arg_exprs = fd_get_body(expr,1);
   int n_args = count_args(arg_exprs), arg_count = 0;
-  int gc_args = 0, free_argv = 0;
-  if (n_args>FD_STACK_ARGS) {
-    argv = u8_alloc_n(n_args,fdtype);
-    free_argv = 1;}
-  else argv=_argv;
-  {FD_DOLIST(arg,arg_exprs)
-      if (FD_EXPECT_FALSE((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
-        continue;
-    fdtype argval = process_arg(arg,env);
-       if (FD_ABORTED(argval)) {
+  int gc_args = 0, aborted=0;
+  fdtype _argbuf[n_args], *argv=_argbuf;
+  {FD_DOLIST(arg,arg_exprs) {
+      if (commentp(arg)) continue;
+      fdtype argval = process_arg(arg,env);
+      if (FD_ABORTED(argval)) {
         /* Clean up the arguments we've already evaluated */
-        if (gc_args) for (int j = 0; j < arg_count; j++) {
-            fdtype arg = argv[j++]; fd_decref(arg);}
-        if (free_argv) u8_free(argv);
-        return argval;}
+        if (gc_args) {result=argval; break;}
+        else return argval;}
       else if (FD_CONSP(argval)) gc_args = 1; else {}
-      argv[arg_count++]=argval;}
-  result = fd_apply(fn,n_args,argv);
-  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
+      argv[arg_count++]=argval;}}
+  if (FD_ABORTED(result)) {}
+  else if (gc_args)
+    result = fd_apply(fn,n_args,argv);
+  else return fd_apply(fn,n_args,argv);
+  if (FD_TROUBLEP(result))
     push_apply_context(expr,fn,arg_count,argv);
   else if (gc_args) for (int i = 0; i<arg_count; i++) {
       fdtype arg = argv[i++]; fd_decref(arg);}
-  if (free_argv) u8_free(argv);
   return result;
 }
 

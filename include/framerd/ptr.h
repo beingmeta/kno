@@ -623,10 +623,11 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<=15)))
-#define FD_TROUBLEP(x) \
+#define FD_ERRORP(x) \
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<15)))
+#define FD_TROUBLEP(x) (FD_EXPECT_FALSE(FD_ERRORP(x)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
 
 #define FD_ABORTED(x) (FD_EXPECT_FALSE(FD_ABORTP(x)))

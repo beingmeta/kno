@@ -338,7 +338,8 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
   /* Check typeinfo */
   int *typeinfo = f->fcn_typeinfo; int i = 0;
   if (typeinfo) while (i<n) {
-      fdtype arg = args[i]; int argtype = typeinfo[i];
+      fdtype arg = args[i];
+      int argtype = typeinfo[i];
       if (argtype<0) i++;
       else if (FD_TYPEP(arg,argtype)) i++;
       else if ( (FD_VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
@@ -349,8 +350,10 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
   return 0;
 }
 
-FD_FASTOP fdtype *fill_argvec(struct FD_FUNCTION *f,int n,fdtype *argvec,
-                              fdtype *argbuf,int argbuf_len)
+FD_FASTOP fdtype *fill_argvec
+(struct FD_FUNCTION *f,int n,
+ fdtype *argvec,
+ fdtype *argbuf,int argbuf_len)
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   fdtype fptr = (fdtype)f;
@@ -419,7 +422,7 @@ FD_EXPORT fdtype fd_dcall(struct FD_FUNCTION *f,int n,fdtype *args)
 FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
 {
   fdtype fnptr = (fdtype)f;
-  fdtype argbuf[8], *args;
+  fdtype argbuf[n], *args=argbuf;
   if (FD_EXPECT_FALSE(n<0))
     return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
   else if (f->fcn_arity<0) { /* Is a LEXPR */
@@ -440,17 +443,12 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
     return dcall(name,f,n,argvec);
   else if (FD_EXPECT_FALSE(argvec == NULL))
     return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
-  else args = fill_argvec(f,n,argvec,argbuf,8);
+  else args = fill_argvec(f,n,argvec,args,8);
   if (args == NULL)
     return FD_ERROR_VALUE;
   else if (check_typeinfo(f,n,args)<0)
     return FD_ERROR_VALUE;
-  else if ((args == argbuf)||(args == argvec))
-    return dcall(name,f,n,args);
-  else {
-    fdtype result = dcall(name,f,n,args);
-    u8_free(args);
-    return result;}
+  else return dcall(name,f,n,args);
 }
 
 FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
@@ -641,11 +639,9 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
     else if ((f->fcn_arity < 0) ?
              (n >= (f->fcn_min_arity)) :
              ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
-      fdtype argbuf[6], *d_args;
+      fdtype d_args[n];
       fdtype retval, results = FD_EMPTY_CHOICE;
       /* Initialize the d_args vector */
-      if (n>6) d_args = u8_alloc_n(n,fdtype);
-      else d_args = argbuf;
       if (n==1)
         return ndapply1(handler,args[0]);
       else if (n==2)
@@ -657,11 +653,8 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
       else retval = ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
       if (FD_ABORTP(retval)) {
         fd_decref(results);
-        if (d_args!=argbuf) u8_free(d_args);
         return retval;}
-      else {
-        if (d_args!=argbuf) u8_free(d_args);
-        return fd_simplify_choice(results);}}
+      else return fd_simplify_choice(results);}
     else {
       fd_exception ex = ((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
       return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}}
@@ -714,19 +707,14 @@ static int contains_qchoicep(int n,fdtype *args)
 
 static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
 {
-  fdtype result, _nargs[8], *nargs;
-  fdtype *read = args, *limit = read+n, *write;
-  if (n<=8) nargs=_nargs;
-  else nargs = u8_alloc_n(n,fdtype);
-  write = nargs;
+  fdtype argbuf[n];
+  fdtype *read = args, *limit = read+n, *write=argbuf;
   while (read<limit)
     if (FD_QCHOICEP(*read)) {
       struct FD_QCHOICE *qc = (struct FD_QCHOICE *) (*read++);
       *write++=qc->qchoiceval;}
     else *write++= *read++;
-  result = fd_dapply(fp,n,nargs);
-  if (n>8) u8_free(nargs);
-  return result;
+  return fd_dapply(fp,n,argbuf);
 }
 
 /* Tail calls */
@@ -742,7 +730,9 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     int atomic = 1, nd = 0; fdtype fcnid = f->fcnid;
     struct FD_TAILCALL *tc = (struct FD_TAILCALL *)
       u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(fdtype)*n);
-    fdtype *write = &(tc->tailcall_head), *write_limit = write+(n+1), *read = vec;
+    fdtype *write = &(tc->tailcall_head);
+    fdtype *write_limit = write+(n+1);
+    fdtype *read = vec;
     FD_INIT_FRESH_CONS(tc,fd_tailcall_type);
     tc->tailcall_arity = n+1;
     tc->tailcall_flags = 0;
@@ -763,8 +753,8 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
           if (FD_CHOICEP(v)) nd = 1;
           *write++=fd_incref(v);}}
       else *write++=v;}
-    if (atomic) tc->tailcall_flags = tc->tailcall_flags|FD_TAILCALL_ATOMIC_ARGS;
-    if (nd) tc->tailcall_flags = tc->tailcall_flags|FD_TAILCALL_ND_ARGS;
+    if (atomic) tc->tailcall_flags |= FD_TAILCALL_ATOMIC_ARGS;
+    if (nd) tc->tailcall_flags |= FD_TAILCALL_ND_ARGS;
     return FDTYPE_CONS(tc);}
 }
 FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
@@ -778,7 +768,9 @@ FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
     int atomic = 1, nd = 0;
     struct FD_TAILCALL *tc = (struct FD_TAILCALL *)
       u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(fdtype)*n);
-    fdtype *write = &(tc->tailcall_head), *write_limit = write+(n+1), *read = vec;
+    fdtype *write = &(tc->tailcall_head);
+    fdtype *write_limit = write+(n+1);
+    fdtype *read = vec;
     FD_INIT_FRESH_CONS(tc,fd_tailcall_type);
     tc->tailcall_arity = n+1;
     tc->tailcall_flags = FD_TAILCALL_VOID_VALUE;
@@ -806,10 +798,13 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
   struct FD_TAILCALL *tc=
     fd_consptr(struct FD_TAILCALL *,c,fd_tailcall_type);
   int discard = U8_BITP(tc->tailcall_flags,FD_TAILCALL_VOID_VALUE);
+  int n=tc->tailcall_arity;
+  fdtype head=tc->tailcall_head;
+  fdtype *arg0=(&(tc->tailcall_head))+1;
   fdtype result=
     ((tc->tailcall_flags&FD_TAILCALL_ND_ARGS)?
-     (fd_apply(tc->tailcall_head,tc->tailcall_arity-1,(&(tc->tailcall_head))+1)):
-     (fd_dapply(tc->tailcall_head,tc->tailcall_arity-1,(&(tc->tailcall_head))+1)));
+     (fd_apply(head,n-1,arg0)):
+     (fd_dapply(head,n-1,arg0)));
   fd_decref(c);
   if (discard) {
     if (FD_TAILCALLP(result))
@@ -826,13 +821,14 @@ FD_EXPORT fdtype _fd_finish_call(fdtype call)
     while (1) {
       struct FD_TAILCALL *tc=
         fd_consptr(struct FD_TAILCALL *,call,fd_tailcall_type);
+      int n=tc->tailcall_arity;
       int flags = tc->tailcall_flags;
+      fdtype head=tc->tailcall_head;
+      fdtype *arg0=(&(tc->tailcall_head))+1;
       int voidval = (U8_BITP(flags,FD_TAILCALL_VOID_VALUE));
-      fdtype next = ((U8_BITP(flags,FD_TAILCALL_ND_ARGS)) ?
-                   (fd_apply(tc->tailcall_head,tc->tailcall_arity-1,
-                             (&(tc->tailcall_head))+1)) :
-                   (fd_dapply(tc->tailcall_head,tc->tailcall_arity-1,
-                              (&(tc->tailcall_head))+1)));
+      fdtype next = (U8_BITP(flags,FD_TAILCALL_ND_ARGS)) ?
+        (fd_apply(head,n-1,arg0)) :
+        (fd_dapply(head,n-1,arg0));
       int finished = (!(FD_TYPEP(next,fd_tailcall_type)));
       fd_decref(call); call = next;
       if (finished) {
@@ -843,7 +839,7 @@ FD_EXPORT fdtype _fd_finish_call(fdtype call)
         break;}}
     return result;}
   else return call;
-} 
+}
 static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_TAILCALL *tc=
