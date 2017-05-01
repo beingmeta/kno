@@ -721,11 +721,8 @@ static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
       return FD_VOID;
     default:
       return FD_VOID;}}
-  else if (opcode == FD_TEST_OPCODE) {
-    int rv = fd_ftest(arg1,arg2,arg3);
-    if (rv<0) return FD_ERROR_VALUE;
-    else if (rv>0) return FD_TRUE;
-    else return FD_FALSE;}
+  else if (opcode == FD_TEST_OPCODE)
+    return fd_ftest(arg1,arg2,arg3);
   else if (opcode == FD_PRIMTEST_OPCODE) {
     int rv = fd_test(arg1,arg2,arg3);
     if (rv<0) return FD_ERROR_VALUE;
@@ -807,7 +804,8 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
       fd_lispenv parent = scan->env_parent;
       if ((parent) && (parent->env_copy))
         scan = parent->env_copy;
-      else scan = parent;}
+      else scan = parent;
+      up--;}
     if (FD_EXPECT_TRUE(scan!=NULL)) {
       fdtype bindings = scan->env_bindings;
       if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
@@ -862,10 +860,12 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
            (FD_SYMBOLP(FD_CAR(var))) &&
            (FD_TABLEP(FD_CDR(var)))) {
     fdtype table=FD_CDR(var), sym=FD_CAR(var);
-    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
+    int rv=fd_store(table,sym,value);
     fd_decref(value);
-    return FD_VOID;}
-  return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
+    if (rv<0)
+      return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
+    else return FD_VOID;}
+  return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
 }
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
