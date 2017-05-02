@@ -1,5 +1,7 @@
-if [ ! $# -eq 0 ]; then
+if [ ! $# -eq 0 ] && [ $1 != "current" ]; then
    git checkout $1;
+   shift;
+elif [ ! $# -eq 0 ] && [ $1 == "current" ]; then
    shift;
 fi;
 if test -f makefile; then
