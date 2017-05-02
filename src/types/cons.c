@@ -139,6 +139,11 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type)
   fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_SET_CONS_TYPE(ptr,type);
 }
+FD_EXPORT void _FD_SET_REFCOUNT(void *vptr,unsigned int count)
+{
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
+  FD_SET_REFCOUNT(ptr,count);
+}
 
 FD_EXPORT fdtype _fd_incref_fn(fdtype ptr)
 {

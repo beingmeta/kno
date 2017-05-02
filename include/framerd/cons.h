@@ -117,6 +117,7 @@ FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_SET_REFCOUNT(void *vptr,unsigned int count);
 
 /* Initializing CONSes */
 
@@ -135,7 +136,7 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
   memset(ptr,0,sizeof(*(ptr))); \
   ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead = (FD_STATIC_INIT(type))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
   ((fd_raw_cons)ptr)->conshead = (FD_STATIC_INIT(type))
@@ -153,13 +154,25 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
   (&(FD_CBITS(ptr)),						\
     (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
      ((type-(FD_CONS_TYPE_OFF))&0x7f)))
+#define FD_SET_REFCOUNT(ptr,count) \
+  atomic_store							\
+  (&(FD_CBITS(ptr)),						\
+    (((atomic_load(&(FD_CBITS(ptr))))&(FD_CONS_TYPE_MASK))|	\
+     (count<<7)))
 #elif FD_INLINE_REFCOUNTS
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead=\
+  ((fd_raw_cons)ptr)->conshead=				      \
     ((((fd_raw_cons)ptr)->conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#define FD_SET_REFCOUNT(ptr,count) \
+  ((fd_raw_cons)ptr)->conshead=					\
+    (((((fd_raw_cons)ptr)->conshead)&(FD_CONS_TYPE_MASK))|	\
+     (count<<7))))
 #else
-#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
+#define FD_SET_CONS_TYPE(ptr,type) \
+  _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
+#define FD_SET_REFCOUNT(ptr,type) \
+  _FD_SET_REFCOUNT((struct FD_RAW_CONS *)ptr,type)
 #endif
 
 

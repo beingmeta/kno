@@ -2855,14 +2855,16 @@ static u8_string match_index_name(u8_string spec,void *data)
 {
   if ((u8_file_existsp(spec))&&
       (fd_match4bytes(spec,data)))
-    return spec;
+    return u8_realpath(spec,NULL);
   else if (u8_has_suffix(spec,".index",1))
     return NULL;
   else {
     u8_string variation = u8_mkstring("%s.index",spec);
     if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data)))
-      return variation;
+        (fd_match4bytes(variation,data))) {
+      u8_string use_path=u8_realpath(variation,NULL);
+      u8_free(variation);
+      return use_path;}
     else {
       u8_free(variation);
       return NULL;}}
