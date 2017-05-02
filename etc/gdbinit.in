@@ -27,6 +27,13 @@ end
 define leakcheck
   set env HEAPCHECK=normal # strict|draconian
 end
+define libinfo
+  info sharedlib
+end
+define locals
+  info args
+  info locals
+end
 define xp
   print/x $arg0
 end
