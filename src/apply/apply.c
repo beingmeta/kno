@@ -351,9 +351,7 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
 }
 
 FD_FASTOP fdtype *fill_argvec
-(struct FD_FUNCTION *f,int n,
- fdtype *argvec,
- fdtype *argbuf,int argbuf_len)
+(struct FD_FUNCTION *f,int n,fdtype *argvec,fdtype *argbuf)
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   fdtype fptr = (fdtype)f;
@@ -366,19 +364,15 @@ FD_FASTOP fdtype *fill_argvec
   else if ((arity<0)||(arity == n))
     return argvec;
   else {
-    fdtype *args=
-      (arity>=argbuf_len) ?
-      (u8_alloc_n(arity,fdtype)) :
-      (argbuf);
-    int i = 0; while (i<n) { args[i]=argvec[i]; i++; }
+    int i = 0; while (i<n) { argbuf[i]=argvec[i]; i++; }
     if (f->fcn_defaults) {
       fdtype *defaults = f->fcn_defaults;
       while (i<arity) {
-        fdtype dflt = args[i]=defaults[i];
+        fdtype dflt = argbuf[i]=defaults[i];
         fd_incref(dflt);
         i++;}}
-    else while (i<arity) args[i++]=FD_VOID;
-    return args;}
+    else while (i<arity) argbuf[i++]=FD_VOID;
+    return argbuf;}
 }
 
 FD_FASTOP fdtype dcall(u8_string fname,fd_function f,int n,fdtype *args)
@@ -443,7 +437,7 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
     return dcall(name,f,n,argvec);
   else if (FD_EXPECT_FALSE(argvec == NULL))
     return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
-  else args = fill_argvec(f,n,argvec,args,8);
+  else args = fill_argvec(f,n,argvec,argbuf);
   if (args == NULL)
     return FD_ERROR_VALUE;
   else if (check_typeinfo(f,n,args)<0)
