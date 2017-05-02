@@ -258,7 +258,7 @@ FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string source,u8_string cid);
+                            u8_string id,u8_string source);
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);

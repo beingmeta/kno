@@ -844,7 +844,7 @@ static struct FD_POOL_HANDLER file_pool_handler={
 
 static u8_string match_pool_name(u8_string spec,void *data)
 {
-  if ((u8_file_existsp(spec))&&
+  if ((u8_file_existsp(spec)) &&
       (fd_match4bytes(spec,data)))
     return spec;
   else if (u8_has_suffix(spec,".pool",1))

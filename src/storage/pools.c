@@ -213,6 +213,8 @@ FD_EXPORT int fd_register_pool(fd_pool p)
   /* Set up the serial number */
   serial_no = p->pool_serialno = fd_n_pools++;
   fd_pools_by_serialno[serial_no]=p;
+  /* Make it static (as a cons) */
+  FD_SET_REFCOUNT(p,0);
 
   if (p->pool_flags&FD_POOL_ADJUNCT) {
     /* Adjunct pools don't get stored in the pool lookup table */
@@ -1424,7 +1426,7 @@ fdtype fd_changed_oids(fd_pool p)
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
                             unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
-                            u8_string source,u8_string cid)
+                            u8_string id,u8_string source)
 {
   FD_INIT_CONS(p,fd_consed_pool_type);
   p->pool_base = base; p->pool_capacity = capacity;
@@ -1440,7 +1442,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_n_adjuncts = 0;
   p->pool_handler = h;
   p->pool_source = u8_strdup(source);
-  p->poolid = u8_strdup(cid);
+  p->poolid = u8_strdup(id);
   p->pool_label = NULL;
   p->pool_prefix = NULL;
   p->pool_namefn = FD_VOID;
@@ -1725,6 +1727,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
 {
   struct FD_POOL *p = (struct FD_POOL *)c;
   struct FD_POOL_HANDLER *handler = p->pool_handler;
+  if (p->pool_serialno>=0) return;
   if (handler->recycle) handler->recycle(p);
   fd_recycle_hashtable(&(p->pool_cache));
   fd_recycle_hashtable(&(p->pool_changes));

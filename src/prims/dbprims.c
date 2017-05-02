@@ -396,6 +396,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
   else if (FD_STRINGP(path))
     return fd_err(_("BadPoolType"),"make_pool",FD_STRDATA(path),type);
   else return fd_err(_("BadPoolType"),"make_pool",NULL,type);
+  // if (p) fd_register_pool(p);
   if (p)
     return fd_pool2lisp(p);
   else return FD_ERROR_VALUE;
@@ -3350,7 +3351,7 @@ FD_EXPORT void fd_init_dbprims_c()
   readonly_symbol = fd_intern("READONLY");
 
   sparse_symbol    = fd_intern("SPARSE");
-  isadjunct_symbol    = fd_intern("ISADJUNCT");
+  isadjunct_symbol    = fd_intern("ADJUNCT");
   background_symbol = fd_intern("BACKGROUND");
 
 }
