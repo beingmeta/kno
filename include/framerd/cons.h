@@ -341,6 +341,33 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 
 #endif
 
+/* Incref/decref for vectors */
+
+FD_EXPORT int _fd_incref_elts(unsigned int n,const fdtype *elts);
+FD_EXPORT void _fd_decref_elts(unsigned int n,const fdtype *elts);
+
+#if FRAMERD_SOURCE
+FD_FASTOP U8_MAYBE_UNUSED
+int fd_incref_elts(unsigned int n,const fdtype *elts)
+{
+  int i=0, consed=0; while (i<n) {
+    fdtype elt=elts[i++];
+    if ((FD_CONSP(elt))&&(FD_MALLOCD_CONSP((fd_cons)elt))) {
+      consed++; fd_decref(elt);}}
+  return consed;
+}
+
+FD_FASTOP U8_MAYBE_UNUSED
+void fd_decref_elts(unsigned int n,const fdtype *elts)
+{
+  int i=0; while (i<n) {
+    fdtype elt=elts[i++]; fd_decref(elt);}
+}
+#else
+#define fd_incref_elts _fd_incref_elts
+#define fd_decref_elts _fd_decref_elts
+#endif
+
 /* Conses */
 
 struct FD_FREE_CONS {
