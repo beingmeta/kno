@@ -1,0 +1,9 @@
+if [ ! $# -eq 0 ]; then
+   git checkout $1;
+   shift;
+fi;
+if test -f makefile; then
+   make distclean;
+fi;
+./configure $*
+make -j
