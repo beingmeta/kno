@@ -33,6 +33,8 @@ FD_EXPORT int fd_opcodes_length;
 #define FD_TRY_OPCODE         FD_SPECIAL_OPCODE(0x0A)
 #define FD_AND_OPCODE         FD_SPECIAL_OPCODE(0x0B)
 #define FD_OR_OPCODE          FD_SPECIAL_OPCODE(0x0C)
+#define FD_APPLY_OPCODE       FD_SPECIAL_OPCODE(0x0D)
+#define FD_INLINE_OPCODE      FD_SPECIAL_OPCODE(0x0E)
 
 /* Unary primitives which handle their own non-determinism. */
 #define FD_ND1_OPCODE(x)      FD_OPCODE(0x100+x)
