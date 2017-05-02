@@ -41,12 +41,15 @@ SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
 CODENAME	= @CODENAME@
-MKSO		= $(CC) -shared $(LDFLAGS) $(LIBS)
+MKSO		= $(CC) -shared $(LDFLAGS)
+MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
+			$(LDFLAGS)
+#MKSO		= $(CC) -shared $(LDFLAGS) $(LIBS)
 #MACLIBTOOL	= libtool -dynamic -single_module $(LDFLAGS) $(LIBS)
 #MACOSX_DEPLOYMENT_TARGET=10.3
-MACLIBTOOL	= $(CC) -dynamiclib -single_module \
-			-undefined dynamic_lookup \
-			$(LDFLAGS) $(LIBS)
+#MACLIBTOOL	= $(CC) -dynamiclib -single_module \
+#			-undefined dynamic_lookup \
+#			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0

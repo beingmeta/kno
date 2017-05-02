@@ -1288,7 +1288,7 @@ if test "$with_gperftools" != "no"; then
      test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
      test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
     custom_malloc="tcmalloc";
-#    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
     memtest_env="TCMALLOC_DEBUG=5";
   else
