@@ -1288,7 +1288,7 @@ if test "$with_gperftools" != "no"; then
      test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
      test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
     custom_malloc="tcmalloc";
-    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+#    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
     memtest_env="TCMALLOC_DEBUG=5";
   else
@@ -1594,7 +1594,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/scheme/makefile DIY/makefile 
            etc/gdbinit
 	   exe/.gdbinit tests/types/.gdbinit
-	   tests/storage/.gdbinit tests/scheme/.gdbinit
+	   tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl
