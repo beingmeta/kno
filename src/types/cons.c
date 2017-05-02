@@ -155,6 +155,16 @@ FD_EXPORT void _fd_decref_fn(fdtype ptr)
   fd_decref(ptr);
 }
 
+FD_EXPORT void _fd_decref_elts(unsigned int n,const fdtype *elts)
+{
+  return fd_decref_elts(n,elts);
+}
+
+FD_EXPORT int _fd_incref_elts(unsigned int n,const fdtype *elts)
+{
+  return fd_incref_elts(n,elts);
+}
+
 FD_EXPORT
 /* fdtype_equal:
     Arguments: two dtype pointers
