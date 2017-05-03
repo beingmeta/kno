@@ -1530,6 +1530,47 @@ static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
     else return value;}
 }
 
+/* Getting info from indexes */
+
+static fd_index arg2index(fdtype arg)
+{
+  if (FD_INDEXP(arg)) return fd_lisp2index(arg);
+  else if (FD_TYPEP(arg,fd_consed_index_type))
+    return (fd_index)arg;
+  else if (FD_STRINGP(arg)) {
+    fd_index ix = fd_find_index(FD_STRDATA(arg));
+    if (ix) return ix;
+    else return NULL;}
+  else if (FD_SYMBOLP(arg)) {
+    fdtype v = fd_config_get(FD_SYMBOL_NAME(arg));
+    if (FD_STRINGP(v))
+      return fd_find_index(FD_STRDATA(v));
+    else return NULL;}
+  else return NULL;
+}
+
+static fdtype index_id(fdtype arg)
+{
+  fd_index p = arg2index(arg);
+  if (p == NULL)
+    return fd_type_error(_("index spec"),"index_id",arg);
+  else if (p->indexid)
+    return fdtype_string(p->indexid);
+  else if (p->index_source)
+    return fdtype_string(p->index_source);
+  else return FD_FALSE;
+}
+
+static fdtype index_source(fdtype arg)
+{
+  fd_index p = arg2index(arg);
+  if (p == NULL)
+    return fd_type_error(_("index spec"),"index_label",arg);
+  else if (p->index_source)
+    return fdtype_string(p->index_source);
+  else return FD_FALSE;
+}
+
 /* Index operations */
 
 static fdtype indexget(fdtype ixarg,fdtype key)
@@ -3268,6 +3309,9 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-SOURCE",index_source,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-ID",index_id,1));
 
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim

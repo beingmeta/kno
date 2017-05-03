@@ -1264,10 +1264,53 @@ FD_EXPORT fdtype fd_all_pools()
   return results;
 }
 
+/* Finding pools by various names */
+
+/* TODO: Add generic method which uses the pool matcher
+   methods to find pools or pool sources.
+*/
+
+FD_EXPORT fd_pool fd_find_pool(u8_string spec)
+{
+  fd_pool p=fd_find_pool_by_source(spec);
+  if (p) return p;
+  else if (p=fd_find_pool_by_id(spec))
+    return p;
+  /* TODO: Add generic method which uses the pool matcher
+     methods to find pools */
+  else return NULL;
+}
+FD_EXPORT u8_string fd_locate_pool(u8_string spec)
+{
+  fd_pool p=fd_find_pool_by_source(spec);
+  if (p) return u8_strdup(p->pool_source);
+  else if (p=fd_find_pool_by_id(spec))
+    return u8_strdup(p->pool_source);
+  /* TODO: Add generic method which uses the pool matcher
+     methods to find pools */
+  else return NULL;
+}
+
+static int match_pool_id(fd_pool p,u8_string id)
+{
+  return ((id)&&(p->poolid)&&
+          (strcmp(p->poolid,id)==0));
+}
+
 static int match_pool_source(fd_pool p,u8_string source)
 {
   return ((source)&&(p->pool_source)&&
           (strcmp(p->pool_source,source)==0));
+}
+
+FD_EXPORT fd_pool fd_find_pool_by_id(u8_string id)
+{
+  int i=0, n=fd_n_pools, count=0;
+  while (i<n) {
+    fd_pool p = fd_pools_by_serialno[i++];
+    if (match_pool_id(p,id))
+      return p;}
+  return NULL;
 }
 
 FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)

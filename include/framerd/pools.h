@@ -116,7 +116,7 @@
 #endif
 
 #ifndef FD_MAX_POOLS
-#define FD_MAX_POOLS (FD_N_OID_BUCKETS*2)
+#define FD_MAX_POOLS (FD_N_OID_BUCKETS*4)
 #endif
 
 FD_EXPORT fd_exception
@@ -262,10 +262,14 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
-FD_EXPORT fdtype fd_find_pools_by_source(u8_string cid);
-FD_EXPORT fd_pool fd_find_pool_by_source(u8_string cid);
+FD_EXPORT fdtype fd_find_pools_by_source(u8_string id);
+
+FD_EXPORT fd_pool fd_find_pool_by_id(u8_string id);
+FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source);
 FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix);
 
+FD_EXPORT fd_pool fd_find_pool(u8_string);
+FD_EXPORT u8_string fd_locate_pool(u8_string);
 
 /* Pools and dtype pointers */
 
