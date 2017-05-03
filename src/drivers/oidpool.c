@@ -1718,13 +1718,13 @@ FD_EXPORT void fd_init_oidpool_c()
     ("oidpool",
      &oidpool_handler,
      open_oidpool,
-     match_pool_name,
+     match_pool_file,
      (void*)U8_INT2PTR(FD_OIDPOOL_MAGIC_NUMBER));
   fd_register_pool_type
     ("damaged_oidpool",
      &oidpool_handler,
      open_oidpool,
-     match_pool_name,
+     match_pool_file,
      (void*)U8_INT2PTR(FD_OIDPOOL_TO_RECOVER));
 
 }
