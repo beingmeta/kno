@@ -29,6 +29,7 @@
 #include "eval_internals.h"
 
 #include <libu8/u8timefns.h>
+#include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
 #include <math.h>
@@ -185,7 +186,8 @@ static fd_lispenv dynamic_environment(fd_lispenv env)
 
 static fd_lispenv copy_environment(fd_lispenv env)
 {
-  fd_lispenv dynamic = ((env->env_copy) ? (env->env_copy) : (dynamic_environment(env)));
+  fd_lispenv dynamic = (env->env_copy) ? (env->env_copy) :
+    (dynamic_environment(env));
   return (fd_lispenv) fd_incref((fdtype)dynamic);
 }
 
@@ -1664,11 +1666,10 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,
 /* Remote evaluation */
 
 static fd_exception ServerUndefined=_("Server unconfigured");
-fd_ptr_type fd_stream_erver_type;
 
-FD_EXPORT fdtype fd_open_bytstrerver(u8_string server,int bufsiz)
+FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
 {
-  struct FD_STREAM_ERVER *dts = u8_alloc(struct FD_STREAM_ERVER);
+  struct FD_DTSERVER *dts = u8_alloc(struct FD_DTSERVER);
   u8_string server_addr; u8_socket socket;
   /* Start out by parsing the address */
   if ((*server)==':') {
@@ -1677,46 +1678,65 @@ FD_EXPORT fdtype fd_open_bytstrerver(u8_string server,int bufsiz)
       server_addr = u8_strdup(FD_STRDATA(server_id));
     else  {
       fd_seterr(ServerUndefined,"open_server",
-                u8_strdup(dts->fd_serverid),server_id);
+                u8_strdup(dts->dtserverid),server_id);
       u8_free(dts);
       return -1;}}
   else server_addr = u8_strdup(server);
-  dts->fd_serverid = u8_strdup(server); 
-  dts->fd_server_address = server_addr;
+  dts->dtserverid = u8_strdup(server); 
+  dts->dtserver_addr = server_addr;
   /* Then try to connect, just to see if that works */
-  socket = u8_connect_x(server,&(dts->fd_server_address));
+  socket = u8_connect_x(server,&(dts->dtserver_addr));
   if (socket<0) {
     /* If connecting fails, signal an error rather than creating
        the dtserver connection pool. */
-    u8_free(dts->fd_serverid); 
-    u8_free(dts->fd_server_address); 
+    u8_free(dts->dtserverid); 
+    u8_free(dts->dtserver_addr); 
     u8_free(dts);
-    return fd_err(fd_ConnectionFailed,"fd_open_bytstrerver",
+    return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
                   u8_strdup(server),FD_VOID);}
   /* Otherwise, close the socket */
   else close(socket);
   /* And create a connection pool */
-  dts->fd_connpool = u8_open_connpool(dts->fd_serverid,2,4,1);
+  dts->fd_connpool = u8_open_connpool(dts->dtserverid,2,4,1);
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
   if (dts->fd_connpool == NULL) {
-    u8_free(dts->fd_serverid); 
-    u8_free(dts->fd_server_address);
+    u8_free(dts->dtserverid); 
+    u8_free(dts->dtserver_addr);
     u8_free(dts);
     return FD_ERROR_VALUE;}
   /* Otherwise, returh a dtserver object */
-  FD_INIT_CONS(dts,fd_stream_erver_type);
+  FD_INIT_CONS(dts,fd_dtserver_type);
   return FDTYPE_CONS(dts);
+}
+
+static fdtype dtserverp(fdtype arg)
+{
+  if (FD_TYPEP(arg,fd_dtserver_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype dtserver_id(fdtype arg)
+{
+  struct FD_DTSERVER *dts = (struct FD_DTSERVER *) arg;
+  return fdtype_string(dts->dtserverid);
+}
+
+static fdtype dtserver_address(fdtype arg)
+{
+  struct FD_DTSERVER *dts = (struct FD_DTSERVER *) arg;
+  return fdtype_string(dts->dtserver_addr);
 }
 
 static fdtype dteval(fdtype server,fdtype expr)
 {
-  if (FD_TYPEP(server,fd_stream_erver_type))  {
-    struct FD_STREAM_ERVER *dtsrv=
-      fd_consptr(fd_stream_erver,server,fd_stream_erver_type);
+  if (FD_TYPEP(server,fd_dtserver_type))  {
+    struct FD_DTSERVER *dtsrv=
+      fd_consptr(fd_stream_erver,server,fd_dtserver_type);
     return fd_dteval(dtsrv->fd_connpool,expr);}
   else if (FD_STRINGP(server)) {
-    fdtype s = fd_open_bytstrerver(FD_STRDATA(server),-1);
+    fdtype s = fd_open_dtserver(FD_STRDATA(server),-1);
     if (FD_ABORTED(s)) return s;
     else {
       fdtype result = fd_dteval(((fd_stream_erver)s)->fd_connpool,expr);
@@ -1729,9 +1749,9 @@ static fdtype dtcall(int n,fdtype *args)
 {
   fdtype server; fdtype request = FD_EMPTY_LIST, result; int i = n-1;
   if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,FD_VOID);
-  if (FD_TYPEP(args[0],fd_stream_erver_type))
+  if (FD_TYPEP(args[0],fd_dtserver_type))
     server = fd_incref(args[0]);
-  else if (FD_STRINGP(args[0])) server = fd_open_bytstrerver(FD_STRDATA(args[0]),-1);
+  else if (FD_STRINGP(args[0])) server = fd_open_dtserver(FD_STRDATA(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
   if (FD_ABORTED(server)) return server;
   while (i>=1) {
@@ -1746,9 +1766,9 @@ static fdtype dtcall(int n,fdtype *args)
   return result;
 }
 
-static fdtype open_bytstrerver(fdtype server,fdtype bufsiz)
+static fdtype open_dtserver(fdtype server,fdtype bufsiz)
 {
-  return fd_open_bytstrerver(FD_STRDATA(server),
+  return fd_open_dtserver(FD_STRDATA(server),
                              ((FD_VOIDP(bufsiz)) ? (-1) :
                               (FD_FIX2INT(bufsiz))));
 }
@@ -2045,12 +2065,20 @@ static fdtype ffi_found_prim(fdtype name,fdtype modname)
 
 static int mtracing=0;
 
-static fdtype mtrace_prim()
+static fdtype mtrace_prim(fdtype arg)
 {
+  /* TODO: Check whether we're running under libc malloc (so mtrace
+     will do anything). */
 #if HAVE_MTRACE
   if (mtracing)
     return FD_TRUE;
   else if (getenv("MALLOC_TRACE")) {
+    mtrace();
+    mtracing=1;
+    return FD_TRUE;}
+  else if ((FD_STRINGP(arg)) &&
+           (u8_file_writablep(FD_STRDATA(arg)))) {
+    setenv("MALLOC_TRACE",FD_STRDATA(arg),1);
     mtrace();
     mtracing=1;
     return FD_TRUE;}
@@ -2226,9 +2254,20 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("DTCALL",dtcall,2));
-  fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_bytstrerver,1,
+  fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
                                             fd_string_type,FD_VOID,
                                             fd_fixnum_type,FD_VOID));
+  fd_idefn1(fd_scheme_module,"DTSERVER?",dtserverp,FD_NEEDS_1_ARG,
+            "Returns true if it's argument is a dtype server object",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"DTSERVER-ID",
+            dtserver_id,FD_NEEDS_1_ARG,
+            "Returns the ID of a dtype server (the argument used to create it)",
+            fd_dtserver_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"DTSERVER-ADDRESS",
+            dtserver_address,FD_NEEDS_1_ARG,
+            "Returns the address (host/port) of a dtype server",
+            fd_dtserver_type,FD_VOID);
 
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROBE",ffi_probe,3));
@@ -2237,8 +2276,13 @@ static void init_localfns()
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim0("MTRACE",mtrace_prim));
-  fd_idefn(fd_xscheme_module,fd_make_cprim0("MUNTRACE",muntrace_prim));
+  fd_idefn1(fd_xscheme_module,"MTRACE",mtrace_prim,FD_NEEDS_0_ARGS,
+            "Activates LIBC heap tracing to MALLOC_TRACE and "
+            "returns true if it worked. Optional argument is a "
+            "filename to set as MALLOC_TRACE",
+            -1,FD_VOID);
+  fd_idefn0(fd_xscheme_module,"MUNTRACE",muntrace_prim,
+            "Deactivates LIBC heap tracing, returns true if it did anything");
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",
