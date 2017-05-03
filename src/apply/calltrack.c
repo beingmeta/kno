@@ -30,7 +30,7 @@
 #if FD_USE_TLS
 u8_tld_key _fd_calltracking_key;
 #elif HAVE__THREAD
- __thread int fd_calltracking = 0;
+__thread int fd_calltracking = 0;
 #else
 int fd_calltracking = 0;
 #endif
