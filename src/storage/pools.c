@@ -1274,7 +1274,7 @@ FD_EXPORT fd_pool fd_find_pool(u8_string spec)
 {
   fd_pool p=fd_find_pool_by_source(spec);
   if (p) return p;
-  else if (p=fd_find_pool_by_id(spec))
+  else if ((p=fd_find_pool_by_id(spec)))
     return p;
   /* TODO: Add generic method which uses the pool matcher
      methods to find pools */
@@ -1284,7 +1284,7 @@ FD_EXPORT u8_string fd_locate_pool(u8_string spec)
 {
   fd_pool p=fd_find_pool_by_source(spec);
   if (p) return u8_strdup(p->pool_source);
-  else if (p=fd_find_pool_by_id(spec))
+  else if ((p=fd_find_pool_by_id(spec)))
     return u8_strdup(p->pool_source);
   /* TODO: Add generic method which uses the pool matcher
      methods to find pools */
