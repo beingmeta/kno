@@ -343,7 +343,8 @@ static fdtype use_index(fdtype arg,fdtype opts)
                            getdbflags(opts,FD_STORAGE_ISINDEX),
                            opts);
   else return fd_type_error(_("index spec"),"use_index",arg);
-  if (ix) return fd_index2lisp(ix);
+  if (ix)
+    return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
 
@@ -378,7 +379,8 @@ static fdtype open_index(fdtype arg,fdtype opts)
   else if (FD_TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
-  if (ix) return fd_index2lisp(ix);
+  if (ix)
+    return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
 
@@ -406,7 +408,9 @@ static fdtype open_pool(fdtype path,fdtype opts)
 {
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   fd_pool p = fd_open_pool(FD_STRDATA(path),flags,opts);
-  return (fdtype)p;
+  if (p)
+    return fd_pool2lisp(p);
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype make_index(fdtype path,fdtype opts)
