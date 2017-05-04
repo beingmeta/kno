@@ -170,7 +170,7 @@ FD_EXPORT fd_index fd_find_index(u8_string spec)
 {
   fd_index ix=fd_find_index_by_source(spec);
   if (ix) return ix;
-  else if (ix=fd_find_index_by_id(spec))
+  else if ((ix=fd_find_index_by_id(spec)))
     return ix;
   /* TODO: Add generic method which uses the index matcher
      methods to find indexes */
@@ -180,7 +180,7 @@ FD_EXPORT u8_string fd_locate_index(u8_string spec)
 {
   fd_index ix=fd_find_index_by_source(spec);
   if (ix) return u8_strdup(ix->index_source);
-  else if (ix=fd_find_index_by_id(spec))
+  else if ((ix=fd_find_index_by_id(spec)))
     return u8_strdup(ix->index_source);
   /* TODO: Add generic method which uses the index matcher
      methods to find indexes */
