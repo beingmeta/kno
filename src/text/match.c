@@ -2282,7 +2282,7 @@ static fdtype isvspace_plus_match
   fdtype match_points = FD_EMPTY_CHOICE;
   const u8_byte *scan = string+off, *limit = string+lim, *last = scan;
   u8_unichar ch = u8_sgetc(&scan);
-  while (u8_isvspace(ch)) 
+  while (u8_isvspace(ch))
     if (scan > limit) break;
     else {
       last = scan;
@@ -2303,6 +2303,49 @@ static u8_byteoff isvspace_search
   while (s < sl) {
     u8_unichar ch = string_ref(s);
     if (u8_isvspace(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s = u8_substring(s,1);}
+  return -1;
+}
+
+static fdtype isvbreak_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  const u8_byte *scan = string+off, *limit = string+lim, *last = NULL;
+  u8_unichar ch = u8_sgetc(&scan);
+  while (u8_isvspace(ch)) {
+    ch=u8_sgetc(&scan);
+    while (u8_ishspace(ch)) {
+      if (scan > limit) break;
+      else ch=u8_sgetc(&scan);}
+    if (scan > limit) break;
+    else if (!(u8_isvspace(ch))) break;
+    else last=scan;}
+  if (last==NULL)
+    return FD_EMPTY_CHOICE;
+  else if (last<=(string+off))
+    return FD_EMPTY_CHOICE;
+  else return FD_INT(last-string);
+}
+
+static u8_byteoff isvbreak_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_string s = string+off, sl = string+lim;
+  while (s < sl) {
+    u8_unichar ch = string_ref(s);
+    if (u8_isvspace(ch)) {
+      u8_string scan=s, last=scan;
+      while ((scan<sl) && (u8_ishspace(ch))) {
+        ch=u8_sgetc(&scan);
+        last=scan;}
+      if (scan>=sl)
+        return -1;
+      else if (u8_isvspace(ch))
+        return scan-string;
+      else s=scan;}
     else if (*s < 0x80) s++;
     else s = u8_substring(s,1);}
   return -1;
@@ -3875,6 +3918,7 @@ void fd_init_match_c()
   fd_add_match_operator("HSPACE+",ishspace_plus_match,ishspace_search,NULL);
   fd_add_match_operator("VSPACE",isvspace_match,isvspace_search,NULL);
   fd_add_match_operator("VSPACE+",isvspace_plus_match,isvspace_search,NULL);
+  fd_add_match_operator("VBREAK",isvbreak_match,isvbreak_search,NULL);
   fd_add_match_operator("ISALNUM",isalnum_match,isalnum_search,NULL);
   fd_add_match_operator("ISALNUM+",isalnum_plus_match,isalnum_search,NULL);
   fd_add_match_operator("ISWORD",isword_match,isword_search,NULL);
