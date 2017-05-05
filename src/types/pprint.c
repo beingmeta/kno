@@ -139,7 +139,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
   else if (FD_SLOTMAPP(x)) {
     struct FD_SLOTMAP *sm = FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
-    int slotmap_size, first_kv = 1;
+    int slotmap_size;
     int prefix_len = (prefix) ? (strlen(prefix)) : (0);
     slotmap_size = FD_XSLOTMAP_NUSED(sm);
     if (slotmap_size==0) {
