@@ -3218,8 +3218,7 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,
-                           -1,FD_TRUE));
+                           -1,FD_VOID,-1,FD_TRUE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
                            fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
