@@ -463,11 +463,37 @@ static fdtype make_regex(u8_string src_arg,u8_string opts);
 static fdtype parse_regex(U8_INPUT *in)
 {
   fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
-  u8_byte opts[16]="", *optwrite = opts; 
+  u8_byte opts[16]="", *optwrite = opts;
   int c = u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
   while (c>=0) {
     if (c=='\\') {
-      c = u8_getc(in); if (c>0) u8_putc(&src,c);}
+      c = u8_getc(in);
+      switch (c) {
+      case 'n': u8_putc(&src,'\n'); break;
+      case 't': u8_putc(&src,'\t'); break;
+      case 'r': u8_putc(&src,'\r'); break;
+      case 'a': u8_putc(&src,'\a'); break;
+      case 'f': u8_putc(&src,'\f'); break;
+      case 'b': u8_putc(&src,'\b'); break;
+      case 'v': u8_putc(&src,'\v'); break;
+      case '\\': u8_putc(&src,'\\'); break;
+      case 'u': case 'U': {
+        char buf[9];
+        int i=0, n = (c='u') ? (4) : (8);
+        while (i<n) {
+          int nc=u8_getc(in);
+          if (!(isxdigit(nc))) {
+            u8_seterr("Invalid escape in Regex","parse_regex",
+                      u8_strdup(src.u8_outbuf));
+            u8_close((u8_stream)&src);
+            return FD_ERROR_VALUE;}
+          buf[i++]=nc;}
+        buf[i]='\0';
+        u8_putc(&src,atol(buf));
+        break;}
+      default:
+        u8_putc(&src,'\\');
+        if (c>0) u8_putc(&src,c);}}
     else if (c!='/') u8_putc(&src,c);
     else {
       int mc = u8_getc(in);
