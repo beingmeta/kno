@@ -594,7 +594,7 @@ src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
-	@$(MKSO) -L./lib -L./ -o $@ $< @LIBS@ 
+	@$(MKSO) -L./lib -L./ -o $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
@@ -948,7 +948,7 @@ src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 	@$(MSG) CC "(MYSQL)" $@
 lib/framerd/mysql.so: src/cmodules/mysql.o ${MODULE_SO}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @MYSQL_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @MYSQL_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o
@@ -963,7 +963,7 @@ src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS}
 	@$(MSG) CC "(MONGODB)" $@
 lib/framerd/mongodb.so: src/cmodules/mongodb.o ${MODULE_SO}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @MONGODB_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @MONGODB_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MONGODB)" $@
 lib/framerd/mongodb.dylib: src/cmodules/mongodb.o
@@ -978,7 +978,7 @@ src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(MSG) CC "(IMAGICK)" $@
 lib/framerd/imagick.so: src/cmodules/imagick.o ${MODULE_SO}
 	$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @IMAGICK_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @IMAGICK_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o
@@ -993,7 +993,7 @@ src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.so: src/cmodules/ziptools.o ${MODULE_SO}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @LIBZIP_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @LIBZIP_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.dylib: src/cmodules/ziptools.o

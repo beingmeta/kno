@@ -454,7 +454,6 @@ FD_EXPORT void fd_init_build_info()
   config_string(FD_EXEC);
   config_string(FD_DBSERVER);
   config_string(FD_EXEC_WRAPPER);
-  config_string(FD_SANITIZE);
   config_string(FD_LOCAL_MODULE_DIR);
   config_string(FD_LOCAL_SAFE_MODULE_DIR);
   config_string(FD_INSTALLED_MODULE_DIR);

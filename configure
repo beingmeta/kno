@@ -859,16 +859,12 @@ with_touchfile
 with_apxs
 with_rpath
 with_codename
-with_sanitize
-with_duma
 with_stackcheck
 with_execwrapper
 enable_thread_debug
 with_optinclude
-with_extrasrc
-with_bootsystem
-with_systemd
 with_optlib
+with_extrasrc
 with_optdir
 with_admin_group
 with_fdaemon
@@ -878,6 +874,8 @@ with_apachelib
 with_rundir
 with_logdir
 with_bugjar
+with_duma
+with_malloc
 enable_ffi
 with_arch
 with_suffix
@@ -916,8 +914,6 @@ with_imagick
 with_mongodb
 with_leveldb
 with_fileinfo
-with_stdlib
-with_gperftools
 with_hyphenate
 enable_largefiles
 with_crypto
@@ -935,6 +931,8 @@ with_curl
 with_dns
 with_exif
 with_qrcode
+with_bootsystem
+with_systemd
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1603,15 +1601,11 @@ Optional Packages:
 --with-apxs command
 --with-rpath dir
 --with-codename for distribution
---with-sanitize=address*|memory|thread
---with-duma Build with Detect Unintended Memory Access
 --with-stackcheck Build with native stack checking
 --with-execwrapper program to use when calling exec()
 --with-optinclude Use optional include directory
---with-extrasrc Configure extra source directories for gdb
---with-bootsystem Setup boot method
---with-systemd Specify systemd install directory
 --with-optlib Use optional library directory
+--with-extrasrc Configure extra source directories for gdb
 --with-optdir Use optional header/lib
 --with-admin-group Install files with admin group and group write permissions
 --with-fdaemon The identity (user) for FramerD servers to run as
@@ -1621,6 +1615,8 @@ Optional Packages:
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --with-bugjar The default location for bugjar reports
+--with-duma Build with Detect Unintended Memory Access
+--with-malloc Use custom malloc
 --without-arch build with particular --arch flags
 --with-suffix string
   --with-extlib[=DIR]       use additional lib dir
@@ -1651,8 +1647,6 @@ Optional Packages:
 --with-mongodb Build and install MongoDB library
 --with-leveldb Build and install LevelDB library
 --without-fileinfo record fileinfo
---without-stdlib Force the use of stdlib
---without-google Use the Google perftools
 --with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
@@ -1663,6 +1657,8 @@ Optional Packages:
 --without-dns Use dns in web
 --without-exif Use libexif in fdweb
 --without-qrcode Create qrcode binary module
+--with-bootsystem Setup boot method
+--with-systemd Specify systemd install directory
 
 Some influential environment variables:
   RPMDIR      "Location for writing built RPMs"
@@ -3000,6 +2996,9 @@ leaktester_config=
 
 use_duma_lib="no"
 custom_malloc=""
+default_malloc="gperftools"
+gperftools=""
+asan=""
 static_libgcc="no"
 CODENAME="beingmeta"
 
@@ -4044,15 +4043,6 @@ else
 fi
 
 APXS=$with_apxs
-
-
-# Check whether --with-rpath was given.
-if test "${with_rpath+set}" = set; then :
-  withval=$with_rpath; rpath=$withval
-else
-  rpath=$rpath_default
-fi
-
 
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
@@ -5410,6 +5400,19 @@ fi
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 
 
+# Check whether --with-rpath was given.
+if test "${with_rpath+set}" = set; then :
+  withval=$with_rpath; rpath=$withval
+else
+  rpath=$rpath_default
+fi
+
+
+if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
+fi
+
+
 # Check whether --with-codename was given.
 if test "${with_codename+set}" = set; then :
   withval=$with_codename; with_codename=$withval
@@ -5418,76 +5421,6 @@ else
 fi
 
 CODENAME=$with_codename
-
-
-# Check whether --with-sanitize was given.
-if test "${with_sanitize+set}" = set; then :
-  withval=$with_sanitize; with_sanitize=$withval
-else
-  with_sanitize="none"
-fi
-
-
-if test "$with_sanitize" = "none"; then
-   echo -n;
-elif test "$with_sanitize" = "address" ||
-     test "$with_sanitize" = "" ||
-     test "$with_sanitize" = "yes"; then
-   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=address $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
-elif test "$with_sanitize" = "leak"; then
-   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
-elif test "$CLANG" = "none"; then
-  echo "No clang for sanitizing $with_sanitize";
-  exit;
-elif test "$with_sanitize" = "memory"; then
-   CC=$CLANG
-   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="msan-full"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-elif test "$with_sanitize" = "thread"; then
-   CC=$CLANG
-   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="msan"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-fi
-
-cat >>confdefs.h <<_ACEOF
-#define FD_SANITIZE "$with_sanitize"
-_ACEOF
-
-
-
-# Check whether --with-duma was given.
-if test "${with_duma+set}" = set; then :
-  withval=$with_duma; with_duma=$withval
-else
-  with_duma="no"
-fi
-
 
 
 ac_ext=c
@@ -6347,74 +6280,6 @@ if test -f .ipeval; then
 else enable_ipeval_default="no;
 fi
 
-if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
-  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
-  with_duma="no";
-elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
-  echo "No DUMA executable";
-  with_duma="no";
-elif test "$with_duma" != "no"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -lduma" >&5
-$as_echo_n "checking for malloc in -lduma... " >&6; }
-if ${ac_cv_lib_duma_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lduma  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_duma_malloc=yes
-else
-  ac_cv_lib_duma_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_duma_malloc" >&5
-$as_echo "$ac_cv_lib_duma_malloc" >&6; }
-if test "x$ac_cv_lib_duma_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBDUMA 1
-_ACEOF
-
-  LIBS="-lduma $LIBS"
-
-fi
-
-  for ac_header in duma.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "duma.h" "ac_cv_header_duma_h" "$ac_includes_default"
-if test "x$ac_cv_header_duma_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_DUMA_H 1
-_ACEOF
-
-fi
-
-done
-
-  test_env="DUMA_ALIGNMENT=4 $test_env";
-  custom_malloc="DUMA";
-fi
-
 # Check whether --enable-thread_debug was given.
 if test "${enable_thread_debug+set}" = set; then :
   enableval=$enable_thread_debug; enable_thread_debug=$enableval
@@ -6441,16 +6306,16 @@ if test $with_optinclude != "none"; then
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
 
-if test -d /etc/systemd; then
-  default_bootsystem="systemd";
-elif test -d /lib/systemd; then
-  default_bootsystem="systemd";
-elif test -d /etc/init; then
-  default_bootsystem="upstart";
- elif test -d /etc/init.d; then
-  default_bootsystem="sysv";
- else
-  default_bootsystem="none"
+
+# Check whether --with-optlib was given.
+if test "${with_optlib+set}" = set; then :
+  withval=$with_optlib;
+else
+  with_optlib="none"
+fi
+
+if test $with_optlib != "none"; then
+  LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 
@@ -6463,56 +6328,6 @@ fi
 
 if test $with_extrasrc != "none"; then
    extra_src=${with_extrasrc};
-fi
-
-
-# Check whether --with-bootsystem was given.
-if test "${with_bootsystem+set}" = set; then :
-  withval=$with_bootsystem;
-else
-  with_bootsystem=$default_bootsystem
-fi
-
-
-if test $with_bootsystem != "none"; then
-  BOOTSETUP="setup-$with_bootsystem"
-fi
-
-if test -d /lib/systemd/system;
-  then default_systemd_loc=/lib/systemd/system;
-elif test -d /usr/lib/systemd/system;
-  then default_systemd_loc=/usr/lib/systemd/system;
-elif test -d /etc/systemd/system;
-  then default_systemd_loc=/etc/systemd/system;
-else default_systemd_loc=/usr/lib/systemd/system;
-fi
-
-
-# Check whether --with-systemd was given.
-if test "${with_systemd+set}" = set; then :
-  withval=$with_systemd;
-else
-  with_systemd=$default_systemd_loc
-fi
-
-systemd_loc=$with_systemd
-
-if test "$prefix" != "/usr"; then
-  CFLAGS="$CFLAGS -I$prefix/include"
-  CPPFLAGS="$CPPFLAGS -I$prefix/include"
-  LDFLAGS="$LDFLAGS -L$prefix/lib"
-fi
-
-
-# Check whether --with-optlib was given.
-if test "${with_optlib+set}" = set; then :
-  withval=$with_optlib;
-else
-  with_optlib="none"
-fi
-
-if test $with_optlib != "none"; then
-  LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 
@@ -6729,6 +6544,466 @@ _ACEOF
 
 
 
+
+
+# Check whether --with-duma was given.
+if test "${with_duma+set}" = set; then :
+  withval=$with_duma; with_duma=$withval
+else
+  with_duma="no"
+fi
+
+
+if test "$with_duma" != "no"; then
+   default_malloc="libc";
+fi
+
+
+# Check whether --with-malloc was given.
+if test "${with_malloc+set}" = set; then :
+  withval=$with_malloc; with_malloc=$withval
+else
+  with_malloc=$default_malloc
+fi
+
+
+if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
+   echo error;
+   exit;
+fi
+
+if test -z "$with_malloc" || test "$with_malloc" = "libc"; then
+   echo "Using standard malloc";
+   custom_malloc="";
+elif test "$with_malloc" = "gperftools" || test "$with_malloc" = "tcmalloc"; then
+  gperftools="yes";
+  custom_malloc="tcmalloc"
+elif test "$with_malloc" = "tcmalloc"; then
+  gperftools="yes";
+  custom_malloc="tcmalloc"
+elif test "$with_malloc" = "gperftools"; then
+  gperftools="profile";
+  custom_malloc="tcmalloc"
+elif test "$with_malloc" = "tcmalloc_debug"; then
+  gperftools="debug";
+  custom_malloc="tcmalloc_debug"
+elif test "$with_malloc" = "asan"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
+   asan="yes"
+elif test "$with_malloc" = "asan_leak"; then
+   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
+   asan="leak";
+elif test "$with_malloc" = "asan_memory"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
+   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="msan-full"
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   asan="memory"
+elif test "$with_malloc" = "asan_thread"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
+   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="msan"
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   asan="thread"
+else
+   as_fn_error $? "Valid values for malloc are stdlib tcmalloc gperftools tcmalloc_debug asan asan_thread asan_memory asan_leak" "$LINENO" 5
+   exit 1;
+fi
+
+if test ! -z "$asan" && test "$CLANG" = "none"; then
+   as_fn_error $? "No clang program to use with ASAN" "$LINENO" 5
+fi;
+
+if test -z "$gperftools" || test "$gperftools" = "no"; then
+   echo -n;
+else
+  for ac_header in gperftools/profiler.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/profiler.h" "ac_cv_header_gperftools_profiler_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_profiler_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_PROFILER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/heap-profiler.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-profiler.h" "ac_cv_header_gperftools_heap_profiler_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_profiler_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_HEAP_PROFILER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/heap-checker.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/malloc_extension_c.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/malloc_extension_c.h" "ac_cv_header_gperftools_malloc_extension_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_malloc_extension_c_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H 1
+_ACEOF
+
+fi
+
+done
+
+  if test "$gperftools" = "debug"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
+if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc_debug  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_debug_malloc=yes
+else
+  ac_cv_lib_tcmalloc_debug_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC_DEBUG 1
+_ACEOF
+
+  LIBS="-ltcmalloc_debug $LIBS"
+
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
+if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lprofiler  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ProfilerStart ();
+int
+main ()
+{
+return ProfilerStart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_profiler_ProfilerStart=yes
+else
+  ac_cv_lib_profiler_ProfilerStart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
+$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
+if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPROFILER 1
+_ACEOF
+
+  LIBS="-lprofiler $LIBS"
+
+fi
+
+  elif test "$gperftools" = "profile"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
+if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lprofiler  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ProfilerStart ();
+int
+main ()
+{
+return ProfilerStart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_profiler_ProfilerStart=yes
+else
+  ac_cv_lib_profiler_ProfilerStart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
+$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
+if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPROFILER 1
+_ACEOF
+
+  LIBS="-lprofiler $LIBS"
+
+fi
+
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
+fi
+
+  fi;
+  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
+    custom_malloc="tcmalloc";
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
+    memtest_env="TCMALLOC_DEBUG=5";
+  else
+    echo "No tcmalloc available";
+    custom_malloc="";
+    gperftools="no";
+  fi;
+fi
+
+if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
+  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
+  with_duma="no";
+elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
+  echo "No DUMA executable";
+  with_duma="no";
+elif test "$with_duma" != "no"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -lduma" >&5
+$as_echo_n "checking for malloc in -lduma... " >&6; }
+if ${ac_cv_lib_duma_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lduma  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_duma_malloc=yes
+else
+  ac_cv_lib_duma_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_duma_malloc" >&5
+$as_echo "$ac_cv_lib_duma_malloc" >&6; }
+if test "x$ac_cv_lib_duma_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBDUMA 1
+_ACEOF
+
+  LIBS="-lduma $LIBS"
+
+fi
+
+  for ac_header in duma.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "duma.h" "ac_cv_header_duma_h" "$ac_includes_default"
+if test "x$ac_cv_header_duma_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DUMA_H 1
+_ACEOF
+
+fi
+
+done
+
+  test_env="DUMA_ALIGNMENT=4 $test_env";
+  custom_malloc="DUMA";
+fi
+
+if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
+  memtester="./vgmemtest "
+  leaktester="./vgleaktest "
+fi
 
 if test "${GCC}" = "yes"; then
    gcc_version=`gcc -dumpversion`;
@@ -10974,416 +11249,6 @@ if test "$with_fileinfo" = "yes" ; then
 fi
 
 
-# Check whether --with-stdlib was given.
-if test "${with_stdlib+set}" = set; then :
-  withval=$with_stdlib;
-fi
-
-if test ! -z "${with_stdlib}"; then
-   gperftools_default="no";
-fi;
-
-
-# Check whether --with-gperftools was given.
-if test "${with_gperftools+set}" = set; then :
-  withval=$with_gperftools;
-else
-  with_gperftools=${gperftools_default}
-fi
-
-if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
-  echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
-  exit;
-fi
-
-if test "$with_gperftools" != "no"; then
-  for ac_header in gperftools/profiler.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/profiler.h" "ac_cv_header_gperftools_profiler_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_profiler_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_PROFILER_H 1
-_ACEOF
-
-fi
-
-done
-
-  for ac_header in gperftools/heap-profiler.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-profiler.h" "ac_cv_header_gperftools_heap_profiler_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_heap_profiler_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_HEAP_PROFILER_H 1
-_ACEOF
-
-fi
-
-done
-
-  for ac_header in gperftools/heap-checker.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
-_ACEOF
-
-fi
-
-done
-
-  for ac_header in gperftools/malloc_extension_c.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/malloc_extension_c.h" "ac_cv_header_gperftools_malloc_extension_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_malloc_extension_c_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H 1
-_ACEOF
-
-fi
-
-done
-
-  if test "$with_gperftools" = "debug"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
-$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
-if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc_debug  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_debug_malloc=yes
-else
-  ac_cv_lib_tcmalloc_debug_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC_DEBUG 1
-_ACEOF
-
-  LIBS="-ltcmalloc_debug $LIBS"
-
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
-$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
-if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lprofiler  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ProfilerStart ();
-int
-main ()
-{
-return ProfilerStart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_profiler_ProfilerStart=yes
-else
-  ac_cv_lib_profiler_ProfilerStart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
-$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
-if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPROFILER 1
-_ACEOF
-
-  LIBS="-lprofiler $LIBS"
-
-fi
-
-  elif test "$with_gperftools" = "profile"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_and_profiler" >&5
-$as_echo_n "checking for malloc in -ltcmalloc_and_profiler... " >&6; }
-if ${ac_cv_lib_tcmalloc_and_profiler_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc_and_profiler  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_and_profiler_malloc=yes
-else
-  ac_cv_lib_tcmalloc_and_profiler_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_and_profiler_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_and_profiler_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_and_profiler_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC_AND_PROFILER 1
-_ACEOF
-
-  LIBS="-ltcmalloc_and_profiler $LIBS"
-
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
-$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
-if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lprofiler  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ProfilerStart ();
-int
-main ()
-{
-return ProfilerStart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_profiler_ProfilerStart=yes
-else
-  ac_cv_lib_profiler_ProfilerStart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
-$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
-if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPROFILER 1
-_ACEOF
-
-  LIBS="-lprofiler $LIBS"
-
-fi
-
-  elif test "$with_gperftools" = "production"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
-else
-  ac_cv_lib_tcmalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
-_ACEOF
-
-  LIBS="-ltcmalloc $LIBS"
-
-fi
-
-  else
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
-else
-  ac_cv_lib_tcmalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
-_ACEOF
-
-  LIBS="-ltcmalloc $LIBS"
-
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
-$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
-if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lprofiler  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ProfilerStart ();
-int
-main ()
-{
-return ProfilerStart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_profiler_ProfilerStart=yes
-else
-  ac_cv_lib_profiler_ProfilerStart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
-$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
-if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPROFILER 1
-_ACEOF
-
-  LIBS="-lprofiler $LIBS"
-
-fi
-
-  fi;
-  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
-     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
-     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
-    custom_malloc="tcmalloc";
-    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
-    memtest_env="TCMALLOC_DEBUG=5";
-  else
-    echo "No tcmalloc available";
-    with_gperftools="no";
-  fi
-fi
-
-if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  memtester="./vgmemtest "
-  leaktester="./vgleaktest "
-fi
-
-
 # Check whether --with-hyphenate was given.
 if test "${with_hyphenate+set}" = set; then :
   withval=$with_hyphenate;
@@ -12563,8 +12428,54 @@ fi
   INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
-if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
+if test -d /etc/systemd; then
+  default_bootsystem="systemd";
+elif test -d /lib/systemd; then
+  default_bootsystem="systemd";
+elif test -d /etc/init; then
+  default_bootsystem="upstart";
+ elif test -d /etc/init.d; then
+  default_bootsystem="sysv";
+ else
+  default_bootsystem="none"
+fi
+
+
+# Check whether --with-bootsystem was given.
+if test "${with_bootsystem+set}" = set; then :
+  withval=$with_bootsystem;
+else
+  with_bootsystem=$default_bootsystem
+fi
+
+
+if test $with_bootsystem != "none"; then
+  BOOTSETUP="setup-$with_bootsystem"
+fi
+
+if test -d /lib/systemd/system;
+  then default_systemd_loc=/lib/systemd/system;
+elif test -d /usr/lib/systemd/system;
+  then default_systemd_loc=/usr/lib/systemd/system;
+elif test -d /etc/systemd/system;
+  then default_systemd_loc=/etc/systemd/system;
+else default_systemd_loc=/usr/lib/systemd/system;
+fi
+
+
+# Check whether --with-systemd was given.
+if test "${with_systemd+set}" = set; then :
+  withval=$with_systemd;
+else
+  with_systemd=$default_systemd_loc
+fi
+
+systemd_loc=$with_systemd
+
+if test "$prefix" != "/usr"; then
+  CFLAGS="$CFLAGS -I$prefix/include"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include"
+  LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -13937,3 +13848,7 @@ else
    echo "+++ Thanks for using FramerD!";
 fi
 
+# Emacs local variables
+#  ;;;  Local variables: ***
+#  ;;;  compile-command: "autoconf; configure;" ***
+#  ;;;  End: ***

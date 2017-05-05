@@ -173,6 +173,9 @@ leaktester_config=
 
 use_duma_lib="no"
 custom_malloc=""
+default_malloc="gperftools"
+gperftools=""
+asan=""
 static_libgcc="no"
 CODENAME="beingmeta"
 
@@ -363,8 +366,6 @@ TOUCHFILE=$with_touchfile
 AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
 APXS=$with_apxs
 
-AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
-
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 AC_PROG_CC([cc gcc])
@@ -375,61 +376,14 @@ AC_PROG_RANLIB
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 
-AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
-CODENAME=$with_codename
+AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
-AC_ARG_WITH(sanitize,--with-sanitize[=address*|memory|thread],with_sanitize=$withval,with_sanitize="none")
-
-if test "$with_sanitize" = "none"; then
-   echo -n;
-elif test "$with_sanitize" = "address" ||
-     test "$with_sanitize" = "" ||
-     test "$with_sanitize" = "yes"; then
-   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=address $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
-elif test "$with_sanitize" = "leak"; then
-   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
-elif test "$CLANG" = "none"; then
-  echo "No clang for sanitizing $with_sanitize";
-  exit;
-elif test "$with_sanitize" = "memory"; then
-   CC=$CLANG
-   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="msan-full"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-elif test "$with_sanitize" = "thread"; then
-   CC=$CLANG
-   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="msan"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
 fi
 
-AC_DEFINE_UNQUOTED(FD_SANITIZE,"$with_sanitize")
-
-AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
+AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
+CODENAME=$with_codename
 
 AC_CANONICAL_HOST
 AC_PROG_CC([cc gcc])
@@ -474,19 +428,6 @@ if test -f .ipeval; then
 else enable_ipeval_default="no;
 fi
 
-if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
-  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
-  with_duma="no";
-elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
-  echo "No DUMA executable";
-  with_duma="no";
-elif test "$with_duma" != "no"; then
-  AC_CHECK_LIB(duma,malloc)
-  AC_CHECK_HEADERS(duma.h)
-  test_env="DUMA_ALIGNMENT=4 $test_env";
-  custom_malloc="DUMA";
-fi
-
 AC_ARG_ENABLE(thread_debug,--enable-thread-debug Use libu8 thread tracing and debugging,enable_thread_debug=$enableval,enable_thread_debug="no")
 
 if test "${enable_thread_debug}" != "no"; then
@@ -499,50 +440,14 @@ if test $with_optinclude != "none"; then
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
 
-if test -d /etc/systemd; then
-  default_bootsystem="systemd";
-elif test -d /lib/systemd; then
-  default_bootsystem="systemd";
-elif test -d /etc/init; then
-  default_bootsystem="upstart";
- elif test -d /etc/init.d; then
-  default_bootsystem="sysv";
- else
-  default_bootsystem="none"
+AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
+if test $with_optlib != "none"; then
+  LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 AC_ARG_WITH(extrasrc,--with-extrasrc Configure extra source directories for gdb,,with_extrasrc="none")
 if test $with_extrasrc != "none"; then
    extra_src=${with_extrasrc};
-fi
-
-AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
-
-if test $with_bootsystem != "none"; then
-  BOOTSETUP="setup-$with_bootsystem"
-fi
-
-if test -d /lib/systemd/system;
-  then default_systemd_loc=/lib/systemd/system;
-elif test -d /usr/lib/systemd/system;
-  then default_systemd_loc=/usr/lib/systemd/system;
-elif test -d /etc/systemd/system;
-  then default_systemd_loc=/etc/systemd/system;
-else default_systemd_loc=/usr/lib/systemd/system;
-fi
-
-AC_ARG_WITH(systemd,--with-systemd Specify systemd install directory,,with_systemd=$default_systemd_loc)
-systemd_loc=$with_systemd
-
-if test "$prefix" != "/usr"; then
-  CFLAGS="$CFLAGS -I$prefix/include"
-  CPPFLAGS="$CPPFLAGS -I$prefix/include"
-  LDFLAGS="$LDFLAGS -L$prefix/lib"
-fi
-
-AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
-if test $with_optlib != "none"; then
-  LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")
@@ -684,6 +589,133 @@ AC_DEFINE_UNQUOTED(FD_SERVLET_RUN_DIR,"$daemon_rundir")
 AC_DEFINE_UNQUOTED(FD_BUGJAR_ROOT,"$bugjar")
 
 AC_AIX
+
+AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
+
+if test "$with_duma" != "no"; then
+   default_malloc="libc";
+fi
+
+AC_ARG_WITH(malloc,--with-malloc Use custom malloc,with_malloc=$withval,with_malloc=$default_malloc)
+
+if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
+   echo error;
+   exit;
+fi
+
+if test -z "$with_malloc" || test "$with_malloc" = "libc"; then
+   echo "Using standard malloc";
+   custom_malloc="";
+elif test "$with_malloc" = "gperftools" || test "$with_malloc" = "tcmalloc"; then
+  gperftools="yes";
+  custom_malloc="tcmalloc"
+elif test "$with_malloc" = "tcmalloc"; then
+  gperftools="yes";
+  custom_malloc="tcmalloc"
+elif test "$with_malloc" = "gperftools"; then
+  gperftools="profile";
+  custom_malloc="tcmalloc"
+elif test "$with_malloc" = "tcmalloc_debug"; then
+  gperftools="debug";
+  custom_malloc="tcmalloc_debug"
+elif test "$with_malloc" = "asan"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
+   asan="yes"
+elif test "$with_malloc" = "asan_leak"; then
+   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
+   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
+   asan="leak";
+elif test "$with_malloc" = "asan_memory"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
+   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="msan-full"
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   asan="memory"
+elif test "$with_malloc" = "asan_thread"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
+   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="msan"
+   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
+   asan="thread"
+else
+   AC_MSG_ERROR(Valid values for malloc are stdlib tcmalloc gperftools tcmalloc_debug asan asan_thread asan_memory asan_leak)
+   exit 1;
+fi
+
+if test ! -z "$asan" && test "$CLANG" = "none"; then
+   AC_MSG_ERROR(No clang program to use with ASAN)
+fi;
+
+if test -z "$gperftools" || test "$gperftools" = "no"; then
+   echo -n;
+else
+  AC_CHECK_HEADERS(gperftools/profiler.h)
+  AC_CHECK_HEADERS(gperftools/heap-profiler.h)
+  AC_CHECK_HEADERS(gperftools/heap-checker.h)
+  AC_CHECK_HEADERS(gperftools/malloc_extension_c.h)
+  if test "$gperftools" = "debug"; then
+    AC_CHECK_LIB(tcmalloc_debug,malloc)
+    AC_CHECK_LIB(profiler,ProfilerStart)
+  elif test "$gperftools" = "profile"; then
+    AC_CHECK_LIB(tcmalloc,malloc)
+    AC_CHECK_LIB(profiler,ProfilerStart)
+  else
+    AC_CHECK_LIB(tcmalloc,malloc)
+  fi;
+  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
+     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
+    custom_malloc="tcmalloc";
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
+    memtest_env="TCMALLOC_DEBUG=5";
+  else
+    echo "No tcmalloc available";
+    custom_malloc="";
+    gperftools="no";
+  fi;
+fi
+
+if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
+  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
+  with_duma="no";
+elif test "$with_duma" != "no" && test "$DUMA" = "none"; then
+  echo "No DUMA executable";
+  with_duma="no";
+elif test "$with_duma" != "no"; then
+  AC_CHECK_LIB(duma,malloc)
+  AC_CHECK_HEADERS(duma.h)
+  test_env="DUMA_ALIGNMENT=4 $test_env";
+  custom_malloc="DUMA";
+fi
+
+if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
+  memtester="./vgmemtest "
+  leaktester="./vgleaktest "
+fi
 
 if test "${GCC}" = "yes"; then
    gcc_version=`gcc -dumpversion`;
@@ -1243,52 +1275,6 @@ if test "$with_fileinfo" = "yes" ; then
    versionsh="include/framerd/versions.h"
 fi
 
-AC_ARG_WITH(stdlib,--with[out]-stdlib Force the use of stdlib)
-if test ! -z "${with_stdlib}"; then
-   gperftools_default="no";
-fi;
-
-AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools=${gperftools_default})
-if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
-  echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
-  exit;
-fi
-
-if test "$with_gperftools" != "no"; then
-  AC_CHECK_HEADERS(gperftools/profiler.h)
-  AC_CHECK_HEADERS(gperftools/heap-profiler.h)
-  AC_CHECK_HEADERS(gperftools/heap-checker.h)
-  AC_CHECK_HEADERS(gperftools/malloc_extension_c.h)
-  if test "$with_gperftools" = "debug"; then
-    AC_CHECK_LIB(tcmalloc_debug,malloc)
-    AC_CHECK_LIB(profiler,ProfilerStart)
-  elif test "$with_gperftools" = "profile"; then
-    AC_CHECK_LIB(tcmalloc_and_profiler,malloc)
-    AC_CHECK_LIB(profiler,ProfilerStart)
-  elif test "$with_gperftools" = "production"; then
-    AC_CHECK_LIB(tcmalloc,malloc)
-  else
-    AC_CHECK_LIB(tcmalloc,malloc)
-    AC_CHECK_LIB(profiler,ProfilerStart)
-  fi;
-  if test "${ac_cv_lib_tcmalloc_malloc}" == "yes" || \
-     test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
-     test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
-    custom_malloc="tcmalloc";
-    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
-    memtest_env="TCMALLOC_DEBUG=5";
-  else
-    echo "No tcmalloc available";
-    with_gperftools="no";
-  fi
-fi
-
-if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  memtester="./vgmemtest "
-  leaktester="./vgleaktest "
-fi
-
 AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate=${with_hyphenate_default})
 if test "$with_hyphenate" = "yes"; then
   AC_CHECK_HEADERS(hyphen.h)
@@ -1556,8 +1542,40 @@ if (test "$with_qrcode" = "yes") && (test "$have_png_h" = "yes") && (test "$have
   INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
-if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
+if test -d /etc/systemd; then
+  default_bootsystem="systemd";
+elif test -d /lib/systemd; then
+  default_bootsystem="systemd";
+elif test -d /etc/init; then
+  default_bootsystem="upstart";
+ elif test -d /etc/init.d; then
+  default_bootsystem="sysv";
+ else
+  default_bootsystem="none"
+fi
+
+AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
+
+if test $with_bootsystem != "none"; then
+  BOOTSETUP="setup-$with_bootsystem"
+fi
+
+if test -d /lib/systemd/system;
+  then default_systemd_loc=/lib/systemd/system;
+elif test -d /usr/lib/systemd/system;
+  then default_systemd_loc=/usr/lib/systemd/system;
+elif test -d /etc/systemd/system;
+  then default_systemd_loc=/etc/systemd/system;
+else default_systemd_loc=/usr/lib/systemd/system;
+fi
+
+AC_ARG_WITH(systemd,--with-systemd Specify systemd install directory,,with_systemd=$default_systemd_loc)
+systemd_loc=$with_systemd
+
+if test "$prefix" != "/usr"; then
+  CFLAGS="$CFLAGS -I$prefix/include"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include"
+  LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
@@ -1612,3 +1630,7 @@ else
    echo "+++ Thanks for using FramerD!";
 fi
 
+# Emacs local variables
+#  ;;;  Local variables: ***
+#  ;;;  compile-command: "autoconf; configure;" ***
+#  ;;;  End: ***

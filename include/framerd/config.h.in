@@ -527,9 +527,6 @@
 #undef FD_EXEC_WRAPPER
 
 /* What kind of sanitization (if any) is being applied */
-#undef FD_SANITIZE
-
-/* What kind of sanitization (if any) is being applied */
 #undef FD_STACKCHECK
 
 /* Whether to enable libu8's lock debugging */

@@ -1,3 +1,9 @@
+framerd (4.0.1-4) unstable; urgency=medium
+
+  * Build with new --with-malloc= flag
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 05 May 2017 15:55:37 -0400
+
 framerd (4.0.1-3) stable; urgency=medium
 
   * Bumped release number
