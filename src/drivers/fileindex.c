@@ -1293,7 +1293,7 @@ static fd_index file_index_create(u8_string spec,void *type_data,
 }
 
 
-/* The handler struct */
+/* Initializing the driver module */
 
 static struct FD_INDEX_HANDLER file_index_handler={
   "file_index", 1, sizeof(struct FD_FILE_INDEX), 12,
@@ -1312,23 +1312,6 @@ static struct FD_INDEX_HANDLER file_index_handler={
   NULL, /* recycle */
   file_index_op  /* indexctl */
 };
-
-static u8_string match_index_name(u8_string spec,void *data)
-{
-  if ((u8_file_existsp(spec)) &&
-      (fd_match4bytes(spec,data)))
-    return spec;
-  else if (u8_has_suffix(spec,".index",1))
-    return NULL;
-  else {
-    u8_string variation = u8_mkstring("%s.index",spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data)))
-      return variation;
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
 
 FD_EXPORT void fd_init_fileindex_c()
 {

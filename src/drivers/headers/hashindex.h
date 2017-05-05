@@ -122,13 +122,6 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 #define output_bytes(out,bytes,n) \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
-
-FD_EXPORT int fd_populate_hashindex
-  (struct FD_HASHINDEX *hx,fdtype from,
-   const fdtype *keys,int n_keys, int blocksize);
-FD_EXPORT int fd_make_hashindex
-  (u8_string,int,unsigned int,unsigned int,
-   fdtype,fdtype,time_t,time_t);
 FD_EXPORT ssize_t fd_hashindex_bucket(fdtype index,fdtype key,ssize_t modulate);
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
 FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *ix);

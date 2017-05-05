@@ -842,23 +842,6 @@ static struct FD_POOL_HANDLER file_pool_handler={
 
 /* Matching pool names */
 
-static u8_string match_pool_name(u8_string spec,void *data)
-{
-  if ((u8_file_existsp(spec)) &&
-      (fd_match4bytes(spec,data)))
-    return spec;
-  else if (u8_has_suffix(spec,".pool",1))
-    return NULL;
-  else {
-    u8_string variation = u8_mkstring("%s.pool",spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data)))
-      return variation;
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
-
 /* Module (file) Initialization */
 
 FD_EXPORT void fd_init_file_pool_c()

@@ -1543,7 +1543,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
-/* Module (file) Initialization */
+/* Initializing the driver module */
 
 static struct FD_POOL_HANDLER bigpool_handler={
   "bigpool", 1, sizeof(struct FD_BIGPOOL), 12,
@@ -1563,8 +1563,6 @@ static struct FD_POOL_HANDLER bigpool_handler={
   bigpool_ctl  /* poolctl */
 };
 
-
-/* Matching pool names */
 
 FD_EXPORT void fd_init_bigpool_c()
 {
