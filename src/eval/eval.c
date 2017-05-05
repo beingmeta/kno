@@ -40,7 +40,7 @@
 #include <mcheck.h>
 #endif
 
-static volatile int fdscheme_initialized = 0;
+static volatile int scheme_initialized = 0;
 
 int fd_optimize_tail_calls = 1;
 
@@ -1137,7 +1137,7 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
 
 FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
 {
-  if (fdscheme_initialized==0) fd_init_scheme();
+  if (scheme_initialized==0) fd_init_scheme();
   if (FD_VOIDP(bindings))
     bindings = fd_make_hashtable(NULL,17);
   else fd_incref(bindings);
@@ -1145,12 +1145,12 @@ FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
 }
 FD_EXPORT fd_lispenv fd_working_environment()
 {
-  if (fdscheme_initialized==0) fd_init_scheme();
+  if (scheme_initialized==0) fd_init_scheme();
   return fd_make_env(fd_make_hashtable(NULL,17),default_env);
 }
 FD_EXPORT fd_lispenv fd_safe_working_environment()
 {
-  if (fdscheme_initialized==0) fd_init_scheme();
+  if (scheme_initialized==0) fd_init_scheme();
   return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
 }
 
@@ -1198,7 +1198,7 @@ FD_EXPORT fdtype fd_register_module(u8_string name,fdtype module,int flags)
 FD_EXPORT fdtype fd_new_module(char *name,int flags)
 {
   fdtype module_name, module, as_stored;
-  if (fdscheme_initialized==0) fd_init_scheme();
+  if (scheme_initialized==0) fd_init_scheme();
   module_name = fd_intern(name);
   module = fd_make_hashtable(NULL,0);
   fd_add(module,moduleid_symbol,module_name);
@@ -2394,9 +2394,9 @@ FD_EXPORT int fd_load_scheme()
 
 FD_EXPORT int fd_init_scheme()
 {
-  if (fdscheme_initialized) return fdscheme_initialized;
+  if (scheme_initialized) return scheme_initialized;
   else {
-    fdscheme_initialized = 401*fd_init_storage()*u8_initialize();
+    scheme_initialized = 401*fd_init_storage()*u8_initialize();
 
     fd_init_eval_c();
 
@@ -2409,7 +2409,7 @@ FD_EXPORT int fd_init_scheme()
     init_scheme_module();
     init_eval_core();
 
-    return fdscheme_initialized;}
+    return scheme_initialized;}
 }
 
 /* Emacs local variables
