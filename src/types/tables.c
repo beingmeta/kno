@@ -21,6 +21,7 @@
 #include <libu8/u8printf.h>
 
 fd_exception fd_NoSuchKey=_("No such key");
+fd_exception fd_ReadOnlyTable=_("Read-Only table");
 fd_exception fd_ReadOnlyHashtable=_("Read-Only hashtable");
 static fd_exception HashsetOverflow=_("Hashset Overflow");
 static u8_string NotATable=_("Not a table");
@@ -268,7 +269,11 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  if (sm->table_uselock) { u8_write_lock(&sm->table_rwlock); unlock=1;}
+  else if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
+    return -1;}
+  else if (sm->table_uselock) {
+    u8_write_lock(&sm->table_rwlock); unlock=1;}
   {
     int rv=0;
     int cur_nslots=FD_XSLOTMAP_NUSED(sm), nslots=cur_nslots;
@@ -303,7 +308,11 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   if (FD_EMPTY_CHOICEP(value)) return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
-  if (sm->table_uselock) { u8_write_lock(&sm->table_rwlock); unlock=1;}
+  else if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
+    return -1;}
+  else if (sm->table_uselock) {
+    u8_write_lock(&sm->table_rwlock); unlock=1;}
   {
     int cur_size=FD_XSLOTMAP_NUSED(sm), size=cur_size;
     int cur_space=FD_XSLOTMAP_NALLOCATED(sm), space=cur_space;
@@ -340,7 +349,11 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  if (sm->table_uselock) { u8_write_lock(&sm->table_rwlock); unlock=1;}
+  else if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
+    return -1;}
+  else if (sm->table_uselock) {
+    u8_write_lock(&sm->table_rwlock); unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm);
   result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
@@ -373,7 +386,11 @@ FD_EXPORT int fd_slotmap_delete(struct FD_SLOTMAP *sm,fdtype key)
 {
   struct FD_KEYVAL *result; int size, unlock=0;
   FD_CHECK_TYPE_RET(sm,fd_slotmap_type);
-  if (sm->table_uselock) { u8_write_lock(&sm->table_rwlock); unlock=1;}
+  if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
+    return -1;}
+  else if (sm->table_uselock) {
+    u8_write_lock(&sm->table_rwlock); unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm);
   result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
@@ -992,7 +1009,10 @@ FD_EXPORT int fd_schemap_store
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_write_lock_table(sm);
+  else if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_schemap_store",NULL,key);
+    return -1;}
+  else fd_write_lock_table(sm);
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
@@ -1012,10 +1032,14 @@ FD_EXPORT int fd_schemap_add
 {
   int slotno, size;
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
-  if (FD_EMPTY_CHOICEP(value)) return 0;
+  if (FD_EMPTY_CHOICEP(value))
+    return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_write_lock_table(sm);
+  else if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_schemap_add",NULL,key);
+    return -1;}
+  else fd_write_lock_table(sm);
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
@@ -1037,7 +1061,10 @@ FD_EXPORT int fd_schemap_drop
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_write_lock_table(sm);
+  else if (sm->table_readonly) {
+    fd_seterr(fd_ReadOnlyTable,"fd_schemap_drop",NULL,key);
+    return -1;}
+  else fd_write_lock_table(sm);
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
