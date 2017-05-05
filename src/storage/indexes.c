@@ -1014,7 +1014,7 @@ static void display_index(u8_output out,fd_index ix,fdtype lix)
 }
 static int unparse_index(u8_output out,fdtype x)
 {
-  fd_index ix = fd_indexptr(x); u8_string type;
+  fd_index ix = fd_indexptr(x);
   if (ix == NULL) return 0;
   display_index(out,ix,x);
   return 1;
@@ -1022,7 +1022,7 @@ static int unparse_index(u8_output out,fdtype x)
 
 static int unparse_consed_index(u8_output out,fdtype x)
 {
-  fd_index ix = (fd_index)(x); u8_string type;
+  fd_index ix = (fd_index)(x);
   if (ix == NULL) return 0;
   if (ix == NULL) return 0;
   display_index(out,ix,x);

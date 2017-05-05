@@ -1256,7 +1256,7 @@ FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data)
 FD_EXPORT fdtype fd_all_pools()
 {
   fdtype results = FD_EMPTY_CHOICE;
-  int i=0, n=fd_n_pools, count=0;
+  int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     fdtype lp = fd_pool2lisp(p);
@@ -1305,7 +1305,7 @@ static int match_pool_source(fd_pool p,u8_string source)
 
 FD_EXPORT fd_pool fd_find_pool_by_id(u8_string id)
 {
-  int i=0, n=fd_n_pools, count=0;
+  int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (match_pool_id(p,id))
@@ -1315,7 +1315,7 @@ FD_EXPORT fd_pool fd_find_pool_by_id(u8_string id)
 
 FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)
 {
-  int i=0, n=fd_n_pools, count=0;
+  int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (match_pool_source(p,source))
@@ -1326,7 +1326,7 @@ FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)
 FD_EXPORT fdtype fd_find_pools_by_source(u8_string source)
 {
   fdtype results=FD_EMPTY_CHOICE;
-  int i=0, n=fd_n_pools, count=0;
+  int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (match_pool_source(p,source)) {
@@ -1337,8 +1337,7 @@ FD_EXPORT fdtype fd_find_pools_by_source(u8_string source)
 
 FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix)
 {
-  fdtype results=FD_EMPTY_CHOICE;
-  int i=0, n=fd_n_pools, count=0;
+  int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (( (p->pool_prefix) && ((strcasecmp(prefix,p->pool_prefix)) == 0) ) ||
