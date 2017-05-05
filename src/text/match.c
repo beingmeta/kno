@@ -2267,7 +2267,7 @@ static u8_byteoff ishspace_search
 
 /* Vertical space matching */
 
-static fdtype isvspace_match
+static fdtype vspace_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
@@ -2275,7 +2275,7 @@ static fdtype isvspace_match
   if (u8_isvspace(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
-static fdtype isvspace_plus_match
+static fdtype vspace_plus_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
@@ -2295,7 +2295,7 @@ static fdtype isvspace_plus_match
     return get_longest_match(match_points);
   else return match_points;
 }
-static u8_byteoff isvspace_search
+static u8_byteoff vspace_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
@@ -2308,7 +2308,7 @@ static u8_byteoff isvspace_search
   return -1;
 }
 
-static fdtype isvbreak_match
+static fdtype vbreak_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
@@ -2329,7 +2329,7 @@ static fdtype isvbreak_match
   else return FD_INT(last-string);
 }
 
-static u8_byteoff isvbreak_search
+static u8_byteoff vbreak_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
@@ -2337,14 +2337,13 @@ static u8_byteoff isvbreak_search
   while (s < sl) {
     u8_unichar ch = string_ref(s);
     if (u8_isvspace(ch)) {
-      u8_string scan=s, last=scan;
+      u8_string scan=s; ch=u8_sgetc(&scan);
       while ((scan<sl) && (u8_ishspace(ch))) {
-        ch=u8_sgetc(&scan);
-        last=scan;}
+        ch=u8_sgetc(&scan);}
       if (scan>=sl)
         return -1;
       else if (u8_isvspace(ch))
-        return scan-string;
+        return s-string;
       else s=scan;}
     else if (*s < 0x80) s++;
     else s = u8_substring(s,1);}
@@ -3916,9 +3915,9 @@ void fd_init_match_c()
   fd_add_match_operator("SPACES*",spaces_star_match,spaces_star_search,NULL);
   fd_add_match_operator("HSPACE",ishspace_match,ishspace_search,NULL);
   fd_add_match_operator("HSPACE+",ishspace_plus_match,ishspace_search,NULL);
-  fd_add_match_operator("VSPACE",isvspace_match,isvspace_search,NULL);
-  fd_add_match_operator("VSPACE+",isvspace_plus_match,isvspace_search,NULL);
-  fd_add_match_operator("VBREAK",isvbreak_match,isvbreak_search,NULL);
+  fd_add_match_operator("VSPACE",vspace_match,vspace_search,NULL);
+  fd_add_match_operator("VSPACE+",vspace_plus_match,vspace_search,NULL);
+  fd_add_match_operator("VBREAK",vbreak_match,vbreak_search,NULL);
   fd_add_match_operator("ISALNUM",isalnum_match,isalnum_search,NULL);
   fd_add_match_operator("ISALNUM+",isalnum_plus_match,isalnum_search,NULL);
   fd_add_match_operator("ISWORD",isword_match,isword_search,NULL);

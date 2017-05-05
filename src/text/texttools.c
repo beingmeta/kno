@@ -69,15 +69,20 @@ static u8_input get_input_port(fdtype portarg)
 }
 
 /* This is for greedy matching */
-static size_t getlongmatch(fdtype matches)
+FD_FASTOP size_t getlongmatch(fdtype matches)
 {
   if (FD_EMPTY_CHOICEP(matches)) return -1;
-  else if ((FD_CHOICEP(matches)) || (FD_PRECHOICEP(matches))) {
+  else if (FD_FIXNUMP(matches))
+    return FD_FIX2INT(matches);
+  else if ((FD_CHOICEP(matches)) ||
+           (FD_PRECHOICEP(matches))) {
     u8_byteoff max = -1;
     FD_DO_CHOICES(match,matches) {
       u8_byteoff ival = fd_getint(match);
-      if (ival>max) max = ival;}
-    if (max<0) return FD_EMPTY_CHOICE;
+      if (ival>max)
+        max = ival;}
+    if (max<0)
+      return FD_EMPTY_CHOICE;
     else return max;}
   else return fd_getint(matches);
 }
@@ -816,7 +821,8 @@ static fdtype textmatcher(fdtype pattern,fdtype string,
   else {
     fdtype match_result = fd_text_matcher
       (pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (FD_ABORTP(match_result)) return match_result;
+    if (FD_ABORTP(match_result))
+      return match_result;
     else return return_offsets(FD_STRDATA(string),match_result);}
 }
 
@@ -898,13 +904,18 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
       if (FD_EMPTY_CHOICEP(match_result)) {
         start = forward_char(data,start);
         continue;}
+      else if (FD_FIXNUMP(match_result)) {
+        int pt = FD_FIX2INT(match_result);
+        if ((pt>maxpoint)&&(pt<=lim)) {
+          maxpoint = pt;}}
       else {
         FD_DO_CHOICES(match,match_result) {
           int pt = fd_getint(match);
           if ((pt>maxpoint)&&(pt<=lim)) {
-            maxpoint = pt;}}}
-      fd_decref(match_result);
-      if (maxpoint<0) return results;
+            maxpoint = pt;}}
+        fd_decref(match_result);}
+      if (maxpoint<0)
+        return results;
       else if (maxpoint>start) {
         substring = fd_substring(data+start,data+maxpoint);
         FD_ADD_TO_CHOICE(results,substring);}
@@ -947,9 +958,17 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
       fdtype match_result=
         fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end = -1;
-      {FD_DO_CHOICES(match,match_result) {
-        int point = fd_getint(match); if (point>end) end = point;}}
-      fd_decref(match_result);
+      if (FD_EMPTY_CHOICEP(match_result)) {}
+      else if (FD_FIXNUMP(match_result)) {
+        int point = FD_FIX2INT(match_result);
+        if (point>end) end = point;}
+      else if (FD_ABORTP(match_result)) {
+        fd_decref(head);
+        return match_result;}
+      else {
+        FD_DO_CHOICES(match,match_result) {
+          int point = fd_getint(match); if (point>end) end = point;}
+        fd_decref(match_result);}
       if (end<0) return head;
       else if (end>start) {
         fdtype newpair=
@@ -1107,10 +1126,16 @@ static fdtype textsubst(fdtype string,
         fdtype match_result=
           fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
         int end = -1;
-        if (FD_ABORTP(match_result)) return match_result;
-        else {FD_DO_CHOICES(match,match_result) {
-            int point = fd_getint(match); if (point>end) end = point;}}
-        fd_decref(match_result);
+        if (FD_ABORTP(match_result))
+          return match_result;
+        else if (FD_FIXNUMP(match_result)) {
+          int point = FD_FIX2INT(match_result);
+          if (point>end) end = point;}
+        else {
+          FD_DO_CHOICES(match,match_result) {
+            int point = fd_getint(match);
+            if (point>end) end = point;}
+          fd_decref(match_result);}
         if (end<0) {
           u8_puts(&out,data+last);
           return fd_stream2string(&out);}
@@ -1363,7 +1388,8 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
 {
   int off, lim;
   fdtype match_result, notstring;
-  if (FD_QCHOICEP(pattern)) pattern = (FD_XQCHOICE(pattern))->qchoiceval;
+  if (FD_QCHOICEP(pattern))
+    pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring = ((FD_STRINGP(string))?(FD_VOID):
@@ -1379,17 +1405,21 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
         return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
       match_result = fd_text_matcher(pattern,NULL,FD_STRDATA(s),off,lim,0);
       if (FD_ABORTP(match_result)) {
-        FD_STOP_DO_CHOICES; return FD_ERROR_VALUE;}
+        FD_STOP_DO_CHOICES;
+        return FD_ERROR_VALUE;}
       else if (FD_EMPTY_CHOICEP(match_result)) {}
       else {
-        FD_STOP_DO_CHOICES; return FD_TRUE;}}
+        FD_STOP_DO_CHOICES;
+        fd_decref(match_result);
+        return FD_TRUE;}}
     return FD_FALSE;}
   else {
     convert_offsets(string,start_arg,end_arg,&off,&lim);
     if ((off<0) || (lim<0))
       return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);
     match_result = fd_text_matcher(pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (FD_ABORTP(match_result)) return match_result;
+    if (FD_ABORTP(match_result))
+      return match_result;
     else if (FD_EMPTY_CHOICEP(match_result))
       return FD_FALSE;
     else {
@@ -1409,15 +1439,18 @@ static fdtype string_ends_with_test(fdtype string,fdtype pattern,
   if (start<-1) return -1;
   while (start>=0) {
     fdtype matches = fd_text_matcher(pattern,NULL,data,start,lim,0);
-    if (FD_ABORTP(matches)) return -1;
-    else if (matches == end) return 1;
+    if (FD_ABORTP(matches))
+      return -1;
+    else if (matches == end)
+      return 1;
+    else if (FD_FIXNUMP(matches)) {}
     else {
       FD_DO_CHOICES(match,matches)
         if (match == end) {
           fd_decref(matches);
           FD_STOP_DO_CHOICES;
-          return 1;}}
-    fd_decref(matches);
+          return 1;}
+      fd_decref(matches);}
     start = fd_text_search(pattern,NULL,data,start+1,lim,0);
     if (start<-1) return -1;}
   return 0;
@@ -1632,7 +1665,7 @@ static int interpret_keep_arg(fdtype keep_arg)
 static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
                         fdtype offset,fdtype limit)
 {
-  int start, len;
+  u8_byteoff start, len;
   convert_offsets(string,offset,limit,&start,&len);
   if ((start<0) || (len<0))
     return fd_err(fd_RangeError,"textslice",NULL,FD_VOID);
@@ -1647,19 +1680,23 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
     /* scan is pointing at a substring matching the sep,
        start is where we last added a string, and end is the greedy limit
        of the matched sep. */
-    int scan = fd_text_search(sep,NULL,data,start,len,0);
+    u8_byteoff scan = fd_text_search(sep,NULL,data,start,len,0);
     while ((scan>=0) && (scan<len)) {
       fdtype match_result=
         fd_text_matcher(sep,NULL,data,scan,len,0);
       fdtype sepstring = FD_VOID, substring = FD_VOID, newpair;
       int end = -1;
-      if (FD_ABORTP(match_result)) return match_result;
+      if (FD_ABORTP(match_result))
+        return match_result;
+      else if (FD_FIXNUMP(match_result)) {
+        int point = FD_FIX2INT(match_result);
+        if (point>end) end = point;}
       else {
         /* Figure out how long the sep is, taking the longest result. */
         FD_DO_CHOICES(match,match_result) {
-          int point = fd_getint(match); if (point>end) end = point;}}
-      fd_decref(match_result);
-      /* Here's what it should look like: 
+          int point = fd_getint(match); if (point>end) end = point;}
+        fd_decref(match_result);}
+      /* Here's what it should look like:
          [start] ... [scan] ... [end]
          where [start] was the beginning of the current scan,
          [scan] is where the separator starts and [end] is where the
@@ -1667,25 +1704,30 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
       /* If you're attaching separator as prefixes (keep<0),
          extract the string from start to end, otherwise,
          just attach start to scan. */
-      if (end>start)
-        if (keep<=0)
+      if ( (end > 0) && (start >= 0) && (end > start) )
+        if (keep == 0)
           substring = fd_substring(data+start,data+scan);
-        else if (keep==2) {
+        else if (keep == 2) {
           sepstring = fd_substring(data+scan,data+end);
           substring = fd_substring(data+start,data+scan);}
-        else substring = fd_substring(data+start,data+end);
+        else if (keep>0)
+          substring = fd_substring(data+start,data+end);
+        else substring = fd_substring(data+start,data+scan);
       else {}
       /* Advance to the next separator.  Use a start from the current
          separator if you're attaching separators as suffixes (keep<0), and
          a start from just past the separator if you're dropping
          separators or attaching them forward (keep>=0). */
-      if (keep<0) start = scan; else start = end;
+      if (end>=0) {
+        if (keep<0)
+          start = scan;
+        else start = end;}
       if ((end<0) || (scan == end))
         /* If the 'separator' is the empty string, start your
            search from one character past the current end.  This
            keeps match/search weirdness from leading to infinite
            loops. */
-        scan = fd_text_search(sep,NULL,data,end+1,len,0);
+        scan = fd_text_search(sep,NULL,data,scan+1,len,0);
       else scan = fd_text_search(sep,NULL,data,end,len,0);
       /* Push it onto the list. */
       if (!(FD_VOIDP(substring))) {
@@ -1806,14 +1848,17 @@ static fdtype lastword_prim(fdtype string,fdtype sep)
 static int match_end(fdtype sep,u8_string data,int off,int lim)
 {
   fdtype matches = fd_text_matcher(sep,NULL,data,off,lim,FD_MATCH_BE_GREEDY);
-  if (FD_ABORTP(matches)) return -1;
-  else if (FD_EMPTY_CHOICEP(matches)) return off+1;
+  if (FD_ABORTP(matches))
+    return -1;
+  else if (FD_EMPTY_CHOICEP(matches))
+    return off+1;
   else if (FD_UINTP(matches))
     return FD_FIX2INT(matches);
   else if (FD_FIXNUMP(matches))
     return off+1;
   else {
-    int max = off+1; FD_DO_CHOICES(match,matches) {
+    int max = off+1;
+    FD_DO_CHOICES(match,matches) {
       int matchlen = ((FD_UINTP(match))?(FD_FIX2INT(match)):(-1));
       if (matchlen>max) max = matchlen;}
     return max;}
@@ -2049,9 +2094,9 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   ssize_t buflen = in->u8_inlim-in->u8_read; int eof = 0;
   off_t start = fd_text_search(pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);
   fdtype ends = ((start>=0)?
-               (fd_text_matcher
-                (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
-               (FD_EMPTY_CHOICE));
+                 (fd_text_matcher
+                  (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
+                 (FD_EMPTY_CHOICE));
   size_t end = getlongmatch(ends);
   fd_decref(ends);
   if ((start>=0)&&(end>start)&&
@@ -2072,9 +2117,9 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
           (pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);
       if (start<0) continue;
       ends = ((start>=0)?
-            (fd_text_matcher
-             (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
-            (FD_EMPTY_CHOICE));
+              (fd_text_matcher
+               (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
+              (FD_EMPTY_CHOICE));
       new_end = getlongmatch(ends);
       if ((lim>0)&&(new_end>lim)) eof = 1;
       else end = new_end;
