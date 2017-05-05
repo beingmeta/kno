@@ -154,7 +154,7 @@ DRIVER_OBJS=\
 	src/drivers/htindex.o src/drivers/memindex.o    \
 	src/drivers/netindex.o
 
-FDDBSERV_OBJS=src/storage/dbserv.o
+DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -876,14 +876,14 @@ lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
 lib/libfddrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libfdstorage@suffix@.dylib lib/libfdtype@suffix@.dylib
 
-lib/libfddbserv@suffix@.a: $(FDDBSERV_OBJS)
-lib/libfddbserv@suffix@.so: $(FDDBSERV_OBJS) \
+lib/libfddbserv@suffix@.a: $(DBSERV_OBJS)
+lib/libfddbserv@suffix@.so: $(DBSERV_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so
-lib/libfddbserv@suffix@.dylib: $(FDDBSERV_OBJS) \
-	lib/libfdscheme@suffix@.dylib         \
-	lib/libfddrivers@suffix@.dylib         \
-	lib/libfdstorage@suffix@.dylib             \
+lib/libfddbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
+	lib/libfdscheme@suffix@.dylib         	\
+	lib/libfddrivers@suffix@.dylib		\
+	lib/libfdstorage@suffix@.dylib		\
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@

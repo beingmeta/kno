@@ -382,7 +382,7 @@ static int drivers_c_initialized = 0;
 FD_EXPORT int fd_init_drivers_c()
 {
   if (drivers_c_initialized) return drivers_c_initialized;
-  drivers_c_initialized = 307*fd_init_kblib();
+  drivers_c_initialized = 307*fd_init_storage();
 
   u8_register_source_file(_FILEINFO);
 

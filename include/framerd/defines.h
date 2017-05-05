@@ -273,7 +273,7 @@ typedef int fd_size_t;
 #endif
 
 #ifndef FD_SCHEME_BUILTINS
-#define FD_INIT_SCHEME_BUILTINS() fd_init_fdscheme()
+#define FD_INIT_SCHEME_BUILTINS() fd_init_scheme()
 #else
 #define FD_INIT_SCHEME_BUILTINS() FD_SCHEME_BUILTINS
 #endif

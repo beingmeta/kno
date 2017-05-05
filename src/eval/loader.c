@@ -581,7 +581,7 @@ FD_EXPORT void fd_init_loader_c()
   fdtype loader_module;
   if (scheme_loader_initialized) return;
   scheme_loader_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
   loader_module = fd_new_module("LOADER",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 

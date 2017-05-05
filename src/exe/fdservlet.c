@@ -75,7 +75,7 @@ static const sigset_t *server_sigmask;
 static time_t last_launch = (time_t)-1;
 static int fastfail_threshold = 15, fastfail_wait = 60;
 
-FD_EXPORT int fd_init_fddbserv(void);
+FD_EXPORT int fd_init_dbserv(void);
 
 #include "webcommon.h"
 
@@ -1876,7 +1876,7 @@ static fdtype notfoundpage()
 
 /* The main() event */
 
-FD_EXPORT int fd_init_kbdrivers(void);
+FD_EXPORT int fd_init_drivers(void);
 static int launch_servlet(u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec);
 
@@ -2013,7 +2013,7 @@ int main(int argc,char **argv)
     max_ports = 8; n_ports = 1;
     server_id = ports[0]=u8_strdup(socket_spec);}
 
-  fd_version = fd_init_fdscheme();
+  fd_version = fd_init_scheme();
 
   if (fd_version<0) {
     u8_log(LOG_WARN,ServletAbort,"Couldn't initialize FramerD");
@@ -2027,23 +2027,23 @@ int main(int argc,char **argv)
 
   /* And now we initialize FramerD */
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
-  fd_init_fdscheme();
+  fd_init_scheme();
   fd_init_schemeio();
   fd_init_texttools();
   /* May result in innocuous redundant calls */
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fddbserv();
+  fd_init_dbserv();
 #else
   FD_INIT_SCHEME_BUILTINS();
-  fd_init_fddbserv();
+  fd_init_dbserv();
 #endif
   
   /* This is the module where the data-access API lives */
-  fd_register_module("FDDBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
+  fd_register_module("DBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
 
   fd_init_fdweb();
-  fd_init_kbdrivers();
+  fd_init_drivers();
 
   init_webcommon_data();
   init_webcommon_symbols();

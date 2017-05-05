@@ -26,7 +26,7 @@
 #include <libu8/u8srvfns.h>
 
 static fd_pool primary_pool = NULL;
-static fd_pool served_pools[FDDBSERV_MAX_POOLS];
+static fd_pool served_pools[FD_DBSERV_MAX_POOLS];
 static int n_served_pools = 0;
 struct FD_COMPOUND_INDEX *primary_index = NULL;
 static int read_only = 0, locking = 1;
@@ -742,7 +742,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
-    else if (n_served_pools>=FDDBSERV_MAX_POOLS) {
+    else if (n_served_pools>=FD_DBSERV_MAX_POOLS) {
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
@@ -817,7 +817,7 @@ fdtype fd_dbserv_module;
 
 static int dbserv_init = 0;
 
-void fd_init_kbdriverserv_c()
+void fd_init_dbserv_c()
 {
   fdtype module;
 
@@ -905,15 +905,15 @@ void fd_init_kbdriverserv_c()
   fd_dbserv_module = module;
 }
 
-static int fddbserv_initialized = 0;
+static int dbserv_initialized = 0;
 
-FD_EXPORT int fd_init_fddbserv()
+FD_EXPORT int fd_init_dbserv()
 {
-  if (fddbserv_initialized) return fddbserv_initialized;
-  fddbserv_initialized = 211*fd_init_kblib();
+  if (dbserv_initialized) return dbserv_initialized;
+  dbserv_initialized = 211*fd_init_storage();
 
   u8_register_source_file(_FILEINFO);
-  fd_init_kbdriverserv_c();
+  fd_init_dbserv_c();
 
   return 1;
 }

@@ -428,8 +428,8 @@ FD_EXPORT void fd_init_streamprims_c()
 
   if (scheme_streamprims_initialized) return;
   scheme_streamprims_initialized = 1;
-  fd_init_fdscheme();
-  fd_init_kbdrivers();
+  fd_init_scheme();
+  fd_init_drivers();
   streamprims_module = fd_new_module("STREAMPRIMS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 

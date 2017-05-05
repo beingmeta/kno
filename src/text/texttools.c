@@ -2507,7 +2507,7 @@ static int texttools_init = 0;
 
 void fd_init_texttools()
 {
-  int fdscheme_version = fd_init_fdscheme();
+  int fdscheme_version = fd_init_scheme();
   if (texttools_init) return;
   u8_register_source_file(_FILEINFO);
   texttools_init = fdscheme_version;

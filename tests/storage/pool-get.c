@@ -22,7 +22,7 @@
 
 int main(int argc,char **argv)
 {
-  int fd_version = fd_init_kbdrivers();
+  int fd_version = fd_init_drivers();
   fd_pool p = ((fd_version>0)?(fd_use_pool(argv[1],0,FD_VOID)):(NULL));
   fdtype oids = FD_EMPTY_CHOICE;
   int i = 2;

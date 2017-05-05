@@ -520,7 +520,7 @@ FD_EXPORT int fd_init_odbc()
   fdtype module;
   if (odbc_initialized) return 0;
   odbc_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
 
   module = fd_new_module("ODBC",(0));
 

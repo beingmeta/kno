@@ -1265,7 +1265,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fdtype module, xhtmlout_module;
   if (cgiexec_initialized) return;
   cgiexec_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
   module = fd_new_module("FDWEB",(0));
   xhtmlout_module = fd_new_module("XHTML",FD_MODULE_SAFE);
 

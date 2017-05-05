@@ -1444,7 +1444,7 @@ FD_EXPORT void fd_init_curl_c()
   fdtype module;
   if (curl_initialized) return;
   curl_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
 
   module = fd_new_module("FDWEB",(0));
 

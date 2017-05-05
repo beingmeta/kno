@@ -131,7 +131,7 @@ FD_EXPORT void fd_init_dns_c()
   fdtype module;
   if (dns_initialized) return;
   dns_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
 
   module = fd_new_module("FDWEB",(0));
 
