@@ -174,7 +174,8 @@ static fdtype get_fcgidata(FCGX_Request *req)
     int len = atoi(lenstring);
     char *buf = u8_malloc(len);
     int read_len = FCGX_GetStr(buf,len,req->in);
-    if (len!=read_len) u8_log(LOG_CRIT,"Wrong number of bytes","In FastCGI input processing");
+    if (len!=read_len)
+      u8_log(LOG_CRIT,"Wrong number of bytes","In FastCGI input processing");
     packet = fd_init_packet(NULL,read_len,buf);
     fd_store(slotmap,post_data,packet);}
   copy_param("QUERY_STRING",req->envp,slotmap,query_string);
