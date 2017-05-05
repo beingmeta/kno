@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
