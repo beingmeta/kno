@@ -900,7 +900,7 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
       if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         n_args++;}
   fdtype results = FD_EMPTY_CHOICE;
-  fdtype argbuf[n_args], *argv=argbuf;
+  fdtype argv[n_args]; /* *argv=fd_alloca(n_args); */
   {FD_DOLIST(arg,arglist) {
       fdtype argval;
       if (FD_EXPECT_FALSE
@@ -994,7 +994,7 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
     return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
     return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
-  fdtype _argbuf[argv_length], *argv=_argbuf;
+  fdtype argv[argv_length]; /* *argv=fd_alloca(argv_length); */
   /* Now we evaluate each of the subexpressions to fill the arg vector */
   {FD_DOLIST(elt,arg_exprs) {
       if (commentp(elt)) continue;
@@ -1040,8 +1040,8 @@ static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
   fdtype result = FD_VOID;
   fdtype arg_exprs = fd_get_body(expr,1);
   int n_args = count_args(arg_exprs), arg_count = 0;
-  int gc_args = 0, aborted=0;
-  fdtype _argbuf[n_args], *argv=_argbuf;
+  int gc_args = 0;
+  fdtype argbuf[n_args]; /* fdtype *argbuf=fd_alloca(n_args); */
   {FD_DOLIST(arg,arg_exprs) {
       if (commentp(arg)) continue;
       fdtype argval = process_arg(arg,env);
@@ -1050,15 +1050,15 @@ static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
         if (gc_args) {result=argval; break;}
         else return argval;}
       else if (FD_CONSP(argval)) gc_args = 1; else {}
-      argv[arg_count++]=argval;}}
+      argbuf[arg_count++]=argval;}}
   if (FD_ABORTED(result)) {}
   else if (gc_args)
-    result = fd_apply(fn,n_args,argv);
-  else return fd_apply(fn,n_args,argv);
+    result = fd_apply(fn,n_args,argbuf);
+  else return fd_apply(fn,n_args,argbuf);
   if (FD_TROUBLEP(result))
-    push_apply_context(expr,fn,arg_count,argv);
+    push_apply_context(expr,fn,arg_count,argbuf);
   else if (gc_args) for (int i = 0; i<arg_count; i++) {
-      fdtype arg = argv[i++]; fd_decref(arg);}
+      fdtype arg = argbuf[i++]; fd_decref(arg);}
   return result;
 }
 
@@ -2100,6 +2100,21 @@ static fdtype muntrace_prim()
 #endif
 }
 
+/* Primitives for testing purposes */
+
+static fdtype list9(fdtype arg1,fdtype arg2,
+                    fdtype arg3,fdtype arg4,
+                    fdtype arg5,fdtype arg6,
+                    fdtype arg7,fdtype arg8,
+                    fdtype arg9)
+{
+  return fd_make_list(9,fd_incref(arg1),fd_incref(arg2),
+                      fd_incref(arg3),fd_incref(arg4),
+                      fd_incref(arg5),fd_incref(arg6),
+                      fd_incref(arg7),fd_incref(arg8),
+                      fd_incref(arg9));
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
@@ -2283,6 +2298,12 @@ static void init_localfns()
             -1,FD_VOID);
   fd_idefn0(fd_xscheme_module,"MUNTRACE",muntrace_prim,
             "Deactivates LIBC heap tracing, returns true if it did anything");
+
+  /* for testing */
+  fd_idefn9(fd_scheme_module,"LIST9",list9,0,"Returns a nine-element list",
+            -1,FD_FALSE,-1,FD_FALSE,-1,FD_FALSE,
+            -1,FD_FALSE,-1,FD_FALSE,-1,FD_FALSE,
+            -1,FD_FALSE,-1,FD_FALSE, -1,FD_FALSE);
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",

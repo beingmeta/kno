@@ -764,28 +764,6 @@ static fdtype sometrue_lexpr(int n,fdtype *nd_args)
   else return exists_lexpr(n,nd_args);
 }
 
-static fdtype not_exists_lexpr(int n,fdtype *nd_args)
-{
-  fdtype *d_args;
-  int i = 0; while (i<n)
-    if (FD_EMPTY_CHOICEP(nd_args[i])) return FD_FALSE;
-    else i++;
-  d_args = u8_alloc_n((n-1),fdtype);
-  {FD_DO_CHOICES(fcn,nd_args[0])
-     if (FD_APPLICABLEP(fcn)) {
-       struct FD_FUNCTION *f = (fd_function)fcn;
-       int retval = test_exists(f,0,n-1,nd_args+1,d_args);
-       if (retval<0) return FD_ERROR_VALUE;
-       else if (retval==0) {
-         u8_free(d_args);
-         return FD_TRUE;}}
-     else {
-       u8_free(d_args);
-       return fd_type_error(_("function"),"exists_lexpr",nd_args[0]);}
-  u8_free(d_args);}
-  return FD_FALSE;
-}
-
 static int test_exists(struct FD_FUNCTION *fn,int i,int n,
                        fdtype *nd_args,fdtype *d_args)
 {

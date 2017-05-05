@@ -47,7 +47,7 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   fdtype lexpr_arg = FD_EMPTY_LIST, result = FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   int n_vars = fn->sproc_n_vars;
-  fdtype vals[n_vars];
+  fdtype vals[n_vars]; /* fdtype *vals=fd_alloca(n_vars); */
   /* We're optimizing to avoid GC (and thread contention) for the
      simple case where the arguments exactly match the argument list.
      Essentially, we use the args vector as the values vector of
@@ -583,9 +583,9 @@ FD_EXPORT
 fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype))
 {
-  int i = 0;
+  int i = 0, n = fn->sproc_n_vars;
   fdtype arglist = fn->sproc_arglist, result = FD_VOID;
-  fdtype vals[fn->sproc_n_vars];
+  fdtype vals[n]; /* fdtype *vals=fd_alloca(n); */
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);

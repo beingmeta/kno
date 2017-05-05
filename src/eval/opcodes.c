@@ -787,7 +787,6 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
         if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
           fdtype *values = skimap->schema_values;
           fdtype cur     = values[across];
-          long long intval=0;
           switch (combiner) {
           case FD_VOID: case FD_FALSE:
             values[across]=value;
@@ -847,8 +846,8 @@ static fdtype bindop(fd_lispenv env,fdtype vars,fdtype inits,fdtype body)
   int i=0, n=FD_VECTOR_LENGTH(vars);
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct, *inner_env=&envstruct;
-  fdtype *exprs=FD_VECTOR_DATA(inits), scan=body;
-  fdtype *values=alloca(sizeof(fdtype)*n);
+  fdtype *exprs=FD_VECTOR_DATA(inits);
+  fdtype values[n]; /* fdtype *values=fd_alloca(n); */
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.schema_length=n;
   bindings.table_schema=FD_VECTOR_DATA(vars);

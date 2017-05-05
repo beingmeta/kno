@@ -234,7 +234,8 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
   else {
     struct FD_SCHEMAP bindings;
     struct FD_ENVIRONMENT envstruct;
-    fdtype vars[n], vals[n];
+    fdtype vars[n]; /* *vars=fd_alloca(n); */
+    fdtype vals[n]; /* *vals=fd_alloca(n); */
     fd_environment inner_env =
       init_static_env(n,env,&bindings,&envstruct,vars,vals);
     int i = 0;
@@ -261,7 +262,8 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
   else {
     struct FD_SCHEMAP bindings;
     struct FD_ENVIRONMENT envstruct;
-    fdtype vars[n], vals[n];
+    fdtype vars[n]; /* *vars=fd_alloca(n); */
+    fdtype vals[n]; /* *vals=fd_alloca(n); */
     int i = 0, j = 0;
     fd_environment inner_env=
       init_static_env(n,env,&bindings,&envstruct,vars,vals);
