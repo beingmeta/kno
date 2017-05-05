@@ -327,8 +327,123 @@ static fdtype dcall9(struct FD_FUNCTION *f,
                      fdtype arg9)
 {
   if (FD_EXPECT_FALSE(f->fcn_xcall))
-    return f->fcn_handler.xcall9(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
-  else return f->fcn_handler.call9(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
+    return f->fcn_handler.xcall9(f,arg1,arg2,arg3,
+                                 arg4,arg5,arg6,
+                                 arg7,arg8,arg9);
+  else return f->fcn_handler.call9(arg1,arg2,arg3,
+                                   arg4,arg5,arg6,
+                                   arg7,arg8,arg9);
+}
+
+static fdtype dcall10(struct FD_FUNCTION *f,
+                      fdtype arg1,fdtype arg2,fdtype arg3,
+                      fdtype arg4,fdtype arg5,fdtype arg6,
+                      fdtype arg7,fdtype arg8,fdtype arg9,
+                      fdtype arg10)
+{
+  if (FD_EXPECT_FALSE(f->fcn_xcall))
+    return f->fcn_handler.xcall10(f,arg1,arg2,arg3,
+                                  arg4,arg5,arg6,
+                                  arg7,arg8,arg9,
+                                  arg10);
+  else return f->fcn_handler.call10(arg1,arg2,arg3,
+                                    arg4,arg5,arg6,
+                                    arg7,arg8,arg9,
+                                    arg10);
+}
+
+static fdtype dcall11(struct FD_FUNCTION *f,
+                      fdtype arg1,fdtype arg2,fdtype arg3,
+                      fdtype arg4,fdtype arg5,fdtype arg6,
+                      fdtype arg7,fdtype arg8,fdtype arg9,
+                      fdtype arg10,fdtype arg11)
+{
+  if (FD_EXPECT_FALSE(f->fcn_xcall))
+    return f->fcn_handler.xcall11(f,arg1,arg2,arg3,
+                                  arg4,arg5,arg6,
+                                  arg7,arg8,arg9,
+                                  arg10,arg11);
+  else return f->fcn_handler.call11(arg1,arg2,arg3,
+                                    arg4,arg5,arg6,
+                                    arg7,arg8,arg9,
+                                    arg10,arg11);
+}
+
+static fdtype dcall12(struct FD_FUNCTION *f,
+                      fdtype arg1,fdtype arg2,fdtype arg3,
+                      fdtype arg4,fdtype arg5,fdtype arg6,
+                      fdtype arg7,fdtype arg8,fdtype arg9,
+                      fdtype arg10,fdtype arg11,fdtype arg12)
+{
+  if (FD_EXPECT_FALSE(f->fcn_xcall))
+    return f->fcn_handler.xcall12(f,arg1,arg2,arg3,
+                                  arg4,arg5,arg6,
+                                  arg7,arg8,arg9,
+                                  arg10,arg11,arg12);
+  else return f->fcn_handler.call12(arg1,arg2,arg3,
+                                    arg4,arg5,arg6,
+                                    arg7,arg8,arg9,
+                                    arg10,arg11,arg12);
+}
+
+static fdtype dcall13(struct FD_FUNCTION *f,
+                      fdtype arg1,fdtype arg2,fdtype arg3,
+                      fdtype arg4,fdtype arg5,fdtype arg6,
+                      fdtype arg7,fdtype arg8,fdtype arg9,
+                      fdtype arg10,fdtype arg11,fdtype arg12,
+                      fdtype arg13)
+{
+  if (FD_EXPECT_FALSE(f->fcn_xcall))
+    return f->fcn_handler.xcall13(f,arg1,arg2,arg3,
+                                  arg4,arg5,arg6,
+                                  arg7,arg8,arg9,
+                                  arg10,arg11,arg12,
+                                  arg13);
+  else return f->fcn_handler.call13(arg1,arg2,arg3,
+                                    arg4,arg5,arg6,
+                                    arg7,arg8,arg9,
+                                    arg10,arg11,arg12,
+                                    arg13);
+}
+
+static fdtype dcall14(struct FD_FUNCTION *f,
+                      fdtype arg1,fdtype arg2,fdtype arg3,
+                      fdtype arg4,fdtype arg5,fdtype arg6,
+                      fdtype arg7,fdtype arg8,fdtype arg9,
+                      fdtype arg10,fdtype arg11,fdtype arg12,
+                      fdtype arg13,fdtype arg14)
+{
+  if (FD_EXPECT_FALSE(f->fcn_xcall))
+    return f->fcn_handler.xcall14(f,arg1,arg2,arg3,
+                                  arg4,arg5,arg6,
+                                  arg7,arg8,arg9,
+                                  arg10,arg11,arg12,
+                                  arg13,arg14);
+  else return f->fcn_handler.call14(arg1,arg2,arg3,
+                                    arg4,arg5,arg6,
+                                    arg7,arg8,arg9,
+                                    arg10,arg11,arg12,
+                                    arg13,arg14);
+}
+
+static fdtype dcall15(struct FD_FUNCTION *f,
+                      fdtype arg1,fdtype arg2,fdtype arg3,
+                      fdtype arg4,fdtype arg5,fdtype arg6,
+                      fdtype arg7,fdtype arg8,fdtype arg9,
+                      fdtype arg10,fdtype arg11,fdtype arg12,
+                      fdtype arg13,fdtype arg14,fdtype arg15)
+{
+  if (FD_EXPECT_FALSE(f->fcn_xcall))
+    return f->fcn_handler.xcall15(f,arg1,arg2,arg3,
+                                  arg4,arg5,arg6,
+                                  arg7,arg8,arg9,
+                                  arg10,arg11,arg12,
+                                  arg13,arg14,arg15);
+  else return f->fcn_handler.call15(arg1,arg2,arg3,
+                                    arg4,arg5,arg6,
+                                    arg7,arg8,arg9,
+                                    arg10,arg11,arg12,
+                                    arg13,arg14,arg15);
 }
 
 /* Generic calling function */
@@ -350,7 +465,7 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
   return 0;
 }
 
-FD_FASTOP fdtype *fill_argvec
+FD_FASTOP fdtype *prepare_argvec
 (struct FD_FUNCTION *f,int n,fdtype *argvec,fdtype *argbuf)
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
@@ -397,6 +512,38 @@ FD_FASTOP fdtype dcall(u8_string fname,fd_function f,int n,fdtype *args)
     case 9:
       return dcall9(f,args[0],args[1],args[2],args[3],
                     args[4],args[5],args[6],args[7],args[8]);
+    case 10:
+      return dcall10(f,args[0],args[1],args[2],args[3],
+                     args[4],args[5],args[6],args[7],args[8],
+                     args[9]);
+    case 11:
+      return dcall11(f,args[0],args[1],args[2],
+                     args[3],args[4],args[5],
+                     args[6],args[7],args[8],
+                     args[9],args[10]);
+    case 12:
+      return dcall12(f,args[0],args[1],args[2],
+                     args[3],args[4],args[5],
+                     args[6],args[7],args[8],
+                     args[9],args[10],args[11]);
+    case 13:
+      return dcall13(f,args[0],args[1],args[2],
+                     args[3],args[4],args[5],
+                     args[6],args[7],args[8],
+                     args[9],args[10],args[11],
+                     args[12]);
+    case 14:
+      return dcall14(f,args[0],args[1],args[2],
+                     args[3],args[4],args[5],
+                     args[6],args[7],args[8],
+                     args[9],args[10],args[11],
+                     args[12],args[13]);
+    case 15:
+      return dcall15(f,args[0],args[1],args[2],
+                     args[3],args[4],args[5],
+                     args[6],args[7],args[8],
+                     args[9],args[10],args[11],
+                     args[12],args[13],args[14]);
     default:
       if (f->fcn_xcall)
         return f->fcn_handler.calln(n,args);
@@ -416,7 +563,6 @@ FD_EXPORT fdtype fd_dcall(struct FD_FUNCTION *f,int n,fdtype *args)
 FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
 {
   fdtype fnptr = (fdtype)f;
-  fdtype argbuf[n], *args=argbuf;
   if (FD_EXPECT_FALSE(n<0))
     return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
   else if (f->fcn_arity<0) { /* Is a LEXPR */
@@ -437,12 +583,14 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
     return dcall(name,f,n,argvec);
   else if (FD_EXPECT_FALSE(argvec == NULL))
     return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
-  else args = fill_argvec(f,n,argvec,argbuf);
-  if (args == NULL)
-    return FD_ERROR_VALUE;
-  else if (check_typeinfo(f,n,args)<0)
-    return FD_ERROR_VALUE;
-  else return dcall(name,f,n,args);
+  else {
+    int arity=f->fcn_arity;
+    fdtype argbuf[arity], *args = prepare_argvec(f,n,argvec,argbuf);
+    if (args == NULL)
+      return FD_ERROR_VALUE;
+    else if (check_typeinfo(f,n,args)<0)
+      return FD_ERROR_VALUE;
+    else return dcall(name,f,n,args);}
 }
 
 FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
@@ -633,7 +781,7 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
     else if ((f->fcn_arity < 0) ?
              (n >= (f->fcn_min_arity)) :
              ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
-      fdtype d_args[n];
+      fdtype d_args[n]; /* *d_args=fd_alloca(n); */
       fdtype retval, results = FD_EMPTY_CHOICE;
       /* Initialize the d_args vector */
       if (n==1)
@@ -701,7 +849,7 @@ static int contains_qchoicep(int n,fdtype *args)
 
 static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
 {
-  fdtype argbuf[n];
+  fdtype argbuf[n]; /* *argbuf=fd_alloca(n); */
   fdtype *read = args, *limit = read+n, *write=argbuf;
   while (read<limit)
     if (FD_QCHOICEP(*read)) {
@@ -818,11 +966,11 @@ FD_EXPORT fdtype _fd_finish_call(fdtype call)
       int n=tc->tailcall_arity;
       int flags = tc->tailcall_flags;
       fdtype head=tc->tailcall_head;
-      fdtype *arg0=(&(tc->tailcall_head))+1;
+      fdtype *args=(&(tc->tailcall_head))+1;
       int voidval = (U8_BITP(flags,FD_TAILCALL_VOID_VALUE));
       fdtype next = (U8_BITP(flags,FD_TAILCALL_ND_ARGS)) ?
-        (fd_apply(head,n-1,arg0)) :
-        (fd_dapply(head,n-1,arg0));
+        (fd_apply(head,n-1,args)) :
+        (fd_dapply(head,n-1,args));
       int finished = (!(FD_TYPEP(next,fd_tailcall_type)));
       fd_decref(call); call = next;
       if (finished) {
