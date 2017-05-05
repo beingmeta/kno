@@ -23,18 +23,22 @@
 
 /* Utility structures and definitions */
 
-#if (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
-typedef unsigned long long fdtype;
-typedef unsigned long long fd_ptrbits;
-typedef unsigned long long fd_wideint;
-#elif (SIZEOF_LONG == SIZEOF_VOID_P)
+#if (SIZEOF_LONG == SIZEOF_VOID_P)
 typedef unsigned long fdtype;
 typedef unsigned long fd_ptrbits;
 typedef unsigned long fd_wideint;
+#define FDTYPE_SIZE SIZEOF_LONG
+#elif (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
+typedef unsigned long long fdtype;
+typedef unsigned long long fd_ptrbits;
+typedef unsigned long long fd_wideint;
+#define FDTYPE_SIZE SIZEOF_LONG_LONG
+#el
 #else
 typedef unsigned int fdtype;
 typedef unsigned int fd_ptrbits;
 typedef unsigned int fd_wideint;
+#define FDTYPE_SIZE SIZEOF_INT
 #endif
 
 #if (SIZEOF_LONG == 8)
@@ -57,6 +61,9 @@ typedef unsigned char uchar;
 #include <libu8/u8ctype.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
+
+#define fd_alloc(n)  (u8_alloc_n(fdtype,(n)))
+#define fd_alloca(n) (alloca(SIZEOF_FDTYPE*(n)))
 
 /* Utility functions */
 
