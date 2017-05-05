@@ -12,14 +12,6 @@
 #define FD_INLINE_POOLS 1
 #define FD_INLINE_BUFIO 1
 
-#ifndef OIDPOOL_PREFETCH_WINDOW
-#ifdef FD_MMAP_PREFETCH_WINDOW
-#define OIDPOOL_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
-#else
-#define OIDPOOL_PREFETCH_WINDOW 0
-#endif
-#endif
-
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"

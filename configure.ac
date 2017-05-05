@@ -1025,19 +1025,6 @@ if test ! -z $with_nptrlocks; then
 fi
 
 
-dnl Specify the prefetch window for memory-mapped databases; when
-dnl  accessing a series of blocks, this indicates the number of blocks
-dnl  to prefetch ahead.  This assumes that the built-in memory prefetching
-dnl  extends to memory-mapped data on disk.
-AC_ARG_ENABLE(mmap_prefetch,--en[dis]able-mmap-prefetch Enable prefetching on access to memory mapped databases,,enable_mmap_prefetch="no")
-if test $enable_mmap_prefetch = "no"; then
-  AC_DEFINE(FD_MMAP_PREFETCH_WINDOW,0)
-elif test $enable_mmap_prefetch = "yes"; then
-  AC_DEFINE(FD_MMAP_PREFETCH_WINDOW,2)
-else
-  AC_DEFINE_UNQUOTED(FD_MMAP_PREFETCH_WINDOW,$enable_mmap_prefetch)
-fi
-
 dnl Use the editline library from fdconsole
 AC_ARG_WITH(editline,--with[out]-editline Use the editline with fdconsole,,with_editline="yes")
 if test "$with_editline" = "yes"; then

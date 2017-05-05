@@ -54,10 +54,6 @@
 #define FD_GLOBAL_IPEVAL 0
 #endif
 
-#ifndef FD_MMAP_PREFETCH_WINDOW
-#define FD_MMAP_PREFETCH_WINDOW 0
-#endif
-
 #ifndef FD_USE_DTBLOCK
 #define FD_USE_DTBLOCK 0
 #endif

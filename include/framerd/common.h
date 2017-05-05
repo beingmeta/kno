@@ -27,18 +27,18 @@
 typedef unsigned long fdtype;
 typedef unsigned long fd_ptrbits;
 typedef unsigned long fd_wideint;
-#define FDTYPE_SIZE SIZEOF_LONG
+#define SIZEOF_FDTYPE SIZEOF_LONG
 #elif (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
 typedef unsigned long long fdtype;
 typedef unsigned long long fd_ptrbits;
 typedef unsigned long long fd_wideint;
-#define FDTYPE_SIZE SIZEOF_LONG_LONG
+#define SIZEOF_FDTYPE SIZEOF_LONG_LONG
 #el
 #else
 typedef unsigned int fdtype;
 typedef unsigned int fd_ptrbits;
 typedef unsigned int fd_wideint;
-#define FDTYPE_SIZE SIZEOF_INT
+#define SIZEOF_FDTYPE SIZEOF_INT
 #endif
 
 #if (SIZEOF_LONG == 8)
