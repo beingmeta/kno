@@ -2284,6 +2284,9 @@ static void init_localfns()
             "Returns the address (host/port) of a dtype server",
             fd_dtserver_type,FD_VOID);
 
+  fd_idefn0(fd_scheme_module,"%BUILDINFO",fd_get_build_info,
+            "Information about the build and startup environment");
+
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROBE",ffi_probe,3));
   fd_idefn(fd_xscheme_module,

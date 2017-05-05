@@ -82,7 +82,7 @@ DTYPE_HEADERS=\
  include/framerd/ffi.h                               \
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
-DB_HEADERS=\
+STORAGE_HEADERS=\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
  include/framerd/pools.h			\
@@ -120,7 +120,9 @@ DTYPE_OBJS=\
 	src/types/recycle.o src/types/copy.o 			\
 	src/types/misctypes.o src/types/numbers.o		\
 	src/types/compare.o src/types/walk.o			\
-	src/apply/apply.o src/apply/cprims.o src/apply/ffi.o	\
+	src/types/buildinfo.o					\
+	src/apply/apply.o src/apply/cprims.o 			\
+	src/apply/ffi.o						\
 	@calltracko@						\
 	src/types/tables.o src/types/bloom.o			\
 	src/types/sequences.o src/types/choices.o 		\
@@ -340,7 +342,8 @@ CLEANDIRS=include/framerd src/drivers/headers 		\
 	etc
 
 FRAMERD_HEADERS= \
-       $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) $(DRIVER_H) $(SRC_HEADERS)
+	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
+	$(DRIVER_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
 	src/types/cons.c src/types/oids.c src/types/symbols.c           	\
@@ -349,7 +352,7 @@ FRAMERD_SOURCES=\
 	src/types/choices.c src/types/sequences.c				\
 	src/types/tables.c src/types/bloom.c				\
         src/types/bufio.c src/types/dtread.c src/types/dtread.c 		\
-	src/types/parse.c src/types/unparse.c 				\
+	src/types/parse.c src/types/unparse.c src/types/buildinfo.c \
 	src/types/libfdtype.c src/types/support.c src/types/config.c	\
 	src/types/err.c src/types/logging.c src/types/getopt.c		\
 	src/types/startup.c src/types/fluid.c				\
@@ -843,7 +846,7 @@ pull:
 # Custom dependencies
 
 src/eval/eval.o src/eval/opcodes.c: src/eval/eval_internals.h \
-	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
+	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS)
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
@@ -1287,7 +1290,7 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
+		   $(DTYPE_HEADERS) $(STORAGE_HEADERS)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
@@ -1636,13 +1639,13 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
-$(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
-$(DRIVER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
+$(DB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
+$(DRIVER_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(SCHEME_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
+$(FDWEB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
+$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
 $(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
