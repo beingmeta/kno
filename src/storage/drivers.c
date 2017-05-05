@@ -47,6 +47,9 @@ fd_exception fd_FileIndexSizeOverflow=_("file index overflowed file size");
 int fd_acid_files = 1;
 size_t fd_driver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
 
+static fd_pool_typeinfo default_pool_type = NULL;
+static fd_index_typeinfo default_index_type = NULL;
+
 #define CHECK_ERRNO U8_CLEAR_ERRNO
 
 /* Matching word prefixes */
@@ -128,11 +131,22 @@ FD_EXPORT void fd_register_pool_type
 static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 {
   struct FD_POOL_TYPEINFO *ptype = pool_typeinfo;
-  while (ptype) {
+  if (name == NULL)
+    return default_pool_type;
+  else while (ptype) {
     if (strcasecmp(name,ptype->pool_typename)==0)
       return ptype;
     else ptype = ptype->next_type;}
   return NULL;
+}
+
+FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
+{
+  fd_pool_typeinfo info = (id) ?  (get_pool_typeinfo(id)) :
+    (default_pool_type);
+  if (info)
+    default_pool_type = info;
+  return info;
 }
 
 FD_EXPORT
@@ -252,12 +266,24 @@ FD_EXPORT void fd_register_index_type
 static fd_index_typeinfo get_index_typeinfo(u8_string name)
 {
   struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
-  while (ixtype) {
+  if (name == NULL)
+    return default_index_type;
+  else while (ixtype) {
     if (strcasecmp(name,ixtype->index_typename)==0)
       return ixtype;
     else ixtype = ixtype->next_type;}
   return NULL;
 }
+
+FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
+{
+  fd_index_typeinfo info = (id) ? (get_index_typeinfo(id)) :
+    (default_index_type);
+  if (info)
+    default_index_type=info;
+  return info;
+}
+
 
 FD_EXPORT
 fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)

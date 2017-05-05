@@ -1577,6 +1577,8 @@ FD_EXPORT void fd_init_bigpool_c()
      match_pool_file,
      (void*)U8_INT2PTR(FD_BIGPOOL_MAGIC_NUMBER));
 
+  fd_set_default_pool_type("bigpool");
+
 }
 
 

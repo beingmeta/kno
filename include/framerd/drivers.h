@@ -58,6 +58,8 @@ void fd_register_pool_type
  u8_string (*matcher)(u8_string path,void *),
  void *type_data);
 
+FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string name);
+
 FD_EXPORT fd_pool_handler fd_get_pool_handler(u8_string name);
 
 FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
@@ -89,6 +91,8 @@ void fd_register_index_type
  u8_string (*matcher)(u8_string spec,
 		      void *),
  void *type_data);
+
+FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string name);
 
 FD_EXPORT fd_index_handler fd_get_index_handler(u8_string name);
 

@@ -2889,6 +2889,8 @@ FD_EXPORT void fd_init_hashindex_c()
      open_hashindex,
      match_index_file,
      (void *)(U8_INT2PTR(FD_HASHINDEX_TO_RECOVER)));
+
+  fd_set_default_index_type("bigpool");
 }
 
 /* TODO:

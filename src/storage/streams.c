@@ -410,12 +410,13 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
       fsync(s->stream_fileno);}}
   else {}
 
-  if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
-      (!(flags&FD_STREAM_NOCLOSE))) {
-    if (s->stream_flags&FD_STREAM_SOCKET)
-      shutdown(s->stream_fileno,SHUT_RDWR);
-    close(s->stream_fileno);}
-  s->stream_fileno = -1;
+  if (s->stream_fileno>=0) {
+    if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
+        (!(flags&FD_STREAM_NOCLOSE))) {
+      if (s->stream_flags&FD_STREAM_SOCKET)
+        shutdown(s->stream_fileno,SHUT_RDWR);
+      close(s->stream_fileno);}
+    s->stream_fileno = -1;}
 
   if (dofree) {
     struct FD_RAWBUF *buf = &(s->buf.raw);

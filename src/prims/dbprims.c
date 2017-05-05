@@ -390,7 +390,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   if (FD_VOIDP(type))
-    return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
+    p = fd_make_pool(FD_STRDATA(path),NULL,flags,opts);
   else if (FD_SYMBOLP(type))
     p = fd_make_pool(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
@@ -398,7 +398,6 @@ static fdtype make_pool(fdtype path,fdtype opts)
   else if (FD_STRINGP(path))
     return fd_err(_("BadPoolType"),"make_pool",FD_STRDATA(path),type);
   else return fd_err(_("BadPoolType"),"make_pool",NULL,type);
-  // if (p) fd_register_pool(p);
   if (p)
     return fd_pool2lisp(p);
   else return FD_ERROR_VALUE;
@@ -419,7 +418,7 @@ static fdtype make_index(fdtype path,fdtype opts)
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   if (FD_VOIDP(type))
-    return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
+    ix = fd_make_index(FD_STRDATA(path),NULL,flags,opts);
   else if (FD_SYMBOLP(type))
     ix = fd_make_index(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
