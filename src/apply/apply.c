@@ -11,6 +11,7 @@
 
 #define FD_INLINE_FCNIDS 1
 #define FD_INLINE_STACKS 1
+#define FD_INLINE_APPLY  1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -213,11 +214,11 @@ static int init_thread_stack_limit()
 /* Call stack (not used yet) */
 
 #if (U8_USE_TLS)
-u8_tld_key fd_call_stack_key;
+u8_tld_key fd_stackptr_key;
 #elif (U8_USE__THREAD)
-__thread struct FD_STACK *fd_call_stack = NULL;
+__thread struct FD_STACK *fd_stackptr = NULL;
 #else
-struct FD_STACK *fd_call_stack = NULL;
+struct FD_STACK *fd_stackptr = NULL;
 #endif
 
 FD_EXPORT struct FD_STACK *
@@ -555,19 +556,15 @@ FD_FASTOP fdtype dcall(u8_string fname,fd_function f,int n,fdtype *args)
     else return fd_type_error("applicable","dcall",(fdtype)f);}
 }
 
-FD_EXPORT fdtype fd_dcall(struct FD_FUNCTION *f,int n,fdtype *args)
-{
-  return dcall(f->fcn_name,f,n,args);
-}
-
-FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
+FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,u8_string name,
+                           fd_function f,int n,fdtype *argvec)
 {
   fdtype fnptr = (fdtype)f;
   if (FD_EXPECT_FALSE(n<0))
     return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
   else if (f->fcn_arity<0) { /* Is a LEXPR */
     if (n<(f->fcn_min_arity))
-      return fd_err(fd_TooFewArgs,"fd_dapply",f->fcn_name,fnptr);
+      return fd_err(fd_TooFewArgs,"apply_fcn",f->fcn_name,fnptr);
     else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
       return f->fcn_handler.xcalln(f,n,argvec);
     else if (f->fcn_handler.calln)
@@ -583,6 +580,13 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
     return dcall(name,f,n,argvec);
   else if (FD_EXPECT_FALSE(argvec == NULL))
     return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
+  else if (stack) {
+    fdtype *args = prepare_argvec(f,n,argvec,stack->stack_argbuf);
+    if (args == NULL)
+      return FD_ERROR_VALUE;
+    else if (check_typeinfo(f,n,args)<0)
+      return FD_ERROR_VALUE;
+    else return dcall(name,f,n,args);}
   else {
     int arity=f->fcn_arity;
     fdtype argbuf[arity], *args = prepare_argvec(f,n,argvec,argbuf);
@@ -593,59 +597,7 @@ FD_FASTOP fdtype apply_fcn(u8_string name,fd_function f,int n,fdtype *argvec)
     else return dcall(name,f,n,args);}
 }
 
-FD_EXPORT fdtype fd_deterministic_apply(fdtype fn,int n,fdtype *argvec)
-{
-  u8_byte namebuf[60];
-  u8_string fname = NULL;
-  fd_ptr_type ftype = FD_PRIM_TYPE(fn);
-  struct FD_FUNCTION *f = NULL;
-  int wrap = fd_wrap_apply;
-
-  if (ftype == fd_fcnid_type) {
-    fn = fd_fcnid_ref(fn);
-    ftype = FD_PTR_TYPE(fn);}
-
-  if (fd_functionp[ftype]) {
-    f = (struct FD_FUNCTION *)fn;
-    if (f->fcn_wrap_calls) wrap = 1;
-    if (f->fcn_name) fname = f->fcn_name;}
-  else if (fd_applyfns[ftype]) {
-    sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
-    fname = namebuf;}
-  else return fd_type_error("applicable","fd_determinstic_apply",fn);
-
-  /* Make the call */
-  if (stackcheck()) {
-    fdtype result = FD_VOID;
-    if (wrap) {
-      U8_WITH_CONTOUR(fname,0)
-        if (f) result = apply_fcn(fname,f,n,argvec);
-        else result = fd_applyfns[ftype](fn,n,argvec);
-      U8_ON_EXCEPTION {
-        U8_CLEAR_CONTOUR();
-        result = FD_ERROR_VALUE;}
-      U8_END_EXCEPTION;}
-    else if (f)
-      result = apply_fcn(fname,f,n,argvec);
-    else result = fd_applyfns[ftype](fn,n,argvec);
-    if ((errno)&&(!(FD_TROUBLEP(result)))) {
-      u8_string cond = u8_strerror(errno);
-      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
-             errno,cond,U8ALT(fname,"primcall"));
-      errno = 0;}
-    if ( (FD_TROUBLEP(result)) &&  (u8_current_exception == NULL) ) {
-      if (errno) u8_graberrno("fd_apply",fname);
-      else fd_seterr(fd_UnknownError,"fd_apply",fname,FD_VOID);}
-    if (FD_EXPECT_TRUE(FD_CHECK_PTR(result)))
-      return result;
-    else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
-  else {
-    u8_string limit = u8_mkstring("%lld",fd_stack_limit);
-    fdtype depth = FD_INT2DTYPE(u8_stack_depth());
-    return fd_err(fd_StackOverflow,fname,limit,depth);}
-}
-
-FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *argvec)
+FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,fdtype fn,int n,fdtype *argvec)
 {
   u8_byte namebuf[60];
   u8_string fname="apply";
@@ -670,7 +622,7 @@ FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *
     fdtype result=FD_VOID;
     FD_WITH_STACK(fname,caller,fn,n,argvec);
     U8_WITH_CONTOUR(fname,0)
-      if (f) result=apply_fcn(fname,f,n,argvec);
+      if (f) result=apply_fcn(&__fdstack,fname,f,n,argvec);
       else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
@@ -704,7 +656,7 @@ FD_EXPORT fdtype fd_stack_apply(struct FD_STACK *caller,fdtype fn,int n,fdtype *
       result = fd_finish_call(result);            \
   FD_ADD_TO_CHOICE(to,result);}
 
-static fdtype ndapply_loop
+static fdtype ndcall_loop
   (struct FD_FUNCTION *f,fdtype *results,int *typeinfo,
    int i,int n,fdtype *nd_args,fdtype *d_args)
 {
@@ -718,18 +670,18 @@ static fdtype ndapply_loop
   else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
     d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
-    retval = ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
+    retval = ndcall_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
     if (FD_ABORTP(retval)) return retval;}
   else if ((!(FD_CHOICEP(nd_args[i]))) ||
            ((typeinfo)&&(typeinfo[i]==fd_choice_type))) {
     fdtype retval;
     d_args[i]=nd_args[i];
-    retval = ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
+    retval = ndcall_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
     if (FD_ABORTP(retval)) return retval;}
   else {
     FD_DO_CHOICES(elt,nd_args[i]) {
       fdtype retval; d_args[i]=elt;
-      retval = ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
+      retval = ndcall_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
       if (FD_ABORTP(retval)) return retval;}}
   return FD_VOID;
 }
@@ -818,53 +770,67 @@ static fdtype ndapply4(fdtype fp,
   return results;
 }
 
-FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
 {
   fdtype handler = (FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
-  fd_ptr_type fntype = FD_PTR_TYPE(handler);
-  if (fd_functionp[fntype]) {
-    struct FD_FUNCTION *f = FD_DTYPE2FCN(handler);
-    if (f->fcn_arity == 0)
-      return fd_dapply(handler,n,args);
-    else if ((f->fcn_arity < 0) ?
-             (n >= (f->fcn_min_arity)) :
-             ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
-      fdtype d_args[n]; /* *d_args=fd_alloca(n); */
-      fdtype retval, results = FD_EMPTY_CHOICE;
-      /* Initialize the d_args vector */
-      if (n==1)
-        return ndapply1(handler,args[0]);
-      else if (n==2)
-        return ndapply2(handler,args[0],args[1]);
-      else if (n==3)
-        return ndapply3(handler,args[0],args[1],args[2]);
-      else if (n==4)
-        return ndapply4(handler,args[0],args[1],args[2],args[3]);
-      else retval = ndapply_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
-      if (FD_ABORTP(retval)) {
+  if (FD_EMPTY_CHOICEP(handler)) return FD_EMPTY_CHOICE;
+  else if (FD_CHOICEP(handler)) {
+    /* TODO: create a stack frame here */
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(h, handler) {
+      fdtype r=fd_call(stack,h,n,args);
+      if (FD_ABORTP(r)) {
         fd_decref(results);
-        return retval;}
-      else return fd_simplify_choice(results);}
-    else {
-      fd_exception ex = ((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-      return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}}
-  else if (fd_applyfns[fntype])
-    return (fd_applyfns[fntype])(handler,n,args);
-  else return fd_type_error("Applicable","fd_ndapply",handler);
+        FD_STOP_DO_CHOICES;
+        return r;}
+      else {FD_ADD_TO_CHOICE(results,r);}}
+    return results;}
+  else {
+    fd_ptr_type fntype = FD_PTR_TYPE(handler);
+    if (fd_functionp[fntype]) {
+      struct FD_FUNCTION *f = FD_DTYPE2FCN(handler);
+      if (f->fcn_arity == 0)
+        return fd_dapply(handler,n,args);
+      else if ((f->fcn_arity < 0) ?
+               (n >= (f->fcn_min_arity)) :
+               ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
+        fdtype d_args[n]; /* *d_args=fd_alloca(n); */
+        fdtype retval, results = FD_EMPTY_CHOICE;
+        /* Initialize the d_args vector */
+        if (n==1)
+          return ndapply1(handler,args[0]);
+        else if (n==2)
+          return ndapply2(handler,args[0],args[1]);
+        else if (n==3)
+          return ndapply3(handler,args[0],args[1],args[2]);
+        else if (n==4)
+          return ndapply4(handler,args[0],args[1],args[2],args[3]);
+        else retval = ndcall_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
+        if (FD_ABORTP(retval)) {
+          fd_decref(results);
+          return retval;}
+        else return fd_simplify_choice(results);}
+      else {
+        fd_exception ex = ((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+        return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}}
+    else if (fd_applyfns[fntype])
+      return (fd_applyfns[fntype])(handler,n,args);
+    else return fd_type_error("Applicable","fd_ndapply",handler);
+  }
 }
 
 /* The default apply function */
 
 static int contains_qchoicep(int n,fdtype *args);
-static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args);
+static fdtype qchoice_dcall(fd_stack stack,fdtype fp,int n,fdtype *args);
 
-FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_call(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f = FD_DTYPE2FCN(fp); fdtype result;
   if (f->fcn_ndcall)
     if (!(FD_EXPECT_FALSE(contains_qchoicep(n,args))))
-      result = fd_dapply((fdtype)f,n,args);
-    else result = qchoice_dapply(fp,n,args);
+      result = fd_dcall(stack,(fdtype)f,n,args);
+    else result = qchoice_dcall(stack,fp,n,args);
   else {
     int i = 0, qchoice = 0;
     while (i<n)
@@ -875,14 +841,14 @@ FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
         fd_ptr_type argtype = FD_PTR_TYPE(args[i]);
         if ((argtype == fd_choice_type) ||
             (argtype == fd_prechoice_type)) {
-          result = fd_ndapply((fdtype)f,n,args);
+          result = fd_ndcall(stack,(fdtype)f,n,args);
           return fd_finish_call(result);}
         else if (argtype == fd_qchoice_type) {
           qchoice = 1; i++;}
         else i++;}
     if (qchoice)
-      result = qchoice_dapply((fdtype)f,n,args);
-    else result = fd_dapply((fdtype)f,n,args);}
+      result=qchoice_dcall(stack,(fdtype)f,n,args);
+    else result=fd_dcall(stack,(fdtype)f,n,args);}
   return fd_finish_call(result);
 }
 
@@ -895,7 +861,7 @@ static int contains_qchoicep(int n,fdtype *args)
   return 0;
 }
 
-static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
+static fdtype qchoice_dcall(struct FD_STACK *stck,fdtype fp,int n,fdtype *args)
 {
   fdtype argbuf[n]; /* *argbuf=fd_alloca(n); */
   fdtype *read = args, *limit = read+n, *write=argbuf;
@@ -904,7 +870,22 @@ static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
       struct FD_QCHOICE *qc = (struct FD_QCHOICE *) (*read++);
       *write++=qc->qchoiceval;}
     else *write++= *read++;
-  return fd_dapply(fp,n,argbuf);
+  return fd_dcall(stck,fp,n,argbuf);
+}
+
+/* Apply wrappers (which finish calls) */
+
+FD_EXPORT fdtype _fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+{
+  return fd_stack_apply(stack,fn,n_args,args);
+}
+FD_EXPORT fdtype _fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+{
+  return fd_dapply(fn,n_args,args);
+}
+FD_EXPORT fdtype _fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+{
+  return fd_ndapply(fn,n_args,args);
 }
 
 /* Tail calls */
@@ -1113,7 +1094,7 @@ FD_EXPORT void fd_init_apply_c()
 
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_stack_limit_key,NULL);
-  u8_new_threadkey(&fd_call_stack_key,NULL);
+  u8_new_threadkey(&fd_stackptr_key,NULL);
 #endif
 
   fd_unparsers[fd_tailcall_type]=unparse_tail_call;

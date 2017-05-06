@@ -25,6 +25,10 @@ FD_EXPORT int fd_wrap_apply;
 #define FD_INLINE_STACKS 0
 #endif
 
+#ifndef FD_INLINE_APPLY
+#define FD_INLINE_APPLY 0
+#endif
+
 typedef struct FD_FUNCTION FD_FUNCTION;
 typedef struct FD_FUNCTION *fd_function;
 
@@ -476,7 +480,7 @@ typedef struct FD_STACK {
   u8_string stack_label, stack_state;
   fdtype stack_op;
   fdtype *stack_args;
-  fdtype stack_argbuf[FD_STACK_DEFAULT_ARGVEC];
+  fdtype *stack_argbuf;
   struct FD_ENV *stack_env;
   unsigned int stack_retvoid:1, stack_ndcall:1;
   unsigned int stack_decref_op:1, stack_decref_args:1;
@@ -488,14 +492,14 @@ typedef struct FD_STACK {
   struct FD_STACK *stack_root;} *fd_stack;
 
 #if (U8_USE_TLS)
-FD_EXPORT u8_tld_key fd_call_stack_key;
-#define fd_call_stack ((struct FD_STACK *)(u8_tld_get(fd_call_stack_key)))
-#define set_call_stack(s) u8_tld_set(fd_call_stack_key,(s))
+FD_EXPORT u8_tld_key fd_stackptr_key;
+#define fd_stackptr ((struct FD_STACK *)(u8_tld_get(fd_stackptr_key)))
+#define set_call_stack(s) u8_tld_set(fd_stackptr_key,(s))
 #elif (U8_USE__THREAD)
-FD_EXPORT __thread struct FD_STACK *fd_call_stack;
-#define set_call_stack(s) fd_call_stack = s
+FD_EXPORT __thread struct FD_STACK *fd_stackptr;
+#define set_call_stack(s) fd_stackptr = s
 #else
-#define set_call_stack(s) fd_call_stack = s
+#define set_call_stack(s) fd_stackptr = s
 #endif
 
 FD_EXPORT
@@ -519,7 +523,7 @@ fd_stack fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
   FD_INIT_STATIC_CONS(stack,fd_stackframe_type);
   if (caller)
     stack->stack_caller = caller;
-  else stack->stack_caller = fd_call_stack;
+  else stack->stack_caller = fd_stackptr;
   if (label) {
     stack->stack_label = label;
     stack->stack_state = label;}
@@ -692,30 +696,6 @@ FD_EXPORT void fd_profile_return(u8_string name);
 #define fd_calltrack_return(name);
 #endif
 
-/* Apply functions */
-
-typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
-FD_EXPORT fd_applyfn fd_applyfns[];
-
-FD_EXPORT fdtype fd_apply(fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_deterministic_apply(fdtype,int n,fdtype *args);
-
-#if FD_CALLTRACK_ENABLED
-FD_EXPORT fdtype fd_calltrack_apply(fdtype fn,int n_args,fdtype *argv);
-#define fd_dapply(fn,n,argv)			\
-  ((FD_EXPECT_FALSE(fd_calltracking)) ?		\
-   (fd_calltrack_apply(fn,n,argv)) :		\
-   (fd_deterministic_apply(fn,n,argv)))
-#else
-#define fd_dapply fd_deterministic_apply
-#endif
-
-#define FD_APPLICABLEP(x) \
-  ((FD_TYPEP(x,fd_fcnid_type)) ?		\
-   ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :	\
-   ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL))
-
 /* Tail calls */
 
 #define FD_TAILCALL_ND_ARGS     1
@@ -740,6 +720,66 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
     return _fd_finish_call(pt);
   else return pt;
 }
+
+/* Apply functions */
+
+typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
+FD_EXPORT fd_applyfn fd_applyfns[];
+
+FD_EXPORT fdtype fd_call(struct FD_STACK *stack,fdtype fp,int n,fdtype *args);
+FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_docall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
+
+FD_EXPORT fdtype _fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
+FD_EXPORT fdtype _fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
+FD_EXPORT fdtype _fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
+
+#if FD_CALLTRACK_ENABLED
+FD_EXPORT fdtype fd_calltrack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *argv);
+#define fd_dcall(stack,fn,n,argv)		\
+  ((FD_EXPECT_FALSE(fd_calltracking)) ?		\
+   (fd_calltrack_apply(stack,fn,n,argv)) :	\
+   (fd_docall(stack,fn,n,argv)))
+#else
+#define fd_dcall fd_docall
+#endif
+
+#if FD_INLINE_APPLY
+static fdtype fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+{
+  fdtype result= (stack) ?
+    (fd_call(stack,fn,n_args,args)) :
+    (fd_call(fd_stackptr,fn,n_args,args));
+  return fd_finish_call(result);
+}
+static fdtype fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+{
+  fdtype result= (stack) ?
+    (fd_dcall(stack,fn,n_args,args)) :
+    (fd_dcall(fd_stackptr,fn,n_args,args));
+  return fd_finish_call(result);
+}
+static fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+{
+  fdtype result= (stack) ?
+    (fd_ndcall(stack,fn,n_args,args)) :
+    (fd_ndcall(fd_stackptr,fn,n_args,args));
+  return fd_finish_call(result);
+}
+#else
+#define fd_stack_apply _fd_stack_apply
+#define fd_stack_dapply _fd_stack_dapply
+#define fd_stack_ndapply _fd_stack_ndapply
+#endif
+
+#define fd_apply(fn,n_args,argv) (fd_stack_apply(fd_stackptr,fn,n_args,argv))
+#define fd_ndapply(fn,n_args,argv) (fd_stack_ndapply(fd_stackptr,fn,n_args,argv))
+#define fd_dapply(fn,n_args,argv) (fd_stack_dapply(fd_stackptr,fn,n_args,argv))
+
+#define FD_APPLICABLEP(x) \
+  ((FD_TYPEP(x,fd_fcnid_type)) ?		\
+   ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :	\
+   ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL))
 
 #define FD_DTYPE2FCN(x)		     \
   ((FD_FCNIDP(x)) ?		     \

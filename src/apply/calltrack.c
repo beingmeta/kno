@@ -381,7 +381,7 @@ static fdtype config_get_calltrack_sensors(fdtype sym,void U8_MAYBE_UNUSED *data
   else return FD_EMPTY_CHOICE;
 }
 
-FD_EXPORT fdtype fd_calltrack_apply(fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_calltrack_apply(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f = FD_DTYPE2FCN(fp);
   fdtype result; u8_byte buf[64]; u8_string name;
@@ -389,7 +389,7 @@ FD_EXPORT fdtype fd_calltrack_apply(fdtype fp,int n,fdtype *args)
     sprintf(buf,"FN%lx",(unsigned long int)f); name = buf;}
   else name = f->fcn_name;
   calltrack_call(name);
-  result = fd_deterministic_apply((fdtype)f,n,args);
+  result = fd_docall(stack,(fdtype)f,n,args);
   /* If we don't compile with calltrack, we don't get pointer checking.
      We may want to change this at some point and move the pointer checking
      into the fd_determinstic_apply (fd_dapply_ct/fd_dapply) code. */
