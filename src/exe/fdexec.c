@@ -228,7 +228,10 @@ int do_main(int argc,char **argv,
 #endif
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
-  fd_init_fdscheme();
+  fd_init_scheme();
+#endif
+
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_texttools();
   fd_init_fdweb();
 #else

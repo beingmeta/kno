@@ -394,7 +394,7 @@ static void fast_reset_hashtable
 static int fast_swapout_index(fd_index ix,void *data)
 {
   struct HASHVECS_TODO *todo = (struct HASHVECS_TODO *)data;
-  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && 
+  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) &&
       (ix->index_cache.table_n_keys)) {
     if ((ix->index_flags)&(FD_STORAGE_KEEP_CACHESIZE))
       fast_reset_hashtable(&(ix->index_cache),-1,todo);
@@ -421,7 +421,6 @@ FD_EXPORT void fd_fast_swapout_all()
   fd_for_pools(fast_swapout_pool,(void *)&todo);
   while (i<todo.n_to_free) {
     fd_free_buckets(todo.to_free[i].slots,todo.to_free[i].n_slots);
-    u8_free(todo.to_free[i].slots);
     i++;}
   u8_free(todo.to_free);
 }
@@ -494,7 +493,7 @@ FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
 FD_EXPORT int fd_init_drivers_c(void);
 
-FD_EXPORT int fd_init_kblib()
+FD_EXPORT int fd_init_storage()
 {
   if (fdstorage_initialized) return fdstorage_initialized;
   fdstorage_initialized = 211*fd_init_libfdtype();

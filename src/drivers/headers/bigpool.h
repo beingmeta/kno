@@ -32,20 +32,25 @@
 #define FD_BIGPOOL_COMPRESSION 0x78
 #define FD_BIGPOOL_READ_ONLY   0x80
 #define FD_BIGPOOL_DTYPEV2     0x100
+#define FD_BIGPOOL_SPARSE      0x200
+#define FD_BIGPOOL_ADJUNCT     0x400
 
 typedef struct FD_BIGPOOL {
   FD_POOL_FIELDS;
-  unsigned int pool_xformat;
-  fd_offset_type pool_offtype;
-  fd_compress_type pool_compression;
-  struct FD_STREAM pool_stream;
   unsigned int pool_load;
-  unsigned int *pool_offdata;
-  size_t pool_offdata_length;
-  fdtype *slotids, *old_slotids;
-  unsigned int n_slotids, slotids_length, added_slotids;
-  struct FD_HASHTABLE slotcodes;
-  time_t pool_modtime;} FD_BIGPOOL;
+  struct FD_STREAM pool_stream;
+  time_t pool_modtime;
+  fd_compress_type bigpool_compression;
+  fd_offset_type bigpool_offtype;
+  unsigned int *bigpool_offdata;
+  size_t bigpool_offdata_length;
+  fdtype *bigpool_slotids;
+  fdtype *bigpool_old_slotids;
+  unsigned int bigpool_n_slotids;
+  unsigned int bigpool_slotids_length;
+  unsigned int bigpool_added_slotids;
+  unsigned int bigpool_format;
+  struct FD_HASHTABLE slotcodes;} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;
 
 struct BIGPOOL_FETCH_SCHEDULE {

@@ -128,6 +128,8 @@ typedef enum FD_PTR_TYPE {
   fd_opcode_type = FD_IMMEDIATE_TYPECODE(5),
   fd_type_type = FD_IMMEDIATE_TYPECODE(6),
   fd_cdrcode_type = FD_IMMEDIATE_TYPECODE(7),
+  fd_pool_type = FD_IMMEDIATE_TYPECODE(8),
+  fd_index_type = FD_IMMEDIATE_TYPECODE(9),
 
   fd_string_type = FD_CONS_TYPECODE(0),
   fd_packet_type = FD_CONS_TYPECODE(1),
@@ -149,7 +151,7 @@ typedef enum FD_PTR_TYPE {
   fd_hashset_type = FD_CONS_TYPECODE(15),
 
   /* Evaluator/apply types, defined here to be constant */
-  fd_primfcn_type = FD_CONS_TYPECODE(16),
+  fd_cprim_type = FD_CONS_TYPECODE(16),
   fd_environment_type = FD_CONS_TYPECODE(17),
   fd_specform_type = FD_CONS_TYPECODE(18),
   fd_macro_type = FD_CONS_TYPECODE(19),
@@ -180,7 +182,7 @@ typedef enum FD_PTR_TYPE {
   } fd_ptr_type;
 
 #define FD_BUILTIN_CONS_TYPES 40
-#define FD_BUILTIN_IMMEDIATE_TYPES 8
+#define FD_BUILTIN_IMMEDIATE_TYPES 10
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
 
@@ -621,10 +623,11 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<=15)))
-#define FD_TROUBLEP(x) \
+#define FD_ERRORP(x) \
   (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<15)))
+#define FD_TROUBLEP(x) (FD_EXPECT_FALSE(FD_ERRORP(x)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
 
 #define FD_ABORTED(x) (FD_EXPECT_FALSE(FD_ABORTP(x)))
@@ -684,6 +687,7 @@ FD_EXPORT fdtype FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK;
 FD_EXPORT fdtype FDSYM_CONTENT;
 FD_EXPORT fdtype FDSYM_TEXT, FDSYM_LENGTH, FDSYM_TAG, FDSYM_CONS, FDSYM_STRING;
 FD_EXPORT fdtype FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_OPT;
+FD_EXPORT fdtype FDSYM_READONLY, FDSYM_ISADJUNCT;
 
 /* Persistent pointers */
 

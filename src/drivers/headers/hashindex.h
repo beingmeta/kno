@@ -19,14 +19,6 @@
 #define FD_HASHINDEX_DTYPEV2       0x40
 #define FD_HASHINDEX_ODDKEYS       (FD_HASHINDEX_DTYPEV2<<1)
 
-#ifndef HASHINDEX_PREFETCH_WINDOW
-#ifdef FD_MMAP_PREFETCH_WINDOW
-#define HASHINDEX_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
-#else
-#define HASHINDEX_PREFETCH_WINDOW 0
-#endif
-#endif
-
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
 #define MIDDLIN_MODULUS 573786077 /* 256000001 */
@@ -61,9 +53,7 @@ typedef struct FD_HASHINDEX {
 
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */
-  struct FD_STREAM index_stream;
-  /* When non-null, a memmapped pointer to the file contents. */
-  size_t index_mmap_size; unsigned char *index_mmap;} *fd_hashindex;
+  struct FD_STREAM index_stream;} *fd_hashindex;
 
 /* Structure definitions */
 
@@ -124,13 +114,6 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 #define output_bytes(out,bytes,n) \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
-
-FD_EXPORT int fd_populate_hashindex
-  (struct FD_HASHINDEX *hx,fdtype from,
-   const fdtype *keys,int n_keys, int blocksize);
-FD_EXPORT int fd_make_hashindex
-  (u8_string,int,unsigned int,unsigned int,
-   fdtype,fdtype,time_t,time_t);
 FD_EXPORT ssize_t fd_hashindex_bucket(fdtype index,fdtype key,ssize_t modulate);
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
 FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *ix);

@@ -729,7 +729,9 @@ static fdtype qchoicep_handler(fdtype expr,fd_lispenv env)
 
 /* The exists operation */
 
-static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
+static int test_exists(struct FD_FUNCTION *fn,
+                       int i,int n,fdtype *nd_args,
+                       fdtype *d_args);
 
 static fdtype exists_lexpr(int n,fdtype *nd_args)
 {
@@ -753,7 +755,17 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
   return FD_FALSE;
 }
 
-static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args)
+static fdtype sometrue_lexpr(int n,fdtype *nd_args)
+{
+  if (n==1)
+    if (FD_EMPTY_CHOICEP(nd_args[0]))
+      return FD_FALSE;
+    else return FD_TRUE;
+  else return exists_lexpr(n,nd_args);
+}
+
+static int test_exists(struct FD_FUNCTION *fn,int i,int n,
+                       fdtype *nd_args,fdtype *d_args)
 {
   if (i == n) {
     fdtype val = fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
@@ -1464,7 +1476,7 @@ FD_EXPORT void fd_init_choicefns_c()
       fd_make_ndprim(fd_make_cprim1("EMPTY?",emptyp,1));
     fd_idefn(fd_scheme_module,empty_prim);
     fd_store(fd_scheme_module,fd_intern("FAIL?"),empty_prim);
-    fd_defalias(fd_scheme_module,"∄","FAIL?");
+    fd_store(fd_scheme_module,fd_intern("∄"),empty_prim);
   }
 
   fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_handler);
@@ -1474,7 +1486,6 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("EXISTS?",existsp,1)));
-  fd_defalias(fd_scheme_module,"∃","EXISTS?");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("CHOICE-SIZE",choicesize_prim,1)));
@@ -1482,10 +1493,14 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("EXISTS",exists_lexpr,1)));
-  fd_defalias(fd_scheme_module,"∃?","EXISTS");
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprimn("SOMETRUE",sometrue_lexpr,1)));
+  fd_defalias(fd_scheme_module,"∃","SOMETRUE");
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
-  fd_defalias(fd_scheme_module,"∀?","FORALL");
+  fd_defalias(fd_scheme_module,"∀","FORALL");
+
   fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_handler);
 
   {

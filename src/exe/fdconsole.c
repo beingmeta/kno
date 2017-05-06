@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
@@ -722,6 +726,10 @@ int main(int argc,char **argv)
 #if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
   u8_init_chardata_c();
+#endif
+
+#if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
+  fd_init_scheme();
 #endif
 
   /* Initialize builtin scheme modules.

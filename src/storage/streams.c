@@ -88,9 +88,11 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       (MAP_NORESERVE|MAP_SHARED) :
       (MAP_SHARED);
     unsigned char *oldbuf = buf->buffer;
-    unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
     ssize_t point_off = (oldbuf) ? (buf->bufpoint-buf->buffer) : (0);
-    if (newbuf==NULL) {
+    unsigned char *newbuf = mmap(NULL,new_size,prot,flags,fd,0);
+    if ((newbuf==NULL)||(newbuf==MAP_FAILED)) {
+      u8_log(LOGWARN,u8_strerror(errno),
+             "mmap_read_update:mmap of %s",stream->streamid);
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
       return -1;}
     buf->buflen = new_size;
@@ -298,7 +300,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   /* If you can't get a whole buffer, try smaller */
   while ((bufsiz>=1024) && (buf == NULL)) {
     u8_log(LOGWARN,"BigBuffer",
-           "Can't allocate %lld bytes for buffering %s, trying %lld",
+           "Can't allocate %lld-byte buffer for %s, trying %lld",
            bufsiz,(U8ALT(streamid,"somestream")),bufsiz/2);
     bufsiz = bufsiz/2; buf = u8_malloc(bufsiz);}
   u8_init_mutex(&(stream->stream_lock));
@@ -408,12 +410,13 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
       fsync(s->stream_fileno);}}
   else {}
 
-  if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
-      (!(flags&FD_STREAM_NOCLOSE))) {
-    if (s->stream_flags&FD_STREAM_SOCKET)
-      shutdown(s->stream_fileno,SHUT_RDWR);
-    close(s->stream_fileno);}
-  s->stream_fileno = -1;
+  if (s->stream_fileno>=0) {
+    if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
+        (!(flags&FD_STREAM_NOCLOSE))) {
+      if (s->stream_flags&FD_STREAM_SOCKET)
+        shutdown(s->stream_fileno,SHUT_RDWR);
+      close(s->stream_fileno);}
+    s->stream_fileno = -1;}
 
   if (dofree) {
     struct FD_RAWBUF *buf = &(s->buf.raw);
@@ -458,7 +461,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
 #if HAVE_MMAP
     if (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) return 0;
     else if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY))) {
-      u8_log(LOGWARN,fd_CantMMAP,"Stream '%s' not read-only",s->streamid);
+      u8_log(LOG_INFO,fd_CantMMAP,"Stream '%s' not read-only",s->streamid);
       if (unlock) fd_unlock_stream(s);
       return -1;}
     else {
@@ -486,7 +489,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
       newbuf = u8_malloc(bufsize);}
     else if (flags&FD_BUFFER_IS_MALLOCD)
       newbuf = u8_realloc(buf->buffer,bufsize);
-    else newbuf = u8_mallocz(bufsize);
+    else newbuf = u8_malloc(bufsize);
     if (newbuf == NULL) {
       u8_seterr("MallocFailed","fd_setbufsize",u8_strdup(s->streamid));
       if (unlock) fd_unlock_stream(s);

@@ -136,6 +136,12 @@
 /* Define if you have the flock function.  */
 #undef HAVE_FCNTL
 
+/* Define if you have a sys/sysinfo.h function.  */
+#undef HAVE_SYS_SYSINFO_H
+
+/* Define if you have a sys/sysinfo.h function.  */
+#undef HAVE_SYSINFO
+
 /* Define if you have a sysconf function.  */
 #undef HAVE_SYSCONF
 
@@ -355,9 +361,6 @@
 /* The code to initialize built-in scheme modules */
 #undef FD_SCHEME_BUILTINS
 
-/* The window for prefetching of MMAPd data */
-#undef FD_MMAP_PREFETCH_WINDOW
-
 /* The string of semicolon separated config assignments processed at startup */
 #undef FD_BOOT_CONFIG
 
@@ -387,6 +390,9 @@
 
 /* Whether we've got the perftools heap profiler */
 #undef HAVE_GPERFTOOLS_PROFILER_H
+
+/* Whether we have Google's malloc extension header */
+#undef HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
 
 /* Whether we've got ODBC headers */
 #undef HAVE_SQL_H
@@ -426,6 +432,33 @@
 
 /* Whether we're linking agains the duma malloc debugging library */
 #undef HAVE_DUMA_H
+
+/* Whether we've got malloc.h */
+#undef HAVE_MALLOC_H
+
+/* Whether we've got malloc/malloc.h */
+#undef HAVE_MALLOC_MALLOC_H
+
+/* Whether we've got mcheck.h */
+#undef HAVE_MCHECK_H
+
+/* Check for MacOS malloc info function */
+#undef HAVE_MALLOC_ZONE_STATISTICS
+
+/* Whether we have the mstats function */
+#undef HAVE_MALLINFO
+
+/* Whether we have the malloc_info function */
+#undef HAVE_MALLOC_INFO
+
+/* Whether we have the malloc_info function */
+#undef HAVE_OPEN_MEMSTREAM
+
+/* Whether we have the mstats function */
+#undef HAVE_MSTATS
+
+/* Whether we have the mtrace function */
+#undef HAVE_MTRACE
 
 /* Whether we're using the Google profiler library */
 #undef WITH_GOOGLE_PROFILER
@@ -492,9 +525,6 @@
 
 /* The name of the program for wrapping exec calls (usually /bin/env) */
 #undef FD_EXEC_WRAPPER
-
-/* What kind of sanitization (if any) is being applied */
-#undef FD_SANITIZE
 
 /* What kind of sanitization (if any) is being applied */
 #undef FD_STACKCHECK

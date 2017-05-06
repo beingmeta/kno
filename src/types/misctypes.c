@@ -324,7 +324,7 @@ FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
                                  fdtype typespec,
                                  u8_string idstring)
 {
-  struct FD_RAWPTR *rawptr = u8_zalloc(struct FD_RAWPTR);
+  struct FD_RAWPTR *rawptr = u8_alloc(struct FD_RAWPTR);
   FD_INIT_CONS(rawptr,fd_rawptr_type);
   rawptr->ptrval = ptrval;
   rawptr->recycler = recycler;

@@ -44,7 +44,7 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
   f->fd_connpool = u8_open_connpool(f->fd_dtprocserver,minsock,maxsock,initsock);
   if (f->fd_connpool == NULL) {
     u8_free(f->fcn_name);
-    u8_free(f->fcn_filename); 
+    u8_free(f->fcn_filename);
     u8_free(f);
     return FD_ERROR_VALUE;}
   else return FDTYPE_CONS(f);
@@ -60,8 +60,8 @@ static int unparse_dtproc(u8_output out,fdtype x)
 static void recycle_dtproc(struct FD_RAW_CONS *c)
 {
   struct FD_DTPROC *f = (fd_dtproc)c;
-  u8_free(f->fcn_name); 
-  u8_free(f->fcn_filename); 
+  u8_free(f->fcn_name);
+  u8_free(f->fcn_filename);
   u8_free(f->fd_dtprocserver);
   if (f->fcn_typeinfo) u8_free(f->fcn_typeinfo);
   if (f->fcn_defaults) u8_free(f->fcn_defaults);

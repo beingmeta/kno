@@ -16,6 +16,8 @@
 #define FD_OIDPOOL_COMPRESSION 0x78
 #define FD_OIDPOOL_READ_ONLY   0x80
 #define FD_OIDPOOL_DTYPEV2     0x100
+#define FD_OIDPOOL_SPARSE      0x200
+#define FD_OIDPOOL_ADJUNCT     0x400
 
 #define FD_OIDPOOL_LOCKED(x) (FD_POOLFILE_LOCKEDP(x))
 
@@ -33,22 +35,18 @@ typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
-  unsigned int pool_xformat;
-  fd_offset_type pool_offtype;
-  fd_compress_type pool_compression;
+  unsigned int pool_load;
+  struct FD_STREAM pool_stream;
   time_t pool_modtime;
-  int pool_n_schemas, pool_max_slotids;
-  struct FD_SCHEMA_ENTRY *pool_schemas;
-  struct FD_SCHEMA_LOOKUP *pool_schbyval;
-  unsigned int pool_load, *pool_offdata, pool_offdata_length;
-  struct FD_STREAM pool_stream;;} FD_OIDPOOL;
+  fd_compress_type oidpool_compression;
+  fd_offset_type oidpool_offtype;
+  unsigned int *oidpool_offdata;
+  unsigned int oidpool_offdata_length;
+  int oidpool_n_schemas, oidpool_max_slotids;
+  unsigned int oidpool_format;
+  struct FD_SCHEMA_ENTRY *oidpool_schemas;
+  struct FD_SCHEMA_LOOKUP *oidpool_schbyval;} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
-
-FD_EXPORT int fd_make_oidpool
-  (u8_string fname,u8_string label,
-   FD_OID base,unsigned int capacity,unsigned int load,
-   unsigned int flags,fdtype schemas_init,
-   time_t ctime,time_t mtime,int cycles);
 
 /* Schema tables */
 

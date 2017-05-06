@@ -278,7 +278,7 @@ FD_EXPORT void fd_init_history_c()
   fdtype history_module;
   if (scheme_history_initialized) return;
   else scheme_history_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
   history_module = fd_new_module("HISTORY",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 

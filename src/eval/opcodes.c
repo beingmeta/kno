@@ -38,6 +38,32 @@
 
 static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
 
+FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env)
+{
+  fdtype result=FD_VOID;
+  if (FD_RAILP(body)) {
+    int j=0, n_sub_exprs=FD_RAIL_LENGTH(body);
+    fdtype *sub_exprs=FD_RAIL_DATA(body);
+    while (j<n_sub_exprs) {
+      fdtype sub_expr=sub_exprs[j++];
+      fd_decref(result);
+      result=op_eval(sub_expr,env,j==n_sub_exprs);
+      if (FD_ABORTED(result))
+        return result;}
+    return result;}
+  else if (body == FD_EMPTY_LIST)
+    return FD_VOID;
+  else while (FD_PAIRP(body)) {
+      fdtype subex = FD_CAR(body), next = FD_CDR(body);
+      if (FD_PAIRP(next)) {
+        fdtype v = op_eval(subex,env,0);
+        if (FD_ABORTED(v)) return v;
+        fd_decref(v);
+        body = next;}
+      else return op_eval(subex,env,1);}
+  return fd_err(fd_SyntaxError,"op_eval_body",NULL,body);
+}
+
 FD_FASTOP fdtype _pop_arg(fdtype *scan)
 {
   fdtype expr = *scan;
@@ -87,59 +113,9 @@ static u8_string opcode_name(fdtype opcode)
   else return "anonymous_opcode";
 }
 
-static fdtype pickoids_opcode(fdtype arg1)
-{
-  if (FD_OIDP(arg1)) return arg1;
-  else if (FD_EMPTY_CHOICEP(arg1)) return arg1;
-  else if ((FD_CHOICEP(arg1)) || (FD_PRECHOICEP(arg1))) {
-    fdtype choice, results = FD_EMPTY_CHOICE;
-    int free_choice = 0, all_oids = 1;
-    if (FD_CHOICEP(arg1)) choice = arg1;
-    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
-    {FD_DO_CHOICES(elt,choice) {
-	if (FD_OIDP(elt)) {FD_ADD_TO_CHOICE(results,elt);}
-	else if (all_oids) all_oids = 0;}}
-    if (all_oids) {
-      fd_decref(results);
-      if (free_choice) return choice;
-      else return fd_incref(choice);}
-    else if (free_choice) fd_decref(choice);
-    return fd_simplify_choice(results);}
-  else return FD_EMPTY_CHOICE;
-}
-
-static fdtype pickstrings_opcode(fdtype arg1)
-{
-  if ((FD_CHOICEP(arg1)) || (FD_PRECHOICEP(arg1))) {
-    fdtype choice, results = FD_EMPTY_CHOICE;
-    int free_choice = 0, all_strings = 1;
-    if (FD_CHOICEP(arg1)) choice = arg1;
-    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
-    {FD_DO_CHOICES(elt,choice) {
-	if (FD_STRINGP(elt)) {
-	  fd_incref(elt); FD_ADD_TO_CHOICE(results,elt);}
-	else if (all_strings) all_strings = 0;}}
-    if (all_strings) {
-      fd_decref(results);
-      if (free_choice) return choice;
-      else return fd_incref(choice);}
-    else if (free_choice) fd_decref(choice);
-    return fd_simplify_choice(results);}
-  else if (FD_STRINGP(arg1)) return fd_incref(arg1);
-  else return FD_EMPTY_CHOICE;
-}
-
-static fdtype pickone_opcode(fdtype normal)
-{
-  int n = FD_CHOICE_SIZE(normal);
-  if (n) {
-    fdtype chosen;
-    int i = u8_random(n);
-    const fdtype *data = FD_CHOICE_DATA(normal);
-    chosen = data[i]; fd_incref(chosen);
-    return chosen;}
-  else return FD_EMPTY_CHOICE;
-}
+static fdtype pickoids_opcode(fdtype arg1);
+static fdtype pickstrings_opcode(fdtype arg1);
+static fdtype pickone_opcode(fdtype normal);
 
 static fdtype nd1_dispatch(fdtype opcode,fdtype arg1)
 {
@@ -390,6 +366,51 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
   else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
 }
 
+static fdtype try_op(fdtype exprs,fd_lispenv env)
+{
+  while (FD_PAIRP(exprs)) {
+    fdtype expr = pop_arg(exprs);
+    if (FD_EMPTY_LISTP(exprs))
+      return op_eval(expr,env,1);
+    else {
+      fdtype val  = op_eval(expr,env,0);
+      if (FD_ABORTED(val)) return val;
+      else if (!(FD_EMPTY_CHOICEP(val)))
+        return val;
+      else fd_decref(val);}}
+  return FD_EMPTY_CHOICE;
+}
+
+static fdtype and_op(fdtype exprs,fd_lispenv env)
+{
+  while (FD_PAIRP(exprs)) {
+    fdtype expr = pop_arg(exprs);
+    if (FD_EMPTY_LISTP(exprs))
+      return op_eval(expr,env,1);
+    else {
+      fdtype val  = op_eval(expr,env,0);
+      if (FD_ABORTED(val)) return val;
+      else if (FD_FALSEP(val))
+        return FD_FALSE;
+      else fd_decref(val);}}
+  return FD_TRUE;
+}
+
+static fdtype or_op(fdtype exprs,fd_lispenv env)
+{
+  while (FD_PAIRP(exprs)) {
+    fdtype expr = pop_arg(exprs);
+    if (FD_EMPTY_LISTP(exprs))
+      return op_eval(expr,env,1);
+    else {
+      fdtype val  = op_eval(expr,env,0);
+      if (FD_ABORTED(val)) return val;
+      else if (!(FD_FALSEP(val)))
+        return val;
+      else {}}}
+  return FD_FALSE;
+}
+
 static fdtype d2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 {
   switch (opcode) {
@@ -575,9 +596,9 @@ static fdtype nd2_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
         result = fd_incref(arg1);
       else result = fd_difference(arg1,arg2);
       break;
-    case FD_CHOICEREF_OPCODE: 
+    case FD_CHOICEREF_OPCODE:
       if (!(FD_FIXNUMP(arg2))) {
-        fd_decref(arg1); 
+        fd_decref(arg1);
         return fd_err(fd_SyntaxError,"choiceref_opcode",NULL,arg2);}
       else {
         int i = FD_FIX2INT(arg2);
@@ -651,15 +672,202 @@ static fdtype until_opcode(fdtype expr,fd_lispenv env)
   fdtype test_val = op_eval(test_expr,env,0);
   if (FD_ABORTED(test_val)) return test_val;
   else while (FD_FALSEP(test_val)) {
-      fdtype body = loop_body; while (FD_PAIRP(body)) {
-        fdtype subex = FD_CAR(body), next = FD_CDR(body);
-        fdtype rval = op_eval(subex,env,0);
-        if (FD_ABORTED(rval)) return rval;
-        else fd_decref(rval);
-        body = next;}
+      fdtype body_result=op_eval_body(loop_body,env);
+      if (FD_TAILCALLP(body_result)) 
+        body_result=fd_finish_call(body_result);
+      fd_decref(body_result);
       test_val = op_eval(test_expr,env,0);
       if (FD_ABORTED(test_val)) return test_val;}
   return test_val;
+}
+
+static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
+{
+  if (FD_EMPTY_CHOICEP(arg1)) {
+    switch (opcode) {
+    case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
+      return FD_EMPTY_CHOICE;
+    case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
+      return FD_FALSE;
+    case FD_STORE_OPCODE:
+    case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
+    case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
+      return FD_VOID;
+    default:
+      return FD_VOID;}}
+  else if (opcode == FD_TEST_OPCODE)
+    return fd_ftest(arg1,arg2,arg3);
+  else if (opcode == FD_PRIMTEST_OPCODE) {
+    int rv = fd_test(arg1,arg2,arg3);
+    if (rv<0) return FD_ERROR_VALUE;
+    else if (rv>0) return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_CHOICEP(arg1)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(tbl,arg1) {
+      fdtype partial=tableop(opcode,tbl,arg2,arg3);
+      if (FD_ABORTED(partial)) {
+        fd_decref(results);
+        FD_STOP_DO_CHOICES;
+        return partial;}
+      else {
+        FD_ADD_TO_CHOICE(results,partial);}}
+    return results;}
+  else {
+    int rv=0;
+    switch (opcode) {
+    case FD_PRIMGET_OPCODE:
+      return fd_get(arg1,arg2,arg3);
+    case FD_PRIMTEST_OPCODE:
+      rv=fd_test(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_ADD_OPCODE:
+      rv=fd_add(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_DROP_OPCODE:
+      rv=fd_drop(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_STORE_OPCODE:
+      rv=fd_store(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_TEST_OPCODE:
+      if (FD_OIDP(arg1))
+        rv=fd_frame_test(arg1,arg2,arg3);
+      else rv=fd_test(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_GET_OPCODE:
+      return fd_fget(arg1,arg2);
+    case FD_ASSERT_OPCODE:
+      if (FD_OIDP(arg1))
+        rv=fd_assert(arg1,arg2,arg3);
+      else rv=fd_add(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    case FD_RETRACT_OPCODE:
+      if (FD_OIDP(arg1))
+        rv=fd_retract(arg1,arg2,arg3);
+      else rv=fd_drop(arg1,arg2,arg3);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv==0) return FD_FALSE;
+      else return FD_TRUE;
+    default:
+      return FD_VOID;}}
+}
+
+static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
+{
+  fdtype value = op_eval(expr,env,0);
+  if (FD_ABORTED(value))
+    return value;
+  else if (FD_LEXREFP(var)) {
+    int up = FD_LEXREF_UP(var);
+    int across = FD_LEXREF_ACROSS(var);
+    fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
+    while ((up)&&(scan)) {
+      fd_lispenv parent = scan->env_parent;
+      if ((parent) && (parent->env_copy))
+        scan = parent->env_copy;
+      else scan = parent;
+      up--;}
+    if (FD_EXPECT_TRUE(scan!=NULL)) {
+      fdtype bindings = scan->env_bindings;
+      if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
+        struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
+        if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
+          fdtype *values = skimap->schema_values;
+          fdtype cur     = values[across];
+          switch (combiner) {
+          case FD_VOID: case FD_FALSE:
+            values[across]=value;
+            fd_decref(cur); cur=FD_VOID;
+            return FD_VOID;
+          case FD_UNION_OPCODE:
+            FD_ADD_TO_CHOICE(values[across],value);
+            return FD_VOID;
+          case FD_TRUE:
+            if ((cur == FD_DEFAULT_VALUE) ||
+                (cur == FD_UNBOUND) ||
+                (cur == FD_VOID) ||
+                (cur == FD_NULL))
+              values[across]=value;
+            return FD_VOID;
+          case FD_PLUS_OPCODE:
+            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+              long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(value);
+              values[across]=FD_MAKE_FIXNUM(ic+ip);
+              return FD_VOID;}
+            else {
+              fdtype result=fd_plus(cur,value);
+              fd_decref(cur); fd_decref(value);
+              if (FD_ABORTED(result))
+                return result;
+              else skimap->schema_values[across]=result;
+              return FD_VOID;}
+          case FD_MINUS_OPCODE:
+            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+              long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(value);
+              values[across]=FD_MAKE_FIXNUM(ic-im);
+              return FD_VOID;}
+            else {
+              fdtype result=fd_subtract(cur,value);
+              fd_decref(cur); fd_decref(value);
+              if (FD_ABORTED(result))
+                return result;
+              else values[across]=result;
+              return FD_VOID;}}}}}
+    u8_string lexref=u8_mkstring("up%d/across%d",up,across);
+    fdtype env_copy=(fdtype)fd_copy_env(env);
+    return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
+  else if ((FD_PAIRP(var)) &&
+           (FD_SYMBOLP(FD_CAR(var))) &&
+           (FD_TABLEP(FD_CDR(var)))) {
+    fdtype table=FD_CDR(var), sym=FD_CAR(var);
+    int rv=fd_store(table,sym,value);
+    fd_decref(value);
+    if (rv<0)
+      return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
+    else return FD_VOID;}
+  return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
+}
+
+static fdtype bindop(fd_lispenv env,fdtype vars,fdtype inits,fdtype body)
+{
+  int i=0, n=FD_VECTOR_LENGTH(vars);
+  struct FD_SCHEMAP bindings;
+  struct FD_ENVIRONMENT envstruct, *inner_env=&envstruct;
+  fdtype *exprs=FD_VECTOR_DATA(inits);
+  fdtype values[n]; /* fdtype *values=fd_alloca(n); */
+  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
+  bindings.schema_length=n;
+  bindings.table_schema=FD_VECTOR_DATA(vars);
+  bindings.schema_values=values;
+  bindings.schemap_onstack=1;
+  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
+  envstruct.env_bindings=(fdtype)&bindings;
+  envstruct.env_exports=FD_VOID;
+  envstruct.env_parent=env;
+  while (i<n) {
+    fdtype val_expr=exprs[i];
+    fdtype val=op_eval(val_expr,inner_env,0);
+    if (FD_ABORTED(val)) {
+      while (i>=0) {fd_decref(values[i]); i--;}
+      free_environment(inner_env);
+      return val;}
+    else values[i++]=val;}
+  fdtype result = op_eval_body(body,env);
+  free_environment(inner_env);
+  return result;
 }
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
@@ -675,17 +883,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else {
       fd_decref(arg_val);
       return FD_FALSE;}}
-  case FD_BEGIN_OPCODE: {
-    fdtype body = FD_CDR(expr); while (FD_PAIRP(body)) {
-      fdtype subex = FD_CAR(body), next = FD_CDR(body);
-      if (FD_PAIRP(next)) {
-        fdtype v = op_eval(subex,env,0);
-        if (FD_ABORTED(v)) return v;
-        fd_decref(v);
-        body = next;}
-      else return op_eval(subex,env,1);}
-    /* Never reached */
-    return FD_VOID;}
+  case FD_BEGIN_OPCODE:
+    return op_eval_body(FD_CDR(expr),env);
   case FD_UNTIL_OPCODE:
     return until_opcode(expr,env);
   case FD_BRANCH_OPCODE: {
@@ -696,43 +895,35 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     if (FD_ABORTED(test_val)) return test_val;
     if (!(FD_FALSEP(test_val))) {
       fdtype then = pop_arg(args);
-      fdtype ignore = pop_arg(args);
+      U8_MAYBE_UNUSED fdtype ignore = pop_arg(args);
       fd_decref(test_val);
       return op_eval(then,env,1);}
     else {
       pop_arg(args);
       return op_eval(pop_arg(args),env,1);}}
-  case FD_SETVAL_OPCODE: case FD_SETPLUS_OPCODE: {
+  case FD_SYMREF_OPCODE: {
+    fdtype refenv=pop_arg(args);
+    fdtype sym=pop_arg(args);
+    if (!(FD_SYMBOLP(sym)))
+      return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badsym",NULL,expr);
+    if (FD_HASHTABLEP(refenv))
+      return fd_hashtable_get((fd_hashtable)refenv,sym,FD_UNBOUND);
+    else if (FD_ENVIRONMENTP(refenv))
+      return fd_symeval(sym,(fd_lispenv)refenv);
+    else if (FD_TABLEP(refenv))
+      return fd_get(refenv,sym,FD_UNBOUND);
+    else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
+  case FD_TRY_OPCODE:
+    return try_op(args,env);
+  case FD_AND_OPCODE:
+    return and_op(args,env);
+  case FD_OR_OPCODE:
+    return or_op(args,env);
+  case FD_ASSIGN_OPCODE: {
     fdtype var = pop_arg(args);
     fdtype val_expr = pop_arg(args);
-    if (FD_LEXREFP(var)) {
-      fdtype set_value = op_eval(val_expr,env,0);
-      int up = FD_LEXREF_UP(var);
-      int across = FD_LEXREF_ACROSS(var);
-      if (FD_ABORTP(set_value)) return set_value;
-      else {
-        fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
-        while ((up)&&(scan)) {
-          fd_lispenv parent = scan->env_parent;
-          if ((parent) && (parent->env_copy))
-            scan = parent->env_copy;
-          else scan = parent;}
-        if (FD_EXPECT_TRUE(scan!=NULL)) {
-          fdtype bindings = scan->env_bindings;
-          if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
-            struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
-            if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
-              if (opcode == FD_SETVAL_OPCODE) {
-                fdtype cur = skimap->schema_values[across];
-                skimap->schema_values[across]=set_value;
-                fd_decref(cur);}
-              else {
-                fdtype *values = skimap->schema_values;
-                FD_ADD_TO_CHOICE(values[across],set_value);}
-              return FD_VOID;}}}}
-      fd_decref(set_value);}
-    return fd_err(fd_SyntaxError,"FD_SET_OPCODE",NULL,expr);
-  }
+    fdtype combiner = pop_arg(args);
+    return assignop(env,var,val_expr,combiner);}
   case FD_VOID_OPCODE: {
     return FD_VOID;}
   case FD_XREF_OPCODE: {
@@ -744,7 +935,30 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else return xref_opcode(fd_simplify_choice(fasteval(obj_expr,env)),
                             FD_FIX2INT(off_arg),
                             pop_arg(args));}
-  }
+  case FD_BIND_OPCODE: {
+    fdtype vars=pop_arg(args), inits=pop_arg(args), body=pop_arg(args);
+    return bindop(env,vars,inits,body);}
+  case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
+  case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
+  case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
+  case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
+  case FD_STORE_OPCODE: {
+    fdtype expr1=pop_arg(args), expr2=pop_arg(args), expr3=pop_arg(args);
+    fdtype arg1=op_eval(expr1,env,0), arg2, arg3;
+    fdtype result=FD_VOID;
+    if (FD_ABORTED(arg1)) return arg1;
+    arg2=op_eval(expr2,env,0);
+    if (FD_ABORTED(arg2)) {
+      fd_decref(arg1);
+      return arg2;}
+    arg3=(FD_VOIDP(expr3))?(FD_VOID):(op_eval(expr3,env,0));
+    if (FD_ABORTED(arg3)) {
+      fd_decref(arg1);
+      fd_decref(arg2);
+      return arg3;}
+    else result=tableop(opcode,arg1,arg2,arg3);
+    fd_decref(arg1); fd_decref(arg2); fd_decref(arg3);
+    return result;}}
   if (!(FD_EXPECT_FALSE(FD_PAIRP(FD_CDR(expr))))) {
     /* Otherwise, we should have at least one argument,
        return an error otherwise. */
@@ -824,57 +1038,6 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           fdtype result = d2_dispatch(opcode,arg1,arg2);
           fd_decref(arg1); fd_decref(arg2);
           return result;}}}
-    else if ((opcode == FD_GET_OPCODE) || (opcode == FD_PGET_OPCODE)) {
-      if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
-      else {
-        fdtype slotid_arg = arg2_expr;
-        fdtype slotids = op_eval(slotid_arg,env,0), result;
-        if (FD_ABORTED(slotids)) return slotids;
-        else if (FD_VOIDP(slotids))
-          return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
-        else slotids = fd_simplify_choice(slotids);
-        if (opcode == FD_GET_OPCODE)
-          result = fd_fget(arg1,slotids);
-        else {
-          fdtype dflt_arg = pop_arg(args);
-          if (FD_VOIDP(dflt_arg))
-            result = fd_get(arg1,slotids,FD_EMPTY_CHOICE);
-          else {
-            fdtype dflt = op_eval(dflt_arg,env,0);
-            if (FD_ABORTED(dflt)) result = dflt;
-            else if (FD_VOIDP(dflt)) {
-              result = fd_err(fd_VoidArgument,"OPCODE pget",NULL,
-                            pop_arg(args));}
-            else result = fd_get(arg1,slotids,dflt);
-            fd_decref(dflt);}}
-        fd_decref(arg1); fd_decref(slotids);
-        return result;}}
-    else if ((opcode == FD_TEST_OPCODE) || (opcode == FD_PTEST_OPCODE)) {
-      if (FD_EMPTY_CHOICEP(arg1)) return FD_FALSE;
-      else {
-        fdtype slotid_arg = arg2_expr, values_arg = pop_arg(args);
-        fdtype slotids = op_eval(slotid_arg,env,0), values, result;
-        if (FD_ABORTED(slotids)) return slotids;
-        else if (FD_VOIDP(slotids))
-          return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
-        else if (FD_EMPTY_CHOICEP(slotids)) {
-          fd_decref(arg1); return FD_FALSE;}
-        else if (FD_PRECHOICEP(slotids))
-          slotids = fd_simplify_choice(slotids);
-        else {}
-        if (FD_VOIDP(values_arg))
-          values = FD_VOID;
-        else values = op_eval(values_arg,env,0);
-        if (FD_ABORTED(values)) {
-          fd_decref(arg1); fd_decref(slotids);
-          return values;}
-        if (opcode == FD_TEST_OPCODE)
-          result = fd_ftest(arg1,slotids,values);
-        else if (fd_test(arg1,slotids,values))
-          result = FD_TRUE;
-        else result = FD_FALSE;
-        fd_decref(arg1); fd_decref(slotids); fd_decref(values);
-        return result;}}
     else if (FD_ND2_OPCODEP(opcode))
       /* This decrefs its arguments itself */
       return nd2_dispatch(opcode,arg1,op_eval(arg2_expr,env,0));
@@ -936,9 +1099,13 @@ static void init_opcode_names()
   set_opcode_name(FD_UNTIL_OPCODE,"UNTILOP");
   set_opcode_name(FD_BEGIN_OPCODE,"BEGIN");
   set_opcode_name(FD_QUOTE_OPCODE,"QUOTEOP");
-  set_opcode_name(FD_SETVAL_OPCODE,"SET!OP");
-  set_opcode_name(FD_SETPLUS_OPCODE,"SET+!OP");
+  set_opcode_name(FD_ASSIGN_OPCODE,"ASSIGN!");
+  set_opcode_name(FD_SYMREF_OPCODE,"SYMREF");
+  set_opcode_name(FD_BIND_OPCODE,"BINDOP");
   set_opcode_name(FD_VOID_OPCODE,"VOIDOP");
+  set_opcode_name(FD_AND_OPCODE,"AND");
+  set_opcode_name(FD_OR_OPCODE,"OR");
+  set_opcode_name(FD_TRY_OPCODE,"TRY");
 
   set_opcode_name(FD_AMBIGP_OPCODE,"AMBIGUOUS?");
   set_opcode_name(FD_SINGLETONP_OPCODE,"SINGLETON?");
@@ -993,16 +1160,16 @@ static void init_opcode_names()
   set_opcode_name(FD_EQV_OPCODE,"EQV?");
   set_opcode_name(FD_EQUAL_OPCODE,"EQUAL?");
   set_opcode_name(FD_ELT_OPCODE,"ELT");
+  set_opcode_name(FD_ASSERT_OPCODE,"ASSERT!");
+  set_opcode_name(FD_RETRACT_OPCODE,"RETRACT!");
   set_opcode_name(FD_GET_OPCODE,"GET");
-  set_opcode_name(FD_ADD_OPCODE,"ADD");
-  set_opcode_name(FD_DROP_OPCODE,"ADD");
   set_opcode_name(FD_TEST_OPCODE,"TEST");
-  set_opcode_name(FD_STORE_OPCODE,"ADD");
+  set_opcode_name(FD_ADD_OPCODE,"ADD");
+  set_opcode_name(FD_DROP_OPCODE,"DROP");
   set_opcode_name(FD_XREF_OPCODE,"XREF");
-  set_opcode_name(FD_PGET_OPCODE,"%GET");
-  set_opcode_name(FD_PADD_OPCODE,"%ADD");
-  set_opcode_name(FD_PDROP_OPCODE,"%DROP");
-  set_opcode_name(FD_PSTORE_OPCODE,"%TEST");
+  set_opcode_name(FD_PRIMGET_OPCODE,"%GET");
+  set_opcode_name(FD_PRIMTEST_OPCODE,"%TEST");
+  set_opcode_name(FD_STORE_OPCODE,"STORE!");
 }
 
 FD_EXPORT fdtype fd_get_opcode(u8_string name)
@@ -1023,6 +1190,64 @@ static fdtype name2opcode_prim(fdtype arg)
     return fd_get_opcode(FD_STRDATA(arg));
   else return fd_type_error(_("opcode name"),"name2opcode_prim",arg);
 }
+
+/* PICK opcodes */
+
+static fdtype pickoids_opcode(fdtype arg1)
+{
+  if (FD_OIDP(arg1)) return arg1;
+  else if (FD_EMPTY_CHOICEP(arg1)) return arg1;
+  else if ((FD_CHOICEP(arg1)) || (FD_PRECHOICEP(arg1))) {
+    fdtype choice, results = FD_EMPTY_CHOICE;
+    int free_choice = 0, all_oids = 1;
+    if (FD_CHOICEP(arg1)) choice = arg1;
+    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
+    {FD_DO_CHOICES(elt,choice) {
+	if (FD_OIDP(elt)) {FD_ADD_TO_CHOICE(results,elt);}
+	else if (all_oids) all_oids = 0;}}
+    if (all_oids) {
+      fd_decref(results);
+      if (free_choice) return choice;
+      else return fd_incref(choice);}
+    else if (free_choice) fd_decref(choice);
+    return fd_simplify_choice(results);}
+  else return FD_EMPTY_CHOICE;
+}
+
+static fdtype pickstrings_opcode(fdtype arg1)
+{
+  if ((FD_CHOICEP(arg1)) || (FD_PRECHOICEP(arg1))) {
+    fdtype choice, results = FD_EMPTY_CHOICE;
+    int free_choice = 0, all_strings = 1;
+    if (FD_CHOICEP(arg1)) choice = arg1;
+    else {choice = fd_make_simple_choice(arg1); free_choice = 1;}
+    {FD_DO_CHOICES(elt,choice) {
+	if (FD_STRINGP(elt)) {
+	  fd_incref(elt); FD_ADD_TO_CHOICE(results,elt);}
+	else if (all_strings) all_strings = 0;}}
+    if (all_strings) {
+      fd_decref(results);
+      if (free_choice) return choice;
+      else return fd_incref(choice);}
+    else if (free_choice) fd_decref(choice);
+    return fd_simplify_choice(results);}
+  else if (FD_STRINGP(arg1)) return fd_incref(arg1);
+  else return FD_EMPTY_CHOICE;
+}
+
+static fdtype pickone_opcode(fdtype normal)
+{
+  int n = FD_CHOICE_SIZE(normal);
+  if (n) {
+    fdtype chosen;
+    int i = u8_random(n);
+    const fdtype *data = FD_CHOICE_DATA(normal);
+    chosen = data[i]; fd_incref(chosen);
+    return chosen;}
+  else return FD_EMPTY_CHOICE;
+}
+
+/* Initialization */
 
 static double opcodes_initialized = 0;
 

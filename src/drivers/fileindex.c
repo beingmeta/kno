@@ -131,7 +131,7 @@ static void file_index_setcache(fd_index ix,int level)
       newmmap=
         mmap(NULL,(fx->index_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "file_index_setcache:mmap %s",fx->index_source);
         fx->index_offsets = NULL; errno = 0;}
@@ -1293,7 +1293,7 @@ static fd_index file_index_create(u8_string spec,void *type_data,
 }
 
 
-/* The handler struct */
+/* Initializing the driver module */
 
 static struct FD_INDEX_HANDLER file_index_handler={
   "file_index", 1, sizeof(struct FD_FILE_INDEX), 12,
@@ -1313,23 +1313,6 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_op  /* indexctl */
 };
 
-static u8_string match_index_name(u8_string spec,void *data)
-{
-  if ((u8_file_existsp(spec)) &&
-      (fd_match4bytes(spec,data)))
-    return spec;
-  else if (u8_has_suffix(spec,".index",1))
-    return NULL;
-  else {
-    u8_string variation = u8_mkstring("%s.index",spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data)))
-      return variation;
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
-
 FD_EXPORT void fd_init_fileindex_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -1340,22 +1323,22 @@ FD_EXPORT void fd_init_fileindex_c()
   fd_register_index_type("fileindex",
                          &file_index_handler,
                          open_file_index,
-                         match_index_name,
+                         match_index_file,
                          (void *) U8_INT2PTR(FD_FILE_INDEX_MAGIC_NUMBER));
   fd_register_index_type("fileindex.v2",
                          &file_index_handler,
                          open_file_index,
-                         match_index_name,
+                         match_index_file,
                          (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_MAGIC_NUMBER));
   fd_register_index_type("damaged_fileindex",
                          &file_index_handler,
                          open_file_index,
-                         match_index_name,
+                         match_index_file,
                          (void *) U8_INT2PTR(FD_FILE_INDEX_TO_RECOVER));
   fd_register_index_type("damaged_fileindex.v2",
                          &file_index_handler,
                          open_file_index,
-                         match_index_name,
+                         match_index_file,
                          (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_TO_RECOVER));
 }
 

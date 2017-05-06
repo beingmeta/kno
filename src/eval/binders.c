@@ -233,23 +233,19 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
     return result;
   else {
     struct FD_SCHEMAP bindings;
-    struct FD_ENVIRONMENT envstruct, *inner_env;
-    fdtype _vars[16], _vals[16], *vars, *vals;
+    struct FD_ENVIRONMENT envstruct;
+    fdtype vars[n]; /* *vars=fd_alloca(n); */
+    fdtype vals[n]; /* *vals=fd_alloca(n); */
+    fd_environment inner_env =
+      init_static_env(n,env,&bindings,&envstruct,vars,vals);
     int i = 0;
-    if (n>16) {
-      fdtype bindings; struct FD_SCHEMAP *sm;
-      inner_env = make_dynamic_env(n,env);
-      bindings = inner_env->env_bindings; sm = (struct FD_SCHEMAP *)bindings;
-      vars = sm->table_schema; vals = sm->schema_values;}
-    else {
-      inner_env = init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
-      vars=_vars; vals=_vals;}
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
         fdtype value = fasteval(val_expr,env);
         if (FD_ABORTED(value))
           return return_error_env(value,":LET",inner_env);
         else {
-          vars[i]=var; vals[i]=value; i++;}}}
+          vars[i]=var; vals[i]=value;
+          i++;}}}
     result = eval_body(":LET",FD_SYMBOL_NAME(vars[0]),expr,2,inner_env);
     free_environment(inner_env);
     return result;}
@@ -265,19 +261,16 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
     return result;
   else {
     struct FD_SCHEMAP bindings;
-    struct FD_ENVIRONMENT envstruct, *inner_env;
-    fdtype _vars[16], _vals[16], *vars, *vals;
+    struct FD_ENVIRONMENT envstruct;
+    fdtype vars[n]; /* *vars=fd_alloca(n); */
+    fdtype vals[n]; /* *vals=fd_alloca(n); */
     int i = 0, j = 0;
-    if (n>16) {
-      fdtype bindings; struct FD_SCHEMAP *sm;
-      inner_env = make_dynamic_env(n,env);
-      bindings = inner_env->env_bindings; sm = (struct FD_SCHEMAP *)bindings;
-      vars = sm->table_schema; vals = sm->schema_values;}
-    else {
-      inner_env = init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
-      vars=_vars; vals=_vals;}
+    fd_environment inner_env=
+      init_static_env(n,env,&bindings,&envstruct,vars,vals);
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-      vars[j]=var; vals[j]=FD_UNBOUND; j++;}}
+      vars[j]=var;
+      vals[j]=FD_UNBOUND;
+      j++;}}
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
       fdtype value = fasteval(val_expr,inner_env);
       if (FD_ABORTED(value))
@@ -614,7 +607,7 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
       u8_printf(out," '%s'>>",sproc->fcn_filename);
     else u8_puts(out,">>");
     return 1;}
-  else if (FD_TYPEP(lp,fd_primfcn_type)) {
+  else if (FD_TYPEP(lp,fd_cprim_type)) {
       struct FD_FUNCTION *fcn = (fd_function)lp;
       unsigned long long addr = (unsigned long long) fcn;
       u8_string name = fcn->fcn_name;

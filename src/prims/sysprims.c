@@ -19,6 +19,10 @@
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
 #include <gperftools/heap-profiler.h>
 #endif
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+#include <gperftools/malloc_extension_c.h>
+#endif
+
 
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
@@ -37,8 +41,20 @@
 #include <math.h>
 #include <sys/time.h>
 
+#if HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
+#if HAVE_MALLOC_MALLOC_H
+#include <malloc/malloc.h>
+#endif
+
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
 #include <sys/utsname.h>
+#endif
+
+#if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
+#include <sys/sysinfo.h>
 #endif
 
 fd_exception fd_MissingFeature=_("OS doesn't support operation");
@@ -122,6 +138,11 @@ static fdtype physical_memory_symbol, available_memory_symbol;
 static fdtype physicalmb_symbol, availablemb_symbol;
 static fdtype memload_symbol, vmemload_symbol, stacksize_symbol;
 static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
+static fdtype mallocd_symbol, heap_symbol, mallocinfo_symbol;
+static fdtype uptime_symbol, max_swap_symbol, swap_symbol, total_ram_symbol;
+static fdtype max_vmem_symbol;
+
+static fdtype tcmallocinfo_symbol;
 
 static int pagesize = -1;
 static int get_n_cpus(void);
@@ -151,6 +172,27 @@ static void add_flonum(fdtype table,fdtype symbol,double fval)
   fd_decref(flonum);
 }
 
+static u8_string get_malloc_info()
+{
+#if HAVE_OPEN_MEMSTREAM && HAVE_MALLOC_INFO
+  char *buf=NULL;
+  size_t buflen=0;
+  FILE *out;
+  out=open_memstream(&buf,&buflen);
+  malloc_info(0,out);
+  fclose(out);
+  return buf;
+#elif HAVE_MSTATS
+  struct mstats stats=mstats();
+  size_t used=stats.bytes_used, total=stats.bytes_total;
+  double pct=(100.0*used)/(total*1.0);
+  return u8_mkstring("%lld/%lld (%0.2f%) used/total",
+                     used,total,pct);
+#else
+  return u8_strdup("none");
+#endif
+}
+
 static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
@@ -164,6 +206,43 @@ static fdtype rusage_prim(fdtype field)
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
     double memload = u8_memload(), vmemload = u8_vmemload();
     size_t n_cpus = get_n_cpus();
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+    /* This doesn't seem to work, but it should */
+    {
+      size_t in_use=0, heap_size=0;
+      MallocExtension_GetNumericProperty
+        ("generic.current_allocated_bytes",&in_use);
+      MallocExtension_GetNumericProperty
+        ("generic.heap_size",&heap_size);
+      /* Other properties: */
+      /* "tcmalloc.current_total_thread_cache_bytes" */
+      /* "tcmalloc.pageheap_free_bytes" */
+      /* "tcmalloc.pageheap_unmapped_bytes" */
+      add_intval(result,mallocd_symbol,in_use);
+      add_intval(result,heap_symbol,heap_size);}
+#elif HAVE_MSTATS
+    struct mstats stats=mstats();
+    add_intval(result,mallocd_symbol,stats.bytes_used);
+    add_intval(result,heap_symbol,stats.bytes_total);
+#elif HAVE_MALLINFO
+    struct mallinfo meminfo;
+    if (sizeof(meminfo.arena)>=8) {
+      meminfo=mallinfo();
+      add_intval(result,mallocd_symbol,meminfo.arena);}
+#endif
+
+#if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
+    struct sysinfo sinfo;
+    if (sysinfo(&sinfo)==0) {
+      unsigned long long total_swap=sinfo.totalswap*sinfo.mem_unit;
+      unsigned long long total_ram=sinfo.totalram*sinfo.mem_unit;
+      add_intval(result,uptime_symbol,sinfo.uptime);
+      add_intval(result,max_swap_symbol,total_swap);
+      add_intval(result,swap_symbol,total_swap);
+      add_intval(result,max_vmem_symbol,total_swap+total_ram);
+      add_intval(result,total_ram_symbol,total_ram);}
+#endif
+
     add_intval(result,data_symbol,r.ru_idrss);
     add_intval(result,stack_symbol,r.ru_isrss);
     add_intval(result,shared_symbol,r.ru_ixrss);
@@ -276,6 +355,17 @@ static fdtype rusage_prim(fdtype field)
     return FD_INT(u8_vmemusage());
   else if (FD_EQ(field,nptrlocks_symbol))
     return FD_INT(FD_N_PTRLOCKS);
+  else if (FD_EQ(field,mallocinfo_symbol)) {
+    u8_string info=get_malloc_info();
+    if (info)
+      return fd_init_string(NULL,-1,info);
+    else return FD_EMPTY_CHOICE;}
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+  else if (FD_EQ(field,tcmallocinfo_symbol)) {
+    char buf[1024];
+    MallocExtension_GetStats(buf,1024);
+    return fd_make_string(NULL,-1,buf);}
+#endif
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
@@ -809,6 +899,31 @@ static fdtype gperf_flush(fdtype arg)
 }
 #endif
 
+static fdtype malloc_stats_prim()
+{
+#if HAVE_MALLOC_STATS
+  malloc_stats();
+#else
+  write(2,"No malloc_stats available\n",
+        strlen("No malloc_stats available\n"));
+#endif
+  return FD_VOID;
+}
+
+static fdtype release_memory_prim(fdtype arg)
+{
+#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
+  if (FD_FIXNUMP(arg))
+    MallocExtension_ReleaseToSystem(FD_FIX2INT(arg));
+  else if (FD_VOIDP(arg))
+    MallocExtension_ReleaseFreeMemory();
+  else return fd_type_error("fixnum","release_memory_prim",arg);
+  return FD_TRUE;
+#else
+  return FD_FALSE;
+#endif
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_sysprims_c()
@@ -851,8 +966,19 @@ FD_EXPORT void fd_init_sysprims_c()
   cpusage_symbol = fd_intern("CPU%");
   tcpusage_symbol = fd_intern("CPU%/CPU");
 
+  mallocd_symbol = fd_intern("MALLOCD");
+  heap_symbol = fd_intern("HEAP");
+  mallocinfo_symbol = fd_intern("MALLOCINFO");
+  tcmallocinfo_symbol = fd_intern("TCMALLOCINFO");
+
   load_symbol = fd_intern("LOAD");
   loadavg_symbol = fd_intern("LOADAVG");
+
+  uptime_symbol=fd_intern("UPTIME");
+  max_swap_symbol=fd_intern("MAXSWAP");
+  swap_symbol=fd_intern("SWAP");
+  total_ram_symbol=fd_intern("TOTALRAM");
+  max_vmem_symbol=fd_intern("MAXVMEM");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
@@ -881,6 +1007,12 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim));
+
+  fd_idefn0(fd_scheme_module,"MALLOC-STATS",malloc_stats_prim,
+            "Returns a string report of memory usage");
+  fd_idefn1(fd_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,
+            "Releases memory back to the operating system",
+            fd_fixnum_type,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));

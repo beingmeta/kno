@@ -25,6 +25,7 @@
 #include <stdio.h>
 
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
+static fdtype adjuncts_symbol;
 
 fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
@@ -33,16 +34,21 @@ fd_exception fd_InvalidOffsetType=_("Invalid offset type");
 fd_exception fd_RecoveryRequired=_("RECOVERY");
 
 fd_exception fd_CantOpenPool=_("Can't open pool");
+fd_exception fd_CantFindPool=_("Can't find pool");
 fd_exception fd_CantOpenIndex=_("Can't open index");
+fd_exception fd_CantFindIndex=_("Can't find index");
 
 fd_exception fd_IndexDriverError=_("Internal error with index file");
 fd_exception fd_PoolDriverError=_("Internal error with index file");
 
-fd_exception fd_FilePoolSizeOverflow=_("file pool overflowed file size");
+fd_exception fd_PoolFileSizeOverflow=_("file pool overflowed file size");
 fd_exception fd_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int fd_acid_files = 1;
 size_t fd_driver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
+
+static fd_pool_typeinfo default_pool_type = NULL;
+static fd_index_typeinfo default_index_type = NULL;
 
 #define CHECK_ERRNO U8_CLEAR_ERRNO
 
@@ -75,7 +81,6 @@ u8_string fd_netspecp(u8_string spec,void *ignored)
     return NULL;
   else return spec;
 }
-
 
 /* Opening pools */
 
@@ -126,11 +131,22 @@ FD_EXPORT void fd_register_pool_type
 static fd_pool_typeinfo get_pool_typeinfo(u8_string name)
 {
   struct FD_POOL_TYPEINFO *ptype = pool_typeinfo;
-  while (ptype) {
+  if (name == NULL)
+    return default_pool_type;
+  else while (ptype) {
     if (strcasecmp(name,ptype->pool_typename)==0)
       return ptype;
     else ptype = ptype->next_type;}
   return NULL;
+}
+
+FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
+{
+  fd_pool_typeinfo info = (id) ?  (get_pool_typeinfo(id)) :
+    (default_pool_type);
+  if (info)
+    default_pool_type = info;
+  return info;
 }
 
 FD_EXPORT
@@ -142,13 +158,34 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
-        fd_pool opened = ptype->opener(use_spec,flags,opts);
+        fd_pool found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
+          (fd_find_pool_by_source(use_spec));
+        fd_pool opened = (found) ? (found) :
+          (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
-        return opened;}
+        if (opened==NULL) {
+          fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+          return opened;}
+        else if (fd_testopt(opts,adjuncts_symbol,FD_VOID)) {
+          fdtype adjuncts=fd_getopt(opts,adjuncts_symbol,FD_EMPTY_CHOICE);
+          int rv=fd_set_adjuncts(opened,adjuncts);
+          fd_decref(adjuncts);
+          if (rv<0) {
+            if (flags & FD_STORAGE_NOERR) {
+              u8_log(LOGCRIT,fd_AdjunctError,
+                     "Opening pool '%s' with opts=%q",
+                     opened->poolid,opts);
+              fd_clear_errors(1);}
+            else {
+              fd_xseterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+              return NULL;}}
+          else return opened;}
+        else return opened;}
       else ptype = ptype->next_type;
       CHECK_ERRNO();}
     else ptype = ptype->next_type;}
-  fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+  if (!(flags & FD_STORAGE_NOERR))
+    fd_xseterr(fd_CantFindPool,"fd_open_pool",spec,opts);
   return NULL;
 }
 
@@ -178,13 +215,6 @@ fd_pool fd_make_pool(u8_string spec,
     fd_xseterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
-}
-
-/* TODO */
-FD_EXPORT
-fd_pool fd_unregistered_file_pool(u8_string filename)
-{
-  return NULL;
 }
 
 /* Opening indexes */
@@ -236,12 +266,24 @@ FD_EXPORT void fd_register_index_type
 static fd_index_typeinfo get_index_typeinfo(u8_string name)
 {
   struct FD_INDEX_TYPEINFO *ixtype = index_typeinfo;
-  while (ixtype) {
+  if (name == NULL)
+    return default_index_type;
+  else while (ixtype) {
     if (strcasecmp(name,ixtype->index_typename)==0)
       return ixtype;
     else ixtype = ixtype->next_type;}
   return NULL;
 }
+
+FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
+{
+  fd_index_typeinfo info = (id) ? (get_index_typeinfo(id)) :
+    (default_index_type);
+  if (info)
+    default_index_type=info;
+  return info;
+}
+
 
 FD_EXPORT
 fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
@@ -252,13 +294,17 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
-        fd_index opened = ixtype->opener(use_spec,flags,opts);
+        fd_index found = (flags&FD_STORAGE_UNREGISTERED) ? (NULL) :
+          (fd_find_index_by_source(use_spec));
+        fd_index opened = (found) ? (found) :
+          (ixtype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
         return opened;}
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
-  fd_xseterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+  if (!(flags & FD_STORAGE_NOERR))
+    fd_xseterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
   return NULL;
 }
 
@@ -336,7 +382,7 @@ static int drivers_c_initialized = 0;
 FD_EXPORT int fd_init_drivers_c()
 {
   if (drivers_c_initialized) return drivers_c_initialized;
-  drivers_c_initialized = 307*fd_init_kblib();
+  drivers_c_initialized = 307*fd_init_storage();
 
   u8_register_source_file(_FILEINFO);
 
@@ -354,6 +400,7 @@ FD_EXPORT int fd_init_drivers_c()
   snappy_symbol = fd_intern("SNAPPY");
   zlib_symbol = fd_intern("ZLIB");
   zlib9_symbol = fd_intern("ZLIB9");
+  adjuncts_symbol = fd_intern("ADJUNCTS");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

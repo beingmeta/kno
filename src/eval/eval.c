@@ -29,13 +29,18 @@
 #include "eval_internals.h"
 
 #include <libu8/u8timefns.h>
+#include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
 #include <math.h>
 #include <pthread.h>
 #include <errno.h>
 
-static volatile int fdscheme_initialized = 0;
+#if HAVE_MTRACE && HAVE_MCHECK_H
+#include <mcheck.h>
+#endif
+
+static volatile int scheme_initialized = 0;
 
 int fd_optimize_tail_calls = 1;
 
@@ -181,7 +186,8 @@ static fd_lispenv dynamic_environment(fd_lispenv env)
 
 static fd_lispenv copy_environment(fd_lispenv env)
 {
-  fd_lispenv dynamic = ((env->env_copy) ? (env->env_copy) : (dynamic_environment(env)));
+  fd_lispenv dynamic = (env->env_copy) ? (env->env_copy) :
+    (dynamic_environment(env));
   return (fd_lispenv) fd_incref((fdtype)dynamic);
 }
 
@@ -863,7 +869,7 @@ static int applicable_choicep(fdtype headvals)
     int hvtype = FD_PRIM_TYPE(hv), inconsistent = 0;
     /* Check that all the elements are either applicable or special
        forms and not mixed */
-    if ( (hvtype == fd_primfcn_type) ||
+    if ( (hvtype == fd_cprim_type) ||
          (hvtype == fd_sproc_type) ||
          (fd_applyfns[hvtype]) ) {
       if (applicable<0) applicable = 1;
@@ -889,13 +895,12 @@ FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
 static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
 {
   int n_args = 0, i = 0, gc_args = 0;
-  fdtype _argv[FD_STACK_ARGS], *argv, arglist = FD_CDR(expr);
-  fdtype results = FD_EMPTY_CHOICE;
+  fdtype arglist = FD_CDR(expr);
   {FD_DOLIST(elt,arglist)
       if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         n_args++;}
-  if (n_args<FD_STACK_ARGS) argv=_argv;
-  else argv = u8_alloc_n(n_args,fdtype);
+  fdtype results = FD_EMPTY_CHOICE;
+  fdtype argv[n_args]; /* *argv=fd_alloca(n_args); */
   {FD_DOLIST(arg,arglist) {
       fdtype argval;
       if (FD_EXPECT_FALSE
@@ -903,7 +908,6 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
       else argval = fasteval(arg,env);
       if (FD_ABORTED(argval)) {
         int j = 0; while (j<i) {fd_decref(argv[j]); j++;}
-        if (argv!=_argv) u8_free(argv);
         return argval;}
       argv[i++]=argval;
       if (FD_CONSP(argval)) gc_args = 1;}}
@@ -912,13 +916,11 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
       if (FD_ABORTED(result)) {
         if (gc_args) {
           int j = 0; while (j<n_args) {fd_decref(argv[j]); j++;}}
-        if (argv!=_argv) u8_free(argv);
         fd_decref(results);
         return result;}
       else {FD_ADD_TO_CHOICE(results,result);}}}
   if (gc_args) {
     int j = 0; while (j<n_args) {fd_decref(argv[j]); j++;}}
-  if (argv!=_argv) u8_free(argv);
   return results;
 }
 
@@ -961,44 +963,46 @@ static void push_apply_context(fdtype expr,fdtype fn,
     else avec[0]=fd_intern("LAMBDA");}
   else avec[0]=fd_incref(fn);
   memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
-  fd_push_error_context(fd_apply_context,((fcn)?(fcn->fcn_name):(NULL)),call_context);
+  fd_push_error_context(fd_apply_context,
+                        ((fcn)?(fcn->fcn_name):(NULL)),
+                        call_context);
   fd_push_error_context(fd_eval_context,NULL,fd_incref(expr));
 }
 
 #define ND_ARGP(v) ((FD_CHOICEP(v))||(FD_QCHOICEP(v)))
 
+FD_FASTOP int commentp(fdtype arg)
+{
+  return
+    (FD_EXPECT_FALSE
+     ((FD_PAIRP(arg)) &&
+      (FD_EQ(FD_CAR(arg),comment_symbol))));
+}
+
 static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
                             fdtype expr,fd_lispenv env)
 {
   fdtype result = FD_VOID, fn = (fdtype)fcn;
-  fdtype _argv[FD_STACK_ARGS], *argv;
   fdtype arg_exprs = fd_get_body(expr,1);
   int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
   int n_params = max_arity, argv_length = max_arity;
-  int n_args = count_args(arg_exprs), arg_count = 0, gc_args = 0, free_argv = 0;
-  int nd_args = 0, d_prim = (fcn->fcn_ndcall==0);
+  int n_args = count_args(arg_exprs), arg_count = 0;
+  int gc_args = 0, nd_args = 0, d_prim = (fcn->fcn_ndcall==0);
   if (max_arity<0) argv_length = n_args;
   /* Check arg count early */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
     return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
     return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
-  if (argv_length>FD_STACK_ARGS) {
-    /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
-    argv = u8_alloc_n(argv_length,fdtype);
-    free_argv = 1;}
-  /* Otherwise, just use the stack vector */
-  else argv=_argv;
+  fdtype argv[argv_length]; /* *argv=fd_alloca(argv_length); */
   /* Now we evaluate each of the subexpressions to fill the arg vector */
   {FD_DOLIST(elt,arg_exprs) {
-      if (FD_EXPECT_FALSE((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
-        continue;
+      if (commentp(elt)) continue;
       fdtype argval = process_arg(elt,env);
       if ((FD_ABORTED(argval))||((d_prim)&&(FD_EMPTY_CHOICEP(argval)))) {
         /* Clean up the arguments we've already evaluated */
         if (gc_args) for (int j = 0; j < arg_count; j++) {
             fdtype arg = argv[j++]; fd_decref(arg);}
-        if (free_argv) u8_free(argv);
         return argval;}
       else if (FD_CONSP(argval)) {
         if ((nd_args==0)&&(ND_ARGP(argval))) nd_args = 1;
@@ -1012,49 +1016,49 @@ static fdtype call_function(u8_string fname,struct FD_FUNCTION *fcn,
         argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]);}}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
-  if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
-    result = fd_tail_call(fn,arg_count,argv);
-  else if ((d_prim) && (nd_args))
-    result = fd_ndapply(fn,arg_count,argv);
-  else {
-    result = fd_dapply(fn,arg_count,argv);}
-  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
-    push_apply_context(expr,(fdtype)fcn,arg_count,argv);
+  if ((fd_optimize_tail_calls) && (FD_SPROCP(fn))) {
+    if (gc_args)
+      result = fd_tail_call(fn,arg_count,argv);
+    else return fd_tail_call(fn,arg_count,argv);}
+  else if ((d_prim) && (nd_args)) {
+    if (gc_args)
+      result = fd_ndapply(fn,arg_count,argv);
+    else return fd_ndapply(fn,arg_count,argv);}
+  else if (gc_args)
+    result = fd_dapply(fn,arg_count,argv);
+  else return fd_dapply(fn,arg_count,argv);
+  if (FD_TROUBLEP(result)) {
+    /* Push all the args if there was trouble */
+    push_apply_context(expr,(fdtype)fcn,arg_count,argv);}
   else if (gc_args) for (int i = 0; i<arg_count; i++) {
       fdtype arg = argv[i]; fd_decref(arg);}
-  if (free_argv) u8_free(argv);
   return result;
 }
 
 static fdtype call_special_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result = FD_VOID;
-  fdtype _argv[FD_STACK_ARGS], *argv;
   fdtype arg_exprs = fd_get_body(expr,1);
   int n_args = count_args(arg_exprs), arg_count = 0;
-  int gc_args = 0, free_argv = 0;
-  if (n_args>FD_STACK_ARGS) {
-    argv = u8_alloc_n(n_args,fdtype);
-    free_argv = 1;}
-  else argv=_argv;
-  {FD_DOLIST(arg,arg_exprs)
-      if (FD_EXPECT_FALSE((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
-        continue;
-    fdtype argval = process_arg(arg,env);
-       if (FD_ABORTED(argval)) {
+  int gc_args = 0;
+  fdtype argbuf[n_args]; /* fdtype *argbuf=fd_alloca(n_args); */
+  {FD_DOLIST(arg,arg_exprs) {
+      if (commentp(arg)) continue;
+      fdtype argval = process_arg(arg,env);
+      if (FD_ABORTED(argval)) {
         /* Clean up the arguments we've already evaluated */
-        if (gc_args) for (int j = 0; j < arg_count; j++) {
-            fdtype arg = argv[j++]; fd_decref(arg);}
-        if (free_argv) u8_free(argv);
-        return argval;}
+        if (gc_args) {result=argval; break;}
+        else return argval;}
       else if (FD_CONSP(argval)) gc_args = 1; else {}
-      argv[arg_count++]=argval;}
-  result = fd_apply(fn,n_args,argv);
-  if (FD_EXPECT_FALSE(FD_TROUBLEP(result)))
-    push_apply_context(expr,fn,arg_count,argv);
+      argbuf[arg_count++]=argval;}}
+  if (FD_ABORTED(result)) {}
+  else if (gc_args)
+    result = fd_apply(fn,n_args,argbuf);
+  else return fd_apply(fn,n_args,argbuf);
+  if (FD_TROUBLEP(result))
+    push_apply_context(expr,fn,arg_count,argbuf);
   else if (gc_args) for (int i = 0; i<arg_count; i++) {
-      fdtype arg = argv[i++]; fd_decref(arg);}
-  if (free_argv) u8_free(argv);
+      fdtype arg = argbuf[i++]; fd_decref(arg);}
   return result;
 }
 
@@ -1133,7 +1137,7 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
 
 FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
 {
-  if (fdscheme_initialized==0) fd_init_fdscheme();
+  if (scheme_initialized==0) fd_init_scheme();
   if (FD_VOIDP(bindings))
     bindings = fd_make_hashtable(NULL,17);
   else fd_incref(bindings);
@@ -1141,12 +1145,12 @@ FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
 }
 FD_EXPORT fd_lispenv fd_working_environment()
 {
-  if (fdscheme_initialized==0) fd_init_fdscheme();
+  if (scheme_initialized==0) fd_init_scheme();
   return fd_make_env(fd_make_hashtable(NULL,17),default_env);
 }
 FD_EXPORT fd_lispenv fd_safe_working_environment()
 {
-  if (fdscheme_initialized==0) fd_init_fdscheme();
+  if (scheme_initialized==0) fd_init_scheme();
   return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
 }
 
@@ -1194,7 +1198,7 @@ FD_EXPORT fdtype fd_register_module(u8_string name,fdtype module,int flags)
 FD_EXPORT fdtype fd_new_module(char *name,int flags)
 {
   fdtype module_name, module, as_stored;
-  if (fdscheme_initialized==0) fd_init_fdscheme();
+  if (scheme_initialized==0) fd_init_scheme();
   module_name = fd_intern(name);
   module = fd_make_hashtable(NULL,0);
   fd_add(module,moduleid_symbol,module_name);
@@ -1536,7 +1540,7 @@ static fdtype callcc (fdtype proc)
 {
   fdtype continuation, value;
   struct FD_CONTINUATION *f = u8_alloc(struct FD_CONTINUATION);
-  FD_INIT_FRESH_CONS(f,fd_primfcn_type);
+  FD_INIT_FRESH_CONS(f,fd_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
   f->fcn_ndcall = 1; f->fcn_xcall = 1; f->fcn_arity = 1; f->fcn_min_arity = 1;
   f->fcn_typeinfo = NULL; f->fcn_defaults = NULL;
@@ -1662,11 +1666,10 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,
 /* Remote evaluation */
 
 static fd_exception ServerUndefined=_("Server unconfigured");
-fd_ptr_type fd_stream_erver_type;
 
-FD_EXPORT fdtype fd_open_bytstrerver(u8_string server,int bufsiz)
+FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
 {
-  struct FD_STREAM_ERVER *dts = u8_alloc(struct FD_STREAM_ERVER);
+  struct FD_DTSERVER *dts = u8_alloc(struct FD_DTSERVER);
   u8_string server_addr; u8_socket socket;
   /* Start out by parsing the address */
   if ((*server)==':') {
@@ -1675,46 +1678,65 @@ FD_EXPORT fdtype fd_open_bytstrerver(u8_string server,int bufsiz)
       server_addr = u8_strdup(FD_STRDATA(server_id));
     else  {
       fd_seterr(ServerUndefined,"open_server",
-                u8_strdup(dts->fd_serverid),server_id);
+                u8_strdup(dts->dtserverid),server_id);
       u8_free(dts);
       return -1;}}
   else server_addr = u8_strdup(server);
-  dts->fd_serverid = u8_strdup(server); 
-  dts->fd_server_address = server_addr;
+  dts->dtserverid = u8_strdup(server); 
+  dts->dtserver_addr = server_addr;
   /* Then try to connect, just to see if that works */
-  socket = u8_connect_x(server,&(dts->fd_server_address));
+  socket = u8_connect_x(server,&(dts->dtserver_addr));
   if (socket<0) {
     /* If connecting fails, signal an error rather than creating
        the dtserver connection pool. */
-    u8_free(dts->fd_serverid); 
-    u8_free(dts->fd_server_address); 
+    u8_free(dts->dtserverid); 
+    u8_free(dts->dtserver_addr); 
     u8_free(dts);
-    return fd_err(fd_ConnectionFailed,"fd_open_bytstrerver",
+    return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
                   u8_strdup(server),FD_VOID);}
   /* Otherwise, close the socket */
   else close(socket);
   /* And create a connection pool */
-  dts->fd_connpool = u8_open_connpool(dts->fd_serverid,2,4,1);
+  dts->fd_connpool = u8_open_connpool(dts->dtserverid,2,4,1);
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
   if (dts->fd_connpool == NULL) {
-    u8_free(dts->fd_serverid); 
-    u8_free(dts->fd_server_address);
+    u8_free(dts->dtserverid); 
+    u8_free(dts->dtserver_addr);
     u8_free(dts);
     return FD_ERROR_VALUE;}
   /* Otherwise, returh a dtserver object */
-  FD_INIT_CONS(dts,fd_stream_erver_type);
+  FD_INIT_CONS(dts,fd_dtserver_type);
   return FDTYPE_CONS(dts);
+}
+
+static fdtype dtserverp(fdtype arg)
+{
+  if (FD_TYPEP(arg,fd_dtserver_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype dtserver_id(fdtype arg)
+{
+  struct FD_DTSERVER *dts = (struct FD_DTSERVER *) arg;
+  return fdtype_string(dts->dtserverid);
+}
+
+static fdtype dtserver_address(fdtype arg)
+{
+  struct FD_DTSERVER *dts = (struct FD_DTSERVER *) arg;
+  return fdtype_string(dts->dtserver_addr);
 }
 
 static fdtype dteval(fdtype server,fdtype expr)
 {
-  if (FD_TYPEP(server,fd_stream_erver_type))  {
-    struct FD_STREAM_ERVER *dtsrv=
-      fd_consptr(fd_stream_erver,server,fd_stream_erver_type);
+  if (FD_TYPEP(server,fd_dtserver_type))  {
+    struct FD_DTSERVER *dtsrv=
+      fd_consptr(fd_stream_erver,server,fd_dtserver_type);
     return fd_dteval(dtsrv->fd_connpool,expr);}
   else if (FD_STRINGP(server)) {
-    fdtype s = fd_open_bytstrerver(FD_STRDATA(server),-1);
+    fdtype s = fd_open_dtserver(FD_STRDATA(server),-1);
     if (FD_ABORTED(s)) return s;
     else {
       fdtype result = fd_dteval(((fd_stream_erver)s)->fd_connpool,expr);
@@ -1727,9 +1749,9 @@ static fdtype dtcall(int n,fdtype *args)
 {
   fdtype server; fdtype request = FD_EMPTY_LIST, result; int i = n-1;
   if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,FD_VOID);
-  if (FD_TYPEP(args[0],fd_stream_erver_type))
+  if (FD_TYPEP(args[0],fd_dtserver_type))
     server = fd_incref(args[0]);
-  else if (FD_STRINGP(args[0])) server = fd_open_bytstrerver(FD_STRDATA(args[0]),-1);
+  else if (FD_STRINGP(args[0])) server = fd_open_dtserver(FD_STRDATA(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
   if (FD_ABORTED(server)) return server;
   while (i>=1) {
@@ -1744,9 +1766,9 @@ static fdtype dtcall(int n,fdtype *args)
   return result;
 }
 
-static fdtype open_bytstrerver(fdtype server,fdtype bufsiz)
+static fdtype open_dtserver(fdtype server,fdtype bufsiz)
 {
-  return fd_open_bytstrerver(FD_STRDATA(server),
+  return fd_open_dtserver(FD_STRDATA(server),
                              ((FD_VOIDP(bufsiz)) ? (-1) :
                               (FD_FIX2INT(bufsiz))));
 }
@@ -2039,11 +2061,65 @@ static fdtype ffi_found_prim(fdtype name,fdtype modname)
 }
 #endif
 
+/* MTrace */
+
+static int mtracing=0;
+
+static fdtype mtrace_prim(fdtype arg)
+{
+  /* TODO: Check whether we're running under libc malloc (so mtrace
+     will do anything). */
+#if HAVE_MTRACE
+  if (mtracing)
+    return FD_TRUE;
+  else if (getenv("MALLOC_TRACE")) {
+    mtrace();
+    mtracing=1;
+    return FD_TRUE;}
+  else if ((FD_STRINGP(arg)) &&
+           (u8_file_writablep(FD_STRDATA(arg)))) {
+    setenv("MALLOC_TRACE",FD_STRDATA(arg),1);
+    mtrace();
+    mtracing=1;
+    return FD_TRUE;}
+  else return FD_FALSE;
+#else
+  return FD_FALSE;
+#endif
+}
+
+static fdtype muntrace_prim()
+{
+#if HAVE_MTRACE
+  if (mtracing) {
+    muntrace();
+    return FD_TRUE;}
+  else return FD_FALSE;
+#else
+  return FD_FALSE;
+#endif
+}
+
+/* Primitives for testing purposes */
+
+static fdtype list9(fdtype arg1,fdtype arg2,
+                    fdtype arg3,fdtype arg4,
+                    fdtype arg5,fdtype arg6,
+                    fdtype arg7,fdtype arg8,
+                    fdtype arg9)
+{
+  return fd_make_list(9,fd_incref(arg1),fd_incref(arg2),
+                      fd_incref(arg3),fd_incref(arg4),
+                      fd_incref(arg5),fd_incref(arg6),
+                      fd_incref(arg7),fd_incref(arg8),
+                      fd_incref(arg9));
+}
+
 /* Initialization */
 
 void fd_init_eval_c()
 {
-  struct FD_TABLEFNS *fns = u8_zalloc(struct FD_TABLEFNS);
+  struct FD_TABLEFNS *fns = u8_alloc(struct FD_TABLEFNS);
   fns->get = lispenv_get; fns->store = lispenv_store;
   fns->add = NULL; fns->drop = NULL; fns->test = NULL;
 
@@ -2193,9 +2269,23 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("DTCALL",dtcall,2));
-  fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_bytstrerver,1,
+  fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
                                             fd_string_type,FD_VOID,
                                             fd_fixnum_type,FD_VOID));
+  fd_idefn1(fd_scheme_module,"DTSERVER?",dtserverp,FD_NEEDS_1_ARG,
+            "Returns true if it's argument is a dtype server object",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"DTSERVER-ID",
+            dtserver_id,FD_NEEDS_1_ARG,
+            "Returns the ID of a dtype server (the argument used to create it)",
+            fd_dtserver_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"DTSERVER-ADDRESS",
+            dtserver_address,FD_NEEDS_1_ARG,
+            "Returns the address (host/port) of a dtype server",
+            fd_dtserver_type,FD_VOID);
+
+  fd_idefn0(fd_scheme_module,"%BUILDINFO",fd_get_build_info,
+            "Information about the build and startup environment");
 
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROC",ffi_proc,3));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROBE",ffi_probe,3));
@@ -2203,6 +2293,20 @@ static void init_localfns()
            fd_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
+
+  fd_idefn1(fd_xscheme_module,"MTRACE",mtrace_prim,FD_NEEDS_0_ARGS,
+            "Activates LIBC heap tracing to MALLOC_TRACE and "
+            "returns true if it worked. Optional argument is a "
+            "filename to set as MALLOC_TRACE",
+            -1,FD_VOID);
+  fd_idefn0(fd_xscheme_module,"MUNTRACE",muntrace_prim,
+            "Deactivates LIBC heap tracing, returns true if it did anything");
+
+  /* for testing */
+  fd_idefn9(fd_scheme_module,"LIST9",list9,0,"Returns a nine-element list",
+            -1,FD_FALSE,-1,FD_FALSE,-1,FD_FALSE,
+            -1,FD_FALSE,-1,FD_FALSE,-1,FD_FALSE,
+            -1,FD_FALSE,-1,FD_FALSE, -1,FD_FALSE);
 
   fd_register_config
     ("GPROFILE","Set filename for the Google CPU profiler",
@@ -2283,16 +2387,16 @@ static void init_eval_core()
   fd_finish_module(fd_xscheme_module);
 }
 
-FD_EXPORT int fd_load_fdscheme()
+FD_EXPORT int fd_load_scheme()
 {
-  return fd_init_fdscheme();
+  return fd_init_scheme();
 }
 
-FD_EXPORT int fd_init_fdscheme()
+FD_EXPORT int fd_init_scheme()
 {
-  if (fdscheme_initialized) return fdscheme_initialized;
+  if (scheme_initialized) return scheme_initialized;
   else {
-    fdscheme_initialized = 401*fd_init_kblib()*u8_initialize();
+    scheme_initialized = 401*fd_init_storage()*u8_initialize();
 
     fd_init_eval_c();
 
@@ -2305,7 +2409,7 @@ FD_EXPORT int fd_init_fdscheme()
     init_scheme_module();
     init_eval_core();
 
-    return fdscheme_initialized;}
+    return scheme_initialized;}
 }
 
 /* Emacs local variables

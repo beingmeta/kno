@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
@@ -922,7 +926,7 @@ static void init_server()
   u8_unlock_mutex(&init_server_lock);
 }
 
-FD_EXPORT int fd_init_fddbserv(void);
+FD_EXPORT int fd_init_dbserv(void);
 static void init_configs(void);
 static fd_lispenv init_core_env(void);
 static int launch_server(u8_string source_file,fd_lispenv env);
@@ -936,7 +940,7 @@ int main(int argc,char **argv)
   int u8_version = u8_initialize(), fd_version;
   u8_string server_spec = NULL, source_file = NULL, server_port = NULL;
   /* This is the base of the environment used to be passed to the server.
-     It is augmented by the fddbserv module, all of the modules declared by
+     It is augmented by the dbserv module, all of the modules declared by
      MODULE = configurations, and either the exports or the definitions of
      the server control file from the command line.
      It starts out built on the default safe environment, but loses that if
@@ -1010,7 +1014,7 @@ int main(int argc,char **argv)
     u8_log(LOG_WARN,Startup,
            "Copyright (C) beingmeta 2004-2017, all rights reserved");}
 
-  fd_version = fd_init_fdscheme();
+  fd_version = fd_init_scheme();
 
   if (fd_version<0) {
     fprintf(stderr,"Can't initialize FramerD libraries\n");
@@ -1213,8 +1217,8 @@ static fd_lispenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lispenv core_env = fd_safe_working_environment();
-  fd_init_fddbserv();
-  fd_register_module("FDDBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
+  fd_init_dbserv();
+  fd_register_module("DBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
 
   /* We add some special functions */

@@ -277,7 +277,7 @@ static void recycle_leveldb(struct FD_RAW_CONS *c)
 
 static fdtype leveldb_open_prim(fdtype path,fdtype opts)
 {
-  struct FD_LEVELDB *db = u8_zalloc(struct FD_LEVELDB);
+  struct FD_LEVELDB *db = u8_alloc(struct FD_LEVELDB);
   fd_setup_leveldb(&(db->leveldb),FD_STRDATA(path),opts);
   if (db->leveldb.dbptr) {
     FD_INIT_CONS(db,fd_leveldb_type);
@@ -512,7 +512,7 @@ fd_pool fd_use_leveldb_pool(u8_string path,fdtype opts)
 FD_EXPORT
 fd_pool fd_make_leveldb_pool(u8_string path,fdtype base,fdtype cap,fdtype opts)
 {
-  struct FD_LEVELDB_POOL *pool = u8_zalloc(struct FD_LEVELDB_POOL);
+  struct FD_LEVELDB_POOL *pool = u8_alloc(struct FD_LEVELDB_POOL);
   fdtype load = fd_getopt(opts,SYM("LOAD"),FD_FIXZERO);
   fdtype label = fd_getopt(opts,SYM("LABEL"),FD_VOID);
   if ((!(FD_OIDP(base)))||(!(FD_UINTP(cap)))||(!(FD_UINTP(load)))) {
@@ -691,10 +691,10 @@ static int off_compare(const void *x,const void *y)
 static fdtype *leveldb_pool_fetchn(fd_pool p,int n,fdtype *oids)
 {
   struct FD_LEVELDB_POOL *pool = (struct FD_LEVELDB_POOL *)p;
-  struct OFFSET_ENTRY *entries = u8_zalloc_n(n,struct OFFSET_ENTRY);
+  struct OFFSET_ENTRY *entries = u8_alloc_n(n,struct OFFSET_ENTRY);
   leveldb_readoptions_t *readopts = pool->leveldb.readopts;
   unsigned int largest_offset = 0, offsets_sorted = 1;
-  fdtype *values = u8_zalloc_n(n,fdtype);
+  fdtype *values = u8_alloc_n(n,fdtype);
   FD_OID base = p->pool_base;
   int i = 0; while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);

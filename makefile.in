@@ -1,5 +1,5 @@
 # -*- Mode: Makefile; -*-
-# Copyright (C) 2004-2017 beingmeta, inc
+# Copyright © 2004-2017 beingmeta, inc
 # This file is a part of beingmeta's FramerD implementation
 
 CC	      = @CC@
@@ -41,12 +41,15 @@ SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
 CODENAME	= @CODENAME@
-MKSO		= $(CC) -shared $(LDFLAGS) $(LIBS)
+MKSO		= $(CC) -shared $(LDFLAGS)
+MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
+			$(LDFLAGS)
+#MKSO		= $(CC) -shared $(LDFLAGS) $(LIBS)
 #MACLIBTOOL	= libtool -dynamic -single_module $(LDFLAGS) $(LIBS)
 #MACOSX_DEPLOYMENT_TARGET=10.3
-MACLIBTOOL	= $(CC) -dynamiclib -single_module \
-			-undefined dynamic_lookup \
-			$(LDFLAGS) $(LIBS)
+#MACLIBTOOL	= $(CC) -dynamiclib -single_module \
+#			-undefined dynamic_lookup \
+#			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0
@@ -79,7 +82,7 @@ DTYPE_HEADERS=\
  include/framerd/ffi.h                               \
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
-DB_HEADERS=\
+STORAGE_HEADERS=\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
  include/framerd/pools.h			\
@@ -112,30 +115,33 @@ SRC_HEADERS=src/types/biginternals.h 		\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=\
-	src/types/oids.o src/types/fcnids.o 		\
-	src/types/symbols.o src/types/cons.o 		\
-	src/types/recycle.o src/types/copy.o 		\
+	src/types/oids.o src/types/fcnids.o 			\
+	src/types/symbols.o src/types/cons.o 			\
+	src/types/recycle.o src/types/copy.o 			\
 	src/types/misctypes.o src/types/numbers.o		\
-	src/types/compare.o src/types/walk.o		\
-	src/apply/apply.o @calltracko@ src/apply/ffi.o	\
-	src/types/tables.o src/types/bloom.o		\
-	src/types/sequences.o src/types/choices.o 	\
-	src/types/parse.o src/types/unparse.o		\
-	src/types/bufio.o 				\
-	src/types/dtread.o src/types/dtwrite.o		\
+	src/types/compare.o src/types/walk.o			\
+	src/types/buildinfo.o					\
+	src/apply/apply.o src/apply/cprims.o 			\
+	src/apply/ffi.o						\
+	@calltracko@						\
+	src/types/tables.o src/types/bloom.o			\
+	src/types/sequences.o src/types/choices.o 		\
+	src/types/parse.o src/types/unparse.o			\
+	src/types/bufio.o src/types/pprint.o			\
+	src/types/dtread.o src/types/dtwrite.o			\
 	src/types/libfdtype.o src/types/support.o		\
-	src/types/config.o src/types/err.o 		\
-	src/types/logging.o src/types/getopt.o 		\
+	src/types/config.o src/types/err.o 			\
+	src/types/logging.o src/types/getopt.o 			\
 	src/types/startup.o src/types/fluid.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 		\
-	src/storage/pools.o src/storage/indexes.o	src/storage/compoundindexes.o	\
+DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
+	src/storage/pools.o src/storage/indexes.o src/storage/compoundindexes.o	\
 	src/storage/dtproc.o src/storage/dtcall.o 				\
-	src/storage/methods.o src/storage/oidobj.o 				\
+	src/storage/methods.o src/storage/oidstore.o 				\
 	src/storage/cachecall.o src/storage/threadcache.o 			\
 	src/storage/extindex.o src/storage/extpool.o 				\
 	src/storage/procpool.o src/storage/procindex.o				\
@@ -150,7 +156,7 @@ DRIVER_OBJS=\
 	src/drivers/htindex.o src/drivers/memindex.o    \
 	src/drivers/netindex.o
 
-FDDBSERV_OBJS=src/storage/dbserv.o
+DBSERV_OBJS=src/storage/dbserv.o
 
 CORE_SCHEME_OBJS=\
 	src/eval/eval.o\
@@ -317,7 +323,6 @@ SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdrestart etc/fdctl \
 	etc/fdcleanup
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-               exe/scripts/make-hash-index \
                exe/scripts/make-oidpool \
 	       exe/scripts/ovmerge \
 	       exe/scripts/fdpkg
@@ -327,14 +332,18 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
-CLEANDIRS=src/types src/db src/drivers src/scheme \
-	src/texttools src/fdweb \
-	include/framerd src/drivers/headers \
-	src/cmodules src/cmodules/sundown src/cmodules/tidy5 \
+CLEANDIRS=include/framerd src/drivers/headers 		\
+	src/types src/apply src/storage src/drivers	\
+	src/eval src/prims				\
+	src/text src/web src/scheme			\
+	src/cmodules					\
+	src/cmodules/ext/sundown 			\
+	src/cmodules/ext/tidy5 				\
 	etc
 
 FRAMERD_HEADERS= \
-       $(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS) $(DRIVER_H) $(SRC_HEADERS)
+	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
+	$(DRIVER_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
 	src/types/cons.c src/types/oids.c src/types/symbols.c           	\
@@ -343,14 +352,14 @@ FRAMERD_SOURCES=\
 	src/types/choices.c src/types/sequences.c				\
 	src/types/tables.c src/types/bloom.c				\
         src/types/bufio.c src/types/dtread.c src/types/dtread.c 		\
-	src/types/parse.c src/types/unparse.c 				\
+	src/types/parse.c src/types/unparse.c src/types/buildinfo.c \
 	src/types/libfdtype.c src/types/support.c src/types/config.c	\
 	src/types/err.c src/types/logging.c src/types/getopt.c		\
 	src/types/startup.c src/types/fluid.c				\
 	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
-	src/storage/oidobj.c src/storage/cachecall.c  				\
+	src/storage/oidstore.c src/storage/cachecall.c  				\
 	src/storage/compoundindexes.c  					\
 	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
 	src/storage/dtproc.c src/storage/dtcall.c					\
@@ -585,7 +594,7 @@ src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
-	@$(MKSO) -L./lib -L./ -o $@ $< @LIBS@ 
+	@$(MKSO) -L./lib -L./ -o $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
@@ -837,7 +846,7 @@ pull:
 # Custom dependencies
 
 src/eval/eval.o src/eval/opcodes.c: src/eval/eval_internals.h \
-	$(DTYPE_HEADERS) $(DB_HEADERS) $(SCHEME_HEADERS)
+	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS)
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
@@ -870,14 +879,14 @@ lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
 lib/libfddrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libfdstorage@suffix@.dylib lib/libfdtype@suffix@.dylib
 
-lib/libfddbserv@suffix@.a: $(FDDBSERV_OBJS)
-lib/libfddbserv@suffix@.so: $(FDDBSERV_OBJS) \
+lib/libfddbserv@suffix@.a: $(DBSERV_OBJS)
+lib/libfddbserv@suffix@.so: $(DBSERV_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so
-lib/libfddbserv@suffix@.dylib: $(FDDBSERV_OBJS) \
-	lib/libfdscheme@suffix@.dylib         \
-	lib/libfddrivers@suffix@.dylib         \
-	lib/libfdstorage@suffix@.dylib             \
+lib/libfddbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
+	lib/libfdscheme@suffix@.dylib         	\
+	lib/libfddrivers@suffix@.dylib		\
+	lib/libfdstorage@suffix@.dylib		\
 	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
@@ -939,7 +948,7 @@ src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 	@$(MSG) CC "(MYSQL)" $@
 lib/framerd/mysql.so: src/cmodules/mysql.o ${MODULE_SO}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @MYSQL_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @MYSQL_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o
@@ -954,7 +963,7 @@ src/cmodules/mongodb.o: src/cmodules/mongodb.c ${CONFIG_HDRS}
 	@$(MSG) CC "(MONGODB)" $@
 lib/framerd/mongodb.so: src/cmodules/mongodb.o ${MODULE_SO}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @MONGODB_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @MONGODB_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MONGODB)" $@
 lib/framerd/mongodb.dylib: src/cmodules/mongodb.o
@@ -969,7 +978,7 @@ src/cmodules/imagick.o: src/cmodules/imagick.c ${CONFIG_HDRS}
 	@$(MSG) CC "(IMAGICK)" $@
 lib/framerd/imagick.so: src/cmodules/imagick.o ${MODULE_SO}
 	$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @IMAGICK_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @IMAGICK_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o
@@ -984,7 +993,7 @@ src/cmodules/ziptools.o: src/cmodules/ziptools.c ${CONFIG_HDRS}
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.so: src/cmodules/ziptools.o ${MODULE_SO}
 	@$(MKSO) -L./ -L./lib \
-		-o $@ $< ${MODULE_SO} @LIBZIP_LDFLAGS@ @LIBS@
+		-o $@ $< ${MODULE_SO} @LIBZIP_LDFLAGS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
@@ -1186,7 +1195,8 @@ dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb
+	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb \
+		elpa-fdconsole*@FDVERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
@@ -1280,7 +1290,7 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
+		   $(DTYPE_HEADERS) $(STORAGE_HEADERS)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
@@ -1629,13 +1639,13 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
-$(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
-$(DRIVER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
+$(DB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
+$(DRIVER_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(SCHEME_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
+$(FDWEB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
+$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
 $(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode

@@ -44,4 +44,3 @@ static int isconfig(char *arg)
   char *eq = strchr(arg,'=');
   return ( (eq != NULL) && (eq > arg) && ((*(eq-1)) != '\\') );
 }
-    

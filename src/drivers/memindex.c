@@ -317,7 +317,7 @@ static fdtype preload_opt;
 
 static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts)
 {
-  struct FD_MEM_INDEX *memidx = u8_zalloc(struct FD_MEM_INDEX);
+  struct FD_MEM_INDEX *memidx = u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,
 		file,u8_realpath(file,NULL),
 		flags|FD_INDEX_NOSWAP);
@@ -398,22 +398,7 @@ static fd_index mem_index_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
-static u8_string match_index_name(u8_string spec,void *data)
-{
-  if ((u8_file_existsp(spec)) &&
-      (fd_match4bytes(spec,data)))
-    return spec;
-  else if (u8_has_suffix(spec,".index",1))
-    return NULL;
-  else {
-    u8_string variation = u8_mkstring("%s.index",spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data)))
-      return variation;
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
+/* Initializing the driver module */
 
 static struct FD_INDEX_HANDLER mem_index_handler={
   "memindex", 1, sizeof(struct FD_MEM_INDEX), 14,
@@ -443,7 +428,7 @@ FD_EXPORT void fd_init_memindex_c()
   fd_register_index_type("memindex",
                          &mem_index_handler,
                          open_mem_index,
-                         match_index_name,
+                         match_index_file,
                          (void *) U8_INT2PTR(FD_MEM_INDEX_MAGIC_NUMBER));
 
   u8_register_source_file(_FILEINFO);

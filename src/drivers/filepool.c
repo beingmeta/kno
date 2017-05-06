@@ -369,7 +369,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       retcode = -1; break;}
     else if (FD_EXPECT_FALSE(delta<0)) {retcode = -1; break;}
     else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
-      fd_seterr(fd_FilePoolSizeOverflow,
+      fd_seterr(fd_PoolFileSizeOverflow,
                 "file_pool_storen",u8_strdup(fp->poolid),
                 oids[i]);
       retcode = -1; break;}
@@ -380,7 +380,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   if (retcode<0) {}
   else if ((fp->pool_offdata) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
-    fd_seterr(fd_FilePoolSizeOverflow,
+    fd_seterr(fd_PoolFileSizeOverflow,
               "file_pool_storen",u8_strdup(fp->poolid),
               FD_VOID);
     retcode = -1;}
@@ -452,7 +452,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
         fp->pool_offdata = NULL; errno = 0;}
       newmmap = mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
                    MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->poolid);
         fp->pool_offdata = NULL; fp->pool_offdata_size = 0; errno = 0;}
       else {
@@ -574,10 +574,12 @@ static void file_pool_setcache(fd_pool p,int level)
            big as the file pools load. */
         mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
              MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
-      if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
+      if ((newmmap == NULL) || (newmmap == MAP_FAILED)) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",
                fp->poolid);
-        fp->pool_offdata = NULL; fp->pool_offdata_size = 0; errno = 0;}
+        fp->pool_offdata = NULL;
+        fp->pool_offdata_size = 0;
+        errno = 0;}
       fp->pool_offdata = offsets = newmmap+6;
       fp->pool_offdata_size = fp->pool_load;
 #else
@@ -840,23 +842,6 @@ static struct FD_POOL_HANDLER file_pool_handler={
 
 /* Matching pool names */
 
-static u8_string match_pool_name(u8_string spec,void *data)
-{
-  if ((u8_file_existsp(spec))&&
-      (fd_match4bytes(spec,data)))
-    return spec;
-  else if (u8_has_suffix(spec,".pool",1))
-    return NULL;
-  else {
-    u8_string variation = u8_mkstring("%s.pool",spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data)))
-      return variation;
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
-
 /* Module (file) Initialization */
 
 FD_EXPORT void fd_init_file_pool_c()
@@ -867,13 +852,13 @@ FD_EXPORT void fd_init_file_pool_c()
     ("filepool",
      &file_pool_handler,
      open_file_pool,
-     match_pool_name,
+     match_pool_file,
      (void *)U8_INT2PTR(FD_FILE_POOL_MAGIC_NUMBER));
   fd_register_pool_type
     ("damaged_filepool",
      &file_pool_handler,
      open_file_pool,
-     match_pool_name,
+     match_pool_file,
      (void *)(U8_INT2PTR(FD_FILE_POOL_TO_RECOVER)));
 }
 

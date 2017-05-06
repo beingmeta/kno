@@ -117,6 +117,7 @@ FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_INIT_STACK_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_INIT_STATIC_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
+FD_EXPORT void _FD_SET_REFCOUNT(void *vptr,unsigned int count);
 
 /* Initializing CONSes */
 
@@ -135,7 +136,7 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
   memset(ptr,0,sizeof(*(ptr))); \
   ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead = (FD_HEAD_INIT(type))
+  ((fd_raw_cons)ptr)->conshead = (FD_STATIC_INIT(type))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
   ((fd_raw_cons)ptr)->conshead = (FD_STATIC_INIT(type))
@@ -153,13 +154,25 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type);
   (&(FD_CBITS(ptr)),						\
     (((atomic_load(&(FD_CBITS(ptr))))&(~(FD_CONS_TYPE_MASK)))|	\
      ((type-(FD_CONS_TYPE_OFF))&0x7f)))
+#define FD_SET_REFCOUNT(ptr,count) \
+  atomic_store							\
+  (&(FD_CBITS(ptr)),						\
+    (((atomic_load(&(FD_CBITS(ptr))))&(FD_CONS_TYPE_MASK))|	\
+     (count<<7)))
 #elif FD_INLINE_REFCOUNTS
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((fd_raw_cons)ptr)->conshead=\
+  ((fd_raw_cons)ptr)->conshead=				      \
     ((((fd_raw_cons)ptr)->conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#define FD_SET_REFCOUNT(ptr,count) \
+  ((fd_raw_cons)ptr)->conshead=					\
+    (((((fd_raw_cons)ptr)->conshead)&(FD_CONS_TYPE_MASK))|	\
+     (count<<7))))
 #else
-#define FD_SET_CONS_TYPE(ptr,type) _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
+#define FD_SET_CONS_TYPE(ptr,type) \
+  _FD_SET_CONS_TYPE((struct FD_RAW_CONS *)ptr,type)
+#define FD_SET_REFCOUNT(ptr,type) \
+  _FD_SET_REFCOUNT((struct FD_RAW_CONS *)ptr,type)
 #endif
 
 
@@ -326,6 +339,33 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
 	  (_fd_decref_fn(x),FD_VOID)))
 
+#endif
+
+/* Incref/decref for vectors */
+
+FD_EXPORT int _fd_incref_elts(unsigned int n,const fdtype *elts);
+FD_EXPORT void _fd_decref_elts(unsigned int n,const fdtype *elts);
+
+#if FRAMERD_SOURCE
+FD_FASTOP U8_MAYBE_UNUSED
+int fd_incref_elts(unsigned int n,const fdtype *elts)
+{
+  int i=0, consed=0; while (i<n) {
+    fdtype elt=elts[i++];
+    if ((FD_CONSP(elt))&&(FD_MALLOCD_CONSP((fd_cons)elt))) {
+      consed++; fd_decref(elt);}}
+  return consed;
+}
+
+FD_FASTOP U8_MAYBE_UNUSED
+void fd_decref_elts(unsigned int n,const fdtype *elts)
+{
+  int i=0; while (i<n) {
+    fdtype elt=elts[i++]; fd_decref(elt);}
+}
+#else
+#define fd_incref_elts _fd_incref_elts
+#define fd_decref_elts _fd_decref_elts
 #endif
 
 /* Conses */

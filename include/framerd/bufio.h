@@ -20,7 +20,7 @@ typedef struct FD_OUTBUF *fd_outbuf;
 typedef struct FD_INBUF *fd_inbuf;
 
 typedef struct FD_OUTBUF {
-  int buf_flags; size_t buflen; void *buf_data;
+  int buf_flags; ssize_t buflen; void *buf_data;
   unsigned char *buffer, *bufwrite, *buflim;
   /* FD_OUTBUF has a fillfn because DTYPE streams
      alias as both input and output streams, so we need
@@ -29,7 +29,7 @@ typedef struct FD_OUTBUF {
   ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_OUTBUF;
 
 typedef struct FD_INBUF {
-  int buf_flags; size_t buflen; void *buf_data;
+  int buf_flags; ssize_t buflen; void *buf_data;
   const unsigned char *buffer, *bufread, *buflim;
   /* FD_INBUF has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
@@ -38,7 +38,7 @@ typedef struct FD_INBUF {
   ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_INBUF;
 
 typedef struct FD_RAWBUF {
-  int buf_flags; size_t buflen; void *buf_data;
+  int buf_flags; ssize_t buflen; void *buf_data;
   unsigned char *buffer, *bufpoint, *buflim;
   /* FD_INBUF has a flushfn because DTYPE streams
      alias as both input and output streams, so we need

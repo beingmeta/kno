@@ -194,6 +194,10 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 FD_EXPORT long long fd_fixopt(fdtype opts,u8_string name,int dflt);
 
+/* Getting the C config table */
+
+FD_EXPORT fdtype fd_get_build_info(void);
+
 /* Signalling */
 
 FD_EXPORT struct sigaction *fd_sigaction_catch;

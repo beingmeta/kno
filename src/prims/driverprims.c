@@ -29,24 +29,12 @@ FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
   (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2);
 FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label);
 
-FD_EXPORT fdtype _fd_make_oidpool_deprecated(int n,fdtype *args);
-
 FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
                                                             fdtype size,
                                                             fdtype metadata);
 FD_EXPORT fdtype _fd_deprecated_make_file_index_prim(fdtype fname,
                                                      fdtype size,
                                                      fdtype metadata);
-
-FD_EXPORT fdtype _fd_make_hashindex_deprecated(fdtype fname,fdtype size,
-                                                fdtype slotids,fdtype baseoids,
-                                                fdtype metadata,
-                                                fdtype flags_arg);
-FD_EXPORT fdtype _fd_populate_hashindex_deprecated
-  (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys);
-FD_EXPORT fdtype _fd_hashindex_bucket_deprecated(fdtype ix_arg,fdtype key,fdtype modulus);
-FD_EXPORT fdtype _fd_hashindex_stats_deprecated(fdtype ix_arg);
-FD_EXPORT fdtype _fd_hashindex_slotids_deprecated(fdtype ix_arg);
 
 /* Hashing functions */
 
@@ -73,14 +61,7 @@ static fdtype lisphashdtyperep(fdtype x)
   return FD_INT(hash);
 }
 
-/* Opening unregistered file pools */
-
-static fdtype access_pool_prim(fdtype name)
-{
-  fd_pool p = fd_unregistered_file_pool(FD_STRDATA(name));
-  if (p) return (fdtype) p;
-  else return FD_ERROR_VALUE;
-}
+/* Prefetching from pools */
 
 static fdtype pool_prefetch(fdtype pool,fdtype oids)
 {
@@ -191,18 +172,14 @@ FD_EXPORT void fd_init_driverfns_c()
 
   if (scheme_driverfns_initialized) return;
   scheme_driverfns_initialized = 1;
-  fd_init_fdscheme();
-  fd_init_kbdrivers();
+  fd_init_scheme();
+  fd_init_drivers();
   driverfns_module = fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(driverfns_module,
-           fd_make_cprim1x("ACCESS-POOL",access_pool_prim,1,
-                           fd_string_type,FD_VOID));
-
-  fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,
-                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+                                          fd_consed_pool_type,FD_VOID,-1,FD_VOID)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");
@@ -210,16 +187,6 @@ FD_EXPORT void fd_init_driverfns_c()
 
   fd_idefn(fd_xscheme_module,fd_make_cprimn("INDEXCTL",indexctl_prim,2));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("POOLCTL",poolctl_prim,2));
-  
-  /* These are all primitives which access the internals of various
-     drivers (back when they were exposed). We're leaving them here
-     until there are appropriate opaque replacements. */
-
-  fd_idefn(driverfns_module,
-           fd_make_cprim4x("POPULATE-HASH-INDEX",
-                           _fd_populate_hashindex_deprecated,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           fd_fixnum_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));

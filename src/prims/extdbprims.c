@@ -297,7 +297,7 @@ FD_EXPORT void fd_init_extdbprims_c()
   fdtype extdb_module;
   if (extdb_initialized) return;
   extdb_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
   extdb_module = fd_new_module("EXTDB",(0));
   u8_register_source_file(_FILEINFO);
 

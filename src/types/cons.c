@@ -139,6 +139,11 @@ FD_EXPORT void _FD_SET_CONS_TYPE(void *vptr,fd_ptr_type type)
   fd_raw_cons ptr = (fd_raw_cons)vptr;
   FD_SET_CONS_TYPE(ptr,type);
 }
+FD_EXPORT void _FD_SET_REFCOUNT(void *vptr,unsigned int count)
+{
+  fd_raw_cons ptr = (fd_raw_cons)vptr;
+  FD_SET_REFCOUNT(ptr,count);
+}
 
 FD_EXPORT fdtype _fd_incref_fn(fdtype ptr)
 {
@@ -148,6 +153,16 @@ FD_EXPORT fdtype _fd_incref_fn(fdtype ptr)
 FD_EXPORT void _fd_decref_fn(fdtype ptr)
 {
   fd_decref(ptr);
+}
+
+FD_EXPORT void _fd_decref_elts(unsigned int n,const fdtype *elts)
+{
+  return fd_decref_elts(n,elts);
+}
+
+FD_EXPORT int _fd_incref_elts(unsigned int n,const fdtype *elts)
+{
+  return fd_incref_elts(n,elts);
 }
 
 FD_EXPORT
@@ -315,7 +330,7 @@ fdtype fd_block_string(int len,u8_string string)
 {
   u8_byte *bytes = NULL;
   int length = ((len>=0)?(len):(strlen(string)));
-  struct FD_STRING *ptr = u8_mallocz(sizeof(struct FD_STRING)+length+1);
+  struct FD_STRING *ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
   bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
   if (string) memcpy(bytes,string,length);
   else memset(bytes,'?',length);
@@ -339,12 +354,12 @@ fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
   int length = ((len>0)?(len):(strlen(string)));
   u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr = u8_mallocz(sizeof(struct FD_STRING)+length+1);
+    ptr = u8_malloc(sizeof(struct FD_STRING)+length+1);
     bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,string,length); bytes[length]='\0';
     freedata = 0;}
   else {
-    bytes = u8_mallocz(length+1);
+    bytes = u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
@@ -368,7 +383,7 @@ fdtype fdtype_string(u8_string string)
 
 FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr)
 {
-  if (ptr == NULL) ptr = u8_zalloc(struct FD_PAIR);
+  if (ptr == NULL) ptr = u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(ptr,fd_pair_type);
   ptr->car = car; ptr->cdr = cdr;
   return FDTYPE_CONS(ptr);
@@ -407,16 +422,16 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
   fdtype *elts; int freedata = 1;
   if ((ptr == NULL)&&(data == NULL)) {
     int i = 0;
-    ptr = u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     /* This might be weird on non byte-addressed architectures */
     elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     while (i < len) elts[i++]=FD_VOID;
     freedata = 0;}
   else if (ptr == NULL) {
-    ptr = u8_zalloc(struct FD_VECTOR);
+    ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
   else if (data == NULL) {
-      int i = 0; elts = u8_mallocz(sizeof(fdtype)*len);
+      int i = 0; elts = u8_malloc(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
       freedata = 1;}
   else elts = data;
@@ -443,7 +458,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 {
   int i = 0;
   struct FD_VECTOR *ptr=
-    u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->fdvec_length = len; 
@@ -461,16 +476,16 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
   fdtype *elts; int i = 0, freedata = 1;
   if ((ptr == NULL)&&(data == NULL)) {
-    ptr = u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     freedata = 0;}
   else if (ptr == NULL) {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
   else if (data == NULL) {
-      int i = 0; elts = u8_zalloc(sizeof(fdtype)*len);
-      while (i<len) elts[i]=FD_VOID;
-      freedata = 1;}
+    int i = 0; elts = u8_alloc_n(len,fdtype);
+    while (i<len) elts[i]=FD_VOID;
+    freedata = 1;}
   else {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
@@ -496,7 +511,7 @@ FD_EXPORT fdtype fd_make_nrail(int len,...)
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 {
   int i = 0;
-  struct FD_VECTOR *ptr = u8_mallocz
+  struct FD_VECTOR *ptr = u8_malloc
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
@@ -519,7 +534,7 @@ FD_EXPORT fdtype fd_init_packet
     ptr->fd_freebytes = 1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
-    u8_byte *consed = u8_mallocz(len+1);
+    u8_byte *consed = u8_malloc(len+1);
     memset(consed,0,len+1);
     data = consed;}
   ptr->fd_bytelen = len; ptr->fd_bytes = data;
@@ -531,7 +546,7 @@ FD_EXPORT fdtype fd_make_packet
 {
   u8_byte *bytes = NULL; int freedata = 1;
   if (ptr == NULL) {
-    ptr = u8_mallocz(sizeof(struct FD_STRING)+len+1);
+    ptr = u8_malloc(sizeof(struct FD_STRING)+len+1);
     bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
@@ -551,7 +566,7 @@ FD_EXPORT fdtype fd_bytes2packet
 {
   u8_byte *bytes = NULL; int freedata = (data!=NULL);
   if (ptr == NULL) {
-    ptr = u8_mallocz(sizeof(struct FD_STRING)+len+1);
+    ptr = u8_malloc(sizeof(struct FD_STRING)+len+1);
     bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);

@@ -143,7 +143,7 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
 static int unparse_fcnid(u8_output out,fdtype x)
 {
   fdtype lp = fd_fcnid_ref(x);
-  if (FD_TYPEP(lp,fd_primfcn_type)) {
+  if (FD_TYPEP(lp,fd_cprim_type)) {
     struct FD_FUNCTION *fcn = (fd_function)lp;
     u8_string name = fcn->fcn_name;
     u8_string filename = fcn->fcn_filename;

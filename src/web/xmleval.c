@@ -1778,7 +1778,7 @@ FD_EXPORT void fd_init_xmleval_c()
   /* fdtype module = fd_new_module("FDWEB",(FD_MODULE_SAFE)); */
   if (xmleval_initialized) return;
   xmleval_initialized = 1;
-  fd_init_fdscheme();
+  fd_init_scheme();
   fdxml_module = fd_make_env(fd_make_hashtable(NULL,17),NULL);
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);

@@ -13,8 +13,8 @@
 
 FD_EXPORT fdtype fd_fget(fdtype frames,fdtype slotids);
 FD_EXPORT fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values);
-FD_EXPORT fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values);
-FD_EXPORT fdtype fd_fretract(fdtype frames,fdtype slotids,fdtype values);
+FD_EXPORT fdtype fd_assert(fdtype frames,fdtype slotids,fdtype values);
+FD_EXPORT fdtype fd_retract(fdtype frames,fdtype slotids,fdtype values);
 
 #endif
 

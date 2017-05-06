@@ -23,11 +23,11 @@ FD_EXPORT void fd_init_fdweb(void);
 
 int main(int argc,char **argv)
 {
-  int fd_version = fd_init_fdscheme();
+  int fd_version = fd_init_scheme();
   fd_lispenv env;
   fdtype expr, value;
   if (fd_version<0) exit(1);
-  fd_init_fdscheme(); fd_init_schemeio();
+  fd_init_scheme(); fd_init_schemeio();
   fd_init_texttools(); fd_init_fdweb();
   u8_init_chardata_c();
   env = fd_working_environment();

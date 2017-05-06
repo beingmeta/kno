@@ -5,6 +5,10 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
@@ -174,7 +178,8 @@ static fdtype get_fcgidata(FCGX_Request *req)
     int len = atoi(lenstring);
     char *buf = u8_malloc(len);
     int read_len = FCGX_GetStr(buf,len,req->in);
-    if (len!=read_len) u8_log(LOG_CRIT,"Wrong number of bytes","In FastCGI input processing");
+    if (len!=read_len)
+      u8_log(LOG_CRIT,"Wrong number of bytes","In FastCGI input processing");
     packet = fd_init_packet(NULL,read_len,buf);
     fd_store(slotmap,post_data,packet);}
   copy_param("QUERY_STRING",req->envp,slotmap,query_string);
@@ -598,7 +603,7 @@ static int simplecgi(fdtype path)
 
 /* The main() event */
 
-FD_EXPORT int fd_init_kbdrivers(void);
+FD_EXPORT int fd_init_drivers(void);
 
 int main(int argc,char **argv)
 {
@@ -628,7 +633,7 @@ int main(int argc,char **argv)
     dup2(log_fd,1);
     dup2(log_fd,2);}
 
-  fd_version = fd_init_fdscheme();
+  fd_version = fd_init_scheme();
 
   if (fd_version<0) {
     u8_log(LOG_WARN,Startup,"Couldn't initialize FramerD");
@@ -654,7 +659,7 @@ int main(int argc,char **argv)
   u8_use_syslog(1);
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
-  fd_init_fdscheme();
+  fd_init_scheme();
   fd_init_schemeio();
   fd_init_texttools();
 #else
@@ -662,7 +667,7 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_fdweb();
-  fd_init_kbdrivers();
+  fd_init_drivers();
 
   init_webcommon_data();
   init_webcommon_symbols();

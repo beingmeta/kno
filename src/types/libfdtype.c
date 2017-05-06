@@ -84,7 +84,7 @@ static void init_type_names()
   fd_type_names[fd_mystery_type]=_("mystery");
   fd_type_names[fd_qchoice_type]=_("quoted choice");
   fd_type_names[fd_hashset_type]=_("hashset");
-  fd_type_names[fd_primfcn_type]=_("builtin function");
+  fd_type_names[fd_cprim_type]=_("builtin function");
   fd_type_names[fd_error_type]=_("error");
   fd_type_names[fd_complex_type]=_("complex");
   fd_type_names[fd_rational_type]=_("rational");
@@ -121,6 +121,7 @@ FD_EXPORT void fd_init_oids_c(void);
 FD_EXPORT void fd_init_textio_c(void);
 FD_EXPORT void fd_init_parse_c(void);
 FD_EXPORT void fd_init_unparse_c(void);
+FD_EXPORT void fd_init_pprint_c(void);
 FD_EXPORT void fd_init_ports_c(void);
 FD_EXPORT void fd_init_dtread_c(void);
 FD_EXPORT void fd_init_dtwrite_c(void);
@@ -131,9 +132,9 @@ FD_EXPORT void fd_init_numbers_c(void);
 FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
 FD_EXPORT void fd_init_sequences_c(void);
-FD_EXPORT void fd_init_ffi_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
 FD_EXPORT void fd_init_apply_c(void);
+FD_EXPORT void fd_init_build_info(void);
 
 static double format_secs(double secs,char **units)
 {
@@ -164,7 +165,6 @@ FD_EXPORT void fd_log_status()
     double systime = format_secs
       (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
        &stu);
-    u8_byte prefix_buf[256];
     if (heapbytes>10000000000) {
       heapsize = floor(((double)heapbytes)/1000000000); heapu="GB";}
     else if (heapbytes>1500000) {
@@ -201,6 +201,7 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_misctypes_c();
   fd_init_oids_c();
   fd_init_unparse_c();
+  fd_init_pprint_c();
   fd_init_parse_c();
   fd_init_tables_c();
   fd_init_symbols_c();
@@ -212,8 +213,8 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_bloom_c();
   fd_init_apply_c();
   fd_init_sequences_c();
-  fd_init_ffi_c();
   fd_init_fcnids_c();
+  fd_init_build_info();
 
   u8_threadcheck();
 

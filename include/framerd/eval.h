@@ -24,8 +24,8 @@ FD_EXPORT fdtype fd_scheme_module, fd_xscheme_module;
 
 FD_EXPORT fdtype _fd_comment_symbol;
 
-FD_EXPORT int fd_load_fdscheme(void) FD_LIBINIT0_FN;
-FD_EXPORT int fd_init_fdscheme(void);
+FD_EXPORT int fd_load_scheme(void) FD_LIBINIT0_FN;
+FD_EXPORT int fd_init_scheme(void);
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
 FD_EXPORT u8_context fd_eval_context;
@@ -96,13 +96,11 @@ FD_EXPORT u8_string fd_get_documentation(fdtype x);
 
 /* DT servers */
 
-FD_EXPORT fd_ptr_type fd_stream_erver_type;
-
-typedef struct FD_STREAM_ERVER {
+typedef struct FD_DTSERVER {
   FD_CONS_HEADER;
-  u8_string fd_serverid, fd_server_address;
-  struct U8_CONNPOOL *fd_connpool;} FD_STREAM_ERVER;
-typedef struct FD_STREAM_ERVER *fd_stream_erver;
+  u8_string dtserverid, dtserver_addr;
+  struct U8_CONNPOOL *fd_connpool;} FD_DTSERVER;
+typedef struct FD_DTSERVER *fd_stream_erver;
 
 /* Modules */
 

@@ -29,13 +29,13 @@ FD_EXPORT int fd_index_cache_init;
 FD_EXPORT int fd_index_edits_init;
 FD_EXPORT int fd_index_adds_init;
 
-#define FD_INDEX_ADD_CAPABILITY  (FD_STORAGE_INDEX_FLAG(1))
-#define FD_INDEX_DROP_CAPABILITY (FD_STORAGE_INDEX_FLAG(2))
-#define FD_INDEX_SET_CAPABILITY  (FD_STORAGE_INDEX_FLAG(3))
-#define FD_INDEX_IN_BACKGROUND   (FD_STORAGE_INDEX_FLAG(4))
-#define FD_INDEX_NOSWAP          (FD_STORAGE_INDEX_FLAG(5))
+#define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(1))
+#define FD_INDEX_ADD_CAPABILITY  (FD_INDEX_FLAG(2))
+#define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(3))
+#define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(4))
+#define FD_INDEX_NOSWAP          (FD_INDEX_FLAG(5))
 
-#define FD_N_PRIMARY_INDEXES 128
+#define FD_N_PRIMARY_INDEXES 1024
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;						   \
@@ -50,7 +50,8 @@ FD_EXPORT int fd_index_adds_init;
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
 
-FD_EXPORT fd_index fd_primary_indexes[], *fd_secondary_indexes;
+FD_EXPORT fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES];
+FD_EXPORT fd_index *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
 
 typedef struct FD_KEY_SIZE {
@@ -136,9 +137,13 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_batch_add(fd_index ix,fdtype table);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
+FD_EXPORT fd_index fd_find_index(u8_string);
+FD_EXPORT u8_string fd_locate_index(u8_string);
+
 FD_EXPORT fd_index fd_open_index(u8_string,fd_storage_flags,fdtype);
 FD_EXPORT fd_index fd_get_index(u8_string,fd_storage_flags,fdtype);
-FD_EXPORT fd_index fd_find_index_by_qname(u8_string);
+FD_EXPORT fd_index fd_find_index_by_id(u8_string);
+FD_EXPORT fd_index fd_find_index_by_source(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
@@ -300,7 +305,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
     else if (serial<(FD_N_PRIMARY_INDEXES+fd_n_secondary_indexes))
       return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
     else return NULL;}
-  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_raw_index_type)))
+  else if ((FD_CONSP(x))&&(FD_TYPEP(x,fd_consed_index_type)))
     return (fd_index)x;
   else return (fd_index)NULL;
 }

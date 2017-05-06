@@ -51,23 +51,28 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     return fd_getopt(FD_XQCHOICE(opts)->qchoiceval,key,dflt);
   else while (!(FD_VOIDP(opts))) {
       if (FD_PAIRP(opts)) {
-        fdtype car = FD_CAR(opts);
-        if (FD_SYMBOLP(car)) {
-          if (FD_EQ(key,car)) return FD_TRUE;}
-        else if (FD_PAIRP(car)) {
-          if (FD_EQ(FD_CAR(car),key))
-            return fd_incref(FD_CDR(car));
-          else {
-            fdtype value = fd_getopt(car,key,FD_VOID);
-            if (!(FD_VOIDP(value))) return value;}}
-        else if (FD_TABLEP(car)) {
-          fdtype value = fd_get(car,key,FD_VOID);
-          if (!(FD_VOIDP(value))) return value;}
-        else if ((FD_FALSEP(car))||(FD_EMPTY_LISTP(car))) {}
-        else return fd_err(WeirdOption,"fd_getopt",NULL,car);
-        opts = FD_CDR(opts);}
+	fdtype car = FD_CAR(opts);
+	if (FD_SYMBOLP(car)) {
+	  if (FD_EQ(key,car))
+	    return FD_TRUE;
+	  else {}}
+	else if (FD_PAIRP(car)) {
+	  if (FD_EQ(FD_CAR(car),key))
+	    return fd_incref(FD_CDR(car));
+	  else {
+	    fdtype value = fd_getopt(car,key,FD_VOID);
+	    if (!(FD_VOIDP(value)))
+	      return value;}}
+	else if (FD_TABLEP(car)) {
+	  fdtype value = fd_get(car,key,FD_VOID);
+	  if (!(FD_VOIDP(value)))
+	    return value;}
+	else if ((FD_FALSEP(car))||(FD_EMPTY_LISTP(car))) {}
+	else return fd_err(WeirdOption,"fd_getopt",NULL,car);
+	opts = FD_CDR(opts);}
       else if (FD_SYMBOLP(opts))
-        if (FD_EQ(key,opts)) return FD_TRUE;
+        if (FD_EQ(key,opts))
+	  return FD_TRUE;
         else return fd_incref(dflt);
       else if (FD_TABLEP(opts))
         return fd_get(opts,key,dflt);

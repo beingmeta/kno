@@ -26,9 +26,9 @@ FD_EXPORT u8_condition fd_Commitment;
 FD_EXPORT fd_exception fd_BadMetaData;
 FD_EXPORT fd_exception fd_ConnectionFailed;
 
-FD_EXPORT int fd_init_kbdrivers(void) FD_LIBINIT_FN;
-FD_EXPORT int fd_init_kblib(void) FD_LIBINIT_FN;
-FD_EXPORT int fd_init_fddbserv(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_drivers(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_storage(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_dbserv(void) FD_LIBINIT_FN;
 
 FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
@@ -56,19 +56,20 @@ typedef unsigned int fd_storage_flags;
 #define FD_STORAGE_ISINDEX		   0x02
 #define FD_STORAGE_READ_ONLY		   0x04
 #define FD_STORAGE_ISCONSED		   0x08
-#define FD_STORAGE_UNREGISTERED	   0x10
-#define FD_STORAGE_KEEP_CACHESIZE        0x20
+#define FD_STORAGE_UNREGISTERED	           0x10
+#define FD_STORAGE_KEEP_CACHESIZE          0x20
 #define FD_STORAGE_NOSWAP		   0x40
+#define FD_STORAGE_NOERR		   0x80
 #define FD_STORAGE_MAX_INIT_BITS	   0x800
 #define FD_STORAGE_MAX_STATE_BITS	   0x1000
 
 typedef char fdb_cache_level;
 
-#define FD_STORAGE_POOL_FLAG(n)	   ((0x10000)<<n)
-#define FD_STORAGE_INDEX_FLAG(n)	   ((0x10000)<<n)
+#define FD_POOL_FLAG(n)	           ((0x10000)<<n)
+#define FD_INDEX_FLAG(n)	   ((0x10000)<<n)
 
-#ifndef FDDBSERV_MAX_POOLS
-#define FDDBSERV_MAX_POOLS 128
+#ifndef FD_DBSERV_MAX_POOLS
+#define FD_DBSERV_MAX_POOLS 128
 #endif
 
 #ifndef FD_DBCONN_RESERVE_DEFAULT
@@ -83,9 +84,12 @@ typedef char fdb_cache_level;
 #define FD_DBCONN_INIT_DEFAULT 1
 #endif
 
-FD_EXPORT int fd_dbconn_reserve_default, fd_dbconn_cap_default, fd_dbconn_init_default;
+FD_EXPORT int fd_dbconn_reserve_default;
+FD_EXPORT int fd_dbconn_cap_default;
+FD_EXPORT int fd_dbconn_init_default;
 
-FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type, fd_raw_index_type, fd_raw_pool_type;
+FD_EXPORT fd_ptr_type fd_consed_index_type;
+FD_EXPORT fd_ptr_type fd_consed_pool_type;
 
 #define FD_INDEXP(x) (FD_TYPEP(x,fd_index_type))
 #define FD_POOLP(x) (FD_TYPEP(x,fd_pool_type))

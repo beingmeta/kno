@@ -31,6 +31,7 @@
 
 static fdtype pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static fdtype flags_symbol, register_symbol, readonly_symbol;
+static fdtype background_symbol, isadjunct_symbol, sparse_symbol;
 
 static fdtype slotidp(fdtype arg)
 {
@@ -38,7 +39,7 @@ static fdtype slotidp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fd_storage_flags getdbflags(fdtype opts)
+static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
 {
   if (FD_FIXNUMP(opts)) {
     long long val=FD_FIX2INT(opts);
@@ -47,19 +48,47 @@ static fd_storage_flags getdbflags(fdtype opts)
     else return val;}
   else if (FD_TABLEP(opts)) {
     fdtype flags_val=fd_getopt(opts,flags_symbol,FD_VOID);
-    fd_storage_flags flags = 
-      (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0);
+    fd_storage_flags flags =
+      ( (FD_FIXNUMP(flags_val)) ? (FD_FIX2INT(flags_val)) : (0) ) |
+      (init_flags);
     fdtype regopt = fd_getopt(opts,register_symbol,FD_VOID);
+    fdtype bgopt = ((flags&FD_STORAGE_ISINDEX) ?
+                    (fd_getopt(opts,background_symbol,FD_VOID)) :
+                    (FD_FALSE));
+    fdtype adjopt = ((flags&FD_STORAGE_ISPOOL) ?
+                     (fd_getopt(opts,isadjunct_symbol,FD_VOID)) :
+                     (FD_FALSE));
+    fdtype sparseopt = ((flags&FD_STORAGE_ISPOOL) ?
+                        (fd_getopt(opts,sparse_symbol,FD_VOID)) :
+                        (FD_FALSE));
     if (fd_testopt(opts,readonly_symbol,FD_VOID))
       flags |= FD_STORAGE_READ_ONLY;
     if ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)))
       flags |= FD_STORAGE_UNREGISTERED;
+    if ( (flags&FD_STORAGE_ISINDEX) &&
+         (!( (FD_VOIDP(bgopt)) ||
+             (FD_FALSEP(bgopt)) ||
+             (FD_ZEROP(bgopt)) ) ) )
+      flags |= FD_INDEX_IN_BACKGROUND;
+    if ( (flags&FD_STORAGE_ISPOOL) &&
+         (!( (FD_VOIDP(adjopt)) ||
+             (FD_FALSEP(adjopt)) ||
+             (FD_ZEROP(adjopt)) ) ) )
+      flags |= FD_POOL_ADJUNCT | FD_POOL_SPARSE;
+    else if ( (flags&FD_STORAGE_ISPOOL) &&
+              (!( (FD_VOIDP(sparseopt)) ||
+                  (FD_FALSEP(sparseopt)) ||
+                  (FD_ZEROP(sparseopt)) ) ) )
+      flags |= FD_POOL_SPARSE;
+    else {}
     fd_decref(flags_val);
+    fd_decref(sparseopt);
     fd_decref(regopt);
+    fd_decref(bgopt);
     return flags;}
   else if (FD_FALSEP(opts))
-    return FD_STORAGE_UNREGISTERED;
-  else return 0;
+    return init_flags | FD_STORAGE_UNREGISTERED;
+  else return init_flags;
 }
 
 /* Finding frames, etc. */
@@ -183,7 +212,7 @@ static fdtype poolp(fdtype arg)
 
 static fdtype indexp(fdtype arg)
 {
-  if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_raw_index_type)))
+  if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type)))
     return FD_TRUE; else return FD_FALSE;
 }
 
@@ -227,7 +256,7 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
     if (p) fd_pool_setcache(p,FD_FIX2INT(level));
     else return FD_ERROR_VALUE;
     return FD_VOID;}
-  else if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_raw_index_type))) {
+  else if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg);
     if (ix) fd_index_setcache(ix,FD_FIX2INT(level));
     else return fd_type_error("index","index_frame_prim",arg);
@@ -235,16 +264,34 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
   else return fd_type_error("pool or index","set_cache_level",arg);
 }
 
-static fdtype load_pool(fdtype arg1,fdtype opts)
+static fdtype try_pool(fdtype arg1,fdtype opts)
 {
   if (FD_POOLP(arg1))
     return fd_incref(arg1);
   else if (!(FD_STRINGP(arg1)))
     return fd_type_error(_("string"),"load_pool",arg1);
   else {
-    fd_pool p = fd_get_pool(FD_STRDATA(arg1),0,opts);
-    if (p) return fd_pool2lisp(p);
+    fd_pool p = fd_get_pool(FD_STRDATA(arg1),FD_STORAGE_NOERR,opts);
+    if (p)
+      return fd_pool2lisp(p);
     else return FD_FALSE;}
+}
+
+static fdtype adjunct_pool(fdtype arg1,fdtype opts)
+{
+  if (FD_POOLP(arg1))
+    return fd_incref(arg1);
+  else if (!(FD_STRINGP(arg1)))
+    return fd_type_error(_("string"),"adjunct_pool",arg1);
+  else {
+    fd_storage_flags flags=
+      getdbflags(opts,FD_STORAGE_ISPOOL) |
+      FD_POOL_ADJUNCT |
+      FD_POOL_SPARSE;
+    fd_pool p = fd_get_pool(FD_STRDATA(arg1),flags,opts);
+    if (p)
+      return fd_pool2lisp(p);
+    else return FD_ERROR_VALUE;}
 }
 
 static fdtype use_pool(fdtype arg1,fdtype opts)
@@ -276,7 +323,9 @@ static fdtype use_index(fdtype arg,fdtype opts)
       u8_byte *copy = u8_strdup(FD_STRDATA(arg));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
-        fd_index ix = fd_use_index(start,getdbflags(opts),opts);
+        fd_index ix = fd_use_index(start,
+                                   getdbflags(opts,FD_STORAGE_ISINDEX),
+                                   opts);
         if (ix == NULL) {
           u8_free(copy);
           fd_decref(results);
@@ -290,15 +339,18 @@ static fdtype use_index(fdtype arg,fdtype opts)
         else start = NULL;}
       u8_free(copy);
       return results;}
-    else ix = fd_use_index(FD_STRDATA(arg),getdbflags(opts),opts);
+    else ix = fd_use_index(FD_STRDATA(arg),
+                           getdbflags(opts,FD_STORAGE_ISINDEX),
+                           opts);
   else return fd_type_error(_("index spec"),"use_index",arg);
-  if (ix) return fd_index2lisp(ix);
+  if (ix)
+    return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
 
 static fdtype open_index(fdtype arg,fdtype opts)
 {
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
@@ -324,10 +376,11 @@ static fdtype open_index(fdtype arg,fdtype opts)
       return results;}
     else return fd_index2lisp(fd_get_index(FD_STRDATA(arg),flags,opts));
   else if (FD_INDEXP(arg)) return arg;
-  else if (FD_TYPEP(arg,fd_raw_index_type))
+  else if (FD_TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
-  if (ix) return fd_index2lisp(ix);
+  if (ix)
+    return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
 }
 
@@ -335,9 +388,9 @@ static fdtype make_pool(fdtype path,fdtype opts)
 {
   fd_pool p = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   if (FD_VOIDP(type))
-    return fd_err(_("PoolTypeNeeded"),"make_pool",NULL,FD_VOID);
+    p = fd_make_pool(FD_STRDATA(path),NULL,flags,opts);
   else if (FD_SYMBOLP(type))
     p = fd_make_pool(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
@@ -352,20 +405,20 @@ static fdtype make_pool(fdtype path,fdtype opts)
 
 static fdtype open_pool(fdtype path,fdtype opts)
 {
-  fd_storage_flags flags = getdbflags(opts);
-  fd_pool p = fd_open_pool(FD_STRDATA(path),
-                         flags|FD_STORAGE_UNREGISTERED,
-                         opts);
-  return (fdtype)p;
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
+  fd_pool p = fd_open_pool(FD_STRDATA(path),flags,opts);
+  if (p)
+    return fd_pool2lisp(p);
+  else return FD_ERROR_VALUE;
 }
 
 static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fd_storage_flags flags = getdbflags(opts);
+  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   if (FD_VOIDP(type))
-    return fd_err(_("IndexTypeNeeded"),"make_index",NULL,FD_VOID);
+    ix = fd_make_index(FD_STRDATA(path),NULL,flags,opts);
   else if (FD_SYMBOLP(type))
     ix = fd_make_index(FD_STRDATA(path),FD_SYMBOL_NAME(type),flags,opts);
   else if (FD_STRINGP(type))
@@ -465,12 +518,12 @@ static fdtype make_compound_index(int n,fdtype *args)
       fd_index ix = NULL;
       if (FD_STRINGP(source)) ix = fd_get_index(fd_strdata(source),0,FD_VOID);
       else if (FD_INDEXP(source)) ix = fd_indexptr(source);
-      else if (FD_TYPEP(source,fd_raw_index_type)) ix = fd_indexptr(source);
+      else if (FD_TYPEP(source,fd_consed_index_type)) ix = fd_indexptr(source);
       else if (FD_SYMBOLP(source)) {
         fdtype val = fd_config_get(FD_SYMBOL_NAME(source));
         if (FD_STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,FD_VOID);
         else if (FD_INDEXP(val)) ix = fd_indexptr(source);
-        else if (FD_TYPEP(val,fd_raw_index_type)) ix = fd_indexptr(val);}
+        else if (FD_TYPEP(val,fd_consed_index_type)) ix = fd_indexptr(val);}
       else {}
       if (ix) {
         if (n_sources>=max_sources) {
@@ -694,7 +747,7 @@ static fdtype extindex_state(fdtype index)
 
 /* Adding adjuncts */
 
-static fdtype adjunct_symbol;
+static fdtype padjuncts_symbol;
 
 static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
 {
@@ -703,27 +756,19 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
     if (ix) adjunct = fd_index2lisp(ix);
     else return fd_type_error("adjunct spec","use_adjunct",adjunct);}
   if ((FD_VOIDP(slotid)) && (FD_TABLEP(adjunct)))
-    slotid = fd_get(adjunct,adjunct_symbol,FD_VOID);
+    slotid = fd_get(adjunct,padjuncts_symbol,FD_VOID);
   if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
     if (FD_VOIDP(pool_arg))
-      if (fd_set_adjunct(NULL,slotid,adjunct)<0) return FD_ERROR_VALUE;
+      if (fd_set_adjunct(NULL,slotid,adjunct)<0)
+        return FD_ERROR_VALUE;
       else return FD_VOID;
     else {
       fd_pool p = fd_lisp2pool(pool_arg);
       if (p == NULL) return FD_ERROR_VALUE;
-      else if (fd_set_adjunct(p,slotid,adjunct)<0) return FD_ERROR_VALUE;
+      else if (fd_set_adjunct(p,slotid,adjunct)<0)
+        return FD_ERROR_VALUE;
       else return FD_VOID;}
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
-}
-
-/* Definiing pool ops */
-
-static fdtype set_pool_op(fdtype pool_arg,fdtype op,fdtype slotid,fdtype handler)
-{
-  fd_pool p = fd_lisp2pool(pool_arg);
-  if (p == NULL) return FD_ERROR_VALUE;
-  else if (fd_pool_setop(p,op,slotid,handler)<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
 }
 
 /* DB control functions */
@@ -745,9 +790,9 @@ static fdtype swapout_lexpr(int n,fdtype *args)
           rv = fd_pool_swapout(fd_lisp2pool(e),FD_VOID);
         else if (FD_INDEXP(e))
           fd_index_swapout(fd_indexptr(e),FD_VOID);
-        else if (FD_TYPEP(e,fd_raw_index_type))
+        else if (FD_TYPEP(e,fd_consed_index_type))
           fd_index_swapout(fd_indexptr(e),FD_VOID);
-        else if (FD_TYPEP(arg,fd_raw_pool_type))
+        else if (FD_TYPEP(arg,fd_consed_pool_type))
           rv = fd_pool_swapout((fd_pool)arg,FD_VOID);
         else if (FD_STRINGP(e)) {
           fd_pool p = fd_name2pool(FD_STRDATA(e));
@@ -773,9 +818,9 @@ static fdtype swapout_lexpr(int n,fdtype *args)
       fd_index_swapout(fd_indexptr(arg),FD_VOID);
     else if (FD_TYPEP(arg,fd_pool_type))
       rv_sum = fd_pool_swapout(fd_lisp2pool(arg),FD_VOID);
-    else if (FD_TYPEP(arg,fd_raw_index_type))
+    else if (FD_TYPEP(arg,fd_consed_index_type))
       fd_index_swapout(fd_indexptr(arg),FD_VOID);
-    else if (FD_TYPEP(arg,fd_raw_pool_type))
+    else if (FD_TYPEP(arg,fd_consed_pool_type))
       rv_sum = fd_pool_swapout((fd_pool)arg,FD_VOID);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     return FD_INT(rv_sum);}
@@ -785,17 +830,17 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     fdtype arg, keys; int rv_sum = 0;
     if ((FD_TYPEP(args[0],fd_pool_type))||
         (FD_TYPEP(args[0],fd_index_type))||
-        (FD_TYPEP(args[0],fd_raw_pool_type))||
-        (FD_TYPEP(args[0],fd_raw_index_type))) {
+        (FD_TYPEP(args[0],fd_consed_pool_type))||
+        (FD_TYPEP(args[0],fd_consed_index_type))) {
       arg = args[0]; keys = args[1];}
     else {arg = args[0]; keys = args[1];}
     if (FD_TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
     else if (FD_TYPEP(arg,fd_pool_type))
       rv_sum = fd_pool_swapout(fd_lisp2pool(arg),keys);
-    else if (FD_TYPEP(arg,fd_raw_index_type))
+    else if (FD_TYPEP(arg,fd_consed_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
-    else if (FD_TYPEP(arg,fd_raw_pool_type))
+    else if (FD_TYPEP(arg,fd_consed_pool_type))
       rv_sum = fd_pool_swapout((fd_pool)arg,keys);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     if (rv_sum<0) return FD_ERROR_VALUE;
@@ -816,9 +861,9 @@ static fdtype commit_lexpr(int n,fdtype *args)
       retval = fd_index_commit(fd_indexptr(arg));
     else if (FD_TYPEP(arg,fd_pool_type))
       retval = fd_pool_commit_all(fd_lisp2pool(arg));
-    else if (FD_TYPEP(arg,fd_raw_index_type))
+    else if (FD_TYPEP(arg,fd_consed_index_type))
       retval = fd_index_commit(fd_indexptr(arg));
-    else if (FD_TYPEP(arg,fd_raw_pool_type))
+    else if (FD_TYPEP(arg,fd_consed_pool_type))
       retval = fd_pool_commit_all((fd_pool)arg);
     else if (FD_OIDP(arg))
       retval = fd_commit_oids(arg);
@@ -901,7 +946,7 @@ static fdtype swapcheck_prim()
 static fd_pool arg2pool(fdtype arg)
 {
   if (FD_POOLP(arg)) return fd_lisp2pool(arg);
-  else if (FD_TYPEP(arg,fd_raw_pool_type))
+  else if (FD_TYPEP(arg,fd_consed_pool_type))
     return (fd_pool)arg;
   else if (FD_STRINGP(arg)) {
     fd_pool p = fd_name2pool(FD_STRDATA(arg));
@@ -1231,7 +1276,7 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
     else return FD_VOID;}
   else {
     FD_DO_CHOICES(arg,arg1) {
-      if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_raw_index_type))) {
+      if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(arg);
         if (fd_index_prefetch(ix,arg2)<0) {
           FD_STOP_DO_CHOICES;
@@ -1363,7 +1408,7 @@ fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
 }
 
 FD_EXPORT
-fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values)
+fdtype fd_assert(fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_EMPTY_CHOICEP(values)) return FD_VOID;
   else {
@@ -1375,7 +1420,7 @@ fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values)
     return FD_VOID;}
 }
 FD_EXPORT
-fdtype fd_fretract(fdtype frames,fdtype slotids,fdtype values)
+fdtype fd_retract(fdtype frames,fdtype slotids,fdtype values)
 {
   if (FD_EMPTY_CHOICEP(values)) return FD_VOID;
   else {
@@ -1486,6 +1531,47 @@ static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
       fd_store(table,key,dflt);
       return dflt;}
     else return value;}
+}
+
+/* Getting info from indexes */
+
+static fd_index arg2index(fdtype arg)
+{
+  if (FD_INDEXP(arg)) return fd_lisp2index(arg);
+  else if (FD_TYPEP(arg,fd_consed_index_type))
+    return (fd_index)arg;
+  else if (FD_STRINGP(arg)) {
+    fd_index ix = fd_find_index(FD_STRDATA(arg));
+    if (ix) return ix;
+    else return NULL;}
+  else if (FD_SYMBOLP(arg)) {
+    fdtype v = fd_config_get(FD_SYMBOL_NAME(arg));
+    if (FD_STRINGP(v))
+      return fd_find_index(FD_STRDATA(v));
+    else return NULL;}
+  else return NULL;
+}
+
+static fdtype index_id(fdtype arg)
+{
+  fd_index p = arg2index(arg);
+  if (p == NULL)
+    return fd_type_error(_("index spec"),"index_id",arg);
+  else if (p->indexid)
+    return fdtype_string(p->indexid);
+  else if (p->index_source)
+    return fdtype_string(p->index_source);
+  else return FD_FALSE;
+}
+
+static fdtype index_source(fdtype arg)
+{
+  fd_index p = arg2index(arg);
+  if (p == NULL)
+    return fd_type_error(_("index spec"),"index_label",arg);
+  else if (p->index_source)
+    return fdtype_string(p->index_source);
+  else return FD_FALSE;
 }
 
 /* Index operations */
@@ -1620,7 +1706,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     fdtype rail[2], result = FD_VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
-    if ((FD_SPROCP(pred)) || (FD_TYPEP(pred,fd_primfcn_type))) {
+    if ((FD_SPROCP(pred)) || (FD_TYPEP(pred,fd_cprim_type))) {
       fd_function fcn = FD_DTYPE2FCN(pred);
       if (fcn->fcn_min_arity==1) {
         fdtype value = fd_apply(pred,1,&f); int retval = -1;
@@ -2661,7 +2747,7 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
     else if (fd_hashtable_probe(&(fd_background->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_raw_index_type))) {
+  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
@@ -2725,12 +2811,12 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
       if (oidmodifiedp(p,arg1))
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_POOLP(arg1))||(FD_TYPEP(arg1,fd_raw_pool_type))) {
+    else if ((FD_POOLP(arg1))||(FD_TYPEP(arg1,fd_consed_pool_type))) {
       fd_pool p = fd_lisp2pool(arg1);
       if (p->pool_changes.table_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_INDEXP(arg1))||(FD_TYPEP(arg1,fd_raw_index_type))) {
+    else if ((FD_INDEXP(arg1))||(FD_TYPEP(arg1,fd_consed_index_type))) {
       fd_index ix = fd_lisp2index(arg1);
       if ((ix->index_edits.table_n_keys) || (ix->index_adds.table_n_keys))
         return FD_TRUE;
@@ -2743,7 +2829,7 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
         else return FD_FALSE;}
       else return FD_FALSE;}
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_raw_index_type))) {
+  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
@@ -2944,9 +3030,9 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",fd_ftest,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("TESTP",testp,3)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_fassert,3)));
+           fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_assert,3)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_fretract,2)));
+           fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_retract,2)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("GETSLOTS",fd_getkeys,1)));
   fd_idefn(fd_scheme_module,
@@ -3045,10 +3131,12 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_oid_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("LOAD-POOL",load_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("ADJUNCT-POOL",adjunct_pool,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("TRY-POOL",try_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-INDEX",use_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("OPEN-INDEX",open_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("CACHECOUNT",cachecount,0));
+  fd_defalias(fd_xscheme_module,"LOAD-POOL","TRY-POOL");
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("MAKE-INDEX",make_index,2,
@@ -3130,8 +3218,7 @@ FD_EXPORT void fd_init_dbprims_c()
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,
-                           -1,FD_TRUE));
+                           -1,FD_VOID,-1,FD_TRUE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
                            fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
@@ -3225,6 +3312,9 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));
 
+  fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-SOURCE",index_source,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-ID",index_id,1));
+
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim
            (fd_make_cprimn("MAKE-COMPOUND-INDEX",make_compound_index,1)));
@@ -3273,7 +3363,6 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim4("SET-POOL-OP!",set_pool_op,4));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("MAKE-BLOOM-FILTER",make_bloom_filter,1,
@@ -3299,13 +3388,17 @@ FD_EXPORT void fd_init_dbprims_c()
 
 
   id_symbol = fd_intern("%ID");
-  adjunct_symbol = fd_intern("%ADJUNCT");
+  padjuncts_symbol = fd_intern("%ADJUNCTS");
   pools_symbol = fd_intern("POOLS");
   indexes_symbol = fd_intern("INDEXES");
   drop_symbol = fd_intern("DROP");
   flags_symbol = fd_intern("FLAGS");
   register_symbol = fd_intern("REGISTER");
   readonly_symbol = fd_intern("READONLY");
+
+  sparse_symbol    = fd_intern("SPARSE");
+  isadjunct_symbol    = fd_intern("ADJUNCT");
+  background_symbol = fd_intern("BACKGROUND");
 
 }
 

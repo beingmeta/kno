@@ -26,7 +26,7 @@
 #include <libu8/u8srvfns.h>
 
 static fd_pool primary_pool = NULL;
-static fd_pool served_pools[FDDBSERV_MAX_POOLS];
+static fd_pool served_pools[FD_DBSERV_MAX_POOLS];
 static int n_served_pools = 0;
 struct FD_COMPOUND_INDEX *primary_index = NULL;
 static int read_only = 0, locking = 1;
@@ -649,7 +649,7 @@ static fdtype iserver_writablep()
 
 static fdtype ixserver_get(fdtype index,fdtype key)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_get(fd_indexptr(index),key);
   else if (FD_TABLEP(index))
     return fd_get(index,key,FD_EMPTY_CHOICE);
@@ -657,7 +657,7 @@ static fdtype ixserver_get(fdtype index,fdtype key)
 }
 static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     if (FD_VECTORP(keys)) {
       fd_index ix = fd_indexptr(index);
       int i = 0, n = FD_VECTOR_LENGTH(keys);
@@ -685,7 +685,7 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 }
 static fdtype ixserver_get_size(fdtype index,fdtype key)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type))) {
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type))) {
     fdtype value = fd_index_get(fd_indexptr(index),key);
     int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
@@ -699,7 +699,7 @@ static fdtype ixserver_get_size(fdtype index,fdtype key)
 }
 static fdtype ixserver_keys(fdtype index)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_keys(fd_indexptr(index));
   else if (FD_TABLEP(index))
     return fd_getkeys(index);
@@ -707,7 +707,7 @@ static fdtype ixserver_keys(fdtype index)
 }
 static fdtype ixserver_sizes(fdtype index)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_raw_index_type)))
+  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_sizes(fd_indexptr(index));
   else if (FD_TABLEP(index)) {
     fdtype results = FD_EMPTY_CHOICE, keys = fd_getkeys(index);
@@ -742,7 +742,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
-    else if (n_served_pools>=FDDBSERV_MAX_POOLS) {
+    else if (n_served_pools>=FD_DBSERV_MAX_POOLS) {
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
@@ -817,7 +817,7 @@ fdtype fd_dbserv_module;
 
 static int dbserv_init = 0;
 
-void fd_init_kbdriverserv_c()
+void fd_init_dbserv_c()
 {
   fdtype module;
 
@@ -905,15 +905,15 @@ void fd_init_kbdriverserv_c()
   fd_dbserv_module = module;
 }
 
-static int fddbserv_initialized = 0;
+static int dbserv_initialized = 0;
 
-FD_EXPORT int fd_init_fddbserv()
+FD_EXPORT int fd_init_dbserv()
 {
-  if (fddbserv_initialized) return fddbserv_initialized;
-  fddbserv_initialized = 211*fd_init_kblib();
+  if (dbserv_initialized) return dbserv_initialized;
+  dbserv_initialized = 211*fd_init_storage();
 
   u8_register_source_file(_FILEINFO);
-  fd_init_kbdriverserv_c();
+  fd_init_dbserv_c();
 
   return 1;
 }

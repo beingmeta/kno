@@ -24,15 +24,6 @@ typedef struct FD_PORT *fd_port;
 
 FD_EXPORT fd_exception fd_UnknownEncoding;
 
-FD_EXPORT int fd_pprint
-  (u8_output out,fdtype x,
-   u8_string prefix,int indent,int col,int maxcol,int initial);
-typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,int,void *);
-FD_EXPORT int fd_xpprint
-  (u8_output out,fdtype x,
-   u8_string prefix,int indent,int col,int maxcol,int initial,
-   fd_pprintfn fn,void *data);
-
 FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width);
 FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,
 				u8_condition label,int width);
