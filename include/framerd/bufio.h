@@ -270,14 +270,15 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
     return _fd_grow_inbuf(b,d);			\
   else return 1
 
-#define _fd_needs_bytes(buf,n)					 \
-  ((U8_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) : \
-   (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim)) ? (1) :	 \
-   ((buf)->buf_fillfn) ?					 \
-   (((buf)->buf_fillfn)(((fd_inbuf)buf),n,buf->buf_data)) :	 \
+#define _fd_request_bytes(buf,n)					 \
+  ((U8_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
+   (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim)) ? (1) :		\
+   ((buf)->buf_fillfn) ?						\
+   ((((buf)->buf_fillfn)(((fd_inbuf)buf),n,buf->buf_data)),		\
+    (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim))):		\
    (0))
-#define fd_needs_bytes(buf,n) \
-  (FD_EXPECT_TRUE(_fd_needs_bytes((buf),n)))
+#define fd_request_bytes(buf,n) \
+  (FD_EXPECT_TRUE(_fd_request_bytes((buf),n)))
 
 #define _fd_has_bytes(buf,n)						\
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
@@ -318,11 +319,11 @@ FD_FASTOP size_t fd_close_outbuf(struct FD_OUTBUF *buf)
 #if FD_INLINE_BUFIO
 #define fd_read_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
-   ((fd_needs_bytes(buf,1)) ? (*(buf->bufread++))			\
+   ((fd_request_bytes(buf,1)) ? (*(buf->bufread++))			\
     : (-1)))
 #define fd_probe_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
-   ((fd_needs_bytes((buf),1)) ?						\
+   ((fd_request_bytes((buf),1)) ?						\
     ((int)(*((buf)->bufread)))	:					\
     ((int)-1)))
 
@@ -340,7 +341,7 @@ FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,4)) {
+  else if (fd_request_bytes(buf,4)) {
     fd_8bytes value = fd_get_4bytes(buf->bufread);
     buf->bufread = buf->bufread+4;
     return value;}
@@ -351,7 +352,7 @@ FD_FASTOP fd_8bytes fd_read_8bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,8)) {
+  else if (fd_request_bytes(buf,8)) {
     fd_8bytes value = fd_get_8bytes(buf->bufread);
     buf->bufread = buf->bufread+8;
     return value;}
@@ -363,7 +364,7 @@ FD_FASTOP int fd_read_bytes
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,len)) {
+  else if (fd_request_bytes(buf,len)) {
     memcpy(bytes,buf->bufread,len);
     buf->bufread = buf->bufread+len;
     return len;}

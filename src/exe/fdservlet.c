@@ -83,8 +83,8 @@ FD_EXPORT int fd_init_dbserv(void);
 
 #include "webcommon.h"
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
 
 #define HTML_UTF8_CTYPE_HEADER "Content-type: text/html; charset = utf-8\r\n\r\n"
 

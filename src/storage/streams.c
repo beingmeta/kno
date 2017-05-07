@@ -584,7 +584,9 @@ ssize_t fd_fill_stream(fd_stream stream,size_t n)
       stream->stream_filepos = stream->stream_filepos+delta;
     bytes_read = bytes_read+delta;}
 
-  return bytes_read;
+  if (bytes_read<n)
+    return -1;
+  else return bytes_read;
 }
 
 FD_EXPORT
@@ -834,7 +836,7 @@ FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off)
 FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off)
 {
   struct FD_INBUF *in = (off>=0) ? (fd_start_read(s,off)) : (fd_readbuf(s));
-  if (fd_needs_bytes(in,4)) {
+  if (fd_request_bytes(in,4)) {
     fd_8bytes bytes = fd_get_4bytes(in->bufread);
     in->bufread = in->bufread+4;
     return bytes;}
@@ -859,7 +861,7 @@ FD_EXPORT int fd_write_8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off)
 FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int *err)
 {
   struct FD_INBUF *in = (off>=0) ? (fd_start_read(s,off)) : (fd_readbuf(s));
-  if (fd_needs_bytes(in,8)) {
+  if (fd_request_bytes(in,8)) {
     fd_8bytes bytes = fd_get_8bytes(in->bufread);
     in->bufread = in->bufread+8;
     return bytes;}
@@ -920,7 +922,7 @@ FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words)
         words[i]=fd_host_order(words[i]); i++;}}
 #endif
     return bytes_read;}
-  else if (fd_needs_bytes(fd_readbuf(s),len*4)) {
+  else if (fd_request_bytes(fd_readbuf(s),len*4)) {
     struct FD_INBUF *in = fd_readbuf(s);
     int i = 0; while (i<len) {
       int word = fd_read_4bytes(in);

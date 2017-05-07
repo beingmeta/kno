@@ -598,7 +598,7 @@ static fdtype read_oid_value(fd_bigpool bp,fd_inbuf in,const u8_context cxt)
     fd_compress_type zmethod=
       (fd_compress_type)(fd_read_byte(in), fd_read_zint(in));
     size_t data_len = fd_read_zint(in);
-    if (fd_needs_bytes(in,data_len)<0) {
+    if (fd_request_bytes(in,data_len)<0) {
       return FD_EOD;}
     switch (zmethod) {
     case FD_NOCOMPRESS:

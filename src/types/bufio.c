@@ -216,8 +216,8 @@ FD_EXPORT int _fd_write_bytes
 
 /* Byte input */
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
 
 FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 {
@@ -241,7 +241,7 @@ FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 FD_EXPORT int _fd_read_byte(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,1)) return (*(buf->bufread++));
+  else if (fd_request_bytes(buf,1)) return (*(buf->bufread++));
   else return -1;
 }
 
@@ -260,7 +260,7 @@ FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
 FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,4)) {
+  else if (fd_request_bytes(buf,4)) {
     fd_4bytes value = fd_get_4bytes(buf->bufread);
     buf->bufread = buf->bufread+4;
     return value;}
@@ -272,7 +272,7 @@ FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
 FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,8)) {
+  else if (fd_request_bytes(buf,8)) {
     fd_8bytes value = fd_get_8bytes(buf->bufread);
     buf->bufread = buf->bufread+8;
     return value;}
@@ -285,7 +285,7 @@ FD_EXPORT int
   _fd_read_bytes(unsigned char *bytes,struct FD_INBUF *buf,int len)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,len)) {
+  else if (fd_request_bytes(buf,len)) {
     memcpy(bytes,buf->bufread,len);
     buf->bufread = buf->bufread+len;
     return len;}

@@ -105,8 +105,8 @@ FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in)
 
 /* Byte input */
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
 
 static fdtype restore_dtype_exception(fdtype content);
 FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
@@ -129,12 +129,19 @@ static fdtype *read_dtypes(int n,struct FD_INBUF *in,
     return vec;}
 }
 
+static fdtype unexpected_eod()
+{
+  fd_seterr1(fd_UnexpectedEOD);
+  return FD_EOD;
+}
+
 FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(in)))
     return fdt_iswritebuf(in);
   else if (havebytes(in,1)) {
     int code = *(in->bufread++);
+    long long len=-1;
     switch (code) {
     case dt_empty_list: return FD_EMPTY_LIST;
     case dt_void: return FD_VOID;
@@ -152,28 +159,44 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
       else return fd_return_errcode(FD_EOD);
     case dt_flonum: {
       char bytes[4];
-      float *f = (float *)&bytes; double flonum;
+      double flonum;
+      float *f = (float *)&bytes;
       unsigned int *i = (unsigned int *)&bytes, num;
-      num = fd_read_4bytes(in);
+      long long result=fd_read_4bytes(in);
+      if (result<0)
+        return unexpected_eod();
+      else num=(unsigned int)result;
       *i = num; flonum = *f;
       return _fd_make_double(flonum);}
     case dt_oid: {
-      FD_OID addr = FD_NULL_OID_INIT;
-      FD_SET_OID_HI(addr,fd_read_4bytes(in));
-      FD_SET_OID_LO(addr,fd_read_4bytes(in));
-      return fd_make_oid(addr);}
+      long long hival=fd_read_4bytes(in), loval;
+      if (FD_EXPECT_FALSE(hival<0))
+        return unexpected_eod();
+      else loval=fd_read_4bytes(in);
+      if (FD_EXPECT_FALSE(loval<0))
+        return unexpected_eod();
+      else {
+        FD_OID addr = FD_NULL_OID_INIT;
+        FD_SET_OID_HI(addr,hival);
+        FD_SET_OID_LO(addr,loval);
+        return fd_make_oid(addr);}}
     case dt_error: {
       fdtype content = fd_read_dtype(in);
-      return fd_init_compound(NULL,error_symbol,0,1,content);}
+      if (FD_ABORTP(content))
+        return content;
+      else return fd_init_compound(NULL,error_symbol,0,1,content);}
     case dt_exception: {
       fdtype content = fd_read_dtype(in);
-      return restore_dtype_exception(content);}
+      if (FD_ABORTP(content))
+        return content;
+      else return restore_dtype_exception(content);}
     case dt_pair: {
       fdtype head = FD_EMPTY_LIST, *tail = &head;
       while (1) {
         fdtype car = fd_read_dtype(in);
         if (FD_ABORTP(car)) {
-          fd_decref(head); return car;}
+          fd_decref(head);
+          return car;}
         else {
           fdtype new_pair=
             fd_init_pair(u8_alloc(struct FD_PAIR),
@@ -181,9 +204,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
           int dtcode = fd_read_byte(in);
           if (dtcode<0) {
             fd_decref(head); fd_decref(new_pair);
-            fd_seterr1(fd_UnexpectedEOD);
-            return FD_EOD;}
-          *tail = new_pair; tail = &(FD_CDR(new_pair));
+            return unexpected_eod();}
+          *tail = new_pair;
+          tail = &(FD_CDR(new_pair));
           if (dtcode != dt_pair) {
             fdtype cdr;
             if (fd_unread_byte(in,dtcode)<0) {
@@ -191,22 +214,27 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
               return FD_ERROR_VALUE;}
             cdr = fd_read_dtype(in);
             if (FD_ABORTP(cdr)) {
-              fd_decref(head); return cdr;}
+              fd_decref(head);
+              return cdr;}
             *tail = cdr;
             return head;}}}}
     case dt_compound: case dt_rational: case dt_complex: {
       fdtype car = fd_read_dtype(in), cdr;
-      if (FD_TROUBLEP(car)) return car;
-      cdr = fd_read_dtype(in);
-      if (FD_TROUBLEP(cdr)) {fd_decref(car); return cdr;}
-      switch (code) {
+      if (FD_TROUBLEP(car))
+        return car;
+      else cdr = fd_read_dtype(in);
+      if (FD_TROUBLEP(cdr)) {
+        fd_decref(car);
+        return cdr;}
+      else switch (code) {
       case dt_compound: {
         struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(car);
         if ((e) && (e->fd_compound_restorefn)) {
           fdtype result = e->fd_compound_restorefn(car,cdr,e);
           fd_decref(cdr);
           return result;}
-        else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {
+        else if ((FD_VECTORP(cdr)) &&
+                 (FD_VECTOR_LENGTH(cdr)<32767)) {
           struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
           short n_elts = (short)(vec->fdvec_length);
           fdtype result=
@@ -222,75 +250,71 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
       case dt_complex:
         return _fd_make_complex(car,cdr);}}
     case dt_packet: case dt_string:
-      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
+      len=fd_read_4bytes(in);
+      if (len<0)
+        return unexpected_eod();
+      else if (nobytes(in,len))
+        return unexpected_eod();
       else {
-        int len = fd_get_4bytes(in->bufread); in->bufread = in->bufread+4;
-        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-        else {
-          fdtype result = FD_VOID;
-          switch (code) {
-          case dt_string:
-            result = fd_make_string(NULL,len,in->bufread); break;
-          case dt_packet:
-            result = fd_make_packet(NULL,len,in->bufread); break;}
-          in->bufread = in->bufread+len;
-          return result;}}
+        fdtype result = FD_VOID;
+        switch (code) {
+        case dt_string:
+          result = fd_make_string(NULL,len,in->bufread); break;
+        case dt_packet:
+          result = fd_make_packet(NULL,len,in->bufread); break;}
+        in->bufread = in->bufread+len;
+        return result;}
     case dt_tiny_symbol:
-      if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
+      len = fd_read_byte(in);
+      if (len<0)
+        return unexpected_eod();
+      else if (nobytes(in,len))
+        return unexpected_eod();
       else {
-        int len = fd_get_byte(in->bufread); in->bufread = in->bufread+1;
-        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-        else {
-          u8_byte data[257];
-          memcpy(data,in->bufread,len); data[len]='\0';
-          in->bufread = in->bufread+len;
-          return fd_make_symbol(data,len);}}
+        u8_byte data[257];
+        memcpy(data,in->bufread,len); data[len]='\0';
+        in->bufread += len;
+        return fd_make_symbol(data,len);}
     case dt_tiny_string:
-      if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
+      len = fd_read_byte(in);
+      if (len<0)
+        return unexpected_eod();
+      else if (nobytes(in,len))
+        return unexpected_eod();
       else {
-        int len = fd_get_byte(in->bufread);
-        in->bufread = in->bufread+1;
-        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-        else {
-          fdtype result = fd_make_string(NULL,len,in->bufread);
-          in->bufread = in->bufread+len;
-          return result;}}
+        fdtype result = fd_make_string(NULL,len,in->bufread);
+        in->bufread += len;
+        return result;}
     case dt_symbol: case dt_zstring:
-      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
+      len = fd_read_4bytes(in);
+      if ( (len<0) || (nobytes(in,len)) )
+        return fd_return_errcode(FD_EOD);
       else {
-        int len = fd_get_4bytes(in->bufread);
-        in->bufread = in->bufread+4;
-        if (nobytes(in,len))
-          return fd_return_errcode(FD_EOD);
-        else {
-          unsigned char buf[64], *data;
-          if (len >= 64) data = u8_malloc(len+1); else data = buf;
-          memcpy(data,in->bufread,len); data[len]='\0';
-          in->bufread = in->bufread+len;
-          if (data != buf) {
-            fdtype result = fd_make_symbol(data,len);
-            u8_free(data);
-            return result;}
-          else return fd_make_symbol(data,len);}}
+        unsigned char data[len+1];
+        memcpy(data,in->bufread,len); data[len]='\0';
+        in->bufread += len;
+        return fd_make_symbol(data,len);}
     case dt_vector:
-      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
+      len = fd_read_4bytes(in);
+      if (len < 0)
+        return fd_return_errcode(FD_EOD);
+      else if (FD_EXPECT_FALSE(len == 0))
+        return fd_init_vector(NULL,0,NULL);
       else {
-        int len = fd_read_4bytes(in);
-        if (FD_EXPECT_FALSE(len == 0))
-          return fd_init_vector(NULL,0,NULL);
-        else {
-          fdtype why_not = FD_EOD, result = fd_init_vector(NULL,len,NULL);
-          fdtype *elts = FD_VECTOR_ELTS(result);
-          fdtype *data = read_dtypes(len,in,&why_not,elts);
-          if (FD_EXPECT_TRUE((data!=NULL)))
-            return result;
-          else return fd_return_errcode(why_not);}}
+        fdtype why_not = FD_EOD, result = fd_init_vector(NULL,len,NULL);
+        fdtype *elts = FD_VECTOR_ELTS(result);
+        fdtype *data = read_dtypes(len,in,&why_not,elts);
+        if (FD_EXPECT_TRUE((data!=NULL)))
+          return result;
+        else return FD_ERROR_VALUE;}
     case dt_tiny_choice:
-      if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
+      len=fd_read_byte(in);
+      if (len<0)
+        return unexpected_eod();
       else {
-        int len = fd_read_byte(in);
         struct FD_CHOICE *ch = fd_alloc_choice(len);
-        fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch), *limit = write+len;
+        fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch);
+        fdtype *limit = write+len;
         while (write<limit) {
           fdtype v = fd_read_dtype(in);
           if (FD_ABORTP(v)) {
@@ -298,77 +322,116 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
             return v;}
           *write++=v;}
         return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
-
     case dt_block:
-      if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
-      else {
-        int nbytes = fd_read_4bytes(in);
-        if (nobytes(in,nbytes)) return fd_return_errcode(FD_EOD);
-        return fd_read_dtype(in);}
-
+      len=fd_read_4bytes(in);
+      if ( (len<0) || (nobytes(in,len)) )
+        return unexpected_eod();
+      else return fd_read_dtype(in);
     case dt_framerd_package: {
-      int code, lenlen, len;
-      if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
+      int code, lenlen;
+      if (nobytes(in,2))
+        return unexpected_eod();
       code = *(in->bufread++); lenlen = ((code&0x40) ? 4 : 1);
-      if (nobytes(in,lenlen)) return fd_return_errcode(FD_EOD);
-      else if (lenlen==4) len = fd_read_4bytes(in);
+      if (lenlen==4)
+        len = fd_read_4bytes(in);
       else len = fd_read_byte(in);
-      switch (code) {
-      case dt_qchoice: case dt_small_qchoice:
-        if (len==0)
-          return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),FD_EMPTY_CHOICE);
-      case dt_choice: case dt_small_choice:
-        if (len==0) return FD_EMPTY_CHOICE;
-        else {
-          fdtype result;
-          struct FD_CHOICE *ch = fd_alloc_choice(len);
-          fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch), *limit = write+len;
-          while (write<limit) *write++=fd_read_dtype(in);
-          result = fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
-          if (FD_CHOICEP(result))
-            if ((code == dt_qchoice) || (code == dt_small_qchoice))
-              return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),result);
-            else return result;
-          else return result;}
-      case dt_slotmap: case dt_small_slotmap:
-        if (len==0)
-          return fd_empty_slotmap();
-        else {
-          int n_slots = len/2;
-          struct FD_KEYVAL *keyvals = u8_alloc_n(n_slots,struct FD_KEYVAL);
-          struct FD_KEYVAL *write = keyvals, *limit = keyvals+n_slots;
-          while (write<limit) {
-            write->kv_key = fd_read_dtype(in);
-            write->kv_val = fd_read_dtype(in);
-            write++;}
-          return fd_init_slotmap(NULL,n_slots,keyvals);}
-      case dt_hashtable: case dt_small_hashtable:
-        if (len==0)
-          return fd_init_hashtable(NULL,0,NULL);
-        else {
-          int n_keys = len/2, n_read = 0;
-          fdtype result = fd_init_hashtable(NULL,len/2,NULL);
-          struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *)result;
-          while (n_read<n_keys) {
-            fdtype key = fd_read_dtype(in);
-            fdtype value = fd_read_dtype(in);
-            if (!(FD_EMPTY_CHOICEP(value)))
-              fd_hashtable_op_nolock(ht,fd_table_store_noref,key,value);
-            fd_decref(key);
-            n_read++;}
-          return result;}
-      case dt_hashset: case dt_small_hashset: {
-        int i = 0; struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
-        fd_init_hashset(h,len,FD_MALLOCD_CONS);
-        while (i<len) {
-          fdtype v = fd_read_dtype(in);
-          fd_hashset_add_raw(h,v);
-          i++;}
-        return FDTYPE_CONS(h);}
-      default: {
-        int i = 0; fdtype *data = u8_alloc_n(len,fdtype);
-        while (i<len) data[i++]=fd_read_dtype(in);
-        return fd_make_mystery_vector(dt_framerd_package,code,len,data);}}}
+      if (len < 0)
+        return unexpected_eod();
+      else switch (code) {
+        case dt_qchoice: case dt_small_qchoice:
+          if (len==0)
+            return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),FD_EMPTY_CHOICE);
+        case dt_choice: case dt_small_choice:
+          if (len==0)
+            return FD_EMPTY_CHOICE;
+          else {
+            fdtype result;
+            struct FD_CHOICE *ch = fd_alloc_choice(len);
+            fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch);
+            fdtype *limit = write+len;
+            while (write<limit) {
+              fdtype v=fd_read_dtype(in);
+              if (FD_ABORTP(v)) {
+                fdtype *scan=(fdtype *)FD_XCHOICE_DATA(ch);
+                while (scan<write) {
+                  fdtype v=*scan++; fd_decref(v);}
+                u8_free(ch);
+                return v;}
+              else *write++=v;}
+            result = fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
+            if (FD_CHOICEP(result))
+              if ((code == dt_qchoice) || (code == dt_small_qchoice))
+                return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),result);
+              else return result;
+            else return result;}
+        case dt_slotmap: case dt_small_slotmap:
+          if (len==0)
+            return fd_empty_slotmap();
+          else {
+            int n_slots = len/2;
+            struct FD_KEYVAL *keyvals = u8_alloc_n(n_slots,struct FD_KEYVAL);
+            struct FD_KEYVAL *write = keyvals, *limit = keyvals+n_slots;
+            while (write<limit) {
+              fdtype key = fd_read_dtype(in), value;
+              if (FD_ABORTP(key)) value=key;
+              else value = fd_read_dtype(in);
+              if (FD_ABORTP(value)) {
+                struct FD_KEYVAL *scan=keyvals;
+                if (!(FD_ABORTP(key))) fd_decref(key);
+                while (scan<write) {
+                  fd_decref(scan->kv_key);
+                  fd_decref(scan->kv_val);
+                  scan++;}
+                u8_free(keyvals);
+                return value;}
+              else {
+                write->kv_key = key;
+                write->kv_val = value;
+                write++;}}
+            return fd_init_slotmap(NULL,n_slots,keyvals);}
+        case dt_hashtable: case dt_small_hashtable:
+          if (len==0)
+            return fd_init_hashtable(NULL,0,NULL);
+          else {
+            int n_keys = len/2, n_read = 0;
+            fdtype result = fd_init_hashtable(NULL,len/2,NULL);
+            struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *)result;
+            while (n_read<n_keys) {
+              fdtype key = fd_read_dtype(in), value;
+              if (FD_ABORTP(key)) value=key;
+              else value = fd_read_dtype(in);
+              if (FD_ABORTP(value)) {
+                if (!(FD_ABORTP(key))) fd_decref(key);
+                fd_decref(result);
+                return value;}
+              else if (!(FD_EMPTY_CHOICEP(value)))
+                fd_hashtable_op_nolock(ht,fd_table_store_noref,key,value);
+              fd_decref(key);
+              n_read++;}
+            return result;}
+        case dt_hashset: case dt_small_hashset: {
+          int i = 0;
+          struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
+          fd_init_hashset(h,len,FD_MALLOCD_CONS);
+          while (i<len) {
+            fdtype v = fd_read_dtype(in);
+            if (FD_ABORTP(v)) {
+              fd_decref((fdtype)h);
+              return v;}
+            fd_hashset_add_raw(h,v);
+            i++;}
+          return FDTYPE_CONS(h);}
+        default: {
+          int i = 0; fdtype *data = u8_alloc_n(len,fdtype);
+          while (i<len) {
+            fdtype v=fd_read_dtype(in);
+            if (FD_ABORTP(v)) {
+              int j=0; while (j<i) {
+                fdtype elt=data[i++]; fd_decref(elt);}
+              u8_free(data);
+              return v;}
+            else data[i++]=fd_read_dtype(in);}
+          return fd_make_mystery_vector(dt_framerd_package,code,len,data);}}}
     default:
       if ((code >= 0x40) && (code < 0x80))
         return read_packaged_dtype(code,in);
@@ -433,27 +496,32 @@ static fdtype read_packaged_dtype
    (int package,struct FD_INBUF *in)
 {
   fdtype *vector = NULL; unsigned char *packet = NULL;
-  unsigned int code, lenlen, len, vectorp;
-  if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
-  code = *(in->bufread++); lenlen = ((code&0x40) ? 4 : 1); vectorp = (code&0x80);
-  if (nobytes(in,lenlen)) return fd_return_errcode(FD_EOD);
-  else if (lenlen==4) len = fd_read_4bytes(in);
+  long long len;
+  unsigned int code, lenlen, vectorp;
+  if (nobytes(in,2))
+    return unexpected_eod();
+  code = *(in->bufread++);
+  lenlen = ((code&0x40) ? 4 : 1);
+  vectorp = (code&0x80);
+  if (nobytes(in,lenlen))
+    return unexpected_eod();
+  else if (lenlen==4)
+    len = fd_read_4bytes(in);
   else len = fd_read_byte(in);
-  if (vectorp) {
+  if (len<0)
+    return unexpected_eod();
+  else if (vectorp) {
     fdtype why_not;
     vector = read_dtypes(len,in,&why_not,NULL);
-    if ((len>0) && (vector == NULL)) return fd_return_errcode(why_not);}
-  else if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+    if ( (len>0) && (vector == NULL))
+      return why_not;}
+  else if (nobytes(in,len))
+    return unexpected_eod();
   else {
     packet = u8_malloc(len);
-    memcpy(packet,in->bufread,len); in->bufread = in->bufread+len;}
+    memcpy(packet,in->bufread,len);
+    in->bufread = in->bufread+len;}
   switch (package) {
-#if 0
-  case dt_framerd_package:
-    if (vectorp)
-      return make_framerd_type(p,myst_dtcode,len,elts);
-    else return fd_make_mystery_packet(p,myst_dtpackage,myst_dtcode,len,bytes);
-#endif
   case dt_character_package:
     if (vectorp)
       return fd_make_mystery_vector(package,code,len,vector);
@@ -621,7 +689,8 @@ static fdtype default_make_complex(fdtype car,fdtype cdr)
 {
   struct FD_PAIR *p = u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_complex_type);
-  p->car = car; p->cdr = cdr;
+  p->car = car;
+  p->cdr = cdr;
   return FDTYPE_CONS(p);
 }
 
@@ -629,13 +698,15 @@ static void default_unpack_complex
   (fdtype x,fdtype *car,fdtype *cdr)
 {
   struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,x,fd_complex_type);
-  *car = p->car; *cdr = p->cdr;
+  *car = p->car;
+  *cdr = p->cdr;
 }
 
 static fdtype default_make_double(double d)
 {
   struct FD_FLONUM *ds = u8_alloc(struct FD_FLONUM);
-  FD_INIT_CONS(ds,fd_flonum_type); ds->floval = d;
+  FD_INIT_CONS(ds,fd_flonum_type);
+  ds->floval = d;
   return FDTYPE_CONS(ds);
 }
 
@@ -652,15 +723,18 @@ static unsigned char *do_uncompress
   (unsigned char *bytes,size_t n_bytes,ssize_t *dbytes)
 {
   int error;
-  uLongf x_lim = 4*n_bytes, x_bytes = x_lim;
-  Bytef *fdata = (Bytef *)bytes, *xdata = u8_malloc(x_bytes);
-  while ((error = uncompress(xdata,&x_bytes,fdata,n_bytes)) < Z_OK)
+  uLongf init_size = 4*n_bytes, x_lim = init_size, x_size;
+  Bytef *fdata = (Bytef *)bytes, xbuf[init_size], *xdata=xbuf;
+  while ((error = uncompress(xdata,&x_size,fdata,n_bytes)) < Z_OK)
     if (error == Z_MEM_ERROR) {
-      u8_free(xdata);
       fd_seterr1("ZLIB Out of Memory");
       return NULL;}
     else if (error == Z_BUF_ERROR) {
-      xdata = u8_realloc(xdata,x_lim*2); x_bytes = x_lim = x_lim*2;}
+      if (xdata == xbuf) {
+        xdata=u8_malloc(x_lim*2);
+        memcpy(xdata,xbuf,x_size);}
+      else xdata = u8_realloc(xdata,x_size*2);
+      x_lim = x_lim*2;}
     else if (error == Z_DATA_ERROR) {
       u8_free(xdata);
       fd_seterr1("ZLIB Data error");
@@ -669,7 +743,7 @@ static unsigned char *do_uncompress
       u8_free(xdata);
       fd_seterr1("Bad ZLIB return code");
       return NULL;}
-  *dbytes = x_bytes;
+  *dbytes = x_size;
   return xdata;
 }
 
