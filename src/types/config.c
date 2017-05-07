@@ -90,7 +90,9 @@ static fdtype config_get(u8_string var)
     struct FD_CONFIG_FINDER *scan = config_lookupfns;
     while (scan) {
       value = scan->fdcfg_lookup(symbol,scan->fdcfg_lookup_data);
-      if (FD_VOIDP(value)) scan = scan->fd_next_finder; else break;}
+      if (FD_VOIDP(value))
+	scan = scan->fd_next_finder;
+      else break;}
     fd_store(configuration_table,symbol,value);
     return value;}
   else return probe;

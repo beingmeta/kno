@@ -23,7 +23,8 @@ RPATHFLAGS = @RPATHFLAGS@
 BASELIBS=@LIBS@ -lm -lz
 BMLIBS=-lu8stdio -lu8io -lu8data -lu8
 LIBS=$(BASELIBS) $(BMLIBS)
-EXELDFLAGS = @EXELDFLAGS@
+EXECLDFLAGS = @EXECLDFLAGS@
+EXECLBIS = @EXECLIBS@
 
 DESTDIR		=
 prefix		= @prefix@
@@ -67,13 +68,14 @@ $(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
 	../../lib/libfdstorage@suffix@.a 		\
 	../../lib/libfdtype@suffix@.a
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) $(EXECLIBS) -o $@ $^ \
+		$(LIBS) $(EXECLIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdtype@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS)
+	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXECLIBS) \
+		-lfdtype@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXECLIBS)
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype@suffix@.a
 ../../lib/libfdstorage@suffix@.a:

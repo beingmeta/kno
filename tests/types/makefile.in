@@ -21,7 +21,8 @@ LDFLAGS=-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 RPATH   = @rpath@
 RPATHFLAGS = @RPATHFLAGS@
 LIBS=-lu8stdio -lu8data -lu8io -lu8 @LIBS@ -lz -lm
-EXELDFLAGS = @EXELDFLAGS@
+EXECLDFLAGS = @EXECLDFLAGS@
+EXECLIBS = @EXECLIBS@
 
 DESTDIR		=
 prefix		= @prefix@
@@ -275,13 +276,14 @@ bigbricotests: ../data/brico.dump
 $(TESTBIN): ../../src/storage/streams.o ../../lib/libfdtype@suffix@.a
 %: %.c
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXECLIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ \
-		../../src/storage/streams.o $(LIBS) -lfdtype@suffix@ $(LIBS)
+	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ \
+		../../src/storage/streams.o $(LIBS) -lfdtype@suffix@ \
+		$(LIBS) $(EXECLIBS)
 
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a

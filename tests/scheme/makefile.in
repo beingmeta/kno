@@ -32,7 +32,8 @@ BASELIBS=@LIBS@ -lm -lz
 BMLIBS=-lu8io -lu8data -lu8
 XLIBS=
 LIBS=$(XLIBS) $(BMLIBS) $(BASELIBS)
-EXELDFLAGS = @EXELDFLAGS@
+EXECLDFLAGS = @EXECLDFLAGS@
+EXECLIBS = @EXECLIBS@
 CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	  	  	../../lib/libfddbserv@suffix@.a  \
 	 		../../lib/libfddrivers@suffix@.a \
@@ -90,14 +91,14 @@ TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 # This is for making shared test programs, when there are associated problems
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
+	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@
 
 %: %.c $(EXTRA_LIBS) $(CORE_LIBS)
 	@echo MKTEST_STATIC $@
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS) -o $@ $< 	\
-		$(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXECLDFLAGS) -o $@ $< 	\
+		$(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio $(EXECLIBS)
 
 # Base targets
 
