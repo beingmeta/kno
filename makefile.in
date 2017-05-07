@@ -595,7 +595,7 @@ src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) -o $@ -c $< ${LIBS}
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
-	$(MKSO) -L./lib -L./ ${LIBS} -o $@ $< ${LIBS}
+	@$(MKSO) -L./lib -L./ ${LIBS} -o $@ $< ${LIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
