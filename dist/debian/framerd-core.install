@@ -15,7 +15,6 @@ usr/bin/fdexec
 usr/bin/fdserver
 usr/bin/fdbatch
 usr/bin/fdservlet
-usr/bin/make-hash-index
 usr/bin/make-oidpool
 usr/bin/ovmerge
 usr/bin/pack-index
