@@ -132,7 +132,7 @@ static fdtype *read_dtypes(int n,struct FD_INBUF *in,
 static fdtype unexpected_eod()
 {
   fd_seterr1(fd_UnexpectedEOD);
-  return FD_EOD;
+  return FD_ERROR_VALUE;
 }
 
 FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)

@@ -299,6 +299,9 @@ static fdtype file2dtypes(fdtype filename)
       fd_inbuf inbuf = fd_readbuf(in);
       object = fd_read_dtype(inbuf);
       while (!(FD_EODP(object))) {
+	if (FD_ABORTP(object)) {
+	  fd_decref(results);
+	  return object;}
         FD_ADD_TO_CHOICE(results,object);
         object = fd_read_dtype(inbuf);}
       fd_free_stream(in);
