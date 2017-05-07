@@ -487,6 +487,7 @@ static fdtype config_get(fdtype vars,fdtype dflt)
       fd_decref(result);
       return fd_type_error(_("string or symbol"),"config_get",var);}
     if (FD_VOIDP(value)) {}
+    else if (value==FD_DEFAULT_VALUE) {}
     else FD_ADD_TO_CHOICE(result,value);}
   if (FD_EMPTY_CHOICEP(result))
     if (FD_VOIDP(dflt))
