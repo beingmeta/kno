@@ -46,8 +46,8 @@ FD_EXPORT int fd_seq_length(fdtype x)
   switch (ctype) {
   case fd_vector_type:
     return FD_VECTOR_LENGTH(x);
-  case fd_rail_type:
-    return FD_RAIL_LENGTH(x);
+  case fd_code_type:
+    return FD_CODE_LENGTH(x);
   case fd_packet_type: case fd_secret_type:
     return FD_PACKET_LENGTH(x);
   case fd_numeric_vector_type:
@@ -75,9 +75,9 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
     case fd_vector_type:
       if (i>=FD_VECTOR_LENGTH(x)) return FD_RANGE_ERROR;
       else return fd_incref(FD_VECTOR_REF(x,i));
-    case fd_rail_type:
-      if (i>=FD_RAIL_LENGTH(x)) return FD_RANGE_ERROR;
-      else return fd_incref(FD_RAIL_REF(x,i));
+    case fd_code_type:
+      if (i>=FD_CODE_LENGTH(x)) return FD_RANGE_ERROR;
+      else return fd_incref(FD_CODE_REF(x,i));
     case fd_packet_type: case fd_secret_type:
       if (i>=FD_PACKET_LENGTH(x)) return FD_RANGE_ERROR;
       else {
@@ -128,7 +128,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
   int ctype = FD_PTR_TYPE(x);
   if (start<0) return FD_RANGE_ERROR;
   else switch (ctype) {
-    case fd_vector_type: case fd_rail_type: {
+    case fd_vector_type: case fd_code_type: {
       fdtype *elts, *write, *read, *limit, result;
       if (end<0) end = FD_VECTOR_LENGTH(x);
       else if (start>FD_VECTOR_LENGTH(x)) return FD_RANGE_ERROR;
@@ -139,7 +139,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
         fdtype v = *read++; fd_incref(v); *write++=v;}
       if (ctype == fd_vector_type)
         result = fd_make_vector(end-start,elts);
-      else result = fd_make_rail(end-start,elts);
+      else result = fd_make_code(end-start,elts);
       u8_free(elts);
       return result;}
     case fd_packet_type: case fd_secret_type: {
@@ -220,7 +220,7 @@ FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
   if ((start<0)||(end<0)) return -2;
   else if (start>end) return -1;
   else switch (ctype) {
-    case fd_vector_type: case fd_rail_type: {
+    case fd_vector_type: case fd_code_type: {
       fdtype *data = FD_VECTOR_ELTS(seq);
       int i = start; while (i!=end) {
         if (FDTYPE_EQUAL(key,data[i])) return i;
@@ -299,7 +299,7 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
       else return -1;
     else return -1;}
   else switch (FD_PTR_TYPE(x)) {
-  case fd_vector_type: case fd_rail_type: {
+  case fd_vector_type: case fd_code_type: {
     fdtype *data = FD_VECTOR_DATA(x);
     int len = FD_VECTOR_LENGTH(x);
     if (end<0) end = len;
@@ -482,7 +482,7 @@ fdtype *fd_elts(fdtype seq,int *n)
           vec[i]=FD_CODE2CHAR(ch); i++;}
       *n = i;
       break;}
-    case fd_vector_type: case fd_rail_type: {
+    case fd_vector_type: case fd_code_type: {
       int i = 0;
       fdtype *scan = FD_VECTOR_DATA(seq),
         *limit = scan+FD_VECTOR_LENGTH(seq);
@@ -564,9 +564,9 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
   case fd_vector_type: {
     int i = 0; while (i < n) {fd_incref(v[i]); i++;}
     return fd_make_vector(n,v);}
-  case fd_rail_type: {
+  case fd_code_type: {
     int i = 0; while (i < n) {fd_incref(v[i]); i++;}
-    return fd_make_rail(n,v);}
+    return fd_make_code(n,v);}
   case fd_pair_type:
     if (n == 0) return FD_EMPTY_LIST;
     else {
@@ -785,7 +785,7 @@ static fdtype makesecret(int n,fdtype *elts) {
 static fdtype makevector(int n,fdtype *elts) {
   return fd_makeseq(fd_vector_type,n,elts);}
 static fdtype makerail(int n,fdtype *elts) {
-  return fd_makeseq(fd_rail_type,n,elts);}
+  return fd_makeseq(fd_code_type,n,elts);}
 
 static struct FD_SEQFNS pair_seqfns={
   fd_seq_length,
@@ -827,7 +827,7 @@ static struct FD_SEQFNS numeric_vector_seqfns={
   fd_search,
   fd_elts,
   makevector};
-static struct FD_SEQFNS rail_seqfns={
+static struct FD_SEQFNS code_seqfns={
   fd_seq_length,
   fd_seq_elt,
   fd_slice,
@@ -853,7 +853,7 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_packet_type]= &packet_seqfns;
   fd_seqfns[fd_secret_type]= &secret_seqfns;
   fd_seqfns[fd_vector_type]= &vector_seqfns;
-  fd_seqfns[fd_rail_type]= &rail_seqfns;
+  fd_seqfns[fd_code_type]= &code_seqfns;
   fd_seqfns[fd_numeric_vector_type]= &numeric_vector_seqfns;
 
   u8_register_source_file(_FILEINFO);

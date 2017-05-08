@@ -142,7 +142,7 @@ typedef enum FD_PTR_TYPE {
   fd_prechoice_type = FD_CONS_TYPECODE(7),
   fd_qchoice_type = FD_CONS_TYPECODE(8),
   fd_vector_type = FD_CONS_TYPECODE(9),
-  fd_rail_type = FD_CONS_TYPECODE(10),
+  fd_matrix_type = FD_CONS_TYPECODE(10), /* NYI */
   fd_numeric_vector_type = FD_CONS_TYPECODE(11),
 
   fd_slotmap_type = FD_CONS_TYPECODE(12),
@@ -156,10 +156,10 @@ typedef enum FD_PTR_TYPE {
   fd_specform_type = FD_CONS_TYPECODE(18),
   fd_macro_type = FD_CONS_TYPECODE(19),
   fd_dtproc_type = FD_CONS_TYPECODE(20),
-  fd_tailcall_type = FD_CONS_TYPECODE(21),
-  fd_sproc_type = FD_CONS_TYPECODE(22),
-  fd_bytecode_type = FD_CONS_TYPECODE(23),
-  fd_stackframe_type = FD_CONS_TYPECODE(24),
+  fd_stackframe_type = FD_CONS_TYPECODE(21),
+  fd_tailcall_type = FD_CONS_TYPECODE(22),
+  fd_sproc_type = FD_CONS_TYPECODE(23),
+  fd_code_type = FD_CONS_TYPECODE(24),
   fd_ffi_type = FD_CONS_TYPECODE(25),
   fd_error_type = FD_CONS_TYPECODE(26),
 

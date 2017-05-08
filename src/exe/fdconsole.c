@@ -925,7 +925,7 @@ int main(int argc,char **argv)
     start_icache = fd_index_cache_load();
     u8_flush(out);
     expr = console_read(in,env);
-    if (FD_TYPEP(expr,fd_rail_type)) {
+    if (FD_TYPEP(expr,fd_code_type)) {
       /* Handle commands */
       fdtype head = FD_VECTOR_REF(expr,0);
       if ((head == FDSYM_EQUALS)&&

@@ -928,12 +928,12 @@ static fdtype parse_vector(U8_INPUT *in)
   else return FD_PARSE_ERROR;
 }
 
-static fdtype parse_rail(U8_INPUT *in)
+static fdtype parse_code(U8_INPUT *in)
 {
   int n_elts = -2;
   fdtype *elts = parse_vec(in,')',&n_elts);
   if (n_elts>=0)
-    return fd_init_rail(u8_alloc(struct FD_VECTOR),n_elts,elts);
+    return fd_init_code(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
 
@@ -1105,7 +1105,7 @@ fdtype fd_parser(u8_input in)
     case '~': {
       ch = u8_getc(in); if (ch<0) return FD_EOX;
       if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
-      return parse_rail(in);}
+      return parse_code(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '|': {

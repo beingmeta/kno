@@ -748,7 +748,7 @@ static fdtype jsout_handler(fdtype expr,fd_lispenv env)
     FD_DOLIST(x,body) {
       if (FD_STRINGP(x))
         u8_puts(&_out,FD_STRDATA(x));
-      else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
+      else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_CODEP(x))) {
         result = fd_eval(x,env);
         if (FD_ABORTP(result)) break;
         else if ((FD_VOIDP(result))||(FD_FALSEP(result))||
@@ -783,7 +783,7 @@ static fdtype cssout_handler(fdtype expr,fd_lispenv env)
   {FD_DOLIST(x,body) {
       if (FD_STRINGP(x))
         u8_puts(&_out,FD_STRDATA(x));
-      else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
+      else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_CODEP(x))) {
         result = fd_eval(x,env);
         if (FD_ABORTP(result)) break;
         else if ((FD_VOIDP(result))||(FD_FALSEP(result))||

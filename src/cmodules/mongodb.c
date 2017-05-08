@@ -1545,7 +1545,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_document_end(out,&arr);
       break;}
-    case fd_vector_type: case fd_rail_type: {
+    case fd_vector_type: case fd_code_type: {
       struct FD_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct FD_VECTOR *vec = (struct FD_VECTOR *)val;

@@ -747,7 +747,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       if (FD_PAIRP(expr))
         return fd_refcar(FD_CDR(expr));
       else {
-        fdtype v = FD_RAIL_REF(expr,1); fd_incref(v);
+        fdtype v = FD_CODE_REF(expr,1); fd_incref(v);
         return v;}
     else if (head == comment_symbol)
       return FD_VOID;
@@ -825,7 +825,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         return result;}
       if (gchead) fd_decref(headval);
       return result;}}
-  case fd_rail_type:
+  case fd_code_type:
     return fd_incref(expr);
   case fd_slotmap_type:
     return fd_deep_copy(expr);
@@ -1076,8 +1076,8 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
         else exprs = next;
         if (FD_PAIRP(exprs)) next = FD_CDR(exprs);}}
     return val;}
-  else if (FD_RAILP(exprs)) {
-    struct FD_VECTOR *v = fd_consptr(fd_vector,exprs,fd_rail_type);
+  else if (FD_CODEP(exprs)) {
+    struct FD_VECTOR *v = fd_consptr(fd_vector,exprs,fd_code_type);
     int len = v->fdvec_length; fdtype *elts = v->fdvec_elts, val = FD_VOID;
     int i = 0; while (i<len) {
       fdtype expr = elts[i++];

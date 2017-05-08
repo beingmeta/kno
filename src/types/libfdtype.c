@@ -91,7 +91,7 @@ static void init_type_names()
   fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_type_names[fd_tailcall_type]=_("tailcall");
   fd_type_names[fd_uuid_type]=_("UUID");
-  fd_type_names[fd_rail_type]=_("rail");
+  fd_type_names[fd_code_type]=_("rail");
   fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
   fd_type_names[fd_ffi_type]=_("foreign function");
@@ -100,7 +100,7 @@ static void init_type_names()
   fd_type_names[fd_consblock_type]=_("consblock");
   fd_type_names[fd_specform_type]=_("special form");
   fd_type_names[fd_macro_type]=_("macro");
-  fd_type_names[fd_bytecode_type]=_("bytecode");
+  fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_stackframe_type]=_("stackframe");
   fd_type_names[fd_ffi_type]=_("ffiproc");
   fd_type_names[fd_environment_type]=_("environment");

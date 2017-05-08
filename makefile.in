@@ -592,7 +592,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) -o $@ -c $< ${LIBS}
+	@$(CC) $(CFLAGS) -o $@ -c $< ${LIBS}
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
 	@$(MKSO) -L./lib -L./ ${LIBS} -o $@ $< ${LIBS}

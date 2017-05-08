@@ -41,9 +41,9 @@ static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
 FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env)
 {
   fdtype result=FD_VOID;
-  if (FD_RAILP(body)) {
-    int j=0, n_sub_exprs=FD_RAIL_LENGTH(body);
-    fdtype *sub_exprs=FD_RAIL_DATA(body);
+  if (FD_CODEP(body)) {
+    int j=0, n_sub_exprs=FD_CODE_LENGTH(body);
+    fdtype *sub_exprs=FD_CODE_DATA(body);
     while (j<n_sub_exprs) {
       fdtype sub_expr=sub_exprs[j++];
       fd_decref(result);

@@ -33,7 +33,7 @@ FD_EXPORT u8_context fd_eval_context;
 FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
 #define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
-                          (FD_PAIRP(x)) || (FD_RAILP(x)))
+                          (FD_PAIRP(x)) || (FD_CODEP(x)))
 
 /* Constants */
 
@@ -267,7 +267,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     return fd_deep_copy(x);
   case fd_cons_ptr_type:
     if ((FD_TYPEP(x,fd_pair_type)) ||
-        (FD_TYPEP(x,fd_rail_type)) ||
+        (FD_TYPEP(x,fd_code_type)) ||
         (FD_TYPEP(x,fd_choice_type)) ||
         (FD_TYPEP(x,fd_prechoice_type)))
       return fd_eval(x,env);
@@ -294,7 +294,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
   case fd_cons_ptr_type: {
     fd_ptr_type ctype = FD_PTR_TYPE(x);
     switch (ctype) {
-    case fd_pair_type: case fd_rail_type:
+    case fd_pair_type: case fd_code_type:
       return fd_tail_eval(x,env);
     case fd_slotmap_type:
       return fd_deep_copy(x);

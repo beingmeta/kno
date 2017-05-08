@@ -472,7 +472,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 
 /* Rails */
 
-FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
+FD_EXPORT fdtype fd_init_code(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
   fdtype *elts; int i = 0, freedata = 1;
   if ((ptr == NULL)&&(data == NULL)) {
@@ -489,7 +489,7 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
   else {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
-  FD_INIT_CONS(ptr,fd_rail_type);
+  FD_INIT_CONS(ptr,fd_code_type);
   if (data == NULL) while (i < len) elts[i++]=FD_VOID;
   ptr->fdvec_length = len; 
   ptr->fdvec_elts = elts; 
@@ -500,23 +500,23 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
 FD_EXPORT fdtype fd_make_nrail(int len,...)
 {
   va_list args; int i = 0;
-  fdtype result = fd_init_rail(NULL,len,NULL);
-  fdtype *elts = FD_RAIL_ELTS(result);
+  fdtype result = fd_init_code(NULL,len,NULL);
+  fdtype *elts = FD_CODE_ELTS(result);
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
   return result;
 }
 
-FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
+FD_EXPORT fdtype fd_make_code(int len,fdtype *data)
 {
   int i = 0;
   struct FD_VECTOR *ptr = u8_malloc
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
-  FD_INIT_CONS(ptr,fd_rail_type);
-  ptr->fdvec_length = len; 
-  ptr->fdvec_elts = elts; 
+  FD_INIT_CONS(ptr,fd_code_type);
+  ptr->fdvec_length = len;
+  ptr->fdvec_elts = elts;
   ptr->fdvec_free_elts = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return FDTYPE_CONS(ptr);

@@ -107,7 +107,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
         if ((quick)||(compare_lengths)) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
         return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
-      case fd_vector_type: case fd_rail_type: {
+      case fd_vector_type: case fd_code_type: {
         int i = 0, xlen = FD_VECTOR_LENGTH(x), ylen = FD_VECTOR_LENGTH(y), lim;
         fdtype *xdata = FD_VECTOR_DATA(x), *ydata = FD_VECTOR_DATA(y);
         if (quick) {

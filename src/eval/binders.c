@@ -177,8 +177,8 @@ FD_FASTOP int check_bindexprs(fdtype bindexprs,fdtype *why_not)
         return -1;}
       else n++;}
     return n;}
-  else if (FD_RAILP(bindexprs)) {
-    int len = FD_RAIL_LENGTH(bindexprs);
+  else if (FD_CODEP(bindexprs)) {
+    int len = FD_CODE_LENGTH(bindexprs);
     if ((len%2)==1) {
       *why_not = fd_err(fd_BindSyntaxError,"check_bindexprs",NULL,bindexprs);
       return -1;}
