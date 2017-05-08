@@ -833,7 +833,7 @@ static int zread_loop(fd_hashindex hx,fdtype key,
   i = 0; while ( (i<n_elts) && (n_read < n_values) ) {
     fdtype val = read_zvalue(hx,&instream);
     if (FD_ABORTP(val)) {
-      if (!(atomicp)) *consp=0;
+      if (!(atomicp)) *consp=1;
       *n_readp = n_read;
       return -1;}
     else if (FD_CONSP(val)) atomicp = 0;
@@ -853,7 +853,7 @@ static int zread_loop(fd_hashindex hx,fdtype key,
     if (!(atomicp)) *consp=0;
     return -1;}
   *n_readp = n_read;
-  if (!(atomicp)) *consp=0;
+  if (!(atomicp)) *consp=1;
   if (next_size)
     return zread_loop(hx,key,n_read,n_values,
                       next_off,next_size,
@@ -891,6 +891,7 @@ static fdtype read_zvalues
     return FD_ERROR_VALUE;}
   else if (n_values == 1) {
     fdtype v = values[0];
+    fd_incref(v);
     u8_free(result);
     return v;}
   else return fd_init_choice
@@ -1978,8 +1979,8 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
   struct KEYBUCKET *kb;
   /* We allocate this dynamically because we're going to store it on
      the keybucket. */
-  unsigned char *keybuf = u8_zmalloc(ref.size);
   if (ref.size>0) {
+    unsigned char *keybuf = u8_zmalloc(ref.size);
     open_block(&keyblock,hx,ref.off,ref.size,keybuf);
     n_keys = fd_read_zint(&keyblock);
     kb = (struct KEYBUCKET *)
