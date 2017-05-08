@@ -49,7 +49,7 @@ exec_prefix	= @exec_prefix@
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
-TESTPROG	= 
+TESTPROG	= ./runtest
 MEMTESTER	= @memtester@
 LEAKTESTER	= @leaktester@
 TEST_ENV	= @test_env@
@@ -67,7 +67,7 @@ LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
-FDX		= ./fdexec@suffix@
+FDX		= ./fdexec
 OIDPOOL		= POOLTYPE=oidpool
 BIGPOOL		= POOLTYPE=bigpool
 SNAPPY		= COMPRESSION=snappy
@@ -153,6 +153,7 @@ clean: testclean
 testclean:
 	rm -f *.log *.err *.done *.finished *.pid *.died
 	rm -f tmp* utf8-temp* memoization.index test.dtype
+	rm -f *.pool *.index
 	rm -f logfile thirty2fifty thirtythree 
 
 # Static lib targets
