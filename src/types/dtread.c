@@ -22,8 +22,6 @@
 #define FD_DEBUG_DTYPEIO 0
 #endif
 
-#define FD_DEFAULT_ZLEVEL 9
-
 static u8_mutex dtype_unpacker_lock;
 
 fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
