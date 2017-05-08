@@ -848,6 +848,7 @@ static struct FD_SEQFNS secret_seqfns={
 FD_EXPORT void fd_init_sequences_c()
 {
   int i = 0; while (i<FD_TYPE_MAX) fd_seqfns[i++]=NULL;
+
   fd_seqfns[fd_pair_type]= &pair_seqfns;
   fd_seqfns[fd_string_type]= &string_seqfns;
   fd_seqfns[fd_packet_type]= &packet_seqfns;
