@@ -625,6 +625,14 @@ elif test "$with_malloc" = "jemalloc"; then
     AC_MSG_ERROR(jemalloc can't be found)
     exit;
   fi;
+elif test "$with_malloc" = "dmalloc"; then
+  AC_CHECK_LIB(dmalloc,malloc,EXECLIBS="-ldmalloc $EXECLIBS")
+  if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
+    custom_malloc="dmalloc"
+  else
+    AC_MSG_ERROR(dmalloc can't be found)
+    exit;
+  fi;
 elif test "$with_malloc" = "asan"; then
    CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=address $LDFLAGS"
@@ -668,7 +676,7 @@ elif test "$with_malloc" = "asan_thread"; then
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
-   AC_MSG_ERROR(Valid values for malloc are stdlib tcmalloc gperftools tcmalloc_debug asan asan_thread asan_memory asan_leak jemalloc)
+   AC_MSG_ERROR(Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread asan_memory asan_leak)
    exit 1;
 fi
 
