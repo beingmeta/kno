@@ -51,23 +51,6 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value);
 FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value);
 FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value);
 
-FD_EXPORT fdtype fd_overlay_get(fdtype f,fdtype slotid,int);
-FD_EXPORT fdtype fd_overlay_add(fdtype f,fdtype slotid,fdtype value,int);
-FD_EXPORT fdtype fd_overlay_drop(fdtype f,fdtype slotid,fdtype value,int);
-FD_EXPORT fdtype fd_overlay_store(fdtype f,fdtype slotid,fdtype value,int);
-
-FD_EXPORT int fd_overlayp(void);
-FD_EXPORT void fd_inhibit_overlays(int flag);
-
-/* Overlay inhibition */
-
-#if FD_USE_TLS
-FD_EXPORT u8_tld_key _fd_inhibit_overlay_key;
-#define fd_inhibit_overlay ((int)((u8_tld_get(_fd_inhibit_overlay_key))))
-#else
-FD_EXPORT __thread int fd_inhibit_overlay;
-#endif
-
 /* Making frames */
 
 FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy);
