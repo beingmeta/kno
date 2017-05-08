@@ -368,6 +368,9 @@ void fd_decref_elts(unsigned int n,const fdtype *elts)
 #define fd_decref_elts _fd_decref_elts
 #endif
 
+#define fd_incref_ptr(p) (fd_incref((fdtype)(p)))
+#define fd_decref_ptr(p) (fd_decref((fdtype)(p)))
+
 /* Conses */
 
 struct FD_FREE_CONS {
