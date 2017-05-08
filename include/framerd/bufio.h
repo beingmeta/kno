@@ -13,6 +13,12 @@
 
 fd_exception fd_IsWriteBuf, fd_IsReadBuf;
 
+#ifndef FD_DEFAULT_ZLEVEL
+#define FD_DEFAULT_ZLEVEL 7
+#endif
+
+FD_EXPORT size_t fd_zlib_level;
+
 /* Byte Streams */
 
 typedef struct FD_RAWBUF *fd_rawbuf;
@@ -393,5 +399,18 @@ FD_FASTOP fd_8bytes fd_read_zint(struct FD_INBUF *s)
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define fd_output_bytes(out,bytes,n)			\
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
+
+/* Compress and decompress */
+
+FD_EXPORT
+unsigned char *fd_snappy_compress
+(unsigned char *in,size_t n_bytes,
+ unsigned char *out,ssize_t *z_len);
+
+FD_EXPORT
+unsigned char *fd_zlib_compress
+(unsigned char *in,size_t n_bytes,
+ unsigned char *out,ssize_t *z_len,
+ int level_arg);
 
 #endif /* FRAMERD_BUFIO_H */

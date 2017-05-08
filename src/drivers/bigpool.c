@@ -1104,7 +1104,7 @@ static ssize_t cache_write_offdata
   int chunk_ref_size = get_chunk_ref_size(bp);
   size_t offdata_modified_length = chunk_ref_size*max_off-min_off;
   size_t offdata_modified_start = chunk_ref_size*min_off;
-  unsigned int *offdata = u8_malloc(offdata_modified_length);
+  unsigned int *offdata =u8_zmalloc(offdata_modified_length);
   if (offdata == NULL) {
     u8_graberrno("bigpool:write_offdata:malloc",u8_strdup(bp->poolid));
     return -1;}

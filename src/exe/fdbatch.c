@@ -114,7 +114,7 @@ static void wait_for_the_end(pid_t pid)
            u8_appid(),pid,WSTOPSIG(status));
     waitpid(pid,&status,0);}
   if (WIFEXITED(status))
-    u8_log(LOG_CRIT,job_exited,"%s <%d> exited with return value %d",
+    u8_log(LOG_NOTICE,job_exited,"%s <%d> exited with return value %d",
            u8_appid(),pid,WSTOPSIG(status));
   else {
     u8_log(LOG_CRIT,job_terminated,"%s <%d> killed with return value %d",

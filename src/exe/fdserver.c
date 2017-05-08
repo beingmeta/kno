@@ -933,9 +933,15 @@ static int launch_server(u8_string source_file,fd_lispenv env);
 static int fork_server(u8_string source_file,fd_lispenv env);
 static int run_server(u8_string source_file);
 
+static void exit_fdserver()
+{
+  if (!(fd_be_vewy_quiet))
+    fd_log_status("Exit(fdserver)");
+}
+
 int main(int argc,char **argv)
 {
-  int i = 1; 
+  int i = 1;
   unsigned int arg_mask = 0; /* Bit map of args to skip */
   int u8_version = u8_initialize(), fd_version;
   u8_string server_spec = NULL, source_file = NULL, server_port = NULL;
@@ -1020,7 +1026,7 @@ int main(int argc,char **argv)
     fprintf(stderr,"Can't initialize FramerD libraries\n");
     return -1;}
 
-  atexit(fd_log_status);
+  atexit(exit_fdserver);
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when

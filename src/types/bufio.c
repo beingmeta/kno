@@ -14,11 +14,19 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/dtypeio.h"
+
+#include <zlib.h>
 #include <errno.h>
+
+#if HAVE_SNAPPYC_H
+#include <snappy-c.h>
+#endif
 
 #ifndef FD_DEBUG_BUFIO
 #define FD_DEBUG_BUFIO 0
 #endif
+
+size_t fd_zlib_level = FD_DEFAULT_ZLEVEL;
 
 fd_exception fd_IsWriteBuf=_("Reading from a write buffer");
 fd_exception fd_IsReadBuf=_("Writing to a read buffer");
@@ -298,3 +306,57 @@ FD_EXPORT int _fd_read_zint(struct FD_INBUF *buf)
   else return fd_read_zint(buf);
 }
 
+/* Compression functions */
+
+FD_EXPORT
+unsigned char *fd_zlib_compress
+(unsigned char *in,size_t n_bytes,
+ unsigned char *out,ssize_t *z_len,
+ int level_arg)
+{
+  Bytef *zbuf  = (Bytef *)out;
+  uLongf z_lim = (((uLongf)(n_bytes*1.001))+12), buf_len = *z_len;
+  int level = (level_arg>=0) ? (level_arg) : FD_DEFAULT_ZLEVEL;
+  if ( (out==NULL) || (buf_len<z_lim) ) {
+    zbuf    = u8_malloc(z_lim);
+    buf_len = z_lim;}
+  int error = compress2(zbuf,&buf_len,in,n_bytes,level);
+  if (error) {
+    switch (error) {
+    case Z_MEM_ERROR:
+      fd_seterr1("ZLIB Out of Memory"); break;
+    case Z_BUF_ERROR:
+      fd_seterr1("ZLIB Buffer error"); break;
+    case Z_DATA_ERROR:
+      fd_seterr1("ZLIB Data error"); break;
+    default:
+      fd_seterr1("Bad ZLIB return code");}
+    if (zbuf!=out) u8_free(zbuf);
+    return NULL;}
+  *z_len = buf_len;
+  return zbuf;
+}
+
+FD_EXPORT
+unsigned char *fd_snappy_compress
+(unsigned char *in,size_t n_bytes,
+ unsigned char *out,ssize_t *z_len)
+{
+  unsigned char *zbuf = out;
+  size_t max_outlen = snappy_max_compressed_length(n_bytes);
+  ssize_t buf_len = *z_len;
+  if (max_outlen>buf_len) {
+    zbuf = u8_malloc(max_outlen);
+    if (zbuf==NULL) {
+      u8_seterr(fd_MallocFailed,"fd_snappy_compress",NULL);
+      return NULL;}
+    zbuf = u8_malloc(max_outlen);
+    *z_len = max_outlen;}
+  snappy_status compress_rv=snappy_compress(in,n_bytes,zbuf,z_len);
+  if (compress_rv == SNAPPY_OK)
+    return zbuf;
+  else {
+    u8_seterr("SnappyFailed","fd_snappy_compress",NULL);
+    if (zbuf != out ) u8_free(zbuf);
+    return NULL;}
+}

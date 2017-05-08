@@ -6634,6 +6634,53 @@ fi
     as_fn_error $? "jemalloc can't be found" "$LINENO" 5
     exit;
   fi;
+elif test "$with_malloc" = "dmalloc"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ldmalloc" >&5
+$as_echo_n "checking for malloc in -ldmalloc... " >&6; }
+if ${ac_cv_lib_dmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_dmalloc_malloc=yes
+else
+  ac_cv_lib_dmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_dmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_dmalloc_malloc" = xyes; then :
+  EXECLIBS="-ldmalloc $EXECLIBS"
+fi
+
+  if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
+    custom_malloc="dmalloc"
+  else
+    as_fn_error $? "dmalloc can't be found" "$LINENO" 5
+    exit;
+  fi;
 elif test "$with_malloc" = "asan"; then
    CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=address $LDFLAGS"
@@ -6677,7 +6724,7 @@ elif test "$with_malloc" = "asan_thread"; then
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
-   as_fn_error $? "Valid values for malloc are stdlib tcmalloc gperftools tcmalloc_debug asan asan_thread asan_memory asan_leak jemalloc" "$LINENO" 5
+   as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread asan_memory asan_leak" "$LINENO" 5
    exit 1;
 fi
 

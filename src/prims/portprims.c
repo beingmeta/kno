@@ -27,8 +27,6 @@
 
 #include <zlib.h>
 
-#define FD_DEFAULT_ZLEVEL 9
-
 fd_exception fd_UnknownEncoding=_("Unknown encoding");
 
 /* Making ports */
@@ -826,7 +824,8 @@ static void print_backtrace_env(U8_OUTPUT *out,u8_exception ex,int width)
     fd_decref(keys);}
 }
 
-static u8_exception print_backtrace_entry(U8_OUTPUT *out,u8_exception ex,int width)
+static u8_exception print_backtrace_entry
+(U8_OUTPUT *out,u8_exception ex,int width)
 {
   if (ex->u8x_context == fd_eval_context) {
     fdtype expr = exception_data(ex);

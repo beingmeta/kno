@@ -28,8 +28,6 @@
 
 #include <zlib.h>
 
-#define FD_DEFAULT_ZLEVEL 9
-
 static fdtype read_dtype(fdtype stream)
 {
   struct FD_STREAM *ds=
