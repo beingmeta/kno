@@ -771,6 +771,14 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
+static fdtype get_adjuncts(fdtype pool_arg)
+{
+  fd_pool p=fd_lisp2pool(pool_arg);
+  if (p==NULL)
+    return FD_ERROR_VALUE;
+  else return fd_get_adjuncts(p);
+}
+
 /* DB control functions */
 
 static fdtype swapout_lexpr(int n,fdtype *args)
@@ -3283,7 +3291,15 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
+  fd_idefn3(fd_xscheme_module,"USE-ADJUNCT",use_adjunct,1,
+            "`(USE-ADJUNCT table slot pool)`\n"
+            "arranges for *table* to store values of the slotid *slot* "
+            "for objects in *pool*. If *pool* is not specified, "
+            "the adjunct is declared globally.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn1(fd_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,
+            "Gets the adjuncts associated with the specified pool",
+            -1,FD_VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("MAKE-BLOOM-FILTER",make_bloom_filter,1,

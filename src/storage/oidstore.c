@@ -179,6 +179,17 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
   return n_adjuncts;
 }
 
+FD_EXPORT fdtype fd_get_adjuncts(fd_pool p)
+{
+  int i=0, n_adjuncts=p->pool_n_adjuncts;
+  struct FD_ADJUNCT *adjuncts=p->pool_adjuncts;
+  fdtype result=fd_make_slotmap(n_adjuncts,0,NULL);
+  while (i < n_adjuncts) {
+    struct FD_ADJUNCT *adj=&adjuncts[i++];
+    fd_store(result,adj->slotid,adj->table);}
+  return result;
+}
+
 /* Fetching from adjuncts */
 
 static fd_index l2x(fdtype lix)
