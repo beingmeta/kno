@@ -57,6 +57,12 @@ static int uuid_dtype(struct FD_OUTBUF *out,fdtype x)
   return size;
 }
 
+static int hash_uuid(fdtype x,unsigned int (*fn)(fdtype))
+{
+  struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
+  return fd_hash_bytes(uuid->fd_uuid16,16);
+}
+
 static fdtype uuid_dump(fdtype x,fd_compound_typeinfo MU e)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
@@ -345,6 +351,7 @@ void fd_init_misctypes_c()
   if (fd_dtype_writers[fd_error_type]==NULL)
     fd_dtype_writers[fd_error_type]=dtype_exception;
 
+  fd_hashfns[fd_uuid_type]=hash_uuid;
   fd_dtype_writers[fd_uuid_type]=uuid_dtype;
   fd_copiers[fd_uuid_type]=copy_uuid;
 
