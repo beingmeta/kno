@@ -223,7 +223,9 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opt
                 fname,u8_realpath(fname,NULL),
                 flags);
   fd_stream stream=
-    fd_init_file_stream(stream,fname,mode,stream_flags,fd_driver_bufsize);
+    fd_init_file_stream(&(index->index_stream),fname,mode,
+                        stream_flags,
+                        fd_driver_bufsize);
 
   if (stream == NULL) {
     u8_free(index);
