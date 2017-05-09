@@ -1233,8 +1233,8 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
       sprintf(buf,"serial = 0x%x",serial);
       fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",buf);
       return NULL;}}
-  else if (FD_STRINGP(lp))
-    return fd_use_pool(FD_STRDATA(lp),0,FD_VOID);
+  else if (FD_TYPEP(lp,fd_consed_pool_type))
+    return fd_incref(lp);
   else {
     fd_seterr(fd_TypeError,_("not a pool"),NULL,lp);
     return NULL;}
