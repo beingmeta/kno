@@ -56,7 +56,6 @@ static int recover_file_pool(struct FD_FILE_POOL *);
 static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   struct FD_FILE_POOL *pool = u8_alloc(struct FD_FILE_POOL);
-  struct FD_STREAM *s = &(pool->pool_stream);
   FD_OID base = FD_NULL_OID_INIT;
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
@@ -65,11 +64,17 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,fdtype opts
   u8_string rname = u8_realpath(fname,NULL);
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  fd_init_file_stream(&(pool->pool_stream),fname,mode,
-                      ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
-                      FD_STREAM_CAN_SEEK|
-                      FD_STREAM_NEEDS_LOCK,
-                      fd_driver_bufsize);
+  fd_stream s = fd_init_file_stream
+    (&(pool->pool_stream),fname,mode,
+     ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+     FD_STREAM_CAN_SEEK|
+     FD_STREAM_NEEDS_LOCK,
+     fd_driver_bufsize);
+
+  if (s==NULL) {
+    u8_seterr(fd_FileNotFound,"open_file_pool",u8dup(fname));
+    return NULL;}
+
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(s,0);
   hi = fd_read_4bytes_at(s,4); lo = fd_read_4bytes_at(s,8);
@@ -680,8 +685,9 @@ int fd_make_file_pool
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
     fd_init_file_stream(&_stream,filename,FD_FILE_CREATE,-1,fd_driver_bufsize);
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
-  if (stream == NULL) return -1;
+  struct FD_OUTBUF *outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
+
+  if (outstream == NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
     fd_free_stream(stream);

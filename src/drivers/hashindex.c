@@ -206,7 +206,6 @@ static int recover_hashindex(struct FD_HASHINDEX *hx);
 static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
-  struct FD_STREAM *stream = &(index->index_stream);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
   int consed = U8_BITP(flags,FD_STORAGE_ISCONSED);
 
@@ -223,13 +222,16 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opt
   fd_init_index((fd_index)index,&hashindex_handler,
                 fname,u8_realpath(fname,NULL),
                 flags);
-  if (fd_init_file_stream(stream,fname,mode,stream_flags,fd_driver_bufsize)
-      == NULL) {
+  fd_stream stream=
+    fd_init_file_stream(stream,fname,mode,stream_flags,fd_driver_bufsize);
+
+  if (stream == NULL) {
     u8_free(index);
     fd_seterr3(u8_CantOpenFile,"open_hashindex",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only = 1;
+  if (stream->stream_flags&FD_STREAM_READ_ONLY)
+    read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0);
   index->index_n_buckets = fd_read_4bytes_at(stream,4);
@@ -387,8 +389,10 @@ FD_EXPORT int make_hashindex
   int offtype = (fd_offset_type)(((flags)&(FD_HASHINDEX_OFFTYPE_MASK))>>4);
   struct FD_STREAM _stream, *stream=
     fd_init_file_stream(&_stream,fname,FD_FILE_CREATE,-1,fd_driver_bufsize);
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
-  if (stream == NULL) return -1;
+  struct FD_OUTBUF *outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
+
+  if (outstream == NULL)
+    return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"make_hashindex",u8_strdup(fname));
     fd_free_stream(stream);

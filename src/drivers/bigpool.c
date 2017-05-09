@@ -181,7 +181,10 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   struct FD_STREAM *stream=
     fd_init_file_stream(&(pool->pool_stream),fname,
                         mode,stream_flags,fd_driver_bufsize);
-  struct FD_INBUF *instream = fd_readbuf(stream);
+  struct FD_INBUF *instream = (stream) ? (fd_readbuf(stream)) : (NULL);
+  if (instream == NULL) {
+    u8_raise(fd_FileNotFound,"open_bigpool",u8_strdup(fname));
+    return NULL;}
 
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes(instream);
@@ -462,9 +465,10 @@ static int make_bigpool
     fd_init_file_stream(&_stream,fname,
                         FD_FILE_CREATE,-1,
                         fd_driver_bufsize);
-  fd_outbuf outstream = fd_writebuf(stream);
+  fd_outbuf outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
   fd_offset_type offtype = (fd_offset_type)((flags)&(FD_BIGPOOL_OFFMODE));
-  if (stream == NULL) return -1;
+
+  if (outstream == NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_bigpool",u8_strdup(fname));
     fd_free_stream(stream);
