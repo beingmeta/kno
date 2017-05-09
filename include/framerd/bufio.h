@@ -71,19 +71,27 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 /* Initializing macros */
 
 /* These are for input or output */
-#define FD_INIT_BYTE_OUTBUF(bo,sz)			\
-  (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);		\
+
+#define FD_INIT_BYTE_OUTPUT(bo,sz)			\
+  (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);	\
   (bo)->buflim = (bo)->buffer+sz;			\
   (bo)->buflen = sz;					\
   (bo)->buf_flags = FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;	\
-  (bo)->buf_fillfn = NULL; (bo)->buf_flushfn = NULL;
+  (bo)->buf_fillfn = NULL;				\
+  (bo)->buf_flushfn = NULL;
 
-#define FD_INIT_FIXED_BYTE_OUTBUF(bo,buf,sz) \
+#define FD_INIT_BYTE_OUTBUF(bo,buf,sz)	     \
   (bo)->bufwrite = (bo)->buffer = buf;	     \
   (bo)->buflim = (bo)->buffer+sz;	     \
+  (bo)->buflen = sz;			     \
   (bo)->buf_fillfn = NULL;		     \
   (bo)->buf_flushfn = NULL;		     \
   (bo)->buf_flags = FD_IS_WRITING
+
+#define FD_DECL_OUTBUF(v,size)	     \
+  struct FD_OUTBUF v;		     \
+  unsigned char v ## buf[size];      \
+  FD_INIT_BYTE_OUTBUF(&v,v ## buf,size)
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz) \
   (bi)->bufread = (bi)->buffer = b;   \

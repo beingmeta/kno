@@ -143,8 +143,11 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in);
 FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x);
 FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x);
 
-FD_EXPORT int fd_write_ints(fd_stream s,int len,unsigned int *words);
-FD_EXPORT int fd_read_ints(fd_stream s,int len,unsigned int *words);
+FD_EXPORT ssize_t fd_write_ints(fd_stream s,size_t len,unsigned int *words);
+FD_EXPORT ssize_t fd_read_ints(fd_stream s,size_t len,unsigned int *words);
+
+FD_EXPORT ssize_t fd_stream_write(fd_stream s,size_t len,unsigned char *bytes);
+FD_EXPORT ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes);
 
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
 FD_EXPORT fdtype fd_streamctl(fd_stream s,fd_streamop,void *data);

@@ -791,7 +791,8 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     long long rv_sum = 0;
     fdtype arg = args[0];
     if (FD_CHOICEP(arg)) {
-      fdtype oids = FD_EMPTY_CHOICE; int rv = 0;
+      int rv = 0;
+      fdtype oids = FD_EMPTY_CHOICE;
       FD_DO_CHOICES(e,arg) {
         if (FD_OIDP(e)) {FD_ADD_TO_CHOICE(oids,e);}
         else if (FD_POOLP(e))
@@ -2902,7 +2903,7 @@ static fdtype bloom_add(fdtype filter,fdtype value,fdtype raw_arg)
   else {
     struct FD_OUTBUF out; 
     unsigned char bytebuf[1024];
-    FD_INIT_FIXED_BYTE_OUTBUF(&out,bytebuf,1024);
+    FD_INIT_BYTE_OUTBUF(&out,bytebuf,1024);
     fd_write_dtype(&out,value);
     int rv = fd_bloom_add(bloom,out.buffer,
                         out.bufwrite-out.buffer);
@@ -2932,7 +2933,7 @@ static fdtype bloom_check(fdtype filter,fdtype value,fdtype raw_arg)
   else {
     struct FD_OUTBUF out; 
     unsigned char bytebuf[1024];
-    FD_INIT_FIXED_BYTE_OUTBUF(&out,bytebuf,1024);
+    FD_INIT_BYTE_OUTBUF(&out,bytebuf,1024);
     fd_write_dtype(&out,value);
     int rv = fd_bloom_check(bloom,out.buffer,
                           out.bufwrite-out.buffer);

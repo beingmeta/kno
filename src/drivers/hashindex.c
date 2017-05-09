@@ -680,7 +680,7 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,
 {
   struct FD_OUTBUF out; unsigned char buf[1024];
   unsigned int hashval; int dtype_len;
-  FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,1024);
+  FD_INIT_BYTE_OUTBUF(&out,buf,1024);
   if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
@@ -749,7 +749,7 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   fd_off_t vblock_off; size_t vblock_size;
   FD_CHUNK_REF keyblock;
-  FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,HX_KEYBUF_SIZE);
+  FD_INIT_BYTE_OUTBUF(&out,buf,HX_KEYBUF_SIZE);
 #if FD_DEBUG_HASHINDEXES
   /* u8_message("Fetching the key %q from %s",key,hx->indexid); */
 #endif
@@ -914,7 +914,7 @@ static int hashindex_fetchsize(fd_index ix,fdtype key)
   struct FD_OUTBUF out; unsigned char buf[64];
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   FD_CHUNK_REF keyblock;
-  FD_INIT_FIXED_BYTE_OUTBUF(&out,buf,64);
+  FD_INIT_BYTE_OUTBUF(&out,buf,64);
   if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
@@ -1005,7 +1005,7 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
   u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
   /* Assuming 32 bytes per key representation */
-  FD_INIT_BYTE_OUTBUF(&keysbuf,n*32);
+  FD_INIT_BYTE_OUTPUT(&keysbuf,n*32);
   if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|FD_USE_DTYPEV2;
   /* Fill out a fetch schedule, computing hashes and buckets for each key.
@@ -2080,8 +2080,8 @@ static int hashindex_commit(struct FD_INDEX *ix)
     /* The commit schedule is now filled and we start generating a
        bucket schedule. */
     /* We're going to write keys and values, so we create streams to do so. */
-    FD_INIT_BYTE_OUTBUF(&out,1024);
-    FD_INIT_BYTE_OUTBUF(&newkeys,schedule_max*16);
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
     if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
       out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
       newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}

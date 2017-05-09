@@ -804,7 +804,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   size_t maxpos = get_maxpos(op);
   fd_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
-  FD_INIT_BYTE_OUTBUF(&tmpout,init_buflen);
+  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
   endpos = fd_endpos(stream);
   if ((op->oidpool_format)&(FD_OIDPOOL_DTYPEV2))
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;

@@ -155,7 +155,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     bytes = FD_PACKET_DATA(object); len = FD_PACKET_LENGTH(object);}
   else if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
     struct FD_OUTBUF out;
-    FD_INIT_BYTE_OUTBUF(&out,1024);
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,object);
     bytes = out.buffer; len = out.bufwrite-out.buffer;
     free_bytes = 1;}

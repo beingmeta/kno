@@ -113,7 +113,7 @@ static fdtype dtype2packet(fdtype object,fdtype initsize)
 {
   size_t size = FD_FIX2INT(initsize);
   struct FD_OUTBUF out;
-  FD_INIT_BYTE_OUTBUF(&out,size);
+  FD_INIT_BYTE_OUTPUT(&out,size);
   int bytes = fd_write_dtype(&out,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,bytes,out.buffer);
@@ -1124,7 +1124,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       ((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
     struct FD_OUTBUF out; int flags = 0; /* FDPP_FHCRC */
     time_t now = time(NULL); u8_int4 crc, intval;
-    FD_INIT_BYTE_OUTBUF(&out,1024); memset(out.buffer,0,1024);
+    FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.buffer,0,1024);
     fd_write_byte(&out,31); fd_write_byte(&out,139);
     fd_write_byte(&out,8); /* Using default */
     /* Compute flags */

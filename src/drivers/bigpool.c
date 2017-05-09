@@ -937,7 +937,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   size_t maxpos = get_maxpos(bp);
   fd_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
-  FD_INIT_BYTE_OUTBUF(&tmpout,init_buflen);
+  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
   endpos = fd_endpos(stream);
   if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;

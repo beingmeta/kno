@@ -96,7 +96,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
     int fullwidth = (qrwidth+(margin*2))*dotsize;
     int rowlen = (fullwidth+7)/8;
     unsigned char *row = u8_malloc(rowlen);
-    FD_INIT_BYTE_OUTBUF(&buf,2048);
+    FD_INIT_BYTE_OUTPUT(&buf,2048);
     png_set_write_fn(png_ptr,(void *)&buf,packet_write_data,packet_flush_data);
     png_set_IHDR(png_ptr, info_ptr,
                  fullwidth,fullwidth,1,

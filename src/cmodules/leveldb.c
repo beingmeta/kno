@@ -333,7 +333,7 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
       return fd_err("LevelDBError","leveldb_get_prim",errmsg,FD_VOID);
     else return FD_EMPTY_CHOICE;}
   else {
-    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
+    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTPUT(&keyout,1024);
     if (fd_write_dtype(&keyout,key)>0) {
       fdtype result = FD_VOID;
       ssize_t binary_size;
@@ -379,8 +379,8 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
       return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
     else return FD_VOID;}
   else {
-    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
-    struct FD_OUTBUF valout; FD_INIT_BYTE_OUTBUF(&valout,1024);
+    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTPUT(&keyout,1024);
+    struct FD_OUTBUF valout; FD_INIT_BYTE_OUTPUT(&valout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
       u8_free(keyout.buffer);
       u8_free(valout.buffer);
@@ -420,7 +420,7 @@ static fdtype leveldb_drop_prim(fdtype leveldb,fdtype key,fdtype opts)
       return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
     else return FD_VOID;}
   else {
-    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
+    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTPUT(&keyout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
       u8_free(keyout.buffer);
       return FD_ERROR_VALUE;}
@@ -461,7 +461,7 @@ static ssize_t set_prop(leveldb_t *dbptr,char *key,fdtype value,
 {
   ssize_t dtype_len; char *errmsg = NULL;
   struct FD_OUTBUF out;
-  FD_INIT_BYTE_OUTBUF(&out,512);
+  FD_INIT_BYTE_OUTPUT(&out,512);
   if ((dtype_len = fd_write_dtype(&out,value))>0) {
     leveldb_put(dbptr,writeopts,key,strlen(key),
 		out.buffer,out.bufwrite-out.buffer,
@@ -607,7 +607,7 @@ static int set_oid_value(fd_leveldb_pool ldp,
   struct FD_OUTBUF out; ssize_t dtype_len;
   leveldb_t *dbptr = ldp->leveldb.dbptr;
   if (writeopts == NULL) writeopts = ldp->leveldb.writeopts;
-  FD_INIT_BYTE_OUTBUF(&out,512);
+  FD_INIT_BYTE_OUTPUT(&out,512);
   unsigned char buf[5];
   buf[0]=0xFE;
   buf[1]=((offset>>24)&0XFF);
@@ -640,7 +640,7 @@ static int queue_oid_value(fd_leveldb_pool ldp,
   buf[2]=((offset>>16)&0XFF);
   buf[3]=((offset>>8)&0XFF);
   buf[4]=(offset&0XFF);
-  FD_INIT_BYTE_OUTBUF(&out,512);
+  FD_INIT_BYTE_OUTPUT(&out,512);
   if ((dtype_len = write_oid_value(ldp,&out,value))>0) {
     leveldb_writebatch_put
       (batch,buf,5,out.buffer,out.bufwrite-out.buffer);
