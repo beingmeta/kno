@@ -771,6 +771,24 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
+static fdtype add_adjunct(fdtype pool_arg,fdtype slotid,fdtype adjunct)
+{
+  if (FD_STRINGP(adjunct)) {
+    fd_index ix = fd_get_index(FD_STRDATA(adjunct),0,FD_VOID);
+    if (ix) adjunct = fd_index2lisp(ix);
+    else return fd_type_error("adjunct spec","use_adjunct",adjunct);}
+  if ((FD_VOIDP(slotid)) && (FD_TABLEP(adjunct)))
+    slotid = fd_get(adjunct,padjuncts_symbol,FD_VOID);
+  if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) {
+    fd_pool p = fd_lisp2pool(pool_arg);
+    if (p == NULL)
+      return FD_ERROR_VALUE;
+    else if (fd_set_adjunct(p,slotid,adjunct)<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+  else return fd_type_error(_("slotid"),"use_adjunct",slotid);
+}
+
 static fdtype get_adjuncts(fdtype pool_arg)
 {
   fd_pool p=fd_lisp2pool(pool_arg);
@@ -3293,12 +3311,18 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
   fd_idefn3(fd_xscheme_module,"USE-ADJUNCT",use_adjunct,1,
-            "`(USE-ADJUNCT table slot pool)`\n"
+            "(table [slot] [pool])\n"
             "arranges for *table* to store values of the slotid *slot* "
             "for objects in *pool*. If *pool* is not specified, "
             "the adjunct is declared globally.",
             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn3(fd_xscheme_module,"ADD-ADJUNCT!",add_adjunct,3,
+            "(pool slot table)\n"
+            "arranges for *table* to store values of the slotid *slot* "
+            "for objects in *pool*.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
   fd_idefn1(fd_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,
+            "(pool)\n"
             "Gets the adjuncts associated with the specified pool",
             -1,FD_VOID);
 
