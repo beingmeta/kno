@@ -1230,7 +1230,7 @@ static unsigned int type_multipliers[]=
    250000073,260000093};
 #define N_TYPE_MULTIPLIERS 6
 
-FD_FASTOP unsigned int mult_hash_string
+FD_FASTOP unsigned int mult_hash_bytes
   (const unsigned char *start,int len)
 {
   unsigned int h=0;
@@ -1247,9 +1247,9 @@ FD_FASTOP unsigned int mult_hash_string
   return h;
 }
 
-FD_EXPORT unsigned int fd_hash_string(u8_string string,int len)
+FD_EXPORT unsigned int fd_hash_bytes(u8_string string,int len)
 {
-  return mult_hash_string(string,len);
+  return mult_hash_bytes(string,len);
 }
 
 /* Hashing dtype pointers */
@@ -1263,10 +1263,10 @@ static unsigned int hash_lisp(fdtype x)
     case fd_string_type: {
       struct FD_STRING *s=
         fd_consptr(struct FD_STRING *,x,fd_string_type);
-      return mult_hash_string(s->fd_bytes,s->fd_bytelen);}
+      return mult_hash_bytes(s->fd_bytes,s->fd_bytelen);}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *)x;
-      return mult_hash_string(s->fd_bytes,s->fd_bytelen);}
+      return mult_hash_bytes(s->fd_bytes,s->fd_bytelen);}
     case fd_pair_type: {
       fdtype car=FD_CAR(x), cdr=FD_CDR(x);
       unsigned int hcar=fd_hash_lisp(car), hcdr=fd_hash_lisp(cdr);
