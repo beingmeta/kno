@@ -865,7 +865,7 @@ static fdtype bindop(fd_lispenv env,fdtype vars,fdtype inits,fdtype body)
       free_environment(inner_env);
       return val;}
     else values[i++]=val;}
-  fdtype result = op_eval_body(body,env);
+  fdtype result = op_eval_body(body,inner_env);
   free_environment(inner_env);
   return result;
 }
