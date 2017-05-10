@@ -151,9 +151,11 @@ fdtype fd_make_symbol(u8_string bytes,int len)
   hash = mult_hash_bytes(bytes,len);
   probe = hash%size;
   while (FD_EXPECT_TRUE(entries[probe]!=NULL)) {
-    if (FD_EXPECT_TRUE(len == (entries[probe])->fd_pname.fd_bytelen))
-      if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->fd_pname.fd_bytes,len) == 0))
-        break;
+    unsigned int bytelen=(entries[probe])->fd_pname.fd_bytelen;
+    if (FD_EXPECT_TRUE(len == bytelen)) {
+      const unsigned char *pname=(entries[probe])->fd_pname.fd_bytes;
+      if (FD_EXPECT_TRUE(strncmp(bytes,pname,len) == 0))
+        break;}
     probe++; if (probe>=size) probe = 0;}
   if (entries[probe]) {
     int id = entries[probe]->fd_symid;

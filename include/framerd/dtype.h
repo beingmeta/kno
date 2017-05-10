@@ -80,6 +80,9 @@ typedef int (*fd_hashfn)(fdtype x,unsigned int (*hf)(fdtype));
 FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
 
+FD_EXPORT int fd_add_hashname(u8_string s,fdtype value);
+FD_EXPORT fdtype fd_lookup_hashname(u8_string s);
+
 typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,int,void *);
 
 FD_EXPORT int fd_pprint
