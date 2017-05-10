@@ -6688,8 +6688,8 @@ elif test "$with_malloc" = "asan"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
 elif test "$with_malloc" = "asan_leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
