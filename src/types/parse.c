@@ -253,8 +253,16 @@ int fd_add_hashname(u8_string s,fdtype value)
     fdtype string=fdtype_string(d);
     struct FD_KEYVAL *added=
       fd_sortvec_insert(string,&hashnames,&n_hashnames,&hashnames_len,1);
-    if (added) added->kv_val=value;
+    if (added)
+      added->kv_val=value;
+    if ( (added) && (added->kv_key != string ) ) {
+      if (!(FD_EQUALP(value,added->kv_val)))
+        u8_log(LOG_WARN,"ConstantConflict",
+               "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
+               d,added->kv_val,value);
+      fd_decref(string);}
     u8_rw_unlock(&hashnames_lock);
+    u8_free(d);
     return 1;}
 }
 

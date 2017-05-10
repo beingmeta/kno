@@ -1105,6 +1105,7 @@ static void set_opcode_name(fdtype opcode,u8_string name)
   u8_string hashname=u8_string_append("#",name,NULL);
   fd_opcode_names[off]=name;
   fd_add_hashname(hashname,opcode);
+  u8_free(hashname);
 }
 
 static void init_opcode_names()
