@@ -66,7 +66,7 @@ static fdtype procedure_name(fdtype x)
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_APPLICABLEP(x)) 
+  else if (FD_APPLICABLEP(x))
     return FD_FALSE;
   else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
@@ -508,9 +508,11 @@ static fdtype thisenv_handler(fdtype expr,fd_lispenv env)
 
 static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
 {
-  fdtype symbol_arg = fd_get_arg(expr,1), symbol = fd_eval(symbol_arg,call_env);
+  fdtype symbol_arg = fd_get_arg(expr,1);
+  fdtype symbol = fd_eval(symbol_arg,call_env);
   if (FD_SYMBOLP(symbol)) {
-    fdtype env_arg = fd_eval(fd_get_arg(expr,2),call_env); fd_lispenv env;
+    fd_lispenv env;
+    fdtype env_arg = fd_eval(fd_get_arg(expr,2),call_env);
     if (FD_VOIDP(env_arg)) env = call_env;
     else if (FD_TYPEP(env_arg,fd_environment_type))
       env = fd_consptr(fd_lispenv,env_arg,fd_environment_type);
@@ -521,7 +523,7 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
         fdtype bindings = env->env_bindings;
         if ((FD_CONSP(bindings)) &&
             (FD_MALLOCD_CONSP((fd_cons)bindings)))
-          return fd_incref(env->env_bindings);
+          return fd_incref((fdtype)env);
         else {
           fd_decref(env_arg);
           return FD_FALSE;}}

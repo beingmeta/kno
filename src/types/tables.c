@@ -1559,10 +1559,9 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
   if (result) {
     fdtype current=result->kv_val; int cmp;
     if (FD_VOIDP(val)) cmp=(!(FD_VOIDP(current)));
-    /* This used to return 0 if the value was the empty choice, but that's not
-       consistent with the other table test functions and got Scheme's WHEREFROM
-       into trouble. */
-    /* if (FD_EMPTY_CHOICEP(current)) cmp=0; else cmp=1; */
+    /* This used to return 0 when val is FD_VOID and the value is
+       FD_EMPTY_CHOICE, but that's not consistent with the other table
+       test functions. */
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
              (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))

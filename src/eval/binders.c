@@ -59,8 +59,8 @@ static fdtype set_plus_handler(fdtype expr,fd_lispenv env)
   value = fasteval(val_expr,env);
   if (FD_ABORTED(value))
     return value;
-  else if (fd_add_value(var,value,env)) {}
-  else if (fd_bind_value(var,value,env)) {}
+  else if (fd_add_value(var,value,env)>0) {}
+  else if (fd_bind_value(var,value,env)>=0) {}
   else return fd_err(fd_BindError,"SET+!",FD_SYMBOL_NAME(var),var);
   fd_decref(value);
   return FD_VOID;

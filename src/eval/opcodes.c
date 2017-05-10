@@ -765,6 +765,45 @@ static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
       return FD_VOID;}}
 }
 
+static fdtype combine_values(fdtype combiner,fdtype cur,fdtype value)
+{
+  int use_cur=((FD_ABORTP(cur)) ||
+               (cur == FD_DEFAULT_VALUE) ||
+               (cur == FD_UNBOUND) ||
+               (cur == FD_VOID) ||
+               (cur == FD_NULL));
+  switch (combiner) {
+  case FD_VOID: case FD_FALSE:
+    fd_decref(cur);
+    return value;
+  case FD_DEFAULT_VALUE:
+    if (use_cur)
+      return cur;
+    else return value;
+  case FD_PLUS_OPCODE:
+    if (!(use_cur)) cur=FD_FIXNUM_ZERO;
+    if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+      long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(value);
+      return FD_MAKE_FIXNUM(ic+ip);}
+    else {
+      fdtype result=fd_plus(cur,value);
+      fd_decref(value); fd_decref(cur);
+      if (FD_ABORTED(result))
+        return result;
+      else return result;}
+  case FD_MINUS_OPCODE:
+    if (!(use_cur)) cur=FD_FIXNUM_ZERO;
+    if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+      long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(value);
+      return FD_MAKE_FIXNUM(ic-im);}
+    else {
+      fdtype result=fd_subtract(cur,value);
+      fd_decref(cur); fd_decref(value);
+      return result;}
+  default:
+    fd_decref(cur);
+    return value;}
+}
 static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
 {
   fdtype value = op_eval(expr,env,0);
@@ -787,57 +826,31 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
         if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
           fdtype *values = skimap->schema_values;
           fdtype cur     = values[across];
-          switch (combiner) {
-          case FD_VOID: case FD_FALSE:
-            values[across]=value;
-            fd_decref(cur); cur=FD_VOID;
-            return FD_VOID;
-          case FD_UNION_OPCODE:
-            FD_ADD_TO_CHOICE(values[across],value);
-            return FD_VOID;
-          case FD_TRUE:
-            if ((cur == FD_DEFAULT_VALUE) ||
-                (cur == FD_UNBOUND) ||
-                (cur == FD_VOID) ||
-                (cur == FD_NULL))
-              values[across]=value;
-            return FD_VOID;
-          case FD_PLUS_OPCODE:
-            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
-              long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(value);
-              values[across]=FD_MAKE_FIXNUM(ic+ip);
-              return FD_VOID;}
-            else {
-              fdtype result=fd_plus(cur,value);
-              fd_decref(cur); fd_decref(value);
-              if (FD_ABORTED(result))
-                return result;
-              else skimap->schema_values[across]=result;
-              return FD_VOID;}
-          case FD_MINUS_OPCODE:
-            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
-              long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(value);
-              values[across]=FD_MAKE_FIXNUM(ic-im);
-              return FD_VOID;}
-            else {
-              fdtype result=fd_subtract(cur,value);
-              fd_decref(cur); fd_decref(value);
-              if (FD_ABORTED(result))
-                return result;
-              else values[across]=result;
-              return FD_VOID;}}}}}
+          if (combiner == FD_UNION_OPCODE) {
+            FD_ADD_TO_CHOICE(values[across],value);}
+          else values[across]=combine_values(combiner,cur,value);
+          return FD_VOID;}}}
     u8_string lexref=u8_mkstring("up%d/across%d",up,across);
     fdtype env_copy=(fdtype)fd_copy_env(env);
     return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
   else if ((FD_PAIRP(var)) &&
            (FD_SYMBOLP(FD_CAR(var))) &&
            (FD_TABLEP(FD_CDR(var)))) {
+    int rv=-1;
     fdtype table=FD_CDR(var), sym=FD_CAR(var);
-    int rv=fd_store(table,sym,value);
-    fd_decref(value);
-    if (rv<0)
-      return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
-    else return FD_VOID;}
+    if (combiner == FD_UNION_OPCODE)
+      rv=fd_add(table,sym,value);
+    else {
+      fdtype cur=fd_get(table,sym,FD_UNBOUND);
+      fdtype newv=combine_values(combiner,cur,value);
+      if (FD_ABORTED(newv)) {
+        rv=-1;}
+      else rv=fd_store(table,sym,newv);
+      fd_decref(cur); fd_decref(newv);
+      if (rv<0) {
+        fd_seterr("AssignFailed","ASSIGN_OPCODE",NULL,expr);
+        return FD_ERROR_VALUE;}
+      else return FD_VOID;}}
   return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
 }
 
