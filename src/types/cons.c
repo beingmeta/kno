@@ -17,6 +17,7 @@
 #include <libu8/u8timefns.h>
 
 #include <stdarg.h>
+#include <math.h>
 
 fd_exception fd_MallocFailed=_("malloc/realloc failed");
 fd_exception fd_StringOverflow=_("allocating humongous string past limit");
@@ -44,9 +45,9 @@ int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 
 ssize_t fd_max_strlen = -1;
 
-const char *fd_constant_names[]={
+const char *fd_constant_names[256]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
-  "#bad_dtype","bad_parse","#oom","#type_error","#range_error",
+  "#bad_dtype","#bad_parse","#oom","#type_error","#range_error",
   "#error","#badptr","#throw","#exception_tag","#unbound",
   "#neverseen","#lockholder","#default",        /* 21 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
@@ -83,8 +84,14 @@ fdtype fd_register_constant(u8_string name)
     if (strcasecmp(name,fd_constant_names[i])==0)
       return FD_CONSTANT(i);
     else i++;}
-  fd_constant_names[fd_n_constants++]=name;
-  return FD_CONSTANT(i);
+  fdtype constant=FD_CONSTANT(i);
+  if (fd_add_hashname(name,constant)<0) {
+    u8_seterr("ConstantConflict","fd_register_constant",
+              u8_strdup(name));
+    return FD_ERROR_VALUE;}
+  else {
+    fd_constant_names[fd_n_constants++]=name;
+    return constant;}
 }
 
 static int validate_constant(fdtype x)
@@ -362,7 +369,9 @@ fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes = u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
+  ptr->fd_bytelen = length;
+  ptr->fd_bytes = bytes;
+  ptr->fd_freebytes = freedata;
   /* Free the string */
   u8_free(string);
   return FDTYPE_CONS(ptr);
@@ -377,7 +386,6 @@ fdtype fdtype_string(u8_string string)
 {
   return fd_make_string(NULL,-1,string);
 }
-
 
 /* Pairs */
 
@@ -472,7 +480,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 
 /* Rails */
 
-FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
+FD_EXPORT fdtype fd_init_code(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
   fdtype *elts; int i = 0, freedata = 1;
   if ((ptr == NULL)&&(data == NULL)) {
@@ -489,7 +497,7 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
   else {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
-  FD_INIT_CONS(ptr,fd_rail_type);
+  FD_INIT_CONS(ptr,fd_code_type);
   if (data == NULL) while (i < len) elts[i++]=FD_VOID;
   ptr->fdvec_length = len; 
   ptr->fdvec_elts = elts; 
@@ -500,23 +508,23 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
 FD_EXPORT fdtype fd_make_nrail(int len,...)
 {
   va_list args; int i = 0;
-  fdtype result = fd_init_rail(NULL,len,NULL);
-  fdtype *elts = FD_RAIL_ELTS(result);
+  fdtype result = fd_init_code(NULL,len,NULL);
+  fdtype *elts = FD_CODE_ELTS(result);
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
   return result;
 }
 
-FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
+FD_EXPORT fdtype fd_make_code(int len,fdtype *data)
 {
   int i = 0;
   struct FD_VECTOR *ptr = u8_malloc
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
-  FD_INIT_CONS(ptr,fd_rail_type);
-  ptr->fdvec_length = len; 
-  ptr->fdvec_elts = elts; 
+  FD_INIT_CONS(ptr,fd_code_type);
+  ptr->fdvec_length = len;
+  ptr->fdvec_elts = elts;
   ptr->fdvec_free_elts = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return FDTYPE_CONS(ptr);
@@ -881,6 +889,43 @@ void fd_init_cons_c()
   ((fd_compound)fd_compound_descriptor_type)->compound_typetag=
     fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
+
+  i=0; while (i<256) {
+    if (fd_constant_names[i]) {
+      fd_add_hashname(fd_constant_names[i],FD_CONSTANT(i));}
+    i++;}
+  fd_add_hashname("#true",FD_TRUE);
+  fd_add_hashname("#false",FD_FALSE);
+  fd_add_hashname("#empty",FD_EMPTY_CHOICE);
+  fd_add_hashname("#dflt",FD_DEFAULT_VALUE);
+#ifdef M_PI
+  fdtype pival=fd_make_flonum(M_PI); FD_MAKE_STATIC(pival);
+  fd_add_hashname("#pi",pival);
+#endif
+#ifdef M_E
+  fdtype e_val=fd_make_flonum(M_E); FD_MAKE_STATIC(e_val);
+  fd_add_hashname("#e",e_val);
+#endif
+#ifdef M_LOG2E
+  fdtype log2e=fd_make_flonum(M_LOG2E); FD_MAKE_STATIC(log2e);
+  fd_add_hashname("#log2e",log2e);
+#endif
+#ifdef M_LOG10E
+  fdtype log10e=fd_make_flonum(M_LOG10E); FD_MAKE_STATIC(log10e);
+  fd_add_hashname("#log2e",log10e);
+#endif
+#ifdef M_LN2
+  fdtype natlog2=fd_make_flonum(M_LN2); FD_MAKE_STATIC(natlog2);
+  fd_add_hashname("#ln2",natlog2);
+#endif
+#ifdef M_LN10
+  fdtype natlog10=fd_make_flonum(M_LN10); FD_MAKE_STATIC(natlog10);
+  fd_add_hashname("#ln10",natlog10);
+#endif
+  fd_add_hashname("#answer",FD_INT(42));
+  fd_add_hashname("#life",FD_INT(42));
+  fd_add_hashname("#universe",FD_INT(42));
+  fd_add_hashname("#everything",FD_INT(42));
 }
 
 

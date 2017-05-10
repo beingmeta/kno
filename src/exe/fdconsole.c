@@ -415,7 +415,9 @@ static void exit_fdconsole()
     if (run_start<0)
       u8_message("<%ld> Exiting FramerD (%s) console before we even started!",
                  (long)getpid(),FRAMERD_REVISION);
-    else fd_log_status();}
+    else if (!(fd_be_vewy_quiet))
+      fd_log_status("Exit(fdconsole)");
+    else {}}
   close_consoles();
 #if USING_EDITLINE
   if (edithistory) history_end(edithistory);
@@ -923,7 +925,7 @@ int main(int argc,char **argv)
     start_icache = fd_index_cache_load();
     u8_flush(out);
     expr = console_read(in,env);
-    if (FD_TYPEP(expr,fd_rail_type)) {
+    if (FD_TYPEP(expr,fd_code_type)) {
       /* Handle commands */
       fdtype head = FD_VECTOR_REF(expr,0);
       if ((head == FDSYM_EQUALS)&&

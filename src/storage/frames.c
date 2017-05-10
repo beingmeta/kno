@@ -22,335 +22,12 @@
 #include <stdarg.h>
 
 static fd_exception OddFindFramesArgs=_("Odd number of args to find frames");
-static fd_exception CorruptOverlay=_("Corrupt overlay table");
 
 static struct FD_HASHTABLE slot_caches, test_caches;
 static fdtype get_methods, compute_methods, test_methods;
 static fdtype add_effects, drop_effects;
 
-static fdtype slot_overlay = FD_VOID, index_overlay = FD_VOID;
-
 static u8_mutex slotcache_lock;
-
-/* Frame overlays */
-
-#if FD_USE_TLS
-u8_tld_key _fd_inhibit_overlay_key;
-FD_EXPORT void fd_inhibit_overlays(int flag)
-{
-  fd_wideint iflag = flag;
-  u8_tld_set(_fd_inhibit_overlay_key,(void *)iflag);
-}
-#else
-__thread int fd_inhibit_overlay = 0;
-FD_EXPORT void fd_inhibit_overlays(int flag) { fd_inhibit_overlay = flag; }
-#endif
-
-static fdtype _overlay_get
-  (fdtype overlay,fdtype values,fdtype car,fdtype cdr)
-{
-  if ((FD_VOIDP(overlay)) || (fd_inhibit_overlay))
-    return values;
-  else if (FD_HASHTABLEP(overlay)) {
-    fdtype tmp_key;
-    struct FD_PAIR p;
-    struct FD_HASHTABLE *h = (fd_hashtable)overlay;
-    FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    tmp_key = (fdtype)&p;
-    p.car = car; p.cdr = cdr;
-    if (fd_hashtable_probe(h,tmp_key)) {
-      fdtype v = fd_hashtable_get(h,tmp_key,FD_VOID);
-      if ((FD_VOIDP(v)) || (FD_EMPTY_CHOICEP(v)))
-        return values;
-      else if (FD_PAIRP(v)) {
-        fdtype combined = FD_EMPTY_CHOICE, adds = FD_CAR(v), drops = FD_CDR(v);
-        fd_incref(values); fd_incref(adds);
-        FD_ADD_TO_CHOICE(combined,values);
-        FD_ADD_TO_CHOICE(combined,adds);
-        if (FD_EMPTY_CHOICEP(drops)) {
-          fd_decref(v);
-          return fd_simplify_choice(combined);}
-        else {
-          fdtype results = fd_difference(combined,drops);
-          fd_decref(combined); fd_decref(v);
-          return fd_simplify_choice(results);}}
-      else if ((FD_VECTORP(v)) && (FD_VECTOR_LENGTH(v)==1)) {
-        fdtype new_values = FD_VECTOR_REF(v,0);
-        fd_decref(values); fd_incref(new_values); fd_decref(v);
-        return new_values;}
-      else {
-        fd_decref(v);
-        return fd_err(CorruptOverlay,"overlay_get",NULL,overlay);}}
-    else return values;}
-  else if (FD_INDEXP(overlay)) {
-    fdtype tmp_key, mods;
-    struct FD_PAIR p;
-    fd_index ix = fd_indexptr(overlay);
-    FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    p.car = car; p.cdr = cdr;
-    tmp_key = (fdtype)&p;
-    mods = fd_index_get(ix,tmp_key);
-    if ((FD_VOIDP(mods)) || (FD_EMPTY_CHOICEP(mods)))
-      return values;
-    else if (FD_PAIRP(mods)) {
-      fdtype combined = FD_EMPTY_CHOICE, adds = FD_CAR(mods), drops = FD_CDR(mods);
-      fd_incref(values); fd_incref(adds);
-      FD_ADD_TO_CHOICE(combined,values);
-      FD_ADD_TO_CHOICE(combined,adds);
-      if (FD_EMPTY_CHOICEP(drops)) {
-        fd_decref(mods);
-        return fd_simplify_choice(combined);}
-      else {
-        fdtype results = fd_difference(combined,drops);
-        fd_decref(combined); fd_decref(mods);
-        return fd_simplify_choice(results);}}
-    else if (FD_VECTORP(mods)) {
-      fdtype new_values = FD_VECTOR_REF(mods,0);
-      fd_decref(values); fd_incref(new_values); fd_decref(mods);
-      return new_values;}
-    else {
-      fd_decref(mods);
-      return fd_err(CorruptOverlay,"overlay_get",NULL,overlay);}}
-  else return values;
-}
-
-static fdtype overlay_get(fdtype overlay,fdtype values,fdtype car,fdtype cdr)
-{
-  if (FD_EXPECT_TRUE(FD_VOIDP(overlay))) return values;
-  else return _overlay_get(overlay,values,car,cdr);
-}
-
-static int _overlay_test
-  (fdtype overlay,int dflt,fdtype frame,fdtype slotid,fdtype value)
-{
-  if (FD_VOIDP(overlay)) return dflt;
-  else if (fd_inhibit_overlay) return dflt;
-  else if (!(FD_OIDP(frame)))  return dflt;
-  else if (FD_HASHTABLEP(overlay)) {
-    fdtype tmp_key;
-    struct FD_PAIR p;
-    FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    tmp_key = (fdtype)&p;
-    p.car = slotid; p.cdr = frame;
-    if (fd_hashtable_probe((fd_hashtable)slot_overlay,tmp_key)) {
-      int retval;
-      fdtype v = fd_hashtable_get((fd_hashtable)slot_overlay,tmp_key,FD_VOID);
-      if ((FD_VOIDP(v)) || (FD_EMPTY_CHOICEP(v))) return dflt;
-      else if ((FD_VECTORP(v)) && (FD_VECTOR_LENGTH(v)==1))
-        retval = fd_overlapp(FD_VECTOR_REF(v,0),value);
-      else if (!(FD_PAIRP(v))) {
-        fd_seterr(CorruptOverlay,"overlay_get",NULL,overlay);
-        retval = -1;}
-      else if (fd_overlapp(value,FD_CAR(v)))
-        retval = 1;
-      else if (fd_overlapp(value,FD_CDR(v)))
-        retval = 0;
-      else retval = dflt;
-      fd_decref(v);
-      return retval;}
-    else return dflt;}
-  else if (FD_INDEXP(overlay)) {
-    fdtype tmp_key, mods;
-    struct FD_PAIR p;
-    fd_index ix = fd_indexptr(overlay);
-    FD_INIT_STATIC_CONS(&p,fd_pair_type);
-    p.car = slotid; p.cdr = frame;
-    tmp_key = (fdtype)&p;
-    mods = fd_index_get(ix,tmp_key);
-    if (FD_EMPTY_CHOICEP(mods)) return dflt;
-    else if (fd_overlapp(value,FD_CAR(mods))) {
-      fd_decref(mods); return 1;}
-    else if (fd_overlapp(value,FD_CDR(mods))) {
-      fd_decref(mods); return 0;}
-    else {
-      fd_decref(mods); return dflt;}}
-  else return dflt;
-}
-
-static int overlay_test
-  (fdtype overlay,int dflt,fdtype frame,fdtype slotid,fdtype value)
-{
-  if (FD_EXPECT_TRUE(FD_VOIDP(overlay))) return dflt;
-  else return _overlay_test(overlay,dflt,frame,slotid,value);
-}
-
-static fdtype overlay_add
-   (fdtype overlay,fdtype frame,fdtype slotid,fdtype value)
-{
-  int retval = 0;
-  fdtype key = fd_conspair(slotid,fd_incref(frame));
-  fdtype entry = ((FD_INDEXP(overlay)) ?
-                (fd_index_get(fd_indexptr(overlay),key)) :
-                (fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
-    new_entry;
-  if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
-  else if ((FD_VOIDP(entry)) || (FD_EMPTY_CHOICEP(entry)))
-    new_entry = fd_conspair(fd_incref(value),FD_EMPTY_CHOICE);
-  else if (FD_PAIRP(entry)) {
-    fdtype adds = fd_make_simple_choice(FD_CAR(entry)), drops = FD_CDR(entry);
-    fd_incref(value); FD_ADD_TO_CHOICE(adds,value);
-    new_entry = fd_conspair(adds,fd_difference(drops,value));}
-  else if (FD_VECTORP(entry)) {
-    fdtype values = FD_VECTOR_REF(entry,0), *elts = u8_alloc_n(1,fdtype);
-    /* Leak?  This fd_incref wasn't there before, but it looks like it should be. */
-    fd_incref(value); FD_ADD_TO_CHOICE(values,value);
-    elts[0]=fd_make_simple_choice(values);
-    new_entry = fd_init_vector(NULL,1,elts);}
-  else {
-    fd_seterr(CorruptOverlay,"overlay_add",NULL,entry);
-    fd_decref(entry); fd_decref(key);
-    return -1;}
-  if (FD_HASHTABLEP(overlay))
-    retval = fd_hashtable_store((fd_hashtable)overlay,key,new_entry);
-  else if (FD_INDEXP(overlay))
-    retval = fd_index_store(fd_indexptr(overlay),key,new_entry);
-  else {
-    fd_seterr(fd_TypeError,"overlay_add",NULL,overlay);
-    retval = -1;}
-  fd_decref(key); fd_decref(entry); fd_decref(new_entry);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
-}
-
-static fdtype overlay_drop
-   (fdtype overlay,fdtype frame,fdtype slotid,fdtype value)
-{
-  int retval = 0;
-  fdtype key = fd_conspair(slotid,fd_incref(frame));
-  fdtype entry = ((FD_INDEXP(overlay)) ?
-                (fd_index_get(fd_indexptr(overlay),key)) :
-                (fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
-    new_entry;
-  if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
-  else if ((FD_VOIDP(entry)) || (FD_EMPTY_CHOICEP(entry)))
-    new_entry = fd_conspair(FD_EMPTY_CHOICE,fd_incref(value));
-  else if (FD_PAIRP(entry)) {
-    fdtype adds = FD_CAR(entry), drops = fd_make_simple_choice(FD_CDR(entry));
-    fd_incref(value); FD_ADD_TO_CHOICE(drops,value);
-    new_entry = fd_conspair(fd_difference(adds,value),drops);}
-  else if (FD_VECTORP(entry)) {
-    fdtype values = FD_VECTOR_REF(entry,0), *elts = u8_alloc_n(1,fdtype);
-    elts[0]=fd_difference(values,value);
-    new_entry = fd_init_vector(NULL,1,elts);}
-  else {
-    fd_seterr(CorruptOverlay,"overlay_add",NULL,entry);
-    fd_decref(entry); fd_decref(key);
-    return -1;}
-  if (FD_HASHTABLEP(overlay))
-    retval = fd_hashtable_store((fd_hashtable)overlay,key,new_entry);
-  else if (FD_INDEXP(overlay))
-    retval = fd_index_store(fd_indexptr(overlay),key,new_entry);
-  else {
-    fd_seterr(fd_TypeError,"overlay_add",NULL,overlay);
-    retval = -1;}
-  fd_decref(key); fd_decref(entry); fd_decref(new_entry);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
-}
-
-static fdtype overlay_store
-   (fdtype overlay,fdtype frame,fdtype slotid,fdtype value)
-{
-  fdtype key = fd_conspair(slotid,fd_incref(frame));
-  fdtype *data = u8_alloc_n(1,fdtype);
-  fdtype entry = fd_init_vector(NULL,1,data);
-  data[0]=value; fd_incref(value);
-  if (FD_HASHTABLEP(overlay))
-    fd_hashtable_store((fd_hashtable)overlay,key,entry);
-  else if (FD_INDEXP(overlay)) {
-    fd_index ix = fd_indexptr(overlay);
-    fd_index_store(ix,key,entry);}
-  else {
-    fd_decref(entry); fd_decref(key);
-    return fd_err(CorruptOverlay,"overlay_store",NULL,overlay);}
-  fd_decref(entry); fd_decref(key);
-  return FD_VOID;
-}
-
-/* External functions */
-
-FD_EXPORT fdtype fd_overlay_get(fdtype frame,fdtype slotid,int index)
-{
-  if (index)
-    if (FD_EXPECT_FALSE(FD_VOIDP(index_overlay)))
-      return FD_EMPTY_CHOICE;
-    else return overlay_get(index_overlay,FD_EMPTY_CHOICE,slotid,frame);
-  else if (FD_EXPECT_FALSE(FD_VOIDP(slot_overlay)))
-    return FD_EMPTY_CHOICE;
-  else return overlay_get(slot_overlay,FD_EMPTY_CHOICE,slotid,frame);
-}
-
-FD_EXPORT fdtype fd_overlay_add
-  (fdtype frame,fdtype slotid,fdtype value,int index)
-{
-  if (index)
-    if (FD_EXPECT_FALSE(FD_VOIDP(index_overlay)))
-      return fd_err("No active overlay","fd_overlay_drop",NULL,FD_VOID);
-    else return overlay_add(index_overlay,value,slotid,frame);
-  else if (FD_EXPECT_FALSE(FD_VOIDP(slot_overlay)))
-    return fd_err("No active overlay","fd_overlay_drop",NULL,FD_VOID);
-  else return overlay_add(slot_overlay,frame,slotid,value);
-}
-
-FD_EXPORT fdtype fd_overlay_drop
-  (fdtype frame,fdtype slotid,fdtype value,int index)
-{
-  if (index)
-    if (FD_EXPECT_FALSE(FD_VOIDP(index_overlay)))
-      return fd_err("No active overlay","fd_overlay_drop",NULL,FD_VOID);
-    else return overlay_drop(index_overlay,value,slotid,frame);
-  else if (FD_EXPECT_FALSE(FD_VOIDP(slot_overlay)))
-    return fd_err("No active overlay","fd_overlay_drop",NULL,FD_VOID);
-  else return overlay_drop(slot_overlay,frame,slotid,value);
-}
-
-FD_EXPORT fdtype fd_overlay_store
-  (fdtype frame,fdtype slotid,fdtype value,int index)
-{
-  if (index)
-    if (FD_EXPECT_FALSE(FD_VOIDP(index_overlay)))
-      return fd_err("No active overlay","fd_overlay_drop",NULL,FD_VOID);
-    else return overlay_store(index_overlay,value,slotid,frame);
-  else if (FD_EXPECT_FALSE(FD_VOIDP(slot_overlay)))
-    return fd_err("No active overlay","fd_overlay_drop",NULL,FD_VOID);
-  else return overlay_store(slot_overlay,frame,slotid,value);
-}
-
-FD_EXPORT int fd_overlayp()
-{
-  if ((FD_VOIDP(index_overlay)) && (FD_VOIDP(slot_overlay)))
-    return 0;
-  else return 1;
-}
-
-/* Configuration settings for overlays. */
-
-static fdtype overlay_config_get(fdtype ignored,void *vptr)
-{
-  fdtype *hptr = (fdtype *)vptr;
-  if (FD_VOIDP(*hptr)) return FD_FALSE;
-  else {
-    fdtype table = (fdtype)(*(hptr));
-    return fd_incref(table);}
-}
-static int overlay_config_set(fdtype ignored,fdtype v,void *vptr)
-{
-  fdtype *hptr = (fdtype *)vptr;
-  fdtype current = *hptr, new;
-  if ((FD_HASHTABLEP(v)) || (FD_INDEXP(v))) {
-    new = v; fd_incref(v);}
-  else if (FD_STRINGP(v)) {
-    fd_index ix = fd_get_index(FD_STRDATA(v),0,FD_VOID);
-    if (ix == NULL) return FD_ERROR_VALUE;
-    new = fd_index2lisp(ix);}
-  else if (FD_TRUEP(v))
-    new = fd_make_hashtable(NULL,1024);
-  else if (FD_FALSEP(v))
-    new = FD_VOID;
-  else return fd_reterr(fd_TypeError,"overlay_config_set",NULL,v);
-  *hptr = new; fd_decref(current);
-  return 1;
-}
 
 
 /* The operations stack */
@@ -717,22 +394,19 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
       else {
         cache = FD_XHASHTABLE(cachev);
         cached = fd_hashtable_get(cache,f,FD_VOID);}
-      if (!(FD_VOIDP(cached))) {
-        fd_decref(cachev);
-        return overlay_get(slot_overlay,cached,slotid,f);}
+      if (!(FD_VOIDP(cached)))
+        return cached;
       methods = get_slotid_methods(slotid,get_methods);
       /* Methods will be void only if the value of the slotoid isn't a table,
          which is typically only the case when it hasn't been fetched yet. */
       note_dependency(&fop,f,slotid,FD_VOID);
       if (FD_VOIDP(methods))
-        return overlay_get(slot_overlay,FD_EMPTY_CHOICE,slotid,f);
+        return FD_EMPTY_CHOICE;
       else if (FD_EMPTY_CHOICEP(methods)) {
         fdtype value = fd_oid_get(f,slotid,FD_EMPTY_CHOICE);
         if (FD_EMPTY_CHOICEP(value))
           methods = get_slotid_methods(slotid,compute_methods);
-        else {
-          fd_decref(cachev);
-          return overlay_get(slot_overlay,value,slotid,f);}}
+        else return value;}
       if (FD_VOIDP(methods)) return FD_EMPTY_CHOICE;
       else if (FD_ABORTP(methods)) {
         fd_decref(cachev);
@@ -763,19 +437,18 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
         fd_pop_opstack(&fop,1);}
       else fd_pop_opstack(&fop,0);
       fd_decref(cachev);
-      return overlay_get(slot_overlay,computed,slotid,f);}}
+      return computed;}}
   else if (FD_EMPTY_CHOICEP(f)) return FD_EMPTY_CHOICE;
   else {
     struct FD_FRAMEOP_STACK *ptr = get_opstack();
     if (ptr) note_dependency(ptr,f,slotid,FD_VOID);
-    return overlay_get
-      (slot_overlay,fd_oid_get(f,slotid,FD_EMPTY_CHOICE),slotid,f);}
+    return fd_oid_get(f,slotid,FD_EMPTY_CHOICE);}
 }
 
 FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
 {
   if (!(FD_OIDP(f)))
-    return overlay_test(slot_overlay,fd_test(f,slotid,value),f,slotid,value);
+    return fd_test(f,slotid,value);
   else if (FD_OIDP(slotid)) {
     struct FD_FRAMEOP_STACK fop;
     FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_testop,f,slotid,value);
@@ -784,10 +457,8 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
       fdtype values = fd_frame_get(f,slotid);
       note_dependency(&fop,f,slotid,value);
       if (FD_EMPTY_CHOICEP(values))
-        return overlay_test(slot_overlay,0,f,slotid,value);
-      else {
-        fd_decref(values);
-        return overlay_test(slot_overlay,1,f,slotid,value);}}
+        return 0;
+      else return 1;}
     else {
       struct FD_HASHTABLE *cache; int result = 0;
       fdtype cachev = fd_hashtable_get(&test_caches,slotid,FD_VOID);
@@ -808,15 +479,15 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
         fdtype in = FD_CAR(cached), out = FD_CDR(cached);
         if (fd_hashset_get(FD_XHASHSET(in),value)) {
           fd_decref(cached); fd_decref(cachev);
-          return overlay_test(slot_overlay,1,f,slotid,value);}
+          return 1;}
         else if (fd_hashset_get(FD_XHASHSET(out),value)) {
           fd_decref(cached); fd_decref(cachev);
-          return overlay_test(slot_overlay,0,f,slotid,value);}
+          return 0;}
         else methods = get_slotid_methods(slotid,test_methods);}
       else methods = get_slotid_methods(slotid,test_methods);
       if (FD_VOIDP(methods)) {
         fd_decref(cached); fd_decref(cachev);
-        return overlay_test(slot_overlay,0,f,slotid,value);}
+        return 0;}
       else if (FD_EMPTY_CHOICEP(methods)) {
         fdtype values = fd_frame_get(f,slotid);
         result = fd_overlapp(value,values);
@@ -851,13 +522,12 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
       if (result) fd_hashset_add(FD_XHASHSET(FD_CAR(cached)),value);
       else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
       fd_decref(cached); fd_decref(cachev);
-      return overlay_test(slot_overlay,result,f,slotid,value);}}
+      return result;}}
   else if (FD_EMPTY_CHOICEP(f)) return 0;
   else {
     struct FD_FRAMEOP_STACK *ptr = get_opstack();
     if (ptr) note_dependency(ptr,f,slotid,value);
-    return overlay_test
-      (slot_overlay,fd_oid_test(f,slotid,value),f,slotid,value);}
+    return fd_oid_test(f,slotid,value);}
 }
 
 FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
@@ -1183,12 +853,7 @@ FD_EXPORT fdtype fd_bg_get(fdtype slotid,fdtype value)
         if (FD_ABORTP(result)) {
           fd_decref(results); fd_decref(features);
           return result;}
-        else if (FD_EXPECT_TRUE(FD_VOIDP(index_overlay))) {
-          FD_ADD_TO_CHOICE(results,result);}
-        else {
-          fdtype overlaid_results=
-            overlay_get(index_overlay,result,slotid,value);
-          FD_ADD_TO_CHOICE(results,overlaid_results);}}
+        else {FD_ADD_TO_CHOICE(results,result);}}
       fd_decref(features);}
     return fd_simplify_choice(results);}
   else return FD_EMPTY_CHOICE;
@@ -1282,19 +947,9 @@ FD_EXPORT void fd_init_frames_c()
   FD_INIT_STATIC_CONS(&implications,fd_hashtable_type);
   fd_make_hashtable(&implications,17);
 
-  fd_register_config("SLOTOVERLAY",_("Slot overlay table"),
-                     overlay_config_get,
-                     overlay_config_set,
-                     &slot_overlay);
-  fd_register_config("INDEXOVERLAY",_("Index overlay table"),
-                     overlay_config_get,
-                     overlay_config_set,
-                     &index_overlay);
-
   u8_init_mutex(&slotcache_lock);
 
 #if FD_USE_TLS
-  u8_new_threadkey(&_fd_inhibit_overlay_key,NULL);
   u8_new_threadkey(&opstack_key,NULL);
 #endif
 

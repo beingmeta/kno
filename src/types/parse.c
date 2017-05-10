@@ -220,6 +220,51 @@ FD_EXPORT int fd_read_escape(u8_input in)
 
 /* Atom parsing */
 
+static struct FD_KEYVAL *hashnames=NULL;
+static int n_hashnames=0, hashnames_len=0;
+static u8_rwlock hashnames_lock;
+
+static fdtype lookup_hashname(u8_string s,int len,int lock)
+{
+  if (len<0) len=strlen(s);
+  struct FD_STRING _string; unsigned char buf[len+1];
+  strcpy(buf,s); buf[len]='\0';
+  fdtype string=fd_init_string(&_string,len,buf);
+  FD_MAKE_STATIC(string);
+  if (lock) u8_read_lock(&hashnames_lock);
+  struct FD_KEYVAL *kv=fd_sortvec_get(string,hashnames,n_hashnames);
+  if (lock) u8_rw_unlock(&hashnames_lock);
+  if (kv)
+    return kv->kv_val;
+  else return FD_NULL;
+}
+
+FD_EXPORT
+int fd_add_hashname(u8_string s,fdtype value)
+{
+  u8_write_lock(&hashnames_lock);
+  fdtype cur=lookup_hashname(s,-1,0);
+  if (cur!=FD_NULL) {
+    u8_rw_unlock(&hashnames_lock);
+    if (value==cur) return 0;
+    else return -1;}
+  else {
+    u8_string d=u8_upcase(s);
+    fdtype string=fdtype_string(d);
+    int len=strlen(s);
+    struct FD_KEYVAL *added=
+      fd_sortvec_insert(string,&hashnames,&n_hashnames,&hashnames_len,1);
+    if (added) added->kv_val=value;
+    u8_rw_unlock(&hashnames_lock);
+    return 1;}
+}
+
+FD_EXPORT
+fdtype fd_lookup_hashname(u8_string s)
+{
+  return lookup_hashname(s,-1,1);
+}
+
 static u8_string constant_names[]={
   "#T","#F","#TRUE","#FALSE","#VOID","#EOF","#EOD","#EOX","#DFLT","#DEFAULT",
   NULL};
@@ -279,18 +324,10 @@ fdtype fd_parse_atom(u8_string start,int len)
     else return fd_err
            (fd_NoPointerExpressions,"fd_parse_atom",
             u8_strdup(start),FD_VOID);}
-  else if (start[0]=='#') { /* It might be a constant */
-    /* Check for constant names with values (many to one) */
-    int i = 0; while (constant_names[i])
-               if (strcmp(start,constant_names[i]) == 0)
-                 return constant_values[i];
-               else i++;
-    /* Check for uniquely named constants */
-    i = 0; while (i<256)
-           if ((fd_constant_names[i])&&
-               (strcasecmp(start,fd_constant_names[i])==0))
-             return FD_CONSTANT(i);
-           else i++;
+  else if (start[0]=='#') { /* Look it up */
+    fdtype value = lookup_hashname(start,-1,1);
+    if (value != FD_NULL) return value;
+    /* This is where we would handle history refs */
     /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
@@ -928,12 +965,12 @@ static fdtype parse_vector(U8_INPUT *in)
   else return FD_PARSE_ERROR;
 }
 
-static fdtype parse_rail(U8_INPUT *in)
+static fdtype parse_code(U8_INPUT *in)
 {
   int n_elts = -2;
   fdtype *elts = parse_vec(in,')',&n_elts);
   if (n_elts>=0)
-    return fd_init_rail(u8_alloc(struct FD_VECTOR),n_elts,elts);
+    return fd_init_code(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
 
@@ -1105,7 +1142,7 @@ fdtype fd_parser(u8_input in)
     case '~': {
       ch = u8_getc(in); if (ch<0) return FD_EOX;
       if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
-      return parse_rail(in);}
+      return parse_code(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '|': {
@@ -1316,6 +1353,8 @@ fdtype fd_read_arg(u8_input in)
 FD_EXPORT void fd_init_parse_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  u8_init_rwlock(&hashnames_lock);
 
   quote_symbol = fd_intern("QUOTE");
   quasiquote_symbol = fd_intern("QUASIQUOTE");

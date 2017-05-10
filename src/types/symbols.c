@@ -31,7 +31,7 @@ u8_mutex fd_symbol_lock;
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define MYSTERIOUS_MODULUS 256001281
 
-FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
+FD_FASTOP unsigned int mult_hash_bytes(const unsigned char *start,int len)
 {
   unsigned int h = 0;
   unsigned *istart = (unsigned int *)start, asint = 0;
@@ -119,7 +119,7 @@ static void grow_symbol_tables()
       else {
         struct FD_SYMBOL_ENTRY *entry = old_entries[i];
         int probe=
-          mult_hash_string(entry->fd_pname.fd_bytes,
+          mult_hash_bytes(entry->fd_pname.fd_bytes,
                            entry->fd_pname.fd_bytelen)%new_size;
         while (FD_EXPECT_TRUE(new_entries[probe]!=NULL))
           if (probe >= new_size) probe = 0; else probe = (probe+1)%new_size;
@@ -148,12 +148,14 @@ fdtype fd_make_symbol(u8_string bytes,int len)
   entries = fd_symbol_table.fd_symbol_entries; 
   size = fd_symbol_table.table_size;
   if (len<0) len = strlen(bytes);
-  hash = mult_hash_string(bytes,len);
+  hash = mult_hash_bytes(bytes,len);
   probe = hash%size;
   while (FD_EXPECT_TRUE(entries[probe]!=NULL)) {
-    if (FD_EXPECT_TRUE(len == (entries[probe])->fd_pname.fd_bytelen))
-      if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->fd_pname.fd_bytes,len) == 0))
-        break;
+    unsigned int bytelen=(entries[probe])->fd_pname.fd_bytelen;
+    if (FD_EXPECT_TRUE(len == bytelen)) {
+      const unsigned char *pname=(entries[probe])->fd_pname.fd_bytes;
+      if (FD_EXPECT_TRUE(strncmp(bytes,pname,len) == 0))
+        break;}
     probe++; if (probe>=size) probe = 0;}
   if (entries[probe]) {
     int id = entries[probe]->fd_symid;
@@ -182,7 +184,7 @@ fdtype fd_probe_symbol(u8_string bytes,int len)
   if (fd_max_symbols == 0) return FD_VOID;
   u8_lock_mutex(&fd_symbol_lock);
   if (len < 0) len = strlen(bytes);
-  probe = mult_hash_string(bytes,len)%size;
+  probe = mult_hash_bytes(bytes,len)%size;
   while (entries[probe]) {
     if (len == entries[probe]->fd_pname.fd_bytelen)
       if (strncmp(bytes,entries[probe]->fd_pname.fd_bytes,len) == 0) break;
@@ -255,7 +257,7 @@ void fd_list_symbol_table()
     if (entries[i]) {
       u8_string string = entries[i]->name.fd_bytes;
       int len = entries[i]->name.fd_bytelen, chain = 0;
-      int hash = mult_hash_string(string,len);
+      int hash = mult_hash_bytes(string,len);
       int probe = hash%size;
       fprintf(stderr,"%s\t%d\t%d\t%d",
               string,len,hash,probe);

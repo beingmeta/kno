@@ -936,10 +936,10 @@ static fdtype onevector_prim(int n,fdtype *args)
 static fdtype seq2rail(fdtype seq)
 {
   if (FD_EMPTY_LISTP(seq))
-    return fd_make_rail(0,NULL);
+    return fd_make_code(0,NULL);
   else if (FD_SEQUENCEP(seq)) {
     int n; fdtype *data = fd_elts(seq,&n);
-    fdtype result = fd_make_rail(n,data);
+    fdtype result = fd_make_code(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2rail",seq);
@@ -1032,7 +1032,7 @@ FD_EXPORT fdtype fd_seq_elts(fdtype x)
     fdtype result = FD_EMPTY_CHOICE;
     int ctype = FD_PTR_TYPE(x), i = 0, len;
     switch (ctype) {
-    case fd_vector_type: case fd_rail_type:
+    case fd_vector_type: case fd_code_type:
       len = FD_VECTOR_LENGTH(x); while (i < len) {
         fdtype elt = fd_incref(FD_VECTOR_REF(x,i));
         FD_ADD_TO_CHOICE(result,elt); i++;}
@@ -1075,7 +1075,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   int ctype = FD_PTR_TYPE(x);
   if (FD_ABORTED(check)) return check;
   else switch (ctype) {
-    case fd_vector_type: case fd_rail_type: {
+    case fd_vector_type: case fd_code_type: {
       fdtype *read, *limit;
       read = FD_VECTOR_DATA(x)+start; limit = FD_VECTOR_DATA(x)+end;
       while (read<limit) {
@@ -1555,11 +1555,11 @@ static fdtype seq2doublevec(fdtype arg)
 
 /* Rails */
 
-static fdtype make_rail(int n,fdtype *elts)
+static fdtype make_code(int n,fdtype *elts)
 {
   int i = 0; while (i<n) {
     fdtype v = elts[i++]; fd_incref(v);}
-  return fd_make_rail(n,elts);
+  return fd_make_code(n,elts);
 }
 
 /* side effecting operations (not threadsafe) */
@@ -1595,90 +1595,8 @@ static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
     return FD_VOID;}
 }
 
-/* Miscellaneous sequence creation functions */
-
-static fdtype seqpair(int n,fdtype *elts) {
-  return fd_makeseq(fd_pair_type,n,elts);}
-static fdtype seqstring(int n,fdtype *elts) {
-  return fd_makeseq(fd_string_type,n,elts);}
-static fdtype seqpacket(int n,fdtype *elts) {
-  return fd_makeseq(fd_packet_type,n,elts);}
-static fdtype seqsecret(int n,fdtype *elts) {
-  return fd_makeseq(fd_secret_type,n,elts);}
-static fdtype seqvector(int n,fdtype *elts) {
-  return fd_makeseq(fd_vector_type,n,elts);}
-static fdtype seqrail(int n,fdtype *elts) {
-  return fd_makeseq(fd_rail_type,n,elts);}
-
-static struct FD_SEQFNS pair_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqpair};
-static struct FD_SEQFNS string_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqstring};
-static struct FD_SEQFNS packet_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqpacket};
-static struct FD_SEQFNS vector_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqvector};
-static struct FD_SEQFNS numeric_vector_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqvector};
-static struct FD_SEQFNS rail_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqrail};
-static struct FD_SEQFNS secret_seqfns={
-  fd_seq_length,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  seqsecret};
-
-
 FD_EXPORT void fd_init_seqprims_c()
 {
-  int i = 0; while (i<FD_TYPE_MAX) fd_seqfns[i++]=NULL;
-  fd_seqfns[fd_pair_type]= &pair_seqfns;
-  fd_seqfns[fd_string_type]= &string_seqfns;
-  fd_seqfns[fd_packet_type]= &packet_seqfns;
-  fd_seqfns[fd_secret_type]= &secret_seqfns;
-  fd_seqfns[fd_vector_type]= &vector_seqfns;
-  fd_seqfns[fd_rail_type]= &rail_seqfns;
-  fd_seqfns[fd_numeric_vector_type]= &numeric_vector_seqfns;
-
   u8_register_source_file(_FILEINFO);
 
   /* Generic sequence functions */
@@ -1783,14 +1701,17 @@ FD_EXPORT void fd_init_seqprims_c()
   /* Standard lexprs */
   fd_idefn(fd_scheme_module,fd_make_cprimn("LIST",list,0));
   fd_idefn(fd_scheme_module,fd_make_cprimn("VECTOR",vector,0));
-  fd_idefn(fd_scheme_module,fd_make_cprimn("MAKE-RAIL",make_rail,0));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("MAKE-CODE",make_code,0));
+  fd_defalias(fd_scheme_module,"MAKE-RAIL","MAKE-CODE");
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("MAKE-VECTOR",make_vector,1,
                            fd_fixnum_type,FD_VOID,
                            -1,FD_FALSE));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("->RAIL",seq2rail,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("->CODE",seq2rail,1));
+  fd_defalias(fd_scheme_module,"->RAIL","->CODE");
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("->VECTOR",seq2vector,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("->LIST",seq2list,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("->STRING",x2string,1));

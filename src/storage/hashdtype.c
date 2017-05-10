@@ -227,7 +227,7 @@ FD_FASTOP unsigned int hash_combine(unsigned int x,unsigned int y)
   else return hash_mult(x,y);
 }
 
-FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
+FD_FASTOP unsigned int mult_hash_bytes(const unsigned char *start,int len)
 {
   unsigned int prod = 1, asint = 0;
   const unsigned char *ptr = start, *limit = ptr+len;
@@ -260,7 +260,7 @@ FD_FASTOP unsigned int hash_string_dtype2(fdtype x)
   else if (len == 1)
     if (*(FD_STRDATA(x))) return (*(FD_STRDATA(x)));
     else return MAGIC_MODULUS-2;
-  else return mult_hash_string(FD_STRDATA(x),len);
+  else return mult_hash_bytes(FD_STRDATA(x),len);
 }
 
 FD_FASTOP unsigned int hash_dtype2(fdtype x)
@@ -492,9 +492,9 @@ FD_EXPORT
 unsigned int fd_hash_dtype_rep(fdtype x)
 {
   struct FD_OUTBUF out; unsigned int hashval;
-  FD_INIT_BYTE_OUTBUF(&out,1024);
+  FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,x);
-  hashval = mult_hash_string(out.buffer,out.bufwrite-out.buffer);
+  hashval = mult_hash_bytes(out.buffer,out.bufwrite-out.buffer);
   u8_free(out.buffer);
   return hashval;
 }

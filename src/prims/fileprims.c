@@ -13,13 +13,14 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/eval.h"
+#include "framerd/numbers.h"
+#include "framerd/apply.h"
 #include "framerd/storage.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/frames.h"
+#include "framerd/eval.h"
 #include "framerd/ports.h"
-#include "framerd/numbers.h"
 #include "framerd/fileprims.h"
 
 #include <libu8/u8pathfns.h>
@@ -155,7 +156,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     bytes = FD_PACKET_DATA(object); len = FD_PACKET_LENGTH(object);}
   else if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
     struct FD_OUTBUF out;
-    FD_INIT_BYTE_OUTBUF(&out,1024);
+    FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,object);
     bytes = out.buffer; len = out.bufwrite-out.buffer;
     free_bytes = 1;}

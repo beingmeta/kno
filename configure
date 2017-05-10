@@ -724,7 +724,8 @@ FDMINOR
 FDMAJOR
 FDVERSION
 RPATHFLAGS
-EXELDFLAGS
+EXECLIBS
+EXECLDFLAGS
 TESTLIBS
 TESTLDFLAGS
 SHARED_LIBV
@@ -2901,7 +2902,8 @@ DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLIBS=
 TESTLDFLAGS=
-EXELDFLAGS=
+EXECLDFLAGS=
+EXECLIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
@@ -3042,6 +3044,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -5409,7 +5412,7 @@ fi
 
 
 if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
+  EXECLDFLAGS=" $EXECLDFLAGS \$(RPATHFLAGS) "
 fi
 
 
@@ -6622,18 +6625,60 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_jemalloc_malloc" >&5
 $as_echo "$ac_cv_lib_jemalloc_malloc" >&6; }
 if test "x$ac_cv_lib_jemalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBJEMALLOC 1
-_ACEOF
-
-  LIBS="-ljemalloc $LIBS"
-
+  EXECLIBS="-ljemalloc $EXECLIBS"
 fi
 
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
   else
     as_fn_error $? "jemalloc can't be found" "$LINENO" 5
+    exit;
+  fi;
+elif test "$with_malloc" = "dmalloc"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ldmalloc" >&5
+$as_echo_n "checking for malloc in -ldmalloc... " >&6; }
+if ${ac_cv_lib_dmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_dmalloc_malloc=yes
+else
+  ac_cv_lib_dmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_dmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_dmalloc_malloc" = xyes; then :
+  EXECLIBS="-ldmalloc $EXECLIBS"
+fi
+
+  if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
+    custom_malloc="dmalloc"
+  else
+    as_fn_error $? "dmalloc can't be found" "$LINENO" 5
     exit;
   fi;
 elif test "$with_malloc" = "asan"; then
@@ -6679,7 +6724,7 @@ elif test "$with_malloc" = "asan_thread"; then
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
-   as_fn_error $? "Valid values for malloc are stdlib tcmalloc gperftools tcmalloc_debug asan asan_thread asan_memory asan_leak jemalloc" "$LINENO" 5
+   as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread asan_memory asan_leak" "$LINENO" 5
    exit 1;
 fi
 
@@ -6776,12 +6821,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC_DEBUG 1
-_ACEOF
-
-  LIBS="-ltcmalloc_debug $LIBS"
-
+  EXECLIBS="-ltcmalloc_debug $EXECLIBS"
 fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
@@ -6821,12 +6861,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
 $as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
 if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPROFILER 1
-_ACEOF
-
-  LIBS="-lprofiler $LIBS"
-
+  EXECLIBS="-lprofiler $EXECLIBS"
 fi
 
   elif test "$gperftools" = "profile"; then
@@ -6867,12 +6902,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
-_ACEOF
-
-  LIBS="-ltcmalloc $LIBS"
-
+  EXECLIBS="-ltcmalloc $EXECLIBS"
 fi
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
@@ -6912,12 +6942,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
 $as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
 if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPROFILER 1
-_ACEOF
-
-  LIBS="-lprofiler $LIBS"
-
+  EXECLIBS="-lprofiler $EXECLIBS"
 fi
 
   else
@@ -10186,7 +10211,7 @@ fi
 if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
-  EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
+  EXECLDFLAGS="$EXECLDFLAGS -L$with_libu8/lib"
 fi
 
 

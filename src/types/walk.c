@@ -29,7 +29,7 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
   else if (FD_CONSP(obj)) {
     int constype = FD_PTR_TYPE(obj);
     switch (constype) {
-    case fd_pair_type: case fd_vector_type: case fd_rail_type:
+    case fd_pair_type: case fd_vector_type: case fd_code_type:
     case fd_choice_type: case fd_prechoice_type: case fd_qchoice_type:
     case fd_slotmap_type: case fd_schemap_type:
     case fd_hashtable_type: case fd_hashset_type: {
@@ -84,7 +84,7 @@ static int cons_walk(fd_walker walker,int constype,
 	scan = pair->cdr;}
       else return rv;}
     return fast_walk(walker,scan,walkdata,flags,depth-1);}
-  case fd_rail_type: case fd_vector_type: {
+  case fd_code_type: case fd_vector_type: {
     int i = 0, len = FD_VECTOR_LENGTH(obj), rv = 0;
     fdtype *elts = FD_VECTOR_DATA(obj);
     while (i<len) {

@@ -771,6 +771,32 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
+static fdtype add_adjunct(fdtype pool_arg,fdtype slotid,fdtype adjunct)
+{
+  if (FD_STRINGP(adjunct)) {
+    fd_index ix = fd_get_index(FD_STRDATA(adjunct),0,FD_VOID);
+    if (ix) adjunct = fd_index2lisp(ix);
+    else return fd_type_error("adjunct spec","use_adjunct",adjunct);}
+  if ((FD_VOIDP(slotid)) && (FD_TABLEP(adjunct)))
+    slotid = fd_get(adjunct,padjuncts_symbol,FD_VOID);
+  if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) {
+    fd_pool p = fd_lisp2pool(pool_arg);
+    if (p == NULL)
+      return FD_ERROR_VALUE;
+    else if (fd_set_adjunct(p,slotid,adjunct)<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+  else return fd_type_error(_("slotid"),"use_adjunct",slotid);
+}
+
+static fdtype get_adjuncts(fdtype pool_arg)
+{
+  fd_pool p=fd_lisp2pool(pool_arg);
+  if (p==NULL)
+    return FD_ERROR_VALUE;
+  else return fd_get_adjuncts(p);
+}
+
 /* DB control functions */
 
 static fdtype swapout_lexpr(int n,fdtype *args)
@@ -783,7 +809,8 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     long long rv_sum = 0;
     fdtype arg = args[0];
     if (FD_CHOICEP(arg)) {
-      fdtype oids = FD_EMPTY_CHOICE; int rv = 0;
+      int rv = 0;
+      fdtype oids = FD_EMPTY_CHOICE;
       FD_DO_CHOICES(e,arg) {
         if (FD_OIDP(e)) {FD_ADD_TO_CHOICE(oids,e);}
         else if (FD_POOLP(e))
@@ -2862,69 +2889,6 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
   else return fd_type_error("pool/index","loadedp",arg2);
 }
 
-/* Overlays */
-
-static fdtype overlay_get(fdtype f,fdtype slotid)
-{
-  return fd_overlay_get(f,slotid,0);
-}
-
-static fdtype overlay_add(fdtype f,fdtype slotid,fdtype v)
-{
-  return fd_overlay_add(f,slotid,v,0);
-}
-
-static fdtype overlay_drop(fdtype f,fdtype slotid,fdtype v)
-{
-  return fd_overlay_drop(f,slotid,v,0);
-}
-
-static fdtype overlay_store(fdtype f,fdtype slotid,fdtype v)
-{
-  return fd_overlay_store(f,slotid,v,0);
-}
-
-static fdtype overlay_index_get(fdtype f,fdtype slotid)
-{
-  return fd_overlay_get(f,slotid,1);
-}
-
-static fdtype overlay_index_add(fdtype f,fdtype slotid,fdtype v)
-{
-  return fd_overlay_add(f,slotid,v,1);
-}
-
-static fdtype overlay_index_drop(fdtype f,fdtype slotid,fdtype v)
-{
-  return fd_overlay_drop(f,slotid,v,1);
-}
-
-static fdtype overlay_index_store(fdtype f,fdtype slotid,fdtype v)
-{
-  return fd_overlay_store(f,slotid,v,1);
-}
-
-
-static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
-{
-  fdtype value = FD_VOID;
-  if ((fd_inhibit_overlay) || (!(fd_overlayp()))) {
-    fdtype body = fd_get_body(expr,1);
-    FD_DOLIST(body_elt,body) {
-      fd_decref(value); value = fd_eval(body_elt,env);
-      if (FD_ABORTED(value)) return value;}
-    return value;}
-  fd_inhibit_overlays(1);
-  {fdtype body = fd_get_body(expr,1);
-    FD_DOLIST(body_elt,body) {
-      fd_decref(value); value = fd_eval(body_elt,env);
-      if (FD_ABORTED(value)) {
-        fd_inhibit_overlays(0);
-        return value;}}}
-  fd_inhibit_overlays(0);
-  return value;
-}
-
 /* Bloom filters */
 
 static fdtype make_bloom_filter(fdtype n_entries,fdtype allowed_error)
@@ -2957,7 +2921,7 @@ static fdtype bloom_add(fdtype filter,fdtype value,fdtype raw_arg)
   else {
     struct FD_OUTBUF out; 
     unsigned char bytebuf[1024];
-    FD_INIT_FIXED_BYTE_OUTBUF(&out,bytebuf,1024);
+    FD_INIT_BYTE_OUTBUF(&out,bytebuf,1024);
     fd_write_dtype(&out,value);
     int rv = fd_bloom_add(bloom,out.buffer,
                         out.bufwrite-out.buffer);
@@ -2987,7 +2951,7 @@ static fdtype bloom_check(fdtype filter,fdtype value,fdtype raw_arg)
   else {
     struct FD_OUTBUF out; 
     unsigned char bytebuf[1024];
-    FD_INIT_FIXED_BYTE_OUTBUF(&out,bytebuf,1024);
+    FD_INIT_BYTE_OUTBUF(&out,bytebuf,1024);
     fd_write_dtype(&out,value);
     int rv = fd_bloom_check(bloom,out.buffer,
                           out.bufwrite-out.buffer);
@@ -3043,22 +3007,6 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar_prim,1)));
 
   fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_handler);
-
-  fd_idefn(fd_scheme_module,fd_make_cprim2("OV/GET",overlay_get,2));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("OV/ADD!",overlay_add,3));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("OV/DROP!",overlay_drop,3));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("OV/STORE!",overlay_store,3));
-
-  fd_idefn(fd_scheme_module,fd_make_cprim2("OV/INDEX-GET",overlay_index_get,2));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3("OV/INDEX-ADD!",overlay_index_add,3));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3("OV/INDEX-DROP!",overlay_index_drop,3));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3("OV/INDEX-STORE!",overlay_index_store,3));
-
-  fd_defspecial(fd_scheme_module,"W/O/OVERLAY",wooverlay_handler);
-
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET*",getstar,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));
@@ -3362,7 +3310,21 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
-  fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
+  fd_idefn3(fd_xscheme_module,"USE-ADJUNCT",use_adjunct,1,
+            "(table [slot] [pool])\n"
+            "arranges for *table* to store values of the slotid *slot* "
+            "for objects in *pool*. If *pool* is not specified, "
+            "the adjunct is declared globally.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn3(fd_xscheme_module,"ADD-ADJUNCT!",add_adjunct,3,
+            "(pool slot table)\n"
+            "arranges for *table* to store values of the slotid *slot* "
+            "for objects in *pool*.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn1(fd_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,
+            "(pool)\n"
+            "Gets the adjuncts associated with the specified pool",
+            -1,FD_VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("MAKE-BLOOM-FILTER",make_bloom_filter,1,

@@ -28,12 +28,12 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
   test_result = fd_eval(test_expr,env);
   if (FD_ABORTED(test_result)) return test_result;
   else if (FD_FALSEP(test_result))
-    if ((FD_PAIRP(else_expr))||(FD_RAILP(else_expr)))
+    if ((FD_PAIRP(else_expr))||(FD_CODEP(else_expr)))
       return fd_tail_eval(else_expr,env);
     else return fasteval(else_expr,env);
   else {
     fd_decref(test_result);
-    if ((FD_PAIRP(consequent_expr))||(FD_RAILP(consequent_expr)))
+    if ((FD_PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
     else return fasteval(consequent_expr,env);}
 }
@@ -54,7 +54,7 @@ static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
     return val;}
   else {
     fd_decref(test_result);
-    if ((FD_PAIRP(consequent_expr))||(FD_RAILP(consequent_expr)))
+    if ((FD_PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
     else return fasteval(consequent_expr,env);}
 }

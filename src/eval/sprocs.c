@@ -95,8 +95,8 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
             vals[i]=default_value;
             i++;}
           else vals[i++]=FD_VOID;}
-      else if (FD_RAILP(fn->sproc_arglist)) {
-        struct FD_VECTOR *v = fd_consptr(fd_vector,fn->sproc_arglist,fd_rail_type);
+      else if (FD_CODEP(fn->sproc_arglist)) {
+        struct FD_VECTOR *v = fd_consptr(fd_vector,fn->sproc_arglist,fd_code_type);
         int len = v->fdvec_length; fdtype *dflts = v->fdvec_elts;
         while (i<len) {
           fdtype val = args[i];
@@ -387,7 +387,7 @@ static fdtype lambda_handler(fdtype expr,fd_lispenv env)
   fdtype body = fd_get_body(expr,2);
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"LAMBDA",NULL,expr);
-  if (FD_RAILP(body)) {
+  if (FD_CODEP(body)) {
     fd_incref(arglist);
     return _make_sproc(NULL,arglist,body,env,0,0,0,0);}
   else return make_sproc(NULL,arglist,body,env,0,0);
@@ -399,7 +399,7 @@ static fdtype ambda_handler(fdtype expr,fd_lispenv env)
   fdtype body = fd_get_body(expr,2);
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"AMBDA",NULL,expr);
-  if (FD_RAILP(body)) {
+  if (FD_CODEP(body)) {
     fd_incref(arglist);
     return _make_sproc(NULL,arglist,body,env,1,0,0,0);}
   else return make_sproc(NULL,arglist,body,env,1,0);
@@ -418,7 +418,7 @@ static fdtype nambda_handler(fdtype expr,fd_lispenv env)
   else if (FD_STRINGP(name)) namestring = FD_STRDATA(name);
   else return fd_type_error("procedure name (string or symbol)",
                             "nambda_handler",name);
-  if (FD_RAILP(body)) {
+  if (FD_CODEP(body)) {
     fd_incref(arglist);
     return _make_sproc(namestring,arglist,body,env,1,0,0,0);}
   else return make_sproc(namestring,arglist,body,env,1,0);
@@ -430,7 +430,7 @@ static fdtype slambda_handler(fdtype expr,fd_lispenv env)
   fdtype body = fd_get_body(expr,2);
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
- if (FD_RAILP(body)) {
+ if (FD_CODEP(body)) {
     fd_incref(arglist);
     return _make_sproc(NULL,arglist,body,env,0,1,0,0);}
   else return make_sproc(NULL,arglist,body,env,0,1);
@@ -442,7 +442,7 @@ static fdtype sambda_handler(fdtype expr,fd_lispenv env)
   fdtype body = fd_get_body(expr,2);
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
- if (FD_RAILP(body)) {
+ if (FD_CODEP(body)) {
     fd_incref(arglist);
     return _make_sproc(NULL,arglist,body,env,1,1,0,0);}
   else return make_sproc(NULL,arglist,body,env,1,1);
@@ -451,7 +451,7 @@ static fdtype sambda_handler(fdtype expr,fd_lispenv env)
 static fdtype thunk_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body = fd_get_body(expr,1);
-  if (FD_RAILP(body))
+  if (FD_CODEP(body))
     return _make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0,0,0);
   else return make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0);
 }

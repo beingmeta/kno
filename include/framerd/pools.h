@@ -410,6 +410,8 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype table);
 FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid);
 FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid);
 
+FD_EXPORT fdtype fd_get_adjuncts(fd_pool p);
+
 FD_EXPORT fdtype fd_adjunct_slotids;
 
 /* Generic Pools */

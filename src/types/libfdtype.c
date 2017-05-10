@@ -91,7 +91,7 @@ static void init_type_names()
   fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_type_names[fd_tailcall_type]=_("tailcall");
   fd_type_names[fd_uuid_type]=_("UUID");
-  fd_type_names[fd_rail_type]=_("rail");
+  fd_type_names[fd_code_type]=_("rail");
   fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
   fd_type_names[fd_ffi_type]=_("foreign function");
@@ -100,7 +100,7 @@ static void init_type_names()
   fd_type_names[fd_consblock_type]=_("consblock");
   fd_type_names[fd_specform_type]=_("special form");
   fd_type_names[fd_macro_type]=_("macro");
-  fd_type_names[fd_bytecode_type]=_("bytecode");
+  fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_stackframe_type]=_("stackframe");
   fd_type_names[fd_ffi_type]=_("ffiproc");
   fd_type_names[fd_environment_type]=_("environment");
@@ -146,13 +146,14 @@ static double format_secs(double secs,char **units)
   if (secs>3600*24) {*units="d"; return secs/3600;}
   return secs;
 }
-FD_EXPORT void fd_log_status()
+FD_EXPORT void fd_log_status(u8_condition why)
 {
   struct rusage usage;
   int retval = u8_getrusage(0,&usage);
+  if (why==NULL) why="Status";
   if (retval<0) {
     u8_log(LOGCRIT,_("RUSAGE Failed"),
-           "During a call to fd_log_status");
+           "During a call to fd_log_status (%s)",why);
     return;}
   else {
     /* long membytes = (usage.ru_idrss+usage.ru_isrss); double memsize; */
@@ -170,7 +171,7 @@ FD_EXPORT void fd_log_status()
     else if (heapbytes>1500000) {
       heapsize = floor(((double)heapbytes)/1000000); heapu="MB";}
     else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
-    u8_log(-LOG_INFO,"Status",
+    u8_log(-LOG_INFO,why,
            "%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
            FRAMERD_REVISION,u8_appid(),getpid(),
            elapsed,etu,usertime,utu,systime,stu,

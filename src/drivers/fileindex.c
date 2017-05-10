@@ -60,7 +60,6 @@ static fdtype file_index_fetch(fd_index ix,fdtype key);
 static fd_index open_file_index(u8_string fname,fd_storage_flags flags,fdtype opts)
 {
   struct FD_FILE_INDEX *index = u8_alloc(struct FD_FILE_INDEX);
-  struct FD_STREAM *s = &(index->index_stream);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
   int consed = U8_BITP(flags,FD_STORAGE_ISCONSED);
   unsigned int magicno;
@@ -69,15 +68,18 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,fdtype op
   fd_init_index((fd_index)index,&file_index_handler,
                 fname,u8_realpath(fname,NULL),
                 consed);
-  if (fd_init_file_stream(s,fname,mode,
-                          ((read_only)?
-                           (FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
-                           (FD_DEFAULT_FILESTREAM_FLAGS)),
-                          fd_driver_bufsize) == NULL) {
+  struct FD_STREAM *s = fd_init_file_stream
+    (&(index->index_stream),fname,mode,
+     ((read_only)?(FD_DEFAULT_FILESTREAM_FLAGS|FD_STREAM_READ_ONLY):
+      (FD_DEFAULT_FILESTREAM_FLAGS)),
+     fd_driver_bufsize);
+
+  if (s == NULL) {
     u8_free(index);
     u8_free(realpath);
     fd_seterr3(u8_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
+
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only = 1;
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
@@ -1252,8 +1254,9 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
     fd_init_file_stream(&_stream,filename,FD_FILE_CREATE,-1,fd_driver_bufsize);
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
-  if (stream == NULL) return -1;
+  struct FD_OUTBUF *outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
+  if (outstream == NULL)
+    return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
     fd_free_stream(stream);

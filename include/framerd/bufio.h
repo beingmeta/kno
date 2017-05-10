@@ -13,6 +13,12 @@
 
 fd_exception fd_IsWriteBuf, fd_IsReadBuf;
 
+#ifndef FD_DEFAULT_ZLEVEL
+#define FD_DEFAULT_ZLEVEL 7
+#endif
+
+FD_EXPORT size_t fd_zlib_level;
+
 /* Byte Streams */
 
 typedef struct FD_RAWBUF *fd_rawbuf;
@@ -65,19 +71,27 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 /* Initializing macros */
 
 /* These are for input or output */
-#define FD_INIT_BYTE_OUTBUF(bo,sz)			\
-  (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);		\
+
+#define FD_INIT_BYTE_OUTPUT(bo,sz)			\
+  (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);	\
   (bo)->buflim = (bo)->buffer+sz;			\
   (bo)->buflen = sz;					\
   (bo)->buf_flags = FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;	\
-  (bo)->buf_fillfn = NULL; (bo)->buf_flushfn = NULL;
+  (bo)->buf_fillfn = NULL;				\
+  (bo)->buf_flushfn = NULL;
 
-#define FD_INIT_FIXED_BYTE_OUTBUF(bo,buf,sz) \
+#define FD_INIT_BYTE_OUTBUF(bo,buf,sz)	     \
   (bo)->bufwrite = (bo)->buffer = buf;	     \
   (bo)->buflim = (bo)->buffer+sz;	     \
+  (bo)->buflen = sz;			     \
   (bo)->buf_fillfn = NULL;		     \
   (bo)->buf_flushfn = NULL;		     \
   (bo)->buf_flags = FD_IS_WRITING
+
+#define FD_DECL_OUTBUF(v,size)	     \
+  struct FD_OUTBUF v;		     \
+  unsigned char v ## buf[size];      \
+  FD_INIT_BYTE_OUTBUF(&v,v ## buf,size)
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz) \
   (bi)->bufread = (bi)->buffer = b;   \
@@ -270,14 +284,15 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
     return _fd_grow_inbuf(b,d);			\
   else return 1
 
-#define _fd_needs_bytes(buf,n)					 \
-  ((U8_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) : \
-   (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim)) ? (1) :	 \
-   ((buf)->buf_fillfn) ?					 \
-   (((buf)->buf_fillfn)(((fd_inbuf)buf),n,buf->buf_data)) :	 \
+#define _fd_request_bytes(buf,n)					 \
+  ((U8_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
+   (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim)) ? (1) :		\
+   ((buf)->buf_fillfn) ?						\
+   ((((buf)->buf_fillfn)(((fd_inbuf)buf),n,buf->buf_data)),		\
+    (FD_EXPECT_TRUE((buf)->bufread+n <= (buf)->buflim))):		\
    (0))
-#define fd_needs_bytes(buf,n) \
-  (FD_EXPECT_TRUE(_fd_needs_bytes((buf),n)))
+#define fd_request_bytes(buf,n) \
+  (FD_EXPECT_TRUE(_fd_request_bytes((buf),n)))
 
 #define _fd_has_bytes(buf,n)						\
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
@@ -318,11 +333,11 @@ FD_FASTOP size_t fd_close_outbuf(struct FD_OUTBUF *buf)
 #if FD_INLINE_BUFIO
 #define fd_read_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
-   ((fd_needs_bytes(buf,1)) ? (*(buf->bufread++))			\
+   ((fd_request_bytes(buf,1)) ? (*(buf->bufread++))			\
     : (-1)))
 #define fd_probe_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
-   ((fd_needs_bytes((buf),1)) ?						\
+   ((fd_request_bytes((buf),1)) ?						\
     ((int)(*((buf)->bufread)))	:					\
     ((int)-1)))
 
@@ -340,7 +355,7 @@ FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,4)) {
+  else if (fd_request_bytes(buf,4)) {
     fd_8bytes value = fd_get_4bytes(buf->bufread);
     buf->bufread = buf->bufread+4;
     return value;}
@@ -351,7 +366,7 @@ FD_FASTOP fd_8bytes fd_read_8bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,8)) {
+  else if (fd_request_bytes(buf,8)) {
     fd_8bytes value = fd_get_8bytes(buf->bufread);
     buf->bufread = buf->bufread+8;
     return value;}
@@ -363,7 +378,7 @@ FD_FASTOP int fd_read_bytes
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if (fd_needs_bytes(buf,len)) {
+  else if (fd_request_bytes(buf,len)) {
     memcpy(bytes,buf->bufread,len);
     buf->bufread = buf->bufread+len;
     return len;}
@@ -392,5 +407,18 @@ FD_FASTOP fd_8bytes fd_read_zint(struct FD_INBUF *s)
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define fd_output_bytes(out,bytes,n)			\
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
+
+/* Compress and decompress */
+
+FD_EXPORT
+unsigned char *fd_snappy_compress
+(unsigned char *in,size_t n_bytes,
+ unsigned char *out,ssize_t *z_len);
+
+FD_EXPORT
+unsigned char *fd_zlib_compress
+(unsigned char *in,size_t n_bytes,
+ unsigned char *out,ssize_t *z_len,
+ int level_arg);
 
 #endif /* FRAMERD_BUFIO_H */

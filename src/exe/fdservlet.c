@@ -83,8 +83,8 @@ FD_EXPORT int fd_init_dbserv(void);
 
 #include "webcommon.h"
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
 
 #define HTML_UTF8_CTYPE_HEADER "Content-type: text/html; charset = utf-8\r\n\r\n"
 
@@ -1884,6 +1884,12 @@ FD_EXPORT int fd_init_drivers(void);
 static int launch_servlet(u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec);
 
+static void exit_fdservlet()
+{
+  if (!(fd_be_vewy_quiet))
+    fd_log_status("Exit(fdservlet)");
+}
+
 int main(int argc,char **argv)
 {
   int i = 1;
@@ -1991,7 +1997,7 @@ int main(int argc,char **argv)
     u8_free(sockets_dir);}
 
   register_servlet_configs();
-  atexit(fd_log_status);
+  atexit(exit_fdservlet);
 
   /* Process the command line */
   fd_handle_argv(argc,argv,arg_mask,NULL);
@@ -2193,7 +2199,8 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec);
 
 static int fork_servlet(u8_string socket_spec)
 {
-  pid_t child, grandchild; double start = u8_elapsed_time();
+  pid_t child, grandchild;
+  double start = u8_elapsed_time();
   if ((foreground)&&(daemonize>0)) {
     /* This is the scenario where we stay in the foreground but
        restart automatically.  */

@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "FAILURE:" $*
+echo $* >> batchscripts.log
+touch batchscripts.failed

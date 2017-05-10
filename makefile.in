@@ -14,7 +14,8 @@ RPATH         = @rpath@
 RPATHFLAGS    = @RPATHFLAGS@
 LDFLAGS       = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
 DYLIB_FLAGS   = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
-EXELDFLAGS    = @EXELDFLAGS@
+EXECLDFLAGS   = @EXECLDFLAGS@
+EXECLIBS      = @EXECLIBS@
 XLIBS         =
 LIBS          = $(XLIBS) @LIBS@
 PATH          = @BINPATH@
@@ -581,26 +582,26 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXECLDFLAGS)                  \
 		-o $@ $<                                           \
 		-lfddbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
 		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdtype@suffix@ \
-	        -lu8stdio $(LIBS)
+	        -lu8stdio $(LIBS) $(EXECLIBS)
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) -o $@ -c $<
+	@$(CC) $(CFLAGS) -o $@ -c $< ${LIBS}
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
-	@$(MKSO) -L./lib -L./ -o $@ $<
+	@$(MKSO) -L./lib -L./ ${LIBS} -o $@ $< ${LIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
-		$(DYLIB_FLAGS) -o $@ $<
+		$(DYLIB_FLAGS) ${LIBS} -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 	@ln -sf $(*F).dylib $@
@@ -608,7 +609,7 @@ lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
-	@$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
+	@$(CC) $(EXECFLAGS) -o $@ $^ $(EXECLDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXECLIBS)
 	@$(MSG) MKEXE_STATIC $@
 
 lib/%@suffix@.a:

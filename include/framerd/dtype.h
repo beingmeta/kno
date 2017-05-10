@@ -45,7 +45,7 @@ int fd_getmajorversion(void);
 
 FD_EXPORT int fd_init_libfdtype(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_boot_message(void);
-FD_EXPORT void fd_log_status(void);
+FD_EXPORT void fd_log_status(u8_condition why);
 FD_EXPORT int fd_be_vewy_quiet;
 
 FD_EXPORT fdtype fd_parse_expr(struct U8_INPUT *);
@@ -79,6 +79,9 @@ FD_EXPORT void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len));
 typedef int (*fd_hashfn)(fdtype x,unsigned int (*hf)(fdtype));
 FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
+
+FD_EXPORT int fd_add_hashname(u8_string s,fdtype value);
+FD_EXPORT fdtype fd_lookup_hashname(u8_string s);
 
 typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,int,void *);
 

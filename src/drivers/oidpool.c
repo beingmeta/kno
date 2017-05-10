@@ -191,7 +191,11 @@ static fd_pool open_oidpool(u8_string fname,
   struct FD_STREAM *stream=
     fd_init_file_stream(&(pool->pool_stream),fname,
                         mode,stream_flags,fd_driver_bufsize);
-  struct FD_INBUF *instream = fd_readbuf(stream);
+  struct FD_INBUF *instream = (stream) ? (fd_readbuf(stream)) : (NULL);
+
+  if (instream == NULL) {
+    u8_raise(fd_FileNotFound,"open_oidpool",u8_strdup(fname));
+    return NULL;}
 
   /* See if it ended up read only */
   if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only = 1;
@@ -800,7 +804,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   size_t maxpos = get_maxpos(op);
   fd_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
-  FD_INIT_BYTE_OUTBUF(&tmpout,init_buflen);
+  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
   endpos = fd_endpos(stream);
   if ((op->oidpool_format)&(FD_OIDPOOL_DTYPEV2))
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
@@ -1471,10 +1475,10 @@ static int make_oidpool
   size_t schemas_size = 0, metadata_size = 0, label_size = 0;
   struct FD_STREAM _stream, *stream=
     fd_init_file_stream(&_stream,fname,FD_FILE_CREATE,-1,fd_driver_bufsize);
-  fd_outbuf outstream = fd_writebuf(stream);
+  fd_outbuf outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
   fd_offset_type offtype =
     (fd_offset_type) ((oidpool_format)&(FD_OIDPOOL_OFFMODE));
-  if (stream == NULL) return -1;
+  if (outstream == NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_oidpool",u8_strdup(fname));
     fd_free_stream(stream);
@@ -1575,9 +1579,11 @@ static int make_oidpool
   return 0;
 }
 
-static fd_pool oidpool_create(u8_string spec,void *type_data,
-                              fd_storage_flags storage_flags,
-                              fdtype opts)
+static
+fd_pool oidpool_create
+(u8_string spec,void *type_data,
+ fd_storage_flags storage_flags,
+ fdtype opts)
 {
   fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),FD_VOID);
   fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);

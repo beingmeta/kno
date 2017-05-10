@@ -467,7 +467,7 @@ typedef struct FD_HASHTABLE *fd_hashtable;
 #define FD_XHASHTABLE_CLEAR_READONLY(x) ((x)->table_readonly) = 0
 
 FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min);
-FD_EXPORT unsigned int fd_hash_string(u8_string string,int len);
+FD_EXPORT unsigned int fd_hash_bytes(u8_string string,int len);
 FD_EXPORT unsigned int fd_hash_lisp(fdtype x);
 
 FD_EXPORT fdtype fd_make_hashtable(fd_hashtable ptr,int n_slots);

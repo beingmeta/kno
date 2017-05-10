@@ -78,7 +78,8 @@ DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTLIBS=
 TESTLDFLAGS=
-EXELDFLAGS=
+EXECLDFLAGS=
+EXECLIBS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
@@ -275,7 +276,8 @@ AC_SUBST(SHARED_LIBV)
 AC_SUBST(test_env)
 AC_SUBST(TESTLDFLAGS)
 AC_SUBST(TESTLIBS)
-AC_SUBST(EXELDFLAGS)
+AC_SUBST(EXECLDFLAGS)
+AC_SUBST(EXECLIBS)
 AC_SUBST(RPATHFLAGS)
 AC_SUBST(FDVERSION)
 AC_SUBST(FDMAJOR)
@@ -379,7 +381,7 @@ CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
 if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
+  EXECLDFLAGS=" $EXECLDFLAGS \$(RPATHFLAGS) "
 fi
 
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
@@ -616,11 +618,19 @@ elif test "$with_malloc" = "tcmalloc_debug"; then
   gperftools="debug";
   custom_malloc="tcmalloc_debug"
 elif test "$with_malloc" = "jemalloc"; then
-  AC_CHECK_LIB(jemalloc,malloc)
+  AC_CHECK_LIB(jemalloc,malloc,EXECLIBS="-ljemalloc $EXECLIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
   else
     AC_MSG_ERROR(jemalloc can't be found)
+    exit;
+  fi;
+elif test "$with_malloc" = "dmalloc"; then
+  AC_CHECK_LIB(dmalloc,malloc,EXECLIBS="-ldmalloc $EXECLIBS")
+  if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
+    custom_malloc="dmalloc"
+  else
+    AC_MSG_ERROR(dmalloc can't be found)
     exit;
   fi;
 elif test "$with_malloc" = "asan"; then
@@ -666,7 +676,7 @@ elif test "$with_malloc" = "asan_thread"; then
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
-   AC_MSG_ERROR(Valid values for malloc are stdlib tcmalloc gperftools tcmalloc_debug asan asan_thread asan_memory asan_leak jemalloc)
+   AC_MSG_ERROR(Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread asan_memory asan_leak)
    exit 1;
 fi
 
@@ -682,11 +692,11 @@ else
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   AC_CHECK_HEADERS(gperftools/malloc_extension_c.h)
   if test "$gperftools" = "debug"; then
-    AC_CHECK_LIB(tcmalloc_debug,malloc)
-    AC_CHECK_LIB(profiler,ProfilerStart)
+    AC_CHECK_LIB(tcmalloc_debug,malloc,EXECLIBS="-ltcmalloc_debug $EXECLIBS")
+    AC_CHECK_LIB(profiler,ProfilerStart,EXECLIBS="-lprofiler $EXECLIBS")
   elif test "$gperftools" = "profile"; then
-    AC_CHECK_LIB(tcmalloc,malloc)
-    AC_CHECK_LIB(profiler,ProfilerStart)
+    AC_CHECK_LIB(tcmalloc,malloc,EXECLIBS="-ltcmalloc $EXECLIBS")
+    AC_CHECK_LIB(profiler,ProfilerStart,EXECLIBS="-lprofiler $EXECLIBS")
   else
     AC_CHECK_LIB(tcmalloc,malloc)
   fi;
@@ -1077,7 +1087,7 @@ AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
 if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
-  EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
+  EXECLDFLAGS="$EXECLDFLAGS -L$with_libu8/lib"
 fi
 
 dnl Use sudo for installations in makefile

@@ -49,12 +49,12 @@ fdtype fd_copier(fdtype x,int flags)
       else *tail = scan;
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
-    case fd_vector_type: case fd_rail_type: {
+    case fd_vector_type: case fd_code_type: {
       struct FD_VECTOR *v = FD_CONSPTR(fd_vector,x);
       fdtype *olddata = v->fdvec_elts; int i = 0, len = v->fdvec_length;
       fdtype result = ((ctype == fd_vector_type)?
                      (fd_init_vector(NULL,len,NULL)):
-                     (fd_init_rail(NULL,len,NULL)));
+                     (fd_init_code(NULL,len,NULL)));
       fdtype *newdata = FD_VECTOR_ELTS(result);
       while (i<len) {
           fdtype v = olddata[i], newv = v;

@@ -41,9 +41,9 @@ static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
 FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env)
 {
   fdtype result=FD_VOID;
-  if (FD_RAILP(body)) {
-    int j=0, n_sub_exprs=FD_RAIL_LENGTH(body);
-    fdtype *sub_exprs=FD_RAIL_DATA(body);
+  if (FD_CODEP(body)) {
+    int j=0, n_sub_exprs=FD_CODE_LENGTH(body);
+    fdtype *sub_exprs=FD_CODE_DATA(body);
     while (j<n_sub_exprs) {
       fdtype sub_expr=sub_exprs[j++];
       fd_decref(result);
@@ -865,7 +865,7 @@ static fdtype bindop(fd_lispenv env,fdtype vars,fdtype inits,fdtype body)
       free_environment(inner_env);
       return val;}
     else values[i++]=val;}
-  fdtype result = op_eval_body(body,env);
+  fdtype result = op_eval_body(body,inner_env);
   free_environment(inner_env);
   return result;
 }
@@ -1089,7 +1089,9 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 static void set_opcode_name(fdtype opcode,u8_string name)
 {
   int off = FD_OPCODE_NUM(opcode);
+  u8_string hashname=u8_string_append("#OPCODE_",name,NULL);
   fd_opcode_names[off]=name;
+  fd_add_hashname(hashname,opcode);
 }
 
 static void init_opcode_names()

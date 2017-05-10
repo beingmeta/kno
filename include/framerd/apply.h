@@ -291,10 +291,12 @@ FD_EXPORT fdtype fd_new_cprim15
  int type13,fdtype dflt13,int type14,fdtype dflt14);
 
 
+FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity);
+
+#if 0
 /* Various primitive defining functions.  Declare an explicit type,
    like fd_cprim1, as an argument, will generate warnings when
    the declaration and the implementation don't match.  */
-FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn);
 FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity);
@@ -311,6 +313,70 @@ FD_EXPORT fdtype fd_make_cprim12(u8_string name,fd_cprim12 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim13(u8_string name,fd_cprim13 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim14(u8_string name,fd_cprim14 fn,int min_arity);
 FD_EXPORT fdtype fd_make_cprim15(u8_string name,fd_cprim15 fn,int min_arity);
+#endif
+
+#define fd_make_cprim0(name,fn) \
+  fd_new_cprim0(name,_FILEINFO,NULL,fn,0)
+#define fd_make_cprim1(name,fn,min) \
+  fd_new_cprim1(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID)
+#define fd_make_cprim2(name,fn,min) \
+  fd_new_cprim2(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim3(name,fn,min) \
+  fd_new_cprim3(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim4(name,fn,min) \
+  fd_new_cprim4(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim5(name,fn,min) \
+  fd_new_cprim5(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim6(name,fn,min) \
+  fd_new_cprim6(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		-1,FD_VOID)
+#define fd_make_cprim7(name,fn,min) \
+  fd_new_cprim7(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim8(name,fn,min) \
+  fd_new_cprim8(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim9(name,fn,min) \
+  fd_new_cprim9(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		-1,FD_VOID-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,   \
+		-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim10(name,fn,min) \
+  fd_new_cprim10(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim11(name,fn,min) \
+  fd_new_cprim11(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID)
+#define fd_make_cprim12(name,fn,min) \
+  fd_new_cprim12(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim13(name,fn,min) \
+  fd_new_cprim13(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1)
+#define fd_make_cprim14(name,fn,min) \
+  fd_new_cprim14(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
+#define fd_make_cprim15(name,fn,min) \
+  fd_new_cprim15(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0, \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,  \
+		 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID)
 
 #define fd_make_cprim1x(name,fn,min,...) \
   fd_new_cprim1(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)

@@ -157,8 +157,6 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
     else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];}
   else if (FD_TYPEP(lix,fd_consed_index_type))
     return (fd_index) lix;
-  else if (FD_STRINGP(lix))
-    return fd_get_index(FD_STRDATA(lix),0,FD_VOID);
   else {
     fd_seterr(fd_TypeError,_("not an index"),NULL,lix);
     return NULL;}

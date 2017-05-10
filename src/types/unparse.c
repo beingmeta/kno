@@ -265,7 +265,7 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,")");
 }
 
-static int unparse_rail(U8_OUTPUT *out,fdtype x)
+static int unparse_code(U8_OUTPUT *out,fdtype x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
   int i = 0, len = v->fdvec_length; fdtype *data = v->fdvec_elts;
@@ -566,7 +566,7 @@ FD_EXPORT void fd_init_unparse_c()
   fd_unparsers[fd_packet_type]=unparse_packet;
   fd_unparsers[fd_secret_type]=unparse_secret;
   fd_unparsers[fd_vector_type]=unparse_vector;
-  fd_unparsers[fd_rail_type]=unparse_rail;
+  fd_unparsers[fd_code_type]=unparse_code;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
 

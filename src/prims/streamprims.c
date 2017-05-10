@@ -28,7 +28,13 @@
 
 #include <zlib.h>
 
-#define FD_DEFAULT_ZLEVEL 9
+#ifndef FD_DTREAD_SIZE
+#define FD_DTREAD_SIZE 2000
+#endif
+
+#ifndef FD_DTWRITE_SIZE
+#define FD_DTWRITE_SIZE 2000
+#endif
 
 static fdtype read_dtype(fdtype stream)
 {
@@ -159,11 +165,19 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
     u8_free(temp_name);
     return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
+    FD_DECL_OUTBUF(tmp,FD_DTWRITE_SIZE);
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    int bytes = fd_write_dtype(fd_writebuf(stream),object);
-    if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT(bytes);}
+    ssize_t bytes = fd_write_dtype(&tmp,object);
+    if (bytes<0) {
+      fd_close_outbuf(&tmp);
+      return FD_ERROR_VALUE;}
+    else {
+      bytes=fd_stream_write(stream,bytes,tmp.buffer);
+      fd_close_outbuf(&tmp);
+      if (bytes<0)
+	return FD_ERROR_VALUE;
+      else return FD_INT(bytes);}}
   else return fd_type_error(_("string"),"dtype2file",filename);
 }
 
@@ -191,11 +205,19 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
     u8_free(temp_name);
     return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
-    struct FD_STREAM *out=
+    FD_DECL_OUTBUF(tmp,FD_DTWRITE_SIZE);
+    struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    int bytes = fd_zwrite_dtype(fd_writebuf(out),object);
-    if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT(bytes);}
+    ssize_t bytes = fd_zwrite_dtype(&tmp,object);
+    if (bytes<0) {
+      fd_close_outbuf(&tmp);
+      return FD_ERROR_VALUE;}
+    else {
+      bytes=fd_stream_write(stream,bytes,tmp.buffer);
+      fd_close_outbuf(&tmp);
+      if (bytes<0)
+	return FD_ERROR_VALUE;
+      else return FD_INT(bytes);}}
   else return fd_type_error(_("string"),"dtype2zipfile",filename);
 }
 
@@ -220,11 +242,18 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
     fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
     return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
-    struct FD_STREAM *out=
+    struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    int bytes = fd_write_dtype(fd_writebuf(out),object);
-    if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT(bytes);}
+    struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
+    FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
+    int bytes = fd_write_dtype(&tmp,object);
+    if (bytes<0) {
+      fd_close_outbuf(&tmp);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_stream_write(stream,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      fd_close_outbuf(&tmp);
+      return FD_INT(bytes);}}
   else return fd_type_error(_("string"),"add_dtype2file",filename);
 }
 
@@ -241,11 +270,18 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
     fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
-    struct FD_STREAM *out=
+    struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
+    FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
+    struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    int bytes = fd_zwrite_dtype(fd_writebuf(out),object);
-    if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT(bytes);}
+    int bytes = fd_zwrite_dtype(&tmp,object);
+    if (bytes<0) {
+      fd_close_outbuf(&tmp);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_stream_write(stream,tmp.bufwrite-tmp.buffer,tmp.buffer);
+      fd_close_outbuf(&tmp);
+      return FD_INT(bytes);}}
   else return fd_type_error(_("string"),"add_dtype2zipfile",filename);
 }
 
@@ -253,7 +289,7 @@ static fdtype zipfile2dtype(fdtype filename);
 
 static fdtype file2dtype(fdtype filename)
 {
-  if (FD_STRINGP(filename)) 
+  if (FD_STRINGP(filename))
     return fd_read_dtype_from_file(FD_STRDATA(filename));
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
@@ -299,6 +335,9 @@ static fdtype file2dtypes(fdtype filename)
       fd_inbuf inbuf = fd_readbuf(in);
       object = fd_read_dtype(inbuf);
       while (!(FD_EODP(object))) {
+	if (FD_ABORTP(object)) {
+	  fd_decref(results);
+	  return object;}
         FD_ADD_TO_CHOICE(results,object);
         object = fd_read_dtype(inbuf);}
       fd_free_stream(in);

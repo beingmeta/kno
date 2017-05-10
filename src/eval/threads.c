@@ -271,7 +271,7 @@ static void *thread_call(void *data)
     ((flags)&(FD_THREAD_TRACE_EXIT)) ||
     (((flags)&(FD_THREAD_QUIET_EXIT)) ? (0) :
      (thread_log_exit));
-  
+
   tstruct->errnop = &(errno);
 
   FD_INIT_STACK();
@@ -544,7 +544,10 @@ static fdtype threadjoin_prim(fdtype threads)
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
     int retval = pthread_join(tstruct->tid,NULL);
     if (retval==0) {
-      if ((tstruct->resultptr)== &(tstruct->result))
+      /* If the result wasn't put somewhere else, add it to
+         the results */
+      if ( (tstruct->resultptr == NULL) ||
+           ((tstruct->resultptr) == &(tstruct->result)) )
         if (!(FD_VOIDP(tstruct->result))) {
           fd_incref(tstruct->result);
           FD_ADD_TO_CHOICE(results,tstruct->result);}}

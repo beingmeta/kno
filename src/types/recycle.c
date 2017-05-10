@@ -174,7 +174,7 @@ void fd_recycle_cons(fd_raw_cons c)
   case fd_string_type: case fd_packet_type: case fd_secret_type: 
     recycle_string((struct FD_STRING *)c);
     return;
-  case fd_vector_type: case fd_rail_type:
+  case fd_vector_type: case fd_code_type:
     recycle_vector((struct FD_VECTOR *)c);
     return;
   case fd_choice_type: 

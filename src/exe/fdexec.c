@@ -42,7 +42,7 @@
 
 #include "main.c"
 
-static int debug_maxelts = 32, debug_maxchars = 80, quiet_console = 0;
+static int debug_maxelts = 32, debug_maxchars = 80;
 
 static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
 static int n_configs = 0;
@@ -51,7 +51,7 @@ static u8_condition FileWait=_("FILEWAIT");
 
 static void exit_fdexec()
 {
-  if (!(quiet_console)) fd_log_status();
+  if (!(fd_be_vewy_quiet)) fd_log_status("Exit(fdexec)");
 }
 
 typedef char *charp;
@@ -205,10 +205,6 @@ int do_main(int argc,char **argv,
      _("File to wait to exist before starting"),
      fd_sconfig_get,fd_sconfig_set,
      &wait_for_file);
-  fd_register_config
-    ("QUIET",_("Whether to output startup messages"),
-     fd_boolconfig_get,fd_boolconfig_set,
-     &quiet_console);
 
   setlocale(LC_ALL,"");
   /* Process command line arguments */
@@ -240,7 +236,7 @@ int do_main(int argc,char **argv,
 
   fd_init_schemeio();
 
-  if (!(quiet_console)) fd_boot_message();
+  if (!(fd_be_vewy_quiet)) fd_boot_message();
   if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",
@@ -274,7 +270,7 @@ int do_main(int argc,char **argv,
             "Usage: fdexec [conf = val]* source_file (arg | [conf = val])*\n");
     return 1;}
 
-  if (!(quiet_console)) {
+  if (!(fd_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-fd_load_start;
     char *units="s";
     if (startup_time>1) {}

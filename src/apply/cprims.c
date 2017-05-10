@@ -33,11 +33,18 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
 {
   struct FD_FUNCTION *fcn = (fd_function)x;
   u8_string name = fcn->fcn_name;
-  u8_string filename = fcn->fcn_filename;
+  u8_string filename = fcn->fcn_filename, space;
   u8_byte arity[16]=""; u8_byte codes[16]="";
+  u8_byte tmpbuf[32];
   if ((filename)&&(filename[0]=='\0'))
     filename = NULL;
-  if (name == NULL) name = fcn->fcn_name;
+  if ( (filename) && (space=strchr(filename,' '))) {
+    int len = space-filename;
+    if (len>30) len=30;
+    strncpy(tmpbuf,filename,len);
+    tmpbuf[len]='\0';
+    filename=tmpbuf;}
+  if (filename==NULL) filename="nofile";
   if (fcn->fcn_ndcall) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
     strcat(arity,"…");
@@ -49,10 +56,10 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
   if (name)
     u8_printf(out,"#<Φ%s%s%s%s%s%s>",
               codes,name,arity,
-              U8OPTSTR(" '",fcn->fcn_filename,"'"));
+              U8OPTSTR(" '",filename,"'"));
   else u8_printf(out,"#<Φ%s%s #!0x%llx%s%s%s>",
                  codes,arity,(unsigned long long) fcn,
-                 U8OPTSTR("'",fcn->fcn_filename,"'"));
+                 U8OPTSTR("'",filename,"'"));
   return 1;
 }
 static void recycle_primitive(struct FD_RAW_CONS *c)
@@ -330,6 +337,7 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
   return FDTYPE_CONS(f);
 }
 
+#if 0
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn)
 {
   struct FD_FUNCTION *f = new_cprim(name,NULL,NULL,0,0,0,0);
@@ -399,6 +407,7 @@ FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
   f->fcn_handler.call9 = fn;
   return FDTYPE_CONS(f);
 }
+#endif
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 {

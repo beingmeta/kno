@@ -368,6 +368,9 @@ void fd_decref_elts(unsigned int n,const fdtype *elts)
 #define fd_decref_elts _fd_decref_elts
 #endif
 
+#define fd_incref_ptr(p) (fd_incref((fdtype)(p)))
+#define fd_decref_ptr(p) (fd_decref((fdtype)(p)))
+
 /* Conses */
 
 struct FD_FREE_CONS {
@@ -526,23 +529,23 @@ FD_EXPORT fdtype fd_make_nvector(int len,...);
 
 /* Rails are basically vectors but used for executable code */
 
-#define FD_RAILP(x) (FD_TYPEP((x),fd_rail_type))
-#define FD_RAIL_LENGTH(x) \
+#define FD_CODEP(x) (FD_TYPEP((x),fd_code_type))
+#define FD_CODE_LENGTH(x) \
   ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
-#define FD_RAIL_DATA(x) \
+#define FD_CODE_DATA(x) \
   ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
-#define FD_RAIL_ELTS(x) \
+#define FD_CODE_ELTS(x) \
   ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
-#define FD_RAIL_REF(x,i) \
+#define FD_CODE_REF(x,i) \
   ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
-#define FD_RAIL_SET(x,i,v) \
+#define FD_CODE_SET(x,i,v) \
   ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
 
-FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data);
-FD_EXPORT fdtype fd_make_rail(int len,fdtype *elts);
+FD_EXPORT fdtype fd_init_code(struct FD_VECTOR *ptr,int len,fdtype *data);
+FD_EXPORT fdtype fd_make_code(int len,fdtype *elts);
 FD_EXPORT fdtype fd_make_nrail(int len,...);
 
-#define FD_XRAIL(x) (fd_consptr(struct FD_VECTOR *,x,fd_rail_type))
+#define FD_XRAIL(x) (fd_consptr(struct FD_VECTOR *,x,fd_code_type))
 
 /* Generic-ish iteration macro */
 
@@ -553,7 +556,7 @@ FD_EXPORT fdtype fd_make_nrail(int len,...);
   if (FD_PAIRP(seq)) {                           \
      _islist = 1; _scan=_seq; _ok = 1;}              \
   else if ((FD_VECTORP(_seq))||                  \
-           (FD_RAILP(_seq))) {			 \
+           (FD_CODEP(_seq))) {			 \
     _lim = FD_VECTOR_LENGTH(_seq);                 \
     _elts = FD_VECTOR_DATA(_seq);                  \
     _ok = 1;}                                      \
@@ -676,6 +679,12 @@ typedef struct FD_FLONUM *fd_flonum;
 #define FD_FLONUMP(x) (FD_TYPEP(x,fd_flonum_type))
 #define FD_XFLONUM(x) (fd_consptr(struct FD_FLONUM *,x,fd_flonum_type))
 #define FD_FLONUM(x) ((FD_XFLONUM(x))->floval)
+
+FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
+
+#define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
+#define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
 
 /* Rational and complex numbers */
 
