@@ -130,6 +130,7 @@ typedef enum FD_PTR_TYPE {
   fd_cdrcode_type = FD_IMMEDIATE_TYPECODE(7),
   fd_pool_type = FD_IMMEDIATE_TYPECODE(8),
   fd_index_type = FD_IMMEDIATE_TYPECODE(9),
+  fd_histref_type = FD_IMMEDIATE_TYPECODE(10),
 
   fd_string_type = FD_CONS_TYPECODE(0),
   fd_packet_type = FD_CONS_TYPECODE(1),
@@ -182,7 +183,7 @@ typedef enum FD_PTR_TYPE {
   } fd_ptr_type;
 
 #define FD_BUILTIN_CONS_TYPES 40
-#define FD_BUILTIN_IMMEDIATE_TYPES 10
+#define FD_BUILTIN_IMMEDIATE_TYPES 11
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
 
