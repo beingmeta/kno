@@ -846,7 +846,7 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
       if (FD_ABORTED(newv)) {
         rv=-1;}
       else rv=fd_store(table,sym,newv);
-      fd_decref(cur); fd_decref(newv);
+      fd_decref(newv);
       if (rv<0) {
         fd_seterr("AssignFailed","ASSIGN_OPCODE",NULL,expr);
         return FD_ERROR_VALUE;}
