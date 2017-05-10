@@ -1089,7 +1089,9 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 static void set_opcode_name(fdtype opcode,u8_string name)
 {
   int off = FD_OPCODE_NUM(opcode);
+  u8_string hashname=u8_string_append("#OPCODE_",name,NULL);
   fd_opcode_names[off]=name;
+  fd_add_hashname(hashname,opcode);
 }
 
 static void init_opcode_names()
