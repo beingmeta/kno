@@ -143,7 +143,7 @@ static ssize_t get_maxpos(fd_hashindex p)
     return -1;}
 }
 
-static fdtype read_zvalues(fd_hashindex,fdtype,int,fd_off_t,size_t);
+static fdtype read_values(fd_hashindex,fdtype,int,fd_off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
 
@@ -664,7 +664,7 @@ static fdtype fast_read_dtype(fd_inbuf in)
   } /* else */
 }
 
-FD_FASTOP fdtype read_zkey(fd_hashindex hx,fd_inbuf in)
+FD_FASTOP fdtype read_key(fd_hashindex hx,fd_inbuf in)
 {
   int code = fd_read_zint(in);
   if (code==0) return fast_read_dtype(in);
@@ -672,7 +672,7 @@ FD_FASTOP fdtype read_zkey(fd_hashindex hx,fd_inbuf in)
     fdtype cdr = fast_read_dtype(in);
     if (FD_ABORTP(cdr)) return cdr;
     else return fd_conspair(hx->index_slotids[code-1],cdr);}
-  else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
+  else return fd_err(CorruptedHashIndex,"read_key",NULL,FD_VOID);
 }
 
 FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,
@@ -804,7 +804,7 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
           vblock_off = (fd_off_t)fd_read_zint(&keystream);
           vblock_size = (size_t)fd_read_zint(&keystream);
           fd_close_outbuf(&out);
-          return read_zvalues(hx,key,n_values,vblock_off,vblock_size);}}
+          return read_values(hx,key,n_values,vblock_off,vblock_size);}}
       else {
         keystream.bufread = keystream.bufread+key_len;
         n_values = fd_read_zint(&keystream);
@@ -823,25 +823,40 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
   return FD_EMPTY_CHOICE;
 }
 
-static int zread_loop(fd_hashindex hx,fdtype key,
-                      int n_read,int n_values,
-                      fd_off_t vblock_off,size_t vblock_size,
-                      int *n_readp,fdtype *values,int *consp)
+static FD_CHUNK_REF read_value_block
+(fd_hashindex hx,fdtype key,
+ int n_values,FD_CHUNK_REF chunk,
+ int *n_readp,fdtype *values,int *consp,
+ unsigned char **vbufp,size_t *vbuf_len)
 {
-  unsigned char vbuf[vblock_size];
+  int n_read=*n_readp;
+  FD_CHUNK_REF result = {-1,-1};
+  fd_off_t vblock_off = chunk.off;
+  size_t  vblock_size = chunk.size;
+  unsigned char *vbuf=*vbufp;
+  if (vblock_size > *vbuf_len) {
+    size_t cur_size = *vbuf_len;
+    size_t new_size = ((cur_size/0x20000)+4)*0x20000;
+    unsigned char *newbuf=u8_realloc(vbuf,new_size);
+    if (newbuf == NULL) {
+      u8_seterr("ReallocFailed","read_value_block",u8_strdup(hx->indexid));
+      return result;}
+    else {
+      *vbufp=newbuf;
+      *vbuf_len=new_size;}}
   struct FD_INBUF instream;
   fd_off_t next_off;
   ssize_t next_size=-1;
   int i=0, atomicp = 1;
   open_block(&instream,hx,vblock_off,vblock_size,vbuf);
   ssize_t n_elts = fd_read_zint(&instream);
-  if (n_elts<0) return -1;
+  if (n_elts<0) result;
   i = 0; while ( (i<n_elts) && (n_read < n_values) ) {
     fdtype val = read_zvalue(hx,&instream);
     if (FD_ABORTP(val)) {
       if (!(atomicp)) *consp=1;
       *n_readp = n_read;
-      return -1;}
+      return result;}
     else if (FD_CONSP(val)) atomicp = 0;
     else {}
     values[n_read]=val;
@@ -857,54 +872,61 @@ static int zread_loop(fd_hashindex hx,fdtype key,
   if ( (next_size<0) || (next_off < 0)) {
     *n_readp = n_read;
     if (!(atomicp)) *consp=0;
-    return -1;}
+    return result;}
+  result.off=next_off; result.size=next_size;
   *n_readp = n_read;
   if (!(atomicp)) *consp=1;
-  if (next_size)
-    return zread_loop(hx,key,n_read,n_values,
-                      next_off,next_size,
-                      n_readp,values,consp);
-  else return n_read;
+  return result;
 }
 
-static fdtype read_zvalues
+static fdtype read_values
 (fd_hashindex hx,fdtype key,int n_values,
  fd_off_t vblock_off,size_t vblock_size)
 
 {
   struct FD_CHOICE *result = fd_alloc_choice(n_values);
+  FD_CHUNK_REF chunk_ref = { vblock_off, vblock_size };
   fdtype *values = (fdtype *)FD_XCHOICE_DATA(result);
-  int consp = 0, n_read;
-  int rv=zread_loop(hx,key,0,n_values,
-                    vblock_off,vblock_size,
-                    &n_read,values,&consp);
-  if (rv<0) {
-    fd_seterr("HashIndexError","zread_values",
+  size_t vbuf_len = ( vblock_size < 0x20000) ? (0x20000) :
+    (((vblock_size/0x20000)+4)*0x20000);
+  unsigned char *vbuf = u8_malloc(vbuf_len);
+  int consp = 0, n_read=0;
+  while ( (chunk_ref.off>0) && (n_read < n_values) )
+    chunk_ref=read_value_block(hx,key,n_values,chunk_ref,
+                               &n_read,values,&consp,
+                               &vbuf,&vbuf_len);
+  if (chunk_ref.off<0) {
+    fd_seterr("HashIndexError","read_values",
               u8_mkstring("reading %d values from %s",
                           n_values,hx->indexid),
               key);
     result->choice_size=n_read;
     fd_decref_ptr(result);
+    u8_free(vbuf);
     return FD_ERROR_VALUE;}
   else if (n_read != n_values) {
     u8_log(LOGWARN,"InconsistentValueSize",
            "In '%s', the number of stored values "
            "for %q, %lld != %lld (expected)",
            hx->indexid,key,n_read,n_values);
-    fd_seterr("InconsistentValueSize","read_zvalues",NULL,key);
+    fd_seterr("InconsistentValueSize","read_values",NULL,key);
     result->choice_size=n_read;
     fd_decref_ptr(result);
+    u8_free(vbuf);
     return FD_ERROR_VALUE;}
   else if (n_values == 1) {
     fdtype v = values[0];
     fd_incref(v);
     u8_free(result);
+    u8_free(vbuf);
     return v;}
-  else return fd_init_choice
-         (result,n_values,NULL,
-          FD_CHOICE_DOSORT|FD_CHOICE_REALLOC|
-          ((consp)?(FD_CHOICE_ISCONSES):
-           (FD_CHOICE_ISATOMIC)));
+  else {
+    u8_free(vbuf);
+    return fd_init_choice
+      (result,n_values,NULL,
+       FD_CHOICE_DOSORT|FD_CHOICE_REALLOC|
+       ((consp)?(FD_CHOICE_ISCONSES):
+        (FD_CHOICE_ISATOMIC)));}
 }
 
 
@@ -1289,7 +1311,7 @@ static fdtype *hashindex_fetchkeys(fd_index ix,int *n)
     while (j<n_keys) {
       fdtype key; int n_vals;
       fd_read_zint(&keyblock); /* IGNORE size */
-      key = read_zkey(hx,&keyblock);
+      key = read_key(hx,&keyblock);
       n_vals = fd_read_zint(&keyblock);
       results[key_count++]=key;
       if (n_vals==0) {}
@@ -1360,7 +1382,7 @@ static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
     while (j<n_keys) {
       fdtype key; int n_vals;
       /* size = */ fd_read_zint(&keyblock);
-      key = read_zkey(hx,&keyblock);
+      key = read_key(hx,&keyblock);
       n_vals = fd_read_zint(&keyblock);
       assert(key!=0);
       sizes[key_count].keysizekey = key;
