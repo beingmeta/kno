@@ -423,6 +423,20 @@ static int slotmap_modified(struct FD_SLOTMAP *ptr,int flag)
     return modified;}
 }
 
+static int slotmap_readonly(struct FD_SLOTMAP *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_slotmap_type);
+  int readonly=FD_XSLOTMAP_READONLYP(ptr);
+  if (flag<0)
+    return readonly;
+  else if (flag) {
+    FD_XSLOTMAP_SET_READONLY(ptr);
+    return readonly;}
+  else {
+    FD_XSLOTMAP_CLEAR_READONLY(ptr);
+    return readonly;}
+}
+
 FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
 {
   struct FD_KEYVAL *scan, *limit; int unlock=0;
@@ -1102,6 +1116,20 @@ static int schemap_modified(struct FD_SCHEMAP *ptr,int flag)
     return modified;}
 }
 
+static int schemap_readonly(struct FD_SCHEMAP *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_schemap_type);
+  int readonly=FD_XSCHEMAP_READONLYP(ptr);
+  if (flag<0)
+    return readonly;
+  else if (flag) {
+    ptr->table_readonly=1;
+    return readonly;}
+  else {
+    ptr->table_readonly=0;
+    return readonly;}
+}
+
 FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *sm)
 {
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
@@ -1598,7 +1626,9 @@ static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
   struct FD_HASH_BUCKET **slots;
   if (n_slots < 0) n_slots=fd_get_hashtable_size(-n_slots);
-  ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0; ptr->table_modified=0;
+  ptr->ht_n_buckets=n_slots;
+  ptr->table_n_keys=0;
+  ptr->table_modified=0;
   ptr->ht_buckets=slots=
     u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
 }
@@ -1618,7 +1648,8 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   result=fd_hashvec_insert
     (key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
   if ( (ht->table_n_keys) > n_keys ) added=1; else added=0;
-  ht->table_modified=1; oldv=result->kv_val;
+  ht->table_modified=1;
+  oldv=result->kv_val;
   if (FD_PRECHOICEP(value))
     /* Copy prechoices */
     newv=fd_make_simple_choice(value);
@@ -2136,6 +2167,20 @@ static int hashtable_modified(struct FD_HASHTABLE *ptr,int flag)
     return modified;}
 }
 
+static int hashtable_readonly(struct FD_HASHTABLE *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
+  int readonly=ptr->table_readonly;
+  if (flag<0)
+    return readonly;
+  else if (flag) {
+    ptr->table_readonly=1;
+    return readonly;}
+  else {
+    ptr->table_readonly=0;
+    return readonly;}
+}
+
 FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 {
   fdtype result=FD_EMPTY_CHOICE; int unlock=0;
@@ -2394,7 +2439,8 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   if (n_slots == 0) {
 
     ptr->ht_n_buckets=ptr->table_n_keys=0;
-    ptr->table_readonly=ptr->table_modified=0; ptr->table_uselock=1;
+    ptr->table_readonly=ptr->table_modified=0;
+    ptr->table_uselock=1;
     ptr->table_load_factor=default_hashtable_loading;
     ptr->ht_buckets=NULL;
     return FDTYPE_CONS(ptr);}
@@ -2403,7 +2449,8 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 
     if (n_slots < 0) n_slots=-n_slots;
     else n_slots=fd_get_hashtable_size(n_slots);
-    ptr->table_readonly=ptr->table_modified=0; ptr->table_uselock=1;
+    ptr->table_readonly=ptr->table_modified=0;
+    ptr->table_uselock=1;
     ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0;
     ptr->table_load_factor=default_hashtable_loading;
     ptr->ht_buckets=slots=u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
@@ -2424,7 +2471,9 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,
   else {FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
   ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0;
   ptr->table_load_factor=default_hashtable_loading;
-  ptr->table_modified=0; ptr->table_readonly=0; ptr->table_uselock=1;
+  ptr->table_modified=0;
+  ptr->table_readonly=0;
+  ptr->table_uselock=1;
   ptr->ht_buckets=slots=u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
   memset(slots,0,sizeof(struct FD_HASH_BUCKET *)*n_slots);
   if (inits) {
@@ -2691,11 +2740,13 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly)
                 "fd_lock_hashtable");
       return -1;}
     fd_read_lock_table(ht);
-    ht->table_readonly=1; ht->table_uselock=0;
+    ht->table_readonly=1;
+    ht->table_uselock=0;
     return 1;}
   else {
     if (ht->table_uselock) return 0;
-    ht->table_uselock=1; ht->table_readonly=0;
+    ht->table_uselock=1;
+    ht->table_readonly=0;
     fd_unlock_table(ht);
     return 1;}
 }
@@ -3420,8 +3471,8 @@ FD_EXPORT int fd_set_readonly(fdtype arg,int flag)
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   CHECKPTR(arg,"fd_set_readonly/table");
   if (fd_tablefns[argtype])
-    if (fd_tablefns[argtype]->modified)
-      return (fd_tablefns[argtype]->modified)(arg,flag);
+    if (fd_tablefns[argtype]->readonly)
+      return (fd_tablefns[argtype]->readonly)(arg,flag);
     else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
   else return fd_err(NotATable,"fd_set_readonly",NULL,arg);
 }
@@ -3723,6 +3774,8 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashtable_type]->keys=(fd_table_keys_fn)fd_hashtable_keys;
   fd_tablefns[fd_hashtable_type]->modified=
     (fd_table_modified_fn)hashtable_modified;
+  fd_tablefns[fd_hashtable_type]->readonly=
+    (fd_table_readonly_fn)hashtable_readonly;
 
   /* SLOTMAP table functions */
   fd_tablefns[fd_slotmap_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3735,6 +3788,8 @@ void fd_init_tables_c()
   fd_tablefns[fd_slotmap_type]->keys=(fd_table_keys_fn)fd_slotmap_keys;
   fd_tablefns[fd_slotmap_type]->modified=
     (fd_table_modified_fn)slotmap_modified;
+  fd_tablefns[fd_slotmap_type]->readonly=
+    (fd_table_readonly_fn)slotmap_readonly;
 
   /* SCHEMAP table functions */
   fd_tablefns[fd_schemap_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3747,6 +3802,8 @@ void fd_init_tables_c()
   fd_tablefns[fd_schemap_type]->keys=(fd_table_keys_fn)fd_schemap_keys;
   fd_tablefns[fd_schemap_type]->modified=
     (fd_table_modified_fn)schemap_modified;
+  fd_tablefns[fd_schemap_type]->readonly=
+    (fd_table_readonly_fn)schemap_readonly;
 
   /* HASHSET table functions */
   fd_tablefns[fd_hashset_type]=u8_alloc(struct FD_TABLEFNS);
