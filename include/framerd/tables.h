@@ -34,6 +34,7 @@ typedef int (*fd_table_drop_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_store_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_getsize_fn)(fdtype);
 typedef int (*fd_table_modified_fn)(fdtype,int);
+typedef int (*fd_table_readonly_fn)(fdtype,int);
 typedef fdtype (*fd_table_keys_fn)(fdtype);
 
 struct FD_TABLEFNS {
@@ -62,6 +63,7 @@ FD_EXPORT int fd_add(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_getsize(fdtype arg);
 FD_EXPORT int fd_modifiedp(fdtype arg);
+FD_EXPORT int fd_readonlyp(fdtype arg);
 FD_EXPORT int fd_set_modified(fdtype arg,int val);
 FD_EXPORT int fd_set_readonly(fdtype arg,int val);
 FD_EXPORT fdtype fd_getkeys(fdtype arg);
@@ -70,7 +72,6 @@ FD_EXPORT fdtype fd_getassocs(fdtype arg);
 FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keys);
 FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxval);
 FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
-
 
 #define FD_TABLEP(x) ((fd_tablefns[FD_PTR_TYPE(x)])!=NULL)
 
