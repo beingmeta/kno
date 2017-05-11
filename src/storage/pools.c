@@ -422,10 +422,19 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
       if (FD_ABORTP(v)) return v;
       fd_hashtable_store(&(p->pool_changes),oid,v);
       return v;}
-    else if ((FD_TYPEP(smap,fd_slotmap_type))&&
-             (FD_SLOTMAP_READONLYP(smap))) {
+    else if (FD_CONSP(smap)) {
       FD_OID addr=FD_OID_ADDR(oid);
-      FD_SLOTMAP_CLEAR_READONLY(smap);
+      fd_ptr_type val_type=FD_PTR_TYPE(smap);
+      switch (val_type) {
+      case fd_slotmap_type:
+        if (FD_SLOTMAP_READONLYP(smap)) {
+          FD_SLOTMAP_CLEAR_READONLY(smap);}
+      case fd_schemap_type:
+        if (FD_SCHEMAP_READONLYP(smap)) {
+          FD_SCHEMAP_CLEAR_READONLY(smap);}
+      case fd_hashtable_type:
+        if (FD_HASHTABLE_READONLYP(smap)) {
+          FD_HASHTABLE_CLEAR_READONLY(smap);}}
       return smap;}
     else return smap;}
 }
