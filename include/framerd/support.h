@@ -117,6 +117,9 @@ FD_EXPORT U8_NOINLINE void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 FD_EXPORT U8_NOINLINE void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+FD_EXPORT U8_NOINLINE void fd_raise
+  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+
 
 #define fd_xseterr3(c,cxt,details) \
    fd_xseterr(c,cxt,details,FD_VOID)
