@@ -2,6 +2,7 @@
 # Copyright © 2004-2017 beingmeta, inc
 # This file is a part of beingmeta's FramerD implementation
 
+MAKEFLAGS    += -j -s
 CC	      = @CC@
 XCFLAGS       =
 OPTFLAGS      = -O3
