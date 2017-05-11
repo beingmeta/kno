@@ -30,6 +30,54 @@ static int anonymous_oiderr(u8_string op,fdtype f)
   return -1;
 }
 
+/* TODO: Fix finish/modify semantics
+
+   There's a problem with using OIDs after they've been finished. 
+
+   Suppose thread A gets a locked OID, and (eventually) does something
+   to it's value (e.g. storing a value on its table). In between when
+   it gets the locked OID and operates on it, a thread B decides that
+   it's finished (though it's obviously not). It finishes it, setting
+   it to readonly, so that when thread A gets around to doing its
+   modification, the value (table) is now readonly. Which is an error.
+
+   Possible fixes:
+   1. Put locks around setting the readonly flag and have thread A lock
+      the OID while it's working its way to modifying it. This requires
+      using something other than fd_store or fd_slotmap_store to do the
+      modification since they lock the OIDs themselves.
+   2. Get rid of OID finishing and come up with another way to mark OIDs
+      that are (probably) ready to be committed.
+   3. Something I haven't thought of yet.
+
+   (2) is probably the best option because it was something of a
+   kludge in the first place, since it's using a flag designed for one
+   purpose (being readonly) for another purpose (being (probably)
+   ready to commit). A milder version of (2) would be to have a
+   separate flag (table_finished) for when the value is ready to go
+   committed. That might be the best course.
+
+   The one thing going for (1) is if there are other contexts where
+   the window between getting the locked OID and working on it's value
+   was problematic. It wouldn't be a readonly problem if we separate
+   table_finished and table_readonly. What are some other contexts?
+
+   What happens if we have the finished_bit set and the OID is
+   committed in the window between getting the locked OID and
+   operating on it? It gets unlocked and the actual value will be
+   freed after the change is made, so we lose whatever modification
+   was done. That's not right.
+
+   Suppose we don't swap out OIDs which were modified after they were
+   finished. That would fix it. How do we do that? More flags? We
+   don't want to clear the modified flag automatically after a
+   save. Suppose we clear the modified flag after we start saving (and
+   set it back if the save fails). Then, if anyone modifies it after that,
+   we won't swap it out.
+
+
+*/
+
 /* Adjunct functions */
 
 fdtype fd_adjunct_slotids;

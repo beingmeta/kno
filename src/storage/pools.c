@@ -429,12 +429,15 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
       case fd_slotmap_type:
         if (FD_SLOTMAP_READONLYP(smap)) {
           FD_SLOTMAP_CLEAR_READONLY(smap);}
+        break;
       case fd_schemap_type:
         if (FD_SCHEMAP_READONLYP(smap)) {
           FD_SCHEMAP_CLEAR_READONLY(smap);}
+        break;
       case fd_hashtable_type:
         if (FD_HASHTABLE_READONLYP(smap)) {
-          FD_HASHTABLE_CLEAR_READONLY(smap);}}
+          FD_HASHTABLE_CLEAR_READONLY(smap);}
+        break;}
       return smap;}
     else return smap;}
 }
@@ -801,14 +804,17 @@ FD_EXPORT int fd_pool_finish(fd_pool p,fdtype oids)
       fdtype v = fd_hashtable_get(changes,oid,FD_VOID);
       if (FD_CONSP(v)) {
         if (FD_SLOTMAPP(v)) {
-          FD_SLOTMAP_SET_READONLY(v);
-          finished++;}
+          if (FD_SLOTMAP_MODIFIEDP(v)) {
+            FD_SLOTMAP_MARK_FINISHED(v);
+            finished++;}}
         else if (FD_SCHEMAPP(v)) {
-          FD_SCHEMAP_SET_READONLY(v);
-          finished++;}
+          if (FD_SCHEMAP_MODIFIEDP(v)) {
+            FD_SCHEMAP_MARK_FINISHED(v);
+            finished++;}}
         else if (FD_HASHTABLEP(v)) {
-          FD_HASHTABLE_SET_READONLY(v);
-          finished++;}
+          if (FD_HASHTABLE_MODIFIEDP(v)) {
+            FD_HASHTABLE_MARK_FINISHED(v);
+            finished++;}}
         else {}
         fd_decref(v);}}}
   return finished;
@@ -901,33 +907,49 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
   fdtype *oids = writes.oids;
   fdtype *values = writes.values;
   fdtype *unlock = oids;
+  u8_write_lock(&(changes->table_rwlock));
+  FD_HASH_BUCKET **buckets = changes->ht_buckets;
+  int n_buckets = changes->ht_n_buckets;
   while (i<n) {
+    fdtype oid=oids[i];
     fdtype v = values[i];
-    if (!(FD_CONSP(v))) {
+    struct FD_KEYVAL *kv=fd_hashvec_get(oid,buckets,n_buckets);
+    if (kv==NULL) {i++; continue;} /* Warning here? Abort? */
+    else if (kv->kv_val != v) { i++; continue;}
+    else if (!(FD_CONSP(v))) {
       *unlock++=oids[i]; i++; continue;}
-    else if (FD_SLOTMAPP(v)) {
-      if (!(FD_SLOTMAP_MODIFIEDP(v))) {
-        *unlock++=oids[i];}}
-    else if (FD_SCHEMAPP(v)) {
-      if (!(FD_SCHEMAP_MODIFIEDP(v))) {
-        *unlock++=oids[i];}}
-    else if (FD_HASHTABLEP(v)) {
-      if (!(FD_HASHTABLE_MODIFIEDP(v))) {
-        *unlock++=oids[i];}}
-    else *unlock++=oids[i];
-    fd_decref(v);
-    i++;}
+    else {
+      int finished=1;
+      fdtype cur = kv->kv_val;
+      if (FD_SLOTMAPP(v)) {
+        if (FD_SLOTMAP_MODIFIEDP(v)) finished=0;}
+      else if (FD_SCHEMAPP(v)) {
+        if (FD_SCHEMAP_MODIFIEDP(v)) finished=0;}
+      else if (FD_HASHTABLEP(v)) {
+        if (FD_HASHTABLE_MODIFIEDP(v)) finished=0;}
+      else {}
+      if (finished) {
+        *unlock++=oids[i];
+        fd_decref(cur);
+        kv->kv_val=FD_VOID;}
+      fd_decref(v);
+      i++;}}
+  u8_rw_unlock(&(changes->table_rwlock));
   u8_free(writes.values); writes.values = NULL;
   unlock_count = unlock-oids;
   if ((p->pool_handler->unlock)&&(unlock_count)) {
-    fdtype to_unlock = fd_init_choice(NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
+    fdtype to_unlock = fd_init_choice
+      (NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
     int retval = p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
-      u8_log(LOGCRIT,"UnlockFailed","Error unlocking pool %s",p->poolid);
+      u8_log(LOGCRIT,"UnlockFailed",
+             "Error unlocking pool %s, all %d values saved "
+             "but up to %d OIDs may still be locked",
+             p->poolid,n,unlock_count);
       fd_clear_errors(1);}
     fd_decref(to_unlock);}
-  fd_hashtable_iterkeys(changes,fd_table_replace,unlock_count,oids,FD_VOID);
-  u8_free(writes.oids); writes.oids = NULL;
+  u8_free(writes.oids);
+  writes.oids = NULL;
   fd_devoid_hashtable(changes,0);
 }
 
@@ -937,22 +959,25 @@ static int savep(fdtype v,int only_finished)
 {
   if (!(FD_CONSP(v))) return 1;
   else if (FD_SLOTMAPP(v)) {
-    if (!(FD_SLOTMAP_MODIFIEDP(v))) return 0;
-    else if ((!(only_finished))||(FD_SLOTMAP_READONLYP(v))) {
-      FD_SLOTMAP_CLEAR_MODIFIED(v);
-      return 1;}
+    if (FD_SLOTMAP_MODIFIEDP(v)) {
+      if ((!(only_finished))||(FD_SLOTMAP_FINISHEDP(v))) {
+        FD_SLOTMAP_CLEAR_MODIFIED(v);
+        return 1;}
+      else return 0;}
     else return 0;}
   else if (FD_SCHEMAPP(v)) {
-    if (!(FD_SCHEMAP_MODIFIEDP(v))) return 0;
-    else if ((!(only_finished))||(FD_SCHEMAP_READONLYP(v))) {
-      FD_SCHEMAP_CLEAR_MODIFIED(v);
-      return 1;}
+    if (FD_SCHEMAP_MODIFIEDP(v)) {
+      if ((!(only_finished))||(FD_SCHEMAP_FINISHEDP(v))) {
+        FD_SCHEMAP_CLEAR_MODIFIED(v);
+        return 1;}
+      else return 0;}
     else return 0;}
   else if (FD_HASHTABLEP(v)) {
-    if (!(FD_HASHTABLE_MODIFIEDP(v))) return 0;
-    else if ((!(only_finished))||(FD_HASHTABLE_READONLYP(v))) {
-      FD_HASHTABLE_CLEAR_MODIFIED(v);
-      return 1;}
+    if (FD_HASHTABLE_MODIFIEDP(v)) {
+      if ((!(only_finished))||(FD_HASHTABLE_READONLYP(v))) {
+        FD_HASHTABLE_CLEAR_MODIFIED(v);
+        return 1;}
+      else return 0;}
     else return 0;}
   else if (only_finished) return 0;
   else return 1;
@@ -1004,7 +1029,7 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
   struct FD_POOL_WRITES writes;
   fd_hashtable changes = &(p->pool_changes); int unlock = 0;
   if (changes->table_uselock) {
-    u8_read_lock(&(changes->table_rwlock)); 
+    u8_read_lock(&(changes->table_rwlock));
     unlock = 1;}
   int n = changes->table_n_keys;
   fdtype *oidv, *values;
@@ -1017,13 +1042,17 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
     struct FD_HASH_BUCKET **lim = scan+changes->ht_n_buckets;
     while (scan < lim) {
       if (*scan) {
-        struct FD_HASH_BUCKET *e = *scan; int fd_n_entries = e->fd_n_entries;
-        struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+fd_n_entries;
+        struct FD_HASH_BUCKET *e = *scan;
+        int fd_n_entries = e->fd_n_entries;
+        struct FD_KEYVAL *kvscan = &(e->kv_val0);
+        struct FD_KEYVAL *kvlimit = kvscan+fd_n_entries;
         while (kvscan<kvlimit) {
           fdtype key = kvscan->kv_key, val = kvscan->kv_val;
           if (val == FD_LOCKHOLDER) {kvscan++; continue;}
           else if (savep(val,finished)) {
-            *oidv++=key; *values++=val; fd_incref(val);}
+            *oidv++=key;
+            *values++=val;
+            fd_incref(val);}
           else {}
           kvscan++;}
         scan++;}
