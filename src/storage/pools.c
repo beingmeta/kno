@@ -422,6 +422,11 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
       if (FD_ABORTP(v)) return v;
       fd_hashtable_store(&(p->pool_changes),oid,v);
       return v;}
+    else if ((FD_TYPEP(smap,fd_slotmap_type))&&
+             (FD_SLOTMAP_READONLYP(smap))) {
+      FD_OID addr=FD_OID_ADDR(oid);
+      FD_SLOTMAP_CLEAR_READONLY(smap);
+      return smap;}
     else return smap;}
 }
 
@@ -433,8 +438,10 @@ FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
   else if (p == fd_zero_pool)
     return fd_zero_pool_store(oid,value);
   else {
-    if ((FD_SLOTMAPP(value))||(FD_SCHEMAPP(value))||(FD_HASHTABLEP(value)))
-      fd_set_modified(value,1);
+    if ((FD_SLOTMAPP(value))||
+        (FD_SCHEMAPP(value))||
+        (FD_HASHTABLEP(value))) {
+      fd_set_modified(value,1);}
     if (p->pool_handler->lock == NULL) {
       fd_hashtable_store(&(p->pool_cache),oid,value);
       return 1;}
@@ -550,9 +557,12 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
           fdtype v = values[j], oid = oidv[j];
           if (fd_hashtable_op(&(p->pool_changes),fd_table_replace_novoid,oid,v)==0) {
             /* This is when the OID we're storing isn't locked */
-            if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
-            else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}
-            if (fdtc) fd_hashtable_op(&(fdtc->oids),fd_table_store,oid,v);
+            if (FD_SLOTMAPP(v)) {
+              FD_SLOTMAP_SET_READONLY(v);}
+            else if (FD_SCHEMAPP(v)) {
+              FD_SCHEMAP_SET_READONLY(v);}
+            if (fdtc)
+              fd_hashtable_op(&(fdtc->oids),fd_table_store,oid,v);
             if (cachelevel>0)
               fd_hashtable_op(&(p->pool_cache),fd_table_store,oid,v);}
           /* We decref it since it would have been incref'd when
@@ -562,8 +572,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
       else {
         int j = 0; while (j<n) {
           fdtype v = values[j++];
-          if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v);}
-          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v);}}
+          if (FD_SLOTMAPP(v)) {
+            FD_SLOTMAP_SET_READONLY(v);}
+          else if (FD_SCHEMAPP(v)) {
+            FD_SCHEMAP_SET_READONLY(v);}}
         if (fdtc)
           fd_hashtable_iter(oidcache,fd_table_store,n,oidv,values);
         if (cachelevel>0)
@@ -779,9 +791,15 @@ FD_EXPORT int fd_pool_finish(fd_pool p,fdtype oids)
     if (p == pool) {
       fdtype v = fd_hashtable_get(changes,oid,FD_VOID);
       if (FD_CONSP(v)) {
-        if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
-        else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
-        else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
+        if (FD_SLOTMAPP(v)) {
+          FD_SLOTMAP_SET_READONLY(v);
+          finished++;}
+        else if (FD_SCHEMAPP(v)) {
+          FD_SCHEMAP_SET_READONLY(v);
+          finished++;}
+        else if (FD_HASHTABLEP(v)) {
+          FD_HASHTABLE_SET_READONLY(v);
+          finished++;}
         else {}
         fd_decref(v);}}}
   return finished;
