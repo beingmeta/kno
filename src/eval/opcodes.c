@@ -765,6 +765,45 @@ static fdtype tableop(fdtype opcode,fdtype arg1,fdtype arg2,fdtype arg3)
       return FD_VOID;}}
 }
 
+static fdtype combine_values(fdtype combiner,fdtype cur,fdtype value)
+{
+  int use_cur=((FD_ABORTP(cur)) ||
+               (cur == FD_DEFAULT_VALUE) ||
+               (cur == FD_UNBOUND) ||
+               (cur == FD_VOID) ||
+               (cur == FD_NULL));
+  switch (combiner) {
+  case FD_VOID: case FD_FALSE:
+    fd_decref(cur);
+    return value;
+  case FD_DEFAULT_VALUE:
+    if (use_cur)
+      return cur;
+    else return value;
+  case FD_PLUS_OPCODE:
+    if (!(use_cur)) cur=FD_FIXNUM_ZERO;
+    if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+      long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(value);
+      return FD_MAKE_FIXNUM(ic+ip);}
+    else {
+      fdtype result=fd_plus(cur,value);
+      fd_decref(value); fd_decref(cur);
+      if (FD_ABORTED(result))
+        return result;
+      else return result;}
+  case FD_MINUS_OPCODE:
+    if (!(use_cur)) cur=FD_FIXNUM_ZERO;
+    if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
+      long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(value);
+      return FD_MAKE_FIXNUM(ic-im);}
+    else {
+      fdtype result=fd_subtract(cur,value);
+      fd_decref(cur); fd_decref(value);
+      return result;}
+  default:
+    fd_decref(cur);
+    return value;}
+}
 static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
 {
   fdtype value = op_eval(expr,env,0);
@@ -783,60 +822,47 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
     if (FD_EXPECT_TRUE(scan!=NULL)) {
       fdtype bindings = scan->env_bindings;
       if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
-        struct FD_SCHEMAP *skimap = (struct FD_SCHEMAP *)bindings;
-        if (FD_EXPECT_TRUE(across<skimap->schema_length)) {
-          fdtype *values = skimap->schema_values;
+        struct FD_SCHEMAP *map = (struct FD_SCHEMAP *)bindings;
+        int map_len = map->schema_length;
+        if (FD_EXPECT_TRUE( across < map_len )) {
+          fdtype *values = map->schema_values;
           fdtype cur     = values[across];
-          switch (combiner) {
-          case FD_VOID: case FD_FALSE:
+          if ( (combiner == FD_FALSE) || (combiner == FD_VOID) ) {
             values[across]=value;
-            fd_decref(cur); cur=FD_VOID;
-            return FD_VOID;
-          case FD_UNION_OPCODE:
-            FD_ADD_TO_CHOICE(values[across],value);
-            return FD_VOID;
-          case FD_TRUE:
-            if ((cur == FD_DEFAULT_VALUE) ||
-                (cur == FD_UNBOUND) ||
-                (cur == FD_VOID) ||
-                (cur == FD_NULL))
+            fd_decref(cur);}
+          else if (combiner == FD_UNION_OPCODE) {
+            if ((cur==FD_VOID)||(cur==FD_UNBOUND)||(cur==FD_EMPTY_CHOICE))
               values[across]=value;
-            return FD_VOID;
-          case FD_PLUS_OPCODE:
-            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
-              long long ic=FD_FIX2INT(cur), ip=FD_FIX2INT(value);
-              values[across]=FD_MAKE_FIXNUM(ic+ip);
-              return FD_VOID;}
             else {
-              fdtype result=fd_plus(cur,value);
-              fd_decref(cur); fd_decref(value);
-              if (FD_ABORTED(result))
-                return result;
-              else skimap->schema_values[across]=result;
-              return FD_VOID;}
-          case FD_MINUS_OPCODE:
-            if ( (FD_FIXNUMP(value)) && (FD_FIXNUMP(cur)) ) {
-              long long ic=FD_FIX2INT(cur), im=FD_FIX2INT(value);
-              values[across]=FD_MAKE_FIXNUM(ic-im);
-              return FD_VOID;}
-            else {
-              fdtype result=fd_subtract(cur,value);
-              fd_decref(cur); fd_decref(value);
-              if (FD_ABORTED(result))
-                return result;
-              else values[across]=result;
-              return FD_VOID;}}}}}
+              FD_ADD_TO_CHOICE(values[across],value);}}
+          else values[across]=combine_values(combiner,cur,value);
+          return FD_VOID;}}}
     u8_string lexref=u8_mkstring("up%d/across%d",up,across);
     fdtype env_copy=(fdtype)fd_copy_env(env);
     return fd_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
   else if ((FD_PAIRP(var)) &&
            (FD_SYMBOLP(FD_CAR(var))) &&
            (FD_TABLEP(FD_CDR(var)))) {
+    int rv=-1;
     fdtype table=FD_CDR(var), sym=FD_CAR(var);
-    int rv=fd_store(table,sym,value);
-    fd_decref(value);
-    if (rv<0)
-      return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
+    if ( (combiner == FD_FALSE) || (combiner == FD_VOID) ) {
+      if (FD_ENVIRONMENTP(table))
+        rv=fd_set_value(sym,value,(fd_lispenv)table);
+      else rv=fd_store(table,sym,value);}
+    else if (combiner == FD_UNION_OPCODE) {
+      if (FD_ENVIRONMENTP(table))
+        rv=fd_add_value(sym,value,(fd_lispenv)table);
+      else rv=fd_add(table,sym,value);}
+    else {
+      fdtype cur=fd_get(table,sym,FD_UNBOUND);
+      fdtype newv=combine_values(combiner,cur,value);
+      if (FD_ABORTED(newv)) {
+        rv=-1;}
+      else rv=fd_store(table,sym,newv);
+      fd_decref(newv);}
+    if (rv<0) {
+      fd_seterr("AssignFailed","ASSIGN_OPCODE",NULL,expr);
+      return FD_ERROR_VALUE;}
     else return FD_VOID;}
   return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
 }
@@ -1089,89 +1115,90 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 static void set_opcode_name(fdtype opcode,u8_string name)
 {
   int off = FD_OPCODE_NUM(opcode);
-  u8_string hashname=u8_string_append("#OPCODE_",name,NULL);
+  u8_string hashname=u8_string_append("#",name,NULL);
   fd_opcode_names[off]=name;
   fd_add_hashname(hashname,opcode);
+  u8_free(hashname);
 }
 
 static void init_opcode_names()
 {
-  set_opcode_name(FD_BRANCH_OPCODE,"IFOP");
-  set_opcode_name(FD_NOT_OPCODE,"NOT");
-  set_opcode_name(FD_UNTIL_OPCODE,"UNTILOP");
-  set_opcode_name(FD_BEGIN_OPCODE,"BEGIN");
-  set_opcode_name(FD_QUOTE_OPCODE,"QUOTEOP");
-  set_opcode_name(FD_ASSIGN_OPCODE,"ASSIGN!");
-  set_opcode_name(FD_SYMREF_OPCODE,"SYMREF");
-  set_opcode_name(FD_BIND_OPCODE,"BINDOP");
-  set_opcode_name(FD_VOID_OPCODE,"VOIDOP");
-  set_opcode_name(FD_AND_OPCODE,"AND");
-  set_opcode_name(FD_OR_OPCODE,"OR");
-  set_opcode_name(FD_TRY_OPCODE,"TRY");
+  set_opcode_name(FD_BRANCH_OPCODE,"OP_BRANCH");
+  set_opcode_name(FD_NOT_OPCODE,"OP_NOT");
+  set_opcode_name(FD_UNTIL_OPCODE,"OP_UNTIL");
+  set_opcode_name(FD_BEGIN_OPCODE,"OP_BEGIN");
+  set_opcode_name(FD_QUOTE_OPCODE,"OP_QUOTE");
+  set_opcode_name(FD_ASSIGN_OPCODE,"OP_ASSIGN");
+  set_opcode_name(FD_SYMREF_OPCODE,"OP_SYMREF");
+  set_opcode_name(FD_BIND_OPCODE,"OP_BIND");
+  set_opcode_name(FD_VOID_OPCODE,"OP_VOID");
+  set_opcode_name(FD_AND_OPCODE,"OP_AND");
+  set_opcode_name(FD_OR_OPCODE,"OP_OR");
+  set_opcode_name(FD_TRY_OPCODE,"OP_TRY");
+  set_opcode_name(FD_CHOICEREF_OPCODE,"OP_CHOICEREF");
+  set_opcode_name(FD_FIXCHOICE_OPCODE,"OP_FIXCHOICE");
 
-  set_opcode_name(FD_AMBIGP_OPCODE,"AMBIGUOUS?");
-  set_opcode_name(FD_SINGLETONP_OPCODE,"SINGLETON?");
-  set_opcode_name(FD_FAILP_OPCODE,"FAIL?");
-  set_opcode_name(FD_EXISTSP_OPCODE,"EXISTS?");
-  set_opcode_name(FD_SINGLETON_OPCODE,"SINGLETON");
-  set_opcode_name(FD_CAR_OPCODE,"CAR");
-  set_opcode_name(FD_CDR_OPCODE,"CDR");
-  set_opcode_name(FD_LENGTH_OPCODE,"LENGTH");
-  set_opcode_name(FD_QCHOICE_OPCODE,"QCHOICE");
-  set_opcode_name(FD_CHOICE_SIZE_OPCODE,"CHOICE-SIZE");
-  set_opcode_name(FD_PICKOIDS_OPCODE,"PICKOIDS");
-  set_opcode_name(FD_PICKSTRINGS_OPCODE,"PICKSTRINGS");
-  set_opcode_name(FD_PICKONE_OPCODE,"PICK-ONE");
-  set_opcode_name(FD_IFEXISTS_OPCODE,"IFEXISTS");
-  set_opcode_name(FD_FIXCHOICE_OPCODE,"%FIXCHOICE");
-  set_opcode_name(FD_MINUS1_OPCODE,"-1+");
-  set_opcode_name(FD_PLUS1_OPCODE,"1+");
-  set_opcode_name(FD_NUMBERP_OPCODE,"NUMBER?");
-  set_opcode_name(FD_ZEROP_OPCODE,"ZERO?");
-  set_opcode_name(FD_VECTORP_OPCODE,"VECTOR?");
-  set_opcode_name(FD_PAIRP_OPCODE,"PAIR?");
-  set_opcode_name(FD_EMPTY_LISTP_OPCODE,"EMPTY-LIST?");
-  set_opcode_name(FD_STRINGP_OPCODE,"STRING?");
-  set_opcode_name(FD_OIDP_OPCODE,"OID?");
-  set_opcode_name(FD_SYMBOLP_OPCODE,"SYMBOL?");
-  set_opcode_name(FD_FIRST_OPCODE,"FIRST");
-  set_opcode_name(FD_SECOND_OPCODE,"SECOND");
-  set_opcode_name(FD_THIRD_OPCODE,"THIRD");
-  set_opcode_name(FD_CADR_OPCODE,"CADR");
-  set_opcode_name(FD_CDDR_OPCODE,"CADR");
-  set_opcode_name(FD_CADDR_OPCODE,"CADDR");
-  set_opcode_name(FD_CDDDR_OPCODE,"CDDDR");
-  set_opcode_name(FD_TONUMBER_OPCODE,"->NUMBER");
-  set_opcode_name(FD_NUMEQ_OPCODE,"=");
-  set_opcode_name(FD_GT_OPCODE,">");
-  set_opcode_name(FD_GTE_OPCODE,">=");
-  set_opcode_name(FD_LT_OPCODE,"<");
-  set_opcode_name(FD_LTE_OPCODE,"<=");
-  set_opcode_name(FD_PLUS_OPCODE,"+");
-  set_opcode_name(FD_MINUS_OPCODE,"-");
-  set_opcode_name(FD_TIMES_OPCODE,"*");
-  set_opcode_name(FD_FLODIV_OPCODE,"/~");
-  set_opcode_name(FD_IDENTICAL_OPCODE,"IDENTICAL?");
-  set_opcode_name(FD_OVERLAPS_OPCODE,"OVERLAPS?");
-  set_opcode_name(FD_CONTAINSP_OPCODE,"CONTAINS?");
-  set_opcode_name(FD_UNION_OPCODE,"UNION");
-  set_opcode_name(FD_INTERSECT_OPCODE,"INTERSECTION");
-  set_opcode_name(FD_DIFFERENCE_OPCODE,"DIFFERENCE");
-  set_opcode_name(FD_CHOICEREF_OPCODE,"%CHOICEREF");
-  set_opcode_name(FD_EQ_OPCODE,"EQ?");
-  set_opcode_name(FD_EQV_OPCODE,"EQV?");
-  set_opcode_name(FD_EQUAL_OPCODE,"EQUAL?");
-  set_opcode_name(FD_ELT_OPCODE,"ELT");
-  set_opcode_name(FD_ASSERT_OPCODE,"ASSERT!");
-  set_opcode_name(FD_RETRACT_OPCODE,"RETRACT!");
-  set_opcode_name(FD_GET_OPCODE,"GET");
-  set_opcode_name(FD_TEST_OPCODE,"TEST");
-  set_opcode_name(FD_ADD_OPCODE,"ADD");
-  set_opcode_name(FD_DROP_OPCODE,"DROP");
-  set_opcode_name(FD_XREF_OPCODE,"XREF");
-  set_opcode_name(FD_PRIMGET_OPCODE,"%GET");
-  set_opcode_name(FD_PRIMTEST_OPCODE,"%TEST");
-  set_opcode_name(FD_STORE_OPCODE,"STORE!");
+  set_opcode_name(FD_AMBIGP_OPCODE,"OP_AMBIGP");
+  set_opcode_name(FD_SINGLETONP_OPCODE,"OP_SINGLETONP");
+  set_opcode_name(FD_FAILP_OPCODE,"OP_FAILP");
+  set_opcode_name(FD_EXISTSP_OPCODE,"OP_EXISTSP");
+  set_opcode_name(FD_SINGLETON_OPCODE,"OP_SINGLETON");
+  set_opcode_name(FD_CAR_OPCODE,"OP_CAR");
+  set_opcode_name(FD_CDR_OPCODE,"OP_CDR");
+  set_opcode_name(FD_LENGTH_OPCODE,"OP_LENGTH");
+  set_opcode_name(FD_QCHOICE_OPCODE,"OP_QCHOICE");
+  set_opcode_name(FD_CHOICE_SIZE_OPCODE,"OP_CHOICESIZE");
+  set_opcode_name(FD_PICKOIDS_OPCODE,"OP_PICKOIDS");
+  set_opcode_name(FD_PICKSTRINGS_OPCODE,"OP_PICKSTRINGS");
+  set_opcode_name(FD_PICKONE_OPCODE,"OP_PICKONE");
+  set_opcode_name(FD_IFEXISTS_OPCODE,"OP_IFEXISTS");
+  set_opcode_name(FD_MINUS1_OPCODE,"OP_MINUS1");
+  set_opcode_name(FD_PLUS1_OPCODE,"OP_PLUS1");
+  set_opcode_name(FD_NUMBERP_OPCODE,"OP_NUMBERP");
+  set_opcode_name(FD_ZEROP_OPCODE,"OP_ZEROP");
+  set_opcode_name(FD_VECTORP_OPCODE,"OP_VECTORP");
+  set_opcode_name(FD_PAIRP_OPCODE,"OP_PAIRP");
+  set_opcode_name(FD_EMPTY_LISTP_OPCODE,"OP_NILP");
+  set_opcode_name(FD_STRINGP_OPCODE,"OP_STRINGP");
+  set_opcode_name(FD_OIDP_OPCODE,"OP_OIDP");
+  set_opcode_name(FD_SYMBOLP_OPCODE,"OP_SYMBOLP");
+  set_opcode_name(FD_FIRST_OPCODE,"OP_FIRST");
+  set_opcode_name(FD_SECOND_OPCODE,"OP_SECOND");
+  set_opcode_name(FD_THIRD_OPCODE,"OP_THIRD");
+  set_opcode_name(FD_CADR_OPCODE,"OP_CADR");
+  set_opcode_name(FD_CDDR_OPCODE,"OP_CDDR");
+  set_opcode_name(FD_CADDR_OPCODE,"OP_CADDR");
+  set_opcode_name(FD_CDDDR_OPCODE,"OP_CDDDR");
+  set_opcode_name(FD_TONUMBER_OPCODE,"OP_2NUMBER");
+  set_opcode_name(FD_NUMEQ_OPCODE,"OP_NUMEQ");
+  set_opcode_name(FD_GT_OPCODE,"OP_GT");
+  set_opcode_name(FD_GTE_OPCODE,"OP_GTE");
+  set_opcode_name(FD_LT_OPCODE,"OP_LT");
+  set_opcode_name(FD_LTE_OPCODE,"OP_LTE");
+  set_opcode_name(FD_PLUS_OPCODE,"OP_PLUS");
+  set_opcode_name(FD_MINUS_OPCODE,"OP_MINUS");
+  set_opcode_name(FD_TIMES_OPCODE,"OP_MULT");
+  set_opcode_name(FD_FLODIV_OPCODE,"OP_FLODIV");
+  set_opcode_name(FD_IDENTICAL_OPCODE,"OP_IDENTICALP");
+  set_opcode_name(FD_OVERLAPS_OPCODE,"OP_OVERLAPSP");
+  set_opcode_name(FD_CONTAINSP_OPCODE,"OP_CONTAINSP");
+  set_opcode_name(FD_UNION_OPCODE,"OP_UNION");
+  set_opcode_name(FD_INTERSECT_OPCODE,"OP_INTERSECTION");
+  set_opcode_name(FD_DIFFERENCE_OPCODE,"OP_DIFFERENCE");
+  set_opcode_name(FD_EQ_OPCODE,"OP_EQP");
+  set_opcode_name(FD_EQV_OPCODE,"OP_EQVP");
+  set_opcode_name(FD_EQUAL_OPCODE,"OP_EQUALP");
+  set_opcode_name(FD_ELT_OPCODE,"OP_SEQELT");
+  set_opcode_name(FD_ASSERT_OPCODE,"OP_ASSERT");
+  set_opcode_name(FD_RETRACT_OPCODE,"OP_RETRACT");
+  set_opcode_name(FD_GET_OPCODE,"OP_FGET");
+  set_opcode_name(FD_TEST_OPCODE,"OP_FTEST");
+  set_opcode_name(FD_ADD_OPCODE,"OP_ADD");
+  set_opcode_name(FD_DROP_OPCODE,"OP_DROP");
+  set_opcode_name(FD_XREF_OPCODE,"OP_XREF");
+  set_opcode_name(FD_PRIMGET_OPCODE,"OP_PGET");
+  set_opcode_name(FD_PRIMTEST_OPCODE,"OP_PTEST");
+  set_opcode_name(FD_STORE_OPCODE,"OP_PSTORE");
 }
 
 FD_EXPORT fdtype fd_get_opcode(u8_string name)

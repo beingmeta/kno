@@ -251,11 +251,18 @@ int fd_add_hashname(u8_string s,fdtype value)
   else {
     u8_string d=u8_upcase(s);
     fdtype string=fdtype_string(d);
-    int len=strlen(s);
     struct FD_KEYVAL *added=
       fd_sortvec_insert(string,&hashnames,&n_hashnames,&hashnames_len,1);
-    if (added) added->kv_val=value;
+    if (added)
+      added->kv_val=value;
+    if ( (added) && (added->kv_key != string ) ) {
+      if (!(FD_EQUALP(value,added->kv_val)))
+        u8_log(LOG_WARN,"ConstantConflict",
+               "Conflicting values for constant #%s: #!0x%llx and #!0x%llx",
+               d,added->kv_val,value);
+      fd_decref(string);}
     u8_rw_unlock(&hashnames_lock);
+    u8_free(d);
     return 1;}
 }
 
@@ -264,14 +271,6 @@ fdtype fd_lookup_hashname(u8_string s)
 {
   return lookup_hashname(s,-1,1);
 }
-
-static u8_string constant_names[]={
-  "#T","#F","#TRUE","#FALSE","#VOID","#EOF","#EOD","#EOX","#DFLT","#DEFAULT",
-  NULL};
-static fdtype constant_values[]={
-  FD_TRUE,FD_FALSE,FD_TRUE,FD_FALSE,FD_VOID,FD_EOF,FD_EOD,FD_EOX,
-  FD_DEFAULT_VALUE,FD_DEFAULT_VALUE,
-  0};
 
 static int copy_atom(u8_input s,u8_output a)
 {

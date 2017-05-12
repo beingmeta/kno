@@ -4,8 +4,6 @@ if [ ! $# -eq 0 ] && [ $1 != "current" ]; then
 elif [ ! $# -eq 0 ] && [ $1 == "current" ]; then
    shift;
 fi;
-if test -f makefile; then
-   make distclean;
-fi;
+./distclean;
 ./configure $*
 make -j

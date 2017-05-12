@@ -29,7 +29,11 @@ static u8_string CantDrop=_("Table doesn't support drop");
 static u8_string CantTest=_("Table doesn't support test");
 static u8_string CantGetKeys=_("Table doesn't support getkeys");
 static u8_string CantCheckModified=_("Can't check for modification status");
-static u8_string CantSetModified=_("Can't set modficiation status");
+static u8_string CantSetModified=_("Can't set modification status");
+static u8_string CantCheckReadOnly=_("Can't check for readonly status");
+static u8_string CantSetReadOnly=_("Can't set readonly status");
+static u8_string CantCheckFinished=_("Can't check for finished/completed status");
+static u8_string CantSetFinished=_("Can't set finish/completed status");
 static u8_string BadHashtableMethod=_("Invalid hashtable method");
 
 #define DEBUGGING 0
@@ -332,7 +336,9 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
        the end of the slotmap structure itself. */
     if (sm->sm_keyvals!=cur_keyvals) sm->sm_free_keyvals=1;
     fd_incref(value);
-    FD_ADD_TO_CHOICE(result->kv_val,value);
+    if ( (result->kv_val == FD_VOID) || (result->kv_val == FD_UNBOUND) )
+      result->kv_val=value;
+    else {FD_ADD_TO_CHOICE(result->kv_val,value);}
     FD_XSLOTMAP_MARK_MODIFIED(sm);
     if (cur_space != space) {
       FD_XSLOTMAP_SET_NALLOCATED(sm,space); }
@@ -421,6 +427,20 @@ static int slotmap_modified(struct FD_SLOTMAP *ptr,int flag)
   else {
     FD_XSLOTMAP_CLEAR_MODIFIED(ptr);
     return modified;}
+}
+
+static int slotmap_readonly(struct FD_SLOTMAP *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_slotmap_type);
+  int readonly=FD_XSLOTMAP_READONLYP(ptr);
+  if (flag<0)
+    return readonly;
+  else if (flag) {
+    FD_XSLOTMAP_SET_READONLY(ptr);
+    return readonly;}
+  else {
+    FD_XSLOTMAP_CLEAR_READONLY(ptr);
+    return readonly;}
 }
 
 FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
@@ -623,7 +643,9 @@ static fdtype copy_slotmap(fdtype smap,int flags)
     copy=fd_make_slotmap(cur->n_allocd,cur->n_slots,cur->sm_keyvals);
     consed=(struct FD_SLOTMAP *)copy;
     kvals=consed->sm_keyvals; len=consed->n_slots;
-    if (cur->table_uselock) {fd_read_lock_table(cur); unlock=1;}
+    if (cur->table_uselock) {
+      fd_read_lock_table(cur);
+      unlock=1;}
     while (i<len) {
       fdtype key=kvals[i].kv_key, val=kvals[i].kv_val;
       if ((flags&FD_FULL_COPY)||(FD_STATICP(key)))
@@ -1102,6 +1124,20 @@ static int schemap_modified(struct FD_SCHEMAP *ptr,int flag)
     return modified;}
 }
 
+static int schemap_readonly(struct FD_SCHEMAP *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_schemap_type);
+  int readonly=FD_XSCHEMAP_READONLYP(ptr);
+  if (flag<0)
+    return readonly;
+  else if (flag) {
+    ptr->table_readonly=1;
+    return readonly;}
+  else {
+    ptr->table_readonly=0;
+    return readonly;}
+}
+
 FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *sm)
 {
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
@@ -1559,10 +1595,9 @@ static int hashtable_test(struct FD_HASHTABLE *ht,fdtype key,fdtype val)
   if (result) {
     fdtype current=result->kv_val; int cmp;
     if (FD_VOIDP(val)) cmp=(!(FD_VOIDP(current)));
-    /* This used to return 0 if the value was the empty choice, but that's not
-       consistent with the other table test functions and got Scheme's WHEREFROM
-       into trouble. */
-    /* if (FD_EMPTY_CHOICEP(current)) cmp=0; else cmp=1; */
+    /* This used to return 0 when val is FD_VOID and the value is
+       FD_EMPTY_CHOICE, but that's not consistent with the other table
+       test functions. */
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
              (FD_CHOICEP(current)) || (FD_PRECHOICEP(current)))
@@ -1599,7 +1634,9 @@ static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
   struct FD_HASH_BUCKET **slots;
   if (n_slots < 0) n_slots=fd_get_hashtable_size(-n_slots);
-  ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0; ptr->table_modified=0;
+  ptr->ht_n_buckets=n_slots;
+  ptr->table_n_keys=0;
+  ptr->table_modified=0;
   ptr->ht_buckets=slots=
     u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
 }
@@ -1619,7 +1656,8 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   result=fd_hashvec_insert
     (key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
   if ( (ht->table_n_keys) > n_keys ) added=1; else added=0;
-  ht->table_modified=1; oldv=result->kv_val;
+  ht->table_modified=1;
+  oldv=result->kv_val;
   if (FD_PRECHOICEP(value))
     /* Copy prechoices */
     newv=fd_make_simple_choice(value);
@@ -2137,6 +2175,20 @@ static int hashtable_modified(struct FD_HASHTABLE *ptr,int flag)
     return modified;}
 }
 
+static int hashtable_readonly(struct FD_HASHTABLE *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
+  int readonly=ptr->table_readonly;
+  if (flag<0)
+    return readonly;
+  else if (flag) {
+    ptr->table_readonly=1;
+    return readonly;}
+  else {
+    ptr->table_readonly=0;
+    return readonly;}
+}
+
 FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 {
   fdtype result=FD_EMPTY_CHOICE; int unlock=0;
@@ -2395,7 +2447,8 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   if (n_slots == 0) {
 
     ptr->ht_n_buckets=ptr->table_n_keys=0;
-    ptr->table_readonly=ptr->table_modified=0; ptr->table_uselock=1;
+    ptr->table_readonly=ptr->table_modified=0;
+    ptr->table_uselock=1;
     ptr->table_load_factor=default_hashtable_loading;
     ptr->ht_buckets=NULL;
     return FDTYPE_CONS(ptr);}
@@ -2404,7 +2457,8 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 
     if (n_slots < 0) n_slots=-n_slots;
     else n_slots=fd_get_hashtable_size(n_slots);
-    ptr->table_readonly=ptr->table_modified=0; ptr->table_uselock=1;
+    ptr->table_readonly=ptr->table_modified=0;
+    ptr->table_uselock=1;
     ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0;
     ptr->table_load_factor=default_hashtable_loading;
     ptr->ht_buckets=slots=u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
@@ -2425,7 +2479,9 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,
   else {FD_SET_CONS_TYPE(ptr,fd_hashtable_type);}
   ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0;
   ptr->table_load_factor=default_hashtable_loading;
-  ptr->table_modified=0; ptr->table_readonly=0; ptr->table_uselock=1;
+  ptr->table_modified=0;
+  ptr->table_readonly=0;
+  ptr->table_uselock=1;
   ptr->ht_buckets=slots=u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
   memset(slots,0,sizeof(struct FD_HASH_BUCKET *)*n_slots);
   if (inits) {
@@ -2673,7 +2729,9 @@ static fdtype copy_hashset(fdtype table,int deep)
 static int unparse_hashtable(u8_output out,fdtype x)
 {
   struct FD_HASHTABLE *ht=FD_XHASHTABLE(x);
-  u8_printf(out,"#<HASHTABLE %d/%d>",ht->table_n_keys,ht->ht_n_buckets);
+  u8_printf(out,"#<HASHTABLE %d/%d #!0x%llx>",
+            ht->table_n_keys,ht->ht_n_buckets,
+            ((unsigned long long) x));
   return 1;
 }
 
@@ -2692,11 +2750,13 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly)
                 "fd_lock_hashtable");
       return -1;}
     fd_read_lock_table(ht);
-    ht->table_readonly=1; ht->table_uselock=0;
+    ht->table_readonly=1;
+    ht->table_uselock=0;
     return 1;}
   else {
     if (ht->table_uselock) return 0;
-    ht->table_uselock=1; ht->table_readonly=0;
+    ht->table_uselock=1;
+    ht->table_readonly=0;
     fd_unlock_table(ht);
     return 1;}
 }
@@ -2881,7 +2941,9 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,fdtype key)
   slots=h->hs_slots;
   probe=hashset_get_slot(key,(const fdtype *)slots,h->hs_n_slots);
   if (probe>=0) {
-    if (slots[probe]) exists=1; else exists=0;}
+    if (slots[probe])
+      exists=1;
+    else exists=0;}
   fd_unlock_table(h);
   if (probe<0) {
     fd_seterr(HashsetOverflow,"fd_hashset_get",NULL,(fdtype)h);
@@ -2891,59 +2953,74 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,fdtype key)
 
 FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
 {
+  /* A clean value of -1 indicates that the hashset will be reset
+     entirely. */
   FD_CHECK_TYPE_RETDTYPE(h,fd_hashset_type);
-  if (h->hs_n_elts==0) return FD_EMPTY_CHOICE;
+  if (h->hs_n_elts==0) {
+    if (clean<0) {
+      if (FD_MALLOCD_CONSP(h))
+        fd_decref((fdtype)h);
+      else {
+        u8_free(h->hs_slots);
+        h->hs_n_slots=h->hs_n_elts=0;}}
+    return FD_EMPTY_CHOICE;}
   else {
-    fd_read_lock_table(h);
-    if (h->hs_n_elts==1) {
-      fdtype *scan=h->hs_slots, *limit=scan+h->hs_n_slots;
-      while (scan<limit)
-        if (*scan)
-          if (clean) {
-            fdtype v=*scan;
-            u8_free(h->hs_slots);
-            fd_unlock_table(h);
-            if (FD_VOIDP(v))
-              return FD_EMPTY_CHOICE;
-            else return v;}
-          else {
-            fdtype v=fd_incref(*scan);
-            fd_unlock_table(h);
-            if (FD_VOIDP(v))
-              return FD_EMPTY_CHOICE;
-            else return v;}
-        else scan++;
-      fd_unlock_table(h);
-      return FD_VOID;}
-    else {
-      int n=h->hs_n_elts, atomicp=1;
-      struct FD_CHOICE *new_choice=fd_alloc_choice(n);
-      const fdtype *scan=h->hs_slots, *limit=scan+h->hs_n_slots;
-      fdtype *base=(fdtype *)(FD_XCHOICE_DATA(new_choice));
-      fdtype *write=base, *writelim=base+n;
-      if (clean)
-        while ((scan<limit) && (write<writelim))
-          if (*scan) {
-            fdtype v=*scan++;
-            if (FD_CONSP(v)) atomicp=0;
-            if (!(FD_VOIDP(v))) *write++=v;}
-          else scan++;
-      else while ((scan<limit) && (write<writelim)) {
-        fdtype v=*scan++;
-        if ((v) && (!(FD_VOIDP(v)))) {
-          if (atomicp) {
-            if (FD_CONSP(v)) {atomicp=0; fd_incref(v);}}
-          else fd_incref(v);
-          *write++=v;}}
-      if (clean) {
-        if (FD_MALLOCD_CONSP(h)) fd_decref((fdtype)h);
-        else {
-          u8_free(h->hs_slots); h->hs_n_slots=h->hs_n_elts=0;}}
-      fd_unlock_table(h);
-      return fd_init_choice(new_choice,write-base,base,
-                            (FD_CHOICE_DOSORT|
-                             ((atomicp)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES))|
-                             FD_CHOICE_REALLOC));}}
+    if (clean)
+      fd_write_lock_table(h);
+    else fd_read_lock_table(h);
+    int n=h->hs_n_elts, atomicp=1;
+    struct FD_CHOICE *new_choice=fd_alloc_choice(n);
+    fdtype *scan=h->hs_slots, *limit=scan+h->hs_n_slots;
+    fdtype *base=(fdtype *)(FD_XCHOICE_DATA(new_choice));
+    fdtype *write=base, *writelim=base+n;
+    while ((scan<limit) && (write<writelim)) {
+      fdtype v=*scan;
+      if ((n==1) && (v)) {
+        if (clean>0) *scan=FD_NULL;
+        if (!(clean)) fd_incref(v);
+        u8_free(new_choice);
+        fd_unlock_table(h);
+        return v;}
+      else if (v) {
+        if (FD_CONSP(v)) atomicp=0;
+        if (clean>0) *scan=FD_NULL;
+        if (!(clean)) fd_incref(v);
+        if (FD_EXPECT_FALSE(FD_VOIDP(v)))
+          {scan++; continue;}
+        *write++=v;}
+      else {}
+      scan++;}
+    if (clean<0) {
+      if (FD_MALLOCD_CONSP(h))
+        fd_decref((fdtype)h);
+      else {
+        u8_free(h->hs_slots);
+        h->hs_n_slots=h->hs_n_elts=0;}}
+    fd_unlock_table(h);
+    return fd_init_choice(new_choice,write-base,base,
+                          (FD_CHOICE_DOSORT|
+                           ((atomicp)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES))|
+                           FD_CHOICE_REALLOC));}
+}
+
+FD_EXPORT int fd_reset_hashset(struct FD_HASHSET *h)
+{
+  FD_CHECK_TYPE_RETDTYPE(h,fd_hashset_type);
+  if (h->hs_n_elts==0)
+    return 0;
+  else {
+    fd_write_lock_table(h);
+    int n_elts=h->hs_n_elts;
+    fdtype *scan=h->hs_slots, *limit=scan+h->hs_n_slots;
+    while (scan<limit) {
+      if (*scan) {
+        fdtype v=*scan;
+        *scan=FD_NULL;
+        fd_decref(v);}
+      scan++;}
+    h->hs_n_elts=0;
+    fd_unlock_table(h);
+    return n_elts;}
 }
 
 static int hashset_getsize(struct FD_HASHSET *h)
@@ -2966,7 +3043,7 @@ static int hashset_modified(struct FD_HASHSET *ptr,int flag)
     return modified;}
 }
 
-static fdtype hashsetelts(struct FD_HASHSET *h)
+static fdtype hashset_elts(struct FD_HASHSET *h)
 {
   return fd_hashset_elts(h,0);
 }
@@ -3019,33 +3096,36 @@ FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,size_t target)
 FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,fdtype key,int add)
 {
   int probe; fdtype *slots;
-  fd_write_lock_table(h);
-  slots=h->hs_slots;
-  probe=hashset_get_slot(key,h->hs_slots,h->hs_n_slots);
-  if (probe < 0) {
-    fd_unlock_table(h);
-    fd_seterr(HashsetOverflow,"fd_hashset_mod",NULL,(fdtype)h);
-    return -1;}
-  else if (FD_NULLP(slots[probe]))
-    if (add) {
-      slots[probe]=fd_incref(key); 
-      h->hs_n_elts++; h->hs_modified=1;
-      if (FD_CONSP(key)) h->hs_allatomic=0;
-      if (hashset_needs_resizep(h))
-        grow_hashset(h);
+  fd_write_lock_table(h); {
+    slots=h->hs_slots;
+    probe=hashset_get_slot(key,h->hs_slots,h->hs_n_slots);
+    if (probe < 0) {
       fd_unlock_table(h);
-      return 1;}
-    else {
+      fd_seterr(HashsetOverflow,"fd_hashset_mod",NULL,(fdtype)h);
+      return -1;}
+    else if (FD_NULLP(slots[probe]))
+      if (add) {
+        slots[probe]=fd_incref(key);
+        h->hs_n_elts++; h->hs_modified=1;
+        if (FD_CONSP(key)) h->hs_allatomic=0;
+        if (hashset_needs_resizep(h))
+          grow_hashset(h);
+        fd_unlock_table(h);
+        return 1;}
+      else {
+        fd_unlock_table(h);
+        return 0;}
+    else if (add) {
       fd_unlock_table(h);
       return 0;}
-  else if (add) {
-    fd_unlock_table(h);
-    return 0;}
-  else {
-    fd_decref(slots[probe]); slots[probe]=FD_VOID;
-    h->hs_n_elts++; h->hs_modified=1;
-    fd_unlock_table(h);
-    return 1;}
+    else {
+      fd_decref(slots[probe]);
+      /* Storing FD_VOID means the slot won't be reused */
+      slots[probe]=FD_VOID;
+      h->hs_n_elts--;
+      h->hs_modified=1;
+      fd_unlock_table(h);
+      return 1;}}
 }
 
 /* This adds without locking or incref. */
@@ -3105,7 +3185,9 @@ FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)
     while (scan<lim)
       if (FD_NULLP(*scan)) scan++;
       else {
-        fdtype v=*scan++; fd_decref(v);}}
+        fdtype v=*scan;
+        *scan=FD_NULL;
+        fd_decref(v);}}
   u8_free(h->hs_slots);
   fd_unlock_table(h);
   u8_destroy_rwlock(&(h->table_rwlock));
@@ -3130,11 +3212,16 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
   if (h->hs_allatomic)
     while (read<lim) *write++=*read++;
   else while (read<lim) {
-      fdtype v=*read++; if (v) fd_incref(v); *write++=v;}
+      fdtype v=*read++;
+      if (v) fd_incref(v);
+      *write++=v;}
   FD_INIT_CONS(hnew,fd_hashset_type);
-  hnew->hs_n_slots=h->hs_n_slots; hnew->hs_n_elts=h->hs_n_elts;
-  hnew->hs_slots=newslots; hnew->hs_allatomic=h->hs_allatomic;
-  hnew->hs_load_factor=h->hs_load_factor; hnew->hs_modified=0;
+  hnew->hs_n_slots=h->hs_n_slots;
+  hnew->hs_n_elts=h->hs_n_elts;
+  hnew->hs_slots=newslots;
+  hnew->hs_allatomic=h->hs_allatomic;
+  hnew->hs_load_factor=h->hs_load_factor;
+  hnew->hs_modified=0;
   fd_unlock_table(h);
   u8_init_rwlock((&hnew->table_rwlock));
   return (fdtype) hnew;
@@ -3149,13 +3236,13 @@ static int unparse_hashset(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype hashsetget(fdtype x,fdtype key)
+static fdtype hashset_get(fdtype x,fdtype key)
 {
   struct FD_HASHSET *h=fd_consptr(struct FD_HASHSET *,x,fd_hashset_type);
   if (fd_hashset_get(h,key)) return FD_TRUE;
   else return FD_FALSE;
 }
-static int hashsetstore(fdtype x,fdtype key,fdtype val)
+static int hashset_store(fdtype x,fdtype key,fdtype val)
 {
   struct FD_HASHSET *h=fd_consptr(struct FD_HASHSET *,x,fd_hashset_type);
   if (FD_TRUEP(val)) return fd_hashset_mod(h,key,1);
@@ -3412,7 +3499,7 @@ FD_EXPORT int fd_readonlyp(fdtype arg)
   if (fd_tablefns[argtype])
     if (fd_tablefns[argtype]->readonly)
       return (fd_tablefns[argtype]->readonly)(arg,-1);
-    else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
+    else return fd_err(fd_NoMethod,CantCheckReadOnly,NULL,arg);
   else return fd_err(NotATable,"fd_readonlyp",NULL,arg);
 }
 
@@ -3421,10 +3508,32 @@ FD_EXPORT int fd_set_readonly(fdtype arg,int flag)
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   CHECKPTR(arg,"fd_set_readonly/table");
   if (fd_tablefns[argtype])
-    if (fd_tablefns[argtype]->modified)
-      return (fd_tablefns[argtype]->modified)(arg,flag);
-    else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
+    if (fd_tablefns[argtype]->readonly)
+      return (fd_tablefns[argtype]->readonly)(arg,flag);
+    else return fd_err(fd_NoMethod,CantSetReadOnly,NULL,arg);
   else return fd_err(NotATable,"fd_set_readonly",NULL,arg);
+}
+
+FD_EXPORT int fd_finishedp(fdtype arg)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  CHECKPTR(arg,"fd_finishedp/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->finished)
+      return (fd_tablefns[argtype]->finished)(arg,-1);
+    else return fd_err(fd_NoMethod,CantCheckFinished,NULL,arg);
+  else return fd_err(NotATable,"fd_finishedp",NULL,arg);
+}
+
+FD_EXPORT int fd_set_finished(fdtype arg,int flag)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  CHECKPTR(arg,"fd_set_finished/table");
+  if (fd_tablefns[argtype])
+    if (fd_tablefns[argtype]->finished)
+      return (fd_tablefns[argtype]->finished)(arg,flag);
+    else return fd_err(fd_NoMethod,CantSetFinished,NULL,arg);
+  else return fd_err(NotATable,"fd_set_finished",NULL,arg);
 }
 
 FD_EXPORT fdtype fd_getkeys(fdtype arg)
@@ -3442,7 +3551,7 @@ FD_EXPORT fdtype fd_getvalues(fdtype arg)
 {
   CHECKPTR(arg,"fd_getvalues/table");
   /* Eventually, these might be fd_tablefns fields */
-  if (FD_TYPEP(arg,fd_hashtable_type)) 
+  if (FD_TYPEP(arg,fd_hashtable_type))
     return fd_hashtable_values(FD_XHASHTABLE(arg));
   else if (FD_TYPEP(arg,fd_slotmap_type))
     return fd_slotmap_values(FD_XSLOTMAP(arg));
@@ -3724,6 +3833,8 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashtable_type]->keys=(fd_table_keys_fn)fd_hashtable_keys;
   fd_tablefns[fd_hashtable_type]->modified=
     (fd_table_modified_fn)hashtable_modified;
+  fd_tablefns[fd_hashtable_type]->readonly=
+    (fd_table_readonly_fn)hashtable_readonly;
 
   /* SLOTMAP table functions */
   fd_tablefns[fd_slotmap_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3736,6 +3847,8 @@ void fd_init_tables_c()
   fd_tablefns[fd_slotmap_type]->keys=(fd_table_keys_fn)fd_slotmap_keys;
   fd_tablefns[fd_slotmap_type]->modified=
     (fd_table_modified_fn)slotmap_modified;
+  fd_tablefns[fd_slotmap_type]->readonly=
+    (fd_table_readonly_fn)slotmap_readonly;
 
   /* SCHEMAP table functions */
   fd_tablefns[fd_schemap_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3748,19 +3861,21 @@ void fd_init_tables_c()
   fd_tablefns[fd_schemap_type]->keys=(fd_table_keys_fn)fd_schemap_keys;
   fd_tablefns[fd_schemap_type]->modified=
     (fd_table_modified_fn)schemap_modified;
+  fd_tablefns[fd_schemap_type]->readonly=
+    (fd_table_readonly_fn)schemap_readonly;
 
   /* HASHSET table functions */
   fd_tablefns[fd_hashset_type]=u8_alloc(struct FD_TABLEFNS);
-  fd_tablefns[fd_hashset_type]->get=(fd_table_get_fn)hashsetget;
-  fd_tablefns[fd_hashset_type]->add=(fd_table_add_fn)hashsetstore;
+  fd_tablefns[fd_hashset_type]->get=(fd_table_get_fn)hashset_get;
+  fd_tablefns[fd_hashset_type]->add=(fd_table_add_fn)hashset_store;
   /* This is a no-op because you can't drop a value from a hashset.
      That would just set its value to false. */
   fd_tablefns[fd_hashset_type]->drop=(fd_table_drop_fn)NULL;
-  fd_tablefns[fd_hashset_type]->store=(fd_table_store_fn)hashsetstore;
+  fd_tablefns[fd_hashset_type]->store=(fd_table_store_fn)hashset_store;
   /* This is a no-op because every key has a T/F value in the hashet. */
   fd_tablefns[fd_hashset_type]->test=NULL;
   fd_tablefns[fd_hashset_type]->getsize=(fd_table_getsize_fn)hashset_getsize;
-  fd_tablefns[fd_hashset_type]->keys=(fd_table_keys_fn)hashsetelts;
+  fd_tablefns[fd_hashset_type]->keys=(fd_table_keys_fn)hashset_elts;
   fd_tablefns[fd_hashset_type]->modified=
     (fd_table_modified_fn)hashset_modified;
 

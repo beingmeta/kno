@@ -30,6 +30,10 @@ if test $# -eq 0; then
    exit;
 fi
 
+if test ! -z ${PREAMBLE}; then
+   echo "TEST: " ${PROGNAME} $*;
+fi;
+
 if @test_env@ ${PROGNAME} $* > ${LOGFILE}; then
    echo "SUCCESS:" ${PROGNAME} $*;
    cat ${LOGFILE} >> success.log

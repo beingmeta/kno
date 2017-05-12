@@ -53,6 +53,15 @@ FD_EXPORT void fd_xseterr
 		    (void *)irritant,fd_free_exception_xdata);
 }
 
+FD_EXPORT void fd_raise
+  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
+{
+  fd_incref(irritant);
+  u8_push_exception(c,cxt,u8dup(details),
+		    (void *)irritant,fd_free_exception_xdata);
+  u8_raise(c,cxt,u8dup(details));
+}
+
 FD_EXPORT int fd_poperr
   (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant)
 {

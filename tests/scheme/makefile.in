@@ -434,15 +434,16 @@ randomtests:
 
 execscripts:
 	@${header} "■■■■■■■■ Running exec tests ■■■■■■■■"
-	@${FDX} ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
+	@@test_env@ ${FDX} ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@${header} "■■■■■■■■ Running exec test as script ■■■■■■■■"
-	@./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
+	@@test_env@ ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
 	@${header} "■■■■■■■■ Done with exec tests ■■■■■■■■"
 
 chainscripts: execscripts
 	@${header} "■■■■■■■■ Testing scripts which call CHAIN"
 	@rm -f chaintest.log; touch chaintest.failed;
-	@./fdexec chaintest.scm > chaintest.log && \
+	@@test_env@ \
+	        ./fdexec chaintest.scm > chaintest.log && \
 		./fdexec chaintest.scm 0 30 > chaintest.log && \
 		./fdexec chaintest.scm 10 50 > chaintest.log && \
 		rm chaintest.failed;
@@ -454,7 +455,7 @@ fdbatch_normal:
 	@${header} "■■■■■■■■ Testing fdbatch execution success and cleanliness"
 	@rm -f _countup.log _countup.err _countup.done
 	@rm -f  _countup.finished _countup.died _countup.pid batchscripts.log
-	@./fdbatch countup.scm "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ./fdbatch countup.scm "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3
 	@if (test ! -f _countup.pid); then \
 	   ./batchfail fdbatch _countup.pid NOT CREATED; fi;
@@ -481,7 +482,7 @@ fdbatch_normal:
 
 fdbatch_error: fdbatch_normal
 	@${header} "■■■■■■■■ "Starting fdbatch error test""
-	@./fdbatch countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ./fdbatch countup.scm ERROR=yes "_countup.finished" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 12;
 	@# This should have been deleted by the watch process
 	@if (test -f _countup.pid); then \
@@ -499,7 +500,7 @@ fdbatch_error: fdbatch_normal
 
 fdbatch_kill: fdbatch_error
 	@${header} "■■■■■■■■ "Starting fdbatch kill test""
-	@./fdbatch countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
+	@@test_env@ ./fdbatch countup.scm "_countup.killed" 10 1 QUIET=yes LOGLEVEL=3;
 	@sleep 3;
 	@kill -9 `cat _countup.pid`; sleep 12
 	@# This should have been deleted by the watch process
@@ -522,7 +523,7 @@ batchscripts: fdbatch_kill
 chained_batchscripts:
 	@${header} "■■■■■■■■ Testing batch scripts which call CHAIN"
 	@rm -f _chaintest.*
-	./fdbatch chaintest.scm
+	@@test_env@ ./fdbatch chaintest.scm
 	@${header} "■■■■■■■■ Done testing batch scripts which call CHAIN"
 
 .PHONY: chained_batchscripts batchscripts chainscripts execscripts

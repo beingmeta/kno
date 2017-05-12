@@ -71,6 +71,18 @@ u8_context fd_eval_context="EVAL";
 
 /* Environment functions */
 
+static int bound_in_envp(fdtype symbol,fd_lispenv env)
+{
+  fdtype bindings = env->env_bindings;
+  if (FD_HASHTABLEP(bindings))
+    return fd_hashtable_probe((fd_hashtable)bindings,symbol);
+  else if (FD_SLOTMAPP(bindings))
+    return fd_slotmap_test((fd_slotmap)bindings,symbol,FD_VOID);
+  else if (FD_SCHEMAPP(bindings))
+    return fd_schemap_test((fd_schemap)bindings,symbol,FD_VOID);
+  else return fd_test(bindings,symbol,FD_VOID);
+}
+
 static fdtype lexref_prim(fdtype upv,fdtype acrossv)
 {
   long long up = FD_FIX2INT(upv), across = FD_FIX2INT(acrossv);
@@ -91,8 +103,43 @@ static int unparse_lexref(u8_output out,fdtype lexref)
   return 1;
 }
 
+FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lispenv env)
+{
+  return fd_symeval(sym,env);
+}
+
+FD_EXPORT fdtype _fd_lexref(fdtype lexref,fd_lispenv env)
+{
+  return fd_lexref(lexref,env);
+}
+
+static int add_to_value(fdtype sym,fdtype val,fd_lispenv env)
+{
+  int rv=1;
+  if (env) {
+    fdtype bindings=env->env_bindings;
+    fdtype exports=env->env_exports;
+    if ((fd_add(bindings,sym,val))>=0) {
+      if (FD_HASHTABLEP(exports)) {
+        fdtype newval=fd_get(bindings,sym,FD_EMPTY_CHOICE);
+        if (FD_ABORTP(newval))
+          rv=-1;
+        else {
+          int e_rv=fd_hashtable_op
+            ((fd_hashtable)exports,fd_table_replace,sym,newval);
+          fd_decref(newval);
+          if (e_rv<0) rv=e_rv;}}}
+    else rv=-1;}
+  if (rv<0) {
+    fd_seterr(fd_CantBind,"add_to_env_value",NULL,sym);
+    return -1;}
+  else return rv;
+}
+
 FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
 {
+  /* TODO: Check for checking the return value of calls to
+     `fd_bind_value` */
   if (env) {
     if (fd_store(env->env_bindings,sym,val)<0) {
       fd_poperr(NULL,NULL,NULL,NULL);
@@ -105,16 +152,18 @@ FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
   else return 0;
 }
 
-static int bound_in_envp(fdtype symbol,fd_lispenv env)
+FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
 {
-  fdtype bindings = env->env_bindings;
-  if (FD_HASHTABLEP(bindings))
-    return fd_hashtable_probe((fd_hashtable)bindings,symbol);
-  else if (FD_SLOTMAPP(bindings))
-    return fd_slotmap_test((fd_slotmap)bindings,symbol,FD_VOID);
-  else if (FD_SCHEMAPP(bindings))
-    return fd_schemap_test((fd_schemap)bindings,symbol,FD_VOID);
-  else return fd_test(bindings,symbol,FD_VOID);
+  if (env->env_copy) env = env->env_copy;
+  while (env) {
+    if (!(bound_in_envp(symbol,env))) {
+      env = env->env_parent;
+      if ((env) && (env->env_copy))
+        env = env->env_copy;}
+    else if ((env->env_bindings) == (env->env_exports))
+      return fd_reterr(fd_ReadOnlyEnv,"fd_set_value",NULL,symbol);
+    else return add_to_value(symbol,value,env);}
+  return 0;
 }
 
 FD_EXPORT int fd_set_value(fdtype symbol,fdtype value,fd_lispenv env)
@@ -133,34 +182,6 @@ FD_EXPORT int fd_set_value(fdtype symbol,fdtype value,fd_lispenv env)
       if (FD_HASHTABLEP(env->env_exports))
         fd_hashtable_op((fd_hashtable)(env->env_exports),
                         fd_table_replace,symbol,value);
-      return 1;}}
-  return 0;
-}
-
-FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lispenv env)
-{
-  return fd_symeval(sym,env);
-}
-
-FD_EXPORT fdtype _fd_lexref(fdtype lexref,fd_lispenv env)
-{
-  return fd_lexref(lexref,env);
-}
-
-FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
-{
-  if (env->env_copy) env = env->env_copy;
-  while (env) {
-    if (!(bound_in_envp(symbol,env))) {
-      env = env->env_parent;
-      if ((env) && (env->env_copy)) env = env->env_copy;}
-    else if ((env->env_bindings) == (env->env_exports))
-      return fd_reterr(fd_ReadOnlyEnv,"fd_set_value",NULL,symbol);
-    else {
-      fd_add(env->env_bindings,symbol,value);
-      if ((FD_HASHTABLEP(env->env_exports)) &&
-          (fd_hashtable_probe((fd_hashtable)(env->env_exports),symbol)))
-        fd_add(env->env_exports,symbol,value);
       return 1;}}
   return 0;
 }
@@ -1380,17 +1401,19 @@ static fdtype withenv(fdtype expr,fd_lispenv env,
           (FD_EMPTY_LISTP(FD_CDR(FD_CDR(varval))))) {
         fdtype var = FD_CAR(varval), val = fd_eval(FD_CADR(varval),env);
         if (FD_ABORTED(val)) return FD_ERROR_VALUE;
-        fd_bind_value(var,val,consed_env);
-        fd_decref(val);}
+        int rv=fd_bind_value(var,val,consed_env);
+        fd_decref(val);
+        if (rv<0) return FD_ERROR_VALUE;}
       else return fd_err(fd_SyntaxError,cxt,NULL,expr);}}
   else if (FD_TABLEP(bindings)) {
     fdtype keys = fd_getkeys(bindings);
     FD_DO_CHOICES(key,keys) {
       if (FD_SYMBOLP(key)) {
-        fdtype value = fd_get(bindings,key,FD_VOID);
+         int rv=0; fdtype value = fd_get(bindings,key,FD_VOID);
         if (!(FD_VOIDP(value)))
-          fd_bind_value(key,value,consed_env);
-        fd_decref(value);}
+          rv=fd_bind_value(key,value,consed_env);
+        fd_decref(value);
+        if (rv<0) return FD_ERROR_VALUE;}
       else {
         FD_STOP_DO_CHOICES;
         fd_recycle_environment(consed_env);
@@ -1489,6 +1512,11 @@ static fdtype lispenv_get(fdtype e,fdtype s,fdtype d)
 static int lispenv_store(fdtype e,fdtype s,fdtype v)
 {
   return fd_bind_value(s,v,FD_XENV(e));
+}
+
+static int lispenv_add(fdtype e,fdtype s,fdtype v)
+{
+  return add_to_value(s,v,FD_XENV(e));
 }
 
 /* Some datatype methods */
@@ -2121,7 +2149,7 @@ void fd_init_eval_c()
 {
   struct FD_TABLEFNS *fns = u8_alloc(struct FD_TABLEFNS);
   fns->get = lispenv_get; fns->store = lispenv_store;
-  fns->add = NULL; fns->drop = NULL; fns->test = NULL;
+  fns->add = lispenv_add; fns->drop = NULL; fns->test = NULL;
 
   fd_tablefns[fd_environment_type]=fns;
   fd_copiers[fd_environment_type]=lisp_copy_environment;

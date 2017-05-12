@@ -1512,7 +1512,8 @@ int fd_snapback(fd_lispenv env,u8_string filename)
             return -1;}}
       else {
         int setval = fd_set_value(key,v,env);
-        if (setval==0) setval = fd_bind_value(key,v,env);
+        if (setval==0)
+          setval = fd_bind_value(key,v,env);
         if (setval<0) {
           fd_decref(v); fd_decref(keys);
           return -1;}}

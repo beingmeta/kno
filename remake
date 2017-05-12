@@ -1,0 +1,5 @@
+#!/bin/sh
+distclean
+configure $*
+make -j -s
+

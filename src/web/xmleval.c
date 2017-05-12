@@ -1764,7 +1764,10 @@ static fdtype fdxml_define(fdtype expr,fd_lispenv env)
                         arglist,body,env,1,0);
 
     fd_bind_value(to_bind,sproc,(fd_lispenv)xml_env);
-    fd_decref(sproc); fd_decref(body); fd_decref(arglist); fd_decref(attribs);
+    fd_decref(sproc);
+    fd_decref(body);
+    fd_decref(arglist);
+    fd_decref(attribs);
 
     return FD_VOID;}
 }

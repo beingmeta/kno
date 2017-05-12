@@ -849,6 +849,17 @@ static U8_MAYBE_UNUSED int some_false(fdtype arg)
 
 /* Initialization */
 
+static struct FD_FLONUM flonum_consts[8];
+
+static void
+init_flonum_constant(u8_string name,double val,int off)
+{
+  struct FD_FLONUM *cons = &(flonum_consts[off]);
+  fdtype lptr = fd_init_flonum(cons,val);
+  FD_MAKE_STATIC(lptr);
+  fd_add_hashname(name,lptr);
+}
+
 void fd_init_cons_c()
 {
   int i;
@@ -898,38 +909,31 @@ void fd_init_cons_c()
   fd_add_hashname("#false",FD_FALSE);
   fd_add_hashname("#empty",FD_EMPTY_CHOICE);
   fd_add_hashname("#dflt",FD_DEFAULT_VALUE);
+  int const_off=0;
 #ifdef M_PI
-  fdtype pival=fd_make_flonum(M_PI); FD_MAKE_STATIC(pival);
-  fd_add_hashname("#pi",pival);
+  init_flonum_constant("#pi",M_PI,const_off++);
 #endif
 #ifdef M_E
-  fdtype e_val=fd_make_flonum(M_E); FD_MAKE_STATIC(e_val);
-  fd_add_hashname("#e",e_val);
+  init_flonum_constant("#e",M_E,const_off++);
 #endif
 #ifdef M_LOG2E
-  fdtype log2e=fd_make_flonum(M_LOG2E); FD_MAKE_STATIC(log2e);
-  fd_add_hashname("#log2e",log2e);
+  init_flonum_constant("#log2e",M_LOG2E,const_off++);
 #endif
 #ifdef M_LOG10E
-  fdtype log10e=fd_make_flonum(M_LOG10E); FD_MAKE_STATIC(log10e);
-  fd_add_hashname("#log2e",log10e);
+  init_flonum_constant("#log2e",M_LOG10E,const_off++);
 #endif
 #ifdef M_LN2
-  fdtype natlog2=fd_make_flonum(M_LN2); FD_MAKE_STATIC(natlog2);
-  fd_add_hashname("#ln2",natlog2);
+  init_flonum_constant("#ln2",M_LN2,const_off++);
 #endif
 #ifdef M_LN10
-  fdtype natlog10=fd_make_flonum(M_LN10); FD_MAKE_STATIC(natlog10);
-  fd_add_hashname("#ln10",natlog10);
+  init_flonum_constant("#ln10",M_LN10,const_off++);
 #endif
   fd_add_hashname("#answer",FD_INT(42));
   fd_add_hashname("#life",FD_INT(42));
   fd_add_hashname("#universe",FD_INT(42));
   fd_add_hashname("#everything",FD_INT(42));
+
 }
-
-
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -1,0 +1,2399 @@
+//  Copyright 2013 Google Inc. All Rights Reserved.
+//  Copyright 2016-2017 beingmeta, inc
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
+#include "framerd/fdsource.h"
+#include "framerd/dtype.h"
+#include "framerd/eval.h"
+#include "framerd/numbers.h"
+#include "framerd/sequences.h"
+#include "framerd/texttools.h"
+
+#define FD_INLINE_X2VEC 1
+
+#include "x2vec.h"
+
+typedef struct FD_X2VEC_CONTEXT *x2vec_context;
+typedef struct FD_X2VEC_WORD *x2vec_word;
+
+#include <libu8/libu8.h>
+#include <libu8/u8printf.h>
+#include <libu8/u8filefns.h>
+#include <libu8/u8fileio.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <math.h>
+#include <limits.h>
+#include <pthread.h>
+
+#if HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
+#ifndef _FILEINFO
+#define _FILEINFO __FILE__
+#endif
+
+#ifndef U8STR
+#define U8STR(x) ((u8_string)x)
+#endif
+#ifndef U8S0
+#define U8S0() ((u8_string)"")
+#endif
+#ifndef U8ALT
+#define U8ALT(s,d) ((s)?((u8_string)(s)):((u8_string)(d)))
+#endif
+#ifndef U8IF
+#define U8IF(s,d) ((s)?((u8_string)(d)):(U8_SO()))
+#endif
+
+#define QUOTE_LABEL(label)                      \
+  ((label)?(U8STR("'")):(U8S0())),              \
+    ((label)?(label):(U8S0())),                 \
+    ((label)?(U8STR("' ")):(U8S0()))
+
+#define FREE_LOC(loc)                           \
+  if (loc!=NULL) { u8_free(loc); loc=NULL;}
+
+
+static u8_condition InvalidOpSeparator = _("Invalid opt separator");
+static int default_num_threads=2;
+
+fd_ptr_type fd_x2vec_type;
+
+static fdtype hidden_size, window_symbol, hash_reduce_symbol, min_count_symbol;
+static fdtype n_clusters_symbol, n_cluster_rounds_symbol;
+static fdtype unigrams_size_symbol, vocab_size_symbol, alpha_symbol;
+static fdtype exp_max_symbol, exp_slots_symbol;
+static fdtype hash_size_symbol,  subsample_symbol, optsep_symbol;
+static fdtype label_symbol, loglevel_symbol, logfreq_symbol;
+static fdtype negsamp_symbol, hisoftmax_symbol, hash_max_symbol;
+static fdtype mode_symbol, bag_of_words_symbol, skipgram_symbol;
+static fdtype num_threads_symbol;
+
+static int default_hidden_size=FD_X2VEC_HIDDEN_SIZE;
+static int default_window=FD_X2VEC_WINDOW;
+/* This is the number used to toss out vocabulary entries while the vocabulary is growing */
+static int default_hash_reduce=FD_X2VEC_HASH_REDUCE;
+/* This is the number used to toss out vocabulary entries before sorting/finalizing */
+static int default_min_count=FD_X2VEC_MIN_COUNT;
+static int default_n_clusters=FD_X2VEC_N_CLUSTERS;
+static int default_n_cluster_rounds=FD_X2VEC_N_CLUSTER_ROUNDS;
+static int default_unigrams_size=FD_X2VEC_UNIGRAMS_SIZE;
+static int default_vocab_size=FD_X2VEC_VOCAB_SIZE;
+static float default_init_alpha=FD_X2VEC_INIT_ALPHA;
+static float default_subsample=FD_X2VEC_SUBSAMPLE;
+static int default_negsamp=FD_X2VEC_NEGSAMP;
+static int default_hisoft=FD_X2VEC_HISOFT;
+static int default_cbow=FD_X2VEC_CBOW;
+static int default_loglevel=FD_X2VEC_LOGLEVEL;
+static int default_logfreq=FD_X2VEC_LOGFREQ;
+static size_t default_hash_size=FD_X2VEC_HASH_SIZE;
+static size_t default_hash_max=FD_X2VEC_HASH_MAX;
+static size_t default_exp_slots=FD_X2VEC_EXP_SLOTS;
+static size_t default_exp_max=FD_X2VEC_EXP_MAX;
+
+static int show_progress=0;
+
+#define X2V_DEFAULT_VOCAB_SIZE 32767
+
+/* Prototypes */
+
+static x2vec_word init_vocab_tables(x2vec_context x2v,ssize_t);
+static void init_exp_table(x2vec_context x2vcxt);
+static void init_unigrams(x2vec_context x2vcxt);
+static void grow_vocab_hash(x2vec_context x2v);
+static int *init_vocab_hash(int n);
+
+static void sort_vocab(x2vec_context x2vcxt);
+static void reduce_vocab(x2vec_context x2vcxt);
+static int vocab_compare(const void *a, const void *b);
+
+static long long read_vectors(x2vec_context x2v,FILE *f);
+static float *get_float_vec(x2vec_context ,fdtype,int *,int *);
+
+static void hash_overflow(x2vec_context x2v);
+
+static real block_train(x2vec_context x2v,
+                        long long *block,
+                        long long block_length,
+                        real alpha,int *stop,
+                        real *hidden, real *errv);
+
+/* Export static defs */
+
+FD_EXPORT int _fd_x2vec_vocabid(x2vec_context x2vcxt,u8_string word)
+{
+  return fd_x2vec_vocabid(x2vcxt,word);
+}
+
+FD_EXPORT int _fd_x2vec_hash(x2vec_context x2vcxt,u8_string word)
+{
+  return fd_x2vec_hash(x2vcxt,word);
+}
+
+FD_EXPORT float *_fd_x2vec_get(x2vec_context x2vcxt,u8_string word)
+{
+  return fd_x2vec_get(x2vcxt,word);
+}
+
+/* Utility macros */
+
+#define dbl(x) ((double)x)
+
+#define israndom(n) ((u8_random(n))==0)
+#define next_random(loc) loc=                                           \
+    ((unsigned long long) loc) * (unsigned long long)25214903917 + 11
+
+/* Utility functions */
+
+static void *safe_malloc(size_t n_bytes,u8_context context)
+{
+  void *result = u8_malloc(n_bytes);
+  if (result == NULL) {
+    u8_byte *buf=u8_malloc(64);
+    sprintf(buf,"%llu",(unsigned long long)n_bytes);
+    u8_raise(fd_MallocFailed,context,buf);
+    return NULL;}
+  else return result;
+}
+
+static void *safe_calloc(size_t n_elts,size_t elt_size,u8_context context)
+{
+  void *result = calloc(n_elts,elt_size);
+  if (result == NULL) {
+    u8_byte *buf=u8_malloc(64); 
+    sprintf(buf,"%llux{%llu}",
+	    (unsigned long long) n_elts,
+	    (unsigned long long) elt_size);
+    u8_raise(fd_MallocFailed,context,buf);
+    return NULL;}
+  else return result;
+}
+
+static long long getintopt(fdtype opts,fdtype sym,
+			   long long dflt)
+{
+  fdtype v=fd_getopt(opts,sym,FD_VOID);
+  if (FD_FIXNUMP(v))
+    return FD_FIX2INT(v);
+  else if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+    return dflt;
+  else if (FD_BIGINTP(v)) {
+    long long intv=fd_bigint_to_long_long((struct FD_BIGINT *)v);
+    fd_decref(v);
+    return intv;}
+  else {
+    u8_log(LOG_WARN,"Bad integer option value",
+	   "The option %q was %q, which isn't an integer");
+    return dflt;}
+}
+
+static real getrealopt(fdtype opts,fdtype sym,real dflt)
+{
+  fdtype v = fd_getopt(opts,sym,FD_VOID);
+  if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+    return dflt;
+  else if (FD_FLONUMP(v)) {
+    double realval=FD_FLONUM(v);
+    fd_decref(v);
+    return (real) realval;}
+  else return dflt;
+}
+
+static long long getboolopt(fdtype opts,fdtype sym,int dflt)
+{
+  fdtype v=fd_getopt(opts,sym,FD_VOID);
+  if (FD_VOIDP(v)) 
+    return dflt;
+  else if (FD_FIXNUMP(v)) {
+    int fv=FD_FIX2INT(v);
+    if (fv>0) return 1; else return 0;}
+  else if (FD_FALSEP(v))
+    return 0;
+  else if (FD_TRUEP(v))
+    return 1;
+  else {
+    int bv=-1;
+    if (FD_STRINGP(v))
+      bv=fd_boolstring(FD_STRDATA(v),dflt);
+    else if (FD_SYMBOLP(v))
+      bv=fd_boolstring(FD_SYMBOL_NAME(v),dflt);
+    else {}
+    if (bv<0) {
+      u8_log(LOG_WARN,"Bad boolean option value",
+             "The option %q was %q, which isn't an integer");
+      return dflt;}
+    else return bv;}
+}
+
+/* Helper functions */
+
+static float getexp(real f,const real *exp_table,real exp_max,int exp_slots)
+{
+  if (f <= -exp_max) return 0;
+  else if (f >= exp_max) return 1;
+  else {
+    int exp_i=(int)((f+ exp_max) * (exp_slots / exp_max / 2) );
+    return exp_table[exp_i];}
+}
+
+/* Vector functions */
+
+static float cosim_float(int n,float *x,float *y,int normalized)
+{
+  int i=0; float x_sum=0, y_sum=0, xy_sum=0;
+  i=0; while (i<n) {
+    x_sum=x_sum+(x[i]*x[i]); 
+    y_sum=y_sum+(y[i]*y[i]); 
+    if (normalized) xy_sum=xy_sum+(x[i]*y[i]); 
+    i++;}
+  if (normalized)
+    return xy_sum;
+  else {
+    double x_len=sqrt(x_sum), y_len=sqrt(y_sum);
+    i=0; while (i<n) {
+      float x_norm=x[i]/x_len, y_norm=y[i]/y_len;
+      xy_sum=xy_sum+x_norm*y_norm;
+      i++;}
+    return xy_sum;}
+}
+
+static fdtype normalized_floatvec(int n,float *vec)
+{
+  fdtype result=fd_make_float_vector(n,vec);
+  float *elts=FD_NUMVEC_FLOATS(result);
+  float len=0; int i=0; while (i<n) {
+    len=len+elts[i]*elts[i]; i++;}
+  if (len==0) {
+    fd_decref(result);
+    return FD_EMPTY_CHOICE;}
+  else len=sqrt(len);
+  i=0; while (i<n) {elts[i]=elts[i]/len; i++;}
+  return result;
+}
+
+
+/* Vocabulary functions */
+
+// Adds a word to the vocabulary
+
+static u8_string next_opt(u8_string word,char sep);
+
+static int vocab_add(x2vec_context x2v,
+                     u8_string word,
+                     char isopt,
+                     x2vec_word *vocabp)
+{
+  unsigned int hash = strlen(word) + 1;
+  x2vec_word vocab = x2v->x2vec_vocab, vocab_entry;
+  x2vec_word_ref word_ref=-1;
+  size_t vocab_size = x2v->x2vec_vocab_size;
+  size_t vocab_alloc_size = x2v->x2vec_vocab_alloc_size;
+  int *vocab_hash = x2v->x2vec_vocab_hash;
+  size_t vocab_hash_size = x2v->x2vec_vocab_hash_size;
+  char sep=(isopt)?(0):(x2v->x2vec_opt_sep);
+  int n_opts=0; 
+  if (sep) {
+    u8_string scan_opts=next_opt(word,sep);
+    while (scan_opts) { 
+      n_opts++; scan_opts=next_opt(scan_opts,sep);}}
+  // Reallocate memory if needed
+  if (vocab_size + n_opts + 2 >= vocab_alloc_size) {
+    size_t new_size = vocab_alloc_size+16384;
+    x2vec_word new_vocab = (x2vec_word)
+      realloc(vocab, new_size * sizeof(struct FD_X2VEC_WORD));
+    u8_log(x2v->x2vec_loglevel+1,"X2Vec/vocab_add",
+           "Growing vocab from %lld to %lld entries",
+           vocab_alloc_size,new_size);
+    if (new_vocab==NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/add_word_to_vocab",u8_strdup(word));}
+    x2v->x2vec_vocab_alloc_size = vocab_alloc_size = new_size;
+    x2v->x2vec_vocab = vocab = new_vocab;
+    if (vocabp) *vocabp=new_vocab;}
+  vocab[vocab_size].word = u8_strdup(word);
+  vocab[vocab_size].count = 0;
+  vocab_size++; x2v->x2vec_vocab_size=vocab_size;
+  if (x2v->x2vec_vocab_size > (x2v->x2vec_vocab_hash_size * 0.7))
+    hash_overflow(x2v);
+  hash = fd_x2vec_hash(x2v,word);
+  while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+  word_ref = vocab_size - 1;
+  vocab_hash[hash] = word_ref;
+  vocab_entry=&(vocab[word_ref]);
+  if (n_opts) {
+    u8_byte base[X2VEC_MAX_STRING];
+    u8_string scanner=next_opt(word,sep), last=word;
+    size_t base_len=scanner-word;
+    u8_byte *base_root=base+base_len;
+    x2vec_word_ref *opts=vocab_entry->x2vec_opts=
+      u8_alloc_n(n_opts+2,x2vec_word_ref);
+    x2vec_word_ref opt_ref;
+    strncpy(base,word,base_len); base[scanner-word]='\0';
+    opt_ref=vocab_add(x2v,base,1,vocabp);
+    *opts++=opt_ref;
+    last=scanner; scanner=next_opt(scanner,sep);
+    while (1) {
+      int len=(scanner==NULL)?(strlen(last)):(scanner-last);
+      strncpy(base_root,last,len); base[base_len+len+1]='\0';
+      opt_ref=vocab_add(x2v,base,1,vocabp);
+      *opts++=opt_ref;
+      if (scanner==NULL) break;
+      else {
+        last=scanner; 
+        scanner=next_opt(scanner+1,sep);}}}
+  return word_ref;
+}
+
+/* Reference (and add if needed) a vocab entry */
+static int vocab_ref(x2vec_context x2vcxt,
+                     u8_string word,
+                     x2vec_word *vocabp)
+{
+  x2vec_word vocab = x2vcxt->x2vec_vocab;
+  int *vocab_hash = x2vcxt->x2vec_vocab_hash;
+  if (vocab_hash) {
+    size_t vocab_hash_size = x2vcxt->x2vec_vocab_hash_size;
+    unsigned int hash=fd_x2vec_hash(x2vcxt,word);
+    while (1) {
+      if (vocab_hash[hash] == -1) break;
+      if (!strcmp(word, vocab[vocab_hash[hash]].word)) {
+        int vocab_ref=vocab_hash[hash];
+        return vocab_ref;}
+      hash = (hash + 1) % vocab_hash_size;}}
+  return vocab_add(x2vcxt,word,0,vocabp);
+}
+
+static u8_string next_opt(u8_string word,char sep)
+{
+  if (sep) {
+    if (word[0]==sep)
+      return strchr(word+1,sep);
+    else return strchr(word,sep);}
+  else return NULL;
+}
+
+/* Initializing vocabularies */
+
+// Adds a word to the vocabulary at a location
+static int vocab_init(x2vec_context x2vcxt,u8_string word,int i)
+{
+  unsigned int hash;
+  x2vec_word vocab = x2vcxt->x2vec_vocab;
+  int *vocab_hash = x2vcxt->x2vec_vocab_hash;
+  size_t vocab_hash_size = x2vcxt->x2vec_vocab_hash_size;
+  vocab[i].word = u8_strdup(word);
+  vocab[i].count = 0;
+  hash = fd_x2vec_hash(x2vcxt,word);
+  while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+  vocab_hash[hash] = i;
+  return i;
+}
+
+static long long import_vocab(x2vec_context x2vcxt,fdtype data)
+{
+  if (x2vcxt->x2vec_vocab_locked) {
+    u8_seterr(_("X2Vec/Vocab/Locked"),"import_vocab",NULL);
+    return -1;}
+  else {
+    int fresh=(x2vcxt->x2vec_vocab_size==0);
+    x2vec_word vocab = init_vocab_tables(x2vcxt,-1);
+    if (FD_CHOICEP(data)) {
+      FD_DO_CHOICES(entry,data) {
+        if (FD_PAIRP(entry)) {
+          fdtype word=FD_CAR(entry), num=FD_CDR(entry);
+          long wd = ((fresh)?(vocab_add(x2vcxt,FD_STRDATA(word),0,&vocab)):
+                     (vocab_ref(x2vcxt,FD_STRDATA(word),&vocab)));
+          if (fresh)
+            vocab[wd].count = FD_INT(num);
+          else vocab[wd].count += FD_INT(num);}
+        else if (FD_STRINGP(entry)) {
+          long wd = ((fresh)?(vocab_add(x2vcxt,FD_STRDATA(entry),0,&vocab)):
+                     (vocab_ref(x2vcxt,FD_STRDATA(entry),&vocab)));
+          if (fresh) vocab[wd].count = 1;
+          else vocab[wd].count++;}
+        else {
+          u8_log(LOG_WARN,"Bad Vocab import","Couldn't use %q",entry);}}}
+    else if (FD_VECTORP(data)) {
+      struct FD_VECTOR *vec=(struct FD_VECTOR *)data;
+      fdtype *elts=vec->fdvec_elts;
+      int i=0, len=vec->fdvec_length; while (i<len) {
+        fdtype elt=elts[i];
+        if (FD_STRINGP(elt)) {
+          u8_string text = FD_STRDATA(elt);
+          int wd = vocab_ref(x2vcxt,text,NULL);
+          vocab[wd].count++;}
+        else {
+          u8_log(LOG_WARN,"BadImportItem", "Bad text input item %q",elt);}
+        i++;}}
+    else if (FD_TABLEP(data)) {
+      fdtype keys=fd_getkeys(data);
+      FD_DO_CHOICES(key,keys) {
+        if (FD_STRINGP(key)) {
+          fdtype value=fd_get(data,key,FD_VOID);
+          if ((FD_FIXNUMP(value))||(FD_BIGINTP(value))) {
+            u8_string text=FD_STRDATA(key);
+            int wd=vocab_ref(x2vcxt,u8_strdup(text),&vocab);
+            long long count=FD_FIXNUMP(value)? (FD_FIX2INT(value)) :
+              (fd_bigint_to_long_long((fd_bigint)value));
+            if (fresh) vocab[wd].count = count;
+            else vocab[wd].count += count;
+            fd_decref(value);}
+          else {
+            u8_log(LOG_WARN,"BadWordCount",
+                   "Invalid word count value for %q: %q",key,value);
+            fd_decref(value);}}
+        else {}}
+      fd_decref(keys);}
+    return x2vcxt->x2vec_vocab_size;}
+}
+
+static long long init_vocab(x2vec_context x2v,fdtype traindata)
+{
+  if (x2v->x2vec_vocab_locked) {
+    u8_seterr(_("X2Vec/Vocab/Locked"),"init_vocab",NULL);
+    return -1;}
+  else {
+    long long hash_i; int fresh = (x2v->x2vec_vocab_size==0);
+    x2vec_word vocab = init_vocab_tables(x2v,-1);
+    int *vocab_hash = x2v->x2vec_vocab_hash;
+    size_t vocab_hash_size = x2v->x2vec_vocab_hash_size;
+    u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
+           "Initializing vocabulary from %d words of training data\n\t%q",
+           FD_VECTOR_LENGTH(traindata),
+           (fdtype)x2v);
+    for (hash_i = 0; hash_i < vocab_hash_size; hash_i++) 
+      vocab_hash[hash_i] = -1;
+    if (fresh)
+      vocab_add(x2v,(char *)"</s>",0,&vocab);
+    else vocab_ref(x2v,(char *)"</s>",&vocab);
+    if (FD_VECTORP(traindata)) {
+      struct FD_VECTOR *vec =
+        FD_GET_CONS(traindata,fd_vector_type,struct FD_VECTOR *);
+      fdtype *data = vec->fdvec_elts; int lim=vec->fdvec_length;
+      int ref=0; while (ref<lim) {
+        fdtype word=data[ref];
+        if (FD_STRINGP(word)) {
+          u8_string text = FD_STRDATA(word);
+          long wd = vocab_ref(x2v,text,&vocab);
+          vocab[wd].count++;}
+        else u8_log(LOG_WARN,"BadTrainingInput",
+                    "Bad training data element %q @%d",word,ref);
+        if (x2v->x2vec_vocab_size > (x2v->x2vec_vocab_hash_size * 0.7)) 
+          hash_overflow(x2v);
+        ref++;}}
+    u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
+           "Selected %lld words from %d words of training data\n\t%q",
+           x2v->x2vec_vocab_size,FD_VECTOR_LENGTH(traindata),
+           (fdtype)x2v);
+    return x2v->x2vec_vocab_size;}
+}
+
+// Sorts the vocabulary by frequency using word counts
+static void sort_vocab(x2vec_context x2v)
+{
+  x2vec_word vocab = x2v->x2vec_vocab, new_vocab=NULL;
+  size_t vocab_size = x2v->x2vec_vocab_size, size=vocab_size;
+  int *vocab_hash = x2v->x2vec_vocab_hash;
+  size_t vocab_hash_size = x2v->x2vec_vocab_hash_size;
+  long long train_words = 0;
+  int a;
+  unsigned int hash;
+  int min_count= x2v->x2vec_min_count;
+  double start = u8_elapsed_time();
+  // Sort the vocabulary and keep </s> at the first position
+  qsort(&vocab[1], vocab_size - 1, sizeof(struct FD_X2VEC_WORD), vocab_compare);
+  /* Reset the hash table */
+  for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
+  train_words = 0;
+  for (a = 1; a < size; a++) { // Skip </s>
+    // Words occuring less than min_count times will be discarded from the vocab
+    if (vocab[a].count < min_count) break;
+    else {
+      // Hash will be re-computed, as after the sorting it is not actual
+      hash=fd_x2vec_hash(x2v,vocab[a].word);
+      while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+      vocab_hash[hash] = a;
+      train_words += vocab[a].count;}}
+  vocab_size=a;
+  /* Everything else is below min_count */
+  while (a<size) {  
+    free((char *)vocab[a].word);
+    vocab[a].word = NULL;
+    a++;}
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Sort",
+         "Removing %lld terms with less than %d occurrences from\n\t%q",
+         size-vocab_size,min_count,(fdtype)x2v);
+  
+  /* We realloc to just keep the entries we are using */
+  new_vocab = (x2vec_word)
+    realloc(vocab, (vocab_size + 1) * sizeof(struct FD_X2VEC_WORD));
+  if (new_vocab==NULL) {
+    u8_raise(fd_MallocFailed,"x2vec/sort_vocab",NULL);}
+
+  // Allocate memory for the binary tree construction
+  for (a = 0; a < vocab_size; a++) {
+    new_vocab[a].nodeid = (int *)
+      calloc(X2VEC_MAX_CODE_LENGTH, sizeof(int));
+    new_vocab[a].code = (unsigned char *)
+      calloc(X2VEC_MAX_CODE_LENGTH, sizeof(unsigned char));}
+
+  if (new_vocab) {
+    x2v->x2vec_vocab=new_vocab;
+    x2v->x2vec_vocab_size=vocab_size;
+    x2v->x2vec_vocab_alloc_size=vocab_size+1;}
+  x2v->x2vec_train_words=train_words;
+
+  u8_log(x2v->x2vec_loglevel+1,"X2Vec/Vocab/Sort/Done",
+         "Finished sorting %d vocab entries in %02fs",
+         vocab_size,u8_elapsed_time()-start);
+}
+
+// Reduces the vocabulary by removing infrequent tokens
+static void reduce_vocab(x2vec_context x2v)
+{
+  int a, b = 0;
+  unsigned int *vocab_hash = x2v->x2vec_vocab_hash, hash;
+  x2vec_word vocab = x2v->x2vec_vocab;
+  size_t vocab_size = x2v->x2vec_vocab_size;
+  size_t original_vocab_size = vocab_size;
+  size_t vocab_hash_size = x2v->x2vec_vocab_hash_size;
+  int hash_reduce = x2v->x2vec_hash_reduce;
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Reduce",
+         "Reducing %s%s%svocabulary from %lld terms\n\t%q",
+         QUOTE_LABEL(x2v->x2vec_label),vocab_size,(fdtype)x2v);
+
+  for (a = 0; a < vocab_size; a++) {
+    if (vocab[a].count > hash_reduce) {
+      vocab[b].count = vocab[a].count;
+      vocab[b].word = vocab[a].word;
+      b++;}
+    else {
+      if (vocab[a].word)
+        free((char *)vocab[a].word);}}
+  x2v->x2vec_vocab_size = vocab_size = b;
+  for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
+  for (a = 0; a < vocab_size; a++) {
+    // Hash will be re-computed, as it is not accurate any longer
+    hash = fd_x2vec_hash(x2v,vocab[a].word);
+    while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
+    vocab_hash[hash] = a;}
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Reduced",
+         "Reduced %s%s%svocabulary to %lld terms from %lld terms\n\t%q",
+         QUOTE_LABEL(x2v->x2vec_label),vocab_size,original_vocab_size,
+         (fdtype)x2v);
+
+  /* Increment the threshold in case we're called again */
+  x2v->x2vec_hash_reduce++;
+}
+
+// Used later for sorting by word counts
+static int vocab_compare(const void *a, const void *b)
+{
+  return ((x2vec_word)b)->count -
+    ((x2vec_word)a)->count;
+}
+
+// Create binary Huffman tree using the word counts
+// Frequent words will have short uniqe binary codes
+static void vocab_create_binary_tree(x2vec_context x2vcxt)
+{
+  double start = u8_elapsed_time();
+  size_t vocab_size = x2vcxt->x2vec_vocab_size;
+  long long min1i, min2i, pos1, pos2;
+  long long vocab_i, node_i, node_max=(vocab_size*2);
+  long long point[X2VEC_MAX_CODE_LENGTH];
+  unsigned char code[X2VEC_MAX_CODE_LENGTH];
+  long long *count = (long long *)
+    calloc(vocab_size * 2 + 1, sizeof(long long));
+  long long *binary = (long long *)
+    calloc(vocab_size * 2 + 1, sizeof(long long));
+  long long *parent_node = (long long *)
+    calloc(vocab_size * 2 + 1, sizeof(long long));
+  x2vec_word vocab = x2vcxt->x2vec_vocab;
+  for (node_i = 0; node_i < vocab_size; node_i++)
+    count[node_i] = vocab[node_i].count;
+  // This ensures that all uninitialized nodes will be larger than
+  // initialized nodes
+  for (node_i = vocab_size; node_i < node_max; node_i++)
+    count[node_i] = 1e15;
+  pos1 = vocab_size - 1;
+  pos2 = vocab_size;
+  // Following algorithm constructs the Huffman tree by adding one
+  // node at a time.  A single array is used to store both the vocab
+  // nodes and the tree nodes. The vocab nodes are sorted high to low
+  // and the tree nodes are sorted low to high. pos1 scans the vocab
+  // nodes (it never increases) and pos2 scans the tree nodes (it
+  // never decreases).
+  // 
+  // Both pos1 and pos2 always point to the lowest count nodes in
+  // their range. They are moved whenever a node becomes the child of
+  // a new node in the tree.
+  //
+  // The algorithm finds the two lowest nodes from both ranges.
+  for (node_i = 0; node_i < vocab_size - 1; node_i++) {
+    // Figure out the two smallest nodes to combine
+    if (pos1 >= 0) {
+      if (count[pos1] < count[pos2]) 
+        min1i = pos1--;
+      else min1i = pos2++;}
+    else min1i = pos2++;
+    // We've got the smaller (or equal), now we get the next one
+    if (pos1 >= 0) {
+      if (count[pos1] < count[pos2]) 
+        min2i = pos1--;
+      else min2i = pos2++;}
+    else min2i = pos2++;
+
+    // Now we make a new node (at vocab_size + a)
+    count[vocab_size + node_i] = count[min1i] + count[min2i];
+    parent_node[min1i] = vocab_size + node_i;
+    parent_node[min2i] = vocab_size + node_i;
+    // The larger node is marked with binary 1
+    binary[min2i] = 1;}
+  // Now assign a binary code to each vocabulary word based on the
+  // tree
+  for (vocab_i = 0; vocab_i < vocab_size; vocab_i++) {
+    long long node_scan=vocab_i; int code_pos=0, code_len=0;
+    while (1) {
+      code[code_pos] = binary[node_scan];
+      point[code_pos] = node_scan;
+      node_scan = parent_node[node_scan];
+      code_pos++;
+      // If we've reached the end of the node space, break
+      if (node_scan == node_max - 2) break;}
+    code_len = code_pos;
+    // Assign the code and point information to the word, in opposite
+    // order to how they're saved to the code[] and point[] arrays
+    vocab[vocab_i].codelen = code_pos;
+    // Assign the first nodeid to be larger than all the others
+    vocab[vocab_i].nodeid[0] = vocab_size - 2;
+    for (code_pos = 0; code_pos < code_len; code_pos++) {
+      vocab[vocab_i].code[code_len - code_pos - 1] = 
+        code[code_pos];
+      vocab[vocab_i].nodeid[code_len - code_pos] = 
+        point[code_pos] - vocab_size;}}
+  free(count);
+  free(binary);
+  free(parent_node);
+  u8_log(x2vcxt->x2vec_loglevel+1,"X2Vec/Vocab/Huffman/Done",
+         "Finished creating a Huffman tree for %d vocab entries in %02fs",
+         vocab_size,u8_elapsed_time()-start);
+}
+
+static long long finish_vocab(x2vec_context x2v)
+{
+  if (x2v->x2vec_vocab_locked) 
+    return x2v->x2vec_vocab_size;
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Lock",
+         "Finishing/Locking vocabulary for %q",(fdtype)x2v);
+  if (x2v->x2vec_vocab_size > x2v->x2vec_vocab_hash_size * 0.7) {
+    u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Lock",
+           "Reducing vocabulary for hash size: %q",(fdtype)x2v);
+    while (x2v->x2vec_vocab_size > x2v->x2vec_vocab_hash_size * 0.7)
+      reduce_vocab(x2v);}
+  sort_vocab(x2v);
+  if (x2v->x2vec_negsamp>0) init_unigrams(x2v);
+  vocab_create_binary_tree(x2v);
+  x2v->x2vec_vocab_locked=1;
+  return x2v->x2vec_vocab_size;
+}
+
+
+/* Initializing the "neural" network */
+
+static void init_nn(x2vec_context x2v)
+{
+  long long a, b; int memalign_rv=0;
+  size_t vocab_size = x2v->x2vec_vocab_size;
+  int hidden_size = x2v->x2vec_hidden_size;
+  real *syn0=NULL, *syn1=NULL, *syn1neg=NULL;
+  if (x2v->x2vec_syn0==NULL) {
+    memalign_rv =
+      posix_memalign((void **)&(x2v->x2vec_syn0), 128,
+                     (long long)vocab_size * hidden_size * sizeof(real));
+    if (memalign_rv==EINVAL) {
+      u8_raise(_("Bad posix_memalign argument"),"x2vec/init_nn/syn0",NULL);}
+    else if (memalign_rv==EINVAL) {
+      u8_raise(_("Not enough memory"),"x2vec/init_nn/syn0",NULL);}
+    else if ((x2v->x2vec_syn0) == NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/init_nn/syn0",NULL);}
+    else syn0=x2v->x2vec_syn0;}
+  else syn0=x2v->x2vec_syn0;
+
+  if (x2v->x2vec_hisoftmax) {
+    memalign_rv = posix_memalign((void **)&(x2v->x2vec_syn1), 128,
+                                 (long long)vocab_size * hidden_size * sizeof(real));
+    if (memalign_rv==EINVAL) {
+      u8_raise(_("Bad posix_memalign argument"),"x2vec/init_nn/syn1",NULL);}
+    else if (memalign_rv==EINVAL) {
+      u8_raise(_("Not enough memory"),"x2vec/init_nn/syn1",NULL);}
+    else if ((x2v->x2vec_syn1) == NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/init_nn/syn1",NULL);}
+    else syn1=x2v->x2vec_syn1;
+
+    for (b = 0; b < hidden_size; b++) {
+      for (a = 0; a < vocab_size; a++) {
+        syn1[a * hidden_size + b] = 0;}}}
+
+  if (x2v->x2vec_negsamp>0) {
+    a = posix_memalign((void **)&(x2v->x2vec_syn1neg), 128,
+		       (long long)vocab_size * hidden_size * sizeof(real));
+    if (memalign_rv==EINVAL) {
+      u8_raise(_("Bad posix_memalign argument"),"x2vec/init_nn/syn1neg",NULL);}
+    else if (memalign_rv==EINVAL) {
+      u8_raise(_("Not enough memory"),"x2vec/init_nn/syn1neg",NULL);}
+    else if ((x2v->x2vec_syn1neg) == NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/init_nn/syn1neg",NULL);}
+    else syn1neg=x2v->x2vec_syn1neg;
+
+    for (b = 0; b < hidden_size; b++) {
+      for (a = 0; a < vocab_size; a++) {
+        syn1neg[a * hidden_size + b] = 0;}}}
+  
+  for (b = 0; b < hidden_size; b++) {
+    for (a = 0; a < vocab_size; a++) {
+      syn0[a * hidden_size + b] = (rand() / (real)RAND_MAX - 0.5) / hidden_size;}}
+  
+  finish_vocab(x2v);
+}
+
+/* Training the network */
+
+void *training_threadproc(void *state)
+{
+  struct FD_X2VEC_STATE *x2vs=(struct FD_X2VEC_STATE *)state;
+  x2vec_context x2v=x2vs->x2vec_x2vcxt;
+  x2vec_word vocab = x2v->x2vec_vocab;
+  double start=x2vs->x2vec_start; 
+  fdtype opts=x2vs->x2vec_opts;
+  int thread_i=x2vs->x2vec_thread_i, n_threads=x2vs->x2vec_n_threads;
+  size_t vocab_size = x2v->x2vec_vocab_size;
+  real *syn0 = x2v->x2vec_syn0, *syn1 = x2v->x2vec_syn1;
+  real *syn1neg = x2v->x2vec_syn1neg;
+  int *unigrams = x2v->x2vec_unigrams;
+  size_t unigrams_size = x2v->x2vec_unigrams_size;
+  int negsamp = x2v->x2vec_negsamp;
+  fdtype input=x2vs->x2vec_input;
+  unsigned long long random_value=thread_i;
+  long long a, b, d, word, last_word, block_length = 0, block_position = 0;
+  long long word_count = 0, last_word_count = 0, block[X2VEC_MAX_BLOCK_LENGTH + 1];
+  long long l1, l2, c, target, label;
+  int hidden_size = x2v->x2vec_hidden_size, window = x2v->x2vec_window;
+  struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
+  int vec_len = vec->fdvec_length, vec_pos=(vec_len/n_threads)*thread_i;
+  fdtype *vec_data = vec->fdvec_elts;
+  real *hidden = (real *)
+    safe_calloc(hidden_size, sizeof(real),"x2v/TrainModelThread/hidden");
+  real *errv = (real *)
+    safe_calloc(hidden_size, sizeof(real),"x2v/TrainModelThread/errv");
+  const real *exp_table = x2v->x2vec_exp_table, exp_max=x2v->x2vec_exp_max;
+  const int exp_slots = x2v->x2vec_exp_slots;
+  int loglevel = x2v->x2vec_loglevel, logfreq = x2v->x2vec_logfreq;
+  int *stopval = x2vs->x2vec_stop;
+
+  long long train_words = x2v->x2vec_train_words;
+  real starting_alpha = x2v->x2vec_starting_alpha, alpha = x2v->x2vec_alpha;
+  real subsample_size = x2v->x2vec_subsample * x2v->x2vec_train_words;
+  while (vec_pos<vec_len) {
+    if ((word_count - last_word_count) > 10000) {
+      int word_count_actual=x2v->x2vec_word_count_actual+
+        (word_count - last_word_count);
+      x2v->x2vec_word_count_actual += (word_count - last_word_count);
+      last_word_count = word_count;
+      if ((show_progress>0)&&(u8_random(show_progress))) {
+        fprintf(stderr,
+                "%cAlpha: %f  Progress: %.2f%%  Words/sec: %.2fk  Words/thread/sec: %.2fk  ",
+                13,alpha,word_count_actual / (real)(train_words + 1) * 100,
+                (word_count_actual / (u8_elapsed_time()-(start))),
+                (word_count / (u8_elapsed_time()-(start))));}
+      if ((logfreq>0)&&(u8_random(logfreq)==0)) {
+        u8_log(loglevel+1,"X2Vec/Training/progress",
+               /* "%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, */
+               "Alpha: %f  Progress: %.2f%%  Words/sec: %.2fk  Words/thread/sec: %.2fk  ",
+               alpha, word_count_actual / (real)(train_words + 1) * 100,
+               (word_count_actual / (u8_elapsed_time()-(start))),
+               (word_count / (u8_elapsed_time()-(start))));}
+      alpha = starting_alpha * 
+        (1 - word_count_actual / (real)(train_words + 1));
+      if (alpha < starting_alpha * 0.0001)
+        alpha = starting_alpha * 0.0001;}
+    if (block_length == 0) {
+      while (vec_pos<vec_len) {
+	fdtype input = vec_data[vec_pos++];
+	if (FD_STRINGP(input)) 
+	  word = fd_x2vec_vocabid(x2v,FD_STRDATA(input));
+	else continue;
+	if (word < 0) continue;
+        word_count++;
+        if (word == 0) break;
+        // The subsampling randomly discards frequent words while
+        // keeping the frequency ordering the same
+	if (subsample_size > 0) {
+          real ran = (sqrt(vocab[word].count / subsample_size) + 1) 
+	    * subsample_size / vocab[word].count;
+          next_random(random_value);
+          if (ran < (random_value & 0xFFFF) / (real)65536) 
+            continue;} /* if (subsample_size > 0) */
+        block[block_length] = word;
+        block_length++;
+        if (block_length >= X2VEC_MAX_BLOCK_LENGTH) 
+          break;} /* (vec_pos<vec_len) */
+      block_position = 0;}
+    if (((stopval)&&(*stopval))||
+        (word_count > (x2v->x2vec_train_words / n_threads))) {
+      if (stopval) *stopval=1;
+      break;}
+    word = block[block_position];
+    if (word == -1) continue;
+    for (c = 0; c < hidden_size; c++) { 
+      hidden[c] = 0; }
+    for (c = 0; c < hidden_size; c++) { 
+      errv[c] = 0; }
+
+    next_random(random_value);
+    b = random_value % x2v->x2vec_window;
+    if (x2v->x2vec_bag_of_words) {  //train the cbow architecture
+      // in -> hidden
+      for (a = b; a < window * 2 + 1 - b; a++) {
+        /* When a==window, we're looking at the word above */
+	if (a != window) {
+	  c = block_position - window + a;
+	  if (c < 0) continue;
+	  if (c >= block_length) continue;
+	  last_word = block[c];
+	  if (last_word == -1) continue;
+	  for (c = 0; c < hidden_size; c++) {
+            /* The hidden values accumulate weights from every word
+               in the context */
+	    hidden[c] += syn0[c + last_word * hidden_size];}}}
+      if (x2v->x2vec_hisoftmax) {
+	for (d = 0; d < vocab[word].codelen; d++) {
+          double sum=0, output=0, delta=0;
+	  l2 = vocab[word].nodeid[d] * hidden_size;
+	  // Propagate hidden -> output
+	  for (c = 0; c < hidden_size; c++) {
+	    sum += hidden[c] * syn1[c + l2];}
+	  if ((sum <= -exp_max)||(sum >= exp_max)) continue;
+	  else output=getexp(sum,exp_table,exp_max,exp_slots);
+	  // 'delta' is the gradient multiplied by the learning rate
+	  delta = ((1 - vocab[word].code[d]) - output) * alpha;
+	  // Propagate errors output -> hidden
+	  for (c = 0; c < hidden_size; c++) {
+	    errv[c] += delta * syn1[c + l2];}
+	  // Learn weights hidden -> output
+	  for (c = 0; c < hidden_size; c++) {
+	    syn1[c + l2] += delta * hidden[c];}}}
+      // NEGATIVE SAMPLING
+      if (negsamp > 0) {
+        real sum=0, output=0, delta=0;
+	for (d = 0; d < negsamp + 1; d++) {
+	  if (d == 0) {
+	    target = word;
+	    label = 1;}
+	  else {
+	    next_random(random_value);
+	    target = unigrams[(random_value >> 16) % unigrams_size];
+	    if (target == 0) target = random_value % (vocab_size - 1) + 1;
+	    if (target == word) continue;
+	    label = 0;}
+	  l2 = target * hidden_size;
+	  for (c = 0; c < hidden_size; c++) {
+	    sum += hidden[c] * syn1neg[c + l2];}
+          output = getexp(sum,exp_table,exp_max,exp_slots);
+          delta = (label - output) * alpha;
+	  for (c = 0; c < hidden_size; c++) {
+	    errv[c] += delta * syn1neg[c + l2];}
+	  for (c = 0; c < hidden_size; c++) {
+	    syn1neg[c + l2] += delta * hidden[c];}}}
+      // hidden -> in
+      for (a = b; a < window * 2 + 1 - b; a++) {
+	if (a != window) {
+	  c = block_position - window + a;
+	  if (c < 0) continue;
+	  if (c >= block_length) continue;
+	  last_word = block[c];
+	  if (last_word == -1) continue;
+	  for (c = 0; c < hidden_size; c++) {
+	    syn0[c + last_word * hidden_size] += errv[c];}}}
+      /* (cbow) */
+    }
+    else { //train skip-gram
+      for (a = b; a < window * 2 + 1 - b; a++) {
+        long long hidden_i=0;
+	if (a != window) {
+	  c = block_position - window + a;
+	  if (c < 0) continue;
+	  if (c >= block_length) continue;
+	  last_word = block[c];
+	  if (last_word == -1) continue;
+	  l1 = last_word * hidden_size;
+	  for (c = 0; c < hidden_size; c++) errv[c] = 0;
+	  // HIERARCHICAL SOFTMAX
+	  if (x2v->x2vec_hisoftmax) {
+	    for (d = 0; d < vocab[word].codelen; d++) {
+              real sum=0, output=0, delta=0;
+	      l2 = vocab[word].nodeid[d] * hidden_size;
+	      // Propagate hidden -> output
+	      for (c = 0; c < hidden_size; c++) {
+                sum += syn0[c + l1] * syn1[c + l2];}
+	      if ((sum <= -exp_max)||(sum >= exp_max)) continue;
+	      else output=getexp(sum,exp_table,exp_max,exp_slots);
+              // 'delta' is the gradient multiplied by the learning rate
+              delta = ((1 - vocab[word].code[d]) - output) * alpha;
+	      // Propagate errors output -> hidden
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		errv[hidden_i] += delta * syn1[l2 + hidden_i];}
+	      // Learn weights hidden -> output
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		syn1[l2 + hidden_i] += delta * syn0[l1 + hidden_i];}}}
+          
+	  // NEGATIVE SAMPLING
+	  if (negsamp > 0) {
+	    for (d = 0; d < negsamp + 1; d++) {
+              real sum=0, output=0, delta=0;
+	      if (d == 0) {
+		target = word;
+		label = 1;}
+	      else {
+		next_random(random_value);
+		target = unigrams[(random_value >> 16) % unigrams_size];
+		if (target == 0) target = random_value % (vocab_size - 1) + 1;
+		if (target == word) continue;
+		label = 0;}
+	      l2 = target * hidden_size;
+	      for (c = 0; c < hidden_size; c++) {
+		sum += syn0[c + l1] * syn1neg[c + l2];}
+              output = getexp(sum,exp_table,exp_max,exp_slots);
+              delta = alpha * (label - output);
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		errv[hidden_i] += delta * syn1neg[l2 + hidden_i];}
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		syn1neg[l2 + hidden_i] += delta * syn0[l1 + hidden_i];}}}
+	  // Learn weights input -> hidden
+	  for (c = 0; c < hidden_size; c++) {
+	    syn0[c + l1] += errv[c];}}}
+      /* train_skipgram (!(bow)) */}
+    block_position++;
+    if (block_position >= block_length) {
+      block_length = 0;
+      continue;}
+    /* while (vec_pos < vec_len) */}
+  free(hidden);
+  free(errv);
+  fd_decref(opts);
+  pthread_exit(NULL);
+}
+
+static real block_train(x2vec_context x2v,
+                        long long *block,long long block_length,
+                        real alpha,int *stop,
+                        real *use_hidden, real *use_errv)
+{
+  unsigned long long random_value = u8_random(UINT_MAX) * u8_random(UINT_MAX);
+  long long block_position = 0, word; /* last_block_position=-1, */
+  const x2vec_word vocab = x2v->x2vec_vocab;
+  int vocab_size = x2v->x2vec_vocab_size;
+  int *unigrams = x2v->x2vec_unigrams;
+  int unigrams_size = x2v->x2vec_unigrams_size;
+  long long window = x2v->x2vec_window;
+  int hidden_size = x2v->x2vec_hidden_size;
+  real *syn0 = x2v->x2vec_syn0, *syn1 = x2v->x2vec_syn1;
+  real *syn1neg = x2v->x2vec_syn1neg;
+  const real *exp_table = x2v->x2vec_exp_table, exp_max=x2v->x2vec_exp_max;
+  const int exp_slots = x2v->x2vec_exp_slots;
+  real *hidden=(use_hidden != NULL) ? (use_hidden) :
+    (real *)safe_calloc(hidden_size, sizeof(real),"x2v/block_train/hidden");
+  real *errv=(use_errv != NULL) ? (use_errv) :
+    (real *)safe_calloc(hidden_size, sizeof(real),"x2v/block_train/errv");
+
+  while (1) {
+    if ((stop)&&(*stop)) break;
+    /* last_block_position= */
+
+    word = block[block_position];
+    if (word == -1) continue;
+
+    memset(hidden,0,sizeof(real)*hidden_size);
+    memset(errv,0,sizeof(real)*hidden_size);
+    next_random(random_value);
+
+    if (x2v->x2vec_bag_of_words) {  //train the cbow architecture
+      // in -> hidden
+      long long window_margin=random_value % x2v->x2vec_window;
+      long long window_off=window_margin;
+      long long window_lim= ( window * 2 ) + 1 - window_margin;
+      long long block_off=0, hidden_i=0, last_word=-1;
+      for (window_off = window_margin;
+           window_off < window_lim;
+           window_off++) {
+        /* When window_off==window, we're looking at the word above itself */
+	if (window_off != window) {
+	  block_off = block_position - window + window_off;
+	  if ((block_off < 0)||(block_off >= block_length)) continue;
+	  last_word = block[block_off];
+	  if (last_word == -1) continue;
+	  for ( hidden_i = 0; hidden_i < hidden_size; hidden_i++ ) {
+            /* The hidden values accumulate weights from every word in
+               the context, in this case the word at block_off */
+	    hidden[hidden_i] += syn0[hidden_i + ( last_word * hidden_size )];}}}
+      
+      if (x2v->x2vec_hisoftmax) {
+        int bit;
+        /* In this scheme, every word is represented by a set of
+           inputs corresonding to it's path through the binary tree.
+           Because of the nature of the tree, the number of
+           nodes/inputs (and the weight ranges to be adjusted) is
+           smaller for more common words, leading to a lot less
+           adjusting to do.
+        */
+	for (bit = 0; bit < vocab[word].codelen; bit++) {
+          long long output_weight_block =
+            vocab[word].nodeid[bit] * hidden_size;
+	  real sum = 0, output = 0, delta = 0;
+	  // Propagate hidden -> output
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    sum += hidden[hidden_i] * syn1[output_weight_block + hidden_i];}
+          output=getexp(sum,exp_table,exp_max,exp_slots);
+	  // 'delta' is the gradient multiplied by the learning rate
+	  delta = ((1 - vocab[word].code[bit]) - output) * alpha;
+	  // Propagate errors output -> hidden
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    errv[hidden_i] += delta * syn1[output_weight_block + hidden_i];}
+	  // Learn weights hidden -> output
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    syn1[output_weight_block + hidden_i] += delta * hidden[hidden_i];}}}
+      // NEGATIVE SAMPLING
+      if (x2v->x2vec_negsamp > 0) {
+        long long neg_i, negsamp = x2v->x2vec_negsamp; 
+        int target, label;
+	for (neg_i = 0; neg_i < negsamp + 1; neg_i++) {
+          long long negsamp_output_weights; 
+          real sum=0, output=0, delta=0;
+	  if (neg_i == 0) {
+	    target = word;
+	    label = 1;}
+	  else {
+	    next_random(random_value);
+	    target = unigrams[(random_value >> 16) % unigrams_size];
+	    if (target == 0) target = random_value % (vocab_size - 1) + 1;
+	    if (target == word) continue;
+	    label = 0;}
+          negsamp_output_weights = target * hidden_size;
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    sum += hidden[hidden_i] * syn1neg[negsamp_output_weights + hidden_i];}
+          output=getexp(sum,exp_table,exp_max,exp_slots);
+          delta = (label - output) * alpha;
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    errv[hidden_i] += delta * syn1neg[negsamp_output_weights + hidden_i];}
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    syn1neg[negsamp_output_weights + hidden_i] += delta * hidden[hidden_i];}}}
+      // hidden -> in
+      for (window_off = window_margin;
+           window_off < window_lim; 
+           window_off++) {
+	if (window_off != window) {
+	  block_off = block_position - window + window_off;
+	  if (block_off < 0) continue;
+	  if (block_off >= block_length) continue;
+	  last_word = block[block_off];
+	  if (last_word == -1) continue;
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    syn0[hidden_i + (last_word * hidden_size)] += errv[hidden_i];}}}
+      /* (cbow) */}
+    else { //train skip-gram
+      long long window_margin=random_value % x2v->x2vec_window;
+      long long window_off=window_margin;
+      long long window_lim= ( window * 2 ) + 1 - window_margin;
+      long long block_off=0, hidden_i=0, last_word=-1;
+      for (window_off = window_margin;
+           window_off < window_lim;
+           window_off++) {
+	if (window_off != window) {
+          long long layer1_weights; 
+	  block_off = block_position - window + window_off;
+	  if ( (block_off < 0) || (block_off >= block_length) ) continue;
+	  last_word = block[block_off];
+	  if (last_word == -1) continue;
+	  layer1_weights = last_word * hidden_size;
+          memset(errv,0,sizeof(real)*hidden_size);
+	  // HIERARCHICAL SOFTMAX
+	  if (x2v->x2vec_hisoftmax) {
+            int bit;
+	    for (bit = 0; bit < vocab[word].codelen; bit++) {
+              long long layer2_weights = vocab[word].nodeid[bit] * hidden_size;
+              real sum=0, output=0, delta=0;
+	      // Propagate hidden -> output
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+                sum += syn0[layer1_weights + hidden_i] * syn1[layer2_weights + hidden_i];}
+	      if ((sum <= -exp_max)||(sum >= exp_max)) continue;
+	      else output=getexp(sum,exp_table,exp_max,exp_slots);
+	      // 'delta' is the gradient multiplied by the learning rate
+	      delta = ((1 - vocab[word].code[bit]) - output) * alpha;
+	      // Propagate errors output -> hidden
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		errv[hidden_i] += delta * syn1[layer2_weights + hidden_i];}
+	      // Learn weights hidden -> output
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		syn1[layer2_weights + hidden_i] += delta * syn0[layer1_weights + hidden_i];}}}
+	  // NEGATIVE SAMPLING
+	  if (x2v->x2vec_negsamp > 0) {
+            int neg_i=0, negsamp = x2v->x2vec_negsamp; 
+            long long target, label, layer2_weights;
+	    for (neg_i = 0; neg_i < negsamp + 1; neg_i++) {
+              real sum=0, output=0, delta=0;
+	      if (neg_i == 0) {
+		target = word; label = 1;}
+	      else {
+		next_random(random_value);
+		target = unigrams[(random_value >> 16) % unigrams_size];
+		if (target == 0) target = random_value % (vocab_size - 1) + 1;
+		if (target == word) continue;
+		label = 0;}
+	      layer2_weights = target * hidden_size;
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		sum += syn0[layer1_weights + hidden_i] * syn1neg[layer2_weights + hidden_i];}
+              output=getexp(sum,exp_table,exp_max,exp_slots);
+              delta = (label - output) * alpha;
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		errv[hidden_i] += delta * syn1neg[layer2_weights + hidden_i];}
+	      for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+		syn1neg[hidden_i + layer2_weights] += delta * syn0[layer1_weights + hidden_i];}}}
+	  // Learn weights input -> hidden
+	  for (hidden_i = 0; hidden_i < hidden_size; hidden_i++) {
+	    syn0[layer1_weights + hidden_i] += errv[hidden_i];}}}
+      /* train_skipgram (!(bow)) */}
+    block_position++;
+    if (block_position >= block_length) 
+      break;}
+  
+  if (use_hidden==NULL) u8_free(hidden);
+  if (use_errv==NULL) u8_free(errv);
+
+  return alpha;
+}
+
+void *modular_training_threadproc(void *state)
+{
+  struct FD_X2VEC_STATE *x2vs=(struct FD_X2VEC_STATE *)state;
+  x2vec_context x2v=x2vs->x2vec_x2vcxt;
+  x2vec_word vocab = x2v->x2vec_vocab;
+  double start=x2vs->x2vec_start; 
+  fdtype opts=x2vs->x2vec_opts;
+  int thread_i=x2vs->x2vec_thread_i, n_threads=x2vs->x2vec_n_threads;
+  fdtype input=x2vs->x2vec_input;
+  unsigned long long random_value=thread_i;
+  long long word;
+  long long word_count = 0, last_word_count = 0, block[X2VEC_MAX_BLOCK_LENGTH + 1];
+  int hidden_size = x2v->x2vec_hidden_size;
+  struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
+  int vec_len = vec->fdvec_length, vec_pos=(vec_len/n_threads)*thread_i;
+  fdtype *vec_data = vec->fdvec_elts;
+  real *hidden = (real *)
+    safe_calloc(hidden_size, sizeof(real),"x2v/TrainModelThread/hidden");
+  real *errv = (real *)
+    safe_calloc(hidden_size, sizeof(real),"x2v/TrainModelThread/errv");
+  int loglevel = x2v->x2vec_loglevel, logfreq = x2v->x2vec_logfreq;
+  int *stopval = x2vs->x2vec_stop;
+
+  long long train_words = x2v->x2vec_train_words;
+  real starting_alpha = x2v->x2vec_starting_alpha, alpha = x2v->x2vec_alpha;
+  real subsample_size = x2v->x2vec_subsample * x2v->x2vec_train_words;
+  while (vec_pos<vec_len) {
+    long long block_length = 0;
+    if ((word_count - last_word_count) > 10000) {
+      int word_count_actual=x2v->x2vec_word_count_actual+
+        (word_count - last_word_count);
+      x2v->x2vec_word_count_actual += (word_count - last_word_count);
+      last_word_count = word_count;
+      if ((show_progress>0)&&(u8_random(show_progress))) {
+        fprintf(stderr,
+                "%cAlpha: %f  Progress: %.2f%%  Words/sec: %.2fk  Words/thread/sec: %.2fk  ",
+                13,alpha,word_count_actual / (real)(train_words + 1) * 100,
+                (word_count_actual / (u8_elapsed_time()-(start))),
+                (word_count / (u8_elapsed_time()-(start))));}
+      if ((logfreq>0)&&(u8_random(logfreq)==0)) {
+        u8_log(loglevel+1,"X2Vec/Training/progress",
+               /* "%cAlpha: %f  Progress: %.2f%%  Words/thread/sec: %.2fk  ", 13, */
+               "Alpha: %f  Progress: %.2f%%  Words/sec: %.2fk  Words/thread/sec: %.2fk  ",
+               alpha, word_count_actual / (real)(train_words + 1) * 100,
+               (word_count_actual / (u8_elapsed_time()-(start))),
+               (word_count / (u8_elapsed_time()-(start))));}
+      alpha = starting_alpha * 
+        (1 - word_count_actual / (real)(train_words + 1));
+      if (alpha < starting_alpha * 0.0001)
+        alpha = starting_alpha * 0.0001;}
+    while (vec_pos<vec_len) {
+      fdtype input = vec_data[vec_pos++];
+      if (FD_STRINGP(input)) 
+        word = fd_x2vec_vocabid(x2v,FD_STRDATA(input));
+      else continue;
+      if (word < 0) continue;
+      word_count++;
+      if (word == 0) break;
+      // The subsampling randomly discards frequent words while
+      // keeping the frequency ordering the same
+      if (subsample_size > 0) {
+        real ran = (sqrt(vocab[word].count / subsample_size) + 1) 
+          * subsample_size / vocab[word].count;
+        next_random(random_value);
+        if (ran < (random_value & 0xFFFF) / (real)65536) 
+          continue;} /* if (subsample_size > 0) */
+      block[block_length] = word;
+      block_length++;
+      if (block_length >= X2VEC_MAX_BLOCK_LENGTH) 
+        break;} /* (vec_pos<vec_len) */
+    if (((stopval)&&(*stopval))||
+        (word_count > (x2v->x2vec_train_words / n_threads))) {
+      if (stopval) *stopval=1;
+      break;}
+    alpha=block_train(x2v,block,block_length,alpha,stopval,hidden,errv);
+    /* while (vec_pos < vec_len) */}
+  free(hidden);
+  free(errv);
+  fd_decref(opts);
+  pthread_exit(NULL);
+}
+
+static void train_model(x2vec_context x2v,
+			fdtype training,
+			fdtype vocab,
+			fdtype opts)
+{
+  long a;
+  fdtype xopts=(FD_VOIDP(opts))?(fd_incref(x2v->x2vec_opts)):
+    (fd_make_pair(opts,x2v->x2vec_opts));
+  int n_threads = getintopt(xopts,num_threads_symbol,default_num_threads);
+  pthread_t *pt = (pthread_t *)malloc(n_threads * sizeof(pthread_t));
+  struct FD_X2VEC_STATE *thread_states =
+    safe_calloc(n_threads,sizeof(struct FD_X2VEC_STATE),
+		"x2v/TrainModel/threadstates");
+  double start, now;
+  int stop=0;
+  x2v->x2vec_starting_alpha = x2v->x2vec_alpha;
+
+  init_exp_table(x2v);
+
+  if (FD_VOIDP(vocab)) {
+    if (x2v->x2vec_vocab==NULL) {
+      init_vocab(x2v,training);}
+    else u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
+                "Using existing vocabulary of %lld words",
+                x2v->x2vec_vocab_size);}
+  else {
+    import_vocab(x2v,vocab);
+    u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
+           "Initialized %lld words from provided info",
+           x2v->x2vec_vocab_size);}
+  
+  init_nn(x2v);
+
+  start = u8_elapsed_time();
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Train",
+         "Training %s%s%swith %d threads over %d tokens and %d terms\n\t%q",
+         QUOTE_LABEL(x2v->x2vec_label),n_threads,
+         FD_VECTOR_LENGTH(training), x2v->x2vec_vocab_size,
+         (fdtype)x2v);
+
+  /* Start all the threads */
+  for (a = 0; a < n_threads; a++) {
+    struct FD_X2VEC_STATE *tstate=&(thread_states[a]);
+    tstate->x2vec_x2vcxt=x2v; tstate->x2vec_input=training;
+    tstate->x2vec_opts=xopts; fd_incref(xopts);
+    tstate->x2vec_thread_i=a; tstate->x2vec_n_threads=n_threads;
+    tstate->x2vec_start=start; tstate->x2vec_stop=&stop;
+    pthread_create(&pt[a], NULL, training_threadproc, (void *) tstate);}
+  fd_decref(xopts);
+  /* Wait for all of the threads to finish */
+  for (a = 0; a < n_threads; a++) {
+    pthread_join(pt[a], NULL);}
+
+  now=u8_elapsed_time();
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Train/Done",
+         "Finished training %s%s%sin %.2fs over %d inputs and %d terms using %d threads\n\t%q",
+         QUOTE_LABEL(x2v->x2vec_label),now-start,
+         FD_VECTOR_LENGTH(training),x2v->x2vec_vocab_size,n_threads,
+         (fdtype)x2v);
+
+  if ((x2v->x2vec_n_clusters)&&(x2v->x2vec_word2cluster==NULL)) {
+    fdtype nc=fd_getopt(x2v->x2vec_opts,n_clusters_symbol,FD_VOID);
+    if (FD_FIXNUMP(nc))
+      x2v->x2vec_word2cluster=
+        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
+                          &(x2v->x2vec_centers));
+    else fd_decref(nc);}
+}
+
+static void modular_train_model(x2vec_context x2v,
+                                fdtype training,
+                                fdtype vocab,
+                                fdtype opts)
+{
+  long a;
+  fdtype xopts=(FD_VOIDP(opts))?(fd_incref(x2v->x2vec_opts)):
+    (fd_make_pair(opts,x2v->x2vec_opts));
+  int n_threads = getintopt(xopts,num_threads_symbol,default_num_threads);
+  pthread_t *pt = (pthread_t *)malloc(n_threads * sizeof(pthread_t));
+  struct FD_X2VEC_STATE *thread_states =
+    safe_calloc(n_threads,sizeof(struct FD_X2VEC_STATE),
+		"x2v/TrainModel/threadstates");
+  double start, now;
+  int stop=0;
+  x2v->x2vec_starting_alpha = x2v->x2vec_alpha;
+
+  init_exp_table(x2v);
+
+  if (FD_VOIDP(vocab)) {
+    if (x2v->x2vec_vocab==NULL) {
+      init_vocab(x2v,training);}
+    else u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
+                "Using existing vocabulary of %lld words",
+                x2v->x2vec_vocab_size);}
+  else {
+    import_vocab(x2v,vocab);
+    u8_log(x2v->x2vec_loglevel,"X2Vec/Vocab/Init",
+           "Initialized %lld words from provided info",
+           x2v->x2vec_vocab_size);}
+  
+  init_nn(x2v);
+
+  start = u8_elapsed_time();
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Train",
+         "Training %s%s%swith %d threads over %d tokens and %d terms\n\t%q",
+         QUOTE_LABEL(x2v->x2vec_label),n_threads,
+         FD_VECTOR_LENGTH(training), x2v->x2vec_vocab_size,
+         (fdtype)x2v);
+
+  /* Start all the threads */
+  for (a = 0; a < n_threads; a++) {
+    struct FD_X2VEC_STATE *tstate=&(thread_states[a]);
+    tstate->x2vec_x2vcxt=x2v; tstate->x2vec_input=training;
+    tstate->x2vec_opts=xopts; fd_incref(xopts);
+    tstate->x2vec_thread_i=a; tstate->x2vec_n_threads=n_threads;
+    tstate->x2vec_start=start; tstate->x2vec_stop=&stop;
+    pthread_create(&pt[a], NULL, modular_training_threadproc, (void *) tstate);}
+  fd_decref(xopts);
+  /* Wait for all of the threads to finish */
+  for (a = 0; a < n_threads; a++) {
+    pthread_join(pt[a], NULL);}
+
+  now=u8_elapsed_time();
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Train/Done",
+         "Finished training %s%s%sin %.2fs over %d inputs and %d terms using %d threads\n\t%q",
+         QUOTE_LABEL(x2v->x2vec_label),now-start,
+         FD_VECTOR_LENGTH(training),x2v->x2vec_vocab_size,n_threads,
+         (fdtype)x2v);
+
+  if ((x2v->x2vec_n_clusters)&&(x2v->x2vec_word2cluster==NULL)) {
+    fdtype nc=fd_getopt(x2v->x2vec_opts,n_clusters_symbol,FD_VOID);
+    if (FD_FIXNUMP(nc))
+      x2v->x2vec_word2cluster=
+        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
+                          &(x2v->x2vec_centers));
+    else fd_decref(nc);}
+}
+
+/* Computing classes from vectors */
+
+FD_EXPORT int *fd_x2vec_classify(x2vec_context x2v,
+                                 int n_clusters,int n_rounds,
+                                 real **save_centers)
+{
+  // Run K-means on the word vectors
+  size_t vocab_size = x2v->x2vec_vocab_size;
+  int hidden_size = x2v->x2vec_hidden_size;
+  const real *syn0 = x2v->x2vec_syn0;
+  int *class_counts = (int *)
+    safe_malloc(n_clusters * sizeof(int),
+		"x2vec/TrainModel/getClasses/class_counts");
+  int *classes = (int *)
+    safe_calloc(x2v->x2vec_vocab_size, sizeof(int),
+		"x2vec/TrainModel/getClasses/cl");
+  real *centers = (real *)
+    safe_calloc(n_clusters * hidden_size, sizeof(real),
+		"x2vec/TrainModel/getClasses/centers");
+  long a, b, c, d;
+
+  u8_log(x2v->x2vec_loglevel,"X2Vec/Classify",
+         "Computing %d clusters over the result vectors",
+         x2v->x2vec_n_clusters);
+
+  /* Assign all the terms to a class arbitrarily */
+  for (a = 0; a < vocab_size; a++) classes[a] = a % n_clusters;
+  /* Iterate multiple times */
+  for (a = 0; a < n_rounds; a++) {
+    /* Initialize the centers */
+    for (b = 0; b < n_clusters * hidden_size; b++) centers[b] = 0;
+    /* Initialize the counts */
+    for (b = 0; b < n_clusters; b++) class_counts[b] = 1;
+    /* Add together all the vectors by class */
+    for (c = 0; c < vocab_size; c++) {
+      for (d = 0; d < hidden_size; d++) {
+	centers[hidden_size * classes[c] + d] += syn0[c * hidden_size + d];
+	class_counts[classes[c]]++;}}
+    /* Compute the actual centers (divide by count) and normalize them */
+    for (b = 0; b < n_clusters; b++) {
+      real self_product = 0, len;
+      for (c = 0; c < hidden_size; c++) {
+	centers[hidden_size * b + c] /= class_counts[b];
+	self_product += centers[hidden_size * b + c] * centers[hidden_size * b + c];}
+      len = sqrt(self_product);
+      for (c = 0; c < hidden_size; c++) {
+	centers[hidden_size * b + c] /= len;}}
+    /* Reassign classes based on the closest vector */
+    for (c = 0; c < vocab_size; c++) {
+      int closeid=-1; real best=0, sim=0;
+      for (d = 0; d < n_clusters; d++) {
+	sim = 0;
+	for (b = 0; b < hidden_size; b++) {
+	  sim += centers[hidden_size * d + b] * syn0[c * hidden_size + b];}
+        if ((sim > best)||(closeid < 0)) {
+	  best = sim;
+	  closeid = d;}}
+      classes[c] = closeid;}}
+
+  free(class_counts);
+  if (save_centers) 
+    *save_centers=centers;
+  else free(centers);
+
+  return classes;
+}
+
+/* init functions */
+
+static void init_exp_table(x2vec_context x2vcxt)
+{
+  if (x2vcxt->x2vec_exp_table) return;
+  else {
+    int exp_slots = x2vcxt->x2vec_exp_slots;
+    int exp_max = x2vcxt->x2vec_exp_max;
+    real *exp_table = x2vcxt->x2vec_exp_table=exp_table = (real *)
+      safe_malloc((exp_slots + 1) * sizeof(real),"init_exp_table");
+    // Precompute the exp() table
+    int i=0; for (i = 0; i < exp_slots; i++) {
+      float rough_exp = 
+        exp(( i / (real)exp_slots * 2 - 1 ) * exp_max);
+      exp_table[i] = rough_exp / (rough_exp + 1);}}
+}
+
+static void init_unigrams(x2vec_context x2vcxt) 
+{
+  int a, i;
+  long long train_words_pow = 0;
+  real d1, power = 0.75;
+  x2vec_word vocab=x2vcxt->x2vec_vocab;
+  long long vocab_size=x2vcxt->x2vec_vocab_size;
+  int *unigrams=x2vcxt->x2vec_unigrams;
+  long long unigrams_size=x2vcxt->x2vec_unigrams_size;
+
+  if (unigrams==NULL) {
+    unigrams = x2vcxt->x2vec_unigrams = (int *)malloc(unigrams_size * sizeof(int));
+    if (unigrams == NULL) {
+      u8_raise(fd_MallocFailed,"init_unigrams",NULL);}}
+
+  for (a = 0; a < vocab_size; a++) {
+    train_words_pow += pow(vocab[a].count, power);}
+  i = 0;
+  d1 = pow(vocab[i].count, power) / (real)train_words_pow;
+  for (a = 0; a < unigrams_size; a++) {
+    unigrams[a] = i;
+    if (a / (real)unigrams_size > d1) {
+      i++;
+      d1 += pow(vocab[i].count, power) / (real)train_words_pow;
+    }
+    if (i >= vocab_size) i = vocab_size - 1;
+  }
+}
+
+/* Initializing the vocabulary */
+
+static x2vec_word init_vocab_tables
+(x2vec_context x2v,ssize_t init_vocab_size)
+{
+  x2vec_word vocab;
+  size_t vocab_hash_size=x2v->x2vec_vocab_hash_size;
+  size_t vocab_alloc_size=x2v->x2vec_vocab_alloc_size;
+  if (vocab_alloc_size==0) 
+    vocab_alloc_size=x2v->x2vec_vocab_alloc_size=
+      (init_vocab_size>0)?(init_vocab_size):(X2V_DEFAULT_VOCAB_SIZE);
+  if (vocab_hash_size==0) 
+    vocab_hash_size=x2v->x2vec_vocab_hash_size=2*vocab_alloc_size;
+  if (x2v->x2vec_vocab_hash==NULL) {
+    long long vocab_i;
+    int *vocab_hash = x2v->x2vec_vocab_hash = 
+      u8_alloc_n(x2v->x2vec_vocab_hash_size,int);
+    for (vocab_i = 0; vocab_i < vocab_hash_size; vocab_i++) 
+      vocab_hash[vocab_i] = -1;}
+  if (x2v->x2vec_vocab) return x2v->x2vec_vocab;
+  vocab = x2v->x2vec_vocab = u8_alloc_n(vocab_alloc_size,struct FD_X2VEC_WORD);
+  memset(x2v->x2vec_vocab,0,vocab_alloc_size*sizeof(struct FD_X2VEC_WORD));
+  return vocab;
+}
+
+static int *init_vocab_hash(int n)
+{
+  int *hash=u8_alloc_n(n,int);
+  int i=0; while (i<n) hash[i++]=-1;
+  return hash;
+}
+
+static void init_vocab_word
+(x2vec_word word,u8_string spelling,int count)
+{
+  word->word=u8_strdup(spelling);
+  word->count=count;
+}
+
+static void hash_overflow(x2vec_context x2v)
+{
+  if (x2v->x2vec_vocab_size <= (x2v->x2vec_vocab_hash_size * 0.7)) return;
+  if (x2v->x2vec_vocab_hash_max>0) {
+    grow_vocab_hash(x2v);
+    if (x2v->x2vec_vocab_size > (x2v->x2vec_vocab_hash_size * 0.7)) {
+      u8_log(LOG_CRIT,"X2Vec/Vocab/Reduce",
+             "Couldn't grow hashtable for %s%s%s, reducing vocabulary for\n\t%q",
+             QUOTE_LABEL(x2v->x2vec_label),(fdtype)x2v);}}
+  if (x2v->x2vec_vocab_size > (x2v->x2vec_vocab_hash_size * 0.7)) {
+    while (x2v->x2vec_vocab_size > (x2v->x2vec_vocab_hash_size * 0.7))
+      reduce_vocab(x2v);}
+}
+
+static void grow_vocab_hash(x2vec_context x2v)
+{
+  size_t vocab_hash_size=x2v->x2vec_vocab_hash_size;
+  size_t new_size=vocab_hash_size*2; 
+  int *new_hashtable=realloc(x2v->x2vec_vocab_hash,new_size*sizeof(int)); 
+  if (new_hashtable) {
+    off_t hash_i=0, vocab_i=0;
+    size_t vocab_size=x2v->x2vec_vocab_size;
+    x2vec_word vocab=x2v->x2vec_vocab;
+    x2v->x2vec_vocab_hash=new_hashtable;
+    x2v->x2vec_vocab_hash_size=new_size;
+    for (hash_i = 0; hash_i < new_size; hash_i++) 
+      new_hashtable[hash_i] = -1;
+    for (vocab_i = 0; vocab_i < vocab_size; vocab_i++) {
+      struct FD_X2VEC_WORD v=vocab[vocab_i];
+      int hash = fd_x2vec_hash(x2v,v.word);
+      while (new_hashtable[hash] != -1)
+        hash = (hash + 1) % vocab_hash_size;
+      new_hashtable[hash]=vocab_i;}}
+  else {
+    u8_log(LOG_WARN,fd_MallocFailed,
+           "Couldn't access memory to grow vocabulary hash table");
+    x2v->x2vec_vocab_hash_max=0;}
+}
+
+/* Initializing the network from saved data */
+
+FD_EXPORT fdtype fd_x2vec_init(x2vec_context x2vcxt,fdtype init)
+{
+  size_t hidden_size=x2vcxt->x2vec_hidden_size; int memalign_rv;
+  int init_vocab=x2vcxt->x2vec_vocab==NULL;
+  if (FD_TABLEP(init)) {
+    int i=0; fdtype keys=fd_getkeys(init);
+    size_t vocab_size=(init_vocab)?(FD_CHOICE_SIZE(keys)):
+      (x2vcxt->x2vec_vocab_size);
+    size_t syn0_size=vocab_size*hidden_size;
+    memalign_rv=posix_memalign((void **)&(x2vcxt->x2vec_syn0), 
+                               128, syn0_size * sizeof(real));
+    if (memalign_rv==EINVAL) {
+      u8_raise(_("Bad posix_memalign argument"),"x2vec/fd_init_vecs",NULL);}
+    else if (memalign_rv==EINVAL) {
+      u8_raise(_("Not enough memory"),"x2vec/fd_init_vecs",NULL);}
+    else if ((x2vcxt->x2vec_syn1neg) == NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/fd_init_vecs",NULL);}
+    else {
+      real *syn0=x2vcxt->x2vec_syn0;
+      x2vec_word vocab=(init_vocab)?
+        (init_vocab_tables(x2vcxt,vocab_size)):
+        (x2vcxt->x2vec_vocab);
+      FD_DO_CHOICES(key,keys) {
+	if (FD_STRINGP(key)) {
+	  fdtype v=fd_get(init,key,FD_VOID);
+	  if (FD_VOIDP(v)) {}
+	  else if ((FD_PRIM_TYPEP(v,fd_numeric_vector_type))&&
+		   ((FD_NUMVEC_TYPE(v)==fd_float_elt)||
+		    (FD_NUMVEC_TYPE(v)==fd_double_elt))) {
+	    int n=FD_NUMVEC_LENGTH(v);
+	    float *write=&syn0[i*hidden_size];
+	    if (FD_NUMVEC_TYPE(v)==fd_float_elt) {
+	      fd_float *f=FD_NUMVEC_FLOATS(v);
+	      int i=0; while (i<n) {write[i]=f[i]; i++;}}
+	    else {
+	      fd_double *d=FD_NUMVEC_DOUBLES(v);
+	      int i=0; while (i<n) {write[i]=(float)d[i]; i++;}}
+	    if (init_vocab) init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	  else if (FD_PRIM_TYPEP(v,fd_vector_type)) {
+	    int n=FD_VECTOR_LENGTH(v);
+	    fdtype *elts=FD_VECTOR_ELTS(v);
+	    float *f=&syn0[i*hidden_size];
+	    int i=0; while (i<n) {
+	      fdtype elt=elts[i];
+	      if (FD_FLONUMP(elt)) {
+		f[i]=FD_FLONUM(elt);}
+	      else {
+		u8_log(LOGWARN,"BadX2VecValue","%q is not a flonum",elt);}
+	      i++;}
+	    if (init_vocab)
+	      init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	  else {
+	    u8_log(LOGWARN,"BadX2VecValue",
+		   "%q is not a vector or float vector",v);}
+	  fd_decref(v);
+	  i++;}
+	else {}}}
+    fd_decref(keys);
+    return FD_VOID;}
+  else return FD_VOID;
+}
+
+FD_EXPORT int fd_x2vec_import_vocab(x2vec_context x2vcxt,fdtype data)
+{
+  if (x2vcxt->x2vec_vocab_locked) {
+    fd_seterr(_("X2Vec/Vocab/Init/error"),"fd_init_vocab",
+              "Vocabulary locked for %q",(fdtype)x2vcxt);
+    return -1;}
+  else {
+    import_vocab(x2vcxt,data);
+    return 0;}
+}
+
+/* Creating an X2VEC context */
+
+FD_EXPORT x2vec_context fd_init_x2vec(x2vec_context x2v,fdtype opts)
+{
+  fdtype label=fd_getopt(opts,label_symbol,FD_VOID);
+  fdtype optsep=fd_getopt(opts,optsep_symbol,FD_VOID);
+  size_t vocab_alloc_size;
+
+  if (x2v==NULL) {
+    x2v=u8_alloc(struct FD_X2VEC_CONTEXT);
+    FD_INIT_FRESH_CONS(x2v,fd_x2vec_type);}
+  else {
+    FD_INIT_STATIC_CONS(x2v,fd_x2vec_type);}
+  x2v->x2vec_opts=opts; fd_incref(opts);
+
+  x2v->x2vec_vocab_alloc_size = vocab_alloc_size = 
+    getintopt(opts,vocab_size_symbol,default_vocab_size);
+
+  if (vocab_alloc_size==default_vocab_size)
+    x2v->x2vec_vocab_hash_size=
+      getintopt(opts,hash_size_symbol,default_hash_size);
+  else x2v->x2vec_vocab_hash_size=
+         getintopt(opts,hash_size_symbol,vocab_alloc_size*2);
+  x2v->x2vec_vocab_hash_max=
+    getintopt(opts,hash_max_symbol,default_hash_max);
+  x2v->x2vec_unigrams_size=
+    getintopt(opts,unigrams_size_symbol,default_unigrams_size);
+  /* Not using yet, so vocab_max_size == vocab_size */
+  x2v->x2vec_vocab_max_size = getintopt(opts,vocab_size_symbol,-1);
+
+  x2v->x2vec_hidden_size=getintopt(opts,hidden_size,default_hidden_size);
+  x2v->x2vec_window=getintopt(opts,window_symbol,default_window);
+  x2v->x2vec_hash_reduce=getintopt(opts,hash_reduce_symbol,default_hash_reduce);
+  x2v->x2vec_min_count=getintopt(opts,min_count_symbol,default_min_count);
+  x2v->x2vec_n_clusters=getintopt(opts,n_clusters_symbol,default_n_clusters); 
+  x2v->x2vec_n_cluster_rounds=
+    getintopt(opts,n_cluster_rounds_symbol,default_n_cluster_rounds);
+  
+  x2v->x2vec_exp_slots=
+    getrealopt(opts,exp_slots_symbol,default_exp_slots);
+  x2v->x2vec_exp_max=getrealopt(opts,exp_max_symbol,default_exp_max);
+
+  x2v->x2vec_alpha=getrealopt(opts,alpha_symbol,default_init_alpha);
+  x2v->x2vec_subsample=getrealopt(opts,subsample_symbol,default_subsample);
+  x2v->x2vec_negsamp=getintopt(opts,negsamp_symbol,default_negsamp);
+  x2v->x2vec_hisoftmax=getboolopt(opts,hisoftmax_symbol,default_hisoft);
+  x2v->x2vec_loglevel=getintopt(opts,loglevel_symbol,default_loglevel);
+  x2v->x2vec_logfreq=getintopt(opts,logfreq_symbol,default_logfreq);
+
+  if (fd_testopt(opts,mode_symbol,bag_of_words_symbol))
+    x2v->x2vec_bag_of_words=1;
+  else if (fd_testopt(opts,mode_symbol,skipgram_symbol))
+    x2v->x2vec_bag_of_words=0;
+  else x2v->x2vec_bag_of_words=default_cbow;
+
+  if (FD_STRINGP(label))
+    x2v->x2vec_label=u8_strdup(FD_STRDATA(label));
+  else if (FD_SYMBOLP(label))
+    x2v->x2vec_label=u8_strdup(FD_SYMBOL_NAME(label));
+  else if ((FD_PAIRP(label))||(FD_VECTORP(label))||(FD_NUMBERP(label)))
+    x2v->x2vec_label=fd_dtype2string(label);
+  else {}
+
+  if (FD_STRINGP(optsep)) {
+    if (FD_STRLEN(optsep)==1)
+      x2v->x2vec_opt_sep=FD_STRDATA(optsep)[0];
+    else {
+      u8_log(LOGWARN,InvalidOpSeparator,
+             "Ignoring multi-character opt separator %q",optsep);}}
+  else if (FD_CHARACTERP(optsep)) {
+    int code=FD_CHAR2CODE(optsep);
+    if (code<0x80) {
+      x2v->x2vec_opt_sep=FD_STRDATA(optsep)[0];}
+    else {
+      u8_log(LOGWARN,InvalidOpSeparator,
+             "Ignoring non-ascii opt separator %q",optsep);}}
+  else if (FD_FIXNUMP(optsep)) {
+    int code=FD_FIX2INT(optsep);
+    if (code<0x80) {
+      x2v->x2vec_opt_sep=FD_STRDATA(optsep)[0];}
+    else {
+      u8_log(LOGWARN,InvalidOpSeparator,
+             "Ignoring non-ascii opt separator %q",optsep);}}
+  else if (FD_VOIDP(optsep)) {}
+  else {
+    u8_log(LOGWARN,InvalidOpSeparator,
+           "Ignoring invalid word opt separator %q",optsep);}
+
+  fd_decref(label);
+  fd_decref(optsep);
+
+  return x2v;
+}
+
+FD_EXPORT x2vec_context fd_x2vec_start
+(fdtype opts,fdtype training_data,fdtype vocab_init)
+{
+  x2vec_context x2v = fd_init_x2vec(NULL,opts);
+
+  if ( (FD_VOIDP(training_data)) && (FD_VOIDP(vocab_init)) ) 
+    return x2v;
+  else if (FD_VECTORP(training_data)) {fd_incref(training_data);}
+  else if (FD_STRINGP(training_data)) {
+    fdtype wordvec=fd_words2vector(FD_STRDATA(training_data),0);
+    training_data=wordvec;}
+  else {
+    fd_seterr(fd_TypeError,"fd_start_x2vec",u8_strdup("training data"),FD_VOID);
+    return NULL;}
+  train_model(x2v,training_data,vocab_init,opts);
+
+  fd_decref(training_data);
+
+  return x2v;
+}
+
+FD_EXPORT x2vec_context fd_x2vec_modular_start
+(fdtype opts,fdtype training_data,fdtype vocab_init)
+{
+  x2vec_context x2v = fd_init_x2vec(NULL,opts);
+
+  if ( (FD_VOIDP(training_data)) && (FD_VOIDP(vocab_init)) ) 
+    return x2v;
+  else if (FD_VECTORP(training_data)) {fd_incref(training_data);}
+  else if (FD_STRINGP(training_data)) {
+    fdtype wordvec=fd_words2vector(FD_STRDATA(training_data),0);
+    training_data=wordvec;}
+  else {
+    fd_seterr(fd_TypeError,"fd_start_x2vec",u8_strdup("training data"),FD_VOID);
+    return NULL;}
+  modular_train_model(x2v,training_data,vocab_init,opts);
+
+  fd_decref(training_data);
+
+  return x2v;
+}
+
+static fdtype x2vec_start_prim(fdtype opts,fdtype data,fdtype vocab)
+{
+
+  x2vec_context x2v=fd_x2vec_start(opts,data,vocab);
+  if (x2v==NULL)
+    return FD_ERROR_VALUE;
+  else return (fdtype) x2v;
+}
+
+static fdtype x2vec_modular_start_prim(fdtype opts,fdtype data,fdtype vocab)
+{
+  x2vec_context x2v=fd_x2vec_modular_start(opts,data,vocab);
+  if (x2v==NULL)
+    return FD_ERROR_VALUE;
+  else return (fdtype) x2v;
+}
+
+static fdtype x2vec_train_prim(fdtype x2v_arg,fdtype input,fdtype alpha_arg)
+{
+  x2vec_context x2v=(x2vec_context ) x2v_arg;
+  double alpha = ((FD_VOIDP(alpha_arg))?(x2v->x2vec_alpha):
+                  (FD_FLONUM(alpha_arg)));
+  double result=0;
+  int vec_i=0, vec_length=FD_VECTOR_LENGTH(input), block_length=0;
+  fdtype *vec_elts = FD_VECTOR_ELTS(input);
+  long long *block = u8_alloc_n(vec_length,long long);
+  while ( vec_i<vec_length ) {
+    fdtype elt=vec_elts[vec_i++];
+    if (!(FD_STRINGP(elt))) continue;
+    long long word = vocab_ref(x2v,FD_STRDATA(elt),NULL);
+    if (word>=0) block[block_length++]=word;}
+
+  result = block_train(x2v,block,block_length,alpha,NULL,NULL,NULL);
+
+  u8_free(block);
+
+  return fd_make_flonum( result );
+}
+
+static fdtype x2vec_add_vocab_prim(fdtype x2varg,fdtype vocab)
+{
+  x2vec_context x2v=(x2vec_context )x2varg;
+  long long retval=import_vocab(x2v,vocab);
+  if (retval<0) 
+    return FD_ERROR_VALUE;
+  else return FD_INT2DTYPE(retval);
+}
+
+/* Getting stuff out to Scheme */
+
+static fdtype x2vec_inputs_prim(fdtype arg)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  int i=0, n=x2v->x2vec_vocab_size;
+  x2vec_word words=x2v->x2vec_vocab;
+  fdtype result=fd_make_vector(n,NULL);
+  while (i<n) {
+    fdtype s=fd_make_string(NULL,-1,words[i].word);
+    FD_VECTOR_SET(result,i,s);
+    i++;}
+  return result;
+}
+
+static fdtype x2vec_counts_prim(fdtype arg,fdtype word)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  int i=0, n=x2v->x2vec_vocab_size;
+  x2vec_word words=x2v->x2vec_vocab;
+  if (FD_VOIDP(word)) {
+    fdtype result=fd_make_hashtable(NULL,n);
+    fd_hashtable h=(fd_hashtable) result;
+    while (i<n) {
+      fdtype s=fd_make_string(NULL,-1,words[i].word);
+      fdtype v=FD_INT2DTYPE(words[i].count);
+      fd_hashtable_op(h,fd_table_store_noref,s,v);
+      i++;}
+    return result;}
+  else if (FD_STRINGP(word)) {
+    u8_string s=FD_STRDATA(word);
+    int id=fd_x2vec_vocabid(x2v,s);
+    if (id<0) return FD_EMPTY_CHOICE;
+    else {
+      x2vec_word vocab=x2v->x2vec_vocab;
+      int count=vocab[id].count;
+      return FD_INT2DTYPE(count);}}
+  else return fd_type_error("string","x2vec_counts_prim",word);
+}
+
+static fdtype x2vec_get_prim(fdtype arg,fdtype term)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  size_t hidden_size=x2v->x2vec_hidden_size;
+  real *syn0=x2v->x2vec_syn0;
+  if (syn0==NULL)
+    return FD_EMPTY_CHOICE;
+  else if (FD_STRINGP(term)) {
+    int i=fd_x2vec_vocabid(x2v,FD_STRDATA(term));
+    if (i<0) return FD_EMPTY_CHOICE;
+    else {
+      return normalized_floatvec(hidden_size,&(syn0[i*hidden_size]));}}
+  else return fd_type_error(_("string"),"x2vec_get_prim",term);
+}
+
+static fdtype x2vec_vectors_prim(fdtype arg)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  size_t vocab_size=x2v->x2vec_vocab_size;
+  size_t hidden_size=x2v->x2vec_hidden_size;
+  x2vec_word vocab=x2v->x2vec_vocab;
+  real *syn0=x2v->x2vec_syn0;
+  if (syn0==NULL)
+    return FD_EMPTY_CHOICE;
+  else {
+    struct FD_HASHTABLE *ht=(fd_hashtable)
+      fd_make_hashtable(NULL,vocab_size+vocab_size/2);
+    int i=0; 
+    while (i<vocab_size) {
+      u8_string word=vocab[i].word;
+      fdtype key=fd_make_string(NULL,-1,word);
+      fdtype result=normalized_floatvec(hidden_size,&(syn0[i*hidden_size]));
+      fd_hashtable_store(ht,key,result);
+      fd_decref(key); fd_decref(result);
+      i++;}
+    return (fdtype)ht;}
+}
+
+static fdtype x2vec_getclassvec_prim(fdtype arg,fdtype n_clusters,fdtype n_rounds)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  int n=(FD_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(FD_FIX2INT(n_clusters));
+  int rounds=(FD_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(FD_FIX2INT(n_rounds));
+  int n_words=x2v->x2vec_vocab_size;
+  if ((x2v->x2vec_word2cluster)&&
+      ((FD_VOIDP(n_clusters))||
+       ((FD_FIX2INT(n_clusters))==x2v->x2vec_n_clusters))&&
+      ((FD_VOIDP(n_rounds))||
+       ((FD_FIX2INT(n_rounds))==x2v->x2vec_n_cluster_rounds))) {
+    int *word2cluster=x2v->x2vec_word2cluster;
+    fdtype result=fd_make_int_vector(n_words,word2cluster);
+    return result;}
+  else {
+    int *word2cluster=fd_x2vec_classify(x2v,n,rounds,&(x2v->x2vec_centers));
+    fdtype result=fd_make_int_vector(n_words,word2cluster);
+    if (n==x2v->x2vec_n_clusters) 
+      x2v->x2vec_word2cluster=word2cluster;
+    else u8_free(word2cluster);
+    return result;}
+}
+
+static fdtype x2vec_getclusters_prim(fdtype arg,fdtype n_clusters,fdtype n_rounds)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  int class_i=0, vocab_i=0, *word2cluster=NULL;
+  int n=(FD_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(FD_FIX2INT(n_clusters));
+  int rounds=(FD_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(FD_FIX2INT(n_rounds));
+  struct FD_HASHSET **sets=u8_alloc_n(n,struct FD_HASHSET *);
+  x2vec_word vocab=x2v->x2vec_vocab;
+  ssize_t vocab_size=x2v->x2vec_vocab_size;
+  fdtype result=FD_VOID;
+  if ((n==x2v->x2vec_n_clusters)&&(rounds=x2v->x2vec_n_cluster_rounds)) {
+    if (x2v->x2vec_word2cluster) 
+      word2cluster=x2v->x2vec_word2cluster;
+    else 
+      word2cluster=x2v->x2vec_word2cluster=
+        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,
+                          &(x2v->x2vec_centers));}
+  else word2cluster=fd_x2vec_classify(x2v,n,rounds,NULL);
+  class_i=0; while (class_i<n) {
+    struct FD_HASHSET *hs=u8_alloc(struct FD_HASHSET);
+    fd_init_hashset(hs,(2*(vocab_size/n))+17,0);
+    sets[class_i++]=hs;}
+  vocab_i=0; while (vocab_i<vocab_size) {
+    int cluster_id=word2cluster[vocab_i]; 
+    if (cluster_id<n) {
+      fdtype string=fdtype_string(vocab[vocab_i].word);
+      fd_hashset_add_raw(sets[cluster_id],string); 
+      fd_decref(string);}
+    else {
+      u8_log(LOGWARN,"X2Vec/Cluster","Cluster ID out of range");}
+    vocab_i++;}
+  if (word2cluster!=x2v->x2vec_word2cluster)
+    u8_free(word2cluster);
+  result=fd_make_vector(n,(fdtype *)sets);
+  u8_free(sets);
+  return result;
+}
+
+static fdtype x2vec_getcenters_prim(fdtype arg,fdtype n_clusters,fdtype n_rounds)
+{
+  x2vec_context x2v = (x2vec_context ) arg;
+  int class_i=0, *word2cluster=NULL, vec_size=x2v->x2vec_hidden_size;
+  int n=(FD_VOIDP(n_clusters))?(x2v->x2vec_n_clusters):(FD_FIX2INT(n_clusters));
+  int rounds=(FD_VOIDP(n_rounds))?(x2v->x2vec_n_cluster_rounds):(FD_FIX2INT(n_rounds));
+  fdtype result=FD_VOID;
+  real *centers;
+  if ((n==x2v->x2vec_n_clusters)&&(rounds=x2v->x2vec_n_cluster_rounds)) {
+    if (x2v->x2vec_word2cluster) {
+      word2cluster=x2v->x2vec_word2cluster;
+      centers=x2v->x2vec_centers;}
+    else {
+      word2cluster=x2v->x2vec_word2cluster=
+        fd_x2vec_classify(x2v,x2v->x2vec_n_clusters,x2v->x2vec_n_cluster_rounds,&centers);
+      x2v->x2vec_centers=centers;}}
+  else word2cluster=fd_x2vec_classify(x2v,n,rounds,&centers);
+  result=fd_make_vector(n,NULL);
+  class_i=0; while (class_i<n) {
+    fdtype center=fd_make_float_vector(vec_size,centers+class_i);
+    FD_VECTOR_SET(result,class_i,center);
+    class_i++;}
+  if (centers!=x2v->x2vec_centers)
+    u8_free(centers);
+  if (word2cluster!=x2v->x2vec_word2cluster)
+    u8_free(word2cluster);
+  return result;
+}
+
+static fdtype x2vec_cosim_prim(fdtype term1,fdtype term2,fdtype x2varg)
+{
+  x2vec_context x2v=(FD_VOIDP(x2varg))?(NULL):
+    ((x2vec_context )x2varg);
+  int len1=0, len2=0, free1=0, free2=0;
+  float *vec1=get_float_vec(x2v,term1,&len1,&free1);
+  float *vec2=(vec1!=NULL)?(get_float_vec(x2v,term2,&len2,&free2)):(NULL);
+  if ((vec1)&&(vec2)&&(len1==len2)) {
+    if ((free1)||(free2)) {
+      float r=cosim_float(len1,vec1,vec2,0);
+      if (free1) u8_free(vec1);
+      if (free2) u8_free(vec2);
+      return fd_make_flonum(r);}
+    else return fd_make_flonum(cosim_float(len1,vec1,vec2,0));}
+  else {
+    if ((vec1)&&(vec2)) 
+      fd_seterr(_("vector lengths differ"),"x2vec_cosim_prim",
+                u8_mkstring("%d != %d",len1,len2),
+                FD_VOID);
+    if (free1) u8_free(vec1);
+    if (free2) u8_free(vec2);
+    return FD_ERROR_VALUE;}
+}
+
+static float *get_float_vec(x2vec_context x2v,
+                            fdtype arg,int *lenp,int *freep)
+{
+  if ((FD_NUMERIC_VECTORP(arg))&&
+      (FD_NUMVEC_TYPE(arg)==fd_float_elt)) {
+    *lenp=FD_NUMVEC_LENGTH(arg);
+    return FD_NUMVEC_FLOATS(arg);}
+  else if ((FD_NUMERIC_VECTORP(arg))&&
+           (FD_NUMVEC_TYPE(arg)==fd_double_elt)) {
+    int i=0, n=FD_NUMVEC_LENGTH(arg);
+    fd_double *elts=FD_NUMVEC_DOUBLES(arg);
+    real *result=u8_alloc_n(n,float);
+    while (i<n) {result[i]=(float)elts[i]; i++;}
+    *lenp=n; *freep=1;
+    return result;}
+  else if (FD_VECTORP(arg)) {
+    int i=0, n=FD_VECTOR_LENGTH(arg);
+    fdtype *elts=FD_VECTOR_ELTS(arg);
+    real *result=u8_alloc_n(n,float);
+    while (i<n) {
+      fdtype elt=*elts;
+      if (FD_FLONUMP(elt)) {
+        fd_double d=FD_FLONUM(elt);
+        result[i]=(float)d;}
+      else if (FD_NUMBERP(elt)) {
+        fd_double d=fd_todouble(elt);
+        result[i]=(float)d;}
+      else if (FD_TRUEP(elt)) {
+        result[i]=(float)1;}
+      else if (FD_FALSEP(elt)) {
+        result[i]=(float)0;}
+      else {
+        fd_incref(arg);
+        fd_seterr(fd_TypeError,"get_float_vec",
+                  u8_strdup("numeric element"),
+                  arg);
+        u8_free(result);
+        return NULL;}
+      i++; elts++;}
+    *lenp=n; *freep=1;
+    return result;}
+  else if (FD_STRINGP(arg)) {
+    if (x2v) {
+      float *v=fd_x2vec_get(x2v,FD_STRDATA(arg));
+      *lenp=x2v->x2vec_hidden_size;
+      return v;}
+    else {
+      fd_seterr(_("Not a vector"),"get_float_vec",
+                u8_strdup(FD_STRDATA(arg)),FD_VOID);
+      return NULL;}}
+  else if (FD_FIXNUMP(arg)) {
+    int id=FD_FIX2INT(arg);
+    if ((x2v)&&(id>=0)&&(id<x2v->x2vec_vocab_size)) {
+      float *v=&((x2v->x2vec_syn0)[id*(x2v->x2vec_hidden_size)]);
+      *lenp=x2v->x2vec_hidden_size;
+      return v;}
+    else if (x2v) {
+      fd_seterr(_("Invalid vocab ID"),"get_float_vec",NULL,arg);
+      return NULL;}
+    else {
+      fd_seterr(_("No X2VEC available"),"get_float_vec",
+                u8_strdup(FD_STRDATA(arg)),FD_VOID);
+      return NULL;}}
+  else if (x2v) {
+    fd_incref(arg); 
+    fd_seterr(_("not a string, id, or vector"),"get_float_vec",NULL,arg);
+    return NULL;}
+  else {
+    fd_seterr(_("not a vector"),"get_float_vec",NULL,arg); fd_incref(arg);
+    return NULL;}
+}
+
+/* Reading a vector file */
+
+FD_EXPORT x2vec_context fd_x2vec_read(u8_string filename,fdtype opts)
+{
+  FILE *f = u8_fopen(filename,"rb");
+  if (f==NULL) {
+    u8_seterr(fd_FileNotFound,"fd_x2vec_read",u8_strdup(filename));
+    return NULL;}
+  else {
+    x2vec_context x2v = fd_init_x2vec(NULL,opts);
+    if (x2v->x2vec_label==NULL) x2v->x2vec_label=u8_strdup(filename);
+    if (read_vectors(x2v,f)<0) {
+      fdtype dtypeval=(fdtype)x2v;
+      fclose(f);
+      fd_decref(dtypeval);
+      return NULL;}
+    else return x2v;}
+}
+
+static fdtype x2vec_read_prim(fdtype filename,fdtype opts)
+{
+  u8_string path=FD_STRDATA(filename);
+  if (u8_file_existsp(path)) {
+    x2vec_context x2v=fd_x2vec_read(path,opts);
+    if (x2v==NULL)
+      return FD_ERROR_VALUE;
+    else return (fdtype) x2v;}
+  else return fd_err(fd_FileNotFound,"x2vec_read_prim",NULL,filename);
+}
+
+static long long read_vectors(x2vec_context x2v,FILE *f)
+{
+  long i=0, j=0, n_words, n_dimensions, vocab_hash_size;
+  x2vec_word vocab;
+  int *vocab_hash; float *vecs;
+  if (fscanf(f,"%ld",&n_words)<1) {
+    fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+    return -1;}
+  else if (fscanf(f,"%ld",&n_dimensions)<1) {
+    fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+    return -1;}
+  else {
+    u8_log(x2v->x2vec_loglevel,"x2vec/ReadVectors",
+           "Reading vector data for %d words x %d dimensions",
+           n_words,n_dimensions);
+    x2v->x2vec_vocab=vocab=u8_alloc_n(n_words,struct FD_X2VEC_WORD);
+    x2v->x2vec_vocab_size=n_words; x2v->x2vec_vocab_alloc_size=n_dimensions;
+    x2v->x2vec_vocab_hash_size=vocab_hash_size=fd_get_hashtable_size(2*n_words);
+    x2v->x2vec_vocab_hash=vocab_hash=init_vocab_hash(vocab_hash_size);
+    x2v->x2vec_syn0=vecs=u8_alloc_n(n_dimensions*n_words,float);
+    x2v->x2vec_hidden_size=n_dimensions;
+    for ( i = 0; i < n_words; i++ ) {
+      char buf[64], ch; /* float len=0; */
+      float *vec=vecs+(i*n_dimensions);
+      if (fscanf(f,"%s%c",buf,&ch)<1) {
+        fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+        return -1;}
+      else {
+        vocab_init(x2v,buf,i);
+        if ((fread(vec+j, sizeof(float), n_dimensions, f))!=n_dimensions) {
+          fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+          return -1;}
+        /*
+          for ( j = 0; j < n_dimensions; j++ )
+          if ((fread(vec+j, sizeof(float), 1, f))!=1) {
+          fd_seterr(_("Bad vector data file"),"read_vectors",NULL,FD_VOID);
+          return -1;}
+          for ( j = 0; j< n_dimensions; j++ ) 
+          len = len + ( vec[j] * vec[j] );
+          len=sqrt(len);
+          for ( j = 0; j< n_dimensions; j++ ) 
+          vec[j] = vec[j] / len;
+        */}}
+    return n_words*n_dimensions;}
+}
+
+/* Handlers */
+
+static void recycle_x2vec(struct FD_RAW_CONS *c)
+{
+  x2vec_context x2v=(x2vec_context )c;
+  x2vec_word vocab=x2v->x2vec_vocab;
+
+  if (vocab) {
+    int i=0, n=x2v->x2vec_vocab_size; while (i<n) {
+      u8_free(vocab[i].word); 
+      FREE_LOC(vocab[i].nodeid);
+      i++;}
+    FREE_LOC(x2v->x2vec_vocab);}
+  FREE_LOC(x2v->x2vec_vocab_hash);
+  FREE_LOC(x2v->x2vec_unigrams);
+  FREE_LOC(x2v->x2vec_word2cluster);
+  FREE_LOC(x2v->x2vec_syn0);
+  FREE_LOC(x2v->x2vec_syn1);
+  FREE_LOC(x2v->x2vec_syn1neg);
+  FREE_LOC(x2v->x2vec_exp_table);
+  FREE_LOC(x2v->x2vec_label);
+
+  u8_free(x2v);
+}
+
+static int unparse_x2vec(struct U8_OUTPUT *out,fdtype x)
+{
+  x2vec_context x2v=(x2vec_context )x;
+  u8_printf(out,"#<X2VEC %s%s%s(%s%lld terms) x (%d outputs) #!%llx>",
+            QUOTE_LABEL(x2v->x2vec_label),
+            ((x2v->x2vec_vocab_locked)?(U8S0()):(U8STR("~"))),
+            x2v->x2vec_vocab_size,
+            x2v->x2vec_hidden_size,
+            (unsigned long long)x2v);
+  return 1;
+}
+
+/* Initialization */
+
+FD_EXPORT int fd_init_x2vec_c(void) FD_LIBINIT_FN;
+static long long int x2vec_initialized=0;
+
+static void init_x2vec_symbols(void);
+
+FD_EXPORT int fd_init_x2vec_c()
+{
+  fdtype module;
+  if (x2vec_initialized) return 0;
+  x2vec_initialized=u8_millitime();
+
+  fd_init_texttools();
+
+  fd_x2vec_type=fd_register_cons_type("X2VEC");
+  fd_recyclers[fd_x2vec_type]=recycle_x2vec;
+  fd_unparsers[fd_x2vec_type]=unparse_x2vec;
+
+  init_x2vec_symbols();
+
+  module=fd_new_module("X2VEC",(FD_MODULE_SAFE));
+
+  fd_idefn(module,fd_make_cprim3("X2VEC/START",x2vec_start_prim,1));
+  fd_idefn(module,fd_make_cprim3("X2VEC/MSTART",x2vec_modular_start_prim,1));
+  fd_idefn(module,fd_make_cprim2("X2VEC/READ",x2vec_read_prim,1));
+  fd_idefn(module,fd_make_cprim2x("X2VEC/VOCAB!",x2vec_add_vocab_prim,2,
+                                  fd_x2vec_type,-1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x
+           ("X2VEC/TRAIN",x2vec_train_prim,2,
+            fd_x2vec_type,-1,fd_vector_type,FD_VOID,
+            fd_flonum_type,FD_VOID));
+
+  fd_idefn(module,fd_make_cprim1x
+           ("X2VEC/INPUTS",x2vec_inputs_prim,1,fd_x2vec_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x
+           ("X2VEC/COUNTS",x2vec_counts_prim,1,fd_x2vec_type,FD_VOID,fd_string_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("X2VEC/VECTORS",x2vec_vectors_prim,1,fd_x2vec_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x
+           ("X2VEC/GET",x2vec_get_prim,2,
+            fd_x2vec_type,FD_VOID,fd_string_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x
+           ("X2VEC/COSIM",x2vec_cosim_prim,2,
+            -1,FD_VOID,-1,FD_VOID,fd_x2vec_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x
+           ("X2VEC/CLASSVEC",x2vec_getclassvec_prim,1,
+            fd_x2vec_type,FD_VOID,fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x
+           ("X2VEC/CLUSTERS",x2vec_getclusters_prim,1,
+            fd_x2vec_type,FD_VOID,fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x
+           ("X2VEC/CENTERS",x2vec_getcenters_prim,1,
+            fd_x2vec_type,FD_VOID,fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID));
+  fd_defalias(module,"X2VEC/DISTANCE","X2VEC/COSIM");
+  fd_defalias(module,"COSIM","X2VEC/COSIM");
+  
+  fd_register_config("X2VEC:MONITOR",
+                     "How often to update the progress display during training",
+                     fd_boolconfig_get,fd_boolconfig_set,&show_progress);
+  fd_register_config("X2VEC:VECSIZE",
+                     "How many elements in the item vectors (the hidden layer size)",
+                     fd_intconfig_get,fd_intconfig_set,&default_hidden_size);
+  fd_register_config("X2VEC:WINDOW",
+                     "The context window for the training algorithm",
+                     fd_intconfig_get,fd_intconfig_set,&default_window);
+  fd_register_config("X2VEC:MINCOUNT",
+                     "The minimum frequency for terms to be used in training",
+                     fd_intconfig_get,fd_intconfig_set,&default_min_count);
+  fd_register_config("X2VEC:HASHMAX",
+                     "The maximum size for growing the input hashtable",
+                     fd_intconfig_get,fd_intconfig_set,&default_hash_max);
+  fd_register_config("X2VEC:HASHSIZE",
+                     "Initial size for the vocabulary hash table",
+                     fd_intconfig_get,fd_intconfig_set,&default_vocab_size);
+  fd_register_config("X2VEC:HASHREDUCE",
+                     "Threshold for reducing the vocabulary when the hashtable overflows",
+                     fd_intconfig_get,fd_intconfig_set,&default_hash_reduce);
+  fd_register_config("X2VEC:TABLESIZE",
+                     "The maximum size for growing the input hahstable",
+                     fd_intconfig_get,fd_intconfig_set,&default_unigrams_size);
+  fd_register_config("X2VEC:CBOW",
+                     "Whether to use CBOW (Continuous Bag Of Words) for training",
+                     fd_boolconfig_get,fd_boolconfig_set,&default_cbow);
+  fd_register_config("X2VEC:VOCABSIZE",
+                     "The initial size for the vocabulary table",
+                     fd_intconfig_get,fd_intconfig_set,&default_vocab_size);
+  fd_register_config("X2VEC:NCLASSES",
+                     "How many classes to generate by default",
+                     fd_intconfig_get,fd_intconfig_set,&default_n_clusters);
+  
+  fd_register_config("X2VEC:ALPHA","The default initial training rate",
+                     fd_dblconfig_get,fd_dblconfig_set,&default_init_alpha);
+  fd_register_config("X2VEC:SUBSAMPLE",
+                     "The threshold for subsampling during training",
+                     fd_dblconfig_get,fd_dblconfig_set,&default_subsample);
+  fd_register_config("X2VEC:NEGATIVE",
+                     "The number of negative samples to use during training",
+                     fd_dblconfig_get,fd_dblconfig_set,&default_subsample);
+
+  fd_register_config("X2VEC:LOGFREQ",
+                     "How often to log trainining (roughly every n*10000 words)",
+                     fd_intconfig_get,fd_intconfig_set,&default_logfreq);
+
+  fd_register_config("X2VEC:EXPMAX",
+                     "The maximum/minimum value for estimated exponents",
+                     fd_dblconfig_get,fd_dblconfig_set,
+                     &default_exp_max);
+  fd_register_config("X2VEC:EXP-PRECISION",
+                     "The maximum/minimum value for estimated exponents",
+                     fd_intconfig_get,fd_intconfig_set,
+                     &default_exp_slots);
+
+
+  u8_register_source_file(_FILEINFO);
+
+  return 1;
+}
+
+static void init_x2vec_symbols()
+{
+  label_symbol=fd_intern("LABEL");
+  hidden_size=fd_intern("VECSIZE");
+  window_symbol=fd_intern("WINDOW");
+  num_threads_symbol=fd_intern("NTHREADS");
+  hash_reduce_symbol=fd_intern("HASHREDUCE");
+  min_count_symbol=fd_intern("MIN-COUNT");
+  n_clusters_symbol=fd_intern("N-CLASSES");
+  n_cluster_rounds_symbol=fd_intern("N-ROUNDS");
+  unigrams_size_symbol=fd_intern("UNIGRAMS-SIZE");
+  vocab_size_symbol=fd_intern("VOCAB-SIZE");
+  hash_size_symbol=fd_intern("HASHSIZE");
+  alpha_symbol=fd_intern("ALPHA");
+  subsample_symbol=fd_intern("SUBSAMPLE");
+  negsamp_symbol=fd_intern("NEGSAMP");
+  hisoftmax_symbol=fd_intern("HISOFTMAX");
+  mode_symbol=fd_intern("MODE");
+  bag_of_words_symbol=FD_EMPTY_CHOICE;
+  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BAG_OF_WORDS"));
+  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BAG-OF-WORDS"));
+  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BAGOFWORDS"));
+  FD_ADD_TO_CHOICE(bag_of_words_symbol,fd_intern("BOW"));
+  skipgram_symbol=FD_EMPTY_CHOICE;
+  FD_ADD_TO_CHOICE(skipgram_symbol,fd_intern("SKIPGRAM"));
+  hash_max_symbol=fd_intern("HASHMAX");
+  exp_max_symbol=fd_intern("EXPMAX");
+  exp_slots_symbol=fd_intern("EXPSLOTS");
+  loglevel_symbol=fd_intern("LOGLEVEL");
+  logfreq_symbol=fd_intern("LOGFREQ");
+  optsep_symbol=fd_intern("OPTSEP");
+}
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../makefile; then make -C .. libs; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

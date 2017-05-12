@@ -960,9 +960,21 @@ static fdtype hashsettest(fdtype hs,fdtype key)
   return FD_FALSE;
 }
 
-static fdtype hashsetelts(fdtype hs)
+static fdtype hashsetelts(fdtype hs,fdtype clean)
 {
-  return fd_hashset_elts((fd_hashset)hs,0);
+  if (FD_FALSEP(clean))
+    return fd_hashset_elts((fd_hashset)hs,0);
+  else return fd_hashset_elts((fd_hashset)hs,1);
+}
+
+static fdtype reset_hashset(fdtype hs)
+{
+  int rv=fd_reset_hashset((fd_hashset)hs);
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else if (rv)
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static fdtype choice2hashset(fdtype arg)
@@ -1148,9 +1160,14 @@ FD_EXPORT void fd_init_tableprims_c()
            fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
                                           fd_hashset_type,FD_VOID,
                                           -1,FD_VOID)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("HASHSET-ELTS",hashsetelts,1,
-                           fd_hashset_type,FD_VOID));
+  fd_idefn2(fd_scheme_module,"HASHSET-ELTS",hashsetelts,1,
+            "Returns the elements of a hashset.\n"
+            "With a non-false second argument, resets "
+            "the hashset (removing all values)",
+            fd_hashset_type,FD_VOID,-1,FD_FALSE);
+  fd_idefn1(fd_scheme_module,"RESET-HASHSET!",reset_hashset,1,
+            "Remove all of the elements of a hashset.",
+            fd_hashset_type,FD_VOID);
 
 
 }

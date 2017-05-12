@@ -481,12 +481,17 @@ static fdtype get_entry(fdtype key,fdtype entries)
   return entry;
 }
 
-FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
+FD_EXPORT
+int fd_load_latest
+(u8_string filename,fd_lispenv env,u8_string base)
 {
   if (filename == NULL) {
-    int loads = 0; fd_lispenv scan = env; fdtype result = FD_VOID;
+    int loads = 0;
+    fd_lispenv scan = env;
+    fdtype result = FD_VOID;
     while (scan) {
-      fdtype sources = fd_get(scan->env_bindings,source_symbol,FD_EMPTY_CHOICE);
+      fdtype sources =
+        fd_get(scan->env_bindings,source_symbol,FD_EMPTY_CHOICE);
       FD_DO_CHOICES(entry,sources) {
         struct FD_TIMESTAMP *loadstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
@@ -512,7 +517,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
   else {
     u8_string abspath = u8_abspath(filename,base);
     fdtype abspath_dtype = fdtype_string(abspath);
-    fdtype sources = fd_get(env->env_bindings,source_symbol,FD_EMPTY_CHOICE);
+    fdtype sources =
+      fd_get(env->env_bindings,source_symbol,FD_EMPTY_CHOICE);
     fdtype entry = get_entry(abspath_dtype,sources);
     fdtype result = FD_VOID;
     if (FD_PAIRP(entry))
@@ -521,7 +527,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t last_loaded = curstamp->ts_u8xtime.u8_tick;
         time_t mod_time = u8_file_mtime(FD_STRDATA(abspath_dtype));
-        if (mod_time<=last_loaded) return 0;
+        if (mod_time<=last_loaded)
+          return 0;
         else {
           struct FD_PAIR *pair = (struct FD_PAIR *)entry;
           struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
@@ -530,7 +537,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
           fd_decref(pair->cdr);
           pair->cdr = FDTYPE_CONS(tstamp);}}
       else {
-        fd_seterr("Invalid load_latest record","load_latest",abspath,entry);
+        fd_seterr("Invalid load_latest record","load_latest",
+                  abspath,entry);
         fd_decref(sources); fd_decref(abspath_dtype);
         return -1;}
     else {
@@ -539,7 +547,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
       FD_INIT_CONS(tstamp,fd_timestamp_type);
       u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
       entry = fd_conspair(fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
-      if (FD_EMPTY_CHOICEP(sources)) fd_bind_value(source_symbol,entry,env);
+      if (FD_EMPTY_CHOICEP(sources))
+        fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
     if (log_reloads)
       u8_log(LOG_WARN,"fd_load_latest","Reloading %s",abspath);

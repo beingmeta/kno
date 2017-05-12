@@ -34,6 +34,9 @@ define locals
   info args
   info locals
 end
+define pp
+  print *(($arg1)($arg0))
+end
 define xp
   print/x $arg0
 end
@@ -140,7 +143,7 @@ end
 define showflo
   print (((struct FD_FLONUM *)($arg0))->floval)
 end
-define showschemap
+define schemap
   printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->fd_schema))
   printf "values=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->schema_values))
   printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->schema_length)
@@ -154,14 +157,16 @@ define showschemapv
   print (((struct FD_SCHEMAP *)$arg0)->schema_values)[$arg1]
   showtype $
 end
-define showslotmap
+define slotmap
   printf "keyvals=%d\n",(&(((struct FD_SLOTMAP *)$arg0)->sm_keyvals))
-  printf "size=%d\n",((((struct FD_SLOTMAP *)$arg0)->table_size)&0x3FFFFFFF)
+  printf "size=%d\n",((((struct FD_SLOTMAP *)$arg0)->n_slots)&0x3FFFFFFF)
+  printf "space=%d\n",((((struct FD_SLOTMAP *)$arg0)->n_allocd)&0x3FFFFFFF)
   print (*((struct FD_SLOTMAP *)$arg0))
 end
-define showslotmapk
-  print ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_key)
-  showtype $
+define slotmapkv
+  print &((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)])
+  showtype ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_key)
+  showtype ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].kv_val)
 end
 define showslotmapv
   print ((((fd_slotmap)$arg0)->sm_keyvals)[($arg1)].kv_val)
@@ -274,19 +279,19 @@ define dontload
 end
 
 define cast
-  print (($2)($1))
+  print (($1)($0))
 end
 
 define pcast
-  print *(($2)($1))
+  print *(($1)($0))
 end
 
 define pfield
-  print *(($1)->$2)
+  print *(($0)->$1)
 end
 
 define sfield
-  print *(($1).$2)
+  print *(($0).$1)
 end
 
 # Init some tracing configurations

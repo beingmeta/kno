@@ -470,7 +470,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
     else {
       fdtype value = fd_eval(val_expr,env);
       if (FD_ABORTED(value)) return value;
-      else if (fd_bind_value(var,value,env)) {
+      else if (fd_bind_value(var,value,env)>=0) {
         fdtype fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_SPROCP(fvalue)) {
           struct FD_SPROC *s = (fd_sproc) fvalue;
@@ -490,7 +490,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
     else {
       fdtype value = make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTED(value)) return value;
-      else if (fd_bind_value(fn_name,value,env)) {
+      else if (fd_bind_value(fn_name,value,env)>=0) {
         fdtype fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_SPROCP(fvalue)) {
           struct FD_SPROC *s = (fd_sproc)fvalue;
@@ -521,7 +521,7 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
       fdtype value = make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTED(value))
         return value;
-      else if (fd_bind_value(fn_name,value,env)) {
+      else if (fd_bind_value(fn_name,value,env)>=0) {
         fdtype opvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_SPROCP(opvalue)) {
           struct FD_SPROC *s = (fd_sproc)opvalue;
@@ -552,7 +552,7 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
     else {
       fdtype value = make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTED(value)) return value;
-      else if (fd_bind_value(fn_name,value,env)) {
+      else if (fd_bind_value(fn_name,value,env)>=0) {
         fdtype opvalue = fd_fcnid_ref(value);
         if (FD_SPROCP(opvalue)) {
           struct FD_SPROC *s = (fd_sproc)opvalue;

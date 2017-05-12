@@ -287,16 +287,15 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define fd_consptr(cast,x,typecode)					\
   ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
    (((FD_CHECK_PTR(x))?							\
-     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x)):		\
-     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x),		\
+      (_fd_bad_pointer(x,fd_type_names[typecode]))) :			\
+     (fd_raise(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
     ((cast)NULL)))
 #define fd_xconsptr(cast,x,typecode)					\
   ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
    (((FD_CHECK_PTR(x))?							\
-     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x),		\
-      (_fd_bad_pointer(x,fd_type_names[typecode]))) :			\
-     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x),		\
-      u8_raise(fd_TypeError,fd_type_names[typecode],NULL))),		\
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x)):		\
+     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
     ((cast)NULL)))
 
 #define FD_NULL ((fdtype)(NULL))
