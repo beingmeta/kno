@@ -165,9 +165,9 @@ debuglibs=""
 test_env=
 memtest_env=""
 leaktester_env=""
-tester=
-memtester=
-leaktester=
+TESTER=./runtest
+MEMTESTER=./memtest
+LEAKTESTER=./leaktest
 test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
@@ -261,9 +261,9 @@ AC_SUBST(debuglibs)
 AC_SUBST(test_env)
 AC_SUBST(memtest_env)
 AC_SUBST(leaktest_env)
-AC_SUBST(tester)
-AC_SUBST(memtester)
-AC_SUBST(leaktester)
+AC_SUBST(TESTER)
+AC_SUBST(MEMTESTER)
+AC_SUBST(LEAKTESTER)
 AC_SUBST(test_config)
 AC_SUBST(memtest_config)
 AC_SUBST(leaktest_config)
@@ -728,8 +728,8 @@ elif test "$with_duma" != "no"; then
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  memtester="./vgmemtest "
-  leaktester="./vgleaktest "
+  MEMTESTER="./vgmemtest "
+  LEAKTESTER="./vgleaktest "
 fi
 
 if test "${GCC}" = "yes"; then
@@ -1621,6 +1621,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
 	   tests/scheme/runtest tests/scheme/fdexectest
+	   tests/scheme/memtest tests/scheme/leaktest
 	   tests/scheme/tcdebug tests/scheme/vgdebug
 	   tests/scheme/gheaptest
 	   src/scripts/fdpkg.scm
