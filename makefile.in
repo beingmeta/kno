@@ -2,7 +2,7 @@
 # Copyright © 2004-2017 beingmeta, inc
 # This file is a part of beingmeta's FramerD implementation
 
-MAKEFLAGS    += -j -s
+#MAKEFLAGS    += -j -s
 CC	      = @CC@
 XCFLAGS       =
 OPTFLAGS      = -O3
@@ -453,42 +453,42 @@ ALL=testbin exe cmodules @TAGS@
 # Targets
 
 update: buildmode
-	@+make `cat buildmode`
+	@+make -s `cat buildmode`
 normal:
 	@echo Building NORMAL configuration
-	@+make testbin exe cmodules etc @TAGS@
+	@+make -s testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
-	@+make XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
-	       XLDFLAGS="@debugldflags@ $(XLDFLAGS)"	\
-	       OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" \
+	@+make -s XCFLAGS="@debugcflags@ -Wall $(XCFLAGS)"	\
+	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
+	          OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)" 	\
 	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
-	@+make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
-	@+make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
+	@+make -s XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
 all: testbin exe cmodules etc i18n @TAGS@
 
 fresh: clean
-	make update
+	make -s update
 
 # Handy targets
 
 debug:
 	@if test $(BUILDMODE) != "debugging"; then echo debugging > buildmode; fi
-	@make `cat buildmode`
+	@make -s `cat buildmode`
 standard:
 	@if test $(BUILDMODE) != "normal"; then echo normal > buildmode; fi
-	@make `cat buildmode`
+	@make -s `cat buildmode`
 nitpick:
 	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > buildmode; fi
-	@make `cat buildmode`
+	@make -s `cat buildmode`
 fast:
 	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > buildmode; fi
-	@make `cat buildmode`
+	@make -s `cat buildmode`
 buildmode:
 	@echo normal > buildmode
 showbuildmode showmode showbuild: buildmode
@@ -660,8 +660,8 @@ ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@make ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
-		${CMODULES}/$(*F)@suffix@.@mshared_suffix@
+	@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
+		 ${CMODULES}/$(*F)@suffix@.@mshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
@@ -827,9 +827,9 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
-	cd tests/types; make clean
-	cd tests/storage; make clean
-	cd tests/scheme; make clean
+	cd tests/types; make -s clean
+	cd tests/storage; make -s clean
+	cd tests/scheme; make -s clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
@@ -1097,8 +1097,8 @@ cleandist cleanrpms cleandeb rpmclean debclean:
 	rm -rf staging/framerd*
 
 debfresh freshdeb:
-	make debclean
-	make debian
+	make -s debclean
+	make -s debian
 
 # Creating staging areas from GIT
 
@@ -1127,11 +1127,11 @@ staging/framerd_@FDVERSION@: \
 	   > staging/framerd_@FDVERSION@/debian/changelog;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-	make staging/framerd-@FDVERSION@
+	make -s staging/framerd-@FDVERSION@
 	tar -czvf $@ -C staging framerd-@FDVERSION@
 staging/framerd_@FDVERSION@.orig.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
-	make staging/framerd_@FDVERSION@
+	make -s staging/framerd_@FDVERSION@
 	tar -czvf $@ -C staging framerd_@FDVERSION@
 
 # RPM rules
@@ -1167,7 +1167,7 @@ dist/rpms.done: dist/rpms.ready
 
 rpmupdate update-rpms freshrpms: cleanrpms
 	rm -f dist/rpms.done dist/rpms.ready
-	make dist/rpms.done
+	make -s dist/rpms.done
 dist/rpms.zip: dist/rpms.done
 	@rm -f dist/rpms.zip
 	@zip dist/rpms.zip \
@@ -1582,29 +1582,29 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running libtests, output in" $@
-	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -C tests/scheme -k -j libtests optmods 2>&1 > tests/libtests.log && \
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j libtests optmods 2>&1 > tests/libtests.log && \
 	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
 libtests: tests/libtests.log
 
 tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
 	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
 schemetests: tests/schemetests.log
 
 tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j leaktests 2>&1 > tests/leaktests.log && \
 	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
 leaktests: tests/leaktests.log
 
 tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
-	@make -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j dbtests 2>&1 > tests/dbtests.log && \
 	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
 
