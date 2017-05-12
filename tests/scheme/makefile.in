@@ -2,6 +2,7 @@
 # Copyright (C) 2004-2017 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation
 
+MAKEFLAGS = -s
 FD_INIT_DLOADPATH=../../lib/framerd/%..@shared_suffix@:../../../aikit/c/%..@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
 export FD_INIT_LOADPATH
 FD_INIT_LOADPATH=../../src/scheme/%.scm:../../src/scheme/%/module.scm:@default_module_path@
@@ -52,9 +53,9 @@ exec_prefix	= @exec_prefix@
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
-TESTPROG	= ./runtest
-MEMTESTER	= @memtester@
-LEAKTESTER	= @leaktester@
+TESTPROG	= @TESTER@
+MEMTESTER	= @MEMTESTER@
+LEAKTESTER	= @LEAKTESTER@
 TEST_ENV	= @test_env@
 MEMTEST_ENV	= @memtest_env@
 LEAKTEST_ENV	= @leaktest_env@

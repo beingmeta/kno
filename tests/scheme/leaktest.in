@@ -25,12 +25,12 @@ FD_DISPLAYMAXELTS=36=
 export FD_DISPLAYMAXELTS=36
 FD_DISPLAYMAXCHARS=1024=
 export FD_DISPLAYMAXCHARS=1024
+if test $# -eq 0; then
+   echo "Usage: runtest <program> [args...]";
+   exit;
+fi
 
-if test ! -z ${PREAMBLE}; then
-   echo "TEST: " ${PROGNAME} $*;
-fi;
-
-if @test_env@ ${PROGNAME} $* > ${LOGFILE}; then
+if @test_env@ @leaktest_env@ ${PROGNAME} $* > ${LOGFILE}; then
    echo "SUCCESS:" ${PROGNAME} $*;
    cat ${LOGFILE} >> success.log
    rm ${LOGFILE};

@@ -736,9 +736,9 @@ TAGS
 leaktest_config
 memtest_config
 test_config
-leaktester
-memtester
-tester
+LEAKTESTER
+MEMTESTER
+TESTER
 leaktest_env
 memtest_env
 test_env
@@ -2989,9 +2989,9 @@ debuglibs=""
 test_env=
 memtest_env=""
 leaktester_env=""
-tester=
-memtester=
-leaktester=
+TESTER=./runtest
+MEMTESTER=./memtest
+LEAKTESTER=./leaktest
 test_config="TESTSIZE=64"
 memtest_config=
 leaktester_config=
@@ -7075,8 +7075,8 @@ done
 fi
 
 if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
-  memtester="./vgmemtest "
-  leaktester="./vgleaktest "
+  MEMTESTER="./vgmemtest "
+  LEAKTESTER="./vgleaktest "
 fi
 
 if test "${GCC}" = "yes"; then
@@ -12570,7 +12570,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/types/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runtest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/types/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runtest tests/scheme/fdexectest tests/scheme/memtest tests/scheme/leaktest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13303,6 +13303,8 @@ do
     "tests/scheme/vgmemtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgmemtest" ;;
     "tests/scheme/runtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/runtest" ;;
     "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
+    "tests/scheme/memtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/memtest" ;;
+    "tests/scheme/leaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/leaktest" ;;
     "tests/scheme/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/tcdebug" ;;
     "tests/scheme/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgdebug" ;;
     "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
