@@ -45,6 +45,7 @@ struct FD_TABLEFNS {
   int (*test)(fdtype obj,fdtype fd_key,fdtype value);
   int (*readonly)(fdtype obj,int op);
   int (*modified)(fdtype obj,int op);
+  int (*finished)(fdtype obj,int op);
   int (*getsize)(fdtype obj);
   fdtype (*keys)(fdtype obj);
   struct FD_KEYVAL (*keyvals)(fdtype obj,int *);
@@ -61,17 +62,24 @@ FD_EXPORT int fd_test(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_store(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_add(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
-FD_EXPORT int fd_getsize(fdtype arg);
-FD_EXPORT int fd_modifiedp(fdtype arg);
+
 FD_EXPORT int fd_readonlyp(fdtype arg);
-FD_EXPORT int fd_set_modified(fdtype arg,int val);
+FD_EXPORT int fd_modifiedp(fdtype arg);
+FD_EXPORT int fd_finishedp(fdtype arg);
 FD_EXPORT int fd_set_readonly(fdtype arg,int val);
+FD_EXPORT int fd_set_modified(fdtype arg,int val);
+FD_EXPORT int fd_set_finished(fdtype arg,int val);
+
+FD_EXPORT int fd_getsize(fdtype arg);
 FD_EXPORT fdtype fd_getkeys(fdtype arg);
 FD_EXPORT fdtype fd_getvalues(fdtype arg);
 FD_EXPORT fdtype fd_getassocs(fdtype arg);
-FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keys);
+
+/* Operations based on the ordering of key values. */
 FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxval);
 FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
+
+FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keys);
 
 #define FD_TABLEP(x) ((fd_tablefns[FD_PTR_TYPE(x)])!=NULL)
 
@@ -616,5 +624,6 @@ FD_EXPORT fdtype fd_make_hashset(void);
 FD_EXPORT ssize_t fd_grow_hashset(fd_hashset h,size_t size);
 FD_EXPORT fdtype fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
+FD_EXPORT int fd_reset_hashset(fd_hashset);
 
 #endif /* FRAMERD_TABLES_H */
