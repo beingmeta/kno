@@ -541,7 +541,7 @@ FD_EXPORT void fd_init_streamprims_c()
 	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",dtype2file,2)));
   fd_idefn(streamprims_module,
 	   fd_make_ndprim(fd_make_cprim2("DTYPES->FILE+",add_dtypes2file,2)));
-  fd_defalias(streamprims_module,"DTYPES->FILE+","DTYPE->FILE+");
+  fd_defalias(streamprims_module,"DTYPE->FILE+","DTYPES->FILE+");
   fd_idefn(streamprims_module,
 	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
   fd_idefn(streamprims_module,
