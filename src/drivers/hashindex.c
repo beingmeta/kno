@@ -850,7 +850,8 @@ static FD_CHUNK_REF read_value_block
   int i=0, atomicp = 1;
   open_block(&instream,hx,vblock_off,vblock_size,vbuf);
   ssize_t n_elts = fd_read_zint(&instream);
-  if (n_elts<0) result;
+  if (n_elts<0)
+    return result;
   i = 0; while ( (i<n_elts) && (n_read < n_values) ) {
     fdtype val = read_zvalue(hx,&instream);
     if (FD_ABORTP(val)) {
