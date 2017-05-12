@@ -223,38 +223,70 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
 
 static fdtype add_dtype2zipfile(fdtype object,fdtype filename);
 
-static fdtype add_dtype2file(fdtype object,fdtype filename)
+static ssize_t write_dtypes(fdtype dtypes,struct FD_STREAM *out)
+{
+  ssize_t bytes=0, rv=0;
+  fd_off_t start= fd_endpos(out);
+  if ( start != out->stream_maxpos ) start=-1;
+  struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
+  FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
+  if ((FD_CHOICEP(dtypes))||(FD_PRECHOICEP(dtypes))) {
+    FD_DO_CHOICES(dtype,dtypes) {
+      ssize_t write_size=0;
+      if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
+	write_size=fd_stream_write
+	  (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+	tmp.bufwrite=tmp.buffer;}
+      if (write_size>=0) {
+	ssize_t dtype_size=fd_write_dtype(&tmp,dtypes);
+	if (dtype_size<0)
+	  write_size=dtype_size;
+	else if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
+	  write_size=fd_stream_write
+	    (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
+	  tmp.bufwrite=tmp.buffer;}
+	else write_size=dtype_size;}
+      if (write_size<0) {
+	rv=write_size;
+	FD_STOP_DO_CHOICES;
+	break;}
+      else bytes=bytes+write_size;}}
+  else {
+    bytes=fd_write_dtype(&tmp,dtypes);
+    if (bytes>0)
+      rv=fd_stream_write
+	(out,tmp.bufwrite-tmp.buffer,tmp.buffer);}
+  fd_close_outbuf(&tmp);
+  if (rv<0) {
+    if (start>=0)
+      ftruncate(out->stream_fileno,start);
+    return rv;}
+  else return bytes;
+}
+
+static fdtype add_dtypes2file(fdtype object,fdtype filename)
 {
   if ((FD_STRINGP(filename))&&
       ((u8_has_suffix(FD_STRDATA(filename),".ztype",1))||
        (u8_has_suffix(FD_STRDATA(filename),".gz",1)))) {
     return add_dtype2zipfile(object,filename);}
   else if (FD_STRINGP(filename)) {
-    struct FD_STREAM *stream; int bytes;
-    struct FD_OUTBUF *out;
+    struct FD_STREAM *stream;
     if (u8_file_existsp(FD_STRDATA(filename)))
       stream = fd_open_file(FD_STRDATA(filename),FD_FILE_MODIFY);
     else stream = fd_open_file(FD_STRDATA(filename),FD_FILE_CREATE);
     if (stream == NULL) return FD_ERROR_VALUE;
-    else out = fd_writebuf(stream);
-    fd_endpos(stream);
-    bytes = fd_write_dtype(out,object);
+    ssize_t bytes = write_dtypes(object,stream);
     fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
-    return FD_INT(bytes);}
+    if (bytes<0) return FD_ERROR_VALUE;
+    else return FD_INT(bytes);}
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
-    FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
-    int bytes = fd_write_dtype(&tmp,object);
-    if (bytes<0) {
-      fd_close_outbuf(&tmp);
-      return FD_ERROR_VALUE;}
-    else {
-      fd_stream_write(stream,tmp.bufwrite-tmp.buffer,tmp.buffer);
-      fd_close_outbuf(&tmp);
-      return FD_INT(bytes);}}
-  else return fd_type_error(_("string"),"add_dtype2file",filename);
+    ssize_t bytes=write_dtypes(object,stream);
+    if (bytes<0) return FD_ERROR_VALUE;
+    else return FD_INT(bytes);}
+  else return fd_type_error(_("string"),"add_dtypes2file",filename);
 }
 
 static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
@@ -508,7 +540,8 @@ FD_EXPORT void fd_init_streamprims_c()
   fd_idefn(streamprims_module,
 	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",dtype2file,2)));
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype2file,2)));
+	   fd_make_ndprim(fd_make_cprim2("DTYPES->FILE+",add_dtypes2file,2)));
+  fd_defalias(streamprims_module,"DTYPES->FILE+","DTYPE->FILE+");
   fd_idefn(streamprims_module,
 	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
   fd_idefn(streamprims_module,
