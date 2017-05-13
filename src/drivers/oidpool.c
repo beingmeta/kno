@@ -550,9 +550,9 @@ static fdtype read_oid_value_at(fd_oidpool op,
   else {
     unsigned char _buf[FD_OIDPOOL_FETCHBUF_SIZE], *buf; int free_buf = 0;
     if (ref.size>FD_OIDPOOL_FETCHBUF_SIZE) {
-      buf = read_chunk(&(op->pool_stream),ref.off,ref.size,NULL);
+      buf = read_chunk(&(op->pool_stream),ref.size,ref.off,NULL);
       free_buf = 1;}
-    else buf = read_chunk(&(op->pool_stream),ref.off,ref.size,_buf);
+    else buf = read_chunk(&(op->pool_stream),ref.size,ref.off,_buf);
     if (buf == NULL) return FD_ERROR_VALUE;
     else if (op->oidpool_compression == FD_NOCOMPRESS)
       if (free_buf) {

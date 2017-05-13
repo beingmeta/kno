@@ -166,7 +166,7 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,
 }
 
 static unsigned char *read_chunk(fd_stream stream,
-                                 fd_off_t off,uint size,
+				 size_t size,fd_off_t off,
 				 unsigned char *usebuf)
 {
   uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size));
@@ -176,7 +176,8 @@ static unsigned char *read_chunk(fd_stream stream,
     if (usebuf == NULL) u8_free(buf);
     return NULL;}
   else if (bytes_read<size) {
-    u8_seterr("Not enough data","read_chunk",u8_strdup(stream->streamid));
+    u8_seterr("Not enough data","read_chunk",
+	      u8_strdup(stream->streamid));
     if (usebuf == NULL) u8_free(buf);
     return NULL;}
   else return buf;

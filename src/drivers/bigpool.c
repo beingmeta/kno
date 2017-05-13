@@ -689,9 +689,9 @@ static fdtype read_oid_value_at(fd_bigpool bp,FD_CHUNK_REF ref,
     unsigned char _buf[FD_BIGPOOL_FETCHBUF_SIZE], *buf;
     int free_buf = 0;
     if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE) {
-      buf = read_chunk(&(bp->pool_stream),ref.off,ref.size,NULL);
+      buf = read_chunk(&(bp->pool_stream),ref.size,ref.off,NULL);
       free_buf = 1;}
-    else buf = read_chunk(&(bp->pool_stream),ref.off,ref.size,_buf);
+    else buf = read_chunk(&(bp->pool_stream),ref.size,ref.off,_buf);
     if (buf == NULL) return FD_ERROR_VALUE;
     else if (free_buf) {
       FD_INBUF in;
