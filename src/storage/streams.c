@@ -807,7 +807,7 @@ FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
     /* This is the case where the stream is being written to and we're
        reading from beyond the position it's writing at. In this case,
        we lock the stream to do our read, which will block until the
-       writer is done. At that point, we'll set the direction on the 
+       writer is done. At that point, we'll set the direction on the
        stream which will flush any buffered output. */
     ssize_t result;
     fd_lock_stream(s);

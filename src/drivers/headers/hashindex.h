@@ -63,9 +63,9 @@ struct KEY_SCHEDULE {
   int ksched_bucket;
   FD_CHUNK_REF ksched_chunk;};
 struct VALUE_SCHEDULE {
-  int vsched_i; 
-  fdtype *vsched_write; 
-  int vsched_atomicp; 
+  int vsched_i;
+  fdtype *vsched_write;
+  int vsched_atomicp;
   FD_CHUNK_REF vsched_chunk;};
 
 struct POPULATE_SCHEDULE {

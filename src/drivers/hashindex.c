@@ -181,7 +181,7 @@ FD_FASTOP fd_inbuf open_block
    fd_off_t off,fd_size_t size,unsigned char *buf)
 {
   fd_stream stream = &(hx->index_stream);
-  if (read_chunk(stream,off,size,buf)) {
+  if (read_chunk(stream,size,off,buf)) {
     FD_INIT_BYTE_INPUT(tmpbuf,buf,size);
     return tmpbuf;}
   else return NULL;
@@ -1018,10 +1018,17 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
   /* This is used to fetch the chained values in the table, also
      sorted to be linear. */
   struct VALUE_SCHEDULE *vsched = u8_alloc_n(n,struct VALUE_SCHEDULE);
+  if ( (values==NULL) || (ksched==NULL) || (vsched==NULL) ) {
+    u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
+    if (values) u8_free(values);
+    if (ksched) u8_free(ksched);
+    if (vsched) u8_free(vsched);
+    return NULL;}
+
   unsigned int *offdata = hx->index_offdata;
   unsigned char *keyreps;
   int i = 0, n_entries = 0, vsched_size = 0;
-  size_t max_keyblock_size = 0, max_vblock_size=0;
+  size_t max_keyblock_size = 0, vbuf_size=0;
   int oddkeys = ((hx->fd_storage_xformat)&(FD_HASHINDEX_ODDKEYS));
   fd_stream stream = &(hx->index_stream);
 #if FD_DEBUG_HASHINDEXES
@@ -1128,7 +1135,7 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
             fd_size_t block_size = fd_read_zint(&keyblock);
             struct FD_CHOICE *result = fd_alloc_choice(n_vals);
             /* Track the max vblock size for later buffer allocation */
-            if (block_size>max_vblock_size) max_vblock_size=block_size;
+            if (block_size>vbuf_size) vbuf_size=block_size;
             FD_SET_CONS_TYPE(result,fd_choice_type);
             result->choice_size = n_vals;
             values[ksched[j].ksched_i]=(fdtype)result;
@@ -1162,13 +1169,24 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
   u8_free(ksched);
   {
     struct FD_INBUF vblock;
-    unsigned char *vbuf = u8_malloc(max_vblock_size);
+    unsigned char *vbuf = u8_malloc(vbuf_size);
+    if (vbuf==NULL) {
+      u8_free(values); u8_free(vsched);
+      u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
+      return NULL;}
     while (vsched_size) {
       qsort(vsched,vsched_size,sizeof(struct VALUE_SCHEDULE),
             sort_vs_by_refoff);
       i = 0; while (i<vsched_size) {
         int j = 0, n_vals;
-        fd_size_t next_size;
+        fd_size_t next_size, block_size=vsched[i].vsched_chunk.size;
+        if (block_size>vbuf_size) {
+          unsigned char *newbuf = u8_realloc(vbuf,block_size);
+          if (newbuf) {vbuf=newbuf; vbuf_size=block_size;}
+          else {
+            u8_free(values); u8_free(vsched); u8_free(vbuf);
+            u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
+            return NULL;}}
         open_block(&vblock,hx,vsched[i].vsched_chunk.off,
                    vsched[i].vsched_chunk.size,vbuf);
         n_vals = fd_read_zint(&vblock);
