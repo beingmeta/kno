@@ -261,7 +261,6 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    FD_STACK(let_star_stack,fd_stackptr);
     struct FD_SCHEMAP bindings;
     struct FD_ENVIRONMENT envstruct;
     fdtype vars[n]; /* *vars=fd_alloca(n); */
@@ -284,7 +283,7 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           vars[i]=var; vals[i]=value;}
         i++;}}
     result = eval_body(":LET*",FD_SYMBOL_NAME(vars[0]),expr,2,
-                       inner_env,let_star_stack);
+                       inner_env,_stack);
     free_environment(inner_env);
     return result;}
 }
@@ -301,7 +300,6 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (FD_VOIDP(exitexprs))
     return fd_err(fd_BindSyntaxError,"DO",NULL,expr);
   else {
-    FD_STACK(do_stack,fd_stackptr);
     fdtype _vars[16], _vals[16], _updaters[16], _tmp[16];
     fdtype *updaters, *vars, *vals, *tmp, result = FD_VOID;
     int i = 0, n = 0;
@@ -384,7 +382,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     if (FD_PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
       result = eval_body(":DO",FD_SYMBOL_NAME(vars[0]),exitexprs,1,
-                         inner_env,do_stack);}
+                         inner_env,_stack);}
     /* Free the environment. */
     free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}

@@ -30,6 +30,11 @@
 #include <stdarg.h>
 
 fdtype fd_default_stackspec = FD_VOID;
+u8_string fd_ndcallstack_type = "ndapply stack";
+u8_string fd_callstack_type   = "apply stack";
+
+#define FD_APPLY_STACK(name,fname,fn) \
+  FD_PUSH_STACK(name,fd_callstack_type,fname,fn)
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];
 /* This is set if the type is a CONS with a FUNCTION header */
@@ -220,22 +225,6 @@ __thread struct FD_STACK *fd_stackptr = NULL;
 #else
 struct FD_STACK *fd_stackptr = NULL;
 #endif
-
-FD_EXPORT struct FD_STACK *
-_fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-                u8_string label,fdtype op,
-                short n_args,fdtype *args)
-{
-  return fd_setup_stack(stack,caller,label,op,n_args,args);
-}
-
-FD_EXPORT
-void _fd_push_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-                    u8_string label,fdtype op,
-                    short n_args,fdtype *args)
-{
-  return fd_push_stack(stack,caller,label,op,n_args,args);
-}
 
 FD_EXPORT void _fd_free_stack(struct FD_STACK *stack)
 {
@@ -581,7 +570,8 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,u8_string name,
   else if (FD_EXPECT_FALSE(argvec == NULL))
     return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
   else if (stack) {
-    fdtype *args = prepare_argvec(f,n,argvec,stack->stack_argbuf);
+    fdtype argbuf[100];
+    fdtype *args = prepare_argvec(f,n,argvec,argbuf);
     if (args == NULL)
       return FD_ERROR_VALUE;
     else if (check_typeinfo(f,n,args)<0)
@@ -597,7 +587,7 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,u8_string name,
     else return dcall(name,f,n,args);}
 }
 
-FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,
+FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
                            fdtype fn,int n,fdtype *argvec)
 {
   u8_byte namebuf[60];
@@ -621,9 +611,11 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,
   /* Make the call */
   if (stackcheck()) {
     fdtype result=FD_VOID;
-    FD_WITH_STACK(fname,caller,fn,n,argvec);
+    FD_APPLY_STACK(apply_stack,fname,fn);
+    apply_stack->stack_args=argvec;
+    apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
-      if (f) result=apply_fcn(&__stack,fname,f,n,argvec);
+      if (f) result=apply_fcn(apply_stack,fname,f,n,argvec);
       else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
@@ -658,36 +650,39 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,
   FD_ADD_TO_CHOICE(to,result);}
 
 static fdtype ndcall_loop
-  (struct FD_FUNCTION *f,fdtype *results,int *typeinfo,
+  (struct FD_STACK *_stack,
+   struct FD_FUNCTION *f,fdtype *results,int *typeinfo,
    int i,int n,fdtype *nd_args,fdtype *d_args)
 {
+  fdtype retval=FD_VOID;
   if (i == n) {
     fdtype value = fd_dapply((fdtype)f,n,d_args);
-    if (FD_ABORTP(value)) return value;
+    if (FD_ABORTP(value)) {
+      fd_pop_stack(_stack);
+      return value;}
     else {
       value = fd_finish_call(value);
+      fd_pop_stack(_stack);
       if (FD_ABORTP(value)) return value;
       FD_ADD_RESULT(*results,value);}}
   else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
-    fdtype retval;
     d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
-    retval = ndcall_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
-    if (FD_ABORTP(retval)) return retval;}
+    retval = ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
   else if ((!(FD_CHOICEP(nd_args[i]))) ||
            ((typeinfo)&&(typeinfo[i]==fd_choice_type))) {
-    fdtype retval;
     d_args[i]=nd_args[i];
-    retval = ndcall_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
-    if (FD_ABORTP(retval)) return retval;}
+    retval = ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
   else {
     FD_DO_CHOICES(elt,nd_args[i]) {
-      fdtype retval; d_args[i]=elt;
-      retval = ndcall_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
-      if (FD_ABORTP(retval)) return retval;}}
-  return FD_VOID;
+      d_args[i]=elt;
+      retval = ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}}
+  fd_pop_stack(_stack);
+  if (FD_ABORTP(retval))
+    return FD_ERROR_VALUE;
+  else return *results;
 }
 
-static fdtype ndapply1(fdtype fp,fdtype args1)
+static fdtype ndapply1(fd_stack _stack,fdtype fp,fdtype args1)
 {
   fdtype results = FD_EMPTY_CHOICE;
   FD_DO_CHOICES(arg1,args1) {
@@ -700,7 +695,7 @@ static fdtype ndapply1(fdtype fp,fdtype args1)
   return results;
 }
 
-static fdtype ndapply2(fdtype fp,fdtype args0,fdtype args1)
+static fdtype ndapply2(fd_stack _stack,fdtype fp,fdtype args0,fdtype args1)
 {
   fdtype results = FD_EMPTY_CHOICE;
   FD_DO_CHOICES(arg0,args0) {
@@ -719,7 +714,7 @@ static fdtype ndapply2(fdtype fp,fdtype args0,fdtype args1)
   return results;
 }
 
-static fdtype ndapply3(fdtype fp,fdtype args0,fdtype args1,fdtype args2)
+static fdtype ndapply3(fd_stack _stack,fdtype fp,fdtype args0,fdtype args1,fdtype args2)
 {
   fdtype results = FD_EMPTY_CHOICE;
   FD_DO_CHOICES(arg0,args0) {
@@ -742,7 +737,8 @@ static fdtype ndapply3(fdtype fp,fdtype args0,fdtype args1,fdtype args2)
   return results;
 }
 
-static fdtype ndapply4(fdtype fp,
+static fdtype ndapply4(fd_stack _stack,
+                       fdtype fp,
                        fdtype args0,fdtype args1,
                        fdtype args2,fdtype args3)
 {
@@ -771,20 +767,23 @@ static fdtype ndapply4(fdtype fp,
   return results;
 }
 
-FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_ndcall(struct FD_STACK *_stack,
+                           fdtype fp,int n,fdtype *args)
 {
   fdtype handler = (FD_FCNIDP(fp) ? (fd_fcnid_ref(fp)) : (fp));
   if (FD_EMPTY_CHOICEP(handler)) return FD_EMPTY_CHOICE;
   else if (FD_CHOICEP(handler)) {
-    /* TODO: create a stack frame here */
+    FD_APPLY_STACK(ndapply_stack,"fnchoices",handler);
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(h, handler) {
-      fdtype r=fd_call(stack,h,n,args);
+      fdtype r=fd_call(ndapply_stack,h,n,args);
       if (FD_ABORTP(r)) {
         fd_decref(results);
         FD_STOP_DO_CHOICES;
+        fd_pop_stack(ndapply_stack);
         return r;}
       else {FD_ADD_TO_CHOICE(results,r);}}
+    fd_pop_stack(ndapply_stack);
     return results;}
   else {
     fd_ptr_type fntype = FD_PTR_TYPE(handler);
@@ -794,25 +793,34 @@ FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
         return fd_dapply(handler,n,args);
       else if ((f->fcn_arity < 0) ?
                (n >= (f->fcn_min_arity)) :
-               ((n <= (f->fcn_arity)) && (n >= (f->fcn_min_arity)))) {
+               ((n <= (f->fcn_arity)) &&
+                (n >= (f->fcn_min_arity)))) {
+        FD_PUSH_STACK(ndstack,fd_ndcallstack_type,f->fcn_name,handler);
         fdtype d_args[n]; /* *d_args=fd_alloca(n); */
         fdtype retval, results = FD_EMPTY_CHOICE;
         /* Initialize the d_args vector */
         if (n==1)
-          return ndapply1(handler,args[0]);
+          return ndapply1(ndstack,handler,args[0]);
         else if (n==2)
-          return ndapply2(handler,args[0],args[1]);
+          return ndapply2(ndstack,handler,args[0],args[1]);
         else if (n==3)
-          return ndapply3(handler,args[0],args[1],args[2]);
+          return ndapply3(ndstack,handler,
+                          args[0],args[1],args[2]);
         else if (n==4)
-          return ndapply4(handler,args[0],args[1],args[2],args[3]);
-        else retval = ndcall_loop(f,&results,f->fcn_typeinfo,0,n,args,d_args);
+          return ndapply4(ndstack,handler,
+                          args[0],args[1],
+                          args[2],args[3]);
+        else retval = ndcall_loop
+               (ndstack,f,&results,f->fcn_typeinfo,
+                0,n,args,d_args);
+        fd_pop_stack(ndstack);
         if (FD_ABORTP(retval)) {
           fd_decref(results);
           return retval;}
         else return fd_simplify_choice(results);}
       else {
-        fd_exception ex = ((n>f->fcn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+        fd_exception ex = (n>f->fcn_arity) ? (fd_TooManyArgs) :
+          (fd_TooFewArgs);
         return fd_err(ex,"fd_ndapply",f->fcn_name,FDTYPE_CONS(f));}}
     else if (fd_applyfns[fntype])
       return (fd_applyfns[fntype])(handler,n,args);
@@ -823,15 +831,17 @@ FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
 /* The default apply function */
 
 static int contains_qchoicep(int n,fdtype *args);
-static fdtype qchoice_dcall(fd_stack stack,fdtype fp,int n,fdtype *args);
+static fdtype qchoice_dcall
+(fd_stack stack,fdtype fp,int n,fdtype *args);
 
-FD_EXPORT fdtype fd_call(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
+FD_EXPORT fdtype fd_call(struct FD_STACK *_stack,
+                         fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f = FD_DTYPE2FCN(fp); fdtype result;
   if (f->fcn_ndcall)
     if (!(FD_EXPECT_FALSE(contains_qchoicep(n,args))))
-      result = fd_dcall(stack,(fdtype)f,n,args);
-    else result = qchoice_dcall(stack,fp,n,args);
+      result = fd_dcall(_stack,(fdtype)f,n,args);
+    else result = qchoice_dcall(_stack,fp,n,args);
   else {
     int i = 0, qchoice = 0;
     while (i<n)
@@ -842,14 +852,14 @@ FD_EXPORT fdtype fd_call(struct FD_STACK *stack,fdtype fp,int n,fdtype *args)
         fd_ptr_type argtype = FD_PTR_TYPE(args[i]);
         if ((argtype == fd_choice_type) ||
             (argtype == fd_prechoice_type)) {
-          result = fd_ndcall(stack,(fdtype)f,n,args);
+          result = fd_ndcall(_stack,(fdtype)f,n,args);
           return fd_finish_call(result);}
         else if (argtype == fd_qchoice_type) {
           qchoice = 1; i++;}
         else i++;}
     if (qchoice)
-      result=qchoice_dcall(stack,(fdtype)f,n,args);
-    else result=fd_dcall(stack,(fdtype)f,n,args);}
+      result=qchoice_dcall(_stack,(fdtype)f,n,args);
+    else result=fd_dcall(_stack,(fdtype)f,n,args);}
   return fd_finish_call(result);
 }
 
@@ -876,15 +886,18 @@ static fdtype qchoice_dcall(struct FD_STACK *stck,fdtype fp,int n,fdtype *args)
 
 /* Apply wrappers (which finish calls) */
 
-FD_EXPORT fdtype _fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+FD_EXPORT fdtype _fd_stack_apply
+(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
 {
   return fd_stack_apply(stack,fn,n_args,args);
 }
-FD_EXPORT fdtype _fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+FD_EXPORT fdtype _fd_stack_dapply
+(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
 {
   return fd_dapply(fn,n_args,args);
 }
-FD_EXPORT fdtype _fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+FD_EXPORT fdtype _fd_stack_ndapply
+(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
 {
   return fd_ndapply(fn,n_args,args);
 }
@@ -896,7 +909,9 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
   if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f = (struct FD_FUNCTION *)fcn;
   if (FD_EXPECT_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
-    fd_seterr(fd_TooManyArgs,"fd_tail_call",u8_mkstring("%d",n),fcn);
+    fd_seterr(fd_TooManyArgs,"fd_tail_call",
+              u8_mkstring("%d",n),
+              fcn);
     return FD_ERROR_VALUE;}
   else {
     int atomic = 1, nd = 0; fdtype fcnid = f->fcnid;
@@ -934,7 +949,8 @@ FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
   if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f = (struct FD_FUNCTION *)fcn;
   if (FD_EXPECT_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
-    fd_seterr(fd_TooManyArgs,"fd_void_tail_call",u8_mkstring("%d",n),fcn);
+    fd_seterr(fd_TooManyArgs,"fd_void_tail_call",
+              u8_mkstring("%d",n),fcn);
     return FD_ERROR_VALUE;}
   else {
     int atomic = 1, nd = 0;
@@ -1026,7 +1042,8 @@ static void recycle_tail_call(struct FD_RAW_CONS *c)
   struct FD_TAILCALL *tc = (struct FD_TAILCALL *)c;
   int mallocd = FD_MALLOCD_CONSP(c), n_elts = tc->tailcall_arity;
   fdtype *scan = &(tc->tailcall_head), *limit = scan+n_elts;
-  size_t tc_size = sizeof(struct FD_TAILCALL)+(sizeof(fdtype)*(n_elts-1));
+  size_t tc_size = sizeof(struct FD_TAILCALL)+
+    (sizeof(fdtype)*(n_elts-1));
   if (!(tc->tailcall_flags&FD_TAILCALL_ATOMIC_ARGS)) {
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */

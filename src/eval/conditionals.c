@@ -98,7 +98,6 @@ static fdtype apply_marker;
 
 static fdtype cond_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  FD_STACK(cond_stack,fd_stackptr);
   FD_DOLIST(clause,FD_CDR(expr)) {
     fdtype test_val;
     if (!(FD_PAIRP(clause)))
@@ -128,7 +127,7 @@ static fdtype cond_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
         else return fd_err(fd_SyntaxError,"cond_evalfn","apply syntax",expr);
       else {
         fd_decref(test_val);
-        return eval_body("COND",NULL,clause,1,env,cond_stack);}}}
+        return eval_body("COND",NULL,clause,1,env,_stack);}}}
   return FD_VOID;
 }
 
@@ -140,14 +139,13 @@ static fdtype case_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else keyval = fd_eval(key_expr,env);
   if (FD_ABORTED(keyval)) return keyval;
   else {
-    FD_STACK(case_stack,fd_stackptr);
     FD_DOLIST(clause,FD_CDR(FD_CDR(expr)))
       if (FD_PAIRP(clause))
         if (FD_PAIRP(FD_CAR(clause))) {
           fdtype keys = FD_CAR(clause);
           FD_DOLIST(key,keys)
             if (FD_EQ(keyval,key))
-              return eval_body("CASE",NULL,clause,1,env,case_stack);}
+              return eval_body("CASE",NULL,clause,1,env,_stack);}
         else if (FD_EQ(FD_CAR(clause),else_symbol)) {
           fd_decref(keyval);
           return fd_eval_exprs(FD_CDR(clause),env);}

@@ -77,9 +77,8 @@ static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
    It returns VOID. */
 static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  FD_STACK(dochoices_stack,fd_stackptr);
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env,dochoices_stack);
+    parse_control_spec(expr,&choices,&count_var,env,_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -148,10 +147,9 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It returns VOID. */
 static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  FD_STACK(fexpr_stack,fd_stackptr);
   fdtype results = FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env,fexpr_stack);
+    parse_control_spec(expr,&choices,&count_var,env,_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -220,11 +218,10 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It returns the combined results of its body's execution. */
 static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  FD_STACK(forchoices_stack,fd_stackptr);
   fdtype results = FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
     parse_control_spec(expr,&choices,&count_var,
-                       env,forchoices_stack);
+                       env,_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -296,10 +293,9 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It returns the subset of values which pass the body. */
 static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  FD_STACK(filterchoices_stack,fd_stackptr);
   fdtype results = FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env,filterchoices_stack);
+    parse_control_spec(expr,&choices,&count_var,env,_stack);
   fdtype test_expr = fd_get_arg(expr,2), *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;

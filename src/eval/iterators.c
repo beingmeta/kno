@@ -51,9 +51,8 @@ static fdtype while_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHILE",NULL,expr);
   else {
-    FD_STACK(while_stack,fd_stackptr);
     while ((FD_VOIDP(result)) &&
-           (testeval(test_expr,env,&result,while_stack))) {
+           (testeval(test_expr,env,&result,_stack))) {
       FD_DOLIST(iter_expr,body) {
         fdtype val = fast_eval(iter_expr,env);
         if (FD_ABORTED(val))
@@ -72,9 +71,8 @@ static fdtype until_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"UNTIL",NULL,expr);
   else {
-    FD_STACK(until_stack,fd_stackptr);
     while ((FD_VOIDP(result)) &&
-           (!(testeval(test_expr,env,&result,until_stack)))) {
+           (!(testeval(test_expr,env,&result,_stack)))) {
       FD_DOLIST(iter_expr,body) {
         fdtype val = fast_eval(iter_expr,env);
         if (FD_ABORTED(val)) return val;
@@ -117,9 +115,8 @@ static fdtype parse_control_spec
 static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, limit;
-  FD_STACK(dotimes_stack,fd_stackptr);
   fdtype limit_val, var =
-    parse_control_spec(expr,&limit_val,NULL,env,dotimes_stack);
+    parse_control_spec(expr,&limit_val,NULL,env,_stack);
   fdtype vars[2], vals[2];
   fdtype body = fd_get_body(expr,2);
   struct FD_SCHEMAP bindings;
@@ -170,10 +167,8 @@ static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, lim, islist = 0;
-  FD_STACK(doseq_stack,fd_stackptr);
   fdtype seq, count_var = FD_VOID, *iterval = NULL;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,
-                                  env,doseq_stack);
+  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
   fdtype vars[2], vals[2], pairscan = FD_VOID;
   struct FD_SCHEMAP bindings;
@@ -237,9 +232,8 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, lim, islist = 0;
-  FD_STACK(forseq_stack,fd_stackptr);
   fdtype seq, count_var = FD_VOID, *iterval = NULL, *results, result;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,env,forseq_stack);
+  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
   fdtype vars[2], vals[2], pairscan = FD_VOID;
   struct FD_SCHEMAP bindings;
@@ -307,9 +301,8 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, lim, islist = 0;
-  FD_STACK(tryseq_stack,fd_stackptr);
   fdtype seq, count_var = FD_VOID, *iterval = NULL;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,env,tryseq_stack);
+  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype val = FD_EMPTY_CHOICE;
   fdtype vars[2], vals[2], pairscan = FD_VOID;
   fdtype body = fd_get_body(expr,2);
@@ -379,9 +372,8 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  FD_STACK(dolist_stack,fd_stackptr);
   fdtype list, count_var, var=
-    parse_control_spec(expr,&list,&count_var,env,dolist_stack);
+    parse_control_spec(expr,&list,&count_var,env,_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   fdtype body = fd_get_body(expr,2);

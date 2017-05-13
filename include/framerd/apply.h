@@ -532,35 +532,42 @@ typedef enum FD_STACK_CLEANOP {
   FD_DECREF,
   FD_UNLOCK_MUTEX,
   FD_UNLOCK_RWLOCK,
-  FD_DECREF_VEC} fd_stack_cleanop;
+  FD_DECREF_VEC,
+  FD_CALLFN} fd_stack_cleanop;
 
-#define FD_STACK_DEFAULT_ARGVEC 10
 #define FD_STACK_CLEANUP_QUANTUM 3
 
 struct FD_STACK_CLEANUP {
   enum FD_STACK_CLEANOP cleanop;
   void *arg0, *arg1;};
 
+typedef int (*fd_cleanupfn)(void *);
+
 typedef struct FD_STACK {
   FD_CONS_HEADER; /* We're not using this right now */
-  u8_string stack_label, stack_state;
-  fdtype stack_op;
-  fdtype *stack_args;
-  fdtype *stack_argbuf;
+  u8_string stack_type, stack_label, stack_status;
+  struct FD_STACK *stack_caller, *stack_root;
+  fdtype stack_op; fdtype *stack_args; short n_args;
   struct FD_ENV *stack_env;
-  unsigned int stack_retvoid:1, stack_ndcall:1;
-  unsigned int stack_decref_op:1, stack_decref_args:1;
-  unsigned int stack_free_struct:1, stack_free_args:1;
-  short stack_n_args, stack_n_cleanups;
-  struct FD_STACK_CLEANUP _stack_cleanups[FD_STACK_CLEANUP_QUANTUM];
-  struct FD_STACK_CLEANUP *stack_cleanups;
-  struct FD_STACK *stack_caller;
-  struct FD_STACK *stack_root;} *fd_stack;
+  unsigned int stack_free_label:1, stack_free_status:1;
+  unsigned int stack_decref_op:1;
+  unsigned int stack_retvoid:1, stack_ndcall:1, stack_tail:1;
+  struct FD_STACK_CLEANUP _cleanups[FD_STACK_CLEANUP_QUANTUM];
+  struct FD_STACK_CLEANUP *cleanups;
+  short n_cleanups;} *fd_stack;
 
-#define FD_STACK(name,caller) \
+#define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
   struct FD_STACK _ ## name={}, *name=&_ ## name;	\
   if (caller) _ ## name.stack_root=caller->stack_root;	\
-  _ ## name.stack_caller=caller;
+  _ ## name.stack_caller=caller;			\
+  _ ## name.stack_type=type;				\
+  _ ## name.stack_label=label;				\
+  _ ## name.stack_op=op;				\
+  _ ## name.cleanups=_ ## name._cleanups
+#define FD_PUSH_STACK(name,type,label,op)	       \
+  FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
+  set_call_stack(name)
+
 
 #if (U8_USE_TLS)
 FD_EXPORT u8_tld_key fd_stackptr_key;
@@ -573,65 +580,18 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
 #define set_call_stack(s) fd_stackptr = s
 #endif
 
-FD_EXPORT
-struct FD_STACK *
-_fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-		u8_string label,fdtype op,short n_args,fdtype *args);
-FD_EXPORT void
-_fd_push_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-	       u8_string label,fdtype op,short n_args,fdtype *args);
 FD_EXPORT void _fd_free_stack(struct FD_STACK *stack);
 FD_EXPORT void _fd_pop_stack(struct FD_STACK *stack);
 FD_EXPORT struct FD_STACK_CLEANUP *_fd_push_cleanup
 (struct FD_STACK *stack,fd_stack_cleanop op);
 
 #if FD_INLINE_STACKS
-FD_FASTOP
-fd_stack fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-			u8_string label,fdtype op,
-			short n_args,fdtype *args)
-{
-  FD_INIT_STATIC_CONS(stack,fd_stackframe_type);
-  if (caller)
-    stack->stack_caller = caller;
-  else stack->stack_caller = fd_stackptr;
-  if (label) {
-    stack->stack_label = label;
-    stack->stack_state = label;}
-  stack->stack_env = NULL;
-  if (n_args>0) {
-    stack->stack_n_args = n_args;
-    if (args) {
-      stack->stack_args = args;}
-    else if (n_args>5) 
-      stack->stack_args = u8_alloc_n(n_args,fdtype);
-    else stack->stack_args = stack->stack_argbuf;}
-  else stack->stack_n_args = n_args;
-  stack->stack_cleanups = stack->_stack_cleanups;
-  return stack;
-}
-
-FD_FASTOP void fd_push_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-			     u8_string label,fdtype op,
-			     short n_args,fdtype *args)
-{
-  fd_stack fresh = fd_setup_stack(stack,caller,label,op,n_args,args);
-  set_call_stack(fresh);
-}
-
 FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 {
   if (stack->stack_decref_op) fd_decref(stack->stack_op);
-  if ((stack->stack_decref_args)&&(stack->stack_args)) {
-    fdtype *args = stack->stack_args;
-    int i = 0, n = stack->stack_n_args; while (i<n) {
-      fdtype arg = args[i++]; fd_decref(arg);}}
-  if ((stack->stack_args) && (stack->stack_free_args) &&
-      (stack->stack_args!=stack->stack_argbuf)) {
-    u8_free(stack->stack_args);}
-  if (stack->stack_n_cleanups) {
-    struct FD_STACK_CLEANUP *cleanups = stack->stack_cleanups;
-    int i = 0, n = stack->stack_n_cleanups;
+  if (stack->n_cleanups) {
+    struct FD_STACK_CLEANUP *cleanups = stack->cleanups;
+    int i = 0, n = stack->n_cleanups;
     while (i<n) {
       switch (cleanups[i].cleanop) {
       case FD_FREE_MEMORY:
@@ -651,6 +611,10 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	ssize_t size = *sizep;
 	int i = 0; while (i<size) {
 	  fdtype elt = vec[i++]; fd_decref(elt);}
+	break;}
+      case FD_CALLFN: {
+	fd_cleanupfn cleanup=(fd_cleanupfn)cleanups[i].arg0;
+	cleanup(cleanups[i].arg1);
 	break;}}
       i++;}}
 }
@@ -665,34 +629,33 @@ FD_FASTOP
 struct FD_STACK_CLEANUP *
 fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
 {
-  if ((stack->stack_n_cleanups==0) ||
-      (stack->stack_n_cleanups%FD_STACK_CLEANUP_QUANTUM)) {
-    int i = stack->stack_n_cleanups++;
-    stack->stack_cleanups[i].cleanop = op;
-    return &stack->stack_cleanups[i];}
+  if ((stack->n_cleanups==0) ||
+      (stack->n_cleanups%FD_STACK_CLEANUP_QUANTUM)) {
+    int i = stack->n_cleanups++;
+    stack->cleanups[i].cleanop = op;
+    return &stack->cleanups[i];}
   else {
-    int size = stack->stack_n_cleanups;
+    int size = stack->n_cleanups;
     int new_size = size+FD_STACK_CLEANUP_QUANTUM;
-    struct FD_STACK_CLEANUP *cleanups = stack->stack_cleanups;
+    struct FD_STACK_CLEANUP *cleanups = stack->cleanups;
     struct FD_STACK_CLEANUP *new_cleanups=
       u8_alloc_n(new_size,struct FD_STACK_CLEANUP);
-    memcpy(new_cleanups,stack->stack_cleanups,
+    memcpy(new_cleanups,cleanups,
 	   size*sizeof(struct FD_STACK_CLEANUP));
-    stack->stack_cleanups = new_cleanups;
+    stack->cleanups = new_cleanups;
     if (size>FD_STACK_CLEANUP_QUANTUM)
       u8_free(cleanups);
-    int i = stack->stack_n_cleanups++;
-    stack->stack_cleanups[i].cleanop = op;
-    return &stack->stack_cleanups[i];}
+    int i = stack->n_cleanups++;
+    stack->cleanups[i].cleanop = op;
+    return &stack->cleanups[i];}
 }
 #else /* not FD_INLINE_STACKS */
-#define fd_setup_stack(stack,caller,label,op,n_args,args) \
-  (_fd_setup_stack(stack,caller,label,op,n_args,args))
 #define fd_pop_stack(stack) (_fd_pop_stack(stack))
-#define fd_push_cleanup(stack,op) (_fd_push_cleanup(stack op))
+#define fd_push_cleanup(stack,op) (_fd_push_cleanup(stack,op))
 #endif
 
 #define fd_return(v) return (fd_pop_stack(_stack),(v))
+#define fd_return_from(stack,v) return (fd_pop_stack(_ ## stack),(v))
 
 #define FD_WITH_STACK(label,caller,op,n,args) \
   struct FD_STACK __stack, *_stack=&__stack; \
