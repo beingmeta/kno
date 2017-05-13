@@ -29,6 +29,8 @@
 
 fd_exception fd_UnknownEncoding=_("Unknown encoding");
 
+#define fast_eval(x,env) (fd_stack_eval(x,env,_stack,0))
+
 /* Making ports */
 
 static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
@@ -220,9 +222,10 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 FD_EXPORT
 fdtype fd_printout(fdtype body,fd_lispenv env)
 {
+  struct FD_STACK *_stack=fd_stackptr;
   U8_OUTPUT *out = u8_current_output;
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else return value;
     body = FD_CDR(body);}
@@ -233,10 +236,11 @@ fdtype fd_printout(fdtype body,fd_lispenv env)
 FD_EXPORT
 fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lispenv env)
 {
+  struct FD_STACK *_stack=fd_stackptr;
   u8_output prev = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_flush(out);
@@ -287,11 +291,11 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
   return FD_VOID;
 }
 
-static fdtype printout_handler(fdtype expr,fd_lispenv env)
+static fdtype printout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   return fd_printout(fd_get_body(expr,1),env);
 }
-static fdtype lineout_handler(fdtype expr,fd_lispenv env)
+static fdtype lineout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
   fdtype value = fd_printout(fd_get_body(expr,1),env);
@@ -301,14 +305,14 @@ static fdtype lineout_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype message_handler(fdtype expr,fd_lispenv env)
+static fdtype message_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -321,14 +325,14 @@ static fdtype message_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype notify_handler(fdtype expr,fd_lispenv env)
+static fdtype notify_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -341,14 +345,14 @@ static fdtype notify_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype status_handler(fdtype expr,fd_lispenv env)
+static fdtype status_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -361,14 +365,14 @@ static fdtype status_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype warning_handler(fdtype expr,fd_lispenv env)
+static fdtype warning_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -387,7 +391,7 @@ static int get_loglevel(fdtype level_arg)
   else return -1;
 }
 
-static fdtype log_handler(fdtype expr,fd_lispenv env)
+static fdtype log_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype level_arg = fd_eval(fd_get_arg(expr,1),env);
   fdtype body = fd_get_body(expr,2);
@@ -404,7 +408,7 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
     body = FD_CDR(body);}
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -417,14 +421,14 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype logif_handler(fdtype expr,fd_lispenv env)
+static fdtype logif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE;
   if (FD_ABORTP(test_expr)) return test_expr;
   else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
-    return fd_reterr(fd_SyntaxError,"logif_handler",
+    return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
-  else value = fasteval(test_expr,env);
+  else value = fast_eval(test_expr,env);
   if (FD_ABORTP(value)) return value;
   else if ( (FD_FALSEP(value)) || (FD_VOIDP(value)) ||
             (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)) )
@@ -439,7 +443,7 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
       body = FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
     while (FD_PAIRP(body)) {
-      fdtype value = fasteval(FD_CAR(body),env);
+      fdtype value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
         u8_set_default_output(stream);
@@ -452,14 +456,14 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
+static fdtype logifplus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE, loglevel_arg;
   if (FD_ABORTP(test_expr)) return test_expr;
   else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
-    return fd_reterr(fd_SyntaxError,"logif_handler",
+    return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
-  else value = fasteval(test_expr,env);
+  else value = fast_eval(test_expr,env);
   if (FD_ABORTP(value)) return value;
   else if ((FD_FALSEP(value)) || (FD_VOIDP(value)) ||
            (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
@@ -467,10 +471,10 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
   else loglevel_arg = fd_eval(fd_get_arg(expr,2),env);
   if (FD_ABORTP(loglevel_arg)) return loglevel_arg;
   else if (FD_VOIDP(loglevel_arg))
-    return fd_reterr(fd_SyntaxError,"logif_plus_handler",
+    return fd_reterr(fd_SyntaxError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),expr);
   else if (!(FD_INTP(loglevel_arg)))
-    return fd_reterr(fd_TypeError,"logif_plus_handler",
+    return fd_reterr(fd_TypeError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
     fdtype body = fd_get_body(expr,3);
@@ -483,7 +487,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
       body = FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
     while (FD_PAIRP(body)) {
-      fdtype value = fasteval(FD_CAR(body),env);
+      fdtype value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
         u8_set_default_output(stream);
@@ -496,7 +500,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype stringout_handler(fdtype expr,fd_lispenv env)
+static fdtype stringout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; fdtype result; u8_byte buf[256];
   U8_INIT_OUTPUT_X(&out,256,buf,0);
@@ -1276,9 +1280,9 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
 
-  fd_defspecial(fd_scheme_module,"PRINTOUT",printout_handler);
-  fd_defspecial(fd_scheme_module,"LINEOUT",lineout_handler);
-  fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_handler);
+  fd_defspecial(fd_scheme_module,"PRINTOUT",printout_evalfn);
+  fd_defspecial(fd_scheme_module,"LINEOUT",lineout_evalfn);
+  fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
                            fd_string_type,FD_VOID,
@@ -1290,20 +1294,20 @@ FD_EXPORT void fd_init_portprims_c()
                            fd_string_type,FD_VOID));
 
   /* Logging functions for specific levels */
-  fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
-  fd_defspecial(fd_scheme_module,"STATUS",status_handler);
-  fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
+  fd_defspecial(fd_scheme_module,"NOTIFY",notify_evalfn);
+  fd_defspecial(fd_scheme_module,"STATUS",status_evalfn);
+  fd_defspecial(fd_scheme_module,"WARNING",warning_evalfn);
 
   /* Generic logging function, always outputs */
-  fd_defspecial(fd_scheme_module,"MESSAGE",message_handler);
-  fd_defspecial(fd_scheme_module,"%LOGGER",message_handler);
+  fd_defspecial(fd_scheme_module,"MESSAGE",message_evalfn);
+  fd_defspecial(fd_scheme_module,"%LOGGER",message_evalfn);
 
   /* Logging with message level */
-  fd_defspecial(fd_scheme_module,"LOGMSG",log_handler);
+  fd_defspecial(fd_scheme_module,"LOGMSG",log_evalfn);
   /* Conditional logging */
-  fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
+  fd_defspecial(fd_scheme_module,"LOGIF",logif_evalfn);
   /* Conditional logging with priority level */
-  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
+  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,

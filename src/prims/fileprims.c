@@ -30,6 +30,8 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
 
+#define fast_eval(x,env) (_fd_fast_eval(x,env,_stack,0))
+
 #include <stdlib.h>
 
 #if HAVE_UNISTD_H
@@ -214,7 +216,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype simple_fileout(fdtype expr,fd_lispenv env)
+static fdtype simple_fileout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype filename_arg = fd_get_arg(expr,1);
   fdtype filename_val = fd_eval(filename_arg,env);
@@ -239,7 +241,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   u8_set_default_output(f);
   {fdtype body = fd_get_body(expr,2);
     FD_DOLIST(ex,body)  {
-      fdtype value = fasteval(ex,env);
+      fdtype value = fast_eval(ex,env);
       if (printout_helper(f,value)) fd_decref(value);
       else {
         u8_set_default_output(oldf);
@@ -254,13 +256,13 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
 
 /* Not really I/O but related structurally and logically */
 
-static fdtype simple_system(fdtype expr,fd_lispenv env)
+static fdtype simple_system_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; int result;
   U8_INIT_OUTPUT(&out,256);
   {fdtype string_exprs = fd_get_body(expr,1);
     FD_DOLIST(string_expr,string_exprs) {
-      fdtype value = fasteval(string_expr,env);
+      fdtype value = fast_eval(string_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (FD_VOIDP(value)) continue;
       else if (FD_STRINGP(value))
@@ -1528,7 +1530,7 @@ int fd_snapback(fd_lispenv env,u8_string filename)
   return actions;
 }
 
-static fdtype snapshot_handler(fdtype expr,fd_lispenv env)
+static fdtype snapshot_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fd_lispenv save_env; u8_string save_file; int retval = 0;
   fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
@@ -1558,7 +1560,7 @@ static fdtype snapshot_handler(fdtype expr,fd_lispenv env)
   else return FD_INT(retval);
 }
 
-static fdtype snapback_handler(fdtype expr,fd_lispenv env)
+static fdtype snapback_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fd_lispenv save_env; u8_string save_file; int retval = 0;
   fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
@@ -1698,9 +1700,9 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,FD_VOID,-1,FD_VOID,
                            -1,FD_VOID));
 
-  fd_defspecial(fileio_module,"FILEOUT",simple_fileout);
+  fd_defspecial(fileio_module,"FILEOUT",simple_fileout_evalfn);
 
-  fd_defspecial(fileio_module,"SYSTEM",simple_system);
+  fd_defspecial(fileio_module,"SYSTEM",simple_system_evalfn);
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
@@ -1914,8 +1916,8 @@ FD_EXPORT void fd_init_fileio_c()
   noblock_symbol = fd_intern("NOBLOCK");
   nodelay_symbol = fd_intern("NODELAY");
 
-  fd_defspecial(fileio_module,"SNAPSHOT",snapshot_handler);
-  fd_defspecial(fileio_module,"SNAPBACK",snapback_handler);
+  fd_defspecial(fileio_module,"SNAPSHOT",snapshot_evalfn);
+  fd_defspecial(fileio_module,"SNAPBACK",snapback_evalfn);
 
   fd_register_config
     ("STACKDUMP","File to store stackdump information on errors",

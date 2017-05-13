@@ -231,8 +231,8 @@ _fd_setup_stack(struct FD_STACK *stack,struct FD_STACK *caller,
 
 FD_EXPORT
 void _fd_push_stack(struct FD_STACK *stack,struct FD_STACK *caller,
-                        u8_string label,fdtype op,
-                        short n_args,fdtype *args)
+                    u8_string label,fdtype op,
+                    short n_args,fdtype *args)
 {
   return fd_push_stack(stack,caller,label,op,n_args,args);
 }
@@ -597,7 +597,8 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,u8_string name,
     else return dcall(name,f,n,args);}
 }
 
-FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,fdtype fn,int n,fdtype *argvec)
+FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,
+                           fdtype fn,int n,fdtype *argvec)
 {
   u8_byte namebuf[60];
   u8_string fname="apply";
@@ -622,7 +623,7 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *caller,fdtype fn,int n,fdtype *argve
     fdtype result=FD_VOID;
     FD_WITH_STACK(fname,caller,fn,n,argvec);
     U8_WITH_CONTOUR(fname,0)
-      if (f) result=apply_fcn(&__fdstack,fname,f,n,argvec);
+      if (f) result=apply_fcn(&__stack,fname,f,n,argvec);
       else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();

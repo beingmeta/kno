@@ -557,6 +557,11 @@ typedef struct FD_STACK {
   struct FD_STACK *stack_caller;
   struct FD_STACK *stack_root;} *fd_stack;
 
+#define FD_STACK(name,caller) \
+  struct FD_STACK _ ## name={}, *name=&_ ## name;	\
+  if (caller) _ ## name.stack_root=caller->stack_root;	\
+  _ ## name.stack_caller=caller;
+
 #if (U8_USE_TLS)
 FD_EXPORT u8_tld_key fd_stackptr_key;
 #define fd_stackptr ((struct FD_STACK *)(u8_tld_get(fd_stackptr_key)))
@@ -687,11 +692,11 @@ fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
 #define fd_push_cleanup(stack,op) (_fd_push_cleanup(stack op))
 #endif
 
-#define fd_return(v) return (fd_pop_stack(_fdstack),(v))
+#define fd_return(v) return (fd_pop_stack(_stack),(v))
 
 #define FD_WITH_STACK(label,caller,op,n,args) \
-  struct FD_STACK __fdstack, *_fdstack=&__fdstack; \
-  fd_setup_stack(_fdstack,caller,label,op,n,args)
+  struct FD_STACK __stack, *_stack=&__stack; \
+  fd_setup_stack(_stack,caller,label,op,n,args)
 
 /* Stack checking */
 

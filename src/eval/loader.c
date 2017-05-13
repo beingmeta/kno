@@ -562,7 +562,7 @@ int fd_load_latest
     return 1;}
 }
 
-static fdtype load_latest(fdtype expr,fd_lispenv env)
+static fdtype load_latest_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   if (FD_EMPTY_LISTP(FD_CDR(expr))) {
     int loads = fd_load_latest(NULL,env,NULL);
@@ -632,7 +632,7 @@ FD_EXPORT void fd_init_loader_c()
            fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
                            -1,FD_VOID,-1,FD_FALSE));
 
-  fd_defspecial(loader_module,"LOAD-LATEST",load_latest);
+  fd_defspecial(loader_module,"LOAD-LATEST",load_latest_evalfn);
 
   fd_add_module_loader(load_source_module,NULL);
   fd_register_sourcefn(file_source_fn,NULL);

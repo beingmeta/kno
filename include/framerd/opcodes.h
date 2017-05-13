@@ -12,7 +12,8 @@
 #endif
 
 FD_EXPORT fdtype fd_opcode_dispatch
-(fdtype opcode,fdtype expr,fd_lispenv env);
+(fdtype opcode,fdtype expr,fd_lispenv env,
+ fd_stack caller,int tail);
 
 /* Opcodes */
 

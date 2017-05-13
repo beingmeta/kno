@@ -19,16 +19,19 @@
 #include "framerd/frames.h"
 #include "framerd/sorting.h"
 
+#include "eval_internals.h"
+
 /* Choice iteration */
 
 static fdtype parse_control_spec
-  (fdtype expr,fdtype *value,fdtype *iter_var,fd_lispenv env)
+(fdtype expr,fdtype *value,fdtype *iter_var,
+ fd_lispenv env,fd_stack _stack)
 {
   fdtype control_expr = fd_get_arg(expr,1);
   if (FD_VOIDP(control_expr))
     return fd_err(fd_TooFewExpressions,NULL,NULL,expr);
   else if (FD_SYMBOLP(control_expr)) {
-    fdtype values = fd_eval(control_expr,env);
+    fdtype values = fast_eval(control_expr,env);
     if (FD_ABORTED(values)) {
       *value = FD_VOID; return values;}
     *value = values; *iter_var = FD_VOID;
@@ -46,7 +49,7 @@ static fdtype parse_control_spec
     else if (!((FD_VOIDP(ivar)) || (FD_SYMBOLP(ivar))))
       return fd_err(fd_SyntaxError,
                     _("identifier is not a symbol"),NULL,control_expr);
-    val = fasteval(val_expr,env);
+    val = fast_eval(val_expr,env);
     if (FD_ABORTED(val)) {
       *value = val;
       return FD_VOID;}
@@ -72,10 +75,11 @@ static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
+static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
+  FD_STACK(dochoices_stack,fd_stackptr);
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env);
+    parse_control_spec(expr,&choices,&count_var,env,dochoices_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -98,7 +102,8 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   bindings.schemap_onstack = 1;
   u8_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent = env;
-  envstruct.env_bindings = (fdtype)(&bindings); envstruct.env_exports = FD_VOID;
+  envstruct.env_bindings = (fdtype)(&bindings);
+  envstruct.env_exports = FD_VOID;
   envstruct.env_copy = NULL;
   {
     int i = 0; FD_DO_CHOICES(elt,choices) {
@@ -111,7 +116,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
         if (iloc) *iloc = FD_INT(i);}
       {fdtype steps = fd_get_body(expr,2);
         FD_DOLIST(step,steps) {
-          fdtype val = fasteval(step,&envstruct);
+          fdtype val = fast_eval(step,&envstruct);
           if (FD_THROWP(val)) {
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -141,17 +146,18 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
+static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
+  FD_STACK(fexpr_stack,fd_stackptr);
   fdtype results = FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env);
+    parse_control_spec(expr,&choices,&count_var,env,fexpr_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
   else if (FD_ABORTED(choices)) {
-    fd_push_error_context("trychoices_handler",NULL,expr);
+    fd_push_error_context("trychoices_evalfn",NULL,expr);
     return choices;}
   else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
@@ -181,7 +187,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
       {fdtype attempts = fd_get_body(expr,2);
         FD_DOLIST(attempt,attempts) {
           fd_decref(val);
-          val = fasteval(attempt,&envstruct);
+          val = fast_eval(attempt,&envstruct);
           if (FD_THROWP(val)) {
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -212,11 +218,13 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the combined results of its body's execution. */
-static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
+static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
+  FD_STACK(forchoices_stack,fd_stackptr);
   fdtype results = FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env);
+    parse_control_spec(expr,&choices,&count_var,
+                       env,forchoices_stack);
   fdtype *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -252,7 +260,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       {fdtype body = fd_get_body(expr,2);
         FD_DOLIST(subexpr,body) {
           fd_decref(val);
-          val = fasteval(subexpr,&envstruct);
+          val = fast_eval(subexpr,&envstruct);
           if (FD_THROWP(val)) {
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -286,11 +294,12 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the subset of values which pass the body. */
-static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
+static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
+  FD_STACK(filterchoices_stack,fd_stackptr);
   fdtype results = FD_EMPTY_CHOICE;
   fdtype choices, count_var, var=
-    parse_control_spec(expr,&choices,&count_var,env);
+    parse_control_spec(expr,&choices,&count_var,env,filterchoices_stack);
   fdtype test_expr = fd_get_arg(expr,2), *vloc = NULL, *iloc = NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -324,7 +333,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
       else {
         *vloc = elt; fd_incref(elt);
         if (iloc) *iloc = FD_INT(i);}
-      val = fasteval(test_expr,&envstruct);
+      val = fast_eval(test_expr,&envstruct);
       if (FD_THROWP(val)) {
         fd_decref(choices);
         fd_decref(results);
@@ -360,7 +369,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    This returns VOID.  */
-static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
+static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype choices, count_var, var, *vloc = NULL, *iloc = NULL;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
@@ -371,15 +380,15 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
         (FD_SYMBOLP(FD_CAR(control_spec))) &&
         (FD_PAIRP(FD_CDR(control_spec))) &&
         (FD_PAIRP(FD_CDR(FD_CDR(control_spec))))))
-    return fd_err(fd_SyntaxError,"dosubsets_handler",NULL,FD_VOID);
+    return fd_err(fd_SyntaxError,"dosubsets_evalfn",NULL,FD_VOID);
   var = FD_CAR(control_spec);
   count_var = fd_get_arg(control_spec,3);
   if (!((FD_VOIDP(count_var)) || (FD_SYMBOLP(count_var))))
-    return fd_err(fd_SyntaxError,"dosubsets_handler",NULL,FD_VOID);
+    return fd_err(fd_SyntaxError,"dosubsets_evalfn",NULL,FD_VOID);
   bsize = fd_eval(FD_CADR(FD_CDR(control_spec)),env);
   if (FD_ABORTED(bsize)) return bsize;
   else if (!(FD_FIXNUMP(bsize)))
-    return fd_type_error("fixnum","dosubsets_handler",bsize);
+    return fd_type_error("fixnum","dosubsets_evalfn",bsize);
   else blocksize = FD_FIX2INT(bsize);
   choices = fd_eval(FD_CADR(control_spec),env);
   if (FD_ABORTED(choices)) return choices;
@@ -430,7 +439,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
       else {*vloc = v; if (iloc) *iloc = FD_INT(i);}
       {fdtype body = fd_get_body(expr,2);
         FD_DOLIST(subexpr,body) {
-          fdtype val = fasteval(subexpr,&envstruct);
+          fdtype val = fast_eval(subexpr,&envstruct);
           if (FD_THROWP(val)) {
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -509,7 +518,7 @@ static fdtype getmagnitude(fdtype val,fdtype magfn)
       else return fd_get(val,magfn,FD_EMPTY_CHOICE);}}
 }
 
-static fdtype smallest_handler(fdtype elts,fdtype magnitude)
+static fdtype smallest_evalfn(fdtype elts,fdtype magnitude)
 {
   fdtype top = FD_EMPTY_CHOICE, top_score = FD_VOID;
   FD_DO_CHOICES(elt,elts) {
@@ -536,7 +545,7 @@ static fdtype smallest_handler(fdtype elts,fdtype magnitude)
   return top;
 }
 
-static fdtype largest_handler(fdtype elts,fdtype magnitude)
+static fdtype largest_evalfn(fdtype elts,fdtype magnitude)
 {
   fdtype top = FD_EMPTY_CHOICE, top_score = FD_VOID;
   FD_DO_CHOICES(elt,elts) {
@@ -607,7 +616,7 @@ static fdtype qchoicex_prim(int n,fdtype *args)
 
 /* TRY */
 
-static fdtype try_handler(fdtype expr,fd_lispenv env)
+static fdtype try_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype value = FD_EMPTY_CHOICE;
   fdtype clauses = fd_get_body(expr,1);
@@ -620,7 +629,7 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
       fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
       return value;}
     else if (FD_VOIDP(value)) {
-      fd_seterr(fd_VoidArgument,"try_handler",NULL,clause);
+      fd_seterr(fd_VoidArgument,"try_evalfn",NULL,clause);
       fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
       return FD_ERROR_VALUE;}
     else if (!(FD_EMPTY_CHOICEP(value))) return value;
@@ -630,17 +639,17 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
 
 /* IFEXISTS */
 
-static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
+static fdtype ifexists_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype value_expr = fd_get_arg(expr,1);
   fdtype value = FD_EMPTY_CHOICE;
   if (FD_VOIDP(value_expr))
-    return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"ifexists_evalfn",NULL,expr);
   else if (!(FD_EMPTY_LISTP(FD_CDR(FD_CDR(expr)))))
-    return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"ifexists_evalfn",NULL,expr);
   else value = fd_eval(value_expr,env);
   if (FD_ABORTED(value)) {
-    fd_incref(expr); fd_push_error_context("ifexists_handler",NULL,expr);
+    fd_incref(expr); fd_push_error_context("ifexists_evalfn",NULL,expr);
     return value;}
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
   else return value;
@@ -711,12 +720,12 @@ static fdtype simplify(fdtype x)
   return fd_make_simple_choice(x);
 }
 
-static fdtype qchoicep_handler(fdtype expr,fd_lispenv env)
+static fdtype qchoicep_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   /* This is a special form because application often reduces
      qchoices to choices. */
   if (!((FD_PAIRP(expr)) && (FD_PAIRP(FD_CDR(expr)))))
-    return fd_err(fd_SyntaxError,"qchoice_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"qchoice_evalfn",NULL,expr);
   else {
     fdtype val = fd_eval(FD_CADR(expr),env);
     if (FD_QCHOICEP(val)) {
@@ -790,11 +799,11 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,
 static int test_forall
   (struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
 
-static fdtype whenexists_handler(fdtype expr,fd_lispenv env)
+static fdtype whenexists_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype to_eval = fd_get_arg(expr,1), value;
   if (FD_VOIDP(to_eval))
-    return fd_err(fd_SyntaxError,"whenexists_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"whenexists_evalfn",NULL,expr);
   else value = fd_eval(to_eval,env);
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
   else return value;
@@ -1426,16 +1435,16 @@ FD_EXPORT void fd_init_choicefns_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_defspecial(fd_scheme_module,"DO-CHOICES",dochoices_handler);
+  fd_defspecial(fd_scheme_module,"DO-CHOICES",dochoices_evalfn);
   fd_defalias(fd_scheme_module,"DO∀","DO-CHOICES");
-  fd_defspecial(fd_scheme_module,"FOR-CHOICES",forchoices_handler);
+  fd_defspecial(fd_scheme_module,"FOR-CHOICES",forchoices_evalfn);
   fd_defalias(fd_scheme_module,"FOR∀","FOR-CHOICES");
-  fd_defspecial(fd_scheme_module,"TRY-CHOICES",trychoices_handler);
+  fd_defspecial(fd_scheme_module,"TRY-CHOICES",trychoices_evalfn);
   fd_defalias(fd_scheme_module,"TRY∀","TRY-CHOICES");
-  fd_defspecial(fd_scheme_module,"FILTER-CHOICES",filterchoices_handler);
+  fd_defspecial(fd_scheme_module,"FILTER-CHOICES",filterchoices_evalfn);
   fd_defalias(fd_scheme_module,"?∀","FILTER-CHOICES");
 
-  fd_defspecial(fd_scheme_module,"DO-SUBSETS",dosubsets_handler);
+  fd_defspecial(fd_scheme_module,"DO-SUBSETS",dosubsets_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("CHOICE",choice_prim,0)));
@@ -1465,11 +1474,11 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defalias(fd_scheme_module,"∖","DIFFERENCE");
 
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("SMALLEST",smallest_handler,1)));
+           fd_make_ndprim(fd_make_cprim2("SMALLEST",smallest_evalfn,1)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("LARGEST",largest_handler,1)));
+           fd_make_ndprim(fd_make_cprim2("LARGEST",largest_evalfn,1)));
 
-  fd_defspecial(fd_scheme_module,"TRY",try_handler);
+  fd_defspecial(fd_scheme_module,"TRY",try_evalfn);
 
   {
     fdtype empty_prim=
@@ -1479,7 +1488,7 @@ FD_EXPORT void fd_init_choicefns_c()
     fd_store(fd_scheme_module,fd_intern("∄"),empty_prim);
   }
 
-  fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_handler);
+  fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("SATISFIED?",satisfiedp,1)));
@@ -1501,7 +1510,7 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
   fd_defalias(fd_scheme_module,"∀","FORALL");
 
-  fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_handler);
+  fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_evalfn);
 
   {
     fdtype unique_prim=
@@ -1510,7 +1519,7 @@ FD_EXPORT void fd_init_choicefns_c()
     fd_store(fd_scheme_module,fd_intern("SINGLETON?"),unique_prim);
     fd_store(fd_scheme_module,fd_intern("SOLE?"),unique_prim);}
 
-  fd_defspecial(fd_scheme_module,"QCHOICE?",qchoicep_handler);
+  fd_defspecial(fd_scheme_module,"QCHOICE?",qchoicep_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim1("AMB?",ambiguousp,1)));
   fd_defalias(fd_scheme_module,"AMBIGUOUS?","AMB?");

@@ -393,7 +393,8 @@ static fd_lispenv become_module
   fd_decref(module); fd_decref(module_spec);
   return env;
 }
-static fdtype safe_in_module(fdtype expr,fd_lispenv env)
+
+static fdtype safe_in_module_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype module_name = fd_get_arg(expr,1);
   if (FD_VOIDP(module_name))
@@ -402,7 +403,7 @@ static fdtype safe_in_module(fdtype expr,fd_lispenv env)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype in_module(fdtype expr,fd_lispenv env)
+static fdtype in_module_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype module_name = fd_get_arg(expr,1);
   if (FD_VOIDP(module_name))
@@ -411,7 +412,8 @@ static fdtype in_module(fdtype expr,fd_lispenv env)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype safe_within_module(fdtype expr,fd_lispenv env)
+static fdtype safe_within_module_evalfn
+(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fd_lispenv consed_env = fd_working_environment();
   fdtype module_name = fd_get_arg(expr,1);
@@ -427,7 +429,7 @@ static fdtype safe_within_module(fdtype expr,fd_lispenv env)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype within_module(fdtype expr,fd_lispenv env)
+static fdtype within_module_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fd_lispenv consed_env = fd_working_environment();
   fdtype module_name = fd_get_arg(expr,1);
@@ -469,7 +471,7 @@ static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
     return NULL;}
 }
 
-static fdtype accessing_module(fdtype expr,fd_lispenv env)
+static fdtype accessing_module_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype module_name = fd_eval(fd_get_arg(expr,1),env);
   fd_lispenv hybrid;
@@ -488,7 +490,8 @@ static fdtype accessing_module(fdtype expr,fd_lispenv env)
     return FD_ERROR_VALUE;}
 }
 
-static fdtype safe_accessing_module(fdtype expr,fd_lispenv env)
+static fdtype safe_accessing_module_evalfn
+(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype module_name = fd_eval(fd_get_arg(expr,1),env);
   fd_lispenv hybrid;
@@ -527,7 +530,7 @@ static fd_hashtable get_exports(fd_lispenv env)
   return exports;
 }
 
-static fdtype module_export(fdtype expr,fd_lispenv env)
+static fdtype module_export_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
 {
   fd_hashtable exports;
   fdtype symbols_spec = fd_get_arg(expr,1), symbols;
@@ -561,7 +564,7 @@ static int uses_bindings(fd_lispenv env,fdtype bindings)
   return 0;
 }
 
-static fdtype use_module_handler(fdtype expr,fd_lispenv env,int safe)
+static fdtype use_module_helper(fdtype expr,fd_lispenv env,int safe)
 {
   fdtype module_names = fd_eval(fd_get_arg(expr,1),env);
   fd_lispenv modify_env = env;
@@ -603,20 +606,20 @@ static fdtype use_module_handler(fdtype expr,fd_lispenv env,int safe)
     return FD_VOID;}
 }
 
-static fdtype safe_use_module(fdtype expr,fd_lispenv env)
+static fdtype use_module_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  return use_module_handler(expr,env,1);
+  return use_module_helper(expr,env,0);
+}
+
+static fdtype safe_use_module_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+{
+  return use_module_helper(expr,env,1);
 }
 
 static fdtype safe_get_module(fdtype modname)
 {
   fdtype module = fd_find_module(modname,1,0);
   return module;
-}
-
-static fdtype use_module(fdtype expr,fd_lispenv env)
-{
-  return use_module_handler(expr,env,0);
 }
 
 static fdtype get_module(fdtype modname)
@@ -814,25 +817,27 @@ FD_EXPORT void fd_init_modules_c()
   fd_defalias(fd_xscheme_module,"DLOAD","DYNAMIC-LOAD");
   fd_defalias(fd_xscheme_module,"LOAD-DLL","DYNAMIC-LOAD");
 
-  fd_defspecial(fd_scheme_module,"IN-MODULE",safe_in_module);
-  fd_defspecial(fd_scheme_module,"WITHIN-MODULE",safe_within_module);
+  fd_defspecial(fd_scheme_module,"IN-MODULE",safe_in_module_evalfn);
+  fd_defspecial(fd_scheme_module,"WITHIN-MODULE",safe_within_module_evalfn);
   fd_defalias(fd_scheme_module,"W/M","WITHIN-MODULE");
   fd_defalias(fd_scheme_module,"%WM","WITHIN-MODULE");
-  fd_defspecial(fd_scheme_module,"ACCESSING-MODULE",safe_accessing_module);
-  fd_defspecial(fd_scheme_module,"USE-MODULE",safe_use_module);
-  fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export);
+  fd_defspecial(fd_scheme_module,"ACCESSING-MODULE",safe_accessing_module_evalfn);
+  fd_defspecial(fd_scheme_module,"USE-MODULE",safe_use_module_evalfn);
+  fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprim1("GET-MODULE",safe_get_module,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("GET-LOADED-MODULE",safe_get_loaded_module,1));
+  fd_idefn1(fd_scheme_module,"GET-LOADED-MODULE",safe_get_loaded_module,1,
+            "Gets a loaded module, fails for non-loaded or non-existent modules",
+            -1,FD_VOID);
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
-  fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module);
-  fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module);
+  fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module_evalfn);
+  fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module_evalfn);
   fd_defalias(fd_xscheme_module,"W/M","WITHIN-MODULE");
   fd_defalias(fd_xscheme_module,"%WM","WITHIN-MODULE");
-  fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module);
-  fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
+  fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module_evalfn);
+  fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module_evalfn);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
   fd_idefn(fd_xscheme_module,

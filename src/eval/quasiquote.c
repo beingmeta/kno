@@ -329,7 +329,7 @@ fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
   else return fd_incref(obj);
 }
 
-static fdtype quasiquote_handler(fdtype obj,fd_lispenv env)
+static fdtype quasiquote_evalfn(fdtype obj,fd_lispenv env,fd_stack s)
 {
   if ((FD_PAIRP(FD_CDR(obj))) &&
       (FD_EMPTY_LISTP(FD_CDR(FD_CDR(obj))))) {
@@ -347,7 +347,7 @@ FD_EXPORT void fd_init_quasiquote_c()
   unquote = fd_intern("UNQUOTE");
   unquotestar = fd_intern("UNQUOTE*");
 
-  fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_handler);
+  fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_evalfn);
 
   u8_register_source_file(_FILEINFO);
 }

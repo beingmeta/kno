@@ -67,7 +67,9 @@ FD_EXPORT int fd_recycle_environment(fd_lispenv env);
 
 /* Special forms */
 
-typedef fdtype (*fd_evalfn)(fdtype expr,struct FD_ENVIRONMENT *);
+typedef fdtype (*fd_evalfn)(fdtype expr,
+			    struct FD_ENVIRONMENT *,
+			    struct FD_STACK *stack);
 
 typedef struct FD_SPECIAL_FORM {
   FD_CONS_HEADER;
@@ -191,10 +193,16 @@ typedef struct FD_CONFIG_RECORD {
 
 /* The Evaluator */
 
-/* This is the non-static version of fd_eval */
-FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env);
-FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env);
+FD_EXPORT
+fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
+                     struct FD_STACK *stack,
+		     int tail);
+#define fd_tail_eval(expr,env) (fd_stack_eval(expr,env,fd_stackptr,1))
+
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env);
+
+/* These are for non-static/inline versions */
+FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env);
 FD_EXPORT fdtype _fd_get_arg(fdtype expr,int i);
 FD_EXPORT fdtype _fd_get_body(fdtype expr,int i);
 
@@ -241,15 +249,9 @@ FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
   return FD_VOID;
 }
 
-FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
-{
-  fdtype result = fd_tail_eval(x,env);
-  if (FD_TYPEP(result,fd_tailcall_type))
-    return _fd_finish_call(result);
-  else return result;
-}
-
-FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
+FD_FASTOP fdtype _fd_fast_eval(fdtype x,fd_lispenv env,
+			       struct FD_STACK *stack,
+			       int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
@@ -270,42 +272,14 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
         (FD_TYPEP(x,fd_code_type)) ||
         (FD_TYPEP(x,fd_choice_type)) ||
         (FD_TYPEP(x,fd_prechoice_type)))
-      return fd_eval(x,env);
+      return fd_stack_eval(x,env,stack,tail);
     else return fd_incref(x);
   default: /* Never reached */
     return x;
   }
 }
 
-FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
-{
-  switch (FD_PTR_MANIFEST_TYPE(x)) {
-  case fd_oid_ptr_type: case fd_fixnum_ptr_type:
-    return x;
-  case fd_immediate_ptr_type:
-    if (FD_TYPEP(x,fd_lexref_type))
-      return fd_lexref(x,env);
-    else if (FD_SYMBOLP(x)) {
-      fdtype val = fd_symeval(x,env);
-      if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-        return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
-      else return val;}
-    else return x;
-  case fd_cons_ptr_type: {
-    fd_ptr_type ctype = FD_PTR_TYPE(x);
-    switch (ctype) {
-    case fd_pair_type: case fd_code_type:
-      return fd_tail_eval(x,env);
-    case fd_slotmap_type:
-      return fd_deep_copy(x);
-    case fd_choice_type: case fd_prechoice_type:
-      return fd_eval(x,env);
-    default:
-      return fd_incref(x);}}
-  default: /* Never reached */
-    return x;
-  }
-}
+#define fd_eval(x,env) (_fd_fast_eval(x,env,fd_stackptr,0))
 
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
@@ -396,6 +370,7 @@ FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 /* Opcodes */
 
 FD_EXPORT fdtype fd_opcode_dispatch
-(fdtype opcode,fdtype expr,fd_lispenv env);
+(fdtype opcode,fdtype expr,fd_lispenv env,
+ struct FD_STACK *,int tail);
 
 #endif /* FRAMERD_EVAL_H */

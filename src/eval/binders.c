@@ -24,7 +24,7 @@ fd_exception fd_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-static fdtype set_handler(fdtype expr,fd_lispenv env)
+static fdtype set_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int retval;
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
@@ -34,7 +34,7 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_NotAnIdentifier,"SET!",NULL,expr);
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SET!",FD_SYMBOL_NAME(var),expr);
-  value = fasteval(val_expr,env);
+  value = fast_eval(val_expr,env);
   if (FD_ABORTED(value)) return value;
   else if ((retval = (fd_set_value(var,value,env)))) {
     fd_decref(value);
@@ -47,7 +47,7 @@ static fdtype set_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_BindError,"SET!",FD_SYMBOL_NAME(var),var);
 }
 
-static fdtype set_plus_handler(fdtype expr,fd_lispenv env)
+static fdtype set_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
   if (FD_VOIDP(var))
@@ -56,7 +56,7 @@ static fdtype set_plus_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_NotAnIdentifier,"SET+!",NULL,expr);
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SET+!",NULL,expr);
-  value = fasteval(val_expr,env);
+  value = fast_eval(val_expr,env);
   if (FD_ABORTED(value))
     return value;
   else if (fd_add_value(var,value,env)>0) {}
@@ -66,14 +66,14 @@ static fdtype set_plus_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype set_default_handler(fdtype expr,fd_lispenv env)
+static fdtype set_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"set_default_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"set_default_evalfn",NULL,fd_incref(expr));
   else if (FD_VOIDP(value_expr))
-    return fd_err(fd_SyntaxError,"set_default_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"set_default_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
     if ((FD_VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
@@ -87,14 +87,14 @@ static fdtype set_default_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_VOID;}}
 }
 
-static fdtype set_false_handler(fdtype expr,fd_lispenv env)
+static fdtype set_false_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"set_false_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"set_false_evalfn",NULL,fd_incref(expr));
   else if (FD_VOIDP(value_expr))
-    return fd_err(fd_SyntaxError,"set_false_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"set_false_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
     if ((FD_VOIDP(val))||(FD_FALSEP(val))||
@@ -109,16 +109,16 @@ static fdtype set_false_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_VOID;}}
 }
 
-static fdtype bind_default_handler(fdtype expr,fd_lispenv env)
+static fdtype bind_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"bind_default_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"bind_default_evalfn",NULL,fd_incref(expr));
   else if (FD_VOIDP(value_expr))
-    return fd_err(fd_SyntaxError,"bind_default_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"bind_default_evalfn",NULL,fd_incref(expr));
   else if (env == NULL)
-    return fd_err(fd_SyntaxError,"bind_default_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"bind_default_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_get(env->env_bindings,symbol,FD_VOID);
     if ((FD_VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
@@ -137,7 +137,7 @@ static u8_mutex sset_lock;
    wraps a mutex around a regular set call, including evaluation of the
    value expression.  This can be used, for instance, to safely increment
    a variable. */
-static fdtype sset_handler(fdtype expr,fd_lispenv env)
+static fdtype sset_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int retval;
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
@@ -148,7 +148,7 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
   u8_lock_mutex(&sset_lock);
-  value = fasteval(val_expr,env);
+  value = fast_eval(val_expr,env);
   if (FD_ABORTED(value)) {
     u8_unlock_mutex(&sset_lock);
     return value;}
@@ -223,7 +223,7 @@ FD_FASTOP fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
 
 /* Simple binders */
 
-static fdtype let_handler(fdtype expr,fd_lispenv env)
+static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -240,18 +240,19 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
       init_static_env(n,env,&bindings,&envstruct,vars,vals);
     int i = 0;
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-        fdtype value = fasteval(val_expr,env);
+        fdtype value = fast_eval(val_expr,env);
         if (FD_ABORTED(value))
           return return_error_env(value,":LET",inner_env);
         else {
           vars[i]=var; vals[i]=value;
           i++;}}}
-    result = eval_body(":LET",FD_SYMBOL_NAME(vars[0]),expr,2,inner_env);
+    result = eval_body(":LET",FD_SYMBOL_NAME(vars[0]),expr,2,
+                       inner_env,_stack);
     free_environment(inner_env);
     return result;}
 }
 
-static fdtype letstar_handler(fdtype expr,fd_lispenv env)
+static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -260,6 +261,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
+    FD_STACK(let_star_stack,fd_stackptr);
     struct FD_SCHEMAP bindings;
     struct FD_ENVIRONMENT envstruct;
     fdtype vars[n]; /* *vars=fd_alloca(n); */
@@ -268,27 +270,28 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
     fd_environment inner_env=
       init_static_env(n,env,&bindings,&envstruct,vars,vals);
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-      vars[j]=var;
-      vals[j]=FD_UNBOUND;
-      j++;}}
+        vars[j]=var;
+        vals[j]=FD_UNBOUND;
+        j++;}}
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-      fdtype value = fasteval(val_expr,inner_env);
-      if (FD_ABORTED(value))
-        return return_error_env(value,":LET*",inner_env);
-      else if (inner_env->env_copy) {
-        fd_bind_value(var,value,inner_env->env_copy);
-        fd_decref(value);}
-      else {
-        vars[i]=var; vals[i]=value;}
-      i++;}}
-    result = eval_body(":LET*",FD_SYMBOL_NAME(vars[0]),expr,2,inner_env);
+        fdtype value = fast_eval(val_expr,inner_env);
+        if (FD_ABORTED(value))
+          return return_error_env(value,":LET*",inner_env);
+        else if (inner_env->env_copy) {
+          fd_bind_value(var,value,inner_env->env_copy);
+          fd_decref(value);}
+        else {
+          vars[i]=var; vals[i]=value;}
+        i++;}}
+    result = eval_body(":LET*",FD_SYMBOL_NAME(vars[0]),expr,2,
+                       inner_env,let_star_stack);
     free_environment(inner_env);
     return result;}
 }
 
 /* DO */
 
-static fdtype do_handler(fdtype expr,fd_lispenv env)
+static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1);
   fdtype exitexprs = fd_get_arg(expr,2);
@@ -298,6 +301,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
   else if (FD_VOIDP(exitexprs))
     return fd_err(fd_BindSyntaxError,"DO",NULL,expr);
   else {
+    FD_STACK(do_stack,fd_stackptr);
     fdtype _vars[16], _vals[16], _updaters[16], _tmp[16];
     fdtype *updaters, *vars, *vals, *tmp, result = FD_VOID;
     int i = 0, n = 0;
@@ -338,7 +342,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       int i = 0; fdtype body = fd_get_body(expr,3);
       /* Execute the body */
       FD_DOLIST(bodyexpr,body) {
-        fdtype result = fasteval(bodyexpr,inner_env);
+        fdtype result = fast_eval(bodyexpr,inner_env);
         if (FD_ABORTED(result)) {
           if (n>16) {u8_free(tmp); u8_free(updaters);}
           return return_error_env(result,":DO",inner_env);}
@@ -351,7 +355,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
         if (FD_ABORTED(tmp[i])) {
           /* GC the updated values you've generated so far.
              Note that tmp[i] (the exception) is not freed. */
-          int j = 0; while (j<i) {fd_decref(tmp[j]); j++;}
+          fd_decref_vec(tmp,i,0);
           /* Free the temporary arrays if neccessary */
           if (n>16) {u8_free(tmp); u8_free(updaters);}
           /* Return the error result, adding the expr and environment. */
@@ -379,7 +383,8 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
     result = testval;
     if (FD_PAIRP(FD_CDR(exitexprs))) {
       fd_decref(result);
-      result = eval_body(":DO",FD_SYMBOL_NAME(vars[0]),exitexprs,1,inner_env);}
+      result = eval_body(":DO",FD_SYMBOL_NAME(vars[0]),exitexprs,1,
+                         inner_env,do_stack);}
     /* Free the environment. */
     free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -391,7 +396,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-static fdtype define_local_handler(fdtype expr,fd_lispenv env)
+static fdtype define_local_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -415,7 +420,7 @@ static fdtype define_local_handler(fdtype expr,fd_lispenv env)
 
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
-static fdtype define_init_handler(fdtype expr,fd_lispenv env)
+static fdtype define_init_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   fdtype init_expr = fd_get_arg(expr,2);
@@ -498,7 +503,7 @@ static int ipeval_letstar_binding
   return fd_ipeval_call((fd_ipevalfn)ipeval_letstar_step,&bindstruct);
 }
 
-static fdtype letq_handler(fdtype expr,fd_lispenv env)
+static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -520,14 +525,14 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
     {fdtype body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
-      result = fasteval(bodyexpr,inner_env);
+      result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result))
         return return_error_env(result,":LETQ",inner_env);}}
     free_environment(inner_env);
     return result;}
 }
 
-static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
+static fdtype letqstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -549,7 +554,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
     {fdtype body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
-      result = fasteval(bodyexpr,inner_env);
+      result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result)) {
         return return_error_env(result,":LETQ*",inner_env);}}}
     if (inner_env->env_copy) free_environment(inner_env->env_copy);
@@ -649,24 +654,24 @@ FD_EXPORT void fd_init_binders_c()
 
   fd_unparsers[fd_fcnid_type]=unparse_extended_fcnid;
 
-  fd_defspecial(fd_scheme_module,"SET!",set_handler);
-  fd_defspecial(fd_scheme_module,"SET+!",set_plus_handler);
-  fd_defspecial(fd_scheme_module,"SSET!",sset_handler);
+  fd_defspecial(fd_scheme_module,"SET!",set_evalfn);
+  fd_defspecial(fd_scheme_module,"SET+!",set_plus_evalfn);
+  fd_defspecial(fd_scheme_module,"SSET!",sset_evalfn);
 
-  fd_defspecial(fd_scheme_module,"LET",let_handler);
-  fd_defspecial(fd_scheme_module,"LET*",letstar_handler);
-  fd_defspecial(fd_scheme_module,"DEFINE-INIT",define_init_handler);
-  fd_defspecial(fd_scheme_module,"DEFINE-LOCAL",define_local_handler);
+  fd_defspecial(fd_scheme_module,"LET",let_evalfn);
+  fd_defspecial(fd_scheme_module,"LET*",letstar_evalfn);
+  fd_defspecial(fd_scheme_module,"DEFINE-INIT",define_init_evalfn);
+  fd_defspecial(fd_scheme_module,"DEFINE-LOCAL",define_local_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DO",do_handler);
+  fd_defspecial(fd_scheme_module,"DO",do_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DEFAULT!",set_default_handler);
-  fd_defspecial(fd_scheme_module,"SETFALSE!",set_false_handler);
-  fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_handler);
+  fd_defspecial(fd_scheme_module,"DEFAULT!",set_default_evalfn);
+  fd_defspecial(fd_scheme_module,"SETFALSE!",set_false_evalfn);
+  fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_evalfn);
 
 #if FD_IPEVAL_ENABLED
-  fd_defspecial(fd_scheme_module,"LETQ",letq_handler);
-  fd_defspecial(fd_scheme_module,"LETQ*",letqstar_handler);
+  fd_defspecial(fd_scheme_module,"LETQ",letq_evalfn);
+  fd_defspecial(fd_scheme_module,"LETQ*",letqstar_evalfn);
 #endif
 
 }

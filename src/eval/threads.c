@@ -224,11 +224,11 @@ static fdtype synchro_unlock(fdtype lck)
   else return fd_type_error("lockable","synchro_unlock",lck);
 }
 
-static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
+static fdtype with_lock_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype lock_expr = fd_get_arg(expr,1), lck, value = FD_VOID;
   if (FD_VOIDP(lock_expr))
-    return fd_err(fd_SyntaxError,"with_lock_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
   if (FD_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
@@ -470,7 +470,7 @@ static fdtype threadcallx_prim(int n,fdtype *args)
     return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
-static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
+static fdtype threadeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype to_eval = fd_get_arg(expr,1);
   fdtype env_arg = fd_eval(fd_get_arg(expr,2),env);
@@ -487,10 +487,10 @@ static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
     (NULL);
   if (FD_VOIDP(to_eval)) {
     fd_decref(opts_arg); fd_decref(env_arg);
-    return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);}
+    return fd_err(fd_SyntaxError,"threadeval_evalfn",NULL,expr);}
   else if (use_env == NULL) {
     fd_decref(opts_arg);
-    return fd_type_error(_("lispenv"),"threadeval_handler",env_arg);}
+    return fd_type_error(_("lispenv"),"threadeval_evalfn",env_arg);}
   else {
     int flags = threadopts(opts)|FD_EVAL_THREAD;
     fd_lispenv env_copy = fd_copy_env(use_env);
@@ -556,7 +556,7 @@ static fdtype threadjoin_prim(fdtype threads)
   return results;
 }
 
-static fdtype parallel_handler(fdtype expr,fd_lispenv env)
+static fdtype parallel_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fd_thread_struct _threads[6], *threads;
   fdtype _results[6], *results, scan = FD_CDR(expr), result = FD_EMPTY_CHOICE;
@@ -645,8 +645,8 @@ FD_EXPORT void fd_init_threads_c()
   fd_recyclers[fd_condvar_type]=recycle_condvar;
   fd_unparsers[fd_condvar_type]=unparse_condvar;
 
-  fd_defspecial(fd_scheme_module,"PARALLEL",parallel_handler);
-  fd_defspecial(fd_scheme_module,"SPAWN",threadeval_handler);
+  fd_defspecial(fd_scheme_module,"PARALLEL",parallel_evalfn);
+  fd_defspecial(fd_scheme_module,"SPAWN",threadeval_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
@@ -675,7 +675,7 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-UNLOCK",condvar_unlock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
-  fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_handler);
+  fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_evalfn);
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim));

@@ -1,10 +1,17 @@
 static fdtype moduleid_symbol;
 
-static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops) U8_MAYBE_UNUSED;
+#define fast_eval(x,env) (_fd_fast_eval(x,env,_stack,0))
+#define fast_tail_eval(x,env) (_fd_fast_eval(x,env,_stack,1))
+#define stack_eval(x,env,s) (_fd_fast_eval(x,env,s,0))
+#define stack_tail_eval(x,env,s) (_fd_fast_eval(x,env,s,1))
 
-static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
+static int testeval(fdtype expr,fd_lispenv env,
+                    fdtype *whoops,fd_stack s) U8_MAYBE_UNUSED;
+
+static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops,
+                    fd_stack _stack)
 {
-  fdtype val = fasteval(expr,env);
+  fdtype val = _fd_fast_eval(expr,env,_stack,0);
   if (FD_ABORTP(val)) {
     *whoops = val; return 0;}
   else if (FD_FALSEP(val)) return 0;
@@ -91,7 +98,8 @@ FD_INLINE_FCN fdtype return_error_env
 
 FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
                            fdtype expr,int offset,
-                           fd_lispenv inner_env)
+                           fd_lispenv inner_env,
+                           struct FD_STACK *_stack)
 {
   fdtype result = FD_VOID, body = fd_get_body(expr,offset);
   if (FD_EMPTY_LISTP(body))

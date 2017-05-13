@@ -885,11 +885,11 @@ static fdtype asyncok()
   else return FD_FALSE;
 }
 
-static fdtype boundp_handler(fdtype expr,fd_lispenv env)
+static fdtype boundp_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
@@ -1228,7 +1228,7 @@ static fd_lispenv init_core_env()
   fd_finish_module(fd_dbserv_module);
 
   /* We add some special functions */
-  fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
+  fd_defspecial((fdtype)core_env,"BOUND?",boundp_evalfn);
   fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
   fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime));
   fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok));

@@ -573,7 +573,7 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,
   if (FD_TYPEP(fn,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=
       fd_consptr(fd_special_form,fn,fd_specform_type);
-    result = sf->fexpr_handler(xml,scheme_env);}
+    result = sf->fexpr_handler(xml,scheme_env,fd_stackptr);}
   else if (FD_SPROCP(fn))
     result = fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);
   else {
@@ -1268,7 +1268,7 @@ static fdtype do_else(fdtype expr,fd_lispenv env);
 
 /* Simple execution */
 
-static fdtype fdxml_insert(fdtype expr,fd_lispenv env)
+static fdtype fdxml_insert(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype value = fdxml_get(expr,value_symbol,env);
   u8_output out = u8_current_output;
@@ -1278,7 +1278,7 @@ static fdtype fdxml_insert(fdtype expr,fd_lispenv env)
 
 /* Conditionals */
 
-static fdtype fdxml_if(fdtype expr,fd_lispenv env)
+static fdtype fdxml_if(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype test = fdxml_get(expr,test_symbol,env);
   if (FD_FALSEP(test))
@@ -1288,7 +1288,7 @@ static fdtype fdxml_if(fdtype expr,fd_lispenv env)
     return do_body(expr,env);}
 }
 
-static fdtype fdxml_alt(fdtype expr,fd_lispenv env)
+static fdtype fdxml_alt(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype content = fd_get(expr,content_slotid,FD_VOID);
   if ((FD_PAIRP(content))||(FD_VECTORP(content))) {
@@ -1305,7 +1305,7 @@ static fdtype fdxml_alt(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype fdxml_ifreq(fdtype expr,fd_lispenv env)
+static fdtype fdxml_ifreq(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype test = fd_get(expr,test_symbol,FD_VOID);
   fdtype value = fdxml_get(expr,value_symbol,env);
@@ -1350,7 +1350,7 @@ static fdtype do_else(fdtype expr,fd_lispenv env)
 
 /* Choice/Set operations */
 
-static fdtype fdxml_try(fdtype expr,fd_lispenv env)
+static fdtype fdxml_try(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   u8_output out = u8_current_output;
   fdtype body = fd_get(expr,content_slotid,FD_VOID), result = FD_EMPTY_CHOICE;
@@ -1370,7 +1370,7 @@ static fdtype fdxml_try(fdtype expr,fd_lispenv env)
   return result;
 }
 
-static fdtype fdxml_union(fdtype expr,fd_lispenv env)
+static fdtype fdxml_union(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   u8_output out = u8_current_output;
   fdtype body = fd_get(expr,content_slotid,FD_VOID), result = FD_EMPTY_CHOICE;
@@ -1390,7 +1390,7 @@ static fdtype fdxml_union(fdtype expr,fd_lispenv env)
   return result;
 }
 
-static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
+static fdtype fdxml_intersection(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   u8_output out = u8_current_output;
   fdtype body = fd_get(expr,content_slotid,FD_VOID);
@@ -1422,7 +1422,7 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
 
 /* Binding */
 
-static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
+static fdtype fdxml_binding(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   u8_output out = u8_current_output;
   fdtype body = fd_get(expr,content_slotid,FD_VOID), result = FD_VOID;
@@ -1470,7 +1470,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
 static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env);
 static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env);
 
-static fdtype fdxml_loop(fdtype expr,fd_lispenv env)
+static fdtype fdxml_loop(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   if (!(fd_test(expr,each_symbol,FD_VOID)))
     return fd_err(MissingAttrib,"fdxml:loop",NULL,each_symbol);
@@ -1693,7 +1693,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,
 
 static fdtype index_symbol, with_symbol, slot_symbol, value_symbol;
 
-static fdtype fdxml_find(fdtype expr,fd_lispenv env)
+static fdtype fdxml_find(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype index_arg = fdxml_get(expr,index_symbol,env), results;
   fdtype *slotvals = u8_alloc_n(16,fdtype);
@@ -1720,7 +1720,7 @@ static fdtype fdxml_find(fdtype expr,fd_lispenv env)
 
 static fdtype xmlarg_symbol, doseq_symbol, fdxml_define_body;
 
-static fdtype fdxml_define(fdtype expr,fd_lispenv env)
+static fdtype fdxml_define(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   if (!(fd_test(expr,id_symbol,FD_VOID)))
     return fd_err(MissingAttrib,"fdxml:loop",NULL,id_symbol);

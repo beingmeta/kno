@@ -339,7 +339,7 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
 
 /* Scheme primitives */
 
-static fdtype load_source(fdtype expr,fd_lispenv env)
+static fdtype load_source_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype source_expr = fd_get_arg(expr,1), source, result;
   fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
@@ -402,7 +402,7 @@ static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
   return (fdtype) env;
 }
 
-static fdtype load_component(fdtype expr,fd_lispenv env)
+static fdtype load_component_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype source_expr = fd_get_arg(expr,1), source, result;
   fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
@@ -605,8 +605,8 @@ FD_EXPORT void fd_init_load_c()
  postload_symbol = fd_intern("%POSTLOAD");
 
 
- fd_defspecial(fd_xscheme_module,"LOAD",load_source);
- fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
+ fd_defspecial(fd_xscheme_module,"LOAD",load_source_evalfn);
+ fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component_evalfn);
 
  fd_defn(fd_xscheme_module,
          fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,

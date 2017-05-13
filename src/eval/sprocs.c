@@ -140,7 +140,8 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     vals[i]=lexpr_arg;}
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
-  result = eval_body(":SPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
+  result = eval_body(":SPROC",fn->fcn_name,fn->sproc_body,0,
+                     &envstruct,fd_stackptr);
   if (fn->sproc_synchronized) result = fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if (FD_ABORTED(result)) {
@@ -381,7 +382,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
 
 /* SPROC generators */
 
-static fdtype lambda_handler(fdtype expr,fd_lispenv env)
+static fdtype lambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -393,7 +394,7 @@ static fdtype lambda_handler(fdtype expr,fd_lispenv env)
   else return make_sproc(NULL,arglist,body,env,0,0);
 }
 
-static fdtype ambda_handler(fdtype expr,fd_lispenv env)
+static fdtype ambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -405,7 +406,7 @@ static fdtype ambda_handler(fdtype expr,fd_lispenv env)
   else return make_sproc(NULL,arglist,body,env,1,0);
 }
 
-static fdtype nambda_handler(fdtype expr,fd_lispenv env)
+static fdtype nambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype name_expr = fd_get_arg(expr,1), name;
   fdtype arglist = fd_get_arg(expr,2);
@@ -417,14 +418,14 @@ static fdtype nambda_handler(fdtype expr,fd_lispenv env)
   if (FD_SYMBOLP(name)) namestring = FD_SYMBOL_NAME(name);
   else if (FD_STRINGP(name)) namestring = FD_STRDATA(name);
   else return fd_type_error("procedure name (string or symbol)",
-                            "nambda_handler",name);
+                            "nambda_evalfn",name);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
     return _make_sproc(namestring,arglist,body,env,1,0,0,0);}
   else return make_sproc(namestring,arglist,body,env,1,0);
 }
 
-static fdtype slambda_handler(fdtype expr,fd_lispenv env)
+static fdtype slambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -436,7 +437,7 @@ static fdtype slambda_handler(fdtype expr,fd_lispenv env)
   else return make_sproc(NULL,arglist,body,env,0,1);
 }
 
-static fdtype sambda_handler(fdtype expr,fd_lispenv env)
+static fdtype sambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -448,7 +449,7 @@ static fdtype sambda_handler(fdtype expr,fd_lispenv env)
   else return make_sproc(NULL,arglist,body,env,1,1);
 }
 
-static fdtype thunk_handler(fdtype expr,fd_lispenv env)
+static fdtype thunk_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   if (FD_CODEP(body))
@@ -458,7 +459,7 @@ static fdtype thunk_handler(fdtype expr,fd_lispenv env)
 
 /* DEFINE */
 
-static fdtype define_handler(fdtype expr,fd_lispenv env)
+static fdtype define_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -505,7 +506,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
-static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
+static fdtype defslambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -537,7 +538,7 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
-static fdtype defambda_handler(fdtype expr,fd_lispenv env)
+static fdtype defambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -632,7 +633,8 @@ fdtype fd_xapply_sproc
   assert(i == fn->sproc_n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
-  result = eval_body(":XPROC",fn->fcn_name,fn->sproc_body,0,&envstruct);
+  result = eval_body(":XPROC",fn->fcn_name,fn->sproc_body,0,
+                     &envstruct,fd_stackptr);
   /* if (fn->sproc_synchronized) result = fd_finish_call(result); */
   /* We always finish tail calls here */
   result = fd_finish_call(result);
@@ -698,15 +700,15 @@ FD_EXPORT void fd_init_sprocs_c()
   fd_recyclers[fd_sproc_type]=recycle_sproc;
   fd_walkers[fd_sproc_type]=walk_sproc;
 
-  fd_defspecial(fd_scheme_module,"LAMBDA",lambda_handler);
-  fd_defspecial(fd_scheme_module,"AMBDA",ambda_handler);
-  fd_defspecial(fd_scheme_module,"NAMBDA",nambda_handler);
-  fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_handler);
-  fd_defspecial(fd_scheme_module,"SAMBDA",sambda_handler);
-  fd_defspecial(fd_scheme_module,"THUNK",thunk_handler);
-  fd_defspecial(fd_scheme_module,"DEFINE",define_handler);
-  fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_handler);
-  fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_handler);
+  fd_defspecial(fd_scheme_module,"LAMBDA",lambda_evalfn);
+  fd_defspecial(fd_scheme_module,"AMBDA",ambda_evalfn);
+  fd_defspecial(fd_scheme_module,"NAMBDA",nambda_evalfn);
+  fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_evalfn);
+  fd_defspecial(fd_scheme_module,"SAMBDA",sambda_evalfn);
+  fd_defspecial(fd_scheme_module,"THUNK",thunk_evalfn);
+  fd_defspecial(fd_scheme_module,"DEFINE",define_evalfn);
+  fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_evalfn);
+  fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));

@@ -487,7 +487,7 @@ static fdtype module_exports(fdtype arg)
   else return fd_type_error(_("module"),"module_exports",arg);
 }
 
-static fdtype local_bindings_handler(fdtype expr,fd_lispenv env)
+static fdtype local_bindings_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   if (env->env_copy)
     return fd_incref(env->env_copy->env_bindings);
@@ -499,14 +499,14 @@ static fdtype local_bindings_handler(fdtype expr,fd_lispenv env)
     return bindings;}
 }
 
-static fdtype thisenv_handler(fdtype expr,fd_lispenv env)
+static fdtype thisenv_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   return (fdtype) fd_copy_env(env);
 }
 
 /* Finding where a symbol comes from */
 
-static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
+static fdtype wherefrom_evalfn(fdtype expr,fd_lispenv call_env,fd_stack _stack)
 {
   fdtype symbol_arg = fd_get_arg(expr,1);
   fdtype symbol = fd_eval(symbol_arg,call_env);
@@ -536,7 +536,7 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
 
 /* Finding all the modules used from an environment */
 
-static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
+static fdtype getmodules_evalfn(fdtype expr,fd_lispenv call_env,fd_stack _stack)
 {
   fdtype env_arg = fd_eval(fd_get_arg(expr,1),call_env), modules = FD_EMPTY_CHOICE;
   fd_lispenv env = call_env;
@@ -641,11 +641,11 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
   fd_idefn(module,fd_make_cprim1("MODULE-EXPORTS",module_exports,1));
 
-  fd_defspecial(module,"%ENV",thisenv_handler);
-  fd_defspecial(module,"%BINDINGS",local_bindings_handler);
+  fd_defspecial(module,"%ENV",thisenv_evalfn);
+  fd_defspecial(module,"%BINDINGS",local_bindings_evalfn);
 
-  fd_defspecial(module,"WHEREFROM",wherefrom_handler);
-  fd_defspecial(module,"GETMODULES",getmodules_handler);
+  fd_defspecial(module,"WHEREFROM",wherefrom_evalfn);
+  fd_defspecial(module,"GETMODULES",getmodules_evalfn);
 
   fd_finish_module(module);
 }

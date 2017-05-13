@@ -601,7 +601,7 @@ static fdtype thread_add(fdtype var,fdtype val)
   else return FD_VOID;
 }
 
-static fdtype thread_ref(fdtype expr,fd_lispenv env)
+static fdtype thread_ref_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
 {
   fdtype sym_arg = fd_get_arg(expr,1), sym, val;
   fdtype dflt_expr = fd_get_arg(expr,2);
@@ -741,7 +741,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("THREADGET",thread_get,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADSET!",thread_set,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADADD!",thread_add,2));
-  fd_defspecial(fd_scheme_module,"THREADREF",thread_ref);
+  fd_defspecial(fd_scheme_module,"THREADREF",thread_ref_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("INTERN",lisp_intern,1));
   fd_idefn(fd_scheme_module,
