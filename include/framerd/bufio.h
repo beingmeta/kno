@@ -72,6 +72,15 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* These are for input or output */
 
+#define FD_INIT_OUTBUF(bo,buf,sz,flags)		\
+  (bo)->bufwrite = (bo)->buffer = buf;		\
+  (bo)->buflim = (bo)->buffer+sz;		\
+  (bo)->buflen = sz;				\
+  (bo)->buf_flags = flags|FD_IS_WRITING;	\
+  (bo)->buf_bufdata = NULL;			\
+  (bo)->buf_fillfn = NULL;			\
+  (bo)->buf_flushfn = NULL;
+
 #define FD_INIT_BYTE_OUTPUT(bo,sz)			\
   (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);	\
   (bo)->buflim = (bo)->buffer+sz;			\
@@ -93,11 +102,21 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
   unsigned char v ## buf[size];      \
   FD_INIT_BYTE_OUTBUF(&v,v ## buf,size)
 
-#define FD_INIT_BYTE_INPUT(bi,b,sz) \
-  (bi)->bufread = (bi)->buffer = b;   \
-  (bi)->buflim = b+(sz);		    \
-  (bi)->buf_fillfn = NULL;	    \
-  (bi)->buf_flushfn = NULL;	    \
+#define FD_INIT_INBUF(bi,buf,sz,flags)		\
+  (bi)->bufwrite = (bi)->buffer = buf;		\
+  (bi)->buflim = (bi)->buffer+sz;		\
+  (bi)->buflen = sz;				\
+  (bi)->buf_flags = flags;			\
+  (bi)->buf_bufdata = NULL;			\
+  (bi)->buf_fillfn = NULL;			\
+  (bi)->buf_flushfn = NULL;
+
+#define FD_INIT_BYTE_INPUT(bi,b,sz)	\
+  (bi)->bufread = (bi)->buffer = b;	\
+  (bi)->buflim = b+(sz);		\
+  (bi)->buflen = sz;			\
+  (bi)->buf_fillfn = NULL;		\
+  (bi)->buf_flushfn = NULL;		\
   (bi)->buf_flags = 0;
 
 /* Utility functions for growing buffers */
