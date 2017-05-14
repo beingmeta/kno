@@ -57,20 +57,6 @@ static fdtype parse_control_spec
     return var;}
 }
 
-static fdtype retenv1(fdtype var,fdtype val)
-{
-  struct FD_KEYVAL keyvals[1];
-  keyvals[0].kv_key = var; keyvals[0].kv_val = fd_incref(val);
-  return fd_make_slotmap(1,1,keyvals);
-}
-static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
-{
-  struct FD_KEYVAL keyvals[2];
-  keyvals[0].kv_key = var; keyvals[0].kv_val = fd_incref(val);
-  keyvals[1].kv_key = xvar; keyvals[1].kv_val = fd_incref(xval);
-  return fd_make_slotmap(2,2,keyvals);
-}
-
 /* This iterates over a set of choices, evaluating its body for each value.
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
@@ -122,11 +108,8 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
             return val;}
           else if (FD_ABORTED(val)) {
             fdtype env;
-            if (iloc) env = retenv2(var,elt,count_var,FD_INT(i));
-            else env = retenv1(var,elt);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_push_error_context(":DO-CHOICES",FD_SYMBOL_NAME(var),env);
             return val;}
           fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -154,9 +137,8 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
-  else if (FD_ABORTED(choices)) {
-    fd_push_error_context("trychoices_evalfn",NULL,expr);
-    return choices;}
+  else if (FD_ABORTED(choices)) 
+    return choices;
   else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
@@ -192,11 +174,8 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
             return val;}
           else if (FD_ABORTED(val)) {
             fdtype env;
-            if (iloc) env = retenv2(var,elt,count_var,FD_INT(i));
-            else env = retenv1(var,elt);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_push_error_context(":TRY-CHOICES",NULL,env);
             return val;}}}
       if (!(FD_EMPTY_CHOICEP(val))) {
         FD_STOP_DO_CHOICES;
@@ -266,11 +245,8 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
             return val;}
           else if (FD_ABORTED(val)) {
             fdtype env;
-            if (iloc) env = retenv2(var,elt,count_var,FD_INT(i));
-            else env = retenv1(var,elt);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_push_error_context(":FOR-CHOICES",FD_SYMBOL_NAME(var),env);
             fd_decref(results);
             FD_STOP_DO_CHOICES;
             return val;}}}
@@ -337,11 +313,8 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
         return val;}
       else if (FD_ABORTED(val)) {
         fdtype env;
-        if (iloc) env = retenv2(var,elt,count_var,FD_INT(i));
-        else env = retenv1(var,elt);
         fd_decref(choices);
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-        fd_push_error_context(":FILTER-CHOICES",FD_SYMBOL_NAME(var),env);
         return val;}
       else if (FD_FALSEP(val)) {}
       else {
@@ -442,12 +415,9 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
             if (free_v) fd_decref(v);}
           else if (FD_ABORTED(val)) {
             fdtype env;
-            if (iloc) env = retenv2(var,v,count_var,FD_INT(i));
-            else env = retenv1(var,v);
             fd_decref(choices);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
             if (free_v) fd_decref(v);
-            fd_push_error_context(":DO-SUBSETS",FD_SYMBOL_NAME(var),env);
             return val;}
           fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -620,13 +590,10 @@ static fdtype try_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int ipe_state = fd_ipeval_status();
     fd_decref(value);
     value = fd_eval(clause,env);
-    if (FD_ABORTED(value)) {
-      fd_incref(clause); fd_push_error_context("TRY",NULL,clause);
-      fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
-      return value;}
+    if (FD_ABORTED(value))
+      return value;
     else if (FD_VOIDP(value)) {
       fd_seterr(fd_VoidArgument,"try_evalfn",NULL,clause);
-      fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
       return FD_ERROR_VALUE;}
     else if (!(FD_EMPTY_CHOICEP(value))) return value;
     else if (fd_ipeval_status()!=ipe_state) return value;}
@@ -644,9 +611,8 @@ static fdtype ifexists_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (!(FD_EMPTY_LISTP(FD_CDR(FD_CDR(expr)))))
     return fd_err(fd_SyntaxError,"ifexists_evalfn",NULL,expr);
   else value = fd_eval(value_expr,env);
-  if (FD_ABORTED(value)) {
-    fd_incref(expr); fd_push_error_context("ifexists_evalfn",NULL,expr);
-    return value;}
+  if (FD_ABORTED(value)) 
+    return value;
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
   else return value;
 }

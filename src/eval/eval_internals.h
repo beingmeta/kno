@@ -88,10 +88,6 @@ static void free_environment(struct FD_ENVIRONMENT *env)
 FD_INLINE_FCN fdtype return_error_env
   (fdtype error,u8_context cxt,fd_lispenv env)
 {
-  if (FD_THROWP(error)) {
-    free_environment(env);
-    return error;}
-  fd_push_error_context(cxt,NULL,error_bindings(env));
   free_environment(env);
   return error;
 }
@@ -115,15 +111,12 @@ FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
         if (FD_THROWP(result)) return result;
         else if ( (u8_current_exception)->u8x_cond == fd_StackOverflow )
           return result;
-        else {
-          fd_push_error_context(cxt,label,error_bindings(inner_env));
-          return result;}}
+        else return result;}
       else {fd_decref(result);}
       result = fast_tail_eval(bodyexpr,inner_env);}
     if (FD_THROWP(result)) return result;
-    else if (FD_ABORTP(result)) {
-      fd_push_error_context(cxt,label,error_bindings(inner_env));
-      return result;}
+    else if (FD_ABORTP(result))
+      return result;
     else return result;}
 }
 

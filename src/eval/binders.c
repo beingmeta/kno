@@ -242,7 +242,7 @@ static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
         fdtype value = fast_eval(val_expr,env);
         if (FD_ABORTED(value))
-          return return_error_env(value,":LET",inner_env);
+          return value;
         else {
           vars[i]=var; vals[i]=value;
           i++;}}}
@@ -275,7 +275,7 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
         fdtype value = fast_eval(val_expr,inner_env);
         if (FD_ABORTED(value))
-          return return_error_env(value,":LET*",inner_env);
+          return value;
         else if (inner_env->env_copy) {
           fd_bind_value(var,value,inner_env->env_copy);
           fd_decref(value);}
@@ -334,7 +334,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     testval = fd_eval(testexpr,inner_env);
     if (FD_ABORTED(testval)) {
       if (n>16) {u8_free(tmp); u8_free(updaters);}
-      return return_error_env(testval,":DO",inner_env);}
+      return testval;}
     /* The iteration itself */
     while (FD_FALSEP(testval)) {
       int i = 0; fdtype body = fd_get_body(expr,3);
@@ -343,7 +343,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
         fdtype result = fast_eval(bodyexpr,inner_env);
         if (FD_ABORTED(result)) {
           if (n>16) {u8_free(tmp); u8_free(updaters);}
-          return return_error_env(result,":DO",inner_env);}
+          return result;}
         else fd_decref(result);}
       /* Do an update, storing new values in tmp[] to be consistent. */
       while (i < n) {
@@ -357,7 +357,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           /* Free the temporary arrays if neccessary */
           if (n>16) {u8_free(tmp); u8_free(updaters);}
           /* Return the error result, adding the expr and environment. */
-          return return_error_env(tmp[i],":DO",inner_env);}
+          return tmp[i];}
         else i++;}
       /* Now, free the current values and replace them with the values
          from tmp[]. */
@@ -376,7 +376,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       if (FD_ABORTED(testval)) {
         /* If necessary, free the temporary arrays. */
         if (n>16) {u8_free(tmp); u8_free(updaters);}
-        return return_error_env(testval,":DO",inner_env);}}
+        return testval;}}
     /* Now we're done, so we set result to testval. */
     result = testval;
     if (FD_PAIRP(FD_CDR(exitexprs))) {
@@ -517,15 +517,14 @@ static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int i = 0; fdtype scan = bindexprs; while (i<n) {
       fdtype bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_VOID; scan = FD_CDR(scan); i++;}
-    if (ipeval_let_binding(n,vals,bindexprs,env)<0) {
-      fdtype errobj = FD_ERROR_VALUE;
-      return return_error_env(errobj,":LETQ",env);}
+    if (ipeval_let_binding(n,vals,bindexprs,env)<0) 
+      return ERROR_VALUE;
     {fdtype body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result))
-        return return_error_env(result,":LETQ",inner_env);}}
+        return result}}
     free_environment(inner_env);
     return result;}
 }
@@ -546,15 +545,14 @@ static fdtype letqstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int i = 0; fdtype scan = bindexprs; while (i<n) {
       fdtype bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_UNBOUND; scan = FD_CDR(scan); i++;}
-    if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) {
-      fdtype errobj = FD_ERROR_VALUE;
-      return return_error_env(errobj,":LETQ*",inner_env);}
+    if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) 
+      return FD_ERROR_VALUE;
     {fdtype body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result = fast_eval(bodyexpr,inner_env);
-      if (FD_ABORTED(result)) {
-        return return_error_env(result,":LETQ*",inner_env);}}}
+      if (FD_ABORTED(result)) 
+        return result;}}
     if (inner_env->env_copy) free_environment(inner_env->env_copy);
     return result;}
 }

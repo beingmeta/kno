@@ -66,9 +66,8 @@ static fdtype tryif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result = fd_eval(test_expr,env);
-  if (FD_ABORTED(test_result)) {
-    fd_incref(expr); fd_push_error_context("tryif_evalfn",NULL,expr);
-    return test_result;}
+  if (FD_ABORTED(test_result))
+    return test_result;
   else if ((FD_FALSEP(test_result))||(FD_EMPTY_CHOICEP(test_result)))
     return FD_EMPTY_CHOICE;
   else {
@@ -76,13 +75,10 @@ static fdtype tryif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     {fdtype try_clauses = fd_get_body(expr,2);
       FD_DOLIST(clause,try_clauses) {
         fd_decref(value); value = fd_eval(clause,env);
-        if (FD_ABORTED(value)) {
-          fd_incref(clause); fd_push_error_context("TRYIF",NULL,clause);
-          fd_incref(expr); fd_push_error_context("TRYIF",NULL,expr);
-          return value;}
+        if (FD_ABORTED(value))
+          return value;
         else if (FD_VOIDP(value)) {
           fd_seterr(fd_VoidArgument,"tryif_evalfn",NULL,clause);
-          fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
           return FD_ERROR_VALUE;}
         else if (!(FD_EMPTY_CHOICEP(value)))
           return value;}}

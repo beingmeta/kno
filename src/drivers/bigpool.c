@@ -809,8 +809,12 @@ static fdtype *bigpool_fetchn(fd_pool p,int n,fdtype *oids)
           fd_decref(value);
           j++;}
         u8_free(schedule); u8_free(values);
-        fd_push_error_context("bigpool_fetchn/read",bp->poolid,
-                              oids[schedule[i].value_at]);
+        u8_condition condition;
+        u8_exception ex = u8_current_exception;
+        if (ex==NULL)
+          condition="Unknown bigpool error";
+        else condition=ex->u8x_cond;
+        u8_seterr(condition,"bigpool_fetchn/read",u8dup(bp->poolid));
         if (unlock_stream) fd_unlock_stream(&(bp->pool_stream));
         return NULL;}
       else values[schedule[i].value_at]=value;

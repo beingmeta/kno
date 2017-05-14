@@ -23,24 +23,6 @@
 
 static fdtype iter_var;
 
-/* These are for returning binding information in the backtrace. */
-static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
-{
-  struct FD_KEYVAL keyvals[2];
-  keyvals[0].kv_key = iter_var; keyvals[0].kv_val = fd_incref(seq);
-  keyvals[1].kv_key = var; keyvals[1].kv_val = fd_incref(val);
-  return fd_make_slotmap(2,2,keyvals);
-}
-static fdtype iterenv2
-  (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
-{
-  struct FD_KEYVAL keyvals[3];
-  keyvals[0].kv_key = iter_var; keyvals[0].kv_val = fd_incref(seq);
-  keyvals[1].kv_key = var; keyvals[1].kv_val = fd_incref(val);
-  keyvals[2].kv_key = xvar; keyvals[2].kv_val = fd_incref(xval);
-  return fd_make_slotmap(3,3,keyvals);
-}
-
 /* Simple iterations */
 
 static fdtype while_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
@@ -144,8 +126,6 @@ static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           u8_destroy_rwlock(&(bindings.table_rwlock));
           return val;}
         else if (FD_ABORTED(val)) {
-          fd_push_error_context(":DOTIMES",FD_SYMBOL_NAME(var),
-                                iterenv1(limit_val,var,FD_INT(i)));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(vals[0]);
           u8_destroy_rwlock(&(bindings.table_rwlock));
@@ -207,12 +187,9 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           return val;}
         else if (FD_ABORTED(val)) {
           fdtype errbind;
-          if (iterval) errbind = iterenv1(seq,var,elt);
-          else errbind = iterenv2(seq,var,elt,count_var,FD_INT(i));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(vals[0]); fd_decref(seq);
           u8_destroy_rwlock(&(bindings.table_rwlock));
-          fd_push_error_context(":DOSEQ",FD_SYMBOL_NAME(var),errbind);
           return val;}
         fd_decref(val);}}
     /* Every iteration is a new environment */
@@ -274,12 +251,9 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           return val;}
         else if (FD_ABORTED(val)) {
           fdtype errbind;
-          if (iterval) errbind = iterenv1(seq,var,elt);
-          else errbind = iterenv2(seq,var,elt,count_var,FD_INT(i));
           u8_destroy_rwlock(&(bindings.table_rwlock));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(vals[0]); fd_decref(seq);
-          fd_push_error_context(":FORSEQ",FD_SYMBOL_NAME(var),errbind);
           return val;}}}
     if (envstruct.env_copy) {
       fd_recycle_environment(envstruct.env_copy);
@@ -348,12 +322,9 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           return val;}
         else if (FD_ABORTED(val)) {
           fdtype errbind;
-          if (iterval) errbind = iterenv1(seq,var,elt);
-          else errbind = iterenv2(seq,var,elt,count_var,FD_INT(i));
           u8_destroy_rwlock(&(bindings.table_rwlock));
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
           fd_decref(elt); fd_decref(seq);
-          fd_push_error_context(":TRYSEQ",FD_SYMBOL_NAME(var),errbind);
           return val;}}}
     if (envstruct.env_copy) {
       fd_recycle_environment(envstruct.env_copy);
@@ -410,12 +381,9 @@ static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
             return val;}
           else if (FD_ABORTED(val)) {
             fdtype errenv;
-            if (iloc) errenv = iterenv2(list,var,elt,count_var,FD_INT(i));
-            else errenv = iterenv1(list,var,elt);
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
             fd_decref(list); fd_decref(*vloc);
             u8_destroy_rwlock(&(bindings.table_rwlock));
-            fd_push_error_context(":DOLIST",FD_SYMBOL_NAME(var),errenv);
             return val;}
           fd_decref(val);}}
       if (envstruct.env_copy) {

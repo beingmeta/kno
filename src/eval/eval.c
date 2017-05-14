@@ -891,33 +891,6 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
     return fd_incref(expr);}
 }
 
-#if 0
-static resolve_tail_calls(fdtype result)
-{
-  fdtype resolved=FD_EMPTY_CHOICE;
-  if (FD_PRECHOICEP(result)) result=fd_simplify_choice(result);
-  if (FD_CHOICEP(result)) {
-    int contains_tail_call=0;
-    FD_DO_CHOICE(r,result) {
-      if (FD_TAILCALLP(r)) {
-        contains_tail_call=1;
-        FD_STOP_DO_CHOICES;
-        break;}}
-    if (contains_tail_call) {
-      result=
-        fdtype resolved=FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(r,result) {
-        if (FD_TAILCALLP(r)) {
-          fdtype rr=fd_finish_call(r);
-          FD_ADD_TO_CHOICE(resolved,rr);}
-        else {
-          fd_incref(r);
-          FD_ADD_TO_CHOICE(resolved,r);}}
-      fd_decref(result);
-      result=resolved;}}
-}
-#endif
-
 static int applicable_choicep(fdtype headvals)
 {
   FD_DO_CHOICES(hv,headvals) {
@@ -978,7 +951,7 @@ static fdtype call_function(u8_string fname,fdtype fn,
                             struct FD_STACK *stack,
                             int tail)
 {
-  fdtype arg_exprs = fd_get_body(expr,1);
+  fdtype arg_exprs = fd_get_body(expr,1), result=FD_VOID;
   int n_args = count_args(arg_exprs), arg_count = 0;
   int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
   fdtype argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
@@ -1011,12 +984,14 @@ static fdtype call_function(u8_string fname,fdtype fn,
       else {}
       argbuf[arg_count++]=argval;}}
   if ((tail) && (fd_optimize_tail_calls) && (FD_SPROCP(fn)))
-    return fd_tail_call(fn,arg_count,argbuf);
+    result=fd_tail_call(fn,arg_count,argbuf);
   else if ((FD_CHOICEP(fn)) ||
            (FD_PRECHOICEP(fn)) ||
            ((d_prim) && (nd_args)))
-    return fd_ndcall(stack,fn,arg_count,argbuf);
-  else return fd_dcall(stack,fn,arg_count,argbuf);
+    result=fd_ndcall(stack,fn,arg_count,argbuf);
+  else result=fd_dcall(stack,fn,arg_count,argbuf);
+  if (gc_args) fd_decref_vec(argbuf,arg_count,0);
+  return result;
 }
 
 FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)

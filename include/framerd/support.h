@@ -104,6 +104,7 @@ FD_EXPORT int fd_boolstring(u8_string,int);
 FD_EXPORT void fd_free_exception_xdata(void *ptr);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
+
 FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data);
 
 FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);

@@ -1572,7 +1572,6 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         fd_decref(elt); fd_decref(seq);
-        fd_push_error_context(":FDXMLSEQ",FD_SYMBOL_NAME(var),errbind);
         return val;}
       fd_decref(val);}}
     if (envstruct.env_copy) {
@@ -1631,7 +1630,6 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
           else env = retenv1(var,elt);
           fd_decref(choices);
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-          fd_push_error_context(":FDXMLCHOICE",FD_SYMBOL_NAME(var),env);
           return val;}
         fd_decref(val);}}
       if (envstruct.env_copy) {
@@ -1674,8 +1672,6 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,
     {FD_DOELTS(expr,body,count) {
       fdtype val = fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
-        fd_push_error_context(":FXMLRANGE",FD_SYMBOL_NAME(var),
-                              iterenv1(limit_val,var,FD_INT(i)));
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         return val;}
