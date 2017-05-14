@@ -455,8 +455,9 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,fdtype *args)
   return 0;
 }
 
-FD_FASTOP fdtype *prepare_argvec
-(struct FD_FUNCTION *f,int n,fdtype *argvec,fdtype *argbuf)
+FD_FASTOP fdtype *prepare_argbuf(struct FD_FUNCTION *f,int n,
+                                 fdtype *argbuf,
+                                 fdtype *argvec)
 {
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   fdtype fptr = (fdtype)f;
@@ -469,14 +470,23 @@ FD_FASTOP fdtype *prepare_argvec
   else if ((arity<0)||(arity == n))
     return argvec;
   else {
-    int i = 0; while (i<n) { argbuf[i]=argvec[i]; i++; }
-    if (f->fcn_defaults) {
-      fdtype *defaults = f->fcn_defaults;
-      while (i<arity) {
-        fdtype dflt = argbuf[i]=defaults[i];
-        fd_incref(dflt);
-        i++;}}
-    else while (i<arity) argbuf[i++]=FD_VOID;
+    fdtype *defaults = f->fcn_defaults;
+    int i=0; while (i<n) {
+      fdtype v = argvec[i];
+      if ( (v == FD_VOID) ||
+           (v == FD_DEFAULT_VALUE) ||
+           (v == FD_NULL) ) {
+        if (defaults) {
+          argbuf[i]=defaults[i];
+          fd_incref(defaults[i]);}
+        else if (v==FD_NULL)
+          argbuf[i]=FD_VOID;
+        else {}}
+      else argbuf[i]=argvec[i];
+      i++;}
+    if (defaults)
+      while (i<arity) { argbuf[i]=defaults[i]; i++;}
+    else while (i<arity) { argbuf[i++]=FD_VOID; }
     return argbuf;}
 }
 
@@ -545,13 +555,14 @@ FD_FASTOP fdtype dcall(u8_string fname,fd_function f,int n,fdtype *args)
     else return fd_type_error("applicable","dcall",(fdtype)f);}
 }
 
-FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,u8_string name,
-                           fd_function f,int n,fdtype *argvec)
+FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,
+                           u8_string name,fd_function f,int n,
+                           fdtype *argvec)
 {
-  fdtype fnptr = (fdtype)f;
+  fdtype fnptr = (fdtype)f, arity=f->fcn_arity;
   if (FD_EXPECT_FALSE(n<0))
     return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
-  else if (f->fcn_arity<0) { /* Is a LEXPR */
+  else if (arity<0) { /* Is a LEXPR */
     if (n<(f->fcn_min_arity))
       return fd_err(fd_TooFewArgs,"apply_fcn",f->fcn_name,fnptr);
     else if ( (f->fcn_xcall) && (f->fcn_handler.xcalln) )
@@ -565,21 +576,11 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,u8_string name,
       if (fd_applyfns[ctype])
         return fd_applyfns[ctype]((fdtype)f,n,argvec);
       else return fd_err("NotApplicable","apply_fcn",f->fcn_name,fnptr);}}
-  else if (n==0)
+  else if (n==arity)
     return dcall(name,f,n,argvec);
-  else if (FD_EXPECT_FALSE(argvec == NULL))
-    return fd_err(_("Null argument vector"),"apply_fcn",name,fnptr);
-  else if (stack) {
-    fdtype argbuf[100];
-    fdtype *args = prepare_argvec(f,n,argvec,argbuf);
-    if (args == NULL)
-      return FD_ERROR_VALUE;
-    else if (check_typeinfo(f,n,args)<0)
-      return FD_ERROR_VALUE;
-    else return dcall(name,f,n,args);}
   else {
-    int arity=f->fcn_arity;
-    fdtype argbuf[arity], *args = prepare_argvec(f,n,argvec,argbuf);
+    fdtype argbuf[arity];
+    fdtype *args = prepare_argbuf(f,n,argbuf,argvec);
     if (args == NULL)
       return FD_ERROR_VALUE;
     else if (check_typeinfo(f,n,args)<0)
@@ -601,8 +602,7 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
 
   if (fd_functionp[ftype]) {
     f=(struct FD_FUNCTION *)fn;
-    if (f->fcn_name)
-      fname=f->fcn_name;}
+    if (f->fcn_name) fname=f->fcn_name;}
   else if (fd_applyfns[ftype]) {
     sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
     fname=namebuf;}

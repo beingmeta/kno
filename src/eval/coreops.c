@@ -564,11 +564,11 @@ static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
   int retval;
   fd_incref(handler);
-  retval = fd_register_config_x(FD_SYMBOL_NAME(var),
-                              ((FD_VOIDP(docstring)) ? (NULL) :
-                               (FD_STRDATA(docstring))),
-                              lconfig_get,lconfig_set,(void *) handler,
-                              reuse_lconfig);
+  retval = fd_register_config_x
+    (FD_SYMBOL_NAME(var),
+     ((FD_STRINGP(docstring)) ? (FD_STRDATA(docstring)) : (NULL)),
+     lconfig_get,lconfig_set,(void *) handler,
+     reuse_lconfig);
   if (retval<0) {
     fd_decref(handler);
     return FD_ERROR_VALUE;}

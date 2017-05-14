@@ -871,7 +871,8 @@ static fdtype assignop(fd_stack stack,fd_lispenv env,
 }
 
 static fdtype bindop(struct FD_STACK *caller,fd_lispenv env,
-                     fdtype vars,fdtype inits,fdtype body)
+                     fdtype vars,fdtype inits,fdtype body,
+                     int tail)
 {
   int i=0, n=FD_VECTOR_LENGTH(vars);
   struct FD_STACK _bind_stack, *bind_stack=&_bind_stack;
@@ -896,7 +897,7 @@ static fdtype bindop(struct FD_STACK *caller,fd_lispenv env,
       free_environment(inner_env);
       return val;}
     else values[i++]=val;}
-  fdtype result = op_eval_body(body,inner_env,bind_stack,1);
+  fdtype result = op_eval_body(body,inner_env,bind_stack,tail);
   free_environment(inner_env);
   return result;
 }
@@ -920,22 +921,6 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
       return FD_FALSE;}}
   case FD_BEGIN_OPCODE:
     return op_eval_body(FD_CDR(expr),env,_stack,tail);
-  case FD_UNTIL_OPCODE:
-    return until_opcode(expr,env,_stack);
-  case FD_BRANCH_OPCODE: {
-    fdtype test_expr = pop_arg(args);
-    if (FD_VOIDP(test_expr))
-      return fd_err(fd_SyntaxError,"FD_BRANCH_OPCODE",NULL,expr);
-    fdtype test_val = op_eval(test_expr,env,_stack,0);
-    if (FD_ABORTED(test_val)) return test_val;
-    if (!(FD_FALSEP(test_val))) {
-      fdtype then = pop_arg(args);
-      U8_MAYBE_UNUSED fdtype ignore = pop_arg(args);
-      fd_decref(test_val);
-      return op_eval(then,env,_stack,1);}
-    else {
-      pop_arg(args);
-      return op_eval(pop_arg(args),env,_stack,1);}}
   case FD_SYMREF_OPCODE: {
     fdtype refenv=pop_arg(args);
     fdtype sym=pop_arg(args);
@@ -948,6 +933,22 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
     else if (FD_TABLEP(refenv))
       return fd_get(refenv,sym,FD_UNBOUND);
     else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
+  case FD_UNTIL_OPCODE:
+    return until_opcode(expr,env,_stack);
+  case FD_BRANCH_OPCODE: {
+    fdtype test_expr = pop_arg(args);
+    if (FD_VOIDP(test_expr))
+      return fd_err(fd_SyntaxError,"FD_BRANCH_OPCODE",NULL,expr);
+    fdtype test_val = op_eval(test_expr,env,_stack,0);
+    if (FD_ABORTED(test_val)) return test_val;
+    if (!(FD_FALSEP(test_val))) {
+      fdtype then = pop_arg(args);
+      U8_MAYBE_UNUSED fdtype ignore = pop_arg(args);
+      fd_decref(test_val);
+      return op_eval(then,env,_stack,tail);}
+    else {
+      pop_arg(args);
+      return op_eval(pop_arg(args),env,_stack,tail);}}
   case FD_TRY_OPCODE:
     return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE:
@@ -973,8 +974,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
                          FD_FIX2INT(off_arg),
                          pop_arg(args));}}
   case FD_BIND_OPCODE: {
-    fdtype vars=pop_arg(args), inits=pop_arg(args), body=pop_arg(args);
-    return bindop(_stack,env,vars,inits,body);}
+    fdtype vars=pop_arg(args);
+    fdtype inits=pop_arg(args);
+    fdtype body=pop_arg(args);
+    return bindop(_stack,env,vars,inits,body,tail);}
   case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
   case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
   case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:

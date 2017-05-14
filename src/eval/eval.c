@@ -783,57 +783,77 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
       u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
       return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
     else {
-      FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
-      fdtype result = FD_VOID;
-      fdtype headval = (FD_FCNIDP(head))?
-        (fd_fcnid_ref(head)) :
-        (stack_eval(head,env,eval_stack));
+      u8_string label=(FD_SYMBOLP(head)) ? (FD_SYMBOL_NAME(head)) : (NULL);
+      FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
+      fdtype result = FD_VOID, headval = FD_VOID;
+      int gc_head=0;
+      if (FD_FCNIDP(head)) {
+        headval=fd_fcnid_ref(head);
+        if (FD_PRECHOICEP(headval)) {
+          headval=fd_make_simple_choice(headval);
+          gc_head=1;}}
+      else if ( (FD_SYMBOLP(head)) || (FD_PAIRP(head)) ||
+                (FD_CODEP(head)) || (FD_CHOICEP(head)) ) {
+        headval=stack_eval(head,env,eval_stack);
+        if (FD_PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
+        gc_head=1;}
+      else headval=head;
       int headtype = FD_PTR_TYPE(headval);
-      if (((FD_SYMBOLP(head))||(FD_CONSP(head)))&&
-          (!(FD_STATICP(headval)))) {
+      if (gc_head) {
         struct FD_STACK_CLEANUP *cleanup=
           fd_push_cleanup(eval_stack,FD_DECREF);
-        cleanup->arg0=(void *)head;}
-      if ( (fd_functionp[headtype]) || (fd_applyfns[headtype]) ) {
+        cleanup->arg0=(void *)headval;}
+      switch (headtype) {
+      case fd_cprim_type: case fd_sproc_type: {
         struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
         result=call_function(f->fcn_name,headval,expr,env,
-                             eval_stack,tail);}
-      else if (FD_ABORTED(headval)) {
-        result=headval;}
-      else if (FD_EXPECT_FALSE(FD_VOIDP(headval))) {
-        result=fd_err(fd_UnboundIdentifier,"for function",
-                      ((FD_SYMBOLP(head))?(FD_SYMBOL_NAME(head)):
-                       (NULL)),
-                      head);}
-      else if (FD_EXPECT_FALSE(FD_EMPTY_CHOICEP(headval)))
-        result=FD_EMPTY_CHOICE;
-      else if (headtype == fd_specform_type) {
+                             eval_stack,tail);
+        break;}
+      case fd_specform_type: {
         /* These are special forms which do all the evaluating
            themselves */
         struct FD_SPECIAL_FORM *handler = (fd_special_form)headval;
-        result=handler->fexpr_handler(expr,env,eval_stack);}
-      else if (headtype == fd_macro_type) {
+        result=handler->fexpr_handler(expr,env,eval_stack);
+        break;}
+      case fd_macro_type: {
         /* These expand into expressions which are
            then evaluated. */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
         fdtype xformer = macrofn->macro_transformer;
         fdtype new_expr = fd_call(eval_stack,xformer,1,&expr);
-        fdtype result;
         if (FD_ABORTED(new_expr))
           result = fd_err(fd_SyntaxError,
                           _("macro expansion"),NULL,new_expr);
         else result = fd_stack_eval(new_expr,env,eval_stack,tail);
-        fd_decref(new_expr);}
-      else if ((FD_CHOICEP(headval)) ||
-               (FD_PRECHOICEP(headval))) {
+        fd_decref(new_expr);
+        break;}
+      case fd_choice_type: {
         int applicable = applicable_choicep(headval);
         if (applicable)
           result=call_function("fnchoice",headval,expr,env,eval_stack,tail);
         else result=fd_err(fd_SyntaxError,"fd_stack_eval",
                            "not applicable or special form",
-                           headval);}
-      else result=fd_err(fd_NotAFunction,NULL,NULL,headval);
+                           headval);
+        break;}
+      default:
+        if ( (fd_functionp[headtype]) || (fd_applyfns[headtype]) ) {
+          struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
+          result=call_function(f->fcn_name,headval,expr,env,
+                               eval_stack,tail);}
+        else if (FD_ABORTED(headval)) {
+          result=headval;}
+        else if (FD_VOIDP(headval)) {
+          result=fd_err(fd_UnboundIdentifier,"for function",
+                        ((FD_SYMBOLP(head))?(FD_SYMBOL_NAME(head)):
+                         (NULL)),
+                        head);}
+        else if (FD_EMPTY_CHOICEP(headval) )
+          result=FD_EMPTY_CHOICE;
+        else result=fd_err(fd_NotAFunction,NULL,NULL,headval);}
+      if (!tail) {
+        if (FD_TAILCALLP(result)) result=fd_finish_call(result);
+        else {}}
       fd_pop_stack(eval_stack);
       return result;}}
   case fd_slotmap_type:
@@ -870,6 +890,33 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
   default:
     return fd_incref(expr);}
 }
+
+#if 0
+static resolve_tail_calls(fdtype result)
+{
+  fdtype resolved=FD_EMPTY_CHOICE;
+  if (FD_PRECHOICEP(result)) result=fd_simplify_choice(result);
+  if (FD_CHOICEP(result)) {
+    int contains_tail_call=0;
+    FD_DO_CHOICE(r,result) {
+      if (FD_TAILCALLP(r)) {
+        contains_tail_call=1;
+        FD_STOP_DO_CHOICES;
+        break;}}
+    if (contains_tail_call) {
+      result=
+        fdtype resolved=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(r,result) {
+        if (FD_TAILCALLP(r)) {
+          fdtype rr=fd_finish_call(r);
+          FD_ADD_TO_CHOICE(resolved,rr);}
+        else {
+          fd_incref(r);
+          FD_ADD_TO_CHOICE(resolved,r);}}
+      fd_decref(result);
+      result=resolved;}}
+}
+#endif
 
 static int applicable_choicep(fdtype headvals)
 {
@@ -908,7 +955,7 @@ static fdtype process_arg(fdtype arg,fd_lispenv env,
 {
   fdtype argval = fast_eval(arg,env);
   if (FD_EXPECT_FALSE(FD_VOIDP(argval)))
-    return fd_err(fd_VoidArgument,"call_function",NULL,arg);
+    return fd_err(fd_VoidArgument,"call_function/process_arg",NULL,arg);
   else if (FD_EXPECT_FALSE(FD_ABORTED(argval)))
     return argval;
   else if ((FD_CONSP(argval))&&(FD_PRECHOICEP(argval)))
@@ -933,21 +980,21 @@ static fdtype call_function(u8_string fname,fdtype fn,
 {
   fdtype arg_exprs = fd_get_body(expr,1);
   int n_args = count_args(arg_exprs), arg_count = 0;
-  int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len;
+  int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
+  fdtype argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
   if (FD_FUNCTIONP(fn)) {
     struct FD_FUNCTION *fcn=(fd_function)fn;
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
-    if (FD_EXPECT_FALSE(n_args>max_arity))
+    if (max_arity<0) {}
+    else if (FD_EXPECT_FALSE(n_args>max_arity))
       return fd_err(fd_TooManyArgs,"call_function",
                     fcn->fcn_name,expr);
     else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
       return fd_err(fd_TooFewArgs,"call_function",
                     fcn->fcn_name,expr);
-    if (max_arity<0)
-      argbuf_len=max_arity;
-    else argbuf_len=n_args;
+    else {}
     d_prim=(fcn->fcn_ndcall==0);}
-  fdtype argbuf[argbuf_len]; /* *argv=fd_alloca(argv_length); */
+  int i=0; while (i<argbuf_len) argbuf[i++]=FD_VOID;
   /* Now we evaluate each of the subexpressions to fill the arg
      vector */
   {FD_DOLIST(elt,arg_exprs) {
