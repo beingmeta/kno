@@ -73,6 +73,14 @@ static u8_string get_diedfile()
   else return fd_runbase_filename(".died");
 }
 
+static u8_string get_stopfile()
+{
+  fdtype as_configured = fd_config_get("STOPFILE");
+  if (FD_STRINGP(as_configured))
+    return u8_strdup(FD_STRDATA(as_configured));
+  else return fd_runbase_filename(".stop");
+}
+
 /* End stuff */
 
 static u8_string pid_file = NULL, died_file = NULL, cmd_file = NULL;
@@ -168,7 +176,7 @@ static void write_cmd_file(int argc,char **argv)
 
 /* The main event */
 
-static int logappend = 0;
+static int keeplog = 0;
 
 int main(int argc,char **argv)
 {
@@ -188,11 +196,15 @@ int main(int argc,char **argv)
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
   fd_register_config("LOGAPPEND",
-		     _("Whether to truncate existing log files"),
+		     _("Whether to extend existing log files or truncate them"),
 		     fd_boolconfig_get,fd_boolconfig_set,
-		     &logappend);
+		     &keeplog);
+  fd_register_config("KEEPLOG",
+		     _("Whether to extend existing log files or truncate them"),
+		     fd_boolconfig_get,fd_boolconfig_set,
+		     &keeplog);
 
-  if (!(logappend)) logopen_flags = O_WRONLY|O_CREAT|O_TRUNC;
+  if (!(keeplog)) logopen_flags = O_WRONLY|O_CREAT|O_TRUNC;
 
   pid_file = get_pidfile();
 
@@ -217,6 +229,8 @@ int main(int argc,char **argv)
       exit(1);}}
 
   atexit(exit_fdexec);
+
+  stop_file = get_stopfile();
 
   cmd_file = get_cmdfile();
   done_file = get_donefile();

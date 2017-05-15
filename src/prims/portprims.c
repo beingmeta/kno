@@ -833,24 +833,26 @@ static u8_exception print_backtrace_entry
 {
   if (ex->u8x_context == fd_eval_context) {
     fdtype expr = exception_data(ex);
-    u8_exception innermost = get_innermost_expr(ex->u8x_prev,expr);
-    fdtype focus = ((innermost) ? (exception_data(innermost)) : (FD_VOID));
-    u8_puts(out,";;!>> ");
-    fd_pprint_focus(out,expr,focus,";;!>> ",0,width,"!",NULL);
-    u8_puts(out,"\n");
-    if (innermost)return innermost->u8x_prev;
-    else return ex->u8x_prev;}
+    if (!(FD_VOIDP(expr))) {
+      u8_exception innermost = get_innermost_expr(ex->u8x_prev,expr);
+      fdtype focus = ((innermost) ? (exception_data(innermost)) : (FD_VOID));
+      u8_puts(out,";;!>> ");
+      fd_pprint_focus(out,expr,focus,";;!>> ",0,width,"!",NULL);
+      u8_puts(out,"\n");
+      if (innermost)return innermost->u8x_prev;
+      else return ex->u8x_prev;}}
   else if (ex->u8x_context == fd_apply_context) {
     fdtype entry = exception_data(ex);
-    int i = 1, lim = FD_VECTOR_LENGTH(entry);
-    u8_puts(out,";;*CALL "); fd_unparse(out,FD_VECTOR_REF(entry,0));
-    while (i < lim) {
-      fdtype arg = FD_VECTOR_REF(entry,i); i++;
-      if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
-        u8_puts(out," '");
-      else u8_puts(out," ");
-      fd_unparse(out,arg);}
-    u8_puts(out,"\n");}
+    if (!(FD_VOIDP(entry))) {
+      int i = 1, lim = FD_VECTOR_LENGTH(entry);
+      u8_puts(out,";;*CALL "); fd_unparse(out,FD_VECTOR_REF(entry,0));
+      while (i < lim) {
+        fdtype arg = FD_VECTOR_REF(entry,i); i++;
+        if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
+          u8_puts(out," '");
+        else u8_puts(out," ");
+        fd_unparse(out,arg);}
+      u8_puts(out,"\n");}}
   else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
     print_backtrace_env(out,ex,width);}
   else fd_print_exception(out,ex);
