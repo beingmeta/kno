@@ -82,29 +82,31 @@ static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
 
    0x00 XXXX     Magic number
    0x04 XXXX     Base OID of pool (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x0c XXXX     Capacity of pool
    0x10 XXXX     Load of pool
    0x14 XXXX     Pool information bits/flags
    0x18 XXXX     file offset of the pool label (a dtype) (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x20 XXXX     byte length of label dtype (4 bytes)
    0x24 XXXX     file offset of pool metadata (a dtype) (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x2c XXXX     byte length of pool metadata representation (4 bytes)
    0x30 XXXX     pool creation time_t (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x38 XXXX     pool repack time_t (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x40 XXXX     pool modification time_t (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x48 XXXX     repack generation (8 bytes)
-        XXXX
+        XXXX      (64 bits)
    0x50 XXXX     number of registered slotids
    0x54 XXXX     file offset of the slotids block
-        XXXX
+        XXXX      (64 bits)
    0x5c XXXX     size of slotids dtype representation
 
+   0x60 XXXX     number of value blocks written  (8 bytes)
+   0x64 XXXX      (64 bits)
    0xa0 XXXX     end of valid data (8 bytes)
         XXXX
 

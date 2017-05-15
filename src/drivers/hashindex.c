@@ -23,20 +23,28 @@
     size pointing to a DTYPE representation for the index's metadata.
     Following this are
 
- 0     XXXX    4-byte magic number
- 4     XXXX    number of buckets
- 8     XXXX    flags, including hash function identifier
-12     XXXX    hash function constant
-16     XXXX    number of keys
-20     XXXX    file offset of slotids vector
-24     XXXX     (64 bits)
-28     XXXX    size of slotids DTYPE representation
-32     XXXX    file offset of baseoids vector
-36     XXXX     (64 bits)
-40     XXXX    size of baseoids DTYPE representation
-44     XXXX    file offset of index metadata
-48     XXXX     (64 bits)
-52     XXXX    size of metadata DTYPE representation
+0x00     XXXX    4-byte magic number
+0x04     XXXX    number of buckets
+0x08     XXXX    flags, including hash function identifier
+0x0C     XXXX    hash function constant
+0x10     XXXX    number of keys
+0x14     XXXX    file offset of slotids vector
+0x18     XXXX     (64 bits)
+0x1C     XXXX    size of slotids DTYPE representation
+0x20     XXXX    file offset of baseoids vector
+0x28     XXXX     (64 bits)
+0x2C     XXXX    size of baseoids DTYPE representation
+0x30     XXXX    file offset of index metadata
+0x34     XXXX     (64 bits)
+0x38     XXXX    size of metadata DTYPE representation
+0x3C     XXXX    number of used buckets
+0x40     XXXX    number of keyblocks
+0x44     XXXX     (64 bits)
+0x48     XXXX    number of value blocks
+0x4C     XXXX     (64 bits)
+0x80     XXXX    reserved for future use
+         ....
+0x100    XXXX    beginning of offsets table
 
     There are two basic kinds of data blocks: key blocks and value
     blocks.  Continuation offsets are not currently supported for key
