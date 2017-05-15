@@ -44,6 +44,8 @@
 0x4C     XXXX     (64 bits)
 0x80     XXXX    reserved for future use
          ....
+0xEA     XXXX    end of valid data
+0xEC     XXXX     (64 bits)
 0x100    XXXX    beginning of offsets table
 
     There are two basic kinds of data blocks: key blocks and value
@@ -1865,7 +1867,7 @@ FD_FASTOP FD_CHUNK_REF write_value_block
 FD_FASTOP fd_off_t extend_keybucket
   (fd_hashindex hx,struct KEYBUCKET *kb,
    struct COMMIT_SCHEDULE *schedule,int i,int j,
-   fd_outbuf newkeys,
+   fd_outbuf newkeys,int *new_valueblocksp,
    fd_off_t endpos,ssize_t maxpos)
 {
   int k = i, free_keyvecs = 0;
@@ -1914,6 +1916,7 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->index_stream),
                               schedule[k].commit_values,FD_VOID,
                               0,0,endpos);
+          (*new_valueblocksp)++;
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
           if (free_keyvecs) {
@@ -2063,6 +2066,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
 {
   int new_keys = 0, n_keys, new_buckets = 0;
   int schedule_max, changed_buckets = 0, total_keys = 0;
+  int new_keyblocks = 0, new_valueblocks = 0;
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   struct FD_STREAM *stream = &(hx->index_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
@@ -2128,28 +2132,32 @@ static int hashindex_commit(struct FD_INDEX *ix)
 
     /* The commit schedule is now filled and we start generating a
        bucket schedule. */
-    /* We're going to write keys and values, so we create streams to do so. */
+    /* We're going to write DTYPE representations of keys and values,
+       so we create streams to buffer them */
     FD_INIT_BYTE_OUTPUT(&out,1024);
     FD_INIT_BYTE_OUTPUT(&newkeys,schedule_max*16);
     if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
       out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
       newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
+
     /* Compute all the buckets for all the keys */
 #if FD_DEBUG_HASHINDEXES
     u8_message("Computing the buckets for %d scheduled keys",schedule_size);
 #endif
+
     /* Compute the hashes and the buckets for all of the keys
        in the commit schedule. */
     sched_i = 0; while (sched_i<schedule_size) {
       fdtype key = schedule[sched_i].commit_key; int bucket;
       out.bufwrite = out.buffer;
       write_zkey(hx,&out,key);
-      schedule[sched_i].commit_bucket = bucket=
+      schedule[sched_i].commit_bucket = bucket =
         hash_bytes(out.buffer,out.bufwrite-out.buffer)%n_buckets;
       sched_i++;}
     /* Get all the bucket locations.  It may be that we can fold this
        into the phase above when we have the offsets table in
        memory. */
+
 #if FD_DEBUG_HASHINDEXES
     u8_message("Fetching bucket locations");
 #endif
@@ -2179,6 +2187,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
        but that would entail moving the writing of values out of the
        bucket extension (since both want to get at the file) Could we
        have two pointers into the file?  */
+
 #if FD_DEBUG_HASHINDEXES
     u8_message("Reading all the %d changed buckets in order",
                changed_buckets);
@@ -2210,6 +2219,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_message("Extending for %d keys over %d buckets",
                schedule_size,changed_buckets);
 #endif
+
     /* March along the commit schedule (keys) and keybuckets (buckets)
        in parallel, extending each bucket.  This is where values are
        written out and their offsets stored in the loaded bucket
@@ -2222,13 +2232,16 @@ static int hashindex_commit(struct FD_INDEX *ix)
       assert(bucket == kb->kb_bucketno);
       while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
       /* This may write values to disk, so we use the returned endpos */
-      endpos = extend_keybucket(hx,kb,schedule,sched_i,j,&newkeys,endpos,maxpos);
+      endpos = extend_keybucket(hx,kb,schedule,sched_i,j,
+                                &newkeys,&new_valueblocks,
+                                endpos,maxpos);
       CHECK_POS(endpos,&(hx->index_stream));
       new_keys = new_keys+(kb->kb_n_keys-cur_keys);
       {
         fd_off_t startpos = endpos;
         /* This writes the keybucket itself. */
         endpos = write_keybucket(hx,stream,kb,endpos,maxpos);
+        new_keyblocks++;
         if (endpos<0) {
           u8_free(bucket_locs);
           u8_free(schedule);

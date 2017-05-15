@@ -926,6 +926,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_STREAM *stream = &(bp->pool_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   if ((LOCK_POOLSTREAM(bp,"bigpool_storen"))<0) return -1;
+  int new_blocks = 0;
   double started = u8_elapsed_time();
   u8_log(fd_storage_loglevel+1,"BigpoolStore",
          "Storing %d oid values in bigpool %s",n,p->poolid);
@@ -953,6 +954,7 @@ static int bigpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       u8_free(tmpout.buffer);
       UNLOCK_POOLSTREAM(bp);
       return n_bytes;}
+    else new_blocks++;
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
       u8_seterr(fd_DataFileOverflow,"bigpool_storen",
