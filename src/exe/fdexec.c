@@ -42,6 +42,9 @@
 
 #include "main.c"
 
+static u8_string stop_file=NULL;
+static u8_string wait_for_file = NULL;
+
 static int debug_maxelts = 32, debug_maxchars = 80;
 
 static char *configs[MAX_CONFIGS], *exe_arg = NULL, *file_arg = NULL;
@@ -60,6 +63,10 @@ static fdtype chain_prim(int n,fdtype *args)
 {
   if (n_configs>=MAX_CONFIGS)
     return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,FD_VOID);
+  else if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
+    u8_log(LOGCRIT,"StopFile",
+           "Not chaining because the file '%s' exists",stop_file);
+    return FD_FALSE;}
   else {
     int i = 0, cargc = 0, rv = -1;
     /* This stream will contain the chaining message */
@@ -102,8 +109,6 @@ static fdtype chain_prim(int n,fdtype *args)
       return FD_ERROR_VALUE;}
     else return FD_INT(rv);}
 }
-
-static u8_string wait_for_file = NULL;
 
 static void print_args(int argc,char **argv)
 {
@@ -190,6 +195,8 @@ int do_main(int argc,char **argv,
 
   u8_register_source_file(_FILEINFO);
 
+  stop_file=fd_runbase_filename(".stop");
+
   fd_register_config
     ("DEBUGMAXCHARS",
      _("Max number of chars in strings output in error reports"),
@@ -205,6 +212,11 @@ int do_main(int argc,char **argv,
      _("File to wait to exist before starting"),
      fd_sconfig_get,fd_sconfig_set,
      &wait_for_file);
+  fd_register_config
+    ("STOPFILE",
+     _("File to wait to exist before starting"),
+     fd_sconfig_get,fd_sconfig_set,
+     &stop_file);
 
   setlocale(LC_ALL,"");
   /* Process command line arguments */
@@ -237,7 +249,11 @@ int do_main(int argc,char **argv,
   fd_init_schemeio();
 
   if (!(fd_be_vewy_quiet)) fd_boot_message();
-  if (wait_for_file) {
+  if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
+    u8_log(LOGCRIT,"StopFile",
+           "Not starting because the file '%s' exists",stop_file);
+    return 1;}
+  else if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",
              wait_for_file);
