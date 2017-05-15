@@ -525,7 +525,7 @@ FD_EXPORT void fd_idefn(fdtype table,fdtype fcn);
 FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from);
 FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from);
 
-/* Stack frames (experimental) */
+/* Stack frames */
 
 typedef enum FD_STACK_CLEANOP {
   FD_FREE_MEMORY,
@@ -546,8 +546,11 @@ typedef int (*fd_cleanupfn)(void *);
 typedef struct FD_STACK {
   FD_CONS_HEADER; /* We're not using this right now */
   u8_string stack_type, stack_label, stack_status;
+  int stack_depth;
   struct FD_STACK *stack_caller, *stack_root;
-  fdtype stack_op; fdtype *stack_args; short n_args;
+  fdtype stack_op;
+  fdtype *stack_args;
+  short n_args;
   struct FD_ENV *stack_env;
   unsigned int stack_free_label:1, stack_free_status:1;
   unsigned int stack_decref_op:1;
@@ -559,6 +562,8 @@ typedef struct FD_STACK {
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
   struct FD_STACK _ ## name={}, *name=&_ ## name;	\
   if (caller) _ ## name.stack_root=caller->stack_root;	\
+  if (caller)						\
+    _ ## name.stack_depth = 1 + caller->stack_depth;	\
   _ ## name.stack_caller=caller;			\
   _ ## name.stack_type=type;				\
   _ ## name.stack_label=label;				\

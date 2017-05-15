@@ -79,10 +79,10 @@ DTYPE_HEADERS=\
  include/framerd/bloom.h  			     \
  include/framerd/sequences.h  			     \
  include/framerd/fdregex.h  			     \
- include/framerd/apply.h                             \
- include/framerd/ffi.h                               \
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
+APPLY_HEADERS=\
+ include/framerd/ffi.h include/framerd/apply.h
 STORAGE_HEADERS=\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
@@ -122,9 +122,6 @@ DTYPE_OBJS=\
 	src/types/misctypes.o src/types/numbers.o		\
 	src/types/compare.o src/types/walk.o			\
 	src/types/buildinfo.o					\
-	src/apply/apply.o src/apply/cprims.o 			\
-	src/apply/ffi.o						\
-	@calltracko@						\
 	src/types/tables.o src/types/bloom.o			\
 	src/types/sequences.o src/types/choices.o 		\
 	src/types/parse.o src/types/unparse.o			\
@@ -134,6 +131,11 @@ DTYPE_OBJS=\
 	src/types/config.o src/types/err.o 			\
 	src/types/logging.o src/types/getopt.o 			\
 	src/types/startup.o src/types/fluid.o
+
+APPLY_OBJS=\
+	src/apply/apply.o src/apply/stacks.o 			\
+	src/apply/ffi.o src/apply/cprims.o			\
+	@calltracko@
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
@@ -357,7 +359,8 @@ FRAMERD_SOURCES=\
 	src/types/libfdtype.c src/types/support.c src/types/config.c	\
 	src/types/err.c src/types/logging.c src/types/getopt.c		\
 	src/types/startup.c src/types/fluid.c				\
-	src/apply/apply.c src/apply/calltrack.c src/apply/ffi.c       	\
+	src/apply/apply.c src/apply/stacks.c \
+	src/apply/calltrack.c src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
 	src/storage/oidstore.c src/storage/cachecall.c  				\
@@ -866,9 +869,9 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
-lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
-lib/libfdtype@suffix@.so: $(DTYPE_OBJS)
-lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS)
+lib/libfdtype@suffix@.a: $(DTYPE_OBJS) $(APPLY_OBJS)
+lib/libfdtype@suffix@.so: $(DTYPE_OBJS) $(APPLY_OBJS)
+lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS) $(APPLY_OBJS)
 
 lib/libfdstorage@suffix@.a: $(DB_OBJS)
 lib/libfdstorage@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
@@ -1639,7 +1642,8 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
-$(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
+$(DTYPE_OBJS): $(DTYPE_HEADERS) include/framerd/apply.h $(REVISION_H)
+$(APPLY_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
 $(DRIVER_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
