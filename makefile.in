@@ -45,12 +45,6 @@ CODENAME	= @CODENAME@
 MKSO		= $(CC) -shared $(LDFLAGS)
 MACLIBTOOL	= $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
-#MKSO		= $(CC) -shared $(LDFLAGS) $(LIBS)
-#MACLIBTOOL	= libtool -dynamic -single_module $(LDFLAGS) $(LIBS)
-#MACOSX_DEPLOYMENT_TARGET=10.3
-#MACLIBTOOL	= $(CC) -dynamiclib -single_module \
-#			-undefined dynamic_lookup \
-#			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0
@@ -592,16 +586,16 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) -o $@ -c $< ${LIBS}
+	@$(CC) $(CFLAGS) -o $@ -c $< ${MODLIBS}
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
-	@$(MKSO) -L./lib -L./ ${LIBS} -o $@ $< ${LIBS}
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
-		$(DYLIB_FLAGS) ${LIBS} -o $@ $< 
+		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 	@ln -sf $(*F).dylib $@
@@ -619,7 +613,7 @@ lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/%@suffix@.so:
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -Wl,--as-needed -L./lib -L./ \
-		-o $@ $^ -lu8 $(LIBS)
+		-o $@ $^ -lu8 $(MODLIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@echo MKSO $@
 lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
@@ -1005,7 +999,7 @@ lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
 
 lib/framerd/exif.so: src/cmodules/exif.o ${MODULE_SO}
-	@$(MKSO) -L./ -L./lib -o $@ $^ ${MODULE_SO} $(LIBS) -lexif
+	@$(MKSO) -L./ -L./lib -o $@ $^ ${MODULE_SO} $(MODLIBS) -lexif
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
 lib/framerd/exif.dylib: src/cmodules/exif.o
@@ -1027,14 +1021,17 @@ lib/framerd/sqlite.o: src/cmodules/sqlite.c
 lib/framerd/sqlite.so: src/cmodules/sqlite.o ${MODULE_SO}
 lib/framerd/sqlite.dylib: src/cmodules/sqlite.o
 
+lib/framerd/qrcode.so lib/framerd/qrcode.dylib : MODLIBS=-lqrencode -lpng
 lib/framerd/qrcode.o: src/cmodules/qrcode.c
 lib/framerd/qrcode.so: src/cmodules/qrcode.o ${MODULE_SO}
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 
+lib/framerd/zlib.so lib/framerd/zlib.dylib : MODLIBS="-lz"
 lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
+lib/framerd/leveldb.so lib/framerd/leveldb.dylib : MODLIBS="-lleveldb"
 lib/framerd/leveldb.o: src/cmodules/leveldb.c
 lib/framerd/leveldb.so: src/cmodules/leveldb.o ${MODULE_SO}
 lib/framerd/leveldb.dylib: src/cmodules/leveldb.o
