@@ -1015,7 +1015,7 @@ static void initframerdmodule()
   u8_initialize_u8stdio();
   u8_init_chardata_c();
 #endif
-  
+
   /* Initialize builtin scheme modules.
      These include all modules specified by (e.g.):
      configure --enable-fdweb */
@@ -1033,8 +1033,8 @@ static void initframerdmodule()
   python_object_type=fd_register_cons_type("python");
   default_env=fd_working_environment();
   fd_recyclers[python_object_type]=recycle_python_object;
-  fd_unparsers[python_object_type]=unparse_python_object;  
-  
+  fd_unparsers[python_object_type]=unparse_python_object;
+
   fd_applyfns[python_object_type]=pyapply;
 
   fd_defn(pymodule,fd_make_cprim1x("PYEXEC",pyexec,1,fd_string_type,FD_VOID));

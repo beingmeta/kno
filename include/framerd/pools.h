@@ -161,6 +161,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
+  fdtype pool_indexes;					\
   u8_string pool_prefix;				\
   fdtype pool_namefn
 
