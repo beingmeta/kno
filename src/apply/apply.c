@@ -629,6 +629,7 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
     if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
       if (errno) u8_graberrno("fd_apply",fname);
       else fd_seterr(fd_UnknownError,"fd_apply",fname,FD_VOID);}
+    fd_pop_stack(apply_stack);
     if (FD_EXPECT_TRUE(FD_CHECK_PTR(result)))
       return result;
     else return fd_badptr_err(result,"fd_deterministic_apply",fname);}
@@ -658,16 +659,14 @@ static fdtype ndcall_loop
   if (i == n) {
     fdtype value = fd_dapply((fdtype)f,n,d_args);
     if (FD_ABORTP(value)) {
-      fd_pop_stack(_stack);
       return value;}
     else {
       value = fd_finish_call(value);
-      fd_pop_stack(_stack);
       if (FD_ABORTP(value)) return value;
       FD_ADD_RESULT(*results,value);}}
   else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
     d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
-    retval = ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
+    return ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
   else if ((!(FD_CHOICEP(nd_args[i]))) ||
            ((typeinfo)&&(typeinfo[i]==fd_choice_type))) {
     d_args[i]=nd_args[i];
@@ -676,7 +675,6 @@ static fdtype ndcall_loop
     FD_DO_CHOICES(elt,nd_args[i]) {
       d_args[i]=elt;
       retval = ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}}
-  fd_pop_stack(_stack);
   if (FD_ABORTP(retval))
     return FD_ERROR_VALUE;
   else return *results;
@@ -692,6 +690,7 @@ static fdtype ndapply1(fd_stack _stack,fdtype fp,fdtype args1)
       fd_decref(results);
       return r;}
     else {FD_ADD_RESULT(results,r);}}
+  fd_pop_stack(_stack);
   return results;
 }
 
@@ -711,6 +710,7 @@ static fdtype ndapply2(fd_stack _stack,fdtype fp,fdtype args0,fdtype args1)
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
+  fd_pop_stack(_stack);
   return results;
 }
 
@@ -734,6 +734,7 @@ static fdtype ndapply3(fd_stack _stack,fdtype fp,fdtype args0,fdtype args1,fdtyp
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
+  fd_pop_stack(_stack);
   return results;
 }
 
@@ -764,6 +765,7 @@ static fdtype ndapply4(fd_stack _stack,
     if (FD_ABORTP(results)) {
       FD_STOP_DO_CHOICES;
       break;}}
+  fd_pop_stack(_stack);
   return results;
 }
 

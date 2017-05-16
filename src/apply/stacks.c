@@ -40,7 +40,7 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
       fdtype *args=stack->stack_args;
       int i=0, n=stack->n_args;
       while (i<n) { fdtype v=args[i++]; fd_incref(v); }
-      fdtype vec = fd_init_vector(NULL, n, args);
+      fdtype vec = fd_make_vector(n, args);
       rep=fd_init_pair(NULL,vec,rep);}
     if (stack->stack_env) {
       fdtype bindings = stack->stack_env->env_bindings;
