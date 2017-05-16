@@ -28,6 +28,7 @@ static fdtype find_module_id( fd_lispenv env )
   else return find_module_id(env->env_parent);
 }
 
+U8_MAYBE_UNUSED
 static fdtype error_bindings(fd_lispenv env)
 {
   fdtype bindings = (env->env_copy) ?

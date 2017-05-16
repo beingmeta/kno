@@ -866,8 +866,10 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
       if (FD_ABORTED(r)) {
         FD_STOP_DO_CHOICES;
         fd_decref(result);
+        fd_pop_stack(eval_stack);
         return r;}
       else {FD_ADD_TO_CHOICE(result,r);}}
+    fd_pop_stack(eval_stack);
     return result;}
   case fd_prechoice_type: {
     fdtype exprs = fd_make_simple_choice(expr);
@@ -882,10 +884,12 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
           return result;}
         else {FD_ADD_TO_CHOICE(results,result);}}
       fd_decref(exprs);
+      fd_pop_stack(eval_stack);
       return results;}
     else {
       fdtype result = fd_stack_eval(exprs,env,eval_stack,tail);
       fd_decref(exprs);
+      fd_pop_stack(eval_stack);
       return result;}}
   default:
     return fd_incref(expr);}
