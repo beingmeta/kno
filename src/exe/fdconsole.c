@@ -77,6 +77,8 @@ static int set_prompt(fdtype ignored,fdtype v,void *vptr)
 
 #include "main.c"
 
+static u8_string stop_file=NULL;
+
 static int use_editline = 0;
 
 #if USING_EDITLINE
@@ -750,6 +752,8 @@ int main(int argc,char **argv)
 
   eval_prompt = u8_strdup(EVAL_PROMPT);
 
+  stop_file=fd_runbase_filename(".stop");
+
   /* Register configuration parameters */
   fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
                      fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
@@ -804,6 +808,11 @@ int main(int argc,char **argv)
   fd_register_config
     ("DOTLOAD",_("Whether load .fdconsole or other dot files"),
      fd_boolconfig_get,fd_boolconfig_set,&dotload);
+  fd_register_config
+    ("STOPFILE",
+     _("File to wait to exist before starting"),
+     fd_sconfig_get,fd_sconfig_set,
+     &stop_file);
 
   /* Initialize console streams */
   inconsole = in;
