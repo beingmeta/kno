@@ -1117,16 +1117,17 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
   {
     struct FD_INBUF keyblock;
     unsigned char buf[max_keyblock_size];
-    int bucket = -1, j = 0;
+    int bucket = -1, j = 0, k = 0, n_keys=0;
     while (j<n_entries) {
-      int k = 0, n_keys, found = 0;
+      int found = 0;
       fd_off_t blockpos = ksched[j].ksched_chunk.off;
       fd_size_t blocksize = ksched[j].ksched_chunk.size;
       if (ksched[j].ksched_bucket!=bucket) {
         /* If we're in a new bucket, open it as input */
         open_block(&keyblock,hx,blockpos,blocksize,buf);
-        bucket=ksched[j].ksched_bucket;}
-      n_keys = fd_read_zint(&keyblock);
+        bucket=ksched[j].ksched_bucket;
+        /* And initialize bucket position and limit */
+        k=0; n_keys = fd_read_zint(&keyblock);}
       while (k<n_keys) {
         int n_vals;
         fd_size_t dtsize = fd_read_zint(&keyblock);
@@ -1155,7 +1156,11 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
             vsched[vsched_size].vsched_write = (fdtype *)FD_XCHOICE_DATA(result);
             vsched[vsched_size].vsched_atomicp = 1;
             vsched_size++;}
-          /* This breaks out the loop iterating over the keys in this bucket. */
+          /* Advance the key index in case we have other keys to read
+             from this bucket */
+          k++;
+          /* This breaks out the loop iterating over the keys in this
+             bucket. */
           break;}
         else {
           /* Skip this key */
