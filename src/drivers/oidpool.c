@@ -129,7 +129,8 @@ static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
                     1= libz compression
                     2= libbz2 compression -- Not yet implemented
                     3-7 reserved for future use
-     0x0020      Set if this pool is intended to be read-only
+     0x0020      Read only: set if this pool is intended to be read-only
+     0x0040      Phased: set if this pool should implement phased commits
 
    The offsets block starts at 0x100 and goes for either capacity*8 or capacity*12
     bytes.  The offset values are stored as pairs of big-endian binary representations.
