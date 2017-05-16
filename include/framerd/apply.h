@@ -787,21 +787,24 @@ FD_EXPORT fdtype fd_calltrack_apply(struct FD_STACK *stack,fdtype fn,int n_args,
 #endif
 
 #if FD_INLINE_APPLY
-static fdtype fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+U8_MAYBE_UNUSED static
+fdtype fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
 {
   fdtype result= (stack) ?
     (fd_call(stack,fn,n_args,args)) :
     (fd_call(fd_stackptr,fn,n_args,args));
   return fd_finish_call(result);
 }
-static fdtype fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+static U8_MAYBE_UNUSED
+fdtype fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
 {
   fdtype result= (stack) ?
     (fd_dcall(stack,fn,n_args,args)) :
     (fd_dcall(fd_stackptr,fn,n_args,args));
   return fd_finish_call(result);
 }
-static fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+static U8_MAYBE_UNUSED
+fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
 {
   fdtype result= (stack) ?
     (fd_ndcall(stack,fn,n_args,args)) :
