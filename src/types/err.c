@@ -42,23 +42,32 @@ FD_EXPORT void fd_free_exception_xdata(void *ptr)
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
-  u8_push_exception(c,cxt,details,(void *)irritant,fd_free_exception_xdata);
+  fdtype base = FD_EMPTY_LIST;
+  base = fd_init_pair(NULL, fd_intern(c), base);
+  if (details)
+    base = fd_init_pair(NULL, fdtype_string(details), base);
+  if (!(FD_VOIDP(irritant)))
+    base = fd_init_pair(NULL, irritant, base);
+  if (cxt)
+    base = fd_init_pair(NULL, fd_intern(cxt), base);
+  fdtype errinfo=fd_get_backtrace(fd_stackptr,base);
+  u8_push_exception(c,cxt,u8dup(details),
+		    (void *)errinfo,
+		    fd_free_exception_xdata);
+  if (details) u8_free(details);
 }
 
 FD_EXPORT void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
   fd_incref(irritant);
-  u8_push_exception(c,cxt,u8dup(details),
-		    (void *)irritant,fd_free_exception_xdata);
+  fd_seterr(c,cxt,u8dup(details),irritant);
 }
 
 FD_EXPORT void fd_raise
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
-  fd_incref(irritant);
-  u8_push_exception(c,cxt,u8dup(details),
-		    (void *)irritant,fd_free_exception_xdata);
+  fd_seterr(c,cxt,details,irritant);
   u8_raise(c,cxt,u8dup(details));
 }
 
@@ -142,15 +151,17 @@ FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data)
 FD_EXPORT fdtype fd_type_error
   (u8_string type_name,u8_context cxt,fdtype irritant)
 {
-  u8_string msg = u8_mkstring(_("object is not a %m"),type_name);
-  fd_seterr(fd_TypeError,cxt,msg,fd_incref(irritant));
+  u8_byte buf[512];
+  u8_string msg = u8_bufprintf(buf,512,_("object is not a %m"),type_name);
+  fd_seterr(fd_TypeError,cxt,msg,irritant);
   return FD_TYPE_ERROR;
 }
 
 FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant)
 {
-  u8_string msg = u8_mkstring(_("object is not a %m"),type_name);
-  fd_seterr(fd_TypeError,NULL,msg,fd_incref(irritant));
+  u8_byte buf[512];
+  u8_string msg = u8_bufprintf(buf,512,_("object is not a %m"),type_name);
+  fd_seterr(fd_TypeError,NULL,msg,irritant);
 }
 
 FD_EXPORT
@@ -162,7 +173,8 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
   u8_printf(out,"\n");
   if (ex->u8x_xdata) {
     fdtype irritant = fd_exception_xdata(ex);
-    u8_printf(out,";;\t%q\n",irritant);}
+    u8_puts(out,";; ");
+    fd_pprint(out,irritant,";; ",0,3,100,0);}
 }
 
 FD_EXPORT
@@ -170,7 +182,7 @@ void fd_log_exception(u8_exception ex)
 {
   if (ex->u8x_xdata) {
     fdtype irritant = fd_exception_xdata(ex);
-    u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%q",
+    u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
            (U8ALT((ex->u8x_details),((U8S0())))),
            (U8ALT((ex->u8x_context),((U8S0())))),
            irritant);}

@@ -551,13 +551,16 @@ typedef struct FD_STACK {
   fdtype stack_op;
   fdtype *stack_args;
   short n_args;
-  struct FD_ENV *stack_env;
+  struct FD_ENVIRONMENT *stack_env;
   unsigned int stack_free_label:1, stack_free_status:1;
   unsigned int stack_decref_op:1;
   unsigned int stack_retvoid:1, stack_ndcall:1, stack_tail:1;
   struct FD_STACK_CLEANUP _cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *cleanups;
   short n_cleanups;} *fd_stack;
+typedef struct FD_ENVIRONMENT *fd_environment;
+typedef struct FD_ENVIRONMENT *fd_lispenv;
+
 
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
   struct FD_STACK _ ## name={}, *name=&_ ## name;	\
@@ -824,6 +827,16 @@ static fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtyp
   ((FD_FCNIDP(x)) ?		     \
    ((fd_function)(fd_fcnid_ref(x))) : \
    ((fd_function)x))
+
+FD_EXPORT fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype base);
+
+typedef struct FD_ENVIRONMENT {
+  FD_CONS_HEADER;
+  fdtype env_bindings;
+  fdtype env_exports;
+  struct FD_ENVIRONMENT *env_parent;
+  struct FD_ENVIRONMENT *env_copy;} FD_ENVIRONMENT;
+typedef struct FD_ENVIRONMENT *fd_lispenv;
 
 /* Unparsing */
 

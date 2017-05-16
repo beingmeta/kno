@@ -29,3 +29,24 @@
 
 #include <stdarg.h>
 
+FD_EXPORT
+fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
+{
+  if (stack == NULL) stack=fd_stackptr;
+  while (stack) {
+    if (!(FD_VOIDP(stack->stack_op)))
+      rep = fd_init_pair( NULL, fd_incref(stack->stack_op), rep);
+    if ( stack->stack_args ) {
+      fdtype *args=stack->stack_args;
+      int i=0, n=stack->n_args;
+      while (i<n) { fdtype v=args[i++]; fd_incref(v); }
+      fdtype vec = fd_init_vector(NULL, n, args);
+      rep=fd_init_pair(NULL,vec,rep);}
+    if (stack->stack_env) {
+      fdtype bindings = stack->stack_env->env_bindings;
+      if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
+	rep=fd_init_pair( NULL, fd_copy(bindings), rep);}}
+    stack=stack->stack_caller;}
+  return rep;
+}
+

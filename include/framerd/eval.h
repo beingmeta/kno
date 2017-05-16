@@ -44,15 +44,6 @@ FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 #define FD_MODULE_SAFE 1
 #define FD_MODULE_DEFAULT 2
 
-typedef struct FD_ENVIRONMENT {
-  FD_CONS_HEADER;
-  fdtype env_bindings;
-  fdtype env_exports;
-  struct FD_ENVIRONMENT *env_parent;
-  struct FD_ENVIRONMENT *env_copy;} FD_ENVIRONMENT;
-typedef struct FD_ENVIRONMENT *fd_environment;
-typedef struct FD_ENVIRONMENT *fd_lispenv;
-
 FD_EXPORT int fd_set_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
