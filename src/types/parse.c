@@ -28,6 +28,9 @@
 
 #include <stdarg.h>
 
+/* TODO: Add general parse_error function which provides input context
+   of some sort, where possible. */
+
 /* Common macros, functions and declarations */
 
 #define PARSE_ERRORP(x) ((x == FD_EOX) || (x == FD_PARSE_ERROR) || (x == FD_OOM))
@@ -411,19 +414,20 @@ static fdtype default_parse_oid(u8_string start,int len)
   FD_OID oid = FD_NULL_OID_INIT;
   unsigned int hi, lo;
   if (len>64) {
-    fd_seterr("BadOIDReference","default_parse_oid",start,FD_VOID);
+    fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),FD_VOID);
     return FD_PARSE_ERROR;}
   strncpy(buf,start,len); buf[len]='\0';
   if (strchr(buf,'/')) {
     int items = sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
-      fd_seterr("BadOIDReference","default_parse_oid",start,FD_VOID);
+      fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),FD_VOID);
       return FD_PARSE_ERROR;}}
   else {
     unsigned long long addr;
     int items = sscanf(buf,"@%llx",&addr);
     if (items!=1) {
-      fd_seterr("BadOIDReference","default_parse_oid",start,FD_VOID);
+      fd_seterr("BadOIDReference","default_parse_oid",
+                u8dup(start),FD_VOID);
       return FD_PARSE_ERROR;}
     hi = ((addr>>32)&((ull)0xFFFFFFFF));
     lo = (addr&((ull)0xFFFFFFFF));}
@@ -1240,6 +1244,7 @@ fdtype fd_parse_expr(u8_input in)
   int inchar = skip_whitespace(in);
   if (inchar<0)
     return FD_EOF;
+  // TODO: When this returns an error, add details from in
   else return fd_parser(in);
 }
 
