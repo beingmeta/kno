@@ -1029,6 +1029,11 @@ lib/framerd/qrcode.o: src/cmodules/qrcode.c
 lib/framerd/qrcode.so: src/cmodules/qrcode.o ${MODULE_SO}
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 
+lib/framerd/hyphenate.so lib/framerd/hyphenate.dylib : MODLIBS=-lhyphen
+lib/framerd/hyphenate.o: src/cmodules/hyphenate.c
+lib/framerd/hyphenate.so: src/cmodules/hyphenate.o ${MODULE_SO}
+lib/framerd/hyphenate.dylib: src/cmodules/hyphenate.o
+
 lib/framerd/zlib.so lib/framerd/zlib.dylib : MODLIBS="-lz"
 lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
