@@ -11,6 +11,7 @@
 
 #define FD_INLINE_FCNIDS 1
 #define FD_INLINE_STACKS 1
+#define FD_INLINE_LEXENV 1
 #define FD_INLINE_APPLY  1
 
 #include "framerd/fdsource.h"

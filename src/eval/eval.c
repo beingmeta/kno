@@ -9,11 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_FCNIDS 1
 #define FD_INLINE_STACKS 1
+#define FD_INLINE_LEXENV 1
+
+#define FD_PROVIDE_FASTEVAL 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"

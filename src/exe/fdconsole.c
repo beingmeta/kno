@@ -752,8 +752,6 @@ int main(int argc,char **argv)
 
   eval_prompt = u8_strdup(EVAL_PROMPT);
 
-  stop_file=fd_runbase_filename(".stop");
-
   /* Register configuration parameters */
   fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
                      fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
@@ -808,11 +806,6 @@ int main(int argc,char **argv)
   fd_register_config
     ("DOTLOAD",_("Whether load .fdconsole or other dot files"),
      fd_boolconfig_get,fd_boolconfig_set,&dotload);
-  fd_register_config
-    ("STOPFILE",
-     _("File to wait to exist before starting"),
-     fd_sconfig_get,fd_sconfig_set,
-     &stop_file);
 
   /* Initialize console streams */
   inconsole = in;
@@ -852,6 +845,13 @@ int main(int argc,char **argv)
       source_file = argv[i++];}}
 
   fd_handle_argv(argc,argv,arg_mask,NULL);
+
+  stop_file=fd_runbase_filename(".stop");
+  fd_register_config
+    ("STOPFILE",
+     _("File to wait to exist before starting"),
+     fd_sconfig_get,fd_sconfig_set,
+     &stop_file);
 
   if (!(quiet_console)) fd_boot_message();
 
@@ -1017,9 +1017,11 @@ int main(int argc,char **argv)
       u8_exception ex = u8_erreify(), root = ex;
       if (ex) {
         {U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
-          int old_maxelts = fd_unparse_maxelts, old_maxchars = fd_unparse_maxchars;
+          int old_maxelts = fd_unparse_maxelts;
+          int old_maxchars = fd_unparse_maxchars;
           while (root->u8x_prev) root = root->u8x_prev;
-          fd_unparse_maxchars = debug_maxchars; fd_unparse_maxelts = debug_maxelts;
+          fd_unparse_maxchars = debug_maxchars;
+          fd_unparse_maxelts = debug_maxelts;
           fd_print_exception(&out,root);
           fd_summarize_backtrace(&out,ex);
           u8_printf(&out,"\n");

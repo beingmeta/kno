@@ -356,7 +356,7 @@ static void *thread_call(void *data)
       fd_incref(result);}}
   tstruct->flags = tstruct->flags|FD_THREAD_DONE;
   if (tstruct->flags&FD_EVAL_THREAD) {
-    free_environment(tstruct->evaldata.env);
+    fd_free_environment(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
   fd_decref((fdtype)tstruct);
   return NULL;

@@ -248,7 +248,7 @@ static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           i++;}}}
     result = eval_body(":LET",FD_SYMBOL_NAME(vars[0]),expr,2,
                        inner_env,_stack);
-    free_environment(inner_env);
+    fd_free_environment(inner_env);
     return result;}
 }
 
@@ -284,7 +284,7 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
         i++;}}
     result = eval_body(":LET*",FD_SYMBOL_NAME(vars[0]),expr,2,
                        inner_env,_stack);
-    free_environment(inner_env);
+    fd_free_environment(inner_env);
     return result;}
 }
 
@@ -324,7 +324,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       fdtype value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) {
         /* When there's an error here, there's no need to bind. */
-        free_environment(inner_env);
+        fd_free_environment(inner_env);
         if (n>16) {u8_free(tmp); u8_free(updaters);}
         return value;}
       else {
@@ -384,7 +384,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       result = eval_body(":DO",FD_SYMBOL_NAME(vars[0]),exitexprs,1,
                          inner_env,_stack);}
     /* Free the environment. */
-    free_environment(&envstruct);
+    fd_free_environment(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}
     return result;}
 }
@@ -525,7 +525,7 @@ static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result))
         return result}}
-    free_environment(inner_env);
+    fd_free_environment(inner_env);
     return result;}
 }
 
@@ -553,7 +553,7 @@ static fdtype letqstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result)) 
         return result;}}
-    if (inner_env->env_copy) free_environment(inner_env->env_copy);
+    if (inner_env->env_copy) fd_free_environment(inner_env->env_copy);
     return result;}
 }
 

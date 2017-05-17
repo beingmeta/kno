@@ -51,6 +51,8 @@ FD_EXPORT void fd_seterr
   if (cxt)
     base = fd_init_pair(NULL, fd_intern(cxt), base);
   fdtype errinfo=fd_get_backtrace(fd_stackptr,base);
+  // TODO: Push the exception and then generate the stack, just in
+  // case. Set the exception xdata explicitly if you can.
   u8_push_exception(c,cxt,u8dup(details),
 		    (void *)errinfo,
 		    fd_free_exception_xdata);
@@ -201,6 +203,18 @@ fdtype fd_exception_backtrace(u8_exception ex)
     u8_string d = ex->u8x_details;
     u8_context cx = ex->u8x_context;
     fdtype x = fd_exception_xdata(ex);
+    if (FD_PAIRP(x)) {
+      int i=0, len=fd_list_length(x);
+      fdtype vec=fd_make_vector(len,NULL);
+      fdtype *data=FD_VECTOR_ELTS(vec);
+      fdtype scan=x;
+      while (i<len) {
+	fdtype v=FD_CAR(scan);
+	fd_incref(v);
+	data[i]=v;
+	scan=FD_CDR(scan);
+	i++;}
+      return vec;}
     if ((c!=cond)||
         ((d)&&(d!=details))||
         ((cx)&&(cx!=cxt))) {

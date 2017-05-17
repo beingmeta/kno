@@ -153,7 +153,7 @@ FD_FASTOP fdtype apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   /* If we're synchronized, unlock the mutex. */
   if (fn->sproc_synchronized) u8_unlock_mutex(&(fn->sproc_lock));
   fd_decref(lexpr_arg);
-  free_environment(&envstruct);
+  fd_free_environment(&envstruct);
   return result;
 }
 
@@ -649,7 +649,7 @@ fdtype fd_xapply_sproc
   if (envstruct.env_copy) {
     fd_recycle_environment(envstruct.env_copy);
     envstruct.env_copy = NULL;}
-  free_environment(&envstruct);
+  fd_free_environment(&envstruct);
   return result;
 }
 

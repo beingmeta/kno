@@ -11,6 +11,7 @@
 
 #define FD_INLINE_FCNIDS 1
 #define FD_INLINE_STACKS 1
+#define FD_INLINE_LEXENV 1
 #define FD_INLINE_APPLY  1
 
 #include "framerd/fdsource.h"
@@ -34,14 +35,21 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
 {
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
-    if (!(FD_VOIDP(stack->stack_op)))
-      rep = fd_init_pair( NULL, fd_incref(stack->stack_op), rep);
     if ( stack->stack_args ) {
       fdtype *args=stack->stack_args;
       int i=0, n=stack->n_args;
-      while (i<n) { fdtype v=args[i++]; fd_incref(v); }
-      fdtype vec = fd_make_vector(n, args);
+      fdtype tmpbuf[n+1], *write=&tmpbuf[1];
+      tmpbuf[0]=stack->stack_op;
+      fd_incref(stack->stack_op);
+      while (i<n) {
+	fdtype v=args[i];
+	fd_incref(v);
+	*write++=v;
+	i++;}
+      fdtype vec = fd_make_vector(n+1,tmpbuf);
       rep=fd_init_pair(NULL,vec,rep);}
+    else if (!(FD_VOIDP(stack->stack_op)))
+      rep = fd_init_pair( NULL, fd_incref(stack->stack_op), rep);
     if (stack->stack_env) {
       fdtype bindings = stack->stack_env->env_bindings;
       if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {

@@ -11,6 +11,7 @@
 #define FRAMERD_EVAL_H_INFO "include/framerd/eval.h"
 #endif
 
+#include "framerd/lexenv.h"
 #include "framerd/apply.h"
 #include <assert.h>
 

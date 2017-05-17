@@ -9,11 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_FCNIDS 1
 #define FD_INLINE_STACKS 1
+#define FD_INLINE_LEXENV 1
+
+#define FD_PROVIDE_FASTEVAL 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -894,11 +896,11 @@ static fdtype bindop(struct FD_STACK *caller,fd_lispenv env,
     fdtype val=op_eval(val_expr,inner_env,bind_stack,0);
     if (FD_ABORTED(val)) {
       while (i>=0) {fd_decref(values[i]); i--;}
-      free_environment(inner_env);
+      fd_free_environment(inner_env);
       return val;}
     else values[i++]=val;}
   fdtype result = op_eval_body(body,inner_env,bind_stack,tail);
-  free_environment(inner_env);
+  fd_free_environment(inner_env);
   return result;
 }
 
