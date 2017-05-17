@@ -486,6 +486,7 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
     if (runbase_config == NULL) {
       u8_string wd = u8_getcwd(), appid = u8_string_subst(u8_appid(),"/",":");
       runbase = u8_mkpath(wd,appid);
+      u8_free(wd);
       u8_free(appid);}
     else if (u8_directoryp(runbase_config)) {
       /* If the runbase is a directory, create files using the appid. */
