@@ -238,7 +238,7 @@ static ssize_t write_dtypes(fdtype dtypes,struct FD_STREAM *out)
 	  (out,tmp.bufwrite-tmp.buffer,tmp.buffer);
 	tmp.bufwrite=tmp.buffer;}
       if (write_size>=0) {
-	ssize_t dtype_size=fd_write_dtype(&tmp,dtypes);
+	ssize_t dtype_size=fd_write_dtype(&tmp,dtype);
 	if (dtype_size<0)
 	  write_size=dtype_size;
 	else if ((tmp.buflim-tmp.bufwrite)<(tmp.buflen/5)) {
