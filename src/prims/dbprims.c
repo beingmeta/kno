@@ -43,8 +43,9 @@ static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
 {
   if (FD_FIXNUMP(opts)) {
     long long val=FD_FIX2INT(opts);
-    if (val<0) return -1;
-    else if (val>0xFFFFFFFF) return -1;
+    if (val<0) return val;
+    else if (val>0xFFFFFFFF)
+      return -1;
     else return val;}
   else if (FD_TABLEP(opts)) {
     fdtype flags_val=fd_getopt(opts,flags_symbol,FD_VOID);
@@ -65,6 +66,10 @@ static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
       flags |= FD_STORAGE_READ_ONLY;
     if ((FD_FALSEP(opts))||(FD_FALSEP(regopt))||(FD_ZEROP(regopt)))
       flags |= FD_STORAGE_UNREGISTERED;
+    else if (FD_VOIDP(regopt)) {
+      if (flags&FD_STORAGE_ISINDEX)
+        flags |= FD_STORAGE_UNREGISTERED;}
+    else {}
     if ( (flags&FD_STORAGE_ISINDEX) &&
          (!( (FD_VOIDP(bgopt)) ||
              (FD_FALSEP(bgopt)) ||
@@ -352,7 +357,7 @@ static fdtype open_index(fdtype arg,fdtype opts)
 {
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
-  if (FD_STRINGP(arg))
+  if (FD_STRINGP(arg)) {
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
          we can return the choice of index. */
@@ -374,7 +379,7 @@ static fdtype open_index(fdtype arg,fdtype opts)
         else start = NULL;}
       u8_free(copy);
       return results;}
-    else return fd_index2lisp(fd_get_index(FD_STRDATA(arg),flags,opts));
+    else return fd_index2lisp(fd_get_index(FD_STRDATA(arg),flags,opts));}
   else if (FD_INDEXP(arg)) return arg;
   else if (FD_TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
@@ -416,7 +421,10 @@ static fdtype make_index(fdtype path,fdtype opts)
 {
   fd_index ix = NULL;
   fdtype type = fd_getopt(opts,FDSYM_TYPE,FD_VOID);
-  fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
+  fd_storage_flags flags =
+    (FD_FIXNUMP(opts)) ?
+    (FD_STORAGE_ISINDEX) :
+    (getdbflags(opts,FD_STORAGE_ISINDEX)) ;
   if (FD_VOIDP(type))
     ix = fd_make_index(FD_STRDATA(path),NULL,flags,opts);
   else if (FD_SYMBOLP(type))
@@ -1591,7 +1599,7 @@ static fdtype index_id(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype index_source(fdtype arg)
+static fdtype index_source_prim(fdtype arg)
 {
   fd_index p = arg2index(arg);
   if (p == NULL)
@@ -1603,14 +1611,14 @@ static fdtype index_source(fdtype arg)
 
 /* Index operations */
 
-static fdtype indexget(fdtype ixarg,fdtype key)
+static fdtype index_get(fdtype ixarg,fdtype key)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR_VALUE;
   else return fd_index_get(ix,key);
 }
 
-static fdtype indexadd(fdtype ixarg,fdtype key,fdtype values)
+static fdtype index_add(fdtype ixarg,fdtype key,fdtype values)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR_VALUE;
@@ -1618,7 +1626,7 @@ static fdtype indexadd(fdtype ixarg,fdtype key,fdtype values)
   return FD_VOID;
 }
 
-static fdtype indexset(fdtype ixarg,fdtype key,fdtype values)
+static fdtype index_set(fdtype ixarg,fdtype key,fdtype values)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR_VALUE;
@@ -1626,7 +1634,7 @@ static fdtype indexset(fdtype ixarg,fdtype key,fdtype values)
   return FD_VOID;
 }
 
-static fdtype indexdecache(fdtype ixarg,fdtype key,fdtype value)
+static fdtype index_decache(fdtype ixarg,fdtype key,fdtype value)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR_VALUE;
@@ -1652,24 +1660,24 @@ static fdtype bgdecache(fdtype key,fdtype value)
   return FD_VOID;
 }
 
-static fdtype indexkeys(fdtype ixarg)
+static fdtype index_keys(fdtype ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
-  if (ix == NULL) fd_type_error("index","indexkeys",ixarg);
+  if (ix == NULL) fd_type_error("index","index_keys",ixarg);
   return fd_index_keys(ix);
 }
 
-static fdtype indexsizes(fdtype ixarg)
+static fdtype index_sizes(fdtype ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
-  if (ix == NULL) fd_type_error("index","indexsizes",ixarg);
+  if (ix == NULL) fd_type_error("index","index_sizes",ixarg);
   return fd_index_sizes(ix);
 }
 
-static fdtype indexkeysvec(fdtype ixarg)
+static fdtype index_keysvec(fdtype ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
-  if (ix == NULL) fd_type_error("index","indexkeysvec",ixarg);
+  if (ix == NULL) fd_type_error("index","index_keysvec",ixarg);
   if (ix->index_handler->fetchkeys) {
     fdtype *keys; unsigned int n_keys;
     keys = ix->index_handler->fetchkeys(ix,&n_keys);
@@ -1677,24 +1685,42 @@ static fdtype indexkeysvec(fdtype ixarg)
   else return fd_index_keys(ix);
 }
 
-static fdtype indexmerge(fdtype ixarg,fdtype addstable)
+static fdtype index_merge(fdtype ixarg,fdtype addstable)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL)
-    return fd_type_error("index","indexmerge",ixarg);
+    return fd_type_error("index","index_merge",ixarg);
   else {
     int rv = fd_index_merge(ix,(fd_hashtable)addstable);
     return FD_INT(rv);}
 }
 
-static fdtype indexsource(fdtype ix_arg)
+static fdtype index_source(fdtype ix_arg)
 {
   fd_index ix = fd_indexptr(ix_arg);
   if (ix == NULL)
-    return fd_type_error("index","indexsource",ix_arg);
+    return fd_type_error("index","index_source",ix_arg);
   else if (ix->index_source)
     return fdtype_string(ix->index_source);
   else return FD_EMPTY_CHOICE;
+}
+
+static fdtype close_index_prim(fdtype ix_arg)
+{
+  fd_index ix = fd_indexptr(ix_arg);
+  if (ix == NULL)
+    return fd_type_error("index","index_close",ix_arg);
+  fd_index_close(ix);
+  return FD_VOID;
+}
+
+static fdtype commit_index_prim(fdtype ix_arg)
+{
+  fd_index ix = fd_indexptr(ix_arg);
+  if (ix == NULL)
+    return fd_type_error("index","index_close",ix_arg);
+  fd_index_commit(ix);
+  return FD_VOID;
 }
 
 static fdtype suggest_hash_size(fdtype size)
@@ -3268,7 +3294,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-SOURCE",index_source,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-SOURCE",index_source_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-ID",index_id,1));
 
   fd_idefn(fd_xscheme_module,
@@ -3280,20 +3306,27 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprim4("INDEX-FRAME",index_frame_prim,3)));
-  fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-SET!",indexset,3));
-  fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-ADD!",indexadd,3));
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-GET",indexget,2));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYS",indexkeys,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",indexkeysvec,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",indexsizes,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",indexsource,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-SET!",index_set,3));
+  fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-ADD!",index_add,3));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-GET",index_get,2));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYS",index_keys,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",index_keysvec,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",index_sizes,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",index_source,1));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim2x("INDEX-MERGE!",indexmerge,2,-1,FD_VOID,
+           fd_make_cprim2x("INDEX-MERGE!",index_merge,2,-1,FD_VOID,
                            fd_hashtable_type,FD_VOID));
+  fd_idefn1(fd_xscheme_module,"CLOSE-INDEX",close_index_prim,1,
+            "(INDEX-CLOSE *index*) closes any resources associated with *index*",
+            -1,FD_VOID);
+  fd_idefn1(fd_xscheme_module,"COMMIT-INDEX",commit_index_prim,1,
+            "(INDEX-COMMIT *index*) saves any buffered changes to *index*",
+            -1,FD_VOID);
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
                            fd_fixnum_type,FD_VOID));
-  fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",indexdecache,2));
+  fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",index_decache,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("BGDECACHE",bgdecache,1));
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,2)));
