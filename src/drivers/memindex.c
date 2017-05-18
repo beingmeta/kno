@@ -348,7 +348,7 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts
     fd_resize_hashtable(&(memidx->index_edits),memindex_edits_init);
     if (!(FD_FALSEP(preload)))
       load_mem_index(memidx,0);
-    if (!(U8_BITP(flags,FD_STORAGE_ISCONSED)))
+    if (!(U8_BITP(flags,FD_STORAGE_UNREGISTERED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
 }

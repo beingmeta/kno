@@ -55,7 +55,7 @@ typedef unsigned int fd_storage_flags;
 #define FD_STORAGE_ISPOOL		   0x01
 #define FD_STORAGE_ISINDEX		   0x02
 #define FD_STORAGE_READ_ONLY		   0x04
-#define FD_STORAGE_ISCONSED		   0x08
+/* #define FD_STORAGE_ISCONSED		   0x08 */
 #define FD_STORAGE_UNREGISTERED	           0x10
 #define FD_STORAGE_KEEP_CACHESIZE          0x20
 #define FD_STORAGE_NOSWAP		   0x40
