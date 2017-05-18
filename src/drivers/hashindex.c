@@ -219,7 +219,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opt
 {
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
-  int consed = U8_BITP(flags,FD_STORAGE_ISCONSED);
+  int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
 
   unsigned int magicno, n_keys;
   fd_off_t slotids_pos, baseoids_pos;

@@ -63,7 +63,7 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,fdtype op
 {
   struct FD_FILE_INDEX *index = u8_alloc(struct FD_FILE_INDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
-  int consed = U8_BITP(flags,FD_STORAGE_ISCONSED);
+  int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
   unsigned int magicno;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));

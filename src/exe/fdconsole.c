@@ -958,7 +958,9 @@ int main(int argc,char **argv)
       histref = FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
     else if (FD_OIDP(expr)) {
       fdtype v = fd_oid_value(expr);
-      if (FD_TABLEP(v)) {
+      if (FD_CHOICEP(v))
+        u8_printf(out,"OID value: %q\n",v);
+      else if (FD_TABLEP(v)) {
         U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
         u8_printf(&out,"%q:\n",expr);
         fd_display_table(&out,v,FD_VOID);

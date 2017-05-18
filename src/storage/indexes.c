@@ -38,8 +38,54 @@ int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
 int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
 int fd_index_adds_init   = FD_INDEX_ADDS_INIT;
 
-fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES], *fd_secondary_indexes = NULL;
-int fd_n_primary_indexes = 0, fd_n_secondary_indexes = 0;
+fd_index fd_primary_indexes[FD_N_PRIMARY_INDEXES];
+int fd_n_primary_indexes = 0;
+fd_index *fd_secondary_indexes = NULL;
+int fd_n_secondary_indexes = 0;
+
+static fd_index *consed_indexes = NULL;
+ssize_t n_consed_indexes = 0, consed_indexes_len=0;
+u8_mutex consed_indexes_lock;
+
+static int add_consed_index(fd_index ix)
+{
+  u8_lock_mutex(&consed_indexes_lock);
+  fd_index *scan=consed_indexes, *limit=scan+n_consed_indexes;
+  while (scan<limit) {
+    if ( *scan == ix ) {
+      u8_unlock_mutex(&consed_indexes_lock);
+      return 0;}
+    else scan++;}
+  if (n_consed_indexes>=consed_indexes_len) {
+    ssize_t new_len=consed_indexes_len+64;
+    fd_index *newvec=u8_realloc(consed_indexes,new_len*sizeof(fd_index));
+    if (newvec) {
+      consed_indexes=newvec;
+      consed_indexes_len=new_len;}
+    else {
+      u8_seterr(fd_MallocFailed,"add_consed_index",u8dup(ix->indexid));
+      u8_unlock_mutex(&consed_indexes_lock);
+      return -1;}}
+  consed_indexes[n_consed_indexes++]=ix;
+  u8_unlock_mutex(&consed_indexes_lock);
+  return 1;
+}
+
+static int drop_consed_index(fd_index ix)
+{
+  u8_lock_mutex(&consed_indexes_lock);
+  fd_index *scan=consed_indexes, *limit=scan+n_consed_indexes;
+  while (scan<limit) {
+    if ( *scan == ix ) {
+      size_t to_shift=(limit-scan)-1;
+      memmove(scan,scan+1,to_shift);
+      n_consed_indexes--;
+      u8_unlock_mutex(&consed_indexes_lock);
+      return 1;}
+    else scan++;}
+  u8_unlock_mutex(&consed_indexes_lock);
+  return 0;
+}
 
 struct FD_COMPOUND_INDEX *fd_background = NULL;
 static u8_mutex background_lock;
@@ -956,10 +1002,12 @@ FD_EXPORT void fd_init_index(fd_index ix,
                              fd_storage_flags flags)
 {
   U8_SETBITS(flags,FD_STORAGE_ISINDEX);
-  if (U8_BITP(flags,FD_STORAGE_ISCONSED)) {
-    FD_INIT_CONS(ix,fd_consed_index_type);}
+  if (U8_BITP(flags,FD_STORAGE_UNREGISTERED)) {
+    FD_INIT_CONS(ix,fd_consed_index_type);
+    add_consed_index(ix);}
   else {FD_INIT_STATIC_CONS(ix,fd_consed_index_type);}
-  if (U8_BITP(flags,FD_STORAGE_READ_ONLY)) { U8_SETBITS(flags,FD_STORAGE_READ_ONLY); };
+  if (U8_BITP(flags,FD_STORAGE_READ_ONLY)) {
+    U8_SETBITS(flags,FD_STORAGE_READ_ONLY); };
   ix->index_serialno = -1; ix->index_cache_level = -1; ix->index_flags = flags;
   FD_INIT_STATIC_CONS(&(ix->index_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->index_adds),fd_hashtable_type);
@@ -1042,63 +1090,17 @@ static fdtype index_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
 
 /* Operations over all indexes */
 
-FD_EXPORT void fd_swapout_indexes()
-{
-  int i = 0; while (i < fd_n_primary_indexes) {
-    fd_index_swapout(fd_primary_indexes[i],FD_VOID); i++;}
-  i = 0; while (i < fd_n_secondary_indexes) {
-    fd_index_swapout(fd_secondary_indexes[i],FD_VOID); i++;}
-}
-
-FD_EXPORT void fd_close_indexes()
-{
-  int i = 0; while (i < fd_n_primary_indexes) {
-    fd_index_close(fd_primary_indexes[i]); i++;}
-  i = 0; while (i < fd_n_secondary_indexes) {
-    fd_index_close(fd_secondary_indexes[i]); i++;}
-}
-
-FD_EXPORT int fd_commit_indexes()
-{
-  int count = 0, i = 0; while (i < fd_n_primary_indexes) {
-    int retval = fd_index_commit(fd_primary_indexes[i]);
-    if (retval<0) return retval;
-    else count = count+retval;
-    i++;}
-  i = 0; while (i < fd_n_secondary_indexes) {
-    int retval = fd_index_commit(fd_secondary_indexes[i]);
-    if (retval<0) return retval;
-    else count = count+retval;
-    i++;}
-  return count;
-}
-
-FD_EXPORT int fd_commit_indexes_noerr()
-{
-  int count = 0;
-  int i = 0; while (i < fd_n_primary_indexes) {
-    int retval = fd_index_commit(fd_primary_indexes[i]);
-    if (retval<0) {
-      u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",
-              fd_primary_indexes[i]->indexid);
-      fd_clear_errors(1);
-      count = -1;}
-    if (count>=0) count = count+retval;
-    i++;}
-  i = 0; while (i < fd_n_secondary_indexes) {
-    int retval = fd_index_commit(fd_secondary_indexes[i]);
-    if (retval<0) {
-      u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",
-              fd_secondary_indexes[i]->indexid);
-      fd_clear_errors(1);
-      count = -1;}
-    if (count>=0) count = count+retval;
-    i++;}
-  return count;
-}
-
 FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index ix,void *),void *data)
 {
+  if (n_consed_indexes) {
+    u8_lock_mutex(&consed_indexes_lock);
+    int j = 0; while (j<n_consed_indexes) {
+      fd_index ix = consed_indexes[j++];
+      int retval = fcn(ix,data);
+      if (retval) u8_unlock_mutex(&consed_indexes_lock);
+      if (retval<0) return retval;
+      else if (retval) break;
+      else j++;}}
   int i = 0; while (i < fd_n_primary_indexes) {
     int retval = fcn(fd_primary_indexes[i],data);
     if (retval<0) return retval;
@@ -1111,6 +1113,69 @@ FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index ix,void *),void *data)
     else if (retval) break;
     else i++;}
   return i;
+}
+
+static int swapout_index_handler(fd_index ix,void *data)
+{
+  fd_index_swapout(ix,FD_VOID);
+  return 0;
+}
+
+
+FD_EXPORT void fd_swapout_indexes()
+{
+  fd_for_indexes(swapout_index_handler,NULL);
+}
+
+static int close_index_handler(fd_index ix,void *data)
+{
+  fd_index_close(ix);
+  return 0;
+}
+
+FD_EXPORT void fd_close_indexes()
+{
+  fd_for_indexes(close_index_handler,NULL);
+}
+
+static int commit_index_handler(fd_index ix,void *data)
+{
+  int *count = (int *) data;
+  int retval = fd_index_commit(ix);
+  if (retval<0)
+    return retval;
+  else *count += retval;
+  return 0;
+}
+
+static int commit_index_noerr_handler(fd_index ix,void *data)
+{
+  int *count = (int *) data;
+  int retval = fd_index_commit(ix);
+  if (retval<0) {
+    u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",ix->indexid);
+    fd_clear_errors(1);
+    *count=-1;}
+  else if ( *count >= 0 )
+    *count += retval;
+  else {}
+  return 0;
+}
+
+FD_EXPORT int fd_commit_indexes()
+{
+  int count=0;
+  int rv=fd_for_indexes(commit_index_handler,&count);
+  if (rv<0) return rv;
+  else return count;
+}
+
+FD_EXPORT int fd_commit_indexes_noerr()
+{
+  int count=0;
+  int rv=fd_for_indexes(commit_index_handler,&count);
+  if (rv<0) return rv;
+  else return count;
 }
 
 static int accumulate_cachecount(fd_index ix,void *ptr)
@@ -1183,6 +1248,7 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
 {
   struct FD_INDEX *ix = (struct FD_INDEX *)c;
   struct FD_INDEX_HANDLER *handler = ix->index_handler;
+  drop_consed_index(ix);
   if (handler->recycle) handler->recycle(ix);
   fd_recycle_hashtable(&(ix->index_cache));
   fd_recycle_hashtable(&(ix->index_adds));
@@ -1231,6 +1297,10 @@ FD_EXPORT void fd_init_indexes_c()
 
   fd_consed_index_type = fd_register_cons_type("raw index");
   fd_type_names[fd_consed_index_type]=_("raw index");
+
+  u8_init_mutex(&consed_indexes_lock);
+  consed_indexes = u8_malloc(64*sizeof(fd_index));
+  consed_indexes_len=65;
 
   {
     struct FD_COMPOUND_TYPEINFO *e =
