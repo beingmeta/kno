@@ -52,6 +52,8 @@ static int recover_file_index(struct FD_FILE_INDEX *fx);
 
 #define SLOTSIZE (sizeof(unsigned int))
 
+static ssize_t file_index_default_size=32000;
+
 static fdtype set_symbol, drop_symbol, slotids_symbol;
 static struct FD_INDEX_HANDLER file_index_handler;
 
@@ -1284,7 +1286,9 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
 static fd_index file_index_create(u8_string spec,void *type_data,
                                   fd_storage_flags flags,fdtype opts)
 {
-  fdtype n_slots = fd_getopt(opts,fd_intern("SLOTS"),FD_INT(32000));
+  fdtype n_slots = fd_getopt(opts,fd_intern("SLOTS"),
+                             fd_getopt(opts,fd_intern("SIZE"),
+                                       FD_INT(file_index_default_size)));
   if (!(FD_UINTP(n_slots))) {
     fd_seterr("NumberOfIndexSlots","file_index_create",spec,n_slots);
     return NULL;}
@@ -1343,6 +1347,9 @@ FD_EXPORT void fd_init_fileindex_c()
                          open_file_index,
                          match_index_file,
                          (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_TO_RECOVER));
+  fd_register_config("FILEINDEX:SIZE","The default size for file indexes",
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+                     &file_index_default_size);
 }
 
 
