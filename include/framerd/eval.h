@@ -49,14 +49,6 @@ FD_EXPORT int fd_set_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
 
-#define FD_XENV(x) \
-  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
-#define FD_XENVIRONMENT(x) \
-  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
-#define FD_ENVIRONMENTP(x) (FD_TYPEP(x,fd_environment_type))
-
-FD_EXPORT int fd_recycle_environment(fd_lispenv env);
-
 /* Special forms */
 
 typedef fdtype (*fd_evalfn)(fdtype expr,
@@ -197,8 +189,6 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env);
 FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env);
 FD_EXPORT fdtype _fd_get_arg(fdtype expr,int i);
 FD_EXPORT fdtype _fd_get_body(fdtype expr,int i);
-
-FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
 
 #if FD_PROVIDE_FASTEVAL
 FD_FASTOP fdtype fastget(fdtype table,fdtype key)

@@ -76,7 +76,7 @@ DTYPE_HEADERS=\
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 APPLY_HEADERS=\
- include/framerd/ffi.h include/framerd/apply.h
+ include/framerd/ffi.h include/framerd/apply.h include/framerd/lexenv.h
 STORAGE_HEADERS=\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
@@ -1644,8 +1644,8 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
-$(DTYPE_OBJS): $(DTYPE_HEADERS) include/framerd/apply.h $(REVISION_H)
-$(APPLY_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
+$(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
+$(APPLY_OBJS): $(DTYPE_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
 $(DRIVER_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
 $(SCHEME_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \

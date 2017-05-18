@@ -563,7 +563,6 @@ typedef struct FD_STACK {
 typedef struct FD_ENVIRONMENT *fd_environment;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
-
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
   struct FD_STACK _ ## name={}, *name=&_ ## name;	\
   if (caller) _ ## name.stack_root=caller->stack_root;	\
@@ -573,6 +572,7 @@ typedef struct FD_ENVIRONMENT *fd_lispenv;
   _ ## name.stack_type=type;				\
   _ ## name.stack_label=label;				\
   _ ## name.stack_op=op;				\
+  _ ## name.stack_vals=FD_EMPTY_CHOICE;			\
   _ ## name.cleanups=_ ## name._cleanups
 #define FD_PUSH_STACK(name,type,label,op)	       \
   FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
@@ -628,6 +628,7 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	break;}}
       i++;}}
   fd_decref(stack->stack_vals);
+  if (stack->stack_env) fd_free_environment(stack->stack_env);
 }
 FD_FASTOP void fd_pop_stack(struct FD_STACK *stack)
 {

@@ -14,6 +14,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/lexenv.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>

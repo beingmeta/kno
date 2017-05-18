@@ -16,6 +16,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/lexenv.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
@@ -1099,6 +1100,8 @@ static fdtype dapply(fdtype f,int n_args,fdtype *argvec)
 
 void fd_init_calltrack_c(void);
 void fd_init_cprims_c(void);
+void fd_init_stacks_c(void);
+void fd_init_lexenv_c(void);
 void fd_init_ffi_c(void);
 
 FD_EXPORT void fd_init_apply_c()
@@ -1133,6 +1136,8 @@ FD_EXPORT void fd_init_apply_c()
 
   fd_init_cprims_c();
   fd_init_ffi_c();
+  fd_init_stacks_c();
+  fd_init_lexenv_c();
   fd_init_calltrack_c();
 }
 

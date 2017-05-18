@@ -23,7 +23,15 @@ typedef struct FD_ENVIRONMENT {
   struct FD_ENVIRONMENT *env_copy;} FD_ENVIRONMENT;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
+FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
 FD_EXPORT void _fd_free_environment(struct FD_ENVIRONMENT *env);
+FD_EXPORT int fd_recycle_environment(fd_lispenv env);
+
+#define FD_XENV(x) \
+  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
+#define FD_XENVIRONMENT(x) \
+  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
+#define FD_ENVIRONMENTP(x) (FD_TYPEP(x,fd_environment_type))
 
 #if FD_INLINE_LEXENV
 FD_FASTOP

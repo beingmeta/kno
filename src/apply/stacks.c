@@ -16,6 +16,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/lexenv.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
@@ -58,3 +59,6 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
   return rep;
 }
 
+FD_EXPORT void fd_init_stacks_c()
+{
+}
