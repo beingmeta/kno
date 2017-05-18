@@ -68,7 +68,7 @@ LEAKCONF	= @leaktest_config@
 RUN		= ${TEST_ENV} ${TESTPROG}
 MEMTEST		= ${TEST_ENV} ${MEMTEST_ENV} ${MEMTESTER:-${TESTPROG}}
 LEAKTEST	= ${TEST_ENV} ${LEAKTEST_ENV} ${LEAKTESTER:-${TESTPROG}}
-DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
+FRAMETEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm frametest.scm
 TESTBASE	= tmptest
 TESTFILE	= ${TESTBASE}.file
 FDX		= ./fdexec
@@ -285,6 +285,14 @@ tabletests hashtables:
 
 .PHONY: slotmaptests slotmaps tabletests tables
 
+# Base storage tests
+
+storagebase:
+	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
+	${RUN} ${FDX} storage.scm
+
+storage: storagebase pooltest indextest frametest
+
 # Pool tests
 
 pooltest:
@@ -377,50 +385,50 @@ indextests indexes: fileindexes hashindexes memindexes
 
 # Database/frames test
 
-dbtest:
+frametest:
 	@${header} "■■■■■■■■ Running frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
 	rm -f ${TESTBASE}db.pool ${TESTBASE}db.index
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db init \
-		COUNT=${TESTSIZE} ${DBTEST_FILES} \
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db init \
+		COUNT=${TESTSIZE} ${FRAMETEST_FILES} \
 		${RUNCONF};
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} ${RUNCONF};
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Testing database creation with CACHELEVEL=2";
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
-		${DBTEST_FILES} ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db init COUNT=${TESTSIZE} 	\
+		${FRAMETEST_FILES} ${RUNCONF} CACHELEVEL=2;
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=2;
-	@${RUN} ${FDX} dbtest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
+	@${RUN} ${FDX} frametest.scm ${TESTBASE}db COUNT=${TESTSIZE} \
 		 ${RUNCONF} CACHELEVEL=3;
 	@${header} "■■■■■■■■ Finished frame/database tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF} ■■■■■■■■■■■■■■■■";
 
-dbtest_oidpool32:
-	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" dbtest
-dbtest_oidpool40:
-	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" dbtest
-dbtest_oidpool64:
-	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" dbtest
-dbtest_bigpool32:
-	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" dbtest
-dbtest_bigpool40:
-	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
-dbtest_bigpool64:
-	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" dbtest
-dbtest_fileindex:
-	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" dbtest
-dbtest_memindex:
-	@make TESTBASE=tmpmemindex RUNCONF="${BIGPOOL} ${MEMINDEX} ${OFFB40}" dbtest
-dbtest_base:
-	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" dbtest
+frametest_oidpool32:
+	@make TESTBASE=tmpoidpool32 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB32}" frametest
+frametest_oidpool40:
+	@make TESTBASE=tmpoidpool40 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB40}" frametest
+frametest_oidpool64:
+	@make TESTBASE=tmpoidpool64 RUNCONF="${OIDPOOL} ${HASHINDEX} ${OFFB64}" frametest
+frametest_bigpool32:
+	@make TESTBASE=tmpbigpool32 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB32}" frametest
+frametest_bigpool40:
+	@make TESTBASE=tmpbigpool40 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
+frametest_bigpool64:
+	@make TESTBASE=tmpbigpool64 RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB64}" frametest
+frametest_fileindex:
+	@make TESTBASE=tmpfileindex RUNCONF="${BIGPOOL} ${FILEINDEX} ${OFFB40}" frametest
+frametest_memindex:
+	@make TESTBASE=tmpmemindex RUNCONF="${BIGPOOL} ${MEMINDEX} ${OFFB40}" frametest
+frametest_base:
+	@make TESTBASE=testdb RUNCONF="${BIGPOOL} ${HASHINDEX} ${OFFB40}" frametest
 
-dbtests db: dbtest_base dbtest_oidpool32 dbtest_oidpool40 dbtest_oidpool64 \
-	dbtest_bigpool32 dbtest_bigpool40 dbtest_bigpool64 \
-	dbtest_fileindex dbtest_memindex
+frametests dbtest dbtests db: frametest_base frametest_oidpool32 frametest_oidpool40 frametest_oidpool64 \
+	frametest_bigpool32 frametest_bigpool40 frametest_bigpool64 \
+	frametest_fileindex frametest_memindex
 
-.PHONY: dbtests db dbtest
+.PHONY: frametests frametest dbtest dbtests db
 
 # Miscellanous module tests
 
