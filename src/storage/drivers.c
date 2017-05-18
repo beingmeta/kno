@@ -335,10 +335,18 @@ fd_index fd_make_index(u8_string spec,
   else if (ixtype->handler->create == NULL) {
     fd_xseterr3(_("NoCreateHandler"),"fd_make_index",indextype);
     return NULL;}
-  else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);
+  else {
+    if (FD_FIXNUMP(opts)) {
+      fdtype tmp_opts = fd_init_slotmap(NULL,3,NULL);
+      fd_store(tmp_opts,fd_intern("SIZE"),opts);
+      fd_index ix=ixtype->handler->create(spec,ixtype->type_data,
+                                          flags,tmp_opts);
+      fd_decref(tmp_opts);
+      return ix;}
+    else return ixtype->handler->create(spec,ixtype->type_data,flags,opts);}
 }
 
-/* Getting compression ty pe from options */
+/* Getting compression type from options */
 
 static fdtype compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
 
