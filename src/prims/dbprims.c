@@ -353,10 +353,15 @@ static fdtype use_index(fdtype arg,fdtype opts)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype open_index(fdtype arg,fdtype opts)
+static fdtype open_index_helper(fdtype arg,fdtype opts,int registered)
 {
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
+  if (registered == 0)
+    flags |= FD_STORAGE_UNREGISTERED;
+  else if (registered>0)
+    flags &= ~FD_STORAGE_UNREGISTERED;
+  else {}
   if (FD_STRINGP(arg)) {
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
@@ -387,6 +392,21 @@ static fdtype open_index(fdtype arg,fdtype opts)
   if (ix)
     return fd_index2lisp(ix);
   else return FD_ERROR_VALUE;
+}
+
+static fdtype open_index(fdtype arg,fdtype opts)
+{
+  return open_index_helper(arg,opts,-1);
+}
+
+static fdtype register_index(fdtype arg,fdtype opts)
+{
+  return open_index_helper(arg,opts,1);
+}
+
+static fdtype temp_index(fdtype arg,fdtype opts)
+{
+  return open_index_helper(arg,opts,0);
 }
 
 static fdtype make_pool(fdtype path,fdtype opts)
@@ -3115,10 +3135,21 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("ADJUNCT-POOL",adjunct_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("TRY-POOL",try_pool,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-INDEX",use_index,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim2("OPEN-INDEX",open_index,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("CACHECOUNT",cachecount,0));
   fd_defalias(fd_xscheme_module,"LOAD-POOL","TRY-POOL");
+
+  fd_idefn2(fd_xscheme_module,"USE-INDEX",use_index,1,
+            "(USE-INDEX *spec* [*opts*]) adds an index to the search background",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_xscheme_module,"OPEN-INDEX",open_index,1,
+            "(OPEN-INDEX *spec* [*opts*]) opens and returns an index",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_xscheme_module,"REGISTER-INDEX",register_index,1,
+            "(REGISTER-INDEX *spec* [*opts*]) opens, registers, and returns an index",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_xscheme_module,"TEMP-INDEX",temp_index,1,
+            "(TEMP-INDEX *spec* [*opts*]) opens and returns an unregistered index",
+            -1,FD_VOID,-1,FD_VOID);
 
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("MAKE-INDEX",make_index,2,
