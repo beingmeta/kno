@@ -268,7 +268,10 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
     fd_index *indexes = u8_alloc_n(1,fd_index);
     indexes[0]=ix;
     fd_background=
-      (struct FD_COMPOUND_INDEX *)fd_make_compound_index(1,indexes);}
+      (struct FD_COMPOUND_INDEX *)fd_make_compound_index(1,indexes);
+    u8_string old_id=fd_background->indexid;
+    fd_background->indexid=u8_strdup("background");
+    if (old_id) u8_free(old_id);}
   u8_unlock_mutex(&background_lock);
   return 1;
 }

@@ -717,7 +717,7 @@ fdtype (*_fd_make_double)(double) = default_make_double;
 
 /* Reading and writing compressed dtypes */
 
-static unsigned char *do_uncompress
+static unsigned char *old_do_uncompress
   (unsigned char *bytes,size_t n_bytes,ssize_t *dbytes)
 {
   int error;
@@ -745,6 +745,48 @@ static unsigned char *do_uncompress
   return xdata;
 }
 
+static unsigned char *do_uncompress
+(Bytef *fdata,size_t n_bytes,ssize_t *dbytes,Bytef *init_xbuf,ssize_t buflen)
+{
+  Bytef *xbuf=init_xbuf;
+  int error=0;
+  if (init_xbuf==NULL) {
+    if (buflen<0) buflen=4*n_bytes;
+    xbuf=u8_malloc(buflen);}
+  uLongf xbuf_size=buflen;
+  while ((error = uncompress(xbuf,&xbuf_size,fdata,n_bytes)) < Z_OK)
+    if (error == Z_MEM_ERROR) {
+      fd_seterr1("ZLIB Out of Memory");
+      if (xbuf!=init_xbuf) u8_free(xbuf);
+      return NULL;}
+    else if (error == Z_BUF_ERROR) {
+      Bytef *newbuf;
+      if (xbuf == init_xbuf)
+        newbuf = u8_malloc(buflen*2);
+      else newbuf = u8_realloc(xbuf,buflen*2);
+      if (newbuf == NULL) {
+        u8_seterr(fd_MallocFailed,"do_uncompress",NULL);
+        if (xbuf == init_xbuf) u8_free(xbuf);
+        return NULL;}
+      xbuf=newbuf;
+      buflen=buflen*2;
+      xbuf_size=buflen;}
+    else if (error == Z_DATA_ERROR) {
+      if (xbuf == init_xbuf) u8_free(xbuf);
+      fd_seterr1("ZLIB Data error");
+      return NULL;}
+    else if (error == Z_STREAM_ERROR) {
+      if (xbuf == init_xbuf) u8_free(xbuf);
+      fd_seterr1("ZLIB Data error");
+      return NULL;}
+    else {
+      if (xbuf == init_xbuf) u8_free(xbuf);
+      fd_seterr1("Bad ZLIB return code");
+      return NULL;}
+  *dbytes = xbuf_size;
+  return xbuf;
+}
+
 /* This reads a non frame value with compression. */
 FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
 {
@@ -757,7 +799,7 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
     u8_free(bytes);
     return FD_ERROR_VALUE;}
   memset(&tmp,0,sizeof(tmp));
-  tmp.bufread = tmp.buffer = do_uncompress(bytes,n_bytes,&dbytes);
+  tmp.bufread = tmp.buffer = do_uncompress(bytes,n_bytes,&dbytes,NULL,-1);
   tmp.buf_flags = FD_BUFFER_IS_MALLOCD;
   tmp.buflim = tmp.buffer+dbytes;
   result = fd_read_dtype(&tmp);

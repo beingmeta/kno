@@ -16,6 +16,7 @@
 #include "framerd/storage.h"
 
 #include <libu8/libu8.h>
+#include <libu8/u8printf.h>
 
 static struct FD_INDEX_HANDLER compoundindex_handler;
 
@@ -202,14 +203,23 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     else cix->indexes = u8_alloc_n(1,fd_index);
     cix->indexes[cix->n_indexes++]=add;
     if (add->index_serialno<0) {
-      fdtype alix = (fdtype)add; fd_incref(alix);}
-    if ((cix->indexid) || (cix->index_source)) {
-      if ((cix->indexid) == (cix->index_source)) {
-        u8_free(cix->indexid); cix->indexid = cix->index_source = NULL;}
-      else {
-        if (cix->indexid) {u8_free(cix->indexid); cix->indexid = NULL;}
-        if (cix->index_source) {u8_free(cix->index_source); cix->index_source = NULL;}}}
-    cix->indexid = cix->index_source = get_compound_id(cix->n_indexes,cix->indexes);
+      fdtype alix = (fdtype)add;
+      fd_incref(alix);}
+    u8_string old_source = cix->index_source;
+    u8_string old_id = cix->indexid;
+    cix->index_source = get_compound_id(cix->n_indexes,cix->indexes);
+    if ( ( old_source ) && ( old_source != old_id) )
+      u8_free(old_source);
+    if (old_id) {
+      u8_byte *brace=strchr(old_id,'{');
+      if (brace) {
+        size_t prefix_len=brace-old_id;
+        u8_byte buf[prefix_len+1];
+        strncpy(buf,old_id,prefix_len); buf[prefix_len]='\0';
+        cix->indexid = u8_mkstring("%s%s",buf,cix->index_source);}
+      else cix->indexid = u8_mkstring("%s%s",old_id,cix->index_source);
+      u8_free(old_id);}
+    else cix->indexid = u8_mkstring("compound%s",cix->index_source);
     fd_reset_hashtable(&(cix->index_cache),-1,1);
     return 1;}
   else return fd_reterr(fd_TypeError,("compound_index"),NULL,FD_VOID);

@@ -140,6 +140,8 @@
 #define CHECK_ENDPOS(pos,stream)
 #endif
 
+static ssize_t hash_index_default_size=32000;
+
 static ssize_t get_maxpos(fd_hashindex p)
 {
   switch (p->index_offtype) {
@@ -2123,7 +2125,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
 #endif
     /* Get all the keys we need to write.  */
     schedule_size = process_edits(hx,&adds,&edits,&replaced_keys,
-                                schedule,schedule_size);
+                                  schedule,schedule_size);
 #if FD_DEBUG_HASHINDEXES
     u8_message("Adding %d adds to the schedule",hx->index_adds.table_n_keys);
 #endif
@@ -2595,7 +2597,9 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
   int rv = 0;
   fdtype slotids_init = fd_getopt(opts,fd_intern("SLOTIDS"),FD_VOID);
   fdtype baseoids_init = fd_getopt(opts,fd_intern("BASEOIDS"),FD_VOID);
-  fdtype nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),FD_VOID);
+  fdtype nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
+                                  fd_getopt(opts,FDSYM_SIZE,
+                                            FD_INT(hash_index_default_size)));
   fdtype hashconst = fd_getopt(opts,fd_intern("HASHCONST"),FD_FIXZERO);
   if (!(FD_UINTP(nbuckets_arg))) {
     fd_seterr("InvalidBucketCount","hashindex_create",spec,nbuckets_arg);
@@ -2749,7 +2753,12 @@ FD_EXPORT void fd_init_hashindex_c()
      match_index_file,
      (void *)(U8_INT2PTR(FD_HASHINDEX_TO_RECOVER)));
 
-  fd_set_default_index_type("bigpool");
+  fd_register_config("HASHINDEX:SIZE","The default size for hash indexes",
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+                     &hash_index_default_size);
+
+
+  fd_set_default_index_type("hashindex");
 }
 
 /* TODO:
