@@ -153,7 +153,6 @@ FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data)
 FD_EXPORT fdtype fd_type_error
   (u8_string type_name,u8_context cxt,fdtype irritant)
 {
-  u8_byte buf[512];
   u8_string msg = u8_mkstring(_("object is not a %m"),type_name);
   fd_seterr(fd_TypeError,cxt,msg,irritant);
   return FD_TYPE_ERROR;
