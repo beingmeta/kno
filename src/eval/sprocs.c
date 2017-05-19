@@ -676,12 +676,96 @@ static int walk_sproc(fd_walker walker,fdtype obj,void *walkdata,
   fdtype env = (fdtype)sproc->sproc_env;
   if (fd_walk(walker,sproc->sproc_body,walkdata,flags,depth-1)<0)
     return -1;
-  else if (fd_walk(walker,sproc->sproc_arglist,walkdata,flags,depth-1)<0)
+  else if (fd_walk(walker,sproc->sproc_arglist,
+                   walkdata,flags,depth-1)<0)
     return -1;
   else if ((!(FD_STATICP(env)))&&
-           (fd_walk(walker,sproc->sproc_arglist,walkdata,flags,depth-1)<0))
+           (fd_walk(walker,sproc->sproc_arglist,
+                    walkdata,flags,depth-1)<0))
     return -1;
   else return 3;
+}
+
+/* Unparsing fcnids referring to sprocs */
+
+static int unparse_extended_fcnid(u8_output out,fdtype x)
+{
+  fdtype lp = fd_fcnid_ref(x);
+  if (FD_TYPEP(lp,fd_sproc_type)) {
+    struct FD_SPROC *sproc = fd_consptr(fd_sproc,lp,fd_sproc_type);
+    unsigned long long addr = (unsigned long long) sproc;
+    fdtype arglist = sproc->sproc_arglist;
+    u8_string codes=
+      (((sproc->sproc_synchronized)&&(sproc->fcn_ndcall))?("∀∥"):
+       (sproc->sproc_synchronized)?("∥"):
+       (sproc->fcn_ndcall)?("∀"):(""));
+    if (sproc->fcn_name)
+      u8_printf(out,"#<~%d<λ%s%s",
+                FD_GET_IMMEDIATE(x,fd_fcnid_type),
+                codes,sproc->fcn_name);
+    else u8_printf(out,"#<~%d<λ%s0x%04x",
+                   FD_GET_IMMEDIATE(x,fd_fcnid_type),
+                   codes,((addr>>2)%0x10000));
+    if (FD_PAIRP(arglist)) {
+      int first = 1; fdtype scan = sproc->sproc_arglist;
+      fdtype spec = FD_VOID, arg = FD_VOID;
+      u8_putc(out,'(');
+      while (FD_PAIRP(scan)) {
+        if (first) first = 0; else u8_putc(out,' ');
+        spec = FD_CAR(scan);
+        arg = (FD_SYMBOLP(spec)) ? (spec) :
+          (FD_PAIRP(spec)) ? (FD_CAR(spec)) :
+          (FD_VOID);
+        if (FD_SYMBOLP(arg))
+          u8_puts(out,FD_SYMBOL_NAME(arg));
+        else u8_puts(out,"??");
+        if (FD_PAIRP(spec)) u8_putc(out,'?');
+        scan = FD_CDR(scan);}
+      if (FD_EMPTY_LISTP(scan))
+        u8_putc(out,')');
+      else if (FD_SYMBOLP(scan))
+        u8_printf(out,"%s…)",FD_SYMBOL_NAME(scan));
+      else u8_printf(out,"…%q…)",scan);}
+    else if (FD_EMPTY_LISTP(arglist))
+      u8_puts(out,"()");
+    else if (FD_SYMBOLP(arglist))
+      u8_printf(out,"(%s…)",FD_SYMBOL_NAME(arglist));
+    else u8_printf(out,"(…%q…)",arglist);
+    if (!(sproc->fcn_name))
+      u8_printf(out," #!0x%llx",(unsigned long long)sproc);
+    if (sproc->fcn_filename)
+      u8_printf(out," '%s'>>",sproc->fcn_filename);
+    else u8_puts(out,">>");
+    return 1;}
+  else if (FD_TYPEP(lp,fd_cprim_type)) {
+      struct FD_FUNCTION *fcn = (fd_function)lp;
+      unsigned long long addr = (unsigned long long) fcn;
+      u8_string name = fcn->fcn_name;
+      u8_string filename = fcn->fcn_filename;
+      u8_byte arity[16]=""; u8_byte codes[16]="";
+      if ((filename)&&(filename[0]=='\0')) filename = NULL;
+      if (name == NULL) name = fcn->fcn_name;
+      if (fcn->fcn_ndcall) strcat(codes,"∀");
+      if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
+        strcat(arity,"…");
+      else if (fcn->fcn_arity == fcn->fcn_min_arity)
+        sprintf(arity,"[%d]",fcn->fcn_min_arity);
+      else if (fcn->fcn_arity<0)
+        sprintf(arity,"[%d,…]",fcn->fcn_min_arity);
+      else sprintf(arity,"[%d,%d]",fcn->fcn_min_arity,fcn->fcn_arity);
+      if (name)
+        u8_printf(out,"#<~%d<%s%s%s%s%s%s>>",
+                  FD_GET_IMMEDIATE(x,fd_fcnid_type),
+                  codes,name,arity,U8OPTSTR("'",filename,"'"));
+      else u8_printf(out,"#<~%d<Φ%s0x%04x%s #!0x%llx%s%s%s>>",
+                     FD_GET_IMMEDIATE(x,fd_fcnid_type),
+                     codes,((addr>>2)%0x10000),arity,
+                     (unsigned long long) fcn,
+                     arity,U8OPTSTR("'",filename,"'"));
+      return 1;}
+  else u8_printf(out,"#<~%ld %q>",
+                 FD_GET_IMMEDIATE(x,fd_fcnid_type),lp);
+  return 1;
 }
 
 /* Initialization */
@@ -699,6 +783,8 @@ FD_EXPORT void fd_init_sprocs_c()
   fd_unparsers[fd_sproc_type]=unparse_sproc;
   fd_recyclers[fd_sproc_type]=recycle_sproc;
   fd_walkers[fd_sproc_type]=walk_sproc;
+
+  fd_unparsers[fd_fcnid_type]=unparse_extended_fcnid;
 
   fd_defspecial(fd_scheme_module,"LAMBDA",lambda_evalfn);
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_evalfn);

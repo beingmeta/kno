@@ -18,10 +18,11 @@ static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops,
   else {fd_decref(val); return 1;}
 }
 
-static fdtype find_module_id( fd_lispenv env )
+static U8_MAYBE_UNUSED
+fdtype find_module_id( fd_lispenv env )
 {
   if (!(env)) return FD_VOID;
-  else if (FD_HASHTABLEP(env->env_bindings)) 
+  else if (FD_HASHTABLEP(env->env_bindings))
     return fd_get(env->env_bindings,moduleid_symbol,FD_VOID);
   else if (env->env_copy)
     return find_module_id(env->env_copy->env_parent);
@@ -81,6 +82,42 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
   if (FD_ABORTP(result)) return result;         \
   else { fd_decref(result); result = FD_VOID;}
 
+
+FD_FASTOP fd_lispenv init_static_env
+  (int n,fd_lispenv parent,
+   struct FD_SCHEMAP *bindings,struct FD_ENVIRONMENT *envstruct,
+   fdtype *vars,fdtype *vals)
+{
+  int i = 0; while (i < n) {
+    vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
+  memset(envstruct,0,sizeof(struct FD_ENVIRONMENT));
+  memset(bindings,0,sizeof(struct FD_SCHEMAP));
+  FD_INIT_STATIC_CONS(envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(bindings,fd_schemap_type);
+  bindings->schemap_onstack = 1;
+  bindings->table_schema = vars;
+  bindings->schema_values = vals;
+  bindings->schema_length = n;
+  u8_init_rwlock(&(bindings->table_rwlock));
+  envstruct->env_bindings = FDTYPE_CONS((bindings));
+  envstruct->env_exports = FD_VOID;
+  envstruct->env_parent = parent;
+  envstruct->env_copy = NULL;
+  return envstruct;
+}
+
+#define INIT_STATIC_ENV(name,parent,n)               \
+  struct FD_SCHEMAP name ## _bindings;               \
+  struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
+  fdtype name ## _vars[n];                           \
+  fdtype name ## _vals[n];                           \
+  memset(name ## _vals,0,sizeof(fdtype)*n);          \
+  _stack->stack_env =                                \
+    init_static_env(n,parent,                        \
+                    &name ## _bindings,              \
+                    &_ ## name,                      \
+                    name ## _vars,                   \
+                    name ## _vals)
 
 
 /* Emacs local variables

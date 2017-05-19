@@ -186,27 +186,6 @@ FD_FASTOP int check_bindexprs(fdtype bindexprs,fdtype *why_not)
   else return -1;
 }
 
-FD_FASTOP fd_lispenv init_static_env
-  (int n,fd_lispenv parent,
-   struct FD_SCHEMAP *bindings,struct FD_ENVIRONMENT *envstruct,
-   fdtype *vars,fdtype *vals)
-{
-  int i = 0; while (i < n) {
-    vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
-  FD_INIT_STATIC_CONS(envstruct,fd_environment_type);
-  FD_INIT_STATIC_CONS(bindings,fd_schemap_type);
-  bindings->schemap_onstack = 1;
-  bindings->table_schema = vars;
-  bindings->schema_values = vals;
-  bindings->schema_length = n;
-  u8_init_rwlock(&(bindings->table_rwlock));
-  envstruct->env_bindings = FDTYPE_CONS((bindings));
-  envstruct->env_exports = FD_VOID;
-  envstruct->env_parent = parent;
-  envstruct->env_copy = NULL;
-  return envstruct;
-}
-
 FD_FASTOP fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
 {
   int i = 0;
@@ -232,24 +211,19 @@ static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    struct FD_SCHEMAP bindings;
-    struct FD_ENVIRONMENT envstruct;
-    fdtype vars[n]; /* *vars=fd_alloca(n); */
-    fdtype vals[n]; /* *vals=fd_alloca(n); */
-    fd_environment inner_env =
-      init_static_env(n,env,&bindings,&envstruct,vars,vals);
+    INIT_STATIC_ENV(letenv,env,n);
     int i = 0;
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
         fdtype value = fast_eval(val_expr,env);
-        if (FD_ABORTED(value))
-          return value;
+        if (FD_ABORTED(value)) {
+          _return value;}
         else {
-          vars[i]=var; vals[i]=value;
+          letenv_vars[i]=var;
+          letenv_vals[i]=value;
           i++;}}}
-    result = eval_body(":LET",FD_SYMBOL_NAME(vars[0]),expr,2,
-                       inner_env,_stack);
-    fd_free_environment(inner_env);
-    return result;}
+    result = eval_body(":LET",FD_SYMBOL_NAME(letenv_vars[0]),
+                       expr,2,letenv,_stack);
+    _return result;}
 }
 
 static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
@@ -261,31 +235,27 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    struct FD_SCHEMAP bindings;
-    struct FD_ENVIRONMENT envstruct;
-    fdtype vars[n]; /* *vars=fd_alloca(n); */
-    fdtype vals[n]; /* *vals=fd_alloca(n); */
+    INIT_STATIC_ENV(letseq,env,n);
     int i = 0, j = 0;
-    fd_environment inner_env=
-      init_static_env(n,env,&bindings,&envstruct,vars,vals);
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-        vars[j]=var;
-        vals[j]=FD_UNBOUND;
+        letseq_vars[j]=var;
+        letseq_vals[j]=FD_UNBOUND;
         j++;}}
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-        fdtype value = fast_eval(val_expr,inner_env);
+        fdtype value = fast_eval(val_expr,letseq);
         if (FD_ABORTED(value))
-          return value;
-        else if (inner_env->env_copy) {
-          fd_bind_value(var,value,inner_env->env_copy);
+          _return value;
+        else if (letseq->env_copy) {
+          fd_bind_value(var,value,letseq->env_copy);
           fd_decref(value);}
         else {
-          vars[i]=var; vals[i]=value;}
+          letseq_vars[i]=var;
+          letseq_vals[i]=value;}
         i++;}}
-    result = eval_body(":LET*",FD_SYMBOL_NAME(vars[0]),expr,2,
-                       inner_env,_stack);
-    fd_free_environment(inner_env);
-    return result;}
+    result = eval_body(":LET*",
+                       FD_SYMBOL_NAME(letseq_vars[0]),
+                       expr,2,letseq,_stack);
+    _return result;}
 }
 
 /* DO */
@@ -529,7 +499,8 @@ static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return result;}
 }
 
-static fdtype letqstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype letqstar_evalfn
+(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -561,83 +532,6 @@ static fdtype letqstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* Extend fcnid parsing to incluce functional compounds */
 
-static int unparse_extended_fcnid(u8_output out,fdtype x)
-{
-  fdtype lp = fd_fcnid_ref(x);
-  if (FD_TYPEP(lp,fd_sproc_type)) {
-    struct FD_SPROC *sproc = fd_consptr(fd_sproc,lp,fd_sproc_type);
-    unsigned long long addr = (unsigned long long) sproc;
-    fdtype arglist = sproc->sproc_arglist;
-    u8_string codes=
-      (((sproc->sproc_synchronized)&&(sproc->fcn_ndcall))?("∀∥"):
-       (sproc->sproc_synchronized)?("∥"):
-       (sproc->fcn_ndcall)?("∀"):(""));
-    if (sproc->fcn_name)
-      u8_printf(out,"#<~%d<λ%s%s",
-                FD_GET_IMMEDIATE(x,fd_fcnid_type),
-                codes,sproc->fcn_name);
-    else u8_printf(out,"#<~%d<λ%s0x%04x",
-                   FD_GET_IMMEDIATE(x,fd_fcnid_type),
-                   codes,((addr>>2)%0x10000));
-    if (FD_PAIRP(arglist)) {
-      int first = 1; fdtype scan = sproc->sproc_arglist;
-      fdtype spec = FD_VOID, arg = FD_VOID;
-      u8_putc(out,'(');
-      while (FD_PAIRP(scan)) {
-        if (first) first = 0; else u8_putc(out,' ');
-        spec = FD_CAR(scan);
-        arg = FD_SYMBOLP(spec)?(spec):(FD_PAIRP(spec))?(FD_CAR(spec)):(FD_VOID);
-        if (FD_SYMBOLP(arg))
-          u8_puts(out,FD_SYMBOL_NAME(arg));
-        else u8_puts(out,"??");
-        if (FD_PAIRP(spec)) u8_putc(out,'?');
-        scan = FD_CDR(scan);}
-      if (FD_EMPTY_LISTP(scan))
-        u8_putc(out,')');
-      else if (FD_SYMBOLP(scan))
-        u8_printf(out,"%s…)",FD_SYMBOL_NAME(scan));
-      else u8_printf(out,"…%q…)",scan);}
-    else if (FD_EMPTY_LISTP(arglist))
-      u8_puts(out,"()");
-    else if (FD_SYMBOLP(arglist))
-      u8_printf(out,"(%s…)",FD_SYMBOL_NAME(arglist));
-    else u8_printf(out,"(…%q…)",arglist);
-    if (!(sproc->fcn_name))
-      u8_printf(out," #!0x%llx",(unsigned long long)sproc);
-    if (sproc->fcn_filename)
-      u8_printf(out," '%s'>>",sproc->fcn_filename);
-    else u8_puts(out,">>");
-    return 1;}
-  else if (FD_TYPEP(lp,fd_cprim_type)) {
-      struct FD_FUNCTION *fcn = (fd_function)lp;
-      unsigned long long addr = (unsigned long long) fcn;
-      u8_string name = fcn->fcn_name;
-      u8_string filename = fcn->fcn_filename;
-      u8_byte arity[16]=""; u8_byte codes[16]="";
-      if ((filename)&&(filename[0]=='\0')) filename = NULL;
-      if (name == NULL) name = fcn->fcn_name;
-      if (fcn->fcn_ndcall) strcat(codes,"∀");
-      if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
-        strcat(arity,"…");
-      else if (fcn->fcn_arity == fcn->fcn_min_arity)
-        sprintf(arity,"[%d]",fcn->fcn_min_arity);
-      else if (fcn->fcn_arity<0)
-        sprintf(arity,"[%d,…]",fcn->fcn_min_arity);
-      else sprintf(arity,"[%d,%d]",fcn->fcn_min_arity,fcn->fcn_arity);
-      if (name)
-        u8_printf(out,"#<~%d<%s%s%s%s%s%s>>",
-                  FD_GET_IMMEDIATE(x,fd_fcnid_type),
-                  codes,name,arity,U8OPTSTR("'",filename,"'"));
-      else u8_printf(out,"#<~%d<Φ%s0x%04x%s #!0x%llx%s%s%s>>",
-                     FD_GET_IMMEDIATE(x,fd_fcnid_type),
-                     codes,((addr>>2)%0x10000),arity,
-                     (unsigned long long) fcn,
-                     arity,U8OPTSTR("'",filename,"'"));
-      return 1;}
-  else u8_printf(out,"#<~%ld %q>",FD_GET_IMMEDIATE(x,fd_fcnid_type),lp);
-  return 1;
-}
-
 /* Initialization */
 
 FD_EXPORT void fd_init_binders_c()
@@ -647,8 +541,6 @@ FD_EXPORT void fd_init_binders_c()
   moduleid_symbol = fd_intern("%MODULEID");
 
   u8_init_mutex(&sset_lock);
-
-  fd_unparsers[fd_fcnid_type]=unparse_extended_fcnid;
 
   fd_defspecial(fd_scheme_module,"SET!",set_evalfn);
   fd_defspecial(fd_scheme_module,"SET+!",set_plus_evalfn);
