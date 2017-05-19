@@ -174,7 +174,7 @@ leaktester_config=
 
 use_duma_lib="no"
 custom_malloc=""
-default_malloc="gperftools"
+default_malloc=${FD_DEFAULT_MALLOC:-libc}
 gperftools=""
 asan=""
 static_libgcc="no"
@@ -605,7 +605,9 @@ if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
    exit;
 fi
 
-if test -z "$with_malloc" || test "$with_malloc" = "libc"; then
+if test -z "$with_malloc" || 
+   test "$with_malloc" = "libc" ||
+   test "$with_malloc" = "builtin" ; then
    echo "Using standard malloc";
    custom_malloc="";
 elif test "$with_malloc" = "tcmalloc"; then
