@@ -852,7 +852,7 @@ static fdtype assignop(fd_stack stack,fd_lispenv env,
     fdtype table=FD_CDR(var), sym=FD_CAR(var);
     if ( (combiner == FD_FALSE) || (combiner == FD_VOID) ) {
       if (FD_ENVIRONMENTP(table))
-        rv=fd_set_value(sym,value,(fd_lispenv)table);
+        rv=fd_assign_value(sym,value,(fd_lispenv)table);
       else rv=fd_store(table,sym,value);}
     else if (combiner == FD_UNION_OPCODE) {
       if (FD_ENVIRONMENTP(table))

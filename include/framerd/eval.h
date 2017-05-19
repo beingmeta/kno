@@ -45,7 +45,7 @@ FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 #define FD_MODULE_SAFE 1
 #define FD_MODULE_DEFAULT 2
 
-FD_EXPORT int fd_set_value(fdtype,fdtype,fd_lispenv);
+FD_EXPORT int fd_assign_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
 

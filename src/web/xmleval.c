@@ -837,7 +837,7 @@ static fd_lispenv get_xml_env(FD_XML *xml)
 
 static void set_xml_env(FD_XML *xml,fd_lispenv newenv)
 {
-  fd_set_value(xml_env_symbol,(fdtype)newenv,(fd_lispenv)(xml->xml_data));
+  fd_assign_value(xml_env_symbol,(fdtype)newenv,(fd_lispenv)(xml->xml_data));
 }
 
 static int test_piescape(FD_XML *xml,u8_string content,int len)
@@ -968,7 +968,7 @@ static FD_XML *handle_fdxml_pi
           fd_bind_value(piescape_symbol,arg,xml_env);
         else {
           FD_ADD_TO_CHOICE(cur,arg);
-          fd_set_value(piescape_symbol,arg,xml_env);}
+          fd_assign_value(piescape_symbol,arg,xml_env);}
         fd_decref(arg);
         if (xml_env) fd_decref((fdtype)xml_env);
         i++;}
@@ -1557,9 +1557,9 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   while (i<lim) {
     fdtype elt = fd_seq_elt(seq,i);
     if (envstruct.env_copy) {
-      fd_set_value(var,elt,envstruct.env_copy);
+      fd_assign_value(var,elt,envstruct.env_copy);
       if (iterval)
-        fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
     else {
       vals[0]=elt;
       if (iterval) *iterval = FD_INT(i);}
@@ -1617,8 +1617,8 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
     int i = 0; FD_DO_CHOICES(elt,choices) {
       fd_incref(elt);
       if (envstruct.env_copy) {
-        fd_set_value(var,elt,envstruct.env_copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(var,elt,envstruct.env_copy);
+        if (iloc) fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
       else {
         *vloc = elt;
         if (iloc) *iloc = FD_INT(i);}
@@ -1667,7 +1667,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,
   vars[0]=var; vals[0]=FD_INT(0);
   while (i < limit) {
     if (envstruct.env_copy)
-      fd_set_value(var,FD_INT(i),envstruct.env_copy);
+      fd_assign_value(var,FD_INT(i),envstruct.env_copy);
     else vals[0]=FD_INT(i);
     {FD_DOELTS(expr,body,count) {
       fdtype val = fd_xmleval(out,expr,&envstruct);

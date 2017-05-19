@@ -94,8 +94,8 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int i = 0; FD_DO_CHOICES(elt,choices) {
       fd_incref(elt);
       if (envstruct.env_copy) {
-        fd_set_value(var,elt,envstruct.env_copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(var,elt,envstruct.env_copy);
+        if (iloc) fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
       else {
         *vloc = elt;
         if (iloc) *iloc = FD_INT(i);}
@@ -159,8 +159,8 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int i = 0; FD_DO_CHOICES(elt,choices) {
       fdtype val = FD_VOID;
       if (envstruct.env_copy) {
-        fd_set_value(var,elt,envstruct.env_copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(var,elt,envstruct.env_copy);
+        if (iloc) fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
       else {
         *vloc = elt; fd_incref(elt);
         if (iloc) *iloc = FD_INT(i);}
@@ -228,8 +228,8 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int i = 0; FD_DO_CHOICES(elt,choices) {
       fdtype val = FD_VOID;
       if (envstruct.env_copy) {
-        fd_set_value(var,elt,envstruct.env_copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(var,elt,envstruct.env_copy);
+        if (iloc) fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
       else {
         *vloc = elt; fd_incref(elt);
         if (iloc) *iloc = FD_INT(i);}
@@ -300,8 +300,8 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     int i = 0; FD_DO_CHOICES(elt,choices) {
       fdtype val = FD_VOID;
       if (envstruct.env_copy) {
-        fd_set_value(var,elt,envstruct.env_copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(var,elt,envstruct.env_copy);
+        if (iloc) fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
       else {
         *vloc = elt; fd_incref(elt);
         if (iloc) *iloc = FD_INT(i);}
@@ -403,8 +403,8 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
         v = (fdtype)subset; free_v = 1;}
       else v = choices;
       if (envstruct.env_copy) {
-        fd_set_value(var,v,envstruct.env_copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
+        fd_assign_value(var,v,envstruct.env_copy);
+        if (iloc) fd_assign_value(count_var,FD_INT(i),envstruct.env_copy);}
       else {*vloc = v; if (iloc) *iloc = FD_INT(i);}
       {fdtype body = fd_get_body(expr,2);
         FD_DOLIST(subexpr,body) {

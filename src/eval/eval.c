@@ -166,12 +166,12 @@ FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
       if ((env) && (env->env_copy))
         env = env->env_copy;}
     else if ((env->env_bindings) == (env->env_exports))
-      return fd_reterr(fd_ReadOnlyEnv,"fd_set_value",NULL,symbol);
+      return fd_reterr(fd_ReadOnlyEnv,"fd_assign_value",NULL,symbol);
     else return add_to_value(symbol,value,env);}
   return 0;
 }
 
-FD_EXPORT int fd_set_value(fdtype symbol,fdtype value,fd_lispenv env)
+FD_EXPORT int fd_assign_value(fdtype symbol,fdtype value,fd_lispenv env)
 {
   if (env->env_copy) env = env->env_copy;
   while (env) {
@@ -181,7 +181,7 @@ FD_EXPORT int fd_set_value(fdtype symbol,fdtype value,fd_lispenv env)
     else if ((env->env_bindings) == (env->env_exports))
       /* This is the kind of environment produced by using a module,
          so it's read only. */
-      return fd_reterr(fd_ReadOnlyEnv,"fd_set_value",NULL,symbol);
+      return fd_reterr(fd_ReadOnlyEnv,"fd_assign_value",NULL,symbol);
     else {
       fd_store(env->env_bindings,symbol,value);
       if (FD_HASHTABLEP(env->env_exports))
@@ -1126,23 +1126,6 @@ static fdtype modref_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_hashtable_get((fd_hashtable)module,symbol,FD_UNBOUND);
 }
 
-static fdtype default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
-{
-  fdtype symbol = fd_get_arg(expr,1);
-  fdtype default_expr = fd_get_arg(expr,2);
-  if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
-  else if (FD_VOIDP(default_expr))
-    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
-  else {
-    fdtype val = fd_symeval(symbol,env);
-    if (FD_VOIDP(val))
-      return fd_eval(default_expr,env);
-    else if (val == FD_UNBOUND)
-      return fd_eval(default_expr,env);
-    else return val;}
-}
-
 static fdtype voidp_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype result = fd_eval(fd_get_arg(expr,1),env);
@@ -1969,7 +1952,6 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"QUOTE",quote_evalfn);
   fd_defspecial(fd_scheme_module,"%ENV",env_evalfn);
   fd_defspecial(fd_scheme_module,"%MODREF",modref_evalfn);
-  fd_defspecial(fd_scheme_module,"DEFAULT",default_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("DOCUMENTATION",get_documentation,1));

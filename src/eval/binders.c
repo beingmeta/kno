@@ -24,7 +24,7 @@ fd_exception fd_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-static fdtype set_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int retval;
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
@@ -36,7 +36,7 @@ static fdtype set_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return fd_err(fd_TooFewExpressions,"SET!",FD_SYMBOL_NAME(var),expr);
   value = fast_eval(val_expr,env);
   if (FD_ABORTED(value)) return value;
-  else if ((retval = (fd_set_value(var,value,env)))) {
+  else if ((retval = (fd_assign_value(var,value,env)))) {
     fd_decref(value);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
@@ -47,7 +47,7 @@ static fdtype set_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_err(fd_BindError,"SET!",FD_SYMBOL_NAME(var),var);
 }
 
-static fdtype set_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
   if (FD_VOIDP(var))
@@ -66,20 +66,20 @@ static fdtype set_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype set_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"set_default_evalfn",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"assign_default_evalfn",NULL,fd_incref(expr));
   else if (FD_VOIDP(value_expr))
-    return fd_err(fd_SyntaxError,"set_default_evalfn",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"assign_default_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
     if ((FD_VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       fdtype value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
-      if (fd_set_value(symbol,value,env)==0)
+      if (fd_assign_value(symbol,value,env)==0)
         fd_bind_value(symbol,value,env);
       fd_decref(value);
       return FD_VOID;}
@@ -87,21 +87,21 @@ static fdtype set_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       fd_decref(val); return FD_VOID;}}
 }
 
-static fdtype set_false_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_false_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"set_false_evalfn",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"assign_false_evalfn",NULL,fd_incref(expr));
   else if (FD_VOIDP(value_expr))
-    return fd_err(fd_SyntaxError,"set_false_evalfn",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"assign_false_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
     if ((FD_VOIDP(val))||(FD_FALSEP(val))||
         (val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
       fdtype value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
-      if (fd_set_value(symbol,value,env)==0)
+      if (fd_assign_value(symbol,value,env)==0)
         fd_bind_value(symbol,value,env);
       fd_decref(value);
       return FD_VOID;}
@@ -131,13 +131,13 @@ static fdtype bind_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       fd_decref(val); return FD_VOID;}}
 }
 
-static u8_mutex sset_lock;
+static u8_mutex sassign_lock;
 
 /* This implements a simple version of globally synchronized set, which
    wraps a mutex around a regular set call, including evaluation of the
    value expression.  This can be used, for instance, to safely increment
    a variable. */
-static fdtype sset_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype sassign_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int retval;
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
@@ -147,21 +147,21 @@ static fdtype sset_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return fd_err(fd_NotAnIdentifier,"SSET!",NULL,expr);
   else if (FD_VOIDP(val_expr))
     return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
-  u8_lock_mutex(&sset_lock);
+  u8_lock_mutex(&sassign_lock);
   value = fast_eval(val_expr,env);
   if (FD_ABORTED(value)) {
-    u8_unlock_mutex(&sset_lock);
+    u8_unlock_mutex(&sassign_lock);
     return value;}
-  else if ((retval = (fd_set_value(var,value,env)))) {
-    fd_decref(value); u8_unlock_mutex(&sset_lock);
+  else if ((retval = (fd_assign_value(var,value,env)))) {
+    fd_decref(value); u8_unlock_mutex(&sassign_lock);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else if ((retval = (fd_bind_value(var,value,env)))) {
-    fd_decref(value); u8_unlock_mutex(&sset_lock);
+    fd_decref(value); u8_unlock_mutex(&sassign_lock);
     if (retval<0) return FD_ERROR_VALUE;
     else return FD_VOID;}
   else {
-    u8_unlock_mutex(&sset_lock);
+    u8_unlock_mutex(&sassign_lock);
     return fd_err(fd_BindError,"SSET!",FD_SYMBOL_NAME(var),var);}
 }
 
@@ -540,11 +540,11 @@ FD_EXPORT void fd_init_binders_c()
 
   moduleid_symbol = fd_intern("%MODULEID");
 
-  u8_init_mutex(&sset_lock);
+  u8_init_mutex(&sassign_lock);
 
-  fd_defspecial(fd_scheme_module,"SET!",set_evalfn);
-  fd_defspecial(fd_scheme_module,"SET+!",set_plus_evalfn);
-  fd_defspecial(fd_scheme_module,"SSET!",sset_evalfn);
+  fd_defspecial(fd_scheme_module,"SET!",assign_evalfn);
+  fd_defspecial(fd_scheme_module,"SET+!",assign_plus_evalfn);
+  fd_defspecial(fd_scheme_module,"SSET!",sassign_evalfn);
 
   fd_defspecial(fd_scheme_module,"LET",let_evalfn);
   fd_defspecial(fd_scheme_module,"LET*",letstar_evalfn);
@@ -553,8 +553,8 @@ FD_EXPORT void fd_init_binders_c()
 
   fd_defspecial(fd_scheme_module,"DO",do_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DEFAULT!",set_default_evalfn);
-  fd_defspecial(fd_scheme_module,"SETFALSE!",set_false_evalfn);
+  fd_defspecial(fd_scheme_module,"DEFAULT!",assign_default_evalfn);
+  fd_defspecial(fd_scheme_module,"SETFALSE!",assign_false_evalfn);
   fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_evalfn);
 
 #if FD_IPEVAL_ENABLED
