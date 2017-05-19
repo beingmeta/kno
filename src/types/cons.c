@@ -162,14 +162,24 @@ FD_EXPORT void _fd_decref_fn(fdtype ptr)
   fd_decref(ptr);
 }
 
-FD_EXPORT void _fd_decref_elts(unsigned int n,const fdtype *elts)
+FD_EXPORT
+fdtype *_fd_init_elts(fdtype *elts,size_t n,fdtype v)
 {
-  return fd_decref_elts(n,elts);
+  return fd_init_elts(elts,n,v);
 }
 
-FD_EXPORT int _fd_incref_elts(unsigned int n,const fdtype *elts)
+FD_EXPORT ssize_t _fd_incref_elts(const fdtype *elts,size_t n)
 {
-  return fd_incref_elts(n,elts);
+  return fd_incref_elts(elts,n);
+}
+
+FD_EXPORT ssize_t _fd_decref_elts(const fdtype *elts,size_t n)
+{
+  return fd_decref_elts(elts,n);
+}
+FD_EXPORT ssize_t _fd_free_elts(fdtype *elts,size_t n)
+{
+  return fd_free_elts(elts,n);
 }
 
 FD_EXPORT

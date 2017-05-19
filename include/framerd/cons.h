@@ -343,29 +343,67 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 
 /* Incref/decref for vectors */
 
-FD_EXPORT int _fd_incref_elts(unsigned int n,const fdtype *elts);
-FD_EXPORT void _fd_decref_elts(unsigned int n,const fdtype *elts);
+FD_EXPORT fdtype *_fd_init_elts(fdtype *elts,size_t n,fdtype v);
+
+FD_EXPORT ssize_t _fd_incref_elts(const fdtype *elts,size_t n);
+
+FD_EXPORT ssize_t _fd_decref_elts(const fdtype *elts,size_t n);
+
+FD_EXPORT ssize_t _fd_free_elts(fdtype *elts,size_t n);
 
 #if FRAMERD_SOURCE
 FD_FASTOP U8_MAYBE_UNUSED
-int fd_incref_elts(unsigned int n,const fdtype *elts)
+fdtype *fd_init_elts(fdtype *elts,ssize_t n,fdtype v)
+{
+  if (elts == NULL) elts=u8_alloc_n(n,fdtype);
+  if (FD_CONSP(v)) {
+    int i=0; while (i<n) { elts[i++]=fd_incref(v); }}
+  else {
+    int i=0; while (i<n) { elts[i++]=v; }}
+  return elts;
+}
+FD_FASTOP U8_MAYBE_UNUSED
+ssize_t fd_incref_elts(const fdtype *elts,size_t n)
 {
   int i=0, consed=0; while (i<n) {
     fdtype elt=elts[i++];
     if ((FD_CONSP(elt))&&(FD_MALLOCD_CONSP((fd_cons)elt))) {
-      consed++; fd_decref(elt);}}
+      consed++;
+      fd_decref(elt);}}
   return consed;
 }
 
 FD_FASTOP U8_MAYBE_UNUSED
-void fd_decref_elts(unsigned int n,const fdtype *elts)
+size_t fd_decref_elts(const fdtype *elts,size_t n)
 {
+  size_t conses=0;
   int i=0; while (i<n) {
-    fdtype elt=elts[i++]; fd_decref(elt);}
+    fdtype elt=elts[i++];
+    if (FD_CONSP(elt)) {
+      fd_decref(elt);
+      conses++;}}
+  return conses;
+
+}
+
+FD_FASTOP U8_MAYBE_UNUSED
+ssize_t fd_free_elts(fdtype *elts,size_t n)
+{
+  size_t conses=0;
+  const fdtype *scan=(const fdtype *)elts;
+  int i=0; while (i<n) {
+    fdtype elt=scan[i++];
+    if (FD_CONSP(elt)) {
+      fd_decref(elt);
+      conses++;}}
+  u8_free(elts);
+  return conses;
 }
 #else
+#define fd_init_elts _fd_init_elts
 #define fd_incref_elts _fd_incref_elts
 #define fd_decref_elts _fd_decref_elts
+#define fd_free_elts _fd_free_elts
 #endif
 
 #define fd_incref_ptr(p) (fd_incref((fdtype)(p)))
