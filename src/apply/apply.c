@@ -239,10 +239,10 @@ FD_EXPORT void _fd_pop_stack(struct FD_STACK *stack)
   fd_pop_stack(stack);
 }
 
-FD_EXPORT struct FD_STACK_CLEANUP *_fd_push_cleanup
-(struct FD_STACK *stack,fd_stack_cleanop op)
+FD_EXPORT struct FD_STACK_CLEANUP *_fd_add_cleanup
+(struct FD_STACK *stack,fd_stack_cleanop op,void *arg0,void *arg1)
 {
-  return fd_push_cleanup(stack,op);
+  return fd_add_cleanup(stack,op,arg0,arg1);
 }
 
 /* Calling primitives */

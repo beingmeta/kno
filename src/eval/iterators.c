@@ -132,7 +132,7 @@ static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, lim, islist = 0;
-  fdtype seq, count_var = FD_VOID, *iterval = NULL;
+  fdtype seq, count_var = FD_VOID;
   fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
   fdtype pairscan = FD_VOID;
@@ -150,22 +150,21 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     islist = 1;}
   FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
   doseq_vars[0]=var;
-  if (FD_SYMBOLP(count_var)) {
+  if (FD_SYMBOLP(count_var))
     doseq_vars[1]=count_var;
-    iterval = &(doseq_vals[1]);}
   else doseq_bindings.schema_length=1;
   while (i<lim) {
-    fdtype elt = (islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
+    fdtype elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
     doseq_vals[0]=elt;
-    if (iterval) *iterval = FD_INT(i);
+    doseq_vals[1]=FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         fdtype val = fast_eval(subexpr,doseq);
-        if (FD_THROWP(val))
-          _return val;
-        else if (FD_ABORTED(val))
+        if (FD_EXPECT_FALSE (FD_ABORTP(val)) )
           _return val;
         else fd_decref(val);}}
     reset_env(doseq);
+    fd_decref(doseq_vals[0]);
+    doseq_vals[0]=FD_VOID;
     if (islist) pairscan = FD_CDR(pairscan);
     i++;}
   _return FD_VOID;
@@ -175,7 +174,7 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  int i = 0, lim, islist = 0;
+  size_t i = 0, lim=0; int islist=0;
   fdtype seq, count_var = FD_VOID, *iterval = NULL, *results, result;
   fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2), pairscan=FD_VOID;
@@ -195,20 +194,18 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     iterval = &(forseq_vals[1]);}
   else forseq_bindings.schema_length=1;
   results = fd_init_elts(NULL,lim,FD_VOID);
-  struct FD_STACK_CLEANUP *cleanup = fd_push_cleanup(_stack,FD_FREE_VEC);
-  cleanup->arg0 = results;
-  while (i<lim) {
-    fdtype elt = (islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
+  fd_push_cleanup(_stack,FD_FREE_VEC,results,&lim);
+  while ( i < lim ) {
+    fdtype elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
     fdtype val = FD_VOID;
     forseq_vals[0]=elt;
     if (iterval) *iterval = FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val = fast_eval(subexpr,forseq);
-        if (FD_EXPECT_FALSE ( (FD_THROWP(val)) || (FD_ABORTP(val)) ) )
+        if (FD_EXPECT_FALSE (FD_ABORTP(val)) )
           _return val;}}
     reset_env(forseq);
-    fd_decref(forseq_vals[0]);
     results[i]=val;
     if (islist) pairscan = FD_CDR(pairscan);
     i++;}
@@ -220,125 +217,80 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  int i = 0, lim, islist = 0;
+  size_t i = 0, lim=0; int islist=0;
   fdtype seq, count_var = FD_VOID, *iterval = NULL;
   fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
-  fdtype val = FD_EMPTY_CHOICE;
-  fdtype vars[2], vals[2], pairscan = FD_VOID;
-  fdtype body = fd_get_body(expr,2);
-  struct FD_SCHEMAP bindings;
-  struct FD_ENVIRONMENT envstruct;
+  fdtype body = fd_get_body(expr,2), pairscan=FD_VOID;
   if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
+  else if (FD_EMPTY_LISTP(seq)) return seq;
   else if (!(FD_SEQUENCEP(seq)))
-    return fd_type_error("sequence","try_evalfn",seq);
+    return fd_type_error("sequence","tryseq_evalfn",seq);
   else lim = fd_seq_length(seq);
-  if (lim==0) {
-    fd_decref(seq);
-    return FD_EMPTY_CHOICE;}
+  if (lim==0) return fd_incref(seq);
   if (FD_PAIRP(seq)) {islist = 1; pairscan = seq;}
-  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
-  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.table_schema = vars; bindings.schema_values = vals; bindings.schema_length = 1;
-  bindings.schemap_onstack = 1;
-  u8_init_rwlock(&(bindings.table_rwlock));
-  envstruct.env_parent = env;
-  envstruct.env_bindings = (fdtype)(&bindings); envstruct.env_exports = FD_VOID;
-  envstruct.env_copy = NULL;
-  vars[0]=var; vals[0]=FD_VOID;
-  if (!(FD_VOIDP(count_var))) {
-    vars[1]=count_var; vals[1]=FD_INT(0);
-    bindings.schema_length = 2; iterval = &(vals[1]);}
-  while (i<lim) {
-    fdtype elt = (islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
-    if (envstruct.env_copy) {
-      fd_set_value(var,elt,envstruct.env_copy);
-      if (iterval)
-        fd_set_value(count_var,FD_INT(i),envstruct.env_copy);}
-    else {
-      vals[0]=elt;
-      if (iterval) *iterval = FD_INT(i);}
+  INIT_STATIC_ENV(tryseq,env,2);
+  tryseq_vars[0]=var;
+  if (FD_SYMBOLP(count_var)) {
+    tryseq_vars[1]=count_var;
+    tryseq_vals[1]=FD_FIXZERO;
+    iterval = &(tryseq_vals[1]);}
+  else tryseq_bindings.schema_length=1;
+  while ( i < lim ) {
+    fdtype elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
+    fdtype val = FD_VOID;
+    tryseq_vals[0]=elt;
+    if (iterval) *iterval = FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         fd_decref(val);
-        val = fast_eval(subexpr,&envstruct);
-        if (FD_THROWP(val)) {
-          if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-          u8_destroy_rwlock(&(bindings.table_rwlock));
-          fd_decref(elt); fd_decref(seq);
-          return val;}
-        else if (FD_ABORTED(val)) {
-          u8_destroy_rwlock(&(bindings.table_rwlock));
-          if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-          fd_decref(elt); fd_decref(seq);
-          return val;}}}
-    if (envstruct.env_copy) {
-      fd_recycle_environment(envstruct.env_copy);
-      envstruct.env_copy = NULL;}
-    fd_decref(vals[0]);
-    if (FD_EMPTY_CHOICEP(val)) {
+        val = fast_eval(subexpr,tryseq);
+        if (FD_EXPECT_FALSE (FD_ABORTP(val)) )
+          _return val;}}
+    reset_env(tryseq);
+    if (! (FD_EMPTY_CHOICEP(val)) )
+      _return val;
+    else {
       if (islist) pairscan = FD_CDR(pairscan);
-      i++;}
-    else break;}
-  fd_decref(seq);
-  u8_destroy_rwlock(&(bindings.table_rwlock));
-  return val;
+      i++;}}
+  _return FD_EMPTY_CHOICE;
 }
 
 /* DOLIST */
 
 static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  fdtype list, count_var, var=
-    parse_control_spec(expr,&list,&count_var,env,_stack);
-  fdtype *vloc = NULL, *iloc = NULL;
-  fdtype vars[2], vals[2];
+  int i = 0, counting=0;
+  fdtype seq, count_var = FD_VOID;
+  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
-  struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
+  fdtype pairscan = FD_VOID;
   if (FD_ABORTED(var)) return var;
-  else if (FD_EMPTY_LISTP(list)) return FD_VOID;
-  else if (!(FD_PAIRP(list)))
-    return fd_type_error("list","dolist_evalfn",list);
-  else if (FD_EMPTY_LISTP(list)) return FD_VOID;
-  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
-  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  if (FD_VOIDP(count_var)) {
-    bindings.schema_length = 1;
-    vars[0]=var; vals[0]=FD_VOID;
-    vloc = &(vals[0]);}
-  else {
-    bindings.schema_length = 2;
-    vars[1]=var; vals[1]=FD_VOID; vloc = &(vals[1]);
-    vars[0]=count_var; vals[0]=FD_INT(0); iloc = &(vals[0]);}
-  bindings.schemap_onstack = 1;
-  bindings.table_schema = vars; bindings.schema_values = vals;
-  u8_init_rwlock(&(bindings.table_rwlock));
-  envstruct.env_parent = env;
-  envstruct.env_bindings = (fdtype)(&bindings); envstruct.env_exports = FD_VOID;
-  envstruct.env_copy = NULL;
-  {int i = 0; FD_DOLIST(elt,list) {
-      *vloc = elt; fd_incref(elt); if (iloc) *iloc = FD_INT(i);
-      {FD_DOLIST(subexpr,body) {
-          fdtype val = fast_eval(subexpr,&envstruct);
-          if (FD_THROWP(val)) {
-            if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_decref(list); fd_decref(*vloc);
-            u8_destroy_rwlock(&(bindings.table_rwlock));
-            return val;}
-          else if (FD_ABORTED(val)) {
-            if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-            fd_decref(list); fd_decref(*vloc);
-            u8_destroy_rwlock(&(bindings.table_rwlock));
-            return val;}
-          fd_decref(val);}}
-      if (envstruct.env_copy) {
-        fd_recycle_environment(envstruct.env_copy);
-        envstruct.env_copy = NULL;}
-      fd_decref(*vloc);
-      i++;}}
-  u8_destroy_rwlock(&(bindings.table_rwlock));
-  fd_decref(list);
-  if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
-  return FD_VOID;
+  else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
+  else if (FD_EMPTY_LISTP(seq)) return FD_VOID;
+  else if (!(FD_PAIRP(seq)))
+    return fd_type_error("pair","dolist_evalfn",seq);
+  else pairscan = seq;
+  INIT_STATIC_ENV(dolist,env,2);
+  FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
+  dolist_vars[0]=var;
+  if (FD_SYMBOLP(count_var))
+    dolist_vars[1]=count_var;
+  else dolist_bindings.schema_length=1;
+  while (FD_PAIRP(pairscan)) {
+    fdtype elt = FD_CAR(pairscan); fd_incref(elt);
+    dolist_vals[0]=elt;
+    dolist_vals[1]=FD_INT(i);
+    {FD_DOLIST(subexpr,body) {
+        fdtype val = fast_eval(subexpr,dolist);
+        if (FD_EXPECT_FALSE (FD_ABORTP(val)) )
+          _return val;
+        else fd_decref(val);}}
+    reset_env(dolist);
+    fd_decref(dolist_vals[0]);
+    dolist_vals[0]=FD_VOID;
+    pairscan = FD_CDR(pairscan);
+    i++;}
+  _return FD_VOID;
 }
 
 /* BEGIN, PROG1, and COMMENT */

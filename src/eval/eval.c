@@ -684,10 +684,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
         gc_head=1;}
       else headval=head;
       int headtype = FD_PTR_TYPE(headval);
-      if (gc_head) {
-        struct FD_STACK_CLEANUP *cleanup=
-          fd_push_cleanup(eval_stack,FD_DECREF);
-        cleanup->arg0=(void *)headval;}
+      if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
       switch (headtype) {
       case fd_cprim_type: case fd_sproc_type: {
         struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;

@@ -88,8 +88,8 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
 
 FD_EXPORT void _fd_free_stack(struct FD_STACK *stack);
 FD_EXPORT void _fd_pop_stack(struct FD_STACK *stack);
-FD_EXPORT struct FD_STACK_CLEANUP *_fd_push_cleanup
-(struct FD_STACK *stack,fd_stack_cleanop op);
+FD_EXPORT struct FD_STACK_CLEANUP *_fd_add_cleanup
+(struct FD_STACK *stack,fd_stack_cleanop op,void *arg0,void *arg1);
 
 #if FD_INLINE_STACKS
 FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
@@ -170,12 +170,15 @@ FD_FASTOP void fd_pop_stack(struct FD_STACK *stack)
 
 FD_FASTOP
 struct FD_STACK_CLEANUP *
-fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
+fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
+		 void *arg0, void* arg1)
 {
   if ((stack->n_cleanups==0) ||
       (stack->n_cleanups%FD_STACK_CLEANUP_QUANTUM)) {
     int i = stack->n_cleanups++;
     stack->cleanups[i].cleanop = op;
+    stack->cleanups[i].arg0 = arg0;
+    stack->cleanups[i].arg1 = arg1;
     return &stack->cleanups[i];}
   else {
     int size = stack->n_cleanups;
@@ -190,12 +193,18 @@ fd_push_cleanup(struct FD_STACK *stack,fd_stack_cleanop op)
       u8_free(cleanups);
     int i = stack->n_cleanups++;
     stack->cleanups[i].cleanop = op;
+    stack->cleanups[i].arg0 = arg0;
+    stack->cleanups[i].arg1 = arg1;
     return &stack->cleanups[i];}
 }
 #else /* not FD_INLINE_STACKS */
 #define fd_pop_stack(stack) (_fd_pop_stack(stack))
-#define fd_push_cleanup(stack,op) (_fd_push_cleanup(stack,op))
+#define fd_add_cleanup(stack,op,arg0,arg1) \
+  (_fd_add_cleanup(stack,op,arg0,arg1))
 #endif
+
+#define fd_push_cleanup(stack,op,arg0,arg1) \
+  (fd_add_cleanup(stack,op,(void *)arg0,(void *)arg1))
 
 #define _return return fd_pop_stack(_stack),
 
