@@ -21,6 +21,9 @@ PPROF_PATH      = @GOOGLE_PPROF@
 export PPROF_PATH
 FD_QUIET        = yes
 export FD_QUIET
+FD_HYPHENDICT=../../src/cmodules/hyph_en_US.dic
+export FD_HYPHENDICT
+
 # Change this to echo to output test headers. Note that these aren't
 # much use when running tests with -j
 header          = $(shell echo "\#")

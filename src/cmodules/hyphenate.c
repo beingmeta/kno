@@ -255,15 +255,19 @@ FD_EXPORT int fd_init_hyphenate()
 
   hyphenate_init = u8_millitime();
 
+  fd_register_config("HYPHENDICT","Where the hyphenate module gets its data",
+                     fd_sconfig_get,fd_sconfig_set,&default_hyphenation_file);
+
   if (default_hyphenation_file)
     default_dict = hnj_hyphen_load(default_hyphenation_file);
   else {
     u8_string dictfile = u8_mkpath(FD_DATA_DIR,"hyph_en_US.dic");
     if (u8_file_existsp(dictfile))
       default_dict = hnj_hyphen_load(dictfile);
-    else u8_log(LOG_CRIT,fd_FileNotFound,
-                "Hyphenation dictionary %s does not exist!",
-                dictfile);
+    else {
+      u8_log(LOG_CRIT,fd_FileNotFound,
+             "Hyphenation dictionary %s does not exist!",
+             dictfile);}
     u8_free(dictfile);}
 
   hyphenate_module = fd_new_module("HYPHENATE",(FD_MODULE_SAFE));
@@ -282,11 +286,11 @@ FD_EXPORT int fd_init_hyphenate()
                            hyphenout_prim,1,
                            fd_string_type,FD_VOID,
                            fd_character_type,FD_CODE2CHAR(0xAD)));
-    fd_idefn(hyphenate_module,
-             fd_make_cprim2x("HYPHENATE",
-                             hyphenate_prim,1,
-                             fd_string_type,FD_VOID,
-                             fd_character_type,FD_CODE2CHAR(0xAD)));
+  fd_idefn(hyphenate_module,
+           fd_make_cprim2x("HYPHENATE",
+                           hyphenate_prim,1,
+                           fd_string_type,FD_VOID,
+                           fd_character_type,FD_CODE2CHAR(0xAD)));
 
   fd_finish_module(hyphenate_module);
 
