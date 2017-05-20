@@ -1,5 +1,3 @@
-echo "Test run ./fdexec" $*
-. ./runenv.sh
 FD_LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm:
 export FD_LOADPATH
 FD_DLOADPATH=../../lib/framerd
@@ -12,4 +10,11 @@ PPROF_PATH=@GOOGLE_PPROF@
 export PPROF_PATH
 FD_SKIP_DOTLOAD=yes
 export FD_SKIP_DOTLOAD
-@test_env@ exec ./fdexec $*  DLOAD_TRACE=yes SHOWTIME=1.0 DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024
+FD_SHOWTIME=0.0
+export FD_SHOWTIME
+FD_HYPHENDICT=../../src/cmodules/hyph_en_US.dic
+export FD_HYPHENDICT
+FD_DISPLAYMAXELTS=36=
+export FD_DISPLAYMAXELTS=36
+FD_DISPLAYMAXCHARS=1024=
+export FD_DISPLAYMAXCHARS=1024

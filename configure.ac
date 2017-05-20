@@ -1622,8 +1622,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdreload etc/fdrestart etc/fdctl
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
-	   tests/scheme/runtest tests/scheme/fdexectest
-	   tests/scheme/memtest tests/scheme/leaktest
+	   tests/scheme/runenv.sh tests/scheme/runtest 
+	   tests/scheme/fdexectest tests/scheme/memtest tests/scheme/leaktest
 	   tests/scheme/tcdebug tests/scheme/vgdebug
 	   tests/scheme/gheaptest
 	   src/scripts/fdpkg.scm
