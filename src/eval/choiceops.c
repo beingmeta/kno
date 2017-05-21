@@ -196,17 +196,18 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   if (FD_SYMBOLP(count_var))
     filterchoices_vars[1]=count_var;
   else filterchoices_bindings.schema_length=1;
+  fdtype steps = fd_get_body(expr,2);
   int i = 0; FD_DO_CHOICES(elt,choices) {
     fdtype val = FD_VOID;
     filterchoices_vals[0]=fd_incref(elt);
     filterchoices_vals[1]=FD_INT(i);
-    fdtype steps = fd_get_body(expr,2);
     FD_DOLIST(step,steps) {
       fd_decref(val);
       val = fast_eval(step,filterchoices);
       if (FD_ABORTED(val)) _return val;}
     if (!(FD_FALSEP(val))) {
-      FD_ADD_TO_CHOICE(results,fd_incref(elt));}
+      FD_ADD_TO_CHOICE(results,elt);
+      fd_incref(elt);}
     fd_decref(val);
     reset_env(filterchoices);
     fd_decref(filterchoices_vals[0]);
@@ -438,8 +439,10 @@ static fdtype try_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     else if (FD_VOIDP(value)) {
       fd_seterr(fd_VoidArgument,"try_evalfn",NULL,clause);
       return FD_ERROR_VALUE;}
-    else if (!(FD_EMPTY_CHOICEP(value))) return value;
-    else if (fd_ipeval_status()!=ipe_state) return value;}
+    else if (!(FD_EMPTY_CHOICEP(value)))
+      return value;
+    else if (fd_ipeval_status()!=ipe_state)
+      return value;}
   return value;
 }
 
@@ -454,9 +457,10 @@ static fdtype ifexists_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (!(FD_EMPTY_LISTP(FD_CDR(FD_CDR(expr)))))
     return fd_err(fd_SyntaxError,"ifexists_evalfn",NULL,expr);
   else value = fd_eval(value_expr,env);
-  if (FD_ABORTED(value)) 
+  if (FD_ABORTED(value))
     return value;
-  if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
+  if (FD_EMPTY_CHOICEP(value))
+    return FD_VOID;
   else return value;
 }
 
