@@ -74,7 +74,7 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_VOID;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
-  INIT_STATIC_ENV(dochoices,env,2);
+  INIT_STACK_ENV(dochoices,env,2);
   dochoices_vars[0]=var;
   if (FD_SYMBOLP(count_var))
     dochoices_vars[1]=count_var;
@@ -111,7 +111,7 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
-  INIT_STATIC_ENV(trychoices,env,2);
+  INIT_STACK_ENV(trychoices,env,2);
   trychoices_vars[0]=var;
   if (FD_SYMBOLP(count_var))
     trychoices_vars[1]=count_var;
@@ -151,7 +151,7 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
-  INIT_STATIC_ENV(forchoices,env,2);
+  INIT_STACK_ENV(forchoices,env,2);
   forchoices_vars[0]=var;
   if (FD_SYMBOLP(count_var))
     forchoices_vars[1]=count_var;
@@ -191,7 +191,7 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
-  INIT_STATIC_ENV(filterchoices,env,2);
+  INIT_STACK_ENV(filterchoices,env,2);
   filterchoices_vars[0]=var;
   if (FD_SYMBOLP(count_var))
     filterchoices_vars[1]=count_var;
@@ -247,7 +247,7 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else {FD_SIMPLIFY_CHOICE(choices);}
   if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
   fd_push_cleanup(_stack,FD_DECREF,choices,NULL);
-  INIT_STATIC_ENV(dosubsets,env,2);
+  INIT_STACK_ENV(dosubsets,env,2);
   dosubsets_vars[0]=var;
   if (FD_SYMBOLP(count_var))
     dosubsets_vars[1]=count_var;

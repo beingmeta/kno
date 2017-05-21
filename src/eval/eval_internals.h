@@ -106,7 +106,7 @@ FD_FASTOP fd_lispenv init_static_env
   return envstruct;
 }
 
-#define INIT_STATIC_ENV(name,parent,n)               \
+#define INIT_STACK_ENV(name,parent,n)               \
   struct FD_SCHEMAP name ## _bindings;               \
   struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
   fdtype name ## _vars[n];                           \

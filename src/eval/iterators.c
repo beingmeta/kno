@@ -105,7 +105,7 @@ static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (!(FD_UINTP(limit_val)))
     return fd_type_error("fixnum","dotimes_evalfn",limit_val);
   else limit = FD_FIX2INT(limit_val);
-  INIT_STATIC_ENV(dotimes,env,1);
+  INIT_STACK_ENV(dotimes,env,1);
   dotimes_vars[0]=var;
   dotimes_vals[0]=FD_INT(0);
   while (i < limit) {
@@ -137,7 +137,7 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   if (lim==0) {
     fd_decref(seq);
     return FD_VOID;}
-  INIT_STATIC_ENV(doseq,env,2);
+  INIT_STACK_ENV(doseq,env,2);
   if (FD_PAIRP(seq)) {
     pairscan = seq;
     islist = 1;}
@@ -179,7 +179,7 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else lim = fd_seq_length(seq);
   if (lim==0) return fd_incref(seq);
   if (FD_PAIRP(seq)) {islist = 1; pairscan = seq;}
-  INIT_STATIC_ENV(forseq,env,2);
+  INIT_STACK_ENV(forseq,env,2);
   forseq_vars[0]=var;
   if (FD_SYMBOLP(count_var)) {
     forseq_vars[1]=count_var;
@@ -222,7 +222,7 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else lim = fd_seq_length(seq);
   if (lim==0) return fd_incref(seq);
   if (FD_PAIRP(seq)) {islist = 1; pairscan = seq;}
-  INIT_STATIC_ENV(tryseq,env,2);
+  INIT_STACK_ENV(tryseq,env,2);
   tryseq_vars[0]=var;
   if (FD_SYMBOLP(count_var)) {
     tryseq_vars[1]=count_var;
@@ -263,7 +263,7 @@ static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (!(FD_PAIRP(seq)))
     return fd_type_error("pair","dolist_evalfn",seq);
   else pairscan = seq;
-  INIT_STATIC_ENV(dolist,env,2);
+  INIT_STACK_ENV(dolist,env,2);
   FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
   dolist_vars[0]=var;
   if (FD_SYMBOLP(count_var))
