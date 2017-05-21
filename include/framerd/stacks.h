@@ -15,6 +15,10 @@
 #define FD_INLINE_STACKS 0
 #endif
 
+#if HAVE_OBSTACK_H
+#include <obstack.h>
+#endif
+
 /* Stack frames */
 
 typedef enum FD_STACK_CLEANOP {
@@ -41,6 +45,11 @@ typedef struct FD_STACK {
   long long threadid;
   int stack_depth;
   struct FD_STACK *stack_caller, *stack_root;
+
+#if HAVE_OBSTACK_H
+  struct obstack *stack_obstack;
+#endif
+
   fdtype stack_op;
   fdtype *stack_args;
   fdtype stack_vals;

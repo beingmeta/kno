@@ -8287,6 +8287,18 @@ fi
 
 done
 
+for ac_header in obstack.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "obstack.h" "ac_cv_header_obstack_h" "$ac_includes_default"
+if test "x$ac_cv_header_obstack_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OBSTACK_H 1
+_ACEOF
+
+fi
+
+done
+
 
 ac_fn_c_check_member "$LINENO" "struct rusage" "ru_inblock" "ac_cv_member_struct_rusage_ru_inblock" "#include <sys/resource.h>
 "
@@ -13932,8 +13944,6 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
-
-echo "+++ FramerD ($GITDESCRIBE) has been configured with $with_malloc malloc";
 
 if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
