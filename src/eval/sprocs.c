@@ -68,16 +68,14 @@ fdtype call_sproc(struct FD_STACK *_stack,
   fdtype result = FD_VOID;
   fdtype *proc_vars=fn->sproc_vars;
   fd_lispenv proc_env=fn->sproc_env;
+  fd_lispenv call_env=proc_env;
   int n_vars = fn->sproc_n_vars, arity = fn->fcn_arity;
+
   if (n<fn->fcn_min_arity)
     return fd_err(fd_TooFewArgs,fn->fcn_name,NULL,FD_VOID);
   else if ( (arity>=0) && (n>arity) )
     return fd_err(fd_TooManyArgs,fn->fcn_name,NULL,FD_VOID);
   else {}
-  int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
-  struct FD_SCHEMAP _bindings, *bindings=&_bindings;
-  struct FD_ENVIRONMENT _call_env, *call_env=&_call_env;
-  fdtype vals[n_vars];
 
   if ( (_stack) && (_stack->stack_label == NULL) ) {
     if (fn->fcn_name)
@@ -86,22 +84,28 @@ fdtype call_sproc(struct FD_STACK *_stack,
       _stack->stack_label=sproc_id(fn);
       _stack->stack_free_label=1;}}
 
-  if  (direct_call) {
-    fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
-    _bindings.schemap_stackvals=1;}
-  else {
-    fd_init_elts(vals,n_vars,FD_VOID);
-    fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);}
+  int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
+  struct FD_SCHEMAP _bindings, *bindings=&_bindings;
+  struct FD_ENVIRONMENT stack_env;
+  fdtype vals[n_vars];
 
-  /* Make it static */
-  FD_SET_REFCOUNT(bindings,0);
-  FD_INIT_STATIC_CONS(&_call_env,fd_environment_type);
-  _call_env.env_bindings = (fdtype) bindings;
-  _call_env.env_exports  = FD_VOID;
-  _call_env.env_parent   = proc_env;
-  _call_env.env_copy     = NULL;
+  if (n_vars) {
+    if  (direct_call) {
+      fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
+      _bindings.schemap_stackvals=1;}
+    else {
+      fd_init_elts(vals,n_vars,FD_VOID);
+      fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);}
 
-  _stack->stack_env = call_env;
+    /* Make it static */
+    FD_SET_REFCOUNT(bindings,0);
+    FD_INIT_STATIC_CONS(&stack_env,fd_environment_type);
+    stack_env.env_bindings = (fdtype) bindings;
+    stack_env.env_exports  = FD_VOID;
+    stack_env.env_parent   = proc_env;
+    stack_env.env_copy     = NULL;
+
+    _stack->stack_env = call_env = &stack_env;}
 
   if (!(direct_call)) {
     fdtype arglist = fn->sproc_arglist;
