@@ -106,7 +106,7 @@ FD_FASTOP fd_lispenv init_static_env
   return envstruct;
 }
 
-#define INIT_STACK_ENV(name,parent,n)               \
+#define INIT_STACK_ENV(name,parent,n)                \
   struct FD_SCHEMAP name ## _bindings;               \
   struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
   fdtype name ## _vars[n];                           \
@@ -117,6 +117,18 @@ FD_FASTOP fd_lispenv init_static_env
                     &name ## _bindings,              \
                     &_ ## name,                      \
                     name ## _vars,                   \
+                    name ## _vals)
+
+#define INIT_STACK_SCHEMA(name,parent,n,schema)      \
+  struct FD_SCHEMAP name ## _bindings;               \
+  struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
+  fdtype name ## _vals[n];                           \
+  memset(name ## _vals,0,sizeof(fdtype)*n);          \
+  _stack->stack_env =                                \
+    init_static_env(n,parent,                        \
+                    &name ## _bindings,              \
+                    &_ ## name,                      \
+                    schema,                          \
                     name ## _vals)
 
 

@@ -275,13 +275,12 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       {FD_INIT_XCHOICE(subset,write-FD_XCHOICE_DATA(subset),atomicp);}
       block = (fdtype)subset;}
     else block = fd_incref(choices);
-    fdtype val = FD_VOID;
     dosubsets_vals[0]=block;
     dosubsets_vals[1]=FD_INT(i);
     {fdtype body = fd_get_body(expr,2);
       FD_DOLIST(subexpr,body) {
         fdtype val = fast_eval(subexpr,dosubsets);
-        if (FD_ABORTED(val)) 
+        if (FD_ABORTED(val))
           _return val;
         else fd_decref(val);}}
     reset_env(dosubsets);
@@ -289,7 +288,6 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     dosubsets_vals[0]=FD_VOID;
     fd_decref(dosubsets_vals[1]);
     dosubsets_vals[1]=FD_VOID;
-    fd_decref(block);
     i++;}
   _return FD_VOID;
 }

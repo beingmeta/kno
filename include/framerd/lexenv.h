@@ -50,20 +50,22 @@ void fd_free_environment(struct FD_ENVIRONMENT *env)
       struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
       int i = 0, n = FD_XSCHEMAP_SIZE(sm);
       fdtype *vals = sm->schema_values;
-      while (i < n) {
-        fdtype val = vals[i++];
-        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-          fd_decref(val);}}
+      if ( sm->schemap_stackvals == 0) 
+	while (i < n) {
+	  fdtype val = vals[i++];
+	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	    fd_decref(val);}}
       u8_destroy_rwlock(&(sm->table_rwlock));
       fd_recycle_environment(env->env_copy);}
   else {
     struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
     int i = 0, n = FD_XSCHEMAP_SIZE(sm);
     fdtype *vals = sm->schema_values;
-    while (i < n) {
-      fdtype val = vals[i++];
-      if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-        fd_decref(val);}}
+    if ( sm->schemap_stackvals == 0)
+      while (i < n) {
+	fdtype val = vals[i++];
+	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+	  fd_decref(val);}}
     u8_destroy_rwlock(&(sm->table_rwlock));}
 }
 #else

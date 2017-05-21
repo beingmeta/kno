@@ -408,8 +408,7 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
       if (fd_applyfns[xformer_type]) {
         /* These are special forms which do all the evaluating themselves */
         fdtype new_expr=
-          (fd_applyfns[xformer_type])
-          (fd_fcnid_ref(macrofn->macro_transformer),1,&expr);
+          fd_dcall(fd_stackptr,fd_fcnid_ref(macrofn->macro_transformer),1,&expr);
         new_expr = fd_finish_call(new_expr);
         if (FD_ABORTP(new_expr))
           return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);

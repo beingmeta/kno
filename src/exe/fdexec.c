@@ -301,9 +301,8 @@ int do_main(int argc,char **argv,
     fdtype main_symbol = fd_intern("MAIN");
     main_proc = fd_symeval(main_symbol,env);
     if (FD_APPLICABLEP(main_proc)) {
-      int ctype = FD_PRIM_TYPE(main_proc);
       fd_decref(result);
-      result = fd_applyfns[ctype](main_proc,n_args,args);
+      result = fd_apply(main_proc,n_args,args);
       result = fd_finish_call(result);}}
   if (FD_TROUBLEP(result)) {
     u8_exception e = u8_erreify(), root = e;

@@ -138,7 +138,8 @@ typedef struct FD_SPROC {
 } FD_SPROC;
 typedef struct FD_SPROC *fd_sproc;
 
-FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args);
+FD_EXPORT fdtype fd_apply_sproc(struct FD_STACK *,struct FD_SPROC *fn,
+				int n,fdtype *args);
 FD_EXPORT fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype));
 
