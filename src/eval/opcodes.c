@@ -877,31 +877,18 @@ static fdtype bindop(struct FD_STACK *caller,fd_lispenv env,
                      int tail)
 {
   int i=0, n=FD_VECTOR_LENGTH(vars);
-  struct FD_STACK _bind_stack, *bind_stack=&_bind_stack;
-  struct FD_SCHEMAP bindings;
-  struct FD_ENVIRONMENT envstruct, *inner_env=&envstruct;
+  FD_PUSH_STACK(_stack,"bindop",NULL,vars);
+  INIT_STACK_SCHEMA(bound,env,n,FD_VECTOR_DATA(vars));
+  fdtype *values=bound_bindings.schema_values;
   fdtype *exprs=FD_VECTOR_DATA(inits);
-  fdtype values[n]; /* fdtype *values=fd_alloca(n); */
-  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.schema_length=n;
-  bindings.table_schema=FD_VECTOR_DATA(vars);
-  bindings.schema_values=values;
-  bindings.schemap_onstack=1;
-  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
-  envstruct.env_bindings=(fdtype)&bindings;
-  envstruct.env_exports=FD_VOID;
-  envstruct.env_parent=env;
   while (i<n) {
     fdtype val_expr=exprs[i];
-    fdtype val=op_eval(val_expr,inner_env,bind_stack,0);
-    if (FD_ABORTED(val)) {
-      while (i>=0) {fd_decref(values[i]); i--;}
-      fd_free_environment(inner_env);
-      return val;}
+    fdtype val=op_eval(val_expr,bound,_stack,0);
+    if (FD_ABORTED(val))
+      _return val;
     else values[i++]=val;}
-  fdtype result = op_eval_body(body,inner_env,bind_stack,tail);
-  fd_free_environment(inner_env);
-  return result;
+  fdtype result = op_eval_body(body,bound,_stack,tail);
+  _return result;
 }
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
