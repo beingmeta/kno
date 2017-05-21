@@ -26,6 +26,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8netfns.h>
+#include <libu8/u8printf.h>
 #if FD_FILECONFIG_ENABLED
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
@@ -161,7 +162,7 @@ FD_EXPORT fdtype fd_type_error
 FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant)
 {
   u8_byte buf[512];
-  u8_string msg = u8_bufprintf(buf,512,_("object is not a %m"),type_name);
+  u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
   fd_seterr(fd_TypeError,NULL,msg,irritant);
 }
 

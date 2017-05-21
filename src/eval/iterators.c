@@ -19,13 +19,6 @@
 #include "framerd/numbers.h"
 #include "eval_internals.h"
 
-FD_FASTOP void reset_env(fd_lispenv env)
-{
-  if (env->env_copy) {
-    fd_free_environment(env->env_copy);
-    env->env_copy=NULL;}
-}
-
 /* Helper functions */
 
 static fdtype iter_var;

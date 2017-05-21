@@ -120,6 +120,14 @@ FD_FASTOP fd_lispenv init_static_env
                     name ## _vals)
 
 
+U8_MAYBE_UNUSED FD_FASTOP
+void reset_env(fd_lispenv env)
+{
+  if (env->env_copy) {
+    fd_free_environment(env->env_copy);
+    env->env_copy=NULL;}
+}
+
 /* Emacs local variables
    ;;;  Local variables: ***
    ;;;  compile-command: "make -C ../.. debug;" ***

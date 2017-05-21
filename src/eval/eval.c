@@ -1693,6 +1693,23 @@ static fdtype void_prim(int n,fdtype *args)
   return FD_VOID;
 }
 
+static fdtype default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+{
+  fdtype symbol = fd_get_arg(expr,1);
+  fdtype default_expr = fd_get_arg(expr,2);
+  if (!(FD_SYMBOLP(symbol)))
+    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
+  else if (FD_VOIDP(default_expr))
+    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
+  else {
+    fdtype val = fd_symeval(symbol,env);
+    if (FD_VOIDP(val))
+      return fd_eval(default_expr,env);
+    else if (val == FD_UNBOUND)
+      return fd_eval(default_expr,env);
+    else return val;}
+}
+
 /* Checking version numbers */
 
 static int check_num(fdtype arg,int num)
@@ -2052,6 +2069,7 @@ static void init_localfns()
            fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,0)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
+  fd_defspecial(fd_scheme_module,"DEFAULT",default_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("REQUIRE-VERSION",require_version_prim,1));
