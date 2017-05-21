@@ -1,5 +1,6 @@
 #!/bin/sh
 export INVALGRIND=yes
 export MEMCHECKING=yes
+. ./runenv.sh
 echo "Running $1 under Valgrind"
 exec valgrind --tool=memcheck --num-callers=9 $*
