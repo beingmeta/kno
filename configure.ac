@@ -54,6 +54,7 @@ calltracko=""
 curlo=""
 ldnso=""
 ipevalo=""
+ipevalprimso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -174,6 +175,7 @@ leaktester_config=
 
 use_duma_lib="no"
 custom_malloc=""
+using_malloc=""
 default_malloc=${FD_DEFAULT_MALLOC:-libc}
 gperftools=""
 asan=""
@@ -208,6 +210,7 @@ AC_SUBST(curlo)
 AC_SUBST(ldnso)
 AC_SUBST(exifo)
 AC_SUBST(ipevalo)
+AC_SUBST(ipevalprimso)
 AC_SUBST(suffix)
 AC_SUBST(xstatic_exe_libs)
 AC_SUBST(xstatic_scheme_libs)
@@ -610,19 +613,24 @@ if test -z "$with_malloc" ||
    test "$with_malloc" = "builtin" ; then
    echo "Using standard malloc";
    custom_malloc="";
+   using_malloc="libc"
 elif test "$with_malloc" = "tcmalloc"; then
   gperftools="yes";
   custom_malloc="tcmalloc"
+  using_malloc="tcmalloc"
 elif test "$with_malloc" = "gperftools"; then
   gperftools="profile";
   custom_malloc="tcmalloc"
+  using_malloc="gperftools"
 elif test "$with_malloc" = "tcmalloc_debug"; then
   gperftools="debug";
   custom_malloc="tcmalloc_debug"
+  using_malloc="tcmalloc_debug"
 elif test "$with_malloc" = "jemalloc"; then
   AC_CHECK_LIB(jemalloc,malloc,EXECLIBS="-ljemalloc $EXECLIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
+    using_malloc="jemalloc"
   else
     AC_MSG_ERROR(jemalloc can't be found)
     exit;
@@ -631,6 +639,7 @@ elif test "$with_malloc" = "dmalloc"; then
   AC_CHECK_LIB(dmalloc,malloc,EXECLIBS="-ldmalloc $EXECLIBS")
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
+    using_malloc="dmalloc"
   else
     AC_MSG_ERROR(dmalloc can't be found)
     exit;
@@ -642,6 +651,7 @@ elif test "$with_malloc" = "asan"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
+   using_malloc="asan"
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
@@ -651,7 +661,8 @@ elif test "$with_malloc" = "asan_leak"; then
    build_static=""
    test_static=""
    install_static=""
-   custom_malloc="asan"
+   custom_malloc="asan_leak"
+   using_malloc="asan_leak"
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
    leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
    asan="leak";
@@ -663,7 +674,8 @@ elif test "$with_malloc" = "asan_memory"; then
    build_static=""
    test_static=""
    install_static=""
-   custom_malloc="msan-full"
+   custom_malloc="asan_memory"
+   using_malloc="asan_memory"
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="memory"
 elif test "$with_malloc" = "asan_thread"; then
@@ -674,7 +686,8 @@ elif test "$with_malloc" = "asan_thread"; then
    build_static=""
    test_static=""
    install_static=""
-   custom_malloc="msan"
+   custom_malloc="asan_thread"
+   using_malloc="asan_thread"
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
@@ -1494,6 +1507,7 @@ dnl This enables the ipeval implementation within FramerD
 AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
+  ipevalprimso=src/prims/ipevalprims.o
   AC_DEFINE(FD_IPEVAL_ENABLED,1)
 else
   AC_DEFINE(FD_IPEVAL_ENABLED,0)

@@ -187,6 +187,7 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	src/prims/streamprims.o \
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
+	@ipevalprimso@ \
 	src/prims/extdbprims.o
 
 SCHEMEIO_OBJS=\

@@ -252,7 +252,7 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  int i = 0, counting=0;
+  int i = 0;
   fdtype seq, count_var = FD_VOID;
   fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
@@ -315,58 +315,6 @@ static fdtype comment_evalfn(fdtype comment_expr,fd_lispenv env,fd_stack stack)
   return FD_VOID;
 }
 
-/* IPEVAL */
-
-#if FD_IPEVAL_ENABLED
-struct IPEVAL_STRUCT { fdtype expr, fd_value; fd_lispenv env;};
-
-static int ipeval_step(struct IPEVAL_STRUCT *s)
-{
-  fdtype fd_value = fd_eval(s->expr,s->env);
-  fd_decref(s->kv_val); s->kv_val = fd_value;
-  if (FD_ABORTED(fd_value))
-    return -1;
-  else return 1;
-}
-
-static fdtype ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
-{
-  struct IPEVAL_STRUCT tmp;
-  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
-  fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
-  return tmp.kv_val;
-}
-
-static fdtype trace_ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
-{
-  struct IPEVAL_STRUCT tmp; int old_trace = fd_trace_ipeval;
-  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
-  fd_trace_ipeval = 1;
-  fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
-  fd_trace_ipeval = old_trace;
-  return tmp.kv_val;
-}
-
-static fdtype track_ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
-{
-  struct IPEVAL_STRUCT tmp;
-  struct FD_IPEVAL_RECORD *records; int n_cycles; double total_time;
-  fdtype *vec; int i = 0;
-  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
-  fd_tracked_ipeval_call((fd_ipevalfn)ipeval_step,&tmp,&records,&n_cycles,&total_time);
-  vec = u8_alloc_n(n_cycles,fdtype);
-  i = 0; while (i<n_cycles) {
-    struct FD_IPEVAL_RECORD *record = &(records[i]);
-    vec[i++]=
-      fd_make_nvector(3,FD_INT(record->delays),
-                      fd_init_double(NULL,record->exec_time),
-                      fd_init_double(NULL,record->fetch_time));}
-  return fd_make_nvector(3,tmp.kv_val,
-                         fd_init_double(NULL,total_time),
-                         fd_init_vector(NULL,n_cycles,vec));
-}
-#endif
-
 /* Initialize functions */
 
 FD_EXPORT void fd_init_iterators_c()
@@ -388,12 +336,6 @@ FD_EXPORT void fd_init_iterators_c()
   fd_defspecial(fd_scheme_module,"PROG1",prog1_evalfn);
   fd_defspecial(fd_scheme_module,"COMMENT",comment_evalfn);
   fd_defalias(fd_scheme_module,"*******","COMMENT");
-
-#if FD_IPEVAL_ENABLED
-  fd_defspecial(fd_scheme_module,"IPEVAL",ipeval_evalfn);
-  fd_defspecial(fd_scheme_module,"TIPEVAL",trace_ipeval_evalfn);
-  fd_defspecial(fd_scheme_module,"TRACK-IPEVAL",track_ipeval_evalfn);
-#endif
 
 }
 

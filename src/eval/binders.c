@@ -414,122 +414,6 @@ static fdtype define_init_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
 
-/* IPEVAL binding */
-
-#if FD_IPEVAL_ENABLED
-struct IPEVAL_BINDSTRUCT {
-  int n_bindings; fdtype *vals;
-  fdtype valexprs; fd_lispenv env;};
-
-static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
-{
-  int i = 0, n = bs->n_bindings;
-  fdtype *bindings = bs->vals, scan = bs->valexprs;
-  fd_lispenv env = bs->sproc_env;
-  while (i<n) {
-    fd_decref(bindings[i]); bindings[i++]=FD_VOID;}
-  i = 0; while (FD_PAIRP(scan)) {
-    fdtype binding = FD_CAR(scan), val_expr = FD_CADR(binding);
-    fdtype val = fd_eval(val_expr,env);
-    if (FD_ABORTED(val)) fd_interr(val);
-    else bindings[i++]=val;
-    scan = FD_CDR(scan);}
-  return 1;
-}
-
-static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
-{
-  int i = 0, n = bs->n_bindings;
-  fdtype *bindings = bs->vals, scan = bs->valexprs;
-  fd_lispenv env = bs->sproc_env;
-  while (i<n) {
-    fd_decref(bindings[i]); bindings[i++]=FD_UNBOUND;}
-  i = 0; while (FD_PAIRP(scan)) {
-    fdtype binding = FD_CAR(scan), val_expr = FD_CADR(binding);
-    fdtype val = fd_eval(val_expr,env);
-    if (FD_ABORTED(val)) fd_interr(val);
-    else bindings[i++]=val;
-    scan = FD_CDR(scan);}
-  return 1;
-}
-
-static int ipeval_let_binding
-  (int n,fdtype *vals,fdtype bindexprs,fd_lispenv env)
-{
-  struct IPEVAL_BINDSTRUCT bindstruct;
-  bindstruct.n_bindings = n; bindstruct.vals = vals;
-  bindstruct.valexprs = bindexprs; bindstruct.env = env;
-  return fd_ipeval_call((fd_ipevalfn)ipeval_let_step,&bindstruct);
-}
-
-static int ipeval_letstar_binding
-  (int n,fdtype *vals,fdtype bindexprs,fd_lispenv bind_env,fd_lispenv env)
-{
-  struct IPEVAL_BINDSTRUCT bindstruct;
-  bindstruct.n_bindings = n; bindstruct.vals = vals;
-  bindstruct.valexprs = bindexprs; bindstruct.env = env;
-  return fd_ipeval_call((fd_ipevalfn)ipeval_letstar_step,&bindstruct);
-}
-
-static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
-{
-  fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
-  int n;
-  if (FD_VOIDP(bindexprs))
-    return fd_err(fd_BindSyntaxError,"LET",NULL,expr);
-  else if ((n = check_bindexprs(bindexprs,&result))<0)
-    return result;
-  else {
-    struct FD_ENVIRONMENT *inner_env = make_dynamic_env(n,env);
-    fdtype bindings = inner_env->env_bindings;
-    struct FD_SCHEMAP *sm = (struct FD_SCHEMAP *)bindings;
-    fdtype *vars = sm->table_schema, *vals = sm->schema_values;
-    int i = 0; fdtype scan = bindexprs; while (i<n) {
-      fdtype bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
-      vars[i]=var; vals[i]=FD_VOID; scan = FD_CDR(scan); i++;}
-    if (ipeval_let_binding(n,vals,bindexprs,env)<0) 
-      return ERROR_VALUE;
-    {fdtype body = fd_get_body(expr,2);
-     FD_DOLIST(bodyexpr,body) {
-      fd_decref(result);
-      result = fast_eval(bodyexpr,inner_env);
-      if (FD_ABORTED(result))
-        return result}}
-    fd_free_environment(inner_env);
-    return result;}
-}
-
-static fdtype letqstar_evalfn
-(fdtype expr,fd_lispenv env,fd_stack _stack)
-{
-  fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
-  int n;
-  if (FD_VOIDP(bindexprs))
-    return fd_err(fd_BindSyntaxError,"LET*",NULL,expr);
-  else if ((n = check_bindexprs(bindexprs,&result))<0)
-    return result;
-  else {
-    struct FD_ENVIRONMENT *inner_env = make_dynamic_env(n,env);
-    fdtype bindings = inner_env->env_bindings;
-    struct FD_SCHEMAP *sm = (struct FD_SCHEMAP *)bindings;
-    fdtype *vars = sm->table_schema, *vals = sm->schema_values;
-    int i = 0; fdtype scan = bindexprs; while (i<n) {
-      fdtype bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
-      vars[i]=var; vals[i]=FD_UNBOUND; scan = FD_CDR(scan); i++;}
-    if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) 
-      return FD_ERROR_VALUE;
-    {fdtype body = fd_get_body(expr,2);
-     FD_DOLIST(bodyexpr,body) {
-      fd_decref(result);
-      result = fast_eval(bodyexpr,inner_env);
-      if (FD_ABORTED(result)) 
-        return result;}}
-    if (inner_env->env_copy) fd_free_environment(inner_env->env_copy);
-    return result;}
-}
-
-#endif
-
 /* Extend fcnid parsing to incluce functional compounds */
 
 /* Initialization */
@@ -556,11 +440,6 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"DEFAULT!",assign_default_evalfn);
   fd_defspecial(fd_scheme_module,"SETFALSE!",assign_false_evalfn);
   fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_evalfn);
-
-#if FD_IPEVAL_ENABLED
-  fd_defspecial(fd_scheme_module,"LETQ",letq_evalfn);
-  fd_defspecial(fd_scheme_module,"LETQ*",letqstar_evalfn);
-#endif
 
 }
 
