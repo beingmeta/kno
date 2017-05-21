@@ -309,6 +309,7 @@ typedef struct FD_SCHEMAP {
   unsigned int schemap_onstack:1;
   unsigned int schemap_tagged:1;
   unsigned int schemap_shared:1;
+  unsigned int schemap_stackvals:1;
   fdtype *table_schema, *schema_values;
   U8_RWLOCK_DECL(table_rwlock);} FD_SCHEMAP;
 

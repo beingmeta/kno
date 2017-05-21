@@ -894,8 +894,9 @@ FD_EXPORT fdtype fd_make_schemap
   int i=0;
   if (ptr == NULL) ptr=u8_alloc(struct FD_SCHEMAP);
   FD_INIT_STRUCT(ptr,struct FD_SCHEMAP);
-  FD_INIT_CONS(ptr,fd_schemap_type); ptr->table_schema=schema;
-  ptr->schema_length=size; ptr->table_schema=schema;
+  FD_INIT_CONS(ptr,fd_schemap_type);
+  ptr->table_schema=schema;
+  ptr->schema_length=size;
   if (flags&FD_SCHEMAP_SORTED) ptr->schemap_sorted=1;
   if (!(flags&FD_SCHEMAP_PRIVATE)) ptr->schemap_shared=0;
   if (flags&FD_SCHEMAP_READONLY) ptr->table_readonly=1;
@@ -996,10 +997,11 @@ FD_EXPORT fdtype fd_init_schemap
   FD_INIT_CONS(ptr,fd_schemap_type);
   news=u8_alloc_n(size,fdtype);
   ptr->schema_values=newv=u8_alloc_n(size,fdtype);
-  ptr->schema_length=size; ptr->schemap_sorted=1; 
+  ptr->schema_length=size;
+  ptr->schemap_sorted=1;
   sort_keyvals(init,size);
   while (i<size) {
-    news[i]=init[i].kv_key; 
+    news[i]=init[i].kv_key;
     newv[i]=init[i].kv_val;
     i++;}
   ptr->table_schema=fd_register_schema(size,news);
@@ -1160,11 +1162,14 @@ static void recycle_schemap(struct FD_RAW_CONS *c)
   fd_write_lock_table(sm);
   {
     int schemap_size=FD_XSCHEMAP_SIZE(sm);
-    fdtype *scan=sm->schema_values, *limit=sm->schema_values+schemap_size;
-    while (scan < limit) {fd_decref(*scan); scan++;}
+    int stack_vals = sm->schemap_stackvals;
+    if ( (sm->schema_values) &&  (FD_EXPECT_TRUE (! stack_vals ) ) ) {
+      fdtype *scan=sm->schema_values;
+      fdtype *limit=sm->schema_values+schemap_size;
+      while (scan < limit) {fd_decref(*scan); scan++;}
+      u8_free(sm->schema_values);}
     if ((sm->table_schema) && (!(sm->schemap_shared)))
       u8_free(sm->table_schema);
-    if (sm->schema_values) u8_free(sm->schema_values);
     fd_unlock_table(sm);
     u8_destroy_rwlock(&(sm->table_rwlock));
     memset(sm,0,sizeof(struct FD_SCHEMAP));
