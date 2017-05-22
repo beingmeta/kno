@@ -71,6 +71,11 @@ fdtype call_sproc(struct FD_STACK *_stack,
   fd_lispenv call_env=proc_env;
   int n_vars = fn->sproc_n_vars, arity = fn->fcn_arity;
 
+  if (_stack == NULL) _stack=fd_stackptr;
+  if (_stack == NULL) {
+    FD_ALLOCA_STACK(_stack);
+    _stack->stack_label = fn->fcn_name;}
+
   if (n<fn->fcn_min_arity)
     return fd_err(fd_TooFewArgs,fn->fcn_name,NULL,FD_VOID);
   else if ( (arity>=0) && (n>arity) )
@@ -89,23 +94,22 @@ fdtype call_sproc(struct FD_STACK *_stack,
   struct FD_ENVIRONMENT stack_env;
   fdtype vals[n_vars];
 
-  if (n_vars) {
-    if  (direct_call) {
-      fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
-      _bindings.schemap_stackvals=1;}
-    else {
-      fd_init_elts(vals,n_vars,FD_VOID);
-      fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);}
+  if  (direct_call) {
+    fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
+    _bindings.schemap_stackvals=1;}
+  else {
+    fd_init_elts(vals,n_vars,FD_VOID);
+    fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);}
 
-    /* Make it static */
-    FD_SET_REFCOUNT(bindings,0);
-    FD_INIT_STATIC_CONS(&stack_env,fd_environment_type);
-    stack_env.env_bindings = (fdtype) bindings;
-    stack_env.env_exports  = FD_VOID;
-    stack_env.env_parent   = proc_env;
-    stack_env.env_copy     = NULL;
+  /* Make it static */
+  FD_SET_REFCOUNT(bindings,0);
+  FD_INIT_STATIC_CONS(&stack_env,fd_environment_type);
+  stack_env.env_bindings = (fdtype) bindings;
+  stack_env.env_exports  = FD_VOID;
+  stack_env.env_parent   = proc_env;
+  stack_env.env_copy     = NULL;
 
-    _stack->stack_env = call_env = &stack_env;}
+  if (_stack) _stack->stack_env = call_env = &stack_env;
 
   if (!(direct_call)) {
     fdtype arglist = fn->sproc_arglist;
