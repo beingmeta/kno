@@ -14,6 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
+#include "framerd/support.h"
 #include "framerd/tables.h"
 #include "framerd/storage.h"
 #include "framerd/drivers.h"
@@ -34,6 +35,7 @@
 #include <locale.h>
 #include <strings.h>
 #include <sys/time.h>
+#include <math.h>
 #include <time.h>
 
 #include "main.h"
@@ -305,20 +307,30 @@ int do_main(int argc,char **argv,
       result = fd_apply(main_proc,n_args,args);
       result = fd_finish_call(result);}}
   if (FD_TROUBLEP(result)) {
-    u8_exception e = u8_erreify(), root = e;
+    U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
     int old_maxelts = fd_unparse_maxelts, old_maxchars = fd_unparse_maxchars;
-    U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
+    u8_exception e = u8_erreify();
+
     fd_unparse_maxchars = debug_maxchars; fd_unparse_maxelts = debug_maxelts;
-    while (root->u8x_prev) root = root->u8x_prev;
-    if (root) {fd_print_exception(&out,root); root = NULL;}
-    if (e) {
-      fd_print_backtrace(&out,e,80);
-      u8_free_exception(e,1);
-      e = NULL;}
-    fd_unparse_maxelts = old_maxelts;
-    fd_unparse_maxchars = old_maxchars;
+    fd_sum_exception(&out,e);
+    fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
     fputs(out.u8_outbuf,stderr);
+
+#if 0
+    fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
+      ((fdtype) (e->u8x_xdata)) : (FD_VOID);
+    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (FD_VOID);
+    double elapsed      = u8_elapsed_time();
+    int msecs           = floor(elapsed*1000);
+    u8_string dumpfile  = u8_mkstring("_stack%d-%d.dtype",getpid(),msecs);
+    fd_write_dtype_to_file(stacktrace,dumpfile);
+    out.u8_write=out.u8_outbuf;
+    u8_printf(&out,";; Complete stacktrace written to %s\n",dumpfile);
+    fputs(out.u8_outbuf,stderr);
+    u8_free(dumpfile);
+#endif
     u8_free(out.u8_outbuf);
+    u8_free_exception(e,1);
     retval = -1;}
   fd_decref(result);
   /* Hollow out the environment, which should let it be reclaimed.

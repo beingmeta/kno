@@ -32,9 +32,9 @@
 #include <libu8/libu8io.h>
 #endif
 
-static fdtype stacktrace_symbol;
-
 static int max_irritant_len=256;
+
+static fdtype stacktrace_symbol;
 
 /* Managing error data */
 
@@ -44,6 +44,8 @@ FD_EXPORT void fd_free_exception_xdata(void *ptr)
   fd_decref(v);
 }
 
+/* This stores the details and irritant arguments directly,
+   so they should be dup'd or incref'd by the caller. */
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
@@ -53,11 +55,27 @@ FD_EXPORT void fd_seterr
 				  fd_get_backtrace(fd_stackptr,base));
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
-  u8_push_exception(c,cxt,u8dup(details),(void *)errinfo,
+  u8_push_exception(c,cxt,details,(void *)errinfo,
 		    fd_free_exception_xdata);
-  if (details) u8_free(details);
 }
 
+/* This stores the details and irritant arguments directly,
+   so they should be dup'd or incref'd by the caller. */
+FD_EXPORT void fd_pusherr
+(u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
+{
+  // TODO: Push the exception and then generate the stack, just in
+  // case. Set the exception xdata explicitly if you can.
+  if (errno) u8_graberrno(cxt,u8dup(details));
+  if (FD_VOIDP(irritant))
+    u8_push_exception(c,cxt,details,NULL,NULL);
+  else {
+    fd_incref(irritant);
+    u8_push_exception(c,cxt,details,(void *)irritant,
+		      fd_free_exception_xdata);}
+}
+
+/* This is just like fd_seterr but it does the strdup/incref. */
 FD_EXPORT void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
@@ -83,6 +101,13 @@ FD_EXPORT fdtype fd_get_irritant(u8_exception ex)
       else return FD_VOID;}
     else return FD_VOID;}
   else return irritant;
+}
+
+FD_EXPORT int fd_stacktracep(fdtype rep)
+{
+  if ((FD_PAIRP(rep)) && (FD_CAR(rep) == stacktrace_symbol))
+    return 1;
+  else return 0;
 }
 
 FD_EXPORT void fd_raise
@@ -149,26 +174,6 @@ FD_EXPORT fdtype fd_err
   return FD_ERROR_VALUE;
 }
 
-FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data)
-{
-  u8_exception ex;
-  u8_condition condition = NULL;
-  ex = u8_current_exception;
-  if (ex) condition = ex->u8x_cond;
-  if (condition == NULL) condition = fd_UnknownError;
-  if ( condition == fd_StackOverflow ) {
-    fd_decref(data);
-    return;}
-  else if (errno) u8_graberrno(cxt,u8_strdup(label));
-  else {}
-  if (label) {
-    u8_string copied = u8_strdup(label);
-    u8_push_exception(NULL,cxt,copied,(void *)data,
-                      fd_free_exception_xdata);}
-  else u8_push_exception(NULL,cxt,NULL,(void *)data,
-                         fd_free_exception_xdata);
-}
-
 FD_EXPORT fdtype fd_type_error
   (u8_string type_name,u8_context cxt,fdtype irritant)
 {
@@ -201,12 +206,12 @@ FD_EXPORT
 void fd_log_exception(u8_exception ex)
 {
   if (ex->u8x_xdata) {
-    fdtype irritant = fd_exception_xdata(ex);
+    fdtype irritant = fd_get_irritant(ex);
     u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
-           (U8ALT((ex->u8x_details),((U8S0())))),
-           (U8ALT((ex->u8x_context),((U8S0())))),
-           irritant);}
-  else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%q",
+	   (U8ALT((ex->u8x_details),((U8S0())))),
+	   (U8ALT((ex->u8x_context),((U8S0())))),
+	   irritant);}
+  else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)",
               (U8ALT((ex->u8x_details),((U8S0())))),
               (U8ALT((ex->u8x_context),((U8S0())))));
 }
@@ -259,35 +264,14 @@ fdtype fd_exception_backtrace(u8_exception ex)
   return result;
 }
 
-void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
-{
-  if (!(ex)) {
-    u8_printf(out,"what error?");
-    return;}
-  else if ((bg == NULL) || ((bg->u8x_cond) != (ex->u8x_cond)))
-    u8_printf(out,"(%m)",ex->u8x_cond);
-  if ((bg == NULL) || ((bg->u8x_context) != (ex->u8x_context)))
-    u8_printf(out," <%s>",ex->u8x_context);
-  if ((bg == NULL) || ((bg->u8x_details) != (ex->u8x_details)))
-    u8_printf(out," (%m)",ex->u8x_details);
-  if (ex->u8x_xdata) {
-    fdtype irritant = fd_exception_xdata(ex);
-    if ((bg == NULL) || (bg->u8x_xdata == NULL))
-      u8_printf(out," -- %q",irritant);
-    else {
-      fdtype bgirritant = fd_exception_xdata(bg);
-      if (!(FD_EQUAL(irritant,bgirritant)))
-        u8_printf(out," -- %q",irritant);}}
-}
-
-int compact_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg,
-                      int depth,int skipped)
+int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
 {
   if (!(ex)) return 0;
   else {
     u8_condition cond = ex->u8x_cond;
     u8_context context = ex->u8x_context;
     u8_string details = ex->u8x_details;
+    fdtype irritant = fd_get_irritant(ex);
     if (bg) {
       if ( (cond) && (bg->u8x_cond == cond) ) cond = NULL;
       if ( (context) &&
@@ -298,11 +282,10 @@ int compact_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg,
       if ( (details) && (bg->u8x_details) &&
            ( (bg->u8x_details == details) ||
              (strcmp(bg->u8x_details,details)==0)) )
-        details = NULL;}
-    if ( (depth) && ((cond) || (context) || (details)) ) {
-      if (skipped)
-        u8_printf(out," >> %d… >> ",skipped);
-      else u8_puts(out," >> ");}
+        details = NULL;
+      if ( (!(FD_VOIDP(irritant))) &&
+	   ( irritant == ((fdtype)(bg->u8x_xdata)) ) )
+	irritant=FD_VOID;}
     if ((cond) && (context) && (details))
       u8_printf(out,"%m <%s> (%s)",cond,context,details);
     else if ((cond) && (context))
@@ -317,6 +300,12 @@ int compact_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg,
       u8_printf(out,"<%s>",context);
     else if (details)
       u8_printf(out,"(%s)",details);
+    else if (!(FD_VOIDP(irritant))) {
+      u8_byte buf[max_irritant_len+1];
+      u8_sprintf(buf,max_irritant_len,"%Q",irritant);
+      if ( (strchr(buf,'\n')) || (strlen(buf)>40) )
+	u8_printf(out,"  %s",buf);
+      else u8_printf(out,"\n  %s",buf);}
     else return 0;
     return 1;}
 }
@@ -324,38 +313,41 @@ int compact_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg,
 FD_EXPORT
 void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
-  u8_exception root = u8_exception_root(ex);
-  int show_top = 8, show_bottom = 32;
-  int stacklen = u8_exception_stacklen(ex);
-  int stackfoot = stacklen-show_bottom;
-  int depth = 0, elided = 0, skipped = 0;
   u8_exception scan = ex, prev = NULL;
-  sum_exception(out,root,NULL);
   while (scan) {
-    if (depth==0) u8_puts(out,"\n");
-    if ((depth<show_top)||(depth>stackfoot)) {
-      if (compact_exception(out,scan,prev,depth,skipped))
-        skipped = 0;
-      else skipped++;}
-    else if (elided) {}
-    else if ((stacklen-(show_bottom+show_top))==0) {
-      elided = 1; prev = NULL;}
-    else {
-      u8_printf(out," >> %d/%d calls... ",
-                stacklen-(show_bottom+show_top),
-                stacklen);
-      skipped = 0;
-      elided = 1;}
-    prev = scan; scan = prev->u8x_prev;
-    depth++;}
-  sum_exception(out,ex,root);
+    sum_exception(out,scan,prev); u8_puts(out,"\n");
+    prev=scan;
+    scan=prev->u8x_prev;}
+  if ( (prev) && (prev->u8x_free_xdata == fd_free_exception_xdata )  ) {
+    fdtype scan = (fdtype)(prev->u8x_xdata); int depth=0;
+    if (fd_stacktracep(scan)) {
+      u8_puts(out,";;* ");
+      while (FD_PAIRP(scan)) {
+	fdtype car=FD_CAR(scan); scan=FD_CDR(scan);
+	if (FD_STRINGP(car)) {
+	  if (depth) u8_puts(out,"// ");
+	  u8_puts(out,FD_STRDATA(car));
+	  depth++;
+	  if ((depth%7)==0)
+	    u8_puts(out," //...\n;;* ...");
+	  else u8_putc(out,' ');}}}}
 }
 
 FD_EXPORT u8_string fd_errstring(u8_exception ex)
 {
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
   if (ex == NULL) ex = u8_current_exception;
-  fd_sum_exception(&out,ex);
+  if (ex == NULL) return NULL;
+  sum_exception(&out,ex,NULL);
+  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
+    fdtype irritant = (fdtype) ex->u8x_xdata;
+    if (fd_stacktracep(irritant)) {
+      fdtype scan = FD_CDR(irritant);
+      while (FD_PAIRP(scan)) {
+	fdtype car=FD_CAR(scan); scan=FD_CDR(scan);
+	if (FD_STRINGP(car)) {
+	  u8_puts(&out," ⇐ ");
+	  u8_puts(&out,FD_STRDATA(car));}}}}
   return out.u8_outbuf;
 }
 
@@ -490,7 +482,7 @@ static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 	u8_printf(out," %q",irritant);
       else {
 	u8_byte buf[max_irritant_len+1];
-	u8_sprintf(buf,max_irritant_len,"%q");
+	u8_sprintf(buf,max_irritant_len,"%q",irritant);
 	u8_printf(out," %s...",buf);}}
     u8_printf(out,"!!>");}
   return 1;
