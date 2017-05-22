@@ -32,6 +32,10 @@
 #include <libu8/libu8io.h>
 #endif
 
+static fdtype stacktrace_symbol;
+
+static int max_irritant_len=256;
+
 /* Managing error data */
 
 FD_EXPORT void fd_free_exception_xdata(void *ptr)
@@ -43,19 +47,13 @@ FD_EXPORT void fd_free_exception_xdata(void *ptr)
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
-  fdtype base = FD_EMPTY_LIST;
-  base = fd_init_pair(NULL, fd_intern(c), base);
-  if (details)
-    base = fd_init_pair(NULL, fdtype_string(details), base);
-  if (!(FD_VOIDP(irritant)))
-    base = fd_init_pair(NULL, irritant, base);
-  if (cxt)
-    base = fd_init_pair(NULL, fd_intern(cxt), base);
-  fdtype errinfo=fd_get_backtrace(fd_stackptr,base);
+  fdtype exception = fd_make_exception(c,cxt,details,irritant);
+  fdtype base      = fd_init_pair(NULL,exception,FD_EMPTY_LIST);
+  fdtype errinfo   = fd_init_pair(NULL,stacktrace_symbol,
+				  fd_get_backtrace(fd_stackptr,base));
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
-  u8_push_exception(c,cxt,u8dup(details),
-		    (void *)errinfo,
+  u8_push_exception(c,cxt,u8dup(details),(void *)errinfo,
 		    fd_free_exception_xdata);
   if (details) u8_free(details);
 }
@@ -65,6 +63,26 @@ FD_EXPORT void fd_xseterr
 {
   fd_incref(irritant);
   fd_seterr(c,cxt,u8dup(details),irritant);
+}
+
+FD_EXPORT fdtype fd_get_irritant(u8_exception ex)
+{
+  fdtype irritant = (ex->u8x_free_xdata == fd_free_exception_xdata) ?
+    ((fdtype) ex->u8x_xdata) : (FD_VOID);
+  fdtype use_irritant;
+  if (FD_VOIDP(irritant))
+    return irritant;
+  if ((FD_PAIRP(irritant)) && (FD_PAIRP(FD_CDR(irritant))) &&
+      (FD_CAR(irritant) == stacktrace_symbol)) {
+    if (FD_TYPEP(FD_CADR(irritant),fd_error_type)) {
+      struct FD_EXCEPTION_OBJECT *embedded=
+	(struct FD_EXCEPTION_OBJECT *) FD_CADR(irritant);
+      u8_exception embedded_ex = embedded->fdex_u8ex;
+      if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
+	return ((fdtype) embedded_ex->u8x_xdata);
+      else return FD_VOID;}
+    else return FD_VOID;}
+  else return irritant;
 }
 
 FD_EXPORT void fd_raise
@@ -369,6 +387,115 @@ int fd_clear_errors(int report)
   return n_errs;
 }
 
+/* Exception objects */
+
+FD_EXPORT fdtype fd_init_exception
+   (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
+{
+  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
+  FD_INIT_CONS(exo,fd_error_type);
+  exo->fdex_u8ex = ex;
+  return FDTYPE_CONS(exo);
+}
+
+FD_EXPORT fdtype fd_make_exception
+  (fd_exception c,u8_context cxt,u8_string details,fdtype content)
+{
+  struct FD_EXCEPTION_OBJECT *exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
+  u8_exception ex; void *xdata; u8_exception_xdata_freefn freefn;
+  if (FD_VOIDP(content)) {
+    xdata = NULL; freefn = NULL;}
+  else {
+    fd_incref(content);
+    xdata = (void *) content;
+    freefn = fd_free_exception_xdata;}
+  ex = u8_make_exception(c,cxt,u8dup(details),xdata,freefn);
+  FD_INIT_CONS(exo,fd_error_type);
+  exo->fdex_u8ex = ex;
+  return FDTYPE_CONS(exo);
+}
+
+static int dtype_exception(struct FD_OUTBUF *out,fdtype x)
+{
+  struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)x;
+  if (exo->fdex_u8ex == NULL) {
+    u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
+    fd_write_byte(out,dt_void);
+    return 1;}
+  else {
+    u8_exception ex = exo->fdex_u8ex;
+    fdtype irritant = fd_exception_xdata(ex);
+    int veclen = ((FD_VOIDP(irritant)) ? (3) : (4));
+    fdtype vector = fd_init_vector(NULL,veclen,NULL);
+    int n_bytes;
+    FD_VECTOR_SET(vector,0,fd_intern((u8_string)(ex->u8x_cond)));
+    if (ex->u8x_context) {
+      FD_VECTOR_SET(vector,1,fd_intern((u8_string)(ex->u8x_context)));}
+    else {FD_VECTOR_SET(vector,1,FD_FALSE);}
+    if (ex->u8x_details) {
+      FD_VECTOR_SET(vector,2,fdtype_string(ex->u8x_details));}
+    else {FD_VECTOR_SET(vector,2,FD_FALSE);}
+    if (!(FD_VOIDP(irritant)))
+      FD_VECTOR_SET(vector,3,fd_incref(irritant));
+    fd_write_byte(out,dt_exception);
+    n_bytes = 1+fd_write_dtype(out,vector);
+    fd_decref(vector);
+    return n_bytes;}
+}
+
+static u8_exception copy_exception_helper(u8_exception ex,int flags)
+{
+  u8_exception newex; u8_string details = NULL; fdtype irritant;
+  if (ex == NULL) return ex;
+  if (ex->u8x_details) details = u8_strdup(ex->u8x_details);
+  irritant = fd_exception_xdata(ex);
+  if (FD_VOIDP(irritant))
+    newex = u8_make_exception
+      (ex->u8x_cond,ex->u8x_context,details,NULL,NULL);
+  else if (flags)
+    newex = u8_make_exception
+      (ex->u8x_cond,ex->u8x_context,details,
+       (void *)fd_copier(irritant,flags),fd_free_exception_xdata);
+  else newex = u8_make_exception
+         (ex->u8x_cond,ex->u8x_context,details,
+          (void *)fd_incref(irritant),fd_free_exception_xdata);
+  newex->u8x_prev = copy_exception_helper(ex->u8x_prev,flags);
+  return newex;
+}
+
+static fdtype copy_exception(fdtype x,int deep)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
+  return fd_init_exception(NULL,copy_exception_helper(xo->fdex_u8ex,deep));
+}
+
+static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
+  u8_exception ex = xo->fdex_u8ex;
+  if (ex == NULL)
+    u8_printf(out,"#!!!OLDEXCEPTION");
+  else {
+    u8_exception ex = xo->fdex_u8ex;
+    fdtype irritant = fd_get_irritant(ex);
+    u8_printf(out,"#<!!EXCEPTION %s (%s)",
+	      ex->u8x_cond,ex->u8x_context);
+    if (ex->u8x_details)
+      u8_printf(out,"[%s]",ex->u8x_details);
+    if (!(FD_VOIDP(irritant))) {
+      if (max_irritant_len==0) {}
+      else if (max_irritant_len<0)
+	u8_printf(out," %q",irritant);
+      else {
+	u8_byte buf[max_irritant_len+1];
+	u8_sprintf(buf,max_irritant_len,"%q");
+	u8_printf(out," %s...",buf);}}
+    u8_printf(out,"!!>");}
+  return 1;
+}
+
 /* Converting signals to exceptions */
 
 struct sigaction sigaction_catch, sigaction_exit, sigaction_default;
@@ -480,6 +607,14 @@ static int sigconfig_default_setfn(fdtype var,fdtype val,void *data)
 void fd_init_err_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  fd_copiers[fd_error_type]=copy_exception;
+  if (fd_dtype_writers[fd_error_type]==NULL)
+    fd_dtype_writers[fd_error_type]=dtype_exception;
+  if (fd_unparsers[fd_error_type]==NULL)
+    fd_unparsers[fd_error_type]=unparse_exception;
+
+  stacktrace_symbol=fd_intern("%%STACK");
 
   /* Setup sigaction handler */
 

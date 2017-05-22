@@ -610,9 +610,7 @@ static int dtypeserver(u8_client ucl)
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
             u8_free(out.u8_outbuf);}}
       value = fd_make_exception
-        (ex->u8x_cond,ex->u8x_context,
-         ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
-         fd_incref(irritant));
+        (ex->u8x_cond,ex->u8x_context,ex->u8x_details,irritant);
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,

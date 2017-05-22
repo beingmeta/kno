@@ -121,6 +121,7 @@ FD_EXPORT U8_NOINLINE void fd_xseterr
 FD_EXPORT U8_NOINLINE void fd_raise
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 
+FD_EXPORT fdtype fd_get_irritant(u8_exception ex);
 
 #define fd_xseterr3(c,cxt,details) \
    fd_xseterr(c,cxt,details,FD_VOID)

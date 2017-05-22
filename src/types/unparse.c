@@ -476,20 +476,6 @@ static int unparse_uuid(u8_output out,fdtype x)
   return 1;
 }
 
-static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
-{
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
-  if (ex == NULL)
-    u8_printf(out,"#<!OLDEXCEPTION>");
-  else {
-    u8_printf(out,"#<!EXCEPTION ");
-    fd_sum_exception(out,xo->fdex_u8ex);
-    u8_printf(out,"!>");}
-  return 1;
-}
-
 static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_REGEX *rx = (struct FD_REGEX *)x;
@@ -569,9 +555,6 @@ FD_EXPORT void fd_init_unparse_c()
   fd_unparsers[fd_code_type]=unparse_code;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
-
-  if (fd_unparsers[fd_error_type]==NULL)
-    fd_unparsers[fd_error_type]=unparse_exception;
 
   if (fd_unparsers[fd_mystery_type]==NULL)
     fd_unparsers[fd_mystery_type]=unparse_mystery;

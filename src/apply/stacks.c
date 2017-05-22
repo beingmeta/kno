@@ -36,6 +36,21 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
 {
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
+    u8_string summary=NULL;
+    if ( (stack->stack_label) || (stack->stack_status) ) {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+      if (stack->stack_label)
+	u8_puts(&out,stack->stack_label);
+      if ( (stack->stack_status) &&
+	   (stack->stack_status!=stack->stack_label) ) {
+	u8_printf(&out,"(%s)",stack->stack_status);}
+      if (stack->stack_type)
+	u8_printf(&out,"<%s>",stack->stack_type);
+      summary=out.u8_outbuf;}
+    if (stack->stack_env) {
+      fdtype bindings = stack->stack_env->env_bindings;
+      if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
+	rep=fd_init_pair( NULL, fd_copy(bindings), rep);}}
     if ( stack->stack_args ) {
       fdtype *args=stack->stack_args;
       int i=0, n=stack->n_args;
@@ -51,10 +66,8 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
       rep=fd_init_pair(NULL,vec,rep);}
     else if (!(FD_VOIDP(stack->stack_op)))
       rep = fd_init_pair( NULL, fd_incref(stack->stack_op), rep);
-    if (stack->stack_env) {
-      fdtype bindings = stack->stack_env->env_bindings;
-      if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
-	rep=fd_init_pair( NULL, fd_copy(bindings), rep);}}
+    if (summary)
+      rep = fd_init_pair(NULL,fd_init_string(NULL,-1,summary),rep);
     stack=stack->stack_caller;}
   return rep;
 }

@@ -780,7 +780,9 @@ typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
-  FD_CONS_HEADER; u8_exception fdex_u8ex;} FD_EXCEPTION_OBJECT;
+  FD_CONS_HEADER;
+  u8_exception fdex_u8ex;}
+  FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
