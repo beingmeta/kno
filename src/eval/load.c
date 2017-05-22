@@ -118,11 +118,8 @@ static void restore_sourcebase(u8_string old)
 #endif
 
 static fdtype loading_symbol;
-static void record_error_source(u8_string sourceid)
-{
-  fdtype entry = fd_make_list(2,loading_symbol,fd_make_string(NULL,-1,sourceid));
-  fd_push_error_context("fd_load_source",sourceid,entry);
-}
+
+#define LOAD_CONTEXT_SIZE 128
 
 FD_EXPORT fdtype fd_load_source_with_date
   (u8_string sourceid,fd_lispenv env,u8_string enc_name,time_t *modtime)
@@ -134,6 +131,7 @@ FD_EXPORT fdtype fd_load_source_with_date
   u8_string content = fd_get_source(sourceid,encoding,&sourcebase,modtime);
   const u8_byte *input = content;
   double start = u8_elapsed_time();
+  struct FD_STACK *_stack = fd_stackptr;
   if (content == NULL) return FD_ERROR_VALUE;
   else outer_sourcebase = bind_sourcebase(sourcebase);
   if (errno) {
@@ -144,13 +142,18 @@ FD_EXPORT fdtype fd_load_source_with_date
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_NOTICE,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
+  FD_PUSH_STACK(load_stack,"loadsource",sourceid,FD_VOID);
   if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     /* This does a read/eval loop. */
+    u8_byte context_buf[LOAD_CONTEXT_SIZE];
     fdtype result = FD_VOID;
-    fdtype expr = fd_parse_expr(&stream), last_expr = FD_VOID;
+    fdtype expr = FD_VOID, last_expr = FD_VOID;
     double start_time;
+    fd_skip_whitespace(&stream);
+    load_stack->stack_status=
+      u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
       if ((trace_load_eval) ||
@@ -171,13 +174,13 @@ FD_EXPORT fdtype fd_load_source_with_date
                  "Error (%s:%s) in %s while evaluating %q",
                  ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
                  ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
-                 sourcebase,expr);
-          record_error_source(sourceid);}
+                 sourcebase,expr);}
         restore_sourcebase(outer_sourcebase);
         u8_free(sourcebase);
         u8_free(content);
         fd_decref(last_expr); last_expr = FD_VOID;
         fd_decref(expr);
+        fd_pop_stack(load_stack);
         return result;}
       else if ((trace_load_eval) ||
                (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
@@ -191,21 +194,25 @@ FD_EXPORT fdtype fd_load_source_with_date
           errno = 0;}}
       else {}
       fd_decref(last_expr); last_expr = expr;
+      fd_skip_whitespace(&stream);
+      load_stack->stack_status=
+        u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
       expr = fd_parse_expr(&stream);}
     if (expr == FD_EOF) {
-      fd_decref(last_expr); last_expr = FD_VOID;}
+      fd_decref(last_expr);
+      last_expr = FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
                 last_expr);
-      record_error_source(sourceid);
       fd_decref(result); /* This is the previous result */
       last_expr = FD_VOID;
       /* This is now also the result */
-      result = expr; fd_incref(expr);}
+      result = expr;
+      fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
       fd_decref(result);
-      result = expr; 
-      fd_incref(expr); 
+      result = expr;
+      fd_incref(expr);
       expr = FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
@@ -226,15 +233,19 @@ FD_EXPORT fdtype fd_load_source_with_date
     u8_free(sourcebase);
     u8_free(content);
     if (last_expr == expr) {
-      fd_decref(last_expr); last_expr = FD_VOID;}
+      fd_decref(last_expr);
+      last_expr = FD_VOID;}
     else {
-      fd_decref(expr); fd_decref(last_expr);
-      expr = FD_VOID; last_expr = FD_VOID;}
+      fd_decref(expr);
+      fd_decref(last_expr);
+      expr = FD_VOID;
+      last_expr = FD_VOID;}
     if (errno) {
       u8_log(LOG_WARN,"UnexpectedErrno",
              "Dangling errno value %d (%s) after loading %s",
              errno,u8_strerror(errno),sourceid);
       errno = 0;}
+    fd_pop_stack(load_stack);
     return result;}
 }
 

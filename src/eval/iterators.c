@@ -67,7 +67,7 @@ static fdtype until_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 /* Parsing for more complex iterations. */
 
 static fdtype parse_control_spec
-  (fdtype expr,fdtype *value,fdtype *count_var,
+  (fdtype expr,fdtype *varp,fdtype *count_var,
    fd_lispenv env,fd_stack _stack)
 {
   fdtype control_expr = fd_get_arg(expr,1);
@@ -89,8 +89,8 @@ static fdtype parse_control_spec
                     _("identifier is not a symbol"),NULL,control_expr);
     val = fast_eval(val_expr,env);
     if (FD_ABORTED(val)) return val;
-    *value = val; if (count_var) *count_var = ivar;
-    return var;}
+    *varp = var; if (count_var) *count_var = ivar;
+    return val;}
 }
 
 /* DOTIMES */
@@ -98,8 +98,8 @@ static fdtype parse_control_spec
 static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, limit;
-  fdtype limit_val;
-  fdtype var = parse_control_spec(expr,&limit_val,NULL,env,_stack);
+  fdtype var, limit_val=
+    parse_control_spec(expr,&var,NULL,env,_stack);;
   fdtype body = fd_get_body(expr,2);
   if (FD_ABORTED(var)) return var;
   else if (!(FD_UINTP(limit_val)))
@@ -125,12 +125,14 @@ static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0, lim, islist = 0;
-  fdtype seq, count_var = FD_VOID;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
+  fdtype var, count_var = FD_VOID;
+  fdtype seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
   fdtype pairscan = FD_VOID;
-  if (FD_ABORTED(var)) return var;
-  else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
+  if (FD_ABORTED(var))
+    return var;
+  else if (FD_EMPTY_CHOICEP(seq))
+    return FD_VOID;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","doseq_evalfn",seq);
   else lim = fd_seq_length(seq);
@@ -138,10 +140,10 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     fd_decref(seq);
     return FD_VOID;}
   INIT_STACK_ENV(doseq,env,2);
+  FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
   if (FD_PAIRP(seq)) {
     pairscan = seq;
     islist = 1;}
-  FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
   doseq_vars[0]=var;
   if (FD_SYMBOLP(count_var))
     doseq_vars[1]=count_var;
@@ -158,6 +160,7 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     reset_env(doseq);
     fd_decref(doseq_vals[0]);
     doseq_vals[0]=FD_VOID;
+    doseq_vals[1]=FD_VOID;
     if (islist) pairscan = FD_CDR(pairscan);
     i++;}
   _return FD_VOID;
@@ -168,23 +171,29 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   size_t i = 0, lim=0; int islist=0;
-  fdtype seq, count_var = FD_VOID, *iterval = NULL, *results, result;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
+  fdtype var, count_var = FD_VOID, *results, result=FD_VOID;
+  fdtype seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2), pairscan=FD_VOID;
   if (FD_ABORTED(var)) return var;
-  else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
-  else if (FD_EMPTY_LISTP(seq)) return seq;
+  else if (FD_EMPTY_CHOICEP(seq))
+    return FD_EMPTY_CHOICE;
+  else if (FD_EMPTY_LISTP(seq))
+    return seq;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","forseq_evalfn",seq);
   else lim = fd_seq_length(seq);
-  if (lim==0) return fd_incref(seq);
-  if (FD_PAIRP(seq)) {islist = 1; pairscan = seq;}
+  if (lim==0)
+    return seq;
+  else if (FD_PAIRP(seq)) {
+    islist = 1;
+    pairscan = seq;}
+  else {}
   INIT_STACK_ENV(forseq,env,2);
+  FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
   forseq_vars[0]=var;
   if (FD_SYMBOLP(count_var)) {
     forseq_vars[1]=count_var;
-    forseq_vals[1]=FD_FIXZERO;
-    iterval = &(forseq_vals[1]);}
+    forseq_vals[1]=FD_FIXZERO;}
   else forseq_bindings.schema_length=1;
   results = fd_init_elts(NULL,lim,FD_VOID);
   fd_push_cleanup(_stack,FD_FREE_VEC,results,&lim);
@@ -192,17 +201,20 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     fdtype elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
     fdtype val = FD_VOID;
     forseq_vals[0]=elt;
-    if (iterval) *iterval = FD_INT(i);
+    forseq_vals[1]=FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val = fast_eval(subexpr,forseq);
         if (FD_EXPECT_FALSE (FD_ABORTP(val)) )
           _return val;}}
-    reset_env(forseq);
     results[i]=val;
+    reset_env(forseq);
+    fd_decref(forseq_vals[0]);
+    forseq_vals[0]=FD_VOID;
+    forseq_vals[1]=FD_VOID;
     if (islist) pairscan = FD_CDR(pairscan);
     i++;}
-  result = fd_makeseq(FD_PTR_TYPE(seq),lim,results);
+  result=fd_makeseq(FD_PTR_TYPE(seq),lim,results);
   _return result;
 }
 
@@ -211,35 +223,44 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   size_t i = 0, lim=0; int islist=0;
-  fdtype seq, count_var = FD_VOID, *iterval = NULL;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
+  fdtype var, count_var = FD_VOID;
+  fdtype seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2), pairscan=FD_VOID;
-  if (FD_ABORTED(var)) return var;
-  else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
-  else if (FD_EMPTY_LISTP(seq)) return seq;
+  if (FD_ABORTED(var))
+    return var;
+  else if (FD_EMPTY_CHOICEP(seq))
+    return FD_EMPTY_CHOICE;
+  else if (FD_EMPTY_LISTP(seq))
+    return seq;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","tryseq_evalfn",seq);
   else lim = fd_seq_length(seq);
-  if (lim==0) return fd_incref(seq);
-  if (FD_PAIRP(seq)) {islist = 1; pairscan = seq;}
+  if (lim==0) return seq;
+  else if (FD_PAIRP(seq)) {
+    islist = 1;
+    pairscan = seq;}
+  else {}
   INIT_STACK_ENV(tryseq,env,2);
   tryseq_vars[0]=var;
+  FD_ADD_TO_CHOICE((_stack->stack_vals),seq);
   if (FD_SYMBOLP(count_var)) {
     tryseq_vars[1]=count_var;
-    tryseq_vals[1]=FD_FIXZERO;
-    iterval = &(tryseq_vals[1]);}
+    tryseq_vals[1]=FD_FIXZERO;}
   else tryseq_bindings.schema_length=1;
   while ( i < lim ) {
     fdtype elt = (islist) ? (fd_refcar(pairscan)) : (fd_seq_elt(seq,i));
     fdtype val = FD_VOID;
     tryseq_vals[0]=elt;
-    if (iterval) *iterval = FD_INT(i);
+    tryseq_vals[1]=FD_INT(i);
     {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val = fast_eval(subexpr,tryseq);
         if (FD_EXPECT_FALSE (FD_ABORTP(val)) )
           _return val;}}
     reset_env(tryseq);
+    fd_decref(tryseq_vals[0]);
+    tryseq_vals[0]=FD_VOID;
+    tryseq_vals[1]=FD_VOID;
     if (! (FD_EMPTY_CHOICEP(val)) )
       _return val;
     else {
@@ -253,13 +274,16 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   int i = 0;
-  fdtype seq, count_var = FD_VOID;
-  fdtype var = parse_control_spec(expr,&seq,&count_var,env,_stack);
+  fdtype var, count_var = FD_VOID;
+  fdtype seq = parse_control_spec(expr,&var,&count_var,env,_stack);
   fdtype body = fd_get_body(expr,2);
   fdtype pairscan = FD_VOID;
-  if (FD_ABORTED(var)) return var;
-  else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
-  else if (FD_EMPTY_LISTP(seq)) return FD_VOID;
+  if (FD_ABORTED(var))
+    return var;
+  else if (FD_EMPTY_CHOICEP(seq))
+    return FD_VOID;
+  else if (FD_EMPTY_LISTP(seq))
+    return FD_VOID;
   else if (!(FD_PAIRP(seq)))
     return fd_type_error("pair","dolist_evalfn",seq);
   else pairscan = seq;
@@ -281,6 +305,7 @@ static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     reset_env(dolist);
     fd_decref(dolist_vals[0]);
     dolist_vals[0]=FD_VOID;
+    dolist_vals[1]=FD_VOID;
     pairscan = FD_CDR(pairscan);
     i++;}
   _return FD_VOID;
