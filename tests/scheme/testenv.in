@@ -1,0 +1,19 @@
+#!/bin/sh
+
+if test $# -eq 0; then
+   echo "Usage: testenv <program> [args...]";
+   exit;
+fi
+
+PROGNAME=$1; shift;
+LOGFILE=$$.log
+
+if test ! -z ${PREAMBLE}; then
+   echo "TEST: " ${PROGNAME} $*;
+fi;
+
+. ./runenv.sh
+
+exec ${PROGNAME} $*
+
+
