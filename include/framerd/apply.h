@@ -15,8 +15,6 @@
 
 FD_EXPORT fd_exception fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;
 
-FD_EXPORT u8_context fd_apply_context;
-
 FD_EXPORT int fd_wrap_apply;
 
 #ifndef FD_WRAP_APPLY_DEFAULT

@@ -29,6 +29,38 @@ fdtype find_module_id( fd_lispenv env )
   else return find_module_id(env->env_parent);
 }
 
+static void free_environment(struct FD_ENVIRONMENT *env)
+{
+  /* There are three cases:
+        a simple static environment (env->env_copy == NULL)
+        a static environment copied into a dynamic environment
+          (env->env_copy!=env)
+        a dynamic environment (env->env_copy == env->env_copy)
+  */
+  if (env->env_copy)
+    if (env == env->env_copy)
+      fd_recycle_environment(env->env_copy);
+    else {
+      struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
+      int i = 0, n = FD_XSCHEMAP_SIZE(sm); 
+      fdtype *vals = sm->schema_values;
+      while (i < n) {
+        fdtype val = vals[i++];
+        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+          fd_decref(val);}}
+      u8_destroy_rwlock(&(sm->table_rwlock));
+      fd_recycle_environment(env->env_copy);}
+  else {
+    struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
+    int i = 0, n = FD_XSCHEMAP_SIZE(sm);
+    fdtype *vals = sm->schema_values;
+    while (i < n) {
+      fdtype val = vals[i++];
+      if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+        fd_decref(val);}}
+    u8_destroy_rwlock(&(sm->table_rwlock));}
+}
+
 FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
                            fdtype expr,int offset,
                            fd_lispenv inner_env,

@@ -72,8 +72,6 @@ fd_exception
   fd_CantBind=_("can't add binding to environment"),
   fd_ReadOnlyEnv=_("Read only environment");
 
-u8_context fd_eval_context="EVAL";
-
 /* Environment functions */
 
 static int bound_in_envp(fdtype symbol,fd_lispenv env)

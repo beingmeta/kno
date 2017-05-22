@@ -43,8 +43,6 @@ fd_applyfn fd_applyfns[FD_TYPE_MAX];
 /* This is set if the type is a CONS with a FUNCTION header */
 short fd_functionp[FD_TYPE_MAX];
 
-u8_condition fd_apply_context="APPLY";
-
 fd_exception fd_NotAFunction=_("calling a non function");
 fd_exception fd_TooManyArgs=_("too many arguments");
 fd_exception fd_TooFewArgs=_("too few arguments");

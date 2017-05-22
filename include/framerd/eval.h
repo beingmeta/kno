@@ -29,8 +29,6 @@ FD_EXPORT int fd_load_scheme(void) FD_LIBINIT0_FN;
 FD_EXPORT int fd_init_scheme(void);
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
-FD_EXPORT u8_context fd_eval_context;
-
 FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
 #define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
