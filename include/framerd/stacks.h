@@ -83,6 +83,21 @@ typedef struct FD_ENVIRONMENT *fd_lispenv;
   FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
   set_call_stack(name)
 
+#define FD_ALLOCA_STACK(name)					\
+  name=alloca(sizeof(struct FD_STACK));				\
+  memset(name,0,sizeof(struct FD_STACK));			\
+  name->stack_caller = fd_stackptr;				\
+  if (name->stack_caller)					\
+    name->stack_depth=1+name->stack_caller->stack_depth;	\
+  if (name->stack_caller)					\
+    name->stack_root=name->stack_caller->stack_root;		\
+  name->stack_type = "alloca";					\
+  name->stack_vals = FD_EMPTY_CHOICE;				\
+  name->stack_op = FD_VOID;					\
+  name->cleanups = name->_cleanups;				\
+  name->stack_live=1; \
+  set_call_stack(name)
+
 
 #if (U8_USE_TLS)
 FD_EXPORT u8_tld_key fd_stackptr_key;
