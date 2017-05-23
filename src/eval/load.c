@@ -147,13 +147,12 @@ FD_EXPORT fdtype fd_load_source_with_date
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     /* This does a read/eval loop. */
-    u8_byte context_buf[LOAD_CONTEXT_SIZE];
+    u8_byte context_buf[LOAD_CONTEXT_SIZE+1];
     fdtype result = FD_VOID;
     fdtype expr = FD_VOID, last_expr = FD_VOID;
     double start_time;
     fd_skip_whitespace(&stream);
-    load_stack->stack_status=
-      u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
+    load_stack->stack_status=context_buf; context_buf[0]='\0';
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
       if ((trace_load_eval) ||
@@ -195,9 +194,13 @@ FD_EXPORT fdtype fd_load_source_with_date
       else {}
       fd_decref(last_expr); last_expr = expr;
       fd_skip_whitespace(&stream);
+      size_t n_bytes=stream.u8_inlim-stream.u8_read;
+      if (n_bytes>=LOAD_CONTEXT_SIZE) n_bytes=LOAD_CONTEXT_SIZE;
       load_stack->stack_status=
-        u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
+        u8_string2buf(stream.u8_read,context_buf,n_bytes);
       expr = fd_parse_expr(&stream);}
+    load_stack->stack_status=
+      u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
     if (expr == FD_EOF) {
       fd_decref(last_expr);
       last_expr = FD_VOID;}
