@@ -1907,20 +1907,33 @@ static fdtype get_documentation(fdtype x)
 FD_EXPORT fdtype _fd_dbg(fdtype x)
 {
   fdtype result=_fd_debug(x);
-  return fd_incref(result);
+  if (result == x)
+    return result;
+  else {
+    fd_incref(result);
+    fd_decref(x);
+    return result;}
 }
 
 void (*fd_dump_backtrace)(u8_string bt);
 
-static fdtype dbg_prim(fdtype x,fdtype msg)
+static fdtype dbg_evalfn(fdtype expr,fd_lispenv env)
 {
-  if (FD_VOIDP(msg))
-    u8_message("Debug %q",x);
-  else if (FD_FALSEP(msg)) {}
-  else if (FD_VOIDP(x))
-    u8_message("Debug called");
-  else u8_message("Debug (%q) %q",msg,x);
-  return _fd_dbg(x);
+  fdtype arg_expr=fd_get_arg(expr,1);
+  fdtype msg_expr=fd_get_arg(expr,2);
+  fdtype arg=fd_eval(arg_expr,env);
+  if (FD_VOIDP(msg_expr))
+    u8_message("Debug %q",arg);
+  else {
+    fdtype msg=fd_eval(msg_expr,env);
+    if (FD_VOIDP(msg_expr))
+      u8_message("Debug %q",arg);
+    else if (FD_FALSEP(msg)) {}
+    else if (FD_VOIDP(arg))
+      u8_message("Debug called");
+    else u8_message("Debug (%q) %q",msg,arg);
+    fd_decref(msg);}
+  return _fd_dbg(arg);
 }
 
 static fdtype void_prim(int n,fdtype *args)
@@ -2287,8 +2300,7 @@ static void init_localfns()
            fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("DBG",dbg_prim,0)));
+  fd_defspecial(fd_scheme_module,"DBG",dbg_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
 
