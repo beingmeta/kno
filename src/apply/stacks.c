@@ -80,9 +80,10 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
   return rep;
 }
 
-FD_EXPORT void fd_init_stacks_c()
+void fd_init_stacks_c()
 {
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_stackptr_key,NULL);
 #endif
+  fd_stackptr=NULL;
 }
