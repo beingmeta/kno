@@ -370,7 +370,7 @@ APXS=$with_apxs
 
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AC_PROG_CC([cc gcc])
+AC_PROG_CC([cc gcc clang])
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_PROG_INSTALL
@@ -645,31 +645,8 @@ elif test "$with_malloc" = "asan"; then
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
-elif test "$with_malloc" = "asan_leak"; then
-   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
-   asan="leak";
-elif test "$with_malloc" = "asan_memory"; then
-   CC=$CLANG
-   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="msan-full"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-   asan="memory"
 elif test "$with_malloc" = "asan_thread"; then
-   CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
    LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
@@ -678,7 +655,7 @@ elif test "$with_malloc" = "asan_thread"; then
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
-   AC_MSG_ERROR(Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread asan_memory asan_leak)
+   AC_MSG_ERROR(Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread)
    exit 1;
 fi
 
