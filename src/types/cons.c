@@ -43,6 +43,8 @@ fd_compare_fn fd_comparators[FD_TYPE_MAX];
 static u8_mutex constant_registry_lock;
 int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 
+fdtype fd_compound_descriptor_type;
+
 ssize_t fd_max_strlen = -1;
 
 const char *fd_constant_names[256]={
@@ -603,10 +605,8 @@ FD_EXPORT fdtype fd_bytes2packet
 
 /* Compounds */
 
-fdtype fd_compound_descriptor_type;
-
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,...)
+  (struct FD_COMPOUND *p,fdtype tag,int ismutable,int n,...)
 {
   va_list args; int i = 0; fdtype *write, *limit, initfn = FD_FALSE;
   if (FD_EXPECT_FALSE((n<0)||(n>=256))) {
@@ -620,9 +620,9 @@ FD_EXPORT fdtype fd_init_compound
     if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
     else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) u8_init_mutex(&(p->compound_lock));
-  p->compound_typetag = fd_incref(tag); 
-  p->compound_ismutable = mutable; 
+  if (ismutable) u8_init_mutex(&(p->compound_lock));
+  p->compound_typetag = fd_incref(tag);
+  p->compound_ismutable = ismutable;
   p->compound_isopaque = 0;
   p->fd_n_elts = n;
   if (n>0) {
@@ -641,7 +641,7 @@ FD_EXPORT fdtype fd_init_compound
 }
 
 FD_EXPORT fdtype fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts)
+  (struct FD_COMPOUND *p,fdtype tag,int ismutable,int n,fdtype *elts)
 {
   fdtype *write, *limit, *read = elts, initfn = FD_FALSE;
   if (FD_EXPECT_FALSE((n<0) || (n>=256)))
@@ -652,9 +652,9 @@ FD_EXPORT fdtype fd_init_compound_from_elts
       p = u8_malloc(sizeof(struct FD_COMPOUND));
     else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) u8_init_mutex(&(p->compound_lock));
+  if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);
-  p->compound_ismutable = mutable;
+  p->compound_ismutable = ismutable;
   p->fd_n_elts = n;
   p->compound_isopaque = 0;
   if (n>0) {
@@ -905,8 +905,8 @@ void fd_init_cons_c()
 
   fd_compound_descriptor_type=
     fd_init_compound
-    (NULL,FD_VOID,9,
-     fd_intern("COMPOUNDTYPE"),FD_INT(9),
+    (NULL,FD_VOID,1,9,
+     fd_intern("COMPOUNDTYPE"),0,FD_INT(9),
      fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
                      fd_intern("FIELDS"),fd_intern("INITFN"),
                      fd_intern("FREEFN"),fd_intern("COMPAREFN"),

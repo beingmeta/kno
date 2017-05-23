@@ -65,6 +65,17 @@ typedef struct FD_STACK {
 typedef struct FD_ENVIRONMENT *fd_environment;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
+#if (U8_USE_TLS)
+FD_EXPORT u8_tld_key fd_stackptr_key;
+#define fd_stackptr ((struct FD_STACK *)(u8_tld_get(fd_stackptr_key)))
+#define set_call_stack(s) u8_tld_set(fd_stackptr_key,(s))
+#elif (U8_USE__THREAD)
+FD_EXPORT __thread struct FD_STACK *fd_stackptr;
+#define set_call_stack(s) fd_stackptr = s
+#else
+#define set_call_stack(s) fd_stackptr = s
+#endif
+
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
   struct FD_STACK _ ## name, *name=&_ ## name;		\
   memset(&_ ## name,0,sizeof(struct FD_STACK));		\
@@ -104,17 +115,15 @@ typedef struct FD_ENVIRONMENT *fd_lispenv;
   name->stack_live=1; \
   set_call_stack(name)
 
+#define FD_INIT_STACK()				\
+  fd_init_cstack();				\
+  set_call_stack(((fd_stack)NULL))
 
-#if (U8_USE_TLS)
-FD_EXPORT u8_tld_key fd_stackptr_key;
-#define fd_stackptr ((struct FD_STACK *)(u8_tld_get(fd_stackptr_key)))
-#define set_call_stack(s) u8_tld_set(fd_stackptr_key,(s))
-#elif (U8_USE__THREAD)
-FD_EXPORT __thread struct FD_STACK *fd_stackptr;
-#define set_call_stack(s) fd_stackptr = s
-#else
-#define set_call_stack(s) fd_stackptr = s
-#endif
+#define FD_INIT_THREAD_STACK()				\
+  fd_init_cstack();					\
+  u8_byte label[128];					\
+  u8_sprintf(label,128,"thread%d",u8_threadid());	\
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",label,FD_VOID)
 
 FD_EXPORT void _fd_free_stack(struct FD_STACK *stack);
 FD_EXPORT void _fd_pop_stack(struct FD_STACK *stack);

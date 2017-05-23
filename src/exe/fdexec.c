@@ -166,6 +166,8 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
 
   fd_init_libfdtype();
 
+  FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],FD_VOID);
+
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 
   if (u8_appid() == NULL) {
@@ -183,6 +185,8 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
 
   if (source_filep == NULL) u8_free(source_file);
   if (exe_namep == NULL) u8_free(exe_name);
+
+  fd_pop_stack(_stack);
 
   return args;
 }
@@ -349,15 +353,24 @@ int do_main(int argc,char **argv,
 int main(int argc,char **argv)
 {
   u8_string source_file = NULL, exe_name = NULL;
-  fdtype *args = NULL; size_t n_args = 0; 
+  fdtype *args = NULL; size_t n_args = 0;
   int i = 0, retval = 0;
 
   fd_main_errno_ptr = &errno;
+
   FD_INIT_STACK();
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdexec",NULL,FD_VOID);
+  u8_string appid=u8_appid();
+  if (appid==NULL) appid=argv[0];
+  _stack->stack_label=u8_strdup(appid);
+  _stack->stack_free_label=1;
+
   retval = do_main(argc,argv,exe_name,source_file,args,n_args);
+
+  fd_pop_stack(_stack);
 
   i = 0; while (i<n_args) {
     fdtype arg = args[i++]; fd_decref(arg);}

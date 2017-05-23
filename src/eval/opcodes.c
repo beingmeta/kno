@@ -881,12 +881,15 @@ static fdtype bindop(struct FD_STACK *_stack,fd_lispenv env,
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,FD_VECTOR_DATA(vars));
   fdtype *values=bound_bindings.schema_values;
   fdtype *exprs=FD_VECTOR_DATA(inits);
+  fd_lispenv env_copy=NULL;
   while (i<n) {
     fdtype val_expr=exprs[i];
     fdtype val=op_eval(val_expr,bound,bind_stack,0);
-    if (FD_ABORTED(val))
-      _return val;
-    else values[i++]=val;}
+    if (FD_ABORTED(val)) _return val;
+    if ( (env_copy == NULL) && (bound->env_copy) ) {
+      env_copy=bound->env_copy; bound=env_copy;
+      values=((fd_schemap)(bound->env_bindings))->schema_values;}
+    values[i++]=val;}
   fdtype result = op_eval_body(body,bound,_stack,tail);
   _return result;
 }

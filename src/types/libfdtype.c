@@ -133,6 +133,7 @@ FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
 FD_EXPORT void fd_init_sequences_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
+FD_EXPORT void fd_init_stacks_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 FD_EXPORT void fd_init_build_info(void);
 
@@ -212,6 +213,7 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_numbers_c();
   fd_init_choices_c();
   fd_init_bloom_c();
+  fd_init_stacks_c();
   fd_init_apply_c();
   fd_init_sequences_c();
   fd_init_fcnids_c();

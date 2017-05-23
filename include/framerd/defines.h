@@ -202,7 +202,7 @@ typedef int fd_size_t;
 #define HAVE_THREAD_STORAGE_CLASS 0
 #endif
 
-#if ( (FD_FORCE_TLS) || (!(HAVE_THREAD_STORAGE_CLASS)))
+#if ( (FD_FORCE_TLS) || (U8_USE_TLS) || (!(HAVE_THREAD_STORAGE_CLASS)))
 #define FD_USE_TLS 1
 #define FD_USE__THREAD 0
 #define FD_HAVE_THREADS 1

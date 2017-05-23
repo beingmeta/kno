@@ -954,6 +954,8 @@ int main(int argc,char **argv)
 
   fd_main_errno_ptr = &errno;
 
+  FD_INIT_STACK();
+
   server_sigmask = fd_default_sigmask;
   sigactions_init();
 
@@ -1079,6 +1081,10 @@ int main(int argc,char **argv)
 
   /* Now process all the configuration arguments */
   fd_handle_argv(argc,argv,arg_mask,NULL);
+
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdserver",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
 
   /* Store server initialization information in the configuration
      environment. */

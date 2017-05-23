@@ -31,6 +31,14 @@
 
 #include <stdarg.h>
 
+#if (FD_USE_TLS)
+u8_tld_key fd_stackptr_key;
+#elif (U8_USE__THREAD)
+__thread struct FD_STACK *fd_stackptr=NULL;
+#else
+struct FD_STACK *fd_stackptr=NULL;
+#endif
+
 FD_EXPORT
 fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
 {
@@ -74,4 +82,7 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
 
 FD_EXPORT void fd_init_stacks_c()
 {
+#if (FD_USE_TLS)
+  u8_new_threadkey(&fd_stackptr_key,NULL);
+#endif
 }

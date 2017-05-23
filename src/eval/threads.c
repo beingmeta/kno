@@ -276,6 +276,11 @@ static void *thread_call(void *data)
 
   FD_INIT_STACK();
 
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",NULL,FD_VOID);
+  _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
+  _stack->stack_free_label=1;
+  tstruct->thread_stackptr=_stack;
+
   /* Set (block) most signals */
   pthread_sigmask(SIG_SETMASK,fd_default_sigmask,NULL);
 
@@ -359,6 +364,7 @@ static void *thread_call(void *data)
     fd_free_environment(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
   fd_decref((fdtype)tstruct);
+  fd_pop_stack(_stack);
   return NULL;
 }
 

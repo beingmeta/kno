@@ -542,9 +542,9 @@ FD_EXPORT ssize_t stack_limit;
 FD_EXPORT ssize_t fd_stack_setsize(ssize_t limit);
 FD_EXPORT ssize_t fd_stack_resize(double factor);
 FD_EXPORT int fd_stackcheck(void);
-FD_EXPORT ssize_t fd_init_stack(void);
+FD_EXPORT ssize_t fd_init_cstack(void);
 
-#define FD_INIT_STACK() fd_init_stack()
+#define FD_INIT_CSTACK() fd_init_cstack()
 
 /* Profiling */
 

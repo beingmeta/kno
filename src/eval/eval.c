@@ -1680,7 +1680,7 @@ FD_EXPORT fdtype _fd_dbg(fdtype x)
 
 void (*fd_dump_backtrace)(u8_string bt);
 
-static fdtype dbg_evalfn(fdtype expr,fd_lispenv env)
+static fdtype dbg_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
 {
   fdtype arg_expr=fd_get_arg(expr,1);
   fdtype msg_expr=fd_get_arg(expr,2);
@@ -2077,8 +2077,7 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"EVALTEST",evaltest_evalfn);
 
   fd_defspecial(fd_scheme_module,"DBG",dbg_evalfn);
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
+  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
   fd_defspecial(fd_scheme_module,"DEFAULT",default_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));

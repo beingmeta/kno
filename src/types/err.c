@@ -87,7 +87,6 @@ FD_EXPORT fdtype fd_get_irritant(u8_exception ex)
 {
   fdtype irritant = (ex->u8x_free_xdata == fd_free_exception_xdata) ?
     ((fdtype) ex->u8x_xdata) : (FD_VOID);
-  fdtype use_irritant;
   if (FD_VOIDP(irritant))
     return irritant;
   if ((FD_PAIRP(irritant)) && (FD_PAIRP(FD_CDR(irritant))) &&

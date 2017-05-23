@@ -716,7 +716,7 @@ int main(int argc,char **argv)
   fd_lispenv env = fd_working_environment();
 
   fd_main_errno_ptr = &errno;
-  FD_INIT_STACK();
+  FD_INIT_CSTACK();
 
   if (getenv("FD_SKIP_DOTLOAD")) dotload = 0;
 
@@ -845,6 +845,10 @@ int main(int argc,char **argv)
       source_file = argv[i++];}}
 
   fd_handle_argv(argc,argv,arg_mask,NULL);
+
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdconsole",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
 
   stop_file=fd_runbase_filename(".stop");
   fd_register_config

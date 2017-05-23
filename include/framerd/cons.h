@@ -637,9 +637,9 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
 
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *ptr,fdtype tag,u8_byte mutable,short n,...);
+  (struct FD_COMPOUND *ptr,fdtype tag,int mutable,int n,...);
 FD_EXPORT fdtype fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts);
+  (struct FD_COMPOUND *p,fdtype tag,int mutable,int n,fdtype *elts);
 
 
 FD_EXPORT fdtype fd_compound_descriptor_type;

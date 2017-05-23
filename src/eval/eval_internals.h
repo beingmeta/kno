@@ -29,7 +29,8 @@ fdtype find_module_id( fd_lispenv env )
   else return find_module_id(env->env_parent);
 }
 
-static void free_environment(struct FD_ENVIRONMENT *env)
+static U8_MAYBE_UNUSED
+void free_environment(struct FD_ENVIRONMENT *env)
 {
   /* There are three cases:
         a simple static environment (env->env_copy == NULL)

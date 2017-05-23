@@ -186,7 +186,7 @@ FD_EXPORT int fd_stackcheck()
 
 /* Initialize stack limits */
 
-FD_EXPORT ssize_t fd_init_stack()
+FD_EXPORT ssize_t fd_init_cstack()
 {
   u8_init_stack();
   if (FD_VOIDP(fd_default_stackspec)) {
@@ -213,19 +213,11 @@ FD_EXPORT ssize_t fd_init_stack()
 
 static int init_thread_stack_limit()
 {
-  fd_init_stack();
+  fd_init_cstack();
   return 1;
 }
 
 /* Call stack (not used yet) */
-
-#if (U8_USE_TLS)
-u8_tld_key fd_stackptr_key;
-#elif (U8_USE__THREAD)
-__thread struct FD_STACK *fd_stackptr = NULL;
-#else
-struct FD_STACK *fd_stackptr = NULL;
-#endif
 
 FD_EXPORT void _fd_free_stack(struct FD_STACK *stack)
 {
@@ -560,7 +552,7 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,
                            u8_string name,fd_function f,int n,
                            fdtype *argvec)
 {
-  fdtype fnptr = (fdtype)f, arity=f->fcn_arity;
+  fdtype fnptr = (fdtype)f; int arity=f->fcn_arity;
   if (FD_EXPECT_FALSE(n<0))
     return fd_err(_("Negative arg count"),"apply_fcn",name,fnptr);
   else if (arity<0) { /* Is a LEXPR */
@@ -1117,7 +1109,6 @@ FD_EXPORT void fd_init_apply_c()
 
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_stack_limit_key,NULL);
-  u8_new_threadkey(&fd_stackptr_key,NULL);
 #endif
 
   fd_unparsers[fd_tailcall_type]=unparse_tail_call;

@@ -332,6 +332,7 @@ typedef struct FD_CONTINUATION *fd_continuation;
 typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER; int flags; pthread_t tid; 
   int *errnop; double started, finished;
+  struct FD_STACK *thread_stackptr;
   fdtype *resultptr, result;
   pthread_attr_t attr;
   union {
