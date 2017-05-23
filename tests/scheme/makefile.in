@@ -202,12 +202,22 @@ cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 schemetest schemetests scheme: r4rs exceptions choices sequences numvecs \
 	picktest cachecall texttools fdweb timefns threads i18n misc gctests \
 	xml crypto
-optscheme: scheme
+optscheme:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
 	@${RUN} ${FDX} TESTOPTIMIZED=yes r4rs.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes choicetest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes seqtest.scm ${RUNCONF}
 	@${RUN} ${FDX} TESTOPTIMIZED=yes misctest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes exceptions.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes picktest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes cachecall.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes timefns.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes i18n.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes numvecs.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes threadtest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes gctests.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes xmltest.scm ${RUNCONF}
+	@${RUN} ${FDX} TESTOPTIMIZED=yes texttest.scm ${RUNCONF}
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 
 loadmods load_modules:
@@ -682,6 +692,14 @@ optimize_modules_leaktest:
 	@${header} "■■■■■■■■ Running leak tests on optimized builtin modules"
 	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" optimize_modules
 	@${header} "■■■■■■■■ Finished leak tests on optimized builtin modules"
+
+optscheme_leaktest:
+	@${header} "■■■■■■■■ Leak checking the optimized scheme tests"
+	make TESTPROG="${LEAKTESTER}" TEST_ENV="${LEAKTEST_ENV}" \
+			RUNCONF="${LEAKCONF}" TESTSIZE="${SMALLTESTSIZE}" \
+		optscheme
+	@${header} "■■■■■■■■ Finished leak checking for optimized scheme tests"
+
 
 .PHONY: leaktest leaktest
 .PHONY:	all_leaktest scheme_leaktest table_leaktests
