@@ -4167,7 +4167,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test -n "$ac_tool_prefix"; then
-  for ac_prog in cc gcc
+  for ac_prog in cc gcc clang
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -4211,7 +4211,7 @@ fi
 fi
 if test -z "$CC"; then
   ac_ct_CC=$CC
-  for ac_prog in cc gcc
+  for ac_prog in cc gcc clang
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -6704,33 +6704,8 @@ elif test "$with_malloc" = "asan"; then
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
-elif test "$with_malloc" = "asan_leak"; then
-   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan_leak"
-   using_malloc="asan_leak"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $test_env";
-   leaktester_env="ASAN_OPTIONS=detect_leaks=1 ${leaktester_env}";
-   asan="leak";
-elif test "$with_malloc" = "asan_memory"; then
-   CC=$CLANG
-   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="asan_memory"
-   using_malloc="asan_memory"
-   test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
-   asan="memory"
 elif test "$with_malloc" = "asan_thread"; then
-   CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
    LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
@@ -6740,7 +6715,7 @@ elif test "$with_malloc" = "asan_thread"; then
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
 else
-   as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread asan_memory asan_leak" "$LINENO" 5
+   as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread" "$LINENO" 5
    exit 1;
 fi
 
