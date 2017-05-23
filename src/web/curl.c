@@ -414,6 +414,7 @@ static fdtype set_curlopt
   else if (FD_EQ(opt,useragent_symbol))
     if (FD_STRINGP(val))
       curl_easy_setopt(ch->handle,CURLOPT_USERAGENT,FD_STRDATA(val));
+    else if (FD_FALSEP(val)) {}
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,authinfo_symbol))
     if (FD_STRINGP(val)) {
