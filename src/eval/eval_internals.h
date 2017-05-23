@@ -120,8 +120,6 @@ FD_FASTOP fd_lispenv init_static_env
    struct FD_SCHEMAP *bindings,struct FD_ENVIRONMENT *envstruct,
    fdtype *vars,fdtype *vals)
 {
-  int i = 0; while (i < n) {
-    vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
   memset(envstruct,0,sizeof(struct FD_ENVIRONMENT));
   memset(bindings,0,sizeof(struct FD_SCHEMAP));
   FD_INIT_STATIC_CONS(envstruct,fd_environment_type);
@@ -138,12 +136,13 @@ FD_FASTOP fd_lispenv init_static_env
   return envstruct;
 }
 
-#define INIT_STACK_ENV(name,parent,n)                \
+#define INIT_STACK_ENV(stack,name,parent,n)          \
   struct FD_SCHEMAP name ## _bindings;               \
   struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
   fdtype name ## _vars[n];                           \
   fdtype name ## _vals[n];                           \
-  memset(name ## _vals,0,sizeof(fdtype)*n);          \
+  fd_init_elts(name ## _vars,n,FD_VOID);                  \
+  fd_init_elts(name ## _vals,n,FD_VOID);                  \
   _stack->stack_env =                                \
     init_static_env(n,parent,                        \
                     &name ## _bindings,              \
@@ -151,16 +150,16 @@ FD_FASTOP fd_lispenv init_static_env
                     name ## _vars,                   \
                     name ## _vals)
 
-#define INIT_STACK_SCHEMA(name,parent,n,schema)      \
-  struct FD_SCHEMAP name ## _bindings;               \
-  struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
-  fdtype name ## _vals[n];                           \
-  memset(name ## _vals,0,sizeof(fdtype)*n);          \
-  _stack->stack_env =                                \
-    init_static_env(n,parent,                        \
-                    &name ## _bindings,              \
-                    &_ ## name,                      \
-                    schema,                          \
+#define INIT_STACK_SCHEMA(stack,name,parent,n,schema)   \
+  struct FD_SCHEMAP name ## _bindings;                  \
+  struct FD_ENVIRONMENT _ ## name, *name=&_ ## name;    \
+  fdtype name ## _vals[n];                              \
+  fd_init_elts(name ## _vals,n,FD_VOID);                \
+  stack->stack_env =                                    \
+    init_static_env(n,parent,                           \
+                    &name ## _bindings,                 \
+                    &_ ## name,                         \
+                    schema,                             \
                     name ## _vals)
 
 

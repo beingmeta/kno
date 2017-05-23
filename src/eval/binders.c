@@ -211,7 +211,7 @@ static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(letenv,env,n);
+    INIT_STACK_ENV(_stack,letenv,env,n);
     int i = 0;
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
         fdtype value = fast_eval(val_expr,env);
@@ -235,7 +235,7 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    INIT_STACK_ENV(letseq,env,n);
+    INIT_STACK_ENV(_stack,letseq,env,n);
     int i = 0, j = 0;
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
         letseq_vars[j]=var;

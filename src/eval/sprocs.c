@@ -588,7 +588,7 @@ fdtype fd_xapply_sproc
   int i = 0, n = fn->sproc_n_vars;
   fdtype arglist = fn->sproc_arglist, result = FD_VOID;
   fd_lispenv env = fn->sproc_env;
-  INIT_STACK_ENV(call_env,env,n);
+  INIT_STACK_ENV(_stack,call_env,env,n);
   fdtype *vals=call_env_bindings.schema_values;
   while (FD_PAIRP(arglist)) {
     fdtype argspec = FD_CAR(arglist), argname = FD_VOID, argval;

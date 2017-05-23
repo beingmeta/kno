@@ -68,6 +68,7 @@ typedef struct FD_ENVIRONMENT *fd_lispenv;
 #define FD_SETUP_NAMED_STACK(name,caller,type,label,op)	\
   struct FD_STACK _ ## name, *name=&_ ## name;		\
   memset(&_ ## name,0,sizeof(struct FD_STACK));		\
+  assert( caller != name);				\
   if (caller) _ ## name.stack_root=caller->stack_root;	\
   if (caller)						\
     _ ## name.stack_depth = 1 + caller->stack_depth;	\
@@ -83,9 +84,14 @@ typedef struct FD_ENVIRONMENT *fd_lispenv;
   FD_SETUP_NAMED_STACK(name,_stack,type,label,op);     \
   set_call_stack(name)
 
+#define FD_NEW_STACK(caller,type,label,op)	       \
+  FD_SETUP_NAMED_STACK(_stack,caller,type,label,op);     \
+  set_call_stack(_stack)
+
 #define FD_ALLOCA_STACK(name)					\
   name=alloca(sizeof(struct FD_STACK));				\
   memset(name,0,sizeof(struct FD_STACK));			\
+  assert( fd_stackptr != name);					\
   name->stack_caller = fd_stackptr;				\
   if (name->stack_caller)					\
     name->stack_depth=1+name->stack_caller->stack_depth;	\
