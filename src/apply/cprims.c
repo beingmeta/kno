@@ -329,6 +329,7 @@ FD_EXPORT fdtype fd_new_cprim9
   return FDTYPE_CONS(f);
 }
 
+#if 0
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {
   struct FD_FUNCTION *f = new_cprim(name,NULL,NULL,-1,min_arity,0,0);
@@ -337,8 +338,6 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
   f->fcn_handler.calln = fn;
   return FDTYPE_CONS(f);
 }
-
-#if 0
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn)
 {
   struct FD_FUNCTION *f = new_cprim(name,NULL,NULL,0,0,0,0);

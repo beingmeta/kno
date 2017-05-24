@@ -39,21 +39,27 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
+static void summarize_stack_frame(u8_output out,struct FD_STACK *stack)
+{
+  if (stack->stack_label)
+    u8_puts(out,stack->stack_label);
+  if ( (stack->stack_status) &&
+       (stack->stack_status!=stack->stack_label) ) {
+    u8_printf(out,"(%s)",stack->stack_status);}
+  if ((stack->stack_type) &&
+      (strcmp(stack->stack_type,stack->stack_label)))
+    u8_printf(out,".%s",stack->stack_type);
+}
+
 FD_EXPORT
 fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
 {
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
     u8_string summary=NULL;
+    U8_FIXED_OUTPUT(out,128);
     if ( (stack->stack_label) || (stack->stack_status) ) {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-      if (stack->stack_label)
-	u8_puts(&out,stack->stack_label);
-      if ( (stack->stack_status) &&
-	   (stack->stack_status!=stack->stack_label) ) {
-	u8_printf(&out,"(%s)",stack->stack_status);}
-      if (stack->stack_type)
-	u8_printf(&out,"<%s>",stack->stack_type);
+      summarize_stack_frame(&out,stack);
       summary=out.u8_outbuf;}
     if (stack->stack_env) {
       fdtype bindings = stack->stack_env->env_bindings;
@@ -75,9 +81,23 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
     else if (!(FD_VOIDP(stack->stack_op)))
       rep = fd_init_pair( NULL, fd_incref(stack->stack_op), rep);
     if (summary)
-      rep = fd_init_pair(NULL,fd_init_string(NULL,-1,summary),rep);
+      rep = fd_init_pair(NULL,fd_make_string(NULL,-1,summary),rep);
     stack=stack->stack_caller;}
   return rep;
+}
+
+FD_EXPORT
+void fd_sum_backtrace(u8_output out,fdtype backtrace)
+{
+  if (fd_stacktracep(backtrace)) {
+    fdtype scan=backtrace;
+    int n=0; while (FD_PAIRP(scan)) {
+      fdtype car = FD_CAR(scan);
+      if (FD_STRINGP(car)) {
+	if (n) u8_puts(out," ⇐ ");
+	u8_putn(out,FD_STRDATA(car),FD_STRLEN(car));
+	n++;}
+      scan=FD_CDR(scan);}}
 }
 
 void fd_init_stacks_c()

@@ -126,7 +126,7 @@ static int html_backtrace = FD_HTMLDUMP_ENABLED;
 static int lisp_backtrace = (!(FD_HTMLDUMP_ENABLED));
 static int dtype_backtrace = 0;
 static int text_backtrace = 0;
-static int show_backtrace = 0;
+static int show_backtrace = 1;
 static int save_backtrace = 1;
 static int dotload = 1;
 
@@ -1020,39 +1020,28 @@ int main(int argc,char **argv)
     if (FD_CHECK_PTR(result)==0) {
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
     else if (FD_TROUBLEP(result)) {
-      u8_exception ex = u8_erreify(), root = ex;
+      u8_exception ex = u8_erreify();
       if (ex) {
-        {U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
-          int old_maxelts = fd_unparse_maxelts;
-          int old_maxchars = fd_unparse_maxchars;
-          while (root->u8x_prev) root = root->u8x_prev;
-          fd_unparse_maxchars = debug_maxchars;
-          fd_unparse_maxelts = debug_maxelts;
-          fd_print_exception(&out,root);
-          fd_summarize_backtrace(&out,ex);
-          u8_printf(&out,"\n");
-          fputs(out.u8_outbuf,stderr);
-          out.u8_write = out.u8_outbuf; out.u8_outbuf[0]='\0';
-          if (show_backtrace) {
-            fd_print_backtrace(&out,ex,80);
-            fputs(out.u8_outbuf,stderr);}
-          fd_unparse_maxelts = old_maxelts;
-          fd_unparse_maxchars = old_maxchars;
-          u8_free(out.u8_outbuf);}
-        if (save_backtrace) {
-          fdtype bt = fd_exception_backtrace(ex);
-          u8_fprintf(stderr,";; Saved backtrace into ##%d\n",fd_histpush(bt));
-          fd_decref(bt);}
-        if (fd_dump_backtrace) {
-          U8_OUTPUT btout; U8_INIT_STATIC_OUTPUT(btout,4096);
-          fd_print_backtrace(&btout,ex,120);
-          fd_dump_backtrace(btout.u8_outbuf);
-          u8_free(btout.u8_outbuf);}
-        if (bugdumps) {
-          u8_string dumpdir = u8_tempdir(bugdumps);
-          dump_backtrace(ex,dumpdir);}
-        if (last_exception) u8_free_exception(last_exception,1);
-        last_exception = ex;}
+        U8_STATIC_OUTPUT(out,512);
+        int old_maxelts = fd_unparse_maxelts;
+        int old_maxchars = fd_unparse_maxchars;
+        fd_unparse_maxchars = debug_maxchars;
+        fd_unparse_maxelts = debug_maxelts;
+        fd_output_errstack(&out,ex);
+        fputs(out.u8_outbuf,stderr);
+        out.u8_write = out.u8_outbuf; out.u8_outbuf[0]='\0';
+        fdtype backtrace = fd_exception_backtrace(ex);
+        if (show_backtrace) {
+          u8_puts(&out,";; ");
+          fd_sum_backtrace(&out,backtrace);}
+        u8_putc(&out,'\n');
+        fputs(out.u8_outbuf,stderr);
+        u8_close_output(&out);
+        if (save_backtrace)
+          u8_fprintf(stderr,";; Saved complete backtrace into ##%d\n",
+                     fd_histpush(backtrace));
+        if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
+        fd_decref(backtrace);}
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)

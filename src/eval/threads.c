@@ -334,21 +334,20 @@ static void *thread_call(void *data)
     u8_string errstring = fd_errstring(ex);
     u8_log(LOG_WARN,ThreadReturnError,"Thread #%d %s",u8_threadid(),errstring);
     if (tstruct->flags&FD_EVAL_THREAD)
-      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d wasevaluating %q",
+      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was evaluating %q",
              u8_threadid(),tstruct->evaldata.expr);
       else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
                   u8_threadid(),tstruct->applydata.fn);
+    fd_log_errstack(ex,LOG_WARN,1);
     u8_free(errstring);
     if (fd_thread_backtrace) {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
-      fd_summarize_backtrace(&out,ex);
+      U8_STATIC_OUTPUT(out,8000);
+      fdtype backtrace = fd_exception_backtrace(ex);
+      fd_sum_backtrace(&out,backtrace);
       u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
-      if (fd_dump_backtrace) {
-        out.u8_write = out.u8_outbuf;
-        fd_print_backtrace(&out,ex,120);
-        fd_dump_backtrace(out.u8_outbuf);}
-      else fd_log_backtrace(ex,LOG_NOTICE,ThreadBacktrace,120);
-      u8_free(out.u8_outbuf);}
+      if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
+      u8_close_output(&out);
+      fd_decref(backtrace);}
     tstruct->result = exobj;
     if (tstruct->resultptr) {
       fd_incref(exobj);

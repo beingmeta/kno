@@ -255,5 +255,8 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
   fd_setup_stack(_stack,caller,label,op,n,args)
 
 FD_EXPORT fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype base);
+FD_EXPORT void fd_sum_backtrace(u8_output out,fdtype backtrace);
+
+
 
 #endif /* FRAMERD_STACKS_H */

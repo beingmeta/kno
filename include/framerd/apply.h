@@ -291,29 +291,9 @@ FD_EXPORT fdtype fd_new_cprim15
  int type13,fdtype dflt13,int type14,fdtype dflt14);
 
 
-FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity);
+#define fd_make_cprimn(name,fn,min_arity)		\
+  fd_new_cprimn(name,_FILEINFO,NULL,fn,min_arity,0,0)
 
-#if 0
-/* Various primitive defining functions.  Declare an explicit type,
-   like fd_cprim1, as an argument, will generate warnings when
-   the declaration and the implementation don't match.  */
-FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn);
-FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim10(u8_string name,fd_cprim10 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim11(u8_string name,fd_cprim11 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim12(u8_string name,fd_cprim12 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim13(u8_string name,fd_cprim13 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim14(u8_string name,fd_cprim14 fn,int min_arity);
-FD_EXPORT fdtype fd_make_cprim15(u8_string name,fd_cprim15 fn,int min_arity);
-#endif
 
 #define fd_make_cprim0(name,fn) \
   fd_new_cprim0(name,_FILEINFO,NULL,fn,0)

@@ -45,7 +45,8 @@
 
 static volatile int scheme_initialized = 0;
 
-u8_string fd_evalstack_type="evalstack";
+u8_string fd_evalstack_type="eval";
+u8_string fd_ndevalstack_type="ndeval";
 
 int fd_optimize_tail_calls = 1;
 
@@ -686,6 +687,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
       switch (headtype) {
       case fd_cprim_type: case fd_sproc_type: {
         struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
+        if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
         result=call_function(f->fcn_name,headval,expr,env,
                              eval_stack,tail);
         break;}
@@ -693,6 +695,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
         /* These are special forms which do all the evaluating
            themselves */
         struct FD_SPECIAL_FORM *handler = (fd_special_form)headval;
+        if (handler->fexpr_name) eval_stack->stack_label=handler->fexpr_name;
         result=handler->fexpr_handler(expr,env,eval_stack);
         break;}
       case fd_macro_type: {
@@ -700,6 +703,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
            then evaluated. */
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
+        eval_stack->stack_type="macro";
         fdtype xformer = macrofn->macro_transformer;
         fdtype new_expr = fd_call(eval_stack,xformer,1,&expr);
         if (FD_ABORTED(new_expr))
@@ -710,6 +714,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
         break;}
       case fd_choice_type: {
         int applicable = applicable_choicep(headval);
+        eval_stack->stack_type="ndhandler";
         if (applicable)
           result=call_function("fnchoice",headval,expr,env,eval_stack,tail);
         else result=fd_err(fd_SyntaxError,"fd_stack_eval",
@@ -740,7 +745,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
     return fd_deep_copy(expr);
   case fd_choice_type: {
     fdtype result = FD_EMPTY_CHOICE;
-    FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
+    FD_PUSH_STACK(eval_stack,fd_ndevalstack_type,NULL,expr);
     FD_DO_CHOICES(each_expr,expr) {
       fdtype r = stack_eval(each_expr,env,eval_stack);
       if (FD_ABORTED(r)) {
@@ -1678,7 +1683,7 @@ FD_EXPORT fdtype _fd_dbg(fdtype x)
     return result;}
 }
 
-void (*fd_dump_backtrace)(u8_string bt);
+void (*fd_dump_backtrace)(fdtype bt);
 
 static fdtype dbg_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
 {

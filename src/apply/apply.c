@@ -33,8 +33,8 @@
 #include <stdarg.h>
 
 fdtype fd_default_stackspec = FD_VOID;
-u8_string fd_ndcallstack_type = "ndapply stack";
-u8_string fd_callstack_type   = "apply stack";
+u8_string fd_ndcallstack_type = "ndapply";
+u8_string fd_callstack_type   = "apply";
 
 #define FD_APPLY_STACK(name,fname,fn) \
   FD_PUSH_STACK(name,fd_callstack_type,fname,fn)

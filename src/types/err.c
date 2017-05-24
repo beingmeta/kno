@@ -216,51 +216,81 @@ void fd_log_exception(u8_exception ex)
 }
 
 FD_EXPORT
+void fd_output_exception(u8_output out,u8_exception ex)
+{
+  u8_puts(out,";; !! ");
+  u8_puts(out,ex->u8x_cond);
+  if (ex->u8x_context) {
+    u8_puts(out," <");
+    u8_puts(out,ex->u8x_context);
+    u8_puts(out,">");}
+  if (ex->u8x_details) {
+    u8_puts(out," (");
+    u8_puts(out,ex->u8x_details);
+    u8_puts(out,")");}
+  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
+    fdtype irritant=fd_get_irritant(ex);
+    if (FD_VOIDP(irritant)) {}
+    else if ( (FD_PAIRP(irritant)) ||
+	      (FD_VECTORP(irritant)) ||
+	      (FD_SLOTMAPP(irritant)) ||
+	      (FD_SCHEMAPP(irritant)) ) {
+      u8_puts(out," irritant:\n    ");
+      fd_pprint(out,irritant,"    ",0,4,120,0);}
+    else if ( (FD_STRINGP(irritant)) &&
+	      (FD_STRLEN(irritant)>40) ) {
+      u8_puts(out," irritant (string):\n    ");
+      fd_unparse(out,irritant);}
+    else {
+      u8_puts(out," irritant=");
+      fd_unparse(out,irritant);}}
+  u8_putc(out,'\n');
+}
+
+FD_EXPORT
+void fd_output_errstack(u8_output out,u8_exception ex)
+{
+  if (ex==NULL) ex=u8_current_exception;
+  while (ex) {
+    fd_output_exception(out,ex);
+    ex=ex->u8x_prev;}
+}
+
+FD_EXPORT
+void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
+{
+  if (ex==NULL) ex=u8_current_exception;
+  while (ex) {
+    fdtype irritant = fd_get_irritant(ex);
+    if (FD_VOIDP(irritant))
+      u8_log(loglevel,ex->u8x_cond,"<%s> %s",ex->u8x_context,
+	     U8ALT(ex->u8x_details,""));
+    else if ( (FD_IMMEDIATEP(irritant)) ||
+	      (FD_NUMBERP(irritant)) ||
+	      (FD_TYPEP(irritant,fd_timestamp_type)) ||
+	      (FD_TYPEP(irritant,fd_uuid_type)) ||
+	      (FD_TYPEP(irritant,fd_regex_type)) )
+      u8_log(loglevel,ex->u8x_cond,"%q <%s> %s",ex->u8x_context,
+	     U8ALT(ex->u8x_details,""));
+    else {
+      U8_STATIC_OUTPUT(out,1000);
+      fd_pprint(&out,irritant,NULL,0,0,111,1);
+      u8_log(loglevel,ex->u8x_cond,"%s",out.u8_outbuf);
+      u8_close_output(&out);}
+    ex=ex->u8x_prev;}
+}
+
+FD_EXPORT
 fdtype fd_exception_backtrace(u8_exception ex)
 {
   fdtype result = FD_EMPTY_LIST;
-  u8_condition cond = NULL;  u8_string details = NULL; u8_context cxt = NULL;
   while (ex) {
-    u8_condition c = ex->u8x_cond;
-    u8_string d = ex->u8x_details;
-    u8_context cx = ex->u8x_context;
-    fdtype x = fd_exception_xdata(ex);
-    if (FD_PAIRP(x)) {
-      int i=0, len=fd_list_length(x);
-      fdtype vec=fd_make_vector(len,NULL);
-      fdtype *data=FD_VECTOR_ELTS(vec);
-      fdtype scan=x;
-      while (i<len) {
-	fdtype v=FD_CAR(scan);
-	fd_incref(v);
-	data[i]=v;
-	scan=FD_CDR(scan);
-	i++;}
-      return vec;}
-    if ((c!=cond)||
-        ((d)&&(d!=details))||
-        ((cx)&&(cx!=cxt))) {
-      u8_string sum=
-        (((d)&&cx)?(u8_mkstring("%s (%s) %s",c,cx,d)):
-         (d)?(u8_mkstring("%s: %s",c,d)):
-         (cx)?(u8_mkstring("%s (%s)",c,cx)):
-         ((u8_string)u8_strdup(c)));
-      result = fd_conspair(fd_make_string(NULL,-1,sum),result);
-      u8_free(sum);}
-    if (!((FD_NULLP(x))||(FD_VOIDP(x)))) {
-      if (FD_VECTORP(x)) {
-        int len = FD_VECTOR_LENGTH(x);
-        fdtype applyvec = fd_init_vector(NULL,len+1,NULL);
-        int i = 0; while (i<len) {
-          fdtype elt = FD_VECTOR_REF(x,i); fd_incref(elt);
-          FD_VECTOR_SET(applyvec,i+1,elt);
-          i++;}
-        FD_VECTOR_SET(applyvec,0,fd_intern("=>"));
-        result = fd_conspair(applyvec,result);}
-      else {
-        fd_incref(x); result = fd_conspair(x,result);}}
-    ex = ex->u8x_prev;}
-  return result;
+    if (ex->u8x_free_xdata == fd_free_exception_xdata) {
+      fdtype data = (fdtype) ex->u8x_xdata;
+      if (fd_stacktracep(data))
+	return data;}
+    ex=ex->u8x_prev;}
+  return FD_EMPTY_LIST;
 }
 
 int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
