@@ -274,9 +274,11 @@ static int output_result(u8_output out,fdtype result,
     else {
       struct U8_OUTPUT tmpout;
       U8_INIT_STATIC_OUTPUT(tmpout,512);
-      fd_pprint(&tmpout,result,"  ",2,2,console_width,1);
-      u8_puts(out,tmpout.u8_outbuf); u8_putc(out,'\n');
-      u8_free(tmpout.u8_outbuf);
+      u8_puts(&tmpout,"    ");
+      fd_pprint(&tmpout,result,NULL,4,4,console_width,1);
+      u8_puts(out,tmpout.u8_outbuf);
+      u8_close_output(&tmpout);
+      u8_putc(out,'\n');
       u8_flush(out);
       return 1;}
   else {
