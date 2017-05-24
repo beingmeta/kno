@@ -194,13 +194,11 @@ FD_EXPORT fdtype fd_load_source_with_date
       else {}
       fd_decref(last_expr); last_expr = expr;
       fd_skip_whitespace(&stream);
-      size_t n_bytes=stream.u8_inlim-stream.u8_read;
-      if (n_bytes>=LOAD_CONTEXT_SIZE) n_bytes=LOAD_CONTEXT_SIZE;
-      load_stack->stack_status=
-        u8_string2buf(stream.u8_read,context_buf,n_bytes);
+      if (stream.u8_inlim == stream.u8_read)
+        context_buf[0]='\0';
+      else u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
       expr = fd_parse_expr(&stream);}
-    load_stack->stack_status=
-      u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
+    load_stack->stack_status=NULL;
     if (expr == FD_EOF) {
       fd_decref(last_expr);
       last_expr = FD_VOID;}
