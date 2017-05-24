@@ -324,6 +324,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
 
 FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags flags,fdtype opts)
 {
+  flags&=~FD_STORAGE_UNREGISTERED;
   if (strchr(spec,';')) {
     fd_index ix = NULL;
     u8_byte *copy = u8_strdup(spec);
