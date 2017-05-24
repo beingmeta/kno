@@ -1024,24 +1024,26 @@ int main(int argc,char **argv)
     else if (FD_TROUBLEP(result)) {
       u8_exception ex = u8_erreify();
       if (ex) {
-        U8_STATIC_OUTPUT(out,512);
+        U8_STATIC_OUTPUT(tmp,512);
         int old_maxelts = fd_unparse_maxelts;
         int old_maxchars = fd_unparse_maxchars;
         fd_unparse_maxchars = debug_maxchars;
         fd_unparse_maxelts = debug_maxelts;
-        fd_output_errstack(&out,ex);
-        fputs(out.u8_outbuf,stderr);
-        out.u8_write = out.u8_outbuf; out.u8_outbuf[0]='\0';
+        fd_output_errstack(tmpout,ex);
+        fputs(tmp.u8_outbuf,stderr);
+        tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
         fdtype backtrace = fd_exception_backtrace(ex);
         if (show_backtrace) {
-          u8_puts(&out,";; ");
-          fd_sum_backtrace(&out,backtrace);}
-        u8_putc(&out,'\n');
-        fputs(out.u8_outbuf,stderr);
-        u8_close_output(&out);
+          u8_puts(tmpout,";; ");
+          fd_sum_backtrace(tmpout,backtrace);}
+        u8_putc(tmpout,'\n');
+        fputs(tmp.u8_outbuf,stderr);
+        u8_close_output(tmpout);
         if (save_backtrace)
           u8_fprintf(stderr,";; Saved complete backtrace into ##%d\n",
                      fd_histpush(backtrace));
+        fd_unparse_maxchars = old_maxchars;
+        fd_unparse_maxelts = old_maxelts;
         if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
         fd_decref(backtrace);}
       else fprintf(stderr,
