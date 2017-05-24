@@ -569,8 +569,10 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,
       if (fd_applyfns[ctype])
         return fd_applyfns[ctype]((fdtype)f,n,argvec);
       else return fd_err("NotApplicable","apply_fcn",f->fcn_name,fnptr);}}
-  else if (n==arity)
-    return dcall(name,f,n,argvec);
+  else if (n==arity) {
+    if (check_typeinfo(f,n,argvec)<0)
+      return FD_ERROR_VALUE;
+    else return dcall(name,f,n,argvec);}
   else {
     fdtype argbuf[arity];
     fdtype *args = prepare_argbuf(f,n,argbuf,argvec);
