@@ -231,11 +231,12 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if (FD_EMPTY_CHOICEP(seq))
     return FD_EMPTY_CHOICE;
   else if (FD_EMPTY_LISTP(seq))
-    return seq;
+    return FD_EMPTY_CHOICE;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","tryseq_evalfn",seq);
   else lim = fd_seq_length(seq);
-  if (lim==0) return seq;
+  if (lim==0)
+    return FD_EMPTY_CHOICE;
   else if (FD_PAIRP(seq)) {
     islist = 1;
     pairscan = seq;}
