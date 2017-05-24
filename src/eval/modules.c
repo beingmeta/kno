@@ -113,6 +113,9 @@ static void clearloadlock(fdtype spec)
 FD_EXPORT
 fdtype fd_find_module(fdtype spec,int safe,int err)
 {
+  u8_string modname = (FD_SYMBOLP(spec)) ? (FD_SYMBOL_NAME(spec)) :
+    (FD_STRINGP(spec)) ? (FD_STRDATA(spec)) : (NULL);
+
   fdtype module = fd_get_module(spec,safe);
   if (FD_VOIDP(module)) module = getloadlock(spec,safe);
   if (!(FD_VOIDP(module))) {
@@ -138,8 +141,6 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
         clearloadlock(spec);
         module = fd_get_module(spec,safe);
         if (FD_VOIDP(module)) {
-          u8_string modname = (FD_SYMBOLP(spec)) ? (FD_SYMBOL_NAME(spec)) :
-            (FD_STRDATA(spec));
           return fd_err(MissingModule,"fd_find_module",modname,spec);}
         fd_finish_module(module);
         return module;}
@@ -150,7 +151,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
       else scan = scan->next;}
     clearloadlock(spec);
     if (err)
-      return fd_err(fd_NoSuchModule,"fd_find_module",NULL,spec);
+      return fd_err(fd_NoSuchModule,"fd_find_module",modname,spec);
     else return FD_FALSE;}
 }
 

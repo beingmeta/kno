@@ -264,14 +264,14 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
   while (ex) {
     fdtype irritant = fd_get_irritant(ex);
     if (FD_VOIDP(irritant))
-      u8_log(loglevel,ex->u8x_cond,"<%s> %s",ex->u8x_context,
+      u8_log(loglevel,ex->u8x_cond,"@%s %s",ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else if ( (FD_IMMEDIATEP(irritant)) ||
 	      (FD_NUMBERP(irritant)) ||
 	      (FD_TYPEP(irritant,fd_timestamp_type)) ||
 	      (FD_TYPEP(irritant,fd_uuid_type)) ||
 	      (FD_TYPEP(irritant,fd_regex_type)) )
-      u8_log(loglevel,ex->u8x_cond,"%q <%s> %s",ex->u8x_context,
+      u8_log(loglevel,ex->u8x_cond,"%q @%s %s",ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else {
       U8_STATIC_OUTPUT(tmp,1000);
@@ -316,17 +316,17 @@ int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
 	   ( irritant == ((fdtype)(bg->u8x_xdata)) ) )
 	irritant=FD_VOID;}
     if ((cond) && (context) && (details))
-      u8_printf(out,"%m <%s> (%s)",cond,context,details);
+      u8_printf(out,"%m @%s (%s)",cond,context,details);
     else if ((cond) && (context))
-      u8_printf(out,"%m <%s>",cond,context);
+      u8_printf(out,"%m @%s",cond,context);
     else if ((cond) && (details))
       u8_printf(out,"%m (%s)",cond,details);
     else if ((context) && (details))
-      u8_printf(out,"<%s> (%s)",context,details);
+      u8_printf(out,"@%s (%s)",context,details);
     else if (cond)
       u8_printf(out,"%m",cond);
     else if (context)
-      u8_printf(out,"<%s>",context);
+      u8_printf(out,"@%s",context);
     else if (details)
       u8_printf(out,"(%s)",details);
     else if (!(FD_VOIDP(irritant))) {
@@ -383,7 +383,7 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
 	  u8_exception ex=exo->fdex_u8ex;
 	  u8_puts(&out," ⇒ ");
 	  u8_puts(&out,ex->u8x_cond);
-	  if (ex->u8x_context) u8_printf(&out,"<%s>",ex->u8x_context);
+	  if (ex->u8x_context) u8_printf(&out,"@%s",ex->u8x_context);
 	  if (ex->u8x_details) u8_printf(&out," (%s)",ex->u8x_details);
 	  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
 	    fdtype irritant=(fdtype)ex->u8x_xdata;

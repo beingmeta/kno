@@ -104,7 +104,7 @@ void fd_sum_backtrace(u8_output out,fdtype backtrace)
 	u8_exception ex=exo->fdex_u8ex;
 	if (n) u8_puts(out," ⇒ ");
 	u8_puts(out,ex->u8x_cond);
-	if (ex->u8x_context) u8_printf(out,"<%s>",ex->u8x_context);
+	if (ex->u8x_context) u8_printf(out,"@%s",ex->u8x_context);
 	if (ex->u8x_details) u8_printf(out," (%s)",ex->u8x_details);
 	if (ex->u8x_free_xdata == fd_free_exception_xdata) {
 	  fdtype irritant=(fdtype)ex->u8x_xdata;
