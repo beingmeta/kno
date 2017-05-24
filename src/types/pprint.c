@@ -39,6 +39,12 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
      (FD_CHOICEP(x)) || (FD_PRECHOICEP(x)) || (FD_QCHOICEP(x))))
 
 FD_EXPORT
+int fd_pprint_table(u8_output out,fdtype x,
+                    const fdtype *keys,size_t n_keys,
+                    u8_string prefix,int indent,
+                    int col,int maxcol,int is_initial);
+
+FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
               int indent,int col,int maxcol,int is_initial)
 {
@@ -135,74 +141,90 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
         u8_putc(out,'{'); col++; first_value = 0;
         col = fd_pprint(out,elt,prefix,indent+1,col,maxcol,1);}
       else col = fd_pprint(out,elt,prefix,indent+1,col,maxcol,0);
-    u8_putc(out,'}'); return col+1;}
-  else if (FD_SLOTMAPP(x)) {
-    struct FD_SLOTMAP *sm = FD_XSLOTMAP(x);
-    struct FD_KEYVAL *scan, *limit;
-    int slotmap_size;
-    int prefix_len = (prefix) ? (strlen(prefix)) : (0);
-    slotmap_size = FD_XSLOTMAP_NUSED(sm);
-    if (slotmap_size==0) {
+    u8_putc(out,'}');
+    return col+1;}
+  else if ( (FD_SLOTMAPP(x)) || (FD_SCHEMAPP(x)) ) {
+    fdtype keys=fd_getkeys(x);
+    if (FD_PRECHOICEP(keys)) keys=fd_simplify_choice(keys);
+    if (FD_EMPTY_CHOICEP(keys)) {
       if (is_initial) {
         u8_puts(out,"#[]"); return col+3;}
       else {u8_puts(out," #[]"); return col+4;}}
-    fd_read_lock_table(sm);
-    scan = sm->sm_keyvals;
-    limit = sm->sm_keyvals+slotmap_size;
-    u8_puts(out,"#["); col = col+2; indent=indent+2;
-    while (scan<limit) {
-      fdtype key = scan->kv_key, val = scan->kv_val;
-      if (scan > sm->sm_keyvals) {
-        int i = indent; u8_putc(out,'\n');
-        if (prefix) u8_puts(out,prefix);
-        while (i>0) {u8_putc(out,' '); i--;}
-        col = indent+prefix_len;}
-      int newcol = output_keyval(out,key,val,col,maxcol);
-      if (newcol>=0) {
-        /* Key + value fit on one line */
-        scan++; continue;}
-      else if (FD_SYMBOLP(key)) {
-        u8_puts(out,FD_SYMBOL_NAME(key));
-        col=col+strlen(FD_SYMBOL_NAME(key));}
-      else if (FD_STRINGP(key)) {
-        u8_putc(out,'"');
-        u8_puts(out,FD_STRDATA(key));
-        u8_putc(out,'"');
-        col=col+2+strlen(FD_SYMBOL_NAME(key));}
-      else {
-        struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
-        U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
-        fd_unparse(&tmp,key);
-        u8_puts(out,tmp.u8_outbuf);
-        col=col+(tmp.u8_write-tmp.u8_outbuf);
-        if (tmp.u8_outbuf != tmpbuf) u8_free(tmp.u8_outbuf);}
-      { /* Output value */
-        struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
-        U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
-        fd_unparse(&tmp,val);
-        size_t len=tmp.u8_write-tmp.u8_outbuf;
-        if ((col+1+len)<maxcol) {
-          u8_putc(out,' '); u8_puts(out,tmp.u8_outbuf);
-          col=col+1+len;}
-        else {
-          int i = indent+3; u8_putc(out,'\n');
-          if (prefix) u8_puts(out,prefix);
-          while (i>0) {u8_putc(out,' '); i--;}
-          col = indent+prefix_len+3;
-          if ((col+len) < maxcol) {
-            u8_puts(out,tmp.u8_outbuf);
-            col = col+3+len;}
-          else col=fd_pprint(out,val,prefix,indent+3,col,maxcol,1);}
-        if (tmp.u8_outbuf != tmpbuf) u8_free(tmp.u8_outbuf);}
-      scan++;}
-    indent=indent-2;
-    u8_puts(out,"]");
-    fd_unlock_table(sm);
-    return col+1;}
+    else {
+      u8_puts(out,"#["); col+=2; indent+=2;
+      if (FD_CHOICEP(keys))
+        col=fd_pprint_table
+          (out,x,FD_CHOICE_DATA(keys),FD_CHOICE_SIZE(keys),
+           prefix,indent,col,maxcol,1);
+      else col=fd_pprint_table(out,x,&keys,1,prefix,indent,col,maxcol,1);
+      u8_puts(out,"]"); col+=1; indent-=2;
+      return col;}}
   else {
     int startoff = out->u8_write-out->u8_outbuf;
     fd_unparse(out,x); n_chars = u8_strlen(out->u8_outbuf+startoff);
     return indent+n_chars;}
+}
+
+FD_EXPORT
+int fd_pprint_table(u8_output out,fdtype x,
+                    const fdtype *keys,size_t n_keys,
+                    u8_string prefix,int indent,
+                    int col,int maxcol,int is_initial)
+{
+  if (n_keys==0) return col;
+  const fdtype *scan=keys, *limit=scan+n_keys;
+  size_t prefix_len = (prefix) ? (strlen(prefix)) : (-1);
+  int count=0;
+  while (scan<limit) {
+    fdtype key = *scan++;
+    fdtype val = fd_get(x,key,FD_VOID);
+    if (FD_VOIDP(val)) continue;
+    else if (count) {
+      int i = indent;
+      u8_putc(out,'\n'); col=0;
+      if (prefix) { u8_puts(out,prefix); col+=prefix_len; }
+      while (i>0) { u8_putc(out,' '); col++; i--; }}
+    else {}
+    int newcol = output_keyval(out,key,val,col,maxcol);
+    if (newcol>=0) {
+      /* Key + value fit on one line */
+      count++; continue;}
+    else count++;
+    if (FD_SYMBOLP(key)) {
+      u8_puts(out,FD_SYMBOL_NAME(key));
+      col=col+strlen(FD_SYMBOL_NAME(key));}
+    else if (FD_STRINGP(key)) {
+      u8_putc(out,'"');
+      u8_puts(out,FD_STRDATA(key));
+      u8_putc(out,'"');
+      col=col+2+strlen(FD_STRDATA(key));}
+    else {
+      struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
+      U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
+      fd_unparse(&tmp,key);
+      u8_puts(out,tmp.u8_outbuf);
+      col=col+(tmp.u8_write-tmp.u8_outbuf);
+      u8_close_output(&tmp);}
+    /* Output value */
+    struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
+    U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
+    fd_unparse(&tmp,val);
+    size_t len=tmp.u8_write-tmp.u8_outbuf;
+    /* Output the prefix, indent, etc */
+    int new_indent = indent+2, i=0;
+    u8_putc(out,'\n'); col=0;
+    if (prefix) { u8_puts(out,prefix); col+=prefix_len;}
+    while (i<new_indent) {u8_putc(out,' '); i++;}
+    col += new_indent;
+    if ((col+len) < maxcol) {
+      u8_putn(out,tmp.u8_outbuf,tmp.u8_write-tmp.u8_outbuf);
+      u8_close_output(&tmp);
+      col += len;
+      continue;}
+    u8_close_output(&tmp);
+    col=fd_pprint(out,val,prefix,new_indent,col,maxcol,1);
+    fd_decref(val);}
+  return col;
 }
 
 FD_EXPORT
