@@ -1746,15 +1746,19 @@ FD_EXPORT void fd_init_fileio_c()
   fd_defalias(fileio_module,"REMOVE-TREE","REMOVE-TREE!");
 
 
-  fd_idefn(fileio_module,
-           fd_make_cprim2x("FILESTRING",filestring_prim,1,
-                           fd_string_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(fileio_module,
-           fd_make_cprim1x("FILEDATA",filedata_prim,1,
-                           fd_string_type,FD_VOID));
-  fd_idefn(fileio_module,
-           fd_make_cprim1x("FILECONTENT",filecontent_prim,1,
-                           fd_string_type,FD_VOID));
+  fd_idefn2(fileio_module,"FILESTRING",filestring_prim,1,
+            "(FILESTRING *file* [*encoding*]) returns the contents of a text file. "
+            "The *encoding*, if provided, specifies the character encoding, which "
+            "defaults to UTF-8",
+            fd_string_type,FD_VOID,-1,FD_VOID);
+  fd_idefn1(fileio_module,"FILEDATA",filedata_prim,1,
+            "(FILEDATA *file*) returns the contents of *file* as a packet.",
+            fd_string_type,FD_VOID);
+  fd_idefn1(fileio_module,"FILECONTENT",filecontent_prim,1,
+            "Returns the contents of a named file, trying to be intelligent "
+            "about returning a string or packet depending on the probably "
+            "file type",
+            fd_string_type,FD_VOID);
 
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-EXISTS?",file_existsp,1,

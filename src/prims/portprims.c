@@ -799,62 +799,11 @@ static fdtype exception_data(u8_exception ex)
   else return FD_VOID;
 }
 
-static u8_exception get_innermost_expr(u8_exception ex,fdtype expr)
-{
-  u8_exception scan = ex; fdtype xdata;
-  if (ex == NULL) return ex;
-  else xdata = exception_data(scan);
-  if ((FD_PAIRP(xdata)) && (embeddedp(xdata,expr))) {
-    u8_exception bottom = get_innermost_expr(ex->u8x_prev,xdata);
-    if (bottom) return bottom; else return ex;}
-  else return NULL;
-}
-
-static void print_backtrace_env(U8_OUTPUT *out,u8_exception ex,int width)
-{
-  fdtype entry = exception_data(ex);
-  fdtype keys = fd_getkeys(entry);
-  u8_string head = ((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
-                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
-                  ((u8_string)""));
-  if (FD_ABORTP(keys)) {
-    u8_puts(out,head); u8_putc(out,' ');
-    fd_unparse(out,entry); u8_putc(out,'\n');}
-  else {
-    FD_DO_CHOICES(key,keys) {
-      fdtype val = fd_get(entry,key,FD_VOID);
-      u8_printf(out,";;=%s> %q = %q\n",head,key,val);
-      fd_decref(val);}
-    fd_decref(keys);}
-}
-
 static u8_exception print_backtrace_entry
 (U8_OUTPUT *out,u8_exception ex,int width)
 {
   fd_print_exception(out,ex);
   return ex->u8x_prev;
-}
-
-static void log_backtrace_env(int loglevel,u8_condition label,
-                              u8_exception ex,int width)
-{
-  fdtype entry = exception_data(ex);
-  fdtype keys = fd_getkeys(entry);
-  u8_string head = ((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
-                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
-                  ((u8_string)""));
-  if (FD_ABORTP(keys)) {
-    u8_log(loglevel,label,"%s %q\n",head,entry);}
-  else {
-    struct U8_OUTPUT tmpout; u8_byte buf[16384];
-    U8_INIT_OUTPUT_BUF(&tmpout,16384,buf); {
-      FD_DO_CHOICES(key,keys) {
-        fdtype val = fd_get(entry,key,FD_VOID);
-        u8_printf(&tmpout,"> %q = %q\n",key,val);
-        fd_decref(val);}
-      u8_log(loglevel,label,"%q BINDINGS\n%s",head,tmpout.u8_outbuf);
-      u8_close_output(&tmpout);}
-    fd_decref(keys);}
 }
 
 static u8_exception log_backtrace_entry(int loglevel,u8_condition label,
