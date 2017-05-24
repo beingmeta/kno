@@ -44,6 +44,7 @@ static void summarize_stack_frame(u8_output out,struct FD_STACK *stack)
   if (stack->stack_label)
     u8_puts(out,stack->stack_label);
   if ( (stack->stack_status) &&
+       (stack->stack_status[0]) &&
        (stack->stack_status!=stack->stack_label) ) {
     u8_printf(out,"(%s)",stack->stack_status);}
   if ((stack->stack_type) &&
@@ -57,10 +58,10 @@ fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
     u8_string summary=NULL;
-    U8_FIXED_OUTPUT(out,128);
+    U8_FIXED_OUTPUT(tmp,128);
     if ( (stack->stack_label) || (stack->stack_status) ) {
-      summarize_stack_frame(&out,stack);
-      summary=out.u8_outbuf;}
+      summarize_stack_frame(tmpout,stack);
+      summary=tmp.u8_outbuf;}
     if (stack->stack_env) {
       fdtype bindings = stack->stack_env->env_bindings;
       if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
@@ -94,9 +95,24 @@ void fd_sum_backtrace(u8_output out,fdtype backtrace)
     int n=0; while (FD_PAIRP(scan)) {
       fdtype car = FD_CAR(scan);
       if (FD_STRINGP(car)) {
-	if (n) u8_puts(out," ⇐ ");
+	if (n) u8_puts(out," ⇒ ");
 	u8_putn(out,FD_STRDATA(car),FD_STRLEN(car));
 	n++;}
+      else if (FD_EXCEPTIONP(car)) {
+	struct FD_EXCEPTION_OBJECT *exo=
+	  (struct FD_EXCEPTION_OBJECT *)car;
+	u8_exception ex=exo->fdex_u8ex;
+	if (n) u8_puts(out," ⇒ ");
+	u8_puts(out,ex->u8x_cond);
+	if (ex->u8x_context) u8_printf(out,"<%s>",ex->u8x_context);
+	if (ex->u8x_details) u8_printf(out," (%s)",ex->u8x_details);
+	if (ex->u8x_free_xdata == fd_free_exception_xdata) {
+	  fdtype irritant=(fdtype)ex->u8x_xdata;
+	  char buf[32]; buf[0]='\0';
+	  u8_sprintf(buf,32," =%q",irritant);
+	  u8_puts(out,buf);}
+	n++;}
+      else {}
       scan=FD_CDR(scan);}}
 }
 

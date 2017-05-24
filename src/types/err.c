@@ -375,8 +375,21 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
       while (FD_PAIRP(scan)) {
 	fdtype car=FD_CAR(scan); scan=FD_CDR(scan);
 	if (FD_STRINGP(car)) {
-	  u8_puts(&out," ⇐ ");
-	  u8_puts(&out,FD_STRDATA(car));}}}}
+	  u8_puts(&out," ⇒ ");
+	  u8_puts(&out,FD_STRDATA(car));}
+	else if (FD_EXCEPTIONP(car)) {
+	  struct FD_EXCEPTION_OBJECT *exo=
+	    (struct FD_EXCEPTION_OBJECT *)car;
+	  u8_exception ex=exo->fdex_u8ex;
+	  u8_puts(&out," ⇒ ");
+	  u8_puts(&out,ex->u8x_cond);
+	  if (ex->u8x_context) u8_printf(&out,"<%s>",ex->u8x_context);
+	  if (ex->u8x_details) u8_printf(&out," (%s)",ex->u8x_details);
+	  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
+	    fdtype irritant=(fdtype)ex->u8x_xdata;
+	    char buf[32]; buf[0]='\0';
+	    u8_sprintf(buf,32," =%q",irritant);
+	    u8_puts(&out,buf);}}}}}
   return out.u8_outbuf;
 }
 
