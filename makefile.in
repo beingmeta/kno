@@ -76,7 +76,8 @@ DTYPE_HEADERS=\
  include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 APPLY_HEADERS=\
- include/framerd/ffi.h include/framerd/apply.h include/framerd/lexenv.h
+ include/framerd/apply.h include/framerd/stacks.h \
+ include/framerd/lexenv.h include/framerd/ffi.h
 STORAGE_HEADERS=\
  include/framerd/streams.h			\
  include/framerd/storage.h			\
@@ -85,8 +86,7 @@ STORAGE_HEADERS=\
  include/framerd/dtproc.h			\
  include/framerd/dtcall.h			\
  include/framerd/frames.h			\
- include/framerd/methods.h			\
- include/framerd/drivers.h
+ include/framerd/methods.h
 
 DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/opcodes.h \
@@ -341,7 +341,7 @@ CLEANDIRS=include/framerd src/drivers/headers 		\
 
 FRAMERD_HEADERS= \
 	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
-	$(DRIVER_H) $(SRC_HEADERS)
+	$(APPLY_HEADERS) $(DRIVERS_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
 	src/types/cons.c src/types/oids.c src/types/symbols.c           	\
@@ -845,7 +845,8 @@ pull:
 # Custom dependencies
 
 src/eval/eval.o src/eval/opcodes.c: src/eval/eval_internals.h \
-	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS)
+	$(DTYPE_HEADERS) $(APPLY_HEADERS) \
+	$(STORAGE_HEADERS) $(SCHEME_HEADERS)
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
@@ -1297,7 +1298,8 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(DTYPE_HEADERS) $(STORAGE_HEADERS)	\
+		   $(DTYPE_HEADERS) $(APPLY_HEADERS) 	\
+		   $(STORAGE_HEADERS) $(DRIVERS_H)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
 		$(INCINSTALLDIR)
