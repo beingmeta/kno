@@ -849,11 +849,9 @@ static fdtype call_function(u8_string fname,fdtype fn,
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
     if (max_arity<0) {}
     else if (FD_EXPECT_FALSE(n_args>max_arity))
-      return fd_err(fd_TooManyArgs,"call_function",
-                    fcn->fcn_name,expr);
+      return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
     else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
-      return fd_err(fd_TooFewArgs,"call_function",
-                    fcn->fcn_name,expr);
+      return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
     else {}
     d_prim=(fcn->fcn_ndcall==0);}
   int i=0; while (i<argbuf_len) argbuf[i++]=FD_VOID;

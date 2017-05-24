@@ -57,6 +57,7 @@ FD_EXPORT void fd_seterr
   // case. Set the exception xdata explicitly if you can.
   u8_push_exception(c,cxt,details,(void *)errinfo,
 		    fd_free_exception_xdata);
+  fd_decref(irritant);
 }
 
 /* This stores the details and irritant arguments directly,
@@ -273,17 +274,16 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
       u8_log(loglevel,ex->u8x_cond,"%q <%s> %s",ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else {
-      U8_STATIC_OUTPUT(out,1000);
-      fd_pprint(&out,irritant,NULL,0,0,111,1);
-      u8_log(loglevel,ex->u8x_cond,"%s",out.u8_outbuf);
-      u8_close_output(&out);}
+      U8_STATIC_OUTPUT(tmp,1000);
+      fd_pprint(tmpout,irritant,NULL,0,0,111,1);
+      u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
+      u8_close_output(tmpout);}
     ex=ex->u8x_prev;}
 }
 
 FD_EXPORT
 fdtype fd_exception_backtrace(u8_exception ex)
 {
-  fdtype result = FD_EMPTY_LIST;
   while (ex) {
     if (ex->u8x_free_xdata == fd_free_exception_xdata) {
       fdtype data = (fdtype) ex->u8x_xdata;

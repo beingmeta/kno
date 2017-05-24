@@ -130,6 +130,9 @@ FD_EXPORT void _fd_pop_stack(struct FD_STACK *stack);
 FD_EXPORT struct FD_STACK_CLEANUP *_fd_add_cleanup
 (struct FD_STACK *stack,fd_stack_cleanop op,void *arg0,void *arg1);
 
+#define FD_STACK_DECREF(v) \
+  if (FD_CONSP(v)) {FD_ADD_TO_CHOICE(_stack->stack_values,v);} else {}
+
 #if FD_INLINE_STACKS
 FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 {

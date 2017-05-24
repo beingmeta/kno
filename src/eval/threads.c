@@ -341,12 +341,12 @@ static void *thread_call(void *data)
     fd_log_errstack(ex,LOG_WARN,1);
     u8_free(errstring);
     if (fd_thread_backtrace) {
-      U8_STATIC_OUTPUT(out,8000);
+      U8_STATIC_OUTPUT(tmp,8000);
       fdtype backtrace = fd_exception_backtrace(ex);
-      fd_sum_backtrace(&out,backtrace);
-      u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
+      fd_sum_backtrace(tmpout,backtrace);
+      u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
       if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
-      u8_close_output(&out);
+      u8_close_output(tmpout);
       fd_decref(backtrace);}
     tstruct->result = exobj;
     if (tstruct->resultptr) {
