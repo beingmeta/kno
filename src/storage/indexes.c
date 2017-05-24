@@ -303,9 +303,8 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
 {
   if (ix == NULL) return 0;
   if (ix->index_serialno<0) {
-    fdtype lix = (fdtype)ix; fd_incref(lix);
-    fd_seterr(fd_TypeError,"fd_add_to_background","static index",lix);
-    return -1;}
+    fdtype lix = (fdtype)ix;
+    fd_incref(lix);}
   u8_lock_mutex(&background_lock);
   ix->index_flags = ix->index_flags|FD_INDEX_IN_BACKGROUND;
   if (fd_background)
