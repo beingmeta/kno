@@ -454,9 +454,11 @@ static fdtype unwind_protect_evalfn(fdtype uwp,fd_lispenv env,fd_stack _stack)
           if (FD_ABORTP(uw_result))
             if (FD_ABORTP(result)) {
               fd_interr(result); fd_interr(uw_result);
-              return FD_ERROR_VALUE;}
+              return u8_return(FD_ERROR_VALUE);}
             else {
-              fd_decref(result); result = uw_result; break;}
+              fd_decref(result);
+              result = uw_result;
+              break;}
           else fd_decref(uw_result);}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
