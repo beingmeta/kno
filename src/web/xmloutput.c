@@ -905,27 +905,6 @@ static fdtype exception_data(u8_exception ex)
   else return FD_VOID;
 }
 
-static fdtype get_focus_expr(u8_exception ex)
-{
-  u8_exception scan = ex; fdtype xdata, focus = FD_VOID;
-  if (ex == NULL) return FD_VOID;
-  else {
-    xdata = exception_data(scan);
-    scan = ex->u8x_prev;}
-  if (FD_PAIRP(xdata)) {
-    while (scan) {
-      fdtype sdata = exception_data(scan);
-      if (FD_PAIRP(sdata))
-        if (embeddedp(sdata,xdata)) {
-          focus = sdata; scan = scan->u8x_prev;}
-        else return focus;
-      else if (FD_TABLEP(sdata)) {
-        scan = scan->u8x_prev;}
-      else break;}
-    return focus;}
-  else return FD_VOID;
-}
-
 static u8_exception get_next_frame(u8_exception ex)
 {
   u8_exception scan = ex; fdtype xdata;

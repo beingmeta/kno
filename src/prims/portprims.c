@@ -753,52 +753,6 @@ static fdtype just2number(fdtype x,fdtype base)
 
 /* Printing a backtrace */
 
-static int embeddedp(fdtype focus,fdtype expr)
-{
-  if (FD_EQ(focus,expr)) return 1;
-  else if (FD_PAIRP(expr)) {
-    FD_DOLIST(elt,expr)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_VECTORP(expr)) {
-    int i = 0, len = FD_VECTOR_LENGTH(expr);
-    while (i<len)
-      if (embeddedp(focus,FD_VECTOR_REF(expr,i))) return 1; else i++;
-    return 0;}
-  else if (FD_CHOICEP(expr)) {
-    FD_DO_CHOICES(elt,expr)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_QCHOICEP(expr)) {
-    struct FD_QCHOICE *qc = FD_XQCHOICE(expr);
-    FD_DO_CHOICES(elt,qc->qchoiceval)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_SLOTMAPP(expr)) {
-    struct FD_SLOTMAP *sm = FD_XSLOTMAP(expr);
-    struct FD_KEYVAL *scan, *limit;
-    int slotmap_size;
-    fd_read_lock_table(sm);
-    slotmap_size = FD_XSLOTMAP_NUSED(sm);
-    scan = sm->sm_keyvals; limit = sm->sm_keyvals+slotmap_size;
-    while (scan<limit)
-      if (embeddedp(focus,scan->kv_key)) {
-        fd_unlock_table(sm); return 1;}
-      else if (embeddedp(focus,scan->kv_val)) {
-        fd_unlock_table(sm); return 1;}
-      else scan++;
-    fd_unlock_table(sm);
-    return 0;}
-  else return 0;
-}
-
-static fdtype exception_data(u8_exception ex)
-{
-  if ((ex->u8x_xdata) && (ex->u8x_free_xdata == fd_free_exception_xdata))
-    return (fdtype)(ex->u8x_xdata);
-  else return FD_VOID;
-}
-
 static u8_exception print_backtrace_entry
 (U8_OUTPUT *out,u8_exception ex,int width)
 {

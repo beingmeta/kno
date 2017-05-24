@@ -1494,38 +1494,6 @@ static fdtype fdxml_loop(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype iter_var;
 
-/* These are for returning binding information in the backtrace. */
-static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
-{
-  struct FD_KEYVAL *keyvals = u8_alloc_n(2,struct FD_KEYVAL);
-  keyvals[0].kv_key = iter_var; keyvals[0].kv_val = fd_incref(seq);
-  keyvals[1].kv_key = var; keyvals[1].kv_val = fd_incref(val);
-  return fd_make_slotmap(2,2,keyvals);
-}
-static fdtype iterenv2
-  (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
-{
-  struct FD_KEYVAL *keyvals = u8_alloc_n(3,struct FD_KEYVAL);
-  keyvals[0].kv_key = iter_var; keyvals[0].kv_val = fd_incref(seq);
-  keyvals[1].kv_key = var; keyvals[1].kv_val = fd_incref(val);
-  keyvals[2].kv_key = xvar; keyvals[2].kv_val = fd_incref(xval);
-  return fd_make_slotmap(3,3,keyvals);
-}
-
-static fdtype retenv1(fdtype var,fdtype val)
-{
-  struct FD_KEYVAL *keyvals = u8_alloc_n(1,struct FD_KEYVAL);
-  keyvals[0].kv_key = var; keyvals[0].kv_val = fd_incref(val);
-  return fd_make_slotmap(1,1,keyvals);
-}
-static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
-{
-  struct FD_KEYVAL *keyvals = u8_alloc_n(2,struct FD_KEYVAL);
-  keyvals[0].kv_key = var; keyvals[0].kv_val = fd_incref(val);
-  keyvals[1].kv_key = xvar; keyvals[1].kv_val = fd_incref(xval);
-  return fd_make_slotmap(2,2,keyvals);
-}
-
 static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv env)
 {
   int i = 0, lim;
@@ -1566,9 +1534,6 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
     {FD_DOELTS(expr,body,count) {
       fdtype val = fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
-        fdtype errbind;
-        if (iterval) errbind = iterenv1(seq,var,elt);
-        else errbind = iterenv2(seq,var,elt,count_var,FD_INT(i));
         u8_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         fd_decref(elt); fd_decref(seq);
@@ -1625,11 +1590,9 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
       {FD_DOELTS(expr,body,count) {
         fdtype val = fd_xmleval(out,expr,&envstruct);
         if (FD_ABORTP(val)) {
-          fdtype env;
-          if (iloc) env = retenv2(var,elt,count_var,FD_INT(i));
-          else env = retenv1(var,elt);
           fd_decref(choices);
-          if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
+          if (envstruct.env_copy)
+            fd_recycle_environment(envstruct.env_copy);
           return val;}
         fd_decref(val);}}
       if (envstruct.env_copy) {
