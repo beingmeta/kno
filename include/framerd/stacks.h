@@ -27,7 +27,10 @@ typedef enum FD_STACK_CLEANOP {
   FD_DECREF_PTRVAL,
   FD_UNLOCK_MUTEX,
   FD_UNLOCK_RWLOCK,
+  FD_CLOSE_FILENO,
+  FD_CLOSE_BUF,
   FD_DECREF_VEC,
+  FD_DECREF_N,
   FD_FREE_VEC,
   FD_CALLFN} fd_stack_cleanop;
 
@@ -180,6 +183,12 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	int i = 0; while (i<size) {
 	  fdtype elt = vec[i++]; fd_decref(elt);}
 	break;}
+      case FD_DECREF_N: {
+	fdtype *vec = (fdtype *)cleanups[i].arg0;
+	ssize_t size = (ssize_t)cleanups[i].arg1;
+	int i = 0; while (i<size) {
+	  fdtype elt = vec[i++]; fd_decref(elt);}
+	break;}
       case FD_FREE_VEC: {
 	fdtype *vec = (fdtype *)cleanups[i].arg0;
 	ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
@@ -187,6 +196,14 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	int i = 0; while (i<size) {
 	  fdtype elt = vec[i++]; fd_decref(elt);}
 	u8_free(vec);
+	break;}
+      case FD_CLOSE_FILENO: {
+	long long fileno = (long long) cleanups[i].arg0;
+	close((int)fileno);
+	break;}
+      case FD_CLOSE_BUF: {
+	U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
+	u8_close(stream);
 	break;}
       case FD_CALLFN: {
 	fd_cleanupfn cleanup=(fd_cleanupfn)cleanups[i].arg0;
