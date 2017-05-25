@@ -192,6 +192,7 @@ set breakpoint pending on
 #set disable-randomization off
 set overload-resolution off
 
+break u8_log_break
 break u8_new_exception
 break _fd_debug
 break _u8_dbg
@@ -260,12 +261,6 @@ define useinstalledmodules
   unset environment FD_INIT_SAFELOADPATH
 end
 
-define dtx
-  typecode=(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
-  printf "type is 0x%x: %s\n",${typecode},fd_type_names[${typecode}]
-  if ${typecode} = fd_f
-end 
-
 define staticweb
     set args /var/run/fdserv/static.sock
 end
@@ -292,6 +287,25 @@ end
 
 define sfield
   print *(($0).$1)
+end
+
+# Commands for the new stack
+define stackptr
+  if ($argc == 1)
+    call _showstack_frame($0)
+  else
+   call _showstack_frame(NULL)
+  end
+end
+
+define showstack
+  if ($argc == 2)
+    call _showstack($0,$1)
+  elif ($argc == 1)
+    call _showstack(NULL,$0)
+  else
+   call _showstack(NULL,-1)
+  end
 end
 
 # Init some tracing configurations
