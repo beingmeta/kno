@@ -20,8 +20,6 @@
 (use-module 'varconfig)
 (use-module 'logger)
 
-(message "Loading the libscm optimize")
-
 (define-init %loglevel %warning%)
 
 ;; OPTLEVEL interpretations
@@ -29,6 +27,7 @@
 ;; 1: fcnrefs + opcodes
 ;; 2: substs + lexrefs
 ;; 3: rewrites
+;; 4: bind opcodes
 (define-init optlevel 3)
 (varconfig! optimize:level optlevel)
 (varconfig! optlevel optlevel)
