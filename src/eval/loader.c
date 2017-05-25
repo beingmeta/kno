@@ -57,6 +57,8 @@
 
 static fd_exception fd_ReloadError=_("Module reload error");
 
+static u8_string libscm_path;
+
 static fdtype safe_loadpath = FD_EMPTY_LIST;
 static fdtype loadpath = FD_EMPTY_LIST;
 static int log_reloads = 1;
@@ -101,23 +103,25 @@ static u8_string get_module_source(fdtype spec,int safe)
 {
   if (FD_SYMBOLP(spec)) {
     u8_string name = u8_downcase(FD_SYMBOL_NAME(spec));
-    u8_string module_source = NULL;
-    if (safe==0) {
+    u8_string module_source = u8_find_file(name,libscm_path,NULL);
+    if (module_source) {
+      u8_free(name);
+      return module_source;}
+    else if (safe==0) {
       FD_DOLIST(elt,loadpath) {
         if (FD_STRINGP(elt)) {
           module_source = u8_find_file(name,FD_STRDATA(elt),NULL);
           if (module_source) {
             u8_free(name);
             return module_source;}}}}
-    if (module_source == NULL)  {
-      FD_DOLIST(elt,safe_loadpath) {
-        if (FD_STRINGP(elt)) {
-          module_source = u8_find_file(name,FD_STRDATA(elt),NULL);
-          if (module_source) {
-            u8_free(name);
-            return module_source;}}}}
+    FD_DOLIST(elt,safe_loadpath) {
+      if (FD_STRINGP(elt)) {
+        module_source = u8_find_file(name,FD_STRDATA(elt),NULL);
+        if (module_source) {
+          u8_free(name);
+          return module_source;}}}
     u8_free(name);
-    return module_source;}
+    return NULL;}
   else if ((safe==0) && (FD_STRINGP(spec))) {
     u8_string spec_data = FD_STRDATA(spec);
     if (strchr(spec_data,':') == NULL) {
@@ -601,16 +605,21 @@ FD_EXPORT void fd_init_loader_c()
   source_symbol = fd_intern("%SOURCE");
 
   /* Setup load paths */
-  {
-    u8_string path = u8_getenv("FD_INIT_LOADPATH");
+  {u8_string path = u8_getenv("FD_INIT_LOADPATH");
     fdtype v = ((path) ? (fd_lispstring(path)) :
-              (fdtype_string(FD_DEFAULT_LOADPATH)));
+                (fdtype_string(FD_DEFAULT_LOADPATH)));
     loadpath = fd_init_pair(NULL,v,loadpath);}
-  {
-    u8_string path = u8_getenv("FD_INIT_SAFELOADPATH");
+    
+  {u8_string path = u8_getenv("FD_INIT_SAFELOADPATH");
     fdtype v = ((path) ? (fd_lispstring(path)) :
-              (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
+                (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
     safe_loadpath = fd_init_pair(NULL,v,safe_loadpath);}
+    
+  {u8_string dir=u8_getenv("FD_LIBSCM_DIR"), path=NULL;
+    if (dir==NULL) dir = FD_LIBSCM_DIR;
+    if (u8_has_suffix(dir,"/",0))
+      libscm_path=u8_string_append(dir,"%/module.scm:",dir,"%.scm",NULL);
+    else libscm_path=u8_string_append(dir,"/%/module.scm:",dir,"/%.scm",NULL);}
 
   fd_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
@@ -621,6 +630,9 @@ FD_EXPORT void fd_init_loader_c()
   fd_register_config
     ("SAFELOADPATH","Directories/URIs to search for sandbox modules",
      fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
+  fd_register_config
+    ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
+     fd_sconfig_get,fd_sconfig_set,&libscm_path);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));

@@ -99,7 +99,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
-apache_log_dir="/var/log/apache"
+apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
@@ -124,6 +124,7 @@ GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
+LIBSCM="\${REVISION}"
 default_config_dir="\$prefix/etc/framerd"
 local_config="\$prefix/etc/framerd"
 shared_config="\$prefix/etc/framerd"
@@ -322,6 +323,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
 AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
+AC_SUBST(LIBSCM)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -506,6 +508,7 @@ else
    wwwinstall=""
 fi
 
+AC_MSG_CHECKING(apache log directory)
 if test -d ${apache_conf_dir}/log; then
    if test -h ${apache_conf_dir}/log; then
      apache_log_dir=$(readlink ${apache_conf_dir}/log);
@@ -526,7 +529,7 @@ elif test -d ${local_state_dir}/logs/http; then
     apache_log_dir=${local_state_dir}/logs/http;
 elif test -d /var/log/apache; then
     apache_log_dir=/var/log/apache;
-elif test -d /var/logs/apache2; then
+elif test -d /var/log/apache2; then
     apache_log_dir=/var/log/apache2;
 elif test -d /var/log/httpd; then
     apache_log_dir=/var/log/httpd;
@@ -534,13 +537,21 @@ elif test -d /var/log/http; then
     apache_log_dir=/var/log/http;
 elif test -d /usr/log/apache; then
     apache_log_dir=/usr/log/apache;
-elif test -d /usr/logs/apache2; then
+elif test -d /usr/log/apache2; then
      apache_log_dir=/usr/log/apache2;
 elif test -d /usr/log/httpd; then
     apache_log_dir=/usr/log/httpd;
 elif test -d /usr/log/http; then
     apache_log_dir=/usr/log/http;
-else echo "Can't find Apache log dir for apache, using ${apache_log_dir}";
+else
+    apache_log_dir=""
+fi;
+
+if test -z ${apache_log_dir}; then
+ AC_MSG_RESULT(none found, assuming /var/log/apache2/)
+ apache_log_dir=/var/log/apache;
+else
+ AC_MSG_RESULT($apache_log_dir);
 fi;
 
 if test ! -z $APXS; then
@@ -608,29 +619,35 @@ if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
    exit;
 fi
 
+AC_MSG_CHECKING(malloc library)
+
 if test -z "$with_malloc" || 
    test "$with_malloc" = "libc" ||
    test "$with_malloc" = "builtin" ; then
-   echo "Using standard malloc";
+   AC_MSG_RESULT(libc default)
    custom_malloc="";
    using_malloc="libc"
 elif test "$with_malloc" = "tcmalloc"; then
   gperftools="yes";
   custom_malloc="tcmalloc"
   using_malloc="tcmalloc"
+  AC_MSG_RESULT(tcmalloc)
 elif test "$with_malloc" = "gperftools"; then
   gperftools="profile";
   custom_malloc="tcmalloc"
   using_malloc="gperftools"
+  AC_MSG_RESULT(tcmalloc profiling)
 elif test "$with_malloc" = "tcmalloc_debug"; then
   gperftools="debug";
   custom_malloc="tcmalloc_debug"
   using_malloc="tcmalloc_debug"
+  AC_MSG_RESULT(tcmalloc debug)
 elif test "$with_malloc" = "jemalloc"; then
   AC_CHECK_LIB(jemalloc,malloc,EXECLIBS="-ljemalloc $EXECLIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
     using_malloc="jemalloc"
+    AC_MSG_RESULT(jemalloc)
   else
     AC_MSG_ERROR(jemalloc can't be found)
     exit;
@@ -640,6 +657,7 @@ elif test "$with_malloc" = "dmalloc"; then
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
     using_malloc="dmalloc"
+    AC_MSG_RESULT(dmalloc)
   else
     AC_MSG_ERROR(dmalloc can't be found)
     exit;
@@ -655,6 +673,7 @@ elif test "$with_malloc" = "asan"; then
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
+   AC_MSG_RESULT(ASAN)
 elif test "$with_malloc" = "asan_thread"; then
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
    LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
@@ -665,6 +684,7 @@ elif test "$with_malloc" = "asan_thread"; then
    using_malloc="asan_thread"
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
+   AC_MSG_RESULT(ASAN thread)
 else
    AC_MSG_ERROR(Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread)
    exit 1;
@@ -895,6 +915,17 @@ local_safe_module_dir=$with_local_modules/safe
 AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$share_dir/modules/builtin)
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
+
+LIBSCM="${share_dir}/libscm/\${REVISION}"
+
+AC_ARG_WITH(libscm,--with-libscm location)
+if test "$with_libscm" == "version"; then
+   AC_DEFINE_UNQUOTED(FD_LIBSCM_DIR,"$share_dir/libscm/framerd-$FDVERSION")
+   LIBSCM="$share_dir/libscm/framerd-$FDVERSION";
+elif test ! -z "$with_libscm"; then
+   AC_DEFINE_UNQUOTED(FD_LIBSCM_DIR,"$with_libscm")
+   LIBSCM=$with_libscm
+fi;
 
 builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
 builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm

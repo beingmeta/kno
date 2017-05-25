@@ -377,6 +377,14 @@ typedef double fd_double;
 
 #define _(x) (x)
 
+#ifndef FD_LIBSCM_DIR
+#ifdef FRAMERD_REVISION
+#define FD_LIBSCM_DIR FD_SHARE_DIR "/libscm/" FRAMERD_REVISION
+#else
+#define FD_LIBSCM_DIR FD_SHARE_DIR  "/libscm/" FD_VERSION
+#endif
+#endif
+
 /* How to implement OIDs */
 
 #ifndef FD_STRUCT_OIDS

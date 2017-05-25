@@ -364,6 +364,9 @@
 /* The code to initialize built-in scheme modules */
 #undef FD_SCHEME_BUILTINS
 
+/* Where libscm (bundled scheme modules) are located */
+#undef FD_LIBSCM_DIR
+
 /* The string of semicolon separated config assignments processed at startup */
 #undef FD_BOOT_CONFIG
 
