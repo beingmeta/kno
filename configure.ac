@@ -1213,35 +1213,8 @@ fi
 AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
 
 if test "$with_tidy" == "yes"; then
-AC_CHECK_HEADER(tidy/tidy.h,have_tidy_tidy_h="yes",have_tidy_tidy_h="no")
-if (test "$have_tidy_tidy_h" = "yes"); then
-  AC_DEFINE(HAVE_TIDY_TIDY_H,1)
-  AC_CHECK_HEADER(tidy/tidybuffio.h,have_tidy_tidybuffio_h="yes",have_tidy_tidybuffio_h="no")
-  if (test "$have_tidy_tidybuffio_h" = "yes"); then
-    AC_DEFINE(HAVE_TIDY_TIDYBUFFIO_H,1)
-  fi;
-else
-  AC_CHECK_HEADER(tidy.h,have_tidy_h="yes",have_tidy_h="no")
-  if (test "$have_tidy_h" = "yes"); then
-    AC_DEFINE(HAVE_TIDY_H,1)
-    AC_CHECK_HEADER(tidybuffio.h,have_tidybuffio_h="yes",have_tidybuffio_h="no")
-    if (test "$have_tidybuffio_h" = "yes"); then
-      AC_DEFINE(HAVE_TIDYBUFFIO_H,1)
-    fi;
-  fi;
-fi
-if ((test "$have_tidy_h" = "yes")||(test "$have_tidy_tidy_h" = "yes")); then
-  AC_CHECK_LIB(tidy,tidyCreate)
-  AC_CHECK_LIB(tidy,tidyCreate,have_libtidy="yes",have_libtidy="no")
-fi
-if (test "$have_libtidy" != "yes"); then
-  AC_CHECK_LIB(tidys,tidyCreate)
-  AC_CHECK_LIB(tidys,tidyCreate,have_libtidy="yes",have_libtidy="no")
-fi
-if (test "$have_libtidy" = "yes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
-fi
 fi
 
 AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_imagick=$with_imagick_default)
