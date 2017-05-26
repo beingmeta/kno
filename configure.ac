@@ -1185,9 +1185,9 @@ if test "$with_mysql" != "no"; then
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(odbc,--with[out]-odbc Build odbc libraries,,with_odbc="yes")
+AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,with_odbc="yes")
 
-if test "$with_odbc" == "yes"; then
+if test "$odbc_enabled" == "yes"; then
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test "$have_sql_h" = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
@@ -1235,7 +1235,7 @@ if test "${have_snappyc_h}" = "yes"; then
    AC_DEFINE(HAVE_SNAPPYC_H,1)
 fi;
 
-AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools=$with_ziptools_default)
+AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,ziptools_enabled="yes")
 
 if test "$with_ziptools" == "yes"; then
   CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
@@ -1253,28 +1253,28 @@ if test "$with_ziptools" == "yes"; then
   fi
 fi
 
-AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
+AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,tidy_enabled="yes")
 
-if test "$with_tidy" == "yes"; then
+if test "$tidy_enabled" == "yes"; then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_imagick=$with_imagick_default)
-if test "$with_imagick" = "yes"; then
+AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,imagick_enabled="yes")
+if test "$imagick_enabled" = "yes"; then
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(mongodb,--with-mongodb Build and install MongoDB library,,with_mongodb=$with_mongodb_default)
+AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,mongodb_enabled="yes")
 
-if test "$with_mongodb" = "yes"; then
+if test "$mongodb_enabled" = "yes"; then
    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
 fi;
 
-AC_ARG_WITH(leveldb,--with-leveldb Build and install LevelDB library,,with_leveldb=$with_leveldb_default)
-if test "$with_leveldb" = "yes"; then
+AC_ARG_ENABLE(leveldb,--with-leveldb Build and install LevelDB module,,leveldb_enabled="yes")
+if test "$leveldb_enabled" = "yes"; then
   CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
 fi
@@ -1285,8 +1285,8 @@ if test "$with_fileinfo" = "yes" ; then
    versionsh="include/framerd/versions.h"
 fi
 
-AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate=${with_hyphenate_default})
-if test "$with_hyphenate" = "yes"; then
+AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,hyphenate_enabled="yes")
+if test "$hyphenate_enabled" = "yes"; then
   AC_CHECK_HEADERS(hyphen.h)
   AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
 fi

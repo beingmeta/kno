@@ -911,14 +911,14 @@ with_libu8
 with_sudo
 with_fastcgi
 with_mysql
-with_odbc
-with_ziptools
-with_tidy
-with_imagick
-with_mongodb
-with_leveldb
+enable_odbc
+enable_ziptools
+enable_tidy
+enable_imagick
+enable_mongodb
+enable_leveldb
 with_fileinfo
-with_hyphenate
+enable_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
@@ -1583,6 +1583,13 @@ Optional Features:
 --endisable-dtblock DTBlock dtype for net I/O
 --endisable-lockfree Enables lock-free reference counting
 --endisable-checkfdtype Enable compile-time checking for fdtype pointers
+--endisable-odbc Build odbc modules
+--with-ziptools Build and install ziptools
+--endisable-tidy Build and install tidy module
+--endisable-imagick Build and install imagemagick module
+--endisable-mongodb Build and install MongoDB module
+--with-leveldb Build and install LevelDB module
+--endisable-hyphenate Build and install the hyphenate module
 --endisable-largefiles Enable use of large (> 2GB) file support
 --endisable-prefetching make frame operations prefetch when they can
 --endisable-calltrack enable internal scheme profiling
@@ -1645,14 +1652,7 @@ Optional Packages:
 --without-sudo use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
---without-odbc Build odbc libraries
---with-ziptools Build and install ziptools
---with-tidy Build and install tidy library
---with-imagick Build and install imagemagick library
---with-mongodb Build and install MongoDB library
---with-leveldb Build and install LevelDB library
 --without-fileinfo record fileinfo
---with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
 --with/out-profiling compile to generate profile information
@@ -10561,16 +10561,15 @@ if test "$with_mysql" != "no"; then
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-odbc was given.
-if test "${with_odbc+set}" = set; then :
-  withval=$with_odbc;
+# Check whether --enable-odbc was given.
+if test "${enable_odbc+set}" = set; then :
+  enableval=$enable_odbc;
 else
   with_odbc="yes"
 fi
 
 
-if test "$with_odbc" == "yes"; then
+if test "$odbc_enabled" == "yes"; then
 ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
 if test "x$ac_cv_header_sql_h" = xyes; then :
   have_sql_h="yes"
@@ -10958,12 +10957,11 @@ fi
 
 fi;
 
-
-# Check whether --with-ziptools was given.
-if test "${with_ziptools+set}" = set; then :
-  withval=$with_ziptools;
+# Check whether --enable-ziptools was given.
+if test "${enable_ziptools+set}" = set; then :
+  enableval=$enable_ziptools;
 else
-  with_ziptools=$with_ziptools_default
+  ziptools_enabled="yes"
 fi
 
 
@@ -11086,56 +11084,52 @@ done
   fi
 fi
 
-
-# Check whether --with-tidy was given.
-if test "${with_tidy+set}" = set; then :
-  withval=$with_tidy;
+# Check whether --enable-tidy was given.
+if test "${enable_tidy+set}" = set; then :
+  enableval=$enable_tidy;
 else
-  with_tidy="yes"
+  tidy_enabled="yes"
 fi
 
 
-if test "$with_tidy" == "yes"; then
+if test "$tidy_enabled" == "yes"; then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-imagick was given.
-if test "${with_imagick+set}" = set; then :
-  withval=$with_imagick;
+# Check whether --enable-imagick was given.
+if test "${enable_imagick+set}" = set; then :
+  enableval=$enable_imagick;
 else
-  with_imagick=$with_imagick_default
+  imagick_enabled="yes"
 fi
 
-if test "$with_imagick" = "yes"; then
+if test "$imagick_enabled" = "yes"; then
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-mongodb was given.
-if test "${with_mongodb+set}" = set; then :
-  withval=$with_mongodb;
+# Check whether --enable-mongodb was given.
+if test "${enable_mongodb+set}" = set; then :
+  enableval=$enable_mongodb;
 else
-  with_mongodb=$with_mongodb_default
+  mongodb_enabled="yes"
 fi
 
 
-if test "$with_mongodb" = "yes"; then
+if test "$mongodb_enabled" = "yes"; then
    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
 fi;
 
-
-# Check whether --with-leveldb was given.
-if test "${with_leveldb+set}" = set; then :
-  withval=$with_leveldb;
+# Check whether --enable-leveldb was given.
+if test "${enable_leveldb+set}" = set; then :
+  enableval=$enable_leveldb;
 else
-  with_leveldb=$with_leveldb_default
+  leveldb_enabled="yes"
 fi
 
-if test "$with_leveldb" = "yes"; then
+if test "$leveldb_enabled" = "yes"; then
   CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
 fi
@@ -11153,15 +11147,14 @@ if test "$with_fileinfo" = "yes" ; then
    versionsh="include/framerd/versions.h"
 fi
 
-
-# Check whether --with-hyphenate was given.
-if test "${with_hyphenate+set}" = set; then :
-  withval=$with_hyphenate;
+# Check whether --enable-hyphenate was given.
+if test "${enable_hyphenate+set}" = set; then :
+  enableval=$enable_hyphenate;
 else
-  with_hyphenate=${with_hyphenate_default}
+  hyphenate_enabled="yes"
 fi
 
-if test "$with_hyphenate" = "yes"; then
+if test "$hyphenate_enabled" = "yes"; then
   for ac_header in hyphen.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "hyphen.h" "ac_cv_header_hyphen_h" "$ac_includes_default"
