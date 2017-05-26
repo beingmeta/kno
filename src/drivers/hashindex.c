@@ -1383,7 +1383,7 @@ static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
     fd_unlock_stream(s);
     *n = 0;
     return NULL;}
-  FD_CHUNK_REF buckets[total_keys*sizeof(FD_CHUNK_REF)];
+  FD_CHUNK_REF *buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
   struct FD_KEY_SIZE *sizes = u8_alloc_n(total_keys,FD_KEY_SIZE);
   if (sizes == NULL) {
     fd_unlock_stream(s);
@@ -1438,6 +1438,7 @@ static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
     i++;}
   assert(key_count == hx->table_n_keys);
   *n = hx->table_n_keys;
+  u8_free(buckets);
   u8_free(keybuf);
   return sizes;
 }
