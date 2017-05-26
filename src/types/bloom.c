@@ -111,6 +111,8 @@ static int bloom_check_add(struct FD_BLOOM * bloom,
                            const void * buffer, int len, int add)
 {
   int hits = 0;
+  if (bloom->bf == NULL)
+    return -1;
   register unsigned int a = murmurhash2(buffer, len, 0x9747b28c);
   register unsigned int b = murmurhash2(buffer, len, a);
   register unsigned int x;
@@ -182,14 +184,72 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
   return bloom;
 }
 
+/* Adding and checking primitives */
 
-int fd_bloom_check(struct FD_BLOOM * bloom, const void * buffer, int len)
+int bloom_check_add_dtype(struct FD_BLOOM *bloom,fdtype key,
+			  int add,int raw,int err)
+{
+  int rv=0;
+  if (raw) {
+    if (FD_STRINGP(key))
+      rv=bloom_check_add(bloom,FD_STRDATA(key),FD_STRLEN(key),add);
+    else if (FD_PACKETP(key))
+      rv=bloom_check_add(bloom,FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),add);
+    else if (err) {
+      fd_xseterr("Raw bloom arg wasn't a string or packet",
+		 "bloom_check_add_dtype",NULL,key);
+      return -1;}
+    if (rv<0)
+      u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);
+    return rv;}
+  else {
+    FD_DECL_OUTBUF(out,1024);
+    size_t dtype_len = fd_write_dtype(&out,key);
+    if ( FD_EXPECT_FALSE (dtype_len<0) ) {
+      if (err) {
+	if (u8_current_exception) u8_pop_exception();
+	return 0;}
+      else return -1;}
+    else if (out.buf_flags&FD_BUFFER_IS_MALLOCD) {
+      int rv=bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);
+      fd_close_outbuf(&out);
+      if (rv<0) u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);
+      return rv;}
+    else return bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);}
+}
+
+FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, fdtype key,int flags)
+{
+  int raw=flags&FD_BLOOM_RAW, err=flags&FD_BLOOM_ERR;
+  int check=flags&FD_BLOOM_CHECK, add=flags&FD_BLOOM_ADD;
+  if (FD_PRECHOICEP(key)) {
+    fdtype simple=fd_make_simple_choice(key);
+    int rv=fd_bloom_op(bloom,simple,flags);
+    fd_decref(simple);
+    return rv;}
+  else if (FD_CHOICEP(key)) {
+    unsigned int count=0;
+    FD_DO_CHOICES(elt,key) {
+      int rv=bloom_check_add_dtype(bloom, elt, add, raw, err);
+      if (rv<0) {
+	FD_STOP_DO_CHOICES;
+	return rv;}
+      else if ( (rv) && (check) )
+	return 1;
+      else if ( (add) && (rv==0) ) count++;
+      else if ( (!(add)) && (rv==1) ) count++;
+      else {}}
+    return count;}
+  else return bloom_check_add_dtype(bloom, key, add, raw, err);
+}
+
+int fd_bloom_checkbuf(struct FD_BLOOM * bloom, const void * buffer, int len)
 {
   return bloom_check_add(bloom, buffer, len, 0);
 }
 
 
-int fd_bloom_add(struct FD_BLOOM * bloom, const void * buffer, int len)
+int fd_bloom_addbuf(struct FD_BLOOM * bloom, const void * buffer, int len)
 {
   return bloom_check_add(bloom, buffer, len, 1);
 }
@@ -211,13 +271,14 @@ void recycle_bloom(struct FD_RAW_CONS *c)
 {
   struct FD_BLOOM * bloom = (struct FD_BLOOM *)c;
   if (bloom->bf) free(bloom->bf);
-  if (!(FD_STATIC_CONSP(bloom))) u8_free(bloom);
+  if (!(FD_STATIC_CONSP(bloom))) {
+    memset(bloom,0,sizeof(struct FD_BLOOM));
+    u8_free(bloom);}
 }
 
 
 void fd_init_bloom_c()
 {
-
   fd_unparsers[fd_bloom_filter_type]=unparse_bloom;
   fd_recyclers[fd_bloom_filter_type]=recycle_bloom;
 
