@@ -196,21 +196,21 @@
 	 (let ((threads
 		(choice
 		 (for-choices (pool (get state 'pools))
-		   (threadcall commit-pool pool))
+		   (thread/call commit-pool pool))
 		 (for-choices (index (get state 'indexes))
-		   (threadcall commit index))
+		   (thread/call commit index))
 		 (for-choices (pool (get state 'adjpools))
-		   (threadcall commit pool))
+		   (thread/call commit pool))
 		 (for-choices (index (get (get state 'slotindex)
 					  (get (get state 'slotindex) 'slots)))
-		   (threadcall commit index))
+		   (thread/call commit index))
 		 (for-choices (file.object (get state 'objects))
-		   (threadcall dtype->file 
+		   (thread/call dtype->file 
 			       (deep-copy (cdr file.object))
 			       (car file.object))))))
 	   (lognotice |BatchSave| 
 	     "Using " (choice-size threads) " threads to commit task state")
-	   (thread/join threads)
+	   (thread/wait threads)
 	   (lognotice |BatchSave| 
 	     "Writing out current state to " (get state 'statefile))
 	   (when post-save (post-save state-copy))
@@ -263,21 +263,21 @@
 	(threads
 	 (choice
 	  (for-choices (pool (get state 'pools))
-	    (threadcall commit-pool pool))
+	    (thread/call commit-pool pool))
 	  (for-choices (index (get state 'indexes))
-	    (threadcall commit index))
+	    (thread/call commit index))
 	  (for-choices (pool (get state 'adjpools))
-	    (threadcall commit pool))
+	    (thread/call commit pool))
 	  (for-choices (index (get (get state 'slotindex)
 				   (get (get state 'slotindex) 'slots)))
-	    (threadcall commit index))
+	    (thread/call commit index))
 	  (for-choices (file.object (get state 'objects))
-	    (threadcall dtype->file 
-			(deep-copy (cdr file.object))
-			(car file.object))))))
+	    (thread/call dtype->file 
+		(deep-copy (cdr file.object))
+	      (car file.object))))))
     (logwarn |BatchSave| 
       "Saving state using " (choice-size threads) " threads")
-    (thread/join threads)
+    (thread/wait threads)
     (logwarn |BatchSave| 
       "Writing out processing state to " (get state 'statefile))
     (when post-save (post-save state-copy))
