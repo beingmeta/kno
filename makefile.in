@@ -103,6 +103,7 @@ SRC_HEADERS=src/types/biginternals.h 		\
 	src/drivers/headers/htindex.h		\
 	src/drivers/headers/fileindex.h 	\
 	src/drivers/headers/memindex.h	 	\
+	src/drivers/headers/bigpool.h	 	\
 	src/drivers/headers/oidpool.h	 	\
 	src/drivers/headers/hashindex.h		\
 	src/drivers/headers/netindex.h		\
