@@ -2949,70 +2949,55 @@ static fdtype make_bloom_filter(fdtype n_entries,fdtype allowed_error)
 
 #define BLOOM_DTYPE_LEN 1000
 
-static fdtype bloom_add(fdtype filter,fdtype value,fdtype raw_arg)
-{
-  struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
-  int raw = (!(FD_FALSEP(raw_arg))); long long count=0;
-  if (raw) {
-    FD_DO_CHOICES(v,value) {
-      int rv;
-      if (FD_STRINGP(v))
-        rv=fd_bloom_add(bloom,FD_STRDATA(value),FD_STRLEN(value));
-      else if (FD_PACKETP(v))
-        rv = fd_bloom_add(bloom,FD_PACKET_DATA(value),FD_PACKET_LENGTH(value));
-      else {
-        FD_STOP_DO_CHOICES;
-        return fd_type_error("string or packet","bloom_add/raw",value);}
-      if (rv<0) {
-        FD_STOP_DO_CHOICES;
-        return FD_ERROR_VALUE;}
-      else if (rv) count++;}
-    return FD_INT(count);}
-  else {
-    FD_DECL_OUTBUF(out,BLOOM_DTYPE_LEN);
-    FD_DO_CHOICES(v,value) {
-      out.bufwrite=out.buffer;
-      size_t dtype_len=fd_write_dtype(&out,value);
-      int rv = (dtype_len>0) ?
-        (fd_bloom_add(bloom,out.buffer,out.bufwrite-out.buffer)) :
-        (-1);
-      if (rv < 0) {
-        fd_close_outbuf(&out);
-        FD_STOP_DO_CHOICES;
-        return FD_ERROR_VALUE;}
-      else if (rv) count++;}
-    fd_close_outbuf(&out);
-    return FD_INT(count);}
-}
-
-static fdtype bloom_check(fdtype filter,fdtype value,fdtype raw_arg)
+static fdtype bloom_add(fdtype filter,fdtype value,
+                        fdtype raw_arg,
+                        fdtype ignore_errors)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   int raw = (!(FD_FALSEP(raw_arg)));
-  if ((raw)&&(FD_STRINGP(value))) {
-    int rv = fd_bloom_check(bloom,FD_STRDATA(value),FD_STRLEN(value));
-    if (rv) 
-      return FD_TRUE;
-    else return FD_FALSE;}
-  else if ((raw)&&(FD_PACKETP(value))) {
-    int rv = fd_bloom_check(bloom,FD_PACKET_DATA(value),
-                        FD_PACKET_LENGTH(value));
-    if (rv) 
-      return FD_TRUE;
-    else return FD_FALSE;}
-  else if (raw) 
-    return fd_type_error("string or packet","bloom_add",value);
-  else {
-    struct FD_OUTBUF out; 
-    unsigned char bytebuf[1024];
-    FD_INIT_BYTE_OUTBUF(&out,bytebuf,1024);
-    fd_write_dtype(&out,value);
-    int rv = fd_bloom_check(bloom,out.buffer,
-                          out.bufwrite-out.buffer);
-    fd_close_outbuf(&out);
-    if (rv) 
-      return FD_TRUE;
-    else return FD_FALSE;}
+  int noerr = (!(FD_FALSEP(ignore_errors)));
+  int rv = fd_bloom_op(bloom,value,
+                       ( ( (raw) ? (FD_BLOOM_RAW) : (0)) |
+                         ( (noerr) ? (0) : (FD_BLOOM_ERR) ) |
+                         (FD_BLOOM_ADD) ));
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else if (rv == 0)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype bloom_check(fdtype filter,fdtype value,
+                          fdtype raw_arg,
+                          fdtype ignore_errors)
+{
+  struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
+  int raw = (!(FD_FALSEP(raw_arg)));
+  int noerr = (!(FD_FALSEP(ignore_errors)));
+  int rv = fd_bloom_op(bloom,value,
+                       ( ( (raw) ? (FD_BLOOM_RAW) : (0)) |
+                         ( (noerr) ? (0) : (FD_BLOOM_ERR) ) |
+                         (FD_BLOOM_CHECK) ));
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else if (rv)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype bloom_hits(fdtype filter,fdtype value,
+                         fdtype raw_arg,
+                         fdtype ignore_errors)
+{
+  struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
+  int raw = (!(FD_FALSEP(raw_arg)));
+  int noerr = (!(FD_FALSEP(ignore_errors)));
+  int rv = fd_bloom_op(bloom,value,
+                       ( ( (raw) ? (FD_BLOOM_RAW) : (0)) |
+                         ( (noerr) ? (0) : (FD_BLOOM_ERR) ) ));
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else return FD_INT(rv);
 }
 
 static fdtype bloom_size(fdtype filter)
@@ -3398,21 +3383,44 @@ FD_EXPORT void fd_init_dbprims_c()
             "Gets the adjuncts associated with the specified pool",
             -1,FD_VOID);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("MAKE-BLOOM-FILTER",make_bloom_filter,1,
-                           fd_fixnum_type,FD_VOID,
-                           fd_flonum_type,FD_VOID));
-  fd_idefn3(fd_scheme_module,"BLOOM/ADD!",bloom_add,FD_NEEDS_2_ARGS|FD_NDCALL,
+  fd_idefn2(fd_scheme_module,"MAKE-BLOOM-FILTER",make_bloom_filter,1,
+            "Creates a bloom filter for a a number of items and an error rate",
+            fd_fixnum_type,FD_VOID,fd_flonum_type,FD_VOID);
+
+  fd_idefn4(fd_scheme_module,"BLOOM/ADD!",bloom_add,FD_NEEDS_2_ARGS|FD_NDCALL,
             "(BLOOM/ADD! *filter* *key* [*raw*]) adds a key to a bloom filter. "
             "The *raw* argument indicates that the key is a string or packet "
             "should be added to the filter. Otherwise, the binary DTYPE "
             "representation for the value is added to the filter.",
-                           fd_bloom_filter_type,FD_VOID,
-                           -1,FD_VOID,-1,FD_FALSE);
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("BLOOM/CHECK",bloom_check,1,
-                           fd_bloom_filter_type,FD_VOID,
-                           -1,FD_VOID,-1,FD_FALSE));
+            fd_bloom_filter_type,FD_VOID,-1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE);
+
+  fd_idefn4(fd_scheme_module,"BLOOM/ADD",bloom_add,1|FD_NDCALL,
+            "(BLOOM/ADD! *filter* *keys* [*raw*] [*noerr*]) "
+            "adds the keys *keys* to *filter*, returning #t if it was added "
+            "(and, so, not originally present). "
+            "If *raw* is true, *values* must be strings or packets and their "
+            "byte values are used directly; otherwise, values are converted to "
+            "dtypes before being tested. If *noerr* is true, type or conversion "
+            "errors are just considered misses and ignored.",
+            fd_bloom_filter_type,FD_VOID,-1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE);
+
+  fd_idefn4(fd_scheme_module,"BLOOM/CHECK",bloom_check,1|FD_NDCALL,
+            "(BLOOM/CHECK *filter* *keys* [*raw*] [*noerr*]) "
+            "returns true if any of *keys* are probably found in *filter*. "
+            "If *raw* is true, *keys* must be strings or packets and their "
+            "byte values are used directly; otherwise, values are converted to "
+            "dtypes before being tested. If *noerr* is true, type or conversion "
+            "errors are just considered misses and ignored.",
+            fd_bloom_filter_type,FD_VOID,-1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE);
+  fd_idefn4(fd_scheme_module,"BLOOM/HITS",bloom_hits,1|FD_NDCALL,
+            "(BLOOM/HITS *filter* *keys* [*raw*] [*noerr*]) "
+            "returns the number of *keys* probably found in *filter*. "
+            "If *raw* is true, *keys* must be strings or packets and their "
+            "byte values are used directly; otherwise, values are converted to "
+            "dtypes before being tested. If *noerr* is true, type or conversion "
+            "errors are just considered misses and ignored.",
+            fd_bloom_filter_type,FD_VOID,-1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE);
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BLOOM-SIZE",bloom_size,1,
                            fd_bloom_filter_type,FD_VOID));
