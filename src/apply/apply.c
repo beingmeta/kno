@@ -610,7 +610,8 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
     apply_stack->stack_args=argvec;
     apply_stack->n_args=n;
     U8_WITH_CONTOUR(fname,0)
-      if (f) result=apply_fcn(apply_stack,fname,f,n,argvec);
+      if (f)
+        result=apply_fcn(apply_stack,fname,f,n,argvec);
       else result=fd_applyfns[ftype](fn,n,argvec);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
@@ -622,7 +623,8 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
              errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
     if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
-      if (errno) u8_graberrno("fd_apply",fname);
+      if (errno)
+        u8_graberrno("fd_apply",fname);
       else fd_seterr(fd_UnknownError,"fd_apply",fname,FD_VOID);}
     fd_pop_stack(apply_stack);
     if (FD_EXPECT_TRUE(FD_CHECK_PTR(result)))

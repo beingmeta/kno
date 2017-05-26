@@ -37,6 +37,7 @@
 static u8_condition ThreadReturnError=_("ThreadError");
 static u8_condition ThreadExit=_("ThreadExit");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
+static u8_condition ThreadVOID=_("ThreadVoidResult");
 
 static int thread_loglevel = LOGNOTICE;
 static int thread_log_exit = 1;
@@ -553,12 +554,31 @@ static fdtype threadjoin_prim(fdtype threads)
          the results */
       if ( (tstruct->resultptr == NULL) ||
            ((tstruct->resultptr) == &(tstruct->result)) )
-        if (!(FD_VOIDP(tstruct->result))) {
+        if (FD_VOIDP(tstruct->result))
+          u8_log(LOG_WARN,ThreadVOID,
+                 "The thread %q unexpectedly returned VOID but without error",
+                 thread);
+        else  {
           fd_incref(tstruct->result);
           FD_ADD_TO_CHOICE(results,tstruct->result);}}
     else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                  retval,strerror(retval),thread);}}
   return results;
+}
+
+static fdtype threadwait_prim(fdtype threads)
+{
+  fdtype results = FD_EMPTY_CHOICE;
+  {FD_DO_CHOICES(thread,threads)
+     if (!(FD_TYPEP(thread,fd_thread_type)))
+       return fd_type_error(_("thread"),"threadjoin_prim",thread);}
+  {FD_DO_CHOICES(thread,threads) {
+    struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
+    int retval = pthread_join(tstruct->tid,NULL);
+    if (retval)
+      u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
+             retval,strerror(retval),thread);}}
+  return fd_incref(threads);
 }
 
 static fdtype parallel_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
@@ -660,6 +680,8 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
   fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("THREAD/WAIT",threadwait_prim,1)));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/EXITED?",thread_exitedp,1,
