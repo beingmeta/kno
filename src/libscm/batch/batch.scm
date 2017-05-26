@@ -105,6 +105,7 @@
 
 (define (batch/finished? (state batch-state))
   (or finished
+      (and (config 'stopfile) (file-exists? (config 'stopfile)))
       (exists batch/threshtest "Time" 
 	      (elapsed-time start-time) maxtime secs->string)
       (exists batch/threshtest "Memory" (memusage) maxmem $bytes)
