@@ -648,7 +648,8 @@ FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
       if (decref_keys) fd_decref(keys);
       fd_decref(v);
       return result;}
-    struct FD_KEY_SIZE *fetched = ix->index_handler->fetchinfo(ix,keys,&n_fetched);
+    struct FD_KEY_SIZE *fetched =
+      ix->index_handler->fetchinfo(ix,(fd_choice)keys,&n_fetched);
     if ((n_fetched==0) && (ix->index_adds.table_n_keys==0))
       return FD_EMPTY_CHOICE;
     else if ((ix->index_adds.table_n_keys)==0) {

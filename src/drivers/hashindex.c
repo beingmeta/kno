@@ -1440,12 +1440,6 @@ static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int 
         fd_read_zint(&keyblock);}
       j++;}
     i++;}
-<<<<<<< HEAD
-=======
-  assert(key_count == hx->table_n_keys);
-  *n = hx->table_n_keys;
-  u8_free(buckets);
->>>>>>> trunk
   u8_free(keybuf);
   u8_free(buckets);
   *n=key_count;
