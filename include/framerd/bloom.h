@@ -44,7 +44,6 @@ struct FD_BLOOM
   unsigned char * bf;
 };
 
-
 /** ***************************************************************************
  * Initialize the bloom filter for use.
  *
@@ -91,7 +90,7 @@ struct FD_BLOOM *fd_init_bloom_filter(struct FD_BLOOM * bloom, int entries, doub
  *    -1 - bloom not initialized
  *
  */
-int fd_bloom_check(struct FD_BLOOM * bloom, const void * buffer, int len);
+int fd_bloom_checkbuf(struct FD_BLOOM * bloom, const void * buffer, int len);
 
 
 /** ***************************************************************************
@@ -112,6 +111,23 @@ int fd_bloom_check(struct FD_BLOOM * bloom, const void * buffer, int len);
  *    -1 - bloom not initialized
  *
  */
-int fd_bloom_add(struct FD_BLOOM * bloom, const void * buffer, int len);
+int fd_bloom_addbuf(struct FD_BLOOM * bloom, const void * buffer, int len);
+
+/* Operates on a bloom filter and a lisp value
+   @param bloom a pointer to a bloom filter
+   @param key a lisp value
+   @param flags options
+
+   @returns 1 (an element or a collision was already present), 0 (the
+     element was not present and was added if requested, or -1 (an error
+     was encountered)
+*/
+int fd_bloom_op(struct FD_BLOOM * bloom, fdtype val, int flags);
+
+/* Flags for fd_bloom_op */
+#define FD_BLOOM_ADD 0x01
+#define FD_BLOOM_RAW 0x02
+#define FD_BLOOM_ERR 0x04
+#define FD_BLOOM_CHECK 0x08
 
 #endif /* FRAMERD_BLOOM_H */
