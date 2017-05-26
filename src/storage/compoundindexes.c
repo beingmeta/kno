@@ -234,7 +234,7 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
   compound_prefetch, /* prefetch */
   compound_fetchn, /* fetchn */
   compound_fetchkeys, /* fetchkeys */
-  NULL, /* fetchsizes */
+  NULL, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* create */

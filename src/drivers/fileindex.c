@@ -10,6 +10,8 @@
 #endif
 
 #define FD_INLINE_BUFIO 1
+#define FD_INLINE_CHOICES 1
+#define FD_FAST_CHOICE_CONTAINSP 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -180,27 +182,13 @@ FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,fdtype x)
   return -1;
 }
 
-/* This does a simple binary search of a sorted choice vector,
-   looking for a particular element. */
-FD_FASTOP int choice_containsp(fdtype x,struct FD_CHOICE *choice)
-{
-  int size = FD_XCHOICE_SIZE(choice);
-  const fdtype *bottom = FD_XCHOICE_DATA(choice), *top = bottom+(size-1);
-  while (top>=bottom) {
-    const fdtype *middle = bottom+(top-bottom)/2;
-    if (x == *middle) return 1;
-    else if (x < *middle) top = middle-1;
-    else bottom = middle+1;}
-  return 0;
-}
-
 FD_FASTOP int redundantp(struct FD_FILE_INDEX *fx,fdtype key)
 {
   if ((FD_PAIRP(key)) && (!(FD_VOIDP(fx->slotids)))) {
     fdtype slotid = FD_CAR(key), slotids = fx->slotids;
     if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
       if ((FD_CHOICEP(slotids)) ?
-          (choice_containsp(slotid,(fd_choice)slotids)) :
+          (fast_choice_containsp(slotid,(fd_choice)slotids)) :
           (FD_EQ(slotid,slotids)))
         return 0;
       else return 1;
@@ -354,7 +342,7 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
     return keys;}
 }
 
-static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
+static struct FD_KEY_SIZE *file_index_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
   struct FD_FILE_INDEX *fx = (struct FD_FILE_INDEX *)ix;
   struct FD_STREAM *stream = &(fx->index_stream);
@@ -372,6 +360,7 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
     return NULL;}
   else {
     struct FD_KEY_SIZE *sizes = u8_alloc_n(n_keys,FD_KEY_SIZE);
+    unsigned int key_count=0;
     qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
     while (i < n_keys) {
       fdtype key; int size;
@@ -379,9 +368,13 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
       size = fd_read_4bytes(instream);
       /* vpos = */ fd_read_4bytes(instream);
       key = fd_read_dtype(instream);
-      sizes[i].keysizekey = key; sizes[i].keysizenvals = size;
+      if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
+        sizes[key_count].keysizekey = key;
+        sizes[key_count].keysizenvals = size;
+        key_count++;}
+      else fd_decref(key);
       i++;}
-    *n = n_keys;
+    *n = key_count;
     u8_free(offsets);
     return sizes;}
 }
@@ -1311,7 +1304,7 @@ static struct FD_INDEX_HANDLER file_index_handler={
   NULL, /* prefetch */
   file_index_fetchn, /* fetchn */
   file_index_fetchkeys, /* fetchkeys */
-  file_index_fetchsizes, /* fetchsizes */
+  file_index_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* metadata */
   file_index_create, /* create */

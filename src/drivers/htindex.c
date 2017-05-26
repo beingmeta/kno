@@ -10,6 +10,8 @@
 #endif
 
 #define FD_INLINE_BUFIO 1
+#define FD_INLINE_CHOICES 1
+#define FD_FAST_CHOICE_CONTAINSP 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -44,27 +46,31 @@ static fdtype *htindex_fetchkeys(fd_index ix,int *n)
   return result;
 }
 
-static int htindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
+struct FETCHINFO_STATE {
+  struct FD_KEY_SIZE *result, *write;
+  fd_choice filter;};
+
+static int htindex_fetchinfo_helper(fdtype key,fdtype value,void *ptr)
 {
-  struct FD_KEY_SIZE **key_size_ptr = (struct FD_KEY_SIZE **)ptr;
-  (*key_size_ptr)->keysizekey = fd_incref(key);
-  (*key_size_ptr)->keysizenvals = FD_CHOICE_SIZE(value);
-  *key_size_ptr = (*key_size_ptr)+1;
+  struct FETCHINFO_STATE *state=(struct FETCHINFO_STATE *)ptr;
+  if ( (state->filter == NULL) || (fast_choice_containsp(key,state->filter)) ) {
+    state->write->keysizekey = key; fd_incref(key);
+    state->write->keysizenvals = FD_CHOICE_SIZE(value);
+    state->write++;}
   return 0;
 }
 
-static struct FD_KEY_SIZE *htindex_fetchsizes(fd_index ix,int *n)
+static struct FD_KEY_SIZE *htindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
-  if (ix->index_cache.table_n_keys) {
-    struct FD_KEY_SIZE *sizes, *write; int n_keys;
-    n_keys = ix->index_cache.table_n_keys;
-    sizes = u8_alloc_n(n_keys,FD_KEY_SIZE); write = &(sizes[0]);
-    fd_for_hashtable(&(ix->index_cache),htindex_fetchsizes_helper,
-                     (void *)write,1);
-    *n = n_keys;
-    return sizes;}
-  else {
-    *n = 0; return NULL;}
+  if (ix->index_cache.table_n_keys == 0) {
+    *n=0; return NULL;}
+  int n_keys = (filter == NULL) ? (ix->index_cache.table_n_keys) :
+    (FD_XCHOICE_SIZE(filter));
+  struct FD_KEY_SIZE *sizes= u8_zalloc_n(n_keys,FD_KEY_SIZE);
+  struct FETCHINFO_STATE state={sizes,sizes,filter};
+  fd_for_hashtable(&(ix->index_cache),htindex_fetchinfo_helper,&state,1);
+  *n = n_keys;
+  return sizes;
 }
 
 static int htindex_commit(fd_index ix)
@@ -127,7 +133,7 @@ static struct FD_INDEX_HANDLER htindex_handler={
   NULL, /* prefetch */
   htindex_fetchn, /* fetchn */
   htindex_fetchkeys, /* fetchkeys */
-  htindex_fetchsizes, /* fetchsizes */
+  htindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* recycle */

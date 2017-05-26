@@ -210,7 +210,7 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL, /* prefetch */
   extindex_fetchn, /* fetchn */
   NULL, /* fetchkeys */
-  NULL, /* fetchsizes */
+  NULL, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* metadata */
   NULL, /* create */

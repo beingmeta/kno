@@ -10,6 +10,8 @@
 #endif
 
 #define FD_INLINE_BUFIO 1
+#define FD_INLINE_CHOICES 1
+#define FD_FAST_CHOICE_CONTAINSP 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -101,32 +103,38 @@ static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
       return results;}}
 }
 
-struct FETCHSIZES_STATE {
+struct FETCHINFO_STATE {
   struct FD_KEY_SIZE *sizes;
+  struct FD_CHOICE *filter;
   int i, n;};
 
 static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
 {
-  struct FETCHSIZES_STATE *state = (struct FETCHSIZES_STATE *)data;
+  struct FETCHINFO_STATE *state = (struct FETCHINFO_STATE *)data;
+  fd_choice filter=state->filter;
   int i = state->i;
   if (i<state->n) {
-    fdtype key = kv->kv_key, value = kv->kv_val;
-    int size = FD_CHOICE_SIZE(value);
-    state->sizes[i].keysizekey = key; fd_incref(key);
-    state->sizes[i].keysizenvals = FD_INT(size);
-    i++;}
+    fdtype key = kv->kv_key;
+    if ( (filter==NULL) || (fast_choice_containsp(key,filter)) ) {
+      fdtype value = kv->kv_val;
+      int size = FD_CHOICE_SIZE(value);
+      state->sizes[i].keysizekey = key;
+      fd_incref(key);
+      state->sizes[i].keysizenvals = FD_INT(size);
+      state->i++;}}
   return 0;
 }
 
-static struct FD_KEY_SIZE *mem_index_fetchsizes(fd_index ix,int *n)
+static struct FD_KEY_SIZE *mem_index_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if (mix->mix_loaded==0) load_mem_index(mix,1);
-  int n_keys = ix->index_cache.table_n_keys;
+  int n_keys = (filter == NULL) ? (ix->index_cache.table_n_keys) :
+    (FD_XCHOICE_SIZE(filter));
   struct FD_KEY_SIZE *keysizes = u8_alloc_n(n_keys,struct FD_KEY_SIZE);
-  struct FETCHSIZES_STATE state={keysizes,0,n_keys};
+  struct FETCHINFO_STATE state={keysizes,filter,0,n_keys};
   fd_for_hashtable_kv(&(ix->index_cache),gather_keysizes,(void *)&state,1);
-  *n = n_keys;
+  *n = state.i;
   return keysizes;
 }
 
@@ -409,7 +417,7 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   NULL, /* prefetch */
   mem_index_fetchn, /* fetchn */
   mem_index_fetchkeys, /* fetchkeys */
-  mem_index_fetchsizes, /* fetchsizes */
+  mem_index_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* metadata */
   mem_index_create, /* create */

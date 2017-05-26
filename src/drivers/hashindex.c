@@ -73,6 +73,8 @@
 */
 
 #define FD_INLINE_BUFIO 1
+#define FD_INLINE_CHOICES 1
+#define FD_FAST_CHOICE_CONTAINSP 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -1368,7 +1370,7 @@ static fdtype *hashindex_fetchkeys(fd_index ix,int *n)
   return results;
 }
 
-static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
+static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   fd_stream s = &(hx->index_stream);
@@ -1383,11 +1385,11 @@ static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
     fd_unlock_stream(s);
     *n = 0;
     return NULL;}
-  FD_CHUNK_REF buckets[total_keys*sizeof(FD_CHUNK_REF)];
+  FD_CHUNK_REF *buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   struct FD_KEY_SIZE *sizes = u8_alloc_n(total_keys,FD_KEY_SIZE);
   if (sizes == NULL) {
     fd_unlock_stream(s);
-    u8_seterr(fd_MallocFailed,"hashindex_fetchsizes",NULL);
+    u8_seterr(fd_MallocFailed,"hashindex_fetchinfo",NULL);
     *n = -1;
     return NULL;}
   unsigned char *keybuf = u8_malloc(HX_KEYBUF_SIZE);
@@ -1421,9 +1423,11 @@ static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
       key = read_key(hx,&keyblock);
       n_vals = fd_read_zint(&keyblock);
       assert(key!=0);
-      sizes[key_count].keysizekey = key;
-      sizes[key_count].keysizenvals = n_vals;
-      key_count++;
+      if ( (filter == NULL) || (fast_choice_containsp(key,filter)) ) {
+        sizes[key_count].keysizekey = key;
+        sizes[key_count].keysizenvals = n_vals;
+        key_count++;}
+      else fd_decref(key);
       if (n_vals==0) {}
       else if (n_vals==1) {
         int code = fd_read_zint(&keyblock);
@@ -1436,9 +1440,9 @@ static struct FD_KEY_SIZE *hashindex_fetchsizes(fd_index ix,int *n)
         fd_read_zint(&keyblock);}
       j++;}
     i++;}
-  assert(key_count == hx->table_n_keys);
-  *n = hx->table_n_keys;
   u8_free(keybuf);
+  u8_free(buckets);
+  *n=key_count;
   return sizes;
 }
 
@@ -2722,7 +2726,7 @@ static struct FD_INDEX_HANDLER hashindex_handler={
   NULL, /* prefetch */
   hashindex_fetchn, /* fetchn */
   hashindex_fetchkeys, /* fetchkeys */
-  hashindex_fetchsizes, /* fetchsizes */
+  hashindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
   NULL, /* metadata */
   hashindex_create, /* create */ 

@@ -629,11 +629,26 @@ static int copy_value_sizes(fdtype key,fdtype value,void *vptr)
   return 0;
 }
 
-FD_EXPORT fdtype fd_index_sizes(fd_index ix)
+FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
 {
-  if (ix->index_handler->fetchsizes) {
-    int n_fetched = 0;
-    struct FD_KEY_SIZE *fetched = ix->index_handler->fetchsizes(ix,&n_fetched);
+  if (ix->index_handler->fetchinfo) {
+    fdtype keys=for_keys;
+    int n_fetched = 0, decref_keys;
+    struct FD_CHOICE *filter=NULL;
+    if (FD_PRECHOICEP(for_keys)) {
+      keys=fd_make_simple_choice(for_keys);
+      decref_keys=1;}
+    if (FD_EMPTY_CHOICEP(keys))
+      return FD_EMPTY_CHOICE;
+    else if (!(FD_CHOICEP(keys))) {
+      fdtype v = fd_index_get(ix,keys);
+      unsigned int size = FD_CHOICE_SIZE(v);
+      fdtype result = fd_init_pair
+        ( NULL, fd_incref(keys), FD_INT(size) );
+      if (decref_keys) fd_decref(keys);
+      fd_decref(v);
+      return result;}
+    struct FD_KEY_SIZE *fetched = ix->index_handler->fetchinfo(ix,keys,&n_fetched);
     if ((n_fetched==0) && (ix->index_adds.table_n_keys==0))
       return FD_EMPTY_CHOICE;
     else if ((ix->index_adds.table_n_keys)==0) {
@@ -667,6 +682,11 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
       return fd_init_choice(result,n_total,NULL,
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
+}
+
+FD_EXPORT fdtype fd_index_sizes(fd_index ix)
+{
+  return fd_index_keysizes(ix,FD_VOID);
 }
 
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)

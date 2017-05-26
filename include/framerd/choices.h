@@ -107,6 +107,10 @@
 #define FD_MERGESORT_THRESHOLD 100000
 #endif
 
+#ifndef FD_FAST_CHOICE_CONTAINSP
+#define FD_FAST_CHOICE_CONTAINSP 0
+#endif
+
 FD_EXPORT int fd_mergesort_threshold;
 
 /* Choices */
@@ -338,6 +342,33 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
    if (FD_DEBUG_BADPTRP(v))                      \
      _fd_bad_pointer(v,(u8_context)"FD_ADD_TO_CHOICE"); \
    else x=_fd_add_to_choice(x,v)
+#endif
+
+#if FD_FAST_CHOICE_CONTAINSP
+/* This does a simple binary search of a sorted choice vector,
+   looking for a particular element. Once more, we separate out the
+   atomic case because it just requires pointer comparisons.  */
+static int fast_choice_containsp(fdtype x,struct FD_CHOICE *choice)
+{
+  int size = FD_XCHOICE_SIZE(choice);
+  const fdtype *bottom = FD_XCHOICE_DATA(choice), *top = bottom+(size-1);
+  if (FD_ATOMICP(x)) {
+    while (top>=bottom) {
+      const fdtype *middle = bottom+(top-bottom)/2;
+      if (x == *middle) return 1;
+      else if (FD_CONSP(*middle)) top = middle-1;
+      else if (x < *middle) top = middle-1;
+      else bottom = middle+1;}
+    return 0;}
+  else {
+    while (top>=bottom) {
+        const fdtype *middle = bottom+(top-bottom)/2;
+        int comparison = cons_compare(x,*middle);
+        if (comparison == 0) return 1;
+        else if (comparison<0) top = middle-1;
+        else bottom = middle+1;}
+      return 0;}
+}
 #endif
 
 #define FD_DO_CHOICES(elt,valexpr) \
