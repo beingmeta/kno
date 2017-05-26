@@ -1231,6 +1231,10 @@ static fdtype file_index_op(fd_index ix,fdtype op,int n,fdtype *args)
       else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))
         return FD_INT(hash);
       else return FD_INT(hash%(hx->index_n_slots));}}
+  else if (op == fd_capacity_op)
+    return FD_INT(hx->index_n_slots);
+  else if (op == fd_load_op)
+    return FD_EMPTY_CHOICE;
   else return FD_FALSE;
 }
 

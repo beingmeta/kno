@@ -27,11 +27,12 @@ typedef enum FD_COMPRESS_TYPE {
 
 FD_EXPORT fd_compress_type fd_compression_type(fdtype,fd_compress_type);
 
-/* These are common pool/index ops (for use with fd_poolctl/fd_indexctl */
+/* These are common pool/index ops (for use with fd_poolctl/fd_indexctl) */
 
 FD_EXPORT fdtype fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 FD_EXPORT fdtype fd_stats_op, fd_label_op, fd_populate_op;
 FD_EXPORT fdtype fd_getmap_op, fd_slotids_op, fd_baseoids_op;
+FD_EXPORT fdtype fd_load_op, fd_capacity_op;
 
 FD_EXPORT fd_exception fd_InvalidOffsetType;
 FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;

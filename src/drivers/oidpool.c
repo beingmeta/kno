@@ -1662,6 +1662,10 @@ static fdtype oidpool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
       oidpool_setbuf(p,FD_FIX2INT(args[0]));
       return FD_INT(fp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","oidpool_op/bufsize",args[0]);}
+  else if (op == fd_capacity_op)
+    return FD_INT(fp->pool_capacity);
+  else if (op == fd_load_op)
+    return FD_INT(fp->pool_load);
   else return FD_FALSE;
 }
 

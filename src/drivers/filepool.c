@@ -803,6 +803,10 @@ static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
       fd_unlock_pool(p);
       return FD_INT(fp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","filepool_op/bufsize",args[0]);}
+  else if (op == fd_capacity_op)
+    return FD_INT(fp->pool_capacity);
+  else if (op == fd_load_op)
+    return FD_INT(fp->pool_load);
   else return FD_FALSE;
 }
 

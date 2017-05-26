@@ -377,6 +377,11 @@ static fdtype mem_index_ctl(fd_index ix,fdtype op,int n,fdtype *args)
   else if (op == fd_preload_op) {
     if (mix->mix_loaded==0) load_mem_index(mix,1);
     return FD_TRUE;}
+  else if (op == fd_capacity_op)
+    return FD_EMPTY_CHOICE;
+  else if (op == fd_load_op) {
+    if (mix->mix_loaded == 0) load_mem_index(mix,1);
+    return FD_INT(mix->index_cache.table_n_keys);}
   else return FD_FALSE;
 }
 

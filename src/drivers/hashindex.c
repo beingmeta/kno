@@ -323,7 +323,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,fdtype opt
       u8_free(index);
       return NULL;}}
   else {
-    index->index_n_baseoids = 0; index->index_new_baseoids = 0;
+    index->index_n_baseoids = 0;
+    index->index_new_baseoids = 0;
     index->index_baseoid_ids = NULL;
     index->index_ids2baseoids = NULL;}
 
@@ -375,7 +376,8 @@ static int init_baseoids(fd_hashindex hx,int n_baseoids,fdtype *baseoids_init)
   short *index_ids2baseoids = u8_alloc_n(1024,short);
   memset(index_baseoid_ids,0,SIZEOF_INT*n_baseoids);
   i = 0; while (i<1024) index_ids2baseoids[i++]= -1;
-  hx->index_n_baseoids = n_baseoids; hx->index_new_baseoids = 0;
+  hx->index_n_baseoids = n_baseoids;
+  hx->index_new_baseoids = 0;
   hx->index_baseoid_ids = index_baseoid_ids;
   hx->index_ids2baseoids = index_ids2baseoids;
   i = 0; while (i<n_baseoids) {
@@ -2704,12 +2706,25 @@ static fdtype hashindex_ctl(fd_index ix,fdtype op,int n,fdtype *args)
       else return FD_INT((bucket%(hx->index_n_buckets)));}}
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
-  else if (op == fd_index_slotsop) {
+  else if (op == fd_slotids_op) {
     fdtype *elts = u8_alloc_n(hx->index_n_slotids,fdtype);
     fdtype *slotids = hx->index_slotids;
     int i = 0, n = hx->index_n_slotids;
     while (i< n) {elts[i]=slotids[i]; i++;}
     return fd_init_vector(NULL,n,elts);}
+  else if (op == fd_baseoids_op) {
+    int n_baseoids=hx->index_n_baseoids+hx->index_new_baseoids;
+    unsigned int *baseids=hx->index_baseoid_ids;
+    fdtype result=fd_make_vector(n_baseoids,NULL);
+    int i=0; while (i<n_baseoids) {
+      int baseid=baseids[i];
+      FD_VECTOR_SET(result,i,fd_make_oid(fd_base_oids[baseid]));
+      i++;}
+    return result;}
+  else if (op == fd_capacity_op)
+    return FD_INT(hx->index_n_buckets);
+  else if (op == fd_load_op)
+    return FD_INT(hx->table_n_keys);
   else return FD_FALSE;
 }
 

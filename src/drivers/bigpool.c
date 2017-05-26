@@ -1455,6 +1455,20 @@ static fdtype bigpool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
       bigpool_setbuf(p,FD_FIX2INT(args[0]));
       return FD_INT(fp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","bigpool_op/bufsize",args[0]);}
+  else if (op == fd_slotids_op) {
+    int n_slotids=fp->bigpool_n_slotids;
+    fdtype result=fd_make_vector(n_slotids,NULL);
+    fdtype *slotids=fp->bigpool_slotids;
+    int i=0; while (i<n) {
+      fdtype slotid=slotids[i];
+      FD_VECTOR_SET(result,i,slotid);
+      fd_incref(slotid);
+      i++;}
+    return result;}
+  else if (op == fd_capacity_op)
+    return FD_INT(fp->pool_capacity);
+  else if (op == fd_load_op)
+    return FD_INT(fp->pool_load);
   else return FD_FALSE;
 }
 
