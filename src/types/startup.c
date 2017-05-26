@@ -716,15 +716,16 @@ static int boot_config()
 
 /* Bootup message */
 
-FD_EXPORT void fd_boot_message()
+FD_EXPORT int fd_boot_message()
 {
-  if (fd_be_vewy_quiet) return;
-  if (boot_message_delivered) return;
+  if (fd_be_vewy_quiet) return 0;
+  if (boot_message_delivered) return 0;
   u8_message("Copyright (C) beingmeta 2004-2017, all rights reserved");
   u8_message("(%s:%lld) %s %s",
              u8_appid(),(unsigned long long)getpid(),
              fd_getrevision(),u8_getrevision());
   boot_message_delivered = 1;
+  return 1;
 }
 
 void fd_init_startup_c()

@@ -44,7 +44,7 @@ U8_EXPORT
 int fd_getmajorversion(void);
 
 FD_EXPORT int fd_init_libfdtype(void) FD_LIBINIT_FN;
-FD_EXPORT void fd_boot_message(void);
+FD_EXPORT int fd_boot_message(void);
 FD_EXPORT void fd_log_status(u8_condition why);
 FD_EXPORT int fd_be_vewy_quiet;
 

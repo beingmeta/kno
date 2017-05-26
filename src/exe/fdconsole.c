@@ -683,7 +683,7 @@ static void dotloader(u8_string file,fd_lispenv env)
   if (u8_file_existsp(abspath)) {
     char *kind = ((env == NULL)?("CONFIG"):("INIT"));
     double started = u8_elapsed_time(), elapsed; int err = 0;
-    u8_message("%s(%s)",kind,abspath);
+    if (!(quiet_console)) u8_message("%s(%s)",kind,abspath);
     if (env == NULL) {
       int retval = fd_load_config(abspath);
       elapsed = u8_elapsed_time()-started;
@@ -696,6 +696,7 @@ static void dotloader(u8_string file,fd_lispenv env)
     if (err) {
       u8_message("Error for %s(%s)",kind,abspath);
       fd_clear_errors(1);}
+    else if (quiet_console) {}
     else if (elapsed<0.1) {}
     else if (elapsed>1)
       u8_message("%0.3fs for %s(%s)",elapsed,kind,abspath);
@@ -859,7 +860,15 @@ int main(int argc,char **argv)
      fd_sconfig_get,fd_sconfig_set,
      &stop_file);
 
-  if (!(quiet_console)) fd_boot_message();
+  /* Announce preamble, suppressed by quiet_console */
+  if (!(quiet_console)) {
+    if (fd_boot_message()) {
+      uid_t uid=getuid();
+      u8_string username=u8_username(uid);
+      u8_string cwd=u8_getcwd();
+      if (username==NULL) username=u8_strdup("unknown");
+      u8_message("USER=%s(%d) CWD=%s",username,uid,cwd);
+      u8_free(username); u8_free(cwd);}}
 
   if (source_file == NULL) {}
   else if (strchr(source_file,'@')) {
@@ -891,7 +900,6 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
   fd_defalias((fdtype)env,"%","BACKTRACE");
 
-  /* Announce preamble, suppressed by quiet_config */
   fd_set_config("BOOTED",fd_time2timestamp(boot_time));
   run_start = u8_elapsed_time();
 
