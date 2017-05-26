@@ -163,6 +163,9 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+manually_disabled=""
+auto_disabled=""
+force_enabled=""
 
 test_env=
 memtest_env=""
@@ -389,6 +392,12 @@ if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/
   EXECLDFLAGS=" $EXECLDFLAGS \$(RPATHFLAGS) "
 fi
 
+AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
+if test "$with_fileinfo" = "yes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
+fi
+
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
 
@@ -406,6 +415,29 @@ m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
 
 AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
+
+case $host_os in
+  darwin*)
+   MKSTATIC="libtool -static -o "
+   dynamic_cflag="-dynamic"
+   shared_suffix="dylib"
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
+   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
+   ifmacosx=""
+   setup_target="setup-osx"
+   gperftools_default="no"
+   ;;
+esac  
+
+AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
+
+if test "${static_libgcc}" == "yes"; then
+   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
+fi
 
 AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
 if ! test "${with_stackcheck}" = "no"; then
@@ -747,50 +779,31 @@ if test "${GCC}" = "yes"; then
    dynamic_cflag="-rdynamic";
 fi;
 
-case $host_os in
-  darwin*)
-   MKSTATIC="libtool -static -o "
-   dynamic_cflag="-dynamic"
-   shared_suffix="dylib"
-   vshared_suffix=${FDVERSION}.dylib
-   mshared_suffix=${FDMAJOR}.dylib
-   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
-   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
-   RPATHFLAGS=" -rpath \$(RPATH) "
-   ifmacosx=""
-   setup_target="setup-osx"
-   gperftools_default="no"
-   ;;
-esac  
-
-AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
-
-if test "${static_libgcc}" == "yes"; then
-   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
 AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
 
-AC_CHECK_HEADERS(ffi.h)
-AC_CHECK_LIB(ffi,ffi_prep_cif)
-AC_CHECK_HEADERS(archive.h)
-AC_CHECK_LIB(archive,archive_read_new)
-
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+if test "${enable_ffi}" == "yes"; then
+   AC_CHECK_HEADERS(ffi.h)
+   AC_CHECK_LIB(ffi,ffi_prep_cif)
 fi
 
-AC_CHECK_HEADERS(leveldb/c.h)
-AC_CHECK_LIB(leveldb,leveldb_open)
-if test "${ac_cv_header_leveldb_c_h}" == "yes" && \
-   test "${ac_cv_lib_leveldb_leveldb_open}" == "yes"; then
-  CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
+if test "${enable_ffi}" != "yes"; then
+   manually_disabled="ffi ${manually_disabled}"
+elif test "${ac_cv_header_ffi_h}" != "yes";  then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
+elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
 fi
 
+# This cmodule isn't actually implemented yet
+#AC_CHECK_HEADERS(archive.h)
+#AC_CHECK_LIB(archive,archive_read_new)
+#if test "${ac_cv_header_archive_h}" == "yes" && \
+#   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+#  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+#  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+#fi
 
 DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
@@ -1143,29 +1156,101 @@ else
    with_mysql_default="no";
 fi
 
-if test $pkg_config != "na"; then
-   if $pkg_config --exists MagickWand; then
-      IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags` 
-      IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs` 
-      with_imagick_default=yes;
+AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
+
+if test "${enable_leveldb}" = "yes" ||
+   test "${enable_leveldb}" = "force"; then
+   AC_CHECK_HEADERS(leveldb/c.h)
+   AC_CHECK_LIB(leveldb,leveldb_open)
+   if test "${enable_leveldb}" = "yes" &&
+      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
+      test "${ac_cv_lib_leveldb_leveldb_open}" = "yes"; then
+     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+   elif test "${enable_leveldb}" = "force"; then
+     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+     force_enabled="leveldb ${force_enabled}";
    else
-       with_imagick_default=no;
-   fi
-   if $pkg_config --exists libzip; then
-      LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
-      LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
-      with_ziptools_default=yes;
-   else
-      with_ziptools_default=no;
-   fi
-   if $pkg_config --exists libmongoc-1.0; then
-      MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
-      MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
-      with_mongodb_default=yes;
-   else
-      with_mongodb_default=no;
-   fi
+     auto_disabled="leveldb ${auto_disabled}";
+     enable_leveldb="no";
+   fi;
+else
+   manually_disabled="leveldb ${auto_disabled}";
 fi
+
+AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,enable_imagick="yes")
+
+if test "$enable_imagick" = "yes" &&
+   test $pkg_config != "na" &&
+   $pkg_config --exists MagickWand; then
+  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
+  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "force"; then
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "yes"; then
+  auto_disabled="imagick ${auto_disabled}";
+  enable_imagick="failed";
+else
+  manually_disabled="imagick ${manually_disabled}";
+fi
+
+AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,enable_ziptools="yes")
+
+if test "$enable_ziptools" = "yes" ||
+   test "$enable_ziptools" = "force"; then
+  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
+  AC_CHECK_LIB(zip,zip_add)
+  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
+  AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libzip; then
+    LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
+    LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
+    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
+    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
+    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$have_zip_h" = "yes" &&
+       test "$have_libzip" = "yes"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$enable_ziptools" = "force"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    force_enabled="ziptools ${force_enabled}";
+  else
+    auto_disabled="ziptools ${auto_disabled}";
+    enable_ziptools="failed";
+  fi;
+else
+    manually_disabled="ziptools ${manually_disabled}";
+fi
+
+AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,enable_mongodb="yes")
+
+if test "$enable_mongodb" = "yes" ||
+   test "$enable_mongodb" = "force"; then
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libmongoc-1.0; then
+    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
+    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
+    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+  elif test "$enable_mongodb" = "force"; then
+    force_enabled="mongodb ${force_enabled}";
+    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+  else
+    auto_disabled="mongodb ${auto_disabled}";
+  fi;
+else
+    manually_disabled="mongodb ${manually_disabled}";      
+fi;
 
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
@@ -1185,9 +1270,9 @@ if test "$with_mysql" != "no"; then
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
-AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,with_odbc="yes")
+AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
 
-if test "$odbc_enabled" == "yes"; then
+if test "$enable_odbc" = "yes"; then
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test "$have_sql_h" = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
@@ -1235,69 +1320,36 @@ if test "${have_snappyc_h}" = "yes"; then
    AC_DEFINE(HAVE_SNAPPYC_H,1)
 fi;
 
-AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,ziptools_enabled="yes")
+AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy="yes")
 
-if test "$with_ziptools" == "yes"; then
-  CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
-  CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-  LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-  if (test "$have_zip_h" = "yes"); then
-    AC_CHECK_LIB(zip,zip_add)
-    AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
-    AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
-  fi
-  if (test "$have_zip_h" = "yes") && (test "$have_libzip" = "yes"); then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
-  fi
-fi
-
-AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,tidy_enabled="yes")
-
-if test "$tidy_enabled" == "yes"; then
+if test "$enable_tidy" = "yes"; then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
 
-AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,imagick_enabled="yes")
-if test "$imagick_enabled" = "yes"; then
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
-fi
+AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
 
-AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,mongodb_enabled="yes")
-
-if test "$mongodb_enabled" = "yes"; then
-   CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
-   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
-fi;
-
-AC_ARG_ENABLE(leveldb,--with-leveldb Build and install LevelDB module,,leveldb_enabled="yes")
-if test "$leveldb_enabled" = "yes"; then
-  CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
-fi
-
-AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/framerd/versions.h"
-fi
-
-AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,hyphenate_enabled="yes")
-if test "$hyphenate_enabled" = "yes"; then
+if test "$enable_hyphenate" = "yes"; then
   AC_CHECK_HEADERS(hyphen.h)
   AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
 fi
-if test "$with_hyphenate" = "yes" &&
+
+if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
    test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+elif test "$enable_hyphenate" = "force"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  force_enabled="hyphenate ${force_enabled}";
+elif test "$enable_hyphenate" = "yes"; then
+  auto_disabled="hyphenate $auto_disabled";
+  enable_hyphenate="failed";
 else
-  with_hyphenate="no";
+  manually_disabled="hyphenate $manually_disabled";
 fi
 
 # For OS X
@@ -1591,7 +1643,7 @@ fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
-if test $exec_prefix == 'NONE';
+if test $exec_prefix = 'NONE';
   then BINDIR="${prefix}/bin";
 else BINDIR="${exec_prefix}/bin";
 fi
@@ -1634,7 +1686,13 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   dist/framerd-4.0.spec],
 	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
 
-if test "$enable_ipeval" == "yes"; then
+if test ! -z "$manually_disabled"; then
+   echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
+if test ! -z "$auto_disabled"; then
+   echo "+++ These components can't be built: $auto_disabled"; fi
+if test ! -z "$force_enabled"; then
+   echo "+++ These components were enabled by force and may have issues: $force_enabled"; fi
+if test "$enable_ipeval" = "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
