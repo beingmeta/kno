@@ -225,7 +225,7 @@ typedef struct FD_POOL_HANDLER {
 		    fd_storage_flags flags,fdtype opts);
   int (*walker)(fd_pool,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_pool p);
-  fdtype (*poolctl)(fd_pool p,int opid,int n,fdtype *args);}
+  fdtype (*poolctl)(fd_pool p,fdtype op,int n,fdtype *args);}
   FD_POOL_HANDLER;
 typedef struct FD_POOL_HANDLER *fd_pool_handler;
 
@@ -247,7 +247,7 @@ struct FD_POOL_HANDLER some_handler={
 };
 #endif
 
-FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args);
+FD_EXPORT fdtype fd_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args);
 
 #define FD_POOLOP_CACHELEVEL  (1<<0)
 #define FD_POOLOP_BUFSIZE     (1<<1)

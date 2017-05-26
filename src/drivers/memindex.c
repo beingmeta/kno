@@ -361,25 +361,23 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts
     return (fd_index)memidx;}
 }
 
-static fdtype mem_index_ctl(fd_index ix,int op,int n,fdtype *args)
+static fdtype mem_index_ctl(fd_index ix,fdtype op,int n,fdtype *args)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
     return fd_err("BadIndexOpCall","hashindex_ctl",
 		  mix->indexid,FD_VOID);
-  else switch (op) {
-    case FD_INDEXOP_CACHELEVEL:
-      if (mix->mix_loaded)
-	return FD_INT(3);
-      else return FD_INT(0);
-    case FD_INDEXOP_HASHTABLE:
-      if (mix->mix_loaded==0) load_mem_index(mix,1);
-      return fd_copy_hashtable(NULL,&(ix->index_cache));
-    case FD_INDEXOP_PRELOAD:
-      if (mix->mix_loaded==0) load_mem_index(mix,1);
-      return FD_TRUE;
-    default:
-      return FD_FALSE;}
+  else if (op == fd_cachelevel_op) {
+    if (mix->mix_loaded)
+      return FD_INT(3);
+    else return FD_INT(0);}
+  else if (op == fd_getmap_op) {
+    if (mix->mix_loaded==0) load_mem_index(mix,1);
+    return fd_copy_hashtable(NULL,&(ix->index_cache));}
+  else if (op == fd_preload_op) {
+    if (mix->mix_loaded==0) load_mem_index(mix,1);
+    return FD_TRUE;}
+  else return FD_FALSE;
 }
 
 FD_EXPORT int fd_make_mem_index(u8_string spec)

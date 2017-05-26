@@ -1637,34 +1637,32 @@ fd_pool oidpool_create
 
 /* OIDPOOL ops */
 
-static fdtype oidpool_ctl(fd_pool p,int op,int n,fdtype *args)
+static fdtype oidpool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
 {
   struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
   if ((n>0)&&(args == NULL))
     return fd_err("BadPoolOpCall","oidpool_op",fp->poolid,FD_VOID);
   else if (n<0)
     return fd_err("BadPoolOpCall","oidpool_op",fp->poolid,FD_VOID);
-  else switch (op) {
-    case FD_POOLOP_CACHELEVEL:
-      if (n==0)
-        return FD_INT(fp->pool_cache_level);
-      else {
-        fdtype arg = (args)?(args[0]):(FD_VOID);
-        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
-            (FD_FIX2INT(arg)<0x100)) {
-          oidpool_setcache(p,FD_FIX2INT(arg));
-          return FD_INT(fp->pool_cache_level);}
-        else return fd_type_error
-               (_("cachelevel"),"oidpool_op/cachelevel",arg);}
-    case FD_POOLOP_BUFSIZE: {
-      if (n==0)
-        return FD_INT(fp->pool_stream.buf.raw.buflen);
-      else if (FD_FIXNUMP(args[0])) {
-        oidpool_setbuf(p,FD_FIX2INT(args[0]));
-        return FD_INT(fp->pool_stream.buf.raw.buflen);}
-      else return fd_type_error("buffer size","oidpool_op/bufsize",args[0]);}
-    default:
-      return FD_FALSE;}
+  else if (op == fd_cachelevel_op) {
+    if (n==0)
+      return FD_INT(fp->pool_cache_level);
+    else {
+      fdtype arg = (args)?(args[0]):(FD_VOID);
+      if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+          (FD_FIX2INT(arg)<0x100)) {
+        oidpool_setcache(p,FD_FIX2INT(arg));
+        return FD_INT(fp->pool_cache_level);}
+      else return fd_type_error
+             (_("cachelevel"),"oidpool_op/cachelevel",arg);}}
+  else if (op == fd_bufsize_op) {
+    if (n==0)
+      return FD_INT(fp->pool_stream.buf.raw.buflen);
+    else if (FD_FIXNUMP(args[0])) {
+      oidpool_setbuf(p,FD_FIX2INT(args[0]));
+      return FD_INT(fp->pool_stream.buf.raw.buflen);}
+    else return fd_type_error("buffer size","oidpool_op/bufsize",args[0]);}
+  else return FD_FALSE;
 }
 
 /* Initializing the driver module */

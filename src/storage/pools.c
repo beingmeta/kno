@@ -191,7 +191,7 @@ FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
 
 /* Pool ops */
 
-FD_EXPORT fdtype fd_pool_ctl(fd_pool p,int poolop,int n,fdtype *args)
+FD_EXPORT fdtype fd_pool_ctl(fd_pool p,fdtype poolop,int n,fdtype *args)
 {
   struct FD_POOL_HANDLER *h = p->pool_handler;
   if (h->poolctl)

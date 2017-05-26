@@ -31,6 +31,8 @@ fd_exception fd_NotAFileIndex=_("not a file index");
 fd_exception fd_BadIndexSpec=_("bad index specification");
 fd_exception fd_IndexCommitError=_("can't save changes to index");
 
+fdtype fd_index_hashop, fd_index_slotsop;
+
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
@@ -135,7 +137,7 @@ static u8_mutex indexes_lock;
 
 /* Index ops */
 
-FD_EXPORT fdtype fd_index_ctl(fd_index x,int indexop,int n,fdtype *args)
+FD_EXPORT fdtype fd_index_ctl(fd_index x,fdtype indexop,int n,fdtype *args)
 {
   struct FD_INDEX_HANDLER *h = x->index_handler;
   if (h->indexctl)
@@ -150,7 +152,7 @@ FD_EXPORT fdtype fd_index_ctl(fd_index x,int indexop,int n,fdtype *args)
 FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
   fdtype intarg = FD_INT(level);
-  fdtype result = fd_index_ctl(ix,FD_INDEXOP_CACHELEVEL,1,&intarg);
+  fdtype result = fd_index_ctl(ix,fd_cachelevel_op,1,&intarg);
   if (FD_ABORTP(result)) {fd_clear_errors(1);}
   fd_decref(result);
   ix->index_cache_level = level;
@@ -1323,6 +1325,9 @@ FD_EXPORT void fd_init_indexes_c()
   consed_indexes = u8_malloc(64*sizeof(fd_index));
   consed_indexes_len=65;
 
+  fd_index_hashop=fd_intern("HASH");
+  fd_index_slotsop=fd_intern("SLOTIDS");
+  
   {
     struct FD_COMPOUND_TYPEINFO *e =
       fd_register_compound(fd_intern("INDEX"),NULL,NULL);

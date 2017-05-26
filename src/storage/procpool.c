@@ -209,7 +209,7 @@ static int procpool_getload(fd_pool p)
       return -1;}}
 }
 
-static fdtype procpool_ctl(fd_pool p,int opid,int n,fdtype *args)
+static fdtype procpool_ctl(fd_pool p,fdtype opid,int n,fdtype *args)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   fdtype lp = fd_pool2lisp(p);
@@ -219,7 +219,7 @@ static fdtype procpool_ctl(fd_pool p,int opid,int n,fdtype *args)
     fdtype _argbuf[32], *argbuf=_argbuf;
     if (n+3>32) argbuf = u8_alloc_n(n+3,fdtype);
     argbuf[0]=lp; argbuf[1]=pp->pool_state;
-    argbuf[2]=FD_INT(opid);
+    argbuf[2]=opid;
     memcpy(argbuf+3,args,sizeof(fdtype)*n);
     if (argbuf==_argbuf)
       return fd_dapply(pp->ctlfn,n+3,argbuf);

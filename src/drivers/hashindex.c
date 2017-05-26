@@ -707,18 +707,6 @@ FD_EXPORT ssize_t hashindex_bucket(struct FD_HASHINDEX *hx,fdtype key,
   else return hashval%modulate;
 }
 
-FD_EXPORT ssize_t fd_hashindex_bucket(fdtype ixarg,fdtype key,ssize_t modulate)
-{
-  struct FD_INDEX *ix=fd_lisp2index(ixarg);
-  if (ix==NULL) {
-    fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
-    return -1;}
-  else if (ix->index_handler != &hashindex_handler) {
-    fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
-    return -1;}
-  else return hashindex_bucket(((struct FD_HASHINDEX *)ix),key,modulate);
-}
-
 /* ZVALUEs */
 
 FD_FASTOP fdtype write_zvalue(fd_hashindex hx,fd_outbuf out,fdtype value)
@@ -2633,57 +2621,6 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
 
 /* Deprecated primitives */
 
-/* Hash ksched_i ctl handler */
-
-static fdtype hashindex_ctl(fd_index ix,int op,int n,fdtype *args)
-{
-  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
-  if ( ((n>0)&&(args == NULL)) || (n<0) )
-    return fd_err("BadIndexOpCall","hashindex_ctl",
-                  hx->indexid,FD_VOID);
-  else switch (op) {
-    case FD_INDEXOP_CACHELEVEL:
-      if (n==0)
-        return FD_INT(hx->index_cache_level);
-      else {
-        fdtype arg = (args)?(args[0]):(FD_VOID);
-        if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
-            (FD_FIX2INT(arg)<0x100)) {
-          hashindex_setcache(hx,FD_FIX2INT(arg));
-          return FD_INT(hx->index_cache_level);}
-        else return fd_type_error
-               (_("cachelevel"),"hashindex_ctl/cachelevel",arg);}
-    case FD_INDEXOP_BUFSIZE: {
-      if (n==0)
-        return FD_INT(hx->index_stream.buf.raw.buflen);
-      else if (FD_FIXNUMP(args[0])) {
-        fd_lock_index(hx);
-        fd_setbufsize(&(hx->index_stream),FD_FIX2INT(args[0]));
-        fd_unlock_index(hx);
-        return FD_INT(hx->index_stream.buf.raw.buflen);}
-      else return fd_type_error("buffer size","hashindex_ctl/bufsize",args[0]);}
-    case FD_INDEXOP_HASH: {
-      if (n==0)
-        return FD_INT(hx->index_n_buckets);
-      else {
-        fdtype mod_arg = (n>1) ? (args[1]) : (FD_VOID);
-        ssize_t bucket = hashindex_bucket(hx,args[0],0);
-        if (FD_FIXNUMP(mod_arg))
-          return FD_INT((bucket%FD_FIX2INT(mod_arg)));
-        else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))
-          return FD_INT(bucket);
-        else return FD_INT((bucket%(hx->index_n_buckets)));}}
-    case FD_INDEXOP_STATS:
-      return fd_hashindex_stats(hx);
-    case FD_INDEXOP_SLOTIDS: {
-      fdtype *elts = u8_alloc_n(hx->index_n_slotids,fdtype);
-      fdtype *slotids = hx->index_slotids;
-      int i = 0, n = hx->index_n_slotids;
-      while (i< n) {elts[i]=slotids[i]; i++;}
-      return fd_init_vector(NULL,n,elts);}
-    default:
-      return FD_FALSE;}
-}
 
 /* Useful functions */
 
@@ -2692,7 +2629,7 @@ FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix)
   return (ix->index_handler== &hashindex_handler);
 }
 
-FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *hx)
+static fdtype hashindex_stats(struct FD_HASHINDEX *hx)
 {
   fdtype result = fd_empty_slotmap();
   int n_filled = 0, maxk = 0, n_singles = 0, n2sum = 0;
@@ -2712,6 +2649,68 @@ FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *hx)
     fd_add(result,fd_intern("SD2"),fd_make_flonum(sd2));
   }
   return result;
+}
+
+FD_EXPORT ssize_t fd_hashindex_bucket(fdtype ixarg,fdtype key,ssize_t modulate)
+{
+  struct FD_INDEX *ix=fd_lisp2index(ixarg);
+  if (ix==NULL) {
+    fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
+    return -1;}
+  else if (ix->index_handler != &hashindex_handler) {
+    fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
+    return -1;}
+  else return hashindex_bucket(((struct FD_HASHINDEX *)ix),key,modulate);
+}
+
+/* The control function */
+
+static fdtype hashindex_ctl(fd_index ix,fdtype op,int n,fdtype *args)
+{
+  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
+  if ( ((n>0)&&(args == NULL)) || (n<0) )
+    return fd_err("BadIndexOpCall","hashindex_ctl",
+                  hx->indexid,FD_VOID);
+  else if (op == fd_cachelevel_op) {
+    if (n==0)
+      return FD_INT(hx->index_cache_level);
+    else {
+      fdtype arg = (args)?(args[0]):(FD_VOID);
+      if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
+          (FD_FIX2INT(arg)<0x100)) {
+        hashindex_setcache(hx,FD_FIX2INT(arg));
+        return FD_INT(hx->index_cache_level);}
+      else return fd_type_error
+             (_("cachelevel"),"hashindex_ctl/cachelevel",arg);}}
+  else if (op == fd_bufsize_op) {
+    if (n==0)
+      return FD_INT(hx->index_stream.buf.raw.buflen);
+    else if (FD_FIXNUMP(args[0])) {
+      fd_lock_index(hx);
+      fd_setbufsize(&(hx->index_stream),FD_FIX2INT(args[0]));
+      fd_unlock_index(hx);
+      return FD_INT(hx->index_stream.buf.raw.buflen);}
+    else return fd_type_error("buffer size","hashindex_ctl/bufsize",args[0]);}
+  else if (op == fd_index_hashop) {
+    if (n==0)
+      return FD_INT(hx->index_n_buckets);
+    else {
+      fdtype mod_arg = (n>1) ? (args[1]) : (FD_VOID);
+      ssize_t bucket = hashindex_bucket(hx,args[0],0);
+      if (FD_FIXNUMP(mod_arg))
+        return FD_INT((bucket%FD_FIX2INT(mod_arg)));
+      else if ((FD_FALSEP(mod_arg))||(FD_VOIDP(mod_arg)))
+        return FD_INT(bucket);
+      else return FD_INT((bucket%(hx->index_n_buckets)));}}
+  else if (op == fd_stats_op)
+    return hashindex_stats(hx);
+  else if (op == fd_index_slotsop) {
+    fdtype *elts = u8_alloc_n(hx->index_n_slotids,fdtype);
+    fdtype *slotids = hx->index_slotids;
+    int i = 0, n = hx->index_n_slotids;
+    while (i< n) {elts[i]=slotids[i]; i++;}
+    return fd_init_vector(NULL,n,elts);}
+  else return FD_FALSE;
 }
 
 

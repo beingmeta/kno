@@ -116,4 +116,3 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 
 FD_EXPORT ssize_t fd_hashindex_bucket(fdtype index,fdtype key,ssize_t modulate);
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
-FD_EXPORT fdtype fd_hashindex_stats(struct FD_HASHINDEX *ix);

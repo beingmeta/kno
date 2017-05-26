@@ -27,6 +27,10 @@
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 static fdtype adjuncts_symbol;
 
+fdtype fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
+fdtype fd_stats_op, fd_label_op, fd_populate_op;
+fdtype fd_getmap_op, fd_slotids_op, fd_baseoids_op;
+
 fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
 fd_exception fd_CorruptedPool=_("Corrupted file pool");
@@ -409,6 +413,17 @@ FD_EXPORT int fd_init_drivers_c()
   zlib_symbol = fd_intern("ZLIB");
   zlib9_symbol = fd_intern("ZLIB9");
   adjuncts_symbol = fd_intern("ADJUNCTS");
+
+  fd_cachelevel_op=fd_intern("CACHELEVEL");
+  fd_bufsize_op=fd_intern("BUFSIZE");
+  fd_mmap_op=fd_intern("MMAP");
+  fd_preload_op=fd_intern("PRELOAD");
+  fd_stats_op=fd_intern("STATS");
+  fd_label_op=fd_intern("LABEL");
+  fd_populate_op=fd_intern("POPULATE");
+  fd_getmap_op=fd_intern("GETMAP");
+  fd_slotids_op=fd_intern("SLOTIDS");
+  fd_baseoids_op=fd_intern("BASEOIDS");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

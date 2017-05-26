@@ -74,22 +74,13 @@ typedef struct FD_INDEX_HANDLER {
 		     fd_storage_flags flags,fdtype opts);
   int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_index p);
-  fdtype (*indexctl)(fd_index ix,int opid,int n,fdtype *args);}
+  fdtype (*indexctl)(fd_index ix,fdtype op,int n,fdtype *args);}
   FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
-FD_EXPORT fdtype fd_index_ctl(fd_index p,int indexop,int n,fdtype *args);
+FD_EXPORT fdtype fd_index_ctl(fd_index p,fdtype op,int n,fdtype *args);
 
-#define FD_INDEXOP_CACHELEVEL  (1<<0)
-#define FD_INDEXOP_BUFSIZE     (1<<1)
-#define FD_INDEXOP_MMAP        (1<<2)
-#define FD_INDEXOP_PRELOAD     (1<<3)
-#define FD_INDEXOP_STATS       (1<<4)
-#define FD_INDEXOP_LABEL       (1<<5)
-#define FD_INDEXOP_POPULATE    (1<<6)
-#define FD_INDEXOP_HASH        (1<<7)
-#define FD_INDEXOP_SLOTIDS     (1<<8)
-#define FD_INDEXOP_HASHTABLE   (1<<16)
+FD_EXPORT fdtype fd_index_hashop, fd_index_slotsop;
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={
