@@ -3,11 +3,6 @@ usr/share/framerd/modules/builtin/aws/*.scm
 usr/share/framerd/modules/builtin/aws/templates/*.json
 usr/share/framerd/modules/builtin/brico/*.scm
 usr/share/framerd/modules/builtin/brico/data/*
-usr/share/framerd/modules/builtin/bugjar/*.scm
-usr/share/framerd/modules/builtin/bugjar/websrc/*.fdcgi
-usr/share/framerd/modules/builtin/bugjar/websrc/*.conf
-usr/share/framerd/modules/builtin/bugjar/websrc/*.css
-usr/share/framerd/modules/builtin/bugjar/websrc/*.js
 usr/share/framerd/modules/builtin/domutils/*.scm
 usr/share/framerd/modules/builtin/dropbox/*.scm
 usr/share/framerd/modules/builtin/facebook/*.scm
