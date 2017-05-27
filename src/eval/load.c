@@ -18,8 +18,6 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 
-#include <stdio.h>
-
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
