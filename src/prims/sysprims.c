@@ -694,129 +694,6 @@ static long long get_available_memory()
   return retval;
 }
 
-/* CALLTRACK SENSORS */
-
-/* See src/dtype/apply.c for a description of calltrack, which is a
-   profiling utility for higher level programs.
-   These functions allow the tracking of various RUSAGE fields
-   over program execution.
-*/
-
-#if FD_CALLTRACK_ENABLED
-static double utime_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0.0;
-  else return r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0;
-}
-static double stime_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0.0;
-  else return r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0;
-}
-static long memusage_sensor()
-{
-  ssize_t usage = u8_memusage();
-  return (long)usage;
-}
-static long vmemusage_sensor()
-{
-  ssize_t usage = u8_vmemusage();
-  return (long)usage;
-}
-#if HAVE_STRUCT_RUSAGE_RU_INBLOCK
-static long inblock_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_inblock;
-}
-static long outblock_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_oublock;
-}
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
-static long majflt_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_majflt;
-}
-static long nswaps_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_nswap;
-}
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_NVCSW
-static long cxtswitch_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_nvcsw+r.ru_nivcsw;
-}
-static long vcxtswitch_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_nvcsw;
-}
-static long ivcxtswitch_sensor()
-{
-  struct rusage r;
-  memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return 0;
-  else return r.ru_nivcsw;
-}
-#endif
-#endif
-
-/* CALLTRACK INTERFACE */
-
-/* This is the Scheme API for accessing CALLTRACK */
-
-static fdtype calltrack_sensors()
-{
-#if FD_CALLTRACK_ENABLED
-  return fd_calltrack_sensors();
-#else
-  return fd_init_vector(NULL,0,NULL);
-#endif
-}
-
-static fdtype calltrack_sense(fdtype all)
-{
-#if FD_CALLTRACK_ENABLED
-  if (FD_FALSEP(all))
-    return fd_calltrack_sense(0);
-  else return fd_calltrack_sense(1);
-#else
-  return fd_init_vector(NULL,0,NULL);
-#endif
-}
-
 /* Corelimit config variable */
 
 static fdtype corelimit_get(fdtype symbol,void *vptr)
@@ -1014,9 +891,6 @@ FD_EXPORT void fd_init_sysprims_c()
             "Releases memory back to the operating system",
             fd_fixnum_type,FD_VOID);
 
-  fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
-
   fd_register_config
     ("CORELIMIT",_("Set core size limit"),
      corelimit_get,corelimit_set,NULL);
@@ -1036,51 +910,6 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("GPERF/FLUSH",gperf_flush,1));
 #endif
-
-
-  /* Initialize utime and stime sensors */
-#if FD_CALLTRACK_ENABLED
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("UTIME",1);
-    cts->enabled = 0; cts->dblfcn = utime_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("STIME",1);
-    cts->enabled = 0; cts->dblfcn = stime_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("MEMUSAGE",1);
-    cts->enabled = 0; cts->intfcn = memusage_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("VMEMUSAGE",1);
-    cts->enabled = 0; cts->intfcn = vmemusage_sensor;}
-#if HAVE_STRUCT_RUSAGE_RU_INBLOCK
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("INBLOCK",1);
-    cts->enabled = 0; cts->intfcn = inblock_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("OUTBLOCK",1);
-    cts->enabled = 0; cts->intfcn = outblock_sensor;}
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("MAJFLT",1);
-    cts->enabled = 0; cts->intfcn = majflt_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("NSWAPS",1);
-    cts->enabled = 0; cts->intfcn = nswaps_sensor;}
-#endif
-#if HAVE_STRUCT_RUSAGE_RU_NVCSW
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("SWITCHES",1);
-    cts->enabled = 0; cts->intfcn = cxtswitch_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("VSWITCHES",1);
-    cts->enabled = 0; cts->intfcn = vcxtswitch_sensor;}
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("IVSWITCHES",1);
-    cts->enabled = 0; cts->intfcn = ivcxtswitch_sensor;}
-#endif
-#endif
-
 }
 
 /* Emacs local variables

@@ -62,8 +62,6 @@ fd_exception fd_BadStackFactor=
 fd_exception fd_InternalStackSizeError=
   _("Internal stack size didn't make any sense, punting");
 
-const int fd_calltrack_enabled = FD_CALLTRACK_ENABLED;
-
 #if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
 u8_tld_key fd_stack_limit_key;
 #elif ((FD_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
@@ -583,10 +581,10 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,
     else return dcall(name,f,n,args);}
 }
 
-FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
+FD_EXPORT fdtype fd_dcall(struct FD_STACK *_stack,
                            fdtype fn,int n,fdtype *argvec)
 {
-  u8_byte namebuf[60];
+  u8_byte namebuf[60]="", numbuf[32];
   u8_string fname="apply";
   fd_ptr_type ftype=FD_PRIM_TYPE(fn);
   struct FD_FUNCTION *f=NULL;
@@ -599,7 +597,8 @@ FD_EXPORT fdtype fd_docall(struct FD_STACK *_stack,
     f=(struct FD_FUNCTION *)fn;
     if (f->fcn_name) fname=f->fcn_name;}
   else if (fd_applyfns[ftype]) {
-    sprintf(namebuf,"λ0x%llx",U8_PTR2INT(fn));
+    strcat(namebuf,"λ0x");
+    strcat(namebuf,u8_uitoa16((unsigned long long)fn,numbuf));
     fname=namebuf;}
   else return fd_type_error("applicable","fd_determinstic_apply",fn);
 
@@ -1093,7 +1092,6 @@ static fdtype dapply(fdtype f,int n_args,fdtype *argvec)
   return fd_dapply(f,n_args,argvec);
 }
 
-void fd_init_calltrack_c(void);
 void fd_init_cprims_c(void);
 void fd_init_stacks_c(void);
 void fd_init_lexenv_c(void);
@@ -1132,7 +1130,6 @@ FD_EXPORT void fd_init_apply_c()
   fd_init_ffi_c();
   fd_init_stacks_c();
   fd_init_lexenv_c();
-  fd_init_calltrack_c();
 }
 
 /* Emacs local variables

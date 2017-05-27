@@ -893,10 +893,9 @@ static fdtype hashptr_prim(fdtype x)
 static fdtype hashref_prim(fdtype x)
 {
   unsigned long long intval = (unsigned long long)x;
-  char buf[64];
-  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM))
-    sprintf(buf,"%d",((int)intval));
-  else sprintf(buf,"#!%llx",intval);
+  char buf[40]="", numbuf[32]="";
+  strcpy(buf,"#!");
+  strcpy(buf,u8_uitoa16(intval,numbuf));
   return fd_make_string(NULL,-1,buf);
 }
 

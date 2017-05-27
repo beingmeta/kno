@@ -130,7 +130,7 @@ DTYPE_OBJS=\
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
 	src/apply/ffi.o src/apply/cprims.o			\
-	@calltracko@ src/apply/lexenv.o
+	src/apply/lexenv.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
@@ -356,7 +356,7 @@ FRAMERD_SOURCES=\
 	src/types/err.c src/types/logging.c src/types/getopt.c		\
 	src/types/startup.c src/types/fluid.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
-	src/apply/calltrack.c src/apply/ffi.c       	\
+	src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
 	src/storage/oidstore.c src/storage/cachecall.c  				\

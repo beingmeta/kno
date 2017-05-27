@@ -35,8 +35,8 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
   struct FD_FUNCTION *fcn = (fd_function)x;
   u8_string name = fcn->fcn_name;
   u8_string filename = fcn->fcn_filename, space;
-  u8_byte arity[16]=""; u8_byte codes[16]="";
-  u8_byte tmpbuf[32];
+  u8_byte arity[64]=""; u8_byte codes[64]="";
+  u8_byte tmpbuf[32], numbuf[32];
   if ((filename)&&(filename[0]=='\0'))
     filename = NULL;
   if ( (filename) && (space=strchr(filename,' '))) {
@@ -49,17 +49,27 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
   if (fcn->fcn_ndcall) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
     strcat(arity,"…");
-  else if (fcn->fcn_arity == fcn->fcn_min_arity)
-    sprintf(arity,"[%d]",fcn->fcn_min_arity);
-  else if (fcn->fcn_arity<0)
-    sprintf(arity,"[%d…]",fcn->fcn_min_arity);
-  else sprintf(arity,"[%d-%d]",fcn->fcn_min_arity,fcn->fcn_arity);
+  else if (fcn->fcn_arity == fcn->fcn_min_arity) {
+    strcat(arity,"[");
+    strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
+    strcat(arity,"]");}
+  else if (fcn->fcn_arity<0) {
+    strcat(arity,"[");
+    strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
+    strcat(arity,"…]");}
+  else {
+    strcat(arity,"[");
+    strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
+    strcat(arity,"-");
+    strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
+    strcat(arity,"]");}
   if (name)
     u8_printf(out,"#<Φ%s%s%s%s%s%s>",
               codes,name,arity,
               U8OPTSTR(" '",filename,"'"));
-  else u8_printf(out,"#<Φ%s%s #!0x%llx%s%s%s>",
-                 codes,arity,(unsigned long long) fcn,
+  else u8_printf(out,"#<Φ%s%s #!0x%s%s%s%s>",
+                 codes,arity,
+                 u8_uitoa16((unsigned long long) fcn,numbuf),
                  U8OPTSTR("'",filename,"'"));
   return 1;
 }

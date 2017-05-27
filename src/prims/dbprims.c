@@ -2562,7 +2562,7 @@ static fdtype oid2string_prim(fdtype oid,fdtype name)
 
 static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
 {
-  char buf[64]; int offset;
+  char buf[32]; int offset;
   FD_OID addr = FD_OID_ADDR(oid);
   if ((FD_VOIDP(base_arg)) || (FD_FALSEP(base_arg))) {
     fd_pool p = fd_oid2pool(oid);
@@ -2580,8 +2580,7 @@ static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
     FD_OID base = FD_OID_ADDR(base_arg);
     offset = FD_OID_DIFFERENCE(addr,base);}
   else offset = (FD_OID_LO(addr))%0x100000;
-  sprintf(buf,"%x",offset);
-  return fd_make_string(NULL,-1,buf);
+  return fd_make_string(NULL,-1,u8_uitoa10(offset,buf));
 }
 
 static fdtype oidb32_prim(fdtype oid,fdtype base_arg)

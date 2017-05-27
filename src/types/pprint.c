@@ -48,7 +48,7 @@ FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
               int indent,int col,int maxcol,int is_initial)
 {
-  size_t prefix_len=strlen(prefix);
+  size_t prefix_len= (prefix) ? (strlen(prefix)) : (0);
   int startoff = out->u8_write-out->u8_outbuf, n_chars;
   if (is_initial==0) u8_putc(out,' ');
   fd_unparse(out,x); n_chars = u8_strlen(out->u8_outbuf+startoff);

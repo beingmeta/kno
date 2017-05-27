@@ -526,54 +526,6 @@ FD_EXPORT ssize_t fd_init_cstack(void);
 
 #define FD_INIT_CSTACK() fd_init_cstack()
 
-/* Profiling */
-
-FD_EXPORT const int fd_calltrack_enabled;
-
-#if FD_CALLTRACK_ENABLED
-#include <stdio.h>
-#ifndef FD_MAX_CALLTRACK_SENSORS
-#define FD_MAX_CALLTRACK_SENSORS 64
-#endif
-
-#if ( (FD_CALLTRACK_ENABLED) && (FD_USE_TLS) )
-FD_EXPORT u8_tld_key _fd_calltracking_key;
-#define fd_calltracking (u8_tld_get(_fd_calltracking_key))
-#elif ( (FD_CALLTRACK_ENABLED) && (HAVE__THREAD) )
-FD_EXPORT __thread int fd_calltracking;
-#elif (FD_CALLTRACK_ENABLED)
-FD_EXPORT int fd_calltracking;
-#else /* (! FD_CALLTRACK_ENABLED ) */
-#define fd_calltracking (0)
-#endif
-
-typedef long (*fd_int_sensor)(void);
-typedef double (*fd_dbl_sensor)(void);
-
-typedef struct FD_CALLTRACK_SENSOR {
-  u8_string name; int enabled;
-  fd_int_sensor intfcn; fd_dbl_sensor dblfcn;} FD_CALLTRACK_SENSOR;
-typedef FD_CALLTRACK_SENSOR *fd_calltrack_sensor;
-
-typedef struct FD_CALLTRACK_DATUM {
-  enum { ct_double, ct_int }  ct_type;
-  union { double dblval; int intval;} ct_value;} FD_CALLTRACK_DATUM;
-typedef struct FD_CALLTRACK_DATUM *fd_calltrack_datum;
-
-FD_EXPORT fd_calltrack_sensor fd_get_calltrack_sensor(u8_string id,int);
-
-FD_EXPORT fdtype fd_calltrack_sensors(void);
-FD_EXPORT fdtype fd_calltrack_sense(int);
-
-FD_EXPORT int fd_start_profiling(u8_string name);
-FD_EXPORT void fd_profile_call(u8_string name);
-FD_EXPORT void fd_profile_return(u8_string name);
-#else
-#define fd_start_calltrack(x) (-1)
-#define fd_calltrack_call(name);
-#define fd_calltrack_return(name);
-#endif
-
 /* Tail calls */
 
 #define FD_TAILCALL_ND_ARGS     1
@@ -606,21 +558,11 @@ FD_EXPORT fd_applyfn fd_applyfns[];
 
 FD_EXPORT fdtype fd_call(struct FD_STACK *stack,fdtype fp,int n,fdtype *args);
 FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_docall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
+FD_EXPORT fdtype fd_dcall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
 
 FD_EXPORT fdtype _fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
 FD_EXPORT fdtype _fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
 FD_EXPORT fdtype _fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
-
-#if FD_CALLTRACK_ENABLED
-FD_EXPORT fdtype fd_calltrack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *argv);
-#define fd_dcall(stack,fn,n,argv)		\
-  ((FD_EXPECT_FALSE(fd_calltracking)) ?		\
-   (fd_calltrack_apply(stack,fn,n,argv)) :	\
-   (fd_docall(stack,fn,n,argv)))
-#else
-#define fd_dcall fd_docall
-#endif
 
 #if FD_INLINE_APPLY
 U8_MAYBE_UNUSED static

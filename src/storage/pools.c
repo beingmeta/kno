@@ -1320,9 +1320,9 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
     if (serial<fd_n_pools)
       return fd_pools_by_serialno[serial];
     else {
-      char buf[32];
-      sprintf(buf,"serial = 0x%x",serial);
-      fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",buf);
+      char buf[64];
+      fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",
+                 u8_sprintf(buf,64,"serial = 0x%x",serial));
       return NULL;}}
   else if (FD_TYPEP(lp,fd_consed_pool_type))
     return (fd_pool) lp;
@@ -1662,21 +1662,15 @@ static void display_pool(u8_output out,fd_pool p,fdtype lp)
   strcat(addrbuf,u8_uitoa16(FD_OID_LO(p->pool_base),numbuf));
   strcat(addrbuf,"+0x0");
   strcat(addrbuf,u8_uitoa16(p->pool_capacity,numbuf));
-  if ((p->pool_source)&&(p->pool_label))
-    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx '%s' \"%s\">",
-              tag,p->poolid,type,addrbuf,n_cached,n_changed,
-              lp,p->pool_label,p->pool_source);
-  else if (p->pool_label)
-    u8_printf(out,"#<%s %s (%s) oids=%d/%d #!%lx '%s'>",
-              tag,type,addrbuf,n_cached,n_changed,
-              lp,p->pool_label);
-  else if (p->pool_source)
-    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx \"%s\">",
+  if (p->pool_source)
+    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx '%s'>",
               tag,p->poolid,type,addrbuf,n_cached,n_changed,
               lp,p->pool_source);
-  else u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx \"%s\">",
-                 tag,p->poolid,type,addrbuf,n_cached,n_changed,
-                 lp);
+  else if (p->pool_label)
+    u8_printf(out,"#<%s %s (%s) oids=%d/%d #!%lx '%s'>",
+              tag,type,addrbuf,n_cached,n_changed,lp,p->pool_label);
+  else u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx>",
+                 tag,p->poolid,type,addrbuf,n_cached,n_changed,lp);
 }
 
 static int unparse_pool(u8_output out,fdtype x)
@@ -1900,16 +1894,21 @@ static u8_string _more_oid_info(fdtype oid)
     fd_pool p = fd_oid2pool(oid);
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
     if (p == NULL)
-      sprintf(oid_info_buf,"@%x/%x in no pool",hi,lo);
+      u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
+                 "@%x/%x in no pool",hi,lo);
     else if ((p->pool_label)&&(p->pool_source))
-      sprintf(oid_info_buf,"@%x/%x in %s from %s = %s",
-              hi,lo,p->pool_label,p->pool_source,p->poolid);
+      u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
+                 "@%x/%x in %s from %s = %s",
+                 hi,lo,p->pool_label,p->pool_source,p->poolid);
     else if (p->pool_label)
-      sprintf(oid_info_buf,"@%x/%x in %s",hi,lo,p->pool_label);
+      u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
+                 "@%x/%x in %s",hi,lo,p->pool_label);
     else if (p->pool_source)
-      sprintf(oid_info_buf,"@%x/%x from %s = %s",
-              hi,lo,p->pool_source,p->poolid);
-    else sprintf(oid_info_buf,"@%x/%x from %s",hi,lo,p->poolid);
+      u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
+                 "@%x/%x from %s = %s",
+                 hi,lo,p->pool_source,p->poolid);
+    else u8_sprintf(oid_info_buf,sizeof(oid_info_buf),
+                    "@%x/%x from %s",hi,lo,p->poolid);
     return oid_info_buf;}
   else return "not an oid!";
 }
@@ -2099,12 +2098,6 @@ FD_EXPORT void fd_init_pools_c()
   fd_tablefns[fd_consed_pool_type]->get = (fd_table_get_fn)pool_tableget;
   fd_tablefns[fd_consed_pool_type]->store = (fd_table_store_fn)pool_tablestore;
   fd_tablefns[fd_consed_pool_type]->keys = (fd_table_keys_fn)fd_pool_keys;
-
-#if FD_CALLTRACK_ENABLED
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("OIDS",1);
-    cts->enabled = 1; cts->intfcn = fd_object_cache_load;}
-#endif
 
   init_zero_pool();
 

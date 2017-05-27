@@ -28,6 +28,7 @@
 #include <sqlite3.h>
 #include <limits.h>
 #include <ctype.h>
+#include <stdio.h>
 
 FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
@@ -734,22 +735,22 @@ static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
     /* Assume odd, vaugely human-friendly format that uses space
        rather than T to separate the time */
     n_elts = sscanf(s,"%04u-%02hhu-%02hhu %02hhu:%02hhu:%02hhu.%u",
-                  &xtp->u8_year,&xtp->u8_mon,
-                  &xtp->u8_mday,&xtp->u8_hour,
-                  &xtp->u8_min,&xtp->u8_sec,
-                  &nsecs);
+                    &xtp->u8_year,&xtp->u8_mon,
+                    &xtp->u8_mday,&xtp->u8_hour,
+                    &xtp->u8_min,&xtp->u8_sec,
+                    &nsecs);
   else n_elts = sscanf(s,"%04u-%02hhu-%02hhuT%02hhu:%02hhu:%02hhu.%u",
-                     &xtp->u8_year,&xtp->u8_mon,
-                     &xtp->u8_mday,&xtp->u8_hour,
-                     &xtp->u8_min,&xtp->u8_sec,
-                     &nsecs);
+                       &xtp->u8_year,&xtp->u8_mon,
+                       &xtp->u8_mday,&xtp->u8_hour,
+                       &xtp->u8_min,&xtp->u8_sec,
+                       &nsecs);
   if ((n_elts == 1)&&(len>4)) {
     /* Assume basic format */
     n_elts = sscanf(s,"%04u%02hhu%02hhuT%02hhu%02hhu%02hhu.%u",
-                  &xtp->u8_year,&xtp->u8_mon,
-                  &xtp->u8_mday,&xtp->u8_hour,
-                  &xtp->u8_min,&xtp->u8_sec,
-                  &nsecs);
+                    &xtp->u8_year,&xtp->u8_mon,
+                    &xtp->u8_mday,&xtp->u8_hour,
+                    &xtp->u8_min,&xtp->u8_sec,
+                    &nsecs);
     pos = basicpos;}
   /* Give up if you can't parse anything */
   if (n_elts == 0) return (time_t) -1;
