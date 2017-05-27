@@ -24,7 +24,7 @@ fd_exception fd_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-static fdtype assign_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   int retval;
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
@@ -47,7 +47,7 @@ static fdtype assign_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_err(fd_BindError,"SET!",FD_SYMBOL_NAME(var),var);
 }
 
-static fdtype assign_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_plus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
   if (FD_VOIDP(var))
@@ -66,7 +66,7 @@ static fdtype assign_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype assign_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
@@ -87,7 +87,7 @@ static fdtype assign_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       fd_decref(val); return FD_VOID;}}
 }
 
-static fdtype assign_false_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype assign_false_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
@@ -109,7 +109,7 @@ static fdtype assign_false_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       fd_decref(val); return FD_VOID;}}
 }
 
-static fdtype bind_default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype bind_default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype value_expr = fd_get_arg(expr,2);
@@ -137,7 +137,7 @@ static u8_mutex sassign_lock;
    wraps a mutex around a regular set call, including evaluation of the
    value expression.  This can be used, for instance, to safely increment
    a variable. */
-static fdtype sassign_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype sassign_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   int retval;
   fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
@@ -186,15 +186,15 @@ FD_FASTOP int check_bindexprs(fdtype bindexprs,fdtype *why_not)
   else return -1;
 }
 
-FD_FASTOP fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
+FD_FASTOP fd_lexenv make_dynamic_env(int n,fd_lexenv parent)
 {
   int i = 0;
-  struct FD_ENVIRONMENT *e = u8_alloc(struct FD_ENVIRONMENT);
+  struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
   fdtype *vars = u8_alloc_n(n,fdtype);
   fdtype *vals = u8_alloc_n(n,fdtype);
   fdtype schemap = fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals);
   while (i<n) {vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
-  FD_INIT_FRESH_CONS(e,fd_environment_type);
+  FD_INIT_FRESH_CONS(e,fd_lexenv_type);
   e->env_copy = e; e->env_bindings = schemap; e->env_exports = FD_VOID;
   e->env_parent = fd_copy_env(parent);
   return e;
@@ -202,7 +202,7 @@ FD_FASTOP fd_lispenv make_dynamic_env(int n,fd_lispenv parent)
 
 /* Simple binders */
 
-static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype let_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -226,7 +226,7 @@ static fdtype let_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     _return result;}
 }
 
-static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype letstar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -260,7 +260,7 @@ static fdtype letstar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* DO */
 
-static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype do_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1);
   fdtype exitexprs = fd_get_arg(expr,2);
@@ -274,7 +274,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     fdtype *updaters, *vars, *vals, *tmp, result = FD_VOID;
     int i = 0, n = 0;
     struct FD_SCHEMAP bindings;
-    struct FD_ENVIRONMENT envstruct, *inner_env;
+    struct FD_LEXENV envstruct, *inner_env;
     if ((n = check_bindexprs(bindexprs,&result))<0) return result;
     else if (n>16) {
       fdtype bindings; struct FD_SCHEMAP *sm;
@@ -294,7 +294,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       fdtype value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) {
         /* When there's an error here, there's no need to bind. */
-        fd_free_environment(inner_env);
+        fd_free_lexenv(inner_env);
         if (n>16) {u8_free(tmp); u8_free(updaters);}
         return value;}
       else {
@@ -340,7 +340,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       /* Free the testval and evaluate it again. */
       fd_decref(testval);
       if (envstruct.env_copy) {
-        fd_recycle_environment(envstruct.env_copy);
+        fd_recycle_lexenv(envstruct.env_copy);
         envstruct.env_copy = NULL;}
       testval = fd_eval(testexpr,inner_env);
       if (FD_ABORTED(testval)) {
@@ -354,7 +354,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       result = eval_body(":DO",FD_SYMBOL_NAME(vars[0]),exitexprs,1,
                          inner_env,_stack);}
     /* Free the environment. */
-    fd_free_environment(&envstruct);
+    fd_free_lexenv(&envstruct);
     if (n>16) {u8_free(tmp); u8_free(updaters);}
     return result;}
 }
@@ -364,7 +364,7 @@ static fdtype do_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-static fdtype define_local_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype define_local_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -388,7 +388,7 @@ static fdtype define_local_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
-static fdtype define_init_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype define_init_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   fdtype init_expr = fd_get_arg(expr,2);

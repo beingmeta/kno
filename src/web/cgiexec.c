@@ -520,7 +520,7 @@ static void add_remote_info(fdtype cgidata)
 /* Generating headers */
 
 static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,
-                        fd_lispenv env,fd_stack _stack)
+                        fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   u8_set_default_output(out);
@@ -539,7 +539,7 @@ static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,
   return FD_VOID;
 }
 
-static fdtype httpheader(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype httpheader(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT out; fdtype result;
   U8_INIT_OUTPUT(&out,64);
@@ -561,7 +561,7 @@ static fdtype addhttpheader(fdtype header)
   return FD_VOID;
 }
 
-static fdtype htmlheader(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype htmlheader(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT out; fdtype header_string; fdtype result;
   U8_INIT_OUTPUT(&out,64);
@@ -722,7 +722,7 @@ static fdtype add_javascript(fdtype url)
   return FD_VOID;
 }
 
-static fdtype title_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype title_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT out; fdtype result;
   U8_INIT_OUTPUT(&out,64);
@@ -740,7 +740,7 @@ static fdtype title_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_VOID;}
 }
 
-static fdtype jsout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype jsout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out; fdtype result = FD_VOID;
@@ -775,7 +775,7 @@ static fdtype jsout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_VOID;}
 }
 
-static fdtype cssout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype cssout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out;
@@ -1153,7 +1153,7 @@ static fdtype urldata_parse(fdtype qstring)
 
 /* Bind request and output */
 
-static fdtype withreqout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype withreqout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *oldout = u8_current_output;
   U8_OUTPUT _out, *out = &_out;

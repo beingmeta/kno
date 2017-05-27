@@ -1562,7 +1562,7 @@ static fdtype getpathstar_prim(int n,fdtype *args)
 
 /* Cache gets */
 
-static fdtype cacheget_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype cacheget_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype table_arg = fd_get_arg(expr,1), key_arg = fd_get_arg(expr,2);
   fdtype default_expr = fd_get_arg(expr,3);

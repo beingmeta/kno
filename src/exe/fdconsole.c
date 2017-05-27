@@ -117,7 +117,7 @@ static fd_stream eval_server = NULL;
 static u8_input inconsole = NULL;
 static u8_output outconsole = NULL;
 static u8_output errconsole = NULL;
-static fd_lispenv console_env = NULL;
+static fd_lexenv console_env = NULL;
 static u8_string bugdumps = NULL;
 static u8_string bugurlbase = NULL;
 static u8_string bugbrowse = NULL;
@@ -146,7 +146,7 @@ static void close_consoles()
     u8_close((u8_stream)errconsole);
     errconsole = NULL;}
   if (console_env) {
-    fd_recycle_environment(console_env);
+    fd_recycle_lexenv(console_env);
     console_env = NULL;}
 }
 
@@ -237,7 +237,7 @@ static fdtype random_symbol()
   return FD_VOID;
 }
 
-static fdtype bind_random_symbol(fdtype result,fd_lispenv env)
+static fdtype bind_random_symbol(fdtype result,fd_lexenv env)
 {
   fdtype symbol = random_symbol();
   if (!(FD_VOIDP(symbol))) {
@@ -357,7 +357,7 @@ static int output_result(u8_output out,fdtype result,
 
 */
 
-static fdtype stream_read(u8_input in,fd_lispenv env)
+static fdtype stream_read(u8_input in,fd_lexenv env)
 {
   fdtype expr; int c;
   u8_puts(outconsole,eval_prompt); u8_flush(outconsole);
@@ -385,7 +385,7 @@ static fdtype stream_read(u8_input in,fd_lispenv env)
     return expr;}
 }
 
-static fdtype console_read(u8_input in,fd_lispenv env)
+static fdtype console_read(u8_input in,fd_lexenv env)
 {
 #if USING_EDITLINE
   if ((use_editline)&&(in == inconsole)) {
@@ -677,7 +677,7 @@ static fdtype loadfile_config_get(fdtype var,void *d)
 
 /* Load dot files into the console */
 
-static void dotloader(u8_string file,fd_lispenv env)
+static void dotloader(u8_string file,fd_lexenv env)
 {
   u8_string abspath = u8_abspath(file,NULL);
   if (u8_file_existsp(abspath)) {
@@ -716,7 +716,7 @@ int main(int argc,char **argv)
   u8_output err = (u8_output)u8_open_xoutput(2,enc);
   u8_string source_file = NULL; /* The file loaded, if any */
   /* This is the environment the console will start in */
-  fd_lispenv env = fd_working_environment();
+  fd_lexenv env = fd_working_lexenv();
 
   fd_main_errno_ptr = &errno;
   FD_INIT_CSTACK();
@@ -1100,13 +1100,13 @@ int main(int argc,char **argv)
   /* Hollow out the environment, which should let you reclaim it.
      This patches around the classic issue with circular references in
      a reference counting garbage collector.  If the
-     working_environment contains procedures which are closed in the
+     working_lexenv contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
   if (FD_HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   /* Freed as console_env */
-  /* fd_recycle_environment(env); */
+  /* fd_recycle_lexenv(env); */
   exit(0);
   return 0;
 }

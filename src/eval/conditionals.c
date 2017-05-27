@@ -18,7 +18,7 @@
 
 static fdtype else_symbol;
 
-static fdtype if_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype if_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype consequent_expr = fd_get_arg(expr,2);
@@ -38,7 +38,7 @@ static fdtype if_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     else return fd_eval(consequent_expr,env);}
 }
 
-static fdtype ifelse_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype ifelse_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype consequent_expr = fd_get_arg(expr,2);
@@ -59,7 +59,7 @@ static fdtype ifelse_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     else return fd_eval(consequent_expr,env);}
 }
 
-static fdtype tryif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype tryif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype first_consequent = fd_get_arg(expr,2);
@@ -92,7 +92,7 @@ static fdtype not_prim(fdtype arg)
 
 static fdtype apply_marker;
 
-static fdtype cond_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   FD_DOLIST(clause,FD_CDR(expr)) {
     fdtype test_val;
@@ -127,7 +127,7 @@ static fdtype cond_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype case_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype key_expr = fd_get_arg(expr,1), keyval;
   if (FD_VOIDP(key_expr))
@@ -150,7 +150,7 @@ static fdtype case_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_VOID;}
 }
 
-static fdtype when_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype when_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val;
   if (FD_VOIDP(test_expr))
@@ -166,7 +166,7 @@ static fdtype when_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return result;}
 }
 
-static fdtype unless_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype unless_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val;
   if (FD_VOIDP(test_expr))
@@ -184,7 +184,7 @@ static fdtype unless_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_VOID;}
 }
 
-static fdtype and_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype and_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype value = FD_TRUE;
   FD_DOLIST(clause,FD_CDR(expr)) {
@@ -195,7 +195,7 @@ static fdtype and_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return value;
 }
 
-static fdtype or_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype or_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype value = FD_FALSE;
   FD_DOLIST(clause,FD_CDR(expr)) {

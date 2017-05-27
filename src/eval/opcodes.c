@@ -39,9 +39,9 @@
 #include <pthread.h>
 #include <errno.h>
 
-static fdtype op_eval(fdtype x,fd_lispenv env,fd_stack stack,int tail);
+static fdtype op_eval(fdtype x,fd_lexenv env,fd_stack stack,int tail);
 
-FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env,
+FD_FASTOP fdtype op_eval_body(fdtype body,fd_lexenv env,
                               fd_stack stack,int tail)
 {
   fdtype result=FD_VOID;
@@ -370,7 +370,7 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
   else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
 }
 
-static fdtype try_op(fdtype exprs,fd_lispenv env,
+static fdtype try_op(fdtype exprs,fd_lexenv env,
                      fd_stack stack,int tail)
 {
   while (FD_PAIRP(exprs)) {
@@ -386,7 +386,7 @@ static fdtype try_op(fdtype exprs,fd_lispenv env,
   return FD_EMPTY_CHOICE;
 }
 
-static fdtype and_op(fdtype exprs,fd_lispenv env,fd_stack stack,int tail)
+static fdtype and_op(fdtype exprs,fd_lexenv env,fd_stack stack,int tail)
 {
   while (FD_PAIRP(exprs)) {
     fdtype expr = pop_arg(exprs);
@@ -401,7 +401,7 @@ static fdtype and_op(fdtype exprs,fd_lispenv env,fd_stack stack,int tail)
   return FD_TRUE;
 }
 
-static fdtype or_op(fdtype exprs,fd_lispenv env,fd_stack stack,int tail)
+static fdtype or_op(fdtype exprs,fd_lexenv env,fd_stack stack,int tail)
 {
   while (FD_PAIRP(exprs)) {
     fdtype expr = pop_arg(exprs);
@@ -668,7 +668,7 @@ static fdtype xref_opcode(fdtype x,long long i,fdtype tag)
   else return fd_err(fd_TypeError,"xref",fd_dtype2string(tag),x);
 }
 
-static fdtype until_opcode(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype until_opcode(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype params = FD_CDR(expr);
   fdtype test_expr = FD_CAR(params), loop_body = FD_CDR(params);
@@ -808,7 +808,7 @@ static fdtype combine_values(fdtype combiner,fdtype cur,fdtype value)
     fd_decref(cur);
     return value;}
 }
-static fdtype assignop(fd_stack stack,fd_lispenv env,
+static fdtype assignop(fd_stack stack,fd_lexenv env,
                        fdtype var,fdtype expr,fdtype combiner)
 {
   fdtype value = op_eval(expr,env,stack,0);
@@ -817,9 +817,9 @@ static fdtype assignop(fd_stack stack,fd_lispenv env,
   else if (FD_LEXREFP(var)) {
     int up = FD_LEXREF_UP(var);
     int across = FD_LEXREF_ACROSS(var);
-    fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
+    fd_lexenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
     while ((up)&&(scan)) {
-      fd_lispenv parent = scan->env_parent;
+      fd_lexenv parent = scan->env_parent;
       if ((parent) && (parent->env_copy))
         scan = parent->env_copy;
       else scan = parent;
@@ -851,12 +851,12 @@ static fdtype assignop(fd_stack stack,fd_lispenv env,
     int rv=-1;
     fdtype table=FD_CDR(var), sym=FD_CAR(var);
     if ( (combiner == FD_FALSE) || (combiner == FD_VOID) ) {
-      if (FD_ENVIRONMENTP(table))
-        rv=fd_assign_value(sym,value,(fd_lispenv)table);
+      if (FD_LEXENVP(table))
+        rv=fd_assign_value(sym,value,(fd_lexenv)table);
       else rv=fd_store(table,sym,value);}
     else if (combiner == FD_UNION_OPCODE) {
-      if (FD_ENVIRONMENTP(table))
-        rv=fd_add_value(sym,value,(fd_lispenv)table);
+      if (FD_LEXENVP(table))
+        rv=fd_add_value(sym,value,(fd_lexenv)table);
       else rv=fd_add(table,sym,value);}
     else {
       fdtype cur=fd_get(table,sym,FD_UNBOUND);
@@ -873,7 +873,7 @@ static fdtype assignop(fd_stack stack,fd_lispenv env,
 }
 
 static fdtype bindop(fdtype op,
-                     struct FD_STACK *_stack,fd_lispenv env,
+                     struct FD_STACK *_stack,fd_lexenv env,
                      fdtype vars,fdtype inits,fdtype body,
                      int tail)
 {
@@ -884,7 +884,7 @@ static fdtype bindop(fdtype op,
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,FD_VECTOR_DATA(vars));
   fdtype *values=bound_bindings.schema_values;
   fdtype *exprs=FD_VECTOR_DATA(inits);
-  fd_lispenv env_copy=NULL;
+  fd_lexenv env_copy=NULL;
   while (i<n) {
     fdtype val_expr=exprs[i];
     fdtype val=op_eval(val_expr,bound,bind_stack,0);
@@ -898,7 +898,7 @@ static fdtype bindop(fdtype op,
 }
 
 static fdtype opcode_dispatch_inner(fdtype opcode,fdtype expr,
-                                    fd_lispenv env,
+                                    fd_lexenv env,
                                     fd_stack _stack,
                                     int tail)
 {
@@ -922,8 +922,8 @@ static fdtype opcode_dispatch_inner(fdtype opcode,fdtype expr,
       return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badsym",NULL,expr);
     if (FD_HASHTABLEP(refenv))
       return fd_hashtable_get((fd_hashtable)refenv,sym,FD_UNBOUND);
-    else if (FD_ENVIRONMENTP(refenv))
-      return fd_symeval(sym,(fd_lispenv)refenv);
+    else if (FD_LEXENVP(refenv))
+      return fd_symeval(sym,(fd_lexenv)refenv);
     else if (FD_TABLEP(refenv))
       return fd_get(refenv,sym,FD_UNBOUND);
     else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
@@ -1082,7 +1082,7 @@ static fdtype opcode_dispatch_inner(fdtype opcode,fdtype expr,
 }
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
-                              fd_lispenv env,
+                              fd_lexenv env,
                               fd_stack caller,
                               int tail)
 {
@@ -1091,7 +1091,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
   _return result;
 }
 
-FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,
+FD_FASTOP fdtype op_eval(fdtype x,fd_lexenv env,
                          struct FD_STACK *stack,
                          int tail)
 {
@@ -1301,7 +1301,7 @@ static fdtype pickone_opcode(fdtype normal)
 static double opcodes_initialized = 0;
 
 FD_EXPORT
-fdtype fd_opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env,
+fdtype fd_opcode_dispatch(fdtype opcode,fdtype expr,fd_lexenv env,
                           struct FD_STACK *stack,int tail)
 {
   return opcode_dispatch(opcode,expr,env,stack,tail);

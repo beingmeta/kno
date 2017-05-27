@@ -601,7 +601,7 @@ static fdtype thread_add(fdtype var,fdtype val)
   else return FD_VOID;
 }
 
-static fdtype thread_ref_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype thread_ref_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype sym_arg = fd_get_arg(expr,1), sym, val;
   fdtype dflt_expr = fd_get_arg(expr,2);

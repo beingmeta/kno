@@ -25,7 +25,7 @@
 
 static fdtype parse_control_spec
 (fdtype expr,fdtype *iter_var,fdtype *count_var,
- fd_lispenv env,fd_stack _stack)
+ fd_lexenv env,fd_stack _stack)
 {
   fdtype control_expr = fd_get_arg(expr,1);
   if (FD_VOIDP(control_expr))
@@ -64,7 +64,7 @@ static fdtype parse_control_spec
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype dochoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
@@ -101,7 +101,7 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It returns the first non-empty result of evaluating the body.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype trychoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
@@ -140,7 +140,7 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the combined results of its body's execution. */
-static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype forchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype results = FD_EMPTY_CHOICE;
   fdtype var, count_var, choices=
@@ -180,7 +180,7 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the subset of values which pass the body. */
-static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype filterchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype results = FD_EMPTY_CHOICE;
   fdtype var, count_var, choices=
@@ -224,7 +224,7 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    This returns VOID.  */
-static fdtype dosubsets_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype dosubsets_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype choices, count_var, var;
   fdtype control_spec = fd_get_arg(expr,1);
@@ -426,7 +426,7 @@ static fdtype qchoicex_prim(int n,fdtype *args)
 
 /* TRY */
 
-static fdtype try_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype try_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype value = FD_EMPTY_CHOICE;
   fdtype clauses = fd_get_body(expr,1);
@@ -448,7 +448,7 @@ static fdtype try_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* IFEXISTS */
 
-static fdtype ifexists_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype ifexists_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype value_expr = fd_get_arg(expr,1);
   fdtype value = FD_EMPTY_CHOICE;
@@ -529,7 +529,7 @@ static fdtype simplify(fdtype x)
   return fd_make_simple_choice(x);
 }
 
-static fdtype qchoicep_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype qchoicep_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   /* This is an evalfn because application often reduces qchoices to
      choices. */
@@ -608,7 +608,7 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,
 static int test_forall
   (struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
 
-static fdtype whenexists_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype whenexists_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype to_eval = fd_get_arg(expr,1), value;
   if (FD_VOIDP(to_eval))

@@ -57,7 +57,7 @@ typedef struct FD_STACK {
   fdtype *stack_args;
   fdtype stack_vals;
   short n_args;
-  struct FD_ENVIRONMENT *stack_env;
+  struct FD_LEXENV *stack_env;
   unsigned int stack_live:1;
   unsigned int stack_retvoid:1, stack_ndcall:1, stack_tail:1;
   unsigned int stack_free_label:1, stack_free_status:1;
@@ -65,8 +65,8 @@ typedef struct FD_STACK {
   struct FD_STACK_CLEANUP _cleanups[FD_STACK_CLEANUP_QUANTUM];
   struct FD_STACK_CLEANUP *cleanups;
   short n_cleanups;} *fd_stack;
-typedef struct FD_ENVIRONMENT *fd_environment;
-typedef struct FD_ENVIRONMENT *fd_lispenv;
+typedef struct FD_LEXENV *fd_lexenv;
+typedef struct FD_LEXENV *fd_lexenv;
 
 #if (U8_USE_TLS)
 FD_EXPORT u8_tld_key fd_stackptr_key;
@@ -215,7 +215,7 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
     fd_decref(stack->stack_vals);
     stack->stack_vals=FD_EMPTY_CHOICE; }
   if (stack->stack_env) {
-    fd_free_environment(stack->stack_env);
+    fd_free_lexenv(stack->stack_env);
     stack->stack_env=NULL;}
 }
 FD_FASTOP void fd_pop_stack(struct FD_STACK *stack)

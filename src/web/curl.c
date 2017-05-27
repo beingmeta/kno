@@ -1246,7 +1246,7 @@ static fdtype urlpost(int n,fdtype *args)
   else return result;
 }
 
-static fdtype urlpostdata_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype urlpostdata_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype urlarg = fd_get_arg(expr,1), url = fd_eval(urlarg,env);
   fdtype ctype, curl, conn, body = FD_VOID;

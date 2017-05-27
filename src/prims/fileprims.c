@@ -216,7 +216,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype simple_fileout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype simple_fileout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype filename_arg = fd_get_arg(expr,1);
   fdtype filename_val = fd_eval(filename_arg,env);
@@ -256,7 +256,7 @@ static fdtype simple_fileout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* Not really I/O but related structurally and logically */
 
-static fdtype simple_system_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype simple_system_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; int result;
   U8_INIT_OUTPUT(&out,256);
@@ -1430,7 +1430,7 @@ FD_EXPORT
      Returns: an int (<0 on error)
  Saves a snapshot of the environment into the designated file.
 */
-int fd_snapshot(fd_lispenv env,u8_string filename)
+int fd_snapshot(fd_lexenv env,u8_string filename)
 {
   fdtype vars = fd_symeval(snapshotvars,env);
   fdtype configvars = fd_symeval(snapshotconfig,env);
@@ -1484,7 +1484,7 @@ FD_EXPORT
      Returns: an int (<0 on error)
  Restores a snapshot from the designated file into the environment
 */
-int fd_snapback(fd_lispenv env,u8_string filename)
+int fd_snapback(fd_lexenv env,u8_string filename)
 {
   struct FD_STREAM *in;
   fdtype slotmap; int actions = 0;
@@ -1530,9 +1530,9 @@ int fd_snapback(fd_lispenv env,u8_string filename)
   return actions;
 }
 
-static fdtype snapshot_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype snapshot_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fd_lispenv save_env; u8_string save_file; int retval = 0;
+  fd_lexenv save_env; u8_string save_file; int retval = 0;
   fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
   if (FD_VOIDP(arg1)) {
     fdtype saveto = fd_symeval(snapshotfile,env);
@@ -1541,14 +1541,14 @@ static fdtype snapshot_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       save_file = u8_strdup(FD_STRDATA(saveto));
     else save_file = u8_strdup("snapshot");
     fd_decref(saveto);}
-  else if (FD_ENVIRONMENTP(arg1)) {
+  else if (FD_LEXENVP(arg1)) {
     if (FD_STRINGP(arg2)) save_file = u8_strdup(FD_STRDATA(arg2));
     else save_file = u8_strdup("snapshot");
-    save_env = (fd_lispenv)arg1;}
+    save_env = (fd_lexenv)arg1;}
   else if (FD_STRINGP(arg1)) {
     save_file = u8_strdup(FD_STRDATA(arg1));
-    if (FD_ENVIRONMENTP(arg2))
-      save_env = (fd_lispenv)arg2;
+    if (FD_LEXENVP(arg2))
+      save_env = (fd_lexenv)arg2;
     else save_env = env;}
   else {
     fdtype err = fd_type_error("filename","snapshot_prim",arg1);
@@ -1560,9 +1560,9 @@ static fdtype snapshot_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return FD_INT(retval);
 }
 
-static fdtype snapback_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype snapback_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fd_lispenv save_env; u8_string save_file; int retval = 0;
+  fd_lexenv save_env; u8_string save_file; int retval = 0;
   fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
   if (FD_VOIDP(arg1)) {
     fdtype saveto = fd_symeval(snapshotfile,env);
@@ -1571,14 +1571,14 @@ static fdtype snapback_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       save_file = u8_strdup(FD_STRDATA(saveto));
     else save_file = u8_strdup("snapshot");
     fd_decref(saveto);}
-  else if (FD_ENVIRONMENTP(arg1)) {
+  else if (FD_LEXENVP(arg1)) {
     if (FD_STRINGP(arg2)) save_file = u8_strdup(FD_STRDATA(arg2));
     else save_file = u8_strdup("snapshot");
-    save_env = (fd_lispenv)arg1;}
+    save_env = (fd_lexenv)arg1;}
   else if (FD_STRINGP(arg1)) {
     save_file = u8_strdup(FD_STRDATA(arg1));
-    if (FD_ENVIRONMENTP(arg2))
-      save_env = (fd_lispenv)arg2;
+    if (FD_LEXENVP(arg2))
+      save_env = (fd_lexenv)arg2;
     else save_env = env;}
   else {
     fdtype err = fd_type_error("filename","snapshot_prim",arg1);

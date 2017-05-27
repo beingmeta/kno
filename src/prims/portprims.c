@@ -220,7 +220,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 }
 
 FD_EXPORT
-fdtype fd_printout(fdtype body,fd_lispenv env)
+fdtype fd_printout(fdtype body,fd_lexenv env)
 {
   struct FD_STACK *_stack=fd_stackptr;
   U8_OUTPUT *out = u8_current_output;
@@ -234,7 +234,7 @@ fdtype fd_printout(fdtype body,fd_lispenv env)
 }
 
 FD_EXPORT
-fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lispenv env)
+fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lexenv env)
 {
   struct FD_STACK *_stack=fd_stackptr;
   u8_output prev = u8_current_output;
@@ -291,11 +291,11 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
   return FD_VOID;
 }
 
-static fdtype printout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype printout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return fd_printout(fd_get_body(expr,1),env);
 }
-static fdtype lineout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype lineout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
   fdtype value = fd_printout(fd_get_body(expr,1),env);
@@ -305,7 +305,7 @@ static fdtype lineout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype message_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype message_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -325,7 +325,7 @@ static fdtype message_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype notify_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype notify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -345,7 +345,7 @@ static fdtype notify_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype status_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype status_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -365,7 +365,7 @@ static fdtype status_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype warning_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype warning_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
@@ -391,7 +391,7 @@ static int get_loglevel(fdtype level_arg)
   else return -1;
 }
 
-static fdtype log_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype log_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype level_arg = fd_eval(fd_get_arg(expr,1),env);
   fdtype body = fd_get_body(expr,2);
@@ -421,7 +421,7 @@ static fdtype log_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return FD_VOID;
 }
 
-static fdtype logif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype logif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE;
   if (FD_ABORTP(test_expr)) return test_expr;
@@ -456,7 +456,7 @@ static fdtype logif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_VOID;}
 }
 
-static fdtype logifplus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype logifplus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE, loglevel_arg;
   if (FD_ABORTP(test_expr)) return test_expr;
@@ -500,7 +500,7 @@ static fdtype logifplus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_VOID;}
 }
 
-static fdtype stringout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype stringout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; fdtype result; u8_byte buf[256];
   U8_INIT_OUTPUT_X(&out,256,buf,0);

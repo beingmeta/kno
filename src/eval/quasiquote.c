@@ -34,7 +34,7 @@
 /* QUASIQUOTE */
 
 static fdtype quasiquote, unquote, unquotestar, quote_symbol;
-FD_EXPORT fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level);
+FD_EXPORT fdtype fd_quasiquote(fdtype obj,fd_lexenv env,int level);
 
 #define FD_BAD_UNQUOTEP(elt) \
   (((FD_EQ(FD_CAR(elt),unquote)) || \
@@ -42,7 +42,7 @@ FD_EXPORT fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level);
    (!((FD_PAIRP(FD_CDR(elt))) &&                 \
       (FD_EMPTY_LISTP(FD_CDR(FD_CDR(elt)))))))
 
-static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
+static fdtype quasiquote_list(fdtype obj,fd_lexenv env,int level)
 {
   fdtype head = FD_EMPTY_LIST, *tail = &head;
   while (FD_PAIRP(obj)) {
@@ -171,7 +171,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
   return head;
 }
 
-static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
+static fdtype quasiquote_vector(fdtype obj,fd_lexenv env,int level)
 {
   fdtype result = FD_VOID;
   int i = 0, j = 0, len = FD_VECTOR_LENGTH(obj), newlen = len;
@@ -249,7 +249,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
     return result;}
 }
 
-static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
+static fdtype quasiquote_slotmap(fdtype obj,fd_lexenv env,int level)
 {
   int i = 0, len = FD_SLOTMAP_NUSED(obj);
   struct FD_KEYVAL *keyvals = FD_XSLOTMAP(obj)->sm_keyvals;
@@ -281,7 +281,7 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
   return result;
 }
 
-static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
+static fdtype quasiquote_choice(fdtype obj,fd_lexenv env,int level)
 {
   fdtype result = FD_EMPTY_CHOICE;
   FD_DO_CHOICES(elt,obj) {
@@ -294,7 +294,7 @@ static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
 }
 
 FD_EXPORT
-fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
+fdtype fd_quasiquote(fdtype obj,fd_lexenv env,int level)
 {
   if (FD_ABORTED(obj)) return obj;
   else if (FD_PAIRP(obj))
@@ -329,7 +329,7 @@ fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
   else return fd_incref(obj);
 }
 
-static fdtype quasiquote_evalfn(fdtype obj,fd_lispenv env,fd_stack s)
+static fdtype quasiquote_evalfn(fdtype obj,fd_lexenv env,fd_stack s)
 {
   if ((FD_PAIRP(FD_CDR(obj))) &&
       (FD_EMPTY_LISTP(FD_CDR(FD_CDR(obj))))) {

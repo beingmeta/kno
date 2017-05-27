@@ -150,7 +150,7 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype hashcolon_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype hashcolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -158,7 +158,7 @@ static fdtype hashcolon_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return reqget_prim(var,FD_EMPTY_CHOICE);
 }
 
-static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -172,7 +172,7 @@ static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     else return val;}
 }
 
-static fdtype hashcolondollar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype hashcolondollar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -193,7 +193,7 @@ static fdtype hashcolondollar_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       return result;}}
 }
 
-static fdtype hashcolonquestion_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype hashcolonquestion_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -256,7 +256,7 @@ fdtype reqdata_prim()
   return fd_req_call(fd_deep_copy);
 }
 
-static fdtype withreq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype withreq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1), result = FD_VOID;
   fd_use_reqinfo(FD_TRUE); fd_reqlog(1);
@@ -297,7 +297,7 @@ FD_EXPORT fdtype reqloglen_prim()
     return FD_INT(len);}
 }
 
-FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = fd_reqlog(1);

@@ -25,7 +25,7 @@ static fdtype iter_var;
 
 /* Simple iterations */
 
-static fdtype while_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype while_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,1);
@@ -45,7 +45,7 @@ static fdtype while_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return FD_VOID;
 }
 
-static fdtype until_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype until_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,1);
@@ -68,7 +68,7 @@ static fdtype until_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype parse_control_spec
   (fdtype expr,fdtype *varp,fdtype *count_var,
-   fd_lispenv env,fd_stack _stack)
+   fd_lexenv env,fd_stack _stack)
 {
   fdtype control_expr = fd_get_arg(expr,1);
   if (FD_VOIDP(control_expr))
@@ -95,7 +95,7 @@ static fdtype parse_control_spec
 
 /* DOTIMES */
 
-static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype dotimes_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   int i = 0, limit;
   fdtype var, limit_val=
@@ -122,7 +122,7 @@ static fdtype dotimes_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* DOSEQ */
 
-static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype doseq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   int i = 0, lim, islist = 0;
   fdtype var, count_var = FD_VOID;
@@ -168,7 +168,7 @@ static fdtype doseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* FORSEQ */
 
-static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype forseq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   size_t i = 0, lim=0; int islist=0;
   fdtype var, count_var = FD_VOID, *results, result=FD_VOID;
@@ -220,7 +220,7 @@ static fdtype forseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* TRYSEQ */
 
-static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype tryseq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   size_t i = 0, lim=0; int islist=0;
   fdtype var, count_var = FD_VOID;
@@ -272,7 +272,7 @@ static fdtype tryseq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* DOLIST */
 
-static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype dolist_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   int i = 0;
   fdtype var, count_var = FD_VOID;
@@ -314,12 +314,12 @@ static fdtype dolist_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* BEGIN, PROG1, and COMMENT */
 
-static fdtype begin_evalfn(fdtype begin_expr,fd_lispenv env,fd_stack _stack)
+static fdtype begin_evalfn(fdtype begin_expr,fd_lexenv env,fd_stack _stack)
 {
   return eval_body("BEGIN",NULL,begin_expr,1,env,_stack);
 }
 
-static fdtype prog1_evalfn(fdtype prog1_expr,fd_lispenv env,fd_stack _stack)
+static fdtype prog1_evalfn(fdtype prog1_expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arg1 = fd_get_arg(prog1_expr,1);
   fdtype result = fd_stack_eval(arg1,env,_stack,0);
@@ -336,7 +336,7 @@ static fdtype prog1_evalfn(fdtype prog1_expr,fd_lispenv env,fd_stack _stack)
     return result;}
 }
 
-static fdtype comment_evalfn(fdtype comment_expr,fd_lispenv env,fd_stack stack)
+static fdtype comment_evalfn(fdtype comment_expr,fd_lexenv env,fd_stack stack)
 {
   return FD_VOID;
 }

@@ -103,7 +103,7 @@ static void init_type_names()
   fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_stackframe_type]=_("stackframe");
   fd_type_names[fd_ffi_type]=_("ffiproc");
-  fd_type_names[fd_environment_type]=_("environment");
+  fd_type_names[fd_lexenv_type]=_("environment");
   fd_type_names[fd_rawptr_type]=_("raw pointer");
   fd_type_names[fd_dtserver_type]=_("dtype server");
   fd_type_names[fd_bloom_filter_type]=_("bloom filter");

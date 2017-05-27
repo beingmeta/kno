@@ -64,7 +64,7 @@ static fdtype loadpath = FD_EMPTY_LIST;
 static int log_reloads = 1;
 
 static void add_load_record
-  (fdtype spec,u8_string filename,fd_lispenv env,time_t mtime);
+  (fdtype spec,u8_string filename,fd_lexenv env,time_t mtime);
 static fdtype load_source_for_module
   (fdtype spec,u8_string module_source,int safe);
 static u8_string get_module_source(fdtype spec,int safe);
@@ -144,10 +144,10 @@ static fdtype load_source_for_module
   (fdtype spec,u8_string module_source,int safe)
 {
   time_t mtime;
-  fd_lispenv env=
+  fd_lexenv env=
     ((safe) ?
-     (fd_safe_working_environment()) :
-     (fd_working_environment()));
+     (fd_safe_working_lexenv()) :
+     (fd_working_lexenv()));
   fdtype load_result = fd_load_source_with_date(module_source,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
     if (FD_HASHTABLEP(env->env_bindings))
@@ -230,13 +230,13 @@ static u8_mutex update_modules_lock;
 struct FD_LOAD_RECORD {
   fdtype fd_loadspec;
   u8_string fd_loadfile;
-  fd_lispenv fd_loadenv;
+  fd_lexenv fd_loadenv;
   time_t fd_modtime;
   int fd_reloading:1;
   struct FD_LOAD_RECORD *fd_next_reload;} *load_records = NULL;
 
 static void add_load_record
-  (fdtype spec,u8_string filename,fd_lispenv env,time_t mtime)
+  (fdtype spec,u8_string filename,fd_lexenv env,time_t mtime)
 {
   struct FD_LOAD_RECORD *scan;
   u8_lock_mutex(&load_record_lock);
@@ -253,7 +253,7 @@ static void add_load_record
   scan = u8_alloc(struct FD_LOAD_RECORD);
   scan->fd_loadfile = u8_strdup(filename);
   scan->fd_modtime = mtime; scan->fd_reloading = 0;
-  scan->fd_loadenv = (fd_lispenv)fd_incref((fdtype)env);
+  scan->fd_loadenv = (fd_lexenv)fd_incref((fdtype)env);
   scan->fd_loadspec = fd_incref(spec);
   scan->fd_next_reload = load_records;
   load_records = scan;
@@ -262,7 +262,7 @@ static void add_load_record
 
 typedef struct FD_MODULE_RELOAD {
   u8_string fd_loadfile;
-  fd_lispenv fd_loadenv;
+  fd_lexenv fd_loadenv;
   fdtype fd_loadspec;
   struct FD_LOAD_RECORD *fd_load_record;
   time_t fd_modtime;
@@ -301,7 +301,7 @@ FD_EXPORT int fd_update_file_modules(int force)
     rscan = reloads; while (rscan) {
       module_reload this = rscan; fdtype load_result;
       u8_string filename = this->fd_loadfile;
-      fd_lispenv env = this->fd_loadenv;
+      fd_lexenv env = this->fd_loadenv;
       time_t mtime = u8_file_mtime(this->fd_loadfile);
       rscan = this->fd_next_reload;
       if (log_reloads)
@@ -487,11 +487,11 @@ static fdtype get_entry(fdtype key,fdtype entries)
 
 FD_EXPORT
 int fd_load_latest
-(u8_string filename,fd_lispenv env,u8_string base)
+(u8_string filename,fd_lexenv env,u8_string base)
 {
   if (filename == NULL) {
     int loads = 0;
-    fd_lispenv scan = env;
+    fd_lexenv scan = env;
     fdtype result = FD_VOID;
     while (scan) {
       fdtype sources =
@@ -566,7 +566,7 @@ int fd_load_latest
     return 1;}
 }
 
-static fdtype load_latest_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype load_latest_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   if (FD_EMPTY_LISTP(FD_CDR(expr))) {
     int loads = fd_load_latest(NULL,env,NULL);

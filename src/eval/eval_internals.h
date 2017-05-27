@@ -5,10 +5,10 @@ static fdtype moduleid_symbol;
 #define stack_eval(x,env,s) (_fd_fast_eval(x,env,s,0))
 #define stack_tail_eval(x,env,s) (_fd_fast_eval(x,env,s,1))
 
-static int testeval(fdtype expr,fd_lispenv env,
+static int testeval(fdtype expr,fd_lexenv env,
                     fdtype *whoops,fd_stack s) U8_MAYBE_UNUSED;
 
-static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops,
+static int testeval(fdtype expr,fd_lexenv env,fdtype *whoops,
                     fd_stack _stack)
 {
   fdtype val = _fd_fast_eval(expr,env,_stack,0);
@@ -19,7 +19,7 @@ static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops,
 }
 
 static U8_MAYBE_UNUSED
-fdtype find_module_id( fd_lispenv env )
+fdtype find_module_id( fd_lexenv env )
 {
   if (!(env)) return FD_VOID;
   else if (FD_HASHTABLEP(env->env_bindings))
@@ -30,7 +30,7 @@ fdtype find_module_id( fd_lispenv env )
 }
 
 static U8_MAYBE_UNUSED
-void free_environment(struct FD_ENVIRONMENT *env)
+void free_lexenv(struct FD_LEXENV *env)
 {
   /* There are three cases:
         a simple static environment (env->env_copy == NULL)
@@ -40,7 +40,7 @@ void free_environment(struct FD_ENVIRONMENT *env)
   */
   if (env->env_copy)
     if (env == env->env_copy)
-      fd_recycle_environment(env->env_copy);
+      fd_recycle_lexenv(env->env_copy);
     else {
       struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
       int i = 0, n = FD_XSCHEMAP_SIZE(sm); 
@@ -50,7 +50,7 @@ void free_environment(struct FD_ENVIRONMENT *env)
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
           fd_decref(val);}}
       u8_destroy_rwlock(&(sm->table_rwlock));
-      fd_recycle_environment(env->env_copy);}
+      fd_recycle_lexenv(env->env_copy);}
   else {
     struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
     int i = 0, n = FD_XSCHEMAP_SIZE(sm);
@@ -64,7 +64,7 @@ void free_environment(struct FD_ENVIRONMENT *env)
 
 FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
                            fdtype expr,int offset,
-                           fd_lispenv inner_env,
+                           fd_lexenv inner_env,
                            struct FD_STACK *_stack)
 {
   fdtype result = FD_VOID, body = fd_get_body(expr,offset);
@@ -90,7 +90,7 @@ FD_FASTOP fdtype eval_body(u8_context cxt,u8_string label,
     else return result;}
 }
 
-FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
+FD_FASTOP fdtype eval_exprs(fdtype body,fd_lexenv inner_env)
 {
   fdtype result = FD_VOID;
   FD_DOLIST(bodyexpr,body) {
@@ -116,14 +116,14 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
   else { fd_decref(result); result = FD_VOID;}
 
 
-FD_FASTOP fd_lispenv init_static_env
-  (int n,fd_lispenv parent,
-   struct FD_SCHEMAP *bindings,struct FD_ENVIRONMENT *envstruct,
+FD_FASTOP fd_lexenv init_static_env
+  (int n,fd_lexenv parent,
+   struct FD_SCHEMAP *bindings,struct FD_LEXENV *envstruct,
    fdtype *vars,fdtype *vals)
 {
-  memset(envstruct,0,sizeof(struct FD_ENVIRONMENT));
+  memset(envstruct,0,sizeof(struct FD_LEXENV));
   memset(bindings,0,sizeof(struct FD_SCHEMAP));
-  FD_INIT_STATIC_CONS(envstruct,fd_environment_type);
+  FD_INIT_STATIC_CONS(envstruct,fd_lexenv_type);
   FD_INIT_STATIC_CONS(bindings,fd_schemap_type);
   bindings->schemap_onstack = 1;
   bindings->table_schema = vars;
@@ -139,7 +139,7 @@ FD_FASTOP fd_lispenv init_static_env
 
 #define INIT_STACK_ENV(stack,name,parent,n)          \
   struct FD_SCHEMAP name ## _bindings;               \
-  struct FD_ENVIRONMENT _ ## name, *name=&_ ## name; \
+  struct FD_LEXENV _ ## name, *name=&_ ## name; \
   fdtype name ## _vars[n];                           \
   fdtype name ## _vals[n];                           \
   fd_init_elts(name ## _vars,n,FD_VOID);                  \
@@ -153,7 +153,7 @@ FD_FASTOP fd_lispenv init_static_env
 
 #define INIT_STACK_SCHEMA(stack,name,parent,n,schema)   \
   struct FD_SCHEMAP name ## _bindings;                  \
-  struct FD_ENVIRONMENT _ ## name, *name=&_ ## name;    \
+  struct FD_LEXENV _ ## name, *name=&_ ## name;    \
   fdtype name ## _vals[n];                              \
   fd_init_elts(name ## _vals,n,FD_VOID);                \
   stack->stack_env =                                    \
@@ -165,10 +165,10 @@ FD_FASTOP fd_lispenv init_static_env
 
 
 U8_MAYBE_UNUSED FD_FASTOP
-void reset_env(fd_lispenv env)
+void reset_env(fd_lexenv env)
 {
   if (env->env_copy) {
-    fd_free_environment(env->env_copy);
+    fd_free_lexenv(env->env_copy);
     env->env_copy=NULL;}
 }
 

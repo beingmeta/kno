@@ -120,19 +120,19 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x);
 
 /* XMLEVAL stuff */
 
-FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lispenv env);
+FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lexenv env);
 FD_EXPORT void fd_xmloid(u8_output out,fdtype oid_arg);
-FD_EXPORT fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env);
+FD_EXPORT fdtype fd_xmleval(u8_output out,fdtype xml,fd_lexenv env);
 FD_EXPORT fdtype fd_xmlevalout(u8_output out,fdtype xml,
-			       fd_lispenv scheme_env,fd_lispenv xml_env);
+			       fd_lexenv scheme_env,fd_lexenv xml_env);
 FD_EXPORT fdtype fd_xmleval_with(u8_output out,fdtype xml,fdtype,fdtype);
 
-FD_EXPORT fdtype fd_open_xml(fdtype xml,fd_lispenv env);
+FD_EXPORT fdtype fd_open_xml(fdtype xml,fd_lexenv env);
 FD_EXPORT fdtype fd_close_xml(fdtype xml);
-FD_EXPORT fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env);
+FD_EXPORT fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lexenv env);
 FD_EXPORT fdtype fd_xmlout(u8_output out,fdtype xml,
-			   fd_lispenv scheme_env,
-			   fd_lispenv xml_env);
+			   fd_lexenv scheme_env,
+			   fd_lexenv xml_env);
 
 FD_EXPORT struct FD_XML *fd_load_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_read_fdxml(u8_input in,int bits);

@@ -120,7 +120,7 @@ static fdtype loading_symbol;
 #define LOAD_CONTEXT_SIZE 128
 
 FD_EXPORT fdtype fd_load_source_with_date
-  (u8_string sourceid,fd_lispenv env,u8_string enc_name,time_t *modtime)
+  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
 {
   struct U8_INPUT stream;
   fdtype postload = FD_VOID;
@@ -249,7 +249,7 @@ FD_EXPORT fdtype fd_load_source_with_date
 }
 
 FD_EXPORT fdtype fd_load_source
-  (u8_string sourceid,fd_lispenv env,u8_string enc_name)
+  (u8_string sourceid,fd_lexenv env,u8_string enc_name)
 {
   return fd_load_source_with_date(sourceid,env,enc_name,NULL);
 }
@@ -349,7 +349,7 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
 
 /* Scheme primitives */
 
-static fdtype load_source_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype load_source_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype source_expr = fd_get_arg(expr,1), source, result;
   fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
@@ -388,17 +388,17 @@ static fdtype load_source_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
 {
-  fdtype result = FD_VOID; fd_lispenv env;
+  fdtype result = FD_VOID; fd_lexenv env;
   if (!((FD_VOIDP(resultfn))||(FD_APPLICABLEP(resultfn))))
     return fd_type_error("callback procedure","LOAD->ENV",envarg);
   if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg)))
-    env = fd_working_environment();
+    env = fd_working_lexenv();
   else if (FD_FALSEP(envarg))
-    env = fd_safe_working_environment();
-  else if (FD_ENVIRONMENTP(envarg)) {
-    env = (fd_lispenv)envarg; fd_incref(envarg);}
+    env = fd_safe_working_lexenv();
+  else if (FD_LEXENVP(envarg)) {
+    env = (fd_lexenv)envarg; fd_incref(envarg);}
   else if (FD_TABLEP(envarg)) {
-    env = fd_new_environment(envarg,0);
+    env = fd_new_lexenv(envarg,0);
     fd_incref(envarg);}
   else return fd_type_error("environment","LOAD->ENV",envarg);
   result = fd_load_source(FD_STRDATA(source),env,NULL);
@@ -412,7 +412,7 @@ static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
   return (fdtype) env;
 }
 
-static fdtype load_component_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype load_component_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype source_expr = fd_get_arg(expr,1), source, result;
   fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
@@ -621,7 +621,7 @@ FD_EXPORT void fd_init_load_c()
  fd_defn(fd_xscheme_module,
          fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
                          fd_string_type,FD_VOID,
-                         fd_environment_type,FD_VOID,
+                         fd_lexenv_type,FD_VOID,
                          -1,FD_VOID));
 
  fd_idefn(fd_scheme_module,

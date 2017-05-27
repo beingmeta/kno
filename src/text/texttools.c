@@ -2028,7 +2028,7 @@ static fdtype morphrule(fdtype string,fdtype rules,fdtype lexicon)
 
 /* textclosure prim */
 
-static fdtype textclosure_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype textclosure_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype pattern_arg = fd_get_arg(expr,1);
   fdtype pattern = fd_eval(pattern_arg,env);

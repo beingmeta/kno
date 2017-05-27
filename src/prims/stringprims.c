@@ -1271,7 +1271,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
 
 /* Text if */
 
-static fdtype textif_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype textif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val = FD_VOID;
   if (FD_VOIDP(test_expr))

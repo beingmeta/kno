@@ -1,6 +1,6 @@
 /* Environment debugging */
 
-FD_EXPORT int _fd_showenv(fd_lispenv env)
+FD_EXPORT int _fd_showenv(fd_lexenv env)
 {
   fdtype moduleid = fd_intern("%MODULEID");
   int depth = 1;

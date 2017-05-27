@@ -24,13 +24,13 @@
 #if FD_IPEVAL_ENABLED
 struct IPEVAL_BINDSTRUCT {
   int n_bindings; fdtype *vals;
-  fdtype valexprs; fd_lispenv env;};
+  fdtype valexprs; fd_lexenv env;};
 
 static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
 {
   int i = 0, n = bs->n_bindings;
   fdtype *bindings = bs->vals, scan = bs->valexprs;
-  fd_lispenv env = bs->sproc_env;
+  fd_lexenv env = bs->sproc_env;
   while (i<n) {
     fd_decref(bindings[i]); bindings[i++]=FD_VOID;}
   i = 0; while (FD_PAIRP(scan)) {
@@ -46,7 +46,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
 {
   int i = 0, n = bs->n_bindings;
   fdtype *bindings = bs->vals, scan = bs->valexprs;
-  fd_lispenv env = bs->sproc_env;
+  fd_lexenv env = bs->sproc_env;
   while (i<n) {
     fd_decref(bindings[i]); bindings[i++]=FD_UNBOUND;}
   i = 0; while (FD_PAIRP(scan)) {
@@ -59,7 +59,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
 }
 
 static int ipeval_let_binding
-  (int n,fdtype *vals,fdtype bindexprs,fd_lispenv env)
+  (int n,fdtype *vals,fdtype bindexprs,fd_lexenv env)
 {
   struct IPEVAL_BINDSTRUCT bindstruct;
   bindstruct.n_bindings = n; bindstruct.vals = vals;
@@ -68,7 +68,7 @@ static int ipeval_let_binding
 }
 
 static int ipeval_letstar_binding
-  (int n,fdtype *vals,fdtype bindexprs,fd_lispenv bind_env,fd_lispenv env)
+  (int n,fdtype *vals,fdtype bindexprs,fd_lexenv bind_env,fd_lexenv env)
 {
   struct IPEVAL_BINDSTRUCT bindstruct;
   bindstruct.n_bindings = n; bindstruct.vals = vals;
@@ -76,7 +76,7 @@ static int ipeval_letstar_binding
   return fd_ipeval_call((fd_ipevalfn)ipeval_letstar_step,&bindstruct);
 }
 
-static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype letq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -85,7 +85,7 @@ static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    struct FD_ENVIRONMENT *inner_env = make_dynamic_env(n,env);
+    struct FD_LEXENV *inner_env = make_dynamic_env(n,env);
     fdtype bindings = inner_env->env_bindings;
     struct FD_SCHEMAP *sm = (struct FD_SCHEMAP *)bindings;
     fdtype *vars = sm->table_schema, *vals = sm->schema_values;
@@ -100,12 +100,12 @@ static fdtype letq_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result))
         return result}}
-    fd_free_environment(inner_env);
+    fd_free_lexenv(inner_env);
     return result;}
 }
 
 static fdtype letqstar_evalfn
-(fdtype expr,fd_lispenv env,fd_stack _stack)
+(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
   int n;
@@ -114,7 +114,7 @@ static fdtype letqstar_evalfn
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
   else {
-    struct FD_ENVIRONMENT *inner_env = make_dynamic_env(n,env);
+    struct FD_LEXENV *inner_env = make_dynamic_env(n,env);
     fdtype bindings = inner_env->env_bindings;
     struct FD_SCHEMAP *sm = (struct FD_SCHEMAP *)bindings;
     fdtype *vars = sm->table_schema, *vals = sm->schema_values;
@@ -129,7 +129,7 @@ static fdtype letqstar_evalfn
       result = fast_eval(bodyexpr,inner_env);
       if (FD_ABORTED(result)) 
         return result;}}
-    if (inner_env->env_copy) fd_free_environment(inner_env->env_copy);
+    if (inner_env->env_copy) fd_free_lexenv(inner_env->env_copy);
     return result;}
 }
 
@@ -138,7 +138,7 @@ static fdtype letqstar_evalfn
 /* IPEVAL */
 
 #if FD_IPEVAL_ENABLED
-struct IPEVAL_STRUCT { fdtype expr, fd_value; fd_lispenv env;};
+struct IPEVAL_STRUCT { fdtype expr, fd_value; fd_lexenv env;};
 
 static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
@@ -149,7 +149,7 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
   else return 1;
 }
 
-static fdtype ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct IPEVAL_STRUCT tmp;
   tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
@@ -157,7 +157,7 @@ static fdtype ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return tmp.kv_val;
 }
 
-static fdtype trace_ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype trace_ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct IPEVAL_STRUCT tmp; int old_trace = fd_trace_ipeval;
   tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
@@ -167,7 +167,7 @@ static fdtype trace_ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return tmp.kv_val;
 }
 
-static fdtype track_ipeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype track_ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct IPEVAL_STRUCT tmp;
   struct FD_IPEVAL_RECORD *records; int n_cycles; double total_time;

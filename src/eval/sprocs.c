@@ -69,8 +69,8 @@ fdtype call_sproc(struct FD_STACK *_stack,
 {
   fdtype result = FD_VOID;
   fdtype *proc_vars=fn->sproc_vars;
-  fd_lispenv proc_env=fn->sproc_env;
-  fd_lispenv call_env=proc_env;
+  fd_lexenv proc_env=fn->sproc_env;
+  fd_lexenv call_env=proc_env;
   int n_vars = fn->sproc_n_vars, arity = fn->fcn_arity;
 
   if (_stack == NULL) _stack=fd_stackptr;
@@ -93,7 +93,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
 
   int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
   struct FD_SCHEMAP _bindings, *bindings=&_bindings;
-  struct FD_ENVIRONMENT stack_env;
+  struct FD_LEXENV stack_env;
   fdtype vals[n_vars];
 
   if  (direct_call) {
@@ -105,7 +105,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
 
   /* Make it static */
   FD_SET_REFCOUNT(bindings,0);
-  FD_INIT_STATIC_CONS(&stack_env,fd_environment_type);
+  FD_INIT_STATIC_CONS(&stack_env,fd_lexenv_type);
   stack_env.env_bindings = (fdtype) bindings;
   stack_env.env_exports  = FD_VOID;
   stack_env.env_parent   = proc_env;
@@ -165,7 +165,7 @@ static fdtype apply_sproc(fdtype fn,int n,fdtype *args)
 
 static fdtype
 _make_sproc(u8_string name,
-            fdtype arglist,fdtype body,fd_lispenv env,
+            fdtype arglist,fdtype body,fd_lexenv env,
             int nd,int sync,
             int incref,int copy_env)
 {
@@ -247,14 +247,14 @@ _make_sproc(u8_string name,
 }
 
 static fdtype make_sproc(u8_string name,
-                         fdtype arglist,fdtype body,fd_lispenv env,
+                         fdtype arglist,fdtype body,fd_lexenv env,
                          int nd,int sync)
 {
   return _make_sproc(name,arglist,body,env,nd,sync,1,1);
 }
 
 FD_EXPORT fdtype fd_make_sproc(u8_string name,
-                               fdtype arglist,fdtype body,fd_lispenv env,
+                               fdtype arglist,fdtype body,fd_lexenv env,
                                int nd,int sync)
 {
   return make_sproc(name,arglist,body,env,nd,sync);
@@ -274,7 +274,7 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
   u8_free(sproc->sproc_vars);
   if (sproc->sproc_env->env_copy) {
     fd_decref((fdtype)(sproc->sproc_env->env_copy));
-    /* fd_recycle_environment(sproc->sproc_env->env_copy); */
+    /* fd_recycle_lexenv(sproc->sproc_env->env_copy); */
   }
   if (sproc->sproc_synchronized)
     u8_destroy_mutex(&(sproc->sproc_lock));
@@ -389,7 +389,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
 
 /* SPROC generators */
 
-static fdtype lambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype lambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -404,7 +404,7 @@ static fdtype lambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype ambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype ambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -419,7 +419,7 @@ static fdtype ambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype nambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype nambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype name_expr = fd_get_arg(expr,1), name;
   fdtype arglist = fd_get_arg(expr,2);
@@ -441,7 +441,7 @@ static fdtype nambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype slambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype slambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -456,7 +456,7 @@ static fdtype slambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype sambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype sambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
@@ -471,7 +471,7 @@ static fdtype sambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype thunk_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype thunk_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   fdtype proc = FD_VOID;
@@ -484,7 +484,7 @@ static fdtype thunk_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 
 /* DEFINE */
 
-static fdtype define_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -533,7 +533,7 @@ static fdtype define_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
-static fdtype defslambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype defslambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -567,7 +567,7 @@ static fdtype defslambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
-static fdtype defambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype defambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
@@ -618,7 +618,7 @@ fdtype fd_xapply_sproc
   FD_SETUP_NAMED_STACK(_stack,fd_stackptr,"xapply",fn->fcn_name,(fdtype)fn);
   int i = 0, n = fn->sproc_n_vars;
   fdtype arglist = fn->sproc_arglist, result = FD_VOID;
-  fd_lispenv env = fn->sproc_env;
+  fd_lexenv env = fn->sproc_env;
   INIT_STACK_ENV(_stack,call_env,env,n);
   fdtype *vals=call_env_bindings.schema_values;
   while (FD_PAIRP(arglist)) {

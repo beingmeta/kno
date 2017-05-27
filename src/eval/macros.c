@@ -35,7 +35,7 @@ FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
   else return fd_err(fd_InvalidMacro,NULL,name,xformer);
 }
 
-static fdtype macro_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype macro_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   if ((FD_PAIRP(expr)) && (FD_PAIRP(FD_CDR(expr))) &&
       (FD_SYMBOLP(FD_CADR(expr))) &&

@@ -195,7 +195,7 @@ int do_main(int argc,char **argv,
             u8_string exe_name,u8_string source_file,
             fdtype *args,size_t n_args)
 {
-  fd_lispenv env = fd_working_environment();
+  fd_lexenv env = fd_working_lexenv();
   fdtype main_proc = FD_VOID, result = FD_VOID;
   int retval = 0;
 
@@ -355,12 +355,12 @@ int do_main(int argc,char **argv,
   fd_decref(result);
   /* Hollow out the environment, which should let it be reclaimed.
      This patches around some of the circular references that might
-     exist because working_environment may contain procedures which
+     exist because working_lexenv may contain procedures which
      are closed in the working environment, so the working environment
      itself won't be GC'd because of those circular pointers. */
   if (FD_HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
-  fd_recycle_environment(env);
+  fd_recycle_lexenv(env);
   fd_decref(main_proc);
   return retval;
 }

@@ -77,7 +77,7 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,
   else return FD_TRUE;
 }
 
-static fdtype mailout_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype mailout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   const u8_byte *mailhost = mailhost_dflt, *maildomain = maildomain_dflt;
   const u8_byte *mailfrom = mailfrom_dflt;

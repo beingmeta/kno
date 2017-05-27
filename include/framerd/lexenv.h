@@ -15,27 +15,27 @@
 #define FD_INLINE_LEXENV 0
 #endif
 
-typedef struct FD_ENVIRONMENT {
+typedef struct FD_LEXENV {
   FD_CONS_HEADER;
   fdtype env_bindings;
   fdtype env_exports;
-  struct FD_ENVIRONMENT *env_parent;
-  struct FD_ENVIRONMENT *env_copy;} FD_ENVIRONMENT;
-typedef struct FD_ENVIRONMENT *fd_lispenv;
+  struct FD_LEXENV *env_parent;
+  struct FD_LEXENV *env_copy;} FD_LEXENV;
+typedef struct FD_LEXENV *fd_lexenv;
 
-FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env);
-FD_EXPORT void _fd_free_environment(struct FD_ENVIRONMENT *env);
-FD_EXPORT int fd_recycle_environment(fd_lispenv env);
+FD_EXPORT fd_lexenv fd_copy_env(fd_lexenv env);
+FD_EXPORT void _fd_free_lexenv(struct FD_LEXENV *env);
+FD_EXPORT int fd_recycle_lexenv(fd_lexenv env);
 
 #define FD_XENV(x) \
-  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
+  (fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type))
 #define FD_XENVIRONMENT(x) \
-  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
-#define FD_ENVIRONMENTP(x) (FD_TYPEP(x,fd_environment_type))
+  (fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type))
+#define FD_LEXENVP(x) (FD_TYPEP(x,fd_lexenv_type))
 
 #if FD_INLINE_LEXENV
 FD_FASTOP
-void fd_free_environment(struct FD_ENVIRONMENT *env)
+void fd_free_lexenv(struct FD_LEXENV *env)
 {
   /* There are three cases:
         a simple static environment (env->env_copy == NULL)
@@ -45,7 +45,7 @@ void fd_free_environment(struct FD_ENVIRONMENT *env)
   */
   if (env->env_copy)
     if (env == env->env_copy)
-      fd_recycle_environment(env->env_copy);
+      fd_recycle_lexenv(env->env_copy);
     else {
       struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
       int i = 0, n = FD_XSCHEMAP_SIZE(sm);
@@ -56,7 +56,7 @@ void fd_free_environment(struct FD_ENVIRONMENT *env)
 	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
 	    fd_decref(val);}}
       u8_destroy_rwlock(&(sm->table_rwlock));
-      fd_recycle_environment(env->env_copy);}
+      fd_recycle_lexenv(env->env_copy);}
   else {
     struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
     int i = 0, n = FD_XSCHEMAP_SIZE(sm);
@@ -69,7 +69,7 @@ void fd_free_environment(struct FD_ENVIRONMENT *env)
     u8_destroy_rwlock(&(sm->table_rwlock));}
 }
 #else
-#define fd_free_environment _fd_free_environment
+#define fd_free_lexenv _fd_free_lexenv
 #endif
 
 #endif

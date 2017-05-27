@@ -75,7 +75,7 @@ fd_exception
 
 /* Environment functions */
 
-static int bound_in_envp(fdtype symbol,fd_lispenv env)
+static int bound_in_envp(fdtype symbol,fd_lexenv env)
 {
   fdtype bindings = env->env_bindings;
   if (FD_HASHTABLEP(bindings))
@@ -180,14 +180,14 @@ static int dtype_coderef(struct FD_OUTBUF *out,fdtype x)
 
 /* Symbol lookup */
 
-FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lispenv env)
+FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lexenv env)
 {
   return fd_symeval(sym,env);
 }
 
 /* Assignments */
 
-static int add_to_value(fdtype sym,fdtype val,fd_lispenv env)
+static int add_to_value(fdtype sym,fdtype val,fd_lexenv env)
 {
   int rv=1;
   if (env) {
@@ -210,7 +210,7 @@ static int add_to_value(fdtype sym,fdtype val,fd_lispenv env)
   else return rv;
 }
 
-FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
+FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lexenv env)
 {
   /* TODO: Check for checking the return value of calls to
      `fd_bind_value` */
@@ -226,7 +226,7 @@ FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
   else return 0;
 }
 
-FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
+FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lexenv env)
 {
   if (env->env_copy) env = env->env_copy;
   while (env) {
@@ -240,7 +240,7 @@ FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
   return 0;
 }
 
-FD_EXPORT int fd_assign_value(fdtype symbol,fdtype value,fd_lispenv env)
+FD_EXPORT int fd_assign_value(fdtype symbol,fdtype value,fd_lexenv env)
 {
   if (env->env_copy) env = env->env_copy;
   while (env) {
@@ -271,7 +271,7 @@ FD_EXPORT fdtype _fd_get_body(fdtype expr,int i)
   return fd_get_body(expr,i);
 }
 
-static fdtype getopt_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype getopt_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype opts = fd_eval(fd_get_arg(expr,1),env);
   if (FD_ABORTED(opts)) return opts;
@@ -323,7 +323,7 @@ static fdtype optplus_prim(fdtype opts,fdtype key,fdtype val)
 
 /* Quote */
 
-static fdtype quote_evalfn(fdtype obj,fd_lispenv env,fd_stack stake)
+static fdtype quote_evalfn(fdtype obj,fd_lexenv env,fd_stack stake)
 {
   if ((FD_PAIRP(obj)) && (FD_PAIRP(FD_CDR(obj))) &&
       ((FD_CDR(FD_CDR(obj))) == FD_EMPTY_LIST))
@@ -335,7 +335,7 @@ static fdtype quote_evalfn(fdtype obj,fd_lispenv env,fd_stack stake)
 
 static fdtype profile_symbol;
 
-static fdtype profiled_eval_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype profiled_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   double start = u8_elapsed_time();
@@ -362,18 +362,18 @@ static fdtype profiled_eval_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
 }
 
 /* These are for wrapping around Scheme code to see in C profilers */
-static fdtype eval1(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval2(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval3(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval4(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval5(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval6(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval7(fdtype expr,fd_lispenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval1(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval2(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval3(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval4(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval5(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval6(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static fdtype eval7(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
 
 /* Google profiler usage */
 
 #if USING_GOOGLE_PROFILER
-static fdtype gprofile_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype gprofile_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   int start = 1; char *filename = NULL;
   if ((FD_PAIRP(FD_CDR(expr)))&&(FD_STRINGP(FD_CAR(FD_CDR(expr))))) {
@@ -415,7 +415,7 @@ static fdtype gprofile_stop()
 
 /* Trace functions */
 
-static fdtype timed_eval_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype timed_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   double start = u8_elapsed_time();
@@ -426,7 +426,7 @@ static fdtype timed_eval_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
   return value;
 }
 
-static fdtype timed_evalx_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype timed_evalx_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   double start = u8_elapsed_time();
@@ -468,7 +468,7 @@ static int check_line_length(u8_output out,int off,int max_len)
     return -1;}
 }
 
-static fdtype watchcall(fdtype expr,fd_lispenv env,int with_proc)
+static fdtype watchcall(fdtype expr,fd_lexenv env,int with_proc)
 {
   struct U8_OUTPUT out;
   u8_string dflt_label="%CALL", label = dflt_label, arglabel="%ARG";
@@ -543,11 +543,11 @@ static fdtype watchcall(fdtype expr,fd_lispenv env,int with_proc)
   return result;
 }
 
-static fdtype watchcall_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype watchcall_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return watchcall(expr,env,0);
 }
-static fdtype watchcall_plus_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype watchcall_plus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return watchcall(expr,env,1);
 }
@@ -612,7 +612,7 @@ static fdtype watchptr_prim(fdtype val,fdtype label_arg)
   return fd_incref(val);
 }
 
-static fdtype watched_eval_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype watched_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   double start; int oneout = 0;
@@ -701,13 +701,13 @@ static fdtype watched_eval_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
 /* The evaluator itself */
 
 static fdtype call_function(u8_string fname,fdtype f,
-                            fdtype expr,fd_lispenv env,
+                            fdtype expr,fd_lexenv env,
                             fd_stack s,
                             int tail);
 static int applicable_choicep(fdtype choice);
 
 FD_EXPORT
-fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
+fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
                      struct FD_STACK *_stack,
                      int tail)
 {
@@ -866,7 +866,7 @@ static int applicable_choicep(fdtype headvals)
   return 1;
 }
 
-FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
+FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lexenv env)
 {
   fdtype result = fd_tail_eval(expr,env);
   return fd_finish_call(result);
@@ -881,7 +881,7 @@ static int count_args(fdtype args)
   return n_args;
 }
 
-static fdtype process_arg(fdtype arg,fd_lispenv env,
+static fdtype process_arg(fdtype arg,fd_lexenv env,
                           struct FD_STACK *_stack)
 {
   fdtype argval = fast_eval(arg,env);
@@ -905,7 +905,7 @@ FD_FASTOP int commentp(fdtype arg)
 }
 
 static fdtype call_function(u8_string fname,fdtype fn,
-                            fdtype expr,fd_lispenv env,
+                            fdtype expr,fd_lexenv env,
                             struct FD_STACK *stack,
                             int tail)
 {
@@ -950,7 +950,7 @@ static fdtype call_function(u8_string fname,fdtype fn,
   return result;
 }
 
-FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
+FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lexenv env)
 {
   if (FD_PAIRP(exprs)) {
     fdtype next = FD_CDR(exprs), val = FD_VOID;
@@ -981,9 +981,9 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
 /* Module system */
 
 static struct FD_HASHTABLE module_map, safe_module_map;
-static fd_lispenv default_env = NULL, safe_default_env = NULL;
+static fd_lexenv default_env = NULL, safe_default_env = NULL;
 
-FD_EXPORT fd_lispenv fd_make_env(fdtype bindings,fd_lispenv parent)
+FD_EXPORT fd_lexenv fd_make_env(fdtype bindings,fd_lexenv parent)
 {
   if (FD_EXPECT_FALSE(!(FD_TABLEP(bindings)) )) {
     fd_seterr(fd_TypeError,"fd_make_env",
@@ -991,8 +991,8 @@ FD_EXPORT fd_lispenv fd_make_env(fdtype bindings,fd_lispenv parent)
               bindings);
     return NULL;}
   else {
-    struct FD_ENVIRONMENT *e = u8_alloc(struct FD_ENVIRONMENT);
-    FD_INIT_FRESH_CONS(e,fd_environment_type);
+    struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
+    FD_INIT_FRESH_CONS(e,fd_lexenv_type);
     e->env_bindings = bindings; e->env_exports = FD_VOID;
     e->env_parent = fd_copy_env(parent);
     e->env_copy = e;
@@ -1006,7 +1006,7 @@ FD_EXPORT
     Returns: a consed environment whose bindings and exports
   are the exports table.  This indicates that the environment
   is "for export only" and cannot be modified. */
-fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
+fd_lexenv fd_make_export_env(fdtype exports,fd_lexenv parent)
 {
   if (FD_EXPECT_FALSE(!(FD_HASHTABLEP(exports)) )) {
     fd_seterr(fd_TypeError,"fd_make_env",
@@ -1014,8 +1014,8 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
               exports);
     return NULL;}
   else {
-    struct FD_ENVIRONMENT *e = u8_alloc(struct FD_ENVIRONMENT);
-    FD_INIT_FRESH_CONS(e,fd_environment_type);
+    struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
+    FD_INIT_FRESH_CONS(e,fd_lexenv_type);
     e->env_bindings = fd_incref(exports);
     e->env_exports = fd_incref(e->env_bindings);
     e->env_parent = fd_copy_env(parent);
@@ -1023,7 +1023,7 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
     return e;}
 }
 
-FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
+FD_EXPORT fd_lexenv fd_new_lexenv(fdtype bindings,int safe)
 {
   if (scheme_initialized==0) fd_init_scheme();
   if (FD_VOIDP(bindings))
@@ -1031,12 +1031,12 @@ FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
   else fd_incref(bindings);
   return fd_make_env(bindings,((safe)?(safe_default_env):(default_env)));
 }
-FD_EXPORT fd_lispenv fd_working_environment()
+FD_EXPORT fd_lexenv fd_working_lexenv()
 {
   if (scheme_initialized==0) fd_init_scheme();
   return fd_make_env(fd_make_hashtable(NULL,17),default_env);
 }
-FD_EXPORT fd_lispenv fd_safe_working_environment()
+FD_EXPORT fd_lexenv fd_safe_working_lexenv()
 {
   if (scheme_initialized==0) fd_init_scheme();
   return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
@@ -1049,8 +1049,8 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   else fd_hashtable_store(&module_map,name,module);
 
   /* Set the module ID*/
-  if (FD_ENVIRONMENTP(module)) {
-    fd_environment env = (fd_environment)module;
+  if (FD_LEXENVP(module)) {
+    fd_lexenv env = (fd_lexenv)module;
     fd_add(env->env_bindings,moduleid_symbol,name);}
   else if (FD_HASHTABLEP(module))
     fd_add(module,moduleid_symbol,name);
@@ -1058,7 +1058,7 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
 
   /* Add to the appropriate default environment */
   if (flags&FD_MODULE_DEFAULT) {
-    fd_lispenv scan;
+    fd_lexenv scan;
     if (flags&FD_MODULE_SAFE) {
       scan = safe_default_env;
       while (scan)
@@ -1158,7 +1158,7 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn)
 
 /* The Evaluator */
 
-static fdtype eval_evalfn(fdtype x,fd_lispenv env,fd_stack stack)
+static fdtype eval_evalfn(fdtype x,fd_lexenv env,fd_stack stack)
 {
   fdtype expr_expr = fd_get_arg(x,1);
   fdtype expr = fd_stack_eval(expr_expr,env,stack,0);
@@ -1167,7 +1167,7 @@ static fdtype eval_evalfn(fdtype x,fd_lispenv env,fd_stack stack)
   return result;
 }
 
-static fdtype boundp_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype boundp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   if (!(FD_SYMBOLP(symbol)))
@@ -1183,7 +1183,7 @@ static fdtype boundp_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       return FD_TRUE;}}
 }
 
-static fdtype modref_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype modref_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype module = fd_get_arg(expr,1);
   fdtype symbol = fd_get_arg(expr,2);
@@ -1196,7 +1196,7 @@ static fdtype modref_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return fd_hashtable_get((fd_hashtable)module,symbol,FD_UNBOUND);
 }
 
-static fdtype voidp_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype voidp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype result = fd_eval(fd_get_arg(expr,1),env);
   if (FD_VOIDP(result)) return FD_TRUE;
@@ -1205,7 +1205,7 @@ static fdtype voidp_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return FD_FALSE;}
 }
 
-static fdtype env_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype env_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return (fdtype)fd_copy_env(env);
 }
@@ -1214,8 +1214,8 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
 {
   if (!(FD_SYMBOLP(symbol)))
     return fd_type_error(_("symbol"),"boundp_prim",symbol);
-  else if (FD_ENVIRONMENTP(envarg)) {
-    fd_lispenv env = (fd_lispenv)envarg;
+  else if (FD_LEXENVP(envarg)) {
+    fd_lexenv env = (fd_lexenv)envarg;
     fdtype val = fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
     else if (val == FD_DEFAULT_VALUE) return FD_FALSE;
@@ -1230,15 +1230,15 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
 
 static fdtype environmentp_prim(fdtype arg)
 {
-  if (FD_ENVIRONMENTP(arg))
+  if (FD_LEXENVP(arg))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
 /* Withenv forms */
 
-static fdtype withenv(fdtype expr,fd_lispenv env,
-                      fd_lispenv consed_env,u8_context cxt)
+static fdtype withenv(fdtype expr,fd_lexenv env,
+                      fd_lexenv consed_env,u8_context cxt)
 {
   fdtype bindings = fd_get_arg(expr,1);
   if (FD_VOIDP(bindings))
@@ -1266,7 +1266,7 @@ static fdtype withenv(fdtype expr,fd_lispenv env,
         if (rv<0) return FD_ERROR_VALUE;}
       else {
         FD_STOP_DO_CHOICES;
-        fd_recycle_environment(consed_env);
+        fd_recycle_lexenv(consed_env);
         return fd_err(fd_SyntaxError,cxt,NULL,expr);}
       fd_decref(keys);}}
   else return fd_err(fd_SyntaxError,cxt,NULL,expr);
@@ -1281,19 +1281,19 @@ static fdtype withenv(fdtype expr,fd_lispenv env,
     return result;}
 }
 
-static fdtype withenv_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype withenv_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fd_lispenv consed_env = fd_working_environment();
+  fd_lexenv consed_env = fd_working_lexenv();
   fdtype result = withenv(expr,env,consed_env,"WITHENV");
-  fd_recycle_environment(consed_env);
+  fd_recycle_lexenv(consed_env);
   return result;
 }
 
-static fdtype withenv_safe_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype withenv_safe_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fd_lispenv consed_env = fd_safe_working_environment();
+  fd_lexenv consed_env = fd_safe_working_lexenv();
   fdtype result = withenv(expr,env,consed_env,"WITHENV/SAFE");
-  fd_recycle_environment(consed_env);
+  fd_recycle_lexenv(consed_env);
   return result;
 }
 
@@ -1493,7 +1493,7 @@ static fdtype tcachecall(int n,fdtype *args)
   return fd_tcachecall(args[0],n-1,args+1);
 }
 
-static fdtype with_threadcache_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype with_threadcache_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct FD_THREAD_CACHE *tc = fd_push_threadcache(NULL);
   fdtype value = FD_VOID;
@@ -1506,7 +1506,7 @@ static fdtype with_threadcache_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack
   return value;
 }
 
-static fdtype using_threadcache_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype using_threadcache_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct FD_THREAD_CACHE *tc = fd_use_threadcache();
   fdtype value = FD_VOID;
@@ -1700,7 +1700,7 @@ static fdtype applytest(int n,fdtype *args)
     return err;}
 }
 
-static fdtype evaltest_evalfn(fdtype expr,fd_lispenv env,fd_stack s)
+static fdtype evaltest_evalfn(fdtype expr,fd_lexenv env,fd_stack s)
 {
   fdtype testexpr = fd_get_arg(expr,2);
   fdtype expected = fd_eval(fd_get_arg(expr,1),env);
@@ -1783,7 +1783,7 @@ FD_EXPORT fdtype _fd_dbg(fdtype x)
 
 void (*fd_dump_backtrace)(fdtype bt);
 
-static fdtype dbg_evalfn(fdtype expr,fd_lispenv env,fd_stack stack)
+static fdtype dbg_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype arg_expr=fd_get_arg(expr,1);
   fdtype msg_expr=fd_get_arg(expr,2);
@@ -1807,7 +1807,7 @@ static fdtype void_prim(int n,fdtype *args)
   return FD_VOID;
 }
 
-static fdtype default_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   fdtype default_expr = fd_get_arg(expr,2);
@@ -2047,7 +2047,7 @@ void fd_init_eval_c()
   fns->get = lispenv_get; fns->store = lispenv_store;
   fns->add = lispenv_add; fns->drop = NULL; fns->test = NULL;
 
-  fd_tablefns[fd_environment_type]=fns;
+  fd_tablefns[fd_lexenv_type]=fns;
   fd_recyclers[fd_evalfn_type]=recycle_evalfn;
 
   fd_unparsers[fd_evalfn_type]=unparse_evalfn;

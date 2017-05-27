@@ -19,7 +19,7 @@ static fd_exception SchemeError=_("Undistinguished Scheme Error");
 
 /* Returning errors */
 
-static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
+static fdtype return_error_helper(fdtype expr,fd_lexenv env,int wrapped)
 {
   fd_exception ex = SchemeError, cxt = NULL;
   fdtype head = fd_get_arg(expr,0);
@@ -49,16 +49,16 @@ static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
       fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
       return FD_ERROR_VALUE;}}
 }
-static fdtype return_error_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype return_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,0);
 }
-static fdtype extend_error_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype extend_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,1);
 }
 
-static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped,int eval_args)
+static fdtype return_irritant_helper(fdtype expr,fd_lexenv env,int wrapped,int eval_args)
 {
   fd_exception ex = SchemeError, cxt = NULL;
   fdtype head = fd_get_arg(expr,0);
@@ -115,16 +115,16 @@ static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped,int 
       return fd_init_exception(NULL,u8ex);}
     else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
 }
-static fdtype return_irritant_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype return_irritant_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_irritant_helper(expr,env,0,0);
 }
-static fdtype extend_irritant_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype extend_irritant_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_irritant_helper(expr,env,1,0);
 }
 
-static fdtype onerror_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   fdtype error_handler = fd_get_arg(expr,2);
@@ -203,7 +203,7 @@ static fdtype onerror_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       return handler;}}
 }
 
-static fdtype report_errors_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype report_errors_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   fdtype value = fd_eval(toeval,env);
@@ -217,7 +217,7 @@ static fdtype report_errors_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   else return value;
 }
 
-static fdtype erreify_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype erreify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   fdtype value = fd_eval(toeval,env);
@@ -389,7 +389,7 @@ static int thunkp(fdtype x)
     else return 0;}
 }
 
-static fdtype dynamic_wind_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype dynamic_wind_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype wind = fd_get_arg(expr,1);
   fdtype doit = fd_get_arg(expr,2);
@@ -439,7 +439,7 @@ static fdtype dynamic_wind_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
       return retval;}}
 }
 
-static fdtype unwind_protect_evalfn(fdtype uwp,fd_lispenv env,fd_stack _stack)
+static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
 {
   fdtype heart = fd_get_arg(uwp,1);
   fdtype result;

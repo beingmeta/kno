@@ -225,7 +225,7 @@ static fdtype synchro_unlock(fdtype lck)
   else return fd_type_error("lockable","synchro_unlock",lck);
 }
 
-static fdtype with_lock_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype with_lock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype lock_expr = fd_get_arg(expr,1), lck, value = FD_VOID;
   if (FD_VOIDP(lock_expr))
@@ -361,7 +361,7 @@ static void *thread_call(void *data)
       fd_incref(result);}}
   tstruct->flags = tstruct->flags|FD_THREAD_DONE;
   if (tstruct->flags&FD_EVAL_THREAD) {
-    fd_free_environment(tstruct->evaldata.env);
+    fd_free_lexenv(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
   fd_decref((fdtype)tstruct);
   fd_pop_stack(_stack);
@@ -399,7 +399,7 @@ fd_thread_struct fd_thread_call(fdtype *resultptr,
 
 FD_EXPORT
 fd_thread_struct fd_thread_eval(fdtype *resultptr,
-                                fdtype expr,fd_lispenv env,
+                                fdtype expr,fd_lexenv env,
                                 int flags)
 {
   struct FD_THREAD_STRUCT *tstruct = u8_alloc(struct FD_THREAD_STRUCT);
@@ -476,20 +476,20 @@ static fdtype threadcallx_prim(int n,fdtype *args)
     return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
-static fdtype threadeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype to_eval = fd_get_arg(expr,1);
   fdtype env_arg = fd_eval(fd_get_arg(expr,2),env);
   fdtype opts_arg = fd_eval(fd_get_arg(expr,3),env);
   fdtype opts=
     ((FD_VOIDP(opts_arg))&&
-     (!(FD_ENVIRONMENTP(env_arg)))&&
+     (!(FD_LEXENVP(env_arg)))&&
      (FD_TABLEP(env_arg)))?
     (env_arg):
     (opts_arg);
-  fd_lispenv use_env=
+  fd_lexenv use_env=
     ((FD_VOIDP(env_arg))||(FD_FALSEP(env_arg)))?(env):
-    (FD_ENVIRONMENTP(env_arg))?((fd_lispenv)env_arg):
+    (FD_LEXENVP(env_arg))?((fd_lexenv)env_arg):
     (NULL);
   if (FD_VOIDP(to_eval)) {
     fd_decref(opts_arg); fd_decref(env_arg);
@@ -499,7 +499,7 @@ static fdtype threadeval_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
     return fd_type_error(_("lispenv"),"threadeval_evalfn",env_arg);}
   else {
     int flags = threadopts(opts)|FD_EVAL_THREAD;
-    fd_lispenv env_copy = fd_copy_env(use_env);
+    fd_lexenv env_copy = fd_copy_env(use_env);
     fdtype results = FD_EMPTY_CHOICE, envptr = (fdtype)env_copy;
     FD_DO_CHOICES(thread_expr,to_eval) {
       fdtype thread = (fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
@@ -581,7 +581,7 @@ static fdtype threadwait_prim(fdtype threads)
   return fd_incref(threads);
 }
 
-static fdtype parallel_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
+static fdtype parallel_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fd_thread_struct _threads[6], *threads;
   fdtype _results[6], *results, scan = FD_CDR(expr), result = FD_EMPTY_CHOICE;
