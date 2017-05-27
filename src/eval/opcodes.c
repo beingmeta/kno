@@ -872,12 +872,15 @@ static fdtype assignop(fd_stack stack,fd_lispenv env,
   return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
 }
 
-static fdtype bindop(struct FD_STACK *_stack,fd_lispenv env,
+static fdtype bindop(fdtype op,
+                     struct FD_STACK *_stack,fd_lispenv env,
                      fdtype vars,fdtype inits,fdtype body,
                      int tail)
 {
   int i=0, n=FD_VECTOR_LENGTH(vars);
-  FD_PUSH_STACK(bind_stack,"bindop",NULL,vars);
+  FD_PUSH_STACK(bind_stack,"bindop",NULL,op);
+  bind_stack->stack_args=FD_VECTOR_DATA(vars);
+  bind_stack->n_args=FD_VECTOR_LENGTH(vars);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,FD_VECTOR_DATA(vars));
   fdtype *values=bound_bindings.schema_values;
   fdtype *exprs=FD_VECTOR_DATA(inits);
@@ -968,7 +971,7 @@ static fdtype opcode_dispatch_inner(fdtype opcode,fdtype expr,
     fdtype vars=pop_arg(args);
     fdtype inits=pop_arg(args);
     fdtype body=pop_arg(args);
-    return bindop(_stack,env,vars,inits,body,tail);}
+    return bindop(opcode,_stack,env,vars,inits,body,tail);}
   case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
   case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
   case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
