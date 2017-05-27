@@ -668,6 +668,7 @@ fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args
    ((fd_function)x))
 
 FD_EXPORT fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype base);
+FD_EXPORT void fd_html_backtrace(u8_output out,fdtype rep);
 
 /* Unparsing */
 
