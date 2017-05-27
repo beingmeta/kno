@@ -72,7 +72,11 @@ static void _showstack_frame(struct FD_STACK *stack)
   if ( (stack->stack_label) || (stack->stack_status) ) {
     summarize_stack_frame(tmpout,stack);
     summary=tmp.u8_outbuf;}
-  fprintf(stderr,"%s",summary);
+  if (summary)
+    fprintf(stderr,"%s",summary);
+  else if (stack->stack_type)
+    fprintf(stderr,"??.%s",stack->stack_type);
+  else fprintf(stderr,"unitialized stack");
   if (stack->stack_args)
     fprintf(stderr,", %d args",stack->n_args);
   if (FD_SYMBOLP(op))
