@@ -584,7 +584,7 @@ FD_EXPORT
 fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype))
 {
-  struct FD_STACK *_stack=fd_stackptr;
+  FD_SETUP_NAMED_STACK(_stack,fd_stackptr,"xapply",fn->fcn_name,(fdtype)fn);
   int i = 0, n = fn->sproc_n_vars;
   fdtype arglist = fn->sproc_arglist, result = FD_VOID;
   fd_lispenv env = fn->sproc_env;
