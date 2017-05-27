@@ -22,6 +22,8 @@
 fd_exception fd_BadArglist=_("Malformed argument list");
 fd_exception fd_BadDefineForm=_("Bad procedure defining form");
 
+int fd_record_source=1;
+
 static fdtype tail_symbol;
 
 static u8_string sproc_id(struct FD_SPROC *fn)
@@ -240,6 +242,7 @@ _make_sproc(u8_string name,
       schema[i]=argspec;}
     i++; scan = FD_CDR(scan);}
   if (i<s->sproc_n_vars) schema[i]=scan;
+  s->sproc_source = FD_VOID;
   return FDTYPE_CONS(s);
 }
 
@@ -265,7 +268,9 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
   if (sproc->fcn_defaults) u8_free(sproc->fcn_defaults);
   if (sproc->fcn_documentation) u8_free(sproc->fcn_documentation);
   if (sproc->fcn_attribs) fd_decref(sproc->fcn_attribs);
-  fd_decref(sproc->sproc_arglist); fd_decref(sproc->sproc_body);
+  fd_decref(sproc->sproc_arglist);
+  fd_decref(sproc->sproc_body);
+  fd_decref(sproc->sproc_source);
   u8_free(sproc->sproc_vars);
   if (sproc->sproc_env->env_copy) {
     fd_decref((fdtype)(sproc->sproc_env->env_copy));
@@ -365,6 +370,8 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     fresh->fcn_attribs = FD_VOID;
     fresh->sproc_arglist = fd_copier(sproc->sproc_arglist,flags);
     fresh->sproc_body = fd_copier(sproc->sproc_body,flags);
+    fresh->sproc_source = sproc->sproc_source;
+    fd_incref(sproc->sproc_source);
     fresh->sproc_bytecode = NULL;
     if (sproc->sproc_vars)
       fresh->sproc_vars = fd_copy_vec(sproc->sproc_vars,n_args,NULL,flags);
@@ -386,24 +393,30 @@ static fdtype lambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
+  fdtype proc = FD_VOID;
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"LAMBDA",NULL,expr);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    return _make_sproc(NULL,arglist,body,env,0,0,0,0);}
-  else return make_sproc(NULL,arglist,body,env,0,0);
+    proc=_make_sproc(NULL,arglist,body,env,0,0,0,0);}
+  else proc=make_sproc(NULL,arglist,body,env,0,0);
+  FD_SET_SPROC_SOURCE(proc,expr);
+  return proc;
 }
 
 static fdtype ambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
+  fdtype proc = FD_VOID;
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"AMBDA",NULL,expr);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    return _make_sproc(NULL,arglist,body,env,1,0,0,0);}
-  else return make_sproc(NULL,arglist,body,env,1,0);
+    proc=_make_sproc(NULL,arglist,body,env,1,0,0,0);}
+  else proc=make_sproc(NULL,arglist,body,env,1,0);
+  FD_SET_SPROC_SOURCE(proc,expr);
+  return proc;
 }
 
 static fdtype nambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
@@ -411,6 +424,7 @@ static fdtype nambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
   fdtype name_expr = fd_get_arg(expr,1), name;
   fdtype arglist = fd_get_arg(expr,2);
   fdtype body = fd_get_body(expr,3);
+  fdtype proc = FD_VOID;
   u8_string namestring = NULL;
   if ((FD_VOIDP(name_expr))||(FD_VOIDP(arglist)))
     return fd_err(fd_TooFewExpressions,"NAMBDA",NULL,expr);
@@ -421,40 +435,51 @@ static fdtype nambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
                             "nambda_evalfn",name);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
-    return _make_sproc(namestring,arglist,body,env,1,0,0,0);}
-  else return make_sproc(namestring,arglist,body,env,1,0);
+    proc=_make_sproc(namestring,arglist,body,env,1,0,0,0);}
+  else proc=make_sproc(namestring,arglist,body,env,1,0);
+  FD_SET_SPROC_SOURCE(proc,expr);
+  return proc;
 }
 
 static fdtype slambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
+  fdtype proc = FD_VOID;
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
     fd_incref(arglist);
-    return _make_sproc(NULL,arglist,body,env,0,1,0,0);}
-  else return make_sproc(NULL,arglist,body,env,0,1);
+    proc=_make_sproc(NULL,arglist,body,env,0,1,0,0);}
+  else proc=make_sproc(NULL,arglist,body,env,0,1);
+  FD_SET_SPROC_SOURCE(proc,expr);
+  return proc;
 }
 
 static fdtype sambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
+  fdtype proc = FD_VOID;
   if (FD_VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
     fd_incref(arglist);
-    return _make_sproc(NULL,arglist,body,env,1,1,0,0);}
-  else return make_sproc(NULL,arglist,body,env,1,1);
+    proc=_make_sproc(NULL,arglist,body,env,1,1,0,0);}
+  else proc=make_sproc(NULL,arglist,body,env,1,1);
+  FD_SET_SPROC_SOURCE(proc,expr);
+  return proc;
 }
 
 static fdtype thunk_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
+  fdtype proc = FD_VOID;
   if (FD_CODEP(body))
     return _make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0,0,0);
   else return make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0);
+  FD_SET_SPROC_SOURCE(proc,expr);
+  return proc;
 }
 
 /* DEFINE */
@@ -497,7 +522,9 @@ static fdtype define_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           struct FD_SPROC *s = (fd_sproc)fvalue;
           if (s->fcn_filename == NULL) {
             u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}}
+            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
+          if (fd_record_source) {
+            s->sproc_source=expr; fd_incref(expr);}}
         fd_decref(value);
         return FD_VOID;}
       else {
@@ -528,7 +555,9 @@ static fdtype defslambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           struct FD_SPROC *s = (fd_sproc)opvalue;
           if (s->fcn_filename == NULL) {
             u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}}
+            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
+          if (fd_record_source) {
+            s->sproc_source=expr; fd_incref(expr);}}
         fd_decref(value);
         return FD_VOID;}
       else {
@@ -559,7 +588,9 @@ static fdtype defambda_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
           struct FD_SPROC *s = (fd_sproc)opvalue;
           if (s->fcn_filename == NULL) {
             u8_string sourcebase = fd_sourcebase();
-            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}}
+            if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}
+          if (fd_record_source) {
+            s->sproc_source=expr; fd_incref(expr);}}
         fd_decref(value);
         return FD_VOID;}
       else {

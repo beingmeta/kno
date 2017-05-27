@@ -128,13 +128,21 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
   short sproc_n_vars, sproc_synchronized;
-  fdtype *sproc_vars, sproc_arglist, sproc_body;
+  fdtype *sproc_vars, sproc_arglist, sproc_body, sproc_source;
   fdtype sproc_optimizer;
   struct FD_VECTOR *sproc_bytecode;
   fd_lispenv sproc_env;
   U8_MUTEX_DECL(sproc_lock);
 } FD_SPROC;
 typedef struct FD_SPROC *fd_sproc;
+
+FD_EXPORT int fd_record_source;
+
+#define FD_SET_SPROC_SOURCE(sproc,src)			\
+  if (fd_record_source) {				\
+    struct FD_SPROC *s=((struct FD_SPROC *)sproc);	\
+  s->sproc_source=src; fd_incref(s->sproc_source);}	\
+  else {}
 
 FD_EXPORT fdtype fd_apply_sproc(struct FD_STACK *,struct FD_SPROC *fn,
 				int n,fdtype *args);

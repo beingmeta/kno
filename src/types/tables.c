@@ -901,7 +901,10 @@ FD_EXPORT fdtype fd_make_schemap
   if (!(flags&FD_SCHEMAP_PRIVATE)) ptr->schemap_shared=0;
   if (flags&FD_SCHEMAP_READONLY) ptr->table_readonly=1;
   if (flags&FD_SCHEMAP_MODIFIED) ptr->table_modified=1;
-  if (values) ptr->schema_values=values;
+  if (values)
+    ptr->schema_values=values;
+  else if (size==0)
+    ptr->schema_values=NULL;
   else {
     ptr->schema_values=values=u8_alloc_n(size,fdtype);
     while (i<size) values[i++]=FD_VOID;}
