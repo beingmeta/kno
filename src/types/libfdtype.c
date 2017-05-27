@@ -67,7 +67,7 @@ static void init_type_names()
   fd_type_names[fd_symbol_type]=_("symbol");
   fd_type_names[fd_lexref_type]=_("lexref");
   fd_type_names[fd_opcode_type]=_("opcode");
-  fd_type_names[fd_cdrcode_type]=_("cdrcode");
+  fd_type_names[fd_coderef_type]=_("cdrcode");
   fd_type_names[fd_string_type]=_("string");
   fd_type_names[fd_packet_type]=_("packet");
   fd_type_names[fd_secret_type]=_("secret");

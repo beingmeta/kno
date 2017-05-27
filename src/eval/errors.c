@@ -145,7 +145,9 @@ static fdtype onerror_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
         fd_consptr(fd_exception_object,err_value,fd_error_type);
       if (handler_result == err_value) {
 	u8_restore_exception(ex);
-        fd_decref(handler); fd_decref(value); fd_decref(err_value);
+        fd_decref(handler);
+        fd_decref(value);
+        fd_decref(err_value);
         return FD_ERROR_VALUE;}
       else if (FD_TYPEP(handler_result,fd_error_type)) {
 	fd_exception_object newexo=

@@ -381,6 +381,36 @@ static int unparse_ffi_proc(u8_output out,fdtype x)
   return 1;
 }
 
+static int dtype_ffi(struct FD_OUTBUF *out,fdtype x)
+{
+  int n_elts=0;
+  struct FD_FFI_PROC *fcn = (struct FD_FFI_PROC *)x;
+  unsigned char buf[200], *tagname="%FFI";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,strlen(tagname));
+  fd_write_bytes(&tmp,tagname,strlen(tagname));
+  if (fcn->fcn_name) n_elts++;
+  if (fcn->fcn_filename) n_elts++;
+  fd_write_4bytes(&tmp,n_elts);
+  if (fcn->fcn_name) {
+    size_t len=strlen(fcn->fcn_name);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_name,len);}
+  if (fcn->fcn_filename) {
+    size_t len=strlen(fcn->fcn_filename);
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_filename,len);}
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
 FD_EXPORT long long ffitest_ipi(int x,int y)
 {
   long long result = x+y;
@@ -418,6 +448,7 @@ FD_EXPORT int ffitest_chr(u8_string s,int off)
 FD_EXPORT void fd_init_ffi_c()
 {
   fd_type_names[fd_ffi_type]="foreign-function";
+  fd_dtype_writers[fd_ffi_type]=dtype_ffi;
 
   fd_unparsers[fd_ffi_type]=unparse_ffi_proc;
   fd_recyclers[fd_ffi_type]=recycle_ffi_proc;
@@ -452,6 +483,7 @@ FD_EXPORT void fd_init_ffi_c()
 FD_EXPORT void fd_init_ffi_c()
 {
   fd_type_names[fd_ffi_type]="foreign-function";
+  fd_dtype_writer[fd_ffi_type]=dtype_ffi;
 
   double_symbol = fd_intern("DOUBLE");
   float_symbol = fd_intern("FLOAT");

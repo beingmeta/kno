@@ -82,6 +82,36 @@ static void recycle_primitive(struct FD_RAW_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
+static int dtype_cprim(struct FD_OUTBUF *out,fdtype x)
+{
+  int n_elts=0;
+  struct FD_FUNCTION *fcn = (struct FD_FUNCTION *)x;
+  unsigned char buf[200], *tagname="%CPRIM";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,6);
+  fd_write_bytes(&tmp,tagname,6);
+  if (fcn->fcn_name) n_elts++;
+  if (fcn->fcn_filename) n_elts++;
+  fd_write_4bytes(&tmp,n_elts);
+  if (fcn->fcn_name) {
+    size_t len=strlen(fcn->fcn_name);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_name,len);}
+  if (fcn->fcn_filename) {
+    size_t len=strlen(fcn->fcn_filename);
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_filename,len);}
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
 /* Declaring functions */
 
 static struct FD_FUNCTION *new_cprim(u8_string name,
@@ -434,7 +464,7 @@ FD_EXPORT void fd_init_cprims_c()
 
   fd_unparsers[fd_cprim_type]=unparse_primitive;
   fd_recyclers[fd_cprim_type]=recycle_primitive;
-
+  fd_dtype_writers[fd_cprim_type]=dtype_cprim;
 }
 
 

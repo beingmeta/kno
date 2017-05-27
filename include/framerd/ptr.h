@@ -127,7 +127,7 @@ typedef enum FD_PTR_TYPE {
   fd_lexref_type = FD_IMMEDIATE_TYPECODE(4),
   fd_opcode_type = FD_IMMEDIATE_TYPECODE(5),
   fd_type_type = FD_IMMEDIATE_TYPECODE(6),
-  fd_cdrcode_type = FD_IMMEDIATE_TYPECODE(7),
+  fd_coderef_type = FD_IMMEDIATE_TYPECODE(7),
   fd_pool_type = FD_IMMEDIATE_TYPECODE(8),
   fd_index_type = FD_IMMEDIATE_TYPECODE(9),
   fd_histref_type = FD_IMMEDIATE_TYPECODE(10),

@@ -87,6 +87,8 @@ static int bound_in_envp(fdtype symbol,fd_lispenv env)
   else return fd_test(bindings,symbol,FD_VOID);
 }
 
+/* Lexrefs */
+
 static fdtype lexref_prim(fdtype upv,fdtype acrossv)
 {
   long long up = FD_FIX2INT(upv), across = FD_FIX2INT(acrossv);
@@ -99,6 +101,13 @@ static fdtype lexref_prim(fdtype upv,fdtype acrossv)
   else return fd_type_error("short","lexref_prim",across);
 }
 
+static fdtype lexref_value_prim(fdtype lexref)
+{
+  int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
+  int up = code/32, across = code%32;
+  return fd_init_pair(NULL,FD_INT(up),FD_INT(across));
+}
+
 static int unparse_lexref(u8_output out,fdtype lexref)
 {
   int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
@@ -107,15 +116,76 @@ static int unparse_lexref(u8_output out,fdtype lexref)
   return 1;
 }
 
+static int dtype_lexref(struct FD_OUTBUF *out,fdtype x)
+{
+  int code = FD_GET_IMMEDIATE(x,fd_lexref_type);
+  int up = code/32, across = code%32;
+  unsigned char buf[100], *tagname="%LEXREF";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,7);
+  fd_write_bytes(&tmp,tagname,7);
+  fd_write_4bytes(&tmp,2);
+  fd_write_byte(&tmp,dt_fixnum);
+  fd_write_4bytes(&tmp,up);
+  fd_write_byte(&tmp,dt_fixnum);
+  fd_write_4bytes(&tmp,across);
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
+/* Code refs */
+
+static fdtype coderef_prim(fdtype offset)
+{
+  long long off = FD_FIX2INT(offset);
+  return FDTYPE_IMMEDIATE(fd_coderef_type,off);
+}
+
+static fdtype coderef_value_prim(fdtype offset)
+{
+  long long off = FD_GET_IMMEDIATE(offset,fd_coderef_type);
+  return FD_INT(off);
+}
+
+static int unparse_coderef(u8_output out,fdtype coderef)
+{
+  long long off = FD_GET_IMMEDIATE(coderef,fd_coderef_type);
+  u8_printf(out,"#<CODEREF %lld>",off);
+  return 1;
+}
+
+static int dtype_coderef(struct FD_OUTBUF *out,fdtype x)
+{
+  int offset = FD_GET_IMMEDIATE(x,fd_coderef_type);
+  unsigned char buf[100], *tagname="%CODEREF";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,strlen(tagname));
+  fd_write_bytes(&tmp,tagname,strlen(tagname));
+  fd_write_4bytes(&tmp,1);
+  fd_write_byte(&tmp,dt_fixnum);
+  fd_write_4bytes(&tmp,offset);
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
+/* Symbol lookup */
+
 FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lispenv env)
 {
   return fd_symeval(sym,env);
 }
 
-FD_EXPORT fdtype _fd_lexref(fdtype lexref,fd_lispenv env)
-{
-  return fd_lexref(lexref,env);
-}
+/* Assignments */
 
 static int add_to_value(fdtype sym,fdtype val,fd_lispenv env)
 {
@@ -1310,6 +1380,36 @@ static int unparse_specform(u8_output out,fdtype x)
   return 1;
 }
 
+static int dtype_specform(struct FD_OUTBUF *out,fdtype x)
+{
+  struct FD_SPECIAL_FORM *s=
+    fd_consptr(struct FD_SPECIAL_FORM *,x,fd_specform_type);
+  u8_string name=s->fexpr_name;
+  u8_string filename=s->fexpr_filename;
+  size_t name_len=strlen(name);
+  ssize_t file_len=(filename) ? (strlen(filename)) : (-1);
+  int n_elts = (file_len<0) ? (1) : (0);
+  unsigned char buf[100], *tagname="%EVALFN";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,strlen(tagname));
+  fd_write_bytes(&tmp,tagname,strlen(tagname));
+  fd_write_4bytes(&tmp,n_elts);
+  fd_write_byte(&tmp,dt_string);
+  fd_write_4bytes(&tmp,name_len);
+  fd_write_bytes(&tmp,name,name_len);
+  if (file_len>=0) {
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,file_len);
+    fd_write_bytes(&tmp,filename,file_len);}
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
 FD_EXPORT void recycle_specform(struct FD_RAW_CONS *c)
 {
   struct FD_SPECIAL_FORM *sf = (struct FD_SPECIAL_FORM *)c;
@@ -1951,8 +2051,15 @@ void fd_init_eval_c()
   fd_recyclers[fd_specform_type]=recycle_specform;
 
   fd_unparsers[fd_specform_type]=unparse_specform;
+  fd_dtype_writers[fd_specform_type]=dtype_specform;
+
   fd_unparsers[fd_lexref_type]=unparse_lexref;
+  fd_dtype_writers[fd_lexref_type]=dtype_lexref;
   fd_type_names[fd_lexref_type]=_("lexref");
+
+  fd_unparsers[fd_coderef_type]=unparse_coderef;
+  fd_dtype_writers[fd_coderef_type]=dtype_coderef;
+  fd_type_names[fd_coderef_type]=_("coderef");
 
   quote_symbol = fd_intern("QUOTE");
   _fd_comment_symbol = comment_symbol = fd_intern("COMMENT");
@@ -1991,10 +2098,22 @@ static void init_localfns()
            fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("%LEXREF",lexref_prim,2,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID));
+  fd_idefn2(fd_scheme_module,"%LEXREF",lexref_prim,2,
+            "(%LEXREF *up* *across*) returns a lexref (lexical reference) "
+            "given a 'number of environments' *up* and a 'number of bindings' "
+            "across",
+            fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"%LEXREFVAL",lexref_value_prim,1,
+            "(%LEXREFVAL *lexref*) returns the offsets "
+            "of a lexref as a pair (*up* . *across*)",
+            fd_lexref_type,FD_VOID);
+
+  fd_idefn1(fd_scheme_module,"%CODEREF",coderef_prim,1,
+            "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",
+            fd_fixnum_type,FD_VOID);
+  fd_idefn1(fd_scheme_module,"%CODREFVAL",coderef_value_prim,1,
+            "(%CODEREFVAL *coderef*) returns the integer relative offset of a coderef",
+            fd_lexref_type,FD_VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%CHOICEREF",choiceref_prim,2)));
