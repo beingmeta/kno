@@ -1378,11 +1378,10 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=aws brico bugjar facebook paypal twitter optimize \
-	misc tests dropbox google \
-	jwt domutils knodules textindex \
-	batch bench mongodb \
-	xhtml fdxml
+MODULE_DIRS=xhtml fdxml mongodb \
+	brico misc tests jwt domutils knodules textindex \
+	aws facebook paypal twitter dropbox google
+
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
 		 aws/templates bugjar/websrc
 
