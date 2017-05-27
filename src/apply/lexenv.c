@@ -175,6 +175,60 @@ static int unparse_environment(u8_output out,fdtype x)
   return 1;
 }
 
+static int dtype_environment(struct FD_OUTBUF *out,fdtype x)
+{
+  struct FD_ENVIRONMENT *env=
+    fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type);
+  u8_string modname=NULL,  modfile=NULL; int n_elts=1;
+  if (FD_HASHTABLEP(env->env_bindings)) {
+    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
+    FD_DO_CHOICES(id,ids) {
+      if (FD_SYMBOLP(id))
+	modname=FD_SYMBOL_NAME(id);
+      else if (FD_STRINGP(id))
+	modfile=FD_STRDATA(id);
+      else {}}}
+  u8_byte buf[200]; struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,200,0);
+  if ((modname)||(modfile)) {
+    u8_byte *tagname="%MODULE";
+    int n_elts = ((modname)&&(modfile)) ? (2) : (1);
+    fd_write_byte(&tmp,dt_compound);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,strlen(tagname));
+    fd_write_bytes(&tmp,tagname,strlen(tagname));
+    fd_write_byte(&tmp,dt_vector);
+    fd_write_4bytes(&tmp,n_elts);
+    size_t len=strlen(modname);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,modname,len);
+    if (modfile) {
+      size_t len=strlen(modfile);
+      fd_write_byte(&tmp,dt_string);
+      fd_write_4bytes(&tmp,len);
+      fd_write_bytes(&tmp,modfile,len);}}
+  else {
+    u8_byte *tagname="%LEXENV";
+    fd_write_byte(&tmp,dt_compound);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,strlen(tagname));
+    fd_write_bytes(&tmp,tagname,strlen(tagname));
+    fd_write_byte(&tmp,dt_vector);
+    fd_write_4bytes(&tmp,1);
+    unsigned char buf[32], *numstring=
+      u8_uitoa16((unsigned long long)x,buf);
+    size_t len=strlen(numstring);
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,len+2);
+    fd_write_bytes(&tmp,"#!",2);
+    fd_write_bytes(&tmp,numstring,len);}
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
 FD_EXPORT void fd_init_lexenv_c()
 {
   moduleid_symbol = fd_intern("%MODULEID");

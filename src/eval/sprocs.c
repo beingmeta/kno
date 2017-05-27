@@ -722,7 +722,7 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
     if (name == NULL) name = fcn->fcn_name;
     if (fcn->fcn_ndcall) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
-      strcat(arity,"…");
+      strcat(arity,"[…]");
     else if (fcn->fcn_arity == fcn->fcn_min_arity) {
       strcat(arity,"[");
       strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
@@ -752,6 +752,41 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
   return 1;
 }
 
+static int dtype_sproc(struct FD_OUTBUF *out,fdtype x)
+{
+  int n_elts=1; /* Always include some source */
+  struct FD_SPROC *fcn = (struct FD_SPROC *)x;
+  unsigned char buf[200], *tagname="%LAMBDA";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,200,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,strlen(tagname));
+  fd_write_bytes(&tmp,tagname,strlen(tagname));
+  if (fcn->fcn_name) n_elts++;
+  if (fcn->fcn_filename) n_elts++;
+  fd_write_byte(&tmp,dt_vector);
+  fd_write_4bytes(&tmp,n_elts);
+  if (fcn->fcn_name) {
+    size_t len=strlen(fcn->fcn_name);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_name,len);}
+  if (fcn->fcn_filename) {
+    size_t len=strlen(fcn->fcn_filename);
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_filename,len);}
+  {
+    fd_write_byte(&tmp,dt_pair);
+    fd_write_dtype(&tmp,fcn->sproc_arglist);
+    fd_write_dtype(&tmp,fcn->sproc_body);}
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_sprocs_c()
@@ -769,6 +804,8 @@ FD_EXPORT void fd_init_sprocs_c()
   fd_walkers[fd_sproc_type]=walk_sproc;
 
   fd_unparsers[fd_fcnid_type]=unparse_extended_fcnid;
+
+  fd_dtype_writers[fd_sproc_type] = dtype_sproc;
 
   fd_defspecial(fd_scheme_module,"LAMBDA",lambda_evalfn);
   fd_defspecial(fd_scheme_module,"AMBDA",ambda_evalfn);

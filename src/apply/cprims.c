@@ -48,7 +48,7 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
   if (filename==NULL) filename="nofile";
   if (fcn->fcn_ndcall) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
-    strcat(arity,"…");
+    strcat(arity,"[…]");
   else if (fcn->fcn_arity == fcn->fcn_min_arity) {
     strcat(arity,"[");
     strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
@@ -88,13 +88,14 @@ static int dtype_cprim(struct FD_OUTBUF *out,fdtype x)
   struct FD_FUNCTION *fcn = (struct FD_FUNCTION *)x;
   unsigned char buf[200], *tagname="%CPRIM";
   struct FD_OUTBUF tmp;
-  FD_INIT_OUTBUF(&tmp,buf,100,0);
+  FD_INIT_OUTBUF(&tmp,buf,200,0);
   fd_write_byte(&tmp,dt_compound);
   fd_write_byte(&tmp,dt_symbol);
   fd_write_4bytes(&tmp,6);
   fd_write_bytes(&tmp,tagname,6);
   if (fcn->fcn_name) n_elts++;
   if (fcn->fcn_filename) n_elts++;
+  fd_write_byte(&tmp,dt_vector);
   fd_write_4bytes(&tmp,n_elts);
   if (fcn->fcn_name) {
     size_t len=strlen(fcn->fcn_name);

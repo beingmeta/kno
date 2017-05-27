@@ -127,6 +127,7 @@ static int dtype_lexref(struct FD_OUTBUF *out,fdtype x)
   fd_write_byte(&tmp,dt_symbol);
   fd_write_4bytes(&tmp,7);
   fd_write_bytes(&tmp,tagname,7);
+  fd_write_byte(&tmp,dt_vector);
   fd_write_4bytes(&tmp,2);
   fd_write_byte(&tmp,dt_fixnum);
   fd_write_4bytes(&tmp,up);
@@ -169,7 +170,6 @@ static int dtype_coderef(struct FD_OUTBUF *out,fdtype x)
   fd_write_byte(&tmp,dt_symbol);
   fd_write_4bytes(&tmp,strlen(tagname));
   fd_write_bytes(&tmp,tagname,strlen(tagname));
-  fd_write_4bytes(&tmp,1);
   fd_write_byte(&tmp,dt_fixnum);
   fd_write_4bytes(&tmp,offset);
   size_t n_bytes=tmp.bufwrite-tmp.buffer;
@@ -1396,6 +1396,7 @@ static int dtype_specform(struct FD_OUTBUF *out,fdtype x)
   fd_write_byte(&tmp,dt_symbol);
   fd_write_4bytes(&tmp,strlen(tagname));
   fd_write_bytes(&tmp,tagname,strlen(tagname));
+  fd_write_byte(&tmp,dt_vector);
   fd_write_4bytes(&tmp,n_elts);
   fd_write_byte(&tmp,dt_string);
   fd_write_4bytes(&tmp,name_len);
