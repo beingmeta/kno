@@ -21,7 +21,7 @@
 
 static fdtype moduleid_symbol;
 
-#define GETSPECFORM(x) ((fd_special_form)(fd_fcnid_ref(x)))
+#define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 
 static fdtype macrop(fdtype x)
 {
@@ -41,9 +41,9 @@ static fdtype applicablep(fdtype x)
   else return FD_FALSE;
 }
 
-static fdtype special_formp(fdtype x)
+static fdtype evalfnp(fdtype x)
 {
-  if (FD_TYPEP(x,fd_specform_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_evalfn_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -68,10 +68,10 @@ static fdtype procedure_name(fdtype x)
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
     return FD_FALSE;
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fdtype_string(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fdtype_string(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
@@ -83,10 +83,10 @@ static fdtype procedure_filename(fdtype x)
     if (f->fcn_filename)
       return fdtype_string(f->fcn_filename);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_filename)
-      return fdtype_string(sf->fexpr_filename);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_filename)
+      return fdtype_string(sf->evalfn_filename);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_filename",x);
 }
@@ -98,10 +98,10 @@ static fdtype procedure_symbol(fdtype x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fd_intern(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fd_intern(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_symbol",x);
 }
@@ -113,10 +113,10 @@ static fdtype procedure_id(fdtype x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return fd_incref(x);}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fd_intern(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fd_intern(sf->evalfn_name);
     else return fd_incref(x);}
   else return fd_incref(x);
 }
@@ -138,10 +138,10 @@ static fdtype set_procedure_documentation(fdtype x,fdtype doc)
     if (f->fcn_documentation) u8_free(f->fcn_documentation);
     f->fcn_documentation = FD_STRDATA(doc);
     return FD_VOID;}
-  else if (FD_TYPEP(proc,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(proc);
-    if (sf->fexpr_documentation) u8_free(sf->fexpr_documentation);
-    sf->fexpr_documentation = FD_STRDATA(doc);
+  else if (FD_TYPEP(proc,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(proc);
+    if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
+    sf->evalfn_documentation = FD_STRDATA(doc);
     return FD_VOID;}
   else return fd_err("Not Handled","set_procedure_documentation",
                      NULL,x);
@@ -406,7 +406,7 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
       struct FD_MACRO *macrofn = (struct FD_MACRO *)fd_fcnid_ref(expander);
       fd_ptr_type xformer_type = FD_PTR_TYPE(macrofn->macro_transformer);
       if (fd_applyfns[xformer_type]) {
-        /* These are special forms which do all the evaluating themselves */
+        /* These are evalfns which do all the evaluating themselves */
         fdtype new_expr=
           fd_dcall(fd_stackptr,fd_fcnid_ref(macrofn->macro_transformer),1,&expr);
         new_expr = fd_finish_call(new_expr);
@@ -579,7 +579,7 @@ FD_EXPORT void fd_init_reflection_c()
             -1,FD_VOID);
 
   fd_idefn(module,fd_make_cprim1("COMPOUND-PROCEDURE?",compound_procedurep,1));
-  fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",special_formp,1));
+  fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",evalfnp,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
 
   fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));

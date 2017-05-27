@@ -85,9 +85,9 @@ static void _showstack_frame(struct FD_STACK *stack)
     struct FD_FUNCTION *fn=(fd_function)op;
     if (fn->fcn_name)
       fprintf(stderr,", op=%s",fn->fcn_name);}
-  else if (FD_TYPEP(op,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *evfn=(fd_special_form)op;
-    fprintf(stderr,", op=%s",evfn->fexpr_name);}
+  else if (FD_TYPEP(op,fd_evalfn_type)) {
+    struct FD_EVALFN *evfn=(fd_evalfn)op;
+    fprintf(stderr,", op=%s",evfn->evalfn_name);}
   else {}
   if ((stack->stack_env) &&
       (FD_SCHEMAPP(stack->stack_env->env_bindings))) {

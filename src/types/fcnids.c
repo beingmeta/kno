@@ -72,7 +72,7 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
   else if (!(FD_CONSP(value)))
     return fd_type_error("cons","fd_set_fcnid",value);
   else if (!((FD_FUNCTIONP(value))||
-             (FD_TYPEP(value,fd_specform_type))))
+             (FD_TYPEP(value,fd_evalfn_type))))
     return fd_type_error("function/fexpr","fd_set_fcnid",value);
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
@@ -113,7 +113,7 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
   else if (!(FD_CONSP(value)))
     return 0;
   else if (!((FD_FUNCTIONP(value))||
-             (FD_TYPEP(value,fd_specform_type))))
+             (FD_TYPEP(value,fd_evalfn_type))))
     return 0;
   else {
     u8_lock_mutex(&_fd_fcnid_lock);

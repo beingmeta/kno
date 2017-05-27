@@ -416,7 +416,7 @@ static fdtype typeof_prim(fdtype x)
   else return fdtype_string("??");
 }
 
-#define GETSPECFORM(x) ((fd_special_form)(fd_fcnid_ref(x)))
+#define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
@@ -424,10 +424,10 @@ static fdtype procedure_name(fdtype x)
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fdtype_string(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fdtype_string(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }

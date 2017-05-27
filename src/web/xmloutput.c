@@ -1940,20 +1940,20 @@ FD_EXPORT void fd_init_xmloutput_c()
   fdtype xhtml_module=
     fd_new_module("XHTML",FD_MODULE_SAFE);
 
-  fdtype markup_prim = fd_make_special_form("markup",markup_evalfn);
-  fdtype markupstar_prim = fd_make_special_form("markup*",markupstar_evalfn);
+  fdtype markup_prim = fd_make_evalfn("markup",markup_evalfn);
+  fdtype markupstar_prim = fd_make_evalfn("markup*",markupstar_evalfn);
   fdtype markupblock_prim=
-    fd_make_special_form("markupblock",markupblock_evalfn);
+    fd_make_evalfn("markupblock",markupblock_evalfn);
   fdtype markupstarblock_prim=
-    fd_make_special_form("markup*block",markupstarblock_evalfn);
+    fd_make_evalfn("markup*block",markupstarblock_evalfn);
   fdtype emptymarkup_prim=
-    fd_make_special_form("emptymarkup",emptymarkup_evalfn);
-  fdtype xmlout_prim = fd_make_special_form("XMLOUT",xmlout_evalfn);
-  fdtype xmlblock_prim = fd_make_special_form("XMLBLOCK",xmlblock_evalfn);
-  fdtype xmlblockn_prim = fd_make_special_form("XMLBLOCKN",xmlblockn_evalfn);
-  fdtype xmlelt_prim = fd_make_special_form("XMLELT",xmlentry_evalfn);
+    fd_make_evalfn("emptymarkup",emptymarkup_evalfn);
+  fdtype xmlout_prim = fd_make_evalfn("XMLOUT",xmlout_evalfn);
+  fdtype xmlblock_prim = fd_make_evalfn("XMLBLOCK",xmlblock_evalfn);
+  fdtype xmlblockn_prim = fd_make_evalfn("XMLBLOCKN",xmlblockn_evalfn);
+  fdtype xmlelt_prim = fd_make_evalfn("XMLELT",xmlentry_evalfn);
 
-  /* Applicable XML generators (not special forms) */
+  /* Applicable XML generators (not evalfns) */
   fdtype xmlempty_dproc = fd_make_cprimn("XMLEMPTY",xmlemptyelt,0);
   fdtype xmlempty_proc = fd_make_ndprim(xmlempty_dproc);
   fdtype xmlify_proc = fd_make_cprim1("XMLIFY",xmlify,1);

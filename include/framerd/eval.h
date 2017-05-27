@@ -47,21 +47,21 @@ FD_EXPORT int fd_assign_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
 
-/* Special forms */
+/* Eval functions (for special forms, FEXPRs, whatever) */
 
-typedef fdtype (*fd_evalfn)(fdtype expr,
+typedef fdtype (*fd_eval_handler)(fdtype expr,
 			    struct FD_ENVIRONMENT *,
 			    struct FD_STACK *stack);
 
-typedef struct FD_SPECIAL_FORM {
+typedef struct FD_EVALFN {
   FD_CONS_HEADER;
-  u8_string fexpr_name, fexpr_filename;
-  u8_string fexpr_documentation;
-  fd_evalfn fexpr_handler;} FD_SPECIAL_FORM;
-typedef struct FD_SPECIAL_FORM *fd_special_form;
+  u8_string evalfn_name, evalfn_filename;
+  u8_string evalfn_documentation;
+  fd_eval_handler evalfn_handler;} FD_EVALFN;
+typedef struct FD_EVALFN *fd_evalfn;
 
-FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
-FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
+FD_EXPORT fdtype fd_make_evalfn(u8_string name,fd_eval_handler fn);
+FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn);
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
@@ -104,8 +104,8 @@ FD_EXPORT int fd_static_module(fdtype module);
 FD_EXPORT int fd_lock_exports(fdtype module);
 
 
-FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
-FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
+FD_EXPORT fdtype fd_make_evalfn(u8_string name,fd_eval_handler fn);
+FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn);
 
 FD_EXPORT fdtype fd_find_module(fdtype,int,int);
 FD_EXPORT fdtype fd_new_module(char *name,int flags);

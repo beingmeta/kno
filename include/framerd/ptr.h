@@ -154,7 +154,7 @@ typedef enum FD_PTR_TYPE {
   /* Evaluator/apply types, defined here to be constant */
   fd_cprim_type = FD_CONS_TYPECODE(16),
   fd_environment_type = FD_CONS_TYPECODE(17),
-  fd_specform_type = FD_CONS_TYPECODE(18),
+  fd_evalfn_type = FD_CONS_TYPECODE(18),
   fd_macro_type = FD_CONS_TYPECODE(19),
   fd_dtproc_type = FD_CONS_TYPECODE(20),
   fd_stackframe_type = FD_CONS_TYPECODE(21),

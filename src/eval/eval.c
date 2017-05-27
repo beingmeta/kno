@@ -761,12 +761,11 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
         result=call_function(f->fcn_name,headval,expr,env,
                              eval_stack,tail);
         break;}
-      case fd_specform_type: {
-        /* These are special forms which do all the evaluating
-           themselves */
-        struct FD_SPECIAL_FORM *handler = (fd_special_form)headval;
-        if (handler->fexpr_name) eval_stack->stack_label=handler->fexpr_name;
-        result=handler->fexpr_handler(expr,env,eval_stack);
+      case fd_evalfn_type: {
+        /* These are evalfns which do all the evaluating themselves */
+        struct FD_EVALFN *handler = (fd_evalfn)headval;
+        if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
+        result=handler->evalfn_handler(expr,env,eval_stack);
         break;}
       case fd_macro_type: {
         /* These expand into expressions which are
@@ -788,7 +787,7 @@ fdtype fd_stack_eval(fdtype expr,fd_lispenv env,
         if (applicable)
           result=call_function("fnchoice",headval,expr,env,eval_stack,tail);
         else result=fd_err(fd_SyntaxError,"fd_stack_eval",
-                           "not applicable or special form",
+                           "not applicable or evalfn",
                            headval);
         break;}
       default:
@@ -859,10 +858,10 @@ static int applicable_choicep(fdtype headvals)
     if ( (hvtype == fd_cprim_type) ||
          (hvtype == fd_sproc_type) ||
          (fd_applyfns[hvtype]) ) {}
-    else if ((hvtype == fd_specform_type) ||
+    else if ((hvtype == fd_evalfn_type) ||
              (hvtype == fd_macro_type))
       return 0;
-    /* In this case, all the headvals so far are special forms */
+    /* In this case, all the headvals so far are evalfns */
     else return 0;}
   return 1;
 }
@@ -1136,23 +1135,23 @@ FD_EXPORT int fd_discard_module(fdtype name,int safe)
 
 /* Making some functions */
 
-FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn)
+FD_EXPORT fdtype fd_make_evalfn(u8_string name,fd_eval_handler fn)
 {
-  struct FD_SPECIAL_FORM *f = u8_alloc(struct FD_SPECIAL_FORM);
-  FD_INIT_CONS(f,fd_specform_type);
-  f->fexpr_name = u8_strdup(name); 
-  f->fexpr_filename = NULL; 
-  f->fexpr_handler = fn;
+  struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
+  FD_INIT_CONS(f,fd_evalfn_type);
+  f->evalfn_name = u8_strdup(name); 
+  f->evalfn_filename = NULL; 
+  f->evalfn_handler = fn;
   return FDTYPE_CONS(f);
 }
 
-FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn)
+FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn)
 {
-  struct FD_SPECIAL_FORM *f = u8_alloc(struct FD_SPECIAL_FORM);
-  FD_INIT_CONS(f,fd_specform_type);
-  f->fexpr_name = u8_strdup(name); 
-  f->fexpr_handler = fn; 
-  f->fexpr_filename = NULL;
+  struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
+  FD_INIT_CONS(f,fd_evalfn_type);
+  f->evalfn_name = u8_strdup(name); 
+  f->evalfn_handler = fn; 
+  f->evalfn_filename = NULL;
   fd_store(mod,fd_intern(name),FDTYPE_CONS(f));
   fd_decref(FDTYPE_CONS(f));
 }
@@ -1372,20 +1371,20 @@ static int lispenv_add(fdtype e,fdtype s,fdtype v)
 
 /* Some datatype methods */
 
-static int unparse_specform(u8_output out,fdtype x)
+static int unparse_evalfn(u8_output out,fdtype x)
 {
-  struct FD_SPECIAL_FORM *s=
-    fd_consptr(struct FD_SPECIAL_FORM *,x,fd_specform_type);
-  u8_printf(out,"#<Special Form %s>",s->fexpr_name);
+  struct FD_EVALFN *s=
+    fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
+  u8_printf(out,"#<EvalFN %s>",s->evalfn_name);
   return 1;
 }
 
-static int dtype_specform(struct FD_OUTBUF *out,fdtype x)
+static int dtype_evalfn(struct FD_OUTBUF *out,fdtype x)
 {
-  struct FD_SPECIAL_FORM *s=
-    fd_consptr(struct FD_SPECIAL_FORM *,x,fd_specform_type);
-  u8_string name=s->fexpr_name;
-  u8_string filename=s->fexpr_filename;
+  struct FD_EVALFN *s=
+    fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
+  u8_string name=s->evalfn_name;
+  u8_string filename=s->evalfn_filename;
   size_t name_len=strlen(name);
   ssize_t file_len=(filename) ? (strlen(filename)) : (-1);
   int n_elts = (file_len<0) ? (1) : (0);
@@ -1411,10 +1410,10 @@ static int dtype_specform(struct FD_OUTBUF *out,fdtype x)
   return n_bytes;
 }
 
-FD_EXPORT void recycle_specform(struct FD_RAW_CONS *c)
+FD_EXPORT void recycle_evalfn(struct FD_RAW_CONS *c)
 {
-  struct FD_SPECIAL_FORM *sf = (struct FD_SPECIAL_FORM *)c;
-  u8_free(sf->fexpr_name);
+  struct FD_EVALFN *sf = (struct FD_EVALFN *)c;
+  u8_free(sf->evalfn_name);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -1756,9 +1755,9 @@ u8_string fd_get_documentation(fdtype x)
   else if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(proc);
     return f->fcn_documentation;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = (fd_special_form)proc;
-    return sf->fexpr_documentation;}
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = (fd_evalfn)proc;
+    return sf->evalfn_documentation;}
   else return NULL;
 }
 
@@ -2049,10 +2048,10 @@ void fd_init_eval_c()
   fns->add = lispenv_add; fns->drop = NULL; fns->test = NULL;
 
   fd_tablefns[fd_environment_type]=fns;
-  fd_recyclers[fd_specform_type]=recycle_specform;
+  fd_recyclers[fd_evalfn_type]=recycle_evalfn;
 
-  fd_unparsers[fd_specform_type]=unparse_specform;
-  fd_dtype_writers[fd_specform_type]=dtype_specform;
+  fd_unparsers[fd_evalfn_type]=unparse_evalfn;
+  fd_dtype_writers[fd_evalfn_type]=dtype_evalfn;
 
   fd_unparsers[fd_lexref_type]=unparse_lexref;
   fd_dtype_writers[fd_lexref_type]=dtype_lexref;

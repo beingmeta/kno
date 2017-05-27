@@ -98,7 +98,7 @@ static void init_type_names()
   fd_type_names[fd_regex_type]=_("regex");
   fd_type_names[fd_numeric_vector_type]=_("numeric vector");
   fd_type_names[fd_consblock_type]=_("consblock");
-  fd_type_names[fd_specform_type]=_("special form");
+  fd_type_names[fd_evalfn_type]=_("evalfn");
   fd_type_names[fd_macro_type]=_("macro");
   fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_stackframe_type]=_("stackframe");

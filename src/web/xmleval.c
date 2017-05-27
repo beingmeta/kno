@@ -570,10 +570,10 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,
 {
   struct XMLAPPLY cxt; cxt.xml = xml; cxt.env = scheme_env;
   fdtype bind = fd_get(xml,id_symbol,FD_VOID), result = FD_VOID;
-  if (FD_TYPEP(fn,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf=
-      fd_consptr(fd_special_form,fn,fd_specform_type);
-    result = sf->fexpr_handler(xml,scheme_env,fd_stackptr);}
+  if (FD_TYPEP(fn,fd_evalfn_type)) {
+    struct FD_EVALFN *sf=
+      fd_consptr(fd_evalfn,fn,fd_evalfn_type);
+    result = sf->evalfn_handler(xml,scheme_env,fd_stackptr);}
   else if (FD_SPROCP(fn))
     result = fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);
   else {
@@ -1259,7 +1259,7 @@ struct FD_XML *fd_parse_fdxml(u8_input in,int bits)
   else return retval;
 }
 
-/* FDXML special forms */
+/* FDXML evalfns */
 
 static fdtype test_symbol, predicate_symbol, else_symbol, value_symbol;
 

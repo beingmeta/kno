@@ -531,8 +531,8 @@ static fdtype simplify(fdtype x)
 
 static fdtype qchoicep_evalfn(fdtype expr,fd_lispenv env,fd_stack _stack)
 {
-  /* This is a special form because application often reduces
-     qchoices to choices. */
+  /* This is an evalfn because application often reduces qchoices to
+     choices. */
   if (!((FD_PAIRP(expr)) && (FD_PAIRP(FD_CDR(expr)))))
     return fd_err(fd_SyntaxError,"qchoice_evalfn",NULL,expr);
   else {
