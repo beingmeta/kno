@@ -318,7 +318,23 @@ int do_main(int argc,char **argv,
     fd_unparse_maxchars = debug_maxchars; fd_unparse_maxelts = debug_maxelts;
     fd_sum_exception(&out,e);
     fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
-    fputs(out.u8_outbuf,stderr);
+    fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
+
+    fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
+      ((fdtype) (e->u8x_xdata)) : (FD_VOID);
+    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (FD_VOID);
+    if (!(FD_VOIDP(stacktrace))) {
+      struct U8_XOUTPUT xout; u8_output out=(u8_output)&xout;
+      u8_init_xoutput(&xout,2,NULL);
+      FD_DOLIST(entry,stacktrace) {
+        u8_puts(out,";; ");
+        if (FD_STRINGP(entry))
+          u8_puts(out,FD_STRDATA(entry));
+        else {
+          u8_puts(out," ");
+          fd_pprint(out,entry,";; ",2,5,100,1);}
+        u8_putc(out,'\n');}
+      u8_flush_xoutput(&xout);}
 
 #if 0
     fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
