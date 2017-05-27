@@ -30,6 +30,8 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8xfiles.h>
 
+#define fast_eval(x,env) (_fd_fast_eval(x,env,_stack,0))
+
 #include <stdlib.h>
 
 #if HAVE_UNISTD_H
@@ -214,7 +216,7 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype simple_fileout(fdtype expr,fd_lispenv env)
+static fdtype simple_fileout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype filename_arg = fd_get_arg(expr,1);
   fdtype filename_val = fd_eval(filename_arg,env);
@@ -239,7 +241,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   u8_set_default_output(f);
   {fdtype body = fd_get_body(expr,2);
     FD_DOLIST(ex,body)  {
-      fdtype value = fasteval(ex,env);
+      fdtype value = fast_eval(ex,env);
       if (printout_helper(f,value)) fd_decref(value);
       else {
         u8_set_default_output(oldf);
@@ -254,13 +256,13 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
 
 /* Not really I/O but related structurally and logically */
 
-static fdtype simple_system(fdtype expr,fd_lispenv env)
+static fdtype simple_system_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; int result;
   U8_INIT_OUTPUT(&out,256);
   {fdtype string_exprs = fd_get_body(expr,1);
     FD_DOLIST(string_expr,string_exprs) {
-      fdtype value = fasteval(string_expr,env);
+      fdtype value = fast_eval(string_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (FD_VOIDP(value)) continue;
       else if (FD_STRINGP(value))
@@ -1428,7 +1430,7 @@ FD_EXPORT
      Returns: an int (<0 on error)
  Saves a snapshot of the environment into the designated file.
 */
-int fd_snapshot(fd_lispenv env,u8_string filename)
+int fd_snapshot(fd_lexenv env,u8_string filename)
 {
   fdtype vars = fd_symeval(snapshotvars,env);
   fdtype configvars = fd_symeval(snapshotconfig,env);
@@ -1482,7 +1484,7 @@ FD_EXPORT
      Returns: an int (<0 on error)
  Restores a snapshot from the designated file into the environment
 */
-int fd_snapback(fd_lispenv env,u8_string filename)
+int fd_snapback(fd_lexenv env,u8_string filename)
 {
   struct FD_STREAM *in;
   fdtype slotmap; int actions = 0;
@@ -1511,7 +1513,7 @@ int fd_snapback(fd_lispenv env,u8_string filename)
             fd_decref(v); fd_decref(keys); fd_decref(slotmap);
             return -1;}}
       else {
-        int setval = fd_set_value(key,v,env);
+        int setval = fd_assign_value(key,v,env);
         if (setval==0)
           setval = fd_bind_value(key,v,env);
         if (setval<0) {
@@ -1528,9 +1530,9 @@ int fd_snapback(fd_lispenv env,u8_string filename)
   return actions;
 }
 
-static fdtype snapshot_handler(fdtype expr,fd_lispenv env)
+static fdtype snapshot_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fd_lispenv save_env; u8_string save_file; int retval = 0;
+  fd_lexenv save_env; u8_string save_file; int retval = 0;
   fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
   if (FD_VOIDP(arg1)) {
     fdtype saveto = fd_symeval(snapshotfile,env);
@@ -1539,14 +1541,14 @@ static fdtype snapshot_handler(fdtype expr,fd_lispenv env)
       save_file = u8_strdup(FD_STRDATA(saveto));
     else save_file = u8_strdup("snapshot");
     fd_decref(saveto);}
-  else if (FD_ENVIRONMENTP(arg1)) {
+  else if (FD_LEXENVP(arg1)) {
     if (FD_STRINGP(arg2)) save_file = u8_strdup(FD_STRDATA(arg2));
     else save_file = u8_strdup("snapshot");
-    save_env = (fd_lispenv)arg1;}
+    save_env = (fd_lexenv)arg1;}
   else if (FD_STRINGP(arg1)) {
     save_file = u8_strdup(FD_STRDATA(arg1));
-    if (FD_ENVIRONMENTP(arg2))
-      save_env = (fd_lispenv)arg2;
+    if (FD_LEXENVP(arg2))
+      save_env = (fd_lexenv)arg2;
     else save_env = env;}
   else {
     fdtype err = fd_type_error("filename","snapshot_prim",arg1);
@@ -1558,9 +1560,9 @@ static fdtype snapshot_handler(fdtype expr,fd_lispenv env)
   else return FD_INT(retval);
 }
 
-static fdtype snapback_handler(fdtype expr,fd_lispenv env)
+static fdtype snapback_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fd_lispenv save_env; u8_string save_file; int retval = 0;
+  fd_lexenv save_env; u8_string save_file; int retval = 0;
   fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
   if (FD_VOIDP(arg1)) {
     fdtype saveto = fd_symeval(snapshotfile,env);
@@ -1569,14 +1571,14 @@ static fdtype snapback_handler(fdtype expr,fd_lispenv env)
       save_file = u8_strdup(FD_STRDATA(saveto));
     else save_file = u8_strdup("snapshot");
     fd_decref(saveto);}
-  else if (FD_ENVIRONMENTP(arg1)) {
+  else if (FD_LEXENVP(arg1)) {
     if (FD_STRINGP(arg2)) save_file = u8_strdup(FD_STRDATA(arg2));
     else save_file = u8_strdup("snapshot");
-    save_env = (fd_lispenv)arg1;}
+    save_env = (fd_lexenv)arg1;}
   else if (FD_STRINGP(arg1)) {
     save_file = u8_strdup(FD_STRDATA(arg1));
-    if (FD_ENVIRONMENTP(arg2))
-      save_env = (fd_lispenv)arg2;
+    if (FD_LEXENVP(arg2))
+      save_env = (fd_lexenv)arg2;
     else save_env = env;}
   else {
     fdtype err = fd_type_error("filename","snapshot_prim",arg1);
@@ -1649,7 +1651,8 @@ static int stackdump_config_set(fdtype var,fdtype val,void *ignored)
       stackdump_filename = NULL;}
     if (filename) {
       stackdump_filename = u8_strdup(filename);
-      fd_dump_backtrace = stackdump_dump;}
+      /* fd_dump_backtrace = stackdump_dump; */
+}
     u8_unlock_mutex(&stackdump_lock);
     return 1;}
   else {
@@ -1698,9 +1701,9 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,FD_VOID,-1,FD_VOID,
                            -1,FD_VOID));
 
-  fd_defspecial(fileio_module,"FILEOUT",simple_fileout);
+  fd_defspecial(fileio_module,"FILEOUT",simple_fileout_evalfn);
 
-  fd_defspecial(fileio_module,"SYSTEM",simple_system);
+  fd_defspecial(fileio_module,"SYSTEM",simple_system_evalfn);
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
@@ -1743,15 +1746,19 @@ FD_EXPORT void fd_init_fileio_c()
   fd_defalias(fileio_module,"REMOVE-TREE","REMOVE-TREE!");
 
 
-  fd_idefn(fileio_module,
-           fd_make_cprim2x("FILESTRING",filestring_prim,1,
-                           fd_string_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(fileio_module,
-           fd_make_cprim1x("FILEDATA",filedata_prim,1,
-                           fd_string_type,FD_VOID));
-  fd_idefn(fileio_module,
-           fd_make_cprim1x("FILECONTENT",filecontent_prim,1,
-                           fd_string_type,FD_VOID));
+  fd_idefn2(fileio_module,"FILESTRING",filestring_prim,1,
+            "(FILESTRING *file* [*encoding*]) returns the contents of a text file. "
+            "The *encoding*, if provided, specifies the character encoding, which "
+            "defaults to UTF-8",
+            fd_string_type,FD_VOID,-1,FD_VOID);
+  fd_idefn1(fileio_module,"FILEDATA",filedata_prim,1,
+            "(FILEDATA *file*) returns the contents of *file* as a packet.",
+            fd_string_type,FD_VOID);
+  fd_idefn1(fileio_module,"FILECONTENT",filecontent_prim,1,
+            "Returns the contents of a named file, trying to be intelligent "
+            "about returning a string or packet depending on the probably "
+            "file type",
+            fd_string_type,FD_VOID);
 
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-EXISTS?",file_existsp,1,
@@ -1914,8 +1921,8 @@ FD_EXPORT void fd_init_fileio_c()
   noblock_symbol = fd_intern("NOBLOCK");
   nodelay_symbol = fd_intern("NODELAY");
 
-  fd_defspecial(fileio_module,"SNAPSHOT",snapshot_handler);
-  fd_defspecial(fileio_module,"SNAPBACK",snapback_handler);
+  fd_defspecial(fileio_module,"SNAPSHOT",snapshot_evalfn);
+  fd_defspecial(fileio_module,"SNAPBACK",snapback_evalfn);
 
   fd_register_config
     ("STACKDUMP","File to store stackdump information on errors",

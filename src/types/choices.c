@@ -33,7 +33,8 @@ static void recycle_prechoice(struct FD_RAW_CONS *c)
     const fdtype *read = ch->prechoice_data, *lim = ch->prechoice_write;
     if ((ch->prechoice_atomic==0) || (ch->prechoice_nested))
       while (read < lim) {
-        fdtype v = *read++; fd_decref(v);}
+        fdtype v = *read++;
+        fd_decref(v);}
     if (ch->prechoice_mallocd) {
       u8_free(ch->prechoice_choicedata);
       ch->prechoice_choicedata = NULL;

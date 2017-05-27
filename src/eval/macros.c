@@ -35,7 +35,7 @@ FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
   else return fd_err(fd_InvalidMacro,NULL,name,xformer);
 }
 
-static fdtype macro_handler(fdtype expr,fd_lispenv env)
+static fdtype macro_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   if ((FD_PAIRP(expr)) && (FD_PAIRP(FD_CDR(expr))) &&
       (FD_SYMBOLP(FD_CADR(expr))) &&
@@ -89,7 +89,7 @@ FD_EXPORT void fd_init_macros_c()
   fd_unparsers[fd_macro_type]=unparse_macro;
   fd_recyclers[fd_macro_type]=recycle_macro;
 
-  fd_defspecial(fd_scheme_module,"MACRO",macro_handler);
+  fd_defspecial(fd_scheme_module,"MACRO",macro_evalfn);
 }
 
 /* Emacs local variables

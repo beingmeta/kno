@@ -43,6 +43,8 @@ fd_compare_fn fd_comparators[FD_TYPE_MAX];
 static u8_mutex constant_registry_lock;
 int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 
+fdtype fd_compound_descriptor_type;
+
 ssize_t fd_max_strlen = -1;
 
 const char *fd_constant_names[256]={
@@ -454,8 +456,8 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
       freedata = 1;}
   else elts = data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length = len; 
-  ptr->fdvec_elts = elts; 
+  ptr->fdvec_length = len;
+  ptr->fdvec_elts = elts;
   ptr->fdvec_free_elts = freedata;
   return FDTYPE_CONS(ptr);
 }
@@ -479,8 +481,8 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
     u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length = len; 
-  ptr->fdvec_elts = elts; 
+  ptr->fdvec_length = len;
+  ptr->fdvec_elts = elts;
   ptr->fdvec_free_elts = 0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
@@ -603,10 +605,8 @@ FD_EXPORT fdtype fd_bytes2packet
 
 /* Compounds */
 
-fdtype fd_compound_descriptor_type;
-
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,...)
+  (struct FD_COMPOUND *p,fdtype tag,int ismutable,int n,...)
 {
   va_list args; int i = 0; fdtype *write, *limit, initfn = FD_FALSE;
   if (FD_EXPECT_FALSE((n<0)||(n>=256))) {
@@ -620,9 +620,9 @@ FD_EXPORT fdtype fd_init_compound
     if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
     else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) u8_init_mutex(&(p->compound_lock));
-  p->compound_typetag = fd_incref(tag); 
-  p->compound_ismutable = mutable; 
+  if (ismutable) u8_init_mutex(&(p->compound_lock));
+  p->compound_typetag = fd_incref(tag);
+  p->compound_ismutable = ismutable;
   p->compound_isopaque = 0;
   p->fd_n_elts = n;
   if (n>0) {
@@ -641,20 +641,22 @@ FD_EXPORT fdtype fd_init_compound
 }
 
 FD_EXPORT fdtype fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts)
+  (struct FD_COMPOUND *p,fdtype tag,int ismutable,int n,fdtype *elts)
 {
   fdtype *write, *limit, *read = elts, initfn = FD_FALSE;
   if (FD_EXPECT_FALSE((n<0) || (n>=256)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
                          FD_SHORT2DTYPE(n));
   else if (p == NULL) {
-    if (n==0) p = u8_malloc(sizeof(struct FD_COMPOUND));
+    if (n==0)
+      p = u8_malloc(sizeof(struct FD_COMPOUND));
     else p = u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) u8_init_mutex(&(p->compound_lock));
+  if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);
-  p->compound_ismutable = mutable;
-  p->fd_n_elts = n; p->compound_isopaque = 0;
+  p->compound_ismutable = ismutable;
+  p->fd_n_elts = n;
+  p->compound_isopaque = 0;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;
     while (write<limit) {
@@ -722,13 +724,16 @@ struct FD_COMPOUND_TYPEINFO
       if (datap) {
         fdtype data = *datap;
         if (FD_VOIDP(scan->fd_compound_metadata)) {
-          fd_incref(data); scan->fd_compound_metadata = data;}
+          scan->fd_compound_metadata = data;
+          fd_incref(data);}
         else {
           fdtype data = *datap; fd_decref(data);
-          data = scan->fd_compound_metadata; fd_incref(data);
+          data = scan->fd_compound_metadata;
+          fd_incref(data);
           *datap = data;}}
       if (corep) {
-        if (scan->fd_compound_corelen<0) scan->fd_compound_corelen = *corep;
+        if (scan->fd_compound_corelen<0)
+          scan->fd_compound_corelen = *corep;
         else *corep = scan->fd_compound_corelen;}
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
@@ -736,12 +741,14 @@ struct FD_COMPOUND_TYPEINFO
   newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
   memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
   if (datap) {
-    fdtype data = *datap; fd_incref(data); newrec->fd_compound_metadata = data;}
+    fdtype data = *datap;
+    fd_incref(data);
+    newrec->fd_compound_metadata = data;}
   else newrec->fd_compound_metadata = FD_VOID;
   newrec->fd_compound_corelen = ((corep)?(*corep):(-1));
-  newrec->fd_compound_nextinfo = fd_compound_entries; 
+  newrec->fd_compound_nextinfo = fd_compound_entries;
   newrec->compound_typetag = symbol;
-  newrec->fd_compound_parser = NULL; 
+  newrec->fd_compound_parser = NULL;
   newrec->fd_compound_dumpfn = NULL; 
   newrec->fd_compound_restorefn = NULL;
   newrec->fd_compund_tablefns = NULL;
@@ -898,8 +905,8 @@ void fd_init_cons_c()
 
   fd_compound_descriptor_type=
     fd_init_compound
-    (NULL,FD_VOID,9,
-     fd_intern("COMPOUNDTYPE"),FD_INT(9),
+    (NULL,FD_VOID,1,9,
+     fd_intern("COMPOUNDTYPE"),0,FD_INT(9),
      fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
                      fd_intern("FIELDS"),fd_intern("INITFN"),
                      fd_intern("FREEFN"),fd_intern("COMPAREFN"),

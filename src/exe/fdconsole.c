@@ -117,7 +117,7 @@ static fd_stream eval_server = NULL;
 static u8_input inconsole = NULL;
 static u8_output outconsole = NULL;
 static u8_output errconsole = NULL;
-static fd_lispenv console_env = NULL;
+static fd_lexenv console_env = NULL;
 static u8_string bugdumps = NULL;
 static u8_string bugurlbase = NULL;
 static u8_string bugbrowse = NULL;
@@ -126,7 +126,7 @@ static int html_backtrace = FD_HTMLDUMP_ENABLED;
 static int lisp_backtrace = (!(FD_HTMLDUMP_ENABLED));
 static int dtype_backtrace = 0;
 static int text_backtrace = 0;
-static int show_backtrace = 0;
+static int show_backtrace = 1;
 static int save_backtrace = 1;
 static int dotload = 1;
 
@@ -146,7 +146,7 @@ static void close_consoles()
     u8_close((u8_stream)errconsole);
     errconsole = NULL;}
   if (console_env) {
-    fd_recycle_environment(console_env);
+    fd_recycle_lexenv(console_env);
     console_env = NULL;}
 }
 
@@ -237,7 +237,7 @@ static fdtype random_symbol()
   return FD_VOID;
 }
 
-static fdtype bind_random_symbol(fdtype result,fd_lispenv env)
+static fdtype bind_random_symbol(fdtype result,fd_lexenv env)
 {
   fdtype symbol = random_symbol();
   if (!(FD_VOIDP(symbol))) {
@@ -357,7 +357,7 @@ static int output_result(u8_output out,fdtype result,
 
 */
 
-static fdtype stream_read(u8_input in,fd_lispenv env)
+static fdtype stream_read(u8_input in,fd_lexenv env)
 {
   fdtype expr; int c;
   u8_puts(outconsole,eval_prompt); u8_flush(outconsole);
@@ -385,7 +385,7 @@ static fdtype stream_read(u8_input in,fd_lispenv env)
     return expr;}
 }
 
-static fdtype console_read(u8_input in,fd_lispenv env)
+static fdtype console_read(u8_input in,fd_lexenv env)
 {
 #if USING_EDITLINE
   if ((use_editline)&&(in == inconsole)) {
@@ -677,13 +677,13 @@ static fdtype loadfile_config_get(fdtype var,void *d)
 
 /* Load dot files into the console */
 
-static void dotloader(u8_string file,fd_lispenv env)
+static void dotloader(u8_string file,fd_lexenv env)
 {
   u8_string abspath = u8_abspath(file,NULL);
   if (u8_file_existsp(abspath)) {
     char *kind = ((env == NULL)?("CONFIG"):("INIT"));
     double started = u8_elapsed_time(), elapsed; int err = 0;
-    u8_message("%s(%s)",kind,abspath);
+    if (!(quiet_console)) u8_message("%s(%s)",kind,abspath);
     if (env == NULL) {
       int retval = fd_load_config(abspath);
       elapsed = u8_elapsed_time()-started;
@@ -696,6 +696,7 @@ static void dotloader(u8_string file,fd_lispenv env)
     if (err) {
       u8_message("Error for %s(%s)",kind,abspath);
       fd_clear_errors(1);}
+    else if (quiet_console) {}
     else if (elapsed<0.1) {}
     else if (elapsed>1)
       u8_message("%0.3fs for %s(%s)",elapsed,kind,abspath);
@@ -715,10 +716,10 @@ int main(int argc,char **argv)
   u8_output err = (u8_output)u8_open_xoutput(2,enc);
   u8_string source_file = NULL; /* The file loaded, if any */
   /* This is the environment the console will start in */
-  fd_lispenv env = fd_working_environment();
+  fd_lexenv env = fd_working_lexenv();
 
   fd_main_errno_ptr = &errno;
-  FD_INIT_STACK();
+  FD_INIT_CSTACK();
 
   if (getenv("FD_SKIP_DOTLOAD")) dotload = 0;
 
@@ -848,6 +849,10 @@ int main(int argc,char **argv)
 
   fd_handle_argv(argc,argv,arg_mask,NULL);
 
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdconsole",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
+
   stop_file=fd_runbase_filename(".stop");
   fd_register_config
     ("STOPFILE",
@@ -855,7 +860,15 @@ int main(int argc,char **argv)
      fd_sconfig_get,fd_sconfig_set,
      &stop_file);
 
-  if (!(quiet_console)) fd_boot_message();
+  /* Announce preamble, suppressed by quiet_console */
+  if (!(quiet_console)) {
+    if (fd_boot_message()) {
+      uid_t uid=getuid();
+      u8_string username=u8_username(uid);
+      u8_string cwd=u8_getcwd();
+      if (username==NULL) username=u8_strdup("unknown");
+      u8_message("USER=%s(%d) CWD=%s",username,uid,cwd);
+      u8_free(username); u8_free(cwd);}}
 
   if (source_file == NULL) {}
   else if (strchr(source_file,'@')) {
@@ -887,7 +900,6 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
   fd_defalias((fdtype)env,"%","BACKTRACE");
 
-  /* Announce preamble, suppressed by quiet_config */
   fd_set_config("BOOTED",fd_time2timestamp(boot_time));
   run_start = u8_elapsed_time();
 
@@ -1018,37 +1030,30 @@ int main(int argc,char **argv)
     if (FD_CHECK_PTR(result)==0) {
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
     else if (FD_TROUBLEP(result)) {
-      u8_exception ex = u8_erreify(), root = ex;
+      u8_exception ex = u8_erreify();
       if (ex) {
-        {U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
-          int old_maxelts = fd_unparse_maxelts, old_maxchars = fd_unparse_maxchars;
-          while (root->u8x_prev) root = root->u8x_prev;
-          fd_unparse_maxchars = debug_maxchars; fd_unparse_maxelts = debug_maxelts;
-          fd_print_exception(&out,root);
-          fd_summarize_backtrace(&out,ex);
-          u8_printf(&out,"\n");
-          fputs(out.u8_outbuf,stderr);
-          out.u8_write = out.u8_outbuf; out.u8_outbuf[0]='\0';
-          if (show_backtrace) {
-            fd_print_backtrace(&out,ex,80);
-            fputs(out.u8_outbuf,stderr);}
-          fd_unparse_maxelts = old_maxelts;
-          fd_unparse_maxchars = old_maxchars;
-          u8_free(out.u8_outbuf);}
-        if (save_backtrace) {
-          fdtype bt = fd_exception_backtrace(ex);
-          u8_fprintf(stderr,";; Saved backtrace into ##%d\n",fd_histpush(bt));
-          fd_decref(bt);}
-        if (fd_dump_backtrace) {
-          U8_OUTPUT btout; U8_INIT_STATIC_OUTPUT(btout,4096);
-          fd_print_backtrace(&btout,ex,120);
-          fd_dump_backtrace(btout.u8_outbuf);
-          u8_free(btout.u8_outbuf);}
-        if (bugdumps) {
-          u8_string dumpdir = u8_tempdir(bugdumps);
-          dump_backtrace(ex,dumpdir);}
-        if (last_exception) u8_free_exception(last_exception,1);
-        last_exception = ex;}
+        U8_STATIC_OUTPUT(tmp,512);
+        int old_maxelts = fd_unparse_maxelts;
+        int old_maxchars = fd_unparse_maxchars;
+        fd_unparse_maxchars = debug_maxchars;
+        fd_unparse_maxelts = debug_maxelts;
+        fd_output_errstack(tmpout,ex);
+        fputs(tmp.u8_outbuf,stderr);
+        tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
+        fdtype backtrace = fd_exception_backtrace(ex);
+        if (show_backtrace) {
+          u8_puts(tmpout,";; ");
+          fd_sum_backtrace(tmpout,backtrace);}
+        u8_putc(tmpout,'\n');
+        fputs(tmp.u8_outbuf,stderr);
+        u8_close_output(tmpout);
+        if (save_backtrace)
+          u8_fprintf(stderr,";; Saved complete backtrace into ##%d\n",
+                     fd_histpush(backtrace));
+        fd_unparse_maxchars = old_maxchars;
+        fd_unparse_maxelts = old_maxelts;
+        if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
+        fd_decref(backtrace);}
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
@@ -1095,13 +1100,13 @@ int main(int argc,char **argv)
   /* Hollow out the environment, which should let you reclaim it.
      This patches around the classic issue with circular references in
      a reference counting garbage collector.  If the
-     working_environment contains procedures which are closed in the
+     working_lexenv contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
   if (FD_HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   /* Freed as console_env */
-  /* fd_recycle_environment(env); */
+  /* fd_recycle_lexenv(env); */
   exit(0);
   return 0;
 }

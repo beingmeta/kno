@@ -846,7 +846,7 @@ static int webservefn(u8_client ucl)
   fdtype proc = FD_VOID, result = FD_VOID;
   fdtype cgidata = FD_VOID, init_cgidata = FD_VOID, path = FD_VOID, precheck;
   fdtype content = FD_VOID, retfile = FD_VOID;
-  fd_lispenv base_env = NULL;
+  fd_lexenv base_env = NULL;
   fd_webconn client = (fd_webconn)ucl;
   u8_server server = client->server;
   int write_headers = 1, close_html = 0;
@@ -1085,8 +1085,8 @@ static int webservefn(u8_client ucl)
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */
     fdtype setup_proc = FD_VOID;
-    fd_lispenv base = fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
-    fd_lispenv runenv = fd_make_env(fd_incref(cgidata),base);
+    fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
+    fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     base_env = base;
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache = checkthreadcache(base);
@@ -1900,6 +1900,8 @@ int main(int argc,char **argv)
   u8_string socket_spec = NULL, load_source = NULL, load_config = NULL;
   u8_string logfile = NULL;
 
+  FD_INIT_STACK();
+
   if (u8_version<0) {
     u8_log(LOG_CRIT,ServletAbort,"Can't initialize libu8");
     exit(1);}
@@ -2002,6 +2004,10 @@ int main(int argc,char **argv)
   /* Process the command line */
   fd_handle_argv(argc,argv,arg_mask,NULL);
 
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdservlet",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
+
   if (load_config) fd_load_config(load_config);
 
   {
@@ -2065,7 +2071,7 @@ int main(int argc,char **argv)
   fallback_notfoundpage = fd_make_cprim0("NOTFOUND404",notfoundpage);
 
   /* This is the root of all client service environments */
-  if (server_env == NULL) server_env = fd_working_environment();
+  if (server_env == NULL) server_env = fd_working_lexenv();
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
   fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime));
   fd_idefn((fdtype)server_env,

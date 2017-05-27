@@ -19,7 +19,7 @@ static fd_exception SchemeError=_("Undistinguished Scheme Error");
 
 /* Returning errors */
 
-static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
+static fdtype return_error_helper(fdtype expr,fd_lexenv env,int wrapped)
 {
   fd_exception ex = SchemeError, cxt = NULL;
   fdtype head = fd_get_arg(expr,0);
@@ -49,16 +49,16 @@ static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
       fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
       return FD_ERROR_VALUE;}}
 }
-static fdtype return_error(fdtype expr,fd_lispenv env)
+static fdtype return_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,0);
 }
-static fdtype extend_error(fdtype expr,fd_lispenv env)
+static fdtype extend_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,1);
 }
 
-static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped,int eval_args)
+static fdtype return_irritant_helper(fdtype expr,fd_lexenv env,int wrapped,int eval_args)
 {
   fd_exception ex = SchemeError, cxt = NULL;
   fdtype head = fd_get_arg(expr,0);
@@ -115,25 +115,16 @@ static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped,int 
       return fd_init_exception(NULL,u8ex);}
     else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
 }
-static fdtype return_irritant(fdtype expr,fd_lispenv env)
+static fdtype return_irritant_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_irritant_helper(expr,env,0,0);
 }
-static fdtype extend_irritant(fdtype expr,fd_lispenv env)
+static fdtype extend_irritant_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return return_irritant_helper(expr,env,1,0);
 }
 
-static fdtype return_irritant_eval(fdtype expr,fd_lispenv env)
-{
-  return return_irritant_helper(expr,env,0,1);
-}
-static fdtype extend_irritant_eval(fdtype expr,fd_lispenv env)
-{
-  return return_irritant_helper(expr,env,1,1);
-}
-
-static fdtype onerror_handler(fdtype expr,fd_lispenv env)
+static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   fdtype error_handler = fd_get_arg(expr,2);
@@ -154,7 +145,9 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
         fd_consptr(fd_exception_object,err_value,fd_error_type);
       if (handler_result == err_value) {
 	u8_restore_exception(ex);
-        fd_decref(handler); fd_decref(value); fd_decref(err_value);
+        fd_decref(handler);
+        fd_decref(value);
+        fd_decref(err_value);
         return FD_ERROR_VALUE;}
       else if (FD_TYPEP(handler_result,fd_error_type)) {
 	fd_exception_object newexo=
@@ -210,7 +203,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       return handler;}}
 }
 
-static fdtype report_errors_handler(fdtype expr,fd_lispenv env)
+static fdtype report_errors_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   fdtype value = fd_eval(toeval,env);
@@ -224,7 +217,7 @@ static fdtype report_errors_handler(fdtype expr,fd_lispenv env)
   else return value;
 }
 
-static fdtype erreify_handler(fdtype expr,fd_lispenv env)
+static fdtype erreify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype toeval = fd_get_arg(expr,1);
   fdtype value = fd_eval(toeval,env);
@@ -396,32 +389,32 @@ static int thunkp(fdtype x)
     else return 0;}
 }
 
-static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
+static fdtype dynamic_wind_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype wind = fd_get_arg(expr,1);
   fdtype doit = fd_get_arg(expr,2);
   fdtype unwind = fd_get_arg(expr,3);
   if ((FD_VOIDP(wind)) || (FD_VOIDP(doit)) || (FD_VOIDP(unwind)))
-    return fd_err(fd_SyntaxError,"dynamic_wind_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
     wind = fd_eval(wind,env);
     if (FD_ABORTP(wind)) return wind;
     else if (!(thunkp(wind)))
-      return fd_type_error("thunk","dynamic_wind_handler",wind);
+      return fd_type_error("thunk","dynamic_wind_evalfn",wind);
     else doit = fd_eval(doit,env);
     if (FD_ABORTP(doit)) {
       fd_decref(wind);
       return doit;}
     else if (!(thunkp(doit))) {
       fd_decref(wind);
-      return fd_type_error("thunk","dynamic_wind_handler",doit);}
+      return fd_type_error("thunk","dynamic_wind_evalfn",doit);}
     else unwind = fd_eval(unwind,env);
     if (FD_ABORTP(unwind)) {
       fd_decref(wind); fd_decref(doit);
       return unwind;}
     else if (!(thunkp(unwind))) {
       fd_decref(wind); fd_decref(doit);
-      return fd_type_error("thunk","dynamic_wind_handler",unwind);}
+      return fd_type_error("thunk","dynamic_wind_evalfn",unwind);}
     else {
       fdtype retval = fd_apply(wind,0,NULL);
       if (FD_ABORTP(retval)) {}
@@ -446,7 +439,7 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
       return retval;}}
 }
 
-static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
+static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
 {
   fdtype heart = fd_get_arg(uwp,1);
   fdtype result;
@@ -463,9 +456,11 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
           if (FD_ABORTP(uw_result))
             if (FD_ABORTP(result)) {
               fd_interr(result); fd_interr(uw_result);
-              return FD_ERROR_VALUE;}
+              return u8_return(FD_ERROR_VALUE);}
             else {
-              fd_decref(result); result = uw_result; break;}
+              fd_decref(result);
+              result = uw_result;
+              break;}
           else fd_decref(uw_result);}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
@@ -487,15 +482,15 @@ FD_EXPORT void fd_init_errors_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_defspecial(fd_scheme_module,"ERROR",return_error);
-  fd_defspecial(fd_scheme_module,"ERROR+",extend_error);
-  fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);
-  fd_defspecial(fd_scheme_module,"IRRITANT+",extend_irritant);
-  fd_defspecial(fd_scheme_module,"NEWERR",return_irritant_eval);
-  fd_defspecial(fd_scheme_module,"NEWERR+",extend_irritant_eval);
-  fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
-  fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_handler);
-  fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);
+  fd_defspecial(fd_scheme_module,"ERROR",return_error_evalfn);
+  fd_defspecial(fd_scheme_module,"ERROR+",extend_error_evalfn);
+  fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant_evalfn);
+  fd_defspecial(fd_scheme_module,"IRRITANT+",extend_irritant_evalfn);
+  fd_defspecial(fd_scheme_module,"NEWERR",return_irritant_evalfn);
+  fd_defspecial(fd_scheme_module,"NEWERR+",extend_irritant_evalfn);
+  fd_defspecial(fd_scheme_module,"ONERROR",onerror_evalfn);
+  fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_evalfn);
+  fd_defspecial(fd_scheme_module,"ERREIFY",erreify_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
@@ -522,8 +517,8 @@ FD_EXPORT void fd_init_errors_c()
            fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
                            fd_error_type,FD_VOID));
 
-  fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);
-  fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_handler);
+  fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_evalfn);
+  fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim0("CLEAR-ERRORS!",clear_errors));

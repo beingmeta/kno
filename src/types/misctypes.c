@@ -87,87 +87,6 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
 }
 
 
-/* Exceptions */
-
-FD_EXPORT fdtype fd_init_exception
-   (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
-{
-  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_error_type); exo->fdex_u8ex = ex;
-  return FDTYPE_CONS(exo);
-}
-
-FD_EXPORT fdtype fd_make_exception
-  (fd_exception c,u8_context cxt,u8_string details,fdtype content)
-{
-  struct FD_EXCEPTION_OBJECT *exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
-  u8_exception ex; void *xdata; u8_exception_xdata_freefn freefn;
-  if (FD_VOIDP(content)) {
-    xdata = NULL; freefn = NULL;}
-  else {
-    xdata = (void *) content;
-    freefn = fd_free_exception_xdata;}
-  ex = u8_make_exception(c,cxt,details,xdata,freefn);
-  FD_INIT_CONS(exo,fd_error_type); exo->fdex_u8ex = ex;
-  return FDTYPE_CONS(exo);
-}
-
-static int dtype_exception(struct FD_OUTBUF *out,fdtype x)
-{
-  struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)x;
-  if (exo->fdex_u8ex == NULL) {
-    u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
-    fd_write_byte(out,dt_void);
-    return 1;}
-  else {
-    u8_exception ex = exo->fdex_u8ex;
-    fdtype irritant = fd_exception_xdata(ex);
-    int veclen = ((FD_VOIDP(irritant)) ? (3) : (4));
-    fdtype vector = fd_init_vector(NULL,veclen,NULL);
-    int n_bytes;
-    FD_VECTOR_SET(vector,0,fd_intern((u8_string)(ex->u8x_cond)));
-    if (ex->u8x_context) {
-      FD_VECTOR_SET(vector,1,fd_intern((u8_string)(ex->u8x_context)));}
-    else {FD_VECTOR_SET(vector,1,FD_FALSE);}
-    if (ex->u8x_details) {
-      FD_VECTOR_SET(vector,2,fdtype_string(ex->u8x_details));}
-    else {FD_VECTOR_SET(vector,2,FD_FALSE);}
-    if (!(FD_VOIDP(irritant)))
-      FD_VECTOR_SET(vector,3,fd_incref(irritant));
-    fd_write_byte(out,dt_exception);
-    n_bytes = 1+fd_write_dtype(out,vector);
-    fd_decref(vector);
-    return n_bytes;}
-}
-
-static u8_exception copy_exception_helper(u8_exception ex,int flags)
-{
-  u8_exception newex; u8_string details = NULL; fdtype irritant;
-  if (ex == NULL) return ex;
-  if (ex->u8x_details) details = u8_strdup(ex->u8x_details);
-  irritant = fd_exception_xdata(ex);
-  if (FD_VOIDP(irritant))
-    newex = u8_make_exception
-      (ex->u8x_cond,ex->u8x_context,details,NULL,NULL);
-  else if (flags)
-    newex = u8_make_exception
-      (ex->u8x_cond,ex->u8x_context,details,
-       (void *)fd_copier(irritant,flags),fd_free_exception_xdata);
-  else newex = u8_make_exception
-         (ex->u8x_cond,ex->u8x_context,details,
-          (void *)fd_incref(irritant),fd_free_exception_xdata);
-  newex->u8x_prev = copy_exception_helper(ex->u8x_prev,flags);
-  return newex;
-}
-
-static fdtype copy_exception(fdtype x,int deep)
-{
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  return fd_init_exception(NULL,copy_exception_helper(xo->fdex_u8ex,deep));
-}
-
-
 /* Timestamps */
 
 static fdtype timestamp_symbol, timestamp0_symbol;
@@ -347,10 +266,6 @@ FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
 
 void fd_init_misctypes_c()
 {
-  fd_copiers[fd_error_type]=copy_exception;
-  if (fd_dtype_writers[fd_error_type]==NULL)
-    fd_dtype_writers[fd_error_type]=dtype_exception;
-
   fd_hashfns[fd_uuid_type]=hash_uuid;
   fd_dtype_writers[fd_uuid_type]=uuid_dtype;
   fd_copiers[fd_uuid_type]=copy_uuid;

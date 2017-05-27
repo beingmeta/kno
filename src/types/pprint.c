@@ -48,13 +48,18 @@ FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
               int indent,int col,int maxcol,int is_initial)
 {
+  size_t prefix_len= (prefix) ? (strlen(prefix)) : (0);
   int startoff = out->u8_write-out->u8_outbuf, n_chars;
   if (is_initial==0) u8_putc(out,' ');
   fd_unparse(out,x); n_chars = u8_strlen(out->u8_outbuf+startoff);
-  /* If we're not going to descend, and it all fits, just return the
-     new column position. */
-  if ((n_chars<5)||
-      ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol))))
+  /* Accept the flat printed value if either: */
+  if ((n_chars<5)|| /* It's really short */
+      ((PPRINT_ATOMICP(x)) && /* or it's going to be on one line anyway and */
+       ((col+n_chars<maxcol) || /* it fits as is, or */
+        /* it wouldn't fit on its own line, and */
+        (((prefix_len+indent+n_chars)>=maxcol) &&
+         /* we're near (7 bytes) the beginning of this line */
+         (col<(prefix_len+indent+7)) ))))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
   out->u8_write = out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
@@ -117,7 +122,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       u8_puts(out,"#("); col = col+2;
       while (eltno<len) {
         col = fd_pprint(out,FD_VECTOR_REF(x,eltno),prefix,
-                      indent+2,col,maxcol,(eltno==0));
+                        indent+2,col,maxcol,(eltno==0));
         eltno++;}
       u8_putc(out,')'); return col+1;}}
   else if (FD_QCHOICEP(x)) {

@@ -1246,7 +1246,7 @@ static fdtype urlpost(int n,fdtype *args)
   else return result;
 }
 
-static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
+static fdtype urlpostdata_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype urlarg = fd_get_arg(expr,1), url = fd_eval(urlarg,env);
   fdtype ctype, curl, conn, body = FD_VOID;
@@ -1257,7 +1257,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
 
   if (FD_ABORTP(url)) return url;
   else if (!((FD_STRINGP(url))||(FD_TYPEP(url,fd_secret_type))))
-    return fd_type_error("url","urlpostdata_handler",url);
+    return fd_type_error("url","urlpostdata_evalfn",url);
   else {
     ctype = fd_eval(fd_get_arg(expr,2),env);
     body = fd_get_body(expr,3);}
@@ -1266,7 +1266,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
     fd_decref(url); return ctype;}
   else if (!(FD_STRINGP(ctype))) {
     fd_decref(url);
-    return fd_type_error("mime type","urlpostdata_handler",ctype);}
+    return fd_type_error("mime type","urlpostdata_evalfn",ctype);}
   else {
     curl = fd_eval(fd_get_arg(expr,3),env);
     body = fd_get_body(expr,4);}
@@ -1278,7 +1278,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
     return conn;}
   else if (!(FD_TYPEP(conn,fd_curl_type))) {
     fd_decref(url); fd_decref(ctype); fd_decref(curl);
-    return fd_type_error("CURLCONN","urlpostdata_handler",conn);}
+    return fd_type_error("CURLCONN","urlpostdata_evalfn",conn);}
   else h = fd_consptr(fd_curl_handle,conn,fd_curl_type);
 
   curl_add_header(h,"Content-Type",FD_STRDATA(ctype));
@@ -1504,7 +1504,7 @@ FD_EXPORT void fd_init_curl_c()
 
   curl_defaults = fd_empty_slotmap();
 
-  fd_defspecial(module,"URLPOSTOUT",urlpostdata_handler);
+  fd_defspecial(module,"URLPOSTOUT",urlpostdata_evalfn);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
   fd_idefn(module,fd_make_cprim2("URLHEAD",urlhead,1));

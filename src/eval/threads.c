@@ -37,6 +37,7 @@
 static u8_condition ThreadReturnError=_("ThreadError");
 static u8_condition ThreadExit=_("ThreadExit");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
+static u8_condition ThreadVOID=_("ThreadVoidResult");
 
 static int thread_loglevel = LOGNOTICE;
 static int thread_log_exit = 1;
@@ -224,11 +225,11 @@ static fdtype synchro_unlock(fdtype lck)
   else return fd_type_error("lockable","synchro_unlock",lck);
 }
 
-static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
+static fdtype with_lock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype lock_expr = fd_get_arg(expr,1), lck, value = FD_VOID;
   if (FD_VOIDP(lock_expr))
-    return fd_err(fd_SyntaxError,"with_lock_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
   if (FD_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
@@ -275,6 +276,11 @@ static void *thread_call(void *data)
   tstruct->errnop = &(errno);
 
   FD_INIT_STACK();
+
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",NULL,FD_VOID);
+  _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
+  _stack->stack_free_label=1;
+  tstruct->thread_stackptr=_stack;
 
   /* Set (block) most signals */
   pthread_sigmask(SIG_SETMASK,fd_default_sigmask,NULL);
@@ -329,21 +335,20 @@ static void *thread_call(void *data)
     u8_string errstring = fd_errstring(ex);
     u8_log(LOG_WARN,ThreadReturnError,"Thread #%d %s",u8_threadid(),errstring);
     if (tstruct->flags&FD_EVAL_THREAD)
-      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d wasevaluating %q",
+      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was evaluating %q",
              u8_threadid(),tstruct->evaldata.expr);
       else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
                   u8_threadid(),tstruct->applydata.fn);
+    fd_log_errstack(ex,LOG_WARN,1);
     u8_free(errstring);
     if (fd_thread_backtrace) {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
-      fd_summarize_backtrace(&out,ex);
-      u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
-      if (fd_dump_backtrace) {
-        out.u8_write = out.u8_outbuf;
-        fd_print_backtrace(&out,ex,120);
-        fd_dump_backtrace(out.u8_outbuf);}
-      else fd_log_backtrace(ex,LOG_NOTICE,ThreadBacktrace,120);
-      u8_free(out.u8_outbuf);}
+      U8_STATIC_OUTPUT(tmp,8000);
+      fdtype backtrace = fd_exception_backtrace(ex);
+      fd_sum_backtrace(tmpout,backtrace);
+      u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
+      if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
+      u8_close_output(tmpout);
+      fd_decref(backtrace);}
     tstruct->result = exobj;
     if (tstruct->resultptr) {
       fd_incref(exobj);
@@ -356,9 +361,10 @@ static void *thread_call(void *data)
       fd_incref(result);}}
   tstruct->flags = tstruct->flags|FD_THREAD_DONE;
   if (tstruct->flags&FD_EVAL_THREAD) {
-    free_environment(tstruct->evaldata.env);
+    fd_free_lexenv(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
   fd_decref((fdtype)tstruct);
+  fd_pop_stack(_stack);
   return NULL;
 }
 
@@ -393,7 +399,7 @@ fd_thread_struct fd_thread_call(fdtype *resultptr,
 
 FD_EXPORT
 fd_thread_struct fd_thread_eval(fdtype *resultptr,
-                                fdtype expr,fd_lispenv env,
+                                fdtype expr,fd_lexenv env,
                                 int flags)
 {
   struct FD_THREAD_STRUCT *tstruct = u8_alloc(struct FD_THREAD_STRUCT);
@@ -470,30 +476,30 @@ static fdtype threadcallx_prim(int n,fdtype *args)
     return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
-static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
+static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype to_eval = fd_get_arg(expr,1);
   fdtype env_arg = fd_eval(fd_get_arg(expr,2),env);
   fdtype opts_arg = fd_eval(fd_get_arg(expr,3),env);
   fdtype opts=
     ((FD_VOIDP(opts_arg))&&
-     (!(FD_ENVIRONMENTP(env_arg)))&&
+     (!(FD_LEXENVP(env_arg)))&&
      (FD_TABLEP(env_arg)))?
     (env_arg):
     (opts_arg);
-  fd_lispenv use_env=
+  fd_lexenv use_env=
     ((FD_VOIDP(env_arg))||(FD_FALSEP(env_arg)))?(env):
-    (FD_ENVIRONMENTP(env_arg))?((fd_lispenv)env_arg):
+    (FD_LEXENVP(env_arg))?((fd_lexenv)env_arg):
     (NULL);
   if (FD_VOIDP(to_eval)) {
     fd_decref(opts_arg); fd_decref(env_arg);
-    return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);}
+    return fd_err(fd_SyntaxError,"threadeval_evalfn",NULL,expr);}
   else if (use_env == NULL) {
     fd_decref(opts_arg);
-    return fd_type_error(_("lispenv"),"threadeval_handler",env_arg);}
+    return fd_type_error(_("lispenv"),"threadeval_evalfn",env_arg);}
   else {
     int flags = threadopts(opts)|FD_EVAL_THREAD;
-    fd_lispenv env_copy = fd_copy_env(use_env);
+    fd_lexenv env_copy = fd_copy_env(use_env);
     fdtype results = FD_EMPTY_CHOICE, envptr = (fdtype)env_copy;
     FD_DO_CHOICES(thread_expr,to_eval) {
       fdtype thread = (fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
@@ -548,7 +554,11 @@ static fdtype threadjoin_prim(fdtype threads)
          the results */
       if ( (tstruct->resultptr == NULL) ||
            ((tstruct->resultptr) == &(tstruct->result)) )
-        if (!(FD_VOIDP(tstruct->result))) {
+        if (FD_VOIDP(tstruct->result))
+          u8_log(LOG_WARN,ThreadVOID,
+                 "The thread %q unexpectedly returned VOID but without error",
+                 thread);
+        else  {
           fd_incref(tstruct->result);
           FD_ADD_TO_CHOICE(results,tstruct->result);}}
     else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
@@ -556,7 +566,22 @@ static fdtype threadjoin_prim(fdtype threads)
   return results;
 }
 
-static fdtype parallel_handler(fdtype expr,fd_lispenv env)
+static fdtype threadwait_prim(fdtype threads)
+{
+  fdtype results = FD_EMPTY_CHOICE;
+  {FD_DO_CHOICES(thread,threads)
+     if (!(FD_TYPEP(thread,fd_thread_type)))
+       return fd_type_error(_("thread"),"threadjoin_prim",thread);}
+  {FD_DO_CHOICES(thread,threads) {
+    struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
+    int retval = pthread_join(tstruct->tid,NULL);
+    if (retval)
+      u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
+             retval,strerror(retval),thread);}}
+  return fd_incref(threads);
+}
+
+static fdtype parallel_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fd_thread_struct _threads[6], *threads;
   fdtype _results[6], *results, scan = FD_CDR(expr), result = FD_EMPTY_CHOICE;
@@ -645,8 +670,8 @@ FD_EXPORT void fd_init_threads_c()
   fd_recyclers[fd_condvar_type]=recycle_condvar;
   fd_unparsers[fd_condvar_type]=unparse_condvar;
 
-  fd_defspecial(fd_scheme_module,"PARALLEL",parallel_handler);
-  fd_defspecial(fd_scheme_module,"SPAWN",threadeval_handler);
+  fd_defspecial(fd_scheme_module,"PARALLEL",parallel_evalfn);
+  fd_defspecial(fd_scheme_module,"SPAWN",threadeval_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
@@ -655,6 +680,8 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
   fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("THREAD/WAIT",threadwait_prim,1)));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/EXITED?",thread_exitedp,1,
@@ -675,7 +702,7 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-UNLOCK",condvar_unlock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
-  fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_handler);
+  fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_evalfn);
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim));

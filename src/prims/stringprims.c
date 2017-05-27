@@ -1271,11 +1271,11 @@ static fdtype glom_lexpr(int n,fdtype *args)
 
 /* Text if */
 
-static fdtype textif_handler(fdtype expr,fd_lispenv env)
+static fdtype textif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val = FD_VOID;
   if (FD_VOIDP(test_expr))
-    return fd_err(fd_SyntaxError,"textif_handler",NULL,FD_VOID);
+    return fd_err(fd_SyntaxError,"textif_evalfn",NULL,FD_VOID);
   else test_val = fd_eval(test_expr,env);
   if (FD_ABORTED(test_val)) return test_val;
   else if ((FD_FALSEP(test_val))||(FD_EMPTY_CHOICEP(test_val)))
@@ -1298,7 +1298,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
         FD_DOLIST(text_expr,body) {
           fdtype text = fd_eval(text_expr,env);
           if (FD_ABORTED(text))
-            return fd_err("Bad text clause","textif_handler",
+            return fd_err("Bad text clause","textif_evalfn",
                           out.u8_outbuf,text_expr);
           else if (FD_STRINGP(text))
             u8_putn(&out,FD_STRDATA(text),FD_STRLEN(text));
@@ -1309,7 +1309,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
           fdtype text_expr = fd_get_arg(body,i++);
           fdtype text = fd_eval(text_expr,env);
           if (FD_ABORTED(text))
-            return fd_err("Bad text clause","textif_handler",
+            return fd_err("Bad text clause","textif_evalfn",
                           out.u8_outbuf,text_expr);
           else if (FD_STRINGP(text))
             u8_putn(&out,FD_STRDATA(text),FD_STRLEN(text));
@@ -1552,7 +1552,7 @@ FD_EXPORT void fd_init_stringprims_c()
 
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
-  fd_defspecial(fd_scheme_module,"TEXTIF",textif_handler);
+  fd_defspecial(fd_scheme_module,"TEXTIF",textif_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BYTE-LENGTH",string_byte_length,1,

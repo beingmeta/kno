@@ -19,6 +19,8 @@
 #include "framerd/storage.h"
 #include "framerd/apply.h"
 
+#include <libu8/u8printf.h>
+
 #include <stdarg.h>
 
 fd_exception fd_BadAdjunct=_("Bad adjunct table"),
@@ -253,9 +255,9 @@ static fd_pool l2p(fdtype lp)
   if (serial<fd_n_pools)
     return fd_pools_by_serialno[serial];
   else {
-    char buf[32];
-    sprintf(buf,"serial = 0x%x",serial);
-    fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",buf);
+    char buf[64];
+    fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",
+               u8_sprintf(buf,64,"serial = 0x%x",serial));
     return NULL;}
 }
 

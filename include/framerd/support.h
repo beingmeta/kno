@@ -104,22 +104,32 @@ FD_EXPORT int fd_boolstring(u8_string,int);
 FD_EXPORT void fd_free_exception_xdata(void *ptr);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
-FD_EXPORT void fd_push_error_context(u8_context cxt,u8_string label,fdtype data);
 
 FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
 
-FD_EXPORT void fd_print_exception(U8_OUTPUT *out,u8_exception e);
 FD_EXPORT void fd_sum_exception(U8_OUTPUT *out,u8_exception e);
 FD_EXPORT u8_string fd_errstring(u8_exception e);
 FD_EXPORT fdtype fd_exception_xdata(u8_exception e);
 
+FD_EXPORT void fd_print_exception(U8_OUTPUT *out,u8_exception e);
+FD_EXPORT void fd_log_exception(u8_exception ex);
+FD_EXPORT void fd_output_exception(u8_output out,u8_exception ex);
+FD_EXPORT void fd_output_errstack(u8_output out,u8_exception ex);
+FD_EXPORT void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant);
+FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
+
 FD_EXPORT U8_NOINLINE void fd_seterr
+  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+FD_EXPORT U8_NOINLINE void fd_pusherr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 FD_EXPORT U8_NOINLINE void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 FD_EXPORT U8_NOINLINE void fd_raise
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 
+FD_EXPORT fdtype fd_get_irritant(u8_exception ex);
+
+FD_EXPORT int fd_stacktracep(fdtype rep);
 
 #define fd_xseterr3(c,cxt,details) \
    fd_xseterr(c,cxt,details,FD_VOID)

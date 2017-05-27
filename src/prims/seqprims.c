@@ -23,6 +23,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/u8stringfns.h>
+#include <libu8/u8printf.h>
 
 #include <limits.h>
 
@@ -318,7 +319,7 @@ static fdtype seqlen_prim(fdtype x)
 
 static fdtype seqelt_prim(fdtype x,fdtype offset)
 {
-  char buf[16]; int off; fdtype result;
+  char buf[32]; int off; fdtype result;
   if (!(FD_SEQUENCEP(x)))
     return fd_type_error(_("sequence"),"seqelt_prim",x);
   else if (FD_INTP(offset)) off = FD_FIX2INT(offset);
@@ -328,8 +329,9 @@ static fdtype seqelt_prim(fdtype x,fdtype offset)
   if (result == FD_TYPE_ERROR)
     return fd_type_error(_("sequence"),"seqelt_prim",x);
   else if (result == FD_RANGE_ERROR) {
-    sprintf(buf,"%lld",fd_getint(offset));
-    return fd_err(fd_RangeError,"seqelt_prim",u8_strdup(buf),x);}
+    return fd_err(fd_RangeError,"seqelt_prim",
+                  u8_uitoa10(fd_getint(offset),buf),
+                  x);}
   else return result;
 }
 
@@ -466,21 +468,22 @@ static fdtype check_range(u8_string prim,fdtype seq,
 
 static fdtype slice_prim(fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int start, end; char buf[32];
+  int start, end; char buf[128];
   fdtype result = check_range("slice_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(result)) return result;
   else result = fd_slice(x,start,end);
   if (result == FD_TYPE_ERROR)
     return fd_type_error(_("sequence"),"slice_prim",x);
   else if (result == FD_RANGE_ERROR) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
-    return fd_err(fd_RangeError,"slice_prim",u8_strdup(buf),x);}
+    return fd_err(fd_RangeError,"slice_prim",
+                  u8_sprintf(buf,128,"%d[%d:%d]",fd_seq_length(x),start,end),
+                  x);}
   else return result;
 }
 
 static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, start, end; char buf[32];
+  int result, start, end; char buf[128];
   fdtype check = check_range("position_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_position(key,x,start,end);
@@ -489,14 +492,15 @@ static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   else if (result == -2)
     return fd_type_error(_("sequence"),"position_prim",x);
   else if (result == -3) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
-    return fd_err(fd_RangeError,"position_prim",u8_strdup(buf),x);}
+    return fd_err(fd_RangeError,"position_prim",
+                  u8_sprintf(buf,128,"%d[%d:%d]",fd_seq_length(x),start,end),
+                  x);}
   else return FD_INT(result);
 }
 
 static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, start, end; char buf[32];
+  int result, start, end; char buf[128];
   fdtype check = check_range("rposition_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_rposition(key,x,start,end);
@@ -505,14 +509,15 @@ static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg
   else if (result == -2)
     return fd_type_error(_("sequence"),"rposition_prim",x);
   else if (result == -3) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
-    return fd_err(fd_RangeError,"rposition_prim",u8_strdup(buf),x);}
+    return fd_err(fd_RangeError,"rposition_prim",
+                  u8_sprintf(buf,128,"%d[%d:%d]",fd_seq_length(x),start,end),
+                  x);}
   else return FD_INT(result);
 }
 
 static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, start, end; char buf[32];
+  int result, start, end; char buf[128];
   fdtype check = check_range("find_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_position(key,x,start,end);
@@ -521,22 +526,24 @@ static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   else if (result == -2)
     return fd_type_error(_("sequence"),"find_prim",x);
   else if (result == -3) {
-    sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
-    return fd_err(fd_RangeError,"find_prim",u8_strdup(buf),x);}
+    return fd_err(fd_RangeError,"find_prim",
+                  u8_sprintf(buf,128,"%d[%d:%d]",fd_seq_length(x),start,end),
+                  x);}
   else return FD_FALSE;
 }
 
 static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
-  int result, start, end; char buf[32];
+  int result, start, end; char buf[128];
   fdtype check = check_range("search_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_search(key,x,start,end);
   if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2) {
-    sprintf(buf,"%d:%d",start,end);
-    return fd_err(fd_RangeError,"search_prim",u8_strdup(buf),x);}
+    return fd_err(fd_RangeError,"search_prim",
+                  u8_sprintf(buf,128,"%d:%d",start,end),
+                  x);}
   else if (result == -3)
     return fd_type_error(_("sequence"),"search_prim",x);
   else return result;
@@ -1586,8 +1593,10 @@ static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
   if (!(FD_UINTP(index))) return fd_type_error("uint","vector_set",index);
   int offset = FD_FIX2INT(index); fdtype *elts = v->fdvec_elts;
   if (offset>v->fdvec_length) {
-    char buf[256]; sprintf(buf,"%d",offset);
-    return fd_err(fd_RangeError,"vector_set",buf,vec);}
+    char buf[32];
+    return fd_err(fd_RangeError,"vector_set",
+                  u8_uitoa10(offset,buf),
+                  vec);}
   else {
     fdtype oldv = elts[offset];
     elts[offset]=fd_incref(val);

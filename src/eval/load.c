@@ -18,8 +18,6 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 
-#include <stdio.h>
-
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
@@ -118,14 +116,11 @@ static void restore_sourcebase(u8_string old)
 #endif
 
 static fdtype loading_symbol;
-static void record_error_source(u8_string sourceid)
-{
-  fdtype entry = fd_make_list(2,loading_symbol,fd_make_string(NULL,-1,sourceid));
-  fd_push_error_context("fd_load_source",sourceid,entry);
-}
+
+#define LOAD_CONTEXT_SIZE 128
 
 FD_EXPORT fdtype fd_load_source_with_date
-  (u8_string sourceid,fd_lispenv env,u8_string enc_name,time_t *modtime)
+  (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
 {
   struct U8_INPUT stream;
   fdtype postload = FD_VOID;
@@ -134,6 +129,7 @@ FD_EXPORT fdtype fd_load_source_with_date
   u8_string content = fd_get_source(sourceid,encoding,&sourcebase,modtime);
   const u8_byte *input = content;
   double start = u8_elapsed_time();
+  struct FD_STACK *_stack = fd_stackptr;
   if (content == NULL) return FD_ERROR_VALUE;
   else outer_sourcebase = bind_sourcebase(sourcebase);
   if (errno) {
@@ -144,13 +140,17 @@ FD_EXPORT fdtype fd_load_source_with_date
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_NOTICE,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
+  FD_PUSH_STACK(load_stack,"loadsource",sourceid,FD_VOID);
   if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     /* This does a read/eval loop. */
+    u8_byte context_buf[LOAD_CONTEXT_SIZE+1];
     fdtype result = FD_VOID;
-    fdtype expr = fd_parse_expr(&stream), last_expr = FD_VOID;
+    fdtype expr = FD_VOID, last_expr = FD_VOID;
     double start_time;
+    fd_skip_whitespace(&stream);
+    load_stack->stack_status=context_buf; context_buf[0]='\0';
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
       if ((trace_load_eval) ||
@@ -171,13 +171,13 @@ FD_EXPORT fdtype fd_load_source_with_date
                  "Error (%s:%s) in %s while evaluating %q",
                  ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
                  ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
-                 sourcebase,expr);
-          record_error_source(sourceid);}
+                 sourcebase,expr);}
         restore_sourcebase(outer_sourcebase);
         u8_free(sourcebase);
         u8_free(content);
         fd_decref(last_expr); last_expr = FD_VOID;
         fd_decref(expr);
+        fd_pop_stack(load_stack);
         return result;}
       else if ((trace_load_eval) ||
                (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
@@ -191,21 +191,27 @@ FD_EXPORT fdtype fd_load_source_with_date
           errno = 0;}}
       else {}
       fd_decref(last_expr); last_expr = expr;
+      fd_skip_whitespace(&stream);
+      if (stream.u8_inlim == stream.u8_read)
+        context_buf[0]='\0';
+      else u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
       expr = fd_parse_expr(&stream);}
+    load_stack->stack_status=NULL;
     if (expr == FD_EOF) {
-      fd_decref(last_expr); last_expr = FD_VOID;}
+      fd_decref(last_expr);
+      last_expr = FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
                 last_expr);
-      record_error_source(sourceid);
       fd_decref(result); /* This is the previous result */
       last_expr = FD_VOID;
       /* This is now also the result */
-      result = expr; fd_incref(expr);}
+      result = expr;
+      fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
       fd_decref(result);
-      result = expr; 
-      fd_incref(expr); 
+      result = expr;
+      fd_incref(expr);
       expr = FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
@@ -226,20 +232,24 @@ FD_EXPORT fdtype fd_load_source_with_date
     u8_free(sourcebase);
     u8_free(content);
     if (last_expr == expr) {
-      fd_decref(last_expr); last_expr = FD_VOID;}
+      fd_decref(last_expr);
+      last_expr = FD_VOID;}
     else {
-      fd_decref(expr); fd_decref(last_expr);
-      expr = FD_VOID; last_expr = FD_VOID;}
+      fd_decref(expr);
+      fd_decref(last_expr);
+      expr = FD_VOID;
+      last_expr = FD_VOID;}
     if (errno) {
       u8_log(LOG_WARN,"UnexpectedErrno",
              "Dangling errno value %d (%s) after loading %s",
              errno,u8_strerror(errno),sourceid);
       errno = 0;}
+    fd_pop_stack(load_stack);
     return result;}
 }
 
 FD_EXPORT fdtype fd_load_source
-  (u8_string sourceid,fd_lispenv env,u8_string enc_name)
+  (u8_string sourceid,fd_lexenv env,u8_string enc_name)
 {
   return fd_load_source_with_date(sourceid,env,enc_name,NULL);
 }
@@ -339,7 +349,7 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
 
 /* Scheme primitives */
 
-static fdtype load_source(fdtype expr,fd_lispenv env)
+static fdtype load_source_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype source_expr = fd_get_arg(expr,1), source, result;
   fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
@@ -378,17 +388,17 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
 
 static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
 {
-  fdtype result = FD_VOID; fd_lispenv env;
+  fdtype result = FD_VOID; fd_lexenv env;
   if (!((FD_VOIDP(resultfn))||(FD_APPLICABLEP(resultfn))))
     return fd_type_error("callback procedure","LOAD->ENV",envarg);
   if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg)))
-    env = fd_working_environment();
+    env = fd_working_lexenv();
   else if (FD_FALSEP(envarg))
-    env = fd_safe_working_environment();
-  else if (FD_ENVIRONMENTP(envarg)) {
-    env = (fd_lispenv)envarg; fd_incref(envarg);}
+    env = fd_safe_working_lexenv();
+  else if (FD_LEXENVP(envarg)) {
+    env = (fd_lexenv)envarg; fd_incref(envarg);}
   else if (FD_TABLEP(envarg)) {
-    env = fd_new_environment(envarg,0);
+    env = fd_new_lexenv(envarg,0);
     fd_incref(envarg);}
   else return fd_type_error("environment","LOAD->ENV",envarg);
   result = fd_load_source(FD_STRDATA(source),env,NULL);
@@ -402,7 +412,7 @@ static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
   return (fdtype) env;
 }
 
-static fdtype load_component(fdtype expr,fd_lispenv env)
+static fdtype load_component_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype source_expr = fd_get_arg(expr,1), source, result;
   fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
@@ -605,13 +615,13 @@ FD_EXPORT void fd_init_load_c()
  postload_symbol = fd_intern("%POSTLOAD");
 
 
- fd_defspecial(fd_xscheme_module,"LOAD",load_source);
- fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
+ fd_defspecial(fd_xscheme_module,"LOAD",load_source_evalfn);
+ fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component_evalfn);
 
  fd_defn(fd_xscheme_module,
          fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
                          fd_string_type,FD_VOID,
-                         fd_environment_type,FD_VOID,
+                         fd_lexenv_type,FD_VOID,
                          -1,FD_VOID));
 
  fd_idefn(fd_scheme_module,

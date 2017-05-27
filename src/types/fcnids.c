@@ -72,7 +72,7 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
   else if (!(FD_CONSP(value)))
     return fd_type_error("cons","fd_set_fcnid",value);
   else if (!((FD_FUNCTIONP(value))||
-             (FD_TYPEP(value,fd_specform_type))))
+             (FD_TYPEP(value,fd_evalfn_type))))
     return fd_type_error("function/fexpr","fd_set_fcnid",value);
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
@@ -113,7 +113,7 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
   else if (!(FD_CONSP(value)))
     return 0;
   else if (!((FD_FUNCTIONP(value))||
-             (FD_TYPEP(value,fd_specform_type))))
+             (FD_TYPEP(value,fd_evalfn_type))))
     return 0;
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
@@ -147,24 +147,33 @@ static int unparse_fcnid(u8_output out,fdtype x)
     struct FD_FUNCTION *fcn = (fd_function)lp;
     u8_string name = fcn->fcn_name;
     u8_string filename = fcn->fcn_filename;
-    u8_byte arity[16]=""; u8_byte codes[16]="";
+    u8_byte arity[64]="", codes[64]="", numbuf[32];
     if ((filename)&&(filename[0]=='\0')) filename = NULL;
     if (name == NULL) name = fcn->fcn_name;
     if (fcn->fcn_ndcall) strcat(codes,"∀");
     if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
       strcat(arity,"…");
-    else if (fcn->fcn_arity == fcn->fcn_min_arity)
-      sprintf(arity,"[%d]",fcn->fcn_min_arity);
-    else if (fcn->fcn_arity<0)
-      sprintf(arity,"[%d,…]",fcn->fcn_min_arity);
-    else sprintf(arity,"[%d,%d]",fcn->fcn_min_arity,fcn->fcn_arity);
+    else if (fcn->fcn_arity == fcn->fcn_min_arity) {
+      strcat(arity,"[");
+      strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
+      strcat(arity,"]");}
+    else if (fcn->fcn_arity<0) {
+      strcat(arity,"[");
+      strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
+      strcat(arity,"…]");}
+    else {
+      strcat(arity,"[");
+      strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
+      strcat(arity,"-");
+      strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
+      strcat(arity,"]");}
     if (name)
       u8_printf(out,"#<~%d<Φ%s%s%s%s%s%s>>",
                 FD_GET_IMMEDIATE(x,fd_fcnid_type),
                 codes,name,arity,U8OPTSTR("'",filename,"'"));
     else u8_printf(out,"#<~%d<Φ%s%s #!0x%llx%s%s%s>>",
                    FD_GET_IMMEDIATE(x,fd_fcnid_type),codes,arity,
-                   (unsigned long long) fcn,
+                   u8_uitoa16((unsigned long long) fcn,numbuf),
                    U8OPTSTR(" '",filename,"'"));
     return 1;}
   else {

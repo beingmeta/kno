@@ -1,0 +1,41 @@
+;;; -*- Mode: Scheme; -*-
+
+(use-module '{fdweb aws aws/s3})
+
+(define bug-buckets
+  #["us-east" "beingmeta-us-east"
+    "us-west" "beingmeta-us-west"
+    "us-northwest" "beingmeta-us-northwest"
+    "eu-east" "beingmeta-eu-east"
+    "eu-west" "beingmeta-eu-west"
+    "asia-south" "beingmeta-asia-south"
+    "asia-japan" "beingmeta-asia-japan"])
+
+(define default-bug-bucket
+  "beingmeta-us-east")
+
+
+(define host-prefix #((bos) (not> ".")))
+
+(define (make-root-path root path)
+  `#[root ,root ,path path])
+
+(define (showbug (http_host "")
+		 (request_uri #f))
+  (let* ((parsed
+	  (try (make-root-path
+		(pick (gather host-prefix http_host) bug-buckets)
+		request_uri)
+	       (get bug-buckets
+		    (get
+		     (text->frames 
+		      #((label root ,(getkeys bug-buckets)) "/"
+			(label path (rest)))
+		      request_uri)
+		     'root))))
+	 (loc (s3/loc (get bug-buckets (get parsed 'root))
+		      (get parsed 'path))))
+    (req/set! 'doctype #f)
+    (req/set! '_redirect (s3/signeduri loc))))
+
+

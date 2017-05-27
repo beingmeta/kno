@@ -18,7 +18,7 @@
 
 static fdtype else_symbol;
 
-static fdtype if_handler(fdtype expr,fd_lispenv env)
+static fdtype if_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype consequent_expr = fd_get_arg(expr,2);
@@ -30,15 +30,15 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
   else if (FD_FALSEP(test_result))
     if ((FD_PAIRP(else_expr))||(FD_CODEP(else_expr)))
       return fd_tail_eval(else_expr,env);
-    else return fasteval(else_expr,env);
+    else return fd_eval(else_expr,env);
   else {
     fd_decref(test_result);
     if ((FD_PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
-    else return fasteval(consequent_expr,env);}
+    else return fd_eval(consequent_expr,env);}
 }
 
-static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
+static fdtype ifelse_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype consequent_expr = fd_get_arg(expr,2);
@@ -56,19 +56,18 @@ static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
     fd_decref(test_result);
     if ((FD_PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
-    else return fasteval(consequent_expr,env);}
+    else return fd_eval(consequent_expr,env);}
 }
 
-static fdtype tryif_handler(fdtype expr,fd_lispenv env)
+static fdtype tryif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype first_consequent = fd_get_arg(expr,2);
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result = fd_eval(test_expr,env);
-  if (FD_ABORTED(test_result)) {
-    fd_incref(expr); fd_push_error_context("tryif_handler",NULL,expr);
-    return test_result;}
+  if (FD_ABORTED(test_result))
+    return test_result;
   else if ((FD_FALSEP(test_result))||(FD_EMPTY_CHOICEP(test_result)))
     return FD_EMPTY_CHOICE;
   else {
@@ -76,13 +75,10 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
     {fdtype try_clauses = fd_get_body(expr,2);
       FD_DOLIST(clause,try_clauses) {
         fd_decref(value); value = fd_eval(clause,env);
-        if (FD_ABORTED(value)) {
-          fd_incref(clause); fd_push_error_context("TRYIF",NULL,clause);
-          fd_incref(expr); fd_push_error_context("TRYIF",NULL,expr);
-          return value;}
+        if (FD_ABORTED(value))
+          return value;
         else if (FD_VOIDP(value)) {
-          fd_seterr(fd_VoidArgument,"tryif_handler",NULL,clause);
-          fd_incref(expr); fd_push_error_context("TRY",NULL,expr);
+          fd_seterr(fd_VoidArgument,"tryif_evalfn",NULL,clause);
           return FD_ERROR_VALUE;}
         else if (!(FD_EMPTY_CHOICEP(value)))
           return value;}}
@@ -96,7 +92,7 @@ static fdtype not_prim(fdtype arg)
 
 static fdtype apply_marker;
 
-static fdtype cond_handler(fdtype expr,fd_lispenv env)
+static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   FD_DOLIST(clause,FD_CDR(expr)) {
     fdtype test_val;
@@ -123,19 +119,19 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
             return retval;}
           else {
             fd_decref(test_val);
-            return fd_type_error("function","cond_handler",fn);}}
-        else return fd_err(fd_SyntaxError,"cond_handler","apply syntax",expr);
+            return fd_type_error("function","cond_evalfn",fn);}}
+        else return fd_err(fd_SyntaxError,"cond_evalfn","apply syntax",expr);
       else {
         fd_decref(test_val);
-        return eval_body("COND",NULL,clause,1,env);}}}
+        return eval_body("COND",NULL,clause,1,env,_stack);}}}
   return FD_VOID;
 }
 
-static fdtype case_handler(fdtype expr,fd_lispenv env)
+static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype key_expr = fd_get_arg(expr,1), keyval;
   if (FD_VOIDP(key_expr))
-    return fd_err(fd_SyntaxError,"case_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"case_evalfn",NULL,expr);
   else keyval = fd_eval(key_expr,env);
   if (FD_ABORTED(keyval)) return keyval;
   else {
@@ -145,16 +141,16 @@ static fdtype case_handler(fdtype expr,fd_lispenv env)
           fdtype keys = FD_CAR(clause);
           FD_DOLIST(key,keys)
             if (FD_EQ(keyval,key))
-              return eval_body("CASE",NULL,clause,1,env);}
+              return eval_body("CASE",NULL,clause,1,env,_stack);}
         else if (FD_EQ(FD_CAR(clause),else_symbol)) {
           fd_decref(keyval);
           return fd_eval_exprs(FD_CDR(clause),env);}
-        else return fd_err(fd_SyntaxError,"case_handler",NULL,clause);
-      else return fd_err(fd_SyntaxError,"case_handler",NULL,clause);
+        else return fd_err(fd_SyntaxError,"case_evalfn",NULL,clause);
+      else return fd_err(fd_SyntaxError,"case_evalfn",NULL,clause);
     return FD_VOID;}
 }
 
-static fdtype when_handler(fdtype expr,fd_lispenv env)
+static fdtype when_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val;
   if (FD_VOIDP(test_expr))
@@ -170,7 +166,7 @@ static fdtype when_handler(fdtype expr,fd_lispenv env)
     return result;}
 }
 
-static fdtype unless_handler(fdtype expr,fd_lispenv env)
+static fdtype unless_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val;
   if (FD_VOIDP(test_expr))
@@ -188,7 +184,7 @@ static fdtype unless_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype and_handler(fdtype expr,fd_lispenv env)
+static fdtype and_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype value = FD_TRUE;
   FD_DOLIST(clause,FD_CDR(expr)) {
@@ -199,7 +195,7 @@ static fdtype and_handler(fdtype expr,fd_lispenv env)
   return value;
 }
 
-static fdtype or_handler(fdtype expr,fd_lispenv env)
+static fdtype or_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype value = FD_FALSE;
   FD_DOLIST(clause,FD_CDR(expr)) {
@@ -218,15 +214,15 @@ FD_EXPORT void fd_init_conditionals_c()
   apply_marker = fd_intern("=>");
   else_symbol = fd_intern("ELSE");
 
-  fd_defspecial(fd_scheme_module,"IF",if_handler);
-  fd_defspecial(fd_scheme_module,"IFELSE",ifelse_handler);
-  fd_defspecial(fd_scheme_module,"TRYIF",tryif_handler);
-  fd_defspecial(fd_scheme_module,"COND",cond_handler);
-  fd_defspecial(fd_scheme_module,"CASE",case_handler);
-  fd_defspecial(fd_scheme_module,"WHEN",when_handler);
-  fd_defspecial(fd_scheme_module,"UNLESS",unless_handler);
-  fd_defspecial(fd_scheme_module,"AND",and_handler);
-  fd_defspecial(fd_scheme_module,"OR",or_handler);
+  fd_defspecial(fd_scheme_module,"IF",if_evalfn);
+  fd_defspecial(fd_scheme_module,"IFELSE",ifelse_evalfn);
+  fd_defspecial(fd_scheme_module,"TRYIF",tryif_evalfn);
+  fd_defspecial(fd_scheme_module,"COND",cond_evalfn);
+  fd_defspecial(fd_scheme_module,"CASE",case_evalfn);
+  fd_defspecial(fd_scheme_module,"WHEN",when_evalfn);
+  fd_defspecial(fd_scheme_module,"UNLESS",unless_evalfn);
+  fd_defspecial(fd_scheme_module,"AND",and_evalfn);
+  fd_defspecial(fd_scheme_module,"OR",or_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprim1("NOT",not_prim,1));
 }
 

@@ -1074,13 +1074,13 @@ static void display_index(u8_output out,fd_index ix,fdtype lix)
     strcat(edits,u8_itoa10(ix->index_edits.table_n_keys,numbuf));}
   else strcpy(edits,"");
   if (ix->index_source)
-    u8_printf(out,_("#<%s %s (%s) cache=%d+%d%s #!%lx \"%s\">"),
+    u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%lx \"%s\">"),
               tag,type,ix->indexid,
               ix->index_cache.table_n_keys,
               ix->index_adds.table_n_keys,
               edits,
               lix,ix->index_source);
-  else u8_printf(out,_("#<%s %s (%s) cache=%d+%d~%d #!%lx>"),
+  else u8_printf(out,_("#<%s %s (%s) cx=%d+%d~%d #!%lx>"),
                  tag,ix->indexid,type,
                  lix);
 }
@@ -1364,12 +1364,6 @@ FD_EXPORT void fd_init_indexes_c()
 
 #if (FD_USE_TLS)
   u8_new_threadkey(&index_delays_key,NULL);
-#endif
-
-#if FD_CALLTRACK_ENABLED
-  {
-    fd_calltrack_sensor cts = fd_get_calltrack_sensor("KEYS",1);
-    cts->enabled = 1; cts->intfcn = fd_index_cache_load;}
 #endif
 
 }

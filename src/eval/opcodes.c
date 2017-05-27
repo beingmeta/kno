@@ -9,10 +9,13 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_FCNIDS 1
+#define FD_INLINE_STACKS 1
+#define FD_INLINE_LEXENV 1
+
+#define FD_PROVIDE_FASTEVAL 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -36,9 +39,10 @@
 #include <pthread.h>
 #include <errno.h>
 
-static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
+static fdtype op_eval(fdtype x,fd_lexenv env,fd_stack stack,int tail);
 
-FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env)
+FD_FASTOP fdtype op_eval_body(fdtype body,fd_lexenv env,
+                              fd_stack stack,int tail)
 {
   fdtype result=FD_VOID;
   if (FD_CODEP(body)) {
@@ -47,7 +51,7 @@ FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env)
     while (j<n_sub_exprs) {
       fdtype sub_expr=sub_exprs[j++];
       fd_decref(result);
-      result=op_eval(sub_expr,env,j==n_sub_exprs);
+      result=op_eval(sub_expr,env,stack,j==n_sub_exprs);
       if (FD_ABORTED(result))
         return result;}
     return result;}
@@ -56,11 +60,11 @@ FD_FASTOP fdtype op_eval_body(fdtype body,fd_lispenv env)
   else while (FD_PAIRP(body)) {
       fdtype subex = FD_CAR(body), next = FD_CDR(body);
       if (FD_PAIRP(next)) {
-        fdtype v = op_eval(subex,env,0);
+        fdtype v = op_eval(subex,env,stack,0);
         if (FD_ABORTED(v)) return v;
         fd_decref(v);
         body = next;}
-      else return op_eval(subex,env,1);}
+      else return op_eval(subex,env,stack,tail);}
   return fd_err(fd_SyntaxError,"op_eval_body",NULL,body);
 }
 
@@ -366,14 +370,15 @@ static fdtype elt_opcode(fdtype arg1,fdtype arg2)
   else return fd_type_error(_("fixnum"),"FD_OPCODE_ELT",arg2);
 }
 
-static fdtype try_op(fdtype exprs,fd_lispenv env)
+static fdtype try_op(fdtype exprs,fd_lexenv env,
+                     fd_stack stack,int tail)
 {
   while (FD_PAIRP(exprs)) {
     fdtype expr = pop_arg(exprs);
     if (FD_EMPTY_LISTP(exprs))
-      return op_eval(expr,env,1);
+      return op_eval(expr,env,stack,tail);
     else {
-      fdtype val  = op_eval(expr,env,0);
+      fdtype val  = op_eval(expr,env,stack,0);
       if (FD_ABORTED(val)) return val;
       else if (!(FD_EMPTY_CHOICEP(val)))
         return val;
@@ -381,14 +386,14 @@ static fdtype try_op(fdtype exprs,fd_lispenv env)
   return FD_EMPTY_CHOICE;
 }
 
-static fdtype and_op(fdtype exprs,fd_lispenv env)
+static fdtype and_op(fdtype exprs,fd_lexenv env,fd_stack stack,int tail)
 {
   while (FD_PAIRP(exprs)) {
     fdtype expr = pop_arg(exprs);
     if (FD_EMPTY_LISTP(exprs))
-      return op_eval(expr,env,1);
+      return op_eval(expr,env,stack,tail);
     else {
-      fdtype val  = op_eval(expr,env,0);
+      fdtype val  = op_eval(expr,env,stack,0);
       if (FD_ABORTED(val)) return val;
       else if (FD_FALSEP(val))
         return FD_FALSE;
@@ -396,14 +401,14 @@ static fdtype and_op(fdtype exprs,fd_lispenv env)
   return FD_TRUE;
 }
 
-static fdtype or_op(fdtype exprs,fd_lispenv env)
+static fdtype or_op(fdtype exprs,fd_lexenv env,fd_stack stack,int tail)
 {
   while (FD_PAIRP(exprs)) {
     fdtype expr = pop_arg(exprs);
     if (FD_EMPTY_LISTP(exprs))
-      return op_eval(expr,env,1);
+      return op_eval(expr,env,stack,tail);
     else {
-      fdtype val  = op_eval(expr,env,0);
+      fdtype val  = op_eval(expr,env,stack,0);
       if (FD_ABORTED(val)) return val;
       else if (!(FD_FALSEP(val)))
         return val;
@@ -663,21 +668,20 @@ static fdtype xref_opcode(fdtype x,long long i,fdtype tag)
   else return fd_err(fd_TypeError,"xref",fd_dtype2string(tag),x);
 }
 
-static fdtype until_opcode(fdtype expr,fd_lispenv env)
+static fdtype until_opcode(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype params = FD_CDR(expr);
   fdtype test_expr = FD_CAR(params), loop_body = FD_CDR(params);
   if (FD_VOIDP(test_expr))
     return fd_err(fd_SyntaxError,"FD_LOOP_OPCODE",NULL,expr);
-  fdtype test_val = op_eval(test_expr,env,0);
+  fdtype test_val = op_eval(test_expr,env,stack,0);
   if (FD_ABORTED(test_val)) return test_val;
   else while (FD_FALSEP(test_val)) {
-      fdtype body_result=op_eval_body(loop_body,env);
-      if (FD_TAILCALLP(body_result)) 
-        body_result=fd_finish_call(body_result);
+      fdtype body_result=op_eval_body(loop_body,env,stack,0);
       fd_decref(body_result);
-      test_val = op_eval(test_expr,env,0);
-      if (FD_ABORTED(test_val)) return test_val;}
+      test_val = op_eval(test_expr,env,stack,0);
+      if (FD_ABORTED(test_val))
+        return test_val;}
   return test_val;
 }
 
@@ -804,17 +808,18 @@ static fdtype combine_values(fdtype combiner,fdtype cur,fdtype value)
     fd_decref(cur);
     return value;}
 }
-static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
+static fdtype assignop(fd_stack stack,fd_lexenv env,
+                       fdtype var,fdtype expr,fdtype combiner)
 {
-  fdtype value = op_eval(expr,env,0);
+  fdtype value = op_eval(expr,env,stack,0);
   if (FD_ABORTED(value))
     return value;
   else if (FD_LEXREFP(var)) {
     int up = FD_LEXREF_UP(var);
     int across = FD_LEXREF_ACROSS(var);
-    fd_lispenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
+    fd_lexenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
     while ((up)&&(scan)) {
-      fd_lispenv parent = scan->env_parent;
+      fd_lexenv parent = scan->env_parent;
       if ((parent) && (parent->env_copy))
         scan = parent->env_copy;
       else scan = parent;
@@ -846,12 +851,12 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
     int rv=-1;
     fdtype table=FD_CDR(var), sym=FD_CAR(var);
     if ( (combiner == FD_FALSE) || (combiner == FD_VOID) ) {
-      if (FD_ENVIRONMENTP(table))
-        rv=fd_set_value(sym,value,(fd_lispenv)table);
+      if (FD_LEXENVP(table))
+        rv=fd_assign_value(sym,value,(fd_lexenv)table);
       else rv=fd_store(table,sym,value);}
     else if (combiner == FD_UNION_OPCODE) {
-      if (FD_ENVIRONMENTP(table))
-        rv=fd_add_value(sym,value,(fd_lispenv)table);
+      if (FD_LEXENVP(table))
+        rv=fd_add_value(sym,value,(fd_lexenv)table);
       else rv=fd_add(table,sym,value);}
     else {
       fdtype cur=fd_get(table,sym,FD_UNBOUND);
@@ -867,66 +872,49 @@ static fdtype assignop(fd_lispenv env,fdtype var,fdtype expr,fdtype combiner)
   return fd_err(fd_SyntaxError,"ASSIGN_OPCODE",NULL,expr);
 }
 
-static fdtype bindop(fd_lispenv env,fdtype vars,fdtype inits,fdtype body)
+static fdtype bindop(fdtype op,
+                     struct FD_STACK *_stack,fd_lexenv env,
+                     fdtype vars,fdtype inits,fdtype body,
+                     int tail)
 {
   int i=0, n=FD_VECTOR_LENGTH(vars);
-  struct FD_SCHEMAP bindings;
-  struct FD_ENVIRONMENT envstruct, *inner_env=&envstruct;
+  FD_PUSH_STACK(bind_stack,"bindop",NULL,op);
+  bind_stack->stack_args=FD_VECTOR_DATA(vars);
+  bind_stack->n_args=FD_VECTOR_LENGTH(vars);
+  INIT_STACK_SCHEMA(bind_stack,bound,env,n,FD_VECTOR_DATA(vars));
+  fdtype *values=bound_bindings.schema_values;
   fdtype *exprs=FD_VECTOR_DATA(inits);
-  fdtype values[n]; /* fdtype *values=fd_alloca(n); */
-  FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.schema_length=n;
-  bindings.table_schema=FD_VECTOR_DATA(vars);
-  bindings.schema_values=values;
-  bindings.schemap_onstack=1;
-  FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
-  envstruct.env_bindings=(fdtype)&bindings;
-  envstruct.env_exports=FD_VOID;
-  envstruct.env_parent=env;
+  fd_lexenv env_copy=NULL;
   while (i<n) {
     fdtype val_expr=exprs[i];
-    fdtype val=op_eval(val_expr,inner_env,0);
-    if (FD_ABORTED(val)) {
-      while (i>=0) {fd_decref(values[i]); i--;}
-      free_environment(inner_env);
-      return val;}
-    else values[i++]=val;}
-  fdtype result = op_eval_body(body,inner_env);
-  free_environment(inner_env);
-  return result;
+    fdtype val=op_eval(val_expr,bound,bind_stack,0);
+    if (FD_ABORTED(val)) _return val;
+    if ( (env_copy == NULL) && (bound->env_copy) ) {
+      env_copy=bound->env_copy; bound=env_copy;
+      values=((fd_schemap)(bound->env_bindings))->schema_values;}
+    values[i++]=val;}
+  fdtype result = op_eval_body(body,bound,_stack,tail);
+  _return result;
 }
 
-static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
+static fdtype opcode_dispatch_inner(fdtype opcode,fdtype expr,
+                                    fd_lexenv env,
+                                    fd_stack _stack,
+                                    int tail)
 {
+  if (opcode == FD_QUOTE_OPCODE)
+    return fd_incref(pop_arg(expr));
   fdtype args = FD_CDR(expr);
   switch (opcode) {
-  case FD_QUOTE_OPCODE:
-    return fd_incref(pop_arg(args));
   case FD_NOT_OPCODE: {
-    fdtype arg_val = op_eval(pop_arg(args),env,0);
+    fdtype arg_val = op_eval(pop_arg(args),env,_stack,0);
     if (FD_FALSEP(arg_val))
       return FD_TRUE;
     else {
       fd_decref(arg_val);
       return FD_FALSE;}}
   case FD_BEGIN_OPCODE:
-    return op_eval_body(FD_CDR(expr),env);
-  case FD_UNTIL_OPCODE:
-    return until_opcode(expr,env);
-  case FD_BRANCH_OPCODE: {
-    fdtype test_expr = pop_arg(args);
-    if (FD_VOIDP(test_expr))
-      return fd_err(fd_SyntaxError,"FD_BRANCH_OPCODE",NULL,expr);
-    fdtype test_val = op_eval(test_expr,env,0);
-    if (FD_ABORTED(test_val)) return test_val;
-    if (!(FD_FALSEP(test_val))) {
-      fdtype then = pop_arg(args);
-      U8_MAYBE_UNUSED fdtype ignore = pop_arg(args);
-      fd_decref(test_val);
-      return op_eval(then,env,1);}
-    else {
-      pop_arg(args);
-      return op_eval(pop_arg(args),env,1);}}
+    return op_eval_body(FD_CDR(expr),env,_stack,tail);
   case FD_SYMREF_OPCODE: {
     fdtype refenv=pop_arg(args);
     fdtype sym=pop_arg(args);
@@ -934,22 +922,38 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badsym",NULL,expr);
     if (FD_HASHTABLEP(refenv))
       return fd_hashtable_get((fd_hashtable)refenv,sym,FD_UNBOUND);
-    else if (FD_ENVIRONMENTP(refenv))
-      return fd_symeval(sym,(fd_lispenv)refenv);
+    else if (FD_LEXENVP(refenv))
+      return fd_symeval(sym,(fd_lexenv)refenv);
     else if (FD_TABLEP(refenv))
       return fd_get(refenv,sym,FD_UNBOUND);
     else return fd_err(fd_SyntaxError,"FD_SYMREF_OPCODE/badenv",NULL,expr);}
+  case FD_UNTIL_OPCODE:
+    return until_opcode(expr,env,_stack);
+  case FD_BRANCH_OPCODE: {
+    fdtype test_expr = pop_arg(args);
+    if (FD_VOIDP(test_expr))
+      return fd_err(fd_SyntaxError,"FD_BRANCH_OPCODE",NULL,expr);
+    fdtype test_val = op_eval(test_expr,env,_stack,0);
+    if (FD_ABORTED(test_val)) return test_val;
+    if (!(FD_FALSEP(test_val))) {
+      fdtype then = pop_arg(args);
+      U8_MAYBE_UNUSED fdtype ignore = pop_arg(args);
+      fd_decref(test_val);
+      return op_eval(then,env,_stack,tail);}
+    else {
+      pop_arg(args);
+      return op_eval(pop_arg(args),env,_stack,tail);}}
   case FD_TRY_OPCODE:
-    return try_op(args,env);
+    return try_op(args,env,_stack,tail);
   case FD_AND_OPCODE:
-    return and_op(args,env);
+    return and_op(args,env,_stack,tail);
   case FD_OR_OPCODE:
-    return or_op(args,env);
+    return or_op(args,env,_stack,tail);
   case FD_ASSIGN_OPCODE: {
     fdtype var = pop_arg(args);
     fdtype val_expr = pop_arg(args);
     fdtype combiner = pop_arg(args);
-    return assignop(env,var,val_expr,combiner);}
+    return assignop(_stack,env,var,val_expr,combiner);}
   case FD_VOID_OPCODE: {
     return FD_VOID;}
   case FD_XREF_OPCODE: {
@@ -958,26 +962,30 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     if ((FD_VOIDP(obj_expr))||(!(FD_FIXNUMP(off_arg)))) {
       fd_seterr(fd_SyntaxError,"FD_XREF_OPCODE",NULL,expr);
       return FD_ERROR_VALUE;}
-    else return xref_opcode(fd_simplify_choice(fasteval(obj_expr,env)),
-                            FD_FIX2INT(off_arg),
-                            pop_arg(args));}
+    else {
+      fdtype obj_arg=fast_eval(obj_expr,env);
+      return xref_opcode(fd_simplify_choice(obj_arg),
+                         FD_FIX2INT(off_arg),
+                         pop_arg(args));}}
   case FD_BIND_OPCODE: {
-    fdtype vars=pop_arg(args), inits=pop_arg(args), body=pop_arg(args);
-    return bindop(env,vars,inits,body);}
+    fdtype vars=pop_arg(args);
+    fdtype inits=pop_arg(args);
+    fdtype body=pop_arg(args);
+    return bindop(opcode,_stack,env,vars,inits,body,tail);}
   case FD_GET_OPCODE: case FD_PRIMGET_OPCODE:
   case FD_TEST_OPCODE: case FD_PRIMTEST_OPCODE:
   case FD_ASSERT_OPCODE: case FD_ADD_OPCODE:
   case FD_RETRACT_OPCODE: case FD_DROP_OPCODE:
   case FD_STORE_OPCODE: {
     fdtype expr1=pop_arg(args), expr2=pop_arg(args), expr3=pop_arg(args);
-    fdtype arg1=op_eval(expr1,env,0), arg2, arg3;
+    fdtype arg1=op_eval(expr1,env,_stack,0), arg2, arg3;
     fdtype result=FD_VOID;
     if (FD_ABORTED(arg1)) return arg1;
-    arg2=op_eval(expr2,env,0);
+    arg2=op_eval(expr2,env,_stack,0);
     if (FD_ABORTED(arg2)) {
       fd_decref(arg1);
       return arg2;}
-    arg3=(FD_VOIDP(expr3))?(FD_VOID):(op_eval(expr3,env,0));
+    arg3=(FD_VOIDP(expr3))?(FD_VOID):(op_eval(expr3,env,_stack,0));
     if (FD_ABORTED(arg3)) {
       fd_decref(arg1);
       fd_decref(arg2);
@@ -991,7 +999,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
   else {
     /* We have at least one argument to evaluate and we also get the body. */
-    fdtype arg1_expr = pop_arg(args), arg1 = op_eval(arg1_expr,env,0);
+    fdtype arg1_expr = pop_arg(args), arg1 = op_eval(arg1_expr,env,_stack,0);
     fdtype arg2_expr = pop_arg(args), arg2;
     /* Now, check the result of the first argument expression */
     if (FD_ABORTED(arg1)) return arg1;
@@ -1024,7 +1032,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         if (FD_VOIDP(arg2_expr)) {
           fd_decref(arg1);
           return fd_err(fd_TooFewArgs,opcode_name(opcode),NULL,expr);}
-        else arg2 = op_eval(arg2_expr,env,0);
+        else arg2 = op_eval(arg2_expr,env,_stack,0);
         if (FD_PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
         if (FD_ABORTED(arg2)) {
           fd_decref(arg1);
@@ -1046,7 +1054,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         if (FD_VOIDP(arg2_expr)) {
           fd_decref(arg1);
           return fd_err(fd_TooFewArgs,opcode_name(opcode),NULL,expr);}
-        else arg2 = op_eval(arg2_expr,env,0);
+        else arg2 = op_eval(arg2_expr,env,_stack,0);
         if (FD_PRECHOICEP(arg2)) arg2 = fd_simplify_choice(arg2);
         if (FD_ABORTED(arg2)) {
           fd_decref(arg1); return arg2;}
@@ -1066,14 +1074,26 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           return result;}}}
     else if (FD_ND2_OPCODEP(opcode))
       /* This decrefs its arguments itself */
-      return nd2_dispatch(opcode,arg1,op_eval(arg2_expr,env,0));
+      return nd2_dispatch(opcode,arg1,op_eval(arg2_expr,env,_stack,0));
     else {
       fd_decref(arg1);
       return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
   }
 }
 
-FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
+static fdtype opcode_dispatch(fdtype opcode,fdtype expr,
+                              fd_lexenv env,
+                              fd_stack caller,
+                              int tail)
+{
+  FD_NEW_STACK(caller,"opcode",opcode_name(opcode),opcode);
+  fdtype result = opcode_dispatch_inner(opcode,expr,env,_stack,tail);
+  _return result;
+}
+
+FD_FASTOP fdtype op_eval(fdtype x,fd_lexenv env,
+                         struct FD_STACK *stack,
+                         int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
@@ -1094,9 +1114,9 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
       fdtype car = FD_CAR(x);
       if (FD_TYPEP(car,fd_opcode_type)) {
         if (tail)
-          return opcode_dispatch(car,x,env);
+          return opcode_dispatch(car,x,env,stack,tail);
         else {
-          fdtype v = opcode_dispatch(car,x,env);
+          fdtype v = opcode_dispatch(car,x,env,stack,tail);
           return fd_finish_call(v);}}
       else if (tail)
         return fd_tail_eval(x,env);
@@ -1281,9 +1301,10 @@ static fdtype pickone_opcode(fdtype normal)
 static double opcodes_initialized = 0;
 
 FD_EXPORT
-fdtype fd_opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
+fdtype fd_opcode_dispatch(fdtype opcode,fdtype expr,fd_lexenv env,
+                          struct FD_STACK *stack,int tail)
 {
-  return opcode_dispatch(opcode,expr,env);
+  return opcode_dispatch(opcode,expr,env,stack,tail);
 }
 
 void fd_init_opcodes_c()

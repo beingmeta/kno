@@ -2028,12 +2028,12 @@ static fdtype morphrule(fdtype string,fdtype rules,fdtype lexicon)
 
 /* textclosure prim */
 
-static fdtype textclosure_handler(fdtype expr,fd_lispenv env)
+static fdtype textclosure_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype pattern_arg = fd_get_arg(expr,1);
   fdtype pattern = fd_eval(pattern_arg,env);
   if (FD_VOIDP(pattern_arg))
-    return fd_err(fd_SyntaxError,"textclosure_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"textclosure_evalfn",NULL,expr);
   else if (FD_ABORTP(pattern)) return pattern;
   else {
     fdtype closure = fd_textclosure(pattern,env);
@@ -2724,7 +2724,7 @@ void fd_init_texttools()
                            fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
 
-  fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_handler);
+  fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_evalfn);
   fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
 
   fd_idefn(texttools_module,

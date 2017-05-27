@@ -234,9 +234,9 @@ FD_EXPORT fdtype fd_copier(fdtype x,int flags);
 FD_EXPORT fdtype fd_deep_copy(fdtype x);
 FD_EXPORT fdtype fd_static_copy(fdtype x);
 
-FD_EXPORT fdtype *fd_copy_vec(fdtype *vec,int n,fdtype *into,int copy_flags);
-FD_EXPORT void fd_incref_vec(fdtype *vec,int n);
-FD_EXPORT void fd_decref_vec(fdtype *vec,int n,int free_vec);
+FD_EXPORT fdtype *fd_copy_vec(fdtype *vec,size_t n,fdtype *into,int copy_flags);
+FD_EXPORT void fd_incref_vec(fdtype *vec,size_t n);
+FD_EXPORT void fd_decref_vec(fdtype *vec,size_t n,int free_vec);
 
 #define FD_DEEP_COPY 2   /* Make a deep copy */
 #define FD_FULL_COPY 4   /* Copy non-static objects */
@@ -637,9 +637,9 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
 
 FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *ptr,fdtype tag,u8_byte mutable,short n,...);
+  (struct FD_COMPOUND *ptr,fdtype tag,int mutable,int n,...);
 FD_EXPORT fdtype fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts);
+  (struct FD_COMPOUND *p,fdtype tag,int mutable,int n,fdtype *elts);
 
 
 FD_EXPORT fdtype fd_compound_descriptor_type;
@@ -780,7 +780,9 @@ typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
-  FD_CONS_HEADER; u8_exception fdex_u8ex;} FD_EXCEPTION_OBJECT;
+  FD_CONS_HEADER;
+  u8_exception fdex_u8ex;}
+  FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);

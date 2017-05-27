@@ -54,6 +54,7 @@ calltracko=""
 curlo=""
 ldnso=""
 ipevalo=""
+ipevalprimso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -84,7 +85,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=4
-FDMINOR=0
+FDMINOR=1
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -98,7 +99,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
-apache_log_dir="/var/log/apache"
+apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
@@ -123,6 +124,7 @@ GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
+LIBSCM="\${REVISION}"
 default_config_dir="\$prefix/etc/framerd"
 local_config="\$prefix/etc/framerd"
 shared_config="\$prefix/etc/framerd"
@@ -161,6 +163,9 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+manually_disabled=""
+auto_disabled=""
+force_enabled=""
 
 test_env=
 memtest_env=""
@@ -174,6 +179,7 @@ leaktester_config=
 
 use_duma_lib="no"
 custom_malloc=""
+using_malloc=""
 default_malloc=${FD_DEFAULT_MALLOC:-libc}
 gperftools=""
 asan=""
@@ -208,6 +214,7 @@ AC_SUBST(curlo)
 AC_SUBST(ldnso)
 AC_SUBST(exifo)
 AC_SUBST(ipevalo)
+AC_SUBST(ipevalprimso)
 AC_SUBST(suffix)
 AC_SUBST(xstatic_exe_libs)
 AC_SUBST(xstatic_scheme_libs)
@@ -319,6 +326,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
 AC_SUBST(CODENAME)
 AC_SUBST(BINPATH)
+AC_SUBST(LIBSCM)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -384,6 +392,12 @@ if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/
   EXECLDFLAGS=" $EXECLDFLAGS \$(RPATHFLAGS) "
 fi
 
+AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
+if test "$with_fileinfo" = "yes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
+fi
+
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
 
@@ -401,6 +415,29 @@ m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
 
 AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
+
+case $host_os in
+  darwin*)
+   MKSTATIC="libtool -static -o "
+   dynamic_cflag="-dynamic"
+   shared_suffix="dylib"
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
+   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
+   ifmacosx=""
+   setup_target="setup-osx"
+   gperftools_default="no"
+   ;;
+esac  
+
+AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
+
+if test "${static_libgcc}" == "yes"; then
+   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
+fi
 
 AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
 if ! test "${with_stackcheck}" = "no"; then
@@ -503,6 +540,7 @@ else
    wwwinstall=""
 fi
 
+AC_MSG_CHECKING(apache log directory)
 if test -d ${apache_conf_dir}/log; then
    if test -h ${apache_conf_dir}/log; then
      apache_log_dir=$(readlink ${apache_conf_dir}/log);
@@ -523,7 +561,7 @@ elif test -d ${local_state_dir}/logs/http; then
     apache_log_dir=${local_state_dir}/logs/http;
 elif test -d /var/log/apache; then
     apache_log_dir=/var/log/apache;
-elif test -d /var/logs/apache2; then
+elif test -d /var/log/apache2; then
     apache_log_dir=/var/log/apache2;
 elif test -d /var/log/httpd; then
     apache_log_dir=/var/log/httpd;
@@ -531,13 +569,21 @@ elif test -d /var/log/http; then
     apache_log_dir=/var/log/http;
 elif test -d /usr/log/apache; then
     apache_log_dir=/usr/log/apache;
-elif test -d /usr/logs/apache2; then
+elif test -d /usr/log/apache2; then
      apache_log_dir=/usr/log/apache2;
 elif test -d /usr/log/httpd; then
     apache_log_dir=/usr/log/httpd;
 elif test -d /usr/log/http; then
     apache_log_dir=/usr/log/http;
-else echo "Can't find Apache log dir for apache, using ${apache_log_dir}";
+else
+    apache_log_dir=""
+fi;
+
+if test -z ${apache_log_dir}; then
+ AC_MSG_RESULT(none found, assuming /var/log/apache2/)
+ apache_log_dir=/var/log/apache;
+else
+ AC_MSG_RESULT($apache_log_dir);
 fi;
 
 if test ! -z $APXS; then
@@ -605,24 +651,35 @@ if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
    exit;
 fi
 
+AC_MSG_CHECKING(malloc library)
+
 if test -z "$with_malloc" || 
    test "$with_malloc" = "libc" ||
    test "$with_malloc" = "builtin" ; then
-   echo "Using standard malloc";
+   AC_MSG_RESULT(libc default)
    custom_malloc="";
+   using_malloc="libc"
 elif test "$with_malloc" = "tcmalloc"; then
   gperftools="yes";
   custom_malloc="tcmalloc"
+  using_malloc="tcmalloc"
+  AC_MSG_RESULT(tcmalloc)
 elif test "$with_malloc" = "gperftools"; then
   gperftools="profile";
   custom_malloc="tcmalloc"
+  using_malloc="gperftools"
+  AC_MSG_RESULT(tcmalloc profiling)
 elif test "$with_malloc" = "tcmalloc_debug"; then
   gperftools="debug";
   custom_malloc="tcmalloc_debug"
+  using_malloc="tcmalloc_debug"
+  AC_MSG_RESULT(tcmalloc debug)
 elif test "$with_malloc" = "jemalloc"; then
   AC_CHECK_LIB(jemalloc,malloc,EXECLIBS="-ljemalloc $EXECLIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
+    using_malloc="jemalloc"
+    AC_MSG_RESULT(jemalloc)
   else
     AC_MSG_ERROR(jemalloc can't be found)
     exit;
@@ -631,6 +688,8 @@ elif test "$with_malloc" = "dmalloc"; then
   AC_CHECK_LIB(dmalloc,malloc,EXECLIBS="-ldmalloc $EXECLIBS")
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
+    using_malloc="dmalloc"
+    AC_MSG_RESULT(dmalloc)
   else
     AC_MSG_ERROR(dmalloc can't be found)
     exit;
@@ -642,18 +701,22 @@ elif test "$with_malloc" = "asan"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
+   using_malloc="asan"
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
+   AC_MSG_RESULT(ASAN)
 elif test "$with_malloc" = "asan_thread"; then
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
    LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
    install_static=""
-   custom_malloc="msan"
+   custom_malloc="asan_thread"
+   using_malloc="asan_thread"
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
+   AC_MSG_RESULT(ASAN thread)
 else
    AC_MSG_ERROR(Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread)
    exit 1;
@@ -716,50 +779,31 @@ if test "${GCC}" = "yes"; then
    dynamic_cflag="-rdynamic";
 fi;
 
-case $host_os in
-  darwin*)
-   MKSTATIC="libtool -static -o "
-   dynamic_cflag="-dynamic"
-   shared_suffix="dylib"
-   vshared_suffix=${FDVERSION}.dylib
-   mshared_suffix=${FDMAJOR}.dylib
-   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
-   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
-   RPATHFLAGS=" -rpath \$(RPATH) "
-   ifmacosx=""
-   setup_target="setup-osx"
-   gperftools_default="no"
-   ;;
-esac  
-
-AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
-
-if test "${static_libgcc}" == "yes"; then
-   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
 AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
 
-AC_CHECK_HEADERS(ffi.h)
-AC_CHECK_LIB(ffi,ffi_prep_cif)
-AC_CHECK_HEADERS(archive.h)
-AC_CHECK_LIB(archive,archive_read_new)
-
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+if test "${enable_ffi}" == "yes"; then
+   AC_CHECK_HEADERS(ffi.h)
+   AC_CHECK_LIB(ffi,ffi_prep_cif)
 fi
 
-AC_CHECK_HEADERS(leveldb/c.h)
-AC_CHECK_LIB(leveldb,leveldb_open)
-if test "${ac_cv_header_leveldb_c_h}" == "yes" && \
-   test "${ac_cv_lib_leveldb_leveldb_open}" == "yes"; then
-  CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
+if test "${enable_ffi}" != "yes"; then
+   manually_disabled="ffi ${manually_disabled}"
+elif test "${ac_cv_header_ffi_h}" != "yes";  then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
+elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
 fi
 
+# This cmodule isn't actually implemented yet
+#AC_CHECK_HEADERS(archive.h)
+#AC_CHECK_LIB(archive,archive_read_new)
+#if test "${ac_cv_header_archive_h}" == "yes" && \
+#   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+#  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+#  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+#fi
 
 DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
@@ -827,6 +871,7 @@ AC_CHECK_HEADERS(fcntl.h malloc.h mcheck.h sys/resource.h malloc/malloc.h)
 AC_CHECK_HEADERS(resource.h sys/resource.h)
 AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h sys/file.h signal.h)
 AC_CHECK_HEADERS(sys/utsname.h sys/vfs.h sys/statfs.h sys/sysinfo.h)
+AC_CHECK_HEADERS(obstack.h)
 
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],[#include <sys/resource.h>])
 AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],[#include <sys/resource.h>])
@@ -883,6 +928,17 @@ local_safe_module_dir=$with_local_modules/safe
 AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$share_dir/modules/builtin)
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
+
+LIBSCM="${share_dir}/libscm/\${REVISION}"
+
+AC_ARG_WITH(libscm,--with-libscm location)
+if test "$with_libscm" == "version"; then
+   AC_DEFINE_UNQUOTED(FD_LIBSCM_DIR,"$share_dir/libscm/framerd-$FDVERSION")
+   LIBSCM="$share_dir/libscm/framerd-$FDVERSION";
+elif test ! -z "$with_libscm"; then
+   AC_DEFINE_UNQUOTED(FD_LIBSCM_DIR,"$with_libscm")
+   LIBSCM=$with_libscm
+fi;
 
 builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
 builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm
@@ -1100,29 +1156,101 @@ else
    with_mysql_default="no";
 fi
 
-if test $pkg_config != "na"; then
-   if $pkg_config --exists MagickWand; then
-      IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags` 
-      IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs` 
-      with_imagick_default=yes;
+AC_ARG_ENABLE(leveldb,--en[dis]able-leveldb Build and install LevelDB module,,enable_leveldb="yes")
+
+if test "${enable_leveldb}" = "yes" ||
+   test "${enable_leveldb}" = "force"; then
+   AC_CHECK_HEADERS(leveldb/c.h)
+   AC_CHECK_LIB(leveldb,leveldb_open)
+   if test "${enable_leveldb}" = "yes" &&
+      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
+      test "${ac_cv_lib_leveldb_leveldb_open}" = "yes"; then
+     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+   elif test "${enable_leveldb}" = "force"; then
+     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+     force_enabled="leveldb ${force_enabled}";
    else
-       with_imagick_default=no;
-   fi
-   if $pkg_config --exists libzip; then
-      LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
-      LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
-      with_ziptools_default=yes;
-   else
-      with_ziptools_default=no;
-   fi
-   if $pkg_config --exists libmongoc-1.0; then
-      MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
-      MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
-      with_mongodb_default=yes;
-   else
-      with_mongodb_default=no;
-   fi
+     auto_disabled="leveldb ${auto_disabled}";
+     enable_leveldb="no";
+   fi;
+else
+   manually_disabled="leveldb ${auto_disabled}";
 fi
+
+AC_ARG_ENABLE(imagick,--en[dis]able-imagick Build and install imagemagick module,,enable_imagick="yes")
+
+if test "$enable_imagick" = "yes" &&
+   test $pkg_config != "na" &&
+   $pkg_config --exists MagickWand; then
+  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
+  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "force"; then
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "yes"; then
+  auto_disabled="imagick ${auto_disabled}";
+  enable_imagick="failed";
+else
+  manually_disabled="imagick ${manually_disabled}";
+fi
+
+AC_ARG_ENABLE(ziptools,--with-ziptools Build and install ziptools,,enable_ziptools="yes")
+
+if test "$enable_ziptools" = "yes" ||
+   test "$enable_ziptools" = "force"; then
+  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
+  AC_CHECK_LIB(zip,zip_add)
+  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
+  AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libzip; then
+    LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
+    LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
+    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
+    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
+    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$have_zip_h" = "yes" &&
+       test "$have_libzip" = "yes"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$enable_ziptools" = "force"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    force_enabled="ziptools ${force_enabled}";
+  else
+    auto_disabled="ziptools ${auto_disabled}";
+    enable_ziptools="failed";
+  fi;
+else
+    manually_disabled="ziptools ${manually_disabled}";
+fi
+
+AC_ARG_ENABLE(mongodb,--en[dis]able-mongodb Build and install MongoDB module,,enable_mongodb="yes")
+
+if test "$enable_mongodb" = "yes" ||
+   test "$enable_mongodb" = "force"; then
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libmongoc-1.0; then
+    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
+    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
+    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+  elif test "$enable_mongodb" = "force"; then
+    force_enabled="mongodb ${force_enabled}";
+    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+  else
+    auto_disabled="mongodb ${auto_disabled}";
+  fi;
+else
+    manually_disabled="mongodb ${manually_disabled}";      
+fi;
 
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
@@ -1142,9 +1270,9 @@ if test "$with_mysql" != "no"; then
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(odbc,--with[out]-odbc Build odbc libraries,,with_odbc="yes")
+AC_ARG_ENABLE(odbc,--en[dis]able-odbc Build odbc modules,,enable_odbc="yes")
 
-if test "$with_odbc" == "yes"; then
+if test "$enable_odbc" = "yes"; then
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
 if test "$have_sql_h" = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
@@ -1192,69 +1320,36 @@ if test "${have_snappyc_h}" = "yes"; then
    AC_DEFINE(HAVE_SNAPPYC_H,1)
 fi;
 
-AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools=$with_ziptools_default)
+AC_ARG_ENABLE(tidy,--en[dis]able-tidy Build and install tidy module,,enable_tidy="yes")
 
-if test "$with_ziptools" == "yes"; then
-  CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
-  CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-  LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-  if (test "$have_zip_h" = "yes"); then
-    AC_CHECK_LIB(zip,zip_add)
-    AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
-    AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
-  fi
-  if (test "$have_zip_h" = "yes") && (test "$have_libzip" = "yes"); then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
-  fi
-fi
-
-AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
-
-if test "$with_tidy" == "yes"; then
+if test "$enable_tidy" = "yes"; then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_imagick=$with_imagick_default)
-if test "$with_imagick" = "yes"; then
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
-fi
+AC_ARG_ENABLE(hyphenate,--en[dis]able-hyphenate Build and install the hyphenate module,,enable_hyphenate="yes")
 
-AC_ARG_WITH(mongodb,--with-mongodb Build and install MongoDB library,,with_mongodb=$with_mongodb_default)
-
-if test "$with_mongodb" = "yes"; then
-   CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
-   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
-fi;
-
-AC_ARG_WITH(leveldb,--with-leveldb Build and install LevelDB library,,with_leveldb=$with_leveldb_default)
-if test "$with_leveldb" = "yes"; then
-  CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
-fi
-
-AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/framerd/versions.h"
-fi
-
-AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate=${with_hyphenate_default})
-if test "$with_hyphenate" = "yes"; then
+if test "$enable_hyphenate" = "yes"; then
   AC_CHECK_HEADERS(hyphen.h)
   AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
 fi
-if test "$with_hyphenate" = "yes" &&
+
+if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
    test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+elif test "$enable_hyphenate" = "force"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  force_enabled="hyphenate ${force_enabled}";
+elif test "$enable_hyphenate" = "yes"; then
+  auto_disabled="hyphenate $auto_disabled";
+  enable_hyphenate="failed";
 else
-  with_hyphenate="no";
+  manually_disabled="hyphenate $manually_disabled";
 fi
 
 # For OS X
@@ -1444,6 +1539,7 @@ dnl This enables the ipeval implementation within FramerD
 AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
+  ipevalprimso=src/prims/ipevalprims.o
   AC_DEFINE(FD_IPEVAL_ENABLED,1)
 else
   AC_DEFINE(FD_IPEVAL_ENABLED,0)
@@ -1547,7 +1643,7 @@ fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
-if test $exec_prefix == 'NONE';
+if test $exec_prefix = 'NONE';
   then BINDIR="${prefix}/bin";
 else BINDIR="${exec_prefix}/bin";
 fi
@@ -1572,8 +1668,9 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdreload etc/fdrestart etc/fdctl
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
-	   tests/scheme/runenv.sh tests/scheme/runtest 
-	   tests/scheme/fdexectest tests/scheme/memtest tests/scheme/leaktest
+	   tests/scheme/runenv.sh tests/scheme/testenv
+	   tests/scheme/runtest tests/scheme/memtest
+	   tests/scheme/leaktest tests/scheme/fdexectest
 	   tests/scheme/tcdebug tests/scheme/vgdebug
 	   tests/scheme/gheaptest
 	   src/scripts/fdpkg.scm
@@ -1586,10 +1683,16 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.conf 
 	   etc/fdserv.load
 	   etc/install-script 
-	   dist/framerd-4.0.spec],
+	   dist/framerd-4.1.spec],
 	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
 
-if test "$enable_ipeval" == "yes"; then
+if test ! -z "$manually_disabled"; then
+   echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
+if test ! -z "$auto_disabled"; then
+   echo "+++ These components can't be built: $auto_disabled"; fi
+if test ! -z "$force_enabled"; then
+   echo "+++ These components were enabled by force and may have issues: $force_enabled"; fi
+if test "$enable_ipeval" = "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";

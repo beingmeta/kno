@@ -48,6 +48,7 @@
 
 (unless (config 'testoptimized #f)
   (config! 'optimize:rails #t)
+  (config! 'optimize:level 4)
   (define applytester applytest)
   (define evaltester evaltest)
   (define define-tester define)

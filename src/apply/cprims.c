@@ -14,6 +14,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/lexenv.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
@@ -34,8 +35,8 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
   struct FD_FUNCTION *fcn = (fd_function)x;
   u8_string name = fcn->fcn_name;
   u8_string filename = fcn->fcn_filename, space;
-  u8_byte arity[16]=""; u8_byte codes[16]="";
-  u8_byte tmpbuf[32];
+  u8_byte arity[64]=""; u8_byte codes[64]="";
+  u8_byte tmpbuf[32], numbuf[32];
   if ((filename)&&(filename[0]=='\0'))
     filename = NULL;
   if ( (filename) && (space=strchr(filename,' '))) {
@@ -47,18 +48,28 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
   if (filename==NULL) filename="nofile";
   if (fcn->fcn_ndcall) strcat(codes,"∀");
   if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
-    strcat(arity,"…");
-  else if (fcn->fcn_arity == fcn->fcn_min_arity)
-    sprintf(arity,"[%d]",fcn->fcn_min_arity);
-  else if (fcn->fcn_arity<0)
-    sprintf(arity,"[%d…]",fcn->fcn_min_arity);
-  else sprintf(arity,"[%d-%d]",fcn->fcn_min_arity,fcn->fcn_arity);
+    strcat(arity,"[…]");
+  else if (fcn->fcn_arity == fcn->fcn_min_arity) {
+    strcat(arity,"[");
+    strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
+    strcat(arity,"]");}
+  else if (fcn->fcn_arity<0) {
+    strcat(arity,"[");
+    strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
+    strcat(arity,"…]");}
+  else {
+    strcat(arity,"[");
+    strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
+    strcat(arity,"-");
+    strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
+    strcat(arity,"]");}
   if (name)
     u8_printf(out,"#<Φ%s%s%s%s%s%s>",
               codes,name,arity,
               U8OPTSTR(" '",filename,"'"));
-  else u8_printf(out,"#<Φ%s%s #!0x%llx%s%s%s>",
-                 codes,arity,(unsigned long long) fcn,
+  else u8_printf(out,"#<Φ%s%s #!0x%s%s%s%s>",
+                 codes,arity,
+                 u8_uitoa16((unsigned long long) fcn,numbuf),
                  U8OPTSTR("'",filename,"'"));
   return 1;
 }
@@ -69,6 +80,37 @@ static void recycle_primitive(struct FD_RAW_CONS *c)
   if (fn->fcn_defaults) u8_free(fn->fcn_defaults);
   if (fn->fcn_attribs) fd_decref(fn->fcn_attribs);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
+}
+
+static int dtype_cprim(struct FD_OUTBUF *out,fdtype x)
+{
+  int n_elts=0;
+  struct FD_FUNCTION *fcn = (struct FD_FUNCTION *)x;
+  unsigned char buf[200], *tagname="%CPRIM";
+  struct FD_OUTBUF tmp;
+  FD_INIT_OUTBUF(&tmp,buf,200,0);
+  fd_write_byte(&tmp,dt_compound);
+  fd_write_byte(&tmp,dt_symbol);
+  fd_write_4bytes(&tmp,6);
+  fd_write_bytes(&tmp,tagname,6);
+  if (fcn->fcn_name) n_elts++;
+  if (fcn->fcn_filename) n_elts++;
+  fd_write_byte(&tmp,dt_vector);
+  fd_write_4bytes(&tmp,n_elts);
+  if (fcn->fcn_name) {
+    size_t len=strlen(fcn->fcn_name);
+    fd_write_byte(&tmp,dt_symbol);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_name,len);}
+  if (fcn->fcn_filename) {
+    size_t len=strlen(fcn->fcn_filename);
+    fd_write_byte(&tmp,dt_string);
+    fd_write_4bytes(&tmp,len);
+    fd_write_bytes(&tmp,fcn->fcn_filename,len);}
+  size_t n_bytes=tmp.bufwrite-tmp.buffer;
+  fd_write_bytes(out,tmp.buffer,n_bytes);
+  fd_close_outbuf(&tmp);
+  return n_bytes;
 }
 
 /* Declaring functions */
@@ -328,6 +370,7 @@ FD_EXPORT fdtype fd_new_cprim9
   return FDTYPE_CONS(f);
 }
 
+#if 0
 FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {
   struct FD_FUNCTION *f = new_cprim(name,NULL,NULL,-1,min_arity,0,0);
@@ -336,8 +379,6 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
   f->fcn_handler.calln = fn;
   return FDTYPE_CONS(f);
 }
-
-#if 0
 FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn)
 {
   struct FD_FUNCTION *f = new_cprim(name,NULL,NULL,0,0,0,0);
@@ -424,7 +465,7 @@ FD_EXPORT void fd_init_cprims_c()
 
   fd_unparsers[fd_cprim_type]=unparse_primitive;
   fd_recyclers[fd_cprim_type]=recycle_primitive;
-
+  fd_dtype_writers[fd_cprim_type]=dtype_cprim;
 }
 
 

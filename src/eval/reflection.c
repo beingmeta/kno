@@ -21,7 +21,7 @@
 
 static fdtype moduleid_symbol;
 
-#define GETSPECFORM(x) ((fd_special_form)(fd_fcnid_ref(x)))
+#define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 
 static fdtype macrop(fdtype x)
 {
@@ -41,9 +41,9 @@ static fdtype applicablep(fdtype x)
   else return FD_FALSE;
 }
 
-static fdtype special_formp(fdtype x)
+static fdtype evalfnp(fdtype x)
 {
-  if (FD_TYPEP(x,fd_specform_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_evalfn_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -68,10 +68,10 @@ static fdtype procedure_name(fdtype x)
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
     return FD_FALSE;
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fdtype_string(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fdtype_string(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
@@ -83,10 +83,10 @@ static fdtype procedure_filename(fdtype x)
     if (f->fcn_filename)
       return fdtype_string(f->fcn_filename);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_filename)
-      return fdtype_string(sf->fexpr_filename);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_filename)
+      return fdtype_string(sf->evalfn_filename);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_filename",x);
 }
@@ -98,10 +98,10 @@ static fdtype procedure_symbol(fdtype x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fd_intern(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fd_intern(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_symbol",x);
 }
@@ -113,10 +113,10 @@ static fdtype procedure_id(fdtype x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return fd_incref(x);}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fd_intern(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fd_intern(sf->evalfn_name);
     else return fd_incref(x);}
   else return fd_incref(x);
 }
@@ -138,10 +138,10 @@ static fdtype set_procedure_documentation(fdtype x,fdtype doc)
     if (f->fcn_documentation) u8_free(f->fcn_documentation);
     f->fcn_documentation = FD_STRDATA(doc);
     return FD_VOID;}
-  else if (FD_TYPEP(proc,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(proc);
-    if (sf->fexpr_documentation) u8_free(sf->fexpr_documentation);
-    sf->fexpr_documentation = FD_STRDATA(doc);
+  else if (FD_TYPEP(proc,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(proc);
+    if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
+    sf->evalfn_documentation = FD_STRDATA(doc);
     return FD_VOID;}
   else return fd_err("Not Handled","set_procedure_documentation",
                      NULL,x);
@@ -319,6 +319,18 @@ static fdtype compound_procedure_body(fdtype arg)
 	 ("compound procedure","compound_procedure_body",x);
 }
 
+static fdtype compound_procedure_source(fdtype arg)
+{
+  fdtype x = fd_fcnid_ref(arg);
+  if (FD_SPROCP(x)) {
+    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
+    if (FD_VOIDP(proc->sproc_source))
+      return FD_FALSE;
+    else return fd_incref(proc->sproc_source);}
+  else return fd_type_error
+	 ("compound procedure","compound_procedure_source",x);
+}
+
 static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
 {
   fdtype x = fd_fcnid_ref(arg);
@@ -330,6 +342,19 @@ static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
     return FD_VOID;}
   else return fd_type_error
 	 ("compound procedure","set_compound_procedure_body",x);
+}
+
+static fdtype set_compound_procedure_source(fdtype arg,fdtype new_source)
+{
+  fdtype x = fd_fcnid_ref(arg);
+  if (FD_SPROCP(x)) {
+    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
+    fdtype source = proc->sproc_source;
+    proc->sproc_source = fd_incref(new_source);
+    fd_decref(source);
+    return FD_VOID;}
+  else return fd_type_error
+	 ("compound procedure","set_compound_procedure_source",x);
 }
 
 static fdtype compound_procedure_bytecode(fdtype arg)
@@ -406,10 +431,9 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
       struct FD_MACRO *macrofn = (struct FD_MACRO *)fd_fcnid_ref(expander);
       fd_ptr_type xformer_type = FD_PTR_TYPE(macrofn->macro_transformer);
       if (fd_applyfns[xformer_type]) {
-        /* These are special forms which do all the evaluating themselves */
+        /* These are evalfns which do all the evaluating themselves */
         fdtype new_expr=
-          (fd_applyfns[xformer_type])
-          (fd_fcnid_ref(macrofn->macro_transformer),1,&expr);
+          fd_dcall(fd_stackptr,fd_fcnid_ref(macrofn->macro_transformer),1,&expr);
         new_expr = fd_finish_call(new_expr);
         if (FD_ABORTP(new_expr))
           return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
@@ -438,8 +462,8 @@ static fdtype apropos_prim(fdtype arg)
 
 static fdtype module_bindings(fdtype arg)
 {
-  if (FD_ENVIRONMENTP(arg)) {
-    fd_lispenv envptr = fd_consptr(fd_lispenv,arg,fd_environment_type);
+  if (FD_LEXENVP(arg)) {
+    fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
     return fd_getkeys(envptr->env_bindings);}
   else if (FD_TABLEP(arg))
     return fd_getkeys(arg);
@@ -456,9 +480,9 @@ static fdtype module_bindings(fdtype arg)
 
 static fdtype modulep(fdtype arg)
 {
-  if (FD_ENVIRONMENTP(arg)) {
-    struct FD_ENVIRONMENT *env=
-      fd_consptr(struct FD_ENVIRONMENT *,arg,fd_environment_type);
+  if (FD_LEXENVP(arg)) {
+    struct FD_LEXENV *env=
+      fd_consptr(struct FD_LEXENV *,arg,fd_lexenv_type);
     if (fd_test(env->env_bindings,moduleid_symbol,FD_VOID))
       return FD_TRUE;
     else return FD_FALSE;}
@@ -471,8 +495,8 @@ static fdtype modulep(fdtype arg)
 
 static fdtype module_exports(fdtype arg)
 {
-  if (FD_ENVIRONMENTP(arg)) {
-    fd_lispenv envptr = fd_consptr(fd_lispenv,arg,fd_environment_type);
+  if (FD_LEXENVP(arg)) {
+    fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
     return fd_getkeys(envptr->env_exports);}
   else if (FD_TABLEP(arg))
     return fd_getkeys(arg);
@@ -487,35 +511,35 @@ static fdtype module_exports(fdtype arg)
   else return fd_type_error(_("module"),"module_exports",arg);
 }
 
-static fdtype local_bindings_handler(fdtype expr,fd_lispenv env)
+static fdtype local_bindings_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   if (env->env_copy)
     return fd_incref(env->env_copy->env_bindings);
   else {
-    fd_lispenv copied = fd_copy_env(env);
+    fd_lexenv copied = fd_copy_env(env);
     fdtype bindings = copied->env_bindings;
     fd_incref(bindings);
     fd_decref((fdtype)copied);
     return bindings;}
 }
 
-static fdtype thisenv_handler(fdtype expr,fd_lispenv env)
+static fdtype thisenv_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return (fdtype) fd_copy_env(env);
 }
 
 /* Finding where a symbol comes from */
 
-static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
+static fdtype wherefrom_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
 {
   fdtype symbol_arg = fd_get_arg(expr,1);
   fdtype symbol = fd_eval(symbol_arg,call_env);
   if (FD_SYMBOLP(symbol)) {
-    fd_lispenv env;
+    fd_lexenv env;
     fdtype env_arg = fd_eval(fd_get_arg(expr,2),call_env);
     if (FD_VOIDP(env_arg)) env = call_env;
-    else if (FD_TYPEP(env_arg,fd_environment_type))
-      env = fd_consptr(fd_lispenv,env_arg,fd_environment_type);
+    else if (FD_TYPEP(env_arg,fd_lexenv_type))
+      env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
     else return fd_type_error(_("environment"),"wherefrom",env_arg);
     if (env->env_copy) env = env->env_copy;
     while (env) {
@@ -536,13 +560,13 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
 
 /* Finding all the modules used from an environment */
 
-static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
+static fdtype getmodules_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
 {
   fdtype env_arg = fd_eval(fd_get_arg(expr,1),call_env), modules = FD_EMPTY_CHOICE;
-  fd_lispenv env = call_env;
+  fd_lexenv env = call_env;
   if (FD_VOIDP(env_arg)) {}
-  else if (FD_TYPEP(env_arg,fd_environment_type))
-    env = fd_consptr(fd_lispenv,env_arg,fd_environment_type);
+  else if (FD_TYPEP(env_arg,fd_lexenv_type))
+    env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
   else return fd_type_error(_("environment"),"wherefrom",env_arg);
   if (env->env_copy) env = env->env_copy;
   while (env) {
@@ -579,27 +603,67 @@ FD_EXPORT void fd_init_reflection_c()
             "(can be passed to apply, used as a function, etc",
             -1,FD_VOID);
 
-  fd_idefn(module,fd_make_cprim1("COMPOUND-PROCEDURE?",compound_procedurep,1));
-  fd_idefn(module,fd_make_cprim1("SPECIAL-FORM?",special_formp,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
+  fd_idefn1(module,"COMPOUND-PROCEDURE?",compound_procedurep,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"SPECIAL-FORM?",evalfnp,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE?",procedurep,1,
+            "",
+            -1,FD_VOID);
 
-  fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));
-  fd_idefn(module,fd_make_cprim1("NON-DETERMINISTIC?",non_deterministicp,1));
-  fd_idefn(module,fd_make_cprim1("SYNCHRONIZED?",synchronizedp,1));
-  fd_idefn(module,fd_make_cprim1("MODULE?",modulep,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-FILENAME",procedure_filename,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-ARITY",procedure_arity,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-MIN-ARITY",procedure_min_arity,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-SYMBOL",procedure_symbol,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-DOCUMENTATION",
-                                 procedure_documentation,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-ID",procedure_id,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-ARGS",compound_procedure_args,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-BODY",compound_procedure_body,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
-  fd_idefn(module,fd_make_cprim1("PROCEDURE-BYTECODE",
-                                 compound_procedure_bytecode,1));
+  fd_idefn1(module,"PRIMITIVE?",primitivep,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"NON-DETERMINISTIC?",non_deterministicp,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"SYNCHRONIZED?",synchronizedp,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"MODULE?",modulep,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-NAME",procedure_name,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-FILENAME",procedure_filename,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-ARITY",procedure_arity,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-MIN-ARITY",procedure_min_arity,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-SYMBOL",procedure_symbol,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-DOCUMENTATION",
+            procedure_documentation,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-ID",procedure_id,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-ARGS",compound_procedure_args,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-BODY",compound_procedure_body,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-SOURCE",compound_procedure_source,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-ENV",compound_procedure_env,1,
+            "",
+            -1,FD_VOID);
+  fd_idefn1(module,"PROCEDURE-BYTECODE",
+            compound_procedure_bytecode,1,
+            "",
+            -1,FD_VOID);
+
   fd_idefn2(module,"REFLECT/GET",reflect_get,2,
             "Returns a meta-property of a procedure",
             -1,FD_VOID,-1,FD_VOID);
@@ -609,43 +673,44 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("REFLECT/ATTRIBS",get_procedure_attribs,1));
   fd_idefn(module,fd_make_cprim2("REFLECT/SET-ATTRIBS!",
                                  set_procedure_attribs,2));
-  fd_idefn(module,
-           fd_make_cprim2x("SET-PROCEDURE-DOCUMENTATION!",
-                           set_procedure_documentation,2,
-                           -1,FD_VOID,fd_string_type,FD_VOID));
+  fd_idefn2(module,"SET-PROCEDURE-DOCUMENTATION!",
+            set_procedure_documentation,2,
+            "",
+            -1,FD_VOID,fd_string_type,FD_VOID);
 
-  fd_idefn(module,
-           fd_make_cprim2("SET-PROCEDURE-BODY!",
-                          set_compound_procedure_body,2));
-  fd_idefn(module,
-           fd_make_cprim2("SET-PROCEDURE-ARGS!",
-                          set_compound_procedure_args,2));
-  fd_idefn(module,
-           fd_make_cprim2x("SET-PROCEDURE-OPTIMIZER!",
-                           set_compound_procedure_optimizer,2,
-                           fd_sproc_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,
-           fd_make_cprim2x("SET-PROCEDURE-BYTECODE!",
-                           set_compound_procedure_bytecode,2,
-                           -1,FD_VOID,fd_vector_type,FD_VOID));
+  fd_idefn2(module,"SET-PROCEDURE-BODY!",set_compound_procedure_body,2,
+            "",fd_sproc_type,FD_VOID,-1,FD_VOID);
+  fd_idefn2(module,"SET-PROCEDURE-ARGS!",set_compound_procedure_args,2,
+           "",fd_sproc_type,FD_VOID,-1,FD_VOID);
+  fd_idefn2(module,"SET-PROCEDURE-SOURCE!",set_compound_procedure_source,2,
+            "",fd_sproc_type,FD_VOID,-1,FD_VOID);
+  fd_idefn2(module,"SET-PROCEDURE-OPTIMIZER!",
+            set_compound_procedure_optimizer,2,
+            "",fd_sproc_type,FD_VOID,-1,FD_VOID);
+  fd_idefn2(module,"SET-PROCEDURE-BYTECODE!",set_compound_procedure_bytecode,2,
+            "",fd_sproc_type,FD_VOID,fd_code_type,FD_VOID);
 
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 
-  fd_idefn(module,fd_make_cprim1x
-           ("FCNID/REF",fcnid_refprim,1,fd_fcnid_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x
-           ("FCNID/REGISTER",fcnid_registerprim,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x
-           ("FCNID/SET!",fcnid_setprim,1,fd_fcnid_type,FD_VOID,-1,FD_VOID));
+  fd_idefn1(module,"FCNID/REF",fcnid_refprim,1,
+            "",fd_fcnid_type,FD_VOID);
+  fd_idefn1(module,"FCNID/REGISTER",fcnid_registerprim,1,
+            "",-1,FD_VOID);
+  fd_idefn2(module,"FCNID/SET!",fcnid_setprim,1,
+            "",fd_fcnid_type,FD_VOID,-1,FD_VOID);
 
-  fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
-  fd_idefn(module,fd_make_cprim1("MODULE-EXPORTS",module_exports,1));
+  fd_idefn1(module,"MODULE-BINDINGS",module_bindings,1,
+            "Returns the bindings table for a module's environment",
+            -1,FD_VOID);
+  fd_idefn1(module,"MODULE-EXPORTS",module_exports,1,
+            "Returns the exports table for a module",
+            -1,FD_VOID);
 
-  fd_defspecial(module,"%ENV",thisenv_handler);
-  fd_defspecial(module,"%BINDINGS",local_bindings_handler);
+  fd_defspecial(module,"%ENV",thisenv_evalfn);
+  fd_defspecial(module,"%BINDINGS",local_bindings_evalfn);
 
-  fd_defspecial(module,"WHEREFROM",wherefrom_handler);
-  fd_defspecial(module,"GETMODULES",getmodules_handler);
+  fd_defspecial(module,"WHEREFROM",wherefrom_evalfn);
+  fd_defspecial(module,"GETMODULES",getmodules_evalfn);
 
   fd_finish_module(module);
 }

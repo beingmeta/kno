@@ -12,9 +12,9 @@
 #endif
 
 FD_EXPORT int fd_update_file_modules(int force);
-FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base);
-FD_EXPORT int fd_snapshot(fd_lispenv env,u8_string filename);
-FD_EXPORT int fd_snapback(fd_lispenv env,u8_string filename);
+FD_EXPORT int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base);
+FD_EXPORT int fd_snapshot(fd_lexenv env,u8_string filename);
+FD_EXPORT int fd_snapback(fd_lexenv env,u8_string filename);
 FD_EXPORT u8_string fd_tempdir(u8_string arg,int keep);
 
 #endif

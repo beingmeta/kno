@@ -1562,19 +1562,19 @@ static fdtype getpathstar_prim(int n,fdtype *args)
 
 /* Cache gets */
 
-static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
+static fdtype cacheget_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype table_arg = fd_get_arg(expr,1), key_arg = fd_get_arg(expr,2);
   fdtype default_expr = fd_get_arg(expr,3);
   if (FD_EXPECT_FALSE((FD_VOIDP(table_arg)) ||
                       (FD_VOIDP(key_arg)) ||
                       (FD_VOIDP(default_expr))))
-    return fd_err(fd_SyntaxError,"cacheget_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"cacheget_evalfn",NULL,expr);
   else {
     fdtype table = fd_eval(table_arg,env), key, value;
     if (FD_ABORTED(table)) return table;
     else if (FD_TABLEP(table)) key = fd_eval(key_arg,env);
-    else return fd_type_error(_("table"),"cachget_handler",table);
+    else return fd_type_error(_("table"),"cachget_evalfn",table);
     if (FD_ABORTED(key)) {
       fd_decref(table); return key;}
     else value = fd_get(table,key,FD_VOID);
@@ -2562,7 +2562,7 @@ static fdtype oid2string_prim(fdtype oid,fdtype name)
 
 static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
 {
-  char buf[64]; int offset;
+  char buf[32]; int offset;
   FD_OID addr = FD_OID_ADDR(oid);
   if ((FD_VOIDP(base_arg)) || (FD_FALSEP(base_arg))) {
     fd_pool p = fd_oid2pool(oid);
@@ -2580,8 +2580,7 @@ static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
     FD_OID base = FD_OID_ADDR(base_arg);
     offset = FD_OID_DIFFERENCE(addr,base);}
   else offset = (FD_OID_LO(addr))%0x100000;
-  sprintf(buf,"%x",offset);
-  return fd_make_string(NULL,-1,buf);
+  return fd_make_string(NULL,-1,u8_uitoa10(offset,buf));
 }
 
 static fdtype oidb32_prim(fdtype oid,fdtype base_arg)
@@ -3045,7 +3044,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar_prim,1)));
 
-  fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_handler);
+  fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET*",getstar,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));

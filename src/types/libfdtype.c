@@ -67,7 +67,7 @@ static void init_type_names()
   fd_type_names[fd_symbol_type]=_("symbol");
   fd_type_names[fd_lexref_type]=_("lexref");
   fd_type_names[fd_opcode_type]=_("opcode");
-  fd_type_names[fd_cdrcode_type]=_("cdrcode");
+  fd_type_names[fd_coderef_type]=_("cdrcode");
   fd_type_names[fd_string_type]=_("string");
   fd_type_names[fd_packet_type]=_("packet");
   fd_type_names[fd_secret_type]=_("secret");
@@ -98,12 +98,12 @@ static void init_type_names()
   fd_type_names[fd_regex_type]=_("regex");
   fd_type_names[fd_numeric_vector_type]=_("numeric vector");
   fd_type_names[fd_consblock_type]=_("consblock");
-  fd_type_names[fd_specform_type]=_("special form");
+  fd_type_names[fd_evalfn_type]=_("evalfn");
   fd_type_names[fd_macro_type]=_("macro");
   fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_stackframe_type]=_("stackframe");
   fd_type_names[fd_ffi_type]=_("ffiproc");
-  fd_type_names[fd_environment_type]=_("environment");
+  fd_type_names[fd_lexenv_type]=_("environment");
   fd_type_names[fd_rawptr_type]=_("raw pointer");
   fd_type_names[fd_dtserver_type]=_("dtype server");
   fd_type_names[fd_bloom_filter_type]=_("bloom filter");
@@ -133,6 +133,7 @@ FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
 FD_EXPORT void fd_init_sequences_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
+FD_EXPORT void fd_init_stacks_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 FD_EXPORT void fd_init_build_info(void);
 
@@ -212,6 +213,7 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_numbers_c();
   fd_init_choices_c();
   fd_init_bloom_c();
+  fd_init_stacks_c();
   fd_init_apply_c();
   fd_init_sequences_c();
   fd_init_fcnids_c();

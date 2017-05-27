@@ -1090,9 +1090,16 @@
 ; (display "(applytest-cont) (applytest-sc4) (applytest-delay)")
 ; (newline)
 
-(test-call/cc)
-(test-bignums)
-(test-inexact)
+(define (fib-iter i cur prev)
+  (if (= i 1) cur (fib-iter (-1+ i) (+ cur prev) cur)))
+(define (fibi n)
+  (if (= n 0) 0 (fib-iter n 1 0)))
+
+(define (test-tail-calls)
+  (applytest 6765 fibi 20)
+  (applytest 280571172992510140037611932413038677189525 fibi 200)
+  (applytest 43466557686937456435688527675040625802564660517371780402481729089536555417949051890403879840079255169295922593080322634775209689623239873322471161642996440906533187938298969649928516003704476137795166849228875
+	     fibi 1000))
 
 ;; This tests that tail calls in WHEN are evaluated
 
@@ -1110,6 +1117,10 @@
   (set! test-flag #f)
   (bug-test #t)
   test-flag)
+
+(test-call/cc)
+(test-bignums)
+(test-inexact)
 
 (applytest #t optimized-tail-testfn)
 

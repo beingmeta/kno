@@ -77,7 +77,7 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,
   else return FD_TRUE;
 }
 
-static fdtype mailout_handler(fdtype expr,fd_lispenv env)
+static fdtype mailout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   const u8_byte *mailhost = mailhost_dflt, *maildomain = maildomain_dflt;
   const u8_byte *mailfrom = mailfrom_dflt;
@@ -136,7 +136,7 @@ void fd_init_email_c()
   fdtype unsafe_module = fd_new_module("FDWEB",(0));
 
   fd_idefn(unsafe_module,fd_make_cprim5("SMTP",smtp_function,3));
-  fd_defspecial(unsafe_module,"MAILOUT",mailout_handler);
+  fd_defspecial(unsafe_module,"MAILOUT",mailout_evalfn);
 
   fd_register_config("MAILHOST",_("SMTP host"),
                      fd_sconfig_get,fd_sconfig_set,&mailhost_dflt);

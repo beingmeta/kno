@@ -29,6 +29,8 @@
 
 fd_exception fd_UnknownEncoding=_("Unknown encoding");
 
+#define fast_eval(x,env) (fd_stack_eval(x,env,_stack,0))
+
 /* Making ports */
 
 static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
@@ -218,11 +220,12 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
 }
 
 FD_EXPORT
-fdtype fd_printout(fdtype body,fd_lispenv env)
+fdtype fd_printout(fdtype body,fd_lexenv env)
 {
+  struct FD_STACK *_stack=fd_stackptr;
   U8_OUTPUT *out = u8_current_output;
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else return value;
     body = FD_CDR(body);}
@@ -231,12 +234,13 @@ fdtype fd_printout(fdtype body,fd_lispenv env)
 }
 
 FD_EXPORT
-fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lispenv env)
+fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lexenv env)
 {
+  struct FD_STACK *_stack=fd_stackptr;
   u8_output prev = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_flush(out);
@@ -287,11 +291,11 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
   return FD_VOID;
 }
 
-static fdtype printout_handler(fdtype expr,fd_lispenv env)
+static fdtype printout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   return fd_printout(fd_get_body(expr,1),env);
 }
-static fdtype lineout_handler(fdtype expr,fd_lispenv env)
+static fdtype lineout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
   fdtype value = fd_printout(fd_get_body(expr,1),env);
@@ -301,14 +305,14 @@ static fdtype lineout_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype message_handler(fdtype expr,fd_lispenv env)
+static fdtype message_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -321,14 +325,14 @@ static fdtype message_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype notify_handler(fdtype expr,fd_lispenv env)
+static fdtype notify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -341,14 +345,14 @@ static fdtype notify_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype status_handler(fdtype expr,fd_lispenv env)
+static fdtype status_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -361,14 +365,14 @@ static fdtype status_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype warning_handler(fdtype expr,fd_lispenv env)
+static fdtype warning_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -387,7 +391,7 @@ static int get_loglevel(fdtype level_arg)
   else return -1;
 }
 
-static fdtype log_handler(fdtype expr,fd_lispenv env)
+static fdtype log_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype level_arg = fd_eval(fd_get_arg(expr,1),env);
   fdtype body = fd_get_body(expr,2);
@@ -404,7 +408,7 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
     body = FD_CDR(body);}
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -417,14 +421,14 @@ static fdtype log_handler(fdtype expr,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype logif_handler(fdtype expr,fd_lispenv env)
+static fdtype logif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE;
   if (FD_ABORTP(test_expr)) return test_expr;
   else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
-    return fd_reterr(fd_SyntaxError,"logif_handler",
+    return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
-  else value = fasteval(test_expr,env);
+  else value = fast_eval(test_expr,env);
   if (FD_ABORTP(value)) return value;
   else if ( (FD_FALSEP(value)) || (FD_VOIDP(value)) ||
             (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)) )
@@ -439,7 +443,7 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
       body = FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
     while (FD_PAIRP(body)) {
-      fdtype value = fasteval(FD_CAR(body),env);
+      fdtype value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
         u8_set_default_output(stream);
@@ -452,14 +456,14 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
+static fdtype logifplus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE, loglevel_arg;
   if (FD_ABORTP(test_expr)) return test_expr;
   else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
-    return fd_reterr(fd_SyntaxError,"logif_handler",
+    return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
-  else value = fasteval(test_expr,env);
+  else value = fast_eval(test_expr,env);
   if (FD_ABORTP(value)) return value;
   else if ((FD_FALSEP(value)) || (FD_VOIDP(value)) ||
            (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
@@ -467,10 +471,10 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
   else loglevel_arg = fd_eval(fd_get_arg(expr,2),env);
   if (FD_ABORTP(loglevel_arg)) return loglevel_arg;
   else if (FD_VOIDP(loglevel_arg))
-    return fd_reterr(fd_SyntaxError,"logif_plus_handler",
+    return fd_reterr(fd_SyntaxError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),expr);
   else if (!(FD_INTP(loglevel_arg)))
-    return fd_reterr(fd_TypeError,"logif_plus_handler",
+    return fd_reterr(fd_TypeError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
     fdtype body = fd_get_body(expr,3);
@@ -483,7 +487,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
       body = FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
     while (FD_PAIRP(body)) {
-      fdtype value = fasteval(FD_CAR(body),env);
+      fdtype value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
         u8_set_default_output(stream);
@@ -496,7 +500,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype stringout_handler(fdtype expr,fd_lispenv env)
+static fdtype stringout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; fdtype result; u8_byte buf[256];
   U8_INIT_OUTPUT_X(&out,256,buf,0);
@@ -749,164 +753,19 @@ static fdtype just2number(fdtype x,fdtype base)
 
 /* Printing a backtrace */
 
-static int embeddedp(fdtype focus,fdtype expr)
-{
-  if (FD_EQ(focus,expr)) return 1;
-  else if (FD_PAIRP(expr)) {
-    FD_DOLIST(elt,expr)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_VECTORP(expr)) {
-    int i = 0, len = FD_VECTOR_LENGTH(expr);
-    while (i<len)
-      if (embeddedp(focus,FD_VECTOR_REF(expr,i))) return 1; else i++;
-    return 0;}
-  else if (FD_CHOICEP(expr)) {
-    FD_DO_CHOICES(elt,expr)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_QCHOICEP(expr)) {
-    struct FD_QCHOICE *qc = FD_XQCHOICE(expr);
-    FD_DO_CHOICES(elt,qc->qchoiceval)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_SLOTMAPP(expr)) {
-    struct FD_SLOTMAP *sm = FD_XSLOTMAP(expr);
-    struct FD_KEYVAL *scan, *limit;
-    int slotmap_size;
-    fd_read_lock_table(sm);
-    slotmap_size = FD_XSLOTMAP_NUSED(sm);
-    scan = sm->sm_keyvals; limit = sm->sm_keyvals+slotmap_size;
-    while (scan<limit)
-      if (embeddedp(focus,scan->kv_key)) {
-        fd_unlock_table(sm); return 1;}
-      else if (embeddedp(focus,scan->kv_val)) {
-        fd_unlock_table(sm); return 1;}
-      else scan++;
-    fd_unlock_table(sm);
-    return 0;}
-  else return 0;
-}
-
-static fdtype exception_data(u8_exception ex)
-{
-  if ((ex->u8x_xdata) && (ex->u8x_free_xdata == fd_free_exception_xdata))
-    return (fdtype)(ex->u8x_xdata);
-  else return FD_VOID;
-}
-
-static u8_exception get_innermost_expr(u8_exception ex,fdtype expr)
-{
-  u8_exception scan = ex; fdtype xdata;
-  if (ex == NULL) return ex;
-  else xdata = exception_data(scan);
-  if ((FD_PAIRP(xdata)) && (embeddedp(xdata,expr))) {
-    u8_exception bottom = get_innermost_expr(ex->u8x_prev,xdata);
-    if (bottom) return bottom; else return ex;}
-  else return NULL;
-}
-
-static void print_backtrace_env(U8_OUTPUT *out,u8_exception ex,int width)
-{
-  fdtype entry = exception_data(ex);
-  fdtype keys = fd_getkeys(entry);
-  u8_string head = ((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
-                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
-                  ((u8_string)""));
-  if (FD_ABORTP(keys)) {
-    u8_puts(out,head); u8_putc(out,' ');
-    fd_unparse(out,entry); u8_putc(out,'\n');}
-  else {
-    FD_DO_CHOICES(key,keys) {
-      fdtype val = fd_get(entry,key,FD_VOID);
-      u8_printf(out,";;=%s> %q = %q\n",head,key,val);
-      fd_decref(val);}
-    fd_decref(keys);}
-}
-
 static u8_exception print_backtrace_entry
 (U8_OUTPUT *out,u8_exception ex,int width)
 {
-  if (ex->u8x_context == fd_eval_context) {
-    fdtype expr = exception_data(ex);
-    if (!(FD_VOIDP(expr))) {
-      u8_exception innermost = get_innermost_expr(ex->u8x_prev,expr);
-      fdtype focus = ((innermost) ? (exception_data(innermost)) : (FD_VOID));
-      u8_puts(out,";;!>> ");
-      fd_pprint_focus(out,expr,focus,";;!>> ",0,width,"!",NULL);
-      u8_puts(out,"\n");
-      if (innermost)return innermost->u8x_prev;
-      else return ex->u8x_prev;}}
-  else if (ex->u8x_context == fd_apply_context) {
-    fdtype entry = exception_data(ex);
-    if (!(FD_VOIDP(entry))) {
-      int i = 1, lim = FD_VECTOR_LENGTH(entry);
-      u8_puts(out,";;*CALL "); fd_unparse(out,FD_VECTOR_REF(entry,0));
-      while (i < lim) {
-        fdtype arg = FD_VECTOR_REF(entry,i); i++;
-        if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
-          u8_puts(out," '");
-        else u8_puts(out," ");
-        fd_unparse(out,arg);}
-      u8_puts(out,"\n");}}
-  else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
-    print_backtrace_env(out,ex,width);}
-  else fd_print_exception(out,ex);
+  fd_print_exception(out,ex);
   return ex->u8x_prev;
-}
-
-static void log_backtrace_env(int loglevel,u8_condition label,
-                              u8_exception ex,int width)
-{
-  fdtype entry = exception_data(ex);
-  fdtype keys = fd_getkeys(entry);
-  u8_string head = ((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
-                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
-                  ((u8_string)""));
-  if (FD_ABORTP(keys)) {
-    u8_log(loglevel,label,"%s %q\n",head,entry);}
-  else {
-    struct U8_OUTPUT tmpout; u8_byte buf[16384];
-    U8_INIT_OUTPUT_BUF(&tmpout,16384,buf); {
-      FD_DO_CHOICES(key,keys) {
-        fdtype val = fd_get(entry,key,FD_VOID);
-        u8_printf(&tmpout,"> %q = %q\n",key,val);
-        fd_decref(val);}
-      u8_log(loglevel,label,"%q BINDINGS\n%s",head,tmpout.u8_outbuf);
-      u8_close_output(&tmpout);}
-    fd_decref(keys);}
 }
 
 static u8_exception log_backtrace_entry(int loglevel,u8_condition label,
                                         u8_exception ex,int width)
 {
-  struct U8_OUTPUT tmpout; u8_byte buf[16384]; 
+  struct U8_OUTPUT tmpout; u8_byte buf[16384];
   U8_INIT_OUTPUT_BUF(&tmpout,16384,buf);
-  if (ex->u8x_context == fd_eval_context) {
-    fdtype expr = exception_data(ex);
-    u8_exception innermost = get_innermost_expr(ex->u8x_prev,expr);
-    fdtype focus = ((innermost) ? (exception_data(innermost)) : (FD_VOID));
-    u8_puts(&tmpout,"!>> ");
-    fd_pprint_focus(&tmpout,expr,focus,"!>> ",0,width,"!>","<!");
-    u8_log(loglevel,label,"!>> %s",tmpout.u8_outbuf);
-    u8_close_output(&tmpout);
-    if (innermost)return innermost->u8x_prev;
-    else return ex->u8x_prev;}
-  else if (ex->u8x_context == fd_apply_context) {
-    fdtype entry = exception_data(ex);
-    int i = 1, lim = FD_VECTOR_LENGTH(entry);
-    fdtype fn = FD_VECTOR_REF(entry,0);
-    u8_puts(&tmpout,"<");
-    while (i < lim) {
-      fdtype arg = FD_VECTOR_REF(entry,i); i++;
-      if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
-        u8_printf(&tmpout," '%q",arg);
-      else u8_printf(&tmpout," %q",arg);}
-    u8_puts(&tmpout,">");
-    u8_log(loglevel,label,"*CALL %q %s",fn,tmpout.u8_outbuf);}
-  else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
-    log_backtrace_env(loglevel,label,ex,width);}
-  else if ((ex->u8x_context) && (ex->u8x_details))
+  if ((ex->u8x_context) && (ex->u8x_details))
     u8_log(loglevel,ex->u8x_cond,"(%s) %m",(ex->u8x_context),(ex->u8x_details));
   else if (ex->u8x_context)
     u8_log(loglevel,ex->u8x_cond,"(%s)",(ex->u8x_context));
@@ -942,23 +801,8 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
     if (scan!=ex) u8_puts(out," <");
     if (scan->u8x_cond!=cond) {
       cond = scan->u8x_cond; u8_printf(out," (%m)",cond);}
-    if (scan->u8x_context) {
-      if (scan->u8x_context == fd_eval_context)
-        if ((FD_PAIRP(irritant)) && (!(FD_PAIRP(FD_CAR(irritant))))) {
-          u8_printf(out," (%q ...)",FD_CAR(irritant));
-          show_irritant = 0;}
-        else {}
-      else if (scan->u8x_context == fd_apply_context)
-        if ((FD_VECTORP(irritant)) && (FD_VECTOR_LENGTH(irritant)>0)) {
-          u8_printf(out," %q",FD_VECTOR_REF(irritant,0));
-          show_irritant = 0;}
-        else {}
-      else if ((scan->u8x_context) && (strcmp(scan->u8x_context,":SPROC")==0)) {
-        show_irritant = 0;}
-      else if ((scan->u8x_context) && (*(scan->u8x_context)==':')) {
-        u8_printf(out," %s",scan->u8x_context);
-        show_irritant = 0;}
-      else u8_printf(out," %s",scan->u8x_context);}
+    if (scan->u8x_context)
+      u8_printf(out," %s",scan->u8x_context);
     if (scan->u8x_details)
       u8_printf(out," [%s]",scan->u8x_details);
     if (show_irritant)
@@ -1278,9 +1122,9 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
 
-  fd_defspecial(fd_scheme_module,"PRINTOUT",printout_handler);
-  fd_defspecial(fd_scheme_module,"LINEOUT",lineout_handler);
-  fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_handler);
+  fd_defspecial(fd_scheme_module,"PRINTOUT",printout_evalfn);
+  fd_defspecial(fd_scheme_module,"LINEOUT",lineout_evalfn);
+  fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
                            fd_string_type,FD_VOID,
@@ -1292,20 +1136,20 @@ FD_EXPORT void fd_init_portprims_c()
                            fd_string_type,FD_VOID));
 
   /* Logging functions for specific levels */
-  fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
-  fd_defspecial(fd_scheme_module,"STATUS",status_handler);
-  fd_defspecial(fd_scheme_module,"WARNING",warning_handler);
+  fd_defspecial(fd_scheme_module,"NOTIFY",notify_evalfn);
+  fd_defspecial(fd_scheme_module,"STATUS",status_evalfn);
+  fd_defspecial(fd_scheme_module,"WARNING",warning_evalfn);
 
   /* Generic logging function, always outputs */
-  fd_defspecial(fd_scheme_module,"MESSAGE",message_handler);
-  fd_defspecial(fd_scheme_module,"%LOGGER",message_handler);
+  fd_defspecial(fd_scheme_module,"MESSAGE",message_evalfn);
+  fd_defspecial(fd_scheme_module,"%LOGGER",message_evalfn);
 
   /* Logging with message level */
-  fd_defspecial(fd_scheme_module,"LOGMSG",log_handler);
+  fd_defspecial(fd_scheme_module,"LOGMSG",log_evalfn);
   /* Conditional logging */
-  fd_defspecial(fd_scheme_module,"LOGIF",logif_handler);
+  fd_defspecial(fd_scheme_module,"LOGIF",logif_evalfn);
   /* Conditional logging with priority level */
-  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
+  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,

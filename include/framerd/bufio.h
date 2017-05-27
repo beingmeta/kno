@@ -77,8 +77,7 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
   (bo)->buflim = (bo)->buffer+sz;		\
   (bo)->buflen = sz;				\
   (bo)->buf_flags = flags|FD_IS_WRITING;	\
-  (bo)->buf_bufdata = NULL;			\
-  (bo)->buf_fillfn = NULL;			\
+  (bo)->buf_data = NULL;			\
   (bo)->buf_flushfn = NULL;
 
 #define FD_INIT_BYTE_OUTPUT(bo,sz)			\

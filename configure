@@ -683,6 +683,7 @@ APTREPO
 GPG
 RPMFLAGS
 RPMDIR
+LIBSCM
 BINPATH
 CODENAME
 CHGRP
@@ -791,6 +792,7 @@ xdynamic_scheme_libs
 xstatic_scheme_libs
 xstatic_exe_libs
 suffix
+ipevalprimso
 ipevalo
 exifo
 ldnso
@@ -859,6 +861,7 @@ with_copyfile
 with_touchfile
 with_apxs
 with_rpath
+with_fileinfo
 with_codename
 with_stackcheck
 with_execwrapper
@@ -890,6 +893,7 @@ with_unpackage_dir
 with_installed_module_dir
 with_local_modules
 with_builtin_module_dir
+with_libscm
 with_module_path
 with_safe_module_path
 with_dload_path
@@ -907,15 +911,14 @@ with_editline
 with_libu8
 with_sudo
 with_fastcgi
+enable_leveldb
+enable_imagick
+enable_ziptools
+enable_mongodb
 with_mysql
-with_odbc
-with_ziptools
-with_tidy
-with_imagick
-with_mongodb
-with_leveldb
-with_fileinfo
-with_hyphenate
+enable_odbc
+enable_tidy
+enable_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
@@ -1580,6 +1583,13 @@ Optional Features:
 --endisable-dtblock DTBlock dtype for net I/O
 --endisable-lockfree Enables lock-free reference counting
 --endisable-checkfdtype Enable compile-time checking for fdtype pointers
+--endisable-leveldb Build and install LevelDB module
+--endisable-imagick Build and install imagemagick module
+--with-ziptools Build and install ziptools
+--endisable-mongodb Build and install MongoDB module
+--endisable-odbc Build odbc modules
+--endisable-tidy Build and install tidy module
+--endisable-hyphenate Build and install the hyphenate module
 --endisable-largefiles Enable use of large (> 2GB) file support
 --endisable-prefetching make frame operations prefetch when they can
 --endisable-calltrack enable internal scheme profiling
@@ -1601,6 +1611,7 @@ Optional Packages:
 --with-touchfile command
 --with-apxs command
 --with-rpath dir
+--without-fileinfo record fileinfo
 --with-codename for distribution
 --with-stackcheck Build with native stack checking
 --with-execwrapper program to use when calling exec()
@@ -1630,6 +1641,7 @@ Optional Packages:
 --with-installed-module-dir location
 --with-local-modules location
 --with-builtin-module-dir location
+--with-libscm location
 --with-module-path location
 --with-safe-module-path location
 --with-dload-path location
@@ -1641,14 +1653,6 @@ Optional Packages:
 --without-sudo use sudo with install
 --without-fastcgi Use fastcgi
 --without-mysql Use alternate mysql lib
---without-odbc Build odbc libraries
---with-ziptools Build and install ziptools
---with-tidy Build and install tidy library
---with-imagick Build and install imagemagick library
---with-mongodb Build and install MongoDB library
---with-leveldb Build and install LevelDB library
---without-fileinfo record fileinfo
---with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
 --with/out-profiling compile to generate profile information
@@ -2878,6 +2882,7 @@ calltracko=""
 curlo=""
 ldnso=""
 ipevalo=""
+ipevalprimso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -2908,7 +2913,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=4
-FDMINOR=0
+FDMINOR=1
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -2922,7 +2927,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
-apache_log_dir="/var/log/apache"
+apache_log_dir=""
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
@@ -2947,6 +2952,7 @@ GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
+LIBSCM="\${REVISION}"
 default_config_dir="\$prefix/etc/framerd"
 local_config="\$prefix/etc/framerd"
 shared_config="\$prefix/etc/framerd"
@@ -2985,6 +2991,9 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+manually_disabled=""
+auto_disabled=""
+force_enabled=""
 
 test_env=
 memtest_env=""
@@ -2998,6 +3007,7 @@ leaktester_config=
 
 use_duma_lib="no"
 custom_malloc=""
+using_malloc=""
 default_malloc=${FD_DEFAULT_MALLOC:-libc}
 gperftools=""
 asan=""
@@ -3044,6 +3054,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -5416,6 +5428,19 @@ if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/
 fi
 
 
+# Check whether --with-fileinfo was given.
+if test "${with_fileinfo+set}" = set; then :
+  withval=$with_fileinfo;
+else
+  with_fileinfo="yes"
+fi
+
+if test "$with_fileinfo" = "yes" ; then
+   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
+   versionsh="include/framerd/versions.h"
+fi
+
+
 # Check whether --with-codename was given.
 if test "${with_codename+set}" = set; then :
   withval=$with_codename; with_codename=$withval
@@ -6085,6 +6110,66 @@ _ACEOF
 fi
 
 
+case $host_os in
+  darwin*)
+   MKSTATIC="libtool -static -o "
+   dynamic_cflag="-dynamic"
+   shared_suffix="dylib"
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
+   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
+   ifmacosx=""
+   setup_target="setup-osx"
+   gperftools_default="no"
+   ;;
+esac
+
+as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5
+$as_echo_n "checking whether the linker accepts \"-static-libgcc\"... " >&6; }
+if eval \${$as_CACHEVAR+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ax_check_save_flags=$LDFLAGS
+  LDFLAGS="$LDFLAGS  "-static-libgcc""
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_CACHEVAR=yes"
+else
+  eval "$as_CACHEVAR=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  LDFLAGS=$ax_check_save_flags
+fi
+eval ac_res=\$$as_CACHEVAR
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_CACHEVAR"\" = x"yes"; then :
+  static_libgcc="yes"
+else
+  :
+fi
+
+
+if test "${static_libgcc}" == "yes"; then
+   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
+fi
+
 
 # Check whether --with-stackcheck was given.
 if test "${with_stackcheck+set}" = set; then :
@@ -6407,6 +6492,8 @@ else
    wwwinstall=""
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking apache log directory" >&5
+$as_echo_n "checking apache log directory... " >&6; }
 if test -d ${apache_conf_dir}/log; then
    if test -h ${apache_conf_dir}/log; then
      apache_log_dir=$(readlink ${apache_conf_dir}/log);
@@ -6427,7 +6514,7 @@ elif test -d ${local_state_dir}/logs/http; then
     apache_log_dir=${local_state_dir}/logs/http;
 elif test -d /var/log/apache; then
     apache_log_dir=/var/log/apache;
-elif test -d /var/logs/apache2; then
+elif test -d /var/log/apache2; then
     apache_log_dir=/var/log/apache2;
 elif test -d /var/log/httpd; then
     apache_log_dir=/var/log/httpd;
@@ -6435,13 +6522,23 @@ elif test -d /var/log/http; then
     apache_log_dir=/var/log/http;
 elif test -d /usr/log/apache; then
     apache_log_dir=/usr/log/apache;
-elif test -d /usr/logs/apache2; then
+elif test -d /usr/log/apache2; then
      apache_log_dir=/usr/log/apache2;
 elif test -d /usr/log/httpd; then
     apache_log_dir=/usr/log/httpd;
 elif test -d /usr/log/http; then
     apache_log_dir=/usr/log/http;
-else echo "Can't find Apache log dir for apache, using ${apache_log_dir}";
+else
+    apache_log_dir=""
+fi;
+
+if test -z ${apache_log_dir}; then
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: none found" >&5
+$as_echo "none found" >&6; }
+ apache_log_dir=/var/log/apache;
+else
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $apache_log_dir" >&5
+$as_echo "$apache_log_dir" >&6; };
 fi;
 
 if test ! -z $APXS; then
@@ -6575,20 +6672,34 @@ if test "$with_duma" != "no" && test "$with_malloc" != "libc"; then
    exit;
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking malloc library" >&5
+$as_echo_n "checking malloc library... " >&6; }
+
 if test -z "$with_malloc" ||
    test "$with_malloc" = "libc" ||
    test "$with_malloc" = "builtin" ; then
-   echo "Using standard malloc";
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: libc default" >&5
+$as_echo "libc default" >&6; }
    custom_malloc="";
+   using_malloc="libc"
 elif test "$with_malloc" = "tcmalloc"; then
   gperftools="yes";
   custom_malloc="tcmalloc"
+  using_malloc="tcmalloc"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc" >&5
+$as_echo "tcmalloc" >&6; }
 elif test "$with_malloc" = "gperftools"; then
   gperftools="profile";
   custom_malloc="tcmalloc"
+  using_malloc="gperftools"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc profiling" >&5
+$as_echo "tcmalloc profiling" >&6; }
 elif test "$with_malloc" = "tcmalloc_debug"; then
   gperftools="debug";
   custom_malloc="tcmalloc_debug"
+  using_malloc="tcmalloc_debug"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc debug" >&5
+$as_echo "tcmalloc debug" >&6; }
 elif test "$with_malloc" = "jemalloc"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ljemalloc" >&5
 $as_echo_n "checking for malloc in -ljemalloc... " >&6; }
@@ -6632,6 +6743,9 @@ fi
 
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
     custom_malloc="jemalloc"
+    using_malloc="jemalloc"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: jemalloc" >&5
+$as_echo "jemalloc" >&6; }
   else
     as_fn_error $? "jemalloc can't be found" "$LINENO" 5
     exit;
@@ -6679,6 +6793,9 @@ fi
 
   if test "${ac_cv_lib_dmalloc_malloc}" = "yes"; then
     custom_malloc="dmalloc"
+    using_malloc="dmalloc"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: dmalloc" >&5
+$as_echo "dmalloc" >&6; }
   else
     as_fn_error $? "dmalloc can't be found" "$LINENO" 5
     exit;
@@ -6690,18 +6807,24 @@ elif test "$with_malloc" = "asan"; then
    test_static=""
    install_static=""
    custom_malloc="asan"
+   using_malloc="asan"
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
+$as_echo "ASAN" >&6; }
 elif test "$with_malloc" = "asan_thread"; then
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
    LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
    install_static=""
-   custom_malloc="msan"
+   custom_malloc="asan_thread"
+   using_malloc="asan_thread"
    test_env="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $test_env";
    asan="thread"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN thread" >&5
+$as_echo "ASAN thread" >&6; }
 else
    as_fn_error $? "Valid values for malloc are libc tcmalloc jemalloc gperftools dmalloc tcmalloc_debug asan asan_thread" "$LINENO" 5
    exit 1;
@@ -7063,66 +7186,6 @@ if test "${GCC}" = "yes"; then
    dynamic_cflag="-rdynamic";
 fi;
 
-case $host_os in
-  darwin*)
-   MKSTATIC="libtool -static -o "
-   dynamic_cflag="-dynamic"
-   shared_suffix="dylib"
-   vshared_suffix=${FDVERSION}.dylib
-   mshared_suffix=${FDMAJOR}.dylib
-   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
-   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
-   RPATHFLAGS=" -rpath \$(RPATH) "
-   ifmacosx=""
-   setup_target="setup-osx"
-   gperftools_default="no"
-   ;;
-esac
-
-as_CACHEVAR=`$as_echo "ax_cv_check_ldflags__"-static-libgcc"" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts \"-static-libgcc\"" >&5
-$as_echo_n "checking whether the linker accepts \"-static-libgcc\"... " >&6; }
-if eval \${$as_CACHEVAR+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-
-  ax_check_save_flags=$LDFLAGS
-  LDFLAGS="$LDFLAGS  "-static-libgcc""
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  eval "$as_CACHEVAR=yes"
-else
-  eval "$as_CACHEVAR=no"
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-  LDFLAGS=$ax_check_save_flags
-fi
-eval ac_res=\$$as_CACHEVAR
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_CACHEVAR"\" = x"yes"; then :
-  static_libgcc="yes"
-else
-  :
-fi
-
-
-if test "${static_libgcc}" == "yes"; then
-   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
-fi
-
 # Check whether --enable-ffi was given.
 if test "${enable_ffi+set}" = set; then :
   enableval=$enable_ffi; enable_ffi=$enableval
@@ -7131,7 +7194,8 @@ else
 fi
 
 
-for ac_header in ffi.h
+if test "${enable_ffi}" == "yes"; then
+   for ac_header in ffi.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
 if test "x$ac_cv_header_ffi_h" = xyes; then :
@@ -7143,7 +7207,7 @@ fi
 
 done
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_prep_cif in -lffi" >&5
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_prep_cif in -lffi" >&5
 $as_echo_n "checking for ffi_prep_cif in -lffi... " >&6; }
 if ${ac_cv_lib_ffi_ffi_prep_cif+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7188,133 +7252,26 @@ _ACEOF
 
 fi
 
-for ac_header in archive.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "archive.h" "ac_cv_header_archive_h" "$ac_includes_default"
-if test "x$ac_cv_header_archive_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_ARCHIVE_H 1
-_ACEOF
-
 fi
 
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for archive_read_new in -larchive" >&5
-$as_echo_n "checking for archive_read_new in -larchive... " >&6; }
-if ${ac_cv_lib_archive_archive_read_new+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-larchive  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char archive_read_new ();
-int
-main ()
-{
-return archive_read_new ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_archive_archive_read_new=yes
-else
-  ac_cv_lib_archive_archive_read_new=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_archive_archive_read_new" >&5
-$as_echo "$ac_cv_lib_archive_archive_read_new" >&6; }
-if test "x$ac_cv_lib_archive_archive_read_new" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBARCHIVE 1
-_ACEOF
-
-  LIBS="-larchive $LIBS"
-
+if test "${enable_ffi}" != "yes"; then
+   manually_disabled="ffi ${manually_disabled}"
+elif test "${ac_cv_header_ffi_h}" != "yes";  then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
+elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
+   enable_ffi="no";
+   auto_disabled="ffi ${auto_disabled}";
 fi
 
-
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
-fi
-
-for ac_header in leveldb/c.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "leveldb/c.h" "ac_cv_header_leveldb_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_leveldb_c_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LEVELDB_C_H 1
-_ACEOF
-
-fi
-
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -lleveldb" >&5
-$as_echo_n "checking for leveldb_open in -lleveldb... " >&6; }
-if ${ac_cv_lib_leveldb_leveldb_open+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lleveldb  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char leveldb_open ();
-int
-main ()
-{
-return leveldb_open ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_leveldb_leveldb_open=yes
-else
-  ac_cv_lib_leveldb_leveldb_open=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
-$as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
-if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBLEVELDB 1
-_ACEOF
-
-  LIBS="-lleveldb $LIBS"
-
-fi
-
-if test "${ac_cv_header_leveldb_c_h}" == "yes" && \
-   test "${ac_cv_lib_leveldb_leveldb_open}" == "yes"; then
-  CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}"
-  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
-fi
-
+# This cmodule isn't actually implemented yet
+#AC_CHECK_HEADERS(archive.h)
+#AC_CHECK_LIB(archive,archive_read_new)
+#if test "${ac_cv_header_archive_h}" == "yes" && \
+#   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+#  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
+#  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+#fi
 
 DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
@@ -8250,6 +8207,18 @@ fi
 
 done
 
+for ac_header in obstack.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "obstack.h" "ac_cv_header_obstack_h" "$ac_includes_default"
+if test "x$ac_cv_header_obstack_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OBSTACK_H 1
+_ACEOF
+
+fi
+
+done
+
 
 ac_fn_c_check_member "$LINENO" "struct rusage" "ru_inblock" "ac_cv_member_struct_rusage_ru_inblock" "#include <sys/resource.h>
 "
@@ -8467,6 +8436,28 @@ fi
 
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
+
+LIBSCM="${share_dir}/libscm/\${REVISION}"
+
+
+# Check whether --with-libscm was given.
+if test "${with_libscm+set}" = set; then :
+  withval=$with_libscm;
+fi
+
+if test "$with_libscm" == "version"; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_LIBSCM_DIR "$share_dir/libscm/framerd-$FDVERSION"
+_ACEOF
+
+   LIBSCM="$share_dir/libscm/framerd-$FDVERSION";
+elif test ! -z "$with_libscm"; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_LIBSCM_DIR "$with_libscm"
+_ACEOF
+
+   LIBSCM=$with_libscm
+fi;
 
 builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
 builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm
@@ -10431,29 +10422,283 @@ else
    with_mysql_default="no";
 fi
 
-if test $pkg_config != "na"; then
-   if $pkg_config --exists MagickWand; then
-      IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`
-      IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`
-      with_imagick_default=yes;
-   else
-       with_imagick_default=no;
-   fi
-   if $pkg_config --exists libzip; then
-      LIBZIP_CFLAGS=`$pkg_config libzip --cflags`
-      LIBZIP_LDFLAGS=`$pkg_config libzip --libs`
-      with_ziptools_default=yes;
-   else
-      with_ziptools_default=no;
-   fi
-   if $pkg_config --exists libmongoc-1.0; then
-      MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags`
-      MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
-      with_mongodb_default=yes;
-   else
-      with_mongodb_default=no;
-   fi
+# Check whether --enable-leveldb was given.
+if test "${enable_leveldb+set}" = set; then :
+  enableval=$enable_leveldb;
+else
+  enable_leveldb="yes"
 fi
+
+
+if test "${enable_leveldb}" = "yes" ||
+   test "${enable_leveldb}" = "force"; then
+   for ac_header in leveldb/c.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "leveldb/c.h" "ac_cv_header_leveldb_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_leveldb_c_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LEVELDB_C_H 1
+_ACEOF
+
+fi
+
+done
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -lleveldb" >&5
+$as_echo_n "checking for leveldb_open in -lleveldb... " >&6; }
+if ${ac_cv_lib_leveldb_leveldb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lleveldb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char leveldb_open ();
+int
+main ()
+{
+return leveldb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_leveldb_leveldb_open=yes
+else
+  ac_cv_lib_leveldb_leveldb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
+$as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
+if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBLEVELDB 1
+_ACEOF
+
+  LIBS="-lleveldb $LIBS"
+
+fi
+
+   if test "${enable_leveldb}" = "yes" &&
+      test "${ac_cv_header_leveldb_c_h}" = "yes" &&
+      test "${ac_cv_lib_leveldb_leveldb_open}" = "yes"; then
+     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+   elif test "${enable_leveldb}" = "force"; then
+     CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}";
+     INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}";
+     force_enabled="leveldb ${force_enabled}";
+   else
+     auto_disabled="leveldb ${auto_disabled}";
+     enable_leveldb="no";
+   fi;
+else
+   manually_disabled="leveldb ${auto_disabled}";
+fi
+
+# Check whether --enable-imagick was given.
+if test "${enable_imagick+set}" = set; then :
+  enableval=$enable_imagick;
+else
+  enable_imagick="yes"
+fi
+
+
+if test "$enable_imagick" = "yes" &&
+   test $pkg_config != "na" &&
+   $pkg_config --exists MagickWand; then
+  IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`;
+  IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`;
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "force"; then
+  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}";
+elif test "$enable_imagick" = "yes"; then
+  auto_disabled="imagick ${auto_disabled}";
+  enable_imagick="failed";
+else
+  manually_disabled="imagick ${manually_disabled}";
+fi
+
+# Check whether --enable-ziptools was given.
+if test "${enable_ziptools+set}" = set; then :
+  enableval=$enable_ziptools;
+else
+  enable_ziptools="yes"
+fi
+
+
+if test "$enable_ziptools" = "yes" ||
+   test "$enable_ziptools" = "force"; then
+  ac_fn_c_check_header_mongrel "$LINENO" "zip.h" "ac_cv_header_zip_h" "$ac_includes_default"
+if test "x$ac_cv_header_zip_h" = xyes; then :
+  have_zip_h="yes"
+else
+  have_zip_h="no"
+fi
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
+$as_echo_n "checking for zip_add in -lzip... " >&6; }
+if ${ac_cv_lib_zip_zip_add+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzip  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char zip_add ();
+int
+main ()
+{
+return zip_add ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zip_zip_add=yes
+else
+  ac_cv_lib_zip_zip_add=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
+$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
+if test "x$ac_cv_lib_zip_zip_add" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZIP 1
+_ACEOF
+
+  LIBS="-lzip $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
+$as_echo_n "checking for zip_add in -lzip... " >&6; }
+if ${ac_cv_lib_zip_zip_add+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzip  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char zip_add ();
+int
+main ()
+{
+return zip_add ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zip_zip_add=yes
+else
+  ac_cv_lib_zip_zip_add=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
+$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
+if test "x$ac_cv_lib_zip_zip_add" = xyes; then :
+  have_libzip="yes"
+else
+  have_libzip="no"
+fi
+
+  for ac_func in zip_set_file_compression zip_set_file_comment zip_set_file_extra
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libzip; then
+    LIBZIP_CFLAGS=`$pkg_config libzip --cflags`
+    LIBZIP_LDFLAGS=`$pkg_config libzip --libs`
+    CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
+    CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
+    LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$have_zip_h" = "yes" &&
+       test "$have_libzip" = "yes"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+  elif test "$enable_ziptools" = "force"; then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}";
+    force_enabled="ziptools ${force_enabled}";
+  else
+    auto_disabled="ziptools ${auto_disabled}";
+    enable_ziptools="failed";
+  fi;
+else
+    manually_disabled="ziptools ${manually_disabled}";
+fi
+
+# Check whether --enable-mongodb was given.
+if test "${enable_mongodb+set}" = set; then :
+  enableval=$enable_mongodb;
+else
+  enable_mongodb="yes"
+fi
+
+
+if test "$enable_mongodb" = "yes" ||
+   test "$enable_mongodb" = "force"; then
+  if test $pkg_config != "na" &&
+     $pkg_config --exists libmongoc-1.0; then
+    MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags`
+    MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
+    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+  elif test "$enable_mongodb" = "force"; then
+    force_enabled="mongodb ${force_enabled}";
+    CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}";
+    INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
+  else
+    auto_disabled="mongodb ${auto_disabled}";
+  fi;
+else
+    manually_disabled="mongodb ${manually_disabled}";
+fi;
 
 
 # Check whether --with-mysql was given.
@@ -10480,16 +10725,15 @@ if test "$with_mysql" != "no"; then
   INSTALLCMODULES="install-mysql ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-odbc was given.
-if test "${with_odbc+set}" = set; then :
-  withval=$with_odbc;
+# Check whether --enable-odbc was given.
+if test "${enable_odbc+set}" = set; then :
+  enableval=$enable_odbc;
 else
-  with_odbc="yes"
+  enable_odbc="yes"
 fi
 
 
-if test "$with_odbc" == "yes"; then
+if test "$enable_odbc" = "yes"; then
 ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
 if test "x$ac_cv_header_sql_h" = xyes; then :
   have_sql_h="yes"
@@ -10877,210 +11121,28 @@ fi
 
 fi;
 
-
-# Check whether --with-ziptools was given.
-if test "${with_ziptools+set}" = set; then :
-  withval=$with_ziptools;
+# Check whether --enable-tidy was given.
+if test "${enable_tidy+set}" = set; then :
+  enableval=$enable_tidy;
 else
-  with_ziptools=$with_ziptools_default
+  enable_tidy="yes"
 fi
 
 
-if test "$with_ziptools" == "yes"; then
-  CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
-  CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-  LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
-  ac_fn_c_check_header_mongrel "$LINENO" "zip.h" "ac_cv_header_zip_h" "$ac_includes_default"
-if test "x$ac_cv_header_zip_h" = xyes; then :
-  have_zip_h="yes"
-else
-  have_zip_h="no"
-fi
-
-
-  if (test "$have_zip_h" = "yes"); then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
-$as_echo_n "checking for zip_add in -lzip... " >&6; }
-if ${ac_cv_lib_zip_zip_add+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzip  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char zip_add ();
-int
-main ()
-{
-return zip_add ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zip_zip_add=yes
-else
-  ac_cv_lib_zip_zip_add=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
-$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
-if test "x$ac_cv_lib_zip_zip_add" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZIP 1
-_ACEOF
-
-  LIBS="-lzip $LIBS"
-
-fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
-$as_echo_n "checking for zip_add in -lzip... " >&6; }
-if ${ac_cv_lib_zip_zip_add+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzip  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char zip_add ();
-int
-main ()
-{
-return zip_add ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_zip_zip_add=yes
-else
-  ac_cv_lib_zip_zip_add=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zip_zip_add" >&5
-$as_echo "$ac_cv_lib_zip_zip_add" >&6; }
-if test "x$ac_cv_lib_zip_zip_add" = xyes; then :
-  have_libzip="yes"
-else
-  have_libzip="no"
-fi
-
-    for ac_func in zip_set_file_compression zip_set_file_comment zip_set_file_extra
-do :
-  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
-ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-done
-
-  fi
-  if (test "$have_zip_h" = "yes") && (test "$have_libzip" = "yes"); then
-    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
-    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
-  fi
-fi
-
-
-# Check whether --with-tidy was given.
-if test "${with_tidy+set}" = set; then :
-  withval=$with_tidy;
-else
-  with_tidy="yes"
-fi
-
-
-if test "$with_tidy" == "yes"; then
+if test "$enable_tidy" = "yes"; then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
 
-
-# Check whether --with-imagick was given.
-if test "${with_imagick+set}" = set; then :
-  withval=$with_imagick;
+# Check whether --enable-hyphenate was given.
+if test "${enable_hyphenate+set}" = set; then :
+  enableval=$enable_hyphenate;
 else
-  with_imagick=$with_imagick_default
-fi
-
-if test "$with_imagick" = "yes"; then
-  CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
+  enable_hyphenate="yes"
 fi
 
 
-# Check whether --with-mongodb was given.
-if test "${with_mongodb+set}" = set; then :
-  withval=$with_mongodb;
-else
-  with_mongodb=$with_mongodb_default
-fi
-
-
-if test "$with_mongodb" = "yes"; then
-   CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
-   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}";
-fi;
-
-
-# Check whether --with-leveldb was given.
-if test "${with_leveldb+set}" = set; then :
-  withval=$with_leveldb;
-else
-  with_leveldb=$with_leveldb_default
-fi
-
-if test "$with_leveldb" = "yes"; then
-  CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
-fi
-
-
-# Check whether --with-fileinfo was given.
-if test "${with_fileinfo+set}" = set; then :
-  withval=$with_fileinfo;
-else
-  with_fileinfo="yes"
-fi
-
-if test "$with_fileinfo" = "yes" ; then
-   definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
-   versionsh="include/framerd/versions.h"
-fi
-
-
-# Check whether --with-hyphenate was given.
-if test "${with_hyphenate+set}" = set; then :
-  withval=$with_hyphenate;
-else
-  with_hyphenate=${with_hyphenate_default}
-fi
-
-if test "$with_hyphenate" = "yes"; then
+if test "$enable_hyphenate" = "yes"; then
   for ac_header in hyphen.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "hyphen.h" "ac_cv_header_hyphen_h" "$ac_includes_default"
@@ -11139,14 +11201,23 @@ _ACEOF
 fi
 
 fi
-if test "$with_hyphenate" = "yes" &&
+
+if test "$enable_hyphenate" = "yes" &&
    test "$ac_cv_header_hyphen_h" = "yes" &&
    test "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+elif test "$enable_hyphenate" = "force"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+  force_enabled="hyphenate ${force_enabled}";
+elif test "$enable_hyphenate" = "yes"; then
+  auto_disabled="hyphenate $auto_disabled";
+  enable_hyphenate="failed";
 else
-  with_hyphenate="no";
+  manually_disabled="hyphenate $manually_disabled";
 fi
 
 # For OS X
@@ -11770,6 +11841,7 @@ fi
 
 if test $enable_ipeval = "yes"; then
   ipevalo=src/storage/ipeval.o
+  ipevalprimso=src/prims/ipevalprims.o
   $as_echo "#define FD_IPEVAL_ENABLED 1" >>confdefs.h
 
 else
@@ -12307,7 +12379,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-if test $exec_prefix == 'NONE';
+if test $exec_prefix = 'NONE';
   then BINDIR="${prefix}/bin";
 else BINDIR="${exec_prefix}/bin";
 fi
@@ -12320,7 +12392,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/types/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/runtest tests/scheme/fdexectest tests/scheme/memtest tests/scheme/leaktest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/types/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/testenv tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.1.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13052,10 +13124,11 @@ do
     "tests/scheme/vgleaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgleaktest" ;;
     "tests/scheme/vgmemtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgmemtest" ;;
     "tests/scheme/runenv.sh") CONFIG_FILES="$CONFIG_FILES tests/scheme/runenv.sh" ;;
+    "tests/scheme/testenv") CONFIG_FILES="$CONFIG_FILES tests/scheme/testenv" ;;
     "tests/scheme/runtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/runtest" ;;
-    "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
     "tests/scheme/memtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/memtest" ;;
     "tests/scheme/leaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/leaktest" ;;
+    "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
     "tests/scheme/tcdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/tcdebug" ;;
     "tests/scheme/vgdebug") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgdebug" ;;
     "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
@@ -13069,7 +13142,7 @@ do
     "etc/fdserv.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserv.conf" ;;
     "etc/fdserv.load") CONFIG_FILES="$CONFIG_FILES etc/fdserv.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
-    "dist/framerd-4.0.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-4.0.spec" ;;
+    "dist/framerd-4.1.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-4.1.spec" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
@@ -13666,7 +13739,13 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-if test "$enable_ipeval" == "yes"; then
+if test ! -z "$manually_disabled"; then
+   echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
+if test ! -z "$auto_disabled"; then
+   echo "+++ These components can't be built: $auto_disabled"; fi
+if test ! -z "$force_enabled"; then
+   echo "+++ These components were enabled by force and may have issues: $force_enabled"; fi
+if test "$enable_ipeval" = "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";

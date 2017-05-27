@@ -89,7 +89,7 @@ static u8_string pid_file = NULL, nid_file = NULL, cmd_file = NULL, inject_file 
 
 /* This is the global lisp environment for all servers.
    It is modified to include various modules, including dbserv. */
-static fd_lispenv working_env = NULL, server_env = NULL;
+static fd_lexenv working_env = NULL, server_env = NULL;
 
 /* This is the server struct used to establish the server. */
 static struct U8_SERVER dtype_server;
@@ -478,7 +478,7 @@ typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
   struct FD_STREAM fd_clientstream;
   time_t lastlive; double elapsed;
-  fd_lispenv env;} FD_CLIENT;
+  fd_lexenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
 
 /* This creates the client structure when called by the server loop. */
@@ -610,9 +610,7 @@ static int dtypeserver(u8_client ucl)
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
             u8_free(out.u8_outbuf);}}
       value = fd_make_exception
-        (ex->u8x_cond,ex->u8x_context,
-         ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
-         fd_incref(irritant));
+        (ex->u8x_cond,ex->u8x_context,ex->u8x_details,irritant);
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,
@@ -671,7 +669,7 @@ static int close_fdclient(u8_client ucl)
 /* A list of exposed modules */
 static fdtype module_list = FD_EMPTY_LIST;
 /* This is the exposed environment. */
-static fd_lispenv exposed_environment = NULL;
+static fd_lexenv exposed_lexenv = NULL;
 /* This is the shutdown procedure to be called when the
    server shutdowns. */
 static fdtype shutdown_proc = FD_EMPTY_CHOICE;
@@ -686,25 +684,25 @@ static int config_use_module(fdtype var,fdtype val,void *data)
   fdtype safe_module = fd_find_module(val,1,1), module = safe_module;
   if (FD_VOIDP(module)) {}
   else if (FD_HASHTABLEP(module))
-    exposed_environment=
-      fd_make_env(fd_incref(module),exposed_environment);
-  else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env = FD_CONSPTR(fd_environment,module);
+    exposed_lexenv=
+      fd_make_env(fd_incref(module),exposed_lexenv);
+  else if (FD_LEXENVP(module)) {
+    FD_LEXENV *env = FD_CONSPTR(fd_lexenv,module);
     if (FD_HASHTABLEP(env->env_exports))
-      exposed_environment=
-        fd_make_env(fd_incref(env->env_exports),exposed_environment);}
+      exposed_lexenv=
+        fd_make_env(fd_incref(env->env_exports),exposed_lexenv);}
   module = fd_find_module(val,0,1);
   if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
     else return 1;
   else if (FD_HASHTABLEP(module))
-    exposed_environment=
-      fd_make_env(fd_incref(module),exposed_environment);
-  else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env = FD_CONSPTR(fd_environment,module);
+    exposed_lexenv=
+      fd_make_env(fd_incref(module),exposed_lexenv);
+  else if (FD_LEXENVP(module)) {
+    FD_LEXENV *env = FD_CONSPTR(fd_lexenv,module);
     if (FD_HASHTABLEP(env->env_exports))
-      exposed_environment=
-        fd_make_env(fd_incref(env->env_exports),exposed_environment);}
+      exposed_lexenv=
+        fd_make_env(fd_incref(env->env_exports),exposed_lexenv);}
   module_list = fd_conspair(fd_incref(val),module_list);
   return 1;
 }
@@ -885,11 +883,11 @@ static fdtype asyncok()
   else return FD_FALSE;
 }
 
-static fdtype boundp_handler(fdtype expr,fd_lispenv env)
+static fdtype boundp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
   if (!(FD_SYMBOLP(symbol)))
-    return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
+    return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
@@ -928,9 +926,9 @@ static void init_server()
 
 FD_EXPORT int fd_init_dbserv(void);
 static void init_configs(void);
-static fd_lispenv init_core_env(void);
-static int launch_server(u8_string source_file,fd_lispenv env);
-static int fork_server(u8_string source_file,fd_lispenv env);
+static fd_lexenv init_core_env(void);
+static int launch_server(u8_string source_file,fd_lexenv env);
+static int fork_server(u8_string source_file,fd_lexenv env);
 static int run_server(u8_string source_file);
 
 static void exit_fdserver()
@@ -952,9 +950,11 @@ int main(int argc,char **argv)
      It starts out built on the default safe environment, but loses that if
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
-  fd_lispenv core_env;
+  fd_lexenv core_env;
 
   fd_main_errno_ptr = &errno;
+
+  FD_INIT_STACK();
 
   server_sigmask = fd_default_sigmask;
   sigactions_init();
@@ -1075,12 +1075,16 @@ int main(int argc,char **argv)
   /* Create the exposed environment.  This may be further modified by
      MODULE configs. */
   if (no_storage_api)
-    exposed_environment = core_env;
-  else exposed_environment=
+    exposed_lexenv = core_env;
+  else exposed_lexenv=
          fd_make_env(fd_incref(fd_dbserv_module),core_env);
 
   /* Now process all the configuration arguments */
   fd_handle_argv(argc,argv,arg_mask,NULL);
+
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdserver",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
 
   /* Store server initialization information in the configuration
      environment. */
@@ -1219,16 +1223,16 @@ static void init_configs()
      fd_boolconfig_get,fd_boolconfig_set,&no_storage_api);
 }
 
-static fd_lispenv init_core_env()
+static fd_lexenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
-  fd_lispenv core_env = fd_safe_working_environment();
+  fd_lexenv core_env = fd_safe_working_lexenv();
   fd_init_dbserv();
   fd_register_module("DBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
 
   /* We add some special functions */
-  fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
+  fd_defspecial((fdtype)core_env,"BOUND?",boundp_evalfn);
   fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
   fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime));
   fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok));
@@ -1240,9 +1244,9 @@ static fd_lispenv init_core_env()
 
 static int sustain_server(pid_t grandchild,
                           u8_string server_spec,
-                          fd_lispenv env);
+                          fd_lexenv env);
 
-static int fork_server(u8_string server_spec,fd_lispenv env)
+static int fork_server(u8_string server_spec,fd_lexenv env)
 {
   pid_t child, grandchild; double start = u8_elapsed_time();
   if ((foreground)&&(daemonize>0)) {
@@ -1338,7 +1342,7 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
 }
 
 static int sustain_server(pid_t grandchild,
-                          u8_string server_spec,fd_lispenv env)
+                          u8_string server_spec,fd_lexenv env)
 {
   u8_string ppid_filename = fd_runbase_filename(".ppid");
   FILE *f = fopen(ppid_filename,"w");
@@ -1408,7 +1412,7 @@ static int sustain_server(pid_t grandchild,
 
 static void write_state_files(void);
 
-static int launch_server(u8_string server_spec,fd_lispenv core_env)
+static int launch_server(u8_string server_spec,fd_lexenv core_env)
 {
 #ifdef SIGHUP
   sigaction(SIGHUP,&sigaction_shutdown,NULL);
@@ -1418,7 +1422,7 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */
     u8_string source_file = u8_abspath(server_spec,NULL);
-    fd_lispenv env = working_env = fd_working_environment();
+    fd_lexenv env = working_env = fd_working_lexenv();
     fdtype result = fd_load_source(source_file,env,NULL);
     if (FD_TROUBLEP(result)) {
       u8_exception e = u8_erreify();
@@ -1442,9 +1446,9 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
          defined are closed in that environment. */
       if (FD_HASHTABLEP(env->env_exports))
         server_env = fd_make_env(fd_incref(env->env_exports),
-                               exposed_environment);
+                               exposed_lexenv);
       else server_env = fd_make_env(fd_incref(env->env_bindings),
-                                  exposed_environment);
+                                  exposed_lexenv);
       if (fullscheme==0) {
         /* Cripple the core environment if requested */
         fd_decref((fdtype)(core_env->env_parent));
@@ -1469,7 +1473,7 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
             u8_free_exception(ex,1);
             exit(fd_interr(result));}
           else fd_decref(result);}}}}
-  else server_env = exposed_environment;
+  else server_env = exposed_lexenv;
 
   return run_server(server_spec);
 }

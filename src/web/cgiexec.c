@@ -27,6 +27,8 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
+#define fast_eval(x,env) (_fd_fast_eval(x,env,_stack,0))
+
 #include <ctype.h>
 
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
@@ -517,12 +519,13 @@ static void add_remote_info(fdtype cgidata)
 
 /* Generating headers */
 
-static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,fd_lispenv env)
+static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,
+                        fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   u8_set_default_output(out);
   while (FD_PAIRP(body)) {
-    fdtype value = fasteval(FD_CAR(body),env);
+    fdtype value = fast_eval(FD_CAR(body),env);
     body = FD_CDR(body);
     if (FD_ABORTP(value)) {
       u8_set_default_output(prev);
@@ -536,11 +539,11 @@ static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,fd_lispenv env)
   return FD_VOID;
 }
 
-static fdtype httpheader(fdtype expr,fd_lispenv env)
+static fdtype httpheader(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT out; fdtype result;
   U8_INIT_OUTPUT(&out,64);
-  result = do_xmlout(&out,fd_get_body(expr,1),env);
+  result = do_xmlout(&out,fd_get_body(expr,1),env,_stack);
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
     return result;}
@@ -558,11 +561,11 @@ static fdtype addhttpheader(fdtype header)
   return FD_VOID;
 }
 
-static fdtype htmlheader(fdtype expr,fd_lispenv env)
+static fdtype htmlheader(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT out; fdtype header_string; fdtype result;
   U8_INIT_OUTPUT(&out,64);
-  result = do_xmlout(&out,fd_get_body(expr,1),env);
+  result = do_xmlout(&out,fd_get_body(expr,1),env,_stack);
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
     return result;}
@@ -719,12 +722,12 @@ static fdtype add_javascript(fdtype url)
   return FD_VOID;
 }
 
-static fdtype title_handler(fdtype expr,fd_lispenv env)
+static fdtype title_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT out; fdtype result;
   U8_INIT_OUTPUT(&out,64);
   u8_puts(&out,"<title>");
-  result = do_xmlout(&out,fd_get_body(expr,1),env);
+  result = do_xmlout(&out,fd_get_body(expr,1),env,_stack);
   u8_puts(&out,"</title>\n");
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
@@ -737,7 +740,7 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype jsout_handler(fdtype expr,fd_lispenv env)
+static fdtype jsout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out; fdtype result = FD_VOID;
@@ -772,7 +775,7 @@ static fdtype jsout_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-static fdtype cssout_handler(fdtype expr,fd_lispenv env)
+static fdtype cssout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out;
@@ -1150,7 +1153,7 @@ static fdtype urldata_parse(fdtype qstring)
 
 /* Bind request and output */
 
-static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
+static fdtype withreqout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *oldout = u8_current_output;
   U8_OUTPUT _out, *out = &_out;
@@ -1281,7 +1284,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim1x("HTMLCLASS!",add_html_class,1,
                                   fd_string_type,FD_VOID));
 
-  fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_handler);
+  fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_evalfn);
   fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
   fd_defalias2(module,"WITHCGI",fd_scheme_module,"WITH/REQUEST");
@@ -1295,16 +1298,16 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   fd_idefn(module,fd_make_cprim1x("MAPURL",mapurl,1,fd_string_type,FD_VOID));
 
-  /* fd_defspecial(module,"CGIVAR",cgivar_handler); */
+  /* fd_defspecial(module,"CGIVAR",cgivar_evalfn); */
 
   fd_idefn(module,fd_make_cprim1x
            ("URLDATA/PARSE",urldata_parse,1,fd_string_type,FD_VOID));
   fd_defalias(module,"CGIPARSE","URLDATA/PARSE");
 
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
-  fd_defspecial(xhtmlout_module,"TITLE!",title_handler);
-  fd_defspecial(xhtmlout_module,"JSOUT",jsout_handler);
-  fd_defspecial(xhtmlout_module,"CSSOUT",cssout_handler);
+  fd_defspecial(xhtmlout_module,"TITLE!",title_evalfn);
+  fd_defspecial(xhtmlout_module,"JSOUT",jsout_evalfn);
+  fd_defspecial(xhtmlout_module,"CSSOUT",cssout_evalfn);
   fd_idefn(xhtmlout_module,
            fd_make_cprim2x("STYLESHEET!",add_stylesheet,1,
                            fd_string_type,FD_VOID,

@@ -717,34 +717,6 @@ fdtype (*_fd_make_double)(double) = default_make_double;
 
 /* Reading and writing compressed dtypes */
 
-static unsigned char *old_do_uncompress
-  (unsigned char *bytes,size_t n_bytes,ssize_t *dbytes)
-{
-  int error;
-  uLongf init_size = 4*n_bytes, x_lim = init_size, x_size;
-  Bytef *fdata = (Bytef *)bytes, xbuf[init_size], *xdata=xbuf;
-  while ((error = uncompress(xdata,&x_size,fdata,n_bytes)) < Z_OK)
-    if (error == Z_MEM_ERROR) {
-      fd_seterr1("ZLIB Out of Memory");
-      return NULL;}
-    else if (error == Z_BUF_ERROR) {
-      if (xdata == xbuf) {
-        xdata=u8_malloc(x_lim*2);
-        memcpy(xdata,xbuf,x_size);}
-      else xdata = u8_realloc(xdata,x_size*2);
-      x_lim = x_lim*2;}
-    else if (error == Z_DATA_ERROR) {
-      u8_free(xdata);
-      fd_seterr1("ZLIB Data error");
-      return NULL;}
-    else {
-      u8_free(xdata);
-      fd_seterr1("Bad ZLIB return code");
-      return NULL;}
-  *dbytes = x_size;
-  return xdata;
-}
-
 static unsigned char *do_uncompress
 (Bytef *fdata,size_t n_bytes,ssize_t *dbytes,Bytef *init_xbuf,ssize_t buflen)
 {

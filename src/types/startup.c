@@ -486,8 +486,8 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
     if (runbase_config == NULL) {
       u8_string wd = u8_getcwd(), appid = u8_string_subst(u8_appid(),"/",":");
       runbase = u8_mkpath(wd,appid);
-      u8_free(appid);
-      u8_free(wd);}
+      u8_free(wd);
+      u8_free(appid);}
     else if (u8_directoryp(runbase_config)) {
       /* If the runbase is a directory, create files using the appid. */
       u8_string appid = u8_string_subst(u8_appid(),"/",":");
@@ -716,15 +716,16 @@ static int boot_config()
 
 /* Bootup message */
 
-FD_EXPORT void fd_boot_message()
+FD_EXPORT int fd_boot_message()
 {
-  if (fd_be_vewy_quiet) return;
-  if (boot_message_delivered) return;
+  if (fd_be_vewy_quiet) return 0;
+  if (boot_message_delivered) return 0;
   u8_message("Copyright (C) beingmeta 2004-2017, all rights reserved");
   u8_message("(%s:%lld) %s %s",
              u8_appid(),(unsigned long long)getpid(),
              fd_getrevision(),u8_getrevision());
   boot_message_delivered = 1;
+  return 1;
 }
 
 void fd_init_startup_c()

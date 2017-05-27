@@ -195,6 +195,10 @@ int main(int argc,char **argv)
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdbatch",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
+
   fd_register_config("LOGAPPEND",
 		     _("Whether to extend existing log files or truncate them"),
 		     fd_boolconfig_get,fd_boolconfig_set,
@@ -226,6 +230,7 @@ int main(int argc,char **argv)
       u8_log(LOG_CRIT,"Launch scrubbed",
              "PID file %s exists, with pid %d != %d",
              pid_file,ival,pid);
+      fd_pop_stack(_stack);
       exit(1);}}
 
   atexit(exit_fdexec);
@@ -239,6 +244,7 @@ int main(int argc,char **argv)
   /* We only redirect stdio going to ttys. */
   if ((pid_fd = u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open pid file %s",pid_file);
+    fd_pop_stack(_stack);
     exit(-1);}
   
   /* Remove any pre-existing state files. */
@@ -252,6 +258,7 @@ int main(int argc,char **argv)
     if ((log_fd = u8_open_fd(log_file,logopen_flags,LOGMODE))<0) {
       u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open log file %s",log_file);
       close(pid_fd);
+      fd_pop_stack(_stack);
       exit(-1);}}
   if (isatty(2)) {
     err_file = get_errfile();
@@ -259,18 +266,22 @@ int main(int argc,char **argv)
       u8_log(LOG_CRIT,u8_CantOpenFile,"Couldn't open err file %s",err_file);
       close(pid_fd);
       if ((log_file)&&(log_fd>=0)) close(log_fd);
+      fd_pop_stack(_stack);
       exit(-1);}}
   
   write_cmd_file(argc,argv);
 
   /* Now, do the fork. */
-  if ((chained==0) && (fork())) exit(0);
+  if ((chained==0) && (fork())) {
+    fd_pop_stack(_stack);
+    exit(0);}
   else if ((chained==0) && (pid = fork())) {
     char buf[256]; int retval;
     sprintf(buf,"%d",pid);
     retval = write(pid_fd,buf,strlen(buf));
     if (retval<=0) {
       u8_log(LOG_ERROR,"Aborted","Can't write pid %d to %s",pid_file);
+      fd_pop_stack(_stack);
       exit(1);}
     close(pid_fd);
     /* The parent process just reports what it did. */
@@ -316,12 +327,14 @@ int main(int argc,char **argv)
       int free_i = 0; while (free_i<n_args) {
 	fd_decref(args[free_i]); free_i++;}
       u8_free(args);}
+    fd_pop_stack(_stack);
     exit(retval);
     return retval;}
   {
     int free_i = 0; while (free_i<n_args) {
       fd_decref(args[free_i]); free_i++;}
     u8_free(args);}
+  fd_pop_stack(_stack);
   exit(0);
   return 0;
 }

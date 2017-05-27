@@ -13,7 +13,7 @@ export DH_OPTIONS
 override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib \
 		--without-sudo --with-malloc=tcmalloc \
-		--with-bootsystem=allboot
+		--with-bootsystem=allboot --with-libscm=version
 
 override_dh_auto_install:
 	make DESTDIR=$$(pwd)/debian/tmp install install-fdserv install-i18n \

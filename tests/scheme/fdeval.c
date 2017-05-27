@@ -24,13 +24,13 @@ FD_EXPORT void fd_init_fdweb(void);
 int main(int argc,char **argv)
 {
   int fd_version = fd_init_scheme();
-  fd_lispenv env;
+  fd_lexenv env;
   fdtype expr, value;
   if (fd_version<0) exit(1);
   fd_init_scheme(); fd_init_schemeio();
   fd_init_texttools(); fd_init_fdweb();
   u8_init_chardata_c();
-  env = fd_working_environment();
+  env = fd_working_lexenv();
   expr = fd_parse(argv[1]);
   value = fd_eval(expr,env);
   u8_fprintf(stderr,_("Value of %q is %q\n"),expr,value);

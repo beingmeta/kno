@@ -40,3 +40,11 @@ usr/share/framerd/fdconsole.el
 usr/share/framerd/makefile.include
 usr/share/framerd/data/hyph_en_US.dic
 etc/logrotate.d/framerd
+usr/share/framerd/libscm/framerd-*/batch/*.scm
+usr/share/framerd/libscm/framerd-*/bench/*.scm
+usr/share/framerd/libscm/framerd-*/bugjar/*.scm
+usr/share/framerd/libscm/framerd-*/bugjar/websrc/*
+usr/share/framerd/libscm/framerd-*/optimize/*.scm
+usr/share/framerd/libscm/framerd-*/storage/*.scm
+usr/share/framerd/libscm/framerd-*/*.scm
+

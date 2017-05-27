@@ -14,6 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/defines.h"
 #include "framerd/dtype.h"
+#include "framerd/support.h"
 #include "framerd/tables.h"
 #include "framerd/storage.h"
 #include "framerd/drivers.h"
@@ -34,6 +35,7 @@
 #include <locale.h>
 #include <strings.h>
 #include <sys/time.h>
+#include <math.h>
 #include <time.h>
 
 #include "main.h"
@@ -164,6 +166,8 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
 
   fd_init_libfdtype();
 
+  FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],FD_VOID);
+
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 
   if (u8_appid() == NULL) {
@@ -182,6 +186,8 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
   if (source_filep == NULL) u8_free(source_file);
   if (exe_namep == NULL) u8_free(exe_name);
 
+  fd_pop_stack(_stack);
+
   return args;
 }
 
@@ -189,7 +195,7 @@ int do_main(int argc,char **argv,
             u8_string exe_name,u8_string source_file,
             fdtype *args,size_t n_args)
 {
-  fd_lispenv env = fd_working_environment();
+  fd_lexenv env = fd_working_lexenv();
   fdtype main_proc = FD_VOID, result = FD_VOID;
   int retval = 0;
 
@@ -301,35 +307,60 @@ int do_main(int argc,char **argv,
     fdtype main_symbol = fd_intern("MAIN");
     main_proc = fd_symeval(main_symbol,env);
     if (FD_APPLICABLEP(main_proc)) {
-      int ctype = FD_PRIM_TYPE(main_proc);
       fd_decref(result);
-      result = fd_applyfns[ctype](main_proc,n_args,args);
+      result = fd_apply(main_proc,n_args,args);
       result = fd_finish_call(result);}}
   if (FD_TROUBLEP(result)) {
-    u8_exception e = u8_erreify(), root = e;
+    U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
     int old_maxelts = fd_unparse_maxelts, old_maxchars = fd_unparse_maxchars;
-    U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
+    u8_exception e = u8_erreify();
+
     fd_unparse_maxchars = debug_maxchars; fd_unparse_maxelts = debug_maxelts;
-    while (root->u8x_prev) root = root->u8x_prev;
-    if (root) {fd_print_exception(&out,root); root = NULL;}
-    if (e) {
-      fd_print_backtrace(&out,e,80);
-      u8_free_exception(e,1);
-      e = NULL;}
-    fd_unparse_maxelts = old_maxelts;
-    fd_unparse_maxchars = old_maxchars;
+    fd_sum_exception(&out,e);
+    fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
+    fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
+
+    fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
+      ((fdtype) (e->u8x_xdata)) : (FD_VOID);
+    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (FD_VOID);
+    if (!(FD_VOIDP(stacktrace))) {
+      struct U8_XOUTPUT xout; u8_output out=(u8_output)&xout;
+      u8_init_xoutput(&xout,2,NULL);
+      FD_DOLIST(entry,stacktrace) {
+        u8_puts(out,";; ");
+        if (FD_STRINGP(entry))
+          u8_puts(out,FD_STRDATA(entry));
+        else {
+          u8_puts(out," ");
+          fd_pprint(out,entry,";; ",2,5,100,1);}
+        u8_putc(out,'\n');}
+      u8_flush_xoutput(&xout);}
+
+#if 0
+    fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
+      ((fdtype) (e->u8x_xdata)) : (FD_VOID);
+    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (FD_VOID);
+    double elapsed      = u8_elapsed_time();
+    int msecs           = floor(elapsed*1000);
+    u8_string dumpfile  = u8_mkstring("_stack%d-%d.dtype",getpid(),msecs);
+    fd_write_dtype_to_file(stacktrace,dumpfile);
+    out.u8_write=out.u8_outbuf;
+    u8_printf(&out,";; Complete stacktrace written to %s\n",dumpfile);
     fputs(out.u8_outbuf,stderr);
+    u8_free(dumpfile);
+#endif
     u8_free(out.u8_outbuf);
+    u8_free_exception(e,1);
     retval = -1;}
   fd_decref(result);
   /* Hollow out the environment, which should let it be reclaimed.
      This patches around some of the circular references that might
-     exist because working_environment may contain procedures which
+     exist because working_lexenv may contain procedures which
      are closed in the working environment, so the working environment
      itself won't be GC'd because of those circular pointers. */
   if (FD_HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
-  fd_recycle_environment(env);
+  fd_recycle_lexenv(env);
   fd_decref(main_proc);
   return retval;
 }
@@ -338,15 +369,24 @@ int do_main(int argc,char **argv,
 int main(int argc,char **argv)
 {
   u8_string source_file = NULL, exe_name = NULL;
-  fdtype *args = NULL; size_t n_args = 0; 
+  fdtype *args = NULL; size_t n_args = 0;
   int i = 0, retval = 0;
 
   fd_main_errno_ptr = &errno;
+
   FD_INIT_STACK();
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdexec",NULL,FD_VOID);
+  u8_string appid=u8_appid();
+  if (appid==NULL) appid=argv[0];
+  _stack->stack_label=u8_strdup(appid);
+  _stack->stack_free_label=1;
+
   retval = do_main(argc,argv,exe_name,source_file,args,n_args);
+
+  fd_pop_stack(_stack);
 
   i = 0; while (i<n_args) {
     fdtype arg = args[i++]; fd_decref(arg);}

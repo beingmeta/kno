@@ -420,9 +420,6 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
             fdtype args[2], value; args[0]=f; args[1]=slotid;
             value = fd_finish_call(fd_dapply((fdtype)fn,2,args));
             if (FD_ABORTP(value)) {
-              fd_push_error_context
-                (fd_apply_context,NULL,
-                 fd_make_nvector(3,method,f,slotid));
               fd_decref(computed); fd_decref(methods);
               fd_pop_opstack(&fop,0);
               fd_decref(cachev);
@@ -503,9 +500,6 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
             if (fn) {
               fdtype v = fd_apply((fdtype)fn,3,args);
               if (FD_ABORTP(v)) {
-                fd_push_error_context
-                  (fd_apply_context,NULL,
-                   fd_make_nvector(4,method,f,slotid,fd_incref(value)));
                 fd_decref(methods); fd_decref(cachev);
                 fd_pop_opstack(&fop,0);
                 return fd_interr(v);}

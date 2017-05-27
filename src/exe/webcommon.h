@@ -36,7 +36,7 @@ static int U8_MAYBE_UNUSED pid_fd = -1;
 #define FD_ALLREQS 2 /* records all requests */
 #define FD_ALLRESP 3 /* records all requests and the response set back */
 
-static fd_lispenv server_env = NULL;
+static fd_lexenv server_env = NULL;
 
 static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename;
 static MU fdtype uri_slotid, response_symbol, err_symbol, status_symbol;
@@ -412,7 +412,7 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
 	u8_unlock_mutex(&preload_lock);
 	return 0;}
       else scan = scan->next_preload;}
-    if (server_env == NULL) server_env = fd_working_environment();
+    if (server_env == NULL) server_env = fd_working_lexenv();
     scan = u8_alloc(struct FD_PRELOAD_LIST);
     scan->preload_filename = u8_strdup(filename);
     scan->preload_mtime = (time_t)-1;
@@ -480,7 +480,7 @@ static fdtype loadcontent(fdtype path)
     u8_seterr(fd_FileNotFound,"loadcontent",u8_strdup(pathname));
     return FD_ERROR_VALUE;}
   if (content[0]=='<') {
-    U8_INPUT in; FD_XML *xml; fd_lispenv env;
+    U8_INPUT in; FD_XML *xml; fd_lexenv env;
     fdtype lenv, ldata, parsed;
     U8_INIT_STRING_INPUT(&in,strlen(content),content);
     oldsource = fd_bind_sourcebase(pathname);
@@ -500,7 +500,7 @@ static fdtype loadcontent(fdtype path)
       parsed = FD_CDR(parsed);
       old_parsed->cdr = FD_EMPTY_LIST;}
     ldata = parsed;
-    env = (fd_lispenv)xml->xml_data; lenv = (fdtype)env;
+    env = (fd_lexenv)xml->xml_data; lenv = (fdtype)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
@@ -511,9 +511,9 @@ static fdtype loadcontent(fdtype path)
 
     return fd_conspair(ldata,lenv);}
   else {
-    fd_environment newenv=
+    fd_lexenv newenv=
       ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17),server_env)) :
-       (fd_working_environment()));
+       (fd_working_lexenv()));
     fdtype main_proc, load_result;
     /* We reload the file.  There should really be an API call to
        evaluate a source string (fd_eval_source?).  This could then
@@ -587,8 +587,8 @@ static fdtype getcontent(fdtype path)
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
-	    (FD_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
-	  fd_lispenv env = (fd_lispenv)(FD_CDR(FD_CDR(value)));
+	    (FD_TYPEP((FD_CDR(FD_CDR(value))),fd_lexenv_type))) {
+	  fd_lexenv env = (fd_lexenv)(FD_CDR(FD_CDR(value)));
 	  if (FD_HASHTABLEP(env->env_bindings))
 	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
 	fd_decref(value);
@@ -608,7 +608,7 @@ static fdtype getcontent(fdtype path)
 
 /* Check threadcache */
 
-static MU struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
+static MU struct FD_THREAD_CACHE *checkthreadcache(fd_lexenv env)
 {
   fdtype tcval = fd_symeval(threadcache_symbol,env);
   if (FD_FALSEP(tcval)) return NULL;

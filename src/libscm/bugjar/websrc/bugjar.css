@@ -1,0 +1,199 @@
+body.bugjar {
+   font-family: sans, sans-serif;
+   margin-top: 3em;}
+
+body.bugjar div.navbar {
+    position: fixed; 
+    top: 0px; left: 0px; right: 0px;
+    text-align: right;
+    background-color: silver;
+    border-bottom: solid black 2px;
+    height: auto;}
+body.bugjar div.navbar span.buginfo {
+    float: left; font-size: 10px; padding-top: 3px; padding-left: 2px;}
+body.bugjar div.navbar span.bugid:before {
+    font-weight: bold; content: "Bug id: ";}
+body.bugjar div.navbar span.datetime:before {
+    font-weight: bold; content: " recorded: ";}
+body.bugjar div.navbar a {
+    font-size: 20px; font-size: 2vw; padding-left: 1em;
+    text-decoration: none; font-weight: bold;
+    font-variant: small-caps;}
+body.bugjar div.navbar a:visited { color: blue;}
+body.bugjar div.navbar a:hover { text-decoration: overline; }
+body.bugjar div.navbar span.links {
+    white-space: nowrap; padding-right: 1ex;}
+@media (max-width: 600px) {
+    body.bugjar { margin-top: 4em; }
+    body.bugjar div.navbar span.links { white-space: normal; }}
+
+span div.expands { display: inline-block; }
+div.expands { max-height: 3em; overflow: hidden; }
+div.expanded.expands, .expanded div.expands { 
+    max-height: inherit; }
+
+
+div.bughead h1, div.bughead h2, div.bughead h3 {
+    text-align: right; margin-top: 2px; margin-bottom: 2px;}
+div.bughead { text-align: right;}
+
+div.bughead h1 { font-weight: normal; }
+div.bughead h1 span.bugid { float: left; font-size: 12px; font-family: fixed;}
+div.bughead h1 span.datetime { float: left; font-size: 10px; font-family: sans,sans-serif;}
+div.bughead h1 span.condition { font-weight: bold;}
+
+div.bughead h2.detail { font-weight: normal; font-style: italic; }
+div.bughead h2.irritant {
+    font-family: fixed; color: red; font-size: 80%;}
+
+div.bughead h3 {
+    font-family: fixed; font-weight: normal; text-align: left;
+    border-bottom: solid black 1px;}
+div.bughead h3 .timestamp, div.bughead h3 datetime {
+    float: right; font-family: sans; font-size: 90%;}
+
+div.bughead h3.uri span.scriptname { float: right; font-size: 90%; font-weight: bold;}
+div.bughead h3.uri span.query { font-style: italic;}
+div.bughead h3.uri span.query span.qmark { font-weight: bold;}
+
+body.bugjar div.main h2 {
+    padding-top: 32px; text-align: left;
+    border-bottom: solid black 2px;}
+body.bugjar div.main { margin-bottom: 1000px; }
+
+/* Data tables (from fdjt.css) */
+
+div.fdjtdata {
+  font-family: fixed; width: 100%; white-space: pre;}
+
+table.fdjtdata {width: 100%; font-family: fixed;}
+table.fdjtdata th { 
+  font-family: sans-serif;
+  vertical-align: top; text-align: right;
+  padding-right: 2px;
+  white-space: nowrap;}
+table.fdjtdata td { 
+  vertical-align: top; text-align: left; padding-left: 2px;}
+
+table.fdjtdata span.symbol { font-weight: bold;}
+table.fdjtdata span.label { font-family: sans-serif;}
+table.fdjtdata td dl { margin-top: 1ex; margin-bottom: 0px}
+table.fdjtdata td > dl:first-child { margin-top: 0px; margin-bottom: 0px}
+
+table.fdjtdata td ol { border: solid gray 1px; padding: 1px;}
+table.fdjtdata td dl { border: solid gray 1px; padding: 1px;}
+
+table.fdjt {font-family: sans,sans-serif;}
+table.fdjt.full { width: 100%; }
+table.fdjt th { vertical-align: top; text-align: right;}
+table.fdjt td { vertical-align: top; text-align: left;}
+table.fdjt td input.fullwidth[type='TEXT'] { width: 100%;}
+table.fdjt td textarea.fullwidth { width: 100%;}
+
+/* Backtraces (from fdjt.css) */
+
+table.backtrace {
+    font-family: sans,sans-serif; width: 100%;
+    border-collapse: collapse;}
+
+/* Expansion rules */
+
+table.backtrace > tbody > tr.expanded,
+table.backtrace > tbody > tr td.expanded,
+table.backtrace > tbody.expanded > tr.collapsed,
+table.backtrace.expandall > tbody > tr.collapsed {
+  display: none;}
+table.backtrace > tbody.expanded > tr.expanded,
+table.backtrace.expandall > tbody.expanded > tr.expanded {
+  display: table-row;}
+table.backtrace > tbody.expanded > tr td.expanded {
+  display: table-cell;}
+
+table.backtrace > tbody > tr:first-child { border-top: solid black 2px;}
+table.backtrace th, table.backtrace td { vertical-align: top;}
+table.backtrace th { text-align: right; padding-right: 4px;}
+table.backtrace td { text-align: left; padding-left: 2px;}
+table.backtrace td.string { font-family: serif;}
+table.backtrace tbody.error {
+    background-color: lightblue; color: black;}
+table.backtrace tbody.error span.exception {
+    font-weight: bold; color: purple;}
+table.backtrace tbody.error span.context {
+    font-weight: bold; font-family: fixed;}
+table.backtrace tbody.error tr.details td { font-style: italic;}
+table.backtrace tbody.error tr.irritant td {
+    background-color: white; font-family: fixed; color: black;} 
+
+tbody div.irritant {
+  margin-left: 6px; font-family: fixed;
+  max-height: 3em; overflow: hidden;
+  color: red;}
+tbody.expanded div.irritant { max-height: inherit; }
+table.backtrace > tbody.eval div.expr {
+    font-family: fixed;
+    white-space: pre;
+    max-height: 5em;
+    overflow: hidden;}
+table.backtrace > tbody.eval.expanded div.expr {
+    max-height: inherit; }
+
+table.backtrace td > table { font-size: 90%;}
+
+table.backtrace > tbody > tr > th {
+    font-size: 125%; font-variant: small-caps;}
+table.backtrace > tbody > tr.details > th {
+    font-size: 90%; color: green;}
+table.backtrace > tbody > tr.irritant > th {
+    font-size: 90%; color: red;}
+table.backtrace > tbody > tr > td {
+    text-align: left; padding-top: 2px;}
+table.backtrace > tbody > tr > td .module {
+    padding-left: 1em; color: blue;}
+table.backtrace > tbody > tr > td .module:before {
+    color: black; font-style: italic; font-size: 80%;
+    content: "module=";}
+table.backtrace > tbody.eval td.expr {
+    background-color: white; color: black;}
+table.backtrace > tbody.eval td.expr .focus { color: blue; }
+table.backtrace > tbody.call > tr > td {
+    background-color: whitesmoke; color: black;}
+table.backtrace > tbody.bindings > tr > td {
+    background-color: lightskyblue; color: black;}
+table.backtrace > tbody.bindings > tr > td > table.bindings {
+    font-family: fixed;}
+table.backtrace > tbody.eval td.expr {
+  font-size: 10px;}
+table.backtrace > tbody.eval td.expr span.focus {
+  font-size: 16px;}
+table.backtrace > tbody.eval.expanded td.expr,
+table.backtrace.expandall > tbody.eval td.expr,
+table.backtrace > tbody.eval.expanded td.expr span.focus,
+table.backtrace.expandall > tbody.eval td.expr span.focus {
+  font-size: inherit; }
+
+tbody.bindings span.var {
+    font-weight: bold;
+    font-family: sans-serif;
+    text-decoration: underline;
+    padding-left: 1ex;}
+table.backtrace > tbody.bindings > tr { display: none; }
+table.backtrace > tbody.bindings.expanded > tr,
+table.backtrace.expandall > tbody.bindings.expanded > tr,
+table.backtrace > tbody.bindings > tr:first-child {
+   display: table-row; }
+table.backtrace > tbody.bindings.expanded > tr:first-child span.vars,
+table.backtrace.expandall > tbody.bindings > tr:first-child span.vars {
+  display: none; }
+
+table.bindings { }
+table.bindings th.head { text-align: left;}
+table.bindings tr.binding th.var { font-family: sans,sans-serif;}
+table.backtrace > tbody.bindings > tr:first-child > th {
+    background-color: blue; color: silver;}
+table.backtrace > tbody.eval > tr > th { background-color: white; color: black;}
+table.backtrace > tbody.call > tr th { background-color: red; color: white;}
+table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > td {
+    font-family: fixed;}
+table.backtrace > tbody.call > tr > td { color: red; }
+table.backtrace > tbody.call > tr > td span.operator {font-weight: bold;}
+table.backtrace > tbody.call > tr > td span {white-space: nowrap;}

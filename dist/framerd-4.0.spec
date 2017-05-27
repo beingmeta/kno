@@ -1,12 +1,12 @@
 Name:           framerd
-Version:        @FDVERSION@
-Release:        @RPMVERSION@%{?dist}
+Version:        4.1.1
+Release:        1%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
 License:        GNU GPL
 URL:            http://www.beingmeta.com/
-Source0:        framerd-@FDVERSION@.tar.gz
+Source0:        framerd-4.1.1.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel mysql-devel libtidy-devel libldns-devel
@@ -134,7 +134,7 @@ The %{name}-tidy package implements external bindings to libtidy
 %setup -q
 
 %build
-%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv --disable-devmode
+%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv --disable-devmode --with-libscm=version
 #make %{?_smp_mflags}
 make
 make mod_fdserv

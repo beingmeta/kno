@@ -133,7 +133,7 @@ fdtype fd_static_copy(fdtype x)
 
 FD_EXPORT
 /* Copies a vector of LISP pointers */
-fdtype *fd_copy_vec(fdtype *vec,int n,fdtype *into,int flags)
+fdtype *fd_copy_vec(fdtype *vec,size_t n,fdtype *into,int flags)
 {
   fdtype *dest = (into == NULL)?(u8_alloc_n(n,fdtype)):(into);
   int i = 0; while (i<n) {

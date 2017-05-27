@@ -250,8 +250,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml = FD_CAR(proc), setup_proc = FD_VOID;
-    fd_lispenv base = fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
-    fd_lispenv runenv = fd_make_env(fd_incref(cgidata),base);
+    fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
+    fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache = checkthreadcache(base);
     if (traceweb>1)
@@ -495,8 +495,8 @@ static int simplecgi(fdtype path)
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype setup_proc = FD_VOID;
-    fd_lispenv base = fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
-    fd_lispenv runenv = fd_make_env(fd_incref(cgidata),base);
+    fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
+    fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with template",path);
@@ -614,6 +614,8 @@ int main(int argc,char **argv)
 
   fd_main_errno_ptr = &errno;
 
+  FD_INIT_STACK();
+
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
     exit(1);}
@@ -673,7 +675,7 @@ int main(int argc,char **argv)
   init_webcommon_symbols();
 
   if (server_env == NULL)
-    server_env = fd_working_environment();
+    server_env = fd_working_lexenv();
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
   fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime));
 
@@ -701,6 +703,10 @@ int main(int argc,char **argv)
     if (socketspec) socketspec = u8_strdup(socketspec);}
 
   fd_handle_argv(argc,argv,arg_mask,NULL);
+
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdcgiexec",NULL,FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
 
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */

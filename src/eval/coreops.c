@@ -416,7 +416,7 @@ static fdtype typeof_prim(fdtype x)
   else return fdtype_string("??");
 }
 
-#define GETSPECFORM(x) ((fd_special_form)(fd_fcnid_ref(x)))
+#define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
@@ -424,10 +424,10 @@ static fdtype procedure_name(fdtype x)
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_specform_type)) {
-    struct FD_SPECIAL_FORM *sf = GETSPECFORM(x);
-    if (sf->fexpr_name)
-      return fdtype_string(sf->fexpr_name);
+  else if (FD_TYPEP(x,fd_evalfn_type)) {
+    struct FD_EVALFN *sf = GETEVALFN(x);
+    if (sf->evalfn_name)
+      return fdtype_string(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
@@ -564,11 +564,11 @@ static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
   int retval;
   fd_incref(handler);
-  retval = fd_register_config_x(FD_SYMBOL_NAME(var),
-                              ((FD_VOIDP(docstring)) ? (NULL) :
-                               (FD_STRDATA(docstring))),
-                              lconfig_get,lconfig_set,(void *) handler,
-                              reuse_lconfig);
+  retval = fd_register_config_x
+    (FD_SYMBOL_NAME(var),
+     ((FD_STRINGP(docstring)) ? (FD_STRDATA(docstring)) : (NULL)),
+     lconfig_get,lconfig_set,(void *) handler,
+     reuse_lconfig);
   if (retval<0) {
     fd_decref(handler);
     return FD_ERROR_VALUE;}
@@ -601,7 +601,7 @@ static fdtype thread_add(fdtype var,fdtype val)
   else return FD_VOID;
 }
 
-static fdtype thread_ref(fdtype expr,fd_lispenv env)
+static fdtype thread_ref_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 {
   fdtype sym_arg = fd_get_arg(expr,1), sym, val;
   fdtype dflt_expr = fd_get_arg(expr,2);
@@ -741,7 +741,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("THREADGET",thread_get,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADSET!",thread_set,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADADD!",thread_add,2));
-  fd_defspecial(fd_scheme_module,"THREADREF",thread_ref);
+  fd_defspecial(fd_scheme_module,"THREADREF",thread_ref_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("INTERN",lisp_intern,1));
   fd_idefn(fd_scheme_module,

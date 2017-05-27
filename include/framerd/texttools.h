@@ -26,52 +26,52 @@ typedef unsigned int fd_matchflags;
 /* Matcher functions */
 
 typedef fdtype
-  (*tx_matchfn)(fdtype pat,fdtype next,fd_lispenv env,
+  (*tx_matchfn)(fdtype pat,fdtype next,fd_lexenv env,
 		const u8_byte *string,u8_byteoff off,u8_byteoff lim,
 		int flags);
 typedef u8_byteoff
-  (*tx_searchfn)(fdtype pat,fd_lispenv env,
+  (*tx_searchfn)(fdtype pat,fd_lexenv env,
 		 const u8_byte *string,u8_byteoff off,u8_byteoff lim,
 		 int flags);
 typedef fdtype
-  (*tx_extractfn)(fdtype pat,fdtype next,fd_lispenv env,
+  (*tx_extractfn)(fdtype pat,fdtype next,fd_lexenv env,
 		  const u8_byte *string,u8_byteoff off,u8_byteoff lim,
 		  int flags);
 
 FD_EXPORT int fd_text_match
-  (fdtype pat,fd_lispenv env,
+  (fdtype pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 
 FD_EXPORT fdtype fd_text_matcher
-  (fdtype pat,fd_lispenv env,
+  (fdtype pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 FD_EXPORT fdtype fd_text_domatch
-  (fdtype pat,fdtype next,fd_lispenv env,
+  (fdtype pat,fdtype next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 FD_EXPORT fdtype fd_text_extract
- (fdtype pat,fd_lispenv env,
+ (fdtype pat,fd_lexenv env,
   u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 FD_EXPORT fdtype fd_text_doextract
- (fdtype pat,fdtype next,fd_lispenv env,
+ (fdtype pat,fdtype next,fd_lexenv env,
   u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 FD_EXPORT u8_byteoff fd_text_search
-  (fdtype pat,fd_lispenv env,
+  (fdtype pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
-FD_EXPORT fdtype fd_tx_closure(fdtype expr,fd_lispenv env);
+FD_EXPORT fdtype fd_tx_closure(fdtype expr,fd_lexenv env);
 
 FD_EXPORT void fd_add_match_operator
   (u8_string label,tx_matchfn m,tx_searchfn s,tx_extractfn ex);
 FD_EXPORT int fd_matchdef(fdtype symbol,fdtype value);
-FD_EXPORT fdtype fd_matchget(fdtype symbol,fd_lispenv env);
+FD_EXPORT fdtype fd_matchget(fdtype symbol,fd_lexenv env);
 FD_EXPORT u8_byteoff fd_text_search
-  (fdtype pat,fd_lispenv env,
+  (fdtype pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 FD_EXPORT fdtype fd_text_subst(fdtype pat,fdtype string);
 
 typedef struct FD_TXCLOSURE {
   FD_CONS_HEADER;
   fdtype fd_txpattern;
-  fd_lispenv fd_txenv;} FD_TXCLOSURE;
+  fd_lexenv fd_txenv;} FD_TXCLOSURE;
 typedef struct FD_TXCLOSURE *fd_txclosure;
 
 struct FD_TEXTMATCH_OPERATOR {
@@ -86,7 +86,7 @@ struct FD_TEXTMATCH_OPERATOR {
 #define FD_MATCH_BE_GREEDY         (FD_MATCH_COLLAPSE_SPACES<<1)
 #define FD_MATCH_DO_BINDINGS       (FD_MATCH_BE_GREEDY<<1)
 
-FD_EXPORT fdtype fd_textclosure(fdtype expr,fd_lispenv env);
+FD_EXPORT fdtype fd_textclosure(fdtype expr,fd_lexenv env);
 
 FD_EXPORT fd_exception fd_InternalMatchError, fd_MatchSyntaxError;
 FD_EXPORT fd_exception fd_TXInvalidPattern;

@@ -150,19 +150,19 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype hashcolon_handler(fdtype expr,fd_lispenv env)
+static fdtype hashcolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcolon_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"hashcolon_evalfn",NULL,expr);
   else return reqget_prim(var,FD_EMPTY_CHOICE);
 }
 
-static fdtype hashcoloncolon_handler(fdtype expr,fd_lispenv env)
+static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcoloncolon_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
     fdtype val = reqget_prim(var,FD_EMPTY_CHOICE);
     if (FD_STRINGP(val)) {
@@ -172,11 +172,11 @@ static fdtype hashcoloncolon_handler(fdtype expr,fd_lispenv env)
     else return val;}
 }
 
-static fdtype hashcolondollar_handler(fdtype expr,fd_lispenv env)
+static fdtype hashcolondollar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcoloncolon_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
     fdtype val = reqget_prim(var,FD_VOID);
     if (FD_STRINGP(val)) {
@@ -193,11 +193,11 @@ static fdtype hashcolondollar_handler(fdtype expr,fd_lispenv env)
       return result;}}
 }
 
-static fdtype hashcolonquestion_handler(fdtype expr,fd_lispenv env)
+static fdtype hashcolonquestion_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
   if (FD_VOIDP(var))
-    return fd_err(fd_SyntaxError,"hashcoloncolon_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else if (fd_req_test(var,FD_VOID))
     return FD_TRUE;
   else return FD_FALSE;
@@ -256,7 +256,7 @@ fdtype reqdata_prim()
   return fd_req_call(fd_deep_copy);
 }
 
-static fdtype withreq_handler(fdtype expr,fd_lispenv env)
+static fdtype withreq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1), result = FD_VOID;
   fd_use_reqinfo(FD_TRUE); fd_reqlog(1);
@@ -297,7 +297,7 @@ FD_EXPORT fdtype reqloglen_prim()
     return FD_INT(len);}
 }
 
-FD_EXPORT fdtype reqlog_handler(fdtype expr,fd_lispenv env)
+FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = fd_reqlog(1);
@@ -348,20 +348,20 @@ FD_EXPORT void fd_init_reqstate_c()
   fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   fd_idefn(module,fd_make_cprim0("REQ/LIVE?",req_livep_prim));
-  fd_defspecial(module,"#:",hashcolon_handler);
-  fd_defspecial(module,"#::",hashcoloncolon_handler);
-  fd_defspecial(module,"#:$",hashcolondollar_handler);
-  fd_defspecial(module,"#:?",hashcolonquestion_handler);
+  fd_defspecial(module,"#:",hashcolon_evalfn);
+  fd_defspecial(module,"#::",hashcoloncolon_evalfn);
+  fd_defspecial(module,"#:$",hashcolondollar_evalfn);
+  fd_defspecial(module,"#:?",hashcolonquestion_evalfn);
 
-  fd_defspecial(module,"REQLOG",reqlog_handler);
-  fd_defspecial(module,"REQ/LOG!",reqlog_handler);
+  fd_defspecial(module,"REQLOG",reqlog_evalfn);
+  fd_defspecial(module,"REQ/LOG!",reqlog_evalfn);
   fd_idefn(module,fd_make_cprim0("REQ/GETLOG",reqgetlog_prim));
   fd_idefn(module,fd_make_cprim0("REQ/LOGLEN",reqloglen_prim));
 
   fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim));
 
   fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim));
-  fd_defspecial(module,"WITH/REQUEST",withreq_handler);
+  fd_defspecial(module,"WITH/REQUEST",withreq_evalfn);
 
 }
 
