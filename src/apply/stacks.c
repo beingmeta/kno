@@ -218,15 +218,19 @@ static void output_value(u8_output out,fdtype val,
       u8_printf(out," ]</%s>",eltname);
       fd_decref(value);}
     else {
-      u8_printf(out,"\n<table class='%s map'>",classname);
+      u8_printf(out,"\n<div class='%s map'>",classname);
       int i=0; FD_DO_CHOICES(key,keys) {
 	fdtype value=fd_get(val,key,FD_VOID);
-	u8_printf(out,"\n  <tr class='%s keyval'>",classname);
-	output_value(out,key,"th","slotid"); u8_putc(out,' ');
-	output_value(out,value,"td","slotval");
-	u8_printf(out,"</tr>");
+	u8_printf(out,"\n  <div class='%s keyval'>",classname);
+	output_value(out,key,"span","key");
+	if (FD_CHOICEP(value)) u8_puts(out," <span class='slotvals'>");
+	{FD_DO_CHOICES(v,value) {
+	    u8_putc(out,' ');
+	    output_value(out,value,"span","slotval");}}
+	if (FD_CHOICEP(value)) u8_puts(out," </span>");
+	u8_printf(out,"</div>");
 	fd_decref(value);}
-      u8_printf(out,"\n</table>",classname);}}
+      u8_printf(out,"\n</div>",classname);}}
   else if (FD_PAIRP(val)) {
     u8_string tmp = fd_dtype2string(val);
     if (strlen(tmp)< 50)
@@ -307,23 +311,39 @@ static void output_entry(u8_output out,fdtype entry)
   else if (FD_TABLEP(entry)) {
     fdtype vars=fd_getkeys(entry);
     fdtype unbound=FD_EMPTY_CHOICE;
-    u8_printf(out,"<table class='bindings'>");
+    u8_printf(out,"<div class='bindings'>");
     FD_DO_CHOICES(var,vars) {
       if (FD_SYMBOLP(var)) {
 	fdtype val=fd_get(entry,var,FD_VOID);
 	if ((val == FD_VOID) || (val == FD_UNBOUND))
 	  u8_printf(out,
-		    "\n <tr class='binding'><th class='varname'>%s</th> "
-		    "<td class='unbound'>unbound</td</tr>",
+		    "\n <div class='binding'><span class='varname'>%s</span> "
+		    "<span class='unbound'>UNBOUND</span</div>",
 		    FD_SYMBOL_NAME(var));
 	else {
-	  u8_printf(out,
-		    "\n <tr class='binding'><th class='varname'>%s</th>\n    ",
+	  u8_printf(out,"\n <div class='binding'>"
+		    "<span class='varname'>%s</span>\n ",
 		    FD_SYMBOL_NAME(var));
-	  output_value(out,val,"td","varval");
-	  u8_printf(out,"</tr>");}}}
-    u8_printf(out,"\n</table>");}
-  else if (FD_EXCEPTIONP(entry)) {}
+	  if (FD_CHOICEP(val)) u8_puts(out,"<span class='values'> ");
+	  {FD_DO_CHOICES(v,val) {
+	      output_value(out,v,"span","value");}}
+	  if (FD_CHOICEP(val)) u8_puts(out,"</span> ");
+	  u8_printf(out,"</div>");}}}
+    u8_printf(out,"\n</div>");}
+  else if (FD_EXCEPTIONP(entry)) {
+    fd_exception_object exo=
+      fd_consptr(fd_exception_object,entry,fd_error_type);
+    u8_exception ex = exo->fdex_u8ex;
+    u8_printf(out,
+	      "<div class='exception'>"
+	      "<span class='condition'>%s</span> "
+	      "<span class='context'>%s</span>",
+	      ex->u8x_cond,ex->u8x_context);
+    if (ex->u8x_details) 
+      u8_printf(out,"\n<p class='details'>%s</p>",ex->u8x_details);
+    fdtype irritant=fd_get_irritant(ex);
+    if (!(FD_VOIDP(irritant)))
+      output_value(out,irritant,"div","irritant");}
   else {}
 }
 
