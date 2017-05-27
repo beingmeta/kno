@@ -1,3 +1,11 @@
+framerd (4.1.1-1) stable; urgency=medium
+
+  * Added callstacks for better debugging and performance
+  * Various renames for better code clarity
+  * Added FRAMERD_SOURCE definitions for conciseness
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 27 May 2017 16:30:52 -0400
+
 framerd (4.0.1-4) unstable; urgency=medium
 
   * Build with new --with-malloc= flag

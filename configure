@@ -2913,7 +2913,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=4
-FDMINOR=0
+FDMINOR=1
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -12392,7 +12392,7 @@ if (test ! -f src/scheme/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/types/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/testenv tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/types/makefile tests/storage/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/vgmemtest tests/scheme/runenv.sh tests/scheme/testenv tests/scheme/runtest tests/scheme/memtest tests/scheme/leaktest tests/scheme/fdexectest tests/scheme/tcdebug tests/scheme/vgdebug tests/scheme/gheaptest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.1.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13142,7 +13142,7 @@ do
     "etc/fdserv.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserv.conf" ;;
     "etc/fdserv.load") CONFIG_FILES="$CONFIG_FILES etc/fdserv.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
-    "dist/framerd-4.0.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-4.0.spec" ;;
+    "dist/framerd-4.1.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-4.1.spec" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

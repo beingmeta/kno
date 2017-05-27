@@ -85,7 +85,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=4
-FDMINOR=0
+FDMINOR=1
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -1683,7 +1683,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.conf 
 	   etc/fdserv.load
 	   etc/install-script 
-	   dist/framerd-4.0.spec],
+	   dist/framerd-4.1.spec],
 	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
 
 if test ! -z "$manually_disabled"; then
