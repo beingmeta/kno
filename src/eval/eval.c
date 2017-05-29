@@ -764,7 +764,8 @@ fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
       case fd_evalfn_type: {
         /* These are evalfns which do all the evaluating themselves */
         struct FD_EVALFN *handler = (fd_evalfn)headval;
-        if (handler->evalfn_name) eval_stack->stack_label=handler->evalfn_name;
+        if (handler->evalfn_name)
+          eval_stack->stack_label=handler->evalfn_name;
         result=handler->evalfn_handler(expr,env,eval_stack);
         break;}
       case fd_macro_type: {

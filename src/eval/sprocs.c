@@ -619,7 +619,7 @@ fdtype fd_xapply_sproc
   int i = 0, n = fn->sproc_n_vars;
   fdtype arglist = fn->sproc_arglist, result = FD_VOID;
   fd_lexenv env = fn->sproc_env;
-  INIT_STACK_ENV(_stack,call_env,env,n);
+  INIT_STACK_SCHEMA(_stack,call_env,env,n,fn->sproc_vars);
   fdtype *vals=call_env_bindings.schema_values;
   while (FD_PAIRP(arglist)) {
     fdtype argspec = FD_CAR(arglist), argname = FD_VOID, argval;
@@ -634,20 +634,13 @@ fdtype fd_xapply_sproc
              (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec)))) {
       fdtype default_expr = FD_CADR(argspec);
       fdtype default_value = fd_eval(default_expr,fn->sproc_env);
-      vals[i++]=default_value;}
-    else vals[i++]=argval;
+      fd_schemap_store(&call_env_bindings,argname,default_value);
+      fd_decref(default_value);}
+    else {
+      fd_schemap_store(&call_env_bindings,argname,argval);
+      fd_decref(argval);}
     arglist = FD_CDR(arglist);}
   /* This means we have a lexpr arg. */
-  if (i<fn->sproc_n_vars) {
-    /* We look for the arg directly and then we use the special
-       tail_symbol (%TAIL) to get something. */
-    fdtype argval = getval(data,arglist);
-    if (FD_VOIDP(argval))
-      argval = getval(data,tail_symbol);
-    if (FD_ABORTED(argval))
-      _return argval;
-    else vals[i++]=argval;}
-  assert(i == fn->sproc_n_vars);
   /* If we're synchronized, lock the mutex. */
   if (fn->sproc_synchronized) u8_lock_mutex(&(fn->sproc_lock));
   result = eval_body(":XPROC",fn->fcn_name,fn->sproc_body,0,call_env,_stack);

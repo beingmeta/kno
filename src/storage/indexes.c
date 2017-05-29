@@ -1301,7 +1301,12 @@ static int check_index(fdtype x)
   if (serial<FD_N_PRIMARY_INDEXES)
     if (fd_primary_indexes[serial]) return 1;
     else return 0;
-  else return (fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES]!=NULL);
+  else if (fd_secondary_indexes) {
+    int second_off=serial-FD_N_PRIMARY_INDEXES;
+    if ( (second_off<0) || (second_off  > fd_n_secondary_indexes) )
+      return 0;
+    else return (fd_secondary_indexes[second_off]!=NULL);}
+  else return 0;
 }
 
 FD_EXPORT fd_index _fd_indexptr(fdtype x)

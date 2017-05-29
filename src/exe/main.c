@@ -5,7 +5,8 @@ FD_EXPORT int _fd_showenv(fd_lexenv env)
   fdtype moduleid = fd_intern("%MODULEID");
   int depth = 1;
   while (env) {
-    fdtype bindings = env->env_bindings; fd_ptr_type btype = FD_PTR_TYPE(bindings);
+    fdtype bindings = env->env_bindings;
+    fd_ptr_type btype = FD_PTR_TYPE(bindings);
     fdtype name = fd_get(bindings,moduleid,FD_VOID);
     fdtype keys = fd_getkeys(bindings);
     u8_fprintf(stderr,"#%d %s %s(%d) %ld/%lx\n\t%q\n",
@@ -47,7 +48,26 @@ static int isconfig(char *arg)
 
 /* Stack traces */
 
-static void summarize_stack_frame(u8_output out,struct FD_STACK *stack)
+static struct FD_STACK *_get_stack_frame(void *arg)
+{
+  struct FD_STACK *curstack=fd_stackptr;
+  unsigned long long intval=(unsigned long long) arg;
+  if (arg==NULL)
+    return curstack;
+  else if ((intval < 100000) && (curstack) &&
+	   (intval < (curstack->stack_depth))) {
+    struct FD_STACK *scan=curstack;
+    while (scan) {
+      if ( scan->stack_depth == intval )
+	return scan;
+      else scan=scan->stack_caller;}
+    if (scan==NULL)
+      fprintf(stderr,"!! No stack frame %lld\n",intval);
+    return NULL;}
+  else return (fd_stack)arg;
+}
+
+static void stack_frame_label(u8_output out,struct FD_STACK *stack)
 {
   if (stack->stack_label)
     u8_puts(out,stack->stack_label);
@@ -60,17 +80,15 @@ static void summarize_stack_frame(u8_output out,struct FD_STACK *stack)
     u8_printf(out,".%s",stack->stack_type);
 }
 
-static void _showstack_frame(struct FD_STACK *stack)
+
+static void _concise_stack_frame(struct FD_STACK *stack)
 {
-  if (stack==NULL) stack=fd_stackptr;
-  if (stack==NULL) {
-    fprintf(stderr,"!! No stack\n");
-    return;}
   u8_string summary=NULL;
   fdtype op = stack->stack_op;
+  fprintf(stderr,"(%d) ",stack->stack_depth);
   U8_FIXED_OUTPUT(tmp,128);
   if ( (stack->stack_label) || (stack->stack_status) ) {
-    summarize_stack_frame(tmpout,stack);
+    stack_frame_label(tmpout,stack);
     summary=tmp.u8_outbuf;}
   if (summary)
     fprintf(stderr,"%s",summary);
@@ -86,9 +104,11 @@ static void _showstack_frame(struct FD_STACK *stack)
     if (fn->fcn_name)
       fprintf(stderr,", op=%s",fn->fcn_name);}
   else if (FD_TYPEP(op,fd_evalfn_type)) {
-    struct FD_EVALFN *evfn=(fd_evalfn)op;
-    fprintf(stderr,", op=%s",evfn->evalfn_name);}
+    struct FD_EVALFN *evalfn=(fd_evalfn)op;
+    fprintf(stderr,", op=%s",evalfn->evalfn_name);}
   else {}
+  if (stack->n_cleanups)
+    fprintf(stderr,", %d cleanups",stack->n_cleanups);
   if ((stack->stack_env) &&
       (FD_SCHEMAPP(stack->stack_env->env_bindings))) {
     struct FD_SCHEMAP *sm = (fd_schemap)stack->stack_env->env_bindings;
@@ -96,22 +116,37 @@ static void _showstack_frame(struct FD_STACK *stack)
     fprintf(stderr,", binding");
     int n=sm->schema_length, i=0; while (i<n) {
       fdtype var=schema[i++];
-      if (FD_SYMBOLP(var)) 
+      if (FD_SYMBOLP(var))
 	fprintf(stderr," %s",FD_SYMBOL_NAME(var));}}
   fprintf(stderr,"\n");
 }
 
-static void _showstack(struct FD_STACK *stack,int limit)
+static void _show_stack_frame(struct FD_STACK *stack)
+{
+  _concise_stack_frame(stack);
+  if (stack->stack_env) _fd_showenv(stack->stack_env);
+  if (FD_PAIRP(stack->stack_op))
+    u8_fprintf(stderr,"%Q",stack->stack_op);
+  fputs("\n",stderr);
+}
+
+static void _showstack(void *arg,int limit)
 {
   int count=0;
-  if (stack==NULL) stack=fd_stackptr;
+  struct FD_STACK *stack=_get_stack_frame(arg);
   if (stack==NULL) {
     fprintf(stderr,"!! No stack\n");
     return;}
   while (stack) {
-    fprintf(stderr,"(%d) ",count);
-    _showstack_frame(stack);
+    _concise_stack_frame(stack);
     if ( (limit > 0) && (count > limit) ) break;
     stack=stack->stack_caller;
     count++;}
+}
+
+static void _showframe(void *arg)
+{
+  u8_string summary=NULL;
+  struct FD_STACK *stack=_get_stack_frame(arg);
+  if (stack) _show_stack_frame(stack);
 }

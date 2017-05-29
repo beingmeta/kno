@@ -2666,21 +2666,32 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
   else if (sockval->socktype==filesock) {
     int sock=sockval->conn.fd; int error=0, rv=-1;
     while ((content_length<0)||(bytes_read<content_length)) {
-      ssize_t delta=read(sock,buf,4096), written=-1;
+      ssize_t delta=read(sock,buf,4096);
       if (r->connection->aborted) {
 	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		      "Connection aborted for %s",r->uri);
 	return -1;}
+      if (delta>0) bytes_read=bytes_read+delta;
       if (delta>0) {
-	int chunk=ap_rwrite(buf,delta,r); written=0;
-	bytes_read=bytes_read+delta;
+	int chunk=ap_rwrite(buf,delta,r); int written=0;
 	while (written<delta) {
 	  if (chunk<0) break;
-	  written=written+chunk;
-	  chunk=ap_rwrite(buf+written,delta-written,r);}
-	if (chunk<0) {error=1; break;}}
+	  else written=written+chunk;
+	  if (written<delta)
+	    chunk=ap_rwrite(buf+written,delta-written,r);}
+	if (written>0) bytes_written=bytes_written+written;
+	if ((written<delta) && (chunk<0)) {
+	  ap_log_rerror
+	    (APLOG_MARK,APLOG_ERR,OK,r,
+	     "Write error after %ld=>%ld/%ld bytes from %s for %s (%s)",
+	     (long int)bytes_read,(long int)bytes_written,content_length,
+	     fdsocketinfo(sockval,infobuf),
+	     r->unparsed_uri,r->filename);
+	  error=1;
+	  break;}}
       else if (delta==0) {
-	if (bytes_read<content_length) error=1;
+	if (bytes_read<content_length)
+	  error=1;
 	break;}
       else if (errno==EAGAIN) {errno=0; continue;}
       else {
@@ -2691,16 +2702,7 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
 	   (long int)bytes_read,(long int)bytes_written,content_length,
 	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
-	errno=0; error=1; break;}
-      if (written<0) {
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after %ld=>%ld/%ld bytes from %s for %s (%s)",
-	   (long int)bytes_read,(long int)bytes_written,content_length,
-	   fdsocketinfo(sockval,infobuf),
-	   r->unparsed_uri,r->filename);
-	errno=0; error=1; break;}
-      else bytes_written=bytes_written+written;}
+	errno=0; error=1; break;}}
     rv=ap_rflush(r);
     if (r->connection->aborted) {
       ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,

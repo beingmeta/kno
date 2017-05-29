@@ -828,7 +828,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   fd_webconn consed = (fd_webconn)
     u8_client_init(NULL,sizeof(FD_WEBCONN),addr,len,sock,srv);
   fd_init_stream(&(consed->in),consed->idstring,sock,
-                 FD_STREAM_SOCKET|FD_STREAM_DOSYNC,
+                 FD_STREAM_SOCKET|FD_STREAM_DOSYNC|FD_STREAM_OWNS_FILENO,
                  FD_NETWORK_BUFSIZE);
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
@@ -955,6 +955,7 @@ static int webservefn(u8_client ucl)
                "Client %s (sock=%d) closing",
                client->idstring,client->socket);
       if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
+      u8_client_done(ucl);
       u8_client_close(ucl);
       return -1;}
     else if (!(FD_TABLEP(cgidata))) {
@@ -962,6 +963,7 @@ static int webservefn(u8_client ucl)
              "Bad fdservlet request on client %s (sock=%d), closing",
              client->idstring,client->socket);
       if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
+      u8_client_done(ucl);
       u8_client_close(ucl);
       return -1;}
     else {}
@@ -1149,25 +1151,20 @@ static int webservefn(u8_client ucl)
         (!(FD_VOIDP(default_errorpage)))) {
       fd_incref(default_errorpage);
       errorpage = default_errorpage;}
-    while ((exscan)&&(depth<max_error_depth)) {
-      /* Log everything, just in case */
-      u8_condition excond = exscan->u8x_cond;
-      u8_context excxt = ((exscan->u8x_context) ? (exscan->u8x_context) :
-                        ((u8_context)"somewhere"));
-      u8_context exdetails = ((exscan->u8x_details) ? (exscan->u8x_details) :
-                            ((u8_string)"no more details"));
-      fdtype irritant = fd_exception_xdata(exscan);
-      if (FD_STRINGP(path))
-        u8_log(LOG_ERR,excond,
-               "Unexpected error \"%m \" for %s:@%s (%s) (#%lx)",
-               excond,FD_STRDATA(path),excxt,exdetails,(unsigned long)ucl);
-      else u8_log(LOG_ERR,excond,
-                  "Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
-                  excond,excxt,exdetails,(unsigned long)ucl);
-      if (!(FD_VOIDP(irritant))) 
-        u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
-      exscan = exscan->u8x_prev; depth++;}
-    /* First we try to apply the error page if it's defined */
+    if (FD_STRINGP(path))
+      u8_log(LOG_ERR,ex->u8x_cond,
+             "Unexpected error \"%m \" for %s:@%s (%s) (#%lx)",
+             ex->u8x_cond,FD_STRDATA(path),ex->u8x_context,
+             ex->u8x_details,
+             (unsigned long)ucl);
+    else u8_log(LOG_ERR,ex->u8x_cond,
+                "Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
+                ex->u8x_cond,ex->u8x_context,ex->u8x_details,
+                (unsigned long)ucl);
+    fdtype backtrace=fd_exception_backtrace(ex);
+    if (FD_PAIRP(backtrace)) {
+      FD_DOLIST(entry,backtrace) {
+        u8_log(LOG_ERR,"Backtrace","%Q",entry);}}
     if (FD_APPLICABLEP(errorpage)) {
       fdtype err_value = fd_init_exception(NULL,ex);
       fd_push_reqinfo(init_cgidata);
@@ -1282,6 +1279,7 @@ static int webservefn(u8_client ucl)
       fd_decref(errorpage);
       /* And close the client for good measure */
       if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
+      u8_client_done(ucl);
       u8_client_close(ucl);}}
   if (recovered) {
     U8_OUTPUT httphead, htmlhead; int tracep;
@@ -1431,10 +1429,10 @@ static int webservefn(u8_client ucl)
         buffered = 1; return_code = 1;}
       else {
         retval = u8_writeall(client->socket,httphead.u8_outbuf,
-                           httphead.u8_write-httphead.u8_outbuf);
+                             httphead.u8_write-httphead.u8_outbuf);
         if (retval>=0)
           retval = u8_writeall(client->socket,FD_PACKET_DATA(content),
-                             FD_PACKET_LENGTH(content));}}
+                               FD_PACKET_LENGTH(content));}}
     else {
       /* Where the servlet has specified some particular content */
       content_len = content_len+output_content(client,content);}
@@ -1546,7 +1544,8 @@ static int close_webclient(u8_client ucl)
   u8_log(LOG_INFO,"FDServlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata = FD_VOID;
-  fd_close_stream(&(client->in),FD_STREAM_NOCLOSE);
+  /* fd_close_stream(&(client->in),FD_STREAM_NOCLOSE); */
+  fd_close_stream(&(client->in),0);
   u8_close((u8_stream)&(client->out));
   return 1;
 }
