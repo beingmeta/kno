@@ -26,17 +26,6 @@
 
 static fdtype baseoids_symbol;
 
-FD_EXPORT fdtype _fd_deprecated_make_file_pool_prim
-  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2);
-FD_EXPORT fdtype _fd_deprecated_label_file_pool_prim(fdtype fname,fdtype label);
-
-FD_EXPORT fdtype _fd_deprecated_make_legacy_file_index_prim(fdtype fname,
-                                                            fdtype size,
-                                                            fdtype metadata);
-FD_EXPORT fdtype _fd_deprecated_make_file_index_prim(fdtype fname,
-                                                     fdtype size,
-                                                     fdtype metadata);
-
 /* Hashing functions */
 
 static fdtype lisphashdtype1(fdtype x)
