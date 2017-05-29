@@ -582,7 +582,7 @@ FD_FASTOP fdtype apply_fcn(struct FD_STACK *stack,
 }
 
 FD_EXPORT fdtype fd_dcall(struct FD_STACK *_stack,
-                           fdtype fn,int n,fdtype *argvec)
+                          fdtype fn,int n,fdtype *argvec)
 {
   u8_byte namebuf[60]="", numbuf[32];
   u8_string fname="apply";

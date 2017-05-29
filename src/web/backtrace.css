@@ -2,122 +2,82 @@
 
 /* If you  edit this file, you probably also want to edit bugjar.css */
 
-body#ERRORPAGE {
-  margin: 22px; margin-right: 40px;
-  background-color: black; color: ivory;}
+body {
+    font-family: sans;
+    background-color: #eac0c0;
+    color: black;
+    margin: 0px; margin-bottom: 4em;}
 
-div.server_sorry {
-  font-family: sans; font-size: 120%; color: silver;}
-div.server_sorry div.error {
-  font-weight: bold; font-size: 140%; color: white;}
+p.sorry {
+    background-color: white; font-style: italic;
+    font-size: 3vw; font-size: 32px;
+    margin: 0px; margin-bottom: 1ex; 
+    padding: 0.5ex; padding-top: 0.3ex;}
 
-div.error {
-  margin-left: 8em; text-indent: -8em; font-family: sans; }
-div.error span.ex { font-weight: bold;}
-div.error span.cxt { font-weight: normal; }
-div.error span.details { font-weight: normal; font-style: italic; }
-div.error span.irritant {
-  margin-left: 6px; white-space: nowrap;
-  color: red;}
-tbody div.irritant {
-  margin-left: 6px; font-family: fixed;
-  max-height: 3em; overflow: hidden;
-  color: red;}
-tbody.expanded div.irritant { max-height: inherit; }
+span.label { float: right; }
+span.evalsto { font-size: 125%; }
+
+div.backtrace { 
+    margin-left: 4em; 
+    margin-right: 2em;}
+
+div.call { margin-left: 2em; text-indent: -2em; margin-right: 1em;}
+
+div.call span.arg { font-weight: normal; }
+
+div.call span.op { font-weight: bold; }
+
+h2.stackframe {
+    text-align: right;
+    margin-top: 0.5ex; margin-bottom: 0.2ex;
+    padding-top: 2px; padding-bottom: 1px;
+    border-bottom: solid black 1px;}
+h2.stackframe span.depth { float: left; }
+
+pre.eval {
+    font-family: fixed;
+    margin-top: 0.2ex;}
+
+div.bindings { 
+    border-left: solid black 4px;
+    padding-left: 8px;
+    margin-top: 1ex;}
+
+div.binding { }
+div.binding span.var { 
+    display: inline-block; width: 7em;
+    font-weight: bold;}
+div.binding span.unbound { 
+    padding-left: 1em;
+    color: red;}
+div.binding span.value { 
+    font-weight: normal;
+    display: inline-block; 
+    margin-left: 1em;
+    max-width: 50%;}
+
+div.exception {}
+
+div.exception span.condition {
+    font-weight: bold; color: red; font-size: 120%;}
+
+div.exception span.context { font-weight: normal; }
+div.exception span.context:before { content: '<'; }
+div.exception span.context:after { content: '>'; }
+
+div.exception .details { font-style: italic; }
+div.exception span.details { font-weight: bold; }
+div.exception span.details:before { content: '('; }
+div.exception span.details:after { content: ')'; }
+
+
+div.exception .irritant { font-family: fixed; }
+
+div.sorry {
+  font-family: sans; font-size: 120%;}
 
 div.expands { max-height: 3em; }
 div.expands.expanded { max-height: inherit; }
 
 /* Backtraces */
-
-table.backtrace {
-    font-family: sans,sans-serif; width: 100%;
-    border-collapse: collapse;}
-table.backtrace > tbody > tr:first-child { border-top: solid black 2px;}
-table.backtrace th, table.backtrace td { vertical-align: top;}
-table.backtrace th { text-align: right; padding-right: 4px;}
-table.backtrace td { text-align: left; padding-left: 2px;}
-table.backtrace td.string { font-family: serif;}
-table.backtrace tbody.error {
-    background-color: lightblue; color: black;}
-table.backtrace tbody.error span.exception {
-    font-weight: bold; color: purple;}
-table.backtrace tbody.error span.context {
-    font-weight: bold; font-family: fixed;}
-table.backtrace tbody.error tr.details td { font-style: italic;}
-table.backtrace tbody.error tr.irritant td {
-    background-color: white; font-family: fixed; color: black;} 
-
-table.backtrace > tbody.eval td.expr { white-space: normal;}
-table.backtrace > tbody.eval td.expr > * { white-space: pre;}
-
-table.backtrace td > table { font-size: 90%;}
-
-table.backtrace > tbody > tr > th {
-    font-size: 125%; font-variant: small-caps;}
-table.backtrace > tbody > tr.details > th {
-    font-size: 90%; color: green;}
-table.backtrace > tbody > tr.irritant > th {
-    font-size: 90%; color: red;}
-table.backtrace > tbody > tr > td {
-    text-align: left; padding-top: 2px;}
-table.backtrace > tbody > tr > td .module {
-    padding-left: 1em; color: blue;}
-table.backtrace > tbody > tr > td .module:before {
-    color: black; font-style: italic; font-size: 80%;
-    content: "module=";}
-table.backtrace > tbody.eval td.expr {
-    background-color: white; color: black;}
-table.backtrace > tbody.eval div.expr {
-    font-family: fixed;
-    white-space: pre;
-    max-height: 5em;
-    overflow: hidden;}
-table.backtrace > tbody.eval.expanded div.expr {
-    max-height: inherit; }
-table.backtrace > tbody.eval td.expr .focus { color: blue; }
-table.backtrace > tbody.call > tr > td {
-    background-color: whitesmoke; color: black;}
-table.backtrace > tbody.bindings > tr > td {
-    background-color: lightskyblue; color: black;}
-table.backtrace > tbody.bindings > tr > td > table.bindings {
-    font-family: fixed;}
-tbody.bindings span.var {
-    font-weight: bold;
-    font-family: sans-serif;
-    text-decoration: underline;
-    padding-left: 1ex;}
-tbody.bindings table.bindings { display: none;}
-tbody.bindings.expanded table.bindings { display: table;}
-
-table.bindings { }
-table.bindings th.head { text-align: left;}
-table.bindings tr.binding th.var { font-family: sans,sans-serif;}
-table.backtrace > tbody.bindings > tr:first-child > th { background-color: blue;}
-table.backtrace > tbody.eval > tr > th { background-color: white; color: black;}
-table.backtrace > tbody.call > tr th { background-color: red; color: white;}
-table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > td {
-    font-family: fixed;}
-table.backtrace > tbody.call > tr > td { color: red; }
-table.backtrace > tbody.call > tr > td span.operator {font-weight: bold;}
-table.backtrace > tbody.call > tr > td span {white-space: nowrap;}
-
-table.fdcompound {
-    border-left: solid black 2px;
-    border-right: solid black 2px;}
-table.fdcompound.fdtable { border: solid black 2px; }
-table.fdcompound.vector { border: 4px; }
-table.fdcompound.choice { border: dotted;}
-table.fdcompound th.count {
-    font-family: sans, sans-serif;
-    font-weight: normal; font-size: 80%; 
-    visibility: hidden;}
-table.fdcompound tr:hover > th.count { visibility: visible; }
-table.fdcompound th.size { text-align: left; }
-table.fdcompound th.delimiter { font-size: 120%; font-weight: bold;}
-table.fdcompound th.delimiter.open {text-align: right;}
-table.fdcompound th.delimiter.close {
-    text-align: left; vertical-align: bottom;}
-table.fdcompound.fdtable th.key {
-    font-family: sans, sans-serif;}
 

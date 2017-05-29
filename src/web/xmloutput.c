@@ -39,24 +39,14 @@
 
 static int backtrace_indent_depth = BACKTRACE_INDENT_DEPTH;
 
-FD_EXPORT void fd_pprint_focus
-  (U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
-   int indent,int width,u8_string focus_prefix,u8_string focus_suffix);
-
 #include <libu8/u8xfiles.h>
 
 #define strd u8_strdup
 
-/*
-  (XMLOUT .. .. ..) does escaping
-  (XMLTAG 'tag p v p v ...)
-  (DIV () ...)
-  (SPAN () ...)
-  (special* () ...)
-  (special ....)
-
-  (URI string)
-*/
+static void output_value(u8_output out,fdtype val,
+			 u8_string eltname,
+			 u8_string classname);
+FD_EXPORT void fd_html_exception(u8_output s,u8_exception ex,int backtrace);
 
 static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
 static fdtype href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
@@ -699,158 +689,10 @@ static fdtype get_compound_tag(fdtype tag)
   else return tag;
 }
 
-static void output_value(u8_output s,fdtype val,
-                         u8_string tag,u8_string cl,
-                         int wrapval)
+FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl)
 {
-  fd_ptr_type argtype = FD_PTR_TYPE(val);
-  u8_string typename = ((FD_VALID_TYPECODEP(argtype))?(fd_type_names[argtype]):(NULL));
-  if (FD_STRINGP(val)) {
-    int len = FD_STRLEN(val);
-    u8_string data = FD_STRDATA(val);
-    int preformat = ((strchr(data,'\n')!=NULL)||(strchr(data,'\t')!=NULL));
-    if (!(tag)) tag="span";
-    open_tag(s,tag,cl,typename,(len>256));
-    if (wrapval) u8_puts(s,"\n<div class='expands'>\n");
-    if (preformat) u8_puts(s,"\n<pre>\n“"); else u8_puts(s,"“");
-    entify(s,data);
-    if (preformat) u8_puts(s,"”\n</pre>\n"); else u8_puts(s,"”");
-    if (wrapval) u8_puts(s,"\n</div>\n");
-    u8_printf(s,"</%s>",tag);}
-  else {
-    struct U8_OUTPUT out; int len;
-    U8_INIT_OUTPUT(&out,256); fd_unparse(&out,val);
-    len = out.u8_write-out.u8_outbuf;
-    if ((len<40)||(FD_IMMEDIATEP(val))||(FD_NUMBERP(val))) {
-      if (!(tag)) tag="span";
-      open_tag(s,tag,cl,typename,(len>256));
-      entify(s,out.u8_outbuf);
-      u8_printf(s,"</%s>",tag);}
-    else if (FD_VECTORP(val)) {
-      int i = 0, len = FD_VECTOR_LENGTH(val);
-      open_tag(s,tag,cl,typename,(len>3));
-      u8_puts(s,"\n\t<table class='fdcompound vector'>");
-      while (i<len) {
-        u8_puts(s,"\n\t<tr>");
-        if (i==0) u8_puts(s,"<th class='delimiter open'>#(</th>");
-        else u8_printf(s,"<th class='count'>#%d</th>",i);
-        output_value(s,FD_VECTOR_REF(val,i),"td",NULL,1);
-        if (i == (len-1))
-          u8_printf(s,"<th class='delimiter close'>)</th>",len);
-        else if (i==0)
-          u8_printf(s,"<th class='size'>;; %d elements</th>",len);
-        else u8_puts(s,"<th></th></tr>");
-        i++;}
-      u8_puts(s,"\n\t</table>\n");
-      if (tag) u8_printf(s,"</%s>\n",tag);}
-    else if ((FD_CHOICEP(val))||(FD_PRECHOICEP(val))||(FD_QCHOICEP(val))) {
-      fdtype choice = ((FD_QCHOICEP(val))?(FD_XQCHOICE(val)->qchoiceval):(val));
-      int size = FD_CHOICE_SIZE(choice); int count = 0;
-      FD_DO_CHOICES(x,choice) {
-        if (count==0) {
-          open_tag(s,tag,cl,typename,(size>7));
-          u8_puts(s,"\n\t<table class='fdcompound choice'>");}
-        u8_puts(s,"\n\t<tr>");
-        if (count==0) {
-          if (FD_CHOICEP(val))
-            u8_puts(s,"<th class='delimiter open'>{</th>");
-          else u8_puts(s,"<th class='delimiter open'>#{</th>");}
-        else u8_printf(s,"<th class='count'>#%d</th>",count);
-        output_value(s,x,"td",NULL,1); count++;
-        if (count == size)
-          u8_puts(s,"<th class='delimiter close'>}</th></tr>");
-        else if (count==1)
-          u8_printf(s,"<th class='size'>;; %d values</th></tr>",size);
-        else u8_puts(s,"<th></th></tr>");}
-      u8_puts(s,"\n\t</table>\n");
-      if (tag) u8_printf(s,"</%s>\n",tag);}
-    else if (FD_PAIRP(val)) {
-      fdtype scan = val; int count = 0;
-      open_tag(s,tag,cl,typename,0);
-      u8_puts(s,"\n\t<table class='fdcompound list'>");
-      while (FD_PAIRP(scan)) {
-        fdtype car = FD_CAR(scan);
-        fdtype atend = FD_EMPTY_LISTP(FD_CDR(scan));
-        u8_puts(s,"\n\t<tr>");
-        if (count==0) u8_puts(s,"<th class='delimiter open'>(</th>");
-        else u8_printf(s,"<th class='count'>#%d</th>",count);
-        output_value(s,car,"td",NULL,1);
-        if (atend) u8_puts(s,"<th class='delimiter close'>)</th>");
-        else u8_puts(s,"<th></th>");
-        scan = FD_CDR(scan); count++;}
-      if (!(FD_EMPTY_LISTP(scan))) {
-        u8_puts(s,"\n\t<tr><th class='delimiter'>.</th>");
-        output_value(s,scan,"td","improper",1);
-        u8_puts(s,"<th class='delimiter close'>)</th></tr>");}
-      u8_puts(s,"\n\t</table>\n");
-      if (tag) u8_printf(s,"</%s>\n",tag);}
-    else if ((FD_SLOTMAPP(val))||(FD_SCHEMAPP(val))) {
-      fdtype keys = fd_getkeys(val);
-      int count = 0, size = FD_CHOICE_SIZE(keys);
-      FD_DO_CHOICES(key,keys) {
-        fdtype keyval = fd_get(val,key,FD_VOID);
-        if (count==0) {
-          open_tag(s,tag,cl,typename,(size>7));
-          if (FD_SLOTMAPP(val))
-            u8_puts(s,"\n\t<table class='fdcompound fdtable slotmap'>");
-          else u8_puts(s,"\n\t<table class='fdcompound fdtable schemap'>");}
-        u8_puts(s,"\n\t<tr>");
-        if (count==0) u8_puts(s,"<th class='delimiter open'>#[</th>");
-        else u8_printf(s,"<th class='count'>#%d</th>",count);
-        output_value(s,key,"th","key",0);
-        output_value(s,keyval,"td","value",1);
-        if ((count+1) == size)
-          u8_printf(s,"<th class='delimiter close'>]</th>");
-        else if (count==0)
-          u8_printf(s,"<th class='size'>;; %d keys</th>",size);
-        else u8_puts(s,"<th></th>");
-        fd_decref(keyval);
-        count++;}
-      u8_puts(s,"\n\t</table>\n");
-      if (tag) u8_printf(s,"</%s>\n",tag);
-      fd_decref(keys);}
-    else if (FD_TYPEP(val,fd_compound_type)) {
-      struct FD_COMPOUND *xc=
-        fd_consptr(struct FD_COMPOUND *,val,fd_compound_type);
-      fdtype ctag = get_compound_tag(xc->compound_typetag);
-      struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(ctag);
-      if (FD_SYMBOLP(ctag)) typename = FD_SYMBOL_NAME(ctag);
-      else if (FD_STRINGP(ctag)) typename = FD_STRDATA(ctag);
-      else {}
-      if ((entry) && (entry->fd_compound_unparser)) {
-        if (!(tag)) tag="span";
-        open_tag(s,tag,cl,typename,(len>256));
-        entify(s,out.u8_outbuf);
-        u8_printf(s,"</%s>",tag);}
-      else {
-        fdtype *data = &(xc->compound_0);
-        int i = 0, n = xc->fd_n_elts;
-        if (FD_SYMBOLP(ctag)) typename = FD_SYMBOL_NAME(ctag);
-        else if (FD_STRINGP(ctag)) typename = FD_STRDATA(ctag);
-        else {}
-        open_tag(s,tag,cl,typename,(n>7));
-        u8_puts(s,"\n<table class='fdcompound compound'>");
-        u8_puts(s,"\n<tr><th class='delimiter open'>#%%(</th>");
-        u8_printf(s,"<td>%lk</td><th></th></tr>",ctag);
-        while (i<n) {
-          u8_printf(s,"\n<tr><th class='count'>#%d</th>",i);
-          output_value(s,data[i],"td","compoundelt",1);
-          i++;
-          if (i>=n)
-            u8_puts(s,"<th class='delimiter close'>)</th></tr>");
-          else u8_puts(s,"<th></th></tr>");}
-        u8_puts(s,"\n</table>");
-        if (tag) u8_printf(s,"\n</%s>",tag);}}
-    else {
-      if (!(tag)) tag="span";
-      open_tag(s,tag,cl,typename,(len>256));
-      entify(s,out.u8_outbuf);
-      if (tag) u8_printf(s,"</%s>",tag);}
-    u8_free(out.u8_outbuf);}
+  output_value(s,v,tag,cl);
 }
-
-FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl){
-  output_value(s,v,tag,cl,1);}
 
 /* XHTML error report */
 
@@ -859,215 +701,361 @@ FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl){
 
 static u8_string error_stylesheet = NULL;
 
-static int embeddedp(fdtype focus,fdtype expr)
+static fdtype moduleid_symbol;
+
+static int isexprp(fdtype expr)
 {
-  if (FD_EQ(focus,expr)) return 1;
-  else if (FD_PAIRP(expr)) {
-    FD_DOLIST(elt,expr)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_VECTORP(expr)) {
-    int i = 0, len = FD_VECTOR_LENGTH(expr);
-    while (i<len)
-      if (embeddedp(focus,FD_VECTOR_REF(expr,i))) return 1; else i++;
-    return 0;}
-  else if (FD_CHOICEP(expr)) {
-    FD_DO_CHOICES(elt,expr)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_QCHOICEP(expr)) {
-    struct FD_QCHOICE *qc = FD_XQCHOICE(expr);
-    FD_DO_CHOICES(elt,qc->qchoiceval)
-      if (embeddedp(focus,elt)) return 1;
-    return 0;}
-  else if (FD_SLOTMAPP(expr)) {
-    struct FD_SLOTMAP *sm = FD_XSLOTMAP(expr);
-    struct FD_KEYVAL *scan, *limit;
-    int slotmap_size;
-    fd_read_lock_table(sm);
-    slotmap_size = FD_XSLOTMAP_NUSED(sm);
-    scan = sm->sm_keyvals; limit = sm->sm_keyvals+slotmap_size;
-    while (scan<limit)
-      if (embeddedp(focus,scan->kv_key)) {
-        fd_unlock_table(sm); return 1;}
-      else if (embeddedp(focus,scan->kv_val)) {
-        fd_unlock_table(sm); return 1;}
-      else scan++;
-    fd_unlock_table(sm);
-    return 0;}
+  FD_DOLIST(elt,expr) {
+    if ( (FD_PAIRP(elt)) || (FD_CHOICEP(elt)) ||
+	 (FD_SLOTMAPP(elt)) || (FD_SCHEMAPP(elt)) ||
+	 (FD_VECTORP(elt)) || (FD_CODEP(elt)))
+      return 0;}
+  return 1;
+}
+
+static int isoptsp(fdtype expr)
+{
+  if (FD_PAIRP(expr))
+    if ((FD_SYMBOLP(FD_CAR(expr))) && (!(FD_PAIRP(FD_CDR(expr)))))
+      return 1;
+    else return isoptsp(FD_CAR(expr)) && isoptsp(FD_CDR(expr));
+  else if ( (FD_CONSTANTP(expr)) || (FD_SYMBOLP(expr)) )
+    return 1;
+  else if ( (FD_SCHEMAPP(expr)) || (FD_SLOTMAPP(expr)) )
+    return 1;
   else return 0;
 }
 
-static fdtype exception_data(u8_exception ex)
+static void output_opts(u8_output out,fdtype expr)
 {
-  if ((ex->u8x_xdata) && (ex->u8x_free_xdata == fd_free_exception_xdata))
-    return (fdtype)(ex->u8x_xdata);
-  else return FD_VOID;
+  if (FD_PAIRP(expr))
+    if ( (FD_SYMBOLP(FD_CAR(expr))) && (!(FD_PAIRP(FD_CDR(expr)))) ) {
+      u8_printf(out,"\n <tr><th class='optname'>%s</th>\n       ",
+		FD_SYMBOL_NAME(FD_CAR(expr)));
+      output_value(out,FD_CDR(expr),"td","optval");
+      u8_printf(out,"</tr>");}
+    else {
+      output_opts(out,FD_CAR(expr));
+      output_opts(out,FD_CDR(expr));}
+  else if (FD_EMPTY_LISTP(expr)) {}
+  else if (FD_SYMBOLP(expr))
+    u8_printf(out,"\n <tr><th class='optname'>%s</th><td>%s</td></tr>",
+	      FD_SYMBOL_NAME(expr),FD_SYMBOL_NAME(expr));
+  else if ( (FD_SCHEMAPP(expr)) || (FD_SLOTMAPP(expr)) ) {
+    fdtype keys=fd_getkeys(expr);
+    FD_DO_CHOICES(key,keys) {
+      fdtype optval=fd_get(expr,key,FD_VOID);
+      if (FD_SYMBOLP(key))
+	u8_printf(out,"\n <tr><th class='optname'>%s</th>",
+		  FD_SYMBOL_NAME(expr));
+      else u8_printf(out,"\n <tr><th class='optkey'>%q</th>",expr);
+      output_value(out,optval,"td","optval");
+      u8_printf(out,"</tr>");
+      fd_decref(optval);}
+    fd_decref(keys);}
 }
 
-static u8_exception get_next_frame(u8_exception ex)
+
+FD_EXPORT
+void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
 {
-  u8_exception scan = ex; fdtype xdata;
-  if (ex == NULL) return NULL;
+  fdtype irritant=fd_get_irritant(ex);
+  u8_string i_string=NULL; int overflow=0;
+  U8_FIXED_OUTPUT(tmp,32);
+  if (!(FD_VOIDP(irritant))) {
+    fd_unparse(&tmp,irritant);
+    i_string=tmp.u8_outbuf;
+    overflow=(tmp.u8_streaminfo&U8_STREAM_OVERFLOW);}
+  else i_string=NULL;
+
+  u8_puts(s,"<div class='exception'>\n");
+  {
+    u8_printf(s,"<span class='condition'>%k</span>"
+              " in <span class='context'>%k</span>",
+              ex->u8x_cond,ex->u8x_context);
+    if (ex->u8x_details) {
+      if (strlen(ex->u8x_details)<=42)
+        u8_printf(s," <span class='details'>%k</span>",ex->u8x_details);}
+    if (i_string)
+      u8_printf(s,": <span class='irritant'>%s%s</span>",
+                i_string,((overflow)?("..."):("")));
+    if ( (ex->u8x_details) && (strlen(ex->u8x_details)>42) )
+      u8_printf(s,"\n<p class='details'>%k</p>",ex->u8x_details);
+    if ( (!(FD_VOIDP(irritant))) && (overflow) )
+      u8_printf(s,"\n<pre class='irritant'>%Q</pre>",irritant);
+  }
+  u8_puts(s,"\n</div>\n"); /* exception */
+  if (backtrace) {
+    fdtype backtrace=fd_exception_backtrace(ex);
+    if (FD_PAIRP(backtrace))
+      fd_html_backtrace(s,backtrace);
+    fd_decref(backtrace);}
+}
+
+static void output_value(u8_output out,fdtype val,
+			 u8_string eltname,
+			 u8_string classname)
+{
+  if (FD_STRINGP(val))
+    if (FD_STRLEN(val)>42)
+      u8_printf(out," <%s class='%s long string' title='%d characters'>%q</%s>",
+		eltname,classname,FD_STRLEN(val),val,eltname);
+    else u8_printf(out," <%s class='%s string' title='% characters'>%q</%s>",
+		   eltname,classname,FD_STRLEN(val),val,eltname);
+  else if (FD_SYMBOLP(val))
+    u8_printf(out," <%s class='%s symbol'>%s</%s>",
+	      eltname,classname,FD_SYMBOL_NAME(val),eltname);
+  else if (FD_NUMBERP(val))
+    u8_printf(out," <%s class='%s number'>%q</%s>",
+	      eltname,classname,val,eltname);
+  else if (FD_VECTORP(val)) {
+    int len=FD_VECTOR_LENGTH(val);
+    if (len<2) {
+      u8_printf(out," <ol class='%s short vector'>#(",classname);
+      if (len==1) output_value(out,FD_VECTOR_REF(val,0),"span","vecelt");
+      u8_printf(out,")</ol>");}
+    else {
+      u8_printf(out," <ol class='%s vector'>#(",classname);
+      int i=0; while (i<len) {
+	if (i>0) u8_putc(out,' ');
+	output_value(out,FD_VECTOR_REF(val,i),"li","vecelt");
+	i++;}
+      u8_printf(out,")</ol>");}}
+  else if ( (FD_SLOTMAPP(val)) || (FD_SCHEMAPP(val)) ) {
+    fdtype keys=fd_getkeys(val);
+    int n_keys=FD_CHOICE_SIZE(keys);
+    if (n_keys==0)
+      u8_printf(out," <%s class='%s map'>#[]</%s>",eltname,classname,eltname);
+    else if (n_keys==1) {
+      fdtype value=fd_get(val,keys,FD_VOID);
+      u8_printf(out," <%s class='%s map'>#[<span class='slotid'>%q</span> ",
+		eltname,classname,keys);
+      output_value(out,value,"span","slotvalue");
+      u8_printf(out," ]</%s>",eltname);
+      fd_decref(value);}
+    else {
+      u8_printf(out,"\n<div class='%s map'>",classname);
+      int i=0; FD_DO_CHOICES(key,keys) {
+	fdtype value=fd_get(val,key,FD_VOID);
+        u8_printf(out,"\n  <div class='%s keyval keyval%d'>",classname,i);
+	output_value(out,key,"span","key");
+	if (FD_CHOICEP(value)) u8_puts(out," <span class='slotvals'>");
+        {FD_DO_CHOICES(v,value) {
+	    u8_putc(out,' ');
+	    output_value(out,value,"span","slotval");}}
+	if (FD_CHOICEP(value)) u8_puts(out," </span>");
+	u8_printf(out,"</div>");
+        fd_decref(value);
+        i++;}
+      u8_printf(out,"\n</div>",classname);}}
+  else if (FD_PAIRP(val)) {
+    u8_string tmp = fd_dtype2string(val);
+    if (strlen(tmp)< 50)
+      u8_printf(out,"<%s class='%s listval'>%s</%s>",
+		eltname,classname,tmp,eltname);
+    else if (isoptsp(val)) {
+      u8_printf(out,"\n<table class='%s opts'>",classname);
+      output_opts(out,val);
+      u8_printf(out,"\n</table>\n",classname);}
+    else if (isexprp(val)) {
+      u8_printf(out,"\n<pre class='listexpr'>");
+      fd_pprint(out,val,"",0,0,60,1);
+      u8_printf(out,"\n</pre>");}
+    else {
+      fdtype scan=val;
+      u8_printf(out," <ol class='%s list'>",classname);
+      while (FD_PAIRP(scan)) {
+	fdtype car=FD_CAR(val); scan=FD_CDR(scan);
+	output_value(out,car,"li","listelt");}
+      if (!(FD_EMPTY_LISTP(scan)))
+	output_value(out,scan,"li","cdrelt");
+      u8_printf(out,"\n</ol>");}
+    u8_free(tmp);}
+  else if (FD_CHOICEP(val)) {
+    int size=FD_CHOICE_SIZE(val), i=0;
+    if (size<7)
+      u8_printf(out," <ul class='%s short choice'>{",classname);
+    else u8_printf(out," <ul class='%s choice'>{",classname);
+    FD_DO_CHOICES(elt,val) {
+      if (i>0) u8_putc(out,' ');
+      output_value(out,elt,"li","choicelt");
+      i++;}
+    u8_printf(out,"}</ul>");}
+  else if (FD_PACKETP(val))
+    if (FD_PACKET_LENGTH(val)>128)
+      u8_printf(out," <%s class='%s long packet'>%q</%s>",
+		eltname,classname,val,eltname);
+    else u8_printf(out," <%s class='%s packet'>%q</%s>",
+		   eltname,classname,val,eltname);
   else {
-    xdata = exception_data(scan);
-    scan = ex->u8x_prev;}
-  if (FD_PAIRP(xdata)) {
-    while (scan) {
-      fdtype sdata = exception_data(scan);
-      if (FD_PAIRP(sdata))
-        if (embeddedp(sdata,xdata)) {
-          scan = scan->u8x_prev;}
-        else return scan;
-      else return scan;}
-    return scan;}
-  else return scan;
+    fd_ptr_type ptrtype=FD_PTR_TYPE(val);
+    if (fd_type_names[ptrtype])
+      u8_printf(out," <%s class='%s %s'>%q</%s>",
+		eltname,classname,fd_type_names[ptrtype],
+		val,eltname);}
 }
 
-static fdtype moduleid_symbol;
-
-static void output_backtrace_entry(u8_output s,u8_exception ex)
+static void output_header(u8_output out,int depth,u8_string text)
 {
-  if (ex == NULL) return;
-  else {
-    fdtype irritant = exception_data(ex);
-    u8_puts(s,"<tbody class='error'>\n");
-    u8_puts(s,"<tr><th>Error</th><td>\n");
-    u8_printf(s,"<span class='exception'>%k</span>",ex->u8x_cond);
-    if (ex->u8x_context)
-      u8_printf(s," in <span class='context'>%k</span>",ex->u8x_context);
-    u8_puts(s,"</td></tr>\n");
-    if (ex->u8x_details)
-      u8_printf(s,"\n<tr class='details'><th>details</th><td>%k</td></tr>",ex->u8x_details);
-    if (!(FD_VOIDP(irritant))) {
-      u8_puts(s,"<tr class='irritant'><th>irritant</th>\n<td>");
-      output_value(s,irritant,"div","irritant expands",0);
-      u8_printf(s,"\n</td></tr>\n");}
-    u8_puts(s,"</tbody>\n");}
+  if (depth>0)
+    u8_printf(out,
+              "<h2 class='stackframe'><span class='depth'>%d</span> %s</h2>",
+              depth,text);
+  else u8_printf(out,"<h2> %s</h2>",text);
 }
 
-static void output_backtrace_entries(u8_output s,u8_exception ex)
+static void output_entry(u8_output out,fdtype entry)
 {
-  u8_exception next = get_next_frame(ex);
-  if (next) output_backtrace_entries(s,next);
-  output_backtrace_entry(s,ex);
+  if (FD_STRINGP(entry))
+    output_header(out,-1,FD_STRDATA(entry));
+  else if (FD_VECTORP(entry)) {
+    fdtype op=FD_VECTOR_REF(entry,0);
+    u8_string opname=NULL, classname="op";
+    if (FD_PRIMITIVEP(op)) {
+      opname = ((fd_function)op)->fcn_name;
+      classname="cprim";}
+    else if (FD_TYPEP(op,fd_sproc_type)) {
+      opname = ((fd_function)op)->fcn_name;
+      classname="lambda";}
+    else if (FD_TYPEP(op,fd_ffi_type)) {
+      opname = ((fd_function)op)->fcn_name;
+      classname="ffi";}
+    else opname=NULL;
+    if (opname)
+      u8_printf(out,"<div class='call'><span class='op %s'>%s</span>",
+                classname,opname);
+    else u8_printf(out,"<div class='call'><span class='op lisp'>%q</span>",op);
+    int i=1, n=FD_VECTOR_LENGTH(entry);
+    while (i<n) {
+      fdtype arg=FD_VECTOR_REF(entry,i);
+      output_value(out,arg,"span","arg");
+      i++;}
+    u8_printf(out,"\n</div>\n");}
+  else if (FD_PAIRP(entry)) {
+    u8_printf(out,"<pre class='eval'>");
+    fd_pprint(out,entry,"",0,0,80,1);
+    u8_printf(out,"</pre>");}
+  else if (FD_TABLEP(entry)) {
+    fdtype vars=fd_getkeys(entry);
+    fdtype unbound=FD_EMPTY_CHOICE;
+    u8_printf(out,"<div class='bindings'>");
+    FD_DO_CHOICES(var,vars) {
+      if (FD_SYMBOLP(var)) {
+	fdtype val=fd_get(entry,var,FD_VOID);
+        u8_puts(out,"\n <div class='binding'>");
+        if ((val == FD_VOID) || (val == FD_UNBOUND))
+          u8_printf(out,"<span class='varname'>%s</span> "
+                    "<span class='evalsto'>⇒</span> "
+                    "<span class='unbound'>UNBOUND</span>",
+                    FD_SYMBOL_NAME(var));
+	else {
+	  u8_printf(out,"<span class='varname'>%s</span> "
+                    "<span class='evalsto'>⇒</span> ",
+                    FD_SYMBOL_NAME(var));
+          { if (FD_CHOICEP(val))
+              u8_printf(out,
+                        "<span class='values'> "
+                        "<span class='nvals'>(%d values)</span> ",
+                        FD_CHOICE_SIZE(val));
+            {FD_DO_CHOICES(v,val) {
+                output_value(out,v,"span","value");}}
+            if (FD_CHOICEP(val)) u8_puts(out," </span> ");}}
+        u8_puts(out,"</div>");}}
+    u8_printf(out,"\n</div>");}
+  else if (FD_EXCEPTIONP(entry)) {
+    fd_exception_object exo=
+      fd_consptr(fd_exception_object,entry,fd_error_type);
+    u8_exception ex = exo->fdex_u8ex;
+    fd_html_exception(out,ex,0);}
+  else {}
 }
 
-static void output_backtrace(u8_output s,u8_exception ex)
+FD_EXPORT
+void fd_html_backtrace(u8_output out,fdtype rep)
 {
-  u8_exception scan = ex;
-  u8_printf(s,"<table class='backtrace' onclick='tbodyToggle(event);'>\n");
-  u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
-            FD_BACKTRACE_JS);
-  output_backtrace_entries(s,scan);
-  u8_printf(s,"\n</table>\n");
+  fdtype backtrace=FD_EMPTY_LIST;
+  /* Reverse the list */
+  {FD_DOLIST(entry,rep) {
+      backtrace=fd_init_pair(NULL,fd_incref(entry),backtrace);}}
+  /* Output the backtrace */
+  fdtype scan=backtrace; while (FD_PAIRP(scan)) {
+    fdtype head=FD_CAR(scan); scan=FD_CDR(scan);
+    if ((FD_FIXNUMP(head)) && (FD_PAIRP(scan)) &&
+        (FD_STRINGP(FD_CAR(scan)))) {
+      output_header(out,FD_FIX2INT(head),FD_STRDATA(FD_CAR(scan)));
+      scan=FD_CDR(scan);}
+    else output_entry(out,head);}
+  /* Free what you reversed */
+  fd_decref(backtrace);
+}
+
+static void start_errorpage(u8_output s,u8_exception ex)
+{
+  int isembedded = 0, customstylesheet = 0;
+  s->u8_write = s->u8_outbuf;
+  fdtype embeddedp = fd_req_get(embedded_symbol,FD_VOID);
+  fdtype estylesheet = fd_req_get(estylesheet_symbol,FD_VOID);
+  if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded = 1;
+  if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
+  if (FD_STRINGP(estylesheet)) {
+    u8_puts(s,FD_STRDATA(estylesheet));
+    customstylesheet = 1;}
+  if (isembedded==0) {
+    u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
+    u8_printf(s,"<html>\n<head>\n<title>");
+    if (ex->u8x_cond)
+      u8_printf(s,"%k",ex->u8x_cond);
+    else u8_printf(s,"Unknown Exception");
+    if (ex->u8x_context) u8_printf(s," @%k",ex->u8x_context);
+    if (ex->u8x_details) {
+      if (strlen(ex->u8x_details)<40)
+        u8_printf(s," (%s)",ex->u8x_details);}
+    u8_puts(s,"</title>\n");
+    u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
+    u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
+              FD_BACKTRACE_JS);
+    if (customstylesheet==0)
+      u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
+                error_stylesheet);
+    u8_puts(s,"</head>\n");}
+  u8_puts(s,"<body id='ERRORPAGE'>\n");
 }
 
 FD_EXPORT
 void fd_xhtmldebugpage(u8_output s,u8_exception ex)
 {
-  u8_exception e = u8_exception_root(ex);
-  fdtype irritant = fd_exception_xdata(e);
-  int isembedded = 0, customstylesheet = 0;
-  s->u8_write = s->u8_outbuf;
-  fdtype embeddedp = fd_req_get(embedded_symbol,FD_VOID);
-  fdtype estylesheet = fd_req_get(estylesheet_symbol,FD_VOID);
-  if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded = 1;
-  if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
-  if (FD_STRINGP(estylesheet)) {
-    u8_puts(s,FD_STRDATA(estylesheet));
-    customstylesheet = 1;}
-  if (isembedded==0) {
-    u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
-    u8_printf(s,"<html>\n<head>\n<title>");
-    if (e->u8x_cond)
-      u8_printf(s,"%k",e->u8x_cond);
-    else u8_printf(s,"Unknown Exception");
-    if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
-    if (!(FD_VOIDP(irritant))) {
-      u8_string stringval = fd_dtype2string(irritant);
-      if (strlen(stringval)<40)
-        u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
-      else {
-        u8_printf(s,"<div class='irritant'>\n");
-        fd_pprint(s,irritant,NULL,4,0,80,1);
-        u8_printf(s,"\n</div>\n");}
-      u8_free(stringval);}
-    if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
-    u8_printf(s,"</title>\n");}
-  u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
-  u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
-            FD_BACKTRACE_JS);
-  if (customstylesheet==0)
-    u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
-              error_stylesheet);
-  if (isembedded==0)
-    u8_printf(s,"</head>\n<body id='ERRORPAGE'>\n<div class='server_sorry'>");
-  u8_printf(s,"There was an unexpected error processing your request\n");
-  u8_printf(s,"<div class='error'>\n");
-  if (e->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->u8x_context);
-  u8_printf(s," <span class='ex'>%k</span>",e->u8x_cond);
-  if (e->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",e->u8x_details);
-  if (!(FD_VOIDP(irritant))) {
-    u8_string stringval = fd_dtype2string(irritant);
-    if (strlen(stringval)<40)
-      u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
-    else {
-      u8_printf(s,"<div class='irritant'>\n");
-      fd_pprint(s,irritant,NULL,4,0,80,1);
-      u8_printf(s,"\n</div>\n");}
-    u8_free(stringval);}
-  u8_printf(s,"</div></div>\n");
-  output_backtrace(s,ex);
-  u8_printf(s,"</body>\n</html>\n");
+  fdtype irritant = fd_get_irritant(ex);
+
+  start_errorpage(s,ex);
+
+  u8_puts(s,"<p class='sorry'>"
+          "Sorry, there was an unexpected error processing your request"
+          "</p>\n");
+
+  fdtype backtrace = fd_exception_backtrace(ex);
+  if (FD_PAIRP(backtrace)) {
+    u8_puts(s,"<div class='backtrace'>\n");
+    fd_html_backtrace(s,backtrace);
+    u8_puts(s,"</div>\n");}
+  fd_decref(backtrace);
+
+  u8_puts(s,"</body>\n</html>\n");
 }
 
 FD_EXPORT
 void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
-  u8_exception e = u8_exception_root(ex);
-  fdtype irritant = fd_exception_xdata(e);
-  int isembedded = 0, customstylesheet = 0;
-  s->u8_write = s->u8_outbuf;
-  fdtype embeddedp = fd_req_get(embedded_symbol,FD_VOID);
-  fdtype estylesheet = fd_req_get(estylesheet_symbol,FD_VOID);
-  if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded = 1;
-  if (FD_STRINGP(embeddedp)) u8_puts(s,FD_STRDATA(embeddedp));
-  if (FD_STRINGP(estylesheet)) {
-    u8_puts(s,FD_STRDATA(estylesheet));
-    customstylesheet = 1;}
-  if (isembedded==0) {
-    u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
-    u8_printf(s,"<html>\n<head>\n<title>");
-    if (e->u8x_cond)
-      u8_printf(s,"%k",e->u8x_cond);
-    else u8_printf(s,"Unknown Exception");
-    if (e->u8x_context) u8_printf(s," @%k",e->u8x_context);
-    if (!(FD_VOIDP(irritant))) u8_printf(s,": %lk",irritant);
-    if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
-    u8_printf(s,"</title>\n");}
-  u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
-  if (customstylesheet==0)
-    u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
-              error_stylesheet);
-  if (isembedded==0)
-   u8_printf(s,"</head>\n<body id='ERRORPAGE'>\n<div class='server_sorry'>");
-  u8_printf(s,"There was an unanticipated error processing your request\n");
-  u8_printf(s,"<div class='error'>\n");
-  if (e->u8x_context) u8_printf(s,"In <span class='cxt'>%k</span>, ",e->u8x_context);
-  u8_printf(s," <span class='ex'>%k</span>",e->u8x_cond);
-  if (e->u8x_details) u8_printf(s," <span class='details'>(%k)</span>",e->u8x_details);
-  if (!(FD_VOIDP(irritant))) {
-    u8_string stringval = fd_dtype2string(irritant);
-    if (strlen(stringval)<40)
-      u8_printf(s,": <span class='irritant'>%lk</span>",irritant);
-    else {
-      u8_printf(s,"<div class='irritant'>\n");
-      fd_pprint(s,irritant,NULL,4,0,80,1);
-      u8_printf(s,"\n</div>\n");}
-    u8_free(stringval);}
-  u8_printf(s,"</div></div>\n");
-  u8_printf(s,"</body>\n</html>\n");
+  fdtype irritant = fd_get_irritant(ex);
+
+  start_errorpage(s,ex);
+
+  u8_puts(s,"<p class='sorry'>"
+          "Sorry, there was an unexpected error processing your request"
+          "</p>\n");
+
+  fd_html_exception(s,ex,0);
+
+  u8_puts(s,"</body>\n</html>\n");
 }
 
 static fdtype debugpage2html_prim(fdtype exception,fdtype where)
@@ -1093,25 +1081,30 @@ static fdtype debugpage2html_prim(fdtype exception,fdtype where)
   else return FD_FALSE;
 }
 
-static fdtype backtrace2html_prim(fdtype exception,fdtype where)
+static fdtype backtrace2html_prim(fdtype arg,fdtype where)
 {
-  u8_exception ex;
-  if ((FD_VOIDP(exception))||(FD_FALSEP(exception)))
+  fdtype backtrace=FD_VOID; u8_exception ex;
+  if ((FD_VOIDP(arg))||(FD_FALSEP(arg))||(arg == FD_DEFAULT_VALUE)) {
     ex = u8_current_exception;
-  else if (FD_TYPEP(exception,fd_error_type)) {
+    if (ex) backtrace=fd_exception_backtrace(ex);}
+  else if (FD_PAIRP(arg))
+    backtrace=arg;
+  else if (FD_TYPEP(arg,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_error_type);
-    ex = xo->fdex_u8ex;}
-  else {
-    u8_log(LOG_WARN,"backtrace2html_prim","Bad exception argument %q",exception);
-    ex = u8_current_exception;}
-  if ((FD_VOIDP(where))||(FD_TRUEP(where))) {
+      fd_consptr(struct FD_EXCEPTION_OBJECT *,arg,fd_error_type);
+    ex = xo->fdex_u8ex;
+    if (ex) backtrace=fd_exception_backtrace(ex);}
+  else return fd_err("Bad exception/backtrace","backtrace2html_prim",
+                     NULL,arg);
+  if (!(FD_PAIRP(backtrace)))
+    return FD_VOID;
+  else if ((FD_VOIDP(where))||(FD_TRUEP(where))) {
     u8_output s = u8_current_output;
-    output_backtrace(s,ex);
+    fd_html_backtrace(s,backtrace);
     return FD_TRUE;}
   else if (FD_FALSEP(where)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    output_backtrace(&out,ex);
+    fd_html_backtrace(&out,backtrace);
     return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else return FD_FALSE;
 }
@@ -1702,7 +1695,7 @@ static fdtype obj2html_prim(fdtype obj,fdtype tag)
   else if (FD_SYMBOLP(tag)) tagname = FD_SYMBOL_NAME(tag);
   else if ((FD_VOIDP(tag))||(FD_FALSEP(tag))) {}
   else return fd_type_error("HTML tag.class","obj2html_prim",tag);
-  output_value(s,obj,tagname,classname,1);
+  output_value(s,obj,tagname,classname);
   return FD_VOID;
 }
 
