@@ -117,7 +117,7 @@ static void restore_sourcebase(u8_string old)
 
 static fdtype loading_symbol;
 
-#define LOAD_CONTEXT_SIZE 128
+#define LOAD_CONTEXT_SIZE 40
 
 FD_EXPORT fdtype fd_load_source_with_date
   (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
@@ -140,7 +140,8 @@ FD_EXPORT fdtype fd_load_source_with_date
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_NOTICE,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
-  FD_PUSH_STACK(load_stack,"loadsource",sourceid,FD_VOID);
+  FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourceid),FD_VOID);
+  load_stack->stack_free_label=1;
   if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
@@ -196,13 +197,11 @@ FD_EXPORT fdtype fd_load_source_with_date
         context_buf[0]='\0';
       else u8_string2buf(stream.u8_read,context_buf,LOAD_CONTEXT_SIZE);
       expr = fd_parse_expr(&stream);}
-    load_stack->stack_status=NULL;
     if (expr == FD_EOF) {
       fd_decref(last_expr);
       last_expr = FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
-      fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
-                last_expr);
+      fd_seterr(NULL,"fd_parse_expr",u8dup(load_stack->stack_status),last_expr);
       fd_decref(result); /* This is the previous result */
       last_expr = FD_VOID;
       /* This is now also the result */
@@ -213,6 +212,9 @@ FD_EXPORT fdtype fd_load_source_with_date
       result = expr;
       fd_incref(expr);
       expr = FD_VOID;}
+    else {}
+    /* Clear the stack status */
+    load_stack->stack_status=NULL;
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
              sourcebase,u8_elapsed_time()-start);
