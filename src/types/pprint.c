@@ -34,9 +34,11 @@ static fdtype unquote_symbol, quasiquote_symbol, unquote_star_symbol;
 static int output_keyval(u8_output out,fdtype key,fdtype val,
                          int col,int maxcol);
 
-#define PPRINT_ATOMICP(x) \
-  (!((FD_PAIRP(x)) || (FD_VECTORP(x)) || (FD_SLOTMAPP(x)) || \
-     (FD_CHOICEP(x)) || (FD_PRECHOICEP(x)) || (FD_QCHOICEP(x))))
+#define PPRINT_ATOMICP(x)                     \
+  (!((FD_PAIRP(x)) || (FD_VECTORP(x)) ||      \
+     (FD_SLOTMAPP(x)) || (FD_SLOTMAPP(x)) ||  \
+     (FD_CHOICEP(x)) || (FD_PRECHOICEP(x)) || \
+     (FD_QCHOICEP(x)) || (FD_COMPOUNDP(x))))
 
 FD_EXPORT
 int fd_pprint_table(u8_output out,fdtype x,
