@@ -184,13 +184,16 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
         entry = fd_conspair(fd_substring(scan,semi),fd_substring(semi+3,comma));
       else entry = fd_substring(scan,comma);
       FD_ADD_TO_CHOICE(newvalue,entry);
-      scan = comma+1; comma = strchr(scan,','); semi = strstr(scan,";q=");}
-    if (semi)
-      entry = fd_conspair(fd_substring(scan,semi),fd_substring(semi+3,NULL));
-    else entry = fd_substring(scan,NULL);
-    FD_ADD_TO_CHOICE(newvalue,entry);
+      scan = comma+1;
+      comma = strchr(scan,',');
+      semi = strstr(scan,";q=");
+      if (semi)
+        entry = fd_conspair(fd_substring(scan,semi),fd_substring(semi+3,NULL));
+      else entry = fd_substring(scan,NULL);
+      FD_ADD_TO_CHOICE(newvalue,entry);}
     fd_slotmap_store(c,slotid,newvalue);
-    fd_decref(value); fd_decref(newvalue);}
+    fd_decref(value);
+    fd_decref(newvalue);}
 }
 
 /* Converting query arguments */
@@ -336,7 +339,9 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
     else {*write++= *scan++; isascii = 0;}
   if (write>buf) {
     *write++='\0';
-    value = buf2lisp(buf,isascii);
+    if (FD_VOIDP(slotid))
+      value = buf2string(buf,isascii);
+    else value = buf2lisp(buf,isascii);
     if (FD_VOIDP(slotid))
       fd_slotmap_add(c,query,value);
     else fd_slotmap_add(c,slotid,value);
