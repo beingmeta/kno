@@ -172,31 +172,32 @@ static double run_start = -1.0;
 
 static int console_width = 80, quiet_console = 0, show_elts = 5;
 
-static int fits_consolep(fdtype elt)
+static int fits_consolep(fdtype elt,ssize_t len)
 {
-  struct U8_OUTPUT tmpout; u8_byte buf[1024];
-  U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
+  struct U8_OUTPUT tmpout; u8_byte buf[1001];
+  U8_INIT_STATIC_OUTPUT_BUF(tmpout,1000,buf);
+  if (len<0) len=console_width;
   fd_unparse(&tmpout,elt);
-  if (((tmpout.u8_write-tmpout.u8_outbuf)>=1024) ||
-      ((tmpout.u8_write-tmpout.u8_outbuf)>=console_width))
-    return 0;
+  if ((u8_outbuf_written(&tmpout))>len) return 0;
   else return 1;
 }
 
 static void output_element(u8_output out,fdtype elt)
 {
   if ((historicp(elt))||(FD_STRINGP(elt))) {
-    if ((console_width==0) || (fits_consolep(elt)))
-      u8_printf(out,"\n  %q ;=##%d",elt,fd_histpush(elt));
-    else {
-      struct U8_OUTPUT tmpout;
-      u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
-      U8_INIT_STATIC_OUTPUT(tmpout,512);
-      fd_pprint(&tmpout,elt,"  ",2,2,console_width,1);
-      u8_puts(out,tmpout.u8_outbuf);
-      u8_free(tmpout.u8_outbuf);
-      u8_flush(out);}}
-  else u8_printf(out,"\n  %q",elt);
+    U8_STATIC_OUTPUT(tmp,1000);
+    fd_unparse(tmpout,elt);
+    if ((tmp.u8_write-tmp.u8_outbuf)<console_width) {
+      u8_printf(out,"\n  %s ;=##%d",tmp.u8_outbuf,fd_histpush(elt));
+      u8_close_output(tmpout);
+      return;}
+    u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
+    tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
+    fd_pprint(tmpout,elt,"  ",2,2,console_width,1);
+    u8_puts(out,tmp.u8_outbuf);
+    u8_close_output(tmpout);
+    u8_flush(out);}
+  else u8_printf(out,"\n  %Q",elt);
 }
 
 static int list_length(fdtype scan)
@@ -250,11 +251,6 @@ static int output_result(u8_output out,fdtype result,
                          int histref,int showall)
 {
   if (FD_VOIDP(result)) {}
-  else if (((FD_VECTORP(result)) || (FD_PAIRP(result))) &&
-           (result_size(result)<8) && (fits_consolep(result))) {
-    if (histref<0)
-      u8_printf(out,"%q\n",result);
-    else u8_printf(out,"%q  ;; =##%d\n",result,histref);}
   else if ((showall)&&(FD_OIDP(result))) {
     fdtype v = fd_oid_value(result);
     if (FD_TABLEP(v)) {
@@ -265,35 +261,23 @@ static int output_result(u8_output out,fdtype result,
       fflush(stdout);}
     else u8_printf(out,"OID value: %q\n",v);
     fd_decref(v);}
-  else if (!((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
-             (FD_PAIRP(result))))
-    if (histref<0)
-      u8_printf(out,"%Q\n",result);
-    else if (console_width<=0)
-      u8_printf(out,"%q\n;; =##%d\n",result,histref);
-    else {
-      struct U8_OUTPUT tmpout;
-      U8_INIT_STATIC_OUTPUT(tmpout,512);
-      u8_puts(&tmpout,"    ");
-      fd_pprint(&tmpout,result,NULL,4,4,console_width,1);
-      u8_puts(out,tmpout.u8_outbuf);
-      u8_close_output(&tmpout);
-      u8_putc(out,'\n');
-      u8_flush(out);
-      return 1;}
-  else {
+  else if ((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
+           (FD_PAIRP(result)))  {
     u8_string start_with = NULL, end_with = NULL;
     int count = 0, max_elts, n_elts = 0;
+
     if (FD_CHOICEP(result)) {
       start_with="{"; end_with="}"; n_elts = FD_CHOICE_SIZE(result);}
     else if (FD_VECTORP(result)) {
       start_with="#("; end_with=")"; n_elts = FD_VECTOR_LENGTH(result);}
     else if (FD_PAIRP(result)) {
       start_with="("; end_with=")"; n_elts = list_length(result);}
-    else {}
+    else {/* Never reached */}
+
     if ((showall==0) && ((show_elts>0) && (n_elts>(show_elts*2))))
       max_elts = show_elts;
     else max_elts = n_elts;
+
     if (max_elts<n_elts) {
       if (histref<0)
         u8_printf(out,_("%s ;; (%d/%d items)"),start_with,max_elts,n_elts);
@@ -302,15 +286,18 @@ static int output_result(u8_output out,fdtype result,
     else if (histref<0)
       u8_printf(out,_("%s ;; (%d items)"),start_with,n_elts);
     else u8_printf(out,_("%s ;; ##%d = (%d items)"),start_with,histref,n_elts);
+
     if (FD_CHOICEP(result)) {
       FD_DO_CHOICES(elt,result) {
         if ((max_elts>0) && (count<max_elts)) {
-          output_element(out,elt); count++;}
+          output_element(out,elt);
+          count++;}
         else {FD_STOP_DO_CHOICES; break;}}}
     else if (FD_VECTORP(result)) {
       fdtype *elts = FD_VECTOR_DATA(result);
       while (count<max_elts) {
-        output_element(out,elts[count]); count++;}}
+        output_element(out,elts[count]);
+        count++;}}
     else if (FD_PAIRP(result)) {
       fdtype scan = result;
       while (count<max_elts)
@@ -323,6 +310,7 @@ static int output_result(u8_output out,fdtype result,
           count++; scan = FD_VOID;
           break;}}
     else {}
+
     if (max_elts<n_elts) {
       u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
       if (histref<0)
@@ -331,8 +319,22 @@ static int output_result(u8_output out,fdtype result,
                      end_with,histref,max_elts,n_elts);}
     else if (histref<0)
       u8_printf(out,"\n%s ;; (%d items)\n",end_with,n_elts);
-    else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
-  return 0;
+    else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);
+  } else {
+    if (histref<0)
+      u8_printf(out,"%Q\n",result);
+    else if (console_width<=0)
+      u8_printf(out,"%q\n;; =##%d\n",result,histref);
+    else {
+      struct U8_OUTPUT tmpout;
+      U8_INIT_STATIC_OUTPUT(tmpout,500);
+      u8_puts(&tmpout,"    ");
+      fd_pprint(&tmpout,result,NULL,4,4,console_width,1);
+      u8_puts(out,tmpout.u8_outbuf);
+      u8_close_output(&tmpout);
+      u8_putc(out,'\n');
+      u8_flush(out);
+      return 1;}}
 }
 
 /* Command line design */
