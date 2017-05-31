@@ -13,3 +13,5 @@ set env FD_DLOAD:TRACE yes
 set env FD_SHOWTIME 0.0
 set env FD_DISPLAYMAXELTS=36
 set env FD_DISPLAYMAXCHARS=1024
+set env FD_WEBDEBUG=yes
+set env FD_WEBALLOWDEBUG=yes
