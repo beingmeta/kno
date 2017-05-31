@@ -36,7 +36,7 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
 
 #define PPRINT_ATOMICP(x)                     \
   (!((FD_PAIRP(x)) || (FD_VECTORP(x)) ||      \
-     (FD_SLOTMAPP(x)) || (FD_SLOTMAPP(x)) ||  \
+     (FD_SCHEMAPP(x)) || (FD_SLOTMAPP(x)) ||  \
      (FD_CHOICEP(x)) || (FD_PRECHOICEP(x)) || \
      (FD_QCHOICEP(x)) || (FD_COMPOUNDP(x))))
 
