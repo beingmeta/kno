@@ -438,7 +438,6 @@ static fdtype timed_evalx_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 /* Inserts a \n\t line break if the current output line is longer
     than max_len.  *off*, if > 0, is the last offset on the current line,
     which is where the line break goes if inserted;  */
-
 static int check_line_length(u8_output out,int off,int max_len)
 {
   u8_byte *start = out->u8_outbuf, *end = out->u8_write, *scanner = end;
@@ -454,10 +453,13 @@ static int check_line_length(u8_output out,int off,int max_len)
   else if (off<=0)
     return len;
   else {
+    /* TODO: abstract out u8_need_len, abstract out whole "if longer
+       than" logic */
     /* The line is too long, insert a \n\t at off */
     if ((end+5)>(out->u8_outlim)) {
       /* Grow the stream if needed */
-      u8_grow_stream((u8_stream)out,U8_BUF_MIN_GROW);
+      if (u8_grow_stream((u8_stream)out,U8_BUF_MIN_GROW)<=0)
+        return -1;
       start = out->u8_outbuf; end = out->u8_write;
       scanner = start+scan_off;}
     /* Use memmove because it's overlapping */
