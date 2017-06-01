@@ -324,7 +324,7 @@ static void dolog
   u8_lock_mutex(&log_lock);
   if (trace_cgidata) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-    fd_pprint(&out,cgidata,NULL,2,0,50,1);
+    fd_pprint(&out,cgidata,NULL,2,0,50);
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
     u8_free(out.u8_outbuf);}
   if (FD_NULLP(val)) {

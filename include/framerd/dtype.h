@@ -83,19 +83,15 @@ FD_EXPORT fd_hashfn fd_hashfns[];
 FD_EXPORT int fd_add_hashname(u8_string s,fdtype value);
 FD_EXPORT fdtype fd_lookup_hashname(u8_string s);
 
-typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,int,void *);
+typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,void *);
 
+FD_EXPORT int fd_pprint_x
+(u8_output out,fdtype x,u8_string prefix,
+ int indent,int col,int maxcol,
+ fd_pprintfn fn,void *data);
 FD_EXPORT int fd_pprint
 (u8_output out,fdtype x,u8_string prefix,
- int indent,int col,int maxcol,int is_initial);
-FD_EXPORT int fd_xpprint
-(u8_output out,fdtype x,u8_string prefix,
- int indent,int col,int maxcol,int is_initial,
- fd_pprintfn fn,void *data);
-FD_EXPORT void fd_pprint_focus
-(U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
- int indent,int width,u8_string focus_prefix,
- u8_string focus_suffix);
+ int indent,int col,int maxcol);
 
 
 

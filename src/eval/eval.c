@@ -659,7 +659,7 @@ static fdtype watched_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
             if (off>0) u8_printf(&out,"\n  // %s=",lbl+1);
             else u8_printf(&out," // %s=",lbl+1);}
           else oneout = 1;
-          fd_pprint(&out,wval,"   ",0,3,100,0);
+          fd_pprint(&out,wval,"   ",0,3,100);
           if (FD_PAIRP(scan)) {
             u8_puts(&out,"\n"); off = 0;}}
         else {

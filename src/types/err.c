@@ -203,7 +203,7 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
   if (ex->u8x_xdata) {
     fdtype irritant = fd_exception_xdata(ex);
     u8_puts(out,";; ");
-    fd_pprint(out,irritant,";; ",0,3,100,0);}
+    fd_pprint(out,irritant,";; ",0,3,100);}
 }
 
 FD_EXPORT
@@ -241,7 +241,7 @@ void fd_output_exception(u8_output out,u8_exception ex)
 	      (FD_SLOTMAPP(irritant)) ||
 	      (FD_SCHEMAPP(irritant)) ) {
       u8_puts(out," irritant:\n    ");
-      fd_pprint(out,irritant,"    ",0,4,120,0);}
+      fd_pprint(out,irritant,"    ",0,4,120);}
     else if ( (FD_STRINGP(irritant)) &&
 	      (FD_STRLEN(irritant)>40) ) {
       u8_puts(out," irritant (string):\n    ");
@@ -279,7 +279,7 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 	     U8ALT(ex->u8x_details,""));
     else {
       U8_STATIC_OUTPUT(tmp,1000);
-      fd_pprint(tmpout,irritant,NULL,0,0,111,1);
+      fd_pprint(tmpout,irritant,NULL,0,0,111);
       u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
       u8_close_output(tmpout);}
     ex=ex->u8x_prev;}

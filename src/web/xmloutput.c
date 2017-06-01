@@ -859,7 +859,7 @@ static void output_value(u8_output out,fdtype val,
       u8_printf(out,"\n</table>\n",classname);}
     else if (isexprp(val)) {
       u8_printf(out,"\n<pre class='listexpr'>");
-      fd_pprint(out,val,"",0,0,60,1);
+      fd_pprint(out,val,"",0,0,60);
       u8_printf(out,"\n</pre>");}
     else {
       fdtype scan=val;
@@ -933,7 +933,7 @@ static void output_entry(u8_output out,fdtype entry)
     u8_printf(out,"\n</div>\n");}
   else if (FD_PAIRP(entry)) {
     u8_printf(out,"<pre class='eval'>");
-    fd_pprint(out,entry,"",0,0,80,1);
+    fd_pprint(out,entry,"",0,0,80);
     u8_printf(out,"</pre>");}
   else if (FD_TABLEP(entry)) {
     fdtype vars=fd_getkeys(entry);

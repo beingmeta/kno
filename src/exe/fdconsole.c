@@ -191,9 +191,9 @@ static void output_element(u8_output out,fdtype elt)
       u8_printf(out,"\n  %s ;=##%d",tmp.u8_outbuf,fd_histpush(elt));
       u8_close_output(tmpout);
       return;}
-    u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
+    u8_printf(out,"\n   ;; ##%d=\n   ",fd_histpush(elt),elt);
     tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-    fd_pprint(tmpout,elt,"  ",2,2,console_width,1);
+    fd_pprint(tmpout,elt,NULL,3,3,console_width);
     u8_puts(out,tmp.u8_outbuf);
     u8_close_output(tmpout);
     u8_flush(out);}
@@ -329,7 +329,7 @@ static int output_result(u8_output out,fdtype result,
       struct U8_OUTPUT tmpout;
       U8_INIT_STATIC_OUTPUT(tmpout,500);
       u8_puts(&tmpout,"    ");
-      fd_pprint(&tmpout,result,NULL,4,4,console_width,1);
+      fd_pprint(&tmpout,result,NULL,4,4,console_width);
       u8_puts(out,tmpout.u8_outbuf);
       u8_close_output(&tmpout);
       u8_putc(out,'\n');
@@ -474,7 +474,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     u8_output outfile = (u8_output)
       u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace = fd_exception_backtrace(ex);
-    fd_pprint(outfile,backtrace,NULL,0,0,120,1);
+    fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
     u8_log(LOG_ERROR,ex->u8x_cond,"Backtrace object written to %s",abspath);}
@@ -530,7 +530,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     u8_output outfile = (u8_output)u8_open_output_file
       (abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace = fd_exception_backtrace(ex);
-    fd_pprint(outfile,backtrace,NULL,0,0,120,1);
+    fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
     u8_log(LOG_ERROR,ex->u8x_cond,"Plaintext backtrace written to %s",abspath);}
