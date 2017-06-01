@@ -78,7 +78,8 @@ FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
     if (th->evaldata.env) {
       fd_decref((fdtype)(th->evaldata.env));}}
   else {
-    int i = 0, n = th->applydata.n_args; fdtype *args = th->applydata.args;
+    int i = 0, n = th->applydata.n_args;
+    fdtype *args = th->applydata.args;
     while (i<n) {fd_decref(args[i]); i++;}
     u8_free(args); fd_decref(th->applydata.fn);}
   if (th->result!=FD_NULL) fd_decref(th->result);

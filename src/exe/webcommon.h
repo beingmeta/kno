@@ -11,6 +11,7 @@ static int reqloglevel = 0;
 static int traceweb = 0;
 static int webdebug = 0;
 static int weballowdebug = 1;
+static int logstack = 0;
 
 #define MU U8_MAYBE_UNUSED
 
@@ -633,6 +634,8 @@ static void init_webcommon_configs()
 		     fd_boolconfig_get,fd_boolconfig_set,&webdebug);
   fd_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
 		     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
+  fd_register_config("LOGSTACK",_("Log error stacktraces"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logstack);
   fd_register_config("ERRORPAGE",_("Default error page for web errors"),
 		     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
   fd_register_config

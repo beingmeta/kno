@@ -1161,10 +1161,11 @@ static int webservefn(u8_client ucl)
                 "Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
                 ex->u8x_cond,ex->u8x_context,ex->u8x_details,
                 (unsigned long)ucl);
-    fdtype backtrace=fd_exception_backtrace(ex);
-    if (FD_PAIRP(backtrace)) {
-      FD_DOLIST(entry,backtrace) {
-        u8_log(LOG_ERR,"Backtrace","%Q",entry);}}
+    if (logstack) {
+      fdtype backtrace=fd_exception_backtrace(ex);
+      if (FD_PAIRP(backtrace)) {
+        FD_DOLIST(entry,backtrace) {
+          u8_log(LOG_ERR,"Backtrace","%Q",entry);}}}
     if (FD_APPLICABLEP(errorpage)) {
       fdtype err_value = fd_init_exception(NULL,ex);
       fd_push_reqinfo(init_cgidata);

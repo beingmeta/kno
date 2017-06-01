@@ -52,38 +52,54 @@ static void summarize_stack_frame(u8_output out,struct FD_STACK *stack)
     u8_printf(out,".%s",stack->stack_type);
 }
 
+static fdtype stack2lisp(struct FD_STACK *stack)
+{
+  fdtype vec=fd_init_vector(NULL,8,NULL);
+  U8_FIXED_OUTPUT(tmp,128);
+  FD_VECTOR_SET(vec,0,FD_INT(stack->stack_depth));
+  if (stack->stack_type)
+    FD_VECTOR_SET(vec,1,fdtype_string(stack->stack_type));
+  else FD_VECTOR_SET(vec,1,fdtype_string("uninitialized"));
+  if (stack->stack_label)
+    FD_VECTOR_SET(vec,2,fdtype_string(stack->stack_label));
+  else FD_VECTOR_SET(vec,2,FD_FALSE);
+  if (stack->stack_status)
+    FD_VECTOR_SET(vec,3,fdtype_string(stack->stack_status));
+  else FD_VECTOR_SET(vec,3,FD_FALSE);
+  if (FD_VOIDP(stack->stack_op))
+    FD_VECTOR_SET(vec,4,FD_FALSE);
+  else {
+    fdtype op=stack->stack_op;
+    FD_VECTOR_SET(vec,4,op);
+    fd_incref(op);}
+  if ( stack->stack_args ) {
+    fdtype n=stack->n_args, i=0;
+    fdtype *args=stack->stack_args;
+    fdtype argvec=fd_make_vector(n,args);
+    while (i<n) {fdtype elt=args[i++]; fd_incref(elt);}
+    FD_VECTOR_SET(vec,5,argvec);}
+  else FD_VECTOR_SET(vec,5,FD_FALSE);
+  if (stack->stack_env) {
+    fdtype bindings = stack->stack_env->env_bindings;
+    if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
+      fdtype b=fd_copy(bindings);
+      FD_VECTOR_SET(vec,6,b);}
+    else FD_VECTOR_SET(vec,6,FD_FALSE);}
+  if (!((FD_NULLP(stack->stack_source))||(FD_VOIDP(stack->stack_source)))) {
+    fdtype source = stack->stack_source;
+    FD_VECTOR_SET(vec,7,source);
+    fd_incref(source);}
+  else FD_VECTOR_SET(vec,7,FD_FALSE);
+  return vec;
+}
+
 FD_EXPORT
 fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
 {
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
-    u8_string summary=NULL;
-    U8_FIXED_OUTPUT(tmp,128);
-    if ( (stack->stack_label) || (stack->stack_status) ) {
-      summarize_stack_frame(tmpout,stack);
-      summary=tmp.u8_outbuf;}
-    rep = fd_init_pair(NULL,FD_INT(stack->stack_depth),rep);
-    if (summary)
-      rep = fd_init_pair(NULL,fd_make_string(NULL,-1,summary),rep);
-    if (!(FD_VOIDP(stack->stack_op)))
-      rep = fd_init_pair( NULL, fd_incref(stack->stack_op), rep);
-    if ( stack->stack_args ) {
-      fdtype *args=stack->stack_args;
-      int i=0, n=stack->n_args;
-      fdtype tmpbuf[n+1], *write=&tmpbuf[1];
-      tmpbuf[0]=stack->stack_op;
-      fd_incref(stack->stack_op);
-      while (i<n) {
-	fdtype v=args[i];
-	fd_incref(v);
-	*write++=v;
-	i++;}
-      fdtype vec = fd_make_vector(n+1,tmpbuf);
-      rep=fd_init_pair(NULL,vec,rep);}
-    if (stack->stack_env) {
-      fdtype bindings = stack->stack_env->env_bindings;
-      if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
-	rep=fd_init_pair( NULL, fd_copy(bindings), rep);}}
+    fdtype entry=stack2lisp(stack);
+    rep=fd_init_pair(NULL,entry,rep);
     stack=stack->stack_caller;}
   return rep;
 }
@@ -94,14 +110,25 @@ void fd_sum_backtrace(u8_output out,fdtype backtrace)
   if (fd_stacktracep(backtrace)) {
     fdtype scan=backtrace;
     int n=0; while (FD_PAIRP(scan)) {
-      fdtype car = FD_CAR(scan);
-      if (FD_STRINGP(car)) {
+      fdtype entry = FD_CAR(scan);
+      if ((FD_VECTORP(entry)) && (FD_VECTOR_LENGTH(entry)>=7)) {
+	fdtype type=FD_VECTOR_REF(entry,1);
+	fdtype label=FD_VECTOR_REF(entry,2);
+	fdtype status=FD_VECTOR_REF(entry,3);
 	if (n) u8_puts(out," ⇒ ");
-	u8_putn(out,FD_STRDATA(car),FD_STRLEN(car));
+	if (FD_STRINGP(label)) u8_puts(out,FD_STRDATA(label));
+	else u8_putc(out,'?');
+	if (FD_STRINGP(type)) {
+	  u8_putc(out,'.');
+	  u8_puts(out,FD_STRDATA(type));}
+	else u8_puts(out,".?");
+	if (FD_STRINGP(status)) {
+	  u8_putc(out,'(');
+	  u8_puts(out,FD_STRDATA(status));
+	  u8_putc(out,')');}
 	n++;}
-      else if (FD_EXCEPTIONP(car)) {
-	struct FD_EXCEPTION_OBJECT *exo=
-	  (struct FD_EXCEPTION_OBJECT *)car;
+      else if (FD_EXCEPTIONP(entry)) {
+	struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)entry;
 	u8_exception ex=exo->fdex_u8ex;
 	if (n) u8_puts(out," ⇒ ");
 	u8_puts(out,ex->u8x_cond);

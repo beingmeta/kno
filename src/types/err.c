@@ -59,7 +59,7 @@ FD_EXPORT void fd_seterr
 				  fd_get_backtrace(fd_stackptr,base));
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
-  u8_push_exception(condition,cxt,details,(void *)errinfo,
+  u8_push_exception(condition,cxt,u8_strdup(details),(void *)errinfo,
 		    fd_free_exception_xdata);
   fd_decref(irritant);
 }
