@@ -55,6 +55,7 @@ typedef struct FD_STACK {
 
   fdtype stack_op;
   fdtype *stack_args;
+  fdtype stack_source;
   fdtype stack_vals;
   short n_args;
   struct FD_LEXENV *stack_env;
@@ -90,6 +91,7 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   _ ## name.stack_type=type;				\
   _ ## name.stack_label=label;				\
   _ ## name.stack_op=op;				\
+  _ ## name.stack_source=FD_VOID;			\
   _ ## name.stack_vals=FD_EMPTY_CHOICE;			\
   _ ## name.cleanups=_ ## name._cleanups;		\
   _ ## name.stack_live=1
@@ -113,6 +115,7 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
     name->stack_root=name->stack_caller->stack_root;		\
   name->stack_type = "alloca";					\
   name->stack_vals = FD_EMPTY_CHOICE;				\
+  name->stack_source = FD_VOID;					\
   name->stack_op = FD_VOID;					\
   name->cleanups = name->_cleanups;				\
   name->stack_live=1; \
