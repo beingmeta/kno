@@ -848,17 +848,18 @@ static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype margina
     return fd_type_error(_("port"),"lisp_pprint",portarg);
   U8_INIT_OUTPUT(&tmpout,512);
   if (FD_VOIDP(marginarg))
-    fd_pprint(&tmpout,x,NULL,0,0,width,1);
+    fd_pprint(&tmpout,x,NULL,0,0,width);
   else if (FD_STRINGP(marginarg))
-    fd_pprint(&tmpout,x,FD_STRDATA(marginarg),0,0,width,1);
+    fd_pprint(&tmpout,x,FD_STRDATA(marginarg),0,0,width);
   else if ((FD_UINTP(marginarg))&&(FD_FIX2INT(marginarg)>=0))
-    fd_pprint(&tmpout,x,NULL,(FD_FIX2INT(marginarg)),0,width,1);
-  else fd_pprint(&tmpout,x,NULL,0,0,width,1);
+    fd_pprint(&tmpout,x,NULL,(FD_FIX2INT(marginarg)),0,width);
+  else fd_pprint(&tmpout,x,NULL,0,0,width);
   if (out) {
     u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
     u8_flush(out);
     return FD_VOID;}
-  else return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,tmpout.u8_outbuf);
+  else return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,
+                             tmpout.u8_outbuf);
 }
 
 /* Base 64 stuff */

@@ -859,7 +859,7 @@ static void output_value(u8_output out,fdtype val,
       u8_printf(out,"\n</table>\n",classname);}
     else if (isexprp(val)) {
       u8_printf(out,"\n<pre class='listexpr'>");
-      fd_pprint(out,val,"",0,0,60,1);
+      fd_pprint(out,val,"",0,0,60);
       u8_printf(out,"\n</pre>");}
     else {
       fdtype scan=val;
@@ -895,78 +895,78 @@ static void output_value(u8_output out,fdtype val,
 		val,eltname);}
 }
 
-static void output_header(u8_output out,int depth,u8_string text)
-{
-  if (depth>0)
-    u8_printf(out,
-              "<h2 class='stackframe'><span class='depth'>%d</span> %s</h2>",
-              depth,text);
-  else u8_printf(out,"<h2> %s</h2>",text);
-}
+#define INTVAL(x)    ((FD_FIXNUMP(x))?(FD_INT(x)):(-1))
+#define STRINGVAL(x) ((FD_STRINGP(x))?(FD_STRDATA(x)):((u8_string)"uninitialized"))
 
-static void output_entry(u8_output out,fdtype entry)
+static void output_stack_frame(u8_output out,fdtype entry)
 {
-  if (FD_STRINGP(entry))
-    output_header(out,-1,FD_STRDATA(entry));
-  else if (FD_VECTORP(entry)) {
-    fdtype op=FD_VECTOR_REF(entry,0);
-    u8_string opname=NULL, classname="op";
-    if (FD_PRIMITIVEP(op)) {
-      opname = ((fd_function)op)->fcn_name;
-      classname="cprim";}
-    else if (FD_TYPEP(op,fd_sproc_type)) {
-      opname = ((fd_function)op)->fcn_name;
-      classname="lambda";}
-    else if (FD_TYPEP(op,fd_ffi_type)) {
-      opname = ((fd_function)op)->fcn_name;
-      classname="ffi";}
-    else opname=NULL;
-    if (opname)
-      u8_printf(out,"<div class='call'><span class='op %s'>%s</span>",
-                classname,opname);
-    else u8_printf(out,"<div class='call'><span class='op lisp'>%q</span>",op);
-    int i=1, n=FD_VECTOR_LENGTH(entry);
-    while (i<n) {
-      fdtype arg=FD_VECTOR_REF(entry,i);
-      output_value(out,arg,"span","arg");
-      i++;}
-    u8_printf(out,"\n</div>\n");}
-  else if (FD_PAIRP(entry)) {
-    u8_printf(out,"<pre class='eval'>");
-    fd_pprint(out,entry,"",0,0,80,1);
-    u8_printf(out,"</pre>");}
-  else if (FD_TABLEP(entry)) {
-    fdtype vars=fd_getkeys(entry);
-    fdtype unbound=FD_EMPTY_CHOICE;
-    u8_printf(out,"<div class='bindings'>");
-    FD_DO_CHOICES(var,vars) {
-      if (FD_SYMBOLP(var)) {
-	fdtype val=fd_get(entry,var,FD_VOID);
-        u8_puts(out,"\n <div class='binding'>");
-        if ((val == FD_VOID) || (val == FD_UNBOUND))
-          u8_printf(out,"<span class='varname'>%s</span> "
-                    "<span class='evalsto'>⇒</span> "
-                    "<span class='unbound'>UNBOUND</span>",
-                    FD_SYMBOL_NAME(var));
-	else {
-	  u8_printf(out,"<span class='varname'>%s</span> "
-                    "<span class='evalsto'>⇒</span> ",
-                    FD_SYMBOL_NAME(var));
-          { if (FD_CHOICEP(val))
-              u8_printf(out,
-                        "<span class='values'> "
-                        "<span class='nvals'>(%d values)</span> ",
-                        FD_CHOICE_SIZE(val));
-            {FD_DO_CHOICES(v,val) {
-                output_value(out,v,"span","value");}}
-            if (FD_CHOICEP(val)) u8_puts(out," </span> ");}}
-        u8_puts(out,"</div>");}}
-    u8_printf(out,"\n</div>");}
-  else if (FD_EXCEPTIONP(entry)) {
+  if (FD_EXCEPTIONP(entry)) {
     fd_exception_object exo=
       fd_consptr(fd_exception_object,entry,fd_error_type);
     u8_exception ex = exo->fdex_u8ex;
     fd_html_exception(out,ex,0);}
+  else if ((FD_VECTORP(entry)) && (FD_VECTOR_LENGTH(entry)>=7)) {
+    fdtype depth=FD_VECTOR_REF(entry,0);
+    fdtype type=FD_VECTOR_REF(entry,1);
+    fdtype label=FD_VECTOR_REF(entry,2);
+    fdtype status=FD_VECTOR_REF(entry,3);
+    fdtype op=FD_VECTOR_REF(entry,4);
+    fdtype args=FD_VECTOR_REF(entry,5);
+    fdtype env=FD_VECTOR_REF(entry,6);
+    fdtype source=FD_VECTOR_REF(entry,7);
+    u8_puts(out,"<div class='stackframe'>\n");
+    u8_printf(out,
+              "  <div class='head'>"
+              "   <span class='label'>%s</span>"
+              "   <span class='depth'>%d</span>"
+              "   <span class='type'>%s</span>",
+              STRINGVAL(label),FD_INT(depth),STRINGVAL(type));
+    if (FD_STRINGP(status))
+      u8_printf(out,"\n  <p class='status'>%s</p>\n",FD_STRDATA(status));
+    u8_puts(out,"</div>");
+    if (FD_PAIRP(source))
+      u8_printf(out,"\n  <pre class='source'>\n%Q\n</pre>");
+    if (FD_FALSEP(args)) {
+      if (FD_PAIRP(op)) {
+        u8_puts(out,"\n  <pre class='eval expr'>\n");
+        fd_pprint(out,op,NULL,0,0,100);
+        u8_puts(out,"\n  </pre>");}
+      else u8_printf(out,"\n  <div class='eval'>%q</div>",op);}
+    else {
+      u8_puts(out,"\n  <div class='call'>\n");
+      output_value(out,op,"span","handler");
+      int i=0, n=FD_VECTOR_LENGTH(args);
+      while (i<n) {
+        fdtype arg=FD_VECTOR_REF(args,i);
+        output_value(out,arg,"span","arg");
+        i++;}}
+    if (FD_TABLEP(env)) {
+      fdtype vars=fd_getkeys(env);
+      fdtype unbound=FD_EMPTY_CHOICE;
+      u8_printf(out,"<div class='bindings'>");
+      FD_DO_CHOICES(var,vars) {
+        if (FD_SYMBOLP(var)) {
+          fdtype val=fd_get(env,var,FD_VOID);
+          u8_puts(out,"\n <div class='binding'>");
+          if ((val == FD_VOID) || (val == FD_UNBOUND))
+            u8_printf(out,"<span class='varname'>%s</span> "
+                      "<span class='evalsto'>⇒</span> "
+                      "<span class='unbound'>UNBOUND</span>",
+                      FD_SYMBOL_NAME(var));
+          else {
+            u8_printf(out,"<span class='varname'>%s</span> "
+                      "<span class='evalsto'>⇒</span> ",
+                      FD_SYMBOL_NAME(var));
+            { if (FD_CHOICEP(val))
+                u8_printf(out,
+                          "<span class='values'> "
+                          "<span class='nvals'>(%d values)</span> ",
+                          FD_CHOICE_SIZE(val));
+              {FD_DO_CHOICES(v,val) {
+                  output_value(out,v,"span","value");}}
+              if (FD_CHOICEP(val)) u8_puts(out," </span> ");}}
+          u8_puts(out,"</div>");}}
+      u8_printf(out,"\n</div>");}}
   else {}
 }
 
@@ -979,13 +979,9 @@ void fd_html_backtrace(u8_output out,fdtype rep)
       backtrace=fd_init_pair(NULL,fd_incref(entry),backtrace);}}
   /* Output the backtrace */
   fdtype scan=backtrace; while (FD_PAIRP(scan)) {
-    fdtype head=FD_CAR(scan); scan=FD_CDR(scan);
-    if ((FD_FIXNUMP(head)) && (FD_PAIRP(scan)) &&
-        (FD_STRINGP(FD_CAR(scan)))) {
-      output_header(out,FD_FIX2INT(head),FD_STRDATA(FD_CAR(scan)));
-      scan=FD_CDR(scan);}
-    else output_entry(out,head);}
-  /* Free what you reversed */
+    fdtype entry=FD_CAR(scan); scan=FD_CDR(scan);
+    output_stack_frame(out,entry);}
+  /* Free what you reversed above */
   fd_decref(backtrace);
 }
 
@@ -1037,7 +1033,6 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
     u8_puts(s,"<div class='backtrace'>\n");
     fd_html_backtrace(s,backtrace);
     u8_puts(s,"</div>\n");}
-  fd_decref(backtrace);
 
   u8_puts(s,"</body>\n</html>\n");
 }

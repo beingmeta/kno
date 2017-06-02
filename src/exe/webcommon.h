@@ -11,6 +11,7 @@ static int reqloglevel = 0;
 static int traceweb = 0;
 static int webdebug = 0;
 static int weballowdebug = 1;
+static int logstack = 0;
 
 #define MU U8_MAYBE_UNUSED
 
@@ -324,7 +325,7 @@ static void dolog
   u8_lock_mutex(&log_lock);
   if (trace_cgidata) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-    fd_pprint(&out,cgidata,NULL,2,0,50,1);
+    fd_pprint(&out,cgidata,NULL,2,0,50);
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
     u8_free(out.u8_outbuf);}
   if (FD_NULLP(val)) {
@@ -633,6 +634,8 @@ static void init_webcommon_configs()
 		     fd_boolconfig_get,fd_boolconfig_set,&webdebug);
   fd_register_config("WEBALLOWDEBUG",_("Allow requests to specify debugging"),
 		     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
+  fd_register_config("LOGSTACK",_("Log error stacktraces"),
+		     fd_boolconfig_get,fd_boolconfig_set,&logstack);
   fd_register_config("ERRORPAGE",_("Default error page for web errors"),
 		     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
   fd_register_config

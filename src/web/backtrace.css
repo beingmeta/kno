@@ -14,7 +14,6 @@ p.sorry {
     margin: 0px; margin-bottom: 1ex; 
     padding: 0.5ex; padding-top: 0.3ex;}
 
-span.label { float: right; }
 span.evalsto { font-size: 125%; }
 
 div.backtrace { 
@@ -27,14 +26,26 @@ div.call span.arg { font-weight: normal; }
 
 div.call span.op { font-weight: bold; }
 
-h2.stackframe {
-    text-align: right;
+div.stackframe {}
+div.stackframe div.head {
+    text-align: left; font-size: 150%;
     margin-top: 0.5ex; margin-bottom: 0.2ex;
     padding-top: 2px; padding-bottom: 1px;
     border-bottom: solid black 1px;}
-h2.stackframe span.depth { float: left; }
+
+div.stackframe .head span.label { 
+    font-size: 120%; font-weight: bold;}
+div.stackframe .head span.depth { 
+    font-family: monospace;
+    margin-left: 4px;
+    float: right; }
+.stackframe .head span.type {
+    font-style: italic;
+    font-size: 50%;
+    float: right; }
 
 pre.eval {
+    clear: both;
     font-family: fixed;
     margin-top: 0.2ex;}
 

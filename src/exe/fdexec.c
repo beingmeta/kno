@@ -332,7 +332,7 @@ int do_main(int argc,char **argv,
           u8_puts(out,FD_STRDATA(entry));
         else {
           u8_puts(out," ");
-          fd_pprint(out,entry,";; ",2,5,100,1);}
+          fd_pprint(out,entry,";; ",2,5,100);}
         u8_putc(out,'\n');}
       u8_flush_xoutput(&xout);}
 

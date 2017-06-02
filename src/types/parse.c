@@ -1092,10 +1092,10 @@ fdtype fd_parser(u8_input in)
     else return FD_PARSE_ERROR;}
   else switch (inchar) {
   case ')': case ']': case '}': {
+    u8_string details=u8_get_input_context(in,32,32,"💔");
     u8_getc(in); /* Consume the character */
     return fd_err(fd_ParseError,"unexpected terminator",
-                  u8_strndup(in->u8_read,17),
-                  FD_CODE2CHAR(inchar));}
+                  details,FD_CODE2CHAR(inchar));}
   case '"': return parse_string(in);
   case '@': return parse_oid(in);
   case '(':

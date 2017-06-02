@@ -49,13 +49,17 @@ FD_EXPORT void fd_free_exception_xdata(void *ptr)
 FD_EXPORT void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant)
 {
-  fdtype exception = fd_make_exception(c,cxt,details,irritant);
+
+  u8_condition condition = (c) ? (c) :
+    (u8_current_exception) ? (u8_current_exception->u8x_cond) :
+    ((u8_condition)"Unknown (NULL) error");
+  fdtype exception = fd_make_exception(condition,cxt,details,irritant);
   fdtype base      = fd_init_pair(NULL,exception,FD_EMPTY_LIST);
   fdtype errinfo   = fd_init_pair(NULL,stacktrace_symbol,
 				  fd_get_backtrace(fd_stackptr,base));
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
-  u8_push_exception(c,cxt,details,(void *)errinfo,
+  u8_push_exception(condition,cxt,u8_strdup(details),(void *)errinfo,
 		    fd_free_exception_xdata);
   fd_decref(irritant);
 }
@@ -199,7 +203,7 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
   if (ex->u8x_xdata) {
     fdtype irritant = fd_exception_xdata(ex);
     u8_puts(out,";; ");
-    fd_pprint(out,irritant,";; ",0,3,100,0);}
+    fd_pprint(out,irritant,";; ",0,3,100);}
 }
 
 FD_EXPORT
@@ -237,7 +241,7 @@ void fd_output_exception(u8_output out,u8_exception ex)
 	      (FD_SLOTMAPP(irritant)) ||
 	      (FD_SCHEMAPP(irritant)) ) {
       u8_puts(out," irritant:\n    ");
-      fd_pprint(out,irritant,"    ",0,4,120,0);}
+      fd_pprint(out,irritant,"    ",0,4,120);}
     else if ( (FD_STRINGP(irritant)) &&
 	      (FD_STRLEN(irritant)>40) ) {
       u8_puts(out," irritant (string):\n    ");
@@ -275,7 +279,7 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 	     U8ALT(ex->u8x_details,""));
     else {
       U8_STATIC_OUTPUT(tmp,1000);
-      fd_pprint(tmpout,irritant,NULL,0,0,111,1);
+      fd_pprint(tmpout,irritant,NULL,0,0,111);
       u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
       u8_close_output(tmpout);}
     ex=ex->u8x_prev;}
