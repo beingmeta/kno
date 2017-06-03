@@ -133,6 +133,8 @@ FD_EXPORT fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lexenv env);
 FD_EXPORT fdtype fd_xmlout(u8_output out,fdtype xml,
 			   fd_lexenv scheme_env,
 			   fd_lexenv xml_env);
+FD_EXPORT int fd_xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
+			       fdtype xmloidfn,fd_lexenv env);
 
 FD_EXPORT struct FD_XML *fd_load_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_read_fdxml(u8_input in,int bits);
@@ -182,16 +184,27 @@ FD_EXPORT fdtype fd_handle_compound_mime_field(fdtype,fdtype,fdtype);
 
 /* Init functions */
 
+FD_EXPORT void fd_init_xmleval_c(void);
 FD_EXPORT void fd_init_xmldata_c(void);
+FD_EXPORT void fd_init_htmlout_c(void);
 FD_EXPORT void fd_init_xmlinput_c(void);
 FD_EXPORT void fd_init_xmloutput_c(void);
 FD_EXPORT void fd_init_mime_c(void);
 FD_EXPORT void fd_init_email_c(void);
-FD_EXPORT void fd_init_xmleval_c(void);
 FD_EXPORT void fd_init_cgiexec_c(void);
 FD_EXPORT void fd_init_urifns_c(void);
 FD_EXPORT void fd_init_exif_c(void);
 FD_EXPORT void fd_init_curl_c(void);
 FD_EXPORT void fd_init_json_c(void);
+
+/* Default XML/HTML info */
+
+#define DEFAULT_CONTENT_TYPE \
+  "Content-type: text/html; charset = utf-8;"
+#define DEFAULT_DOCTYPE \
+  "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\
+               \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
+#define DEFAULT_XMLPI \
+  "<?xml version='1.0' charset='utf-8' ?>"
 
 #endif /* FRAMERD_FDWEB_H */
