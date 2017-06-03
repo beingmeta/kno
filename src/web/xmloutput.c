@@ -31,13 +31,7 @@
 
 #include <ctype.h>
 
-#ifndef BACKTRACE_INDENT_DEPTH
-#define BACKTRACE_INDENT_DEPTH 12
-#endif
-
 #define fast_eval(x,env) (fd_stack_eval(x,env,_stack,0))
-
-static int backtrace_indent_depth = BACKTRACE_INDENT_DEPTH;
 
 #include <libu8/u8xfiles.h>
 
@@ -967,7 +961,10 @@ static void output_stack_frame(u8_output out,fdtype entry)
               if (FD_CHOICEP(val)) u8_puts(out," </span> ");}}
           u8_puts(out,"</div>");}}
       u8_printf(out,"\n</div>");}}
-  else {}
+  else {
+    u8_puts(out,"\n <pre class='lispobj'>\n");
+    fd_pprint(out,entry,NULL,0,0,80);
+    u8_puts(out,"\n</div>\n");}
 }
 
 FD_EXPORT
@@ -2135,11 +2132,6 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
      fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
-
-  fd_register_config
-    ("HTMLBACKTRACEINDENT",
-     _("How many entries in a web backtrace to indent "),
-     fd_intconfig_get,fd_intconfig_set,&backtrace_indent_depth);
 
   fd_register_config
     ("BROWSEINFO",

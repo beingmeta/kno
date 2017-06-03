@@ -54,14 +54,15 @@ FD_EXPORT void fd_seterr
     (u8_current_exception) ? (u8_current_exception->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
   fdtype exception = fd_make_exception(condition,cxt,details,irritant);
-  fdtype base      = fd_init_pair(NULL,exception,FD_EMPTY_LIST);
+  fdtype base      = fd_init_pair(NULL,exception,
+				  ( (FD_VOIDP(irritant)) ? (FD_EMPTY_LIST) :
+				    (fd_init_pair(NULL,irritant,FD_EMPTY_LIST)) ) );
   fdtype errinfo   = fd_init_pair(NULL,stacktrace_symbol,
 				  fd_get_backtrace(fd_stackptr,base));
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
   u8_push_exception(condition,cxt,u8_strdup(details),(void *)errinfo,
 		    fd_free_exception_xdata);
-  fd_decref(irritant);
 }
 
 /* This stores the details and irritant arguments directly,
