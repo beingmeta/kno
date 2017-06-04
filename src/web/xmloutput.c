@@ -23,10 +23,6 @@
 #include "framerd/fdweb.h"
 #include "framerd/support.h"
 
-/* If you  edit this file, you probably also want to edit bugjar.css */
-#include "backtrace_css.h"
-#include "backtrace_js.h"
-
 #include "framerd/support.h"
 
 #include <ctype.h>
