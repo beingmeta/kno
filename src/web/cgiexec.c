@@ -54,14 +54,6 @@ static int log_cgidata = 0;
 
 static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 
-#define DEFAULT_CONTENT_TYPE \
-  "Content-type: text/html; charset = utf-8;"
-#define DEFAULT_DOCTYPE \
-  "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\
-               \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
-#define DEFAULT_XMLPI \
-  "<?xml version='1.0' charset='utf-8' ?>"
-
 /* Utility functions */
 
 static fdtype try_parse(u8_string buf)
@@ -198,7 +190,7 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
 
 /* Converting query arguments */
 
-static fdtype post_data_slotid, form_data_string;
+static fdtype post_data_slotid, multipart_form_data, www_form_urlencoded;
 
 /* Setting this to zero might be slightly more secure, and it's the
    CONFIG option QUERYWITHPOST (boolean) */
@@ -234,7 +226,7 @@ static void get_form_args(fd_slotmap c)
       if (FD_STRINGP(qval))
         parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
       fd_decref(qval);}
-    if (fd_test((fdtype)c,cgi_content_type,form_data_string)) {
+    if (fd_test((fdtype)c,cgi_content_type,multipart_form_data)) {
       fdtype postdata = fd_slotmap_get(c,post_data_slotid,FD_VOID);
       fdtype parts = FD_EMPTY_LIST;
       /* Parse the MIME data into parts */
@@ -286,7 +278,7 @@ static void get_form_args(fd_slotmap c)
           fd_decref(content); fd_decref(ctype);}
         fd_decref(namestring);}}
       fd_decref(parts);}
-    else {
+    else if (fd_test((fdtype)c,cgi_content_type,www_form_urlencoded)) {
       fdtype qval = fd_slotmap_get(c,post_data_slotid,FD_VOID);
       u8_string data; unsigned int len;
       if (FD_STRINGP(qval)) {
@@ -297,7 +289,8 @@ static void get_form_args(fd_slotmap c)
         fd_decref(qval); data = NULL;}
       if ((data) && (strchr(data,'=')))
         parse_query_string(c,data,len);
-      fd_decref(qval);}}
+      fd_decref(qval);}
+    else {}}
 }
 
 static void parse_query_string(fd_slotmap c,const char *data,int len)
@@ -1375,7 +1368,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   class_symbol = fd_intern("CLASS");
 
   post_data_slotid = fd_intern("POST_DATA");
-  form_data_string = fdtype_string("multipart/form-data");
+  multipart_form_data = fdtype_string("multipart/form-data");
+  www_form_urlencoded = fdtype_string("application/x-www-form-urlencoded");
 
   filename_slotid = fd_intern("FILENAME");
   name_slotid = fd_intern("NAME");

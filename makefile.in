@@ -200,6 +200,7 @@ SCHEMEIO_OBJS=\
 FDWEB_OBJS=\
 	src/web/fdweb.o \
 	src/web/xmloutput.o \
+	src/web/htmlout.o \
 	src/web/xmlinput.o \
 	src/web/xmldata.o \
 	src/web/mime.o \
@@ -395,8 +396,8 @@ FRAMERD_SOURCES=\
 	src/prims/extdbprims.c                    			\
 	src/eval/reqstate.c                                          	\
 	src/web/fdweb.c src/web/json.c src/web/ldns.c            	\
-	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 	\
-	src/web/xmleval.c src/web/cgiexec.c src/web/uriprims.c   	\
+	src/web/xmloutput.c src/web/htmlout.c src/web/xmlinput.c src/web/xmldata.c 	\
+	src/web/xmleval.c src/web/cgiexec.c src/web/uriprims.c		\
 	src/web/mime.c src/web/email.c src/web/curl.c            	\
 	src/text/texttools.c src/text/match.c                	\
 	src/text/porter.c src/text/phonetic.c                	\
@@ -691,7 +692,7 @@ exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
 exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
 # Custom rules for making include files with CSS headers
-src/web/xmloutput.o: src/web/backtrace_css.h src/web/backtrace_js.h
+src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h
 src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
 	./etc/text2include FD_BACKTRACE_CSS $< $@
 src/web/backtrace_js.h: src/web/backtrace.js etc/text2include
