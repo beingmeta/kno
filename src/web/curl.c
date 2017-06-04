@@ -108,6 +108,31 @@ static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
   return size*n;
 }
 
+static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
+                                   void *vdhandler)
+{
+  // TODO: Possibly return CURL_READFUNC_PAUSE and CURL_WRITEFUNC_PAUSE
+  fdtype *state = (fdtype *) vdhandler;
+  fdtype handler=state[0], result=state[1];
+  u8_log(LOGWARN,"ProcessContentData",
+         "Using %q to process %lld bytes into %q",
+         handler,n_elts*elt_size,result);
+  int data_len=n_elts*elt_size;
+  fdtype packet=fd_make_packet(NULL,data_len,data);
+  fdtype argvec[2]={packet,result};
+  fdtype apply_result=fd_apply(handler,2,argvec);
+  fd_decref(packet);
+  if (FD_ABORTP(apply_result)) {
+    u8_exception ex=u8_erreify();
+    state[2]=fd_init_exception(NULL,ex);
+    return 0;}
+  else if (FD_FALSEP(apply_result))
+    return 0;
+  else if (FD_FIXNUMP(result))
+    return FD_FIX2INT(result);
+  else return n_elts*elt_size;
+}
+
 fd_ptr_type fd_curl_type;
 
 void handle_content_type(char *value,fdtype table)
@@ -618,6 +643,49 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   return result;
 }
 
+static fdtype streamurl(struct FD_CURL_HANDLE *h,u8_string urltext,
+                        fdtype handler)
+{
+  CURLcode retval;
+  int consed_handle = 0;
+  fdtype result = fd_empty_slotmap();
+  fdtype url = fixurl(urltext);
+  fdtype stream_data[3]={handler,result,FD_VOID};
+  fd_add(result,url_symbol,url); fd_decref(url);
+  if (h == NULL) {h = fd_open_curl_handle(); consed_handle = 1;}
+  // Possibly add option for setting CURLOPT_PROGRESSFUNCTION with handler
+  //  for curl handle and result.
+  curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
+  curl_easy_setopt(h->handle,CURLOPT_WRITEFUNCTION,process_content_data);
+  curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,(void *)stream_data);
+  curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
+  curl_easy_setopt(h->handle,CURLOPT_NOBODY,0);
+  retval = curl_easy_perform(h->handle);
+  if (retval==CURLE_WRITE_ERROR) {
+    if (FD_TYPEP(stream_data[2],fd_error_type)) {
+      fd_exception_object exo=(fd_exception_object)stream_data[2];
+      u8_exception ex = exo->fdex_u8ex;
+	u8_push_exception(ex->u8x_cond,ex->u8x_context,
+                          ex->u8x_details,ex->u8x_xdata,
+                          ex->u8x_free_xdata);
+        exo->fdex_u8ex = NULL;
+        u8_restore_exception(ex);
+        if (consed_handle) {fd_decref((fdtype)h);}
+        return FD_ERROR_VALUE;}
+    else {
+      if (consed_handle) {fd_decref((fdtype)h);}
+      return result;}}
+  else if (retval!=CURLE_OK) {
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=
+      fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),result);
+    fd_decref(result);
+    if (consed_handle) {fd_decref((fdtype)h);}
+    return errval;}
+  if (consed_handle) {fd_decref((fdtype)h);}
+  return result;
+}
+
 static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
 {
   INBUF data; CURLcode retval;
@@ -738,6 +806,21 @@ static fdtype urlget(fdtype url,fdtype curl)
   else if (!((FD_STRINGP(url))||(FD_TYPEP(url,fd_secret_type)))) {
     result = fd_type_error("string","urlget",url);}
   else result = fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
+  fd_decref(conn);
+  return result;
+}
+
+static fdtype urlstream(fdtype url,fdtype handler,fdtype curl)
+{
+  if (!(FD_APPLICABLEP(handler)))
+    return fd_type_error("applicable","urlstream",handler);
+  fdtype result, conn = curl_arg(curl,"urlstream");
+  if (FD_ABORTP(conn)) return conn;
+  else if (!(FD_TYPEP(conn,fd_curl_type)))
+    return fd_type_error("CURLCONN","urlget",conn);
+  else if (!((FD_STRINGP(url))||(FD_TYPEP(url,fd_secret_type)))) {
+    result = fd_type_error("string","urlget",url);}
+  else result = streamurl((fd_curl_handle)conn,FD_STRDATA(url),handler);
   fd_decref(conn);
   return result;
 }
@@ -1507,6 +1590,12 @@ FD_EXPORT void fd_init_curl_c()
   fd_defspecial(module,"URLPOSTOUT",urlpostdata_evalfn);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
+  fd_idefn3(module,"URLSTREAM",urlstream,1,
+            "(URLSTREAM *url* *handler* [*curl*]) opens the remote URL *url* "
+            "and calls *handler* on packets of data from the stream. A second "
+            "argument to *handler* is a slotmap which will be returned when "
+            "the *handler* either errs or returns #F",
+            fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID);
   fd_idefn(module,fd_make_cprim2("URLHEAD",urlhead,1));
   fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));
   fd_idefn(module,fd_make_cprim4("URLPUT",urlput,2));
