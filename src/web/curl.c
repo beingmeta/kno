@@ -643,9 +643,14 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   return result;
 }
 
-static fdtype streamurl(struct FD_CURL_HANDLE *h,u8_string urltext,
-                        fdtype handler)
+static fdtype streamurl(struct FD_CURL_HANDLE *h,
+                        u8_string urltext,
+                        fdtype handler,
+                        const unsigned char *payload_type,
+                        const unsigned char *payload,
+                        size_t payload_size)
 {
+  OUTBUF rdbuf;
   CURLcode retval;
   int consed_handle = 0;
   fdtype result = fd_empty_slotmap();
@@ -660,6 +665,13 @@ static fdtype streamurl(struct FD_CURL_HANDLE *h,u8_string urltext,
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,(void *)stream_data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
   curl_easy_setopt(h->handle,CURLOPT_NOBODY,0);
+  if ((payload_type) && (payload) && (payload_size)) {
+    curl_easy_setopt(h->handle,CURLOPT_POST,1);
+    rdbuf.scan=(unsigned char *) payload;
+    rdbuf.end= (unsigned char *) (payload+payload_size);
+    curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
+    curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
+    curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);}
   retval = curl_easy_perform(h->handle);
   if (retval==CURLE_WRITE_ERROR) {
     if (FD_TYPEP(stream_data[2],fd_error_type)) {
@@ -810,7 +822,9 @@ static fdtype urlget(fdtype url,fdtype curl)
   return result;
 }
 
-static fdtype urlstream(fdtype url,fdtype handler,fdtype curl)
+static fdtype urlstream(fdtype url,fdtype handler,
+                        fdtype payload,
+                        fdtype curl)
 {
   if (!(FD_APPLICABLEP(handler)))
     return fd_type_error("applicable","urlstream",handler);
@@ -820,7 +834,14 @@ static fdtype urlstream(fdtype url,fdtype handler,fdtype curl)
     return fd_type_error("CURLCONN","urlget",conn);
   else if (!((FD_STRINGP(url))||(FD_TYPEP(url,fd_secret_type)))) {
     result = fd_type_error("string","urlget",url);}
-  else result = streamurl((fd_curl_handle)conn,FD_STRDATA(url),handler);
+  else if (FD_VOIDP(payload))
+    result = streamurl((fd_curl_handle)conn,FD_STRDATA(url),
+                       handler,NULL,NULL,0);
+  else {
+    result = streamurl((fd_curl_handle)conn,FD_STRDATA(url),
+                       handler,FD_STRDATA(payload),
+                       "application/x-www-urlform-encoded",
+                       FD_STRLEN(payload));}
   fd_decref(conn);
   return result;
 }
@@ -1590,12 +1611,13 @@ FD_EXPORT void fd_init_curl_c()
   fd_defspecial(module,"URLPOSTOUT",urlpostdata_evalfn);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
-  fd_idefn3(module,"URLSTREAM",urlstream,1,
+  fd_idefn4(module,"URLSTREAM",urlstream,1,
             "(URLSTREAM *url* *handler* [*curl*]) opens the remote URL *url* "
             "and calls *handler* on packets of data from the stream. A second "
             "argument to *handler* is a slotmap which will be returned when "
             "the *handler* either errs or returns #F",
-            fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+            fd_string_type,FD_VOID,-1,FD_VOID,
+            -1,FD_VOID,-1,FD_VOID);
   fd_idefn(module,fd_make_cprim2("URLHEAD",urlhead,1));
   fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));
   fd_idefn(module,fd_make_cprim4("URLPUT",urlput,2));
