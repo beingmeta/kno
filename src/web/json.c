@@ -27,8 +27,8 @@
 #define FD_JSON_COLONIZE 16  /* Use (assume) colon prefixes for LISPY objects */
 #define FD_JSON_TICKS    32  /* Show time as unix time */
 #define FD_JSON_TICKLETS 64  /* Show time as nanosecond-precision unix time */
-#define FD_JSON_WARNINGS 128 /* Emit conversion warnings, etc */
-#define FD_JSON_DEFAULTS (FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE)
+#define FD_JSON_VERBOSE 128 /* Emit conversion warnings, etc */
+#define FD_JSON_DEFAULTS (FD_JSON_SYMBOLIZE)
 
 #define FD_JSON_MAXFLAGS 256
 
@@ -130,7 +130,7 @@ static fdtype json_atom(U8_INPUT *in,int flags)
   else if  ((strcmp(out.u8_outbuf,"null")==0)) result = FD_EMPTY_CHOICE;
   else result = fd_parse(out.u8_outbuf);
   if (FD_ABORTP(result))
-    result = parse_error(&out,result,flags&FD_JSON_WARNINGS);
+    result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return result;
 }
@@ -159,7 +159,7 @@ static fdtype json_string(U8_INPUT *in,int flags)
   else if ((flags&FD_JSON_COLONIZE)&&(out.u8_outbuf[0]==':')) {
     fdtype result = fd_parse(out.u8_outbuf+1);
     if (FD_ABORTP(result))
-      result = parse_error(&out,result,flags&FD_JSON_WARNINGS);
+      result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else return fd_stream2string(&out);
@@ -183,7 +183,7 @@ static fdtype json_intern(U8_INPUT *in,int flags)
   if (out.u8_outbuf[0]==':') {
     fdtype result = fd_parse(out.u8_outbuf+1);
     if (FD_ABORTP(result))
-      result = parse_error(&out,result,flags&FD_JSON_WARNINGS);
+      result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else {
@@ -191,7 +191,7 @@ static fdtype json_intern(U8_INPUT *in,int flags)
                    (fd_parse(out.u8_outbuf)):
                    (fd_stream_string(&out)));
     if (FD_ABORTP(result))
-      result = parse_error(&out,result,flags&FD_JSON_WARNINGS);
+      result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
 }
@@ -301,7 +301,7 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
           kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
         else
           kv[n_elts].kv_val = convert_value(handler,json_parse(in,flags,fieldmap),
-                                         1,(flags&FD_JSON_WARNINGS));}
+                                         1,(flags&FD_JSON_VERBOSE));}
       if (FD_ABORTP(kv[n_elts].kv_val)) break;
       n_elts++; c = skip_whitespace(in);}}
   i = 0; while (i<n_elts) {
@@ -310,14 +310,63 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
   return fd_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,FD_VOID);
 }
 
+static fdtype symbolize_symbol, colonize_symbol, rawids_symbol;
+static fdtype ticks_symbol, ticklets_symbol, verbose_symbol;
+
+static int get_json_flags(fdtype flags_arg)
+{
+  if (FD_FALSEP(flags_arg))
+    return 0;
+  else if (FD_FIXNUMP(flags_arg)) {
+    long long val=FD_FIX2INT(flags_arg);
+    if ((val>0) && (val<FD_JSON_MAXFLAGS))
+      return (unsigned int) val;
+    else return FD_JSON_DEFAULTS;}
+  else if (FD_TRUEP(flags_arg))
+    return FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE;
+  else if (flags_arg == FD_DEFAULT_VALUE)
+    return FD_JSON_DEFAULTS;
+  else if ((FD_PAIRP(flags_arg))||(FD_TABLEP(flags_arg))) {
+    int flags=0;
+    if (!(fd_testopt(flags_arg,symbolize_symbol,FD_FALSE)))
+      flags |= FD_JSON_SYMBOLIZE;
+    if (!(fd_testopt(flags_arg,colonize_symbol,FD_VOID)))
+      flags |= FD_JSON_COLONIZE;
+    if (!(fd_testopt(flags_arg,rawids_symbol,FD_VOID)))
+      flags |= FD_JSON_IDKEY;
+    if (!(fd_testopt(flags_arg,ticks_symbol,FD_VOID)))
+      flags |= FD_JSON_TICKS;
+    if (!(fd_testopt(flags_arg,ticklets_symbol,FD_VOID)))
+      flags |= FD_JSON_TICKLETS;
+    if (!(fd_testopt(flags_arg,verbose_symbol,FD_VOID)))
+      flags |= FD_JSON_VERBOSE;
+    return flags;}
+  else if (FD_PRECHOICEP(flags_arg)) {
+    fdtype choice=fd_make_simple_choice(flags_arg);
+    int rv=get_json_flags(choice);
+    fd_decref(choice);
+    return rv;}
+  else if (FD_CHOICEP(flags_arg)) {
+    int flags=0;
+    if (fd_choice_containsp(symbolize_symbol,flags_arg))
+      flags |= FD_JSON_SYMBOLIZE;
+    if (fd_choice_containsp(colonize_symbol,flags_arg))
+      flags |= FD_JSON_COLONIZE;
+    if (fd_choice_containsp(rawids_symbol,flags_arg))
+      flags |= FD_JSON_IDKEY;
+    if (fd_choice_containsp(ticks_symbol,flags_arg))
+      flags |= FD_JSON_TICKS;
+    if (fd_choice_containsp(ticklets_symbol,flags_arg))
+      flags |= FD_JSON_TICKLETS|FD_JSON_TICKS;
+    if (fd_choice_containsp(verbose_symbol,flags_arg))
+      flags |= FD_JSON_VERBOSE;
+    return flags;}
+  else return FD_JSON_DEFAULTS;
+}
+
 static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
 {
-  int flags = 0;
-  if (FD_FALSEP(flags_arg)) {}
-  else if (FD_TRUEP(flags_arg)) flags = FD_JSON_COLONIZE;
-  else if (FD_UINTP(flags_arg))
-    flags = FD_FIX2INT(flags_arg);
-  else return fd_type_error("int","jsonparseprim",flags_arg);
+  unsigned int flags = get_json_flags(flags_arg);
   if (FD_PORTP(in)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,in,fd_port_type);
     U8_INPUT *in = p->fd_inport;
@@ -507,10 +556,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,
                          fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
   u8_output out = u8_current_output;
-  int flags=
-    ((FD_FALSEP(flags_arg))?(0):
-     (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
-     (FD_UINTP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
+  unsigned int flags = get_json_flags(flags_arg);
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
@@ -522,10 +568,7 @@ static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,
                          fdtype oidfn,fdtype miscfn)
 {
   struct U8_OUTPUT tmpout;
-  int flags=
-    ((FD_FALSEP(flags_arg))?(0):
-     (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
-     (FD_UINTP(flags_arg))?(FD_FIX2INT(flags_arg)):(-1));
+  int flags = get_json_flags(flags_arg);
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   U8_INIT_OUTPUT(&tmpout,128);
@@ -544,18 +587,27 @@ FD_EXPORT void fd_init_json_c()
            ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim3x
            ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),-1,FD_VOID));
+
   fd_idefn(module,fd_make_cprim5x("->JSON",jsonstring,1,
                                   -1,FD_VOID,-1,FD_TRUE,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("->JSON",jsonstring,1,
                                          -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
                                          -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+
   fd_idefn(module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
                                   -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
                                          -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
                                          -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+
+  symbolize_symbol=fd_intern("SYMBOLIZE");
+  colonize_symbol=fd_intern("COLONIZE");
+  rawids_symbol=fd_intern("RAWIDS");
+  ticks_symbol=fd_intern("TICKS");
+  ticklets_symbol=fd_intern("TICKLETS");
+  verbose_symbol=fd_intern("VERBOSE");
 
   u8_register_source_file(_FILEINFO);
 }
