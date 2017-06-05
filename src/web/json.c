@@ -583,24 +583,36 @@ FD_EXPORT void fd_init_json_c()
   fdtype module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fdtype unsafe_module = fd_new_module("FDWEB",0);
 
-  fd_idefn(module,fd_make_cprim3x
-           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),-1,FD_VOID));
-  fd_idefn(unsafe_module,fd_make_cprim3x
-           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),-1,FD_VOID));
+  fd_idefn3(module,"JSONPARSE",jsonparseprim,1,
+            "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
+            -1,FD_VOID,
+            -1,FD_INT(FD_JSON_DEFAULTS),
+            -1,FD_VOID);
+  fd_idefn3(unsafe_module,"JSONPARSE",jsonparseprim,1,
+            "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
+            -1,FD_VOID,
+            -1,FD_INT(FD_JSON_DEFAULTS),
+            -1,FD_VOID);
 
-  fd_idefn(module,fd_make_cprim5x("->JSON",jsonstring,1,
-                                  -1,FD_VOID,-1,FD_TRUE,
-                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
-  fd_idefn(unsafe_module,fd_make_cprim5x("->JSON",jsonstring,1,
-                                         -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn5(module,"->JSON",jsonstring,1,
+            "(->JSON *obj* ...) returns a JSON string for the lisp object *obj*",
+            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,FD_VOID,-1,FD_VOID,
+            -1,FD_VOID);
+  fd_idefn5(unsafe_module,"->JSON",jsonstring,1,
+            "(->JSON *obj* ...) returns a JSON string for the lisp object *obj*",
+            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,FD_VOID,-1,FD_VOID,
+            -1,FD_VOID);
 
-  fd_idefn(module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-                                  -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
-  fd_idefn(unsafe_module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-                                         -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_idefn5(module,"JSONOUTPUT",jsonoutput,1,
+            "Outputs a JSON representation to the standard output",
+            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_idefn5(unsafe_module,"JSONOUTPUT",jsonoutput,1,
+            "Outputs a JSON representation to the standard output",
+            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
   symbolize_symbol=fd_intern("SYMBOLIZE");
   colonize_symbol=fd_intern("COLONIZE");
