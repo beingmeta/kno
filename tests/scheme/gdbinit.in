@@ -10,6 +10,7 @@ set env FD_INIT_LOADPATH @abs_top_srcdir@/src/scheme/%.scm:@abs_top_srcdir@/src/
 set env FD_INIT_SAFELOADPATH @abs_top_srcdir@/src/scheme/safe/%.scm:@abs_top_srcdir@/src/scheme/safe/%/module.scm:@default_safe_module_path@
 set env FD_UPDATEMODULES=5
 set env FD_SKIP_DOTLOAD yes
+set env FD_TRACECONFIGLOAD yes
 set env FD_DLOAD:TRACE yes
 set env FD_SHOWTIME 0.0
 set env FD_DISPLAYMAXELTS=36
