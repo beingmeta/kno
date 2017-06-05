@@ -8,12 +8,13 @@ set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_INIT_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@:@abs_top_srcdir@/../tagger/c/%.@shared_suffix@:@prefix@/lib/framerd/%.@shared_suffix@
 set env FD_INIT_LOADPATH @abs_top_srcdir@/src/scheme/%.scm:@abs_top_srcdir@/src/scheme/%/module.scm:@abs_top_srcdir@/src/scheme/safe/%.scm:@abs_top_srcdir@/src/scheme/safe/%/module.scm:@default_module_path@
 set env FD_INIT_SAFELOADPATH @abs_top_srcdir@/src/scheme/safe/%.scm:@abs_top_srcdir@/src/scheme/safe/%/module.scm:@default_safe_module_path@
+set env FD_UPDATEMODULES=5
 set env FD_SKIP_DOTLOAD yes
 set env FD_DLOAD:TRACE yes
 set env FD_SHOWTIME 0.0
 set env FD_DISPLAYMAXELTS=36
 set env FD_DISPLAYMAXCHARS=1024
+set env FD_TRACEWEB=yes
 set env FD_WEBDEBUG=yes
 set env FD_WEBALLOWDEBUG=yes
-set env FD_UPDATEMODULES=5
-
+source .gdbinit.local
