@@ -1440,7 +1440,7 @@ static int webservefn(u8_client ucl)
     /* Reset the stream */
     outstream->u8_write = outstream->u8_outbuf;
     /* If we're not still in the transaction, call u8_client_done() */
-    if (!(return_code)) {u8_client_done(ucl);}
+    /* if (!(return_code)) {u8_client_done(ucl);} */
     if ((forcelog)||(traceweb>2))
       u8_log(LOG_NOTICE,"FDServlet/HTTPHEAD",
              "HTTPHEAD=%s (#%lx)",httphead.u8_outbuf,(unsigned long)ucl);
