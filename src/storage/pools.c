@@ -948,7 +948,9 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
     if (kv==NULL) {i++; continue;} /* Warning here? Abort? */
     else if (kv->kv_val != v) { i++; continue;}
     else if (!(FD_CONSP(v))) {
-      *unlock++=oids[i]; i++; continue;}
+      kv->kv_val=FD_VOID;
+      *unlock++=oids[i++];
+      continue;}
     else {
       int finished=1;
       fdtype cur = kv->kv_val;
@@ -961,8 +963,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
       else {}
       /* If anybody else has a pointer to this OID, don't swap it
          out. */
-      if (FD_CONS_REFCOUNT(v)>2) finished=0;
-      if (finished) {
+      if ((finished) && (FD_CONS_REFCOUNT(v)<=2)) {
         *unlock++=oids[i];
         fd_decref(cur);
         kv->kv_val=FD_VOID;}
