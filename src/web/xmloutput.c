@@ -1240,6 +1240,10 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defn(fdweb_module,xmlendprim);
     fd_idefn(safe_fdweb_module,xmlendprim);}
 
+  /* Not strictly XML of course, but a neighbor */
+  fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_evalfn);
+  fd_defspecial(xhtml_module,"JAVASTMT",javastmt_evalfn);
+
   fd_decref(markup_prim); fd_decref(markupstar_prim);
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);
   fd_decref(emptymarkup_prim); fd_decref(xmlout_prim);
