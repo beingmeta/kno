@@ -179,7 +179,7 @@ static int dtype_lexenv(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_LEXENV *env=
     fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
-  u8_string modname=NULL,  modfile=NULL; int n_elts=1;
+  u8_string modname=NULL,  modfile=NULL;
   if (FD_HASHTABLEP(env->env_bindings)) {
     fdtype ids = fd_get(env->env_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
     FD_DO_CHOICES(id,ids) {
@@ -236,5 +236,6 @@ FD_EXPORT void fd_init_lexenv_c()
   fd_unparsers[fd_lexenv_type]=unparse_lexenv;
   fd_copiers[fd_lexenv_type]=lisp_copy_lexenv;
   fd_recyclers[fd_lexenv_type]=recycle_lexenv;
+  fd_dtype_writers[fd_lexenv_type]=dtype_lexenv;
 
 }

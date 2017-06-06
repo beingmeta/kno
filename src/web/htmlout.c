@@ -164,27 +164,6 @@ static fdtype backtrace2html_prim(fdtype arg,fdtype where)
 
 /* Output Scheme objects, mostly as tables */
 
-static void open_tag(u8_output s,u8_string tag,u8_string cl,
-                     u8_string typename,int collapsed)
-{
-  if (!(tag)) return;
-  if ((cl)&&(collapsed))
-    u8_printf(s,"\n<%s class='%s %s collapsed'>",tag,typename,cl);
-  else if (cl)
-    u8_printf(s,"\n<%s class='%s %s'>",tag,typename,cl);
-  else if (collapsed)
-    u8_printf(s,"\n<%s class='%s collapsed'>",tag,typename);
-  else u8_printf(s,"\n<%s class='%s'>",tag,typename);
-}
-
-static fdtype get_compound_tag(fdtype tag)
-{
-  if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
-    struct FD_COMPOUND *c = FD_XCOMPOUND(tag);
-    return fd_incref(c->compound_0);}
-  else return tag;
-}
-
 FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl)
 {
   output_value(s,v,tag,cl);
@@ -433,7 +412,6 @@ static void output_stack_frame(u8_output out,fdtype entry)
         i++;}}
     if (FD_TABLEP(env)) {
       fdtype vars=fd_getkeys(env);
-      fdtype unbound=FD_EMPTY_CHOICE;
       u8_printf(out,"<div class='bindings'>");
       FD_DO_CHOICES(var,vars) {
         if (FD_SYMBOLP(var)) {

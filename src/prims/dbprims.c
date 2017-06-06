@@ -3390,11 +3390,12 @@ FD_EXPORT void fd_init_dbprims_c()
             "for objects in *pool*. If *pool* is not specified, "
             "the adjunct is declared globally.",
             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
-  fd_idefn3(fd_xscheme_module,"ADD-ADJUNCT!",add_adjunct,3,
+  fd_idefn3(fd_xscheme_module,"ADJUNCT!",add_adjunct,3,
             "(pool slot table)\n"
             "arranges for *table* to store values of the slotid *slot* "
             "for objects in *pool*.",
             -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+  fd_defalias(fd_xscheme_module,"ADD-ADJUNCT!","ADJUNCT!");
   fd_idefn1(fd_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,
             "(pool)\n"
             "Gets the adjuncts associated with the specified pool",

@@ -39,19 +39,6 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
-static void summarize_stack_frame(u8_output out,struct FD_STACK *stack)
-{
-  if (stack->stack_label)
-    u8_puts(out,stack->stack_label);
-  if ( (stack->stack_status) &&
-       (stack->stack_status[0]) &&
-       (stack->stack_status!=stack->stack_label) ) {
-    u8_printf(out,"(%s)",stack->stack_status);}
-  if ((stack->stack_type) &&
-      (strcmp(stack->stack_type,stack->stack_label)))
-    u8_printf(out,".%s",stack->stack_type);
-}
-
 static fdtype stack2lisp(struct FD_STACK *stack)
 {
   fdtype vec=fd_init_vector(NULL,8,NULL);

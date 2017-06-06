@@ -554,14 +554,14 @@ static fdtype threadjoin_prim(fdtype threads)
       /* If the result wasn't put somewhere else, add it to
          the results */
       if ( (tstruct->resultptr == NULL) ||
-           ((tstruct->resultptr) == &(tstruct->result)) )
+           ((tstruct->resultptr) == &(tstruct->result)) ) {
         if (FD_VOIDP(tstruct->result))
           u8_log(LOG_WARN,ThreadVOID,
                  "The thread %q unexpectedly returned VOID but without error",
                  thread);
         else  {
           fd_incref(tstruct->result);
-          FD_ADD_TO_CHOICE(results,tstruct->result);}}
+          FD_ADD_TO_CHOICE(results,tstruct->result);}}}
     else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                  retval,strerror(retval),thread);}}
   return results;

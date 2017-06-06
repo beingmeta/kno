@@ -559,7 +559,7 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
 
 static fdtype form_encode_prim(fdtype table,fdtype opts)
 {
-  u8_string input; int keep_secret=0;
+  int keep_secret=0;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
   fdtype colonize=fd_getopt(opts,colonize_symbol,FD_FALSE);
   int nocolon=(!(FD_FALSEP(colonize)));

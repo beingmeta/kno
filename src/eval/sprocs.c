@@ -616,7 +616,7 @@ fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype))
 {
   FD_SETUP_NAMED_STACK(_stack,fd_stackptr,"xapply",fn->fcn_name,(fdtype)fn);
-  int i = 0, n = fn->sproc_n_vars;
+  int n = fn->sproc_n_vars;
   fdtype arglist = fn->sproc_arglist, result = FD_VOID;
   fd_lexenv env = fn->sproc_env;
   INIT_STACK_SCHEMA(_stack,call_env,env,n,fn->sproc_vars);
