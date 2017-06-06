@@ -822,7 +822,7 @@ int main(int argc,char **argv)
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
   while (i<argc) {
-    if (isconfig(argv[i])) 
+    if (isconfig(argv[i]))
       u8_log(LOGDEBUG,"Config","    %s",argv[i++]);
     else if (source_file) i++;
     else {
@@ -1088,6 +1088,7 @@ int main(int argc,char **argv)
      circular pointers. */
   if (FD_HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
+  fd_pop_stack(_stack);
   /* Freed as console_env */
   /* fd_recycle_lexenv(env); */
   exit(0);
