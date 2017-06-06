@@ -748,7 +748,9 @@ FD_FASTOP fdtype read_zvalue(fd_hashindex hx,fd_inbuf in)
 static fdtype hashindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_HASHINDEX *hx = (fd_hashindex)ix;
+  size_t blockbuf_size=8192;
   unsigned char buf[HX_KEYBUF_SIZE];
+  unsigned char *blockbuf=u8_malloc(blockbuf_size);
   struct FD_OUTBUF out;
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   fd_off_t vblock_off; size_t vblock_size;
@@ -767,6 +769,8 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
       u8_message("The slotid %q isn't indexed in %s, returning {}",
                  slotid,hx->indexid);
 #endif
+      fd_close_outbuf(&out);
+      u8_free(blockbuf);
       return FD_EMPTY_CHOICE;}}
   if ((hx->fd_storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags |= FD_USE_DTYPEV2;
@@ -785,10 +789,24 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
     fd_unlock_stream(stream);
 #endif
     fd_close_outbuf(&out);
+    u8_free(blockbuf);
     return FD_EMPTY_CHOICE;}
   else {
     struct FD_INBUF keystream;
-    unsigned char inbuf[keyblock.size];
+    unsigned char *inbuf=blockbuf;
+    if (blockbuf_size<keyblock.size) {
+      size_t new_size=blockbuf_size;
+      while (new_size<keyblock.size) new_size=new_size*2;
+      unsigned char *newbuf=u8_malloc(new_size);
+      if (newbuf==NULL) {
+        u8_seterr(fd_MallocFailed,"hashindex_fetch",u8dup(hx->indexid));
+        fd_close_outbuf(&out);
+        u8_free(blockbuf);
+        return FD_ERROR_VALUE;}
+      else {
+        u8_free(blockbuf);
+        inbuf=blockbuf=newbuf;
+        blockbuf_size=new_size;}}
     open_block(&keystream,hx,keyblock.off,keyblock.size,inbuf);
     n_keys = fd_read_zint(&keystream);
     i = 0; while (i<n_keys) {
@@ -799,15 +817,18 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
         n_values = fd_read_zint(&keystream);
         if (n_values==0) {
           fd_close_outbuf(&out);
+          u8_free(blockbuf);
           return FD_EMPTY_CHOICE;}
         else if (n_values==1) {
           fdtype value = read_zvalue(hx,&keystream);
           fd_close_outbuf(&out);
+          u8_free(blockbuf);
           return value;}
         else {
           vblock_off = (fd_off_t)fd_read_zint(&keystream);
           vblock_size = (size_t)fd_read_zint(&keystream);
           fd_close_outbuf(&out);
+          u8_free(blockbuf);
           return read_values(hx,key,n_values,vblock_off,vblock_size);}}
       else {
         keystream.bufread = keystream.bufread+key_len;
@@ -823,6 +844,7 @@ static fdtype hashindex_fetch(fd_index ix,fdtype key)
           fd_read_zint(&keystream);
           fd_read_zint(&keystream);}}
       i++;}}
+  u8_free(blockbuf);
   fd_close_outbuf(&out);
   return FD_EMPTY_CHOICE;
 }
@@ -840,13 +862,16 @@ static FD_CHUNK_REF read_value_block
   unsigned char *vbuf=*vbufp;
   if (vblock_size > *vbuf_len) {
     size_t cur_size = *vbuf_len;
-    size_t new_size = ((cur_size/0x20000)+4)*0x20000;
+    size_t new_size = cur_size;
+    while (new_size < vblock_size)
+      new_size=((new_size<0x20000)? (new_size*2) :
+                (((new_size/0x20000)+4)*0x20000));
     unsigned char *newbuf=u8_realloc(vbuf,new_size);
     if (newbuf == NULL) {
       u8_seterr("ReallocFailed","read_value_block",u8_strdup(hx->indexid));
       return result;}
     else {
-      *vbufp=newbuf;
+      vbuf=*vbufp=newbuf;
       *vbuf_len=new_size;}}
   struct FD_INBUF instream;
   fd_off_t next_off;
