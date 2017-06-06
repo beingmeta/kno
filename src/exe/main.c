@@ -130,7 +130,7 @@ static void _show_stack_frame(struct FD_STACK *stack)
   fputs("\n",stderr);
 }
 
-static void _showstack(void *arg,int limit)
+static U8_MAYBE_UNUSED void _showstack(void *arg,int limit)
 {
   int count=0;
   struct FD_STACK *stack=_get_stack_frame(arg);
@@ -144,7 +144,7 @@ static void _showstack(void *arg,int limit)
     count++;}
 }
 
-static void _showframe(void *arg)
+static U8_MAYBE_UNUSED void _showframe(void *arg)
 {
   u8_string summary=NULL;
   struct FD_STACK *stack=_get_stack_frame(arg);

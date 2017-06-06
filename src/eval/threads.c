@@ -569,7 +569,6 @@ static fdtype threadjoin_prim(fdtype threads)
 
 static fdtype threadwait_prim(fdtype threads)
 {
-  fdtype results = FD_EMPTY_CHOICE;
   {FD_DO_CHOICES(thread,threads)
      if (!(FD_TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}

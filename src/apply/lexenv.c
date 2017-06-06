@@ -220,7 +220,7 @@ static int dtype_lexenv(struct FD_OUTBUF *out,fdtype x)
       u8_uitoa16((unsigned long long)x,buf);
     size_t len=strlen(numstring);
     fd_write_byte(&tmp,dt_string);
-    fd_write_4bytes(&tmp,len+2);
+    fd_write_4bytes(&tmp,(len+2));
     fd_write_bytes(&tmp,"#!",2);
     fd_write_bytes(&tmp,numstring,len);}
   size_t n_bytes=tmp.bufwrite-tmp.buffer;

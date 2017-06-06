@@ -171,17 +171,17 @@ FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *,fd_8bytes);
 #define fd_write_byte(buf,b)                              \
   ((FD_EXPECT_FALSE(FD_ISREADING(buf))) ? (fd_isreadbuf(buf)) : \
    ((FD_EXPECT_TRUE((buf)->bufwrite < (buf)->buflim)) ?		\
-    (*((buf)->bufwrite)++=b,1) :				\
-    (_fd_write_byte((buf),b))))
+    (*((buf)->bufwrite)++=(b),1) :				\
+    (_fd_write_byte((buf),(b)))))
 #define _raw_write_byte(buf,b) (*((buf)->bufwrite)++=b,1)
 
 #define fd_write_4bytes(buf,w)				\
   ((FD_EXPECT_FALSE(FD_ISREADING(buf))) ? (fd_isreadbuf(buf)) : \
    ((FD_EXPECT_TRUE((buf)->bufwrite+4 < (buf)->buflim)) ?	\
-    (*((buf)->bufwrite++) = ((unsigned char)((w>>24)&0xFF)),	\
-     *((buf)->bufwrite++) = ((unsigned char)((w>>16)&0xFF)),	\
-     *((buf)->bufwrite++) = ((unsigned char)((w>>8)&0xFF)),	\
-     *((buf)->bufwrite++) = ((unsigned char)((w>>0)&0xFF)),	\
+    (*((buf)->bufwrite++) = ((unsigned char)(((w)>>24)&0xFF)),	\
+     *((buf)->bufwrite++) = ((unsigned char)(((w)>>16)&0xFF)),	\
+     *((buf)->bufwrite++) = ((unsigned char)(((w)>>8)&0xFF)),	\
+     *((buf)->bufwrite++) = ((unsigned char)(((w)>>0)&0xFF)),	\
      4)								\
     : (_fd_write_4bytes((buf),w))))
 

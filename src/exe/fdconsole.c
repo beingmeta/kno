@@ -172,16 +172,6 @@ static double run_start = -1.0;
 
 static int console_width = 80, quiet_console = 0, show_elts = 5;
 
-static int fits_consolep(fdtype elt,ssize_t len)
-{
-  struct U8_OUTPUT tmpout; u8_byte buf[1001];
-  U8_INIT_STATIC_OUTPUT_BUF(tmpout,1000,buf);
-  if (len<0) len=console_width;
-  fd_unparse(&tmpout,elt);
-  if ((u8_outbuf_written(&tmpout))>len) return 0;
-  else return 1;
-}
-
 static void output_element(u8_output out,fdtype elt)
 {
   if ((historicp(elt))||(FD_STRINGP(elt))) {
@@ -208,18 +198,6 @@ static int list_length(fdtype scan)
     else if (FD_PAIRP(scan)) {
       scan = FD_CDR(scan); len++;}
     else return len+1;
-}
-
-static int result_size(fdtype result)
-{
-  if (FD_ATOMICP(result)) return 1;
-  else if (FD_CHOICEP(result))
-    return FD_CHOICE_SIZE(result);
-  else if (FD_VECTORP(result))
-    return FD_VECTOR_LENGTH(result);
-  else if (FD_PAIRP(result))
-    return fd_seq_length(result);
-  else return 1;
 }
 
 static char *letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -250,7 +228,8 @@ static fdtype bind_random_symbol(fdtype result,fd_lexenv env)
 static int output_result(u8_output out,fdtype result,
                          int histref,int showall)
 {
-  if (FD_VOIDP(result)) {}
+  if (FD_VOIDP(result)) 
+    return 0;
   else if ((showall)&&(FD_OIDP(result))) {
     fdtype v = fd_oid_value(result);
     if (FD_TABLEP(v)) {
@@ -260,7 +239,8 @@ static int output_result(u8_output out,fdtype result,
       fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
       fflush(stdout);}
     else u8_printf(out,"OID value: %q\n",v);
-    fd_decref(v);}
+    fd_decref(v);
+    return 1;}
   else if ((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
            (FD_PAIRP(result)))  {
     u8_string start_with = NULL, end_with = NULL;
@@ -320,6 +300,7 @@ static int output_result(u8_output out,fdtype result,
     else if (histref<0)
       u8_printf(out,"\n%s ;; (%d items)\n",end_with,n_elts);
     else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);
+    return 1;
   } else {
     if (histref<0)
       u8_printf(out,"%Q\n",result);
@@ -333,8 +314,8 @@ static int output_result(u8_output out,fdtype result,
       u8_puts(out,tmpout.u8_outbuf);
       u8_close_output(&tmpout);
       u8_putc(out,'\n');
-      u8_flush(out);
-      return 1;}}
+      u8_flush(out);}
+    return 1;}
 }
 
 /* Command line design */
