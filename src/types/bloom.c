@@ -175,7 +175,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 
   bloom->hashes = (int)ceil(0.693147180559945 * bloom->bpe);  // ln(2)
 
-  bloom->bf = u8_malloc(bloom->bytes);
+  bloom->bf = u8_zmalloc(bloom->bytes);
   if (bloom->bf == NULL) {
     u8_graberrno("fd_bloom_init:mallocbytes",NULL);
     if (use_bloom == NULL) u8_free(bloom);
