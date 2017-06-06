@@ -167,6 +167,8 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
   fd_init_libfdtype();
 
   FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],FD_VOID);
+  _stack->stack_label=u8_strdup(u8_appid());
+  _stack->stack_free_label=1;
 
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 

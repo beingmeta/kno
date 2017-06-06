@@ -82,8 +82,6 @@ static void start_errorpage(u8_output s,u8_exception ex)
 FD_EXPORT
 void fd_xhtmldebugpage(u8_output s,u8_exception ex)
 {
-  fdtype irritant = fd_get_irritant(ex);
-
   start_errorpage(s,ex);
 
   u8_puts(s,"<p class='sorry'>"
@@ -102,8 +100,6 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
 FD_EXPORT
 void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
-  fdtype irritant = fd_get_irritant(ex);
-
   start_errorpage(s,ex);
 
   u8_puts(s,"<p class='sorry'>"

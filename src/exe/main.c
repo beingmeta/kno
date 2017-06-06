@@ -146,7 +146,6 @@ static U8_MAYBE_UNUSED void _showstack(void *arg,int limit)
 
 static U8_MAYBE_UNUSED void _showframe(void *arg)
 {
-  u8_string summary=NULL;
   struct FD_STACK *stack=_get_stack_frame(arg);
   if (stack) _show_stack_frame(stack);
 }
