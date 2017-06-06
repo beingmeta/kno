@@ -859,22 +859,24 @@ static fdtype samplen(fdtype x,fdtype count)
 {
   if (FD_FIXNUMP(count)) {
     fdtype normal = fd_make_simple_choice(x);
+    fdtype results = FD_EMPTY_CHOICE;
     int n = FD_CHOICE_SIZE(normal), howmany = fd_getint(count);
-    if (!(FD_CHOICEP(normal))) return normal;
-    if (n<=howmany) return normal;
+    if (!(FD_CHOICEP(normal)))
+      return normal;
+    if (n<=howmany)
+      return normal;
     else if (n) {
-      struct FD_HASHSET h;
+      unsigned char *used=u8_zalloc_n(n,unsigned char);
       const fdtype *data = FD_CHOICE_DATA(normal);
-      int j = 0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
-      while (j<howmany) {
+      int j = 0; while (j<howmany) {
         int i = u8_random(n);
-        if (fd_hashset_mod(&h,data[i],1)<0) {
-          fd_recycle_hashset(&h);
-          fd_decref(normal);
-          return FD_ERROR_VALUE;}
-        else j++;}
+        if (!(used[i])) {
+          fdtype elt=data[i]; fd_incref(elt);
+          FD_ADD_TO_CHOICE(results,data[i]);
+          used[i]=1;
+          j++;}}
       fd_decref(normal);
-      return fd_hashset_elts(&h,1);}
+      return fd_simplify_choice(results);}
     else return FD_EMPTY_CHOICE;}
   else return fd_type_error("integer","samplen",count);
 }
