@@ -2931,13 +2931,16 @@ static int hashset_get_slot(fdtype key,const fdtype *slots,int n)
 {
   int hash=fd_hash_lisp(key), probe=hash%n, n_probes=0;
   while (n_probes<512)
-    if (slots[probe]==0) return probe;
+    if (slots[probe]==0)
+      return probe;
     else if (FDTYPE_EQUAL(key,slots[probe]))
       return probe;
     else {
-      probe++; n_probes++;
+      probe++;
+      n_probes++;
       if (probe >= n) probe=0;}
-  if (n_probes>512) return -1;
+  if (n_probes>=512)
+    return -1;
   else return probe;
 }
 
@@ -3143,7 +3146,7 @@ FD_EXPORT int fd_hashset_add_raw(struct FD_HASHSET *h,fdtype key)
   slots=h->hs_slots;
   probe=hashset_get_slot(key,h->hs_slots,h->hs_n_slots);
   if (probe < 0) {
-    fd_seterr(HashsetOverflow,"fd_hashset_mod",NULL,(fdtype)h);
+    fd_seterr(HashsetOverflow,"fd_hashset_add_raw",NULL,(fdtype)h);
     return -1;}
   else if (FD_NULLP(slots[probe])) {
     slots[probe]=key; h->hs_n_elts++; h->hs_modified=1;
@@ -3162,7 +3165,8 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
     size_t need_size=n_vals*3+h->hs_n_elts, n_adds=0;
     if (need_size>h->hs_n_slots) fd_grow_hashset(h,need_size);
     fd_write_lock_table(h); {
-      fdtype *slots=h->hs_slots; int n_slots=h->hs_n_slots;
+      fdtype *slots=h->hs_slots;
+      int n_slots=h->hs_n_slots;
       {FD_DO_CHOICES(key,keys) {
           int probe=hashset_get_slot(key,slots,n_slots);
           if (probe < 0) {
@@ -3172,8 +3176,11 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
             return -1;}
           else if ((FD_NULLP(slots[probe]))||(FD_VOIDP(slots[probe]))) {
             slots[probe]=key; fd_incref(key);
-            h->hs_modified=1; h->hs_n_elts++; n_adds++;
-            if (FD_CONSP(key)) h->hs_allatomic=0;
+            h->hs_modified=1;
+            h->hs_n_elts++;
+            n_adds++;
+            if (FD_CONSP(key))
+              h->hs_allatomic=0;
             if (FD_EXPECT_FALSE(hashset_needs_resizep(h))) {
               grow_hashset(h);
               slots=h->hs_slots;
@@ -3181,7 +3188,8 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
           else {}}}
       fd_unlock_table(h);
       return n_adds;}}
-  else if (FD_EMPTY_CHOICEP(keys)) return 0;
+  else if (FD_EMPTY_CHOICEP(keys))
+    return 0;
   else return fd_hashset_mod(h,keys,1);
 }
 
@@ -3253,8 +3261,10 @@ static fdtype hashset_get(fdtype x,fdtype key)
 static int hashset_store(fdtype x,fdtype key,fdtype val)
 {
   struct FD_HASHSET *h=fd_consptr(struct FD_HASHSET *,x,fd_hashset_type);
-  if (FD_TRUEP(val)) return fd_hashset_mod(h,key,1);
-  else if (FD_FALSEP(val)) return fd_hashset_mod(h,key,0);
+  if (FD_TRUEP(val))
+    return fd_hashset_mod(h,key,1);
+  else if (FD_FALSEP(val))
+    return fd_hashset_mod(h,key,0);
   else {
     fd_seterr(fd_RangeError,_("value is not a boolean"),NULL,val);
     return -1;}

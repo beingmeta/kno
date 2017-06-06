@@ -28,10 +28,12 @@ static struct FD_HASHTABLE method_table; fdtype fd_method_table;
 static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
                         fd_tree_walkfn walk,void *data)
 {
-  if (fd_hashset_get(seen,node)) return 1;
+  if (fd_hashset_get(seen,node))
+    return 1;
   else {
     int retval = 0;
-    fd_hashset_mod(seen,node,1);
+    if (fd_hashset_mod(seen,node,1)<0)
+      return -1;
     if ((walk == NULL) || ((retval = walk(node,data))>0)) {
       FD_DO_CHOICES(slotid,slotids) {
         fdtype values = fd_frame_get(node,slotid);

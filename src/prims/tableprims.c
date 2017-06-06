@@ -237,7 +237,12 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
       int j = 0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
       while (j<howmany) {
         int i = u8_random(n);
-        if (fd_hashset_mod(&h,data[i],1)) j++;}
+        if (fd_hashset_mod(&h,data[i],1)<0) {
+          fd_recycle_hashset(&h);
+          fd_decref(normal);
+          fd_decref(x);
+          return FD_ERROR_VALUE;}
+        else j++;}
       fd_decref(normal);
       return fd_hashset_elts(&h,1);}
     else return FD_EMPTY_CHOICE;}
