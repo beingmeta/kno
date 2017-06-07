@@ -96,7 +96,7 @@ LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
-SRC_HEADERS=src/types/biginternals.h 		\
+SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
@@ -112,21 +112,21 @@ SRC_HEADERS=src/types/biginternals.h 		\
 	src/cmodules/fdsqlite.h			\
 
 DTYPE_OBJS=\
-	src/types/oids.o src/types/fcnids.o 			\
-	src/types/symbols.o src/types/cons.o 			\
-	src/types/recycle.o src/types/copy.o 			\
-	src/types/misctypes.o src/types/numbers.o		\
-	src/types/compare.o src/types/walk.o			\
-	src/types/buildinfo.o					\
-	src/types/tables.o src/types/bloom.o			\
-	src/types/sequences.o src/types/choices.o 		\
-	src/types/parse.o src/types/unparse.o			\
-	src/types/bufio.o src/types/pprint.o			\
-	src/types/dtread.o src/types/dtwrite.o			\
-	src/types/libfdtype.o src/types/support.o		\
-	src/types/config.o src/types/err.o 			\
-	src/types/logging.o src/types/getopt.o 			\
-	src/types/startup.o src/types/fluid.o
+	src/lisp/oids.o src/lisp/fcnids.o 			\
+	src/lisp/symbols.o src/lisp/cons.o 			\
+	src/lisp/recycle.o src/lisp/copy.o 			\
+	src/lisp/misctypes.o src/lisp/numbers.o		\
+	src/lisp/compare.o src/lisp/walk.o			\
+	src/lisp/buildinfo.o					\
+	src/lisp/tables.o src/lisp/bloom.o			\
+	src/lisp/sequences.o src/lisp/choices.o 		\
+	src/lisp/parse.o src/lisp/unparse.o			\
+	src/lisp/bufio.o src/lisp/pprint.o			\
+	src/lisp/dtread.o src/lisp/dtwrite.o			\
+	src/lisp/libfdtype.o src/lisp/support.o		\
+	src/lisp/config.o src/lisp/err.o 			\
+	src/lisp/logging.o src/lisp/getopt.o 			\
+	src/lisp/startup.o src/lisp/fluid.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -334,7 +334,7 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
 CLEANDIRS=include/framerd src/drivers/headers 		\
-	src/types src/apply src/storage src/drivers	\
+	src/lisp src/apply src/storage src/drivers	\
 	src/eval src/prims				\
 	src/text src/web src/scheme			\
 	src/cmodules					\
@@ -347,16 +347,16 @@ FRAMERD_HEADERS= \
 	$(APPLY_HEADERS) $(DRIVERS_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/types/cons.c src/types/oids.c src/types/symbols.c           	\
-	src/types/copy.c src/types/recycle.c src/types/misctypes.c       	\
-        src/types/compare.c src/types/walk.c src/types/fcnids.c		\
-	src/types/choices.c src/types/sequences.c				\
-	src/types/tables.c src/types/bloom.c				\
-        src/types/bufio.c src/types/dtread.c src/types/dtread.c 		\
-	src/types/parse.c src/types/unparse.c src/types/buildinfo.c \
-	src/types/libfdtype.c src/types/support.c src/types/config.c	\
-	src/types/err.c src/types/logging.c src/types/getopt.c		\
-	src/types/startup.c src/types/fluid.c				\
+	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           	\
+	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       	\
+        src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c		\
+	src/lisp/choices.c src/lisp/sequences.c				\
+	src/lisp/tables.c src/lisp/bloom.c				\
+        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
+	src/lisp/parse.c src/lisp/unparse.c src/lisp/buildinfo.c \
+	src/lisp/libfdtype.c src/lisp/support.c src/lisp/config.c	\
+	src/lisp/err.c src/lisp/logging.c src/lisp/getopt.c		\
+	src/lisp/startup.c src/lisp/fluid.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
 	src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
@@ -513,13 +513,13 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
-tests/types/makefile: tests/types/makefile.in ./configure
+tests/lisp/makefile: tests/lisp/makefile.in ./configure
 	./configure
 tests/storage/makefile: tests/storage/makefile.in ./configure
 	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
 	./configure
-tests/types/.gdbinit: tests/types/.gdbinit.in ./configure
+tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./configure
 	./configure
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
@@ -552,7 +552,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
+	tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -707,9 +707,9 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: constestbin dbtestbin schemetestbin etc/usememory
-constestbin: libs tests/types/makefile tests/types/.gdbinit
+constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/types
+		-C tests/lisp
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
@@ -758,9 +758,9 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/types/*.c tests/storage/*.c tests/scheme/*.c 	\
+		tests/lisp/*.c tests/storage/*.c tests/scheme/*.c 	\
 		src/exe/*.c src/exe/*.h include/framerd/*.h 		\
-		src/types/*.c src/apply/*.c 				\
+		src/lisp/*.c src/apply/*.c 				\
 		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
@@ -772,31 +772,31 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
-	@etags -o TAGS -a src/types/*.c src/apply/*.c src/storage/*.c
+	@etags -o TAGS -a src/lisp/*.c src/apply/*.c src/storage/*.c
 	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
+	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
 	@etags -o TAGS -a src/cmodules/*.c;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
-	tests/types/*.c tests/storage/*.c tests/scheme/*.c	\
-	src/types/*.c src/apply/*.c src/storage/*.c 		\
+	tests/lisp/*.c tests/storage/*.c tests/scheme/*.c	\
+	src/lisp/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
 	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
 	@etags -o CTAGS 
 	      makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/types/*.c tests/apply/*.c tests/storage/*.c 	\
+	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 	\
 	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
-	      src/types/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
+	      src/lisp/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
 	      src/web/*.c src/text/*.c 					\
 	      src/cmodules/*.c src/cmodules/*.h				\
 	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
 
-CSOURCETAGS: src/types/*.c src/apply/*.c src/storage/*.c	\
+CSOURCETAGS: src/lisp/*.c src/apply/*.c src/storage/*.c	\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	src/drivers/*.c src/drivers/headers/*.h 		\
 	src/exe/*.c src/exe/*.h
@@ -838,14 +838,14 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
-	cd tests/types; make -s clean
+	cd tests/lisp; make -s clean
 	cd tests/storage; make -s clean
 	cd tests/scheme; make -s clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/types/makefile tests/storage/makefile tests/scheme/makefile
-	rm -f tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/lisp/makefile tests/storage/makefile tests/scheme/makefile
+	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -866,10 +866,10 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 
 # Custom rules
 
-src/types/dtread.o src/types/dtwrite.o src/types/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/types/choices.o : XCFLAGS="${OPTFLAGS}"
-src/types/tables.o src/types/bloom.o src/types/sequences.o : XCFLAGS="${OPTFLAGS}"
-src/types/numbers.o src/types/compare.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/choices.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/tables.o src/lisp/bloom.o src/lisp/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${OPTFLAGS}"
 src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
 src/storage/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
