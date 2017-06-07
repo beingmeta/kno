@@ -321,7 +321,7 @@ STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
 	etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog  \
-	etc/fdrestart etc/fdctl \
+	etc/fdrestart etc/fdctl etc/fdgdb \
 	etc/fdcleanup
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-oidpool \
