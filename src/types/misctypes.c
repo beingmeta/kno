@@ -71,7 +71,7 @@ static fdtype uuid_dump(fdtype x,fd_compound_typeinfo MU e)
 
 static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
 {
-  if (FD_PACKETP(x)) {
+  if (PACKETP(x)) {
     struct FD_STRING *p = fd_consptr(struct FD_STRING *,x,fd_packet_type);
     if (p->fd_bytelen==16) {
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
@@ -145,11 +145,11 @@ static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   u8_string timestring;
   memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
-  if ((n==2) && (FD_STRINGP(args[1])))
-    timestring = FD_STRDATA(args[1]);
-  else if ((n==3) && (FD_STRINGP(args[2])))
-    timestring = FD_STRDATA(args[2]);
-  else return fd_err(fd_CantParseRecord,"TIMESTAMP",NULL,FD_VOID);
+  if ((n==2) && (STRINGP(args[1])))
+    timestring = CSTRING(args[1]);
+  else if ((n==3) && (STRINGP(args[2])))
+    timestring = CSTRING(args[2]);
+  else return fd_err(fd_CantParseRecord,"TIMESTAMP",NULL,VOID);
   u8_iso8601_to_xtime(timestring,&(tm->ts_u8xtime));
   return FDTYPE_CONS(tm);
 }
@@ -189,11 +189,11 @@ static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
 
 static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
 {
-  if (FD_FIXNUMP(x)) {
+  if (FIXNUMP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->ts_u8xtime),FD_FIX2INT(x),u8_second,0,0,0);
+    u8_init_xtime(&(tm->ts_u8xtime),FIX2INT(x),u8_second,0,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
@@ -202,12 +202,12 @@ static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_init_xtime(&(tm->ts_u8xtime),tval,u8_second,0,0,0);
     return FDTYPE_CONS(tm);}
-  else if (FD_VECTORP(x)) {
+  else if (VECTORP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
-    int secs = fd_getint(FD_VECTOR_REF(x,0));
-    int nsecs = fd_getint(FD_VECTOR_REF(x,1));
-    int iprec = fd_getint(FD_VECTOR_REF(x,2));
-    int tzoff = fd_getint(FD_VECTOR_REF(x,3));
+    int secs = fd_getint(VEC_REF(x,0));
+    int nsecs = fd_getint(VEC_REF(x,1));
+    int iprec = fd_getint(VEC_REF(x,2));
+    int tzoff = fd_getint(VEC_REF(x,3));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_init_xtime(&(tm->ts_u8xtime),secs,iprec,nsecs,tzoff,0);
@@ -254,10 +254,10 @@ FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
   rawptr->ptrval = ptrval;
   rawptr->recycler = recycler;
   rawptr->raw_typespec = typespec; fd_incref(typespec);
-  if (FD_SYMBOLP(typespec))
-    rawptr->typestring = FD_SYMBOL_NAME(typespec);
-  else if (FD_STRINGP(typespec))
-    rawptr->typestring = FD_STRDATA(typespec);
+  if (SYMBOLP(typespec))
+    rawptr->typestring = SYM_NAME(typespec);
+  else if (STRINGP(typespec))
+    rawptr->typestring = CSTRING(typespec);
   else rawptr->typestring = NULL;
   rawptr->idstring = idstring;
   return (fdtype) rawptr;

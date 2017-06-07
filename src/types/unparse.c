@@ -216,8 +216,8 @@ static int unparse_secret(U8_OUTPUT *out,fdtype x)
 static int unparse_pair(U8_OUTPUT *out,fdtype x)
 {
   fdtype car = FD_CAR(x);
-  if ((FD_SYMBOLP(car)) && (FD_PAIRP(FD_CDR(x))) &&
-      ((FD_CDR(FD_CDR(x))) == FD_EMPTY_LIST)) {
+  if ((SYMBOLP(car)) && (PAIRP(FD_CDR(x))) &&
+      ((FD_CDR(FD_CDR(x))) == NIL)) {
     int false_alarm = 0;
     if (car == quote_symbol) u8_puts(out,"'");
     else if (car == quasiquote_symbol) u8_puts(out,"`");
@@ -243,7 +243,7 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
     if (ellipsis_start>0) {
       u8_puts(out," ");
       output_ellipsis(out,len-ellipsis_start,"elts");}
-    if (FD_EMPTY_LISTP(scan)) return u8_puts(out,")");
+    if (NILP(scan)) return u8_puts(out,")");
     else {
       u8_puts(out," . ");
       fd_unparse(out,scan);
@@ -314,14 +314,14 @@ int fd_unparse(u8_output out,fdtype x)
       sprintf(buf,"@%x/%x",hi,lo);
       return u8_puts(out,buf);}
   case fd_fixnum_ptr_type: { /* output fixnum */
-    long long val = FD_FIX2INT(x);
+    long long val = FIX2INT(x);
     char buf[128]; sprintf(buf,"%lld",val);
     return u8_puts(out,buf);}
   case fd_immediate_type: { /* output constant */
     fd_ptr_type itype = FD_IMMEDIATE_TYPE(x);
     int data = FD_GET_IMMEDIATE(x,itype);
     if (itype == fd_symbol_type)
-      return emit_symbol_name(out,FD_SYMBOL_NAME(x));
+      return emit_symbol_name(out,SYM_NAME(x));
     else if (itype == fd_character_type) { /* Output unicode character */
       int c = data; char buf[32];
       if ((c<0x80) && (isalnum(c))) /*  || (u8_isalnum(c)) */
@@ -429,7 +429,7 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
     u8_printf(out,"#%%(%q",xc->compound_typetag);
     while (i<n) {
       fdtype elt = data[i++];
-      if (0) { /* (FD_PACKETP(elt)) */
+      if (0) { /* (PACKETP(elt)) */
         struct FD_STRING *packet = fd_consptr(fd_string,elt,fd_packet_type);
         const unsigned char *bytes = packet->fd_bytes; 
         int n_bytes = packet->fd_bytelen;
@@ -452,15 +452,15 @@ FD_EXPORT
 u8_string fd_unparse_arg(fdtype arg)
 {
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
-  if (FD_STRINGP(arg)) {
-    u8_string string = FD_STRDATA(arg);
+  if (STRINGP(arg)) {
+    u8_string string = CSTRING(arg);
     if ((strchr("@{#(\"",string[0])) || (isdigit(string[0])))
       u8_putc(&out,'\\');
     u8_puts(&out,string);}
-  else if (FD_OIDP(arg)) {
+  else if (OIDP(arg)) {
     FD_OID addr = FD_OID_ADDR(arg);
     u8_printf(&out,"@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
-  else if (FD_NUMBERP(arg)) fd_unparse(&out,arg);
+  else if (NUMBERP(arg)) fd_unparse(&out,arg);
   else {
     u8_putc(&out,':'); fd_unparse(&out,arg);}
   return out.u8_outbuf;

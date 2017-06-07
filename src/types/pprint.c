@@ -35,10 +35,10 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
                          int col,int maxcol);
 
 #define PPRINT_ATOMICP(x)                     \
-  (!((FD_PAIRP(x)) || (FD_VECTORP(x)) ||      \
-     (FD_SCHEMAPP(x)) || (FD_SLOTMAPP(x)) ||  \
-     (FD_CHOICEP(x)) || (FD_PRECHOICEP(x)) || \
-     (FD_QCHOICEP(x)) || (FD_COMPOUNDP(x))))
+  (!((PAIRP(x)) || (VECTORP(x)) ||      \
+     (SCHEMAPP(x)) || (SLOTMAPP(x)) ||  \
+     (CHOICEP(x)) || (PRECHOICEP(x)) || \
+     (QCHOICEP(x)) || (FD_COMPOUNDP(x))))
 
 /* Prototypes */
 
@@ -95,7 +95,7 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
     if (newcol>=0) return newcol;}
   size_t prefix_len= (prefix) ? (strlen(prefix)) : (0);
   if ( ( col > (indent+prefix_len) ) &&
-       ( (FD_SLOTMAPP(x)) || (FD_SCHEMAPP(x)) ) )
+       ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) )
     col=do_indent(out,prefix,indent,-1);
   int startoff = out->u8_write-out->u8_outbuf, n_chars;
   if ((col>(prefix_len+indent))) u8_putc(out,' ');
@@ -124,9 +124,9 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
     col=do_indent(out,prefix,indent,startoff);
   else do_reset(out,startoff);
   /* Handle quote, quasiquote and friends */
-  if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
-      (FD_PAIRP(FD_CDR(x))) &&
-      (FD_EMPTY_LISTP(FD_CDR(FD_CDR(x))))) {
+  if ((PAIRP(x)) && (SYMBOLP(FD_CAR(x))) &&
+      (PAIRP(FD_CDR(x))) &&
+      (NILP(FD_CDR(FD_CDR(x))))) {
     fdtype car = FD_CAR(x);
     if (FD_EQ(car,quote_symbol)) {
       u8_putc(out,'\''); indent++; x = FD_CAR(FD_CDR(x));}
@@ -139,16 +139,16 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
     else if (FD_EQ(car,comment_symbol)) {
       u8_puts(out,"#;"); indent = indent+2; x = FD_CAR(FD_CDR(x));}}
   /* Special compound printers for different types. */
-  if (FD_PAIRP(x)) {
+  if (PAIRP(x)) {
     fdtype car = FD_CAR(x), scan = x;
-    if (FD_SYMBOLP(car)) indent = indent+2;
+    if (SYMBOLP(car)) indent = indent+2;
     u8_putc(out,'('); col++; indent++;
-    while (FD_PAIRP(scan)) {
+    while (PAIRP(scan)) {
       col = fd_pprint_x(out,FD_CAR(scan),prefix,
                         indent,col,maxcol,
                         fn,data);
       scan = FD_CDR(scan);}
-    if (FD_EMPTY_LISTP(scan)) {
+    if (NILP(scan)) {
       u8_putc(out,')');  return col+1;}
     else {
       startoff = out->u8_write-out->u8_outbuf;
@@ -169,8 +169,8 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
         u8_putc(out,')');
         return col+1;}
       else return col+n_chars;}}
-  else if (FD_VECTORP(x)) {
-    int len = FD_VECTOR_LENGTH(x);
+  else if (VECTORP(x)) {
+    int len = VEC_LEN(x);
     if (len==0) {
       u8_puts(out,"#()");
       return col+3;}
@@ -178,19 +178,19 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
       int eltno = 0;
       u8_puts(out,"#("); col=col+2;
       while (eltno<len) {
-        col = fd_pprint_x(out,FD_VECTOR_REF(x,eltno),prefix,
+        col = fd_pprint_x(out,VEC_REF(x,eltno),prefix,
                           indent+2,col,maxcol,fn,data);
         eltno++;}
       u8_putc(out,')');
       return col+1;}}
-  else if (FD_QCHOICEP(x)) {
+  else if (QCHOICEP(x)) {
     struct FD_QCHOICE *qc = FD_XQCHOICE(x);
     int first_value = 1;
-    if (FD_EMPTY_CHOICEP(qc->qchoiceval)) {
+    if (EMPTYP(qc->qchoiceval)) {
       u8_puts(out,"#{}");
       return col+3;}
     else {
-      FD_DO_CHOICES(elt,qc->qchoiceval)
+      DO_CHOICES(elt,qc->qchoiceval)
         if (first_value) {
           u8_puts(out,"#{");
           first_value = 0;
@@ -198,19 +198,19 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
         else col = fd_pprint_x(out,elt,prefix,indent+2,col,maxcol,fn,data);
       u8_putc(out,'}');
       return col+1;}}
-  else if (FD_CHOICEP(x)) {
+  else if (CHOICEP(x)) {
     int first_value = 1;
-    FD_DO_CHOICES(elt,x)
+    DO_CHOICES(elt,x)
       if (first_value) {
         u8_putc(out,'{'); first_value = 0;
         col = fd_pprint_x(out,elt,prefix,indent+1,col+1,maxcol,fn,data);}
       else col = fd_pprint_x(out,elt,prefix,indent+1,col,maxcol,fn,data);
     u8_putc(out,'}');
     return col+1;}
-  else if ( (FD_SLOTMAPP(x)) || (FD_SCHEMAPP(x)) ) {
+  else if ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) {
     fdtype keys=fd_getkeys(x);
-    if (FD_PRECHOICEP(keys)) keys=fd_simplify_choice(keys);
-    if (FD_EMPTY_CHOICEP(keys)) {
+    if (PRECHOICEP(keys)) keys=fd_simplify_choice(keys);
+    if (EMPTYP(keys)) {
       if (col>(prefix_len+indent)) {
         u8_puts(out," #[]");
         return col+4;}
@@ -220,7 +220,7 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
     if (col>(prefix_len+indent))
       col=do_indent(out,prefix,indent,-1);
     u8_puts(out,"#[");
-    if (!(FD_CHOICEP(keys)))
+    if (!(CHOICEP(keys)))
       col=fd_pprint_table(out,x,&keys,1,prefix,
                           indent+2,col+2,maxcol,
                           fn,data);
@@ -250,8 +250,8 @@ int fd_pprint_table(u8_output out,fdtype x,
   int count=0;
   while (scan<limit) {
     fdtype key = *scan++;
-    fdtype val = fd_get(x,key,FD_VOID);
-    if (FD_VOIDP(val)) continue;
+    fdtype val = fd_get(x,key,VOID);
+    if (VOIDP(val)) continue;
     else if (count) {
       int i = indent;
       u8_putc(out,'\n'); col=0;
@@ -265,14 +265,14 @@ int fd_pprint_table(u8_output out,fdtype x,
       count++;
       continue;}
     else count++;
-    if (FD_SYMBOLP(key)) {
-      u8_puts(out,FD_SYMBOL_NAME(key));
-      col=col+strlen(FD_SYMBOL_NAME(key));}
-    else if (FD_STRINGP(key)) {
+    if (SYMBOLP(key)) {
+      u8_puts(out,SYM_NAME(key));
+      col=col+strlen(SYM_NAME(key));}
+    else if (STRINGP(key)) {
       u8_putc(out,'"');
-      u8_puts(out,FD_STRDATA(key));
+      u8_puts(out,CSTRING(key));
       u8_putc(out,'"');
-      col=col+2+strlen(FD_STRDATA(key));}
+      col=col+2+strlen(CSTRING(key));}
     else {
       struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
       U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
@@ -306,16 +306,16 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
                          int col,int maxcol)
 {
   ssize_t len = 0;
-  if (FD_STRINGP(key))
-    len = len+FD_STRLEN(key)+3;
-  else if (FD_SYMBOLP(key)) {
-    u8_string pname = FD_SYMBOL_NAME(key);
+  if (STRINGP(key))
+    len = len+STRLEN(key)+3;
+  else if (SYMBOLP(key)) {
+    u8_string pname = SYM_NAME(key);
     len = len+strlen(pname)+1;}
-  else if (FD_CONSP(key)) return -1;
-  if (FD_STRINGP(val))
-    len = len+FD_STRLEN(val)+2;
-  else if (FD_SYMBOLP(val)) {
-    u8_string pname = FD_SYMBOL_NAME(val);
+  else if (CONSP(key)) return -1;
+  if (STRINGP(val))
+    len = len+STRLEN(val)+2;
+  else if (SYMBOLP(val)) {
+    u8_string pname = SYM_NAME(val);
     len = len+strlen(pname);}
   else {}
   if ((col+len)>maxcol)

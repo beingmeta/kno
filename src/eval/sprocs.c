@@ -53,7 +53,7 @@ static int no_defaults(fdtype *args,int n)
 
 static fdtype get_rest_arg(fdtype *args,int n)
 {
-  fdtype result=FD_EMPTY_LIST; n--;
+  fdtype result=NIL; n--;
   while (n>=0) {
     fdtype arg=args[n--];
     result=fd_init_pair(NULL,fd_incref(arg),result);}
@@ -67,7 +67,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
                   struct FD_SPROC *fn,
                   int n,fdtype *args)
 {
-  fdtype result = FD_VOID;
+  fdtype result = VOID;
   fdtype *proc_vars=fn->sproc_vars;
   fd_lexenv proc_env=fn->sproc_env;
   fd_lexenv call_env=proc_env;
@@ -79,9 +79,9 @@ fdtype call_sproc(struct FD_STACK *_stack,
     _stack->stack_label = fn->fcn_name;}
 
   if (n<fn->fcn_min_arity)
-    return fd_err(fd_TooFewArgs,fn->fcn_name,NULL,FD_VOID);
+    return fd_err(fd_TooFewArgs,fn->fcn_name,NULL,VOID);
   else if ( (arity>=0) && (n>arity) )
-    return fd_err(fd_TooManyArgs,fn->fcn_name,NULL,FD_VOID);
+    return fd_err(fd_TooManyArgs,fn->fcn_name,NULL,VOID);
   else {}
 
   if ( (_stack) && (_stack->stack_label == NULL) ) {
@@ -100,14 +100,14 @@ fdtype call_sproc(struct FD_STACK *_stack,
     fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
     _bindings.schemap_stackvals=1;}
   else {
-    fd_init_elts(vals,n_vars,FD_VOID);
+    fd_init_elts(vals,n_vars,VOID);
     fd_make_schemap(&_bindings,n_vars,0,proc_vars,vals);}
 
   /* Make it static */
   FD_SET_REFCOUNT(bindings,0);
   FD_INIT_STATIC_CONS(&stack_env,fd_lexenv_type);
   stack_env.env_bindings = (fdtype) bindings;
-  stack_env.env_exports  = FD_VOID;
+  stack_env.env_exports  = VOID;
   stack_env.env_parent   = proc_env;
   stack_env.env_copy     = NULL;
 
@@ -115,16 +115,16 @@ fdtype call_sproc(struct FD_STACK *_stack,
 
   if (!(direct_call)) {
     fdtype arglist = fn->sproc_arglist;
-    int i = 0; while (FD_PAIRP(arglist)) {
+    int i = 0; while (PAIRP(arglist)) {
       fdtype arg = (i<n) ? (args[i]) : (FD_DEFAULT_VALUE);
       if (arg != FD_DEFAULT_VALUE)
         vals[i]=fd_incref(args[i]);
       else {
         fdtype argspec = FD_CAR(arglist);
         fdtype default_expr =
-          ( (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec))) ) ?
+          ( (PAIRP(argspec)) && (PAIRP(FD_CDR(argspec))) ) ?
           (FD_CAR(FD_CDR(argspec))) :
-          (FD_VOID);
+          (VOID);
         fdtype default_value = fd_eval(default_expr,proc_env);
         if (FD_THROWP(default_value))
           _return default_value;
@@ -133,7 +133,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
         else vals[i]=default_value;}
       arglist=FD_CDR(arglist);
       i++;}
-    if (FD_SYMBOLP(arglist)) {
+    if (SYMBOLP(arglist)) {
       assert(arity<0);
       fdtype rest_arg=get_rest_arg(args+i,n-i);
       vals[i++]=rest_arg;
@@ -174,11 +174,11 @@ _make_sproc(u8_string name,
   struct FD_SPROC *s = u8_alloc(struct FD_SPROC);
   FD_INIT_FRESH_CONS(s,fd_sproc_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
-  while (FD_PAIRP(scan)) {
+  while (PAIRP(scan)) {
     fdtype argspec = FD_CAR(scan);
     n_vars++; scan = FD_CDR(scan);
-    if (FD_SYMBOLP(argspec)) min_args = n_vars;}
-  if (FD_EMPTY_LISTP(scan)) {
+    if (SYMBOLP(argspec)) min_args = n_vars;}
+  if (NILP(scan)) {
     s->sproc_n_vars = s->fcn_arity = n_vars;}
   else {
     n_vars++; s->sproc_n_vars = n_vars; s->fcn_arity = -1;}
@@ -189,8 +189,8 @@ _make_sproc(u8_string name,
     s->sproc_vars = schema = u8_alloc_n((n_vars+1),fdtype);
   else s->sproc_vars = NULL;
   s->fcn_defaults = NULL; s->fcn_filename = NULL;
-  s->fcn_attribs = FD_VOID;
-  s->fcnid = FD_VOID;
+  s->fcn_attribs = VOID;
+  s->fcnid = VOID;
   if (incref) {
     s->sproc_body = fd_incref(body);
     s->sproc_arglist = fd_incref(arglist);}
@@ -208,10 +208,10 @@ _make_sproc(u8_string name,
   else s->sproc_synchronized = 0;
   { /* Write documentation string */
     u8_string docstring = NULL;
-    if ((FD_PAIRP(body))&&
-        (FD_STRINGP(FD_CAR(body))) &&
-        (FD_PAIRP(FD_CDR(body))))
-      docstring = FD_STRDATA(FD_CAR(body));
+    if ((PAIRP(body))&&
+        (STRINGP(FD_CAR(body))) &&
+        (PAIRP(FD_CDR(body))))
+      docstring = CSTRING(FD_CAR(body));
     if ((docstring) && (*docstring=='<'))
       s->fcn_documentation = u8_strdup(docstring);
     else {
@@ -219,30 +219,30 @@ _make_sproc(u8_string name,
       fdtype scan = arglist;
       u8_puts(&out,"`(");
       if (name) u8_puts(&out,name); else u8_puts(&out,"λ");
-      while (FD_PAIRP(scan)) {
+      while (PAIRP(scan)) {
         fdtype arg = FD_CAR(scan);
-        if (FD_SYMBOLP(arg))
-          u8_printf(&out," %ls",FD_SYMBOL_NAME(arg));
-        else if ((FD_PAIRP(arg))&&(FD_SYMBOLP(FD_CAR(arg))))
-          u8_printf(&out," [%ls]",FD_SYMBOL_NAME(FD_CAR(arg)));
+        if (SYMBOLP(arg))
+          u8_printf(&out," %ls",SYM_NAME(arg));
+        else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
+          u8_printf(&out," [%ls]",SYM_NAME(FD_CAR(arg)));
         else u8_puts(&out," ??");
         scan = FD_CDR(scan);}
-      if (FD_SYMBOLP(scan))
-        u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
+      if (SYMBOLP(scan))
+        u8_printf(&out," [%ls...]",SYM_NAME(scan));
       u8_puts(&out,")`");
       if (docstring) {
         u8_puts(&out,"\n\n");
         u8_puts(&out,docstring);}
       s->fcn_documentation = out.u8_outbuf;}}
-  scan = arglist; i = 0; while (FD_PAIRP(scan)) {
+  scan = arglist; i = 0; while (PAIRP(scan)) {
     fdtype argspec = FD_CAR(scan);
-    if (FD_PAIRP(argspec)) {
+    if (PAIRP(argspec)) {
       schema[i]=FD_CAR(argspec);}
     else {
       schema[i]=argspec;}
     i++; scan = FD_CDR(scan);}
   if (i<s->sproc_n_vars) schema[i]=scan;
-  s->sproc_source = FD_VOID;
+  s->sproc_source = VOID;
   return FDTYPE_CONS(s);
 }
 
@@ -301,28 +301,28 @@ static int unparse_sproc(u8_output out,fdtype x)
   if (sproc->fcn_name)
     u8_printf(out,"#<λ%s%s",codes,sproc->fcn_name);
   else u8_printf(out,"#<λ%s0x%04x",codes,((addr>>2)%0x10000));
-  if (FD_PAIRP(arglist)) {
+  if (PAIRP(arglist)) {
     int first = 1; fdtype scan = sproc->sproc_arglist;
-    fdtype spec = FD_VOID, arg = FD_VOID;
+    fdtype spec = VOID, arg = VOID;
     u8_putc(out,'(');
-    while (FD_PAIRP(scan)) {
+    while (PAIRP(scan)) {
       if (first) first = 0; else u8_putc(out,' ');
       spec = FD_CAR(scan);
-      arg = FD_SYMBOLP(spec)?(spec):(FD_PAIRP(spec))?(FD_CAR(spec)):(FD_VOID);
-      if (FD_SYMBOLP(arg))
-        u8_puts(out,FD_SYMBOL_NAME(arg));
+      arg = SYMBOLP(spec)?(spec):(PAIRP(spec))?(FD_CAR(spec)):(VOID);
+      if (SYMBOLP(arg))
+        u8_puts(out,SYM_NAME(arg));
       else u8_puts(out,"??");
-      if (FD_PAIRP(spec)) u8_putc(out,'?');
+      if (PAIRP(spec)) u8_putc(out,'?');
       scan = FD_CDR(scan);}
-    if (FD_EMPTY_LISTP(scan))
+    if (NILP(scan))
       u8_putc(out,')');
-    else if (FD_SYMBOLP(scan))
-      u8_printf(out,"%s…)",FD_SYMBOL_NAME(scan));
+    else if (SYMBOLP(scan))
+      u8_printf(out,"%s…)",SYM_NAME(scan));
     else u8_printf(out,"…%q…)",scan);}
-  else if (FD_EMPTY_LISTP(arglist))
+  else if (NILP(arglist))
     u8_puts(out,"()");
-  else if (FD_SYMBOLP(arglist))
-    u8_printf(out,"(%s…)",FD_SYMBOL_NAME(arglist));
+  else if (SYMBOLP(arglist))
+    u8_printf(out,"(%s…)",SYM_NAME(arglist));
   else u8_printf(out,"(…%q…)",arglist);
   if (!(sproc->fcn_name))
     u8_printf(out," #!0x%llx",(unsigned long long)sproc);
@@ -367,7 +367,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     if (sproc->fcn_typeinfo)
       fresh->fcn_typeinfo = copy_intvec(sproc->fcn_typeinfo,arity,NULL);
 
-    fresh->fcn_attribs = FD_VOID;
+    fresh->fcn_attribs = VOID;
     fresh->sproc_arglist = fd_copier(sproc->sproc_arglist,flags);
     fresh->sproc_body = fd_copier(sproc->sproc_body,flags);
     fresh->sproc_source = sproc->sproc_source;
@@ -393,8 +393,8 @@ static fdtype lambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
-  fdtype proc = FD_VOID;
-  if (FD_VOIDP(arglist))
+  fdtype proc = VOID;
+  if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"LAMBDA",NULL,expr);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
@@ -408,8 +408,8 @@ static fdtype ambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
-  fdtype proc = FD_VOID;
-  if (FD_VOIDP(arglist))
+  fdtype proc = VOID;
+  if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"AMBDA",NULL,expr);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
@@ -424,13 +424,13 @@ static fdtype nambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   fdtype name_expr = fd_get_arg(expr,1), name;
   fdtype arglist = fd_get_arg(expr,2);
   fdtype body = fd_get_body(expr,3);
-  fdtype proc = FD_VOID;
+  fdtype proc = VOID;
   u8_string namestring = NULL;
-  if ((FD_VOIDP(name_expr))||(FD_VOIDP(arglist)))
+  if ((VOIDP(name_expr))||(VOIDP(arglist)))
     return fd_err(fd_TooFewExpressions,"NAMBDA",NULL,expr);
   else name = fd_eval(name_expr,env);
-  if (FD_SYMBOLP(name)) namestring = FD_SYMBOL_NAME(name);
-  else if (FD_STRINGP(name)) namestring = FD_STRDATA(name);
+  if (SYMBOLP(name)) namestring = SYM_NAME(name);
+  else if (STRINGP(name)) namestring = CSTRING(name);
   else return fd_type_error("procedure name (string or symbol)",
                             "nambda_evalfn",name);
   if (FD_CODEP(body)) {
@@ -445,8 +445,8 @@ static fdtype slambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
-  fdtype proc = FD_VOID;
-  if (FD_VOIDP(arglist))
+  fdtype proc = VOID;
+  if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
     fd_incref(arglist);
@@ -460,8 +460,8 @@ static fdtype sambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype arglist = fd_get_arg(expr,1);
   fdtype body = fd_get_body(expr,2);
-  fdtype proc = FD_VOID;
-  if (FD_VOIDP(arglist))
+  fdtype proc = VOID;
+  if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
     fd_incref(arglist);
@@ -474,10 +474,10 @@ static fdtype sambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype thunk_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype body = fd_get_body(expr,1);
-  fdtype proc = FD_VOID;
+  fdtype proc = VOID;
   if (FD_CODEP(body))
-    return _make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0,0,0);
-  else return make_sproc(NULL,FD_EMPTY_LIST,body,env,0,0);
+    return _make_sproc(NULL,NIL,body,env,0,0,0,0);
+  else return make_sproc(NULL,NIL,body,env,0,0);
   FD_SET_SPROC_SOURCE(proc,expr);
   return proc;
 }
@@ -487,11 +487,11 @@ static fdtype thunk_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE",NULL,expr);
-  else if (FD_SYMBOLP(var)) {
+  else if (SYMBOLP(var)) {
     fdtype val_expr = fd_get_arg(expr,2);
-    if (FD_VOIDP(val_expr))
+    if (VOIDP(val_expr))
       return fd_err(fd_TooFewExpressions,"DEFINE",NULL,expr);
     else {
       fdtype value = fd_eval(val_expr,env);
@@ -504,17 +504,17 @@ static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
             u8_string sourcebase = fd_sourcebase();
             if (sourcebase) s->fcn_filename = u8_strdup(sourcebase);}}
         fd_decref(value);
-        return FD_VOID;}
+        return VOID;}
       else {
         fd_decref(value);
-        return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(var),var);}}}
-  else if (FD_PAIRP(var)) {
+        return fd_err(fd_BindError,"DEFINE",SYM_NAME(var),var);}}}
+  else if (PAIRP(var)) {
     fdtype fn_name = FD_CAR(var), args = FD_CDR(var);
     fdtype body = fd_get_body(expr,2);
-    if (!(FD_SYMBOLP(fn_name)))
+    if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
-      fdtype value = make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
+      fdtype value = make_sproc(SYM_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
         fdtype fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
@@ -526,27 +526,27 @@ static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
           if (fd_record_source) {
             s->sproc_source=expr; fd_incref(expr);}}
         fd_decref(value);
-        return FD_VOID;}
+        return VOID;}
       else {
         fd_decref(value);
-        return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(fn_name),var);}}}
+        return fd_err(fd_BindError,"DEFINE",SYM_NAME(fn_name),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
 static fdtype defslambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-SYNCHRONIZED",NULL,expr);
-  else if (FD_SYMBOLP(var))
+  else if (SYMBOLP(var))
     return fd_err(fd_BadDefineForm,"DEFINE-SYNCHRONIZED",NULL,expr);
-  else if (FD_PAIRP(var)) {
+  else if (PAIRP(var)) {
     fdtype fn_name = FD_CAR(var), args = FD_CDR(var);
-    if (!(FD_SYMBOLP(fn_name)))
+    if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
     else {
       fdtype body = fd_get_body(expr,2);
-      fdtype value = make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
+      fdtype value = make_sproc(SYM_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTED(value))
         return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
@@ -559,28 +559,28 @@ static fdtype defslambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
           if (fd_record_source) {
             s->sproc_source=expr; fd_incref(expr);}}
         fd_decref(value);
-        return FD_VOID;}
+        return VOID;}
       else {
         fd_decref(value);
         return fd_err(fd_BindError,"DEFINE-SYNCHRONIZED",
-                      FD_SYMBOL_NAME(var),var);}}}
+                      SYM_NAME(var),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
 static fdtype defambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-AMB",NULL,expr);
-  else if (FD_SYMBOLP(var))
-    return fd_err(fd_BadDefineForm,"DEFINE-AMB",FD_SYMBOL_NAME(var),expr);
-  else if (FD_PAIRP(var)) {
+  else if (SYMBOLP(var))
+    return fd_err(fd_BadDefineForm,"DEFINE-AMB",SYM_NAME(var),expr);
+  else if (PAIRP(var)) {
     fdtype fn_name = FD_CAR(var), args = FD_CDR(var);
     fdtype body = fd_get_body(expr,2);
-    if (!(FD_SYMBOLP(fn_name)))
+    if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
     else {
-      fdtype value = make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
+      fdtype value = make_sproc(SYM_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
         fdtype opvalue = fd_fcnid_ref(value);
@@ -592,10 +592,10 @@ static fdtype defambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
           if (fd_record_source) {
             s->sproc_source=expr; fd_incref(expr);}}
         fd_decref(value);
-        return FD_VOID;}
+        return VOID;}
       else {
         fd_decref(value);
-        return fd_err(fd_BindError,"DEFINE-AMB",FD_SYMBOL_NAME(fn_name),var);}}}
+        return fd_err(fd_BindError,"DEFINE-AMB",SYM_NAME(fn_name),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,var);
 }
 
@@ -617,21 +617,21 @@ fdtype fd_xapply_sproc
 {
   FD_SETUP_NAMED_STACK(_stack,fd_stackptr,"xapply",fn->fcn_name,(fdtype)fn);
   int n = fn->sproc_n_vars;
-  fdtype arglist = fn->sproc_arglist, result = FD_VOID;
+  fdtype arglist = fn->sproc_arglist, result = VOID;
   fd_lexenv env = fn->sproc_env;
   INIT_STACK_SCHEMA(_stack,call_env,env,n,fn->sproc_vars);
   fdtype *vals=call_env_bindings.schema_values;
-  while (FD_PAIRP(arglist)) {
-    fdtype argspec = FD_CAR(arglist), argname = FD_VOID, argval;
-    if (FD_SYMBOLP(argspec)) argname = argspec;
-    else if (FD_PAIRP(argspec)) argname = FD_CAR(argspec);
-    if (!(FD_SYMBOLP(argname)))
+  while (PAIRP(arglist)) {
+    fdtype argspec = FD_CAR(arglist), argname = VOID, argval;
+    if (SYMBOLP(argspec)) argname = argspec;
+    else if (PAIRP(argspec)) argname = FD_CAR(argspec);
+    if (!(SYMBOLP(argname)))
       _return fd_err(fd_BadArglist,fn->fcn_name,NULL,fn->sproc_arglist);
     argval = getval(data,argname);
     if (FD_ABORTED(argval))
       _return argval;
-    else if (( (FD_VOIDP(argval)) || (argval == FD_DEFAULT_VALUE) ) &&
-             (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec)))) {
+    else if (( (VOIDP(argval)) || (argval == FD_DEFAULT_VALUE) ) &&
+             (PAIRP(argspec)) && (PAIRP(FD_CDR(argspec)))) {
       fdtype default_expr = FD_CADR(argspec);
       fdtype default_value = fd_eval(default_expr,fn->sproc_env);
       fd_schemap_store(&call_env_bindings,argname,default_value);
@@ -655,13 +655,13 @@ fdtype fd_xapply_sproc
 static fdtype tablegetval(void *obj,fdtype var)
 {
   fdtype tbl = (fdtype)obj;
-  return fd_get(tbl,var,FD_VOID);
+  return fd_get(tbl,var,VOID);
 }
 
 static fdtype xapply_prim(fdtype proc,fdtype obj)
 {
   struct FD_SPROC *sproc = fd_consptr(fd_sproc,proc,fd_sproc_type);
-  if (!(FD_TABLEP(obj)))
+  if (!(TABLEP(obj)))
     return fd_type_error("table","xapply_prim",obj);
   return fd_xapply_sproc(sproc,(void *)obj,tablegetval);
 }
@@ -705,30 +705,30 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
     else u8_printf(out,"#<~%d<λ%s0x%04x",
                    FD_GET_IMMEDIATE(x,fd_fcnid_type),
                    codes,((addr>>2)%0x10000));
-    if (FD_PAIRP(arglist)) {
+    if (PAIRP(arglist)) {
       int first = 1; fdtype scan = sproc->sproc_arglist;
-      fdtype spec = FD_VOID, arg = FD_VOID;
+      fdtype spec = VOID, arg = VOID;
       u8_putc(out,'(');
-      while (FD_PAIRP(scan)) {
+      while (PAIRP(scan)) {
         if (first) first = 0; else u8_putc(out,' ');
         spec = FD_CAR(scan);
-        arg = (FD_SYMBOLP(spec)) ? (spec) :
-          (FD_PAIRP(spec)) ? (FD_CAR(spec)) :
-          (FD_VOID);
-        if (FD_SYMBOLP(arg))
-          u8_puts(out,FD_SYMBOL_NAME(arg));
+        arg = (SYMBOLP(spec)) ? (spec) :
+          (PAIRP(spec)) ? (FD_CAR(spec)) :
+          (VOID);
+        if (SYMBOLP(arg))
+          u8_puts(out,SYM_NAME(arg));
         else u8_puts(out,"??");
-        if (FD_PAIRP(spec)) u8_putc(out,'?');
+        if (PAIRP(spec)) u8_putc(out,'?');
         scan = FD_CDR(scan);}
-      if (FD_EMPTY_LISTP(scan))
+      if (NILP(scan))
         u8_putc(out,')');
-      else if (FD_SYMBOLP(scan))
-        u8_printf(out,"%s…)",FD_SYMBOL_NAME(scan));
+      else if (SYMBOLP(scan))
+        u8_printf(out,"%s…)",SYM_NAME(scan));
       else u8_printf(out,"…%q…)",scan);}
-    else if (FD_EMPTY_LISTP(arglist))
+    else if (NILP(arglist))
       u8_puts(out,"()");
-    else if (FD_SYMBOLP(arglist))
-      u8_printf(out,"(%s…)",FD_SYMBOL_NAME(arglist));
+    else if (SYMBOLP(arglist))
+      u8_printf(out,"(%s…)",SYM_NAME(arglist));
     else u8_printf(out,"(…%q…)",arglist);
     if (!(sproc->fcn_name))
       u8_printf(out," #!0x%llx",(unsigned long long)sproc);
@@ -842,7 +842,7 @@ FD_EXPORT void fd_init_sprocs_c()
   fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
-           ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));
+           ("XAPPLY",xapply_prim,2,fd_sproc_type,VOID,-1,VOID));
 }
 
 /* Emacs local variables

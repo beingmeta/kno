@@ -35,7 +35,7 @@ fd_pool fd_make_extpool(u8_string label,
                         fdtype lockfn,fdtype allocfn,
                         fdtype state)
 {
-  if (!(FD_EXPECT_TRUE(FD_APPLICABLEP(fetchfn)))) {
+  if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
               fd_incref(fetchfn));
     return NULL;}
@@ -55,7 +55,7 @@ fd_pool fd_make_extpool(u8_string label,
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
     memset(xp,0,sizeof(struct FD_EXTPOOL));
     fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
-    if (FD_VOIDP(savefn)) xp->pool_flags |= FD_STORAGE_READ_ONLY;
+    if (VOIDP(savefn)) xp->pool_flags |= FD_STORAGE_READ_ONLY;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);
@@ -74,16 +74,16 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+  if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&oid);
   else {
     fdtype args[2]; args[0]=oid; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
-  else if ((FD_EMPTY_CHOICEP(value))||(FD_VOIDP(value)))
+  else if ((EMPTYP(value))||(VOIDP(value)))
     if ((p->pool_flags)&FD_POOL_SPARSE)
-      return FD_EMPTY_CHOICE;
+      return EMPTY;
     else return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->poolid,oid);
   else return value;
 }
@@ -95,7 +95,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
 {
   struct FD_EXTPOOL *xp = (fd_extpool)p;
   struct FD_VECTOR vstruct; fdtype vecarg;
-  fdtype state = xp->state, fetchfn = xp->fetchfn, value = FD_VOID;
+  fdtype state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
@@ -103,14 +103,14 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   vstruct.fdvec_length = n; vstruct.fdvec_elts = oids;
   vstruct.fdvec_free_elts = 0;
   vecarg = FDTYPE_CONS(&vstruct);
-  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+  if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
-  else if (FD_VECTORP(value)) {
+  else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
     fdtype *results = u8_alloc_n(n,fdtype);
     memcpy(results,vstruct->fdvec_elts,sizeof(fdtype)*n);
@@ -122,7 +122,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
     return results;}
   else {
     fdtype *values = u8_alloc_n(n,fdtype);
-    if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+    if ((VOIDP(state))||(FALSEP(state))||
         ((fptr)&&(fptr->fcn_arity==1))) {
       int i = 0; while (i<n) {
         fdtype oid = oids[i];
@@ -153,25 +153,25 @@ static int extpool_lock(fd_pool p,fdtype oids)
     fdtype lockfn = xp->lockfn;
     fd_hashtable locks = &(xp->pool_changes);
     fd_hashtable cache = &(xp->pool_cache);
-    FD_DO_CHOICES(oid,oids) {
-      fdtype cur = fd_hashtable_get(cache,oid,FD_VOID);
+    DO_CHOICES(oid,oids) {
+      fdtype cur = fd_hashtable_get(cache,oid,VOID);
       fdtype args[3]={lock_symbol,oid,
-                      ((cur == FD_LOCKHOLDER)?(FD_VOID):(cur))};
+                      ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
       fdtype value = fd_apply(lockfn,3,args);
       if (FD_ABORTP(value)) {
         fd_decref(cur);
         return -1;}
-      else if (FD_FALSEP(value)) {}
-      else if (FD_VOIDP(value)) {
+      else if (FALSEP(value)) {}
+      else if (VOIDP(value)) {
         fd_hashtable_store(locks,oid,FD_LOCKHOLDER);}
       else fd_hashtable_store(locks,oid,value);
       fd_decref(cur); fd_decref(value);}}
-  else if (FD_FALSEP(xp->lockfn)) {
+  else if (FALSEP(xp->lockfn)) {
     fd_seterr(fd_CantLockOID,"fd_pool_lock",
               u8_strdup(p->poolid),fd_incref(oids));
     return -1;}
   else {
-    FD_DO_CHOICES(oid,oids) {
+    DO_CHOICES(oid,oids) {
       fd_hashtable_store(&(p->pool_changes),oids,FD_LOCKHOLDER);}}
   return 1;
 }
@@ -179,12 +179,12 @@ static int extpool_lock(fd_pool p,fdtype oids)
 static fdtype extpool_alloc(fd_pool p,int n)
 {
   struct FD_EXTPOOL *ep = (struct FD_EXTPOOL *)p;
-  if (FD_VOIDP(ep->allocfn))
+  if (VOIDP(ep->allocfn))
     return fd_err(_("No OID alloc method"),"extpool_alloc",NULL,
                   fd_pool2lisp(p));
   else {
     fdtype args[2]; args[0]=FD_INT(n); args[1]=ep->state;
-    if (FD_FIXNUMP(args[0]))
+    if (FIXNUMP(args[0]))
       return fd_apply(ep->allocfn,2,args);
     else {
       fdtype result = fd_apply(ep->allocfn,2,args);
@@ -199,22 +199,22 @@ static int extpool_unlock(fd_pool p,fdtype oids)
     fdtype lockfn = xp->lockfn; 
     fd_hashtable locks = &(xp->pool_changes);
     fd_hashtable cache = &(xp->pool_cache);
-    FD_DO_CHOICES(oid,oids) {
-      fdtype cur = fd_hashtable_get(locks,oid,FD_VOID);
+    DO_CHOICES(oid,oids) {
+      fdtype cur = fd_hashtable_get(locks,oid,VOID);
       fdtype args[3]={unlock_symbol,oid,
-                      ((cur == FD_LOCKHOLDER)?(FD_VOID):(cur))};
+                      ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
       fdtype value = fd_apply(lockfn,3,args);
-      fd_hashtable_store(locks,oid,FD_VOID);
+      fd_hashtable_store(locks,oid,VOID);
       if (FD_ABORTP(value)) {
         fd_decref(cur);
         return -1;}
-      else if (FD_VOIDP(value)) {}
+      else if (VOIDP(value)) {}
       else {
         fd_hashtable_store(cache,oid,value);}
       fd_decref(cur); fd_decref(value);}}
   else {
-    FD_DO_CHOICES(oid,oids) {
-      fd_hashtable_store(&(p->pool_changes),oids,FD_VOID);}}
+    DO_CHOICES(oid,oids) {
+      fd_hashtable_store(&(p->pool_changes),oids,VOID);}}
   return 1;
 }
 

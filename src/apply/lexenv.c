@@ -102,7 +102,7 @@ static int envcountproc(fdtype v,void *data)
 {
   struct ENVCOUNT_STATE *state = (struct ENVCOUNT_STATE *)data;
   fd_lexenv env = state->env;
-  if (!(FD_CONSP(v))) return 1;
+  if (!(CONSP(v))) return 1;
   else if (FD_STATICP(v)) return 1;
   else if (FD_LEXENVP(v)) {
     fd_lexenv scan = (fd_lexenv)v;
@@ -163,12 +163,12 @@ static int unparse_lexenv(u8_output out,fdtype x)
 {
   struct FD_LEXENV *env=
     fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
-  if (FD_HASHTABLEP(env->env_bindings)) {
-    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
-    fdtype mid = FD_VOID;
-    FD_DO_CHOICES(id,ids) {
-      if (FD_SYMBOLP(id)) mid = id;}
-    if (FD_SYMBOLP(mid))
+  if (HASHTABLEP(env->env_bindings)) {
+    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
+    fdtype mid = VOID;
+    DO_CHOICES(id,ids) {
+      if (SYMBOLP(id)) mid = id;}
+    if (SYMBOLP(mid))
       u8_printf(out,"#<MODULE %q #!%x>",mid,(unsigned long)env);
     else u8_printf(out,"#<ENVIRONMENT #!%x>",(unsigned long)env);}
   else u8_printf(out,"#<ENVIRONMENT #!%x>",(unsigned long)env);
@@ -180,13 +180,13 @@ static int dtype_lexenv(struct FD_OUTBUF *out,fdtype x)
   struct FD_LEXENV *env=
     fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
   u8_string modname=NULL,  modfile=NULL;
-  if (FD_HASHTABLEP(env->env_bindings)) {
-    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
-    FD_DO_CHOICES(id,ids) {
-      if (FD_SYMBOLP(id))
-	modname=FD_SYMBOL_NAME(id);
-      else if (FD_STRINGP(id))
-	modfile=FD_STRDATA(id);
+  if (HASHTABLEP(env->env_bindings)) {
+    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
+    DO_CHOICES(id,ids) {
+      if (SYMBOLP(id))
+	modname=SYM_NAME(id);
+      else if (STRINGP(id))
+	modfile=CSTRING(id);
       else {}}}
   u8_byte buf[200]; struct FD_OUTBUF tmp;
   FD_INIT_OUTBUF(&tmp,buf,200,0);

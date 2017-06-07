@@ -27,7 +27,7 @@
 
 FD_FASTOP unsigned int hash_string_dtype1 (fdtype x)
 {
-  const char *ptr = FD_STRDATA(x), *limit = ptr+FD_STRLEN(x);
+  const char *ptr = CSTRING(x), *limit = ptr+STRLEN(x);
   unsigned int sum = 0;
   while (ptr < limit) {
     sum = (sum<<8)+(*ptr++);
@@ -37,7 +37,7 @@ FD_FASTOP unsigned int hash_string_dtype1 (fdtype x)
 
 static unsigned int hash_unicode_string_dtype1 (fdtype x)
 {
-  const unsigned char *ptr = FD_STRDATA(x), *limit = ptr+FD_STRLEN(x);
+  const unsigned char *ptr = CSTRING(x), *limit = ptr+STRLEN(x);
   unsigned int sum = 0;
   while (ptr < limit) {
     int c = u8_sgetc(&ptr);
@@ -64,7 +64,7 @@ static unsigned int hash_packet(fdtype x)
 */
 FD_FASTOP unsigned int hash_symbol_dtype1(fdtype x)
 {
-  const unsigned char *s = FD_SYMBOL_NAME (x);
+  const unsigned char *s = SYM_NAME (x);
   unsigned int sum = 0;
   while (*s != '\0') {
     int c;
@@ -99,27 +99,27 @@ static unsigned int hash_pair_dtype1(fdtype string);
 FD_FASTOP unsigned int hash_dtype1(fdtype x)
 {
   if (FD_IMMEDIATEP(x))
-    if ((FD_EMPTY_LISTP(x)) || (FD_FALSEP(x))) return 37;
+    if ((NILP(x)) || (FALSEP(x))) return 37;
     else if (FD_TRUEP(x)) return 17;
-    else if (FD_EMPTY_CHOICEP(x)) return 13;
-    else if (FD_SYMBOLP(x))
+    else if (EMPTYP(x)) return 13;
+    else if (SYMBOLP(x))
       return hash_symbol_dtype1(x);
     else return 19;
-  else if (FD_FIXNUMP(x))
-    return (FD_FIX2INT(x))%(MAGIC_MODULUS);
-  else if (FD_STRINGP(x)) {
-    const u8_byte *scan = FD_STRDATA(x), *lim = scan+FD_STRLEN(x);
+  else if (FIXNUMP(x))
+    return (FIX2INT(x))%(MAGIC_MODULUS);
+  else if (STRINGP(x)) {
+    const u8_byte *scan = CSTRING(x), *lim = scan+STRLEN(x);
     while (scan<lim)
       if (*scan>=0x80) return hash_unicode_string_dtype1(x);
       else scan++;
     return hash_string_dtype1(x);}
-  else if (FD_PACKETP(x))
+  else if (PACKETP(x))
     return hash_packet(x);
-  else if (FD_PAIRP(x))
+  else if (PAIRP(x))
     return hash_pair_dtype1(x);
-  else if (FD_SYMBOLP(x))
+  else if (SYMBOLP(x))
     return hash_symbol_dtype1(x);
-  else if (FD_OIDP(x)) {
+  else if (OIDP(x)) {
     FD_OID id = FD_OID_ADDR(x);
 #if FD_STRUCT_OIDS
     unsigned int hi = FD_OID_HI(id), lo = FD_OID_LO(id);
@@ -130,12 +130,12 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     return id%(MAGIC_MODULUS);
 #endif
       }
-  else if (FD_CHOICEP(x)) {
+  else if (CHOICEP(x)) {
     unsigned int sum = 0;
-    FD_DO_CHOICES(elt,x)
+    DO_CHOICES(elt,x)
       sum = ((sum+hash_dtype1(elt))%MAGIC_MODULUS);
     return sum;}
-  else if (FD_QCHOICEP(x)) {
+  else if (QCHOICEP(x)) {
     struct FD_QCHOICE *qc = FD_XQCHOICE(x);
     return hash_dtype1(qc->qchoiceval);}
   else if (FD_CHARACTERP(x)) return (FD_CHARCODE(x))%(MAGIC_MODULUS);
@@ -144,13 +144,13 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     float *f = (float *)(&as_int);
     *f = FD_FLONUM(x);
     return (as_int)%(MAGIC_MODULUS);}
-  else if (FD_VECTORP(x)) {
-    int size = FD_VECTOR_LENGTH(x); unsigned int i = 0, sum = 0;
+  else if (VECTORP(x)) {
+    int size = VEC_LEN(x); unsigned int i = 0, sum = 0;
     while (i < size) {
-      sum = (((sum<<4)+(hash_dtype1(FD_VECTOR_REF(x,i))))%MAGIC_MODULUS);
+      sum = (((sum<<4)+(hash_dtype1(VEC_REF(x,i))))%MAGIC_MODULUS);
       i++;}
     return sum;}
-  else if (FD_SLOTMAPP(x)) {
+  else if (SLOTMAPP(x)) {
     unsigned int sum = 0;
     struct FD_SLOTMAP *sm = FD_XSLOTMAP(x);
     const struct FD_KEYVAL *scan = sm->sm_keyvals;
@@ -185,10 +185,10 @@ static unsigned int hash_pair_dtype1(fdtype x)
 {
   fdtype ptr = x; unsigned int sum = 0;
   /* The shift here is introduced to make the hash function asymmetric */
-  while (FD_PAIRP(ptr)) {
+  while (PAIRP(ptr)) {
     sum = ((sum*2)+hash_dtype1(FD_CAR(ptr)))%(MAGIC_MODULUS);
     ptr = FD_CDR(ptr);}
-  if (!(FD_EMPTY_LISTP(ptr))) {
+  if (!(NILP(ptr))) {
     unsigned int cdr_hash = hash_dtype1(ptr);
     sum = (sum+(fd_flip_word(cdr_hash)>>8))%(MAGIC_MODULUS);}
   return sum;
@@ -255,28 +255,28 @@ FD_FASTOP unsigned int mult_hash_bytes(const unsigned char *start,int len)
 */
 FD_FASTOP unsigned int hash_string_dtype2(fdtype x)
 {
-  int len = FD_STRLEN(x);
+  int len = STRLEN(x);
   if (len == 0) return MAGIC_MODULUS+2;
   else if (len == 1)
-    if (*(FD_STRDATA(x))) return (*(FD_STRDATA(x)));
+    if (*(CSTRING(x))) return (*(CSTRING(x)));
     else return MAGIC_MODULUS-2;
-  else return mult_hash_bytes(FD_STRDATA(x),len);
+  else return mult_hash_bytes(CSTRING(x),len);
 }
 
 FD_FASTOP unsigned int hash_dtype2(fdtype x)
 {
   if (FD_IMMEDIATEP(x)) {
-    if ((FD_EMPTY_LISTP(x)) || (FD_FALSEP(x))) return 37;
+    if ((NILP(x)) || (FALSEP(x))) return 37;
     else if (FD_TRUEP(x)) return 17;
-    else if (FD_EMPTY_CHOICEP(x)) return 13;
-    else if (FD_SYMBOLP(x))
+    else if (EMPTYP(x)) return 13;
+    else if (SYMBOLP(x))
       return hash_symbol_dtype2(x);
     else if (FD_CHARACTERP(x))
       return (FD_CHARCODE(x))%(MAGIC_MODULUS);
     else return 19;}
-  else if (FD_FIXNUMP(x))
-    return (FD_FIX2INT(x))%(MAGIC_MODULUS);
-  else if (FD_OIDP(x)) {
+  else if (FIXNUMP(x))
+    return (FIX2INT(x))%(MAGIC_MODULUS);
+  else if (OIDP(x)) {
     FD_OID id = FD_OID_ADDR(x);
 #if FD_STRUCT_OIDS
     unsigned int hi = FD_OID_HI(id), lo = FD_OID_LO(id);
@@ -287,7 +287,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
     return id%(MAGIC_MODULUS);
 #endif
   }
-  else { /*  if (FD_CONSP(x)) */
+  else { /*  if (CONSP(x)) */
     int ctype = FD_PTR_TYPE(x);
     switch (ctype) {
     case fd_string_type:
@@ -301,13 +301,13 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
       return hash_dtype2(qc->qchoiceval);}
     case fd_choice_type: {
       unsigned int sum = 0;
-      FD_DO_CHOICES(elt,x)
+      DO_CHOICES(elt,x)
         sum = (sum+(hash_dtype2(elt))%MAGIC_MODULUS);
       return sum;}
     case fd_vector_type: {
-      int i = 0, size = FD_VECTOR_LENGTH(x); unsigned int prod = 1;
+      int i = 0, size = VEC_LEN(x); unsigned int prod = 1;
       while (i < size) {
-        prod = hash_combine(prod,hash_dtype2(FD_VECTOR_REF(x,i))); i++;}
+        prod = hash_combine(prod,hash_dtype2(VEC_REF(x,i))); i++;}
       return prod;}
     case fd_slotmap_type: {
       unsigned int sum = 0;
@@ -340,7 +340,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
 */
 FD_FASTOP unsigned int hash_symbol_dtype2(fdtype x)
 {
-  const unsigned char *s = FD_SYMBOL_NAME (x);
+  const unsigned char *s = SYM_NAME (x);
   unsigned int sum = 0;
   while (*s != '\0') {
     int c;
@@ -374,10 +374,10 @@ unsigned int fd_hash_dtype2(fdtype x)
 static unsigned int hash_pair_dtype2(fdtype x)
 {
   fdtype ptr = x; unsigned int prod = 1;
-  while (FD_PAIRP(ptr)) {
+  while (PAIRP(ptr)) {
     prod = hash_combine(prod,hash_dtype2(FD_CAR(ptr)));
     ptr = FD_CDR(ptr);}
-  if (!(FD_EMPTY_LISTP(ptr))) {
+  if (!(NILP(ptr))) {
     unsigned int cdr_hash = hash_dtype2(ptr);
     prod = hash_combine(prod,cdr_hash);}
   return prod;
@@ -394,10 +394,10 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x);
 static unsigned int hash_pair_dtype3(fdtype x)
 {
   fdtype ptr = x; unsigned int prod = 1;
-  while (FD_PAIRP(ptr)) {
+  while (PAIRP(ptr)) {
     prod = hash_combine(prod,hash_dtype3(FD_CAR(ptr)));
     ptr = FD_CDR(ptr);}
-  if (!(FD_EMPTY_LISTP(ptr))) {
+  if (!(NILP(ptr))) {
     unsigned int cdr_hash = hash_dtype3(ptr);
     prod = hash_combine(prod,cdr_hash);}
   return prod;
@@ -406,17 +406,17 @@ static unsigned int hash_pair_dtype3(fdtype x)
 FD_FASTOP unsigned int hash_dtype3(fdtype x)
 {
   if (FD_IMMEDIATEP(x)) {
-    if ((FD_EMPTY_LISTP(x)) || (FD_FALSEP(x))) return 37;
+    if ((NILP(x)) || (FALSEP(x))) return 37;
     else if (FD_TRUEP(x)) return 17;
-    else if (FD_EMPTY_CHOICEP(x)) return 13;
-    else if (FD_SYMBOLP(x))
+    else if (EMPTYP(x)) return 13;
+    else if (SYMBOLP(x))
       return hash_symbol_dtype2(x);
     else if (FD_CHARACTERP(x))
       return (FD_CHARCODE(x))%(MAGIC_MODULUS);
     else return 19;}
-  else if (FD_FIXNUMP(x))
-    return (FD_FIX2INT(x))%(MAGIC_MODULUS);
-  else if (FD_OIDP(x)) {
+  else if (FIXNUMP(x))
+    return (FIX2INT(x))%(MAGIC_MODULUS);
+  else if (OIDP(x)) {
     FD_OID id = FD_OID_ADDR(x);
 #if FD_STRUCT_OIDS
     unsigned int hi = FD_OID_HI(id), lo = FD_OID_LO(id);
@@ -427,7 +427,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
     return id%(MYSTERIOUS_MODULUS);
 #endif
   }
-  else { /*  if (FD_CONSP(x)) */
+  else { /*  if (CONSP(x)) */
     int ctype = FD_PTR_TYPE(x);
     switch (ctype) {
     case fd_string_type:
@@ -441,13 +441,13 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
       return hash_dtype3(qc->qchoiceval);}
     case fd_choice_type: {
       unsigned int sum = 0;
-      FD_DO_CHOICES(elt,x)
+      DO_CHOICES(elt,x)
         sum = (sum+(hash_dtype3(elt))%MIDDLIN_MODULUS);
       return sum;}
     case fd_vector_type: {
-      int i = 0, size = FD_VECTOR_LENGTH(x); unsigned int prod = 1;
+      int i = 0, size = VEC_LEN(x); unsigned int prod = 1;
       while (i < size) {
-        prod = hash_combine(prod,hash_dtype3(FD_VECTOR_REF(x,i))); i++;}
+        prod = hash_combine(prod,hash_dtype3(VEC_REF(x,i))); i++;}
       return prod;}
     case fd_slotmap_type: {
       unsigned int sum = 0;

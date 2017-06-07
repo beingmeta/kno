@@ -858,6 +858,52 @@ FD_EXPORT int fd_walk(fd_walker walker,fdtype obj,void *walkdata,
 
 FD_EXPORT void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags);
 
+/* FRAMERD_SOURCE aliases */
+
+#if FRAMERD_SOURCE
+#define VOID       (FD_VOID)
+#define VOIDP(x)   (FD_VOIDP(x))
+#define FD_EMPTY   (FD_EMPTY_CHOICE)
+#define EMPTY      (FD_EMPTY_CHOICE)
+#define FD_EMPTYP(x) (FD_EMPTY_CHOICEP(x))
+#define EMPTYP(x)  (FD_EMPTY_CHOICEP(x))
+#define NIL        (FD_EMPTY_LIST)
+#define NILP(x)    (FD_EMPTY_LISTP(x))
+#define CONSP(x)   (FD_CONSP(x))
+#define ATOMICP(x) (FD_ATOMICP(x))
+#define FD_DEFAULT (FD_DEFAULT_VALUE)
+#define FD_ERROR   (FD_ERROR_VALUE)
+#define CHOICEP(x) (FD_CHOICEP(x))
+#define FIXNUMP(x) (FD_FIXNUMP(x))
+#define NUMBERP(x) (FD_NUMBERP(x))
+#define TABLEP(x)  (FD_TABLEP(x))
+#define PAIRP(x)   (FD_PAIRP(x))
+#define VECTORP(x) (FD_VECTORP(x))
+#define SYMBOLP(x) (FD_SYMBOLP(x))
+#define STRINGP(x) (FD_STRINGP(x))
+#define PACKETP(x) (FD_PACKETP(x))
+#define FALSEP(x)  (FD_FALSEP(x))
+#define OIDP(x)    (FD_OIDP(x))
+#define FIX2INT(x) (FD_FIX2INT(x))
+#define DO_CHOICES FD_DO_CHOICES
+#define DOLIST     FD_DOLIST
+#define CHOICE_ADD FD_ADD_TO_CHOICE
+#define EQ         FD_EQ
+#define STRLEN(x)  (FD_STRLEN(x))
+#define CSTRING(x) (FD_STRDATA(x))
+#define VEC_LEN(x)  (FD_VECTOR_LENGTH(x))
+#define VEC_DATA(x)  (FD_VECTOR_DATA(x))
+#define VEC_REF(x,i) (FD_VECTOR_REF((x),(i)))
+#define SYM_NAME(x) (FD_SYMBOL_NAME(x))
+#define PRECHOICEP(x) (FD_PRECHOICEP(x))
+#define QCHOICEP(x) (FD_QCHOICEP(x))
+#define SLOTMAPP(x) (FD_SLOTMAPP(x))
+#define SCHEMAPP(x) (FD_SCHEMAPP(x))
+#define HASHTABLEP(x) (FD_HASHTABLEP(x))
+#define PRED_FALSE(x)  (FD_EXPECT_FALSE(x))
+#define PRED_TRUE(x)  (FD_EXPECT_TRUE(x))
+#endif
+
 /* Debugging support */
 
 FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x);

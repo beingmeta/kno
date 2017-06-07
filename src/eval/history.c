@@ -38,17 +38,17 @@ static fdtype history_symbol;
 int unpack_history(fdtype history,int *top,int *len,fdtype **data,
                    fd_hashtable *table)
 {
-  if ((!(FD_VECTORP(history))) ||
-      (!(FD_VECTOR_LENGTH(history)==3)) ||
-      (!(FD_FIXNUMP(FD_VECTOR_REF(history,0)))) ||
-      (!(FD_VECTORP(FD_VECTOR_REF(history,1)))) ||
-      (!(FD_HASHTABLEP(FD_VECTOR_REF(history,2)))))
+  if ((!(VECTORP(history))) ||
+      (!(VEC_LEN(history)==3)) ||
+      (!(FIXNUMP(VEC_REF(history,0)))) ||
+      (!(VECTORP(VEC_REF(history,1)))) ||
+      (!(HASHTABLEP(VEC_REF(history,2)))))
     return -1;
   else {
-    *top = FD_FIX2INT(FD_VECTOR_REF(history,0));
-    *len = FD_VECTOR_LENGTH(FD_VECTOR_REF(history,1));
-    *data = FD_VECTOR_DATA(FD_VECTOR_REF(history,1));
-    *table = (fd_hashtable)FD_VECTOR_REF(history,2);
+    *top = FIX2INT(VEC_REF(history,0));
+    *len = VEC_LEN(VEC_REF(history,1));
+    *data = VEC_DATA(VEC_REF(history,1));
+    *table = (fd_hashtable)VEC_REF(history,2);
     return *top;}
 }
 
@@ -62,7 +62,7 @@ FD_EXPORT fdtype fd_history_ref(fdtype history,int ref)
     return fd_err(fd_RangeError,"fd_history_ref",
                   _("invalid history reference"),FD_INT(ref));
   else if (ref<(top-len))
-    return fd_hashtable_get(h,FD_INT(ref),FD_VOID);
+    return fd_hashtable_get(h,FD_INT(ref),VOID);
   else return fd_incref(data[ref%len]);
 }
 
@@ -75,11 +75,11 @@ FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
     return fd_reterr(fd_RangeError,"fd_history_set",
                      _("invalid history reference"),history);
   else if (ref<(top-len))
-    return fd_hashtable_op(h,fd_table_replace,FD_INT(ref),FD_VOID);
+    return fd_hashtable_op(h,fd_table_replace,FD_INT(ref),VOID);
   else {
-    int retval = fd_hashtable_op(h,fd_table_replace,FD_INT(ref),FD_VOID);
+    int retval = fd_hashtable_op(h,fd_table_replace,FD_INT(ref),VOID);
     fd_decref(data[ref%len]);
-    data[ref%len]=FD_VOID;
+    data[ref%len]=VOID;
     return retval;}
 }
 
@@ -107,8 +107,8 @@ FD_EXPORT int fd_history_find(fdtype history,fdtype value,int equal)
     if (i<len) return i;
     else {
       fdtype keys = fd_getkeys((fdtype)h);
-      FD_DO_CHOICES(key,keys) {
-        fdtype v = fd_hashtable_get(h,key,FD_VOID);
+      DO_CHOICES(key,keys) {
+        fdtype v = fd_hashtable_get(h,key,VOID);
         if ((FD_EQ(v,value)) || ((equal) && (FDTYPE_EQUAL(v,value)))) {
           fd_decref(keys);
           return key;}}
@@ -135,7 +135,7 @@ FD_EXPORT int fd_history_push(fdtype history,fdtype value)
 FD_EXPORT int fd_histpush(fdtype value)
 {
   fdtype history = fd_thread_get(history_symbol);
-  if (FD_VOIDP(history)) return -1;
+  if (VOIDP(history)) return -1;
   else {
     int retval = fd_history_push(history,value);
     fd_decref(history);
@@ -145,9 +145,9 @@ FD_EXPORT int fd_histpush(fdtype value)
 FD_EXPORT int fd_hist_top()
 {
   fdtype history = fd_thread_get(history_symbol);
-  if (FD_VOIDP(history)) return -1;
+  if (VOIDP(history)) return -1;
   else {
-    int pos = FD_FIX2INT(FD_VECTOR_REF(history,0));
+    int pos = FIX2INT(VEC_REF(history,0));
     fd_decref(history);
     return pos;}
 }
@@ -155,7 +155,7 @@ FD_EXPORT int fd_hist_top()
 FD_EXPORT fdtype fd_histref(int ref)
 {
   fdtype history = fd_thread_get(history_symbol);
-  if (FD_VOIDP(history)) return FD_VOID;
+  if (VOIDP(history)) return VOID;
   else {
     fdtype result = fd_history_ref(history,ref);
     fd_decref(history);
@@ -165,7 +165,7 @@ FD_EXPORT fdtype fd_histref(int ref)
 FD_EXPORT int fd_histfind(fdtype value)
 {
   fdtype history = fd_thread_get(history_symbol);
-  if (FD_VOIDP(history)) return FD_VOID;
+  if (VOIDP(history)) return VOID;
   else {
     int pos = fd_history_find(history,value,0);
     if (pos<0) pos = fd_history_find(history,value,1);
@@ -176,7 +176,7 @@ FD_EXPORT int fd_histfind(fdtype value)
 static int histkeep(int ref,fdtype value)
 {
   fdtype history = fd_thread_get(history_symbol);
-  if (FD_VOIDP(history)) return 0;
+  if (VOIDP(history)) return 0;
   else if (fd_history_keep(history,ref,value)<0) {
     fd_decref(history);
     return -1;}
@@ -190,32 +190,32 @@ FD_EXPORT void fd_histinit(int size)
   if (size<=0) {
     fdtype configval = fd_config_get("HISTORYSIZE");
     if (FD_UINTP(configval))
-      size = FD_FIX2INT(configval);
+      size = FIX2INT(configval);
     else {
       fd_decref(configval);
       size = 128;}}
-  if (FD_VOIDP(history)) {
+  if (VOIDP(history)) {
     history = fd_make_nvector(3,FD_INT(0),
                             fd_init_vector(NULL,size,NULL),
                             fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}
   else {
     fdtype newvec = fd_init_vector(NULL,size,NULL);
-    fdtype oldvec = FD_VECTOR_REF(history,1);
-    fdtype topval = FD_VECTOR_REF(history,0);
+    fdtype oldvec = VEC_REF(history,1);
+    fdtype topval = VEC_REF(history,0);
     if (!(FD_UINTP(topval))) {
       u8_log(LOGWARN,"Bad history data",
              "Negative topval in %q",history);
       fd_decref(newvec);
       return;}
-    int i = 0, n = FD_VECTOR_LENGTH(oldvec), top = FD_FIX2INT(topval);
+    int i = 0, n = VEC_LEN(oldvec), top = FIX2INT(topval);
     int top_at = top%n;
     if (top<n) n = top;
     while (i<n) {
       int item_no = top-((i<top_at) ? (i) : (top_at+(n-i)));
       int new_loc = item_no%size;
-      FD_VECTOR_SET(newvec,new_loc,FD_VECTOR_REF(oldvec,i));
-      FD_VECTOR_SET(oldvec,i,FD_VOID);
+      FD_VECTOR_SET(newvec,new_loc,VEC_REF(oldvec,i));
+      FD_VECTOR_SET(oldvec,i,VOID);
       i++;}
     FD_VECTOR_SET(history,1,newvec);
     fd_decref(oldvec);}
@@ -224,7 +224,7 @@ FD_EXPORT void fd_histinit(int size)
 
 FD_EXPORT void fd_histclear(int size)
 {
-  fd_thread_set(history_symbol,FD_VOID);
+  fd_thread_set(history_symbol,VOID);
   fd_histinit(size);
 }
 
@@ -234,12 +234,12 @@ static fdtype histref_prim(fdtype arg)
     return fd_err(fd_SyntaxError,"histref_prim",
                   _("Invalid history references"),arg);
   else {
-    fdtype val = fd_histref(FD_FIX2INT(arg));
+    fdtype val = fd_histref(FIX2INT(arg));
     if (FD_ABORTP(val)) return val;
-    else if (FD_VOIDP(val))
+    else if (VOIDP(val))
       u8_log(LOG_WARN,_("Lost history"),"Lost history for ##%q",arg);
-    else if (histkeep(FD_FIX2INT(arg),val)<0)
-      return FD_ERROR_VALUE;
+    else if (histkeep(FIX2INT(arg),val)<0)
+      return FD_ERROR;
     return val;}
 }
 
@@ -250,17 +250,17 @@ static fdtype history_prim()
 
 static fdtype histclear_prim(fdtype arg)
 {
-  if (FD_VOIDP(arg)) {
+  if (VOIDP(arg)) {
     /* We're clearing the whole thing, the simple case. */
     fd_histclear(-1);
-    return FD_VOID;}
+    return VOID;}
   else {
     /* Get the arg */
     if (FD_UINTP(arg)) {
       fdtype history = fd_thread_get(history_symbol);
-      if (FD_VOIDP(history)) return FD_TRUE;
-      else fd_history_set(history,FD_FIX2INT(arg),FD_VOID);
-      return FD_VOID;}
+      if (VOIDP(history)) return FD_TRUE;
+      else fd_history_set(history,FIX2INT(arg),VOID);
+      return VOID;}
     else {
       int loc = fd_histfind(arg);
       if (loc<0) {
@@ -268,7 +268,7 @@ static fdtype histclear_prim(fdtype arg)
         return FD_FALSE;}
       else {
         fdtype history = fd_thread_get(history_symbol);
-        fd_history_set(history,loc,FD_VOID);
+        fd_history_set(history,loc,VOID);
         return FD_TRUE;}}}
 }
 

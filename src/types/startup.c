@@ -97,8 +97,8 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     return NULL;}
   else {
     int i = 0, n = 0, config_i = 0;
-    fdtype string_args = fd_make_vector(argc-1,NULL), string_arg = FD_VOID;
-    fdtype lisp_args = fd_make_vector(argc-1,NULL), lisp_arg = FD_VOID;
+    fdtype string_args = fd_make_vector(argc-1,NULL), string_arg = VOID;
+    fdtype lisp_args = fd_make_vector(argc-1,NULL), lisp_arg = VOID;
     fdtype config_args = fd_make_vector(argc-1,NULL);
     fdtype raw_args = fd_make_vector(argc,NULL);
     fdtype *return_args = (arglen_ptr) ? (u8_alloc_n(argc-1,fdtype)) : (NULL);
@@ -158,7 +158,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
 
 static void set_vector_length(fdtype vector,int len)
 {
-  if (FD_VECTORP(vector)) {
+  if (VECTORP(vector)) {
     struct FD_VECTOR *vec = (struct FD_VECTOR *) vector;
     if (len>=0) {
       vec->fdvec_length = len;
@@ -173,21 +173,21 @@ static void add_source_file(u8_string s,void *vp)
 {
   fdtype *valp = (fdtype *)vp;
   fdtype val = *valp;
-  FD_ADD_TO_CHOICE(val,fdtype_string(s));
+  CHOICE_ADD(val,fdtype_string(s));
   *valp = val;
 }
 
 static fdtype config_get_source_files(fdtype var,void *data)
 {
-  fdtype result = FD_EMPTY_CHOICE;
+  fdtype result = EMPTY;
   u8_for_source_files(add_source_file,&result);
   return result;
 }
 
 static int config_add_source_file(fdtype var,fdtype val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_string stringval = u8_strdup(FD_STRDATA(val));
+  if (STRINGP(val)) {
+    u8_string stringval = u8_strdup(CSTRING(val));
     u8_register_source_file(stringval);
     return 1;}
   else {
@@ -248,7 +248,7 @@ FD_EXPORT void fd_doexit(fdtype arg)
   scan = atexit_handlers; atexit_handlers = NULL;
   u8_unlock_mutex(&atexit_handlers_lock);
   while (scan) {
-    fdtype handler = scan->fd_exit_handler, result = FD_VOID;
+    fdtype handler = scan->fd_exit_handler, result = VOID;
     u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
     if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
       result = fd_apply(handler,1,&arg);
@@ -304,7 +304,7 @@ FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
   if (retval<0) {
     u8_condition cond = u8_strerror(errno);
     errno = 0;
-    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),FD_VOID);}
+    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
   else if (rlim.rlim_cur == RLIM_INFINITY)
     return FD_FALSE;
   else return FD_INT((long long)(rlim.rlim_cur));
@@ -315,7 +315,7 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
   struct rlimit rlim;
   struct NAMED_RLIMIT *nrl = (struct NAMED_RLIMIT *)vptr;
   int retval = getrlimit(nrl->code,&rlim); rlim_t setval;
-  if ((FD_FIXNUMP(v))||(FD_BIGINTP(v))) {
+  if ((FIXNUMP(v))||(FD_BIGINTP(v))) {
     long lval = fd_getint(v);
     if (lval<0) {
       fd_incref(v);
@@ -323,14 +323,14 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
                 u8_strdup("resource limit (integer)"),v);
       return -1;}
     else setval = lval;}
-  else if (FD_FALSEP(v)) setval = (RLIM_INFINITY);
-  else if ((FD_STRINGP(v))&&
-           ((strcasecmp(FD_STRDATA(v),"unlimited")==0)||
-            (strcasecmp(FD_STRDATA(v),"nolimit")==0)||
-            (strcasecmp(FD_STRDATA(v),"infinity")==0)||
-            (strcasecmp(FD_STRDATA(v),"infinite")==0)||
-            (strcasecmp(FD_STRDATA(v),"false")==0)||
-            (strcasecmp(FD_STRDATA(v),"none")==0)))
+  else if (FALSEP(v)) setval = (RLIM_INFINITY);
+  else if ((STRINGP(v))&&
+           ((strcasecmp(CSTRING(v),"unlimited")==0)||
+            (strcasecmp(CSTRING(v),"nolimit")==0)||
+            (strcasecmp(CSTRING(v),"infinity")==0)||
+            (strcasecmp(CSTRING(v),"infinite")==0)||
+            (strcasecmp(CSTRING(v),"false")==0)||
+            (strcasecmp(CSTRING(v),"none")==0)))
     setval = (RLIM_INFINITY);
   else {
     fd_incref(v);
@@ -339,10 +339,10 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
     return -1;}
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
-    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),FD_VOID);}
+    return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
   else if (setval>rlim.rlim_max) {
     /* Should be more informative */
-    fd_seterr(_("RLIMIT too high"),"set_rlimit",u8_strdup(nrl->name),FD_VOID);
+    fd_seterr(_("RLIMIT too high"),"set_rlimit",u8_strdup(nrl->name),VOID);
     return -1;}
   if (setval == rlim.rlim_cur)
     u8_log(LOG_WARN,SetRLimit,
@@ -361,7 +361,7 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
   retval = setrlimit(nrl->code,&rlim);
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
-    return fd_err(cond,"rlimit_set",u8_strdup(nrl->name),FD_VOID);}
+    return fd_err(cond,"rlimit_set",u8_strdup(nrl->name),VOID);}
   else return 1;
 }
 #endif
@@ -375,8 +375,8 @@ static fdtype config_getappid(fdtype var,void *data)
 
 static int config_setappid(fdtype var,fdtype val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_identify_application(FD_STRDATA(val));
+  if (STRINGP(val)) {
+    u8_identify_application(CSTRING(val));
     return 1;}
   else return -1;
 }
@@ -400,8 +400,8 @@ static fdtype config_getsessionid(fdtype var,void *data)
 
 static int config_setsessionid(fdtype var,fdtype val,void *data)
 {
-  if (FD_STRINGP(val)) {
-    u8_identify_session(FD_STRDATA(val));
+  if (STRINGP(val)) {
+    u8_identify_session(CSTRING(val));
     return 1;}
   else return -1;
 }
@@ -453,8 +453,8 @@ static fdtype config_getrandomseed(fdtype var,void *data)
 
 static int config_setrandomseed(fdtype var,fdtype val,void *data)
 {
-  if (((FD_SYMBOLP(val)) && ((strcmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
-      ((FD_STRINGP(val)) && ((strcmp(FD_STRDATA(val),"TIME"))==0))) {
+  if (((SYMBOLP(val)) && ((strcmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
+      ((STRINGP(val)) && ((strcmp(CSTRING(val),"TIME"))==0))) {
     time_t tick = time(NULL);
     if (tick<0) {
       u8_graberr(-1,"time",NULL);
@@ -464,10 +464,10 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
       randomseed = (unsigned int)tick;
       u8_randomize(randomseed);
       return 1;}}
-  else if ((FD_FIXNUMP(val))&&
-	   (FD_FIX2INT(val)>0)&&
-	   (FD_FIX2INT(val)<UINT_MAX)) {
-    long long intval = FD_FIX2INT(val);
+  else if ((FIXNUMP(val))&&
+	   (FIX2INT(val)>0)&&
+	   (FIX2INT(val)<UINT_MAX)) {
+    long long intval = FIX2INT(val);
     randomseed = (unsigned int)intval;
     u8_randomize(randomseed);
     return 1;}
@@ -509,9 +509,9 @@ static fdtype config_getrunbase(fdtype var,void *data)
 static int config_setrunbase(fdtype var,fdtype val,void *data)
 {
   if (runbase)
-    return fd_err("Runbase already set and used","config_set_runbase",runbase,FD_VOID);
-  else if (FD_STRINGP(val)) {
-    runbase_config = u8_strdup(FD_STRDATA(val));
+    return fd_err("Runbase already set and used","config_set_runbase",runbase,VOID);
+  else if (STRINGP(val)) {
+    runbase_config = u8_strdup(CSTRING(val));
     return 1;}
   else return fd_type_error(_("string"),"config_setrunbase",val);
 }
@@ -549,14 +549,14 @@ FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
 
 static int resolve_uid(fdtype val)
 {
-  if (FD_FIXNUMP(val)) return (gid_t)(FD_FIX2INT(val));
+  if (FIXNUMP(val)) return (gid_t)(FIX2INT(val));
 #if ((HAVE_GETPWNAM_R)||(HAVE_GETPWNAM))
-  if (FD_STRINGP(val)) {
+  if (STRINGP(val)) {
     struct passwd _uinfo, *uinfo; char buf[1024]; int retval;
 #if HAVE_GETPWNAM_R
-    retval = getpwnam_r(FD_STRDATA(val),&_uinfo,buf,1024,&uinfo);
+    retval = getpwnam_r(CSTRING(val),&_uinfo,buf,1024,&uinfo);
 #else
-    uinfo = getpwnam(FD_STRDATA(val));
+    uinfo = getpwnam(CSTRING(val));
 #endif
     if ((retval<0)||(uinfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_uid",NULL);
@@ -571,14 +571,14 @@ static int resolve_uid(fdtype val)
 
 static int resolve_gid(fdtype val)
 {
-  if (FD_FIXNUMP(val)) return (gid_t)(FD_FIX2INT(val));
+  if (FIXNUMP(val)) return (gid_t)(FIX2INT(val));
 #if ((HAVE_GETGRNAM_R)||(HAVE_GETGRNAM))
-  if (FD_STRINGP(val)) {
+  if (STRINGP(val)) {
     struct group _ginfo, *ginfo; char buf[1024]; int retval;
 #if HAVE_GETGRNAM_R
-    retval = getgrnam_r(FD_STRDATA(val),&_ginfo,buf,1024,&ginfo);
+    retval = getgrnam_r(CSTRING(val),&_ginfo,buf,1024,&ginfo);
 #else
-    ginfo = getgrnam(FD_STRDATA(val));
+    ginfo = getgrnam(CSTRING(val));
 #endif
     if ((retval<0)||(ginfo == NULL)) {
       if (errno) u8_graberr(errno,"resolve_gid",NULL);

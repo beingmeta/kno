@@ -114,23 +114,23 @@ static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
     int top = ((clog->full) ? ((clog->point) ? (clog->point-1) : (clog->max)) : (clog->point-1));
     struct FD_CHANGELOG_ENTRY *entries = clog->entries;
     *new_cstamp = change_count;
-    if ((clog->full == 0) && (clog->point == 0)) result = FD_EMPTY_CHOICE; /* Changelog is empty */
+    if ((clog->full == 0) && (clog->point == 0)) result = EMPTY; /* Changelog is empty */
     else if (cstamp < entries[bottom].moment) result = FD_FALSE; /* Too far back. */
-    else if (cstamp > entries[top].moment) result = FD_EMPTY_CHOICE; /* No changes. */
+    else if (cstamp > entries[top].moment) result = EMPTY; /* No changes. */
     else {
-      fdtype changes = FD_EMPTY_CHOICE;
+      fdtype changes = EMPTY;
       int i = top, point = clog->point; while (i >= 0)
         if (cstamp <= entries[i].moment) {
           fdtype key = entries[i--].keys;
           fd_incref(key);
-          FD_ADD_TO_CHOICE(changes,key);}
+          CHOICE_ADD(changes,key);}
         else break;
       if (cstamp > entries[i].moment) {
         i = clog->max; while (i >= point)
           if (cstamp <= entries[i].moment) {
             fdtype key = entries[i--].keys;
             fd_incref(key);
-            FD_ADD_TO_CHOICE(changes,key);}
+            CHOICE_ADD(changes,key);}
           else break;}
       result = changes;}}
   u8_unlock_mutex(&changelog_lock);
@@ -144,13 +144,13 @@ static fdtype get_syncstamp_prim()
 
 static fdtype oid_server_changes(fdtype sid,fdtype xid)
 {
-  if (FD_FIX2INT(sid) != init_timestamp)
+  if (FIX2INT(sid) != init_timestamp)
     return FD_FALSE;
   else {
     int new_syncstamp;
     fdtype changes=
-      get_changes(&oid_changelog,FD_FIX2INT(xid),&new_syncstamp);
-    if (FD_FALSEP(changes))
+      get_changes(&oid_changelog,FIX2INT(xid),&new_syncstamp);
+    if (FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
                                          FD_INT(new_syncstamp)));
     else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),
@@ -160,12 +160,12 @@ static fdtype oid_server_changes(fdtype sid,fdtype xid)
 
 static fdtype iserver_changes(fdtype sid,fdtype xid)
 {
-  if (FD_FIX2INT(sid) != init_timestamp) return FD_FALSE;
+  if (FIX2INT(sid) != init_timestamp) return FD_FALSE;
   else {
     int new_syncstamp;
     fdtype changes=
-      get_changes(&index_changelog,FD_FIX2INT(xid),&new_syncstamp);
-    if (FD_FALSEP(changes))
+      get_changes(&index_changelog,FIX2INT(xid),&new_syncstamp);
+    if (FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
                                          FD_INT(new_syncstamp)));
     else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),
@@ -177,12 +177,12 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
 {
   fd_index ix = fd_indexptr(index);
   struct FD_CHANGELOG *clog = get_subindex_changelog(ix,0);
-  if (clog == NULL) return FD_EMPTY_CHOICE;
-  else if (FD_FIX2INT(sid) != init_timestamp) return FD_FALSE;
+  if (clog == NULL) return EMPTY;
+  else if (FIX2INT(sid) != init_timestamp) return FD_FALSE;
   else {
     int new_syncstamp;
-    fdtype changes = get_changes(clog,FD_FIX2INT(xid),&new_syncstamp);
-    if (FD_FALSEP(changes))
+    fdtype changes = get_changes(clog,FIX2INT(xid),&new_syncstamp);
+    if (FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),
                                          FD_INT(new_syncstamp)));
     else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),
@@ -208,8 +208,8 @@ static int lock_oid(fdtype oid,fdtype id)
   fdtype holder;
   if (locking == 0) return 1;
   u8_lock_mutex(&server_locks_lock);
-  holder = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
-  if (FD_EMPTY_CHOICEP(holder)) {
+  holder = fd_hashtable_get(&server_locks,oid,EMPTY);
+  if (EMPTYP(holder)) {
     fd_pool p = fd_oid2pool(oid);
     if ((fd_pool_lock(p,oid)) == 0) {
       u8_unlock_mutex(&server_locks_lock); return 0;}
@@ -232,8 +232,8 @@ static int lock_oid(fdtype oid,fdtype id)
 
 static int check_server_lock(fdtype oid,fdtype id)
 {
-  fdtype holder = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
-  if (FD_EMPTY_CHOICEP(holder)) return 0;
+  fdtype holder = fd_hashtable_get(&server_locks,oid,EMPTY);
+  if (EMPTYP(holder)) return 0;
   else if (FDTYPE_EQUAL(id,holder)) {
     fd_decref(holder); return 1;}
   else {fd_decref(holder); return 0;}
@@ -244,19 +244,19 @@ static int clear_server_lock(fdtype oid,fdtype id)
   fdtype holder;
   if (locking == 0) return 1;
   u8_lock_mutex(&server_locks_lock);
-  holder = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
-  if (FD_EMPTY_CHOICEP(holder)) {u8_unlock_mutex(&server_locks_lock); return 0;}
+  holder = fd_hashtable_get(&server_locks,oid,EMPTY);
+  if (EMPTYP(holder)) {u8_unlock_mutex(&server_locks_lock); return 0;}
   else if (FDTYPE_EQUAL(id,holder)) {
-    fdtype all_locks = fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
+    fdtype all_locks = fd_hashtable_get(&server_locks_inv,id,EMPTY);
     int lock_count = FD_CHOICE_SIZE(all_locks);
     fd_decref(holder);
-    fd_hashtable_store(&server_locks,oid,FD_EMPTY_CHOICE);
+    fd_hashtable_store(&server_locks,oid,EMPTY);
     if (lock_count == 0)
       return fd_err(OIDNotLocked,"lock_oid",fd_strdata(id),oid);
     else if (lock_count == 1)
-      fd_hashtable_store(&server_locks_inv,id,FD_EMPTY_CHOICE);
+      fd_hashtable_store(&server_locks_inv,id,EMPTY);
     else fd_hashtable_drop(&server_locks_inv,id,oid);
-    fd_hashtable_drop(&server_locks,oid,FD_VOID); n_locks--;
+    fd_hashtable_drop(&server_locks,oid,VOID); n_locks--;
     if (locks_file) {
       fd_write_dtype(fd_writebuf(locks_file),id);
       fd_write_dtype(fd_writebuf(locks_file),oid);
@@ -274,11 +274,11 @@ static void remove_all_server_locks(fdtype id)
   if (locking == 0) return;
   u8_lock_mutex(&server_locks_lock);
   {
-    fdtype locks = fd_hashtable_get(&server_locks_inv,id,FD_EMPTY_CHOICE);
-    FD_DO_CHOICES(oid,locks) {
-      fd_hashtable_drop(&server_locks,oid,FD_VOID);}
+    fdtype locks = fd_hashtable_get(&server_locks_inv,id,EMPTY);
+    DO_CHOICES(oid,locks) {
+      fd_hashtable_drop(&server_locks,oid,VOID);}
     fd_decref(locks);
-    fd_hashtable_store(&server_locks_inv,id,FD_EMPTY_CHOICE);
+    fd_hashtable_store(&server_locks_inv,id,EMPTY);
     u8_unlock_mutex(&server_locks_lock);
   }
 }
@@ -298,7 +298,7 @@ static void open_server_lock_stream(u8_string file)
     fd_inbuf in = fd_readbuf(stream);
     fdtype a = fd_read_dtype(in), b = fd_read_dtype(in);
     while (!(FD_EOFP(a))) {
-      if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
+      if (OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
       a = fd_read_dtype(in); b = fd_read_dtype(in);}
     fd_close_stream(stream,0);
     u8_removefile(file);}
@@ -338,11 +338,11 @@ static fdtype config_get_locksfile(fdtype var,void U8_MAYBE_UNUSED *data)
 static int config_set_locksfile(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   if (locks_filename)
-    if ((FD_STRINGP(val)) && (strcmp(FD_STRDATA(val),locks_filename)==0))
+    if ((STRINGP(val)) && (strcmp(CSTRING(val),locks_filename)==0))
       return 0;
     else return fd_reterr(_("Locks file already set"),"fd_set_config",NULL,val);
-  else if (FD_STRINGP(val)) {
-    open_server_lock_stream(FD_STRDATA(val));
+  else if (STRINGP(val)) {
+    open_server_lock_stream(CSTRING(val));
     return 1;}
   else return fd_reterr(fd_TypeError,"fd_set_config",u8_strdup("string"),val);
 }
@@ -351,7 +351,7 @@ static int config_set_locksfile(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data
 
 static fdtype lock_oid_prim(fdtype oid,fdtype id)
 {
-  if (!(FD_OIDP(oid)))
+  if (!(OIDP(oid)))
     return fd_type_error(_("oid"),"lock_oid_prim",oid);
   if ((locking == 0) ||  (lock_oid(oid,id))) {
     return fd_oid_value(oid);}
@@ -389,8 +389,8 @@ static fdtype break_server_lock_prim(fdtype oid)
 {
   if (locking == 0) return FD_TRUE;
   else {
-    fdtype id = fd_hashtable_get(&server_locks,oid,FD_EMPTY_CHOICE);
-    if (FD_EMPTY_CHOICEP(id)) return FD_FALSE;
+    fdtype id = fd_hashtable_get(&server_locks,oid,EMPTY);
+    if (EMPTYP(id)) return FD_FALSE;
     else {
       clear_server_lock(oid,id);
       fd_decref(id);
@@ -407,7 +407,7 @@ static fdtype unlock_all_prim(fdtype id)
 static fdtype update_locks_prim()
 {
   update_server_lock_file();
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype store_oid_proc(fdtype oid,fdtype value)
@@ -429,29 +429,29 @@ static fdtype store_oid_proc(fdtype oid,fdtype value)
 
 static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
 {
-  int i = 0, l = FD_VECTOR_LENGTH(vec);
-  fdtype changed_oids = FD_EMPTY_CHOICE;
+  int i = 0, l = VEC_LEN(vec);
+  fdtype changed_oids = EMPTY;
   /* First check that all the OIDs were really locked under the assigned ID. */
   if (locking) {
     i = 0; while (i < l) {
-      fdtype oid = FD_VECTOR_REF(vec,i);
-      if (!(FD_OIDP(oid))) i = i+2;
+      fdtype oid = VEC_REF(vec,i);
+      if (!(OIDP(oid))) i = i+2;
       else if (check_server_lock(oid,id)) i = i+2;
       else return fd_err(OIDNotLocked,"bulk_commit_proc",NULL,oid);}}
   /* Then set the corresponding OID value, but don't commit yet. */
   i = 0; while (i < l) {
-    fdtype oid = FD_VECTOR_REF(vec,i);
-    fdtype value = FD_VECTOR_REF(vec,i+1);
-    if (FD_OIDP(oid)) {
+    fdtype oid = VEC_REF(vec,i);
+    fdtype value = VEC_REF(vec,i+1);
+    if (OIDP(oid)) {
       fd_set_oid_value(oid,value);
-      FD_ADD_TO_CHOICE(changed_oids,oid);}
+      CHOICE_ADD(changed_oids,oid);}
     i = i+2;}
   fd_commit_oids(changed_oids);
   fd_unlock_oids(changed_oids,leave_modified);
   if (locking) {
     i = 0; while (i < l) {
-      fdtype oid = FD_VECTOR_REF(vec,i);
-      if (FD_OIDP(oid)) clear_server_lock(oid,id);
+      fdtype oid = VEC_REF(vec,i);
+      if (OIDP(oid)) clear_server_lock(oid,id);
       i = i+2;}}
   add_to_changelog(&oid_changelog,changed_oids); fd_decref(changed_oids);
   return FD_TRUE;
@@ -476,37 +476,37 @@ static fdtype ixserver_add(fdtype ixarg,fdtype key,fdtype values)
 static fdtype iserver_bulk_add(fdtype vec)
 {
   if ((read_only) || (primary_index == NULL)) return FD_FALSE;
-  else if (FD_VECTORP(vec)) {
-    fdtype *data = FD_VECTOR_DATA(vec), keys = FD_EMPTY_CHOICE;
-    int i = 0, limit = FD_VECTOR_LENGTH(vec);
+  else if (VECTORP(vec)) {
+    fdtype *data = VEC_DATA(vec), keys = EMPTY;
+    int i = 0, limit = VEC_LEN(vec);
     while (i < limit) {
-      if (FD_VOIDP(data[i])) break;
+      if (VOIDP(data[i])) break;
       else {
         fdtype key = data[i++], value = data[i++];
         fd_index_add((fd_index)primary_index,key,value);
-        fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
+        fd_incref(key); CHOICE_ADD(keys,key);}}
     add_to_changelog(&index_changelog,keys); fd_decref(keys);
     return FD_TRUE;}
-  else return FD_VOID;
+  else return VOID;
 }
 
 static fdtype ixserver_bulk_add(fdtype ixarg,fdtype vec)
 {
   if (read_only) return FD_FALSE;
-  else if (FD_VECTORP(vec)) {
+  else if (VECTORP(vec)) {
     fd_index ix = fd_indexptr(ixarg);
     struct FD_CHANGELOG *clog = get_subindex_changelog(ix,1);
-    fdtype *data = FD_VECTOR_DATA(vec), keys = FD_EMPTY_CHOICE;
-    int i = 0, limit = FD_VECTOR_LENGTH(vec);
+    fdtype *data = VEC_DATA(vec), keys = EMPTY;
+    int i = 0, limit = VEC_LEN(vec);
     while (i < limit) {
-      if (FD_VOIDP(data[i])) break;
+      if (VOIDP(data[i])) break;
       else {
         fdtype key = data[i++], value = data[i++];
         fd_index_add(ix,key,value);
-        fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
+        fd_incref(key); CHOICE_ADD(keys,key);}}
     add_to_changelog(clog,keys); fd_decref(keys);
     return FD_TRUE;}
-  else return FD_VOID;
+  else return VOID;
 }
 
 static fdtype iserver_drop(fdtype key,fdtype values)
@@ -529,16 +529,16 @@ static fdtype ixserver_drop(fdtype ixarg,fdtype key,fdtype values)
 
 static fdtype server_get_load(fdtype oid_arg)
 {
-  if (FD_VOIDP(oid_arg))
+  if (VOIDP(oid_arg))
     if (primary_pool) {
       int load = fd_pool_load(primary_pool);
-      if (load<0) return FD_ERROR_VALUE;
+      if (load<0) return FD_ERROR;
       else return FD_INT(load);}
-    else return fd_err(_("No primary pool"),"server_get_load",NULL,FD_VOID);
-  else if (FD_OIDP(oid_arg)) {
+    else return fd_err(_("No primary pool"),"server_get_load",NULL,VOID);
+  else if (OIDP(oid_arg)) {
     fd_pool p = fd_oid2pool(oid_arg);
     int load = fd_pool_load(p);
-    if (load<0) return FD_ERROR_VALUE;
+    if (load<0) return FD_ERROR;
     else return FD_INT(load);}
   else return fd_type_error("OID","server_get_load",oid_arg);
 }
@@ -558,11 +558,11 @@ static fdtype server_fetch_oids(fdtype oidvec)
   /* We assume here that all the OIDs in oidvec are in the same pool.  This should
      be the case because clients see the different pools and sort accordingly.  */
   fd_pool p = NULL;
-  int n = FD_VECTOR_LENGTH(oidvec), fetchn = 0;
-  fdtype *elts = FD_VECTOR_DATA(oidvec);
+  int n = VEC_LEN(oidvec), fetchn = 0;
+  fdtype *elts = VEC_DATA(oidvec);
   if (n==0)
     return fd_init_vector(NULL,0,NULL);
-  else if (!(FD_OIDP(elts[0])))
+  else if (!(OIDP(elts[0])))
     return fd_type_error(_("oid vector"),"server_fetch_oids",oidvec);
   else if ((p = (fd_oid2pool(elts[0]))))
     if (served_poolp(p)) {
@@ -611,16 +611,16 @@ static fdtype iserver_get(fdtype key)
 }
 static fdtype iserver_bulk_get(fdtype keys)
 {
-  if (FD_VECTORP(keys)) {
-    int i = 0, n = FD_VECTOR_LENGTH(keys), retval;
-    fdtype *data = FD_VECTOR_DATA(keys), *results = u8_alloc_n(n,fdtype);
+  if (VECTORP(keys)) {
+    int i = 0, n = VEC_LEN(keys), retval;
+    fdtype *data = VEC_DATA(keys), *results = u8_alloc_n(n,fdtype);
     /* |FD_CHOICE_ISATOMIC */
     fdtype aschoice = fd_make_choice
       (n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
     retval = fd_index_prefetch((fd_index)(primary_index),aschoice);
     if (retval<0) {
       fd_decref(aschoice); u8_free(results);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     while (i<n) {
       results[i]=fd_index_get((fd_index)(primary_index),data[i]); i++;}
     fd_decref(aschoice);
@@ -651,17 +651,17 @@ static fdtype ixserver_get(fdtype index,fdtype key)
 {
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_get(fd_indexptr(index),key);
-  else if (FD_TABLEP(index))
-    return fd_get(index,key,FD_EMPTY_CHOICE);
-  else return fd_type_error("index","ixserver_get",FD_VOID);
+  else if (TABLEP(index))
+    return fd_get(index,key,EMPTY);
+  else return fd_type_error("index","ixserver_get",VOID);
 }
 static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 {
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
-    if (FD_VECTORP(keys)) {
+    if (VECTORP(keys)) {
       fd_index ix = fd_indexptr(index);
-      int i = 0, n = FD_VECTOR_LENGTH(keys);
-      fdtype *data = FD_VECTOR_DATA(keys),
+      int i = 0, n = VEC_LEN(keys);
+      fdtype *data = VEC_DATA(keys),
         *results = u8_alloc_n(n,fdtype);
       fdtype aschoice=
         fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
@@ -671,17 +671,17 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
       fd_decref(aschoice);
       return fd_init_vector(NULL,n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
-  else if (FD_TABLEP(index))
-    if (FD_VECTORP(keys)) {
-      int i = 0, n = FD_VECTOR_LENGTH(keys);
-      fdtype *data = FD_VECTOR_DATA(keys),
+  else if (TABLEP(index))
+    if (VECTORP(keys)) {
+      int i = 0, n = VEC_LEN(keys);
+      fdtype *data = VEC_DATA(keys),
         *results = u8_alloc_n(n,fdtype);
       while (i<n) {
-        results[i]=fd_get(index,data[i],FD_EMPTY_CHOICE);
+        results[i]=fd_get(index,data[i],EMPTY);
         i++;}
       return fd_init_vector(NULL,n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
-  else return fd_type_error("index","ixserver_get",FD_VOID);
+  else return fd_type_error("index","ixserver_get",VOID);
 }
 static fdtype ixserver_get_size(fdtype index,fdtype key)
 {
@@ -690,35 +690,35 @@ static fdtype ixserver_get_size(fdtype index,fdtype key)
     int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
     return FD_INT(size);}
-  else if (FD_TABLEP(index)) {
-    fdtype value = fd_get(index,key,FD_EMPTY_CHOICE);
+  else if (TABLEP(index)) {
+    fdtype value = fd_get(index,key,EMPTY);
     int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
     return FD_INT(size);}
-  else return fd_type_error("index","ixserver_get",FD_VOID);
+  else return fd_type_error("index","ixserver_get",VOID);
 }
 static fdtype ixserver_keys(fdtype index)
 {
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_keys(fd_indexptr(index));
-  else if (FD_TABLEP(index))
+  else if (TABLEP(index))
     return fd_getkeys(index);
-  else return fd_type_error("index","ixserver_get",FD_VOID);
+  else return fd_type_error("index","ixserver_get",VOID);
 }
 static fdtype ixserver_sizes(fdtype index)
 {
   if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
     return fd_index_sizes(fd_indexptr(index));
-  else if (FD_TABLEP(index)) {
-    fdtype results = FD_EMPTY_CHOICE, keys = fd_getkeys(index);
-    FD_DO_CHOICES(key,keys) {
-      fdtype value = fd_get(index,key,FD_EMPTY_CHOICE);
+  else if (TABLEP(index)) {
+    fdtype results = EMPTY, keys = fd_getkeys(index);
+    DO_CHOICES(key,keys) {
+      fdtype value = fd_get(index,key,EMPTY);
       fdtype keypair = fd_conspair(fd_incref(key),FD_INT(FD_CHOICE_SIZE(value)));
-      FD_ADD_TO_CHOICE(results,keypair);
+      CHOICE_ADD(results,keypair);
       fd_decref(value);}
     fd_decref(keys);
     return results;}
-  else return fd_type_error("index","ixserver_get",FD_VOID);
+  else return fd_type_error("index","ixserver_get",VOID);
 }
 static fdtype ixserver_writablep(fdtype index)
 {
@@ -730,15 +730,15 @@ static fdtype ixserver_writablep(fdtype index)
 static int serve_pool(fdtype var,fdtype val,void *data)
 {
   fd_pool p;
-  if (FD_CHOICEP(val)) {
-    FD_DO_CHOICES(v,val) {
+  if (CHOICEP(val)) {
+    DO_CHOICES(v,val) {
       int retval = serve_pool(var,v,data);
       if (retval<0) return retval;}
     return 1;}
   else if (FD_POOLP(val)) p = fd_lisp2pool(val);
-  else if (FD_STRINGP(val)) {
-    if ((p = fd_name2pool(FD_STRDATA(val))) == NULL)
-      p = fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
+  else if (STRINGP(val)) {
+    if ((p = fd_name2pool(CSTRING(val))) == NULL)
+      p = fd_use_pool(CSTRING(val),0,VOID);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
@@ -754,11 +754,11 @@ static int serve_pool(fdtype var,fdtype val,void *data)
 
 static fdtype get_served_pools(fdtype var,void *data)
 {
-  fdtype result = FD_EMPTY_CHOICE;
+  fdtype result = EMPTY;
   int i = 0; while (i<n_served_pools) {
     fd_pool p = served_pools[i++];
     fdtype lp = fd_pool2lisp(p);
-    FD_ADD_TO_CHOICE(result,lp);}
+    CHOICE_ADD(result,lp);}
   return result;
 }
 
@@ -766,9 +766,9 @@ static int serve_primary_pool(fdtype var,fdtype val,void *data)
 {
   fd_pool p;
   if (FD_POOLP(val)) p = fd_lisp2pool(val);
-  else if (FD_STRINGP(val)) {
-    if ((p = fd_name2pool(FD_STRDATA(val))) == NULL)
-      p = fd_use_pool(FD_STRDATA(val),0,FD_VOID);}
+  else if (STRINGP(val)) {
+    if ((p = fd_name2pool(CSTRING(val))) == NULL)
+      p = fd_use_pool(CSTRING(val),0,VOID);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (p == primary_pool) return 0;
@@ -779,20 +779,20 @@ static int serve_primary_pool(fdtype var,fdtype val,void *data)
 static fdtype get_primary_pool(fdtype var,void *data)
 {
   if (primary_pool) return fd_pool2lisp(primary_pool);
-  else return FD_EMPTY_CHOICE;
+  else return EMPTY;
 }
 
 static int serve_index(fdtype var,fdtype val,void *data)
 {
   fd_index ix = NULL;
-  if (FD_CHOICEP(val)) {
-    FD_DO_CHOICES(v,val) {
+  if (CHOICEP(val)) {
+    DO_CHOICES(v,val) {
       int retval = serve_index(var,v,data);
       if (retval<0) return retval;}
     return 1;}
   else if (FD_INDEXP(val)) ix = fd_indexptr(val);
-  else if (FD_STRINGP(val))
-    ix = fd_get_index(FD_STRDATA(val),0,FD_VOID);
+  else if (STRINGP(val))
+    ix = fd_get_index(CSTRING(val),0,VOID);
   else if (val == FD_TRUE)
     if (fd_background) ix = (fd_index)fd_background;
     else {
@@ -849,7 +849,7 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim2("ISERVER-DROP!",iserver_drop,2));
   fd_defn(module,fd_make_cprim1("ISERVER-BULK-ADD!",iserver_bulk_add,1));
   fd_defn(module,fd_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
-                                 fd_vector_type,FD_VOID));
+                                 fd_vector_type,VOID));
   fd_defn(module,fd_make_cprim1("ISERVER-GET-SIZE",iserver_get_size,1));
   fd_defn(module,fd_make_cprim0("ISERVER-KEYS",iserver_keys));
   fd_defn(module,fd_make_cprim0("ISERVER-SIZES",iserver_sizes));
@@ -857,21 +857,21 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim2("ISERVER-CHANGES",iserver_changes,2));
 
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET",ixserver_get,2,
-                                 -1,FD_VOID,-1,FD_VOID));
+                                 -1,VOID,-1,VOID));
   fd_defn(module,fd_make_cprim3("IXSERVER-ADD!",ixserver_add,3));
   fd_defn(module,fd_make_cprim3("IXSERVER-DROP!",ixserver_drop,3));
   fd_defn(module,fd_make_cprim2x("IXSERVER-BULK-GET",ixserver_bulk_get,2,
-                                 -1,FD_VOID,
-                                 fd_vector_type,FD_VOID));
+                                 -1,VOID,
+                                 fd_vector_type,VOID));
   fd_defn(module,fd_make_cprim2("IXSERVER-BULK-ADD!",ixserver_bulk_add,2));
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET-SIZE",ixserver_get_size,2,
-                                 -1,FD_VOID,-1,FD_VOID));
+                                 -1,VOID,-1,VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-KEYS",ixserver_keys,1,
-                                 -1,FD_VOID));
+                                 -1,VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-SIZES",ixserver_sizes,1,
-                                 -1,FD_VOID));
+                                 -1,VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-WRITABLE?",ixserver_writablep,1,
-                                 -1,FD_VOID));
+                                 -1,VOID));
   fd_defn(module,fd_make_cprim3("IXSERVER-CHANGES",ixserver_changes,3));
 
   fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim));

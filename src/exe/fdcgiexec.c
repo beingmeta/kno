@@ -77,14 +77,14 @@ static void shutdown_server(u8_condition reason)
 
 static fdtype reqsetup()
 {
-  fdtype result = FD_VOID;
+  fdtype result = VOID;
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
   /* Update modules */
   if (fd_update_file_modules(0)<0) {
     u8_condition c = NULL; u8_context cxt = NULL;
     u8_string details = NULL;
-    fdtype irritant = FD_VOID;
+    fdtype irritant = VOID;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result = fd_err(c,cxt,details,irritant);
     if (details) u8_free(details);
@@ -103,7 +103,7 @@ static fdtype reqsetup()
 static void copy_envparam(char *name,fdtype target,fdtype slotid)
 {
   char *param = getenv(name);
-  fdtype value = ((param) ? (fdstring(param)) : (FD_VOID));
+  fdtype value = ((param) ? (fdstring(param)) : (VOID));
   if (!(FD_VOIDP(value))) fd_add(target,slotid,value);
   fd_decref(value);
 }
@@ -113,7 +113,7 @@ static fdtype get_envcgidata()
   fdtype slotmap = fd_empty_slotmap();
   char *lenstring = getenv("CONTENT_LENGTH");
   if (lenstring) {
-    fdtype packet = FD_VOID;
+    fdtype packet = VOID;
     int len = atoi(lenstring);
     /* char *ctype = getenv("CONTENT_TYPE"); */
     char *buf = u8_malloc(len);
@@ -154,7 +154,7 @@ static int fcgi_socket = -1;
 static void copy_param(char *name,FCGX_ParamArray envp,fdtype target,fdtype slotid)
 {
   char *param = FCGX_GetParam(name,envp);
-  fdtype value = ((param) ? (fdstring(param)) : (FD_VOID));
+  fdtype value = ((param) ? (fdstring(param)) : (VOID));
   if (!(FD_VOIDP(value))) fd_add(target,slotid,value);
   fd_decref(value);
 }
@@ -162,7 +162,7 @@ static void copy_param(char *name,FCGX_ParamArray envp,fdtype target,fdtype slot
 static void output_content(FCGX_Request *req,fdtype content)
 {
   if (FD_STRINGP(content))
-    FCGX_PutStr(FD_STRDATA(content),FD_STRLEN(content),req->out);
+    FCGX_PutStr(CSTRING(content),STRLEN(content),req->out);
   else if (FD_PACKETP(content))
     FCGX_PutStr(FD_PACKET_DATA(content),FD_PACKET_LENGTH(content),req->out);
   else {}
@@ -173,7 +173,7 @@ static fdtype get_fcgidata(FCGX_Request *req)
   fdtype slotmap = fd_empty_slotmap();
   char *lenstring = FCGX_GetParam("CONTENT_LENGTH",req->envp);
   if (lenstring) {
-    fdtype packet = FD_VOID;
+    fdtype packet = VOID;
     char *ctype = FCGX_GetParam("CONTENT_TYPE",req->envp);
     int len = atoi(lenstring);
     char *buf = u8_malloc(len);
@@ -213,18 +213,18 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   double setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache = NULL;
   struct rusage start_usage, end_usage;
-  fdtype proc = reqsetup(), result = FD_VOID, cgidata = FD_VOID, path = FD_VOID;
+  fdtype proc = reqsetup(), result = VOID, cgidata = VOID, path = VOID;
   if (FD_ABORTP(proc)) {
     parse_time = setup_time = u8_elapsed_time();}
   else {
     fdtype uri;
     setup_time = u8_elapsed_time();
     cgidata = get_fcgidata(req);
-    path = fd_get(cgidata,script_filename,FD_VOID);
+    path = fd_get(cgidata,script_filename,VOID);
     if (traceweb>0) {
-      uri = fd_get(cgidata,uri_symbol,FD_VOID);
+      uri = fd_get(cgidata,uri_symbol,VOID);
       if (FD_STRINGP(uri))
-        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",CSTRING(uri));
       fd_decref(uri);}
     proc = getcontent(path);
     fd_parse_cgidata(cgidata);
@@ -234,7 +234,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   u8_getrusage(RUSAGE_SELF,&start_usage);
   u8_set_default_output(out);
   fd_use_reqinfo(cgidata); fd_reqlog(1);
-  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+  fd_thread_set(browseinfo_symbol,EMPTY);
   if (FD_ABORTP(proc)) result = fd_incref(proc);
   else if (FD_SPROCP(proc)) {
     struct FD_SPROC *sp = FD_CONSPTR(fd_sproc,proc);
@@ -249,7 +249,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     threadcache = checkthreadcache(sp->env);
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype xml = FD_CAR(proc), setup_proc = FD_VOID;
+    fdtype xml = FD_CAR(proc), setup_proc = VOID;
     fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
     fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
@@ -290,9 +290,9 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     fdtype irritant = fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-             excond,FD_STRDATA(path),excxt,exdetails);
+             excond,CSTRING(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-                excond,FD_STRDATA(path),excxt,exdetails,irritant);
+                excond,CSTRING(path),excxt,exdetails,irritant);
     FCGX_PutS("Content-type: text/html; charset = utf-8\r\n\r\n",req->out);
     fd_xhtmlerrorpage(out,ex);
     u8_free_exception(ex,1);
@@ -301,8 +301,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     FCGX_PutStr(out->u8_outbuf,out->u8_write-out->u8_outbuf,req->out);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
-    fdtype content = fd_get(cgidata,content_slotid,FD_VOID);
-    fdtype traceval = fd_get(cgidata,tracep_slotid,FD_VOID);
+    fdtype content = fd_get(cgidata,content_slotid,VOID);
+    fdtype traceval = fd_get(cgidata,tracep_slotid,VOID);
     if (FD_VOIDP(traceval)) tracep = 0; else tracep = 1;
     U8_INIT_STATIC_OUTPUT(tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
@@ -323,12 +323,12 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     if ((reqlog) || (urllog))
       dolog(cgidata,result,out->u8_outbuf,u8_elapsed_time()-start_time);}
   if (threadcache) fd_pop_threadcache(threadcache);
-  fd_use_reqinfo(FD_EMPTY_CHOICE); fd_reqlog(-1);
-  fd_thread_set(browseinfo_symbol,FD_VOID);
+  fd_use_reqinfo(EMPTY); fd_reqlog(-1);
+  fd_thread_set(browseinfo_symbol,VOID);
   write_time = u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
-    fdtype query = fd_get(cgidata,query_string,FD_VOID);
+    fdtype query = fd_get(cgidata,query_string,VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE","Handled %q in %f = setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
              path,write_time-start_time,
@@ -461,7 +461,7 @@ static int simplecgi(fdtype path)
   double start_time = u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
-  fdtype proc = reqsetup(), result = FD_VOID, cgidata = FD_VOID;
+  fdtype proc = reqsetup(), result = VOID, cgidata = VOID;
   struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,16384);
   if (FD_ABORTP(proc)) {
     parse_time = setup_time = u8_elapsed_time();}
@@ -471,9 +471,9 @@ static int simplecgi(fdtype path)
     cgidata = get_envcgidata();
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     if (traceweb>0) {
-      uri = fd_get(cgidata,uri_slotid,FD_VOID);
+      uri = fd_get(cgidata,uri_slotid,VOID);
       if (FD_STRINGP(uri))
-        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",CSTRING(uri));
       fd_decref(uri);}
     proc = getcontent(path);
     fd_parse_cgidata(cgidata);
@@ -482,7 +482,7 @@ static int simplecgi(fdtype path)
       dolog(cgidata,FD_NULL,NULL,0,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
   fd_use_reqinfo(cgidata); fd_reqlog(1);
-  fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
+  fd_thread_set(browseinfo_symbol,EMPTY);
   u8_set_default_output(&out);
   if (FD_ABORTP(proc)) result = fd_incref(proc);
   else if (FD_SPROCP(proc)) {
@@ -494,7 +494,7 @@ static int simplecgi(fdtype path)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype setup_proc = FD_VOID;
+    fdtype setup_proc = VOID;
     fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
     fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
@@ -502,7 +502,7 @@ static int simplecgi(fdtype path)
       u8_log(LOG_NOTICE,"START","Handling %q with template",path);
     setup_proc = fd_symeval(setup_symbol,base);
     if (FD_VOIDP(setup_proc)) {}
-    else if (FD_CHOICEP(setup_proc)) {
+    else if (CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
         if (FD_APPLICABLEP(proc)) {
           fdtype v = fd_apply(proc,0,NULL);
@@ -532,17 +532,17 @@ static int simplecgi(fdtype path)
     fdtype irritant = fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-             excond,FD_STRDATA(path),excxt,exdetails);
+             excond,CSTRING(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-                excond,FD_STRDATA(path),excxt,exdetails,irritant);
+                excond,CSTRING(path),excxt,exdetails,irritant);
     fputs("Content-type: text/html; charset = utf-8\r\n\r\n",stdout);
     fd_xhtmlerrorpage(&out,ex);
     retval = fwrite(out.u8_outbuf,1,out.u8_write-out.u8_outbuf,stdout);
     u8_free_exception(ex,1);}
   else {
     U8_OUTPUT tmp; int tracep;
-    fdtype content = fd_get(cgidata,content_slotid,FD_VOID);
-    fdtype traceval = fd_get(cgidata,tracep_slotid,FD_VOID);
+    fdtype content = fd_get(cgidata,content_slotid,VOID);
+    fdtype traceval = fd_get(cgidata,tracep_slotid,VOID);
     if (FD_VOIDP(traceval)) tracep = 0; else tracep = 1;
     U8_INIT_STATIC_OUTPUT(tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
@@ -558,20 +558,20 @@ static int simplecgi(fdtype path)
       if (write_headers) fputs("</body>\n</html>\n",stdout);}
     else {
       if (FD_STRINGP(content)) {
-        retval = fwrite(FD_STRDATA(content),1,FD_STRLEN(content),stdout);}
-      else if (FD_PACKETP(content))
+        retval = fwrite(CSTRING(content),1,STRLEN(content),stdout);}
+      else if (PACKETP(content))
         retval = fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),
                       stdout);}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);}
   if (retval<0)
     u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
   u8_set_default_output(NULL);
-  fd_use_reqinfo(FD_EMPTY_CHOICE); fd_reqlog(-1);
-  fd_thread_set(browseinfo_symbol,FD_VOID);
+  fd_use_reqinfo(EMPTY); fd_reqlog(-1);
+  fd_thread_set(browseinfo_symbol,VOID);
   write_time = u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
-    fdtype query = fd_get(cgidata,query_string,FD_VOID);
+    fdtype query = fd_get(cgidata,query_string,VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE","Handled %q in %f = setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
              path,write_time-start_time,
@@ -704,7 +704,7 @@ int main(int argc,char **argv)
 
   fd_handle_argv(argc,argv,arg_mask,NULL);
 
-  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdcgiexec",NULL,FD_VOID);
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdcgiexec",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   _stack->stack_free_label=1;
 

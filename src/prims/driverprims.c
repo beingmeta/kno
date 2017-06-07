@@ -57,8 +57,8 @@ static fdtype pool_prefetch(fdtype pool,fdtype oids)
 {
   fd_pool p = (fd_pool)pool;
   int retval = fd_pool_prefetch(p,oids);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_VOID;
+  if (retval<0) return FD_ERROR;
+  else return VOID;
 }
 
 /* Various OPS */
@@ -67,7 +67,7 @@ static fdtype index_slotids(fdtype index_arg)
 {
   struct FD_INDEX *ix = fd_lisp2index(index_arg);
   if (ix == NULL)
-    return FD_ERROR_VALUE;
+    return FD_ERROR;
   else return fd_index_ctl(ix,fd_slotids_op,0,NULL);
 }
 
@@ -75,8 +75,8 @@ static fdtype indexctl_prim(int n,fdtype *args)
 {
   struct FD_INDEX *ix = fd_lisp2index(args[0]);
   if (ix == NULL)
-    return FD_ERROR_VALUE;
-  else if (!(FD_SYMBOLP(args[1])))
+    return FD_ERROR;
+  else if (!(SYMBOLP(args[1])))
     return fd_err("BadIndexOp","indexctl_prim",NULL,args[1]);
   else return fd_index_ctl(ix,args[1],n-1,args+1);
 }
@@ -85,8 +85,8 @@ static fdtype poolctl_prim(int n,fdtype *args)
 {
   struct FD_POOL *p = fd_lisp2pool(args[0]);
   if (p == NULL)
-    return FD_ERROR_VALUE;
-  else if (!(FD_SYMBOLP(args[1])))
+    return FD_ERROR;
+  else if (!(SYMBOLP(args[1])))
     return fd_err("BadPoolOp","poolctl_prim",NULL,args[1]);
   else return fd_pool_ctl(p,args[1],n-2,args+2);
 }
@@ -110,7 +110,7 @@ FD_EXPORT void fd_init_driverfns_c()
 
   fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,
-                                          fd_consed_pool_type,FD_VOID,-1,FD_VOID)));
+                                          fd_consed_pool_type,VOID,-1,VOID)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");

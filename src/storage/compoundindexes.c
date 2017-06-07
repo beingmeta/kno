@@ -23,7 +23,7 @@ static struct FD_INDEX_HANDLER compoundindex_handler;
 static fdtype compound_fetch(fd_index ix,fdtype key)
 {
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  fdtype combined = FD_EMPTY_CHOICE;
+  fdtype combined = EMPTY;
   int i = 0, lim;
   fd_lock_index(cix);
   lim = cix->n_indexes;
@@ -34,14 +34,14 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
       eix->index_cache_level = fd_default_cache_level;
       fd_index_setcache(eix,fd_default_cache_level);}
     if (fd_hashtable_probe(&(eix->index_cache),key))
-      value = fd_hashtable_get(&(eix->index_cache),key,FD_EMPTY_CHOICE);
+      value = fd_hashtable_get(&(eix->index_cache),key,EMPTY);
     else if ((eix->index_adds.table_n_keys) || (eix->index_edits.table_n_keys))
       value = fd_index_get(eix,key);
     else value = eix->index_handler->fetch(eix,key);
     if (FD_ABORTP(value)) {
       fd_decref(combined); fd_unlock_index(cix);
       return value;}
-    else {FD_ADD_TO_CHOICE(combined,value);}}
+    else {CHOICE_ADD(combined,value);}}
   fd_unlock_index(cix);
   return combined;
 }
@@ -52,9 +52,9 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
   fdtype *keyv = u8_alloc_n(n,fdtype);
   fdtype *valuev = u8_alloc_n(n,fdtype);
-  FD_DO_CHOICES(key,keys)
+  DO_CHOICES(key,keys)
     if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
-      keyv[n_fetches]=key; valuev[n_fetches]=FD_EMPTY_CHOICE; n_fetches++;}
+      keyv[n_fetches]=key; valuev[n_fetches]=EMPTY; n_fetches++;}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(valuev);
     return 0;}
@@ -69,12 +69,12 @@ static int compound_prefetch(fd_index ix,fdtype keys)
       fd_unlock_index(cix);
       return -1;}
     while (j<n_fetches) {
-      FD_ADD_TO_CHOICE(valuev[j],values[j]); j++;}
+      CHOICE_ADD(valuev[j],values[j]); j++;}
     u8_free(values);
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
-    if (FD_PRECHOICEP(valuev[i])) {
+    if (PRECHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
   /* The operation fd_table_add_empty_noref will create an entry even if the value
@@ -96,11 +96,11 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
     int off = scan-keys; fdtype key = *scan++;
     if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
       keyv[n_fetches]=key;
-      valuev[n_fetches]=FD_EMPTY_CHOICE;
+      valuev[n_fetches]=EMPTY;
       posmap[n_fetches]=off;
       n_fetches++;}
     else valuev[scan-keys]=
-           fd_hashtable_get(&(cix->index_cache),key,FD_EMPTY_CHOICE);}
+           fd_hashtable_get(&(cix->index_cache),key,EMPTY);}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(posmap);
     return valuev;}
@@ -115,12 +115,12 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
       fd_unlock_index(cix);
       return NULL;}
     while (j<n_fetches) {
-      FD_ADD_TO_CHOICE(valuev[posmap[j]],values[j]); j++;}
+      CHOICE_ADD(valuev[posmap[j]],values[j]); j++;}
     u8_free(values);
     i++;}
   fd_unlock_index(cix);
   i = 0; while (i<n_fetches)
-    if (FD_PRECHOICEP(valuev[i])) {
+    if (PRECHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
   /* The operation fd_table_add_empty_noref will create an entry even
@@ -132,7 +132,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
 static fdtype *compound_fetchkeys(fd_index ix,int *n)
 {
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  fdtype combined = FD_EMPTY_CHOICE;
+  fdtype combined = EMPTY;
   int i = 0, lim;
   fd_lock_index(cix);
   lim = cix->n_indexes;
@@ -144,7 +144,7 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
       fd_unlock_index(cix);
       fd_interr(keys);
       return NULL;}
-    else {FD_ADD_TO_CHOICE(combined,keys);}}
+    else {CHOICE_ADD(combined,keys);}}
   fd_unlock_index(cix);
   {
     fdtype simple = fd_simplify_choice(combined);
@@ -156,11 +156,11 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
       results[0]=simple; *n = 1;
       return results;}
     else if (FD_CONS_REFCOUNT((fd_cons)simple)==1) {
-      FD_DO_CHOICES(key,simple) {results[j]=key;}
+      DO_CHOICES(key,simple) {results[j]=key;}
       u8_free((fd_cons)simple);
       *n = n_elts; return results;}
     else {
-      FD_DO_CHOICES(key,simple) {results[j]=fd_incref(key);}
+      DO_CHOICES(key,simple) {results[j]=fd_incref(key);}
       fd_decref(simple);
       *n = n_elts; return results;}
   }
@@ -222,7 +222,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     else cix->indexid = u8_mkstring("compound%s",cix->index_source);
     fd_reset_hashtable(&(cix->index_cache),-1,1);
     return 1;}
-  else return fd_reterr(fd_TypeError,("compound_index"),NULL,FD_VOID);
+  else return fd_reterr(fd_TypeError,("compound_index"),NULL,VOID);
 }
 
 static struct FD_INDEX_HANDLER compoundindex_handler={

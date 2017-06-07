@@ -63,37 +63,37 @@ static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
 {
   if (FD_ABORTP(val)) return val;
   else if (FD_ABORTP(fn)) return val;
-  else if (FD_VECTORP(fn)) {
-    fdtype eltfn = FD_VECTOR_REF(fn,0);
-    if (FD_VECTORP(val)) {
-      fdtype results = FD_EMPTY_CHOICE;
-      fdtype *elts = FD_VECTOR_DATA(val);
-      int i = 0, lim = FD_VECTOR_LENGTH(val);
+  else if (VECTORP(fn)) {
+    fdtype eltfn = VEC_REF(fn,0);
+    if (VECTORP(val)) {
+      fdtype results = EMPTY;
+      fdtype *elts = VEC_DATA(val);
+      int i = 0, lim = VEC_LEN(val);
       while (i<lim) {
         fdtype cval = convert_value(eltfn,elts[i],0,warn);
         if (FD_ABORTP(cval)) {
           fd_clear_errors(warn); fd_incref(elts[i]);
-          FD_ADD_TO_CHOICE(results,elts[i]);}
-        else if (FD_VOIDP(cval)) {
+          CHOICE_ADD(results,elts[i]);}
+        else if (VOIDP(cval)) {
           fd_incref(elts[i]);
-          FD_ADD_TO_CHOICE(results,elts[i]);}
+          CHOICE_ADD(results,elts[i]);}
         else {
-          FD_ADD_TO_CHOICE(results,cval);}
+          CHOICE_ADD(results,cval);}
         i++;}
       fd_decref(val);
       return results;}
     else return convert_value(eltfn,val,1,warn);}
   else if (FD_APPLICABLEP(fn)) {
     fdtype converted = fd_apply(fn,1,&val);
-    if (FD_VOIDP(converted)) return val;
+    if (VOIDP(converted)) return val;
     else if (FD_ABORTP(converted)) {
       fd_clear_errors(warn);
       return val;}
     else {
       fd_decref(val);
       return converted;}}
-  else if ((FD_TRUEP(fn))&&(FD_STRINGP(val))) {
-    fdtype parsed = fd_parse(FD_STRDATA(val));
+  else if ((FD_TRUEP(fn))&&(STRINGP(val))) {
+    fdtype parsed = fd_parse(CSTRING(val));
     if (FD_ABORTP(parsed)) {
       fd_clear_errors(warn);
       return val;}
@@ -127,7 +127,7 @@ static fdtype json_atom(U8_INPUT *in,int flags)
   if (c>=0) u8_ungetc(in,c);
   if ((strcmp(out.u8_outbuf,"true")==0)) result = FD_TRUE;
   else if ((strcmp(out.u8_outbuf,"false")==0)) result = FD_FALSE;
-  else if  ((strcmp(out.u8_outbuf,"null")==0)) result = FD_EMPTY_CHOICE;
+  else if  ((strcmp(out.u8_outbuf,"null")==0)) result = EMPTY;
   else result = fd_parse(out.u8_outbuf);
   if (FD_ABORTP(result))
     result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
@@ -202,32 +202,32 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
   if (c=='"')
     if (flags&FD_JSON_SYMBOLIZE)
       return json_intern(in,flags);
-    else if (FD_VOIDP(fieldmap))
+    else if (VOIDP(fieldmap))
       return json_string(in,flags);
     else {
       fdtype stringkey = json_string(in,flags);
-      fdtype mapped = fd_get(fieldmap,stringkey,FD_VOID);
-      if (FD_VOIDP(mapped)) return stringkey;
+      fdtype mapped = fd_get(fieldmap,stringkey,VOID);
+      if (VOIDP(mapped)) return stringkey;
       else {
         fd_decref(stringkey);
         return mapped;}}
   else if (((c=='{')||(c=='['))&&(!(flags&FD_JSON_ANYKEY))) {
-    fd_seterr("Invalid JSON key","json_key",NULL,FD_VOID);
+    fd_seterr("Invalid JSON key","json_key",NULL,VOID);
     return FD_PARSE_ERROR;}
   else if ((!(flags&FD_JSON_IDKEY))&&(!((u8_isdigit(c))||(c=='+')||(c=='-')))) {
-    fd_seterr("Invalid JSON key","json_key",NULL,FD_VOID);
+    fd_seterr("Invalid JSON key","json_key",NULL,VOID);
     return FD_PARSE_ERROR;}
   else {
     fdtype result = json_atom(in,flags);
-    if ((FD_FIXNUMP(result))||(FD_BIGINTP(result))||(FD_FLONUMP(result)))
+    if ((FIXNUMP(result))||(FD_BIGINTP(result))||(FD_FLONUMP(result)))
       return result;
-    else if ((FD_SYMBOLP(result))&&(flags&FD_JSON_IDKEY))
+    else if ((SYMBOLP(result))&&(flags&FD_JSON_IDKEY))
       return result;
     else if (flags&FD_JSON_ANYKEY)
       return result;
     else {
       fd_decref(result);
-      fd_seterr("Invalid JSON key","json_key",NULL,FD_VOID);
+      fd_seterr("Invalid JSON key","json_key",NULL,VOID);
       return FD_PARSE_ERROR;}}
 }
 
@@ -236,7 +236,7 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
   int n_elts = 0, max_elts = 16, c, i;
   unsigned int good_pos = in->u8_read-in->u8_inbuf;
   fdtype *elts;
-  if (u8_getc(in)!='[') return FD_ERROR_VALUE;
+  if (u8_getc(in)!='[') return FD_ERROR;
   else elts = u8_alloc_n(16,fdtype);
   c = skip_whitespace(in);
   while (c>=0) {
@@ -261,7 +261,7 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
   i = 0; while (i<n_elts) {fd_decref(elts[i]); i++;}
   return fd_err(JSON_Error,"json_vector",
                 u8_strdup(in->u8_inbuf+good_pos),
-                FD_VOID);
+                VOID);
 }
 
 static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
@@ -269,7 +269,7 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
   int n_elts = 0, max_elts = 16, c, i;
   unsigned int good_pos = in->u8_read-in->u8_inbuf;
   struct FD_KEYVAL *kv;
-  if (u8_getc(in)!='{') return FD_ERROR_VALUE;
+  if (u8_getc(in)!='{') return FD_ERROR;
   else kv = u8_alloc_n(16,struct FD_KEYVAL);
   c = skip_whitespace(in);
   while (c>=0) {
@@ -293,11 +293,11 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
       c = skip_whitespace(in);
       if (c==':') c = u8_getc(in);
       else return FD_EOD;
-      if ((FD_VOIDP(fieldmap))||(FD_CONSP(kv[n_elts].kv_key)))
+      if ((VOIDP(fieldmap))||(CONSP(kv[n_elts].kv_key)))
         kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
       else {
-        fdtype handler = fd_get(fieldmap,kv[n_elts].kv_key,FD_VOID);
-        if (FD_VOIDP(handler))
+        fdtype handler = fd_get(fieldmap,kv[n_elts].kv_key,VOID);
+        if (VOIDP(handler))
           kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
         else
           kv[n_elts].kv_val = convert_value(handler,json_parse(in,flags,fieldmap),
@@ -307,7 +307,7 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
   i = 0; while (i<n_elts) {
     fd_decref(kv[i].kv_key); fd_decref(kv[i].kv_val); i++;}
   u8_free(kv);
-  return fd_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,FD_VOID);
+  return fd_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,VOID);
 }
 
 static fdtype symbolize_symbol, colonize_symbol, rawids_symbol;
@@ -315,10 +315,10 @@ static fdtype ticks_symbol, ticklets_symbol, verbose_symbol;
 
 static int get_json_flags(fdtype flags_arg)
 {
-  if (FD_FALSEP(flags_arg))
+  if (FALSEP(flags_arg))
     return 0;
-  else if (FD_FIXNUMP(flags_arg)) {
-    long long val=FD_FIX2INT(flags_arg);
+  else if (FIXNUMP(flags_arg)) {
+    long long val=FIX2INT(flags_arg);
     if ((val>0) && (val<FD_JSON_MAXFLAGS))
       return (unsigned int) val;
     else return FD_JSON_DEFAULTS;}
@@ -326,27 +326,27 @@ static int get_json_flags(fdtype flags_arg)
     return FD_JSON_COLONIZE|FD_JSON_SYMBOLIZE;
   else if (flags_arg == FD_DEFAULT_VALUE)
     return FD_JSON_DEFAULTS;
-  else if ((FD_PAIRP(flags_arg))||(FD_TABLEP(flags_arg))) {
+  else if ((PAIRP(flags_arg))||(TABLEP(flags_arg))) {
     int flags=0;
     if (!(fd_testopt(flags_arg,symbolize_symbol,FD_FALSE)))
       flags |= FD_JSON_SYMBOLIZE;
-    if (!(fd_testopt(flags_arg,colonize_symbol,FD_VOID)))
+    if (!(fd_testopt(flags_arg,colonize_symbol,VOID)))
       flags |= FD_JSON_COLONIZE;
-    if (!(fd_testopt(flags_arg,rawids_symbol,FD_VOID)))
+    if (!(fd_testopt(flags_arg,rawids_symbol,VOID)))
       flags |= FD_JSON_IDKEY;
-    if (!(fd_testopt(flags_arg,ticks_symbol,FD_VOID)))
+    if (!(fd_testopt(flags_arg,ticks_symbol,VOID)))
       flags |= FD_JSON_TICKS;
-    if (!(fd_testopt(flags_arg,ticklets_symbol,FD_VOID)))
+    if (!(fd_testopt(flags_arg,ticklets_symbol,VOID)))
       flags |= FD_JSON_TICKLETS;
-    if (!(fd_testopt(flags_arg,verbose_symbol,FD_VOID)))
+    if (!(fd_testopt(flags_arg,verbose_symbol,VOID)))
       flags |= FD_JSON_VERBOSE;
     return flags;}
-  else if (FD_PRECHOICEP(flags_arg)) {
+  else if (PRECHOICEP(flags_arg)) {
     fdtype choice=fd_make_simple_choice(flags_arg);
     int rv=get_json_flags(choice);
     fd_decref(choice);
     return rv;}
-  else if (FD_CHOICEP(flags_arg)) {
+  else if (CHOICEP(flags_arg)) {
     int flags=0;
     if (fd_choice_containsp(symbolize_symbol,flags_arg))
       flags |= FD_JSON_SYMBOLIZE;
@@ -371,11 +371,11 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,in,fd_port_type);
     U8_INPUT *in = p->fd_inport;
     return json_parse(in,flags,fieldmap);}
-  else if (FD_STRINGP(in)) {
+  else if (STRINGP(in)) {
     struct U8_INPUT inport;
-    U8_INIT_STRING_INPUT(&inport,FD_STRLEN(in),FD_STRDATA(in));
+    U8_INIT_STRING_INPUT(&inport,STRLEN(in),CSTRING(in));
     return json_parse(&inport,flags,fieldmap);}
-  else if (FD_PACKETP(in)) {
+  else if (PACKETP(in)) {
     struct U8_INPUT inport;
     U8_INIT_STRING_INPUT(&inport,FD_PACKET_LENGTH(in),FD_PACKET_DATA(in));
     return json_parse(&inport,flags,fieldmap);}
@@ -435,22 +435,22 @@ static void json_lower(u8_output out,u8_string s)
 
 static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
-  if (FD_VOIDP(value)) return 0;
+  if (VOIDP(value)) return 0;
   else {
-    fdtype slotname = ((FD_VOIDP(slotfn))?(FD_VOID):(fd_apply(slotfn,1,&key)));
-    if (FD_VOIDP(slotname))
-      if ((FD_SYMBOLP(key))&&(flags&FD_JSON_SYMBOLIZE)) {
-        u8_string pname = FD_SYMBOL_NAME(key);
+    fdtype slotname = ((VOIDP(slotfn))?(VOID):(fd_apply(slotfn,1,&key)));
+    if (VOIDP(slotname))
+      if ((SYMBOLP(key))&&(flags&FD_JSON_SYMBOLIZE)) {
+        u8_string pname = SYM_NAME(key);
         if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');
         json_lower(out,pname);
         if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');}
       else json_unparse(out,key,flags,oidfn,slotfn,miscfn);
-    else if (FD_STRINGP(slotname)) {
+    else if (STRINGP(slotname)) {
       u8_putc(out,'"');
-      json_escape(out,FD_STRDATA(slotname)); fd_decref(slotname);
+      json_escape(out,CSTRING(slotname)); fd_decref(slotname);
       u8_putc(out,'"');}
-    else if (FD_SYMBOLP(slotname)) {
-      json_escape(out,FD_SYMBOL_NAME(slotname));}
+    else if (SYMBOLP(slotname)) {
+      json_escape(out,SYM_NAME(slotname));}
     else return 0;
     u8_puts(out,": ");
     json_unparse(out,value,flags,oidfn,slotfn,miscfn);
@@ -460,25 +460,25 @@ static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype s
 static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
                          fdtype oidfn,fdtype miscfn)
 {
-  if (FD_FIXNUMP(x))
-    u8_printf(out,"%lld",FD_FIX2INT(x));
-  else if (FD_OIDP(x)) {
-    fdtype oidval = ((FD_VOIDP(oidfn))?(FD_VOID):
+  if (FIXNUMP(x))
+    u8_printf(out,"%lld",FIX2INT(x));
+  else if (OIDP(x)) {
+    fdtype oidval = ((VOIDP(oidfn))?(VOID):
                    (fd_finish_call(fd_dapply(oidfn,1,&x))));
-    if (FD_VOIDP(oidval)) {
+    if (VOIDP(oidval)) {
       FD_OID addr = FD_OID_ADDR(x);
       if (flags)
         u8_printf(out,"\":@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
       else u8_printf(out,"\"@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));}
     else json_unparse(out,oidval,flags,slotfn,oidfn,miscfn);
     fd_decref(oidval);}
-  else if ((FD_SYMBOLP(x))&&(FD_VOIDP(miscfn))) {
-    u8_string pname = FD_SYMBOL_NAME(x);
+  else if ((SYMBOLP(x))&&(VOIDP(miscfn))) {
+    u8_string pname = SYM_NAME(x);
     u8_puts(out,"\":");
     json_escape(out,pname);
     u8_puts(out,"\"");}
-  else if (FD_STRINGP(x)) {
-    u8_string pstring = FD_STRDATA(x);
+  else if (STRINGP(x)) {
+    u8_string pstring = CSTRING(x);
     u8_puts(out,"\"");
     if (((flags)&(FD_JSON_COLONIZE))&&(pstring[0]==':')) {
       u8_putc(out,'\\'); u8_putc(out,'\\');}
@@ -486,16 +486,16 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
     u8_puts(out,"\"");}
   else if ((FD_BIGINTP(x))||(FD_FLONUMP(x)))
     fd_unparse(out,x);
-  else if (FD_VECTORP(x)) {
-    int i = 0; int lim = FD_VECTOR_LENGTH(x);
+  else if (VECTORP(x)) {
+    int i = 0; int lim = VEC_LEN(x);
     if (lim==0) u8_putc(out,'[');
     else while (i<lim) {
         if (i>0) u8_putc(out,','); else u8_putc(out,'[');
-        json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
+        json_unparse(out,VEC_REF(x,i),flags,slotfn,oidfn,miscfn);
         i++;}
     u8_putc(out,']');}
-  else if ((FD_CHOICEP(x))||(FD_PRECHOICEP(x))) {
-    int elt_count = 0; FD_DO_CHOICES(e,x) {
+  else if ((CHOICEP(x))||(PRECHOICEP(x))) {
+    int elt_count = 0; DO_CHOICES(e,x) {
       if (elt_count>0) u8_putc(out,',');
       else u8_puts(out,"[");
       json_unparse(out,e,flags,slotfn,oidfn,miscfn);
@@ -523,27 +523,27 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
     if ((flags)&(FD_JSON_COLONIZE))
       u8_printf(out,"\":#U%s\"",buf);
     else u8_printf(out,"\"%s\"",buf);}
-  else if (FD_TABLEP(x)) {
+  else if (TABLEP(x)) {
     fdtype keys = fd_getkeys(x);
-    if (FD_EMPTY_CHOICEP(keys)) u8_puts(out,"{}");
+    if (EMPTYP(keys)) u8_puts(out,"{}");
     else {
-      int elt_count = 0; FD_DO_CHOICES(key,keys) {
-        fdtype value = fd_get(x,key,FD_VOID);
-        if (!(FD_VOIDP(value))) {
+      int elt_count = 0; DO_CHOICES(key,keys) {
+        fdtype value = fd_get(x,key,VOID);
+        if (!(VOIDP(value))) {
           if (elt_count>0) u8_putc(out,',');
           else u8_puts(out,"{");
           if (json_slotval(out,key,value,flags,slotfn,oidfn,miscfn)) elt_count++;
           fd_decref(value);}}
       u8_puts(out,"}");}}
-  else if (FD_EMPTY_CHOICEP(x)) u8_puts(out,"[]");
+  else if (EMPTYP(x)) u8_puts(out,"[]");
   else if (FD_TRUEP(x)) u8_puts(out,"true");
-  else if (FD_FALSEP(x)) u8_puts(out,"false");
+  else if (FALSEP(x)) u8_puts(out,"false");
   else {
     u8_byte buf[256]; struct U8_OUTPUT tmpout;
-    fdtype tval = ((FD_VOIDP(miscfn))?(FD_VOID):
+    fdtype tval = ((VOIDP(miscfn))?(VOID):
                  (fd_finish_call(fd_dapply(miscfn,1,&x))));
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
-    if (FD_VOIDP(tval)) fd_unparse(&tmpout,x);
+    if (VOIDP(tval)) fd_unparse(&tmpout,x);
     else fd_unparse(&tmpout,tval);
     fd_decref(tval);
     if (flags) u8_puts(out,"\":"); else u8_putc(out,'"');
@@ -561,7 +561,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
   if (out == u8_global_output) u8_flush(out);
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,
@@ -585,34 +585,34 @@ FD_EXPORT void fd_init_json_c()
 
   fd_idefn3(module,"JSONPARSE",jsonparseprim,1,
             "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
-            -1,FD_VOID,
+            -1,VOID,
             -1,FD_INT(FD_JSON_DEFAULTS),
-            -1,FD_VOID);
+            -1,VOID);
   fd_idefn3(unsafe_module,"JSONPARSE",jsonparseprim,1,
             "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",
-            -1,FD_VOID,
+            -1,VOID,
             -1,FD_INT(FD_JSON_DEFAULTS),
-            -1,FD_VOID);
+            -1,VOID);
 
   fd_idefn5(module,"->JSON",jsonstring,1,
             "(->JSON *obj* ...) returns a JSON string for the lisp object *obj*",
-            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-            -1,FD_VOID,-1,FD_VOID,
-            -1,FD_VOID);
+            -1,VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,VOID,-1,VOID,
+            -1,VOID);
   fd_idefn5(unsafe_module,"->JSON",jsonstring,1,
             "(->JSON *obj* ...) returns a JSON string for the lisp object *obj*",
-            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-            -1,FD_VOID,-1,FD_VOID,
-            -1,FD_VOID);
+            -1,VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,VOID,-1,VOID,
+            -1,VOID);
 
   fd_idefn5(module,"JSONOUTPUT",jsonoutput,1,
             "Outputs a JSON representation to the standard output",
-            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+            -1,VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,VOID,-1,VOID,-1,VOID);
   fd_idefn5(unsafe_module,"JSONOUTPUT",jsonoutput,1,
             "Outputs a JSON representation to the standard output",
-            -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
-            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+            -1,VOID,-1,FD_INT(FD_JSON_DEFAULTS),
+            -1,VOID,-1,VOID,-1,VOID);
 
   symbolize_symbol=fd_intern("SYMBOLIZE");
   colonize_symbol=fd_intern("COLONIZE");

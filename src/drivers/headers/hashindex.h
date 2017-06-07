@@ -104,8 +104,8 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 
 /* Utilities for DTYPE I/O */
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
 #define output_byte(out,b) \
   if (fd_write_byte(out,b)<0) return -1; else {}

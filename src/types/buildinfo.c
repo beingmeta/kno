@@ -13,7 +13,7 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
-static fdtype build_info=FD_VOID;
+static fdtype build_info=VOID;
 static fdtype _fd_features_symbol;
 
 #define config_int(var) \
@@ -43,7 +43,7 @@ FD_EXPORT fdtype config_get_build_info(fdtype var,void *data)
 FD_EXPORT void fd_init_build_info()
 {
   _fd_features_symbol=fd_intern("FEATURES");
-  if (FD_VOIDP(build_info))
+  if (VOIDP(build_info))
     build_info=fd_make_slotmap(64,0,NULL);
 
 #ifdef FD_WORDS_ARE_ALIGNED

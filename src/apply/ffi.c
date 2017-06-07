@@ -46,16 +46,16 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args);
 
 static ffi_type *get_ffi_type(fdtype arg)
 {
-  if (FD_TABLEP(arg)) {
-    fdtype typename = fd_getopt(arg,basetype_symbol,FD_VOID);
-    if (FD_VOIDP(typename)) {
+  if (TABLEP(arg)) {
+    fdtype typename = fd_getopt(arg,basetype_symbol,VOID);
+    if (VOIDP(typename)) {
       fd_seterr("NoFFItype","get_ffi_type",NULL,arg);
       return NULL;}
-    else if (!(FD_SYMBOLP(typename))) {
+    else if (!(SYMBOLP(typename))) {
       fd_seterr("BadFFItype","get_ffi_type",NULL,typename);
       return NULL;}
     else return get_ffi_type(typename);}
-  else if (!(FD_SYMBOLP(arg))) {
+  else if (!(SYMBOLP(arg))) {
     fd_seterr("BadFFItype","get_ffi_type",NULL,arg);
     return NULL;}
   else if ((arg == ulong_symbol) || (arg == lisp_symbol))
@@ -171,18 +171,18 @@ static int handle_ffi_arg(fdtype arg,fdtype spec,
     *valptr = (void *) arg;
     fd_incref(arg);}
   else if (spec == cons_symbol) {
-    if (FD_CONSP(arg))
+    if (CONSP(arg))
       *valptr = (void *)arg;
     else return ffi_type_error("CONS",arg);}
   else if (spec == ptr_symbol) {
     if (FD_PRIM_TYPEP(arg,fd_rawptr_type)) {
       struct FD_RAWPTR *raw=(fd_rawptr)arg;
       *valptr=raw->ptrval;}
-    else if (FD_CONSP(arg))
+    else if (CONSP(arg))
       *valptr = (void *)arg;
     else return ffi_type_error("pointer",arg);}
-  else if (FD_FIXNUMP(arg)) {
-    long long ival = FD_FIX2INT(arg);
+  else if (FIXNUMP(arg)) {
+    long long ival = FIX2INT(arg);
     if (spec == int_symbol) {
       if ((ival <= INT_MAX) && (ival >= INT_MIN))
 	*((int *)valptr) = ival;
@@ -241,26 +241,26 @@ static int handle_ffi_arg(fdtype arg,fdtype spec,
     else if (spec == double_symbol) {
       double f=(float)FD_FLONUM(arg);
       *((double *)valptr)=f;}
-    else if (FD_SYMBOLP(spec))
-      return fd_type_error(FD_SYMBOL_NAME(spec),"handle_ffi_arg",spec);
+    else if (SYMBOLP(spec))
+      return fd_type_error(SYM_NAME(spec),"handle_ffi_arg",spec);
     else return fd_type_error("ctype","handle_ffi_arg",spec);
     *argptr = valptr;
     return 1;}
-  else if (FD_STRINGP(arg)) {
+  else if (STRINGP(arg)) {
     if (spec == string_symbol) {
-      *valptr = (void *)FD_STRDATA(arg);
+      *valptr = (void *)CSTRING(arg);
       *argptr = valptr;
       return 1;}
-    else if (FD_SYMBOLP(spec))
-      return ffi_type_error(FD_SYMBOL_NAME(spec),arg);
+    else if (SYMBOLP(spec))
+      return ffi_type_error(SYM_NAME(spec),arg);
     else return ffi_type_error("ctype",arg);}
-  else if (FD_PACKETP(arg)) {
+  else if (PACKETP(arg)) {
     if (spec == packet_symbol) {
-      *valptr = (void *)FD_STRDATA(arg);
+      *valptr = (void *)CSTRING(arg);
       *argptr = valptr;
       return 1;}
-    else if (FD_SYMBOLP(spec))
-      return ffi_type_error(FD_SYMBOL_NAME(spec),arg);
+    else if (SYMBOLP(spec))
+      return ffi_type_error(SYM_NAME(spec),arg);
     else return ffi_type_error("ctype",arg);}
   else {
     fd_seterr("BadFFIArg","handle_ffi_arg",NULL,arg);
@@ -280,7 +280,7 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
     int i = 0;
     i = 0; while (i<arity) {
       int rv = handle_ffi_arg(args[i],argspecs[i],&(vals[i]),&(argptrs[i]));
-      if (rv<0) return FD_ERROR_VALUE;
+      if (rv<0) return FD_ERROR;
       else i++;}
     if (return_spec == lisp_symbol) {
       fdtype result;
@@ -343,9 +343,9 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
       float dval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&dval,argptrs);
       return fd_make_flonum(dval);}
-    else return FD_VOID;}
+    else return VOID;}
   else return fd_err(_("Not an foreign function interface"),
-		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);
+		     "ffi_caller",u8_strdup(fn->fcn_name),VOID);
 }
 
 /* Generic object methods */

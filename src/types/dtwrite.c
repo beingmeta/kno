@@ -64,7 +64,7 @@ static ssize_t try_dtype_output(int *len,struct FD_OUTBUF *out,fdtype x)
   return dlen;
 }
 #define fd_output_dtype(len,out,x) \
-  if (FD_EXPECT_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out); \
+  if (PRED_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
 static int write_opaque(struct FD_OUTBUF *out,fdtype x)
@@ -114,13 +114,13 @@ static int write_choice_dtype(fd_outbuf out,fd_choice ch)
 
 FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
 {
-  if (FD_EXPECT_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out);
+  if (PRED_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out);
   else switch (FD_PTR_MANIFEST_TYPE(x)) {
     case fd_oid_ptr_type: { /* output OID */
       FD_OID addr = FD_OID_ADDR(x);
       if ((FD_OID_HI(addr))==0) {
         fdtype val = fd_zero_pool_value(x);
-        if (!(FD_VOIDP(val))) {
+        if (!(VOIDP(val))) {
           int rv = fd_write_dtype(out,val);
           fd_decref(val);
           return rv;}}
@@ -129,7 +129,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
       fd_output_4bytes(out,FD_OID_LO(addr));
       return 9;}
     case fd_fixnum_ptr_type: { /* output fixnum */
-      long long val = FD_FIX2INT(x);
+      long long val = FIX2INT(x);
       if ((val<=INT_MAX) && (val>=INT_MIN)) {
         fd_output_byte(out,dt_fixnum);
         fd_output_4bytes(out,val);
@@ -268,7 +268,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
           fdtype cdr = p->cdr;
           {fd_output_byte(out,dt_pair); len++;}
           {fd_output_dtype(len,out,p->car);}
-          if (FD_PAIRP(cdr)) scan = cdr;
+          if (PAIRP(cdr)) scan = cdr;
           else {
             fd_output_dtype(len,out,cdr);
             return len;}}
@@ -298,7 +298,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
       case fd_qchoice_type: {
         struct FD_QCHOICE *qv = (struct FD_QCHOICE *) cons;
         fd_output_byte(out,dt_framerd_package);
-        if (FD_EMPTY_CHOICEP(qv->qchoiceval)) {
+        if (EMPTYP(qv->qchoiceval)) {
           fd_output_byte(out,dt_small_qchoice);
           fd_output_byte(out,0);
           return 3;}
@@ -501,7 +501,7 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x)
   out.buf_flags = FD_IS_WRITING;
   if (fd_write_dtype(&out,x)<0) {
     if (out.buffer != tmpbuf) u8_free(out.buffer);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else dt_len=out.bufwrite-out.buffer;
   zbytes = fd_zlib_compress(out.buffer,dt_len,zbuf,&zlen,-1);
   if (zbytes) {
@@ -524,12 +524,12 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
   out.bufwrite = out.buffer = tmpbuf;
   out.buflim = out.buffer+2000;
   out.buf_flags = FD_IS_WRITING;
-  if (FD_CHOICEP(x)) {
-    FD_DO_CHOICES(v,x) {
+  if (CHOICEP(x)) {
+    DO_CHOICES(v,x) {
       retval = fd_write_dtype(&out,v);
       if (retval<0) {FD_STOP_DO_CHOICES; break;}}}
-  else if (FD_VECTORP(x)) {
-    int i = 0, len = FD_VECTOR_LENGTH(x); fdtype *data = FD_VECTOR_DATA(x);
+  else if (VECTORP(x)) {
+    int i = 0, len = VEC_LEN(x); fdtype *data = VEC_DATA(x);
     while (i<len) {
       retval = fd_write_dtype(&out,data[i]); i++;
       if (retval<0) break;}}

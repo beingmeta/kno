@@ -37,15 +37,15 @@ FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
 
 static fdtype macro_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  if ((FD_PAIRP(expr)) && (FD_PAIRP(FD_CDR(expr))) &&
-      (FD_SYMBOLP(FD_CADR(expr))) &&
-      (FD_PAIRP(FD_CDR(FD_CDR(expr))))) {
+  if ((PAIRP(expr)) && (PAIRP(FD_CDR(expr))) &&
+      (SYMBOLP(FD_CADR(expr))) &&
+      (PAIRP(FD_CDR(FD_CDR(expr))))) {
     fdtype name = FD_CADR(expr), body = FD_CDR(FD_CDR(expr));
     fdtype lambda_form=
       fd_conspair(lambda_symbol,
                   fd_conspair(fd_make_list(1,name),fd_incref(body)));
     fdtype transformer = fd_eval(lambda_form,env);
-    fdtype macro = fd_make_macro(FD_SYMBOL_NAME(name),transformer);
+    fdtype macro = fd_make_macro(SYM_NAME(name),transformer);
     fd_decref(lambda_form); fd_decref(transformer);
     return macro;}
   else return fd_err(fd_SyntaxError,"MACRO",NULL,expr);

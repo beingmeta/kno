@@ -55,8 +55,8 @@ FD_EXPORT void fd_seterr
     ((u8_condition)"Unknown (NULL) error");
   fdtype exception = fd_make_exception(condition,cxt,details,irritant);
   fdtype base      = fd_init_pair(NULL,exception,
-				  ( (FD_VOIDP(irritant)) ? (FD_EMPTY_LIST) :
-				    (fd_init_pair(NULL,irritant,FD_EMPTY_LIST)) ) );
+				  ( (VOIDP(irritant)) ? (NIL) :
+				    (fd_init_pair(NULL,irritant,NIL)) ) );
   fdtype errinfo   = fd_init_pair(NULL,stacktrace_symbol,
 				  fd_get_backtrace(fd_stackptr,base));
   // TODO: Push the exception and then generate the stack, just in
@@ -73,7 +73,7 @@ FD_EXPORT void fd_pusherr
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
   if (errno) u8_graberrno(cxt,u8dup(details));
-  if (FD_VOIDP(irritant))
+  if (VOIDP(irritant))
     u8_push_exception(c,cxt,details,NULL,NULL);
   else {
     fd_incref(irritant);
@@ -92,10 +92,10 @@ FD_EXPORT void fd_xseterr
 FD_EXPORT fdtype fd_get_irritant(u8_exception ex)
 {
   fdtype irritant = (ex->u8x_free_xdata == fd_free_exception_xdata) ?
-    ((fdtype) ex->u8x_xdata) : (FD_VOID);
-  if (FD_VOIDP(irritant))
+    ((fdtype) ex->u8x_xdata) : (VOID);
+  if (VOIDP(irritant))
     return irritant;
-  if ((FD_PAIRP(irritant)) && (FD_PAIRP(FD_CDR(irritant))) &&
+  if ((PAIRP(irritant)) && (PAIRP(FD_CDR(irritant))) &&
       (FD_CAR(irritant) == stacktrace_symbol)) {
     if (FD_TYPEP(FD_CADR(irritant),fd_error_type)) {
       struct FD_EXCEPTION_OBJECT *embedded=
@@ -103,14 +103,14 @@ FD_EXPORT fdtype fd_get_irritant(u8_exception ex)
       u8_exception embedded_ex = embedded->fdex_u8ex;
       if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
 	return ((fdtype) embedded_ex->u8x_xdata);
-      else return FD_VOID;}
-    else return FD_VOID;}
+      else return VOID;}
+    else return VOID;}
   else return irritant;
 }
 
 FD_EXPORT int fd_stacktracep(fdtype rep)
 {
-  if ((FD_PAIRP(rep)) && (FD_CAR(rep) == stacktrace_symbol))
+  if ((PAIRP(rep)) && (FD_CAR(rep) == stacktrace_symbol))
     return 1;
   else return 0;
 }
@@ -141,7 +141,7 @@ FD_EXPORT int fd_poperr
       *irritant = (fdtype)(current->u8x_xdata);
       current->u8x_xdata = NULL;
       current->u8x_free_xdata = NULL;}
-    else *irritant = FD_VOID;}
+    else *irritant = VOID;}
   u8_pop_exception();
   return 1;
 }
@@ -151,7 +151,7 @@ FD_EXPORT fdtype fd_exception_xdata(u8_exception ex)
   if ((ex->u8x_xdata) &&
       (ex->u8x_free_xdata == fd_free_exception_xdata))
     return (fdtype)(ex->u8x_xdata);
-  else return FD_VOID;
+  else return VOID;
 }
 
 FD_EXPORT int fd_reterr
@@ -174,9 +174,9 @@ FD_EXPORT fdtype fd_err
       fd_seterr(ex,cxt,u8_strdup(details),fd_incref(irritant));
     else fd_seterr(ex,cxt,NULL,fd_incref(irritant));}
   else if (details)
-    fd_seterr(ex,cxt,u8_strdup(details),FD_VOID);
+    fd_seterr(ex,cxt,u8_strdup(details),VOID);
   else fd_seterr2(ex,cxt);
-  return FD_ERROR_VALUE;
+  return FD_ERROR;
 }
 
 FD_EXPORT fdtype fd_type_error
@@ -236,15 +236,15 @@ void fd_output_exception(u8_output out,u8_exception ex)
     u8_puts(out,")");}
   if (ex->u8x_free_xdata == fd_free_exception_xdata) {
     fdtype irritant=fd_get_irritant(ex);
-    if (FD_VOIDP(irritant)) {}
-    else if ( (FD_PAIRP(irritant)) ||
-	      (FD_VECTORP(irritant)) ||
-	      (FD_SLOTMAPP(irritant)) ||
-	      (FD_SCHEMAPP(irritant)) ) {
+    if (VOIDP(irritant)) {}
+    else if ( (PAIRP(irritant)) ||
+	      (VECTORP(irritant)) ||
+	      (SLOTMAPP(irritant)) ||
+	      (SCHEMAPP(irritant)) ) {
       u8_puts(out," irritant:\n    ");
       fd_pprint(out,irritant,"    ",0,4,120);}
-    else if ( (FD_STRINGP(irritant)) &&
-	      (FD_STRLEN(irritant)>40) ) {
+    else if ( (STRINGP(irritant)) &&
+	      (STRLEN(irritant)>40) ) {
       u8_puts(out," irritant (string):\n    ");
       fd_unparse(out,irritant);}
     else {
@@ -268,11 +268,11 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
   if (ex==NULL) ex=u8_current_exception;
   while (ex) {
     fdtype irritant = fd_get_irritant(ex);
-    if (FD_VOIDP(irritant))
+    if (VOIDP(irritant))
       u8_log(loglevel,ex->u8x_cond,"@%s %s",ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else if ( (FD_IMMEDIATEP(irritant)) ||
-	      (FD_NUMBERP(irritant)) ||
+	      (NUMBERP(irritant)) ||
 	      (FD_TYPEP(irritant,fd_timestamp_type)) ||
 	      (FD_TYPEP(irritant,fd_uuid_type)) ||
 	      (FD_TYPEP(irritant,fd_regex_type)) )
@@ -295,7 +295,7 @@ fdtype fd_exception_backtrace(u8_exception ex)
       if (fd_stacktracep(data))
 	return data;}
     ex=ex->u8x_prev;}
-  return FD_EMPTY_LIST;
+  return NIL;
 }
 
 int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
@@ -317,9 +317,9 @@ int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
            ( (bg->u8x_details == details) ||
              (strcmp(bg->u8x_details,details)==0)) )
         details = NULL;
-      if ( (!(FD_VOIDP(irritant))) &&
+      if ( (!(VOIDP(irritant))) &&
 	   ( irritant == ((fdtype)(bg->u8x_xdata)) ) )
-	irritant=FD_VOID;}
+	irritant=VOID;}
     if ((cond) && (context) && (details))
       u8_printf(out,"%m @%s (%s)",cond,context,details);
     else if ((cond) && (context))
@@ -334,7 +334,7 @@ int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
       u8_printf(out,"@%s",context);
     else if (details)
       u8_printf(out,"(%s)",details);
-    else if (!(FD_VOIDP(irritant))) {
+    else if (!(VOIDP(irritant))) {
       u8_byte buf[max_irritant_len+1];
       u8_sprintf(buf,max_irritant_len,"%Q",irritant);
       if ( (strchr(buf,'\n')) || (strlen(buf)>40) )
@@ -356,11 +356,11 @@ void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
     fdtype scan = (fdtype)(prev->u8x_xdata); int depth=0;
     if (fd_stacktracep(scan)) {
       u8_puts(out,";;* ");
-      while (FD_PAIRP(scan)) {
+      while (PAIRP(scan)) {
 	fdtype car=FD_CAR(scan); scan=FD_CDR(scan);
-	if (FD_STRINGP(car)) {
+	if (STRINGP(car)) {
 	  if (depth) u8_puts(out,"// ");
-	  u8_puts(out,FD_STRDATA(car));
+	  u8_puts(out,CSTRING(car));
 	  depth++;
 	  if ((depth%7)==0)
 	    u8_puts(out," //...\n;;* ...");
@@ -377,11 +377,11 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
     fdtype irritant = (fdtype) ex->u8x_xdata;
     if (fd_stacktracep(irritant)) {
       fdtype scan = FD_CDR(irritant);
-      while (FD_PAIRP(scan)) {
+      while (PAIRP(scan)) {
 	fdtype car=FD_CAR(scan); scan=FD_CDR(scan);
-	if (FD_STRINGP(car)) {
+	if (STRINGP(car)) {
 	  u8_puts(&out," ⇒ ");
-	  u8_puts(&out,FD_STRDATA(car));}
+	  u8_puts(&out,CSTRING(car));}
 	else if (FD_EXCEPTIONP(car)) {
 	  struct FD_EXCEPTION_OBJECT *exo=
 	    (struct FD_EXCEPTION_OBJECT *)car;
@@ -442,7 +442,7 @@ FD_EXPORT fdtype fd_make_exception
 {
   struct FD_EXCEPTION_OBJECT *exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
   u8_exception ex; void *xdata; u8_exception_xdata_freefn freefn;
-  if (FD_VOIDP(content)) {
+  if (VOIDP(content)) {
     xdata = NULL; freefn = NULL;}
   else {
     fd_incref(content);
@@ -464,7 +464,7 @@ static int dtype_exception(struct FD_OUTBUF *out,fdtype x)
   else {
     u8_exception ex = exo->fdex_u8ex;
     fdtype irritant = fd_exception_xdata(ex);
-    int veclen = ((FD_VOIDP(irritant)) ? (3) : (4));
+    int veclen = ((VOIDP(irritant)) ? (3) : (4));
     fdtype vector = fd_init_vector(NULL,veclen,NULL);
     int n_bytes;
     FD_VECTOR_SET(vector,0,fd_intern((u8_string)(ex->u8x_cond)));
@@ -474,7 +474,7 @@ static int dtype_exception(struct FD_OUTBUF *out,fdtype x)
     if (ex->u8x_details) {
       FD_VECTOR_SET(vector,2,fdtype_string(ex->u8x_details));}
     else {FD_VECTOR_SET(vector,2,FD_FALSE);}
-    if (!(FD_VOIDP(irritant)))
+    if (!(VOIDP(irritant)))
       FD_VECTOR_SET(vector,3,fd_incref(irritant));
     fd_write_byte(out,dt_exception);
     n_bytes = 1+fd_write_dtype(out,vector);
@@ -488,7 +488,7 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
   if (ex == NULL) return ex;
   if (ex->u8x_details) details = u8_strdup(ex->u8x_details);
   irritant = fd_exception_xdata(ex);
-  if (FD_VOIDP(irritant))
+  if (VOIDP(irritant))
     newex = u8_make_exception
       (ex->u8x_cond,ex->u8x_context,details,NULL,NULL);
   else if (flags)
@@ -523,7 +523,7 @@ static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 	      ex->u8x_cond,ex->u8x_context);
     if (ex->u8x_details)
       u8_printf(out,"[%s]",ex->u8x_details);
-    if (!(FD_VOIDP(irritant))) {
+    if (!(VOIDP(irritant))) {
       if (max_irritant_len==0) {}
       else if (max_irritant_len<0)
 	u8_printf(out," %q",irritant);
@@ -573,10 +573,10 @@ static void siginfo_exit(int signum,siginfo_t *info,void *stuff)
 
 static fdtype sigmask2dtype(sigset_t *mask)
 {
-  fdtype result = FD_EMPTY_CHOICE;
+  fdtype result = EMPTY;
   int sig = 1; while (sig<32) {
     if (sigismember(mask,sig)) {
-      FD_ADD_TO_CHOICE(result,fd_intern(u8_signal_name(sig)));}
+      CHOICE_ADD(result,fd_intern(u8_signal_name(sig)));}
     sig++;}
   return result;
 }
@@ -584,12 +584,12 @@ static fdtype sigmask2dtype(sigset_t *mask)
 static int arg2signum(fdtype arg)
 {
   long long sig = -1;
-  if (FD_FIXNUMP(arg))
-    sig = FD_FIX2INT(arg);
-  else if (FD_SYMBOLP(arg))
-    sig = u8_name2signal(FD_SYMBOL_NAME(arg));
-  else if (FD_STRINGP(arg))
-    sig = u8_name2signal(FD_STRDATA(arg));
+  if (FIXNUMP(arg))
+    sig = FIX2INT(arg);
+  else if (SYMBOLP(arg))
+    sig = u8_name2signal(SYM_NAME(arg));
+  else if (STRINGP(arg))
+    sig = u8_name2signal(CSTRING(arg));
   else sig = -1;
   if ((sig>1)&&(sig<32))
     return sig;

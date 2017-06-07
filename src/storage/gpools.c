@@ -46,9 +46,9 @@ fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
 {
   struct FD_GPOOL *gp = u8_alloc(struct FD_GPOOL);
   fdtype loadval = fd_apply(loadfn,0,NULL); unsigned int load;
-  if (!(FD_FIXNUMP(loadval)))
+  if (!(FIXNUMP(loadval)))
     return fd_type_error("fd_make_gpool","pool load (fixnum)",loadval);
-  else load = FD_FIX2INT(loadval);
+  else load = FIX2INT(loadval);
   fd_init_pool((fd_pool)gp,base,cap,&gpool_handler,id,id);
   gp->pool_load = load;
   fd_incref(fetchfn); fd_incref(loadfn);
@@ -65,7 +65,7 @@ static int gpool_load(fd_pool p)
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
   fdtype value;
   value = fd_dtcall(np->pool_connpool,2,get_load_symbol,fd_make_oid(p->pool_base));
-  if (FD_FIXNUMP(value)) return FD_FIX2INT(value);
+  if (FIXNUMP(value)) return FIX2INT(value);
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
@@ -87,7 +87,7 @@ static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
   fdtype vector = fd_init_vector(NULL,n,oids);
   fdtype value = fd_dtcall(np->pool_connpool,2,fetch_oids_symbol,vector);
   fd_decref(vector);
-  if (FD_VECTORP(value)) {
+  if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR)value;
     fdtype *results = u8_alloc_n(n,fdtype);
     memcpy(results,vstruct->fdvec_elts,sizeof(fdtype)*n);
@@ -107,7 +107,7 @@ static int gpool_lock(fd_pool p,fdtype oid)
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
   fdtype value;
   value = fd_dtcall(np->pool_connpool,3,lock_oid_symbol,oid,client_id);
-  if (FD_VOIDP(value)) return 0;
+  if (VOIDP(value)) return 0;
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
@@ -151,12 +151,12 @@ static int gpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
 static fdtype gpool_alloc(fd_pool p,int n)
 {
-  fdtype results = FD_EMPTY_CHOICE, request; int i = 0;
+  fdtype results = EMPTY, request; int i = 0;
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  request = fd_conspair(new_oid_symbol,FD_EMPTY_LIST);
+  request = fd_conspair(new_oid_symbol,NIL);
   while (i < n) {
     fdtype result = fd_dteval(np->pool_connpool,request);
-    FD_ADD_TO_CHOICE(results,result);
+    CHOICE_ADD(results,result);
     i++;}
   return results;
 }

@@ -200,32 +200,32 @@ FD_EXPORT int fd_init_crypto()
 
   fd_idefn(crypto_module,
            fd_make_cprim4x("ENCRYPT",encrypt_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim4x("ENCRYPT-DTYPE",encrypt_dtype_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
 
   fd_idefn(crypto_module,
            fd_make_cprim4x("DECRYPT",decrypt_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim4x("DECRYPT->STRING",decrypt2string_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim4x("DECRYPT->DTYPE",decrypt2dtype_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
 
   fd_idefn(crypto_module,
            fd_make_cprim1x("RANDOM-PACKET",random_packet_prim,1,
-                           fd_fixnum_type,FD_VOID));
+                           fd_fixnum_type,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim2x("FILL-PACKET",fill_packet_prim,1,
-                           fd_fixnum_type,FD_VOID,-1,FD_VOID));
+                           fd_fixnum_type,VOID,-1,VOID));
 
   fd_finish_module(crypto_module);
 

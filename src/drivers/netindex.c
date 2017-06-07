@@ -40,10 +40,10 @@ fd_exception fd_NoServerMethod=_("Server doesn't support method");
 static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
 {
   fdtype request=
-    fd_conspair(boundp,fd_conspair(operation,FD_EMPTY_LIST));
+    fd_conspair(boundp,fd_conspair(operation,NIL));
   fdtype response = fd_dteval(ni->index_connpool,request);
   fd_decref(request);
-  if ((FD_FALSEP(response)) || (FD_ABORTP(response))) return 0;
+  if ((FALSEP(response)) || (FD_ABORTP(response))) return 0;
   else {fd_decref(response); return 1;}
 }
 
@@ -57,10 +57,10 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,f
   if (cp == NULL) return NULL;
   ix = u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
   fd_init_index((fd_index)ix,&netindex_handler,spec,xid,flags);
-  ix->index_connpool = cp; ix->xname = FD_VOID;
+  ix->index_connpool = cp; ix->xname = VOID;
   writable_response = fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||
-      (!(FD_FALSEP(writable_response))))
+      (!(FALSEP(writable_response))))
     U8_SETBITS(ix->index_flags,(FD_STORAGE_READ_ONLY));
   else U8_CLEARBITS(ix->index_flags,(FD_STORAGE_READ_ONLY));
   fd_decref(writable_response);
@@ -80,7 +80,7 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fd_storage_flags flags,f
 static fdtype netindex_fetch(fd_index ix,fdtype key)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
-  if (FD_VOIDP(nix->xname))
+  if (VOIDP(nix->xname))
     return fd_dtcall(nix->index_connpool,2,iserver_fetch,key);
   else return fd_dtcall_x(nix->index_connpool,3,3,
                           ixserver_fetch,nix->xname,key);
@@ -90,7 +90,7 @@ static int netindex_fetchsize(fd_index ix,fdtype key)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   fdtype result;
-  if (FD_VOIDP(nix->xname))
+  if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,2,iserver_fetchsize,key);
   else result = fd_dtcall_x(nix->index_connpool,3,3,
                           ixserver_fetchsize,nix->xname,key);
@@ -104,12 +104,12 @@ static fdtype *netindex_fetchn(fd_index ix,int n,fdtype *keys)
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   fdtype vector, result;
   vector = fd_init_vector(NULL,n,keys);
-  if (FD_VOIDP(nix->xname))
+  if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,2,iserver_fetchn,vector);
   else result = fd_dtcall_x(nix->index_connpool,3,3,
                           ixserver_fetchn,nix->xname,vector);
   if (FD_ABORTP(result)) return NULL;
-  else if (FD_VECTORP(result)) {
+  else if (VECTORP(result)) {
     fdtype *results = u8_alloc_n(n,fdtype);
     memcpy(results,FD_VECTOR_ELTS(result),sizeof(fdtype)*n);
     return results;}
@@ -123,14 +123,14 @@ static fdtype *netindex_fetchkeys(fd_index ix,int *n)
 {
   struct FD_NETWORK_INDEX *nix = (struct FD_NETWORK_INDEX *)ix;
   fdtype result;
-  if (FD_VOIDP(nix->xname))
+  if (VOIDP(nix->xname))
     result = fd_dtcall(nix->index_connpool,1,iserver_fetchkeys);
   else result = fd_dtcall(nix->index_connpool,3,2,ixserver_fetchkeys,nix->xname);
   if (FD_ABORTP(result)) {
     *n = -1;
     fd_interr(result);
     return NULL;}
-  if (FD_CHOICEP(result)) {
+  if (CHOICEP(result)) {
     int size = FD_CHOICE_SIZE(result);
     fdtype *dtypes = u8_alloc_n(size,fdtype);
     memcpy(dtypes,FD_CHOICE_DATA(result),sizeof(fdtype)*size);
@@ -154,21 +154,21 @@ static int netindex_commit(fd_index ix)
     struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(nix->index_edits),&n_edits,0);
     struct FD_KEYVAL *scan = kvals, *limit = kvals+n_edits;
     while (scan<limit) {
-      fdtype key = scan->kv_key, result = FD_VOID;
-      if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),set_symbol)))
+      fdtype key = scan->kv_key, result = VOID;
+      if ((PAIRP(key)) && (FD_EQ(FD_CAR(key),set_symbol)))
         if (nix->capabilities&FD_ISERVER_RESET) {
           n_transactions++;
-          if (FD_VOIDP(nix->xname))
+          if (VOIDP(nix->xname))
             result = fd_dtcall(nix->index_connpool,3,iserver_reset,FD_CDR(key),scan->kv_val);
           else result = fd_dtcall_nrx(nix->index_connpool,3,4,
                                     ixserver_reset,nix->xname,
                                     FD_CDR(key),scan->kv_val);}
         else u8_log(LOG_WARN,fd_NoServerMethod,
                     "Server %s doesn't support resets",ix->index_source);
-      else if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol)))
+      else if ((PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol)))
         if (nix->capabilities&FD_ISERVER_DROP) {
           n_transactions++;
-          if (FD_VOIDP(nix->xname))
+          if (VOIDP(nix->xname))
             result = fd_dtcall(nix->index_connpool,3,iserver_drop,FD_CDR(key),scan->kv_val);
           else result = fd_dtcall_x(nix->index_connpool,3,4,ixserver_drop,nix->xname,
                                   FD_CDR(key),scan->kv_val);}
@@ -186,8 +186,8 @@ static int netindex_commit(fd_index ix)
   if (nix->capabilities&FD_ISERVER_ADDN) {
     int n_adds;
     struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(nix->index_adds),&n_adds,0);
-    fdtype vector = fd_init_vector(NULL,n_adds*2,(fdtype *)kvals), result = FD_VOID;
-    if (FD_VOIDP(nix->xname))
+    fdtype vector = fd_init_vector(NULL,n_adds*2,(fdtype *)kvals), result = VOID;
+    if (VOIDP(nix->xname))
       result = fd_dtcall_nr(nix->index_connpool,2,iserver_addn,vector);
     else result = fd_dtcall_nrx(nix->index_connpool,3,3,ixserver_addn,nix->xname,vector);
     if (FD_ABORTP(result)) {
@@ -200,9 +200,9 @@ static int netindex_commit(fd_index ix)
     int n_adds; fdtype xname = nix->xname;
     struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(nix->index_adds),&n_adds,0);
     struct FD_KEYVAL *scan = kvals, *limit = scan+n_adds;
-    if (FD_VOIDP(xname))
+    if (VOIDP(xname))
       while (scan<limit) {
-        fdtype result = FD_VOID;
+        fdtype result = VOID;
         n_transactions++;
         result = fd_dtcall_nr(nix->index_connpool,3,
                             iserver_add,scan->kv_key,scan->kv_val);
@@ -213,7 +213,7 @@ static int netindex_commit(fd_index ix)
         else fd_decref(result);
         scan++;}
     else while (scan<limit) {
-      fdtype result = FD_VOID;
+      fdtype result = VOID;
       n_transactions++;
       result = fd_dtcall_nrx(nix->index_connpool,3,3,
                            ixserver_add,xname,scan->kv_key,scan->kv_val);

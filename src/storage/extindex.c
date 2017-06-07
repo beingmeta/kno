@@ -27,7 +27,7 @@ FD_EXPORT
 fd_index fd_make_extindex
   (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg)
 {
-  if (!(FD_EXPECT_TRUE(FD_APPLICABLEP(fetchfn)))) {
+  if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
               fd_incref(fetchfn));
     return NULL;}
@@ -41,7 +41,7 @@ fd_index fd_make_extindex
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,
 		  name,NULL,(!(reg)));
     fetchix->index_cache_level = 1;
-    if (FD_VOIDP(commitfn))
+    if (VOIDP(commitfn))
       U8_SETBITS(fetchix->index_flags,FD_STORAGE_READ_ONLY);
     fetchix->fetchfn = fd_incref(fetchfn);
     fetchix->commitfn = fd_incref(commitfn);
@@ -58,7 +58,7 @@ static fdtype extindex_fetch(fd_index p,fdtype oid)
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+  if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&oid);
   else {
@@ -74,7 +74,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
   struct FD_VECTOR vstruct; fdtype vecarg;
-  fdtype state = xp->state, fetchfn = xp->fetchfn, value = FD_VOID;
+  fdtype state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
@@ -83,14 +83,14 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   vstruct.fdvec_elts = keys; 
   vstruct.fdvec_free_elts = 0;
   vecarg = FDTYPE_CONS(&vstruct);
-  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+  if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(xp->fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(xp->fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
-  else if (FD_VECTORP(value)) {
+  else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
     fdtype *results = u8_alloc_n(n,fdtype);
     memcpy(results,vstruct->fdvec_elts,sizeof(fdtype)*n);
@@ -102,7 +102,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
     return results;}
   else {
     fdtype *values = u8_alloc_n(n,fdtype);
-    if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+    if ((VOIDP(state))||(FALSEP(state))||
         ((fptr)&&(fptr->fcn_arity==1))) {
       int i = 0; while (i<n) {
         fdtype key = keys[i];
@@ -146,7 +146,7 @@ static int extindex_commit(fd_index ix)
     struct FD_KEYVAL *scan = kvals, *limit = kvals+n_edits;
     while (scan<limit) {
       fdtype key = scan->kv_key;
-      if (FD_PAIRP(key)) {
+      if (PAIRP(key)) {
         fdtype kind = FD_CAR(key), realkey = FD_CDR(key), value = scan->kv_val;
         fdtype assoc = fd_conspair(realkey,value);
         if (FD_EQ(kind,set_symbol)) {
@@ -176,12 +176,12 @@ static int extindex_commit(fd_index ix)
     fdtype avec = fd_init_vector(NULL,n_adds,adds);
     fdtype dvec = fd_init_vector(NULL,n_drops,drops);
     fdtype svec = fd_init_vector(NULL,n_stores,stores);
-    fdtype argv[4], result = FD_VOID;
+    fdtype argv[4], result = VOID;
     argv[0]=avec;
     argv[1]=dvec;
     argv[2]=svec;
     argv[3]=exi->state;
-    result = fd_apply(exi->commitfn,((FD_VOIDP(exi->state))?(3):(4)),argv);
+    result = fd_apply(exi->commitfn,((VOIDP(exi->state))?(3):(4)),argv);
     fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
     fd_reset_hashtable(&(exi->index_adds),fd_index_adds_init,0);
     fd_reset_hashtable(&(exi->index_edits),fd_index_edits_init,0);

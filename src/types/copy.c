@@ -22,19 +22,19 @@ FD_EXPORT
 fdtype fd_copier(fdtype x,int flags)
 {
   int static_copy = U8_BITP(flags,FD_STATIC_COPY);
-  if (FD_ATOMICP(x)) return x;
+  if (ATOMICP(x)) return x;
   else {
     fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
     switch (ctype) {
     case fd_pair_type: {
-      fdtype result = FD_EMPTY_LIST, *tail = &result, scan = x;
+      fdtype result = NIL, *tail = &result, scan = x;
       while (FD_TYPEP(scan,fd_pair_type)) {
         struct FD_PAIR *p = FD_CONSPTR(fd_pair,scan);
         struct FD_PAIR *newpair = u8_alloc(struct FD_PAIR);
         fdtype car = p->car;
         FD_INIT_CONS(newpair,fd_pair_type);
         if (static_copy) {FD_MAKE_STATIC(result);}
-        if (FD_CONSP(car)) {
+        if (CONSP(car)) {
           struct FD_CONS *c = (struct FD_CONS *)car;
           if ( U8_BITP(flags,FD_FULL_COPY) || FD_STATIC_CONSP(c) )
             newpair->car = fd_copier(car,flags);
@@ -44,7 +44,7 @@ fdtype fd_copier(fdtype x,int flags)
         *tail = (fdtype)newpair;
         tail = &(newpair->cdr);
         scan = p->cdr;}
-      if (FD_CONSP(scan))
+      if (CONSP(scan))
         *tail = fd_copier(scan,flags);
       else *tail = scan;
       if (static_copy) {FD_MAKE_STATIC(result);}
@@ -58,7 +58,7 @@ fdtype fd_copier(fdtype x,int flags)
       fdtype *newdata = FD_VECTOR_ELTS(result);
       while (i<len) {
           fdtype v = olddata[i], newv = v;
-          if (FD_CONSP(v)) {
+          if (CONSP(v)) {
             struct FD_CONS *c = (struct FD_CONS *)newv;
             if ((flags&FD_FULL_COPY)||(FD_STATIC_CONSP(c)))
               newv = fd_copier(newv,flags);
@@ -97,7 +97,7 @@ fdtype fd_copier(fdtype x,int flags)
 	  *write++=c;}
       else while (read<limit) {
           fdtype v = *read++, newv = v;
-          if (FD_CONSP(newv)) {
+          if (CONSP(newv)) {
             struct FD_CONS *c = (struct FD_CONS *)newv;
             if (FD_STATIC_CONSP(c))
               newv = fd_copier(newv,flags);
@@ -113,7 +113,7 @@ fdtype fd_copier(fdtype x,int flags)
         return copy;}
       else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
         return fd_err(fd_NoMethod,"fd_copier/static",
-                      fd_type_names[ctype],FD_VOID);
+                      fd_type_names[ctype],VOID);
       else if ((flags)&(FD_STRICT_COPY))
         return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
@@ -140,7 +140,7 @@ fdtype *fd_copy_vec(fdtype *vec,size_t n,fdtype *into,int flags)
     fdtype elt = vec[i];
     if (elt == FD_NULL)
       break;
-    else if (!(FD_CONSP(elt)))
+    else if (!(CONSP(elt)))
       dest[i]=elt;
     else if (U8_BITP(flags,FD_DEEP_COPY)) {
       dest[i]=fd_copier(elt,flags);}
@@ -159,7 +159,7 @@ FD_EXPORT
   If it is a static cons, it does a deep copy. */
 fdtype fd_copy(fdtype x)
 {
-  if (!(FD_CONSP(x))) return x;
+  if (!(CONSP(x))) return x;
   else if (FD_MALLOCD_CONSP(((fd_cons)x)))
     return fd_incref(x);
   else return fd_copier(x,0);

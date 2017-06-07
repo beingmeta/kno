@@ -41,7 +41,7 @@ static fdtype dteval_sock(u8_socket conn,fdtype expr)
   retval = fd_write_dtype(out,expr);
   if ((retval<0) || (fd_flush_stream(stream)<0)) {
     fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOCLOSE);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else response = fd_read_dtype(fd_readbuf(stream));
   if (log_eval_response)
     u8_log(LOG_DEBUG,"DTEVAL","On #%d: REQUEST %q\n\t==>\t%q",
@@ -54,7 +54,7 @@ static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
   fdtype result; int retval;
   struct FD_STREAM stream;
   u8_socket conn = u8_get_connection(cpool);
-  if (conn<0) return FD_ERROR_VALUE;
+  if (conn<0) return FD_ERROR;
   if (log_eval_request)
     u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d: %q",
            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
@@ -94,7 +94,7 @@ static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
               (async)?(" (async) "):("")),
              cpool->u8cp_id,expr);
       u8_discard_connection(cpool,conn);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else {
       u8_log(LOG_ERR,"DTEVAL","Reconnected %s to %s#%d for %q",
              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
@@ -108,13 +108,13 @@ static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
         (fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
         (fd_flush_stream(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else result = fd_read_dtype(fd_readbuf(&stream));
     if (FD_EQ(result,FD_EOD)) {
       u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
   if (log_eval_response) {
-    if (FD_CONSP(result))
+    if (CONSP(result))
       u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %hq",
              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
@@ -150,14 +150,14 @@ FD_FASTOP fdtype quote_lisp(fdtype x,int dorefs,int doeval)
 {
   if (dorefs) fd_incref(x);
   if (doeval) return x;
-  else if ((FD_SYMBOLP(x)) || (FD_PAIRP(x)))
-    return fd_conspair(quote_symbol,fd_conspair(x,FD_EMPTY_LIST));
+  else if ((SYMBOLP(x)) || (PAIRP(x)))
+    return fd_conspair(quote_symbol,fd_conspair(x,NIL));
   else return x;
 }
 static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
                       fdtype *args)
 {
-  fdtype request = FD_EMPTY_LIST, result = FD_VOID;
+  fdtype request = NIL, result = VOID;
   n--; while (n>0) {
     request = fd_conspair(quote_lisp(args[n],dorefs,((doeval)&(1<<n))),
                         request);

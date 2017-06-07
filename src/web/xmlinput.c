@@ -151,8 +151,8 @@ static int egetc(u8_string *s)
 
 static fdtype decode_entities(fdtype input)
 {
-  struct U8_OUTPUT out; u8_string scan = FD_STRDATA(input); int c = egetc(&scan);
-  U8_INIT_OUTPUT(&out,FD_STRLEN(input));
+  struct U8_OUTPUT out; u8_string scan = CSTRING(input); int c = egetc(&scan);
+  U8_INIT_OUTPUT(&out,STRLEN(input));
   while (c>=0) {
     u8_putc(&out,c); c = egetc(&scan);}
   return fd_stream2string(&out);
@@ -260,9 +260,9 @@ static void set_elt_name(FD_XML *,u8_string);
 static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
 {
   node->xml_eltname = name;
-  node->xml_head = FD_EMPTY_LIST; 
+  node->xml_head = NIL; 
   node->xml_content_tail = NULL;
-  node->xml_attribs = FD_EMPTY_CHOICE;
+  node->xml_attribs = EMPTY;
   node->xml_parent = parent;
   if (parent) node->xml_bits = ((parent->xml_bits)&(FD_XML_INHERIT_BITS));
   else node->xml_bits = FD_XML_DEFAULT_BITS;
@@ -274,7 +274,7 @@ static void init_node(FD_XML *node,FD_XML *parent,u8_string name)
 
 static void init_node_attribs(struct FD_XML *node)
 {
-  if (FD_EMPTY_CHOICEP(node->xml_attribs))
+  if (EMPTYP(node->xml_attribs))
     node->xml_attribs = make_slotmap();
   set_elt_name(node,node->xml_eltname);
 }
@@ -287,7 +287,7 @@ void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name)
 
 FD_EXPORT void fd_init_xml_attribs(struct FD_XML *node)
 {
-  if (FD_EMPTY_CHOICEP(node->xml_attribs))
+  if (EMPTYP(node->xml_attribs))
     node->xml_attribs = make_slotmap();
   set_elt_name(node,node->xml_eltname);
 }
@@ -383,7 +383,7 @@ u8_string fd_xmlns_lookup(FD_XML *xml,u8_string s,u8_string *nsp)
 static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
 {
   u8_byte *nsprefix;
-  if (FD_EMPTY_CHOICEP(xml->xml_attribs)) init_node_attribs(xml);
+  if (EMPTYP(xml->xml_attribs)) init_node_attribs(xml);
   if (hasprefix("xmlns",name))
     if (strlen(name)==5) {
       fdtype nsval = fdtype_string(val);
@@ -411,7 +411,7 @@ static int allspacep(u8_string s)
 
 static fdtype item2list(fdtype item,int parse_entities)
 {
-  if ((FD_STRINGP(item)) && (parse_entities)) {
+  if ((STRINGP(item)) && (parse_entities)) {
     fdtype result = fd_make_list(1,decode_entities(item));
     fd_decref(item);
     return result;}
@@ -420,18 +420,18 @@ static fdtype item2list(fdtype item,int parse_entities)
 
 static void add_content(struct FD_XML *node,fdtype item)
 {
-  if ((FD_STRINGP(item)) &&
+  if ((STRINGP(item)) &&
       (((FD_STRING_LENGTH(item))==0) ||
        ((node->xml_bits&FD_XML_CRUSHSPACE)&&
-        (allspacep(FD_STRDATA(item)))))) {
+        (allspacep(CSTRING(item)))))) {
     fd_decref(item);
     return;}
   else {
     fdtype entry;
-    if (FD_STRINGP(item)) {
+    if (STRINGP(item)) {
       int parse_entities=
         (((node->xml_bits)&(FD_XML_DECODE_ENTITIES)) &&
-         (strchr(FD_STRDATA(item),'&')!=NULL));
+         (strchr(CSTRING(item),'&')!=NULL));
       entry = item2list(item,parse_entities);}
     else entry = fd_make_list(1,item);
     if (node->xml_content_tail == NULL) {
@@ -645,7 +645,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
   if (strncmp(s,"<!--",4)==0) {
     fdtype cnode = make_slotmap();
     fdtype comment_string = fd_substring(s+4,s+(len-3));
-    fdtype comment_content = fd_conspair(comment_string,FD_EMPTY_LIST);
+    fdtype comment_content = fd_conspair(comment_string,NIL);
     fd_store(cnode,xmltag_symbol,comment_symbol);
     fd_store(cnode,content_symbol,comment_content);
     fd_decref(comment_content);
@@ -653,7 +653,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
   else if (strncmp(s,"<![CDATA[",9)==0) {
     fdtype cnode = make_slotmap();
     fdtype cdata_string = fd_substring(s+9,s+(len-3));
-    fdtype cdata_content = fd_conspair(cdata_string,FD_EMPTY_LIST);
+    fdtype cdata_content = fd_conspair(cdata_string,NIL);
     fd_store(cnode,xmltag_symbol,cdata_symbol);
     fd_store(cnode,content_symbol,cdata_content);
     fd_decref(cdata_content);
@@ -672,9 +672,9 @@ void fd_default_pifn(FD_XML *node,u8_string s,int len)
 static int slotify_nodep(FD_XML *node)
 {
   if ((node->xml_bits&FD_XML_NOEMPTY)==0) return 1;
-  else if (FD_PAIRP(node->xml_head)) return 1;
-  else if (FD_EMPTY_CHOICEP(node->xml_attribs)) return 0;
-  else if (!(FD_SLOTMAPP(node->xml_attribs)))
+  else if (PAIRP(node->xml_head)) return 1;
+  else if (EMPTYP(node->xml_attribs)) return 0;
+  else if (!(SLOTMAPP(node->xml_attribs)))
     /* Not sure this case ever happens */
     return 1;
   else if (FD_SLOTMAP_NUSED(node->xml_attribs)>1) return 1;
@@ -686,8 +686,8 @@ static void cleanup_attribs(fdtype table);
 FD_EXPORT
 FD_XML *fd_default_popfn(FD_XML *node)
 {
-  if (FD_EMPTY_CHOICEP(node->xml_attribs)) init_node_attribs(node);
-  if (FD_PAIRP(node->xml_head))
+  if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
+  if (PAIRP(node->xml_head))
     fd_add(node->xml_attribs,content_symbol,node->xml_head);
   cleanup_attribs(node->xml_attribs);
   if (((node->xml_bits&FD_XML_NOCONTENTS)==0) ||
@@ -695,18 +695,18 @@ FD_XML *fd_default_popfn(FD_XML *node)
       (node->xml_parent->xml_parent == NULL)) {
     if (node->xml_parent!=NULL) {
       add_content(node->xml_parent,node->xml_attribs);
-      node->xml_attribs = FD_EMPTY_CHOICE;}}
+      node->xml_attribs = EMPTY;}}
   if ((node->xml_bits&FD_XML_SLOTIFY) && (slotify_nodep(node))) {
     fdtype slotid;
-    if (FD_EMPTY_CHOICEP(node->xml_parent->xml_attribs))
+    if (EMPTYP(node->xml_parent->xml_attribs))
       init_node_attribs(node->xml_parent);
-    slotid = fd_get(node->xml_attribs,xmltag_symbol,FD_EMPTY_CHOICE);
+    slotid = fd_get(node->xml_attribs,xmltag_symbol,EMPTY);
     if ((node->xml_bits)&FD_XML_KEEP_RAW)
       add_content(node->xml_parent,fd_incref(node->xml_attribs));
     node->xml_parent->xml_bits = node->xml_parent->xml_bits|FD_XML_HASDATA;
-    if ((FD_PAIRP(node->xml_head)) &&
+    if ((PAIRP(node->xml_head)) &&
         (!((node->xml_bits)&FD_XML_HASDATA)) &&
-        (!(FD_PAIRP(FD_CDR(node->xml_head)))))
+        (!(PAIRP(FD_CDR(node->xml_head)))))
       fd_add(node->xml_parent->xml_attribs,slotid,FD_CAR(node->xml_head));
     else fd_add(node->xml_parent->xml_attribs,slotid,node->xml_attribs);}
   return node->xml_parent;
@@ -714,7 +714,7 @@ FD_XML *fd_default_popfn(FD_XML *node)
 
 static void cleanup_attribs(fdtype table)
 {
-  if (FD_SLOTMAPP(table)) {
+  if (SLOTMAPP(table)) {
     struct FD_SLOTMAP *sm = (struct FD_SLOTMAP *)table;
     struct FD_KEYVAL *scan, *limit; int unlock = 0, size;
     if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock = 1;}
@@ -724,7 +724,7 @@ static void cleanup_attribs(fdtype table)
       return;}
     while (scan < limit) {
       fdtype val = scan->kv_val;
-      if (FD_PRECHOICEP(val))
+      if (PRECHOICEP(val))
         scan->kv_val = fd_simplify_choice(val);
       scan++;}
     if (unlock) u8_rw_unlock(&sm->table_rwlock);}
@@ -752,7 +752,7 @@ static fdtype fd_lispify(u8_string arg)
 static fdtype parse_attribname(u8_string string)
 {
   fdtype parsed = fd_parse(string);
-  if ((FD_SYMBOLP(parsed))||(FD_OIDP(parsed))) return parsed;
+  if ((SYMBOLP(parsed))||(OIDP(parsed))) return parsed;
   else {
     u8_log(LOG_WARNING,"BadAttribName",
            "Trouble parsing attribute name %s",string);
@@ -772,8 +772,8 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
                    (quote<0) ? (fd_lispify(val)) :
                    (fd_convert_entities(val,NULL))) :
                   (FD_FALSE));
-  fdtype attrib_entry = FD_VOID;
-  if (FD_EMPTY_CHOICEP(xml->xml_attribs)) init_node_attribs(xml);
+  fdtype attrib_entry = VOID;
+  if (EMPTYP(xml->xml_attribs)) init_node_attribs(xml);
   xml->xml_bits = xml->xml_bits|FD_XML_HASDATA;
   fd_add(xml->xml_attribs,slotid,slotval);
   if (namespace) {
@@ -823,7 +823,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
   case xmlempty:
     if (pushfn) {
       struct FD_XML *newnode = pushfn(node,type,elts,n_elts);
-      if (FD_EMPTY_CHOICEP(node->xml_attribs)) init_node_attribs(node);
+      if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       if (newnode != node) {
         struct FD_XML *retnode;
         retnode = popfn(newnode);
@@ -847,17 +847,17 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
          (strcmp(node->xml_eltname,elts[0])))
         ==0) {
       struct FD_XML *retnode;
-      if (FD_EMPTY_CHOICEP(node->xml_attribs)) init_node_attribs(node);
-      if ((FD_EMPTY_LISTP(node->xml_head)) &&
+      if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
+      if ((NILP(node->xml_head)) &&
           (!(node->xml_bits&FD_XML_NOEMPTY)))
-        node->xml_head = fd_conspair(fd_init_string(NULL,0,NULL),FD_EMPTY_LIST);
+        node->xml_head = fd_conspair(fd_init_string(NULL,0,NULL),NIL);
       retnode = popfn(node);
       if (retnode!=node)
         free_node(node,1);
       return retnode;}
     else if ((node->xml_bits&FD_XML_EMPTY_CLOSE) && (elts[0][0]=='\0')) {
       struct FD_XML *retnode;
-      if (FD_EMPTY_CHOICEP(node->xml_attribs)) init_node_attribs(node);
+      if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
       retnode = popfn(node);
       if (retnode!=node)
         free_node(node,1);
@@ -865,7 +865,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
     else {
       if (node->xml_bits&FD_XML_AUTOCLOSE) {
         FD_XML *closenode = NULL;
-        if (FD_EMPTY_CHOICEP(node->xml_attribs)) init_node_attribs(node);
+        if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
         closenode = autoclose(node,elts[0],popfn);
         if (closenode) {
           struct FD_XML *retnode;
@@ -877,7 +877,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
         return node;
       else fd_seterr(fd_XMLParseError,"inconsistent close tag",
                      u8_mkstring("</%s> closes <%s>",elts[0],node->xml_eltname),
-                     FD_VOID);
+                     VOID);
       return NULL;}
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
@@ -1022,12 +1022,12 @@ void *fd_walk_xml(U8_INPUT *in,
 
 FD_EXPORT int fd_xmlparseoptions(fdtype x)
 {
-  if (FD_UINTP(x)) return FD_FIX2INT(x);
-  else if (FD_FALSEP(x)) return FD_SLOPPY_XML;
+  if (FD_UINTP(x)) return FIX2INT(x);
+  else if (FALSEP(x)) return FD_SLOPPY_XML;
   else if (FD_DEFAULTP(x)) return 0;
   else if (FD_TRUEP(x)) return 0;
-  else if (FD_VOIDP(x)) return 0;
-  else if (FD_SYMBOLP(x))
+  else if (VOIDP(x)) return 0;
+  else if (SYMBOLP(x))
     if (FD_EQ(x,sloppy_symbol))
       return FD_SLOPPY_XML;
     else if (FD_EQ(x,data_symbol))
@@ -1053,14 +1053,14 @@ FD_EXPORT int fd_xmlparseoptions(fdtype x)
     else {
       fd_seterr(fd_TypeError,"xmlparsearg",u8_strdup(_("xmlparse option")),x);
       return -1;}
-  else if (FD_CHOICEP(x)) {
+  else if (CHOICEP(x)) {
     int flags = 0;
-    FD_DO_CHOICES(opt,x) {
+    DO_CHOICES(opt,x) {
       int flag = fd_xmlparseoptions(opt);
       if (flag<0) return -1;
       else flags = flags|flag;}
     return flags;}
-  else if (FD_PAIRP(x)) {
+  else if (PAIRP(x)) {
     int flags = 0;
     FD_DOLIST(opt,x) {
       int flag = fd_xmlparseoptions(opt);
@@ -1079,14 +1079,14 @@ static fdtype xmlparse_core(fdtype input,int flags)
 {
   struct FD_XML xml_root, *root = &xml_root, *retval;
   struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR_VALUE;
+  if (flags<0) return FD_ERROR;
   if (FD_PORTP(input)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
     in = p->fd_inport;}
-  else if (FD_STRINGP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+  else if (STRINGP(input)) {
+    U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
-  else if (FD_PACKETP(input)) {
+  else if (PACKETP(input)) {
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in = &_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
@@ -1098,7 +1098,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
     size_t errpos=_in.u8_read-_in.u8_inbuf;
     fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
     free_node(root,0);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else if ( (retval!=root) && 
             (!(((retval->xml_bits) & (FORCE_CLOSE_FLAGS)) ||
                ((root->xml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
@@ -1110,7 +1110,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
       free_node(cleanup,1);
       cleanup = next;}
     free_node(root,0);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
 
   if (retval!=root) {
     struct FD_XML *scan = retval;
@@ -1126,14 +1126,14 @@ static fdtype xmlparse_core(fdtype input,int flags)
 
 static fdtype xmlparse(fdtype input,fdtype options)
 {
-  if (FD_CHOICEP(input)) {
+  if (CHOICEP(input)) {
     int flags = fd_xmlparseoptions(options);
-    fdtype results = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(in,input) {
+    fdtype results = EMPTY;
+    DO_CHOICES(in,input) {
       fdtype result = xmlparse_core(in,flags);
-      FD_ADD_TO_CHOICE(results,result);}
+      CHOICE_ADD(results,result);}
     return results;}
-  else if (FD_QCHOICEP(input))
+  else if (QCHOICEP(input))
     return xmlparse(FD_XQCHOICE(input)->qchoiceval,options);
   else return xmlparse_core(input,fd_xmlparseoptions(options));
 }
@@ -1145,20 +1145,20 @@ static fdtype fdxml_load(fdtype input,fdtype sloppy)
   int flags = FD_XML_KEEP_RAW;
   struct FD_XML *parsed;
   struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR_VALUE;
+  if (flags<0) return FD_ERROR;
   if (FD_PORTP(input)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
     in = p->fd_inport;}
-  else if (FD_STRINGP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+  else if (STRINGP(input)) {
+    U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
-  else if (FD_PACKETP(input)) {
+  else if (PACKETP(input)) {
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in = &_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
   if (FD_UINTP(sloppy))
-    flags = FD_FIX2INT(sloppy);
-  else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
+    flags = FIX2INT(sloppy);
+  else if (!((VOIDP(sloppy)) || (FALSEP(sloppy))))
     flags = flags|FD_SLOPPY_XML;
   else {}
   parsed = fd_load_fdxml(in,flags);
@@ -1167,7 +1167,7 @@ static fdtype fdxml_load(fdtype input,fdtype sloppy)
     fdtype lispenv = (fdtype)(parsed->xml_data);
     free_node(parsed,1);
     return fd_conspair(lispenv,result);}
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
 static fdtype fdxml_read(fdtype input,fdtype sloppy)
@@ -1175,22 +1175,22 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
   int flags = FD_XML_KEEP_RAW;
   struct FD_XML *parsed;
   struct U8_INPUT *in, _in;
-  if (flags<0) return FD_ERROR_VALUE;
+  if (flags<0) return FD_ERROR;
   if (FD_PORTP(input)) {
     struct FD_PORT *p = fd_consptr(struct FD_PORT *,input,fd_port_type);
     in = p->fd_inport;}
-  else if ((FD_STRINGP(input))&&(strchr(FD_STRDATA(input),'<') == NULL))
+  else if ((STRINGP(input))&&(strchr(CSTRING(input),'<') == NULL))
     return fdxml_load(input,sloppy);
- else if (FD_STRINGP(input)) {
-    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+ else if (STRINGP(input)) {
+    U8_INIT_STRING_INPUT(&_in,STRLEN(input),CSTRING(input));
     in = &_in;}
-  else if (FD_PACKETP(input)) {
+  else if (PACKETP(input)) {
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in = &_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
   if (FD_UINTP(sloppy))
-    flags = FD_FIX2INT(sloppy);
-  else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
+    flags = FIX2INT(sloppy);
+  else if (!((VOIDP(sloppy)) || (FALSEP(sloppy))))
     flags = flags|FD_SLOPPY_XML;
   else {}
   parsed = fd_parse_fdxml(in,flags);
@@ -1199,7 +1199,7 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
     fd_incref(result);
     free_node(parsed,1);
     return result;}
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
 FD_EXPORT fdtype fd_fdxml_arg(fdtype input)

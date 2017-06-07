@@ -71,8 +71,8 @@ static fdtype hostname_prim()
 static fdtype hostaddrs_prim(fdtype hostname)
 {
   int addr_len = -1; unsigned int type = -1;
-  char **addrs = u8_lookup_host(FD_STRDATA(hostname),&addr_len,&type);
-  fdtype results = FD_EMPTY_CHOICE;
+  char **addrs = u8_lookup_host(CSTRING(hostname),&addr_len,&type);
+  fdtype results = EMPTY;
   int i = 0;
   if (addrs == NULL) {
     fd_clear_errors(1);
@@ -84,7 +84,7 @@ static fdtype hostaddrs_prim(fdtype hostname)
       u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
       j++;}
     string = fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
-    FD_ADD_TO_CHOICE(results,string);}
+    CHOICE_ADD(results,string);}
   u8_free(addrs);
   return results;
 }
@@ -93,7 +93,7 @@ static fdtype hostaddrs_prim(fdtype hostname)
 
 static fdtype getenv_prim(fdtype var)
 {
-  u8_string enval = u8_getenv(FD_STRDATA(var));
+  u8_string enval = u8_getenv(CSTRING(var));
   if (enval == NULL) return FD_FALSE;
   else return fd_lispstring(enval);
 }
@@ -162,7 +162,7 @@ static void add_intval(fdtype table,fdtype symbol,long long ival)
 {
   fdtype iptr = FD_INT(ival);
   fd_add(table,symbol,iptr);
-  if (FD_CONSP(iptr)) fd_decref(iptr);
+  if (CONSP(iptr)) fd_decref(iptr);
 }
 
 static void add_flonum(fdtype table,fdtype symbol,double fval)
@@ -199,8 +199,8 @@ static fdtype rusage_prim(fdtype field)
   int pagesize = get_pagesize();
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return FD_ERROR_VALUE;
-  else if (FD_VOIDP(field)) {
+    return FD_ERROR;
+  else if (VOIDP(field)) {
     fdtype result = fd_empty_slotmap();
     pid_t pid = getpid(), ppid = getppid();
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
@@ -264,7 +264,7 @@ static fdtype rusage_prim(fdtype field)
     { /* Load average(s) */
       double loadavg[3]; int nsamples = getloadavg(loadavg,3);
       if (nsamples>0) {
-        fdtype lval = fd_make_flonum(loadavg[0]), lvec = FD_VOID;
+        fdtype lval = fd_make_flonum(loadavg[0]), lvec = VOID;
         fd_store(result,load_symbol,lval);
         if (nsamples==1)
           lvec = fd_make_nvector(1,fd_make_flonum(loadavg[0]));
@@ -275,7 +275,7 @@ static fdtype rusage_prim(fdtype field)
                (3,fd_make_flonum(loadavg[0]),
                 fd_make_flonum(loadavg[1]),
                 fd_make_flonum(loadavg[2]));
-        if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
+        if (!(VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
         fd_decref(lval); fd_decref(lvec);}}
     { /* Elapsed time */
       double elapsed = u8_elapsed_time();
@@ -359,7 +359,7 @@ static fdtype rusage_prim(fdtype field)
     u8_string info=get_malloc_info();
     if (info)
       return fd_init_string(NULL,-1,info);
-    else return FD_EMPTY_CHOICE;}
+    else return EMPTY;}
 #if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
   else if (FD_EQ(field,tcmallocinfo_symbol)) {
     char buf[1024];
@@ -369,7 +369,7 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
-    else return FD_EMPTY_CHOICE;}
+    else return EMPTY;}
   else if (FD_EQ(field,loadavg_symbol)) {
     double loadavg[3]; int nsamples = getloadavg(loadavg,3);
     if (nsamples>0) {
@@ -385,71 +385,71 @@ static fdtype rusage_prim(fdtype field)
       return FD_INT((unsigned long)(getpid()));
     else if (FD_EQ(field,ppid_symbol))
       return FD_INT((unsigned long)(getppid()));
-    else return FD_EMPTY_CHOICE;}
+    else return EMPTY;}
   else if (FD_EQ(field,n_cpus_symbol)) {
     int n_cpus = get_n_cpus();
     if (n_cpus>0) return FD_INT(n_cpus);
-    else if (n_cpus==0) return FD_EMPTY_CHOICE;
+    else if (n_cpus==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/N_CPUS",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,max_cpus_symbol)) {
     int max_cpus = get_max_cpus();
     if (max_cpus>0) return FD_INT(max_cpus);
-    else if (max_cpus==0) return FD_EMPTY_CHOICE;
+    else if (max_cpus==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/MAX_CPUS",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,pagesize_symbol)) {
     int pagesize = get_pagesize();
     if (pagesize>0) return FD_INT(pagesize);
-    else if (pagesize==0) return FD_EMPTY_CHOICE;
+    else if (pagesize==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/PAGESIZE",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,physical_pages_symbol)) {
     int physical_pages = get_physical_pages();
     if (physical_pages>0) return FD_INT(physical_pages);
-    else if (physical_pages==0) return FD_EMPTY_CHOICE;
+    else if (physical_pages==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/PHYSICAL_PAGES",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,available_pages_symbol)) {
     int available_pages = get_available_pages();
     if (available_pages>0) return FD_INT(available_pages);
-    else if (available_pages==0) return FD_EMPTY_CHOICE;
+    else if (available_pages==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/AVAILABLE_PAGES",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,physical_memory_symbol)) {
     long long physical_memory = get_physical_memory();
     if (physical_memory>0) return FD_INT(physical_memory);
-    else if (physical_memory==0) return FD_EMPTY_CHOICE;
+    else if (physical_memory==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,physicalmb_symbol)) {
     long long physical_memory = get_physical_memory();
     if (physical_memory>0) return FD_INT(physical_memory/(1024*1024));
-    else if (physical_memory==0) return FD_EMPTY_CHOICE;
+    else if (physical_memory==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,available_memory_symbol)) {
     long long available_memory = get_available_memory();
     if (available_memory>0) return FD_INT(available_memory);
-    else if (available_memory==0) return FD_EMPTY_CHOICE;
+    else if (available_memory==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else if (FD_EQ(field,availablemb_symbol)) {
     long long available_memory = get_available_memory();
     if (available_memory>0) return FD_INT(available_memory/(1024*1024));
-    else if (available_memory==0) return FD_EMPTY_CHOICE;
+    else if (available_memory==0) return EMPTY;
     else {
       u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
-      return FD_ERROR_VALUE;}}
-  else return FD_EMPTY_CHOICE;
+      return FD_ERROR;}}
+  else return EMPTY;
 }
 
 static int setprop(fdtype result,u8_string field,char *value)
@@ -480,7 +480,7 @@ static fdtype uname_prim()
     return result;}
   else {
     u8_graberr(errno,"uname_prim",NULL);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
 #else
   return fd_init_slotmap(NULL,0,NULL);
 #endif
@@ -501,7 +501,7 @@ static fdtype stacksize_prim()
 {
   ssize_t size = u8_stacksize();
   if (size<0)
-    return FD_ERROR_VALUE;
+    return FD_ERROR;
   else return FD_INT(size);
 }
 
@@ -553,7 +553,7 @@ static fdtype usertime_prim()
   struct rusage r;
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return FD_ERROR_VALUE;
+    return FD_ERROR;
   else {
     double msecs=
       (r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0)-
@@ -567,7 +567,7 @@ static fdtype systime_prim()
   struct rusage r;
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
-    return FD_ERROR_VALUE;
+    return FD_ERROR;
   else {
     double msecs=
       (r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0)-
@@ -578,17 +578,17 @@ static fdtype systime_prim()
 
 static fdtype cpusage_prim(fdtype arg)
 {
-  if (FD_VOIDP(arg))
+  if (VOIDP(arg))
     return rusage_prim(cpusage_symbol);
   else {
     struct rusage r;
     memset(&r,0,sizeof(r));
     if (u8_getrusage(RUSAGE_SELF,&r)<0)
-      return FD_ERROR_VALUE;
+      return FD_ERROR;
     else {
-      fdtype prelapsed = fd_get(arg,clock_symbol,FD_VOID);
-      fdtype prestime = fd_get(arg,stime_symbol,FD_VOID);
-      fdtype preutime = fd_get(arg,utime_symbol,FD_VOID);
+      fdtype prelapsed = fd_get(arg,clock_symbol,VOID);
+      fdtype prestime = fd_get(arg,stime_symbol,VOID);
+      fdtype preutime = fd_get(arg,utime_symbol,VOID);
       if ((FD_FLONUMP(prelapsed)) &&
           (FD_FLONUMP(prestime)) &&
           (FD_FLONUMP(preutime))) {
@@ -702,15 +702,15 @@ static fdtype corelimit_get(fdtype symbol,void *vptr)
   int rv = getrlimit(RLIMIT_CORE,&limit);
   if (rv<0) {
     u8_graberr(errno,"corelimit_get",NULL);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else return FD_INT(limit.rlim_cur);
 }
 
 static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
 {
   struct rlimit limit; int rv;
-  if (FD_FIXNUMP(value))
-    limit.rlim_cur = limit.rlim_max = FD_FIX2INT(value);
+  if (FIXNUMP(value))
+    limit.rlim_cur = limit.rlim_max = FIX2INT(value);
   else if (FD_TRUEP(value))
     limit.rlim_cur = limit.rlim_max = RLIM_INFINITY;
   else if (FD_TYPEP(value,fd_bigint_type))
@@ -730,14 +730,14 @@ static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
 static fdtype gperf_heap_profile(fdtype arg)
 {
   int running = IsHeapProfilerRunning();
-  if (FD_FALSEP(arg)) {
+  if (FALSEP(arg)) {
     if (running) {
       HeapProfilerStop();
     return FD_TRUE;}
     else return FD_FALSE;}
   else if (running) return FD_FALSE;
-  else if (FD_STRINGP(arg)) {
-    HeapProfilerStart(FD_STRDATA(arg));
+  else if (STRINGP(arg)) {
+    HeapProfilerStart(CSTRING(arg));
     return FD_TRUE;}
   else {
     HeapProfilerStart(u8_appid());
@@ -755,7 +755,7 @@ static fdtype gperf_dump_heap(fdtype arg)
 {
   int running = IsHeapProfilerRunning();
   if (running) {
-    HeapProfilerDump(FD_STRDATA(arg));
+    HeapProfilerDump(CSTRING(arg));
     return FD_TRUE;}
   else return FD_FALSE;
 }
@@ -764,15 +764,15 @@ static fdtype gperf_dump_heap(fdtype arg)
 #if HAVE_GPERFTOOLS_PROFILER_H
 static fdtype gperf_startstop(fdtype arg)
 {
-  if (FD_STRINGP(arg))
-    ProfilerStart(FD_STRDATA(arg));
+  if (STRINGP(arg))
+    ProfilerStart(CSTRING(arg));
   else ProfilerStop();
-  return FD_VOID;
+  return VOID;
 }
 static fdtype gperf_flush(fdtype arg)
 {
   ProfilerFlush();
-  return FD_VOID;
+  return VOID;
 }
 #endif
 
@@ -784,15 +784,15 @@ static fdtype malloc_stats_prim()
   write(2,"No malloc_stats available\n",
         strlen("No malloc_stats available\n"));
 #endif
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype release_memory_prim(fdtype arg)
 {
 #if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
-  if (FD_FIXNUMP(arg))
-    MallocExtension_ReleaseToSystem(FD_FIX2INT(arg));
-  else if (FD_VOIDP(arg))
+  if (FIXNUMP(arg))
+    MallocExtension_ReleaseToSystem(FIX2INT(arg));
+  else if (VOIDP(arg))
     MallocExtension_ReleaseFreeMemory();
   else return fd_type_error("fixnum","release_memory_prim",arg);
   return FD_TRUE;
@@ -861,7 +861,7 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("GETENV",getenv_prim,1,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim));
@@ -889,7 +889,7 @@ FD_EXPORT void fd_init_sysprims_c()
             "Returns a string report of memory usage");
   fd_idefn1(fd_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,
             "Releases memory back to the operating system",
-            fd_fixnum_type,FD_VOID);
+            fd_fixnum_type,VOID);
 
   fd_register_config
     ("CORELIMIT",_("Set core size limit"),

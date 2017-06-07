@@ -191,9 +191,9 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,fdtype key,
 {
   int rv=0;
   if (raw) {
-    if (FD_STRINGP(key))
-      rv=bloom_check_add(bloom,FD_STRDATA(key),FD_STRLEN(key),add);
-    else if (FD_PACKETP(key))
+    if (STRINGP(key))
+      rv=bloom_check_add(bloom,CSTRING(key),STRLEN(key),add);
+    else if (PACKETP(key))
       rv=bloom_check_add(bloom,FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),add);
     else if (err) {
       fd_xseterr("Raw bloom arg wasn't a string or packet",
@@ -205,7 +205,7 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,fdtype key,
   else {
     FD_DECL_OUTBUF(out,1024);
     size_t dtype_len = fd_write_dtype(&out,key);
-    if ( FD_EXPECT_FALSE (dtype_len<0) ) {
+    if ( PRED_FALSE (dtype_len<0) ) {
       if (err) {
 	if (u8_current_exception) u8_pop_exception();
 	return 0;}
@@ -222,14 +222,14 @@ FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, fdtype key,int flags)
 {
   int raw=flags&FD_BLOOM_RAW, err=flags&FD_BLOOM_ERR;
   int check=flags&FD_BLOOM_CHECK, add=flags&FD_BLOOM_ADD;
-  if (FD_PRECHOICEP(key)) {
+  if (PRECHOICEP(key)) {
     fdtype simple=fd_make_simple_choice(key);
     int rv=fd_bloom_op(bloom,simple,flags);
     fd_decref(simple);
     return rv;}
-  else if (FD_CHOICEP(key)) {
+  else if (CHOICEP(key)) {
     unsigned int count=0;
-    FD_DO_CHOICES(elt,key) {
+    DO_CHOICES(elt,key) {
       int rv=bloom_check_add_dtype(bloom, elt, add, raw, err);
       if (rv<0) {
 	FD_STOP_DO_CHOICES;

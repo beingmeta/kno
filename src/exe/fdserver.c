@@ -59,8 +59,8 @@ static int daemonize = 0, foreground = 0, pidwait = 1;
 
 static long long state_files_written = 0;
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
 static int async_mode = 1;
 static int auto_reload = 0;
@@ -309,14 +309,14 @@ static int config_serve_port(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
   if (server_initialized==0) init_server();
   if (n_ports<0) return -1;
   else if (FD_UINTP(val)) {
-    int retval = u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
+    int retval = u8_add_server(&dtype_server,NULL,FIX2INT(val));
     if (retval<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
     else n_ports = n_ports+retval;
     return retval;}
-  else if (FD_STRINGP(val)) {
-    int retval = u8_add_server(&dtype_server,FD_STRDATA(val),0);
+  else if (STRINGP(val)) {
+    int retval = u8_add_server(&dtype_server,CSTRING(val),0);
     if (retval<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
@@ -329,11 +329,11 @@ static int config_serve_port(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 
 static fdtype config_get_ports(fdtype var,void U8_MAYBE_UNUSED *data)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  fdtype results = FD_EMPTY;
   int i = 0, lim = dtype_server.n_servers;
   while (i<lim) {
     fdtype id = fdstring(dtype_server.server_info[i].idstring);
-    FD_ADD_TO_CHOICE(results,id); i++;}
+    CHOICE_ADD(results,id); i++;}
   return results;
 }
 
@@ -347,7 +347,9 @@ static fdtype config_get_dtype_server_flag(fdtype var,void *data)
   if (server_initialized) flags = dtype_server.flags;
   else flags = server_flags;
   u8_unlock_mutex(&init_server_lock);
-  if ((flags)&(mask)) return FD_TRUE; else return FD_FALSE;
+  if ((flags)&(mask))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
@@ -359,13 +361,13 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
     flags = dtype_server.flags; flagsp = &(dtype_server.flags);}
   else {
     flags = server_flags; flagsp = &(server_flags);}
-  if (FD_FALSEP(val))
+  if (FALSEP(val))
     *flagsp = flags&(~(mask));
-  else if ((FD_STRINGP(val))&&(FD_STRLEN(val)==0))
+  else if ((STRINGP(val))&&(STRLEN(val)==0))
     *flagsp = flags&(~(mask));
-  else if (FD_STRINGP(val)) {
-    u8_string s = FD_STRDATA(val);
-    int bool = fd_boolstring(FD_STRDATA(val),-1);
+  else if (STRINGP(val)) {
+    u8_string s = CSTRING(val);
+    int bool = fd_boolstring(CSTRING(val),-1);
     if (bool<0) {
       int guess = (((s[0]=='y')||(s[0]=='Y'))?(1):
                  ((s[0]=='N')||(s[0]=='n'))?(0):
@@ -667,12 +669,12 @@ static int close_fdclient(u8_client ucl)
 /* Module configuration */
 
 /* A list of exposed modules */
-static fdtype module_list = FD_EMPTY_LIST;
+static fdtype module_list = NIL;
 /* This is the exposed environment. */
 static fd_lexenv exposed_lexenv = NULL;
 /* This is the shutdown procedure to be called when the
    server shutdowns. */
-static fdtype shutdown_proc = FD_EMPTY_CHOICE;
+static fdtype shutdown_proc = EMPTY;
 static int normal_exit = 0;
 
 static fdtype config_get_modules(fdtype var,void *data)
@@ -683,24 +685,24 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 {
   fdtype safe_module = fd_find_module(val,1,1), module = safe_module;
   if (FD_VOIDP(module)) {}
-  else if (FD_HASHTABLEP(module))
+  else if (HASHTABLEP(module))
     exposed_lexenv=
       fd_make_env(fd_incref(module),exposed_lexenv);
   else if (FD_LEXENVP(module)) {
     FD_LEXENV *env = FD_CONSPTR(fd_lexenv,module);
-    if (FD_HASHTABLEP(env->env_exports))
+    if (HASHTABLEP(env->env_exports))
       exposed_lexenv=
         fd_make_env(fd_incref(env->env_exports),exposed_lexenv);}
   module = fd_find_module(val,0,1);
   if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
     else return 1;
-  else if (FD_HASHTABLEP(module))
+  else if (HASHTABLEP(module))
     exposed_lexenv=
       fd_make_env(fd_incref(module),exposed_lexenv);
   else if (FD_LEXENVP(module)) {
     FD_LEXENV *env = FD_CONSPTR(fd_lexenv,module);
-    if (FD_HASHTABLEP(env->env_exports))
+    if (HASHTABLEP(env->env_exports))
       exposed_lexenv=
         fd_make_env(fd_incref(env->env_exports),exposed_lexenv);}
   module_list = fd_conspair(fd_incref(val),module_list);
@@ -886,7 +888,7 @@ static fdtype asyncok()
 static fdtype boundp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype symbol = fd_get_arg(expr,1);
-  if (!(FD_SYMBOLP(symbol)))
+  if (!(SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
   else {
     fdtype val = fd_symeval(symbol,env);
@@ -1082,7 +1084,7 @@ int main(int argc,char **argv)
   /* Now process all the configuration arguments */
   fd_handle_argv(argc,argv,arg_mask,NULL);
 
-  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdserver",NULL,FD_VOID);
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdserver",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   _stack->stack_free_label=1;
 
@@ -1438,13 +1440,13 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
     else {
       fdtype startup_proc = fd_symeval(fd_intern("STARTUP"),env);
       shutdown_proc = fd_symeval(fd_intern("SHUTDOWN"),env);
-      fd_decref(result); result = FD_VOID;
+      fd_decref(result); result = VOID;
       /* If the init file did any exporting, expose those exports to
          clients.  Otherwise, expose all the definitions in the init
          file.  Note that the clients won't be able to get at the
          unsafe "empowered" environment but that the procedures
          defined are closed in that environment. */
-      if (FD_HASHTABLEP(env->env_exports))
+      if (HASHTABLEP(env->env_exports))
         server_env = fd_make_env(fd_incref(env->env_exports),
                                exposed_lexenv);
       else server_env = fd_make_env(fd_incref(env->env_bindings),
@@ -1455,7 +1457,7 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
         core_env->env_parent = NULL;}
       if (FD_VOIDP(startup_proc)) {}
       else {
-        FD_DO_CHOICES(p,startup_proc) {
+        DO_CHOICES(p,startup_proc) {
           fdtype result = fd_apply(p,0,NULL);
           if (FD_ABORTP(result)) {
             u8_exception ex = u8_erreify(), root = ex;
@@ -1467,7 +1469,8 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
             fd_unparse_maxelts = debug_maxelts;
             fd_print_exception(&out,root);
             fd_print_backtrace(&out,ex,80);
-            fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
+            fd_unparse_maxelts = old_maxelts;
+            fd_unparse_maxchars = old_maxchars;
             fputs(out.u8_outbuf,stderr);
             u8_free(out.u8_outbuf);
             u8_free_exception(ex,1);

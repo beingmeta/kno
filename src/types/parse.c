@@ -297,7 +297,7 @@ static int copy_atom(u8_input s,u8_output a)
 fdtype fd_parse_atom(u8_string start,int len)
 {
   /* fprintf(stderr,"fd_parse_atom %d: %s\n",len,start); */
-  if (FD_EXPECT_FALSE(len==0)) return FD_EOX;
+  if (PRED_FALSE(len==0)) return FD_EOX;
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
     struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
     FD_INIT_CONS(uuid,fd_uuid_type);
@@ -310,7 +310,7 @@ fdtype fd_parse_atom(u8_string start,int len)
     struct U8_XTIME xt;
     int retval = u8_iso8601_to_xtime(start+2,&xt);
     if (retval<0) {
-      fd_seterr("Invalid timestamp","fd_parse_atom",u8_strdup(start),FD_VOID);
+      fd_seterr("Invalid timestamp","fd_parse_atom",u8_strdup(start),VOID);
       return FD_PARSE_ERROR;}
     else return fd_make_timestamp(&xt);}
   else if ((start[0]=='#')&&(start[1]=='!')&&(isxdigit(start[2]))) {
@@ -318,14 +318,14 @@ fdtype fd_parse_atom(u8_string start,int len)
       unsigned long long pval;
       if (sscanf(start+2,"%llx",&pval)!=1)
         return fd_err
-          (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);
+          (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),VOID);
       else if (FD_CHECK_PTR(pval))
         return fd_incref((fdtype)pval);
       else return fd_err
-             (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);}
+             (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),VOID);}
     else return fd_err
            (fd_NoPointerExpressions,"fd_parse_atom",
-            u8_strdup(start),FD_VOID);}
+            u8_strdup(start),VOID);}
   else if (start[0]=='#') { /* Look it up */
     fdtype value = lookup_hashname(start,-1,1);
     if (value != FD_NULL) return value;
@@ -333,7 +333,7 @@ fdtype fd_parse_atom(u8_string start,int len)
     /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
-      if (!(FD_FALSEP(result))) return result;}
+      if (!(FALSEP(result))) return result;}
     fd_seterr3(fd_InvalidConstant,"fd_parse_atom",u8_strdup(start));
     return FD_PARSE_ERROR;}
   else {
@@ -342,7 +342,7 @@ fdtype fd_parse_atom(u8_string start,int len)
     if ((isdigit(start[0])) || (start[0]=='+') ||
         (start[0]=='-') || (start[0]=='.')) {
       result=_fd_parse_number(start,-1);
-      if (!(FD_FALSEP(result))) return result;}
+      if (!(FALSEP(result))) return result;}
     /* Otherwise, it's a symbol */
     return fd_make_symbol(start,len);}
 }
@@ -414,20 +414,20 @@ static fdtype default_parse_oid(u8_string start,int len)
   FD_OID oid = FD_NULL_OID_INIT;
   unsigned int hi, lo;
   if (len>64) {
-    fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),FD_VOID);
+    fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),VOID);
     return FD_PARSE_ERROR;}
   strncpy(buf,start,len); buf[len]='\0';
   if (strchr(buf,'/')) {
     int items = sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
-      fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),FD_VOID);
+      fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),VOID);
       return FD_PARSE_ERROR;}}
   else {
     unsigned long long addr;
     int items = sscanf(buf,"@%llx",&addr);
     if (items!=1) {
       fd_seterr("BadOIDReference","default_parse_oid",
-                u8dup(start),FD_VOID);
+                u8dup(start),VOID);
       return FD_PARSE_ERROR;}
     hi = ((addr>>32)&((ull)0xFFFFFFFF));
     lo = (addr&((ull)0xFFFFFFFF));}
@@ -474,7 +474,7 @@ static fdtype parse_oid(U8_INPUT *in)
 
 static fdtype parse_string(U8_INPUT *in)
 {
-  fdtype result = FD_VOID; u8_byte buf[256];
+  fdtype result = VOID; u8_byte buf[256];
   struct U8_OUTPUT out; int c = u8_getc(in);
   U8_INIT_OUTPUT_X(&out,256,buf,0);
   while ((c = u8_getc(in))>=0)
@@ -526,7 +526,7 @@ static fdtype parse_regex(U8_INPUT *in)
             u8_seterr("Invalid escape in Regex","parse_regex",
                       u8_strdup(src.u8_outbuf));
             u8_close((u8_stream)&src);
-            return FD_ERROR_VALUE;}
+            return FD_ERROR;}
           buf[i++]=nc;}
         buf[i]='\0';
         u8_putc(&src,atol(buf));
@@ -540,7 +540,7 @@ static fdtype parse_regex(U8_INPUT *in)
       while ((mc<128)&&(u8_isalpha(mc))) {
         if (strchr("eils",mc)) *optwrite++=(char)mc;
         else {
-          fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,FD_VOID);
+          fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,VOID);
           return FD_PARSE_ERROR;}
         mc = u8_getc(in);}
       u8_ungetc(in,mc);
@@ -567,7 +567,7 @@ static fdtype make_regex(u8_string src_arg,u8_string opts)
     u8_byte buf[512];
     regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_free(ptr);
-    return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
+    return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),VOID);}
   else {
     U8_CLEAR_ERRNO();
     ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
@@ -836,13 +836,13 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
 static fdtype parse_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch = skip_whitespace(in); fdtype head = FD_VOID;
+  int ch = skip_whitespace(in); fdtype head = VOID;
   if (ch<0)
     if (ch== -1) return FD_EOX;
     else return FD_PARSE_ERROR;
   else if (ch == ')') {
     /* The empty list case */
-    u8_getc(in); return FD_EMPTY_LIST;}
+    u8_getc(in); return NIL;}
   else if (ch == ']') {
     fd_seterr(fd_MismatchedClose,"parse_list",NULL,head);
     return FD_PARSE_ERROR;}
@@ -857,7 +857,7 @@ static fdtype parse_list(U8_INPUT *in)
       scan = u8_alloc(struct FD_PAIR);
       FD_INIT_CONS(scan,fd_pair_type);
       if (scan == NULL) {fd_decref(car); return FD_OOM;}
-      else head = fd_init_pair(scan,car,FD_EMPTY_LIST);}
+      else head = fd_init_pair(scan,car,NIL);}
     ch = skip_whitespace(in);
     while ((ch>=0) && (ch != ')')) {
       /* After starting with the head, we iterate until we get to
@@ -872,7 +872,7 @@ static fdtype parse_list(U8_INPUT *in)
         fd_decref(head); return list_elt;}
       new_pair = u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->cdr = fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan->cdr = fd_init_pair(new_pair,list_elt,NIL);
         scan = new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
@@ -899,13 +899,13 @@ static fdtype parse_list(U8_INPUT *in)
 static fdtype parse_bracket_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch = skip_whitespace(in); fdtype head = FD_VOID;
+  int ch = skip_whitespace(in); fdtype head = VOID;
   if (ch<0)
     if (ch== -1) return FD_EOX;
     else return FD_PARSE_ERROR;
   else if (ch == ']') {
     /* The empty list case */
-    u8_getc(in); return FD_EMPTY_LIST;}
+    u8_getc(in); return NIL;}
   else if (ch == ')') {
     fd_seterr(fd_MismatchedClose,"parse_bracket_list",NULL,head);
     return FD_PARSE_ERROR;}
@@ -920,7 +920,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
       scan = u8_alloc(struct FD_PAIR);
       FD_INIT_CONS(scan,fd_pair_type);
       if (scan == NULL) {fd_decref(car); return FD_OOM;}
-      else head = fd_init_pair(scan,car,FD_EMPTY_LIST);}
+      else head = fd_init_pair(scan,car,NIL);}
     ch = skip_whitespace(in);
     while ((ch>=0) && (ch != ']')) {
       /* After starting with the head, we iterate until we get to
@@ -935,7 +935,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
         fd_decref(head); return list_elt;}
       new_pair = u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->cdr = fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan->cdr = fd_init_pair(new_pair,list_elt,NIL);
         scan = new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
@@ -981,7 +981,7 @@ static fdtype parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
   fdtype *elts = parse_vec(in,']',&n_elts);
-  if (FD_EXPECT_FALSE(n_elts<0)) return FD_PARSE_ERROR;
+  if (PRED_FALSE(n_elts<0)) return FD_PARSE_ERROR;
   else if (n_elts>7)
     return fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
   else {
@@ -995,12 +995,12 @@ static fdtype parse_choice(U8_INPUT *in)
 {
   int ch = skip_whitespace(in);
   if (ch == '}') {
-    u8_getc(in); return FD_EMPTY_CHOICE;}
+    u8_getc(in); return EMPTY;}
   else if (ch < 0)
     if (ch== -1) return FD_EOX; else return FD_PARSE_ERROR;
   else {
     int n_elts = -2; fdtype *elts = parse_vec(in,'}',&n_elts);
-    if (n_elts==0) return FD_EMPTY_CHOICE;
+    if (n_elts==0) return EMPTY;
     else if (elts == NULL)
       return FD_PARSE_ERROR;
     else if (n_elts==1) {
@@ -1023,7 +1023,7 @@ static fdtype parse_qchoice(U8_INPUT *in)
   fdtype *elts = parse_vec(in,'}',&n_elts);
   if (n_elts==0)
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
-                           FD_EMPTY_CHOICE);
+                           EMPTY);
   else if (n_elts==1) {
     fdtype result = elts[0]; u8_free(elts);
     return result;}
@@ -1047,7 +1047,7 @@ static fdtype recreate_record(int n,fdtype *v)
   struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(v[0]);
   if ((entry) && (entry->fd_compound_parser)) {
     fdtype result = entry->fd_compound_parser(n,v,entry);
-    if (!(FD_VOIDP(result))) {
+    if (!(VOIDP(result))) {
       while (i<n) {fd_decref(v[i]); i++;}
       if (v) u8_free(v);
       return result;}}
@@ -1068,7 +1068,7 @@ static fdtype parse_record(U8_INPUT *in)
   if (n_elts>0)
     return recreate_record(n_elts,elts);
   else if (n_elts==0)
-    return fd_err(fd_CantParseRecord,"parse_record","empty record",FD_VOID);
+    return fd_err(fd_CantParseRecord,"parse_record","empty record",VOID);
   else if (n_elts== -1) return FD_EOX;
   else return FD_PARSE_ERROR;
 }
@@ -1144,7 +1144,7 @@ fdtype fd_parser(u8_input in)
     case '(': return parse_vector(in);
     case '~': {
       ch = u8_getc(in); if (ch<0) return FD_EOX;
-      if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,VOID);
       return parse_code(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
@@ -1162,19 +1162,19 @@ fdtype fd_parser(u8_input in)
     case '*': {
       int nextc = u8_getc(in);
       fdtype result = parse_packet(in,nextc);
-      if (FD_PACKETP(result)) {
+      if (PACKETP(result)) {
         FD_SET_CONS_TYPE(result,fd_secret_type);}
       return result;}
     case 'X': case 'x': case '@': case '"':
       return parse_packet(in,ch);
     case '/': return parse_regex(in);
     case '<':
-      return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      return fd_err(fd_ParseError,"fd_parser",NULL,VOID);
     case ';': {
       fdtype content = fd_parser(in);
       if (FD_ABORTP(content)) return content;
       else return fd_conspair(comment_symbol,
-                              fd_conspair(content,FD_EMPTY_LIST));}
+                              fd_conspair(content,NIL));}
     case '%': {
       int c = u8_getc(in);
       if (c=='(') return parse_record(in);
@@ -1294,7 +1294,7 @@ fdtype fd_parse_arg(u8_string arg)
            ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
            ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
     fdtype num = fd_string2number(arg,-1);
-    if (FD_NUMBERP(num)) return num;
+    if (NUMBERP(num)) return num;
     else return fdtype_string(arg);}
   else if (strchr("@{#(\"|",arg[0])) {
     fdtype result;

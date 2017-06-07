@@ -90,7 +90,7 @@ fdtype fd_register_constant(u8_string name)
   if (fd_add_hashname(name,constant)<0) {
     u8_seterr("ConstantConflict","fd_register_constant",
               u8_strdup(name));
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else {
     fd_constant_names[fd_n_constants++]=name;
     return constant;}
@@ -191,11 +191,11 @@ FD_EXPORT
   Returns 1 if the two objects are equal. */
 int fdtype_equal(fdtype x,fdtype y)
 {
-  if (FD_ATOMICP(x)) return (x == y);
-  else if (FD_ATOMICP(y)) return (x == y);
+  if (ATOMICP(x)) return (x == y);
+  else if (ATOMICP(y)) return (x == y);
   else if ((FD_CONS_DATA(x)) == (FD_CONS_DATA(y))) return 1;
-  else if ((FD_PRECHOICEP(x)) || (FD_PRECHOICEP(y))) {
-    int convert_x = FD_PRECHOICEP(x), convert_y = FD_PRECHOICEP(y);
+  else if ((PRECHOICEP(x)) || (PRECHOICEP(y))) {
+    int convert_x = PRECHOICEP(x), convert_y = PRECHOICEP(y);
     fdtype cx = ((convert_x) ? (fd_make_simple_choice(x)) : (x));
     fdtype cy = ((convert_y) ? (fd_make_simple_choice(y)) : (y));
     int result = fdtype_equal(cx,cy);
@@ -203,35 +203,35 @@ int fdtype_equal(fdtype x,fdtype y)
     if (convert_y) fd_decref(cy);
     return result;}
   else if (!(FD_TYPEP(y,FD_PTR_TYPE(x))))
-    if ((FD_PACKETP(x))&&(FD_PACKETP(y)))
+    if ((PACKETP(x))&&(PACKETP(y)))
       if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
       else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
         return 1;
       else return 0;
     else return 0;
-  else if (FD_PAIRP(x))
+  else if (PAIRP(x))
     if (FDTYPE_EQUAL(FD_CAR(x),FD_CAR(y)))
       return (FDTYPE_EQUAL(FD_CDR(x),FD_CDR(y)));
     else return 0;
-  else if (FD_STRINGP(x))
-    if ((FD_STRLEN(x)) != (FD_STRLEN(y))) return 0;
-    else if (strncmp(FD_STRDATA(x),FD_STRDATA(y),FD_STRLEN(x)) == 0)
+  else if (STRINGP(x))
+    if ((STRLEN(x)) != (STRLEN(y))) return 0;
+    else if (strncmp(CSTRING(x),CSTRING(y),STRLEN(x)) == 0)
       return 1;
     else return 0;
-  else if (FD_PACKETP(x))
+  else if (PACKETP(x))
     if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
     else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
       return 1;
     else return 0;
-  else if (FD_VECTORP(x))
-    if ((FD_VECTOR_LENGTH(x)) != (FD_VECTOR_LENGTH(y))) return 0;
+  else if (VECTORP(x))
+    if ((VEC_LEN(x)) != (VEC_LEN(y))) return 0;
     else {
-      int i = 0, len = FD_VECTOR_LENGTH(x);
-      fdtype *xdata = FD_VECTOR_DATA(x), *ydata = FD_VECTOR_DATA(y);
+      int i = 0, len = VEC_LEN(x);
+      fdtype *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
       while (i < len)
         if (FDTYPE_EQUAL(xdata[i],ydata[i])) i++; else return 0;
       return 1;}
-  else if ((FD_NUMBERP(x)) && (FD_NUMBERP(y)))
+  else if ((NUMBERP(x)) && (NUMBERP(y)))
     if (fd_numcompare(x,y)==0) return 1;
     else return 0;
   else {
@@ -288,7 +288,7 @@ fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
     FD_INIT_CONS(ptr,fd_string_type);
     ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
     return FDTYPE_CONS(ptr);}
-  else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,FD_VOID);
+  else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,VOID);
 }
 
 FD_EXPORT
@@ -309,7 +309,7 @@ fdtype fd_substring(u8_string start,u8_string end)
     FD_INIT_FRESH_CONS(ptr,fd_string_type);
     ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = 0;
     return FDTYPE_CONS(ptr);}
-  else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
+  else return fd_err(fd_StringOverflow,"fd_substring",NULL,VOID);
 }
 
 FD_EXPORT
@@ -417,7 +417,7 @@ FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr)
 FD_EXPORT fdtype fd_make_list(int len,...)
 {
   va_list args; int i = 0;
-  fdtype *elts = u8_alloc_n(len,fdtype), result = FD_EMPTY_LIST;
+  fdtype *elts = u8_alloc_n(len,fdtype), result = NIL;
   va_start(args,len);
   while (i<len) elts[i++]=va_arg(args,fdtype);
   va_end(args);
@@ -429,9 +429,9 @@ FD_EXPORT fdtype fd_make_list(int len,...)
 
 FD_EXPORT int fd_list_length(fdtype l)
 {
-  int len = 0; fdtype scan = l; while (FD_PAIRP(scan)) {
+  int len = 0; fdtype scan = l; while (PAIRP(scan)) {
     len++; scan = FD_CDR(scan);}
-  if (FD_EMPTY_LISTP(scan)) return len;
+  if (NILP(scan)) return len;
   else return -len;
 }
 
@@ -445,14 +445,14 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
     ptr = u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     /* This might be weird on non byte-addressed architectures */
     elts = ((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
-    while (i < len) elts[i++]=FD_VOID;
+    while (i < len) elts[i++]=VOID;
     freedata = 0;}
   else if (ptr == NULL) {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
   else if (data == NULL) {
       int i = 0; elts = u8_malloc(sizeof(fdtype)*len);
-      while (i<len) elts[i]=FD_VOID;
+      while (i<len) elts[i]=VOID;
       freedata = 1;}
   else elts = data;
   FD_INIT_CONS(ptr,fd_vector_type);
@@ -486,7 +486,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
   ptr->fdvec_free_elts = 0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
-  else {while (i < len) {elts[i]=FD_VOID; i++;}}
+  else {while (i < len) {elts[i]=VOID; i++;}}
   return FDTYPE_CONS(ptr);
 }
 
@@ -504,13 +504,13 @@ FD_EXPORT fdtype fd_init_code(struct FD_VECTOR *ptr,int len,fdtype *data)
     elts = data;}
   else if (data == NULL) {
     int i = 0; elts = u8_alloc_n(len,fdtype);
-    while (i<len) elts[i]=FD_VOID;
+    while (i<len) elts[i]=VOID;
     freedata = 1;}
   else {
     ptr = u8_alloc(struct FD_VECTOR);
     elts = data;}
   FD_INIT_CONS(ptr,fd_code_type);
-  if (data == NULL) while (i < len) elts[i++]=FD_VOID;
+  if (data == NULL) while (i < len) elts[i++]=VOID;
   ptr->fdvec_length = len; 
   ptr->fdvec_elts = elts; 
   ptr->fdvec_free_elts = freedata;
@@ -609,7 +609,7 @@ FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *p,fdtype tag,int ismutable,int n,...)
 {
   va_list args; int i = 0; fdtype *write, *limit, initfn = FD_FALSE;
-  if (FD_EXPECT_FALSE((n<0)||(n>=256))) {
+  if (PRED_FALSE((n<0)||(n>=256))) {
     /* Consume the arguments, just in case the implementation is a
        little flaky. */
     va_start(args,n);
@@ -644,7 +644,7 @@ FD_EXPORT fdtype fd_init_compound_from_elts
   (struct FD_COMPOUND *p,fdtype tag,int ismutable,int n,fdtype *elts)
 {
   fdtype *write, *limit, *read = elts, initfn = FD_FALSE;
-  if (FD_EXPECT_FALSE((n<0) || (n>=256)))
+  if (PRED_FALSE((n<0) || (n>=256)))
     return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
                          FD_SHORT2DTYPE(n));
   else if (p == NULL) {
@@ -723,7 +723,7 @@ struct FD_COMPOUND_TYPEINFO
     if (FD_EQ(scan->compound_typetag,symbol)) {
       if (datap) {
         fdtype data = *datap;
-        if (FD_VOIDP(scan->fd_compound_metadata)) {
+        if (VOIDP(scan->fd_compound_metadata)) {
           scan->fd_compound_metadata = data;
           fd_incref(data);}
         else {
@@ -744,7 +744,7 @@ struct FD_COMPOUND_TYPEINFO
     fdtype data = *datap;
     fd_incref(data);
     newrec->fd_compound_metadata = data;}
-  else newrec->fd_compound_metadata = FD_VOID;
+  else newrec->fd_compound_metadata = VOID;
   newrec->fd_compound_corelen = ((corep)?(*corep):(-1));
   newrec->fd_compound_nextinfo = fd_compound_entries;
   newrec->compound_typetag = symbol;
@@ -765,7 +765,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   scan = fd_compound_entries;
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
-      if (!(FD_VOIDP(data))) {
+      if (!(VOIDP(data))) {
         fdtype old_data = scan->fd_compound_metadata;
         scan->fd_compound_metadata = fd_incref(data);
         fd_decref(old_data);}
@@ -829,8 +829,8 @@ FD_EXPORT void _fd_bad_pointer(fdtype badx,u8_context cxt)
 
 fd_exception get_pointer_exception(fdtype x)
 {
-  if (FD_OIDP(x)) return _("BadOIDPtr");
-  else if (FD_CONSP(x)) return _("BadCONSPtr");
+  if (OIDP(x)) return _("BadOIDPtr");
+  else if (CONSP(x)) return _("BadCONSPtr");
   else if (FD_IMMEDIATEP(x)) {
     int ptype = FD_IMMEDIATE_TYPE(x);
     if (ptype>=fd_next_immediate_type)
@@ -850,7 +850,7 @@ FD_EXPORT fdtype fd_badptr_err(fdtype result,u8_context cxt,u8_string details)
 {
   fd_seterr( get_pointer_exception(result), cxt,
              u8dup(details), FD_UINT2DTYPE(result) );
-  return FD_ERROR_VALUE;
+  return FD_ERROR;
 }
 
 /* Testing */
@@ -859,7 +859,7 @@ static U8_MAYBE_UNUSED int some_false(fdtype arg)
 {
   int some_false = 0;
   FD_DOELTS(elt,arg,count) {
-    if (FD_FALSEP(elt)) some_false = 1;}
+    if (FALSEP(elt)) some_false = 1;}
   return some_false;
 }
 
@@ -905,7 +905,7 @@ void fd_init_cons_c()
 
   fd_compound_descriptor_type=
     fd_init_compound
-    (NULL,FD_VOID,1,9,
+    (NULL,VOID,1,9,
      fd_intern("COMPOUNDTYPE"),0,FD_INT(9),
      fd_make_nvector(9,FDSYM_TAG,FDSYM_LENGTH,
                      fd_intern("FIELDS"),fd_intern("INITFN"),
@@ -924,7 +924,7 @@ void fd_init_cons_c()
     i++;}
   fd_add_hashname("#true",FD_TRUE);
   fd_add_hashname("#false",FD_FALSE);
-  fd_add_hashname("#empty",FD_EMPTY_CHOICE);
+  fd_add_hashname("#empty",EMPTY);
   fd_add_hashname("#dflt",FD_DEFAULT_VALUE);
   int const_off=0;
 #ifdef M_PI

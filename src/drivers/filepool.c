@@ -85,15 +85,15 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,fdtype opts
   if (magicno == FD_FILE_POOL_TO_RECOVER) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_file_pool(pool)<0) {
-      fd_seterr(fd_MallocFailed,"open_file_pool",NULL,FD_VOID);
+      fd_seterr(fd_MallocFailed,"open_file_pool",NULL,VOID);
       return NULL;}}
   load = fd_read_4bytes_at(s,16);
   label_loc = (fd_off_t)fd_read_4bytes_at(s,20);
   if (label_loc) {
     if (fd_setpos(s,label_loc)>0) {
       label = fd_read_dtype(fd_readbuf(s));
-      if (FD_STRINGP(label))
-        pool->pool_label = u8_strdup(FD_STRDATA(label));
+      if (STRINGP(label))
+        pool->pool_label = u8_strdup(CSTRING(label));
       else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
       fd_decref(label);}
     else {
@@ -216,7 +216,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   fd_stream stream = &(fp->pool_stream);
   fd_off_t data_pos;
   fd_lock_pool((fd_pool)fp);
-  if (FD_EXPECT_FALSE(offset>=fp->pool_load)) {
+  if (PRED_FALSE(offset>=fp->pool_load)) {
     fd_unlock_pool((fd_pool)fp);
     return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->poolid,oid);}
   else if (fp->pool_offdata)
@@ -226,24 +226,24 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
     if (fd_setpos(stream,24+4*offset)<0) {
       fd_unlock_stream(stream);
       fd_unlock_pool((fd_pool)fp);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     data_pos = fd_read_4bytes(fd_readbuf(stream));}
-  if (data_pos == 0) value = FD_EMPTY_CHOICE;
-  else if (FD_EXPECT_FALSE(data_pos<24+fp->pool_load*4)) {
+  if (data_pos == 0) value = EMPTY;
+  else if (PRED_FALSE(data_pos<24+fp->pool_load*4)) {
     /* We got a data pointer into the file header.  This will
        happen in the (hopefully now non-existent) case where
        we've stored a >32 bit offset into a 32-bit sized location
        and it got truncated down. */
     fd_unlock_pool((fd_pool)fp);
     if (stream_locked) fd_unlock_stream(stream);
-    return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->poolid,FD_VOID);}
+    return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->poolid,VOID);}
   else {
     if (!(stream_locked)) {
       fd_lock_stream(stream); stream_locked = 1;}
     if (fd_setpos(&(fp->pool_stream),data_pos)<0) {
       fd_unlock_stream(stream);
       fd_unlock_pool((fd_pool)fp);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     value = fd_read_dtype(fd_readbuf(stream));}
   if (stream_locked) fd_unlock_stream(stream);
   fd_unlock_pool((fd_pool)fp);
@@ -276,7 +276,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
     int i = 0; while (i < n) {
       fdtype oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base), file_off;
-      if (FD_EXPECT_FALSE(off>=load)) {
+      if (PRED_FALSE(off>=load)) {
         u8_free(result); u8_free(schedule);
         fd_unlock_pool(p);
         fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->poolid),oid);
@@ -285,7 +285,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
       schedule[i].vpos = i;
       if (file_off==0)
         schedule[i].filepos = file_off;
-      else if (FD_EXPECT_FALSE(file_off<min_file_pos)) {
+      else if (PRED_FALSE(file_off<min_file_pos)) {
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
         u8_free(result); u8_free(schedule);
@@ -308,10 +308,10 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
         fd_unlock_pool(p);
         return NULL;}
       file_off = fd_read_4bytes(fd_readbuf(stream));
-      if (FD_EXPECT_FALSE(file_off==0))
+      if (PRED_FALSE(file_off==0))
         /* This is okay, just an allocated but unassigned OID. */
         schedule[i].filepos = file_off;
-      else if (FD_EXPECT_FALSE(file_off<min_file_pos)) {
+      else if (PRED_FALSE(file_off<min_file_pos)) {
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
         u8_free(result); u8_free(schedule);
@@ -335,7 +335,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
         return NULL;}
       result[schedule[i].vpos]=fd_read_dtype(fd_readbuf(stream));
       i++;}
-    else result[schedule[i++].vpos]=FD_EMPTY_CHOICE;
+    else result[schedule[i++].vpos]=EMPTY;
   u8_free(schedule);
   fd_unlock_stream(stream);
   fd_unlock_pool(p);
@@ -367,13 +367,13 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     FD_OID oid = FD_OID_ADDR(oids[i]);
     unsigned int oid_off = FD_OID_DIFFERENCE(oid,base);
     int delta = fd_write_dtype(fd_writebuf(stream),values[i]);
-    if (FD_EXPECT_FALSE(oid_off>=load)) {
+    if (PRED_FALSE(oid_off>=load)) {
       fd_seterr(fd_UnallocatedOID,
                 "file_pool_storen",u8_strdup(fp->poolid),
                 oids[i]);
       retcode = -1; break;}
-    else if (FD_EXPECT_FALSE(delta<0)) {retcode = -1; break;}
-    else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
+    else if (PRED_FALSE(delta<0)) {retcode = -1; break;}
+    else if (PRED_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_PoolFileSizeOverflow,
                 "file_pool_storen",u8_strdup(fp->poolid),
                 oids[i]);
@@ -387,7 +387,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     /* No space to write the recovery information! */
     fd_seterr(fd_PoolFileSizeOverflow,
               "file_pool_storen",u8_strdup(fp->poolid),
-              FD_VOID);
+              VOID);
     retcode = -1;}
   else if (fp->pool_offdata) {
     int i = 0, load = fp->pool_load;
@@ -525,7 +525,7 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
 
 static fdtype file_pool_alloc(fd_pool p,int n)
 {
-  fdtype results = FD_EMPTY_CHOICE; int i = 0;
+  fdtype results = EMPTY; int i = 0;
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
  FD_OID base=fp->pool_base;
   unsigned int start;
@@ -533,13 +533,13 @@ static fdtype file_pool_alloc(fd_pool p,int n)
   if (!(FD_POOLFILE_LOCKEDP(fp))) lock_file_pool(fp,0);
   if (fp->pool_load+n>=fp->pool_capacity) {
     fd_unlock_pool(p);
-    return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->poolid,FD_VOID);}
+    return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->poolid,VOID);}
   start=fp->pool_load; fp->pool_load+=n;
   fd_unlock_pool(p);
   while (i < n) {
     FD_OID new_addr = FD_OID_PLUS(base,start+i);
     fdtype new_oid = fd_make_oid(new_addr);
-    FD_ADD_TO_CHOICE(results,new_oid);
+    CHOICE_ADD(results,new_oid);
     i++;}
   return results;
 }
@@ -638,7 +638,7 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
     else {
       FD_OID addr = FD_OID_PLUS(fp->pool_base,(nscan-offsets));
       fdtype changed_oid = fd_make_oid(addr);
-      fd_hashtable_op(&(fp->pool_cache),fd_table_replace,changed_oid,FD_VOID);
+      fd_hashtable_op(&(fp->pool_cache),fd_table_replace,changed_oid,VOID);
       oscan++; nscan++;}
   u8_free(fp->pool_offdata);
   fp->pool_offdata = offsets; fp->pool_load = fp->pool_offdata_size = new_load;
@@ -718,16 +718,16 @@ int fd_make_file_pool
 static fd_pool filepool_create(u8_string spec,void *type_data,
                                fd_storage_flags flags,fdtype opts)
 {
-  fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),FD_VOID);
-  fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),FD_VOID);
+  fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
+  fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
   fdtype load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
   unsigned int capacity, load;
   unsigned int magic_number = (unsigned int)((unsigned long)type_data);
   int rv = 0;
   if (u8_file_existsp(spec)) {
-    fd_seterr(_("FileAlreadyExists"),"filepool_create",spec,FD_VOID);
+    fd_seterr(_("FileAlreadyExists"),"filepool_create",spec,VOID);
     return NULL;}
-  else if (!(FD_OIDP(base_oid))) {
+  else if (!(OIDP(base_oid))) {
     fd_seterr("Not a base oid","filepool_create",spec,base_oid);
     rv = -1;}
   else if (FD_ISINT(capacity_arg)) {
@@ -770,17 +770,17 @@ static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   if ((n>0)&&(args == NULL))
-    return fd_err("BadPoolOpCall","filepool_op",fp->poolid,FD_VOID);
+    return fd_err("BadPoolOpCall","filepool_op",fp->poolid,VOID);
   else if (n<0)
-    return fd_err("BadPoolOpCall","filepool_op",fp->poolid,FD_VOID);
+    return fd_err("BadPoolOpCall","filepool_op",fp->poolid,VOID);
   else if (op == fd_cachelevel_op) {
     if (n==0)
       return FD_INT(fp->pool_cache_level);
     else {
-      fdtype arg = (args)?(args[0]):(FD_VOID);
-      if ((FD_FIXNUMP(arg))&&(FD_FIX2INT(arg)>=0)&&
-          (FD_FIX2INT(arg)<0x100)) {
-        file_pool_setcache(p,FD_FIX2INT(arg));
+      fdtype arg = (args)?(args[0]):(VOID);
+      if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
+          (FIX2INT(arg)<0x100)) {
+        file_pool_setcache(p,FIX2INT(arg));
         return FD_INT(fp->pool_cache_level);}
       else return fd_type_error
              (_("cachelevel"),"filepool_op/cachelevel",arg);}}
@@ -791,15 +791,15 @@ static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
       else return fdtype_string(fp->pool_label);}
     else {
       fdtype label = args[0];
-      if (FD_STRINGP(label))
+      if (STRINGP(label))
         return label_file_pool(fp,label);
       else return fd_type_error("pool label","filepool_op/label",label);}}
   else if (op == fd_bufsize_op) {
     if (n==0)
       return FD_INT(fp->pool_stream.buf.raw.buflen);
-    else if (FD_FIXNUMP(args[0])) {
+    else if (FIXNUMP(args[0])) {
       fd_lock_pool(p);
-      fd_setbufsize(&(fp->pool_stream),FD_FIX2INT(args[0]));
+      fd_setbufsize(&(fp->pool_stream),FIX2INT(args[0]));
       fd_unlock_pool(p);
       return FD_INT(fp->pool_stream.buf.raw.buflen);}
     else return fd_type_error("buffer size","filepool_op/bufsize",args[0]);}
@@ -823,7 +823,7 @@ static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label)
         fd_write_4bytes_at(stream,(unsigned int)endpos,20);
         retval = 1;}}
     fd_unlock_stream(stream);}
-  if (retval<0) return FD_ERROR_VALUE;
+  if (retval<0) return FD_ERROR;
   else return FD_TRUE;
 }
 

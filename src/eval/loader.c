@@ -59,8 +59,8 @@ static fd_exception fd_ReloadError=_("Module reload error");
 
 static u8_string libscm_path;
 
-static fdtype safe_loadpath = FD_EMPTY_LIST;
-static fdtype loadpath = FD_EMPTY_LIST;
+static fdtype safe_loadpath = NIL;
+static fdtype loadpath = NIL;
 static int log_reloads = 1;
 
 static void add_load_record
@@ -85,7 +85,7 @@ static int load_source_module(fdtype spec,int safe,void *ignored)
       fdtype module_key = fdtype_string(module_source);
       fd_register_module_x(module_key,load_result,safe);
       /* Store non symbolic specifiers as module identifiers */
-      if (FD_STRINGP(spec)) 
+      if (STRINGP(spec)) 
 	fd_add(load_result,moduleid_symbol,spec);
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
@@ -101,31 +101,31 @@ static int load_source_module(fdtype spec,int safe,void *ignored)
 
 static u8_string get_module_source(fdtype spec,int safe)
 {
-  if (FD_SYMBOLP(spec)) {
-    u8_string name = u8_downcase(FD_SYMBOL_NAME(spec));
+  if (SYMBOLP(spec)) {
+    u8_string name = u8_downcase(SYM_NAME(spec));
     u8_string module_source = u8_find_file(name,libscm_path,NULL);
     if (module_source) {
       u8_free(name);
       return module_source;}
     else if (safe==0) {
       FD_DOLIST(elt,loadpath) {
-        if (FD_STRINGP(elt)) {
-          module_source = u8_find_file(name,FD_STRDATA(elt),NULL);
+        if (STRINGP(elt)) {
+          module_source = u8_find_file(name,CSTRING(elt),NULL);
           if (module_source) {
             u8_free(name);
             return module_source;}}}}
     FD_DOLIST(elt,safe_loadpath) {
-      if (FD_STRINGP(elt)) {
-        module_source = u8_find_file(name,FD_STRDATA(elt),NULL);
+      if (STRINGP(elt)) {
+        module_source = u8_find_file(name,CSTRING(elt),NULL);
         if (module_source) {
           u8_free(name);
           return module_source;}}}
     u8_free(name);
     return NULL;}
-  else if ((safe==0) && (FD_STRINGP(spec))) {
-    u8_string spec_data = FD_STRDATA(spec);
+  else if ((safe==0) && (STRINGP(spec))) {
+    u8_string spec_data = CSTRING(spec);
     if (strchr(spec_data,':') == NULL) {
-      u8_string abspath = u8_abspath(FD_STRDATA(spec),NULL);
+      u8_string abspath = u8_abspath(CSTRING(spec),NULL);
       if (u8_file_existsp(abspath))
         return abspath;
       else {
@@ -150,11 +150,11 @@ static fdtype load_source_for_module
      (fd_working_lexenv()));
   fdtype load_result = fd_load_source_with_date(module_source,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
-    if (FD_HASHTABLEP(env->env_bindings))
+    if (HASHTABLEP(env->env_bindings))
       fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
     fd_decref((fdtype)env);
     return load_result;}
-  if (FD_STRINGP(spec))
+  if (STRINGP(spec))
     fd_register_module_x(spec,(fdtype) env,
                          ((safe) ? (FD_MODULE_SAFE) : (0)));
   add_load_record(spec,module_source,env,mtime);
@@ -164,22 +164,22 @@ static fdtype load_source_for_module
 
 static fdtype reload_module(fdtype module)
 {
-  if (FD_STRINGP(module)) {
+  if (STRINGP(module)) {
     int retval = load_source_module(module,0,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
-  else if (FD_SYMBOLP(module)) {
+  else if (SYMBOLP(module)) {
     fdtype resolved = fd_get_module(module,0);
-    if (FD_TABLEP(resolved)) {
+    if (TABLEP(resolved)) {
       fdtype result = reload_module(resolved);
       fd_decref(resolved);
       return result;}
     else return fd_err(fd_TypeError,"reload_module",
 		       "module name or path",module);}
-  else if (FD_TABLEP(module)) {
-    fdtype ids = fd_get(module,moduleid_symbol,FD_EMPTY_CHOICE), source = FD_VOID;
-    FD_DO_CHOICES(id,ids) {
-      if (FD_STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
-    if (FD_STRINGP(source)) {
+  else if (TABLEP(module)) {
+    fdtype ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
+    DO_CHOICES(id,ids) {
+      if (STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
+    if (STRINGP(source)) {
       fdtype result = reload_module(source);
       fd_decref(ids);
       return result;}
@@ -193,22 +193,22 @@ static fdtype reload_module(fdtype module)
 
 static fdtype safe_reload_module(fdtype module)
 {
-  if (FD_STRINGP(module)) {
+  if (STRINGP(module)) {
     int retval = load_source_module(module,1,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
-  else if (FD_SYMBOLP(module)) {
+  else if (SYMBOLP(module)) {
     fdtype resolved = fd_get_module(module,1);
-    if (FD_TABLEP(resolved)) {
+    if (TABLEP(resolved)) {
       fdtype result = safe_reload_module(resolved);
       fd_decref(resolved);
       return result;}
     else return fd_err(fd_TypeError,"safe_reload_module",
 		       "module name or path",module);}
-  else if (FD_TABLEP(module)) {
-    fdtype ids = fd_get(module,moduleid_symbol,FD_EMPTY_CHOICE), source = FD_VOID;
-    FD_DO_CHOICES(id,ids) {
-      if (FD_STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
-    if (FD_STRINGP(source)) {
+  else if (TABLEP(module)) {
+    fdtype ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
+    DO_CHOICES(id,ids) {
+      if (STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
+    if (STRINGP(source)) {
       fdtype result = safe_reload_module(source);
       fd_decref(ids);
       return result;}
@@ -364,7 +364,7 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
     fd_seterr(fd_ReloadError,"fd_update_file_module",
               u8_mkstring(_("The file %s has never been loaded"),
                           module_source),
-              FD_VOID);
+              VOID);
     return -1;}
   else if ((!(force))&&(mtime<=scan->fd_modtime)) {
     u8_unlock_mutex(&load_record_lock);
@@ -399,14 +399,14 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
 
 static fdtype update_modules_prim(fdtype flag)
 {
-  if (fd_update_file_modules((!FD_FALSEP(flag)))<0)
-    return FD_ERROR_VALUE;
-  else return FD_VOID;
+  if (fd_update_file_modules((!FALSEP(flag)))<0)
+    return FD_ERROR;
+  else return VOID;
 }
 
 static fdtype update_module_prim(fdtype spec,fdtype force)
 {
-  if (FD_FALSEP(force)) {
+  if (FALSEP(force)) {
     u8_string module_source = get_module_source(spec,0);
     if (module_source) {
       int retval = fd_update_file_module(module_source,0);
@@ -416,7 +416,7 @@ static fdtype update_module_prim(fdtype spec,fdtype force)
       fd_seterr(fd_ReloadError,"update_module_prim",
                 u8_strdup(_("Module does not exist")),
                 spec);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   else return load_source_module(spec,0,NULL);
 }
 
@@ -430,10 +430,10 @@ static int updatemodules_config_set(fdtype var,fdtype val,void *ignored)
   if (FD_FLONUMP(val)) {
     reload_interval = FD_FLONUM(val);
     return 1;}
-  else if (FD_FIXNUMP(val)) {
+  else if (FIXNUMP(val)) {
     reload_interval = fd_getint(val);
     return 1;}
-  else if (FD_FALSEP(val)) {
+  else if (FALSEP(val)) {
     reload_interval = -1.0;
     return 1;}
   else if (FD_TRUEP(val)) {
@@ -476,9 +476,9 @@ static fdtype source_symbol;
 
 static fdtype get_entry(fdtype key,fdtype entries)
 {
-  fdtype entry = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(each,entries)
-    if (!(FD_PAIRP(each))) {}
+  fdtype entry = EMPTY;
+  DO_CHOICES(each,entries)
+    if (!(PAIRP(each))) {}
     else if (FDTYPE_EQUAL(key,FD_CAR(each))) {
       entry = each; FD_STOP_DO_CHOICES; break;}
     else {}
@@ -492,14 +492,14 @@ int fd_load_latest
   if (filename == NULL) {
     int loads = 0;
     fd_lexenv scan = env;
-    fdtype result = FD_VOID;
+    fdtype result = VOID;
     while (scan) {
       fdtype sources =
-        fd_get(scan->env_bindings,source_symbol,FD_EMPTY_CHOICE);
-      FD_DO_CHOICES(entry,sources) {
+        fd_get(scan->env_bindings,source_symbol,EMPTY);
+      DO_CHOICES(entry,sources) {
         struct FD_TIMESTAMP *loadstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
-        time_t mod_time = u8_file_mtime(FD_STRDATA(FD_CAR(entry)));
+        time_t mod_time = u8_file_mtime(CSTRING(FD_CAR(entry)));
         if (mod_time>loadstamp->ts_u8xtime.u8_tick) {
           struct FD_PAIR *pair = (struct FD_PAIR *)entry;
           struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
@@ -509,8 +509,8 @@ int fd_load_latest
           pair->cdr = FDTYPE_CONS(tstamp);
           if (log_reloads)
             u8_log(LOG_WARN,"fd_load_latest","Reloading %s",
-                   FD_STRDATA(FD_CAR(entry)));
-          result = fd_load_source(FD_STRDATA(FD_CAR(entry)),scan,"auto");
+                   CSTRING(FD_CAR(entry)));
+          result = fd_load_source(CSTRING(FD_CAR(entry)),scan,"auto");
           if (FD_ABORTP(result)) {
             fd_decref(sources);
             return fd_interr(result);}
@@ -522,15 +522,15 @@ int fd_load_latest
     u8_string abspath = u8_abspath(filename,base);
     fdtype abspath_dtype = fdtype_string(abspath);
     fdtype sources =
-      fd_get(env->env_bindings,source_symbol,FD_EMPTY_CHOICE);
+      fd_get(env->env_bindings,source_symbol,EMPTY);
     fdtype entry = get_entry(abspath_dtype,sources);
-    fdtype result = FD_VOID;
-    if (FD_PAIRP(entry))
+    fdtype result = VOID;
+    if (PAIRP(entry))
       if (FD_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
         struct FD_TIMESTAMP *curstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t last_loaded = curstamp->ts_u8xtime.u8_tick;
-        time_t mod_time = u8_file_mtime(FD_STRDATA(abspath_dtype));
+        time_t mod_time = u8_file_mtime(CSTRING(abspath_dtype));
         if (mod_time<=last_loaded)
           return 0;
         else {
@@ -551,7 +551,7 @@ int fd_load_latest
       FD_INIT_CONS(tstamp,fd_timestamp_type);
       u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
       entry = fd_conspair(fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
-      if (FD_EMPTY_CHOICEP(sources))
+      if (EMPTYP(sources))
         fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
     if (log_reloads)
@@ -568,17 +568,17 @@ int fd_load_latest
 
 static fdtype load_latest_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  if (FD_EMPTY_LISTP(FD_CDR(expr))) {
+  if (NILP(FD_CDR(expr))) {
     int loads = fd_load_latest(NULL,env,NULL);
     return FD_INT(loads);}
   else {
     int retval = -1;
     fdtype path_expr = fd_get_arg(expr,1);
     fdtype path = fd_eval(path_expr,env);
-    if (!(FD_STRINGP(path)))
+    if (!(STRINGP(path)))
       return fd_type_error("pathname","load_latest",path);
-    else retval = fd_load_latest(FD_STRDATA(path),env,NULL);
-    if (retval<0) return FD_ERROR_VALUE;
+    else retval = fd_load_latest(CSTRING(path),env,NULL);
+    if (retval<0) return FD_ERROR;
     else if (retval) {
       fd_decref(path); return FD_TRUE;}
     else {
@@ -642,7 +642,7 @@ FD_EXPORT void fd_init_loader_c()
            fd_make_cprim1("UPDATE-MODULES",update_modules_prim,0));
   fd_idefn(loader_module,
            fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
-                           -1,FD_VOID,-1,FD_FALSE));
+                           -1,VOID,-1,FD_FALSE));
 
   fd_defspecial(loader_module,"LOAD-LATEST",load_latest_evalfn);
 

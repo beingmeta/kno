@@ -23,17 +23,17 @@ static fdtype if_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype consequent_expr = fd_get_arg(expr,2);
   fdtype else_expr = fd_get_arg(expr,3);
-  if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))
+  if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
     return fd_err(fd_TooFewExpressions,"IF",NULL,expr);
   test_result = fd_eval(test_expr,env);
   if (FD_ABORTED(test_result)) return test_result;
-  else if (FD_FALSEP(test_result))
-    if ((FD_PAIRP(else_expr))||(FD_CODEP(else_expr)))
+  else if (FALSEP(test_result))
+    if ((PAIRP(else_expr))||(FD_CODEP(else_expr)))
       return fd_tail_eval(else_expr,env);
     else return fd_eval(else_expr,env);
   else {
     fd_decref(test_result);
-    if ((FD_PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
+    if ((PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
     else return fd_eval(consequent_expr,env);}
 }
@@ -42,19 +42,19 @@ static fdtype ifelse_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype consequent_expr = fd_get_arg(expr,2);
-  if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))
+  if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
     return fd_err(fd_TooFewExpressions,"IFELSE",NULL,expr);
   test_result = fd_eval(test_expr,env);
   if (FD_ABORTED(test_result)) return test_result;
-  else if (FD_FALSEP(test_result)) {
-    fdtype val = FD_VOID;
+  else if (FALSEP(test_result)) {
+    fdtype val = VOID;
     fdtype alt_body = fd_get_body(expr,3);
     FD_DOLIST(alt,alt_body) {
       fd_decref(val); val = fd_eval(alt,env);}
     return val;}
   else {
     fd_decref(test_result);
-    if ((FD_PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
+    if ((PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
       return fd_tail_eval(consequent_expr,env);
     else return fd_eval(consequent_expr,env);}
 }
@@ -63,31 +63,31 @@ static fdtype tryif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_result;
   fdtype first_consequent = fd_get_arg(expr,2);
-  if ((FD_VOIDP(test_expr)) || (FD_VOIDP(first_consequent)))
+  if ((VOIDP(test_expr)) || (VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result = fd_eval(test_expr,env);
   if (FD_ABORTED(test_result))
     return test_result;
-  else if ((FD_FALSEP(test_result))||(FD_EMPTY_CHOICEP(test_result)))
-    return FD_EMPTY_CHOICE;
+  else if ((FALSEP(test_result))||(EMPTYP(test_result)))
+    return EMPTY;
   else {
-    fdtype value = FD_VOID; fd_decref(test_result);
+    fdtype value = VOID; fd_decref(test_result);
     {fdtype try_clauses = fd_get_body(expr,2);
       FD_DOLIST(clause,try_clauses) {
         fd_decref(value); value = fd_eval(clause,env);
         if (FD_ABORTED(value))
           return value;
-        else if (FD_VOIDP(value)) {
+        else if (VOIDP(value)) {
           fd_seterr(fd_VoidArgument,"tryif_evalfn",NULL,clause);
-          return FD_ERROR_VALUE;}
-        else if (!(FD_EMPTY_CHOICEP(value)))
+          return FD_ERROR;}
+        else if (!(EMPTYP(value)))
           return value;}}
     return value;}
 }
 
 static fdtype not_prim(fdtype arg)
 {
-  if (FD_FALSEP(arg)) return FD_TRUE; else return FD_FALSE;
+  if (FALSEP(arg)) return FD_TRUE; else return FD_FALSE;
 }
 
 static fdtype apply_marker;
@@ -96,18 +96,18 @@ static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   FD_DOLIST(clause,FD_CDR(expr)) {
     fdtype test_val;
-    if (!(FD_PAIRP(clause)))
+    if (!(PAIRP(clause)))
       return fd_err(fd_SyntaxError,_("invalid cond clause"),NULL,expr);
     else if (FD_EQ(FD_CAR(clause),else_symbol))
       return fd_eval_exprs(FD_CDR(clause),env);
     else test_val = fd_eval(FD_CAR(clause),env);
     if (FD_ABORTED(test_val)) return test_val;
-    else if (FD_FALSEP(test_val)) {}
+    else if (FALSEP(test_val)) {}
     else {
-      fdtype applyp = ((FD_PAIRP(FD_CDR(clause))) &&
+      fdtype applyp = ((PAIRP(FD_CDR(clause))) &&
                       (FD_EQ(FD_CAR(FD_CDR(clause)),apply_marker)));
       if (applyp)
-        if (FD_PAIRP(FD_CDR(FD_CDR(clause)))) {
+        if (PAIRP(FD_CDR(FD_CDR(clause)))) {
           fdtype fnexpr = FD_CAR(FD_CDR(FD_CDR(clause)));
           fdtype fn = fd_eval(fnexpr,env);
           if (FD_ABORTED(fn)) {
@@ -124,20 +124,20 @@ static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       else {
         fd_decref(test_val);
         return eval_body("COND",NULL,clause,1,env,_stack);}}}
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype key_expr = fd_get_arg(expr,1), keyval;
-  if (FD_VOIDP(key_expr))
+  if (VOIDP(key_expr))
     return fd_err(fd_SyntaxError,"case_evalfn",NULL,expr);
   else keyval = fd_eval(key_expr,env);
   if (FD_ABORTED(keyval)) return keyval;
   else {
     FD_DOLIST(clause,FD_CDR(FD_CDR(expr)))
-      if (FD_PAIRP(clause))
-        if (FD_PAIRP(FD_CAR(clause))) {
+      if (PAIRP(clause))
+        if (PAIRP(FD_CAR(clause))) {
           fdtype keys = FD_CAR(clause);
           FD_DOLIST(key,keys)
             if (FD_EQ(keyval,key))
@@ -147,18 +147,18 @@ static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
           return fd_eval_exprs(FD_CDR(clause),env);}
         else return fd_err(fd_SyntaxError,"case_evalfn",NULL,clause);
       else return fd_err(fd_SyntaxError,"case_evalfn",NULL,clause);
-    return FD_VOID;}
+    return VOID;}
 }
 
 static fdtype when_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val;
-  if (FD_VOIDP(test_expr))
+  if (VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHEN",NULL,expr);
   else test_val = fd_eval(test_expr,env);
   if (FD_ABORTED(test_val)) return test_val;
-  else if (FD_FALSEP(test_val)) return FD_VOID;
-  else if (FD_EMPTY_CHOICEP(test_val)) return FD_VOID;
+  else if (FALSEP(test_val)) return VOID;
+  else if (EMPTYP(test_val)) return VOID;
   else {
     fdtype result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
     fd_decref(test_val);
@@ -169,19 +169,19 @@ static fdtype when_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype unless_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype test_expr = fd_get_arg(expr,1), test_val;
-  if (FD_VOIDP(test_expr))
+  if (VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHEN",NULL,expr);
   else test_val = fd_eval(test_expr,env);
   if (FD_ABORTED(test_val)) return test_val;
-  else if (FD_FALSEP(test_val)) {
+  else if (FALSEP(test_val)) {
     fdtype result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
     FD_VOID_RESULT(result);
     return result;}
-  else if (FD_EMPTY_CHOICEP(test_val))
-    return FD_VOID;
+  else if (EMPTYP(test_val))
+    return VOID;
   else {
     fd_decref(test_val);
-    return FD_VOID;}
+    return VOID;}
 }
 
 static fdtype and_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
@@ -191,7 +191,7 @@ static fdtype and_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     fd_decref(value);
     value = fd_eval(clause,env);
     if (FD_ABORTED(value)) return value;
-    else if (FD_FALSEP(value)) return value;}
+    else if (FALSEP(value)) return value;}
   return value;
 }
 
@@ -202,7 +202,7 @@ static fdtype or_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     fd_decref(value);
     value = fd_eval(clause,env);
     if (FD_ABORTED(value)) return value;
-    else if (!(FD_FALSEP(value))) return value;}
+    else if (!(FALSEP(value))) return value;}
   return value;
 }
 

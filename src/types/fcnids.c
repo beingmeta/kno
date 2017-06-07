@@ -43,7 +43,7 @@ FD_EXPORT fdtype fd_resolve_fcnid(fdtype x)
 FD_EXPORT fdtype fd_register_fcnid(fdtype x)
 {
   int serialno;
-  if (!(FD_CONSP(x)))
+  if (!(CONSP(x)))
     return fd_type_error("cons","fd_register_fcnid",x);
   u8_lock_mutex(&_fd_fcnid_lock);
   if (_fd_fcnid_count>=FD_FCNID_MAX) {
@@ -69,7 +69,7 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
 {
   if (!(FD_FCNIDP(id)))
     return fd_type_error("fcnid","fd_set_fcnid",id);
-  else if (!(FD_CONSP(value)))
+  else if (!(CONSP(value)))
     return fd_type_error("cons","fd_set_fcnid",value);
   else if (!((FD_FUNCTIONP(value))||
              (FD_TYPEP(value,fd_evalfn_type))))
@@ -110,7 +110,7 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
   if (!(FD_FCNIDP(id))) {
     fd_seterr(fd_TypeError,"fd_degister_fcnid",u8_strdup("fcnid"),id);
     return -1;}
-  else if (!(FD_CONSP(value)))
+  else if (!(CONSP(value)))
     return 0;
   else if (!((FD_FUNCTIONP(value))||
              (FD_TYPEP(value,fd_evalfn_type))))

@@ -32,8 +32,8 @@ static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
   fdtype *bindings = bs->vals, scan = bs->valexprs;
   fd_lexenv env = bs->sproc_env;
   while (i<n) {
-    fd_decref(bindings[i]); bindings[i++]=FD_VOID;}
-  i = 0; while (FD_PAIRP(scan)) {
+    fd_decref(bindings[i]); bindings[i++]=VOID;}
+  i = 0; while (PAIRP(scan)) {
     fdtype binding = FD_CAR(scan), val_expr = FD_CADR(binding);
     fdtype val = fd_eval(val_expr,env);
     if (FD_ABORTED(val)) fd_interr(val);
@@ -49,7 +49,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
   fd_lexenv env = bs->sproc_env;
   while (i<n) {
     fd_decref(bindings[i]); bindings[i++]=FD_UNBOUND;}
-  i = 0; while (FD_PAIRP(scan)) {
+  i = 0; while (PAIRP(scan)) {
     fdtype binding = FD_CAR(scan), val_expr = FD_CADR(binding);
     fdtype val = fd_eval(val_expr,env);
     if (FD_ABORTED(val)) fd_interr(val);
@@ -78,9 +78,9 @@ static int ipeval_letstar_binding
 
 static fdtype letq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
+  fdtype bindexprs = fd_get_arg(expr,1), result = VOID;
   int n;
-  if (FD_VOIDP(bindexprs))
+  if (VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -91,7 +91,7 @@ static fdtype letq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     fdtype *vars = sm->table_schema, *vals = sm->schema_values;
     int i = 0; fdtype scan = bindexprs; while (i<n) {
       fdtype bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
-      vars[i]=var; vals[i]=FD_VOID; scan = FD_CDR(scan); i++;}
+      vars[i]=var; vals[i]=VOID; scan = FD_CDR(scan); i++;}
     if (ipeval_let_binding(n,vals,bindexprs,env)<0) 
       return ERROR_VALUE;
     {fdtype body = fd_get_body(expr,2);
@@ -107,9 +107,9 @@ static fdtype letq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype letqstar_evalfn
 (fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype bindexprs = fd_get_arg(expr,1), result = FD_VOID;
+  fdtype bindexprs = fd_get_arg(expr,1), result = VOID;
   int n;
-  if (FD_VOIDP(bindexprs))
+  if (VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET*",NULL,expr);
   else if ((n = check_bindexprs(bindexprs,&result))<0)
     return result;
@@ -122,7 +122,7 @@ static fdtype letqstar_evalfn
       fdtype bind_expr = FD_CAR(scan), var = FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_UNBOUND; scan = FD_CDR(scan); i++;}
     if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) 
-      return FD_ERROR_VALUE;
+      return FD_ERROR;
     {fdtype body = fd_get_body(expr,2);
      FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
@@ -152,7 +152,7 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
 static fdtype ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct IPEVAL_STRUCT tmp;
-  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
+  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = VOID;
   fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
   return tmp.kv_val;
 }
@@ -160,7 +160,7 @@ static fdtype ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype trace_ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   struct IPEVAL_STRUCT tmp; int old_trace = fd_trace_ipeval;
-  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
+  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = VOID;
   fd_trace_ipeval = 1;
   fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
   fd_trace_ipeval = old_trace;
@@ -172,7 +172,7 @@ static fdtype track_ipeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   struct IPEVAL_STRUCT tmp;
   struct FD_IPEVAL_RECORD *records; int n_cycles; double total_time;
   fdtype *vec; int i = 0;
-  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = FD_VOID;
+  tmp.expr = fd_refcar(fd_refcdr(expr)); tmp.env = env; tmp.kv_val = VOID;
   fd_tracked_ipeval_call((fd_ipevalfn)ipeval_step,&tmp,&records,&n_cycles,&total_time);
   vec = u8_alloc_n(n_cycles,fdtype);
   i = 0; while (i<n_cycles) {

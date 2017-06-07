@@ -29,8 +29,8 @@ static struct FD_HASHTABLE fcn_caches;
 
 static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
 {
-  fdtype cache = fd_hashtable_get(&fcn_caches,fcn,FD_VOID);
-  if (FD_VOIDP(cache)) {
+  fdtype cache = fd_hashtable_get(&fcn_caches,fcn,VOID);
+  if (VOIDP(cache)) {
     cache = fd_make_hashtable(NULL,512);
     fd_hashtable_store(&fcn_caches,fcn,cache);
     return fd_consptr(struct FD_HASHTABLE *,cache,fd_hashtable_type);}
@@ -48,8 +48,8 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
   vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = FDTYPE_CONS(&vecstruct);
-  cached = fd_hashtable_get(cache,vec,FD_VOID);
-  if (FD_VOIDP(cached)) {
+  cached = fd_hashtable_get(cache,vec,VOID);
+  if (VOIDP(cached)) {
     int state = fd_ipeval_status();
     fdtype result = fd_finish_call(fd_dapply(fcn,n,args));
     if (FD_ABORTP(result)) {
@@ -80,8 +80,8 @@ FD_EXPORT fdtype fd_xcachecall
   vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = FDTYPE_CONS(&vecstruct);
-  cached = fd_hashtable_get(cache,vec,FD_VOID);
-  if (FD_VOIDP(cached)) {
+  cached = fd_hashtable_get(cache,vec,VOID);
+  if (VOIDP(cached)) {
     int state = fd_ipeval_status();
     fdtype result = fd_finish_call(fd_dapply(fcn,n,args));
     if (FD_ABORTP(result)) {
@@ -101,29 +101,29 @@ FD_EXPORT fdtype fd_xcachecall
 FD_EXPORT void fd_clear_callcache(fdtype arg)
 {
   if (fcn_caches.table_n_keys==0) return;
-  if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
-  else if ((FD_VECTORP(arg)) && (FD_VECTOR_LENGTH(arg)>0)) {
-    fdtype fcn = FD_VECTOR_REF(arg,0);
-    fdtype table = fd_hashtable_get(&fcn_caches,fcn,FD_EMPTY_CHOICE);
-    if (FD_EMPTY_CHOICEP(table)) return;
+  if (VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
+  else if ((VECTORP(arg)) && (VEC_LEN(arg)>0)) {
+    fdtype fcn = VEC_REF(arg,0);
+    fdtype table = fd_hashtable_get(&fcn_caches,fcn,EMPTY);
+    if (EMPTYP(table)) return;
     /* This should probably reall signal an error. */
-    else if (!(FD_HASHTABLEP(table))) return;
+    else if (!(HASHTABLEP(table))) return;
     else {
-      int i = 0, n_args = FD_VECTOR_LENGTH(arg)-1;
+      int i = 0, n_args = VEC_LEN(arg)-1;
       fdtype *datavec = u8_alloc_n(n_args,fdtype);
       fdtype key = fd_init_vector(NULL,n_args,datavec);
       while (i<n_args) {
-        datavec[i]=fd_incref(FD_VECTOR_REF(arg,i+1)); i++;}
-      fd_hashtable_store((fd_hashtable)table,key,FD_VOID);
+        datavec[i]=fd_incref(VEC_REF(arg,i+1)); i++;}
+      fd_hashtable_store((fd_hashtable)table,key,VOID);
       fd_decref(key);}}
   else if (fd_hashtable_probe(&fcn_caches,arg))
-    fd_hashtable_store(&fcn_caches,arg,FD_VOID);
+    fd_hashtable_store(&fcn_caches,arg,VOID);
   else return;
 }
 
 static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
 {
-  if (FD_HASHTABLEP(v)) {
+  if (HASHTABLEP(v)) {
     fd_hashtable h = (fd_hashtable)v;
     int *count = (int *)ptr;
     *count = *count+h->table_n_keys;}
@@ -178,9 +178,9 @@ FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args)
   vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = FDTYPE_CONS(&vecstruct);
-  value = fd_hashtable_get(cache,vec,FD_VOID);
+  value = fd_hashtable_get(cache,vec,VOID);
   fd_decref((fdtype)cache);
-  if (FD_VOIDP(value)) return FD_EMPTY_CHOICE;
+  if (VOIDP(value)) return EMPTY;
   else return value;
 }
 
@@ -194,8 +194,8 @@ FD_EXPORT fdtype fd_xcachecall_try(struct FD_HASHTABLE *cache,fdtype fcn,int n,f
   vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = FDTYPE_CONS(&vecstruct);
-  value = fd_hashtable_get(cache,vec,FD_VOID);
-  if (FD_VOIDP(value)) return FD_EMPTY_CHOICE;
+  value = fd_hashtable_get(cache,vec,VOID);
+  if (VOIDP(value)) return EMPTY;
   else return value;
 }
 
@@ -223,8 +223,8 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     vecstruct.fdvec_elts = elts;
     vec = FDTYPE_CONS(&vecstruct);
     /* Look it up in the cache. */
-    cached = fd_hashtable_get_nolock(&(tc->calls),vec,FD_VOID);
-    if (!(FD_VOIDP(cached))) {
+    cached = fd_hashtable_get_nolock(&(tc->calls),vec,VOID);
+    if (!(VOIDP(cached))) {
       if (elts!=_elts) u8_free(elts);
       return cached;}
     else {

@@ -53,7 +53,7 @@ static fdtype stack2lisp(struct FD_STACK *stack)
   if (stack->stack_status)
     FD_VECTOR_SET(vec,3,fdtype_string(stack->stack_status));
   else FD_VECTOR_SET(vec,3,FD_FALSE);
-  if (FD_VOIDP(stack->stack_op))
+  if (VOIDP(stack->stack_op))
     FD_VECTOR_SET(vec,4,FD_FALSE);
   else {
     fdtype op=stack->stack_op;
@@ -68,11 +68,11 @@ static fdtype stack2lisp(struct FD_STACK *stack)
   else FD_VECTOR_SET(vec,5,FD_FALSE);
   if (stack->stack_env) {
     fdtype bindings = stack->stack_env->env_bindings;
-    if ( (FD_SLOTMAPP(bindings)) || (FD_SCHEMAPP(bindings)) ) {
+    if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
       fdtype b=fd_copy(bindings);
       FD_VECTOR_SET(vec,6,b);}
     else FD_VECTOR_SET(vec,6,FD_FALSE);}
-  if (!((FD_NULLP(stack->stack_source))||(FD_VOIDP(stack->stack_source)))) {
+  if (!((FD_NULLP(stack->stack_source))||(VOIDP(stack->stack_source)))) {
     fdtype source = stack->stack_source;
     FD_VECTOR_SET(vec,7,source);
     fd_incref(source);}
@@ -96,22 +96,22 @@ void fd_sum_backtrace(u8_output out,fdtype backtrace)
 {
   if (fd_stacktracep(backtrace)) {
     fdtype scan=backtrace;
-    int n=0; while (FD_PAIRP(scan)) {
+    int n=0; while (PAIRP(scan)) {
       fdtype entry = FD_CAR(scan);
-      if ((FD_VECTORP(entry)) && (FD_VECTOR_LENGTH(entry)>=7)) {
-	fdtype type=FD_VECTOR_REF(entry,1);
-	fdtype label=FD_VECTOR_REF(entry,2);
-	fdtype status=FD_VECTOR_REF(entry,3);
+      if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
+	fdtype type=VEC_REF(entry,1);
+	fdtype label=VEC_REF(entry,2);
+	fdtype status=VEC_REF(entry,3);
 	if (n) u8_puts(out," ⇒ ");
-	if (FD_STRINGP(label)) u8_puts(out,FD_STRDATA(label));
+	if (STRINGP(label)) u8_puts(out,CSTRING(label));
 	else u8_putc(out,'?');
-	if (FD_STRINGP(type)) {
+	if (STRINGP(type)) {
 	  u8_putc(out,'.');
-	  u8_puts(out,FD_STRDATA(type));}
+	  u8_puts(out,CSTRING(type));}
 	else u8_puts(out,".?");
-	if (FD_STRINGP(status)) {
+	if (STRINGP(status)) {
 	  u8_putc(out,'(');
-	  u8_puts(out,FD_STRDATA(status));
+	  u8_puts(out,CSTRING(status));
 	  u8_putc(out,')');}
 	n++;}
       else if (FD_EXCEPTIONP(entry)) {

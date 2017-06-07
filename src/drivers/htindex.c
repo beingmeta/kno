@@ -30,7 +30,7 @@ static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
 {
   fdtype *results = u8_alloc_n(n,fdtype);
   int i = 0; while (i<n) {
-    results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],FD_EMPTY_CHOICE);
+    results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],EMPTY);
     i++;}
   return results;
 }
@@ -41,7 +41,7 @@ static fdtype *htindex_fetchkeys(fd_index ix,int *n)
   int n_elts = FD_CHOICE_SIZE(keys);
   fdtype *result = u8_alloc_n(n_elts,fdtype);
   int j = 0;
-  FD_DO_CHOICES(key,keys) {result[j++]=key;}
+  DO_CHOICES(key,keys) {result[j++]=key;}
   *n = n_elts;
   return result;
 }
@@ -80,7 +80,7 @@ static int htindex_commit(fd_index ix)
     return (mix->commitfn)(mix,mix->index_source);
   else {
     fd_seterr(fd_EphemeralIndex,"htindex_commit",
-	      u8_strdup(ix->indexid),FD_VOID);
+	      u8_strdup(ix->indexid),VOID);
     return -1;}
 }
 
@@ -108,7 +108,7 @@ static fd_index open_htindex(u8_string file,fd_storage_flags flags,fdtype opts)
   stream.stream_flags &= ~FD_STREAM_IS_CONSED;
   lispval = fd_read_dtype(fd_readbuf(&stream));
   fd_free_stream(&stream);
-  if (FD_HASHTABLEP(lispval)) h = (fd_hashtable)lispval;
+  if (HASHTABLEP(lispval)) h = (fd_hashtable)lispval;
   else {
     fd_decref(lispval);
     return NULL;}

@@ -26,15 +26,15 @@ static fdtype return_error_helper(fdtype expr,fd_lexenv env,int wrapped)
   fdtype arg1 = fd_get_arg(expr,1);
   fdtype arg2 = fd_get_arg(expr,2);
   fdtype printout_body;
-  if ((FD_SYMBOLP(arg1)) && (FD_SYMBOLP(arg2))) {
-    ex = (fd_exception)(FD_SYMBOL_NAME(arg1));
-    cxt = (u8_context)(FD_SYMBOL_NAME(arg2));
+  if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
+    ex = (fd_exception)(SYM_NAME(arg1));
+    cxt = (u8_context)(SYM_NAME(arg2));
     printout_body = fd_get_body(expr,3);}
-  else if (FD_SYMBOLP(arg1)) {
-    ex = (fd_exception)(FD_SYMBOL_NAME(arg1));
+  else if (SYMBOLP(arg1)) {
+    ex = (fd_exception)(SYM_NAME(arg1));
     printout_body = fd_get_body(expr,2);}
-  else if (FD_SYMBOLP(head)) {
-    ex = (fd_exception)(FD_SYMBOL_NAME(head));
+  else if (SYMBOLP(head)) {
+    ex = (fd_exception)(SYM_NAME(head));
     printout_body = fd_get_body(expr,1);}
   else printout_body = fd_get_body(expr,1);
 
@@ -43,11 +43,11 @@ static fdtype return_error_helper(fdtype expr,fd_lexenv env,int wrapped)
     fd_printout_to(&out,printout_body,env);
     if (wrapped) {
       u8_exception sub_ex = u8_new_exception
-	((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)FD_VOID,NULL);
+	((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)VOID,NULL);
       return fd_init_exception(NULL,sub_ex);}
     else  {
-      fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
-      return FD_ERROR_VALUE;}}
+      fd_seterr(ex,cxt,out.u8_outbuf,VOID);
+      return FD_ERROR;}}
 }
 static fdtype return_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
@@ -67,39 +67,39 @@ static fdtype return_irritant_helper(fdtype expr,fd_lexenv env,int wrapped,int e
   fdtype arg2 = fd_get_arg(expr,3);
   fdtype printout_body;
 
-  if (FD_VOIDP(irritant))
+  if (VOIDP(irritant))
     return fd_err(fd_SyntaxError,"return_irritant","no irritant",expr);
   else if (eval_args) {
     fdtype exval = fd_eval(arg1,env), cxtval;
     if (FD_ABORTP(exval)) 
       ex = (fd_exception)"Recursive error on exception name";
-    else if (FD_SYMBOLP(exval))
-      ex = (fd_exception)(FD_SYMBOL_NAME(exval));
-    else if (FD_STRINGP(exval)) {
-      fdtype sym = fd_intern(FD_STRDATA(exval));
-      ex = (fd_exception)(FD_SYMBOL_NAME(sym));}
+    else if (SYMBOLP(exval))
+      ex = (fd_exception)(SYM_NAME(exval));
+    else if (STRINGP(exval)) {
+      fdtype sym = fd_intern(CSTRING(exval));
+      ex = (fd_exception)(SYM_NAME(sym));}
     else ex = (fd_exception)"Bad exception condition";
     cxtval = fd_eval(arg2,env);
-    if ((FD_FALSEP(cxtval))||(FD_EMPTY_CHOICEP(cxtval)))
+    if ((FALSEP(cxtval))||(EMPTYP(cxtval)))
       cxt = (fd_exception)NULL;
     else if (FD_ABORTP(cxtval)) 
       cxt = (fd_exception)"Recursive error on exception context";
-    else if (FD_SYMBOLP(cxtval))
-      cxt = (fd_exception)(FD_SYMBOL_NAME(cxtval));
-    else if (FD_STRINGP(exval)) {
-      fdtype sym = fd_intern(FD_STRDATA(cxtval));
-      cxt = (fd_exception)(FD_SYMBOL_NAME(sym));}
+    else if (SYMBOLP(cxtval))
+      cxt = (fd_exception)(SYM_NAME(cxtval));
+    else if (STRINGP(exval)) {
+      fdtype sym = fd_intern(CSTRING(cxtval));
+      cxt = (fd_exception)(SYM_NAME(sym));}
     else cxt = (fd_exception)"Bad exception condition";
     printout_body = fd_get_body(expr,4);}
-  else if ((FD_SYMBOLP(arg1)) && (FD_SYMBOLP(arg2))) {
-    ex = (fd_exception)(FD_SYMBOL_NAME(arg1));
-    cxt = (u8_context)(FD_SYMBOL_NAME(arg2));
+  else if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
+    ex = (fd_exception)(SYM_NAME(arg1));
+    cxt = (u8_context)(SYM_NAME(arg2));
     printout_body = fd_get_body(expr,4);}
-  else if (FD_SYMBOLP(arg1)) {
-    ex = (fd_exception)(FD_SYMBOL_NAME(arg1));
+  else if (SYMBOLP(arg1)) {
+    ex = (fd_exception)(SYM_NAME(arg1));
     printout_body = fd_get_body(expr,3);}
-  else if (FD_SYMBOLP(head)) {
-    ex = (fd_exception)(FD_SYMBOL_NAME(head));
+  else if (SYMBOLP(head)) {
+    ex = (fd_exception)(SYM_NAME(head));
     printout_body = fd_get_body(expr,2);}
   else printout_body = fd_get_body(expr,2);
 
@@ -148,7 +148,7 @@ static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
         fd_decref(handler);
         fd_decref(value);
         fd_decref(err_value);
-        return FD_ERROR_VALUE;}
+        return FD_ERROR;}
       else if (FD_TYPEP(handler_result,fd_error_type)) {
 	fd_exception_object newexo=
           fd_consptr(fd_exception_object,handler_result,fd_error_type);
@@ -161,7 +161,7 @@ static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 	u8_restore_exception(ex);
 	fd_decref(handler); fd_decref(value); 
 	fd_decref(err_value); fd_decref(handler_result);
-	return FD_ERROR_VALUE;}
+	return FD_ERROR;}
       else if (FD_ABORTP(handler_result)) {
         u8_exception cur_ex = u8_current_exception;
         /* Clear this field so we can decref err_value while leaving
@@ -182,14 +182,14 @@ static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       u8_free_exception(ex,1);
       fd_decref(value);
       return handler;}}
-  else if (FD_VOIDP(default_handler))
+  else if (VOIDP(default_handler))
     return value;
   else {
     fdtype handler = fd_eval(default_handler,env);
     if (FD_ABORTP(handler))
       return handler;
     else if (FD_APPLICABLEP(handler)) {
-      if (FD_VOIDP(value)) {
+      if (VOIDP(value)) {
         fdtype result = fd_finish_call(fd_dapply(handler,0,&value));
         fd_decref(handler);
         return result;}
@@ -231,7 +231,7 @@ static fdtype erreify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 static fdtype error_condition(fdtype x,fdtype top_arg)
 {
-  int top = (!(FD_FALSEP(top_arg)));
+  int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
@@ -249,7 +249,7 @@ static fdtype error_condition(fdtype x,fdtype top_arg)
 
 static fdtype error_context(fdtype x,fdtype top_arg)
 {
-  int top = (!(FD_FALSEP(top_arg)));
+  int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
@@ -267,7 +267,7 @@ static fdtype error_context(fdtype x,fdtype top_arg)
 
 static fdtype error_details(fdtype x,fdtype top_arg)
 {
-  int top = (!(FD_FALSEP(top_arg)));
+  int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
@@ -285,11 +285,11 @@ static fdtype error_details(fdtype x,fdtype top_arg)
 
 static fdtype error_irritant(fdtype x,fdtype top_arg)
 {
-  int top = (!(FD_FALSEP(top_arg)));
+  int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
-  fdtype found = FD_VOID;
+  fdtype found = VOID;
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
@@ -299,17 +299,17 @@ static fdtype error_irritant(fdtype x,fdtype top_arg)
       if  (ex->u8x_xdata)
         found = fd_exception_xdata(ex);
       ex = ex->u8x_prev;}
-  if (FD_VOIDP(found)) return FD_VOID;
+  if (VOIDP(found)) return VOID;
   else return fd_incref(found);
 }
 
 static fdtype error_has_irritant(fdtype x,fdtype top_arg)
 {
-  int top = (!(FD_FALSEP(top_arg)));
+  int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
-  fdtype found = FD_VOID;
+  fdtype found = VOID;
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
@@ -319,7 +319,7 @@ static fdtype error_has_irritant(fdtype x,fdtype top_arg)
       if  (ex->u8x_xdata)
         found = fd_exception_xdata(ex);
       ex = ex->u8x_prev;}
-  if (FD_VOIDP(found)) return FD_FALSE;
+  if (VOIDP(found)) return FD_FALSE;
   else return FD_TRUE;
 }
 
@@ -341,9 +341,9 @@ static fdtype error_summary(fdtype x,fdtype with_irritant)
   u8_string details = ex->u8x_details;
   fdtype irritant = (fdtype)(ex->u8x_xdata);
   int irritated=
-    (!((FD_VOIDP(with_irritant))||
-       (FD_FALSEP(with_irritant))||
-       (FD_VOIDP(irritant))));
+    (!((VOIDP(with_irritant))||
+       (FALSEP(with_irritant))||
+       (VOIDP(irritant))));
   u8_string summary;
   fdtype return_value;
   if ((cond)&&(cxt)&&(details)&&(irritated))
@@ -375,7 +375,7 @@ static fdtype error_xdata(fdtype x)
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
   fdtype xdata = fd_exception_xdata(ex);
-  if (FD_VOIDP(xdata)) return FD_FALSE;
+  if (VOIDP(xdata)) return FD_FALSE;
   else return fd_incref(xdata);
 }
 
@@ -394,7 +394,7 @@ static fdtype dynamic_wind_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   fdtype wind = fd_get_arg(expr,1);
   fdtype doit = fd_get_arg(expr,2);
   fdtype unwind = fd_get_arg(expr,3);
-  if ((FD_VOIDP(wind)) || (FD_VOIDP(doit)) || (FD_VOIDP(unwind)))
+  if ((VOIDP(wind)) || (VOIDP(doit)) || (VOIDP(unwind)))
     return fd_err(fd_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
     wind = fd_eval(wind,env);
@@ -447,7 +447,7 @@ static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
       result = fd_eval(heart,env);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
-      result = FD_ERROR_VALUE;}
+      result = FD_ERROR;}
     U8_END_EXCEPTION;}
   {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
       {fdtype unwinds = fd_get_body(uwp,2);
@@ -456,7 +456,7 @@ static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
           if (FD_ABORTP(uw_result))
             if (FD_ABORTP(result)) {
               fd_interr(result); fd_interr(uw_result);
-              return u8_return(FD_ERROR_VALUE);}
+              return u8_return(FD_ERROR);}
             else {
               fd_decref(result);
               result = uw_result;
@@ -464,7 +464,7 @@ static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
           else fd_decref(uw_result);}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
-      result = FD_ERROR_VALUE;}
+      result = FD_ERROR;}
     U8_END_EXCEPTION;}
   return result;
 }
@@ -494,28 +494,28 @@ FD_EXPORT void fd_init_errors_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
-                           fd_error_type,FD_VOID,-1,FD_FALSE));
+                           fd_error_type,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-CONTEXT",error_context,1,
-                           fd_error_type,FD_VOID,-1,FD_FALSE));
+                           fd_error_type,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-DETAILS",error_details,1,
-                           fd_error_type,FD_VOID,-1,FD_FALSE));
+                           fd_error_type,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-IRRITANT",error_irritant,1,
-                           fd_error_type,FD_VOID,-1,FD_FALSE));
+                           fd_error_type,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-IRRITANT?",error_has_irritant,1,
-                           fd_error_type,FD_VOID,-1,FD_FALSE));
+                           fd_error_type,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
-                           fd_error_type,FD_VOID));
+                           fd_error_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-SUMMARY",error_summary,1,
-                           fd_error_type,FD_VOID,-1,FD_FALSE));
+                           fd_error_type,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
-                           fd_error_type,FD_VOID));
+                           fd_error_type,VOID));
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_evalfn);
   fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_evalfn);

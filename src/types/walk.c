@@ -26,7 +26,7 @@ FD_FASTOP int fast_walk(fd_walker walker,fdtype obj,
 {
   if (depth==0) 
     return 0;
-  else if (FD_CONSP(obj)) {
+  else if (CONSP(obj)) {
     int constype = FD_PTR_TYPE(obj);
     switch (constype) {
     case fd_pair_type: case fd_vector_type: case fd_code_type:
@@ -76,7 +76,7 @@ static int cons_walk(fd_walker walker,int constype,
   switch (constype) {
   case fd_pair_type: {
     fdtype scan = obj;
-    while (FD_PAIRP(scan)) {
+    while (PAIRP(scan)) {
       struct FD_PAIR *pair = (fd_pair) scan;
       int rv = walker(scan,walkdata);
       if (rv>0) {
@@ -85,8 +85,8 @@ static int cons_walk(fd_walker walker,int constype,
       else return rv;}
     return fast_walk(walker,scan,walkdata,flags,depth-1);}
   case fd_code_type: case fd_vector_type: {
-    int i = 0, len = FD_VECTOR_LENGTH(obj), rv = 0;
-    fdtype *elts = FD_VECTOR_DATA(obj);
+    int i = 0, len = VEC_LEN(obj), rv = 0;
+    fdtype *elts = VEC_DATA(obj);
     while (i<len) {
       rv = fast_walk(walker,elts[i],walkdata,flags,depth-1);
       if (rv<0) return rv;

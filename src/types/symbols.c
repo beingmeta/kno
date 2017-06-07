@@ -60,7 +60,7 @@ static void init_symbol_tables()
     struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
     fdtype *new_symbol_names = u8_alloc_n(new_max,fdtype);
     int i = 0, lim = new_size; while (i < lim) new_entries[i++]=NULL;
-    i = 0; lim = new_max; while (i < lim) new_symbol_names[i++]=FD_VOID;
+    i = 0; lim = new_max; while (i < lim) new_symbol_names[i++]=VOID;
     fd_symbol_table.table_size = new_size; 
     fd_symbol_table.fd_symbol_entries = new_entries;
     fd_symbol_names = new_symbol_names; fd_max_symbols = new_max;
@@ -121,7 +121,7 @@ static void grow_symbol_tables()
         int probe=
           mult_hash_bytes(entry->fd_pname.fd_bytes,
                            entry->fd_pname.fd_bytelen)%new_size;
-        while (FD_EXPECT_TRUE(new_entries[probe]!=NULL))
+        while (PRED_TRUE(new_entries[probe]!=NULL))
           if (probe >= new_size) probe = 0; else probe = (probe+1)%new_size;
         new_entries[probe]=entry;
         i++;}
@@ -150,11 +150,11 @@ fdtype fd_make_symbol(u8_string bytes,int len)
   if (len<0) len = strlen(bytes);
   hash = mult_hash_bytes(bytes,len);
   probe = hash%size;
-  while (FD_EXPECT_TRUE(entries[probe]!=NULL)) {
+  while (PRED_TRUE(entries[probe]!=NULL)) {
     unsigned int bytelen=(entries[probe])->fd_pname.fd_bytelen;
-    if (FD_EXPECT_TRUE(len == bytelen)) {
+    if (PRED_TRUE(len == bytelen)) {
       const unsigned char *pname=(entries[probe])->fd_pname.fd_bytes;
-      if (FD_EXPECT_TRUE(strncmp(bytes,pname,len) == 0))
+      if (PRED_TRUE(strncmp(bytes,pname,len) == 0))
         break;}
     probe++; if (probe>=size) probe = 0;}
   if (entries[probe]) {
@@ -181,7 +181,7 @@ fdtype fd_probe_symbol(u8_string bytes,int len)
 {
   struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
   int probe, size = fd_symbol_table.table_size;
-  if (fd_max_symbols == 0) return FD_VOID;
+  if (fd_max_symbols == 0) return VOID;
   u8_lock_mutex(&fd_symbol_lock);
   if (len < 0) len = strlen(bytes);
   probe = mult_hash_bytes(bytes,len)%size;
@@ -195,7 +195,7 @@ fdtype fd_probe_symbol(u8_string bytes,int len)
     return FD_ID2SYMBOL(entries[probe]->fd_symid);}
   else {
     u8_unlock_mutex(&fd_symbol_lock);
-    return FD_VOID;}
+    return VOID;}
 }
 
 FD_EXPORT fdtype fd_intern(u8_string string)
@@ -220,11 +220,11 @@ FD_EXPORT fdtype fd_symbolize(u8_string string)
 
 FD_EXPORT fdtype fd_all_symbols()
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  fdtype results = EMPTY;
   int i = 0, n = fd_n_symbols;
   while (i < n) {
     fdtype sym = FD_ID2SYMBOL(i);
-    FD_ADD_TO_CHOICE(results,sym);
+    CHOICE_ADD(results,sym);
     i++;}
   return results;
 }

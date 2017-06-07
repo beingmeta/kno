@@ -171,8 +171,8 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
         if (opened==NULL) {
           fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
           return opened;}
-        else if (fd_testopt(opts,adjuncts_symbol,FD_VOID)) {
-          fdtype adjuncts=fd_getopt(opts,adjuncts_symbol,FD_EMPTY_CHOICE);
+        else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
+          fdtype adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
           int rv=fd_set_adjuncts(opened,adjuncts);
           fd_decref(adjuncts);
           if (rv<0) {
@@ -341,7 +341,7 @@ fd_index fd_make_index(u8_string spec,
     fd_xseterr3(_("NoCreateHandler"),"fd_make_index",indextype);
     return NULL;}
   else {
-    if (FD_FIXNUMP(opts)) {
+    if (FIXNUMP(opts)) {
       fdtype tmp_opts = fd_init_slotmap(NULL,3,NULL);
       fd_store(tmp_opts,fd_intern("SIZE"),opts);
       fd_index ix=ixtype->handler->create(spec,ixtype->type_data,
@@ -475,7 +475,7 @@ static int load_index_cache(fd_index ix,void *ignored)
 
 static fdtype load_caches_prim(fdtype arg)
 {
-  if (FD_VOIDP(arg)) {
+  if (VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);
     fd_for_indexes(load_index_cache,NULL);}
   else if (FD_TYPEP(arg,fd_index_type))
@@ -483,7 +483,7 @@ static fdtype load_caches_prim(fdtype arg)
   else if (FD_TYPEP(arg,fd_pool_type))
     load_pool_cache(fd_lisp2pool(arg),NULL);
   else {}
-  return FD_VOID;
+  return VOID;
 }
 
   fd_idefn(driverfns_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));

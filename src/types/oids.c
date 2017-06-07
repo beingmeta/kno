@@ -18,7 +18,7 @@
 
 fd_exception fd_NotAnOID=_("Not an OID");
 
-fdtype fd_zero_pool_values[4096]={FD_VOID};
+fdtype fd_zero_pool_values[4096]={VOID};
 fdtype *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096]={fd_zero_pool_values,NULL};
 unsigned int fd_zero_pool_load = 0;
 static u8_mutex zero_pool_lock;
@@ -83,7 +83,7 @@ static char oid_info_buf[128];
 
 static u8_string _simple_oid_info(fdtype oid)
 {
-  if (FD_OIDP(oid)) {
+  if (OIDP(oid)) {
     FD_OID addr = FD_OID_ADDR(oid);
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
     unsigned char tmpbuf[32];
@@ -167,47 +167,47 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits)
 
 FD_EXPORT fdtype fd_zero_pool_value(fdtype oid)
 {
-  if (FD_EXPECT_TRUE(FD_OIDP(oid))) {
+  if (PRED_TRUE(OIDP(oid))) {
     FD_OID addr = FD_OID_ADDR(oid);
-    if (FD_EXPECT_TRUE(FD_OID_HI(addr)==0)) {
+    if (PRED_TRUE(FD_OID_HI(addr)==0)) {
       unsigned int off = FD_OID_LO(addr);
       unsigned int bucket_no = off/4096;
       unsigned int bucket_off = off%4096;
       if (off<fd_zero_pool_load) {
         if (fd_zero_pool_buckets[bucket_no])
           return fd_incref(fd_zero_pool_buckets[bucket_no][bucket_off]);
-        else return FD_VOID;}
-      else return FD_VOID;}
+        else return VOID;}
+      else return VOID;}
     else return fd_type_error("zero_pool oid","fd_zero_pool_value",oid);}
   else return fd_type_error("oid","fd_zero_pool_value",oid);
 }
 FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value)
 {
-  if (FD_EXPECT_TRUE(FD_OIDP(oid))) {
+  if (PRED_TRUE(OIDP(oid))) {
     FD_OID addr = FD_OID_ADDR(oid);
-    if (FD_EXPECT_TRUE(FD_OID_HI(addr)==0)) {
+    if (PRED_TRUE(FD_OID_HI(addr)==0)) {
       unsigned int off = FD_OID_LO(addr);
       unsigned int bucket_no = off/4096;
       unsigned int bucket_off = off%4096;
       if (off>=FD_ZERO_POOL_MAX)
-        return FD_VOID;
+        return VOID;
       else {
         u8_lock_mutex(&zero_pool_lock);
         fdtype *bucket = fd_zero_pool_buckets[bucket_no];
-        if (FD_EXPECT_FALSE(bucket == NULL)) {
+        if (PRED_FALSE(bucket == NULL)) {
           bucket = u8_alloc_n(4096,fdtype);
           fd_zero_pool_buckets[bucket_no]=bucket;}
         fdtype current = bucket[bucket_off];
-        if ((current)&&(FD_CONSP(current)))
+        if ((current)&&(CONSP(current)))
           fd_decref(current);
         bucket[bucket_off]=fd_incref(value);
         u8_unlock_mutex(&zero_pool_lock);
-        return FD_VOID;}}
+        return VOID;}}
     else return fd_type_error("zero_pool oid","fd_zero_pool_store",oid);}
   else return fd_type_error("oid","fd_zero_pool_store",oid);
 }
 
-fdtype fd_preoids = FD_EMPTY_CHOICE;
+fdtype fd_preoids = EMPTY;
 
 static void init_oids()
 {
@@ -217,7 +217,7 @@ static void init_oids()
     int j = 0, lim = 1+(cap/(FD_OID_BUCKET_SIZE));
     while (j<lim) {
       fdtype oid = fd_make_oid(base);
-      FD_ADD_TO_CHOICE(fd_preoids,oid);
+      CHOICE_ADD(fd_preoids,oid);
       base = FD_OID_PLUS(base,FD_OID_BUCKET_SIZE);
       j++;}
     i++;}

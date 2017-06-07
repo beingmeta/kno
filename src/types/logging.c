@@ -47,8 +47,8 @@
 
 /* Log functions */
 
-static fdtype framerd_logfns = FD_EMPTY_CHOICE;
-static fdtype framerd_logfn = FD_VOID;
+static fdtype framerd_logfns = EMPTY;
+static fdtype framerd_logfn = VOID;
 static int using_fd_logger = 0;
 static u8_mutex log_lock;
 
@@ -94,7 +94,7 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       (abs_loglevel>=LOG_NOTIFY)&&
       (abs_loglevel>=req_logonly))
     return 0;
-  if (FD_VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
+  if (VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
   else {
     fdtype logfn = fd_incref(framerd_logfn);
     fdtype v = fd_apply(logfn,3,args);
@@ -103,11 +103,11 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       u8_default_logger(loglevel,c,message);
       u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
       default_log_error();
-      framerd_logfn = FD_VOID;
+      framerd_logfn = VOID;
       fd_decref(logfn); fd_decref(logfn);}
     fd_decref(v);}
   {
-    FD_DO_CHOICES(logfn,framerd_logfns) {
+    DO_CHOICES(logfn,framerd_logfns) {
       fdtype v = fd_apply(logfn,3,args);
       if (FD_ABORTP(v)) {
         u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
@@ -143,13 +143,13 @@ static void use_fd_logger()
 
 static fdtype config_get_logfn(fdtype var,void *data)
 {
-  if (FD_VOIDP(framerd_logfn)) return FD_FALSE;
+  if (VOIDP(framerd_logfn)) return FD_FALSE;
   else return fd_incref(framerd_logfn);
 }
 
 static int config_set_logfn(fdtype var,fdtype val,void *data)
 {
-  if (FD_VOIDP(framerd_logfn)) {
+  if (VOIDP(framerd_logfn)) {
     framerd_logfn = val;
     fd_incref(val);
     use_fd_logger();
@@ -178,7 +178,7 @@ static int config_add_logfn(fdtype var,fdtype val,void *data)
     return -1;}
   use_fd_logger(); fd_incref(val);
   u8_lock_mutex(&log_lock);
-  FD_ADD_TO_CHOICE(framerd_logfns,val);
+  CHOICE_ADD(framerd_logfns,val);
   framerd_logfns = fd_simplify_choice(framerd_logfns);
   u8_unlock_mutex(&log_lock);
   return 1;
@@ -195,11 +195,11 @@ static fdtype config_get_reqloglevel(fdtype var,void *data)
 
 static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
 {
-  if (FD_FALSEP(val)) {
+  if (FALSEP(val)) {
     if (req_loglevel>=0) {req_loglevel = -1; return 1;}
     else return 0;}
-  else if (FD_FIXNUMP(val)) {
-    long long level = FD_FIX2INT(val);
+  else if (FIXNUMP(val)) {
+    long long level = FIX2INT(val);
     if ((level>INT_MAX)||(level<INT_MIN)) {
       fd_seterr("Invalid loglevel","config_set_reqloglevel",NULL,val);
       return -1;}
@@ -224,11 +224,11 @@ static fdtype config_get_reqlogonly(fdtype var,void *data)
 
 static int config_set_reqlogonly(fdtype var,fdtype val,void *data)
 {
-  if (FD_FALSEP(val)) {
+  if (FALSEP(val)) {
     if (req_logonly>=0) {req_logonly = -1; return 1;}
     else return 0;}
-  else if (FD_FIXNUMP(val)) {
-    long long level = FD_FIX2INT(val);
+  else if (FIXNUMP(val)) {
+    long long level = FIX2INT(val);
     if ((level>INT_MAX)||(level<INT_MIN)) {
       fd_seterr("Invalid loglevel","config_set_reqloglevel",NULL,val);
       return -1;}

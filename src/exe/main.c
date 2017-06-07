@@ -7,11 +7,11 @@ FD_EXPORT int _fd_showenv(fd_lexenv env)
   while (env) {
     fdtype bindings = env->env_bindings;
     fd_ptr_type btype = FD_PTR_TYPE(bindings);
-    fdtype name = fd_get(bindings,moduleid,FD_VOID);
+    fdtype name = fd_get(bindings,moduleid,VOID);
     fdtype keys = fd_getkeys(bindings);
     u8_fprintf(stderr,"#%d %s %s(%d) %ld/%lx\n\t%q\n",
                depth,
-               ((FD_STRINGP(name))?(FD_STRDATA(name)):
+               ((STRINGP(name))?(CSTRING(name)):
                 (FD_SYMBOLP(name))?(FD_SYMBOL_NAME(name)):((u8_string)"")),
                fd_type_names[btype],FD_CHOICE_SIZE(keys),
                bindings,bindings,
@@ -98,7 +98,7 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   if (stack->stack_args)
     fprintf(stderr,", %d args",stack->n_args);
   if (FD_SYMBOLP(op))
-    fprintf(stderr,", op=%s",FD_SYMBOL_NAME(op));
+    fprintf(stderr,", op=%s",SYM_NAME(op));
   else if (FD_FUNCTIONP(op)) {
     struct FD_FUNCTION *fn=(fd_function)op;
     if (fn->fcn_name)
@@ -110,14 +110,14 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   if (stack->n_cleanups)
     fprintf(stderr,", %d cleanups",stack->n_cleanups);
   if ((stack->stack_env) &&
-      (FD_SCHEMAPP(stack->stack_env->env_bindings))) {
+      (SCHEMAPP(stack->stack_env->env_bindings))) {
     struct FD_SCHEMAP *sm = (fd_schemap)stack->stack_env->env_bindings;
     fdtype *schema=sm->table_schema;
     fprintf(stderr,", binding");
     int n=sm->schema_length, i=0; while (i<n) {
       fdtype var=schema[i++];
-      if (FD_SYMBOLP(var))
-	fprintf(stderr," %s",FD_SYMBOL_NAME(var));}}
+      if (SYMBOLP(var))
+	fprintf(stderr," %s",SYM_NAME(var));}}
   fprintf(stderr,"\n");
 }
 
@@ -125,7 +125,7 @@ static void _show_stack_frame(struct FD_STACK *stack)
 {
   _concise_stack_frame(stack);
   if (stack->stack_env) _fd_showenv(stack->stack_env);
-  if (FD_PAIRP(stack->stack_op))
+  if (PAIRP(stack->stack_op))
     u8_fprintf(stderr,"%Q",stack->stack_op);
   fputs("\n",stderr);
 }

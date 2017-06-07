@@ -41,7 +41,7 @@ static u8_condition ThreadVOID=_("ThreadVoidResult");
 
 static int thread_loglevel = LOGNOTICE;
 static int thread_log_exit = 1;
-static fdtype logexit_symbol = FD_VOID;
+static fdtype logexit_symbol = VOID;
 
 #ifndef U8_STRING_ARG
 #define U8_STRING_ARG(s) (((s) == NULL)?((u8_string)""):((u8_string)(s)))
@@ -98,11 +98,11 @@ static fdtype make_condvar()
   rv = u8_init_mutex(&(cv->fd_cvlock));
   if (rv) {
     u8_graberr(-1,"make_condvar",NULL);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else rv = u8_init_condvar(&(cv->fd_cvar));
   if (rv) {
     u8_graberr(-1,"make_condvar",NULL);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   return FDTYPE_CONS(cv);
 }
 
@@ -114,15 +114,15 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
   int rv = 0;
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
-  if (FD_VOIDP(timeout))
+  if (VOIDP(timeout))
     if ((rv = u8_condvar_wait(&(cv->fd_cvar),&(cv->fd_cvlock)))==0)
       return FD_TRUE;
     else {
       return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
   else {
     struct timespec tm;
-    if ((FD_FIXNUMP(timeout)) && (FD_FIX2INT(timeout)>=0)) {
-      long long ival = FD_FIX2INT(timeout);
+    if ((FIXNUMP(timeout)) && (FIX2INT(timeout)>=0)) {
+      long long ival = FIX2INT(timeout);
       tm.tv_sec = time(NULL)+ival; tm.tv_nsec = 0;}
 #if 0 /* Define this later.  This allows sub-second waits but
          is a little bit tricky. */
@@ -228,8 +228,8 @@ static fdtype synchro_unlock(fdtype lck)
 
 static fdtype with_lock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype lock_expr = fd_get_arg(expr,1), lck, value = FD_VOID;
-  if (FD_VOIDP(lock_expr))
+  fdtype lock_expr = fd_get_arg(expr,1), lck, value = VOID;
+  if (VOIDP(lock_expr))
     return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
   if (FD_TYPEP(lck,fd_condvar_type)) {
@@ -248,7 +248,7 @@ static fdtype with_lock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       fd_decref(value);
-      value = FD_ERROR_VALUE;}
+      value = FD_ERROR;}
     U8_END_EXCEPTION;}
   if (FD_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
@@ -278,7 +278,7 @@ static void *thread_call(void *data)
 
   FD_INIT_STACK();
 
-  FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",NULL,FD_VOID);
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"thread",NULL,VOID);
   _stack->stack_label=u8_mkstring("thread%lld",u8_threadid());
   _stack->stack_free_label=1;
   tstruct->thread_stackptr=_stack;
@@ -320,12 +320,12 @@ static void *thread_call(void *data)
     u8_log(thread_loglevel,ThreadExit,
            "Thread #%lld exited (errno=%s:%d) returning %s%q",
            u8_threadid(),u8_strerror(errno),errno,
-           ((FD_CONSP(result))?("\n    "):("")),
+           ((CONSP(result))?("\n    "):("")),
            result);}
   else if (log_exit) {
     u8_log(thread_loglevel,ThreadExit,
            "Thread #%lld exited returning %s%q",
-           u8_threadid(),((FD_CONSP(result))?("\n    "):("")),result);}
+           u8_threadid(),((CONSP(result))?("\n    "):("")),result);}
   else {}
 
   u8_threadexit();
@@ -437,8 +437,8 @@ static fdtype threadcall_prim(int n,fdtype *args)
       call_args[i-1]=call_arg; i++;}
     thread = (fdtype)fd_thread_call(NULL,args[0],n-1,call_args,0);
     return thread;}
-  else if (FD_VOIDP(fn))
-    return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,FD_VOID);
+  else if (VOIDP(fn))
+    return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,VOID);
   else {
     fd_incref(fn);
     return fd_type_error(_("applicable"),"threadcall_prim",fn);}
@@ -446,12 +446,12 @@ static fdtype threadcall_prim(int n,fdtype *args)
 
 static int threadopts(fdtype opts)
 {
-  fdtype logexit = fd_getopt(opts,logexit_symbol,FD_VOID);
-  if (FD_VOIDP(logexit)) {
+  fdtype logexit = fd_getopt(opts,logexit_symbol,VOID);
+  if (VOIDP(logexit)) {
     if (thread_log_exit>0)
       return FD_THREAD_TRACE_EXIT;
     else return FD_THREAD_QUIET_EXIT;}
-  else if ((FD_FALSEP(logexit))||(FD_ZEROP(logexit)))
+  else if ((FALSEP(logexit))||(FD_ZEROP(logexit)))
     return FD_THREAD_QUIET_EXIT;
   else {
     fd_decref(logexit);
@@ -470,8 +470,8 @@ static fdtype threadcallx_prim(int n,fdtype *args)
       call_args[i-2]=call_arg; i++;}
     thread = (fdtype)fd_thread_call(NULL,fn,n-2,call_args,flags);
     return thread;}
-  else if (FD_VOIDP(fn))
-    return fd_err(fd_TooFewArgs,"threadcallx_prim",NULL,FD_VOID);
+  else if (VOIDP(fn))
+    return fd_err(fd_TooFewArgs,"threadcallx_prim",NULL,VOID);
   else {
     fd_incref(fn);
     return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
@@ -483,16 +483,16 @@ static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   fdtype env_arg = fd_eval(fd_get_arg(expr,2),env);
   fdtype opts_arg = fd_eval(fd_get_arg(expr,3),env);
   fdtype opts=
-    ((FD_VOIDP(opts_arg))&&
+    ((VOIDP(opts_arg))&&
      (!(FD_LEXENVP(env_arg)))&&
-     (FD_TABLEP(env_arg)))?
+     (TABLEP(env_arg)))?
     (env_arg):
     (opts_arg);
   fd_lexenv use_env=
-    ((FD_VOIDP(env_arg))||(FD_FALSEP(env_arg)))?(env):
+    ((VOIDP(env_arg))||(FALSEP(env_arg)))?(env):
     (FD_LEXENVP(env_arg))?((fd_lexenv)env_arg):
     (NULL);
-  if (FD_VOIDP(to_eval)) {
+  if (VOIDP(to_eval)) {
     fd_decref(opts_arg); fd_decref(env_arg);
     return fd_err(fd_SyntaxError,"threadeval_evalfn",NULL,expr);}
   else if (use_env == NULL) {
@@ -501,10 +501,10 @@ static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else {
     int flags = threadopts(opts)|FD_EVAL_THREAD;
     fd_lexenv env_copy = fd_copy_env(use_env);
-    fdtype results = FD_EMPTY_CHOICE, envptr = (fdtype)env_copy;
-    FD_DO_CHOICES(thread_expr,to_eval) {
+    fdtype results = EMPTY, envptr = (fdtype)env_copy;
+    DO_CHOICES(thread_expr,to_eval) {
       fdtype thread = (fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
-      FD_ADD_TO_CHOICE(results,thread);}
+      CHOICE_ADD(results,thread);}
     fd_decref(envptr);
     fd_decref(env_arg);
     fd_decref(opts_arg);
@@ -537,17 +537,17 @@ static fdtype thread_result(fdtype thread_arg)
       fdtype result = thread->result;
       fd_incref(result);
       return result;}
-    else return FD_EMPTY_CHOICE;}
-  else return FD_EMPTY_CHOICE;
+    else return EMPTY;}
+  else return EMPTY;
 }
 
 static fdtype threadjoin_prim(fdtype threads)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  {FD_DO_CHOICES(thread,threads)
+  fdtype results = EMPTY;
+  {DO_CHOICES(thread,threads)
      if (!(FD_TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
-  {FD_DO_CHOICES(thread,threads) {
+  {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
     int retval = pthread_join(tstruct->tid,NULL);
     if (retval==0) {
@@ -555,13 +555,13 @@ static fdtype threadjoin_prim(fdtype threads)
          the results */
       if ( (tstruct->resultptr == NULL) ||
            ((tstruct->resultptr) == &(tstruct->result)) ) {
-        if (FD_VOIDP(tstruct->result))
+        if (VOIDP(tstruct->result))
           u8_log(LOG_WARN,ThreadVOID,
                  "The thread %q unexpectedly returned VOID but without error",
                  thread);
         else  {
           fd_incref(tstruct->result);
-          FD_ADD_TO_CHOICE(results,tstruct->result);}}}
+          CHOICE_ADD(results,tstruct->result);}}}
     else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
                  retval,strerror(retval),thread);}}
   return results;
@@ -569,10 +569,10 @@ static fdtype threadjoin_prim(fdtype threads)
 
 static fdtype threadwait_prim(fdtype threads)
 {
-  {FD_DO_CHOICES(thread,threads)
+  {DO_CHOICES(thread,threads)
      if (!(FD_TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
-  {FD_DO_CHOICES(thread,threads) {
+  {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
     int retval = pthread_join(tstruct->tid,NULL);
     if (retval)
@@ -584,17 +584,17 @@ static fdtype threadwait_prim(fdtype threads)
 static fdtype parallel_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fd_thread_struct _threads[6], *threads;
-  fdtype _results[6], *results, scan = FD_CDR(expr), result = FD_EMPTY_CHOICE;
+  fdtype _results[6], *results, scan = FD_CDR(expr), result = EMPTY;
   int i = 0, n_exprs = 0;
   /* Compute number of expressions */
-  while (FD_PAIRP(scan)) {n_exprs++; scan = FD_CDR(scan);}
+  while (PAIRP(scan)) {n_exprs++; scan = FD_CDR(scan);}
   /* Malloc two vectors if neccessary. */
   if (n_exprs>6) {
     results = u8_alloc_n(n_exprs,fdtype);
     threads = u8_alloc_n(n_exprs,fd_thread_struct);}
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
-  scan = FD_CDR(expr); while (FD_PAIRP(scan)) {
+  scan = FD_CDR(expr); while (PAIRP(scan)) {
     threads[i]=fd_thread_eval(&results[i],FD_CAR(scan),env,
                               FD_EVAL_THREAD|FD_THREAD_QUIET_EXIT);
     scan = FD_CDR(scan); i++;}
@@ -603,7 +603,7 @@ static fdtype parallel_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     pthread_join(threads[i]->tid,NULL);
     /* If any threads return errors, return the errors, combining
        them as contexts if multiple. */
-    FD_ADD_TO_CHOICE(result,results[i]);
+    CHOICE_ADD(result,results[i]);
     fd_decref((fdtype)(threads[i]));
     i++;}
   if (n_exprs>6) {
@@ -625,7 +625,7 @@ static fdtype threadyield_prim()
   if (retval>=0) {
     if (retval==0) retval = 1; else retval = 0;}
 #endif
-  if (retval<0) return FD_ERROR_VALUE;
+  if (retval<0) return FD_ERROR;
   else if (retval) return FD_TRUE;
   else return FD_FALSE;
 }
@@ -647,14 +647,14 @@ static fdtype set_stack_limit_prim(fdtype arg)
   if (FD_FLONUMP(arg)) {
     ssize_t result = fd_stack_resize(FD_FLONUM(arg));
     if (result<0)
-      return FD_ERROR_VALUE;
+      return FD_ERROR;
     else return FD_INT2DTYPE(result);}
-  else if ( (FD_FIXNUMP(arg)) || (FD_BIGINTP(arg)) ) {
+  else if ( (FIXNUMP(arg)) || (FD_BIGINTP(arg)) ) {
     ssize_t limit = (ssize_t) fd_getint(arg);
     ssize_t result = (limit)?(fd_stack_setsize(limit)):(-1);
     if (limit) {
       if (result<0)
-        return FD_ERROR_VALUE;
+        return FD_ERROR;
       else return FD_INT2DTYPE(result);}
     else return fd_type_error("stacksize","set_stack_limit_prim",arg);}
   else return fd_type_error("stacksize","set_stack_limit_prim",arg);
@@ -685,13 +685,13 @@ FD_EXPORT void fd_init_threads_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/EXITED?",thread_exitedp,1,
-                           fd_thread_type,FD_VOID));
+                           fd_thread_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/ERROR?",thread_errorp,1,
-                           fd_thread_type,FD_VOID));
+                           fd_thread_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/RESULT",thread_result,1,
-                           fd_thread_type,FD_VOID));
+                           fd_thread_type,VOID));
 
   logexit_symbol = fd_intern("LOGEXIT");
 
@@ -708,7 +708,7 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-LIMIT",stack_limit_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("STACK-LIMIT!",set_stack_limit_prim,1,
-                                            fd_fixnum_type,FD_VOID));
+                                            fd_fixnum_type,VOID));
 
   fd_register_config("THREAD:BACKTRACE",
                      "Whether errors in threads print out full backtraces",

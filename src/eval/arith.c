@@ -16,12 +16,9 @@
 #include "framerd/eval.h"
 #include "framerd/numbers.h"
 
-#define NUMBERP(x) \
-  ((FD_FIXNUMP(x)) || (FD_FLONUMP(x)) || (FD_BIGINTP(x)) || \
-   (FD_COMPLEXP(x)) || (FD_RATIONALP(x)))
 #define REALP(x) \
-  ((FD_FIXNUMP(x)) || (FD_FLONUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
-#define INTEGERP(x) ((FD_FIXNUMP(x)) || (FD_BIGINTP(x)))
+  ((FIXNUMP(x)) || (FD_FLONUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
+#define INTEGERP(x) ((FIXNUMP(x)) || (FD_BIGINTP(x)))
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -37,7 +34,7 @@ static fdtype complexp(fdtype x)
 
 static fdtype fixnump(fdtype x)
 {
-  if (FD_FIXNUMP(x)) return FD_TRUE;
+  if (FIXNUMP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -55,7 +52,7 @@ static fdtype integerp(fdtype x)
 
 static fdtype rationalp(fdtype x)
 {
-  if ((FD_FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
+  if ((FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -67,7 +64,7 @@ static fdtype exactp(fdtype x)
     if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag))) return FD_FALSE;
     else return FD_TRUE;}
   else if (FD_FLONUMP(x)) return FD_FALSE;
-  else if ((FD_FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
+  else if ((FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -79,20 +76,20 @@ static fdtype inexactp(fdtype x)
     if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag))) return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_FLONUMP(x)) return FD_TRUE;
-  else if ((FD_FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
+  else if ((FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
     return FD_FALSE;
   else return FD_FALSE;
 }
 
 static fdtype oddp(fdtype x)
 {
-  if (FD_FIXNUMP(x)) {
-    long long ival = FD_FIX2INT(x);
+  if (FIXNUMP(x)) {
+    long long ival = FIX2INT(x);
     if (ival%2) return FD_TRUE; else return FD_FALSE;}
   else if (FD_BIGINTP(x)) {
     fdtype remainder = fd_remainder(x,FD_INT(2));
     if (FD_ABORTP(remainder)) return remainder;
-    else if (FD_FIXNUMP(remainder))
+    else if (FIXNUMP(remainder))
       if (FD_INT(remainder)) return FD_TRUE; else return FD_FALSE;
     else {
       fd_decref(remainder); return FD_FALSE;}}
@@ -101,13 +98,13 @@ static fdtype oddp(fdtype x)
 
 static fdtype evenp(fdtype x)
 {
-  if (FD_FIXNUMP(x)) {
-    long long ival = FD_FIX2INT(x);
+  if (FIXNUMP(x)) {
+    long long ival = FIX2INT(x);
     if (ival%2) return FD_FALSE; else return FD_TRUE;}
   else if (FD_BIGINTP(x)) {
     fdtype remainder = fd_remainder(x,FD_INT(2));
     if (FD_ABORTP(remainder)) return remainder;
-    else if (FD_FIXNUMP(remainder))
+    else if (FIXNUMP(remainder))
       if (FD_INT(remainder)) return FD_FALSE; else return FD_TRUE;
     else {
       fd_decref(remainder); return FD_FALSE;}}
@@ -140,23 +137,23 @@ static fdtype plus_lexpr(int n,fdtype *args)
     return FD_FIXNUM_ZERO;
   else if (n==1) {
     fdtype x = args[0];
-    if (FD_FIXNUMP(x)) return x;
+    if (FIXNUMP(x)) return x;
     else return fd_incref(x);}
   else if (n==2) 
     return fd_plus(args[0],args[1]);
   else {
     int i = 0; int floating = 0, generic = 0, vector = 0;
     while (i < n)
-      if (FD_FIXNUMP(args[i])) i++;
+      if (FIXNUMP(args[i])) i++;
       else if (FD_FLONUMP(args[i])) {floating = 1; i++;}
-      else if ((FD_VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
+      else if ((VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
         generic = 1; vector = 1; i++;}
       else {generic = 1; i++;}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 0;
       i = 0; while (i < n) {
         long long val = 0;
-        if (FD_FIXNUMP(args[i]))
+        if (FIXNUMP(args[i]))
           val = fd_getint(args[i]);
         fixresult = fixresult+val;
         i++;}
@@ -165,7 +162,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
       double floresult = 0.0;
       i = 0; while (i < n) {
         double val;
-        if (FD_FIXNUMP(args[i])) val = (double)fd_getint(args[i]);
+        if (FIXNUMP(args[i])) val = (double)fd_getint(args[i]);
         else if (FD_BIGINTP(args[i]))
           val = (double)fd_bigint_to_double((fd_bigint)args[i]);
         else val = ((struct FD_FLONUM *)args[i])->floval;
@@ -194,7 +191,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
 
 static fdtype plus1(fdtype x)
 {
-  if (FD_FIXNUMP(x)) {
+  if (FIXNUMP(x)) {
     long long iv = fd_getint(x); iv++;
     return FD_INT2DTYPE(iv);}
   else if (FD_FLONUMP(x)) {
@@ -206,7 +203,7 @@ static fdtype plus1(fdtype x)
 }
 static fdtype minus1(fdtype x)
 {
-  if (FD_FIXNUMP(x)) {
+  if (FIXNUMP(x)) {
     long long iv = fd_getint(x); iv--;
     return FD_INT2DTYPE(iv);}
   else if (FD_FLONUMP(x)) {
@@ -222,17 +219,17 @@ static fdtype times_lexpr(int n,fdtype *args)
   int i = 0; int floating = 0, generic = 0;
   if (n==1) {
     fdtype arg = args[0];
-    if (FD_FIXNUMP(arg)) return arg;
-    else if (FD_NUMBERP(arg))
+    if (FIXNUMP(arg)) return arg;
+    else if (NUMBERP(arg))
       return  fd_incref(arg);
-    else if ((FD_NUMVECP(arg))||(FD_VECTORP(arg)))
+    else if ((FD_NUMVECP(arg))||(VECTORP(arg)))
       return fd_incref(arg);
     return fd_type_error(_("number"),"times_lexpr",fd_incref(arg));}
   else if (n==2) 
     return fd_multiply(args[0],args[1]);
   else {
     while (i < n)
-      if (FD_FIXNUMP(args[i])) i++;
+      if (FIXNUMP(args[i])) i++;
       else if (FD_FLONUMP(args[i])) {floating = 1; i++;}
       else {generic = 1; i++;}
     if ((floating==0) && (generic==0)) {
@@ -255,7 +252,7 @@ static fdtype times_lexpr(int n,fdtype *args)
       double floresult = 1.0;
       i = 0; while (i < n) {
         double val;
-        if (FD_FIXNUMP(args[i])) val = (double)FD_FIX2INT(args[i]);
+        if (FIXNUMP(args[i])) val = (double)FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val = (double)fd_bigint_to_double((fd_bigint)args[i]);
         else val = ((struct FD_FLONUM *)args[i])->floval;
@@ -275,28 +272,28 @@ static fdtype minus_lexpr(int n,fdtype *args)
 {
   if (n == 1) {
     fdtype arg = args[0];
-    if (FD_FIXNUMP(arg))
-      return FD_INT(-(FD_FIX2INT(arg)));
+    if (FIXNUMP(arg))
+      return FD_INT(-(FIX2INT(arg)));
     else if (FD_FLONUMP(arg))
       return fd_init_double(NULL,-(FD_FLONUM(arg)));
-    else if ((FD_VECTORP(arg))||(FD_NUMVECP(arg)))
-      return fd_multiply(arg,FD_FIX2INT(-1));
+    else if ((VECTORP(arg))||(FD_NUMVECP(arg)))
+      return fd_multiply(arg,FIX2INT(-1));
     else return fd_subtract(FD_INT(0),arg);}
   else if (n == 2)
     return fd_subtract(args[0],args[1]);
   else {
     int i = 0; int floating = 0, generic = 0, vector = 0;
     while (i < n) {
-      if (FD_FIXNUMP(args[i])) i++;
+      if (FIXNUMP(args[i])) i++;
       else if (FD_FLONUMP(args[i])) {floating = 1; i++;}
-      else if ((FD_VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
+      else if ((VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
         vector = 1; generic = 1;}
       else {generic = 1; i++;}}
     if ((floating==0) && (generic==0)) {
       long long fixresult = 0;
       i = 0; while (i < n) {
         long long val = 0;
-        if (FD_FIXNUMP(args[i])) val = FD_FIX2INT(args[i]);
+        if (FIXNUMP(args[i])) val = FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val = (double)fd_bigint_to_double((fd_bigint)args[i]);
         if (i==0) fixresult = val; else fixresult = fixresult-val;
@@ -306,7 +303,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
       double floresult = 0.0;
       i = 0; while (i < n) {
         double val;
-        if (FD_FIXNUMP(args[i])) val = (double)FD_FIX2INT(args[i]);
+        if (FIXNUMP(args[i])) val = (double)FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val = (double)fd_bigint_to_double((fd_bigint)args[i]);
         else val = ((struct FD_FLONUM *)args[i])->floval;
@@ -329,8 +326,8 @@ static fdtype minus_lexpr(int n,fdtype *args)
 
 static double todouble(fdtype x)
 {
-  if (FD_FIXNUMP(x))
-    return (double)(FD_FIX2INT(x));
+  if (FIXNUMP(x))
+    return (double)(FIX2INT(x));
   else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_FLONUMP(x))
@@ -370,7 +367,7 @@ static fdtype idiv_lexpr(int n,fdtype *args)
   int all_double = 1, i = 0;
   while (i<n)
     if (FD_FLONUMP(args[i])) i++;
-    else if (!((FD_FIXNUMP(args[i])) || (FD_BIGINTP(args[i]))))
+    else if (!((FIXNUMP(args[i])) || (FD_BIGINTP(args[i]))))
       return fd_type_error(_("scalar"),"idiv_lexpr",args[i]);
     else {all_double = 0; i++;}
   if (all_double)
@@ -393,8 +390,8 @@ static fdtype idiv_lexpr(int n,fdtype *args)
 
 static fdtype remainder_prim(fdtype x,fdtype m)
 {
-  if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(m))) {
-    long long ix = FD_FIX2INT(x), im = FD_FIX2INT(m);
+  if ((FIXNUMP(x)) && (FIXNUMP(m))) {
+    long long ix = FIX2INT(x), im = FIX2INT(m);
     long long r = ix%im;
     return FD_INT(r);}
   else return fd_remainder(x,m);
@@ -428,7 +425,7 @@ static fdtype numerator_prim(fdtype x)
   if (FD_RATIONALP(x)) {
     fdtype num = FD_NUMERATOR(x);
     return fd_incref(num);}
-  else if (FD_NUMBERP(x)) return fd_incref(x);
+  else if (NUMBERP(x)) return fd_incref(x);
   else return fd_type_error("number","numerator_prim",x);
 }
 
@@ -437,7 +434,7 @@ static fdtype denominator_prim(fdtype x)
   if (FD_RATIONALP(x)) {
     fdtype den = FD_DENOMINATOR(x);
     return fd_incref(den);}
-  else if (FD_NUMBERP(x)) return FD_INT(1);
+  else if (NUMBERP(x)) return FD_INT(1);
   else return fd_type_error("number","denominator_prim",x);
 }
 
@@ -466,8 +463,8 @@ static fdtype imag_part_prim(fdtype x)
 
 static double doublearg(fdtype x,fdtype *whoops)
 {
-  if (FD_FIXNUMP(x))
-    return (double)(FD_FIX2INT(x));
+  if (FIXNUMP(x))
+    return (double)(FIX2INT(x));
   else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_FLONUMP(x))
@@ -490,10 +487,10 @@ static fdtype inexact2exact(fdtype x)
 static fdtype toexact(fdtype x,fdtype direction)
 {
   long long dir = -1;
-  if ((FD_VOIDP(direction))||(FD_FALSEP(direction)))
+  if ((VOIDP(direction))||(FALSEP(direction)))
     dir = -1;
-  else if (FD_FIXNUMP(direction))
-    dir = FD_FIX2INT(direction);
+  else if (FIXNUMP(direction))
+    dir = FIX2INT(direction);
   else dir = 0;
   if (FD_FLONUMP(x)) {
     if (dir== -1)
@@ -518,7 +515,7 @@ static fdtype toexact(fdtype x,fdtype direction)
     else {
       fd_incref(x);
       return x;}}
-  else if (FD_NUMBERP(x)) {
+  else if (NUMBERP(x)) {
     fd_incref(x);
     return x;}
   else return fd_type_error("number","toexact",x);
@@ -526,13 +523,13 @@ static fdtype toexact(fdtype x,fdtype direction)
 
 #define arithdef(sname,lname,cname) \
   static fdtype lname(fdtype x) { \
-    fdtype err = FD_VOID; double val = doublearg(x,&err); \
+    fdtype err = VOID; double val = doublearg(x,&err); \
     errno = 0; \
-    if (FD_VOIDP(err)) { \
+    if (VOIDP(err)) { \
       double result = cname(val); \
       if (errno==0) return fd_init_double(NULL,result); \
       else {u8_graberr(-1,sname,u8_mkstring("%f",val)); \
-            return FD_ERROR_VALUE;}} \
+            return FD_ERROR;}} \
     else return err;}
 
 arithdef("SQRT",lsqrt,sqrt);
@@ -547,16 +544,16 @@ arithdef("EXP",lexp,exp);
 
 #define arithdef2(sname,lname,cname) \
   static fdtype lname(fdtype x,fdtype y) { \
-    fdtype err = FD_VOID; double xval, yval; \
+    fdtype err = VOID; double xval, yval; \
     xval = doublearg(x,&err);                  \
-    if (!(FD_VOIDP(err))) return err;       \
+    if (!(VOIDP(err))) return err;       \
     yval = doublearg(y,&err);                  \
     errno = 0;                                \
-    if (FD_VOIDP(err)) {                    \
+    if (VOIDP(err)) {                    \
       double result = cname(xval,yval);       \
       if (errno==0) return fd_init_double(NULL,result); \
       else {u8_graberr(-1,sname,u8_mkstring("%f %f",xval,yval)); \
-            return FD_ERROR_VALUE;}}          \
+            return FD_ERROR;}}          \
     else return err;}
 
 arithdef2("ATAN2",latan2,atan2);
@@ -568,20 +565,20 @@ arithdef2("POW",lpow,pow);
 static fdtype pow_prim(fdtype v,fdtype n)
 {
   if ((FD_EXACTP(v))&&
-      (FD_FIXNUMP(n))&&(FD_FIX2INT(n)>=0)&&
-      (FD_FIX2INT(n)<1000000)) {
+      (FIXNUMP(n))&&(FIX2INT(n)>=0)&&
+      (FIX2INT(n)<1000000)) {
     if (FD_ZEROP(v)) return FD_FIXNUM_ONE;
     else {
-      long long i = 0, how_many = FD_FIX2INT(n);
+      long long i = 0, how_many = FIX2INT(n);
       fdtype prod = FD_INT(1); while (i<how_many) {
         fdtype tmp = fd_multiply(prod,v);
         fd_decref(prod); prod = tmp;
         i++;}
       return prod;}}
   else {
-    fdtype err = FD_VOID;
+    fdtype err = VOID;
     fdtype dv = doublearg(v,&err);
-    fdtype dn = (FD_VOIDP(err)) ? doublearg(n,&err) : (0);
+    fdtype dn = (VOIDP(err)) ? doublearg(n,&err) : (0);
     if (FD_ABORTP(err)) return err;
     else {
       double result = pow(dv,dn);
@@ -590,20 +587,20 @@ static fdtype pow_prim(fdtype v,fdtype n)
 
 static fdtype nthroot_prim(fdtype v,fdtype n)
 {
-  fdtype err = FD_VOID;
+  fdtype err = VOID;
   double dv = doublearg(v,&err);
-  double dn = (FD_VOIDP(err)) ? (doublearg(n,&err)) :(0);
-  double dexp = (FD_VOIDP(err)) ? (1/dn) : (0);
+  double dn = (VOIDP(err)) ? (doublearg(n,&err)) :(0);
+  double dexp = (VOIDP(err)) ? (1/dn) : (0);
   if (FD_ABORTP(err))
     return err;
   else {
     double result = pow(dv,dexp);
     if ((remainder(result,1.0)==0)&&
-        (FD_UINTP(n))&&(FD_FIX2INT(n)<1024)&&
-        ((FD_FIXNUMP(v))||(FD_BIGINTP(v)))) {
+        (FD_UINTP(n))&&(FIX2INT(n)<1024)&&
+        ((FIXNUMP(v))||(FD_BIGINTP(v)))) {
       long long introot = (long long) floor(result);
       fdtype root = FD_INT(introot), prod = FD_INT(1);
-      int i = 0, lim = FD_FIX2INT(n); while (i<lim) {
+      int i = 0, lim = FIX2INT(n); while (i<lim) {
         fdtype tmp = fd_multiply(prod,root);
         fd_decref(prod); prod = tmp;
         i++;}
@@ -618,10 +615,10 @@ static fdtype nthroot_prim(fdtype v,fdtype n)
 
 static fdtype inexact_nthroot_prim(fdtype v,fdtype n)
 {
-  fdtype err = FD_VOID;
+  fdtype err = VOID;
   double dv = doublearg(v,&err);
-  double dn = (FD_VOIDP(err)) ? (doublearg(n,&err)) :(0);
-  double dexp = (FD_VOIDP(err)) ? (1/dn) : (0);
+  double dn = (VOIDP(err)) ? (doublearg(n,&err)) :(0);
+  double dexp = (VOIDP(err)) ? (1/dn) : (0);
   if (FD_ABORTP(err))
     return err;
   else {
@@ -635,12 +632,12 @@ static fdtype inexact_nthroot_prim(fdtype v,fdtype n)
 static fdtype min_prim(int n,fdtype *args)
 {
   if (n==0) 
-    return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
+    return fd_err(fd_TooFewArgs,"max_prim",NULL,VOID);
   else {
     fdtype result = args[0]; int i = 1, inexact = FD_FLONUMP(args[0]);
     while (i<n) {
       int cmp = fd_numcompare(args[i],result);
-      if (cmp>1) return FD_ERROR_VALUE;
+      if (cmp>1) return FD_ERROR;
       if (FD_FLONUMP(args[i])) inexact = 1;
       if (cmp<0) result = args[i];
       i++;}
@@ -648,9 +645,9 @@ static fdtype min_prim(int n,fdtype *args)
       if (FD_FLONUMP(result))
         return fd_incref(result);
       else {
-        fdtype err = FD_VOID;
+        fdtype err = VOID;
         double asdouble = doublearg(result,&err);
-        if (FD_VOIDP(err))
+        if (VOIDP(err))
           return fd_init_double(NULL,asdouble);
         else return err;}
     else return fd_incref(result);}
@@ -658,13 +655,13 @@ static fdtype min_prim(int n,fdtype *args)
 
 static fdtype max_prim(int n,fdtype *args)
 {
-  if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
+  if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,VOID);
   else {
     fdtype result = args[0];
     int i = 1, inexact = FD_FLONUMP(args[0]);
     while (i<n) {
       int cmp = fd_numcompare(args[i],result);
-      if (cmp>1) return FD_ERROR_VALUE;
+      if (cmp>1) return FD_ERROR;
       if (FD_FLONUMP(args[i])) inexact = 1;
       if (cmp>0) result = args[i];
       i++;}
@@ -672,9 +669,9 @@ static fdtype max_prim(int n,fdtype *args)
       if (FD_FLONUMP(result))
         return fd_incref(result);
       else {
-        fdtype err = FD_VOID;
+        fdtype err = VOID;
         double asdouble = doublearg(result,&err);
-        if (FD_VOIDP(err))
+        if (VOIDP(err))
           return fd_init_double(NULL,asdouble);
         else return err;}
     else return fd_incref(result);}
@@ -682,9 +679,9 @@ static fdtype max_prim(int n,fdtype *args)
 
 static fdtype abs_prim(fdtype x)
 {
-  if (FD_FIXNUMP(x)) {
-    long long ival = FD_FIX2INT(x);
-    assert((ival<0) == ((FD_FIX2INT(x))<0));
+  if (FIXNUMP(x)) {
+    long long ival = FIX2INT(x);
+    assert((ival<0) == ((FIX2INT(x))<0));
     if (ival<0) {
       long long aval = -ival;
       return FD_INT(aval);}
@@ -696,8 +693,8 @@ static fdtype abs_prim(fdtype x)
 
 static fdtype modulo_prim(fdtype x,fdtype b)
 {
-  if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(b))) {
-    long long ix = FD_FIX2INT(x), ib = FD_FIX2INT(b);
+  if ((FIXNUMP(x)) && (FIXNUMP(b))) {
+    long long ix = FIX2INT(x), ib = FIX2INT(b);
     if (ix==0) return FD_INT(0);
     else if (ib==0)
       return fd_type_error("nonzero","modulo_prim",b);
@@ -717,7 +714,7 @@ static fdtype modulo_prim(fdtype x,fdtype b)
       return fd_remainder(x,b);
     else {
       fdtype rem = fd_remainder(x,b);
-      if ((FD_FIXNUMP(rem)) && (FD_FIX2INT(rem)==0))
+      if ((FIXNUMP(rem)) && (FIX2INT(rem)==0))
         return rem;
       else {
         fdtype result = fd_plus(b,rem);
@@ -828,15 +825,15 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
 {
   long long scale = fd_getint(scalearg);
   if (scale<0)
-    if (FD_FIXNUMP(x)) return x;
+    if (FIXNUMP(x)) return x;
     else if (FD_FLONUMP(x)) {
       long long factor = -scale;
       double val = FD_FLONUM(x), factor_up = doround(val*factor);
       long long ival = factor_up;
       return fd_conspair(FD_INT(ival),scalearg);}
-    else return FD_EMPTY_CHOICE;
-  else if (FD_FIXNUMP(x)) {
-    long long ival = FD_FIX2INT(x), rem = ival%scale, base = (ival/scale);
+    else return EMPTY;
+  else if (FIXNUMP(x)) {
+    long long ival = FIX2INT(x), rem = ival%scale, base = (ival/scale);
     if (rem==0) return fd_conspair(x,scalearg);
     else if (rem*2>scale)
       if (ival>0)
@@ -848,15 +845,15 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
     double scaled = doround(dv/scale)*scale;
     long long ival = scaled;
     return fd_conspair(FD_INT(ival),scalearg);}
-  else return FD_EMPTY_CHOICE;
+  else return EMPTY;
 }
 
 /* More simple arithmetic functions */
 
 static fdtype quotient_prim(fdtype x,fdtype y)
 {
-  if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
-    long long ix = FD_FIX2INT(x), iy = FD_FIX2INT(y);
+  if ((FIXNUMP(x)) && (FIXNUMP(y))) {
+    long long ix = FIX2INT(x), iy = FIX2INT(y);
     long long q = ix/iy;
     return FD_INT(q);}
   else return fd_quotient(x,y);
@@ -886,7 +883,7 @@ static fdtype hashptr_prim(fdtype x)
 {
   unsigned long long intval = (unsigned long long)x;
   if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM))
-    return FD_FIX2INT(((int)intval));
+    return FIX2INT(((int)intval));
   else return (fdtype)fd_ulong_long_to_bigint(intval);
 }
 
@@ -902,9 +899,9 @@ static fdtype hashref_prim(fdtype x)
 static fdtype ptrlock_prim(fdtype x,fdtype mod)
 {
   unsigned long long intval = (unsigned long long)x;
-  long long int modval = ((FD_VOIDP(mod))?
+  long long int modval = ((VOIDP(mod))?
                         (FD_N_PTRLOCKS):
-                        (FD_FIX2INT(mod)));
+                        (FIX2INT(mod)));
   if (modval==0)
     return (fdtype)fd_ulong_long_to_bigint(intval);
   else {
@@ -916,9 +913,9 @@ static fdtype ptrlock_prim(fdtype x,fdtype mod)
 
 static fdtype knuth_hash(fdtype arg)
 {
-  if ((FD_FIXNUMP(arg))||(FD_BIGINTP(arg))) {
+  if ((FIXNUMP(arg))||(FD_BIGINTP(arg))) {
     long long num=
-      ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
+      ((FIXNUMP(arg))?(FIX2INT(arg)):
        (fd_bigint_to_long_long((fd_bigint)arg)));
     if ((num<0)||(num>=0x100000000ll))
       return fd_type_error("uint32","knuth_hash",arg);
@@ -932,11 +929,11 @@ static fdtype wang_hash32(fdtype arg)
 {
   /* Adapted from Thomas Wang
      http://www.cris.com/~Ttwang/tech/inthash.htm */
-  if (((FD_UINTP(arg))&&((FD_FIX2INT(arg))>=0))||
+  if (((FD_UINTP(arg))&&((FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
     unsigned long long num=
-      ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
+      ((FIXNUMP(arg))?(FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
     unsigned long long constval = 0x27d4eb2dll; // a prime or an odd constant
     num = (num ^ 61) ^ (num >> 16);
@@ -952,11 +949,11 @@ static fdtype wang_hash64(fdtype arg)
 {
   /* Adapted from Thomas Wang
      http://www.cris.com/~Ttwang/tech/inthash.htm */
-  if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
+  if (((FIXNUMP(arg))&&((FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),64,0)))) {
     unsigned long long int num=
-      ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
+      ((FIXNUMP(arg))?(FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
     num = (~num) + (num << 21); // num = (num << 21) - num - 1;
     num = num ^ (num >> 24);
@@ -973,7 +970,7 @@ static fdtype wang_hash64(fdtype arg)
 
 static fdtype flip32(fdtype arg)
 {
-  if (((FD_UINTP(arg))&&((FD_FIX2INT(arg))>=0))||
+  if (((FD_UINTP(arg))&&((FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
     int word = fd_getint(arg);
@@ -986,11 +983,11 @@ fd_bigint fd_ulong_long_to_bigint(unsigned long long);
 
 static fdtype flip64(fdtype arg)
 {
-  if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
+  if (((FIXNUMP(arg))&&((FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
        (fd_bigint_fits_in_word_p(((fd_bigint)arg),64,0)))) {
     unsigned long long int word=
-      ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
+      ((FIXNUMP(arg))?(FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
     unsigned long long int flipped = fd_flip_word8(word);
     if (flipped<FD_MAX_FIXNUM) return FD_INT(flipped);
@@ -1004,9 +1001,9 @@ static fdtype cityhash64(fdtype arg,fdtype asint)
 {
   u8_int8 hash;
   const u8_byte *data; size_t datalen;
-  if (FD_STRINGP(arg)) {
-    data = FD_STRDATA(arg); datalen = FD_STRLEN(arg);}
-  else if (FD_PACKETP(arg)) {
+  if (STRINGP(arg)) {
+    data = CSTRING(arg); datalen = STRLEN(arg);}
+  else if (PACKETP(arg)) {
     data = FD_PACKET_DATA(arg); datalen = FD_PACKET_LENGTH(arg);}
   else return fd_type_error("packet/string","cityhash64",arg);
   hash = u8_cityhash64(data,datalen);
@@ -1030,9 +1027,9 @@ static fdtype cityhash128(fdtype arg)
   unsigned char bytes[16];
   u8_int16 hash; u8_int8 hi; u8_int8 lo;
   const u8_byte *data; size_t datalen;
-  if (FD_STRINGP(arg)) {
-    data = FD_STRDATA(arg); datalen = FD_STRLEN(arg);}
-  else if (FD_PACKETP(arg)) {
+  if (STRINGP(arg)) {
+    data = CSTRING(arg); datalen = STRLEN(arg);}
+  else if (PACKETP(arg)) {
     data = FD_PACKET_DATA(arg); datalen = FD_PACKET_LENGTH(arg);}
   else return fd_type_error("packet/string","cityhash64",arg);
   hash = u8_cityhash128(data,datalen);
@@ -1060,14 +1057,14 @@ static fdtype cityhash128(fdtype arg)
 
 static fdtype itoa_prim(fdtype arg,fdtype base_arg)
 {
-  long long base = FD_FIX2INT(base_arg); char buf[32];
-  if (FD_FIXNUMP(arg)) {
-    if (base==10) u8_itoa10(FD_FIX2INT(arg),buf);
-    else if (FD_FIX2INT(arg)<0)
+  long long base = FIX2INT(base_arg); char buf[32];
+  if (FIXNUMP(arg)) {
+    if (base==10) u8_itoa10(FIX2INT(arg),buf);
+    else if (FIX2INT(arg)<0)
       return fd_err(_("negative numbers can't be rendered as non-decimal"),
                     "itoa_prim",NULL,fd_incref(arg));
-    else if (base==8) u8_uitoa8(FD_FIX2INT(arg),buf);
-    else if (base==16) u8_uitoa16(FD_FIX2INT(arg),buf);
+    else if (base==8) u8_uitoa8(FIX2INT(arg),buf);
+    else if (base==16) u8_uitoa16(FIX2INT(arg),buf);
     else return fd_type_error("16,10,or 8","itoa_prim",base_arg);}
   else if (!(FD_BIGINTP(arg))) 
     return fd_type_error("number","itoa_prim",arg);
@@ -1182,7 +1179,7 @@ FD_EXPORT void fd_init_arith_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("SCALEREP",scalerep_prim,2));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x("ILOG",ilog_prim,1,
-                                            fd_fixnum_type,FD_VOID,
+                                            fd_fixnum_type,VOID,
                                             fd_fixnum_type,FD_INT(2)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("KNUTH-HASH",knuth_hash,1));
@@ -1191,16 +1188,16 @@ FD_EXPORT void fd_init_arith_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP32",flip32,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP64",flip64,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("CITYHASH64",cityhash64,1,
-                                            -1,FD_VOID,-1,FD_FALSE));
+                                            -1,VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("PTRLOCK",ptrlock_prim,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_VOID));
+                           -1,VOID,fd_fixnum_type,VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
-           ("U8ITOA",itoa_prim,1,-1,FD_VOID,fd_fixnum_type,FD_INT(10)));
+           ("U8ITOA",itoa_prim,1,-1,VOID,fd_fixnum_type,FD_INT(10)));
 }
 
 /* Emacs local variables

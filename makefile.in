@@ -772,10 +772,11 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		${SRC_HEADERS};
 	@etags -o TAGS -a src/types/*.c src/apply/*.c 
 	@etags -o TAGS -a src/storage/*.c src/drivers/*.c
-	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
+	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
+	@etags -o TAGS -a src/cmodules/*.c;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	tests/types/*.c tests/storage/*.c tests/scheme/*.c	\
@@ -791,6 +792,12 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	      src/types/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
 	      src/web/*.c src/text/*.c src/cmodules/*.c         	\
 	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
+
+CSOURCETAGS: src/types/*.c src/apply/*.c src/storage/*.c	\
+	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
+	src/drivers/*.c src/drivers/headers/*.h src/exe/*.c
+	@echo Building FRAMERD_SOURCE TAGS file
+	@etags -o $@ $^
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file

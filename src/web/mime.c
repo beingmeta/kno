@@ -104,15 +104,15 @@ static void handle_parameters(fdtype fields,const u8_byte *data)
 FD_EXPORT
 fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slotid)
 {
-  fdtype value = fd_get(fields,slotid,FD_VOID);
-  if (FD_VOIDP(value)) return FD_VOID;
-  else if (!(FD_STRINGP(value))) {
+  fdtype value = fd_get(fields,slotid,VOID);
+  if (VOIDP(value)) return VOID;
+  else if (!(STRINGP(value))) {
     fdtype err = fd_err(fd_TypeError,"fd_handle_compound_mime_field",_("string"),value);
     fd_decref(value); return err;}
   else {
-    fdtype major_type = FD_VOID;
-    u8_string data = FD_STRDATA(value), start = data, end, scan;
-    if (FD_SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
+    fdtype major_type = VOID;
+    u8_string data = CSTRING(value), start = data, end, scan;
+    if (SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
     if ((end = (strchr(start,';')))) {
       fdtype segval = fd_substring(start,end);
       fd_store(fields,slotid,segval); fd_decref(segval);}
@@ -127,18 +127,18 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
 static fdtype convert_data(const char *start,const char *end,
                            fdtype dataenc,int could_be_string)
 {
-  fdtype result = FD_VOID; char *data; int len;
+  fdtype result = VOID; char *data; int len;
   /* First do any conversion you need to do. */
-  if (FD_STRINGP(dataenc))
-    if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0)
+  if (STRINGP(dataenc))
+    if (strcasecmp(CSTRING(dataenc),"quoted-printable")==0)
       data = u8_read_quoted_printable(start,end,&len);
-    else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0)
+    else if (strcasecmp(CSTRING(dataenc),"base64")==0)
       data = u8_read_base64(start,end,&len);
     else {
       len = end-start; data = u8_malloc(len); memcpy(data,start,len);}
   else {
     len = end-start; data = u8_malloc(len); memcpy(data,start,len);}
-  if ((could_be_string) && (!(FD_STRINGP(dataenc))) &&
+  if ((could_be_string) && (!(STRINGP(dataenc))) &&
       (len<50000) && ((len==0)||(u8_validate(data,len))))
     result = fd_make_string(NULL,len,data);
   else result = fd_make_packet(NULL,len,data);
@@ -152,10 +152,10 @@ static fdtype convert_text(const char *start,const char *end,
   int len; u8_encoding encoding;
   const u8_byte *data, *scan, *data_end;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-  if (FD_STRINGP(dataenc)) {
-    if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0)
+  if (STRINGP(dataenc)) {
+    if (strcasecmp(CSTRING(dataenc),"quoted-printable")==0)
       data = u8_read_quoted_printable(start,end,&len);
-    else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0)
+    else if (strcasecmp(CSTRING(dataenc),"base64")==0)
       data = u8_read_base64(start,end,&len);
     else {
       u8_byte *buf;
@@ -167,8 +167,8 @@ static fdtype convert_text(const char *start,const char *end,
     len = end-start; buf = u8_malloc(len);
     memcpy(buf,start,len);
     data = buf;}
-  if (FD_STRINGP(charenc))
-    encoding = u8_get_encoding(FD_STRDATA(charenc));
+  if (STRINGP(charenc))
+    encoding = u8_get_encoding(CSTRING(charenc));
   else encoding = NULL;
   scan = data; data_end = data+len;
   u8_convert(encoding,1,&out,&scan,data_end);
@@ -179,9 +179,9 @@ static fdtype convert_content(const char *start,const char *end,
                               fdtype majtype,fdtype dataenc,fdtype charenc)
 {
   if (end == NULL) end = start+strlen(start);
-  if ((FD_STRINGP(charenc)) || (FD_EQ(majtype,FDSYM_TEXT)))
+  if ((STRINGP(charenc)) || (FD_EQ(majtype,FDSYM_TEXT)))
     return convert_text(start,end,dataenc,charenc);
-  else return convert_data(start,end,dataenc,FD_VOIDP(majtype));
+  else return convert_data(start,end,dataenc,VOIDP(majtype));
 }
 
 static const char *find_boundary(const char *boundary,const char *scan,
@@ -205,22 +205,22 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
   const char *scan = start; char *boundary; int boundary_len;
   fdtype charenc, dataenc;
   fdtype majtype = fd_handle_compound_mime_field
-    (slotmap,content_type_slotid,FD_VOID);
-  fdtype parts = FD_EMPTY_LIST;
-  fdtype sepval = fd_get(slotmap,separator_slotid,FD_VOID);
-  if (!(FD_STRINGP(sepval))) {
+    (slotmap,content_type_slotid,VOID);
+  fdtype parts = NIL;
+  fdtype sepval = fd_get(slotmap,separator_slotid,VOID);
+  if (!(STRINGP(sepval))) {
     return fd_err(NoMultiPartSeparator,"fd_parse_mime",NULL,slotmap);}
-  fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
-  charenc = fd_get(slotmap,charset_slotid,FD_VOID);
-  dataenc = fd_get(slotmap,encoding_slotid,FD_VOID);
-  boundary = u8_malloc(FD_STRLEN(sepval)+5);
-  strcpy(boundary,"\r\n--"); strcat(boundary,FD_STRDATA(sepval));
-  boundary_len = FD_STRLEN(sepval)+4;
+  fd_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
+  charenc = fd_get(slotmap,charset_slotid,VOID);
+  dataenc = fd_get(slotmap,encoding_slotid,VOID);
+  boundary = u8_malloc(STRLEN(sepval)+5);
+  strcpy(boundary,"\r\n--"); strcat(boundary,CSTRING(sepval));
+  boundary_len = STRLEN(sepval)+4;
   start = scan; scan = find_boundary(boundary,start,end-start,boundary_len,1);
   if (scan == NULL) {
     fd_store(slotmap,preamble_slotid,
              convert_content(start,scan,majtype,dataenc,charenc));
-    fd_store(slotmap,parts_slotid,FD_EMPTY_LIST);}
+    fd_store(slotmap,parts_slotid,NIL);}
   else {
     fdtype *point = &parts;
     if (scan>start)
@@ -238,9 +238,9 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
       /* Find the end of the encapsluation */
       scan = find_boundary(boundary,start,end-start,boundary_len,0);
       if (scan)
-        new_pair = fd_conspair(fd_parse_mime(start,scan),FD_EMPTY_LIST);
+        new_pair = fd_conspair(fd_parse_mime(start,scan),NIL);
       else new_pair=
-             fd_conspair(fd_parse_mime(start,end),FD_EMPTY_LIST);
+             fd_conspair(fd_parse_mime(start,end),NIL);
       *point = new_pair; point = &(FD_CDR(new_pair));
       if (scan == NULL)  break;
       else start = scan+boundary_len;}
@@ -254,13 +254,13 @@ fdtype fd_parse_mime(const char *start,const char *end)
   fdtype slotmap = fd_empty_slotmap();
   const char *scan = parse_headers(slotmap,start,end);
   fdtype majtype = fd_handle_compound_mime_field
-    (slotmap,content_type_slotid,FD_VOID);
+    (slotmap,content_type_slotid,VOID);
   fdtype charenc, dataenc;
-  fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
+  fd_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
   if (FD_ABORTP(majtype))
     return majtype;
-  charenc = fd_get(slotmap,charset_slotid,FD_VOID);
-  dataenc = fd_get(slotmap,encoding_slotid,FD_VOID);
+  charenc = fd_get(slotmap,charset_slotid,VOID);
+  dataenc = fd_get(slotmap,encoding_slotid,VOID);
   if (fd_test(slotmap,content_type_slotid,multipart_symbol)) {
     fdtype parts = fd_parse_multipart_mime(slotmap,scan,end);
     fd_decref(parts); return slotmap;}
@@ -274,12 +274,12 @@ fdtype fd_parse_mime(const char *start,const char *end)
 
 static fdtype parse_mime_data(fdtype arg)
 {
-  if (FD_PACKETP(arg))
+  if (PACKETP(arg))
     return fd_parse_mime(FD_PACKET_DATA(arg),
                          FD_PACKET_DATA(arg)+FD_PACKET_LENGTH(arg));
-  else if (FD_STRINGP(arg))
-    return fd_parse_mime(FD_STRDATA(arg),
-                         FD_STRDATA(arg)+FD_STRLEN(arg));
+  else if (STRINGP(arg))
+    return fd_parse_mime(CSTRING(arg),
+                         CSTRING(arg)+STRLEN(arg));
   else return fd_type_error(_("mime data"),"parse_mime_data",arg);
 }
 

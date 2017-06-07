@@ -64,7 +64,7 @@ typedef char *charp;
 static fdtype chain_prim(int n,fdtype *args)
 {
   if (n_configs>=MAX_CONFIGS)
-    return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,FD_VOID);
+    return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,VOID);
   else if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
     u8_log(LOGCRIT,"StopFile",
            "Not chaining because the file '%s' exists",stop_file);
@@ -79,8 +79,8 @@ static fdtype chain_prim(int n,fdtype *args)
     cargv[cargc++]=file_arg;
     i = 0; while (i<n)
       if (FD_STRINGP(args[i])) {
-        u8_printf(&argstring," %s",FD_STRDATA(args[i]));
-        cargv[cargc]=u8_tolibc(FD_STRDATA(args[i]));
+        u8_printf(&argstring," %s",CSTRING(args[i]));
+        cargv[cargc]=u8_tolibc(CSTRING(args[i]));
         i++; cargc++;}
       else {
         u8_string as_string = fd_dtype2string(args[i]);
@@ -108,7 +108,7 @@ static fdtype chain_prim(int n,fdtype *args)
     rv = execvp(exe_arg,cargv);
     if (rv<0) {
       u8_graberr(errno,"CHAIN",u8_strdup(file_arg));
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else return FD_INT(rv);}
 }
 
@@ -166,7 +166,7 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
 
   fd_init_libfdtype();
 
-  FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],FD_VOID);
+  FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   _stack->stack_free_label=1;
 
@@ -198,7 +198,7 @@ int do_main(int argc,char **argv,
             fdtype *args,size_t n_args)
 {
   fd_lexenv env = fd_working_lexenv();
-  fdtype main_proc = FD_VOID, result = FD_VOID;
+  fdtype main_proc = VOID, result = VOID;
   int retval = 0;
 
   u8_register_source_file(_FILEINFO);
@@ -323,15 +323,15 @@ int do_main(int argc,char **argv,
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
 
     fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
-      ((fdtype) (e->u8x_xdata)) : (FD_VOID);
-    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (FD_VOID);
-    if (!(FD_VOIDP(stacktrace))) {
+      ((fdtype) (e->u8x_xdata)) : (VOID);
+    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
+    if (!(VOIDP(stacktrace))) {
       struct U8_XOUTPUT xout; u8_output out=(u8_output)&xout;
       u8_init_xoutput(&xout,2,NULL);
       FD_DOLIST(entry,stacktrace) {
         u8_puts(out,";; ");
-        if (FD_STRINGP(entry))
-          u8_puts(out,FD_STRDATA(entry));
+        if (STRINGP(entry))
+          u8_puts(out,CSTRING(entry));
         else {
           u8_puts(out," ");
           fd_pprint(out,entry,";; ",2,5,100);}
@@ -340,8 +340,8 @@ int do_main(int argc,char **argv,
 
 #if 0
     fdtype irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
-      ((fdtype) (e->u8x_xdata)) : (FD_VOID);
-    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (FD_VOID);
+      ((fdtype) (e->u8x_xdata)) : (VOID);
+    fdtype stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
     double elapsed      = u8_elapsed_time();
     int msecs           = floor(elapsed*1000);
     u8_string dumpfile  = u8_mkstring("_stack%d-%d.dtype",getpid(),msecs);
@@ -360,7 +360,7 @@ int do_main(int argc,char **argv,
      exist because working_lexenv may contain procedures which
      are closed in the working environment, so the working environment
      itself won't be GC'd because of those circular pointers. */
-  if (FD_HASHTABLEP(env->env_bindings))
+  if (HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   fd_recycle_lexenv(env);
   fd_decref(main_proc);
@@ -380,7 +380,7 @@ int main(int argc,char **argv)
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
-  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdexec",NULL,FD_VOID);
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdexec",NULL,VOID);
   u8_string appid=u8_appid();
   if (appid==NULL) appid=argv[0];
   _stack->stack_label=u8_strdup(appid);

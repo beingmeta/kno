@@ -59,7 +59,7 @@ FD_EXPORT fdtype fdt_isreadbuf(struct FD_OUTBUF *b)
          "Trying to write to an input buffer 0x%llx",
          (unsigned long long)b);
   u8_seterr(fd_IsReadBuf,"ReturningDType",NULL);
-  return FD_ERROR_VALUE;
+  return FD_ERROR;
 }
 
 FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b)
@@ -68,7 +68,7 @@ FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b)
          "Trying to read from an output buffer 0x%llx",
          (unsigned long long)b);
   u8_seterr(fd_IsWriteBuf,"ReturningDType",NULL);
-  return FD_ERROR_VALUE;
+  return FD_ERROR;
 }
 
 /* Closing (freeing) buffers */
@@ -178,7 +178,7 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta)
 
 FD_EXPORT int _fd_write_byte(struct FD_OUTBUF *b,unsigned char byte)
 {
-  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  if (PRED_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,1)) {
     *(b->bufwrite++) = byte; 
     return 1;}
@@ -187,7 +187,7 @@ FD_EXPORT int _fd_write_byte(struct FD_OUTBUF *b,unsigned char byte)
 
 FD_EXPORT int _fd_write_4bytes(struct FD_OUTBUF *b,fd_4bytes w)
 {
-  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  if (PRED_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,4) == 0)
     return -1;
   *(b->bufwrite++) = (((w>>24)&0xFF));
@@ -199,7 +199,7 @@ FD_EXPORT int _fd_write_4bytes(struct FD_OUTBUF *b,fd_4bytes w)
 
 FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *b,fd_8bytes w)
 {
-  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  if (PRED_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,8) == 0)
     return -1;
   *(b->bufwrite++) = ((w>>56)&0xFF);
@@ -216,7 +216,7 @@ FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *b,fd_8bytes w)
 FD_EXPORT int _fd_write_bytes
    (struct FD_OUTBUF *b,const unsigned char *data,int size)
 {
-  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  if (PRED_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,size) == 0) return -1;
   memcpy(b->bufwrite,data,size); b->bufwrite = b->bufwrite+size;
   return size;
@@ -224,8 +224,8 @@ FD_EXPORT int _fd_write_bytes
 
 /* Byte input */
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
 FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 {
@@ -248,14 +248,14 @@ FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 
 FD_EXPORT int _fd_read_byte(struct FD_INBUF *buf)
 {
-  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_request_bytes(buf,1)) return (*(buf->bufread++));
   else return -1;
 }
 
 FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
 {
-  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (buf->bufread == buf->buffer) {
     fd_seterr2(BadUnReadByte,"_fd_unread_byte");
     return -1;}
@@ -267,7 +267,7 @@ FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
 
 FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
 {
-  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_request_bytes(buf,4)) {
     fd_4bytes value = fd_get_4bytes(buf->bufread);
     buf->bufread = buf->bufread+4;
@@ -279,7 +279,7 @@ FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
 
 FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf)
 {
-  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_request_bytes(buf,8)) {
     fd_8bytes value = fd_get_8bytes(buf->bufread);
     buf->bufread = buf->bufread+8;
@@ -292,7 +292,7 @@ FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf)
 FD_EXPORT int
   _fd_read_bytes(unsigned char *bytes,struct FD_INBUF *buf,int len)
 {
-  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_request_bytes(buf,len)) {
     memcpy(bytes,buf->bufread,len);
     buf->bufread = buf->bufread+len;
@@ -302,7 +302,7 @@ FD_EXPORT int
 
 FD_EXPORT int _fd_read_zint(struct FD_INBUF *buf)
 {
-  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  if (PRED_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else return fd_read_zint(buf);
 }
 

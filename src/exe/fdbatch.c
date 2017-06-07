@@ -28,56 +28,56 @@
 static u8_string get_pidfile()
 {
   fdtype as_configured = fd_config_get("PIDFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".pid");
 }
 
 static u8_string get_cmdfile()
 {
   fdtype as_configured = fd_config_get("CMDFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".cmd");
 }
 
 static u8_string get_logfile()
 {
   fdtype as_configured = fd_config_get("LOGFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".log");
 }
 
 static u8_string get_errfile()
 {
   fdtype as_configured = fd_config_get("ERRFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".err");
 }
 
 static u8_string get_donefile()
 {
   fdtype as_configured = fd_config_get("DONEFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".done");
 }
 
 static u8_string get_diedfile()
 {
   fdtype as_configured = fd_config_get("DIEDFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".died");
 }
 
 static u8_string get_stopfile()
 {
   fdtype as_configured = fd_config_get("STOPFILE");
-  if (FD_STRINGP(as_configured))
-    return u8_strdup(FD_STRDATA(as_configured));
+  if (STRINGP(as_configured))
+    return u8_strdup(CSTRING(as_configured));
   else return fd_runbase_filename(".stop");
 }
 
@@ -195,7 +195,7 @@ int main(int argc,char **argv)
 
   args = handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
-  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdbatch",NULL,FD_VOID);
+  FD_NEW_STACK(((struct FD_STACK *)NULL),"fdbatch",NULL,VOID);
   _stack->stack_label=u8_strdup(u8_appid());
   _stack->stack_free_label=1;
 

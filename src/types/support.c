@@ -105,7 +105,7 @@ static fdtype config_get_module_loc(fdtype var,void *which_arg)
   case UNPACKAGE_DIR:
     return fdtype_string(FD_UNPACKAGE_DIR);
   default:
-    return fd_err("Bad call","config_get_module_loc",NULL,FD_VOID);}
+    return fd_err("Bad call","config_get_module_loc",NULL,VOID);}
 }
 
 /* Initialization */

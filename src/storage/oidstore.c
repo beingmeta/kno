@@ -96,7 +96,7 @@ FD_FASTOP fd_adjunct get_adjunct(fd_pool p,fdtype slotid)
     struct FD_ADJUNCT *limit = scan+p->pool_n_adjuncts;
     while (scan<limit)
       if (scan->slotid == slotid) {
-        if (FD_FALSEP(scan->table))
+        if (FALSEP(scan->table))
           return NULL;
         else return scan;}
       else scan++;
@@ -126,7 +126,7 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
 {
   fd_adjunct adj = get_adjunct(p,slotid);
   if (!(adj)) {
-    FD_ADD_TO_CHOICE(fd_adjunct_slotids,slotid);
+    CHOICE_ADD(fd_adjunct_slotids,slotid);
     fd_adjunct_slotids = fd_simplify_choice(fd_adjunct_slotids);}
   if (adj) {
     fd_incref(adjtable); fd_decref(adj->table);
@@ -160,10 +160,10 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
 FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
 {
   int n_adjuncts=0;
-  FD_DO_CHOICES(spec,adjuncts) {
+  DO_CHOICES(spec,adjuncts) {
     if (FD_INDEXP(spec)) {
-      fdtype slotid=fd_get(spec,padjslotid,FD_VOID);
-      if ((FD_SYMBOLP(slotid))||(FD_OIDP(slotid))) {
+      fdtype slotid=fd_get(spec,padjslotid,VOID);
+      if ((SYMBOLP(slotid))||(OIDP(slotid))) {
         fd_set_adjunct(p,slotid,spec);
         n_adjuncts++;}
       else {
@@ -184,19 +184,19 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
         return -1;}}
     else {
       fdtype slotids=fd_getkeys(spec);
-      FD_DO_CHOICES(slotid,slotids) {
-        fdtype adjunct=fd_get(spec,slotid,FD_VOID);
+      DO_CHOICES(slotid,slotids) {
+        fdtype adjunct=fd_get(spec,slotid,VOID);
         if (n_adjuncts<0) {
           fd_decref(adjunct);
           continue;}
-        else if (FD_VOIDP(adjunct)) {}
-        else if (FD_STRINGP(adjunct)) {
-          fd_index ix=fd_get_index(FD_STRDATA(adjunct),-1,FD_FALSE);
+        else if (VOIDP(adjunct)) {}
+        else if (STRINGP(adjunct)) {
+          fd_index ix=fd_get_index(CSTRING(adjunct),-1,FD_FALSE);
           if (ix) {
             fd_decref(adjunct);
             adjunct=fd_index2lisp(ix);}
           else {
-            fd_pool p=fd_get_pool(FD_STRDATA(adjunct),
+            fd_pool p=fd_get_pool(CSTRING(adjunct),
                                   FD_STORAGE_ISPOOL|
                                   FD_POOL_ADJUNCT|
                                   FD_POOL_SPARSE,
@@ -213,7 +213,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
               n_adjuncts=-1;}}}
         else if (FD_POOLP(adjunct)) {}
         else if (FD_INDEXP(adjunct)) {}
-        else if (FD_TABLEP(adjunct)) {}
+        else if (TABLEP(adjunct)) {}
         else {
           fd_seterr(fd_BadAdjunct,"fd_set_adjunct",
                     u8_strdup(p->poolid),
@@ -265,13 +265,13 @@ static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
 {
   fdtype store = adj->table;
   return
-    ((FD_HASHTABLEP(store)) ?
-     (fd_hashtable_get((fd_hashtable)store,frame,FD_VOID)) :
+    ((HASHTABLEP(store)) ?
+     (fd_hashtable_get((fd_hashtable)store,frame,VOID)) :
      (FD_INDEXP(store)) ? (fd_index_get(l2x(store),frame)) :
      (FD_POOLP(store)) ? (fd_pool_get(l2p(store),frame)) :
      (FD_TYPEP(store,fd_consed_index_type)) ?
      (fd_index_get(((fd_index)store),frame)) :
-     (fd_get(store,frame,FD_VOID)));
+     (fd_get(store,frame,VOID)));
 }
 
 static int adjunct_add(fd_adjunct adj,fdtype frame,fdtype value)
@@ -305,7 +305,7 @@ static int adjunct_test(fd_adjunct adj,fdtype frame,fdtype value)
 FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL))
+  if (PRED_FALSE(p == NULL))
     if (fd_ignore_anonymous_oids) {
       fd_adjunct adj = get_adjunct(p,slotid);
       if (adj)
@@ -319,15 +319,15 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
     else {smap = fd_fetch_oid(p,f); free_smap = 1;}
     if (FD_ABORTP(smap))
       return smap;
-    else if (FD_SLOTMAPP(smap)) {
+    else if (SLOTMAPP(smap)) {
       fdtype value = fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
       if (free_smap) fd_decref(smap);
       return value;}
-    else if (FD_SCHEMAPP(smap)) {
+    else if (SCHEMAPP(smap)) {
       fdtype value = fd_schemap_get((fd_schemap)smap,slotid,dflt);
       if (free_smap) fd_decref(smap);
       return value;}
-    else if (FD_TABLEP(smap)) {
+    else if (TABLEP(smap)) {
       fdtype value = fd_get(smap,slotid,dflt);
       if (free_smap) fd_decref(smap);
       return value;}
@@ -339,7 +339,7 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
 FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL)) {
+  if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_add(adj,f,value);
@@ -351,9 +351,9 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     else smap = fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
-    else if (FD_SLOTMAPP(smap))
+    else if (SLOTMAPP(smap))
       retval = fd_slotmap_add(FD_XSLOTMAP(smap),slotid,value);
-    else if (FD_SCHEMAPP(smap))
+    else if (SCHEMAPP(smap))
       retval = fd_schemap_add(FD_XSCHEMAP(smap),slotid,value);
     else retval = fd_add(smap,slotid,value);
     fd_decref(smap);
@@ -363,7 +363,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
 FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL)) {
+  if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
       return adjunct_store(adj,f,value);
@@ -375,11 +375,11 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
     else smap = fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
-    else if (FD_SLOTMAPP(smap))
-      if (FD_EMPTY_CHOICEP(value))
+    else if (SLOTMAPP(smap))
+      if (EMPTYP(value))
         retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
       else retval = fd_slotmap_store(FD_XSLOTMAP(smap),slotid,value);
-    else if (FD_SCHEMAPP(smap))
+    else if (SCHEMAPP(smap))
       retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,value);
     else retval = fd_store(smap,slotid,value);
     fd_decref(smap);
@@ -389,23 +389,23 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
 FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL)) {
+  if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_store(adj,f,FD_EMPTY_CHOICE);
+      return adjunct_store(adj,f,EMPTY);
     else return anonymous_oiderr("fd_oid_delete",f);}
   else {
     fdtype smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_store(adj,f,FD_EMPTY_CHOICE);
+    if (adj) return adjunct_store(adj,f,EMPTY);
     else smap = fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
-    else if (FD_SLOTMAPP(smap))
+    else if (SLOTMAPP(smap))
       retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
-    else if (FD_SCHEMAPP(smap))
-      retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,FD_EMPTY_CHOICE);
-    else retval = fd_store(smap,slotid,FD_EMPTY_CHOICE);
+    else if (SCHEMAPP(smap))
+      retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,EMPTY);
+    else retval = fd_store(smap,slotid,EMPTY);
     fd_decref(smap);
     return retval;}
 }
@@ -413,10 +413,10 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
 FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL))  {
+  if (PRED_FALSE(p == NULL))  {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_drop(adj,f,FD_EMPTY_CHOICE);
+      return adjunct_drop(adj,f,EMPTY);
     else return anonymous_oiderr("fd_oid_drop",f);}
   else {
     fdtype smap; int retval;
@@ -425,9 +425,9 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
     else smap = fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
-    else if (FD_SLOTMAPP(smap))
+    else if (SLOTMAPP(smap))
       retval = fd_slotmap_drop(FD_XSLOTMAP(smap),slotid,value);
-    else if (FD_SCHEMAPP(smap))
+    else if (SCHEMAPP(smap))
       retval = fd_schemap_drop(FD_XSCHEMAP(smap),slotid,value);
     else retval = fd_drop(smap,slotid,value);
     fd_decref(smap);
@@ -437,16 +437,16 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
 FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL))  {
+  if (PRED_FALSE(p == NULL))  {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else return anonymous_oiderr("fd_oid_test",f);}
-  else if (FD_VOIDP(value)) {
+  else if (VOIDP(value)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else {
-      fdtype v = fd_oid_get(f,slotid,FD_VOID);
-      if (FD_VOIDP(v)) return 0;
+      fdtype v = fd_oid_get(f,slotid,VOID);
+      if (VOIDP(v)) return 0;
       else {fd_decref(v); return 1;}}}
   else {
     fdtype smap; int retval;
@@ -455,11 +455,11 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     else smap = fd_fetch_oid(p,f);
     if (FD_ABORTP(smap))
       retval = fd_interr(smap);
-    else if (FD_SLOTMAPP(smap))
+    else if (SLOTMAPP(smap))
       retval = fd_slotmap_test((fd_slotmap)smap,slotid,value);
-    else if (FD_SCHEMAPP(smap))
+    else if (SCHEMAPP(smap))
       retval = fd_schemap_test((fd_schemap)smap,slotid,value);
-    else if (FD_TABLEP(smap))
+    else if (TABLEP(smap))
       retval = fd_test(smap,slotid,value);
     else {
       fd_decref(smap);
@@ -471,53 +471,53 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
 FD_EXPORT fdtype fd_oid_keys(fdtype f)
 {
   fd_pool p = fd_oid2pool(f);
-  if (FD_EXPECT_FALSE(p == NULL))
+  if (PRED_FALSE(p == NULL))
     return fd_anonymous_oid("fd_oid_keys",f);
   else {
     fdtype smap = fd_fetch_oid(p,f);
     if (FD_ABORTP(smap)) return smap;
-    else if (FD_TABLEP(smap)) {
+    else if (TABLEP(smap)) {
       fdtype result = fd_getkeys(smap);
       fd_decref(smap);
       return result;}
-    else return FD_EMPTY_CHOICE;}
+    else return EMPTY;}
 }
 
 /* Table operations on choices */
 
 static fdtype choice_get(fdtype arg,fdtype slotid,fdtype dflt)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(each,arg) {
+  fdtype results = EMPTY;
+  DO_CHOICES(each,arg) {
     fdtype v;
-    if (FD_OIDP(each))
-      v = fd_oid_get(each,slotid,FD_EMPTY_CHOICE);
-    else v = fd_get(each,slotid,FD_EMPTY_CHOICE);
-    FD_ADD_TO_CHOICE(results,v);}
-  if (FD_EMPTY_CHOICEP(results))
+    if (OIDP(each))
+      v = fd_oid_get(each,slotid,EMPTY);
+    else v = fd_get(each,slotid,EMPTY);
+    CHOICE_ADD(results,v);}
+  if (EMPTYP(results))
     return fd_incref(dflt);
   else return fd_simplify_choice(results);
 }
 
 static int choice_add(fdtype arg,fdtype slotid,fdtype value)
 {
-  if (FD_EMPTY_CHOICEP(value)) return 0;
+  if (EMPTYP(value)) return 0;
   else {
-    FD_DO_CHOICES(each,arg)
+    DO_CHOICES(each,arg)
       if (fd_add(each,slotid,value)<0) return -1;
     return 1;}
 }
 
 static int choice_store(fdtype arg,fdtype slotid,fdtype value)
 {
-  FD_DO_CHOICES(each,arg)
+  DO_CHOICES(each,arg)
     if (fd_store(each,slotid,value)<0) return -1;
   return 1;
 }
 
 static int choice_drop(fdtype arg,fdtype slotid,fdtype value)
 {
-  FD_DO_CHOICES(each,arg)
+  DO_CHOICES(each,arg)
     if (fd_drop(each,slotid,value)<0) return -1;
   return 1;
 }
@@ -525,7 +525,7 @@ static int choice_drop(fdtype arg,fdtype slotid,fdtype value)
 static int choice_test(fdtype arg,fdtype slotid,fdtype value)
 {
   int result = 0;
-  FD_DO_CHOICES(each,arg) {
+  DO_CHOICES(each,arg) {
     if ((result = (fd_test(each,slotid,value))))
       return result;}
   return 0;
@@ -533,12 +533,12 @@ static int choice_test(fdtype arg,fdtype slotid,fdtype value)
 
 static fdtype choice_keys(fdtype arg)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(each,arg) {
+  fdtype results = EMPTY;
+  DO_CHOICES(each,arg) {
     fdtype keys = fd_getkeys(each);
     if (FD_ABORTP(keys)) {
       fd_decref(results); return keys;}
-    else {FD_ADD_TO_CHOICE(results,keys);}}
+    else {CHOICE_ADD(results,keys);}}
   return results;
 }
 
@@ -549,46 +549,46 @@ static fdtype choice_keys(fdtype arg)
 
 FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumulate)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  fdtype results = EMPTY;
   fdtype scan = start; int i = 0;
   if (n==0) return fd_incref(start);
   while (i<n) {
-    fdtype pred = path[i], newscan = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(s,scan) {
+    fdtype pred = path[i], newscan = EMPTY;
+    DO_CHOICES(s,scan) {
       fdtype newval;
-      if ((FD_OIDP(pred))||(FD_SYMBOLP(pred)))
+      if ((OIDP(pred))||(SYMBOLP(pred)))
         if (infer) newval = fd_frame_get(s,pred);
-        else newval = fd_get(scan,pred,FD_EMPTY_CHOICE);
-      else if (FD_TABLEP(pred))
-        newval = fd_get(pred,s,FD_EMPTY_CHOICE);
+        else newval = fd_get(scan,pred,EMPTY);
+      else if (TABLEP(pred))
+        newval = fd_get(pred,s,EMPTY);
       else if (FD_HASHSETP(pred))
         if (fd_hashset_get((fd_hashset)pred,s)) newval = s;
-        else newval = FD_EMPTY_CHOICE;
+        else newval = EMPTY;
       else if (FD_APPLICABLEP(pred))
         newval = fd_apply(pred,1,&s);
-      else if ((FD_PAIRP(pred))&&(FD_APPLICABLEP(FD_CAR(pred)))) {
+      else if ((PAIRP(pred))&&(FD_APPLICABLEP(FD_CAR(pred)))) {
         fdtype fcn = FD_CAR(pred);
         fdtype args = FD_CDR(pred), argv[7]; int j = 1;
         argv[0]=s;
-        if (FD_PAIRP(args))
-          while (FD_PAIRP(args)) {
+        if (PAIRP(args))
+          while (PAIRP(args)) {
             argv[j++]=FD_CAR(args); args = FD_CDR(args);}
         else argv[j++]=args;
         if (j>7)
           newval = fd_err(fd_RangeError,"fd_getpath",
-                        "too many elements in compound path",FD_VOID);
+                        "too many elements in compound path",VOID);
         else newval = fd_apply(j,fcn,argv);}
       else newval = fd_err(fd_TypeError,"fd_getpath",
-                         "invalid path element",FD_VOID);
+                         "invalid path element",VOID);
       if (FD_ABORTP(newval)) {
         fd_decref(scan); fd_decref(newscan);
         return newval;}
-      else {FD_ADD_TO_CHOICE(newscan,newval);}}
+      else {CHOICE_ADD(newscan,newval);}}
     if (i>0) {
-      if (accumulate) {FD_ADD_TO_CHOICE(results,scan);}
+      if (accumulate) {CHOICE_ADD(results,scan);}
       else {fd_decref(scan);}}
     scan = newscan; i++;}
-  if (accumulate) {FD_ADD_TO_CHOICE(results,scan);}
+  if (accumulate) {CHOICE_ADD(results,scan);}
   if (accumulate) return results;
   else return scan;
 }
@@ -599,7 +599,7 @@ FD_EXPORT void fd_init_oidobj_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_adjunct_slotids = FD_EMPTY_CHOICE;
+  fd_adjunct_slotids = EMPTY;
 
   padjslotid=fd_intern("%ADJUNCT_SLOTID");
 

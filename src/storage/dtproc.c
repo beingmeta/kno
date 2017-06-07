@@ -46,7 +46,7 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
     u8_free(f->fcn_name);
     u8_free(f->fcn_filename);
     u8_free(f);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else return FDTYPE_CONS(f);
 }
 
@@ -72,12 +72,12 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
   struct FD_STREAM stream;
   u8_connpool cpool = dtp->fd_connpool;
-  fdtype expr = FD_EMPTY_LIST, result; int i = n-1;
+  fdtype expr = NIL, result; int i = n-1;
   u8_socket conn = u8_get_connection(cpool);
-  if (conn<0) return FD_ERROR_VALUE;
+  if (conn<0) return FD_ERROR;
   fd_init_stream(&stream,NULL,conn,FD_STREAM_SOCKET,fd_network_bufsize);
   while (i>=0) {
-    if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i])))
+    if ((SYMBOLP(args[i])) || (PAIRP(args[i])))
       expr = fd_conspair(fd_make_list(2,quote_symbol,fd_incref(args[i])),
                        expr);
     else expr = fd_conspair(fd_incref(args[i]),expr);
@@ -89,7 +89,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
     fd_clear_errors(1);
     if ((conn = u8_reconnect(cpool,conn))<0) {
       if (conn>0) u8_discard_connection(cpool,conn);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
   result = fd_read_dtype(fd_readbuf(&stream));
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
@@ -97,7 +97,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
         (fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
         (fd_flush_stream(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else result = fd_read_dtype(fd_readbuf(&stream));
     if (FD_EQ(result,FD_EOD)) {
       if (conn>0) u8_discard_connection(cpool,conn);

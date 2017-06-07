@@ -25,21 +25,21 @@
 static fdtype reqgetvar(fdtype cgidata,fdtype var)
 {
   int noparse=
-    ((FD_SYMBOLP(var))&&((FD_SYMBOL_NAME(var))[0]=='%'));
-  fdtype name = ((noparse)?(fd_intern(FD_SYMBOL_NAME(var)+1)):(var));
-  fdtype val = ((FD_TABLEP(cgidata))?(fd_get(cgidata,name,FD_VOID)):
-              (fd_req_get(name,FD_VOID)));
-  if (FD_VOIDP(val)) return val;
-  else if ((noparse)&&(FD_STRINGP(val))) return val;
-  else if (FD_STRINGP(val)) {
-    u8_string data = FD_STRDATA(val);
+    ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
+  fdtype name = ((noparse)?(fd_intern(SYM_NAME(var)+1)):(var));
+  fdtype val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
+              (fd_req_get(name,VOID)));
+  if (VOIDP(val)) return val;
+  else if ((noparse)&&(STRINGP(val))) return val;
+  else if (STRINGP(val)) {
+    u8_string data = CSTRING(val);
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
       fdtype parsed = fd_parse_arg(data);
       fd_decref(val); return parsed;}
     else if (isdigit(data[0])) {
       fdtype parsed = fd_parse_arg(data);
-      if (FD_NUMBERP(parsed)) {
+      if (NUMBERP(parsed)) {
         fd_decref(val); return parsed;}
       else {
         fd_decref(parsed); return val;}}
@@ -58,20 +58,20 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
       fd_decref(val);
       return shorter;}
     else return val;}
-  else if ((FD_CHOICEP(val))||(FD_PRECHOICEP(val))) {
-    fdtype result = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(v,val) {
-      if (!(FD_STRINGP(v))) {
-        fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
+  else if ((CHOICEP(val))||(PRECHOICEP(val))) {
+    fdtype result = EMPTY;
+    DO_CHOICES(v,val) {
+      if (!(STRINGP(v))) {
+        fd_incref(v); CHOICE_ADD(result,v);}
       else {
-        u8_string data = FD_STRDATA(v); fdtype parsed = v;
+        u8_string data = CSTRING(v); fdtype parsed = v;
         if (*data=='\\') parsed = fdtype_string(data+1);
         else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
         else if (*data==':')
           parsed = fd_parse(data+1);
         else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
           parsed = fd_parse_arg(data);
-          if (!(FD_NUMBERP(parsed))) {
+          if (!(NUMBERP(parsed))) {
             fd_decref(parsed); parsed = v; fd_incref(parsed);}}
         else if (strchr("@{#(",data[0]))
           parsed = fd_parse_arg(data);
@@ -80,7 +80,7 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
           u8_log(LOG_WARN,fd_ParseArgError,"Bad LISP arg '%s'",data);
           fd_clear_errors(1);
           parsed = v; fd_incref(v);}
-        FD_ADD_TO_CHOICE(result,parsed);}}
+        CHOICE_ADD(result,parsed);}}
     fd_decref(val);
     return result;}
   else return val;
@@ -90,10 +90,10 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
 
 static fdtype reqcall_prim(fdtype proc)
 {
-  fdtype value = FD_VOID;
+  fdtype value = VOID;
   if (FD_SPROCP(proc))
     value=
-      fd_xapply_sproc((fd_sproc)proc,(void *)FD_VOID,
+      fd_xapply_sproc((fd_sproc)proc,(void *)VOID,
                       (fdtype (*)(void *,fdtype))reqgetvar);
   else if (FD_APPLICABLEP(proc))
     value = fd_apply(proc,0,NULL);
@@ -103,15 +103,15 @@ static fdtype reqcall_prim(fdtype proc)
 
 static fdtype reqget_prim(fdtype vars,fdtype dflt)
 {
-  fdtype results = FD_EMPTY_CHOICE; int found = 0;
-  FD_DO_CHOICES(var,vars) {
-    fdtype name = ((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-    fdtype val = fd_req_get(name,FD_VOID);
-    if (!(FD_VOIDP(val))) {
-      found = 1; FD_ADD_TO_CHOICE(results,val);}}
+  fdtype results = EMPTY; int found = 0;
+  DO_CHOICES(var,vars) {
+    fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+    fdtype val = fd_req_get(name,VOID);
+    if (!(VOIDP(val))) {
+      found = 1; CHOICE_ADD(results,val);}}
   if (found) return fd_simplify_choice(results);
-  else if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
-  else if (FD_QCHOICEP(dflt)) {
+  else if (VOIDP(dflt)) return EMPTY;
+  else if (QCHOICEP(dflt)) {
     struct FD_QCHOICE *qc = FD_XQCHOICE(dflt);
     return fd_make_simple_choice(qc->qchoiceval);}
   else return fd_incref(dflt);
@@ -119,32 +119,32 @@ static fdtype reqget_prim(fdtype vars,fdtype dflt)
 
 static fdtype reqval_prim(fdtype vars,fdtype dflt)
 {
-  fdtype results = FD_EMPTY_CHOICE; int found = 0;
-  FD_DO_CHOICES(var,vars) {
+  fdtype results = EMPTY; int found = 0;
+  DO_CHOICES(var,vars) {
     fdtype val;
-    if (FD_STRINGP(var)) var = fd_intern(FD_STRDATA(var));
-    val = fd_req_get(var,FD_VOID);
-    if (FD_VOIDP(val)) {}
-    else if (FD_STRINGP(val)) {
-      fdtype parsed = fd_parse_arg(FD_STRDATA(val));
+    if (STRINGP(var)) var = fd_intern(CSTRING(var));
+    val = fd_req_get(var,VOID);
+    if (VOIDP(val)) {}
+    else if (STRINGP(val)) {
+      fdtype parsed = fd_parse_arg(CSTRING(val));
       fd_decref(val);
-      FD_ADD_TO_CHOICE(results,parsed);
+      CHOICE_ADD(results,parsed);
       found = 1;}
-    else if (FD_CHOICEP(val)) {
-      FD_DO_CHOICES(v,val) {
-        if (FD_STRINGP(v)) {
-          fdtype parsed = fd_parse_arg(FD_STRDATA(v));
-          FD_ADD_TO_CHOICE(results,parsed);}
+    else if (CHOICEP(val)) {
+      DO_CHOICES(v,val) {
+        if (STRINGP(v)) {
+          fdtype parsed = fd_parse_arg(CSTRING(v));
+          CHOICE_ADD(results,parsed);}
         else {
-          fd_incref(v); FD_ADD_TO_CHOICE(results,v);}}
+          fd_incref(v); CHOICE_ADD(results,v);}}
       fd_decref(val);
       found = 1;}
     else {
-      FD_ADD_TO_CHOICE(results,val);
+      CHOICE_ADD(results,val);
       found = 1;}}
   if (found) return results;
-  else if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
-  else if (FD_QCHOICEP(dflt)) {
+  else if (VOIDP(dflt)) return EMPTY;
+  else if (QCHOICEP(dflt)) {
     struct FD_QCHOICE *qc = FD_XQCHOICE(dflt);
     return fd_make_simple_choice(qc->qchoiceval);}
   else return fd_incref(dflt);
@@ -153,20 +153,20 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
 static fdtype hashcolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcolon_evalfn",NULL,expr);
-  else return reqget_prim(var,FD_EMPTY_CHOICE);
+  else return reqget_prim(var,EMPTY);
 }
 
 static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
-    fdtype val = reqget_prim(var,FD_EMPTY_CHOICE);
-    if (FD_STRINGP(val)) {
-      fdtype result = fd_parse_arg(FD_STRDATA(val));
+    fdtype val = reqget_prim(var,EMPTY);
+    if (STRINGP(val)) {
+      fdtype result = fd_parse_arg(CSTRING(val));
       fd_decref(val);
       return result;}
     else return val;}
@@ -175,15 +175,15 @@ static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype hashcolondollar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
-    fdtype val = reqget_prim(var,FD_VOID);
-    if (FD_STRINGP(val)) {
-      fdtype result = fd_parse_arg(FD_STRDATA(val));
+    fdtype val = reqget_prim(var,VOID);
+    if (STRINGP(val)) {
+      fdtype result = fd_parse_arg(CSTRING(val));
       fd_decref(val);
       return result;}
-    else if (FD_VOIDP(val))
+    else if (VOIDP(val))
       return fd_make_string(NULL,0,"");
     else {
       fdtype result; struct U8_OUTPUT out;
@@ -196,21 +196,21 @@ static fdtype hashcolondollar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 static fdtype hashcolonquestion_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
   fdtype var = fd_get_arg(expr,1);
-  if (FD_VOIDP(var))
+  if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
-  else if (fd_req_test(var,FD_VOID))
+  else if (fd_req_test(var,VOID))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype reqtest_prim(fdtype vars,fdtype val)
 {
-  FD_DO_CHOICES(var,vars) {
-    fdtype name = ((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+  DO_CHOICES(var,vars) {
+    fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
     int retval = fd_req_test(name,val);
     if (retval<0) {
       FD_STOP_DO_CHOICES;
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else if (retval) {
       FD_STOP_DO_CHOICES;
       return FD_TRUE;}
@@ -220,35 +220,35 @@ static fdtype reqtest_prim(fdtype vars,fdtype val)
 
 static fdtype reqset_prim(fdtype vars,fdtype value)
 {
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name = ((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+  {DO_CHOICES(var,vars) {
+      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       fd_req_store(name,value);}}
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype reqadd_prim(fdtype vars,fdtype value)
 {
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name = ((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+  {DO_CHOICES(var,vars) {
+      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       fd_req_add(name,value);}}
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype reqdrop_prim(fdtype vars,fdtype value)
 {
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name = ((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+  {DO_CHOICES(var,vars) {
+      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       fd_req_drop(name,value);}}
-  return FD_VOID;
+  return VOID;
 }
 
 static fdtype reqpush_prim(fdtype vars,fdtype values)
 {
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name = ((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-      FD_DO_CHOICES(value,values) {
+  {DO_CHOICES(var,vars) {
+      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+      DO_CHOICES(value,values) {
         fd_req_push(name,value);}}}
-  return FD_VOID;
+  return VOID;
 }
 
 fdtype reqdata_prim()
@@ -258,16 +258,16 @@ fdtype reqdata_prim()
 
 static fdtype withreq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1), result = FD_VOID;
+  fdtype body = fd_get_body(expr,1), result = VOID;
   fd_use_reqinfo(FD_TRUE); fd_reqlog(1);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) {
-        fd_use_reqinfo(FD_EMPTY_CHOICE);
+        fd_use_reqinfo(EMPTY);
         fd_reqlog(-1);
         return result;}
       fd_decref(result);
       result = fd_eval(ex,env);}}
-  fd_use_reqinfo(FD_EMPTY_CHOICE);
+  fd_use_reqinfo(EMPTY);
   fd_reqlog(-1);
   return result;
 }
@@ -305,14 +305,14 @@ FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   long long body_off = 1, level = -1;
   fdtype arg1 = fd_get_arg(expr,1), arg2 = fd_get_arg(expr,2);
   fdtype arg3 = fd_get_arg(expr,3), body, outval;
-  if (FD_FIXNUMP(arg1)) {
-    level = FD_FIX2INT(arg1); body_off++;
-    arg1 = arg2; arg2 = arg3; arg3 = FD_VOID;}
-  if (FD_SYMBOLP(arg1)) {
-    cond = FD_SYMBOL_NAME(arg1); body_off++;
-    arg1 = arg2; arg2 = arg3; arg3 = FD_VOID;}
-  if (FD_SYMBOLP(arg1)) {
-    cxt = FD_SYMBOL_NAME(arg2); body_off++;}
+  if (FIXNUMP(arg1)) {
+    level = FIX2INT(arg1); body_off++;
+    arg1 = arg2; arg2 = arg3; arg3 = VOID;}
+  if (SYMBOLP(arg1)) {
+    cond = SYM_NAME(arg1); body_off++;
+    arg1 = arg2; arg2 = arg3; arg3 = VOID;}
+  if (SYMBOLP(arg1)) {
+    cxt = SYM_NAME(arg2); body_off++;}
   u8_local_xtime(&xt,-1,u8_nanosecond,0);
   if (level>=0)
     u8_printf(reqout,"<logentry level='%d' scope='request'>",level);
@@ -330,7 +330,7 @@ FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   fd_decref(body);
   if (FD_ABORTP(outval)) {
     return outval;}
-  else return FD_VOID;
+  else return VOID;
 }
 
 FD_EXPORT void fd_init_reqstate_c()

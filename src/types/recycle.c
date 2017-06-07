@@ -62,7 +62,7 @@ static void recycle_list(struct FD_PAIR *pair)
 {
   fdtype car = pair->car, cdr = pair->cdr;
   u8_free(pair); fd_decref(car);
-  if (!(FD_PAIRP(cdr))) {
+  if (!(PAIRP(cdr))) {
     fd_decref(cdr);
     return;}
   else pair = (fd_pair)cdr;
@@ -75,7 +75,7 @@ static void recycle_list(struct FD_PAIR *pair)
     fd_consbits newbits = atomic_fetch_sub(&(cons->conshead),0x80)-0x80;
     if (newbits<0x80) {
       fd_decref(car);
-      if (FD_PAIRP(cdr)) {
+      if (PAIRP(cdr)) {
         atomic_store(&(cons->conshead),(newbits|0xFFFFFF80));
         u8_free(pair);
         pair = (fd_pair)cdr;}
@@ -86,15 +86,15 @@ static void recycle_list(struct FD_PAIR *pair)
         return;}}
     else return;}
 #else
-  if (FD_CONSP(cdr)) {
-    if (FD_PAIRP(cdr)) {
+  if (CONSP(cdr)) {
+    if (PAIRP(cdr)) {
       struct FD_PAIR *xcdr = (struct FD_PAIR *)cdr;
       FD_LOCK_PTR(xcdr);
       while (FD_CONS_REFCOUNT(xcdr)==1) {
         car = xcdr->car; cdr = xcdr->cdr;
         FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
         fd_decref(car);
-        if (FD_PAIRP(cdr)) {
+        if (PAIRP(cdr)) {
           xcdr = (fd_pair)cdr;
           FD_LOCK_PTR(xcdr);
           continue;}
