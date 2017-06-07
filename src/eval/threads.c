@@ -93,7 +93,7 @@ FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
 static lispval make_condvar()
 {
   int rv = 0;
-  struct FD_CONSED_CONDVAR *cv = u8_alloc(struct FD_CONSED_CONDVAR);
+  struct FD_CONDVAR *cv = u8_alloc(struct FD_CONDVAR);
   FD_INIT_FRESH_CONS(cv,fd_condvar_type);
   rv = u8_init_mutex(&(cv->fd_cvlock));
   if (rv) {
@@ -112,8 +112,8 @@ static lispval make_condvar()
 static lispval condvar_wait(lispval cvar,lispval timeout)
 {
   int rv = 0;
-  struct FD_CONSED_CONDVAR *cv=
-    fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
+  struct FD_CONDVAR *cv=
+    fd_consptr(struct FD_CONDVAR *,cvar,fd_condvar_type);
   if (VOIDP(timeout))
     if ((rv = u8_condvar_wait(&(cv->fd_cvar),&(cv->fd_cvlock)))==0)
       return FD_TRUE;
@@ -148,8 +148,8 @@ static lispval condvar_wait(lispval cvar,lispval timeout)
    a broadcast. */
 static lispval condvar_signal(lispval cvar,lispval broadcast)
 {
-  struct FD_CONSED_CONDVAR *cv=
-    fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
+  struct FD_CONDVAR *cv=
+    fd_consptr(struct FD_CONDVAR *,cvar,fd_condvar_type);
   if (FD_TRUEP(broadcast))
     if (u8_condvar_broadcast(&(cv->fd_cvar))==0)
       return FD_TRUE;
@@ -161,32 +161,32 @@ static lispval condvar_signal(lispval cvar,lispval broadcast)
 
 static lispval condvar_lock(lispval cvar)
 {
-  struct FD_CONSED_CONDVAR *cv=
-    fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
+  struct FD_CONDVAR *cv=
+    fd_consptr(struct FD_CONDVAR *,cvar,fd_condvar_type);
   u8_lock_mutex(&(cv->fd_cvlock));
   return FD_TRUE;
 }
 
 static lispval condvar_unlock(lispval cvar)
 {
-  struct FD_CONSED_CONDVAR *cv=
-    fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
+  struct FD_CONDVAR *cv=
+    fd_consptr(struct FD_CONDVAR *,cvar,fd_condvar_type);
   u8_unlock_mutex(&(cv->fd_cvlock));
   return FD_TRUE;
 }
 
 static int unparse_condvar(u8_output out,lispval cvar)
 {
-  struct FD_CONSED_CONDVAR *cv=
-    fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
+  struct FD_CONDVAR *cv=
+    fd_consptr(struct FD_CONDVAR *,cvar,fd_condvar_type);
   u8_printf(out,"#<CONDVAR %lx>",cv);
   return 1;
 }
 
 FD_EXPORT void recycle_condvar(struct FD_RAW_CONS *c)
 {
-  struct FD_CONSED_CONDVAR *cv=
-    (struct FD_CONSED_CONDVAR *)c;
+  struct FD_CONDVAR *cv=
+    (struct FD_CONDVAR *)c;
   u8_destroy_mutex(&(cv->fd_cvlock));  u8_destroy_condvar(&(cv->fd_cvar));
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
@@ -197,8 +197,8 @@ FD_EXPORT void recycle_condvar(struct FD_RAW_CONS *c)
 static lispval synchro_lock(lispval lck)
 {
   if (FD_TYPEP(lck,fd_condvar_type)) {
-    struct FD_CONSED_CONDVAR *cv=
-      fd_consptr(struct FD_CONSED_CONDVAR *,lck,fd_condvar_type);
+    struct FD_CONDVAR *cv=
+      fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_lock_mutex(&(cv->fd_cvlock));
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
@@ -213,8 +213,8 @@ static lispval synchro_lock(lispval lck)
 static lispval synchro_unlock(lispval lck)
 {
   if (FD_TYPEP(lck,fd_condvar_type)) {
-    struct FD_CONSED_CONDVAR *cv=
-      fd_consptr(struct FD_CONSED_CONDVAR *,lck,fd_condvar_type);
+    struct FD_CONDVAR *cv=
+      fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_unlock_mutex(&(cv->fd_cvlock));
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
@@ -233,8 +233,8 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
   if (FD_TYPEP(lck,fd_condvar_type)) {
-    struct FD_CONSED_CONDVAR *cv=
-      fd_consptr(struct FD_CONSED_CONDVAR *,lck,fd_condvar_type);
+    struct FD_CONDVAR *cv=
+      fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_lock_mutex(&(cv->fd_cvlock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp = fd_consptr(fd_sproc,lck,fd_sproc_type);
@@ -244,15 +244,16 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else return fd_type_error("lockable","synchro_unlock",lck);
   {U8_WITH_CONTOUR("WITH-LOCK",0) {
       FD_DOLIST(elt_expr,FD_CDR(FD_CDR(expr))) {
-        fd_decref(value); value = fd_eval(elt_expr,env);}}
+        fd_decref(value);
+        value = fd_eval(elt_expr,env);}}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       fd_decref(value);
       value = FD_ERROR;}
     U8_END_EXCEPTION;}
   if (FD_TYPEP(lck,fd_condvar_type)) {
-    struct FD_CONSED_CONDVAR *cv=
-      fd_consptr(struct FD_CONSED_CONDVAR *,lck,fd_condvar_type);
+    struct FD_CONDVAR *cv=
+      fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_unlock_mutex(&(cv->fd_cvlock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp = fd_consptr(fd_sproc,lck,fd_sproc_type);
