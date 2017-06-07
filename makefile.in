@@ -57,7 +57,7 @@ APTREPO		= @APTREPO@
 FDVERSION	= @FDVERSION@
 REVISION	:= $(shell git describe)
 LIBSCM	 	= @LIBSCM@
-DTYPE_HEADERS=\
+LISP_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
@@ -111,22 +111,24 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/netpool.h		\
 	src/cmodules/fdsqlite.h			\
 
-DTYPE_OBJS=\
+LISP_OBJS=\
 	src/lisp/oids.o src/lisp/fcnids.o 			\
 	src/lisp/symbols.o src/lisp/cons.o 			\
 	src/lisp/recycle.o src/lisp/copy.o 			\
-	src/lisp/misctypes.o src/lisp/numbers.o		\
 	src/lisp/compare.o src/lisp/walk.o			\
-	src/lisp/buildinfo.o					\
-	src/lisp/tables.o 					\
-	src/lisp/sequences.o src/lisp/choices.o 		\
+	src/lisp/tables.o src/lisp/sequences.o			\
+	src/lisp/choices.o src/lisp/numbers.o 			\
+	src/lisp/misctypes.o 					\
 	src/lisp/parse.o src/lisp/unparse.o			\
 	src/lisp/bufio.o src/lisp/pprint.o			\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
-	src/lisp/libfdtype.o src/lisp/support.o		\
-	src/lisp/config.o src/lisp/err.o 			\
-	src/lisp/logging.o src/lisp/getopt.o 			\
-	src/lisp/startup.o src/lisp/fluid.o
+	src/lisp/libfdtype.o
+
+SUPPORT_OBJS=						\
+	src/support/buildinfo.o src/support/support.o	\
+	src/support/config.o src/support/err.o		\
+	src/support/logging.o src/support/getopt.o	\
+	src/support/startup.o src/support/fluid.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -137,7 +139,8 @@ REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
+STORAGE_OBJS=\
+	src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
 	src/storage/pools.o src/storage/indexes.o src/storage/compoundindexes.o	\
 	src/storage/dtproc.o src/storage/dtcall.o src/storage/bloom.o		\
 	src/storage/methods.o src/storage/oidstore.o 				\
@@ -169,7 +172,8 @@ CORE_SCHEME_OBJS=\
 	src/eval/conditionals.o\
 	src/eval/iterators.o
 
-SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
+SCHEME_OBJS=\
+	$(CORE_SCHEME_OBJS) \
 	src/eval/modules.o \
 	src/eval/load.o \
 	src/eval/history.o \
@@ -197,7 +201,7 @@ SCHEMEIO_OBJS=\
 	src/prims/driverprims.o\
 	src/eval/loader.o
 
-FDWEB_OBJS=\
+WEB_OBJS=\
 	src/web/fdweb.o \
 	src/web/xmloutput.o \
 	src/web/htmlout.o \
@@ -210,7 +214,8 @@ FDWEB_OBJS=\
 	src/web/cgiexec.o \
 	src/web/json.o \
 	@ldnso@ @curlo@
-TEXTTOOLS_OBJS=\
+
+TEXT_OBJS=\
 	src/text/texttools.o \
 	src/text/match.o \
 	src/text/porter.o \
@@ -343,7 +348,7 @@ CLEANDIRS=include/framerd src/drivers/headers 		\
 	etc
 
 FRAMERD_HEADERS= \
-	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
+	$(LISP_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
 	$(APPLY_HEADERS) $(DRIVERS_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
@@ -353,10 +358,11 @@ FRAMERD_SOURCES=\
 	src/lisp/choices.c src/lisp/sequences.c				\
 	src/lisp/tables.c \
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
-	src/lisp/parse.c src/lisp/unparse.c src/lisp/buildinfo.c \
-	src/lisp/libfdtype.c src/lisp/support.c src/lisp/config.c	\
-	src/lisp/err.c src/lisp/logging.c src/lisp/getopt.c		\
-	src/lisp/startup.c src/lisp/fluid.c				\
+	src/lisp/parse.c src/lisp/unparse.c src/lisp/libfdtype.c \
+	src/support/buildinfo.c \
+	src/support/support.c src/support/config.c	\
+	src/support/err.c src/support/logging.c src/support/getopt.c		\
+	src/support/startup.c src/support/fluid.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
 	src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
@@ -859,7 +865,7 @@ pull:
 # Custom dependencies
 
 src/eval/eval.o src/eval/opcodes.c: src/eval/eval_internals.h \
-	$(DTYPE_HEADERS) $(APPLY_HEADERS) \
+	$(LISP_HEADERS) $(APPLY_HEADERS) \
 	$(STORAGE_HEADERS) $(SCHEME_HEADERS)
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
@@ -879,13 +885,13 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
-lib/libfdtype@suffix@.a: $(DTYPE_OBJS) $(APPLY_OBJS)
-lib/libfdtype@suffix@.so: $(DTYPE_OBJS) $(APPLY_OBJS)
-lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS) $(APPLY_OBJS)
+lib/libfdtype@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdtype@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdtype@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
 
-lib/libfdstorage@suffix@.a: $(DB_OBJS)
-lib/libfdstorage@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
-lib/libfdstorage@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
+lib/libfdstorage@suffix@.a: $(STORAGE_OBJS)
+lib/libfdstorage@suffix@.so: $(STORAGE_OBJS) lib/libfdtype@suffix@.so
+lib/libfdstorage@suffix@.dylib: $(STORAGE_OBJS) lib/libfdtype@suffix@.dylib
 
 lib/libfddrivers@suffix@.a: $(DRIVER_OBJS)
 lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
@@ -923,14 +929,14 @@ lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
 	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
         lib/libfddrivers@suffix@.dylib
 
-lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
-lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
+lib/libfdweb@suffix@.a: $(WEB_OBJS)
+lib/libfdweb@suffix@.so: $(WEB_OBJS) \
 	lib/libfdtype@suffix@.so \
 	lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so \
 	lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
-lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
+lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
 	lib/libfddrivers@suffix@.dylib     \
 	lib/libfdstorage@suffix@.dylib         \
@@ -938,15 +944,15 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
-		-o $@ $(FDWEB_OBJS)
+		-o $@ $(WEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
-lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.a: $(TEXT_OBJS)
+lib/libtexttools@suffix@.so: $(TEXT_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
-lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfddrivers@suffix@.dylib \
 	lib/libfdstorage@suffix@.dylib \
@@ -954,7 +960,7 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
-		-o $@ $(TEXTTOOLS_OBJS)
+		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
 src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
@@ -1312,7 +1318,7 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(DTYPE_HEADERS) $(APPLY_HEADERS) 	\
+		   $(LISP_HEADERS) $(APPLY_HEADERS) 	\
 		   $(STORAGE_HEADERS) $(DRIVERS_H)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
@@ -1676,19 +1682,21 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
-$(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
-$(APPLY_OBJS): $(DTYPE_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
-$(DB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
-$(DRIVER_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
+$(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)
+$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
+$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
+$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+$(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+$(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
+$(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS):  buildmode
+$(STORAGE_OBJS) $(DRIVER_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
-$(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
+$(WEB_OBJS) $(TEXT_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies
