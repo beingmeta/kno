@@ -245,7 +245,7 @@ fdtype fd_init_choice
   if (FD_EXPECT_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
     if (ch) u8_free(ch);
     return FD_EMPTY_CHOICE;}
-  else if (n==1) {
+  else if ( (n==1) &&  (flags&FD_CHOICE_REALLOC) ) {
     fdtype elt = (data!=NULL)?(data[0]):
       (ch!=NULL)?((FD_XCHOICE_DATA(ch))[0]):
       (FD_NULL);
@@ -464,8 +464,9 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
          of choices.  You create a tmp_choice of all the non choices
          and merge this with all the choice elements.*/
       struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
-      const fdtype *scan = ch->prechoice_data, *lim = ch->prechoice_write; fdtype result;
-      fdtype *write;
+      const fdtype *scan = ch->prechoice_data;
+      const fdtype *lim = ch->prechoice_write;
+      fdtype result, *write;
       int n_entries = ch->prechoice_write-ch->prechoice_data;
       int n_vals = n_entries-ch->prechoice_nested;
       int i = 0, n_choices;
