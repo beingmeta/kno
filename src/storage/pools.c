@@ -735,9 +735,10 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
   if (p->pool_handler->lock == NULL)
     return 0;
   if (FD_PRECHOICEP(oids)) {
-    oids = fd_make_simple_choice(oids); decref_oids = 1;}
+    oids = fd_make_simple_choice(oids);
+    decref_oids = 1;}
   if (FD_CHOICEP(oids)) {
-    fdtype needy; int retval, n;
+    fdtype needy; int retval, n; fdtype temp_oidv[1];
     struct FD_CHOICE *oidc = fd_alloc_choice(FD_CHOICE_SIZE(oids));
     fdtype *oidv = (fdtype *)FD_XCHOICE_DATA(oidc), *write = oidv;
     FD_DO_CHOICES(o,oids)
@@ -752,7 +753,11 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
       fd_seterr(fd_CantLockOID,"fd_pool_lock",
                 u8_strdup(p->poolid),oids);
       return -1;}
-    needy = fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
+    if (n==1) {
+      needy=temp_oidv[0]=oidv[0];
+      u8_free(oidc);
+      oidv=temp_oidv;}
+    else needy = fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval = p->pool_handler->lock(p,needy);
     if (retval<0) {
       fd_decref(needy);
