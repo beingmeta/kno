@@ -20,7 +20,7 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
-fdtype lock_symbol, unlock_symbol;
+lispval lock_symbol, unlock_symbol;
 
 /* Fetch pools */
 
@@ -31,9 +31,9 @@ fdtype lock_symbol, unlock_symbol;
 FD_EXPORT
 fd_pool fd_make_extpool(u8_string label,
                         FD_OID base,int cap,
-                        fdtype fetchfn,fdtype savefn,
-                        fdtype lockfn,fdtype allocfn,
-                        fdtype state)
+                        lispval fetchfn,lispval savefn,
+                        lispval lockfn,lispval allocfn,
+                        lispval state)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
@@ -67,10 +67,10 @@ fd_pool fd_make_extpool(u8_string label,
     return (fd_pool)xp;}
 }
 
-static fdtype extpool_fetch(fd_pool p,fdtype oid)
+static lispval extpool_fetch(fd_pool p,lispval oid)
 {
   struct FD_EXTPOOL *xp = (fd_extpool)p;
-  fdtype state = xp->state, value, fetchfn = xp->fetchfn;
+  lispval state = xp->state, value, fetchfn = xp->fetchfn;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
@@ -78,7 +78,7 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&oid);
   else {
-    fdtype args[2]; args[0]=oid; args[1]=state;
+    lispval args[2]; args[0]=oid; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
   else if ((EMPTYP(value))||(VOIDP(value)))
@@ -91,29 +91,29 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
 /* This assumes that the FETCH function handles a vector intelligently,
    and just calls it on the vector of OIDs and extracts the data from
    the returned vector.  */
-static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *extpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_EXTPOOL *xp = (fd_extpool)p;
-  struct FD_VECTOR vstruct; fdtype vecarg;
-  fdtype state = xp->state, fetchfn = xp->fetchfn, value = VOID;
+  struct FD_VECTOR vstruct; lispval vecarg;
+  lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.fdvec_length = n; vstruct.fdvec_elts = oids;
   vstruct.fdvec_free_elts = 0;
-  vecarg = FDTYPE_CONS(&vstruct);
+  vecarg = LISP_CONS(&vstruct);
   if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&vecarg);
   else {
-    fdtype args[2]; args[0]=vecarg; args[1]=state;
+    lispval args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
   else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
-    fdtype *results = u8_alloc_n(n,fdtype);
-    memcpy(results,vstruct->fdvec_elts,sizeof(fdtype)*n);
+    lispval *results = u8_alloc_n(n,lispval);
+    memcpy(results,vstruct->fdvec_elts,sizeof(lispval)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
     if (vstruct->fdvec_free_elts) 
@@ -121,12 +121,12 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
     u8_free((struct FD_CONS *)value);
     return results;}
   else {
-    fdtype *values = u8_alloc_n(n,fdtype);
+    lispval *values = u8_alloc_n(n,lispval);
     if ((VOIDP(state))||(FALSEP(state))||
         ((fptr)&&(fptr->fcn_arity==1))) {
       int i = 0; while (i<n) {
-        fdtype oid = oids[i];
-        fdtype value = fd_apply(fetchfn,1,&oid);
+        lispval oid = oids[i];
+        lispval value = fd_apply(fetchfn,1,&oid);
         if (FD_ABORTP(value)) {
           int j = 0; while (j<i) {fd_decref(values[j]); j++;}
           u8_free(values);
@@ -134,9 +134,9 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
         else values[i++]=value;}
       return values;}
     else {
-      fdtype args[2]; int i = 0; args[1]=state;
+      lispval args[2]; int i = 0; args[1]=state;
       i = 0; while (i<n) {
-        fdtype oid = oids[i], value;
+        lispval oid = oids[i], value;
         args[0]=oid; value = fd_apply(fetchfn,2,args);
         if (FD_ABORTP(value)) {
           int j = 0; while (j<i) {fd_decref(values[j]); j++;}
@@ -146,18 +146,18 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
       return values;}}
 }
 
-static int extpool_lock(fd_pool p,fdtype oids)
+static int extpool_lock(fd_pool p,lispval oids)
 {
   struct FD_EXTPOOL *xp = (struct FD_EXTPOOL *) p;
   if (FD_APPLICABLEP(xp->lockfn)) {
-    fdtype lockfn = xp->lockfn;
+    lispval lockfn = xp->lockfn;
     fd_hashtable locks = &(xp->pool_changes);
     fd_hashtable cache = &(xp->pool_cache);
     DO_CHOICES(oid,oids) {
-      fdtype cur = fd_hashtable_get(cache,oid,VOID);
-      fdtype args[3]={lock_symbol,oid,
+      lispval cur = fd_hashtable_get(cache,oid,VOID);
+      lispval args[3]={lock_symbol,oid,
                       ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
-      fdtype value = fd_apply(lockfn,3,args);
+      lispval value = fd_apply(lockfn,3,args);
       if (FD_ABORTP(value)) {
         fd_decref(cur);
         return -1;}
@@ -176,34 +176,34 @@ static int extpool_lock(fd_pool p,fdtype oids)
   return 1;
 }
 
-static fdtype extpool_alloc(fd_pool p,int n)
+static lispval extpool_alloc(fd_pool p,int n)
 {
   struct FD_EXTPOOL *ep = (struct FD_EXTPOOL *)p;
   if (VOIDP(ep->allocfn))
     return fd_err(_("No OID alloc method"),"extpool_alloc",NULL,
                   fd_pool2lisp(p));
   else {
-    fdtype args[2]; args[0]=FD_INT(n); args[1]=ep->state;
+    lispval args[2]; args[0]=FD_INT(n); args[1]=ep->state;
     if (FIXNUMP(args[0]))
       return fd_apply(ep->allocfn,2,args);
     else {
-      fdtype result = fd_apply(ep->allocfn,2,args);
+      lispval result = fd_apply(ep->allocfn,2,args);
       fd_decref(args[0]);
       return result;}}
 }
 
-static int extpool_unlock(fd_pool p,fdtype oids)
+static int extpool_unlock(fd_pool p,lispval oids)
 {
   struct FD_EXTPOOL *xp = (struct FD_EXTPOOL *) p;
   if (FD_APPLICABLEP(xp->lockfn)) {
-    fdtype lockfn = xp->lockfn; 
+    lispval lockfn = xp->lockfn; 
     fd_hashtable locks = &(xp->pool_changes);
     fd_hashtable cache = &(xp->pool_cache);
     DO_CHOICES(oid,oids) {
-      fdtype cur = fd_hashtable_get(locks,oid,VOID);
-      fdtype args[3]={unlock_symbol,oid,
+      lispval cur = fd_hashtable_get(locks,oid,VOID);
+      lispval args[3]={unlock_symbol,oid,
                       ((cur == FD_LOCKHOLDER)?(VOID):(cur))};
-      fdtype value = fd_apply(lockfn,3,args);
+      lispval value = fd_apply(lockfn,3,args);
       fd_hashtable_store(locks,oid,VOID);
       if (FD_ABORTP(value)) {
         fd_decref(cur);
@@ -218,7 +218,7 @@ static int extpool_unlock(fd_pool p,fdtype oids)
   return 1;
 }
 
-FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value)
+FD_EXPORT int fd_extpool_cache_value(fd_pool p,lispval oid,lispval value)
 {
   if (p->pool_handler== &fd_extpool_handler)
     return fd_hashtable_store(&(p->pool_cache),oid,value);

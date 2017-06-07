@@ -39,41 +39,41 @@ __thread struct FD_STACK *fd_stackptr=NULL;
 struct FD_STACK *fd_stackptr=NULL;
 #endif
 
-static fdtype stack2lisp(struct FD_STACK *stack)
+static lispval stack2lisp(struct FD_STACK *stack)
 {
-  fdtype vec=fd_init_vector(NULL,8,NULL);
+  lispval vec=fd_init_vector(NULL,8,NULL);
   U8_FIXED_OUTPUT(tmp,128);
   FD_VECTOR_SET(vec,0,FD_INT(stack->stack_depth));
   if (stack->stack_type)
-    FD_VECTOR_SET(vec,1,fdtype_string(stack->stack_type));
-  else FD_VECTOR_SET(vec,1,fdtype_string("uninitialized"));
+    FD_VECTOR_SET(vec,1,lispval_string(stack->stack_type));
+  else FD_VECTOR_SET(vec,1,lispval_string("uninitialized"));
   if (stack->stack_label)
-    FD_VECTOR_SET(vec,2,fdtype_string(stack->stack_label));
+    FD_VECTOR_SET(vec,2,lispval_string(stack->stack_label));
   else FD_VECTOR_SET(vec,2,FD_FALSE);
   if (stack->stack_status)
-    FD_VECTOR_SET(vec,3,fdtype_string(stack->stack_status));
+    FD_VECTOR_SET(vec,3,lispval_string(stack->stack_status));
   else FD_VECTOR_SET(vec,3,FD_FALSE);
   if (VOIDP(stack->stack_op))
     FD_VECTOR_SET(vec,4,FD_FALSE);
   else {
-    fdtype op=stack->stack_op;
+    lispval op=stack->stack_op;
     FD_VECTOR_SET(vec,4,op);
     fd_incref(op);}
   if ( stack->stack_args ) {
-    fdtype n=stack->n_args, i=0;
-    fdtype *args=stack->stack_args;
-    fdtype argvec=fd_make_vector(n,args);
-    while (i<n) {fdtype elt=args[i++]; fd_incref(elt);}
+    lispval n=stack->n_args, i=0;
+    lispval *args=stack->stack_args;
+    lispval argvec=fd_make_vector(n,args);
+    while (i<n) {lispval elt=args[i++]; fd_incref(elt);}
     FD_VECTOR_SET(vec,5,argvec);}
   else FD_VECTOR_SET(vec,5,FD_FALSE);
   if (stack->stack_env) {
-    fdtype bindings = stack->stack_env->env_bindings;
+    lispval bindings = stack->stack_env->env_bindings;
     if ( (SLOTMAPP(bindings)) || (SCHEMAPP(bindings)) ) {
-      fdtype b=fd_copy(bindings);
+      lispval b=fd_copy(bindings);
       FD_VECTOR_SET(vec,6,b);}
     else FD_VECTOR_SET(vec,6,FD_FALSE);}
   if (!((FD_NULLP(stack->stack_source))||(VOIDP(stack->stack_source)))) {
-    fdtype source = stack->stack_source;
+    lispval source = stack->stack_source;
     FD_VECTOR_SET(vec,7,source);
     fd_incref(source);}
   else FD_VECTOR_SET(vec,7,FD_FALSE);
@@ -81,27 +81,27 @@ static fdtype stack2lisp(struct FD_STACK *stack)
 }
 
 FD_EXPORT
-fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype rep)
+lispval fd_get_backtrace(struct FD_STACK *stack,lispval rep)
 {
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
-    fdtype entry=stack2lisp(stack);
+    lispval entry=stack2lisp(stack);
     rep=fd_init_pair(NULL,entry,rep);
     stack=stack->stack_caller;}
   return rep;
 }
 
 FD_EXPORT
-void fd_sum_backtrace(u8_output out,fdtype backtrace)
+void fd_sum_backtrace(u8_output out,lispval backtrace)
 {
   if (fd_stacktracep(backtrace)) {
-    fdtype scan=backtrace;
+    lispval scan=backtrace;
     int n=0; while (PAIRP(scan)) {
-      fdtype entry = FD_CAR(scan);
+      lispval entry = FD_CAR(scan);
       if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
-	fdtype type=VEC_REF(entry,1);
-	fdtype label=VEC_REF(entry,2);
-	fdtype status=VEC_REF(entry,3);
+	lispval type=VEC_REF(entry,1);
+	lispval label=VEC_REF(entry,2);
+	lispval status=VEC_REF(entry,3);
 	if (n) u8_puts(out," ⇒ ");
 	if (STRINGP(label)) u8_puts(out,CSTRING(label));
 	else u8_putc(out,'?');
@@ -122,7 +122,7 @@ void fd_sum_backtrace(u8_output out,fdtype backtrace)
 	if (ex->u8x_context) u8_printf(out,"@%s",ex->u8x_context);
 	if (ex->u8x_details) u8_printf(out," (%s)",ex->u8x_details);
 	if (ex->u8x_free_xdata == fd_free_exception_xdata) {
-	  fdtype irritant=(fdtype)ex->u8x_xdata;
+	  lispval irritant=(lispval)ex->u8x_xdata;
 	  char buf[32]; buf[0]='\0';
 	  u8_sprintf(buf,32," =%q",irritant);
 	  u8_puts(out,buf);}

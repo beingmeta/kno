@@ -26,40 +26,40 @@
 
 /* MAIL output operations */
 
-static fdtype mailhost_symbol, maildomain_symbol;
-static fdtype mailfrom_symbol;
+static lispval mailhost_symbol, maildomain_symbol;
+static lispval mailfrom_symbol;
 
 static u8_string mailhost_dflt = NULL, maildomain_dflt = NULL;
 static u8_string mailfrom_dflt = NULL;
 
-static void get_mailinfo(fdtype headers,u8_string *host,u8_string *domain,u8_string *from)
+static void get_mailinfo(lispval headers,u8_string *host,u8_string *domain,u8_string *from)
 {
-  fdtype mailhost_spec = fd_get(headers,mailhost_symbol,VOID);
-  fdtype maildomain_spec = fd_get(headers,maildomain_symbol,VOID);
-  fdtype mailfrom_spec = fd_get(headers,mailfrom_symbol,VOID);
+  lispval mailhost_spec = fd_get(headers,mailhost_symbol,VOID);
+  lispval maildomain_spec = fd_get(headers,maildomain_symbol,VOID);
+  lispval mailfrom_spec = fd_get(headers,mailfrom_symbol,VOID);
   if (STRINGP(mailhost_spec)) *host = CSTRING(mailhost_spec);
   if (STRINGP(maildomain_spec)) *domain = CSTRING(maildomain_spec);
   if (STRINGP(mailfrom_spec)) *from = CSTRING(mailfrom_spec);
 }
 
-static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,
-                            fdtype ctype,fdtype mailinfo)
+static lispval smtp_function(lispval dest,lispval headers,lispval content,
+                            lispval ctype,lispval mailinfo)
 {
   u8_string mailhost = mailhost_dflt, maildomain = maildomain_dflt;
   u8_string mailfrom = mailfrom_dflt;
-  fdtype header_keys = fd_getkeys(headers);
+  lispval header_keys = fd_getkeys(headers);
   int retval, i = 0, n_headers = FD_CHOICE_SIZE(header_keys), n_to_free = 0;
   struct U8_MAILHEADER *mh = u8_alloc_n(n_headers,struct U8_MAILHEADER);
   u8_string *to_free = u8_alloc_n(n_headers,u8_string);
   DO_CHOICES(header,headers) {
-    fdtype value = fd_get(headers,header,VOID);
+    lispval value = fd_get(headers,header,VOID);
     if (VOIDP(value)) mh[i].label = NULL;
     else if (SYMBOLP(header)) mh[i].label = SYM_NAME(header);
     else if (STRINGP(header)) mh[i].label = CSTRING(header);
     else mh[i].label = NULL;
     if (STRINGP(value)) mh[i].value = CSTRING(value);
     else {
-      u8_string data = fd_dtype2string(value);
+      u8_string data = fd_lisp2string(value);
       to_free[n_to_free++]=data;
       mh[i].value = data;}
     i++;}
@@ -77,13 +77,13 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,
   else return FD_TRUE;
 }
 
-static fdtype mailout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval mailout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   const u8_byte *mailhost = mailhost_dflt, *maildomain = maildomain_dflt;
   const u8_byte *mailfrom = mailfrom_dflt;
-  fdtype dest_arg = fd_get_arg(expr,1), headers_arg = fd_get_arg(expr,2);
-  fdtype body = fd_get_body(expr,3);
-  fdtype dest, headers, header_fields, result;
+  lispval dest_arg = fd_get_arg(expr,1), headers_arg = fd_get_arg(expr,2);
+  lispval body = fd_get_body(expr,3);
+  lispval dest, headers, header_fields, result;
   int retval, i = 0, n_headers, n_to_free = 0;
   struct U8_MAILHEADER *mh;
   struct U8_OUTPUT out;
@@ -103,14 +103,14 @@ static fdtype mailout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   mh = u8_alloc_n(n_headers,struct U8_MAILHEADER);
   to_free = u8_alloc_n(n_headers,u8_string);
   {DO_CHOICES(header,header_fields) {
-      fdtype value = fd_get(headers,header,VOID);
+      lispval value = fd_get(headers,header,VOID);
       if (VOIDP(value)) mh[i].label = NULL;
       else if (SYMBOLP(header)) mh[i].label = SYM_NAME(header);
       else if (STRINGP(header)) mh[i].label = CSTRING(header);
       else mh[i].label = NULL;
       if (STRINGP(value)) mh[i].value = CSTRING(value);
       else {
-        u8_string data = fd_dtype2string(value);
+        u8_string data = fd_lisp2string(value);
         to_free[n_to_free++]=data;
         mh[i].value = data;}
       i++;}}
@@ -133,7 +133,7 @@ static fdtype mailout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 void fd_init_email_c()
 {
-  fdtype unsafe_module = fd_new_module("FDWEB",(0));
+  lispval unsafe_module = fd_new_module("FDWEB",(0));
 
   fd_idefn(unsafe_module,fd_make_cprim5("SMTP",smtp_function,3));
   fd_defspecial(unsafe_module,"MAILOUT",mailout_evalfn);

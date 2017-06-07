@@ -47,8 +47,8 @@
 
 /* Log functions */
 
-static fdtype framerd_logfns = EMPTY;
-static fdtype framerd_logfn = VOID;
+static lispval framerd_logfns = EMPTY;
+static lispval framerd_logfn = VOID;
 static int using_fd_logger = 0;
 static u8_mutex log_lock;
 
@@ -67,12 +67,12 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
 {
   int local_log = (loglevel<0);
   int abs_loglevel = ((loglevel<0)?(-loglevel):(loglevel));
-  fdtype ll = FD_INT(loglevel);
-  fdtype csym = ((c == NULL)?(FD_FALSE):(fd_intern((u8_string)c)));
+  lispval ll = FD_INT(loglevel);
+  lispval csym = ((c == NULL)?(FD_FALSE):(fd_intern((u8_string)c)));
   struct U8_OUTPUT *reqout = ((req_loglevel>=loglevel)?(fd_try_reqlog()):(NULL));
-  fdtype mstring = fd_make_string(NULL,-1,message);
-  fdtype args[3]={ll,csym,mstring};
-  fdtype logfns = fd_make_simple_choice(framerd_logfns);
+  lispval mstring = fd_make_string(NULL,-1,message);
+  lispval args[3]={ll,csym,mstring};
+  lispval logfns = fd_make_simple_choice(framerd_logfns);
   char *level = ((abs_loglevel>MAX_LOGLEVEL)?(NULL):
                (loglevel_names[abs_loglevel]));
   if (reqout) {
@@ -96,8 +96,8 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
     return 0;
   if (VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
   else {
-    fdtype logfn = fd_incref(framerd_logfn);
-    fdtype v = fd_apply(logfn,3,args);
+    lispval logfn = fd_incref(framerd_logfn);
+    lispval v = fd_apply(logfn,3,args);
     if (FD_ABORTP(v)) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
       u8_default_logger(loglevel,c,message);
@@ -108,7 +108,7 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
     fd_decref(v);}
   {
     DO_CHOICES(logfn,framerd_logfns) {
-      fdtype v = fd_apply(logfn,3,args);
+      lispval v = fd_apply(logfn,3,args);
       if (FD_ABORTP(v)) {
         u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
         default_log_error();}
@@ -141,13 +141,13 @@ static void use_fd_logger()
     u8_unlock_mutex(&log_lock);}
 }
 
-static fdtype config_get_logfn(fdtype var,void *data)
+static lispval config_get_logfn(lispval var,void *data)
 {
   if (VOIDP(framerd_logfn)) return FD_FALSE;
   else return fd_incref(framerd_logfn);
 }
 
-static int config_set_logfn(fdtype var,fdtype val,void *data)
+static int config_set_logfn(lispval var,lispval val,void *data)
 {
   if (VOIDP(framerd_logfn)) {
     framerd_logfn = val;
@@ -157,21 +157,21 @@ static int config_set_logfn(fdtype var,fdtype val,void *data)
   else if (framerd_logfn == val)
     return 0;
   else {
-    fdtype oldfn = framerd_logfn;
+    lispval oldfn = framerd_logfn;
     framerd_logfn = val;
     fd_incref(val);
     fd_decref(oldfn);
     return 1;}
 }
 
-static fdtype config_get_logfns(fdtype var,void *data)
+static lispval config_get_logfns(lispval var,void *data)
 {
   return fd_incref(framerd_logfns);
 }
 
-static int config_add_logfn(fdtype var,fdtype val,void *data)
+static int config_add_logfn(lispval var,lispval val,void *data)
 {
-  fdtype arity = -1;
+  lispval arity = -1;
   if (FD_FUNCTIONP(val)) arity = FD_FUNCTION_ARITY(val);
   if (arity!=3) {
     fd_seterr(fd_TypeError,"config_add_logfn",u8_strdup("log function"),val);
@@ -186,14 +186,14 @@ static int config_add_logfn(fdtype var,fdtype val,void *data)
 
 /* Request logging */
 
-static fdtype config_get_reqloglevel(fdtype var,void *data)
+static lispval config_get_reqloglevel(lispval var,void *data)
 {
   if ((using_fd_logger)&&(req_loglevel>=0))
     return FD_INT(req_loglevel);
   else return FD_FALSE;
 }
 
-static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
+static int config_set_reqloglevel(lispval var,lispval val,void *data)
 {
   if (FALSEP(val)) {
     if (req_loglevel>=0) {req_loglevel = -1; return 1;}
@@ -215,14 +215,14 @@ static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
     return 1;}
 }
 
-static fdtype config_get_reqlogonly(fdtype var,void *data)
+static lispval config_get_reqlogonly(lispval var,void *data)
 {
   if ((using_fd_logger)&&(req_logonly>=0))
     return FD_INT(req_logonly);
   else return FD_FALSE;
 }
 
-static int config_set_reqlogonly(fdtype var,fdtype val,void *data)
+static int config_set_reqlogonly(lispval var,lispval val,void *data)
 {
   if (FALSEP(val)) {
     if (req_logonly>=0) {req_logonly = -1; return 1;}

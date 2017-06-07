@@ -2,13 +2,13 @@
 
 FD_EXPORT int _fd_showenv(fd_lexenv env)
 {
-  fdtype moduleid = fd_intern("%MODULEID");
+  lispval moduleid = fd_intern("%MODULEID");
   int depth = 1;
   while (env) {
-    fdtype bindings = env->env_bindings;
+    lispval bindings = env->env_bindings;
     fd_ptr_type btype = FD_PTR_TYPE(bindings);
-    fdtype name = fd_get(bindings,moduleid,VOID);
-    fdtype keys = fd_getkeys(bindings);
+    lispval name = fd_get(bindings,moduleid,VOID);
+    lispval keys = fd_getkeys(bindings);
     u8_fprintf(stderr,"#%d %s %s(%d) %ld/%lx\n\t%q\n",
                depth,
                ((STRINGP(name))?(CSTRING(name)):
@@ -84,7 +84,7 @@ static void stack_frame_label(u8_output out,struct FD_STACK *stack)
 static void _concise_stack_frame(struct FD_STACK *stack)
 {
   u8_string summary=NULL;
-  fdtype op = stack->stack_op;
+  lispval op = stack->stack_op;
   fprintf(stderr,"(%d) ",stack->stack_depth);
   U8_FIXED_OUTPUT(tmp,128);
   if ( (stack->stack_label) || (stack->stack_status) ) {
@@ -112,10 +112,10 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   if ((stack->stack_env) &&
       (SCHEMAPP(stack->stack_env->env_bindings))) {
     struct FD_SCHEMAP *sm = (fd_schemap)stack->stack_env->env_bindings;
-    fdtype *schema=sm->table_schema;
+    lispval *schema=sm->table_schema;
     fprintf(stderr,", binding");
     int n=sm->schema_length, i=0; while (i<n) {
-      fdtype var=schema[i++];
+      lispval var=schema[i++];
       if (SYMBOLP(var))
 	fprintf(stderr," %s",SYM_NAME(var));}}
   fprintf(stderr,"\n");

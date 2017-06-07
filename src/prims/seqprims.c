@@ -37,15 +37,15 @@ static fd_exception EmptyReduce=_("No sequence elements to reduce");
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
 
-static fdtype make_float_vector(int n,fdtype *from_elts);
-static fdtype make_double_vector(int n,fdtype *from_elts);
-static fdtype make_short_vector(int n,fdtype *from_elts);
-static fdtype make_int_vector(int n,fdtype *from_elts);
-static fdtype make_long_vector(int n,fdtype *from_elts);
+static lispval make_float_vector(int n,lispval *from_elts);
+static lispval make_double_vector(int n,lispval *from_elts);
+static lispval make_short_vector(int n,lispval *from_elts);
+static lispval make_int_vector(int n,lispval *from_elts);
+static lispval make_long_vector(int n,lispval *from_elts);
 
 /* Exported primitives */
 
-FD_EXPORT int applytest(fdtype test,fdtype elt)
+FD_EXPORT int applytest(lispval test,lispval elt)
 {
   if (FD_HASHSETP(test))
     return fd_hashset_get(FD_XHASHSET(test),elt);
@@ -56,7 +56,7 @@ FD_EXPORT int applytest(fdtype test,fdtype elt)
   else if (TABLEP(test))
     return fd_test(test,elt,VOID);
   else if (FD_APPLICABLEP(test)) {
-    fdtype result = fd_apply(test,1,&elt);
+    lispval result = fd_apply(test,1,&elt);
     if (FALSEP(result)) return 0;
     else {fd_decref(result); return 1;}}
   else if (EMPTYP(test)) return 0;
@@ -71,7 +71,7 @@ FD_EXPORT int applytest(fdtype test,fdtype elt)
     return -1;}
 }
 
-FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert)
+FD_EXPORT lispval fd_removeif(lispval test,lispval sequence,int invert)
 {
   if (!(FD_SEQUENCEP(sequence)))
     return fd_type_error("sequence","fd_remove",sequence);
@@ -79,9 +79,9 @@ FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert)
   else {
     int i = 0, j = 0, removals = 0, len = fd_seq_length(sequence);
     fd_ptr_type result_type = FD_PTR_TYPE(sequence);
-    fdtype *results = u8_alloc_n(len,fdtype), result;
+    lispval *results = u8_alloc_n(len,lispval), result;
     while (i < len) {
-      fdtype elt = fd_seq_elt(sequence,i);
+      lispval elt = fd_seq_elt(sequence,i);
       int compare = applytest(test,elt); i++;
       if (compare<0) {u8_free(results); return -1;}
       else if ((invert) ? (!(compare)) : (compare)) {
@@ -100,11 +100,11 @@ FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert)
 
 /* Mapping */
 
-FD_EXPORT fdtype fd_mapseq(fdtype fn,int n_seqs,fdtype *sequences)
+FD_EXPORT lispval fd_mapseq(lispval fn,int n_seqs,lispval *sequences)
 {
   int i = 1, seqlen = -1;
-  fdtype firstseq = sequences[0];
-  fdtype result, *results, _argvec[8], *argvec = NULL;
+  lispval firstseq = sequences[0];
+  lispval result, *results, _argvec[8], *argvec = NULL;
   fd_ptr_type result_type = FD_PTR_TYPE(firstseq);
   if (FD_FCNIDP(fn)) fn = fd_fcnid_ref(fn);
   if ((TABLEP(fn)) || (ATOMICP(fn))) {
@@ -123,10 +123,10 @@ FD_EXPORT fdtype fd_mapseq(fdtype fn,int n_seqs,fdtype *sequences)
     else i++;
   if (seqlen==0) return fd_incref(firstseq);
   enum { applyfn, tablefn, oidfn, getfn } fntype;
-  results = u8_alloc_n(seqlen,fdtype);
+  results = u8_alloc_n(seqlen,lispval);
   if (FD_APPLICABLEP(fn)) {
     if (n_seqs<8) argvec=_argvec;
-    else argvec = u8_alloc_n(n_seqs,fdtype);
+    else argvec = u8_alloc_n(n_seqs,lispval);
     fntype = applyfn;}
   else if (OIDP(fn))
     fntype = oidfn;
@@ -134,7 +134,7 @@ FD_EXPORT fdtype fd_mapseq(fdtype fn,int n_seqs,fdtype *sequences)
     fntype = tablefn;
   else fntype = getfn;
   i = 0; while (i < seqlen) {
-    fdtype elt = fd_seq_elt(firstseq,i), new_elt;
+    lispval elt = fd_seq_elt(firstseq,i), new_elt;
     if (fntype == applyfn) {
       int j = 1; while (j<n_seqs) {
         argvec[j]=fd_seq_elt(sequences[j],i); j++;}
@@ -167,16 +167,16 @@ FD_EXPORT fdtype fd_mapseq(fdtype fn,int n_seqs,fdtype *sequences)
   u8_free(results);
   return result;
 }
-static fdtype mapseq_prim(int n,fdtype *args)
+static lispval mapseq_prim(int n,lispval *args)
 {
   return fd_mapseq(args[0],n-1,args+1);
 }
 
-FD_EXPORT fdtype fd_foreach(fdtype fn,int n_seqs,fdtype *sequences)
+FD_EXPORT lispval fd_foreach(lispval fn,int n_seqs,lispval *sequences)
 {
   int i = 0, seqlen = -1;
-  fdtype firstseq = sequences[0];
-  fdtype _argvec[8], *argvec = NULL;
+  lispval firstseq = sequences[0];
+  lispval _argvec[8], *argvec = NULL;
   fd_ptr_type result_type = FD_PTR_TYPE(firstseq);
   if ((TABLEP(fn)) || ((ATOMICP(fn)) && (FD_FCNIDP(fn)))) {
     if (n_seqs>1)
@@ -196,7 +196,7 @@ FD_EXPORT fdtype fd_foreach(fdtype fn,int n_seqs,fdtype *sequences)
   enum { applyfn, tablefn, oidfn, getfn } fntype;
   if (FD_APPLICABLEP(fn)) {
     if (n_seqs<8) argvec=_argvec;
-    else argvec = u8_alloc_n(n_seqs,fdtype);
+    else argvec = u8_alloc_n(n_seqs,lispval);
     fntype = applyfn;}
   else if (OIDP(fn))
     fntype = oidfn;
@@ -204,7 +204,7 @@ FD_EXPORT fdtype fd_foreach(fdtype fn,int n_seqs,fdtype *sequences)
     fntype = tablefn;
   else fntype = getfn;
   i = 0; while (i < seqlen) {
-    fdtype elt = argvec[0]=fd_seq_elt(firstseq,i), new_elt;
+    lispval elt = argvec[0]=fd_seq_elt(firstseq,i), new_elt;
     if (fntype == tablefn)
       new_elt = fd_get(fn,elt,elt);
     else if (fntype == oidfn)
@@ -232,14 +232,14 @@ FD_EXPORT fdtype fd_foreach(fdtype fn,int n_seqs,fdtype *sequences)
     else {fd_decref(new_elt); i++;}}
   return VOID;
 }
-FD_CPRIM(foreach_prim,"FOR-EACH",int n,fdtype *args)
+FD_CPRIM(foreach_prim,"FOR-EACH",int n,lispval *args)
 /* This iterates over a sequence or set of sequences and applies
    FN to each of the elements. */
 {
   return fd_foreach(args[0],n-1,args+1);
 }
 
-FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
+FD_EXPORT lispval fd_map2choice(lispval fn,lispval sequence)
 {
   if (!(FD_SEQUENCEP(sequence)))
     return fd_type_error("sequence","fd_mapseq",sequence);
@@ -247,9 +247,9 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
   else if ((FD_APPLICABLEP(fn)) || (TABLEP(fn)) || (ATOMICP(fn))) {
     int i = 0, len = fd_seq_length(sequence);
     fd_ptr_type result_type = FD_PTR_TYPE(sequence);
-    fdtype *results = u8_alloc_n(len,fdtype);
+    lispval *results = u8_alloc_n(len,lispval);
     while (i < len) {
-      fdtype elt = fd_seq_elt(sequence,i), new_elt;
+      lispval elt = fd_seq_elt(sequence,i), new_elt;
       if (TABLEP(fn))
         new_elt = fd_get(fn,elt,elt);
       else if (FD_APPLICABLEP(fn))
@@ -279,7 +279,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
 
 /* Reduction */
 
-FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
+FD_EXPORT lispval fd_reduce(lispval fn,lispval sequence,lispval result)
 {
   int i = 0, len = fd_seq_length(sequence);
   if (len==0)
@@ -293,7 +293,7 @@ FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
   else if (VOIDP(result)) {
     result = fd_seq_elt(sequence,0); i = 1;}
   while (i < len) {
-    fdtype elt = fd_seq_elt(sequence,i), rail[2], new_result;
+    lispval elt = fd_seq_elt(sequence,i), rail[2], new_result;
     rail[0]=elt; rail[1]=result;
     new_result = fd_apply(fn,2,rail);
     fd_decref(result); fd_decref(elt);
@@ -305,21 +305,21 @@ FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
 
 /* Scheme primitives */
 
-static fdtype sequencep_prim(fdtype x)
+static lispval sequencep_prim(lispval x)
 {
   if (FD_SEQUENCEP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype seqlen_prim(fdtype x)
+static lispval seqlen_prim(lispval x)
 {
   int len = fd_seq_length(x);
   if (len<0) return fd_type_error(_("sequence"),"seqlen",x);
   else return FD_INT(len);
 }
 
-static fdtype seqelt_prim(fdtype x,fdtype offset)
+static lispval seqelt_prim(lispval x,lispval offset)
 {
-  char buf[32]; int off; fdtype result;
+  char buf[32]; int off; lispval result;
   if (!(FD_SEQUENCEP(x)))
     return fd_type_error(_("sequence"),"seqelt_prim",x);
   else if (FD_INTP(offset)) off = FIX2INT(offset);
@@ -340,7 +340,7 @@ static fdtype seqelt_prim(fdtype x,fdtype offset)
 enum COMPARISON {
   cmp_lt, cmp_lte, cmp_eq, cmp_gte, cmp_gt };
 
-static int has_length_helper(fdtype x,fdtype length_arg,enum COMPARISON cmp)
+static int has_length_helper(lispval x,lispval length_arg,enum COMPARISON cmp)
 {
   int seqlen = fd_seq_length(x), testlen;
   if (seqlen<0) return fd_type_error(_("sequence"),"seqlen",x);
@@ -358,7 +358,7 @@ static int has_length_helper(fdtype x,fdtype length_arg,enum COMPARISON cmp)
     return -1;}
 }
 
-static fdtype has_length_prim(fdtype x,fdtype length_arg)
+static lispval has_length_prim(lispval x,lispval length_arg)
 {
   int retval = has_length_helper(x,length_arg,cmp_eq);
   if (retval<0) return FD_ERROR;
@@ -366,7 +366,7 @@ static fdtype has_length_prim(fdtype x,fdtype length_arg)
   else return FD_FALSE;
 }
 
-static fdtype has_length_lt_prim(fdtype x,fdtype length_arg)
+static lispval has_length_lt_prim(lispval x,lispval length_arg)
 {
   int retval = has_length_helper(x,length_arg,cmp_lt);
   if (retval<0) return FD_ERROR;
@@ -374,7 +374,7 @@ static fdtype has_length_lt_prim(fdtype x,fdtype length_arg)
   else return FD_FALSE;
 }
 
-static fdtype has_length_lte_prim(fdtype x,fdtype length_arg)
+static lispval has_length_lte_prim(lispval x,lispval length_arg)
 {
   int retval = has_length_helper(x,length_arg,cmp_lte);
   if (retval<0) return FD_ERROR;
@@ -382,7 +382,7 @@ static fdtype has_length_lte_prim(fdtype x,fdtype length_arg)
   else return FD_FALSE;
 }
 
-static fdtype has_length_gt_prim(fdtype x,fdtype length_arg)
+static lispval has_length_gt_prim(lispval x,lispval length_arg)
 {
   int retval = has_length_helper(x,length_arg,cmp_gt);
   if (retval<0) return FD_ERROR;
@@ -390,7 +390,7 @@ static fdtype has_length_gt_prim(fdtype x,fdtype length_arg)
   else return FD_FALSE;
 }
 
-static fdtype has_length_gte_prim(fdtype x,fdtype length_arg)
+static lispval has_length_gte_prim(lispval x,lispval length_arg)
 {
   int retval = has_length_helper(x,length_arg,cmp_gte);
   if (retval<0) return FD_ERROR;
@@ -398,13 +398,13 @@ static fdtype has_length_gte_prim(fdtype x,fdtype length_arg)
   else return FD_FALSE;
 }
 
-static fdtype has_length_gt_zero_prim(fdtype x)
+static lispval has_length_gt_zero_prim(lispval x)
 {
   int seqlen = fd_seq_length(x);
   if (seqlen>0) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype has_length_gt_one_prim(fdtype x)
+static lispval has_length_gt_one_prim(lispval x)
 {
   int seqlen = fd_seq_length(x);
   if (seqlen>1) return FD_TRUE; else return FD_FALSE;
@@ -414,9 +414,9 @@ static fdtype has_length_gt_one_prim(fdtype x)
 
 /* We separate this out to give the compiler the option of not inline
    coding this guy. */
-static fdtype check_empty_list_range
-  (u8_string prim,fdtype seq,
-   fdtype start_arg,fdtype end_arg,
+static lispval check_empty_list_range
+  (u8_string prim,lispval seq,
+   lispval start_arg,lispval end_arg,
    int *startp,int *endp)
 {
   if ((FALSEP(start_arg)) ||
@@ -435,8 +435,8 @@ static fdtype check_empty_list_range
   return VOID;
 }
 
-static fdtype check_range(u8_string prim,fdtype seq,
-                           fdtype start_arg,fdtype end_arg,
+static lispval check_range(u8_string prim,lispval seq,
+                           lispval start_arg,lispval end_arg,
                            int *startp,int *endp)
 {
   if (NILP(seq))
@@ -466,10 +466,10 @@ static fdtype check_range(u8_string prim,fdtype seq,
   return VOID;
 }
 
-static fdtype slice_prim(fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval slice_prim(lispval x,lispval start_arg,lispval end_arg)
 {
   int start, end; char buf[128];
-  fdtype result = check_range("slice_prim",x,start_arg,end_arg,&start,&end);
+  lispval result = check_range("slice_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(result)) return result;
   else result = fd_slice(x,start,end);
   if (result == FD_TYPE_ERROR)
@@ -481,10 +481,10 @@ static fdtype slice_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   else return result;
 }
 
-static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval position_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
-  fdtype check = check_range("position_prim",x,start_arg,end_arg,&start,&end);
+  lispval check = check_range("position_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_position(key,x,start,end);
   if (result>=0) return FD_INT(result);
@@ -498,10 +498,10 @@ static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   else return FD_INT(result);
 }
 
-static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval rposition_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
-  fdtype check = check_range("rposition_prim",x,start_arg,end_arg,&start,&end);
+  lispval check = check_range("rposition_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_rposition(key,x,start,end);
   if (result>=0) return FD_INT(result);
@@ -515,10 +515,10 @@ static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg
   else return FD_INT(result);
 }
 
-static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval find_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
-  fdtype check = check_range("find_prim",x,start_arg,end_arg,&start,&end);
+  lispval check = check_range("find_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_position(key,x,start,end);
   if (result>=0) return FD_TRUE;
@@ -532,10 +532,10 @@ static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   else return FD_FALSE;
 }
 
-static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval search_prim(lispval key,lispval x,lispval start_arg,lispval end_arg)
 {
   int result, start, end; char buf[128];
-  fdtype check = check_range("search_prim",x,start_arg,end_arg,&start,&end);
+  lispval check = check_range("search_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else result = fd_search(key,x,start,end);
   if (result>=0) return FD_INT(result);
@@ -549,10 +549,10 @@ static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   else return result;
 }
 
-static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval every_prim(lispval proc,lispval x,lispval start_arg,lispval end_arg)
 {
   int start, end;
-  fdtype check = check_range("every_prim",x,start_arg,end_arg,&start,&end);
+  lispval check = check_range("every_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"every_prim",x);
@@ -562,8 +562,8 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
       int c = u8_sgetc(&scan);
       if (i<start) i++;
       else if (i<end) {
-        fdtype lc = FD_CODE2CHAR(c);
-        fdtype testval = fd_apply(proc,1,&lc);
+        lispval lc = FD_CODE2CHAR(c);
+        lispval testval = fd_apply(proc,1,&lc);
         if (FALSEP(testval)) return FD_FALSE;
         else if (FD_ABORTED(testval)) return testval;
         else {
@@ -572,8 +572,8 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     return FD_TRUE;}
   else {
     int i = start; while (i<end) {
-      fdtype elt = fd_seq_elt(x,i);
-      fdtype testval = fd_apply(proc,1,&elt);
+      lispval elt = fd_seq_elt(x,i);
+      lispval testval = fd_apply(proc,1,&elt);
       if (FD_ABORTED(testval)) {
         fd_decref(elt); return testval;}
       else if (FALSEP(testval)) {
@@ -583,10 +583,10 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     return FD_TRUE;}
 }
 
-static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval some_prim(lispval proc,lispval x,lispval start_arg,lispval end_arg)
 {
   int start, end;
-  fdtype check = check_range("some_prim",x,start_arg,end_arg,&start,&end);
+  lispval check = check_range("some_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTED(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"some_prim",x);
@@ -596,8 +596,8 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
       int c = u8_sgetc(&scan);
       if (i<start) i++;
       else if (i< end) {
-        fdtype lc = FD_CODE2CHAR(c);
-        fdtype testval = fd_apply(proc,1,&lc);
+        lispval lc = FD_CODE2CHAR(c);
+        lispval testval = fd_apply(proc,1,&lc);
         if (FD_ABORTED(testval)) return testval;
         else if (FALSEP(testval)) i++;
         else {
@@ -606,8 +606,8 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     return FD_FALSE;}
   else {
     int i = start; while (i<end) {
-      fdtype elt = fd_seq_elt(x,i);
-      fdtype testval = fd_apply(proc,1,&elt);
+      lispval elt = fd_seq_elt(x,i);
+      lispval testval = fd_apply(proc,1,&elt);
       if (FD_ABORTED(testval)) {
         fd_decref(elt); return testval;}
       else if ((FALSEP(testval)) || (EMPTYP(testval))) {
@@ -618,7 +618,7 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     return FD_FALSE;}
 }
 
-FD_CPRIM(removeif_prim,"REMOVE-IF",fdtype test,fdtype sequence)
+FD_CPRIM(removeif_prim,"REMOVE-IF",lispval test,lispval sequence)
 /* Removes elements of sequence which pass the predicate 'test'.
    The element E is removed when:
    * if FN is a function, applying FN to E returns true
@@ -627,9 +627,9 @@ FD_CPRIM(removeif_prim,"REMOVE-IF",fdtype test,fdtype sequence)
 {
   if (EMPTYP(sequence)) return sequence;
   else if (CHOICEP(sequence)) {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(seq,sequence) {
-      fdtype r = fd_removeif(test,seq,0);
+      lispval r = fd_removeif(test,seq,0);
       if (FD_ABORTED(r)) {
         fd_decref(results); return r;}
       CHOICE_ADD(results,r);}
@@ -637,13 +637,13 @@ FD_CPRIM(removeif_prim,"REMOVE-IF",fdtype test,fdtype sequence)
   else return fd_removeif(test,sequence,0);
 }
 
-static fdtype removeifnot_prim(fdtype test,fdtype sequence)
+static lispval removeifnot_prim(lispval test,lispval sequence)
 {
   if (EMPTYP(sequence)) return sequence;
   else if (CHOICEP(sequence)) {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(seq,sequence) {
-      fdtype r = fd_removeif(test,seq,1);
+      lispval r = fd_removeif(test,seq,1);
       if (FD_ABORTED(r)) {
         fd_decref(results); return r;}
       CHOICE_ADD(results,r);}
@@ -653,113 +653,113 @@ static fdtype removeifnot_prim(fdtype test,fdtype sequence)
 
 /* Small element functions */
 
-static fdtype seq_elt(fdtype x,char *cxt,int i)
+static lispval seq_elt(lispval x,char *cxt,int i)
 {
-  fdtype v = fd_seq_elt(x,i);
+  lispval v = fd_seq_elt(x,i);
   if (FD_TROUBLEP(v))
     return fd_err(fd_retcode_to_exception(v),cxt,NULL,x);
   else return v;
 }
 
-static fdtype first(fdtype x)
+static lispval first(lispval x)
 {
   return seq_elt(x,"first",0);
 }
-static fdtype rest(fdtype x)
+static lispval rest(lispval x)
 {
   if (PAIRP(x)) return fd_incref(FD_CDR(x));
   else {
-    fdtype v = fd_slice(x,1,-1);
+    lispval v = fd_slice(x,1,-1);
     if (FD_TROUBLEP(v))
       return fd_err(fd_retcode_to_exception(v),"rest",NULL,x);
     else return v;}
 }
 
-static fdtype second(fdtype x)
+static lispval second(lispval x)
 {
   return seq_elt(x,"second",1);
 }
-static fdtype third(fdtype x)
+static lispval third(lispval x)
 {
   return seq_elt(x,"third",2);
 }
-static fdtype fourth(fdtype x)
+static lispval fourth(lispval x)
 {
   return seq_elt(x,"fourth",3);
 }
-static fdtype fifth(fdtype x)
+static lispval fifth(lispval x)
 {
   return seq_elt(x,"fifth",4);
 }
-static fdtype sixth(fdtype x)
+static lispval sixth(lispval x)
 {
   return seq_elt(x,"sixth",5);
 }
-static fdtype seventh(fdtype x)
+static lispval seventh(lispval x)
 {
   return seq_elt(x,"seventh",6);
 }
 
 /* Pair functions */
 
-static fdtype nullp(fdtype x)
+static lispval nullp(lispval x)
 {
   if (NILP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype cons(fdtype x,fdtype y)
+static lispval cons(lispval x,lispval y)
 {
   return fd_make_pair(x,y);
 }
-static fdtype car(fdtype x)
+static lispval car(lispval x)
 {
   return fd_incref(FD_CAR(x));
 }
-static fdtype cdr(fdtype x)
+static lispval cdr(lispval x)
 {
   return fd_incref(FD_CDR(x));
 }
-static fdtype cddr(fdtype x)
+static lispval cddr(lispval x)
 {
   if (PAIRP(FD_CDR(x)))
     return fd_incref(FD_CDR(FD_CDR(x)));
   else return fd_err(fd_RangeError,"CDDR",NULL,x);
 }
-static fdtype cadr(fdtype x)
+static lispval cadr(lispval x)
 {
   if (PAIRP(FD_CDR(x)))
     return fd_incref(FD_CAR(FD_CDR(x)));
   else return fd_err(fd_RangeError,"CADR",NULL,x);
 }
-static fdtype cdar(fdtype x)
+static lispval cdar(lispval x)
 {
   if (PAIRP(FD_CAR(x)))
     return fd_incref(FD_CDR(FD_CAR(x)));
   else return fd_err(fd_RangeError,"CDAR",NULL,x);
 }
-static fdtype caar(fdtype x)
+static lispval caar(lispval x)
 {
   if (PAIRP(FD_CAR(x)))
     return fd_incref(FD_CAR(FD_CAR(x)));
   else return fd_err(fd_RangeError,"CAAR",NULL,x);
 }
-static fdtype caddr(fdtype x)
+static lispval caddr(lispval x)
 {
   if ((PAIRP(FD_CDR(x)))&&(PAIRP(FD_CDR(FD_CDR(x)))))
     return fd_incref(FD_CAR(FD_CDR(FD_CDR(x))));
   else return fd_err(fd_RangeError,"CADR",NULL,x);
 }
-static fdtype cdddr(fdtype x)
+static lispval cdddr(lispval x)
 {
   if ((PAIRP(FD_CDR(x)))&&(PAIRP(FD_CDR(FD_CDR(x)))))
     return fd_incref(FD_CDR(FD_CDR(FD_CDR(x))));
   else return fd_err(fd_RangeError,"CADR",NULL,x);
 }
 
-static fdtype cons_star(int n,fdtype *args)
+static lispval cons_star(int n,lispval *args)
 {
-  int i = n-2; fdtype list = fd_incref(args[n-1]);
+  int i = n-2; lispval list = fd_incref(args[n-1]);
   while (i>=0) {
     list = fd_conspair(fd_incref(args[i]),list);
     i--;}
@@ -768,55 +768,55 @@ static fdtype cons_star(int n,fdtype *args)
 
 /* Association list functions */
 
-static fdtype assq_prim(fdtype key,fdtype list)
+static lispval assq_prim(lispval key,lispval list)
 {
   if (NILP(list)) return FD_FALSE;
   else if (!(PAIRP(list)))
     return fd_type_error("alist","assq_prim",list);
   else {
-    fdtype scan = list;
+    lispval scan = list;
     while (PAIRP(scan))
       if (!(PAIRP(FD_CAR(scan))))
         return fd_type_error("alist","assq_prim",list);
       else {
-        fdtype item = FD_CAR(FD_CAR(scan));
+        lispval item = FD_CAR(FD_CAR(scan));
         if (FD_EQ(key,item))
           return fd_incref(FD_CAR(scan));
         else scan = FD_CDR(scan);}
     return FD_FALSE;}
 }
 
-static fdtype assv_prim(fdtype key,fdtype list)
+static lispval assv_prim(lispval key,lispval list)
 {
   if (NILP(list)) return FD_FALSE;
   else if (!(PAIRP(list)))
     return fd_type_error("alist","assv_prim",list);
   else {
-    fdtype scan = list;
+    lispval scan = list;
     while (PAIRP(scan))
       if (!(PAIRP(FD_CAR(scan))))
         return fd_type_error("alist","assv_prim",list);
       else {
-        fdtype item = FD_CAR(FD_CAR(scan));
+        lispval item = FD_CAR(FD_CAR(scan));
         if (FD_EQV(key,item))
           return fd_incref(FD_CAR(scan));
         else scan = FD_CDR(scan);}
     return FD_FALSE;}
 }
 
-static fdtype assoc_prim(fdtype key,fdtype list)
+static lispval assoc_prim(lispval key,lispval list)
 {
   if (NILP(list)) return FD_FALSE;
   else if (!(PAIRP(list)))
     return fd_type_error("alist","assoc_prim",list);
   else {
-    fdtype scan = list;
+    lispval scan = list;
     while (PAIRP(scan))
       if (!(PAIRP(FD_CAR(scan))))
         return fd_type_error("alist","assoc_prim",list);
       else {
-        fdtype item = FD_CAR(FD_CAR(scan));
-        if (FDTYPE_EQUAL(key,item))
+        lispval item = FD_CAR(FD_CAR(scan));
+        if (LISP_EQUAL(key,item))
           return fd_incref(FD_CAR(scan));
         else scan = FD_CDR(scan);}
     return FD_FALSE;}
@@ -824,11 +824,11 @@ static fdtype assoc_prim(fdtype key,fdtype list)
 
 /* MEMBER functions */
 
-static fdtype memq_prim(fdtype key,fdtype list)
+static lispval memq_prim(lispval key,lispval list)
 {
   if (NILP(list)) return FD_FALSE;
   else if (PAIRP(list)) {
-    fdtype scan = list;
+    lispval scan = list;
     while (PAIRP(scan))
       if (FD_EQ(FD_CAR(scan),key))
         return fd_incref(scan);
@@ -837,11 +837,11 @@ static fdtype memq_prim(fdtype key,fdtype list)
   else return fd_type_error("list","memq_prim",list);
 }
 
-static fdtype memv_prim(fdtype key,fdtype list)
+static lispval memv_prim(lispval key,lispval list)
 {
   if (NILP(list)) return FD_FALSE;
   else if (PAIRP(list)) {
-    fdtype scan = list;
+    lispval scan = list;
     while (PAIRP(scan))
       if (FD_EQV(FD_CAR(scan),key))
         return fd_incref(scan);
@@ -850,11 +850,11 @@ static fdtype memv_prim(fdtype key,fdtype list)
   else return fd_type_error("list","memv_prim",list);
 }
 
-static fdtype member_prim(fdtype key,fdtype list)
+static lispval member_prim(lispval key,lispval list)
 {
   if (NILP(list)) return FD_FALSE;
   else if (PAIRP(list)) {
-    fdtype scan = list;
+    lispval scan = list;
     while (PAIRP(scan))
       if (FD_EQUAL(FD_CAR(scan),key))
         return fd_incref(scan);
@@ -865,50 +865,50 @@ static fdtype member_prim(fdtype key,fdtype list)
 
 /* LIST AND VECTOR */
 
-static fdtype list(int n,fdtype *elts)
+static lispval list(int n,lispval *elts)
 {
-  fdtype head = NIL, *tail = &head; int i = 0;
+  lispval head = NIL, *tail = &head; int i = 0;
   while (i < n) {
-    fdtype pair = fd_make_pair(elts[i],NIL);
+    lispval pair = fd_make_pair(elts[i],NIL);
     *tail = pair; tail = &((struct FD_PAIR *)pair)->cdr; i++;}
   return head;
 }
 
-static fdtype vector(int n,fdtype *elts)
+static lispval vector(int n,lispval *elts)
 {
   int i = 0; while (i < n) {fd_incref(elts[i]); i++;}
   return fd_make_vector(n,elts);
 }
 
-static fdtype make_vector(fdtype size,fdtype dflt)
+static lispval make_vector(lispval size,lispval dflt)
 {
   int n = fd_getint(size);
   if (n==0)
     return fd_init_vector(NULL,0,NULL);
   else if (n>0) {
-    fdtype result = fd_init_vector(NULL,n,NULL);
-    fdtype *elts = FD_VECTOR_ELTS(result);
+    lispval result = fd_init_vector(NULL,n,NULL);
+    lispval *elts = FD_VECTOR_ELTS(result);
     int i = 0; while (i < n) {
       elts[i]=fd_incref(dflt); i++;}
     return result;}
   else return fd_type_error(_("positive"),"make_vector",size);
 }
 
-static fdtype seq2vector(fdtype seq)
+static lispval seq2vector(lispval seq)
 {
   if (NILP(seq))
     return fd_init_vector(NULL,0,NULL);
   else if (FD_SEQUENCEP(seq)) {
-    int n; fdtype *data = fd_elts(seq,&n);
-    fdtype result = fd_make_vector(n,data);
+    int n; lispval *data = fd_elts(seq,&n);
+    lispval result = fd_make_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2vector",seq);
 }
 
-static fdtype onevector_prim(int n,fdtype *args)
+static lispval onevector_prim(int n,lispval *args)
 {
-  fdtype elts[32], result = VOID;
+  lispval elts[32], result = VOID;
   struct U8_PILE pile; int i = 0;
   if (n==0) return fd_init_vector(NULL,0,NULL);
   else if (n==1) {
@@ -922,41 +922,41 @@ static fdtype onevector_prim(int n,fdtype *args)
       fd_incref(args[0]); return fd_make_vector(1,args);}}
   U8_INIT_STATIC_PILE((&pile),elts,32);
   while (i<n) {
-    fdtype arg = args[i++];
+    lispval arg = args[i++];
     DO_CHOICES(each,arg) {
       if (!(CONSP(each))) {u8_pile_add((&pile),each);}
       else if (VECTORP(each)) {
         int len = VEC_LEN(each); int j = 0;
         while (j<len) {
-          fdtype elt = VEC_REF(each,j); fd_incref(elt);
+          lispval elt = VEC_REF(each,j); fd_incref(elt);
           u8_pile_add(&pile,elt); j++;}}
       else if (PAIRP(each)) {
         FD_DOLIST(elt,each) {
           fd_incref(elt); u8_pile_add(&pile,elt);}}
       else {
         fd_incref(each); u8_pile_add(&pile,each);}}}
-  result = fd_make_vector(pile.u8_len,(fdtype *)pile.u8_elts);
+  result = fd_make_vector(pile.u8_len,(lispval *)pile.u8_elts);
   if (pile.u8_mallocd) u8_free(pile.u8_elts);
   return result;
 }
 
-static fdtype seq2rail(fdtype seq)
+static lispval seq2rail(lispval seq)
 {
   if (NILP(seq))
     return fd_make_code(0,NULL);
   else if (FD_SEQUENCEP(seq)) {
-    int n; fdtype *data = fd_elts(seq,&n);
-    fdtype result = fd_make_code(n,data);
+    int n; lispval *data = fd_elts(seq,&n);
+    lispval result = fd_make_code(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2rail",seq);
 }
 
-static fdtype seq2list(fdtype seq)
+static lispval seq2list(lispval seq)
 {
   if (NILP(seq)) return NIL;
   else if (FD_SEQUENCEP(seq)) {
-    int n; fdtype *data = fd_elts(seq,&n), result = NIL;
+    int n; lispval *data = fd_elts(seq,&n), result = NIL;
     n--; while (n>=0) {
       result = fd_conspair(data[n],result); n--;}
     u8_free(data);
@@ -964,20 +964,20 @@ static fdtype seq2list(fdtype seq)
   else return fd_type_error(_("sequence"),"seq2list",seq);
 }
 
-static fdtype seq2packet(fdtype seq)
+static lispval seq2packet(lispval seq)
 {
   if (NILP(seq))
     return fd_init_packet(NULL,0,NULL);
   else if (FD_SEQUENCEP(seq)) {
     int i = 0, n;
-    fdtype result = VOID;
-    fdtype *data = fd_elts(seq,&n);
+    lispval result = VOID;
+    lispval *data = fd_elts(seq,&n);
     unsigned char *bytes = u8_malloc(n);
     while (i<n) {
       if (FD_BYTEP(data[i])) {
         bytes[i]=FIX2INT(data[i]); i++;}
       else {
-        fdtype bad = fd_incref(data[i]);
+        lispval bad = fd_incref(data[i]);
         i = 0; while (i < n) {fd_decref(data[i]); i++;}
         u8_free(data);
         return fd_type_error(_("byte"),"seq2packet",bad);}}
@@ -988,28 +988,28 @@ static fdtype seq2packet(fdtype seq)
   else return fd_type_error(_("sequence"),"seq2packet",seq);
 }
 
-static fdtype x2string(fdtype seq)
+static lispval x2string(lispval seq)
 {
   if (SYMBOLP(seq))
-    return fdtype_string(SYM_NAME(seq));
+    return lispval_string(SYM_NAME(seq));
   else if (FD_CHARACTERP(seq)) {
     int c = FD_CHAR2CODE(seq);
     U8_OUTPUT out; u8_byte buf[16];
     U8_INIT_STATIC_OUTPUT_BUF(out,16,buf);
     u8_putc(&out,c);
-    return fdtype_string(out.u8_outbuf);}
-  else if (NILP(seq)) return fdtype_string("");
+    return lispval_string(out.u8_outbuf);}
+  else if (NILP(seq)) return lispval_string("");
   else if (STRINGP(seq)) return fd_incref(seq);
   else if (FD_SEQUENCEP(seq)) {
     U8_OUTPUT out;
     int i = 0, n;
-    fdtype *data = fd_elts(seq,&n);
+    lispval *data = fd_elts(seq,&n);
     U8_INIT_OUTPUT(&out,n*2);
     while (i<n) {
       if (FIXNUMP(data[i])) {
         long long charcode = FIX2INT(data[i]);
         if ((charcode<0)||(charcode>=0x10000)) {
-          fdtype bad = fd_incref(data[i]);
+          lispval bad = fd_incref(data[i]);
           i = 0; while (i<n) {fd_decref(data[i]); i++;}
           u8_free(data);
           return fd_type_error(_("character"),"seq2string",bad);}
@@ -1018,7 +1018,7 @@ static fdtype x2string(fdtype seq)
         int charcode = FD_CHAR2CODE(data[i]);
         u8_putc(&out,charcode); i++;}
       else {
-        fdtype bad = fd_incref(data[i]);
+        lispval bad = fd_incref(data[i]);
         i = 0; while (i<n) {fd_decref(data[i]); i++;}
         u8_free(data);
         return fd_type_error(_("character"),"seq2string",bad);}}
@@ -1027,36 +1027,36 @@ static fdtype x2string(fdtype seq)
   else return fd_type_error(_("sequence"),"x2string",seq);
 }
 
-FD_EXPORT fdtype fd_seq_elts(fdtype x)
+FD_EXPORT lispval fd_seq_elts(lispval x)
 {
   if (CHOICEP(x)) {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(e,x) {
-      fdtype subelts = fd_seq_elts(e);
+      lispval subelts = fd_seq_elts(e);
       CHOICE_ADD(results,subelts);}
     return results;}
   else {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     int ctype = FD_PTR_TYPE(x), i = 0, len;
     switch (ctype) {
     case fd_vector_type: case fd_code_type:
       len = VEC_LEN(x); while (i < len) {
-        fdtype elt = fd_incref(VEC_REF(x,i));
+        lispval elt = fd_incref(VEC_REF(x,i));
         CHOICE_ADD(result,elt); i++;}
       return result;
     case fd_packet_type: case fd_secret_type:
       len = FD_PACKET_LENGTH(x); while (i < len) {
-        fdtype elt = FD_BYTE2LISP(FD_PACKET_REF(x,i));
+        lispval elt = FD_BYTE2LISP(FD_PACKET_REF(x,i));
         CHOICE_ADD(result,elt); i++;}
       return result;
     case fd_pair_type: {
-      fdtype scan = x;
+      lispval scan = x;
       while (PAIRP(scan)) {
-        fdtype elt = fd_incref(FD_CAR(scan));
+        lispval elt = fd_incref(FD_CAR(scan));
         CHOICE_ADD(result,elt);
         scan = FD_CDR(scan);}
       if (!(NILP(scan))) {
-        fdtype tail = fd_incref(scan);
+        lispval tail = fd_incref(scan);
         CHOICE_ADD(result,tail);}
       return result;}
     case fd_string_type: {
@@ -1068,25 +1068,25 @@ FD_EXPORT fdtype fd_seq_elts(fdtype x)
       return result;}
     default:
       len = fd_seq_length(x); while (i<len) {
-        fdtype elt = fd_seq_elt(x,i);
+        lispval elt = fd_seq_elt(x,i);
         CHOICE_ADD(result,elt); i++;}
       return result;
     }}
 }
 
-static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
+static lispval elts_prim(lispval x,lispval start_arg,lispval end_arg)
 {
   int start, end;
-  fdtype check = check_range("elts_prim",x,start_arg,end_arg,&start,&end);
-  fdtype results = EMPTY;
+  lispval check = check_range("elts_prim",x,start_arg,end_arg,&start,&end);
+  lispval results = EMPTY;
   int ctype = FD_PTR_TYPE(x);
   if (FD_ABORTED(check)) return check;
   else switch (ctype) {
     case fd_vector_type: case fd_code_type: {
-      fdtype *read, *limit;
+      lispval *read, *limit;
       read = VEC_DATA(x)+start; limit = VEC_DATA(x)+end;
       while (read<limit) {
-        fdtype v = *read++; fd_incref(v);
+        lispval v = *read++; fd_incref(v);
         CHOICE_ADD(results,v);}
       return results;}
     case fd_packet_type: case fd_secret_type: {
@@ -1104,31 +1104,31 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
         fd_short *vec = FD_NUMVEC_SHORTS(x);
         while (i<lim) {
           fd_short num = vec[i++]; 
-          fdtype elt = FD_SHORT2FIX(num); 
+          lispval elt = FD_SHORT2FIX(num); 
           CHOICE_ADD(results,elt); 
           i++;}}
       case fd_int_elt: {
         fd_int *vec = FD_NUMVEC_INTS(x);
         while (i<lim) {
-          fd_int num = vec[i++]; fdtype elt = FD_INT(num);
+          fd_int num = vec[i++]; lispval elt = FD_INT(num);
           CHOICE_ADD(results,elt);}
         break;}
       case fd_long_elt: {
         fd_long *vec = FD_NUMVEC_LONGS(x);
         while (i<lim) {
-          fd_long num = vec[i++]; fdtype elt = FD_INT(num);
+          fd_long num = vec[i++]; lispval elt = FD_INT(num);
           CHOICE_ADD(results,elt);}
         break;}
       case fd_float_elt: {
         fd_float *vec = FD_NUMVEC_FLOATS(x);
         while (i<lim) {
-          fd_float num = vec[i++]; fdtype elt = fd_make_flonum(num);
+          fd_float num = vec[i++]; lispval elt = fd_make_flonum(num);
           CHOICE_ADD(results,elt);}
         break;}
       case fd_double_elt: {
         fd_double *vec = FD_NUMVEC_DOUBLES(x);
         while (i<lim) {
-          fd_double num = vec[i++]; fdtype elt = fd_make_flonum(num);
+          fd_double num = vec[i++]; lispval elt = fd_make_flonum(num);
           CHOICE_ADD(results,elt);}
         break;}
       default: {
@@ -1137,11 +1137,11 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
         results = FD_ERROR;}}
       break;}
     case fd_pair_type: {
-      int j = 0; fdtype scan = x;
+      int j = 0; lispval scan = x;
       while (PAIRP(scan))
         if (j == end) return results;
         else if (j>=start) {
-          fdtype car = FD_CAR(scan); fd_incref(car);
+          lispval car = FD_CAR(scan); fd_incref(car);
           CHOICE_ADD(results,car);
           j++; scan = FD_CDR(scan);}
         else {j++; scan = FD_CDR(scan);}
@@ -1161,7 +1161,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
         else return FD_RANGE_ERROR;
       else if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->elt)) {
         int scan = start; while (start<end) {
-          fdtype elt = (fd_seqfns[ctype]->elt)(x,scan);
+          lispval elt = (fd_seqfns[ctype]->elt)(x,scan);
           CHOICE_ADD(results,elt); scan++;}
         return results;}
       else if (fd_seqfns[ctype]==NULL)
@@ -1170,20 +1170,20 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   return results;
 }
 
-static fdtype vec2elts_prim(fdtype x)
+static lispval vec2elts_prim(lispval x)
 {
   if (VECTORP(x)) {
-    fdtype result = EMPTY;
-    int i = 0; int len = VEC_LEN(x); fdtype *elts = FD_VECTOR_ELTS(x);
+    lispval result = EMPTY;
+    int i = 0; int len = VEC_LEN(x); lispval *elts = FD_VECTOR_ELTS(x);
     while (i<len) {
-      fdtype e = elts[i++]; fd_incref(e); CHOICE_ADD(result,e);}
+      lispval e = elts[i++]; fd_incref(e); CHOICE_ADD(result,e);}
     return result;}
   else return fd_incref(x);
 }
 
 /* Vector length predicates */
 
-static fdtype veclen_lt_prim(fdtype x,fdtype len)
+static lispval veclen_lt_prim(lispval x,lispval len)
 {
   if (!(VECTORP(x)))
     return FD_FALSE;
@@ -1192,7 +1192,7 @@ static fdtype veclen_lt_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype veclen_lte_prim(fdtype x,fdtype len)
+static lispval veclen_lte_prim(lispval x,lispval len)
 {
   if (!(VECTORP(x)))
     return FD_FALSE;
@@ -1201,7 +1201,7 @@ static fdtype veclen_lte_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype veclen_gt_prim(fdtype x,fdtype len)
+static lispval veclen_gt_prim(lispval x,lispval len)
 {
   if (!(VECTORP(x)))
     return FD_FALSE;
@@ -1210,7 +1210,7 @@ static fdtype veclen_gt_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype veclen_gte_prim(fdtype x,fdtype len)
+static lispval veclen_gte_prim(lispval x,lispval len)
 {
   if (!(VECTORP(x)))
     return FD_FALSE;
@@ -1219,7 +1219,7 @@ static fdtype veclen_gte_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype veclen_eq_prim(fdtype x,fdtype len)
+static lispval veclen_eq_prim(lispval x,lispval len)
 {
   if (!(VECTORP(x)))
     return FD_FALSE;
@@ -1230,7 +1230,7 @@ static fdtype veclen_eq_prim(fdtype x,fdtype len)
 
 /* Sequence length predicates */
 
-static fdtype seqlen_lt_prim(fdtype x,fdtype len)
+static lispval seqlen_lt_prim(lispval x,lispval len)
 {
   if (!(FD_SEQUENCEP(x)))
     return FD_FALSE;
@@ -1239,7 +1239,7 @@ static fdtype seqlen_lt_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype seqlen_lte_prim(fdtype x,fdtype len)
+static lispval seqlen_lte_prim(lispval x,lispval len)
 {
   if (!(FD_SEQUENCEP(x)))
     return FD_FALSE;
@@ -1248,7 +1248,7 @@ static fdtype seqlen_lte_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype seqlen_gt_prim(fdtype x,fdtype len)
+static lispval seqlen_gt_prim(lispval x,lispval len)
 {
   if (!(FD_SEQUENCEP(x)))
     return FD_FALSE;
@@ -1257,7 +1257,7 @@ static fdtype seqlen_gt_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype seqlen_gte_prim(fdtype x,fdtype len)
+static lispval seqlen_gte_prim(lispval x,lispval len)
 {
   if (!(FD_SEQUENCEP(x)))
     return FD_FALSE;
@@ -1266,7 +1266,7 @@ static fdtype seqlen_gte_prim(fdtype x,fdtype len)
   else return FD_FALSE;
 }
 
-static fdtype seqlen_eq_prim(fdtype x,fdtype len)
+static lispval seqlen_eq_prim(lispval x,lispval len)
 {
   if (!(FD_SEQUENCEP(x)))
     return FD_FALSE;
@@ -1277,7 +1277,7 @@ static fdtype seqlen_eq_prim(fdtype x,fdtype len)
 
 /* Matching vectors */
 
-static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
+static lispval seqmatch_prim(lispval prefix,lispval seq,lispval startarg)
 {
   if (!(FD_UINTP(startarg)))
     return fd_type_error("uint","seqmatchprim",startarg);
@@ -1312,8 +1312,8 @@ static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
     if ((start+plen)<=seqlen) {
       int j = 0; int i = start;
       while (j<plen) {
-        fdtype pelt = fd_seq_elt(prefix,j);
-        fdtype velt = fd_seq_elt(prefix,i);
+        lispval pelt = fd_seq_elt(prefix,j);
+        lispval velt = fd_seq_elt(prefix,i);
         int cmp = FD_EQUAL(pelt,velt);
         fd_decref(pelt); fd_decref(velt);
         if (cmp) {j++; i++;}
@@ -1324,7 +1324,7 @@ static fdtype seqmatch_prim(fdtype prefix,fdtype seq,fdtype startarg)
 
 /* Sorting vectors */
 
-static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
+static lispval sortvec_primfn(lispval vec,lispval keyfn,int reverse,int lexsort)
 {
   if (VEC_LEN(vec)==0)
     return fd_init_vector(NULL,0,NULL);
@@ -1332,12 +1332,12 @@ static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
     return fd_incref(vec);
   else {
     int i = 0, n = VEC_LEN(vec), j = 0;
-    fdtype result = fd_init_vector(NULL,n,NULL);
-    fdtype *vecdata = FD_VECTOR_ELTS(result);
+    lispval result = fd_init_vector(NULL,n,NULL);
+    lispval *vecdata = FD_VECTOR_ELTS(result);
     struct FD_SORT_ENTRY *sentries = u8_alloc_n(n,struct FD_SORT_ENTRY);
     while (i<n) {
-      fdtype elt = VEC_REF(vec,i);
-      fdtype value=_fd_apply_keyfn(elt,keyfn);
+      lispval elt = VEC_REF(vec,i);
+      lispval value=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(value)) {
         int j = 0; while (j<i) {fd_decref(sentries[j].fd_sortval); j++;}
         u8_free(sentries); u8_free(vecdata);
@@ -1360,17 +1360,17 @@ static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
     return result;}
 }
 
-static fdtype sortvec_prim(fdtype vec,fdtype keyfn)
+static lispval sortvec_prim(lispval vec,lispval keyfn)
 {
   return sortvec_primfn(vec,keyfn,0,0);
 }
 
-static fdtype lexsortvec_prim(fdtype vec,fdtype keyfn)
+static lispval lexsortvec_prim(lispval vec,lispval keyfn)
 {
   return sortvec_primfn(vec,keyfn,0,1);
 }
 
-static fdtype rsortvec_prim(fdtype vec,fdtype keyfn)
+static lispval rsortvec_prim(lispval vec,lispval keyfn)
 {
   return sortvec_primfn(vec,keyfn,1,0);
 }
@@ -1379,24 +1379,24 @@ static fdtype rsortvec_prim(fdtype vec,fdtype keyfn)
    nothing has changed. This is handy for some recursive list
    functions. */
 
-static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
+static lispval recons_prim(lispval car,lispval cdr,lispval orig)
 {
   if ((FD_EQ(car,FD_CAR(orig)))&&(FD_EQ(cdr,FD_CDR(orig))))
     return fd_incref(orig);
   else {
-    fdtype cons = fd_conspair(car,cdr);
+    lispval cons = fd_conspair(car,cdr);
     fd_incref(car); fd_incref(cdr);
     return cons;}
 }
 
 /* Numeric vectors */
 
-static fdtype make_short_vector(int n,fdtype *from_elts)
+static lispval make_short_vector(int n,lispval *from_elts)
 {
-  int i = 0; fdtype vec = fd_make_numeric_vector(n,fd_short_elt);
+  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_short_elt);
   fd_short *elts = FD_NUMVEC_SHORTS(vec);
   while (i<n) {
-    fdtype elt = from_elts[i];
+    lispval elt = from_elts[i];
     if (FD_SHORTP(elt))
       elts[i++]=(fd_short)(FIX2INT(elt));
     else {
@@ -1405,7 +1405,7 @@ static fdtype make_short_vector(int n,fdtype *from_elts)
   return vec;
 }
 
-static fdtype seq2shortvec(fdtype arg)
+static lispval seq2shortvec(lispval arg)
 {
   if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_short_elt)) {
@@ -1416,19 +1416,19 @@ static fdtype seq2shortvec(fdtype arg)
   else if (NILP(arg))
     return fd_make_short_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; fdtype *data = fd_elts(arg,&n);
-    fdtype result = make_short_vector(n,data);
+    int n; lispval *data = fd_elts(arg,&n);
+    lispval result = make_short_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2shortvec",arg);
 }
 
-static fdtype make_int_vector(int n,fdtype *from_elts)
+static lispval make_int_vector(int n,lispval *from_elts)
 {
-  int i = 0; fdtype vec = fd_make_numeric_vector(n,fd_int_elt);
+  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_int_elt);
   fd_int *elts = FD_NUMVEC_INTS(vec);
   while (i<n) {
-    fdtype elt = from_elts[i];
+    lispval elt = from_elts[i];
     if (FD_INTP(elt))
       elts[i++]=((fd_int)(FIX2INT(elt)));
     else if ((FD_BIGINTP(elt))&&
@@ -1440,7 +1440,7 @@ static fdtype make_int_vector(int n,fdtype *from_elts)
   return vec;
 }
 
-static fdtype seq2intvec(fdtype arg)
+static lispval seq2intvec(lispval arg)
 {
   if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_int_elt)) {
@@ -1451,19 +1451,19 @@ static fdtype seq2intvec(fdtype arg)
   else if (NILP(arg))
     return fd_make_int_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; fdtype *data = fd_elts(arg,&n);
-    fdtype result = make_int_vector(n,data);
+    int n; lispval *data = fd_elts(arg,&n);
+    lispval result = make_int_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2intvec",arg);
 }
 
-static fdtype make_long_vector(int n,fdtype *from_elts)
+static lispval make_long_vector(int n,lispval *from_elts)
 {
-  int i = 0; fdtype vec = fd_make_numeric_vector(n,fd_long_elt);
+  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_long_elt);
   fd_long *elts = FD_NUMVEC_LONGS(vec);
   while (i<n) {
-    fdtype elt = from_elts[i];
+    lispval elt = from_elts[i];
     if (FIXNUMP(elt))
       elts[i++]=((fd_long)(FIX2INT(elt)));
     else if (FD_BIGINTP(elt))
@@ -1474,7 +1474,7 @@ static fdtype make_long_vector(int n,fdtype *from_elts)
   return vec;
 }
 
-static fdtype seq2longvec(fdtype arg)
+static lispval seq2longvec(lispval arg)
 {
   if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_long_elt)) {
@@ -1485,19 +1485,19 @@ static fdtype seq2longvec(fdtype arg)
   else if (NILP(arg))
     return fd_make_long_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; fdtype *data = fd_elts(arg,&n);
-    fdtype result = make_long_vector(n,data);
+    int n; lispval *data = fd_elts(arg,&n);
+    lispval result = make_long_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2longvec",arg);
 }
 
-static fdtype make_float_vector(int n,fdtype *from_elts)
+static lispval make_float_vector(int n,lispval *from_elts)
 {
-  int i = 0; fdtype vec = fd_make_numeric_vector(n,fd_float_elt);
+  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_float_elt);
   float *elts = FD_NUMVEC_FLOATS(vec);
   while (i<n) {
-    fdtype elt = from_elts[i];
+    lispval elt = from_elts[i];
     if (FD_FLONUMP(elt))
       elts[i++]=FD_FLONUM(elt);
     else if (NUMBERP(elt))
@@ -1508,7 +1508,7 @@ static fdtype make_float_vector(int n,fdtype *from_elts)
   return vec;
 }
 
-static fdtype seq2floatvec(fdtype arg)
+static lispval seq2floatvec(lispval arg)
 {
   if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_float_elt)) {
@@ -1519,19 +1519,19 @@ static fdtype seq2floatvec(fdtype arg)
   else if (NILP(arg))
     return fd_make_float_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; fdtype *data = fd_elts(arg,&n);
-    fdtype result = make_float_vector(n,data);
+    int n; lispval *data = fd_elts(arg,&n);
+    lispval result = make_float_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2floatvec",arg);
 }
 
-static fdtype make_double_vector(int n,fdtype *from_elts)
+static lispval make_double_vector(int n,lispval *from_elts)
 {
-  int i = 0; fdtype vec = fd_make_numeric_vector(n,fd_double_elt);
+  int i = 0; lispval vec = fd_make_numeric_vector(n,fd_double_elt);
   double *elts = FD_NUMVEC_DOUBLES(vec);
   while (i<n) {
-    fdtype elt = from_elts[i];
+    lispval elt = from_elts[i];
     if (FD_FLONUMP(elt))
       elts[i++]=FD_FLONUM(elt);
     else if (NUMBERP(elt))
@@ -1542,7 +1542,7 @@ static fdtype make_double_vector(int n,fdtype *from_elts)
   return vec;
 }
 
-static fdtype seq2doublevec(fdtype arg)
+static lispval seq2doublevec(lispval arg)
 {
   if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_double_elt)) {
@@ -1553,8 +1553,8 @@ static fdtype seq2doublevec(fdtype arg)
   else if (NILP(arg))
     return fd_make_double_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
-    int n; fdtype *data = fd_elts(arg,&n);
-    fdtype result = make_double_vector(n,data);
+    int n; lispval *data = fd_elts(arg,&n);
+    lispval result = make_double_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2doublevec",arg);
@@ -1562,43 +1562,43 @@ static fdtype seq2doublevec(fdtype arg)
 
 /* Rails */
 
-static fdtype make_code(int n,fdtype *elts)
+static lispval make_code(int n,lispval *elts)
 {
   int i = 0; while (i<n) {
-    fdtype v = elts[i++]; fd_incref(v);}
+    lispval v = elts[i++]; fd_incref(v);}
   return fd_make_code(n,elts);
 }
 
 /* side effecting operations (not threadsafe) */
 
-static fdtype set_car(fdtype pair,fdtype val)
+static lispval set_car(lispval pair,lispval val)
 {
   struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,pair,fd_pair_type);
-  fdtype oldv = p->car; p->car = fd_incref(val);
+  lispval oldv = p->car; p->car = fd_incref(val);
   fd_decref(oldv);
   return VOID;
 }
 
-static fdtype set_cdr(fdtype pair,fdtype val)
+static lispval set_cdr(lispval pair,lispval val)
 {
   struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,pair,fd_pair_type);
-  fdtype oldv = p->cdr; p->cdr = fd_incref(val);
+  lispval oldv = p->cdr; p->cdr = fd_incref(val);
   fd_decref(oldv);
   return VOID;
 }
 
-static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
+static lispval vector_set(lispval vec,lispval index,lispval val)
 {
   struct FD_VECTOR *v = fd_consptr(struct FD_VECTOR *,vec,fd_vector_type);
   if (!(FD_UINTP(index))) return fd_type_error("uint","vector_set",index);
-  int offset = FIX2INT(index); fdtype *elts = v->fdvec_elts;
+  int offset = FIX2INT(index); lispval *elts = v->fdvec_elts;
   if (offset>v->fdvec_length) {
     char buf[32];
     return fd_err(fd_RangeError,"vector_set",
                   u8_uitoa10(offset,buf),
                   vec);}
   else {
-    fdtype oldv = elts[offset];
+    lispval oldv = elts[offset];
     elts[offset]=fd_incref(val);
     fd_decref(oldv);
     return VOID;}

@@ -14,36 +14,36 @@
 FD_EXPORT fd_exception fd_RangeError;
 
 typedef struct FD_SEQFNS {
-  int (*len)(fdtype x);
-  fdtype (*elt)(fdtype x,int i);
-  fdtype (*slice)(fdtype x,int i,int j);
-  int (*position)(fdtype key,fdtype x,int i,int j);
-  int (*search)(fdtype key,fdtype x,int i,int j);
-  fdtype *(*elts)(fdtype x,int *);
-  fdtype (*make)(int,fdtype *);
+  int (*len)(lispval x);
+  lispval (*elt)(lispval x,int i);
+  lispval (*slice)(lispval x,int i,int j);
+  int (*position)(lispval key,lispval x,int i,int j);
+  int (*search)(lispval key,lispval x,int i,int j);
+  lispval *(*elts)(lispval x,int *);
+  lispval (*make)(int,lispval *);
 } FD_SEQFNS;
 
 FD_EXPORT struct FD_SEQFNS *fd_seqfns[];
 
-FD_EXPORT int fd_seq_length(fdtype x);
-FD_EXPORT fdtype fd_seq_elt(fdtype x,int i);
-FD_EXPORT fdtype fd_seq_elts(fdtype x);
-FD_EXPORT fdtype fd_slice(fdtype x,int start,int end);
-FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end);
-FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end);
-FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end);
-FD_EXPORT fdtype fd_append(int n,fdtype *sequences);
+FD_EXPORT int fd_seq_length(lispval x);
+FD_EXPORT lispval fd_seq_elt(lispval x,int i);
+FD_EXPORT lispval fd_seq_elts(lispval x);
+FD_EXPORT lispval fd_slice(lispval x,int start,int end);
+FD_EXPORT int fd_position(lispval key,lispval x,int start,int end);
+FD_EXPORT int fd_rposition(lispval key,lispval x,int start,int end);
+FD_EXPORT int fd_search(lispval key,lispval x,int start,int end);
+FD_EXPORT lispval fd_append(int n,lispval *sequences);
 
-FD_EXPORT fdtype fd_reverse(fdtype sequence);
-FD_EXPORT fdtype fd_remove(fdtype item,fdtype sequence);
-FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert);
+FD_EXPORT lispval fd_reverse(lispval sequence);
+FD_EXPORT lispval fd_remove(lispval item,lispval sequence);
+FD_EXPORT lispval fd_removeif(lispval test,lispval sequence,int invert);
 
-FD_EXPORT int fd_generic_position(fdtype key,fdtype x,int start,int end);
-FD_EXPORT int fd_generic_search(fdtype subseq,fdtype seq,int start,int end);
+FD_EXPORT int fd_generic_position(lispval key,lispval x,int start,int end);
+FD_EXPORT int fd_generic_search(lispval subseq,lispval seq,int start,int end);
 
 #define FD_SEQUENCEP(x) ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))
 
-fdtype *fd_elts(fdtype seq,int *len);
-fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v);
+lispval *fd_elts(lispval seq,int *len);
+lispval fd_makeseq(fd_ptr_type ctype,int n,lispval *v);
 
 #endif /*  FRAMERD_SEQUENCES_H */

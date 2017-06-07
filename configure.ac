@@ -32,7 +32,6 @@ AC_MSG_CHECKING([for group $1])
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
 
 threads_default="yes"
-checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
 rpath_default=$exec_prefix
@@ -1090,13 +1089,6 @@ else
   AC_DEFINE(FD_ENABLE_LOCKFREE,0)
 fi
 
-
-AC_ARG_ENABLE(checkptrs,--en[dis]able-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
-if test "$enable_checkfdtype" = "yes"; then
-  AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,1)
-else
-  AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,0)
-fi
 
 dnl If possible, compile for multi-threaded execution.  This both makes
 dnl  the library threadsafe and enables Scheme primitives for spawning threads

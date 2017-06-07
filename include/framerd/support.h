@@ -19,51 +19,51 @@ FD_EXPORT fd_exception fd_ReadOnlyConfig;
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {
-  fdtype fd_configname; 
+  lispval fd_configname; 
   void *fd_configdata; 
   int fd_configflags; 
   u8_string fd_configdoc;
-  fdtype (*fd_config_get_method)(fdtype var,void *data);
-  int (*fd_config_set_method)(fdtype var,fdtype val,void *data);
+  lispval (*fd_config_get_method)(lispval var,void *data);
+  int (*fd_config_set_method)(lispval var,lispval val,void *data);
   struct FD_CONFIG_HANDLER *fd_nextconfig;} FD_CONFIG_HANDLER;
 typedef struct FD_CONFIG_HANDLER *fd_config_handler;
 
 typedef struct FD_CONFIG_FINDER {
-  fdtype (*fdcfg_lookup)(fdtype var,void *data);
+  lispval (*fdcfg_lookup)(lispval var,void *data);
   void *fdcfg_lookup_data;
   struct FD_CONFIG_FINDER *fd_next_finder;} FD_CONFIG_FINDER;
 typedef struct FD_CONFIG_FINDER *fd_config_finders;
 
-FD_EXPORT fdtype fd_config_get(u8_string var);
-FD_EXPORT int fd_set_config(u8_string var,fdtype val);
-FD_EXPORT int fd_default_config(u8_string var,fdtype val);
-FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val);
+FD_EXPORT lispval fd_config_get(u8_string var);
+FD_EXPORT int fd_set_config(u8_string var,lispval val);
+FD_EXPORT int fd_default_config(u8_string var,lispval val);
+FD_EXPORT int fd_set_config_consed(u8_string var,lispval val);
 #define fd_config_set(var,val) fd_set_config(var,val)
 #define fd_config_set_consed(var,val) fd_set_config_consed(var,val)
 #define fd_default_config(var,val) fd_default_config(var,val)
 
-FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *p);
+FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *p);
 
-FD_EXPORT int fd_lconfig_push(fdtype,fdtype v,void *lispp);
-FD_EXPORT int fd_lconfig_add(fdtype,fdtype v,void *lispp);
-FD_EXPORT int fd_lconfig_set(fdtype,fdtype v,void *lispp);
-FD_EXPORT fdtype fd_lconfig_get(fdtype,void *lispp);
-FD_EXPORT int fd_sconfig_set(fdtype,fdtype v,void *stringptr);
-FD_EXPORT fdtype fd_sconfig_get(fdtype,void *stringptr);
-FD_EXPORT int fd_intconfig_set(fdtype,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_longconfig_get(fdtype,void *intptr);
-FD_EXPORT int fd_longconfig_set(fdtype,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_intconfig_get(fdtype,void *intptr);
-FD_EXPORT int fd_sizeconfig_set(fdtype,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_sizeconfig_get(fdtype,void *intptr);
-FD_EXPORT int fd_boolconfig_set(fdtype,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_boolconfig_get(fdtype,void *intptr);
-FD_EXPORT int fd_dblconfig_set(fdtype,fdtype v,void *dblptr);
-FD_EXPORT fdtype fd_dblconfig_get(fdtype,void *dblptr);
-FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
+FD_EXPORT int fd_lconfig_push(lispval,lispval v,void *lispp);
+FD_EXPORT int fd_lconfig_add(lispval,lispval v,void *lispp);
+FD_EXPORT int fd_lconfig_set(lispval,lispval v,void *lispp);
+FD_EXPORT lispval fd_lconfig_get(lispval,void *lispp);
+FD_EXPORT int fd_sconfig_set(lispval,lispval v,void *stringptr);
+FD_EXPORT lispval fd_sconfig_get(lispval,void *stringptr);
+FD_EXPORT int fd_intconfig_set(lispval,lispval v,void *intptr);
+FD_EXPORT lispval fd_longconfig_get(lispval,void *intptr);
+FD_EXPORT int fd_longconfig_set(lispval,lispval v,void *intptr);
+FD_EXPORT lispval fd_intconfig_get(lispval,void *intptr);
+FD_EXPORT int fd_sizeconfig_set(lispval,lispval v,void *intptr);
+FD_EXPORT lispval fd_sizeconfig_get(lispval,void *intptr);
+FD_EXPORT int fd_boolconfig_set(lispval,lispval v,void *intptr);
+FD_EXPORT lispval fd_boolconfig_get(lispval,void *intptr);
+FD_EXPORT int fd_dblconfig_set(lispval,lispval v,void *dblptr);
+FD_EXPORT lispval fd_dblconfig_get(lispval,void *dblptr);
+FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data);
 
-FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr);
-FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr);
+FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr);
+FD_EXPORT lispval fd_config_rlimit_get(lispval ignored,void *vptr);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_default_config_assignment(u8_string assign_expr);
@@ -71,29 +71,29 @@ FD_EXPORT int fd_read_config(u8_input in);
 FD_EXPORT int fd_read_default_config(u8_input in);
 
 FD_EXPORT int fd_argv_config(int argc,char **argv) U8_DEPRECATED;
-FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
+FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
 				 unsigned int parse_mask,
 				 size_t *arglen_ptr);
 
-FD_EXPORT fdtype *fd_argv;
+FD_EXPORT lispval *fd_argv;
 FD_EXPORT int fd_argc;
 
-FD_EXPORT void fd_set_thread_config(fdtype table);
+FD_EXPORT void fd_set_thread_config(lispval table);
 
 FD_EXPORT
-void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *);
+void fd_register_config_lookup(lispval (*fn)(lispval,void *),void *);
 
 FD_EXPORT int fd_register_config
 (u8_string var,u8_string doc,
-   fdtype (*getfn)(fdtype,void *),
-   int (*setfn)(fdtype,fdtype,void *),
+   lispval (*getfn)(lispval,void *),
+   int (*setfn)(lispval,lispval,void *),
    void *data);
 FD_EXPORT int fd_register_config_x
 (u8_string var,u8_string doc,
-   fdtype (*getfn)(fdtype,void *),
-   int (*setfn)(fdtype,fdtype,void *),
+   lispval (*getfn)(lispval,void *),
+   int (*setfn)(lispval,lispval,void *),
    void *data,int (*reuse)(struct FD_CONFIG_HANDLER *scan));
-FD_EXPORT fdtype fd_all_configs(int with_docs);
+FD_EXPORT lispval fd_all_configs(int with_docs);
 
 FD_EXPORT void fd_config_lock(int lock);
 
@@ -103,33 +103,33 @@ FD_EXPORT int fd_boolstring(u8_string,int);
 
 FD_EXPORT void fd_free_exception_xdata(void *ptr);
 
-FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
+FD_EXPORT lispval fd_err(fd_exception,u8_context,u8_string,lispval);
 
-FD_EXPORT fdtype fd_type_error(u8_string,u8_context,fdtype);
+FD_EXPORT lispval fd_type_error(u8_string,u8_context,lispval);
 
 FD_EXPORT void fd_sum_exception(U8_OUTPUT *out,u8_exception e);
 FD_EXPORT u8_string fd_errstring(u8_exception e);
-FD_EXPORT fdtype fd_exception_xdata(u8_exception e);
+FD_EXPORT lispval fd_exception_xdata(u8_exception e);
 
 FD_EXPORT void fd_print_exception(U8_OUTPUT *out,u8_exception e);
 FD_EXPORT void fd_log_exception(u8_exception ex);
 FD_EXPORT void fd_output_exception(u8_output out,u8_exception ex);
 FD_EXPORT void fd_output_errstack(u8_output out,u8_exception ex);
 FD_EXPORT void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant);
-FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
+FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
 FD_EXPORT U8_NOINLINE void fd_seterr
-  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 FD_EXPORT U8_NOINLINE void fd_pusherr
-  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 FD_EXPORT U8_NOINLINE void fd_xseterr
-  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 FD_EXPORT U8_NOINLINE void fd_raise
-  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 
-FD_EXPORT fdtype fd_get_irritant(u8_exception ex);
+FD_EXPORT lispval fd_get_irritant(u8_exception ex);
 
-FD_EXPORT int fd_stacktracep(fdtype rep);
+FD_EXPORT int fd_stacktracep(lispval rep);
 
 #define fd_xseterr3(c,cxt,details) \
    fd_xseterr(c,cxt,details,FD_VOID)
@@ -140,51 +140,51 @@ FD_EXPORT int fd_stacktracep(fdtype rep);
 #define fd_seterr1(c) \
    fd_seterr(c,NULL,NULL,FD_VOID)
 
-FD_EXPORT void fd_set_type_error(u8_string type_name,fdtype irritant);
+FD_EXPORT void fd_set_type_error(u8_string type_name,lispval irritant);
 
 FD_EXPORT int fd_geterr
-  (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant);
+  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant);
 FD_EXPORT int fd_poperr
-  (u8_condition *c,u8_context *cxt,u8_string *details,fdtype *irritant);
+  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant);
 
 
 FD_EXPORT int fd_reterr
-  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
-FD_EXPORT int fd_interr(fdtype x);
-FD_EXPORT fdtype fd_erreify(void);
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+FD_EXPORT int fd_interr(lispval x);
+FD_EXPORT lispval fd_erreify(void);
 
-FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err);
+FD_EXPORT fd_exception fd_retcode_to_exception(lispval err);
 
-FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
+FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
 /* Whether the executable is exiting */
 FD_EXPORT int fd_exiting;
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
 FD_EXPORT void fd_log_exception(u8_exception ex);
-FD_EXPORT void fd_doexit(fdtype);
+FD_EXPORT void fd_doexit(lispval);
 
 /* Thread vars */
 
-FD_EXPORT fdtype fd_thread_get(fdtype var);
+FD_EXPORT lispval fd_thread_get(lispval var);
 FD_EXPORT void fd_reset_threadvars(void);
-FD_EXPORT int fd_thread_set(fdtype var,fdtype val);
-FD_EXPORT int fd_thread_add(fdtype var,fdtype val);
+FD_EXPORT int fd_thread_set(lispval var,lispval val);
+FD_EXPORT int fd_thread_add(lispval var,lispval val);
 
 /* Request state */
 
-typedef fdtype (*fd_reqfn)(fdtype);
+typedef lispval (*fd_reqfn)(lispval);
 
-FD_EXPORT fdtype fd_req(fdtype var);
-FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt);
-FD_EXPORT int fd_req_store(fdtype var,fdtype val);
-FD_EXPORT int fd_req_test(fdtype var,fdtype val);
-FD_EXPORT int fd_req_add(fdtype var,fdtype val);
-FD_EXPORT int fd_req_drop(fdtype var,fdtype val);
-FD_EXPORT fdtype fd_req_call(fd_reqfn reqfn);
-FD_EXPORT int fd_req_push(fdtype var,fdtype val);
-FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
-FD_EXPORT fdtype fd_push_reqinfo(fdtype reqinfo);
+FD_EXPORT lispval fd_req(lispval var);
+FD_EXPORT lispval fd_req_get(lispval var,lispval dflt);
+FD_EXPORT int fd_req_store(lispval var,lispval val);
+FD_EXPORT int fd_req_test(lispval var,lispval val);
+FD_EXPORT int fd_req_add(lispval var,lispval val);
+FD_EXPORT int fd_req_drop(lispval var,lispval val);
+FD_EXPORT lispval fd_req_call(fd_reqfn reqfn);
+FD_EXPORT int fd_req_push(lispval var,lispval val);
+FD_EXPORT void fd_use_reqinfo(lispval reqinfo);
+FD_EXPORT lispval fd_push_reqinfo(lispval reqinfo);
 FD_EXPORT int fd_isreqlive(void);
 
 FD_EXPORT struct U8_OUTPUT *fd_reqlog(int force);
@@ -203,13 +203,13 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
 /* Handling options */
 
-FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
-FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
-FD_EXPORT long long fd_fixopt(fdtype opts,u8_string name,int dflt);
+FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt);
+FD_EXPORT int fd_testopt(lispval opts,lispval key,lispval val);
+FD_EXPORT long long fd_fixopt(lispval opts,u8_string name,int dflt);
 
 /* Getting the C config table */
 
-FD_EXPORT fdtype fd_get_build_info(void);
+FD_EXPORT lispval fd_get_build_info(void);
 
 /* Signalling */
 

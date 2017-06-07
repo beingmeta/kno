@@ -22,12 +22,12 @@
 
 #include <ctype.h>
 
-static fdtype reqgetvar(fdtype cgidata,fdtype var)
+static lispval reqgetvar(lispval cgidata,lispval var)
 {
   int noparse=
     ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
-  fdtype name = ((noparse)?(fd_intern(SYM_NAME(var)+1)):(var));
-  fdtype val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
+  lispval name = ((noparse)?(fd_intern(SYM_NAME(var)+1)):(var));
+  lispval val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
               (fd_req_get(name,VOID)));
   if (VOIDP(val)) return val;
   else if ((noparse)&&(STRINGP(val))) return val;
@@ -35,37 +35,37 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
     u8_string data = CSTRING(val);
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
-      fdtype parsed = fd_parse_arg(data);
+      lispval parsed = fd_parse_arg(data);
       fd_decref(val); return parsed;}
     else if (isdigit(data[0])) {
-      fdtype parsed = fd_parse_arg(data);
+      lispval parsed = fd_parse_arg(data);
       if (NUMBERP(parsed)) {
         fd_decref(val); return parsed;}
       else {
         fd_decref(parsed); return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
-        return fdtype_string(data);
+        return lispval_string(data);
       else {
-        fdtype arg = fd_parse(data+1);
+        lispval arg = fd_parse(data+1);
         if (FD_ABORTP(arg)) {
           u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
           fd_clear_errors(1);
-          return fdtype_string(data);}
+          return lispval_string(data);}
         else return arg;}
     else if (*data == '\\') {
-      fdtype shorter = fdtype_string(data+1);
+      lispval shorter = lispval_string(data+1);
       fd_decref(val);
       return shorter;}
     else return val;}
   else if ((CHOICEP(val))||(PRECHOICEP(val))) {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     DO_CHOICES(v,val) {
       if (!(STRINGP(v))) {
         fd_incref(v); CHOICE_ADD(result,v);}
       else {
-        u8_string data = CSTRING(v); fdtype parsed = v;
-        if (*data=='\\') parsed = fdtype_string(data+1);
+        u8_string data = CSTRING(v); lispval parsed = v;
+        if (*data=='\\') parsed = lispval_string(data+1);
         else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
         else if (*data==':')
           parsed = fd_parse(data+1);
@@ -88,25 +88,25 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
 
 /* The init function */
 
-static fdtype reqcall_prim(fdtype proc)
+static lispval reqcall_prim(lispval proc)
 {
-  fdtype value = VOID;
+  lispval value = VOID;
   if (FD_SPROCP(proc))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)VOID,
-                      (fdtype (*)(void *,fdtype))reqgetvar);
+                      (lispval (*)(void *,lispval))reqgetvar);
   else if (FD_APPLICABLEP(proc))
     value = fd_apply(proc,0,NULL);
   else value = fd_type_error("applicable","cgicall",proc);
   return value;
 }
 
-static fdtype reqget_prim(fdtype vars,fdtype dflt)
+static lispval reqget_prim(lispval vars,lispval dflt)
 {
-  fdtype results = EMPTY; int found = 0;
+  lispval results = EMPTY; int found = 0;
   DO_CHOICES(var,vars) {
-    fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
-    fdtype val = fd_req_get(name,VOID);
+    lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+    lispval val = fd_req_get(name,VOID);
     if (!(VOIDP(val))) {
       found = 1; CHOICE_ADD(results,val);}}
   if (found) return fd_simplify_choice(results);
@@ -117,23 +117,23 @@ static fdtype reqget_prim(fdtype vars,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype reqval_prim(fdtype vars,fdtype dflt)
+static lispval reqval_prim(lispval vars,lispval dflt)
 {
-  fdtype results = EMPTY; int found = 0;
+  lispval results = EMPTY; int found = 0;
   DO_CHOICES(var,vars) {
-    fdtype val;
+    lispval val;
     if (STRINGP(var)) var = fd_intern(CSTRING(var));
     val = fd_req_get(var,VOID);
     if (VOIDP(val)) {}
     else if (STRINGP(val)) {
-      fdtype parsed = fd_parse_arg(CSTRING(val));
+      lispval parsed = fd_parse_arg(CSTRING(val));
       fd_decref(val);
       CHOICE_ADD(results,parsed);
       found = 1;}
     else if (CHOICEP(val)) {
       DO_CHOICES(v,val) {
         if (STRINGP(v)) {
-          fdtype parsed = fd_parse_arg(CSTRING(v));
+          lispval parsed = fd_parse_arg(CSTRING(v));
           CHOICE_ADD(results,parsed);}
         else {
           fd_incref(v); CHOICE_ADD(results,v);}}
@@ -150,52 +150,52 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype hashcolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcolon_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcolon_evalfn",NULL,expr);
   else return reqget_prim(var,EMPTY);
 }
 
-static fdtype hashcoloncolon_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcoloncolon_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
-    fdtype val = reqget_prim(var,EMPTY);
+    lispval val = reqget_prim(var,EMPTY);
     if (STRINGP(val)) {
-      fdtype result = fd_parse_arg(CSTRING(val));
+      lispval result = fd_parse_arg(CSTRING(val));
       fd_decref(val);
       return result;}
     else return val;}
 }
 
-static fdtype hashcolondollar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcolondollar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else {
-    fdtype val = reqget_prim(var,VOID);
+    lispval val = reqget_prim(var,VOID);
     if (STRINGP(val)) {
-      fdtype result = fd_parse_arg(CSTRING(val));
+      lispval result = fd_parse_arg(CSTRING(val));
       fd_decref(val);
       return result;}
     else if (VOIDP(val))
       return fd_make_string(NULL,0,"");
     else {
-      fdtype result; struct U8_OUTPUT out;
+      lispval result; struct U8_OUTPUT out;
       U8_INIT_OUTPUT(&out,64); fd_unparse(&out,val);
       result = fd_stream_string(&out);
       u8_free(out.u8_outbuf);
       return result;}}
 }
 
-static fdtype hashcolonquestion_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval hashcolonquestion_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_SyntaxError,"hashcoloncolon_evalfn",NULL,expr);
   else if (fd_req_test(var,VOID))
@@ -203,10 +203,10 @@ static fdtype hashcolonquestion_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack
   else return FD_FALSE;
 }
 
-static fdtype reqtest_prim(fdtype vars,fdtype val)
+static lispval reqtest_prim(lispval vars,lispval val)
 {
   DO_CHOICES(var,vars) {
-    fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+    lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
     int retval = fd_req_test(name,val);
     if (retval<0) {
       FD_STOP_DO_CHOICES;
@@ -218,47 +218,47 @@ static fdtype reqtest_prim(fdtype vars,fdtype val)
   return FD_FALSE;
 }
 
-static fdtype reqset_prim(fdtype vars,fdtype value)
+static lispval reqset_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
-      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       fd_req_store(name,value);}}
   return VOID;
 }
 
-static fdtype reqadd_prim(fdtype vars,fdtype value)
+static lispval reqadd_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
-      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       fd_req_add(name,value);}}
   return VOID;
 }
 
-static fdtype reqdrop_prim(fdtype vars,fdtype value)
+static lispval reqdrop_prim(lispval vars,lispval value)
 {
   {DO_CHOICES(var,vars) {
-      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       fd_req_drop(name,value);}}
   return VOID;
 }
 
-static fdtype reqpush_prim(fdtype vars,fdtype values)
+static lispval reqpush_prim(lispval vars,lispval values)
 {
   {DO_CHOICES(var,vars) {
-      fdtype name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
+      lispval name = ((STRINGP(var))?(fd_intern(CSTRING(var))):(var));
       DO_CHOICES(value,values) {
         fd_req_push(name,value);}}}
   return VOID;
 }
 
-fdtype reqdata_prim()
+lispval reqdata_prim()
 {
   return fd_req_call(fd_deep_copy);
 }
 
-static fdtype withreq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval withreq_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1), result = VOID;
+  lispval body = fd_get_body(expr,1), result = VOID;
   fd_use_reqinfo(FD_TRUE); fd_reqlog(1);
   {FD_DOLIST(ex,body) {
       if (FD_ABORTP(result)) {
@@ -272,13 +272,13 @@ static fdtype withreq_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return result;
 }
 
-static fdtype req_livep_prim()
+static lispval req_livep_prim()
 {
   if (fd_isreqlive()) return FD_TRUE;
   else return FD_FALSE;
 }
 
-FD_EXPORT fdtype reqgetlog_prim()
+FD_EXPORT lispval reqgetlog_prim()
 {
   struct U8_OUTPUT *log = fd_reqlog(0);
   if (!(log)) return FD_FALSE;
@@ -288,7 +288,7 @@ FD_EXPORT fdtype reqgetlog_prim()
     else return fd_make_string(NULL,len,log->u8_outbuf);}
 }
 
-FD_EXPORT fdtype reqloglen_prim()
+FD_EXPORT lispval reqloglen_prim()
 {
   struct U8_OUTPUT *log = fd_reqlog(0);
   if (!(log)) return FD_FALSE;
@@ -297,14 +297,14 @@ FD_EXPORT fdtype reqloglen_prim()
     return FD_INT(len);}
 }
 
-FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+FD_EXPORT lispval reqlog_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_XTIME xt;
   struct U8_OUTPUT *reqout = fd_reqlog(1);
   u8_string cond = NULL, cxt = NULL;
   long long body_off = 1, level = -1;
-  fdtype arg1 = fd_get_arg(expr,1), arg2 = fd_get_arg(expr,2);
-  fdtype arg3 = fd_get_arg(expr,3), body, outval;
+  lispval arg1 = fd_get_arg(expr,1), arg2 = fd_get_arg(expr,2);
+  lispval arg3 = fd_get_arg(expr,3), body, outval;
   if (FIXNUMP(arg1)) {
     level = FIX2INT(arg1); body_off++;
     arg1 = arg2; arg2 = arg3; arg3 = VOID;}
@@ -335,7 +335,7 @@ FD_EXPORT fdtype reqlog_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 FD_EXPORT void fd_init_reqstate_c()
 {
-  fdtype module = fd_scheme_module;
+  lispval module = fd_scheme_module;
 
   u8_register_source_file(_FILEINFO);
 

@@ -33,18 +33,18 @@ FD_EXPORT fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
 typedef struct FD_BSON_OUTPUT {
   bson_t *bson_doc;
-  fdtype bson_opts, bson_fieldmap;
+  lispval bson_opts, bson_fieldmap;
   int bson_flags;} FD_BSON_OUTPUT;
 typedef struct FD_BSON_INPUT {
   bson_iter_t *bson_iter;
-  fdtype bson_opts, bson_fieldmap;
+  lispval bson_opts, bson_fieldmap;
   int bson_flags;} FD_BSON_INPUT;
 typedef struct FD_BSON_INPUT *fd_bson_input;
 
 typedef struct FD_MONGODB_DATABASE {
   FD_CONS_HEADER;
   u8_string dburi, dbname, dbspec;
-  fdtype dbopts;
+  lispval dbopts;
   int dbflags;
   mongoc_client_pool_t *dbclients;
   mongoc_uri_t *dburi_info;} FD_MONGODB_DATABASE;
@@ -53,16 +53,16 @@ typedef struct FD_MONGODB_DATABASE *fd_mongodb_database;
 typedef struct FD_MONGODB_COLLECTION {
   FD_CONS_HEADER;
   u8_string collection_name;
-  fdtype domain_db;
-  fdtype domain_opts;
+  lispval domain_db;
+  lispval domain_opts;
   int domain_flags;}
   FD_MONGODB_COLLECTION;
 typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
 typedef struct FD_MONGODB_CURSOR {
   FD_CONS_HEADER;
-  fdtype cursor_db, cursor_domain, cursor_query;
-  fdtype cursor_opts; int cursor_flags;
+  lispval cursor_db, cursor_domain, cursor_query;
+  lispval cursor_opts; int cursor_flags;
   mongoc_client_t *cursor_connection;
   mongoc_collection_t *cursor_collection;
   bson_t *cursor_query_bson;
@@ -72,10 +72,10 @@ typedef struct FD_MONGODB_CURSOR {
   FD_MONGODB_CURSOR;
 typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
 
-FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in);
-FD_EXPORT bson_t *fd_dtype2bson(fdtype,int,fdtype);
-FD_EXPORT fdtype fd_bson2dtype(bson_t *,int,fdtype);
-FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT,fdtype);
+FD_EXPORT lispval fd_bson_write(bson_t *out,int flags,lispval in);
+FD_EXPORT bson_t *fd_lisp2bson(lispval,int,lispval);
+FD_EXPORT lispval fd_bson2dtype(bson_t *,int,lispval);
+FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT,lispval);
 FD_EXPORT int fd_init_mongodb(void);
 
 #define DOMAIN2DB(dom) \

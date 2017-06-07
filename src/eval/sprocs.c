@@ -24,7 +24,7 @@ fd_exception fd_BadDefineForm=_("Bad procedure defining form");
 
 int fd_record_source=1;
 
-static fdtype tail_symbol;
+static lispval tail_symbol;
 
 static u8_string sproc_id(struct FD_SPROC *fn)
 {
@@ -42,7 +42,7 @@ static u8_string sproc_id(struct FD_SPROC *fn)
                            (((unsigned long long)fn)&0xFFFFFFFF)));
 }
 
-static int no_defaults(fdtype *args,int n)
+static int no_defaults(lispval *args,int n)
 {
   int i=0; while (i<n) {
     if (args[i] == FD_DEFAULT_VALUE)
@@ -51,11 +51,11 @@ static int no_defaults(fdtype *args,int n)
   return 1;
 }
 
-static fdtype get_rest_arg(fdtype *args,int n)
+static lispval get_rest_arg(lispval *args,int n)
 {
-  fdtype result=NIL; n--;
+  lispval result=NIL; n--;
   while (n>=0) {
-    fdtype arg=args[n--];
+    lispval arg=args[n--];
     result=fd_init_pair(NULL,fd_incref(arg),result);}
   return result;
 }
@@ -63,12 +63,12 @@ static fdtype get_rest_arg(fdtype *args,int n)
 /* SPROCs */
 
 FD_FASTOP
-fdtype call_sproc(struct FD_STACK *_stack,
+lispval call_sproc(struct FD_STACK *_stack,
                   struct FD_SPROC *fn,
-                  int n,fdtype *args)
+                  int n,lispval *args)
 {
-  fdtype result = VOID;
-  fdtype *proc_vars=fn->sproc_vars;
+  lispval result = VOID;
+  lispval *proc_vars=fn->sproc_vars;
   fd_lexenv proc_env=fn->sproc_env;
   fd_lexenv call_env=proc_env;
   int n_vars = fn->sproc_n_vars, arity = fn->fcn_arity;
@@ -94,7 +94,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
   int direct_call = ( ( n == arity ) && ( no_defaults(args,n) ) );
   struct FD_SCHEMAP _bindings, *bindings=&_bindings;
   struct FD_LEXENV stack_env;
-  fdtype vals[n_vars];
+  lispval vals[n_vars];
 
   if  (direct_call) {
     fd_make_schemap(&_bindings,n_vars,0,proc_vars,args);
@@ -106,7 +106,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
   /* Make it static */
   FD_SET_REFCOUNT(bindings,0);
   FD_INIT_STATIC_CONS(&stack_env,fd_lexenv_type);
-  stack_env.env_bindings = (fdtype) bindings;
+  stack_env.env_bindings = (lispval) bindings;
   stack_env.env_exports  = VOID;
   stack_env.env_parent   = proc_env;
   stack_env.env_copy     = NULL;
@@ -114,18 +114,18 @@ fdtype call_sproc(struct FD_STACK *_stack,
   if (_stack) _stack->stack_env = call_env = &stack_env;
 
   if (!(direct_call)) {
-    fdtype arglist = fn->sproc_arglist;
+    lispval arglist = fn->sproc_arglist;
     int i = 0; while (PAIRP(arglist)) {
-      fdtype arg = (i<n) ? (args[i]) : (FD_DEFAULT_VALUE);
+      lispval arg = (i<n) ? (args[i]) : (FD_DEFAULT_VALUE);
       if (arg != FD_DEFAULT_VALUE)
         vals[i]=fd_incref(args[i]);
       else {
-        fdtype argspec = FD_CAR(arglist);
-        fdtype default_expr =
+        lispval argspec = FD_CAR(arglist);
+        lispval default_expr =
           ( (PAIRP(argspec)) && (PAIRP(FD_CDR(argspec))) ) ?
           (FD_CAR(FD_CDR(argspec))) :
           (VOID);
-        fdtype default_value = fd_eval(default_expr,proc_env);
+        lispval default_value = fd_eval(default_expr,proc_env);
         if (FD_THROWP(default_value))
           _return default_value;
         else if (FD_ABORTED(default_value))
@@ -135,7 +135,7 @@ fdtype call_sproc(struct FD_STACK *_stack,
       i++;}
     if (SYMBOLP(arglist)) {
       assert(arity<0);
-      fdtype rest_arg=get_rest_arg(args+i,n-i);
+      lispval rest_arg=get_rest_arg(args+i,n-i);
       vals[i++]=rest_arg;
       assert(i==n_vars);}
     else {}}
@@ -151,31 +151,31 @@ fdtype call_sproc(struct FD_STACK *_stack,
   _return result;
 }
 
-FD_EXPORT fdtype fd_apply_sproc(struct FD_STACK *stack,
+FD_EXPORT lispval fd_apply_sproc(struct FD_STACK *stack,
                                 struct FD_SPROC *fn,
-                                int n,fdtype *args)
+                                int n,lispval *args)
 {
   return call_sproc(stack,fn,n,args);
 }
 
-static fdtype apply_sproc(fdtype fn,int n,fdtype *args)
+static lispval apply_sproc(lispval fn,int n,lispval *args)
 {
   return call_sproc(fd_stackptr,(struct FD_SPROC *)fn,n,args);
 }
 
-static fdtype
+static lispval
 _make_sproc(u8_string name,
-            fdtype arglist,fdtype body,fd_lexenv env,
+            lispval arglist,lispval body,fd_lexenv env,
             int nd,int sync,
             int incref,int copy_env)
 {
   int i = 0, n_vars = 0, min_args = 0;
-  fdtype scan = arglist, *schema = NULL;
+  lispval scan = arglist, *schema = NULL;
   struct FD_SPROC *s = u8_alloc(struct FD_SPROC);
   FD_INIT_FRESH_CONS(s,fd_sproc_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
   while (PAIRP(scan)) {
-    fdtype argspec = FD_CAR(scan);
+    lispval argspec = FD_CAR(scan);
     n_vars++; scan = FD_CDR(scan);
     if (SYMBOLP(argspec)) min_args = n_vars;}
   if (NILP(scan)) {
@@ -186,7 +186,7 @@ _make_sproc(u8_string name,
   s->fcn_handler.fnptr = NULL;
   s->fcn_typeinfo = NULL;
   if (n_vars)
-    s->sproc_vars = schema = u8_alloc_n((n_vars+1),fdtype);
+    s->sproc_vars = schema = u8_alloc_n((n_vars+1),lispval);
   else s->sproc_vars = NULL;
   s->fcn_defaults = NULL; s->fcn_filename = NULL;
   s->fcn_attribs = VOID;
@@ -216,11 +216,11 @@ _make_sproc(u8_string name,
       s->fcn_documentation = u8_strdup(docstring);
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-      fdtype scan = arglist;
+      lispval scan = arglist;
       u8_puts(&out,"`(");
       if (name) u8_puts(&out,name); else u8_puts(&out,"λ");
       while (PAIRP(scan)) {
-        fdtype arg = FD_CAR(scan);
+        lispval arg = FD_CAR(scan);
         if (SYMBOLP(arg))
           u8_printf(&out," %ls",SYM_NAME(arg));
         else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
@@ -235,7 +235,7 @@ _make_sproc(u8_string name,
         u8_puts(&out,docstring);}
       s->fcn_documentation = out.u8_outbuf;}}
   scan = arglist; i = 0; while (PAIRP(scan)) {
-    fdtype argspec = FD_CAR(scan);
+    lispval argspec = FD_CAR(scan);
     if (PAIRP(argspec)) {
       schema[i]=FD_CAR(argspec);}
     else {
@@ -243,18 +243,18 @@ _make_sproc(u8_string name,
     i++; scan = FD_CDR(scan);}
   if (i<s->sproc_n_vars) schema[i]=scan;
   s->sproc_source = VOID;
-  return FDTYPE_CONS(s);
+  return LISP_CONS(s);
 }
 
-static fdtype make_sproc(u8_string name,
-                         fdtype arglist,fdtype body,fd_lexenv env,
+static lispval make_sproc(u8_string name,
+                         lispval arglist,lispval body,fd_lexenv env,
                          int nd,int sync)
 {
   return _make_sproc(name,arglist,body,env,nd,sync,1,1);
 }
 
-FD_EXPORT fdtype fd_make_sproc(u8_string name,
-                               fdtype arglist,fdtype body,fd_lexenv env,
+FD_EXPORT lispval fd_make_sproc(u8_string name,
+                               lispval arglist,lispval body,fd_lexenv env,
                                int nd,int sync)
 {
   return make_sproc(name,arglist,body,env,nd,sync);
@@ -273,13 +273,13 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
   fd_decref(sproc->sproc_source);
   u8_free(sproc->sproc_vars);
   if (sproc->sproc_env->env_copy) {
-    fd_decref((fdtype)(sproc->sproc_env->env_copy));
+    fd_decref((lispval)(sproc->sproc_env->env_copy));
     /* fd_recycle_lexenv(sproc->sproc_env->env_copy); */
   }
   if (sproc->sproc_synchronized)
     u8_destroy_mutex(&(sproc->sproc_lock));
   if (sproc->sproc_bytecode) {
-    fdtype bc = (fdtype)(sproc->sproc_bytecode);
+    lispval bc = (lispval)(sproc->sproc_bytecode);
     fd_decref(bc);}
   /* Put these last to help with debugging, when needed */
   if (sproc->fcn_name) u8_free(sproc->fcn_name);
@@ -289,10 +289,10 @@ FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
     u8_free(sproc);}
 }
 
-static int unparse_sproc(u8_output out,fdtype x)
+static int unparse_sproc(u8_output out,lispval x)
 {
   struct FD_SPROC *sproc = fd_consptr(fd_sproc,x,fd_sproc_type);
-  fdtype arglist = sproc->sproc_arglist;
+  lispval arglist = sproc->sproc_arglist;
   unsigned long long addr = (unsigned long long) sproc;
   u8_string codes=
     (((sproc->sproc_synchronized)&&(sproc->fcn_ndcall))?("∀∥"):
@@ -302,8 +302,8 @@ static int unparse_sproc(u8_output out,fdtype x)
     u8_printf(out,"#<λ%s%s",codes,sproc->fcn_name);
   else u8_printf(out,"#<λ%s0x%04x",codes,((addr>>2)%0x10000));
   if (PAIRP(arglist)) {
-    int first = 1; fdtype scan = sproc->sproc_arglist;
-    fdtype spec = VOID, arg = VOID;
+    int first = 1; lispval scan = sproc->sproc_arglist;
+    lispval spec = VOID, arg = VOID;
     u8_putc(out,'(');
     while (PAIRP(scan)) {
       if (first) first = 0; else u8_putc(out,' ');
@@ -346,11 +346,11 @@ static int *copy_intvec(int *vec,int n,int *into)
   return dest;
 }
 
-FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
+FD_EXPORT lispval copy_sproc(struct FD_CONS *c,int flags)
 {
   struct FD_SPROC *sproc = (struct FD_SPROC *)c;
   if (sproc->sproc_synchronized) {
-    fdtype sp = (fdtype)sproc;
+    lispval sp = (lispval)sproc;
     fd_incref(sp);
     return sp;}
   else {
@@ -384,16 +384,16 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     if (U8_BITP(flags,FD_STATIC_COPY)) {
       FD_MAKE_CONS_STATIC(fresh);}
 
-    return (fdtype) fresh;}
+    return (lispval) fresh;}
 }
 
 /* SPROC generators */
 
-static fdtype lambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval lambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype arglist = fd_get_arg(expr,1);
-  fdtype body = fd_get_body(expr,2);
-  fdtype proc = VOID;
+  lispval arglist = fd_get_arg(expr,1);
+  lispval body = fd_get_body(expr,2);
+  lispval proc = VOID;
   if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"LAMBDA",NULL,expr);
   if (FD_CODEP(body)) {
@@ -404,11 +404,11 @@ static fdtype lambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype ambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval ambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype arglist = fd_get_arg(expr,1);
-  fdtype body = fd_get_body(expr,2);
-  fdtype proc = VOID;
+  lispval arglist = fd_get_arg(expr,1);
+  lispval body = fd_get_body(expr,2);
+  lispval proc = VOID;
   if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"AMBDA",NULL,expr);
   if (FD_CODEP(body)) {
@@ -419,12 +419,12 @@ static fdtype ambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype nambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval nambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype name_expr = fd_get_arg(expr,1), name;
-  fdtype arglist = fd_get_arg(expr,2);
-  fdtype body = fd_get_body(expr,3);
-  fdtype proc = VOID;
+  lispval name_expr = fd_get_arg(expr,1), name;
+  lispval arglist = fd_get_arg(expr,2);
+  lispval body = fd_get_body(expr,3);
+  lispval proc = VOID;
   u8_string namestring = NULL;
   if ((VOIDP(name_expr))||(VOIDP(arglist)))
     return fd_err(fd_TooFewExpressions,"NAMBDA",NULL,expr);
@@ -441,11 +441,11 @@ static fdtype nambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype slambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval slambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype arglist = fd_get_arg(expr,1);
-  fdtype body = fd_get_body(expr,2);
-  fdtype proc = VOID;
+  lispval arglist = fd_get_arg(expr,1);
+  lispval body = fd_get_body(expr,2);
+  lispval proc = VOID;
   if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
@@ -456,11 +456,11 @@ static fdtype slambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype sambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval sambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype arglist = fd_get_arg(expr,1);
-  fdtype body = fd_get_body(expr,2);
-  fdtype proc = VOID;
+  lispval arglist = fd_get_arg(expr,1);
+  lispval body = fd_get_body(expr,2);
+  lispval proc = VOID;
   if (VOIDP(arglist))
     return fd_err(fd_TooFewExpressions,"SLAMBDA",NULL,expr);
  if (FD_CODEP(body)) {
@@ -471,10 +471,10 @@ static fdtype sambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return proc;
 }
 
-static fdtype thunk_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval thunk_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
-  fdtype proc = VOID;
+  lispval body = fd_get_body(expr,1);
+  lispval proc = VOID;
   if (FD_CODEP(body))
     return _make_sproc(NULL,NIL,body,env,0,0,0,0);
   else return make_sproc(NULL,NIL,body,env,0,0);
@@ -484,20 +484,20 @@ static fdtype thunk_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* DEFINE */
 
-static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval define_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE",NULL,expr);
   else if (SYMBOLP(var)) {
-    fdtype val_expr = fd_get_arg(expr,2);
+    lispval val_expr = fd_get_arg(expr,2);
     if (VOIDP(val_expr))
       return fd_err(fd_TooFewExpressions,"DEFINE",NULL,expr);
     else {
-      fdtype value = fd_eval(val_expr,env);
+      lispval value = fd_eval(val_expr,env);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(var,value,env)>=0) {
-        fdtype fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
+        lispval fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_SPROCP(fvalue)) {
           struct FD_SPROC *s = (fd_sproc) fvalue;
           if (s->fcn_filename == NULL) {
@@ -509,15 +509,15 @@ static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
         fd_decref(value);
         return fd_err(fd_BindError,"DEFINE",SYM_NAME(var),var);}}}
   else if (PAIRP(var)) {
-    fdtype fn_name = FD_CAR(var), args = FD_CDR(var);
-    fdtype body = fd_get_body(expr,2);
+    lispval fn_name = FD_CAR(var), args = FD_CDR(var);
+    lispval body = fd_get_body(expr,2);
     if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,fn_name);
     else {
-      fdtype value = make_sproc(SYM_NAME(fn_name),args,body,env,0,0);
+      lispval value = make_sproc(SYM_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
-        fdtype fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
+        lispval fvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_SPROCP(fvalue)) {
           struct FD_SPROC *s = (fd_sproc)fvalue;
           if (s->fcn_filename == NULL) {
@@ -533,24 +533,24 @@ static fdtype define_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
-static fdtype defslambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval defslambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-SYNCHRONIZED",NULL,expr);
   else if (SYMBOLP(var))
     return fd_err(fd_BadDefineForm,"DEFINE-SYNCHRONIZED",NULL,expr);
   else if (PAIRP(var)) {
-    fdtype fn_name = FD_CAR(var), args = FD_CDR(var);
+    lispval fn_name = FD_CAR(var), args = FD_CDR(var);
     if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
     else {
-      fdtype body = fd_get_body(expr,2);
-      fdtype value = make_sproc(SYM_NAME(fn_name),args,body,env,0,1);
+      lispval body = fd_get_body(expr,2);
+      lispval value = make_sproc(SYM_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTED(value))
         return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
-        fdtype opvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
+        lispval opvalue = (FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
         if (FD_SPROCP(opvalue)) {
           struct FD_SPROC *s = (fd_sproc)opvalue;
           if (s->fcn_filename == NULL) {
@@ -567,23 +567,23 @@ static fdtype defslambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
-static fdtype defambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval defambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-AMB",NULL,expr);
   else if (SYMBOLP(var))
     return fd_err(fd_BadDefineForm,"DEFINE-AMB",SYM_NAME(var),expr);
   else if (PAIRP(var)) {
-    fdtype fn_name = FD_CAR(var), args = FD_CDR(var);
-    fdtype body = fd_get_body(expr,2);
+    lispval fn_name = FD_CAR(var), args = FD_CDR(var);
+    lispval body = fd_get_body(expr,2);
     if (!(SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,fn_name);
     else {
-      fdtype value = make_sproc(SYM_NAME(fn_name),args,body,env,1,0);
+      lispval value = make_sproc(SYM_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)>=0) {
-        fdtype opvalue = fd_fcnid_ref(value);
+        lispval opvalue = fd_fcnid_ref(value);
         if (FD_SPROCP(opvalue)) {
           struct FD_SPROC *s = (fd_sproc)opvalue;
           if (s->fcn_filename == NULL) {
@@ -601,7 +601,7 @@ static fdtype defambda_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Extended apply */
 
-static fdtype tail_symbol;
+static lispval tail_symbol;
 
 FD_EXPORT
 /* fd_xapply_sproc:
@@ -612,17 +612,17 @@ FD_EXPORT
   other data structure (cast as a void* pointer).  This is used, for instance,
   to expose CGI data fields as arguments to a main function, or to
   apply XML attributes and elements similarly. */
-fdtype fd_xapply_sproc
-  (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype))
+lispval fd_xapply_sproc
+  (struct FD_SPROC *fn,void *data,lispval (*getval)(void *,lispval))
 {
-  FD_SETUP_NAMED_STACK(_stack,fd_stackptr,"xapply",fn->fcn_name,(fdtype)fn);
+  FD_SETUP_NAMED_STACK(_stack,fd_stackptr,"xapply",fn->fcn_name,(lispval)fn);
   int n = fn->sproc_n_vars;
-  fdtype arglist = fn->sproc_arglist, result = VOID;
+  lispval arglist = fn->sproc_arglist, result = VOID;
   fd_lexenv env = fn->sproc_env;
   INIT_STACK_SCHEMA(_stack,call_env,env,n,fn->sproc_vars);
-  fdtype *vals=call_env_bindings.schema_values;
+  lispval *vals=call_env_bindings.schema_values;
   while (PAIRP(arglist)) {
-    fdtype argspec = FD_CAR(arglist), argname = VOID, argval;
+    lispval argspec = FD_CAR(arglist), argname = VOID, argval;
     if (SYMBOLP(argspec)) argname = argspec;
     else if (PAIRP(argspec)) argname = FD_CAR(argspec);
     if (!(SYMBOLP(argname)))
@@ -632,8 +632,8 @@ fdtype fd_xapply_sproc
       _return argval;
     else if (( (VOIDP(argval)) || (argval == FD_DEFAULT_VALUE) ) &&
              (PAIRP(argspec)) && (PAIRP(FD_CDR(argspec)))) {
-      fdtype default_expr = FD_CADR(argspec);
-      fdtype default_value = fd_eval(default_expr,fn->sproc_env);
+      lispval default_expr = FD_CADR(argspec);
+      lispval default_value = fd_eval(default_expr,fn->sproc_env);
       fd_schemap_store(&call_env_bindings,argname,default_value);
       fd_decref(default_value);}
     else {
@@ -652,13 +652,13 @@ fdtype fd_xapply_sproc
   _return result;
 }
 
-static fdtype tablegetval(void *obj,fdtype var)
+static lispval tablegetval(void *obj,lispval var)
 {
-  fdtype tbl = (fdtype)obj;
+  lispval tbl = (lispval)obj;
   return fd_get(tbl,var,VOID);
 }
 
-static fdtype xapply_prim(fdtype proc,fdtype obj)
+static lispval xapply_prim(lispval proc,lispval obj)
 {
   struct FD_SPROC *sproc = fd_consptr(fd_sproc,proc,fd_sproc_type);
   if (!(TABLEP(obj)))
@@ -668,11 +668,11 @@ static fdtype xapply_prim(fdtype proc,fdtype obj)
 
 /* Walking an sproc */
 
-static int walk_sproc(fd_walker walker,fdtype obj,void *walkdata,
+static int walk_sproc(fd_walker walker,lispval obj,void *walkdata,
                       fd_walk_flags flags,int depth)
 {
   struct FD_SPROC *sproc = (fd_sproc)obj;
-  fdtype env = (fdtype)sproc->sproc_env;
+  lispval env = (lispval)sproc->sproc_env;
   if (fd_walk(walker,sproc->sproc_body,walkdata,flags,depth-1)<0)
     return -1;
   else if (fd_walk(walker,sproc->sproc_arglist,
@@ -687,13 +687,13 @@ static int walk_sproc(fd_walker walker,fdtype obj,void *walkdata,
 
 /* Unparsing fcnids referring to sprocs */
 
-static int unparse_extended_fcnid(u8_output out,fdtype x)
+static int unparse_extended_fcnid(u8_output out,lispval x)
 {
-  fdtype lp = fd_fcnid_ref(x);
+  lispval lp = fd_fcnid_ref(x);
   if (FD_TYPEP(lp,fd_sproc_type)) {
     struct FD_SPROC *sproc = fd_consptr(fd_sproc,lp,fd_sproc_type);
     unsigned long long addr = (unsigned long long) sproc;
-    fdtype arglist = sproc->sproc_arglist;
+    lispval arglist = sproc->sproc_arglist;
     u8_string codes=
       (((sproc->sproc_synchronized)&&(sproc->fcn_ndcall))?("∀∥"):
        (sproc->sproc_synchronized)?("∥"):
@@ -706,8 +706,8 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
                    FD_GET_IMMEDIATE(x,fd_fcnid_type),
                    codes,((addr>>2)%0x10000));
     if (PAIRP(arglist)) {
-      int first = 1; fdtype scan = sproc->sproc_arglist;
-      fdtype spec = VOID, arg = VOID;
+      int first = 1; lispval scan = sproc->sproc_arglist;
+      lispval spec = VOID, arg = VOID;
       u8_putc(out,'(');
       while (PAIRP(scan)) {
         if (first) first = 0; else u8_putc(out,' ');
@@ -776,7 +776,7 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
   return 1;
 }
 
-static int dtype_sproc(struct FD_OUTBUF *out,fdtype x)
+static int dtype_sproc(struct FD_OUTBUF *out,lispval x)
 {
   int n_elts=1; /* Always include some source */
   struct FD_SPROC *fcn = (struct FD_SPROC *)x;

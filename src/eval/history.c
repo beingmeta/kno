@@ -15,7 +15,7 @@
 #include "framerd/eval.h"
 #include "framerd/history.h"
 
-static fdtype history_symbol;
+static lispval history_symbol;
 
 /* Data stucture:
    a history object is a vector consisting of three elements
@@ -35,7 +35,7 @@ static fdtype history_symbol;
 
 */
 
-int unpack_history(fdtype history,int *top,int *len,fdtype **data,
+int unpack_history(lispval history,int *top,int *len,lispval **data,
                    fd_hashtable *table)
 {
   if ((!(VECTORP(history))) ||
@@ -52,9 +52,9 @@ int unpack_history(fdtype history,int *top,int *len,fdtype **data,
     return *top;}
 }
 
-FD_EXPORT fdtype fd_history_ref(fdtype history,int ref)
+FD_EXPORT lispval fd_history_ref(lispval history,int ref)
 {
-  int top, len; fdtype *data; fd_hashtable h;
+  int top, len; lispval *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_ref",history);
   if (ref<0) ref = top+ref;
@@ -66,9 +66,9 @@ FD_EXPORT fdtype fd_history_ref(fdtype history,int ref)
   else return fd_incref(data[ref%len]);
 }
 
-FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
+FD_EXPORT int fd_history_set(lispval history,int ref,lispval value)
 {
-  int top, len; fdtype *data; fd_hashtable h;
+  int top, len; lispval *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_set",history);
   if (ref>=top)
@@ -83,9 +83,9 @@ FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
     return retval;}
 }
 
-FD_EXPORT int fd_history_keep(fdtype history,int ref,fdtype value)
+FD_EXPORT int fd_history_keep(lispval history,int ref,lispval value)
 {
-  int top, len; fdtype *data; fd_hashtable h;
+  int top, len; lispval *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_set",history);
   if (fd_hashtable_store(h,FD_INT(ref),value)<0)
@@ -93,32 +93,32 @@ FD_EXPORT int fd_history_keep(fdtype history,int ref,fdtype value)
   else return ref;
 }
 
-FD_EXPORT int fd_history_find(fdtype history,fdtype value,int equal)
+FD_EXPORT int fd_history_find(lispval history,lispval value,int equal)
 {
-  int top, len; fdtype *data; fd_hashtable h;
+  int top, len; lispval *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_find",history);
   else {
     int i = 0; while (i<len)
       if ((FD_EQ(value,data[i])) ||
-          ((equal) && (FDTYPE_EQUAL(value,data[i]))))
+          ((equal) && (LISP_EQUAL(value,data[i]))))
         break;
       else i++;
     if (i<len) return i;
     else {
-      fdtype keys = fd_getkeys((fdtype)h);
+      lispval keys = fd_getkeys((lispval)h);
       DO_CHOICES(key,keys) {
-        fdtype v = fd_hashtable_get(h,key,VOID);
-        if ((FD_EQ(v,value)) || ((equal) && (FDTYPE_EQUAL(v,value)))) {
+        lispval v = fd_hashtable_get(h,key,VOID);
+        if ((FD_EQ(v,value)) || ((equal) && (LISP_EQUAL(v,value)))) {
           fd_decref(keys);
           return key;}}
       fd_decref(keys);
       return -1;}}
 }
 
-FD_EXPORT int fd_history_push(fdtype history,fdtype value)
+FD_EXPORT int fd_history_push(lispval history,lispval value)
 {
-  int top, len; fdtype *data, current, stored; fd_hashtable h;
+  int top, len; lispval *data, current, stored; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_push",history);
   current = data[top%len];
@@ -132,9 +132,9 @@ FD_EXPORT int fd_history_push(fdtype history,fdtype value)
   return top;
 }
 
-FD_EXPORT int fd_histpush(fdtype value)
+FD_EXPORT int fd_histpush(lispval value)
 {
-  fdtype history = fd_thread_get(history_symbol);
+  lispval history = fd_thread_get(history_symbol);
   if (VOIDP(history)) return -1;
   else {
     int retval = fd_history_push(history,value);
@@ -144,7 +144,7 @@ FD_EXPORT int fd_histpush(fdtype value)
 
 FD_EXPORT int fd_hist_top()
 {
-  fdtype history = fd_thread_get(history_symbol);
+  lispval history = fd_thread_get(history_symbol);
   if (VOIDP(history)) return -1;
   else {
     int pos = FIX2INT(VEC_REF(history,0));
@@ -152,19 +152,19 @@ FD_EXPORT int fd_hist_top()
     return pos;}
 }
 
-FD_EXPORT fdtype fd_histref(int ref)
+FD_EXPORT lispval fd_histref(int ref)
 {
-  fdtype history = fd_thread_get(history_symbol);
+  lispval history = fd_thread_get(history_symbol);
   if (VOIDP(history)) return VOID;
   else {
-    fdtype result = fd_history_ref(history,ref);
+    lispval result = fd_history_ref(history,ref);
     fd_decref(history);
     return result;}
 }
 
-FD_EXPORT int fd_histfind(fdtype value)
+FD_EXPORT int fd_histfind(lispval value)
 {
-  fdtype history = fd_thread_get(history_symbol);
+  lispval history = fd_thread_get(history_symbol);
   if (VOIDP(history)) return VOID;
   else {
     int pos = fd_history_find(history,value,0);
@@ -173,9 +173,9 @@ FD_EXPORT int fd_histfind(fdtype value)
     return pos;}
 }
 
-static int histkeep(int ref,fdtype value)
+static int histkeep(int ref,lispval value)
 {
-  fdtype history = fd_thread_get(history_symbol);
+  lispval history = fd_thread_get(history_symbol);
   if (VOIDP(history)) return 0;
   else if (fd_history_keep(history,ref,value)<0) {
     fd_decref(history);
@@ -186,9 +186,9 @@ static int histkeep(int ref,fdtype value)
 
 FD_EXPORT void fd_histinit(int size)
 {
-  fdtype history = fd_thread_get(history_symbol);
+  lispval history = fd_thread_get(history_symbol);
   if (size<=0) {
-    fdtype configval = fd_config_get("HISTORYSIZE");
+    lispval configval = fd_config_get("HISTORYSIZE");
     if (FD_UINTP(configval))
       size = FIX2INT(configval);
     else {
@@ -200,9 +200,9 @@ FD_EXPORT void fd_histinit(int size)
                             fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}
   else {
-    fdtype newvec = fd_init_vector(NULL,size,NULL);
-    fdtype oldvec = VEC_REF(history,1);
-    fdtype topval = VEC_REF(history,0);
+    lispval newvec = fd_init_vector(NULL,size,NULL);
+    lispval oldvec = VEC_REF(history,1);
+    lispval topval = VEC_REF(history,0);
     if (!(FD_UINTP(topval))) {
       u8_log(LOGWARN,"Bad history data",
              "Negative topval in %q",history);
@@ -228,13 +228,13 @@ FD_EXPORT void fd_histclear(int size)
   fd_histinit(size);
 }
 
-static fdtype histref_prim(fdtype arg)
+static lispval histref_prim(lispval arg)
 {
   if (!(FD_UINTP(arg)))
     return fd_err(fd_SyntaxError,"histref_prim",
                   _("Invalid history references"),arg);
   else {
-    fdtype val = fd_histref(FIX2INT(arg));
+    lispval val = fd_histref(FIX2INT(arg));
     if (FD_ABORTP(val)) return val;
     else if (VOIDP(val))
       u8_log(LOG_WARN,_("Lost history"),"Lost history for ##%q",arg);
@@ -243,12 +243,12 @@ static fdtype histref_prim(fdtype arg)
     return val;}
 }
 
-static fdtype history_prim()
+static lispval history_prim()
 {
   return fd_thread_get(history_symbol);
 }
 
-static fdtype histclear_prim(fdtype arg)
+static lispval histclear_prim(lispval arg)
 {
   if (VOIDP(arg)) {
     /* We're clearing the whole thing, the simple case. */
@@ -257,7 +257,7 @@ static fdtype histclear_prim(fdtype arg)
   else {
     /* Get the arg */
     if (FD_UINTP(arg)) {
-      fdtype history = fd_thread_get(history_symbol);
+      lispval history = fd_thread_get(history_symbol);
       if (VOIDP(history)) return FD_TRUE;
       else fd_history_set(history,FIX2INT(arg),VOID);
       return VOID;}
@@ -267,7 +267,7 @@ static fdtype histclear_prim(fdtype arg)
         u8_log(LOG_WARN,_("History error"),"Couldn't find item in history: %q",arg);
         return FD_FALSE;}
       else {
-        fdtype history = fd_thread_get(history_symbol);
+        lispval history = fd_thread_get(history_symbol);
         fd_history_set(history,loc,VOID);
         return FD_TRUE;}}}
 }
@@ -276,7 +276,7 @@ static int scheme_history_initialized = 0;
 
 FD_EXPORT void fd_init_history_c()
 {
-  fdtype history_module;
+  lispval history_module;
   if (scheme_history_initialized) return;
   else scheme_history_initialized = 1;
   fd_init_scheme();

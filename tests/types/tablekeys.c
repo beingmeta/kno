@@ -19,7 +19,7 @@ int main(int argc,char **argv)
   struct FD_STREAM *in, *out;
   struct FD_INBUF *inbuf;
   struct FD_OUTBUF *outbuf;
-  fdtype ht, keys;
+  lispval ht, keys;
   FD_DO_LIBINIT(fd_init_libfdtype);
   in = fd_open_file(argv[1],FD_FILE_READ);
   inbuf = fd_readbuf(in);

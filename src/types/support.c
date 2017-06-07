@@ -56,12 +56,12 @@ fd_exception fd_NoSuchFile=_("File does not exist");
 
 /* Debugging support functions */
 
-FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x)
+FD_EXPORT fd_ptr_type _fd_ptr_type(lispval x)
 {
   return FD_PTR_TYPE(x);
 }
 
-FD_EXPORT fdtype _fd_debug(fdtype x)
+FD_EXPORT lispval _fd_debug(lispval x)
 {
   return x;
 }
@@ -78,7 +78,7 @@ FD_EXPORT fdtype _fd_debug(fdtype x)
 #define BUILTIN_SAFE_MODULES 8
 #define UNPACKAGE_DIR 9
 
-static fdtype config_get_module_loc(fdtype var,void *which_arg)
+static lispval config_get_module_loc(lispval var,void *which_arg)
 {
 #if (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
   long long which = (long long) which_arg;
@@ -87,23 +87,23 @@ static fdtype config_get_module_loc(fdtype var,void *which_arg)
 #endif
   switch (which) {
   case LOCAL_MODULES:
-    return fdtype_string(FD_LOCAL_MODULE_DIR);
+    return lispval_string(FD_LOCAL_MODULE_DIR);
   case LOCAL_SAFE_MODULES:
-    return fdtype_string(FD_LOCAL_SAFE_MODULE_DIR);
+    return lispval_string(FD_LOCAL_SAFE_MODULE_DIR);
   case INSTALLED_MODULES:
-    return fdtype_string(FD_INSTALLED_MODULE_DIR);
+    return lispval_string(FD_INSTALLED_MODULE_DIR);
   case INSTALLED_SAFE_MODULES:
-    return fdtype_string(FD_INSTALLED_SAFE_MODULE_DIR);
+    return lispval_string(FD_INSTALLED_SAFE_MODULE_DIR);
   case SHARED_MODULES:
-    return fdtype_string(FD_SHARED_MODULE_DIR);
+    return lispval_string(FD_SHARED_MODULE_DIR);
   case SHARED_SAFE_MODULES:
-    return fdtype_string(FD_SHARED_SAFE_MODULE_DIR);
+    return lispval_string(FD_SHARED_SAFE_MODULE_DIR);
   case BUILTIN_MODULES:
-    return fdtype_string(FD_BUILTIN_MODULE_DIR);
+    return lispval_string(FD_BUILTIN_MODULE_DIR);
   case BUILTIN_SAFE_MODULES:
-    return fdtype_string(FD_BUILTIN_SAFE_MODULE_DIR);
+    return lispval_string(FD_BUILTIN_SAFE_MODULE_DIR);
   case UNPACKAGE_DIR:
-    return fdtype_string(FD_UNPACKAGE_DIR);
+    return lispval_string(FD_UNPACKAGE_DIR);
   default:
     return fd_err("Bad call","config_get_module_loc",NULL,VOID);}
 }

@@ -22,9 +22,9 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-static fdtype quote_symbol;
+static lispval quote_symbol;
 
-FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
+FD_EXPORT lispval fd_make_dtproc(u8_string name,u8_string server,
                                 int ndcall,int arity,int min_arity,
                                 int minsock,int maxsock,int initsock)
 {
@@ -47,10 +47,10 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
     u8_free(f->fcn_filename);
     u8_free(f);
     return FD_ERROR;}
-  else return FDTYPE_CONS(f);
+  else return LISP_CONS(f);
 }
 
-static int unparse_dtproc(u8_output out,fdtype x)
+static int unparse_dtproc(u8_output out,lispval x)
 {
   struct FD_DTPROC *f = fd_consptr(fd_dtproc,x,fd_dtproc_type);
   u8_printf(out,"#<!DTPROC %s using %s>",f->fcn_name,f->fd_dtprocserver);
@@ -68,11 +68,11 @@ static void recycle_dtproc(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(f))) u8_free(f);
 }
 
-static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
+static lispval dtapply(struct FD_DTPROC *dtp,int n,lispval *args)
 {
   struct FD_STREAM stream;
   u8_connpool cpool = dtp->fd_connpool;
-  fdtype expr = NIL, result; int i = n-1;
+  lispval expr = NIL, result; int i = n-1;
   u8_socket conn = u8_get_connection(cpool);
   if (conn<0) return FD_ERROR;
   fd_init_stream(&stream,NULL,conn,FD_STREAM_SOCKET,fd_network_bufsize);

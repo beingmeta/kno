@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void write_dtype_to_file(fdtype object,FILE *f)
+static void write_dtype_to_file(lispval object,FILE *f)
 {
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -28,7 +28,7 @@ static void write_dtype_to_file(fdtype object,FILE *f)
 
 int main(int argc,char **argv)
 {
-  fdtype object;
+  lispval object;
   FILE *f = fopen(argv[1],"wb");
   FD_DO_LIBINIT(fd_init_libfdtype);
   object = fd_parse(argv[2]);

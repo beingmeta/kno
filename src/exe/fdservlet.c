@@ -115,7 +115,7 @@ static int max_backlog = -1;
    away, so we can start another server.  */
 static int shutdown_grace = 30000000; /* 30 seconds */
 
-static fdtype fallback_notfoundpage = VOID;
+static lispval fallback_notfoundpage = VOID;
 
 u8_string pid_file = NULL, cmd_file = NULL, inject_file = NULL;
 
@@ -128,7 +128,7 @@ static int ignore_leftovers = 0;
 
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
-  fdtype cgidata;
+  lispval cgidata;
   struct FD_STREAM in;
   struct U8_OUTPUT out;} FD_WEBCONN;
 typedef struct FD_WEBCONN *fd_webconn;
@@ -169,7 +169,7 @@ static int check_for_injection()
         u8_free(temp_file);
         return -1;}
       else {
-        fdtype result;
+        lispval result;
         u8_log(LOGWARN,"FDServlet/InjectLoad",
                "From %s\n\"%s\"",temp_file,content);
         result = fd_load_source(temp_file,server_env,NULL);
@@ -228,7 +228,7 @@ static long statlog_interval = DEFAULT_STATUS_INTERVAL;
 
 static void close_statlog();
 
-static int statlog_set(fdtype var,fdtype val,void *data)
+static int statlog_set(lispval var,lispval val,void *data)
 {
   if (STRINGP(val)) {
     u8_string filename = CSTRING(val);
@@ -261,14 +261,14 @@ static int statlog_set(fdtype var,fdtype val,void *data)
          (fd_TypeError,"config_set_statlog",u8_strdup(_("string")),val);
 }
 
-static fdtype statlog_get(fdtype var,void *data)
+static lispval statlog_get(lispval var,void *data)
 {
   if (statlog)
     return fdstring(statlogfile);
   else return FD_FALSE;
 }
 
-static int statinterval_set(fdtype var,fdtype val,void *data)
+static int statinterval_set(lispval var,lispval val,void *data)
 {
   if (FD_UINTP(val)) {
     int intval = FD_FIX2INT(val);
@@ -295,13 +295,13 @@ static int statinterval_set(fdtype var,fdtype val,void *data)
   return 1;
 }
 
-static fdtype statloginterval_get(fdtype var,void *data)
+static lispval statloginterval_get(lispval var,void *data)
 {
   if (statlog_interval<0) return FD_FALSE;
   else return FD_INT(statlog_interval);
 }
 
-static int statloginterval_set(fdtype var,fdtype val,void *data)
+static int statloginterval_set(lispval var,lispval val,void *data)
 {
   if (FD_UINTP(val)) {
     int intval = FD_FIX2INT(val);
@@ -329,7 +329,7 @@ static int statloginterval_set(fdtype var,fdtype val,void *data)
   return 1;
 }
 
-static fdtype statinterval_get(fdtype var,void *data)
+static lispval statinterval_get(lispval var,void *data)
 {
   if (status_interval<0) return FD_FALSE;
   else return FD_INT(status_interval);
@@ -614,9 +614,9 @@ static void close_statlog()
     u8_unlock_mutex(&log_lock);}
 }
 
-static fdtype servlet_status()
+static lispval servlet_status()
 {
-  fdtype result = fd_init_slotmap(NULL,0,NULL);
+  lispval result = fd_init_slotmap(NULL,0,NULL);
   struct U8_SERVER_STATS stats, livestats, curstats;
 
   fd_store(result,fd_intern("NTHREADS"),FD_INT(fdwebserver.n_threads));
@@ -757,7 +757,7 @@ static fdtype servlet_status()
 
 #define write_string(sock,string) u8_writeall(sock,string,strlen(string))
 
-static int output_content(fd_webconn ucl,fdtype content)
+static int output_content(fd_webconn ucl,lispval content)
 {
   if (STRINGP(content)) {
     int rv = u8_writeall(ucl->socket,CSTRING(content),STRLEN(content));
@@ -780,7 +780,7 @@ static int output_content(fd_webconn ucl,fdtype content)
 
 /* Configuring u8server fields */
 
-static fdtype config_get_u8server_flag(fdtype var,void *data)
+static lispval config_get_u8server_flag(lispval var,void *data)
 {
   fd_ptrbits bigmask = (fd_ptrbits)data;
   unsigned int mask = (unsigned int)(bigmask&0xFFFFFFFF);
@@ -788,7 +788,7 @@ static fdtype config_get_u8server_flag(fdtype var,void *data)
   if ((flags)&(mask)) return FD_TRUE; else return FD_FALSE;
 }
 
-static int config_set_u8server_flag(fdtype var,fdtype val,void *data)
+static int config_set_u8server_flag(lispval var,lispval val,void *data)
 {
   fd_ptrbits bigmask = (fd_ptrbits)data;
   unsigned int mask = (bigmask&0xFFFFFFFF);
@@ -843,9 +843,9 @@ static int max_error_depth = 128;
 
 static int webservefn(u8_client ucl)
 {
-  fdtype proc = VOID, result = VOID;
-  fdtype cgidata = VOID, init_cgidata = VOID, path = VOID, precheck;
-  fdtype content = VOID, retfile = VOID;
+  lispval proc = VOID, result = VOID;
+  lispval cgidata = VOID, init_cgidata = VOID, path = VOID, precheck;
+  lispval content = VOID, retfile = VOID;
   fd_lexenv base_env = NULL;
   fd_webconn client = (fd_webconn)ucl;
   u8_server server = client->server;
@@ -922,7 +922,7 @@ static int webservefn(u8_client ucl)
   /* Start doing your stuff */
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details = NULL;
-    fdtype irritant;
+    lispval irritant;
     u8_log(LOG_CRIT,"ModuleUpdateFailed","Failure updating file modules");
     setup_time = parse_time = u8_elapsed_time();
     if (fd_poperr(&c,&cxt,&details,&irritant))
@@ -933,7 +933,7 @@ static int webservefn(u8_client ucl)
     cgidata = fd_read_dtype(inbuf);}
   else if (update_preloads()<0) {
     u8_condition c; u8_context cxt; u8_string details = NULL;
-    fdtype irritant;
+    lispval irritant;
     setup_time = parse_time = u8_elapsed_time();
     u8_log(LOG_CRIT,"PreloadUpdateFailed","Failure updating preloads");
     if (fd_poperr(&c,&cxt,&details,&irritant))
@@ -973,10 +973,10 @@ static int webservefn(u8_client ucl)
     fd_parse_cgidata(cgidata);
     forcelog = fd_req_test(forcelog_slotid,VOID);
     if ((forcelog)||(traceweb>0)) {
-      fdtype referer = fd_get(cgidata,referer_slotid,VOID);
-      fdtype remote = fd_get(cgidata,remote_info,VOID);
-      fdtype method = fd_get(cgidata,request_method,VOID);
-      fdtype uri = fd_get(cgidata,uri_slotid,VOID);
+      lispval referer = fd_get(cgidata,referer_slotid,VOID);
+      lispval remote = fd_get(cgidata,remote_info,VOID);
+      lispval method = fd_get(cgidata,request_method,VOID);
+      lispval uri = fd_get(cgidata,uri_slotid,VOID);
       if (STRINGP(uri))
         ucl->status = u8_strdup(CSTRING(uri));
       if ((STRINGP(uri)) &&
@@ -1006,7 +1006,7 @@ static int webservefn(u8_client ucl)
       fd_decref(method);
       fd_decref(uri);}
     else {
-      fdtype uri = fd_get(cgidata,uri_slotid,VOID);
+      lispval uri = fd_get(cgidata,uri_slotid,VOID);
       if (STRINGP(uri))
         ucl->status = u8_strdup(CSTRING(uri));
       fd_decref(uri);}
@@ -1086,7 +1086,7 @@ static int webservefn(u8_client ucl)
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */
-    fdtype setup_proc = VOID;
+    lispval setup_proc = VOID;
     fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
     fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     base_env = base;
@@ -1101,10 +1101,10 @@ static int webservefn(u8_client ucl)
     else if (CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
         if (FD_APPLICABLEP(proc)) {
-          fdtype v = fd_apply(proc,0,NULL);
+          lispval v = fd_apply(proc,0,NULL);
           fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
-      fdtype v = fd_apply(setup_proc,0,NULL);
+      lispval v = fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
     fd_decref(setup_proc);
     /* We assume that the FDXML contains headers, so we won't add them. */
@@ -1116,7 +1116,7 @@ static int webservefn(u8_client ucl)
         result = fd_xmleval(&(client->out),expr,runenv);
         if (FD_ABORTP(result)) break;}}
     else result = fd_xmleval(&(client->out),FD_CAR(proc),runenv);
-    fd_decref((fdtype)runenv);}
+    fd_decref((lispval)runenv);}
   else {} /* This is the case where the error was found earlier. */
   exec_time = u8_elapsed_time();
   /* We're now done with all the core computation. */
@@ -1143,7 +1143,7 @@ static int webservefn(u8_client ucl)
     u8_exception ex = u8_erreify(), exscan = ex;
     /* errorpage is used when errors occur.  Currently, it can be a
        procedure (to be called) or an HTML string to be returned.  */
-    fdtype errorpage = ((base_env)?
+    lispval errorpage = ((base_env)?
                       (fd_symeval(errorpage_symbol,base_env)):
                       (VOID));
     int depth = 0;
@@ -1162,19 +1162,19 @@ static int webservefn(u8_client ucl)
                 ex->u8x_cond,ex->u8x_context,ex->u8x_details,
                 (unsigned long)ucl);
     if (logstack) {
-      fdtype backtrace=fd_exception_backtrace(ex);
+      lispval backtrace=fd_exception_backtrace(ex);
       if (FD_PAIRP(backtrace)) {
         FD_DOLIST(entry,backtrace) {
           u8_log(LOG_ERR,"Backtrace","%Q",entry);}}}
     if (FD_APPLICABLEP(errorpage)) {
-      fdtype err_value = fd_init_exception(NULL,ex);
+      lispval err_value = fd_init_exception(NULL,ex);
       fd_push_reqinfo(init_cgidata);
       fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
       fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
       if (outstream->u8_write>outstream->u8_outbuf) {
         /* Get all the output to date as a string and store it in the
            request. */
-        fdtype output = fd_make_string
+        lispval output = fd_make_string
           (NULL,outstream->u8_write-outstream->u8_outbuf,
            outstream->u8_outbuf);
         /* Save the output to date on the request */
@@ -1189,7 +1189,7 @@ static int webservefn(u8_client ucl)
       result = fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
         u8_exception newex = u8_current_exception, lastex = newex;
-        fdtype crisispage = ((base_env)?
+        lispval crisispage = ((base_env)?
                           (fd_symeval(crisispage_symbol,base_env)):
                           (VOID));
         if (((FD_VOIDP(crisispage))||(crisispage == FD_UNBOUND))&&
@@ -1203,7 +1203,7 @@ static int webservefn(u8_client ucl)
                             ((u8_context)"somewhere"));
           u8_context exdetails = ((exscan->u8x_details) ? (exscan->u8x_details) :
                                 ((u8_string)"no more details"));
-          fdtype irritant = fd_exception_xdata(exscan);
+          lispval irritant = fd_exception_xdata(exscan);
           if (STRINGP(path))
             u8_log(LOG_ERR,excond,
                    "Unexpected recursive error \"%m \" for %s:@%s (%s) (#%lx)",
@@ -1284,7 +1284,7 @@ static int webservefn(u8_client ucl)
       u8_client_close(ucl);}}
   if (recovered) {
     U8_OUTPUT httphead, htmlhead; int tracep;
-    fdtype traceval = fd_get(cgidata,tracep_slotid,VOID);
+    lispval traceval = fd_get(cgidata,tracep_slotid,VOID);
     if (FD_VOIDP(traceval)) tracep = 0; else tracep = 1;
     U8_INIT_STATIC_OUTPUT(httphead,1024); U8_INIT_STATIC_OUTPUT(htmlhead,1024);
     http_status = fd_output_http_headers(&httphead,cgidata);
@@ -1454,9 +1454,9 @@ static int webservefn(u8_client ucl)
             outstream->u8_write-outstream->u8_outbuf,
             u8_elapsed_time()-start_time);}
   if (fd_test(cgidata,cleanup_slotid,VOID)) {
-    fdtype cleanup = fd_get(cgidata,cleanup_slotid,FD_EMPTY);
+    lispval cleanup = fd_get(cgidata,cleanup_slotid,FD_EMPTY);
     FD_DO_CHOICES(cl,cleanup) {
-      fdtype cleanup_val = fd_apply(cleanup,0,NULL);
+      lispval cleanup_val = fd_apply(cleanup,0,NULL);
       fd_decref(cleanup_val);}}
   run_postflight();
   if (threadcache) fd_pop_threadcache(threadcache);
@@ -1470,12 +1470,12 @@ static int webservefn(u8_client ucl)
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if ((forcelog)||(traceweb>0)||
       ((overtime>0)&&((write_time-start_time)>overtime))) {
-    fdtype method = fd_get(cgidata,request_method,VOID);
-    fdtype query = fd_get(cgidata,query_slotid,VOID);
-    fdtype redirect = fd_get(cgidata,redirect_slotid,VOID);
-    fdtype sendfile = fd_get(cgidata,sendfile_slotid,VOID);
-    fdtype xredirect = fd_get(cgidata,xredirect_slotid,VOID);
-    fdtype uri = fd_get(cgidata,uri_slotid,VOID);
+    lispval method = fd_get(cgidata,request_method,VOID);
+    lispval query = fd_get(cgidata,query_slotid,VOID);
+    lispval redirect = fd_get(cgidata,redirect_slotid,VOID);
+    lispval sendfile = fd_get(cgidata,sendfile_slotid,VOID);
+    lispval xredirect = fd_get(cgidata,xredirect_slotid,VOID);
+    lispval uri = fd_get(cgidata,uri_slotid,VOID);
     if (!(FD_VOIDP(redirect)))
       u8_log(LOG_NOTICE,"FDServlet/REQUEST/REDIRECT","to %q",redirect);
     else if (!(FD_VOIDP(xredirect)))
@@ -1554,7 +1554,7 @@ static int close_webclient(u8_client ucl)
 static int reuse_webclient(u8_client ucl)
 {
   fd_webconn client = (fd_webconn)ucl;
-  fdtype cgidata = client->cgidata;
+  lispval cgidata = client->cgidata;
   u8_log(LOG_INFO,"FDServlet/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
   fd_decref(cgidata); client->cgidata = VOID;
@@ -1594,7 +1594,7 @@ static void shutdown_server(u8_condition reason)
   fd_recycle_hashtable(&pagemap);
 }
 
-static fdtype servlet_status_string()
+static lispval servlet_status_string()
 {
   u8_string status = u8_server_status(&fdwebserver,NULL,0);
   return fd_lispstring(status);
@@ -1680,7 +1680,7 @@ static int add_server(u8_string spec)
   return 0;
 }
 
-static int addfdservport(fdtype var,fdtype val,void *data)
+static int addfdservport(lispval var,lispval val,void *data)
 {
   u8_string new_port = NULL;
   u8_lock_mutex(&server_port_lock);
@@ -1724,13 +1724,13 @@ static int addfdservport(fdtype var,fdtype val,void *data)
   return 0;
 }
 
-static fdtype getfdservports(fdtype var,void *data)
+static lispval getfdservports(lispval var,void *data)
 {
-  fdtype result = EMPTY;
+  lispval result = EMPTY;
   int i = 0, lim = n_ports;
   u8_lock_mutex(&server_port_lock); lim = n_ports;
   while (i<lim) {
-    fdtype string = fdstring(ports[i++]);
+    lispval string = fdstring(ports[i++]);
     CHOICE_ADD(result,string);}
   u8_unlock_mutex(&server_port_lock);
   return result;
@@ -1862,9 +1862,9 @@ static void register_servlet_configs()
 
 /* Fallback pages */
 
-static fdtype notfoundpage()
+static lispval notfoundpage()
 {
-  fdtype title, ctype = fdstring("text/html");
+  lispval title, ctype = fdstring("text/html");
   struct U8_OUTPUT *body = u8_current_output;
   struct U8_OUTPUT tmpout; U8_INIT_STATIC_OUTPUT(tmpout,1024);
   fd_req_store(status_symbol,FD_INT(404));
@@ -2072,11 +2072,11 @@ int main(int argc,char **argv)
 
   /* This is the root of all client service environments */
   if (server_env == NULL) server_env = fd_working_lexenv();
-  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
-  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime));
-  fd_idefn((fdtype)server_env,
+  fd_idefn((lispval)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn((lispval)server_env,fd_make_cprim0("UPTIME",get_uptime));
+  fd_idefn((lispval)server_env,
            fd_make_cprim0("SERVLET-STATUS->STRING",servlet_status_string));
-  fd_idefn((fdtype)server_env,
+  fd_idefn((lispval)server_env,
            fd_make_cprim0("SERVLET-STATUS",servlet_status));
 
   /* We keep a lock on the log, which could become a bottleneck if there are I/O problems.
@@ -2113,8 +2113,8 @@ int main(int argc,char **argv)
   else if ((u8_has_suffix(load_source,".scm",1))||
            (u8_has_suffix(load_source,".fdcgi",1))||
            (u8_has_suffix(load_source,".fdxml",1))) {
-    fdtype path = fdstring(load_source);
-    fdtype result = getcontent(path);
+    lispval path = fdstring(load_source);
+    lispval result = getcontent(path);
     fd_decref(path); fd_decref(result);}
   else {}
 

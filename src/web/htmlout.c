@@ -35,24 +35,24 @@
 
 #include <libu8/u8xfiles.h>
 
-static void output_value(u8_output out,fdtype val,
+static void output_value(u8_output out,lispval val,
 			 u8_string eltname,
 			 u8_string classname);
 FD_EXPORT void fd_html_exception(u8_output s,u8_exception ex,int backtrace);
 
 static u8_string error_stylesheet;
 
-static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
-static fdtype href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
-static fdtype embedded_symbol, estylesheet_symbol, xmltag_symbol;
-static fdtype modules_symbol, xml_env_symbol;
+static lispval xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
+static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
+static lispval embedded_symbol, estylesheet_symbol, xmltag_symbol;
+static lispval modules_symbol, xml_env_symbol;
 
 static void start_errorpage(u8_output s,u8_exception ex)
 {
   int isembedded = 0, customstylesheet = 0;
   s->u8_write = s->u8_outbuf;
-  fdtype embeddedp = fd_req_get(embedded_symbol,VOID);
-  fdtype estylesheet = fd_req_get(estylesheet_symbol,VOID);
+  lispval embeddedp = fd_req_get(embedded_symbol,VOID);
+  lispval estylesheet = fd_req_get(estylesheet_symbol,VOID);
   if ((FD_NOVOIDP(embeddedp)) || (FALSEP(embeddedp))) isembedded = 1;
   if (STRINGP(embeddedp)) u8_puts(s,CSTRING(embeddedp));
   if (STRINGP(estylesheet)) {
@@ -88,7 +88,7 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
           "Sorry, there was an unexpected error processing your request"
           "</p>\n");
 
-  fdtype backtrace = fd_exception_backtrace(ex);
+  lispval backtrace = fd_exception_backtrace(ex);
   if (PAIRP(backtrace)) {
     u8_puts(s,"<div class='backtrace'>\n");
     fd_html_backtrace(s,backtrace);
@@ -111,7 +111,7 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_puts(s,"</body>\n</html>\n");
 }
 
-static fdtype debugpage2html_prim(fdtype exception,fdtype where)
+static lispval debugpage2html_prim(lispval exception,lispval where)
 {
   u8_exception ex;
   if ((VOIDP(exception))||(FALSEP(exception)))
@@ -134,9 +134,9 @@ static fdtype debugpage2html_prim(fdtype exception,fdtype where)
   else return FD_FALSE;
 }
 
-static fdtype backtrace2html_prim(fdtype arg,fdtype where)
+static lispval backtrace2html_prim(lispval arg,lispval where)
 {
-  fdtype backtrace=VOID; u8_exception ex;
+  lispval backtrace=VOID; u8_exception ex;
   if ((VOIDP(arg))||(FALSEP(arg))||(arg == FD_DEFAULT_VALUE)) {
     ex = u8_current_exception;
     if (ex) backtrace=fd_exception_backtrace(ex);}
@@ -164,16 +164,16 @@ static fdtype backtrace2html_prim(fdtype arg,fdtype where)
 
 /* Output Scheme objects, mostly as tables */
 
-FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl)
+FD_EXPORT void fd_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl)
 {
   output_value(s,v,tag,cl);
 }
 
 /* XHTML error report */
 
-static fdtype moduleid_symbol;
+static lispval moduleid_symbol;
 
-static int isexprp(fdtype expr)
+static int isexprp(lispval expr)
 {
   FD_DOLIST(elt,expr) {
     if ( (PAIRP(elt)) || (CHOICEP(elt)) ||
@@ -183,7 +183,7 @@ static int isexprp(fdtype expr)
   return 1;
 }
 
-static int isoptsp(fdtype expr)
+static int isoptsp(lispval expr)
 {
   if (PAIRP(expr))
     if ((SYMBOLP(FD_CAR(expr))) && (!(PAIRP(FD_CDR(expr)))))
@@ -196,7 +196,7 @@ static int isoptsp(fdtype expr)
   else return 0;
 }
 
-static void output_opts(u8_output out,fdtype expr)
+static void output_opts(u8_output out,lispval expr)
 {
   if (PAIRP(expr))
     if ( (SYMBOLP(FD_CAR(expr))) && (!(PAIRP(FD_CDR(expr)))) ) {
@@ -212,9 +212,9 @@ static void output_opts(u8_output out,fdtype expr)
     u8_printf(out,"\n <tr><th class='optname'>%s</th><td>%s</td></tr>",
 	      SYM_NAME(expr),SYM_NAME(expr));
   else if ( (SCHEMAPP(expr)) || (SLOTMAPP(expr)) ) {
-    fdtype keys=fd_getkeys(expr);
+    lispval keys=fd_getkeys(expr);
     DO_CHOICES(key,keys) {
-      fdtype optval=fd_get(expr,key,VOID);
+      lispval optval=fd_get(expr,key,VOID);
       if (SYMBOLP(key))
 	u8_printf(out,"\n <tr><th class='optname'>%s</th>",
 		  SYM_NAME(expr));
@@ -229,7 +229,7 @@ static void output_opts(u8_output out,fdtype expr)
 FD_EXPORT
 void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
 {
-  fdtype irritant=fd_get_irritant(ex);
+  lispval irritant=fd_get_irritant(ex);
   u8_string i_string=NULL; int overflow=0;
   U8_FIXED_OUTPUT(tmp,32);
   if (!(VOIDP(irritant))) {
@@ -256,13 +256,13 @@ void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
   }
   u8_puts(s,"\n</div>\n"); /* exception */
   if (backtrace) {
-    fdtype backtrace=fd_exception_backtrace(ex);
+    lispval backtrace=fd_exception_backtrace(ex);
     if (PAIRP(backtrace))
       fd_html_backtrace(s,backtrace);
     fd_decref(backtrace);}
 }
 
-static void output_value(u8_output out,fdtype val,
+static void output_value(u8_output out,lispval val,
 			 u8_string eltname,
 			 u8_string classname)
 {
@@ -292,12 +292,12 @@ static void output_value(u8_output out,fdtype val,
 	i++;}
       u8_printf(out,")</ol>");}}
   else if ( (SLOTMAPP(val)) || (SCHEMAPP(val)) ) {
-    fdtype keys=fd_getkeys(val);
+    lispval keys=fd_getkeys(val);
     int n_keys=FD_CHOICE_SIZE(keys);
     if (n_keys==0)
       u8_printf(out," <%s class='%s map'>#[]</%s>",eltname,classname,eltname);
     else if (n_keys==1) {
-      fdtype value=fd_get(val,keys,VOID);
+      lispval value=fd_get(val,keys,VOID);
       u8_printf(out," <%s class='%s map'>#[<span class='slotid'>%q</span> ",
 		eltname,classname,keys);
       output_value(out,value,"span","slotvalue");
@@ -306,7 +306,7 @@ static void output_value(u8_output out,fdtype val,
     else {
       u8_printf(out,"\n<div class='%s map'>",classname);
       int i=0; DO_CHOICES(key,keys) {
-	fdtype value=fd_get(val,key,VOID);
+	lispval value=fd_get(val,key,VOID);
         u8_printf(out,"\n  <div class='%s keyval keyval%d'>",classname,i);
 	output_value(out,key,"span","key");
 	if (CHOICEP(value)) u8_puts(out," <span class='slotvals'>");
@@ -319,7 +319,7 @@ static void output_value(u8_output out,fdtype val,
         i++;}
       u8_printf(out,"\n</div>",classname);}}
   else if (PAIRP(val)) {
-    u8_string tmp = fd_dtype2string(val);
+    u8_string tmp = fd_lisp2string(val);
     if (strlen(tmp)< 50)
       u8_printf(out,"<%s class='%s listval'>%s</%s>",
 		eltname,classname,tmp,eltname);
@@ -332,10 +332,10 @@ static void output_value(u8_output out,fdtype val,
       fd_pprint(out,val,"",0,0,60);
       u8_printf(out,"\n</pre>");}
     else {
-      fdtype scan=val;
+      lispval scan=val;
       u8_printf(out," <ol class='%s list'>",classname);
       while (PAIRP(scan)) {
-	fdtype car=FD_CAR(val); scan=FD_CDR(scan);
+	lispval car=FD_CAR(val); scan=FD_CDR(scan);
 	output_value(out,car,"li","listelt");}
       if (!(NILP(scan)))
 	output_value(out,scan,"li","cdrelt");
@@ -368,7 +368,7 @@ static void output_value(u8_output out,fdtype val,
 #define INTVAL(x)    ((FIXNUMP(x))?(FD_INT(x)):(-1))
 #define STRINGVAL(x) ((STRINGP(x))?(CSTRING(x)):((u8_string)"uninitialized"))
 
-static void output_stack_frame(u8_output out,fdtype entry)
+static void output_stack_frame(u8_output out,lispval entry)
 {
   if (FD_EXCEPTIONP(entry)) {
     fd_exception_object exo=
@@ -376,14 +376,14 @@ static void output_stack_frame(u8_output out,fdtype entry)
     u8_exception ex = exo->fdex_u8ex;
     fd_html_exception(out,ex,0);}
   else if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
-    fdtype depth=VEC_REF(entry,0);
-    fdtype type=VEC_REF(entry,1);
-    fdtype label=VEC_REF(entry,2);
-    fdtype status=VEC_REF(entry,3);
-    fdtype op=VEC_REF(entry,4);
-    fdtype args=VEC_REF(entry,5);
-    fdtype env=VEC_REF(entry,6);
-    fdtype source=VEC_REF(entry,7);
+    lispval depth=VEC_REF(entry,0);
+    lispval type=VEC_REF(entry,1);
+    lispval label=VEC_REF(entry,2);
+    lispval status=VEC_REF(entry,3);
+    lispval op=VEC_REF(entry,4);
+    lispval args=VEC_REF(entry,5);
+    lispval env=VEC_REF(entry,6);
+    lispval source=VEC_REF(entry,7);
     u8_puts(out,"<div class='stackframe'>\n");
     u8_printf(out,
               "  <div class='head'>"
@@ -407,15 +407,15 @@ static void output_stack_frame(u8_output out,fdtype entry)
       output_value(out,op,"span","handler");
       int i=0, n=VEC_LEN(args);
       while (i<n) {
-        fdtype arg=VEC_REF(args,i);
+        lispval arg=VEC_REF(args,i);
         output_value(out,arg,"span","arg");
         i++;}}
     if (TABLEP(env)) {
-      fdtype vars=fd_getkeys(env);
+      lispval vars=fd_getkeys(env);
       u8_printf(out,"<div class='bindings'>");
       DO_CHOICES(var,vars) {
         if (SYMBOLP(var)) {
-          fdtype val=fd_get(env,var,VOID);
+          lispval val=fd_get(env,var,VOID);
           u8_puts(out,"\n <div class='binding'>");
           if ((val == VOID) || (val == FD_UNBOUND))
             u8_printf(out,"<span class='varname'>%s</span> "
@@ -443,15 +443,15 @@ static void output_stack_frame(u8_output out,fdtype entry)
 }
 
 FD_EXPORT
-void fd_html_backtrace(u8_output out,fdtype rep)
+void fd_html_backtrace(u8_output out,lispval rep)
 {
-  fdtype backtrace=NIL;
+  lispval backtrace=NIL;
   /* Reverse the list */
   {FD_DOLIST(entry,rep) {
       backtrace=fd_init_pair(NULL,fd_incref(entry),backtrace);}}
   /* Output the backtrace */
-  fdtype scan=backtrace; while (PAIRP(scan)) {
-    fdtype entry=FD_CAR(scan); scan=FD_CDR(scan);
+  lispval scan=backtrace; while (PAIRP(scan)) {
+    lispval entry=FD_CAR(scan); scan=FD_CDR(scan);
     output_stack_frame(out,entry);}
   /* Free what you reversed above */
   fd_decref(backtrace);
@@ -459,8 +459,8 @@ void fd_html_backtrace(u8_output out,fdtype rep)
 
 /* Outputing tables to XHTML */
 
-static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
-                               u8_string class_name,fdtype xmloidfn)
+static void output_xhtml_table(U8_OUTPUT *out,lispval tbl,lispval keys,
+                               u8_string class_name,lispval xmloidfn)
 {
   u8_printf(out,"<table class='%s'>\n",class_name);
   if (OIDP(tbl))
@@ -471,10 +471,10 @@ static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
                  fd_type_names[FD_PTR_TYPE(tbl)]);
   {
     DO_CHOICES(key,keys) {
-      fdtype _value=
+      lispval _value=
         ((OIDP(tbl)) ? (fd_frame_get(tbl,key)) :
          (fd_get(tbl,key,EMPTY)));
-      fdtype values = fd_simplify_choice(_value);
+      lispval values = fd_simplify_choice(_value);
       u8_printf(out,"  <tr><th>");
       fd_xmlout_helper(out,NULL,key,xmloidfn,NULL);
       if (EMPTYP(values))
@@ -497,12 +497,12 @@ static void output_xhtml_table(U8_OUTPUT *out,fdtype tbl,fdtype keys,
   u8_printf(out,"</table>\n");
 }
 
-static fdtype table2html_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval table2html_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   u8_string classname = NULL;
   U8_OUTPUT *out = u8_current_output;
-  fdtype xmloidfn = fd_symeval(xmloidfn_symbol,env);
-  fdtype tables, classarg, slotids;
+  lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
+  lispval tables, classarg, slotids;
   tables = fd_eval(fd_get_arg(expr,1),env);
   if (FD_ABORTP(tables))return tables;
   else if (VOIDP(tables))
@@ -521,7 +521,7 @@ static fdtype table2html_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   {
     DO_CHOICES(table,tables)
       if (TABLEP(table)) {
-        fdtype keys = ((VOIDP(slotids)) ? (fd_getkeys(table)) : (slotids));
+        lispval keys = ((VOIDP(slotids)) ? (fd_getkeys(table)) : (slotids));
         if (classname)
           output_xhtml_table(out,table,keys,classname,xmloidfn);
         else if (OIDP(table))
@@ -533,7 +533,7 @@ static fdtype table2html_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-static fdtype obj2html_prim(fdtype obj,fdtype tag)
+static lispval obj2html_prim(lispval obj,lispval tag)
 {
   u8_string tagname = NULL, classname = NULL; u8_byte tagbuf[64];
   U8_OUTPUT *s = u8_current_output;
@@ -555,12 +555,12 @@ static fdtype obj2html_prim(fdtype obj,fdtype tag)
 
 FD_EXPORT void fd_init_htmlout_c()
 {
-  fdtype fdweb_module=fd_new_module("FDWEB",(0));
-  fdtype safe_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  fdtype xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
+  lispval fdweb_module=fd_new_module("FDWEB",(0));
+  lispval safe_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  lispval xhtml_module=fd_new_module("XHTML",FD_MODULE_SAFE);
 
-  fdtype debug2html = fd_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
-  fdtype backtrace2html = fd_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
+  lispval debug2html = fd_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
+  lispval backtrace2html = fd_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
 
   fd_idefn(fdweb_module,debug2html);
   fd_idefn(fdweb_module,backtrace2html);

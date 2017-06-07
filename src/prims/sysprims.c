@@ -61,24 +61,24 @@ fd_exception fd_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 
-static fdtype hostname_prim()
+static lispval hostname_prim()
 {
   return fd_lispstring(u8_gethostname());
 }
 
 /* There's not a good justification for putting this here other
    than that it has to do with getting stuff from the environment. */
-static fdtype hostaddrs_prim(fdtype hostname)
+static lispval hostaddrs_prim(lispval hostname)
 {
   int addr_len = -1; unsigned int type = -1;
   char **addrs = u8_lookup_host(CSTRING(hostname),&addr_len,&type);
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   int i = 0;
   if (addrs == NULL) {
     fd_clear_errors(1);
     return results;}
   else while (addrs[i]) {
-    unsigned char *addr = addrs[i++]; fdtype string;
+    unsigned char *addr = addrs[i++]; lispval string;
     struct U8_OUTPUT out; int j = 0; U8_INIT_OUTPUT(&out,16);
     while (j<addr_len) {
       u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
@@ -91,7 +91,7 @@ static fdtype hostaddrs_prim(fdtype hostname)
 
 /* GETENV primitive */
 
-static fdtype getenv_prim(fdtype var)
+static lispval getenv_prim(lispval var)
 {
   u8_string enval = u8_getenv(CSTRING(var));
   if (enval == NULL) return FD_FALSE;
@@ -100,7 +100,7 @@ static fdtype getenv_prim(fdtype var)
 
 /* LOAD AVERAGE */
 
-static fdtype loadavg_prim()
+static lispval loadavg_prim()
 {
   double loadavg;
   int nsamples = getloadavg(&loadavg,1);
@@ -108,7 +108,7 @@ static fdtype loadavg_prim()
   else return FD_FALSE;
 }
 
-static fdtype loadavgs_prim()
+static lispval loadavgs_prim()
 {
   double loadavg[3]; int nsamples = getloadavg(loadavg,3);
   if (nsamples==1)
@@ -125,24 +125,24 @@ static fdtype loadavgs_prim()
 
 /* RUSAGE */
 
-static fdtype data_symbol, stack_symbol, shared_symbol, private_symbol;
-static fdtype memusage_symbol, vmemusage_symbol, pagesize_symbol, rss_symbol;
-static fdtype datakb_symbol, stackkb_symbol, sharedkb_symbol;
-static fdtype rsskb_symbol, privatekb_symbol;
-static fdtype utime_symbol, stime_symbol, clock_symbol;
-static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
-static fdtype memusage_symbol, vmemusage_symbol, pagesize_symbol;
-static fdtype n_cpus_symbol, max_cpus_symbol;
-static fdtype physical_pages_symbol, available_pages_symbol;
-static fdtype physical_memory_symbol, available_memory_symbol;
-static fdtype physicalmb_symbol, availablemb_symbol;
-static fdtype memload_symbol, vmemload_symbol, stacksize_symbol;
-static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
-static fdtype mallocd_symbol, heap_symbol, mallocinfo_symbol;
-static fdtype uptime_symbol, max_swap_symbol, swap_symbol, total_ram_symbol;
-static fdtype max_vmem_symbol;
+static lispval data_symbol, stack_symbol, shared_symbol, private_symbol;
+static lispval memusage_symbol, vmemusage_symbol, pagesize_symbol, rss_symbol;
+static lispval datakb_symbol, stackkb_symbol, sharedkb_symbol;
+static lispval rsskb_symbol, privatekb_symbol;
+static lispval utime_symbol, stime_symbol, clock_symbol;
+static lispval load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
+static lispval memusage_symbol, vmemusage_symbol, pagesize_symbol;
+static lispval n_cpus_symbol, max_cpus_symbol;
+static lispval physical_pages_symbol, available_pages_symbol;
+static lispval physical_memory_symbol, available_memory_symbol;
+static lispval physicalmb_symbol, availablemb_symbol;
+static lispval memload_symbol, vmemload_symbol, stacksize_symbol;
+static lispval nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
+static lispval mallocd_symbol, heap_symbol, mallocinfo_symbol;
+static lispval uptime_symbol, max_swap_symbol, swap_symbol, total_ram_symbol;
+static lispval max_vmem_symbol;
 
-static fdtype tcmallocinfo_symbol;
+static lispval tcmallocinfo_symbol;
 
 static int pagesize = -1;
 static int get_n_cpus(void);
@@ -158,16 +158,16 @@ static long long get_available_memory(void);
    want only user and system time *after* exec was called. */
 static struct rusage init_rusage;
 
-static void add_intval(fdtype table,fdtype symbol,long long ival)
+static void add_intval(lispval table,lispval symbol,long long ival)
 {
-  fdtype iptr = FD_INT(ival);
+  lispval iptr = FD_INT(ival);
   fd_add(table,symbol,iptr);
   if (CONSP(iptr)) fd_decref(iptr);
 }
 
-static void add_flonum(fdtype table,fdtype symbol,double fval)
+static void add_flonum(lispval table,lispval symbol,double fval)
 {
-  fdtype flonum = fd_make_flonum(fval);
+  lispval flonum = fd_make_flonum(fval);
   fd_add(table,symbol,flonum);
   fd_decref(flonum);
 }
@@ -193,7 +193,7 @@ static u8_string get_malloc_info()
 #endif
 }
 
-static fdtype rusage_prim(fdtype field)
+static lispval rusage_prim(lispval field)
 {
   struct rusage r;
   int pagesize = get_pagesize();
@@ -201,7 +201,7 @@ static fdtype rusage_prim(fdtype field)
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return FD_ERROR;
   else if (VOIDP(field)) {
-    fdtype result = fd_empty_slotmap();
+    lispval result = fd_empty_slotmap();
     pid_t pid = getpid(), ppid = getppid();
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
     double memload = u8_memload(), vmemload = u8_vmemload();
@@ -264,7 +264,7 @@ static fdtype rusage_prim(fdtype field)
     { /* Load average(s) */
       double loadavg[3]; int nsamples = getloadavg(loadavg,3);
       if (nsamples>0) {
-        fdtype lval = fd_make_flonum(loadavg[0]), lvec = VOID;
+        lispval lval = fd_make_flonum(loadavg[0]), lvec = VOID;
         fd_store(result,load_symbol,lval);
         if (nsamples==1)
           lvec = fd_make_nvector(1,fd_make_flonum(loadavg[0]));
@@ -452,12 +452,12 @@ static fdtype rusage_prim(fdtype field)
   else return EMPTY;
 }
 
-static int setprop(fdtype result,u8_string field,char *value)
+static int setprop(lispval result,u8_string field,char *value)
 {
   if ((value)&&(strcmp(value,"(none)"))) {
-    fdtype slotid = fd_intern(field);
+    lispval slotid = fd_intern(field);
     u8_string svalue = u8_fromlibc(value);
-    fdtype lvalue = fdstring(svalue);
+    lispval lvalue = fdstring(svalue);
     int rv = fd_store(result,slotid,lvalue);
     fd_decref(lvalue);
     u8_free(svalue);
@@ -465,13 +465,13 @@ static int setprop(fdtype result,u8_string field,char *value)
   else return 0;
 }
 
-static fdtype uname_prim()
+static lispval uname_prim()
 {
 #if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
   struct utsname sysinfo;
   int rv = uname(&sysinfo);
   if (rv==0) {
-    fdtype result = fd_init_slotmap(NULL,0,NULL);
+    lispval result = fd_init_slotmap(NULL,0,NULL);
     setprop(result,"OSNAME",sysinfo.sysname);
     setprop(result,"NODENAME",sysinfo.nodename);
     setprop(result,"RELEASE",sysinfo.release);
@@ -486,18 +486,18 @@ static fdtype uname_prim()
 #endif
 }
 
-static fdtype getpid_prim()
+static lispval getpid_prim()
 {
   pid_t pid = getpid();
   return FD_INT(((unsigned long)pid));
 }
-static fdtype getppid_prim()
+static lispval getppid_prim()
 {
   pid_t pid = getppid();
   return FD_INT(((unsigned long)pid));
 }
 
-static fdtype stacksize_prim()
+static lispval stacksize_prim()
 {
   ssize_t size = u8_stacksize();
   if (size<0)
@@ -505,50 +505,50 @@ static fdtype stacksize_prim()
   else return FD_INT(size);
 }
 
-static fdtype threadid_prim()
+static lispval threadid_prim()
 {
   long long tid = u8_threadid();
   return FD_INT(tid);
 }
 
-static fdtype getprocstring_prim()
+static lispval getprocstring_prim()
 {
   unsigned char buf[128];
   unsigned char *pinfo = u8_procinfo(buf);
-  return fdtype_string(pinfo);
+  return lispval_string(pinfo);
 }
 
-static fdtype memusage_prim()
+static lispval memusage_prim()
 {
   ssize_t size = u8_memusage();
   return FD_INT(size);
 }
 
-static fdtype vmemusage_prim()
+static lispval vmemusage_prim()
 {
   ssize_t size = u8_vmemusage();
   return FD_INT(size);
 }
 
-static fdtype physmem_prim(fdtype total)
+static lispval physmem_prim(lispval total)
 {
   ssize_t size = u8_physmem();
   return FD_INT(size);
 }
 
-static fdtype memload_prim()
+static lispval memload_prim()
 {
   double load = u8_memload();
   return fd_make_flonum(load);
 }
 
-static fdtype vmemload_prim()
+static lispval vmemload_prim()
 {
   double vload = u8_vmemload();
   return fd_make_flonum(vload);
 }
 
-static fdtype usertime_prim()
+static lispval usertime_prim()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
@@ -562,7 +562,7 @@ static fdtype usertime_prim()
     return fd_init_double(NULL,msecs);}
 }
 
-static fdtype systime_prim()
+static lispval systime_prim()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
@@ -576,7 +576,7 @@ static fdtype systime_prim()
     return fd_init_double(NULL,msecs);}
 }
 
-static fdtype cpusage_prim(fdtype arg)
+static lispval cpusage_prim(lispval arg)
 {
   if (VOIDP(arg))
     return rusage_prim(cpusage_symbol);
@@ -586,9 +586,9 @@ static fdtype cpusage_prim(fdtype arg)
     if (u8_getrusage(RUSAGE_SELF,&r)<0)
       return FD_ERROR;
     else {
-      fdtype prelapsed = fd_get(arg,clock_symbol,VOID);
-      fdtype prestime = fd_get(arg,stime_symbol,VOID);
-      fdtype preutime = fd_get(arg,utime_symbol,VOID);
+      lispval prelapsed = fd_get(arg,clock_symbol,VOID);
+      lispval prestime = fd_get(arg,stime_symbol,VOID);
+      lispval preutime = fd_get(arg,utime_symbol,VOID);
       if ((FD_FLONUMP(prelapsed)) &&
           (FD_FLONUMP(prestime)) &&
           (FD_FLONUMP(preutime))) {
@@ -696,7 +696,7 @@ static long long get_available_memory()
 
 /* Corelimit config variable */
 
-static fdtype corelimit_get(fdtype symbol,void *vptr)
+static lispval corelimit_get(lispval symbol,void *vptr)
 {
   struct rlimit limit;
   int rv = getrlimit(RLIMIT_CORE,&limit);
@@ -706,7 +706,7 @@ static fdtype corelimit_get(fdtype symbol,void *vptr)
   else return FD_INT(limit.rlim_cur);
 }
 
-static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
+static int corelimit_set(lispval symbol,lispval value,void *vptr)
 {
   struct rlimit limit; int rv;
   if (FIXNUMP(value))
@@ -727,7 +727,7 @@ static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
 /* Google profiling tools */
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-static fdtype gperf_heap_profile(fdtype arg)
+static lispval gperf_heap_profile(lispval arg)
 {
   int running = IsHeapProfilerRunning();
   if (FALSEP(arg)) {
@@ -744,14 +744,14 @@ static fdtype gperf_heap_profile(fdtype arg)
     return FD_TRUE;}
 }
 
-static fdtype gperf_profiling_heap(fdtype arg)
+static lispval gperf_profiling_heap(lispval arg)
 {
   if (IsHeapProfilerRunning())
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype gperf_dump_heap(fdtype arg)
+static lispval gperf_dump_heap(lispval arg)
 {
   int running = IsHeapProfilerRunning();
   if (running) {
@@ -762,21 +762,21 @@ static fdtype gperf_dump_heap(fdtype arg)
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
-static fdtype gperf_startstop(fdtype arg)
+static lispval gperf_startstop(lispval arg)
 {
   if (STRINGP(arg))
     ProfilerStart(CSTRING(arg));
   else ProfilerStop();
   return VOID;
 }
-static fdtype gperf_flush(fdtype arg)
+static lispval gperf_flush(lispval arg)
 {
   ProfilerFlush();
   return VOID;
 }
 #endif
 
-static fdtype malloc_stats_prim()
+static lispval malloc_stats_prim()
 {
 #if HAVE_MALLOC_STATS
   malloc_stats();
@@ -787,7 +787,7 @@ static fdtype malloc_stats_prim()
   return VOID;
 }
 
-static fdtype release_memory_prim(fdtype arg)
+static lispval release_memory_prim(lispval arg)
 {
 #if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
   if (FIXNUMP(arg))

@@ -25,7 +25,7 @@ int main(int argc,char **argv)
 {
   int fd_version = fd_init_scheme();
   fd_lexenv env;
-  fdtype expr, value;
+  lispval expr, value;
   if (fd_version<0) exit(1);
   fd_init_scheme(); fd_init_schemeio();
   fd_init_texttools(); fd_init_fdweb();
@@ -34,6 +34,6 @@ int main(int argc,char **argv)
   expr = fd_parse(argv[1]);
   value = fd_eval(expr,env);
   u8_fprintf(stderr,_("Value of %q is %q\n"),expr,value);
-  fd_decref(value); fd_decref(expr); fd_decref((fdtype)env);
+  fd_decref(value); fd_decref(expr); fd_decref((lispval)env);
   return 0;
 }

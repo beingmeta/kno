@@ -24,7 +24,7 @@
 
 #include <ctype.h>
 
-static fdtype texttools_module;
+static lispval texttools_module;
 
 fd_exception fd_BadExtractData=_("Bad extract data");
 fd_exception fd_BadMorphRule=_("Bad morphrule");
@@ -57,7 +57,7 @@ static u8_byteoff _forward_char(const u8_byte *s,u8_byteoff i)
 #define forward_char(s,i)                                               \
   ((s[i] == 0) ? (i) : (s[i] >= 0x80) ? (_forward_char(s,i)) : (i+1))
 
-static u8_input get_input_port(fdtype portarg)
+static u8_input get_input_port(lispval portarg)
 {
   if (VOIDP(portarg))
     return NULL; /* get_default_output(); */
@@ -69,7 +69,7 @@ static u8_input get_input_port(fdtype portarg)
 }
 
 /* This is for greedy matching */
-FD_FASTOP size_t getlongmatch(fdtype matches)
+FD_FASTOP size_t getlongmatch(lispval matches)
 {
   if (EMPTYP(matches)) return -1;
   else if (FIXNUMP(matches))
@@ -109,24 +109,24 @@ static u8_string skip_nonwhitespace(u8_string s)
   else return NULL;
 }
 
-static fdtype whitespace_segment(u8_string s)
+static lispval whitespace_segment(u8_string s)
 {
-  fdtype result = NIL, *lastp = &result;
+  lispval result = NIL, *lastp = &result;
   const u8_byte *start = skip_whitespace(s), *end = skip_nonwhitespace(start);
   while (start) {
-    fdtype newcons=
+    lispval newcons=
       fd_conspair(fd_substring(start,end),NIL);
     *lastp = newcons; lastp = &(FD_CDR(newcons));
     start = skip_whitespace(end); end = skip_nonwhitespace(start);}
   return result;
 }
 
-static fdtype dosegment(u8_string string,fdtype separators)
+static lispval dosegment(u8_string string,lispval separators)
 {
   const u8_byte *scan = string;
-  fdtype result = NIL, *resultp = &result;
+  lispval result = NIL, *resultp = &result;
   while (scan) {
-    fdtype sepstring = EMPTY, pair;
+    lispval sepstring = EMPTY, pair;
     u8_byte *brk = NULL;
     DO_CHOICES(sep,separators)
       if (STRINGP(sep)) {
@@ -136,7 +136,7 @@ static fdtype dosegment(u8_string string,fdtype separators)
           sepstring = sep; brk = try;}}
       else return fd_type_error(_("string"),"dosegment",sep);
     if (brk == NULL) {
-      pair = fd_conspair(fdtype_string(scan),NIL);
+      pair = fd_conspair(lispval_string(scan),NIL);
       *resultp = pair;
       return result;}
     pair = fd_conspair(fd_substring(scan,brk),NIL);
@@ -146,13 +146,13 @@ static fdtype dosegment(u8_string string,fdtype separators)
   return result;
 }
 
-static fdtype segment_prim(fdtype inputs,fdtype separators)
+static lispval segment_prim(lispval inputs,lispval separators)
 {
   if (EMPTYP(inputs)) return EMPTY;
   else if (CHOICEP(inputs)) {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(input,inputs) {
-      fdtype result = segment_prim(input,separators);
+      lispval result = segment_prim(input,separators);
       if (FD_ABORTP(result)) {
         fd_decref(results); return result;}
       CHOICE_ADD(results,result);}
@@ -164,7 +164,7 @@ static fdtype segment_prim(fdtype inputs,fdtype separators)
   else return fd_type_error(_("string"),"dosegment",inputs);
 }
 
-static fdtype decode_entities_prim(fdtype input)
+static lispval decode_entities_prim(lispval input)
 {
   if (STRLEN(input)==0) return fd_incref(input);
   else if (strchr(CSTRING(input),'&')) {
@@ -176,8 +176,8 @@ static fdtype decode_entities_prim(fdtype input)
   else return fd_incref(input);
 }
 
-static fdtype encode_entities(fdtype input,int nonascii,
-                              u8_string ascii_chars,fdtype other_chars)
+static lispval encode_entities(lispval input,int nonascii,
+                              u8_string ascii_chars,lispval other_chars)
 {
   struct U8_OUTPUT out;
   u8_string scan = CSTRING(input);
@@ -192,7 +192,7 @@ static fdtype encode_entities(fdtype input,int nonascii,
     else if (EMPTYP(other_chars))
       u8_putc(&out,c);
     else {
-      fdtype code = FD_CODE2CHAR(c);
+      lispval code = FD_CODE2CHAR(c);
       if (fd_choice_containsp(code,other_chars)) {
         u8_printf(&out,"&#%d",c); enc = 1;}
       else u8_putc(&out,c);}
@@ -203,14 +203,14 @@ static fdtype encode_entities(fdtype input,int nonascii,
     return fd_incref(input);}
 }
 
-static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
+static lispval encode_entities_prim(lispval input,lispval chars,lispval nonascii)
 {
   int na = (!((VOIDP(nonascii))||(FALSEP(nonascii))));
   if (STRLEN(input)==0) return fd_incref(input);
   else if (VOIDP(chars))
     return encode_entities(input,na,"<&>",EMPTY);
   else {
-    fdtype other_chars = EMPTY;
+    lispval other_chars = EMPTY;
     struct U8_OUTPUT ascii_chars; u8_byte buf[128];
     U8_INIT_FIXED_OUTPUT(&ascii_chars,128,buf); buf[0]='\0';
     {DO_CHOICES(xch,chars) {
@@ -223,7 +223,7 @@ static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
               if (strchr(buf,c))
                 u8_putc(&ascii_chars,c);}
             else {
-              fdtype xch = FD_CODE2CHAR(c);
+              lispval xch = FD_CODE2CHAR(c);
               CHOICE_ADD(other_chars,xch);}
             c = u8_sgetc(&scan);}}
         else if (FD_CHARACTERP(xch)) {
@@ -238,8 +238,8 @@ static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
     if (EMPTYP(other_chars))
       return encode_entities(input,na,buf,other_chars);
     else {
-      fdtype oc = fd_simplify_choice(other_chars);
-      fdtype result = encode_entities(input,na,buf,oc);
+      lispval oc = fd_simplify_choice(other_chars);
+      lispval result = encode_entities(input,na,buf,oc);
       fd_decref(oc);
       return result;}}
 }
@@ -309,9 +309,9 @@ static u8_string skip_span(u8_string start,enum FD_TEXTSPAN_TYPE *type)
     *type = wordspan; return skip_word(start);}
 }
 
-FD_EXPORT fdtype fd_words2list(u8_string string,int keep_punct)
+FD_EXPORT lispval fd_words2list(u8_string string,int keep_punct)
 {
-  fdtype result = NIL, *lastp = &result;
+  lispval result = NIL, *lastp = &result;
   textspantype spantype;
   u8_string start = string, last = start, scan = skip_span(last,&spantype);
   while (1) 
@@ -319,8 +319,8 @@ FD_EXPORT fdtype fd_words2list(u8_string string,int keep_punct)
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
     else if (((spantype == punctspan) && (keep_punct))||(spantype == wordspan)) {
-      fdtype newcons;
-      fdtype extraction = ((scan) ? (fd_substring(last,scan)) : (fdtype_string(last)));
+      lispval newcons;
+      lispval extraction = ((scan) ? (fd_substring(last,scan)) : (lispval_string(last)));
       newcons = fd_conspair(extraction,NIL);
       *lastp = newcons; lastp = &(FD_CDR(newcons));
       if (scan == NULL) break;
@@ -331,10 +331,10 @@ FD_EXPORT fdtype fd_words2list(u8_string string,int keep_punct)
   return result;
 }
 
-FD_EXPORT fdtype fd_words2vector(u8_string string,int keep_punct)
+FD_EXPORT lispval fd_words2vector(u8_string string,int keep_punct)
 {
-  int n = 0, max = 16; fdtype _buf[16];
-  fdtype *wordsv=_buf, result = VOID;
+  int n = 0, max = 16; lispval _buf[16];
+  lispval *wordsv=_buf, result = VOID;
   textspantype spantype;
   u8_string start = string, last = start, scan = skip_span(last,&spantype);
   while (1)  
@@ -344,15 +344,15 @@ FD_EXPORT fdtype fd_words2vector(u8_string string,int keep_punct)
     else if (((spantype == punctspan) && (keep_punct))||(spantype == wordspan)) {
       if (n>=max) {
         if (wordsv==_buf) {
-          fdtype *newv = u8_alloc_n(max*2,fdtype);
-          memcpy(newv,wordsv,sizeof(fdtype)*n);
+          lispval *newv = u8_alloc_n(max*2,lispval);
+          memcpy(newv,wordsv,sizeof(lispval)*n);
           wordsv = newv; max = max*2;}
         else {
           int newmax = ((n>=1024) ? (n+1024) : (n*2));
-          wordsv = u8_realloc_n(wordsv,newmax,fdtype);
+          wordsv = u8_realloc_n(wordsv,newmax,lispval);
           max = newmax;}}
       wordsv[n++]=((scan) ? (fd_substring(last,scan)) :
-                   (fdtype_string(last)));
+                   (lispval_string(last)));
       if (scan == NULL) break;
       last = scan; scan = skip_span(last,&spantype);}
     else {
@@ -363,13 +363,13 @@ FD_EXPORT fdtype fd_words2vector(u8_string string,int keep_punct)
   return result;
 }
 
-static fdtype getwords_prim(fdtype arg,fdtype punctflag)
+static lispval getwords_prim(lispval arg,lispval punctflag)
 {
   int keep_punct = ((!(VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
   return fd_words2list(CSTRING(arg),keep_punct);
 }
 
-static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
+static lispval getwordsv_prim(lispval arg,lispval punctflag)
 {
   int keep_punct = ((!(VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
   return fd_words2vector(CSTRING(arg),keep_punct);
@@ -386,10 +386,10 @@ static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
    The output of this function is useful for indexing strings
    for purposes of partial indexing.
 */
-static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
+static lispval vector2frags_prim(lispval vec,lispval window,lispval with_affix)
 {
   int i = 0, n = VEC_LEN(vec), minspan = 1, maxspan;
-  fdtype *data = VEC_DATA(vec), results = EMPTY;
+  lispval *data = VEC_DATA(vec), results = EMPTY;
   int with_affixes = (!(FALSEP(with_affix)));
   if (FD_INTP(window)) maxspan = FIX2INT(window);
   else if ((PAIRP(window))&&
@@ -404,15 +404,15 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
     return fd_type_error(_("natural number"),"vector2frags",window);
   if (n==0) return results;
   else if (n==1) {
-    fdtype elt = VEC_REF(vec,0); fd_incref(elt);
+    lispval elt = VEC_REF(vec,0); fd_incref(elt);
     return fd_conspair(elt,NIL);}
   else if (maxspan<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
   if (with_affixes) { int span = maxspan; while (span>=minspan) {
       /* Compute prefix fragments of length = span */
-      fdtype frag = NIL;
+      lispval frag = NIL;
       int i = span-1; while ((i>=0) && (i<n)) {
-        fdtype elt = data[i]; fd_incref(elt);
+        lispval elt = data[i]; fd_incref(elt);
         frag = fd_conspair(elt,frag);
         i--;}
       frag = fd_conspair(FD_FALSE,frag);
@@ -422,10 +422,10 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
      We're a little clever here, because we can use the same sublist
      repeatedly.  */
   if (with_affixes) {
-    fdtype frag = fd_conspair(FD_FALSE,NIL);
+    lispval frag = fd_conspair(FD_FALSE,NIL);
     int stopat = n-maxspan; if (stopat<0) stopat = 0;
     i = n-minspan; while (i>=stopat) {
-      fdtype elt = data[i]; fd_incref(elt);
+      lispval elt = data[i]; fd_incref(elt);
       frag = fd_conspair(elt,frag);
       /* We incref it because we're going to point to it from both the
          result and from the next longer frag */
@@ -437,11 +437,11 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
     fd_decref(frag);}
   { /* Now compute internal spans */
     int end = n-1; while (end>=0) {
-      fdtype frag = NIL;
+      lispval frag = NIL;
       int i = end; int lim = end-maxspan;
       if (lim<0) lim = -1;
       while (i>lim) {
-        fdtype elt = data[i]; fd_incref(elt);
+        lispval elt = data[i]; fd_incref(elt);
         frag = fd_conspair(elt,frag);
         if ((1+(end-i))>=minspan) {
           fd_incref(frag);
@@ -453,7 +453,7 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
   return results;
 }
 
-static fdtype list2phrase_prim(fdtype arg)
+static lispval list2phrase_prim(lispval arg)
 {
   int dospace = 0; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   {FD_DOLIST(word,arg) {
@@ -466,10 +466,10 @@ static fdtype list2phrase_prim(fdtype arg)
   return fd_stream2string(&out);
 }
 
-static fdtype seq2phrase_ndhelper
-(u8_string base,fdtype seq,int start,int end,int dospace);
+static lispval seq2phrase_ndhelper
+(u8_string base,lispval seq,int start,int end,int dospace);
 
-static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
+static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
 {
   if (PRED_FALSE(!(FD_SEQUENCEP(arg))))
     return fd_type_error("sequence","seq2phrase_prim",arg);
@@ -492,9 +492,9 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
         char buf[32]; sprintf(buf,"%lld",FIX2INT(end_arg));
         return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
     while (start<end) {
-      fdtype word = fd_seq_elt(arg,start);
+      lispval word = fd_seq_elt(arg,start);
       if (CHOICEP(word)) {
-        fdtype result=
+        lispval result=
           seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
         fd_decref(word); u8_free(out.u8_outbuf);
         return fd_simplify_choice(result);}
@@ -508,16 +508,16 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
     return fd_stream2string(&out);}
 }
 
-static fdtype seq2phrase_ndhelper
-(u8_string base,fdtype seq,int start,int end,int dospace)
+static lispval seq2phrase_ndhelper
+(u8_string base,lispval seq,int start,int end,int dospace)
 {
   if (start == end)
     return fd_lispstring(u8_strdup(base));
   else {
-    fdtype elt = fd_seq_elt(seq,start), results = EMPTY;
+    lispval elt = fd_seq_elt(seq,start), results = EMPTY;
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
     DO_CHOICES(s,elt) {
-      fdtype result;
+      lispval result;
       if (!(STRINGP(s))) {
         fd_decref(elt); fd_decref(results);
         u8_free(out.u8_outbuf);
@@ -539,7 +539,7 @@ static fdtype seq2phrase_ndhelper
 
 /* String predicates */
 
-static fdtype isspace_percentage(fdtype string)
+static lispval isspace_percentage(lispval string)
 {
   u8_string scan = CSTRING(string);
   if (*scan=='\0') return FD_INT(0);
@@ -551,7 +551,7 @@ static fdtype isspace_percentage(fdtype string)
     return FD_INT((space*100)/(space+non_space));}
 }
 
-static fdtype isalpha_percentage(fdtype string)
+static lispval isalpha_percentage(lispval string)
 {
   u8_string scan = CSTRING(string);
   if (*scan=='\0') return FD_INT(0);
@@ -563,7 +563,7 @@ static fdtype isalpha_percentage(fdtype string)
     return FD_INT((alpha*100)/(alpha+non_alpha));}
 }
 
-static fdtype isalphalen(fdtype string)
+static lispval isalphalen(lispval string)
 {
   u8_string scan = CSTRING(string);
   if (*scan=='\0') return FD_INT(0);
@@ -575,7 +575,7 @@ static fdtype isalphalen(fdtype string)
     return FD_INT(alpha);}
 }
 
-static fdtype count_words(fdtype string)
+static lispval count_words(lispval string)
 {
   u8_string scan = CSTRING(string);
   int c = egetc(&scan), word_count = 0;
@@ -588,7 +588,7 @@ static fdtype count_words(fdtype string)
   return FD_INT(word_count);
 }
 
-static fdtype ismarkup_percentage(fdtype string)
+static lispval ismarkup_percentage(lispval string)
 {
   u8_string scan = CSTRING(string);
   if (*scan=='\0') return FD_INT(0);
@@ -616,7 +616,7 @@ static fdtype ismarkup_percentage(fdtype string)
 
 FD_EXPORT u8_byte *fd_stem_english_word(const u8_byte *original);
 
-static fdtype stem_prim(fdtype arg)
+static lispval stem_prim(lispval arg)
 {
   u8_byte *stemmed = fd_stem_english_word(CSTRING(arg));
   return fd_lispstring(stemmed);
@@ -635,7 +635,7 @@ static int all_asciip(u8_string s)
   return 1;
 }
 
-static fdtype disemvowel(fdtype string,fdtype vowels)
+static lispval disemvowel(lispval string,lispval vowels)
 {
   struct U8_OUTPUT out; struct U8_INPUT in; 
   U8_INIT_STRING_INPUT(&in,STRLEN(string),CSTRING(string));
@@ -663,7 +663,7 @@ static fdtype disemvowel(fdtype string,fdtype vowels)
 
 /* Depuncting strings (removing punctuation and whitespace) */
 
-static fdtype depunct(fdtype string)
+static lispval depunct(lispval string)
 {
   struct U8_OUTPUT out; struct U8_INPUT in; 
   U8_INIT_STRING_INPUT(&in,STRLEN(string),CSTRING(string));
@@ -678,7 +678,7 @@ static fdtype depunct(fdtype string)
 
 /* Skipping markup */
 
-static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
+static lispval strip_markup(lispval string,lispval insert_space_arg)
 {
   int c, insert_space = FD_TRUEP(insert_space_arg);
   u8_string start = CSTRING(string), scan = start, last = start;
@@ -705,21 +705,21 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
 
 /* Columnizing */
 
-static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
+static lispval columnize_prim(lispval string,lispval cols,lispval parse)
 {
   u8_string scan = CSTRING(string), limit = scan+STRLEN(string);
   u8_byte *buf;
   int i = 0, field = 0, n_fields = fd_seq_length(cols), parselen = 0;
-  fdtype *fields;
+  lispval *fields;
   while (i<n_fields) {
-    fdtype elt = fd_seq_elt(cols,i);
+    lispval elt = fd_seq_elt(cols,i);
     if (FIXNUMP(elt)) i++;
     else return fd_type_error(_("column width"),"columnize_prim",elt);}
   if (FD_SEQUENCEP(parse)) parselen = fd_seq_length(parselen);
-  fields = u8_alloc_n(n_fields,fdtype);
+  fields = u8_alloc_n(n_fields,lispval);
   buf = u8_malloc(STRLEN(string)+1);
   while (field<n_fields) {
-    fdtype parsefn;
+    lispval parsefn;
     int j = 0, width = fd_getint(fd_seq_elt(cols,field));
     u8_string start = scan;
     /* Get the parse function */
@@ -740,7 +740,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
       fields[field++]=fd_substring(start,scan);
     /* If the parse function is #t, use the lisp parser */
     else if (FD_TRUEP(parsefn)) {
-      fdtype value;
+      lispval value;
       strncpy(buf,start,scan-start); buf[scan-start]='\0';
       value = fd_parse_arg(buf);
       if (FD_ABORTP(value)) {
@@ -752,8 +752,8 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
     /* If the parse function is applicable, make a string
        and apply the parse function. */
     else if (FD_APPLICABLEP(parsefn)) {
-      fdtype stringval = fd_substring(start,scan);
-      fdtype value = fd_apply(parse,1,&stringval);
+      lispval stringval = fd_substring(start,scan);
+      lispval value = fd_apply(parse,1,&stringval);
       if (field<parselen) fd_decref(parsefn);
       if (FD_ABORTP(value)) {
         int k = 0; while (k<field) {fd_decref(fields[k]); k++;}
@@ -775,16 +775,16 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
     while (field<n_fields)
       fields[field++]=fd_init_string(NULL,0,NULL);
   else while (field<n_fields) fields[field++]=FD_FALSE;
-  fdtype result=fd_makeseq(FD_PTR_TYPE(cols),n_fields,fields);
+  lispval result=fd_makeseq(FD_PTR_TYPE(cols),n_fields,fields);
   u8_free(fields);
   return result;
 }
 
 /* The Matcher */
 
-static fdtype return_offsets(u8_string s,fdtype results)
+static lispval return_offsets(u8_string s,lispval results)
 {
-  fdtype final_results = EMPTY;
+  lispval final_results = EMPTY;
   DO_CHOICES(off,results)
     if (FD_UINTP(off)) {
       u8_charoff charoff = u8_charoffset(s,FIX2INT(off));
@@ -797,7 +797,7 @@ static fdtype return_offsets(u8_string s,fdtype results)
 #define convert_arg(off,string,max) u8_byteoffset(string,off,max)
 
 static void convert_offsets
-(fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
+(lispval string,lispval offset,lispval limit,u8_byteoff *off,u8_byteoff *lim)
 {
   u8_charoff offval = fd_getint(offset);
   if (FD_INTP(limit)) {
@@ -811,23 +811,23 @@ static void convert_offsets
   *off = u8_byteoffset(CSTRING(string),offval,*lim);
 }
 
-static fdtype textmatcher(fdtype pattern,fdtype string,
-                          fdtype offset,fdtype limit)
+static lispval textmatcher(lispval pattern,lispval string,
+                          lispval offset,lispval limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textmatcher",NULL,VOID);
   else {
-    fdtype match_result = fd_text_matcher
+    lispval match_result = fd_text_matcher
       (pattern,NULL,CSTRING(string),off,lim,0);
     if (FD_ABORTP(match_result))
       return match_result;
     else return return_offsets(CSTRING(string),match_result);}
 }
 
-static fdtype textmatch(fdtype pattern,fdtype string,
-                        fdtype offset,fdtype limit)
+static lispval textmatch(lispval pattern,lispval string,
+                        lispval offset,lispval limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -841,8 +841,8 @@ static fdtype textmatch(fdtype pattern,fdtype string,
     else return FD_FALSE;}
 }
 
-static fdtype textsearch(fdtype pattern,fdtype string,
-                         fdtype offset,fdtype limit)
+static lispval textsearch(lispval pattern,lispval string,
+                         lispval offset,lispval limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -856,16 +856,16 @@ static fdtype textsearch(fdtype pattern,fdtype string,
     else return FD_INT(u8_charoffset(CSTRING(string),pos));}
 }
 
-static fdtype textract(fdtype pattern,fdtype string,
-                       fdtype offset,fdtype limit)
+static lispval textract(lispval pattern,lispval string,
+                       lispval offset,lispval limit)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textract",NULL,VOID);
   else {
-    fdtype extract_results = fd_text_extract
+    lispval extract_results = fd_text_extract
       (pattern,NULL,CSTRING(string),off,lim,0);
     if (FD_ABORTP(extract_results))
       return extract_results;
@@ -877,7 +877,7 @@ static fdtype textract(fdtype pattern,fdtype string,
           return extraction;}
         else if (PAIRP(extraction))
           if (fd_getint(FD_CAR(extraction)) == lim) {
-            fdtype extract = fd_incref(FD_CDR(extraction));
+            lispval extract = fd_incref(FD_CDR(extraction));
             CHOICE_ADD(results,extract);}
           else {}
         else {}}
@@ -885,11 +885,11 @@ static fdtype textract(fdtype pattern,fdtype string,
       return results;}}
 }
 
-static fdtype textgather_base(fdtype pattern,fdtype string,
-                              fdtype offset,fdtype limit,
+static lispval textgather_base(lispval pattern,lispval string,
+                              lispval offset,lispval limit,
                               int star)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   u8_string data = CSTRING(string);
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -898,7 +898,7 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
   else {
     int start = fd_text_search(pattern,NULL,data,off,lim,0);
     while ((start>=0)&&(start<lim)) {
-      fdtype substring, match_result=
+      lispval substring, match_result=
         fd_text_matcher(pattern,NULL,CSTRING(string),start,lim,0);
       int maxpoint = -1;
       if (EMPTYP(match_result)) {
@@ -931,22 +931,22 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
     else return results;}
 }
 
-static fdtype textgather(fdtype pattern,fdtype string,
-                         fdtype offset,fdtype limit)
+static lispval textgather(lispval pattern,lispval string,
+                         lispval offset,lispval limit)
 {
   return textgather_base(pattern,string,offset,limit,0);
 }
 
-static fdtype textgather_star(fdtype pattern,fdtype string,
-                              fdtype offset,fdtype limit)
+static lispval textgather_star(lispval pattern,lispval string,
+                              lispval offset,lispval limit)
 {
   return textgather_base(pattern,string,offset,limit,1);
 }
 
-static fdtype textgather2list(fdtype pattern,fdtype string,
-                               fdtype offset,fdtype limit)
+static lispval textgather2list(lispval pattern,lispval string,
+                               lispval offset,lispval limit)
 {
-  fdtype head = NIL, *tail = &head;
+  lispval head = NIL, *tail = &head;
   u8_string data = CSTRING(string);
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -955,7 +955,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
   else {
     int start = fd_text_search(pattern,NULL,data,off,lim,0);
     while (start>=0) {
-      fdtype match_result=
+      lispval match_result=
         fd_text_matcher(pattern,NULL,CSTRING(string),start,lim,0);
       int end = -1;
       if (EMPTYP(match_result)) {}
@@ -971,7 +971,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
         fd_decref(match_result);}
       if (end<0) return head;
       else if (end>start) {
-        fdtype newpair=
+        lispval newpair=
           fd_conspair(fd_substring(data+start,data+end),NIL);
         *tail = newpair; tail = &(FD_CDR(newpair));
         start = fd_text_search(pattern,NULL,data,end,lim,0);}
@@ -990,40 +990,40 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
    rewrites all the substrings matching a pattern.
 */
 
-static fdtype subst_symbol;
-static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args);
-static int dorewrite(u8_output out,fdtype xtract)
+static lispval subst_symbol;
+static lispval rewrite_apply(lispval fcn,lispval content,lispval args);
+static int dorewrite(u8_output out,lispval xtract)
 {
   if (STRINGP(xtract))
     u8_putn(out,CSTRING(xtract),STRLEN(xtract));
   else if (VECTORP(xtract)) {
     int i = 0, len = VEC_LEN(xtract);
-    fdtype *data = VEC_DATA(xtract);
+    lispval *data = VEC_DATA(xtract);
     while (i<len) {
       int retval = dorewrite(out,data[i]);
       if (retval<0) return retval; else i++;}}
   else if (PAIRP(xtract)) {
-    fdtype sym = FD_CAR(xtract);
+    lispval sym = FD_CAR(xtract);
     if ((sym == FDSYM_STAR) || (sym == FDSYM_PLUS) || (sym == FDSYM_OPT)) {
-      fdtype elts = FD_CDR(xtract);
+      lispval elts = FD_CDR(xtract);
       if (NILP(elts)) {}
       else {
         FD_DOLIST(elt,elts) {
           int retval = dorewrite(out,elt);
           if (retval<0) return retval;}}}
     else if (sym == FDSYM_LABEL) {
-      fdtype content = fd_get_arg(xtract,2);
+      lispval content = fd_get_arg(xtract,2);
       if (VOIDP(content)) {
         fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
         return -1;}
       else if (dorewrite(out,content)<0) return -1;}
     else if (sym == subst_symbol) {
-      fdtype args = FD_CDR(FD_CDR(xtract)), content, head, params;
+      lispval args = FD_CDR(FD_CDR(xtract)), content, head, params;
       int free_head = 0;
       if (NILP(args)) return 1;
       content = FD_CAR(FD_CDR(xtract)); head = FD_CAR(args); params = FD_CDR(args);
       if (SYMBOLP(head)) {
-        fdtype probe = fd_get(texttools_module,head,VOID);
+        lispval probe = fd_get(texttools_module,head,VOID);
         if (VOIDP(probe)) probe = fd_get(fd_scheme_module,head,VOID);
         if (VOIDP(probe)) {
           fd_seterr(_("Unknown subst function"),"dorewrite",NULL,head);
@@ -1033,7 +1033,7 @@ static int dorewrite(u8_output out,fdtype xtract)
         u8_putn(out,CSTRING(head),STRLEN(head));
         if (free_head) fd_decref(head);}
       else if (FD_APPLICABLEP(head)) {
-        fdtype xformed = rewrite_apply(head,content,params);
+        lispval xformed = rewrite_apply(head,content,params);
         if (FD_ABORTP(xformed)) {
           if (free_head) fd_decref(head);
           return -1;}
@@ -1047,7 +1047,7 @@ static int dorewrite(u8_output out,fdtype xtract)
           else if (FD_TRUEP(elt))
             u8_putn(out,CSTRING(content),STRLEN(content));
           else if (FD_APPLICABLEP(elt)) {
-            fdtype xformed = rewrite_apply(elt,content,NIL);
+            lispval xformed = rewrite_apply(elt,content,NIL);
             if (FD_ABORTP(xformed)) {
               if (free_head) fd_decref(head);
               return -1;}
@@ -1065,12 +1065,12 @@ static int dorewrite(u8_output out,fdtype xtract)
   return 1;
 }
 
-static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args)
+static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
 {
   if (NILP(args))
     return fd_apply(fcn,1,&content);
   else {
-    fdtype argvec[16]; int i = 1;
+    lispval argvec[16]; int i = 1;
     FD_DOLIST(arg,args) {
       if (i>=16) return fd_err(fd_TooManyArgs,"rewrite_apply",NULL,fcn);
       else argvec[i++]=arg;}
@@ -1078,25 +1078,25 @@ static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args)
     return fd_apply(fcn,i,argvec);}
 }
 
-static fdtype textrewrite(fdtype pattern,fdtype string,
-                           fdtype offset,fdtype limit)
+static lispval textrewrite(lispval pattern,lispval string,
+                           lispval offset,lispval limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textrewrite",NULL,VOID);
   else if ((lim-off)==0)
-    return fdtype_string("");
+    return lispval_string("");
   else {
-    fdtype extract_results = fd_text_extract
+    lispval extract_results = fd_text_extract
       (pattern,NULL,CSTRING(string),off,lim,0);
     if (FD_ABORTP(extract_results)) 
       return extract_results;
     else {
-      fdtype subst_results = EMPTY;
+      lispval subst_results = EMPTY;
       DO_CHOICES(extraction,extract_results)
         if ((fd_getint(FD_CAR(extraction))) == lim) {
-          struct U8_OUTPUT out; fdtype stringval;
+          struct U8_OUTPUT out; lispval stringval;
           U8_INIT_OUTPUT(&out,(lim-off)*2);
           if (dorewrite(&out,FD_CDR(extraction))<0) {
             fd_decref(subst_results); fd_decref(extract_results);
@@ -1107,9 +1107,9 @@ static fdtype textrewrite(fdtype pattern,fdtype string,
       return subst_results;}}
 }
 
-static fdtype textsubst(fdtype string,
-                        fdtype pattern,fdtype replace,
-                        fdtype offset,fdtype limit)
+static lispval textsubst(lispval string,
+                        lispval pattern,lispval replace,
+                        lispval offset,lispval limit)
 {
   u8_byteoff off, lim;
   u8_string data = CSTRING(string);
@@ -1117,13 +1117,13 @@ static fdtype textsubst(fdtype string,
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textsubst",NULL,VOID);
   else if ((lim-off)==0)
-    return fdtype_string("");
+    return lispval_string("");
   else {
     int start = fd_text_search(pattern,NULL,data,off,lim,0), last = off;
     if (start>=0) {
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,2*(lim-off));
       while (start>=0) {
-        fdtype match_result=
+        lispval match_result=
           fd_text_matcher(pattern,NULL,CSTRING(string),start,lim,0);
         int end = -1;
         if (FD_ABORTP(match_result))
@@ -1145,8 +1145,8 @@ static fdtype textsubst(fdtype string,
             u8_puts(&out,CSTRING(replace));
           else {
             u8_string stringdata = CSTRING(string);
-            fdtype lisp_lim = FD_INT(u8_charoffset(stringdata,lim));
-            fdtype replace_pat, xtract;
+            lispval lisp_lim = FD_INT(u8_charoffset(stringdata,lim));
+            lispval replace_pat, xtract;
             if (VOIDP(replace)) replace_pat = pattern;
             else replace_pat = replace;
             xtract = fd_text_extract(replace_pat,NULL,stringdata,start,lim,0);
@@ -1164,11 +1164,11 @@ static fdtype textsubst(fdtype string,
                      pattern,buf);
               u8_putn(&out,data+start,end-start);}
             else if ((CHOICEP(xtract)) || (PRECHOICEP(xtract))) {
-              fdtype results = EMPTY;
+              lispval results = EMPTY;
               DO_CHOICES(xt,xtract) {
                 u8_byteoff newstart = fd_getint(FD_CAR(xt));
                 if (newstart == lim) {
-                  fdtype stringval;
+                  lispval stringval;
                   struct U8_OUTPUT tmpout; 
                   U8_INIT_OUTPUT(&tmpout,512);
                   u8_puts(&tmpout,out.u8_outbuf);
@@ -1180,13 +1180,13 @@ static fdtype textsubst(fdtype string,
                   CHOICE_ADD(results,stringval);}
                 else {
                   u8_charoff new_char_off = u8_charoffset(stringdata,newstart);
-                  fdtype remainder = textsubst
+                  lispval remainder = textsubst
                     (string,pattern,replace,
                      FD_INT(new_char_off),lisp_lim);
                   if (FD_ABORTP(remainder)) return remainder;
                   else {
                     DO_CHOICES(rem,remainder) {
-                      fdtype stringval;
+                      lispval stringval;
                       struct U8_OUTPUT tmpout; 
                       U8_INIT_OUTPUT(&tmpout,512);
                       u8_puts(&tmpout,out.u8_outbuf);
@@ -1219,11 +1219,11 @@ static fdtype textsubst(fdtype string,
 
 /* Gathering and rewriting together */
 
-static fdtype gathersubst_base(fdtype pattern,fdtype string,
-                               fdtype offset,fdtype limit,
+static lispval gathersubst_base(lispval pattern,lispval string,
+                               lispval offset,lispval limit,
                                int star)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   u8_string data = CSTRING(string);
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -1232,9 +1232,9 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
   else {
     int start = fd_text_search(pattern,NULL,data,off,lim,0);
     while ((start>=0)&&(start<lim)) {
-      fdtype result, extract_result=
+      lispval result, extract_result=
         fd_text_extract(pattern,NULL,CSTRING(string),start,lim,0);
-      int end = -1; fdtype longest = VOID;
+      int end = -1; lispval longest = VOID;
       if (FD_ABORTP(extract_result)) {
         fd_decref(results);
         return extract_result;}
@@ -1265,23 +1265,23 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
     else return results;}
 }
 
-static fdtype gathersubst(fdtype pattern,fdtype string,
-                          fdtype offset,fdtype limit)
+static lispval gathersubst(lispval pattern,lispval string,
+                          lispval offset,lispval limit)
 {
   return gathersubst_base(pattern,string,offset,limit,0);
 }
 
-static fdtype gathersubst_star(fdtype pattern,fdtype string,
-                               fdtype offset,fdtype limit)
+static lispval gathersubst_star(lispval pattern,lispval string,
+                               lispval offset,lispval limit)
 {
   return gathersubst_base(pattern,string,offset,limit,1);
 }
 
 /* Handy filtering functions */
 
-static fdtype textfilter(fdtype strings,fdtype pattern)
+static lispval textfilter(lispval strings,lispval pattern)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   DO_CHOICES(string,strings)
     if (STRINGP(string)) {
       int rv = fd_text_match(pattern,NULL,CSTRING(string),0,STRLEN(string),0);
@@ -1301,7 +1301,7 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
 /* These are matching functions with the arguments reversed
    to be especially useful as arguments to PICK and REJECT. */
 
-static int getnonstring(fdtype choice)
+static int getnonstring(lispval choice)
 {
   DO_CHOICES(x,choice) {
     if (!(STRINGP(x))) {
@@ -1311,11 +1311,11 @@ static int getnonstring(fdtype choice)
   return VOID;
 }
 
-static fdtype string_matches(fdtype string,fdtype pattern,
-                             fdtype start_arg,fdtype end_arg)
+static lispval string_matches(lispval string,lispval pattern,
+                             lispval start_arg,lispval end_arg)
 {
   int off, lim, retval;
-  fdtype notstring;
+  lispval notstring;
   if (QCHOICEP(pattern)) pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if ((EMPTYP(pattern))||(EMPTYP(string)))
     return FD_FALSE;
@@ -1346,10 +1346,10 @@ static fdtype string_matches(fdtype string,fdtype pattern,
     else return FD_FALSE;}
 }
 
-static fdtype string_contains(fdtype string,fdtype pattern,
-                              fdtype start_arg,fdtype end_arg)
+static lispval string_contains(lispval string,lispval pattern,
+                              lispval start_arg,lispval end_arg)
 {
-  int off, lim, retval; fdtype notstring;
+  int off, lim, retval; lispval notstring;
   if (QCHOICEP(pattern)) pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if ((EMPTYP(pattern))||(EMPTYP(string)))
     return FD_FALSE;
@@ -1383,11 +1383,11 @@ static fdtype string_contains(fdtype string,fdtype pattern,
     else return FD_TRUE;}
 }
 
-static fdtype string_starts_with(fdtype string,fdtype pattern,
-                                 fdtype start_arg,fdtype end_arg)
+static lispval string_starts_with(lispval string,lispval pattern,
+                                 lispval start_arg,lispval end_arg)
 {
   int off, lim;
-  fdtype match_result, notstring;
+  lispval match_result, notstring;
   if (QCHOICEP(pattern))
     pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if ((EMPTYP(pattern))||(EMPTYP(string)))
@@ -1427,18 +1427,18 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
       return FD_TRUE;}}
 }
 
-static fdtype string_ends_with_test(fdtype string,fdtype pattern,
+static lispval string_ends_with_test(lispval string,lispval pattern,
                                     int off,int lim)
 {
   u8_string data = CSTRING(string); int start;
-  fdtype end = FD_INT(lim);
+  lispval end = FD_INT(lim);
   if (QCHOICEP(pattern)) pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if (EMPTYP(pattern)) return FD_FALSE;
   start = fd_text_search(pattern,NULL,data,off,lim,0);
   /* -2 is an error, -1 is not found */
   if (start<-1) return -1;
   while (start>=0) {
-    fdtype matches = fd_text_matcher(pattern,NULL,data,start,lim,0);
+    lispval matches = fd_text_matcher(pattern,NULL,data,start,lim,0);
     if (FD_ABORTP(matches))
       return -1;
     else if (matches == end)
@@ -1456,11 +1456,11 @@ static fdtype string_ends_with_test(fdtype string,fdtype pattern,
   return 0;
 }
 
-static fdtype string_ends_with(fdtype string,fdtype pattern,
-                               fdtype start_arg,fdtype end_arg)
+static lispval string_ends_with(lispval string,lispval pattern,
+                               lispval start_arg,lispval end_arg)
 {
   int off, lim, retval;
-  fdtype notstring;
+  lispval notstring;
   if (EMPTYP(string)) return FD_FALSE;
   notstring = ((STRINGP(string))?(VOID):
              (FD_AMBIGP(string))?(getnonstring(string)):
@@ -1493,28 +1493,28 @@ static fdtype string_ends_with(fdtype string,fdtype pattern,
 
 /* text2frame */
 
-static int framify(fdtype f,u8_output out,fdtype xtract)
+static int framify(lispval f,u8_output out,lispval xtract)
 {
   if (STRINGP(xtract)) {
     if (out) u8_putn(out,CSTRING(xtract),STRLEN(xtract));}
   else if (VECTORP(xtract)) {
     int i = 0, len = VEC_LEN(xtract);
-    fdtype *data = VEC_DATA(xtract);
+    lispval *data = VEC_DATA(xtract);
     while (i<len) {
       int retval = framify(f,out,data[i]);
       if (retval<0) return retval; else i++;}}
   else if (PAIRP(xtract)) {
-    fdtype sym = FD_CAR(xtract);
+    lispval sym = FD_CAR(xtract);
     if ((sym == FDSYM_STAR) || (sym == FDSYM_PLUS) || (sym == FDSYM_OPT)) {
-      fdtype elts = FD_CDR(xtract);
+      lispval elts = FD_CDR(xtract);
       if (NILP(elts)) {}
       else {
         FD_DOLIST(elt,elts) {
           int retval = framify(f,out,elt);
           if (retval<0) return retval;}}}
     else if (sym == FDSYM_LABEL) {
-      fdtype slotid = fd_get_arg(xtract,1);
-      fdtype content = fd_get_arg(xtract,2);
+      lispval slotid = fd_get_arg(xtract,1);
+      lispval content = fd_get_arg(xtract,2);
       if (VOIDP(content)) {
         fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
         return -1;}
@@ -1522,7 +1522,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
         fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
         return -1;}
       else {
-        fdtype parser = fd_get_arg(xtract,3);
+        lispval parser = fd_get_arg(xtract,3);
         struct U8_OUTPUT _out; int retval;
         U8_INIT_OUTPUT(&_out,128);
         retval = framify(f,&_out,content);
@@ -1530,28 +1530,28 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
         else if (out)
           u8_putn(out,_out.u8_outbuf,_out.u8_write-_out.u8_outbuf);
         if (VOIDP(parser)) {
-          fdtype stringval = fd_stream2string(&_out);
+          lispval stringval = fd_stream2string(&_out);
           fd_add(f,slotid,stringval);
           fd_decref(stringval);}
         else if (FD_APPLICABLEP(parser)) {
-          fdtype stringval = fd_stream2string(&_out);
-          fdtype parsed_val = fd_finish_call(fd_dapply(parser,1,&stringval));
+          lispval stringval = fd_stream2string(&_out);
+          lispval parsed_val = fd_finish_call(fd_dapply(parser,1,&stringval));
           if (!(FD_ABORTP(parsed_val))) fd_add(f,slotid,parsed_val);
           fd_decref(parsed_val);
           fd_decref(stringval);
           if (FD_ABORTP(parsed_val)) return -1;}
         else if (FD_TRUEP(parser)) {
-          fdtype parsed_val = fd_parse(_out.u8_outbuf);
+          lispval parsed_val = fd_parse(_out.u8_outbuf);
           fd_add(f,slotid,parsed_val);
           fd_decref(parsed_val);
           u8_free(_out.u8_outbuf);}
         else {
-          fdtype stringval = fd_stream2string(&_out);
+          lispval stringval = fd_stream2string(&_out);
           fd_add(f,slotid,stringval);
           fd_decref(stringval);}
         return 1;}}
     else if (sym == subst_symbol) {
-      fdtype content = fd_get_arg(xtract,2);
+      lispval content = fd_get_arg(xtract,2);
       if (VOIDP(content)) {
         fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
         return -1;}
@@ -1565,22 +1565,22 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
   return 1;
 }
 
-static fdtype text2frame(fdtype pattern,fdtype string,
-                          fdtype offset,fdtype limit)
+static lispval text2frame(lispval pattern,lispval string,
+                          lispval offset,lispval limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"text2frame",NULL,VOID);
   else {
-    fdtype extract_results=
+    lispval extract_results=
       fd_text_extract(pattern,NULL,CSTRING(string),off,lim,0);
     if (FD_ABORTP(extract_results)) return extract_results;
     else {
-      fdtype frame_results = EMPTY;
+      lispval frame_results = EMPTY;
       DO_CHOICES(extraction,extract_results) {
         if (fd_getint(FD_CAR(extraction)) == lim) {
-          fdtype frame = fd_empty_slotmap();
+          lispval frame = fd_empty_slotmap();
           if (framify(frame,NULL,FD_CDR(extraction))<0) {
             fd_decref(frame);
             fd_decref(frame_results);
@@ -1591,21 +1591,21 @@ static fdtype text2frame(fdtype pattern,fdtype string,
       return frame_results;}}
 }
 
-static fdtype text2frames(fdtype pattern,fdtype string,
-                           fdtype offset,fdtype limit)
+static lispval text2frames(lispval pattern,lispval string,
+                           lispval offset,lispval limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"text2frames",NULL,VOID);
   else {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     u8_string data = CSTRING(string);
     int start = fd_text_search(pattern,NULL,data,off,lim,0);
     while (start>=0) {
-      fdtype extractions = fd_text_extract
+      lispval extractions = fd_text_extract
         (pattern,NULL,CSTRING(string),start,lim,0);
-      fdtype longest = EMPTY;
+      lispval longest = EMPTY;
       int max = -1;
       if (FD_ABORTP(extractions)) {
         fd_decref(results);
@@ -1614,7 +1614,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
         DO_CHOICES(extraction,extractions) {
           int xlen = fd_getint(FD_CAR(extraction));
           if (xlen == max) {
-            fdtype cdr = FD_CDR(extraction);
+            lispval cdr = FD_CDR(extraction);
             fd_incref(cdr); CHOICE_ADD(longest,cdr);}
           else if (xlen>max) {
             fd_decref(longest); longest = fd_incref(FD_CDR(extraction));
@@ -1628,7 +1628,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
          since search stopped at start, but we don't have a match? */
       {
         DO_CHOICES(extraction,longest) {
-          fdtype f = fd_empty_slotmap();
+          lispval f = fd_empty_slotmap();
           framify(f,NULL,extraction);
           CHOICE_ADD(results,f);}}
       fd_decref(longest);
@@ -1647,7 +1647,7 @@ static fdtype text2frames(fdtype pattern,fdtype string,
 
 /* Slicing */
 
-static int interpret_keep_arg(fdtype keep_arg)
+static int interpret_keep_arg(lispval keep_arg)
 {
   if (FALSEP(keep_arg)) return 0;
   else if (FD_TRUEP(keep_arg)) return 1;
@@ -1662,8 +1662,8 @@ static int interpret_keep_arg(fdtype keep_arg)
   else return 0;
 }
 
-static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
-                        fdtype offset,fdtype limit)
+static lispval textslice(lispval string,lispval sep,lispval keep_arg,
+                        lispval offset,lispval limit)
 {
   u8_byteoff start, len;
   convert_offsets(string,offset,limit,&start,&len);
@@ -1671,7 +1671,7 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
     return fd_err(fd_RangeError,"textslice",NULL,VOID);
   else {
     /* We accumulate a list CDRwards */
-    fdtype slices = NIL, *tail = &slices;
+    lispval slices = NIL, *tail = &slices;
     u8_string data = CSTRING(string);
     /* keep indicates whether matched separators go with the preceding
        string (keep<0), the succeeding string (keep>0) or is discarded
@@ -1682,9 +1682,9 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
        of the matched sep. */
     u8_byteoff scan = fd_text_search(sep,NULL,data,start,len,0);
     while ((scan>=0) && (scan<len)) {
-      fdtype match_result=
+      lispval match_result=
         fd_text_matcher(sep,NULL,data,scan,len,0);
-      fdtype sepstring = VOID, substring = VOID, newpair;
+      lispval sepstring = VOID, substring = VOID, newpair;
       int end = -1;
       if (FD_ABORTP(match_result))
         return match_result;
@@ -1743,8 +1743,8 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
       return FD_ERROR;}
     else if (start<len) {
       /* If you ran out of separators, just add the tail end to the list. */
-      fdtype substring = fd_substring(data+start,data+len);
-      fdtype newpair = fd_conspair(substring,NIL);
+      lispval substring = fd_substring(data+start,data+len);
+      lispval newpair = fd_conspair(substring,NIL);
       *tail = newpair; tail = &(FD_CDR(newpair));}
     return slices;
   }
@@ -1752,7 +1752,7 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
 
 /* Word has-suffix/prefix */
 
-static fdtype has_word_suffix(fdtype string,fdtype suffix,fdtype strictarg)
+static lispval has_word_suffix(lispval string,lispval suffix,lispval strictarg)
 {
   int strict = (FD_TRUEP(strictarg));
   u8_string string_data = FD_STRING_DATA(string);
@@ -1776,7 +1776,7 @@ static fdtype has_word_suffix(fdtype string,fdtype suffix,fdtype strictarg)
     else return FD_FALSE;}
 }
 
-static fdtype has_word_prefix(fdtype string,fdtype prefix,fdtype strictarg)
+static lispval has_word_prefix(lispval string,lispval prefix,lispval strictarg)
 {
   int strict = (FD_TRUEP(strictarg));
   u8_string string_data = FD_STRING_DATA(string);
@@ -1796,7 +1796,7 @@ static fdtype has_word_prefix(fdtype string,fdtype prefix,fdtype strictarg)
     else return FD_FALSE;}
 }
 
-static fdtype firstword_prim(fdtype string,fdtype sep)
+static lispval firstword_prim(lispval string,lispval sep)
 {
   u8_string string_data = CSTRING(string);
   if (STRINGP(sep)) {
@@ -1814,8 +1814,8 @@ static fdtype firstword_prim(fdtype string,fdtype sep)
     else return fd_substring(string_data,string_data+search);}
 }
 
-static int match_end(fdtype sep,u8_string data,int off,int lim);
-static fdtype lastword_prim(fdtype string,fdtype sep)
+static int match_end(lispval sep,u8_string data,int off,int lim);
+static lispval lastword_prim(lispval string,lispval sep)
 {
   u8_string string_data = CSTRING(string);
   if (STRINGP(sep)) {
@@ -1845,9 +1845,9 @@ static fdtype lastword_prim(fdtype string,fdtype sep)
       return fd_substring(string_data+end,NULL);}}
 }
 
-static int match_end(fdtype sep,u8_string data,int off,int lim)
+static int match_end(lispval sep,u8_string data,int off,int lim)
 {
-  fdtype matches = fd_text_matcher(sep,NULL,data,off,lim,FD_MATCH_BE_GREEDY);
+  lispval matches = fd_text_matcher(sep,NULL,data,off,lim,FD_MATCH_BE_GREEDY);
   if (FD_ABORTP(matches))
     return -1;
   else if (EMPTYP(matches))
@@ -1866,7 +1866,7 @@ static int match_end(fdtype sep,u8_string data,int off,int lim)
 
 /* Morphrule */
 
-static int has_suffix(fdtype string,fdtype suffix)
+static int has_suffix(lispval string,lispval suffix)
 {
   int slen = STRLEN(string), sufflen = STRLEN(suffix);
   if (slen<sufflen) return 0;
@@ -1877,7 +1877,7 @@ static int has_suffix(fdtype string,fdtype suffix)
   else return 0;
 }
 
-static fdtype check_string(fdtype string,fdtype lexicon)
+static lispval check_string(lispval string,lispval lexicon)
 {
   if (FD_TRUEP(lexicon)) return string;
   else if (FD_TYPEP(lexicon,fd_hashset_type))
@@ -1885,12 +1885,12 @@ static fdtype check_string(fdtype string,fdtype lexicon)
       return string;
     else return EMPTY;
   else if (PAIRP(lexicon)) {
-    fdtype table = FD_CAR(lexicon);
-    fdtype key = FD_CDR(lexicon);
-    fdtype value = fd_get(table,string,EMPTY);
+    lispval table = FD_CAR(lexicon);
+    lispval key = FD_CDR(lexicon);
+    lispval value = fd_get(table,string,EMPTY);
     if (EMPTYP(value)) return EMPTY;
     else {
-      fdtype subvalue = fd_get(value,key,EMPTY);
+      lispval subvalue = fd_get(value,key,EMPTY);
       if ((EMPTYP(subvalue)) ||
           (VOIDP(subvalue)) ||
           (FALSEP(subvalue))) {
@@ -1900,7 +1900,7 @@ static fdtype check_string(fdtype string,fdtype lexicon)
         fd_decref(value); fd_decref(subvalue);
         return string;}}}
   else if (FD_APPLICABLEP(lexicon)) {
-    fdtype result = fd_finish_call(fd_dapply(lexicon,1,&string));
+    lispval result = fd_finish_call(fd_dapply(lexicon,1,&string));
     if (FD_ABORTP(result)) return FD_ERROR;
     else if (EMPTYP(result)) return EMPTY;
     else if (FALSEP(result)) return EMPTY;
@@ -1909,14 +1909,14 @@ static fdtype check_string(fdtype string,fdtype lexicon)
   else return 0;
 }
 
-static fdtype apply_suffixrule
-  (fdtype string,fdtype suffix,fdtype replacement,
-   fdtype lexicon)
+static lispval apply_suffixrule
+  (lispval string,lispval suffix,lispval replacement,
+   lispval lexicon)
 {
   if (STRLEN(string)>128) return EMPTY;
   else if (has_suffix(string,suffix))
     if (STRINGP(replacement)) {
-      struct FD_STRING stack_string; fdtype result;
+      struct FD_STRING stack_string; lispval result;
       U8_OUTPUT out; u8_byte buf[256];
       int slen = STRLEN(string), sufflen = STRLEN(suffix);
       int replen = STRLEN(replacement);
@@ -1926,28 +1926,28 @@ static fdtype apply_suffixrule
       FD_INIT_STATIC_CONS(&stack_string,fd_string_type);
       stack_string.fd_bytes = out.u8_outbuf;
       stack_string.fd_bytelen = out.u8_write-out.u8_outbuf;
-      result = check_string((fdtype)&stack_string,lexicon);
+      result = check_string((lispval)&stack_string,lexicon);
       if (FD_ABORTP(result)) return result;
       else if (EMPTYP(result)) return result;
-      else return fd_deep_copy((fdtype)&stack_string);}
+      else return fd_deep_copy((lispval)&stack_string);}
     else if (FD_APPLICABLEP(replacement)) {
-      fdtype xform = fd_apply(replacement,1,&string);
+      lispval xform = fd_apply(replacement,1,&string);
       if (FD_ABORTP(xform)) return xform;
       else if (STRINGP(xform)) {
-        fdtype checked = check_string(xform,lexicon);
+        lispval checked = check_string(xform,lexicon);
         if (STRINGP(checked)) return checked;
         else {
           fd_decref(xform); return checked;}}
       else {fd_decref(xform); return EMPTY;}}
     else if (VECTORP(replacement)) {
-      fdtype rewrites = textrewrite(replacement,string,FD_INT(0),VOID);
+      lispval rewrites = textrewrite(replacement,string,FD_INT(0),VOID);
       if (FD_ABORTP(rewrites)) return rewrites;
       else if (FD_TRUEP(lexicon)) return rewrites;
       else if (CHOICEP(rewrites)) {
-        fdtype accepted = EMPTY;
+        lispval accepted = EMPTY;
         DO_CHOICES(rewrite,rewrites) {
           if (STRINGP(rewrite)) {
-            fdtype checked = check_string(rewrite,lexicon);
+            lispval checked = check_string(rewrite,lexicon);
             if (FD_ABORTP(checked)) {
               fd_decref(rewrites); return checked;}
             fd_incref(checked);
@@ -1961,11 +1961,11 @@ static fdtype apply_suffixrule
   else return EMPTY;
 }
 
-static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
+static lispval apply_morphrule(lispval string,lispval rule,lispval lexicon)
 {
   if (VECTORP(rule)) {
-    fdtype results = EMPTY;
-    fdtype candidates = textrewrite(rule,string,FD_INT(0),VOID);
+    lispval results = EMPTY;
+    lispval candidates = textrewrite(rule,string,FD_INT(0),VOID);
     if (FD_ABORTP(candidates)) return candidates;
     else if (EMPTYP(candidates)) {}
     else if (FD_TRUEP(lexicon))
@@ -1982,15 +1982,15 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
       return fd_incref(string);
     else return EMPTY;
   else if (PAIRP(rule)) {
-    fdtype suffixes = FD_CAR(rule);
-    fdtype replacement = FD_CDR(rule);
-    fdtype results = EMPTY;
+    lispval suffixes = FD_CAR(rule);
+    lispval replacement = FD_CDR(rule);
+    lispval results = EMPTY;
     DO_CHOICES(suff,suffixes)
       if (STRINGP(suff)) {
         DO_CHOICES(repl,replacement)
           if ((STRINGP(repl)) || (VECTORP(repl)) ||
               (FD_APPLICABLEP(repl))) {
-            fdtype result = apply_suffixrule(string,suff,repl,lexicon);
+            lispval result = apply_suffixrule(string,suff,repl,lexicon);
             if (FD_ABORTP(result)) {
               fd_decref(results); return result;}
             else {CHOICE_ADD(results,result);}}
@@ -2000,9 +2000,9 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
       else return fd_err(fd_BadMorphRule,"morphrule",NULL,rule);
     return results;}
   else if (CHOICEP(rule)) {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(alternate,rule) {
-      fdtype result = apply_morphrule(string,alternate,lexicon);
+      lispval result = apply_morphrule(string,alternate,lexicon);
       if (FD_ABORTP(result)) {
         fd_decref(results); 
         return result;}
@@ -2012,14 +2012,14 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
   return EMPTY;
 }
 
-static fdtype morphrule(fdtype string,fdtype rules,fdtype lexicon)
+static lispval morphrule(lispval string,lispval rules,lispval lexicon)
 {
   if (NILP(rules))
     if (check_string(string,lexicon)) return fd_incref(string);
     else return EMPTY;
   else {
     FD_DOLIST(rule,rules) {
-      fdtype result = apply_morphrule(string,rule,lexicon);
+      lispval result = apply_morphrule(string,rule,lexicon);
       if (FD_ABORTP(result)) return result;
       if (!(EMPTYP(result))) return result;}
     return EMPTY;}
@@ -2028,20 +2028,20 @@ static fdtype morphrule(fdtype string,fdtype rules,fdtype lexicon)
 
 /* textclosure prim */
 
-static fdtype textclosure_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval textclosure_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype pattern_arg = fd_get_arg(expr,1);
-  fdtype pattern = fd_eval(pattern_arg,env);
+  lispval pattern_arg = fd_get_arg(expr,1);
+  lispval pattern = fd_eval(pattern_arg,env);
   if (VOIDP(pattern_arg))
     return fd_err(fd_SyntaxError,"textclosure_evalfn",NULL,expr);
   else if (FD_ABORTP(pattern)) return pattern;
   else {
-    fdtype closure = fd_textclosure(pattern,env);
+    lispval closure = fd_textclosure(pattern,env);
     fd_decref(pattern);
     return closure;}
 }
 
-static fdtype textclosurep(fdtype arg)
+static lispval textclosurep(lispval arg)
 {
   if (FD_TYPEP(arg,fd_txclosure_type))
     return FD_TRUE;
@@ -2050,7 +2050,7 @@ static fdtype textclosurep(fdtype arg)
 
 /* ISSUFFIX/ISPREFIX */
 
-static fdtype is_prefix_prim(fdtype prefix,fdtype string)
+static lispval is_prefix_prim(lispval prefix,lispval string)
 {
   int string_len = FD_STRING_LENGTH(string);
   int prefix_len = FD_STRING_LENGTH(prefix);
@@ -2063,7 +2063,7 @@ static fdtype is_prefix_prim(fdtype prefix,fdtype string)
     else return FD_FALSE;}
 }
 
-static fdtype is_suffix_prim(fdtype suffix,fdtype string)
+static lispval is_suffix_prim(lispval suffix,lispval string)
 {
   int string_len = FD_STRING_LENGTH(string);
   int suffix_len = FD_STRING_LENGTH(suffix);
@@ -2082,7 +2082,7 @@ static fdtype is_suffix_prim(fdtype suffix,fdtype string)
 
 static ssize_t get_more_data(u8_input in,size_t lim);
 
-static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
+static lispval read_match(lispval port,lispval pat,lispval limit_arg)
 {
   ssize_t lim;
   U8_INPUT *in = get_input_port(port);
@@ -2093,7 +2093,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
   ssize_t buflen = in->u8_inlim-in->u8_read; int eof = 0;
   off_t start = fd_text_search(pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);
-  fdtype ends = ((start>=0)?
+  lispval ends = ((start>=0)?
                  (fd_text_matcher
                   (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
                  (EMPTY));
@@ -2102,7 +2102,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   if ((start>=0)&&(end>start)&&
       ((lim==0)|(end<lim))&&
       ((end<buflen)||(eof))) {
-    fdtype result = fd_substring(in->u8_read+start,in->u8_read+end);
+    lispval result = fd_substring(in->u8_read+start,in->u8_read+end);
     in->u8_read = in->u8_read+end;
     return result;}
   else if ((lim)&&(end>lim))
@@ -2125,7 +2125,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
       else end = new_end;
       fd_decref(ends);}
   if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
-    fdtype result = fd_substring(in->u8_read+start,in->u8_read+end);
+    lispval result = fd_substring(in->u8_read+start,in->u8_read+end);
     in->u8_read = in->u8_read+end;
     return result;}
   else return FD_EOF;
@@ -2153,9 +2153,9 @@ static ssize_t get_more_data(u8_input in,size_t lim)
 
 /* Character-based escaped segmentation */
 
-static fdtype findsep_prim(fdtype string,fdtype sep,
-                           fdtype offset,fdtype limit,
-                           fdtype esc)
+static lispval findsep_prim(lispval string,lispval sep,
+                           lispval offset,lispval limit,
+                           lispval esc)
 {
   int off, lim;
   int c = FD_CHARCODE(sep), e = FD_CHARCODE(esc);
@@ -2180,9 +2180,9 @@ static fdtype findsep_prim(fdtype string,fdtype sep,
 
 /* Various custom parsing/extraction functions */
 
-static fdtype splitsep_prim(fdtype string,fdtype sep,
-                            fdtype offset,fdtype limit,
-                            fdtype esc)
+static lispval splitsep_prim(lispval string,lispval sep,
+                            lispval offset,lispval limit,
+                            lispval esc)
 {
   int off, lim;
   int c = FD_CHARCODE(sep), e = FD_CHARCODE(esc);
@@ -2194,7 +2194,7 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
   else if (e>=0x80)
     return fd_type_error("ascii char","splitsep_prim",esc);
   else {
-    fdtype head = VOID, pair = VOID;
+    lispval head = VOID, pair = VOID;
     const u8_byte *str = CSTRING(string), *start = str+off, *limit = str+lim;
     const u8_byte *scan = start, *pos = strchr(scan,c);
     if (pos)
@@ -2204,8 +2204,8 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
         else if (pos == scan) {
           scan = pos+1; pos = strchr(scan,c);}
         else  {
-          fdtype seg = fd_substring(scan,pos);
-          fdtype elt = fd_conspair(seg,NIL);
+          lispval seg = fd_substring(scan,pos);
+          lispval elt = fd_conspair(seg,NIL);
           if (VOIDP(head)) head = pair = elt;
           else {
             FD_RPLACD(pair,elt); pair = elt;}
@@ -2218,8 +2218,8 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
 static char *stdlib_escapes="ntrfab\\";
 static char *stdlib_unescaped="\n\t\r\f\a\b\\";
 
-static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
-                              fdtype dostd)
+static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
+                              lispval dostd)
 {
   int off, lim; 
   u8_string sdata = CSTRING(string), start, limit, split1;
@@ -2254,14 +2254,14 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
 
 /* Phonetic prims */
 
-static fdtype soundex_prim(fdtype string,fdtype packetp)
+static lispval soundex_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
     return fd_lispstring(fd_soundex(CSTRING(string)));
   else return fd_init_packet(NULL,4,fd_soundex(CSTRING(string)));
 }
 
-static fdtype metaphone_prim(fdtype string,fdtype packetp)
+static lispval metaphone_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
     return fd_lispstring(fd_metaphone(CSTRING(string),0));
@@ -2270,7 +2270,7 @@ static fdtype metaphone_prim(fdtype string,fdtype packetp)
     return fd_init_packet(NULL,strlen(dblm),dblm);}
 }
 
-static fdtype metaphone_plus_prim(fdtype string,fdtype packetp)
+static lispval metaphone_plus_prim(lispval string,lispval packetp)
 {
   if (FALSEP(packetp))
     return fd_lispstring(fd_metaphone(CSTRING(string),1));
@@ -2281,7 +2281,7 @@ static fdtype metaphone_plus_prim(fdtype string,fdtype packetp)
 
 /* Digest functions */
 
-static fdtype md5_prim(fdtype input)
+static lispval md5_prim(lispval input)
 {
   unsigned char *digest = NULL;
   if (STRINGP(input))
@@ -2299,7 +2299,7 @@ static fdtype md5_prim(fdtype input)
 
 }
 
-static fdtype sha1_prim(fdtype input)
+static lispval sha1_prim(lispval input)
 {
   unsigned char *digest = NULL;
   if (STRINGP(input))
@@ -2317,7 +2317,7 @@ static fdtype sha1_prim(fdtype input)
 
 }
 
-static fdtype sha256_prim(fdtype input)
+static lispval sha256_prim(lispval input)
 {
   unsigned char *digest = NULL;
   if (STRINGP(input))
@@ -2335,7 +2335,7 @@ static fdtype sha256_prim(fdtype input)
 
 }
 
-static fdtype sha384_prim(fdtype input)
+static lispval sha384_prim(lispval input)
 {
   unsigned char *digest = NULL;
   if (STRINGP(input))
@@ -2353,7 +2353,7 @@ static fdtype sha384_prim(fdtype input)
 
 }
 
-static fdtype sha512_prim(fdtype input)
+static lispval sha512_prim(lispval input)
 {
   unsigned char *digest = NULL;
   if (STRINGP(input))
@@ -2371,7 +2371,7 @@ static fdtype sha512_prim(fdtype input)
 
 }
 
-static fdtype hmac_sha1_prim(fdtype key,fdtype input)
+static lispval hmac_sha1_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
   int data_len, key_len, digest_len, free_key = 0, free_data = 0;
@@ -2401,7 +2401,7 @@ static fdtype hmac_sha1_prim(fdtype key,fdtype input)
   else return fd_init_packet(NULL,digest_len,digest);
 }
 
-static fdtype hmac_sha256_prim(fdtype key,fdtype input)
+static lispval hmac_sha256_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
   int data_len, key_len, digest_len, free_key = 0, free_data = 0;
@@ -2431,7 +2431,7 @@ static fdtype hmac_sha256_prim(fdtype key,fdtype input)
   else return fd_init_packet(NULL,digest_len,digest);
 }
 
-static fdtype hmac_sha384_prim(fdtype key,fdtype input)
+static lispval hmac_sha384_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
   int data_len, key_len, digest_len, free_key = 0, free_data = 0;
@@ -2461,7 +2461,7 @@ static fdtype hmac_sha384_prim(fdtype key,fdtype input)
   else return fd_init_packet(NULL,digest_len,digest);
 }
 
-static fdtype hmac_sha512_prim(fdtype key,fdtype input)
+static lispval hmac_sha512_prim(lispval key,lispval input)
 {
   const unsigned char *data, *keydata, *digest = NULL;
   int data_len, key_len, digest_len, free_key = 0, free_data = 0;
@@ -2493,7 +2493,7 @@ static fdtype hmac_sha512_prim(fdtype key,fdtype input)
 
 /* Match def */
 
-static fdtype matchdef_prim(fdtype symbol,fdtype value)
+static lispval matchdef_prim(lispval symbol,lispval value)
 {
   int retval = fd_matchdef(symbol,value);
   if (retval<0) return FD_ERROR;

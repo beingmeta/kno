@@ -75,16 +75,16 @@ static void shutdown_server(u8_condition reason)
 
 /* Running the server */
 
-static fdtype reqsetup()
+static lispval reqsetup()
 {
-  fdtype result = VOID;
+  lispval result = VOID;
   /* Do this ASAP to avoid session leakage */
   fd_reset_threadvars();
   /* Update modules */
   if (fd_update_file_modules(0)<0) {
     u8_condition c = NULL; u8_context cxt = NULL;
     u8_string details = NULL;
-    fdtype irritant = VOID;
+    lispval irritant = VOID;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result = fd_err(c,cxt,details,irritant);
     if (details) u8_free(details);
@@ -92,7 +92,7 @@ static fdtype reqsetup()
   else if (update_preloads()<0) {
     u8_condition c = NULL; u8_context cxt = NULL;
     u8_string details = NULL;
-    fdtype irritant;
+    lispval irritant;
     if (fd_poperr(&c,&cxt,&details,&irritant))
       result = fd_err(c,cxt,details,irritant);
     if (details) u8_free(details);
@@ -100,20 +100,20 @@ static fdtype reqsetup()
   return result;
 }
 
-static void copy_envparam(char *name,fdtype target,fdtype slotid)
+static void copy_envparam(char *name,lispval target,lispval slotid)
 {
   char *param = getenv(name);
-  fdtype value = ((param) ? (fdstring(param)) : (VOID));
+  lispval value = ((param) ? (fdstring(param)) : (VOID));
   if (!(FD_VOIDP(value))) fd_add(target,slotid,value);
   fd_decref(value);
 }
 
-static fdtype get_envcgidata()
+static lispval get_envcgidata()
 {
-  fdtype slotmap = fd_empty_slotmap();
+  lispval slotmap = fd_empty_slotmap();
   char *lenstring = getenv("CONTENT_LENGTH");
   if (lenstring) {
-    fdtype packet = VOID;
+    lispval packet = VOID;
     int len = atoi(lenstring);
     /* char *ctype = getenv("CONTENT_TYPE"); */
     char *buf = u8_malloc(len);
@@ -151,15 +151,15 @@ static char *socketspec = NULL;
 
 static int fcgi_socket = -1;
 
-static void copy_param(char *name,FCGX_ParamArray envp,fdtype target,fdtype slotid)
+static void copy_param(char *name,FCGX_ParamArray envp,lispval target,lispval slotid)
 {
   char *param = FCGX_GetParam(name,envp);
-  fdtype value = ((param) ? (fdstring(param)) : (VOID));
+  lispval value = ((param) ? (fdstring(param)) : (VOID));
   if (!(FD_VOIDP(value))) fd_add(target,slotid,value);
   fd_decref(value);
 }
 
-static void output_content(FCGX_Request *req,fdtype content)
+static void output_content(FCGX_Request *req,lispval content)
 {
   if (FD_STRINGP(content))
     FCGX_PutStr(CSTRING(content),STRLEN(content),req->out);
@@ -168,12 +168,12 @@ static void output_content(FCGX_Request *req,fdtype content)
   else {}
 }
 
-static fdtype get_fcgidata(FCGX_Request *req)
+static lispval get_fcgidata(FCGX_Request *req)
 {
-  fdtype slotmap = fd_empty_slotmap();
+  lispval slotmap = fd_empty_slotmap();
   char *lenstring = FCGX_GetParam("CONTENT_LENGTH",req->envp);
   if (lenstring) {
-    fdtype packet = VOID;
+    lispval packet = VOID;
     char *ctype = FCGX_GetParam("CONTENT_TYPE",req->envp);
     int len = atoi(lenstring);
     char *buf = u8_malloc(len);
@@ -213,11 +213,11 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   double setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache = NULL;
   struct rusage start_usage, end_usage;
-  fdtype proc = reqsetup(), result = VOID, cgidata = VOID, path = VOID;
+  lispval proc = reqsetup(), result = VOID, cgidata = VOID, path = VOID;
   if (FD_ABORTP(proc)) {
     parse_time = setup_time = u8_elapsed_time();}
   else {
-    fdtype uri;
+    lispval uri;
     setup_time = u8_elapsed_time();
     cgidata = get_fcgidata(req);
     path = fd_get(cgidata,script_filename,VOID);
@@ -249,7 +249,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     threadcache = checkthreadcache(sp->env);
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype xml = FD_CAR(proc), setup_proc = VOID;
+    lispval xml = FD_CAR(proc), setup_proc = VOID;
     fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
     fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
@@ -261,10 +261,10 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     else if (FD_CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
         if (FD_APPLICABLEP(proc)) {
-          fdtype v = fd_apply(proc,0,NULL);
+          lispval v = fd_apply(proc,0,NULL);
           fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
-      fdtype v = fd_apply(setup_proc,0,NULL);
+      lispval v = fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
     fd_decref(setup_proc);
     write_headers = 0;
@@ -275,7 +275,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
         result = fd_xmleval(out,expr,runenv);
         if (FD_ABORTP(result)) break;}}
     else result = fd_xmleval(out,FD_CAR(proc),runenv);
-    fd_decref((fdtype)runenv);}
+    fd_decref((lispval)runenv);}
   exec_time = u8_elapsed_time();
   u8_set_default_output(NULL);
   if (FD_TROUBLEP(result)) {
@@ -287,7 +287,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     u8_context exdetails = ((ex->u8x_details) ?
                           (ex->u8x_details) :
                           ((u8_string)"no more details"));
-    fdtype irritant = fd_exception_xdata(ex);
+    lispval irritant = fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
              excond,CSTRING(path),excxt,exdetails);
@@ -301,8 +301,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     FCGX_PutStr(out->u8_outbuf,out->u8_write-out->u8_outbuf,req->out);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
-    fdtype content = fd_get(cgidata,content_slotid,VOID);
-    fdtype traceval = fd_get(cgidata,tracep_slotid,VOID);
+    lispval content = fd_get(cgidata,content_slotid,VOID);
+    lispval traceval = fd_get(cgidata,tracep_slotid,VOID);
     if (FD_VOIDP(traceval)) tracep = 0; else tracep = 1;
     U8_INIT_STATIC_OUTPUT(tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
@@ -328,7 +328,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   write_time = u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
-    fdtype query = fd_get(cgidata,query_string,VOID);
+    lispval query = fd_get(cgidata,query_string,VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE","Handled %q in %f = setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
              path,write_time-start_time,
@@ -455,18 +455,18 @@ static int start_fcgi_server(char *socketspec)
 
 /* SLOW CGI */
 
-static int simplecgi(fdtype path)
+static int simplecgi(lispval path)
 {
   int write_headers = 1, retval;
   double start_time = u8_elapsed_time();
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
-  fdtype proc = reqsetup(), result = VOID, cgidata = VOID;
+  lispval proc = reqsetup(), result = VOID, cgidata = VOID;
   struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,16384);
   if (FD_ABORTP(proc)) {
     parse_time = setup_time = u8_elapsed_time();}
   else {
-    fdtype uri;
+    lispval uri;
     setup_time = u8_elapsed_time();
     cgidata = get_envcgidata();
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
@@ -494,7 +494,7 @@ static int simplecgi(fdtype path)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
-    fdtype setup_proc = VOID;
+    lispval setup_proc = VOID;
     fd_lexenv base = fd_consptr(fd_lexenv,FD_CDR(proc),fd_lexenv_type);
     fd_lexenv runenv = fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
@@ -505,10 +505,10 @@ static int simplecgi(fdtype path)
     else if (CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
         if (FD_APPLICABLEP(proc)) {
-          fdtype v = fd_apply(proc,0,NULL);
+          lispval v = fd_apply(proc,0,NULL);
           fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
-      fdtype v = fd_apply(setup_proc,0,NULL);
+      lispval v = fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
     fd_decref(setup_proc);
     write_headers = 0;
@@ -519,7 +519,7 @@ static int simplecgi(fdtype path)
         result = fd_xmleval(&out,expr,runenv);
         if (FD_ABORTP(result)) break;}}
     else result = fd_xmleval(&out,FD_CAR(proc),runenv);
-    fd_decref((fdtype)runenv);}
+    fd_decref((lispval)runenv);}
   exec_time = u8_elapsed_time();
   if (FD_TROUBLEP(result)) {
     u8_exception ex = u8_erreify();
@@ -529,7 +529,7 @@ static int simplecgi(fdtype path)
                       ((u8_context)"somewhere"));
     u8_context exdetails=
       ((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
-    fdtype irritant = fd_exception_xdata(ex);
+    lispval irritant = fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
              excond,CSTRING(path),excxt,exdetails);
@@ -541,8 +541,8 @@ static int simplecgi(fdtype path)
     u8_free_exception(ex,1);}
   else {
     U8_OUTPUT tmp; int tracep;
-    fdtype content = fd_get(cgidata,content_slotid,VOID);
-    fdtype traceval = fd_get(cgidata,tracep_slotid,VOID);
+    lispval content = fd_get(cgidata,content_slotid,VOID);
+    lispval traceval = fd_get(cgidata,tracep_slotid,VOID);
     if (FD_VOIDP(traceval)) tracep = 0; else tracep = 1;
     U8_INIT_STATIC_OUTPUT(tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
@@ -571,7 +571,7 @@ static int simplecgi(fdtype path)
   write_time = u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if (traceweb>0) {
-    fdtype query = fd_get(cgidata,query_string,VOID);
+    lispval query = fd_get(cgidata,query_string,VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE","Handled %q in %f = setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
              path,write_time-start_time,
@@ -676,8 +676,8 @@ int main(int argc,char **argv)
 
   if (server_env == NULL)
     server_env = fd_working_lexenv();
-  fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
-  fd_idefn((fdtype)server_env,fd_make_cprim0("UPTIME",get_uptime));
+  fd_idefn((lispval)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn((lispval)server_env,fd_make_cprim0("UPTIME",get_uptime));
 
   init_webcommon_configs();
   fd_register_config("BACKLOG",

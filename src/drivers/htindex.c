@@ -26,20 +26,20 @@
 
 /* The in-memory index */
 
-static fdtype *htindex_fetchn(fd_index ix,int n,fdtype *keys)
+static lispval *htindex_fetchn(fd_index ix,int n,lispval *keys)
 {
-  fdtype *results = u8_alloc_n(n,fdtype);
+  lispval *results = u8_alloc_n(n,lispval);
   int i = 0; while (i<n) {
     results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],EMPTY);
     i++;}
   return results;
 }
 
-static fdtype *htindex_fetchkeys(fd_index ix,int *n)
+static lispval *htindex_fetchkeys(fd_index ix,int *n)
 {
-  fdtype keys = fd_hashtable_keys(&(ix->index_cache));
+  lispval keys = fd_hashtable_keys(&(ix->index_cache));
   int n_elts = FD_CHOICE_SIZE(keys);
-  fdtype *result = u8_alloc_n(n_elts,fdtype);
+  lispval *result = u8_alloc_n(n_elts,lispval);
   int j = 0;
   DO_CHOICES(key,keys) {result[j++]=key;}
   *n = n_elts;
@@ -50,7 +50,7 @@ struct FETCHINFO_STATE {
   struct FD_KEY_SIZE *result, *write;
   fd_choice filter;};
 
-static int htindex_fetchinfo_helper(fdtype key,fdtype value,void *ptr)
+static int htindex_fetchinfo_helper(lispval key,lispval value,void *ptr)
 {
   struct FETCHINFO_STATE *state=(struct FETCHINFO_STATE *)ptr;
   if ( (state->filter == NULL) || (fast_choice_containsp(key,state->filter)) ) {
@@ -92,25 +92,25 @@ static int htindex_commitfn(struct FD_HT_INDEX *ix,u8_string file)
       (&stream,file,FD_FILE_CREATE,-1,fd_driver_bufsize);
     if (rstream == NULL) return -1;
     stream.stream_flags &= ~FD_STREAM_IS_CONSED;
-    fd_write_dtype(fd_writebuf(&stream),(fdtype)&(ix->index_cache));
+    fd_write_dtype(fd_writebuf(&stream),(lispval)&(ix->index_cache));
     fd_free_stream(&stream);
     return 1;}
   else return 0;
 }
 
-static fd_index open_htindex(u8_string file,fd_storage_flags flags,fdtype opts)
+static fd_index open_htindex(u8_string file,fd_storage_flags flags,lispval opts)
 {
   struct FD_HT_INDEX *mix = (fd_mem_index)fd_make_ht_index(flags);
-  fdtype lispval; struct FD_HASHTABLE *h;
+  lispval lval; struct FD_HASHTABLE *h;
   struct FD_STREAM stream;
   fd_init_file_stream
     (&stream,file,FD_FILE_READ,-1,fd_driver_bufsize);
   stream.stream_flags &= ~FD_STREAM_IS_CONSED;
-  lispval = fd_read_dtype(fd_readbuf(&stream));
+  lval = fd_read_dtype(fd_readbuf(&stream));
   fd_free_stream(&stream);
-  if (HASHTABLEP(lispval)) h = (fd_hashtable)lispval;
+  if (HASHTABLEP(lval)) h = (fd_hashtable)lval;
   else {
-    fd_decref(lispval);
+    fd_decref(lval);
     return NULL;}
   if (mix->indexid) u8_free(mix->indexid);
   mix->indexid = u8_strdup(file);

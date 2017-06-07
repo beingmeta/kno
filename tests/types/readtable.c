@@ -33,7 +33,7 @@ double get_elapsed()
 #define SLOTMAP(x)   (fd_constpr(struct FD_SLOTMAP *,x,fd_slotmap_type))
 #define HASHTABLE(x) (fd_consptr(,struct FD_HASHTABLE *,x,fd_hashtable_type))
 
-static void report_on_hashtable(fdtype ht)
+static void report_on_hashtable(lispval ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
   fd_hashtable_stats(FD_GET_CONS(ht,fd_hashtable_type,struct FD_HASHTABLE *),
@@ -50,7 +50,7 @@ static void report_on_hashtable(fdtype ht)
 
 int main(int argc,char **argv)
 {
-  struct FD_STREAM *in; fdtype ht;
+  struct FD_STREAM *in; lispval ht;
   struct FD_INBUF *inbuf;
   FD_DO_LIBINIT(fd_init_libfdtype);
   in = fd_open_file(argv[1],FD_FILE_READ);

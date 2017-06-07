@@ -40,14 +40,14 @@ static int trace_config = 0;
 
 struct FD_CONFIG_HANDLER *config_handlers = NULL;
 
-static fdtype configuration_table;
+static lispval configuration_table;
 
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
 
 static struct FD_CONFIG_FINDER *config_lookupfns = NULL;
 
-static fdtype config_intern(u8_string start)
+static lispval config_intern(u8_string start)
 {
   U8_OUTPUT nameout; u8_byte buf[64];
   const u8_byte *scan = start;
@@ -59,7 +59,7 @@ static fdtype config_intern(u8_string start)
     else if (u8_isupper(c)) u8_putc(&nameout,c);
     else u8_putc(&nameout,u8_toupper(c));}
   if (nameout.u8_streaminfo&U8_STREAM_OWNS_BUF) {
-    fdtype symbol=
+    lispval symbol=
       fd_make_symbol(nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
     u8_close((u8_stream)&nameout);
     return symbol;}
@@ -68,7 +68,7 @@ static fdtype config_intern(u8_string start)
 }
 
 FD_EXPORT
-void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *ldata)
+void fd_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
 {
   struct FD_CONFIG_FINDER *entry=
     u8_alloc(struct FD_CONFIG_FINDER);
@@ -80,13 +80,13 @@ void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *ldata)
   u8_unlock_mutex(&config_lookup_lock);
 }
 
-static fdtype config_get(u8_string var)
+static lispval config_get(u8_string var)
 {
-  fdtype symbol = config_intern(var);
-  fdtype probe = fd_get(configuration_table,symbol,VOID);
+  lispval symbol = config_intern(var);
+  lispval probe = fd_get(configuration_table,symbol,VOID);
   /* This lookups configuration information using various methods */
   if (VOIDP(probe)) {
-    fdtype value = VOID;
+    lispval value = VOID;
     struct FD_CONFIG_FINDER *scan = config_lookupfns;
     while (scan) {
       value = scan->fdcfg_lookup(symbol,scan->fdcfg_lookup_data);
@@ -98,12 +98,12 @@ static fdtype config_get(u8_string var)
   else return probe;
 }
 
-static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
+static lispval getenv_config_lookup(lispval symbol,void *ignored)
 {
   U8_OUTPUT out;
   char *getenv_result;
   u8_string u8result;
-  fdtype result;
+  lispval result;
   U8_INIT_OUTPUT(&out,32);
   u8_printf(&out,"FD_%s",SYM_NAME(symbol));
   getenv_result = getenv(out.u8_outbuf);
@@ -115,26 +115,26 @@ static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
   return result;
 }
 
-int set_config(u8_string var,fdtype val)
+int set_config(u8_string var,lispval val)
 {
-  fdtype symbol = config_intern(var);
-  fdtype current = fd_get(configuration_table,symbol,VOID);
+  lispval symbol = config_intern(var);
+  lispval current = fd_get(configuration_table,symbol,VOID);
   if (VOIDP(current)) {
     if (PAIRP(val)) {
-      fdtype pairpair = fd_make_pair(val,NIL);
+      lispval pairpair = fd_make_pair(val,NIL);
       int rv = fd_store(configuration_table,symbol,pairpair);
       fd_decref(pairpair);
       return rv;}
     else return fd_store(configuration_table,symbol,val);}
   else if (PAIRP(current)) {
-    fdtype pairpair = fd_make_pair(val,current);
+    lispval pairpair = fd_make_pair(val,current);
     int rv = fd_store(configuration_table,symbol,pairpair);
     fd_decref(pairpair);
     return rv;}
   else if (FD_EQUAL(current,val)) return 0;
   else {
-    fdtype cdr = fd_make_pair(current,NIL);
-    fdtype pairpair = fd_make_pair(val,cdr);
+    lispval cdr = fd_make_pair(current,NIL);
+    lispval pairpair = fd_make_pair(val,cdr);
     int rv = fd_store(configuration_table,symbol,pairpair);
     fd_decref(cdr); fd_decref(pairpair);
     return rv;}
@@ -145,7 +145,7 @@ int set_config(u8_string var,fdtype val)
 #if FD_FILECONFIG_ENABLED
 static u8_string configdata_path = NULL;
 
-static fdtype file_config_lookup(fdtype symbol,void *pathdata)
+static lispval file_config_lookup(lispval symbol,void *pathdata)
 {
   u8_string path=
     ((pathdata == NULL) ?
@@ -153,7 +153,7 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
      ((u8_string)pathdata));
   u8_string filename = u8_find_file(SYM_NAME(symbol),path,NULL);
   if (filename) {
-    int n_bytes; fdtype result;
+    int n_bytes; lispval result;
     unsigned char *content = u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
       struct FD_INBUF in;
@@ -177,22 +177,22 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
 
 /* API functions */
 
-FD_EXPORT fdtype fd_config_get(u8_string var)
+FD_EXPORT lispval fd_config_get(u8_string var)
 {
-  fdtype symbol = config_intern(var);
+  lispval symbol = config_intern(var);
   struct FD_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
     if (FD_EQ(scan->fd_configname,symbol)) {
-      fdtype val;
+      lispval val;
       val = scan->fd_config_get_method(symbol,scan->fd_configdata);
       return val;}
     else scan = scan->fd_nextconfig;
   return config_get(var);
 }
 
-FD_EXPORT int fd_set_config(u8_string var,fdtype val)
+FD_EXPORT int fd_set_config(u8_string var,lispval val)
 {
-  fdtype symbol = config_intern(var); int retval = 0;
+  lispval symbol = config_intern(var); int retval = 0;
   struct FD_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
     if (FD_EQ(scan->fd_configname,symbol)) {
@@ -215,9 +215,9 @@ FD_EXPORT int fd_set_config(u8_string var,fdtype val)
   return retval;
 }
 
-FD_EXPORT int fd_default_config(u8_string var,fdtype val)
+FD_EXPORT int fd_default_config(u8_string var,lispval val)
 {
-  fdtype symbol = config_intern(var); int retval = 1;
+  lispval symbol = config_intern(var); int retval = 1;
   struct FD_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
     if (FD_EQ(scan->fd_configname,symbol)) {
@@ -243,7 +243,7 @@ FD_EXPORT int fd_default_config(u8_string var,fdtype val)
   return retval;
 }
 
-FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val)
+FD_EXPORT int fd_set_config_consed(u8_string var,lispval val)
 {
   int retval = fd_set_config(var,val);
   if (retval<0) return retval;
@@ -255,11 +255,11 @@ FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val)
 
 FD_EXPORT int fd_register_config_x
   (u8_string var,u8_string doc,
-   fdtype (*getfn)(fdtype,void *),
-   int (*setfn)(fdtype,fdtype,void *),
+   lispval (*getfn)(lispval,void *),
+   int (*setfn)(lispval,lispval,void *),
    void *data,int (*reuse)(struct FD_CONFIG_HANDLER *scan))
 {
-  fdtype symbol = config_intern(var), current = config_get(var);
+  lispval symbol = config_intern(var), current = config_get(var);
   int retval = 0;
   struct FD_CONFIG_HANDLER *scan;
   u8_lock_mutex(&config_register_lock);
@@ -296,9 +296,9 @@ FD_EXPORT int fd_register_config_x
   else if (PAIRP(current)) {
     /* There have been multiple configuration specifications,
        so run them all backwards. */
-    int n = 0; fdtype *vals, *write;
-    {fdtype scan = current; while (PAIRP(scan)) {scan = FD_CDR(scan); n++;}}
-    vals = u8_alloc_n(n,fdtype); write = vals;
+    int n = 0; lispval *vals, *write;
+    {lispval scan = current; while (PAIRP(scan)) {scan = FD_CDR(scan); n++;}}
+    vals = u8_alloc_n(n,lispval); write = vals;
     {FD_DOLIST(cv,current) *write++=cv;}
     while (n>0) {
       n = n-1;
@@ -315,26 +315,26 @@ FD_EXPORT int fd_register_config_x
 
 FD_EXPORT int fd_register_config
   (u8_string var,u8_string doc,
-   fdtype (*getfn)(fdtype,void *),
-   int (*setfn)(fdtype,fdtype,void *),
+   lispval (*getfn)(lispval,void *),
+   int (*setfn)(lispval,lispval,void *),
    void *data)
 {
   return fd_register_config_x(var,doc,getfn,setfn,data,NULL);
 }
 
-FD_EXPORT fdtype fd_all_configs(int with_docs)
+FD_EXPORT lispval fd_all_configs(int with_docs)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   struct FD_CONFIG_HANDLER *scan;
   u8_lock_mutex(&config_register_lock); {
     scan = config_handlers;
     while (scan) {
-      fdtype var = scan->fd_configname;
+      lispval var = scan->fd_configname;
       if (with_docs) {
-        fdtype doc = ((scan->fd_configdoc)?
+        lispval doc = ((scan->fd_configdoc)?
                     (fdstring(scan->fd_configdoc)):
                     (NIL));
-        fdtype pair = fd_conspair(var,doc); fd_incref(var);
+        lispval pair = fd_conspair(var,doc); fd_incref(var);
         CHOICE_ADD(results,pair);}
       else {fd_incref(var); CHOICE_ADD(results,var);}
       scan = scan->fd_nextconfig;}}
@@ -351,7 +351,7 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
   if ((equals = (strchr(assignment,'=')))) {
     u8_byte _namebuf[64], *namebuf;
     int namelen = equals-assignment, retval;
-    fdtype value = fd_parse_arg(equals+1);
+    lispval value = fd_parse_arg(equals+1);
     if (FD_ABORTP(value))
       return fd_interr(value);
     if (namelen+1>64)
@@ -371,7 +371,7 @@ FD_EXPORT int fd_default_config_assignment(u8_string assignment)
   if ((equals = (strchr(assignment,'=')))) {
     u8_byte _namebuf[64], *namebuf;
     int namelen = equals-assignment, retval = 0;
-    fdtype value = fd_parse_arg(equals+1);
+    lispval value = fd_parse_arg(equals+1);
     if (FD_ABORTP(value))
       return fd_interr(value);
     if (namelen+1>64)
@@ -397,7 +397,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
     else if (c == ';') {
       buf = u8_gets(in); u8_free(buf);}
     else if (c == '(') {
-      fdtype entry;
+      lispval entry;
       u8_ungetc(in,c);
       entry = fd_parser(in);
       if (FD_ABORTP(entry))
@@ -436,7 +436,7 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
     else if (c == ';') {
       buf = u8_gets(in); u8_free(buf);}
     else if (c == '(') {
-      fdtype entry;
+      lispval entry;
       u8_ungetc(in,c);
       entry = fd_parser(in);
       if (FD_ABORTP(entry))
@@ -466,7 +466,7 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
 /* Utility configuration functions */
 
 /* This set method just returns an error */
-FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *vptr)
 {
   if (SYMBOLP(v))
     return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
@@ -478,39 +478,39 @@ FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *vptr)
 }
 
 /* For configuration variables which get/set dtype value. */
-FD_EXPORT fdtype fd_lconfig_get(fdtype ignored,void *lispp)
+FD_EXPORT lispval fd_lconfig_get(lispval ignored,void *lispp)
 {
-  fdtype *val = (fdtype *)lispp;
+  lispval *val = (lispval *)lispp;
   return fd_incref(*val);
 }
-FD_EXPORT int fd_lconfig_set(fdtype ignored,fdtype v,void *lispp)
+FD_EXPORT int fd_lconfig_set(lispval ignored,lispval v,void *lispp)
 {
-  fdtype *val = (fdtype *)lispp, cur = *val;
+  lispval *val = (lispval *)lispp, cur = *val;
   fd_decref(cur); fd_incref(v);
   *val = v;
   return 1;
 }
-FD_EXPORT int fd_lconfig_add(fdtype ignored,fdtype v,void *lispp)
+FD_EXPORT int fd_lconfig_add(lispval ignored,lispval v,void *lispp)
 {
-  fdtype *val = (fdtype *)lispp;
+  lispval *val = (lispval *)lispp;
   CHOICE_ADD(*val,v);
   return 1;
 }
-FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp)
+FD_EXPORT int fd_lconfig_push(lispval ignored,lispval v,void *lispp)
 {
-  fdtype *val = (fdtype *)lispp;
+  lispval *val = (lispval *)lispp;
   *val = fd_conspair(fd_incref(v),*val);
   return 1;
 }
 
 /* For configuration variables which get/set strings. */
-FD_EXPORT fdtype fd_sconfig_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_sconfig_get(lispval ignored,void *vptr)
 {
   u8_string *ptr = vptr;
-  if (*ptr) return fdtype_string(*ptr);
+  if (*ptr) return lispval_string(*ptr);
   else return EMPTY;
 }
-FD_EXPORT int fd_sconfig_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_sconfig_set(lispval ignored,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
@@ -521,12 +521,12 @@ FD_EXPORT int fd_sconfig_set(fdtype ignored,fdtype v,void *vptr)
 }
 
 /* For configuration variables which get/set ints. */
-FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_intconfig_get(lispval ignored,void *vptr)
 {
   int *ptr = vptr;
   return FD_INT(*ptr);
 }
-FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_intconfig_set(lispval ignored,lispval v,void *vptr)
 {
   int *ptr = vptr;
   if (FD_INTP(v)) {
@@ -537,12 +537,12 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
 }
 
 /* For configuration variables which get/set ints. */
-FD_EXPORT fdtype fd_longconfig_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_longconfig_get(lispval ignored,void *vptr)
 {
   long long *ptr = vptr;
   return FD_INT(*ptr);
 }
-FD_EXPORT int fd_longconfig_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_longconfig_set(lispval ignored,lispval v,void *vptr)
 {
   long long *ptr = vptr;
   if (FIXNUMP(v)) {
@@ -553,13 +553,13 @@ FD_EXPORT int fd_longconfig_set(fdtype ignored,fdtype v,void *vptr)
 }
 
 /* For configuration variables which get/set ints. */
-FD_EXPORT fdtype fd_sizeconfig_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_sizeconfig_get(lispval ignored,void *vptr)
 {
   ssize_t *ptr = vptr;
   ssize_t sz = *ptr;
   return FD_INT(sz);
 }
-FD_EXPORT int fd_sizeconfig_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_sizeconfig_set(lispval ignored,lispval v,void *vptr)
 {
   ssize_t *ptr = vptr;
   if (FIXNUMP(v)) {
@@ -582,13 +582,13 @@ FD_EXPORT int fd_sizeconfig_set(fdtype ignored,fdtype v,void *vptr)
 }
 
 /* Double config methods */
-FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_dblconfig_get(lispval ignored,void *vptr)
 {
   double *ptr = vptr;
   if (*ptr) return fd_init_double(NULL,*ptr);
   else return FD_FALSE;
 }
-FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
+FD_EXPORT int fd_dblconfig_set(lispval var,lispval v,void *vptr)
 {
   double *ptr = vptr;
   if (FALSEP(v)) {
@@ -609,12 +609,12 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
 static int false_stringp(u8_string string);
 static int true_stringp(u8_string string);
 
-FD_EXPORT fdtype fd_boolconfig_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_boolconfig_get(lispval ignored,void *vptr)
 {
   int *ptr = vptr;
   if (*ptr) return FD_TRUE; else return FD_FALSE;
 }
-FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
+FD_EXPORT int fd_boolconfig_set(lispval var,lispval v,void *vptr)
 {
   int *ptr = vptr;
   if (FALSEP(v)) {
@@ -681,34 +681,34 @@ FD_EXPORT int fd_boolstring(u8_string string,int dflt)
 
 /* Version info */
 
-static fdtype fdversion_config_get(fdtype var,void *data)
+static lispval fdversion_config_get(lispval var,void *data)
 {
-  return fdtype_string(FD_VERSION);
+  return lispval_string(FD_VERSION);
 }
-static fdtype fdrevision_config_get(fdtype var,void *data)
+static lispval fdrevision_config_get(lispval var,void *data)
 {
-  return fdtype_string(FRAMERD_REVISION);
+  return lispval_string(FRAMERD_REVISION);
 }
-static fdtype fdmajor_config_get(fdtype var,void *data)
+static lispval fdmajor_config_get(lispval var,void *data)
 {
   return FD_INT(FD_MAJOR_VERSION);
 }
-static fdtype u8version_config_get(fdtype var,void *data)
+static lispval u8version_config_get(lispval var,void *data)
 {
-  return fdtype_string(u8_getversion());
+  return lispval_string(u8_getversion());
 }
-static fdtype u8revision_config_get(fdtype var,void *data)
+static lispval u8revision_config_get(lispval var,void *data)
 {
-  return fdtype_string(u8_getrevision());
+  return lispval_string(u8_getrevision());
 }
-static fdtype u8major_config_get(fdtype var,void *data)
+static lispval u8major_config_get(lispval var,void *data)
 {
   return FD_INT(u8_getmajorversion());
 }
 
 /* LOGLEVEL */
 
-static int loglevelconfig_set(fdtype var,fdtype val,void *data)
+static int loglevelconfig_set(lispval var,lispval val,void *data)
 {
   if (FD_INTP(val)) {
     int *valp = (int *)data;
@@ -734,7 +734,7 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
     return -1;}
 }
 
-FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data)
+FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data)
 {
   return loglevelconfig_set(var,val,data);
 }

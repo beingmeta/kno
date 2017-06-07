@@ -15,9 +15,9 @@
 #include <stdio.h>
 #include <errno.h>
 
-static fdtype read_dtype_from_file(FILE *f)
+static lispval read_dtype_from_file(FILE *f)
 {
-  fdtype object;
+  lispval object;
   struct FD_OUTBUF out; struct FD_INBUF in;
   char buf[1024]; int delta = 0;
   FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -32,7 +32,7 @@ static fdtype read_dtype_from_file(FILE *f)
   return object;
 }
 
-static int write_dtype_to_file(fdtype object,FILE *f)
+static int write_dtype_to_file(lispval object,FILE *f)
 {
   struct FD_OUTBUF out; int retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -49,43 +49,43 @@ static int write_dtype_to_file(fdtype object,FILE *f)
 int main(int argc,char **argv)
 {
   FILE *f = fopen(argv[1],"rb");
-  fdtype smap;
+  lispval smap;
   FD_DO_LIBINIT(fd_init_libfdtype);
   if (f) {
     smap = read_dtype_from_file(f); fclose(f);}
   else smap = fd_empty_slotmap();
   if (argc == 2) {
-    fdtype keys = fd_slotmap_keys(SLOTMAP(smap));
+    lispval keys = fd_slotmap_keys(SLOTMAP(smap));
     FD_DO_CHOICES(key,keys) {
-      fdtype v = fd_slotmap_get(SLOTMAP(smap),key,FD_EMPTY_CHOICE);
+      lispval v = fd_slotmap_get(SLOTMAP(smap),key,FD_EMPTY_CHOICE);
       u8_fprintf(stdout,"%s=%s\n",key,v);
       fd_decref(v);}
     free_val(keys); free_val(smap);
     exit(0);}
   else if (argc == 3) {
-    fdtype slotid = fd_parse(argv[2]);
-    fdtype value = fd_slotmap_get(SLOTMAP(smap),slotid,FD_VOID);
+    lispval slotid = fd_parse(argv[2]);
+    lispval value = fd_slotmap_get(SLOTMAP(smap),slotid,FD_VOID);
     u8_fprintf(stdout,"%q=%q\n",slotid,value);
     free_val(value);}
   else if (argv[3][0] == '+') {
-    fdtype slotid = fd_parse(argv[2]);
-    fdtype value = fd_parse(argv[3]+1);
+    lispval slotid = fd_parse(argv[2]);
+    lispval value = fd_parse(argv[3]+1);
     fd_slotmap_add(SLOTMAP(smap),slotid,value);
     f = fopen(argv[1],"wb");
     write_dtype_to_file(smap,f);
     free_val(slotid); free_val(value);
     fclose(f);}
   else if (argv[3][0] == '-') {
-    fdtype slotid = fd_parse(argv[2]);
-    fdtype value = fd_parse(argv[3]+1);
+    lispval slotid = fd_parse(argv[2]);
+    lispval value = fd_parse(argv[3]+1);
     fd_slotmap_drop(SLOTMAP(smap),slotid,value);
     f = fopen(argv[1],"wb");
     write_dtype_to_file(smap,f);
     free_val(slotid); free_val(value);
     fclose(f);}
   else {
-    fdtype slotid = fd_parse(argv[2]);
-    fdtype value = fd_parse(argv[3]);
+    lispval slotid = fd_parse(argv[2]);
+    lispval value = fd_parse(argv[3]);
     fd_slotmap_store(SLOTMAP(smap),slotid,value);
     f = fopen(argv[1],"wb");
     write_dtype_to_file(smap,f);

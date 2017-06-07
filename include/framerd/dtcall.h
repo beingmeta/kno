@@ -15,15 +15,15 @@
 #include <libu8/u8netfns.h>
 #include <stdarg.h>
 
-FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr);
-FD_EXPORT fdtype fd_dteval_sync(struct U8_CONNPOOL *cp,fdtype expr);
-FD_EXPORT fdtype fd_dteval_async(struct U8_CONNPOOL *cp,fdtype expr);
-FD_EXPORT fdtype fd_dteval_sock(fdtype expr,u8_socket sock);
-FD_EXPORT fdtype fd_dtapply(struct U8_CONNPOOL *cp,int n,fdtype *args);
-FD_EXPORT fdtype fd_dtcall(struct U8_CONNPOOL *cp,int n,...);
-FD_EXPORT fdtype fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...);
-FD_EXPORT fdtype fd_dtcall_x(struct U8_CONNPOOL *cp,int doeval,int n,...);
-FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...);
+FD_EXPORT lispval fd_dteval(struct U8_CONNPOOL *cp,lispval expr);
+FD_EXPORT lispval fd_dteval_sync(struct U8_CONNPOOL *cp,lispval expr);
+FD_EXPORT lispval fd_dteval_async(struct U8_CONNPOOL *cp,lispval expr);
+FD_EXPORT lispval fd_dteval_sock(lispval expr,u8_socket sock);
+FD_EXPORT lispval fd_dtapply(struct U8_CONNPOOL *cp,int n,lispval *args);
+FD_EXPORT lispval fd_dtcall(struct U8_CONNPOOL *cp,int n,...);
+FD_EXPORT lispval fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...);
+FD_EXPORT lispval fd_dtcall_x(struct U8_CONNPOOL *cp,int doeval,int n,...);
+FD_EXPORT lispval fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...);
 
 
 #endif

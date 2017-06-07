@@ -12,7 +12,7 @@
 #endif
 
 struct FD_SORT_ENTRY {
-  fdtype fd_sortval, fd_sortkey;};
+  lispval fd_sortval, fd_sortkey;};
 
 static int _fd_sort_helper(const void *vx,const void *vy)
 {
@@ -98,19 +98,19 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
     else return 0;}
 }
 
-static fdtype _fd_apply_keyfn(fdtype x,fdtype keyfn)
+static lispval _fd_apply_keyfn(lispval x,lispval keyfn)
 {
   if ((FD_VOIDP(keyfn)) || (FD_EMPTY_CHOICEP(keyfn)))
     return fd_incref(x);
   else if (FD_OIDP(keyfn)) return fd_frame_get(x,keyfn);
   else if (FD_TABLEP(keyfn)) return fd_get(keyfn,x,FD_EMPTY_CHOICE);
   else if (FD_APPLICABLEP(keyfn)) {
-    fdtype result = fd_apply(keyfn,1,&x);
+    lispval result = fd_apply(keyfn,1,&x);
     return fd_finish_call(result);}
   else if (FD_VECTORP(keyfn)) {
     int i = 0, len = FD_VECTOR_LENGTH(keyfn);
-    fdtype *keyfns = FD_VECTOR_DATA(keyfn);
-    fdtype *vecdata = u8_alloc_n(len,fdtype);
+    lispval *keyfns = FD_VECTOR_DATA(keyfn);
+    lispval *vecdata = u8_alloc_n(len,lispval);
     while (i<len) {vecdata[i]=_fd_apply_keyfn(x,keyfns[i]); i++;}
     return fd_init_vector(NULL,len,vecdata);}
   else if ((FD_OIDP(x)) && (FD_SYMBOLP(keyfn)))

@@ -187,7 +187,7 @@ typedef enum FD_PTR_TYPE {
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
 
-typedef int (*fd_checkfn)(fdtype);
+typedef int (*fd_checkfn)(lispval);
 FD_EXPORT fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
 FD_EXPORT int fd_register_cons_type(char *name);
@@ -202,7 +202,7 @@ FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
    ((u8_string)"oddtype"):	\
    (fd_type_names[tc]))
 
-FD_EXPORT fdtype fd_badptr_err(fdtype badx,u8_context cxt,u8_string details);
+FD_EXPORT lispval fd_badptr_err(lispval badx,u8_context cxt,u8_string details);
 
 #define FD_VALID_TYPECODEP(x)				       \
   (FD_EXPECT_TRUE((((int)x)>=0) &&			       \
@@ -247,8 +247,8 @@ typedef struct FD_REF_CONS *fd_ref_cons;
 #define FD_REF_CONS(x) ((struct FD_REF_CONS *)(x))
 #endif
 
-#if FD_CHECKFDTYPE
-FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons) x;}
+#if 0
+FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(lispval x){ return (fd_raw_cons) x;}
 #else
 #define FD_RAW_CONS(x) ((fd_raw_cons)(x))
 #endif
@@ -261,15 +261,17 @@ FD_FASTOP U8_MAYBE_UNUSED fd_raw_cons FD_RAW_CONS(fdtype x){ return (fd_raw_cons
 #define FD_CONS_TYPE_MASK (0x7f)
 #define FD_CONS_TYPE_OFF  (0x84)
 
-#if FD_CHECKFDTYPE
-FD_FASTOP U8_MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
-FD_FASTOP U8_MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
-FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
+#if 0
+FD_FASTOP U8_MAYBE_UNUSED fd_cons FD_CONS_DATA(lispval x){ return (fd_cons) x;}
+FD_FASTOP U8_MAYBE_UNUSED lispval FDTYPE(lispval x){ return x;}
+FD_FASTOP U8_MAYBE_UNUSED lispval LISPVAL(lispval x){ return x;}
+FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(lispval x){ return 1;}
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(_FD_ISDTYPE(x)))
 #else
 #define FD_CONS_DATA(x) ((fd_cons)(x))
-#define FDTYPE(x) ((fdtype)(x))
-#define FD_ISDTYPE(x) (FD_EXPECT_TRUE(1))
+#define FDTYPE(x)       ((lispval)(x))
+#define LISPVAL(x)      ((lispval)(x))
+#define FD_ISDTYPE(x)   (FD_EXPECT_TRUE(1))
 #endif
 
 /* Most of the stuff for dealing with conses is in cons.h.  The
@@ -277,7 +279,7 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     a combination of a typecode and a reference count.  We include
     this here so that we can define a pointer type procedure which
     gets the cons type. */
-#define FDTYPE_CONS(ptr) ((fdtype)ptr)
+#define LISP_CONS(ptr) ((lispval)ptr)
 
 #define FD_CONS_TYPE(x) \
   (( ((x)->conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
@@ -298,25 +300,25 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
      (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
     ((cast)NULL)))
 
-#define FD_NULL ((fdtype)(NULL))
+#define FD_NULL ((lispval)(NULL))
 #define FD_NULLP(x) (((void *)x) == NULL)
 
-#define FDTYPE_IMMEDIATE(tcode,serial) \
-  ((fdtype)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|fd_immediate_ptr_type))
-#define FD_GET_IMMEDIATE(x,tcode) (((FDTYPE(x))>>2)&0x7FFFFF)
-#define FD_IMMEDIATE_TYPE_FIELD(x) (((FDTYPE(x))>>25)&0x7F)
-#define FD_IMMEDIATE_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
-#define FD_IMMEDIATE_DATA(x) ((FDTYPE(x))>>2)
-#define FD_IMM_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
+#define LISPVAL_IMMEDIATE(tcode,serial) \
+  ((lispval)(((((tcode)-0x04)&0x7F)<<25)|((serial)<<2)|fd_immediate_ptr_type))
+#define FD_GET_IMMEDIATE(x,tcode) (((LISPVAL(x))>>2)&0x7FFFFF)
+#define FD_IMMEDIATE_TYPE_FIELD(x) (((LISPVAL(x))>>25)&0x7F)
+#define FD_IMMEDIATE_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
+#define FD_IMMEDIATE_DATA(x) ((LISPVAL(x))>>2)
+#define FD_IMM_TYPE(x) ((((LISPVAL(x))>>25)&0x7F)+0x4)
 
 #if FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE(x) \
-  (((FD_PTR_MANIFEST_TYPE(FDTYPE(x)))>1) ? (FD_PTR_MANIFEST_TYPE(x)) :  \
+  (((FD_PTR_MANIFEST_TYPE(LISPVAL(x)))>1) ? (FD_PTR_MANIFEST_TYPE(x)) :  \
    ((FD_PTR_MANIFEST_TYPE(x))==1) ? (FD_IMMEDIATE_TYPE(x)) : \
    (x) ? (FD_CONS_TYPE(((struct FD_CONS *)FD_CONS_DATA(x)))) : (-1))
 
 #else
-static fd_ptr_type FD_PTR_TYPE(fdtype x)
+static fd_ptr_type FD_PTR_TYPE(lispval x)
 {
   int type_field = (FD_PTR_MANIFEST_TYPE(x));
   switch (type_field) {
@@ -465,9 +467,9 @@ FD_EXPORT int fd_n_base_oids;
   (FD_OID_PLUS(fd_base_oids[((x>>2)&(FD_OID_BUCKET_MASK))],\
 	       (x>>((FD_OID_BUCKET_WIDTH)+2))))
 #define FD_CONSTRUCT_OID(baseid,offset) \
-  ((fdtype) ((((fd_ptrbits)baseid)<<2)|\
+  ((lispval) ((((fd_ptrbits)baseid)<<2)|\
 	     (((fd_ptrbits)offset)<<((FD_OID_BUCKET_WIDTH)+2))|3))
-FD_EXPORT fdtype fd_make_oid(FD_OID addr);
+FD_EXPORT lispval fd_make_oid(FD_OID addr);
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 
 #define FD_OID_BASE_ID(x)     (((x)>>2)&(FD_OID_BUCKET_MASK))
@@ -499,14 +501,14 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
   ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
 
 #define FD_INT2FIX(x)						\
-  ((fdtype)							\
+  ((lispval)							\
    ((FD_EXPECT_FALSE(x>FD_MAX_FIXNUM)) ? (FD_MAX_FIXNUM) :	\
     (FD_EXPECT_FALSE(x<FD_MIN_FIXNUM)) ? (FD_MIN_FIXNUM) :	\
     ((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
     (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
 
 #define FD_MAKE_FIXNUM(x) \
-  ((fdtype)							\
+  ((lispval)							\
    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
     (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) )))
 
@@ -514,7 +516,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
   ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||			\
     ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?			\
    (fd_make_bigint(to64(x))) :					\
-   ((fdtype)							\
+   ((lispval)							\
     (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
      (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
 #define FD_INT(x) (FD_INT2DTYPE(x))
@@ -523,17 +525,17 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_UINT2DTYPE(x) \
   (((to64u(x)) > (to64(FD_MAX_FIXNUM))) ?			\
    (fd_make_bigint(to64u(x))) :					\
-   ((fdtype) (((to64u(x))*4)|fd_fixnum_type)))
+   ((lispval) (((to64u(x))*4)|fd_fixnum_type)))
 
 #define FD_SHORT2DTYPE(x)				\
-  ((fdtype)						\
+  ((lispval)						\
    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
     (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
 
 #define FD_SHORT2FIX(x)	(FD_SHORT2DTYPE(x))
 
-#define FD_USHORT2DTYPE(x)     ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
-#define FD_BYTE2DTYPE(x)       ((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
+#define FD_USHORT2DTYPE(x)     ((lispval)(fd_fixnum_type|((x&0xFFFF)<<2)))
+#define FD_BYTE2DTYPE(x)       ((lispval) (fd_fixnum_type|((x&0xFF)<<2)))
 #define FD_BYTE2LISP(x)        (FD_BYTE2DTYPE(x))
 #define FD_FIXNUM_MAGNITUDE(x) ((x<0)?((-(x))>>2):(x>>2))
 #define FD_FIXNUM_NEGATIVEP(x) (x<0)
@@ -575,7 +577,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Constants */
 
-#define FD_CONSTANT(i) ((fdtype)(fd_immediate_ptr_type|(i<<2)))
+#define FD_CONSTANT(i) ((lispval)(fd_immediate_ptr_type|(i<<2)))
 
 #define FD_VOID                   FD_CONSTANT(0)
 #define FD_FALSE                  FD_CONSTANT(1)
@@ -603,7 +605,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 FD_EXPORT const char *fd_constant_names[];
 FD_EXPORT int fd_n_constants;
-FD_EXPORT fdtype fd_register_constant(u8_string name);
+FD_EXPORT lispval fd_register_constant(u8_string name);
 
 #define FD_VOIDP(x) ((x) == (FD_VOID))
 #define FD_NOVOIDP(x) ((x) != (FD_VOID))
@@ -641,7 +643,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_CHARACTERP(x) \
   ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_type) && \
    (FD_IMMEDIATE_TYPE(x) == fd_character_type))
-#define FD_CODE2CHAR(x) (FDTYPE_IMMEDIATE(fd_character_type,x))
+#define FD_CODE2CHAR(x) (LISPVAL_IMMEDIATE(fd_character_type,x))
 #define FD_CHARCODE(x) (FD_GET_IMMEDIATE(x,fd_character_type))
 #define FD_CHAR2CODE(x) (FD_GET_IMMEDIATE(x,fd_character_type))
 
@@ -650,7 +652,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #ifndef FD_CORE_SYMBOLS
 #define FD_CORE_SYMBOLS 8192
 #endif
-FD_EXPORT fdtype *fd_symbol_names;
+FD_EXPORT lispval *fd_symbol_names;
 FD_EXPORT int fd_n_symbols;
 FD_EXPORT u8_mutex fd_symbol_lock;
 
@@ -664,7 +666,7 @@ FD_EXPORT u8_mutex fd_symbol_lock;
    (FD_GET_IMMEDIATE(x,fd_symbol_type)<fd_n_symbols))
 
 #define FD_SYMBOL2ID(x) (FD_GET_IMMEDIATE(x,fd_symbol_type))
-#define FD_ID2SYMBOL(i) (FDTYPE_IMMEDIATE(fd_symbol_type,i))
+#define FD_ID2SYMBOL(i) (LISPVAL_IMMEDIATE(fd_symbol_type,i))
 
 #define FD_SYMBOL_NAME(x) \
   ((FD_GOOD_SYMBOLP(x)) ? \
@@ -672,22 +674,22 @@ FD_EXPORT u8_mutex fd_symbol_lock;
    ((u8_string )("#.bad$ymbol.#")))
 #define FD_XSYMBOL_NAME(x) (FD_STRDATA(fd_symbol_names[FD_SYMBOL2ID(x)]))
 
-FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);
-FD_EXPORT fdtype fd_probe_symbol(u8_string string,int len);
-FD_EXPORT fdtype fd_intern(u8_string string);
-FD_EXPORT fdtype fd_symbolize(u8_string string);
-FD_EXPORT fdtype fd_all_symbols(void);
+FD_EXPORT lispval fd_make_symbol(u8_string string,int len);
+FD_EXPORT lispval fd_probe_symbol(u8_string string,int len);
+FD_EXPORT lispval fd_intern(u8_string string);
+FD_EXPORT lispval fd_symbolize(u8_string string);
+FD_EXPORT lispval fd_all_symbols(void);
 
-FD_EXPORT fdtype FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME;
-FD_EXPORT fdtype FDSYM_BUFSIZE, FDSYM_BLOCKSIZE, FDSYM_CACHESIZE;
-FD_EXPORT fdtype FDSYM_MERGE, FDSYM_SORT, FDSYM_SORTED;
-FD_EXPORT fdtype FDSYM_LAZY, FDSYM_VERSION;
-FD_EXPORT fdtype FDSYM_QUOTE, FDSYM_STAR, FDSYM_PLUS;
-FD_EXPORT fdtype FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK;
-FD_EXPORT fdtype FDSYM_CONTENT;
-FD_EXPORT fdtype FDSYM_TEXT, FDSYM_LENGTH, FDSYM_TAG, FDSYM_CONS, FDSYM_STRING;
-FD_EXPORT fdtype FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_OPT;
-FD_EXPORT fdtype FDSYM_READONLY, FDSYM_ISADJUNCT;
+FD_EXPORT lispval FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME;
+FD_EXPORT lispval FDSYM_BUFSIZE, FDSYM_BLOCKSIZE, FDSYM_CACHESIZE;
+FD_EXPORT lispval FDSYM_MERGE, FDSYM_SORT, FDSYM_SORTED;
+FD_EXPORT lispval FDSYM_LAZY, FDSYM_VERSION;
+FD_EXPORT lispval FDSYM_QUOTE, FDSYM_STAR, FDSYM_PLUS;
+FD_EXPORT lispval FDSYM_DOT, FDSYM_MINUS, FDSYM_EQUALS, FDSYM_QMARK;
+FD_EXPORT lispval FDSYM_CONTENT;
+FD_EXPORT lispval FDSYM_TEXT, FDSYM_LENGTH, FDSYM_TAG, FDSYM_CONS, FDSYM_STRING;
+FD_EXPORT lispval FDSYM_PREFIX, FDSYM_SUFFIX, FDSYM_SEP, FDSYM_OPT;
+FD_EXPORT lispval FDSYM_READONLY, FDSYM_ISADJUNCT;
 
 /* Persistent pointers */
 
@@ -717,23 +719,23 @@ FD_EXPORT int _fd_leak_fcnids;
 #define FD_INLINE_FCNIDS 0
 #endif
 
-FD_EXPORT fdtype fd_resolve_fcnid(fdtype ref);
-FD_EXPORT fdtype fd_register_fcnid(fdtype obj);
-FD_EXPORT fdtype fd_set_fcnid(fdtype ref,fdtype newval);
-FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value);
+FD_EXPORT lispval fd_resolve_fcnid(lispval ref);
+FD_EXPORT lispval fd_register_fcnid(lispval obj);
+FD_EXPORT lispval fd_set_fcnid(lispval ref,lispval newval);
+FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value);
 
-FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
+FD_EXPORT lispval fd_err(fd_exception,u8_context,u8_string,lispval);
 
 FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
 
 #if FD_INLINE_FCNIDS
-static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
+static U8_MAYBE_UNUSED lispval _fd_fcnid_ref(lispval ref)
 {
   if (FD_TYPEP(ref,fd_fcnid_type)) {
     int serialno = FD_GET_IMMEDIATE(ref,fd_fcnid_type);
     if (FD_EXPECT_FALSE(serialno>_fd_fcnid_count))
       return fd_err(fd_InvalidFCNID,"_fd_fcnid_ref",NULL,ref);
-    else return (fdtype) _fd_fcnids
+    else return (lispval) _fd_fcnids
 	   [serialno/FD_FCNID_BLOCKSIZE]
 	   [serialno%FD_FCNID_BLOCKSIZE];}
   else return ref;
@@ -756,10 +758,10 @@ static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
   ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \
    (FD_IMMEDIATE_TYPE(x) == fd_opcode_type))
 
-#define FD_OPCODE(num) (FDTYPE_IMMEDIATE(fd_opcode_type,num))
+#define FD_OPCODE(num) (LISPVAL_IMMEDIATE(fd_opcode_type,num))
 #define FD_OPCODE_NUM(op) (FD_GET_IMMEDIATE(op,fd_opcode_type))
 #define FD_NEXT_OPCODE(op) \
-  (FDTYPE_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
+  (LISPVAL_IMMEDIATE(fd_opcode_type,(1+(FD_OPCODE_NUM(op)))))
 
 /* Lexrefs */
 
@@ -802,12 +804,12 @@ typedef unsigned int fd_walk_flags;
 #define FD_WALK_CONSTANTS   ((fd_walk_flags)(8))
 
 typedef void (*fd_recycle_fn)(struct FD_RAW_CONS *x);
-typedef int (*fd_unparse_fn)(u8_output,fdtype);
-typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
-typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
-typedef fdtype (*fd_copy_fn)(fdtype,int);
-typedef int (*fd_walker)(fdtype,void *);
-typedef int (*fd_walk_fn)(fd_walker,fdtype,void *,fd_walk_flags,int);
+typedef int (*fd_unparse_fn)(u8_output,lispval);
+typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,lispval);
+typedef int (*fd_compare_fn)(lispval,lispval,fd_compare_flags);
+typedef lispval (*fd_copy_fn)(lispval,int);
+typedef int (*fd_walker)(lispval,void *);
+typedef int (*fd_walk_fn)(fd_walker,lispval,void *,fd_walk_flags,int);
 
 FD_EXPORT fd_recycle_fn fd_recyclers[FD_TYPE_MAX];
 FD_EXPORT fd_unparse_fn fd_unparsers[FD_TYPE_MAX];
@@ -816,47 +818,47 @@ FD_EXPORT fd_compare_fn fd_comparators[FD_TYPE_MAX];
 FD_EXPORT fd_copy_fn fd_copiers[FD_TYPE_MAX];
 FD_EXPORT fd_walk_fn fd_walkers[FD_TYPE_MAX];
 
-typedef u8_string (*fd_oid_info_fn)(fdtype x);
+typedef u8_string (*fd_oid_info_fn)(lispval x);
 FD_EXPORT fd_oid_info_fn _fd_oid_info;
 
 #define fd_intcmp(x,y) ((x<y) ? (-1) : (x>y) ? (1) : (0))
-FD_EXPORT int fdtype_compare(fdtype x,fdtype y,fd_compare_flags);
-FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
-FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
+FD_EXPORT int lispval_compare(lispval x,lispval y,fd_compare_flags);
+FD_EXPORT int lispval_equal(lispval x,lispval y);
+FD_EXPORT int fd_numcompare(lispval x,lispval y);
 
-#define FD_EQUAL FDTYPE_EQUAL
-#define FD_EQUALP FDTYPE_EQUAL
+#define FD_EQUAL LISP_EQUAL
+#define FD_EQUALP LISP_EQUAL
 #if FD_PROFILING_ENABLED
-#define FDTYPE_EQUAL(x,y)          (fdtype_equal(x,y))
-#define FDTYPE_EQUALV(x,y)         (fdtype_equal(x,y))
-#define FDTYPE_COMPARE(x,y,flags)  (fdtype_compare(x,y,flags))
-#define FD_QUICK_COMPARE(x,y)      (fdtype_compare(x,y,FD_COMPARE_QUICK))
-#define FD_FULL_COMPARE(x,y)       (fdtype_compare(x,y,(FD_COMPARE_FULL)))
+#define LISP_EQUAL(x,y)          (lispval_equal(x,y))
+#define LISP_EQUALV(x,y)         (lispval_equal(x,y))
+#define LISP_COMPARE(x,y,flags)  (lispval_compare(x,y,flags))
+#define FD_QUICK_COMPARE(x,y)      (lispval_compare(x,y,FD_COMPARE_QUICK))
+#define FD_FULL_COMPARE(x,y)       (lispval_compare(x,y,(FD_COMPARE_FULL)))
 #else
-#define FDTYPE_EQUAL(x,y) \
-  ((x == y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (fdtype_equal(x,y))))
-#define FDTYPE_EQUALV(x,y) \
+#define LISP_EQUAL(x,y) \
+  ((x == y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (lispval_equal(x,y))))
+#define LISP_EQUALV(x,y) \
   ((x == y) ? (1) :			  \
    (((FD_FIXNUMP(x)) && (FD_CONSP(x))) || \
     ((FD_FIXNUMP(y)) && (FD_CONSP(y))) || \
     ((FD_CONSP(x)) && (FD_CONSP(y)))) ?	  \
-   (fdtype_equal(x,y)) :		  \
+   (lispval_equal(x,y)) :		  \
    (0)
-#define FDTYPE_COMPARE(x,y,flags)  ((x == y) ? (0) : (fdtype_compare(x,y,flags)))
+#define LISP_COMPARE(x,y,flags)  ((x == y) ? (0) : (lispval_compare(x,y,flags)))
 #define FD_QUICK_COMPARE(x,y) \
   (((FD_ATOMICP(x)) && (FD_ATOMICP(y))) ? (fd_intcmp(x,y)) : \
-   (fdtype_compare(x,y,FD_COMPARE_QUICK)))
+   (lispval_compare(x,y,FD_COMPARE_QUICK)))
 #define FD_FULL_COMPARE(x,y) \
-  ((x == y) ? (0) : (FDTYPE_COMPARE(x,y,(FD_COMPARE_FULL))))
+  ((x == y) ? (0) : (LISP_COMPARE(x,y,(FD_COMPARE_FULL))))
 #endif
 
 #define FD_QCOMPARE(x,y) FD_QUICK_COMPARE(x,y)
 #define FD_COMPARE(x,y) FD_FULL_COMPARE(x,y)
 
-FD_EXPORT int fd_walk(fd_walker walker,fdtype obj,void *walkdata,
+FD_EXPORT int fd_walk(fd_walker walker,lispval obj,void *walkdata,
 		      fd_walk_flags flags,int depth);
 
-FD_EXPORT void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags);
+FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 
 /* FRAMERD_SOURCE aliases */
 
@@ -906,12 +908,12 @@ FD_EXPORT void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags);
 
 /* Debugging support */
 
-FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x);
-FD_EXPORT fdtype _fd_debug(fdtype x);
+FD_EXPORT fd_ptr_type _fd_ptr_type(lispval x);
+FD_EXPORT lispval _fd_debug(lispval x);
 
 /* Pointer checking for internal debugging */
 
-FD_EXPORT int fd_check_immediate(fdtype);
+FD_EXPORT int fd_check_immediate(lispval);
 
 #define FD_CHECK_CONS_PTR(x)                          \
  ((FD_ISDTYPE(x))&&                                   \
@@ -974,9 +976,9 @@ FD_EXPORT int fd_check_immediate(fdtype);
    Setting a breakpoint at _fd_bad_pointer is a good idea.
 */
 
-FD_EXPORT void _fd_bad_pointer(fdtype,u8_context);
+FD_EXPORT void _fd_bad_pointer(lispval,u8_context);
 
-static U8_MAYBE_UNUSED fdtype _fd_check_ptr(fdtype x,u8_context cxt) {
+static U8_MAYBE_UNUSED lispval _fd_check_ptr(lispval x,u8_context cxt) {
   if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);
   return x;
 }

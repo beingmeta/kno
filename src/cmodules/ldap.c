@@ -25,7 +25,7 @@
 
 FD_EXPORT void fd_init_ldap_c(void) FD_LIBINIT_FN;
 
-static fdtype entry2slotmap(LDAP *ld,LDAPMessage *entry)
+static lispval entry2slotmap(LDAP *ld,LDAPMessage *entry)
 {
   BerElement *berp = NULL;
   char *result = ldap_first_attribute(ld,entry,&berp);

@@ -53,7 +53,7 @@ FD_EXPORT int fd_iswritebuf(struct FD_INBUF *b)
   return -1;
 }
 
-FD_EXPORT fdtype fdt_isreadbuf(struct FD_OUTBUF *b)
+FD_EXPORT lispval fdt_isreadbuf(struct FD_OUTBUF *b)
 {
   u8_log(LOGCRIT,"WriteToRead",
          "Trying to write to an input buffer 0x%llx",
@@ -62,7 +62,7 @@ FD_EXPORT fdtype fdt_isreadbuf(struct FD_OUTBUF *b)
   return FD_ERROR;
 }
 
-FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b)
+FD_EXPORT lispval fdt_iswritebuf(struct FD_INBUF *b)
 {
   u8_log(LOGCRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",

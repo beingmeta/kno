@@ -10,19 +10,19 @@ int *fd_main_errno_ptr=NULL;
 
 static U8_MAYBE_UNUSED u8_byte _fd_dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
-static U8_MAYBE_UNUSED u8_string _fd_debug_out(fdtype x)
+static U8_MAYBE_UNUSED u8_string _fd_debug_out(lispval x)
 {
-  return fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_fd_dbg_outbuf);
+  return fd_lisp2buf(x,FD_DEBUG_OUTBUF_SIZE,_fd_dbg_outbuf);
 }
 
-static U8_MAYBE_UNUSED u8_string _fd_debug_outn(fdtype x,int n)
+static U8_MAYBE_UNUSED u8_string _fd_debug_outn(lispval x,int n)
 {
   if (n<(FD_DEBUG_OUTBUF_SIZE+7))
-    return fd_dtype2buf(x,n,_fd_dbg_outbuf);
-  else return fd_dtype2buf(x,n,NULL);
+    return fd_lisp2buf(x,n,_fd_dbg_outbuf);
+  else return fd_lisp2buf(x,n,NULL);
 }
 
-static U8_MAYBE_UNUSED void _fd_dtype2stderr(fdtype x)
+static U8_MAYBE_UNUSED void _fd_lisp2stderr(lispval x)
 {
   u8_fprintf(stderr,"%q\n",x);
 }

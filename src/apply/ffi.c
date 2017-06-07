@@ -28,12 +28,12 @@ u8_condition fd_ffi_BadTypeinfo=_("Bad FFI type info");
 u8_condition fd_ffi_BadABI=_("Bad FFI ABI value");
 u8_condition fd_ffi_FFIError=_("Unknown libffi error");
 
-static fdtype uint_symbol, int_symbol, ushort_symbol, short_symbol;
-static fdtype ulong_symbol, long_symbol, uchar_symbol, char_symbol;
-static fdtype string_symbol, packet_symbol, ptr_symbol, cons_symbol;
-static fdtype float_symbol, double_symbol, size_symbol, lisp_symbol;
-static fdtype lispref_symbol, strcpy_symbol;
-static fdtype byte_symbol, basetype_symbol;
+static lispval uint_symbol, int_symbol, ushort_symbol, short_symbol;
+static lispval ulong_symbol, long_symbol, uchar_symbol, char_symbol;
+static lispval string_symbol, packet_symbol, ptr_symbol, cons_symbol;
+static lispval float_symbol, double_symbol, size_symbol, lisp_symbol;
+static lispval lispref_symbol, strcpy_symbol;
+static lispval byte_symbol, basetype_symbol;
 
 #if FD_ENABLE_FFI
 #include <ffi.h>
@@ -42,12 +42,12 @@ static fdtype byte_symbol, basetype_symbol;
 #define u8_xfree(ptr) if (ptr) free((char *)ptr); else ptr = ptr;
 #endif
 
-FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args);
+FD_EXPORT lispval fd_ffi_call(struct FD_FUNCTION *fn,int n,lispval *args);
 
-static ffi_type *get_ffi_type(fdtype arg)
+static ffi_type *get_ffi_type(lispval arg)
 {
   if (TABLEP(arg)) {
-    fdtype typename = fd_getopt(arg,basetype_symbol,VOID);
+    lispval typename = fd_getopt(arg,basetype_symbol,VOID);
     if (VOIDP(typename)) {
       fd_seterr("NoFFItype","get_ffi_type",NULL,arg);
       return NULL;}
@@ -94,7 +94,7 @@ static ffi_type *get_ffi_type(fdtype arg)
 
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 (u8_string name,u8_string filename,int arity,
- fdtype return_spec,fdtype *argspecs)
+ lispval return_spec,lispval *argspecs)
 {
   if (name==NULL) {
     u8_seterr("NullArg","fd_make_ffi_proc/name",NULL);
@@ -110,10 +110,10 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     return NULL;}
   ffi_type *return_type = get_ffi_type(return_spec);
   if (return_type == NULL) return NULL;
-  fdtype *savespecs = u8_alloc_n(arity,fdtype);
+  lispval *savespecs = u8_alloc_n(arity,lispval);
   ffi_type **ffi_argtypes = u8_alloc_n(arity,ffi_type *);
   int i = 0; while (i<arity) {
-    fdtype argspec = argspecs[i];
+    lispval argspec = argspecs[i];
     ffi_type *ffi_argtype = get_ffi_type(argspec);
     if (ffi_argtype == NULL) {
       u8_free(ffi_argtypes);
@@ -156,13 +156,13 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     return NULL;}
 }
 
-static int ffi_type_error(u8_context expecting,fdtype arg)
+static int ffi_type_error(u8_context expecting,lispval arg)
 {
   fd_xseterr(_("FFI Type error"),expecting,NULL,arg);
   return -1;
 }
 
-static int handle_ffi_arg(fdtype arg,fdtype spec,
+static int handle_ffi_arg(lispval arg,lispval spec,
 			  void **valptr,void **argptr)
 {
   if (spec == lisp_symbol)
@@ -269,12 +269,12 @@ static int handle_ffi_arg(fdtype arg,fdtype spec,
   return 1;
 }
 
-FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
+FD_EXPORT lispval fd_ffi_call(struct FD_FUNCTION *fn,int n,lispval *args)
 {
   if (FD_CONS_TYPE(fn) == fd_ffi_type) {
     struct FD_FFI_PROC *proc = (struct FD_FFI_PROC *) fn;
-    fdtype *argspecs = proc->ffi_argspecs;
-    fdtype return_spec = proc->ffi_return_spec;
+    lispval *argspecs = proc->ffi_argspecs;
+    lispval return_spec = proc->ffi_return_spec;
     void *vals[10], *argptrs[10];
     int arity = proc->fcn_arity;
     int i = 0;
@@ -283,11 +283,11 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
       if (rv<0) return FD_ERROR;
       else i++;}
     if (return_spec == lisp_symbol) {
-      fdtype result;
+      lispval result;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
       return result;}
     else if (return_spec == lispref_symbol) {
-      fdtype result;
+      lispval result;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
       return fd_incref(result);}
     else if ( (return_spec == string_symbol) ||
@@ -359,18 +359,18 @@ static void recycle_ffi_proc(struct FD_RAW_CONS *c)
   u8_free(ffi->fcn_documentation);
   if (ffi->fcn_typeinfo) u8_free(ffi->fcn_typeinfo);
   if (ffi->fcn_defaults) {
-    fdtype *default_values = ffi->fcn_defaults;
+    lispval *default_values = ffi->fcn_defaults;
     int i = 0; while (i<arity) {
-      fdtype v = default_values[i++]; fd_decref(v);}
+      lispval v = default_values[i++]; fd_decref(v);}
     u8_free(default_values);}
   u8_free(ffi->ffi_argtypes);
   if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
 }
 
-static int unparse_ffi_proc(u8_output out,fdtype x)
+static int unparse_ffi_proc(u8_output out,lispval x)
 {
   struct FD_FFI_PROC *ffi = (struct FD_FFI_PROC *)x;
-  fdtype *argspecs=ffi->ffi_argspecs;
+  lispval *argspecs=ffi->ffi_argspecs;
   int i=0, n=ffi->fcn_arity;
   u8_printf(out,"#<FFI '%s'(",ffi->fcn_name);
   while (i<n) {
@@ -381,7 +381,7 @@ static int unparse_ffi_proc(u8_output out,fdtype x)
   return 1;
 }
 
-static int dtype_ffi(struct FD_OUTBUF *out,fdtype x)
+static int dtype_ffi(struct FD_OUTBUF *out,lispval x)
 {
   int n_elts=0;
   struct FD_FFI_PROC *fcn = (struct FD_FFI_PROC *)x;

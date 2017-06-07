@@ -37,28 +37,28 @@ fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
 fd_exception fd_InvalidTimestamp=_("Invalid timestamp object");
 static fd_exception strftime_error=_("internal strftime error");
 
-static fdtype year_symbol, month_symbol, date_symbol;
-static fdtype hours_symbol, minutes_symbol, seconds_symbol;
-static fdtype milliseconds_symbol, microseconds_symbol, nanoseconds_symbol;
-static fdtype picoseconds_symbol, femtoseconds_symbol;
-static fdtype precision_symbol, tzoff_symbol, dstoff_symbol, gmtoff_symbol;
-static fdtype spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
-static fdtype season_symbol, gmt_symbol, timezone_symbol;
-static fdtype morning_symbol, afternoon_symbol;
-static fdtype  evening_symbol, nighttime_symbol;
-static fdtype tick_symbol, xtick_symbol, prim_tick_symbol;
-static fdtype iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
-static fdtype rfc822x_symbol, localstring_symbol;
-static fdtype isodate_symbol, isobasic_symbol, isobasicdate_symbol;
-static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
-static fdtype shortmonth_symbol, longmonth_symbol;
-static fdtype  shortday_symbol, longday_symbol;
-static fdtype hms_symbol, dmy_symbol, dm_symbol, my_symbol;
-static fdtype shortstring_symbol, short_symbol;
-static fdtype string_symbol, fullstring_symbol;
-static fdtype timestring_symbol, datestring_symbol;
+static lispval year_symbol, month_symbol, date_symbol;
+static lispval hours_symbol, minutes_symbol, seconds_symbol;
+static lispval milliseconds_symbol, microseconds_symbol, nanoseconds_symbol;
+static lispval picoseconds_symbol, femtoseconds_symbol;
+static lispval precision_symbol, tzoff_symbol, dstoff_symbol, gmtoff_symbol;
+static lispval spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
+static lispval season_symbol, gmt_symbol, timezone_symbol;
+static lispval morning_symbol, afternoon_symbol;
+static lispval  evening_symbol, nighttime_symbol;
+static lispval tick_symbol, xtick_symbol, prim_tick_symbol;
+static lispval iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
+static lispval rfc822x_symbol, localstring_symbol;
+static lispval isodate_symbol, isobasic_symbol, isobasicdate_symbol;
+static lispval time_of_day_symbol, dowid_symbol, monthid_symbol;
+static lispval shortmonth_symbol, longmonth_symbol;
+static lispval  shortday_symbol, longday_symbol;
+static lispval hms_symbol, dmy_symbol, dm_symbol, my_symbol;
+static lispval shortstring_symbol, short_symbol;
+static lispval string_symbol, fullstring_symbol;
+static lispval timestring_symbol, datestring_symbol;
 
-static enum u8_timestamp_precision get_precision(fdtype sym)
+static enum u8_timestamp_precision get_precision(lispval sym)
 {
   if (FD_EQ(sym,year_symbol)) return u8_year;
   else if (FD_EQ(sym,month_symbol)) return u8_month;
@@ -72,43 +72,43 @@ static enum u8_timestamp_precision get_precision(fdtype sym)
   else return (enum u8_timestamp_precision) -1;
 }
 
-static fdtype timestampp(fdtype arg)
+static lispval timestampp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_timestamp_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype timestamp_prim(fdtype arg)
+static lispval timestamp_prim(lispval arg)
 {
   struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
   memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if (VOIDP(arg)) {
     u8_local_xtime(&(tm->ts_u8xtime),-1,u8_nanosecond,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (STRINGP(arg)) {
     u8_string sdata = CSTRING(arg);
     int c = *sdata;
     if (u8_isdigit(c))
       u8_iso8601_to_xtime(sdata,&(tm->ts_u8xtime));
     else u8_rfc822_to_xtime(sdata,&(tm->ts_u8xtime));
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
     enum u8_timestamp_precision prec = get_precision(arg);
     if (((int)prec)<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
     u8_local_xtime(&(tm->ts_u8xtime),-1,prec,-1);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FIXNUMP(arg)) {
     u8_local_xtime(&(tm->ts_u8xtime),(time_t)(FIX2INT(arg)),u8_second,-1);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *fdt = (struct FD_TIMESTAMP *)arg;
     u8_local_xtime(&(tm->ts_u8xtime),
                    fdt->ts_u8xtime.u8_tick,fdt->ts_u8xtime.u8_prec,
                    fdt->ts_u8xtime.u8_nsecs);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
     time_t tv = (time_t)fd_bigint_to_long_long((fd_bigint)arg);
@@ -116,26 +116,26 @@ static fdtype timestamp_prim(fdtype arg)
     time_t tv = (time_t)fd_bigint_to_long((fd_bigint)arg);
 #endif
     u8_local_xtime(&(tm->ts_u8xtime),tv,u8_second,-1);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_FLONUMP(arg)) {
     double dv = FD_FLONUM(arg);
     double dsecs = floor(dv), dnsecs = (dv-dsecs)*1000000000;
     unsigned int secs = (unsigned int)dsecs, nsecs = (unsigned int)dnsecs;
     u8_local_xtime(&(tm->ts_u8xtime),(time_t)secs,u8_second,nsecs);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else {
     u8_free(tm);
     return fd_type_error("timestamp arg","timestamp_prim",arg);}
 }
 
-static fdtype gmtimestamp_prim(fdtype arg)
+static lispval gmtimestamp_prim(lispval arg)
 {
   struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
   memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if (VOIDP(arg)) {
     u8_init_xtime(&(tm->ts_u8xtime),-1,u8_nanosecond,0,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *ftm = fd_consptr(fd_timestamp,arg,fd_timestamp_type);
     if ((ftm->ts_u8xtime.u8_tzoff==0)&&(ftm->ts_u8xtime.u8_dstoff==0)) {
@@ -146,7 +146,7 @@ static fdtype gmtimestamp_prim(fdtype arg)
         u8_init_xtime(&(tm->ts_u8xtime),tick,ftm->ts_u8xtime.u8_prec,
                       ftm->ts_u8xtime.u8_nsecs,0,0);
       else u8_init_xtime(&(tm->ts_u8xtime),tick,ftm->ts_u8xtime.u8_prec,0,0,0);
-      return FDTYPE_CONS(tm);}}
+      return LISP_CONS(tm);}}
   else if (STRINGP(arg)) {
     u8_string sdata = CSTRING(arg);
     int c = *sdata; time_t moment;
@@ -159,16 +159,16 @@ static fdtype gmtimestamp_prim(fdtype arg)
     if ((tm->ts_u8xtime.u8_tzoff!=0)||(tm->ts_u8xtime.u8_dstoff!=0))
       u8_init_xtime(&(tm->ts_u8xtime),moment,tm->ts_u8xtime.u8_prec,
                     tm->ts_u8xtime.u8_nsecs,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
     enum u8_timestamp_precision prec = get_precision(arg);
     if (((int)prec)<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
     u8_init_xtime(&(tm->ts_u8xtime),-1,prec,-1,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FIXNUMP(arg)) {
     u8_init_xtime(&(tm->ts_u8xtime),(time_t)(FIX2INT(arg)),u8_second,-1,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
     time_t tv = (time_t)fd_bigint_to_long_long((fd_bigint)arg);
@@ -176,20 +176,20 @@ static fdtype gmtimestamp_prim(fdtype arg)
     time_t tv = (time_t)fd_bigint_to_long((fd_bigint)arg);
 #endif
     u8_init_xtime(&(tm->ts_u8xtime),tv,u8_second,-1,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_FLONUMP(arg)) {
     double dv = FD_FLONUM(arg);
     double dsecs = floor(dv), dnsecs = (dv-dsecs)*1000000000;
     unsigned int secs = (unsigned int)dsecs, nsecs = (unsigned int)dnsecs;
     u8_init_xtime
       (&(tm->ts_u8xtime),(time_t)secs,u8_second,nsecs,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else {
     u8_free(tm);
     return fd_type_error("timestamp arg","timestamp_prim",arg);}
 }
 
-static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
+static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
 {
   if (FD_TYPEP(arg,fd_timestamp_type)) {
     *freeit = 0;
@@ -222,7 +222,7 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     return NULL;}
 }
 
-static fdtype timestamp_plus_helper(fdtype arg1,fdtype arg2,int neg)
+static lispval timestamp_plus_helper(lispval arg1,lispval arg2,int neg)
 {
   double delta; int free_old = 0;
   struct U8_XTIME tmp, *btime;
@@ -248,20 +248,20 @@ static fdtype timestamp_plus_helper(fdtype arg1,fdtype arg2,int neg)
   memcpy(&(newtm->ts_u8xtime),btime,sizeof(struct U8_XTIME));
   u8_xtime_plus(&(newtm->ts_u8xtime),delta);
   if (free_old) u8_free(oldtm);
-  return FDTYPE_CONS(newtm);
+  return LISP_CONS(newtm);
 }
 
-static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
+static lispval timestamp_plus(lispval arg1,lispval arg2)
 {
   return timestamp_plus_helper(arg1,arg2,0);
 }
 
-static fdtype timestamp_minus(fdtype arg1,fdtype arg2)
+static lispval timestamp_minus(lispval arg1,lispval arg2)
 {
   return timestamp_plus_helper(arg1,arg2,1);
 }
 
-static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
+static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
 {
   if ((FD_FLONUMP(timestamp1))&&(VOIDP(timestamp2))) {
     double then = FD_FLONUM(timestamp1);
@@ -287,16 +287,16 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
       return fd_init_double(NULL,diff);}}
 }
 
-static fdtype time_until(fdtype arg)
+static lispval time_until(lispval arg)
 {
   return timestamp_diff(arg,VOID);
 }
-static fdtype time_since(fdtype arg)
+static lispval time_since(lispval arg)
 {
   return timestamp_diff(VOID,arg);
 }
 
-static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
+static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
 {
   int free1 = 0;
   struct FD_TIMESTAMP *t1 = get_timestamp(timestamp1,&free1);
@@ -323,7 +323,7 @@ static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
     else return FD_FALSE;}
 }
 
-static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
+static lispval timestamp_lesser(lispval timestamp1,lispval timestamp2)
 {
   int free1 = 0;
   struct FD_TIMESTAMP *t1 = get_timestamp(timestamp1,&free1);
@@ -351,7 +351,7 @@ static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
 }
 
 FD_EXPORT
-int fd_cmp_now(fdtype timestamp,double thresh)
+int fd_cmp_now(lispval timestamp,double thresh)
 {
   int free_t = 0;
   struct FD_TIMESTAMP *t = get_timestamp(timestamp,&free_t);
@@ -368,7 +368,7 @@ int fd_cmp_now(fdtype timestamp,double thresh)
     else return 0;}
 }
 
-static fdtype futurep(fdtype timestamp,fdtype thresh_arg)
+static lispval futurep(lispval timestamp,lispval thresh_arg)
 {
   int thresh = (FD_FLONUMP(thresh_arg)) ?
     (FD_FLONUM(thresh_arg)) :
@@ -378,7 +378,7 @@ static fdtype futurep(fdtype timestamp,fdtype thresh_arg)
   else return FD_FALSE;
 }
 
-static fdtype pastp(fdtype timestamp,fdtype thresh_arg)
+static lispval pastp(lispval timestamp,lispval thresh_arg)
 {
   int thresh = (FD_FLONUMP(thresh_arg)) ?
     (FD_FLONUM(thresh_arg)) :
@@ -390,7 +390,7 @@ static fdtype pastp(fdtype timestamp,fdtype thresh_arg)
 
 /* Lisp access */
 
-static fdtype elapsed_time(fdtype arg)
+static lispval elapsed_time(lispval arg)
 {
   double elapsed = u8_elapsed_time();
   if (VOIDP(arg))
@@ -403,11 +403,11 @@ static fdtype elapsed_time(fdtype arg)
 
 /* Timestamps as tables */
 
-static fdtype dowids[7], monthids[12];
+static lispval dowids[7], monthids[12];
 static u8_string month_names[12];
-static fdtype xtime_keys = EMPTY;
+static lispval xtime_keys = EMPTY;
 
-static fdtype use_strftime(char *format,struct U8_XTIME *xt)
+static lispval use_strftime(char *format,struct U8_XTIME *xt)
 {
   char *buf = u8_malloc(256); struct tm tptr;
   u8_xtime_to_tptr(xt,&tptr);
@@ -418,7 +418,7 @@ static fdtype use_strftime(char *format,struct U8_XTIME *xt)
   else return fd_init_string(NULL,n_bytes,buf);
 }
 
-static int tzvalueok(fdtype value,int *off,u8_context caller)
+static int tzvalueok(lispval value,int *off,u8_context caller)
 {
   if (FIXNUMP(value)) {
     long long fixval = FIX2INT(value);
@@ -437,7 +437,7 @@ static int tzvalueok(fdtype value,int *off,u8_context caller)
   return 0;
 }
 
-static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
+static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
 {
   if (FD_EQ(slotid,year_symbol))
     if (xt->u8_prec>=u8_year)
@@ -744,7 +744,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     default: return EMPTY;}
   else if (FD_EQ(slotid,season_symbol))
     if (xt->u8_prec>=u8_month) {
-      fdtype results = EMPTY;
+      lispval results = EMPTY;
       int mon = xt->u8_mon+1;
       if ((mon>=12) || (mon<4)) {
         CHOICE_ADD(results,winter_symbol);}
@@ -761,7 +761,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return EMPTY;
   else if (FD_EQ(slotid,time_of_day_symbol))
     if (xt->u8_prec>=u8_hour) {
-      fdtype results = EMPTY;
+      lispval results = EMPTY;
       int hr = xt->u8_hour;
       if ((hr<5) || (hr>20)) {
         CHOICE_ADD(results,nighttime_symbol);}
@@ -781,7 +781,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
   else return EMPTY;
 }
 
-static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
+static int xtime_set(struct U8_XTIME *xt,lispval slotid,lispval value)
 {
   time_t tick = xt->u8_tick; int rv = -1;
   if (FD_EQ(slotid,year_symbol))
@@ -848,34 +848,34 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
   else return 1;
 }
 
-static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
+static lispval timestamp_get(lispval timestamp,lispval slotid,lispval dflt)
 {
   struct FD_TIMESTAMP *tms=
     fd_consptr(struct FD_TIMESTAMP *,timestamp,fd_timestamp_type);
   if (VOIDP(dflt))
     return xtime_get(&(tms->ts_u8xtime),slotid,1);
   else {
-    fdtype result = xtime_get(&(tms->ts_u8xtime),slotid,0);
+    lispval result = xtime_get(&(tms->ts_u8xtime),slotid,0);
     if (EMPTYP(result)) return dflt;
     else return result;}
 }
 
-static int timestamp_store(fdtype timestamp,fdtype slotid,fdtype val)
+static int timestamp_store(lispval timestamp,lispval slotid,lispval val)
 {
   struct FD_TIMESTAMP *tms=
     fd_consptr(struct FD_TIMESTAMP *,timestamp,fd_timestamp_type);
   return xtime_set(&(tms->ts_u8xtime),slotid,val);
 }
 
-static fdtype timestamp_getkeys(fdtype timestamp)
+static lispval timestamp_getkeys(lispval timestamp)
 {
   /* This could be clever about precision, but currently it isn't */
   return fd_incref(xtime_keys);
 }
 
-static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
+static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
 {
-  fdtype result;
+  lispval result;
   if (!(TABLEP(slotmap)))
     return fd_type_error("table","modtime_prim",slotmap);
   else if (VOIDP(base))
@@ -888,9 +888,9 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
     struct U8_XTIME *xt=
       &((fd_consptr(struct FD_TIMESTAMP *,result,fd_timestamp_type))->ts_u8xtime);
     int tzoff = xt->u8_tzoff;
-    fdtype keys = fd_getkeys(slotmap);
+    lispval keys = fd_getkeys(slotmap);
     DO_CHOICES(key,keys) {
-      fdtype val = fd_get(slotmap,key,VOID);
+      lispval val = fd_get(slotmap,key,VOID);
       if (xtime_set(xt,key,val)<0) {
         result = FD_ERROR; FD_STOP_DO_CHOICES; break;}
       else {}}
@@ -905,11 +905,11 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
       return result;}}
 }
 
-static fdtype mktime_lexpr(int n,fdtype *args)
+static lispval mktime_lexpr(int n,lispval *args)
 {
-  fdtype base; struct U8_XTIME *xt; int scan = 0;
+  lispval base; struct U8_XTIME *xt; int scan = 0;
   if (n%2) {
-    fdtype spec = args[0]; scan = 1;
+    lispval spec = args[0]; scan = 1;
     if (FD_TYPEP(spec,fd_timestamp_type))
       base = fd_deep_copy(spec);
     else if ((FIXNUMP(spec))||(FD_BIGINTP(spec))) {
@@ -924,12 +924,12 @@ static fdtype mktime_lexpr(int n,fdtype *args)
     int rv = xtime_set(xt,args[scan],args[scan+1]);
     if (rv<0) {fd_decref(base); return FD_ERROR;}
     else scan = scan+2;}
-  return (fdtype)base;
+  return (lispval)base;
 }
 
 /* Miscellanous time utilities */
 
-static fdtype timestring()
+static lispval timestring()
 {
   struct U8_XTIME onstack; struct U8_OUTPUT out;
   u8_local_xtime(&onstack,-1,u8_second,0);
@@ -941,7 +941,7 @@ static fdtype timestring()
   return fd_stream2string(&out);
 }
 
-static fdtype time_prim()
+static lispval time_prim()
 {
   time_t now = time(NULL);
   if (now<0) {
@@ -950,7 +950,7 @@ static fdtype time_prim()
   else return FD_INT(now);
 }
 
-static fdtype millitime_prim()
+static lispval millitime_prim()
 {
   long long now = u8_millitime();
   if (now<0) {
@@ -959,7 +959,7 @@ static fdtype millitime_prim()
   else return FD_INT(now);
 }
 
-static fdtype microtime_prim()
+static lispval microtime_prim()
 {
   long long now = u8_microtime();
   if (now<0) {
@@ -970,7 +970,7 @@ static fdtype microtime_prim()
 
 /* Counting seconds */
 
-static fdtype secs2string(fdtype secs,fdtype prec_arg)
+static lispval secs2string(lispval secs,lispval prec_arg)
 {
   struct U8_OUTPUT out;
   int precision = ((FD_UINTP(prec_arg)) ? (FIX2INT(prec_arg)) :
@@ -990,7 +990,7 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
     u8_printf(&out,"negative "); reduce = -seconds;}
   else if (seconds==0) {
     u8_free(out.u8_outbuf);
-    return fdtype_string("0 seconds");}
+    return lispval_string("0 seconds");}
   else reduce = seconds;
   years = (int)floor(reduce/(365*24*3600));
   reduce = reduce-years*(365*24*3600);
@@ -1090,7 +1090,7 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   return fd_stream2string(&out);
 }
 
-static fdtype secs2short(fdtype secs)
+static lispval secs2short(lispval secs)
 {
   struct U8_OUTPUT out;
   double seconds, reduce;
@@ -1105,7 +1105,7 @@ static fdtype secs2short(fdtype secs)
     u8_printf(&out,"negative "); reduce = -seconds;}
   else if (seconds==0) {
     u8_free(out.u8_outbuf);
-    return fdtype_string("0 seconds");}
+    return lispval_string("0 seconds");}
   else reduce = seconds;
   days = (int)floor(reduce/(24*3600));
   reduce = reduce-days*(3600*24);
@@ -1126,7 +1126,7 @@ static fdtype secs2short(fdtype secs)
 /* Sleeping */
 
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
-fdtype sleep_prim(fdtype arg)
+lispval sleep_prim(lispval arg)
 {
   if (FIXNUMP(arg)) {
     long long ival = FIX2INT(arg);
@@ -1200,13 +1200,13 @@ static void init_id_tables()
 
 /* UUID functions */
 
-static fdtype uuidp_prim(fdtype x)
+static lispval uuidp_prim(lispval x)
 {
   if (FD_TYPEP(x,fd_uuid_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
+static lispval getuuid_prim(lispval nodeid,lispval tptr)
 {
   struct U8_XTIME *xt = NULL;
   long long id = -1;
@@ -1225,19 +1225,19 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
       else if (isxdigit(start[0])) {}
       else return fd_type_error("UUID string","getuuid_prim",nodeid);
       u8_parseuuid(start,(u8_uuid)&(uuid->fd_uuid16));
-      return FDTYPE_CONS(uuid);}
+      return LISP_CONS(uuid);}
   else if ((VOIDP(tptr))&&(PACKETP(nodeid)))
     if (FD_PACKET_LENGTH(nodeid)==16) {
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
       const unsigned char *data = FD_PACKET_DATA(nodeid);
       FD_INIT_CONS(uuid,fd_uuid_type);
       memcpy(&(uuid->fd_uuid16),data,16);
-      return FDTYPE_CONS(uuid);}
+      return LISP_CONS(uuid);}
     else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
   else if ((VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_uuid_type)))
     return fd_incref(nodeid);
   else if ((VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_timestamp_type))) {
-    fdtype tmp = tptr; tptr = nodeid; nodeid = tmp;}
+    lispval tmp = tptr; tptr = nodeid; nodeid = tmp;}
   if ((VOIDP(tptr))&&(VOIDP(nodeid)))
     return fd_fresh_uuid(NULL);
   if (FD_TYPEP(tptr,fd_timestamp_type)) {
@@ -1253,19 +1253,19 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
   return fd_cons_uuid(NULL,xt,id,-1);
 }
 
-static fdtype uuidtime_prim(fdtype uuid_arg)
+static lispval uuidtime_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   if (u8_uuid_xtime(uuid->fd_uuid16,&(tstamp->ts_u8xtime)))
-    return FDTYPE_CONS(tstamp);
+    return LISP_CONS(tstamp);
   else {
     u8_free(tstamp);
     return fd_type_error("time-based UUID","uuidtime_prim",uuid_arg);}
 }
 
-static fdtype uuidnode_prim(fdtype uuid_arg)
+static lispval uuidnode_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   long long id = u8_uuid_nodeid(uuid->fd_uuid16);
@@ -1274,13 +1274,13 @@ static fdtype uuidnode_prim(fdtype uuid_arg)
   else return FD_INT(id);
 }
 
-static fdtype uuidstring_prim(fdtype uuid_arg)
+static lispval uuidstring_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   return fd_init_string(NULL,36,u8_uuidstring(uuid->fd_uuid16,NULL));
 }
 
-static fdtype uuidpacket_prim(fdtype uuid_arg)
+static lispval uuidpacket_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   return fd_make_packet(NULL,16,uuid->fd_uuid16);

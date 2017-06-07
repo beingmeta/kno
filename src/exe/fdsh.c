@@ -81,7 +81,7 @@ static void close_consoles()
     console_env=NULL;}
 }
 
-static int fits_consolep(fdtype elt)
+static int fits_consolep(lispval elt)
 {
   struct U8_OUTPUT tmpout; u8_byte buf[1024];
   U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
@@ -92,7 +92,7 @@ static int fits_consolep(fdtype elt)
   else return 1;
 }
 
-static void output_element(u8_output out,fdtype elt)
+static void output_element(u8_output out,lispval elt)
 {
   if (historicp(elt))
     if ((console_width==0) || (fits_consolep(elt)))
@@ -108,7 +108,7 @@ static void output_element(u8_output out,fdtype elt)
   else u8_printf(out,"\n  %q",elt);
 }
 
-static int list_length(fdtype scan)
+static int list_length(lispval scan)
 {
   int len=0;
   while (1)
@@ -118,7 +118,7 @@ static int list_length(fdtype scan)
     else return len+1;
 }
 
-static int result_size(fdtype result)
+static int result_size(lispval result)
 {
   if (ATOMICP(result)) return 1;
   else if (CHOICEP(result))
@@ -130,7 +130,7 @@ static int result_size(fdtype result)
   else return 1;
 }
 
-static int output_result(u8_output out,fdtype result,int histref,int showall)
+static int output_result(u8_output out,lispval result,int histref,int showall)
 {
   if (VOIDP(result)) {}
   else if (((VECTORP(result)) || (PAIRP(result))) &&
@@ -139,7 +139,7 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
       u8_printf(out,"%q\n",result);
     else u8_printf(out,"%q  ;; =##%d\n",result,histref);
   else if ((showall)&&(OIDP(result))) {
-    fdtype v=fd_oid_value(result);
+    lispval v=fd_oid_value(result);
     if (TABLEP(v)) {
       U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
       u8_printf(&out,"%q:\n",result);
@@ -185,11 +185,11 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
           output_element(out,elt); count++;}
         else {FD_STOP_DO_CHOICES; break;}}}
     else if (VECTORP(result)) {
-      fdtype *elts=VEC_DATA(result);
+      lispval *elts=VEC_DATA(result);
       while (count<max_elts) {
         output_element(out,elts[count]); count++;}}
     else if (PAIRP(result)) {
-      fdtype scan=result;
+      lispval scan=result;
       while (count<max_elts)
         if (PAIRP(scan)) {
           output_element(out,FD_CAR(scan));
@@ -209,12 +209,12 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
 }
 
 #if 0
-static fdtype direct_console_read()
+static lispval direct_console_read()
 {
   int c=skip_whitespace((u8_input)in);
   if (c<0) return FD_EOF;
   else if (c=='=') {
-    fdtype sym=fd_parse_expr(in);
+    lispval sym=fd_parse_expr(in);
     if (SYMBOLP(sym)) {
       fd_bind_value(sym,lastval,env);
       u8_printf(out,_(";; Assigned %s\n"),SYM_NAME(sym));}
@@ -226,7 +226,7 @@ static fdtype direct_console_read()
 #endif
 
 /* Returns 1 if x is worth adding to the history. */
-static int historicp(fdtype x)
+static int historicp(lispval x)
 {
   if ((STRINGP(x)) && (FD_STRING_LENGTH(x)<32)) return 0;
   else if ((SYMBOLP(x)) || (FD_CHARACTERP(x))) return 0;
@@ -250,12 +250,12 @@ static int el_skip_whitespace(EditLine *e)
   return ch;
 }
 
-static fdtype el_parser(EditLine *e)
+static lispval el_parser(EditLine *e)
 {
   int len; const char *s=el_gets(e,&len);
   if (s==NULL) return FD_EOF;
   else {
-    fdtype object=fd_parse((char *)s);
+    lispval object=fd_parse((char *)s);
     return object;}
 }
 
@@ -269,7 +269,7 @@ int main(int argc,char **argv)
   unsigned char data[1024]; const char *input;
   time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
-  fdtype expr=VOID, result=VOID, lastval=VOID, that_symbol, histref_symbol;
+  lispval expr=VOID, result=VOID, lastval=VOID, that_symbol, histref_symbol;
   EditLine *console=el_init("fdshell",stdin,stdout,stderr);
   History *consolehistory=history_init();
   u8_encoding enc=u8_get_default_encoding();
@@ -363,11 +363,11 @@ int main(int argc,char **argv)
     fd_use_index(source_file,0);
     eval_server=newstream;}
   else {
-    fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
+    lispval sourceval=fdstring(u8_realpath(source_file,NULL));
     fd_set_config("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   {
-    fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
+    lispval interpval=fd_lispstring(u8_fromlibc(argv[0]));
     fd_set_config("INTERPRETER",interpval); fd_decref(interpval);}
   fd_histinit(0);
   if (!(quiet_console)) {
@@ -394,7 +394,7 @@ int main(int argc,char **argv)
     start_ocache=fd_object_cache_load();
     start_icache=fd_index_cache_load();
     if (*input == '=') {
-      fdtype sym=fd_parse((char *)(input+1));
+      lispval sym=fd_parse((char *)(input+1));
       if (SYMBOLP(sym)) {
         fd_bind_value(sym,lastval,env);
         u8_printf(out,_(";; Assigned %s\n"),SYM_NAME(sym));}
@@ -412,7 +412,7 @@ int main(int argc,char **argv)
       is_histref=1;
       histref=FIX2INT(FD_CAR(FD_CDR(expr)));}
     if (OIDP(expr)) {
-      fdtype v=fd_oid_value(expr);
+      lispval v=fd_oid_value(expr);
       if (TABLEP(v)) {
         U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
         u8_printf(&out,"%q:\n",expr);

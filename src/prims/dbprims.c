@@ -29,11 +29,11 @@
 
 #include "libu8/u8printf.h"
 
-static fdtype pools_symbol, indexes_symbol, id_symbol, drop_symbol;
-static fdtype flags_symbol, register_symbol, readonly_symbol;
-static fdtype background_symbol, isadjunct_symbol, sparse_symbol;
+static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;
+static lispval flags_symbol, register_symbol, readonly_symbol;
+static lispval background_symbol, isadjunct_symbol, sparse_symbol;
 
-static fdtype slotidp(fdtype arg)
+static lispval slotidp(lispval arg)
 {
   if ((OIDP(arg)) || (SYMBOLP(arg))) return FD_TRUE;
   else return FD_FALSE;
@@ -41,20 +41,20 @@ static fdtype slotidp(fdtype arg)
 
 /* These are called when the lisp version of its pool/index argument
    is being returned and needs to be incref'd if it is consed. */
-static fdtype index2lisp(fd_index ix)
+static lispval index2lisp(fd_index ix)
 {
-  fdtype ixval=fd_index2lisp(ix);
+  lispval ixval=fd_index2lisp(ix);
   fd_incref(ixval);
   return ixval;
 }
-static fdtype pool2lisp(fd_pool p)
+static lispval pool2lisp(fd_pool p)
 {
-  fdtype poolval=fd_pool2lisp(p);
+  lispval poolval=fd_pool2lisp(p);
   fd_incref(poolval);
   return poolval;
 }
 
-static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
+static fd_storage_flags getdbflags(lispval opts,fd_storage_flags init_flags)
 {
   if (FIXNUMP(opts)) {
     long long val=FIX2INT(opts);
@@ -63,18 +63,18 @@ static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
       return -1;
     else return val;}
   else if (TABLEP(opts)) {
-    fdtype flags_val=fd_getopt(opts,flags_symbol,VOID);
+    lispval flags_val=fd_getopt(opts,flags_symbol,VOID);
     fd_storage_flags flags =
       ( (FIXNUMP(flags_val)) ? (FIX2INT(flags_val)) : (0) ) |
       (init_flags);
-    fdtype regopt = fd_getopt(opts,register_symbol,VOID);
-    fdtype bgopt = ((flags&FD_STORAGE_ISINDEX) ?
+    lispval regopt = fd_getopt(opts,register_symbol,VOID);
+    lispval bgopt = ((flags&FD_STORAGE_ISINDEX) ?
                     (fd_getopt(opts,background_symbol,VOID)) :
                     (FD_FALSE));
-    fdtype adjopt = ((flags&FD_STORAGE_ISPOOL) ?
+    lispval adjopt = ((flags&FD_STORAGE_ISPOOL) ?
                      (fd_getopt(opts,isadjunct_symbol,VOID)) :
                      (FD_FALSE));
-    fdtype sparseopt = ((flags&FD_STORAGE_ISPOOL) ?
+    lispval sparseopt = ((flags&FD_STORAGE_ISPOOL) ?
                         (fd_getopt(opts,sparse_symbol,VOID)) :
                         (FD_FALSE));
     if (fd_testopt(opts,readonly_symbol,VOID))
@@ -113,7 +113,7 @@ static fd_storage_flags getdbflags(fdtype opts,fd_storage_flags init_flags)
 
 /* Finding frames, etc. */
 
-static fdtype find_frames_lexpr(int n,fdtype *args)
+static lispval find_frames_lexpr(int n,lispval *args)
 {
   if (n%2)
     if (FALSEP(args[0]))
@@ -124,11 +124,11 @@ static fdtype find_frames_lexpr(int n,fdtype *args)
 
 /* This is like find_frames but ignores any slot/value pairs
    whose values are empty (and thus would rule out any results at all). */
-static fdtype xfind_frames_lexpr(int n,fdtype *args)
+static lispval xfind_frames_lexpr(int n,lispval *args)
 {
   int i = (n%2); while (i<n)
     if (EMPTYP(args[i+1])) {
-      fdtype *slotvals = u8_alloc_n((n),fdtype), results;
+      lispval *slotvals = u8_alloc_n((n),lispval), results;
       int j = 0; i = 1; while (i<n)
         if (EMPTYP(args[i+1])) i = i+2;
         else {
@@ -149,7 +149,7 @@ static fdtype xfind_frames_lexpr(int n,fdtype *args)
   else return fd_bgfinder(n,args);
 }
 
-static fdtype prefetch_slotvals(fdtype index,fdtype slotids,fdtype values)
+static lispval prefetch_slotvals(lispval index,lispval slotids,lispval values)
 {
   fd_index ix = fd_indexptr(index);
   if (ix) fd_find_prefetch(ix,slotids,values);
@@ -157,7 +157,7 @@ static fdtype prefetch_slotvals(fdtype index,fdtype slotids,fdtype values)
   return VOID;
 }
 
-static fdtype find_frames_prefetch(int n,fdtype *args)
+static lispval find_frames_prefetch(int n,lispval *args)
 {
   int i = (n%2);
   fd_index ix = ((n%2) ? (fd_indexptr(args[0])) : ((fd_index)(fd_background)));
@@ -169,37 +169,37 @@ static fdtype find_frames_prefetch(int n,fdtype *args)
       else return fd_type_error("slotid","find_frames_prefetch",slotid);}
     i = i+2;}
   i = (n%2); while (i<n) {
-    fdtype slotids = args[i], values = args[i+1];
+    lispval slotids = args[i], values = args[i+1];
     fd_find_prefetch(ix,slotids,values);
     i = i+2;}
   return VOID;
 }
 
-static void hashtable_index_frame(fdtype ix,
-                                  fdtype frames,fdtype slotids,
-                                  fdtype values)
+static void hashtable_index_frame(lispval ix,
+                                  lispval frames,lispval slotids,
+                                  lispval values)
 {
   if (VOIDP(values)) {
     DO_CHOICES(frame,frames) {
       DO_CHOICES(slotid,slotids) {
-        fdtype values = ((OIDP(frame)) ?
+        lispval values = ((OIDP(frame)) ?
                        (fd_frame_get(frame,slotid)) :
                        (fd_get(frame,slotid,EMPTY)));
         DO_CHOICES(value,values) {
-          fdtype key = fd_conspair(fd_incref(slotid),fd_incref(value));
+          lispval key = fd_conspair(fd_incref(slotid),fd_incref(value));
           fd_add(ix,key,frame);
           fd_decref(key);}
         fd_decref(values);}}}
   else {
     DO_CHOICES(slotid,slotids) {
       DO_CHOICES(value,values) {
-        fdtype key = fd_conspair(fd_incref(slotid),fd_incref(value));
+        lispval key = fd_conspair(fd_incref(slotid),fd_incref(value));
         fd_add(ix,key,frames);
         fd_decref(key);}}}
 }
 
-static fdtype index_frame_prim
-  (fdtype indexes,fdtype frames,fdtype slotids,fdtype values)
+static lispval index_frame_prim
+  (lispval indexes,lispval frames,lispval slotids,lispval values)
 {
   if (CHOICEP(indexes)) {
     DO_CHOICES(index,indexes)
@@ -225,18 +225,18 @@ static fdtype index_frame_prim
 
 /* Pool and index functions */
 
-static fdtype poolp(fdtype arg)
+static lispval poolp(lispval arg)
 {
   if (FD_POOLP(arg)) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype indexp(fdtype arg)
+static lispval indexp(lispval arg)
 {
   if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type)))
     return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype getpool(fdtype arg)
+static lispval getpool(lispval arg)
 {
   fd_pool p = NULL;
   if (FD_POOLP(arg)) return fd_incref(arg);
@@ -249,7 +249,7 @@ static fdtype getpool(fdtype arg)
 
 static fd_exception Unknown_PoolName=_("Unknown pool name");
 
-static fdtype set_pool_namefn(fdtype arg,fdtype method)
+static lispval set_pool_namefn(lispval arg,lispval method)
 {
   fd_pool p = NULL;
   if (FD_POOLP(arg))
@@ -267,7 +267,7 @@ static fdtype set_pool_namefn(fdtype arg,fdtype method)
   else return fd_type_error(_("namefn"),"set_pool_namefn",method);
 }
 
-static fdtype set_cache_level(fdtype arg,fdtype level)
+static lispval set_cache_level(lispval arg,lispval level)
 {
   if (!(FD_UINTP(level)))
     return fd_type_error("fixnum","set_cache_level",level);
@@ -284,7 +284,7 @@ static fdtype set_cache_level(fdtype arg,fdtype level)
   else return fd_type_error("pool or index","set_cache_level",arg);
 }
 
-static fdtype try_pool(fdtype arg1,fdtype opts)
+static lispval try_pool(lispval arg1,lispval opts)
 {
   if ( (FD_POOLP(arg1)) || (FD_TYPEP(arg1,fd_consed_pool_type)) )
     return fd_incref(arg1);
@@ -297,7 +297,7 @@ static fdtype try_pool(fdtype arg1,fdtype opts)
     else return FD_FALSE;}
 }
 
-static fdtype adjunct_pool(fdtype arg1,fdtype opts)
+static lispval adjunct_pool(lispval arg1,lispval opts)
 {
   if ( (FD_POOLP(arg1)) || (FD_TYPEP(arg1,fd_consed_pool_type)) )
     // TODO: Should check it's really adjunct, if that's the right thing?
@@ -315,7 +315,7 @@ static fdtype adjunct_pool(fdtype arg1,fdtype opts)
     else return FD_ERROR;}
 }
 
-static fdtype use_pool(fdtype arg1,fdtype opts)
+static lispval use_pool(lispval arg1,lispval opts)
 {
   if ( (FD_POOLP(arg1)) || (FD_TYPEP(arg1,fd_consed_pool_type)) )
     // TODO: Should check to make sure that it's in the background
@@ -329,7 +329,7 @@ static fdtype use_pool(fdtype arg1,fdtype opts)
                        CSTRING(arg1),VOID);}
 }
 
-static fdtype use_index(fdtype arg,fdtype opts)
+static lispval use_index(lispval arg,lispval opts)
 {
   fd_index ixresult = NULL;
   if ( (FD_INDEXP(arg)) || (FD_TYPEP(arg,fd_consed_index_type)) ) {
@@ -341,7 +341,7 @@ static fdtype use_index(fdtype arg,fdtype opts)
     if (strchr(CSTRING(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
          we can return the choice of index. */
-      fdtype results = EMPTY;
+      lispval results = EMPTY;
       u8_byte *copy = u8_strdup(CSTRING(arg));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
@@ -349,7 +349,7 @@ static fdtype use_index(fdtype arg,fdtype opts)
                                    getdbflags(opts,FD_STORAGE_ISINDEX),
                                    opts);
         if (ix) {
-          fdtype ixv = index2lisp(ix);
+          lispval ixv = index2lisp(ix);
           CHOICE_ADD(results,ixv);}
         else {
           u8_free(copy);
@@ -369,7 +369,7 @@ static fdtype use_index(fdtype arg,fdtype opts)
   else return FD_ERROR;
 }
 
-static fdtype open_index_helper(fdtype arg,fdtype opts,int registered)
+static lispval open_index_helper(lispval arg,lispval opts,int registered)
 {
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISINDEX);
   fd_index ix = NULL;
@@ -382,7 +382,7 @@ static fdtype open_index_helper(fdtype arg,fdtype opts,int registered)
     if (strchr(CSTRING(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
          we can return the choice of index. */
-      fdtype results = EMPTY;
+      lispval results = EMPTY;
       u8_byte *copy = u8_strdup(CSTRING(arg));
       u8_byte *start = copy, *end = strchr(start,';');
       *end='\0'; while (start) {
@@ -392,7 +392,7 @@ static fdtype open_index_helper(fdtype arg,fdtype opts,int registered)
           fd_decref(results);
           return FD_ERROR;}
         else {
-          fdtype ixv = index2lisp(ix);
+          lispval ixv = index2lisp(ix);
           CHOICE_ADD(results,ixv);}
         if ((end) && (end[1])) {
           start = end+1; end = strchr(start,';');
@@ -410,25 +410,25 @@ static fdtype open_index_helper(fdtype arg,fdtype opts,int registered)
   else return FD_ERROR;
 }
 
-static fdtype open_index(fdtype arg,fdtype opts)
+static lispval open_index(lispval arg,lispval opts)
 {
   return open_index_helper(arg,opts,-1);
 }
 
-static fdtype register_index(fdtype arg,fdtype opts)
+static lispval register_index(lispval arg,lispval opts)
 {
   return open_index_helper(arg,opts,1);
 }
 
-static fdtype temp_index(fdtype arg,fdtype opts)
+static lispval temp_index(lispval arg,lispval opts)
 {
   return open_index_helper(arg,opts,0);
 }
 
-static fdtype make_pool(fdtype path,fdtype opts)
+static lispval make_pool(lispval path,lispval opts)
 {
   fd_pool p = NULL;
-  fdtype type = fd_getopt(opts,FDSYM_TYPE,VOID);
+  lispval type = fd_getopt(opts,FDSYM_TYPE,VOID);
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   if (VOIDP(type))
     p = fd_make_pool(CSTRING(path),NULL,flags,opts);
@@ -444,7 +444,7 @@ static fdtype make_pool(fdtype path,fdtype opts)
   else return FD_ERROR;
 }
 
-static fdtype open_pool(fdtype path,fdtype opts)
+static lispval open_pool(lispval path,lispval opts)
 {
   fd_storage_flags flags = getdbflags(opts,FD_STORAGE_ISPOOL);
   fd_pool p = fd_open_pool(CSTRING(path),flags,opts);
@@ -453,10 +453,10 @@ static fdtype open_pool(fdtype path,fdtype opts)
   else return FD_ERROR;
 }
 
-static fdtype make_index(fdtype path,fdtype opts)
+static lispval make_index(lispval path,lispval opts)
 {
   fd_index ix = NULL;
-  fdtype type = fd_getopt(opts,FDSYM_TYPE,VOID);
+  lispval type = fd_getopt(opts,FDSYM_TYPE,VOID);
   fd_storage_flags flags =
     (FIXNUMP(opts)) ?
     (FD_STORAGE_ISINDEX) :
@@ -475,11 +475,11 @@ static fdtype make_index(fdtype path,fdtype opts)
   else return FD_ERROR;
 }
 
-static fdtype oidvalue(fdtype arg)
+static lispval oidvalue(lispval arg)
 {
   return fd_oid_value(arg);
 }
-static fdtype setoidvalue(fdtype o,fdtype v,fdtype nocopy)
+static lispval setoidvalue(lispval o,lispval v,lispval nocopy)
 {
   int retval;
   if (FD_TRUEP(nocopy)) {fd_incref(v);}
@@ -499,7 +499,7 @@ static fdtype setoidvalue(fdtype o,fdtype v,fdtype nocopy)
   else return VOID;
 }
 
-static fdtype lockoid(fdtype o,fdtype soft)
+static lispval lockoid(lispval o,lispval soft)
 {
   int retval = fd_lock_oid(o);
   if (retval<0)
@@ -510,7 +510,7 @@ static fdtype lockoid(fdtype o,fdtype soft)
   else return FD_INT(retval);
 }
 
-static fdtype oidlockedp(fdtype arg)
+static lispval oidlockedp(lispval arg)
 {
   fd_pool p = fd_oid2pool(arg);
   if (fd_hashtable_probe_novoid(&(p->pool_changes),arg))
@@ -518,7 +518,7 @@ static fdtype oidlockedp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype lockoids(fdtype oids)
+static lispval lockoids(lispval oids)
 {
   int retval = fd_lock_oids(oids);
   if (retval<0)
@@ -526,13 +526,13 @@ static fdtype lockoids(fdtype oids)
   else return FD_INT(retval);
 }
 
-static fdtype lockedoids(fdtype pool)
+static lispval lockedoids(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
   return fd_hashtable_keys(&(p->pool_changes));
 }
 
-static fdtype unlockoids(fdtype oids,fdtype commitp)
+static lispval unlockoids(lispval oids,lispval commitp)
 {
   int force_commit = (!((VOIDP(commitp)) || (FALSEP(commitp))));
   if (VOIDP(oids)) {
@@ -553,7 +553,7 @@ static fdtype unlockoids(fdtype oids,fdtype commitp)
     else return FD_INT(retval);}
 }
 
-static fdtype make_compound_index(int n,fdtype *args)
+static lispval make_compound_index(int n,lispval *args)
 {
   fd_index *sources = u8_alloc_n(8,fd_index);
   int n_sources = 0, max_sources = 8;
@@ -564,7 +564,7 @@ static fdtype make_compound_index(int n,fdtype *args)
       else if (FD_INDEXP(source)) ix = fd_indexptr(source);
       else if (FD_TYPEP(source,fd_consed_index_type)) ix = fd_indexptr(source);
       else if (SYMBOLP(source)) {
-        fdtype val = fd_config_get(SYM_NAME(source));
+        lispval val = fd_config_get(SYM_NAME(source));
         if (STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,VOID);
         else if (FD_INDEXP(val)) ix = fd_indexptr(source);
         else if (FD_TYPEP(val,fd_consed_index_type)) ix = fd_indexptr(val);}
@@ -573,7 +573,7 @@ static fdtype make_compound_index(int n,fdtype *args)
         if (n_sources>=max_sources) {
           sources = u8_realloc_n(sources,max_sources+8,fd_index);
           max_sources = max_sources+8;}
-        if (ix->index_serialno<0) {fdtype lix = (fdtype)ix; fd_incref(lix);}
+        if (ix->index_serialno<0) {lispval lix = (lispval)ix; fd_incref(lix);}
         sources[n_sources++]=ix;}
       else {
         u8_free(sources);
@@ -582,7 +582,7 @@ static fdtype make_compound_index(int n,fdtype *args)
   return index2lisp(fd_make_compound_index(n_sources,sources));
 }
 
-static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
+static lispval add_to_compound_index(lispval lcx,lispval aix)
 {
   if (FD_INDEXP(lcx)) {
     fd_index ix = fd_indexptr(lcx);
@@ -595,8 +595,8 @@ static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
   else return fd_type_error(_("index"),"add_to_compound_index",lcx);
 }
 
-static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,
-                           fdtype load,fdtype noswap)
+static lispval make_mempool(lispval label,lispval base,lispval cap,
+                           lispval load,lispval noswap)
 {
   if (!(FD_UINTP(cap))) return fd_type_error("uint","make_mempool",cap);
   if (!(FD_UINTP(load))) return fd_type_error("uint","make_mempool",load);
@@ -609,24 +609,24 @@ static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,
   else return pool2lisp(p);
 }
 
-static fdtype clean_mempool(fdtype pool_arg)
+static lispval clean_mempool(lispval pool_arg)
 {
   int retval = fd_clean_mempool(fd_lisp2pool(pool_arg));
   if (retval<0) return FD_ERROR;
   else return FD_INT(retval);
 }
 
-static fdtype reset_mempool(fdtype pool_arg)
+static lispval reset_mempool(lispval pool_arg)
 {
   int retval = fd_reset_mempool(fd_lisp2pool(pool_arg));
   if (retval<0) return FD_ERROR;
   else return FD_INT(retval);
 }
 
-static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
-                           fdtype fetchfn,fdtype savefn,
-                           fdtype lockfn,fdtype allocfn,
-                           fdtype state,fdtype cache)
+static lispval make_extpool(lispval label,lispval base,lispval cap,
+                           lispval fetchfn,lispval savefn,
+                           lispval lockfn,lispval allocfn,
+                           lispval state,lispval cache)
 {
   if (!(FD_UINTP(cap))) return fd_type_error("uint","make_mempool",cap);
   fd_pool p = fd_make_extpool
@@ -636,7 +636,7 @@ static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
   return pool2lisp(p);
 }
 
-static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
+static lispval extpool_setcache(lispval pool,lispval oid,lispval value)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (fd_extpool_cache_value(p,oid,value)<0)
@@ -644,7 +644,7 @@ static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
   else return VOID;
 }
 
-static fdtype extpool_fetchfn(fdtype pool)
+static lispval extpool_fetchfn(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (p->pool_handler== &fd_extpool_handler) {
@@ -653,7 +653,7 @@ static fdtype extpool_fetchfn(fdtype pool)
   else return fd_type_error("extpool","extpool_fetchfn",pool);
 }
 
-static fdtype extpool_savefn(fdtype pool)
+static lispval extpool_savefn(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (p->pool_handler== &fd_extpool_handler) {
@@ -662,7 +662,7 @@ static fdtype extpool_savefn(fdtype pool)
   else return fd_type_error("extpool","extpool_savefn",pool);
 }
 
-static fdtype extpool_lockfn(fdtype pool)
+static lispval extpool_lockfn(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (p->pool_handler== &fd_extpool_handler) {
@@ -671,7 +671,7 @@ static fdtype extpool_lockfn(fdtype pool)
   else return fd_type_error("extpool","extpool_lockfn",pool);
 }
 
-static fdtype extpool_state(fdtype pool)
+static lispval extpool_state(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (p->pool_handler== &fd_extpool_handler) {
@@ -682,8 +682,8 @@ static fdtype extpool_state(fdtype pool)
 
 /* External indexes */
 
-static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
-                            fdtype state,fdtype usecache)
+static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
+                            lispval state,lispval usecache)
 {
   fd_index ix = fd_make_extindex
     (CSTRING(label),
@@ -695,8 +695,8 @@ static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
   return index2lisp(ix);
 }
 
-static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
-                            fdtype state,fdtype usecache)
+static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
+                            lispval state,lispval usecache)
 {
   fd_index ix = fd_make_extindex
     (CSTRING(label),
@@ -706,10 +706,10 @@ static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
      0);
   if (FALSEP(usecache)) fd_index_setcache(ix,0);
   if (ix->index_serialno>=0) return index2lisp(ix);
-  else return (fdtype)ix;
+  else return (lispval)ix;
 }
 
-static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
+static lispval extindex_cacheadd(lispval index,lispval key,lispval values)
 {
   FDTC *fdtc = fd_threadcache;
   fd_index ix = fd_indexptr(index);
@@ -723,16 +723,16 @@ static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
     struct FD_HASHTABLE *h = &(fdtc->indexes);
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.car = index2lisp(ix); tempkey.cdr = key;
-    if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
-      fd_hashtable_store(h,(fdtype)&tempkey,VOID);}}
+    if (fd_hashtable_probe(h,(lispval)&tempkey)) {
+      fd_hashtable_store(h,(lispval)&tempkey,VOID);}}
   return VOID;
 }
 
-static fdtype extindex_decache(fdtype index,fdtype key)
+static lispval extindex_decache(lispval index,lispval key)
 {
   FDTC *fdtc = fd_threadcache;
   fd_index ix = fd_indexptr(index);
-  fdtype lix = index2lisp(ix);
+  lispval lix = index2lisp(ix);
   if (ix->index_handler== &fd_extindex_handler)
     if (VOIDP(key))
       if (fd_reset_hashtable(&(ix->index_cache),ix->index_cache.ht_n_buckets,1)<0)
@@ -747,11 +747,11 @@ static fdtype extindex_decache(fdtype index,fdtype key)
     struct FD_HASHTABLE *h = &(fdtc->indexes);
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.car = index2lisp(ix); tempkey.cdr = key;
-    if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
-      fd_hashtable_store(h,(fdtype)&tempkey,VOID);}}
+    if (fd_hashtable_probe(h,(lispval)&tempkey)) {
+      fd_hashtable_store(h,(lispval)&tempkey,VOID);}}
   else if (fdtc) {
     struct FD_HASHTABLE *h = &(fdtc->indexes);
-    fdtype keys = fd_hashtable_keys(h), drop = EMPTY;
+    lispval keys = fd_hashtable_keys(h), drop = EMPTY;
     DO_CHOICES(key,keys) {
       if ((PAIRP(key))&&(FD_CAR(key) == lix)) {
         fd_incref(key); CHOICE_ADD(drop,key);}}
@@ -762,7 +762,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
 return VOID;
 }
 
-static fdtype extindex_fetchfn(fdtype index)
+static lispval extindex_fetchfn(lispval index)
 {
   fd_index ix = fd_indexptr(index);
   if (ix->index_handler== &fd_extindex_handler) {
@@ -771,7 +771,7 @@ static fdtype extindex_fetchfn(fdtype index)
   else return fd_type_error("extindex","extindex_fetchfn",index);
 }
 
-static fdtype extindex_commitfn(fdtype index)
+static lispval extindex_commitfn(lispval index)
 {
   fd_index ix = fd_indexptr(index);
   if (ix->index_handler== &fd_extindex_handler) {
@@ -780,7 +780,7 @@ static fdtype extindex_commitfn(fdtype index)
   else return fd_type_error("extindex","extindex_commitfn",index);
 }
 
-static fdtype extindex_state(fdtype index)
+static lispval extindex_state(lispval index)
 {
   fd_index ix = fd_indexptr(index);
   if (ix->index_handler== &fd_extindex_handler) {
@@ -791,9 +791,9 @@ static fdtype extindex_state(fdtype index)
 
 /* Adding adjuncts */
 
-static fdtype padjuncts_symbol;
+static lispval padjuncts_symbol;
 
-static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
+static lispval use_adjunct(lispval adjunct,lispval slotid,lispval pool_arg)
 {
   if (STRINGP(adjunct)) {
     fd_index ix = fd_get_index(CSTRING(adjunct),0,VOID);
@@ -815,7 +815,7 @@ static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-static fdtype add_adjunct(fdtype pool_arg,fdtype slotid,fdtype adjunct)
+static lispval add_adjunct(lispval pool_arg,lispval slotid,lispval adjunct)
 {
   if (STRINGP(adjunct)) {
     fd_index ix = fd_get_index(CSTRING(adjunct),0,VOID);
@@ -833,7 +833,7 @@ static fdtype add_adjunct(fdtype pool_arg,fdtype slotid,fdtype adjunct)
   else return fd_type_error(_("slotid"),"use_adjunct",slotid);
 }
 
-static fdtype get_adjuncts(fdtype pool_arg)
+static lispval get_adjuncts(lispval pool_arg)
 {
   fd_pool p=fd_lisp2pool(pool_arg);
   if (p==NULL)
@@ -843,7 +843,7 @@ static fdtype get_adjuncts(fdtype pool_arg)
 
 /* DB control functions */
 
-static fdtype swapout_lexpr(int n,fdtype *args)
+static lispval swapout_lexpr(int n,lispval *args)
 {
   if (n == 0) {
     fd_swapout_indexes();
@@ -851,10 +851,10 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     return VOID;}
   else if (n == 1) {
     long long rv_sum = 0;
-    fdtype arg = args[0];
+    lispval arg = args[0];
     if (CHOICEP(arg)) {
       int rv = 0;
-      fdtype oids = EMPTY;
+      lispval oids = EMPTY;
       DO_CHOICES(e,arg) {
         if (OIDP(e)) {CHOICE_ADD(oids,e);}
         else if (FD_POOLP(e))
@@ -898,7 +898,7 @@ static fdtype swapout_lexpr(int n,fdtype *args)
   else if (n>2)
     return fd_err(fd_TooManyArgs,"swapout",NULL,VOID);
   else {
-    fdtype arg, keys; int rv_sum = 0;
+    lispval arg, keys; int rv_sum = 0;
     if ((FD_TYPEP(args[0],fd_pool_type))||
         (FD_TYPEP(args[0],fd_index_type))||
         (FD_TYPEP(args[0],fd_consed_pool_type))||
@@ -918,7 +918,7 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     else return FD_INT(rv_sum);}
 }
 
-static fdtype commit_lexpr(int n,fdtype *args)
+static lispval commit_lexpr(int n,lispval *args)
 {
   if (n == 0) {
     if (fd_commit_indexes()<0)
@@ -927,7 +927,7 @@ static fdtype commit_lexpr(int n,fdtype *args)
       return FD_ERROR;
     return VOID;}
   else if (n == 1) {
-    fdtype arg = args[0]; int retval = 0;
+    lispval arg = args[0]; int retval = 0;
     if (FD_TYPEP(arg,fd_index_type))
       retval = fd_index_commit(fd_indexptr(arg));
     else if (FD_TYPEP(arg,fd_pool_type))
@@ -944,7 +944,7 @@ static fdtype commit_lexpr(int n,fdtype *args)
   else return fd_err(fd_TooManyArgs,"commit",NULL,VOID);
 }
 
-static fdtype commit_oids(fdtype oids)
+static lispval commit_oids(lispval oids)
 {
   int rv = fd_commit_oids(oids);
   if (rv<0)
@@ -952,7 +952,7 @@ static fdtype commit_oids(fdtype oids)
   else return VOID;
 }
 
-static fdtype finish_oids(fdtype oids,fdtype pool)
+static lispval finish_oids(lispval oids,lispval pool)
 {
   fd_pool p = (VOIDP(pool))? (NULL) : (fd_lisp2pool(pool));
   if (EMPTYP(oids)) return VOID;
@@ -968,7 +968,7 @@ static fdtype finish_oids(fdtype oids,fdtype pool)
     else return VOID;}
 }
 
-static fdtype commit_pool(fdtype pool,fdtype opts)
+static lispval commit_pool(lispval pool,lispval opts)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (!(p))
@@ -980,7 +980,7 @@ static fdtype commit_pool(fdtype pool,fdtype opts)
     else return VOID;}
 }
 
-static fdtype commit_finished(fdtype pool)
+static lispval commit_finished(lispval pool)
 {
   fd_pool p = fd_lisp2pool(pool);
   if (!(p))
@@ -992,14 +992,14 @@ static fdtype commit_finished(fdtype pool)
     else return VOID;}
 }
 
-static fdtype clear_slotcache(fdtype arg)
+static lispval clear_slotcache(lispval arg)
 {
   if (VOIDP(arg)) fd_clear_slotcaches();
   else fd_clear_slotcache(arg);
   return VOID;
 }
 
-static fdtype clearcaches()
+static lispval clearcaches()
 {
   fd_clear_callcache(VOID);
   fd_clear_slotcaches();
@@ -1008,13 +1008,13 @@ static fdtype clearcaches()
   return VOID;
 }
 
-static fdtype swapcheck_prim()
+static lispval swapcheck_prim()
 {
   if (fd_swapcheck()) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fd_pool arg2pool(fdtype arg)
+static fd_pool arg2pool(lispval arg)
 {
   if (FD_POOLP(arg)) return fd_lisp2pool(arg);
   else if (FD_TYPEP(arg,fd_consed_pool_type))
@@ -1024,14 +1024,14 @@ static fd_pool arg2pool(fdtype arg)
     if (p) return p;
     else return fd_use_pool(CSTRING(arg),0,VOID);}
   else if (SYMBOLP(arg)) {
-    fdtype v = fd_config_get(SYM_NAME(arg));
+    lispval v = fd_config_get(SYM_NAME(arg));
     if (STRINGP(v))
       return fd_use_pool(CSTRING(v),0,VOID);
     else return NULL;}
   else return NULL;
 }
 
-static fdtype pool_load(fdtype arg)
+static lispval pool_load(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
@@ -1042,7 +1042,7 @@ static fdtype pool_load(fdtype arg)
     else return FD_ERROR;}
 }
 
-static fdtype pool_capacity(fdtype arg)
+static lispval pool_capacity(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
@@ -1050,7 +1050,7 @@ static fdtype pool_capacity(fdtype arg)
   else return FD_INT(p->pool_capacity);
 }
 
-static fdtype pool_base(fdtype arg)
+static lispval pool_base(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
@@ -1058,14 +1058,14 @@ static fdtype pool_base(fdtype arg)
   else return fd_make_oid(p->pool_base);
 }
 
-static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
+static lispval pool_elts(lispval arg,lispval start,lispval count)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
     return fd_type_error(_("pool spec"),"pool_elts",arg);
   else {
     int i = 0, lim = fd_pool_load(p);
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     FD_OID base = p->pool_base;
     if (lim<0) return FD_ERROR;
     if (VOIDP(start)) {}
@@ -1088,7 +1088,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
     else return fd_type_error(_("pool offset"),"pool_elts",count);
     if ((i>0) || ((lim-i)<(FD_OID_BUCKET_SIZE))) {
       while (i<lim) {
-        fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
+        lispval each = fd_make_oid(FD_OID_PLUS(base,i));
         CHOICE_ADD(result,each); i++;}}
     else {
       int k = 0, n_buckets = ((lim-i)/(FD_OID_BUCKET_SIZE))+1;
@@ -1096,7 +1096,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
         int j = 0; while (j<n_buckets) {
           unsigned int off = (j*FD_OID_BUCKET_SIZE)+k;
           if (off<lim) {
-            fdtype each = fd_make_oid(FD_OID_PLUS(base,off));
+            lispval each = fd_make_oid(FD_OID_PLUS(base,off));
             CHOICE_ADD(result,each);}
           j++;}
         k++;}
@@ -1104,58 +1104,58 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
     return result;}
 }
 
-static fdtype pool_label(fdtype arg,fdtype use_source)
+static lispval pool_label(lispval arg,lispval use_source)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
     return fd_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_label)
-    return fdtype_string(p->pool_label);
+    return lispval_string(p->pool_label);
   else if (FALSEP(use_source)) return FD_FALSE;
   else if (p->pool_source)
-    return fdtype_string(p->pool_source);
+    return lispval_string(p->pool_source);
   else return FD_FALSE;
 }
 
-static fdtype pool_id(fdtype arg)
+static lispval pool_id(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
     return fd_type_error(_("pool spec"),"pool_id",arg);
   else if (p->pool_label)
-    return fdtype_string(p->pool_label);
+    return lispval_string(p->pool_label);
   else if (p->poolid)
-    return fdtype_string(p->poolid);
+    return lispval_string(p->poolid);
   else if (p->pool_source)
-    return fdtype_string(p->pool_source);
+    return lispval_string(p->pool_source);
   else if (p->pool_prefix)
-    return fdtype_string(p->pool_prefix);
+    return lispval_string(p->pool_prefix);
   else return FD_FALSE;
 }
 
-static fdtype pool_source(fdtype arg)
+static lispval pool_source(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
     return fd_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_source)
-    return fdtype_string(p->pool_source);
+    return lispval_string(p->pool_source);
   else if (p->poolid)
-    return fdtype_string(p->pool_source);
+    return lispval_string(p->pool_source);
   else return FD_FALSE;
 }
 
-static fdtype pool_prefix(fdtype arg)
+static lispval pool_prefix(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
     return fd_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_prefix)
-    return fdtype_string(p->pool_prefix);
+    return lispval_string(p->pool_prefix);
   else return FD_FALSE;
 }
 
-static fdtype set_pool_prefix(fdtype arg,fdtype prefix_arg)
+static lispval set_pool_prefix(lispval arg,lispval prefix_arg)
 {
   fd_pool p = arg2pool(arg);
   u8_string prefix = CSTRING(prefix_arg);
@@ -1174,7 +1174,7 @@ static fdtype set_pool_prefix(fdtype arg,fdtype prefix_arg)
     return FD_TRUE;}
 }
 
-static fdtype pool_close_prim(fdtype arg)
+static lispval pool_close_prim(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
@@ -1184,33 +1184,33 @@ static fdtype pool_close_prim(fdtype arg)
     return VOID;}
 }
 
-static fdtype oid_range(fdtype start,fdtype end)
+static lispval oid_range(lispval start,lispval end)
 {
   int i = 0, lim = fd_getint(end);
-  fdtype result = EMPTY;
+  lispval result = EMPTY;
   FD_OID base = FD_OID_ADDR(start);
   if (lim<0) return FD_ERROR;
   else while (i<lim) {
-    fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
+    lispval each = fd_make_oid(FD_OID_PLUS(base,i));
     CHOICE_ADD(result,each); i++;}
   return result;
 }
 
-static fdtype oid_vector(fdtype start,fdtype end)
+static lispval oid_vector(lispval start,lispval end)
 {
   int i = 0, lim = fd_getint(end);
   if (lim<0) return FD_ERROR;
   else {
-    fdtype result = fd_init_vector(NULL,lim,NULL);
-    fdtype *data = VEC_DATA(result);
+    lispval result = fd_init_vector(NULL,lim,NULL);
+    lispval *data = VEC_DATA(result);
     FD_OID base = FD_OID_ADDR(start);
     while (i<lim) {
-      fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
+      lispval each = fd_make_oid(FD_OID_PLUS(base,i));
       data[i++]=each;}
     return result;}
 }
 
-static fdtype random_oid(fdtype arg)
+static lispval random_oid(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
@@ -1224,7 +1224,7 @@ static fdtype random_oid(fdtype arg)
     return FD_ERROR;}
 }
 
-static fdtype pool_vec(fdtype arg)
+static lispval pool_vec(lispval arg)
 {
   fd_pool p = arg2pool(arg);
   if (p == NULL)
@@ -1233,18 +1233,18 @@ static fdtype pool_vec(fdtype arg)
     int i = 0, lim = fd_pool_load(p);
     if (lim<0) return FD_ERROR;
     else {
-      fdtype result = fd_init_vector(NULL,lim,NULL);
+      lispval result = fd_init_vector(NULL,lim,NULL);
       FD_OID base = p->pool_base;
       if (lim<0) {
         fd_seterr("No OIDs","pool_vec",p->poolid,arg);
         return FD_ERROR;}
       else while (i<lim) {
-          fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
+          lispval each = fd_make_oid(FD_OID_PLUS(base,i));
           FD_VECTOR_SET(result,i,each); i++;}
       return result;}}
 }
 
-static fdtype cachecount(fdtype arg)
+static lispval cachecount(lispval arg)
 {
   fd_pool p = NULL; fd_index ix = NULL;
   if (VOIDP(arg)) {
@@ -1267,32 +1267,32 @@ static fdtype cachecount(fdtype arg)
 
 /* OID functions */
 
-static fdtype oidhi(fdtype x)
+static lispval oidhi(lispval x)
 {
   FD_OID addr = FD_OID_ADDR(x);
   return FD_INT(FD_OID_HI(addr));
 }
 
-static fdtype oidlo(fdtype x)
+static lispval oidlo(lispval x)
 {
   FD_OID addr = FD_OID_ADDR(x);
   return FD_INT(FD_OID_LO(addr));
 }
 
-static fdtype oidp(fdtype x)
+static lispval oidp(lispval x)
 {
   if (OIDP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype oidpool(fdtype x)
+static lispval oidpool(lispval x)
 {
   fd_pool p = fd_oid2pool(x);
   if (p == NULL) return EMPTY;
   else return pool2lisp(p);
 }
 
-static fdtype inpoolp(fdtype x,fdtype pool_arg)
+static lispval inpoolp(lispval x,lispval pool_arg)
 {
   fd_pool p = fd_lisp2pool(pool_arg);
   fd_pool op = fd_oid2pool(x);
@@ -1300,7 +1300,7 @@ static fdtype inpoolp(fdtype x,fdtype pool_arg)
   else return FD_FALSE;
 }
 
-static fdtype validoidp(fdtype x,fdtype pool_arg)
+static lispval validoidp(lispval x,lispval pool_arg)
 {
   if (VOIDP(pool_arg)) {
     fd_pool p = fd_oid2pool(x);
@@ -1327,19 +1327,19 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
 
 /* Prefetching functions */
 
-static fdtype prefetch_oids(fdtype oids)
+static lispval prefetch_oids(lispval oids)
 {
   if (fd_prefetch_oids(oids)>=0) return FD_TRUE;
   else return FD_ERROR;
 }
 
-static fdtype fetchoids_prim(fdtype oids)
+static lispval fetchoids_prim(lispval oids)
 {
   fd_prefetch_oids(oids);
   return fd_incref(oids);
 }
 
-static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
+static lispval prefetch_keys(lispval arg1,lispval arg2)
 {
   if (VOIDP(arg2)) {
     if (fd_bg_prefetch(arg1)<0)
@@ -1358,7 +1358,7 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
 
 /* Getting cached OIDs */
 
-static fdtype cached_oids(fdtype pool)
+static lispval cached_oids(lispval pool)
 {
   if ((VOIDP(pool)) || (FD_TRUEP(pool)))
     return fd_cached_oids(NULL);
@@ -1368,7 +1368,7 @@ static fdtype cached_oids(fdtype pool)
     else return fd_type_error(_("pool"),"cached_oids",pool);}
 }
 
-static fdtype cached_keys(fdtype index)
+static lispval cached_keys(lispval index)
 {
   if ((VOIDP(index)) || (FD_TRUEP(index)))
     return fd_cached_keys(NULL);
@@ -1381,7 +1381,7 @@ static fdtype cached_keys(fdtype index)
 /* Frame get functions */
 
 FD_EXPORT
-fdtype fd_fget(fdtype frames,fdtype slotids)
+lispval fd_fget(lispval frames,lispval slotids)
 {
   if (!(CHOICEP(frames)))
     if (!(CHOICEP(slotids)))
@@ -1389,18 +1389,18 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
         return fd_frame_get(frames,slotids);
       else return fd_get(frames,slotids,EMPTY);
     else if (OIDP(frames)) {
-      fdtype result = EMPTY;
+      lispval result = EMPTY;
       DO_CHOICES(slotid,slotids) {
-        fdtype value = fd_frame_get(frames,slotid);
+        lispval value = fd_frame_get(frames,slotid);
         if (FD_ABORTED(value)) {
           fd_decref(result);
           return value;}
         CHOICE_ADD(result,value);}
       return result;}
     else {
-      fdtype result = EMPTY;
+      lispval result = EMPTY;
       DO_CHOICES(slotid,slotids) {
-        fdtype value = fd_get(frames,slotid,EMPTY);
+        lispval value = fd_get(frames,slotid,EMPTY);
         if (FD_ABORTED(value)) {
           fd_decref(result);
           return value;}
@@ -1423,11 +1423,11 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
         (CHOICEP(frames)) && (all_adjuncts==0))
       fd_prefetch_oids(frames);
     {
-      fdtype results = EMPTY;
+      lispval results = EMPTY;
       DO_CHOICES(frame,frames)
         if (OIDP(frame)) {
           DO_CHOICES(slotid,slotids) {
-            fdtype v = fd_frame_get(frame,slotid);
+            lispval v = fd_frame_get(frame,slotid);
             if (FD_ABORTED(v)) {
               FD_STOP_DO_CHOICES;
               fd_decref(results);
@@ -1435,7 +1435,7 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
             else {CHOICE_ADD(results,v);}}}
         else {
           DO_CHOICES(slotid,slotids) {
-            fdtype v = fd_get(frame,slotid,EMPTY);
+            lispval v = fd_get(frame,slotid,EMPTY);
             if (FD_ABORTED(v)) {
               FD_STOP_DO_CHOICES;
               fd_decref(results);
@@ -1445,7 +1445,7 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
 }
 
 FD_EXPORT
-fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
+lispval fd_ftest(lispval frames,lispval slotids,lispval values)
 {
   if (EMPTYP(frames))
     return FD_FALSE;
@@ -1479,7 +1479,7 @@ fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
 }
 
 FD_EXPORT
-fdtype fd_assert(fdtype frames,fdtype slotids,fdtype values)
+lispval fd_assert(lispval frames,lispval slotids,lispval values)
 {
   if (EMPTYP(values)) return VOID;
   else {
@@ -1491,14 +1491,14 @@ fdtype fd_assert(fdtype frames,fdtype slotids,fdtype values)
     return VOID;}
 }
 FD_EXPORT
-fdtype fd_retract(fdtype frames,fdtype slotids,fdtype values)
+lispval fd_retract(lispval frames,lispval slotids,lispval values)
 {
   if (EMPTYP(values)) return VOID;
   else {
     DO_CHOICES(frame,frames) {
       DO_CHOICES(slotid,slotids) {
         if (VOIDP(values)) {
-          fdtype values = fd_frame_get(frame,slotid);
+          lispval values = fd_frame_get(frame,slotid);
           DO_CHOICES(value,values) {
             if (fd_frame_drop(frame,slotid,value)<0) {
               fd_decref(values);
@@ -1511,18 +1511,18 @@ fdtype fd_retract(fdtype frames,fdtype slotids,fdtype values)
     return VOID;}
 }
 
-static fdtype testp(int n,fdtype *args)
+static lispval testp(int n,lispval *args)
 {
-  fdtype frames = args[0], slotids = args[1], testfns = args[2];
+  lispval frames = args[0], slotids = args[1], testfns = args[2];
   if ((EMPTYP(frames)) || (EMPTYP(slotids)))
     return FD_FALSE;
   else {
     DO_CHOICES(frame,frames) {
       DO_CHOICES(slotid,slotids) {
-        fdtype values = fd_fget(frame,slotid);
+        lispval values = fd_fget(frame,slotid);
         DO_CHOICES(testfn,testfns)
           if (FD_APPLICABLEP(testfn)) {
-            fdtype test_result = FD_FALSE;
+            lispval test_result = FD_FALSE;
             args[2]=values;
             test_result = fd_apply(testfn,n-2,args+2);
             args[2]=testfns;
@@ -1533,7 +1533,7 @@ static fdtype testp(int n,fdtype *args)
               return FD_TRUE;}
             else {}}
           else if ((SYMBOLP(testfn)) || (OIDP(testfn))) {
-            fdtype test_result;
+            lispval test_result;
             args[1]=values; args[2]=testfn;
             test_result = testp(n-1,args+1);
             args[1]=slotids; args[2]=testfns;
@@ -1544,7 +1544,7 @@ static fdtype testp(int n,fdtype *args)
             else fd_decref(test_result);}
           else if (TABLEP(testfn)) {
             DO_CHOICES(value,values) {
-              fdtype mapsto = fd_get(testfn,value,VOID);
+              lispval mapsto = fd_get(testfn,value,VOID);
               if (FD_ABORTED(mapsto)) {
                 fd_decref(values);
                 return mapsto;}
@@ -1564,30 +1564,30 @@ static fdtype testp(int n,fdtype *args)
     return FD_FALSE;}
 }
 
-static fdtype getpath_prim(int n,fdtype *args)
+static lispval getpath_prim(int n,lispval *args)
 {
-  fdtype result = fd_getpath(args[0],n-1,args+1,1,0);
+  lispval result = fd_getpath(args[0],n-1,args+1,1,0);
   return fd_simplify_choice(result);
 }
 
-static fdtype getpathstar_prim(int n,fdtype *args)
+static lispval getpathstar_prim(int n,lispval *args)
 {
-  fdtype result = fd_getpath(args[0],n-1,args+1,1,0);
+  lispval result = fd_getpath(args[0],n-1,args+1,1,0);
   return fd_simplify_choice(result);
 }
 
 /* Cache gets */
 
-static fdtype cacheget_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval cacheget_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype table_arg = fd_get_arg(expr,1), key_arg = fd_get_arg(expr,2);
-  fdtype default_expr = fd_get_arg(expr,3);
+  lispval table_arg = fd_get_arg(expr,1), key_arg = fd_get_arg(expr,2);
+  lispval default_expr = fd_get_arg(expr,3);
   if (PRED_FALSE((VOIDP(table_arg)) ||
                       (VOIDP(key_arg)) ||
                       (VOIDP(default_expr))))
     return fd_err(fd_SyntaxError,"cacheget_evalfn",NULL,expr);
   else {
-    fdtype table = fd_eval(table_arg,env), key, value;
+    lispval table = fd_eval(table_arg,env), key, value;
     if (FD_ABORTED(table)) return table;
     else if (TABLEP(table)) key = fd_eval(key_arg,env);
     else return fd_type_error(_("table"),"cachget_evalfn",table);
@@ -1595,7 +1595,7 @@ static fdtype cacheget_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       fd_decref(table); return key;}
     else value = fd_get(table,key,VOID);
     if (VOIDP(value)) {
-      fdtype dflt = fd_eval(default_expr,env);
+      lispval dflt = fd_eval(default_expr,env);
       if (FD_ABORTED(dflt)) {
         fd_decref(table); fd_decref(key);
         return dflt;}
@@ -1606,7 +1606,7 @@ static fdtype cacheget_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Getting info from indexes */
 
-static fd_index arg2index(fdtype arg)
+static fd_index arg2index(lispval arg)
 {
   if (FD_INDEXP(arg))
     return fd_lisp2index(arg);
@@ -1617,38 +1617,38 @@ static fd_index arg2index(fdtype arg)
     if (ix) return ix;
     else return NULL;}
   else if (SYMBOLP(arg)) {
-    fdtype v = fd_config_get(SYM_NAME(arg));
+    lispval v = fd_config_get(SYM_NAME(arg));
     if (STRINGP(v))
       return fd_find_index(CSTRING(v));
     else return NULL;}
   else return NULL;
 }
 
-static fdtype index_id(fdtype arg)
+static lispval index_id(lispval arg)
 {
   fd_index ix = arg2index(arg);
   if (ix == NULL)
     return fd_type_error(_("index spec"),"index_id",arg);
   else if (ix->indexid)
-    return fdtype_string(ix->indexid);
+    return lispval_string(ix->indexid);
   else if (ix->index_source)
-    return fdtype_string(ix->index_source);
+    return lispval_string(ix->index_source);
   else return FD_FALSE;
 }
 
-static fdtype index_source_prim(fdtype arg)
+static lispval index_source_prim(lispval arg)
 {
   fd_index p = arg2index(arg);
   if (p == NULL)
     return fd_type_error(_("index spec"),"index_label",arg);
   else if (p->index_source)
-    return fdtype_string(p->index_source);
+    return lispval_string(p->index_source);
   else return FD_FALSE;
 }
 
 /* Index operations */
 
-static fdtype index_get(fdtype ixarg,fdtype key)
+static lispval index_get(lispval ixarg,lispval key)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL)
@@ -1656,7 +1656,7 @@ static fdtype index_get(fdtype ixarg,fdtype key)
   else return fd_index_get(ix,key);
 }
 
-static fdtype index_add(fdtype ixarg,fdtype key,fdtype values)
+static lispval index_add(lispval ixarg,lispval key,lispval values)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR;
@@ -1664,7 +1664,7 @@ static fdtype index_add(fdtype ixarg,fdtype key,fdtype values)
   return VOID;
 }
 
-static fdtype index_set(fdtype ixarg,fdtype key,fdtype values)
+static lispval index_set(lispval ixarg,lispval key,lispval values)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR;
@@ -1672,58 +1672,58 @@ static fdtype index_set(fdtype ixarg,fdtype key,fdtype values)
   return VOID;
 }
 
-static fdtype index_decache(fdtype ixarg,fdtype key,fdtype value)
+static lispval index_decache(lispval ixarg,lispval key,lispval value)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) return FD_ERROR;
   if (VOIDP(value))
     fd_hashtable_op(&(ix->index_cache),fd_table_replace,key,VOID);
   else {
-    fdtype keypair = fd_conspair(fd_incref(key),fd_incref(value));
+    lispval keypair = fd_conspair(fd_incref(key),fd_incref(value));
     fd_hashtable_op(&(ix->index_cache),fd_table_replace,keypair,VOID);
     fd_decref(keypair);}
   return VOID;
 }
 
-static fdtype bgdecache(fdtype key,fdtype value)
+static lispval bgdecache(lispval key,lispval value)
 {
   fd_index ix = (fd_index)fd_background;
   if (ix == NULL) return FD_ERROR;
   if (VOIDP(value))
     fd_hashtable_op(&(ix->index_cache),fd_table_replace,key,VOID);
   else {
-    fdtype keypair = fd_conspair(fd_incref(key),fd_incref(value));
+    lispval keypair = fd_conspair(fd_incref(key),fd_incref(value));
     fd_hashtable_op(&(ix->index_cache),fd_table_replace,keypair,VOID);
     fd_decref(keypair);}
   return VOID;
 }
 
-static fdtype index_keys(fdtype ixarg)
+static lispval index_keys(lispval ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) fd_type_error("index","index_keys",ixarg);
   return fd_index_keys(ix);
 }
 
-static fdtype index_sizes(fdtype ixarg)
+static lispval index_sizes(lispval ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) fd_type_error("index","index_sizes",ixarg);
   return fd_index_sizes(ix);
 }
 
-static fdtype index_keysvec(fdtype ixarg)
+static lispval index_keysvec(lispval ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL) fd_type_error("index","index_keysvec",ixarg);
   if (ix->index_handler->fetchkeys) {
-    fdtype *keys; unsigned int n_keys;
+    lispval *keys; unsigned int n_keys;
     keys = ix->index_handler->fetchkeys(ix,&n_keys);
     return fd_init_vector(NULL,n_keys,keys);}
   else return fd_index_keys(ix);
 }
 
-static fdtype index_merge(fdtype ixarg,fdtype addstable)
+static lispval index_merge(lispval ixarg,lispval addstable)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix == NULL)
@@ -1733,17 +1733,17 @@ static fdtype index_merge(fdtype ixarg,fdtype addstable)
     return FD_INT(rv);}
 }
 
-static fdtype index_source(fdtype ix_arg)
+static lispval index_source(lispval ix_arg)
 {
   fd_index ix = fd_indexptr(ix_arg);
   if (ix == NULL)
     return fd_type_error("index","index_source",ix_arg);
   else if (ix->index_source)
-    return fdtype_string(ix->index_source);
+    return lispval_string(ix->index_source);
   else return EMPTY;
 }
 
-static fdtype close_index_prim(fdtype ix_arg)
+static lispval close_index_prim(lispval ix_arg)
 {
   fd_index ix = fd_indexptr(ix_arg);
   if (ix == NULL)
@@ -1752,7 +1752,7 @@ static fdtype close_index_prim(fdtype ix_arg)
   return VOID;
 }
 
-static fdtype commit_index_prim(fdtype ix_arg)
+static lispval commit_index_prim(lispval ix_arg)
 {
   fd_index ix = fd_indexptr(ix_arg);
   if (ix == NULL)
@@ -1761,7 +1761,7 @@ static fdtype commit_index_prim(fdtype ix_arg)
   return VOID;
 }
 
-static fdtype suggest_hash_size(fdtype size)
+static lispval suggest_hash_size(lispval size)
 {
   unsigned int suggestion = fd_get_hashtable_size(fd_getint(size));
   return FD_INT(suggestion);
@@ -1769,10 +1769,10 @@ static fdtype suggest_hash_size(fdtype size)
 
 /* PICK and REJECT */
 
-FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel);
-FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex);
+FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,int datalevel);
+FD_FASTOP int test_relation_regex(lispval candidate,lispval pred,lispval regex);
 
-FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalevel)
+FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int datalevel)
 {
   if (CHOICEP(pred)) {
     DO_CHOICES(p,pred) {
@@ -1794,13 +1794,13 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
   else if (TABLEP(pred))
     return fd_test(pred,f,val);
   else if (FD_APPLICABLEP(pred)) {
-    fdtype rail[2], result = VOID;
+    lispval rail[2], result = VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
     if ((FD_SPROCP(pred)) || (FD_TYPEP(pred,fd_cprim_type))) {
       fd_function fcn = FD_DTYPE2FCN(pred);
       if (fcn->fcn_min_arity==1) {
-        fdtype value = fd_apply(pred,1,&f); int retval = -1;
+        lispval value = fd_apply(pred,1,&f); int retval = -1;
         if (EMPTYP(value)) return 0;
         else if (fd_overlapp(value,val)) retval = 1;
         else if (datalevel) retval = 0;
@@ -1826,7 +1826,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
       return 1;}}
   else if (VECTORP(pred)) {
     int len = VEC_LEN(pred), retval;
-    fdtype *data = VEC_DATA(pred), scan;
+    lispval *data = VEC_DATA(pred), scan;
     if (len==0) return 0;
     else if (len==1) return test_selector_relation(f,data[0],val,datalevel);
     else scan = fd_getpath(f,len-1,data,datalevel,0);
@@ -1836,9 +1836,9 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
   else return fd_type_error(_("test relation"),"test_selector_relation",pred);
 }
 
-FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex)
+FD_FASTOP int test_relation_regex(lispval candidate,lispval pred,lispval regex)
 {
-  fdtype values = ((OIDP(candidate))?
+  lispval values = ((OIDP(candidate))?
                  (fd_frame_get(candidate,pred)):
                  (fd_get(candidate,pred,EMPTY)));
   if (EMPTYP(values)) return 0;
@@ -1864,7 +1864,7 @@ FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex)
     return 0;}
 }
 
-FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
+FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,
                                       int datalevel)
 {
   if (EMPTYP(candidate)) return 0;
@@ -1905,14 +1905,14 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
       return fd_frame_test(candidate,test,VOID);
     else return fd_test(candidate,test,VOID);}
   else if (FD_APPLICABLEP(test)) {
-    fdtype v = fd_apply(test,1,&candidate);
+    lispval v = fd_apply(test,1,&candidate);
     if (FD_ABORTED(v)) return fd_interr(v);
     else if ((FALSEP(v)) || (EMPTYP(v)) || (VOIDP(v)))
       return 0;
     else {fd_decref(v); return 1;}}
   else if ((PAIRP(test))&&(FD_APPLICABLEP(FD_CAR(test)))) {
-    fdtype fcn = FD_CAR(test), newval = FD_FALSE;
-    fdtype args = FD_CDR(test), argv[7]; int j = 1;
+    lispval fcn = FD_CAR(test), newval = FD_FALSE;
+    lispval args = FD_CDR(test), argv[7]; int j = 1;
     argv[0]=candidate;
     if (PAIRP(args))
       while (PAIRP(args)) {
@@ -1939,18 +1939,18 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
   else if (TABLEP(candidate)) 
     return fd_test(candidate,test,VOID);
   else {
-    fdtype ev = fd_type_error(_("test object"),"test_selector_predicate",test);
+    lispval ev = fd_type_error(_("test object"),"test_selector_predicate",test);
     return fd_interr(ev);}
 }
 
-FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,
+FD_FASTOP int test_selector_clauses(lispval candidate,int n,lispval *args,
                                     int datalevel)
 {
   if (n==1)
     if (EMPTYP(args[0])) return 0;
     else return test_selector_predicate(candidate,args[0],datalevel);
   else if (n==3) {
-    fdtype scan = fd_getpath(candidate,1,args,datalevel,0);
+    lispval scan = fd_getpath(candidate,1,args,datalevel,0);
     int retval = test_selector_relation(scan,args[1],args[2],datalevel);
     fd_decref(scan);
     return retval;}
@@ -1960,7 +1960,7 @@ FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,
     return -1;}
   else {
     int i = 0; while (i<n) {
-      fdtype slotids = args[i], values = args[i+1];
+      lispval slotids = args[i], values = args[i+1];
       int retval = test_selector_relation(candidate,slotids,values,datalevel);
       if (retval<0) return retval;
       else if (retval) i = i+2;
@@ -1970,22 +1970,22 @@ FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,
 
 /* PICK etc */
 
-static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
+static lispval pick_helper(lispval candidates,int n,lispval *tests,int datalevel)
 {
   int retval;
   if (CHOICEP(candidates)) {
     int n_elts = FD_CHOICE_SIZE(candidates);
     fd_choice read_choice = FD_XCHOICE(candidates);
     fd_choice write_choice = fd_alloc_choice(n_elts);
-    const fdtype *read = FD_XCHOICE_DATA(read_choice), *limit = read+n_elts;
-    fdtype *write = (fdtype *)FD_XCHOICE_DATA(write_choice);
+    const lispval *read = FD_XCHOICE_DATA(read_choice), *limit = read+n_elts;
+    lispval *write = (lispval *)FD_XCHOICE_DATA(write_choice);
     int n_results = 0, atomic_results = 1;
     while (read<limit) {
-      fdtype candidate = *read++;
+      lispval candidate = *read++;
       int retval = test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-        const fdtype *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
-        while (scan<limit) {fdtype v = *scan++; fd_decref(v);}
+        const lispval *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
+        while (scan<limit) {lispval v = *scan++; fd_decref(v);}
         u8_free(write_choice);
         return FD_ERROR;}
       else if (retval) {
@@ -1997,7 +1997,7 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
       u8_free(write_choice);
       return EMPTY;}
     else if (n_results==1) {
-      fdtype result = FD_XCHOICE_DATA(write_choice)[0];
+      lispval result = FD_XCHOICE_DATA(write_choice)[0];
       u8_free(write_choice);
       /* This was incref'd during the loop. */
       return result;}
@@ -2021,22 +2021,22 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
   else return EMPTY;
 }
 
-static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
+static lispval hashset_filter(lispval candidates,fd_hashset hs,int pick)
 {
   if (hs->hs_n_elts==0) {
     if (pick) return EMPTY;
     else return fd_incref(candidates);}
   fd_read_lock_table(hs); {
-    fdtype simple = fd_make_simple_choice(candidates);
+    lispval simple = fd_make_simple_choice(candidates);
     int n = FD_CHOICE_SIZE(simple), isatomic = 1;
-    fdtype *slots = hs->hs_slots; int n_slots = hs->hs_n_slots;
-    fdtype *keep = u8_alloc_n(n,fdtype), *write = keep;
+    lispval *slots = hs->hs_slots; int n_slots = hs->hs_n_slots;
+    lispval *keep = u8_alloc_n(n,lispval), *write = keep;
     DO_CHOICES(c,candidates) {
       int hash = fd_hash_lisp(c), probe = hash%n_slots, n_probes = 0, found = 0;
       while (n_probes<512) {
-        fdtype pv = slots[probe];
+        lispval pv = slots[probe];
         if (FD_NULLP(pv)) break;
-        else if (FDTYPE_EQUAL(c,pv)) {found = 1; break;}
+        else if (LISP_EQUAL(c,pv)) {found = 1; break;}
         else {
           probe++; n_probes++;
           if (probe>=n_slots) probe = 0;}}
@@ -2048,7 +2048,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
     if (write == keep) {
       u8_free(keep); return EMPTY;}
     else if ((write-keep)==1) {
-      fdtype v = keep[0]; u8_free(keep);
+      lispval v = keep[0]; u8_free(keep);
       return v;}
     else return fd_init_choice
            (NULL,write-keep,keep,
@@ -2058,20 +2058,20 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 #define hashset_pick(c,h) (hashset_filter(c,(fd_hashset)h,1))
 #define hashset_reject(c,h) (hashset_filter(c,(fd_hashset)h,0))
 
-static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
+static lispval hashtable_filter(lispval candidates,fd_hashtable ht,int pick)
 {
   if (ht->table_n_keys==0) {
     if (pick) return EMPTY;
     else return fd_hashtable_keys(ht);}
   else {
-    fdtype simple = fd_make_simple_choice(candidates);
+    lispval simple = fd_make_simple_choice(candidates);
     int n = FD_CHOICE_SIZE(simple), unlock = 0, isatomic = 1;
-    fdtype *keep = u8_alloc_n(n,fdtype), *write = keep;
+    lispval *keep = u8_alloc_n(n,lispval), *write = keep;
     if (ht->table_uselock) {fd_read_lock_table(ht); unlock = 1;}
     {struct FD_HASH_BUCKET **slots = ht->ht_buckets; int n_slots = ht->ht_n_buckets;
       DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result = fd_hashvec_get(c,slots,n_slots);
-        fdtype rv = ((result)?(result->kv_val):(VOID));
+        lispval rv = ((result)?(result->kv_val):(VOID));
         if ((VOIDP(rv))||(EMPTYP(rv))) result = NULL;
         if (((result)&&(pick))||((result == NULL)&&(!(pick)))) {
           if ((isatomic)&&(CONSP(c))) isatomic = 0;
@@ -2081,7 +2081,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
       if (write == keep) {
         u8_free(keep); return EMPTY;}
       else if ((write-keep)==1) {
-        fdtype v = keep[0]; u8_free(keep);
+        lispval v = keep[0]; u8_free(keep);
         return v;}
       else return fd_init_choice
              (NULL,write-keep,keep,
@@ -2091,7 +2091,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
 #define hashtable_pick(c,h) (hashtable_filter(c,(fd_hashtable)h,1))
 #define hashtable_reject(c,h) (hashtable_filter(c,(fd_hashtable)h,0))
 
-static fdtype pick_lexpr(int n,fdtype *args)
+static lispval pick_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_pick(args[0],(fd_hashtable)args[1]);
@@ -2104,20 +2104,20 @@ static fdtype pick_lexpr(int n,fdtype *args)
           "PICK requires two or 2n+1 arguments",VOID);
 }
 
-static fdtype prefer_lexpr(int n,fdtype *args)
+static lispval prefer_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1]))) {
-    fdtype results = hashtable_pick(args[0],(fd_hashtable)args[1]);
+    lispval results = hashtable_pick(args[0],(fd_hashtable)args[1]);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
   else if ((n==2)&&(FD_HASHSETP(args[1]))) {
-    fdtype results = hashset_pick(args[0],(fd_hashset)args[1]);
+    lispval results = hashset_pick(args[0],(fd_hashset)args[1]);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
   else if ((n<=4)||(n%2)) {
-    fdtype results = pick_helper(args[0],n-1,args+1,0);
+    lispval results = pick_helper(args[0],n-1,args+1,0);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
@@ -2125,7 +2125,7 @@ static fdtype prefer_lexpr(int n,fdtype *args)
                      "PICK PREFER two or 2n+1 arguments",VOID);
 }
 
-static fdtype prim_pick_lexpr(int n,fdtype *args)
+static lispval prim_pick_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_pick(args[0],(fd_hashtable)args[1]);
@@ -2137,10 +2137,10 @@ static fdtype prim_pick_lexpr(int n,fdtype *args)
                      "%PICK requires two or 2n+1 arguments",VOID);
 }
 
-static fdtype prim_prefer_lexpr(int n,fdtype *args)
+static lispval prim_prefer_lexpr(int n,lispval *args)
 {
   if ((n<=4)||(n%2)) {
-    fdtype results = pick_helper(args[0],n-1,args+1,1);
+    lispval results = pick_helper(args[0],n-1,args+1,1);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
@@ -2150,22 +2150,22 @@ static fdtype prim_prefer_lexpr(int n,fdtype *args)
 
 /* REJECT etc */
 
-static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
+static lispval reject_helper(lispval candidates,int n,lispval *tests,int datalevel)
 {
   int retval;
   if (CHOICEP(candidates)) {
     int n_elts = FD_CHOICE_SIZE(candidates);
     fd_choice read_choice = FD_XCHOICE(candidates);
     fd_choice write_choice = fd_alloc_choice(n_elts);
-    const fdtype *read = FD_XCHOICE_DATA(read_choice), *limit = read+n_elts;
-    fdtype *write = (fdtype *)FD_XCHOICE_DATA(write_choice);
+    const lispval *read = FD_XCHOICE_DATA(read_choice), *limit = read+n_elts;
+    lispval *write = (lispval *)FD_XCHOICE_DATA(write_choice);
     int n_results = 0, atomic_results = 1;
     while (read<limit) {
-      fdtype candidate = *read++;
+      lispval candidate = *read++;
       int retval = test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-        const fdtype *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
-        while (scan<limit) {fdtype v = *scan++; fd_decref(v);}
+        const lispval *scan = FD_XCHOICE_DATA(write_choice), *limit = scan+n_results;
+        while (scan<limit) {lispval v = *scan++; fd_decref(v);}
         u8_free(write_choice);
         return FD_ERROR;}
       else if (retval==0) {
@@ -2177,7 +2177,7 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
       u8_free(write_choice);
       return EMPTY;}
     else if (n_results==1) {
-      fdtype result = FD_XCHOICE_DATA(write_choice)[0];
+      lispval result = FD_XCHOICE_DATA(write_choice)[0];
       u8_free(write_choice);
       /* This was incref'd during the loop. */
       return result;}
@@ -2201,7 +2201,7 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
   else return fd_incref(candidates);
 }
 
-static fdtype reject_lexpr(int n,fdtype *args)
+static lispval reject_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_reject(args[0],args[1]);
@@ -2213,20 +2213,20 @@ static fdtype reject_lexpr(int n,fdtype *args)
                      "REJECT requires two or 2n+1 arguments",VOID);
 }
 
-static fdtype avoid_lexpr(int n,fdtype *args)
+static lispval avoid_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1]))) {
-    fdtype results = hashtable_reject(args[0],(fd_hashtable)args[1]);
+    lispval results = hashtable_reject(args[0],(fd_hashtable)args[1]);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
   else if ((n==2)&&(FD_HASHSETP(args[1]))) {
-    fdtype results = hashtable_reject(args[0],(fd_hashset)args[1]);
+    lispval results = hashtable_reject(args[0],(fd_hashset)args[1]);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
   else if ((n<=4)||(n%2)) {
-    fdtype values = reject_helper(args[0],n-1,args+1,0);
+    lispval values = reject_helper(args[0],n-1,args+1,0);
     if (EMPTYP(values))
       return fd_incref(args[0]);
     else return values;}
@@ -2234,7 +2234,7 @@ static fdtype avoid_lexpr(int n,fdtype *args)
                      "AVOID requires two or 2n+1 arguments",VOID);
 }
 
-static fdtype prim_reject_lexpr(int n,fdtype *args)
+static lispval prim_reject_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1])))
     return hashtable_reject(args[0],args[1]);
@@ -2246,20 +2246,20 @@ static fdtype prim_reject_lexpr(int n,fdtype *args)
                      "%REJECT requires two or 2n+1 arguments",VOID);
 }
 
-static fdtype prim_avoid_lexpr(int n,fdtype *args)
+static lispval prim_avoid_lexpr(int n,lispval *args)
 {
   if ((n==2)&&(HASHTABLEP(args[1]))) {
-    fdtype results = hashtable_reject(args[0],(fd_hashtable)args[1]);
+    lispval results = hashtable_reject(args[0],(fd_hashtable)args[1]);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
   else if ((n==2)&&(FD_HASHSETP(args[1]))) {
-    fdtype results = hashtable_reject(args[0],(fd_hashset)args[1]);
+    lispval results = hashtable_reject(args[0],(fd_hashset)args[1]);
     if (EMPTYP(results))
       return fd_incref(args[0]);
     else return results;}
   else if ((n<=4)||(n%2)) {
-    fdtype values = reject_helper(args[0],n-1,args+1,1);
+    lispval values = reject_helper(args[0],n-1,args+1,1);
     if (EMPTYP(values))
       return fd_incref(args[0]);
     else return values;}
@@ -2269,11 +2269,11 @@ static fdtype prim_avoid_lexpr(int n,fdtype *args)
 
 /* Kleene* operations */
 
-static fdtype getstar(fdtype frames,fdtype slotids)
+static lispval getstar(lispval frames,lispval slotids)
 {
-  fdtype results = fd_incref(frames);
+  lispval results = fd_incref(frames);
   DO_CHOICES(slotid,slotids) {
-    fdtype all = fd_inherit_values(frames,slotid,slotid);
+    lispval all = fd_inherit_values(frames,slotid,slotid);
     if (FD_ABORTED(all)) {
       fd_decref(results);
       return all;}
@@ -2281,29 +2281,29 @@ static fdtype getstar(fdtype frames,fdtype slotids)
   return fd_simplify_choice(results);
 }
 
-static fdtype inherit_prim(fdtype slotids,fdtype frames,fdtype through)
+static lispval inherit_prim(lispval slotids,lispval frames,lispval through)
 {
-  fdtype results = fd_incref(frames);
+  lispval results = fd_incref(frames);
   DO_CHOICES(through_id,through) {
-    fdtype all = fd_inherit_values(frames,slotids,through_id);
+    lispval all = fd_inherit_values(frames,slotids,through_id);
     CHOICE_ADD(results,all);}
   return fd_simplify_choice(results);
 }
 
-static fdtype pathp(fdtype frames,fdtype slotids,fdtype values)
+static lispval pathp(lispval frames,lispval slotids,lispval values)
 {
   if (fd_pathp(frames,slotids,values)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype getbasis(fdtype frames,fdtype lattice)
+static lispval getbasis(lispval frames,lispval lattice)
 {
   return fd_simplify_choice(fd_get_basis(frames,lattice));
 }
 
 /* Frame creation */
 
-static fdtype allocate_oids(fdtype pool,fdtype howmany)
+static lispval allocate_oids(lispval pool,lispval howmany)
 {
   fd_pool p = arg2pool(pool);
   if (p == NULL)
@@ -2315,9 +2315,9 @@ static fdtype allocate_oids(fdtype pool,fdtype howmany)
   else return fd_type_error(_("fixnum"),"allocate_oids",howmany);
 }
 
-static fdtype frame_create_lexpr(int n,fdtype *args)
+static lispval frame_create_lexpr(int n,lispval *args)
 {
-  fdtype result; int i = (n%2);
+  lispval result; int i = (n%2);
   if ((n>=1)&&(EMPTYP(args[0])))
     return EMPTY;
   else if (n==1) return fd_new_frame(args[0],VOID,0);
@@ -2348,7 +2348,7 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
   return result;
 }
 
-static fdtype frame_update_lexpr(int n,fdtype *args)
+static lispval frame_update_lexpr(int n,lispval *args)
 {
   if ((n>=1)&&(EMPTYP(args[0])))
     return EMPTY;
@@ -2357,7 +2357,7 @@ static fdtype frame_update_lexpr(int n,fdtype *args)
   else if (!(TABLEP(args[0])))
     return fd_err(fd_TypeError,"frame_update_lexpr","not a table",args[0]);
   else if (n%2) {
-    fdtype result = fd_deep_copy(args[0]); int i = 1;
+    lispval result = fd_deep_copy(args[0]); int i = 1;
     while (i<n) {
       if (fd_store(result,args[i],args[i+1])<0) {
         fd_decref(result);
@@ -2368,21 +2368,21 @@ static fdtype frame_update_lexpr(int n,fdtype *args)
                      _("wrong number of args"),VOID);
 }
 
-static fdtype seq2frame_prim
-  (fdtype poolspec,fdtype values,fdtype schema,fdtype dflt)
+static lispval seq2frame_prim
+  (lispval poolspec,lispval values,lispval schema,lispval dflt)
 {
   if (!(FD_SEQUENCEP(schema)))
     return fd_type_error(_("sequence"),"seq2frame_prim",schema);
   else if (!(FD_SEQUENCEP(values)))
     return fd_type_error(_("sequence"),"seq2frame_prim",values);
   else {
-    fdtype frame;
+    lispval frame;
     int i = 0, slen = fd_seq_length(schema), vlen = fd_seq_length(values);
     if (FALSEP(poolspec))
       frame = fd_empty_slotmap();
     else if (OIDP(poolspec)) frame = poolspec;
     else {
-      fdtype oid, slotmap;
+      lispval oid, slotmap;
       fd_pool p = arg2pool(poolspec);
       if (p == NULL)
         return fd_type_error(_("pool spec"),"seq2frame_prim",poolspec);
@@ -2395,8 +2395,8 @@ static fdtype seq2frame_prim
       else {
         fd_decref(slotmap); frame = oid;}}
     while ((i<slen) && (i<vlen)) {
-      fdtype slotid = fd_seq_elt(schema,i);
-      fdtype value = fd_seq_elt(values,i);
+      lispval slotid = fd_seq_elt(schema,i);
+      lispval value = fd_seq_elt(values,i);
       int retval;
       if (OIDP(frame))
         retval = fd_frame_add(frame,slotid,value);
@@ -2409,7 +2409,7 @@ static fdtype seq2frame_prim
       i++;}
     if (!(VOIDP(dflt)))
       while (i<slen) {
-        fdtype slotid = fd_seq_elt(schema,i);
+        lispval slotid = fd_seq_elt(schema,i);
         int retval;
         if (OIDP(frame))
           retval = fd_frame_add(frame,slotid,dflt);
@@ -2422,7 +2422,7 @@ static fdtype seq2frame_prim
     return frame;}
 }
 
-static int doassert(fdtype f,fdtype s,fdtype v)
+static int doassert(lispval f,lispval s,lispval v)
 {
   if (EMPTYP(v)) return 0;
   else if (OIDP(f))
@@ -2430,7 +2430,7 @@ static int doassert(fdtype f,fdtype s,fdtype v)
   else return fd_add(f,s,v);
 }
 
-static int doretract(fdtype f,fdtype s,fdtype v)
+static int doretract(lispval f,lispval s,lispval v)
 {
   if (EMPTYP(v)) return 0;
   else if (OIDP(f))
@@ -2438,7 +2438,7 @@ static int doretract(fdtype f,fdtype s,fdtype v)
   else return fd_drop(f,s,v);
 }
 
-static fdtype modify_frame_lexpr(int n,fdtype *args)
+static lispval modify_frame_lexpr(int n,lispval *args)
 {
   if (n%2==0)
     return fd_err(fd_SyntaxError,"FRAME-MODIFY",NULL,VOID);
@@ -2468,7 +2468,7 @@ static fdtype modify_frame_lexpr(int n,fdtype *args)
 
 /* OID operations */
 
-static fdtype oid_plus_prim(fdtype oid,fdtype increment)
+static lispval oid_plus_prim(lispval oid,lispval increment)
 {
   FD_OID base = FD_OID_ADDR(oid), next;
   int delta = fd_getint(increment);
@@ -2476,7 +2476,7 @@ static fdtype oid_plus_prim(fdtype oid,fdtype increment)
   return fd_make_oid(next);
 }
 
-static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
+static lispval oid_offset_prim(lispval oidarg,lispval against)
 {
   FD_OID oid = FD_OID_ADDR(oidarg), base; int cap = -1;
   if (OIDP(against)) {
@@ -2499,14 +2499,14 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
 }
 
 #ifdef FD_OID_BASE_ID
-static fdtype oid_ptrdata_prim(fdtype oid)
+static lispval oid_ptrdata_prim(lispval oid)
 {
   return fd_conspair(FD_INT(FD_OID_BASE_ID(oid)),
                      FD_INT(FD_OID_BASE_OFFSET(oid)));
 }
 #endif
 
-static fdtype make_oid_prim(fdtype high,fdtype low)
+static lispval make_oid_prim(lispval high,lispval low)
 {
   if (VOIDP(low)) {
     FD_OID oid;
@@ -2563,7 +2563,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
     return fd_make_oid(addr);}
 }
 
-static fdtype oid2string_prim(fdtype oid,fdtype name)
+static lispval oid2string_prim(lispval oid,lispval name)
 {
   FD_OID addr = FD_OID_ADDR(oid);
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
@@ -2578,7 +2578,7 @@ static fdtype oid2string_prim(fdtype oid,fdtype name)
   return fd_stream2string(&out);
 }
 
-static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
+static lispval oidhex_prim(lispval oid,lispval base_arg)
 {
   char buf[32]; int offset;
   FD_OID addr = FD_OID_ADDR(oid);
@@ -2601,7 +2601,7 @@ static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
   return fd_make_string(NULL,-1,u8_uitoa10(offset,buf));
 }
 
-static fdtype oidb32_prim(fdtype oid,fdtype base_arg)
+static lispval oidb32_prim(lispval oid,lispval base_arg)
 {
   char buf[64]; int offset, buflen = 64;
   FD_OID addr = FD_OID_ADDR(oid);
@@ -2625,13 +2625,13 @@ static fdtype oidb32_prim(fdtype oid,fdtype base_arg)
   return fd_make_string(NULL,buflen,buf);
 }
 
-static fdtype oidplus(FD_OID base,int delta)
+static lispval oidplus(FD_OID base,int delta)
 {
   FD_OID next = FD_OID_PLUS(base,delta);
   return fd_make_oid(next);
 }
 
-static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
+static lispval hex2oid_prim(lispval arg,lispval base_arg)
 {
   long long offset;
   if (STRINGP(arg))
@@ -2653,7 +2653,7 @@ static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
   else return fd_type_error("pool id","hex2oid_prim",base_arg);
 }
 
-static fdtype b32oid_prim(fdtype arg,fdtype base_arg)
+static lispval b32oid_prim(lispval arg,lispval base_arg)
 {
   long long offset; 
   if (STRINGP(arg)) {
@@ -2678,7 +2678,7 @@ static fdtype b32oid_prim(fdtype arg,fdtype base_arg)
   else return fd_type_error("pool id","hex2oid_prim",base_arg);
 }
 
-static fdtype oidaddr_prim(fdtype oid)
+static lispval oidaddr_prim(lispval oid)
 {
   FD_OID oidaddr = FD_OID_ADDR(oid);
   if (FD_OID_HI(oidaddr)) {
@@ -2693,13 +2693,13 @@ static fdtype oidaddr_prim(fdtype oid)
 
 /* sumframe function */
 
-static fdtype sumframe_prim(fdtype frames,fdtype slotids)
+static lispval sumframe_prim(lispval frames,lispval slotids)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   DO_CHOICES(frame,frames) {
-    fdtype slotmap = fd_empty_slotmap();
+    lispval slotmap = fd_empty_slotmap();
     DO_CHOICES(slotid,slotids) {
-      fdtype value = fd_get(frame,slotid,EMPTY);
+      lispval value = fd_get(frame,slotid,EMPTY);
       if (FD_ABORTED(value)) {
         fd_decref(results); return value;}
       else if (fd_add(slotmap,slotid,value)<0) {
@@ -2709,7 +2709,7 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
     if (OIDP(frame)) {
       FD_OID addr = FD_OID_ADDR(frame);
       u8_string s = u8_mkstring("@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
-      fdtype idstring = fd_lispstring(s);
+      lispval idstring = fd_lispstring(s);
       if (fd_add(slotmap,id_symbol,idstring)<0) {
         fd_decref(results); fd_decref(idstring);
         return FD_ERROR;}
@@ -2720,14 +2720,14 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
 
 /* Graph walking functions */
 
-static fdtype applyfn(fdtype fn,fdtype node)
+static lispval applyfn(lispval fn,lispval node)
 {
   if ((OIDP(fn)) || (SYMBOLP(fn)))
     return fd_frame_get(node,fn);
   else if (CHOICEP(fn)) {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(f,fn) {
-      fdtype v = applyfn(fn,node);
+      lispval v = applyfn(fn,node);
       if (FD_ABORTED(v)) {
         fd_decref(results);
         return v;}
@@ -2740,13 +2740,13 @@ static fdtype applyfn(fdtype fn,fdtype node)
   else return EMPTY;
 }
 
-static int walkgraph(fdtype fn,fdtype state,fdtype arcs,
-                      struct FD_HASHSET *seen,fdtype *results)
+static int walkgraph(lispval fn,lispval state,lispval arcs,
+                      struct FD_HASHSET *seen,lispval *results)
 {
-  fdtype next_state = EMPTY;
+  lispval next_state = EMPTY;
   DO_CHOICES(node,state)
     if (!(fd_hashset_get(seen,node))) {
-      fdtype output, expand;
+      lispval output, expand;
       fd_hashset_add(seen,node);
       /* Apply the function */
       output = applyfn(fn,node);
@@ -2767,7 +2767,7 @@ static int walkgraph(fdtype fn,fdtype state,fdtype arcs,
   else return 1;
 }
 
-static fdtype forgraph(fdtype fcn,fdtype roots,fdtype arcs)
+static lispval forgraph(lispval fcn,lispval roots,lispval arcs)
 {
   struct FD_HASHSET hashset; int retval;
   if ((OIDP(arcs)) || (SYMBOLP(arcs)) ||
@@ -2782,16 +2782,16 @@ static fdtype forgraph(fdtype fcn,fdtype roots,fdtype arcs)
   fd_incref(roots);
   retval = walkgraph(fcn,roots,arcs,&hashset,NULL);
   if (retval<0) {
-    fd_decref((fdtype)&hashset);
+    fd_decref((lispval)&hashset);
     return FD_ERROR;}
   else {
-    fd_decref((fdtype)&hashset);
+    fd_decref((lispval)&hashset);
     return VOID;}
 }
 
-static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
+static lispval mapgraph(lispval fcn,lispval roots,lispval arcs)
 {
-  fdtype results = EMPTY; int retval; struct FD_HASHSET hashset;
+  lispval results = EMPTY; int retval; struct FD_HASHSET hashset;
   if ((OIDP(fcn)) || (SYMBOLP(fcn)) ||
       (FD_APPLICABLEP(fcn)) || (TABLEP(fcn))) {}
   else if (CHOICEP(fcn)) {
@@ -2811,23 +2811,23 @@ static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
   fd_init_hashset(&hashset,1024,FD_STACK_CONS); fd_incref(roots);
   retval = walkgraph(fcn,roots,arcs,&hashset,&results);
   if (retval<0) {
-    fd_decref((fdtype)&hashset);
+    fd_decref((lispval)&hashset);
     fd_decref(results);
     return FD_ERROR;}
   else {
-    fd_decref((fdtype)&hashset);
+    fd_decref((lispval)&hashset);
     return results;}
 }
 
 /* Helpful predicates */
 
-static fdtype dbloadedp(fdtype arg1,fdtype arg2)
+static lispval dbloadedp(lispval arg1,lispval arg2)
 {
   if (VOIDP(arg2))
     if (OIDP(arg1)) {
       fd_pool p = fd_oid2pool(arg1);
       if (fd_hashtable_probe(&(p->pool_changes),arg1)) {
-        fdtype v = fd_hashtable_probe(&(p->pool_changes),arg1);
+        lispval v = fd_hashtable_probe(&(p->pool_changes),arg1);
         if ((v!=VOID) || (v!=FD_LOCKHOLDER)) {
           fd_decref(v); return FD_TRUE;}
         else return FD_FALSE;}
@@ -2850,7 +2850,7 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
       if (p == NULL)
         return fd_type_error("pool","loadedp",arg2);
       if (fd_hashtable_probe(&(p->pool_changes),arg1)) {
-        fdtype v = fd_hashtable_probe(&(p->pool_changes),arg1);
+        lispval v = fd_hashtable_probe(&(p->pool_changes),arg1);
         if ((v!=VOID) || (v!=FD_LOCKHOLDER)) {
           fd_decref(v); return FD_TRUE;}
         else return FD_FALSE;}
@@ -2873,10 +2873,10 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
   else return fd_type_error("pool/index","loadedp",arg2);
 }
 
-static int oidmodifiedp(fd_pool p,fdtype oid)
+static int oidmodifiedp(fd_pool p,lispval oid)
 {
   if (fd_hashtable_probe(&(p->pool_changes),oid)) {
-    fdtype v = fd_hashtable_get(&(p->pool_changes),oid,VOID);
+    lispval v = fd_hashtable_get(&(p->pool_changes),oid,VOID);
     int modified = 1;
     if ((VOIDP(v)) || (v == FD_LOCKHOLDER))
       modified = 0;
@@ -2893,7 +2893,7 @@ static int oidmodifiedp(fd_pool p,fdtype oid)
   else return FD_FALSE;
 }
 
-static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
+static lispval dbmodifiedp(lispval arg1,lispval arg2)
 {
   if (VOIDP(arg2))
     if (OIDP(arg1)) {
@@ -2954,21 +2954,21 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
 
 /* Bloom filters */
 
-static fdtype make_bloom_filter(fdtype n_entries,fdtype allowed_error)
+static lispval make_bloom_filter(lispval n_entries,lispval allowed_error)
 {
   struct FD_BLOOM *filter = (VOIDP(allowed_error))?
     (fd_init_bloom_filter(NULL,FIX2INT(n_entries),0.0004)) :
     (fd_init_bloom_filter(NULL,FIX2INT(n_entries),FD_FLONUM(allowed_error)));
   if (filter)
-    return (fdtype) filter;
+    return (lispval) filter;
   else return FD_ERROR;
 }
 
 #define BLOOM_DTYPE_LEN 1000
 
-static fdtype bloom_add(fdtype filter,fdtype value,
-                        fdtype raw_arg,
-                        fdtype ignore_errors)
+static lispval bloom_add(lispval filter,lispval value,
+                        lispval raw_arg,
+                        lispval ignore_errors)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   int raw = (!(FALSEP(raw_arg)));
@@ -2984,9 +2984,9 @@ static fdtype bloom_add(fdtype filter,fdtype value,
   else return FD_FALSE;
 }
 
-static fdtype bloom_check(fdtype filter,fdtype value,
-                          fdtype raw_arg,
-                          fdtype ignore_errors)
+static lispval bloom_check(lispval filter,lispval value,
+                          lispval raw_arg,
+                          lispval ignore_errors)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   int raw = (!(FALSEP(raw_arg)));
@@ -3002,9 +3002,9 @@ static fdtype bloom_check(fdtype filter,fdtype value,
   else return FD_FALSE;
 }
 
-static fdtype bloom_hits(fdtype filter,fdtype value,
-                         fdtype raw_arg,
-                         fdtype ignore_errors)
+static lispval bloom_hits(lispval filter,lispval value,
+                         lispval raw_arg,
+                         lispval ignore_errors)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   int raw = (!(FALSEP(raw_arg)));
@@ -3017,19 +3017,19 @@ static fdtype bloom_hits(fdtype filter,fdtype value,
   else return FD_INT(rv);
 }
 
-static fdtype bloom_size(fdtype filter)
+static lispval bloom_size(lispval filter)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   return FD_INT(bloom->entries);
 }
 
-static fdtype bloom_count(fdtype filter)
+static lispval bloom_count(lispval filter)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   return FD_INT(bloom->bloom_adds);
 }
 
-static fdtype bloom_error(fdtype filter)
+static lispval bloom_error(lispval filter)
 {
   struct FD_BLOOM *bloom = (struct FD_BLOOM *)filter;
   return fd_make_double(bloom->error);

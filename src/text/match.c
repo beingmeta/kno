@@ -106,7 +106,7 @@
 
    The matcher makes extensive use FramerD's choice data structure
    to represent multiple parses internally and externally.  The basic
-   match and extract functions return lisp objects (type fdtype)
+   match and extract functions return lisp objects (type lispval)
    in order to allow them to return ambiguous values.  For example
    matching (+ "ab") to "ababab" normally returns the choice {2 4 6}
    to represent the various match alternatives.  (For the exception to
@@ -221,36 +221,36 @@ fd_exception fd_TXInvalidPattern=_("Not a valid TX text pattern");
 
 fd_ptr_type fd_txclosure_type;
 
-static fdtype subst_symbol;
-static fdtype match_env;
+static lispval subst_symbol;
+static lispval match_env;
 
 #define string_ref(s) ((*(s) < 0x80) ? (*(s)) : (u8_string_ref(s)))
 
 #define FD_MATCH_SPECIAL \
    (FD_MATCH_IGNORE_CASE|FD_MATCH_IGNORE_DIACRITICS|FD_MATCH_COLLAPSE_SPACES)
 
-static fdtype hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
+static lispval hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
 {
   struct FD_STRING sval;
   FD_INIT_STATIC_CONS(&sval,fd_string_type);
   sval.fd_bytelen = len; sval.fd_bytes = s;
-  return fd_hashset_get(h,(fdtype)&sval);
+  return fd_hashset_get(h,(lispval)&sval);
 }
 
-static fdtype match_eval(fdtype symbol,fd_lexenv env)
+static lispval match_eval(lispval symbol,fd_lexenv env)
 {
-  fdtype value = ((env)?(fd_symeval(symbol,env)):(VOID));
+  lispval value = ((env)?(fd_symeval(symbol,env)):(VOID));
   if (VOIDP(value))
     return fd_get(match_env,symbol,VOID);
   else return value;
 }
-static fdtype match_apply(fdtype method,u8_context cxt,fd_lexenv env,
-                          int n,fdtype *args)
+static lispval match_apply(lispval method,u8_context cxt,fd_lexenv env,
+                          int n,lispval *args)
 {
   if (FD_APPLICABLEP(method))
     return fd_apply(method,n,args);
   else if (SYMBOLP(method)) {
-    fdtype methfn = match_eval(method,env), result;
+    lispval methfn = match_eval(method,env), result;
     if (FD_APPLICABLEP(methfn))
       result = fd_apply(methfn,n,args);
     else return fd_err(_("Unknown matcher symbol"),cxt,
@@ -354,7 +354,7 @@ void fd_add_match_operator
   (u8_string label,
    tx_matchfn matcher,tx_searchfn searcher,tx_extractfn extract)
 {
-  fdtype sym = fd_intern(label);
+  lispval sym = fd_intern(label);
   struct FD_TEXTMATCH_OPERATOR *scan = match_operators, *limit = scan+n_match_operators;
   while (scan < limit) if (FD_EQ(scan->fd_matchop,sym)) break; else scan++;
   if (scan < limit) {scan->fd_matcher = matcher; return;}
@@ -371,7 +371,7 @@ void fd_add_match_operator
 }
 
 /* This is for greedy matching */
-static fdtype get_longest_match(fdtype matches)
+static lispval get_longest_match(lispval matches)
 {
   if (FD_ABORTED(matches)) return matches;
   else if ((CHOICEP(matches)) || (PRECHOICEP(matches))) {
@@ -388,13 +388,13 @@ static fdtype get_longest_match(fdtype matches)
 
 /** The Matcher **/
 
-static fdtype match_sequence
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_sequence
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
 
 FD_EXPORT
-fdtype fd_text_domatch
-  (fdtype pat,fdtype next,fd_lexenv env,
+lispval fd_text_domatch
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (FD_INTERRUPTED())
@@ -415,7 +415,7 @@ fdtype fd_text_domatch
     if (flags&(FD_MATCH_BE_GREEDY)) {
       u8_byteoff max = -1;
       DO_CHOICES(each,pat) {
-        fdtype answer = fd_text_domatch(each,next,env,string,off,lim,flags);
+        lispval answer = fd_text_domatch(each,next,env,string,off,lim,flags);
         if (EMPTYP(answer)) {}
         else if (FD_ABORTED(answer)) {
           FD_STOP_DO_CHOICES;
@@ -429,7 +429,7 @@ fdtype fd_text_domatch
               u8_byteoff val = FIX2INT(a);
               if (val>max) max = val;}
             else {
-              fdtype err = fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,a);
+              lispval err = fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,a);
               fd_decref(answer); answer = err;
               FD_STOP_DO_CHOICES;
               break;}
@@ -441,9 +441,9 @@ fdtype fd_text_domatch
           return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,each);}}
       if (max<0) return EMPTY; else return FD_INT(max);}
     else {
-      fdtype answers = EMPTY;
+      lispval answers = EMPTY;
       DO_CHOICES(epat,pat) {
-        fdtype answer = fd_text_domatch(epat,next,env,string,off,lim,flags);
+        lispval answer = fd_text_domatch(epat,next,env,string,off,lim,flags);
         if (FD_ABORTED(answer)) {
           FD_STOP_DO_CHOICES;
           fd_decref(answers);
@@ -462,7 +462,7 @@ fdtype fd_text_domatch
   else if (VECTORP(pat))
     return match_sequence(pat,next,env,string,off,lim,flags);
   else if (PAIRP(pat)) {
-    fdtype head = FD_CAR(pat), result;
+    lispval head = FD_CAR(pat), result;
     struct FD_TEXTMATCH_OPERATOR
       *scan = match_operators, *limit = scan+n_match_operators;
     while (scan < limit)
@@ -475,12 +475,12 @@ fdtype fd_text_domatch
       return get_longest_match(result);
     else return result;}
   else if (SYMBOLP(pat)) {
-    fdtype v = match_eval(pat,env);
+    lispval v = match_eval(pat,env);
     if (VOIDP(v))
       return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
                     SYM_NAME(pat),pat);
     else {
-      fdtype result = fd_text_domatch(v,next,env,string,off,lim,flags);
+      lispval result = fd_text_domatch(v,next,env,string,off,lim,flags);
       fd_decref(v); return result;}}
   else if (FD_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc = (fd_txclosure)pat;
@@ -495,25 +495,25 @@ fdtype fd_text_domatch
 }
 
 FD_EXPORT
-fdtype fd_text_matcher
-  (fdtype pat,fd_lexenv env,
+lispval fd_text_matcher
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return fd_text_domatch(pat,VOID,env,string,off,lim,flags);
 }
 
-static fdtype match_sequence
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_sequence
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   int i = 0, l = VEC_LEN(pat);
-  fdtype state = FD_INT(off);
+  lispval state = FD_INT(off);
   while (i < l) {
-    fdtype epat = VEC_REF(pat,i);
-    fdtype npat = ((i+1==l)?(next):(VEC_REF(pat,i+1)));
-    fdtype next = EMPTY;
+    lispval epat = VEC_REF(pat,i);
+    lispval npat = ((i+1==l)?(next):(VEC_REF(pat,i+1)));
+    lispval next = EMPTY;
     DO_CHOICES(pos,state) {
-      fdtype npos=
+      lispval npos=
         fd_text_domatch(epat,npat,env,string,fd_getint(pos),lim,flags);
       if (FD_ABORTED(npos)) {
         fd_decref(next);
@@ -529,47 +529,47 @@ static fdtype match_sequence
 
 /** Extraction **/
 
-static fdtype textract
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval textract
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
-static fdtype extract_sequence
-  (fdtype pat,int pat_elt,fdtype next,fd_lexenv env,
+static lispval extract_sequence
+  (lispval pat,int pat_elt,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);
-static fdtype lists_to_vectors(fdtype lists);
+static lispval lists_to_vectors(lispval lists);
 
 FD_EXPORT
-fdtype fd_text_doextract
-   (fdtype pat,fdtype next,fd_lexenv env,
+lispval fd_text_doextract
+   (lispval pat,lispval next,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return textract(pat,next,env,string,off,lim,flags);
 }
 
 FD_EXPORT
-fdtype fd_text_extract
-   (fdtype pat,fd_lexenv env,
+lispval fd_text_extract
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return textract(pat,VOID,env,string,off,lim,flags);
 }
 
-static fdtype extract_text(u8_string string,u8_byteoff start,fdtype ends)
+static lispval extract_text(u8_string string,u8_byteoff start,lispval ends)
 {
-  fdtype answers = EMPTY;
+  lispval answers = EMPTY;
   DO_CHOICES(each_end,ends)
     if (FIXNUMP(each_end)) {
-      fdtype extraction=
+      lispval extraction=
         fd_conspair(each_end,fd_extract_string
                     (NULL,string+start,string+fd_getint(each_end)));
       CHOICE_ADD(answers,extraction);}
   return answers;
 }
 
-static fdtype get_longest_extractions(fdtype extractions)
+static lispval get_longest_extractions(lispval extractions)
 {
   if (FD_ABORTED(extractions)) return extractions;
   else if ((CHOICEP(extractions)) || (PRECHOICEP(extractions))) {
-    fdtype largest = EMPTY; u8_byteoff max = -1;
+    lispval largest = EMPTY; u8_byteoff max = -1;
     DO_CHOICES(extraction,extractions) {
       u8_byteoff ival = fd_getint(FD_CAR(extraction));
       if (ival == max) {
@@ -584,8 +584,8 @@ static fdtype get_longest_extractions(fdtype extractions)
   else return extractions;
 }
 
-static fdtype textract
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval textract
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (FD_INTERRUPTED())
@@ -594,7 +594,7 @@ static fdtype textract
   else if (EMPTYP(pat)) return EMPTY;
   else if (STRINGP(pat))
     if ((STRLEN(pat)) == 0) {
-      return fd_conspair(FD_INT(off),fdtype_string(""));}
+      return fd_conspair(FD_INT(off),lispval_string(""));}
     else if (off == lim) return EMPTY;
     else {
       u8_byteoff mlen=
@@ -603,9 +603,9 @@ static fdtype textract
       if (mlen<0) return EMPTY;
       else return extract_text(string,off,FD_INT(mlen));}
   else if ((CHOICEP(pat)) || (QCHOICEP(pat)) || (PRECHOICEP(pat))) {
-    fdtype answers = EMPTY;
+    lispval answers = EMPTY;
     DO_CHOICES(epat,pat) {
-      fdtype extractions = textract(epat,next,env,string,off,lim,flags);
+      lispval extractions = textract(epat,next,env,string,off,lim,flags);
       DO_CHOICES(extraction,extractions) {
         if (FD_ABORTED(extraction)) {
           fd_decref(answers); answers = fd_incref(extraction);
@@ -627,7 +627,7 @@ static fdtype textract
         ((CHOICEP(answers)) || (PRECHOICEP(answers)))) {
       /* get_longest_extracts frees (decrefs) answers if it doesn't
          return them */
-      fdtype result = get_longest_extractions(answers);
+      lispval result = get_longest_extractions(answers);
       return result;}
     else return answers;}
   else if (FD_CHARACTERP(pat)) {
@@ -640,18 +640,18 @@ static fdtype textract
         int next = forward_char(string,off);
         U8_INIT_FIXED_OUTPUT(&str,16,buf);
         u8_putc(&str,code);
-        return fd_conspair(FD_INT(next),fdtype_string(buf));}
+        return fd_conspair(FD_INT(next),lispval_string(buf));}
       else return EMPTY;}}
   else if (VECTORP(pat)) {
-    fdtype seq_matches = extract_sequence
+    lispval seq_matches = extract_sequence
       (pat,0,next,env,string,off,lim,flags);
     if (FD_ABORTED(seq_matches)) return seq_matches;
     else {
-      fdtype result = lists_to_vectors(seq_matches);
+      lispval result = lists_to_vectors(seq_matches);
       fd_decref(seq_matches);
       return result;}}
   else if (PAIRP(pat)) {
-    fdtype head = FD_CAR(pat);
+    lispval head = FD_CAR(pat);
     struct FD_TEXTMATCH_OPERATOR
       *scan = match_operators, *limit = scan+n_match_operators;
     while (scan < limit)
@@ -660,29 +660,29 @@ static fdtype textract
       if (scan->fd_extractor)
         return scan->fd_extractor(pat,next,env,string,off,lim,flags);
       else {
-        fdtype matches = scan->fd_matcher(pat,next,env,string,off,lim,flags);
+        lispval matches = scan->fd_matcher(pat,next,env,string,off,lim,flags);
         if (FD_ABORTED(matches))
           return matches;
         else {
-          fdtype answer = extract_text(string,off,matches);
+          lispval answer = extract_text(string,off,matches);
           fd_decref(matches);
           return answer;}}}
     else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);}
   else if (SYMBOLP(pat)) {
-    fdtype v = match_eval(pat,env);
+    lispval v = match_eval(pat,env);
     if (VOIDP(v))
       return fd_err(fd_UnboundIdentifier,"textract",
                     SYM_NAME(pat),pat);
     else {
-      fdtype lengths = get_longest_match
+      lispval lengths = get_longest_match
         (fd_text_domatch(v,next,env,string,off,lim,flags));
       if (FD_ABORTED(lengths)) {
         fd_decref(v);
         return lengths;}
       else {
-        fdtype answers = EMPTY;
+        lispval answers = EMPTY;
         DO_CHOICES(l,lengths) {
-          fdtype extraction=
+          lispval extraction=
             fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
           CHOICE_ADD(answers,extraction);}
         fd_decref(lengths); fd_decref(v);
@@ -702,32 +702,32 @@ static fdtype textract
       return fd_err(fd_RegexError,"fd_text_extract",
                     u8_strdup(buf),VOID);}
     else {
-      fdtype ex = fd_extract_string
+      lispval ex = fd_extract_string
         (NULL,base+results[0].rm_so,base+results[0].rm_eo);
       int loc = u8_charoffset(string,off+results[0].rm_so);
       return fd_conspair(FD_INT(loc),ex);}}
   else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);
 }
 
-static fdtype extract_sequence
-   (fdtype pat,int pat_elt,fdtype next,fd_lexenv env,
+static lispval extract_sequence
+   (lispval pat,int pat_elt,lispval next,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   int l = VEC_LEN(pat);
   if (pat_elt == l)
     return fd_conspair(FD_INT(off),NIL);
   else {
-    fdtype nextpat=
+    lispval nextpat=
       (((pat_elt+1) == l) ? (next) : (VEC_REF(pat,pat_elt+1)));
-    fdtype sub_matches=
+    lispval sub_matches=
       textract(VEC_REF(pat,pat_elt),nextpat,env,string,off,lim,flags);
     if (FD_ABORTED(sub_matches)) return sub_matches;
     else {
-      fdtype results = EMPTY;
+      lispval results = EMPTY;
       DO_CHOICES(sub_match,sub_matches) {
         if (fd_getint(FD_CAR(sub_match)) <= lim) {
           u8_byteoff noff = fd_getint(FD_CAR(sub_match));
-          fdtype remainders = extract_sequence
+          lispval remainders = extract_sequence
             (pat,pat_elt+1,next,env,string,noff,lim,flags);
           if (FD_ABORTED(remainders)) {
             FD_STOP_DO_CHOICES;
@@ -736,7 +736,7 @@ static fdtype extract_sequence
             return remainders;}
           else {
             DO_CHOICES(remainder,remainders) {
-              fdtype result=
+              lispval result=
                 fd_conspair(FD_CAR(remainder),
                             fd_conspair(fd_incref(FD_CDR(sub_match)),
                                         fd_incref(FD_CDR(remainder))));
@@ -746,16 +746,16 @@ static fdtype extract_sequence
       return results;}}
 }
 
-static fdtype lists_to_vectors(fdtype lists)
+static lispval lists_to_vectors(lispval lists)
 {
-  fdtype answer = EMPTY;
+  lispval answer = EMPTY;
   DO_CHOICES(list,lists) {
     int i = 0, lim = 0;
-    fdtype lsize = FD_CAR(list), scan = FD_CDR(list), vec, elt;
+    lispval lsize = FD_CAR(list), scan = FD_CDR(list), vec, elt;
     while (PAIRP(scan)) {lim++; scan = FD_CDR(scan);}
     vec = fd_init_vector(NULL,lim,NULL);
     scan = FD_CDR(list); while (i < lim) {
-      fdtype car = FD_CAR(scan); fd_incref(car);
+      lispval car = FD_CAR(scan); fd_incref(car);
       FD_VECTOR_SET(vec,i,car);
       i++; scan = FD_CDR(scan);}
     elt = fd_conspair(lsize,vec);
@@ -765,18 +765,18 @@ static fdtype lists_to_vectors(fdtype lists)
 
 /** Match repeatedly **/
 
-static fdtype match_repeatedly
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_repeatedly
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,
    int flags,int zero_ok)
 {
-  fdtype match_points = EMPTY;
-  fdtype state = FD_INT(off); int count = 0;
+  lispval match_points = EMPTY;
+  lispval state = FD_INT(off); int count = 0;
   if (zero_ok) {CHOICE_ADD(match_points,FD_INT(off));}
   while (1) {
-    fdtype next_state = EMPTY;
+    lispval next_state = EMPTY;
     DO_CHOICES(pos,state) {
-      fdtype npos=
+      lispval npos=
         fd_text_domatch(pat,next,env,string,fd_getint(pos),lim,flags);
       if (FD_ABORTED(npos)) {
         FD_STOP_DO_CHOICES;
@@ -819,13 +819,13 @@ static fdtype match_repeatedly
       fd_decref(state); count++; state = next_state;}}
 }
 
-static fdtype extract_repeatedly
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_repeatedly
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,
    int flags,int zero_ok)
 {
-  fdtype choices = EMPTY;
-  fdtype top = textract(pat,next,env,string,off,lim,flags);
+  lispval choices = EMPTY;
+  lispval top = textract(pat,next,env,string,off,lim,flags);
   if (EMPTYP(top))
     if (zero_ok) return fd_conspair(FD_INT(off),NIL);
     else return EMPTY;
@@ -834,28 +834,28 @@ static fdtype extract_repeatedly
     DO_CHOICES(each,top)
       if ((PAIRP(each)) && (FD_UINTP(FD_CAR(each))) &&
           ((FIX2INT(FD_CAR(each))) != off)) {
-        fdtype size = FD_CAR(each);
-        fdtype extraction = FD_CDR(each);
-        fdtype remainders=
+        lispval size = FD_CAR(each);
+        lispval extraction = FD_CDR(each);
+        lispval remainders=
           extract_repeatedly(pat,next,env,string,fd_getint(size),lim,flags,1);
         if (FD_ABORTP(remainders)) {
           fd_decref(choices);
           return remainders;}
         else if (EMPTYP(remainders)) {
-          fdtype last_item=
+          lispval last_item=
             fd_conspair(fd_incref(extraction),NIL);
-          fdtype with_size = fd_conspair(size,last_item);
+          lispval with_size = fd_conspair(size,last_item);
           CHOICE_ADD(choices,with_size);}
         else {
           DO_CHOICES(remainder,remainders) {
-            fdtype item = fd_conspair
+            lispval item = fd_conspair
               (fd_refcar(remainder),
                fd_conspair(fd_incref(extraction),(fd_refcdr(remainder))));
             CHOICE_ADD(choices,item);}
           fd_decref(remainders);}
         if ((flags&FD_MATCH_BE_GREEDY)==0) {
-          fdtype singleton = fd_make_list(1,fd_incref(extraction));
-          fdtype pair = fd_conspair(size,singleton);
+          lispval singleton = fd_make_list(1,fd_incref(extraction));
+          lispval pair = fd_conspair(size,singleton);
           CHOICE_ADD(choices,pair);}}}
   fd_decref(top);
   return choices;
@@ -867,8 +867,8 @@ static fdtype extract_repeatedly
   if (VOIDP(arg))              \
     return fd_err(fd_MatchSyntaxError,cxt,NULL,expr);
 
-static fdtype match_star
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_star
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (NILP(FD_CDR(pat))) {
@@ -878,18 +878,18 @@ static fdtype match_star
     else if (nextpos<0) return FD_INT(lim);
     else return FD_INT(nextpos);}
   else {
-    fdtype pat_arg = fd_get_arg(pat,1);
+    lispval pat_arg = fd_get_arg(pat,1);
     FD_PAT_ARG(pat_arg,"match_star",pat);
     return match_repeatedly(pat_arg,next,env,string,off,lim,flags,1);}
 }
 static u8_byteoff search_star
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return off;
 }
-static fdtype extract_star
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_star
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (NILP(FD_CDR(pat))) {
@@ -903,85 +903,85 @@ static fdtype extract_star
     else return fd_conspair(FD_INT(nextpos),
                             fd_substring(string+off,string+nextpos));}
   else {
-    fdtype pat_arg = fd_get_arg(pat,1);
+    lispval pat_arg = fd_get_arg(pat,1);
     if (VOIDP(pat_arg))
       return fd_err(fd_MatchSyntaxError,"extract_star",NULL,pat);
     else {
-      fdtype extractions = extract_repeatedly
+      lispval extractions = extract_repeatedly
         (pat_arg,next,env,string,off,lim,flags,1);
-      fdtype answer = EMPTY;
+      lispval answer = EMPTY;
       DO_CHOICES(extraction,extractions) {
-        fdtype size = FD_CAR(extraction), data = FD_CDR(extraction);
-        fdtype pair=
+        lispval size = FD_CAR(extraction), data = FD_CDR(extraction);
+        lispval pair=
           fd_conspair(size,fd_conspair(FDSYM_STAR,fd_incref(data)));
         CHOICE_ADD(answer,pair);}
       fd_decref(extractions);
       return answer;}}
 }
 
-static fdtype match_plus
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_plus
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_plus",NULL,pat);
   else return match_repeatedly(pat_arg,next,env,string,off,lim,flags,0);
 }
 static u8_byteoff search_plus
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg)) {
     fd_seterr(fd_MatchSyntaxError,"search_plus",NULL,fd_incref(pat));
     return -2;}
   else return fd_text_search(pat_arg,env,string,off,lim,flags);
 }
-static fdtype extract_plus
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_plus
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_plus",NULL,pat);
   else {
-    fdtype extractions = extract_repeatedly(pat_arg,next,env,string,off,lim,flags,0);
-    fdtype answer = EMPTY;
+    lispval extractions = extract_repeatedly(pat_arg,next,env,string,off,lim,flags,0);
+    lispval answer = EMPTY;
     DO_CHOICES(extraction,extractions) {
-      fdtype size = FD_CAR(extraction), data = FD_CDR(extraction);
-      fdtype pair=
+      lispval size = FD_CAR(extraction), data = FD_CDR(extraction);
+      lispval pair=
         fd_conspair(size,fd_conspair(FDSYM_PLUS,fd_incref(data)));
       CHOICE_ADD(answer,pair);}
     fd_decref(extractions);
     return answer;}
 }
 
-static fdtype match_opt
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_opt
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1), match_result;
+  lispval pat_arg = fd_get_arg(pat,1), match_result;
   FD_PAT_ARG(pat_arg,"match_opt",pat);
   match_result = fd_text_domatch(pat_arg,next,env,string,off,lim,flags);
   if (EMPTYP(match_result)) return FD_INT(off);
   else return match_result;
 }
 static u8_byteoff search_opt
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return off;
 }
-static fdtype extract_opt
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_opt
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_opt",NULL,pat);
   else {
-    fdtype extraction = textract(pat_arg,next,NULL,string,off,lim,flags);
+    lispval extraction = textract(pat_arg,next,NULL,string,off,lim,flags);
     if (EMPTYP(extraction))
       return fd_conspair(FD_INT(off),
                          fd_make_list(1,FDSYM_OPT));
@@ -990,11 +990,11 @@ static fdtype extract_opt
 
 /** Match NOT **/
 
-static fdtype match_not
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_not
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_not",NULL,pat);
   else {
@@ -1004,7 +1004,7 @@ static fdtype match_not
     else if (pos == -2) return pos;
     else {
       /* Enumerate every character position between here and there */
-      u8_byteoff i = forward_char(string,off), last; fdtype result = EMPTY;
+      u8_byteoff i = forward_char(string,off), last; lispval result = EMPTY;
       if ((pos < lim) && (pos > off))
         last = pos;
       else last = lim;
@@ -1016,14 +1016,14 @@ static fdtype match_not
 }
 
 static u8_byteoff search_not
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_not",NULL,pat);
   else {
-    fdtype match = fd_text_matcher
+    lispval match = fd_text_matcher
       (pat_arg,env,string,off,lim,(flags&(~FD_MATCH_DO_BINDINGS)));
     if (EMPTYP(match)) return off;
     else {
@@ -1036,20 +1036,20 @@ static u8_byteoff search_not
 
 /** Match AND **/
 
-static fdtype match_and
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_and
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat1 = fd_get_arg(pat,1);
-  fdtype pat2 = fd_get_arg(pat,2);
+  lispval pat1 = fd_get_arg(pat,1);
+  lispval pat2 = fd_get_arg(pat,2);
   /* Find where there is a pat_arg starting */
-  fdtype matches[2];
+  lispval matches[2];
   FD_PAT_ARG(pat1,"match_and",pat);
   FD_PAT_ARG(pat2,"match_and",pat);  
   matches[0]=fd_text_domatch(pat1,next,env,string,off,lim,flags);
   if (EMPTYP(matches[0])) return EMPTY;
   else {
-    fdtype combined;
+    lispval combined;
     matches[1]=fd_text_domatch(pat2,next,env,string,off,lim,flags);
     if (EMPTYP(matches[1])) combined = EMPTY;
     else combined = fd_intersection(matches,2);
@@ -1058,17 +1058,17 @@ static fdtype match_and
 }
 
 static u8_byteoff search_and
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byteoff result;
-  fdtype pat1 = fd_get_arg(pat,1);
-  fdtype pat2 = fd_get_arg(pat,2);
+  lispval pat1 = fd_get_arg(pat,1);
+  lispval pat2 = fd_get_arg(pat,2);
   FD_PAT_ARG(pat1,"search_and",pat);
   FD_PAT_ARG(pat2,"search_and",pat);  
   result = fd_text_search(pat1,env,string,off,lim,flags);
   while (result>=0) {
-    fdtype match_result = match_and(pat,VOID,env,string,result,lim,flags);
+    lispval match_result = match_and(pat,VOID,env,string,result,lim,flags);
     if (EMPTYP(match_result))
       result = fd_text_search(pat,env,string,
                             forward_char(string,result),lim,flags);
@@ -1078,11 +1078,11 @@ static u8_byteoff search_and
 
 /** Match NOT> **/
 
-static fdtype match_not_gt
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_not_gt
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_not_gt",NULL,pat);
   else {
@@ -1097,73 +1097,73 @@ static fdtype match_not_gt
 
 /** Match BIND **/
 
-static fdtype match_bind
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_bind
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype sym = fd_get_arg(pat,1);
-  fdtype spat = fd_get_arg(pat,2);
+  lispval sym = fd_get_arg(pat,1);
+  lispval spat = fd_get_arg(pat,2);
   FD_PAT_ARG(sym,"match_bind",pat);
   FD_PAT_ARG(spat,"match_bind",pat);  
   if ((flags)&(FD_MATCH_DO_BINDINGS)) {
-    fdtype ends = fd_text_domatch(spat,next,env,string,off,lim,flags);
+    lispval ends = fd_text_domatch(spat,next,env,string,off,lim,flags);
     DO_CHOICES(end,ends) {
-      fdtype substr = fd_substring(string+off,string+fd_getint(end));
+      lispval substr = fd_substring(string+off,string+fd_getint(end));
       fd_bind_value(sym,substr,env);}
     return ends;}
   else return fd_text_domatch(spat,next,env,string,off,lim,flags);
 }
 static u8_byteoff search_bind
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype spat = fd_get_arg(pat,2);
+  lispval spat = fd_get_arg(pat,2);
   if (VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"search_bind",NULL,pat);
   else return fd_text_search(spat,env,string,off,lim,flags);
 }
 
-static fdtype label_match 
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval label_match 
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype spat = fd_get_arg(pat,2);
+  lispval spat = fd_get_arg(pat,2);
   if (VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"label_match",NULL,pat);
   else return fd_text_domatch(spat,next,env,string,off,lim,flags);
 }
 
 static u8_byteoff label_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype spat = fd_get_arg(pat,2);
+  lispval spat = fd_get_arg(pat,2);
   if (VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"label_search",NULL,pat);
   else return fd_text_search(spat,env,string,off,lim,flags);
 }
 
-static fdtype label_extract
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval label_extract
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype sym = fd_get_arg(pat,1);
-  fdtype spat = fd_get_arg(pat,2);
-  fdtype parser = fd_get_arg(pat,3);
+  lispval sym = fd_get_arg(pat,1);
+  lispval spat = fd_get_arg(pat,2);
+  lispval parser = fd_get_arg(pat,3);
   if ((VOIDP(spat)) || (VOIDP(sym)))
     return fd_err(fd_MatchSyntaxError,"label_extract",NULL,pat);
   else {
-    fdtype extractions = textract(spat,next,env,string,off,lim,flags);
-    fdtype answers = EMPTY;
+    lispval extractions = textract(spat,next,env,string,off,lim,flags);
+    lispval answers = EMPTY;
     if (FD_ABORTED(extractions)) return extractions;
     else {
       DO_CHOICES(extraction,extractions) {
-        fdtype size = FD_CAR(extraction), data = FD_CDR(extraction);
-        fdtype xtract, addval; fd_incref(data);
+        lispval size = FD_CAR(extraction), data = FD_CDR(extraction);
+        lispval xtract, addval; fd_incref(data);
         if (VOIDP(parser))
           xtract = fd_make_list(3,FD_CAR(pat),sym,data);
         else if (SYMBOLP(parser)) {
-          fdtype parser_val = match_eval(parser,env);
+          lispval parser_val = match_eval(parser,env);
           if ((FD_ABORTED(parser_val))||(VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
             fd_decref(extractions); fd_decref(answers); fd_decref(data);
@@ -1173,7 +1173,7 @@ static fdtype label_extract
             else return parser_val;}
           xtract = fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
         else if ((env) && (PAIRP(parser))) {
-          fdtype parser_val = fd_eval(parser,env);
+          lispval parser_val = fd_eval(parser,env);
           if ((FD_ABORTED(parser_val))||(VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
             fd_decref(answers);
@@ -1190,55 +1190,55 @@ static fdtype label_extract
       return answers;}}
 }
 
-static fdtype subst_match 
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval subst_match 
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype spat = fd_get_arg(pat,1);
+  lispval spat = fd_get_arg(pat,1);
   if (VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"subst_match",NULL,pat);
   else return fd_text_domatch(spat,next,env,string,off,lim,flags);
 }
 
 static u8_byteoff subst_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype spat = fd_get_arg(pat,1);
+  lispval spat = fd_get_arg(pat,1);
   if (VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"subst_search",NULL,pat);
   else return fd_text_search(spat,env,string,off,lim,flags);
 }
 
-static fdtype expand_subst_args(fdtype args,fd_lexenv env);
-static fdtype subst_extract
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval expand_subst_args(lispval args,fd_lexenv env);
+static lispval subst_extract
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype spat = fd_get_arg(pat,1);
+  lispval spat = fd_get_arg(pat,1);
   if (VOIDP(spat))
     return fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
   else {
-    fdtype matches = fd_text_domatch(spat,next,env,string,off,lim,flags);
+    lispval matches = fd_text_domatch(spat,next,env,string,off,lim,flags);
     if (FD_ABORTED(matches)) return matches;
     else {
-      fdtype answers = EMPTY;
-      fdtype args = FD_CDR(FD_CDR(pat));
-      fdtype expanded = expand_subst_args(args,env);
+      lispval answers = EMPTY;
+      lispval args = FD_CDR(FD_CDR(pat));
+      lispval expanded = expand_subst_args(args,env);
       DO_CHOICES(match,matches) {
         int matchlen = fd_getint(match);
-        fdtype matched = fd_substring(string+off,string+matchlen);
+        lispval matched = fd_substring(string+off,string+matchlen);
         if ((CHOICEP(expanded))||(PRECHOICEP(expanded))) {
           DO_CHOICES(subst_arg,expanded) {
-            fdtype new_args = fd_conspair(fd_incref(matched),fd_incref(subst_arg));
-            fdtype new_subst = fd_conspair(subst_symbol,new_args);
-            fdtype answer = fd_conspair(match,new_subst);
+            lispval new_args = fd_conspair(fd_incref(matched),fd_incref(subst_arg));
+            lispval new_subst = fd_conspair(subst_symbol,new_args);
+            lispval answer = fd_conspair(match,new_subst);
             CHOICE_ADD(answers,answer);}
           fd_decref(matched);}
         else {
-          fdtype new_args = fd_conspair(matched,expanded);
-          fdtype new_subst = fd_conspair(subst_symbol,new_args);
-          fdtype answer = fd_conspair(match,new_subst);
+          lispval new_args = fd_conspair(matched,expanded);
+          lispval new_subst = fd_conspair(subst_symbol,new_args);
+          lispval answer = fd_conspair(match,new_subst);
           fd_incref(expanded);
           CHOICE_ADD(answers,answer);}}
       fd_decref(expanded);
@@ -1246,24 +1246,24 @@ static fdtype subst_extract
       return answers;}}
 }
 
-static fdtype expand_subst_args(fdtype args,fd_lexenv env)
+static lispval expand_subst_args(lispval args,fd_lexenv env)
 {
   if (SYMBOLP(args)) {
-    fdtype value = match_eval(args,env);
+    lispval value = match_eval(args,env);
     if (VOIDP(value)) return fd_incref(args);
     else return value;}
   else if (!(CONSP(args))) return args;
   else if (PAIRP(args)) {
-    fdtype carchoices = expand_subst_args(FD_CAR(args),env);
-    fdtype cdrchoices = expand_subst_args(FD_CDR(args),env);
+    lispval carchoices = expand_subst_args(FD_CAR(args),env);
+    lispval cdrchoices = expand_subst_args(FD_CDR(args),env);
     /* Avoid the multiplication of conses by reusing ARGS if it
        hasn't exploded or changed. */
     if ((CHOICEP(carchoices))||(PRECHOICEP(carchoices))||
         (CHOICEP(cdrchoices))||(PRECHOICEP(cdrchoices))) {
-      fdtype conses = EMPTY;
+      lispval conses = EMPTY;
       DO_CHOICES(car,carchoices) {
         DO_CHOICES(cdr,cdrchoices) {
-          fdtype cons = fd_conspair(car,cdr);
+          lispval cons = fd_conspair(car,cdr);
           fd_incref(car); fd_incref(cdr);
           CHOICE_ADD(conses,cons);}}
       fd_decref(carchoices);
@@ -1275,9 +1275,9 @@ static fdtype expand_subst_args(fdtype args,fd_lexenv env)
       return fd_incref(args);}
     else return fd_conspair(carchoices,cdrchoices);}
   else if (CHOICEP(args)) {
-    fdtype changed = EMPTY;
+    lispval changed = EMPTY;
     DO_CHOICES(elt,args) {
-      fdtype cv = expand_subst_args(elt,env);
+      lispval cv = expand_subst_args(elt,env);
       CHOICE_ADD(changed,cv);}
     return changed;}
   else return fd_incref(args);
@@ -1289,24 +1289,24 @@ static fdtype expand_subst_args(fdtype args,fd_lexenv env)
    we use the patterns in order and bound subsequent searches by previous
    results. */
 
-static fdtype match_pref
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_pref
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   FD_DOLIST(epat,FD_CDR(pat)) {
-    fdtype answer = fd_text_domatch(epat,next,env,string,off,lim,flags);
+    lispval answer = fd_text_domatch(epat,next,env,string,off,lim,flags);
     if (FD_ABORTED(answer)) return answer;
     else if (EMPTYP(answer)) {}
     else return answer;}
   return EMPTY;
 }
 
-static fdtype extract_pref
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_pref
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   FD_DOLIST(epat,FD_CDR(pat)) {
-    fdtype extractions = textract(epat,next,env,string,off,lim,flags);
+    lispval extractions = textract(epat,next,env,string,off,lim,flags);
     if (FD_ABORTED(extractions)) return extractions;
     else if (EMPTYP(extractions)) {}
     else return extractions;}
@@ -1314,7 +1314,7 @@ static fdtype extract_pref
 }
 
 static int search_pref
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   int nlim = lim, loc = -1;
@@ -1355,18 +1355,18 @@ static int word_startp(u8_string string,u8_byteoff off)
     else return 0;}
 }
 
-static fdtype word_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval word_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype wpat = fd_get_arg(pat,1);
+  lispval wpat = fd_get_arg(pat,1);
   if (VOIDP(wpat))
     return fd_err(fd_MatchSyntaxError,"word_match",NULL,pat);
   else if ((off > 0) && ((word_startp(string,off)) == 0))
     return EMPTY;
   else {
-    fdtype final_results = (EMPTY);
-    fdtype core_result = fd_text_domatch
+    lispval final_results = (EMPTY);
+    lispval core_result = fd_text_domatch
       (wpat,next,env,string,off,lim,(flags|FD_MATCH_COLLAPSE_SPACES));
     if (FD_ABORTED(core_result)) {
       fd_decref(final_results);
@@ -1413,16 +1413,16 @@ static u8_byteoff get_next_candidate
 }
 
 static u8_byteoff word_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype wpat = fd_get_arg(pat,1); u8_byteoff match_result = -1, cand;
+  lispval wpat = fd_get_arg(pat,1); u8_byteoff match_result = -1, cand;
   if (VOIDP(wpat))
     return fd_err(fd_MatchSyntaxError,"word_search",NULL,pat);
   else if (word_startp(string,off)) cand = off;
   else cand = get_next_candidate(string,off,lim);
   while ((cand >= 0) && (match_result < 0)) {
-    fdtype matches=
+    lispval matches=
       fd_text_matcher(wpat,env,string,cand,lim,(flags|FD_MATCH_COLLAPSE_SPACES));
     if (EMPTYP(matches)) {}
     else {
@@ -1439,21 +1439,21 @@ static u8_byteoff word_search
   return match_result;
 }
 
-static fdtype word_extract
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval word_extract
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype wpat = fd_get_arg(pat,1);
+  lispval wpat = fd_get_arg(pat,1);
   if (VOIDP(wpat))
     return fd_err(fd_MatchSyntaxError,"word_extract",NULL,pat);
   else {
-    fdtype ends = fd_text_domatch
+    lispval ends = fd_text_domatch
       (wpat,next,env,string,off,lim,(flags|FD_MATCH_COLLAPSE_SPACES));
-    fdtype answers = EMPTY;
+    lispval answers = EMPTY;
     DO_CHOICES(end,ends) {
-      fdtype substring=
+      lispval substring=
         fd_substring(string+off,string+fd_getint(end));
-      fdtype pair = fd_conspair(end,substring);
+      lispval pair = fd_conspair(end,substring);
       CHOICE_ADD(answers,pair);}
     fd_decref(ends);
     return answers;}
@@ -1461,40 +1461,40 @@ static fdtype word_extract
 
 /* Matching chunks */
 
-static fdtype chunk_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval chunk_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,1);
   if (VOIDP(cpat))
     return fd_err(fd_MatchSyntaxError,"chunk_match",NULL,pat);
   else return fd_text_domatch(cpat,next,env,string,off,lim,flags);
 }
 
 static u8_byteoff chunk_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,1);
   if (VOIDP(cpat))
     return fd_err(fd_MatchSyntaxError,"chunk_search",NULL,pat);
   else return fd_text_search(cpat,env,string,off,lim,flags);
 }
 
-static fdtype chunk_extract
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval chunk_extract
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,1);
   if (VOIDP(cpat))
     return fd_err(fd_MatchSyntaxError,"chunk_extract",NULL,pat);
   else {
-    fdtype ends = fd_text_domatch(cpat,next,env,string,off,lim,flags);
-    fdtype answers = EMPTY;
+    lispval ends = fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    lispval answers = EMPTY;
     DO_CHOICES(end,ends) {
-      fdtype substring=
+      lispval substring=
         fd_substring(string+off,string+fd_getint(end));
-      fdtype pair = fd_conspair(end,substring);
+      lispval pair = fd_conspair(end,substring);
       CHOICE_ADD(answers,pair);}
     fd_decref(ends);
     return answers;}
@@ -1508,8 +1508,8 @@ static fdtype chunk_extract
          e.g. (CHOICE {"tree" "bush"} {"beast" "rodent"})
 */
          
-static fdtype match_choice
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_choice
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if ((PAIRP(FD_CDR(pat))) &&
@@ -1517,26 +1517,26 @@ static fdtype match_choice
     return fd_text_domatch
       (FD_CAR(FD_CDR(pat)),next,env,string,off,lim,flags);
   else {
-    fdtype choice = EMPTY;
+    lispval choice = EMPTY;
     FD_DOLIST(elt,FD_CDR(pat)) {
       fd_incref(elt);
       CHOICE_ADD(choice,elt);}
     if (EMPTYP(choice)) return EMPTY;
     else {
-      fdtype result = fd_text_matcher(choice,env,string,off,lim,flags);
+      lispval result = fd_text_matcher(choice,env,string,off,lim,flags);
       fd_decref(choice);
       return result;}}
 }
 
 static u8_byteoff search_choice
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if ((PAIRP(FD_CDR(pat))) &&
       (NILP(FD_CDR(FD_CDR(pat)))))
     return fd_text_search(FD_CAR(FD_CDR(pat)),env,string,off,lim,flags);
   else {
-    fdtype choice = EMPTY;
+    lispval choice = EMPTY;
     FD_DOLIST(elt,FD_CDR(pat)) {
       fd_incref(elt);
       CHOICE_ADD(choice,elt);}
@@ -1547,8 +1547,8 @@ static u8_byteoff search_choice
       return result;}}
 }
 
-static fdtype extract_choice
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_choice
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if ((PAIRP(FD_CDR(pat))) &&
@@ -1556,75 +1556,75 @@ static fdtype extract_choice
     return fd_text_doextract
       (FD_CAR(FD_CDR(pat)),next,env,string,off,lim,flags);
   else {
-    fdtype choice = EMPTY;
+    lispval choice = EMPTY;
     FD_DOLIST(elt,FD_CDR(pat)) {
       fd_incref(elt);
       CHOICE_ADD(choice,elt);}
     if (EMPTYP(choice)) return EMPTY;
     else {
-      fdtype result = textract(choice,next,env,string,off,lim,flags);
+      lispval result = textract(choice,next,env,string,off,lim,flags);
       fd_decref(choice);
       return result;}}
 }
 
 /** Case sensitive/insensitive **/
 
-static fdtype match_ci
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_ci
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_ci",NULL,pat);
   else return fd_text_matcher
     (pat_arg,env,string,off,lim,(flags|(FD_MATCH_IGNORE_CASE)));
 }
 static u8_byteoff search_ci
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_ci",NULL,pat);
   else return fd_text_search(pat_arg,env,string,off,lim,
                              (flags|(FD_MATCH_IGNORE_CASE)));
 }
-static fdtype extract_ci
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_ci
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_ci",NULL,pat);
   else return textract
     (pat_arg,next,env,string,off,lim,(flags|(FD_MATCH_IGNORE_CASE)));
 }
 
-static fdtype match_cs
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_cs
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_cs",NULL,pat);
   else return fd_text_matcher
     (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_IGNORE_CASE))));
 }
 static u8_byteoff search_cs
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_cs",NULL,pat);
   else return fd_text_search
          (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_IGNORE_CASE))));
 }
-static fdtype extract_cs
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_cs
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_cs",NULL,pat);
   else return textract
@@ -1633,11 +1633,11 @@ static fdtype extract_cs
 
 /* Diacritic insensitive and sensitive matching */
 
-static fdtype match_di
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_di
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_di",NULL,pat);
   else return fd_text_matcher
@@ -1645,51 +1645,51 @@ static fdtype match_di
      string,off,lim,(flags|(FD_MATCH_IGNORE_DIACRITICS)));
 }
 static u8_byteoff search_di
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_di",NULL,pat);
   else return fd_text_search(pat_arg,env,string,off,lim,
                              (flags|(FD_MATCH_IGNORE_DIACRITICS)));
 }
-static fdtype extract_di
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_di
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_di",NULL,pat);
   else return textract
     (pat_arg,next,env,string,off,lim,(flags|(FD_MATCH_IGNORE_DIACRITICS)));
 }
 
-static fdtype match_ds
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_ds
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_ds",NULL,pat);
   else return fd_text_matcher
          (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_IGNORE_DIACRITICS))));
 }
 static u8_byteoff search_ds
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_ds",NULL,pat);
   else return fd_text_search
     (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_IGNORE_DIACRITICS))));
 }
-static fdtype extract_ds
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_ds
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_ds",NULL,pat);
   else return textract
@@ -1698,106 +1698,106 @@ static fdtype extract_ds
 
 /* Greedy/expansion match/search/etc. */
 
-static fdtype match_greedy
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_greedy
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_greedy",NULL,pat);
   else return fd_text_matcher
     (pat_arg,env,string,off,lim,(flags|(FD_MATCH_BE_GREEDY)));
 }
 static u8_byteoff search_greedy
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_greedy",NULL,pat);
   else return fd_text_search(pat_arg,env,string,off,lim,
                              (flags|(FD_MATCH_BE_GREEDY)));
 }
-static fdtype extract_greedy
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_greedy
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_greedy",NULL,pat);
   else return textract
          (pat_arg,next,env,string,off,lim,(flags|(FD_MATCH_BE_GREEDY)));
 }
 
-static fdtype match_expansive
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_expansive
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_expansive",NULL,pat);
   else return fd_text_matcher
          (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_BE_GREEDY))));
 }
 static u8_byteoff search_expansive
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_expansive",NULL,pat);
   else return fd_text_search
     (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_BE_GREEDY))));
 }
-static fdtype extract_expansive
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_expansive
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_expansive",NULL,pat);
   else return textract
     (pat_arg,next,env,string,off,lim,(flags&(~(FD_MATCH_BE_GREEDY))));
 }
 
-static fdtype match_longest
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_longest
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_longest",NULL,pat);
   else return get_longest_match(fd_text_matcher(pat_arg,env,string,off,lim,flags));
 }
 static u8_byteoff search_longest
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_longest",NULL,pat);
   else return fd_text_search(pat_arg,env,string,off,lim,flags);
 }
-static fdtype extract_longest
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_longest
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_longeset",NULL,pat);
   else {
-    fdtype results = fd_text_matcher(pat_arg,env,string,off,lim,flags);
+    lispval results = fd_text_matcher(pat_arg,env,string,off,lim,flags);
     if (FD_ABORTED(results)) return results;
     else return get_longest_extractions(results);}
 }
 
 /* Space collapsing matching */
 
-static fdtype match_si
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_si
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_si",NULL,pat);
   else return fd_text_matcher
@@ -1805,51 +1805,51 @@ static fdtype match_si
 }
 
 static u8_byteoff search_si
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_si",NULL,pat);
   else return fd_text_search(pat_arg,env,string,off,lim,
                              (flags|(FD_MATCH_COLLAPSE_SPACES)));
 }
-static fdtype extract_si
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_si
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_si",NULL,pat);
   else return textract
     (pat_arg,next,env,string,off,lim,(flags|(FD_MATCH_COLLAPSE_SPACES)));
 }
 
-static fdtype match_ss
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_ss
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_ss",NULL,pat);
   else return fd_text_matcher
          (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_COLLAPSE_SPACES))));
 }
 static u8_byteoff search_ss
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_ss",NULL,pat);
   else return fd_text_search
     (pat_arg,env,string,off,lim,(flags&(~(FD_MATCH_COLLAPSE_SPACES))));
 }
-static fdtype extract_ss
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_ss
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_ss",NULL,pat);
   else return textract
@@ -1858,31 +1858,31 @@ static fdtype extract_ss
 
 /** Canonical matching: ignore spacing, case, and diacritics */
 
-static fdtype match_canonical
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_canonical
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_canonical",NULL,pat);
   else return fd_text_matcher
          (pat_arg,env,string,off,lim,(flags|(FD_MATCH_SPECIAL)));
 }
 static u8_byteoff search_canonical
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"search_canonical",NULL,pat);
   else return fd_text_search(pat_arg,env,string,off,lim,
                              (flags|(FD_MATCH_SPECIAL)));
 }
-static fdtype extract_canonical
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_canonical
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"extract_canonical",NULL,pat);
   else return textract
@@ -1892,8 +1892,8 @@ static fdtype extract_canonical
 /** EOL and BOL **/
 
 /* Matching/finding beginning of lines */
-static fdtype match_bol
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_bol
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0)
@@ -1904,7 +1904,7 @@ static fdtype match_bol
 }
 
 static u8_byteoff search_bol
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0) return off;
@@ -1920,8 +1920,8 @@ static u8_byteoff search_bol
 
 /* Matching/finding end of lines */
 
-static fdtype match_eol
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_eol
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == lim) return FD_INT(off);
@@ -1931,7 +1931,7 @@ static fdtype match_eol
 }
 
 static u8_byteoff search_eol
-    (fdtype pat,fd_lexenv env,
+    (lispval pat,fd_lexenv env,
      u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == lim) return off+1;
@@ -1947,8 +1947,8 @@ static u8_byteoff search_eol
 
 /* Matching/finding beginning of words */
 
-static fdtype match_bow
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_bow
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0)
@@ -1962,7 +1962,7 @@ static fdtype match_bow
 }
 
 static u8_byteoff search_bow
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0) return off;
@@ -1990,8 +1990,8 @@ static u8_byteoff search_bow
 
 /* Matching/finding the beginning or end of the string */
 
-static fdtype match_bos
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_bos
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0) return FD_INT(off);
@@ -1999,15 +1999,15 @@ static fdtype match_bos
 }
 
 static u8_byteoff search_bos
-    (fdtype pat,fd_lexenv env,
+    (lispval pat,fd_lexenv env,
      u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0) return off;
   else return -1;
 }
 
-static fdtype match_eos
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_eos
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == lim) return FD_INT(off);
@@ -2015,7 +2015,7 @@ static fdtype match_eos
 }
 
 static u8_byteoff search_eos
-    (fdtype pat,fd_lexenv env,
+    (lispval pat,fd_lexenv env,
      u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == lim) return off+1;
@@ -2024,20 +2024,20 @@ static u8_byteoff search_eos
 
 /* Rest matching */
 
-static fdtype match_rest
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_rest
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return FD_INT(lim);
 }
 static u8_byteoff search_rest
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return off;
 }
-static fdtype extract_rest
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval extract_rest
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return fd_conspair(FD_INT(lim),
@@ -2046,8 +2046,8 @@ static fdtype extract_rest
 
 /** Character match operations **/
 
-static fdtype match_char_range
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_char_range
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar start = FD_CHAR2CODE(fd_get_arg(pat,1));
@@ -2062,12 +2062,12 @@ static fdtype match_char_range
   else return EMPTY;
 }
 
-static fdtype match_char_not_core
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_char_not_core
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string, u8_byteoff off,u8_byteoff lim,
    int flags,int match_null_string)
 {
-  fdtype arg1 = fd_get_arg(pat,1);
+  lispval arg1 = fd_get_arg(pat,1);
   const u8_byte *scan = string+off, *last_scan = scan, *end = string+lim;
   int *break_chars, n_break_chars = 0;
   if (VOIDP(pat))
@@ -2101,27 +2101,27 @@ static fdtype match_char_not_core
   return FD_INT(lim);
 }
 
-static fdtype match_char_not
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_char_not
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_char_not",NULL,pat);
   else return match_char_not_core(pat,next,env,string,off,lim,flags,0);
 }
-static fdtype match_char_not_star
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval match_char_not_star
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype pat_arg = fd_get_arg(pat,1);
+  lispval pat_arg = fd_get_arg(pat,1);
   if (VOIDP(pat_arg))
     return fd_err(fd_MatchSyntaxError,"match_char_not_star",NULL,pat);
   else return match_char_not_core(pat,next,env,string,off,lim,flags,1);
 }
 
-static fdtype isvowel_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isvowel_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off), bch = u8_base_char(ch);
@@ -2129,8 +2129,8 @@ static fdtype isvowel_match
   else return EMPTY;
 }
 
-static fdtype isnotvowel_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isnotvowel_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off), bch = u8_base_char(ch);
@@ -2138,19 +2138,19 @@ static fdtype isnotvowel_match
   else return FD_INT(forward_char(string,off));
 }
 
-static fdtype isspace_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isspace_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isspace(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isspace_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isspace_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   const u8_byte *scan = string+off, *limit = string+lim, *last = scan;
   u8_unichar ch = u8_sgetc(&scan);
   while (u8_isspace(ch)) 
@@ -2167,7 +2167,7 @@ static fdtype isspace_plus_match
   else return match_points;
 }
 static u8_byteoff isspace_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2179,8 +2179,8 @@ static u8_byteoff isspace_search
   return -1;
 }
 
-static fdtype spaces_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval spaces_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim, *last = scan;
@@ -2191,7 +2191,7 @@ static fdtype spaces_match
   else return FD_INT(last-string);
 }
 static u8_byteoff spaces_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2203,8 +2203,8 @@ static u8_byteoff spaces_search
   return -1;
 }
 
-static fdtype spaces_star_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval spaces_star_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim, *last = scan;
@@ -2215,7 +2215,7 @@ static fdtype spaces_star_match
   else return FD_INT(last-string);
 }
 static u8_byteoff spaces_star_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off > lim) return -1;
@@ -2224,19 +2224,19 @@ static u8_byteoff spaces_star_search
 
 /* Horizontal space matching */
 
-static fdtype ishspace_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval ishspace_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_ishspace(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype ishspace_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval ishspace_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   const u8_byte *scan = string+off, *limit = string+lim, *last = scan;
   u8_unichar ch = u8_sgetc(&scan);
   while (u8_ishspace(ch)) 
@@ -2253,7 +2253,7 @@ static fdtype ishspace_plus_match
   else return match_points;
 }
 static u8_byteoff ishspace_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2267,19 +2267,19 @@ static u8_byteoff ishspace_search
 
 /* Vertical space matching */
 
-static fdtype vspace_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval vspace_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isvspace(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype vspace_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval vspace_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   const u8_byte *scan = string+off, *limit = string+lim, *last = scan;
   u8_unichar ch = u8_sgetc(&scan);
   while (u8_isvspace(ch))
@@ -2296,7 +2296,7 @@ static fdtype vspace_plus_match
   else return match_points;
 }
 static u8_byteoff vspace_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2308,8 +2308,8 @@ static u8_byteoff vspace_search
   return -1;
 }
 
-static fdtype vbreak_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval vbreak_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim, *last = NULL;
@@ -2330,7 +2330,7 @@ static fdtype vbreak_match
 }
 
 static u8_byteoff vbreak_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_string s = string+off, sl = string+lim;
@@ -2352,19 +2352,19 @@ static u8_byteoff vbreak_search
 
 /* Other matchers */
 
-static fdtype isalnum_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isalnum_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isalnum(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isalnum_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isalnum_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isalnum(ch)) {
     while (u8_isalnum(ch)) {
@@ -2379,7 +2379,7 @@ static fdtype isalnum_plus_match
   else return EMPTY;
 }
 static u8_byteoff isalnum_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2391,8 +2391,8 @@ static u8_byteoff isalnum_search
   return -1;
 }
 
-static fdtype isword_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isword_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
@@ -2400,11 +2400,11 @@ static fdtype isword_match
     return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isword_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isword_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if ((u8_isalpha(ch)) || (ch == '-') || (ch == '_')) {
     while ((u8_isalpha(ch)) || (ch == '-') || (ch == '_')) {
@@ -2419,7 +2419,7 @@ static fdtype isword_plus_match
   else return EMPTY;
 }
 static u8_byteoff isword_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2433,19 +2433,19 @@ static u8_byteoff isword_search
 
 /* Digit matching */
 
-static fdtype isdigit_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isdigit_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isdigit(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isdigit_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isdigit_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isdigit(ch)) {
     while (u8_isdigit(ch)) {
@@ -2460,7 +2460,7 @@ static fdtype isdigit_plus_match
   else return EMPTY;
 }
 static u8_byteoff isdigit_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2472,19 +2472,19 @@ static u8_byteoff isdigit_search
   return -1;
 }
 
-static fdtype isxdigit_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isxdigit_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isxdigit(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isxdigit_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isxdigit_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isxdigit(ch)) {
     while (u8_isxdigit(ch)) {
@@ -2499,7 +2499,7 @@ static fdtype isxdigit_plus_match
   else return EMPTY;
 }
 static u8_byteoff isxdigit_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2511,19 +2511,19 @@ static u8_byteoff isxdigit_search
   return -1;
 }
 
-static fdtype isodigit_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isodigit_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isodigit(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isodigit_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isodigit_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isodigit(ch)) {
     while (u8_isodigit(ch)) {
@@ -2538,7 +2538,7 @@ static fdtype isodigit_plus_match
   else return EMPTY;
 }
 static u8_byteoff isodigit_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2550,19 +2550,19 @@ static u8_byteoff isodigit_search
   return -1;
 }
 
-static fdtype isalpha_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isalpha_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isalpha(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isalpha_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isalpha_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isalpha(ch)) {
     while ((u8_isalpha(ch)) && (off<lim)) {
@@ -2577,7 +2577,7 @@ static fdtype isalpha_plus_match
   else return EMPTY;
 }
 static u8_byteoff isalpha_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2589,19 +2589,19 @@ static u8_byteoff isalpha_search
   return -1;
 }
 
-static fdtype ispunct_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval ispunct_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_ispunct(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype ispunct_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval ispunct_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_ispunct(ch)) {
     while ((u8_ispunct(ch)) && (off<lim)) {
@@ -2616,7 +2616,7 @@ static fdtype ispunct_plus_match
   else return EMPTY;
 }
 static u8_byteoff ispunct_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2629,19 +2629,19 @@ static u8_byteoff ispunct_search
 }
 
 
-static fdtype isprint_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isprint_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isprint(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isprint_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isprint_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isprint(ch)) {
     while (u8_isprint(ch)) {
@@ -2656,7 +2656,7 @@ static fdtype isprint_plus_match
   else return EMPTY;
 }
 static u8_byteoff isprint_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2668,19 +2668,19 @@ static u8_byteoff isprint_search
   return -1;
 }
 
-static fdtype iscntrl_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval iscntrl_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isctrl(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype iscntrl_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval iscntrl_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isctrl(ch)) {
     while ((u8_isctrl(ch)) && (off<lim)) {
@@ -2695,7 +2695,7 @@ static fdtype iscntrl_plus_match
   else return EMPTY;
 }
 static u8_byteoff iscntrl_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2709,19 +2709,19 @@ static u8_byteoff iscntrl_search
 
 /* ISLOWER methods */
 
-static fdtype islower_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval islower_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_islower(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype islower_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval islower_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_islower(ch)) {
     while ((u8_islower(ch)) && (off<lim)) {
@@ -2736,7 +2736,7 @@ static fdtype islower_plus_match
   else return EMPTY;
 }
 static u8_byteoff islower_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2752,19 +2752,19 @@ static u8_byteoff islower_search
 
 #define isnotlower(c) ((u8_isprint(c))&&(!(u8_islower(c))))
 
-static fdtype isnotlower_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isnotlower_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (isnotlower(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isnotlower_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isnotlower_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (isnotlower(ch)) {
     while ((isnotlower(ch)) && (off<lim)) {
@@ -2779,7 +2779,7 @@ static fdtype isnotlower_plus_match
   else return EMPTY;
 }
 static u8_byteoff isnotlower_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2793,19 +2793,19 @@ static u8_byteoff isnotlower_search
 
 /* ISUPPER methods */
 
-static fdtype isupper_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isupper_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (u8_isupper(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isupper_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isupper_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (u8_isupper(ch)) {
     while ((u8_isupper(ch)) && (off<lim)) {
@@ -2820,7 +2820,7 @@ static fdtype isupper_plus_match
   else return EMPTY;
 }
 static u8_byteoff isupper_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2836,19 +2836,19 @@ static u8_byteoff isupper_search
 
 #define isnotupper(c) ((u8_isprint(c))&&(!(u8_isupper(c))))
 
-static fdtype isnotupper_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isnotupper_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch = string_ref(string+off);
   if (isnotupper(ch)) return FD_INT(forward_char(string,off));
   else return EMPTY;
 }
-static fdtype isnotupper_plus_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval isnotupper_plus_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype match_points = EMPTY;
+  lispval match_points = EMPTY;
   u8_unichar ch = string_ref(string+off);
   if (isnotupper(ch)) {
     while ((isnotupper(ch)) && (off<lim)) {
@@ -2863,7 +2863,7 @@ static fdtype isnotupper_plus_match
   else return EMPTY;
 }
 static u8_byteoff isnotupper_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
@@ -2877,11 +2877,11 @@ static u8_byteoff isnotupper_search
 
 /* Matching compound words */
 
-static fdtype compound_word_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval compound_word_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype embpunc = fd_get_arg(pat,1);
+  lispval embpunc = fd_get_arg(pat,1);
   const u8_byte *embstr=
     ((STRINGP(embpunc) ? (CSTRING(embpunc)) : ((const u8_byte *)",-/.")));
   const u8_byte *scan = string+off, *limit = string+lim, *end;
@@ -2913,8 +2913,8 @@ static int lsymbol_startp(u8_string string,u8_byteoff off)
   else return 0;
 }
 
-static fdtype islsym_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval islsym_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byteoff i = off;
@@ -2927,7 +2927,7 @@ static fdtype islsym_match
   else return EMPTY;
 }
 static u8_byteoff islsym_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim;
@@ -2949,8 +2949,8 @@ static u8_byteoff csymbol_startp(u8_string string,u8_byteoff off)
   else return 1;
 }
 
-static fdtype iscsym_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval iscsym_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byteoff i = off; u8_unichar ch = string_ref(string+off);
@@ -2964,7 +2964,7 @@ static fdtype iscsym_match
   else return EMPTY;
 }
 static u8_byteoff iscsym_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim;
@@ -2981,8 +2981,8 @@ static u8_byteoff iscsym_search
 
 #define ispathelt(ch) ((u8_isalnum(ch)) || (ch == '_') || (ch == '-') || (ch == '.'))
 
-static fdtype ispathelt_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval ispathelt_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_byteoff i = off; u8_unichar ch = string_ref(string+off);
@@ -2995,7 +2995,7 @@ static fdtype ispathelt_match
   else return EMPTY;
 }
 static u8_byteoff ispathelt_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3015,8 +3015,8 @@ static u8_byteoff ispathelt_search
    (u8_isspace(c)) || (c == '<') || \
    (c == ',') || (c == '(') || (c == '>') || (c == '<'))
 
-static fdtype ismailid_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval ismailid_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim; u8_byteoff atsign = 0;
@@ -3036,7 +3036,7 @@ static fdtype ismailid_match
 #define ismailid(x) ((x<128) && ((isalnum(x)) || (strchr(".-_",x) != NULL)))
 
 static u8_byteoff ismailid_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *start = string+off, *slim = string+lim;
@@ -3045,7 +3045,7 @@ static u8_byteoff ismailid_search
     if (atsign == start) start = atsign+1;
     else if (!(ismailid(atsign[0]))) start = atsign+1;
     else {
-      const u8_byte *s = atsign-1; fdtype match;
+      const u8_byte *s = atsign-1; lispval match;
       while (s > start) 
         if (!(ismailid(*s))) break; else s--;
       if (s != start) s++;
@@ -3087,8 +3087,8 @@ static u8_byteoff ismailid_search
       ((x>=0xFDF0) && (x<=0xFDCF)) ||                            \
       ((x>=0x10000) && (x<=0xEFFFF))))))
 
-static fdtype xmlname_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval xmlname_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3100,7 +3100,7 @@ static fdtype xmlname_match
   else return FD_INT(oscan-string);
 }
 static u8_byteoff xmlname_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3112,8 +3112,8 @@ static u8_byteoff xmlname_search
   else return -1;
 }
 
-static fdtype xmlnmtoken_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval xmlnmtoken_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3125,7 +3125,7 @@ static fdtype xmlnmtoken_match
   else return FD_INT(oscan-string);
 }
 static u8_byteoff xmlnmtoken_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3142,8 +3142,8 @@ static u8_byteoff xmlnmtoken_search
 
 #define htmlidcharp(ch) \
   ((isalnum(ch)) || (ch=='_') || (ch=='.') || (ch==':') || (ch=='-'))
-static fdtype htmlid_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval htmlid_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3155,7 +3155,7 @@ static fdtype htmlid_match
   else return FD_INT(oscan-string);
 }
 static u8_byteoff htmlid_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *oscan = scan, *limit = string+lim;
@@ -3172,8 +3172,8 @@ static u8_byteoff htmlid_search
 
 /* Word matching */
 
-static fdtype aword_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval aword_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *slim = string+lim, *last = scan;
@@ -3199,7 +3199,7 @@ static fdtype aword_match
   else return EMPTY;
 }
 static u8_byteoff aword_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim;
@@ -3212,8 +3212,8 @@ static u8_byteoff aword_search
   return -1;
 }
 
-static fdtype lword_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval lword_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *slim = string+lim, *last = scan;
@@ -3230,7 +3230,7 @@ static fdtype lword_match
   else return EMPTY;
 }
 static u8_byteoff lword_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim;
@@ -3246,11 +3246,11 @@ static u8_byteoff lword_search
   return -1;
 }
 
-static fdtype capword_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval capword_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype matches = EMPTY;
+  lispval matches = EMPTY;
   const u8_byte *scan = string+off, *last = scan, *slim = string+lim;
   u8_unichar ch = u8_sgetc(&scan), lastch = -1;
   int greedy = ((flags)&(FD_MATCH_BE_GREEDY)), allupper = 1, dotcount = 0;
@@ -3282,7 +3282,7 @@ static fdtype capword_match
 }
 
 static u8_byteoff capword_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *scan = string+off, *limit = string+lim;
@@ -3297,12 +3297,12 @@ static u8_byteoff capword_search
 
 #define isoctdigit(x) ((x<128) && (isdigit(x)) && (x < '8'))
 
-static fdtype anumber_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval anumber_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype base_arg = fd_get_arg(pat,1);
-  fdtype sep_arg = fd_get_arg(pat,2);
+  lispval base_arg = fd_get_arg(pat,1);
+  lispval sep_arg = fd_get_arg(pat,2);
   int base = ((FD_UINTP(base_arg)) ? (FIX2INT(base_arg)) : (10));
   u8_string sepchars=
     ((VOIDP(sep_arg)) ? ((u8_string)".,") :
@@ -3336,10 +3336,10 @@ static int check_digit(u8_unichar ch,int base)
 }
 
 static u8_byteoff anumber_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype base_arg = fd_get_arg(pat,1);
+  lispval base_arg = fd_get_arg(pat,1);
   int base = ((FD_UINTP(base_arg)) ? (FIX2INT(base_arg)) : (10));
   const u8_byte *scan = string+off, *limit = string+lim;
   while (scan < limit) {
@@ -3350,28 +3350,28 @@ static u8_byteoff anumber_search
 
 /* Hashset matches */
 
-static fd_hashset to_hashset(fdtype arg)
+static fd_hashset to_hashset(lispval arg)
 {
   if (FD_TYPEP(arg,fd_hashset_type)) 
     return (fd_hashset)arg;
   else return NULL;
 }
 
-static fdtype hashset_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval hashset_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype hs = fd_get_arg(pat,1);
-  fdtype cpat = fd_get_arg(pat,2);
-  fdtype xform = fd_get_arg(pat,3);
+  lispval hs = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,2);
+  lispval xform = fd_get_arg(pat,3);
   if ((VOIDP(hs)) || (VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_match",NULL,pat);
   else if (!(FD_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
   if (VOIDP(xform)) {
     fd_hashset h = to_hashset(hs);
-    fdtype iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
-    fdtype results = EMPTY;
+    lispval iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    lispval results = EMPTY;
     DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {
         fd_incref(possibility);
@@ -3380,12 +3380,12 @@ static fdtype hashset_match
     return get_longest_match(results);}
   else {
     fd_hashset h = to_hashset(hs);
-    fdtype iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
-    fdtype results = EMPTY;
+    lispval iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    lispval results = EMPTY;
     {DO_CHOICES(possibility,iresults) {
-        fdtype origin = fd_extract_string
+        lispval origin = fd_extract_string
           (NULL,string+off,string+fd_getint(possibility));
-        fdtype xformed = match_apply(xform,"HASHSET-MATCH",env,1,&origin);
+        lispval xformed = match_apply(xform,"HASHSET-MATCH",env,1,&origin);
         if (fd_hashset_get(h,xformed)) {
           fd_incref(possibility); CHOICE_ADD(results,possibility);}
         fd_decref(xformed); fd_decref(origin);}}
@@ -3394,11 +3394,11 @@ static fdtype hashset_match
 }
 
 static u8_byteoff hashset_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype hs = fd_get_arg(pat,1);
-  fdtype cpat = fd_get_arg(pat,2);
+  lispval hs = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,2);
   if ((VOIDP(hs)) || (VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_search",NULL,pat);
   else if (!(FD_TYPEP(hs,fd_hashset_type)))
@@ -3406,7 +3406,7 @@ static u8_byteoff hashset_search
   else {
     u8_byteoff try = fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
-      fdtype matches = hashset_match(pat,VOID,env,string,try,lim,flags);
+      lispval matches = hashset_match(pat,VOID,env,string,try,lim,flags);
       if (FD_ABORTED(matches)) return -2;
       else if (!(EMPTYP(matches))) {
         fd_decref(matches); 
@@ -3418,21 +3418,21 @@ static u8_byteoff hashset_search
   
 /* HASHSET-NOT */
 
-static fdtype hashset_not_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval hashset_not_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype hs = fd_get_arg(pat,1);
-  fdtype cpat = fd_get_arg(pat,2);
-  fdtype xform = fd_get_arg(pat,3);
+  lispval hs = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,2);
+  lispval xform = fd_get_arg(pat,3);
   if ((VOIDP(hs)) || (VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_match",NULL,pat);
   else if (!(FD_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_match",pat);
   if (VOIDP(xform)) {
     fd_hashset h = to_hashset(hs);
-    fdtype iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
-    fdtype results = EMPTY;
+    lispval iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    lispval results = EMPTY;
     DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {}
       else {fd_incref(possibility); CHOICE_ADD(results,possibility);}
@@ -3440,12 +3440,12 @@ static fdtype hashset_not_match
     return get_longest_match(results);}
   else {
     fd_hashset h = to_hashset(hs);
-    fdtype iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
-    fdtype results = EMPTY;
+    lispval iresults = fd_text_domatch(cpat,next,env,string,off,lim,flags);
+    lispval results = EMPTY;
     {DO_CHOICES(possibility,iresults) {
-        fdtype origin = fd_extract_string
+        lispval origin = fd_extract_string
           (NULL,string+off,string+fd_getint(possibility));
-        fdtype xformed = match_apply(xform,"HASHSET-NOT-MATCH",env,1,&origin);
+        lispval xformed = match_apply(xform,"HASHSET-NOT-MATCH",env,1,&origin);
         if (FD_ABORTED(xformed)) {
           FD_STOP_DO_CHOICES;
           fd_decref(results);
@@ -3458,11 +3458,11 @@ static fdtype hashset_not_match
 }
 
 static u8_byteoff hashset_not_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype hs = fd_get_arg(pat,1);
-  fdtype cpat = fd_get_arg(pat,2);
+  lispval hs = fd_get_arg(pat,1);
+  lispval cpat = fd_get_arg(pat,2);
   if ((VOIDP(hs)) || (VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_search",NULL,pat);
   else if (!(FD_TYPEP(hs,fd_hashset_type)))
@@ -3470,7 +3470,7 @@ static u8_byteoff hashset_not_search
   else {
     u8_byteoff try = fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
-      fdtype matches = hashset_not_match(pat,VOID,env,string,try,lim,flags);
+      lispval matches = hashset_not_match(pat,VOID,env,string,try,lim,flags);
       if (FD_ABORTED(matches)) return -2;
       else if (!(EMPTYP(matches))) {
         fd_decref(matches); 
@@ -3483,24 +3483,24 @@ static u8_byteoff hashset_not_search
 
 /* Proc matches */
 
-static fdtype applytest_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval applytest_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
-  fdtype proc = fd_get_arg(pat,2);
+  lispval cpat = fd_get_arg(pat,1);
+  lispval proc = fd_get_arg(pat,2);
   if ((VOIDP(proc)) || (VOIDP(proc)))
     return fd_err(fd_MatchSyntaxError,"proc_match",NULL,cpat);
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("applicable"),"proc_match",proc);
   else {
-    fdtype iresults = fd_text_domatch
+    lispval iresults = fd_text_domatch
       (cpat,next,env,string,off,lim,(flags&(~FD_MATCH_BE_GREEDY)));
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     {DO_CHOICES(possibility,iresults) {
-        fdtype substring = fd_extract_string
+        lispval substring = fd_extract_string
           (NULL,string+off,string+fd_getint(possibility));
-        fdtype match = fd_apply(proc,1,&substring);
+        lispval match = fd_apply(proc,1,&substring);
         if (!((FALSEP(match))||(EMPTYP(match))||(VOIDP(match)))) {
           fd_incref(possibility); CHOICE_ADD(results,possibility);}
         fd_decref(substring); fd_decref(match);}}
@@ -3511,11 +3511,11 @@ static fdtype applytest_match
 }
 
 static u8_byteoff applytest_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
-  fdtype proc = fd_get_arg(pat,2);
+  lispval cpat = fd_get_arg(pat,1);
+  lispval proc = fd_get_arg(pat,2);
   if ((VOIDP(proc)) || (VOIDP(proc)))
     return fd_err(fd_MatchSyntaxError,"proc_match",NULL,cpat);
   else if (!(FD_APPLICABLEP(proc)))
@@ -3523,7 +3523,7 @@ static u8_byteoff applytest_search
   else {
     u8_byteoff try = fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
-      fdtype matches = applytest_match(pat,VOID,env,string,try,lim,flags);
+      lispval matches = applytest_match(pat,VOID,env,string,try,lim,flags);
       if (FD_ABORTED(matches)) return -2;
       else if (!(EMPTYP(matches))) {
         fd_decref(matches); 
@@ -3535,12 +3535,12 @@ static u8_byteoff applytest_search
   
 /* MAXLEN matches */
 
-static fdtype maxlen_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval maxlen_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
-  fdtype lim_arg = fd_get_arg(pat,2);
+  lispval cpat = fd_get_arg(pat,1);
+  lispval lim_arg = fd_get_arg(pat,2);
   if ((VOIDP(lim_arg)) || (VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"maxlen_match",NULL,pat);
   else if (!(FD_UINTP(lim_arg)))
@@ -3553,11 +3553,11 @@ static fdtype maxlen_match
 }
 
 static u8_byteoff maxlen_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
-  fdtype lim_arg = fd_get_arg(pat,2);
+  lispval cpat = fd_get_arg(pat,1);
+  lispval lim_arg = fd_get_arg(pat,2);
   if ((VOIDP(lim_arg)) || (VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"maxlen_search",NULL,pat);
   else if (!(FIXNUMP(lim_arg)))
@@ -3565,7 +3565,7 @@ static u8_byteoff maxlen_search
   else {
     u8_byteoff try = fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
-      fdtype matches = maxlen_match(pat,VOID,env,string,try,lim,flags);
+      lispval matches = maxlen_match(pat,VOID,env,string,try,lim,flags);
       if (FD_ABORTED(matches)) return -2;
       else if (!(EMPTYP(matches))) {
         fd_decref(matches); return try;}
@@ -3577,13 +3577,13 @@ static u8_byteoff maxlen_search
 
 /* MINLEN matches */
 
-static fdtype minlen_match
-  (fdtype pat,fdtype next,fd_lexenv env,
+static lispval minlen_match
+  (lispval pat,lispval next,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
-  fdtype lim_arg = fd_get_arg(pat,2);
-  fdtype inner_results = EMPTY;
+  lispval cpat = fd_get_arg(pat,1);
+  lispval lim_arg = fd_get_arg(pat,2);
+  lispval inner_results = EMPTY;
   int min_len = -1;
   if (VOIDP(cpat))
     return fd_err(fd_MatchSyntaxError,"maxlen_match",NULL,pat);
@@ -3603,7 +3603,7 @@ static fdtype minlen_match
       return EMPTY;
     else return inner_results;}
   else {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(r,inner_results) {
       if (FD_UINTP(r)) {
         int rint = FIX2INT(r); int diff = rint-off;
@@ -3613,11 +3613,11 @@ static fdtype minlen_match
 }
 
 static u8_byteoff minlen_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype cpat = fd_get_arg(pat,1);
-  fdtype lim_arg = fd_get_arg(pat,2);
+  lispval cpat = fd_get_arg(pat,1);
+  lispval lim_arg = fd_get_arg(pat,2);
   if (VOIDP(cpat))
     return fd_err(fd_MatchSyntaxError,"minlen_search",NULL,pat);
   else if (VOIDP(lim_arg)) {}
@@ -3628,7 +3628,7 @@ static u8_byteoff minlen_search
   {
     u8_byteoff try = fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
-      fdtype matches = minlen_match(pat,VOID,env,string,try,lim,flags);
+      lispval matches = minlen_match(pat,VOID,env,string,try,lim,flags);
       if (FD_ABORTED(matches)) return -2;
       else if (!(EMPTYP(matches))) {
         fd_decref(matches);
@@ -3685,12 +3685,12 @@ static const u8_byte *strsearch
 }    
 
 static u8_byteoff slow_search
-   (fdtype pat,fd_lexenv env,
+   (lispval pat,fd_lexenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   const u8_byte *s = string+off, *sl = string+lim;
   while (s < sl) {
-    fdtype result = fd_text_matcher(pat,env,string,s-string,lim,flags);
+    lispval result = fd_text_matcher(pat,env,string,s-string,lim,flags);
     if (FD_ABORTED(result)) return -2;
     else if (!(EMPTYP(result))) return s-string;
     else if (*s < 0x80) s++;
@@ -3702,7 +3702,7 @@ static u8_byteoff slow_search
 
 FD_EXPORT
 u8_byteoff fd_text_search
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (FD_INTERRUPTED()) return -2;
@@ -3720,10 +3720,10 @@ u8_byteoff fd_text_search
       return next-string;
     else return -1;}
   else if (VECTORP(pat)) {
-    fdtype initial = VEC_REF(pat,0);
+    lispval initial = VEC_REF(pat,0);
     u8_byteoff start = fd_text_search(initial,env,string,off,lim,flags);
     while ((start >= 0) && (start < lim)) {
-      fdtype m = fd_text_matcher(pat,env,string,start,lim,flags);
+      lispval m = fd_text_matcher(pat,env,string,start,lim,flags);
       if (FD_ABORTED(m)) {
         fd_interr(m);
         return -2;}
@@ -3761,7 +3761,7 @@ u8_byteoff fd_text_search
       else if (nxt < nlim) {nlim = nxt; loc = nxt;}}
     return loc;}
   else if (PAIRP(pat)) {
-    fdtype head = FD_CAR(pat);
+    lispval head = FD_CAR(pat);
     struct FD_TEXTMATCH_OPERATOR
       *scan = match_operators, *limit = scan+n_match_operators;
     while (scan < limit)
@@ -3774,7 +3774,7 @@ u8_byteoff fd_text_search
       fd_seterr(fd_MatchSyntaxError,"fd_text_search",NULL,fd_incref(pat));
       return -2;}}
   else if (SYMBOLP(pat)) {
-    fdtype vpat = match_eval(pat,env);
+    lispval vpat = match_eval(pat,env);
     if (FD_ABORTED(vpat)) {
       fd_interr(vpat);
       return -2;}
@@ -3800,10 +3800,10 @@ u8_byteoff fd_text_search
 
 FD_EXPORT
 int fd_text_match
-  (fdtype pat,fd_lexenv env,
+  (lispval pat,fd_lexenv env,
    u8_string string,u8_byteoff off,u8_byteoff len,int flags)
 {
-  fdtype extents = fd_text_matcher(pat,env,string,off,len,flags);
+  lispval extents = fd_text_matcher(pat,env,string,off,len,flags);
   if (FD_ABORTED(extents)) 
     return fd_interr(extents);
   else {
@@ -3817,15 +3817,15 @@ int fd_text_match
 }
 
 FD_EXPORT
-fdtype fd_textclosure(fdtype expr,fd_lexenv env)
+lispval fd_textclosure(lispval expr,fd_lexenv env)
 {
   struct FD_TXCLOSURE *txc = u8_alloc(struct FD_TXCLOSURE);
   FD_INIT_CONS(txc,fd_txclosure_type);
   txc->fd_txpattern = fd_incref(expr); txc->fd_txenv = fd_copy_env(env);
-  return (fdtype) txc;
+  return (lispval) txc;
 }
 
-static int unparse_txclosure(u8_output ss,fdtype x)
+static int unparse_txclosure(u8_output ss,lispval x)
 {
   struct FD_TXCLOSURE *txc = (fd_txclosure)x;
   u8_printf(ss,"#<TX-CLOSURE %q>",txc->fd_txpattern);
@@ -3835,18 +3835,18 @@ static int unparse_txclosure(u8_output ss,fdtype x)
 static void recycle_txclosure(struct FD_RAW_CONS *c)
 {
   struct FD_TXCLOSURE *txc = (fd_txclosure)c;
-  fd_decref(txc->fd_txpattern); fd_decref((fdtype)(txc->fd_txenv));
+  fd_decref(txc->fd_txpattern); fd_decref((lispval)(txc->fd_txenv));
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 /* Defining match symbols */
 
-FD_EXPORT int fd_matchdef(fdtype symbol,fdtype value)
+FD_EXPORT int fd_matchdef(lispval symbol,lispval value)
 {
   return fd_store(match_env,symbol,value);
 }
 
-FD_EXPORT fdtype fd_matchget(fdtype symbol,fd_lexenv env)
+FD_EXPORT lispval fd_matchget(lispval symbol,fd_lexenv env)
 {
   return match_eval(symbol,env);
 }

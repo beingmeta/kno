@@ -23,53 +23,53 @@ static u8_string StrSearchKey=_("string search/key");
 
 /* Character functions */
 
-static fdtype char2integer(fdtype arg)
+static lispval char2integer(lispval arg)
 {
   return FD_INT(FD_CHAR2CODE(arg));
 }
 
-static fdtype integer2char(fdtype arg)
+static lispval integer2char(lispval arg)
 {
   return FD_CODE2CHAR(fd_getint(arg));
 }
 
-static fdtype char_alphabeticp(fdtype arg)
+static lispval char_alphabeticp(lispval arg)
 {
   if (u8_isalpha(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype char_numericp(fdtype arg)
+static lispval char_numericp(lispval arg)
 {
   if (u8_isdigit(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype char_whitespacep(fdtype arg)
+static lispval char_whitespacep(lispval arg)
 {
   if (u8_isspace(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype char_upper_casep(fdtype arg)
+static lispval char_upper_casep(lispval arg)
 {
   if (u8_isupper(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype char_lower_casep(fdtype arg)
+static lispval char_lower_casep(lispval arg)
 {
   if (u8_islower(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype char_alphanumericp(fdtype arg)
+static lispval char_alphanumericp(lispval arg)
 {
   if (u8_isalnum(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype char_punctuationp(fdtype arg)
+static lispval char_punctuationp(lispval arg)
 {
   if (u8_ispunct(FD_CHAR2CODE(arg))) return FD_TRUE;
   else return FD_FALSE;
@@ -77,7 +77,7 @@ static fdtype char_punctuationp(fdtype arg)
 
 /* String predicates */
 
-static fdtype asciip(fdtype string)
+static lispval asciip(lispval string)
 {
   const u8_byte *scan = CSTRING(string);
   const u8_byte *limit = scan+STRLEN(string);
@@ -87,7 +87,7 @@ static fdtype asciip(fdtype string)
   return FD_TRUE;
 }
 
-static fdtype latin1p(fdtype string)
+static lispval latin1p(lispval string)
 {
   const u8_byte *scan = CSTRING(string);
   const u8_byte *limit = scan+STRLEN(string);
@@ -98,7 +98,7 @@ static fdtype latin1p(fdtype string)
   return FD_TRUE;
 }
 
-static fdtype lowercasep(fdtype string)
+static lispval lowercasep(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c;
@@ -112,7 +112,7 @@ static fdtype lowercasep(fdtype string)
   else return fd_type_error("string or character","lowercasep",string);
 }
 
-static fdtype uppercasep(fdtype string)
+static lispval uppercasep(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c;
@@ -126,7 +126,7 @@ static fdtype uppercasep(fdtype string)
   else return fd_type_error("string or character","uppercasep",string);
 }
 
-static fdtype capitalizedp(fdtype string)
+static lispval capitalizedp(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c = u8_sgetc(&scan);
@@ -138,7 +138,7 @@ static fdtype capitalizedp(fdtype string)
   else return fd_type_error("string or character","capitalizedp",string);
 }
 
-static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
+static lispval some_capitalizedp(lispval string,lispval window_arg)
 {
   if (!(FD_UINTP(window_arg)))
     return fd_type_error("uint","some_capitalizedp",window_arg);
@@ -156,7 +156,7 @@ static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
   return FD_FALSE;
 }
 
-static fdtype string_compoundp(fdtype string)
+static lispval string_compoundp(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string);
@@ -171,7 +171,7 @@ static fdtype string_compoundp(fdtype string)
   else return FD_FALSE;
 }
 
-static fdtype string_phrase_length(fdtype string)
+static lispval string_phrase_length(lispval string)
 {
   int len = 0;
   const u8_byte *scan = CSTRING(string);
@@ -188,8 +188,8 @@ static fdtype string_phrase_length(fdtype string)
   return FD_INT(len+1);
 }
 
-static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg,
-                            fdtype count_nbsp_arg)
+static lispval empty_stringp(lispval string,lispval count_vspace_arg,
+                            lispval count_nbsp_arg)
 {
   int count_vspace = (!(FALSEP(count_vspace_arg)));
   int count_nbsp = (!(FALSEP(count_nbsp_arg)));
@@ -211,7 +211,7 @@ static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg,
 
 /* String conversions */
 
-static fdtype downcase(fdtype string)
+static lispval downcase(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c;
@@ -234,13 +234,13 @@ static fdtype downcase(fdtype string)
          (_("string, symbol, or character"),"downcase",string);
 
 }
-static fdtype char_downcase(fdtype ch)
+static lispval char_downcase(lispval ch)
 {
   int c = FD_CHARCODE(ch);
   return FD_CODE2CHAR(u8_tolower(c));
 }
 
-static fdtype upcase(fdtype string)
+static lispval upcase(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c;
@@ -261,13 +261,13 @@ static fdtype upcase(fdtype string)
     return fd_stream2string(&out);}
   else return fd_type_error(_("string or character"),"upcase",string);
 }
-static fdtype char_upcase(fdtype ch)
+static lispval char_upcase(lispval ch)
 {
   int c = FD_CHARCODE(ch);
   return FD_CODE2CHAR(u8_toupper(c));
 }
 
-static fdtype capitalize(fdtype string)
+static lispval capitalize(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c;
@@ -283,7 +283,7 @@ static fdtype capitalize(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize",string);
 }
 
-static fdtype capitalize1(fdtype string)
+static lispval capitalize1(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c = u8_sgetc(&scan);
@@ -297,7 +297,7 @@ static fdtype capitalize1(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
-static fdtype string_stdcap(fdtype string)
+static lispval string_stdcap(lispval string)
 {
   if (STRINGP(string)) {
     u8_string str = CSTRING(string), scan = str;
@@ -341,7 +341,7 @@ static fdtype string_stdcap(fdtype string)
   else return fd_type_error(_("string"),"string_stdcap",string);
 }
 
-static fdtype string_downcase1(fdtype string)
+static lispval string_downcase1(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c = u8_sgetc(&scan);
@@ -355,7 +355,7 @@ static fdtype string_downcase1(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
-static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
+static lispval string_stdspace(lispval string,lispval keep_vertical_arg)
 {
   int keep_vertical = FD_TRUEP(keep_vertical_arg);
   const u8_byte *scan = CSTRING(string); int c, white = 1;
@@ -374,12 +374,12 @@ static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
     else {white = 0; u8_putc(&out,c);}}
   if (out.u8_write == out.u8_outbuf) {
     u8_free(out.u8_outbuf);
-    return fdtype_string("");}
+    return lispval_string("");}
   else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
   return fd_stream2string(&out);
 }
 
-static fdtype string_stdstring(fdtype string)
+static lispval string_stdstring(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c, white = 1;
@@ -396,13 +396,13 @@ static fdtype string_stdstring(fdtype string)
         u8_putc(&out,bc);}}
     if (out.u8_write == out.u8_outbuf) {
       u8_free(out.u8_outbuf);
-      return fdtype_string("");}
+      return lispval_string("");}
     else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
     return fd_stream2string(&out);}
   else return fd_type_error("string","string_stdstring",string);
 }
 
-static fdtype string_basestring(fdtype string)
+static lispval string_basestring(lispval string)
 {
   if (STRINGP(string)) {
     const u8_byte *scan = CSTRING(string); int c;
@@ -413,12 +413,12 @@ static fdtype string_basestring(fdtype string)
       u8_putc(&out,bc);}
     if (out.u8_write == out.u8_outbuf) {
       u8_free(out.u8_outbuf);
-      return fdtype_string("");}
+      return lispval_string("");}
     return fd_stream2string(&out);}
   else return fd_type_error("string","string_basestring",string);
 }
 
-static fdtype string_startword(fdtype string)
+static lispval string_startword(lispval string)
 {
   u8_string scan = CSTRING(string), start = scan, last = scan;
   int c = u8_sgetc(&scan);
@@ -436,13 +436,13 @@ static fdtype string_startword(fdtype string)
 
 /* UTF8 related primitives */
 
-static fdtype utf8p_prim(fdtype packet)
+static lispval utf8p_prim(lispval packet)
 {
   if (u8_validp(FD_PACKET_DATA(packet)))
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype utf8string_prim(fdtype packet)
+static lispval utf8string_prim(lispval packet)
 {
   if (u8_validp(FD_PACKET_DATA(packet)))
     return fd_make_string(NULL,FD_PACKET_LENGTH(packet),FD_PACKET_DATA(packet));
@@ -479,117 +479,117 @@ static int string_compare_ci(u8_string s1,u8_string s2)
   else return 1;
 }
 
-static fdtype string_eq(fdtype string1,fdtype string2)
+static lispval string_eq(lispval string1,lispval string2)
 {
   if (string_compare(CSTRING(string1),CSTRING(string2))==0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_eq(fdtype ch1,fdtype ch2)
+static lispval char_eq(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1) == FD_CHARCODE(ch2))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_ci_eq(fdtype string1,fdtype string2)
+static lispval string_ci_eq(lispval string1,lispval string2)
 {
   if (string_compare_ci(CSTRING(string1),CSTRING(string2))==0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_ci_eq(fdtype ch1,fdtype ch2)
+static lispval char_ci_eq(lispval ch1,lispval ch2)
 {
   if (u8_tolower(FD_CHARCODE(ch1)) == u8_tolower(FD_CHARCODE(ch2)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_lt(fdtype string1,fdtype string2)
+static lispval string_lt(lispval string1,lispval string2)
 {
   if (string_compare(CSTRING(string1),CSTRING(string2))<0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_lt(fdtype ch1,fdtype ch2)
+static lispval char_lt(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)<FD_CHARCODE(ch2))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_ci_lt(fdtype string1,fdtype string2)
+static lispval string_ci_lt(lispval string1,lispval string2)
 {
   if (string_compare_ci(CSTRING(string1),CSTRING(string2))<0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_ci_lt(fdtype ch1,fdtype ch2)
+static lispval char_ci_lt(lispval ch1,lispval ch2)
 {
   if (u8_tolower(FD_CHARCODE(ch1))<u8_tolower(FD_CHARCODE(ch2)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_lte(fdtype string1,fdtype string2)
+static lispval string_lte(lispval string1,lispval string2)
 {
   if (string_compare(CSTRING(string1),CSTRING(string2))<=0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_lte(fdtype ch1,fdtype ch2)
+static lispval char_lte(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)<=FD_CHARCODE(ch2))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_ci_lte(fdtype string1,fdtype string2)
+static lispval string_ci_lte(lispval string1,lispval string2)
 {
   if (string_compare_ci(CSTRING(string1),CSTRING(string2))<=0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_ci_lte(fdtype ch1,fdtype ch2)
+static lispval char_ci_lte(lispval ch1,lispval ch2)
 {
   if (u8_tolower(FD_CHARCODE(ch1))<=u8_tolower(FD_CHARCODE(ch2)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_gt(fdtype string1,fdtype string2)
+static lispval string_gt(lispval string1,lispval string2)
 {
   if (string_compare(CSTRING(string1),CSTRING(string2))>0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_gt(fdtype ch1,fdtype ch2)
+static lispval char_gt(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)>FD_CHARCODE(ch2))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_ci_gt(fdtype string1,fdtype string2)
+static lispval string_ci_gt(lispval string1,lispval string2)
 {
   if (string_compare_ci(CSTRING(string1),CSTRING(string2))>0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_ci_gt(fdtype ch1,fdtype ch2)
+static lispval char_ci_gt(lispval ch1,lispval ch2)
 {
   if (u8_tolower(FD_CHARCODE(ch1))>u8_tolower(FD_CHARCODE(ch2)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype string_gte(fdtype string1,fdtype string2)
+static lispval string_gte(lispval string1,lispval string2)
 {
   if (string_compare(CSTRING(string1),CSTRING(string2))>=0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_gte(fdtype ch1,fdtype ch2)
+static lispval char_gte(lispval ch1,lispval ch2)
 {
   if (FD_CHARCODE(ch1)>=FD_CHARCODE(ch2))
     return FD_TRUE;
@@ -597,13 +597,13 @@ static fdtype char_gte(fdtype ch1,fdtype ch2)
 }
 
 
-static fdtype string_ci_gte(fdtype string1,fdtype string2)
+static lispval string_ci_gte(lispval string1,lispval string2)
 {
   if (string_compare_ci(CSTRING(string1),CSTRING(string2))>=0)
     return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype char_ci_gte(fdtype ch1,fdtype ch2)
+static lispval char_ci_gte(lispval ch1,lispval ch2)
 {
   if (u8_tolower(FD_CHARCODE(ch1))>=u8_tolower(FD_CHARCODE(ch2)))
     return FD_TRUE;
@@ -612,7 +612,7 @@ static fdtype char_ci_gte(fdtype ch1,fdtype ch2)
 
 /* String building */
 
-static fdtype string_append(int n,fdtype *args)
+static lispval string_append(int n,lispval *args)
 {
   int i = 0;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
@@ -625,7 +625,7 @@ static fdtype string_append(int n,fdtype *args)
   return fd_stream2string(&out);
 }
 
-static fdtype string_prim(int n,fdtype *args)
+static lispval string_prim(int n,lispval *args)
 {
   int i = 0;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
@@ -638,7 +638,7 @@ static fdtype string_prim(int n,fdtype *args)
   return fd_stream2string(&out);
 }
 
-static fdtype makestring(fdtype len,fdtype character)
+static lispval makestring(lispval len,lispval character)
 {
   struct U8_OUTPUT out;
   if (fd_getint(len)==0)
@@ -663,12 +663,12 @@ static int get_stdchar(const u8_byte **in)
   return c;
 }
 
-static fdtype string_trigrams(fdtype string)
+static lispval string_trigrams(lispval string)
 {
   U8_OUTPUT out; u8_byte buf[64];
   const u8_byte *in = CSTRING(string);
   int c1=' ', c2=' ', c3=' ', c;
-  fdtype trigram, trigrams = EMPTY;
+  lispval trigram, trigrams = EMPTY;
   U8_INIT_FIXED_OUTPUT(&out,64,buf);
   if (STRINGP(string)) {
     while ((c = get_stdchar(&in))>=0) {
@@ -688,12 +688,12 @@ static fdtype string_trigrams(fdtype string)
   else return fd_type_error(_("string"),"string_trigrams",string);
 }
 
-static fdtype string_bigrams(fdtype string)
+static lispval string_bigrams(lispval string)
 {
   U8_OUTPUT out; u8_byte buf[64];
   const u8_byte *in = CSTRING(string);
   int c1=' ', c2=' ', c;
-  fdtype bigram, bigrams = EMPTY;
+  lispval bigram, bigrams = EMPTY;
   U8_INIT_FIXED_OUTPUT(&out,64,buf);
   if (STRINGP(string)) {
     while ((c = get_stdchar(&in))>=0) {
@@ -711,7 +711,7 @@ static fdtype string_bigrams(fdtype string)
 
 /* String predicates */
 
-static fdtype getnonstring(fdtype choice)
+static lispval getnonstring(lispval choice)
 {
   DO_CHOICES(x,choice) {
     if (!(STRINGP(x))) {
@@ -721,7 +721,7 @@ static fdtype getnonstring(fdtype choice)
   return VOID;
 }
 
-static int has_suffix_test(fdtype string,fdtype suffix)
+static int has_suffix_test(lispval string,lispval suffix)
 {
   int string_len = FD_STRING_LENGTH(string);
   int suffix_len = FD_STRING_LENGTH(suffix);
@@ -735,9 +735,9 @@ static int has_suffix_test(fdtype string,fdtype suffix)
       return 1;
     else return 0;}
 }
-static fdtype has_suffix(fdtype string,fdtype suffix)
+static lispval has_suffix(lispval string,lispval suffix)
 {
-  fdtype notstring;
+  lispval notstring;
   if (QCHOICEP(suffix)) suffix = (FD_XQCHOICE(suffix))->qchoiceval;
   if ((STRINGP(string))&&(STRINGP(suffix))) {
     if (has_suffix_test(string,suffix))
@@ -775,12 +775,12 @@ static fdtype has_suffix(fdtype string,fdtype suffix)
     return FD_FALSE;}
   else return FD_FALSE;
 }
-static fdtype is_suffix(fdtype suffix,fdtype string) {
+static lispval is_suffix(lispval suffix,lispval string) {
   return has_suffix(string,suffix); }
 
-static fdtype strip_suffix(fdtype string,fdtype suffix)
+static lispval strip_suffix(lispval string,lispval suffix)
 {
-  fdtype notstring;
+  lispval notstring;
   if (QCHOICEP(suffix)) suffix = (FD_XQCHOICE(suffix))->qchoiceval;
   if ((STRINGP(string))&&(STRINGP(suffix))) {
     if (has_suffix_test(string,suffix)) {
@@ -797,7 +797,7 @@ static fdtype strip_suffix(fdtype string,fdtype suffix)
   if (!(VOIDP(notstring)))
     return fd_type_error("string","has_suffix/suffix",notstring);
   else {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     DO_CHOICES(s,string) {
       int max_sufflen = -1;
       DO_CHOICES(sx,suffix) {
@@ -809,13 +809,13 @@ static fdtype strip_suffix(fdtype string,fdtype suffix)
         CHOICE_ADD(result,s);}
       else {
         int len = STRLEN(s);
-        fdtype stripped = fd_extract_string
+        lispval stripped = fd_extract_string
           (NULL,CSTRING(s),CSTRING(s)+(len-max_sufflen));
         CHOICE_ADD(result,stripped);}}
     return result;}
 }
 
-static int has_prefix_test(fdtype string,fdtype prefix)
+static int has_prefix_test(lispval string,lispval prefix)
 {
   int string_len = FD_STRING_LENGTH(string);
   int prefix_len = FD_STRING_LENGTH(prefix);
@@ -827,9 +827,9 @@ static int has_prefix_test(fdtype string,fdtype prefix)
       return 1;
     else return 0;}
 }
-static fdtype has_prefix(fdtype string,fdtype prefix)
+static lispval has_prefix(lispval string,lispval prefix)
 {
-  fdtype notstring;
+  lispval notstring;
   if (QCHOICEP(prefix)) prefix = (FD_XQCHOICE(prefix))->qchoiceval;
   if ((STRINGP(string))&&(STRINGP(prefix))) {
     if (has_prefix_test(string,prefix)) return FD_TRUE;
@@ -866,12 +866,12 @@ static fdtype has_prefix(fdtype string,fdtype prefix)
     return FD_FALSE;}
   else return FD_FALSE;
 }
-static fdtype is_prefix(fdtype prefix,fdtype string) {
+static lispval is_prefix(lispval prefix,lispval string) {
   return has_prefix(string,prefix); }
 
-static fdtype strip_prefix(fdtype string,fdtype prefix)
+static lispval strip_prefix(lispval string,lispval prefix)
 {
-  fdtype notstring;
+  lispval notstring;
   if (QCHOICEP(prefix)) prefix = (FD_XQCHOICE(prefix))->qchoiceval;
   if ((STRINGP(string))&&(STRINGP(prefix))) {
     if (has_prefix_test(string,prefix)) {}
@@ -885,7 +885,7 @@ static fdtype strip_prefix(fdtype string,fdtype prefix)
   if (!(VOIDP(notstring)))
     return fd_type_error("string","has_prefix/prefix",notstring);
   else {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
    DO_CHOICES(s,string) {
       int max_prelen = -1;
       DO_CHOICES(px,prefix) {
@@ -897,7 +897,7 @@ static fdtype strip_prefix(fdtype string,fdtype prefix)
         CHOICE_ADD(result,s);}
       else {
         int len = STRLEN(s);
-        fdtype stripped = fd_extract_string
+        lispval stripped = fd_extract_string
           (NULL,CSTRING(s)+max_prelen,CSTRING(s)+len);
         CHOICE_ADD(result,stripped);}}
     return result;}
@@ -905,7 +905,7 @@ static fdtype strip_prefix(fdtype string,fdtype prefix)
 
 /* YES/NO */
 
-static int strmatch(u8_string s,fdtype lval,int ignorecase)
+static int strmatch(u8_string s,lispval lval,int ignorecase)
 {
   u8_string sval = NULL;
   if (STRINGP(lval)) sval = CSTRING(lval);
@@ -917,15 +917,15 @@ static int strmatch(u8_string s,fdtype lval,int ignorecase)
   else return (strcmp(s,sval)==0);
 }
 
-static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
+static int check_yesp(u8_string arg,lispval strings,int ignorecase)
 {
   if ((STRINGP(strings))||(SYMBOLP(strings)))
     return strmatch(arg,strings,ignorecase);
   else if (VECTORP(strings)) {
-    fdtype *v = VEC_DATA(strings);
+    lispval *v = VEC_DATA(strings);
     int i = 0, lim = VEC_LEN(strings);
     while (i<lim) {
-      fdtype s = VEC_REF(v,i); i++;
+      lispval s = VEC_REF(v,i); i++;
       if (strmatch(arg,s,ignorecase))
         return 1;}
     return 0;}
@@ -943,7 +943,7 @@ static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
   return 0;
 }
 
-static fdtype yesp_prim(fdtype arg,fdtype dflt,fdtype yes,fdtype no)
+static lispval yesp_prim(lispval arg,lispval dflt,lispval yes,lispval no)
 {
   u8_string string_arg; int ignorecase = 0;
   if (STRINGP(arg)) string_arg = CSTRING(arg);
@@ -959,11 +959,11 @@ static fdtype yesp_prim(fdtype arg,fdtype dflt,fdtype yes,fdtype no)
 
 /* STRSEARCH */
 
-static fdtype strmatchp_prim(fdtype pat,fdtype string,fdtype ef)
+static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
 {
   if (CHOICEP(string)) {
     DO_CHOICES(str,string) {
-      fdtype r = strmatchp_prim(pat,str,ef);
+      lispval r = strmatchp_prim(pat,str,ef);
       if (FD_ABORTP(r)) {
         FD_STOP_DO_CHOICES;
         return r;}
@@ -1007,9 +1007,9 @@ static fdtype strmatchp_prim(fdtype pat,fdtype string,fdtype ef)
 
 /* Conversion */
 
-static fdtype entity_escape;
+static lispval entity_escape;
 
-static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
+static lispval string2packet(lispval string,lispval encoding,lispval escape)
 {
   char *data; int n_bytes;
   const u8_byte *scan, *limit;
@@ -1029,32 +1029,32 @@ static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
     data = u8_localize(enc,&scan,limit,0,0,NULL,&n_bytes);
   else data = u8_localize(enc,&scan,limit,'\\',0,NULL,&n_bytes);
   if (data) {
-    fdtype result = fd_make_packet(NULL,n_bytes,data);
+    lispval result = fd_make_packet(NULL,n_bytes,data);
     u8_free(data);
     return result;}
   else return FD_ERROR;
 }
 
-static fdtype x2secret_prim(fdtype arg)
+static lispval x2secret_prim(lispval arg)
 {
   if (FD_TYPEP(arg,fd_secret_type))
     return fd_incref(arg);
   else if (FD_TYPEP(arg,fd_packet_type)) {
-    fdtype result = fd_make_packet
+    lispval result = fd_make_packet
       (NULL,FD_PACKET_LENGTH(arg),FD_PACKET_DATA(arg));
     FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
   else if (STRINGP(arg)) {
-    fdtype result = fd_make_packet(NULL,STRLEN(arg),CSTRING(arg));
+    lispval result = fd_make_packet(NULL,STRLEN(arg),CSTRING(arg));
     FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
   else return fd_type_error("string/packet","x2secret_prim",arg);
 }
 
-static fdtype packet2string(fdtype packet,fdtype encoding)
+static lispval packet2string(lispval packet,lispval encoding)
 {
   if (FD_PACKET_LENGTH(packet)==0)
-    return fdtype_string("");
+    return lispval_string("");
   else {
     struct U8_OUTPUT out;
     const u8_byte *scan = FD_PACKET_DATA(packet);
@@ -1073,7 +1073,7 @@ static fdtype packet2string(fdtype packet,fdtype encoding)
     else return fd_stream2string(&out);}
 }
 
-static fdtype string_byte_length(fdtype string)
+static lispval string_byte_length(lispval string)
 {
   int len = STRLEN(string);
   return FD_INT(len);
@@ -1081,7 +1081,7 @@ static fdtype string_byte_length(fdtype string)
 
 /* Fixing embedded NULs */
 
-static fdtype fixnuls(fdtype string)
+static lispval fixnuls(lispval string)
 {
   struct FD_STRING *ss = fd_consptr(fd_string,string,fd_string_type);
   if (strlen(ss->fd_bytes)<ss->fd_bytelen) {
@@ -1099,7 +1099,7 @@ static fdtype fixnuls(fdtype string)
 
 /* Simple string subst */
 
-static u8_string strsearch(u8_string string,fdtype pat,
+static u8_string strsearch(u8_string string,lispval pat,
                            size_t len,size_t *matchlenp)
 {
   if (STRINGP(pat)) {
@@ -1126,7 +1126,7 @@ static u8_string strsearch(u8_string string,fdtype pat,
   else return NULL;
 }
 
-static fdtype string_subst_prim(fdtype string,fdtype pat,fdtype with)
+static lispval string_subst_prim(lispval string,lispval pat,lispval with)
 {
   if (STRLEN(string)==0) return fd_incref(string);
   else if (!((STRINGP(pat))||(FD_TYPEP(pat,fd_regex_type))))
@@ -1152,9 +1152,9 @@ static fdtype string_subst_prim(fdtype string,fdtype pat,fdtype with)
     else return fd_incref(string);}
 }
 
-static fdtype string_subst_star(int n,fdtype *args)
+static lispval string_subst_star(int n,lispval *args)
 {
-  fdtype base = args[0]; int i = 1;
+  lispval base = args[0]; int i = 1;
   if ((n%2)==0)
     return fd_err(fd_SyntaxError,"string_subst_star",NULL,VOID);
   else while (i<n) {
@@ -1166,14 +1166,14 @@ static fdtype string_subst_star(int n,fdtype *args)
   /* In case we return it. */
   fd_incref(base); i = 1;
   while (i<n) {
-    fdtype replace = args[i];
-    fdtype with = args[i+1];
-    fdtype result = string_subst_prim(base,replace,with);
+    lispval replace = args[i];
+    lispval with = args[i+1];
+    lispval result = string_subst_prim(base,replace,with);
     i = i+2; fd_decref(base); base = result;}
   return base;
 }
 
-static fdtype trim_spaces(fdtype string)
+static lispval trim_spaces(lispval string)
 {
   const u8_byte *start = CSTRING(string), *end = start+STRLEN(string);
   const u8_byte *trim_start = start, *trim_end = end;
@@ -1202,7 +1202,7 @@ static fdtype trim_spaces(fdtype string)
 
 /* Glomming */
 
-static fdtype glom_lexpr(int n,fdtype *args)
+static lispval glom_lexpr(int n,lispval *args)
 {
   unsigned char *result_data, *write;
   int i = 0, sumlen = 0; fd_ptr_type result_type = 0;
@@ -1264,16 +1264,16 @@ static fdtype glom_lexpr(int n,fdtype *args)
   else if (result_type == fd_packet_type)
     return fd_init_packet(NULL,sumlen,result_data);
   else {
-    fdtype result = fd_init_packet(NULL,sumlen,result_data);
+    lispval result = fd_init_packet(NULL,sumlen,result_data);
     FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
 }
 
 /* Text if */
 
-static fdtype textif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval textif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), test_val = VOID;
+  lispval test_expr = fd_get_arg(expr,1), test_val = VOID;
   if (VOIDP(test_expr))
     return fd_err(fd_SyntaxError,"textif_evalfn",NULL,VOID);
   else test_val = fd_eval(test_expr,env);
@@ -1281,22 +1281,22 @@ static fdtype textif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else if ((FALSEP(test_val))||(EMPTYP(test_val)))
     return fd_make_string(NULL,0,"");
   else {
-    fdtype body = fd_get_body(expr,2), len = fd_seq_length(body);
+    lispval body = fd_get_body(expr,2), len = fd_seq_length(body);
     fd_decref(test_val); 
     if (len==0) return fd_make_string(NULL,0,NULL);
     else if (len==1) {
-      fdtype text = fd_eval(fd_get_arg(body,0),env);
+      lispval text = fd_eval(fd_get_arg(body,0),env);
       if (STRINGP(text)) return fd_incref(text);
       else if ((FALSEP(text))||(EMPTYP(text)))
         return fd_make_string(NULL,0,"");
       else {
-        u8_string as_string = fd_dtype2string(text);
+        u8_string as_string = fd_lisp2string(text);
         return fd_init_string(NULL,-1,as_string);}}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       if (PAIRP(body)) {
         FD_DOLIST(text_expr,body) {
-          fdtype text = fd_eval(text_expr,env);
+          lispval text = fd_eval(text_expr,env);
           if (FD_ABORTED(text))
             return fd_err("Bad text clause","textif_evalfn",
                           out.u8_outbuf,text_expr);
@@ -1306,8 +1306,8 @@ static fdtype textif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
           fd_decref(text); text = VOID;}}
       else {
         int i = 0; while (i<len) {
-          fdtype text_expr = fd_get_arg(body,i++);
-          fdtype text = fd_eval(text_expr,env);
+          lispval text_expr = fd_get_arg(body,i++);
+          lispval text = fd_eval(text_expr,env);
           if (FD_ABORTED(text))
             return fd_err("Bad text clause","textif_evalfn",
                           out.u8_outbuf,text_expr);

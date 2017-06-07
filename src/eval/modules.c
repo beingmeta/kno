@@ -18,7 +18,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-static fdtype loadstamp_symbol, moduleid_symbol;
+static lispval loadstamp_symbol, moduleid_symbol;
 
 fd_exception fd_NotAModule=_("Argument is not a module (table)");
 fd_exception fd_NoSuchModule=_("Can't find named module");
@@ -26,7 +26,7 @@ fd_exception MissingModule=_("Loading failed to resolve module");
 fd_exception OpaqueModule=_("Can't switch to opaque module");
 
 static struct MODULE_LOADER {
-  int (*loader)(fdtype,int,void *); void *data;
+  int (*loader)(lispval,int,void *); void *data;
   struct MODULE_LOADER *next;} *module_loaders = NULL;
 
 static u8_mutex module_loaders_lock;
@@ -41,7 +41,7 @@ static int auto_lock_exports = 0;
 static int auto_static_modules = 0;
 static int auto_static_exports = 0;
 
-static int readonly_tablep(fdtype arg)
+static int readonly_tablep(lispval arg)
 {
   fd_ptr_type type = FD_PTR_TYPE(arg);
   switch (type) {
@@ -73,11 +73,11 @@ static int readonly_tablep(fdtype arg)
 
 /* Getting the loadlock for a module */
 
-static fdtype loading_modules = EMPTY;
+static lispval loading_modules = EMPTY;
 
-static fdtype getloadlock(fdtype spec,int safe)
+static lispval getloadlock(lispval spec,int safe)
 {
-  fdtype module;
+  lispval module;
   u8_lock_mutex(&module_wait_lock);
   module = fd_get_module(spec,safe);
   if (!(VOIDP(module))) {
@@ -97,11 +97,11 @@ static fdtype getloadlock(fdtype spec,int safe)
     return VOID;}
 }
 
-static void clearloadlock(fdtype spec)
+static void clearloadlock(lispval spec)
 {
   u8_lock_mutex(&module_wait_lock);
   if (fd_choice_containsp(spec,loading_modules)) {
-    fdtype prev_loading = loading_modules;
+    lispval prev_loading = loading_modules;
     loading_modules = fd_difference(loading_modules,spec);
     fd_decref(prev_loading);
     u8_condvar_broadcast(&module_wait);}
@@ -111,15 +111,15 @@ static void clearloadlock(fdtype spec)
 /* Getting modules */
 
 FD_EXPORT
-fdtype fd_find_module(fdtype spec,int safe,int err)
+lispval fd_find_module(lispval spec,int safe,int err)
 {
   u8_string modname = (SYMBOLP(spec)) ? (SYM_NAME(spec)) :
     (STRINGP(spec)) ? (CSTRING(spec)) : (NULL);
 
-  fdtype module = fd_get_module(spec,safe);
+  lispval module = fd_get_module(spec,safe);
   if (VOIDP(module)) module = getloadlock(spec,safe);
   if (!(VOIDP(module))) {
-    fdtype loadstamp = fd_get(module,loadstamp_symbol,VOID);
+    lispval loadstamp = fd_get(module,loadstamp_symbol,VOID);
     while (VOIDP(loadstamp)) {
       u8_lock_mutex(&module_wait_lock);
       u8_condvar_wait(&module_wait,&module_wait_lock);
@@ -156,7 +156,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 }
 
 FD_EXPORT
-int fd_finish_module(fdtype module)
+int fd_finish_module(lispval module)
 {
   if (TABLEP(module))
     if (readonly_tablep(module))
@@ -175,15 +175,15 @@ int fd_finish_module(fdtype module)
 }
 
 FD_EXPORT
-int fd_module_finished(fdtype module,int flags)
+int fd_module_finished(lispval module,int flags)
 {
   if (!(TABLEP(module))) {
     fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
     return -1;}
   else {
-    struct U8_XTIME xtptr; fdtype timestamp;
-    fdtype cur_timestamp = fd_get(module,loadstamp_symbol,VOID);
-    fdtype moduleid = fd_get(module,moduleid_symbol,VOID);
+    struct U8_XTIME xtptr; lispval timestamp;
+    lispval cur_timestamp = fd_get(module,loadstamp_symbol,VOID);
+    lispval moduleid = fd_get(module,moduleid_symbol,VOID);
     u8_init_xtime(&xtptr,-1,u8_second,0,0,0);
     timestamp = fd_make_timestamp(&xtptr);
     fd_store(module,loadstamp_symbol,timestamp);
@@ -199,7 +199,7 @@ int fd_module_finished(fdtype module,int flags)
     fd_decref(cur_timestamp);
     if (FD_LEXENVP(module)) {
       fd_lexenv env = (fd_lexenv) module;
-      fdtype exports = env->env_exports;
+      lispval exports = env->env_exports;
       if (HASHTABLEP(env->env_bindings)) {
         if (U8_BITP(flags,FD_STATIC_MODULES))
           fd_static_module(env->env_bindings);
@@ -221,7 +221,7 @@ int fd_module_finished(fdtype module,int flags)
 }
 
 FD_EXPORT
-int fd_static_module(fdtype module)
+int fd_static_module(lispval module)
 {
   if (HASHTABLEP(module)) {
     int conversions = 0;
@@ -237,13 +237,13 @@ int fd_static_module(fdtype module)
 }
 
 FD_EXPORT
-int fd_lock_exports(fdtype module)
+int fd_lock_exports(lispval module)
 {
   if (HASHTABLEP(module)) 
     return fd_hashtable_set_readonly((struct FD_HASHTABLE *) module, 1);
   else if (FD_LEXENVP(module)) {
     fd_lexenv env = (fd_lexenv) module;
-    fdtype exports = env->env_exports;
+    lispval exports = env->env_exports;
     if (HASHTABLEP(exports)) 
       return fd_hashtable_set_readonly((struct FD_HASHTABLE *) exports, 1);
     else return 0;}
@@ -253,7 +253,7 @@ int fd_lock_exports(fdtype module)
 }
 
 FD_EXPORT
-void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *data)
+void fd_add_module_loader(int (*loader)(lispval,int,void *),void *data)
 {
   struct MODULE_LOADER *consed = u8_alloc(struct MODULE_LOADER);
   u8_lock_mutex(&module_loaders_lock);
@@ -266,13 +266,13 @@ void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *data)
 
 /* Loading dynamic libraries */
 
-static fdtype dloadpath = NIL;
+static lispval dloadpath = NIL;
 
 static void init_dloadpath()
 {
-  u8_string tmp = u8_getenv("FD_INIT_DLOADPATH"); fdtype strval;
+  u8_string tmp = u8_getenv("FD_INIT_DLOADPATH"); lispval strval;
   if (tmp == NULL) 
-    strval = fdtype_string(FD_DEFAULT_DLOADPATH);
+    strval = lispval_string(FD_DEFAULT_DLOADPATH);
   else strval = fd_lispstring(tmp);
   dloadpath = fd_init_pair(NULL,strval,dloadpath);
   if ((tmp)||(trace_dload)||(getenv("FD_DLOAD:TRACE")))
@@ -280,7 +280,7 @@ static void init_dloadpath()
            dloadpath);
 }
 
-static int load_dynamic_module(fdtype spec,int safe,void *data)
+static int load_dynamic_module(lispval spec,int safe,void *data)
 {
   if (SYMBOLP(spec)) {
     u8_string pname = SYM_NAME(spec);
@@ -327,7 +327,7 @@ static int load_dynamic_module(fdtype spec,int safe,void *data)
   else return 0;
 }
 
-static fdtype dynamic_load_prim(fdtype arg)
+static lispval dynamic_load_prim(lispval arg)
 {
   u8_string name = FD_STRING_DATA(arg);
   if (*name=='/') {
@@ -349,9 +349,9 @@ static fdtype dynamic_load_prim(fdtype arg)
 /* Switching modules */
 
 static fd_lexenv become_module
-   (fd_lexenv env,fdtype module_name,int safe,int create)
+   (fd_lexenv env,lispval module_name,int safe,int create)
 {
-  fdtype module_spec, module;
+  lispval module_spec, module;
   if (STRINGP(module_name))
     module_spec = fd_intern(CSTRING(module_name));
   else module_spec = fd_eval(module_name,env);
@@ -373,8 +373,8 @@ static fd_lexenv become_module
     FD_LEXENV *menv=
       fd_consptr(FD_LEXENV *,module,fd_lexenv_type);
     if (menv != env) {
-      fd_decref(((fdtype)(env->env_parent)));
-      env->env_parent = (fd_lexenv)fd_incref((fdtype)menv->env_parent);
+      fd_decref(((lispval)(env->env_parent)));
+      env->env_parent = (fd_lexenv)fd_incref((lispval)menv->env_parent);
       fd_decref(env->env_bindings); env->env_bindings = fd_incref(menv->env_bindings);
       fd_decref(env->env_exports); env->env_exports = fd_incref(menv->env_exports);}}
   else if (VOIDP(module)) {
@@ -386,7 +386,7 @@ static fd_lexenv become_module
       return NULL;}
     else {}
     fd_store(env->env_exports,moduleid_symbol,module_spec);
-    fd_register_module(SYM_NAME(module_spec),(fdtype)env,
+    fd_register_module(SYM_NAME(module_spec),(lispval)env,
                        ((safe) ? (FD_MODULE_SAFE) : (0)));}
   else {
     fd_seterr(fd_NotAModule,"use_module",NULL,module_spec);
@@ -395,60 +395,60 @@ static fd_lexenv become_module
   return env;
 }
 
-static fdtype safe_in_module_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval safe_in_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype module_name = fd_get_arg(expr,1);
+  lispval module_name = fd_get_arg(expr,1);
   if (VOIDP(module_name))
     return fd_err(fd_TooFewExpressions,"IN-MODULE",NULL,expr);
   else if (become_module(env,module_name,1,1)) return VOID;
   else return FD_ERROR;
 }
 
-static fdtype in_module_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval in_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype module_name = fd_get_arg(expr,1);
+  lispval module_name = fd_get_arg(expr,1);
   if (VOIDP(module_name))
     return fd_err(fd_TooFewExpressions,"IN-MODULE",NULL,expr);
   else if (become_module(env,module_name,0,1)) return VOID;
   else return FD_ERROR;
 }
 
-static fdtype safe_within_module_evalfn
-(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval safe_within_module_evalfn
+(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_lexenv consed_env = fd_working_lexenv();
-  fdtype module_name = fd_get_arg(expr,1);
+  lispval module_name = fd_get_arg(expr,1);
   if (VOIDP(module_name)) {
-    fd_decref((fdtype)consed_env);
+    fd_decref((lispval)consed_env);
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   else if (become_module(consed_env,module_name,1,0)) {
-    fdtype result = VOID, body = fd_get_body(expr,2);
+    lispval result = VOID, body = fd_get_body(expr,2);
     FD_DOLIST(elt,body) {
       fd_decref(result); result = fd_eval(elt,consed_env);}
-    fd_decref((fdtype)consed_env);
+    fd_decref((lispval)consed_env);
     return result;}
   else return FD_ERROR;
 }
 
-static fdtype within_module_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval within_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_lexenv consed_env = fd_working_lexenv();
-  fdtype module_name = fd_get_arg(expr,1);
+  lispval module_name = fd_get_arg(expr,1);
   if (VOIDP(module_name)) {
-    fd_decref((fdtype)consed_env);
+    fd_decref((lispval)consed_env);
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   else if (become_module(consed_env,module_name,0,0)) {
-    fdtype result = VOID, body = fd_get_body(expr,2);
+    lispval result = VOID, body = fd_get_body(expr,2);
     FD_DOLIST(elt,body) {
       fd_decref(result); result = fd_eval(elt,consed_env);}
-    fd_decref((fdtype)consed_env);
+    fd_decref((lispval)consed_env);
     return result;}
   else return FD_ERROR;
 }
 
-static fd_lexenv make_hybrid_env(fd_lexenv base,fdtype module_spec,int safe)
+static fd_lexenv make_hybrid_env(fd_lexenv base,lispval module_spec,int safe)
 {
-  fdtype module=
+  lispval module=
     ((FD_LEXENVP(module_spec)) ?
      (fd_incref(module_spec)) :
      (fd_get_module(module_spec,safe)));
@@ -472,39 +472,39 @@ static fd_lexenv make_hybrid_env(fd_lexenv base,fdtype module_spec,int safe)
     return NULL;}
 }
 
-static fdtype accessing_module_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval accessing_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype module_name = fd_eval(fd_get_arg(expr,1),env);
+  lispval module_name = fd_eval(fd_get_arg(expr,1),env);
   fd_lexenv hybrid;
   if (VOIDP(module_name)) {
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   hybrid = make_hybrid_env(env,module_name,0);
   if (hybrid) {
-    fdtype result = VOID, body = fd_get_body(expr,2);
+    lispval result = VOID, body = fd_get_body(expr,2);
     FD_DOLIST(elt,body) {
       fd_decref(result); result = fd_eval(elt,hybrid);}
     fd_decref(module_name);
-    fd_decref((fdtype)hybrid);
+    fd_decref((lispval)hybrid);
     return result;}
   else {
     fd_decref(module_name);
     return FD_ERROR;}
 }
 
-static fdtype safe_accessing_module_evalfn
-(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval safe_accessing_module_evalfn
+(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype module_name = fd_eval(fd_get_arg(expr,1),env);
+  lispval module_name = fd_eval(fd_get_arg(expr,1),env);
   fd_lexenv hybrid;
   if (VOIDP(module_name)) {
     return fd_err(fd_TooFewExpressions,"WITHIN-MODULE",NULL,expr);}
   hybrid = make_hybrid_env(env,module_name,1);
   if (hybrid) {
-    fdtype result = VOID, body = fd_get_body(expr,2);
+    lispval result = VOID, body = fd_get_body(expr,2);
     FD_DOLIST(elt,body) {
       fd_decref(result); result = fd_eval(elt,hybrid);}
     fd_decref(module_name);
-    fd_decref((fdtype)hybrid);
+    fd_decref((lispval)hybrid);
     return result;}
   else {
     fd_decref(module_name);
@@ -518,7 +518,7 @@ static u8_mutex exports_lock;
 static fd_hashtable get_exports(fd_lexenv env)
 {
   fd_hashtable exports;
-  fdtype moduleid = fd_get(env->env_bindings,moduleid_symbol,VOID);
+  lispval moduleid = fd_get(env->env_bindings,moduleid_symbol,VOID);
   u8_lock_mutex(&exports_lock);
   if (HASHTABLEP(env->env_exports)) {
     u8_unlock_mutex(&exports_lock);
@@ -531,10 +531,10 @@ static fd_hashtable get_exports(fd_lexenv env)
   return exports;
 }
 
-static fdtype module_export_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
+static lispval module_export_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
   fd_hashtable exports;
-  fdtype symbols_spec = fd_get_arg(expr,1), symbols;
+  lispval symbols_spec = fd_get_arg(expr,1), symbols;
   if (VOIDP(symbols_spec))
     return fd_err(fd_TooFewExpressions,"MODULE-EXPORT!",NULL,expr);
   symbols = fd_eval(symbols_spec,env);
@@ -547,7 +547,7 @@ static fdtype module_export_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
     exports = (fd_hashtable)env->env_exports;
   else exports = get_exports(env);
   {DO_CHOICES(symbol,symbols) {
-    fdtype val = fd_get(env->env_bindings,symbol,VOID);
+    lispval val = fd_get(env->env_bindings,symbol,VOID);
     fd_hashtable_store(exports,symbol,val);
     fd_decref(val);}}
   fd_decref(symbols);
@@ -556,7 +556,7 @@ static fdtype module_export_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 
 /* Using modules */
 
-static int uses_bindings(fd_lexenv env,fdtype bindings)
+static int uses_bindings(fd_lexenv env,lispval bindings)
 {
   fd_lexenv scan = env;
   while (scan)
@@ -565,15 +565,15 @@ static int uses_bindings(fd_lexenv env,fdtype bindings)
   return 0;
 }
 
-static fdtype use_module_helper(fdtype expr,fd_lexenv env,int safe)
+static lispval use_module_helper(lispval expr,fd_lexenv env,int safe)
 {
-  fdtype module_names = fd_eval(fd_get_arg(expr,1),env);
+  lispval module_names = fd_eval(fd_get_arg(expr,1),env);
   fd_lexenv modify_env = env;
   if (VOIDP(module_names))
     return fd_err(fd_TooFewExpressions,"USE-MODULE",NULL,expr);
   else {
     DO_CHOICES(module_name,module_names) {
-      fdtype module;
+      lispval module;
       module = fd_find_module(module_name,safe,1);
       if (FD_ABORTP(module))
         return module;
@@ -589,64 +589,64 @@ static fdtype use_module_helper(fdtype expr,fd_lexenv env,int safe)
           modify_env->env_parent = fd_make_export_env(module,old_parent);
           /* We decref this because 'env' is no longer pointing to it
              and fd_make_export_env incref'd it again. */
-          if (old_parent) fd_decref((fdtype)(old_parent));}}
+          if (old_parent) fd_decref((lispval)(old_parent));}}
       else {
         fd_lexenv expenv=
           fd_consptr(fd_lexenv,module,fd_lexenv_type);
-        fdtype expval = (fdtype)get_exports(expenv);
+        lispval expval = (lispval)get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
           if (env->env_copy != env) modify_env = fd_copy_env(env);
           fd_lexenv old_parent = modify_env->env_parent;
           modify_env->env_parent = fd_make_export_env(expval,old_parent);
           /* We decref this because 'env' is no longer pointing to it
              and fd_make_export_env incref'd it again. */
-          if (old_parent) fd_decref((fdtype)(old_parent));}}
+          if (old_parent) fd_decref((lispval)(old_parent));}}
       fd_decref(module);}
     fd_decref(module_names);
-    if (modify_env!=env) {fd_decref((fdtype)modify_env);}
+    if (modify_env!=env) {fd_decref((lispval)modify_env);}
     return VOID;}
 }
 
-static fdtype use_module_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval use_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return use_module_helper(expr,env,0);
 }
 
-static fdtype safe_use_module_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval safe_use_module_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return use_module_helper(expr,env,1);
 }
 
-static fdtype safe_get_module(fdtype modname)
+static lispval safe_get_module(lispval modname)
 {
-  fdtype module = fd_find_module(modname,1,0);
+  lispval module = fd_find_module(modname,1,0);
   return module;
 }
 
-static fdtype get_module(fdtype modname)
+static lispval get_module(lispval modname)
 {
-  fdtype module = fd_find_module(modname,0,0);
+  lispval module = fd_find_module(modname,0,0);
   return module;
 }
 
-static fdtype get_loaded_module(fdtype modname)
+static lispval get_loaded_module(lispval modname)
 {
-  fdtype module = fd_get_module(modname,0);
+  lispval module = fd_get_module(modname,0);
   if (VOIDP(module))
     return FD_FALSE;
   else return module;
 }
 
-static fdtype safe_get_loaded_module(fdtype modname)
+static lispval safe_get_loaded_module(lispval modname)
 {
-  fdtype module = fd_get_module(modname,1);
+  lispval module = fd_get_module(modname,1);
   if (VOIDP(module))
     return FD_FALSE;
   else return module;
 }
 
 FD_EXPORT
-fdtype fd_use_module(fd_lexenv env,fdtype module)
+lispval fd_use_module(fd_lexenv env,lispval module)
 {
   int free_module = 0;
   if (SYMBOLP(module)) {
@@ -655,27 +655,27 @@ fdtype fd_use_module(fd_lexenv env,fdtype module)
     if (!(uses_bindings(env,module))) {
       fd_lexenv oldp = env->env_parent;
       env->env_parent = fd_make_export_env(module,oldp);
-      fd_decref((fdtype)(oldp));}}
+      fd_decref((lispval)(oldp));}}
   else if (SLOTMAPP(module)) {
     if (!(uses_bindings(env,module))) {
       fd_lexenv oldp = env->env_parent;
       env->env_parent = fd_make_env(module,oldp);
       fd_incref(module);
-      fd_decref((fdtype)(oldp));}}
+      fd_decref((lispval)(oldp));}}
   else if (FD_LEXENVP(module)) {
     fd_lexenv expenv=
       fd_consptr(fd_lexenv,module,fd_lexenv_type);
-    fdtype expval = (fdtype)get_exports(expenv);
+    lispval expval = (lispval)get_exports(expenv);
     if (!(uses_bindings(env,expval))) {
       fd_lexenv oldp = env->env_parent;
       env->env_parent = fd_make_export_env(expval,oldp);
-      if (oldp) fd_decref((fdtype)(oldp));}}
+      if (oldp) fd_decref((lispval)(oldp));}}
   else return fd_type_error("module","fd_use_module",module);
   if (free_module) fd_decref(module);
   return VOID;
 }
 
-static fdtype static_module(fdtype module)
+static lispval static_module(lispval module)
 {
   if (HASHTABLEP(module)) {
     int conversions = fd_static_module(module);
@@ -693,17 +693,17 @@ static fdtype static_module(fdtype module)
     if (conversions<0) return FD_ERROR;
     else return FD_INT(conversions+delta);}
   else {
-    fdtype module_val = fd_find_module(module,0,0);
+    lispval module_val = fd_find_module(module,0,0);
     if (FD_ABORTP(module_val)) return module_val;
     else {
-      fdtype result = static_module(module_val);
+      lispval result = static_module(module_val);
       fd_decref(module_val);
       return result;}}
 }
 
-static fdtype get_exports_prim(fdtype arg)
+static lispval get_exports_prim(lispval arg)
 {
-  fdtype module = arg;
+  lispval module = arg;
   if ((STRINGP(arg))||(SYMBOLP(arg)))
     module = fd_find_module(arg,0,0);
   else fd_incref(module);
@@ -711,23 +711,23 @@ static fdtype get_exports_prim(fdtype arg)
   else if (VOIDP(module))
     return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,arg);
   else if (HASHTABLEP(module)) {
-    fdtype keys = fd_getkeys(module);
+    lispval keys = fd_getkeys(module);
     fd_decref(module);
     return keys;}
   else if (FD_TYPEP(module,fd_lexenv_type)) {
     fd_lexenv expenv=
       fd_consptr(fd_lexenv,module,fd_lexenv_type);
-    fdtype expval = (fdtype)get_exports(expenv);
+    lispval expval = (lispval)get_exports(expenv);
     if (FD_ABORTP(expval)) return expval;
-    fdtype keys = fd_getkeys(expval);
+    lispval keys = fd_getkeys(expval);
     fd_decref(module);
     return keys;}
   else return EMPTY;
 }
 
-static fdtype safe_get_exports_prim(fdtype arg)
+static lispval safe_get_exports_prim(lispval arg)
 {
-  fdtype module = arg;
+  lispval module = arg;
   if ((STRINGP(arg))||(SYMBOLP(arg)))
     module = fd_find_module(arg,1,0);
   else fd_incref(module);
@@ -735,15 +735,15 @@ static fdtype safe_get_exports_prim(fdtype arg)
   else if (VOIDP(module))
     return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,arg);
   else if (HASHTABLEP(module)) {
-    fdtype keys = fd_getkeys(module);
+    lispval keys = fd_getkeys(module);
     fd_decref(module);
     return keys;}
   else if (FD_TYPEP(module,fd_lexenv_type)) {
     fd_lexenv expenv=
       fd_consptr(fd_lexenv,module,fd_lexenv_type);
-    fdtype expval = (fdtype)get_exports(expenv);
+    lispval expval = (lispval)get_exports(expenv);
     if (FD_ABORTP(expval)) return expval;
-    fdtype keys = fd_getkeys(expval);
+    lispval keys = fd_getkeys(expval);
     fd_decref(module);
     return keys;}
   else return EMPTY;
@@ -753,21 +753,21 @@ static fdtype safe_get_exports_prim(fdtype arg)
 
 static int loadmodule_sandbox = 0;
 
-static int loadmodule_config_set(fdtype var,fdtype val,void *ignored)
+static int loadmodule_config_set(lispval var,lispval val,void *ignored)
 {
-  fdtype module = fd_find_module(val,loadmodule_sandbox,0);
+  lispval module = fd_find_module(val,loadmodule_sandbox,0);
   if (FALSEP(module)) {
     u8_log(LOG_WARN,"NoModuleLoaded","Couldn't load the module %q",val);
     return -1;}
   else return 1;
 }
 
-static fdtype loadmodule_config_get(fdtype var,void *ignored)
+static lispval loadmodule_config_get(lispval var,void *ignored)
 {
   return FD_FALSE;
 }
 
-static int loadmodule_sandbox_config_set(fdtype var,fdtype val,void *ignored)
+static int loadmodule_sandbox_config_set(lispval var,lispval val,void *ignored)
 {
   if (FALSEP(val)) {
     if (!(loadmodule_sandbox)) return 0;
@@ -783,7 +783,7 @@ static int loadmodule_sandbox_config_set(fdtype var,fdtype val,void *ignored)
       return 1;}}
 }
 
-static fdtype loadmodule_sandbox_config_get(fdtype var,void *ignored)
+static lispval loadmodule_sandbox_config_get(lispval var,void *ignored)
 {
   if (loadmodule_sandbox) return FD_TRUE; else return FD_FALSE;
 }

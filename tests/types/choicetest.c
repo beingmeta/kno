@@ -17,12 +17,12 @@
 int main(int argc,char **argv)
 {
   struct FD_OUTBUF out; FILE *f = fopen(argv[1],"wb");
-  fdtype value = FD_EMPTY_CHOICE, svalue, tval; int i = 2, retval;
+  lispval value = FD_EMPTY_CHOICE, svalue, tval; int i = 2, retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   FD_DO_LIBINIT(fd_init_libfdtype);
   tval = fd_parse(argv[i++]);
   while (i < argc) {
-    fdtype object = fd_parse(argv[i]);
+    lispval object = fd_parse(argv[i]);
     FD_ADD_TO_CHOICE(value,object); i++;}
   svalue = fd_make_simple_choice(value);
   {FD_DO_CHOICES(x,svalue)

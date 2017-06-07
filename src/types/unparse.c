@@ -43,10 +43,10 @@ int fd_unparse_maxelts = 0;
 int fd_unparse_maxchars = 0;
 int fd_packet_outfmt = -1;
 
-int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details) = NULL;
+int (*fd_unparse_error)(U8_OUTPUT *,lispval x,u8_string details) = NULL;
 
-static fdtype quote_symbol, histref_symbol, comment_symbol;
-static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
+static lispval quote_symbol, histref_symbol, comment_symbol;
+static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 /* Unparsing */
 
@@ -94,7 +94,7 @@ static void output_ellipsis(U8_OUTPUT *out,int n,u8_string unit)
 
 }
 
-static int unparse_string(U8_OUTPUT *out,fdtype x)
+static int unparse_string(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x; int n_chars = 0;
   u8_string scan = s->fd_bytes, limit = s->fd_bytes+s->fd_bytelen;
@@ -191,7 +191,7 @@ FD_EXPORT int fd_unparse_packet
     return u8_puts(out,"\"");}
 }
 
-static int unparse_packet(U8_OUTPUT *out,fdtype x)
+static int unparse_packet(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x;
   const unsigned char *bytes = s->fd_bytes;
@@ -199,7 +199,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   return fd_unparse_packet(out,bytes,len,base);
 }
 
-static int unparse_secret(U8_OUTPUT *out,fdtype x)
+static int unparse_secret(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x;
   const unsigned char *bytes = s->fd_bytes; int i = 0, len = s->fd_bytelen;
@@ -213,9 +213,9 @@ static int unparse_secret(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,"\"");
 }
 
-static int unparse_pair(U8_OUTPUT *out,fdtype x)
+static int unparse_pair(U8_OUTPUT *out,lispval x)
 {
-  fdtype car = FD_CAR(x);
+  lispval car = FD_CAR(x);
   if ((SYMBOLP(car)) && (PAIRP(FD_CDR(x))) &&
       ((FD_CDR(FD_CDR(x))) == NIL)) {
     int false_alarm = 0;
@@ -228,7 +228,7 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
     if (false_alarm==0)
       return fd_unparse(out,FD_CAR(FD_CDR(x)));}
   {
-    fdtype scan = x; int len = 0, ellipsis_start = -1;
+    lispval scan = x; int len = 0, ellipsis_start = -1;
     u8_puts(out,"(");
     fd_unparse(out,FD_CAR(scan)); len++;
     scan = FD_CDR(scan);
@@ -251,7 +251,7 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
   }
 }
 
-static int unparse_vector(U8_OUTPUT *out,fdtype x)
+static int unparse_vector(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
   int i = 0, len = v->fdvec_length;
@@ -265,10 +265,10 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,")");
 }
 
-static int unparse_code(U8_OUTPUT *out,fdtype x)
+static int unparse_code(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
-  int i = 0, len = v->fdvec_length; fdtype *data = v->fdvec_elts;
+  int i = 0, len = v->fdvec_length; lispval *data = v->fdvec_elts;
   u8_puts(out,"#~(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
@@ -280,10 +280,10 @@ static int unparse_code(U8_OUTPUT *out,fdtype x)
   return u8_puts(out,")");
 }
 
-static int unparse_choice(U8_OUTPUT *out,fdtype x)
+static int unparse_choice(U8_OUTPUT *out,lispval x)
 {
   struct FD_CHOICE *v = (struct FD_CHOICE *) x;
-  const fdtype *data = FD_XCHOICE_DATA(v);
+  const lispval *data = FD_XCHOICE_DATA(v);
   int i = 0, len = FD_XCHOICE_SIZE(v);
   u8_puts(out,"{");
   while (i < len) {
@@ -302,7 +302,7 @@ FD_EXPORT
      Returns: int
   Emits a printed representation of the object to the stream.
 */
-int fd_unparse(u8_output out,fdtype x)
+int fd_unparse(u8_output out,lispval x)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type:  /* output OID */
@@ -370,13 +370,13 @@ int fd_unparse(u8_output out,fdtype x)
 }
 
 FD_EXPORT
-/* fd_dtype2string:
+/* fd_lisp2string:
      Arguments: a lisp object
      Returns: a UTF-8 encoding string
 
      Returns a textual encoding of its argument.
 */
-u8_string fd_dtype2string(fdtype x)
+u8_string fd_lisp2string(lispval x)
 {
   struct U8_OUTPUT out;
   U8_INIT_OUTPUT(&out,1024);
@@ -385,7 +385,7 @@ u8_string fd_dtype2string(fdtype x)
 }
 
 FD_EXPORT
-/* fd_dtype2buf:
+/* fd_lisp2buf:
      Arguments: a lisp object
      Arguments: a length in bytes
      Arguments: a (possibly NULL) buffer
@@ -395,7 +395,7 @@ FD_EXPORT
      string.
 
 */
-u8_string fd_dtype2buf(fdtype x,size_t n,u8_byte *buf)
+u8_string fd_lisp2buf(lispval x,size_t n,u8_byte *buf)
 {
   struct U8_OUTPUT out;
   if (buf == NULL) buf = u8_malloc(n+7);
@@ -404,7 +404,7 @@ u8_string fd_dtype2buf(fdtype x,size_t n,u8_byte *buf)
   return out.u8_outbuf;
 }
 
-static fdtype get_compound_tag(fdtype tag)
+static lispval get_compound_tag(lispval tag)
 {
   if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
     struct FD_COMPOUND *c = FD_XCOMPOUND(tag);
@@ -412,23 +412,23 @@ static fdtype get_compound_tag(fdtype tag)
   else return tag;
 }
 
-static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
+static int unparse_compound(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
-  fdtype tag = get_compound_tag(xc->compound_typetag);
+  lispval tag = get_compound_tag(xc->compound_typetag);
   struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(tag);
   if ((entry) && (entry->fd_compound_unparser)) {
     int retval = entry->fd_compound_unparser(out,x,entry);
     if (retval<0) return retval;
     else if (retval) return retval;}
   {
-    fdtype *data = &(xc->compound_0);
+    lispval *data = &(xc->compound_0);
     int i = 0, n = xc->fd_n_elts;
     if ((entry)&&(entry->fd_compound_corelen>0)&&(entry->fd_compound_corelen<n))
       n = entry->fd_compound_corelen;
     u8_printf(out,"#%%(%q",xc->compound_typetag);
     while (i<n) {
-      fdtype elt = data[i++];
+      lispval elt = data[i++];
       if (0) { /* (PACKETP(elt)) */
         struct FD_STRING *packet = fd_consptr(fd_string,elt,fd_packet_type);
         const unsigned char *bytes = packet->fd_bytes; 
@@ -449,7 +449,7 @@ FD_EXPORT
      to make the representation as natural as possible but allowing
      it to be reversed by fd_parse_arg
 */
-u8_string fd_unparse_arg(fdtype arg)
+u8_string fd_unparse_arg(lispval arg)
 {
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
   if (STRINGP(arg)) {
@@ -468,7 +468,7 @@ u8_string fd_unparse_arg(fdtype arg)
 
 /* Custom unparsers */
 
-static int unparse_uuid(u8_output out,fdtype x)
+static int unparse_uuid(u8_output out,lispval x)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
@@ -476,7 +476,7 @@ static int unparse_uuid(u8_output out,fdtype x)
   return 1;
 }
 
-static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
+static int unparse_regex(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_REGEX *rx = (struct FD_REGEX *)x;
   u8_printf(out,"#/%s/%s%s%s%s",rx->fd_rxsrc,
@@ -487,7 +487,7 @@ static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static int unparse_mystery(u8_output out,fdtype x)
+static int unparse_mystery(u8_output out,lispval x)
 {
   struct FD_MYSTERY_DTYPE *d=
     fd_consptr(struct FD_MYSTERY_DTYPE *,x,fd_mystery_type);
@@ -501,7 +501,7 @@ static int unparse_mystery(u8_output out,fdtype x)
   return 1;
 }
 
-static int unparse_rawptr(struct U8_OUTPUT *out,fdtype x)
+static int unparse_rawptr(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_RAWPTR *rawptr = (struct FD_RAWPTR *)x;
   if ((rawptr->typestring)&&(rawptr->idstring))
@@ -527,7 +527,7 @@ static int unparse_rawptr(struct U8_OUTPUT *out,fdtype x)
 static u8_string lisp_printf_handler
   (struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
-  fdtype value = va_arg(*args,fdtype);
+  lispval value = va_arg(*args,lispval);
   int taciturn = (strchr(cmd,'h')!=NULL), retval;
   int already = (s->u8_streaminfo)&(U8_STREAM_TACITURN);
   if (taciturn) s->u8_streaminfo = (s->u8_streaminfo)|U8_STREAM_TACITURN;

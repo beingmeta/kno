@@ -24,10 +24,10 @@ fd_exception fd_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-static fdtype assign_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval assign_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   int retval;
-  fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
+  lispval var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"SET!",NULL,expr);
   else if (!(SYMBOLP(var)))
@@ -47,9 +47,9 @@ static fdtype assign_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return fd_err(fd_BindError,"SET!",SYM_NAME(var),var);
 }
 
-static fdtype assign_plus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval assign_plus_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
+  lispval var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"SET+!",NULL,expr);
   else if (!(SYMBOLP(var)))
@@ -66,18 +66,18 @@ static fdtype assign_plus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-static fdtype assign_default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval assign_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype symbol = fd_get_arg(expr,1);
-  fdtype value_expr = fd_get_arg(expr,2);
+  lispval symbol = fd_get_arg(expr,1);
+  lispval value_expr = fd_get_arg(expr,2);
   if (!(SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"assign_default_evalfn",NULL,fd_incref(expr));
   else if (VOIDP(value_expr))
     return fd_err(fd_SyntaxError,"assign_default_evalfn",NULL,fd_incref(expr));
   else {
-    fdtype val = fd_symeval(symbol,env);
+    lispval val = fd_symeval(symbol,env);
     if ((VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
-      fdtype value = fd_eval(value_expr,env);
+      lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
       if (fd_assign_value(symbol,value,env)==0)
         fd_bind_value(symbol,value,env);
@@ -87,19 +87,19 @@ static fdtype assign_default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       fd_decref(val); return VOID;}}
 }
 
-static fdtype assign_false_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval assign_false_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype symbol = fd_get_arg(expr,1);
-  fdtype value_expr = fd_get_arg(expr,2);
+  lispval symbol = fd_get_arg(expr,1);
+  lispval value_expr = fd_get_arg(expr,2);
   if (!(SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"assign_false_evalfn",NULL,fd_incref(expr));
   else if (VOIDP(value_expr))
     return fd_err(fd_SyntaxError,"assign_false_evalfn",NULL,fd_incref(expr));
   else {
-    fdtype val = fd_symeval(symbol,env);
+    lispval val = fd_symeval(symbol,env);
     if ((VOIDP(val))||(FALSEP(val))||
         (val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
-      fdtype value = fd_eval(value_expr,env);
+      lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
       if (fd_assign_value(symbol,value,env)==0)
         fd_bind_value(symbol,value,env);
@@ -109,10 +109,10 @@ static fdtype assign_false_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       fd_decref(val); return VOID;}}
 }
 
-static fdtype bind_default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval bind_default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype symbol = fd_get_arg(expr,1);
-  fdtype value_expr = fd_get_arg(expr,2);
+  lispval symbol = fd_get_arg(expr,1);
+  lispval value_expr = fd_get_arg(expr,2);
   if (!(SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"bind_default_evalfn",NULL,fd_incref(expr));
   else if (VOIDP(value_expr))
@@ -120,9 +120,9 @@ static fdtype bind_default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else if (env == NULL)
     return fd_err(fd_SyntaxError,"bind_default_evalfn",NULL,fd_incref(expr));
   else {
-    fdtype val = fd_get(env->env_bindings,symbol,VOID);
+    lispval val = fd_get(env->env_bindings,symbol,VOID);
     if ((VOIDP(val))||(val == FD_UNBOUND)||(val == FD_DEFAULT_VALUE)) {
-      fdtype value = fd_eval(value_expr,env);
+      lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) return value;
       fd_bind_value(symbol,value,env);
       fd_decref(value);
@@ -137,10 +137,10 @@ static u8_mutex sassign_lock;
    wraps a mutex around a regular set call, including evaluation of the
    value expression.  This can be used, for instance, to safely increment
    a variable. */
-static fdtype sassign_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval sassign_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   int retval;
-  fdtype var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
+  lispval var = fd_get_arg(expr,1), val_expr = fd_get_arg(expr,2), value;
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"SSET!",NULL,expr);
   else if (!(SYMBOLP(var)))
@@ -167,11 +167,11 @@ static fdtype sassign_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Environment utilities */
 
-FD_FASTOP int check_bindexprs(fdtype bindexprs,fdtype *why_not)
+FD_FASTOP int check_bindexprs(lispval bindexprs,lispval *why_not)
 {
   if (PAIRP(bindexprs)) {
     int n = 0; FD_DOLIST(bindexpr,bindexprs) {
-      fdtype var = fd_get_arg(bindexpr,0);
+      lispval var = fd_get_arg(bindexpr,0);
       if (VOIDP(var)) {
         *why_not = fd_err(fd_BindSyntaxError,NULL,NULL,bindexpr);
         return -1;}
@@ -190,9 +190,9 @@ FD_FASTOP fd_lexenv make_dynamic_env(int n,fd_lexenv parent)
 {
   int i = 0;
   struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
-  fdtype *vars = u8_alloc_n(n,fdtype);
-  fdtype *vals = u8_alloc_n(n,fdtype);
-  fdtype schemap = fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals);
+  lispval *vars = u8_alloc_n(n,lispval);
+  lispval *vals = u8_alloc_n(n,lispval);
+  lispval schemap = fd_make_schemap(NULL,n,FD_SCHEMAP_PRIVATE,vars,vals);
   while (i<n) {vars[i]=VOID; vals[i]=VOID; i++;}
   FD_INIT_FRESH_CONS(e,fd_lexenv_type);
   e->env_copy = e; e->env_bindings = schemap; e->env_exports = VOID;
@@ -202,9 +202,9 @@ FD_FASTOP fd_lexenv make_dynamic_env(int n,fd_lexenv parent)
 
 /* Simple binders */
 
-static fdtype let_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval let_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype bindexprs = fd_get_arg(expr,1), result = VOID;
+  lispval bindexprs = fd_get_arg(expr,1), result = VOID;
   int n;
   if (VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET",NULL,expr);
@@ -214,7 +214,7 @@ static fdtype let_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     INIT_STACK_ENV(_stack,letenv,env,n);
     int i = 0;
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-        fdtype value = fast_eval(val_expr,env);
+        lispval value = fast_eval(val_expr,env);
         if (FD_ABORTED(value)) {
           _return value;}
         else {
@@ -226,9 +226,9 @@ static fdtype let_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     _return result;}
 }
 
-static fdtype letstar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval letstar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype bindexprs = fd_get_arg(expr,1), result = VOID;
+  lispval bindexprs = fd_get_arg(expr,1), result = VOID;
   int n;
   if (VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"LET*",NULL,expr);
@@ -242,7 +242,7 @@ static fdtype letstar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
         letseq_vals[j]=FD_UNBOUND;
         j++;}}
     {FD_DOBINDINGS(var,val_expr,bindexprs) {
-        fdtype value = fast_eval(val_expr,letseq);
+        lispval value = fast_eval(val_expr,letseq);
         if (FD_ABORTED(value))
           _return value;
         else if (letseq->env_copy) {
@@ -260,38 +260,38 @@ static fdtype letstar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* DO */
 
-static fdtype do_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval do_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype bindexprs = fd_get_arg(expr,1);
-  fdtype exitexprs = fd_get_arg(expr,2);
-  fdtype testexpr = fd_get_arg(exitexprs,0), testval = VOID;
+  lispval bindexprs = fd_get_arg(expr,1);
+  lispval exitexprs = fd_get_arg(expr,2);
+  lispval testexpr = fd_get_arg(exitexprs,0), testval = VOID;
   if (VOIDP(bindexprs))
     return fd_err(fd_BindSyntaxError,"DO",NULL,expr);
   else if (VOIDP(exitexprs))
     return fd_err(fd_BindSyntaxError,"DO",NULL,expr);
   else {
-    fdtype _vars[16], _vals[16], _updaters[16], _tmp[16];
-    fdtype *updaters, *vars, *vals, *tmp, result = VOID;
+    lispval _vars[16], _vals[16], _updaters[16], _tmp[16];
+    lispval *updaters, *vars, *vals, *tmp, result = VOID;
     int i = 0, n = 0;
     struct FD_SCHEMAP bindings;
     struct FD_LEXENV envstruct, *inner_env;
     if ((n = check_bindexprs(bindexprs,&result))<0) return result;
     else if (n>16) {
-      fdtype bindings; struct FD_SCHEMAP *sm;
+      lispval bindings; struct FD_SCHEMAP *sm;
       inner_env = make_dynamic_env(n,env);
       bindings = inner_env->env_bindings; sm = (struct FD_SCHEMAP *)bindings;
       vars = sm->table_schema; vals = sm->schema_values;
-      updaters = u8_alloc_n(n,fdtype);
-      tmp = u8_alloc_n(n,fdtype);}
+      updaters = u8_alloc_n(n,lispval);
+      tmp = u8_alloc_n(n,lispval);}
     else {
       inner_env = init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals; updaters=_updaters; tmp=_tmp;}
     /* Do the initial bindings */
     {FD_DOLIST(bindexpr,bindexprs) {
-      fdtype var = fd_get_arg(bindexpr,0);
-      fdtype value_expr = fd_get_arg(bindexpr,1);
-      fdtype update_expr = fd_get_arg(bindexpr,2);
-      fdtype value = fd_eval(value_expr,env);
+      lispval var = fd_get_arg(bindexpr,0);
+      lispval value_expr = fd_get_arg(bindexpr,1);
+      lispval update_expr = fd_get_arg(bindexpr,2);
+      lispval value = fd_eval(value_expr,env);
       if (FD_ABORTED(value)) {
         /* When there's an error here, there's no need to bind. */
         fd_free_lexenv(inner_env);
@@ -307,10 +307,10 @@ static fdtype do_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       return testval;}
     /* The iteration itself */
     while (FALSEP(testval)) {
-      int i = 0; fdtype body = fd_get_body(expr,3);
+      int i = 0; lispval body = fd_get_body(expr,3);
       /* Execute the body */
       FD_DOLIST(bodyexpr,body) {
-        fdtype result = fast_eval(bodyexpr,inner_env);
+        lispval result = fast_eval(bodyexpr,inner_env);
         if (FD_ABORTED(result)) {
           if (n>16) {u8_free(tmp); u8_free(updaters);}
           return result;}
@@ -332,7 +332,7 @@ static fdtype do_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       /* Now, free the current values and replace them with the values
          from tmp[]. */
       i = 0; while (i < n) {
-        fdtype val = vals[i];
+        lispval val = vals[i];
         if ((CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
           fd_decref(val);}
         vals[i]=tmp[i];
@@ -364,13 +364,13 @@ static fdtype do_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 /* This defines an identifier in the local environment to
    the value it would have anyway by environment inheritance.
    This is helpful if it was to rexport it, for example. */
-static fdtype define_local_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval define_local_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
+  lispval var = fd_get_arg(expr,1);
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
   else if (SYMBOLP(var)) {
-    fdtype inherited = fd_symeval(var,env->env_parent);
+    lispval inherited = fd_symeval(var,env->env_parent);
     if (FD_ABORTED(inherited)) return inherited;
     else if (VOIDP(inherited))
       return fd_err(fd_UnboundIdentifier,"DEFINE-LOCAL",
@@ -388,22 +388,22 @@ static fdtype define_local_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* This defines an identifier in the local environment only if
    it is not currently defined. */
-static fdtype define_init_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval define_init_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var = fd_get_arg(expr,1);
-  fdtype init_expr = fd_get_arg(expr,2);
+  lispval var = fd_get_arg(expr,1);
+  lispval init_expr = fd_get_arg(expr,2);
   if (VOIDP(var))
     return fd_err(fd_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
   else if (VOIDP(init_expr))
     return fd_err(fd_TooFewExpressions,"DEFINE-LOCAL",NULL,expr);
   else if (SYMBOLP(var)) {
-    fdtype current = fd_get(env->env_bindings,var,VOID);
+    lispval current = fd_get(env->env_bindings,var,VOID);
     if (FD_ABORTED(current)) return current;
     else if (!(VOIDP(current))) {
       fd_decref(current);
       return VOID;}
     else {
-      fdtype init_value = fd_eval(init_expr,env); int bound = 0;
+      lispval init_value = fd_eval(init_expr,env); int bound = 0;
       if (FD_ABORTED(init_value)) return init_value;
       else bound = fd_bind_value(var,init_value,env);
       if (bound>0) {

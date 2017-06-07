@@ -35,7 +35,7 @@
 
 static fd_exception WeirdOption=_("Weird option specification");
 
-FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
+FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt)
 {
   if (VOIDP(opts))
     return fd_incref(dflt);
@@ -43,7 +43,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     return fd_incref(dflt);
   else if ((CHOICEP(opts)) || (PRECHOICEP(opts))) {
     DO_CHOICES(opt,opts) {
-      fdtype value = fd_getopt(opt,key,VOID);
+      lispval value = fd_getopt(opt,key,VOID);
       if (!(VOIDP(value))) {
         FD_STOP_DO_CHOICES; return value;}}
     return fd_incref(dflt);}
@@ -51,7 +51,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     return fd_getopt(FD_XQCHOICE(opts)->qchoiceval,key,dflt);
   else while (!(VOIDP(opts))) {
       if (PAIRP(opts)) {
-	fdtype car = FD_CAR(opts);
+	lispval car = FD_CAR(opts);
 	if (SYMBOLP(car)) {
 	  if (FD_EQ(key,car))
 	    return FD_TRUE;
@@ -60,11 +60,11 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
 	  if (FD_EQ(FD_CAR(car),key))
 	    return fd_incref(FD_CDR(car));
 	  else {
-	    fdtype value = fd_getopt(car,key,VOID);
+	    lispval value = fd_getopt(car,key,VOID);
 	    if (!(VOIDP(value)))
 	      return value;}}
 	else if (TABLEP(car)) {
-	  fdtype value = fd_get(car,key,VOID);
+	  lispval value = fd_get(car,key,VOID);
 	  if (!(VOIDP(value)))
 	    return value;}
 	else if ((FALSEP(car))||(NILP(car))) {}
@@ -82,11 +82,11 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
   return fd_incref(dflt);
 }
 
-static int boolopt(fdtype opts,fdtype key)
+static int boolopt(lispval opts,lispval key)
 {
   while (!(VOIDP(opts))) {
     if (PAIRP(opts)) {
-      fdtype car = FD_CAR(opts);
+      lispval car = FD_CAR(opts);
       if (SYMBOLP(car)) {
         if (FD_EQ(key,car)) return 1;}
       else if (PAIRP(car)) {
@@ -95,7 +95,7 @@ static int boolopt(fdtype opts,fdtype key)
           else return 1;}}
       else if (FALSEP(car)) {}
       else if (TABLEP(car)) {
-        fdtype value = fd_get(car,key,VOID);
+        lispval value = fd_get(car,key,VOID);
         if (FALSEP(value)) return 0;
         else if (!(VOIDP(value))) {
           fd_decref(value); return 1;}}
@@ -105,7 +105,7 @@ static int boolopt(fdtype opts,fdtype key)
       if (FD_EQ(key,opts)) return 1;
       else return 0;
     else if (TABLEP(opts)) {
-      fdtype value = fd_get(opts,key,VOID);
+      lispval value = fd_get(opts,key,VOID);
       if (FALSEP(value)) return 0;
       else if (VOIDP(value)) return 0;
       else return 1;}
@@ -115,7 +115,7 @@ static int boolopt(fdtype opts,fdtype key)
   return 0;
 }
 
-FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
+FD_EXPORT int fd_testopt(lispval opts,lispval key,lispval val)
 {
   if (VOIDP(opts)) return 0;
   else if ((CHOICEP(opts)) || (PRECHOICEP(opts))) {
@@ -131,7 +131,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
     return 0;
   else while (!(VOIDP(opts))) {
          if (PAIRP(opts)) {
-           fdtype car = FD_CAR(opts);
+           lispval car = FD_CAR(opts);
            if (SYMBOLP(car)) {
              if ((FD_EQ(key,car)) && (FD_TRUEP(val)))
                return 1;}
@@ -161,9 +161,9 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
 
 FD_EXPORT
 long long
-fd_fixopt(fdtype opts,u8_string name,int dflt)
+fd_fixopt(lispval opts,u8_string name,int dflt)
 {
-  fdtype val=fd_getopt(opts,fd_intern(name),VOID);
+  lispval val=fd_getopt(opts,fd_intern(name),VOID);
   if (VOIDP(val))
     return dflt;
   else if (FIXNUMP(val))

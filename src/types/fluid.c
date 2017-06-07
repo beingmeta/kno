@@ -49,9 +49,9 @@
 
 #if FD_USE_TLS
 static u8_tld_key threadtable_key;
-static fdtype get_threadtable()
+static lispval get_threadtable()
 {
-  fdtype table = (fdtype)u8_tld_get(threadtable_key);
+  lispval table = (lispval)u8_tld_get(threadtable_key);
   if (table) return table;
   else {
     table = fd_empty_slotmap();
@@ -60,49 +60,49 @@ static fdtype get_threadtable()
 }
 FD_EXPORT void fd_reset_threadvars()
 {
-  fdtype table = (fdtype)u8_tld_get(threadtable_key);
-  fdtype new_table = fd_empty_slotmap();
+  lispval table = (lispval)u8_tld_get(threadtable_key);
+  lispval new_table = fd_empty_slotmap();
   u8_tld_set(threadtable_key,(void*)new_table);
   if (table) fd_decref(table);
 }
 static void recycle_thread_table()
 {
-  fdtype table = (fdtype)u8_tld_get(threadtable_key);
+  lispval table = (lispval)u8_tld_get(threadtable_key);
   u8_tld_set(threadtable_key,(void*)NULL);
   if (table) fd_decref(table);
 }
 #else
-static fdtype __thread thread_table = VOID;
-static fdtype get_threadtable()
+static lispval __thread thread_table = VOID;
+static lispval get_threadtable()
 {
   if (TABLEP(thread_table)) return thread_table;
   else return (thread_table = fd_empty_slotmap());
 }
 FD_EXPORT void fd_reset_threadvars()
 {
-  fdtype table = thread_table;
+  lispval table = thread_table;
   thread_table = fd_empty_slotmap();
   fd_decref(table);
 }
 static void recycle_thread_table()
 {
-  fdtype table = thread_table;
+  lispval table = thread_table;
   thread_table = VOID;
   if (table) fd_decref(table);
 }
 #endif
 
-FD_EXPORT fdtype fd_thread_get(fdtype var)
+FD_EXPORT lispval fd_thread_get(lispval var)
 {
   return fd_get(get_threadtable(),var,VOID);
 }
 
-FD_EXPORT int fd_thread_set(fdtype var,fdtype val)
+FD_EXPORT int fd_thread_set(lispval var,lispval val)
 {
   return fd_store(get_threadtable(),var,val);
 }
 
-FD_EXPORT int fd_thread_add(fdtype var,fdtype val)
+FD_EXPORT int fd_thread_add(lispval var,lispval val)
 {
   return fd_add(get_threadtable(),var,val);
 }
@@ -111,107 +111,107 @@ FD_EXPORT int fd_thread_add(fdtype var,fdtype val)
 
 #if FD_USE_TLS
 static u8_tld_key reqinfo_key;
-static fdtype try_reqinfo()
+static lispval try_reqinfo()
 {
-  fdtype table = (fdtype)u8_tld_get(reqinfo_key);
+  lispval table = (lispval)u8_tld_get(reqinfo_key);
   if (table) return table;
   else return EMPTY;
 }
-static fdtype get_reqinfo()
+static lispval get_reqinfo()
 {
-  fdtype table = (fdtype)u8_tld_get(reqinfo_key);
+  lispval table = (lispval)u8_tld_get(reqinfo_key);
   if ((table)&&(TABLEP(table))) return table;
   else {
-    fdtype newinfo = fd_empty_slotmap();
+    lispval newinfo = fd_empty_slotmap();
     fd_slotmap sm = fd_consptr(fd_slotmap,newinfo,fd_slotmap_type);
     u8_write_lock(&(sm->table_rwlock)); sm->table_uselock = 0;
     u8_tld_set(reqinfo_key,(void *)newinfo);
     return newinfo;}
 }
-static void set_reqinfo(fdtype table)
+static void set_reqinfo(lispval table)
 {
   u8_tld_set(reqinfo_key,(void *)table);
 }
 #else
-static fdtype __thread reqinfo = VOID;
-static fdtype try_reqinfo()
+static lispval __thread reqinfo = VOID;
+static lispval try_reqinfo()
 {
   if ((reqinfo)&&(TABLEP(reqinfo))) return reqinfo;
   else return EMPTY;
 }
-static fdtype get_reqinfo()
+static lispval get_reqinfo()
 {
   if ((reqinfo)&&(TABLEP(reqinfo))) return reqinfo;
   else {
-    fdtype newinfo = fd_empty_slotmap();
+    lispval newinfo = fd_empty_slotmap();
     fd_slotmap sm = fd_consptr(fd_slotmap,newinfo,fd_slotmap_type);
     u8_write_lock(&(sm->table_rwlock)); sm->table_uselock = 0;
     reqinfo = newinfo;
     return newinfo;}
 }
-static void set_reqinfo(fdtype table)
+static void set_reqinfo(lispval table)
 {
   reqinfo = table;
 }
 #endif
 
-FD_EXPORT fdtype fd_req(fdtype var)
+FD_EXPORT lispval fd_req(lispval var)
 {
   return fd_get(try_reqinfo(),var,VOID);
 }
 
 FD_EXPORT int fd_isreqlive()
 {
-  fdtype info = try_reqinfo();
+  lispval info = try_reqinfo();
   if (TABLEP(info)) return 1; else return 0;
 }
 
-FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt)
+FD_EXPORT lispval fd_req_get(lispval var,lispval dflt)
 {
-  fdtype info = try_reqinfo();
+  lispval info = try_reqinfo();
   if (TABLEP(info)) return fd_get(info,var,dflt);
   else return fd_incref(dflt);
 }
 
-FD_EXPORT int fd_req_store(fdtype var,fdtype val)
+FD_EXPORT int fd_req_store(lispval var,lispval val)
 {
-  fdtype info = get_reqinfo();
+  lispval info = get_reqinfo();
   return fd_store(info,var,val);
 }
 
-FD_EXPORT int fd_req_test(fdtype var,fdtype val)
+FD_EXPORT int fd_req_test(lispval var,lispval val)
 {
   return fd_test(try_reqinfo(),var,val);
 }
 
-FD_EXPORT int fd_req_add(fdtype var,fdtype val)
+FD_EXPORT int fd_req_add(lispval var,lispval val)
 {
   return fd_add(get_reqinfo(),var,val);
 }
 
-FD_EXPORT int fd_req_drop(fdtype var,fdtype val)
+FD_EXPORT int fd_req_drop(lispval var,lispval val)
 {
   return fd_drop(try_reqinfo(),var,val);
 }
 
-FD_EXPORT int fd_req_push(fdtype var,fdtype val)
+FD_EXPORT int fd_req_push(lispval var,lispval val)
 {
-  fdtype info = get_reqinfo(), cur = fd_get(info,var,NIL);
-  fdtype new_pair = fd_conspair(val,cur);
+  lispval info = get_reqinfo(), cur = fd_get(info,var,NIL);
+  lispval new_pair = fd_conspair(val,cur);
   fd_store(info,var,new_pair);
   fd_incref(val); fd_decref(new_pair);
   return 1;
 }
 
-FD_EXPORT fdtype fd_req_call(fd_reqfn reqfn)
+FD_EXPORT lispval fd_req_call(fd_reqfn reqfn)
 {
-  fdtype info = get_reqinfo();
+  lispval info = get_reqinfo();
   return reqfn(info);
 }
 
-FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
+FD_EXPORT void fd_use_reqinfo(lispval newinfo)
 {
-  fdtype curinfo = try_reqinfo();
+  lispval curinfo = try_reqinfo();
   if (curinfo == newinfo) return;
   if ((FD_TRUEP(newinfo))&&(TABLEP(curinfo))) return;
   if (SLOTMAPP(curinfo)) {
@@ -255,9 +255,9 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
   fd_decref(curinfo);
 }
 
-FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
+FD_EXPORT lispval fd_push_reqinfo(lispval newinfo)
 {
-  fdtype curinfo = try_reqinfo();
+  lispval curinfo = try_reqinfo();
   if (curinfo == newinfo) return curinfo;
   if (SLOTMAPP(curinfo)) {
     fd_slotmap sm = fd_consptr(fd_slotmap,curinfo,fd_slotmap_type);

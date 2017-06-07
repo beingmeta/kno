@@ -76,12 +76,12 @@ fd_exception fd_InvalidNumericLiteral=_("Invalid numeric literal");
 typedef void (*bigint_consumer)(void *,int);
 typedef unsigned int (*bigint_producer)(void *);
 
-static double todouble(fdtype x);
+static double todouble(lispval x);
 
-static int numvec_length(fdtype x);
-static fdtype vector_add(fdtype x,fdtype y,int mult);
-static fdtype vector_dotproduct(fdtype x,fdtype y);
-static fdtype vector_scale(fdtype vec,fdtype scalar);
+static int numvec_length(lispval x);
+static lispval vector_add(lispval x,lispval y,int mult);
+static lispval vector_dotproduct(lispval x,lispval y);
+static lispval vector_scale(lispval vec,lispval scalar);
 
 int fd_numvec_showmax = 7;
 
@@ -810,7 +810,7 @@ DEFUN (fd_digit_stream_to_bigint,
 	{
 	  int digit = producer(context);
 	  if ((digit<0) || (digit>radix)) {
-	    fd_decref((fdtype)result);
+	    fd_decref((lispval)result);
 	    return NULL;}
 	  bigint_destructive_scale_up (result, ((bigint_digit_type) radix));
 	  bigint_destructive_add
@@ -1841,20 +1841,20 @@ DEFUN (bigint_destructive_copy, (source, target),
 
 /* Cheap big ints */
 
-FD_EXPORT fdtype fd_make_bigint(long long intval)
+FD_EXPORT lispval fd_make_bigint(long long intval)
 {
   if ((intval>FD_MAX_FIXNUM) || (intval<FD_MIN_FIXNUM))
-    return (fdtype) fd_long_long_to_bigint(intval);
+    return (lispval) fd_long_long_to_bigint(intval);
   else if (intval>=0)
     return (fd_fixnum_type|(intval*4));
   else
     return (fd_fixnum_type|(intval*4));
 }
 
-static fdtype copy_bigint(fdtype x,int deep)
+static lispval copy_bigint(lispval x,int deep)
 {
   fd_bigint bi = fd_consptr(fd_bigint,x,fd_bigint_type);
-  return FDTYPE_CONS(bigint_copy(bi));
+  return LISP_CONS(bigint_copy(bi));
 }
 
 static void recycle_bigint(struct FD_RAW_CONS *c)
@@ -1865,23 +1865,23 @@ static void recycle_bigint(struct FD_RAW_CONS *c)
 
 /* Flonums */
 
-FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum)
+FD_EXPORT lispval fd_init_flonum(struct FD_FLONUM *ptr,double flonum)
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_FLONUM);
   FD_INIT_CONS(ptr,fd_flonum_type);
   ptr->floval = flonum;
-  return FDTYPE_CONS(ptr);
+  return LISP_CONS(ptr);
 }
 
-FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum)
+FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum)
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_FLONUM);
   FD_INIT_CONS(ptr,fd_flonum_type);
   ptr->floval = flonum;
-  return FDTYPE_CONS(ptr);
+  return LISP_CONS(ptr);
 }
 
-static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
+static int unparse_flonum(struct U8_OUTPUT *out,lispval x)
 {
   unsigned char buf[256]; int exp;
   struct FD_FLONUM *d = fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
@@ -1894,13 +1894,13 @@ static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype copy_flonum(fdtype x,int deep)
+static lispval copy_flonum(lispval x,int deep)
 {
   struct FD_FLONUM *d = fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   return fd_init_flonum(NULL,d->floval);
 }
 
-static fdtype unpack_flonum(unsigned int n,unsigned char *packet)
+static lispval unpack_flonum(unsigned int n,unsigned char *packet)
 {
   unsigned char bytes[8]; double *f = (double *)&bytes;
 #if WORDS_BIGENDIAN
@@ -1912,7 +1912,7 @@ static fdtype unpack_flonum(unsigned int n,unsigned char *packet)
   return fd_init_flonum(NULL,*f);
 }
 
-static int dtype_flonum(struct FD_OUTBUF *out,fdtype x)
+static int dtype_flonum(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_FLONUM *d = fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   unsigned char bytes[8]; int i = 0;
@@ -1934,7 +1934,7 @@ static void recycle_flonum(struct FD_RAW_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int compare_flonum(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_flonum(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_FLONUM *dx=
     fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
@@ -1945,7 +1945,7 @@ static int compare_flonum(fdtype x,fdtype y,fd_compare_flags flags)
   else return 1;
 }
 
-static int hash_flonum(fdtype x,unsigned int (*fn)(fdtype))
+static int hash_flonum(lispval x,unsigned int (*fn)(lispval))
 {
   struct FD_FLONUM *dx=
     fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
@@ -1970,7 +1970,7 @@ static int hash_flonum(fdtype x,unsigned int (*fn)(fdtype))
 
 #define INTEGERP(x) ((FIXNUMP(x)) || (FD_BIGINTP(x)))
 
-static double todoublex(fdtype x,fd_ptr_type xt)
+static double todoublex(lispval x,fd_ptr_type xt)
 {
   if (xt == fd_flonum_type) return ((struct FD_FLONUM *)x)->floval;
   else if (xt == fd_fixnum_type)
@@ -1986,15 +1986,15 @@ static double todoublex(fdtype x,fd_ptr_type xt)
     return sqrt((real*real)+(imag*imag));}
   else return FP_NAN;
 }
-static double todouble(fdtype x)
+static double todouble(lispval x)
 {
   return todoublex(x,FD_PTR_TYPE(x));
 }
-FD_EXPORT double fd_todouble(fdtype x)
+FD_EXPORT double fd_todouble(lispval x)
 {
   return todoublex(x,FD_PTR_TYPE(x));
 }
-static fd_bigint tobigint(fdtype x)
+static fd_bigint tobigint(lispval x)
 {
   if (FIXNUMP(x))
     return fd_long_long_to_bigint(FIX2INT(x));
@@ -2006,18 +2006,18 @@ static fd_bigint tobigint(fdtype x)
     u8_raise(_("Internal error"),"tobigint","numeric");
     return NULL;}
 }
-static fdtype simplify_bigint(fd_bigint bi)
+static lispval simplify_bigint(fd_bigint bi)
 {
   if (fd_bigint_fits_in_word_p(bi,FD_FIXNUM_BITS,1)) {
     long long intval = fd_bigint_to_long(bi);
-    fd_decref((fdtype)bi);
+    fd_decref((lispval)bi);
     return FD_INT(intval);}
-  else return (fdtype)bi;
+  else return (lispval)bi;
 }
 
 /* Making complex and rational numbers */
 
-static fdtype make_complex(fdtype real,fdtype imag)
+static lispval make_complex(lispval real,lispval imag)
 {
   if (fd_numcompare(imag,FD_INT(0))==0) {
     fd_decref(imag); return real;}
@@ -2025,15 +2025,15 @@ static fdtype make_complex(fdtype real,fdtype imag)
     struct FD_COMPLEX *result = u8_alloc(struct FD_COMPLEX);
     FD_INIT_CONS(result,fd_complex_type);
     result->realpart = real; result->imagpart = imag;
-    return (fdtype) result;}
+    return (lispval) result;}
 }
 
-static int unparse_complex(struct U8_OUTPUT *out,fdtype x)
+static int unparse_complex(struct U8_OUTPUT *out,lispval x)
 {
-  fdtype imag = FD_IMAGPART(x), real = FD_REALPART(x);
+  lispval imag = FD_IMAGPART(x), real = FD_REALPART(x);
   int has_real = fd_numcompare(real,FD_INT(0));
   if (fd_numcompare(imag,FD_INT(0))<0) {
-    fdtype negated = fd_subtract(FD_INT(0),imag);
+    lispval negated = fd_subtract(FD_INT(0),imag);
     if (has_real)
       u8_printf(out,"%q-%qi",FD_REALPART(x),negated);
     else u8_printf(out,"-%qi",negated);
@@ -2045,17 +2045,17 @@ static int unparse_complex(struct U8_OUTPUT *out,fdtype x)
 }
 
 FD_EXPORT
-fdtype fd_make_complex(fdtype real,fdtype imag)
+lispval fd_make_complex(lispval real,lispval imag)
 {
   fd_incref(real); fd_incref(imag);
   return make_complex(real,imag);
 }
 
 static long long fix_gcd (long long x, long long y);
-static fdtype int_gcd(fdtype x,fdtype y);
-static fdtype int_lcm (fdtype x, fdtype y);
+static lispval int_gcd(lispval x,lispval y);
+static lispval int_lcm (lispval x, lispval y);
 
-static fdtype make_rational(fdtype num,fdtype denom)
+static lispval make_rational(lispval num,lispval denom)
 {
   struct FD_RATIONAL *result;
   if ((FIXNUMP(denom)) && ((FIX2INT(denom))==0))
@@ -2069,9 +2069,9 @@ static fdtype make_rational(fdtype num,fdtype denom)
       num = FD_INT(-inum); denom = FD_INT(-iden);}
     else {num = FD_INT(inum); denom = FD_INT(iden);}}
   else if ((INTEGERP(num)) && (INTEGERP(denom))) {
-    fdtype gcd = int_gcd(num,denom);
-    fdtype new_num = fd_quotient(num,gcd);
-    fdtype new_denom = fd_quotient(denom,gcd);
+    lispval gcd = int_gcd(num,denom);
+    lispval new_num = fd_quotient(num,gcd);
+    lispval new_denom = fd_quotient(denom,gcd);
     fd_decref(gcd);
     if (((FIXNUMP(new_denom)) && (FIX2INT(new_denom) == 1)))
       return new_num;
@@ -2081,17 +2081,17 @@ static fdtype make_rational(fdtype num,fdtype denom)
   FD_INIT_CONS(result,fd_rational_type);
   result->numerator = num;
   result->denominator = denom;
-  return (fdtype) result;
+  return (lispval) result;
 }
 
-static int unparse_rational(struct U8_OUTPUT *out,fdtype x)
+static int unparse_rational(struct U8_OUTPUT *out,lispval x)
 {
   u8_printf(out,"%q/%q",FD_NUMERATOR(x),FD_DENOMINATOR(x));
   return 1;
 }
 
 FD_EXPORT
-fdtype fd_make_rational(fdtype num,fdtype denom)
+lispval fd_make_rational(lispval num,lispval denom)
 {
   fd_incref(num); fd_incref(denom);
   return make_rational(num,denom);
@@ -2117,19 +2117,19 @@ static long long fix_gcd (long long x, long long y)
   ((FIXNUMP(x)) ? ((FIX2INT(x)==0)) : \
    (FD_BIGINTP(x)) ? ((bigint_test((fd_bigint)x)) == fd_bigint_equal) : (0))
 
-static fdtype int_gcd(fdtype x,fdtype y)
+static lispval int_gcd(lispval x,lispval y)
 {
   errno = 0;
   if ((FIXNUMP(x)) && (FIXNUMP(y)))
     return FD_INT(fix_gcd(FIX2INT(x),FIX2INT(y)));
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
-    fdtype a; fd_incref(x); fd_incref(y);
+    lispval a; fd_incref(x); fd_incref(y);
     /* Normalize the sign of x */
     if (FIXNUMP(x)) {
       long long ival = FIX2INT(x);
       if (ival<0) x = FD_INT(-ival);}
     else if (INT_NEGATIVEP(x)) {
-      fdtype bval = fd_subtract(FD_INT(0),x);
+      lispval bval = fd_subtract(FD_INT(0),x);
       fd_decref(x); x = bval;}
     else {}
     /* Normalize the sign of y */
@@ -2137,7 +2137,7 @@ static fdtype int_gcd(fdtype x,fdtype y)
       long long ival = FIX2INT(y);
       if (ival<0) y = FD_INT(-ival);}
     else if (INT_NEGATIVEP(y)) {
-      fdtype bval = fd_subtract(FD_INT(0),y);
+      lispval bval = fd_subtract(FD_INT(0),y);
       fd_decref(y); y = bval;}
     else {}
     a = y;
@@ -2148,14 +2148,14 @@ static fdtype int_gcd(fdtype x,fdtype y)
   else return fd_type_error(_("not an integer"),"int_gcd",y);
 }
 
-static fdtype int_lcm (fdtype x, fdtype y)
+static lispval int_lcm (lispval x, lispval y)
 {
-  fdtype prod = fd_multiply(x,y), gcd = int_gcd(x,y), lcm;
+  lispval prod = fd_multiply(x,y), gcd = int_gcd(x,y), lcm;
   if (FIXNUMP(prod))
     if (FIX2INT(prod) < 0) prod = FD_INT(-(FIX2INT(prod)));
     else {}
   else if (INT_NEGATIVEP(prod)) {
-    fdtype negated = fd_subtract(FD_INT(0),prod);
+    lispval negated = fd_subtract(FD_INT(0),prod);
     fd_decref(prod); prod = negated;}
   lcm = fd_divide(prod,gcd);
   fd_decref(prod); fd_decref(gcd);
@@ -2215,13 +2215,13 @@ FD_EXPORT unsigned long fd_bigint_bytes(fd_bigint bi)
 }
 
 FD_EXPORT
-int fd_numberp(fdtype x)
+int fd_numberp(lispval x)
 {
   if (NUMBERP(x)) return 1; else return 0;
 }
 
 FD_EXPORT
-fdtype fd_plus(fdtype x,fdtype y)
+lispval fd_plus(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
@@ -2233,7 +2233,7 @@ fdtype fd_plus(fdtype x,fdtype y)
       long long result = ix+iy;
       if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
         return FD_INT(result);
-      else return (fdtype) fd_long_long_to_bigint(result);}}
+      else return (lispval) fd_long_long_to_bigint(result);}}
   else if ((xt == fd_flonum_type) && (yt == fd_flonum_type)) {
     double result = FD_FLONUM(x)+FD_FLONUM(y);
     return fd_init_flonum(NULL,result);}
@@ -2254,18 +2254,18 @@ fdtype fd_plus(fdtype x,fdtype y)
     if (ix==0) return fd_incref(y);
     else if (iy==0) return fd_incref(x);
     else if ((xt == fd_complex_type) || (yt == fd_complex_type)) {
-      fdtype realx = REALPART(x), imagx = IMAGPART(x);
-      fdtype realy = REALPART(y), imagy = IMAGPART(y);
-      fdtype real = fd_plus(realx,realy);
-      fdtype imag = fd_plus(imagx,imagy);
+      lispval realx = REALPART(x), imagx = IMAGPART(x);
+      lispval realy = REALPART(y), imagy = IMAGPART(y);
+      lispval real = fd_plus(realx,realy);
+      lispval imag = fd_plus(imagx,imagy);
       return make_complex(real,imag);}
     else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
       double dx = todoublex(x,xt), dy = todoublex(y,yt);
       return fd_init_flonum(NULL,dx+dy);}
     else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
-      fdtype xnum = NUMERATOR(x), xden = DENOMINATOR(x);
-      fdtype ynum = NUMERATOR(y), yden = DENOMINATOR(y);
-      fdtype new_numP1, new_numP2, new_num, new_denom, result;
+      lispval xnum = NUMERATOR(x), xden = DENOMINATOR(x);
+      lispval ynum = NUMERATOR(y), yden = DENOMINATOR(y);
+      lispval new_numP1, new_numP2, new_num, new_denom, result;
       new_denom = fd_multiply(xden,yden);
       new_numP1 = fd_multiply(xnum,yden);
       new_numP2 = fd_multiply(ynum,xden);
@@ -2277,13 +2277,13 @@ fdtype fd_plus(fdtype x,fdtype y)
     else {
       fd_bigint bx = tobigint(x), by = tobigint(y);
       fd_bigint result = fd_bigint_add(bx,by);
-      if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-      if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+      if (!(FD_BIGINTP(x))) fd_decref((lispval)bx);
+      if (!(FD_BIGINTP(y))) fd_decref((lispval)by);
       return simplify_bigint(result);}}
 }
 
 FD_EXPORT
-fdtype fd_multiply(fdtype x,fdtype y)
+lispval fd_multiply(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
@@ -2298,12 +2298,12 @@ fdtype fd_multiply(fdtype x,fdtype y)
          switch to bigints */
       fd_bigint bx = tobigint(x), by = tobigint(y);
       fd_bigint bresult = fd_bigint_multiply(bx,by);
-      fd_decref((fdtype)bx); fd_decref((fdtype)by);
+      fd_decref((lispval)bx); fd_decref((lispval)by);
       return simplify_bigint(bresult);}
     else result = ix*iy;
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT(result);
-    else return (fdtype) fd_long_long_to_bigint(result);}
+    else return (lispval) fd_long_long_to_bigint(result);}
   else if ((xt == fd_flonum_type) && (yt == fd_flonum_type)) {
     double result = FD_FLONUM(x)*FD_FLONUM(y);
     return fd_init_flonum(NULL,result);}
@@ -2329,9 +2329,9 @@ fdtype fd_multiply(fdtype x,fdtype y)
     else if (ix==1) return fd_incref(y);
     else if (iy==1) return fd_incref(x);
     else if ((COMPLEXP(x)) || (COMPLEXP(y))) {
-      fdtype realx = REALPART(x), imagx = IMAGPART(x);
-      fdtype realy = REALPART(y), imagy = IMAGPART(y);
-      fdtype t1, t2, t3, t4, realr, imagr, result;
+      lispval realx = REALPART(x), imagx = IMAGPART(x);
+      lispval realy = REALPART(y), imagy = IMAGPART(y);
+      lispval t1, t2, t3, t4, realr, imagr, result;
       t1 = fd_multiply(realx,realy); t2 = fd_multiply(imagx,imagy);
       t3 = fd_multiply(realx,imagy); t4 = fd_multiply(imagx,realy);
       realr = fd_subtract(t1,t2); imagr = fd_plus(t3,t4);
@@ -2342,9 +2342,9 @@ fdtype fd_multiply(fdtype x,fdtype y)
       double dx = todoublex(x,xt), dy = todoublex(y,yt);
       return fd_init_flonum(NULL,dx*dy);}
     else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
-      fdtype xnum = NUMERATOR(x), xden = DENOMINATOR(x);
-      fdtype ynum = NUMERATOR(y), yden = DENOMINATOR(y);
-      fdtype new_denom, new_num, result;
+      lispval xnum = NUMERATOR(x), xden = DENOMINATOR(x);
+      lispval ynum = NUMERATOR(y), yden = DENOMINATOR(y);
+      lispval new_denom, new_num, result;
       new_num = fd_multiply(xnum,ynum);
       new_denom = fd_multiply(xden,yden);
       result = make_rational(new_num,new_denom);
@@ -2352,20 +2352,20 @@ fdtype fd_multiply(fdtype x,fdtype y)
     else {
       fd_bigint bx = tobigint(x), by = tobigint(y);
       fd_bigint result = fd_bigint_multiply(bx,by);
-      if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-      if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+      if (!(FD_BIGINTP(x))) fd_decref((lispval)bx);
+      if (!(FD_BIGINTP(y))) fd_decref((lispval)by);
       return simplify_bigint(result);}}
 }
 
 FD_EXPORT
-fdtype fd_subtract(fdtype x,fdtype y)
+lispval fd_subtract(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
     long long result = (FIX2INT(x))-(FIX2INT(y));
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
       return FD_INT(result);
-    else return (fdtype) fd_long_long_to_bigint(result);}
+    else return (lispval) fd_long_long_to_bigint(result);}
   else if ((xt == fd_flonum_type) && (yt == fd_flonum_type)) {
     double result = FD_FLONUM(x)-FD_FLONUM(y);
     return fd_init_flonum(NULL,result);}
@@ -2381,18 +2381,18 @@ fdtype fd_subtract(fdtype x,fdtype y)
   else if (!(NUMBERP(y)))
     return fd_type_error(_("number"),"fd_subtract",y);
   else if ((COMPLEXP(x)) || (COMPLEXP(y))) {
-    fdtype realx = REALPART(x), imagx = IMAGPART(x);
-    fdtype realy = REALPART(y), imagy = IMAGPART(y);
-    fdtype real = fd_subtract(realx,realy);
-    fdtype imag = fd_subtract(imagx,imagy);
+    lispval realx = REALPART(x), imagx = IMAGPART(x);
+    lispval realy = REALPART(y), imagy = IMAGPART(y);
+    lispval real = fd_subtract(realx,realy);
+    lispval imag = fd_subtract(imagx,imagy);
     return make_complex(real,imag);}
   else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
     double dx = todoublex(x,xt), dy = todoublex(y,yt);
     return fd_init_flonum(NULL,dx-dy);}
   else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
-    fdtype xnum = NUMERATOR(x), xden = DENOMINATOR(x);
-    fdtype ynum = NUMERATOR(y), yden = DENOMINATOR(y);
-    fdtype new_numP1, new_numP2, new_num, new_denom, result;
+    lispval xnum = NUMERATOR(x), xden = DENOMINATOR(x);
+    lispval ynum = NUMERATOR(y), yden = DENOMINATOR(y);
+    lispval new_numP1, new_numP2, new_num, new_denom, result;
     new_denom = fd_multiply(xden,yden);
     new_numP1 = fd_multiply(xnum,yden);
     new_numP2 = fd_multiply(ynum,xden);
@@ -2404,13 +2404,13 @@ fdtype fd_subtract(fdtype x,fdtype y)
   else {
     fd_bigint bx = tobigint(x), by = tobigint(y);
     fd_bigint result = fd_bigint_subtract(bx,by);
-    if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-    if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+    if (!(FD_BIGINTP(x))) fd_decref((lispval)bx);
+    if (!(FD_BIGINTP(y))) fd_decref((lispval)by);
     return simplify_bigint(result);}
 }
 
 FD_EXPORT
-fdtype fd_divide(fdtype x,fdtype y)
+lispval fd_divide(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((INTEGERP(x)) && (INTEGERP(y)))
@@ -2423,10 +2423,10 @@ fdtype fd_divide(fdtype x,fdtype y)
   else if (!(NUMBERP(y)))
     return fd_type_error(_("number"),"fd_divide",y);
   else if ((COMPLEXP(x)) || (COMPLEXP(y))) {
-    fdtype a = REALPART(x), b = IMAGPART(x);
-    fdtype c = REALPART(y), d = IMAGPART(y);
-    fdtype ac, ad, cb, bd, ac_bd, cb_ad, cc, dd, ccpdd;
-    fdtype realr, imagr, result;
+    lispval a = REALPART(x), b = IMAGPART(x);
+    lispval c = REALPART(y), d = IMAGPART(y);
+    lispval ac, ad, cb, bd, ac_bd, cb_ad, cc, dd, ccpdd;
+    lispval realr, imagr, result;
     ac = fd_multiply(a,c); ad = fd_multiply(a,d);
     cb = fd_multiply(c,b); bd = fd_multiply(b,d);
     cc = fd_multiply(c,c); dd = fd_multiply(d,d);
@@ -2442,9 +2442,9 @@ fdtype fd_divide(fdtype x,fdtype y)
     double dx = todoublex(x,xt), dy = todoublex(y,yt);
     return fd_init_flonum(NULL,dx/dy);}
   else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
-    fdtype xnum = NUMERATOR(x), xden = DENOMINATOR(x);
-    fdtype ynum = NUMERATOR(y), yden = DENOMINATOR(y);
-    fdtype new_denom, new_num, result;
+    lispval xnum = NUMERATOR(x), xden = DENOMINATOR(x);
+    lispval ynum = NUMERATOR(y), yden = DENOMINATOR(y);
+    lispval new_denom, new_num, result;
     new_num = fd_multiply(xnum,yden);
     new_denom = fd_multiply(xden,ynum);
     result = make_rational(new_num,new_denom);
@@ -2453,7 +2453,7 @@ fdtype fd_divide(fdtype x,fdtype y)
 }
 
 FD_EXPORT
-fdtype fd_inexact_divide(fdtype x,fdtype y)
+lispval fd_inexact_divide(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
@@ -2481,7 +2481,7 @@ fdtype fd_inexact_divide(fdtype x,fdtype y)
 }
 
 FD_EXPORT
-fdtype fd_quotient(fdtype x,fdtype y)
+lispval fd_quotient(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
@@ -2490,8 +2490,8 @@ fdtype fd_quotient(fdtype x,fdtype y)
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fd_bigint bx = tobigint(x), by = tobigint(y);
     fd_bigint result = fd_bigint_quotient(bx,by);
-    if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-    if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+    if (!(FD_BIGINTP(x))) fd_decref((lispval)bx);
+    if (!(FD_BIGINTP(y))) fd_decref((lispval)by);
     return simplify_bigint(result);}
   else if (INTEGERP(x))
     return fd_type_error(_("integer"),"fd_quotient",y);
@@ -2499,7 +2499,7 @@ fdtype fd_quotient(fdtype x,fdtype y)
 }
 
 FD_EXPORT
-fdtype fd_remainder(fdtype x,fdtype y)
+lispval fd_remainder(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
@@ -2508,8 +2508,8 @@ fdtype fd_remainder(fdtype x,fdtype y)
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fd_bigint bx = tobigint(x), by = tobigint(y);
     fd_bigint result = fd_bigint_remainder(bx,by);
-    if (!(FD_BIGINTP(x))) fd_decref((fdtype)bx);
-    if (!(FD_BIGINTP(y))) fd_decref((fdtype)by);
+    if (!(FD_BIGINTP(x))) fd_decref((lispval)bx);
+    if (!(FD_BIGINTP(y))) fd_decref((lispval)by);
     return simplify_bigint(result);}
   else if (INTEGERP(x))
     return fd_type_error(_("integer"),"fd_remainder",y);
@@ -2517,26 +2517,26 @@ fdtype fd_remainder(fdtype x,fdtype y)
 }
 
 FD_EXPORT
-fdtype fd_gcd(fdtype x,fdtype y)
+lispval fd_gcd(lispval x,lispval y)
 {
   return int_gcd(x,y);
 }
 
 FD_EXPORT
-fdtype fd_lcm(fdtype x,fdtype y)
+lispval fd_lcm(lispval x,lispval y)
 {
   return int_lcm(x,y);
 }
 
 FD_EXPORT
-fdtype fd_pow(fdtype x,fdtype y)
+lispval fd_pow(lispval x,lispval y)
 {
   double dx = todouble(x), dy = todouble(y);
   double result = pow(dx,dy);
   return fd_make_flonum(result);
 }
 
-static int signum(fdtype x)
+static int signum(lispval x)
 {
   if (FIXNUMP(x)) {
     long long ival = FIX2INT(x);
@@ -2560,7 +2560,7 @@ static int signum(fdtype x)
   else return 0;
 }
 
-FD_EXPORT int fd_tolonglong(fdtype r,long long *intval)
+FD_EXPORT int fd_tolonglong(lispval r,long long *intval)
 {
   if (FIXNUMP(r)) {
     *intval = ((long long)(FIX2INT(r)));
@@ -2576,7 +2576,7 @@ FD_EXPORT int fd_tolonglong(fdtype r,long long *intval)
 }
 
 FD_EXPORT
-int fd_numcompare(fdtype x,fdtype y)
+int fd_numcompare(lispval x,lispval y)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x), yt = FD_PTR_TYPE(y);
   if ((xt == fd_fixnum_type) && (yt == fd_fixnum_type)) {
@@ -2601,7 +2601,7 @@ int fd_numcompare(fdtype x,fdtype y)
     double magx = todouble(x), magy = todouble(y);
     return signum(magx-magy);}
   else {
-    fdtype difference = fd_subtract(x,y);
+    lispval difference = fd_subtract(x,y);
     int sgn = signum(difference);
     fd_decref(difference);
     if (sgn==0)
@@ -2616,7 +2616,7 @@ int fd_numcompare(fdtype x,fdtype y)
 /* Exact/inexact conversion */
 
 FD_EXPORT
-fdtype fd_make_inexact(fdtype x)
+lispval fd_make_inexact(lispval x)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x);
   if (xt == fd_flonum_type)
@@ -2630,7 +2630,7 @@ fdtype fd_make_inexact(fdtype x)
     double den = todouble(DENOMINATOR(x));
     return fd_init_flonum(NULL,num/den);}
   else if (xt == fd_complex_type) {
-    fdtype realpart = FD_REALPART(x), imagpart = FD_IMAGPART(x);
+    lispval realpart = FD_REALPART(x), imagpart = FD_IMAGPART(x);
     if ((FD_FLONUMP(realpart)) &&
 	(FD_FLONUMP(imagpart)))
       return fd_incref(x);
@@ -2640,7 +2640,7 @@ fdtype fd_make_inexact(fdtype x)
 }
 
 FD_EXPORT
-fdtype fd_make_exact(fdtype x)
+lispval fd_make_exact(lispval x)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x);
   if (xt == fd_flonum_type) {
@@ -2669,7 +2669,7 @@ fdtype fd_make_exact(fdtype x)
       fd_bigint ival = fd_double_to_bigint(d);
       return simplify_bigint(ival);}}
   else if (xt == fd_complex_type) {
-    fdtype realpart = FD_REALPART(x), imagpart = FD_IMAGPART(x);
+    lispval realpart = FD_REALPART(x), imagpart = FD_IMAGPART(x);
     if ((FD_FLONUMP(realpart)) ||
 	(FD_FLONUMP(imagpart)))
       return make_complex(fd_make_exact(realpart),fd_make_exact(imagpart));
@@ -2679,12 +2679,12 @@ fdtype fd_make_exact(fdtype x)
 }
 
 FD_EXPORT
-int fd_exactp(fdtype x)
+int fd_exactp(lispval x)
 {
   fd_ptr_type xt = FD_PTR_TYPE(x);
   if (xt == fd_flonum_type) return 0;
   else if (xt == fd_complex_type) {
-    fdtype realpart = FD_REALPART(x), imagpart = FD_IMAGPART(x);
+    lispval realpart = FD_REALPART(x), imagpart = FD_IMAGPART(x);
     if ((FD_FLONUMP(realpart)) || (FD_FLONUMP(imagpart)))
       return 0;
     else return 1;}
@@ -2752,7 +2752,7 @@ static size_t nvec_elt_size(enum fd_num_elt_type elt_type)
     return sizeof(fd_double);}
 }
 
-static int compare_numeric_vector(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_numeric_vector(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_NUMERIC_VECTOR *vx = (struct FD_NUMERIC_VECTOR *)x;
   struct FD_NUMERIC_VECTOR *vy = (struct FD_NUMERIC_VECTOR *)y;
@@ -2772,7 +2772,7 @@ static int compare_numeric_vector(fdtype x,fdtype y,fd_compare_flags flags)
   else return -1;
 }
 
-static int hash_numeric_vector(fdtype x,unsigned int (*fn)(fdtype))
+static int hash_numeric_vector(lispval x,unsigned int (*fn)(lispval))
 {
   struct FD_NUMERIC_VECTOR *vec = (struct FD_NUMERIC_VECTOR *)x;
   int i = 0, n = vec->fdnumvec_length; int hashval = vec->fdnumvec_length;
@@ -2786,7 +2786,7 @@ static int hash_numeric_vector(fdtype x,unsigned int (*fn)(fdtype))
   return hashval;
 }
 
-static fdtype copy_numeric_vector(fdtype x,int deep)
+static lispval copy_numeric_vector(lispval x,int deep)
 {
   struct FD_NUMERIC_VECTOR *vec = (struct FD_NUMERIC_VECTOR *)x;
   enum fd_num_elt_type elt_type = vec->fdnumvec_elt_type;
@@ -2818,10 +2818,10 @@ static fdtype copy_numeric_vector(fdtype x,int deep)
     copy->fdnumvec_elts.doubles = vec->fdnumvec_elts.doubles;
     memcpy(copy->fdnumvec_elts.doubles,vec->fdnumvec_elts.doubles,elts_size); 
     break;}
-  return (fdtype) copy;
+  return (lispval) copy;
 }
 
-static int unparse_numeric_vector(struct U8_OUTPUT *out,fdtype x)
+static int unparse_numeric_vector(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_NUMERIC_VECTOR *vec = (struct FD_NUMERIC_VECTOR *)x;
   int i = 0, n = vec->fdnumvec_length; char *typename="NUMVEC";
@@ -2886,7 +2886,7 @@ static int unparse_numeric_vector(struct U8_OUTPUT *out,fdtype x)
 
 /* Numeric vector constructors */
 
-FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v)
+FD_EXPORT lispval fd_make_double_vector(int n,fd_double *v)
 {
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(fd_double)));
@@ -2897,10 +2897,10 @@ FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v)
   nvec->fdnumvec_length = n;
   memcpy(bytes+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(fd_double));
   nvec->fdnumvec_elts.doubles = (fd_double *)(bytes+sizeof(struct FD_NUMERIC_VECTOR));
-  return (fdtype) nvec;
+  return (lispval) nvec;
 }
 
-FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v)
+FD_EXPORT lispval fd_make_float_vector(int n,fd_float *v)
 {
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(fd_float)));
@@ -2911,10 +2911,10 @@ FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v)
   nvec->fdnumvec_length = n;
   memcpy(bytes+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(fd_float));
   nvec->fdnumvec_elts.floats = (fd_float *)(bytes+sizeof(struct FD_NUMERIC_VECTOR));
-  return (fdtype) nvec;
+  return (lispval) nvec;
 }
 
-FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v)
+FD_EXPORT lispval fd_make_int_vector(int n,fd_int *v)
 {
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(fd_int)));
@@ -2925,10 +2925,10 @@ FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v)
   nvec->fdnumvec_length = n;
   memcpy(bytes+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(fd_int));
   nvec->fdnumvec_elts.ints = (fd_int *)(bytes+sizeof(struct FD_NUMERIC_VECTOR));
-  return (fdtype) nvec;
+  return (lispval) nvec;
 }
 
-FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v)
+FD_EXPORT lispval fd_make_long_vector(int n,fd_long *v)
 {
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(fd_long)));
@@ -2939,10 +2939,10 @@ FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v)
   nvec->fdnumvec_length = n;
   memcpy(bytes+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(fd_long));
   nvec->fdnumvec_elts.longs = (fd_long *)(bytes+sizeof(struct FD_NUMERIC_VECTOR));
-  return (fdtype) nvec;
+  return (lispval) nvec;
 }
 
-FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v)
+FD_EXPORT lispval fd_make_short_vector(int n,fd_short *v)
 {
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(fd_short)));
@@ -2953,10 +2953,10 @@ FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v)
   nvec->fdnumvec_length = n;
   memcpy(bytes+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(fd_short));
   nvec->fdnumvec_elts.shorts = (fd_short *)(bytes+sizeof(struct FD_NUMERIC_VECTOR));
-  return (fdtype) nvec;
+  return (lispval) nvec;
 }
 
-FD_EXPORT fdtype fd_make_numeric_vector(int n,enum fd_num_elt_type vectype)
+FD_EXPORT lispval fd_make_numeric_vector(int n,enum fd_num_elt_type vectype)
 {
   int elt_size = nvec_elt_size(vectype);
   struct FD_NUMERIC_VECTOR *nvec=
@@ -2983,19 +2983,19 @@ FD_EXPORT fdtype fd_make_numeric_vector(int n,enum fd_num_elt_type vectype)
   case fd_double_elt: 
     nvec->fdnumvec_elts.doubles = (fd_double *)(bytes+sizeof(struct FD_NUMERIC_VECTOR)); 
     break;}
-  return (fdtype) nvec;
+  return (lispval) nvec;
 }
 
 
 /* Vector operations */
 
-static void decref_vec(fdtype *elts,int n)
+static void decref_vec(lispval *elts,int n)
 {
   int i = 0; while (i<n) {
-    fdtype elt = elts[i++]; fd_decref(elt);}
+    lispval elt = elts[i++]; fd_decref(elt);}
 }
 
-static int numvec_length(fdtype x)
+static int numvec_length(lispval x)
 {
   if (VECTORP(x))
     return VEC_LEN(x);
@@ -3003,7 +3003,7 @@ static int numvec_length(fdtype x)
     return FD_NUMVEC_LENGTH(x);
   else return -1;
 }
-static fd_long EXACT_REF(fdtype x,enum fd_num_elt_type xtype,int i)
+static fd_long EXACT_REF(lispval x,enum fd_num_elt_type xtype,int i)
 {
   switch (xtype) {
   case fd_long_elt:
@@ -3015,7 +3015,7 @@ static fd_long EXACT_REF(fdtype x,enum fd_num_elt_type xtype,int i)
   default:
     return -1;}
 }
-static fd_double INEXACT_REF(fdtype x,enum fd_num_elt_type xtype,int i)
+static fd_double INEXACT_REF(lispval x,enum fd_num_elt_type xtype,int i)
 {
   switch (xtype) {
   case fd_double_elt:
@@ -3030,10 +3030,10 @@ static fd_double INEXACT_REF(fdtype x,enum fd_num_elt_type xtype,int i)
     return ((fd_double)(FD_NUMVEC_SHORT(x,i)));
   default: return 0.0;}
 }
-static fdtype NUM_ELT(fdtype x,int i)
+static lispval NUM_ELT(lispval x,int i)
 {
   if (VECTORP(x)) {
-    fdtype elt = VEC_REF(x,i);
+    lispval elt = VEC_REF(x,i);
     fd_incref(elt);
     return elt;}
   else {
@@ -3056,7 +3056,7 @@ static fdtype NUM_ELT(fdtype x,int i)
     }
   }
 }
-static fdtype vector_add(fdtype x,fdtype y,int mult)
+static lispval vector_add(lispval x,lispval y,int mult)
 {
   int x_len = numvec_length(x), y_len = numvec_length(y);
   if (x_len!=y_len) {
@@ -3073,7 +3073,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       if ((xtype == fd_float_elt)||(ytype == fd_float_elt)) {
         /* One of them is a float vector, so return a float vector
            (don't invent precision) */
-        fdtype result; fd_float *sums = u8_alloc_n(x_len,fd_float);
+        lispval result; fd_float *sums = u8_alloc_n(x_len,fd_float);
         int i = 0; while (i<x_len) {
           fd_float xelt = ((xtype == fd_double_elt)?
                          (FD_NUMVEC_DOUBLE(x,i)):
@@ -3088,7 +3088,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
         return result;}
       else {
         /* They're both double vectors, so return a double vector */
-        fdtype result; fd_double *sums = u8_alloc_n(x_len,fd_double);
+        lispval result; fd_double *sums = u8_alloc_n(x_len,fd_double);
         int i = 0; while (i<x_len) {
           fd_double xelt = (FD_NUMVEC_DOUBLE(x,i));
           fd_double yelt = (FD_NUMVEC_DOUBLE(y,i));
@@ -3101,7 +3101,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
              (ytype == fd_float_elt)||(ytype == fd_double_elt))  {
       /* One of the vectors is a floating type, so return a floating
          point vector. */
-      fdtype result; fd_double *sums = u8_alloc_n(x_len,fd_double);
+      lispval result; fd_double *sums = u8_alloc_n(x_len,fd_double);
       int i = 0; while (i<x_len) {
         fd_double xelt = (INEXACT_REF(x,xtype,i));
         fd_double yelt = (INEXACT_REF(y,ytype,i));
@@ -3112,7 +3112,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       return result;}
     else if ((xtype == fd_long_elt)||(ytype == fd_long_elt)) {
       /* One of them is a long so return a long vector. */
-      fdtype result; fd_long *sums = u8_alloc_n(x_len,fd_long);
+      lispval result; fd_long *sums = u8_alloc_n(x_len,fd_long);
       int i = 0; while (i<x_len) {
         fd_long xelt = EXACT_REF(x,xtype,i);
         fd_long yelt = EXACT_REF(y,ytype,i);
@@ -3123,7 +3123,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       return result;}
     else if ((xtype == fd_int_elt)||(ytype == fd_int_elt)) {
       /* One of them is an int vector so return an int vector. */
-      fdtype result; fd_int *sums = u8_alloc_n(x_len,fd_int);
+      lispval result; fd_int *sums = u8_alloc_n(x_len,fd_int);
       int i = 0; while (i<x_len) {
         fd_int xelt = EXACT_REF(x,xtype,i);
         fd_int yelt = EXACT_REF(y,ytype,i);
@@ -3134,7 +3134,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       return result;}
     else {
       /* This really means that they're both short vectors */
-      fdtype result; fd_short *sums = u8_alloc_n(x_len,fd_short);
+      lispval result; fd_short *sums = u8_alloc_n(x_len,fd_short);
       int i = 0; while (i<x_len) {
         fd_int xelt = EXACT_REF(x,xtype,i);
         fd_int yelt = EXACT_REF(y,ytype,i);
@@ -3144,16 +3144,16 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       u8_free(sums);
       return result;}}
   else {
-    fdtype *sums = u8_alloc_n(x_len,fdtype), result;
-    fdtype factor = FD_INT2DTYPE(mult);
+    lispval *sums = u8_alloc_n(x_len,lispval), result;
+    lispval factor = FD_INT2DTYPE(mult);
     int i = 0; while (i<x_len) {
-      fdtype xelt = NUM_ELT(x,i);
-      fdtype yelt = NUM_ELT(y,i);
-      fdtype sum;
+      lispval xelt = NUM_ELT(x,i);
+      lispval yelt = NUM_ELT(y,i);
+      lispval sum;
       if (factor == FD_FIXNUM_ONE)
         sum = fd_plus(xelt,yelt);
       else {
-        fdtype mult = fd_multiply(yelt,factor);
+        lispval mult = fd_multiply(yelt,factor);
         if (FD_ABORTP(mult)) {
           decref_vec(sums,i); u8_free(sums);
           return mult;}
@@ -3169,7 +3169,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
     u8_free(sums);
     return result;}
 }
-static fdtype vector_dotproduct(fdtype x,fdtype y)
+static lispval vector_dotproduct(lispval x,lispval y)
 {
   int x_len = numvec_length(x), y_len = numvec_length(y);
   if (x_len!=y_len) {
@@ -3243,12 +3243,12 @@ static fdtype vector_dotproduct(fdtype x,fdtype y)
         i++;}
       return FD_INT2DTYPE(dot);}}
   else {
-    fdtype dot = FD_FIXNUM_ZERO;
+    lispval dot = FD_FIXNUM_ZERO;
     int i = 0; while (i<x_len) {
-      fdtype x_elt = NUM_ELT(x,i);
-      fdtype y_elt = NUM_ELT(y,i);
-      fdtype prod = fd_multiply(x_elt,y_elt);
-      fdtype new_sum=
+      lispval x_elt = NUM_ELT(x,i);
+      lispval y_elt = NUM_ELT(y,i);
+      lispval prod = fd_multiply(x_elt,y_elt);
+      lispval new_sum=
         (FD_ABORTP(prod))?(prod):(fd_plus(dot,prod));
       fd_decref(x_elt); fd_decref(y_elt);
       fd_decref(prod); fd_decref(dot);
@@ -3257,13 +3257,13 @@ static fdtype vector_dotproduct(fdtype x,fdtype y)
       i++;}
     return dot;}
 }
-static fdtype generic_vector_scale(fdtype vec,fdtype scalar)
+static lispval generic_vector_scale(lispval vec,lispval scalar)
 {
   int len = (VECTORP(vec))?(VEC_LEN(vec)):(numvec_length(vec));
-  fdtype result, *elts = u8_alloc_n(len,fdtype);
+  lispval result, *elts = u8_alloc_n(len,lispval);
   int i = 0; while (i<len) {
-    fdtype elt = NUM_ELT(vec,i);
-    fdtype product = fd_multiply(elt,scalar);
+    lispval elt = NUM_ELT(vec,i);
+    lispval product = fd_multiply(elt,scalar);
     if (FD_ABORTP(product)) {
       decref_vec(elts,i);
       return product;}
@@ -3274,10 +3274,10 @@ static fdtype generic_vector_scale(fdtype vec,fdtype scalar)
   u8_free(elts);
   return result;
 }
-static fdtype vector_scale(fdtype vec,fdtype scalar)
+static lispval vector_scale(lispval vec,lispval scalar)
 {
   if (FD_NUMVECP(vec)) {
-    fdtype result;
+    lispval result;
     struct FD_NUMERIC_VECTOR *nv = (struct FD_NUMERIC_VECTOR *)vec;
     enum fd_num_elt_type vtype = nv->fdnumvec_elt_type; int vlen = nv->fdnumvec_length;
     if (FD_FLONUMP(scalar)) {
@@ -3308,10 +3308,10 @@ static fdtype vector_scale(fdtype vec,fdtype scalar)
       return result;}
     else {
       fd_long max, min;
-      fdtype *scaled = u8_alloc_n(vlen,fdtype);
+      lispval *scaled = u8_alloc_n(vlen,lispval);
       int i = 0; while (i<vlen) {
-        fdtype elt = NUM_ELT(vec,i);
-        fdtype product = fd_multiply(elt,scalar);
+        lispval elt = NUM_ELT(vec,i);
+        lispval product = fd_multiply(elt,scalar);
         if (i==0) {max = product; min = product;}
         else {
           if (fd_numcompare(product,max)>0) max = product;
@@ -3394,7 +3394,7 @@ static int output_bigint(struct U8_OUTPUT *out,fd_bigint bi,int base)
   if (digits != _digits) u8_free(digits);
   return 1;
 }
-static int unparse_bigint(struct U8_OUTPUT *out,fdtype x)
+static int unparse_bigint(struct U8_OUTPUT *out,lispval x)
 {
   fd_bigint bi = fd_consptr(fd_bigint,x,fd_bigint_type);
   output_bigint(out,bi,10);
@@ -3405,7 +3405,7 @@ static void output_bigint_byte(unsigned char **scan,int digit)
 {
   **scan = digit; (*scan)++;
 }
-static int dtype_bigint(struct FD_OUTBUF *out,fdtype x)
+static int dtype_bigint(struct FD_OUTBUF *out,lispval x)
 {
   fd_bigint bi = fd_consptr(fd_bigint,x,fd_bigint_type);
   if (fd_bigint_fits_in_word_p(bi,32,1)) {
@@ -3439,7 +3439,7 @@ static int dtype_bigint(struct FD_OUTBUF *out,fdtype x)
     return dtype_size;}
 }
 
-static int compare_bigint(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_bigint(lispval x,lispval y,fd_compare_flags flags)
 {
   fd_bigint bx = fd_consptr(fd_bigint,x,fd_bigint_type);
   fd_bigint by = fd_consptr(fd_bigint,y,fd_bigint_type);
@@ -3452,9 +3452,9 @@ static int compare_bigint(fdtype x,fdtype y,fd_compare_flags flags)
 
 static fd_bigint bigint_magic_modulus;
 
-static int hash_bigint(fdtype x,unsigned int (*fn)(fdtype))
+static int hash_bigint(lispval x,unsigned int (*fn)(lispval))
 {
-  fdtype rem = fd_remainder(x,(fdtype)bigint_magic_modulus);
+  lispval rem = fd_remainder(x,(lispval)bigint_magic_modulus);
   if (FIXNUMP(rem)) {
     long long irem = FIX2INT(rem);
     if (irem<0) return -irem; else return irem;}
@@ -3471,7 +3471,7 @@ static int read_bigint_byte(unsigned char **data)
   int val = **data; (*data)++;
   return val;
 }
-static fdtype unpack_bigint(unsigned int n,unsigned char *packet)
+static lispval unpack_bigint(unsigned int n,unsigned char *packet)
 {
   int n_digits = n-1; unsigned char *scan = packet+1;
   fd_bigint bi = fd_digit_stream_to_bigint
@@ -3479,19 +3479,19 @@ static fdtype unpack_bigint(unsigned int n,unsigned char *packet)
   u8_free(packet);
   if (bi) {
     if (n_digits>8)
-      return (fdtype)bi;
+      return (lispval)bi;
     else return simplify_bigint(bi);}
   else return VOID;
 }
 
 /* Parsing numbers */
 
-static fdtype parse_bigint(u8_string string,int base,int negativep);
-static fdtype make_complex(fdtype real,fdtype imag);
-static fdtype make_rational(fdtype n,fdtype d);
+static lispval parse_bigint(u8_string string,int base,int negativep);
+static lispval make_complex(lispval real,lispval imag);
+static lispval make_rational(lispval n,lispval d);
 
 FD_EXPORT
-fdtype fd_string2number(u8_string string,int base)
+lispval fd_string2number(u8_string string,int base)
 {
   int len = strlen(string);
   if (string[0]=='#') {
@@ -3505,16 +3505,16 @@ fdtype fd_string2number(u8_string string,int base)
     case 'b': case 'B':
       return fd_string2number(string+2,2);
     case 'i': case 'I': {
-      fdtype result = fd_string2number(string+2,base);
+      lispval result = fd_string2number(string+2,base);
 	if (PRED_TRUE(NUMBERP(result))) {
 	  double dbl = todouble(result);
-	  fdtype inexresult = fd_init_flonum(NULL,dbl);
+	  lispval inexresult = fd_init_flonum(NULL,dbl);
 	  fd_decref(result);
 	  return inexresult;}
 	else return FD_FALSE;}
     case 'e': case 'E': {
       if (strchr(string,'.')) {
-	fdtype num, den = FD_INT(1);
+	lispval num, den = FD_INT(1);
 	u8_byte *copy = u8_strdup(string+2);
 	u8_byte *dot = strchr(copy,'.'), *scan = dot+1;
 	*dot='\0'; num = fd_string2number(copy,10);
@@ -3523,12 +3523,12 @@ fdtype fd_string2number(u8_string string,int base)
 	  return FD_FALSE;}
 	while (*scan)
 	  if (isdigit(*scan)) {
-	    fdtype numx10 = fd_multiply(num,FD_INT(10));
+	    lispval numx10 = fd_multiply(num,FD_INT(10));
 	    int uchar = *scan;
 	    int numweight = u8_digit_weight(uchar);
-	    fdtype add_digit = FD_INT(numweight);
-	    fdtype nextnum = fd_plus(numx10,add_digit);
-	    fdtype nextden = fd_multiply(den,FD_INT(10));
+	    lispval add_digit = FD_INT(numweight);
+	    lispval nextnum = fd_plus(numx10,add_digit);
+	    lispval nextden = fd_multiply(den,FD_INT(10));
 	    fd_decref(numx10); fd_decref(num); fd_decref(den);
 	    num = nextnum; den = nextden;
 	    scan++;}
@@ -3536,12 +3536,12 @@ fdtype fd_string2number(u8_string string,int base)
 	    int i = 0, exponent = strtol(scan+1,NULL,10);
 	    if (exponent>=0)
 	      while (i<exponent) {
-		fdtype nextnum = fd_multiply(num,FD_INT(10));
+		lispval nextnum = fd_multiply(num,FD_INT(10));
 		fd_decref(num); num = nextnum; i++;}
 	    else {
 	      exponent = -exponent;
 	      while (i<exponent) {
-		fdtype nextden = fd_multiply(den,FD_INT(10));
+		lispval nextden = fd_multiply(den,FD_INT(10));
 		fd_decref(den); den = nextden; i++;}}
 	    break;}
 	  else {
@@ -3556,7 +3556,7 @@ fdtype fd_string2number(u8_string string,int base)
       return FD_PARSE_ERROR;}}
   else if ((strchr(string,'i')) || (strchr(string,'I'))) {
     u8_byte *copy = u8_strdup(string);
-    u8_byte *iend, *istart; fdtype real, imag;
+    u8_byte *iend, *istart; lispval real, imag;
     iend = strchr(copy,'i');
     if (iend == NULL) iend = strchr(copy,'I');
     if (iend[1]!='\0') {u8_free(copy); return FD_FALSE;}
@@ -3589,7 +3589,7 @@ fdtype fd_string2number(u8_string string,int base)
   else if (strchr(string,'/')) {
     u8_byte *copy = u8_strdup(string);
     u8_byte *slash = strchr(copy,'/');
-    fdtype num, denom;
+    lispval num, denom;
     *slash='\0';
     num = fd_string2number(copy,base);
     if (FALSEP(num)) {u8_free(copy); return FD_FALSE;}
@@ -3612,7 +3612,7 @@ fdtype fd_string2number(u8_string string,int base)
   else if (strchr(string+1,'+')) return FD_FALSE;
   else if (strchr(string+1,'-')) return FD_FALSE;
   else {
-    fdtype result;
+    lispval result;
     long long fixnum, nbase = 0;
     const u8_byte *start = string, *end = NULL;
     if (string[0]=='0') {
@@ -3642,7 +3642,7 @@ fdtype fd_string2number(u8_string string,int base)
     return result;}
 }
 
-fdtype (*_fd_parse_number)(u8_string,int) = fd_string2number;
+lispval (*_fd_parse_number)(u8_string,int) = fd_string2number;
 
 static int read_digit_weight(const u8_byte **scan)
 {
@@ -3653,20 +3653,20 @@ static int read_digit_weight(const u8_byte **scan)
   return -1;
 }
 
-static fdtype parse_bigint(u8_string string,int base,int negative)
+static lispval parse_bigint(u8_string string,int base,int negative)
 {
   int n_digits = u8_strlen(string);
   const u8_byte *scan = string;
   if (n_digits) {
     fd_bigint bi = fd_digit_stream_to_bigint
       (n_digits,(bigint_producer)read_digit_weight,(void *)&scan,base,negative);
-    if (bi) return (fdtype)bi;
+    if (bi) return (lispval)bi;
     else return VOID;}
   else return VOID;
 }
 
 FD_EXPORT
-int fd_output_number(u8_output out,fdtype num,int base)
+int fd_output_number(u8_output out,lispval num,int base)
 {
   if (FIXNUMP(num)) {
     long long fixnum = FIX2INT(num);

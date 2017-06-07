@@ -22,7 +22,7 @@
 int main(int argc,char **argv)
 {
   int fd_version = fd_init_drivers();
-  fd_index ix; fdtype key;
+  fd_index ix; lispval key;
   if (fd_version<0) {
     u8_fprintf(stderr,_("Unable to initialize FramerD\n"));
     exit(1);}
@@ -33,14 +33,14 @@ int main(int argc,char **argv)
     ix = fd_get_index(argv[1],0,FD_VOID);
     key = fd_parse(argv[2]);}
   if (argc == 3) {
-    fdtype value = fd_index_get(ix,key);
+    lispval value = fd_index_get(ix,key);
     u8_fprintf(stderr,_("The key %q is associated with %d values\n"),
                key,FD_CHOICE_SIZE(value));
     {FD_DO_CHOICES(each,value)
        u8_fprintf(stderr,"\t%q\n",each);}
     fd_decref(value); value = FD_VOID;}
   else if (argc == 4) {
-    fdtype value;
+    lispval value;
     if ((argv[3][0] == '+') || (argv[3][0] == '-'))
       value = fd_parse(argv[3]+1);
     else value = fd_parse(argv[3]);

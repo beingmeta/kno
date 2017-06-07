@@ -40,12 +40,12 @@ static struct FD_POOL_HANDLER gpool_handler;
 
 FD_EXPORT
 fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
-                      fdtype fetchfn,fdtype loadfn,
-                      fdtype allocfn,fdtype savefn,
-                      fdtype lockfn,fdtype state)
+                      lispval fetchfn,lispval loadfn,
+                      lispval allocfn,lispval savefn,
+                      lispval lockfn,lispval state)
 {
   struct FD_GPOOL *gp = u8_alloc(struct FD_GPOOL);
-  fdtype loadval = fd_apply(loadfn,0,NULL); unsigned int load;
+  lispval loadval = fd_apply(loadfn,0,NULL); unsigned int load;
   if (!(FIXNUMP(loadval)))
     return fd_type_error("fd_make_gpool","pool load (fixnum)",loadval);
   else load = FIX2INT(loadval);
@@ -63,7 +63,7 @@ fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
 static int gpool_load(fd_pool p)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  fdtype value;
+  lispval value;
   value = fd_dtcall(np->pool_connpool,2,get_load_symbol,fd_make_oid(p->pool_base));
   if (FIXNUMP(value)) return FIX2INT(value);
   else if (FD_ABORTP(value))
@@ -73,24 +73,24 @@ static int gpool_load(fd_pool p)
     return -1;}
 }
 
-static fdtype gpool_fetch(fd_pool p,fdtype oid)
+static lispval gpool_fetch(fd_pool p,lispval oid)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  fdtype value;
+  lispval value;
   value = fd_dtcall(np->pool_connpool,2,oid_value_symbol,oid);
   return value;
 }
 
-static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *gpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  fdtype vector = fd_init_vector(NULL,n,oids);
-  fdtype value = fd_dtcall(np->pool_connpool,2,fetch_oids_symbol,vector);
+  lispval vector = fd_init_vector(NULL,n,oids);
+  lispval value = fd_dtcall(np->pool_connpool,2,fetch_oids_symbol,vector);
   fd_decref(vector);
   if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR)value;
-    fdtype *results = u8_alloc_n(n,fdtype);
-    memcpy(results,vstruct->fdvec_elts,sizeof(fdtype)*n);
+    lispval *results = u8_alloc_n(n,lispval);
+    memcpy(results,vstruct->fdvec_elts,sizeof(lispval)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
     if (vstruct->fd_freebytes) u8_free(vstruct->fdvec_elts);
@@ -102,10 +102,10 @@ static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
     return NULL;}
 }
 
-static int gpool_lock(fd_pool p,fdtype oid)
+static int gpool_lock(fd_pool p,lispval oid)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  fdtype value;
+  lispval value;
   value = fd_dtcall(np->pool_connpool,3,lock_oid_symbol,oid,client_id);
   if (VOIDP(value)) return 0;
   else if (FD_ABORTP(value))
@@ -116,22 +116,22 @@ static int gpool_lock(fd_pool p,fdtype oid)
     return 1;}
 }
 
-static int gpool_unlock(fd_pool p,fdtype oids)
+static int gpool_unlock(fd_pool p,lispval oids)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
-  fdtype result;
+  lispval result;
   result = fd_dtcall(np->pool_connpool,3,clear_oid_lock_symbol,oids,client_id);
   if (FD_ABORTP(result)) {
     fd_decref(result); return 0;}
   else {fd_decref(result); return 1;}
 }
 
-static int gpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+static int gpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
   if (np->bulk_commitp) {
     int i = 0;
-    fdtype *storevec = u8_alloc_n(n*2,fdtype), vec, result;
+    lispval *storevec = u8_alloc_n(n*2,lispval), vec, result;
     while (i < n) {
       storevec[i*2]=oids[i];
       storevec[i*2+1]=values[i];
@@ -144,18 +144,18 @@ static int gpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   else {
     int i = 0;
     while (i < n) {
-      fdtype result = fd_dtcall(np->pool_connpool,4,unlock_oid_symbol,oids[i],client_id,values[i]);
+      lispval result = fd_dtcall(np->pool_connpool,4,unlock_oid_symbol,oids[i],client_id,values[i]);
       fd_decref(result); i++;}
     return 1;}
 }
 
-static fdtype gpool_alloc(fd_pool p,int n)
+static lispval gpool_alloc(fd_pool p,int n)
 {
-  fdtype results = EMPTY, request; int i = 0;
+  lispval results = EMPTY, request; int i = 0;
   struct FD_GPOOL *np = (struct FD_GPOOL *)p;
   request = fd_conspair(new_oid_symbol,NIL);
   while (i < n) {
-    fdtype result = fd_dteval(np->pool_connpool,request);
+    lispval result = fd_dteval(np->pool_connpool,request);
     CHOICE_ADD(results,result);
     i++;}
   return results;

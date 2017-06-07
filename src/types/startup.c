@@ -58,24 +58,24 @@ static int boot_message_delivered = 0;
 
 /* Processing argc,argv */
 
-fdtype *fd_argv = NULL;
+lispval *fd_argv = NULL;
 int fd_argc = -1;
 
-static void set_vector_length(fdtype vector,int len);
-static fdtype exec_arg = FD_FALSE, lisp_argv = FD_FALSE, string_argv = FD_FALSE;
-static fdtype raw_argv = FD_FALSE, config_argv = FD_FALSE;
+static void set_vector_length(lispval vector,int len);
+static lispval exec_arg = FD_FALSE, lisp_argv = FD_FALSE, string_argv = FD_FALSE;
+static lispval raw_argv = FD_FALSE, config_argv = FD_FALSE;
 static int init_argc = 0;
 static size_t app_argc;
 
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
-FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
+FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
                                  unsigned int arg_mask,
                                  size_t *arglen_ptr)
 {
   if (argc>0) {
     u8_string exe_name = u8_fromlibc(argv[0]);
-    fdtype interp = fd_lispstring(exe_name);
+    lispval interp = fd_lispstring(exe_name);
     fd_set_config("INTERPRETER",interp);
     fd_set_config("EXE",interp);
     fd_decref(interp);}
@@ -97,12 +97,12 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     return NULL;}
   else {
     int i = 0, n = 0, config_i = 0;
-    fdtype string_args = fd_make_vector(argc-1,NULL), string_arg = VOID;
-    fdtype lisp_args = fd_make_vector(argc-1,NULL), lisp_arg = VOID;
-    fdtype config_args = fd_make_vector(argc-1,NULL);
-    fdtype raw_args = fd_make_vector(argc,NULL);
-    fdtype *return_args = (arglen_ptr) ? (u8_alloc_n(argc-1,fdtype)) : (NULL);
-    fdtype *_fd_argv = u8_alloc_n(argc-1,fdtype);
+    lispval string_args = fd_make_vector(argc-1,NULL), string_arg = VOID;
+    lispval lisp_args = fd_make_vector(argc-1,NULL), lisp_arg = VOID;
+    lispval config_args = fd_make_vector(argc-1,NULL);
+    lispval raw_args = fd_make_vector(argc,NULL);
+    lispval *return_args = (arglen_ptr) ? (u8_alloc_n(argc-1,lispval)) : (NULL);
+    lispval *_fd_argv = u8_alloc_n(argc-1,lispval);
 
     u8_threadcheck();
 
@@ -111,7 +111,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     while (i<argc) {
       char *carg = argv[i];
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
-      FD_VECTOR_SET(raw_args,i,fdtype_string(arg));
+      FD_VECTOR_SET(raw_args,i,lispval_string(arg));
       /* Don't include argv[0] in the arglists */
       if (i==0) {
         i++; u8_free(arg); continue;} 
@@ -120,7 +120,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
         int retval = (arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
-        FD_VECTOR_SET(config_args,config_i,fdtype_string(arg)); config_i++;
+        FD_VECTOR_SET(config_args,config_i,lispval_string(arg)); config_i++;
         if (retval<0) {
           u8_log(LOGCRIT,"FailedConfig",
                  "Couldn't handle the config argument `%s`",
@@ -129,7 +129,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
         else u8_log(LOG_INFO,fd_ArgvConfig,"   %s",arg);
         u8_free(arg);
         continue;}
-      string_arg = fdtype_string(arg);
+      string_arg = lispval_string(arg);
       /* Note that fd_parse_arg should always return at least a lisp
          string */
       lisp_arg = fd_parse_arg(arg);
@@ -156,7 +156,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     else return NULL;}
 }
 
-static void set_vector_length(fdtype vector,int len)
+static void set_vector_length(lispval vector,int len)
 {
   if (VECTORP(vector)) {
     struct FD_VECTOR *vec = (struct FD_VECTOR *) vector;
@@ -171,20 +171,20 @@ static void set_vector_length(fdtype vector,int len)
 
 static void add_source_file(u8_string s,void *vp)
 {
-  fdtype *valp = (fdtype *)vp;
-  fdtype val = *valp;
-  CHOICE_ADD(val,fdtype_string(s));
+  lispval *valp = (lispval *)vp;
+  lispval val = *valp;
+  CHOICE_ADD(val,lispval_string(s));
   *valp = val;
 }
 
-static fdtype config_get_source_files(fdtype var,void *data)
+static lispval config_get_source_files(lispval var,void *data)
 {
-  fdtype result = EMPTY;
+  lispval result = EMPTY;
   u8_for_source_files(add_source_file,&result);
   return result;
 }
 
-static int config_add_source_file(fdtype var,fdtype val,void *data)
+static int config_add_source_file(lispval var,lispval val,void *data)
 {
   if (STRINGP(val)) {
     u8_string stringval = u8_strdup(CSTRING(val));
@@ -198,24 +198,24 @@ static int config_add_source_file(fdtype var,fdtype val,void *data)
 /* Termination */
 
 static struct FD_ATEXIT {
-  fdtype fd_exit_handler;
+  lispval fd_exit_handler;
   struct FD_ATEXIT *fd_next_atexit;} *atexit_handlers = NULL;
 static int n_atexit_handlers = 0;
 
-static fdtype config_atexit_get(fdtype var,void *data)
+static lispval config_atexit_get(lispval var,void *data)
 {
-  struct FD_ATEXIT *scan; int i = 0; fdtype result;
+  struct FD_ATEXIT *scan; int i = 0; lispval result;
   u8_lock_mutex(&atexit_handlers_lock);
   result = fd_make_vector(n_atexit_handlers,NULL);
   scan = atexit_handlers; while (scan) {
-    fdtype handler = scan->fd_exit_handler; fd_incref(handler);
+    lispval handler = scan->fd_exit_handler; fd_incref(handler);
     FD_VECTOR_SET(result,i,handler);
     scan = scan->fd_next_atexit; i++;}
   u8_unlock_mutex(&atexit_handlers_lock);
   return result;
 }
 
-static int config_atexit_set(fdtype var,fdtype val,void *data)
+static int config_atexit_set(lispval var,lispval val,void *data)
 {
   struct FD_ATEXIT *fresh = u8_malloc(sizeof(struct FD_ATEXIT));
   if (!(FD_APPLICABLEP(val))) {
@@ -229,13 +229,13 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
   return 1;
 }
 
-FD_EXPORT void fd_doexit(fdtype arg)
+FD_EXPORT void fd_doexit(lispval arg)
 {
   struct FD_ATEXIT *scan, *tmp;
   fd_exiting = 1;
   if (fd_argv) {
     int i = 0, n = fd_argc; while (i<n) {
-      fdtype elt = fd_argv[i++]; fd_decref(elt);}
+      lispval elt = fd_argv[i++]; fd_decref(elt);}
     u8_free(fd_argv);
     fd_argv = NULL;
     fd_argc = -1;}
@@ -248,7 +248,7 @@ FD_EXPORT void fd_doexit(fdtype arg)
   scan = atexit_handlers; atexit_handlers = NULL;
   u8_unlock_mutex(&atexit_handlers_lock);
   while (scan) {
-    fdtype handler = scan->fd_exit_handler, result = VOID;
+    lispval handler = scan->fd_exit_handler, result = VOID;
     u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
     if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
       result = fd_apply(handler,1,&arg);
@@ -296,7 +296,7 @@ static struct NAMED_RLIMIT MAXFILES={"max number of open files",RLIMIT_NOFILE};
 static struct NAMED_RLIMIT MAXSTACK={"max tack size",RLIMIT_STACK};
 #endif
 
-FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
+FD_EXPORT lispval fd_config_rlimit_get(lispval ignored,void *vptr)
 {
   struct rlimit rlim;
   struct NAMED_RLIMIT *nrl = (struct NAMED_RLIMIT *)vptr;
@@ -310,7 +310,7 @@ FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
   else return FD_INT((long long)(rlim.rlim_cur));
 }
 
-FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
 {
   struct rlimit rlim;
   struct NAMED_RLIMIT *nrl = (struct NAMED_RLIMIT *)vptr;
@@ -368,12 +368,12 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
 
 /* Configuration for session and app id info */
 
-static fdtype config_getappid(fdtype var,void *data)
+static lispval config_getappid(lispval var,void *data)
 {
-  return fdtype_string(u8_appid());
+  return lispval_string(u8_appid());
 }
 
-static int config_setappid(fdtype var,fdtype val,void *data)
+static int config_setappid(lispval var,lispval val,void *data)
 {
   if (STRINGP(val)) {
     u8_identify_application(CSTRING(val));
@@ -381,24 +381,24 @@ static int config_setappid(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
-static fdtype config_getpid(fdtype var,void *data)
+static lispval config_getpid(lispval var,void *data)
 {
   pid_t pid = getpid();
   return FD_INT(((unsigned long)pid));
 }
 
-static fdtype config_getppid(fdtype var,void *data)
+static lispval config_getppid(lispval var,void *data)
 {
   pid_t pid = getppid();
   return FD_INT(((unsigned long)pid));
 }
 
-static fdtype config_getsessionid(fdtype var,void *data)
+static lispval config_getsessionid(lispval var,void *data)
 {
-  return fdtype_string(u8_sessionid());
+  return lispval_string(u8_sessionid());
 }
 
-static int config_setsessionid(fdtype var,fdtype val,void *data)
+static int config_setsessionid(lispval var,lispval val,void *data)
 {
   if (STRINGP(val)) {
     u8_identify_session(CSTRING(val));
@@ -406,14 +406,14 @@ static int config_setsessionid(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
-static fdtype config_getutf8warn(fdtype var,void *data)
+static lispval config_getutf8warn(lispval var,void *data)
 {
   if (u8_config_utf8warn(-1))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static int config_setutf8warn(fdtype var,fdtype val,void *data)
+static int config_setutf8warn(lispval var,lispval val,void *data)
 {
   if (FD_TRUEP(val))
     if (u8_config_utf8warn(1)) return 0;
@@ -422,14 +422,14 @@ static int config_setutf8warn(fdtype var,fdtype val,void *data)
   else return 0;
 }
 
-static fdtype config_getutf8err(fdtype var,void *data)
+static lispval config_getutf8err(lispval var,void *data)
 {
   if (u8_config_utf8err(-1))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static int config_setutf8err(fdtype var,fdtype val,void *data)
+static int config_setutf8err(lispval var,lispval val,void *data)
 {
   if (FD_TRUEP(val))
     if (u8_config_utf8err(1)) return 0;
@@ -444,14 +444,14 @@ static fd_exception TimeFailed="call to time() failed";
 
 static long long randomseed = 0x327b23c6;
 
-static fdtype config_getrandomseed(fdtype var,void *data)
+static lispval config_getrandomseed(lispval var,void *data)
 {
   if (randomseed<FD_MAX_FIXNUM) 
     return FD_INT(randomseed);
-  else return (fdtype)fd_long_long_to_bigint(randomseed);
+  else return (lispval)fd_long_long_to_bigint(randomseed);
 }
 
-static int config_setrandomseed(fdtype var,fdtype val,void *data)
+static int config_setrandomseed(lispval var,lispval val,void *data)
 {
   if (((SYMBOLP(val)) && ((strcmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
       ((STRINGP(val)) && ((strcmp(CSTRING(val),"TIME"))==0))) {
@@ -500,13 +500,13 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix)
   else return u8_string_append(runbase,suffix,NULL);
 }
 
-static fdtype config_getrunbase(fdtype var,void *data)
+static lispval config_getrunbase(lispval var,void *data)
 {
   if (runbase == NULL) return FD_FALSE;
-  else return fdtype_string(runbase);
+  else return lispval_string(runbase);
 }
 
-static int config_setrunbase(fdtype var,fdtype val,void *data)
+static int config_setrunbase(lispval var,lispval val,void *data)
 {
   if (runbase)
     return fd_err("Runbase already set and used","config_set_runbase",runbase,VOID);
@@ -547,7 +547,7 @@ FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
 
 /* UID/GID setting */
 
-static int resolve_uid(fdtype val)
+static int resolve_uid(lispval val)
 {
   if (FIXNUMP(val)) return (gid_t)(FIX2INT(val));
 #if ((HAVE_GETPWNAM_R)||(HAVE_GETPWNAM))
@@ -569,7 +569,7 @@ static int resolve_uid(fdtype val)
 #endif
 }
 
-static int resolve_gid(fdtype val)
+static int resolve_gid(lispval val)
 {
   if (FIXNUMP(val)) return (gid_t)(FIX2INT(val));
 #if ((HAVE_GETGRNAM_R)||(HAVE_GETGRNAM))
@@ -620,20 +620,20 @@ static int resolve_gid(fdtype val)
 /* User config functions */
 
 #if (HAVE_GETUID|HAVE_GETEUID)
-static fdtype config_getuser(fdtype var,void *data)
+static lispval config_getuser(lispval var,void *data)
 {
   uid_t gid = GETUIDFN(); int ival = (int)gid;
   return FD_INT(ival);
 }
 #else
-static fdtype config_getuser(fdtype var,void *fd_vecelts)
+static lispval config_getuser(lispval var,void *fd_vecelts)
 {
   return FD_FALSE;
 }
 #endif
 
 #if ((HAVE_GETUID|HAVE_GETEUID)&((HAVE_SETUID|HAVE_SETEUID)))
-static int config_setuser(fdtype var,fdtype val,void *data)
+static int config_setuser(lispval var,lispval val,void *data)
 {
   uid_t cur_uid = GETUIDFN(); int uid = resolve_uid(val);
   if (uid<0) return -1;
@@ -648,7 +648,7 @@ static int config_setuser(fdtype var,fdtype val,void *data)
     return 1;}
 }
 #else
-static int config_setuser(fdtype var,fdtype val,void *fd_vecelts)
+static int config_setuser(lispval var,lispval val,void *fd_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set user","Can't change user ID in this OS");
   fd_seterr("SystemCantSetUser","config_setuser",NULL,val);
@@ -659,20 +659,20 @@ static int config_setuser(fdtype var,fdtype val,void *fd_vecelts)
 /* User config functions */
 
 #if (HAVE_GETGID|HAVE_GETEGID)
-static fdtype config_getgroup(fdtype var,void *data)
+static lispval config_getgroup(lispval var,void *data)
 {
   gid_t gid = GETGIDFN(); int i = (int)gid;
   return FD_INT(i);
 }
 #else
-static fdtype config_getgroup(fdtype var,void *fd_vecelts)
+static lispval config_getgroup(lispval var,void *fd_vecelts)
 {
   return FD_FALSE;
 }
 #endif
 
 #if (HAVE_SETGID|HAVE_SETEGID)
-static int config_setgroup(fdtype var,fdtype val,void *data)
+static int config_setgroup(lispval var,lispval val,void *data)
 {
   gid_t cur_gid = GETGIDFN(); int gid = resolve_gid(val);
   if (gid<0) return -1;
@@ -687,7 +687,7 @@ static int config_setgroup(fdtype var,fdtype val,void *data)
     return 1;}
 }
 #else
-static int config_setgroup(fdtype var,fdtype val,void *fd_vecelts)
+static int config_setgroup(lispval var,lispval val,void *fd_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set group","Can't change group ID in this OS");
   fd_seterr("SystemCantSetGroup","config_setgroup",NULL,val);

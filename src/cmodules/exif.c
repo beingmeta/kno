@@ -22,19 +22,19 @@
 
 FD_EXPORT int fd_init_exif(void) FD_LIBINIT_FN;
 
-static fdtype exif2lisp(ExifEntry *exentry)
+static lispval exif2lisp(ExifEntry *exentry)
 {
   switch (exentry->format) {
   case EXIF_FORMAT_ASCII:
-    if (exentry->size<8) return fdtype_string(exentry->data);
+    if (exentry->size<8) return lispval_string(exentry->data);
     else if (memcmp(exentry->data,"ASCII\0\0\0",8)==0)
-      return fdtype_string(exentry->data+8);
+      return lispval_string(exentry->data+8);
     else if (memcmp(exentry->data,"\0\0\0\0\0\0\0\0",8)==0)
       return fd_make_packet(NULL,exentry->size-8,exentry->data+8);
-    else return fdtype_string(exentry->data);
+    else return lispval_string(exentry->data);
   case EXIF_FORMAT_BYTE: case EXIF_FORMAT_SBYTE: {
     int n = exentry->components, i = 0;
-    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    lispval *lispdata = u8_alloc_n(n,lispval);
     /* ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent); */
     /* int item_size = exif_format_get_size(exentry->format); */
     unsigned char *exifdata = exentry->data;
@@ -48,12 +48,12 @@ static fdtype exif2lisp(ExifEntry *exentry)
       lispdata[i]=FD_USHORT2DTYPE(ival);
       i++;}
     if (n==1) {
-      fdtype retval = lispdata[0]; u8_free(lispdata);
+      lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_SHORT: case EXIF_FORMAT_SSHORT: {
     int n = exentry->components, i = 0;
-    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    lispval *lispdata = u8_alloc_n(n,lispval);
     ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent);
     int item_size = exif_format_get_size(exentry->format);
     unsigned char *exifdata = exentry->data;
@@ -67,12 +67,12 @@ static fdtype exif2lisp(ExifEntry *exentry)
       lispdata[i]=FD_USHORT2DTYPE(ival);
       i++;}
     if (n==1) {
-      fdtype retval = lispdata[0]; u8_free(lispdata);
+      lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_LONG: case EXIF_FORMAT_SLONG: {
     int n = exentry->components, i = 0;
-    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    lispval *lispdata = u8_alloc_n(n,lispval);
     ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent);
     int item_size = exif_format_get_size(exentry->format);
     unsigned char *exifdata = exentry->data;
@@ -86,12 +86,12 @@ static fdtype exif2lisp(ExifEntry *exentry)
       lispdata[i]=FD_INT(ival);
       i++;}
     if (n==1) {
-      fdtype retval = lispdata[0]; u8_free(lispdata);
+      lispval retval = lispdata[0]; u8_free(lispdata);
       return retval;}
     else return fd_init_vector(NULL,n,lispdata);}
   case EXIF_FORMAT_RATIONAL: case EXIF_FORMAT_SRATIONAL: {
     int n = exentry->components, i = 0;
-    fdtype *lispdata = u8_alloc_n(n,fdtype);
+    lispval *lispdata = u8_alloc_n(n,lispval);
     ExifByteOrder o = exif_data_get_byte_order (exentry->parent->parent);
     int item_size = exif_format_get_size(exentry->format);
     unsigned char *exifdata = exentry->data;
@@ -107,7 +107,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
         lispdata[i]=fd_init_double(NULL,ratio);
         i++;}
     if (n==1) {
-      fdtype retval = lispdata[0]; int i = 1;
+      lispval retval = lispdata[0]; int i = 1;
       while (i<n) {fd_decref(lispdata[i]); i++;}
       u8_free(lispdata);
       return retval;}
@@ -119,7 +119,7 @@ static fdtype exif2lisp(ExifEntry *exentry)
 struct FD_HASHTABLE exif_tagmap;
 
 static struct TAGINFO {
-  int tagid; char *tagname; fdtype tagsym;} taginfo[]= {
+  int tagid; char *tagname; lispval tagsym;} taginfo[]= {
     /* {EXIF_TAG_NEW_SUBFILE_TYPE, "NewSubfileType",FD_VOID}, */
     {EXIF_TAG_INTEROPERABILITY_INDEX, "InteroperabilityIndex",FD_VOID},
     {EXIF_TAG_INTEROPERABILITY_VERSION, "InteroperabilityVersion",FD_VOID},
@@ -235,7 +235,7 @@ static struct TAGINFO {
     {EXIF_TAG_IMAGE_UNIQUE_ID, "ImageUniqueID",FD_VOID},
     {0, NULL,FD_VOID}};
 
-static fdtype exif_get(fdtype x,fdtype prop)
+static lispval exif_get(lispval x,lispval prop)
 {
   ExifData *exdata;
   if (FD_PACKETP(x))
@@ -247,20 +247,20 @@ static fdtype exif_get(fdtype x,fdtype prop)
     u8_free(data);}
   else return fd_type_error(_("filename or packet"),"exif_get",x);
   if (FD_VOIDP(prop)) {
-    fdtype slotmap = fd_empty_slotmap();
+    lispval slotmap = fd_empty_slotmap();
     struct TAGINFO *scan = taginfo;
 
     while (scan->tagname) {
       ExifEntry *exentry = exif_data_get_entry(exdata,scan->tagid);
       if (exentry) {
-        fdtype val = exif2lisp(exentry);
+        lispval val = exif2lisp(exentry);
         fd_add(slotmap,scan->tagsym,val);
         fd_decref(val);}
       scan++;}
     return slotmap;}
   else {
     ExifEntry *exentry; ExifTag tag;
-    fdtype tagval = fd_hashtable_get(&exif_tagmap,prop,FD_VOID);
+    lispval tagval = fd_hashtable_get(&exif_tagmap,prop,FD_VOID);
     if (!(FD_FIXNUMP(tagval)))
       return fd_type_error(_("exif tag"),"exif_get",prop);
     tag = (ExifTag)FD_FIX2INT(tagval);
@@ -273,7 +273,7 @@ static long long int exif_init = 0;
 
 FD_EXPORT int fd_init_exif()
 {
-  fdtype exif_module;
+  lispval exif_module;
   struct TAGINFO *scan = taginfo;
   if (exif_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
@@ -282,7 +282,7 @@ FD_EXPORT int fd_init_exif()
   FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {
-    fdtype symbol = fd_intern(scan->tagname);
+    lispval symbol = fd_intern(scan->tagname);
     fd_hashtable_store(&exif_tagmap,symbol,FD_INT(scan->tagid));
     scan->tagsym = symbol;
     scan++;}

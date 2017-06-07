@@ -59,37 +59,37 @@ static fd_exception fd_ReloadError=_("Module reload error");
 
 static u8_string libscm_path;
 
-static fdtype safe_loadpath = NIL;
-static fdtype loadpath = NIL;
+static lispval safe_loadpath = NIL;
+static lispval loadpath = NIL;
 static int log_reloads = 1;
 
 static void add_load_record
-  (fdtype spec,u8_string filename,fd_lexenv env,time_t mtime);
-static fdtype load_source_for_module
-  (fdtype spec,u8_string module_source,int safe);
-static u8_string get_module_source(fdtype spec,int safe);
+  (lispval spec,u8_string filename,fd_lexenv env,time_t mtime);
+static lispval load_source_for_module
+  (lispval spec,u8_string module_source,int safe);
+static u8_string get_module_source(lispval spec,int safe);
 
-static fdtype moduleid_symbol;
+static lispval moduleid_symbol;
 
 /* Module finding */
 
-static int load_source_module(fdtype spec,int safe,void *ignored)
+static int load_source_module(lispval spec,int safe,void *ignored)
 {
   u8_string module_source = get_module_source(spec,safe);
   if (module_source) {
-    fdtype load_result = load_source_for_module(spec,module_source,safe);
+    lispval load_result = load_source_for_module(spec,module_source,safe);
     if (FD_ABORTP(load_result)) {
       u8_free(module_source); fd_decref(load_result);
       return -1;}
     else {
-      fdtype module_key = fdtype_string(module_source);
+      lispval module_key = lispval_string(module_source);
       fd_register_module_x(module_key,load_result,safe);
       /* Store non symbolic specifiers as module identifiers */
       if (STRINGP(spec)) 
 	fd_add(load_result,moduleid_symbol,spec);
       /* Register the module under its filename too. */
       if (strchr(module_source,':') == NULL) {
-	fdtype abspath_key = fd_lispstring(u8_abspath(module_source,NULL));
+	lispval abspath_key = fd_lispstring(u8_abspath(module_source,NULL));
 	fd_register_module_x(abspath_key,load_result,safe);
 	fd_decref(abspath_key);}
       fd_decref(module_key);
@@ -99,7 +99,7 @@ static int load_source_module(fdtype spec,int safe,void *ignored)
   else return 0;
 }
 
-static u8_string get_module_source(fdtype spec,int safe)
+static u8_string get_module_source(lispval spec,int safe)
 {
   if (SYMBOLP(spec)) {
     u8_string name = u8_downcase(SYM_NAME(spec));
@@ -140,47 +140,47 @@ static u8_string get_module_source(fdtype spec,int safe)
   else return NULL;
 }
 
-static fdtype load_source_for_module
-  (fdtype spec,u8_string module_source,int safe)
+static lispval load_source_for_module
+  (lispval spec,u8_string module_source,int safe)
 {
   time_t mtime;
   fd_lexenv env=
     ((safe) ?
      (fd_safe_working_lexenv()) :
      (fd_working_lexenv()));
-  fdtype load_result = fd_load_source_with_date(module_source,env,"auto",&mtime);
+  lispval load_result = fd_load_source_with_date(module_source,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
     if (HASHTABLEP(env->env_bindings))
       fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
-    fd_decref((fdtype)env);
+    fd_decref((lispval)env);
     return load_result;}
   if (STRINGP(spec))
-    fd_register_module_x(spec,(fdtype) env,
+    fd_register_module_x(spec,(lispval) env,
                          ((safe) ? (FD_MODULE_SAFE) : (0)));
   add_load_record(spec,module_source,env,mtime);
   fd_decref(load_result);
-  return (fdtype)env;
+  return (lispval)env;
 }
 
-static fdtype reload_module(fdtype module)
+static lispval reload_module(lispval module)
 {
   if (STRINGP(module)) {
     int retval = load_source_module(module,0,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
   else if (SYMBOLP(module)) {
-    fdtype resolved = fd_get_module(module,0);
+    lispval resolved = fd_get_module(module,0);
     if (TABLEP(resolved)) {
-      fdtype result = reload_module(resolved);
+      lispval result = reload_module(resolved);
       fd_decref(resolved);
       return result;}
     else return fd_err(fd_TypeError,"reload_module",
 		       "module name or path",module);}
   else if (TABLEP(module)) {
-    fdtype ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
+    lispval ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
       if (STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
     if (STRINGP(source)) {
-      fdtype result = reload_module(source);
+      lispval result = reload_module(source);
       fd_decref(ids);
       return result;}
     else {
@@ -191,25 +191,25 @@ static fdtype reload_module(fdtype module)
 		     "module name or path",module);
 }
 
-static fdtype safe_reload_module(fdtype module)
+static lispval safe_reload_module(lispval module)
 {
   if (STRINGP(module)) {
     int retval = load_source_module(module,1,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
   else if (SYMBOLP(module)) {
-    fdtype resolved = fd_get_module(module,1);
+    lispval resolved = fd_get_module(module,1);
     if (TABLEP(resolved)) {
-      fdtype result = safe_reload_module(resolved);
+      lispval result = safe_reload_module(resolved);
       fd_decref(resolved);
       return result;}
     else return fd_err(fd_TypeError,"safe_reload_module",
 		       "module name or path",module);}
   else if (TABLEP(module)) {
-    fdtype ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
+    lispval ids = fd_get(module,moduleid_symbol,EMPTY), source = VOID;
     DO_CHOICES(id,ids) {
       if (STRINGP(id)) {source = id; FD_STOP_DO_CHOICES; break;}}
     if (STRINGP(source)) {
-      fdtype result = safe_reload_module(source);
+      lispval result = safe_reload_module(source);
       fd_decref(ids);
       return result;}
     else {
@@ -228,7 +228,7 @@ static u8_mutex load_record_lock;
 static u8_mutex update_modules_lock;
 
 struct FD_LOAD_RECORD {
-  fdtype fd_loadspec;
+  lispval fd_loadspec;
   u8_string fd_loadfile;
   fd_lexenv fd_loadenv;
   time_t fd_modtime;
@@ -236,15 +236,15 @@ struct FD_LOAD_RECORD {
   struct FD_LOAD_RECORD *fd_next_reload;} *load_records = NULL;
 
 static void add_load_record
-  (fdtype spec,u8_string filename,fd_lexenv env,time_t mtime)
+  (lispval spec,u8_string filename,fd_lexenv env,time_t mtime)
 {
   struct FD_LOAD_RECORD *scan;
   u8_lock_mutex(&load_record_lock);
   scan = load_records; while (scan)
     if ((strcmp(filename,scan->fd_loadfile))==0) {
       if (env!=scan->fd_loadenv) {
-        fd_incref((fdtype)env);
-        fd_decref((fdtype)(scan->fd_loadenv));
+        fd_incref((lispval)env);
+        fd_decref((lispval)(scan->fd_loadenv));
         scan->fd_loadenv = env;}
       scan->fd_modtime = mtime;
       u8_unlock_mutex(&load_record_lock);
@@ -253,7 +253,7 @@ static void add_load_record
   scan = u8_alloc(struct FD_LOAD_RECORD);
   scan->fd_loadfile = u8_strdup(filename);
   scan->fd_modtime = mtime; scan->fd_reloading = 0;
-  scan->fd_loadenv = (fd_lexenv)fd_incref((fdtype)env);
+  scan->fd_loadenv = (fd_lexenv)fd_incref((lispval)env);
   scan->fd_loadspec = fd_incref(spec);
   scan->fd_next_reload = load_records;
   load_records = scan;
@@ -263,7 +263,7 @@ static void add_load_record
 typedef struct FD_MODULE_RELOAD {
   u8_string fd_loadfile;
   fd_lexenv fd_loadenv;
-  fdtype fd_loadspec;
+  lispval fd_loadspec;
   struct FD_LOAD_RECORD *fd_load_record;
   time_t fd_modtime;
   struct FD_MODULE_RELOAD *fd_next_reload;} RELOAD_MODULE;
@@ -299,7 +299,7 @@ FD_EXPORT int fd_update_file_modules(int force)
       scan = scan->fd_next_reload;}
     u8_unlock_mutex(&load_record_lock);
     rscan = reloads; while (rscan) {
-      module_reload this = rscan; fdtype load_result;
+      module_reload this = rscan; lispval load_result;
       u8_string filename = this->fd_loadfile;
       fd_lexenv env = this->fd_loadenv;
       time_t mtime = u8_file_mtime(this->fd_loadfile);
@@ -373,7 +373,7 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
   scan->fd_reloading = 1;
   u8_unlock_mutex(&load_record_lock);
   if ((force) || (mtime>scan->fd_modtime)) {
-    fdtype load_result;
+    lispval load_result;
     if (log_reloads)
       u8_log(LOG_WARN,"fd_update_file_module","Reloading %s",
              scan->fd_loadfile);
@@ -397,14 +397,14 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
   else return 0;
 }
 
-static fdtype update_modules_prim(fdtype flag)
+static lispval update_modules_prim(lispval flag)
 {
   if (fd_update_file_modules((!FALSEP(flag)))<0)
     return FD_ERROR;
   else return VOID;
 }
 
-static fdtype update_module_prim(fdtype spec,fdtype force)
+static lispval update_module_prim(lispval spec,lispval force)
 {
   if (FALSEP(force)) {
     u8_string module_source = get_module_source(spec,0);
@@ -420,12 +420,12 @@ static fdtype update_module_prim(fdtype spec,fdtype force)
   else return load_source_module(spec,0,NULL);
 }
 
-static fdtype updatemodules_config_get(fdtype var,void *ignored)
+static lispval updatemodules_config_get(lispval var,void *ignored)
 {
   if (reload_interval<0.0) return FD_FALSE;
   else return fd_init_double(NULL,reload_interval);
 }
-static int updatemodules_config_set(fdtype var,fdtype val,void *ignored)
+static int updatemodules_config_set(lispval var,lispval val,void *ignored)
 {
   if (FD_FLONUMP(val)) {
     reload_interval = FD_FLONUM(val);
@@ -472,14 +472,14 @@ static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
 
 /* Latest source functions */
 
-static fdtype source_symbol;
+static lispval source_symbol;
 
-static fdtype get_entry(fdtype key,fdtype entries)
+static lispval get_entry(lispval key,lispval entries)
 {
-  fdtype entry = EMPTY;
+  lispval entry = EMPTY;
   DO_CHOICES(each,entries)
     if (!(PAIRP(each))) {}
-    else if (FDTYPE_EQUAL(key,FD_CAR(each))) {
+    else if (LISP_EQUAL(key,FD_CAR(each))) {
       entry = each; FD_STOP_DO_CHOICES; break;}
     else {}
   return entry;
@@ -492,9 +492,9 @@ int fd_load_latest
   if (filename == NULL) {
     int loads = 0;
     fd_lexenv scan = env;
-    fdtype result = VOID;
+    lispval result = VOID;
     while (scan) {
-      fdtype sources =
+      lispval sources =
         fd_get(scan->env_bindings,source_symbol,EMPTY);
       DO_CHOICES(entry,sources) {
         struct FD_TIMESTAMP *loadstamp=
@@ -506,7 +506,7 @@ int fd_load_latest
           FD_INIT_CONS(tstamp,fd_timestamp_type);
           u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
           fd_decref(pair->cdr);
-          pair->cdr = FDTYPE_CONS(tstamp);
+          pair->cdr = LISP_CONS(tstamp);
           if (log_reloads)
             u8_log(LOG_WARN,"fd_load_latest","Reloading %s",
                    CSTRING(FD_CAR(entry)));
@@ -520,11 +520,11 @@ int fd_load_latest
     return loads;}
   else {
     u8_string abspath = u8_abspath(filename,base);
-    fdtype abspath_dtype = fdtype_string(abspath);
-    fdtype sources =
+    lispval abspath_dtype = lispval_string(abspath);
+    lispval sources =
       fd_get(env->env_bindings,source_symbol,EMPTY);
-    fdtype entry = get_entry(abspath_dtype,sources);
-    fdtype result = VOID;
+    lispval entry = get_entry(abspath_dtype,sources);
+    lispval result = VOID;
     if (PAIRP(entry))
       if (FD_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
         struct FD_TIMESTAMP *curstamp=
@@ -539,7 +539,7 @@ int fd_load_latest
           FD_INIT_CONS(tstamp,fd_timestamp_type);
           u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
           fd_decref(pair->cdr);
-          pair->cdr = FDTYPE_CONS(tstamp);}}
+          pair->cdr = LISP_CONS(tstamp);}}
       else {
         fd_seterr("Invalid load_latest record","load_latest",
                   abspath,entry);
@@ -550,7 +550,7 @@ int fd_load_latest
       struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
       FD_INIT_CONS(tstamp,fd_timestamp_type);
       u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
-      entry = fd_conspair(fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
+      entry = fd_conspair(fd_incref(abspath_dtype),LISP_CONS(tstamp));
       if (EMPTYP(sources))
         fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
@@ -566,15 +566,15 @@ int fd_load_latest
     return 1;}
 }
 
-static fdtype load_latest_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval load_latest_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   if (NILP(FD_CDR(expr))) {
     int loads = fd_load_latest(NULL,env,NULL);
     return FD_INT(loads);}
   else {
     int retval = -1;
-    fdtype path_expr = fd_get_arg(expr,1);
-    fdtype path = fd_eval(path_expr,env);
+    lispval path_expr = fd_get_arg(expr,1);
+    lispval path = fd_eval(path_expr,env);
     if (!(STRINGP(path)))
       return fd_type_error("pathname","load_latest",path);
     else retval = fd_load_latest(CSTRING(path),env,NULL);
@@ -591,7 +591,7 @@ static int scheme_loader_initialized = 0;
 
 FD_EXPORT void fd_init_loader_c()
 {
-  fdtype loader_module;
+  lispval loader_module;
   if (scheme_loader_initialized) return;
   scheme_loader_initialized = 1;
   fd_init_scheme();
@@ -606,13 +606,13 @@ FD_EXPORT void fd_init_loader_c()
 
   /* Setup load paths */
   {u8_string path = u8_getenv("FD_INIT_LOADPATH");
-    fdtype v = ((path) ? (fd_lispstring(path)) :
-                (fdtype_string(FD_DEFAULT_LOADPATH)));
+    lispval v = ((path) ? (fd_lispstring(path)) :
+                (lispval_string(FD_DEFAULT_LOADPATH)));
     loadpath = fd_init_pair(NULL,v,loadpath);}
     
   {u8_string path = u8_getenv("FD_INIT_SAFELOADPATH");
-    fdtype v = ((path) ? (fd_lispstring(path)) :
-                (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
+    lispval v = ((path) ? (fd_lispstring(path)) :
+                (lispval_string(FD_DEFAULT_SAFE_LOADPATH)));
     safe_loadpath = fd_init_pair(NULL,v,safe_loadpath);}
     
   {u8_string dir=u8_getenv("FD_LIBSCM_DIR");

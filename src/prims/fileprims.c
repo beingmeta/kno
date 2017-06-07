@@ -72,17 +72,17 @@ static u8_condition SnapshotRestored=_("Snapshot Restored");
 
 /* Making ports */
 
-static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
+static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
   port->fd_inport = in;
   port->fd_outport = out;
   port->fd_portid = id;
-  return FDTYPE_CONS(port);
+  return LISP_CONS(port);
 }
 
-static u8_output get_output_port(fdtype portarg)
+static u8_output get_output_port(lispval portarg)
 {
   if ((VOIDP(portarg))||(portarg == FD_TRUE))
     return u8_current_output;
@@ -95,7 +95,7 @@ static u8_output get_output_port(fdtype portarg)
 
 /* Opening files */
 
-static fdtype open_output_file(fdtype fname,fdtype encid,fdtype escape_char)
+static lispval open_output_file(lispval fname,lispval encid,lispval escape_char)
 {
   u8_string filename = fd_strdata(fname);
   u8_encoding enc; struct U8_XOUTPUT *f;
@@ -114,7 +114,7 @@ static fdtype open_output_file(fdtype fname,fdtype encid,fdtype escape_char)
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
-static fdtype extend_output_file(fdtype fname,fdtype encid,fdtype escape_char)
+static lispval extend_output_file(lispval fname,lispval encid,lispval escape_char)
 {
   u8_string filename = fd_strdata(fname);
   u8_encoding enc; struct U8_XOUTPUT *f;
@@ -133,7 +133,7 @@ static fdtype extend_output_file(fdtype fname,fdtype encid,fdtype escape_char)
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
-static fdtype open_input_file(fdtype fname,fdtype encid)
+static lispval open_input_file(lispval fname,lispval encid)
 {
   u8_string filename = fd_strdata(fname);
   u8_encoding enc; U8_INPUT *f;
@@ -149,7 +149,7 @@ static fdtype open_input_file(fdtype fname,fdtype encid)
   else return make_port((u8_input)f,NULL,u8_strdup(filename));
 }
 
-static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
+static lispval writefile_prim(lispval filename,lispval object,lispval enc)
 {
   int len = 0; const unsigned char *bytes; int free_bytes = 0;
   if (STRINGP(object)) {
@@ -205,7 +205,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
 
 /* FILEOUT */
 
-static int printout_helper(U8_OUTPUT *out,fdtype x)
+static int printout_helper(U8_OUTPUT *out,lispval x)
 {
   if (FD_ABORTP(x)) return 0;
   else if (VOIDP(x)) return 1;
@@ -216,10 +216,10 @@ static int printout_helper(U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype simple_fileout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval simple_fileout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype filename_arg = fd_get_arg(expr,1);
-  fdtype filename_val = fd_eval(filename_arg,env);
+  lispval filename_arg = fd_get_arg(expr,1);
+  lispval filename_val = fd_eval(filename_arg,env);
   U8_OUTPUT *f, *oldf; int doclose;
   if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PORTP(filename_val)) {
@@ -239,9 +239,9 @@ static fdtype simple_fileout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return fd_type_error(_("string"),"simple_fileout",filename_val);}
   oldf = u8_current_output;
   u8_set_default_output(f);
-  {fdtype body = fd_get_body(expr,2);
+  {lispval body = fd_get_body(expr,2);
     FD_DOLIST(ex,body)  {
-      fdtype value = fast_eval(ex,env);
+      lispval value = fast_eval(ex,env);
       if (printout_helper(f,value)) fd_decref(value);
       else {
         u8_set_default_output(oldf);
@@ -256,13 +256,13 @@ static fdtype simple_fileout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Not really I/O but related structurally and logically */
 
-static fdtype simple_system_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval simple_system_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   struct U8_OUTPUT out; int result;
   U8_INIT_OUTPUT(&out,256);
-  {fdtype string_exprs = fd_get_body(expr,1);
+  {lispval string_exprs = fd_get_body(expr,1);
     FD_DOLIST(string_expr,string_exprs) {
-      fdtype value = fast_eval(string_expr,env);
+      lispval value = fast_eval(string_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (VOIDP(value)) continue;
       else if (STRINGP(value))
@@ -273,14 +273,14 @@ static fdtype simple_system_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return FD_INT(result);
 }
 
-static fdtype exit_prim(fdtype arg)
+static lispval exit_prim(lispval arg)
 {
   if (FD_INTP(arg)) exit(FIX2INT(arg));
   else exit(0);
   return VOID;
 }
 
-static fdtype ispid_prim(fdtype pid_arg)
+static lispval ispid_prim(lispval pid_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
   int rv = kill(pid,0);
@@ -289,7 +289,7 @@ static fdtype ispid_prim(fdtype pid_arg)
   else return FD_TRUE;
 }
 
-static fdtype pid_kill_prim(fdtype pid_arg,fdtype sig_arg)
+static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
   int sig = FIX2INT(sig_arg);
@@ -308,7 +308,7 @@ static fdtype pid_kill_prim(fdtype pid_arg,fdtype sig_arg)
 #define FD_DO_WAIT 4
 #define FD_DO_LOOKUP 8
 
-static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
+static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
 {
   if (!(STRINGP(args[0])))
     return fd_type_error("pathname",caller,args[0]);
@@ -327,7 +327,7 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
         else break;}}
     else {}
     if ((n>1)&&(SLOTMAPP(args[1]))) {
-      fdtype keys = fd_getkeys(args[1]);
+      lispval keys = fd_getkeys(args[1]);
       max_argc = max_argc+FD_CHOICE_SIZE(keys);}
     argv = u8_alloc_n(max_argc,char *);
     if (flags&FD_IS_SCHEME) {
@@ -356,11 +356,11 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
         argv[argc++]=u8_tolibc(arg1);
       else argv[argc++]=filename = (u8_byte *)u8_tolibc(arg1);}
     if ((n>1)&&(SLOTMAPP(args[1]))) {
-      fdtype params = args[1];
-      fdtype keys = fd_getkeys(args[1]);
+      lispval params = args[1];
+      lispval keys = fd_getkeys(args[1]);
       DO_CHOICES(key,keys) {
         if ((SYMBOLP(key))||(STRINGP(key))) {
-          fdtype value = fd_get(params,key,VOID);
+          lispval value = fd_get(params,key,VOID);
           if (!(VOIDP(value))) {
             struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
             u8_string stringval = NULL;
@@ -377,7 +377,7 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
       if (STRINGP(args[i]))
         argv[argc++]=u8_tolibc(CSTRING(args[i++]));
       else {
-        u8_string as_string = fd_dtype2string(args[i++]);
+        u8_string as_string = fd_lisp2string(args[i++]);
         char *as_libc_string = u8_tolibc(as_string);
         argv[argc++]=as_libc_string; u8_free(as_string);}}
     argv[argc++]=NULL;
@@ -409,66 +409,66 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
       abort();}}
 }
 
-static fdtype exec_prim(int n,fdtype *args)
+static lispval exec_prim(int n,lispval *args)
 {
   return exec_helper("exec_prim",0,n,args);
 }
 
-static fdtype exec_cmd_prim(int n,fdtype *args)
+static lispval exec_cmd_prim(int n,lispval *args)
 {
   return exec_helper("exec_cmd_prim",FD_DO_LOOKUP,n,args);
 }
 
-static fdtype fdexec_prim(int n,fdtype *args)
+static lispval fdexec_prim(int n,lispval *args)
 {
   return exec_helper("fdexec_prim",FD_IS_SCHEME,n,args);
 }
 
-static fdtype fork_prim(int n,fdtype *args)
+static lispval fork_prim(int n,lispval *args)
 {
   return exec_helper("fork_prim",FD_DO_FORK,n,args);
 }
 
-static fdtype fork_cmd_prim(int n,fdtype *args)
+static lispval fork_cmd_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,args);
 }
 
-static fdtype fork_wait_prim(int n,fdtype *args)
+static lispval fork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_wait_prim",(FD_DO_FORK|FD_DO_WAIT),n,args);
 }
 
-static fdtype fork_cmd_wait_prim(int n,fdtype *args)
+static lispval fork_cmd_wait_prim(int n,lispval *args)
 {
   return exec_helper("fork_cmd_wait_prim",
                      (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
 }
 
-static fdtype fdfork_wait_prim(int n,fdtype *args)
+static lispval fdfork_wait_prim(int n,lispval *args)
 {
   return exec_helper("fdfork_wait_prim",
                      (FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),
                      n,args);
 }
 
-static fdtype fdfork_prim(int n,fdtype *args)
+static lispval fdfork_prim(int n,lispval *args)
 {
   return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,args);
 }
 
 /* Opening TCP sockets */
 
-static fdtype noblock_symbol, nodelay_symbol;
+static lispval noblock_symbol, nodelay_symbol;
 
-static fdtype open_socket_prim(fdtype spec,fdtype opts)
+static lispval open_socket_prim(lispval spec,lispval opts)
 {
 
   u8_socket conn = u8_connect(CSTRING(spec));
   if (conn<0) return FD_ERROR;
   else {
-    fdtype noblock = fd_getopt(opts,noblock_symbol,FD_FALSE);
-    fdtype nodelay = fd_getopt(opts,nodelay_symbol,FD_FALSE);
+    lispval noblock = fd_getopt(opts,noblock_symbol,FD_FALSE);
+    lispval nodelay = fd_getopt(opts,nodelay_symbol,FD_FALSE);
     u8_xinput in = u8_open_xinput(conn,NULL);
     u8_xoutput out = u8_open_xoutput(conn,NULL);
     if (!(FALSEP(noblock))) u8_set_blocking(conn,0);
@@ -478,44 +478,44 @@ static fdtype open_socket_prim(fdtype spec,fdtype opts)
 
 /* More file manipulation */
 
-static fdtype remove_file_prim(fdtype arg,fdtype must_exist)
+static lispval remove_file_prim(lispval arg,lispval must_exist)
 {
   u8_string filename = CSTRING(arg);
   if ((u8_file_existsp(filename))||(u8_symlinkp(filename))) {
     if (u8_removefile(CSTRING(arg))<0) {
-      fdtype err = fd_err(RemoveFailed,"remove_file_prim",filename,arg);
+      lispval err = fd_err(RemoveFailed,"remove_file_prim",filename,arg);
       return err;}
     else return FD_TRUE;}
   else if (FD_TRUEP(must_exist)) {
     u8_string absolute = u8_abspath(filename,NULL);
-    fdtype err = fd_err(fd_NoSuchFile,"remove_file_prim",absolute,arg);
+    lispval err = fd_err(fd_NoSuchFile,"remove_file_prim",absolute,arg);
     u8_free(absolute);
     return err;}
   else return FD_FALSE;
 }
 
-static fdtype remove_tree_prim(fdtype arg,fdtype must_exist)
+static lispval remove_tree_prim(lispval arg,lispval must_exist)
 {
   u8_string filename = CSTRING(arg);
   if (u8_directoryp(filename))
     if (u8_rmtree(CSTRING(arg))<0) {
-      fdtype err = fd_err(RemoveFailed,"remove_tree_prim",filename,arg);
+      lispval err = fd_err(RemoveFailed,"remove_tree_prim",filename,arg);
       return err;}
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist)) {
     u8_string absolute = u8_abspath(filename,NULL);
-    fdtype err = fd_err(fd_NoSuchFile,"remove_tree_prim",absolute,arg);
+    lispval err = fd_err(fd_NoSuchFile,"remove_tree_prim",absolute,arg);
     u8_free(absolute);
     return err;}
   else return FD_FALSE;
 }
 
-static fdtype move_file_prim(fdtype from,fdtype to,fdtype must_exist)
+static lispval move_file_prim(lispval from,lispval to,lispval must_exist)
 {
   u8_string fromname = CSTRING(from);
   if (u8_file_existsp(fromname))
     if (u8_movefile(CSTRING(from),CSTRING(to))<0) {
-      fdtype err = fd_err(RemoveFailed,"move_file_prim",fromname,to);
+      lispval err = fd_err(RemoveFailed,"move_file_prim",fromname,to);
       return err;}
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist))
@@ -523,12 +523,12 @@ static fdtype move_file_prim(fdtype from,fdtype to,fdtype must_exist)
   else return FD_FALSE;
 }
 
-static fdtype link_file_prim(fdtype from,fdtype to,fdtype must_exist)
+static lispval link_file_prim(lispval from,lispval to,lispval must_exist)
 {
   u8_string fromname = CSTRING(from);
   if (u8_file_existsp(fromname))
     if (u8_linkfile(CSTRING(from),CSTRING(to))<0) {
-      fdtype err = fd_err(LinkFailed,"link_file_prim",fromname,to);
+      lispval err = fd_err(LinkFailed,"link_file_prim",fromname,to);
       return err;}
     else return FD_TRUE;
   else if (FD_TRUEP(must_exist))
@@ -538,7 +538,7 @@ static fdtype link_file_prim(fdtype from,fdtype to,fdtype must_exist)
 
 /* FILESTRING */
 
-static fdtype filestring_prim(fdtype filename,fdtype enc)
+static lispval filestring_prim(lispval filename,lispval enc)
 {
   if ((VOIDP(enc))||(FALSEP(enc))) {
     u8_string data = u8_filestring(CSTRING(filename),"UTF-8");
@@ -557,7 +557,7 @@ static fdtype filestring_prim(fdtype filename,fdtype enc)
   else return fd_err(fd_UnknownEncoding,"FILESTRING",NULL,enc);
 }
 
-static fdtype filedata_prim(fdtype filename)
+static lispval filedata_prim(lispval filename)
 {
   int len = -1;
   unsigned char *data = u8_filedata(CSTRING(filename),&len);
@@ -565,12 +565,12 @@ static fdtype filedata_prim(fdtype filename)
   else return FD_ERROR;
 }
 
-static fdtype filecontent_prim(fdtype filename)
+static lispval filecontent_prim(lispval filename)
 {
   int len = -1;
   unsigned char *data = u8_filedata(CSTRING(filename),&len);
   if (len>=0) {
-    fdtype result;
+    lispval result;
     if (u8_validp(data)) 
       result = fd_make_string(NULL,len,data);
     else result = fd_make_packet(NULL,len,data);
@@ -581,35 +581,35 @@ static fdtype filecontent_prim(fdtype filename)
 
 /* File information */
 
-static fdtype file_existsp(fdtype arg)
+static lispval file_existsp(lispval arg)
 {
   if (u8_file_existsp(CSTRING(arg)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype file_readablep(fdtype arg)
+static lispval file_readablep(lispval arg)
 {
   if (u8_file_readablep(CSTRING(arg)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype file_writablep(fdtype arg)
+static lispval file_writablep(lispval arg)
 {
   if (u8_file_writablep(CSTRING(arg)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype file_directoryp(fdtype arg)
+static lispval file_directoryp(lispval arg)
 {
   if (u8_directoryp(CSTRING(arg)))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype file_abspath(fdtype arg,fdtype wd)
+static lispval file_abspath(lispval arg,lispval wd)
 {
   u8_string result;
   if (VOIDP(wd))
@@ -619,7 +619,7 @@ static fdtype file_abspath(fdtype arg,fdtype wd)
   else return FD_ERROR;
 }
 
-static fdtype file_realpath(fdtype arg,fdtype wd)
+static lispval file_realpath(lispval arg,lispval wd)
 {
   u8_string result;
   if (VOIDP(wd))
@@ -629,7 +629,7 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
   else return FD_ERROR;
 }
 
-static fdtype file_readlink(fdtype arg,fdtype abs,fdtype err)
+static lispval file_readlink(lispval arg,lispval abs,lispval err)
 {
   u8_string result;
   if (FALSEP(abs))
@@ -643,7 +643,7 @@ static fdtype file_readlink(fdtype arg,fdtype abs,fdtype err)
     return FD_FALSE;}
 }
 
-static fdtype path_basename(fdtype arg,fdtype suffix)
+static lispval path_basename(lispval arg,lispval suffix)
 {
   if ((VOIDP(suffix)) || (FALSEP(suffix)))
     return fd_lispstring(u8_basename(CSTRING(arg),NULL));
@@ -652,24 +652,24 @@ static fdtype path_basename(fdtype arg,fdtype suffix)
   else return fd_lispstring(u8_basename(CSTRING(arg),"*"));
 }
 
-static fdtype path_suffix(fdtype arg,fdtype dflt)
+static lispval path_suffix(lispval arg,lispval dflt)
 {
   u8_string s = CSTRING(arg);
   u8_string slash = strrchr(s,'/');
   u8_string dot = strrchr(s,'.');
   if ((dot)&&((!(slash))||(slash<dot)))
-    return fdtype_string(dot);
+    return lispval_string(dot);
   else if (VOIDP(dflt))
-    return fdtype_string("");
+    return lispval_string("");
   else return fd_incref(dflt);
 }
 
-static fdtype path_dirname(fdtype arg)
+static lispval path_dirname(lispval arg)
 {
   return fd_lispstring(u8_dirname(CSTRING(arg)));
 }
 
-static fdtype path_location(fdtype arg)
+static lispval path_location(lispval arg)
 {
   u8_string path = CSTRING(arg);
   u8_string slash = strrchr(path,'/');
@@ -677,9 +677,9 @@ static fdtype path_location(fdtype arg)
   else return fd_substring(path,slash+1);
 }
 
-static fdtype mkpath_prim(fdtype dirname,fdtype name)
+static lispval mkpath_prim(lispval dirname,lispval name)
 {
-  fdtype config_val = VOID; u8_string dir = NULL, namestring = NULL;
+  lispval config_val = VOID; u8_string dir = NULL, namestring = NULL;
   if (!(STRINGP(name)))
     return fd_type_error(_("string"),"mkpath_prim",name);
   else namestring = CSTRING(name);
@@ -698,21 +698,21 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
   if (VOIDP(config_val))
     return fd_lispstring(u8_mkpath(dir,namestring));
   else {
-    fdtype result = fd_lispstring(u8_mkpath(dir,namestring));
+    lispval result = fd_lispstring(u8_mkpath(dir,namestring));
     fd_decref(config_val);
     return result;}
 }
 
 /* Getting the runbase for a script file */
 
-static fdtype runfile_prim(fdtype suffix)
+static lispval runfile_prim(lispval suffix)
 {
   return fd_lispstring(fd_runbase_filename(CSTRING(suffix)));
 }
 
 /* Making directories */
 
-static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
+static lispval mkdir_prim(lispval dirname,lispval mode_arg)
 {
   mode_t mode=
     ((FD_UINTP(mode_arg))?((mode_t)(FIX2INT(mode_arg))):((mode_t)0777));
@@ -728,7 +728,7 @@ static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
   else return FD_FALSE;
 }
 
-static fdtype rmdir_prim(fdtype dirname)
+static lispval rmdir_prim(lispval dirname)
 {
   int retval = u8_rmdir(CSTRING(dirname));
   if (retval<0) {
@@ -738,7 +738,7 @@ static fdtype rmdir_prim(fdtype dirname)
   else return FD_FALSE;
 }
 
-static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
+static lispval mkdirs_prim(lispval pathname,lispval mode_arg)
 {
   mode_t mode=
     ((FD_UINTP(mode_arg))?((mode_t)(FIX2INT(mode_arg))):((mode_t)0777));
@@ -763,19 +763,19 @@ static char *get_tmpdir()
   else return "/tmp";
 }
 
-static fdtype temproot_get(fdtype sym,void *ignore)
+static lispval temproot_get(lispval sym,void *ignore)
 {
   if (tempdir_template)
-    return fdtype_string(tempdir_template);
+    return lispval_string(tempdir_template);
   else {
     char *tmpdir = get_tmpdir();
     u8_string tmp = u8_mkpath(tmpdir,"fdtempXXXXXX");
-    fdtype result = fdtype_string(tmp);
+    lispval result = lispval_string(tmp);
     u8_free(tmp);
     return result;}
 }
 
-static int temproot_set(fdtype sym,fdtype value,void *ignore)
+static int temproot_set(lispval sym,lispval value,void *ignore)
 {
   u8_string template, old_template = tempdir_template;
   if (!(STRINGP(value))) {
@@ -791,16 +791,16 @@ static int temproot_set(fdtype sym,fdtype value,void *ignore)
 }
 
 static int delete_tempdirs_on_exit = 1;
-static fdtype tempdirs = EMPTY, keeptemp = EMPTY;
+static lispval tempdirs = EMPTY, keeptemp = EMPTY;
 static u8_mutex tempdirs_lock;
 
-static u8_string tempdir_core(fdtype template_arg,int keep)
+static u8_string tempdir_core(lispval template_arg,int keep)
 {
   u8_string tempname;
   u8_string consed = NULL, template=
     ((STRINGP(template_arg))?(CSTRING(template_arg)):(NULL));
   if (SYMBOLP(template_arg)) {
-    fdtype ctemp = fd_config_get(CSTRING(template_arg));
+    lispval ctemp = fd_config_get(CSTRING(template_arg));
     if (STRINGP(ctemp))
       template = consed = u8_strdup(CSTRING(ctemp));
     fd_decref(ctemp);}
@@ -812,7 +812,7 @@ static u8_string tempdir_core(fdtype template_arg,int keep)
   tempname = u8_tempdir(template);
   if (tempname) {
     if (!(keep)) {
-      fdtype result = fd_make_string(NULL,-1,tempname);
+      lispval result = fd_make_string(NULL,-1,tempname);
       u8_lock_mutex(&tempdirs_lock);
       CHOICE_ADD(tempdirs,result);
       u8_unlock_mutex(&tempdirs_lock);}
@@ -836,7 +836,7 @@ static void remove_tempdirs()
     u8_log(LOG_NOTICE,"TEMPFILES","Removing %d temporary directories",n_files);
   else return;
   u8_lock_mutex(&tempdirs_lock); {
-    fdtype to_remove = fd_difference(tempdirs,keeptemp);
+    lispval to_remove = fd_difference(tempdirs,keeptemp);
     DO_CHOICES(tmpfile,to_remove) {
       if (STRINGP(tmpfile)) {
         u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",
@@ -850,13 +850,13 @@ static void remove_tempdirs()
 
 FD_EXPORT u8_string fd_tempdir(u8_string spec,int keep)
 {
-  fdtype template_arg = ((spec)?(fd_parse_arg(spec)):(VOID));
+  lispval template_arg = ((spec)?(fd_parse_arg(spec)):(VOID));
   u8_string dirname = tempdir_core(template_arg,keep);
   fd_decref(template_arg);
   return dirname;
 }
 
-static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
+static lispval tempdir_prim(lispval template_arg,lispval keep)
 {
   if ((VOIDP(template_arg))||
       (FALSEP(template_arg))||
@@ -870,12 +870,12 @@ static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
                        template_arg);
 }
 
-static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
+static lispval tempdir_done_prim(lispval tempdir,lispval force_arg)
 {
   int force = (!(FALSEP(force_arg))), doit = 0;
   u8_string dirname = CSTRING(tempdir);
   u8_lock_mutex(&tempdirs_lock); {
-    fdtype cur_tempdirs = tempdirs; fdtype cur_keep = keeptemp;
+    lispval cur_tempdirs = tempdirs; lispval cur_keep = keeptemp;
     if (fd_overlapp(tempdir,cur_tempdirs)) {
       if (fd_overlapp(tempdir,cur_keep)) {
         if (force) {
@@ -912,22 +912,22 @@ static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
   else return FD_FALSE;
 }
 
-static fdtype is_tempdir_prim(fdtype tempdir)
+static lispval is_tempdir_prim(lispval tempdir)
 {
   u8_lock_mutex(&tempdirs_lock); {
-    fdtype cur_tempdirs = tempdirs; 
+    lispval cur_tempdirs = tempdirs; 
     int found = fd_overlapp(tempdir,cur_tempdirs);
     u8_unlock_mutex(&tempdirs_lock); 
     if (found) return FD_TRUE; else return FD_FALSE;}
 }
 
-static fdtype tempdirs_get(fdtype sym,void *ignore)
+static lispval tempdirs_get(lispval sym,void *ignore)
 {
-  fdtype dirs = tempdirs;
+  lispval dirs = tempdirs;
   fd_incref(dirs);
   return dirs;
 }
-static int tempdirs_add(fdtype sym,fdtype value,void *ignore)
+static int tempdirs_add(lispval sym,lispval value,void *ignore)
 {
   if (!(STRINGP(value))) {
     fd_type_error("string","tempdirs_add",value);
@@ -939,7 +939,7 @@ static int tempdirs_add(fdtype sym,fdtype value,void *ignore)
   return 1;
 }
 
-static fdtype keepdirs_get(fdtype sym,void *ignore)
+static lispval keepdirs_get(lispval sym,void *ignore)
 {
   /* If delete_tempdirs_on_exit is zero, we keep all of the current
      tempdirs, or return true if there aren't any.  Otherwise, we just
@@ -948,7 +948,7 @@ static fdtype keepdirs_get(fdtype sym,void *ignore)
     return fd_deep_copy(tempdirs);
   else return fd_deep_copy(keeptemp);
 }
-static int keepdirs_add(fdtype sym,fdtype value,void *ignore)
+static int keepdirs_add(lispval sym,lispval value,void *ignore)
 {
   if (FD_TRUEP(value)) {
     if (delete_tempdirs_on_exit) {
@@ -977,7 +977,7 @@ static int keepdirs_add(fdtype sym,fdtype value,void *ignore)
   return 1;
 }
 
-static fdtype keeptemp_get(fdtype sym,void *ignore)
+static lispval keeptemp_get(lispval sym,void *ignore)
 {
   /* If delete_tempdirs_on_exit is zero, we keep all of the current
      tempdirs, or return true if there aren't any.  Otherwise, we just
@@ -985,7 +985,7 @@ static fdtype keeptemp_get(fdtype sym,void *ignore)
   if (delete_tempdirs_on_exit==0) return FD_TRUE;
   else return FD_FALSE;
 }
-static int keeptemp_set(fdtype sym,fdtype value,void *ignore)
+static int keeptemp_set(lispval sym,lispval value,void *ignore)
 {
   if (FD_TRUEP(value)) {
     if (delete_tempdirs_on_exit) {
@@ -1015,20 +1015,20 @@ static int keeptemp_set(fdtype sym,fdtype value,void *ignore)
 
 /* File time info */
 
-static fdtype make_timestamp(time_t tick)
+static lispval make_timestamp(time_t tick)
 {
   struct U8_XTIME xt; u8_init_xtime(&xt,tick,u8_second,0,0,0);
   return fd_make_timestamp(&xt);
 }
 
-static fdtype file_modtime(fdtype filename)
+static lispval file_modtime(lispval filename)
 {
   time_t mtime = u8_file_mtime(CSTRING(filename));
   if (mtime<0) return FD_ERROR;
   else return make_timestamp(mtime);
 }
 
-static fdtype set_file_modtime(fdtype filename,fdtype timestamp)
+static lispval set_file_modtime(lispval filename,lispval timestamp)
 {
   time_t mtime=
     ((VOIDP(timestamp))?(time(NULL)):
@@ -1044,14 +1044,14 @@ static fdtype set_file_modtime(fdtype filename,fdtype timestamp)
   else return FD_TRUE;
 }
 
-static fdtype file_atime(fdtype filename)
+static lispval file_atime(lispval filename)
 {
   time_t mtime = u8_file_atime(CSTRING(filename));
   if (mtime<0) return FD_ERROR;
   else return make_timestamp(mtime);
 }
 
-static fdtype set_file_atime(fdtype filename,fdtype timestamp)
+static lispval set_file_atime(lispval filename,lispval timestamp)
 {
   time_t atime=
     ((VOIDP(timestamp))?(time(NULL)):
@@ -1067,21 +1067,21 @@ static fdtype set_file_atime(fdtype filename,fdtype timestamp)
   else return FD_TRUE;
 }
 
-static fdtype file_ctime(fdtype filename)
+static lispval file_ctime(lispval filename)
 {
   time_t mtime = u8_file_ctime(CSTRING(filename));
   if (mtime<0) return FD_ERROR;
   else return make_timestamp(mtime);
 }
 
-static fdtype file_mode(fdtype filename)
+static lispval file_mode(lispval filename)
 {
   int mode = u8_file_mode(CSTRING(filename));
   if (mode<0) return FD_ERROR;
   else return FD_INT(mode);
 }
 
-static fdtype file_size(fdtype filename)
+static lispval file_size(lispval filename)
 {
   ssize_t size = u8_file_size(CSTRING(filename));
   if (size<0) return FD_ERROR;
@@ -1090,7 +1090,7 @@ static fdtype file_size(fdtype filename)
   else return fd_make_bigint(size);
 }
 
-static fdtype file_owner(fdtype filename)
+static lispval file_owner(lispval filename)
 {
   u8_string name = u8_file_owner(CSTRING(filename));
   if (name) return fd_lispstring(name);
@@ -1099,14 +1099,14 @@ static fdtype file_owner(fdtype filename)
 
 /* Current directory information */
 
-static fdtype getcwd_prim()
+static lispval getcwd_prim()
 {
   u8_string wd = u8_getcwd();
   if (wd) return fd_lispstring(wd);
   else return FD_ERROR;
 }
 
-static fdtype setcwd_prim(fdtype dirname)
+static lispval setcwd_prim(lispval dirname)
 {
   if (u8_setcwd(CSTRING(dirname))<0)
     return FD_ERROR;
@@ -1115,58 +1115,58 @@ static fdtype setcwd_prim(fdtype dirname)
 
 /* Directory listings */
 
-static fdtype getfiles_prim(fdtype dirname,fdtype fullpath)
+static lispval getfiles_prim(lispval dirname,lispval fullpath)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   u8_string *contents=
     u8_getfiles(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
   if (contents == NULL) return FD_ERROR;
   else while (*scan) {
-    fdtype string = fd_lispstring(*scan);
+    lispval string = fd_lispstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
   return results;
 }
 
-static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
+static lispval getdirs_prim(lispval dirname,lispval fullpath)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   u8_string *contents=
     u8_getdirs(CSTRING(dirname),(!(FALSEP(fullpath)))), *scan = contents;
   if (contents == NULL) return FD_ERROR;
   else while (*scan) {
-    fdtype string = fd_lispstring(*scan);
+    lispval string = fd_lispstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
   return results;
 }
 
-static fdtype getlinks_prim(fdtype dirname,fdtype fullpath)
+static lispval getlinks_prim(lispval dirname,lispval fullpath)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   u8_string *contents=
     u8_readdir(CSTRING(dirname),U8_LIST_LINKS,(!(FALSEP(fullpath)))), 
     *scan = contents;
   if (contents == NULL) return FD_ERROR;
   else while (*scan) {
-    fdtype string = fd_lispstring(*scan);
+    lispval string = fd_lispstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
   return results;
 }
 
-static fdtype readdir_prim(fdtype dirname,fdtype fullpath)
+static lispval readdir_prim(lispval dirname,lispval fullpath)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   u8_string *contents=
     u8_readdir(CSTRING(dirname),0,(!(FALSEP(fullpath)))), 
     *scan = contents;
   if (contents == NULL) return FD_ERROR;
   else while (*scan) {
-    fdtype string = fd_lispstring(*scan);
+    lispval string = fd_lispstring(*scan);
     CHOICE_ADD(results,string);
     scan++;}
   u8_free(contents);
@@ -1175,7 +1175,7 @@ static fdtype readdir_prim(fdtype dirname,fdtype fullpath)
 
 /* File flush function */
 
-static fdtype close_prim(fdtype portarg)
+static lispval close_prim(lispval portarg)
 {
   if (FD_TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
@@ -1205,7 +1205,7 @@ static fdtype close_prim(fdtype portarg)
   else return fd_type_error("port","close_prim",portarg);
 }
 
-static fdtype flush_prim(fdtype portarg)
+static lispval flush_prim(lispval portarg)
 {
   if ((VOIDP(portarg))||
       (FALSEP(portarg))||
@@ -1228,7 +1228,7 @@ static fdtype flush_prim(fdtype portarg)
   else return fd_type_error(_("port or stream"),"flush_prim",portarg);
 }
 
-static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
+static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
 {
   if (FD_TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
@@ -1251,7 +1251,7 @@ static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
   else return fd_type_error("port/stream","setbuf_prim",portarg);
 }
 
-static fdtype getpos_prim(fdtype portarg)
+static lispval getpos_prim(lispval portarg)
 {
   if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -1276,7 +1276,7 @@ static fdtype getpos_prim(fdtype portarg)
   else return fd_type_error("port or stream","getpos_prim",portarg);
 }
 
-static fdtype endpos_prim(fdtype portarg)
+static lispval endpos_prim(lispval portarg)
 {
   if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -1301,7 +1301,7 @@ static fdtype endpos_prim(fdtype portarg)
   else return fd_type_error("port or stream","endpos_prim",portarg);
 }
 
-static fdtype file_progress_prim(fdtype portarg)
+static lispval file_progress_prim(lispval portarg)
 {
   double result = -1.0;
   struct FD_PORT *p=
@@ -1316,7 +1316,7 @@ static fdtype file_progress_prim(fdtype portarg)
   else return fd_init_double(NULL,result);
 }
 
-static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
+static lispval setpos_prim(lispval portarg,lispval off_arg)
 {
   if (FD_PORTP(portarg)) {
     fd_off_t off, result;
@@ -1361,9 +1361,9 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
 /* File system info */
 
 #if (((HAVE_SYS_STATFS_H)||(HAVE_SYS_VSTAT_H))&&(HAVE_STATFS))
-static void statfs_set(fdtype,u8_string,long long int,long long int);
+static void statfs_set(lispval,u8_string,long long int,long long int);
 
-static fdtype fsinfo_prim(fdtype arg)
+static lispval fsinfo_prim(lispval arg)
 {
   u8_string path = CSTRING(arg); struct statfs info;
   char *usepath; int retval;
@@ -1380,7 +1380,7 @@ static fdtype fsinfo_prim(fdtype arg)
     u8_graberr(-1,"fsinfo_prim",u8_strdup(path));
     return FD_ERROR;}
   else {
-    fdtype result = fd_init_slotmap(NULL,0,NULL);
+    lispval result = fd_init_slotmap(NULL,0,NULL);
     statfs_set(result,"BLOCKSIZE",info.f_bsize,1);
     statfs_set(result,"TOTAL-BLOCKS",info.f_blocks,1);
     statfs_set(result,"FREE-BLOCKS",info.f_bfree,1);
@@ -1395,21 +1395,21 @@ static fdtype fsinfo_prim(fdtype arg)
     statfs_set(result,"NAMELEN",info.f_namelen,1);
     return result;}
 }
-static void statfs_set(fdtype r,u8_string name,
+static void statfs_set(lispval r,u8_string name,
                        long long int val,long long int mul)
 {
-  fdtype slotid = fd_intern(name);
-  fdtype lval = FD_INT2DTYPE(val);
+  lispval slotid = fd_intern(name);
+  lispval lval = FD_INT2DTYPE(val);
   if (mul!=1) {
-    fdtype mulval = FD_INT2DTYPE(mul);
-    fdtype rval = fd_multiply(lval,mulval);
+    lispval mulval = FD_INT2DTYPE(mul);
+    lispval rval = fd_multiply(lval,mulval);
     fd_decref(mulval); fd_decref(lval);
     lval = rval;}
   fd_store(r,slotid,lval);
   fd_decref(lval);
 }
 #else
-static fdtype fsinfo_prim(fdtype arg)
+static lispval fsinfo_prim(lispval arg)
 {
   return fd_err("statfs unavailable","fsinfo_prim",NULL,VOID);
 }
@@ -1422,7 +1422,7 @@ static fdtype fsinfo_prim(fdtype arg)
 
 static fd_exception SnapshotTrouble=_("SNAPSHOT");
 
-static fdtype snapshotvars, snapshotconfig, snapshotfile, configinfo;
+static lispval snapshotvars, snapshotconfig, snapshotfile, configinfo;
 
 FD_EXPORT
 /* fd_snapshot:
@@ -1432,19 +1432,19 @@ FD_EXPORT
 */
 int fd_snapshot(fd_lexenv env,u8_string filename)
 {
-  fdtype vars = fd_symeval(snapshotvars,env);
-  fdtype configvars = fd_symeval(snapshotconfig,env);
+  lispval vars = fd_symeval(snapshotvars,env);
+  lispval configvars = fd_symeval(snapshotconfig,env);
   if ((EMPTYP(vars)) && (EMPTYP(configvars))) {
     u8_message("No snapshot information to save");
     return VOID;}
   else {
     struct FD_STREAM *out; int bytes;
-    fdtype slotmap = (fdtype)fd_empty_slotmap();
+    lispval slotmap = (lispval)fd_empty_slotmap();
     if (VOIDP(vars)) vars = EMPTY;
     if (VOIDP(configvars)) configvars = EMPTY;
     {DO_CHOICES(sym,vars)
        if (SYMBOLP(sym)) {
-         fdtype val = fd_symeval(sym,env);
+         lispval val = fd_symeval(sym,env);
          if (VOIDP(val))
            u8_log(LOG_WARN,SnapshotTrouble,
                   "The snapshot variable %q is unbound",sym);
@@ -1455,8 +1455,8 @@ int fd_snapshot(fd_lexenv env,u8_string filename)
          return fd_type_error("symbol","fd_snapshot",sym);}}
     {DO_CHOICES(sym,configvars)
        if (SYMBOLP(sym)) {
-         fdtype val = fd_config_get(SYM_NAME(sym));
-         fdtype config_entry = fd_conspair(sym,val);
+         lispval val = fd_config_get(SYM_NAME(sym));
+         lispval config_entry = fd_conspair(sym,val);
          if (VOIDP(val))
            u8_log(LOG_WARN,SnapshotTrouble,
                   "The snapshot config %q is not set",sym);
@@ -1487,7 +1487,7 @@ FD_EXPORT
 int fd_snapback(fd_lexenv env,u8_string filename)
 {
   struct FD_STREAM *in;
-  fdtype slotmap; int actions = 0;
+  lispval slotmap; int actions = 0;
   in = fd_open_file(filename,FD_FILE_READ);
   if (in == NULL) return -1;
   else slotmap = fd_read_dtype(fd_readbuf(in));
@@ -1495,9 +1495,9 @@ int fd_snapback(fd_lexenv env,u8_string filename)
     fd_close_stream(in,FD_STREAM_CLOSE_FULL);
     return slotmap;}
   else if (SLOTMAPP(slotmap)) {
-    fdtype keys = fd_getkeys(slotmap);
+    lispval keys = fd_getkeys(slotmap);
     DO_CHOICES(key,keys) {
-      fdtype v = fd_get(slotmap,key,VOID);
+      lispval v = fd_get(slotmap,key,VOID);
       if (FD_EQ(key,configinfo)) {
         DO_CHOICES(config_entry,v)
           if ((PAIRP(config_entry)) &&
@@ -1530,12 +1530,12 @@ int fd_snapback(fd_lexenv env,u8_string filename)
   return actions;
 }
 
-static fdtype snapshot_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval snapshot_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_lexenv save_env; u8_string save_file; int retval = 0;
-  fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
+  lispval arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
   if (VOIDP(arg1)) {
-    fdtype saveto = fd_symeval(snapshotfile,env);
+    lispval saveto = fd_symeval(snapshotfile,env);
     save_env = env;
     if (STRINGP(saveto))
       save_file = u8_strdup(CSTRING(saveto));
@@ -1551,7 +1551,7 @@ static fdtype snapshot_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       save_env = (fd_lexenv)arg2;
     else save_env = env;}
   else {
-    fdtype err = fd_type_error("filename","snapshot_prim",arg1);
+    lispval err = fd_type_error("filename","snapshot_prim",arg1);
     fd_decref(arg1); fd_decref(arg2);
     return err;}
   retval = fd_snapshot(save_env,save_file);
@@ -1560,12 +1560,12 @@ static fdtype snapshot_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return FD_INT(retval);
 }
 
-static fdtype snapback_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval snapback_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_lexenv save_env; u8_string save_file; int retval = 0;
-  fdtype arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
+  lispval arg1 = fd_eval(fd_get_arg(expr,1),env), arg2 = fd_eval(fd_get_arg(expr,2),env);
   if (VOIDP(arg1)) {
-    fdtype saveto = fd_symeval(snapshotfile,env);
+    lispval saveto = fd_symeval(snapshotfile,env);
     save_env = env;
     if (STRINGP(saveto))
       save_file = u8_strdup(CSTRING(saveto));
@@ -1581,7 +1581,7 @@ static fdtype snapback_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       save_env = (fd_lexenv)arg2;
     else save_env = env;}
   else {
-    fdtype err = fd_type_error("filename","snapshot_prim",arg1);
+    lispval err = fd_type_error("filename","snapshot_prim",arg1);
     fd_decref(arg1); fd_decref(arg2);
     return err;}
   retval = fd_snapback(save_env,save_file);
@@ -1628,13 +1628,13 @@ FD_EXPORT void stackdump_dump(u8_string dump)
   u8_unlock_mutex(&stackdump_lock);
 }
 
-static fdtype stackdump_config_get(fdtype var,void *ignored)
+static lispval stackdump_config_get(lispval var,void *ignored)
 {
   if (stackdump_filename)
-    return fdtype_string(stackdump_filename);
+    return lispval_string(stackdump_filename);
   else return FD_FALSE;
 }
-static int stackdump_config_set(fdtype var,fdtype val,void *ignored)
+static int stackdump_config_set(lispval var,lispval val,void *ignored)
 {
   if ((STRINGP(val)) || (FALSEP(val)) || (FD_TRUEP(val))) {
     u8_string filename = ((STRINGP(val)) ? (CSTRING(val)) :
@@ -1669,7 +1669,7 @@ FD_EXPORT void fd_init_loader_c(void);
 
 FD_EXPORT void fd_init_fileio_c()
 {
-  fdtype fileio_module;
+  lispval fileio_module;
   if (scheme_fileio_initialized) return;
   scheme_fileio_initialized = 1;
   fd_init_scheme();

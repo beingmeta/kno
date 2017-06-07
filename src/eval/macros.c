@@ -19,11 +19,11 @@
 
 #include <libu8/u8printf.h>
 
-static fdtype lambda_symbol;
+static lispval lambda_symbol;
 
 /* Macros */
 
-FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
+FD_EXPORT lispval fd_make_macro(u8_string name,lispval xformer)
 {
   int xftype = FD_PRIM_TYPE(xformer);
   if ((xftype<FD_TYPE_MAX) && (fd_applyfns[xftype])) {
@@ -31,21 +31,21 @@ FD_EXPORT fdtype fd_make_macro(u8_string name,fdtype xformer)
     FD_INIT_CONS(s,fd_macro_type);
     s->fd_macro_name = ((name) ? (u8_strdup(name)) : (NULL));
     s->macro_transformer = fd_incref(xformer);
-    return FDTYPE_CONS(s);}
+    return LISP_CONS(s);}
   else return fd_err(fd_InvalidMacro,NULL,name,xformer);
 }
 
-static fdtype macro_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval macro_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   if ((PAIRP(expr)) && (PAIRP(FD_CDR(expr))) &&
       (SYMBOLP(FD_CADR(expr))) &&
       (PAIRP(FD_CDR(FD_CDR(expr))))) {
-    fdtype name = FD_CADR(expr), body = FD_CDR(FD_CDR(expr));
-    fdtype lambda_form=
+    lispval name = FD_CADR(expr), body = FD_CDR(FD_CDR(expr));
+    lispval lambda_form=
       fd_conspair(lambda_symbol,
                   fd_conspair(fd_make_list(1,name),fd_incref(body)));
-    fdtype transformer = fd_eval(lambda_form,env);
-    fdtype macro = fd_make_macro(SYM_NAME(name),transformer);
+    lispval transformer = fd_eval(lambda_form,env);
+    lispval macro = fd_make_macro(SYM_NAME(name),transformer);
     fd_decref(lambda_form); fd_decref(transformer);
     return macro;}
   else return fd_err(fd_SyntaxError,"MACRO",NULL,expr);
@@ -59,7 +59,7 @@ FD_EXPORT void recycle_macro(struct FD_RAW_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(mproc);
 }
 
-static int unparse_macro(u8_output out,fdtype x)
+static int unparse_macro(u8_output out,lispval x)
 {
   struct FD_MACRO *mproc = fd_consptr(struct FD_MACRO *,x,fd_macro_type);
   if (mproc->fd_macro_name)
@@ -69,7 +69,7 @@ static int unparse_macro(u8_output out,fdtype x)
   return 1;
 }
 
-static int walk_macro(fd_walker walker,fdtype obj,void *walkdata,
+static int walk_macro(fd_walker walker,lispval obj,void *walkdata,
                       fd_walk_flags flags,int depth)
 {
   struct FD_MACRO *mproc = fd_consptr(struct FD_MACRO *,obj,fd_macro_type);

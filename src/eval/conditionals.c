@@ -16,13 +16,13 @@
 #include "framerd/eval.h"
 #include "eval_internals.h"
 
-static fdtype else_symbol;
+static lispval else_symbol;
 
-static fdtype if_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval if_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), test_result;
-  fdtype consequent_expr = fd_get_arg(expr,2);
-  fdtype else_expr = fd_get_arg(expr,3);
+  lispval test_expr = fd_get_arg(expr,1), test_result;
+  lispval consequent_expr = fd_get_arg(expr,2);
+  lispval else_expr = fd_get_arg(expr,3);
   if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
     return fd_err(fd_TooFewExpressions,"IF",NULL,expr);
   test_result = fd_eval(test_expr,env);
@@ -38,17 +38,17 @@ static fdtype if_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     else return fd_eval(consequent_expr,env);}
 }
 
-static fdtype ifelse_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval ifelse_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), test_result;
-  fdtype consequent_expr = fd_get_arg(expr,2);
+  lispval test_expr = fd_get_arg(expr,1), test_result;
+  lispval consequent_expr = fd_get_arg(expr,2);
   if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
     return fd_err(fd_TooFewExpressions,"IFELSE",NULL,expr);
   test_result = fd_eval(test_expr,env);
   if (FD_ABORTED(test_result)) return test_result;
   else if (FALSEP(test_result)) {
-    fdtype val = VOID;
-    fdtype alt_body = fd_get_body(expr,3);
+    lispval val = VOID;
+    lispval alt_body = fd_get_body(expr,3);
     FD_DOLIST(alt,alt_body) {
       fd_decref(val); val = fd_eval(alt,env);}
     return val;}
@@ -59,10 +59,10 @@ static fdtype ifelse_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     else return fd_eval(consequent_expr,env);}
 }
 
-static fdtype tryif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval tryif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), test_result;
-  fdtype first_consequent = fd_get_arg(expr,2);
+  lispval test_expr = fd_get_arg(expr,1), test_result;
+  lispval first_consequent = fd_get_arg(expr,2);
   if ((VOIDP(test_expr)) || (VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result = fd_eval(test_expr,env);
@@ -71,8 +71,8 @@ static fdtype tryif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else if ((FALSEP(test_result))||(EMPTYP(test_result)))
     return EMPTY;
   else {
-    fdtype value = VOID; fd_decref(test_result);
-    {fdtype try_clauses = fd_get_body(expr,2);
+    lispval value = VOID; fd_decref(test_result);
+    {lispval try_clauses = fd_get_body(expr,2);
       FD_DOLIST(clause,try_clauses) {
         fd_decref(value); value = fd_eval(clause,env);
         if (FD_ABORTED(value))
@@ -85,17 +85,17 @@ static fdtype tryif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return value;}
 }
 
-static fdtype not_prim(fdtype arg)
+static lispval not_prim(lispval arg)
 {
   if (FALSEP(arg)) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype apply_marker;
+static lispval apply_marker;
 
-static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval cond_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   FD_DOLIST(clause,FD_CDR(expr)) {
-    fdtype test_val;
+    lispval test_val;
     if (!(PAIRP(clause)))
       return fd_err(fd_SyntaxError,_("invalid cond clause"),NULL,expr);
     else if (FD_EQ(FD_CAR(clause),else_symbol))
@@ -104,17 +104,17 @@ static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     if (FD_ABORTED(test_val)) return test_val;
     else if (FALSEP(test_val)) {}
     else {
-      fdtype applyp = ((PAIRP(FD_CDR(clause))) &&
+      lispval applyp = ((PAIRP(FD_CDR(clause))) &&
                       (FD_EQ(FD_CAR(FD_CDR(clause)),apply_marker)));
       if (applyp)
         if (PAIRP(FD_CDR(FD_CDR(clause)))) {
-          fdtype fnexpr = FD_CAR(FD_CDR(FD_CDR(clause)));
-          fdtype fn = fd_eval(fnexpr,env);
+          lispval fnexpr = FD_CAR(FD_CDR(FD_CDR(clause)));
+          lispval fn = fd_eval(fnexpr,env);
           if (FD_ABORTED(fn)) {
             fd_decref(test_val);
             return fn;}
           else if (FD_APPLICABLEP(fn)) {
-            fdtype retval = fd_apply(fn,1,&test_val);
+            lispval retval = fd_apply(fn,1,&test_val);
             fd_decref(test_val); fd_decref(fn);
             return retval;}
           else {
@@ -127,9 +127,9 @@ static fdtype cond_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval case_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype key_expr = fd_get_arg(expr,1), keyval;
+  lispval key_expr = fd_get_arg(expr,1), keyval;
   if (VOIDP(key_expr))
     return fd_err(fd_SyntaxError,"case_evalfn",NULL,expr);
   else keyval = fd_eval(key_expr,env);
@@ -138,7 +138,7 @@ static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     FD_DOLIST(clause,FD_CDR(FD_CDR(expr)))
       if (PAIRP(clause))
         if (PAIRP(FD_CAR(clause))) {
-          fdtype keys = FD_CAR(clause);
+          lispval keys = FD_CAR(clause);
           FD_DOLIST(key,keys)
             if (FD_EQ(keyval,key))
               return eval_body("CASE",NULL,clause,1,env,_stack);}
@@ -150,9 +150,9 @@ static fdtype case_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return VOID;}
 }
 
-static fdtype when_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval when_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), test_val;
+  lispval test_expr = fd_get_arg(expr,1), test_val;
   if (VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHEN",NULL,expr);
   else test_val = fd_eval(test_expr,env);
@@ -160,21 +160,21 @@ static fdtype when_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else if (FALSEP(test_val)) return VOID;
   else if (EMPTYP(test_val)) return VOID;
   else {
-    fdtype result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
+    lispval result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
     fd_decref(test_val);
     FD_VOID_RESULT(result);
     return result;}
 }
 
-static fdtype unless_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval unless_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), test_val;
+  lispval test_expr = fd_get_arg(expr,1), test_val;
   if (VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHEN",NULL,expr);
   else test_val = fd_eval(test_expr,env);
   if (FD_ABORTED(test_val)) return test_val;
   else if (FALSEP(test_val)) {
-    fdtype result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
+    lispval result = fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
     FD_VOID_RESULT(result);
     return result;}
   else if (EMPTYP(test_val))
@@ -184,9 +184,9 @@ static fdtype unless_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return VOID;}
 }
 
-static fdtype and_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval and_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype value = FD_TRUE;
+  lispval value = FD_TRUE;
   FD_DOLIST(clause,FD_CDR(expr)) {
     fd_decref(value);
     value = fd_eval(clause,env);
@@ -195,9 +195,9 @@ static fdtype and_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return value;
 }
 
-static fdtype or_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval or_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype value = FD_FALSE;
+  lispval value = FD_FALSE;
   FD_DOLIST(clause,FD_CDR(expr)) {
     fd_decref(value);
     value = fd_eval(clause,env);

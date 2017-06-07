@@ -43,13 +43,13 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
   else return (fd_pool)mp;
 }
 
-static fdtype mempool_alloc(fd_pool p,int n)
+static lispval mempool_alloc(fd_pool p,int n)
 {
   struct FD_MEMPOOL *mp = (fd_mempool)p;
   if ((mp->pool_load+n)>=mp->pool_capacity)
     return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,VOID);
   else {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     int i = 0;
     u8_lock_mutex(&(mp->pool_lock));
     if ((mp->pool_load+n)>=mp->pool_capacity) {
@@ -66,7 +66,7 @@ static fdtype mempool_alloc(fd_pool p,int n)
       return fd_simplify_choice(results);}}
 }
 
-static fdtype mempool_fetch(fd_pool p,fdtype oid)
+static lispval mempool_fetch(fd_pool p,lispval oid)
 {
   struct FD_MEMPOOL *mp = (fd_mempool)p;
   struct FD_HASHTABLE *cache = &(p->pool_cache);
@@ -78,11 +78,11 @@ static fdtype mempool_fetch(fd_pool p,fdtype oid)
   else return fd_hashtable_get(cache,oid,EMPTY);
 }
 
-static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *mempool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_HASHTABLE *cache = &(p->pool_cache);
   struct FD_MEMPOOL *mp = (fd_mempool)p;
-  fdtype *results;
+  lispval *results;
   int i = 0; while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
     int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
@@ -92,7 +92,7 @@ static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
 		fd_make_oid(addr));
       return NULL;}
     else i++;}
-  results = u8_alloc_n(n,fdtype);
+  results = u8_alloc_n(n,lispval);
   i = 0; while (i<n) {
     results[i]=fd_hashtable_get(cache,oids[i],EMPTY);
     i++;}
@@ -105,12 +105,12 @@ static int mempool_load(fd_pool p)
   return mp->pool_load;
 }
 
-static int mempool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+static int mempool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   return 1;
 }
 
-static int mempool_swapout(fd_pool p,fdtype oidvals)
+static int mempool_swapout(fd_pool p,lispval oidvals)
 {
   struct FD_MEMPOOL *mp = (fd_mempool)p;
   if (mp->noswap) return 0;
@@ -118,7 +118,7 @@ static int mempool_swapout(fd_pool p,fdtype oidvals)
     fd_reset_hashtable(&(p->pool_changes),fd_pool_lock_init,1);
     return 1;}
   else {
-    fdtype oids = fd_make_simple_choice(oidvals);
+    lispval oids = fd_make_simple_choice(oidvals);
     if (EMPTYP(oids)) {}
     else if (OIDP(oids)) {
       fd_hashtable_op(&(p->pool_changes),fd_table_replace,oids,VOID);}

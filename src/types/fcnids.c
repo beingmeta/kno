@@ -35,12 +35,12 @@ u8_mutex _fd_fcnid_lock;
 
 int _fd_leak_fcnids = 0;
 
-FD_EXPORT fdtype fd_resolve_fcnid(fdtype x)
+FD_EXPORT lispval fd_resolve_fcnid(lispval x)
 {
   return fd_fcnid_ref(x);
 }
 
-FD_EXPORT fdtype fd_register_fcnid(fdtype x)
+FD_EXPORT lispval fd_register_fcnid(lispval x)
 {
   int serialno;
   if (!(CONSP(x)))
@@ -61,11 +61,11 @@ FD_EXPORT fdtype fd_register_fcnid(fdtype x)
   u8_unlock_mutex(&_fd_fcnid_lock);
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f = (fd_function)x;
-    f->fcnid = FDTYPE_IMMEDIATE(fd_fcnid_type,serialno);}
-  return FDTYPE_IMMEDIATE(fd_fcnid_type,serialno);
+    f->fcnid = LISPVAL_IMMEDIATE(fd_fcnid_type,serialno);}
+  return LISPVAL_IMMEDIATE(fd_fcnid_type,serialno);
 }
 
-FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
+FD_EXPORT lispval fd_set_fcnid(lispval id,lispval value)
 {
   if (!(FD_FCNIDP(id)))
     return fd_type_error("fcnid","fd_set_fcnid",id);
@@ -100,12 +100,12 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
           /* This is dangerous if, for example, a module is being reloaded
              (and fcnid's redefined) while another thread is using the old 
              value. If this bothers you, set fd_leak_fcnids to 1. */
-          if (current) {fd_decref((fdtype)current);}}
+          if (current) {fd_decref((lispval)current);}}
         u8_unlock_mutex(&_fd_fcnid_lock);
         return id;}}}
 }
 
-FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
+FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
 {
   if (!(FD_FCNIDP(id))) {
     fd_seterr(fd_TypeError,"fd_degister_fcnid",u8_strdup("fcnid"),id);
@@ -140,9 +140,9 @@ FD_EXPORT int fd_deregister_fcnid(fdtype id,fdtype value)
         return 1;}}}
 }
 
-static int unparse_fcnid(u8_output out,fdtype x)
+static int unparse_fcnid(u8_output out,lispval x)
 {
-  fdtype lp = fd_fcnid_ref(x);
+  lispval lp = fd_fcnid_ref(x);
   if (FD_TYPEP(lp,fd_cprim_type)) {
     struct FD_FUNCTION *fcn = (fd_function)lp;
     u8_string name = fcn->fcn_name;

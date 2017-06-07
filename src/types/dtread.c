@@ -27,7 +27,7 @@ static u8_mutex dtype_unpacker_lock;
 fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
 fd_exception fd_DTypeError=_("Malformed DTYPE representation");
 
-static fdtype error_symbol;
+static lispval error_symbol;
 
 #define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
@@ -106,19 +106,19 @@ FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in)
 #define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
-static fdtype restore_dtype_exception(fdtype content);
-FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
-FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
-static fdtype read_packaged_dtype(int,struct FD_INBUF *);
+static lispval restore_dtype_exception(lispval content);
+FD_EXPORT lispval fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
+FD_EXPORT lispval fd_make_mystery_vector(int,int,unsigned int,lispval *);
+static lispval read_packaged_dtype(int,struct FD_INBUF *);
 
-static fdtype *read_dtypes(int n,struct FD_INBUF *in,
-                           fdtype *why_not,fdtype *into)
+static lispval *read_dtypes(int n,struct FD_INBUF *in,
+                           lispval *why_not,lispval *into)
 {
   if (n==0) return NULL;
   else {
-    fdtype *vec = ((into)?(into):(u8_alloc_n(n,fdtype)));
+    lispval *vec = ((into)?(into):(u8_alloc_n(n,lispval)));
     int i = 0; while (i < n) {
-      fdtype v = fd_read_dtype(in);
+      lispval v = fd_read_dtype(in);
       if (FD_COOLP(v)) vec[i++]=v;
       else {
         int j = 0; while (j<i) {fd_decref(vec[j]); j++;}
@@ -127,13 +127,13 @@ static fdtype *read_dtypes(int n,struct FD_INBUF *in,
     return vec;}
 }
 
-static fdtype unexpected_eod()
+static lispval unexpected_eod()
 {
   fd_seterr1(fd_UnexpectedEOD);
   return FD_ERROR;
 }
 
-FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
+FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
 {
   if (PRED_FALSE(FD_ISWRITING(in)))
     return fdt_iswritebuf(in);
@@ -179,24 +179,24 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
         FD_SET_OID_LO(addr,loval);
         return fd_make_oid(addr);}}
     case dt_error: {
-      fdtype content = fd_read_dtype(in);
+      lispval content = fd_read_dtype(in);
       if (FD_ABORTP(content))
         return content;
       else return fd_init_compound(NULL,error_symbol,0,1,content);}
     case dt_exception: {
-      fdtype content = fd_read_dtype(in);
+      lispval content = fd_read_dtype(in);
       if (FD_ABORTP(content))
         return content;
       else return restore_dtype_exception(content);}
     case dt_pair: {
-      fdtype head = NIL, *tail = &head;
+      lispval head = NIL, *tail = &head;
       while (1) {
-        fdtype car = fd_read_dtype(in);
+        lispval car = fd_read_dtype(in);
         if (FD_ABORTP(car)) {
           fd_decref(head);
           return car;}
         else {
-          fdtype new_pair=
+          lispval new_pair=
             fd_init_pair(u8_alloc(struct FD_PAIR),
                          car,NIL);
           int dtcode = fd_read_byte(in);
@@ -206,7 +206,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
           *tail = new_pair;
           tail = &(FD_CDR(new_pair));
           if (dtcode != dt_pair) {
-            fdtype cdr;
+            lispval cdr;
             if (fd_unread_byte(in,dtcode)<0) {
               fd_decref(head);
               return FD_ERROR;}
@@ -217,7 +217,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
             *tail = cdr;
             return head;}}}}
     case dt_compound: case dt_rational: case dt_complex: {
-      fdtype car = fd_read_dtype(in), cdr;
+      lispval car = fd_read_dtype(in), cdr;
       if (FD_TROUBLEP(car))
         return car;
       else cdr = fd_read_dtype(in);
@@ -228,14 +228,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
       case dt_compound: {
         struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(car);
         if ((e) && (e->fd_compound_restorefn)) {
-          fdtype result = e->fd_compound_restorefn(car,cdr,e);
+          lispval result = e->fd_compound_restorefn(car,cdr,e);
           fd_decref(cdr);
           return result;}
         else if ((VECTORP(cdr)) &&
                  (VEC_LEN(cdr)<32767)) {
           struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
           short n_elts = (short)(vec->fdvec_length);
-          fdtype result=
+          lispval result=
             fd_init_compound_from_elts(NULL,car,0,n_elts,vec->fdvec_elts);
           /* Note that the incref'd values are now stored in the compound,
              so we don't decref them ourselves. */
@@ -254,7 +254,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
       else if (nobytes(in,len))
         return unexpected_eod();
       else {
-        fdtype result = VOID;
+        lispval result = VOID;
         switch (code) {
         case dt_string:
           result = fd_make_string(NULL,len,in->bufread); break;
@@ -280,7 +280,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
       else if (nobytes(in,len))
         return unexpected_eod();
       else {
-        fdtype result = fd_make_string(NULL,len,in->bufread);
+        lispval result = fd_make_string(NULL,len,in->bufread);
         in->bufread += len;
         return result;}
     case dt_symbol: case dt_zstring:
@@ -299,9 +299,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
       else if (PRED_FALSE(len == 0))
         return fd_init_vector(NULL,0,NULL);
       else {
-        fdtype why_not = FD_EOD, result = fd_init_vector(NULL,len,NULL);
-        fdtype *elts = FD_VECTOR_ELTS(result);
-        fdtype *data = read_dtypes(len,in,&why_not,elts);
+        lispval why_not = FD_EOD, result = fd_init_vector(NULL,len,NULL);
+        lispval *elts = FD_VECTOR_ELTS(result);
+        lispval *data = read_dtypes(len,in,&why_not,elts);
         if (PRED_TRUE((data!=NULL)))
           return result;
         else return FD_ERROR;}
@@ -311,10 +311,10 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
         return unexpected_eod();
       else {
         struct FD_CHOICE *ch = fd_alloc_choice(len);
-        fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch);
-        fdtype *limit = write+len;
+        lispval *write = (lispval *)FD_XCHOICE_DATA(ch);
+        lispval *limit = write+len;
         while (write<limit) {
-          fdtype v = fd_read_dtype(in);
+          lispval v = fd_read_dtype(in);
           if (FD_ABORTP(v)) {
             u8_free(ch);
             return v;}
@@ -343,16 +343,16 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
           if (len==0)
             return EMPTY;
           else {
-            fdtype result;
+            lispval result;
             struct FD_CHOICE *ch = fd_alloc_choice(len);
-            fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch);
-            fdtype *limit = write+len;
+            lispval *write = (lispval *)FD_XCHOICE_DATA(ch);
+            lispval *limit = write+len;
             while (write<limit) {
-              fdtype v=fd_read_dtype(in);
+              lispval v=fd_read_dtype(in);
               if (FD_ABORTP(v)) {
-                fdtype *scan=(fdtype *)FD_XCHOICE_DATA(ch);
+                lispval *scan=(lispval *)FD_XCHOICE_DATA(ch);
                 while (scan<write) {
-                  fdtype v=*scan++; fd_decref(v);}
+                  lispval v=*scan++; fd_decref(v);}
                 u8_free(ch);
                 return v;}
               else *write++=v;}
@@ -370,7 +370,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
             struct FD_KEYVAL *keyvals = u8_alloc_n(n_slots,struct FD_KEYVAL);
             struct FD_KEYVAL *write = keyvals, *limit = keyvals+n_slots;
             while (write<limit) {
-              fdtype key = fd_read_dtype(in), value;
+              lispval key = fd_read_dtype(in), value;
               if (FD_ABORTP(key)) value=key;
               else value = fd_read_dtype(in);
               if (FD_ABORTP(value)) {
@@ -392,10 +392,10 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
             return fd_init_hashtable(NULL,0,NULL);
           else {
             int n_keys = len/2, n_read = 0;
-            fdtype result = fd_init_hashtable(NULL,len/2,NULL);
+            lispval result = fd_init_hashtable(NULL,len/2,NULL);
             struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *)result;
             while (n_read<n_keys) {
-              fdtype key = fd_read_dtype(in), value;
+              lispval key = fd_read_dtype(in), value;
               if (FD_ABORTP(key)) value=key;
               else value = fd_read_dtype(in);
               if (FD_ABORTP(value)) {
@@ -412,20 +412,20 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
           struct FD_HASHSET *h = u8_alloc(struct FD_HASHSET);
           fd_init_hashset(h,len,FD_MALLOCD_CONS);
           while (i<len) {
-            fdtype v = fd_read_dtype(in);
+            lispval v = fd_read_dtype(in);
             if (FD_ABORTP(v)) {
-              fd_decref((fdtype)h);
+              fd_decref((lispval)h);
               return v;}
             fd_hashset_add_raw(h,v);
             i++;}
-          return FDTYPE_CONS(h);}
+          return LISP_CONS(h);}
         default: {
-          int i = 0; fdtype *data = u8_alloc_n(len,fdtype);
+          int i = 0; lispval *data = u8_alloc_n(len,lispval);
           while (i<len) {
-            fdtype v=fd_read_dtype(in);
+            lispval v=fd_read_dtype(in);
             if (FD_ABORTP(v)) {
               int j=0; while (j<i) {
-                fdtype elt=data[i++]; fd_decref(elt);}
+                lispval elt=data[i++]; fd_decref(elt);}
               u8_free(data);
               return v;}
             else data[i++]=fd_read_dtype(in);}
@@ -488,12 +488,12 @@ FD_EXPORT int fd_register_packet_unpacker
 
 /* Reading packaged dtypes */
 
-static fdtype make_character_type(int code,int len,unsigned char *data);
+static lispval make_character_type(int code,int len,unsigned char *data);
 
-static fdtype read_packaged_dtype
+static lispval read_packaged_dtype
    (int package,struct FD_INBUF *in)
 {
-  fdtype *vector = NULL; unsigned char *packet = NULL;
+  lispval *vector = NULL; unsigned char *packet = NULL;
   long long len;
   unsigned int code, lenlen, vectorp;
   if (nobytes(in,2))
@@ -509,7 +509,7 @@ static fdtype read_packaged_dtype
   if (len<0)
     return unexpected_eod();
   else if (vectorp) {
-    fdtype why_not;
+    lispval why_not;
     vector = read_dtypes(len,in,&why_not,NULL);
     if ( (len>0) && (vector == NULL))
       return why_not;}
@@ -532,7 +532,7 @@ static fdtype read_packaged_dtype
   }
 }
 
-static fdtype make_character_type(int code,int len,unsigned char *bytes)
+static lispval make_character_type(int code,int len,unsigned char *bytes)
 {
   switch (code) {
   case dt_ascii_char: {
@@ -545,7 +545,7 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
     return FD_CODE2CHAR(c);}
   case dt_unicode_short_string: case dt_unicode_string: {
     u8_byte buf[256];
-    struct U8_OUTPUT os; unsigned char *scan, *limit; fdtype result;
+    struct U8_OUTPUT os; unsigned char *scan, *limit; lispval result;
     U8_INIT_OUTPUT_X(&os,256,buf,0);
     scan = bytes; limit = bytes+len;
     while (scan < limit) {
@@ -556,11 +556,11 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
     u8_close_output(&os);
     return result;}
   case dt_secret_packet: case dt_short_secret_packet: {
-    fdtype result = fd_make_packet(NULL,len,bytes);
+    lispval result = fd_make_packet(NULL,len,bytes);
     FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
   case dt_unicode_short_symbol: case dt_unicode_symbol: {
-    fdtype sym;
+    lispval sym;
     struct U8_OUTPUT os; unsigned char *scan, *limit;
     U8_INIT_OUTPUT(&os,len);
     scan = bytes; limit = bytes+len;
@@ -575,7 +575,7 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
   }
 }
 
-FD_EXPORT fdtype fd_make_mystery_packet
+FD_EXPORT lispval fd_make_mystery_packet
   (int package,int typecode,unsigned int len,unsigned char *bytes)
 {
   struct FD_MYSTERY_DTYPE *myst;
@@ -588,11 +588,11 @@ FD_EXPORT fdtype fd_make_mystery_packet
   FD_INIT_CONS(myst,fd_mystery_type);
   myst->myst_dtpackage = package; myst->myst_dtcode = typecode;
   myst->mystery_payload.bytes = bytes; myst->myst_dtsize = len;
-  return FDTYPE_CONS(myst);
+  return LISP_CONS(myst);
 }
 
-FD_EXPORT fdtype fd_make_mystery_vector
-  (int package,int typecode,unsigned int len,fdtype *elts)
+FD_EXPORT lispval fd_make_mystery_vector
+  (int package,int typecode,unsigned int len,lispval *elts)
 {
   struct FD_MYSTERY_DTYPE *myst;
   int pkg_offset = package-0x40;
@@ -604,16 +604,16 @@ FD_EXPORT fdtype fd_make_mystery_vector
   FD_INIT_CONS(myst,fd_mystery_type);
   myst->myst_dtpackage = package; myst->myst_dtcode = typecode;
   myst->mystery_payload.elts = elts; myst->myst_dtsize = len;
-  return FDTYPE_CONS(myst);
+  return LISP_CONS(myst);
 }
 
-static fdtype restore_dtype_exception(fdtype content)
+static lispval restore_dtype_exception(lispval content)
 {
   /* Return an exception object if possible (content as expected)
      and a compound if there are any big surprises */
   fd_exception exname=_("Poorly Restored Error");
   u8_context context = NULL; u8_string details = NULL;
-  fdtype irritant = VOID; int new_format = 0;
+  lispval irritant = VOID; int new_format = 0;
   if (FD_TROUBLEP(content)) return content;
   else if (VECTORP(content)) {
     int len = VEC_LEN(content);
@@ -626,7 +626,7 @@ static fdtype restore_dtype_exception(fdtype content)
        We handle both cases
     */
     if (len>0) {
-      fdtype elt0 = VEC_REF(content,0);
+      lispval elt0 = VEC_REF(content,0);
       if (SYMBOLP(elt0)) {
         exname = SYM_NAME(elt0); new_format = 1;}
       else if (STRINGP(elt0)) { /* Old format */
@@ -654,7 +654,7 @@ static fdtype restore_dtype_exception(fdtype content)
         if (len>3) irritant = VEC_REF(content,3);}
     else { /* Old format */
       if ((len>0) && (SYMBOLP(VEC_REF(content,0)))) {
-        fdtype sym = fd_intern(CSTRING(VEC_REF(content,0)));
+        lispval sym = fd_intern(CSTRING(VEC_REF(content,0)));
         exname = (u8_condition)SYM_NAME(sym);}
       else if ((len>0) && (STRINGP(VEC_REF(content,0)))) {
         exname = (u8_condition)SYM_NAME(VEC_REF(content,0));}
@@ -668,52 +668,52 @@ static fdtype restore_dtype_exception(fdtype content)
 
 /* Arith stubs */
 
-static fdtype default_make_rational(fdtype car,fdtype cdr)
+static lispval default_make_rational(lispval car,lispval cdr)
 {
   struct FD_PAIR *p = u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_rational_type);
   p->car = car; p->cdr = cdr;
-  return FDTYPE_CONS(p);
+  return LISP_CONS(p);
 }
 
 static void default_unpack_rational
-  (fdtype x,fdtype *car,fdtype *cdr)
+  (lispval x,lispval *car,lispval *cdr)
 {
   struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,x,fd_rational_type);
   *car = p->car; *cdr = p->cdr;
 }
 
-static fdtype default_make_complex(fdtype car,fdtype cdr)
+static lispval default_make_complex(lispval car,lispval cdr)
 {
   struct FD_PAIR *p = u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_complex_type);
   p->car = car;
   p->cdr = cdr;
-  return FDTYPE_CONS(p);
+  return LISP_CONS(p);
 }
 
 static void default_unpack_complex
-  (fdtype x,fdtype *car,fdtype *cdr)
+  (lispval x,lispval *car,lispval *cdr)
 {
   struct FD_PAIR *p = fd_consptr(struct FD_PAIR *,x,fd_complex_type);
   *car = p->car;
   *cdr = p->cdr;
 }
 
-static fdtype default_make_double(double d)
+static lispval default_make_double(double d)
 {
   struct FD_FLONUM *ds = u8_alloc(struct FD_FLONUM);
   FD_INIT_CONS(ds,fd_flonum_type);
   ds->floval = d;
-  return FDTYPE_CONS(ds);
+  return LISP_CONS(ds);
 }
 
-fdtype(*_fd_make_rational)(fdtype car,fdtype cdr) = default_make_rational;
+lispval(*_fd_make_rational)(lispval car,lispval cdr) = default_make_rational;
 void
-  (*_fd_unpack_rational)(fdtype,fdtype *,fdtype *) = default_unpack_rational;
-fdtype (*_fd_make_complex)(fdtype car,fdtype cdr) = default_make_complex;
-void (*_fd_unpack_complex)(fdtype,fdtype *,fdtype *) = default_unpack_complex;
-fdtype (*_fd_make_double)(double) = default_make_double;
+  (*_fd_unpack_rational)(lispval,lispval *,lispval *) = default_unpack_rational;
+lispval (*_fd_make_complex)(lispval car,lispval cdr) = default_make_complex;
+void (*_fd_unpack_complex)(lispval,lispval *,lispval *) = default_unpack_complex;
+lispval (*_fd_make_double)(double) = default_make_double;
 
 /* Reading and writing compressed dtypes */
 
@@ -760,9 +760,9 @@ static unsigned char *do_uncompress
 }
 
 /* This reads a non frame value with compression. */
-FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
+FD_EXPORT lispval fd_zread_dtype(struct FD_INBUF *in)
 {
-  fdtype result;
+  lispval result;
   ssize_t n_bytes = fd_read_zint(in), dbytes;
   unsigned char *bytes = u8_malloc(n_bytes);
   int retval = fd_read_bytes(bytes,in,n_bytes);

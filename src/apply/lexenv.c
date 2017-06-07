@@ -31,7 +31,7 @@
 
 #include <stdarg.h>
 
-static fdtype moduleid_symbol;
+static lispval moduleid_symbol;
 
 static fd_lexenv copy_lexenv(fd_lexenv env);
 
@@ -57,24 +57,24 @@ static fd_lexenv copy_lexenv(fd_lexenv env)
 {
   fd_lexenv dynamic = (env->env_copy) ? (env->env_copy) :
     (dynamic_lexenv(env));
-  return (fd_lexenv) fd_incref((fdtype)dynamic);
+  return (fd_lexenv) fd_incref((lispval)dynamic);
 }
 
-static fdtype lisp_copy_lexenv(fdtype env,int deep)
+static lispval lisp_copy_lexenv(lispval env,int deep)
 {
-  return (fdtype) copy_lexenv((fd_lexenv)env);
+  return (lispval) copy_lexenv((fd_lexenv)env);
 }
 
 FD_EXPORT fd_lexenv fd_copy_env(fd_lexenv env)
 {
   if (env == NULL) return env;
   else if (env->env_copy) {
-    fdtype existing = (fdtype)env->env_copy;
+    lispval existing = (lispval)env->env_copy;
     fd_incref(existing);
     return env->env_copy;}
   else {
     fd_lexenv fresh = dynamic_lexenv(env);
-    fdtype ref = (fdtype)fresh;
+    lispval ref = (lispval)fresh;
     fd_incref(ref);
     return fresh;}
 }
@@ -83,7 +83,7 @@ static void recycle_lexenv(struct FD_RAW_CONS *envp)
 {
   struct FD_LEXENV *env = (struct FD_LEXENV *)envp;
   fd_decref(env->env_bindings); fd_decref(env->env_exports);
-  if (env->env_parent) fd_decref((fdtype)(env->env_parent));
+  if (env->env_parent) fd_decref((lispval)(env->env_parent));
   if (!(FD_STATIC_CONSP(envp))) {
     memset(env,0,sizeof(struct FD_LEXENV));
     u8_free(envp);}
@@ -98,7 +98,7 @@ struct ENVCOUNT_STATE {
   fd_lexenv env;
   int count;};
 
-static int envcountproc(fdtype v,void *data)
+static int envcountproc(lispval v,void *data)
 {
   struct ENVCOUNT_STATE *state = (struct ENVCOUNT_STATE *)data;
   fd_lexenv env = state->env;
@@ -115,7 +115,7 @@ static int envcountproc(fdtype v,void *data)
   else return 1;
 }
 
-static int count_envrefs(fdtype root,fd_lexenv env,int depth)
+static int count_envrefs(lispval root,fd_lexenv env,int depth)
 {
   struct ENVCOUNT_STATE state={env,0};
   fd_walk(envcountproc,root,&state,FD_WALK_CONSES,depth);
@@ -138,18 +138,18 @@ int fd_recycle_lexenv(fd_lexenv env)
   int refcount = FD_CONS_REFCOUNT(env);
   if (refcount==0) return 0; /* Stack cons */
   else if (refcount==1) { /* Normal GC */
-    fd_decref((fdtype)env);
+    fd_decref((lispval)env);
     return 1;}
   else {
     int sproc_count = count_envrefs(env->env_bindings,env,env_recycle_depth);
     if (sproc_count+1==refcount) {
       struct FD_RAW_CONS *envstruct = (struct FD_RAW_CONS *)env;
       fd_decref(env->env_bindings); fd_decref(env->env_exports);
-      if (env->env_parent) fd_decref((fdtype)(env->env_parent));
+      if (env->env_parent) fd_decref((lispval)(env->env_parent));
       envstruct->conshead = (0xFFFFFF80|(env->conshead&0x7F));
       u8_free(env);
       return 1;}
-    else {fd_decref((fdtype)env); return 0;}}
+    else {fd_decref((lispval)env); return 0;}}
 }
 
 FD_EXPORT
@@ -159,13 +159,13 @@ void _fd_free_lexenv(fd_lexenv env)
 }
 
 
-static int unparse_lexenv(u8_output out,fdtype x)
+static int unparse_lexenv(u8_output out,lispval x)
 {
   struct FD_LEXENV *env=
     fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
   if (HASHTABLEP(env->env_bindings)) {
-    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
-    fdtype mid = VOID;
+    lispval ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
+    lispval mid = VOID;
     DO_CHOICES(id,ids) {
       if (SYMBOLP(id)) mid = id;}
     if (SYMBOLP(mid))
@@ -175,13 +175,13 @@ static int unparse_lexenv(u8_output out,fdtype x)
   return 1;
 }
 
-static int dtype_lexenv(struct FD_OUTBUF *out,fdtype x)
+static int dtype_lexenv(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_LEXENV *env=
     fd_consptr(struct FD_LEXENV *,x,fd_lexenv_type);
   u8_string modname=NULL,  modfile=NULL;
   if (HASHTABLEP(env->env_bindings)) {
-    fdtype ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
+    lispval ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
     DO_CHOICES(id,ids) {
       if (SYMBOLP(id))
 	modname=SYM_NAME(id);

@@ -28,7 +28,7 @@ typedef struct FD_MEM_INDEX {
   unsigned int mix_n_baseoids, mix_added_baseoids;
   unsigned int mix_baseoids_length;
   unsigned int mix_loaded;
-  fdtype *mix_slotids, *mix_baseoids;
+  lispval *mix_slotids, *mix_baseoids;
   size_t mix_valid_data;
   struct FD_STREAM index_stream;} FD_LOG_INDEX;
 typedef struct FD_LOG_INDEX *fd_log_index;

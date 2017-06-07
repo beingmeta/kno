@@ -23,15 +23,15 @@
 
 /* Choice iteration */
 
-static fdtype parse_control_spec
-(fdtype expr,fdtype *iter_var,fdtype *count_var,
+static lispval parse_control_spec
+(lispval expr,lispval *iter_var,lispval *count_var,
  fd_lexenv env,fd_stack _stack)
 {
-  fdtype control_expr = fd_get_arg(expr,1);
+  lispval control_expr = fd_get_arg(expr,1);
   if (VOIDP(control_expr))
     return fd_err(fd_TooFewExpressions,NULL,NULL,expr);
   else if (SYMBOLP(control_expr)) {
-    fdtype values = fast_eval(control_expr,env);
+    lispval values = fast_eval(control_expr,env);
     if (FD_ABORTED(values)) {
       *iter_var = VOID;
       return values;}
@@ -39,8 +39,8 @@ static fdtype parse_control_spec
     *count_var = VOID;
     return fd_simplify_choice(values);}
   else {
-    fdtype var = fd_get_arg(control_expr,0), ivar = fd_get_arg(control_expr,2);
-    fdtype val_expr = fd_get_arg(control_expr,1), val;
+    lispval var = fd_get_arg(control_expr,0), ivar = fd_get_arg(control_expr,2);
+    lispval val_expr = fd_get_arg(control_expr,1), val;
     if (VOIDP(control_expr))
       return fd_err(fd_TooFewExpressions,NULL,NULL,expr);
     else if (VOIDP(val_expr))
@@ -64,9 +64,9 @@ static fdtype parse_control_spec
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static fdtype dochoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval dochoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var, count_var, choices=
+  lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (FD_ABORTED(var)) return var;
   else if (FD_ABORTED(choices))
@@ -82,9 +82,9 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   int i = 0; DO_CHOICES(elt,choices) {
     dochoices_vals[0]=fd_incref(elt);
     dochoices_vals[1]=FD_INT(i);
-    {fdtype steps = fd_get_body(expr,2);
+    {lispval steps = fd_get_body(expr,2);
       FD_DOLIST(step,steps) {
-        fdtype val = fast_eval(step,dochoices);
+        lispval val = fast_eval(step,dochoices);
         if (FD_ABORTED(val)) {
           _return val;}
         else fd_decref(val);}}
@@ -101,9 +101,9 @@ static fdtype dochoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
    It returns the first non-empty result of evaluating the body.
    Note that this treats a non-choice as a choice of one element.
    It returns VOID. */
-static fdtype trychoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval trychoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype var, count_var, choices=
+  lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (FD_ABORTED(var)) return var;
   else if (FD_ABORTED(choices))
@@ -117,10 +117,10 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     trychoices_vars[1]=count_var;
   else trychoices_bindings.schema_length=1;
   int i = 0; DO_CHOICES(elt,choices) {
-    fdtype val = VOID;
+    lispval val = VOID;
     trychoices_vals[0]=fd_incref(elt);
     trychoices_vals[1]=FD_INT(i);
-    fdtype steps = fd_get_body(expr,2);
+    lispval steps = fd_get_body(expr,2);
     FD_DOLIST(step,steps) {
       fd_decref(val);
       val = fast_eval(step,trychoices);
@@ -140,10 +140,10 @@ static fdtype trychoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the combined results of its body's execution. */
-static fdtype forchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval forchoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype results = EMPTY;
-  fdtype var, count_var, choices=
+  lispval results = EMPTY;
+  lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (FD_ABORTED(var)) return var;
   else if (FD_ABORTED(choices))
@@ -157,10 +157,10 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     forchoices_vars[1]=count_var;
   else forchoices_bindings.schema_length=1;
   int i = 0; DO_CHOICES(elt,choices) {
-    fdtype val = VOID;
+    lispval val = VOID;
     forchoices_vals[0]=fd_incref(elt);
     forchoices_vals[1]=FD_INT(i);
-    fdtype steps = fd_get_body(expr,2);
+    lispval steps = fd_get_body(expr,2);
     FD_DOLIST(step,steps) {
       fd_decref(val);
       val = fast_eval(step,forchoices);
@@ -180,10 +180,10 @@ static fdtype forchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    It returns the subset of values which pass the body. */
-static fdtype filterchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval filterchoices_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype results = EMPTY;
-  fdtype var, count_var, choices=
+  lispval results = EMPTY;
+  lispval var, count_var, choices=
     parse_control_spec(expr,&var,&count_var,env,_stack);
   if (FD_ABORTED(var)) return var;
   else if (FD_ABORTED(choices))
@@ -196,9 +196,9 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   if (SYMBOLP(count_var))
     filterchoices_vars[1]=count_var;
   else filterchoices_bindings.schema_length=1;
-  fdtype steps = fd_get_body(expr,2);
+  lispval steps = fd_get_body(expr,2);
   int i = 0; DO_CHOICES(elt,choices) {
-    fdtype val = VOID;
+    lispval val = VOID;
     filterchoices_vals[0]=fd_incref(elt);
     filterchoices_vals[1]=FD_INT(i);
     FD_DOLIST(step,steps) {
@@ -224,11 +224,11 @@ static fdtype filterchoices_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
    It tries to stack allocate as much as possible for locality and convenience sake.
    Note that this treats a non-choice as a choice of one element.
    This returns VOID.  */
-static fdtype dosubsets_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval dosubsets_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype choices, count_var, var;
-  fdtype control_spec = fd_get_arg(expr,1);
-  fdtype bsize; long long blocksize;
+  lispval choices, count_var, var;
+  lispval control_spec = fd_get_arg(expr,1);
+  lispval bsize; long long blocksize;
   if (!((PAIRP(control_spec)) &&
         (SYMBOLP(FD_CAR(control_spec))) &&
         (PAIRP(FD_CDR(control_spec))) &&
@@ -256,31 +256,31 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   int i = 0, n = FD_CHOICE_SIZE(choices), n_blocks = 1+n/blocksize;
   int all_atomicp = ((CHOICEP(choices)) ?
                      (FD_ATOMIC_CHOICEP(choices)) : (0));
-  const fdtype *data=
+  const lispval *data=
     ((CHOICEP(choices))?(FD_CHOICE_DATA(choices)):(NULL));
   if ((n%blocksize)==0) n_blocks--;
   while (i<n_blocks) {
-    fdtype block;
+    lispval block;
     if ((CHOICEP(choices)) && (n_blocks>1)) {
-      const fdtype *read = &(data[i*blocksize]), *limit = read+blocksize;
+      const lispval *read = &(data[i*blocksize]), *limit = read+blocksize;
       struct FD_CHOICE *subset = fd_alloc_choice(blocksize); int atomicp = 1;
-      fdtype *write = ((fdtype *)(FD_XCHOICE_DATA(subset)));
+      lispval *write = ((lispval *)(FD_XCHOICE_DATA(subset)));
       if (limit>(data+n)) limit = data+n;
       if (all_atomicp)
         while (read<limit) *write++= *read++;
       else while (read<limit) {
-          fdtype v = *read++;
+          lispval v = *read++;
           if (CONSP(v)) {
             atomicp=0; fd_incref(v);}
           *write++=v;}
       {FD_INIT_XCHOICE(subset,write-FD_XCHOICE_DATA(subset),atomicp);}
-      block = (fdtype)subset;}
+      block = (lispval)subset;}
     else block = fd_incref(choices);
     dosubsets_vals[0]=block;
     dosubsets_vals[1]=FD_INT(i);
-    {fdtype body = fd_get_body(expr,2);
+    {lispval body = fd_get_body(expr,2);
       FD_DOLIST(subexpr,body) {
-        fdtype val = fast_eval(subexpr,dosubsets);
+        lispval val = fast_eval(subexpr,dosubsets);
         if (FD_ABORTED(val))
           _return val;
         else fd_decref(val);}}
@@ -295,7 +295,7 @@ static fdtype dosubsets_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* SMALLEST and LARGEST */
 
-static int compare_lisp(fdtype x,fdtype y)
+static int compare_lisp(lispval x,lispval y)
 {
   fd_ptr_type xtype = FD_PTR_TYPE(x), ytype = FD_PTR_TYPE(y);
   if (xtype == ytype)
@@ -314,7 +314,7 @@ static int compare_lisp(fdtype x,fdtype y)
   else return 1;
 }
 
-static fdtype getmagnitude(fdtype val,fdtype magfn)
+static lispval getmagnitude(lispval val,lispval magfn)
 {
   if (VOIDP(magfn)) return fd_incref(val);
   else {
@@ -328,11 +328,11 @@ static fdtype getmagnitude(fdtype val,fdtype magfn)
       else return fd_get(val,magfn,EMPTY);}}
 }
 
-static fdtype smallest_evalfn(fdtype elts,fdtype magnitude)
+static lispval smallest_evalfn(lispval elts,lispval magnitude)
 {
-  fdtype top = EMPTY, top_score = VOID;
+  lispval top = EMPTY, top_score = VOID;
   DO_CHOICES(elt,elts) {
-    fdtype score = getmagnitude(elt,magnitude);
+    lispval score = getmagnitude(elt,magnitude);
     if (FD_ABORTED(score)) return score;
     else if (VOIDP(top_score))
       if (EMPTYP(score)) {}
@@ -355,11 +355,11 @@ static fdtype smallest_evalfn(fdtype elts,fdtype magnitude)
   return top;
 }
 
-static fdtype largest_evalfn(fdtype elts,fdtype magnitude)
+static lispval largest_evalfn(lispval elts,lispval magnitude)
 {
-  fdtype top = EMPTY, top_score = VOID;
+  lispval top = EMPTY, top_score = VOID;
   DO_CHOICES(elt,elts) {
-    fdtype score = getmagnitude(elt,magnitude);
+    lispval score = getmagnitude(elt,magnitude);
     if (FD_ABORTED(score)) return score;
     else if (VOIDP(top_score))
       if (EMPTYP(score)) {}
@@ -384,25 +384,25 @@ static fdtype largest_evalfn(fdtype elts,fdtype magnitude)
 
 /* Choice functions */
 
-static fdtype fail_prim()
+static lispval fail_prim()
 {
   return EMPTY;
 }
 
-static fdtype choice_prim(int n,fdtype *args)
+static lispval choice_prim(int n,lispval *args)
 {
-  int i = 0; fdtype results = EMPTY;
+  int i = 0; lispval results = EMPTY;
   while (i < n) {
-    fdtype arg = args[i++]; fd_incref(arg);
+    lispval arg = args[i++]; fd_incref(arg);
     CHOICE_ADD(results,arg);}
   return fd_simplify_choice(results);
 }
 
-static fdtype qchoice_prim(int n,fdtype *args)
+static lispval qchoice_prim(int n,lispval *args)
 {
-  int i = 0; fdtype results = EMPTY, presults;
+  int i = 0; lispval results = EMPTY, presults;
   while (i < n) {
-    fdtype arg = args[i++]; fd_incref(arg);
+    lispval arg = args[i++]; fd_incref(arg);
     CHOICE_ADD(results,arg);}
   presults = fd_simplify_choice(results);
   if ((CHOICEP(presults)) || (EMPTYP(presults)))
@@ -410,11 +410,11 @@ static fdtype qchoice_prim(int n,fdtype *args)
   else return presults;
 }
 
-static fdtype qchoicex_prim(int n,fdtype *args)
+static lispval qchoicex_prim(int n,lispval *args)
 {
-  int i = 0; fdtype results = EMPTY, presults;
+  int i = 0; lispval results = EMPTY, presults;
   while (i < n) {
-    fdtype arg = args[i++]; fd_incref(arg);
+    lispval arg = args[i++]; fd_incref(arg);
     CHOICE_ADD(results,arg);}
   presults = fd_simplify_choice(results);
   if (EMPTYP(presults))
@@ -426,10 +426,10 @@ static fdtype qchoicex_prim(int n,fdtype *args)
 
 /* TRY */
 
-static fdtype try_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval try_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype value = EMPTY;
-  fdtype clauses = fd_get_body(expr,1);
+  lispval value = EMPTY;
+  lispval clauses = fd_get_body(expr,1);
   FD_DOLIST(clause,clauses) {
     int ipe_state = fd_ipeval_status();
     fd_decref(value);
@@ -448,10 +448,10 @@ static fdtype try_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* IFEXISTS */
 
-static fdtype ifexists_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval ifexists_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype value_expr = fd_get_arg(expr,1);
-  fdtype value = EMPTY;
+  lispval value_expr = fd_get_arg(expr,1);
+  lispval value = EMPTY;
   if (VOIDP(value_expr))
     return fd_err(fd_SyntaxError,"ifexists_evalfn",NULL,expr);
   else if (!(NILP(FD_CDR(FD_CDR(expr)))))
@@ -466,26 +466,26 @@ static fdtype ifexists_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Predicates */
 
-static fdtype emptyp(fdtype x)
+static lispval emptyp(lispval x)
 {
   if (EMPTYP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype satisfiedp(fdtype x)
+static lispval satisfiedp(lispval x)
 {
   if (EMPTYP(x)) return FD_FALSE;
   else if (FALSEP(x)) return FD_FALSE;
   else return FD_TRUE;
 }
 
-static fdtype existsp(fdtype x)
+static lispval existsp(lispval x)
 {
   if (EMPTYP(x)) return FD_FALSE; else return FD_TRUE;
 }
 
-static fdtype singletonp(fdtype x)
+static lispval singletonp(lispval x)
 {
-  fdtype simple = fd_make_simple_choice(x);
+  lispval simple = fd_make_simple_choice(x);
   if (EMPTYP(simple)) return FD_FALSE;
   else if (CHOICEP(simple)) {
     fd_decref(simple); return FD_FALSE;}
@@ -493,9 +493,9 @@ static fdtype singletonp(fdtype x)
     fd_decref(simple); return FD_TRUE;}
 }
 
-static fdtype ambiguousp(fdtype x)
+static lispval ambiguousp(lispval x)
 {
-  fdtype simple = fd_make_simple_choice(x);
+  lispval simple = fd_make_simple_choice(x);
   if (EMPTYP(simple)) return FD_FALSE;
   else if (CHOICEP(simple)) {
     fd_decref(simple); return FD_TRUE;}
@@ -503,18 +503,18 @@ static fdtype ambiguousp(fdtype x)
     fd_decref(simple); return FD_FALSE;}
 }
 
-static fdtype singleton(fdtype x)
+static lispval singleton(lispval x)
 {
-  fdtype simple = fd_make_simple_choice(x);
+  lispval simple = fd_make_simple_choice(x);
   if (EMPTYP(x)) return x;
   else if (CHOICEP(simple)) {
     fd_decref(simple); return EMPTY;}
   else return simple;
 }
 
-static fdtype choice_max(fdtype x,fdtype lim)
+static lispval choice_max(lispval x,lispval lim)
 {
-  fdtype simple = fd_make_simple_choice(x);
+  lispval simple = fd_make_simple_choice(x);
   if (EMPTYP(x)) return x;
   else if (CHOICEP(simple)) {
     int max_size = fd_getint(lim);
@@ -524,19 +524,19 @@ static fdtype choice_max(fdtype x,fdtype lim)
   else return simple;
 }
 
-static fdtype simplify(fdtype x)
+static lispval simplify(lispval x)
 {
   return fd_make_simple_choice(x);
 }
 
-static fdtype qchoicep_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval qchoicep_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   /* This is an evalfn because application often reduces qchoices to
      choices. */
   if (!((PAIRP(expr)) && (PAIRP(FD_CDR(expr)))))
     return fd_err(fd_SyntaxError,"qchoice_evalfn",NULL,expr);
   else {
-    fdtype val = fd_eval(FD_CADR(expr),env);
+    lispval val = fd_eval(FD_CADR(expr),env);
     if (QCHOICEP(val)) {
       fd_decref(val);
       return FD_TRUE;}
@@ -548,16 +548,16 @@ static fdtype qchoicep_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 /* The exists operation */
 
 static int test_exists(struct FD_FUNCTION *fn,
-                       int i,int n,fdtype *nd_args,
-                       fdtype *d_args);
+                       int i,int n,lispval *nd_args,
+                       lispval *d_args);
 
-static fdtype exists_lexpr(int n,fdtype *nd_args)
+static lispval exists_lexpr(int n,lispval *nd_args)
 {
-  fdtype *d_args;
+  lispval *d_args;
   int i = 0; while (i<n)
     if (EMPTYP(nd_args[i])) return FD_FALSE;
     else i++;
-  d_args = u8_alloc_n((n-1),fdtype);
+  d_args = u8_alloc_n((n-1),lispval);
   {DO_CHOICES(fcn,nd_args[0])
      if (FD_APPLICABLEP(fcn)) {
        struct FD_FUNCTION *f = (fd_function)fcn;
@@ -573,7 +573,7 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
   return FD_FALSE;
 }
 
-static fdtype sometrue_lexpr(int n,fdtype *nd_args)
+static lispval sometrue_lexpr(int n,lispval *nd_args)
 {
   if (n==1)
     if (EMPTYP(nd_args[0]))
@@ -583,10 +583,10 @@ static fdtype sometrue_lexpr(int n,fdtype *nd_args)
 }
 
 static int test_exists(struct FD_FUNCTION *fn,int i,int n,
-                       fdtype *nd_args,fdtype *d_args)
+                       lispval *nd_args,lispval *d_args)
 {
   if (i == n) {
-    fdtype val = fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
+    lispval val = fd_finish_call(fd_dapply((lispval)fn,n,d_args));
     if ((FALSEP(val)) || (EMPTYP(val))) {
       return 0;}
     else if (FD_ABORTED(val)) {
@@ -606,11 +606,11 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,
 }
 
 static int test_forall
-  (struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args);
+  (struct FD_FUNCTION *fn,int i,int n,lispval *nd_args,lispval *d_args);
 
-static fdtype whenexists_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval whenexists_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype to_eval = fd_get_arg(expr,1), value;
+  lispval to_eval = fd_get_arg(expr,1), value;
   if (VOIDP(to_eval))
     return fd_err(fd_SyntaxError,"whenexists_evalfn",NULL,expr);
   else value = fd_eval(to_eval,env);
@@ -618,13 +618,13 @@ static fdtype whenexists_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return value;
 }
 
-static fdtype forall_lexpr(int n,fdtype *nd_args)
+static lispval forall_lexpr(int n,lispval *nd_args)
 {
-  fdtype *d_args;
+  lispval *d_args;
   int i = 0; while (i<n)
     if (EMPTYP(nd_args[i])) return FD_TRUE;
     else i++;
-  d_args = u8_alloc_n(n-1,fdtype);
+  d_args = u8_alloc_n(n-1,lispval);
   {DO_CHOICES(fcn,nd_args[0])
      if (FD_APPLICABLEP(fcn)) {
        struct FD_FUNCTION *f = (fd_function)fcn;
@@ -640,10 +640,10 @@ static fdtype forall_lexpr(int n,fdtype *nd_args)
   return FD_FALSE;
 }
 
-static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype *d_args)
+static int test_forall(struct FD_FUNCTION *fn,int i,int n,lispval *nd_args,lispval *d_args)
 {
   if (i == n) {
-    fdtype val = fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
+    lispval val = fd_finish_call(fd_dapply((lispval)fn,n,d_args));
     if (FALSEP(val))
       return 0;
     else if (EMPTYP(val))
@@ -666,20 +666,20 @@ static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
 
 /* Set operations */
 
-static fdtype union_lexpr(int n,fdtype *args)
+static lispval union_lexpr(int n,lispval *args)
 {
   return fd_simplify_choice(fd_union(args,n));
 }
-static fdtype intersection_lexpr(int n,fdtype *args)
+static lispval intersection_lexpr(int n,lispval *args)
 {
   return fd_simplify_choice(fd_intersection(args,n));
 }
-static fdtype difference_lexpr(int n,fdtype *args)
+static lispval difference_lexpr(int n,lispval *args)
 {
-  fdtype result = fd_incref(args[0]); int i = 1;
+  lispval result = fd_incref(args[0]); int i = 1;
   if (EMPTYP(result)) return result;
   else while (i<n) {
-    fdtype new = fd_difference(result,args[i]);
+    lispval new = fd_difference(result,args[i]);
     if (EMPTYP(new)) {
       fd_decref(result); return EMPTY;}
     else {fd_decref(result); result = new;}
@@ -689,43 +689,43 @@ static fdtype difference_lexpr(int n,fdtype *args)
 
 /* Conversion functions */
 
-static fdtype choice2vector(fdtype x,fdtype sortspec)
+static lispval choice2vector(lispval x,lispval sortspec)
 {
   fd_compare_flags flags = fd_get_compare_flags(sortspec);
   if (PRECHOICEP(x)) {
-    fdtype normal = fd_make_simple_choice(x);
-    fdtype result = choice2vector(normal,sortspec);
+    lispval normal = fd_make_simple_choice(x);
+    lispval result = choice2vector(normal,sortspec);
     fd_decref(normal);
     return result;}
   else if (CHOICEP(x)) {
     int i = 0, n = FD_CHOICE_SIZE(x);
     struct FD_CHOICE *ch = (fd_choice)x;
-    fdtype vector = fd_make_vector(n,NULL);
-    fdtype *vector_elts = VEC_DATA(vector);
-    const fdtype *choice_elts = FD_XCHOICE_DATA(ch);
+    lispval vector = fd_make_vector(n,NULL);
+    lispval *vector_elts = VEC_DATA(vector);
+    const lispval *choice_elts = FD_XCHOICE_DATA(ch);
     if (FD_XCHOICE_ATOMICP(ch))
-      memcpy(vector_elts,choice_elts,sizeof(fdtype)*n);
+      memcpy(vector_elts,choice_elts,sizeof(lispval)*n);
     else while (i<n) {
         vector_elts[i]=fd_incref(choice_elts[i]);
         i++;}
     if ((VOIDP(sortspec))||(FALSEP(sortspec))) 
       return vector;
     else {
-      fdtype_sort(vector_elts,n,flags);
+      lispval_sort(vector_elts,n,flags);
       return vector;}}
   else {
     fd_incref(x);
     return fd_make_vector(1,&x);}
 }
 
-static fdtype choice2list(fdtype x)
+static lispval choice2list(lispval x)
 {
-  fdtype lst = NIL;
+  lispval lst = NIL;
   DO_CHOICES(elt,x) lst = fd_conspair(fd_incref(elt),lst);
   return lst;
 }
 
-static fdtype get_part(fdtype x,fdtype part)
+static lispval get_part(lispval x,lispval part)
 {
   if (VOIDP(part)) return fd_incref(x);
   else if (FD_APPLICABLEP(part))
@@ -743,12 +743,12 @@ static fdtype get_part(fdtype x,fdtype part)
   ((SYMBOLP(x)) || (OIDP(x)) || (VOIDP(x)) || \
    (TABLEP(x)) || (FD_APPLICABLEP(x)))
 
-static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
+static lispval reduce_choice(lispval fn,lispval choice,lispval start,lispval part)
 {
   if ((FD_APPLICABLEP(fn)) && ((VOIDP(part)) || (FD_PARTP(part)))) {
-    fdtype state = fd_incref(start);
+    lispval state = fd_incref(start);
     DO_CHOICES(each,choice) {
-      fdtype items = get_part(each,part);
+      lispval items = get_part(each,part);
       if (FD_ABORTED(items)) {
         FD_STOP_DO_CHOICES;
         fd_decref(state);
@@ -757,7 +757,7 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
       else if (EMPTYP(items)) {}
       else if (CHOICEP(items)) {
         DO_CHOICES(item,items) {
-          fdtype rail[2], next_state;
+          lispval rail[2], next_state;
           rail[0]=item; rail[1]=state;
           next_state = fd_apply(fn,2,rail);
           if (FD_ABORTED(next_state)) {
@@ -766,8 +766,8 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
             return next_state;}
           fd_decref(state); state = next_state;}}
       else {
-        fdtype item = items;
-        fdtype rail[2], next_state;
+        lispval item = items;
+        lispval rail[2], next_state;
         rail[0]=item; rail[1]=state;
         next_state = fd_apply(fn,2,rail);
         if (FD_ABORTED(next_state)) {
@@ -782,7 +782,7 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
   else return fd_type_error(_("part"),"reduce_choice",part);
 }
 
-static fdtype apply_map(fdtype fn,fdtype val)
+static lispval apply_map(lispval fn,lispval val)
 {
   if ((VOIDP(fn)) || (FALSEP(fn)))
     return fd_incref(val);
@@ -793,29 +793,29 @@ static fdtype apply_map(fdtype fn,fdtype val)
   else return fd_type_error(_("map function"),"xreduce_choice",fn);
 }
 
-static fdtype xreduce_choice
-  (fdtype choice,fdtype reducefn,fdtype mapfn,fdtype start)
+static lispval xreduce_choice
+  (lispval choice,lispval reducefn,lispval mapfn,lispval start)
 {
   if (CHOICEP(reducefn)) {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     DO_CHOICES(rfn,reducefn) {
-      fdtype v = xreduce_choice(choice,rfn,mapfn,start);
+      lispval v = xreduce_choice(choice,rfn,mapfn,start);
       if (FD_ABORTED(v)) {
         fd_decref(result); FD_STOP_DO_CHOICES;
         return result;}
       else {CHOICE_ADD(result,v);}}
     return result;}
   else if (CHOICEP(mapfn)) {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     DO_CHOICES(mfn,mapfn) {
-      fdtype v = xreduce_choice(choice,reducefn,mfn,start);
+      lispval v = xreduce_choice(choice,reducefn,mfn,start);
       if (FD_ABORTED(v)) {
         fd_decref(result); FD_STOP_DO_CHOICES;
         return result;}
       else {CHOICE_ADD(result,v);}}
     return result;}
   else if (FD_APPLICABLEP(reducefn)) {
-    fdtype state = ((VOIDP(start))?(start):(apply_map(mapfn,start)));
+    lispval state = ((VOIDP(start))?(start):(apply_map(mapfn,start)));
     DO_CHOICES(item,choice)
       if (FD_ABORTED(state)) {
         FD_STOP_DO_CHOICES;
@@ -823,9 +823,9 @@ static fdtype xreduce_choice
       else if (VOIDP(state))
         state = apply_map(mapfn,item);
       else {
-        fdtype item_val = apply_map(mapfn,item);
+        lispval item_val = apply_map(mapfn,item);
         if (!((VOIDP(item_val)) || (EMPTYP(item_val)))) {
-          fdtype rail[2], next_state;
+          lispval rail[2], next_state;
           rail[0]=item_val; rail[1]=state;
           next_state = fd_apply(reducefn,2,rail);
           fd_decref(item_val); fd_decref(state);
@@ -834,20 +834,20 @@ static fdtype xreduce_choice
   else return fd_type_error(_("function"),"xreduce_choice",reducefn);
 }
 
-static fdtype choicesize_prim(fdtype x)
+static lispval choicesize_prim(lispval x)
 {
   int n = FD_CHOICE_SIZE(x);
   return FD_INT(n);
 }
 
-static fdtype pickone(fdtype x)
+static lispval pickone(lispval x)
 {
-  fdtype normal = fd_make_simple_choice(x), chosen = EMPTY;
+  lispval normal = fd_make_simple_choice(x), chosen = EMPTY;
   if (CHOICEP(normal)) {
     int n = FD_CHOICE_SIZE(normal);
     if (n) {
       int i = u8_random(n);
-      const fdtype *data = FD_CHOICE_DATA(normal);
+      const lispval *data = FD_CHOICE_DATA(normal);
       chosen = data[i];
       fd_incref(data[i]); fd_decref(normal);
       return chosen;}
@@ -855,11 +855,11 @@ static fdtype pickone(fdtype x)
   else return normal;
 }
 
-static fdtype samplen(fdtype x,fdtype count)
+static lispval samplen(lispval x,lispval count)
 {
   if (FIXNUMP(count)) {
-    fdtype normal = fd_make_simple_choice(x);
-    fdtype results = EMPTY;
+    lispval normal = fd_make_simple_choice(x);
+    lispval results = EMPTY;
     int n = FD_CHOICE_SIZE(normal), howmany = fd_getint(count);
     if (!(CHOICEP(normal)))
       return normal;
@@ -867,11 +867,11 @@ static fdtype samplen(fdtype x,fdtype count)
       return normal;
     else if (n) {
       unsigned char *used=u8_zalloc_n(n,unsigned char);
-      const fdtype *data = FD_CHOICE_DATA(normal);
+      const lispval *data = FD_CHOICE_DATA(normal);
       int j = 0; while (j<howmany) {
         int i = u8_random(n);
         if (!(used[i])) {
-          fdtype elt=data[i]; fd_incref(elt);
+          lispval elt=data[i]; fd_incref(elt);
           CHOICE_ADD(results,data[i]);
           used[i]=1;
           j++;}}
@@ -881,10 +881,10 @@ static fdtype samplen(fdtype x,fdtype count)
   else return fd_type_error("integer","samplen",count);
 }
 
-static fdtype pickn(fdtype x,fdtype count,fdtype offset)
+static lispval pickn(lispval x,lispval count,lispval offset)
 {
   if (FIXNUMP(count)) {
-    fdtype normal = fd_make_simple_choice(x);
+    lispval normal = fd_make_simple_choice(x);
     int n = FD_CHOICE_SIZE(normal), howmany = fd_getint(count);
     int start;
     if (!(CHOICEP(normal))) return normal;
@@ -900,16 +900,16 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
       struct FD_CHOICE *base=
         (fd_consptr(struct FD_CHOICE *,normal,fd_choice_type));
       struct FD_CHOICE *result = fd_alloc_choice(howmany);
-      const fdtype *read = FD_XCHOICE_DATA(base)+start;
-      fdtype *write = (fdtype *)FD_XCHOICE_DATA(result);
+      const lispval *read = FD_XCHOICE_DATA(base)+start;
+      lispval *write = (lispval *)FD_XCHOICE_DATA(result);
       if (FD_XCHOICE_ATOMICP(base)) {
-        memcpy(write,read,sizeof(fdtype)*howmany);
+        memcpy(write,read,sizeof(lispval)*howmany);
         fd_decref(normal);
         return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
       else {
-        int atomicp = 1; const fdtype *readlim = read+howmany;
+        int atomicp = 1; const lispval *readlim = read+howmany;
         while (read<readlim) {
-          fdtype v = *read++;
+          lispval v = *read++;
           if (ATOMICP(v)) *write++=v;
           else {atomicp = 0; fd_incref(v); *write++=v;}}
         fd_decref(normal);
@@ -919,17 +919,17 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
   else return fd_type_error("integer","topn",count);
 }
 
-static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,
+static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
                             int lexsort)
 {
   if (EMPTYP(choices))
     return fd_init_vector(NULL,0,NULL);
   else if (CHOICEP(choices)) {
     int i = 0, n = FD_CHOICE_SIZE(choices), j = 0;
-    fdtype *vecdata = u8_alloc_n(n,fdtype);
+    lispval *vecdata = u8_alloc_n(n,lispval);
     struct FD_SORT_ENTRY *entries = u8_alloc_n(n,struct FD_SORT_ENTRY);
     DO_CHOICES(elt,choices) {
-      fdtype key=_fd_apply_keyfn(elt,keyfn);
+      lispval key=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(key)) {
         int j = 0; while (j<i) {fd_decref(entries[j].fd_sortkey); j++;}
         u8_free(entries); u8_free(vecdata);
@@ -951,22 +951,22 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,
     u8_free(entries);
     return fd_init_vector(NULL,n,vecdata);}
   else {
-    fdtype *vec = u8_alloc_n(1,fdtype);
+    lispval *vec = u8_alloc_n(1,lispval);
     vec[0]=fd_incref(choices);
     return fd_init_vector(NULL,1,vec);}
 }
 
-static fdtype sorted_prim(fdtype choices,fdtype keyfn)
+static lispval sorted_prim(lispval choices,lispval keyfn)
 {
   return sorted_primfn(choices,keyfn,0,0);
 }
 
-static fdtype lexsorted_prim(fdtype choices,fdtype keyfn)
+static lispval lexsorted_prim(lispval choices,lispval keyfn)
 {
   return sorted_primfn(choices,keyfn,0,1);
 }
 
-static fdtype rsorted_prim(fdtype choices,fdtype keyfn)
+static lispval rsorted_prim(lispval choices,lispval keyfn)
 {
   return sorted_primfn(choices,keyfn,1,0);
 }
@@ -975,27 +975,27 @@ static fdtype rsorted_prim(fdtype choices,fdtype keyfn)
 
 static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep);
 
-static fdtype select_helper(fdtype choices,fdtype keyfn,
+static lispval select_helper(lispval choices,lispval keyfn,
                             int k,int maximize,
                             struct FD_SORT_ENTRY **ep)
 {
 #define BETTERP(x) ((maximize)?((x)>0):((x)<0))
 #define IS_BETTER(x,y) (BETTERP(FD_QCOMPARE((x),(y))))
-  fdtype worst = VOID; 
+  lispval worst = VOID; 
   int worst_off = (maximize)?(0):(k-1);
   if (EMPTYP(choices))
     return EMPTY;
   else if (k==0)
     return EMPTY;
   else if (CHOICEP(choices)) {
-    fdtype candidates = fd_make_simple_choice(choices);
+    lispval candidates = fd_make_simple_choice(choices);
     int n = FD_CHOICE_SIZE(candidates);
     if (k>=n) return candidates;
     else {
       struct FD_SORT_ENTRY *entries = sort_alloc(k,ep);
       int k_len = 0, sorted = 0;
       DO_CHOICES(elt,choices) {
-        fdtype key=_fd_apply_keyfn(elt,keyfn);
+        lispval key=_fd_apply_keyfn(elt,keyfn);
         if (FD_ABORTED(key)) {
           int j = 0; while (j<k_len) {fd_decref(entries[k_len].fd_sortkey); j++;}
           return key;}
@@ -1033,17 +1033,17 @@ static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep)
   return entries;
 }
 
-static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
+static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
     unsigned int k = FIX2INT(karg);
     struct FD_SORT_ENTRY *entries = NULL;
-    fdtype results = select_helper(choices,keyfn,k,1,&entries);
+    lispval results = select_helper(choices,keyfn,k,1,&entries);
     if (VOIDP(results)) {
       int i = 0;
       results = EMPTY;
       while (i<k) {
-        fdtype elt = entries[i].fd_sortval;
+        lispval elt = entries[i].fd_sortval;
         fd_decref(entries[i].fd_sortkey); fd_incref(elt);
         CHOICE_ADD(results,elt);
         i++;}
@@ -1053,17 +1053,17 @@ static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
+static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
     unsigned int k = FIX2INT(karg);
     struct FD_SORT_ENTRY *entries = NULL;
-    fdtype results = select_helper(choices,keyfn,k,1,&entries);
+    lispval results = select_helper(choices,keyfn,k,1,&entries);
     if (VOIDP(results)) {
-      fdtype vec = fd_make_vector(k,NULL);
+      lispval vec = fd_make_vector(k,NULL);
       int i = 0;
       while (i<k) {
-        fdtype elt = entries[i].fd_sortval;
+        lispval elt = entries[i].fd_sortval;
         int vec_off = k-1-i;
         fd_incref(elt); fd_decref(entries[i].fd_sortkey);
         FD_VECTOR_SET(vec,vec_off,elt);
@@ -1074,17 +1074,17 @@ static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
+static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
     unsigned int k = FIX2INT(karg);
     struct FD_SORT_ENTRY *entries = NULL;
-    fdtype results = select_helper(choices,keyfn,k,0,&entries);
+    lispval results = select_helper(choices,keyfn,k,0,&entries);
     if (VOIDP(results)) {
       int i = 0;
       results = EMPTY;
       while (i<k) {
-        fdtype elt = entries[i].fd_sortval;
+        lispval elt = entries[i].fd_sortval;
         fd_decref(entries[i].fd_sortkey); fd_incref(elt);
         CHOICE_ADD(results,elt);
         i++;}
@@ -1094,14 +1094,14 @@ static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
-static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
+static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
     unsigned int k = FIX2INT(karg);
     struct FD_SORT_ENTRY *entries = NULL;
-    fdtype results = select_helper(choices,keyfn,k,0,&entries);
+    lispval results = select_helper(choices,keyfn,k,0,&entries);
     if (VOIDP(results)) {
-      fdtype vec = fd_make_vector(k,NULL);
+      lispval vec = fd_make_vector(k,NULL);
       int i = 0;
       while (i<k) {
         fd_decref(entries[i].fd_sortkey);
@@ -1116,9 +1116,9 @@ static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
 
 /* GETRANGE */
 
-static fdtype getrange_prim(fdtype arg1,fdtype endval)
+static lispval getrange_prim(lispval arg1,lispval endval)
 {
-  long long start, end; fdtype results = EMPTY;
+  long long start, end; lispval results = EMPTY;
   if (VOIDP(endval))
     if (FIXNUMP(arg1)) {
       start = 0; end = FIX2INT(arg1);}
@@ -1134,16 +1134,16 @@ static fdtype getrange_prim(fdtype arg1,fdtype endval)
   return results;
 }
 
-static fdtype pick_gt_prim(fdtype items,fdtype num,fdtype checktype)
+static lispval pick_gt_prim(lispval items,lispval num,lispval checktype)
 {
-  fdtype lower_bound = VOID;
+  lispval lower_bound = VOID;
   DO_CHOICES(n,num) {
     if (!(NUMBERP(n)))
       return fd_type_error("number","pick_gt_prim",n);
     else if (VOIDP(lower_bound)) lower_bound = n;
     else if (fd_numcompare(n,lower_bound)<0) lower_bound = n;}
   {
-    fdtype results = EMPTY;
+    lispval results = EMPTY;
     DO_CHOICES(item,items)
       if (NUMBERP(item))
         if (fd_numcompare(item,lower_bound)>0) {
@@ -1157,9 +1157,9 @@ static fdtype pick_gt_prim(fdtype items,fdtype num,fdtype checktype)
   }
 }
 
-static fdtype pick_oids_prim(fdtype items)
+static lispval pick_oids_prim(lispval items)
 {
-  fdtype results = EMPTY; int no_change = 1;
+  lispval results = EMPTY; int no_change = 1;
   DO_CHOICES(item,items)
     if (OIDP(item)) {
       CHOICE_ADD(results,item);}
@@ -1170,9 +1170,9 @@ static fdtype pick_oids_prim(fdtype items)
   else return results;
 }
 
-static fdtype pick_syms_prim(fdtype items)
+static lispval pick_syms_prim(lispval items)
 {
-  fdtype results = EMPTY; int no_change = 1;
+  lispval results = EMPTY; int no_change = 1;
   DO_CHOICES(item,items)
     if (SYMBOLP(item)) {
       CHOICE_ADD(results,item);}
@@ -1183,10 +1183,10 @@ static fdtype pick_syms_prim(fdtype items)
   else return results;
 }
 
-static fdtype pick_strings_prim(fdtype items)
+static lispval pick_strings_prim(lispval items)
 {
   /* I don't think we need to worry about getting a PRECHOICE here. */
-  fdtype results = EMPTY; int no_change = 1;
+  lispval results = EMPTY; int no_change = 1;
   DO_CHOICES(item,items)
     if (STRINGP(item)) {
       fd_incref(item);
@@ -1198,10 +1198,10 @@ static fdtype pick_strings_prim(fdtype items)
   else return results;
 }
 
-static fdtype pick_vecs_prim(fdtype items)
+static lispval pick_vecs_prim(lispval items)
 {
   /* I don't think we need to worry about getting a PRECHOICE here. */
-  fdtype results = EMPTY; int no_change = 1;
+  lispval results = EMPTY; int no_change = 1;
   DO_CHOICES(item,items)
     if (VECTORP(item)) {
       fd_incref(item);
@@ -1213,10 +1213,10 @@ static fdtype pick_vecs_prim(fdtype items)
   else return results;
 }
 
-static fdtype pick_pairs_prim(fdtype items)
+static lispval pick_pairs_prim(lispval items)
 {
   /* I don't think we need to worry about getting a PRECHOICE here. */
-  fdtype results = EMPTY; int no_change = 1;
+  lispval results = EMPTY; int no_change = 1;
   DO_CHOICES(item,items)
     if (PAIRP(item)) {
       fd_incref(item);
@@ -1228,9 +1228,9 @@ static fdtype pick_pairs_prim(fdtype items)
   else return results;
 }
 
-static fdtype pick_nums_prim(fdtype items)
+static lispval pick_nums_prim(lispval items)
 {
-  fdtype results = EMPTY; int no_change = 1;
+  lispval results = EMPTY; int no_change = 1;
   DO_CHOICES(item,items)
     if (FIXNUMP(item)) {
       CHOICE_ADD(results,item);}
@@ -1265,14 +1265,14 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprimn("CHOICE",choice_prim,0)));
   fd_idefn(fd_scheme_module,fd_make_cprim0("FAIL",fail_prim));
   {
-    fdtype qc_prim=
+    lispval qc_prim=
       fd_make_ndprim(fd_make_cprimn("QCHOICE",qchoice_prim,0));
     fd_idefn(fd_scheme_module,qc_prim);
     fd_store(fd_scheme_module,fd_intern("QC"),qc_prim);
   }
 
   {
-    fdtype qcx_prim=
+    lispval qcx_prim=
       fd_make_ndprim(fd_make_cprimn("QCHOICEX",qchoicex_prim,0));
     fd_idefn(fd_scheme_module,qcx_prim);
     fd_store(fd_scheme_module,fd_intern("QCX"),qcx_prim);
@@ -1296,7 +1296,7 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defspecial(fd_scheme_module,"TRY",try_evalfn);
 
   {
-    fdtype empty_prim=
+    lispval empty_prim=
       fd_make_ndprim(fd_make_cprim1("EMPTY?",emptyp,1));
     fd_idefn(fd_scheme_module,empty_prim);
     fd_store(fd_scheme_module,fd_intern("FAIL?"),empty_prim);
@@ -1328,7 +1328,7 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_evalfn);
 
   {
-    fdtype unique_prim=
+    lispval unique_prim=
       fd_make_ndprim(fd_make_cprim1("UNIQUE?",singletonp,1));
     fd_idefn(fd_scheme_module,unique_prim);
     fd_store(fd_scheme_module,fd_intern("SINGLETON?"),unique_prim);

@@ -20,16 +20,16 @@
 
 static struct FD_INDEX_HANDLER compoundindex_handler;
 
-static fdtype compound_fetch(fd_index ix,fdtype key)
+static lispval compound_fetch(fd_index ix,lispval key)
 {
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  fdtype combined = EMPTY;
+  lispval combined = EMPTY;
   int i = 0, lim;
   fd_lock_index(cix);
   lim = cix->n_indexes;
   while (i < lim) {
     fd_index eix = cix->indexes[i++];
-    fdtype value;
+    lispval value;
     if (eix->index_cache_level<0) {
       eix->index_cache_level = fd_default_cache_level;
       fd_index_setcache(eix,fd_default_cache_level);}
@@ -46,12 +46,12 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
   return combined;
 }
 
-static int compound_prefetch(fd_index ix,fdtype keys)
+static int compound_prefetch(fd_index ix,lispval keys)
 {
   int n_fetches = 0, i = 0, lim, n = FD_CHOICE_SIZE(keys);
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  fdtype *keyv = u8_alloc_n(n,fdtype);
-  fdtype *valuev = u8_alloc_n(n,fdtype);
+  lispval *keyv = u8_alloc_n(n,lispval);
+  lispval *valuev = u8_alloc_n(n,lispval);
   DO_CHOICES(key,keys)
     if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
       keyv[n_fetches]=key; valuev[n_fetches]=EMPTY; n_fetches++;}
@@ -62,7 +62,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   lim = cix->n_indexes;
   while (i < lim) {
     int j = 0; fd_index eix = cix->indexes[i];
-    fdtype *values=
+    lispval *values=
       eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values == NULL) {
       u8_free(keyv); u8_free(valuev);
@@ -84,16 +84,16 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   return n_fetches;
 }
 
-static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
+static lispval *compound_fetchn(fd_index ix,int n,lispval *keys)
 {
   int n_fetches = 0, i = 0, lim;
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  fdtype *keyv = u8_alloc_n(n,fdtype);
-  fdtype *valuev = u8_alloc_n(n,fdtype);
+  lispval *keyv = u8_alloc_n(n,lispval);
+  lispval *valuev = u8_alloc_n(n,lispval);
   unsigned int *posmap = u8_alloc_n(n,unsigned int);
-  fdtype *scan = keys, *limit = keys+n;
+  lispval *scan = keys, *limit = keys+n;
   while (scan<limit) {
-    int off = scan-keys; fdtype key = *scan++;
+    int off = scan-keys; lispval key = *scan++;
     if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
       keyv[n_fetches]=key;
       valuev[n_fetches]=EMPTY;
@@ -108,7 +108,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
   lim = cix->n_indexes;
   while (i < lim) {
     int j = 0; fd_index eix = cix->indexes[i];
-    fdtype *values=
+    lispval *values=
       eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values == NULL) {
       u8_free(keyv); u8_free(posmap); u8_free(valuev);
@@ -129,16 +129,16 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
   return valuev;
 }
 
-static fdtype *compound_fetchkeys(fd_index ix,int *n)
+static lispval *compound_fetchkeys(fd_index ix,int *n)
 {
   struct FD_COMPOUND_INDEX *cix = (struct FD_COMPOUND_INDEX *)ix;
-  fdtype combined = EMPTY;
+  lispval combined = EMPTY;
   int i = 0, lim;
   fd_lock_index(cix);
   lim = cix->n_indexes;
   while (i < lim) {
     fd_index eix = cix->indexes[i++];
-    fdtype keys = fd_index_keys(eix);
+    lispval keys = fd_index_keys(eix);
     if (FD_ABORTP(keys)) {
       fd_decref(combined);
       fd_unlock_index(cix);
@@ -147,9 +147,9 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
     else {CHOICE_ADD(combined,keys);}}
   fd_unlock_index(cix);
   {
-    fdtype simple = fd_simplify_choice(combined);
+    lispval simple = fd_simplify_choice(combined);
     int j = 0, n_elts = FD_CHOICE_SIZE(simple);
-    fdtype *results = ((n>0) ? (u8_alloc_n(n_elts,fdtype)) : (NULL));
+    lispval *results = ((n>0) ? (u8_alloc_n(n_elts,lispval)) : (NULL));
     if (n_elts==0) {
       *n = 0; return results;}
     else if (n_elts==1) {
@@ -203,7 +203,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     else cix->indexes = u8_alloc_n(1,fd_index);
     cix->indexes[cix->n_indexes++]=add;
     if (add->index_serialno<0) {
-      fdtype alix = (fdtype)add;
+      lispval alix = (lispval)add;
       fd_incref(alix);}
     u8_string old_source = cix->index_source;
     u8_string old_id = cix->indexid;

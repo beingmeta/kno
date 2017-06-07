@@ -24,7 +24,7 @@ static long long int tidy_init = 0;
 
 /* Opt setting */
 
-static fdtype getoption(fdtype opts,u8_string optstring,fdtype dflt)
+static lispval getoption(lispval opts,u8_string optstring,lispval dflt)
 {
   if ((FD_FALSEP(opts))||(FD_VOIDP(opts)))
     return fd_incref(dflt);
@@ -33,16 +33,16 @@ static fdtype getoption(fdtype opts,u8_string optstring,fdtype dflt)
 
 static U8_MAYBE_UNUSED int tidySetBoolOpt(TidyDoc tdoc,
                                           TidyOptionId optname,
-                                          fdtype value) {
+                                          lispval value) {
   if (FD_FALSEP(value))
     return tidyOptSetBool(tdoc,optname,no);
   else return tidyOptSetBool(tdoc,optname,yes);}
-static U8_MAYBE_UNUSED int copyBoolOpt(fdtype opts,
+static U8_MAYBE_UNUSED int copyBoolOpt(lispval opts,
                                        TidyDoc tdoc,
                                        TidyOptionId optname,
                                        u8_string optstring,
-                                       fdtype dflt){
-  fdtype value = getoption(opts,optstring,dflt); int rc;
+                                       lispval dflt){
+  lispval value = getoption(opts,optstring,dflt); int rc;
   if (FD_FALSEP(value))
     rc = tidyOptSetBool(tdoc,optname,no);
   else rc = tidyOptSetBool(tdoc,optname,yes);
@@ -51,7 +51,7 @@ static U8_MAYBE_UNUSED int copyBoolOpt(fdtype opts,
 
 static U8_MAYBE_UNUSED int tidySetIntOpt(TidyDoc tdoc,
                                          TidyOptionId optname,
-                                         fdtype value){
+                                         lispval value){
   if (FD_INTP(value))
     return tidyOptSetInt(tdoc,optname,FD_FIX2INT(value));
   else {
@@ -59,12 +59,12 @@ static U8_MAYBE_UNUSED int tidySetIntOpt(TidyDoc tdoc,
     fd_seterr(fd_TypeError,"tidySetIntOpt",
               u8_strdup("integer"),value);
     return -1;}}
-static U8_MAYBE_UNUSED int copyIntOpt(fdtype opts,TidyDoc tdoc,
+static U8_MAYBE_UNUSED int copyIntOpt(lispval opts,TidyDoc tdoc,
                                       TidyOptionId optname,
                                       u8_string optstring,
                                       int dflt){
   int rc = -1;
-  fdtype value = getoption(opts,optstring,FD_VOID);
+  lispval value = getoption(opts,optstring,FD_VOID);
   if (FD_VOIDP(value))
     rc = tidyOptSetInt(tdoc,optname,dflt);
   else if (FD_INTP(value))
@@ -79,20 +79,20 @@ static U8_MAYBE_UNUSED int copyIntOpt(fdtype opts,TidyDoc tdoc,
 
 static U8_MAYBE_UNUSED int tidySetStringOpt(TidyDoc tdoc,
                                             TidyOptionId optname,
-                                            fdtype value){
+                                            lispval value){
   if (FD_STRINGP(value))
     return tidyOptSetValue(tdoc,optname,FD_STRDATA(value));
   else {
     fd_incref(value);
     fd_seterr(fd_TypeError,"tidySetIntOpt",u8_strdup("string"),value);
     return -1;}}
-static U8_MAYBE_UNUSED int copyStringOpt(fdtype opts,
+static U8_MAYBE_UNUSED int copyStringOpt(lispval opts,
                                          TidyDoc tdoc,
                                          TidyOptionId optname,
                                          u8_string optstring,
                                          u8_string dflt) {
   int rc = -1;
-  fdtype value = getoption(opts,optstring,FD_VOID);
+  lispval value = getoption(opts,optstring,FD_VOID);
   if (FD_VOIDP(value))
     rc = tidyOptSetValue(tdoc,optname,dflt);
   else if (FD_STRINGP(value))
@@ -104,9 +104,9 @@ static U8_MAYBE_UNUSED int copyStringOpt(fdtype opts,
     return -1;}
   return rc;}
 
-static U8_MAYBE_UNUSED int testopt(fdtype opts,fdtype sym,int dflt)
+static U8_MAYBE_UNUSED int testopt(lispval opts,lispval sym,int dflt)
 {
-  fdtype v = fd_getopt(opts,sym,FD_VOID);
+  lispval v = fd_getopt(opts,sym,FD_VOID);
   if (FD_VOIDP(v)) return dflt;
   else if (FD_FALSEP(v)) return 0;
   else {
@@ -116,16 +116,16 @@ static U8_MAYBE_UNUSED int testopt(fdtype opts,fdtype sym,int dflt)
 
 /* The main primitive */
 
-static fdtype doctype_symbol, dontfix_symbol, wrap_symbol, xhtml_symbol;
+static lispval doctype_symbol, dontfix_symbol, wrap_symbol, xhtml_symbol;
 
-static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
+static lispval tidy_prim_helper(lispval string,lispval opts,lispval diag,
                                int do_fixes,int xhtml)
 {
-  fdtype result = FD_VOID; TidyBuffer outbuf={NULL};
+  lispval result = FD_VOID; TidyBuffer outbuf={NULL};
   TidyBuffer errbuf={NULL};
   int rc = -1;
   TidyDoc tdoc = tidyCreate();
-  fdtype for_real = ((do_fixes)?(FD_TRUE):(FD_FALSE));
+  lispval for_real = ((do_fixes)?(FD_TRUE):(FD_FALSE));
   tidyBufInit(&outbuf);
   tidyBufInit(&errbuf);
   rc = tidySetErrorBuffer(tdoc,&errbuf);
@@ -170,14 +170,14 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   if (rc>=0) rc = copyBoolOpt(opts,tdoc,TidyMergeSpans,"MERGESPANS",FD_FALSE);
   */
   if (rc>=0) {
-    fdtype wrap = fd_getopt(opts,wrap_symbol,FD_VOID);
+    lispval wrap = fd_getopt(opts,wrap_symbol,FD_VOID);
     if (FD_INTP(wrap))
       rc = tidyOptSetInt(tdoc,TidyWrapLen,FD_FIX2INT(wrap));
     else if (!((FD_FALSEP(wrap))||(FD_VOIDP(wrap))))
       rc = tidyOptSetInt(tdoc,TidyWrapLen,80);
     else {}}
   if (rc>=0) {
-    fdtype indent = fd_getopt(opts,doctype_symbol,FD_VOID);
+    lispval indent = fd_getopt(opts,doctype_symbol,FD_VOID);
     if (FD_FALSEP(indent)) {}
     else if (FD_INTP(indent)) {
       rc = tidyOptSetValue(tdoc,TidyIndentContent,"auto");
@@ -185,7 +185,7 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
         rc = tidyOptSetInt(tdoc,TidyIndentSpaces,FD_FIX2INT(indent));}
     else rc = tidyOptSetValue(tdoc,TidyIndentContent,"auto");}
   if (rc>=0) {
-    fdtype doctype = fd_getopt(opts,doctype_symbol,FD_VOID);
+    lispval doctype = fd_getopt(opts,doctype_symbol,FD_VOID);
     if (FD_VOIDP(doctype))
       tidyOptSetInt(tdoc,TidyDoctypeMode,TidyDoctypeAuto);
     else if (FD_FALSEP(doctype))
@@ -199,7 +199,7 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
     fd_decref(doctype);}
   if (rc<0) result = fd_err(fd_TidyError,"tidy_prim/setopts",errbuf.bp,FD_VOID);
   else {
-    fdtype dontfix = fd_getopt(opts,dontfix_symbol,FD_FALSE);
+    lispval dontfix = fd_getopt(opts,dontfix_symbol,FD_FALSE);
     rc = tidyParseString(tdoc,FD_STRDATA(string));
     if (rc<0)
       result = fd_err(fd_TidyError,"tidy_prim/parse",errbuf.bp,FD_VOID);
@@ -217,13 +217,13 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
     if (!(FD_VOIDP(result))) {}
     else if (rc<0)
       result = fd_err(fd_TidyError,"tidy_prim/output",errbuf.bp,FD_VOID);
-    else result = fdtype_string(outbuf.bp);
+    else result = lispval_string(outbuf.bp);
     if ((!((FD_VOIDP(diag))||(FD_FALSEP(diag))))&&((rc>0)||(rc<0))) {
       int drc = tidyRunDiagnostics(tdoc);
       if (drc<0) u8_log(LOG_CRIT,"TIDY/diagfail","%s",errbuf.bp);
       else if (FD_APPLICABLEP(diag)) {
-        fdtype arg = fdtype_string(errbuf.bp);
-        fdtype dresult = fd_apply(diag,1,&arg);
+        lispval arg = lispval_string(errbuf.bp);
+        lispval dresult = fd_apply(diag,1,&arg);
         if (FD_ABORTP(dresult)) {
           fd_decref(result); result = dresult;}
         else fd_decref(dresult);}
@@ -234,19 +234,19 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   return result;
 }
 
-static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
+static lispval tidy_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,1,-1);
 }
-static fdtype tidy_indent_prim(fdtype string,fdtype opts,fdtype diag)
+static lispval tidy_indent_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,0,-1);
 }
-static fdtype tidy_html_prim(fdtype string,fdtype opts,fdtype diag)
+static lispval tidy_html_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,1,0);
 }
-static fdtype tidy_xhtml_prim(fdtype string,fdtype opts,fdtype diag)
+static lispval tidy_xhtml_prim(lispval string,lispval opts,lispval diag)
 {
   return tidy_prim_helper(string,opts,diag,1,1);
 }
@@ -254,7 +254,7 @@ static fdtype tidy_xhtml_prim(fdtype string,fdtype opts,fdtype diag)
 
 FD_EXPORT int fd_init_tidy()
 {
-  fdtype tidy_module;
+  lispval tidy_module;
   if (tidy_init) return 0;
 
   tidy_init = u8_millitime();

@@ -30,9 +30,9 @@ FD_EXPORT void fd_init_fdweb()
   if (fdweb_init_done) return;
   else {
     int fdscheme_version = fd_init_scheme();
-    fdtype fdweb_module = fd_new_module("FDWEB",0);
-    fdtype safe_fdweb_module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
-    fdtype xhtml_module = fd_new_module("XHTML",FD_MODULE_SAFE);
+    lispval fdweb_module = fd_new_module("FDWEB",0);
+    lispval safe_fdweb_module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
+    lispval xhtml_module = fd_new_module("XHTML",FD_MODULE_SAFE);
     fdweb_init_done = fdscheme_version;
     fd_init_xmloutput_c();
     fd_init_htmlout_c();

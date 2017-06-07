@@ -36,31 +36,31 @@ u8_condition fd_MongoDB_Warning=_("MongoDB warning");
 u8_condition fd_BSON_Input_Error=_("BSON input error");
 u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
-static fdtype sslsym;
+static lispval sslsym;
 static int default_ssl = 0;
 static int client_loglevel = LOG_INFO;
 static int logops = 0;
 
-static fdtype dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
-static fdtype hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
+static lispval dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
+static lispval hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 
 static struct FD_KEYVAL *mongo_opmap = NULL;
 static int mongo_opmap_size = 0, mongo_opmap_space = 0;
 
 fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
-static bool bson_append_keyval(struct FD_BSON_OUTPUT,fdtype,fdtype);
-static bool bson_append_dtype(struct FD_BSON_OUTPUT,const char *,int,fdtype);
-static fdtype idsym, maxkey, minkey;
-static fdtype oidtag, mongofun, mongouser, mongomd5;
-static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
-static fdtype colonize, colonizein, colonizeout, choices, nochoices;
-static fdtype skipsym, limitsym, batchsym, writesym, readsym;
-static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
-static fdtype returnsym, originalsym;
-static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
-static fdtype poolmaxsym, poolminsym;
-static fdtype mongovec_symbol;
+static bool bson_append_keyval(struct FD_BSON_OUTPUT,lispval,lispval);
+static bool bson_append_dtype(struct FD_BSON_OUTPUT,const char *,int,lispval);
+static lispval idsym, maxkey, minkey;
+static lispval oidtag, mongofun, mongouser, mongomd5;
+static lispval bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
+static lispval colonize, colonizein, colonizeout, choices, nochoices;
+static lispval skipsym, limitsym, batchsym, writesym, readsym;
+static lispval fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
+static lispval returnsym, originalsym;
+static lispval primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
+static lispval poolmaxsym, poolminsym;
+static lispval mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
 {
@@ -96,10 +96,10 @@ static void release_client(FD_MONGODB_DATABASE *server,mongoc_client_t *client)
   mongoc_client_pool_push(server->dbclients,client);
 }
 
-static int boolopt(fdtype opts,fdtype key,int dflt)
+static int boolopt(lispval opts,lispval key,int dflt)
 {
   if (FD_TABLEP(opts)) {
-    fdtype v = fd_get(opts,key,FD_VOID);
+    lispval v = fd_get(opts,key,FD_VOID);
     if (FD_VOIDP(v))
       return dflt;
     else if (FD_FALSEP(v))
@@ -110,10 +110,10 @@ static int boolopt(fdtype opts,fdtype key,int dflt)
   else return dflt;
 }
 
-static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
+static u8_string stropt(lispval opts,lispval key,u8_string dflt)
 {
   if (FD_TABLEP(opts)) {
-    fdtype v = fd_getopt(opts,key,FD_VOID);
+    lispval v = fd_getopt(opts,key,FD_VOID);
     if ((FD_VOIDP(v))||(FD_FALSEP(v))) {
       if (dflt == NULL) return dflt;
       else return u8_strdup(dflt);}
@@ -129,28 +129,28 @@ static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
   else return u8_strdup(dflt);
 }
 
-U8_MAYBE_UNUSED static bson_t *get_projection(fdtype opts,int flags)
+U8_MAYBE_UNUSED static bson_t *get_projection(lispval opts,int flags)
 {
-  fdtype projection = fd_getopt(opts,returnsym,FD_VOID);
+  lispval projection = fd_getopt(opts,returnsym,FD_VOID);
   if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
-    bson_t *fields = fd_dtype2bson(projection,flags,opts);
+    bson_t *fields = fd_lisp2bson(projection,flags,opts);
     fd_decref(projection);
     return fields;}
   else return NULL;
 }
 
-static int grow_dtype_vec(fdtype **vecp,size_t n,size_t *vlenp)
+static int grow_dtype_vec(lispval **vecp,size_t n,size_t *vlenp)
 {
-  fdtype *vec = *vecp; size_t vlen = *vlenp;
+  lispval *vec = *vecp; size_t vlen = *vlenp;
   if (n<vlen) return 1;
   else if (vec == NULL) {
-    vec = u8_alloc_n(64,fdtype);
+    vec = u8_alloc_n(64,lispval);
     if (vec) {
       *vlenp = 64; *vecp = vec;
       return 1;}}
   else {
     size_t new_len = ((vlen<8192)?(vlen*2):(vlen+8192));
-    fdtype *new_vec = u8_realloc_n(vec,new_len,fdtype);
+    lispval *new_vec = u8_realloc_n(vec,new_len,lispval);
     if (new_vec) {
       *vecp = new_vec; *vlenp = new_len;
       return 1;}}
@@ -160,7 +160,7 @@ static int grow_dtype_vec(fdtype **vecp,size_t n,size_t *vlenp)
   return 0;
 }
 
-static void free_dtype_vec(fdtype *vec,int n)
+static void free_dtype_vec(lispval *vec,int n)
 {
   if (vec == NULL) return;
   else {
@@ -172,7 +172,7 @@ static void free_dtype_vec(fdtype *vec,int n)
 
 int mongodb_defaults = FD_MONGODB_DEFAULTS;
 
-static int getflags(fdtype opts,int dflt)
+static int getflags(lispval opts,int dflt)
 {
   if ((FD_VOIDP(opts)||(FD_FALSEP(opts))||(FD_DEFAULTP(opts))))
     if (dflt<0) return mongodb_defaults;
@@ -192,7 +192,7 @@ static int getflags(fdtype opts,int dflt)
     if (fd_overlapp(opts,nochoices)) flags &= (~FD_MONGODB_CHOICEVALS);
     return flags;}
   else if (FD_TABLEP(opts)) {
-    fdtype flagsv = fd_getopt(opts,bsonflags,FD_VOID);
+    lispval flagsv = fd_getopt(opts,bsonflags,FD_VOID);
     if (FD_VOIDP(flagsv)) {
       if (dflt<0) return FD_MONGODB_DEFAULTS;
       else return dflt;}
@@ -204,7 +204,7 @@ static int getflags(fdtype opts,int dflt)
   else return dflt;
 }
 
-static int get_write_flags(fdtype val)
+static int get_write_flags(lispval val)
 {
   if (FD_VOIDP(val)) 
     return MONGOC_WRITE_CONCERN_W_DEFAULT;
@@ -221,10 +221,10 @@ static int get_write_flags(fdtype val)
     return MONGOC_WRITE_CONCERN_W_DEFAULT;}
 }
 
-static mongoc_write_concern_t *get_write_concern(fdtype opts)
+static mongoc_write_concern_t *get_write_concern(lispval opts)
 {
-  fdtype val = fd_getopt(opts,writesym,FD_VOID);
-  fdtype wait = fd_getopt(opts,wtimeoutsym,FD_VOID);
+  lispval val = fd_getopt(opts,writesym,FD_VOID);
+  lispval wait = fd_getopt(opts,wtimeoutsym,FD_VOID);
   if ((FD_VOIDP(val))&&(FD_VOIDP(wait))) return NULL;
   else {
     mongoc_write_concern_t *wc = mongoc_write_concern_new();
@@ -239,7 +239,7 @@ static mongoc_write_concern_t *get_write_concern(fdtype opts)
     return wc;}
 }
 
-static int getreadmode(fdtype val)
+static int getreadmode(lispval val)
 {
   if (FD_EQ(val,primarysym))
     return MONGOC_READ_PRIMARY;
@@ -256,9 +256,9 @@ static int getreadmode(fdtype val)
     return MONGOC_READ_PRIMARY;}
 }
 
-static mongoc_read_prefs_t *get_read_prefs(fdtype opts)
+static mongoc_read_prefs_t *get_read_prefs(lispval opts)
 {
-  fdtype spec = fd_getopt(opts,readsym,FD_VOID);
+  lispval spec = fd_getopt(opts,readsym,FD_VOID);
   if (FD_VOIDP(spec)) return NULL;
   else {
     mongoc_read_prefs_t *rp = mongoc_read_prefs_new(MONGOC_READ_PRIMARY);
@@ -268,7 +268,7 @@ static mongoc_read_prefs_t *get_read_prefs(fdtype opts)
         int p = getreadmode(s);
         mongoc_read_prefs_set_mode(rp,p);}
       else if (FD_TABLEP(s)) {
-        const bson_t *bson = fd_dtype2bson(s,flags,opts);
+        const bson_t *bson = fd_lisp2bson(s,flags,opts);
         mongoc_read_prefs_add_tag(rp,bson);}
       else {
         u8_log(LOGWARN,"mongodb/getreadmode","Bad MongoDB read preference %q",s);}}
@@ -276,7 +276,7 @@ static mongoc_read_prefs_t *get_read_prefs(fdtype opts)
     return rp;}
 }
 
-static fdtype combine_opts(fdtype opts,fdtype clopts)
+static lispval combine_opts(lispval opts,lispval clopts)
 {
   if (opts == clopts) {
     fd_incref(opts); return opts;}
@@ -291,12 +291,12 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
     return opts;}
 }
 
-static U8_MAYBE_UNUSED bson_t *getfindopts(fdtype opts,int flags)
+static U8_MAYBE_UNUSED bson_t *getfindopts(lispval opts,int flags)
 {
-  fdtype skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
-  fdtype limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-  fdtype batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
-  fdtype projection = fd_getopt(opts,returnsym,FD_VOID);
+  lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
+  lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
+  lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
+  lispval projection = fd_getopt(opts,returnsym,FD_VOID);
   struct FD_BSON_OUTPUT out; bson_t *doc = bson_new();
   out.bson_doc = doc;
   out.bson_opts = opts;
@@ -328,17 +328,17 @@ static U8_MAYBE_UNUSED bson_t *getfindopts(fdtype opts,int flags)
   return out.bson_doc;
 }
 
-static int mongodb_getflags(fdtype mongodb);
+static int mongodb_getflags(lispval mongodb);
 
 /* Consing MongoDB clients, collections, and cursors */
 
 static u8_string get_connection_spec(mongoc_uri_t *info);
-static int setup_ssl(mongoc_ssl_opt_t *,mongoc_uri_t *,fdtype);
+static int setup_ssl(mongoc_ssl_opt_t *,mongoc_uri_t *,lispval);
 static u8_string modify_ssl(u8_string uri,int add);
 
 /* This returns a MongoDB server object which wraps a MongoDB client
    pool. */
-static fdtype mongodb_open(fdtype arg,fdtype opts)
+static lispval mongodb_open(lispval arg,lispval opts)
 {
   mongoc_client_pool_t *client_pool; int flags;
   mongoc_uri_t *info; u8_string uri;
@@ -348,7 +348,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     uri = modify_ssl(FD_STRDATA(arg),add_ssl);
     info = mongoc_uri_new(uri);}
   else if (FD_SYMBOLP(arg)) {
-    fdtype conf_val = fd_config_get(FD_SYMBOL_NAME(arg));
+    lispval conf_val = fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((FD_STRINGP(conf_val))||
@@ -366,8 +366,8 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
   if (client_pool) {
     struct FD_MONGODB_DATABASE *srv = u8_alloc(struct FD_MONGODB_DATABASE);
     u8_string dbname = mongoc_uri_get_database(info);
-    fdtype poolmax = fd_getopt(opts,poolmaxsym,FD_VOID);
-    fdtype poolmin = fd_getopt(opts,poolminsym,FD_VOID);
+    lispval poolmax = fd_getopt(opts,poolmaxsym,FD_VOID);
+    lispval poolmin = fd_getopt(opts,poolminsym,FD_VOID);
     if ((mongoc_uri_get_ssl(info))&& 
         (setup_ssl(&ssl_opts,info,opts)))
       mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
@@ -390,7 +390,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/open",
              "Opened %s with %s",dbname,srv->dbspec);
-    return (fdtype)srv;}
+    return (lispval)srv;}
   else {
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
@@ -403,7 +403,7 @@ static void recycle_server(struct FD_RAW_CONS *c)
   fd_decref(s->dbopts);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
-static int unparse_server(struct U8_OUTPUT *out,fdtype x)
+static int unparse_server(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_MONGODB_DATABASE *srv = (struct FD_MONGODB_DATABASE *)x;
   u8_printf(out,"#<MongoDB/Server %s/%s>",srv->dbspec,srv->dbname);
@@ -429,11 +429,11 @@ static u8_string modify_ssl(u8_string uri,int add)
   
 }
 
-static fdtype pemsym, pempwd, cafilesym, cadirsym, crlsym;
+static lispval pemsym, pempwd, cafilesym, cadirsym, crlsym;
 
 static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
                      mongoc_uri_t *info,
-                     fdtype opts)
+                     lispval opts)
 {
   const mongoc_ssl_opt_t *default_opts = mongoc_ssl_opt_get_default();
   memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
@@ -456,12 +456,12 @@ static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
    that it won't correspond to a single mongoc_collection_t object,
    but that each use of the collection will pop a client from the pool
    and create a collection with that client. */
-static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
+static lispval mongodb_collection(lispval server,lispval name_arg,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_DATABASE *srv;
   u8_string name = FD_STRDATA(name_arg), collection_name = NULL; 
-  fdtype opts; int flags;
+  lispval opts; int flags;
   if (FD_TYPEP(server,fd_mongoc_server)) {
     srv = (struct FD_MONGODB_DATABASE *)server;
     flags = getflags(opts_arg,srv->dbflags);
@@ -470,7 +470,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   else if ((FD_STRINGP(server))||
            (FD_SYMBOLP(server))||
            (FD_TYPEP(server,fd_secret_type))) {
-    fdtype consed = mongodb_open(server,opts_arg);
+    lispval consed = mongodb_open(server,opts_arg);
     if (FD_ABORTP(consed)) return consed;
     server = consed; srv = (struct FD_MONGODB_DATABASE *)consed;
     flags = getflags(opts_arg,srv->dbflags);
@@ -489,7 +489,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   result->domain_opts = opts;
   result->domain_flags = flags;
   result->collection_name = collection_name;
-  return (fdtype) result;
+  return (lispval) result;
 }
 static void recycle_collection(struct FD_RAW_CONS *c)
 {
@@ -498,7 +498,7 @@ static void recycle_collection(struct FD_RAW_CONS *c)
   fd_decref(collection->domain_opts);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
-static int unparse_collection(struct U8_OUTPUT *out,fdtype x)
+static int unparse_collection(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_MONGODB_COLLECTION *coll = (struct FD_MONGODB_COLLECTION *)x;
   struct FD_MONGODB_DATABASE *db=
@@ -535,7 +535,7 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
 
 /* This returns a client to a client pool.  The argument can be either
    a server or a collection (which is followed to its server). */
-static void client_done(fdtype arg,mongoc_client_t *client)
+static void client_done(lispval arg,mongoc_client_t *client)
 {
   if (FD_TYPEP(arg,fd_mongoc_server)) {
     struct FD_MONGODB_DATABASE *server = (struct FD_MONGODB_DATABASE *)arg;
@@ -562,7 +562,7 @@ static void collection_done(mongoc_collection_t *collection,
 
 /* Basic operations on collections */
 
-static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
+static lispval mongodb_insert(lispval arg,lispval obj,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db=
@@ -570,9 +570,9 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
   if (FD_EMPTY_CHOICEP(obj))
     return FD_EMPTY_CHOICE;
   else {
-    fdtype result;
+    lispval result;
     int flags = getflags(opts_arg,domain->domain_flags);
-    fdtype opts = combine_opts(opts_arg,db->dbopts);
+    lispval opts = combine_opts(opts_arg,db->dbopts);
     mongoc_client_t *client = NULL; bool retval;
     mongoc_collection_t *collection = open_collection(domain,&client,flags);
     if (collection) {
@@ -585,7 +585,7 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
         mongoc_bulk_operation_t *bulk=
           mongoc_collection_create_bulk_operation(collection,true,wc);
         FD_DO_CHOICES(elt,obj) {
-          bson_t *doc = fd_dtype2bson(elt,flags,opts);
+          bson_t *doc = fd_lisp2bson(elt,flags,opts);
           if (doc) {
             mongoc_bulk_operation_insert(bulk,doc);
             bson_destroy(doc);}}
@@ -604,7 +604,7 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
           result = FD_ERROR_VALUE;}
         bson_destroy(&reply);}
       else {
-        bson_t *doc = fd_dtype2bson(obj,flags,opts);
+        bson_t *doc = fd_lisp2bson(obj,flags,opts);
         retval = (doc==NULL) ? (0) :
           (mongoc_collection_insert(collection,MONGOC_INSERT_NONE,doc,wc,&error));
         if (retval) {
@@ -627,12 +627,12 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
     return result;}
 }
 
-static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
+static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
 {
-  fdtype result = FD_VOID;
+  lispval result = FD_VOID;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
-  fdtype opts = combine_opts(opts_arg,db->dbopts);
+  lispval opts = combine_opts(opts_arg,db->dbopts);
   int flags = getflags(opts_arg,domain->domain_flags), hasid = 1;
   mongoc_client_t *client = NULL;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
@@ -644,7 +644,7 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
     q.bson_flags = flags;
     q.bson_fieldmap = FD_VOID;
     if (FD_TABLEP(obj)) {
-      fdtype id = fd_get(obj,idsym,FD_VOID);
+      lispval id = fd_get(obj,idsym,FD_VOID);
       if (FD_VOIDP(id)) {
         q.bson_fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
         fd_bson_output(q,obj);
@@ -676,18 +676,18 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
   return result;
 }
 
-static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
-                             fdtype opts_arg)
+static lispval mongodb_update(lispval arg,lispval query,lispval update,
+                             lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
-    bson_t *q = fd_dtype2bson(query,flags,opts);
-    bson_t *u = fd_dtype2bson(update,flags,opts);
+    bson_t *q = fd_lisp2bson(query,flags,opts);
+    bson_t *u = fd_lisp2bson(update,flags,opts);
     mongoc_write_concern_t *wc = get_write_concern(opts);
     bson_error_t error;
     int success = 0, no_error = boolopt(opts,softfailsym,0);
@@ -734,21 +734,21 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
 }
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
-static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
+static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
-    fdtype results = FD_EMPTY_CHOICE;
+    lispval results = FD_EMPTY_CHOICE;
     mongoc_cursor_t *cursor = NULL;
     const bson_t *doc;
-    bson_t *q = fd_dtype2bson(query,flags,opts);
+    bson_t *q = fd_lisp2bson(query,flags,opts);
     bson_t *findopts = getfindopts(opts,flags);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
-    fdtype *vec = NULL; size_t n = 0, max = 0;
+    lispval *vec = NULL; size_t n = 0, max = 0;
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
     if ((logops)||(flags&FD_MONGODB_LOGOPS))
       u8_log(-LOG_INFO,"MongoDB/find",
@@ -758,7 +758,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     if (cursor) {
       while (mongoc_cursor_next(cursor,&doc)) {
         /* u8_string json = bson_as_json(doc,NULL); */
-        fdtype r = fd_bson2dtype((bson_t *)doc,flags,opts);
+        lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
         if (FD_ABORTP(r)) {
           fd_decref(results);
           free_dtype_vec(vec,n);
@@ -800,25 +800,25 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     return FD_ERROR_VALUE;}
 }
 #else
-static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
+static lispval mongodb_find(lispval arg,lispval query,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
-    fdtype results = FD_EMPTY_CHOICE;
+    lispval results = FD_EMPTY_CHOICE;
     mongoc_cursor_t *cursor = NULL;
     const bson_t *doc;
-    fdtype skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
-    fdtype limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-    fdtype batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
+    lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
+    lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
+    lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
     int sort_results = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
-    fdtype *vec = NULL; size_t n = 0, max = 0;
+    lispval *vec = NULL; size_t n = 0, max = 0;
     if ((FD_UINTP(skip_arg))&&(FD_UINTP(limit_arg))&&(FD_UINTP(batch_arg))) {
-      bson_t *q = fd_dtype2bson(query,flags,opts);
+      bson_t *q = fd_lisp2bson(query,flags,opts);
       bson_t *fields = get_projection(opts,flags);
       mongoc_read_prefs_t *rp = get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
@@ -834,7 +834,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
       if (cursor) {
         while (mongoc_cursor_next(cursor,&doc)) {
           /* u8_string json = bson_as_json(doc,NULL); */
-          fdtype r = fd_bson2dtype((bson_t *)doc,flags,opts);
+          lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
           if (FD_ABORTP(r)) {
             fd_decref(results);
             free_dtype_vec(vec,n);
@@ -877,12 +877,12 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 #endif
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
-static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
+static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
-  fdtype result = FD_EMPTY_CHOICE;
+  lispval result = FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
@@ -891,7 +891,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     bson_t *q, *findopts = getfindopts(opts,flags);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
-      q = fd_dtype2bson(query,flags,opts);
+      q = fd_lisp2bson(query,flags,opts);
     else {
       struct FD_BSON_OUTPUT out;
       out.bson_doc = bson_new();
@@ -919,13 +919,13 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     return FD_ERROR_VALUE;}
 }
 #else
-static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
+static lispval mongodb_get(lispval arg,lispval query,lispval opts_arg)
 {
-  fdtype result = FD_EMPTY_CHOICE;
+  lispval result = FD_EMPTY_CHOICE;
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client = NULL;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
@@ -934,7 +934,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     bson_t *q, *fields = get_projection(opts,flags);
     mongoc_read_prefs_t *rp = get_read_prefs(opts);
     if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
-      q = fd_dtype2bson(query,flags,opts);
+      q = fd_lisp2bson(query,flags,opts);
     else {
       struct FD_BSON_OUTPUT out;
       out.bson_doc = bson_new();
@@ -965,26 +965,26 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 
 /* Find and Modify */
 
-static int getnewopt(fdtype opts,int dflt);
+static int getnewopt(lispval opts,int dflt);
 
-static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
-                             fdtype opts_arg)
+static lispval mongodb_modify(lispval arg,lispval query,lispval update,
+                             lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   struct FD_MONGODB_DATABASE *db = DOMAIN2DB(domain);
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *client;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {
-    fdtype result = FD_VOID;
-    fdtype sort = fd_getopt(opts,FDSYM_SORT,FD_VOID);
-    fdtype fields = fd_getopt(opts,fieldssym,FD_VOID);
-    fdtype upsert = fd_getopt(opts,upsertsym,FD_FALSE);
-    fdtype remove = fd_getopt(opts,removesym,FD_FALSE);
-    fdtype donew = getnewopt(opts,1);
-    bson_t *q = fd_dtype2bson(query,flags,opts);
-    bson_t *u = fd_dtype2bson(update,flags,opts);
+    lispval result = FD_VOID;
+    lispval sort = fd_getopt(opts,FDSYM_SORT,FD_VOID);
+    lispval fields = fd_getopt(opts,fieldssym,FD_VOID);
+    lispval upsert = fd_getopt(opts,upsertsym,FD_FALSE);
+    lispval remove = fd_getopt(opts,removesym,FD_FALSE);
+    lispval donew = getnewopt(opts,1);
+    bson_t *q = fd_lisp2bson(query,flags,opts);
+    bson_t *u = fd_lisp2bson(update,flags,opts);
     bson_t *reply = bson_new(); bson_error_t error;
     if ((q == NULL)||(u == NULL)) {
       U8_CLEAR_ERRNO();
@@ -994,8 +994,8 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
              query,update,arg);
     if (mongoc_collection_find_and_modify
         (collection,
-         q,fd_dtype2bson(sort,flags,opts),
-         u,fd_dtype2bson(fields,flags,opts),
+         q,fd_lisp2bson(sort,flags,opts),
+         u,fd_lisp2bson(fields,flags,opts),
          ((FD_FALSEP(remove))?(false):(true)),
          ((FD_FALSEP(upsert))?(false):(true)),
          ((FD_FALSEP(donew))?(false):(true)),
@@ -1025,9 +1025,9 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
     return FD_ERROR_VALUE;}
 }
 
-static int getnewopt(fdtype opts,int dflt)
+static int getnewopt(lispval opts,int dflt)
 {
-  fdtype v = fd_getopt(opts,newsym,FD_VOID);
+  lispval v = fd_getopt(opts,newsym,FD_VOID);
   if (FD_VOIDP(v)) {
     v = fd_getopt(opts,originalsym,FD_VOID);
     if (FD_VOIDP(v)) return dflt;
@@ -1043,19 +1043,19 @@ static int getnewopt(fdtype opts,int dflt)
 
 /* Command execution */
 
-static fdtype make_mongovec(fdtype vec);
+static lispval make_mongovec(lispval vec);
 
-static fdtype make_command(int n,fdtype *values)
+static lispval make_command(int n,lispval *values)
 {
   if ((n%2)==1)
     return fd_err(fd_SyntaxError,"make_command","Odd number of arguments",FD_VOID);
   else {
-    fdtype result = fd_make_slotmap(n/2,n/2,NULL);
+    lispval result = fd_make_slotmap(n/2,n/2,NULL);
     struct FD_KEYVAL *keyvals = FD_SLOTMAP_KEYVALS(result);
     int n_slots=n/2;
     int i = 0; while (i<n_slots) {
-      fdtype key = values[i*2];
-      fdtype value = values[i*2+1];
+      lispval key = values[i*2];
+      lispval value = values[i*2+1];
       keyvals[i].kv_key=fd_incref(key);
       if (FD_VECTORP(value))
         keyvals[i].kv_val=make_mongovec(value);
@@ -1064,24 +1064,24 @@ static fdtype make_command(int n,fdtype *values)
     return result;}
 }
 
-static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
+static lispval collection_command(lispval arg,lispval command,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
-  fdtype fields = fd_get(opts,fieldssym,FD_VOID);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval fields = fd_get(opts,fieldssym,FD_VOID);
   mongoc_client_t *client;
   mongoc_collection_t *collection = open_collection(domain,&client,flags);
   if (collection) {U8_CLEAR_ERRNO();}
   if (collection) {
-    fdtype results = FD_EMPTY_CHOICE;
-    bson_t *cmd = fd_dtype2bson(command,flags,opts);
-    bson_t *flds = fd_dtype2bson(fields,flags,opts);
+    lispval results = FD_EMPTY_CHOICE;
+    bson_t *cmd = fd_lisp2bson(command,flags,opts);
+    bson_t *flds = fd_lisp2bson(fields,flags,opts);
     if (cmd) {
       const bson_t *doc;
-      fdtype skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
-      fdtype limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-      fdtype batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
+      lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
+      lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
+      lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
       if ((FD_UINTP(skip_arg))&&
           (FD_UINTP(limit_arg))&&
           (FD_UINTP(batch_arg))) {
@@ -1094,7 +1094,7 @@ static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
         if (cursor) {
           U8_CLEAR_ERRNO();
           while ((cursor) && (mongoc_cursor_next(cursor,&doc))) {
-            fdtype r = fd_bson2dtype((bson_t *)doc,flags,opts);
+            lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
             FD_ADD_TO_CHOICE(results,r);}
           mongoc_cursor_destroy(cursor);}
         else results=FD_ERROR_VALUE;}
@@ -1113,24 +1113,24 @@ static fdtype collection_command(fdtype arg,fdtype command,fdtype opts_arg)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype db_command(fdtype arg,fdtype command,
-                         fdtype opts_arg)
+static lispval db_command(lispval arg,lispval command,
+                         lispval opts_arg)
 {
   struct FD_MONGODB_DATABASE *srv = (struct FD_MONGODB_DATABASE *)arg;
   int flags = getflags(opts_arg,srv->dbflags);
-  fdtype opts = combine_opts(opts_arg,srv->dbopts);
-  fdtype fields = fd_getopt(opts,fieldssym,FD_VOID);
+  lispval opts = combine_opts(opts_arg,srv->dbopts);
+  lispval fields = fd_getopt(opts,fieldssym,FD_VOID);
   mongoc_client_t *client = get_client(srv,MONGODB_CLIENT_BLOCK);
   if (client) {U8_CLEAR_ERRNO();}
   if (client) {
-    fdtype results = FD_EMPTY_CHOICE;
-    bson_t *cmd = fd_dtype2bson(command,flags,opts);
-    bson_t *flds = fd_dtype2bson(fields,flags,opts);
+    lispval results = FD_EMPTY_CHOICE;
+    bson_t *cmd = fd_lisp2bson(command,flags,opts);
+    bson_t *flds = fd_lisp2bson(fields,flags,opts);
     if (cmd) {
       const bson_t *doc;
-      fdtype skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
-      fdtype limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-      fdtype batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
+      lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
+      lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
+      lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
       if ((FD_UINTP(skip_arg))&&
           (FD_UINTP(limit_arg))&&
           (FD_UINTP(batch_arg))) {
@@ -1143,7 +1143,7 @@ static fdtype db_command(fdtype arg,fdtype command,
         if (cursor) {
           U8_CLEAR_ERRNO();
           while (mongoc_cursor_next(cursor,&doc)) {
-            fdtype r = fd_bson2dtype((bson_t *)doc,flags,opts);
+            lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
             FD_ADD_TO_CHOICE(results,r);}
           mongoc_cursor_destroy(cursor);}
         else {
@@ -1165,9 +1165,9 @@ static fdtype db_command(fdtype arg,fdtype command,
   else return FD_ERROR_VALUE;
 }
 
-static fdtype mongodb_command(int n,fdtype *args)
+static lispval mongodb_command(int n,lispval *args)
 {
-  fdtype arg = args[0], opts = FD_VOID, command = FD_VOID, result = FD_VOID;
+  lispval arg = args[0], opts = FD_VOID, command = FD_VOID, result = FD_VOID;
   int flags = mongodb_getflags(arg);
   if (flags<0)
     return fd_type_error(_("MongoDB"),"mongodb_command",arg);
@@ -1191,13 +1191,13 @@ static fdtype mongodb_command(int n,fdtype *args)
   return result;
 }
 
-static fdtype collection_simple_command(fdtype arg,fdtype command,
-                                        fdtype opts_arg)
+static lispval collection_simple_command(lispval arg,lispval command,
+                                        lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
-  bson_t *cmd = fd_dtype2bson(command,flags,opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
+  bson_t *cmd = fd_lisp2bson(command,flags,opts);
   if (cmd) {
     mongoc_client_t *client;
     mongoc_collection_t *collection = open_collection(domain,&client,flags);
@@ -1206,7 +1206,7 @@ static fdtype collection_simple_command(fdtype arg,fdtype command,
       bson_t response; bson_error_t error;
       if (mongoc_collection_command_simple
           (collection,cmd,NULL,&response,&error)) {
-        fdtype result = fd_bson2dtype(&response,flags,opts);
+        lispval result = fd_bson2dtype(&response,flags,opts);
         collection_done(collection,client,domain);
         bson_destroy(cmd); fd_decref(opts);
         return result;}
@@ -1223,20 +1223,20 @@ static fdtype collection_simple_command(fdtype arg,fdtype command,
     return FD_ERROR_VALUE;}
 }
 
-static fdtype db_simple_command(fdtype arg,fdtype command,
-                                fdtype opts_arg)
+static lispval db_simple_command(lispval arg,lispval command,
+                                lispval opts_arg)
 {
   struct FD_MONGODB_DATABASE *srv = (struct FD_MONGODB_DATABASE *)arg;
   int flags = getflags(opts_arg,srv->dbflags);
-  fdtype opts = combine_opts(opts_arg,srv->dbopts);
+  lispval opts = combine_opts(opts_arg,srv->dbopts);
   mongoc_client_t *client = get_client(srv,MONGODB_CLIENT_BLOCK);
   if (client) {
     bson_t response; bson_error_t error;
-    bson_t *cmd = fd_dtype2bson(command,flags,opts);
+    bson_t *cmd = fd_lisp2bson(command,flags,opts);
     if (cmd) {
       if (mongoc_client_command_simple
           (client,srv->dbname,cmd,NULL,&response,&error)) {
-        fdtype result = fd_bson2dtype(&response,flags,opts);
+        lispval result = fd_bson2dtype(&response,flags,opts);
         client_done(arg,client);
         bson_destroy(cmd); fd_decref(opts);
         return result;}
@@ -1250,9 +1250,9 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
   else return FD_ERROR_VALUE;
 }
 
-static fdtype mongodb_simple_command(int n,fdtype *args)
+static lispval mongodb_simple_command(int n,lispval *args)
 {
-  fdtype arg = args[0], opts = FD_VOID, command = FD_VOID, result = FD_VOID;
+  lispval arg = args[0], opts = FD_VOID, command = FD_VOID, result = FD_VOID;
   int flags = mongodb_getflags(arg);
   if (flags<0) return fd_type_error(_("MongoDB"),"mongodb_command",arg);
   else if (n==2) {
@@ -1278,15 +1278,15 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
 /* Cursor creation */
 
 #if HAVE_MONGOC_OPTS_FUNCTIONS
-static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
+static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *connection;
   mongoc_cursor_t *cursor = NULL;
   mongoc_collection_t *collection = open_collection(domain,&connection,flags);
-  bson_t *bq = fd_dtype2bson(query,flags,opts);
+  bson_t *bq = fd_lisp2bson(query,flags,opts);
   bson_t *findopts = getfindopts(opts,flags);
   mongoc_read_prefs_t *rp = get_read_prefs(opts);
   if (collection) {
@@ -1305,7 +1305,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     consed->cursor_connection = connection;
     consed->cursor_collection = collection;
     consed->mongoc_cursor = cursor;
-   return (fdtype) consed;}
+   return (lispval) consed;}
   else {
     fd_decref(opts);
     if (rp) mongoc_read_prefs_destroy(rp);
@@ -1315,18 +1315,18 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     return FD_ERROR_VALUE;}
 }
 #else
-static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
+static lispval mongodb_cursor(lispval arg,lispval query,lispval opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain = (struct FD_MONGODB_COLLECTION *)arg;
   int flags = getflags(opts_arg,domain->domain_flags);
-  fdtype opts = combine_opts(opts_arg,domain->domain_opts);
+  lispval opts = combine_opts(opts_arg,domain->domain_opts);
   mongoc_client_t *connection;
   mongoc_cursor_t *cursor = NULL;
   mongoc_collection_t *collection = open_collection(domain,&connection,flags);
-  fdtype skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
-  fdtype limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
-  fdtype batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
-  bson_t *bq = fd_dtype2bson(query,flags,opts);
+  lispval skip_arg = fd_getopt(opts,skipsym,FD_FIXZERO);
+  lispval limit_arg = fd_getopt(opts,limitsym,FD_FIXZERO);
+  lispval batch_arg = fd_getopt(opts,batchsym,FD_FIXZERO);
+  bson_t *bq = fd_lisp2bson(query,flags,opts);
   bson_t *fields = get_projection(opts,flags);
   mongoc_read_prefs_t *rp = get_read_prefs(opts);
   if ((collection)&&
@@ -1352,7 +1352,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     consed->cursor_connection = connection;
     consed->cursor_collection = collection;
     consed->mongoc_cursor = cursor;
-   return (fdtype) consed;}
+   return (lispval) consed;}
   else {
     fd_decref(skip_arg); fd_decref(limit_arg); fd_decref(batch_arg);
     fd_decref(opts);
@@ -1381,7 +1381,7 @@ static void recycle_cursor(struct FD_RAW_CONS *c)
     mongoc_read_prefs_destroy(cursor->cursor_readprefs);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
-static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
+static int unparse_cursor(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_MONGODB_CURSOR *cursor = (struct FD_MONGODB_CURSOR *)x;
   struct FD_MONGODB_COLLECTION *domain = CURSOR2DOMAIN(cursor);
@@ -1393,7 +1393,7 @@ static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
 
 /* Operations on cursors */
 
-static fdtype mongodb_donep(fdtype cursor)
+static lispval mongodb_donep(lispval cursor)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
   if (mongoc_cursor_more(c->mongoc_cursor))
@@ -1401,7 +1401,7 @@ static fdtype mongodb_donep(fdtype cursor)
   else return FD_FALSE;
 }
 
-static fdtype mongodb_skip(fdtype cursor,fdtype howmany)
+static lispval mongodb_skip(lispval cursor,lispval howmany)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
   if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
@@ -1411,14 +1411,14 @@ static fdtype mongodb_skip(fdtype cursor,fdtype howmany)
   if (i == n) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
+static lispval mongodb_read(lispval cursor,lispval howmany,lispval opts_arg)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
   if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
   int n = FD_FIX2INT(howmany), i = 0;
   if (n==0) return FD_EMPTY_CHOICE;
   else {
-    fdtype results = FD_EMPTY_CHOICE, *vec = NULL, opts = c->cursor_opts;
+    lispval results = FD_EMPTY_CHOICE, *vec = NULL, opts = c->cursor_opts;
     mongoc_cursor_t *scan = c->mongoc_cursor; const bson_t *doc;
     int flags = c->cursor_flags; size_t n = 0, vlen = 0;
     int sorted = fd_testopt(opts,FDSYM_SORTED,FD_VOID);
@@ -1428,7 +1428,7 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
       sorted = fd_testopt(opts,FDSYM_SORTED,FD_VOID);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
       /* u8_string json = bson_as_json(doc,NULL); */
-      fdtype r = fd_bson2dtype((bson_t *)doc,flags,opts);
+      lispval r = fd_bson2dtype((bson_t *)doc,flags,opts);
       if (FD_ABORTP(r)) {
         fd_decref(results);
         free_dtype_vec(vec,i);
@@ -1453,27 +1453,27 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
     return results;}
 }
 
-static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
+static lispval mongodb_readvec(lispval cursor,lispval howmany,lispval opts_arg)
 {
   struct FD_MONGODB_CURSOR *c = (struct FD_MONGODB_CURSOR *)cursor;
   if (!(FD_UINTP(howmany))) return fd_type_error("uint","mongodb_skip",howmany);
   int n = FD_FIX2INT(howmany), i = 0;
   if (n==0) return fd_make_vector(0,NULL);
   else {
-    fdtype result = fd_make_vector(n,NULL);
+    lispval result = fd_make_vector(n,NULL);
     mongoc_cursor_t *scan = c->mongoc_cursor; const bson_t *doc;
-    fdtype opts = c->cursor_opts;
+    lispval opts = c->cursor_opts;
     int flags = c->cursor_flags;
     if (!(FD_VOIDP(opts_arg))) {
       flags = getflags(opts_arg,c->cursor_flags);
       opts = combine_opts(opts_arg,opts);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
-      fdtype dtype = fd_bson2dtype((bson_t *)doc,flags,opts);
+      lispval dtype = fd_bson2dtype((bson_t *)doc,flags,opts);
       FD_VECTOR_SET(result,i,dtype); i++;}
     if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
     if (i == n) return result;
     else {
-      fdtype truncated = fd_make_vector(i,FD_VECTOR_DATA(result));
+      lispval truncated = fd_make_vector(i,FD_VECTOR_DATA(result));
       u8_free((struct FD_CONS *)result);
       return truncated;}}
 }
@@ -1482,7 +1482,7 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
 
 static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
                               const char *key,int keylen,
-                              fdtype val)
+                              lispval val)
 {
   bson_t *out = b.bson_doc; int flags = b.bson_flags; bool ok = true;
   if (FD_CONSP(val)) {
@@ -1550,7 +1550,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       bson_t arr, ch; char buf[16];
       struct FD_VECTOR *vec = (struct FD_VECTOR *)val;
       int i = 0, lim = vec->fdvec_length;
-      fdtype *data = vec->fdvec_elts;
+      lispval *data = vec->fdvec_elts;
       int wrap_vector = ((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
       if (wrap_vector) {
         ok = bson_append_array_begin(out,key,keylen,&ch);
@@ -1560,7 +1560,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       rout.bson_doc = &arr; rout.bson_flags = b.bson_flags; 
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) while (i<lim) {
-          fdtype v = data[i]; sprintf(buf,"%d",i++);
+          lispval v = data[i]; sprintf(buf,"%d",i++);
           ok = bson_append_dtype(rout,buf,strlen(buf),v);
           if (!(ok)) break;}
       if (wrap_vector) {
@@ -1571,14 +1571,14 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     case fd_slotmap_type: case fd_hashtable_type: {
       struct FD_BSON_OUTPUT rout;
       bson_t doc;
-      fdtype keys = fd_getkeys(val);
+      lispval keys = fd_getkeys(val);
       ok = bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
       rout.bson_doc = &doc; rout.bson_flags = b.bson_flags; 
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (ok) {
         FD_DO_CHOICES(key,keys) {
-          fdtype value = fd_get(val,key,FD_VOID);
+          lispval value = fd_get(val,key,FD_VOID);
           if (!(FD_VOIDP(value))) {
             ok = bson_append_keyval(rout,key,value);
             fd_decref(value);
@@ -1597,7 +1597,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_compound_type: {
       struct FD_COMPOUND *compound = FD_XCOMPOUND(val);
-      fdtype tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(val);
+      lispval tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(val);
       int len = FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
       bson_t doc;
@@ -1608,7 +1608,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       rout.bson_doc = &doc; rout.bson_flags = b.bson_flags; 
       rout.bson_opts = b.bson_opts; rout.bson_fieldmap = b.bson_fieldmap;
       if (tag == mongovec_symbol) {
-        fdtype *scan = elts, *limit = scan+len; int i = 0;
+        lispval *scan = elts, *limit = scan+len; int i = 0;
         while (scan<limit) {
           u8_byte buf[16]; sprintf(buf,"%d",i);
           ok = bson_append_dtype(rout,buf,strlen(buf),*scan);
@@ -1681,12 +1681,12 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       return rv;}}
 }
 
-static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
+static bool bson_append_keyval(FD_BSON_OUTPUT b,lispval key,lispval val)
 {
   int flags = b.bson_flags;
   struct U8_OUTPUT keyout; unsigned char buf[256];
   const char *keystring = NULL; int keylen; bool ok = true;
-  fdtype fieldmap = b.bson_fieldmap, store_value = val;
+  lispval fieldmap = b.bson_fieldmap, store_value = val;
   U8_INIT_OUTPUT_BUF(&keyout,256,buf);
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
@@ -1694,7 +1694,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
       struct FD_KEYVAL *opmap = fd_sortvec_get(key,mongo_opmap,mongo_opmap_size);
       if (FD_EXPECT_FALSE(opmap!=NULL))  {
         if (FD_STRINGP(opmap->kv_val)) {
-          fdtype mapped = opmap->kv_val;
+          lispval mapped = opmap->kv_val;
           keystring = FD_STRDATA(mapped);
           keylen = FD_STRLEN(mapped);}}
       if (keystring == NULL) {
@@ -1708,7 +1708,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
       keystring = FD_SYMBOL_NAME(key);
       keylen = strlen(keystring);}
     if (!(FD_VOIDP(fieldmap))) {
-      fdtype mapfn = fd_get(fieldmap,key,FD_VOID);
+      lispval mapfn = fd_get(fieldmap,key,FD_VOID);
       if (FD_VOIDP(mapfn)) {}
       else if (FD_APPLICABLEP(mapfn))
         store_value = fd_apply(mapfn,1,&val);
@@ -1745,14 +1745,14 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
   return ok;
 }
 
-FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
+FD_EXPORT lispval fd_bson_output(struct FD_BSON_OUTPUT out,lispval obj)
 {
   int ok = 1;
   if (FD_VECTORP(obj)) {
     int i = 0, len = FD_VECTOR_LENGTH(obj);
-    fdtype *elts = FD_VECTOR_ELTS(obj);
+    lispval *elts = FD_VECTOR_ELTS(obj);
     while (i<len) {
-      fdtype elt = elts[i]; u8_byte buf[16];
+      lispval elt = elts[i]; u8_byte buf[16];
       sprintf(buf,"%d",i++);
       if (ok)
         ok = bson_append_dtype(out,buf,strlen(buf),elt);}}
@@ -1761,18 +1761,18 @@ FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
       u8_byte buf[16]; sprintf(buf,"%d",i++);
       if (ok) ok = bson_append_dtype(out,buf,strlen(buf),elt);}}
   else if (FD_TABLEP(obj)) {
-    fdtype keys = fd_getkeys(obj);
+    lispval keys = fd_getkeys(obj);
     {FD_DO_CHOICES(key,keys) {
-        fdtype val = fd_get(obj,key,FD_VOID);
+        lispval val = fd_get(obj,key,FD_VOID);
         if (ok) ok = bson_append_keyval(out,key,val);
         fd_decref(val);}}
     fd_decref(keys);}
   else if (FD_COMPOUNDP(obj)) {
     struct FD_COMPOUND *compound = FD_XCOMPOUND(obj);
-    fdtype tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(obj);
+    lispval tag = compound->compound_typetag, *elts = FD_COMPOUND_ELTS(obj);
     int len = FD_COMPOUND_LENGTH(obj);
     if (tag == mongovec_symbol) {
-      fdtype *scan = elts, *limit = scan+len; int i = 0;
+      lispval *scan = elts, *limit = scan+len; int i = 0;
       while (scan<limit) {
         u8_byte buf[16]; sprintf(buf,"%d",i);
         ok = bson_append_dtype(out,buf,strlen(buf),*scan);
@@ -1790,7 +1790,7 @@ FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
   else return FD_VOID;
 }
 
-FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
+FD_EXPORT bson_t *fd_lisp2bson(lispval obj,int flags,lispval opts)
 {
   if (FD_VOIDP(obj)) return NULL;
   else if (FD_STRINGP(obj)) {
@@ -1801,7 +1801,7 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
     result = bson_new_from_json(json,FD_STRLEN(obj),&error);
     if (free_it) u8_free(json);
     if (result) return result;
-    fd_seterr("Bad JSON","fd_dtype2bson/json",
+    fd_seterr("Bad JSON","fd_lisp2bson/json",
               u8_strdup(error.message),fd_incref(obj));
     return NULL;}
   else {
@@ -1831,15 +1831,15 @@ static int slotcode(u8_string s)
   return hasupper;
 }
 
-static fdtype bson_read_vector(FD_BSON_INPUT b);
-static fdtype bson_read_choice(FD_BSON_INPUT b);
+static lispval bson_read_vector(FD_BSON_INPUT b);
+static lispval bson_read_choice(FD_BSON_INPUT b);
 
-static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
+static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
 {
   bson_iter_t *in = b.bson_iter; int flags = b.bson_flags, symbolized = 0;
   const unsigned char *field = bson_iter_key(in);
   bson_type_t bt = bson_iter_type(in);
-  fdtype slotid, value = FD_VOID;
+  lispval slotid, value = FD_VOID;
   if ((flags&FD_MONGODB_SLOTIFY)&&(strchr(":(#@",field[0])!=NULL))
     slotid = fd_parse_arg((u8_string)field);
   else if (flags&FD_MONGODB_SLOTIFY) {
@@ -1881,9 +1881,9 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
       memcpy(uuid->fd_uuid16,data,len);
-      value = (fdtype) uuid;}
+      value = (lispval) uuid;}
     else {
-      fdtype packet = fd_make_packet(NULL,len,(unsigned char *)data);
+      lispval packet = fd_make_packet(NULL,len,(unsigned char *)data);
       if (st == BSON_SUBTYPE_BINARY)
         value = fd_make_packet(NULL,len,(unsigned char *)data);
       else if (st == BSON_SUBTYPE_USER)
@@ -1913,7 +1913,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       FD_SET_OID_HI(dtoid,hi); FD_SET_OID_LO(dtoid,lo);
       value = fd_make_oid(dtoid);}
     else {
-      fdtype packet = fd_make_packet(NULL,12,(unsigned char *)bytes);
+      lispval packet = fd_make_packet(NULL,12,(unsigned char *)bytes);
       value = fd_init_compound(NULL,oidtag,0,1,packet);}
     break;}
   case BSON_TYPE_UNDEFINED:
@@ -1926,7 +1926,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     FD_INIT_CONS(ts,fd_timestamp_type);
     u8_init_xtime(&(ts->ts_u8xtime),millis/1000,u8_millisecond,
                   ((millis%1000)*1000000),0,0);
-    value = (fdtype)ts;
+    value = (lispval)ts;
     break;}
   case BSON_TYPE_MAXKEY:
     value = maxkey; break;
@@ -1942,9 +1942,9 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       while (bson_iter_next(&child))
         bson_read_step(r,value,NULL);
       if (fd_test(value,fdtag_symbol,FD_VOID)) {
-        fdtype tag = fd_get(value,fdtag_symbol,FD_VOID), compound;
+        lispval tag = fd_get(value,fdtag_symbol,FD_VOID), compound;
         struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(tag);
-        fdtype fields[16], keys = fd_getkeys(value);
+        lispval fields[16], keys = fd_getkeys(value);
         int max = -1, i = 0, n, ok = 1; 
         while (i<16) fields[i++]=FD_VOID;
         {FD_DO_CHOICES(key,keys) {
@@ -1952,7 +1952,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
               long long index = FD_FIX2INT(key);
               if ((index<0) || (index>=16)) {
                 i = 0; while (i<16) {
-                  fdtype value = fields[i++];
+                  lispval value = fields[i++];
                   fd_decref(value);}
                 u8_log(LOG_WARN,fd_BSON_Compound_Overflow,
                        "Compound of type %q: %q",tag,value);
@@ -1967,11 +1967,11 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
             compound = entry->fd_compound_parser(n,fields,entry);
           else {
             struct FD_COMPOUND *c=
-              u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(fdtype)));
-            fdtype *cdata = &(c->compound_0); fd_init_compound(c,tag,0,0);
+              u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(lispval)));
+            lispval *cdata = &(c->compound_0); fd_init_compound(c,tag,0,0);
             c->fd_n_elts = n;
             memcpy(cdata,fields,n);
-            compound = FDTYPE_CONS(c);}
+            compound = LISP_CONS(c);}
           fd_decref(value);
           value = compound;}
         fd_decref(keys); fd_decref(tag);}}
@@ -1986,9 +1986,9 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       return;}}
   if (!(FD_VOIDP(b.bson_fieldmap))) {
     struct FD_STRING _tempkey;
-    fdtype tempkey = fd_init_string(&_tempkey,strlen(field),field);
-    fdtype mapfn = FD_VOID, new_value = FD_VOID;
-    fdtype fieldmap = b.bson_fieldmap;
+    lispval tempkey = fd_init_string(&_tempkey,strlen(field),field);
+    lispval mapfn = FD_VOID, new_value = FD_VOID;
+    lispval fieldmap = b.bson_fieldmap;
     FD_INIT_STACK_CONS(tempkey,fd_string_type);
     mapfn = fd_get(fieldmap,tempkey,FD_VOID);
     if (FD_VOIDP(mapfn)) {}
@@ -2002,7 +2002,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       fd_clear_errors(1);
       new_value = FD_VOID;}
     else if (new_value!=FD_VOID) {
-      fdtype old_value = value;
+      lispval old_value = value;
       value = new_value;
       fd_decref(old_value);}
     else {}}
@@ -2011,10 +2011,10 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
   else fd_decref(value);
 }
 
-static fdtype bson_read_vector(FD_BSON_INPUT b)
+static lispval bson_read_vector(FD_BSON_INPUT b)
 {
   struct FD_BSON_INPUT r; bson_iter_t child;
-  fdtype result, *data = u8_alloc_n(16,fdtype), *write = data, *lim = data+16;
+  lispval result, *data = u8_alloc_n(16,lispval), *write = data, *lim = data+16;
   bson_iter_recurse(b.bson_iter,&child);
   r.bson_iter = &child; r.bson_flags = b.bson_flags;
   r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
@@ -2022,7 +2022,7 @@ static fdtype bson_read_vector(FD_BSON_INPUT b)
     if (write>=lim) {
       int len = lim-data;
       int newlen = ((len<16384)?(len*2):(len+16384));
-      fdtype *newdata = u8_realloc_n(data,newlen,fdtype);
+      lispval *newdata = u8_realloc_n(data,newlen,lispval);
       if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_read_vector",NULL);
       write = newdata+(write-data); lim = newdata+newlen; data = newdata;}
     bson_read_step(r,FD_VOID,write); write++;}
@@ -2031,10 +2031,10 @@ static fdtype bson_read_vector(FD_BSON_INPUT b)
   return result;
 }
 
-static fdtype bson_read_choice(FD_BSON_INPUT b)
+static lispval bson_read_choice(FD_BSON_INPUT b)
 {
   struct FD_BSON_INPUT r; bson_iter_t child;
-  fdtype *data = u8_alloc_n(16,fdtype), *write = data, *lim = data+16;
+  lispval *data = u8_alloc_n(16,lispval), *write = data, *lim = data+16;
   bson_iter_recurse(b.bson_iter,&child);
   r.bson_iter = &child; r.bson_flags = b.bson_flags;
   r.bson_opts = b.bson_opts; r.bson_fieldmap = b.bson_fieldmap;
@@ -2042,7 +2042,7 @@ static fdtype bson_read_choice(FD_BSON_INPUT b)
     if (write>=lim) {
       int len = lim-data;
       int newlen = ((len<16384)?(len*2):(len+16384));
-      fdtype *newdata = u8_realloc_n(data,newlen,fdtype);
+      lispval *newdata = u8_realloc_n(data,newlen,lispval);
       if (!(newdata)) u8_raise(fd_MallocFailed,"mongodb_read_vector",NULL);
       write = newdata+(write-data); lim = newdata+newlen; data = newdata;}
     if (BSON_ITER_HOLDS_ARRAY(&child)) {
@@ -2059,13 +2059,13 @@ static fdtype bson_read_choice(FD_BSON_INPUT b)
           FD_CHOICE_FREEDATA|FD_CHOICE_REALLOC);
 }
 
-FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
+FD_EXPORT lispval fd_bson2dtype(bson_t *in,int flags,lispval opts)
 {
   bson_iter_t iter;
   if (flags<0) flags = getflags(opts,FD_MONGODB_DEFAULTS);
   memset(&iter,0,sizeof(bson_iter_t));
   if (bson_iter_init(&iter,in)) {
-    fdtype result, fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
+    lispval result, fieldmap = fd_getopt(opts,fieldmap_symbol,FD_VOID);
     struct FD_BSON_INPUT b;
     memset(&b,0,sizeof(struct FD_BSON_INPUT));
     b.bson_iter = &iter; b.bson_flags = flags;
@@ -2077,23 +2077,23 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
   else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
 }
 
-static fdtype mongovec_lexpr(int n,fdtype *values)
+static lispval mongovec_lexpr(int n,lispval *values)
 {
   int i = 0; while (i<n) { 
-    fdtype value = values[i++]; 
+    lispval value = values[i++]; 
     fd_incref(value);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,values);
 }
 
-static fdtype make_mongovec(fdtype vec)
+static lispval make_mongovec(lispval vec)
 {
-  fdtype *elts = FD_VECTOR_ELTS(vec);
+  lispval *elts = FD_VECTOR_ELTS(vec);
   int n = FD_VECTOR_LENGTH(vec), i = 0;
-  while (i<n) {fdtype v = elts[i++]; fd_incref(v);}
+  while (i<n) {lispval v = elts[i++]; fd_incref(v);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
 }
 
-static fdtype mongovecp(fdtype arg)
+static lispval mongovecp(lispval arg)
 {
   if (FD_COMPOUND_TYPEP(arg,mongovec_symbol))
     return FD_TRUE;
@@ -2114,14 +2114,14 @@ static fdtype mongovecp(fdtype arg)
 
 static void add_to_mongo_opmap(u8_string keystring)
 {
-  fdtype key = fd_symbolize(keystring);
+  lispval key = fd_symbolize(keystring);
   struct FD_KEYVAL *entry=
     fd_sortvec_insert(key,&mongo_opmap,
                       &mongo_opmap_size,
                       &mongo_opmap_space,
                       1);
   if (entry) 
-    entry->kv_val = fdtype_string(keystring);
+    entry->kv_val = lispval_string(keystring);
   else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
 }
 
@@ -2174,7 +2174,7 @@ static void init_mongo_opmap()
 
 /* Getting 'meta' information from connections */
 
-static struct FD_MONGODB_DATABASE *getdb(fdtype arg,u8_context cxt)
+static struct FD_MONGODB_DATABASE *getdb(lispval arg,u8_context cxt)
 {
   if (FD_TYPEP(arg,fd_mongoc_server)) {
     return fd_consptr(struct FD_MONGODB_DATABASE *,arg,fd_mongoc_server);}
@@ -2192,40 +2192,40 @@ static struct FD_MONGODB_DATABASE *getdb(fdtype arg,u8_context cxt)
     return NULL;}
 }
 
-static fdtype mongodb_dbname(fdtype arg)
+static lispval mongodb_dbname(lispval arg)
 {
   struct FD_MONGODB_DATABASE *db = getdb(arg,"mongodb_dbname");
   if (db == NULL) return FD_ERROR_VALUE;
-  else return fdtype_string(db->dbname);
+  else return lispval_string(db->dbname);
 }
 
-static fdtype mongodb_spec(fdtype arg)
+static lispval mongodb_spec(lispval arg)
 {
   struct FD_MONGODB_DATABASE *db = getdb(arg,"mongodb_spec");
   if (db == NULL) return FD_ERROR_VALUE;
-  else return fdtype_string(db->dbspec);
+  else return lispval_string(db->dbspec);
 }
 
-static fdtype mongodb_uri(fdtype arg)
+static lispval mongodb_uri(lispval arg)
 {
   struct FD_MONGODB_DATABASE *db = getdb(arg,"mongodb_uri");
   if (db == NULL) return FD_ERROR_VALUE;
-  else return fdtype_string(db->dburi);
+  else return lispval_string(db->dburi);
 }
 
-static fdtype mongodb_server(fdtype arg)
+static lispval mongodb_server(lispval arg)
 {
   struct FD_MONGODB_DATABASE *db = getdb(arg,"mongodb_uri");
   if (db == NULL) return FD_ERROR_VALUE;
   else {
-    fdtype server = (fdtype)db;
+    lispval server = (lispval)db;
     fd_incref(server);
     return server;}
 }
 
-static fdtype mongodb_opts(fdtype arg)
+static lispval mongodb_opts(lispval arg)
 {
-  fdtype opts = FD_VOID;
+  lispval opts = FD_VOID;
   if (FD_TYPEP(arg,fd_mongoc_server)) {
     opts = (fd_consptr(struct FD_MONGODB_DATABASE *,arg,fd_mongoc_server))->dbopts;}
   else if (FD_TYPEP(arg,fd_mongoc_collection)) {
@@ -2243,7 +2243,7 @@ static fdtype mongodb_opts(fdtype arg)
   return opts;
 }
 
-static fdtype mongodb_collection_name(fdtype arg)
+static lispval mongodb_collection_name(lispval arg)
 {
   struct FD_MONGODB_COLLECTION *collection = NULL;
   if (FD_TYPEP(arg,fd_mongoc_collection)) 
@@ -2258,7 +2258,7 @@ static fdtype mongodb_collection_name(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype mongodb_getdb(fdtype arg)
+static lispval mongodb_getdb(lispval arg)
 {
   struct FD_MONGODB_COLLECTION *collection = NULL;
   if (FD_TYPEP(arg,fd_mongoc_server)) 
@@ -2275,7 +2275,7 @@ static fdtype mongodb_getdb(fdtype arg)
   else return FD_FALSE;
 }
 
-static int mongodb_getflags(fdtype arg)
+static int mongodb_getflags(lispval arg)
 {
   if (FD_TYPEP(arg,fd_mongoc_server)) {
     struct FD_MONGODB_DATABASE *server = (struct FD_MONGODB_DATABASE *)arg;
@@ -2291,7 +2291,7 @@ static int mongodb_getflags(fdtype arg)
   else return -1;
 }
 
-static fdtype mongodb_getcollection(fdtype arg)
+static lispval mongodb_getcollection(lispval arg)
 {
   if (FD_TYPEP(arg,fd_mongoc_collection)) 
     return fd_incref(arg);
@@ -2302,40 +2302,40 @@ static fdtype mongodb_getcollection(fdtype arg)
   else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
 }
 
-static fdtype mongodbp(fdtype arg)
+static lispval mongodbp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_mongoc_server))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype mongodb_collectionp(fdtype arg)
+static lispval mongodb_collectionp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_mongoc_collection))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype mongodb_cursorp(fdtype arg)
+static lispval mongodb_cursorp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_mongoc_cursor))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static void add_string(fdtype result,fdtype field,u8_string value)
+static void add_string(lispval result,lispval field,u8_string value)
 {
   if (value == NULL) return;
   else {
-    fdtype stringval = fdtype_string(value);
+    lispval stringval = lispval_string(value);
     fd_add(result,field,stringval);
     fd_decref(stringval);
     return;}
 }
 
-static fdtype mongodb_getinfo(fdtype mongodb,fdtype field)
+static lispval mongodb_getinfo(lispval mongodb,lispval field)
 {
-  fdtype result = fd_make_slotmap(10,0,NULL);
+  lispval result = fd_make_slotmap(10,0,NULL);
   struct FD_MONGODB_DATABASE *db=
     fd_consptr(struct FD_MONGODB_DATABASE *,mongodb,fd_mongoc_server);
   mongoc_uri_t *info = db->dburi_info;
@@ -2361,7 +2361,7 @@ static fdtype mongodb_getinfo(fdtype mongodb,fdtype field)
   if ((FD_VOIDP(field))||(FD_FALSEP(field)))
     return result;
   else {
-    fdtype v = fd_get(result,field,FD_EMPTY_CHOICE);
+    lispval v = fd_get(result,field,FD_EMPTY_CHOICE);
     fd_decref(result);
     return v;}
 }
@@ -2416,7 +2416,7 @@ static long long int mongodb_initialized = 0;
 
 FD_EXPORT int fd_init_mongodb()
 {
-  fdtype module;
+  lispval module;
   if (mongodb_initialized) return 0;
   mongodb_initialized = u8_millitime();
 

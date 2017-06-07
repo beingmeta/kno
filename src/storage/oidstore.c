@@ -26,7 +26,7 @@
 fd_exception fd_BadAdjunct=_("Bad adjunct table"),
   fd_AdjunctError=_("Pool adjunct error");
 
-static int anonymous_oiderr(u8_string op,fdtype f)
+static int anonymous_oiderr(u8_string op,lispval f)
 {
   fd_seterr(fd_AnonymousOID,op,NULL,f);
   return -1;
@@ -82,14 +82,14 @@ static int anonymous_oiderr(u8_string op,fdtype f)
 
 /* Adjunct functions */
 
-fdtype fd_adjunct_slotids;
+lispval fd_adjunct_slotids;
 
-static fdtype padjslotid;
+static lispval padjslotid;
 
 static int n_global_adjuncts = 0, max_global_adjuncts = 0;
 static struct FD_ADJUNCT *global_adjuncts = NULL;
 
-FD_FASTOP fd_adjunct get_adjunct(fd_pool p,fdtype slotid)
+FD_FASTOP fd_adjunct get_adjunct(fd_pool p,lispval slotid)
 {
   if (p) {
     struct FD_ADJUNCT *scan = p->pool_adjuncts;
@@ -112,17 +112,17 @@ FD_FASTOP fd_adjunct get_adjunct(fd_pool p,fdtype slotid)
   else return NULL;
 }
 
-FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,fdtype slotid)
+FD_EXPORT fd_adjunct fd_get_adjunct(fd_pool p,lispval slotid)
 {
   return get_adjunct(p,slotid);
 }
 
-FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid)
+FD_EXPORT int fd_adjunctp(fd_pool p,lispval slotid)
 {
   return (get_adjunct(p,slotid)!=NULL);
 }
 
-FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
+FD_EXPORT int fd_set_adjunct(fd_pool p,lispval slotid,lispval adjtable)
 {
   fd_adjunct adj = get_adjunct(p,slotid);
   if (!(adj)) {
@@ -157,12 +157,12 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
     return 1;}
 }
 
-FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
+FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
 {
   int n_adjuncts=0;
   DO_CHOICES(spec,adjuncts) {
     if (FD_INDEXP(spec)) {
-      fdtype slotid=fd_get(spec,padjslotid,VOID);
+      lispval slotid=fd_get(spec,padjslotid,VOID);
       if ((SYMBOLP(slotid))||(OIDP(slotid))) {
         fd_set_adjunct(p,slotid,spec);
         n_adjuncts++;}
@@ -183,9 +183,9 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
         FD_STOP_DO_CHOICES;
         return -1;}}
     else {
-      fdtype slotids=fd_getkeys(spec);
+      lispval slotids=fd_getkeys(spec);
       DO_CHOICES(slotid,slotids) {
-        fdtype adjunct=fd_get(spec,slotid,VOID);
+        lispval adjunct=fd_get(spec,slotid,VOID);
         if (n_adjuncts<0) {
           fd_decref(adjunct);
           continue;}
@@ -229,11 +229,11 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,fdtype adjuncts)
   return n_adjuncts;
 }
 
-FD_EXPORT fdtype fd_get_adjuncts(fd_pool p)
+FD_EXPORT lispval fd_get_adjuncts(fd_pool p)
 {
   int i=0, n_adjuncts=p->pool_n_adjuncts;
   struct FD_ADJUNCT *adjuncts=p->pool_adjuncts;
-  fdtype result=fd_make_slotmap(n_adjuncts,0,NULL);
+  lispval result=fd_make_slotmap(n_adjuncts,0,NULL);
   while (i < n_adjuncts) {
     struct FD_ADJUNCT *adj=&adjuncts[i++];
     fd_store(result,adj->slotid,adj->table);}
@@ -242,14 +242,14 @@ FD_EXPORT fdtype fd_get_adjuncts(fd_pool p)
 
 /* Fetching from adjuncts */
 
-static fd_index l2x(fdtype lix)
+static fd_index l2x(lispval lix)
 {
   int serial = FD_GET_IMMEDIATE(lix,fd_index_type);
   if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
   else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];
 }
 
-static fd_pool l2p(fdtype lp)
+static fd_pool l2p(lispval lp)
 {
   int serial = FD_GET_IMMEDIATE(lp,fd_pool_type);
   if (serial<fd_n_pools)
@@ -261,9 +261,9 @@ static fd_pool l2p(fdtype lp)
     return NULL;}
 }
 
-static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
+static lispval adjunct_fetch(fd_adjunct adj,lispval frame,lispval dflt)
 {
-  fdtype store = adj->table;
+  lispval store = adj->table;
   return
     ((HASHTABLEP(store)) ?
      (fd_hashtable_get((fd_hashtable)store,frame,VOID)) :
@@ -274,22 +274,22 @@ static fdtype adjunct_fetch(fd_adjunct adj,fdtype frame,fdtype dflt)
      (fd_get(store,frame,VOID)));
 }
 
-static int adjunct_add(fd_adjunct adj,fdtype frame,fdtype value)
+static int adjunct_add(fd_adjunct adj,lispval frame,lispval value)
 {
   return fd_add(adj->table,frame,value);
 }
 
-static int adjunct_drop(fd_adjunct adj,fdtype frame,fdtype value)
+static int adjunct_drop(fd_adjunct adj,lispval frame,lispval value)
 {
   return fd_drop(adj->table,frame,value);
 }
 
-static int adjunct_store(fd_adjunct adj,fdtype frame,fdtype value)
+static int adjunct_store(fd_adjunct adj,lispval frame,lispval value)
 {
   return fd_store(adj->table,frame,value);
 }
 
-static int adjunct_test(fd_adjunct adj,fdtype frame,fdtype value)
+static int adjunct_test(fd_adjunct adj,lispval frame,lispval value)
 {
   return fd_test(adj->table,frame,value);
 }
@@ -302,7 +302,7 @@ static int adjunct_test(fd_adjunct adj,fdtype frame,fdtype value)
    this case is that certain pools can declare that certain keys
    (slotids) are stored in external index.  These indexes, called
    adjunct indexes, allow another layer of description. */
-FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
+FD_EXPORT lispval fd_oid_get(lispval f,lispval slotid,lispval dflt)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))
@@ -313,22 +313,22 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
       else return fd_incref(dflt);}
     else return fd_err(fd_AnonymousOID,NULL,NULL,f);
   else {
-    fd_adjunct adj = get_adjunct(p,slotid); fdtype smap; int free_smap = 0;
+    fd_adjunct adj = get_adjunct(p,slotid); lispval smap; int free_smap = 0;
     if (adj)
       return adjunct_fetch(adj,f,dflt);
     else {smap = fd_fetch_oid(p,f); free_smap = 1;}
     if (FD_ABORTP(smap))
       return smap;
     else if (SLOTMAPP(smap)) {
-      fdtype value = fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
+      lispval value = fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
       if (free_smap) fd_decref(smap);
       return value;}
     else if (SCHEMAPP(smap)) {
-      fdtype value = fd_schemap_get((fd_schemap)smap,slotid,dflt);
+      lispval value = fd_schemap_get((fd_schemap)smap,slotid,dflt);
       if (free_smap) fd_decref(smap);
       return value;}
     else if (TABLEP(smap)) {
-      fdtype value = fd_get(smap,slotid,dflt);
+      lispval value = fd_get(smap,slotid,dflt);
       if (free_smap) fd_decref(smap);
       return value;}
     else {
@@ -336,7 +336,7 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
       return fd_incref(dflt);}}
 }
 
-FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL)) {
@@ -345,7 +345,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
       return adjunct_add(adj,f,value);
     else return anonymous_oiderr("fd_oid_add",f);}
   else {
-    fdtype smap; int retval;
+    lispval smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_add(adj,f,value);
     else smap = fd_locked_oid_value(p,f);
@@ -360,7 +360,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     return retval;}
 }
 
-FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_oid_store(lispval f,lispval slotid,lispval value)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL)) {
@@ -369,7 +369,7 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
       return adjunct_store(adj,f,value);
     else return anonymous_oiderr("fd_oid_store",f);}
   else {
-    fdtype smap; int retval;
+    lispval smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,value);
     else smap = fd_locked_oid_value(p,f);
@@ -386,7 +386,7 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
     return retval;}
 }
 
-FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
+FD_EXPORT int fd_oid_delete(lispval f,lispval slotid)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL)) {
@@ -395,7 +395,7 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
       return adjunct_store(adj,f,EMPTY);
     else return anonymous_oiderr("fd_oid_delete",f);}
   else {
-    fdtype smap; int retval;
+    lispval smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,EMPTY);
     else smap = fd_locked_oid_value(p,f);
@@ -410,7 +410,7 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
     return retval;}
 }
 
-FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))  {
@@ -419,7 +419,7 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
       return adjunct_drop(adj,f,EMPTY);
     else return anonymous_oiderr("fd_oid_drop",f);}
   else {
-    fdtype smap; int retval;
+    lispval smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_drop(adj,f,value);
     else smap = fd_locked_oid_value(p,f);
@@ -434,7 +434,7 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
     return retval;}
 }
 
-FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))  {
@@ -445,11 +445,11 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else {
-      fdtype v = fd_oid_get(f,slotid,VOID);
+      lispval v = fd_oid_get(f,slotid,VOID);
       if (VOIDP(v)) return 0;
       else {fd_decref(v); return 1;}}}
   else {
-    fdtype smap; int retval;
+    lispval smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else smap = fd_fetch_oid(p,f);
@@ -468,16 +468,16 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     return retval;}
 }
 
-FD_EXPORT fdtype fd_oid_keys(fdtype f)
+FD_EXPORT lispval fd_oid_keys(lispval f)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))
     return fd_anonymous_oid("fd_oid_keys",f);
   else {
-    fdtype smap = fd_fetch_oid(p,f);
+    lispval smap = fd_fetch_oid(p,f);
     if (FD_ABORTP(smap)) return smap;
     else if (TABLEP(smap)) {
-      fdtype result = fd_getkeys(smap);
+      lispval result = fd_getkeys(smap);
       fd_decref(smap);
       return result;}
     else return EMPTY;}
@@ -485,11 +485,11 @@ FD_EXPORT fdtype fd_oid_keys(fdtype f)
 
 /* Table operations on choices */
 
-static fdtype choice_get(fdtype arg,fdtype slotid,fdtype dflt)
+static lispval choice_get(lispval arg,lispval slotid,lispval dflt)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   DO_CHOICES(each,arg) {
-    fdtype v;
+    lispval v;
     if (OIDP(each))
       v = fd_oid_get(each,slotid,EMPTY);
     else v = fd_get(each,slotid,EMPTY);
@@ -499,7 +499,7 @@ static fdtype choice_get(fdtype arg,fdtype slotid,fdtype dflt)
   else return fd_simplify_choice(results);
 }
 
-static int choice_add(fdtype arg,fdtype slotid,fdtype value)
+static int choice_add(lispval arg,lispval slotid,lispval value)
 {
   if (EMPTYP(value)) return 0;
   else {
@@ -508,21 +508,21 @@ static int choice_add(fdtype arg,fdtype slotid,fdtype value)
     return 1;}
 }
 
-static int choice_store(fdtype arg,fdtype slotid,fdtype value)
+static int choice_store(lispval arg,lispval slotid,lispval value)
 {
   DO_CHOICES(each,arg)
     if (fd_store(each,slotid,value)<0) return -1;
   return 1;
 }
 
-static int choice_drop(fdtype arg,fdtype slotid,fdtype value)
+static int choice_drop(lispval arg,lispval slotid,lispval value)
 {
   DO_CHOICES(each,arg)
     if (fd_drop(each,slotid,value)<0) return -1;
   return 1;
 }
 
-static int choice_test(fdtype arg,fdtype slotid,fdtype value)
+static int choice_test(lispval arg,lispval slotid,lispval value)
 {
   int result = 0;
   DO_CHOICES(each,arg) {
@@ -531,11 +531,11 @@ static int choice_test(fdtype arg,fdtype slotid,fdtype value)
   return 0;
 }
 
-static fdtype choice_keys(fdtype arg)
+static lispval choice_keys(lispval arg)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   DO_CHOICES(each,arg) {
-    fdtype keys = fd_getkeys(each);
+    lispval keys = fd_getkeys(each);
     if (FD_ABORTP(keys)) {
       fd_decref(results); return keys;}
     else {CHOICE_ADD(results,keys);}}
@@ -547,15 +547,15 @@ static fdtype choice_keys(fdtype arg)
 
 /* Get Path functions */
 
-FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumulate)
+FD_EXPORT lispval fd_getpath(lispval start,int n,lispval *path,int infer,int accumulate)
 {
-  fdtype results = EMPTY;
-  fdtype scan = start; int i = 0;
+  lispval results = EMPTY;
+  lispval scan = start; int i = 0;
   if (n==0) return fd_incref(start);
   while (i<n) {
-    fdtype pred = path[i], newscan = EMPTY;
+    lispval pred = path[i], newscan = EMPTY;
     DO_CHOICES(s,scan) {
-      fdtype newval;
+      lispval newval;
       if ((OIDP(pred))||(SYMBOLP(pred)))
         if (infer) newval = fd_frame_get(s,pred);
         else newval = fd_get(scan,pred,EMPTY);
@@ -567,8 +567,8 @@ FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumu
       else if (FD_APPLICABLEP(pred))
         newval = fd_apply(pred,1,&s);
       else if ((PAIRP(pred))&&(FD_APPLICABLEP(FD_CAR(pred)))) {
-        fdtype fcn = FD_CAR(pred);
-        fdtype args = FD_CDR(pred), argv[7]; int j = 1;
+        lispval fcn = FD_CAR(pred);
+        lispval args = FD_CDR(pred), argv[7]; int j = 1;
         argv[0]=s;
         if (PAIRP(args))
           while (PAIRP(args)) {

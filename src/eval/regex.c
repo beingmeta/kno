@@ -25,7 +25,7 @@
 
 fd_exception fd_RegexBadOp=_("Invalid Regex operation");
 
-static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
+static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 {
   struct FD_REGEX *ptr = u8_alloc(struct FD_REGEX);
   int retval, cflags = REG_EXTENDED;
@@ -42,22 +42,22 @@ static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
   else {
     ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
     u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
-    return FDTYPE_CONS(ptr);}
+    return LISP_CONS(ptr);}
 }
 
-static fdtype regexp_prim(fdtype x)
+static lispval regexp_prim(lispval x)
 {
   if (FD_TYPEP(x,fd_regex_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype getcharoff(u8_string s,int byteoff)
+static lispval getcharoff(u8_string s,int byteoff)
 {
   int charoff = u8_charoffset(s,byteoff);
   return FD_INT(charoff);
 }
 
-static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
+static lispval regex_searchop(enum FD_REGEX_OP op,lispval pat,lispval string,
                              int eflags)
 {
   struct FD_REGEX *ptr = fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
@@ -101,7 +101,7 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
     default: return FD_FALSE;}
 }
 
-FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
+FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
                               u8_string s,size_t len,
                               int eflags)
 {
@@ -148,54 +148,54 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
       fd_incref(pat); return -2;}}
 }
 
-FD_EXPORT int fd_regex_test(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT int fd_regex_test(lispval pat,u8_string s,ssize_t len)
  {
    if (len<0) len = strlen(s);
    if (fd_regex_op(rx_search,pat,s,len,0)>=0)
      return 1;
    else return 0;
 }
-FD_EXPORT off_t fd_regex_search(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT off_t fd_regex_search(lispval pat,u8_string s,ssize_t len)
 {
   if (len<0) len = strlen(s);
   return fd_regex_op(rx_search,pat,s,len,0);
 }
-FD_EXPORT ssize_t fd_regex_match(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT ssize_t fd_regex_match(lispval pat,u8_string s,ssize_t len)
 {
   if (len<0) len = strlen(s);
   return fd_regex_op(rx_exactmatch,pat,s,len,0);
 }
-FD_EXPORT ssize_t fd_regex_matchlen(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT ssize_t fd_regex_matchlen(lispval pat,u8_string s,ssize_t len)
 {
   if (len<0) len = strlen(s);
   return fd_regex_op(rx_matchlen,pat,s,len,0);
 }
 
-static fdtype regex_search(fdtype pat,fdtype string,fdtype ef)
+static lispval regex_search(lispval pat,lispval string,lispval ef)
 {
   if (FD_UINTP(ef))
     return regex_searchop(rx_search,pat,string,FIX2INT(ef));
   else return fd_type_error("unsigned int","regex_search",ef);
 }
-static fdtype regex_matchlen(fdtype pat,fdtype string,fdtype ef)
+static lispval regex_matchlen(lispval pat,lispval string,lispval ef)
 {
   if (FD_UINTP(ef))
     return regex_searchop(rx_matchlen,pat,string,FIX2INT(ef));
   else return fd_type_error("unsigned int","regex_matchlen",ef);
 }
-static fdtype regex_exactmatch(fdtype pat,fdtype string,fdtype ef)
+static lispval regex_exactmatch(lispval pat,lispval string,lispval ef)
 {
   if (FD_UINTP(ef))
     return regex_searchop(rx_exactmatch,pat,string,FIX2INT(ef));
   else return fd_type_error("unsigned int","regex_exactmatch",ef);
 }
-static fdtype regex_matchstring(fdtype pat,fdtype string,fdtype ef)
+static lispval regex_matchstring(lispval pat,lispval string,lispval ef)
 {
   if (FD_UINTP(ef))
     return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
   else return fd_type_error("unsigned int","regex_matchstring",ef);
 }
-static fdtype regex_matchpair(fdtype pat,fdtype string,fdtype ef)
+static lispval regex_matchpair(lispval pat,lispval string,lispval ef)
 {
   if (FD_UINTP(ef))
     return regex_searchop(rx_matchstring,pat,string,FIX2INT(ef));
@@ -208,7 +208,7 @@ static int regex_init = 0;
 
 FD_EXPORT int fd_init_regex_c()
 {
-  fdtype regex_module;
+  lispval regex_module;
   if (regex_init) return 0;
 
   regex_init = 1;

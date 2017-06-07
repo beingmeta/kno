@@ -140,7 +140,7 @@ void grabmagickerr(u8_context cxt,MagickWand *wand)
   MagickClearException(wand);
 }
 
-static int unparse_imagick(struct U8_OUTPUT *out,fdtype x)
+static int unparse_imagick(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_IMAGICK *wrapper = (struct FD_IMAGICK *)x;
   u8_printf(out,"#<IMAGICK %lx>",((unsigned long)(wrapper->wand)));
@@ -154,7 +154,7 @@ static void recycle_imagick(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-fdtype file2imagick(fdtype arg)
+lispval file2imagick(lispval arg)
 {
   MagickWand *wand;
   MagickBooleanType retval;
@@ -166,10 +166,10 @@ fdtype file2imagick(fdtype arg)
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
     return FD_ERROR_VALUE;}
-  else return (fdtype)fdwand;
+  else return (lispval)fdwand;
 }
 
-fdtype packet2imagick(fdtype arg)
+lispval packet2imagick(lispval arg)
 {
   MagickWand *wand;
   MagickBooleanType retval;
@@ -182,10 +182,10 @@ fdtype packet2imagick(fdtype arg)
     grabmagickerr("file2imagick",wand);
     u8_free(wand); u8_free(fdwand);
     return FD_ERROR_VALUE;}
-  else return (fdtype)fdwand;
+  else return (lispval)fdwand;
 }
 
-fdtype imagick2file(fdtype fdwand,fdtype filename)
+lispval imagick2file(lispval fdwand,lispval filename)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -198,7 +198,7 @@ fdtype imagick2file(fdtype fdwand,fdtype filename)
   else return fd_incref(fdwand);
 }
 
-fdtype imagick2packet(fdtype fdwand)
+lispval imagick2packet(lispval fdwand)
 {
   unsigned char *data = NULL; size_t n_bytes;
   struct FD_IMAGICK *wrapper=
@@ -210,12 +210,12 @@ fdtype imagick2packet(fdtype fdwand)
     grabmagickerr("imagick2packet",wand);
     return FD_ERROR_VALUE;}
   else {
-    fdtype packet = fd_make_packet(NULL,n_bytes,data);
+    lispval packet = fd_make_packet(NULL,n_bytes,data);
     MagickRelinquishMemory(data);
     return packet;}
 }
 
-fdtype imagick2imagick(fdtype fdwand)
+lispval imagick2imagick(lispval fdwand)
 {
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
@@ -223,15 +223,15 @@ fdtype imagick2imagick(fdtype fdwand)
   MagickWand *wand = CloneMagickWand(wrapper->wand);
   FD_INIT_FRESH_CONS(fresh,fd_imagick_type);
   fresh->wand = wand;
-  return (fdtype)fresh;
+  return (lispval)fresh;
 }
 
 /* Getting properties */
 
-static fdtype format, resolution, size, width, height, interlace;
-static fdtype line_interlace, plane_interlace, partition_interlace;
+static lispval format, resolution, size, width, height, interlace;
+static lispval line_interlace, plane_interlace, partition_interlace;
 
-static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
+static lispval imagick_table_get(lispval fdwand,lispval field,lispval dflt)
 {
   /* enum result_type {imbool,imint,imdouble,imsize,imbox,imtrans} rt; */
   struct FD_IMAGICK *wrapper=
@@ -239,7 +239,7 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
   MagickWand *wand = wrapper->wand;
   if (FD_EQ(field,format)) {
     const char *fmt = MagickGetImageFormat(wand);
-    return fdtype_string((char *)fmt);}
+    return lispval_string((char *)fmt);}
 #if (MagickLibVersion>0x670)
   else if (FD_EQ(field,resolution)) {
     double x = 0, y = 0;
@@ -269,7 +269,7 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
 
 static FilterTypes default_filter = TriangleFilter;
 
-static FilterTypes getfilter(fdtype arg,u8_string cxt)
+static FilterTypes getfilter(lispval arg,u8_string cxt)
 {
   u8_string name = NULL;
   if ((FD_VOIDP(arg))||(FD_FALSEP(arg)))
@@ -301,7 +301,7 @@ static FilterTypes getfilter(fdtype arg,u8_string cxt)
     return default_filter;}
 }
 
-static fdtype imagick_format(fdtype fdwand,fdtype format)
+static lispval imagick_format(lispval fdwand,lispval format)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -314,8 +314,8 @@ static fdtype imagick_format(fdtype fdwand,fdtype format)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,
-                          fdtype filter,fdtype blur)
+static lispval imagick_fit(lispval fdwand,lispval w_arg,lispval h_arg,
+                          lispval filter,lispval blur)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -342,7 +342,7 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_interlace(fdtype fdwand,fdtype scheme)
+static lispval imagick_interlace(lispval fdwand,lispval scheme)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -363,9 +363,9 @@ static fdtype imagick_interlace(fdtype fdwand,fdtype scheme)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
-                             fdtype x_arg,fdtype y_arg,
-                             fdtype bgcolor)
+static lispval imagick_extend(lispval fdwand,lispval w_arg,lispval h_arg,
+                             lispval x_arg,lispval y_arg,
+                             lispval bgcolor)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -389,7 +389,7 @@ static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_charcoal(fdtype fdwand,fdtype radius,fdtype sigma)
+static lispval imagick_charcoal(lispval fdwand,lispval radius,lispval sigma)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -403,7 +403,7 @@ static fdtype imagick_charcoal(fdtype fdwand,fdtype radius,fdtype sigma)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_emboss(fdtype fdwand,fdtype radius,fdtype sigma)
+static lispval imagick_emboss(lispval fdwand,lispval radius,lispval sigma)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -417,7 +417,7 @@ static fdtype imagick_emboss(fdtype fdwand,fdtype radius,fdtype sigma)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_blur(fdtype fdwand,fdtype radius,fdtype sigma)
+static lispval imagick_blur(lispval fdwand,lispval radius,lispval sigma)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -431,7 +431,7 @@ static fdtype imagick_blur(fdtype fdwand,fdtype radius,fdtype sigma)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_edge(fdtype fdwand,fdtype radius)
+static lispval imagick_edge(lispval fdwand,lispval radius)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -446,9 +446,9 @@ static fdtype imagick_edge(fdtype fdwand,fdtype radius)
 }
 
 
-static fdtype imagick_crop(fdtype fdwand,
-                           fdtype width,fdtype height,
-                           fdtype xoff,fdtype yoff)
+static lispval imagick_crop(lispval fdwand,
+                           lispval width,lispval height,
+                           lispval xoff,lispval yoff)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -463,7 +463,7 @@ static fdtype imagick_crop(fdtype fdwand,
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_flip(fdtype fdwand)
+static lispval imagick_flip(lispval fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -476,7 +476,7 @@ static fdtype imagick_flip(fdtype fdwand)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_flop(fdtype fdwand)
+static lispval imagick_flop(lispval fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -489,7 +489,7 @@ static fdtype imagick_flop(fdtype fdwand)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_equalize(fdtype fdwand)
+static lispval imagick_equalize(lispval fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -502,7 +502,7 @@ static fdtype imagick_equalize(fdtype fdwand)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_despeckle(fdtype fdwand)
+static lispval imagick_despeckle(lispval fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -515,7 +515,7 @@ static fdtype imagick_despeckle(fdtype fdwand)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_enhance(fdtype fdwand)
+static lispval imagick_enhance(lispval fdwand)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -528,7 +528,7 @@ static fdtype imagick_enhance(fdtype fdwand)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_deskew(fdtype fdwand,fdtype threshold)
+static lispval imagick_deskew(lispval fdwand,lispval threshold)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -542,7 +542,7 @@ static fdtype imagick_deskew(fdtype fdwand,fdtype threshold)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_display(fdtype fdwand,fdtype display_name)
+static lispval imagick_display(lispval fdwand,lispval display_name)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -557,7 +557,7 @@ static fdtype imagick_display(fdtype fdwand,fdtype display_name)
   else return fd_incref(fdwand);
 }
 
-static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
+static lispval imagick_get(lispval fdwand,lispval property,lispval dflt)
 {
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
@@ -566,7 +566,7 @@ static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
                      (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
   char *value = MagickGetImageProperty(wand,pname);
   if (value) {
-    fdtype stringval = fd_make_string(NULL,-1,value);
+    lispval stringval = fd_make_string(NULL,-1,value);
     MagickRelinquishMemory(value);
     return stringval;}
   else if (FD_VOIDP(dflt))
@@ -574,7 +574,7 @@ static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype imagick_getkeys(fdtype fdwand)
+static lispval imagick_getkeys(lispval fdwand)
 {
   struct FD_IMAGICK *wrapper=
     fd_consptr(struct FD_IMAGICK *,fdwand,fd_imagick_type);
@@ -582,10 +582,10 @@ static fdtype imagick_getkeys(fdtype fdwand)
   size_t n_keys = 0;
   char **properties = MagickGetImageProperties(wand,"",&n_keys);
   if (properties) {
-    fdtype results = FD_EMPTY_CHOICE;
+    lispval results = FD_EMPTY_CHOICE;
     int i = 0; while (i<n_keys) {
       char *pname = properties[i++];
-      fdtype key = fd_make_string(NULL,-1,pname);
+      lispval key = fd_make_string(NULL,-1,pname);
       FD_ADD_TO_CHOICE(results,key);}
     MagickRelinquishMemory(properties);
     return results;}
@@ -611,7 +611,7 @@ static void init_symbols()
 
 int fd_init_imagick()
 {
-  fdtype imagick_module;
+  lispval imagick_module;
   if (imagick_init) return 0;
   else imagick_init = u8_millitime();
   imagick_module = fd_new_module("IMAGICK",(FD_MODULE_SAFE));

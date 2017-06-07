@@ -19,7 +19,7 @@
 
 int fd_mergesort_threshold = FD_MERGESORT_THRESHOLD;
 
-static fdtype normalize_choice(fdtype x,int free_prechoice);
+static lispval normalize_choice(lispval x,int free_prechoice);
 
 #define lock_prechoice(ach) u8_lock_mutex(&((ach)->prechoice_lock))
 #define unlock_prechoice(ach) u8_unlock_mutex(&((ach)->prechoice_lock))
@@ -30,10 +30,10 @@ static void recycle_prechoice(struct FD_RAW_CONS *c)
 {
   struct FD_PRECHOICE *ch = (struct FD_PRECHOICE *)c;
   if (ch->prechoice_data) {
-    const fdtype *read = ch->prechoice_data, *lim = ch->prechoice_write;
+    const lispval *read = ch->prechoice_data, *lim = ch->prechoice_write;
     if ((ch->prechoice_atomic==0) || (ch->prechoice_nested))
       while (read < lim) {
-        fdtype v = *read++;
+        lispval v = *read++;
         fd_decref(v);}
     if (ch->prechoice_mallocd) {
       u8_free(ch->prechoice_choicedata);
@@ -50,31 +50,31 @@ static void recycle_prechoice_wrapper(struct FD_PRECHOICE *ch)
   u8_destroy_mutex(&(ch->prechoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
-static int write_prechoice_dtype(struct FD_OUTBUF *s,fdtype x)
+static int write_prechoice_dtype(struct FD_OUTBUF *s,lispval x)
 {
-  fdtype sc = fd_make_simple_choice(x);
+  lispval sc = fd_make_simple_choice(x);
   int n_bytes = fd_write_dtype(s,sc);
   fd_decref(sc);
   return n_bytes;
 }
 
-static fdtype copy_prechoice(fdtype x,int deep)
+static lispval copy_prechoice(lispval x,int deep)
 {
   return normalize_choice(x,0);
 }
 
-static int unparse_prechoice(struct U8_OUTPUT *s,fdtype x)
+static int unparse_prechoice(struct U8_OUTPUT *s,lispval x)
 {
-  fdtype sc = fd_make_simple_choice(x);
+  lispval sc = fd_make_simple_choice(x);
   fd_unparse(s,sc);
   fd_decref(sc);
   return 1;
 }
 
-static int compare_prechoice(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_prechoice(lispval x,lispval y,fd_compare_flags flags)
 {
-  fdtype sx = fd_make_simple_choice(x), sy = fd_make_simple_choice(y);
-  int compare = FDTYPE_COMPARE(sx,sy,flags);
+  lispval sx = fd_make_simple_choice(x), sy = fd_make_simple_choice(y);
+  int compare = LISP_COMPARE(sx,sy,flags);
   fd_decref(sx); fd_decref(sy);
   return compare;
 }
@@ -84,15 +84,15 @@ static int compare_prechoice(fdtype x,fdtype y,fd_compare_flags flags)
 /* We separate the cases of sorting atomic and composite objects,
    since we can do a direct pointer comparison on atomic objects. */
 
-FD_FASTOP void swap(fdtype *a,fdtype *b)
+FD_FASTOP void swap(lispval *a,lispval *b)
 {
-  fdtype t;
+  lispval t;
   t = *a;
   *a = *b;
   *b = t;
 }
 
-static int atomic_sortedp(fdtype *v,int n)
+static int atomic_sortedp(lispval *v,int n)
 {
   int i = 0, lim = n-1;
   while (i<lim)
@@ -100,7 +100,7 @@ static int atomic_sortedp(fdtype *v,int n)
   return 1;
 }
 
-static void atomic_sort(fdtype *v,int n)
+static void atomic_sort(lispval *v,int n)
 {
   unsigned i, j, ln, rn;
   if (atomic_sortedp(v,n)) return;
@@ -119,7 +119,7 @@ static void atomic_sort(fdtype *v,int n)
     else {atomic_sort(v + j, rn); n = ln;}}
 }
 
-static void cons_sort(fdtype *v,int n)
+static void cons_sort(lispval *v,int n)
 {
   unsigned i, j, ln, rn;
   while (n > 1) {
@@ -140,9 +140,9 @@ static void cons_sort(fdtype *v,int n)
 /* Compressing a choice removes duplicate elements from a sorted vector.
    Duplicate elements are decref'd.  The function returns the number of
    unique items left in the vector.  */
-static int compress_choice(fdtype *v,int n,int atomicp)
+static int compress_choice(lispval *v,int n,int atomicp)
 {
-  fdtype *write = v, *scan = v, *limit = v+n, pt;
+  lispval *write = v, *scan = v, *limit = v+n, pt;
   if (n == 0) return n;
   pt = *scan++; *write++=pt;
   /* We separate out the atomic and cons cases because we can do
@@ -165,13 +165,13 @@ static int compress_choice(fdtype *v,int n,int atomicp)
 /* This does a simple binary search of a sorted choice vector,
    looking for a particular element. Once more, we separate out the
    atomic case because it just requires pointer comparisons.  */
-static int choice_containsp(fdtype x,struct FD_CHOICE *choice)
+static int choice_containsp(lispval x,struct FD_CHOICE *choice)
 {
   int size = FD_XCHOICE_SIZE(choice);
-  const fdtype *bottom = FD_XCHOICE_DATA(choice), *top = bottom+(size-1);
+  const lispval *bottom = FD_XCHOICE_DATA(choice), *top = bottom+(size-1);
   if (ATOMICP(x)) {
     while (top>=bottom) {
-      const fdtype *middle = bottom+(top-bottom)/2;
+      const lispval *middle = bottom+(top-bottom)/2;
       if (x == *middle) return 1;
       else if (CONSP(*middle)) top = middle-1;
       else if (x < *middle) top = middle-1;
@@ -179,7 +179,7 @@ static int choice_containsp(fdtype x,struct FD_CHOICE *choice)
     return 0;}
   else {
     while (top>=bottom) {
-        const fdtype *middle = bottom+(top-bottom)/2;
+        const lispval *middle = bottom+(top-bottom)/2;
         int comparison = cons_compare(x,*middle);
         if (comparison == 0) return 1;
         else if (comparison<0) top = middle-1;
@@ -193,20 +193,20 @@ FD_EXPORT
      Returns: 1 or 0
  This returns 1 if the first argument is in the choice represented by
  the second argument.  Note that if the second argument isn't a choice,
- this is the same as FDTYPE_EQUAL. */
-int fd_choice_containsp(fdtype key,fdtype x)
+ this is the same as LISP_EQUAL. */
+int fd_choice_containsp(lispval key,lispval x)
 {
   if (CHOICEP(x))
     return choice_containsp(key,(struct FD_CHOICE *)x);
   else if (PRECHOICEP(x)) {
     int flag = 0;
-    fdtype sv = fd_make_simple_choice(x);
+    lispval sv = fd_make_simple_choice(x);
     if (CHOICEP(sv))
       flag = choice_containsp(key,(struct FD_CHOICE *)sv);
-    else if (FDTYPE_EQUAL(key,sv)) flag = 1;
+    else if (LISP_EQUAL(key,sv)) flag = 1;
     fd_decref(sv);
     return flag;}
-  else if (FDTYPE_EQUAL(x,key)) return 1;
+  else if (LISP_EQUAL(x,key)) return 1;
   else return 0;
 }
 
@@ -220,7 +220,7 @@ struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
     return NULL;}
   else {
     int atomicp; int n = ch->choice_size;
-    fdtype *base = &(ch->choice_0), *scan = base, *limit = scan+n;
+    lispval *base = &(ch->choice_0), *scan = base, *limit = scan+n;
     FD_SET_CONS_TYPE(ch,fd_choice_type);
     if (flags&FD_CHOICE_ISATOMIC) atomicp = 1;
     else if (flags&FD_CHOICE_ISCONSES) atomicp = 0;
@@ -228,25 +228,25 @@ struct FD_CHOICE *fd_cleanup_choice(struct FD_CHOICE *ch,unsigned int flags)
         if (ATOMICP(*scan)) scan++; else {atomicp = 0; break;}}
     /* Now sort and compress it if requested */
     if (flags&FD_CHOICE_DOSORT) {
-      if (atomicp) atomic_sort((fdtype *)base,n);
-      else cons_sort((fdtype *)base,n);}
+      if (atomicp) atomic_sort((lispval *)base,n);
+      else cons_sort((lispval *)base,n);}
     if (flags&FD_CHOICE_COMPRESS)
-      ch->choice_size = compress_choice((fdtype *)base,n,atomicp);
+      ch->choice_size = compress_choice((lispval *)base,n,atomicp);
     else ch->choice_size = n;
     return ch;}
 }
 
 FD_EXPORT
-fdtype fd_init_choice
-  (struct FD_CHOICE *ch,int n,const fdtype *data,int flags)
+lispval fd_init_choice
+  (struct FD_CHOICE *ch,int n,const lispval *data,int flags)
 {
   int atomicp = 1, newlen = n;
-  const fdtype *base, *scan, *limit;
+  const lispval *base, *scan, *limit;
   if (PRED_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
     if (ch) u8_free(ch);
     return EMPTY;}
   else if ( (n==1) &&  (flags&FD_CHOICE_REALLOC) ) {
-    fdtype elt = (data!=NULL)?(data[0]):
+    lispval elt = (data!=NULL)?(data[0]):
       (ch!=NULL)?((FD_XCHOICE_DATA(ch))[0]):
       (FD_NULL);
     if (ch) u8_free(ch);
@@ -262,17 +262,17 @@ fdtype fd_init_choice
       u8_graberr(-1,"fd_init_choice",NULL);
       return FD_ERROR;}
     if (data)
-      memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
+      memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);
     else {
-      fdtype *write = &(ch->choice_0), *writelim = write+n;
+      lispval *write = &(ch->choice_0), *writelim = write+n;
       while (write<writelim) *write++=VOID;}}
   else if ((data) && (data!=FD_XCHOICE_DATA(ch))) {
     if (flags&FD_CHOICE_INCREF) {
-      fdtype *write = (fdtype *)FD_XCHOICE_DATA(ch);
-      fdtype *read = (fdtype *)data, *limit = read+n;
+      lispval *write = (lispval *)FD_XCHOICE_DATA(ch);
+      lispval *read = (lispval *)data, *limit = read+n;
       while (read<limit) {
-        fdtype v = fd_incref(*read); read++; *write++=v;}}
-    else memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);}
+        lispval v = fd_incref(*read); read++; *write++=v;}}
+    else memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);}
   /* Copy the data unless its yours. */
   base = FD_XCHOICE_DATA(ch); scan = base; limit = scan+n;
   /* Determine if the choice is atomic. */
@@ -282,25 +282,25 @@ fdtype fd_init_choice
     if (ATOMICP(*scan)) scan++; else {atomicp = 0; break;}
   /* Now sort and compress it if requested */
   if (flags&FD_CHOICE_DOSORT) {
-    if (atomicp) atomic_sort((fdtype *)base,n);
-    else cons_sort((fdtype *)base,n);
-    newlen = compress_choice((fdtype *)base,n,atomicp);}
+    if (atomicp) atomic_sort((lispval *)base,n);
+    else cons_sort((lispval *)base,n);
+    newlen = compress_choice((lispval *)base,n,atomicp);}
   else if (flags&FD_CHOICE_COMPRESS)
-    newlen = compress_choice((fdtype *)base,n,atomicp);
+    newlen = compress_choice((lispval *)base,n,atomicp);
   else newlen = n;
   /* Free the original data vector if requested. */
   if ((data) && (flags&FD_CHOICE_FREEDATA)) {
-    u8_free((fdtype *)data);}
+    u8_free((lispval *)data);}
   if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
-    fdtype v = base[0];
+    lispval v = base[0];
     u8_free(ch);
     return v;}
   else if ((flags&FD_CHOICE_REALLOC) && (newlen<(n/2)))
-    ch = u8_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(fdtype)));
+    ch = u8_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(lispval)));
   else {}
   if (ch) {
     FD_INIT_XCHOICE(ch,newlen,atomicp);
-    return FDTYPE_CONS(ch);}
+    return LISP_CONS(ch);}
   else {
     u8_graberr(-1,"fd_init_choice",NULL);
     return FD_ERROR;}
@@ -314,13 +314,13 @@ FD_EXPORT
    If the elements are themselves PRECHOICEs, they are normalized into
    simple choices.
 */
-fdtype fd_make_prechoice(fdtype x,fdtype y)
+lispval fd_make_prechoice(lispval x,lispval y)
 {
   struct FD_PRECHOICE *ch = u8_alloc(struct FD_PRECHOICE);
-  fdtype nx = fd_simplify_choice(x), ny = fd_simplify_choice(y);
+  lispval nx = fd_simplify_choice(x), ny = fd_simplify_choice(y);
   FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
   ch->prechoice_choicedata = fd_alloc_choice(64);
-  ch->prechoice_write = ch->prechoice_data = (fdtype *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data = (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
   ch->prechoice_limit = ch->prechoice_data+64; ch->prechoice_normalized = VOID;
   ch->prechoice_mallocd = 1; ch->prechoice_nested = 0; ch->prechoice_muddled = 0;
   ch->prechoice_size = FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
@@ -341,7 +341,7 @@ fdtype fd_make_prechoice(fdtype x,fdtype y)
   ch->prechoice_write = ch->prechoice_write+2;
   ch->prechoice_uselock = 1; 
   u8_init_mutex(&(ch->prechoice_lock));
-  return FDTYPE_CONS(ch);
+  return LISP_CONS(ch);
 }
 
 FD_EXPORT
@@ -352,18 +352,18 @@ FD_EXPORT
    If the flag argument is non-zero, the mutex on the FD_PRECHOICE will
    be initialized and used in all operations.  If the pointer argument
    is NULL, an FD_PRECHOICE structure is allocated. */
-fdtype fd_init_prechoice(struct FD_PRECHOICE *ch,int lim,int uselock)
+lispval fd_init_prechoice(struct FD_PRECHOICE *ch,int lim,int uselock)
 {
   if (ch == NULL) ch = u8_alloc(struct FD_PRECHOICE);
   FD_INIT_FRESH_CONS(ch,fd_prechoice_type);
   ch->prechoice_choicedata = fd_alloc_choice(lim);
-  ch->prechoice_write = ch->prechoice_data = (fdtype *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data = (lispval *)FD_XCHOICE_DATA(ch->prechoice_choicedata);
   ch->prechoice_limit = ch->prechoice_data+lim; ch->prechoice_size = 0;
   ch->prechoice_nested = 0; ch->prechoice_muddled = 0; ch->prechoice_atomic = 1; ch->prechoice_mallocd = 1;
   ch->prechoice_normalized = VOID;
   ch->prechoice_uselock = uselock;
   u8_init_mutex(&(ch->prechoice_lock));
-  return FDTYPE_CONS(ch);
+  return LISP_CONS(ch);
 }
 
 FD_EXPORT
@@ -375,7 +375,7 @@ FD_EXPORT
    inlined.
 
 */
-fdtype _fd_add_to_choice(fdtype current,fdtype v)
+lispval _fd_add_to_choice(lispval current,lispval v)
 {
   return _add_to_choice(current,v);
 }
@@ -386,9 +386,9 @@ fdtype _fd_add_to_choice(fdtype current,fdtype v)
    have a ->normalized field which, when non-void, is the simple choice
    version of the prechoice. */
 
-static fdtype convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice);
+static lispval convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice);
 
-static fdtype normalize_choice(fdtype x,int free_prechoice)
+static lispval normalize_choice(lispval x,int free_prechoice)
 {
   if (PRECHOICEP(x)) {
     struct FD_PRECHOICE *ch=
@@ -400,7 +400,7 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
     if (ch->prechoice_uselock) lock_prechoice(ch);
     /* If you have a normalized value, use it. */
     if (!(VOIDP(ch->prechoice_normalized))) {
-      fdtype v = fd_incref(ch->prechoice_normalized);
+      lispval v = fd_incref(ch->prechoice_normalized);
       if (ch->prechoice_uselock) unlock_prechoice(ch);
       if (free_prechoice) fd_decref(x);
       return v;}
@@ -412,7 +412,7 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
       return EMPTY;}
     /* If it's only got one value, return it. */
     else if ((ch->prechoice_write-ch->prechoice_data) == 1) {
-      fdtype value = fd_incref(*(ch->prechoice_data));
+      lispval value = fd_incref(*(ch->prechoice_data));
       if (ch->prechoice_uselock) unlock_prechoice(ch);
       if (free_prechoice) recycle_prechoice((fd_raw_cons)ch);
       ch->prechoice_normalized = fd_incref(value);
@@ -432,10 +432,10 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
       return fd_init_choice(nch,n,NULL,flags);}
     else if (ch->prechoice_nested==0) {
       /* If it's not nested, we can mostly just call fd_make_choice. */
-      int flags = 0, n_elts = ch->prechoice_write-ch->prechoice_data; fdtype result;
+      int flags = 0, n_elts = ch->prechoice_write-ch->prechoice_data; lispval result;
       if (ch->prechoice_atomic) flags = flags|FD_CHOICE_ISATOMIC; else {
         /* Incref everything */
-        const fdtype *scan = ch->prechoice_data, *write = ch->prechoice_write;
+        const lispval *scan = ch->prechoice_data, *write = ch->prechoice_write;
         while (scan<write) {fd_incref(*scan); scan++;}
         flags = flags|FD_CHOICE_ISCONSES;}
       if (ch->prechoice_muddled) flags = flags|FD_CHOICE_DOSORT;
@@ -450,7 +450,7 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
          and compression to remove duplicates.  We don't want to do
          this if the choice is really huge, because we don't want to
          sort the huge vector. */
-      fdtype converted = convert_prechoice(ch,free_prechoice);
+      lispval converted = convert_prechoice(ch,free_prechoice);
       if (free_prechoice) {
         if (ch->prechoice_uselock) unlock_prechoice(ch);
         fd_decref(x);
@@ -464,9 +464,9 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
          of choices.  You create a tmp_choice of all the non choices
          and merge this with all the choice elements.*/
       struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
-      const fdtype *scan = ch->prechoice_data;
-      const fdtype *lim = ch->prechoice_write;
-      fdtype result, *write;
+      const lispval *scan = ch->prechoice_data;
+      const lispval *lim = ch->prechoice_write;
+      lispval result, *write;
       int n_entries = ch->prechoice_write-ch->prechoice_data;
       int n_vals = n_entries-ch->prechoice_nested;
       int i = 0, n_choices;
@@ -483,7 +483,7 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
       if (n_vals) {
         int flags = FD_CHOICE_DOSORT, atomicp = 1;
         tmp_choice = fd_alloc_choice(n_vals);
-        write = (fdtype *)FD_XCHOICE_DATA(tmp_choice);
+        write = (lispval *)FD_XCHOICE_DATA(tmp_choice);
         choices[i++]=tmp_choice;
         while (scan < lim)
           if (CHOICEP(*scan)) {
@@ -500,7 +500,7 @@ static fdtype normalize_choice(fdtype x,int free_prechoice)
       /* This does the merging of the sorted choices. */
       result = fd_merge_choices(choices,n_choices);
       /* We free the tmp_choice if we made it. */
-      if ((n_vals)&&(result!=((fdtype)tmp_choice)))
+      if ((n_vals)&&(result!=((lispval)tmp_choice)))
         u8_free((struct FD_CHOICE *)tmp_choice);
       if (n_choices>16) u8_free(choices);
       if (ch->prechoice_uselock) unlock_prechoice(ch);
@@ -519,7 +519,7 @@ FD_EXPORT
       Returns: a dtype pointer
   This returns a normalized choice for an prechoice or an incref'd value
   otherwise. */
-fdtype _fd_make_simple_choice(fdtype x)
+lispval _fd_make_simple_choice(lispval x)
 {
   if (PRECHOICEP(x))
     return normalize_choice(x,0);
@@ -532,14 +532,14 @@ FD_EXPORT
       Returns: a dtype pointer
   This returns a normalized choice for a PRECHOICE, or its argument
   otherwise. */
-fdtype _fd_simplify_choice(fdtype x)
+lispval _fd_simplify_choice(lispval x)
 {
   if (PRECHOICEP(x))
     return normalize_choice(x,1);
   else return x;
 }
 
-FD_EXPORT int _fd_choice_size(fdtype x)
+FD_EXPORT int _fd_choice_size(lispval x)
 {
   return fd_choice_size(x);
 }
@@ -550,18 +550,18 @@ FD_EXPORT int _fd_choice_size(fdtype x)
    elements. */
 
 struct FD_CHOICE_SCANNER {
-  fdtype top;
-  const fdtype *ptr, *lim;};
+  lispval top;
+  const lispval *ptr, *lim;};
 
 static int resort_scanners(struct FD_CHOICE_SCANNER *v,int n,int atomic)
 {
-  const fdtype *ptr = v[0].ptr, *lim = v[0].lim;
+  const lispval *ptr = v[0].ptr, *lim = v[0].lim;
   if (ptr == lim) {
     int i = 1; while ((i<n) && (v[i].ptr == v[i].lim)) i++;
     memmove(v,v+i,sizeof(struct FD_CHOICE_SCANNER)*(n-i));
     return n-i;}
   else {
-    int i = 1; fdtype head = v[0].top;
+    int i = 1; lispval head = v[0].top;
     if (atomic)
       while (i<n) if (head<=v[i].top) break; else i++;
     else while (i<n)
@@ -574,12 +574,12 @@ static int resort_scanners(struct FD_CHOICE_SCANNER *v,int n,int atomic)
 
 static int scanner_loop(struct FD_CHOICE_SCANNER *scanners,
                                int n_scanners,
-                               fdtype *vals)
+                               lispval *vals)
 {
-  fdtype *write = vals, last = FD_NEVERSEEN;
+  lispval *write = vals, last = FD_NEVERSEEN;
   while (n_scanners>1) {
-    fdtype top = scanners[0].top;
-    if (!(FDTYPE_EQUAL(last,top))) {*write++=fd_incref(top); last = top;}
+    lispval top = scanners[0].top;
+    if (!(LISP_EQUAL(last,top))) {*write++=fd_incref(top); last = top;}
     scanners[0].ptr++;
     if (scanners[0].ptr == scanners[0].lim)
       if (n_scanners==1) n_scanners--;
@@ -590,8 +590,8 @@ static int scanner_loop(struct FD_CHOICE_SCANNER *scanners,
       else if (cons_compare(top,scanners[1].top)<0) {}
       else n_scanners = resort_scanners(scanners,n_scanners,0);}}
   if (n_scanners==1) {
-    const fdtype top = scanners[0].top, *read, *limit;
-    if (FDTYPE_EQUAL(top,last)) scanners[0].ptr++;
+    const lispval top = scanners[0].top, *read, *limit;
+    if (LISP_EQUAL(top,last)) scanners[0].ptr++;
     read = scanners[0].ptr; limit = scanners[0].lim;
     while (read<limit) {
       *write = fd_incref(*read); write++; read++;}}
@@ -600,11 +600,11 @@ static int scanner_loop(struct FD_CHOICE_SCANNER *scanners,
 
 static int atomic_scanner_loop(struct FD_CHOICE_SCANNER *scanners,
                                int n_scanners,
-                               fdtype *vals)
+                               lispval *vals)
 {
-  fdtype *write = vals, last = FD_NEVERSEEN;
+  lispval *write = vals, last = FD_NEVERSEEN;
   while (n_scanners>1) {
-    fdtype top = scanners[0].top;
+    lispval top = scanners[0].top;
     if (top!=last) {*write++=top; last = top;}
     scanners[0].ptr++;
     if (scanners[0].ptr == scanners[0].lim)
@@ -616,10 +616,10 @@ static int atomic_scanner_loop(struct FD_CHOICE_SCANNER *scanners,
       else if (top<scanners[1].top) {}
       else n_scanners = resort_scanners(scanners,n_scanners,1);}}
   if (n_scanners==1) {
-    fdtype top = scanners[0].top; int len;
+    lispval top = scanners[0].top; int len;
     if (top == last) scanners[0].ptr++;
     len = scanners[0].lim-scanners[0].ptr;
-    memcpy(write,scanners[0].ptr,len*sizeof(fdtype));
+    memcpy(write,scanners[0].ptr,len*sizeof(lispval));
     write = write+len;}
   return write-vals;
 }
@@ -635,7 +635,7 @@ static int compare_scanners_atomic(const void *x,const void *y)
 {
   struct FD_CHOICE_SCANNER *xs = (struct FD_CHOICE_SCANNER *)x;
   struct FD_CHOICE_SCANNER *ys = (struct FD_CHOICE_SCANNER *)y;
-  fdtype xv = xs->top, yv = ys->top;
+  lispval xv = xs->top, yv = ys->top;
   if (xv<yv) return -1;
   else if (xv == yv) return 0;
   else return 1;
@@ -648,16 +648,16 @@ FD_EXPORT
   Combines the elements of all of the choices into a single sorted choice.
   It does this in linear time by marching along all the choices together.
   */
-fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
+lispval fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
 {
   int n_scanners = n_choices, max_space = 0, atomicp = 1, new_size, flags = 0;
-  fdtype *write;
+  lispval *write;
   struct FD_CHOICE *new_choice;
   struct FD_CHOICE_SCANNER *scanners=
     u8_alloc_n(n_choices,struct FD_CHOICE_SCANNER);
   /* Initialize the scanners. */
   int i = 0; while (i < n_scanners) {
-    const fdtype *data = FD_XCHOICE_DATA(choices[i]);
+    const lispval *data = FD_XCHOICE_DATA(choices[i]);
     scanners[i].top = data[0];
     scanners[i].ptr = data;
     scanners[i].lim = data+FD_XCHOICE_SIZE(choices[i]);
@@ -667,7 +667,7 @@ fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
   /* Make a new choice with enough space for everything. */
   new_choice = fd_alloc_choice(max_space);
   /* Where we write */
-  write = (fdtype *)FD_XCHOICE_DATA(new_choice);
+  write = (lispval *)FD_XCHOICE_DATA(new_choice);
   if (atomicp)
     qsort(scanners,n_scanners,sizeof(struct FD_CHOICE_SCANNER),
           compare_scanners_atomic);
@@ -689,14 +689,14 @@ static
    relies on sorting and compression by fd_init_choice to remove duplicates.
    This is a fine approach which the result set is relatively small and
    sorting the resulting choice isn't a big deal. */
-fdtype convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice)
+lispval convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice)
 {
   struct FD_CHOICE *result = fd_alloc_choice(ch->prechoice_size);
-  fdtype *base = (fdtype *)FD_XCHOICE_DATA(result);
-  fdtype *write = base, *write_limit = base+(ch->prechoice_size);
-  fdtype *scan = ch->prechoice_data, *limit = ch->prechoice_write;
+  lispval *base = (lispval *)FD_XCHOICE_DATA(result);
+  lispval *write = base, *write_limit = base+(ch->prechoice_size);
+  lispval *scan = ch->prechoice_data, *limit = ch->prechoice_write;
   while (scan < limit) {
-    fdtype v = *scan;
+    lispval v = *scan;
     if (write>=write_limit) {
       u8_log(LOG_WARN,"prechoice_inconsistency",
               "total size is more than the recorded %d",ch->prechoice_size);
@@ -710,17 +710,17 @@ fdtype convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice)
         abort();}
       else if (FD_XCHOICE_ATOMICP(each)) {
         memcpy(write,FD_XCHOICE_DATA(each),
-               sizeof(fdtype)*FD_XCHOICE_SIZE(each));
+               sizeof(lispval)*FD_XCHOICE_SIZE(each));
         write = write+FD_XCHOICE_SIZE(each);}
       else if (freed) {
         memcpy(write,FD_XCHOICE_DATA(each),
-               sizeof(fdtype)*FD_XCHOICE_SIZE(each));
+               sizeof(lispval)*FD_XCHOICE_SIZE(each));
         write = write+FD_XCHOICE_SIZE(each);}
       else {
-        const fdtype *vscan = FD_XCHOICE_DATA(each),
+        const lispval *vscan = FD_XCHOICE_DATA(each),
           *vlimit = vscan+FD_XCHOICE_SIZE(each);
         while (vscan < vlimit) {
-          fdtype ev = *vscan++; *write++=fd_incref(ev);}}
+          lispval ev = *vscan++; *write++=fd_incref(ev);}}
       if (freed) {
         struct FD_CHOICE *ch = (struct FD_CHOICE *)each;
         if (FD_MALLOCD_CONSP(ch)) u8_free(ch);
@@ -736,7 +736,7 @@ fdtype convert_prechoice(struct FD_PRECHOICE *ch,int freeing_prechoice)
                            ((ch->prechoice_atomic)?(FD_CHOICE_ISATOMIC):
                             (FD_CHOICE_ISCONSES))));
   else {
-    fdtype v = base[0];
+    lispval v = base[0];
     u8_free(result);
     return v;}
 }
@@ -752,28 +752,28 @@ FD_EXPORT
       Returns: a dtype pointer
   Initializes the structure with the qchoice.
  */
-fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice)
+lispval fd_init_qchoice(struct FD_QCHOICE *ptr,lispval choice)
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_QCHOICE);
   FD_INIT_FRESH_CONS(ptr,fd_qchoice_type);
   ptr->qchoiceval = choice;
-  return FDTYPE_CONS(ptr);
+  return LISP_CONS(ptr);
 }
 
-static int write_qchoice_dtype(struct FD_OUTBUF *s,fdtype x)
+static int write_qchoice_dtype(struct FD_OUTBUF *s,lispval x)
 {
   struct FD_QCHOICE *qc = FD_XQCHOICE(x);
   return fd_write_dtype(s,qc->qchoiceval);
 }
 
-static int unparse_qchoice(struct U8_OUTPUT *s,fdtype x)
+static int unparse_qchoice(struct U8_OUTPUT *s,lispval x)
 {
   struct FD_QCHOICE *qc = FD_XQCHOICE(x);
   u8_puts(s,"#"); fd_unparse(s,qc->qchoiceval);
   return 1;
 }
 
-static fdtype copy_qchoice(fdtype x,int deep)
+static lispval copy_qchoice(lispval x,int deep)
 {
   struct FD_QCHOICE *copied = u8_alloc(struct FD_QCHOICE);
   struct FD_QCHOICE *qc = FD_XQCHOICE(x);
@@ -783,13 +783,13 @@ static fdtype copy_qchoice(fdtype x,int deep)
   else {
     fd_incref(qc->qchoiceval);
     copied->qchoiceval = qc->qchoiceval;}
-  return FDTYPE_CONS(copied);
+  return LISP_CONS(copied);
 }
 
-static int compare_qchoice(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_qchoice(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_QCHOICE *xqc = FD_XQCHOICE(x), *yqc = FD_XQCHOICE(y);
-  return (FDTYPE_COMPARE(xqc->qchoiceval,yqc->qchoiceval,flags));
+  return (LISP_COMPARE(xqc->qchoiceval,yqc->qchoiceval,flags));
 }
 
 /* Set operations (intersection, union, difference) on choices */
@@ -809,18 +809,18 @@ FD_EXPORT
      and its length (an int)
     Returns: the intersection of the choices.
  */
-fdtype fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
+lispval fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
 {
-  fdtype *results, *write; int max_results, atomicp = 1;
+  lispval *results, *write; int max_results, atomicp = 1;
   qsort(choices,n_choices,sizeof(struct FD_CHOICE *),
         compare_choicep_size);
   max_results = FD_XCHOICE_SIZE(choices[0]);
-  write = results = u8_alloc_n(max_results,fdtype);
+  write = results = u8_alloc_n(max_results,lispval);
   {
-    const fdtype *scan = FD_XCHOICE_DATA(choices[0]);
-    const fdtype *limit = scan+max_results;
+    const lispval *scan = FD_XCHOICE_DATA(choices[0]);
+    const lispval *limit = scan+max_results;
     while (scan<limit) {
-      fdtype item = *scan++; int i = 1; while (i < n_choices)
+      lispval item = *scan++; int i = 1; while (i < n_choices)
         if (choice_containsp(item,choices[i])) i++;
         else break;
       if (i == n_choices) {
@@ -831,7 +831,7 @@ fdtype fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
     u8_free(results);
     return EMPTY;}
   else if (write == (results+1)) {
-    fdtype v = results[0]; u8_free(results);
+    lispval v = results[0]; u8_free(results);
     return v;}
   else if (atomicp)
     return fd_make_choice(write-results,results,
@@ -847,12 +847,12 @@ FD_EXPORT
      Returns: a dtype pointer
   Computes the intersection of a set of choices.
  */
-fdtype fd_intersection(fdtype *v,int n)
+lispval fd_intersection(lispval *v,int n)
 {
   if (n == 0) return EMPTY;
   else if (n == 1) return fd_incref(v[0]);
   else {
-    fdtype result = VOID;
+    lispval result = VOID;
     /* The simplest case is where one or more of the inputs
        is a singleton.  If more than one is a singleton and they
        are different, we just return the empty set.  If they're the same,
@@ -873,7 +873,7 @@ fdtype fd_intersection(fdtype *v,int n)
       else if (VOIDP(result))
         /* This must be our first singleton. */
         result = v[i++];
-      else if (FDTYPE_EQUAL(result,v[i]))
+      else if (LISP_EQUAL(result,v[i]))
         /* This is a consistent singleton */
         i++;
     /* If it's not a consistent singleton, we can just return the
@@ -888,7 +888,7 @@ fdtype fd_intersection(fdtype *v,int n)
         else if (PRECHOICEP(v[i])) {
           /* Arguably, it might not make sense to do this conversion
              right now. */
-          fdtype sc = fd_make_simple_choice(v[i]);
+          lispval sc = fd_make_simple_choice(v[i]);
           if (fd_choice_containsp(result,sc)) {
             fd_decref(sc); i++;}
           else {
@@ -903,12 +903,12 @@ fdtype fd_intersection(fdtype *v,int n)
     else if (prechoices) {
       /* This is the case where we have choices to convert. */
       struct FD_CHOICE **choices, *_choices[16];
-      fdtype *conversions, _conversions[16];
-      fdtype result = VOID; int i, n_choices = 0, n_conversions = 0;
+      lispval *conversions, _conversions[16];
+      lispval result = VOID; int i, n_choices = 0, n_conversions = 0;
       /* Try to use a stack vector if possible. */
       if (n>16) {
         choices = u8_alloc_n(n,struct FD_CHOICE *);
-        conversions = u8_alloc_n(n,fdtype);}
+        conversions = u8_alloc_n(n,lispval);}
       else {choices=_choices; conversions=_conversions;}
       i = 0; while (i < n)
         /* We go down doing conversions.  Note that we do the same thing
@@ -917,7 +917,7 @@ fdtype fd_intersection(fdtype *v,int n)
         if (CHOICEP(v[i])) {
           choices[n_choices++]=(struct FD_CHOICE *)v[i++];}
         else if (PRECHOICEP(v[i])) {
-          fdtype nc = fd_make_simple_choice(v[i++]);
+          lispval nc = fd_make_simple_choice(v[i++]);
           if (CHOICEP(nc)) {
             choices[n_choices++]=(struct FD_CHOICE *)nc;
             conversions[n_conversions++]=nc;}
@@ -925,7 +925,7 @@ fdtype fd_intersection(fdtype *v,int n)
              empty or a singleton */
           else if (EMPTYP(nc)) break;
           else if (VOIDP(result)) result = nc;
-          else if (FDTYPE_EQUAL(result,nc)) i++;
+          else if (LISP_EQUAL(result,nc)) i++;
           else {
             /* We record it because we converted it. */
             if (CONSP(nc)) conversions[n_conversions++]=nc;
@@ -948,7 +948,7 @@ fdtype fd_intersection(fdtype *v,int n)
       return result;}
     else {
       struct FD_CHOICE **choices, *_choices[16];
-      fdtype result; int i = 0;
+      lispval result; int i = 0;
       if (n>16)
         choices = u8_alloc_n(n,struct FD_CHOICE *);
       else choices=_choices;
@@ -966,26 +966,26 @@ FD_EXPORT
      Returns: a dtype pointer
   Computes the union of a set of choices.
  */
-fdtype fd_union(fdtype *v,int n)
+lispval fd_union(lispval *v,int n)
 {
   if (n == 0) return EMPTY;
   else {
-    fdtype result = EMPTY; int i = 0;
+    lispval result = EMPTY; int i = 0;
     while (i < n) {
-      fdtype elt = v[i++]; fd_incref(elt);
+      lispval elt = v[i++]; fd_incref(elt);
       CHOICE_ADD(result,elt);}
     return fd_simplify_choice(result);}
 }
 
-static fdtype compute_choice_difference
+static lispval compute_choice_difference
   (struct FD_CHOICE *whole,struct FD_CHOICE *part)
 {
   int wsize = FD_XCHOICE_SIZE(whole), psize = FD_XCHOICE_SIZE(part);
   int watomicp = FD_XCHOICE_ATOMICP(whole), patomicp = FD_XCHOICE_ATOMICP(part);
-  const fdtype *wscan = FD_XCHOICE_DATA(whole), *wlim = wscan+wsize;
-  const fdtype *pscan = FD_XCHOICE_DATA(part), *plim = pscan+psize;
+  const lispval *wscan = FD_XCHOICE_DATA(whole), *wlim = wscan+wsize;
+  const lispval *pscan = FD_XCHOICE_DATA(part), *plim = pscan+psize;
   struct FD_CHOICE *result = fd_alloc_choice(wsize);
-  fdtype *newv = (fdtype *)FD_XCHOICE_DATA(result), *write = newv;
+  lispval *newv = (lispval *)FD_XCHOICE_DATA(result), *write = newv;
   /* An additional optimization here might quit as soon as we start getting
      into nonatomic elements of PART while WHOLE is all atomic. */
   if ((watomicp) && (patomicp))
@@ -995,7 +995,7 @@ static fdtype compute_choice_difference
         *write = *wscan; write++; wscan++;}
       else pscan++;
   else while ((wscan<wlim) && (pscan<plim))
-    if (FDTYPE_EQUAL(*wscan,*pscan)) {wscan++; pscan++;}
+    if (LISP_EQUAL(*wscan,*pscan)) {wscan++; pscan++;}
     else if (cons_compare(*wscan,*pscan)<0) {
       *write = fd_incref(*wscan); write++; wscan++;}
     else pscan++;
@@ -1010,7 +1010,7 @@ static fdtype compute_choice_difference
     u8_free(result);
     return EMPTY;}
   else {
-    fdtype singleton = newv[0];
+    lispval singleton = newv[0];
     u8_free(result);
     return singleton;}
 }
@@ -1021,14 +1021,14 @@ FD_EXPORT
      Returns: a dtype pointer
   Computes the difference of two sets of choices.
 */
-fdtype fd_difference(fdtype value,fdtype remove)
+lispval fd_difference(lispval value,lispval remove)
 {
   if (EMPTYP(value)) return value;
   else if (EMPTYP(remove)) return fd_incref(value);
   else if ((PRECHOICEP(value)) || (PRECHOICEP(remove))) {
-    fdtype svalue = fd_make_simple_choice(value);
-    fdtype sremove = fd_make_simple_choice(remove);
-    fdtype result = fd_difference(svalue,sremove);
+    lispval svalue = fd_make_simple_choice(value);
+    lispval sremove = fd_make_simple_choice(remove);
+    lispval result = fd_difference(svalue,sremove);
     fd_decref(svalue); fd_decref(sremove);
     return result;}
   else if (CHOICEP(value))
@@ -1041,16 +1041,16 @@ fdtype fd_difference(fdtype value,fdtype remove)
         if (size==1)
           return EMPTY;
         else if (size==2)
-          if (FDTYPE_EQUAL(remove,(FD_XCHOICE_DATA(vchoice))[0]))
+          if (LISP_EQUAL(remove,(FD_XCHOICE_DATA(vchoice))[0]))
             return fd_incref((FD_XCHOICE_DATA(vchoice))[1]);
           else return fd_incref((FD_XCHOICE_DATA(vchoice))[0]);
         else {
           struct FD_CHOICE *new_choice = fd_alloc_choice(size-1);
-          fdtype *newv = (fdtype *)FD_XCHOICE_DATA(new_choice), *write = newv;
-          const fdtype *read = FD_XCHOICE_DATA(vchoice), *lim = read+size;
+          lispval *newv = (lispval *)FD_XCHOICE_DATA(new_choice), *write = newv;
+          const lispval *read = FD_XCHOICE_DATA(vchoice), *lim = read+size;
           int flags = ((atomicp)?(FD_CHOICE_ISATOMIC):(0))|FD_CHOICE_REALLOC;
           while (read < lim)
-            if (FDTYPE_EQUAL(*read,remove))
+            if (LISP_EQUAL(*read,remove))
               read++;
             else {
               *write = fd_incref(*read);
@@ -1065,7 +1065,7 @@ fdtype fd_difference(fdtype value,fdtype remove)
     if (fd_choice_containsp(value,remove))
       return EMPTY;
     else return fd_incref(value);
-  else if (FDTYPE_EQUAL(value,remove)) return EMPTY;
+  else if (LISP_EQUAL(value,remove)) return EMPTY;
   else return fd_incref(value);
 }
 
@@ -1078,12 +1078,12 @@ FD_EXPORT
    this is just choice_containsp, and on two choices, it's currently
    just implemented as a series of choice_containsp operations.
 */
-int fd_overlapp(fdtype xarg,fdtype yarg)
+int fd_overlapp(lispval xarg,lispval yarg)
 {
   if (EMPTYP(xarg)) return 0;
   else if (EMPTYP(yarg)) return 0;
   else {
-    fdtype x, y; int retval = 0;
+    lispval x, y; int retval = 0;
     if (PRECHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
     if (PRECHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
     if (CHOICEP(x))
@@ -1096,7 +1096,7 @@ int fd_overlapp(fdtype xarg,fdtype yarg)
             if (choice_containsp(elt,(fd_choice)y)) {retval = 1; break;}}
       else retval = choice_containsp(y,(fd_choice)x);
     else if (CHOICEP(y)) retval = choice_containsp(x,(fd_choice)y);
-    else retval = FDTYPE_EQUAL(x,y);
+    else retval = LISP_EQUAL(x,y);
     if (PRECHOICEP(xarg)) fd_decref(x);
     if (PRECHOICEP(yarg)) fd_decref(y);
     return retval;}
@@ -1111,12 +1111,12 @@ FD_EXPORT
    this is just choice_containsp, and on two choices, it's currently
    just implemented as a series of choice_containsp operations.
 */
-int fd_containsp(fdtype xarg,fdtype yarg)
+int fd_containsp(lispval xarg,lispval yarg)
 {
   if (EMPTYP(xarg)) return 0;
   else if (EMPTYP(yarg)) return 0;
   else {
-    fdtype x, y; int retval = 0;
+    lispval x, y; int retval = 0;
     if (PRECHOICEP(xarg)) x = normalize_choice(xarg,0); else x = xarg;
     if (PRECHOICEP(yarg)) y = normalize_choice(yarg,0); else y = yarg;
     if (CHOICEP(x))
@@ -1129,7 +1129,7 @@ int fd_containsp(fdtype xarg,fdtype yarg)
         if (contained) retval = 1;}
       else retval = 0;
     else if (CHOICEP(y)) retval = choice_containsp(x,(fd_choice)y);
-    else retval = FDTYPE_EQUAL(x,y);
+    else retval = LISP_EQUAL(x,y);
     if (PRECHOICEP(xarg)) fd_decref(x);
     if (PRECHOICEP(yarg)) fd_decref(y);
     return retval;}
@@ -1138,13 +1138,13 @@ int fd_containsp(fdtype xarg,fdtype yarg)
 /* Natsorting CHOICES */
 
 FD_EXPORT
-fdtype *fd_natsort_choice(fd_choice ch,fdtype *tmpbuf,ssize_t tmp_len)
+lispval *fd_natsort_choice(fd_choice ch,lispval *tmpbuf,ssize_t tmp_len)
 {
   int len = FD_XCHOICE_SIZE(ch);
-  const fdtype *data = FD_XCHOICE_DATA(ch);
-  fdtype *natsorted = (tmp_len>len) ? (tmpbuf) : u8_alloc_n(len,fdtype);
-  memcpy(natsorted,data,len*sizeof(fdtype));
-  fdtype_sort(natsorted,len,FD_COMPARE_NATSORT);
+  const lispval *data = FD_XCHOICE_DATA(ch);
+  lispval *natsorted = (tmp_len>len) ? (tmpbuf) : u8_alloc_n(len,lispval);
+  memcpy(natsorted,data,len*sizeof(lispval));
+  lispval_sort(natsorted,len,FD_COMPARE_NATSORT);
   return natsorted;
 }
 

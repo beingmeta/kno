@@ -50,21 +50,21 @@ int fd_dbconn_reserve_default = FD_DBCONN_RESERVE_DEFAULT;
 int fd_dbconn_cap_default = FD_DBCONN_CAP_DEFAULT;
 int fd_dbconn_init_default = FD_DBCONN_INIT_DEFAULT;
 
-static fdtype id_symbol;
-static fdtype lookupfns = EMPTY;
+static lispval id_symbol;
+static lispval lookupfns = EMPTY;
 
 static int fdstorage_initialized = 0;
 
-static fdtype better_parse_oid(u8_string start,int len)
+static lispval better_parse_oid(u8_string start,int len)
 {
   if (start[1]=='?') {
     const u8_byte *scan = start+2;
-    fdtype name = fd_parse(scan);
+    lispval name = fd_parse(scan);
     if (scan-start>len) return VOID;
     else if (FD_ABORTP(name)) return name;
     else if (fd_background) {
-      fdtype key = fd_conspair(id_symbol,fd_incref(name));
-      fdtype item = fd_index_get((fd_index)fd_background,key);
+      lispval key = fd_conspair(id_symbol,fd_incref(name));
+      lispval item = fd_index_get((fd_index)fd_background,key);
       fd_decref(key);
       if (OIDP(item)) return item;
       else if (CHOICEP(item)) {
@@ -77,8 +77,8 @@ static fdtype better_parse_oid(u8_string start,int len)
     if (lookupfns!=NIL) {
       FD_DOLIST(method,lookupfns) {
         if ((SYMBOLP(method))||(OIDP(method))) {
-          fdtype key = fd_conspair(method,fd_incref(name));
-          fdtype item = fd_index_get((fd_index)fd_background,key);
+          lispval key = fd_conspair(method,fd_incref(name));
+          lispval item = fd_index_get((fd_index)fd_background,key);
           fd_decref(key);
           if (OIDP(item)) return item;
           else if (!((EMPTYP(item))||
@@ -86,7 +86,7 @@ static fdtype better_parse_oid(u8_string start,int len)
                      (VOIDP(item)))) continue;
           else return fd_type_error("oid","better_parse_oid",item);}
         else if (FD_APPLICABLEP(method)) {
-          fdtype item = fd_apply(method,1,&name);
+          lispval item = fd_apply(method,1,&name);
           if (FD_ABORTP(item)) return item;
           else if (OIDP(item)) return item;
           else if ((EMPTYP(item))||
@@ -126,22 +126,22 @@ static fdtype better_parse_oid(u8_string start,int len)
   else return fd_parse_oid_addr(start,len);
 }
 
-static fdtype oid_name_slotids = NIL;
+static lispval oid_name_slotids = NIL;
 
-static fdtype default_get_oid_name(fd_pool p,fdtype oid)
+static lispval default_get_oid_name(fd_pool p,lispval oid)
 {
   if (FD_APPLICABLEP(p->pool_namefn)) return VOID;
   else {
-    fdtype ov = fd_oid_value(oid);
+    lispval ov = fd_oid_value(oid);
     if (((OIDP(p->pool_namefn)) || (SYMBOLP(p->pool_namefn))) &&
         (!(CHOICEP(ov))) && (TABLEP(ov))) {
-      fdtype probe = fd_frame_get(oid,p->pool_namefn);
+      lispval probe = fd_frame_get(oid,p->pool_namefn);
       if (EMPTYP(probe)) {}
       else if (FD_ABORTP(probe)) {fd_decref(probe);}
       else {fd_decref(ov); return probe;}}
     if ((!(CHOICEP(ov))) && (TABLEP(ov))) {
       FD_DOLIST(slotid,oid_name_slotids) {
-        fdtype probe = fd_frame_get(oid,slotid);
+        lispval probe = fd_frame_get(oid,slotid);
         if (EMPTYP(probe)) {}
         else if (FD_ABORTP(probe)) {fd_decref(probe);}
         else {fd_decref(ov); return probe;}}
@@ -150,9 +150,9 @@ static fdtype default_get_oid_name(fd_pool p,fdtype oid)
     else {fd_decref(ov); return VOID;}}
 }
 
-fdtype (*fd_get_oid_name)(fd_pool p,fdtype oid) = default_get_oid_name;
+lispval (*fd_get_oid_name)(fd_pool p,lispval oid) = default_get_oid_name;
 
-static int print_oid_name(u8_output out,fdtype name,int top)
+static int print_oid_name(u8_output out,lispval name,int top)
 {
   if ((VOIDP(name)) || (EMPTYP(name))) return 0;
   else if (NILP(name))
@@ -180,7 +180,7 @@ static int print_oid_name(u8_output out,fdtype name,int top)
         if (print_oid_name(out,item,0)<0) return -1;}}
     return u8_putc(out,'}');}
   else if (PAIRP(name)) {
-    fdtype scan = name; u8_putc(out,'(');
+    lispval scan = name; u8_putc(out,'(');
     if (print_oid_name(out,FD_CAR(scan),0)<0) return -1;
     else scan = FD_CDR(scan);
     while (PAIRP(scan)) {
@@ -206,7 +206,7 @@ static int print_oid_name(u8_output out,fdtype name,int top)
   else return fd_unparse(out,name);
 }
 
-static int better_unparse_oid(u8_output out,fdtype x)
+static int better_unparse_oid(u8_output out,lispval x)
 {
   if ((fd_oid_display_level<1) || (out->u8_streaminfo&U8_STREAM_TACITURN)) {
     FD_OID addr = FD_OID_ADDR(x); char buf[128];
@@ -233,7 +233,7 @@ static int better_unparse_oid(u8_output out,fdtype x)
              (!(fd_hashtable_probe_novoid(&(p->pool_changes),x))))
       return 1;
     else {
-      fdtype name = fd_get_oid_name(p,x);
+      lispval name = fd_get_oid_name(p,x);
       int retval = print_oid_name(out,name,1);
       fd_decref(name);
       return retval;}}
@@ -241,7 +241,7 @@ static int better_unparse_oid(u8_output out,fdtype x)
 
 /* CONFIG settings */
 
-static int set_default_cache_level(fdtype var,fdtype val,void *data)
+static int set_default_cache_level(lispval var,lispval val,void *data)
 {
   if (FD_INTP(val)) {
     int new_level = FIX2INT(val);
@@ -251,12 +251,12 @@ static int set_default_cache_level(fdtype var,fdtype val,void *data)
     fd_type_error("small fixnum","set_default_cache_level",val);
     return -1;}
 }
-static fdtype get_default_cache_level(fdtype var,void *data)
+static lispval get_default_cache_level(lispval var,void *data)
 {
   return FD_INT(fd_default_cache_level);
 }
 
-static int set_oid_display_level(fdtype var,fdtype val,void *data)
+static int set_oid_display_level(lispval var,lispval val,void *data)
 {
   if (FD_INTP(val)) {
     fd_oid_display_level = FIX2INT(val);
@@ -265,27 +265,27 @@ static int set_oid_display_level(fdtype var,fdtype val,void *data)
     fd_type_error("small fixnum","set_oid_display_level",val);
     return -1;}
 }
-static fdtype get_oid_display_level(fdtype var,void *data)
+static lispval get_oid_display_level(lispval var,void *data)
 {
   return FD_INT(fd_oid_display_level);
 }
 
-static int set_prefetch(fdtype var,fdtype val,void *data)
+static int set_prefetch(lispval var,lispval val,void *data)
 {
   if (FALSEP(val)) fd_prefetch = 0;
   else fd_prefetch = 1;
   return 1;
 }
-static fdtype get_prefetch(fdtype var,void *data)
+static lispval get_prefetch(lispval var,void *data)
 {
   if (fd_prefetch) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype config_get_pools(fdtype var,void *data)
+static lispval config_get_pools(lispval var,void *data)
 {
   return fd_all_pools();
 }
-static int config_use_pool(fdtype var,fdtype spec,void *data)
+static int config_use_pool(lispval var,lispval spec,void *data)
 {
   if (STRINGP(spec))
     if (fd_use_pool(CSTRING(spec),0,VOID))
@@ -297,21 +297,21 @@ static int config_use_pool(fdtype var,fdtype spec,void *data)
 
 /* Config methods */
 
-static fdtype config_get_indexes(fdtype var,void *data)
+static lispval config_get_indexes(lispval var,void *data)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   int i = 0; while (i < fd_n_primary_indexes) {
-    fdtype lindex = fd_index2lisp(fd_primary_indexes[i]);
+    lispval lindex = fd_index2lisp(fd_primary_indexes[i]);
     CHOICE_ADD(results,lindex);
     i++;}
   if (i>=fd_n_primary_indexes) return results;
   i = 0; while (i < fd_n_secondary_indexes) {
-    fdtype lindex = fd_index2lisp(fd_secondary_indexes[i]);
+    lispval lindex = fd_index2lisp(fd_secondary_indexes[i]);
     CHOICE_ADD(results,lindex);
     i++;}
   return results;
 }
-static int config_open_index(fdtype var,fdtype spec,void *data)
+static int config_open_index(lispval var,lispval spec,void *data)
 {
   if (STRINGP(spec))
     if (fd_get_index(CSTRING(spec),0,VOID)) return 1;
@@ -321,21 +321,21 @@ static int config_open_index(fdtype var,fdtype spec,void *data)
     return -1;}
 }
 
-static fdtype config_get_background(fdtype var,void *data)
+static lispval config_get_background(lispval var,void *data)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   if (fd_background == NULL) return results;
   else {
     int i = 0, n; fd_index *indexes;
     u8_lock_mutex(&(fd_background->index_lock));
     n = fd_background->n_indexes; indexes = fd_background->indexes;
     while (i<n) {
-      fdtype lix = fd_index2lisp(indexes[i]); i++;
+      lispval lix = fd_index2lisp(indexes[i]); i++;
       CHOICE_ADD(results,lix);}
     u8_unlock_mutex(&(fd_background->index_lock));
     return results;}
 }
-static int config_use_index(fdtype var,fdtype spec,void *data)
+static int config_use_index(lispval var,lispval spec,void *data)
 {
   if (STRINGP(spec))
     if (fd_use_index(CSTRING(spec),0,VOID)) return 1;
@@ -444,7 +444,7 @@ static int cache_load()
 FD_EXPORT int fd_swapcheck()
 {
   long long memgap; ssize_t usage = u8_memusage();
-  fdtype l_memgap = fd_config_get("SWAPCHECK");
+  lispval l_memgap = fd_config_get("SWAPCHECK");
   if (FIXNUMP(l_memgap)) memgap = FIX2INT(l_memgap);
   else if (!(VOIDP(l_memgap))) {
     u8_log(LOG_WARN,fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);

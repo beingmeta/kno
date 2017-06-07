@@ -1,32 +1,32 @@
 FD_EXPORT fd_exception fd_BigIntException;
 
-FD_EXPORT fdtype fd_make_bigint(long long intval);
-FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
-FD_EXPORT fdtype fd_string2number(u8_string string,int base);
-FD_EXPORT int fd_output_number(u8_output out,fdtype num,int base);
-FD_EXPORT fdtype fd_make_complex(fdtype real,fdtype imag);
-FD_EXPORT fdtype fd_make_rational(fdtype num,fdtype denom);
+FD_EXPORT lispval fd_make_bigint(long long intval);
+FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT lispval fd_string2number(u8_string string,int base);
+FD_EXPORT int fd_output_number(u8_output out,lispval num,int base);
+FD_EXPORT lispval fd_make_complex(lispval real,lispval imag);
+FD_EXPORT lispval fd_make_rational(lispval num,lispval denom);
 FD_EXPORT int fd_small_bigintp(fd_bigint bi);
 FD_EXPORT int fd_modest_bigintp(fd_bigint bi);
-FD_EXPORT int fd_builtin_numberp(fdtype x);
-FD_EXPORT fdtype fd_plus(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_multiply(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_subtract(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_inexact_divide(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_divide(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_quotient(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_remainder(fdtype x,fdtype y);
-FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
+FD_EXPORT int fd_builtin_numberp(lispval x);
+FD_EXPORT lispval fd_plus(lispval x,lispval y);
+FD_EXPORT lispval fd_multiply(lispval x,lispval y);
+FD_EXPORT lispval fd_subtract(lispval x,lispval y);
+FD_EXPORT lispval fd_inexact_divide(lispval x,lispval y);
+FD_EXPORT lispval fd_divide(lispval x,lispval y);
+FD_EXPORT lispval fd_quotient(lispval x,lispval y);
+FD_EXPORT lispval fd_remainder(lispval x,lispval y);
+FD_EXPORT int fd_numcompare(lispval x,lispval y);
 
-FD_EXPORT fdtype fd_gcd(fdtype x,fdtype y);
-FD_EXPORT fdtype fd_lcm(fdtype x,fdtype y);
+FD_EXPORT lispval fd_gcd(lispval x,lispval y);
+FD_EXPORT lispval fd_lcm(lispval x,lispval y);
 
-FD_EXPORT fdtype fd_pow(fdtype x,fdtype y);
+FD_EXPORT lispval fd_pow(lispval x,lispval y);
 
-FD_EXPORT fdtype fd_make_exact(fdtype);
-FD_EXPORT fdtype fd_make_inexact(fdtype);
+FD_EXPORT lispval fd_make_exact(lispval);
+FD_EXPORT lispval fd_make_inexact(lispval);
 
-FD_EXPORT double fd_todouble(fdtype x);
+FD_EXPORT double fd_todouble(lispval x);
 FD_EXPORT double fd_bigint_to_double(fd_bigint x);
 
 FD_EXPORT fd_bigint fd_long_to_bigint(long x);
@@ -45,14 +45,14 @@ FD_EXPORT int fd_bigint_negativep(fd_bigint);
 FD_EXPORT int fd_bigint_fits_in_word_p(fd_bigint bi,long width,int twosc);
 FD_EXPORT unsigned long fd_bigint_bytes(fd_bigint bi);
 
-FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
+FD_EXPORT int fd_numcompare(lispval x,lispval y);
 
-FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
-FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT lispval fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum);
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
 #define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
 
-FD_EXPORT int fd_exactp(fdtype x);
+FD_EXPORT int fd_exactp(lispval x);
 
 #define FD_ISNAN(x) ((FD_FLONUMP(x))&&(isnan(FD_FLONUM(x))))
 #define FD_ZEROP(x) ((FD_FIXNUMP(x))?((FD_FIX2INT(x))==0): \
@@ -62,7 +62,7 @@ FD_EXPORT int fd_exactp(fdtype x);
    ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))?(1):		      \
    (fd_exactp(x)))
 
-FD_EXPORT int fd_tolonglong(fdtype r,long long *intval);
+FD_EXPORT int fd_tolonglong(lispval r,long long *intval);
 
 /* Numeric vectors */
 
@@ -126,11 +126,11 @@ typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 #define FD_NUMVEC_INT_SLICE(v,i)    ((FD_NUMVEC_INTS(v))+i)
 #define FD_NUMVEC_LONG_SLICE(v,i)   ((FD_NUMVEC_LONGS(v))+i)
 
-FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v);
-FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v);
-FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v);
-FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v);
-FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v);
+FD_EXPORT lispval fd_make_long_vector(int n,fd_long *v);
+FD_EXPORT lispval fd_make_int_vector(int n,fd_int *v);
+FD_EXPORT lispval fd_make_short_vector(int n,fd_short *v);
+FD_EXPORT lispval fd_make_float_vector(int n,fd_float *v);
+FD_EXPORT lispval fd_make_double_vector(int n,fd_double *v);
 
-FD_EXPORT fdtype fd_make_numeric_vector(int n,enum fd_num_elt_type t);
+FD_EXPORT lispval fd_make_numeric_vector(int n,enum fd_num_elt_type t);
 

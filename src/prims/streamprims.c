@@ -36,16 +36,16 @@
 #define FD_DTWRITE_SIZE 2000
 #endif
 
-static fdtype read_dtype(fdtype stream)
+static lispval read_dtype(lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  fdtype object = fd_read_dtype(fd_readbuf(ds));
+  lispval object = fd_read_dtype(fd_readbuf(ds));
   if (object == FD_EOD) return FD_EOF;
   else return object;
 }
 
-static fdtype write_dtype(fdtype object,fdtype stream)
+static lispval write_dtype(lispval object,lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -54,7 +54,7 @@ static fdtype write_dtype(fdtype object,fdtype stream)
   else return FD_INT(bytes);
 }
 
-static fdtype write_bytes(fdtype object,fdtype stream)
+static lispval write_bytes(lispval object,lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -71,7 +71,7 @@ static fdtype write_bytes(fdtype object,fdtype stream)
     else return FD_INT(bytes);}
 }
 
-static fdtype read_int(fdtype stream)
+static lispval read_int(lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -80,7 +80,7 @@ static fdtype read_int(fdtype stream)
   return FD_INT(ival);
 }
 
-static fdtype write_int(fdtype object,fdtype stream)
+static lispval write_int(lispval object,lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -90,16 +90,16 @@ static fdtype write_int(fdtype object,fdtype stream)
   else return FD_INT(bytes);
 }
 
-static fdtype zread_dtype(fdtype stream)
+static lispval zread_dtype(lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  fdtype object = fd_zread_dtype(fd_readbuf(ds));
+  lispval object = fd_zread_dtype(fd_readbuf(ds));
   if (object == FD_EOD) return FD_EOF;
   else return object;
 }
 
-static fdtype zwrite_dtype(fdtype object,fdtype stream)
+static lispval zwrite_dtype(lispval object,lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -108,7 +108,7 @@ static fdtype zwrite_dtype(fdtype object,fdtype stream)
   else return FD_INT(bytes);
 }
 
-static fdtype zwrite_dtypes(fdtype object,fdtype stream)
+static lispval zwrite_dtypes(lispval object,lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -117,7 +117,7 @@ static fdtype zwrite_dtypes(fdtype object,fdtype stream)
   else return FD_INT(bytes);
 }
 
-static fdtype zread_int(fdtype stream)
+static lispval zread_int(lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -125,7 +125,7 @@ static fdtype zread_int(fdtype stream)
   return FD_INT(ival);
 }
 
-static fdtype zwrite_int(fdtype object,fdtype stream)
+static lispval zwrite_int(lispval object,lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
@@ -137,14 +137,14 @@ static fdtype zwrite_int(fdtype object,fdtype stream)
 
 /* Reading and writing DTYPEs */
 
-static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz);
+static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz);
 
-static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
+static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
 {
   if ((STRINGP(filename))&&
       ((u8_has_suffix(CSTRING(filename),".ztype",1))||
        (u8_has_suffix(CSTRING(filename),".gz",1)))) {
-    return dtype2zipfile(object,filename,bufsiz);}
+    return lisp2zipfile(object,filename,bufsiz);}
   else if (STRINGP(filename)) {
     u8_string temp_name = u8_mkstring("%s.part",CSTRING(filename));
     struct FD_STREAM *out=
@@ -178,10 +178,10 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
       if (bytes<0)
 	return FD_ERROR;
       else return FD_INT(bytes);}}
-  else return fd_type_error(_("string"),"dtype2file",filename);
+  else return fd_type_error(_("string"),"lisp2file",filename);
 }
 
-static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
+static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
 {
   if (STRINGP(filename)) {
     u8_string temp_name = u8_mkstring("%s.part",CSTRING(filename));
@@ -218,12 +218,12 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
       if (bytes<0)
 	return FD_ERROR;
       else return FD_INT(bytes);}}
-  else return fd_type_error(_("string"),"dtype2zipfile",filename);
+  else return fd_type_error(_("string"),"lisp2zipfile",filename);
 }
 
-static fdtype add_dtype2zipfile(fdtype object,fdtype filename);
+static lispval add_lisp2zipfile(lispval object,lispval filename);
 
-static ssize_t write_dtypes(fdtype dtypes,struct FD_STREAM *out)
+static ssize_t write_dtypes(lispval dtypes,struct FD_STREAM *out)
 {
   ssize_t bytes=0, rv=0;
   fd_off_t start= fd_endpos(out);
@@ -264,12 +264,12 @@ static ssize_t write_dtypes(fdtype dtypes,struct FD_STREAM *out)
   else return bytes;
 }
 
-static fdtype add_dtypes2file(fdtype object,fdtype filename)
+static lispval add_dtypes2file(lispval object,lispval filename)
 {
   if ((STRINGP(filename))&&
       ((u8_has_suffix(CSTRING(filename),".ztype",1))||
        (u8_has_suffix(CSTRING(filename),".gz",1)))) {
-    return add_dtype2zipfile(object,filename);}
+    return add_lisp2zipfile(object,filename);}
   else if (STRINGP(filename)) {
     struct FD_STREAM *stream;
     if (u8_file_existsp(CSTRING(filename)))
@@ -289,7 +289,7 @@ static fdtype add_dtypes2file(fdtype object,fdtype filename)
   else return fd_type_error(_("string"),"add_dtypes2file",filename);
 }
 
-static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
+static lispval add_lisp2zipfile(lispval object,lispval filename)
 {
   if (STRINGP(filename)) {
     struct FD_STREAM *out; int bytes;
@@ -314,29 +314,29 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
       fd_stream_write(stream,tmp.bufwrite-tmp.buffer,tmp.buffer);
       fd_close_outbuf(&tmp);
       return FD_INT(bytes);}}
-  else return fd_type_error(_("string"),"add_dtype2zipfile",filename);
+  else return fd_type_error(_("string"),"add_lisp2zipfile",filename);
 }
 
-static fdtype zipfile2dtype(fdtype filename);
+static lispval zipfile2dtype(lispval filename);
 
-static fdtype file2dtype(fdtype filename)
+static lispval file2dtype(lispval filename)
 {
   if (STRINGP(filename))
     return fd_read_dtype_from_file(CSTRING(filename));
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    fdtype object = fd_read_dtype(fd_readbuf(in));
+    lispval object = fd_read_dtype(fd_readbuf(in));
     if (object == FD_EOD) return FD_EOF;
     else return object;}
   else return fd_type_error(_("string"),"read_dtype",filename);
 }
 
-static fdtype zipfile2dtype(fdtype filename)
+static lispval zipfile2dtype(lispval filename)
 {
   if (STRINGP(filename)) {
     struct FD_STREAM *in;
-    fdtype object = VOID;
+    lispval object = VOID;
     in = fd_open_file(CSTRING(filename),FD_FILE_READ);
     if (in == NULL) return FD_ERROR;
     else object = fd_zread_dtype(fd_readbuf(in));
@@ -345,15 +345,15 @@ static fdtype zipfile2dtype(fdtype filename)
   else if (FD_TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
-    fdtype object = fd_zread_dtype(fd_readbuf(in));
+    lispval object = fd_zread_dtype(fd_readbuf(in));
     if (object == FD_EOD) return FD_EOF;
     else return object;}
   else return fd_type_error(_("string"),"zipfile2dtype",filename);
 }
 
-static fdtype zipfile2dtypes(fdtype filename);
+static lispval zipfile2dtypes(lispval filename);
 
-static fdtype file2dtypes(fdtype filename)
+static lispval file2dtypes(lispval filename)
 {
   if ((STRINGP(filename))&&
       ((u8_has_suffix(CSTRING(filename),".ztype",1))||
@@ -361,7 +361,7 @@ static fdtype file2dtypes(fdtype filename)
     return zipfile2dtypes(filename);}
   else if (STRINGP(filename)) {
     struct FD_STREAM *in = fd_open_file(CSTRING(filename),FD_FILE_READ);
-    fdtype results = EMPTY, object = VOID;
+    lispval results = EMPTY, object = VOID;
     if (in == NULL) return FD_ERROR;
     else {
       fd_inbuf inbuf = fd_readbuf(in);
@@ -377,12 +377,12 @@ static fdtype file2dtypes(fdtype filename)
   else return fd_type_error(_("string"),"file2dtypes",filename);
 }
 
-static fdtype zipfile2dtypes(fdtype filename)
+static lispval zipfile2dtypes(lispval filename)
 {
   if (STRINGP(filename)) {
     struct FD_STREAM *in=
       fd_open_file(CSTRING(filename),FD_FILE_READ);
-    fdtype results = EMPTY, object = VOID;
+    lispval results = EMPTY, object = VOID;
     if (in == NULL) return FD_ERROR;
     else {
       fd_inbuf inbuf = fd_readbuf(in);
@@ -395,7 +395,7 @@ static fdtype zipfile2dtypes(fdtype filename)
   else return fd_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
-static fdtype open_dtype_output_file(fdtype fname)
+static lispval open_dtype_output_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
   struct FD_STREAM *dts=
@@ -404,42 +404,42 @@ static fdtype open_dtype_output_file(fdtype fname)
     (fd_open_file(filename,FD_FILE_CREATE));
   if (dts) {
     U8_CLEAR_ERRNO();
-    return FDTYPE_CONS(dts);}
+    return LISP_CONS(dts);}
   else {
     u8_free(dts);
     u8_graberr(-1,"open_dtype_output_file",u8_strdup(filename));
     return FD_ERROR;}
 }
 
-static fdtype open_dtype_input_file(fdtype fname)
+static lispval open_dtype_input_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
   if (!(u8_file_existsp(filename))) {
     fd_seterr(fd_FileNotFound,"open_dtype_input_file",
               u8_strdup(filename),VOID);
     return FD_ERROR;}
-  else return (fdtype)
+  else return (lispval)
 	 fd_open_file(filename,FD_STREAM_READ_ONLY);
 }
 
-static fdtype extend_dtype_file(fdtype fname)
+static lispval extend_dtype_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
   if (u8_file_existsp(filename))
-    return (fdtype)
+    return (lispval)
       fd_open_file(filename,FD_FILE_MODIFY);
-  else return (fdtype)
+  else return (lispval)
 	 fd_open_file(filename,FD_FILE_CREATE);
 }
 
-static fdtype streamp(fdtype arg)
+static lispval streamp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_stream_type)) 
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype dtype_inputp(fdtype arg)
+static lispval dtype_inputp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_stream_type)) {
     struct FD_STREAM *dts = (fd_stream)arg;
@@ -449,7 +449,7 @@ static fdtype dtype_inputp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype dtype_outputp(fdtype arg)
+static lispval dtype_outputp(lispval arg)
 {
   if (FD_TYPEP(arg,fd_stream_type)) {
     struct FD_STREAM *dts = (fd_stream)arg;
@@ -461,7 +461,7 @@ static fdtype dtype_outputp(fdtype arg)
 
 /* Streampos prim */
 
-static fdtype streampos_prim(fdtype stream_arg,fdtype pos)
+static lispval streampos_prim(lispval stream_arg,lispval pos)
 {
   struct FD_STREAM *stream = (fd_stream)stream_arg;
   if (VOIDP(pos)) {
@@ -495,7 +495,7 @@ static int scheme_streamprims_initialized = 0;
 
 FD_EXPORT void fd_init_streamprims_c()
 {
-  fdtype streamprims_module;
+  lispval streamprims_module;
 
   if (scheme_streamprims_initialized) return;
   scheme_streamprims_initialized = 1;
@@ -538,14 +538,14 @@ FD_EXPORT void fd_init_streamprims_c()
 			   -1,VOID,fd_stream_type,VOID));
 
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",dtype2file,2)));
+	   fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",lisp2file,2)));
   fd_idefn(streamprims_module,
 	   fd_make_ndprim(fd_make_cprim2("DTYPES->FILE+",add_dtypes2file,2)));
   fd_defalias(streamprims_module,"DTYPE->FILE+","DTYPES->FILE+");
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
+	   fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",lisp2zipfile,2)));
   fd_idefn(streamprims_module,
-	   fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_dtype2zipfile,2)));
+	   fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_lisp2zipfile,2)));
 
   /* We make these aliases because the output file isn't really a zip
      file, but we don't want to break code which uses the old

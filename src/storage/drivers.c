@@ -24,13 +24,13 @@
 
 #include <stdio.h>
 
-static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
-static fdtype adjuncts_symbol;
+static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
+static lispval adjuncts_symbol;
 
-fdtype fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
-fdtype fd_stats_op, fd_label_op, fd_populate_op;
-fdtype fd_getmap_op, fd_slotids_op, fd_baseoids_op;
-fdtype fd_load_op, fd_capacity_op;
+lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
+lispval fd_stats_op, fd_label_op, fd_populate_op;
+lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
+lispval fd_load_op, fd_capacity_op;
 
 fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
@@ -95,7 +95,7 @@ static u8_mutex pool_typeinfo_lock;
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
    fd_pool_handler handler,
-   fd_pool (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts),
+   fd_pool (*opener)(u8_string filename,fd_storage_flags flags,lispval opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -155,7 +155,7 @@ FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
 }
 
 FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
+fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_POOL_TYPEINFO *ptype;
   CHECK_ERRNO();
@@ -172,7 +172,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
           fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
           return opened;}
         else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
-          fdtype adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
+          lispval adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
           int rv=fd_set_adjuncts(opened,adjuncts);
           fd_decref(adjuncts);
           if (rv<0) {
@@ -207,7 +207,7 @@ FD_EXPORT
 fd_pool fd_make_pool(u8_string spec,
                      u8_string pooltype,
                      fd_storage_flags flags,
-                     fdtype opts)
+                     lispval opts)
 {
   fd_pool_typeinfo ptype = get_pool_typeinfo(pooltype);
   if (ptype == NULL) {
@@ -230,7 +230,7 @@ static u8_mutex index_typeinfo_lock;
 FD_EXPORT void fd_register_index_type
   (u8_string name,
    fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts),
+   fd_index (*opener)(u8_string filename,fd_storage_flags flags,lispval opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -291,7 +291,7 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
 
 
 FD_EXPORT
-fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
+fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
   CHECK_ERRNO();
@@ -328,7 +328,7 @@ FD_EXPORT
 fd_index fd_make_index(u8_string spec,
                        u8_string indextype,
                        fd_storage_flags flags,
-                       fdtype opts)
+                       lispval opts)
 {
   fd_index_typeinfo ixtype = get_index_typeinfo(indextype);
   if (ixtype == NULL) {
@@ -342,7 +342,7 @@ fd_index fd_make_index(u8_string spec,
     return NULL;}
   else {
     if (FIXNUMP(opts)) {
-      fdtype tmp_opts = fd_init_slotmap(NULL,3,NULL);
+      lispval tmp_opts = fd_init_slotmap(NULL,3,NULL);
       fd_store(tmp_opts,fd_intern("SIZE"),opts);
       fd_index ix=ixtype->handler->create(spec,ixtype->type_data,
                                           flags,tmp_opts);
@@ -353,7 +353,7 @@ fd_index fd_make_index(u8_string spec,
 
 /* Getting compression type from options */
 
-static fdtype compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
+static lispval compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
 
 #if HAVE_SNAPPYC_H
 #define DEFAULT_COMPRESSION FD_SNAPPY
@@ -363,7 +363,7 @@ static fdtype compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
 
 
 FD_EXPORT
-fd_compress_type fd_compression_type(fdtype opts,fd_compress_type dflt)
+fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
 {
   if (fd_testopt(opts,compression_symbol,FD_FALSE))
     return FD_NOCOMPRESS;
@@ -473,7 +473,7 @@ static int load_index_cache(fd_index ix,void *ignored)
   return 0;
 }
 
-static fdtype load_caches_prim(fdtype arg)
+static lispval load_caches_prim(lispval arg)
 {
   if (VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);

@@ -16,16 +16,16 @@
 #include "framerd/apply.h"
 #include "framerd/methods.h"
 
-static fdtype frame_symbol, slot_symbol, value_symbol;
-static fdtype through_slot, derive_slot, inverse_slot;
-static fdtype multi_slot, multi_primary_slot, key_slot;
-static fdtype closure_of_slot, index_slot;
+static lispval frame_symbol, slot_symbol, value_symbol;
+static lispval through_slot, derive_slot, inverse_slot;
+static lispval multi_slot, multi_primary_slot, key_slot;
+static lispval closure_of_slot, index_slot;
 
-static struct FD_HASHTABLE method_table; fdtype fd_method_table;
+static struct FD_HASHTABLE method_table; lispval fd_method_table;
 
 /* Walk proc */
 
-static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
+static int keep_walking(struct FD_HASHSET *seen,lispval node,lispval slotids,
                         fd_tree_walkfn walk,void *data)
 {
   if (fd_hashset_get(seen,node))
@@ -36,7 +36,7 @@ static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
       return -1;
     if ((walk == NULL) || ((retval = walk(node,data))>0)) {
       DO_CHOICES(slotid,slotids) {
-        fdtype values = fd_frame_get(node,slotid);
+        lispval values = fd_frame_get(node,slotid);
         if (FD_ABORTP(values))
           return fd_interr(values);
         else {
@@ -54,7 +54,7 @@ static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
 }
 
 FD_EXPORT int
-fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
+fd_walk_tree(lispval roots,lispval slotids,fd_tree_walkfn walk,void *data)
 {
   struct FD_HASHSET ht; int retval = 0;
   memset(&ht,0,sizeof(ht));
@@ -69,7 +69,7 @@ fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
 
 FD_EXPORT int
 fd_collect_tree(struct FD_HASHSET *h,
-                fdtype roots,fdtype slotids)
+                lispval roots,lispval slotids)
 {
   DO_CHOICES(root,roots)
     if (keep_walking(h,root,slotids,NULL,NULL)<0)
@@ -79,15 +79,15 @@ fd_collect_tree(struct FD_HASHSET *h,
 
 /* Get bottom and Get top */
 
-FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
+FD_EXPORT lispval fd_get_basis(lispval collection,lispval lattice)
 {
   struct FD_HASHSET ht;
-  fdtype root = EMPTY, result = EMPTY;
+  lispval root = EMPTY, result = EMPTY;
   memset(&ht,0,sizeof(ht));
   fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {DO_CHOICES(node,collection) {
     DO_CHOICES(slotid,lattice) {
-      fdtype v = fd_frame_get(node,slotid);
+      lispval v = fd_frame_get(node,slotid);
       if (FD_ABORTP(v)) {
         fd_decref(root);
         fd_recycle_hashset(&ht);
@@ -106,12 +106,12 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
 
 /* Inference procedures */
 
-static int inherit_inferred_values_fn(fdtype node,void *data)
+static int inherit_inferred_values_fn(lispval node,void *data)
 {
   struct FD_IVSTRUCT *ivs = (struct FD_IVSTRUCT *)data;
-  fdtype values = EMPTY;
+  lispval values = EMPTY;
   DO_CHOICES(slotid,ivs->slotids) {
-    fdtype v = fd_frame_get(node,slotid);
+    lispval v = fd_frame_get(node,slotid);
     if (FD_ABORTP(v)) {
       fd_decref(values);
       return fd_interr(v);}
@@ -120,12 +120,12 @@ static int inherit_inferred_values_fn(fdtype node,void *data)
   return 1;
 }
 
-static int inherit_values_fn(fdtype node,void *data)
+static int inherit_values_fn(lispval node,void *data)
 {
   struct FD_IVSTRUCT *ivs = (struct FD_IVSTRUCT *)data;
-  fdtype values = EMPTY;
+  lispval values = EMPTY;
   DO_CHOICES(slotid,ivs->slotids) {
-    fdtype v = ((OIDP(node)) ? (fd_oid_get(node,slotid,EMPTY)) :
+    lispval v = ((OIDP(node)) ? (fd_oid_get(node,slotid,EMPTY)) :
                (fd_get(node,slotid,EMPTY)));
     if (FD_ABORTP(v)) {
       fd_decref(values);
@@ -138,10 +138,10 @@ static int inherit_values_fn(fdtype node,void *data)
 FD_EXPORT
 /* fd_inherit_values:
      Arguments: a frame and two slotids
-     Returns: a fdtype pointer
+     Returns: a lispval pointer
      Searches for a value for the first slotid through the lattice
      defined by the second slotid. */
-fdtype fd_inherit_values(fdtype root,fdtype slotid,fdtype through)
+lispval fd_inherit_values(lispval root,lispval slotid,lispval through)
 {
   struct FD_IVSTRUCT ivs;
   ivs.result = EMPTY; ivs.slotids = slotid;
@@ -154,10 +154,10 @@ fdtype fd_inherit_values(fdtype root,fdtype slotid,fdtype through)
 FD_EXPORT
 /* fd_inherit_values:
      Arguments: a frame and two slotids
-     Returns: a fdtype pointer
+     Returns: a lispval pointer
   Searches for a value for the first slotid through the lattice
   defined by the second slotid. */
-fdtype fd_inherit_inferred_values(fdtype root,fdtype slotid,fdtype through)
+lispval fd_inherit_inferred_values(lispval root,lispval slotid,lispval through)
 {
   struct FD_IVSTRUCT ivs;
   ivs.result = EMPTY; ivs.slotids = slotid;
@@ -167,7 +167,7 @@ fdtype fd_inherit_inferred_values(fdtype root,fdtype slotid,fdtype through)
   else return fd_simplify_choice(ivs.result);
 }
 
-static int inherits_inferred_valuesp_fn(fdtype node,void *data)
+static int inherits_inferred_valuesp_fn(lispval node,void *data)
 {
   struct FD_IVPSTRUCT *ivps = (struct FD_IVPSTRUCT *)data;
   DO_CHOICES(slotid,ivps->slotids) {
@@ -178,7 +178,7 @@ static int inherits_inferred_valuesp_fn(fdtype node,void *data)
   return 1;
 }
 
-static int inherits_valuesp_fn(fdtype node,void *data)
+static int inherits_valuesp_fn(lispval node,void *data)
 {
   struct FD_IVPSTRUCT *ivps = (struct FD_IVPSTRUCT *)data;
   DO_CHOICES(slotid,ivps->slotids) {
@@ -199,7 +199,7 @@ FD_EXPORT
   Returns 1 if the value can be inherited for the first slotid
   going through the lattice defined by the second slotid. */
 int fd_inherits_valuep
-  (fdtype root,fdtype slotid,fdtype through,fdtype value)
+  (lispval root,lispval slotid,lispval through,lispval value)
 {
   struct FD_IVPSTRUCT ivps;
   ivps.value = value; ivps.slotids = slotid; ivps.result = 0;
@@ -215,7 +215,7 @@ FD_EXPORT
   Returns 1 if the value can be inherited for the first slotid
   going through the lattice defined by the second slotid. */
 int fd_inherits_inferred_valuep
-  (fdtype root,fdtype slotid,fdtype through,fdtype value)
+  (lispval root,lispval slotid,lispval through,lispval value)
 {
   struct FD_IVPSTRUCT ivps;
   ivps.value = value; ivps.slotids = slotid; ivps.result = 0;
@@ -224,7 +224,7 @@ int fd_inherits_inferred_valuep
   else return ivps.result;
 }
 
-static int pathp_fn(fdtype node,void *data)
+static int pathp_fn(lispval node,void *data)
 {
   struct FD_PATHPSTRUCT *ps = (struct FD_PATHPSTRUCT *)data;
   if (node == ps->target) {
@@ -237,7 +237,7 @@ FD_EXPORT
      Arguments: a frame, a slotid, and a frame
      Returns: 1 or 0
   Returns 1 if there is a path through slotid between the two frames */
-int fd_pathp(fdtype root,fdtype slotid,fdtype to)
+int fd_pathp(lispval root,lispval slotid,lispval to)
 {
   struct FD_PATHPSTRUCT pathstruct;
   pathstruct.target = to; pathstruct.result = 0;
@@ -248,9 +248,9 @@ int fd_pathp(fdtype root,fdtype slotid,fdtype to)
 
 /* Methods */
 
-static fdtype inherited_get_method(fdtype root,fdtype slotid)
+static lispval inherited_get_method(lispval root,lispval slotid)
 {
-  fdtype result, through, baseslot
+  lispval result, through, baseslot
     =fd_oid_get(slotid,slot_symbol,slotid);
   if (FD_ABORTP(baseslot)) return  baseslot;
   else through = fd_oid_get(slotid,through_slot,EMPTY);
@@ -262,18 +262,18 @@ static fdtype inherited_get_method(fdtype root,fdtype slotid)
   return result;
 }
 
-static fdtype multi_get_method(fdtype root,fdtype mslotid)
+static lispval multi_get_method(lispval root,lispval mslotid)
 {
-  fdtype slotids = fd_oid_get(mslotid,multi_slot,EMPTY);
+  lispval slotids = fd_oid_get(mslotid,multi_slot,EMPTY);
   if (FD_ABORTP(slotids)) return slotids;
   else {
-    fdtype answer = EMPTY;
+    lispval answer = EMPTY;
     DO_CHOICES(slotid,slotids)
       if (PAIRP(slotid)) {
-        fdtype v = fd_oid_get(root,FD_CAR(slotid),EMPTY);
+        lispval v = fd_oid_get(root,FD_CAR(slotid),EMPTY);
         CHOICE_ADD(answer,v);}
       else {
-        fdtype v=
+        lispval v=
           ((slotid == mslotid)?
            (fd_oid_get(root,slotid,EMPTY)):
            (fd_frame_get(root,slotid)));
@@ -282,9 +282,9 @@ static fdtype multi_get_method(fdtype root,fdtype mslotid)
     return answer;}
 }
 
-static fdtype multi_test_method(fdtype root,fdtype mslotid,fdtype value)
+static lispval multi_test_method(lispval root,lispval mslotid,lispval value)
 {
-  fdtype slotids = fd_oid_get(mslotid,multi_slot,EMPTY);
+  lispval slotids = fd_oid_get(mslotid,multi_slot,EMPTY);
   if (FD_ABORTP(slotids)) return slotids;
   else {
     int answer = 0;
@@ -300,16 +300,16 @@ static fdtype multi_test_method(fdtype root,fdtype mslotid,fdtype value)
     if (answer) return FD_TRUE; else return FD_FALSE;}
 }
 
-static fdtype multi_add_method(fdtype root,fdtype slotid,fdtype value)
+static lispval multi_add_method(lispval root,lispval slotid,lispval value)
 {
-  fdtype primary_slot = fd_oid_get(slotid,multi_primary_slot,EMPTY);
+  lispval primary_slot = fd_oid_get(slotid,multi_primary_slot,EMPTY);
   if (FD_ABORTP(primary_slot)) return primary_slot;
   else if (EMPTYP(primary_slot)) {
-    fdtype slotids = fd_oid_get(slotid,multi_slot,EMPTY);
+    lispval slotids = fd_oid_get(slotid,multi_slot,EMPTY);
     if (FD_ABORTP(slotids)) return slotids;
     else {
       DO_CHOICES(subslotid,slotids) {
-        fdtype v = fd_frame_get(root,subslotid);
+        lispval v = fd_frame_get(root,subslotid);
         if (FD_ABORTP(v)) return v;
         else if (!(EMPTYP(v)))
           if (fd_frame_add(root,subslotid,value)<0)
@@ -327,12 +327,12 @@ static fdtype multi_add_method(fdtype root,fdtype slotid,fdtype value)
   return VOID;
 }
 
-static fdtype multi_drop_method(fdtype root,fdtype slotid,fdtype value)
+static lispval multi_drop_method(lispval root,lispval slotid,lispval value)
 {
-  fdtype slotids = fd_oid_get(slotid,multi_slot,EMPTY);
+  lispval slotids = fd_oid_get(slotid,multi_slot,EMPTY);
   if (FD_ABORTP(slotids)) return slotids;
   else {
-    fdtype primary_slot = fd_oid_get(slotid,multi_primary_slot,EMPTY);
+    lispval primary_slot = fd_oid_get(slotid,multi_primary_slot,EMPTY);
     if (FD_ABORTP(primary_slot)) return primary_slot;
     else if ((SYMBOLP(primary_slot)) || (OIDP(primary_slot))) {
       if (primary_slot == slotid) {
@@ -352,7 +352,7 @@ static fdtype multi_drop_method(fdtype root,fdtype slotid,fdtype value)
     return VOID;}
 }
 
-static inline fdtype getter(fdtype f,fdtype s)
+static inline lispval getter(lispval f,lispval s)
 {
   if (OIDP(f)) return fd_frame_get(f,s);
   else if (HASHTABLEP(f))
@@ -363,7 +363,7 @@ static inline fdtype getter(fdtype f,fdtype s)
 }
 
 static int kleene_get_helper
-  (struct FD_HASHSET *ht,fdtype frames,fdtype slotids)
+  (struct FD_HASHSET *ht,lispval frames,lispval slotids)
 {
   DO_CHOICES(frame,frames) {
     int probe = fd_hashset_get(ht,frame);
@@ -374,7 +374,7 @@ static int kleene_get_helper
         return -1;
       else {
         DO_CHOICES(slotid,slotids) {
-          fdtype values = getter(frame,slotid);
+          lispval values = getter(frame,slotid);
           if (FD_ABORTP(values)) return fd_interr(values);
           if (kleene_get_helper(ht,values,slotids)<0) {
             fd_decref(values);
@@ -383,9 +383,9 @@ static int kleene_get_helper
   return 1;
 }
 
-static fdtype kleene_star_get_method(fdtype root,fdtype slotid)
+static lispval kleene_star_get_method(lispval root,lispval slotid)
 {
-  fdtype slotids = fd_frame_get(slotid,closure_of_slot), results;
+  lispval slotids = fd_frame_get(slotid,closure_of_slot), results;
   if (FD_ABORTP(slotids)) return slotids;
   else {
     struct FD_HASHSET hs; memset(&hs,0,sizeof(hs));
@@ -400,9 +400,9 @@ static fdtype kleene_star_get_method(fdtype root,fdtype slotid)
       return results;}}
 }
 
-static fdtype kleene_plus_get_method(fdtype root,fdtype slotid)
+static lispval kleene_plus_get_method(lispval root,lispval slotid)
 {
-  fdtype slotids = fd_frame_get(slotid,closure_of_slot), results;
+  lispval slotids = fd_frame_get(slotid,closure_of_slot), results;
   if (FD_ABORTP(slotids)) return slotids;
   else {
     struct FD_HASHSET hs; memset(&hs,0,sizeof(hs));
@@ -418,10 +418,10 @@ static fdtype kleene_plus_get_method(fdtype root,fdtype slotid)
       return results;}}
 }
 
-static fdtype inherited_test_method(fdtype root,fdtype slotid,fdtype value)
+static lispval inherited_test_method(lispval root,lispval slotid,lispval value)
 {
-  fdtype baseslot = fd_oid_get(slotid,slot_symbol,slotid);
-  fdtype through = fd_oid_get(slotid,through_slot,EMPTY);
+  lispval baseslot = fd_oid_get(slotid,slot_symbol,slotid);
+  lispval through = fd_oid_get(slotid,through_slot,EMPTY);
   int answer = 0;
   if (FD_ABORTP(baseslot)) {
     fd_decref(through); return baseslot;}
@@ -436,9 +436,9 @@ static fdtype inherited_test_method(fdtype root,fdtype slotid,fdtype value)
   else return FD_FALSE;
 }
 
-static fdtype inverse_getbase_method(fdtype root,fdtype slotid)
+static lispval inverse_getbase_method(lispval root,lispval slotid)
 {
-  fdtype answer, inv_slots, others;
+  lispval answer, inv_slots, others;
   answer = fd_oid_get(root,slotid,EMPTY);
   if (FD_ABORTP(answer)) return answer;
   else inv_slots = fd_oid_get(slotid,inverse_slot,EMPTY);
@@ -446,7 +446,7 @@ static fdtype inverse_getbase_method(fdtype root,fdtype slotid)
     fd_decref(answer);
     return inv_slots;}
   else {
-    fdtype root_as_list = fd_conspair(root,NIL);
+    lispval root_as_list = fd_conspair(root,NIL);
     others = fd_bgfind(inv_slots,root_as_list,VOID);
     fd_decref(root_as_list);}
   if (FD_ABORTP(others)) {
@@ -458,9 +458,9 @@ static fdtype inverse_getbase_method(fdtype root,fdtype slotid)
     return answer;}
 }
 
-static fdtype inverse_get_method(fdtype root,fdtype slotid)
+static lispval inverse_get_method(lispval root,lispval slotid)
 {
-  fdtype answer, inv_slots, others;
+  lispval answer, inv_slots, others;
   answer = fd_oid_get(root,slotid,EMPTY);
   if (FD_ABORTP(answer)) return answer;
   else inv_slots = fd_oid_get(slotid,inverse_slot,EMPTY);
@@ -477,14 +477,14 @@ static fdtype inverse_get_method(fdtype root,fdtype slotid)
     return answer;}
 }
 
-static fdtype inverse_test_method(fdtype root,fdtype slotid,fdtype value)
+static lispval inverse_test_method(lispval root,lispval slotid,lispval value)
 {
   int direct_test = fd_oid_test(root,slotid,value);
   if (direct_test<0) return FD_ERROR;
   else if (direct_test) return (FD_TRUE);
   else if (!(OIDP(value))) return FD_FALSE;
   else {
-    fdtype inv_slots = fd_oid_get(slotid,inverse_slot,EMPTY);
+    lispval inv_slots = fd_oid_get(slotid,inverse_slot,EMPTY);
     if (FD_ABORTP(inv_slots)) return inv_slots;
     else {
       int found = 0;
@@ -497,9 +497,9 @@ static fdtype inverse_test_method(fdtype root,fdtype slotid,fdtype value)
       else return (FD_FALSE);}}
 }
 
-static fdtype assoc_get_method(fdtype f,fdtype slotid)
+static lispval assoc_get_method(lispval f,lispval slotid)
 {
-  fdtype answers = EMPTY, through, key;
+  lispval answers = EMPTY, through, key;
   through = fd_frame_get(slotid,through_slot);
   if (FD_ABORTP(through)) return through;
   else key = fd_frame_get(slotid,key_slot);
@@ -507,7 +507,7 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
     fd_decref(through); return key;}
   else {
     DO_CHOICES(th_slot,through) {
-      fdtype entries = fd_frame_get(f,th_slot);
+      lispval entries = fd_frame_get(f,th_slot);
       if (FD_ABORTP(entries)) {
         fd_decref(answers); fd_decref(through); fd_decref(key);
         return entries;}
@@ -515,12 +515,12 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
         int ambigkey = CHOICEP(key);
         DO_CHOICES(e,entries)
           if (PAIRP(e)) {
-            fdtype car = FD_CAR(e), cdr = FD_CDR(e);
+            lispval car = FD_CAR(e), cdr = FD_CDR(e);
             if (FD_EQ(car,key)) {
               fd_incref(cdr);
               CHOICE_ADD(answers,cdr);}
             else if ((!ambigkey) && (!(CHOICEP(car)))) {
-              if (FDTYPE_EQUAL(car,key)) {
+              if (LISP_EQUAL(car,key)) {
                 fd_incref(cdr);
                 CHOICE_ADD(answers,cdr);}}
             else if (fd_overlapp(car,key)) {
@@ -532,9 +532,9 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
     return answers;}
 }
 
-static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
+static lispval assoc_test_method(lispval f,lispval slotid,lispval values)
 {
-  fdtype answers = EMPTY, through, key;
+  lispval answers = EMPTY, through, key;
   through = fd_frame_get(slotid,through_slot);
   if (FD_ABORTP(through)) return through;
   else key = fd_frame_get(slotid,key_slot);
@@ -542,7 +542,7 @@ static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
     fd_decref(through); return key;}
   else {
     DO_CHOICES(th_slot,through) {
-      fdtype entries = fd_frame_get(f,th_slot);
+      lispval entries = fd_frame_get(f,th_slot);
       if (FD_ABORTP(entries)) {
         fd_decref(answers); fd_decref(through); fd_decref(key);
         return entries;}
@@ -550,7 +550,7 @@ static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
         int ambigkey = CHOICEP(key), ambigval = CHOICEP(values);
         DO_CHOICES(e,entries)
           if (PAIRP(e)) {
-            fdtype car = FD_CAR(e), cdr = FD_CDR(e);
+            lispval car = FD_CAR(e), cdr = FD_CDR(e);
             if (((ambigkey|(CHOICEP(car))) ? (fd_overlapp(car,key)) : (FD_EQ(car,key))) &&
                 ((VOIDP(values)) ||
                  ((ambigval|(CHOICEP(cdr))) ? (fd_overlapp(cdr,values)) : (FD_EQUAL(cdr,values))))) {
@@ -562,45 +562,45 @@ static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
     return FD_FALSE;}
 }
 
-static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
+static lispval assoc_add_method(lispval f,lispval slotid,lispval value)
 {
-  fdtype through, key;
+  lispval through, key;
   through = fd_frame_get(slotid,through_slot);
   if (FD_ABORTP(through)) return through;
   else key = fd_frame_get(slotid,key_slot);
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
   else {
-    fdtype pair = fd_conspair(fd_incref(key),fd_incref(value));
+    lispval pair = fd_conspair(fd_incref(key),fd_incref(value));
     fd_oid_add(f,through,pair);
     fd_decref(pair);
     return VOID;}
 }
 
-static fdtype assoc_drop_method(fdtype f,fdtype slotid,fdtype value)
+static lispval assoc_drop_method(lispval f,lispval slotid,lispval value)
 {
-  fdtype through, key;
+  lispval through, key;
   through = fd_frame_get(slotid,through_slot);
   if (FD_ABORTP(through)) return through;
   else key = fd_frame_get(slotid,key_slot);
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
   else {
-    fdtype pair = fd_conspair(fd_incref(key),fd_incref(value));
+    lispval pair = fd_conspair(fd_incref(key),fd_incref(value));
     fd_oid_drop(f,through,pair);
     fd_decref(pair);
     return VOID;}
 }
 
-static fdtype car_get_method(fdtype f,fdtype slotid)
+static lispval car_get_method(lispval f,lispval slotid)
 {
-  fdtype result = (EMPTY);
-  fdtype values = fd_oid_get(f,slotid,EMPTY);
+  lispval result = (EMPTY);
+  lispval values = fd_oid_get(f,slotid,EMPTY);
   if (FD_ABORTP(values)) return values;
   else {
     DO_CHOICES(value,values)
       if (PAIRP(value)) {
-        fdtype car = FD_CAR(value);
+        lispval car = FD_CAR(value);
         fd_incref(car);
         CHOICE_ADD(result,car);}
       else {
@@ -610,15 +610,15 @@ static fdtype car_get_method(fdtype f,fdtype slotid)
   return result;
 }
 
-static fdtype paired_get_method(fdtype f,fdtype slotid)
+static lispval paired_get_method(lispval f,lispval slotid)
 {
-  fdtype result = (EMPTY);
-  fdtype values = fd_oid_get(f,slotid,EMPTY);
+  lispval result = (EMPTY);
+  lispval values = fd_oid_get(f,slotid,EMPTY);
   if (FD_ABORTP(values)) return values;
   else {
     DO_CHOICES(value,values)
       if (PAIRP(value)) {
-        fdtype car = FD_CAR(value);
+        lispval car = FD_CAR(value);
         fd_incref(car);
         CHOICE_ADD(result,car);}
       else {
@@ -628,10 +628,10 @@ static fdtype paired_get_method(fdtype f,fdtype slotid)
   return result;
 }
 
-static fdtype paired_test_method(fdtype f,fdtype slotid,fdtype v)
+static lispval paired_test_method(lispval f,lispval slotid,lispval v)
 {
   int found = 0;
-  fdtype values = fd_oid_get(f,slotid,EMPTY);
+  lispval values = fd_oid_get(f,slotid,EMPTY);
   if (FD_ABORTP(values)) return values;
   else {
     DO_CHOICES(value,values) {
@@ -643,7 +643,7 @@ static fdtype paired_test_method(fdtype f,fdtype slotid,fdtype v)
     else return FD_FALSE;}
 }
 
-static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
+static lispval paired_drop_method(lispval f,lispval slotid,lispval v)
 {
   if (PAIRP(v)) {
     if (fd_oid_drop(f,slotid,v)<0)
@@ -651,7 +651,7 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
     else return VOID;}
   else {
     int found = 0;
-    fdtype values = fd_oid_get(f,slotid,EMPTY);
+    lispval values = fd_oid_get(f,slotid,EMPTY);
     if (FD_ABORTP(values)) return values;
     else {
       DO_CHOICES(value,values) {
@@ -659,7 +659,7 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
           if (FD_EQUAL(FD_CAR(value),v)) {found = 1; break;}}
         else if (FD_EQUAL(value,v)) {found = 1; break;}}
       if (found) {
-        fdtype new_values = EMPTY;
+        lispval new_values = EMPTY;
         DO_CHOICES(value,values) {
           if (PAIRP(value))
             if (FD_EQUAL(FD_CAR(value),v)) {}
@@ -679,11 +679,11 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
         fd_decref(values); return VOID;}}}
 }
 
-static fdtype implies_slot;
+static lispval implies_slot;
 
-static fdtype clear_implies_effect(fdtype f,fdtype slotid,fdtype v)
+static lispval clear_implies_effect(lispval f,lispval slotid,lispval v)
 {
-  fdtype implies = fd_get(slotid,implies_slot,EMPTY);
+  lispval implies = fd_get(slotid,implies_slot,EMPTY);
   fd_clear_slotcache_entry(slotid,f);
   {DO_CHOICES(imply,implies) clear_implies_effect(f,imply,v);}
   return EMPTY;
@@ -705,12 +705,12 @@ static void init_symbols()
   implies_slot = fd_intern("IMPLIES");
 }
 
-static fdtype lisp_add(fdtype f,fdtype s,fdtype v)
+static lispval lisp_add(lispval f,lispval s,lispval v)
 {
   if (fd_add(f,s,v)<0) return FD_ERROR;
   else return VOID;
 }
-static fdtype lisp_drop(fdtype f,fdtype s,fdtype v)
+static lispval lisp_drop(lispval f,lispval s,lispval v)
 {
   if (fd_drop(f,s,v)<0) return FD_ERROR;
   else return VOID;
@@ -718,7 +718,7 @@ static fdtype lisp_drop(fdtype f,fdtype s,fdtype v)
 
 FD_EXPORT void fd_init_methods_c()
 {
-  fdtype m;
+  lispval m;
 
   u8_register_source_file(_FILEINFO);
 
@@ -726,7 +726,7 @@ FD_EXPORT void fd_init_methods_c()
 
   FD_INIT_STATIC_CONS(&method_table,fd_hashtable_type);
   fd_make_hashtable(&method_table,67);
-  m = fd_method_table = ((fdtype)(&method_table));
+  m = fd_method_table = ((lispval)(&method_table));
 
   fd_defn(m,fd_make_cprim2("FD:INHERITED-GET",inherited_get_method,2));
   fd_defn(m,fd_make_cprim3("FD:INHERITED-TEST",inherited_test_method,3));
@@ -735,9 +735,9 @@ FD_EXPORT void fd_init_methods_c()
   fd_defn(m,fd_make_cprim3("FD:MULTI-ADD",multi_add_method,3));
   fd_defn(m,fd_make_cprim3("FD:MULTI-DROP",multi_drop_method,3));
   {
-    fdtype invget = fd_make_cprim2("FD:INVERSE-GET",inverse_get_method,2);
-    fdtype invgetbase = fd_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,2);
-    fdtype invtest = fd_make_cprim3("FD:INVERSE-TEST",inverse_test_method,3);
+    lispval invget = fd_make_cprim2("FD:INVERSE-GET",inverse_get_method,2);
+    lispval invgetbase = fd_make_cprim2("FD:INVERSE-GETBASE",inverse_getbase_method,2);
+    lispval invtest = fd_make_cprim3("FD:INVERSE-TEST",inverse_test_method,3);
     fd_defn(m,invget); fd_defn(m,invtest); fd_defn(m,invgetbase);
     fd_store(m,fd_intern("FD:INV-GET"),invget);
     fd_store(m,fd_intern("FD:INV-GETBASE"),invgetbase);

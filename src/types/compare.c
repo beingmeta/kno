@@ -16,11 +16,11 @@
 static int string_compare(u8_string s1,u8_string s2,int ci);
 
 FD_EXPORT
-/* fdtype_compare:
+/* lispval_compare:
     Arguments: two dtype pointers
     Returns: 1, 0, or -1 (an int)
   Returns a function corresponding to a generic sort of two dtype pointers. */
-int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
+int lispval_compare(lispval x,lispval y,fd_compare_flags flags)
 {
   int quick = (flags == FD_COMPARE_QUICK);
   int compare_atomic = (!((flags&FD_COMPARE_CODES)));
@@ -31,7 +31,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 
   /* This is just defined for this function */
 #define DOCOMPARE(x,y) \
-  (((quick)&&(x == y)) ? (0) : (FDTYPE_COMPARE(x,y,flags)))
+  (((quick)&&(x == y)) ? (0) : (LISP_COMPARE(x,y,flags)))
 
   if (x == y) return 0;
   else if ((OIDP(x))&&(OIDP(y))) {
@@ -73,18 +73,18 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
     else if ((PRECHOICEP(x))&&(PRECHOICEP(y))) {
-      fdtype sx = fd_make_simple_choice(x);
-      fdtype sy = fd_make_simple_choice(y);
+      lispval sx = fd_make_simple_choice(x);
+      lispval sy = fd_make_simple_choice(y);
       int retval = DOCOMPARE(sx,sy);
       fd_decref(sx); fd_decref(sy);
       return retval;}
     else if (PRECHOICEP(x)) {
-      fdtype sx = fd_make_simple_choice(x);
+      lispval sx = fd_make_simple_choice(x);
       int retval = DOCOMPARE(sx,y);
       fd_decref(sx);
       return retval;}
     else if (PRECHOICEP(y)) {
-      fdtype sy = fd_make_simple_choice(y);
+      lispval sy = fd_make_simple_choice(y);
       int retval = DOCOMPARE(x,sy);
       fd_decref(sy);
       return retval;}
@@ -109,7 +109,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
         return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
       case fd_vector_type: case fd_code_type: {
         int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y), lim;
-        fdtype *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
+        lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
         if (quick) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
         if (xlen<ylen) lim = xlen; else lim = ylen;
@@ -131,14 +131,14 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
           return -1;
         else {
           int cmp;
-          const fdtype *xscan, *yscan, *xlim;
-          fdtype _xnatsorted[17], *xnatsorted=_xnatsorted;
-          fdtype _ynatsorted[17], *ynatsorted=_ynatsorted;
+          const lispval *xscan, *yscan, *xlim;
+          lispval _xnatsorted[17], *xnatsorted=_xnatsorted;
+          lispval _ynatsorted[17], *ynatsorted=_ynatsorted;
           if (natural_sort) {
             xnatsorted = fd_natsort_choice(xc,_xnatsorted,17);
             ynatsorted = fd_natsort_choice(yc,_ynatsorted,17);
-            xscan = (const fdtype *)xnatsorted;
-            yscan = (const fdtype *)ynatsorted;}
+            xscan = (const lispval *)xnatsorted;
+            yscan = (const lispval *)ynatsorted;}
           else {
             xscan = FD_XCHOICE_DATA(xc);
             yscan = FD_XCHOICE_DATA(yc);}
@@ -179,60 +179,60 @@ static int string_compare(u8_string s1,u8_string s2,int ci)
 
 /* Sorting DTYPEs based on a set of comparison flags */
 
-FD_FASTOP void do_swap(fdtype *a,fdtype *b)
+FD_FASTOP void do_swap(lispval *a,lispval *b)
 {
-  fdtype tmp = *a;
+  lispval tmp = *a;
   *a = *b;
   *b = tmp;
 }
 
 FD_EXPORT
-/* fdtype_sort:
+/* lispval_sort:
     Arguments: a vector of dtypes, a length, and a comparison flag value
     Returns: 1, 0, or -1 (an int)
   Returns a function corresponding to a generic sort of two dtype pointers. */
-void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags)
+void lispval_sort(lispval *v,size_t n,fd_compare_flags flags)
 {
   size_t i, j, ln, rn;
   while (n > 1) {
     do_swap(&v[0], &v[n/2]);
     for (i = 0, j = n; ; ) {
-      do --j; while (FDTYPE_COMPARE(v[j],v[0],flags)>0);
-      do ++i; while (i < j && (FDTYPE_COMPARE(v[i],v[0],flags)<0));
+      do --j; while (LISP_COMPARE(v[j],v[0],flags)>0);
+      do ++i; while (i < j && (LISP_COMPARE(v[i],v[0],flags)<0));
       if (i >= j) break; else {}
       do_swap(&v[i], &v[j]);}
     do_swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
     if (ln < rn) {
-      fdtype_sort(v, ln, flags); v += j; n = rn;}
-    else {fdtype_sort(v + j, rn, flags); n = ln;}}
+      lispval_sort(v, ln, flags); v += j; n = rn;}
+    else {lispval_sort(v + j, rn, flags); n = ln;}}
 }
 
-static int compare_compounds(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_compounds(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   struct FD_COMPOUND *yc = fd_consptr(struct FD_COMPOUND *,y,fd_compound_type);
-  fdtype xtag = xc->compound_typetag, ytag = yc->compound_typetag;
+  lispval xtag = xc->compound_typetag, ytag = yc->compound_typetag;
   int cmp;
   if (xc == yc) return 0;
   else if ((xc->compound_isopaque) || (yc->compound_isopaque))
     if (xc>yc) return 1; else return -1;
-  else if ((cmp = (FDTYPE_COMPARE(xtag,ytag,flags))))
+  else if ((cmp = (LISP_COMPARE(xtag,ytag,flags))))
     return cmp;
   else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
   else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
   else {
     int i = 0, len = xc->fd_n_elts;
-    fdtype *xdata = &(xc->compound_0), *ydata = &(yc->compound_0);
+    lispval *xdata = &(xc->compound_0), *ydata = &(yc->compound_0);
     while (i<len)
-      if ((cmp = (FDTYPE_COMPARE(xdata[i],ydata[i],flags)))==0)
+      if ((cmp = (LISP_COMPARE(xdata[i],ydata[i],flags)))==0)
         i++;
       else return cmp;
     return 0;}
 }
 
-static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_timestamps(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_TIMESTAMP *xtm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
@@ -244,19 +244,19 @@ static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
   else return 1;
 }
 
-static int compare_uuids(fdtype x,fdtype y,fd_compare_flags flags)
+static int compare_uuids(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_UUID *xuuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   struct FD_UUID *yuuid = fd_consptr(struct FD_UUID *,y,fd_uuid_type);
   return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
 }
 
-fdtype compare_quick, compare_recursive, compare_elts, compare_natural,
+lispval compare_quick, compare_recursive, compare_elts, compare_natural,
   compare_natsort, compare_numeric, compare_lexical, compare_alphabetical,
   compare_ci, compare_ic, compare_caseinsensitive, compare_case_insensitive,
   compare_nocase, compare_full; 
 
-FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec)
+FD_EXPORT fd_compare_flags fd_get_compare_flags(lispval spec)
 {
   if ((VOIDP(spec))||(FALSEP(spec)))
     return FD_COMPARE_CODES;

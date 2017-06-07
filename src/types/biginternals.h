@@ -48,7 +48,7 @@ typedef int bigint_length_type;
 #define BIGINT_TO_POINTER(bigint) ((bigint_digit_type *) (bigint))
 #define BIGINT_REDUCE_LENGTH(target, source, length)			\
   (target) = (bigint_realloc ((source), (length)))
-#define BIGINT_DEALLOCATE(x) fd_decref((fdtype)x)
+#define BIGINT_DEALLOCATE(x) fd_decref((lispval)x)
 #define BIGINT_FORCE_NEW_RESULTS
 #define fast register
 extern void abort ();

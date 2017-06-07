@@ -16,7 +16,7 @@ typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;
   unsigned int index_n_slots, index_hashv, *index_offsets;
   struct FD_STREAM index_stream;
-  fdtype slotids;
+  lispval slotids;
   U8_MUTEX_DECL(index_lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
 

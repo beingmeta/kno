@@ -48,49 +48,49 @@ FD_EXPORT int fd_boot_message(void);
 FD_EXPORT void fd_log_status(u8_condition why);
 FD_EXPORT int fd_be_vewy_quiet;
 
-FD_EXPORT fdtype fd_parse_expr(struct U8_INPUT *);
-FD_EXPORT fdtype fd_parser(struct U8_INPUT *);
-FD_EXPORT fdtype fd_parse(u8_string string);
-FD_EXPORT fdtype fd_parse_arg(u8_string string);
-FD_EXPORT u8_string fd_unparse_arg(fdtype obj);
-FD_EXPORT fdtype fd_read_arg(u8_input s);
+FD_EXPORT lispval fd_parse_expr(struct U8_INPUT *);
+FD_EXPORT lispval fd_parser(struct U8_INPUT *);
+FD_EXPORT lispval fd_parse(u8_string string);
+FD_EXPORT lispval fd_parse_arg(u8_string string);
+FD_EXPORT u8_string fd_unparse_arg(lispval obj);
+FD_EXPORT lispval fd_read_arg(u8_input s);
 FD_EXPORT int fd_skip_whitespace(u8_input s);
 FD_EXPORT int fd_read_escape(u8_input in);
 
-FD_EXPORT int fd_unparse(u8_output,fdtype);
-FD_EXPORT u8_string fd_dtype2string(fdtype x);
-FD_EXPORT u8_string fd_dtype2buf(fdtype x,size_t n,u8_byte *buf);
+FD_EXPORT int fd_unparse(u8_output,lispval);
+FD_EXPORT u8_string fd_lisp2string(lispval x);
+FD_EXPORT u8_string fd_lisp2buf(lispval x,size_t n,u8_byte *buf);
 
-FD_EXPORT fdtype fd_string2number(u8_string string,int base);
-FD_EXPORT int fd_output_number(u8_output output,fdtype num,int base);
+FD_EXPORT lispval fd_string2number(u8_string string,int base);
+FD_EXPORT int fd_output_number(u8_output output,lispval num,int base);
 
 FD_EXPORT int fd_unparse_maxchars, fd_unparse_maxelts;
 FD_EXPORT int fd_unparse_hexpacket, fd_packet_outfmt;
 
 FD_EXPORT int fd_register_record_tag
-  (fdtype symbol,fdtype (*recreate)(int n,fdtype *v));
+  (lispval symbol,lispval (*recreate)(int n,lispval *v));
 
 FD_EXPORT int fd_parse_pointers;
-FD_EXPORT fdtype (*_fd_parse_number)(u8_string,int);
+FD_EXPORT lispval (*_fd_parse_number)(u8_string,int);
 
-FD_EXPORT int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details);
-FD_EXPORT int (*fd_dtype_error)(struct FD_OUTBUF *,fdtype x,u8_string details);
-FD_EXPORT void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len));
-typedef int (*fd_hashfn)(fdtype x,unsigned int (*hf)(fdtype));
-FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len);
+FD_EXPORT int (*fd_unparse_error)(U8_OUTPUT *,lispval x,u8_string details);
+FD_EXPORT int (*fd_dtype_error)(struct FD_OUTBUF *,lispval x,u8_string details);
+FD_EXPORT void fd_set_oid_parser(lispval (*parsefn)(u8_string start,int len));
+typedef int (*fd_hashfn)(lispval x,unsigned int (*hf)(lispval));
+FD_EXPORT lispval fd_parse_oid_addr(u8_string string,int len);
 FD_EXPORT fd_hashfn fd_hashfns[];
 
-FD_EXPORT int fd_add_hashname(u8_string s,fdtype value);
-FD_EXPORT fdtype fd_lookup_hashname(u8_string s);
+FD_EXPORT int fd_add_hashname(u8_string s,lispval value);
+FD_EXPORT lispval fd_lookup_hashname(u8_string s);
 
-typedef int (*fd_pprintfn)(u8_output,fdtype,u8_string,int,int,int,void *);
+typedef int (*fd_pprintfn)(u8_output,lispval,u8_string,int,int,int,void *);
 
 FD_EXPORT int fd_pprint_x
-(u8_output out,fdtype x,u8_string prefix,
+(u8_output out,lispval x,u8_string prefix,
  int indent,int col,int maxcol,
  fd_pprintfn fn,void *data);
 FD_EXPORT int fd_pprint
-(u8_output out,fdtype x,u8_string prefix,
+(u8_output out,lispval x,u8_string prefix,
  int indent,int col,int maxcol);
 
 

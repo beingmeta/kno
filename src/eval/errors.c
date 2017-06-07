@@ -19,13 +19,13 @@ static fd_exception SchemeError=_("Undistinguished Scheme Error");
 
 /* Returning errors */
 
-static fdtype return_error_helper(fdtype expr,fd_lexenv env,int wrapped)
+static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
 {
   fd_exception ex = SchemeError, cxt = NULL;
-  fdtype head = fd_get_arg(expr,0);
-  fdtype arg1 = fd_get_arg(expr,1);
-  fdtype arg2 = fd_get_arg(expr,2);
-  fdtype printout_body;
+  lispval head = fd_get_arg(expr,0);
+  lispval arg1 = fd_get_arg(expr,1);
+  lispval arg2 = fd_get_arg(expr,2);
+  lispval printout_body;
   if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
     ex = (fd_exception)(SYM_NAME(arg1));
     cxt = (u8_context)(SYM_NAME(arg2));
@@ -49,34 +49,34 @@ static fdtype return_error_helper(fdtype expr,fd_lexenv env,int wrapped)
       fd_seterr(ex,cxt,out.u8_outbuf,VOID);
       return FD_ERROR;}}
 }
-static fdtype return_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval return_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,0);
 }
-static fdtype extend_error_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval extend_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return return_error_helper(expr,env,1);
 }
 
-static fdtype return_irritant_helper(fdtype expr,fd_lexenv env,int wrapped,int eval_args)
+static lispval return_irritant_helper(lispval expr,fd_lexenv env,int wrapped,int eval_args)
 {
   fd_exception ex = SchemeError, cxt = NULL;
-  fdtype head = fd_get_arg(expr,0);
-  fdtype irritant = fd_get_arg(expr,1);
-  fdtype arg1 = fd_get_arg(expr,2);
-  fdtype arg2 = fd_get_arg(expr,3);
-  fdtype printout_body;
+  lispval head = fd_get_arg(expr,0);
+  lispval irritant = fd_get_arg(expr,1);
+  lispval arg1 = fd_get_arg(expr,2);
+  lispval arg2 = fd_get_arg(expr,3);
+  lispval printout_body;
 
   if (VOIDP(irritant))
     return fd_err(fd_SyntaxError,"return_irritant","no irritant",expr);
   else if (eval_args) {
-    fdtype exval = fd_eval(arg1,env), cxtval;
+    lispval exval = fd_eval(arg1,env), cxtval;
     if (FD_ABORTP(exval)) 
       ex = (fd_exception)"Recursive error on exception name";
     else if (SYMBOLP(exval))
       ex = (fd_exception)(SYM_NAME(exval));
     else if (STRINGP(exval)) {
-      fdtype sym = fd_intern(CSTRING(exval));
+      lispval sym = fd_intern(CSTRING(exval));
       ex = (fd_exception)(SYM_NAME(sym));}
     else ex = (fd_exception)"Bad exception condition";
     cxtval = fd_eval(arg2,env);
@@ -87,7 +87,7 @@ static fdtype return_irritant_helper(fdtype expr,fd_lexenv env,int wrapped,int e
     else if (SYMBOLP(cxtval))
       cxt = (fd_exception)(SYM_NAME(cxtval));
     else if (STRINGP(exval)) {
-      fdtype sym = fd_intern(CSTRING(cxtval));
+      lispval sym = fd_intern(CSTRING(cxtval));
       cxt = (fd_exception)(SYM_NAME(sym));}
     else cxt = (fd_exception)"Bad exception condition";
     printout_body = fd_get_body(expr,4);}
@@ -115,32 +115,32 @@ static fdtype return_irritant_helper(fdtype expr,fd_lexenv env,int wrapped,int e
       return fd_init_exception(NULL,u8ex);}
     else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
 }
-static fdtype return_irritant_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval return_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return return_irritant_helper(expr,env,0,0);
 }
-static fdtype extend_irritant_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval extend_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return return_irritant_helper(expr,env,1,0);
 }
 
-static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
-  fdtype error_handler = fd_get_arg(expr,2);
-  fdtype default_handler = fd_get_arg(expr,3);
-  fdtype value = fd_eval(toeval,env);
+  lispval toeval = fd_get_arg(expr,1);
+  lispval error_handler = fd_get_arg(expr,2);
+  lispval default_handler = fd_get_arg(expr,3);
+  lispval value = fd_eval(toeval,env);
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
     u8_exception ex = u8_erreify();
-    fdtype handler = fd_eval(error_handler,env);
+    lispval handler = fd_eval(error_handler,env);
     if (FD_ABORTP(handler)) {
       u8_restore_exception(ex);
       return handler;}
     else if (FD_APPLICABLEP(handler)) {
-      fdtype err_value = fd_init_exception(NULL,ex);
-      fdtype handler_result = fd_apply(handler,1,&err_value);
+      lispval err_value = fd_init_exception(NULL,ex);
+      lispval handler_result = fd_apply(handler,1,&err_value);
       fd_exception_object exo=
         fd_consptr(fd_exception_object,err_value,fd_error_type);
       if (handler_result == err_value) {
@@ -185,16 +185,16 @@ static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else if (VOIDP(default_handler))
     return value;
   else {
-    fdtype handler = fd_eval(default_handler,env);
+    lispval handler = fd_eval(default_handler,env);
     if (FD_ABORTP(handler))
       return handler;
     else if (FD_APPLICABLEP(handler)) {
       if (VOIDP(value)) {
-        fdtype result = fd_finish_call(fd_dapply(handler,0,&value));
+        lispval result = fd_finish_call(fd_dapply(handler,0,&value));
         fd_decref(handler);
         return result;}
       else {
-        fdtype result = fd_finish_call(fd_dapply(handler,1,&value));
+        lispval result = fd_finish_call(fd_dapply(handler,1,&value));
         fd_decref(handler);
         fd_decref(value);
         return result;}}
@@ -203,10 +203,10 @@ static fdtype onerror_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       return handler;}}
 }
 
-static fdtype report_errors_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval report_errors_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
-  fdtype value = fd_eval(toeval,env);
+  lispval toeval = fd_get_arg(expr,1);
+  lispval value = fd_eval(toeval,env);
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
@@ -217,10 +217,10 @@ static fdtype report_errors_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return value;
 }
 
-static fdtype erreify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval erreify_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
-  fdtype value = fd_eval(toeval,env);
+  lispval toeval = fd_get_arg(expr,1);
+  lispval value = fd_eval(toeval,env);
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
@@ -229,7 +229,7 @@ static fdtype erreify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else return value;
 }
 
-static fdtype error_condition(fdtype x,fdtype top_arg)
+static lispval error_condition(lispval x,lispval top_arg)
 {
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
@@ -247,7 +247,7 @@ static fdtype error_condition(fdtype x,fdtype top_arg)
   else return fd_intern((u8_string)found);
 }
 
-static fdtype error_context(fdtype x,fdtype top_arg)
+static lispval error_context(lispval x,lispval top_arg)
 {
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
@@ -265,7 +265,7 @@ static fdtype error_context(fdtype x,fdtype top_arg)
   else return fd_intern((u8_string)found);
 }
 
-static fdtype error_details(fdtype x,fdtype top_arg)
+static lispval error_details(lispval x,lispval top_arg)
 {
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
@@ -280,16 +280,16 @@ static fdtype error_details(fdtype x,fdtype top_arg)
       if (ex->u8x_details) found = ex->u8x_details;
       ex = ex->u8x_prev;}
   if (found == NULL) return FD_FALSE;
-  else return fdtype_string(found);
+  else return lispval_string(found);
 }
 
-static fdtype error_irritant(fdtype x,fdtype top_arg)
+static lispval error_irritant(lispval x,lispval top_arg)
 {
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
-  fdtype found = VOID;
+  lispval found = VOID;
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
@@ -303,13 +303,13 @@ static fdtype error_irritant(fdtype x,fdtype top_arg)
   else return fd_incref(found);
 }
 
-static fdtype error_has_irritant(fdtype x,fdtype top_arg)
+static lispval error_has_irritant(lispval x,lispval top_arg)
 {
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
-  fdtype found = VOID;
+  lispval found = VOID;
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
@@ -323,7 +323,7 @@ static fdtype error_has_irritant(fdtype x,fdtype top_arg)
   else return FD_TRUE;
 }
 
-static fdtype error_backtrace(fdtype x)
+static lispval error_backtrace(lispval x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
@@ -331,7 +331,7 @@ static fdtype error_backtrace(fdtype x)
   return fd_exception_backtrace(ex);
 }
 
-static fdtype error_summary(fdtype x,fdtype with_irritant)
+static lispval error_summary(lispval x,lispval with_irritant)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
@@ -339,13 +339,13 @@ static fdtype error_summary(fdtype x,fdtype with_irritant)
   u8_condition cond = ex->u8x_cond;
   u8_context cxt = ex->u8x_context;
   u8_string details = ex->u8x_details;
-  fdtype irritant = (fdtype)(ex->u8x_xdata);
+  lispval irritant = (lispval)(ex->u8x_xdata);
   int irritated=
     (!((VOIDP(with_irritant))||
        (FALSEP(with_irritant))||
        (VOIDP(irritant))));
   u8_string summary;
-  fdtype return_value;
+  lispval return_value;
   if ((cond)&&(cxt)&&(details)&&(irritated))
     summary = u8_mkstring("#@%%! %s [%s] (%s): %q",
                         cond,cxt,details,irritant);
@@ -364,22 +364,22 @@ static fdtype error_summary(fdtype x,fdtype with_irritant)
   else if (cond)
     summary = u8_mkstring("#@%%! %s",cond);
   else summary = u8_mkstring("#@%%! %s","Weird anonymous error");
-  return_value = fdtype_string(summary);
+  return_value = lispval_string(summary);
   u8_free(summary);
   return return_value;
 }
 
-static fdtype error_xdata(fdtype x)
+static lispval error_xdata(lispval x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->fdex_u8ex;
-  fdtype xdata = fd_exception_xdata(ex);
+  lispval xdata = fd_exception_xdata(ex);
   if (VOIDP(xdata)) return FD_FALSE;
   else return fd_incref(xdata);
 }
 
-static int thunkp(fdtype x)
+static int thunkp(lispval x)
 {
   if (!(FD_APPLICABLEP(x))) return 0;
   else {
@@ -389,11 +389,11 @@ static int thunkp(fdtype x)
     else return 0;}
 }
 
-static fdtype dynamic_wind_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval dynamic_wind_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype wind = fd_get_arg(expr,1);
-  fdtype doit = fd_get_arg(expr,2);
-  fdtype unwind = fd_get_arg(expr,3);
+  lispval wind = fd_get_arg(expr,1);
+  lispval doit = fd_get_arg(expr,2);
+  lispval unwind = fd_get_arg(expr,3);
   if ((VOIDP(wind)) || (VOIDP(doit)) || (VOIDP(unwind)))
     return fd_err(fd_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
@@ -416,21 +416,21 @@ static fdtype dynamic_wind_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       fd_decref(wind); fd_decref(doit);
       return fd_type_error("thunk","dynamic_wind_evalfn",unwind);}
     else {
-      fdtype retval = fd_apply(wind,0,NULL);
+      lispval retval = fd_apply(wind,0,NULL);
       if (FD_ABORTP(retval)) {}
       else {
         fd_decref(retval);
         retval = fd_apply(doit,0,NULL);
         if (FD_ABORTP(retval)) {
           u8_exception saved = u8_erreify();
-          fdtype unwindval = fd_apply(unwind,0,NULL);
+          lispval unwindval = fd_apply(unwind,0,NULL);
           u8_restore_exception(saved);
           if (FD_ABORTP(unwindval)) {
             fd_decref(retval);
             retval = unwindval;}
           else fd_decref(unwindval);}
         else {
-          fdtype unwindval = fd_apply(unwind,0,NULL);
+          lispval unwindval = fd_apply(unwind,0,NULL);
           if (FD_ABORTP(unwindval)) {
             fd_decref(retval);
             retval = unwindval;}
@@ -439,10 +439,10 @@ static fdtype dynamic_wind_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       return retval;}}
 }
 
-static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
+static lispval unwind_protect_evalfn(lispval uwp,fd_lexenv env,fd_stack _stack)
 {
-  fdtype heart = fd_get_arg(uwp,1);
-  fdtype result;
+  lispval heart = fd_get_arg(uwp,1);
+  lispval result;
   {U8_WITH_CONTOUR("UNWIND-PROTECT(body)",0)
       result = fd_eval(heart,env);
     U8_ON_EXCEPTION {
@@ -450,9 +450,9 @@ static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
       result = FD_ERROR;}
     U8_END_EXCEPTION;}
   {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
-      {fdtype unwinds = fd_get_body(uwp,2);
+      {lispval unwinds = fd_get_body(uwp,2);
         FD_DOLIST(expr,unwinds) {
-          fdtype uw_result = fd_eval(expr,env);
+          lispval uw_result = fd_eval(expr,env);
           if (FD_ABORTP(uw_result))
             if (FD_ABORTP(result)) {
               fd_interr(result); fd_interr(uw_result);
@@ -471,7 +471,7 @@ static fdtype unwind_protect_evalfn(fdtype uwp,fd_lexenv env,fd_stack _stack)
 
 /* Clear errors */
 
-static fdtype clear_errors()
+static lispval clear_errors()
 {
   int n_errs = fd_clear_errors(1);
   if (n_errs) return FD_INT(n_errs);

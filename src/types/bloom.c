@@ -186,7 +186,7 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 
 /* Adding and checking primitives */
 
-int bloom_check_add_dtype(struct FD_BLOOM *bloom,fdtype key,
+int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
 			  int add,int raw,int err)
 {
   int rv=0;
@@ -218,12 +218,12 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,fdtype key,
     else return bloom_check_add(bloom,out.buffer,out.bufwrite-out.buffer,add);}
 }
 
-FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, fdtype key,int flags)
+FD_EXPORT int fd_bloom_op(struct FD_BLOOM * bloom, lispval key,int flags)
 {
   int raw=flags&FD_BLOOM_RAW, err=flags&FD_BLOOM_ERR;
   int check=flags&FD_BLOOM_CHECK, add=flags&FD_BLOOM_ADD;
   if (PRECHOICEP(key)) {
-    fdtype simple=fd_make_simple_choice(key);
+    lispval simple=fd_make_simple_choice(key);
     int rv=fd_bloom_op(bloom,simple,flags);
     fd_decref(simple);
     return rv;}
@@ -255,7 +255,7 @@ int fd_bloom_addbuf(struct FD_BLOOM * bloom, const void * buffer, int len)
 }
 
 
-int unparse_bloom(u8_output out,fdtype x)
+int unparse_bloom(u8_output out,lispval x)
 {
   struct FD_BLOOM *filter = (struct FD_BLOOM *)x;
   u8_printf(out,"#<BLOOM #!%llx %lld/%lld(%f)>",

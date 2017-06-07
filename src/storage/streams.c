@@ -436,7 +436,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
 FD_EXPORT void fd_free_stream(fd_stream s)
 {
   struct FD_CONS *cons = (struct FD_CONS *)s;
-  fdtype sptr = (fdtype)s;
+  lispval sptr = (lispval)s;
   if (FD_STATIC_CONSP(cons)) {
     u8_log(LOGWARN,_("FreeingStaticStream"),
            "Attempting to free the static stream %s 0x%llx",
@@ -524,7 +524,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
 
 /* CONS handlers */
 
-static int unparse_stream(struct U8_OUTPUT *out,fdtype x)
+static int unparse_stream(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_STREAM *stream = (struct FD_STREAM *)x;
   if (stream->streamid) {
@@ -987,7 +987,7 @@ ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes)
 /* Stream ctl */
 
 FD_EXPORT
-fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
+lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
 {
   switch (op) {
   case fd_stream_close:
@@ -1039,7 +1039,7 @@ fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
 
 /* Files 2 dtypes */
 
-FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
+FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
 {
   struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
   ssize_t filesize = u8_file_size(filename);
@@ -1058,7 +1058,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
                           ( (HAVE_MMAP) ? (FD_STREAM_MMAPPED) : (0)),
                           fd_filestream_bufsize);
     if (opened) {
-      fdtype result = VOID;
+      lispval result = VOID;
       struct FD_INBUF *in = fd_readbuf(opened);
       int byte1 = fd_probe_byte(in);
       int zip = (byte1>=0x80);
@@ -1075,7 +1075,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
       return FD_ERROR;}}
 }
 
-FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
+FD_EXPORT ssize_t fd_lisp2file(lispval object, u8_string filename,
                                 ssize_t bufsize,int zip)
 {
   struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
@@ -1093,14 +1093,14 @@ FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
   else return -1;
 }
 
-FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype object,u8_string filename)
+FD_EXPORT ssize_t fd_write_dtype_to_file(lispval object,u8_string filename)
 {
-  return fd_dtype2file(object,filename,1024*64,0);
+  return fd_lisp2file(object,filename,1024*64,0);
 }
 
-FD_EXPORT ssize_t fd_write_zdtype_to_file(fdtype object,u8_string filename)
+FD_EXPORT ssize_t fd_write_zdtype_to_file(lispval object,u8_string filename)
 {
-  return fd_dtype2file(object,filename,1024*64,1);
+  return fd_lisp2file(object,filename,1024*64,1);
 }
 
 /* Initialization of file */

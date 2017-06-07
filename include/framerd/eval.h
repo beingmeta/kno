@@ -21,15 +21,15 @@ FD_EXPORT fd_exception fd_TooFewExpressions, fd_NotAnIdentifier;
 FD_EXPORT fd_exception fd_InvalidMacro, FD_BadArglist;
 FD_EXPORT fd_exception fd_ReadOnlyEnv;
 
-FD_EXPORT fdtype fd_scheme_module, fd_xscheme_module;
+FD_EXPORT lispval fd_scheme_module, fd_xscheme_module;
 
-FD_EXPORT fdtype _fd_comment_symbol;
+FD_EXPORT lispval _fd_comment_symbol;
 
 FD_EXPORT int fd_load_scheme(void) FD_LIBINIT0_FN;
 FD_EXPORT int fd_init_scheme(void);
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
-FD_EXPORT void (*fd_dump_backtrace)(fdtype bt);
+FD_EXPORT void (*fd_dump_backtrace)(lispval bt);
 
 #define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
                           (FD_PAIRP(x)) || (FD_CODEP(x)))
@@ -43,13 +43,13 @@ FD_EXPORT void (*fd_dump_backtrace)(fdtype bt);
 #define FD_MODULE_SAFE 1
 #define FD_MODULE_DEFAULT 2
 
-FD_EXPORT int fd_assign_value(fdtype,fdtype,fd_lexenv);
-FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lexenv);
-FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lexenv);
+FD_EXPORT int fd_assign_value(lispval,lispval,fd_lexenv);
+FD_EXPORT int fd_add_value(lispval,lispval,fd_lexenv);
+FD_EXPORT int fd_bind_value(lispval,lispval,fd_lexenv);
 
 /* Eval functions (for special forms, FEXPRs, whatever) */
 
-typedef fdtype (*fd_eval_handler)(fdtype expr,
+typedef lispval (*fd_eval_handler)(lispval expr,
 			    struct FD_LEXENV *,
 			    struct FD_STACK *stack);
 
@@ -60,23 +60,23 @@ typedef struct FD_EVALFN {
   fd_eval_handler evalfn_handler;} FD_EVALFN;
 typedef struct FD_EVALFN *fd_evalfn;
 
-FD_EXPORT fdtype fd_make_evalfn(u8_string name,fd_eval_handler fn);
-FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn);
+FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
+FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
   u8_string fd_macro_name;
-  fdtype macro_transformer;} FD_MACRO;
+  lispval macro_transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
 
 /* These should probably get their own header file */
 
-FD_EXPORT fdtype fd_printout(fdtype,fd_lexenv);
-FD_EXPORT fdtype fd_printout_to(U8_OUTPUT *,fdtype,fd_lexenv);
+FD_EXPORT lispval fd_printout(lispval,fd_lexenv);
+FD_EXPORT lispval fd_printout_to(U8_OUTPUT *,lispval,fd_lexenv);
 
 /* Getting documentation strings */
 
-FD_EXPORT u8_string fd_get_documentation(fdtype x);
+FD_EXPORT u8_string fd_get_documentation(lispval x);
 
 /* DT servers */
 
@@ -88,32 +88,32 @@ typedef struct FD_DTSERVER *fd_stream_erver;
 
 /* Modules */
 
-FD_EXPORT fd_lexenv fd_new_lexenv(fdtype bindings,int safe);
+FD_EXPORT fd_lexenv fd_new_lexenv(lispval bindings,int safe);
 FD_EXPORT fd_lexenv fd_working_lexenv(void);
 FD_EXPORT fd_lexenv fd_safe_working_lexenv(void);
-FD_EXPORT fd_lexenv fd_make_env(fdtype module,fd_lexenv parent);
-FD_EXPORT fd_lexenv fd_make_export_env(fdtype exports,fd_lexenv parent);
-FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags);
-FD_EXPORT fdtype fd_register_module(u8_string name,fdtype module,int flags);
-FD_EXPORT fdtype fd_get_module(fdtype name,int safe);
-FD_EXPORT int fd_discard_module(fdtype name,int safe);
+FD_EXPORT fd_lexenv fd_make_env(lispval module,fd_lexenv parent);
+FD_EXPORT fd_lexenv fd_make_export_env(lispval exports,fd_lexenv parent);
+FD_EXPORT lispval fd_register_module_x(lispval name,lispval module,int flags);
+FD_EXPORT lispval fd_register_module(u8_string name,lispval module,int flags);
+FD_EXPORT lispval fd_get_module(lispval name,int safe);
+FD_EXPORT int fd_discard_module(lispval name,int safe);
 
-FD_EXPORT int fd_module_finished(fdtype module,int flags);
-FD_EXPORT int fd_finish_module(fdtype module);
-FD_EXPORT int fd_static_module(fdtype module);
-FD_EXPORT int fd_lock_exports(fdtype module);
-
-
-FD_EXPORT fdtype fd_make_evalfn(u8_string name,fd_eval_handler fn);
-FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn);
-
-FD_EXPORT fdtype fd_find_module(fdtype,int,int);
-FD_EXPORT fdtype fd_new_module(char *name,int flags);
-
-FD_EXPORT fdtype fd_use_module(fd_lexenv env,fdtype module);
+FD_EXPORT int fd_module_finished(lispval module,int flags);
+FD_EXPORT int fd_finish_module(lispval module);
+FD_EXPORT int fd_static_module(lispval module);
+FD_EXPORT int fd_lock_exports(lispval module);
 
 
-FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
+FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
+FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
+
+FD_EXPORT lispval fd_find_module(lispval,int,int);
+FD_EXPORT lispval fd_new_module(char *name,int flags);
+
+FD_EXPORT lispval fd_use_module(fd_lexenv env,lispval module);
+
+
+FD_EXPORT void fd_add_module_loader(int (*loader)(lispval,int,void *),void *);
 
 #define FD_LOCK_EXPORTS 0x01
 #define FD_FIX_EXPORTS 0x02
@@ -128,8 +128,8 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
   short sproc_n_vars, sproc_synchronized;
-  fdtype *sproc_vars, sproc_arglist, sproc_body, sproc_source;
-  fdtype sproc_optimizer;
+  lispval *sproc_vars, sproc_arglist, sproc_body, sproc_source;
+  lispval sproc_optimizer;
   struct FD_VECTOR *sproc_bytecode;
   fd_lexenv sproc_env;
   U8_MUTEX_DECL(sproc_lock);
@@ -144,13 +144,13 @@ FD_EXPORT int fd_record_source;
   s->sproc_source=src; fd_incref(s->sproc_source);}	\
   else {}
 
-FD_EXPORT fdtype fd_apply_sproc(struct FD_STACK *,struct FD_SPROC *fn,
-				int n,fdtype *args);
-FD_EXPORT fdtype fd_xapply_sproc
-  (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype));
+FD_EXPORT lispval fd_apply_sproc(struct FD_STACK *,struct FD_SPROC *fn,
+				int n,lispval *args);
+FD_EXPORT lispval fd_xapply_sproc
+  (struct FD_SPROC *fn,void *data,lispval (*getval)(void *,lispval));
 
-FD_EXPORT fdtype fd_make_sproc(u8_string name,
-                               fdtype arglist,fdtype body,fd_lexenv env,
+FD_EXPORT lispval fd_make_sproc(u8_string name,
+                               lispval arglist,lispval body,fd_lexenv env,
                                int nd,int sync);
 
 /* Loading files and config data */
@@ -169,9 +169,9 @@ FD_EXPORT void fd_register_sourcefn
 
 FD_EXPORT int fd_load_config(u8_string sourceid);
 FD_EXPORT int fd_load_default_config(u8_string sourceid);
-FD_EXPORT fdtype fd_load_source_with_date
+FD_EXPORT lispval fd_load_source_with_date
   (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime);
-FD_EXPORT fdtype fd_load_source
+FD_EXPORT lispval fd_load_source
   (u8_string sourceid,fd_lexenv env,u8_string enc_name);
 FD_EXPORT u8_string fd_sourcebase();
 FD_EXPORT u8_string fd_get_component(u8_string spec);
@@ -185,20 +185,20 @@ typedef struct FD_CONFIG_RECORD {
 /* The Evaluator */
 
 FD_EXPORT
-fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
+lispval fd_stack_eval(lispval expr,fd_lexenv env,
                      struct FD_STACK *stack,
 		     int tail);
 #define fd_tail_eval(expr,env) (fd_stack_eval(expr,env,fd_stackptr,1))
 
-FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lexenv env);
+FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env);
 
 /* These are for non-static/inline versions */
-FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lexenv env);
-FD_EXPORT fdtype _fd_get_arg(fdtype expr,int i);
-FD_EXPORT fdtype _fd_get_body(fdtype expr,int i);
+FD_EXPORT lispval _fd_eval(lispval expr,fd_lexenv env);
+FD_EXPORT lispval _fd_get_arg(lispval expr,int i);
+FD_EXPORT lispval _fd_get_body(lispval expr,int i);
 
 #if FD_PROVIDE_FASTEVAL
-FD_FASTOP fdtype fastget(fdtype table,fdtype key)
+FD_FASTOP lispval fastget(lispval table,lispval key)
 {
   fd_ptr_type argtype = FD_PTR_TYPE(table);
   switch (argtype) {
@@ -210,7 +210,7 @@ FD_FASTOP fdtype fastget(fdtype table,fdtype key)
     return fd_hashtable_get((fd_hashtable)table,key,FD_UNBOUND);
   default: return fd_get(table,key,FD_UNBOUND);}
 }
-FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lexenv env)
+FD_FASTOP lispval fd_lexref(lispval lexref,fd_lexenv env)
 {
   int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up = code/32, across = code%32;
@@ -219,18 +219,18 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lexenv env)
     env = env->env_parent; up--;}
   if (env->env_copy) env = env->env_copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
-    fdtype bindings = env->env_bindings;
+    lispval bindings = env->env_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s = (struct FD_SCHEMAP *)bindings;
       return fd_incref(s->schema_values[across]);}}
   return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
 }
-FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lexenv env)
+FD_FASTOP lispval fd_symeval(lispval symbol,fd_lexenv env)
 {
   if (env == NULL) return FD_VOID;
   if (env->env_copy) env = env->env_copy;
   while (env) {
-    fdtype val = fastget(env->env_bindings,symbol);
+    lispval val = fastget(env->env_bindings,symbol);
     if (val == FD_UNBOUND)
       env = env->env_parent;
     else return val;
@@ -238,7 +238,7 @@ FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lexenv env)
   return FD_VOID;
 }
 
-FD_FASTOP fdtype _fd_fast_eval(fdtype x,fd_lexenv env,
+FD_FASTOP lispval _fd_fast_eval(lispval x,fd_lexenv env,
 			       struct FD_STACK *stack,
 			       int tail)
 {
@@ -249,7 +249,7 @@ FD_FASTOP fdtype _fd_fast_eval(fdtype x,fd_lexenv env,
     if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
-      fdtype val = fd_symeval(x,env);
+      lispval val = fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
         return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
@@ -273,7 +273,7 @@ FD_FASTOP fdtype _fd_fast_eval(fdtype x,fd_lexenv env,
 
 #define fd_eval(x,env) (_fd_fast_eval(x,env,fd_stackptr,0))
 
-FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
+FD_FASTOP lispval fd_get_arg(lispval expr,int i)
 {
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
@@ -283,7 +283,7 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
     else {expr = FD_CDR(expr); i--;}
   return FD_VOID;
 }
-FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
+FD_FASTOP lispval fd_get_body(lispval expr,int i)
 {
   while (FD_PAIRP(expr))
     if (i == 0) break;
@@ -294,7 +294,7 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
   return expr;
 }
 #else
-FD_EXPORT fdtype _fd_symeval(fdtype,fd_lexenv);
+FD_EXPORT lispval _fd_symeval(lispval,fd_lexenv);
 #define fd_eval(x,env) _fd_eval(x,env)
 #define fd_symeval(x,env) _fd_symeval(x,env)
 #define fd_lexref(x,env) _fd_lexref(x,env)
@@ -308,14 +308,14 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lexenv);
 
 #define FD_UNPACK_BINDING(pair,var,val)		\
   if (FD_PAIRP(pair)) {				\
-    fdtype _cdr = FD_CDR(pair);			\
+    lispval _cdr = FD_CDR(pair);			\
     var = FD_CAR(pair);				\
     if (FD_PAIRP(_cdr)) val = FD_CAR(_cdr);	\
     else val = FD_VOID;}				\
   else {}
 
 #define FD_DOBINDINGS(var,val,bindings)					\
-  U8_MAYBE_UNUSED fdtype var, val, _scan = bindings, _binding = FD_VOID;	\
+  U8_MAYBE_UNUSED lispval var, val, _scan = bindings, _binding = FD_VOID;	\
   for (_scan = bindings,							\
 	 _binding = FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
 	 var = FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
@@ -331,7 +331,7 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lexenv);
 /* Simple continuations */
 
 typedef struct FD_CONTINUATION {
-  FD_FUNCTION_FIELDS; fdtype retval;} FD_CONTINUATION;
+  FD_FUNCTION_FIELDS; lispval retval;} FD_CONTINUATION;
 typedef struct FD_CONTINUATION *fd_continuation;
 
 /* Threading stuff */
@@ -344,11 +344,11 @@ typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER; int flags; pthread_t tid; 
   int *errnop; double started, finished;
   struct FD_STACK *thread_stackptr;
-  fdtype *resultptr, result;
+  lispval *resultptr, result;
   pthread_attr_t attr;
   union {
-    struct {fdtype expr; fd_lexenv env;} evaldata;
-    struct {fdtype fn, *args; int n_args;} applydata;};} FD_THREAD;
+    struct {lispval expr; fd_lexenv env;} evaldata;
+    struct {lispval fn, *args; int n_args;} applydata;};} FD_THREAD;
 typedef struct FD_THREAD_STRUCT *fd_thread_struct;
 
 typedef struct FD_CONSED_CONDVAR {
@@ -357,13 +357,13 @@ typedef struct FD_CONDVAR *fd_consed_condvar;
 
 FD_EXPORT fd_ptr_type fd_thread_type;
 FD_EXPORT fd_ptr_type fd_condvar_type;
-FD_EXPORT fd_thread_struct fd_thread_call(fdtype *,fdtype,int,fdtype *,int);
-FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lexenv,int);
+FD_EXPORT fd_thread_struct fd_thread_call(lispval *,lispval,int,lispval *,int);
+FD_EXPORT fd_thread_struct fd_thread_eval(lispval *,lispval,fd_lexenv,int);
 
 /* Opcodes */
 
-FD_EXPORT fdtype fd_opcode_dispatch
-(fdtype opcode,fdtype expr,fd_lexenv env,
+FD_EXPORT lispval fd_opcode_dispatch
+(lispval opcode,lispval expr,fd_lexenv env,
  struct FD_STACK *,int tail);
 
 #endif /* FRAMERD_EVAL_H */

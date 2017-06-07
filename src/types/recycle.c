@@ -23,7 +23,7 @@ static void recycle_string(struct FD_STRING *s)
 
 static void recycle_vector(struct FD_VECTOR *v)
 {
-  int len = v->fdvec_length; fdtype *scan = v->fdvec_elts, *limit = scan+len;
+  int len = v->fdvec_length; lispval *scan = v->fdvec_elts, *limit = scan+len;
   if (scan) {
     while (scan<limit) {fd_decref(*scan); scan++;}
     if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
@@ -34,7 +34,7 @@ static void recycle_choice(struct FD_CHOICE *cv)
 {
   if (!(cv->choice_isatomic)) {
     int len = cv->choice_size;
-    const fdtype *scan = FD_XCHOICE_DATA(cv), *limit = scan+len;
+    const lispval *scan = FD_XCHOICE_DATA(cv), *limit = scan+len;
     if (scan) while (scan<limit) {fd_decref(*scan); scan++;}}
   if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
 }
@@ -49,7 +49,7 @@ static void recycle_qchoice(struct FD_QCHOICE *qc)
 
 static void recycle_pair(struct FD_PAIR *pair)
 {
-  fdtype car = pair->car, cdr = pair->cdr;
+  lispval car = pair->car, cdr = pair->cdr;
   fd_decref(car); fd_decref(cdr);
   if (!(FD_STATIC_CONSP(pair))) u8_free(pair);
 }
@@ -60,7 +60,7 @@ static void recycle_pair(struct FD_PAIR *pair)
    we iterate in the CDR direction. */
 static void recycle_list(struct FD_PAIR *pair)
 {
-  fdtype car = pair->car, cdr = pair->cdr;
+  lispval car = pair->car, cdr = pair->cdr;
   u8_free(pair); fd_decref(car);
   if (!(PAIRP(cdr))) {
     fd_decref(cdr);
@@ -144,7 +144,7 @@ static void recycle_rawptr(struct FD_RAW_CONS *c)
 static void recycle_compound(struct FD_RAW_CONS *c)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)c;
-  int i = 0, n = compound->fd_n_elts; fdtype *data = &(compound->compound_0);
+  int i = 0, n = compound->fd_n_elts; lispval *data = &(compound->compound_0);
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->compound_typetag);
   if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));
@@ -208,19 +208,19 @@ void fd_recycle_cons(fd_raw_cons c)
 
 FD_EXPORT
 /* Increfs the elements of a vector of LISP pointers */
-void fd_incref_vec(fdtype *vec,size_t n)
+void fd_incref_vec(lispval *vec,size_t n)
 {
   int i = 0; while (i<n) {
-    fdtype elt = vec[i++];
+    lispval elt = vec[i++];
     fd_incref(elt);}
 }
 
 FD_EXPORT
 /* Decrefs the elements of a vector of LISP pointers */
-void fd_decref_vec(fdtype *vec,size_t n,int free_vec)
+void fd_decref_vec(lispval *vec,size_t n,int free_vec)
 {
   int i = 0; while (i<n) {
-    fdtype elt = vec[i++];
+    lispval elt = vec[i++];
     fd_decref(elt);}
   if (free_vec) u8_free(vec);
 }

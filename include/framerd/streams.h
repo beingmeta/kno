@@ -128,20 +128,20 @@ typedef enum fd_streamop {
 FD_EXPORT void fd_close_stream(fd_stream s,int flags);
 FD_EXPORT void fd_free_stream(fd_stream s);
 
-FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
-FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype,u8_string,size_t,int);
-FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype obj,u8_string filename);
-FD_EXPORT ssize_t fd_write_ztype_to_file(fdtype obj,u8_string filename);
-FD_EXPORT ssize_t fd_add_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename);
+FD_EXPORT ssize_t _fd_write_dtype_to_file(lispval,u8_string,size_t,int);
+FD_EXPORT ssize_t fd_write_dtype_to_file(lispval obj,u8_string filename);
+FD_EXPORT ssize_t fd_write_ztype_to_file(lispval obj,u8_string filename);
+FD_EXPORT ssize_t fd_add_dtype_to_file(lispval obj,u8_string filename);
 
 FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off);
 FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int *err);
 FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off);
 FD_EXPORT int fd_write_8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off);
 
-FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in);
-FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x);
-FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x);
+FD_EXPORT lispval fd_zread_dtype(struct FD_INBUF *in);
+FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,lispval x);
+FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,lispval x);
 
 FD_EXPORT ssize_t fd_write_ints(fd_stream s,size_t len,unsigned int *words);
 FD_EXPORT ssize_t fd_read_ints(fd_stream s,size_t len,unsigned int *words);
@@ -150,7 +150,7 @@ FD_EXPORT ssize_t fd_stream_write(fd_stream s,size_t len,unsigned char *bytes);
 FD_EXPORT ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes);
 
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
-FD_EXPORT fdtype fd_streamctl(fd_stream s,fd_streamop,void *data);
+FD_EXPORT lispval fd_streamctl(fd_stream s,fd_streamop,void *data);
 
 /* Stream position operations */
 

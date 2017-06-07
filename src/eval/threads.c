@@ -41,7 +41,7 @@ static u8_condition ThreadVOID=_("ThreadVoidResult");
 
 static int thread_loglevel = LOGNOTICE;
 static int thread_log_exit = 1;
-static fdtype logexit_symbol = VOID;
+static lispval logexit_symbol = VOID;
 
 #ifndef U8_STRING_ARG
 #define U8_STRING_ARG(s) (((s) == NULL)?((u8_string)""):((u8_string)(s)))
@@ -54,7 +54,7 @@ int fd_thread_backtrace = 0;
 fd_ptr_type fd_thread_type;
 fd_ptr_type fd_condvar_type;
 
-static int unparse_thread_struct(u8_output out,fdtype x)
+static int unparse_thread_struct(u8_output out,lispval x)
 {
   struct FD_THREAD_STRUCT *th=
     fd_consptr(struct FD_THREAD_STRUCT *,x,fd_thread_type);
@@ -76,10 +76,10 @@ FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
   if (th->flags&FD_EVAL_THREAD) {
     fd_decref(th->evaldata.expr);
     if (th->evaldata.env) {
-      fd_decref((fdtype)(th->evaldata.env));}}
+      fd_decref((lispval)(th->evaldata.env));}}
   else {
     int i = 0, n = th->applydata.n_args;
-    fdtype *args = th->applydata.args;
+    lispval *args = th->applydata.args;
     while (i<n) {fd_decref(args[i]); i++;}
     u8_free(args); fd_decref(th->applydata.fn);}
   if (th->result!=FD_NULL) fd_decref(th->result);
@@ -90,7 +90,7 @@ FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
 
 /* CONDVAR support */
 
-static fdtype make_condvar()
+static lispval make_condvar()
 {
   int rv = 0;
   struct FD_CONSED_CONDVAR *cv = u8_alloc(struct FD_CONSED_CONDVAR);
@@ -103,13 +103,13 @@ static fdtype make_condvar()
   if (rv) {
     u8_graberr(-1,"make_condvar",NULL);
     return FD_ERROR;}
-  return FDTYPE_CONS(cv);
+  return LISP_CONS(cv);
 }
 
 /* This primitive combine cond_wait and cond_timedwait
    through a second (optional) argument, which is an
    interval in seconds. */
-static fdtype condvar_wait(fdtype cvar,fdtype timeout)
+static lispval condvar_wait(lispval cvar,lispval timeout)
 {
   int rv = 0;
   struct FD_CONSED_CONDVAR *cv=
@@ -146,7 +146,7 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
 /* This primitive combines signals and broadcasts through
    a second (optional) argument which, when true, implies
    a broadcast. */
-static fdtype condvar_signal(fdtype cvar,fdtype broadcast)
+static lispval condvar_signal(lispval cvar,lispval broadcast)
 {
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
@@ -159,7 +159,7 @@ static fdtype condvar_signal(fdtype cvar,fdtype broadcast)
   else return fd_type_error(_("valid condvar"),"condvar_signal",cvar);
 }
 
-static fdtype condvar_lock(fdtype cvar)
+static lispval condvar_lock(lispval cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
@@ -167,7 +167,7 @@ static fdtype condvar_lock(fdtype cvar)
   return FD_TRUE;
 }
 
-static fdtype condvar_unlock(fdtype cvar)
+static lispval condvar_unlock(lispval cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
@@ -175,7 +175,7 @@ static fdtype condvar_unlock(fdtype cvar)
   return FD_TRUE;
 }
 
-static int unparse_condvar(u8_output out,fdtype cvar)
+static int unparse_condvar(u8_output out,lispval cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     fd_consptr(struct FD_CONSED_CONDVAR *,cvar,fd_condvar_type);
@@ -194,7 +194,7 @@ FD_EXPORT void recycle_condvar(struct FD_RAW_CONS *c)
 /* These functions generically access the locks on CONDVARs
    and SPROCs */
 
-static fdtype synchro_lock(fdtype lck)
+static lispval synchro_lock(lispval lck)
 {
   if (FD_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
@@ -210,7 +210,7 @@ static fdtype synchro_lock(fdtype lck)
   else return fd_type_error("lockable","synchro_lock",lck);
 }
 
-static fdtype synchro_unlock(fdtype lck)
+static lispval synchro_unlock(lispval lck)
 {
   if (FD_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
@@ -226,9 +226,9 @@ static fdtype synchro_unlock(fdtype lck)
   else return fd_type_error("lockable","synchro_unlock",lck);
 }
 
-static fdtype with_lock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype lock_expr = fd_get_arg(expr,1), lck, value = VOID;
+  lispval lock_expr = fd_get_arg(expr,1), lck, value = VOID;
   if (VOIDP(lock_expr))
     return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
@@ -267,7 +267,7 @@ static fdtype with_lock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 static void *thread_call(void *data)
 {
-  fdtype result;
+  lispval result;
   struct FD_THREAD_STRUCT *tstruct = (struct FD_THREAD_STRUCT *)data;
   int flags = tstruct->flags, log_exit=
     ((flags)&(FD_THREAD_TRACE_EXIT)) ||
@@ -332,7 +332,7 @@ static void *thread_call(void *data)
 
   if (FD_ABORTP(result)) {
     u8_exception ex = u8_erreify();
-    fdtype exobj = fd_init_exception(NULL,ex);
+    lispval exobj = fd_init_exception(NULL,ex);
     u8_string errstring = fd_errstring(ex);
     u8_log(LOG_WARN,ThreadReturnError,"Thread #%d %s",u8_threadid(),errstring);
     if (tstruct->flags&FD_EVAL_THREAD)
@@ -344,7 +344,7 @@ static void *thread_call(void *data)
     u8_free(errstring);
     if (fd_thread_backtrace) {
       U8_STATIC_OUTPUT(tmp,8000);
-      fdtype backtrace = fd_exception_backtrace(ex);
+      lispval backtrace = fd_exception_backtrace(ex);
       fd_sum_backtrace(tmpout,backtrace);
       u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
       if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
@@ -364,14 +364,14 @@ static void *thread_call(void *data)
   if (tstruct->flags&FD_EVAL_THREAD) {
     fd_free_lexenv(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
-  fd_decref((fdtype)tstruct);
+  fd_decref((lispval)tstruct);
   fd_pop_stack(_stack);
   return NULL;
 }
 
 FD_EXPORT
-fd_thread_struct fd_thread_call(fdtype *resultptr,
-                                fdtype fn,int n,fdtype *rail,
+fd_thread_struct fd_thread_call(lispval *resultptr,
+                                lispval fn,int n,lispval *rail,
                                 int flags)
 {
   struct FD_THREAD_STRUCT *tstruct = u8_alloc(struct FD_THREAD_STRUCT);
@@ -392,15 +392,15 @@ fd_thread_struct fd_thread_call(fdtype *resultptr,
   tstruct->applydata.n_args = n;
   tstruct->applydata.args = rail;
   /* We need to do this first, before the thread exits and recycles itself! */
-  fd_incref((fdtype)tstruct);
+  fd_incref((lispval)tstruct);
   pthread_create(&(tstruct->tid),&(tstruct->attr),
                  thread_call,(void *)tstruct);
   return tstruct;
 }
 
 FD_EXPORT
-fd_thread_struct fd_thread_eval(fdtype *resultptr,
-                                fdtype expr,fd_lexenv env,
+fd_thread_struct fd_thread_eval(lispval *resultptr,
+                                lispval expr,fd_lexenv env,
                                 int flags)
 {
   struct FD_THREAD_STRUCT *tstruct = u8_alloc(struct FD_THREAD_STRUCT);
@@ -419,7 +419,7 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,
   tstruct->evaldata.expr = fd_incref(expr);
   tstruct->evaldata.env = fd_copy_env(env);
   /* We need to do this first, before the thread exits and recycles itself! */
-  fd_incref((fdtype)tstruct);
+  fd_incref((lispval)tstruct);
   pthread_create(&(tstruct->tid),pthread_attr_default,
                  thread_call,(void *)tstruct);
   return tstruct;
@@ -427,15 +427,15 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,
 
 /* Scheme primitives */
 
-static fdtype threadcall_prim(int n,fdtype *args)
+static lispval threadcall_prim(int n,lispval *args)
 {
-  fdtype fn = args[0];
+  lispval fn = args[0];
   if (FD_APPLICABLEP(fn)) {
-    fdtype *call_args = u8_alloc_n(n,fdtype), thread;
+    lispval *call_args = u8_alloc_n(n,lispval), thread;
     int i = 1; while (i<n) {
-      fdtype call_arg = args[i]; fd_incref(call_arg);
+      lispval call_arg = args[i]; fd_incref(call_arg);
       call_args[i-1]=call_arg; i++;}
-    thread = (fdtype)fd_thread_call(NULL,args[0],n-1,call_args,0);
+    thread = (lispval)fd_thread_call(NULL,args[0],n-1,call_args,0);
     return thread;}
   else if (VOIDP(fn))
     return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,VOID);
@@ -444,9 +444,9 @@ static fdtype threadcall_prim(int n,fdtype *args)
     return fd_type_error(_("applicable"),"threadcall_prim",fn);}
 }
 
-static int threadopts(fdtype opts)
+static int threadopts(lispval opts)
 {
-  fdtype logexit = fd_getopt(opts,logexit_symbol,VOID);
+  lispval logexit = fd_getopt(opts,logexit_symbol,VOID);
   if (VOIDP(logexit)) {
     if (thread_log_exit>0)
       return FD_THREAD_TRACE_EXIT;
@@ -458,17 +458,17 @@ static int threadopts(fdtype opts)
     return FD_THREAD_TRACE_EXIT;}
 }
 
-static fdtype threadcallx_prim(int n,fdtype *args)
+static lispval threadcallx_prim(int n,lispval *args)
 {
-  fdtype opts = args[0];
-  fdtype fn   = args[1];
+  lispval opts = args[0];
+  lispval fn   = args[1];
   if (FD_APPLICABLEP(fn)) {
-    fdtype *call_args = u8_alloc_n(n-2,fdtype), thread;
+    lispval *call_args = u8_alloc_n(n-2,lispval), thread;
     int flags = threadopts(opts);
     int i = 2; while (i<n) {
-      fdtype call_arg = args[i]; fd_incref(call_arg);
+      lispval call_arg = args[i]; fd_incref(call_arg);
       call_args[i-2]=call_arg; i++;}
-    thread = (fdtype)fd_thread_call(NULL,fn,n-2,call_args,flags);
+    thread = (lispval)fd_thread_call(NULL,fn,n-2,call_args,flags);
     return thread;}
   else if (VOIDP(fn))
     return fd_err(fd_TooFewArgs,"threadcallx_prim",NULL,VOID);
@@ -477,12 +477,12 @@ static fdtype threadcallx_prim(int n,fdtype *args)
     return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
-static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval threadeval_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype to_eval = fd_get_arg(expr,1);
-  fdtype env_arg = fd_eval(fd_get_arg(expr,2),env);
-  fdtype opts_arg = fd_eval(fd_get_arg(expr,3),env);
-  fdtype opts=
+  lispval to_eval = fd_get_arg(expr,1);
+  lispval env_arg = fd_eval(fd_get_arg(expr,2),env);
+  lispval opts_arg = fd_eval(fd_get_arg(expr,3),env);
+  lispval opts=
     ((VOIDP(opts_arg))&&
      (!(FD_LEXENVP(env_arg)))&&
      (TABLEP(env_arg)))?
@@ -501,9 +501,9 @@ static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else {
     int flags = threadopts(opts)|FD_EVAL_THREAD;
     fd_lexenv env_copy = fd_copy_env(use_env);
-    fdtype results = EMPTY, envptr = (fdtype)env_copy;
+    lispval results = EMPTY, envptr = (lispval)env_copy;
     DO_CHOICES(thread_expr,to_eval) {
-      fdtype thread = (fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
+      lispval thread = (lispval)fd_thread_eval(NULL,thread_expr,env_copy,flags);
       CHOICE_ADD(results,thread);}
     fd_decref(envptr);
     fd_decref(env_arg);
@@ -511,7 +511,7 @@ static fdtype threadeval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return results;}
 }
 
-static fdtype thread_exitedp(fdtype thread_arg)
+static lispval thread_exitedp(lispval thread_arg)
 {
   struct FD_THREAD_STRUCT *thread = (struct FD_THREAD_STRUCT *)thread_arg;
   if ((thread->flags)&(FD_THREAD_DONE))
@@ -519,7 +519,7 @@ static fdtype thread_exitedp(fdtype thread_arg)
   else return FD_FALSE;
 }
 
-static fdtype thread_errorp(fdtype thread_arg)
+static lispval thread_errorp(lispval thread_arg)
 {
   struct FD_THREAD_STRUCT *thread = (struct FD_THREAD_STRUCT *)thread_arg;
   if ((thread->flags)&(FD_THREAD_DONE)) {
@@ -529,21 +529,21 @@ static fdtype thread_errorp(fdtype thread_arg)
   else return FD_FALSE;
 }
 
-static fdtype thread_result(fdtype thread_arg)
+static lispval thread_result(lispval thread_arg)
 {
   struct FD_THREAD_STRUCT *thread = (struct FD_THREAD_STRUCT *)thread_arg;
   if ((thread->flags)&(FD_THREAD_DONE)) {
     if (thread->result!=FD_NULL) {
-      fdtype result = thread->result;
+      lispval result = thread->result;
       fd_incref(result);
       return result;}
     else return EMPTY;}
   else return EMPTY;
 }
 
-static fdtype threadjoin_prim(fdtype threads)
+static lispval threadjoin_prim(lispval threads)
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   {DO_CHOICES(thread,threads)
      if (!(FD_TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
@@ -567,7 +567,7 @@ static fdtype threadjoin_prim(fdtype threads)
   return results;
 }
 
-static fdtype threadwait_prim(fdtype threads)
+static lispval threadwait_prim(lispval threads)
 {
   {DO_CHOICES(thread,threads)
      if (!(FD_TYPEP(thread,fd_thread_type)))
@@ -581,16 +581,16 @@ static fdtype threadwait_prim(fdtype threads)
   return fd_incref(threads);
 }
 
-static fdtype parallel_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval parallel_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_thread_struct _threads[6], *threads;
-  fdtype _results[6], *results, scan = FD_CDR(expr), result = EMPTY;
+  lispval _results[6], *results, scan = FD_CDR(expr), result = EMPTY;
   int i = 0, n_exprs = 0;
   /* Compute number of expressions */
   while (PAIRP(scan)) {n_exprs++; scan = FD_CDR(scan);}
   /* Malloc two vectors if neccessary. */
   if (n_exprs>6) {
-    results = u8_alloc_n(n_exprs,fdtype);
+    results = u8_alloc_n(n_exprs,lispval);
     threads = u8_alloc_n(n_exprs,fd_thread_struct);}
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
@@ -604,14 +604,14 @@ static fdtype parallel_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     /* If any threads return errors, return the errors, combining
        them as contexts if multiple. */
     CHOICE_ADD(result,results[i]);
-    fd_decref((fdtype)(threads[i]));
+    fd_decref((lispval)(threads[i]));
     i++;}
   if (n_exprs>6) {
     u8_free(threads); u8_free(results);}
   return result;
 }
 
-static fdtype threadyield_prim()
+static lispval threadyield_prim()
 {
 #if _POSIX_PRIORITY_SCHEDULING
   int retval = sched_yield();
@@ -632,17 +632,17 @@ static fdtype threadyield_prim()
 
 /* Thread information */
 
-static fdtype stack_depth_prim()
+static lispval stack_depth_prim()
 {
   ssize_t depth = u8_stack_depth();
   return FD_INT2DTYPE(depth);
 }
-static fdtype stack_limit_prim()
+static lispval stack_limit_prim()
 {
   ssize_t limit = fd_stack_limit;
   return FD_INT2DTYPE(limit);
 }
-static fdtype set_stack_limit_prim(fdtype arg)
+static lispval set_stack_limit_prim(lispval arg)
 {
   if (FD_FLONUMP(arg)) {
     ssize_t result = fd_stack_resize(FD_FLONUM(arg));

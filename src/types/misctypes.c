@@ -15,38 +15,38 @@
 
 /* UUID Types */
 
-static fdtype uuid_symbol;
+static lispval uuid_symbol;
 
-FD_EXPORT fdtype fd_cons_uuid
+FD_EXPORT lispval fd_cons_uuid
    (struct FD_UUID *ptr,
     struct U8_XTIME *xtime,long long nodeid,short clockid)
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_UUID);
   FD_INIT_CONS(ptr,fd_uuid_type);
   u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->fd_uuid16));
-  return FDTYPE_CONS(ptr);
+  return LISP_CONS(ptr);
 }
 
-FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr)
+FD_EXPORT lispval fd_fresh_uuid(struct FD_UUID *ptr)
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_UUID);
   FD_INIT_CONS(ptr,fd_uuid_type);
   u8_getuuid((u8_uuid)&(ptr->fd_uuid16));
-  return FDTYPE_CONS(ptr);
+  return LISP_CONS(ptr);
 }
 
-static fdtype copy_uuid(fdtype x,int deep)
+static lispval copy_uuid(lispval x,int deep)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   struct FD_UUID *nuuid = u8_alloc(struct FD_UUID);
   FD_INIT_CONS(nuuid,fd_uuid_type);
   memcpy(nuuid->fd_uuid16,uuid->fd_uuid16,16);
-  return FDTYPE_CONS(nuuid);
+  return LISP_CONS(nuuid);
 }
 
 #define MU U8_MAYBE_UNUSED
 
-static int uuid_dtype(struct FD_OUTBUF *out,fdtype x)
+static int uuid_dtype(struct FD_OUTBUF *out,lispval x)
 {
   int size = 0;
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
@@ -57,19 +57,19 @@ static int uuid_dtype(struct FD_OUTBUF *out,fdtype x)
   return size;
 }
 
-static int hash_uuid(fdtype x,unsigned int (*fn)(fdtype))
+static int hash_uuid(lispval x,unsigned int (*fn)(lispval))
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   return fd_hash_bytes(uuid->fd_uuid16,16);
 }
 
-static fdtype uuid_dump(fdtype x,fd_compound_typeinfo MU e)
+static lispval uuid_dump(lispval x,fd_compound_typeinfo MU e)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   return fd_make_packet(NULL,16,uuid->fd_uuid16);
 }
 
-static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
+static lispval uuid_restore(lispval MU tag,lispval x,fd_compound_typeinfo MU e)
 {
   if (PACKETP(x)) {
     struct FD_STRING *p = fd_consptr(struct FD_STRING *,x,fd_packet_type);
@@ -77,7 +77,7 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
       memcpy(uuid->fd_uuid16,p->fd_bytes,16);
-      return FDTYPE_CONS(uuid);}
+      return LISP_CONS(uuid);}
     else return fd_err("Bad UUID packet","uuid_restore",
                        "UUID packet has wrong length",
                        x);}
@@ -89,14 +89,14 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
 
 /* Timestamps */
 
-static fdtype timestamp_symbol, timestamp0_symbol;
+static lispval timestamp_symbol, timestamp0_symbol;
 
 FD_EXPORT
 /* fd_make_timestamp:
     Arguments: a pointer to a U8_XTIME struct and a memory pool
     Returns: a dtype pointer to a timestamp
  */
-fdtype fd_make_timestamp(struct U8_XTIME *tm)
+lispval fd_make_timestamp(struct U8_XTIME *tm)
 {
   struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
   memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
@@ -104,7 +104,7 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm)
   if (tm)
     memcpy(&(tstamp->ts_u8xtime),tm,sizeof(struct U8_XTIME));
   else u8_now(&(tstamp->ts_u8xtime));
-  return FDTYPE_CONS(tstamp);
+  return LISP_CONS(tstamp);
 }
 
 FD_EXPORT
@@ -112,7 +112,7 @@ FD_EXPORT
     Arguments: a pointer to a U8_XTIME struct and a memory pool
     Returns: a dtype pointer to a timestamp
  */
-fdtype fd_time2timestamp(time_t moment)
+lispval fd_time2timestamp(time_t moment)
 {
   struct U8_XTIME xt;
   u8_init_xtime(&xt,moment,u8_second,0,0,0);
@@ -121,7 +121,7 @@ fdtype fd_time2timestamp(time_t moment)
 
 static int reversible_time = 1;
 
-static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
+static int unparse_timestamp(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_TIMESTAMP *tm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
@@ -139,7 +139,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
     return 1;}
 }
 
-static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
+static lispval timestamp_parsefn(int n,lispval *args,fd_compound_typeinfo e)
 {
   struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
   u8_string timestring;
@@ -151,10 +151,10 @@ static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
     timestring = CSTRING(args[2]);
   else return fd_err(fd_CantParseRecord,"TIMESTAMP",NULL,VOID);
   u8_iso8601_to_xtime(timestring,&(tm->ts_u8xtime));
-  return FDTYPE_CONS(tm);
+  return LISP_CONS(tm);
 }
 
-static fdtype copy_timestamp(fdtype x,int deep)
+static lispval copy_timestamp(lispval x,int deep)
 {
   struct FD_TIMESTAMP *tm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
@@ -162,10 +162,10 @@ static fdtype copy_timestamp(fdtype x,int deep)
   memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(newtm,fd_timestamp_type);
   memcpy(&(newtm->ts_u8xtime),&(tm->ts_u8xtime),sizeof(struct U8_XTIME));
-  return FDTYPE_CONS(newtm);
+  return LISP_CONS(newtm);
 }
 
-static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
+static int dtype_timestamp(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_TIMESTAMP *xtm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
@@ -173,10 +173,10 @@ static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
   fd_write_byte(out,dt_compound);
   size = size+fd_write_dtype(out,timestamp_symbol);
   if ((xtm->ts_u8xtime.u8_prec == u8_second) && (xtm->ts_u8xtime.u8_tzoff==0)) {
-    fdtype xval = FD_INT(xtm->ts_u8xtime.u8_tick);
+    lispval xval = FD_INT(xtm->ts_u8xtime.u8_tick);
     size = size+fd_write_dtype(out,xval);}
   else {
-    fdtype vec = fd_init_vector(NULL,4,NULL);
+    lispval vec = fd_init_vector(NULL,4,NULL);
     int tzoff = xtm->ts_u8xtime.u8_tzoff;
     FD_VECTOR_SET(vec,0,FD_INT(xtm->ts_u8xtime.u8_tick));
     FD_VECTOR_SET(vec,1,FD_INT(xtm->ts_u8xtime.u8_nsecs));
@@ -187,21 +187,21 @@ static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
   return size;
 }
 
-static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
+static lispval timestamp_restore(lispval tag,lispval x,fd_compound_typeinfo e)
 {
   if (FIXNUMP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_init_xtime(&(tm->ts_u8xtime),FIX2INT(x),u8_second,0,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     time_t tval = (time_t)(fd_bigint_to_long((fd_bigint)x));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_init_xtime(&(tm->ts_u8xtime),tval,u8_second,0,0,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else if (VECTORP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     int secs = fd_getint(VEC_REF(x,0));
@@ -211,7 +211,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
     u8_init_xtime(&(tm->ts_u8xtime),secs,iprec,nsecs,tzoff,0);
-    return FDTYPE_CONS(tm);}
+    return LISP_CONS(tm);}
   else return fd_err(fd_DTypeError,"bad timestamp compound",NULL,x);
 }
 
@@ -222,7 +222,7 @@ fd_exception fd_RegexError=_("Regular expression error");
 
 static int default_regex_flags = REG_EXTENDED|REG_NEWLINE;
 
-FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
+FD_EXPORT lispval fd_make_regex(u8_string src,int flags)
 {
   struct FD_REGEX *ptr = u8_alloc(struct FD_REGEX); int retval;
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
@@ -238,15 +238,15 @@ FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
   else {
     ptr->fd_rxflags = flags; ptr->fd_rxsrc = src;
     u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
-    return FDTYPE_CONS(ptr);}
+    return LISP_CONS(ptr);}
 }
 
 
 /* Raw pointers */
 
-FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
+FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
                                  fd_raw_recyclefn recycler,
-                                 fdtype typespec,
+                                 lispval typespec,
                                  u8_string idstring)
 {
   struct FD_RAWPTR *rawptr = u8_alloc(struct FD_RAWPTR);
@@ -260,7 +260,7 @@ FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
     rawptr->typestring = CSTRING(typespec);
   else rawptr->typestring = NULL;
   rawptr->idstring = idstring;
-  return (fdtype) rawptr;
+  return (lispval) rawptr;
 }
 
 

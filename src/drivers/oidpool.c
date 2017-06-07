@@ -170,15 +170,15 @@ static size_t get_maxpos(fd_oidpool p)
 
 /* Making and opening oidpools */
 
-static int init_schemas(fd_oidpool,fdtype);
+static int init_schemas(fd_oidpool,lispval);
 
 static fd_pool open_oidpool(u8_string fname,
                             fd_storage_flags open_flags,
-                            fdtype opts)
+                            lispval opts)
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, oidpool_format;
-  fd_off_t label_loc, schemas_loc; fdtype label;
+  fd_off_t label_loc, schemas_loc; lispval label;
   struct FD_OIDPOOL *pool = u8_alloc(struct FD_OIDPOOL);
   int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
@@ -248,7 +248,7 @@ static fd_pool open_oidpool(u8_string fname,
     if (fd_setpos(stream,label_loc)>0) {
       label = fd_read_dtype(instream);
       if (STRINGP(label)) pool->pool_label = u8_strdup(CSTRING(label));
-      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
+      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_oidpool",
@@ -258,7 +258,7 @@ static fd_pool open_oidpool(u8_string fname,
       u8_free(rname); u8_free(pool);
       return NULL;}}
   if (schemas_loc) {
-    fdtype schemas;
+    lispval schemas;
     fd_setpos(stream,schemas_loc);
     schemas = fd_read_dtype(instream);
     init_schemas(pool,schemas);
@@ -286,11 +286,11 @@ static void update_modtime(struct FD_OIDPOOL *fp)
 
 /* Maintaing the schema table */
 
-static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec);
+static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec);
 static int compare_schema_vals(const void *p1,const void *p2);
-static void sort_schema(fdtype *v,int n);
+static void sort_schema(lispval *v,int n);
 
-static int init_schemas(fd_oidpool op,fdtype schema_vec)
+static int init_schemas(fd_oidpool op,lispval schema_vec)
 {
   if (!(VECTORP(schema_vec))) {
     op->oidpool_n_schemas = 0;
@@ -303,7 +303,7 @@ static int init_schemas(fd_oidpool op,fdtype schema_vec)
     struct FD_SCHEMA_ENTRY *schemas = u8_alloc_n(n,FD_SCHEMA_ENTRY);
     struct FD_SCHEMA_LOOKUP *schbyval = u8_alloc_n(n,FD_SCHEMA_LOOKUP);
     while (i<n) {
-      fdtype slotids = VEC_REF(schema_vec,i);
+      lispval slotids = VEC_REF(schema_vec,i);
       int n_slotids;
       if (VECTORP(slotids)) n_slotids = VEC_LEN(slotids);
       else {
@@ -322,22 +322,22 @@ static int init_schemas(fd_oidpool op,fdtype schema_vec)
     return n;}
 }
 
-static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
+static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec)
 {
   int i = 0, len = VEC_LEN(vec);
-  fdtype *slotids = u8_alloc_n((len+1),fdtype);
+  lispval *slotids = u8_alloc_n((len+1),lispval);
   unsigned int *mapin = u8_alloc_n(len,unsigned int);
   unsigned int *mapout = u8_alloc_n(len,unsigned int);
   e->fd_schema_id = pos; e->fd_nslots = len; e->normal = fd_incref(vec);
   e->fd_slotids = slotids; e->fd_slotmapin = mapin; e->fd_slotmapout = mapout;
   while (i<len) {
-    fdtype val = VEC_REF(vec,i);
+    lispval val = VEC_REF(vec,i);
     slotids[i]=fd_incref(val); i++;}
   sort_schema(slotids,len);
   /* This will make it fast to get the pos from the schema pointer */
   slotids[len]=FD_INT(pos);
   i = 0; while (i<len) {
-    fdtype val = VEC_REF(vec,i);
+    lispval val = VEC_REF(vec,i);
     int j = 0; while (j<len)
       if (slotids[j]==val) break;
       else j++;
@@ -354,7 +354,7 @@ static int compare_schema_vals(const void *p1,const void *p2)
   if (se1->fd_nslots<se2->fd_nslots) return -1;
   else if (se1->fd_nslots>se2->fd_nslots) return 1;
   else {
-    fdtype *slotids1 = se1->fd_slotids, *slotids2 = se2->fd_slotids;
+    lispval *slotids1 = se1->fd_slotids, *slotids2 = se2->fd_slotids;
     int i = 0, n = se1->fd_nslots; while (i<n) {
       if (slotids1[i]<slotids2[i]) return -1;
       else if (slotids1[i]<slotids2[i]) return 1;
@@ -362,12 +362,12 @@ static int compare_schema_vals(const void *p1,const void *p2)
     return 0;}
 }
 
-static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,fdtype *slotids,int n)
+static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,lispval *slotids,int n)
 {
   if (n<e->fd_nslots) return -1;
   else if (n>e->fd_nslots) return 1;
   else {
-    fdtype *oslotids = e->fd_slotids;
+    lispval *oslotids = e->fd_slotids;
     int i = 0; while (i<n)
       if (slotids[i]<oslotids[i]) return -1;
       else if (slotids[i]>oslotids[i]) return 1;
@@ -375,7 +375,7 @@ static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,fdtype *slotids,int n)
     return 0;}
 }
 
-static int find_schema_byval(fd_oidpool op,fdtype *slotids,int n)
+static int find_schema_byval(fd_oidpool op,lispval *slotids,int n)
 {
   int size = op->oidpool_n_schemas, cmp;
   struct FD_SCHEMA_LOOKUP *table = op->oidpool_schbyval;
@@ -396,15 +396,15 @@ static int find_schema_byval(fd_oidpool op,fdtype *slotids,int n)
   else return -1;
 }
 
-FD_FASTOP void lispv_swap(fdtype *a,fdtype *b)
+FD_FASTOP void lispv_swap(lispval *a,lispval *b)
 {
-  fdtype t;
+  lispval t;
   t = *a;
   *a = *b;
   *b = t;
 }
 
-static void sort_schema(fdtype *v,int n)
+static void sort_schema(lispval *v,int n)
 {
   unsigned i, j, ln, rn;
   while (n > 1) {
@@ -422,7 +422,7 @@ static void sort_schema(fdtype *v,int n)
     else {fd_sort_schema(rn,v + j); n = ln;}}
 }
 
-U8_MAYBE_UNUSED static int schema_sortedp(fdtype *v,int n)
+U8_MAYBE_UNUSED static int schema_sortedp(lispval *v,int n)
 {
   int i = 0; while (i<n-1)
     if (v[i]<v[i+1]) i++;
@@ -517,7 +517,7 @@ static int oidpool_load(fd_pool p)
     return load;}
 }
 
-static fdtype read_oid_value(fd_oidpool op,
+static lispval read_oid_value(fd_oidpool op,
                              fd_inbuf in,
                              const u8_string cxt)
 {
@@ -531,7 +531,7 @@ static fdtype read_oid_value(fd_oidpool op,
     struct FD_SCHEMA_ENTRY *se = &(op->oidpool_schemas[zip_code-1]);
     int n_vals = fd_read_zint(in), n_slotids = se->fd_nslots;
     if (PRED_TRUE(n_vals == n_slotids)) {
-      fdtype *values = u8_alloc_n(n_vals,fdtype);
+      lispval *values = u8_alloc_n(n_vals,lispval);
       unsigned int i = 0, *mapin = se->fd_slotmapin;
       /* We reorder the values coming in to agree with the
          schema sorting done in memory for fast lookup. That
@@ -543,7 +543,7 @@ static fdtype read_oid_value(fd_oidpool op,
     else return fd_err(fd_SchemaInconsistency,cxt,op->poolid,VOID);}
 }
 
-static fdtype read_oid_value_at(fd_oidpool op,
+static lispval read_oid_value_at(fd_oidpool op,
                                 FD_CHUNK_REF ref,
                                 const u8_string cxt)
 {
@@ -559,7 +559,7 @@ static fdtype read_oid_value_at(fd_oidpool op,
       if (free_buf) {
         FD_INBUF in;
         FD_INIT_BYTE_INPUT(&in,buf,ref.size);
-        fdtype result = read_oid_value(op,&in,cxt);
+        lispval result = read_oid_value(op,&in,cxt);
         u8_free(buf);
         return result;}
       else {
@@ -585,7 +585,7 @@ static fdtype read_oid_value_at(fd_oidpool op,
         if (ubuf!=_ubuf) u8_free(ubuf);
         return FD_ERROR;}
       else if ((free_buf) || (ubuf!=_ubuf)) {
-        FD_INBUF in; fdtype result;
+        FD_INBUF in; lispval result;
         FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         result = read_oid_value(op,&in,cxt);
         if (free_buf) u8_free(buf);
@@ -597,7 +597,7 @@ static fdtype read_oid_value_at(fd_oidpool op,
         return read_oid_value(op,&in,cxt);}}}
 }
 
-static fdtype oidpool_fetch(fd_pool p,fdtype oid)
+static lispval oidpool_fetch(fd_pool p,lispval oid)
 {
   fd_oidpool op = (fd_oidpool)p;
   FD_OID addr = FD_OID_ADDR(oid);
@@ -613,7 +613,7 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
     else if (ref.off==0)
       return EMPTY;
     else {
-      fdtype value;
+      lispval value;
       fd_lock_stream(&(op->pool_stream));
       value = read_oid_value_at(op,ref,"oidpool_fetch");
       fd_unlock_stream(&(op->pool_stream));
@@ -629,7 +629,7 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
         fd_unlock_stream(&(op->pool_stream));
         return EMPTY;}
       else {
-        fdtype value;
+        lispval value;
         value = read_oid_value_at(op,ref,"oidpool_fetch");
         fd_unlock_stream(&(op->pool_stream));
         return value;}}}
@@ -643,10 +643,10 @@ static int compare_offsets(const void *x1,const void *x2)
   else return 0;
 }
 
-static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   fd_oidpool op = (fd_oidpool)p; FD_OID base = p->pool_base;
-  fdtype *values = u8_alloc_n(n,fdtype);
+  lispval *values = u8_alloc_n(n,lispval);
   if (op->oidpool_offdata == NULL) {
     /* Don't bother being clever if you don't even have an offsets
        table.  This could be fixed later for small memory implementations. */
@@ -660,7 +660,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     fd_lock_stream(&(op->pool_stream));
     int i = 0;
     while (i<n) {
-      fdtype oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
+      lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
       schedule[i].location = get_chunk_ref(offdata,op->oidpool_offtype,off);
@@ -674,7 +674,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     qsort(schedule,n,sizeof(struct OIDPOOL_FETCH_SCHEDULE),
           compare_offsets);
     i = 0; while (i<n) {
-      fdtype value = read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");
+      lispval value = read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");
       if (FD_ABORTP(value)) {
         int j = 0; while (j<i) { fd_decref(values[j]); j++;}
         u8_free(schedule); u8_free(values);
@@ -692,25 +692,25 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
 }
 
-static int get_schema_id(fd_oidpool op,fdtype value)
+static int get_schema_id(fd_oidpool op,lispval value)
 {
   if ( (SCHEMAPP(value)) && (FD_SCHEMAP_SORTEDP(value)) ) {
     struct FD_SCHEMAP *sm = (fd_schemap)value;
-    fdtype *slotids = sm->table_schema, size = sm->schema_length;
+    lispval *slotids = sm->table_schema, size = sm->schema_length;
     if (sm->schemap_tagged) {
-      fdtype pos = slotids[size];
+      lispval pos = slotids[size];
       int intpos = fd_getint(pos);
       if ((intpos<op->oidpool_n_schemas) &&
           (op->oidpool_schemas[intpos].fd_slotids == slotids))
         return intpos;}
     return find_schema_byval(op,slotids,size);}
   else if (SLOTMAPP(value)) {
-    fdtype _tmp_slotids[32], *tmp_slotids;
+    lispval _tmp_slotids[32], *tmp_slotids;
     struct FD_SLOTMAP *sm = (fd_slotmap)value;
     int i = 0, size = FD_XSLOTMAP_NUSED(sm);
     if (size<32)
       tmp_slotids=_tmp_slotids;
-    else tmp_slotids = u8_alloc_n(size,fdtype);
+    else tmp_slotids = u8_alloc_n(size,lispval);
     while (i<size) {
       tmp_slotids[i]=sm->sm_keyvals[i].kv_key; i++;}
     /* assert(schema_sortedp(tmp_slotids,size)); */
@@ -723,7 +723,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
   else return -1;
 }
 
-static int oidpool_write_value(fdtype value,fd_stream stream,
+static int oidpool_write_value(lispval value,fd_stream stream,
                                fd_oidpool p,struct FD_OUTBUF *tmpout,
                                unsigned char **zbuf,int *zbuf_size)
 {
@@ -746,7 +746,7 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
       fd_write_zint(tmpout,schema_id+1);
       if (SCHEMAPP(value)) {
         struct FD_SCHEMAP *sm = (fd_schemap)value;
-        fdtype *values = sm->schema_values;
+        lispval *values = sm->schema_values;
         int i = 0, size = sm->schema_length;
         fd_write_zint(tmpout,size);
         while (i<size) {
@@ -789,7 +789,7 @@ static ssize_t write_offdata
 (struct FD_OIDPOOL *bp, fd_stream stream,
  int n, struct OIDPOOL_SAVEINFO *saveinfo);
 
-static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   fd_oidpool op = (fd_oidpool)p;
   struct FD_STREAM *stream = &(op->pool_stream);
@@ -814,7 +814,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
   while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
-    fdtype value = values[i];
+    lispval value = values[i];
     int n_bytes = oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
       u8_free(zbuf);
@@ -1208,9 +1208,9 @@ static ssize_t direct_write_offdata(struct FD_OIDPOOL *op,fd_stream stream,
 
 /* Allocating OIDs */
 
-static fdtype oidpool_alloc(fd_pool p,int n)
+static lispval oidpool_alloc(fd_pool p,int n)
 {
-  fdtype results = EMPTY; int i = 0;
+  lispval results = EMPTY; int i = 0;
   fd_oidpool op = (fd_oidpool)p;
   FD_OID base = op->pool_base;
   unsigned int start;
@@ -1223,7 +1223,7 @@ static fdtype oidpool_alloc(fd_pool p,int n)
   fd_unlock_pool(p);
   while (i < n) {
     FD_OID new_addr = FD_OID_PLUS(base,start+i);
-    fdtype new_oid = fd_make_oid(new_addr);
+    lispval new_oid = fd_make_oid(new_addr);
     CHOICE_ADD(results,new_oid);
     i++;}
   return fd_simplify_choice(results);
@@ -1231,14 +1231,14 @@ static fdtype oidpool_alloc(fd_pool p,int n)
 
 /* Locking */
 
-static int oidpool_lock(fd_pool p,fdtype oids)
+static int oidpool_lock(fd_pool p,lispval oids)
 {
   struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
   int retval = lock_oidpool_file(fp,1);
   return retval;
 }
 
-static int oidpool_unlock(fd_pool p,fdtype oids)
+static int oidpool_unlock(fd_pool p,lispval oids)
 {
   struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
   if (fp->pool_changes.table_n_keys == 0)
@@ -1377,7 +1377,7 @@ static void reload_offdata(fd_oidpool op,int lock)
     if (*oscan == *nscan) {oscan++; nscan++;}
     else {
       FD_OID addr = FD_OID_PLUS(op->pool_base,(nscan-offsets));
-      fdtype changed_oid = fd_make_oid(addr);
+      lispval changed_oid = fd_make_oid(addr);
       fd_hashtable_op(&(op->pool_cache),fd_table_replace,changed_oid,VOID);
       oscan++; nscan++;}
   u8_free(op->oidpool_offdata);
@@ -1427,11 +1427,11 @@ static void oidpool_setbuf(fd_pool p,ssize_t bufsize)
 
 /* Creating oidpool */
 
-static unsigned int get_oidpool_format(fd_storage_flags sflags,fdtype opts)
+static unsigned int get_oidpool_format(fd_storage_flags sflags,lispval opts)
 {
   unsigned int flags = 0;
-  fdtype offtype = fd_intern("OFFTYPE");
-  fdtype compression = fd_intern("COMPRESSION");
+  lispval offtype = fd_intern("OFFTYPE");
+  lispval compression = fd_intern("COMPRESSION");
   if ( fd_testopt(opts,offtype,fd_intern("B64"))  ||
        fd_testopt(opts,offtype,FD_INT(64)))
     flags |= FD_B64;
@@ -1471,7 +1471,7 @@ static unsigned int get_oidpool_format(fd_storage_flags sflags,fdtype opts)
 static int make_oidpool
   (u8_string fname,u8_string label,
    FD_OID base,unsigned int capacity,unsigned int load,
-   unsigned int oidpool_format,fdtype schemas_init,
+   unsigned int oidpool_format,lispval schemas_init,
    time_t ctime,time_t mtime,int cycles)
 {
   time_t now = time(NULL);
@@ -1587,13 +1587,13 @@ static
 fd_pool oidpool_create
 (u8_string spec,void *type_data,
  fd_storage_flags storage_flags,
- fdtype opts)
+ lispval opts)
 {
-  fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
-  fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
-  fdtype load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
-  fdtype label = fd_getopt(opts,FDSYM_LABEL,VOID);
-  fdtype schemas = fd_getopt(opts,fd_intern("SCHEMAS"),VOID);
+  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
+  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
+  lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
+  lispval label = fd_getopt(opts,FDSYM_LABEL,VOID);
+  lispval schemas = fd_getopt(opts,fd_intern("SCHEMAS"),VOID);
   unsigned int capacity, load;
   int rv = 0;
   if (u8_file_existsp(spec)) {
@@ -1640,7 +1640,7 @@ fd_pool oidpool_create
 
 /* OIDPOOL ops */
 
-static fdtype oidpool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
+static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
 {
   struct FD_OIDPOOL *fp = (struct FD_OIDPOOL *)p;
   if ((n>0)&&(args == NULL))
@@ -1651,7 +1651,7 @@ static fdtype oidpool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
     if (n==0)
       return FD_INT(fp->pool_cache_level);
     else {
-      fdtype arg = (args)?(args[0]):(VOID);
+      lispval arg = (args)?(args[0]):(VOID);
       if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
           (FIX2INT(arg)<0x100)) {
         oidpool_setcache(p,FIX2INT(arg));

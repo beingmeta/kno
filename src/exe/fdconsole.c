@@ -57,7 +57,7 @@ static History *edithistory;
 
 #define EVAL_PROMPT "#|fdconsole>|# "
 static u8_string eval_prompt = EVAL_PROMPT;
-static int set_prompt(fdtype ignored,fdtype v,void *vptr)
+static int set_prompt(lispval ignored,lispval v,void *vptr)
 {
   u8_string *ptr = vptr, cur = *ptr;
   if (STRINGP(v)) {
@@ -151,7 +151,7 @@ static void close_consoles()
 }
 
 /* Returns 1 if x is worth adding to the history. */
-static int historicp(fdtype x)
+static int historicp(lispval x)
 {
   if ((STRINGP(x)) && (FD_STRING_LENGTH(x)<32)) return 0;
   else if ((SYMBOLP(x)) || (FD_CHARACTERP(x))) return 0;
@@ -172,7 +172,7 @@ static double run_start = -1.0;
 
 static int console_width = 80, quiet_console = 0, show_elts = 5;
 
-static void output_element(u8_output out,fdtype elt)
+static void output_element(u8_output out,lispval elt)
 {
   if ((historicp(elt))||(STRINGP(elt))) {
     U8_STATIC_OUTPUT(tmp,1000);
@@ -190,7 +190,7 @@ static void output_element(u8_output out,fdtype elt)
   else u8_printf(out,"\n  %Q",elt);
 }
 
-static int list_length(fdtype scan)
+static int list_length(lispval scan)
 {
   int len = 0;
   while (1)
@@ -202,11 +202,11 @@ static int list_length(fdtype scan)
 
 static char *letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static int random_symbol_tries = 7;
-static fdtype random_symbol()
+static lispval random_symbol()
 {
   int tries = 0;
   while (tries<random_symbol_tries) {
-    char buf[4]; fdtype sym;
+    char buf[4]; lispval sym;
     int l1 = (random())%26, l2 = (random())%26, l3 = (random())%26;
     buf[0]=letters[l1]; buf[1]=letters[l2]; buf[2]=letters[l3]; buf[3]='\0';
     sym = fd_probe_symbol(buf,3);
@@ -216,22 +216,22 @@ static fdtype random_symbol()
   return VOID;
 }
 
-static fdtype bind_random_symbol(fdtype result,fd_lexenv env)
+static lispval bind_random_symbol(lispval result,fd_lexenv env)
 {
-  fdtype symbol = random_symbol();
+  lispval symbol = random_symbol();
   if (!(VOIDP(symbol))) {
     fd_bind_value(symbol,result,env);
     return symbol;}
   else return VOID;
 }
 
-static int output_result(u8_output out,fdtype result,
+static int output_result(u8_output out,lispval result,
                          int histref,int showall)
 {
   if (VOIDP(result)) 
     return 0;
   else if ((showall)&&(OIDP(result))) {
-    fdtype v = fd_oid_value(result);
+    lispval v = fd_oid_value(result);
     if (FD_TABLEP(v)) {
       U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
       u8_printf(&out,"%q:\n",result);
@@ -274,12 +274,12 @@ static int output_result(u8_output out,fdtype result,
           count++;}
         else {FD_STOP_DO_CHOICES; break;}}}
     else if (VECTORP(result)) {
-      fdtype *elts = VEC_DATA(result);
+      lispval *elts = VEC_DATA(result);
       while (count<max_elts) {
         output_element(out,elts[count]);
         count++;}}
     else if (PAIRP(result)) {
-      fdtype scan = result;
+      lispval scan = result;
       while (count<max_elts)
         if (PAIRP(scan)) {
           output_element(out,FD_CAR(scan));
@@ -340,14 +340,14 @@ static int output_result(u8_output out,fdtype result,
 
 */
 
-static fdtype stream_read(u8_input in,fd_lexenv env)
+static lispval stream_read(u8_input in,fd_lexenv env)
 {
-  fdtype expr; int c;
+  lispval expr; int c;
   u8_puts(outconsole,eval_prompt); u8_flush(outconsole);
   c = skip_whitespace(in);
   if (c<0) return FD_EOF;
   else if (c=='=') {
-    fdtype sym = fd_parser(in);
+    lispval sym = fd_parser(in);
     if (SYMBOLP(sym)) {
       swallow_whitespace(in);
       return fd_make_nrail(2,FDSYM_EQUALS,sym);}
@@ -368,11 +368,11 @@ static fdtype stream_read(u8_input in,fd_lexenv env)
     return expr;}
 }
 
-static fdtype console_read(u8_input in,fd_lexenv env)
+static lispval console_read(u8_input in,fd_lexenv env)
 {
 #if USING_EDITLINE
   if ((use_editline)&&(in == inconsole)) {
-    struct U8_INPUT scan; fdtype expr; int n_bytes;
+    struct U8_INPUT scan; lispval expr; int n_bytes;
     const char *line = el_gets(editconsole,&n_bytes);
     if (!(line)) return FD_EOF;
     else while (isspace(*line)) line++;
@@ -412,7 +412,7 @@ static void exit_fdconsole()
 #endif
 }
 
-static fdtype that_symbol, histref_symbol;
+static lispval that_symbol, histref_symbol;
 
 #if HAVE_CHMOD
 #define changemode(f,m) chmod(f,m)
@@ -454,7 +454,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
            (u8_has_suffix(dumpfile,".lispdata",1))) {
     u8_output outfile = (u8_output)
       u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
-    fdtype backtrace = fd_exception_backtrace(ex);
+    lispval backtrace = fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
@@ -488,7 +488,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 #endif
   else if (u8_has_suffix(dumpfile,".dtype",1)) {
     struct FD_STREAM *out; int bytes = 0;
-    fdtype backtrace = fd_exception_backtrace(ex);
+    lispval backtrace = fd_exception_backtrace(ex);
     u8_string temp_name = u8_mkstring("%s.part",abspath);
     out = fd_open_file(temp_name,FD_FILE_CREATE);
     if (out == NULL) {
@@ -510,7 +510,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
   else {
     u8_output outfile = (u8_output)u8_open_output_file
       (abspath,NULL,O_RDWR|O_CREAT,0600);
-    fdtype backtrace = fd_exception_backtrace(ex);
+    lispval backtrace = fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
@@ -518,7 +518,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
   u8_free(abspath);
 }
 
-static fdtype backtrace_prim(fdtype arg)
+static lispval backtrace_prim(lispval arg)
 {
   if (!(last_exception)) {
     u8_log(LOG_WARN,"backtrace_prim","No outstanding exceptions!");
@@ -536,24 +536,24 @@ static fdtype backtrace_prim(fdtype arg)
 
 /* Module and loading config */
 
-static fdtype module_list = NIL;
+static lispval module_list = NIL;
 
 static u8_string get_next(u8_string pt,u8_string seps);
 
-static fdtype parse_module_spec(u8_string s)
+static lispval parse_module_spec(u8_string s)
 {
   if (*s) {
     u8_string brk = get_next(s," ,;");
     if (brk) {
       u8_string elt = u8_slice(s,brk);
-      fdtype parsed = fd_parse(elt);
+      lispval parsed = fd_parse(elt);
       if (FD_ABORTP(parsed)) {
         u8_free(elt);
         return parsed;}
       else return fd_init_pair(NULL,parsed,
                                parse_module_spec(brk+1));}
     else {
-      fdtype parsed = fd_parse(s);
+      lispval parsed = fd_parse(s);
       if (FD_ABORTP(parsed)) return parsed;
       else return fd_init_pair(NULL,parsed,NIL);}}
   else return NIL;
@@ -570,14 +570,14 @@ static u8_string get_next(u8_string pt,u8_string seps)
   return closest;
 }
 
-static int module_config_set(fdtype var,fdtype vals,void *d)
+static int module_config_set(lispval var,lispval vals,void *d)
 {
   int loads = 0; DO_CHOICES(val,vals) {
-    fdtype modname = ((SYMBOLP(val))?(val):
+    lispval modname = ((SYMBOLP(val))?(val):
                     (STRINGP(val))?
                     (parse_module_spec(CSTRING(val))):
                     (VOID));
-    fdtype module = VOID, used;
+    lispval module = VOID, used;
     if (VOIDP(modname)) {
       fd_seterr(fd_TypeError,"module_config_set","module",val);
       return -1;}
@@ -588,7 +588,7 @@ static int module_config_set(fdtype var,fdtype vals,void *d)
           u8_log(LOG_WARN,fd_TypeError,"module_config_set",
                  "Not a valid module name: %q",elt);}
         else {
-          fdtype each_module = fd_find_module(elt,0,0);
+          lispval each_module = fd_find_module(elt,0,0);
           if (VOIDP(each_module)) {
             u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
                    "No module found for %q",modname);}
@@ -625,17 +625,17 @@ static int module_config_set(fdtype var,fdtype vals,void *d)
   return loads;
 }
 
-static fdtype module_config_get(fdtype var,void *d)
+static lispval module_config_get(lispval var,void *d)
 {
   return fd_incref(module_list);
 }
 
-static fdtype loadfile_list = NIL;
+static lispval loadfile_list = NIL;
 
-static int loadfile_config_set(fdtype var,fdtype vals,void *d)
+static int loadfile_config_set(lispval var,lispval vals,void *d)
 {
   int loads = 0; DO_CHOICES(val,vals) {
-    u8_string loadpath; fdtype loadval;
+    u8_string loadpath; lispval loadval;
     if (!(STRINGP(val))) {
       fd_seterr(fd_TypeError,"loadfile_config_set","filename",val);
       return -1;}
@@ -653,7 +653,7 @@ static int loadfile_config_set(fdtype var,fdtype vals,void *d)
   return loads;
 }
 
-static fdtype loadfile_config_get(fdtype var,void *d)
+static lispval loadfile_config_get(lispval var,void *d)
 {
   return fd_incref(loadfile_list);
 }
@@ -672,7 +672,7 @@ static void dotloader(u8_string file,fd_lexenv env)
       elapsed = u8_elapsed_time()-started;
       if (retval<0) err = 1;}
     else {
-      fdtype val = fd_load_source(abspath,env,NULL);
+      lispval val = fd_load_source(abspath,env,NULL);
       elapsed = u8_elapsed_time()-started;
       if (FD_ABORTP(val)) err = 1;
       fd_decref(val);}
@@ -692,7 +692,7 @@ int main(int argc,char **argv)
   int i = 1;
   unsigned int arg_mask = 0; /* Bit map of args to skip */
   time_t boot_time = time(NULL);
-  fdtype expr = VOID, result = VOID, lastval = VOID;
+  lispval expr = VOID, result = VOID, lastval = VOID;
   u8_encoding enc = u8_get_default_encoding();
   u8_input in = (u8_input)u8_open_xinput(0,enc);
   u8_output out = (u8_output)u8_open_xoutput(1,enc);
@@ -869,7 +869,7 @@ int main(int argc,char **argv)
     fd_use_index(source_file,0,VOID);
     eval_server = newstream;}
   else if (u8_file_existsp(source_file)) {
-    fdtype sourceval = fdstring(u8_realpath(source_file,NULL));
+    lispval sourceval = fdstring(u8_realpath(source_file,NULL));
     fd_set_config("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   else {}
@@ -877,11 +877,11 @@ int main(int argc,char **argv)
   /* This is argv[0], the name of the executable by which we
      entered fdconsole. */
   {
-    fdtype interpval = fd_lispstring(u8_fromlibc(argv[0]));
+    lispval interpval = fd_lispstring(u8_fromlibc(argv[0]));
     fd_set_config("INTERPRETER",interpval); fd_decref(interpval);}
 
-  fd_idefn((fdtype)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
-  fd_defalias((fdtype)env,"%","BACKTRACE");
+  fd_idefn((lispval)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
+  fd_defalias((lispval)env,"%","BACKTRACE");
 
   fd_set_config("BOOTED",fd_time2timestamp(boot_time));
   run_start = u8_elapsed_time();
@@ -933,11 +933,11 @@ int main(int argc,char **argv)
     expr = console_read(in,env);
     if (FD_TYPEP(expr,fd_code_type)) {
       /* Handle commands */
-      fdtype head = FD_VECTOR_REF(expr,0);
+      lispval head = FD_VECTOR_REF(expr,0);
       if ((head == FDSYM_EQUALS)&&
           (VEC_LEN(expr)==2)&&
           (SYMBOLP(VEC_REF(expr,1)))) {
-        fdtype sym = VEC_REF(expr,1);
+        lispval sym = VEC_REF(expr,1);
         fd_bind_value(sym,lastval,env);
         u8_printf(out,_(";; Bound %q\n"),sym);}
       else u8_printf(out,_(";; Bad command result %q\n"),expr);
@@ -954,7 +954,7 @@ int main(int argc,char **argv)
         is_histref = 1;
       histref = FIX2INT(FD_CAR(FD_CDR(expr)));}
     else if (OIDP(expr)) {
-      fdtype v = fd_oid_value(expr);
+      lispval v = fd_oid_value(expr);
       if (CHOICEP(v))
         u8_printf(out,"OID value: %q\n",v);
       else if (TABLEP(v)) {
@@ -1024,7 +1024,7 @@ int main(int argc,char **argv)
         fd_output_errstack(tmpout,ex);
         fputs(tmp.u8_outbuf,stderr);
         tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-        fdtype backtrace = fd_exception_backtrace(ex);
+        lispval backtrace = fd_exception_backtrace(ex);
         if (show_backtrace) {
           u8_puts(tmpout,";; ");
           fd_sum_backtrace(tmpout,backtrace);}
@@ -1058,7 +1058,7 @@ int main(int argc,char **argv)
                    finish_ocache-start_ocache,
                    finish_icache-start_icache);
       else {
-        fdtype sym = bind_random_symbol(result,env);
+        lispval sym = bind_random_symbol(result,env);
         if (VOIDP(sym))
           u8_printf(out,stats_message_w_history,
                     histref,(finish_time-start_time),

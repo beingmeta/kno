@@ -18,8 +18,8 @@
 
 fd_exception fd_NotAnOID=_("Not an OID");
 
-fdtype fd_zero_pool_values[4096]={VOID};
-fdtype *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096]={fd_zero_pool_values,NULL};
+lispval fd_zero_pool_values[4096]={VOID};
+lispval *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096]={fd_zero_pool_values,NULL};
 unsigned int fd_zero_pool_load = 0;
 static u8_mutex zero_pool_lock;
 
@@ -64,7 +64,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
   else return get_base_oid_index(base);
 }
 
-FD_EXPORT fdtype fd_make_oid(FD_OID addr)
+FD_EXPORT lispval fd_make_oid(FD_OID addr)
 {
   FD_OID base = addr;
   int boi = 0;
@@ -81,7 +81,7 @@ fd_oid_info_fn _fd_oid_info;
    statically. */
 static char oid_info_buf[128];
 
-static u8_string _simple_oid_info(fdtype oid)
+static u8_string _simple_oid_info(lispval oid)
 {
   if (OIDP(oid)) {
     FD_OID addr = FD_OID_ADDR(oid);
@@ -165,7 +165,7 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits)
 
 /* Zero pool OIDs */
 
-FD_EXPORT fdtype fd_zero_pool_value(fdtype oid)
+FD_EXPORT lispval fd_zero_pool_value(lispval oid)
 {
   if (PRED_TRUE(OIDP(oid))) {
     FD_OID addr = FD_OID_ADDR(oid);
@@ -181,7 +181,7 @@ FD_EXPORT fdtype fd_zero_pool_value(fdtype oid)
     else return fd_type_error("zero_pool oid","fd_zero_pool_value",oid);}
   else return fd_type_error("oid","fd_zero_pool_value",oid);
 }
-FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value)
+FD_EXPORT lispval fd_zero_pool_store(lispval oid,lispval value)
 {
   if (PRED_TRUE(OIDP(oid))) {
     FD_OID addr = FD_OID_ADDR(oid);
@@ -193,11 +193,11 @@ FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value)
         return VOID;
       else {
         u8_lock_mutex(&zero_pool_lock);
-        fdtype *bucket = fd_zero_pool_buckets[bucket_no];
+        lispval *bucket = fd_zero_pool_buckets[bucket_no];
         if (PRED_FALSE(bucket == NULL)) {
-          bucket = u8_alloc_n(4096,fdtype);
+          bucket = u8_alloc_n(4096,lispval);
           fd_zero_pool_buckets[bucket_no]=bucket;}
-        fdtype current = bucket[bucket_off];
+        lispval current = bucket[bucket_off];
         if ((current)&&(CONSP(current)))
           fd_decref(current);
         bucket[bucket_off]=fd_incref(value);
@@ -207,7 +207,7 @@ FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value)
   else return fd_type_error("oid","fd_zero_pool_store",oid);
 }
 
-fdtype fd_preoids = EMPTY;
+lispval fd_preoids = EMPTY;
 
 static void init_oids()
 {
@@ -216,7 +216,7 @@ static void init_oids()
     unsigned int cap=_fd_oid_inits[i].cap;
     int j = 0, lim = 1+(cap/(FD_OID_BUCKET_SIZE));
     while (j<lim) {
-      fdtype oid = fd_make_oid(base);
+      lispval oid = fd_make_oid(base);
       CHOICE_ADD(fd_preoids,oid);
       base = FD_OID_PLUS(base,FD_OID_BUCKET_SIZE);
       j++;}

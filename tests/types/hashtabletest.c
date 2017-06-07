@@ -15,9 +15,9 @@
 #include <stdio.h>
 #include <errno.h>
 
-static fdtype read_dtype_from_file(FILE *f)
+static lispval read_dtype_from_file(FILE *f)
 {
-  fdtype object;
+  lispval object;
   struct FD_OUTBUF out; struct FD_INBUF in;
   char buf[1024]; int delta = 0;
   FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -32,7 +32,7 @@ static fdtype read_dtype_from_file(FILE *f)
   return object;
 }
 
-static int write_dtype_to_file(fdtype object,FILE *f)
+static int write_dtype_to_file(lispval object,FILE *f)
 {
   struct FD_OUTBUF out; int retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -50,15 +50,15 @@ static int write_dtype_to_file(fdtype object,FILE *f)
 int main(int argc,char **argv)
 {
   FILE *f = fopen(argv[1],"rb");
-  fdtype ht, slotid, value;
+  lispval ht, slotid, value;
   FD_DO_LIBINIT(fd_init_libfdtype);
   if (f) {
     ht = read_dtype_from_file(f); fclose(f);}
   else ht = fd_make_hashtable(NULL,64);
   if (argc == 2) {
-    fdtype keys = fd_hashtable_keys(HASHTABLE(ht));
+    lispval keys = fd_hashtable_keys(HASHTABLE(ht));
     FD_DO_CHOICES(key,keys) {
-      fdtype v = fd_hashtable_get(HASHTABLE(ht),key,FD_EMPTY_CHOICE);
+      lispval v = fd_hashtable_get(HASHTABLE(ht),key,FD_EMPTY_CHOICE);
       u8_fprintf(stderr,"%q=%q\n",key,v);}
     exit(0);}
   slotid = fd_probe_symbol(argv[2],strlen(argv[2]));

@@ -51,7 +51,7 @@ static int skip_whitespace(U8_INPUT *in)
   return c;
 }
 
-static fdtype parse_error(u8_output out,fdtype result,int report)
+static lispval parse_error(u8_output out,lispval result,int report)
 {
   fd_clear_errors(report);
   fd_decref(result);
@@ -59,18 +59,18 @@ static fdtype parse_error(u8_output out,fdtype result,int report)
                         out->u8_outbuf);
 }
 
-static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
+static lispval convert_value(lispval fn,lispval val,int free,int warn)
 {
   if (FD_ABORTP(val)) return val;
   else if (FD_ABORTP(fn)) return val;
   else if (VECTORP(fn)) {
-    fdtype eltfn = VEC_REF(fn,0);
+    lispval eltfn = VEC_REF(fn,0);
     if (VECTORP(val)) {
-      fdtype results = EMPTY;
-      fdtype *elts = VEC_DATA(val);
+      lispval results = EMPTY;
+      lispval *elts = VEC_DATA(val);
       int i = 0, lim = VEC_LEN(val);
       while (i<lim) {
-        fdtype cval = convert_value(eltfn,elts[i],0,warn);
+        lispval cval = convert_value(eltfn,elts[i],0,warn);
         if (FD_ABORTP(cval)) {
           fd_clear_errors(warn); fd_incref(elts[i]);
           CHOICE_ADD(results,elts[i]);}
@@ -84,7 +84,7 @@ static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
       return results;}
     else return convert_value(eltfn,val,1,warn);}
   else if (FD_APPLICABLEP(fn)) {
-    fdtype converted = fd_apply(fn,1,&val);
+    lispval converted = fd_apply(fn,1,&val);
     if (VOIDP(converted)) return val;
     else if (FD_ABORTP(converted)) {
       fd_clear_errors(warn);
@@ -93,7 +93,7 @@ static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
       fd_decref(val);
       return converted;}}
   else if ((FD_TRUEP(fn))&&(STRINGP(val))) {
-    fdtype parsed = fd_parse(CSTRING(val));
+    lispval parsed = fd_parse(CSTRING(val));
     if (FD_ABORTP(parsed)) {
       fd_clear_errors(warn);
       return val;}
@@ -102,13 +102,13 @@ static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
   else return val;
 }
 
-static fdtype json_parse(U8_INPUT *in,int flags,fdtype fieldmap);
-static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap);
-static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap);
-static fdtype json_string(U8_INPUT *in,int flags);
-static fdtype json_atom(U8_INPUT *in,int flags);
+static lispval json_parse(U8_INPUT *in,int flags,lispval fieldmap);
+static lispval json_vector(U8_INPUT *in,int flags,lispval fieldmap);
+static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap);
+static lispval json_string(U8_INPUT *in,int flags);
+static lispval json_atom(U8_INPUT *in,int flags);
 
-static fdtype json_parse(U8_INPUT *in,int flags,fdtype fieldmap)
+static lispval json_parse(U8_INPUT *in,int flags,lispval fieldmap)
 {
   int c = skip_whitespace(in);
   if (c=='[') return json_vector(in,flags,fieldmap);
@@ -117,9 +117,9 @@ static fdtype json_parse(U8_INPUT *in,int flags,fdtype fieldmap)
   else return json_atom(in,0);
 }
 
-static fdtype json_atom(U8_INPUT *in,int flags)
+static lispval json_atom(U8_INPUT *in,int flags)
 {
-  fdtype result;
+  lispval result;
   struct U8_OUTPUT out; u8_byte _buf[256]; int c = readc(in);
   U8_INIT_STATIC_OUTPUT_BUF(out,256,_buf);
   while ((u8_isalnum(c)) || (c=='-') || (c=='_') || (c=='+') || (c=='.')) {
@@ -135,7 +135,7 @@ static fdtype json_atom(U8_INPUT *in,int flags)
   return result;
 }
 
-static fdtype json_string(U8_INPUT *in,int flags)
+static lispval json_string(U8_INPUT *in,int flags)
 {
   struct U8_OUTPUT out; int c = readc(in); /* Skip '"' */
   int init_escape = 0;
@@ -157,7 +157,7 @@ static fdtype json_string(U8_INPUT *in,int flags)
   if (init_escape)
     return fd_stream2string(&out);
   else if ((flags&FD_JSON_COLONIZE)&&(out.u8_outbuf[0]==':')) {
-    fdtype result = fd_parse(out.u8_outbuf+1);
+    lispval result = fd_parse(out.u8_outbuf+1);
     if (FD_ABORTP(result))
       result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
@@ -165,7 +165,7 @@ static fdtype json_string(U8_INPUT *in,int flags)
   else return fd_stream2string(&out);
 }
 
-static fdtype json_intern(U8_INPUT *in,int flags)
+static lispval json_intern(U8_INPUT *in,int flags)
 {
   struct U8_OUTPUT out; int c = readc(in); /* Skip '"' */
   int good_symbol = 1;
@@ -181,13 +181,13 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     u8_putc(&out,c);
     c = u8_getc(in);}
   if (out.u8_outbuf[0]==':') {
-    fdtype result = fd_parse(out.u8_outbuf+1);
+    lispval result = fd_parse(out.u8_outbuf+1);
     if (FD_ABORTP(result))
       result = parse_error(&out,result,flags&FD_JSON_VERBOSE);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype result = (((good_symbol)&&(out.u8_write-out.u8_outbuf))?
+    lispval result = (((good_symbol)&&(out.u8_write-out.u8_outbuf))?
                    (fd_parse(out.u8_outbuf)):
                    (fd_stream_string(&out)));
     if (FD_ABORTP(result))
@@ -196,7 +196,7 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     return result;}
 }
 
-static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
+static lispval json_key(U8_INPUT *in,int flags,lispval fieldmap)
 {
   int c = skip_whitespace(in);
   if (c=='"')
@@ -205,8 +205,8 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
     else if (VOIDP(fieldmap))
       return json_string(in,flags);
     else {
-      fdtype stringkey = json_string(in,flags);
-      fdtype mapped = fd_get(fieldmap,stringkey,VOID);
+      lispval stringkey = json_string(in,flags);
+      lispval mapped = fd_get(fieldmap,stringkey,VOID);
       if (VOIDP(mapped)) return stringkey;
       else {
         fd_decref(stringkey);
@@ -218,7 +218,7 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
     fd_seterr("Invalid JSON key","json_key",NULL,VOID);
     return FD_PARSE_ERROR;}
   else {
-    fdtype result = json_atom(in,flags);
+    lispval result = json_atom(in,flags);
     if ((FIXNUMP(result))||(FD_BIGINTP(result))||(FD_FLONUMP(result)))
       return result;
     else if ((SYMBOLP(result))&&(flags&FD_JSON_IDKEY))
@@ -231,13 +231,13 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
       return FD_PARSE_ERROR;}}
 }
 
-static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
+static lispval json_vector(U8_INPUT *in,int flags,lispval fieldmap)
 {
   int n_elts = 0, max_elts = 16, c, i;
   unsigned int good_pos = in->u8_read-in->u8_inbuf;
-  fdtype *elts;
+  lispval *elts;
   if (u8_getc(in)!='[') return FD_ERROR;
-  else elts = u8_alloc_n(16,fdtype);
+  else elts = u8_alloc_n(16,lispval);
   c = skip_whitespace(in);
   while (c>=0) {
     good_pos = in->u8_read-in->u8_inbuf;
@@ -247,10 +247,10 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
     else if (c==',') {
       c = u8_getc(in); c = skip_whitespace(in);}
     else {
-      fdtype elt;
+      lispval elt;
       if (n_elts == max_elts)  {
         int new_max = max_elts*2;
-        fdtype *newelts = u8_realloc(elts,sizeof(fdtype)*new_max);
+        lispval *newelts = u8_realloc(elts,sizeof(lispval)*new_max);
         if (newelts) {elts = newelts; max_elts = new_max;}
         else {
           u8_seterr(fd_MallocFailed,"json_vector",NULL);
@@ -264,7 +264,7 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
                 VOID);
 }
 
-static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
+static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
 {
   int n_elts = 0, max_elts = 16, c, i;
   unsigned int good_pos = in->u8_read-in->u8_inbuf;
@@ -296,7 +296,7 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
       if ((VOIDP(fieldmap))||(CONSP(kv[n_elts].kv_key)))
         kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
       else {
-        fdtype handler = fd_get(fieldmap,kv[n_elts].kv_key,VOID);
+        lispval handler = fd_get(fieldmap,kv[n_elts].kv_key,VOID);
         if (VOIDP(handler))
           kv[n_elts].kv_val = json_parse(in,flags,fieldmap);
         else
@@ -310,10 +310,10 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
   return fd_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,VOID);
 }
 
-static fdtype symbolize_symbol, colonize_symbol, rawids_symbol;
-static fdtype ticks_symbol, ticklets_symbol, verbose_symbol;
+static lispval symbolize_symbol, colonize_symbol, rawids_symbol;
+static lispval ticks_symbol, ticklets_symbol, verbose_symbol;
 
-static int get_json_flags(fdtype flags_arg)
+static int get_json_flags(lispval flags_arg)
 {
   if (FALSEP(flags_arg))
     return 0;
@@ -342,7 +342,7 @@ static int get_json_flags(fdtype flags_arg)
       flags |= FD_JSON_VERBOSE;
     return flags;}
   else if (PRECHOICEP(flags_arg)) {
-    fdtype choice=fd_make_simple_choice(flags_arg);
+    lispval choice=fd_make_simple_choice(flags_arg);
     int rv=get_json_flags(choice);
     fd_decref(choice);
     return rv;}
@@ -364,7 +364,7 @@ static int get_json_flags(fdtype flags_arg)
   else return FD_JSON_DEFAULTS;
 }
 
-static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
+static lispval jsonparseprim(lispval in,lispval flags_arg,lispval fieldmap)
 {
   unsigned int flags = get_json_flags(flags_arg);
   if (FD_PORTP(in)) {
@@ -384,7 +384,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
 
 /* JSON output */
 
-static void json_unparse(u8_output out,fdtype x,int flags,fdtype oidfn,fdtype slotfn,fdtype miscfn);
+static void json_unparse(u8_output out,lispval x,int flags,lispval oidfn,lispval slotfn,lispval miscfn);
 
 static void json_escape(u8_output out,u8_string s)
 {
@@ -433,11 +433,11 @@ static void json_lower(u8_output out,u8_string s)
     c = u8_sgetc(&scan);}
 }
 
-static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static int json_slotval(u8_output out,lispval key,lispval value,int flags,lispval slotfn,lispval oidfn,lispval miscfn)
 {
   if (VOIDP(value)) return 0;
   else {
-    fdtype slotname = ((VOIDP(slotfn))?(VOID):(fd_apply(slotfn,1,&key)));
+    lispval slotname = ((VOIDP(slotfn))?(VOID):(fd_apply(slotfn,1,&key)));
     if (VOIDP(slotname))
       if ((SYMBOLP(key))&&(flags&FD_JSON_SYMBOLIZE)) {
         u8_string pname = SYM_NAME(key);
@@ -457,13 +457,13 @@ static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype s
     return 1;}
 }
 
-static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
-                         fdtype oidfn,fdtype miscfn)
+static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
+                         lispval oidfn,lispval miscfn)
 {
   if (FIXNUMP(x))
     u8_printf(out,"%lld",FIX2INT(x));
   else if (OIDP(x)) {
-    fdtype oidval = ((VOIDP(oidfn))?(VOID):
+    lispval oidval = ((VOIDP(oidfn))?(VOID):
                    (fd_finish_call(fd_dapply(oidfn,1,&x))));
     if (VOIDP(oidval)) {
       FD_OID addr = FD_OID_ADDR(x);
@@ -524,11 +524,11 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
       u8_printf(out,"\":#U%s\"",buf);
     else u8_printf(out,"\"%s\"",buf);}
   else if (TABLEP(x)) {
-    fdtype keys = fd_getkeys(x);
+    lispval keys = fd_getkeys(x);
     if (EMPTYP(keys)) u8_puts(out,"{}");
     else {
       int elt_count = 0; DO_CHOICES(key,keys) {
-        fdtype value = fd_get(x,key,VOID);
+        lispval value = fd_get(x,key,VOID);
         if (!(VOIDP(value))) {
           if (elt_count>0) u8_putc(out,',');
           else u8_puts(out,"{");
@@ -540,7 +540,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
   else if (FALSEP(x)) u8_puts(out,"false");
   else {
     u8_byte buf[256]; struct U8_OUTPUT tmpout;
-    fdtype tval = ((VOIDP(miscfn))?(VOID):
+    lispval tval = ((VOIDP(miscfn))?(VOID):
                  (fd_finish_call(fd_dapply(miscfn,1,&x))));
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
     if (VOIDP(tval)) fd_unparse(&tmpout,x);
@@ -552,8 +552,8 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,
     u8_close_output(&tmpout);}
 }
 
-static fdtype jsonoutput(fdtype x,fdtype flags_arg,
-                         fdtype slotfn,fdtype oidfn,fdtype miscfn)
+static lispval jsonoutput(lispval x,lispval flags_arg,
+                         lispval slotfn,lispval oidfn,lispval miscfn)
 {
   u8_output out = u8_current_output;
   unsigned int flags = get_json_flags(flags_arg);
@@ -564,8 +564,8 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,
   return VOID;
 }
 
-static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,
-                         fdtype oidfn,fdtype miscfn)
+static lispval jsonstring(lispval x,lispval flags_arg,lispval slotfn,
+                         lispval oidfn,lispval miscfn)
 {
   struct U8_OUTPUT tmpout;
   int flags = get_json_flags(flags_arg);
@@ -580,8 +580,8 @@ static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,
 
 FD_EXPORT void fd_init_json_c()
 {
-  fdtype module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  fdtype unsafe_module = fd_new_module("FDWEB",0);
+  lispval module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  lispval unsafe_module = fd_new_module("FDWEB",0);
 
   fd_idefn3(module,"JSONPARSE",jsonparseprim,1,
             "(JSONPARSE *string*) Parse the JSON in *string* into a LISP object",

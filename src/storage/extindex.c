@@ -19,13 +19,13 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
-fdtype set_symbol, drop_symbol;
+lispval set_symbol, drop_symbol;
 
 /* FETCH indexes */
 
 FD_EXPORT
 fd_index fd_make_extindex
-  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg)
+  (u8_string name,lispval fetchfn,lispval commitfn,lispval state,int reg)
 {
   if (!(PRED_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
@@ -51,10 +51,10 @@ fd_index fd_make_extindex
     return (fd_index)fetchix;}
 }
 
-static fdtype extindex_fetch(fd_index p,fdtype oid)
+static lispval extindex_fetch(fd_index p,lispval oid)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
-  fdtype state = xp->state, fetchfn = xp->fetchfn, value;
+  lispval state = xp->state, fetchfn = xp->fetchfn, value;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
@@ -62,7 +62,7 @@ static fdtype extindex_fetch(fd_index p,fdtype oid)
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(fetchfn,1,&oid);
   else {
-    fdtype args[2]; args[0]=oid; args[1]=state;
+    lispval args[2]; args[0]=oid; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
   return value;
 }
@@ -70,11 +70,11 @@ static fdtype extindex_fetch(fd_index p,fdtype oid)
 /* This assumes that the FETCH function handles a vector intelligently,
    and just calls it on the vector of OIDs and extracts the data from
    the returned vector.  */
-static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
+static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
 {
   struct FD_EXTINDEX *xp = (fd_extindex)p;
-  struct FD_VECTOR vstruct; fdtype vecarg;
-  fdtype state = xp->state, fetchfn = xp->fetchfn, value = VOID;
+  struct FD_VECTOR vstruct; lispval vecarg;
+  lispval state = xp->state, fetchfn = xp->fetchfn, value = VOID;
   struct FD_FUNCTION *fptr = ((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
@@ -82,18 +82,18 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   vstruct.fdvec_length = n; 
   vstruct.fdvec_elts = keys; 
   vstruct.fdvec_free_elts = 0;
-  vecarg = FDTYPE_CONS(&vstruct);
+  vecarg = LISP_CONS(&vstruct);
   if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
     value = fd_apply(xp->fetchfn,1,&vecarg);
   else {
-    fdtype args[2]; args[0]=vecarg; args[1]=state;
+    lispval args[2]; args[0]=vecarg; args[1]=state;
     value = fd_apply(xp->fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
   else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
-    fdtype *results = u8_alloc_n(n,fdtype);
-    memcpy(results,vstruct->fdvec_elts,sizeof(fdtype)*n);
+    lispval *results = u8_alloc_n(n,lispval);
+    memcpy(results,vstruct->fdvec_elts,sizeof(lispval)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
     if (vstruct->fdvec_free_elts)
@@ -101,12 +101,12 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
     u8_free((struct FD_CONS *)value);
     return results;}
   else {
-    fdtype *values = u8_alloc_n(n,fdtype);
+    lispval *values = u8_alloc_n(n,lispval);
     if ((VOIDP(state))||(FALSEP(state))||
         ((fptr)&&(fptr->fcn_arity==1))) {
       int i = 0; while (i<n) {
-        fdtype key = keys[i];
-        fdtype value = fd_apply(fetchfn,1,&key);
+        lispval key = keys[i];
+        lispval value = fd_apply(fetchfn,1,&key);
         if (FD_ABORTP(value)) {
           int j = 0; while (j<i) {fd_decref(values[j]); j++;}
           u8_free(values);
@@ -114,9 +114,9 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
         else values[i++]=value;}
       return values;}
     else {
-      fdtype args[2]; int i = 0; args[1]=state;
+      lispval args[2]; int i = 0; args[1]=state;
       i = 0; while (i<n) {
-        fdtype key = keys[i], value;
+        lispval key = keys[i], value;
         args[0]=key; value = fd_apply(fetchfn,2,args);
         if (FD_ABORTP(value)) {
           int j = 0; while (j<i) {fd_decref(values[j]); j++;}
@@ -129,26 +129,26 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
 static int extindex_commit(fd_index ix)
 {
   struct FD_EXTINDEX *exi = (fd_extindex)ix;
-  fdtype *adds, *drops, *stores;
+  lispval *adds, *drops, *stores;
   int n_adds = 0, n_drops = 0, n_stores = 0;
   fd_write_lock_table(&(exi->index_adds));
   fd_write_lock_table(&(exi->index_edits));
   if (exi->index_edits.table_n_keys) {
-    drops = u8_alloc_n(exi->index_edits.table_n_keys,fdtype);
-    stores = u8_alloc_n(exi->index_edits.table_n_keys,fdtype);}
+    drops = u8_alloc_n(exi->index_edits.table_n_keys,lispval);
+    stores = u8_alloc_n(exi->index_edits.table_n_keys,lispval);}
   else {drops = NULL; stores = NULL;}
   if (exi->index_adds.table_n_keys)
-    adds = u8_alloc_n(exi->index_adds.table_n_keys,fdtype);
+    adds = u8_alloc_n(exi->index_adds.table_n_keys,lispval);
   else adds = NULL;
   if (exi->index_edits.table_n_keys) {
     int n_edits;
     struct FD_KEYVAL *kvals = fd_hashtable_keyvals(&(exi->index_edits),&n_edits,0);
     struct FD_KEYVAL *scan = kvals, *limit = kvals+n_edits;
     while (scan<limit) {
-      fdtype key = scan->kv_key;
+      lispval key = scan->kv_key;
       if (PAIRP(key)) {
-        fdtype kind = FD_CAR(key), realkey = FD_CDR(key), value = scan->kv_val;
-        fdtype assoc = fd_conspair(realkey,value);
+        lispval kind = FD_CAR(key), realkey = FD_CDR(key), value = scan->kv_val;
+        lispval assoc = fd_conspair(realkey,value);
         if (FD_EQ(kind,set_symbol)) {
           stores[n_stores++]=assoc; fd_incref(realkey);}
         else if (FD_EQ(kind,drop_symbol)) {
@@ -168,15 +168,15 @@ static int extindex_commit(fd_index ix)
        their pointers will become in the assocs in the adds vector. */
     struct FD_KEYVAL *scan = kvals, *limit = kvals+add_len;
     while (scan<limit) {
-      fdtype key = scan->kv_key, value = scan->kv_val;
-      fdtype assoc = fd_conspair(key,value);
+      lispval key = scan->kv_key, value = scan->kv_val;
+      lispval assoc = fd_conspair(key,value);
       adds[n_adds++]=assoc;
       scan++;}}
   {
-    fdtype avec = fd_init_vector(NULL,n_adds,adds);
-    fdtype dvec = fd_init_vector(NULL,n_drops,drops);
-    fdtype svec = fd_init_vector(NULL,n_stores,stores);
-    fdtype argv[4], result = VOID;
+    lispval avec = fd_init_vector(NULL,n_adds,adds);
+    lispval dvec = fd_init_vector(NULL,n_drops,drops);
+    lispval svec = fd_init_vector(NULL,n_stores,stores);
+    lispval argv[4], result = VOID;
     argv[0]=avec;
     argv[1]=dvec;
     argv[2]=svec;

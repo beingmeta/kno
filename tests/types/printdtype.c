@@ -17,14 +17,14 @@
 
 int main(int argc,char **argv)
 {
-  fdtype object;
+  lispval object;
   struct FD_STREAM *in; u8_string srep;
   FD_DO_LIBINIT(fd_init_libfdtype);
   in = fd_open_file(argv[1],FD_FILE_READ);
   object = fd_read_dtype(fd_readbuf(in));
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   /* For coverage tests */
-  srep = fd_dtype2string(object); u8_free(srep);
+  srep = fd_lisp2string(object); u8_free(srep);
   /* Print it out */
   u8_fprintf(stdout,"%q\n",object);
   fd_decref(object); object = FD_VOID;

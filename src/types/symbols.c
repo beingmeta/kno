@@ -12,11 +12,11 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 
-fdtype *fd_symbol_names;
+lispval *fd_symbol_names;
 int fd_n_symbols = 0, fd_max_symbols = 0, fd_initial_symbols = 1024;
 struct FD_SYMBOL_TABLE fd_symbol_table;
 
-fdtype FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
+lispval FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
   FDSYM_BUFSIZE, FDSYM_BLOCKSIZE, FDSYM_CACHESIZE,
   FDSYM_MERGE, FDSYM_SORT, FDSYM_SORTED, FDSYM_LAZY, FDSYM_VERSION,
   FDSYM_QUOTE, FDSYM_PLUS, FDSYM_STAR, FDSYM_OPT,
@@ -58,7 +58,7 @@ static void init_symbol_tables()
     int new_max = ((fd_max_symbols) ? (fd_max_symbols) : (fd_initial_symbols));
     int new_size = fd_get_hashtable_size(new_max*2);
     struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
-    fdtype *new_symbol_names = u8_alloc_n(new_max,fdtype);
+    lispval *new_symbol_names = u8_alloc_n(new_max,lispval);
     int i = 0, lim = new_size; while (i < lim) new_entries[i++]=NULL;
     i = 0; lim = new_max; while (i < lim) new_symbol_names[i++]=VOID;
     fd_symbol_table.table_size = new_size; 
@@ -110,7 +110,7 @@ static void grow_symbol_tables()
   int new_size = fd_get_hashtable_size(new_max*2);
   struct FD_SYMBOL_ENTRY **old_entries = fd_symbol_table.fd_symbol_entries;
   struct FD_SYMBOL_ENTRY **new_entries = u8_alloc_n(new_size,fd_symbol_entry);
-  fdtype *new_symbol_names = u8_alloc_n(new_max,fdtype);
+  lispval *new_symbol_names = u8_alloc_n(new_max,lispval);
   {
     int i = 0, lim = fd_symbol_table.table_size;
     while (i < new_size) new_entries[i++]=NULL;
@@ -129,14 +129,14 @@ static void grow_symbol_tables()
     fd_symbol_table.fd_symbol_entries = new_entries; 
     fd_symbol_table.table_size = new_size;}
   {
-    int i = 0, lim = fd_n_symbols; fdtype *old_symbol_names;
+    int i = 0, lim = fd_n_symbols; lispval *old_symbol_names;
     while (i < lim) {new_symbol_names[i]=fd_symbol_names[i]; i++;}
     old_symbol_names = fd_symbol_names; fd_symbol_names = new_symbol_names;
     u8_free(old_symbol_names);}
   fd_max_symbols = new_max;
 }
 
-fdtype fd_make_symbol(u8_string bytes,int len)
+lispval fd_make_symbol(u8_string bytes,int len)
 {
   struct FD_SYMBOL_ENTRY **entries;
   int hash, probe, size;
@@ -172,12 +172,12 @@ fdtype fd_make_symbol(u8_string bytes,int len)
       entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
       entries[probe]->fd_symid = id;
       fd_init_string(&(entries[probe]->fd_pname),len,pname);
-      fd_symbol_names[id]=FDTYPE_CONS(&(entries[probe]->fd_pname));
+      fd_symbol_names[id]=LISP_CONS(&(entries[probe]->fd_pname));
       u8_unlock_mutex(&fd_symbol_lock);
       return FD_ID2SYMBOL(id);}}
 }
 
-fdtype fd_probe_symbol(u8_string bytes,int len)
+lispval fd_probe_symbol(u8_string bytes,int len)
 {
   struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
   int probe, size = fd_symbol_table.table_size;
@@ -198,14 +198,14 @@ fdtype fd_probe_symbol(u8_string bytes,int len)
     return VOID;}
 }
 
-FD_EXPORT fdtype fd_intern(u8_string string)
+FD_EXPORT lispval fd_intern(u8_string string)
 {
   return fd_make_symbol(string,strlen(string));
 }
 
-FD_EXPORT fdtype fd_symbolize(u8_string string)
+FD_EXPORT lispval fd_symbolize(u8_string string)
 {
-  fdtype result;
+  lispval result;
   struct U8_OUTPUT out; unsigned char buf[64];
   const u8_byte *scan = string;
   int c = u8_sgetc(&scan);
@@ -218,12 +218,12 @@ FD_EXPORT fdtype fd_symbolize(u8_string string)
   return result;
 }
 
-FD_EXPORT fdtype fd_all_symbols()
+FD_EXPORT lispval fd_all_symbols()
 {
-  fdtype results = EMPTY;
+  lispval results = EMPTY;
   int i = 0, n = fd_n_symbols;
   while (i < n) {
-    fdtype sym = FD_ID2SYMBOL(i);
+    lispval sym = FD_ID2SYMBOL(i);
     CHOICE_ADD(results,sym);
     i++;}
   return results;
@@ -231,7 +231,7 @@ FD_EXPORT fdtype fd_all_symbols()
 
 /* Initialization */
 
-static int check_symbol(fdtype x)
+static int check_symbol(lispval x)
 {
   int id = FD_SYMBOL2ID(x);
   return (id<fd_n_symbols);

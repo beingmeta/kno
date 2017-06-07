@@ -905,7 +905,6 @@ enable_async
 enable_dtblock
 with_i18n
 enable_lockfree
-enable_checkptrs
 with_nptrlocks
 with_editline
 with_libu8
@@ -1582,7 +1581,6 @@ Optional Features:
 --endisable-async Enable async I/O features
 --endisable-dtblock DTBlock dtype for net I/O
 --endisable-lockfree Enables lock-free reference counting
---endisable-checkfdtype Enable compile-time checking for fdtype pointers
 --endisable-leveldb Build and install LevelDB module
 --endisable-imagick Build and install imagemagick module
 --with-ziptools Build and install ziptools
@@ -2860,7 +2858,6 @@ fi
 
 
 threads_default="yes"
-checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
 rpath_default=$exec_prefix
@@ -10066,21 +10063,6 @@ else
 
 fi
 
-
-# Check whether --enable-checkptrs was given.
-if test "${enable_checkptrs+set}" = set; then :
-  enableval=$enable_checkptrs;
-else
-  enable_checkfdtype=$checkfdtype_default
-fi
-
-if test "$enable_checkfdtype" = "yes"; then
-  $as_echo "#define FD_DEFAULT_CHECKFDTYPE 1" >>confdefs.h
-
-else
-  $as_echo "#define FD_DEFAULT_CHECKFDTYPE 0" >>confdefs.h
-
-fi
 
 
 # Check whether --with-nptrlocks was given.

@@ -30,12 +30,12 @@ double get_elapsed()
       (now.tv_usec-start.tv_usec)*0.000001;}
 }
 
-static fdtype read_choice(char *file)
+static lispval read_choice(char *file)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = FD_EMPTY_CHOICE;
   FILE *f = fopen(file,"r"); char buf[8192]; int i = 0;
   while (fgets(buf,8192,f)) {
-    fdtype item = fd_parse(buf);
+    lispval item = fd_parse(buf);
     if (FD_ABORTP(item)) {
       if (!(FD_THROWP(item)))
         u8_fprintf(stderr,"Error at %s[%d]\n",file,i);
@@ -45,7 +45,7 @@ static fdtype read_choice(char *file)
   return fd_simplify_choice(results);
 }
 
-static int write_dtype_to_file(fdtype x,char *file)
+static int write_dtype_to_file(lispval x,char *file)
 {
   FILE *f = fopen(file,"wb"); int retval;
   struct FD_OUTBUF out;
@@ -75,10 +75,10 @@ int main(int argc,char **argv)
         remove_arg = argv[i++]; k++;}
       else i++;}
   {
-    fdtype input = read_choice(input_arg);
-    fdtype to_remove = read_choice(remove_arg);
-    fdtype difference;
-    fdtype sdifference;
+    lispval input = read_choice(input_arg);
+    lispval to_remove = read_choice(remove_arg);
+    lispval difference;
+    lispval sdifference;
     if (FD_ABORTP(input)) {
       u8_fprintf(stderr,"Trouble reading %s: %q\n",input_arg,input);
       return -1;}

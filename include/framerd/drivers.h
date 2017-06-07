@@ -25,14 +25,14 @@ typedef enum FD_COMPRESS_TYPE {
   FD_SNAPPY = 3}
   fd_compress_type;
 
-FD_EXPORT fd_compress_type fd_compression_type(fdtype,fd_compress_type);
+FD_EXPORT fd_compress_type fd_compression_type(lispval,fd_compress_type);
 
 /* These are common pool/index ops (for use with fd_poolctl/fd_indexctl) */
 
-FD_EXPORT fdtype fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
-FD_EXPORT fdtype fd_stats_op, fd_label_op, fd_populate_op;
-FD_EXPORT fdtype fd_getmap_op, fd_slotids_op, fd_baseoids_op;
-FD_EXPORT fdtype fd_load_op, fd_capacity_op;
+FD_EXPORT lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
+FD_EXPORT lispval fd_stats_op, fd_label_op, fd_populate_op;
+FD_EXPORT lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
+FD_EXPORT lispval fd_load_op, fd_capacity_op;
 
 FD_EXPORT fd_exception fd_InvalidOffsetType;
 FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;
@@ -51,7 +51,7 @@ FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);
 struct FD_POOL_TYPEINFO {
   u8_string pool_typename;
   fd_pool_handler handler;
-  fd_pool (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts);
+  fd_pool (*opener)(u8_string filename,fd_storage_flags flags,lispval opts);
   u8_string (*matcher)(u8_string filename,void *);
   void *type_data;
   struct FD_POOL_TYPEINFO *next_type;};
@@ -61,7 +61,7 @@ FD_EXPORT
 void fd_register_pool_type
 (u8_string name,
  fd_pool_handler pool_handler,
- fd_pool (*opener)(u8_string path,fd_storage_flags flags,fdtype opts),
+ fd_pool (*opener)(u8_string path,fd_storage_flags flags,lispval opts),
  u8_string (*matcher)(u8_string path,void *),
  void *type_data);
 
@@ -70,7 +70,7 @@ FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string name);
 FD_EXPORT fd_pool_handler fd_get_pool_handler(u8_string name);
 
 FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
-			       fd_storage_flags flags,fdtype opts);
+			       fd_storage_flags flags,lispval opts);
 
 #define FD_POOLFILE_LOCKEDP(fp) \
   (((fp)->pool_stream.stream_flags)&FD_STREAM_FILE_LOCKED)
@@ -82,7 +82,7 @@ FD_EXPORT fd_pool fd_make_pool(u8_string spec,u8_string pooltype,
 struct FD_INDEX_TYPEINFO {
   u8_string index_typename;
   fd_index_handler handler;
-  fd_index (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts);
+  fd_index (*opener)(u8_string filename,fd_storage_flags flags,lispval opts);
   u8_string (*matcher)(u8_string filename,void *);
   void *type_data;
   struct FD_INDEX_TYPEINFO *next_type;};
@@ -94,7 +94,7 @@ void fd_register_index_type
  fd_index_handler handler,
  fd_index (*opener)(u8_string spec,
 		    fd_storage_flags flags,
-		    fdtype opts),
+		    lispval opts),
  u8_string (*matcher)(u8_string spec,
 		      void *),
  void *type_data);
@@ -104,16 +104,16 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string name);
 FD_EXPORT fd_index_handler fd_get_index_handler(u8_string name);
 
 FD_EXPORT fd_index fd_make_index(u8_string spec,u8_string indextype,
-				 fd_storage_flags flags,fdtype opts);
+				 fd_storage_flags flags,lispval opts);
 
-FD_EXPORT fdtype fd_read_index_metadata(fd_stream ds);
-FD_EXPORT fdtype fd_write_index_metadata(fd_stream,fdtype);
+FD_EXPORT lispval fd_read_index_metadata(fd_stream ds);
+FD_EXPORT lispval fd_write_index_metadata(fd_stream,lispval);
 FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int);
 
-unsigned int fd_hash_dtype1(fdtype x);
-unsigned int fd_hash_dtype2(fdtype x);
-unsigned int fd_hash_dtype3(fdtype x);
-unsigned int fd_hash_dtype_rep(fdtype x);
+unsigned int fd_hash_lisp1(lispval x);
+unsigned int fd_hash_lisp2(lispval x);
+unsigned int fd_hash_lisp3(lispval x);
+unsigned int fd_hash_dtype_rep(lispval x);
 
 /* Functional arguments */
 

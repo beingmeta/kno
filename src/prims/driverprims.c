@@ -24,28 +24,28 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
 
-static fdtype baseoids_symbol;
+static lispval baseoids_symbol;
 
 /* Hashing functions */
 
-static fdtype lisphashdtype1(fdtype x)
+static lispval lisphash1(lispval x)
 {
-  int hash = fd_hash_dtype1(x);
+  int hash = fd_hash_lisp1(x);
   return FD_INT(hash);
 }
-static fdtype lisphashdtype2(fdtype x)
+static lispval lisphash2(lispval x)
 {
-  int hash = fd_hash_dtype2(x);
-  return FD_INT(hash);
-}
-
-static fdtype lisphashdtype3(fdtype x)
-{
-  int hash = fd_hash_dtype3(x);
+  int hash = fd_hash_lisp2(x);
   return FD_INT(hash);
 }
 
-static fdtype lisphashdtyperep(fdtype x)
+static lispval lisphash3(lispval x)
+{
+  int hash = fd_hash_lisp3(x);
+  return FD_INT(hash);
+}
+
+static lispval lisphashdtype(lispval x)
 {
   unsigned int hash = fd_hash_dtype_rep(x);
   return FD_INT(hash);
@@ -53,7 +53,7 @@ static fdtype lisphashdtyperep(fdtype x)
 
 /* Prefetching from pools */
 
-static fdtype pool_prefetch(fdtype pool,fdtype oids)
+static lispval pool_prefetch(lispval pool,lispval oids)
 {
   fd_pool p = (fd_pool)pool;
   int retval = fd_pool_prefetch(p,oids);
@@ -63,7 +63,7 @@ static fdtype pool_prefetch(fdtype pool,fdtype oids)
 
 /* Various OPS */
 
-static fdtype index_slotids(fdtype index_arg)
+static lispval index_slotids(lispval index_arg)
 {
   struct FD_INDEX *ix = fd_lisp2index(index_arg);
   if (ix == NULL)
@@ -71,7 +71,7 @@ static fdtype index_slotids(fdtype index_arg)
   else return fd_index_ctl(ix,fd_slotids_op,0,NULL);
 }
 
-static fdtype indexctl_prim(int n,fdtype *args)
+static lispval indexctl_prim(int n,lispval *args)
 {
   struct FD_INDEX *ix = fd_lisp2index(args[0]);
   if (ix == NULL)
@@ -81,7 +81,7 @@ static fdtype indexctl_prim(int n,fdtype *args)
   else return fd_index_ctl(ix,args[1],n-1,args+1);
 }
 
-static fdtype poolctl_prim(int n,fdtype *args)
+static lispval poolctl_prim(int n,lispval *args)
 {
   struct FD_POOL *p = fd_lisp2pool(args[0]);
   if (p == NULL)
@@ -97,7 +97,7 @@ static int scheme_driverfns_initialized = 0;
 
 FD_EXPORT void fd_init_driverfns_c()
 {
-  fdtype driverfns_module;
+  lispval driverfns_module;
 
   baseoids_symbol = fd_intern("%BASEOIDS");
 
@@ -119,13 +119,12 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprimn("INDEXCTL",indexctl_prim,2));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("POOLCTL",poolctl_prim,2));
 
-  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
-  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));
-  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE3",lisphashdtype3,1));
-  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE1",lisphashdtype1,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphash2,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE2",lisphash2,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE3",lisphash3,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE1",lisphash1,1));
 
-  fd_idefn(driverfns_module,
-           fd_make_cprim1("HASH-DTYPE-REP",lisphashdtyperep,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE-REP",lisphashdtype,1));
 
   fd_finish_module(driverfns_module);
 }

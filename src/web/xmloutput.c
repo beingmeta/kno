@@ -31,10 +31,10 @@
 
 #include <libu8/u8xfiles.h>
 
-static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
-static fdtype href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
-static fdtype embedded_symbol, estylesheet_symbol, xmltag_symbol;
-static fdtype modules_symbol, xml_env_symbol;
+static lispval xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
+static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
+static lispval embedded_symbol, estylesheet_symbol, xmltag_symbol;
+static lispval modules_symbol, xml_env_symbol;
 
 /* Utility output functions */
 
@@ -108,7 +108,7 @@ void fd_attrib_entify(u8_output out,u8_string value)
 }
 
 static void emit_xmlattrib
-  (u8_output out,u8_output tmp,u8_string name,fdtype value,int lower)
+  (u8_output out,u8_output tmp,u8_string name,lispval value,int lower)
 {
   int c; const u8_byte *scan = name;
   /* Start every attrib with a space, just in case */
@@ -150,7 +150,7 @@ static void emit_xmlattrib
   u8_puts(out,"\"");
 }
 
-static fdtype xmlify(fdtype value)
+static lispval xmlify(lispval value)
 {
   if (STRINGP(value))
     return value;
@@ -167,7 +167,7 @@ static fdtype xmlify(fdtype value)
     return fd_init_string(NULL,tmp.u8_write-tmp.u8_outbuf,tmp.u8_outbuf);}
 }
 
-static U8_MAYBE_UNUSED fdtype oidunxmlify(fdtype string)
+static U8_MAYBE_UNUSED lispval oidunxmlify(lispval string)
 {
   u8_string s = CSTRING(string), addr_start = strchr(s,'_');
   FD_OID addr; unsigned int hi, lo;
@@ -185,11 +185,11 @@ static void emit_xmlcontent(u8_output out,u8_string content)
 
 static int output_markup_attrib
   (u8_output out,u8_output tmp,
-   fdtype name_expr,fdtype value_expr,
+   lispval name_expr,lispval value_expr,
    fd_lexenv env)
 {
-  u8_string attrib_name; fdtype attrib_val;
-  fdtype free_name = VOID, free_value = VOID;
+  u8_string attrib_name; lispval attrib_val;
+  lispval free_name = VOID, free_value = VOID;
   if (SYMBOLP(name_expr)) attrib_name = SYM_NAME(name_expr);
   else if (STRINGP(name_expr)) attrib_name = CSTRING(name_expr);
   else if ((env) && (PAIRP(name_expr))) {
@@ -216,12 +216,12 @@ static int output_markup_attrib
 }
 
 static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
-                       fdtype attribs,fd_lexenv env,int empty)
+                       lispval attribs,fd_lexenv env,int empty)
 {
   u8_putc(out,'<');
   emit_xmlname(out,eltname);
   while (PAIRP(attribs)) {
-    fdtype elt = FD_CAR(attribs);
+    lispval elt = FD_CAR(attribs);
     /* Kludge to handle case where the attribute name is quoted. */
     if ((PAIRP(elt)) && (FD_CAR(elt) == quote_symbol) &&
         (PAIRP(FD_CDR(elt))) && (SYMBOLP(FD_CADR(elt))))
@@ -244,7 +244,7 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
                 fd_incref(attribs));
       return -1;}
     else if ((PAIRP(elt))) {
-      fdtype val_expr = ((PAIRP(FD_CDR(elt)))?(FD_CADR(elt)):(VOID));
+      lispval val_expr = ((PAIRP(FD_CDR(elt)))?(FD_CADR(elt)):(VOID));
       if (output_markup_attrib(out,tmp,FD_CAR(elt),val_expr,env)>=0)
         attribs = FD_CDR(attribs);
       else {
@@ -253,7 +253,7 @@ static int open_markup(u8_output out,u8_output tmp,u8_string eltname,
     else {
       if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
       fd_seterr(fd_SyntaxError,"open_markup",
-                fd_dtype2string(elt),fd_incref(attribs));
+                fd_lisp2string(elt),fd_incref(attribs));
       return -1;}}
   if (empty) u8_puts(out,"/>"); else u8_puts(out,">");
   return 1;
@@ -268,12 +268,12 @@ static int close_markup(u8_output out,u8_string tagname)
 }
 
 FD_EXPORT int fd_open_markup
-  (u8_output out,u8_string eltname,fdtype attribs,int empty)
+  (u8_output out,u8_string eltname,lispval attribs,int empty)
 {
   return open_markup(out,NULL,eltname,attribs,NULL,empty);
 }
 
-static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
+static u8_string get_tagname(lispval tag,u8_byte *buf,int len)
 {
   U8_OUTPUT out; U8_INIT_STATIC_OUTPUT_BUF(out,len,buf);
   if (SYMBOLP(tag)) {
@@ -292,15 +292,15 @@ static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
 /* XMLOUTPUT primitives */
 
 FD_EXPORT int fd_xmlout_helper
-(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
- fdtype xmloidfn,fd_lexenv env)
+(U8_OUTPUT *out,U8_OUTPUT *tmp,lispval x,
+ lispval xmloidfn,fd_lexenv env)
 {
   if (FD_ABORTP(x)) return 0;
   else if (VOIDP(x)) return 1;
   if (STRINGP(x))
     emit_xmlcontent(out,CSTRING(x));
   else if ((FD_APPLICABLEP(xmloidfn)) && (OIDP(x))) {
-    fdtype result = fd_apply(xmloidfn,1,&x);
+    lispval result = fd_apply(xmloidfn,1,&x);
     fd_decref(result);}
   else if (OIDP(x))
     if (fd_oid_test(x,xmltag_symbol,VOID))
@@ -320,15 +320,15 @@ FD_EXPORT int fd_xmlout_helper
   return 1;
 }
 
-static fdtype xmlout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmlout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
+  lispval body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_current_output, tmpout;
-  fdtype xmloidfn = fd_symeval(xmloidfn_symbol,env);
+  lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
   u8_byte buf[128];
   U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   while (PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+    lispval value = fast_eval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn);
       return value;}
@@ -342,25 +342,25 @@ static fdtype xmlout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lexenv env)
+FD_EXPORT int fd_lisp2xml(u8_output out,lispval x,fd_lexenv env)
 {
   int retval = -1;
-  fdtype xmloidfn = fd_symeval(xmloidfn_symbol,env);
+  lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
   if (out == NULL) out = u8_current_output;
   retval = fd_xmlout_helper(out,NULL,x,xmloidfn,env);
   fd_decref(xmloidfn);
   return retval;
 }
 
-static fdtype raw_xhtml_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval raw_xhtml_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
+  lispval body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_current_output, tmpout;
-  fdtype xmloidfn = fd_symeval(xmloidfn_symbol,env);
+  lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
   u8_byte buf[128];
   U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   while (PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+    lispval value = fast_eval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn);
       return value;}
@@ -376,17 +376,17 @@ static fdtype raw_xhtml_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-static fdtype nbsp_prim()
+static lispval nbsp_prim()
 {
   U8_OUTPUT *out = u8_current_output;
   u8_puts(out,"&nbsp;");
   return VOID;
 }
 
-static fdtype xmlemptyelt(int n,fdtype *args)
+static lispval xmlemptyelt(int n,lispval *args)
 {
   U8_OUTPUT *out = u8_current_output;
-  fdtype eltname = args[0];
+  lispval eltname = args[0];
   const u8_byte *tagname;
   u8_byte tagbuf[128];
   int i = 1;
@@ -397,13 +397,13 @@ static fdtype xmlemptyelt(int n,fdtype *args)
     if (tagname!=tagbuf) u8_free(tagname);}
   else return fd_err(fd_TypeError,"xmlemptyelt",_("invalid XML element name"),eltname);
   while (i<n) {
-    fdtype elt = args[i];
+    lispval elt = args[i];
     u8_putc(out,' ');
     if (STRINGP(elt)) {
       entify(out,CSTRING(elt)); i++;}
     else if (SYMBOLP(elt))
       if (i+1<n) {
-        fdtype val = args[i+1];
+        lispval val = args[i+1];
         if (!(EMPTYP(val)))
           emit_xmlattrib(out,NULL,SYM_NAME(elt),val,1);
         i = i+2;}
@@ -413,10 +413,10 @@ static fdtype xmlemptyelt(int n,fdtype *args)
   return VOID;
 }
 
-static fdtype xmlentry_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmlentry_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
-  fdtype head = fd_get_arg(expr,1), args = FD_CDR(FD_CDR(expr));
+  lispval head = fd_get_arg(expr,1), args = FD_CDR(FD_CDR(expr));
   u8_byte tagbuf[128]; u8_string tagname;
   if ((PAIRP(head)))  head = fd_eval(head,env);
   else head = fd_incref(head);
@@ -434,10 +434,10 @@ static fdtype xmlentry_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return VOID;}
 }
 
-static fdtype xmlstart_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmlstart_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
-  fdtype head = fd_get_arg(expr,1), args = FD_CDR(FD_CDR(expr));
+  lispval head = fd_get_arg(expr,1), args = FD_CDR(FD_CDR(expr));
   u8_byte tagbuf[128]; u8_string tagname;
   if ((PAIRP(head)))  head = fd_eval(head,env);
   else head = fd_incref(head);
@@ -455,7 +455,7 @@ static fdtype xmlstart_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return VOID;}
 }
 
-static fdtype xmlend_prim(fdtype head)
+static lispval xmlend_prim(lispval head)
 {
   U8_OUTPUT *out = u8_current_output;
   u8_byte tagbuf[128]; u8_string tagname;
@@ -467,11 +467,11 @@ static fdtype xmlend_prim(fdtype head)
   return VOID;
 }
 
-static fdtype doxmlblock(fdtype expr,fd_lexenv env,
+static lispval doxmlblock(lispval expr,fd_lexenv env,
                          fd_stack _stack,int newline)
 {
-  fdtype tagspec = fd_get_arg(expr,1), attribs, body;
-  fdtype xmloidfn = fd_symeval(xmloidfn_symbol,env);
+  lispval tagspec = fd_get_arg(expr,1), attribs, body;
+  lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
   u8_byte tagbuf[128], buf[128];
   u8_string tagname; int eval_attribs = 0;
   U8_OUTPUT *out, tmpout;
@@ -490,7 +490,7 @@ static fdtype doxmlblock(fdtype expr,fd_lexenv env,
     else if (SYMBOLP(tagspec)) attribs = NIL;
     else if (STRINGP(tagspec)) attribs = NIL;
     else if (PAIRP(tagspec)) {
-      fdtype name = FD_CAR(tagspec); attribs = fd_incref(FD_CDR(tagspec));
+      lispval name = FD_CAR(tagspec); attribs = fd_incref(FD_CDR(tagspec));
       if (SYMBOLP(name)) {}
       else if (STRINGP(name)) fd_incref(name);
       else {
@@ -512,7 +512,7 @@ static fdtype doxmlblock(fdtype expr,fd_lexenv env,
     return FD_ERROR;}
   if (newline) u8_putc(out,'\n');
   while (PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+    lispval value = fast_eval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn);
       close_markup(out,tagname);
@@ -535,22 +535,22 @@ static fdtype doxmlblock(fdtype expr,fd_lexenv env,
 }
 
 /* Does a block without wrapping content in newlines */
-static fdtype xmlblock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmlblock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return doxmlblock(expr,env,_stack,0);
 }
 /* Does a block and wraps content in newlines */
-static fdtype xmlblockn_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmlblockn_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return doxmlblock(expr,env,_stack,1);
 }
 
-static fdtype handle_markup(fdtype expr,fd_lexenv env,fd_stack _stack,
+static lispval handle_markup(lispval expr,fd_lexenv env,fd_stack _stack,
                             int star,int block)
 {
   if ((PAIRP(expr)) && (SYMBOLP(FD_CAR(expr)))) {
-    fdtype attribs = fd_get_arg(expr,1), body = fd_get_body(expr,2);
-    fdtype xmloidfn = fd_symeval(xmloidfn_symbol,env);
+    lispval attribs = fd_get_arg(expr,1), body = fd_get_body(expr,2);
+    lispval xmloidfn = fd_symeval(xmloidfn_symbol,env);
     U8_OUTPUT *out = u8_current_output, tmpout;
     u8_byte tagbuf[128], buf[128];
     u8_string tagname;
@@ -568,7 +568,7 @@ static fdtype handle_markup(fdtype expr,fd_lexenv env,fd_stack _stack,
       return FD_ERROR;}
     if (block) u8_printf(out,"\n");
     while (PAIRP(body)) {
-      fdtype value = fast_eval(FD_CAR(body),env);
+      lispval value = fast_eval(FD_CAR(body),env);
       if (FD_ABORTP(value)) {
         close_markup(out,tagname);
         if (block) u8_printf(out,"\n");
@@ -593,31 +593,31 @@ static fdtype handle_markup(fdtype expr,fd_lexenv env,fd_stack _stack,
   else return fd_err(fd_SyntaxError,"XML markup",NULL,fd_incref(expr));
 }
 
-static fdtype markup_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval markup_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return handle_markup(expr,env,_stack,0,0);
 }
 
-static fdtype markupblock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval markupblock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return handle_markup(expr,env,_stack,0,1);
 }
 
-static fdtype markupstarblock_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval markupstarblock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return handle_markup(expr,env,_stack,1,1);
 }
 
-static fdtype markupstar_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval markupstar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return handle_markup(expr,env,_stack,1,0);
 }
 
-static fdtype emptymarkup_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval emptymarkup_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   u8_byte tagbuf[128];
   U8_OUTPUT *out = u8_current_output;
-  fdtype head = FD_CAR(expr), args = FD_CDR(expr);
+  lispval head = FD_CAR(expr), args = FD_CDR(expr);
   u8_string tagname = get_tagname(head,tagbuf,128);
   if (tagname == NULL)
     return fd_err(fd_SyntaxError,"emptymarkup_evalfn",NULL,expr);
@@ -630,18 +630,18 @@ static fdtype emptymarkup_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Getting oid display data */
 
-static fdtype global_browseinfo = EMPTY;
+static lispval global_browseinfo = EMPTY;
 static u8_string default_browse_uri = NULL;
 static u8_string default_browse_class = NULL;
 
 static u8_mutex browseinfo_lock;
 
-static fdtype get_browseinfo(fdtype arg)
+static lispval get_browseinfo(lispval arg)
 {
   fd_pool p = fd_oid2pool(arg);
   if (p == NULL) return EMPTY;
   else {
-    fdtype pool = fd_pool2lisp(p), browseinfo = fd_thread_get(browseinfo_symbol), dflt = VOID;
+    lispval pool = fd_pool2lisp(p), browseinfo = fd_thread_get(browseinfo_symbol), dflt = VOID;
     DO_CHOICES(info,browseinfo) {
       if ((VECTORP(info)) && (VEC_LEN(info)>0))
         if (FD_EQ(VEC_REF(info,0),pool)) {
@@ -670,7 +670,7 @@ static fdtype get_browseinfo(fdtype arg)
       return dflt;}}
 }
 
-static int unpack_browseinfo(fdtype info,u8_string *baseuri,u8_string *classname,fdtype *displayer)
+static int unpack_browseinfo(lispval info,u8_string *baseuri,u8_string *classname,lispval *displayer)
 {
   if ((EMPTYP(info)) || (VOIDP(info))) {
     if (*baseuri == NULL) {
@@ -712,22 +712,22 @@ static int unpack_browseinfo(fdtype info,u8_string *baseuri,u8_string *classname
   return 0;
 }
 
-static fdtype browseinfo_config_get(fdtype var,void *ignored)
+static lispval browseinfo_config_get(lispval var,void *ignored)
 {
-  fdtype result;
+  lispval result;
   u8_lock_mutex(&browseinfo_lock);
   result = global_browseinfo; fd_incref(result);
   u8_unlock_mutex(&browseinfo_lock);
   return result;
 }
 
-static int browseinfo_config_set(fdtype var,fdtype val,void *ignored)
+static int browseinfo_config_set(lispval var,lispval val,void *ignored)
 {
-  fdtype new_browseinfo = EMPTY, old_browseinfo;
+  lispval new_browseinfo = EMPTY, old_browseinfo;
   u8_lock_mutex(&browseinfo_lock);
   old_browseinfo = global_browseinfo;
   if ((STRINGP(val)) || ((VECTORP(val)) && (VEC_LEN(val)>1))) {
-    fdtype target = VEC_REF(val,0);
+    lispval target = VEC_REF(val,0);
     DO_CHOICES(info,old_browseinfo) {
       if ((VECTORP(info)) && (FD_EQ(target,VEC_REF(info,0)))) {}
       else if ((STRINGP(info)) && (FD_TRUEP(target))) {}
@@ -745,11 +745,11 @@ static int browseinfo_config_set(fdtype var,fdtype val,void *ignored)
 
 /* Doing anchor output */
 
-static fdtype doanchor_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval doanchor_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output, tmpout;
-  fdtype target = fd_eval(fd_get_arg(expr,1),env), xmloidfn;
-  fdtype body = fd_get_body(expr,2);
+  lispval target = fd_eval(fd_get_arg(expr,1),env), xmloidfn;
+  lispval body = fd_get_body(expr,2);
   u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   if (VOIDP(target))
     return fd_err(fd_SyntaxError,"doanchor",NULL,VOID);
@@ -765,7 +765,7 @@ static fdtype doanchor_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_printf(out,"'>");}
   else if (OIDP(target)) {
     FD_OID addr = FD_OID_ADDR(target);
-    fdtype browseinfo = get_browseinfo(target);
+    lispval browseinfo = get_browseinfo(target);
     u8_string uri = NULL, class = NULL;
     unpack_browseinfo(browseinfo,&uri,&class,NULL);
     u8_printf(out,"<a href='%s:@%x/%x' class='%s'>",
@@ -775,7 +775,7 @@ static fdtype doanchor_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return fd_type_error(_("valid anchor target"),"doanchor",target);}
   xmloidfn = fd_symeval(xmloidfn_symbol,env);
   while (PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+    lispval value = fast_eval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
       fd_decref(xmloidfn); fd_decref(target);
       return value;}
@@ -792,9 +792,9 @@ static fdtype doanchor_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-static int has_class_attrib(fdtype attribs)
+static int has_class_attrib(lispval attribs)
 {
-  fdtype scan = attribs;
+  lispval scan = attribs;
   while (PAIRP(scan))
     if (FD_EQ(FD_CAR(scan),class_symbol)) return 1;
     else if ((PAIRP(FD_CAR(scan))) &&
@@ -806,12 +806,12 @@ static int has_class_attrib(fdtype attribs)
   return 0;
 }
 
-static fdtype doanchor_star_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval doanchor_star_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output, tmpout;
-  fdtype target = fd_eval(fd_get_arg(expr,1),env), xmloidfn = VOID;
-  fdtype attribs = fd_get_arg(expr,2);
-  fdtype body = fd_get_body(expr,3);
+  lispval target = fd_eval(fd_get_arg(expr,1),env), xmloidfn = VOID;
+  lispval attribs = fd_get_arg(expr,2);
+  lispval body = fd_get_body(expr,3);
   u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   if (VOIDP(target))
     return fd_err(fd_SyntaxError,"doanchor",NULL,VOID);
@@ -826,13 +826,13 @@ static fdtype doanchor_star_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
                         fd_conspair(fd_stream2string(&tmpout),fd_incref(attribs)));}
   else if (OIDP(target)) {
     FD_OID addr = FD_OID_ADDR(target);
-    fdtype browseinfo = get_browseinfo(target);
+    lispval browseinfo = get_browseinfo(target);
     u8_string uri = NULL, class = NULL;
     unpack_browseinfo(browseinfo,&uri,&class,NULL);
     if (has_class_attrib(attribs))
       fd_incref(attribs);
     else attribs = fd_conspair(fd_intern("CLASS"),
-                             fd_conspair(fdtype_string(class),fd_incref(attribs)));
+                             fd_conspair(lispval_string(class),fd_incref(attribs)));
     tmpout.u8_write = tmpout.u8_outbuf;
     u8_printf(&tmpout,"%s:@%x/%x",uri,FD_OID_HI(addr),(FD_OID_LO(addr)));
     attribs = fd_conspair
@@ -846,7 +846,7 @@ static fdtype doanchor_star_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
     return FD_ERROR;}
   while (PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+    lispval value = fast_eval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
       fd_decref(attribs); fd_decref(xmloidfn); fd_decref(target);
       return value;}
@@ -863,10 +863,10 @@ static fdtype doanchor_star_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return VOID;
 }
 
-FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
+FD_EXPORT void fd_xmloid(u8_output out,lispval arg)
 {
   FD_OID addr = FD_OID_ADDR(arg);
-  fdtype browseinfo = get_browseinfo(arg), name, displayer = VOID;
+  lispval browseinfo = get_browseinfo(arg), name, displayer = VOID;
   u8_string uri = NULL, class = NULL;
   unpack_browseinfo(browseinfo,&uri,&class,&displayer);
   if (out == NULL) out = u8_current_output;
@@ -886,7 +886,7 @@ FD_EXPORT void fd_xmloid(u8_output out,fdtype arg)
   fd_decref(browseinfo);
 }
 
-static fdtype xmloid(fdtype oid_arg)
+static lispval xmloid(lispval oid_arg)
 {
   fd_xmloid(NULL,oid_arg);
   return VOID;
@@ -894,9 +894,9 @@ static fdtype xmloid(fdtype oid_arg)
 
 /* XMLEVAL primitives */
 
-static fdtype xmleval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmleval_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype xmlarg = fd_get_arg(expr,1);
+  lispval xmlarg = fd_get_arg(expr,1);
   if (VOIDP(xmlarg))
     return fd_err(fd_SyntaxError,"xmleval_evalfn",NULL,VOID);
   else {
@@ -907,9 +907,9 @@ static fdtype xmleval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       else emit_xmlcontent(out,data);
       return VOID;}
     else {
-      fdtype xml = fd_eval(xmlarg,env);
-      fdtype env_arg = fd_eval(fd_get_arg(expr,2),env);
-      fdtype xml_env_arg = fd_eval(fd_get_arg(expr,3),env);
+      lispval xml = fd_eval(xmlarg,env);
+      lispval env_arg = fd_eval(fd_get_arg(expr,2),env);
+      lispval xml_env_arg = fd_eval(fd_get_arg(expr,3),env);
       if (FD_ABORTP(xml)) {
         fd_decref(env_arg); fd_decref(xml_env_arg);
         return xml;}
@@ -922,7 +922,7 @@ static fdtype xmleval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       else if (!((VOIDP(env_arg)) || (FALSEP(env_arg)) ||
                  (FD_TRUEP(env_arg)) || (FD_LEXENVP(env_arg)) ||
                  (TABLEP(env_arg)))) {
-        fdtype err = fd_type_error("SCHEME environment","xmleval_evalfn",env_arg);
+        lispval err = fd_type_error("SCHEME environment","xmleval_evalfn",env_arg);
         fd_decref(xml); fd_decref(xml_env_arg);
         return err;}
       else if (!((VOIDP(xml_env_arg)) || (FALSEP(xml_env_arg)) ||
@@ -930,14 +930,14 @@ static fdtype xmleval_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
         fd_decref(xml); fd_decref(env_arg);
         return fd_type_error("environment","xmleval_evalfn",xml_env_arg);}
       else {
-        fdtype result = fd_xmleval_with(out,xml,env_arg,xml_env_arg);
+        lispval result = fd_xmleval_with(out,xml,env_arg,xml_env_arg);
         fd_decref(xml); fd_decref(env_arg); fd_decref(xml_env_arg);
         return result;}
     }
   }
 }
 
-static fdtype xml2string_prim(fdtype xml,fdtype env_arg,fdtype xml_env_arg)
+static lispval xml2string_prim(lispval xml,lispval env_arg,lispval xml_env_arg)
 {
   if (!((VOIDP(env_arg)) || (FALSEP(env_arg)) ||
         (FD_TRUEP(env_arg)) || (FD_LEXENVP(env_arg)) ||
@@ -947,38 +947,38 @@ static fdtype xml2string_prim(fdtype xml,fdtype env_arg,fdtype xml_env_arg)
                (FD_LEXENVP(xml_env_arg)) || (TABLEP(xml_env_arg)))) {
     return fd_type_error("environment","xmleval_evalfn",xml_env_arg);}
   if (STRINGP(xml)) {
-    fdtype parsed = fd_fdxml_arg(xml);
-    fdtype result = xml2string_prim(parsed,env_arg,xml_env_arg);
+    lispval parsed = fd_fdxml_arg(xml);
+    lispval result = xml2string_prim(parsed,env_arg,xml_env_arg);
     fd_decref(parsed);
     return result;}
   else {
     U8_OUTPUT out; char buf[1024];
     U8_INIT_OUTPUT_BUF(&out,1024,buf);
-    fdtype result = fd_xmleval_with(&out,xml,env_arg,xml_env_arg);
+    lispval result = fd_xmleval_with(&out,xml,env_arg,xml_env_arg);
     fd_decref(result);
     return fd_stream2string(&out);}
 }
 
-static fdtype xmlopen_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval xmlopen_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   if (!(PAIRP(FD_CDR(expr))))
     return fd_err(fd_SyntaxError,"xmleval_evalfn",NULL,VOID);
   else {
-    fdtype node = fd_eval(FD_CADR(expr),env);
+    lispval node = fd_eval(FD_CADR(expr),env);
     if (FD_ABORTP(node)) return node;
     else if (TABLEP(node)) {
-      fdtype result = fd_open_xml(node,env);
+      lispval result = fd_open_xml(node,env);
       fd_decref(node);
       return result;}
     else return VOID;}
 }
 
-static fdtype xmlclose_prim(fdtype arg)
+static lispval xmlclose_prim(lispval arg)
 {
   if (!(TABLEP(arg)))
     return fd_type_error("XML node","xmlclose_prim",arg);
   else {
-    fdtype tag = fd_close_xml(arg);
+    lispval tag = fd_close_xml(arg);
     fd_decref(tag);
     return VOID;}
 }
@@ -989,19 +989,19 @@ static fdtype xmlclose_prim(fdtype arg)
    arguments into strings.  This uses double quotes to quote the
    arguments because the output is typically inserted in attributes
    which are single quoted. */
-static fdtype output_javascript(u8_output out,fdtype args,fd_lexenv env)
+static lispval output_javascript(u8_output out,lispval args,fd_lexenv env)
 {
   if (NILP(args))
     return fd_err(fd_SyntaxError,"output_javascript",NULL,args);
   else {
     int i = 0;
-    fdtype head_expr = FD_CAR(args), head = fd_eval(head_expr,env), body = FD_CDR(args);
+    lispval head_expr = FD_CAR(args), head = fd_eval(head_expr,env), body = FD_CDR(args);
     if (!(STRINGP(head)))
       return fd_type_error(_("javascript function name"),
                            "output_javascript",head);
     else u8_printf(out,"%s(",CSTRING(head));
     {FD_DOELTS(elt,body,count) {
-        fdtype val;
+        lispval val;
         if (i>0) u8_putc(out,','); 
         i++;
         if (FD_NEED_EVALP(elt))
@@ -1048,9 +1048,9 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lexenv env)
     return VOID;}
 }
 
-static fdtype javascript_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval javascript_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+  lispval retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
   retval = output_javascript(&out,FD_CDR(expr),env);
   if (VOIDP(retval))
     return fd_stream2string(&out);
@@ -1058,9 +1058,9 @@ static fdtype javascript_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_free(out.u8_outbuf); return retval;}
 }
 
-static fdtype javastmt_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval javastmt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+  lispval retval; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
   retval = output_javascript(&out,FD_CDR(expr),env);
   if (VOIDP(retval)) {
     u8_putc(&out,';');
@@ -1081,14 +1081,14 @@ static u8_string soapbodyclose="</SOAP-ENV:Body>";
 static u8_string soapheaderopen="  <SOAP-ENV:Header>\n";
 static u8_string soapheaderclose="\n  </SOAP-ENV:Header>";
 
-static fdtype soapenvelope_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval soapenvelope_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
-  fdtype header_arg = fd_get_arg(expr,1);
-  fdtype body = fd_get_body(expr,2);
+  lispval header_arg = fd_get_arg(expr,1);
+  lispval body = fd_get_body(expr,2);
   u8_puts(out,soapenvopen);
   if (FD_NEED_EVALP(header_arg)) {
-    fdtype value;
+    lispval value;
     u8_puts(out,soapheaderopen);
     value = fd_eval(header_arg,env);
     if (STRINGP(value)) u8_puts(out,CSTRING(value));
@@ -1107,8 +1107,8 @@ static u8_string markup_printf_handler
   (u8_output s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   if (strchr(cmd,'l')) {
-    fdtype val = va_arg(*args,fdtype);
-    u8_string str = fd_dtype2string(val);
+    lispval val = va_arg(*args,lispval);
+    u8_string str = fd_lisp2string(val);
     emit_xmlcontent(s,str); u8_free(str);}
   else {
     u8_string str = va_arg(*args,u8_string);
@@ -1119,30 +1119,30 @@ static u8_string markup_printf_handler
 
 FD_EXPORT void fd_init_xmloutput_c()
 {
-  fdtype fdweb_module=
+  lispval fdweb_module=
     fd_new_module("FDWEB",(0));
-  fdtype safe_fdweb_module=
+  lispval safe_fdweb_module=
     fd_new_module("FDWEB",(FD_MODULE_SAFE));
-  fdtype xhtml_module=
+  lispval xhtml_module=
     fd_new_module("XHTML",FD_MODULE_SAFE);
 
-  fdtype markup_prim = fd_make_evalfn("markup",markup_evalfn);
-  fdtype markupstar_prim = fd_make_evalfn("markup*",markupstar_evalfn);
-  fdtype markupblock_prim=
+  lispval markup_prim = fd_make_evalfn("markup",markup_evalfn);
+  lispval markupstar_prim = fd_make_evalfn("markup*",markupstar_evalfn);
+  lispval markupblock_prim=
     fd_make_evalfn("markupblock",markupblock_evalfn);
-  fdtype markupstarblock_prim=
+  lispval markupstarblock_prim=
     fd_make_evalfn("markup*block",markupstarblock_evalfn);
-  fdtype emptymarkup_prim=
+  lispval emptymarkup_prim=
     fd_make_evalfn("emptymarkup",emptymarkup_evalfn);
-  fdtype xmlout_prim = fd_make_evalfn("XMLOUT",xmlout_evalfn);
-  fdtype xmlblock_prim = fd_make_evalfn("XMLBLOCK",xmlblock_evalfn);
-  fdtype xmlblockn_prim = fd_make_evalfn("XMLBLOCKN",xmlblockn_evalfn);
-  fdtype xmlelt_prim = fd_make_evalfn("XMLELT",xmlentry_evalfn);
+  lispval xmlout_prim = fd_make_evalfn("XMLOUT",xmlout_evalfn);
+  lispval xmlblock_prim = fd_make_evalfn("XMLBLOCK",xmlblock_evalfn);
+  lispval xmlblockn_prim = fd_make_evalfn("XMLBLOCKN",xmlblockn_evalfn);
+  lispval xmlelt_prim = fd_make_evalfn("XMLELT",xmlentry_evalfn);
 
   /* Applicable XML generators (not evalfns) */
-  fdtype xmlempty_dproc = fd_make_cprimn("XMLEMPTY",xmlemptyelt,0);
-  fdtype xmlempty_proc = fd_make_ndprim(xmlempty_dproc);
-  fdtype xmlify_proc = fd_make_cprim1("XMLIFY",xmlify,1);
+  lispval xmlempty_dproc = fd_make_cprimn("XMLEMPTY",xmlemptyelt,0);
+  lispval xmlempty_proc = fd_make_ndprim(xmlempty_dproc);
+  lispval xmlify_proc = fd_make_cprim1("XMLIFY",xmlify,1);
 
   u8_printf_handlers['k']=markup_printf_handler;
 
@@ -1231,9 +1231,9 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_defspecial(fdweb_module,"XMLSTART",xmlstart_evalfn);
   fd_defspecial(safe_fdweb_module,"XMLSTART",xmlstart_evalfn);
   {
-    fdtype xmlcloseprim=
+    lispval xmlcloseprim=
       fd_make_cprim1("XMLCLOSE",xmlclose_prim,1);
-    fdtype xmlendprim=
+    lispval xmlendprim=
       fd_make_cprim1("XMLEND",xmlend_prim,1);
     fd_defn(fdweb_module,xmlcloseprim);
     fd_idefn(safe_fdweb_module,xmlcloseprim);

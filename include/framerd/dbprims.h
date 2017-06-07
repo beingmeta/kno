@@ -11,10 +11,10 @@
 #define FRAMERD_DBPRIMS_H_INFO "include/framerd/dbprims.h"
 #endif
 
-FD_EXPORT fdtype fd_fget(fdtype frames,fdtype slotids);
-FD_EXPORT fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values);
-FD_EXPORT fdtype fd_assert(fdtype frames,fdtype slotids,fdtype values);
-FD_EXPORT fdtype fd_retract(fdtype frames,fdtype slotids,fdtype values);
+FD_EXPORT lispval fd_fget(lispval frames,lispval slotids);
+FD_EXPORT lispval fd_ftest(lispval frames,lispval slotids,lispval values);
+FD_EXPORT lispval fd_assert(lispval frames,lispval slotids,lispval values);
+FD_EXPORT lispval fd_retract(lispval frames,lispval slotids,lispval values);
 
 #endif
 

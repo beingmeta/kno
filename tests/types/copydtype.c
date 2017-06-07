@@ -17,7 +17,7 @@
 
 int main(int argc,char **argv)
 {
-  fdtype object, copied;
+  lispval object, copied;
   struct FD_STREAM *in, *out;
   int bytes = 0;
   FD_DO_LIBINIT(fd_init_libfdtype);

@@ -13,8 +13,8 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
-static fdtype build_info=VOID;
-static fdtype _fd_features_symbol;
+static lispval build_info=VOID;
+static lispval _fd_features_symbol;
 
 #define config_int(var) \
   fd_store(build_info,fd_intern(# var),FD_INT(var));
@@ -25,17 +25,17 @@ static fdtype _fd_features_symbol;
 
 static void config_string_helper(u8_string var,u8_string val)
 {
-  fdtype string=fdtype_string(val);
+  lispval string=lispval_string(val);
   fd_store(build_info,fd_intern(var),string);
   fd_decref(string);
 }
 
-FD_EXPORT fdtype fd_get_build_info()
+FD_EXPORT lispval fd_get_build_info()
 {
   return fd_incref(build_info);
 }
 
-FD_EXPORT fdtype config_get_build_info(fdtype var,void *data)
+FD_EXPORT lispval config_get_build_info(lispval var,void *data)
 {
   return fd_incref(build_info);
 }
@@ -67,7 +67,7 @@ FD_EXPORT void fd_init_build_info()
   config_int(SIZEOF_TIME_T);
   config_int(SIZEOF_OFF_T);
   config_int(SIZEOF_SIZE_T);
-  config_int(SIZEOF_FDTYPE);
+  config_int(SIZEOF_LISPVAL);
 
 #ifdef FD_LARGEFILES_ENABLED
   config_bool(FD_LARGEFILES_ENABLED);
@@ -516,9 +516,6 @@ FD_EXPORT void fd_init_build_info()
 
 #ifdef FD_ENABLE_LOCKFREE
   config_bool(FD_ENABLE_LOCKFREE);
-#endif
-#ifdef FD_DEFAULT_CHECKFDTYPE
-  config_bool(FD_DEFAULT_CHECKFDTYPE);
 #endif
 #ifdef FD_FORCE_TLS
   config_bool(FD_FORCE_TLS);

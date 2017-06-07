@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static int write_dtype_to_file(fdtype object,FILE *f)
+static int write_dtype_to_file(lispval object,FILE *f)
 {
   struct FD_OUTBUF out; int n;
   FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -46,7 +46,7 @@ char *read_text_file(char *filename)
 
 int main(int argc,char **argv)
 {
-  fdtype object;
+  lispval object;
   FILE *f = fopen(argv[1],"wb");
   FD_DO_LIBINIT(fd_init_libfdtype);
   if ((argv[2][0]=='-') && (argv[2][1]=='f')) {

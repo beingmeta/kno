@@ -30,16 +30,16 @@
 
 extern my_bool my_init(void);
 
-static fdtype sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
-static fdtype sslciphers_symbol, port_symbol, reconnect_symbol;
-static fdtype timeout_symbol, connect_timeout_symbol;
-static fdtype read_timeout_symbol, write_timeout_symbol, lazy_symbol;
+static lispval sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
+static lispval sslciphers_symbol, port_symbol, reconnect_symbol;
+static lispval timeout_symbol, connect_timeout_symbol;
+static lispval read_timeout_symbol, write_timeout_symbol, lazy_symbol;
 
-static fdtype boolean_symbol;
+static lispval boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
 u8_condition UnusedType=_("MYSQL unused parameter type");
 
-static u8_string dupstring(fdtype x)
+static u8_string dupstring(lispval x)
 {
   if (FD_VOIDP(x)) return NULL;
   else if (FD_STRINGP(x))
@@ -81,7 +81,7 @@ static u8_mutex mysql_connect_lock;
 
 FD_EXPORT int fd_init_mysql(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER mysql_handler;
-static fdtype callmysqlproc(fd_function fn,int n,fdtype *args);
+static lispval callmysqlproc(fd_function fn,int n,lispval *args);
 
 typedef struct FD_MYSQL {
   FD_EXTDB_FIELDS;
@@ -111,7 +111,7 @@ typedef struct FD_MYSQL_PROC {
   size_t mysqlproc_string_len;
   int mysqlproc_n_cols, mysqlproc_needs_init;
   MYSQL *mysqldb; MYSQL_STMT *mysqlproc_stmt;
-  fdtype *mysqlproc_colnames;
+  lispval *mysqlproc_colnames;
   union MYSQL_VALBUF *mysqlproc_valbuf;
   my_bool *mysqlproc_isnullbuf;
   MYSQL_BIND *mysqlproc_inbound, *mysqlproc_outbound;} FD_MYSQL_PROC;
@@ -121,9 +121,9 @@ static int init_mysqlproc(FD_MYSQL *db,struct FD_MYSQL_PROC *dbproc);
 
 static fd_exception MySQL_Error=_("MySQL Error");
 static fd_exception MySQL_NoConvert=_("Can't convert value to SQL");
-static fdtype merge_symbol, noempty_symbol, sorted_symbol;
+static lispval merge_symbol, noempty_symbol, sorted_symbol;
 
-static fdtype intern_upcase(u8_output out,u8_string s)
+static lispval intern_upcase(u8_output out,u8_string s)
 {
   int c = u8_sgetc(&s);
   out->u8_write = out->u8_outbuf;
@@ -140,7 +140,7 @@ static unsigned char *_memdup(const unsigned char *data,int len)
   return duplicate;
 }
 
-static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
+static lispval merge_colinfo(FD_MYSQL *dbp,lispval colinfo)
 {
   if (FD_VOIDP(colinfo)) return fd_incref(dbp->extdb_colinfo);
   else if (FD_VOIDP(dbp->extdb_colinfo))
@@ -160,20 +160,20 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 static int setup_connection(struct FD_MYSQL *dbp)
 {
   int retval = 0;
-  fdtype options = dbp->extdb_options;
+  lispval options = dbp->extdb_options;
   int timeout = -1, ctimeout = -1, rtimeout = -1, wtimeout = -1;
   U8_MAYBE_UNUSED char *option = NULL;
   if (!(FD_VOIDP(options))) {
-    fdtype port = fd_getopt(options,port_symbol,FD_VOID);
-    fdtype sslca = fd_getopt(options,sslca_symbol,FD_VOID);
-    fdtype sslcert = fd_getopt(options,sslcert_symbol,FD_VOID);
-    fdtype sslkey = fd_getopt(options,sslkey_symbol,FD_VOID);
-    fdtype sslcadir = fd_getopt(options,sslcadir_symbol,FD_VOID);
-    fdtype sslciphers = fd_getopt(options,sslciphers_symbol,FD_VOID);
-    fdtype toval = fd_getopt(options,timeout_symbol,FD_VOID);
-    fdtype ctoval = fd_getopt(options,connect_timeout_symbol,FD_VOID);
-    fdtype rtoval = fd_getopt(options,read_timeout_symbol,FD_VOID);
-    fdtype wtoval = fd_getopt(options,write_timeout_symbol,FD_VOID);
+    lispval port = fd_getopt(options,port_symbol,FD_VOID);
+    lispval sslca = fd_getopt(options,sslca_symbol,FD_VOID);
+    lispval sslcert = fd_getopt(options,sslcert_symbol,FD_VOID);
+    lispval sslkey = fd_getopt(options,sslkey_symbol,FD_VOID);
+    lispval sslcadir = fd_getopt(options,sslcadir_symbol,FD_VOID);
+    lispval sslciphers = fd_getopt(options,sslciphers_symbol,FD_VOID);
+    lispval toval = fd_getopt(options,timeout_symbol,FD_VOID);
+    lispval ctoval = fd_getopt(options,connect_timeout_symbol,FD_VOID);
+    lispval rtoval = fd_getopt(options,read_timeout_symbol,FD_VOID);
+    lispval wtoval = fd_getopt(options,write_timeout_symbol,FD_VOID);
     dbp->mysql_portno = ((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
     if (FD_FIXNUMP(toval)) timeout = FD_FIX2INT(toval);
     if (FD_FIXNUMP(ctoval)) ctimeout = FD_FIX2INT(ctoval);
@@ -249,7 +249,7 @@ static int restart_connection(struct FD_MYSQL *dbp)
 
   if (!(db)) {
     const char *msg = mysql_error(db); int err = mysql_errno(dbp->mysqldb);
-    fdtype conn = (fdtype) dbp; fd_incref(conn);
+    lispval conn = (lispval) dbp; fd_incref(conn);
     u8_log(LOG_CRIT,"mysql/reconnect",
            "Failed after %ds to reconnect to MYSQL %s (%s), final error %s (%d)",
            waited,dbp->extdb_spec,dbp->extdb_info,msg,err);
@@ -336,7 +336,7 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
 {
   struct FD_MYSQL *dbp = (struct FD_MYSQL *)c;
   int n_procs = dbp->extdb_n_procs;
-  fdtype *toremove = u8_malloc(sizeof(fdtype)*(dbp->extdb_n_procs)), *write = toremove;
+  lispval *toremove = u8_malloc(sizeof(lispval)*(dbp->extdb_n_procs)), *write = toremove;
   int i = 0;
   u8_lock_mutex(&(dbp->extdb_proclock));
   while (i<n_procs) {
@@ -345,10 +345,10 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
       u8_log(LOG_WARN,"freemysqldb",
              "dangling pointer to extdbproc %s on %s (%s)",
              p->extdb_qtext,dbp->extdb_spec,dbp->extdb_info);
-    *write++=(fdtype)p;}
+    *write++=(lispval)p;}
   u8_unlock_mutex(&(dbp->extdb_proclock));
 
-  i = 0; while (i<n_procs) {fdtype proc = toremove[i++]; fd_decref(proc);}
+  i = 0; while (i<n_procs) {lispval proc = toremove[i++]; fd_decref(proc);}
 
   u8_free(dbp->extdb_procs);
   fd_decref(dbp->extdb_colinfo); fd_decref(dbp->extdb_options);
@@ -359,7 +359,7 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
   mysql_close(dbp->mysqldb);
 }
 
-static fdtype refresh_mysqldb(fdtype c,fdtype flags)
+static lispval refresh_mysqldb(lispval c,lispval flags)
 {
   struct FD_MYSQL *dbp = (struct FD_MYSQL *)c;
 
@@ -368,7 +368,7 @@ static fdtype refresh_mysqldb(fdtype c,fdtype flags)
                            REFRESH_STATUS|REFRESH_THREADS);
   if (retval) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb));
-    return fd_err(MySQL_Error,"mysql/refresh",(u8_string)errmsg,((fdtype)c));}
+    return fd_err(MySQL_Error,"mysql/refresh",(u8_string)errmsg,((lispval)c));}
   else return FD_VOID;
 }
 
@@ -377,10 +377,10 @@ static fdtype refresh_mysqldb(fdtype c,fdtype flags)
 /* Everything but the hostname and dbname is optional.
    In theory, we could have the dbname be optional, but for now we'll
    require it.  */
-static fdtype open_mysql
-  (fdtype hostname,fdtype dbname,fdtype colinfo,
-   fdtype user,fdtype password,
-   fdtype options)
+static lispval open_mysql
+  (lispval hostname,lispval dbname,lispval colinfo,
+   lispval user,lispval password,
+   lispval options)
 {
   const char *host, *username, *passwd, *dbstring, *sockname, *spec;
   int portno = 0, flags = 0, retval;
@@ -435,7 +435,7 @@ static fdtype open_mysql
                 mysql_get_client_info());
   dbp->mysql_startup = u8_elapsed_time();
 
-  return FDTYPE_CONS(dbp);
+  return LISP_CONS(dbp);
 }
 
 /* Binding for procedures */
@@ -500,7 +500,7 @@ static void outbound_setup(MYSQL_BIND *outval)
      we wait to retrieve.
    One potential optimization would be to go ahead and preallocate buffers
      for those columns when their size is known or constrained.  */
-static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
+static lispval outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
                            my_bool *isnull,int column)
 {
   MYSQL_BIND *outval = &(bindings[column]);
@@ -528,7 +528,7 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
        the TEXT/BLOCK columns are not retrieved, though their sizes
        are.  We then use mysqlproc_stmt_fetch_column to get the particular
        value once we have consed a buffer to use. */
-    fdtype value;
+    lispval value;
     int binary = ((outval->buffer_type) == MYSQL_TYPE_BLOB);
     int datalen = (*(outval->length)), buflen = datalen+((binary) ? (0) : (1));
     outval->buffer = u8_alloc_n(buflen,unsigned char);
@@ -570,17 +570,17 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
 
 /* This gets all the values returned by a statement, using
    prepared buffers for outbound variables and known column names. */
-static fdtype get_stmt_values
-  (MYSQL_STMT *stmt,fdtype colinfo,int n_cols,
-   fdtype *mysqlproc_colnames,MYSQL_BIND *outbound,my_bool *isnullbuf)
+static lispval get_stmt_values
+  (MYSQL_STMT *stmt,lispval colinfo,int n_cols,
+   lispval *mysqlproc_colnames,MYSQL_BIND *outbound,my_bool *isnullbuf)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  fdtype mergefn = fd_getopt(colinfo,merge_symbol,FD_VOID);
-  fdtype sortval = fd_getopt(colinfo,sorted_symbol,FD_VOID);
+  lispval results = FD_EMPTY_CHOICE;
+  lispval mergefn = fd_getopt(colinfo,merge_symbol,FD_VOID);
+  lispval sortval = fd_getopt(colinfo,sorted_symbol,FD_VOID);
   int noempty = fd_testopt(colinfo,noempty_symbol,FD_VOID);
   int sorted = (!((FD_FALSEP(sortval))||(FD_VOIDP(sortval))));
-  fdtype _colmaps[16], *colmaps=
-    ((n_cols>16) ? (u8_alloc_n(n_cols,fdtype)) : (_colmaps));
+  lispval _colmaps[16], *colmaps=
+    ((n_cols>16) ? (u8_alloc_n(n_cols,lispval)) : (_colmaps));
   int i = 0, retval = mysql_stmt_fetch(stmt);
   int result_index = 0, n_results;
   if ((retval==0)||(retval == MYSQL_DATA_TRUNCATED)) {
@@ -592,11 +592,11 @@ static fdtype get_stmt_values
     /* For each iteration, we have a good value from the database,
        so we don't need to worry about lost connections for this
        loop, but we do need to worry about them afterwards. */
-    fdtype result = FD_EMPTY_CHOICE;
+    lispval result = FD_EMPTY_CHOICE;
     struct FD_KEYVAL *kv = u8_alloc_n(n_cols,struct FD_KEYVAL);
     int n_slots = 0;
     i = 0; while (i<n_cols) {
-      fdtype value = outbound_get(stmt,outbound,isnullbuf,i);
+      lispval value = outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
       if (FD_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
         if (noempty) {i++; continue;}
@@ -645,7 +645,7 @@ static fdtype get_stmt_values
           uuidbytes = uuid->fd_uuid16;
           memcpy(uuidbytes,data,16);
           fd_decref(value);
-          kv[n_slots].kv_val = FDTYPE_CONS(uuid);}
+          kv[n_slots].kv_val = LISP_CONS(uuid);}
         else kv[n_slots].kv_val = value;
       else if (FD_EQ(colmaps[i],boolean_symbol)) {
         if (FD_FIXNUMP(value)) {
@@ -694,7 +694,7 @@ static fdtype get_stmt_values
     else if (!(FD_APPLICABLEP(mergefn))) {
       result = fd_type_error("applicable","mysql/get_stmt_values",mergefn);}
     else {
-      fdtype tmp_slotmap = fd_init_slotmap(NULL,n_slots,kv);
+      lispval tmp_slotmap = fd_init_slotmap(NULL,n_slots,kv);
       result = fd_apply(mergefn,1,&tmp_slotmap);
       fd_decref(tmp_slotmap);}
     if (FD_ABORTP(result)) {
@@ -727,12 +727,12 @@ static fdtype get_stmt_values
 /* This inits the vectors used when converting results from statement
    execution. */
 static int init_stmt_results
-  (MYSQL_STMT *stmt,MYSQL_BIND **outboundptr,fdtype **mysqlproc_colnamesptr,
+  (MYSQL_STMT *stmt,MYSQL_BIND **outboundptr,lispval **mysqlproc_colnamesptr,
    my_bool **isnullbuf)
 {
   int n_cols = mysql_stmt_field_count(stmt);
   if (n_cols>0) {
-    fdtype *mysqlproc_colnames = u8_alloc_n(n_cols,fdtype);
+    lispval *mysqlproc_colnames = u8_alloc_n(n_cols,lispval);
     MYSQL_BIND *outbound = u8_alloc_n(n_cols,MYSQL_BIND);
     MYSQL_RES *metadata = mysql_stmt_result_metadata(stmt);
     MYSQL_FIELD *fields = ((metadata) ? (mysql_fetch_fields(metadata)) : (NULL));
@@ -787,12 +787,12 @@ static int init_stmt_results
    statements anyway (rather than mysql_fetch_row) because it lets us
    use raw C types consistent with prepared statements, rather than
    using the converted strings from mysql_fetch_row.  */
-static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
-                        fdtype colinfo_arg,int reconn)
+static lispval mysqlexec(struct FD_MYSQL *dbp,lispval string,
+                        lispval colinfo_arg,int reconn)
 {
   MYSQL *db = dbp->mysqldb;
-  MYSQL_BIND *outbound = NULL; fdtype *mysqlproc_colnames = NULL; my_bool *isnullbuf = NULL;
-  fdtype colinfo = merge_colinfo(dbp,colinfo_arg), results = FD_VOID;
+  MYSQL_BIND *outbound = NULL; lispval *mysqlproc_colnames = NULL; my_bool *isnullbuf = NULL;
+  lispval colinfo = merge_colinfo(dbp,colinfo_arg), results = FD_VOID;
   int retval, n_cols = 0, i = 0; unsigned int mysqlerrno = 0;
   MYSQL_STMT *stmt;
   u8_lock_mutex(&(dbp->mysql_lock));
@@ -847,27 +847,27 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
   else return results;
 }
 
-static fdtype mysqlexechandler
-  (struct FD_EXTDB *extdb,fdtype string,fdtype colinfo)
+static lispval mysqlexechandler
+  (struct FD_EXTDB *extdb,lispval string,lispval colinfo)
 {
   if (extdb->extdb_handler== &mysql_handler)
     return mysqlexec((fd_mysql)extdb,string,colinfo,1);
-  else return fd_type_error("MYSQL EXTDB","mysqlexechandler",(fdtype)extdb);
+  else return fd_type_error("MYSQL EXTDB","mysqlexechandler",(lispval)extdb);
 }
 
 /* MYSQL procs */
 
 static int default_lazy_init = 0;
 
-static fdtype mysqlmakeproc
+static lispval mysqlmakeproc
   (struct FD_MYSQL *dbp,
    u8_string stmt,int stmt_len,
-   fdtype colinfo,int n,fdtype *ptypes)
+   lispval colinfo,int n,lispval *ptypes)
 {
   MYSQL *db = dbp->mysqldb; int retval = 0;
   struct FD_MYSQL_PROC *dbproc = u8_alloc(struct FD_MYSQL_PROC);
   unsigned int lazy_init = 0;
-  fdtype lazy_opt = fd_getopt(dbp->extdb_options,lazy_symbol,FD_VOID);
+  lispval lazy_opt = fd_getopt(dbp->extdb_options,lazy_symbol,FD_VOID);
   if (FD_VOIDP(lazy_opt))
     lazy_init = default_lazy_init;
   else if (FD_TRUEP(lazy_opt))
@@ -881,7 +881,7 @@ static fdtype mysqlmakeproc
 
   /* Set up fields for EXTDBPROC */
   dbproc->extdb_handler = &mysql_handler;
-  dbproc->extdbptr = (fdtype)dbp; fd_incref(dbproc->extdbptr);
+  dbproc->extdbptr = (lispval)dbp; fd_incref(dbproc->extdbptr);
   dbproc->extdb_spec = u8_strdup(dbp->extdb_spec);
   dbproc->extdb_qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
   colinfo = dbproc->extdb_colinfo = merge_colinfo(dbp,colinfo);
@@ -907,7 +907,7 @@ static fdtype mysqlmakeproc
   dbproc->mysqlproc_n_cols = -1;
 
   dbproc->fcn_n_params = n; {
-    fdtype *init_ptypes = u8_alloc_n(n,fdtype);
+    lispval *init_ptypes = u8_alloc_n(n,lispval);
     int i = 0; while (i<n) {
       init_ptypes[i]=fd_incref(ptypes[i]); i++;}
     dbproc->extdb_paramtypes = init_ptypes;}
@@ -920,18 +920,18 @@ static fdtype mysqlmakeproc
     retval = init_mysqlproc(dbp,dbproc);
     u8_unlock_mutex(&(dbp->mysql_lock));}
   if (retval<0) return FD_ERROR_VALUE;
-  else return FDTYPE_CONS(dbproc);
+  else return LISP_CONS(dbproc);
 }
 
 /* This is the handler stored in the method table */
-static fdtype mysqlmakeprochandler
+static lispval mysqlmakeprochandler
   (struct FD_EXTDB *extdb,
    u8_string stmt,int stmt_len,
-   fdtype colinfo,int n,fdtype *ptypes)
+   lispval colinfo,int n,lispval *ptypes)
 {
   if (extdb->extdb_handler== &mysql_handler)
     return mysqlmakeproc((fd_mysql)extdb,stmt,stmt_len,colinfo,n,ptypes);
-  else return fd_type_error("MYSQL EXTDB","mysqlmakeprochandler",(fdtype)extdb);
+  else return fd_type_error("MYSQL EXTDB","mysqlmakeprochandler",(lispval)extdb);
 }
 
 /* Various MYSQLPROC functions */
@@ -1000,7 +1000,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 
   if (n_params == dbproc->fcn_n_params) {}
   else {
-    fdtype *init_ptypes = dbproc->extdb_paramtypes, *ptypes = u8_alloc_n(n_params,fdtype);
+    lispval *init_ptypes = dbproc->extdb_paramtypes, *ptypes = u8_alloc_n(n_params,lispval);
     int i = 0, init_n = dbproc->fcn_n_params; while ((i<init_n)&&(i<n_params)) {
       ptypes[i]=init_ptypes[i]; i++;}
     while (i<n_params) ptypes[i++]=FD_VOID;
@@ -1008,7 +1008,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
       /* We make this a warning rather than an error, because we don't
          need that information.  Note that this should only generate a warning
          the first time that the statement is created. */
-      fdtype ptype = init_ptypes[i++];
+      lispval ptype = init_ptypes[i++];
       if (FD_VOIDP(ptype)) {}
       else u8_log(LOG_WARN,UnusedType,
                   "Parameter type %hq is not used for %s",ptype,dbproc->extdb_qtext);
@@ -1085,12 +1085,12 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
 
 /* Actually calling a MYSQL proc */
 
-static fdtype applymysqlproc(fd_function f,int n,fdtype *args,int reconn);
+static lispval applymysqlproc(fd_function f,int n,lispval *args,int reconn);
 
-static fdtype callmysqlproc(fd_function fn,int n,fdtype *args){
+static lispval callmysqlproc(fd_function fn,int n,lispval *args){
   return applymysqlproc(fn,n,args,7);}
 
-static fdtype applymysqlproc(fd_function fn,int n,fdtype *args,int reconn)
+static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
 {
   struct FD_MYSQL_PROC *dbproc = (struct FD_MYSQL_PROC *)fn;
   struct FD_MYSQL *dbp=
@@ -1104,8 +1104,8 @@ static fdtype applymysqlproc(fd_function fn,int n,fdtype *args,int reconn)
 
   /* Argbuf stores objects we consed in the process of
      converting application objects to SQLish values. */
-  fdtype *ptypes = dbproc->extdb_paramtypes;
-  fdtype values = FD_EMPTY_CHOICE;
+  lispval *ptypes = dbproc->extdb_paramtypes;
+  lispval values = FD_EMPTY_CHOICE;
   int i = 0, n_bound = 0;
   /* *retval* tracks the most recent operation and tells whether to keep going.
      The other x*vals* identify the retvals for particular phases, to help
@@ -1115,7 +1115,7 @@ static fdtype applymysqlproc(fd_function fn,int n,fdtype *args,int reconn)
   int proclock = 0, dblock = 0;
   volatile unsigned int mysqlerrno = 0;
   const char *mysqlerrmsg = NULL;
-  fdtype _argbuf[4], *argbuf=_argbuf;
+  lispval _argbuf[4], *argbuf=_argbuf;
 
   u8_lock_mutex(&(dbproc->mysqlproc_lock)); proclock = 1;
 
@@ -1142,13 +1142,13 @@ static fdtype applymysqlproc(fd_function fn,int n,fdtype *args,int reconn)
         return fd_err(fd_TooFewArgs,"fd_dapply",fn->fcn_name,FD_VOID);
       else return fd_err(fd_TooManyArgs,"fd_dapply",fn->fcn_name,FD_VOID);}
 
-    if (n_params>4) argbuf = u8_alloc_n(n_params,fdtype);
-    /* memset(argbuf,0,sizeof(fdtype)*n_params); */
+    if (n_params>4) argbuf = u8_alloc_n(n_params,lispval);
+    /* memset(argbuf,0,sizeof(lispval)*n_params); */
 
     /* Initialize the input parameters from the arguments.
        None of this accesses the database, so we don't lock it yet.*/
     while (i<n_params) {
-      fdtype arg = args[i];
+      lispval arg = args[i];
       /* Use the ptypes to map application arguments into SQL. */
       if (FD_VOIDP(ptypes[i])) argbuf[i]=FD_VOID;
       else if ((FD_OIDP(arg)) && (FD_OIDP(ptypes[i]))) {
@@ -1369,7 +1369,7 @@ static fdtype applymysqlproc(fd_function fn,int n,fdtype *args,int reconn)
   /* Clean up */
   i = 0; while (i<n_mstimes) {u8_free(mstimes[i]); i++;}
   i = 0; while (i<n_bound) {
-    fdtype arg = argbuf[i++];
+    lispval arg = argbuf[i++];
     if (arg) fd_decref(arg);}
   if (argbuf!=_argbuf) u8_free(argbuf);
 
@@ -1440,7 +1440,7 @@ static void cleanup_thread_for_mysql()
 
 FD_EXPORT int fd_init_mysql()
 {
-  fdtype module;
+  lispval module;
   if (mysql_initialized) return 0;
 
   u8_register_threadinit(init_thread_for_mysql);

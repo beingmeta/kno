@@ -30,7 +30,7 @@ static u8_condition zlibBufferError=_("ZLIB buffer error");
 static u8_condition zlibBadErrorCode=_("ZLIB odd error code");
 static u8_condition zlibDataError=_("Bad ZLIB input data");
 
-static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
+static lispval zlib_compress_prim(lispval input_arg,lispval level_arg)
 {
   int level = ((FD_UINTP(level_arg))?(FD_FIX2INT(level_arg)):(9));
   const Bytef *input; uLongf input_len = 0;
@@ -65,7 +65,7 @@ static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
     return fd_err(ex,"zip_prim",NULL,FD_VOID);}
 }
 
-static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_factor)
+static lispval zlib_uncompress_prim(lispval input_arg,lispval text,lispval init_factor)
 {
   int init_grow = ((FD_UINTP(init_factor))?(FD_FIX2INT(init_factor)):(5));
   const Bytef *input; uLongf input_len = 0;
@@ -138,7 +138,7 @@ static long long int zlib_init = 0;
 
 FD_EXPORT int fd_init_zlib()
 {
-  fdtype zlib_module;
+  lispval zlib_module;
   if (zlib_init) return 0;
 
   zlib_init = u8_millitime();

@@ -28,10 +28,10 @@
 
 /* Pretty printing */
 
-static fdtype quote_symbol, comment_symbol;
-static fdtype unquote_symbol, quasiquote_symbol, unquote_star_symbol;
+static lispval quote_symbol, comment_symbol;
+static lispval unquote_symbol, quasiquote_symbol, unquote_star_symbol;
 
-static int output_keyval(u8_output out,fdtype key,fdtype val,
+static int output_keyval(u8_output out,lispval key,lispval val,
                          int col,int maxcol);
 
 #define PPRINT_ATOMICP(x)                     \
@@ -43,13 +43,13 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
 /* Prototypes */
 
 FD_EXPORT
-int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
+int fd_pprint_x(u8_output out,lispval x,u8_string prefix,
                 int indent,int col,int maxcol,
                 fd_pprintfn fn,void *data);
 
 FD_EXPORT
-int fd_pprint_table(u8_output out,fdtype x,
-                    const fdtype *keys,size_t n_keys,
+int fd_pprint_table(u8_output out,lispval x,
+                    const lispval *keys,size_t n_keys,
                     u8_string prefix,int indent,
                     int col,int maxcol,
                     fd_pprintfn fn,void *data);
@@ -57,7 +57,7 @@ int fd_pprint_table(u8_output out,fdtype x,
 /* The default function */
 
 FD_EXPORT
-int fd_pprint(u8_output out,fdtype x,u8_string prefix,
+int fd_pprint(u8_output out,lispval x,u8_string prefix,
               int indent,int col,int maxcol)
 {
   return fd_pprint_x(out,x,prefix,indent,col,maxcol,NULL,NULL);
@@ -86,7 +86,7 @@ static void do_reset(u8_output out,int startoff)
 }
 
 FD_EXPORT
-int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
+int fd_pprint_x(u8_output out,lispval x,u8_string prefix,
                 int indent,int col,int maxcol,
                 fd_pprintfn fn,void *data)
 {
@@ -127,7 +127,7 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
   if ((PAIRP(x)) && (SYMBOLP(FD_CAR(x))) &&
       (PAIRP(FD_CDR(x))) &&
       (NILP(FD_CDR(FD_CDR(x))))) {
-    fdtype car = FD_CAR(x);
+    lispval car = FD_CAR(x);
     if (FD_EQ(car,quote_symbol)) {
       u8_putc(out,'\''); indent++; x = FD_CAR(FD_CDR(x));}
     else if (FD_EQ(car,unquote_symbol)) {
@@ -140,7 +140,7 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
       u8_puts(out,"#;"); indent = indent+2; x = FD_CAR(FD_CDR(x));}}
   /* Special compound printers for different types. */
   if (PAIRP(x)) {
-    fdtype car = FD_CAR(x), scan = x;
+    lispval car = FD_CAR(x), scan = x;
     if (SYMBOLP(car)) indent = indent+2;
     u8_putc(out,'('); col++; indent++;
     while (PAIRP(scan)) {
@@ -208,7 +208,7 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
     u8_putc(out,'}');
     return col+1;}
   else if ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) {
-    fdtype keys=fd_getkeys(x);
+    lispval keys=fd_getkeys(x);
     if (PRECHOICEP(keys)) keys=fd_simplify_choice(keys);
     if (EMPTYP(keys)) {
       if (col>(prefix_len+indent)) {
@@ -238,19 +238,19 @@ int fd_pprint_x(u8_output out,fdtype x,u8_string prefix,
 }
 
 FD_EXPORT
-int fd_pprint_table(u8_output out,fdtype x,
-                    const fdtype *keys,size_t n_keys,
+int fd_pprint_table(u8_output out,lispval x,
+                    const lispval *keys,size_t n_keys,
                     u8_string prefix,int indent,int col,int maxcol,
                     fd_pprintfn fn,void *data)
 {
   if (n_keys==0)
     return col;
-  const fdtype *scan=keys, *limit=scan+n_keys;
+  const lispval *scan=keys, *limit=scan+n_keys;
   size_t prefix_len = (prefix) ? (strlen(prefix)) : (0);
   int count=0;
   while (scan<limit) {
-    fdtype key = *scan++;
-    fdtype val = fd_get(x,key,VOID);
+    lispval key = *scan++;
+    lispval val = fd_get(x,key,VOID);
     if (VOIDP(val)) continue;
     else if (count) {
       int i = indent;
@@ -302,7 +302,7 @@ int fd_pprint_table(u8_output out,fdtype x,
   return col;
 }
 
-static int output_keyval(u8_output out,fdtype key,fdtype val,
+static int output_keyval(u8_output out,lispval key,lispval val,
                          int col,int maxcol)
 {
   ssize_t len = 0;
@@ -344,13 +344,13 @@ static u8_string lisp_pprintf_handler
   (u8_output out,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   struct U8_OUTPUT tmpout;
-  int width = 80; fdtype value;
+  int width = 80; lispval value;
   if (strchr(cmd,'*'))
     width = va_arg(*args,int);
   else {
     width = strtol(cmd,NULL,10);
     U8_CLEAR_ERRNO();}
-  value = va_arg(*args,fdtype);
+  value = va_arg(*args,lispval);
   U8_INIT_OUTPUT(&tmpout,512);
   fd_pprint(&tmpout,value,NULL,0,0,width);
   u8_puts(out,tmpout.u8_outbuf);

@@ -31,7 +31,7 @@ fd_exception fd_NotAFileIndex=_("not a file index");
 fd_exception fd_BadIndexSpec=_("bad index specification");
 fd_exception fd_IndexCommitError=_("can't save changes to index");
 
-fdtype fd_index_hashop, fd_index_slotsop;
+lispval fd_index_hashop, fd_index_slotsop;
 
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
@@ -93,25 +93,25 @@ struct FD_COMPOUND_INDEX *fd_background = NULL;
 static u8_mutex background_lock;
 
 #if FD_GLOBAL_IPEVAL
-static fdtype *index_delays;
+static lispval *index_delays;
 #elif FD_USE__THREAD
-static __thread fdtype *index_delays;
+static __thread lispval *index_delays;
 #elif FD_USE_TLS
 static u8_tld_key index_delays_key;
 #else
-static fdtype *index_delays;
+static lispval *index_delays;
 #endif
 
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
 #define get_index_delays() \
-  ((fdtype *)u8_tld_get(index_delays_key))
+  ((lispval *)u8_tld_get(index_delays_key))
 FD_EXPORT void fd_init_index_delays()
 {
-  fdtype *delays = (fdtype *)u8_tld_get(index_delays_key);
+  lispval *delays = (lispval *)u8_tld_get(index_delays_key);
   if (delays) return;
   else {
     int i = 0;
-    delays = u8_alloc_n(FD_N_INDEX_DELAYS,fdtype);
+    delays = u8_alloc_n(FD_N_INDEX_DELAYS,lispval);
     while (i<FD_N_INDEX_DELAYS) delays[i++]=EMPTY;
     u8_tld_set(index_delays_key,delays);}
 
@@ -123,21 +123,21 @@ FD_EXPORT void fd_init_index_delays()
   if (index_delays) return;
   else {
     int i = 0;
-    index_delays = u8_alloc_n(FD_N_INDEX_DELAYS,fdtype);
+    index_delays = u8_alloc_n(FD_N_INDEX_DELAYS,lispval);
     while (i<FD_N_INDEX_DELAYS) index_delays[i++]=EMPTY;}
 
 }
 #endif
 
-FD_EXPORT fdtype *fd_get_index_delays() { return get_index_delays(); }
+FD_EXPORT lispval *fd_get_index_delays() { return get_index_delays(); }
 
-static fdtype set_symbol, drop_symbol;
+static lispval set_symbol, drop_symbol;
 
 static u8_mutex indexes_lock;
 
 /* Index ops */
 
-FD_EXPORT fdtype fd_index_ctl(fd_index x,fdtype indexop,int n,fdtype *args)
+FD_EXPORT lispval fd_index_ctl(fd_index x,lispval indexop,int n,lispval *args)
 {
   struct FD_INDEX_HANDLER *h = x->index_handler;
   if (h->indexctl)
@@ -151,8 +151,8 @@ FD_EXPORT fdtype fd_index_ctl(fd_index x,fdtype indexop,int n,fdtype *args)
 
 FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
-  fdtype intarg = FD_INT(level);
-  fdtype result = fd_index_ctl(ix,fd_cachelevel_op,1,&intarg);
+  lispval intarg = FD_INT(level);
+  lispval result = fd_index_ctl(ix,fd_cachelevel_op,1,&intarg);
   if (FD_ABORTP(result)) {fd_clear_errors(1);}
   fd_decref(result);
   ix->index_cache_level = level;
@@ -188,15 +188,15 @@ FD_EXPORT void fd_register_index(fd_index ix)
     u8_unlock_mutex(&indexes_lock);}
 }
 
-FD_EXPORT fdtype fd_index2lisp(fd_index ix)
+FD_EXPORT lispval fd_index2lisp(fd_index ix)
 {
   if (ix == NULL)
     return FD_ERROR;
   else if (ix->index_serialno>=0)
-    return FDTYPE_IMMEDIATE(fd_index_type,ix->index_serialno);
-  else return fd_incref((fdtype)ix);
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else return fd_incref((lispval)ix);
 }
-FD_EXPORT fd_index fd_lisp2index(fdtype lix)
+FD_EXPORT fd_index fd_lisp2index(lispval lix)
 {
   if (FD_ABORTP(lix)) return NULL;
   else if (FD_TYPEP(lix,fd_index_type)) {
@@ -277,7 +277,7 @@ FD_EXPORT fd_index fd_find_index_by_source(u8_string source)
 }
 
 FD_EXPORT fd_index fd_get_index
-(u8_string spec,fd_storage_flags flags,fdtype opts)
+(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   if (strchr(spec,';')) {
     fd_index ix = NULL;
@@ -305,7 +305,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
 {
   if (ix == NULL) return 0;
   if (ix->index_serialno<0) {
-    fdtype lix = (fdtype)ix;
+    lispval lix = (lispval)ix;
     fd_incref(lix);}
   u8_lock_mutex(&background_lock);
   ix->index_flags = ix->index_flags|FD_INDEX_IN_BACKGROUND;
@@ -323,7 +323,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   return 1;
 }
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags flags,fdtype opts)
+FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   flags&=~FD_STORAGE_UNREGISTERED;
   if (strchr(spec,';')) {
@@ -349,26 +349,26 @@ FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags flags,fdtype opt
 
 /* Core functions */
 
-static void delay_index_fetch(fd_index ix,fdtype keys);
+static void delay_index_fetch(fd_index ix,lispval keys);
 
-FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
+FD_EXPORT lispval fd_index_fetch(fd_index ix,lispval key)
 {
-  fdtype v;
+  lispval v;
   fd_hashtable cache = &(ix->index_cache);
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable edits = &(ix->index_edits);
   init_cache_level(ix);
   if (ix->index_edits.table_n_keys) {
-    fdtype set_key = fd_make_pair(set_symbol,key);
-    fdtype set_value = fd_hashtable_get(edits,set_key,VOID);
+    lispval set_key = fd_make_pair(set_symbol,key);
+    lispval set_value = fd_hashtable_get(edits,set_key,VOID);
     fd_decref(set_key);
     if (!(VOIDP(set_value))) {
       if (ix->index_cache_level>0) fd_hashtable_store(cache,key,set_value);
       return set_value;}
     else {
-      fdtype drop_key = fd_make_pair(drop_symbol,key);
-      fdtype added = fd_hashtable_get(adds,key,EMPTY);
-      fdtype dropped = fd_hashtable_get(edits,drop_key,EMPTY);
+      lispval drop_key = fd_make_pair(drop_symbol,key);
+      lispval added = fd_hashtable_get(adds,key,EMPTY);
+      lispval dropped = fd_hashtable_get(edits,drop_key,EMPTY);
       fd_decref(drop_key);
       if (ix->index_handler->fetch)
         v = ix->index_handler->fetch(ix,key);
@@ -376,13 +376,13 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
       if (EMPTYP(dropped)) {
         CHOICE_ADD(v,added);}
       else {
-        fdtype newv;
+        lispval newv;
         CHOICE_ADD(v,added);
         newv = fd_difference(v,dropped);
         fd_decref(v); fd_decref(dropped);
         v = newv;}}}
   else if (ix->index_adds.table_n_keys) {
-    fdtype added = fd_hashtable_get(&(ix->index_adds),key,EMPTY);
+    lispval added = fd_hashtable_get(&(ix->index_adds),key,EMPTY);
     if (ix->index_handler->fetch)
       v = ix->index_handler->fetch(ix,key);
     else v = EMPTY;
@@ -399,10 +399,10 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
   return v;
 }
 
-static void delay_index_fetch(fd_index ix,fdtype keys)
+static void delay_index_fetch(fd_index ix,lispval keys)
 {
   struct FD_HASHTABLE *cache = &(ix->index_cache); int delay_count = 0;
-  fdtype *delays = get_index_delays(), *delayp = &(delays[ix->index_serialno]);
+  lispval *delays = get_index_delays(), *delayp = &(delays[ix->index_serialno]);
   DO_CHOICES(key,keys) {
     if (fd_hashtable_probe(cache,key)) {}
     else {
@@ -412,18 +412,18 @@ static void delay_index_fetch(fd_index ix,fdtype keys)
   if (delay_count) (void)fd_ipeval_delay(delay_count);
 }
 
-FD_EXPORT void fd_delay_index_fetch(fd_index ix,fdtype keys)
+FD_EXPORT void fd_delay_index_fetch(fd_index ix,lispval keys)
 {
   delay_index_fetch(ix,keys);
 }
 
-FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
+FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys)
 {
   FDTC *fdtc = ((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
-  fdtype *keyvec = NULL, *values = NULL;
-  fdtype lix = ((ix->index_serialno>=0)?
-              (FDTYPE_IMMEDIATE(fd_index_type,ix->index_serialno)):
-              ((fdtype)ix));
+  lispval *keyvec = NULL, *values = NULL;
+  lispval lix = ((ix->index_serialno>=0)?
+              (LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno)):
+              ((lispval)ix));
   int free_keys = 0, n_fetched = 0, cachelevel = 0;
   if (ix == NULL) return -1;
   else init_cache_level(ix);
@@ -440,7 +440,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
     else {
       DO_CHOICES(key,keys)
         if (!(fd_hashtable_probe(&(ix->index_cache),key))) {
-          fdtype v = fd_index_fetch(ix,key);
+          lispval v = fd_index_fetch(ix,key);
           if (FD_ABORTP(v)) return fd_interr(v);
           n_fetched++;
           if (cachelevel>0) fd_hashtable_store(&(ix->index_cache),key,v);
@@ -451,14 +451,14 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
   if (fd_ipeval_status()) delay_index_fetch(ix,keys);
   else if (!(CHOICEP(keys))) {
     if (!(fd_hashtable_probe(&(ix->index_cache),keys))) {
-      fdtype v = fd_index_fetch(ix,keys);
+      lispval v = fd_index_fetch(ix,keys);
       if (FD_ABORTP(v)) return fd_interr(v);
       n_fetched = 1;
       if (cachelevel>0) fd_hashtable_store(&(ix->index_cache),keys,v);
       if (fdtc) fd_hashtable_store(&(fdtc->indexes),fd_make_pair(lix,keys),v);
       fd_decref(v);}}
   else {
-    fdtype *write = NULL, singlekey = VOID;
+    lispval *write = NULL, singlekey = VOID;
     /* We first iterate over the keys to pick those that need to be fetched.
        If only one needs to be fetched, we will end up with write still NULL
        but with singlekey bound to that key. */
@@ -467,13 +467,13 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       /* If there are any edits, we need to integrate them into whatever we
          prefetch. */
       DO_CHOICES(key,keys) {
-        fdtype set_key = fd_make_pair(set_symbol,key);
+        lispval set_key = fd_make_pair(set_symbol,key);
         if (!((fd_hashtable_probe(cache,key)) ||
               (fd_hashtable_probe(edits,set_key)))) {
           if (write) *write++=key;
           else if (VOIDP(singlekey)) singlekey = key;
           else {
-            write = keyvec = u8_alloc_n(FD_CHOICE_SIZE(keys),fdtype);
+            write = keyvec = u8_alloc_n(FD_CHOICE_SIZE(keys),lispval);
             write[0]=singlekey; write[1]=key; write = write+2;}}
         fd_decref(set_key);}}
     else {
@@ -482,12 +482,12 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
           if (write) *write++=key;
           else if (VOIDP(singlekey)) singlekey = key;
           else {
-            write = keyvec = u8_alloc_n(FD_CHOICE_SIZE(keys),fdtype);
+            write = keyvec = u8_alloc_n(FD_CHOICE_SIZE(keys),lispval);
             write[0]=singlekey; write[1]=key; write = write+2;}}}
     if (write == NULL)
       if (VOIDP(singlekey)) {}
       else {
-        fdtype v = fd_index_fetch(ix,singlekey); n_fetched = 1;
+        lispval v = fd_index_fetch(ix,singlekey); n_fetched = 1;
         if (cachelevel>0) fd_hashtable_store(&(ix->index_cache),singlekey,v);
         if (fdtc) fd_hashtable_store
                     (&(fdtc->indexes),fd_make_pair(lix,singlekey),v);
@@ -500,10 +500,10 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       if (values == NULL) n_fetched = -1;
       else if (ix->index_edits.table_n_keys) /* When there are drops or sets */
         while (i < n) {
-          fdtype key = keyvec[i];
-          fdtype drop_key = fd_make_pair(drop_symbol,key);
-          fdtype adds = fd_hashtable_get(&(ix->index_adds),key,EMPTY);
-          fdtype drops=
+          lispval key = keyvec[i];
+          lispval drop_key = fd_make_pair(drop_symbol,key);
+          lispval adds = fd_hashtable_get(&(ix->index_adds),key,EMPTY);
+          lispval drops=
             fd_hashtable_get(&(ix->index_edits),drop_key,EMPTY);
           fd_decref(drop_key);
           if (EMPTYP(drops))
@@ -514,7 +514,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
                            values[i]);
               fd_decref(values[i]);}
             else {
-              fdtype simple;
+              lispval simple;
               CHOICE_ADD(values[i],adds);
               simple = fd_simplify_choice(values[i]);
               if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],simple);
@@ -523,7 +523,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
                            simple);
               fd_decref(simple);}
           else {
-            fdtype oldv = values[i], newv;
+            lispval oldv = values[i], newv;
             CHOICE_ADD(oldv,adds);
             newv = fd_difference(oldv,drops);
             newv = fd_simplify_choice(newv);
@@ -535,8 +535,8 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
           fd_decref(drops); i++;}
       else if (ix->index_adds.table_n_keys)  /* When there are just adds */
         while (i < n) {
-          fdtype key = keyvec[i];
-          fdtype adds = fd_hashtable_get(&(ix->index_adds),key,EMPTY);
+          lispval key = keyvec[i];
+          lispval adds = fd_hashtable_get(&(ix->index_adds),key,EMPTY);
           if (EMPTYP(adds)) {
             if (cachelevel>0) fd_hashtable_store(cache,keyvec[i],values[i]);
             if (fdtc) fd_hashtable_store
@@ -571,32 +571,32 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
   return n_fetched;
 }
 
-static int add_key_fn(fdtype key,fdtype val,void *data)
+static int add_key_fn(lispval key,lispval val,void *data)
 {
-  fdtype **write = (fdtype **)data;
+  lispval **write = (lispval **)data;
   *((*write)++) = fd_incref(key);
   /* Means keep going */
   return 0;
 }
 
-static int edit_key_fn(fdtype key,fdtype val,void *data)
+static int edit_key_fn(lispval key,lispval val,void *data)
 {
-  fdtype **write = (fdtype **)data;
+  lispval **write = (lispval **)data;
   if (PAIRP(key)) {
     struct FD_PAIR *pair = (struct FD_PAIR *)key;
     if (pair->car == set_symbol) {
-      fdtype real_key = pair->cdr;
+      lispval real_key = pair->cdr;
       fd_incref(real_key);
       *((*write)++) = real_key;}}
   /* Means keep going */
   return 0;
 }
 
-FD_EXPORT fdtype fd_index_keys(fd_index ix)
+FD_EXPORT lispval fd_index_keys(fd_index ix)
 {
   if (ix->index_handler->fetchkeys) {
     int n_fetched = 0;
-    fdtype *fetched = ix->index_handler->fetchkeys(ix,&n_fetched);
+    lispval *fetched = ix->index_handler->fetchkeys(ix,&n_fetched);
     if ((n_fetched==0) && (ix->index_edits.table_n_keys == 0) &&
         (ix->index_adds.table_n_keys == 0))
       return EMPTY;
@@ -606,12 +606,12 @@ FD_EXPORT fdtype fd_index_keys(fd_index ix)
       return fd_hashtable_keys(&(ix->index_edits));
     else {
       fd_choice result; int n_total;
-      fdtype *write_start, *write_at;
+      lispval *write_start, *write_at;
       n_total = n_fetched+ix->index_adds.table_n_keys+
         ix->index_edits.table_n_keys;
       result = fd_alloc_choice(n_total);
       if (n_fetched)
-        memcpy(&(result->choice_0),fetched,sizeof(fdtype)*n_fetched);
+        memcpy(&(result->choice_0),fetched,sizeof(lispval)*n_fetched);
       write_start = &(result->choice_0); write_at = write_start+n_fetched;
       if (ix->index_adds.table_n_keys)
         fd_for_hashtable(&(ix->index_adds),add_key_fn,&write_at,1);
@@ -623,7 +623,7 @@ FD_EXPORT fdtype fd_index_keys(fd_index ix)
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
 }
 
-static int copy_value_sizes(fdtype key,fdtype value,void *vptr)
+static int copy_value_sizes(lispval key,lispval value,void *vptr)
 {
   struct FD_HASHTABLE *sizes = (struct FD_HASHTABLE *)vptr;
   int value_size = ((VOIDP(value)) ? (0) : FD_CHOICE_SIZE(value));
@@ -631,10 +631,10 @@ static int copy_value_sizes(fdtype key,fdtype value,void *vptr)
   return 0;
 }
 
-FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
+FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
 {
   if (ix->index_handler->fetchinfo) {
-    fdtype keys=for_keys;
+    lispval keys=for_keys;
     int n_fetched = 0, decref_keys;
     struct FD_CHOICE *filter=NULL;
     if (PRECHOICEP(for_keys)) {
@@ -643,9 +643,9 @@ FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
     if (EMPTYP(keys))
       return EMPTY;
     else if (!(CHOICEP(keys))) {
-      fdtype v = fd_index_get(ix,keys);
+      lispval v = fd_index_get(ix,keys);
       unsigned int size = FD_CHOICE_SIZE(v);
-      fdtype result = fd_init_pair
+      lispval result = fd_init_pair
         ( NULL, fd_incref(keys), FD_INT(size) );
       if (decref_keys) fd_decref(keys);
       fd_decref(v);
@@ -656,9 +656,9 @@ FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
       return EMPTY;
     else if ((ix->index_adds.table_n_keys)==0) {
       fd_choice result = fd_alloc_choice(n_fetched);
-      fdtype *write = &(result->choice_0);
+      lispval *write = &(result->choice_0);
       int i = 0; while (i<n_fetched) {
-        fdtype key = fetched[i].keysizekey, pair;
+        lispval key = fetched[i].keysizekey, pair;
         unsigned int n_values = fetched[i].keysizenvals;
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
         *write++=pair; i++;}
@@ -667,7 +667,7 @@ FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
     else {
       struct FD_HASHTABLE added_sizes;
-      fd_choice result; int i = 0, n_total; fdtype *write;
+      fd_choice result; int i = 0, n_total; lispval *write;
       /* Get the sizes for added keys. */
       FD_INIT_STATIC_CONS(&added_sizes,fd_hashtable_type);
       fd_make_hashtable(&added_sizes,ix->index_adds.ht_n_buckets);
@@ -675,9 +675,9 @@ FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
       n_total = n_fetched+ix->index_adds.table_n_keys;
       result = fd_alloc_choice(n_total); write = &(result->choice_0);
       while (i<n_fetched) {
-        fdtype key = fetched[i].keysizekey, pair;
+        lispval key = fetched[i].keysizekey, pair;
         unsigned int n_values = fetched[i].keysizenvals;
-        fdtype added = fd_hashtable_get(&added_sizes,key,FD_INT(0));
+        lispval added = fd_hashtable_get(&added_sizes,key,FD_INT(0));
         n_values = n_values+fd_getint(added); fd_decref(added);
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
         *write++=pair; i++;}
@@ -687,19 +687,19 @@ FD_EXPORT fdtype fd_index_keysizes(fd_index ix,fdtype for_keys)
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
 }
 
-FD_EXPORT fdtype fd_index_sizes(fd_index ix)
+FD_EXPORT lispval fd_index_sizes(fd_index ix)
 {
   return fd_index_keysizes(ix,VOID);
 }
 
-FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
+FD_EXPORT lispval _fd_index_get(fd_index ix,lispval key)
 {
-  fdtype cached; struct FD_PAIR tempkey;
+  lispval cached; struct FD_PAIR tempkey;
   FDTC *fdtc = fd_threadcache;
   if (fdtc) {
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.car = fd_index2lisp(ix); tempkey.cdr = key;
-    cached = fd_hashtable_get(&(fdtc->indexes),(fdtype)&tempkey,VOID);
+    cached = fd_hashtable_get(&(fdtc->indexes),(lispval)&tempkey,VOID);
     if (!(VOIDP(cached))) return cached;}
   if (ix->index_cache_level==0) cached = VOID;
   else if ((PAIRP(key)) && (!(VOIDP(ix->index_covers_slotids))) &&
@@ -709,33 +709,33 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
   if (VOIDP(cached)) cached = fd_index_fetch(ix,key);
 #if FD_USE_THREADCACHE
   if (fdtc) {
-    fd_hashtable_store(&(fdtc->indexes),(fdtype)&tempkey,cached);}
+    fd_hashtable_store(&(fdtc->indexes),(lispval)&tempkey,cached);}
 #endif
   return cached;
 }
-static fdtype table_indexget(fdtype ixarg,fdtype key,fdtype dflt)
+static lispval table_indexget(lispval ixarg,lispval key,lispval dflt)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix) {
-    fdtype v = fd_index_get(ix,key);
+    lispval v = fd_index_get(ix,key);
     if (EMPTYP(v)) return fd_incref(dflt);
     else return v;}
   else return FD_ERROR;
 }
 
 
-static void extend_slotids(fd_index ix,const fdtype *keys,int n)
+static void extend_slotids(fd_index ix,const lispval *keys,int n)
 {
-  fdtype slotids = ix->index_covers_slotids;
+  lispval slotids = ix->index_covers_slotids;
   int i = 0; while (i<n) {
-    fdtype key = keys[i++], slotid;
+    lispval key = keys[i++], slotid;
     if (PAIRP(key)) slotid = FD_CAR(key); else continue;
     if ((OIDP(slotid)) || (SYMBOLP(slotid))) {
       if (atomic_choice_containsp(slotid,slotids)) continue;
       else {fd_decref(slotids); ix->index_covers_slotids = VOID;}}}
 }
 
-FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
+FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
 {
   FDTC *fdtc = fd_threadcache;
   fd_hashtable adds = &(ix->index_adds), cache = &(ix->index_cache);
@@ -745,8 +745,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
   else init_cache_level(ix);
   if (EMPTYP(value)) return 0;
   else if ((CHOICEP(key)) || (PRECHOICEP(key))) {
-    fdtype keys = fd_make_simple_choice(key);
-    const fdtype *keyv = FD_CHOICE_DATA(keys);
+    lispval keys = fd_make_simple_choice(key);
+    const lispval *keyv = FD_CHOICE_DATA(keys);
     unsigned int n = FD_CHOICE_SIZE(keys);
     fd_hashtable_iterkeys(adds,fd_table_add,n,keyv,value);
     if (!(VOIDP(ix->index_covers_slotids))) extend_slotids(ix,keyv,n);
@@ -755,8 +755,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
         struct FD_PAIR tempkey;
         FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
         tempkey.car = fd_index2lisp(ix); tempkey.cdr = k;
-        if (fd_hashtable_probe(&(fdtc->indexes),(fdtype)&tempkey)) {
-          fd_hashtable_add(&(fdtc->indexes),(fdtype)&tempkey,value);}}}
+        if (fd_hashtable_probe(&(fdtc->indexes),(lispval)&tempkey)) {
+          fd_hashtable_add(&(fdtc->indexes),(lispval)&tempkey,value);}}}
 
     if (ix->index_cache_level>0)
       fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keyv,value);
@@ -770,15 +770,15 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
       tempkey.car = fd_index2lisp(ix); tempkey.cdr = k;
-      if (fd_hashtable_probe(&(fdtc->indexes),(fdtype)&tempkey)) {
-        fd_hashtable_add(&(fdtc->indexes),(fdtype)&tempkey,value);}}}
+      if (fd_hashtable_probe(&(fdtc->indexes),(lispval)&tempkey)) {
+        fd_hashtable_add(&(fdtc->indexes),(lispval)&tempkey,value);}}}
 
   if ( (ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
        (fd_background->index_cache.table_n_keys) && 
          (fd_background->index_cache.table_n_keys) ) {
     fd_hashtable bgcache = &(fd_background->index_cache);
     if (CHOICEP(key)) {
-      const fdtype *keys = FD_CHOICE_DATA(key);
+      const lispval *keys = FD_CHOICE_DATA(key);
       unsigned int n = FD_CHOICE_SIZE(key);
       fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,VOID);}
     else fd_hashtable_op(bgcache,fd_table_replace,key,VOID);}
@@ -788,14 +788,14 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
   return 1;
 }
 
-static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
+static int table_indexadd(lispval ixarg,lispval key,lispval value)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix) return fd_index_add(ix,key,value);
   else return -1;
 }
 
-FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
+FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value)
 {
   fd_hashtable cache = &(ix->index_cache);
   fd_hashtable edits = &(ix->index_edits);
@@ -808,8 +808,8 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
   else init_cache_level(ix);
   if ((CHOICEP(key)) || (PRECHOICEP(key))) {
     DO_CHOICES(eachkey,key) {
-      fdtype drop_key = fd_make_pair(drop_symbol,eachkey);
-      fdtype set_key = fd_make_pair(set_symbol,eachkey);
+      lispval drop_key = fd_make_pair(drop_symbol,eachkey);
+      lispval set_key = fd_make_pair(set_symbol,eachkey);
       fd_hashtable_add(edits,drop_key,value);
       fd_hashtable_drop(edits,set_key,value);
       fd_hashtable_drop(adds,eachkey,value);
@@ -818,8 +818,8 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
       fd_decref(set_key); 
       fd_decref(drop_key);}}
   else {
-    fdtype drop_key = fd_make_pair(drop_symbol,key);
-    fdtype set_key = fd_make_pair(set_symbol,key);
+    lispval drop_key = fd_make_pair(drop_symbol,key);
+    lispval set_key = fd_make_pair(set_symbol,key);
     fd_hashtable_add(edits,drop_key,value);
     fd_hashtable_drop(edits,set_key,value);
     fd_hashtable_drop(adds,key,value);
@@ -830,14 +830,14 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     if (CHOICEP(key)) {
-      const fdtype *keys = FD_CHOICE_DATA(key);
+      const lispval *keys = FD_CHOICE_DATA(key);
       unsigned int n = FD_CHOICE_SIZE(key);
       fd_hashtable_iterkeys
         (bg_cache,fd_table_replace,n,keys,VOID);}
     else fd_hashtable_op(bg_cache,fd_table_replace,key,VOID);}
   return 1;
 }
-static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
+static int table_indexdrop(lispval ixarg,lispval key,lispval value)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (!(ix)) return -1;
@@ -846,7 +846,7 @@ static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
   else return fd_index_drop(ix,key,value);
 }
 
-FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
+FD_EXPORT int fd_index_store(fd_index ix,lispval key,lispval value)
 {
   fd_hashtable cache = &(ix->index_cache);
   fd_hashtable edits = &(ix->index_edits);
@@ -859,8 +859,8 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
   else init_cache_level(ix);
   if ((CHOICEP(key))||(PRECHOICEP(key))) {
     DO_CHOICES(eachkey,key) {
-      fdtype set_key = fd_make_pair(set_symbol,eachkey);
-      fdtype drop_key = fd_make_pair(drop_symbol,eachkey);
+      lispval set_key = fd_make_pair(set_symbol,eachkey);
+      lispval drop_key = fd_make_pair(drop_symbol,eachkey);
       fd_hashtable_store(edits,set_key,value);
       fd_hashtable_drop(edits,drop_key,VOID);
       if (ix->index_cache_level>0) {
@@ -869,8 +869,8 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
       fd_decref(set_key); 
       fd_decref(drop_key);}}
   else {
-    fdtype set_key = fd_make_pair(set_symbol,key);
-    fdtype drop_key = fd_make_pair(drop_symbol,key);
+    lispval set_key = fd_make_pair(set_symbol,key);
+    lispval drop_key = fd_make_pair(drop_symbol,key);
     fd_hashtable_store(edits,set_key,value);
     fd_hashtable_drop(edits,drop_key,VOID);
     if (ix->index_cache_level>0) {
@@ -881,14 +881,14 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     if (CHOICEP(key)) {
-      const fdtype *keys = FD_CHOICE_DATA(key);
+      const lispval *keys = FD_CHOICE_DATA(key);
       unsigned int n = FD_CHOICE_SIZE(key);
       fd_hashtable_iterkeys(bg_cache,fd_table_replace,n,keys,VOID);}
     else fd_hashtable_op(bg_cache,fd_table_replace,key,VOID);}
   return 1;
 }
 
-static int table_indexstore(fdtype ixarg,fdtype key,fdtype value)
+static int table_indexstore(lispval ixarg,lispval key,lispval value)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix) return fd_index_store(ix,key,value);
@@ -919,7 +919,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
   return 1;
 }
 
-FD_EXPORT int fd_batch_add(fd_index ix,fdtype table)
+FD_EXPORT int fd_batch_add(fd_index ix,lispval table)
 {
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
@@ -930,12 +930,12 @@ FD_EXPORT int fd_batch_add(fd_index ix,fdtype table)
     return fd_index_merge(ix,(fd_hashtable)table);
   else if (TABLEP(table)) {
     fd_hashtable adds = &(ix->index_adds);
-    fdtype allkeys = fd_getkeys(table);
+    lispval allkeys = fd_getkeys(table);
     int i = 0, n_keys = FD_CHOICE_SIZE(allkeys), atomic = 1;
-    fdtype *keys = u8_alloc_n(n_keys,fdtype);
-    fdtype *values = u8_alloc_n(n_keys,fdtype);
+    lispval *keys = u8_alloc_n(n_keys,lispval);
+    lispval *values = u8_alloc_n(n_keys,lispval);
     DO_CHOICES(key,allkeys) {
-      fdtype v = fd_get(table,key,VOID);
+      lispval v = fd_get(table,key,VOID);
       if (!(VOIDP(v))) {
         if (CONSP(v)) atomic = 0;
         keys[i]=key; values[i]=v; i++;}}
@@ -950,7 +950,7 @@ FD_EXPORT int fd_batch_add(fd_index ix,fdtype table)
     return -1;}
 }
 
-static fdtype table_indexkeys(fdtype ixarg)
+static lispval table_indexkeys(lispval ixarg)
 {
   fd_index ix = fd_indexptr(ixarg);
   if (ix) return fd_index_keys(ix);
@@ -988,7 +988,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   else return 0;
 }
 
-FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
+FD_EXPORT void fd_index_swapout(fd_index ix,lispval keys)
 {
   struct FD_HASHTABLE *cache = &(ix->index_cache);
   if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0))
@@ -1004,7 +1004,7 @@ FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys)
     fd_devoid_hashtable(cache,0);
     return;}
   else if (PRECHOICEP(keys)) {
-    fdtype simplified = fd_make_simple_choice(keys);
+    lispval simplified = fd_make_simple_choice(keys);
     fd_index_swapout(ix,simplified);
     fd_decref(simplified);}
   else {
@@ -1063,7 +1063,7 @@ FD_EXPORT void fd_reset_index_tables
 }
 
 
-static void display_index(u8_output out,fd_index ix,fdtype lix)
+static void display_index(u8_output out,fd_index ix,lispval lix)
 {
   u8_byte numbuf[32], edits[64];
   u8_string tag = (CONSP(lix)) ? ("CONSINDEX") : ("INDEX");
@@ -1084,7 +1084,7 @@ static void display_index(u8_output out,fd_index ix,fdtype lix)
                  tag,ix->indexid,type,
                  lix);
 }
-static int unparse_index(u8_output out,fdtype x)
+static int unparse_index(u8_output out,lispval x)
 {
   fd_index ix = fd_indexptr(x);
   if (ix == NULL) return 0;
@@ -1092,7 +1092,7 @@ static int unparse_index(u8_output out,fdtype x)
   return 1;
 }
 
-static int unparse_consed_index(u8_output out,fdtype x)
+static int unparse_consed_index(u8_output out,lispval x)
 {
   fd_index ix = (fd_index)(x);
   if (ix == NULL) return 0;
@@ -1101,7 +1101,7 @@ static int unparse_consed_index(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype index_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
+static lispval index_parsefn(int n,lispval *args,fd_compound_typeinfo e)
 {
   fd_index ix = NULL;
   if (n<2) return VOID;
@@ -1219,17 +1219,17 @@ long fd_index_cache_load()
 
 static int accumulate_cached(fd_index ix,void *ptr)
 {
-  fdtype *vals = (fdtype *)ptr;
-  fdtype keys = fd_hashtable_keys(&(ix->index_cache));
+  lispval *vals = (lispval *)ptr;
+  lispval keys = fd_hashtable_keys(&(ix->index_cache));
   CHOICE_ADD(*vals,keys);
   return 0;
 }
 
 FD_EXPORT
-fdtype fd_cached_keys(fd_index ix)
+lispval fd_cached_keys(fd_index ix)
 {
   if (ix == NULL) {
-    int retval; fdtype result = EMPTY;
+    int retval; lispval result = EMPTY;
     retval = fd_for_indexes(accumulate_cached,(void *)&result);
     if (retval<0) {
       fd_decref(result);
@@ -1242,8 +1242,8 @@ fdtype fd_cached_keys(fd_index ix)
 
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 {
-  fdtype *delays = get_index_delays();
-  fdtype todo = delays[ix->index_serialno];
+  lispval *delays = get_index_delays();
+  lispval todo = delays[ix->index_serialno];
   if (EMPTYP(todo)) return 0;
   else {
     int retval = -1;
@@ -1281,7 +1281,7 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static fdtype copy_consed_index(fdtype x,int deep)
+static lispval copy_consed_index(lispval x,int deep)
 {
   /* Where might this get us into trouble when not really copying the pool? */
   fd_index ix = (fd_index)x;
@@ -1294,7 +1294,7 @@ static fdtype copy_consed_index(fdtype x,int deep)
 
 fd_ptr_type fd_consed_index_type;
 
-static int check_index(fdtype x)
+static int check_index(lispval x)
 {
   int serial = FD_GET_IMMEDIATE(x,fd_index_type);
   if (serial<0) return 0;
@@ -1309,7 +1309,7 @@ static int check_index(fdtype x)
   else return 0;
 }
 
-FD_EXPORT fd_index _fd_indexptr(fdtype x)
+FD_EXPORT fd_index _fd_indexptr(lispval x)
 {
   return fd_indexptr(x);
 }

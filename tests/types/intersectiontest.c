@@ -32,12 +32,12 @@ double get_elapsed()
       (now.tv_usec-start.tv_usec)*0.000001;}
 }
 
-static fdtype read_choice(char *file)
+static lispval read_choice(char *file)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = FD_EMPTY_CHOICE;
   FILE *f = fopen(file,"r"); char buf[8192];
   while (fgets(buf,8192,f)) {
-    fdtype item = fd_parse(buf);
+    lispval item = fd_parse(buf);
     if (FD_ABORTP(item)) {
       fd_decref(results);
       return item;}
@@ -46,7 +46,7 @@ static fdtype read_choice(char *file)
   return fd_simplify_choice(results);
 }
 
-static int write_dtype_to_file(fdtype x,char *file)
+static int write_dtype_to_file(lispval x,char *file)
 {
   FILE *f = fopen(file,"wb"); int retval;
   struct FD_OUTBUF out;
@@ -64,7 +64,7 @@ int main(int argc,char **argv)
 {
   FILE *f = NULL;
   int i = 2, j = 0, write_binary = 0;
-  fdtype *args = u8_alloc_n(argc-2,fdtype), common;
+  lispval *args = u8_alloc_n(argc-2,lispval), common;
   double starttime, inputtime, donetime;
   FD_DO_LIBINIT(fd_init_libfdtype);
   starttime = get_elapsed();
@@ -72,7 +72,7 @@ int main(int argc,char **argv)
     if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
     else {
-      fdtype item = read_choice(argv[i]);
+      lispval item = read_choice(argv[i]);
       if (FD_ABORTP(item)) {
         if (!(FD_THROWP(item)))
           u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);

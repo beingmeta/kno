@@ -59,8 +59,8 @@ fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment"
 
 int fd_interpret_pointers = 1;
 
-static fdtype quote_symbol, histref_symbol, comment_symbol;
-static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
+static lispval quote_symbol, histref_symbol, comment_symbol;
+static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 static int skip_whitespace(u8_input s)
 {
@@ -105,7 +105,7 @@ static u8_string character_constant_names[]={
   "OPENBRACE","CLOSEBRACE",
   "OPENBRACKET","CLOSEBRACKET",
   NULL};
-static fdtype character_constants[]={
+static lispval character_constants[]={
   FD_CODE2CHAR(' '),FD_CODE2CHAR('\n'),FD_CODE2CHAR('\r'),
   FD_CODE2CHAR('\t'),FD_CODE2CHAR('\v'),FD_CODE2CHAR('\v'),
   FD_CODE2CHAR('\f'),FD_CODE2CHAR('\b'),
@@ -227,12 +227,12 @@ static struct FD_KEYVAL *hashnames=NULL;
 static int n_hashnames=0, hashnames_len=0;
 static u8_rwlock hashnames_lock;
 
-static fdtype lookup_hashname(u8_string s,int len,int lock)
+static lispval lookup_hashname(u8_string s,int len,int lock)
 {
   if (len<0) len=strlen(s);
   struct FD_STRING _string; unsigned char buf[len+1];
   strcpy(buf,s); buf[len]='\0';
-  fdtype string=fd_init_string(&_string,len,buf);
+  lispval string=fd_init_string(&_string,len,buf);
   FD_MAKE_STATIC(string);
   if (lock) u8_read_lock(&hashnames_lock);
   struct FD_KEYVAL *kv=fd_sortvec_get(string,hashnames,n_hashnames);
@@ -243,17 +243,17 @@ static fdtype lookup_hashname(u8_string s,int len,int lock)
 }
 
 FD_EXPORT
-int fd_add_hashname(u8_string s,fdtype value)
+int fd_add_hashname(u8_string s,lispval value)
 {
   u8_write_lock(&hashnames_lock);
-  fdtype cur=lookup_hashname(s,-1,0);
+  lispval cur=lookup_hashname(s,-1,0);
   if (cur!=FD_NULL) {
     u8_rw_unlock(&hashnames_lock);
     if (value==cur) return 0;
     else return -1;}
   else {
     u8_string d=u8_upcase(s);
-    fdtype string=fdtype_string(d);
+    lispval string=lispval_string(d);
     struct FD_KEYVAL *added=
       fd_sortvec_insert(string,&hashnames,&n_hashnames,&hashnames_len,1);
     if (added)
@@ -270,7 +270,7 @@ int fd_add_hashname(u8_string s,fdtype value)
 }
 
 FD_EXPORT
-fdtype fd_lookup_hashname(u8_string s)
+lispval fd_lookup_hashname(u8_string s)
 {
   return lookup_hashname(s,-1,1);
 }
@@ -294,7 +294,7 @@ static int copy_atom(u8_input s,u8_output a)
   return c;
 }
 
-fdtype fd_parse_atom(u8_string start,int len)
+lispval fd_parse_atom(u8_string start,int len)
 {
   /* fprintf(stderr,"fd_parse_atom %d: %s\n",len,start); */
   if (PRED_FALSE(len==0)) return FD_EOX;
@@ -302,7 +302,7 @@ fdtype fd_parse_atom(u8_string start,int len)
     struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
     FD_INIT_CONS(uuid,fd_uuid_type);
     if (u8_parseuuid(start+2,(u8_uuid)&(uuid->fd_uuid16)))
-      return FDTYPE_CONS(uuid);
+      return LISP_CONS(uuid);
     else {
       fd_seterr3("Invalid UUID","fd_parse_atom",u8_strdup(start));
       return FD_PARSE_ERROR;}}
@@ -320,24 +320,24 @@ fdtype fd_parse_atom(u8_string start,int len)
         return fd_err
           (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),VOID);
       else if (FD_CHECK_PTR(pval))
-        return fd_incref((fdtype)pval);
+        return fd_incref((lispval)pval);
       else return fd_err
              (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),VOID);}
     else return fd_err
            (fd_NoPointerExpressions,"fd_parse_atom",
             u8_strdup(start),VOID);}
   else if (start[0]=='#') { /* Look it up */
-    fdtype value = lookup_hashname(start,-1,1);
+    lispval value = lookup_hashname(start,-1,1);
     if (value != FD_NULL) return value;
     /* This is where we would handle history refs */
     /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
-      fdtype result=_fd_parse_number(start,-1);
+      lispval result=_fd_parse_number(start,-1);
       if (!(FALSEP(result))) return result;}
     fd_seterr3(fd_InvalidConstant,"fd_parse_atom",u8_strdup(start));
     return FD_PARSE_ERROR;}
   else {
-    fdtype result;
+    lispval result;
     /* More numbers */
     if ((isdigit(start[0])) || (start[0]=='+') ||
         (start[0]=='-') || (start[0]=='.')) {
@@ -349,7 +349,7 @@ fdtype fd_parse_atom(u8_string start,int len)
 
 /* Parsing characters */
 
-static fdtype parse_character(U8_INPUT *in)
+static lispval parse_character(U8_INPUT *in)
 {
   char buf[128];
   struct U8_OUTPUT tmpbuf;
@@ -393,7 +393,7 @@ static fdtype parse_character(U8_INPUT *in)
 
 /* OID parsing */
 
-static fdtype (*oid_parser)(u8_string start,int len) = NULL;
+static lispval (*oid_parser)(u8_string start,int len) = NULL;
 
 FD_EXPORT
 /* fd_set_oid_parser:
@@ -401,14 +401,14 @@ FD_EXPORT
      Returns: void
   This sets the default parser used for OIDs.
 */
-void fd_set_oid_parser(fdtype (*parsefn)(u8_string start,int len))
+void fd_set_oid_parser(lispval (*parsefn)(u8_string start,int len))
   {
   oid_parser = parsefn;
 }
 
 typedef unsigned long long ull;
 
-static fdtype default_parse_oid(u8_string start,int len)
+static lispval default_parse_oid(u8_string start,int len)
 {
   u8_byte buf[64];
   FD_OID oid = FD_NULL_OID_INIT;
@@ -435,7 +435,7 @@ static fdtype default_parse_oid(u8_string start,int len)
   return fd_make_oid(oid);
 }
 
-FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len)
+FD_EXPORT lispval fd_parse_oid_addr(u8_string string,int len)
 {
   return default_parse_oid(string,len);
 }
@@ -443,9 +443,9 @@ FD_EXPORT fdtype fd_parse_oid_addr(u8_string string,int len)
 static int copy_string(u8_input s,u8_output a);
 
 /* This is the function called from the main parser loop. */
-static fdtype parse_oid(U8_INPUT *in)
+static lispval parse_oid(U8_INPUT *in)
 {
-  struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
+  struct U8_OUTPUT tmpbuf; char buf[128]; int c; lispval result;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   /* First, copy the data into a buffer.
      The buffer will almost never grow, but it might
@@ -464,7 +464,7 @@ static fdtype parse_oid(U8_INPUT *in)
   if (strchr("({\"",c)) {
     /* If an object starts immediately after the OID (no whitespace)
        it is the OID's label, so we read it and discard it. */
-    fdtype label = fd_parser(in);
+    lispval label = fd_parser(in);
     fd_decref(label);}
   if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
@@ -472,9 +472,9 @@ static fdtype parse_oid(U8_INPUT *in)
 
 /* String and packet parsing */
 
-static fdtype parse_string(U8_INPUT *in)
+static lispval parse_string(U8_INPUT *in)
 {
-  fdtype result = VOID; u8_byte buf[256];
+  lispval result = VOID; u8_byte buf[256];
   struct U8_OUTPUT out; int c = u8_getc(in);
   U8_INIT_OUTPUT_X(&out,256,buf,0);
   while ((c = u8_getc(in))>=0)
@@ -498,11 +498,11 @@ static fdtype parse_string(U8_INPUT *in)
   return result;
 }
 
-static fdtype make_regex(u8_string src_arg,u8_string opts);
+static lispval make_regex(u8_string src_arg,u8_string opts);
 
-static fdtype parse_regex(U8_INPUT *in)
+static lispval parse_regex(U8_INPUT *in)
 {
-  fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
+  lispval result; struct U8_OUTPUT src; u8_byte buf[128];
   u8_byte opts[16]="", *optwrite = opts;
   int c = u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
   while (c>=0) {
@@ -552,7 +552,7 @@ static fdtype parse_regex(U8_INPUT *in)
   return FD_EOF;
 }
 
-static fdtype make_regex(u8_string src_arg,u8_string opts)
+static lispval make_regex(u8_string src_arg,u8_string opts)
 {
   struct FD_REGEX *ptr = u8_alloc(struct FD_REGEX);
   int retval, cflags = REG_EXTENDED;
@@ -572,12 +572,12 @@ static fdtype make_regex(u8_string src_arg,u8_string opts)
     U8_CLEAR_ERRNO();
     ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
     u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
-    return FDTYPE_CONS(ptr);}
+    return LISP_CONS(ptr);}
 }
 
 /* Packet parsing functions */
 
-static fdtype parse_text_packet(U8_INPUT *in)
+static lispval parse_text_packet(U8_INPUT *in)
 {
   char *data = u8_malloc(128);
   int max = 128, len = 0, c = u8_getc(in);
@@ -658,7 +658,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
     else data[len++]=c;
     c = u8_getc(in);}
   if (c=='"') {
-    fdtype packet = fd_bytes2packet(NULL,len,data);
+    lispval packet = fd_bytes2packet(NULL,len,data);
     u8_free(data);
     return packet;}
   else {
@@ -669,7 +669,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
       return FD_PARSE_ERROR;}}
 }
 
-static fdtype parse_hex_packet(U8_INPUT *in)
+static lispval parse_hex_packet(U8_INPUT *in)
 {
   char *data = u8_malloc(128);
   int max = 128, len = 0, c = u8_getc(in);
@@ -684,7 +684,7 @@ static fdtype parse_hex_packet(U8_INPUT *in)
     data[len++]=byte;
     c = u8_getc(in);}
   if (c=='"') {
-    fdtype result = fd_bytes2packet(NULL,len,data);
+    lispval result = fd_bytes2packet(NULL,len,data);
     u8_free(data);
     return result;}
   else if (c<0) {
@@ -700,7 +700,7 @@ static fdtype parse_hex_packet(U8_INPUT *in)
     return FD_PARSE_ERROR;}
 }
 
-static fdtype parse_base64_packet(U8_INPUT *in)
+static lispval parse_base64_packet(U8_INPUT *in)
 {
   char *data = u8_malloc(128);
   int max = 128, len = 0, c = u8_getc(in);
@@ -727,7 +727,7 @@ static fdtype parse_base64_packet(U8_INPUT *in)
     int n_bytes = 0;
     unsigned char *bytes = u8_read_base64(data,data+len,&n_bytes);
     if (bytes) {
-      fdtype result = fd_make_packet(NULL,n_bytes,bytes);
+      lispval result = fd_make_packet(NULL,n_bytes,bytes);
       u8_free(bytes); u8_free(data);
       return result;}
     else {
@@ -740,7 +740,7 @@ static fdtype parse_base64_packet(U8_INPUT *in)
     return FD_PARSE_ERROR;}
 }
 
-static fdtype parse_packet(U8_INPUT *in,int nextc)
+static lispval parse_packet(U8_INPUT *in,int nextc)
 {
   if (nextc<0) return FD_EOF;
   else if (nextc=='"') 
@@ -789,13 +789,13 @@ static int copy_string(u8_input s,u8_output a)
 
 #define iscloser(c) (((c)==')') || ((c)==']') || ((c)=='}'))
 
-static fdtype *parse_vec(u8_input in,char end_char,int *size)
+static lispval *parse_vec(u8_input in,char end_char,int *size)
 {
-  fdtype *elts = u8_alloc_n(32,fdtype);
+  lispval *elts = u8_alloc_n(32,lispval);
   unsigned int n_elts = 0, max_elts = 32;
   int ch = skip_whitespace(in);
   while ((ch>=0) && (ch != end_char) && (!(iscloser(ch)))) {
-    fdtype elt = fd_parser(in);
+    lispval elt = fd_parser(in);
     if (FD_ABORTP(elt)) {
       int i = 0; while (i < n_elts) {
         fd_decref(elts[i]); i++;}
@@ -806,7 +806,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
       if (FD_ABORTP(elt)) fd_interr(elt);
       return NULL;}
     else if (n_elts == max_elts) {
-      fdtype *new_elts = u8_realloc_n(elts,max_elts*2,fdtype);
+      lispval *new_elts = u8_realloc_n(elts,max_elts*2,lispval);
       if (new_elts) {elts = new_elts; max_elts = max_elts*2;}
       else {
         int i = 0; while (i < n_elts) {fd_decref(elts[i]); i++;}
@@ -833,10 +833,10 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     return NULL;}
 }
 
-static fdtype parse_list(U8_INPUT *in)
+static lispval parse_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch = skip_whitespace(in); fdtype head = VOID;
+  int ch = skip_whitespace(in); lispval head = VOID;
   if (ch<0)
     if (ch== -1) return FD_EOX;
     else return FD_PARSE_ERROR;
@@ -850,7 +850,7 @@ static fdtype parse_list(U8_INPUT *in)
     /* This is where we build the list.  We recur in the CAR direction and
        iterate in the CDR direction to avoid growing the stack. */
     struct FD_PAIR *scan;
-    fdtype car = fd_parser(in), head;
+    lispval car = fd_parser(in), head;
     if (FD_ABORTP(car))
       return car;
     else {
@@ -862,7 +862,7 @@ static fdtype parse_list(U8_INPUT *in)
     while ((ch>=0) && (ch != ')')) {
       /* After starting with the head, we iterate until we get to
          the closing paren, except for the dotted pair exit clause. */
-      fdtype list_elt; struct FD_PAIR *new_pair;
+      lispval list_elt; struct FD_PAIR *new_pair;
       if (ch == '.') {
         int nextch = u8_getc(in), probed = u8_probec(in);
         if (u8_isspace(probed)) break;
@@ -886,7 +886,7 @@ static fdtype parse_list(U8_INPUT *in)
       u8_getc(in);
       return head;}
     else {
-      fdtype tail;
+      lispval tail;
       tail = fd_parser(in);
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
@@ -896,10 +896,10 @@ static fdtype parse_list(U8_INPUT *in)
       return FD_PARSE_ERROR;}}
 }
 
-static fdtype parse_bracket_list(U8_INPUT *in)
+static lispval parse_bracket_list(U8_INPUT *in)
 {
   /* This starts parsing the list after a '(' has been read. */
-  int ch = skip_whitespace(in); fdtype head = VOID;
+  int ch = skip_whitespace(in); lispval head = VOID;
   if (ch<0)
     if (ch== -1) return FD_EOX;
     else return FD_PARSE_ERROR;
@@ -913,7 +913,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
     /* This is where we build the list.  We recur in the CAR direction and
        iterate in the CDR direction to avoid growing the stack. */
     struct FD_PAIR *scan;
-    fdtype car = fd_parser(in), head;
+    lispval car = fd_parser(in), head;
     if (FD_ABORTP(car))
       return car;
     else {
@@ -925,7 +925,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
     while ((ch>=0) && (ch != ']')) {
       /* After starting with the head, we iterate until we get to
          the closing paren, except for the dotted pair exit clause. */
-      fdtype list_elt; struct FD_PAIR *new_pair;
+      lispval list_elt; struct FD_PAIR *new_pair;
       if (ch == '.') {
         int nextch = u8_getc(in), probed = u8_probec(in);
         if (u8_isspace(probed)) break;
@@ -949,7 +949,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
       u8_getc(in);
       return head;}
     else {
-      fdtype tail;
+      lispval tail;
       tail = fd_parser(in);
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
@@ -959,39 +959,39 @@ static fdtype parse_bracket_list(U8_INPUT *in)
       return FD_PARSE_ERROR;}}
 }
 
-static fdtype parse_vector(U8_INPUT *in)
+static lispval parse_vector(U8_INPUT *in)
 {
   int n_elts = -2;
-  fdtype *elts = parse_vec(in,')',&n_elts);
+  lispval *elts = parse_vec(in,')',&n_elts);
   if (n_elts>=0)
     return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
 
-static fdtype parse_code(U8_INPUT *in)
+static lispval parse_code(U8_INPUT *in)
 {
   int n_elts = -2;
-  fdtype *elts = parse_vec(in,')',&n_elts);
+  lispval *elts = parse_vec(in,')',&n_elts);
   if (n_elts>=0)
     return fd_init_code(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
 
-static fdtype parse_slotmap(U8_INPUT *in)
+static lispval parse_slotmap(U8_INPUT *in)
 {
   int n_elts = -2;
-  fdtype *elts = parse_vec(in,']',&n_elts);
+  lispval *elts = parse_vec(in,']',&n_elts);
   if (PRED_FALSE(n_elts<0)) return FD_PARSE_ERROR;
   else if (n_elts>7)
     return fd_init_slotmap(NULL,n_elts/2,(struct FD_KEYVAL *)elts);
   else {
-    fdtype result =
+    lispval result =
       fd_make_slotmap(n_elts/2,n_elts/2,(struct FD_KEYVAL *)elts);
     u8_free(elts);
     return result;}
 }
 
-static fdtype parse_choice(U8_INPUT *in)
+static lispval parse_choice(U8_INPUT *in)
 {
   int ch = skip_whitespace(in);
   if (ch == '}') {
@@ -999,16 +999,16 @@ static fdtype parse_choice(U8_INPUT *in)
   else if (ch < 0)
     if (ch== -1) return FD_EOX; else return FD_PARSE_ERROR;
   else {
-    int n_elts = -2; fdtype *elts = parse_vec(in,'}',&n_elts);
+    int n_elts = -2; lispval *elts = parse_vec(in,'}',&n_elts);
     if (n_elts==0) return EMPTY;
     else if (elts == NULL)
       return FD_PARSE_ERROR;
     else if (n_elts==1) {
-      fdtype v = elts[0]; u8_free(elts);
+      lispval v = elts[0]; u8_free(elts);
       return v;}
     else if ((elts) && (n_elts>0)) {
       struct FD_CHOICE *ch = fd_alloc_choice(n_elts);
-      fdtype result = fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
+      lispval result = fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
       if (FD_XCHOICE_SIZE(ch)==1) {
         result = FD_XCHOICE_DATA(ch)[0];
         u8_free(ch);}
@@ -1017,21 +1017,21 @@ static fdtype parse_choice(U8_INPUT *in)
     else return FD_PARSE_ERROR;}
 }
 
-static fdtype parse_qchoice(U8_INPUT *in)
+static lispval parse_qchoice(U8_INPUT *in)
 {
   int n_elts = -2;
-  fdtype *elts = parse_vec(in,'}',&n_elts);
+  lispval *elts = parse_vec(in,'}',&n_elts);
   if (n_elts==0)
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
                            EMPTY);
   else if (n_elts==1) {
-    fdtype result = elts[0]; u8_free(elts);
+    lispval result = elts[0]; u8_free(elts);
     return result;}
   else if (n_elts>1) {
     struct FD_CHOICE *xch = fd_alloc_choice(n_elts);
-    fdtype choice = fd_init_choice(xch,n_elts,elts,FD_CHOICE_DOSORT);
+    lispval choice = fd_init_choice(xch,n_elts,elts,FD_CHOICE_DOSORT);
     if (FD_XCHOICE_SIZE(xch)==1) {
-      fdtype result = FD_XCHOICE_DATA(xch)[0];
+      lispval result = FD_XCHOICE_DATA(xch)[0];
       u8_free(elts); return result;}
     u8_free(elts);
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),choice);}
@@ -1041,30 +1041,30 @@ static fdtype parse_qchoice(U8_INPUT *in)
 
 /* Record parsing */
 
-static fdtype recreate_record(int n,fdtype *v)
+static lispval recreate_record(int n,lispval *v)
 {
   int i = 0;
   struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(v[0]);
   if ((entry) && (entry->fd_compound_parser)) {
-    fdtype result = entry->fd_compound_parser(n,v,entry);
+    lispval result = entry->fd_compound_parser(n,v,entry);
     if (!(VOIDP(result))) {
       while (i<n) {fd_decref(v[i]); i++;}
       if (v) u8_free(v);
       return result;}}
   {
     struct FD_COMPOUND *c=
-      u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
-    fdtype *data = &(c->compound_0); fd_init_compound(c,v[0],0,0);
+      u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(lispval));
+    lispval *data = &(c->compound_0); fd_init_compound(c,v[0],0,0);
     c->fd_n_elts = n-1;
     i = 1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);
-    return FDTYPE_CONS(c);}
+    return LISP_CONS(c);}
 }
 
-static fdtype parse_record(U8_INPUT *in)
+static lispval parse_record(U8_INPUT *in)
 {
   int n_elts;
-  fdtype *elts = parse_vec(in,')',&n_elts);
+  lispval *elts = parse_vec(in,')',&n_elts);
   if (n_elts>0)
     return recreate_record(n_elts,elts);
   else if (n_elts==0)
@@ -1075,7 +1075,7 @@ static fdtype parse_record(U8_INPUT *in)
 
 /* The main parser procedure */
 
-static fdtype parse_atom(u8_input in,int ch1,int ch2);
+static lispval parse_atom(u8_input in,int ch1,int ch2);
 
 FD_EXPORT
 /* fd_parser:
@@ -1084,7 +1084,7 @@ FD_EXPORT
 
      Parses a textual object representation from a stream into a lisp object.
 */
-fdtype fd_parser(u8_input in)
+lispval fd_parser(u8_input in)
 {
   int inchar = skip_whitespace(in);
   if (inchar<0) {
@@ -1108,19 +1108,19 @@ fdtype fd_parser(u8_input in)
     /* Skip the open brace and parse the choice */
     u8_getc(in); return parse_choice(in);
   case '\'': {
-    fdtype content;
+    lispval content;
     u8_getc(in); /* Skip the quote mark */
     content = fd_parser(in);
     if (FD_ABORTP(content)) return content;
     else return fd_make_list(2,quote_symbol,content);}
   case '`': {
-    fdtype content;
+    lispval content;
     u8_getc(in); /* Skip the quote mark */
     content = fd_parser(in);
     if (FD_ABORTP(content)) return content;
     else return fd_make_list(2,quasiquote_symbol,content);}
   case ',': {
-    fdtype content; int c = u8_getc(in); c = u8_getc(in);
+    lispval content; int c = u8_getc(in); c = u8_getc(in);
     /* Skip the quote mark and check for an atsign. */
     if (c != '@') u8_ungetc(in,c);
     content = fd_parser(in);
@@ -1130,7 +1130,7 @@ fdtype fd_parser(u8_input in)
     else return fd_make_list(2,unquote_symbol,content);}
   case '|': { /* Escaped symbol */
     struct U8_OUTPUT tmpbuf; char buf[128];
-    fdtype result; U8_MAYBE_UNUSED int c;
+    lispval result; U8_MAYBE_UNUSED int c;
     U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
     c = copy_atom(in,&tmpbuf);
     result = fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -1161,7 +1161,7 @@ fdtype fd_parser(u8_input in)
       else return fd_parser(in);}
     case '*': {
       int nextc = u8_getc(in);
-      fdtype result = parse_packet(in,nextc);
+      lispval result = parse_packet(in,nextc);
       if (PACKETP(result)) {
         FD_SET_CONS_TYPE(result,fd_secret_type);}
       return result;}
@@ -1171,7 +1171,7 @@ fdtype fd_parser(u8_input in)
     case '<':
       return fd_err(fd_ParseError,"fd_parser",NULL,VOID);
     case ';': {
-      fdtype content = fd_parser(in);
+      lispval content = fd_parser(in);
       if (FD_ABORTP(content)) return content;
       else return fd_conspair(comment_symbol,
                               fd_conspair(content,NIL));}
@@ -1189,7 +1189,7 @@ fdtype fd_parser(u8_input in)
         /* This introduced a hash-punct sequence which is used
            for other kinds of character macros. */
         u8_byte buf[16]; struct U8_OUTPUT out; int nch;
-        fdtype punct_code, punct_code_arg;
+        lispval punct_code, punct_code_arg;
         U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
         u8_putc(&out,'#'); u8_putc(&out,ch); nch = u8_getc(in);
         while ((u8_ispunct(nch))&&
@@ -1212,12 +1212,12 @@ fdtype fd_parser(u8_input in)
     return parse_atom(in,-1,-1);}
 }
 
-static fdtype parse_atom(u8_input in,int ch1,int ch2)
+static lispval parse_atom(u8_input in,int ch1,int ch2)
 {
   /* Parse an atom, i.e. a printed representation which doesn't
      contain any special spaces or other special characters */
   struct U8_OUTPUT tmpbuf; char buf[128];
-  fdtype result; U8_MAYBE_UNUSED int c;
+  lispval result; U8_MAYBE_UNUSED int c;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
@@ -1239,7 +1239,7 @@ FD_EXPORT
      It is distinct from fd_parser which returns FD_EOX
       (an error) if there is nothing to read.
 */
-fdtype fd_parse_expr(u8_input in)
+lispval fd_parse_expr(u8_input in)
 {
   int inchar = skip_whitespace(in);
   if (inchar<0)
@@ -1254,7 +1254,7 @@ FD_EXPORT
      Returns: a lisp object
 
 Parses a textual object representation into a lisp object. */
-fdtype fd_parse(u8_string s)
+lispval fd_parse(u8_string s)
 {
   struct U8_INPUT stream;
   U8_INIT_STRING_INPUT((&stream),-1,s);
@@ -1277,35 +1277,35 @@ FD_EXPORT
      is created from the rest of the string.  Otherwise, a lisp string is
      just created from the string.
 */
-fdtype fd_parse_arg(u8_string arg)
+lispval fd_parse_arg(u8_string arg)
 {
-  if (*arg=='\0') return fdtype_string(arg);
+  if (*arg=='\0') return lispval_string(arg);
   else if (*arg == ':')
-    if (arg[1]=='\0') return fdtype_string(arg);
+    if (arg[1]=='\0') return lispval_string(arg);
     else {
-      fdtype val = fd_parse(arg+1);
+      lispval val = fd_parse(arg+1);
       if (FD_ABORTP(val)) {
         u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
         fd_clear_errors(1);
-        return fdtype_string(arg);}
+        return lispval_string(arg);}
       else return val;}
-  else if (*arg == '\\') return fdtype_string(arg+1);
+  else if (*arg == '\\') return lispval_string(arg+1);
   else if ((isdigit(arg[0])) ||
            ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
            ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
-    fdtype num = fd_string2number(arg,-1);
+    lispval num = fd_string2number(arg,-1);
     if (NUMBERP(num)) return num;
-    else return fdtype_string(arg);}
+    else return lispval_string(arg);}
   else if (strchr("@{#(\"|",arg[0])) {
-    fdtype result;
+    lispval result;
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
     result = fd_parser(&stream);
     if (fd_skip_whitespace(&stream)>0) {
       fd_decref(result);
-      return fdtype_string(arg);}
+      return lispval_string(arg);}
     else return result;}
-  else return fdtype_string(arg);
+  else return lispval_string(arg);
 }
 
 FD_EXPORT
@@ -1317,25 +1317,25 @@ FD_EXPORT
      designed for command line arguments or other external contexts
      (e.g. Windows registry entries).
 */
-fdtype fd_read_arg(u8_input in)
+lispval fd_read_arg(u8_input in)
 {
   int c = skip_whitespace(in);
-  if (c<0) return  fdtype_string("");
+  if (c<0) return  lispval_string("");
   else if (c == ':') {
     int nc = u8_getc(in); nc = u8_probec(in);
-    if (nc<0) return fdtype_string(":");
+    if (nc<0) return lispval_string(":");
     else {
-      fdtype val = fd_parser(in);
+      lispval val = fd_parser(in);
       if (FD_ABORTP(val)) {
         u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg");
         fd_clear_errors(1);
-        return fdtype_string(":");}
+        return lispval_string(":");}
       else return val;}}
   else if ((strchr("@{#(\"|",c))||(isdigit(c))||
            ((strchr("+-.",c)) && (isdigit(c))))
     return fd_parser(in);
   else {
-    struct U8_OUTPUT out; fdtype result;
+    struct U8_OUTPUT out; lispval result;
     U8_INIT_OUTPUT(&out,256); c = u8_getc(in);
     while ((c>=0)&&(!(u8_isspace(c)))) {
       if (c=='\\') {

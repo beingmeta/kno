@@ -18,28 +18,28 @@
    to discourage casual usage.  Note that they are not neccessarily threadsafe. */
 
 
-static fdtype vector_set(fdtype vec,fdtype offset,fdtype value)
+static lispval vector_set(lispval vec,lispval offset,lispval value)
 {
   int off = fd_getint(offset);
-  fdtype current = VEC_REF(vec,off);
+  lispval current = VEC_REF(vec,off);
   FD_VECTOR_SET(vec,off,value);
   fd_incref(value); fd_decref(current);
   return VOID;
 }
 
-static fdtype set_car(fdtype pair,fdtype value)
+static lispval set_car(lispval pair,lispval value)
 {
   struct FD_PAIR *p = (fd_pair)pair;
-  fdtype current = p->car;
+  lispval current = p->car;
   p->car = fd_incref(value);
   fd_decref(current);
   return VOID;
 }
 
-static fdtype set_cdr(fdtype pair,fdtype value)
+static lispval set_cdr(lispval pair,lispval value)
 {
   struct FD_PAIR *p = (fd_pair)pair;
-  fdtype current = p->cdr;
+  lispval current = p->cdr;
   p->cdr = fd_incref(value);
   fd_decref(current);
   return VOID;
@@ -47,7 +47,7 @@ static fdtype set_cdr(fdtype pair,fdtype value)
 
 FD_EXPORT void fd_init_side_effects_c()
 {
-  fdtype module = fd_new_module("SIDE-EFFECTS",FD_MODULE_SAFE);
+  lispval module = fd_new_module("SIDE-EFFECTS",FD_MODULE_SAFE);
   fd_idefn(module,fd_make_cprim3x("VECTOR-SET!",vector_set,3,
                                   fd_vector_type,VOID,
                                   fd_fixnum_type,VOID,

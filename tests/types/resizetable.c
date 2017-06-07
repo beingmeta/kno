@@ -33,7 +33,7 @@ double get_elapsed()
 #define SLOTMAP(x) (fd_constpr(struct FD_SLOTMAP *,x,fd_slotmap_type))
 #define HASHTABLE(x) (fd_consptr(struct FD_HASHTABLE *,x,fd_hashtable_type))
 
-static void report_on_hashtable(fdtype ht)
+static void report_on_hashtable(lispval ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
   fd_hashtable_stats(fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
@@ -80,7 +80,7 @@ int main(int argc,char **argv)
   struct FD_STREAM *in, *out;
   struct FD_INBUF *inbuf;
   struct FD_OUTBUF *outbuf;
-  fdtype ht, keys, watch_for = FD_VOID;
+  lispval ht, keys, watch_for = FD_VOID;
   FD_DO_LIBINIT(fd_init_libfdtype);
   n_tries = atol(argv[2]);
   in = fd_open_file(argv[1],FD_FILE_READ);
@@ -97,7 +97,7 @@ int main(int argc,char **argv)
   {
     FD_DO_CHOICES(key,keys) {
       int hash = fd_hash_lisp(key);
-      if (FDTYPE_EQUAL(key,watch_for))
+      if (LISP_EQUAL(key,watch_for))
         fprintf(stderr,"Hashing key\n");
       if (hash==0)
         fprintf(stderr,"Warning: zero hash value\n");

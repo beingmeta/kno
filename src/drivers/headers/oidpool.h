@@ -23,14 +23,14 @@
 
 typedef struct FD_SCHEMA_ENTRY {
   int fd_nslots, fd_schema_id;
-  fdtype *fd_slotids, normal;
+  lispval *fd_slotids, normal;
   unsigned int *fd_slotmapin;
   unsigned int *fd_slotmapout;}  FD_SCHEMA_ENTRY;
 typedef struct FD_SCHEMA_ENTRY *fd_schema_entry;
 
 typedef struct FD_SCHEMA_LOOKUP {
   int fd_schema_id, fd_nslots;
-  fdtype *fd_slotids;}  FD_SCHEMA_LOOKUP;
+  lispval *fd_slotids;}  FD_SCHEMA_LOOKUP;
 typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
@@ -53,7 +53,7 @@ typedef struct FD_OIDPOOL *fd_oidpool;
 typedef struct FD_SCHEMA_TABLE {
   int fdst_index;
   int fdst_nslots;
-  fdtype *fdst_schema;} FD_SCHEMA_TABLE;
+  lispval *fdst_schema;} FD_SCHEMA_TABLE;
 typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 
 struct OIDPOOL_FETCH_SCHEDULE {

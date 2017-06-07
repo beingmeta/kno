@@ -25,9 +25,9 @@
 static int log_eval_request = 0, log_eval_response = 0;
 static int default_async = FD_DEFAULT_ASYNC;
 
-static fdtype dteval_sock(u8_socket conn,fdtype expr)
+static lispval dteval_sock(u8_socket conn,lispval expr)
 {
-  fdtype response; int retval;
+  lispval response; int retval;
   struct FD_STREAM _stream, *stream;
   struct FD_OUTBUF *out;
   memset(&_stream,0,sizeof(_stream));
@@ -49,9 +49,9 @@ static fdtype dteval_sock(u8_socket conn,fdtype expr)
   fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOCLOSE);
   return response;
 }
-static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
+static lispval dteval_connpool(struct U8_CONNPOOL *cpool,lispval expr,int async)
 {
-  fdtype result; int retval;
+  lispval result; int retval;
   struct FD_STREAM stream;
   u8_socket conn = u8_get_connection(cpool);
   if (conn<0) return FD_ERROR;
@@ -127,26 +127,26 @@ static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
   u8_return_connection(cpool,conn);
   return result;
 }
-FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr)
+FD_EXPORT lispval fd_dteval(struct U8_CONNPOOL *cp,lispval expr)
 {
   return dteval_connpool(cp,expr,default_async);
 }
-FD_EXPORT fdtype fd_dteval_sync(struct U8_CONNPOOL *cp,fdtype expr)
+FD_EXPORT lispval fd_dteval_sync(struct U8_CONNPOOL *cp,lispval expr)
 {
   return dteval_connpool(cp,expr,0);
 }
-FD_EXPORT fdtype fd_dteval_async(struct U8_CONNPOOL *cp,fdtype expr)
+FD_EXPORT lispval fd_dteval_async(struct U8_CONNPOOL *cp,lispval expr)
 {
   return dteval_connpool(cp,expr,1);
 }
-FD_EXPORT fdtype fd_sock_dteval(u8_socket sock,fdtype expr)
+FD_EXPORT lispval fd_sock_dteval(u8_socket sock,lispval expr)
 {
   return dteval_sock(sock,expr);
 }
 
-static fdtype quote_symbol;
+static lispval quote_symbol;
 
-FD_FASTOP fdtype quote_lisp(fdtype x,int dorefs,int doeval)
+FD_FASTOP lispval quote_lisp(lispval x,int dorefs,int doeval)
 {
   if (dorefs) fd_incref(x);
   if (doeval) return x;
@@ -154,10 +154,10 @@ FD_FASTOP fdtype quote_lisp(fdtype x,int dorefs,int doeval)
     return fd_conspair(quote_symbol,fd_conspair(x,NIL));
   else return x;
 }
-static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
-                      fdtype *args)
+static lispval dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
+                      lispval *args)
 {
-  fdtype request = NIL, result = VOID;
+  lispval request = NIL, result = VOID;
   n--; while (n>0) {
     request = fd_conspair(quote_lisp(args[n],dorefs,((doeval)&(1<<n))),
                         request);
@@ -168,62 +168,62 @@ static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
   fd_decref(request);
   return result;
 }
-FD_EXPORT fdtype fd_dtapply(struct U8_CONNPOOL *cp,int n,fdtype *args)
+FD_EXPORT lispval fd_dtapply(struct U8_CONNPOOL *cp,int n,lispval *args)
 {
   return dtapply(cp,n,1,0,args);
 }
 
-FD_EXPORT fdtype fd_dtcall(struct U8_CONNPOOL *cp,int n,...)
+FD_EXPORT lispval fd_dtcall(struct U8_CONNPOOL *cp,int n,...)
 {
   int i = 0; va_list arglist;
-  fdtype *args, _args[8], result;
+  lispval *args, _args[8], result;
   va_start(arglist,n);
   if (n>8)
-    args = u8_alloc_n(n,fdtype);
+    args = u8_alloc_n(n,lispval);
   else args=_args;
-  while (i<n) args[i++]=va_arg(arglist,fdtype);
+  while (i<n) args[i++]=va_arg(arglist,lispval);
   result = dtapply(cp,n,1,0,args);
   if (args!=_args) u8_free(args);
   return result;
 }
 
-FD_EXPORT fdtype fd_dtcall_x(struct U8_CONNPOOL *cp,int doeval,int n,...)
+FD_EXPORT lispval fd_dtcall_x(struct U8_CONNPOOL *cp,int doeval,int n,...)
 {
   int i = 0; va_list arglist;
-  fdtype *args, _args[8], result;
+  lispval *args, _args[8], result;
   va_start(arglist,n);
   if (n>8)
-    args = u8_alloc_n(n,fdtype);
+    args = u8_alloc_n(n,lispval);
   else args=_args;
-  while (i<n) args[i++]=va_arg(arglist,fdtype);
+  while (i<n) args[i++]=va_arg(arglist,lispval);
   result = dtapply(cp,n,1,doeval,args);
   if (args!=_args) u8_free(args);
   return result;
 }
 
-FD_EXPORT fdtype fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...)
+FD_EXPORT lispval fd_dtcall_nr(struct U8_CONNPOOL *cp,int n,...)
 {
   int i = 0; va_list arglist;
-  fdtype *args, _args[8], result;
+  lispval *args, _args[8], result;
   va_start(arglist,n);
   if (n>8)
-    args = u8_alloc_n(n,fdtype);
+    args = u8_alloc_n(n,lispval);
   else args=_args;
-  while (i<n) args[i++]=va_arg(arglist,fdtype);
+  while (i<n) args[i++]=va_arg(arglist,lispval);
   result = dtapply(cp,n,0,0,args);
   if (args!=_args) u8_free(args);
   return result;
 }
 
-FD_EXPORT fdtype fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
+FD_EXPORT lispval fd_dtcall_nrx(struct U8_CONNPOOL *cp,int doeval,int n,...)
 {
   int i = 0; va_list arglist;
-  fdtype *args, _args[8], result;
+  lispval *args, _args[8], result;
   va_start(arglist,n);
   if (n>8)
-    args = u8_alloc_n(n,fdtype);
+    args = u8_alloc_n(n,lispval);
   else args=_args;
-  while (i<n) args[i++]=va_arg(arglist,fdtype);
+  while (i<n) args[i++]=va_arg(arglist,lispval);
   result = dtapply(cp,n,0,doeval,args);
   if (args!=_args) u8_free(args);
   return result;

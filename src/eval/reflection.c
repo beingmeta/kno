@@ -19,79 +19,79 @@
 #define _FILEINFO __FILE__
 #endif
 
-static fdtype moduleid_symbol;
+static lispval moduleid_symbol;
 
 #define GETEVALFN(x) ((fd_evalfn)(fd_fcnid_ref(x)))
 
-static fdtype macrop(fdtype x)
+static lispval macrop(lispval x)
 {
   if (FD_TYPEP(x,fd_macro_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype compound_procedurep(fdtype x)
+static lispval compound_procedurep(lispval x)
 {
   if (FD_SPROCP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype applicablep(fdtype x)
+static lispval applicablep(lispval x)
 {
   if (FD_APPLICABLEP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype evalfnp(fdtype x)
+static lispval evalfnp(lispval x)
 {
   if (FD_TYPEP(x,fd_evalfn_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype primitivep(fdtype x)
+static lispval primitivep(lispval x)
 {
   if (FD_TYPEP(x,fd_cprim_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype procedurep(fdtype x)
+static lispval procedurep(lispval x)
 {
   if (FD_FUNCTIONP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype procedure_name(fdtype x)
+static lispval procedure_name(lispval x)
 {
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
     if (f->fcn_name)
-      return fdtype_string(f->fcn_name);
+      return lispval_string(f->fcn_name);
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
     return FD_FALSE;
   else if (FD_TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
-      return fdtype_string(sf->evalfn_name);
+      return lispval_string(sf->evalfn_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
 
-static fdtype procedure_filename(fdtype x)
+static lispval procedure_filename(lispval x)
 {
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f = FD_XFUNCTION(x);
     if (f->fcn_filename)
-      return fdtype_string(f->fcn_filename);
+      return lispval_string(f->fcn_filename);
     else return FD_FALSE;}
   else if (FD_TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_filename)
-      return fdtype_string(sf->evalfn_filename);
+      return lispval_string(sf->evalfn_filename);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_filename",x);
 }
 
-static fdtype procedure_symbol(fdtype x)
+static lispval procedure_symbol(lispval x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -106,7 +106,7 @@ static fdtype procedure_symbol(fdtype x)
   else return fd_type_error(_("function"),"procedure_symbol",x);
 }
 
-static fdtype procedure_id(fdtype x)
+static lispval procedure_id(lispval x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -121,17 +121,17 @@ static fdtype procedure_id(fdtype x)
   else return fd_incref(x);
 }
 
-static fdtype procedure_documentation(fdtype x)
+static lispval procedure_documentation(lispval x)
 {
   u8_string doc = fd_get_documentation(x);
   if (doc)
-    return fdtype_string(doc);
+    return lispval_string(doc);
   else return FD_FALSE;
 }
 
-static fdtype set_procedure_documentation(fdtype x,fdtype doc)
+static lispval set_procedure_documentation(lispval x,lispval doc)
 {
-  fdtype proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  lispval proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
   fd_ptr_type proctype = FD_PTR_TYPE(proc);
   if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -147,7 +147,7 @@ static fdtype set_procedure_documentation(fdtype x,fdtype doc)
                      NULL,x);
 }
 
-static fdtype procedure_arity(fdtype x)
+static lispval procedure_arity(lispval x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -157,7 +157,7 @@ static fdtype procedure_arity(fdtype x)
   else return fd_type_error(_("procedure"),"procedure_arity",x);
 }
 
-static fdtype non_deterministicp(fdtype x)
+static lispval non_deterministicp(lispval x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -167,7 +167,7 @@ static fdtype non_deterministicp(fdtype x)
   else return fd_type_error(_("procedure"),"non_deterministicp",x);
 }
 
-static fdtype synchronizedp(fdtype x)
+static lispval synchronizedp(lispval x)
 {
   if (FD_TYPEP(x,fd_sproc_type)) {
     fd_sproc f = (fd_sproc)x;
@@ -179,7 +179,7 @@ static fdtype synchronizedp(fdtype x)
   else return fd_type_error(_("procedure"),"non_deterministicp",x);
 }
 
-static fdtype procedure_min_arity(fdtype x)
+static lispval procedure_min_arity(lispval x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
@@ -191,12 +191,12 @@ static fdtype procedure_min_arity(fdtype x)
 /* Procedure attribs */
 
 
-static fdtype get_proc_attribs(fdtype x,int create)
+static lispval get_proc_attribs(lispval x,int create)
 {
   fd_ptr_type proctype = FD_PTR_TYPE(x);
   if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
-    fdtype attribs = f->fcn_attribs;
+    lispval attribs = f->fcn_attribs;
     if (!(create)) {
       if ((attribs!=FD_NULL)&&(TABLEP(attribs)))
         return attribs;
@@ -210,20 +210,20 @@ static fdtype get_proc_attribs(fdtype x,int create)
   else return VOID;
 }
 
-static fdtype get_procedure_attribs(fdtype x)
+static lispval get_procedure_attribs(lispval x)
 {
-  fdtype attribs = get_proc_attribs(x,1);
+  lispval attribs = get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
   else fd_incref(attribs);
   return attribs;
 }
 
-static fdtype set_procedure_attribs(fdtype x,fdtype value)
+static lispval set_procedure_attribs(lispval x,lispval value)
 {
   fd_ptr_type proctype = FD_PTR_TYPE(x);
   if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(x);
-    fdtype table = f->fcn_attribs;
+    lispval table = f->fcn_attribs;
     if (table!=FD_NULL) fd_decref(table);
     f->fcn_attribs = fd_incref(value);
     return VOID;}
@@ -231,17 +231,17 @@ static fdtype set_procedure_attribs(fdtype x,fdtype value)
                      NULL,x);
 }
 
-static fdtype reflect_get(fdtype x,fdtype attrib)
+static lispval reflect_get(lispval x,lispval attrib)
 {
-  fdtype attribs = get_proc_attribs(x,0);
+  lispval attribs = get_proc_attribs(x,0);
   if (TABLEP(attribs))
     return fd_get(attribs,attrib,FD_FALSE);
   else return FD_FALSE;
 }
 
-static fdtype reflect_store(fdtype x,fdtype attrib,fdtype value)
+static lispval reflect_store(lispval x,lispval attrib,lispval value)
 {
-  fdtype attribs = get_proc_attribs(x,1);
+  lispval attribs = get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
   else if (TABLEP(attribs)) {
     int rv = fd_store(attribs,attrib,value);
@@ -251,9 +251,9 @@ static fdtype reflect_store(fdtype x,fdtype attrib,fdtype value)
   else return FD_ERROR;
 }
 
-static fdtype reflect_add(fdtype x,fdtype attrib,fdtype value)
+static lispval reflect_add(lispval x,lispval attrib,lispval value)
 {
-  fdtype attribs = get_proc_attribs(x,1);
+  lispval attribs = get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
   else if (TABLEP(attribs)) {
     int rv = fd_add(attribs,attrib,value);
@@ -263,9 +263,9 @@ static fdtype reflect_add(fdtype x,fdtype attrib,fdtype value)
   else return FD_ERROR;
 }
 
-static fdtype reflect_drop(fdtype x,fdtype attrib,fdtype value)
+static lispval reflect_drop(lispval x,lispval attrib,lispval value)
 {
-  fdtype attribs = get_proc_attribs(x,1);
+  lispval attribs = get_proc_attribs(x,1);
   if (FD_ABORTP(attribs)) return attribs;
   else if (TABLEP(attribs)) {
     int rv = fd_drop(attribs,attrib,value);
@@ -277,9 +277,9 @@ static fdtype reflect_drop(fdtype x,fdtype attrib,fdtype value)
 
 /* SPROC functions */
 
-static fdtype compound_procedure_args(fdtype arg)
+static lispval compound_procedure_args(lispval arg)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)x;
     return fd_incref(proc->sproc_arglist);}
@@ -287,12 +287,12 @@ static fdtype compound_procedure_args(fdtype arg)
 	 ("compound procedure","compound_procedure_args",x);
 }
 
-static fdtype set_compound_procedure_args(fdtype arg,fdtype new_arglist)
+static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    fdtype arglist = proc->sproc_arglist;
+    lispval arglist = proc->sproc_arglist;
     proc->sproc_arglist = fd_incref(new_arglist);
     fd_decref(arglist);
     return VOID;}
@@ -300,18 +300,18 @@ static fdtype set_compound_procedure_args(fdtype arg,fdtype new_arglist)
 	 ("compound procedure","set_compound_procedure_args",x);
 }
 
-static fdtype compound_procedure_env(fdtype arg)
+static lispval compound_procedure_env(lispval arg)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    return (fdtype) fd_copy_env(proc->sproc_env);}
+    return (lispval) fd_copy_env(proc->sproc_env);}
   else return fd_type_error("compound procedure","compound_procedure_env",x);
 }
 
-static fdtype compound_procedure_body(fdtype arg)
+static lispval compound_procedure_body(lispval arg)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
     return fd_incref(proc->sproc_body);}
@@ -319,9 +319,9 @@ static fdtype compound_procedure_body(fdtype arg)
 	 ("compound procedure","compound_procedure_body",x);
 }
 
-static fdtype compound_procedure_source(fdtype arg)
+static lispval compound_procedure_source(lispval arg)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
     if (VOIDP(proc->sproc_source))
@@ -331,12 +331,12 @@ static fdtype compound_procedure_source(fdtype arg)
 	 ("compound procedure","compound_procedure_source",x);
 }
 
-static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
+static lispval set_compound_procedure_body(lispval arg,lispval new_body)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    fdtype body = proc->sproc_body;
+    lispval body = proc->sproc_body;
     proc->sproc_body = fd_incref(new_body);
     fd_decref(body);
     return VOID;}
@@ -344,12 +344,12 @@ static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
 	 ("compound procedure","set_compound_procedure_body",x);
 }
 
-static fdtype set_compound_procedure_source(fdtype arg,fdtype new_source)
+static lispval set_compound_procedure_source(lispval arg,lispval new_source)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    fdtype source = proc->sproc_source;
+    lispval source = proc->sproc_source;
     proc->sproc_source = fd_incref(new_source);
     fd_decref(source);
     return VOID;}
@@ -357,13 +357,13 @@ static fdtype set_compound_procedure_source(fdtype arg,fdtype new_source)
 	 ("compound procedure","set_compound_procedure_source",x);
 }
 
-static fdtype compound_procedure_bytecode(fdtype arg)
+static lispval compound_procedure_bytecode(lispval arg)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
     if (proc->sproc_bytecode) {
-      fdtype cur = (fdtype)(proc->sproc_bytecode);
+      lispval cur = (lispval)(proc->sproc_bytecode);
       fd_incref(cur);
       return cur;}
     else return FD_FALSE;}
@@ -371,13 +371,13 @@ static fdtype compound_procedure_bytecode(fdtype arg)
 	 ("compound procedure","compound_procedure_body",x);
 }
 
-static fdtype set_compound_procedure_bytecode(fdtype arg,fdtype bytecode)
+static lispval set_compound_procedure_bytecode(lispval arg,lispval bytecode)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
     if (proc->sproc_bytecode) {
-      fdtype cur = (fdtype)(proc->sproc_bytecode);
+      lispval cur = (lispval)(proc->sproc_bytecode);
       fd_decref(cur);}
     fd_incref(bytecode);
     proc->sproc_bytecode = (struct FD_VECTOR *)bytecode;
@@ -386,13 +386,13 @@ static fdtype set_compound_procedure_bytecode(fdtype arg,fdtype bytecode)
 	 ("compound procedure","set_compound_procedure_bytecode",x);
 }
 
-static fdtype set_compound_procedure_optimizer(fdtype arg,fdtype optimizer)
+static lispval set_compound_procedure_optimizer(lispval arg,lispval optimizer)
 {
-  fdtype x = fd_fcnid_ref(arg);
+  lispval x = fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc = (fd_sproc)x;
     if (proc->sproc_optimizer) {
-      fdtype cur = (fdtype)(proc->sproc_optimizer);
+      lispval cur = (lispval)(proc->sproc_optimizer);
       fd_decref(cur);}
     fd_incref(optimizer);
     proc->sproc_optimizer = optimizer;
@@ -403,28 +403,28 @@ static fdtype set_compound_procedure_optimizer(fdtype arg,fdtype optimizer)
 
 /* Function IDs */
 
-static fdtype fcnid_refprim(fdtype arg)
+static lispval fcnid_refprim(lispval arg)
 {
-  fdtype result = fd_fcnid_ref(arg);
+  lispval result = fd_fcnid_ref(arg);
   fd_incref(result);
   return result;
 }
 
-static fdtype fcnid_registerprim(fdtype value)
+static lispval fcnid_registerprim(lispval value)
 {
   if (FD_FCNIDP(value))
     return value;
   else return fd_register_fcnid(value);
 }
 
-static fdtype fcnid_setprim(fdtype arg,fdtype value)
+static lispval fcnid_setprim(lispval arg,lispval value)
 {
   return fd_set_fcnid(arg,value);
 }
 
 /* Macro expand */
 
-static fdtype macroexpand(fdtype expander,fdtype expr)
+static lispval macroexpand(lispval expander,lispval expr)
 {
   if (PAIRP(expr)) {
     if (FD_TYPEP(expander,fd_macro_type)) {
@@ -432,7 +432,7 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
       fd_ptr_type xformer_type = FD_PTR_TYPE(macrofn->macro_transformer);
       if (fd_applyfns[xformer_type]) {
         /* These are evalfns which do all the evaluating themselves */
-        fdtype new_expr=
+        lispval new_expr=
           fd_dcall(fd_stackptr,fd_fcnid_ref(macrofn->macro_transformer),1,&expr);
         new_expr = fd_finish_call(new_expr);
         if (FD_ABORTP(new_expr))
@@ -445,9 +445,9 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
 
 /* Apropos */
 
-static fdtype apropos_prim(fdtype arg)
+static lispval apropos_prim(lispval arg)
 {
-  u8_string seeking; fdtype all, results = EMPTY;
+  u8_string seeking; lispval all, results = EMPTY;
   if (SYMBOLP(arg)) seeking = SYM_NAME(arg);
   else if (STRINGP(arg)) seeking = CSTRING(arg);
   else return fd_type_error(_("string or symbol"),"apropos",arg);
@@ -460,7 +460,7 @@ static fdtype apropos_prim(fdtype arg)
 
 /* Module bindings */
 
-static fdtype module_bindings(fdtype arg)
+static lispval module_bindings(lispval arg)
 {
   if (FD_LEXENVP(arg)) {
     fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
@@ -468,17 +468,17 @@ static fdtype module_bindings(fdtype arg)
   else if (TABLEP(arg))
     return fd_getkeys(arg);
   else if (SYMBOLP(arg)) {
-    fdtype module = fd_get_module(arg,1);
+    lispval module = fd_get_module(arg,1);
     if (VOIDP(module))
       return fd_type_error(_("module"),"module_bindings",arg);
     else {
-      fdtype v = module_bindings(module);
+      lispval v = module_bindings(module);
       fd_decref(module);
       return v;}}
   else return fd_type_error(_("module"),"module_bindings",arg);
 }
 
-static fdtype modulep(fdtype arg)
+static lispval modulep(lispval arg)
 {
   if (FD_LEXENVP(arg)) {
     struct FD_LEXENV *env=
@@ -493,7 +493,7 @@ static fdtype modulep(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype module_exports(fdtype arg)
+static lispval module_exports(lispval arg)
 {
   if (FD_LEXENVP(arg)) {
     fd_lexenv envptr = fd_consptr(fd_lexenv,arg,fd_lexenv_type);
@@ -501,42 +501,42 @@ static fdtype module_exports(fdtype arg)
   else if (TABLEP(arg))
     return fd_getkeys(arg);
   else if (SYMBOLP(arg)) {
-    fdtype module = fd_get_module(arg,1);
+    lispval module = fd_get_module(arg,1);
     if (VOIDP(module))
       return fd_type_error(_("module"),"module_exports",arg);
     else {
-      fdtype v = module_exports(module);
+      lispval v = module_exports(module);
       fd_decref(module);
       return v;}}
   else return fd_type_error(_("module"),"module_exports",arg);
 }
 
-static fdtype local_bindings_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval local_bindings_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   if (env->env_copy)
     return fd_incref(env->env_copy->env_bindings);
   else {
     fd_lexenv copied = fd_copy_env(env);
-    fdtype bindings = copied->env_bindings;
+    lispval bindings = copied->env_bindings;
     fd_incref(bindings);
-    fd_decref((fdtype)copied);
+    fd_decref((lispval)copied);
     return bindings;}
 }
 
-static fdtype thisenv_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval thisenv_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  return (fdtype) fd_copy_env(env);
+  return (lispval) fd_copy_env(env);
 }
 
 /* Finding where a symbol comes from */
 
-static fdtype wherefrom_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
+static lispval wherefrom_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack)
 {
-  fdtype symbol_arg = fd_get_arg(expr,1);
-  fdtype symbol = fd_eval(symbol_arg,call_env);
+  lispval symbol_arg = fd_get_arg(expr,1);
+  lispval symbol = fd_eval(symbol_arg,call_env);
   if (SYMBOLP(symbol)) {
     fd_lexenv env;
-    fdtype env_arg = fd_eval(fd_get_arg(expr,2),call_env);
+    lispval env_arg = fd_eval(fd_get_arg(expr,2),call_env);
     if (VOIDP(env_arg)) env = call_env;
     else if (FD_TYPEP(env_arg,fd_lexenv_type))
       env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
@@ -544,10 +544,10 @@ static fdtype wherefrom_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
     if (env->env_copy) env = env->env_copy;
     while (env) {
       if (fd_test(env->env_bindings,symbol,VOID)) {
-        fdtype bindings = env->env_bindings;
+        lispval bindings = env->env_bindings;
         if ((CONSP(bindings)) &&
             (FD_MALLOCD_CONSP((fd_cons)bindings)))
-          return fd_incref((fdtype)env);
+          return fd_incref((lispval)env);
         else {
           fd_decref(env_arg);
           return FD_FALSE;}}
@@ -560,9 +560,9 @@ static fdtype wherefrom_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
 
 /* Finding all the modules used from an environment */
 
-static fdtype getmodules_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
+static lispval getmodules_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack)
 {
-  fdtype env_arg = fd_eval(fd_get_arg(expr,1),call_env), modules = EMPTY;
+  lispval env_arg = fd_eval(fd_get_arg(expr,1),call_env), modules = EMPTY;
   fd_lexenv env = call_env;
   if (VOIDP(env_arg)) {}
   else if (FD_TYPEP(env_arg,fd_lexenv_type))
@@ -571,7 +571,7 @@ static fdtype getmodules_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
   if (env->env_copy) env = env->env_copy;
   while (env) {
     if (fd_test(env->env_bindings,moduleid_symbol,VOID)) {
-      fdtype ids = fd_get(env->env_bindings,moduleid_symbol,VOID);
+      lispval ids = fd_get(env->env_bindings,moduleid_symbol,VOID);
       if ((CHOICEP(ids))||(PRECHOICEP(ids))) {
         DO_CHOICES(id,ids) {
           if (SYMBOLP(id)) {CHOICE_ADD(modules,id);}}}
@@ -587,9 +587,9 @@ static fdtype getmodules_evalfn(fdtype expr,fd_lexenv call_env,fd_stack _stack)
 
 FD_EXPORT void fd_init_reflection_c()
 {
-  fdtype module = fd_new_module("REFLECTION",FD_MODULE_SAFE);
+  lispval module = fd_new_module("REFLECTION",FD_MODULE_SAFE);
 
-  fdtype apropos_cprim = fd_make_cprim1("APROPOS",apropos_prim,1);
+  lispval apropos_cprim = fd_make_cprim1("APROPOS",apropos_prim,1);
   fd_idefn(module,apropos_cprim);
   fd_defn(fd_scheme_module,apropos_cprim);
 

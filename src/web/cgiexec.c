@@ -31,22 +31,22 @@
 
 #include <ctype.h>
 
-static fdtype accept_language, accept_type, accept_charset, accept_encoding;
-static fdtype server_port, remote_port, request_method, status_field;
-static fdtype get_method, post_method, browseinfo_symbol;
-static fdtype redirect_field, sendfile_field, xredirect_field;
-static fdtype query_string, query_elts, query, http_cookie, http_referrer;
-static fdtype http_headers, html_headers, cookiedata_symbol;
-static fdtype outcookies_symbol, incookies_symbol, bad_cookie;
-static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid;
-static fdtype body_attribs_slotid, body_classes_slotid, html_classes_slotid;
-static fdtype class_symbol;
-static fdtype content_slotid, content_type, cgi_content_type;
-static fdtype content_length, incoming_content_length, incoming_content_type;
-static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
-static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
-static fdtype parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
-static fdtype ipeval_symbol;
+static lispval accept_language, accept_type, accept_charset, accept_encoding;
+static lispval server_port, remote_port, request_method, status_field;
+static lispval get_method, post_method, browseinfo_symbol;
+static lispval redirect_field, sendfile_field, xredirect_field;
+static lispval query_string, query_elts, query, http_cookie, http_referrer;
+static lispval http_headers, html_headers, cookiedata_symbol;
+static lispval outcookies_symbol, incookies_symbol, bad_cookie;
+static lispval doctype_slotid, xmlpi_slotid, html_attribs_slotid;
+static lispval body_attribs_slotid, body_classes_slotid, html_classes_slotid;
+static lispval class_symbol;
+static lispval content_slotid, content_type, cgi_content_type;
+static lispval content_length, incoming_content_length, incoming_content_type;
+static lispval remote_user_symbol, remote_host_symbol, remote_addr_symbol;
+static lispval remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
+static lispval parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
+static lispval ipeval_symbol;
 
 char *fd_sendfile_header = NULL; /* X-Sendfile */
 char *fd_xredirect_header="X-Redirect";
@@ -56,44 +56,44 @@ static u8_condition CGIDataInconsistency="Inconsistent CGI data";
 
 /* Utility functions */
 
-static fdtype try_parse(u8_string buf)
+static lispval try_parse(u8_string buf)
 {
-  fdtype val = fd_parse((buf[0]==':')?(buf+1):(buf));
+  lispval val = fd_parse((buf[0]==':')?(buf+1):(buf));
   if (FD_ABORTP(val)) {
-    fd_decref(val); return fdtype_string(buf);}
+    fd_decref(val); return lispval_string(buf);}
   else return val;
 }
 
-static fdtype buf2lisp(char *buf,int isascii)
+static lispval buf2lisp(char *buf,int isascii)
 {
   if (buf[0]!=':')
-    if (isascii) return fdtype_string(buf);
+    if (isascii) return lispval_string(buf);
     else return fd_lispstring(u8_valid_copy(buf));
   else if (isascii) return try_parse(buf);
   else {
     u8_string s = u8_valid_copy(buf);
-    fdtype value = try_parse(s);
+    lispval value = try_parse(s);
     u8_free(s);
     return value;}
 }
 
-static fdtype buf2slotid(char *buf,int isascii)
+static lispval buf2slotid(char *buf,int isascii)
 {
   if (isascii) return fd_parse(buf);
   else {
     u8_string s = u8_valid_copy(buf);
-    fdtype value = fd_parse(s);
+    lispval value = fd_parse(s);
     u8_free(s);
     return value;}
 }
 
-static fdtype buf2string(char *buf,int isascii)
+static lispval buf2string(char *buf,int isascii)
 {
-  if (isascii) return fdtype_string(buf);
+  if (isascii) return lispval_string(buf);
   else return fd_lispstring(u8_valid_copy(buf));
 }
 
-static void emit_uri_value(u8_output out,fdtype val)
+static void emit_uri_value(u8_output out,lispval val)
 {
   if (STRINGP(val))
     fd_uri_output(out,CSTRING(val),STRLEN(val),0,NULL);
@@ -107,7 +107,7 @@ static void emit_uri_value(u8_output out,fdtype val)
 }
 
 FD_EXPORT
-void fd_urify(u8_output out,fdtype val)
+void fd_urify(u8_output out,lispval val)
 {
   emit_uri_value(out,val);
 }
@@ -115,34 +115,34 @@ void fd_urify(u8_output out,fdtype val)
 /* Converting cgidata */
 
 static struct FD_PROTECTED_CGI {
-  fdtype field;
+  lispval field;
   struct FD_PROTECTED_CGI *next;} *protected_cgi;
 static u8_mutex protected_cgi_lock;
 
-static int isprotected(fdtype field)
+static int isprotected(lispval field)
 {
   struct FD_PROTECTED_CGI *scan = protected_cgi;
   while (scan) {
-    if (FDTYPE_EQUAL(scan->field,field)) return 1;
+    if (LISP_EQUAL(scan->field,field)) return 1;
     else scan = scan->next;}
   return 0;
 }
-static fdtype protected_cgi_get(fdtype var,void *ptr)
+static lispval protected_cgi_get(lispval var,void *ptr)
 {
-  fdtype result = EMPTY;
+  lispval result = EMPTY;
   struct FD_PROTECTED_CGI *scan = protected_cgi;
   while (scan) {
-    fdtype field = scan->field; fd_incref(field);
+    lispval field = scan->field; fd_incref(field);
     CHOICE_ADD(result,field); 
     scan = scan->next;}
   return result;
 }
-static int protected_cgi_set(fdtype var,fdtype field,void *ptr)
+static int protected_cgi_set(lispval var,lispval field,void *ptr)
 {
   struct FD_PROTECTED_CGI *scan = protected_cgi, *fresh = NULL;
   u8_lock_mutex(&protected_cgi_lock);
   while (scan) {
-    if (FDTYPE_EQUAL(scan->field,field)) {
+    if (LISP_EQUAL(scan->field,field)) {
       u8_unlock_mutex(&protected_cgi_lock);
       return 0;}
     else scan = scan->next;}
@@ -154,21 +154,21 @@ static int protected_cgi_set(fdtype var,fdtype field,void *ptr)
   return 1;
 }
 
-static void convert_parse(fd_slotmap c,fdtype slotid)
+static void convert_parse(fd_slotmap c,lispval slotid)
 {
-  fdtype value = fd_slotmap_get(c,slotid,VOID);
+  lispval value = fd_slotmap_get(c,slotid,VOID);
   if (!(STRINGP(value))) {fd_decref(value);}
   else {
     fd_slotmap_store(c,slotid,try_parse(CSTRING(value)));
     fd_decref(value);}
 }
 
-static void convert_accept(fd_slotmap c,fdtype slotid)
+static void convert_accept(fd_slotmap c,lispval slotid)
 {
-  fdtype value = fd_slotmap_get(c,slotid,VOID);
+  lispval value = fd_slotmap_get(c,slotid,VOID);
   if (!(STRINGP(value))) {fd_decref(value);}
   else {
-    fdtype newvalue = EMPTY, entry;
+    lispval newvalue = EMPTY, entry;
     const u8_byte *data = CSTRING(value), *scan = data;
     const u8_byte *comma = strchr(scan,','), *semi = strstr(scan,";q=");
     while (comma) {
@@ -190,7 +190,7 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
 
 /* Converting query arguments */
 
-static fdtype post_data_slotid, multipart_form_data, www_form_urlencoded;
+static lispval post_data_slotid, multipart_form_data, www_form_urlencoded;
 
 /* Setting this to zero might be slightly more secure, and it's the
    CONFIG option QUERYWITHPOST (boolean) */
@@ -198,9 +198,9 @@ static int parse_query_on_post = 1;
 
 static void parse_query_string(fd_slotmap c,const char *data,int len);
 
-static fdtype intern_compound(u8_string s1,u8_string s2)
+static lispval intern_compound(u8_string s1,u8_string s2)
 {
-  fdtype result = VOID;
+  lispval result = VOID;
   struct U8_OUTPUT tmpout; u8_byte tmpbuf[128];
   U8_INIT_OUTPUT_X(&tmpout,128,tmpbuf,0);
   u8_puts(&tmpout,s1); u8_puts(&tmpout,s2);
@@ -211,75 +211,75 @@ static fdtype intern_compound(u8_string s1,u8_string s2)
 
 static void get_form_args(fd_slotmap c)
 {
-  if (fd_test((fdtype)c,request_method,get_method)) {
-    fdtype qval = fd_slotmap_get(c,query_string,VOID);
+  if (fd_test((lispval)c,request_method,get_method)) {
+    lispval qval = fd_slotmap_get(c,query_string,VOID);
     if (STRINGP(qval))
       parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
     fd_decref(qval);
     return;}
-  else if (fd_test((fdtype)c,request_method,post_method)) {
-    fd_handle_compound_mime_field((fdtype)c,cgi_content_type,VOID);
+  else if (fd_test((lispval)c,request_method,post_method)) {
+    fd_handle_compound_mime_field((lispval)c,cgi_content_type,VOID);
     if (parse_query_on_post) {
       /* We do this first, so it won't override any post data
          which is supposedly more legitimate. */
-      fdtype qval = fd_slotmap_get(c,query_string,VOID);
+      lispval qval = fd_slotmap_get(c,query_string,VOID);
       if (STRINGP(qval))
         parse_query_string(c,FD_STRING_DATA(qval),FD_STRING_LENGTH(qval));
       fd_decref(qval);}
-    if (fd_test((fdtype)c,cgi_content_type,multipart_form_data)) {
-      fdtype postdata = fd_slotmap_get(c,post_data_slotid,VOID);
-      fdtype parts = NIL;
+    if (fd_test((lispval)c,cgi_content_type,multipart_form_data)) {
+      lispval postdata = fd_slotmap_get(c,post_data_slotid,VOID);
+      lispval parts = NIL;
       /* Parse the MIME data into parts */
       if (STRINGP(postdata))
         parts = fd_parse_multipart_mime
-          ((fdtype)c,FD_STRING_DATA(postdata),
+          ((lispval)c,FD_STRING_DATA(postdata),
            FD_STRING_DATA(postdata)+FD_STRING_LENGTH(postdata));
       else if (PACKETP(postdata))
         parts = fd_parse_multipart_mime
-          ((fdtype)c,FD_PACKET_DATA(postdata),
+          ((lispval)c,FD_PACKET_DATA(postdata),
            FD_PACKET_DATA(postdata)+FD_PACKET_LENGTH(postdata));
-      fd_add((fdtype)c,parts_slotid,parts);
+      fd_add((lispval)c,parts_slotid,parts);
       fd_decref(postdata);
       /* Convert the parts */
       {FD_DOLIST(elt,parts) {
-        fdtype namestring = fd_get(elt,name_slotid,VOID);
+        lispval namestring = fd_get(elt,name_slotid,VOID);
         if (STRINGP(namestring)) {
           u8_string nstring = FD_STRING_DATA(namestring);
-          fdtype namesym = fd_parse(nstring);
-          fdtype partsym = intern_compound("__",nstring);
-          fdtype ctype = fd_get(elt,content_type,VOID);
-          fdtype content = fd_get((fdtype)elt,content_slotid,EMPTY);
+          lispval namesym = fd_parse(nstring);
+          lispval partsym = intern_compound("__",nstring);
+          lispval ctype = fd_get(elt,content_type,VOID);
+          lispval content = fd_get((lispval)elt,content_slotid,EMPTY);
           /* Add the part itself in the _name slotid */
-          fd_add((fdtype)c,partsym,elt);
+          fd_add((lispval)c,partsym,elt);
           /* Add the filename slot if it's an upload */
           if (fd_test(elt,filename_slotid,VOID)) {
-            fdtype filename = fd_get(elt,filename_slotid,EMPTY);
-            fd_add((fdtype)c,intern_compound(nstring,"_FILENAME"),
+            lispval filename = fd_get(elt,filename_slotid,EMPTY);
+            fd_add((lispval)c,intern_compound(nstring,"_FILENAME"),
                    filename);
             fd_decref(filename);}
           if (fd_test(elt,content_type,VOID)) {
-            fdtype ctype = fd_get(elt,content_type,EMPTY);
-            fd_add((fdtype)c,intern_compound(nstring,"_TYPE"),ctype);
+            lispval ctype = fd_get(elt,content_type,EMPTY);
+            fd_add((lispval)c,intern_compound(nstring,"_TYPE"),ctype);
             fd_decref(ctype);}
           if ((VOIDP(ctype)) || (fd_overlapp(ctype,FDSYM_TEXT))) {
             if (STRINGP(content)) {
               u8_string chars = CSTRING(content); int len = STRLEN(content);
               /* Remove trailing \r\n from the MIME field */
               if ((len>1) && (chars[len-1]=='\n')) {
-                fdtype new_content;
+                lispval new_content;
                 if (chars[len-2]=='\r')
                   new_content = fd_substring(chars,chars+len-2);
                 else new_content = fd_substring(chars,chars+len-1);
-                fd_add((fdtype)c,namesym,new_content);
+                fd_add((lispval)c,namesym,new_content);
                 fd_decref(new_content);}
-              else fd_add((fdtype)c,namesym,content);}
-            else fd_add((fdtype)c,namesym,content);}
-          else fd_add((fdtype)c,namesym,content);
+              else fd_add((lispval)c,namesym,content);}
+            else fd_add((lispval)c,namesym,content);}
+          else fd_add((lispval)c,namesym,content);
           fd_decref(content); fd_decref(ctype);}
         fd_decref(namestring);}}
       fd_decref(parts);}
-    else if (fd_test((fdtype)c,cgi_content_type,www_form_urlencoded)) {
-      fdtype qval = fd_slotmap_get(c,post_data_slotid,VOID);
+    else if (fd_test((lispval)c,cgi_content_type,www_form_urlencoded)) {
+      lispval qval = fd_slotmap_get(c,post_data_slotid,VOID);
       u8_string data; unsigned int len;
       if (STRINGP(qval)) {
         data = CSTRING(qval); len = FD_STRING_LENGTH(qval);}
@@ -295,7 +295,7 @@ static void get_form_args(fd_slotmap c)
 
 static void parse_query_string(fd_slotmap c,const char *data,int len)
 {
-  fdtype slotid = VOID, value = VOID; int isascii = 1;
+  lispval slotid = VOID, value = VOID; int isascii = 1;
   const u8_byte *scan = data, *end = scan+len;
   char *buf = u8_malloc(len+1), *write = buf;
   while (scan<end)
@@ -341,7 +341,7 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
     fd_decref(value); value = VOID; slotid = VOID;
     write = buf; isascii = 1; scan++;}
   else if (!(VOIDP(slotid))) {
-    fdtype str = fdtype_string("");
+    lispval str = lispval_string("");
     fd_slotmap_add(c,slotid,str);
     fd_decref(str);}
   u8_free(buf);
@@ -349,14 +349,14 @@ static void parse_query_string(fd_slotmap c,const char *data,int len)
 
 /* Converting cookie args */
 
-static void setcookiedata(fdtype cookiedata,fdtype cgidata)
+static void setcookiedata(lispval cookiedata,lispval cgidata)
 {
   /* This replaces any existing cookie data which matches cookiedata */
-  fdtype cookies=
+  lispval cookies=
     ((TABLEP(cgidata))?
      (fd_get(cgidata,outcookies_symbol,EMPTY)):
      (fd_req_get(outcookies_symbol,EMPTY)));
-  fdtype cookievar = VEC_REF(cookiedata,0);
+  lispval cookievar = VEC_REF(cookiedata,0);
   DO_CHOICES(cookie,cookies) {
     if (FD_EQ(VEC_REF(cookie,0),cookievar)) {
       if (TABLEP(cgidata))
@@ -370,10 +370,10 @@ static void setcookiedata(fdtype cookiedata,fdtype cgidata)
 
 static void convert_cookie_arg(fd_slotmap c)
 {
-  fdtype qval = fd_slotmap_get(c,http_cookie,VOID);
+  lispval qval = fd_slotmap_get(c,http_cookie,VOID);
   if (!(STRINGP(qval))) {fd_decref(qval); return;}
   else {
-    fdtype slotid = VOID, name = VOID, value = VOID;
+    lispval slotid = VOID, name = VOID, value = VOID;
     int len = STRLEN(qval); int isascii = 1, badcookie = 0;
     const u8_byte *scan = CSTRING(qval), *end = scan+len;
     char *buf = u8_malloc(len), *write = buf;
@@ -381,7 +381,7 @@ static void convert_cookie_arg(fd_slotmap c)
       if ((VOIDP(slotid)) && (*scan=='=')) {
         /* There's an assignment going on. */
         *write++='\0';
-        name = fdtype_string(buf);
+        name = lispval_string(buf);
         if ((buf[0]=='_')||(strncmp(buf,"HTTP",4)==0)) badcookie = 1;
         else badcookie = 0;
         if (isascii) slotid = fd_parse(buf);
@@ -402,12 +402,12 @@ static void convert_cookie_arg(fd_slotmap c)
           u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
                  CSTRING(qval));
         else {
-          fdtype cookiedata = fd_make_nvector(2,name,fd_incref(value));
+          lispval cookiedata = fd_make_nvector(2,name,fd_incref(value));
           if (badcookie)
             fd_slotmap_add(c,bad_cookie,cookiedata);
           else fd_slotmap_add(c,slotid,value);
           fd_slotmap_add(c,cookiedata_symbol,cookiedata);
-          setcookiedata(cookiedata,(fdtype)c);
+          setcookiedata(cookiedata,(lispval)c);
           name = VOID;
           fd_decref(cookiedata);}
         fd_decref(value); value = VOID; slotid = VOID;
@@ -436,12 +436,12 @@ static void convert_cookie_arg(fd_slotmap c)
         u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
                 CSTRING(qval));
       else {
-        fdtype cookiedata = fd_make_nvector(2,name,fd_incref(value));
+        lispval cookiedata = fd_make_nvector(2,name,fd_incref(value));
         if (badcookie)
           fd_slotmap_add(c,bad_cookie,cookiedata);
         else fd_slotmap_add(c,slotid,value);
         fd_slotmap_add(c,cookiedata_symbol,cookiedata);
-        setcookiedata(cookiedata,(fdtype)c);
+        setcookiedata(cookiedata,(lispval)c);
         fd_decref(cookiedata);}
       fd_decref(value); value = VOID; slotid = VOID;
       write = buf; isascii = 1; scan++;}
@@ -453,14 +453,14 @@ static void convert_cookie_arg(fd_slotmap c)
 
 /* Parsing CGI data */
 
-static fdtype cgi_prepfns = EMPTY;
-static void add_remote_info(fdtype cgidata);
+static lispval cgi_prepfns = EMPTY;
+static void add_remote_info(lispval cgidata);
 
-FD_EXPORT int fd_parse_cgidata(fdtype data)
+FD_EXPORT int fd_parse_cgidata(lispval data)
 {
   struct FD_SLOTMAP *cgidata = FD_XSLOTMAP(data);
-  fdtype ctype = fd_get(data,content_type,VOID);
-  fdtype clen = fd_get(data,content_length,VOID);
+  lispval ctype = fd_get(data,content_type,VOID);
+  lispval clen = fd_get(data,content_length,VOID);
   convert_accept(cgidata,accept_language);
   convert_accept(cgidata,accept_type);
   convert_accept(cgidata,accept_charset);
@@ -481,21 +481,21 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
     fd_decref(clen);}
   {DO_CHOICES(handler,cgi_prepfns) {
     if (FD_APPLICABLEP(handler)) {
-      fdtype value = fd_apply(handler,1,&data);
+      lispval value = fd_apply(handler,1,&data);
       fd_decref(value);}
     else u8_log(LOG_WARN,"Not Applicable","Invalid CGI prep handler %q",handler);}}
   return 1;
 }
 
-static void add_remote_info(fdtype cgidata)
+static void add_remote_info(lispval cgidata)
 {
   /* This combines a bunch of different request properties into a single string */
-  fdtype remote_user = fd_get(cgidata,remote_user_symbol,VOID);
-  fdtype remote_ident = fd_get(cgidata,remote_ident_symbol,VOID);
-  fdtype remote_host = fd_get(cgidata,remote_host_symbol,VOID);
-  fdtype remote_addr = fd_get(cgidata,remote_addr_symbol,VOID);
-  fdtype remote_agent = fd_get(cgidata,remote_agent_symbol,VOID);
-  fdtype remote_string = VOID;
+  lispval remote_user = fd_get(cgidata,remote_user_symbol,VOID);
+  lispval remote_ident = fd_get(cgidata,remote_ident_symbol,VOID);
+  lispval remote_host = fd_get(cgidata,remote_host_symbol,VOID);
+  lispval remote_addr = fd_get(cgidata,remote_addr_symbol,VOID);
+  lispval remote_agent = fd_get(cgidata,remote_agent_symbol,VOID);
+  lispval remote_string = VOID;
   struct U8_OUTPUT remote;
   U8_INIT_OUTPUT(&remote,128);
   u8_printf(&remote,"%s%s%s@%s%s%s(%s)",
@@ -517,13 +517,13 @@ static void add_remote_info(fdtype cgidata)
 
 /* Generating headers */
 
-static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,
+static lispval do_xmlout(U8_OUTPUT *out,lispval body,
                         fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   u8_set_default_output(out);
   while (PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+    lispval value = fast_eval(FD_CAR(body),env);
     body = FD_CDR(body);
     if (FD_ABORTP(value)) {
       u8_set_default_output(prev);
@@ -537,31 +537,31 @@ static fdtype do_xmlout(U8_OUTPUT *out,fdtype body,
   return VOID;
 }
 
-static fdtype httpheader(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval httpheader(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  U8_OUTPUT out; fdtype result;
+  U8_OUTPUT out; lispval result;
   U8_INIT_OUTPUT(&out,64);
   result = do_xmlout(&out,fd_get_body(expr,1),env,_stack);
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype header=
+    lispval header=
       fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     fd_req_add(http_headers,header);
     fd_decref(header);
     return VOID;}
 }
 
-static fdtype addhttpheader(fdtype header)
+static lispval addhttpheader(lispval header)
 {
   fd_req_add(http_headers,header);
   return VOID;
 }
 
-static fdtype htmlheader(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval htmlheader(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  U8_OUTPUT out; fdtype header_string; fdtype result;
+  U8_OUTPUT out; lispval header_string; lispval result;
   U8_INIT_OUTPUT(&out,64);
   result = do_xmlout(&out,fd_get_body(expr,1),env,_stack);
   if (FD_ABORTP(result)) {
@@ -575,9 +575,9 @@ static fdtype htmlheader(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Handling cookies */
 
-static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
+static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
 {
-  int len; fdtype real_val, name;
+  int len; lispval real_val, name;
   if (!(VECTORP(cookie))) return -1;
   else len = VEC_LEN(cookie);
   if (len<2) return -1;
@@ -589,14 +589,14 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
     if (VOIDP(real_val)) real_val = fd_incref(VEC_REF(cookie,1));}
   else real_val = fd_incref(VEC_REF(cookie,1));
   if ((len>2) || (!(FD_EQ(real_val,VEC_REF(cookie,1))))) {
-    fdtype var = VEC_REF(cookie,0);
+    lispval var = VEC_REF(cookie,0);
     u8_string namestring; const u8_byte *scan;
     int free_namestring = 0, c;
     u8_printf(out,"Set-Cookie: ");
     if (SYMBOLP(var)) namestring = SYM_NAME(var);
     else if (STRINGP(var)) namestring = CSTRING(var);
     else {
-      namestring = fd_dtype2string(var);
+      namestring = fd_lisp2string(var);
       free_namestring = 1;}
     scan = namestring; c = u8_sgetc(&scan);
     if ((c=='$')|| (c>=0x80) || (u8_isspace(c)) || (c==';') || (c==','))
@@ -612,10 +612,10 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
     if (free_namestring) u8_free(namestring);
     emit_uri_value(out,VEC_REF(cookie,1));
     if (len>2) {
-      fdtype domain = VEC_REF(cookie,2);
-      fdtype path = ((len>3) ? (VEC_REF(cookie,3)) : (VOID));
-      fdtype expires = ((len>4) ? (VEC_REF(cookie,4)) : (VOID));
-      fdtype secure = ((len>5) ? (VEC_REF(cookie,5)) : (VOID));
+      lispval domain = VEC_REF(cookie,2);
+      lispval path = ((len>3) ? (VEC_REF(cookie,3)) : (VOID));
+      lispval expires = ((len>4) ? (VEC_REF(cookie,4)) : (VOID));
+      lispval secure = ((len>5) ? (VEC_REF(cookie,5)) : (VOID));
       if (STRINGP(domain))
         u8_printf(out,"; Domain=%s",CSTRING(domain));
       if (STRINGP(path))
@@ -635,15 +635,15 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
   return 1;
 }
 
-static fdtype setcookie
-  (fdtype var,fdtype val,
-   fdtype domain,fdtype path,
-   fdtype expires,fdtype secure)
+static lispval setcookie
+  (lispval var,lispval val,
+   lispval domain,lispval path,
+   lispval expires,lispval secure)
 {
   if (!((SYMBOLP(var)) || (STRINGP(var)) || (OIDP(var))))
     return fd_type_error("symbol","setcookie",var);
   else {
-    fdtype cookiedata;
+    lispval cookiedata;
     if (VOIDP(domain)) domain = FD_FALSE;
     if (VOIDP(path)) path = FD_FALSE;
     if (VOIDP(expires)) expires = FD_FALSE;
@@ -668,16 +668,16 @@ static fdtype setcookie
     return VOID;}
 }
 
-static fdtype clearcookie
-  (fdtype var,fdtype domain,fdtype path,fdtype secure)
+static lispval clearcookie
+  (lispval var,lispval domain,lispval path,lispval secure)
 {
   if (!((SYMBOLP(var)) || (STRINGP(var)) || (OIDP(var))))
     return fd_type_error("symbol","setcookie",var);
   else {
-    fdtype cookiedata;
-    fdtype val = fdtype_string("");
+    lispval cookiedata;
+    lispval val = lispval_string("");
     time_t past = time(NULL)-(3600*24*7*50);
-    fdtype expires = fd_time2timestamp(past);
+    lispval expires = fd_time2timestamp(past);
     if (VOIDP(domain)) domain = FD_FALSE;
     if (VOIDP(path)) path = FD_FALSE;
     cookiedata=
@@ -691,9 +691,9 @@ static fdtype clearcookie
 
 /* HTML Header functions */
 
-static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
+static lispval add_stylesheet(lispval stylesheet,lispval type)
 {
-  fdtype header_string = VOID;
+  lispval header_string = VOID;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   if (VOIDP(type))
     u8_printf(&out,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
@@ -706,9 +706,9 @@ static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
   return VOID;
 }
 
-static fdtype add_javascript(fdtype url)
+static lispval add_javascript(lispval url)
 {
-  fdtype header_string = VOID;
+  lispval header_string = VOID;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   u8_printf(&out,"<script language='javascript' src='%s'>\n",
             CSTRING(url));
@@ -720,9 +720,9 @@ static fdtype add_javascript(fdtype url)
   return VOID;
 }
 
-static fdtype title_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval title_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  U8_OUTPUT out; fdtype result;
+  U8_OUTPUT out; lispval result;
   U8_INIT_OUTPUT(&out,64);
   u8_puts(&out,"<title>");
   result = do_xmlout(&out,fd_get_body(expr,1),env,_stack);
@@ -731,21 +731,21 @@ static fdtype title_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype header_string=
+    lispval header_string=
       fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     fd_req_push(html_headers,header_string);
     fd_decref(header_string);
     return VOID;}
 }
 
-static fdtype jsout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval jsout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
-  U8_OUTPUT _out, *out = &_out; fdtype result = VOID;
+  U8_OUTPUT _out, *out = &_out; lispval result = VOID;
   U8_INIT_OUTPUT(&_out,2048);
   u8_set_default_output(out);
   u8_puts(&_out,"<script language='javascript'>\n");
-  {fdtype body = fd_get_body(expr,1);
+  {lispval body = fd_get_body(expr,1);
     FD_DOLIST(x,body) {
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
@@ -765,7 +765,7 @@ static fdtype jsout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_set_default_output(prev);
     return result;}
   else {
-    fdtype header_string=
+    lispval header_string=
       fd_init_string(NULL,_out.u8_write-_out.u8_outbuf,_out.u8_outbuf);
     u8_set_default_output(prev);
     fd_req_push(html_headers,header_string);
@@ -773,11 +773,11 @@ static fdtype jsout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return VOID;}
 }
 
-static fdtype cssout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval cssout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *prev = u8_current_output;
   U8_OUTPUT _out, *out = &_out;
-  fdtype result = VOID, body = fd_get_body(expr,1);
+  lispval result = VOID, body = fd_get_body(expr,1);
   U8_INIT_OUTPUT(&_out,2048);
   u8_set_default_output(out);
   u8_puts(&_out,"<style type='text/css'>\n");
@@ -800,7 +800,7 @@ static fdtype cssout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_set_default_output(prev);
     return result;}
   else {
-    fdtype header_string=
+    lispval header_string=
       fd_init_string(NULL,_out.u8_write-_out.u8_outbuf,_out.u8_outbuf);
     u8_set_default_output(prev);
     fd_req_push(html_headers,header_string);
@@ -809,15 +809,15 @@ static fdtype cssout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 }
 
 /* Generating the HTTP header */
-FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
+FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,lispval cgidata)
 {
-  fdtype ctype = fd_get(cgidata,content_type,VOID);
-  fdtype status = fd_get(cgidata,status_field,VOID);
-  fdtype headers = fd_get(cgidata,http_headers,EMPTY);
-  fdtype redirect = fd_get(cgidata,redirect_field,VOID);
-  fdtype sendfile = fd_get(cgidata,sendfile_field,VOID);
-  fdtype xredirect = fd_get(cgidata,xredirect_field,VOID);
-  fdtype cookies = fd_get(cgidata,outcookies_symbol,EMPTY);
+  lispval ctype = fd_get(cgidata,content_type,VOID);
+  lispval status = fd_get(cgidata,status_field,VOID);
+  lispval headers = fd_get(cgidata,http_headers,EMPTY);
+  lispval redirect = fd_get(cgidata,redirect_field,VOID);
+  lispval sendfile = fd_get(cgidata,sendfile_field,VOID);
+  lispval xredirect = fd_get(cgidata,xredirect_field,VOID);
+  lispval cookies = fd_get(cgidata,outcookies_symbol,EMPTY);
   int keep_doctype = 0, http_status = -1;
   if ((STRINGP(redirect))&&(VOIDP(status))) {
     status = FD_INT(303); http_status = 303;}
@@ -860,24 +860,24 @@ FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   return http_status;
 }
 
-static void output_headers(U8_OUTPUT *out,fdtype headers)
+static void output_headers(U8_OUTPUT *out,lispval headers)
 {
   if (PAIRP(headers)) {
-    fdtype header = FD_CAR(headers);
+    lispval header = FD_CAR(headers);
     output_headers(out,FD_CDR(headers));
     u8_putn(out,CSTRING(header),STRLEN(header));
     u8_putn(out,"\n",1);}
 }
 
-static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
+static lispval attrib_merge_classes(lispval attribs,lispval classes)
 {
   if (!(PAIRP(classes))) return attribs;
   else if (PAIRP(attribs)) {
-    fdtype scan = attribs;
-    struct U8_OUTPUT classout; fdtype class_cons = VOID;
+    lispval scan = attribs;
+    struct U8_OUTPUT classout; lispval class_cons = VOID;
     u8_byte _classbuf[256]; int i = 0;
     while (PAIRP(scan)) {
-      fdtype car = FD_CAR(scan);
+      lispval car = FD_CAR(scan);
       if ((car == class_symbol)||
           ((STRINGP(car))&&(strcasecmp(CSTRING(car),"class")==0))) {
         class_cons = FD_CDR(scan); break;}
@@ -892,13 +892,13 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
       u8_puts(&classout,CSTRING(FD_CAR(class_cons)));
       u8_puts(&classout," ");}
     while (PAIRP(classes)) {
-      fdtype car = FD_CAR(classes);
+      lispval car = FD_CAR(classes);
       if (!(STRINGP(car))) {}
       else {
         if (i) u8_puts(&classout," "); i++;
         u8_puts(&classout,CSTRING(car));}
       classes = FD_CDR(classes);}
-    {fdtype old = FD_CAR(class_cons);
+    {lispval old = FD_CAR(class_cons);
       FD_RPLACA(class_cons,fd_make_string
                 (NULL,classout.u8_write-classout.u8_outbuf,
                  classout.u8_outbuf));
@@ -919,15 +919,15 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
 }
 
 FD_EXPORT
-int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
+int fd_output_xhtml_preface(U8_OUTPUT *out,lispval cgidata)
 {
-  fdtype doctype = fd_get(cgidata,doctype_slotid,VOID);
-  fdtype xmlpi = fd_get(cgidata,xmlpi_slotid,VOID);
-  fdtype html_attribs = fd_get(cgidata,html_attribs_slotid,VOID);
-  fdtype html_classes = fd_get(cgidata,html_classes_slotid,VOID);
-  fdtype body_attribs = fd_get(cgidata,body_attribs_slotid,VOID);
-  fdtype body_classes = fd_get(cgidata,body_classes_slotid,VOID);
-  fdtype headers = fd_get(cgidata,html_headers,VOID);
+  lispval doctype = fd_get(cgidata,doctype_slotid,VOID);
+  lispval xmlpi = fd_get(cgidata,xmlpi_slotid,VOID);
+  lispval html_attribs = fd_get(cgidata,html_attribs_slotid,VOID);
+  lispval html_classes = fd_get(cgidata,html_classes_slotid,VOID);
+  lispval body_attribs = fd_get(cgidata,body_attribs_slotid,VOID);
+  lispval body_classes = fd_get(cgidata,body_classes_slotid,VOID);
+  lispval headers = fd_get(cgidata,html_headers,VOID);
   if (VOIDP(doctype)) u8_puts(out,DEFAULT_DOCTYPE);
   else if (STRINGP(doctype))
     u8_putn(out,CSTRING(doctype),STRLEN(doctype));
@@ -961,10 +961,10 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
 }
 
 FD_EXPORT
-int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata)
+int fd_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
 {
-  fdtype doctype = fd_get(cgidata,doctype_slotid,VOID);
-  fdtype xmlpi = fd_get(cgidata,xmlpi_slotid,VOID);
+  lispval doctype = fd_get(cgidata,doctype_slotid,VOID);
+  lispval xmlpi = fd_get(cgidata,xmlpi_slotid,VOID);
   if (STRINGP(xmlpi))
     u8_putn(out,CSTRING(xmlpi),STRLEN(xmlpi));
   else u8_puts(out,DEFAULT_XMLPI);
@@ -978,25 +978,25 @@ int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata)
   return 1;
 }
 
-static fdtype set_body_attribs(int n,fdtype *args)
+static lispval set_body_attribs(int n,lispval *args)
 {
   if ((n==1)&&(args[0]==FD_FALSE)) {
     fd_req_store(body_attribs_slotid,FD_FALSE);
     return VOID;}
   else {
     int i = n-1; while (i>=0) {
-      fdtype arg = args[i--];
+      lispval arg = args[i--];
       fd_req_push(body_attribs_slotid,arg);}
     return VOID;}
 }
 
-static fdtype add_body_class(fdtype classname)
+static lispval add_body_class(lispval classname)
 {
   fd_req_push(body_classes_slotid,classname);
   return VOID;
 }
 
-static fdtype add_html_class(fdtype classname)
+static lispval add_html_class(lispval classname)
 {
   fd_req_push(html_classes_slotid,classname);
   return VOID;
@@ -1004,14 +1004,14 @@ static fdtype add_html_class(fdtype classname)
 
 /* CGI Exec */
 
-static fdtype tail_symbol;
+static lispval tail_symbol;
 
-static fdtype cgigetvar(fdtype cgidata,fdtype var)
+static lispval cgigetvar(lispval cgidata,lispval var)
 {
   int noparse=
     ((SYMBOLP(var))&&((SYM_NAME(var))[0]=='%'));
-  fdtype name = ((noparse)?(fd_intern(SYM_NAME(var)+1)):(var));
-  fdtype val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
+  lispval name = ((noparse)?(fd_intern(SYM_NAME(var)+1)):(var));
+  lispval val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
               (fd_req_get(name,VOID)));
   if (VOIDP(val)) return val;
   else if ((noparse)&&(STRINGP(val))) return val;
@@ -1019,14 +1019,14 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
     u8_string data = CSTRING(val);
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
-      fdtype parsed = fd_parse_arg(data);
+      lispval parsed = fd_parse_arg(data);
       if (FD_ABORTP(parsed)) {
         fd_decref(parsed); fd_clear_errors(0);
         return val;}
       else {
         fd_decref(val); return parsed;}}
     else if (isdigit(data[0])) {
-      fdtype parsed = fd_parse_arg(data);
+      lispval parsed = fd_parse_arg(data);
       if (FD_ABORTP(parsed)) {
         fd_decref(parsed); fd_clear_errors(0);
         return val;}
@@ -1036,27 +1036,27 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
         fd_decref(parsed); return val;}}
     else if (*data == ':')
       if (data[1]=='\0')
-        return fdtype_string(data);
+        return lispval_string(data);
       else {
-        fdtype arg = fd_parse(data+1);
+        lispval arg = fd_parse(data+1);
         if (FD_ABORTP(arg)) {
           u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
           fd_clear_errors(1);
-          return fdtype_string(data);}
+          return lispval_string(data);}
         else return arg;}
     else if (*data == '\\') {
-      fdtype shorter = fdtype_string(data+1);
+      lispval shorter = lispval_string(data+1);
       fd_decref(val);
       return shorter;}
     else return val;}
   else if ((CHOICEP(val))||(PRECHOICEP(val))) {
-    fdtype result = EMPTY;
+    lispval result = EMPTY;
     DO_CHOICES(v,val) {
       if (!(STRINGP(v))) {
         fd_incref(v); CHOICE_ADD(result,v);}
       else {
-        u8_string data = CSTRING(v); fdtype parsed = v;
-        if (*data=='\\') parsed = fdtype_string(data+1);
+        u8_string data = CSTRING(v); lispval parsed = v;
+        if (*data=='\\') parsed = lispval_string(data+1);
         else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
         else if (*data==':')
           parsed = fd_parse(data+1);
@@ -1078,34 +1078,34 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
 }
 
 struct CGICALL {
-  fdtype proc, cgidata;
+  lispval proc, cgidata;
   struct U8_OUTPUT *cgiout; int outlen;
-  fdtype result;};
+  lispval result;};
 
 static int U8_MAYBE_UNUSED cgiexecstep(void *data)
 {
   struct CGICALL *call = (struct CGICALL *)data;
-  fdtype proc = call->proc, cgidata = call->cgidata;
-  fdtype value;
+  lispval proc = call->proc, cgidata = call->cgidata;
+  lispval value;
   if (call->outlen<0)
     call->outlen = call->cgiout->u8_write-call->cgiout->u8_outbuf;
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
   value = fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
-                          (fdtype (*)(void *,fdtype))cgigetvar);
+                          (lispval (*)(void *,lispval))cgigetvar);
   value = fd_finish_call(value);
   call->result = value;
   return 1;
 }
 
 #if FD_IPEVAL_ENABLED
-static int use_ipeval(fdtype proc,fdtype cgidata)
+static int use_ipeval(lispval proc,lispval cgidata)
 {
   int retval = -1;
   struct FD_SPROC *sp = (struct FD_SPROC *)proc;
-  fdtype val = fd_symeval(ipeval_symbol,sp->env);
+  lispval val = fd_symeval(ipeval_symbol,sp->env);
   if ((VOIDP(val))||(val == FD_UNBOUND)) retval = 0;
   else {
-    fdtype cgival = fd_get(cgidata,ipeval_symbol,VOID);
+    lispval cgival = fd_get(cgidata,ipeval_symbol,VOID);
     if (VOIDP(cgival)) {
       if (FALSEP(val)) retval = 0; else retval = 1;}
     else if (FALSEP(cgival)) retval = 0;
@@ -1116,10 +1116,10 @@ static int use_ipeval(fdtype proc,fdtype cgidata)
 }
 #endif
 
-FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
+FD_EXPORT lispval fd_cgiexec(lispval proc,lispval cgidata)
 {
   if (FD_SPROCP(proc)) {
-    fdtype value = VOID;
+    lispval value = VOID;
 #if FD_IPEVAL_ENABLED
     int ipeval = use_ipeval(proc,cgidata);
 #else
@@ -1127,7 +1127,7 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 #endif
     if (!(ipeval)) {
       value = fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
-                            (fdtype (*)(void *,fdtype))cgigetvar);
+                            (lispval (*)(void *,lispval))cgigetvar);
       value = fd_finish_call(value);}
 #if FD_IPEVAL_ENABLED
     else {
@@ -1142,23 +1142,23 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 
 /* Parsing query strings */
 
-static fdtype urldata_parse(fdtype qstring)
+static lispval urldata_parse(lispval qstring)
 {
-  fdtype smap = fd_empty_slotmap();
+  lispval smap = fd_empty_slotmap();
   parse_query_string((fd_slotmap)smap,CSTRING(qstring),STRLEN(qstring));
   return smap;
 }
 
 /* Bind request and output */
 
-static fdtype withreqout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval withreqout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *oldout = u8_current_output;
   U8_OUTPUT _out, *out = &_out;
-  fdtype body = fd_get_body(expr,1);
-  fdtype reqinfo = fd_empty_slotmap();
-  fdtype result = VOID;
-  fdtype oldinfo = fd_push_reqinfo(reqinfo);
+  lispval body = fd_get_body(expr,1);
+  lispval reqinfo = fd_empty_slotmap();
+  lispval result = VOID;
+  lispval oldinfo = fd_push_reqinfo(reqinfo);
   U8_INIT_OUTPUT(&_out,1024);
   u8_set_default_output(out);
   {FD_DOLIST(ex,body) {
@@ -1181,11 +1181,11 @@ static fdtype withreqout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 /* URI mapping */
 
 FD_EXPORT
-fdtype fd_mapurl(fdtype uri)
+lispval fd_mapurl(lispval uri)
 {
-  fdtype mapfn = fd_req(mapurlfn_symbol);
+  lispval mapfn = fd_req(mapurlfn_symbol);
   if (FD_APPLICABLEP(mapfn)) {
-    fdtype result = fd_apply(mapfn,1,&uri);
+    lispval result = fd_apply(mapfn,1,&uri);
     fd_decref(mapfn);
     return result;}
   else {
@@ -1193,9 +1193,9 @@ fdtype fd_mapurl(fdtype uri)
     return EMPTY;}
 }
 
-static fdtype mapurl(fdtype uri)
+static lispval mapurl(lispval uri)
 {
-  fdtype result = fd_mapurl(uri);
+  lispval result = fd_mapurl(uri);
   if (FD_ABORTP(result)) return result;
   else if (STRINGP(result)) return result;
   else {
@@ -1206,7 +1206,7 @@ static fdtype mapurl(fdtype uri)
 
 static int cgiexec_initialized = 0;
 
-FD_EXPORT int sendfile_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int sendfile_set(lispval ignored,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
@@ -1233,7 +1233,7 @@ FD_EXPORT int sendfile_set(fdtype ignored,fdtype v,void *vptr)
     return 0;}
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
-FD_EXPORT int xredirect_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int xredirect_set(lispval ignored,lispval v,void *vptr)
 {
   u8_string *ptr = vptr;
   if (STRINGP(v)) {
@@ -1263,7 +1263,7 @@ FD_EXPORT int xredirect_set(fdtype ignored,fdtype v,void *vptr)
 
 FD_EXPORT void fd_init_cgiexec_c()
 {
-  fdtype module, xhtmlout_module;
+  lispval module, xhtmlout_module;
   if (cgiexec_initialized) return;
   cgiexec_initialized = 1;
   fd_init_scheme();
@@ -1368,8 +1368,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   class_symbol = fd_intern("CLASS");
 
   post_data_slotid = fd_intern("POST_DATA");
-  multipart_form_data = fdtype_string("multipart/form-data");
-  www_form_urlencoded = fdtype_string("application/x-www-form-urlencoded");
+  multipart_form_data = lispval_string("multipart/form-data");
+  www_form_urlencoded = lispval_string("application/x-www-form-urlencoded");
 
   filename_slotid = fd_intern("FILENAME");
   name_slotid = fd_intern("NAME");

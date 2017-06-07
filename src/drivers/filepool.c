@@ -53,14 +53,14 @@ static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
-static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,fdtype opts)
+static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opts)
 {
   struct FD_FILE_POOL *pool = u8_alloc(struct FD_FILE_POOL);
   FD_OID base = FD_NULL_OID_INIT;
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
   unsigned int hi, lo, magicno, capacity, load;
-  fd_off_t label_loc; fdtype label;
+  fd_off_t label_loc; lispval label;
   u8_string rname = u8_realpath(fname,NULL);
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
@@ -94,7 +94,7 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,fdtype opts
       label = fd_read_dtype(fd_readbuf(s));
       if (STRINGP(label))
         pool->pool_label = u8_strdup(CSTRING(label));
-      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
+      else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_file_pool",
@@ -207,9 +207,9 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
     return 1;}
 }
 
-static fdtype file_pool_fetch(fd_pool p,fdtype oid)
+static lispval file_pool_fetch(fd_pool p,lispval oid)
 {
-  fdtype value;
+  lispval value;
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   FD_OID addr = FD_OID_ADDR(oid);
   int offset = FD_OID_DIFFERENCE(addr,fp->pool_base), stream_locked = 0;
@@ -261,20 +261,20 @@ static int compare_filepos(const void *x1,const void *x2)
   else return 0;
 }
 
-static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p; FD_OID base = p->pool_base;
   struct FD_STREAM *stream = &(fp->pool_stream);
   struct POOL_FETCH_SCHEDULE *schedule=
     u8_alloc_n(n,struct POOL_FETCH_SCHEDULE);
-  fdtype *result = u8_alloc_n(n,fdtype);
+  lispval *result = u8_alloc_n(n,lispval);
   int i = 0, min_file_pos = 24+fp->pool_capacity*4, load;
   fd_lock_pool(p);
   load = fp->pool_load;
   if (fp->pool_offdata) {
     unsigned int *offsets = fp->pool_offdata;
     int i = 0; while (i < n) {
-      fdtype oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
+      lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base), file_off;
       if (PRED_FALSE(off>=load)) {
         u8_free(result); u8_free(schedule);
@@ -298,7 +298,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
   else {
     int i = 0; fd_lock_stream(stream);
     while (i < n) {
-      fdtype oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
+      lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base), file_off;
       schedule[i].vpos = i;
       if (fd_setpos(stream,24+4*off)<0) {
@@ -345,7 +345,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
 static void write_file_pool_recovery_data
   (struct FD_FILE_POOL *fp,unsigned int *off);
 
-static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p; FD_OID base = p->pool_base;
   /* This stores the offset where the DTYPE representation of each changed OID
@@ -523,9 +523,9 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
   return retval;
 }
 
-static fdtype file_pool_alloc(fd_pool p,int n)
+static lispval file_pool_alloc(fd_pool p,int n)
 {
-  fdtype results = EMPTY; int i = 0;
+  lispval results = EMPTY; int i = 0;
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
  FD_OID base=fp->pool_base;
   unsigned int start;
@@ -538,20 +538,20 @@ static fdtype file_pool_alloc(fd_pool p,int n)
   fd_unlock_pool(p);
   while (i < n) {
     FD_OID new_addr = FD_OID_PLUS(base,start+i);
-    fdtype new_oid = fd_make_oid(new_addr);
+    lispval new_oid = fd_make_oid(new_addr);
     CHOICE_ADD(results,new_oid);
     i++;}
   return results;
 }
 
-static int file_pool_lock(fd_pool p,fdtype oids)
+static int file_pool_lock(fd_pool p,lispval oids)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   if (FD_POOLFILE_LOCKEDP(fp)) return 1;
   else return lock_file_pool(fp,1);
 }
 
-static int file_pool_unlock(fd_pool p,fdtype oids)
+static int file_pool_unlock(fd_pool p,lispval oids)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   fd_lock_pool(p);
@@ -637,7 +637,7 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
     if (*oscan == *nscan) {oscan++; nscan++;}
     else {
       FD_OID addr = FD_OID_PLUS(fp->pool_base,(nscan-offsets));
-      fdtype changed_oid = fd_make_oid(addr);
+      lispval changed_oid = fd_make_oid(addr);
       fd_hashtable_op(&(fp->pool_cache),fd_table_replace,changed_oid,VOID);
       oscan++; nscan++;}
   u8_free(fp->pool_offdata);
@@ -716,11 +716,11 @@ int fd_make_file_pool
 }
 
 static fd_pool filepool_create(u8_string spec,void *type_data,
-                               fd_storage_flags flags,fdtype opts)
+                               fd_storage_flags flags,lispval opts)
 {
-  fdtype base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
-  fdtype capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
-  fdtype load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
+  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
+  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
+  lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
   unsigned int capacity, load;
   unsigned int magic_number = (unsigned int)((unsigned long)type_data);
   int rv = 0;
@@ -764,9 +764,9 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
 
 /* File pool ops function */
 
-static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label);
+static lispval label_file_pool(struct FD_FILE_POOL *fp,lispval label);
 
-static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
+static lispval file_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
 {
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   if ((n>0)&&(args == NULL))
@@ -777,7 +777,7 @@ static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
     if (n==0)
       return FD_INT(fp->pool_cache_level);
     else {
-      fdtype arg = (args)?(args[0]):(VOID);
+      lispval arg = (args)?(args[0]):(VOID);
       if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
           (FIX2INT(arg)<0x100)) {
         file_pool_setcache(p,FIX2INT(arg));
@@ -788,9 +788,9 @@ static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
     if (n==0) {
       if (!(fp->pool_label))
         return FD_FALSE;
-      else return fdtype_string(fp->pool_label);}
+      else return lispval_string(fp->pool_label);}
     else {
-      fdtype label = args[0];
+      lispval label = args[0];
       if (STRINGP(label))
         return label_file_pool(fp,label);
       else return fd_type_error("pool label","filepool_op/label",label);}}
@@ -810,7 +810,7 @@ static fdtype file_pool_ctl(fd_pool p,fdtype op,int n,fdtype *args)
   else return FD_FALSE;
 }
 
-static fdtype label_file_pool(struct FD_FILE_POOL *fp,fdtype label)
+static lispval label_file_pool(struct FD_FILE_POOL *fp,lispval label)
 {
   int retval = -1;
   if ((FD_POOLFILE_LOCKEDP(fp)) &&

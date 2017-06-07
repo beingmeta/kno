@@ -34,7 +34,7 @@
     might also have a start timestamp.  Have an fd_alloc which
      is like u8_alloc but adds the pointer to the dynamic context.
      Have an fd_need_decref operation which pushes an incref'd pointer
-     Have an fd_need_vdecref which takes a fdtype* and a length
+     Have an fd_need_vdecref which takes a lispval* and a length
 
    Primitive fd_dapply's are all wrapped in dynamic contexts
    Calls to expression evaluation are also wrapped in dynamic contexts

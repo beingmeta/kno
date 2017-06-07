@@ -26,15 +26,15 @@
 
 static fd_exception NoMultiPartSeparator=_("Multipart MIME document has no separator");
 
-static fdtype content_type_slotid, headers_slotid, content_disposition_slotid, content_slotid;
-static fdtype charset_slotid, encoding_slotid, separator_slotid;
-static fdtype multipart_symbol, preamble_slotid, parts_slotid;
+static lispval content_type_slotid, headers_slotid, content_disposition_slotid, content_slotid;
+static lispval charset_slotid, encoding_slotid, separator_slotid;
+static lispval multipart_symbol, preamble_slotid, parts_slotid;
 
-static fdtype parse_fieldname(u8_string start,u8_string end)
+static lispval parse_fieldname(u8_string start,u8_string end)
 {
   U8_OUTPUT out; char buf[128];
   u8_string scan = start;
-  fdtype fieldid;
+  lispval fieldid;
   U8_INIT_STATIC_OUTPUT_BUF(out,128,buf);
   while (scan<end) {
     int c = *scan++; u8_putc(&out,toupper(c));}
@@ -43,13 +43,13 @@ static fdtype parse_fieldname(u8_string start,u8_string end)
   return fieldid;
 }
 
-const u8_byte *parse_headers(fdtype s,const u8_byte *start,const u8_byte *end)
+const u8_byte *parse_headers(lispval s,const u8_byte *start,const u8_byte *end)
 {
   U8_OUTPUT hstream;
   const u8_byte *hstart = start;
   U8_INIT_OUTPUT(&hstream,1024);
   while (hstart<end) {
-    fdtype slotid;
+    lispval slotid;
     const u8_byte *colon = strchr(hstart,':'), *vstart;
     if (colon) {
       slotid = parse_fieldname(hstart,colon);
@@ -65,7 +65,7 @@ const u8_byte *parse_headers(fdtype s,const u8_byte *start,const u8_byte *end)
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t')))
         vstart = line_end+1;
       else {
-        fdtype slotval=
+        lispval slotval=
           fd_lispstring(u8_mime_convert
                          (hstream.u8_outbuf,hstream.u8_write));
         fd_add(s,slotid,slotval); fd_decref(slotval); hstart = line_end+1;
@@ -75,7 +75,7 @@ const u8_byte *parse_headers(fdtype s,const u8_byte *start,const u8_byte *end)
   return end;
 }
 
-static void handle_parameters(fdtype fields,const u8_byte *data)
+static void handle_parameters(lispval fields,const u8_byte *data)
 {
   const u8_byte *scan = data, *start = scan;
   int c = u8_sgetc(&scan);
@@ -85,7 +85,7 @@ static void handle_parameters(fdtype fields,const u8_byte *data)
     if (equals == NULL) start = strchr(start,';');
     else {
       u8_byte *vstart = equals+1, *vend;
-      fdtype slotid, slotval;
+      lispval slotid, slotval;
       if (*vstart=='"') {vstart++; vend = strchr(vstart,'"');}
       else if (*vstart=='\'') {vstart++; vend = strchr(vstart,'\'');}
       else vend = strchr(vstart,';');
@@ -102,19 +102,19 @@ static void handle_parameters(fdtype fields,const u8_byte *data)
 }
 
 FD_EXPORT
-fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slotid)
+lispval fd_handle_compound_mime_field(lispval fields,lispval slotid,lispval orig_slotid)
 {
-  fdtype value = fd_get(fields,slotid,VOID);
+  lispval value = fd_get(fields,slotid,VOID);
   if (VOIDP(value)) return VOID;
   else if (!(STRINGP(value))) {
-    fdtype err = fd_err(fd_TypeError,"fd_handle_compound_mime_field",_("string"),value);
+    lispval err = fd_err(fd_TypeError,"fd_handle_compound_mime_field",_("string"),value);
     fd_decref(value); return err;}
   else {
-    fdtype major_type = VOID;
+    lispval major_type = VOID;
     u8_string data = CSTRING(value), start = data, end, scan;
     if (SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
     if ((end = (strchr(start,';')))) {
-      fdtype segval = fd_substring(start,end);
+      lispval segval = fd_substring(start,end);
       fd_store(fields,slotid,segval); fd_decref(segval);}
     if ((scan = strchr(start,'/')) && ((end == NULL) || (scan<end))) {
       major_type = parse_fieldname(start,scan);
@@ -124,10 +124,10 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
     return major_type;}
 }
 
-static fdtype convert_data(const char *start,const char *end,
-                           fdtype dataenc,int could_be_string)
+static lispval convert_data(const char *start,const char *end,
+                           lispval dataenc,int could_be_string)
 {
-  fdtype result = VOID; char *data; int len;
+  lispval result = VOID; char *data; int len;
   /* First do any conversion you need to do. */
   if (STRINGP(dataenc))
     if (strcasecmp(CSTRING(dataenc),"quoted-printable")==0)
@@ -146,8 +146,8 @@ static fdtype convert_data(const char *start,const char *end,
   return result;
 }
 
-static fdtype convert_text(const char *start,const char *end,
-                           fdtype dataenc,fdtype charenc)
+static lispval convert_text(const char *start,const char *end,
+                           lispval dataenc,lispval charenc)
 {
   int len; u8_encoding encoding;
   const u8_byte *data, *scan, *data_end;
@@ -175,8 +175,8 @@ static fdtype convert_text(const char *start,const char *end,
   return fd_stream2string(&out);
 }
 
-static fdtype convert_content(const char *start,const char *end,
-                              fdtype majtype,fdtype dataenc,fdtype charenc)
+static lispval convert_content(const char *start,const char *end,
+                              lispval majtype,lispval dataenc,lispval charenc)
 {
   if (end == NULL) end = start+strlen(start);
   if ((STRINGP(charenc)) || (FD_EQ(majtype,FDSYM_TEXT)))
@@ -200,14 +200,14 @@ static const char *find_boundary(const char *boundary,const char *scan,
 }
 
 FD_EXPORT
-fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
+lispval fd_parse_multipart_mime(lispval slotmap,const char *start,const char *end)
 {
   const char *scan = start; char *boundary; int boundary_len;
-  fdtype charenc, dataenc;
-  fdtype majtype = fd_handle_compound_mime_field
+  lispval charenc, dataenc;
+  lispval majtype = fd_handle_compound_mime_field
     (slotmap,content_type_slotid,VOID);
-  fdtype parts = NIL;
-  fdtype sepval = fd_get(slotmap,separator_slotid,VOID);
+  lispval parts = NIL;
+  lispval sepval = fd_get(slotmap,separator_slotid,VOID);
   if (!(STRINGP(sepval))) {
     return fd_err(NoMultiPartSeparator,"fd_parse_mime",NULL,slotmap);}
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
@@ -222,13 +222,13 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
              convert_content(start,scan,majtype,dataenc,charenc));
     fd_store(slotmap,parts_slotid,NIL);}
   else {
-    fdtype *point = &parts;
+    lispval *point = &parts;
     if (scan>start)
       fd_store(slotmap,preamble_slotid,
                convert_content(scan,end,majtype,dataenc,charenc));
     start = scan+boundary_len;
     while (start<end) {
-      fdtype new_pair;
+      lispval new_pair;
       if (strncmp(start,"--",2)==0) break;
       /* Ignore the opening CRLF of the encapsulation */
       else if ((start[0]=='\r')&&(start[1]=='\n'))
@@ -249,30 +249,30 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
 }
 
 FD_EXPORT
-fdtype fd_parse_mime(const char *start,const char *end)
+lispval fd_parse_mime(const char *start,const char *end)
 {
-  fdtype slotmap = fd_empty_slotmap();
+  lispval slotmap = fd_empty_slotmap();
   const char *scan = parse_headers(slotmap,start,end);
-  fdtype majtype = fd_handle_compound_mime_field
+  lispval majtype = fd_handle_compound_mime_field
     (slotmap,content_type_slotid,VOID);
-  fdtype charenc, dataenc;
+  lispval charenc, dataenc;
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,VOID);
   if (FD_ABORTP(majtype))
     return majtype;
   charenc = fd_get(slotmap,charset_slotid,VOID);
   dataenc = fd_get(slotmap,encoding_slotid,VOID);
   if (fd_test(slotmap,content_type_slotid,multipart_symbol)) {
-    fdtype parts = fd_parse_multipart_mime(slotmap,scan,end);
+    lispval parts = fd_parse_multipart_mime(slotmap,scan,end);
     fd_decref(parts); return slotmap;}
   else {
-    fdtype content = convert_content(scan,end,majtype,dataenc,charenc);
+    lispval content = convert_content(scan,end,majtype,dataenc,charenc);
     fd_store(slotmap,content_slotid,content);
     fd_decref(content);}
   fd_decref(charenc); fd_decref(dataenc);
   return slotmap;
 }
 
-static fdtype parse_mime_data(fdtype arg)
+static lispval parse_mime_data(lispval arg)
 {
   if (PACKETP(arg))
     return fd_parse_mime(FD_PACKET_DATA(arg),
@@ -288,7 +288,7 @@ static fdtype parse_mime_data(fdtype arg)
 
 void fd_init_mime_c()
 {
-  fdtype module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
+  lispval module = fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fd_idefn(module,fd_make_cprim1("PARSE-MIME",parse_mime_data,1));
 
   content_slotid = fd_intern("CONTENT");
