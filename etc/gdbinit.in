@@ -47,7 +47,7 @@ define xpp
     print/x *(($arg1)($arg0))
   end
 end
-define dtype
+define lisp
   printf "%s\n",fd_lisp2string($arg0)
 end
 define showtype
@@ -56,13 +56,10 @@ end
 define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
 end
-define dtypeout
+define lispout
   call _fd_lisp2stderr($arg0)
 end
-define dtout
-  call _fd_lisp2stderr($arg0)
-end
-define dt
+define unparse
   call _fd_lisp2stderr($arg0)
 end
 define refcount
