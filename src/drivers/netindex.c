@@ -114,8 +114,8 @@ static lispval *netindex_fetchn(fd_index ix,int n,lispval *keys)
     memcpy(results,FD_VECTOR_ELTS(result),sizeof(lispval)*n);
     return results;}
   else {
-    fd_seterr(fd_BadServerResponse,"netindex_fetchn",
-              u8_strdup(ix->indexid),fd_incref(result));
+    fd_seterr(fd_BadServerResponse,"netindex_fetchn",ix->indexid,
+              fd_incref(result));
     return NULL;}
 }
 

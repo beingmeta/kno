@@ -174,7 +174,7 @@ static int config_add_logfn(lispval var,lispval val,void *data)
   lispval arity = -1;
   if (FD_FUNCTIONP(val)) arity = FD_FUNCTION_ARITY(val);
   if (arity!=3) {
-    fd_seterr(fd_TypeError,"config_add_logfn",u8_strdup("log function"),val);
+    fd_seterr(fd_TypeError,"config_add_logfn","log function",val);
     return -1;}
   use_fd_logger(); fd_incref(val);
   u8_lock_mutex(&log_lock);

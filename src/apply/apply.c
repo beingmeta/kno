@@ -441,7 +441,7 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,lispval *args)
       else if ( (VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
       else {
         u8_string type_name = fd_type2name(argtype);
-        fd_seterr(fd_TypeError,type_name,u8dup(f->fcn_name),args[i]);
+        fd_seterr(fd_TypeError,type_name,f->fcn_name,args[i]);
         return -1;}}
   return 0;
 }
@@ -907,8 +907,9 @@ FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec)
   if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f = (struct FD_FUNCTION *)fcn;
   if (PRED_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
+    u8_byte buf[64];
     fd_seterr(fd_TooManyArgs,"fd_tail_call",
-              u8_mkstring("%d",n),
+              u8_sprintf(buf,64,"%d",n),
               fcn);
     return FD_ERROR;}
   else {
@@ -947,8 +948,10 @@ FD_EXPORT lispval fd_void_tail_call(lispval fcn,int n,lispval *vec)
   if (FD_FCNIDP(fcn)) fcn = fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f = (struct FD_FUNCTION *)fcn;
   if (PRED_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
+    u8_byte buf[64];
     fd_seterr(fd_TooManyArgs,"fd_void_tail_call",
-              u8_mkstring("%d",n),fcn);
+              u8_sprintf(buf,64,"%d",n),
+              fcn);
     return FD_ERROR;}
   else {
     int atomic = 1, nd = 0;

@@ -167,8 +167,7 @@ static int extpool_lock(fd_pool p,lispval oids)
       else fd_hashtable_store(locks,oid,value);
       fd_decref(cur); fd_decref(value);}}
   else if (FALSEP(xp->lockfn)) {
-    fd_seterr(fd_CantLockOID,"fd_pool_lock",
-              u8_strdup(p->poolid),fd_incref(oids));
+    fd_seterr(fd_CantLockOID,"fd_pool_lock",p->poolid,fd_incref(oids));
     return -1;}
   else {
     DO_CHOICES(oid,oids) {

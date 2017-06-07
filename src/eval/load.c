@@ -201,7 +201,7 @@ FD_EXPORT lispval fd_load_source_with_date
       fd_decref(last_expr);
       last_expr = VOID;}
     else if (FD_TROUBLEP(expr)) {
-      fd_seterr(NULL,"fd_parse_expr",u8dup(load_stack->stack_status),last_expr);
+      fd_seterr(NULL,"fd_parse_expr",load_stack->stack_status,last_expr);
       fd_decref(result); /* This is the previous result */
       last_expr = VOID;
       /* This is now also the result */

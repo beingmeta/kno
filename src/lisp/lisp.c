@@ -21,7 +21,7 @@
 #include <duma.h>
 #endif
 
-static int libfdtype_initialized = 0;
+static int lisp_types_initialized = 0;
 double fd_load_start = -1.0;
 
 fd_exception fd_NoMethod=_("Method not supported");
@@ -109,7 +109,7 @@ static void init_type_names()
   fd_type_names[fd_bloom_filter_type]=_("bloom filter");
 }
 
-static int libfdtype_version = 101;
+static int lisp_types_version = 101;
 
 FD_EXPORT void fd_init_cons_c(void);
 FD_EXPORT void fd_init_compare_c(void);
@@ -184,10 +184,10 @@ FD_EXPORT int fd_init_lisp_types()
 #if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
   DUMA_SET_ALIGNMENT(4);
 #endif
-  if (libfdtype_initialized) return libfdtype_initialized;
+  if (lisp_types_initialized) return lisp_types_initialized;
   fd_load_start = u8_elapsed_time();
   u8_version = u8_initialize();
-  libfdtype_initialized = libfdtype_version*u8_version;
+  lisp_types_initialized = lisp_types_version*u8_version;
 
   u8_register_source_file(_FILEINFO);
 
@@ -219,7 +219,7 @@ FD_EXPORT int fd_init_lisp_types()
 
   u8_threadcheck();
 
-  return libfdtype_initialized;
+  return lisp_types_initialized;
 }
 
 /* Emacs local variables

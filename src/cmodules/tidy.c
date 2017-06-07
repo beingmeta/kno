@@ -56,8 +56,7 @@ static U8_MAYBE_UNUSED int tidySetIntOpt(TidyDoc tdoc,
     return tidyOptSetInt(tdoc,optname,FD_FIX2INT(value));
   else {
     fd_incref(value);
-    fd_seterr(fd_TypeError,"tidySetIntOpt",
-              u8_strdup("integer"),value);
+    fd_seterr(fd_TypeError,"tidySetIntOpt","integer",value);
     return -1;}}
 static U8_MAYBE_UNUSED int copyIntOpt(lispval opts,TidyDoc tdoc,
                                       TidyOptionId optname,
@@ -71,8 +70,7 @@ static U8_MAYBE_UNUSED int copyIntOpt(lispval opts,TidyDoc tdoc,
     rc = tidyOptSetInt(tdoc,optname,FD_FIX2INT(value));
   else {
     fd_incref(value);
-    fd_seterr(fd_TypeError,"tidySetIntOpt",
-              u8_strdup("integer"),value);
+    fd_seterr(fd_TypeError,"tidySetIntOpt","integer",value);
     rc = -1;}
   fd_decref(value);
   return rc;}
@@ -84,7 +82,7 @@ static U8_MAYBE_UNUSED int tidySetStringOpt(TidyDoc tdoc,
     return tidyOptSetValue(tdoc,optname,FD_STRDATA(value));
   else {
     fd_incref(value);
-    fd_seterr(fd_TypeError,"tidySetIntOpt",u8_strdup("string"),value);
+    fd_seterr(fd_TypeError,"tidySetIntOpt","string",value);
     return -1;}}
 static U8_MAYBE_UNUSED int copyStringOpt(lispval opts,
                                          TidyDoc tdoc,
@@ -99,8 +97,7 @@ static U8_MAYBE_UNUSED int copyStringOpt(lispval opts,
     rc = tidyOptSetValue(tdoc,optname,FD_STRDATA(value));
   else {
     fd_incref(value);
-    fd_seterr(fd_TypeError,"copyStringOpt(tidy)",
-              u8_strdup("string"),value);
+    fd_seterr(fd_TypeError,"copyStringOpt(tidy)","string",value);
     return -1;}
   return rc;}
 

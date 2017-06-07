@@ -2586,14 +2586,12 @@ int fd_numcompare(lispval x,lispval y)
     double dx = FD_FLONUM(x), dy = FD_FLONUM(y);
     if (dx>dy) return 1; else if (dx<dy) return -1; else return 0;}
   else if (!(NUMBERP(x))) {
-    fd_seterr(fd_TypeError,"compare",
-	      u8_mkstring(_("object is not a %m"),"number"),
-	      x);
+    fd_seterr(fd_TypeError,"compare","object is not a number",
+              x);
     /* Any number > 1 indicates an error. */
     return 17;}
   else if (!(NUMBERP(y))) {
-    fd_seterr(fd_TypeError,"compare",
-	      u8_mkstring(_("object is not a %m"),"number"),
+    fd_seterr(fd_TypeError,"compare","object is not a number",
 	      y);
     /* Any number > 1 indicates an error. */
     return 17;}
@@ -3545,14 +3543,12 @@ lispval fd_string2number(u8_string string,int base)
 		fd_decref(den); den = nextden; i++;}}
 	    break;}
 	  else {
-	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
-		       u8_strdup(string));
+	    fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",string);
 	    return FD_PARSE_ERROR;}
 	return make_rational(num,den);}
       else return fd_string2number(string+2,base);}
     default:
-      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",
-		 u8_strdup(string));
+      fd_seterr3(fd_InvalidNumericLiteral,"fd_string2number",string);
       return FD_PARSE_ERROR;}}
   else if ((strchr(string,'i')) || (strchr(string,'I'))) {
     u8_byte *copy = u8_strdup(string);

@@ -1936,8 +1936,7 @@ static int do_hashtable_op
         (VOIDP(result->kv_val))) {
       result->kv_val=fd_incref(value);}
     else if (!(NUMBERP(result->kv_val))) {
-      fd_seterr(fd_TypeError,"fd_table_increment",
-                u8_strdup("number"),result->kv_val);
+      fd_seterr(fd_TypeError,"fd_table_increment","number",result->kv_val);
       return -1;}
     else {
       lispval current=result->kv_val;
@@ -1959,8 +1958,7 @@ static int do_hashtable_op
             fd_decref(current);
             result->kv_val=newnum;}}
         else {
-          fd_seterr(fd_TypeError,"fd_table_increment",
-                    u8_strdup("number"),v);
+          fd_seterr(fd_TypeError,"fd_table_increment","number",v);
           return -1;}}
     break;
   case fd_table_multiply_if_present:
@@ -1969,8 +1967,7 @@ static int do_hashtable_op
     if ((VOIDP(result->kv_val))||(EMPTYP(result->kv_val)))  {
       result->kv_val=fd_incref(value);}
     else if (!(NUMBERP(result->kv_val))) {
-      fd_seterr(fd_TypeError,"fd_table_multiply",
-                u8_strdup("number"),result->kv_val);
+      fd_seterr(fd_TypeError,"fd_table_multiply","number",result->kv_val);
       return -1;}
     else {
       lispval current=result->kv_val;
@@ -1992,8 +1989,7 @@ static int do_hashtable_op
             fd_decref(current);
             result->kv_val=newnum;}}
         else {
-          fd_seterr(fd_TypeError,"table_multiply_op",
-                    u8_strdup("number"),v);
+          fd_seterr(fd_TypeError,"table_multiply_op","number",v);
           return -1;}}
     break;
   case fd_table_maximize_if_present:
@@ -2003,8 +1999,7 @@ static int do_hashtable_op
         (VOIDP(result->kv_val))) {
       result->kv_val=fd_incref(value);}
     else if (!(NUMBERP(result->kv_val))) {
-      fd_seterr(fd_TypeError,"table_maximize_op",
-                u8_strdup("number"),result->kv_val);
+      fd_seterr(fd_TypeError,"table_maximize_op","number",result->kv_val);
       return -1;}
     else {
       lispval current=result->kv_val;
@@ -2013,8 +2008,7 @@ static int do_hashtable_op
           result->kv_val=fd_incref(value);
           fd_decref(current);}}
       else {
-        fd_seterr(fd_TypeError,"table_maximize_op",
-                  u8_strdup("number"),value);
+        fd_seterr(fd_TypeError,"table_maximize_op","number",value);
         return -1;}}
     break;
   case fd_table_minimize_if_present:
@@ -2023,8 +2017,7 @@ static int do_hashtable_op
     if ((EMPTYP(result->kv_val))||(VOIDP(result->kv_val))) {
       result->kv_val=fd_incref(value);}
     else if (!(NUMBERP(result->kv_val))) {
-      fd_seterr(fd_TypeError,"table_maximize_op",
-                u8_strdup("number"),result->kv_val);
+      fd_seterr(fd_TypeError,"table_maximize_op","number",result->kv_val);
       return -1;}
     else {
       lispval current=result->kv_val;
@@ -2033,8 +2026,7 @@ static int do_hashtable_op
           result->kv_val=fd_incref(value);
           fd_decref(current);}}
       else {
-        fd_seterr(fd_TypeError,"table_maximize_op",
-                  u8_strdup("number"),value);
+        fd_seterr(fd_TypeError,"table_maximize_op","number",value);
         return -1;}}
     break;
   case fd_table_push:
@@ -2046,10 +2038,12 @@ static int do_hashtable_op
       lispval tail=fd_conspair(result->kv_val,NIL);
       result->kv_val=fd_conspair(fd_incref(value),tail);}
     break;
-  default:
+  default: {
+    u8_byte buf[64];
     added=-1;
-    fd_seterr3(BadHashtableMethod,"do_hashtable_op",u8_mkstring("0x%x",op));
-    break;
+    fd_seterr3(BadHashtableMethod,"do_hashtable_op",
+               u8_sprintf(buf,64,"0x%x",op));
+    break;}
   }
   ht->table_modified=1;
   if ((was_prechoice==0) && (PRECHOICEP(result->kv_val))) {

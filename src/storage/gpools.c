@@ -98,7 +98,7 @@ static lispval *gpool_fetchn(fd_pool p,int n,lispval *oids)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->poolid),fd_incref(value));
+             np->poolid,fd_incref(value));
     return NULL;}
 }
 

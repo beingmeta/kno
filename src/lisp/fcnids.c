@@ -108,7 +108,7 @@ FD_EXPORT lispval fd_set_fcnid(lispval id,lispval value)
 FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
 {
   if (!(FD_FCNIDP(id))) {
-    fd_seterr(fd_TypeError,"fd_degister_fcnid",u8_strdup("fcnid"),id);
+    fd_seterr(fd_TypeError,"fd_degister_fcnid","fcnid",id);
     return -1;}
   else if (!(CONSP(value)))
     return 0;

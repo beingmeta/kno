@@ -67,7 +67,7 @@ FD_EXPORT int applytest(lispval test,lispval elt)
       else if (result) return result;}
     return 0;}
   else {
-    fd_seterr(fd_TypeError,"removeif",u8_strdup(_("test")),test);
+    fd_seterr(fd_TypeError,"removeif",_("test"),test);
     return -1;}
 }
 

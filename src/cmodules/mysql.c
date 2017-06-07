@@ -220,7 +220,7 @@ static int setup_connection(struct FD_MYSQL *dbp)
 
   if (retval!=RETVAL_OK) {
     const char *errmsg = mysql_error(&(dbp->_mysqldb)); fd_incref(options);
-    fd_seterr(MySQL_Error,"open_mysql/init",u8_strdup(errmsg),options);}
+    fd_seterr(MySQL_Error,"open_mysql/init",errmsg,options);}
   return retval;
 }
 
@@ -253,7 +253,7 @@ static int restart_connection(struct FD_MYSQL *dbp)
     u8_log(LOG_CRIT,"mysql/reconnect",
            "Failed after %ds to reconnect to MYSQL %s (%s), final error %s (%d)",
            waited,dbp->extdb_spec,dbp->extdb_info,msg,err);
-    fd_seterr(MySQL_Error,"restart_connection",u8_strdup(msg),conn);
+    fd_seterr(MySQL_Error,"restart_connection",msg,conn);
     return -1;}
   else {
     int i = 0, n = dbp->extdb_n_procs;
@@ -1272,7 +1272,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
         if (fd_unparse(&out,arg)<0) {
           int j = 0;
           fd_seterr(MySQL_NoConvert,"callmysqlproc",
-                    u8_strdup(dbproc->extdb_qtext),fd_incref(arg));
+                    dbproc->extdb_qtext,fd_incref(arg));
           while (j<i) {fd_decref(argbuf[i]); i++;}
           j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
           if (argbuf!=_argbuf) u8_free(argbuf);
@@ -1293,7 +1293,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
         int j;
         /* Finally, if we can't convert the value, we error. */
         fd_seterr(MySQL_NoConvert,"callmysqlproc",
-                  u8_strdup(dbproc->extdb_qtext),fd_incref(arg));
+                  dbproc->extdb_qtext,fd_incref(arg));
         j = 0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
         j = 0; while (j<i) {fd_decref(argbuf[j]); j++;}
         if (argbuf!=_argbuf) u8_free(argbuf);

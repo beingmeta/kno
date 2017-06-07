@@ -140,13 +140,10 @@ fd_init_bloom_filter(struct FD_BLOOM *use_bloom,int entries,double error)
 {
   struct FD_BLOOM *bloom = NULL;
   if (entries < 1) {
-    fd_seterr(fd_TypeError,"fd_bloom_init",
-	      u8_strdup("bad n_entries arg"),
-	      FD_INT(entries));
+    fd_seterr(fd_TypeError,"fd_bloom_init","bad n_entries arg",FD_INT(entries));
     return NULL;}
   else if (error <= 0) {
-    fd_seterr(fd_TypeError,"fd_bloom_init",
-	      u8_strdup("bad allowed error value"),
+    fd_seterr(fd_TypeError,"fd_bloom_init","bad allowed error value",
 	      fd_make_double(error));
     return NULL;}
   else if (use_bloom == NULL)

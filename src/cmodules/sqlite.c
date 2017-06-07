@@ -308,7 +308,7 @@ static lispval sqliteexec(struct FD_SQLITE *fds,lispval string,lispval colinfo)
     if (FD_ABORTP(values)) {
       errmsg = sqlite3_errmsg(dbp);
       fd_seterr(SQLiteError,"fdsqlite_call",
-                u8_strdup(errmsg),fd_incref(string));}
+                errmsg,fd_incref(string));}
     sqlite3_finalize(stmt);
     u8_unlock_mutex(&(fds->sqlite_lock));
     return values;}
@@ -316,7 +316,7 @@ static lispval sqliteexec(struct FD_SQLITE *fds,lispval string,lispval colinfo)
     lispval dbptr = (lispval)fds;
     fd_incref(dbptr);
     errmsg = sqlite3_errmsg(dbp);
-    fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),dbptr);
+    fd_seterr(SQLiteError,"fdsqlite_call",errmsg,dbptr);
     u8_unlock_mutex(&(fds->sqlite_lock));
     return FD_ERROR_VALUE;}
 }
@@ -368,7 +368,7 @@ static lispval sqlitemakeproc
     lispval dbptr = (lispval)dbp;
     const char *errmsg = sqlite3_errmsg(db);
     fd_seterr(SQLiteError,"fdsqlite_call",
-              u8_strdup(errmsg),fd_incref(dbptr));
+              errmsg,fd_incref(dbptr));
     return FD_ERROR_VALUE;}
   else sqlcons = u8_alloc(struct FD_SQLITE_PROC);
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
@@ -537,7 +537,7 @@ static lispval sqlitecallproc(struct FD_FUNCTION *fn,int n,lispval *args)
     if (ret) {
       const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
       fd_seterr(SQLiteError,"fdsqlite_call",
-                u8_strdup(errmsg),fd_incref((lispval)fn));
+                errmsg,fd_incref((lispval)fn));
       u8_unlock_mutex(&(dbproc->sqliteproc_lock));
       return FD_ERROR_VALUE;}
     i++;}
@@ -549,7 +549,7 @@ static lispval sqlitecallproc(struct FD_FUNCTION *fn,int n,lispval *args)
   if (FD_ABORTP(values)) {
     const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
     fd_seterr(SQLiteError,"fdsqlite_call",
-              u8_strdup(errmsg),fd_incref((lispval)fn));}
+              errmsg,fd_incref((lispval)fn));}
   return values;
 }
 
@@ -702,7 +702,7 @@ static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
   if (retval!=SQLITE_DONE) {
 #if HAVE_SQLITE3_ERRSTR
     const char *msg = sqlite3_errstr(retval);
-    fd_seterr(SQLiteError,"sqlite_step3",u8_strdup(msg),FD_VOID);
+    fd_seterr(SQLiteError,"sqlite_step3",msg,FD_VOID);
 #endif
     fd_decref(results); if (sorted) {
       int k = 0; while (k<rn) {

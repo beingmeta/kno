@@ -70,8 +70,7 @@ static int set_prompt(lispval ignored,lispval v,void *vptr)
     else *ptr = u8_string_append("#|",data,"|# ",NULL);
     return 1;}
   else {
-    fd_seterr(fd_TypeError,"set_prompt",
-              u8_strdup(_("prompt is not a string")),v);
+    fd_seterr(fd_TypeError,"set_prompt",_("prompt is not a string"),v);
     return -1;}
 }
 

@@ -626,8 +626,11 @@ static lispval nd2_dispatch(lispval opcode,lispval arg1,lispval arg2)
 static lispval xref_type_error(lispval x,lispval tag)
 {
   if (VOIDP(tag))
-    fd_seterr(fd_TypeError,"XREF_OPCODE",u8_strdup("compound"),x);
-  else fd_seterr(fd_TypeError,"XREF_OPCODE",fd_lisp2string(tag),x);
+    fd_seterr(fd_TypeError,"XREF_OPCODE","compound",x);
+  else {
+    u8_string buf=fd_lisp2string(tag);
+    fd_seterr(fd_TypeError,"XREF_OPCODE",buf,x);
+    u8_free(buf);}
   return FD_ERROR_VALUE;
 }
 

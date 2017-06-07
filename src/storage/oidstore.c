@@ -168,8 +168,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
         n_adjuncts++;}
       else {
         fd_seterr(fd_BadAdjunct,"fd_set_adjunct/noslotid",
-                  u8_strdup(p->poolid),
-                  fd_incref(spec));
+                  p->poolid,fd_incref(spec));
         FD_STOP_DO_CHOICES;
         return -1;}}
     else if (FD_POOLP(spec)) {
@@ -178,8 +177,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
         n_adjuncts++;}
       else {
         fd_seterr(fd_BadAdjunct,"fd_set_adjunct/noslotid",
-                  u8_strdup(p->poolid),
-                  fd_incref(spec));
+                  p->poolid,fd_incref(spec));
         FD_STOP_DO_CHOICES;
         return -1;}}
     else {
@@ -206,8 +204,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
               adjunct=fd_pool2lisp(p);}
             else {
               fd_seterr(fd_BadAdjunct,"fd_set_adjunct",
-                        u8_strdup(p->poolid),
-                        fd_make_pair(slotid,adjunct));
+                        p->poolid,fd_make_pair(slotid,adjunct));
               fd_decref(adjunct);
               FD_STOP_DO_CHOICES;
               n_adjuncts=-1;}}}
@@ -216,8 +213,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
         else if (TABLEP(adjunct)) {}
         else {
           fd_seterr(fd_BadAdjunct,"fd_set_adjunct",
-                    u8_strdup(p->poolid),
-                    fd_make_pair(slotid,adjunct));
+                    p->poolid,fd_make_pair(slotid,adjunct));
           fd_decref(adjunct);
           n_adjuncts=-1;}
         fd_set_adjunct(p,slotid,adjunct);

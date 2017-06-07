@@ -989,8 +989,9 @@ static fd_lexenv default_env = NULL, safe_default_env = NULL;
 FD_EXPORT fd_lexenv fd_make_env(lispval bindings,fd_lexenv parent)
 {
   if (PRED_FALSE(!(TABLEP(bindings)) )) {
+    u8_byte buf[100];
     fd_seterr(fd_TypeError,"fd_make_env",
-              u8_mkstring(_("object is not a %m"),"table"),
+              u8_sprintf(buf,100,_("object is not a %m"),"table"),
               bindings);
     return NULL;}
   else {
@@ -1012,8 +1013,9 @@ FD_EXPORT
 fd_lexenv fd_make_export_env(lispval exports,fd_lexenv parent)
 {
   if (PRED_FALSE(!(HASHTABLEP(exports)) )) {
+    u8_byte buf[100];
     fd_seterr(fd_TypeError,"fd_make_env",
-              u8_mkstring(_("object is not a %m"),"hashtable"),
+              u8_sprintf(buf,100,_("object is not a %m"),"hashtable"),
               exports);
     return NULL;}
   else {
@@ -1575,7 +1577,7 @@ FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
       server_addr = u8_strdup(CSTRING(server_id));
     else  {
       fd_seterr(ServerUndefined,"open_server",
-                u8_strdup(dts->dtserverid),server_id);
+                dts->dtserverid,server_id);
       u8_free(dts);
       return -1;}}
   else server_addr = u8_strdup(server);
@@ -1880,8 +1882,9 @@ static lispval require_version_prim(int n,lispval *args)
   else if (FD_TRUEP(result))
     return result;
   else {
+    u8_byte buf[50];
     fd_seterr("VersionError","require_version_prim",
-              u8_mkstring("Version is %s",FRAMERD_REVISION),
+              u8_sprintf(buf,50,"Version is %s",FRAMERD_REVISION),
               /* We know that args are all fixnums or we would have had an error. */
               fd_make_vector(n,args));
     return FD_ERROR;}
@@ -1902,14 +1905,16 @@ static lispval choiceref_prim(lispval arg,lispval off)
     long long i = FIX2INT(off);
     if (i==0) {
       if (EMPTYP(arg)) {
-        fd_seterr(fd_RangeError,"choiceref_prim",u8dup("0"),arg);
+        fd_seterr(fd_RangeError,"choiceref_prim","0",arg);
         return FD_ERROR;}
       else return fd_incref(arg);}
     else if (CHOICEP(arg)) {
       struct FD_CHOICE *ch = (fd_choice)arg;
       if (i>ch->choice_size) {
+        u8_byte buf[50];
         fd_seterr(fd_RangeError,"choiceref_prim",
-                  u8_mkstring("%lld",i),fd_incref(arg));
+                  u8_sprintf(buf,50,"%lld",i),
+                  fd_incref(arg));
         return FD_ERROR;}
       else {
         lispval elt = FD_XCHOICE_DATA(ch)[i];
@@ -1920,8 +1925,9 @@ static lispval choiceref_prim(lispval arg,lispval off)
       fd_decref(simplified);
       return result;}
     else {
+      u8_byte buf[50];
       fd_seterr(fd_RangeError,"choiceref_prim",
-                u8_mkstring("%lld",i),fd_incref(arg));
+                u8_sprintf(buf,50,"%lld",i),fd_incref(arg));
       return FD_ERROR;}}
   else return fd_type_error("fixnum","choiceref_prim",off);
 }

@@ -134,7 +134,7 @@ static int parse_unicode_escape(u8_string arg)
       if (sscanf(s+1,"{%x}",&code)<1) code = -1;
       return code;}
     else {
-      fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
+      fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",s);
       return -1;}}
   else if (s[0] == 'U')
     if ((strlen(s)==9) &&
@@ -150,10 +150,10 @@ static int parse_unicode_escape(u8_string arg)
       if (sscanf(s+1,"{%x}",&code)<1) code = -1;
       return code;}
     else {
-      fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
+      fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",s);
       return -1;}
   else {
-    fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
+    fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",s);
     return -1;}
 }
 
@@ -203,7 +203,7 @@ static int read_escape(u8_input in)
     if (strlen(buf)==4) {
       if (sscanf(buf+1,"%o",&code)<1) code = -1;
       if (code<0)
-        fd_seterr3(fd_BadEscapeSequence,"read_escape",u8_strdup(buf));
+        fd_seterr3(fd_BadEscapeSequence,"read_escape",buf);
       return code;}
     else return -1;}
   case '&': {
@@ -304,13 +304,13 @@ lispval fd_parse_atom(u8_string start,int len)
     if (u8_parseuuid(start+2,(u8_uuid)&(uuid->fd_uuid16)))
       return LISP_CONS(uuid);
     else {
-      fd_seterr3("Invalid UUID","fd_parse_atom",u8_strdup(start));
+      fd_seterr3("Invalid UUID","fd_parse_atom",start);
       return FD_PARSE_ERROR;}}
   else if ((start[0]=='#')&&(start[1]=='T')&&(isdigit(start[2]))) {
     struct U8_XTIME xt;
     int retval = u8_iso8601_to_xtime(start+2,&xt);
     if (retval<0) {
-      fd_seterr("Invalid timestamp","fd_parse_atom",u8_strdup(start),VOID);
+      fd_seterr("Invalid timestamp","fd_parse_atom",start,VOID);
       return FD_PARSE_ERROR;}
     else return fd_make_timestamp(&xt);}
   else if ((start[0]=='#')&&(start[1]=='!')&&(isxdigit(start[2]))) {
@@ -334,7 +334,7 @@ lispval fd_parse_atom(u8_string start,int len)
     if (strchr("XxOoBbEeIiDd",start[1])) {
       lispval result=_fd_parse_number(start,-1);
       if (!(FALSEP(result))) return result;}
-    fd_seterr3(fd_InvalidConstant,"fd_parse_atom",u8_strdup(start));
+    fd_seterr3(fd_InvalidConstant,"fd_parse_atom",start);
     return FD_PARSE_ERROR;}
   else {
     lispval result;
@@ -386,8 +386,7 @@ static lispval parse_character(U8_INPUT *in)
       if (strcasecmp(buf,character_constant_names[i]) == 0)
         return character_constants[i];
       else i++;
-    fd_seterr3(fd_InvalidCharacterConstant,
-               "parse_character",u8_strdup(tmpbuf.u8_outbuf));
+    fd_seterr3(fd_InvalidCharacterConstant,"parse_character",tmpbuf.u8_outbuf);
     return FD_PARSE_ERROR;}
 }
 
@@ -414,20 +413,19 @@ static lispval default_parse_oid(u8_string start,int len)
   FD_OID oid = FD_NULL_OID_INIT;
   unsigned int hi, lo;
   if (len>64) {
-    fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),VOID);
+    fd_seterr("BadOIDReference","default_parse_oid",start,VOID);
     return FD_PARSE_ERROR;}
   strncpy(buf,start,len); buf[len]='\0';
   if (strchr(buf,'/')) {
     int items = sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
-      fd_seterr("BadOIDReference","default_parse_oid",u8dup(start),VOID);
+      fd_seterr("BadOIDReference","default_parse_oid",start,VOID);
       return FD_PARSE_ERROR;}}
   else {
     unsigned long long addr;
     int items = sscanf(buf,"@%llx",&addr);
     if (items!=1) {
-      fd_seterr("BadOIDReference","default_parse_oid",
-                u8dup(start),VOID);
+      fd_seterr("BadOIDReference","default_parse_oid",start,VOID);
       return FD_PARSE_ERROR;}
     hi = ((addr>>32)&((ull)0xFFFFFFFF));
     lo = (addr&((ull)0xFFFFFFFF));}

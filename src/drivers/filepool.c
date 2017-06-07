@@ -97,8 +97,7 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
       fd_decref(label);}
     else {
-      fd_seterr(fd_BadFilePoolLabel,"open_file_pool",
-                u8_strdup("bad label loc"),
+      fd_seterr(fd_BadFilePoolLabel,"open_file_pool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(&(pool->pool_stream),0);
       u8_free(rname); u8_free(pool);
@@ -279,7 +278,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
       if (PRED_FALSE(off>=load)) {
         u8_free(result); u8_free(schedule);
         fd_unlock_pool(p);
-        fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->poolid),oid);
+        fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
       file_off = offget(offsets,off);
       schedule[i].vpos = i;
@@ -290,7 +289,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
            This should never happen unless a file is corrupted. */
         u8_free(result); u8_free(schedule);
         fd_unlock_pool(p);
-        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->poolid),oid);
+        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
       else schedule[i].filepos = file_off;
       i++;}
@@ -317,7 +316,7 @@ static lispval *file_pool_fetchn(fd_pool p,int n,lispval *oids)
         u8_free(result); u8_free(schedule);
         fd_unlock_stream(stream);
         fd_unlock_pool(p);
-        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->poolid),oid);
+        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",fp->poolid,oid);
         return NULL;}
       else schedule[i].filepos = file_off;
       i++;}}
@@ -369,13 +368,13 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     int delta = fd_write_dtype(fd_writebuf(stream),values[i]);
     if (PRED_FALSE(oid_off>=load)) {
       fd_seterr(fd_UnallocatedOID,
-                "file_pool_storen",u8_strdup(fp->poolid),
+                "file_pool_storen",fp->poolid,
                 oids[i]);
       retcode = -1; break;}
     else if (PRED_FALSE(delta<0)) {retcode = -1; break;}
     else if (PRED_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_PoolFileSizeOverflow,
-                "file_pool_storen",u8_strdup(fp->poolid),
+                "file_pool_storen",fp->poolid,
                 oids[i]);
       retcode = -1; break;}
     changed_offsets[i]=endpos; endpos = endpos+delta;
@@ -386,7 +385,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   else if ((fp->pool_offdata) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
     fd_seterr(fd_PoolFileSizeOverflow,
-              "file_pool_storen",u8_strdup(fp->poolid),
+              "file_pool_storen",fp->poolid,
               VOID);
     retcode = -1;}
   else if (fp->pool_offdata) {
@@ -689,7 +688,7 @@ int fd_make_file_pool
 
   if (outstream == NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
+    fd_seterr3(fd_CantWrite,"fd_make_file_pool",filename);
     fd_free_stream(stream);
     return -1;}
 

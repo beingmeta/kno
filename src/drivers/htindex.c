@@ -79,8 +79,7 @@ static int htindex_commit(fd_index ix)
   if ((mix->index_source) && (mix->commitfn))
     return (mix->commitfn)(mix,mix->index_source);
   else {
-    fd_seterr(fd_EphemeralIndex,"htindex_commit",
-	      u8_strdup(ix->indexid),VOID);
+    fd_seterr(fd_EphemeralIndex,"htindex_commit",ix->indexid,VOID);
     return -1;}
 }
 

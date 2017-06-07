@@ -251,8 +251,7 @@ static fd_pool open_oidpool(u8_string fname,
       else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_lisp2string(label));
       fd_decref(label);}
     else {
-      fd_seterr(fd_BadFilePoolLabel,"open_oidpool",
-                u8_strdup("bad label loc"),
+      fd_seterr(fd_BadFilePoolLabel,"open_oidpool","bad label loc",
                 FD_INT(label_loc));
       fd_close_stream(stream,0);
       u8_free(rname); u8_free(pool);
@@ -1484,7 +1483,7 @@ static int make_oidpool
     (fd_offset_type) ((oidpool_format)&(FD_OIDPOOL_OFFMODE));
   if (outstream == NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"fd_make_oidpool",u8_strdup(fname));
+    fd_seterr3(fd_CantWrite,"fd_make_oidpool",fname);
     fd_free_stream(stream);
     return -1;}
 

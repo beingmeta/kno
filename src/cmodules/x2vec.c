@@ -1785,7 +1785,7 @@ FD_EXPORT x2vec_context fd_x2vec_start
     lispval wordvec=fd_words2vector(FD_STRDATA(training_data),0);
     training_data=wordvec;}
   else {
-    fd_seterr(fd_TypeError,"fd_start_x2vec",u8_strdup("training data"),FD_VOID);
+    fd_seterr(fd_TypeError,"fd_start_x2vec","training data",FD_VOID);
     return NULL;}
   train_model(x2v,training_data,vocab_init,opts);
 
@@ -1806,7 +1806,7 @@ FD_EXPORT x2vec_context fd_x2vec_modular_start
     lispval wordvec=fd_words2vector(FD_STRDATA(training_data),0);
     training_data=wordvec;}
   else {
-    fd_seterr(fd_TypeError,"fd_start_x2vec",u8_strdup("training data"),FD_VOID);
+    fd_seterr(fd_TypeError,"fd_start_x2vec","training data",FD_VOID);
     return NULL;}
   modular_train_model(x2v,training_data,vocab_init,opts);
 
@@ -2046,9 +2046,10 @@ static lispval x2vec_cosim_prim(lispval term1,lispval term2,lispval x2varg)
       return fd_make_flonum(r);}
     else return fd_make_flonum(cosim_float(len1,vec1,vec2,0));}
   else {
-    if ((vec1)&&(vec2)) 
+    if ((vec1)&&(vec2)) {
+      u8_byte buf[100]
       fd_seterr(_("vector lengths differ"),"x2vec_cosim_prim",
-                u8_mkstring("%d != %d",len1,len2),
+                u8_sprintf(buf,100,"%d != %d",len1,len2),
                 FD_VOID);
     if (free1) u8_free(vec1);
     if (free2) u8_free(vec2);
@@ -2088,9 +2089,7 @@ static float *get_float_vec(x2vec_context x2v,
         result[i]=(float)0;}
       else {
         fd_incref(arg);
-        fd_seterr(fd_TypeError,"get_float_vec",
-                  u8_strdup("numeric element"),
-                  arg);
+        fd_seterr(fd_TypeError,"get_float_vec","numeric element",arg);
         u8_free(result);
         return NULL;}
       i++; elts++;}
@@ -2102,8 +2101,7 @@ static float *get_float_vec(x2vec_context x2v,
       *lenp=x2v->x2vec_hidden_size;
       return v;}
     else {
-      fd_seterr(_("Not a vector"),"get_float_vec",
-                u8_strdup(FD_STRDATA(arg)),FD_VOID);
+      fd_seterr(_("Not a vector"),"get_float_vec",FD_STRDATA(arg),FD_VOID);
       return NULL;}}
   else if (FD_FIXNUMP(arg)) {
     int id=FD_FIX2INT(arg);
@@ -2116,7 +2114,7 @@ static float *get_float_vec(x2vec_context x2v,
       return NULL;}
     else {
       fd_seterr(_("No X2VEC available"),"get_float_vec",
-                u8_strdup(FD_STRDATA(arg)),FD_VOID);
+                FD_STRDATA(arg),FD_VOID);
       return NULL;}}
   else if (x2v) {
     fd_incref(arg); 

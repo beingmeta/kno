@@ -358,12 +358,13 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
     u8_unlock_mutex(&update_modules_lock);
     return 0;}
   else if (!(scan)) {
+    u8_byte buf[200];
     u8_unlock_mutex(&load_record_lock);
     u8_unlock_mutex(&update_modules_lock);
     /* Maybe, this should load it. */
     fd_seterr(fd_ReloadError,"fd_update_file_module",
-              u8_mkstring(_("The file %s has never been loaded"),
-                          module_source),
+              u8_sprintf(buf,200,_("The file %s has never been loaded"),
+                         module_source),
               VOID);
     return -1;}
   else if ((!(force))&&(mtime<=scan->fd_modtime)) {
@@ -381,7 +382,7 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
       (scan->fd_loadfile,scan->fd_loadenv,"auto");
     if (FD_ABORTP(load_result)) {
       fd_seterr(fd_ReloadError,"fd_reload_modules",
-                u8_strdup(scan->fd_loadfile),load_result);
+                scan->fd_loadfile,load_result);
       u8_lock_mutex(&load_record_lock);
       scan->fd_reloading = 0;
       u8_unlock_mutex(&load_record_lock);
@@ -414,7 +415,7 @@ static lispval update_module_prim(lispval spec,lispval force)
       else return FD_FALSE;}
     else {
       fd_seterr(fd_ReloadError,"update_module_prim",
-                u8_strdup(_("Module does not exist")),
+                _("Module does not exist"),
                 spec);
       return FD_ERROR;}}
   else return load_source_module(spec,0,NULL);

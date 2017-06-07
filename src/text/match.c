@@ -3780,8 +3780,7 @@ u8_byteoff fd_text_search
       return -2;}
     else if (VOIDP(vpat)) {
       u8_string name = SYM_NAME(pat);
-      fd_seterr(fd_UnboundIdentifier,"fd_text_search",
-                u8_strdup(name),pat);
+      fd_seterr(fd_UnboundIdentifier,"fd_text_search",name,pat);
       return -2;}
     else {
       u8_byteoff result = fd_text_search(vpat,env,string,off,lim,flags);

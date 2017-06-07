@@ -81,7 +81,7 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval o
   if (s == NULL) {
     u8_free(index);
     u8_free(realpath);
-    fd_seterr3(u8_CantOpenFile,"open_file_index",u8_strdup(fname));
+    fd_seterr3(u8_CantOpenFile,"open_file_index",fname);
     return NULL;}
 
   /* See if it ended up read only */
@@ -99,7 +99,7 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval o
   else if (magicno == FD_MULT_FILE_INDEX_MAGIC_NUMBER) index->index_hashv = 2;
   else if (magicno == FD_MULT_FILE3_INDEX_MAGIC_NUMBER) index->index_hashv = 3;
   else {
-    fd_seterr3(fd_NotAFileIndex,"open_file_index",u8_strdup(fname));
+    fd_seterr3(fd_NotAFileIndex,"open_file_index",fname);
     u8_free(index);
     return NULL;}
   index->index_offsets = NULL;
@@ -1255,7 +1255,7 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   if (outstream == NULL)
     return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
+    fd_seterr3(fd_CantWrite,"fd_make_file_index",filename);
     fd_free_stream(stream);
     return -1;}
 

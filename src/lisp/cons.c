@@ -849,7 +849,7 @@ fd_exception get_pointer_exception(lispval x)
 FD_EXPORT lispval fd_badptr_err(lispval result,u8_context cxt,u8_string details)
 {
   fd_seterr( get_pointer_exception(result), cxt,
-             u8dup(details), FD_UINT2DTYPE(result) );
+             details, FD_UINT2DTYPE(result) );
   return FD_ERROR;
 }
 

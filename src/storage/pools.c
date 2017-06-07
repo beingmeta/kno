@@ -250,8 +250,7 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     return -1;}
   if ((capacity>=FD_OID_BUCKET_SIZE) &&
       ((p->pool_base)%FD_OID_BUCKET_SIZE)) {
-    fd_seterr(fd_InvalidPoolRange,"fd_register_pool",
-              u8_strdup(p->poolid),VOID);
+    fd_seterr(fd_InvalidPoolRange,"fd_register_pool",p->poolid,VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   /* Set up the serial number */
@@ -532,8 +531,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
   struct FD_HASHTABLE *oidcache = ((fdtc!=NULL)?(&(fdtc->oids)):(NULL));
   int decref_oids = 0, cachelevel;
   if (p == NULL) {
-    fd_seterr(fd_NotAPool,"fd_pool_prefetch",
-              u8_strdup("NULL pool ptr"),VOID);
+    fd_seterr(fd_NotAPool,"fd_pool_prefetch","NULL pool ptr",VOID);
     return -1;}
   else if (EMPTYP(oids))
     return 0;
@@ -750,8 +748,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
       return 1;}
     else n = write-oidv;
     if (p->pool_handler->lock == NULL) {
-      fd_seterr(fd_CantLockOID,"fd_pool_lock",
-                u8_strdup(p->poolid),oids);
+      fd_seterr(fd_CantLockOID,"fd_pool_lock",p->poolid,oids);
       return -1;}
     if (n==1) {
       needy=temp_oidv[0]=oidv[0];
@@ -1246,8 +1243,7 @@ FD_EXPORT int fd_pool_load(fd_pool p)
   if (p->pool_handler->getload)
     return (p->pool_handler->getload)(p);
   else {
-    fd_seterr(fd_UnhandledOperation,"fd_pool_load",
-              u8_strdup(p->poolid),VOID);
+    fd_seterr(fd_UnhandledOperation,"fd_pool_load",p->poolid,VOID);
     return -1;}
 }
 
@@ -1794,32 +1790,24 @@ static int pool_store(fd_pool p,lispval key,lispval value)
     FD_OID addr = FD_OID_ADDR(key);
     FD_OID base = p->pool_base;
     if (FD_OID_COMPARE(addr,base)<0) {
-      fd_seterr(fd_PoolRangeError,"pool_store",
-                u8_strdup(fd_pool_id(p)),
-                key);
+      fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
       return -1;}
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
-        fd_seterr(fd_PoolRangeError,"pool_store",
-                  u8_strdup(fd_pool_id(p)),
-                  key);
+        fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
         return -1;}
       else if (p->pool_handler->lock == NULL) {
         rv = fd_hashtable_store(&(p->pool_cache),key,value);}
       else if (fd_pool_lock(p,key)) {
         rv = fd_hashtable_store(&(p->pool_changes),key,value);}
       else {
-        fd_seterr(fd_CantLockOID,"pool_store",
-                  u8_strdup(fd_pool_id(p)),
-                  key);
+        fd_seterr(fd_CantLockOID,"pool_store",fd_pool_id(p),key);
         return -1;}
       return rv;}}
   else {
-    fd_seterr(fd_NotAnOID,"pool_store",
-              u8_strdup(fd_pool_id(p)),
-              fd_incref(key));
+    fd_seterr(fd_NotAnOID,"pool_store",fd_pool_id(p),fd_incref(key));
     return -1;}
 }
 

@@ -415,8 +415,7 @@ static lispval open_dtype_input_file(lispval fname)
 {
   u8_string filename = CSTRING(fname);
   if (!(u8_file_existsp(filename))) {
-    fd_seterr(fd_FileNotFound,"open_dtype_input_file",
-              u8_strdup(filename),VOID);
+    fd_seterr(fd_FileNotFound,"open_dtype_input_file",filename,VOID);
     return FD_ERROR;}
   else return (lispval)
 	 fd_open_file(filename,FD_STREAM_READ_ONLY);
@@ -477,16 +476,14 @@ static lispval streampos_prim(lispval stream_arg,lispval pos)
 	if (result<0) return FD_ERROR;
 	else return FD_INT(result);}
       else {
-	fd_seterr(_("Out of file range"),"streampos_prim",
-		  stream->streamid,pos);
+	fd_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
 	return FD_ERROR;}}
     else if (intval<maxpos) {
       fd_off_t result = fd_setpos(stream,intval);
       if (result<0) return FD_ERROR;
       else return FD_INT(result);}
     else {
-	fd_seterr(_("Out of file range"),"streampos_prim",
-		  stream->streamid,pos);
+	fd_seterr(_("Out of file range"),"streampos_prim",stream->streamid,pos);
 	return FD_ERROR;}}
   else return fd_type_error("stream position","streampos_prim",pos);
 }

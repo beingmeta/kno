@@ -86,7 +86,7 @@ FD_EXPORT void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
   fd_incref(irritant);
-  fd_seterr(c,cxt,u8dup(details),irritant);
+  fd_seterr(c,cxt,details,irritant);
 }
 
 FD_EXPORT lispval fd_get_irritant(u8_exception ex)
@@ -171,10 +171,10 @@ FD_EXPORT lispval fd_err
 {
   if (FD_CHECK_PTR(irritant)) {
     if (details)
-      fd_seterr(ex,cxt,u8_strdup(details),fd_incref(irritant));
+      fd_seterr(ex,cxt,details,fd_incref(irritant));
     else fd_seterr(ex,cxt,NULL,fd_incref(irritant));}
   else if (details)
-    fd_seterr(ex,cxt,u8_strdup(details),VOID);
+    fd_seterr(ex,cxt,details,VOID);
   else fd_seterr2(ex,cxt);
   return FD_ERROR;
 }

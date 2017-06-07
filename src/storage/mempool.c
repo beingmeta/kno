@@ -88,7 +88,7 @@ static lispval *mempool_fetchn(fd_pool p,int n,lispval *oids)
     int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
     if ((off>mp->pool_load) &&
 	(!((p->pool_flags)&FD_POOL_SPARSE))) {
-      fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->poolid),
+      fd_seterr(fd_UnallocatedOID,"mpool_fetch",mp->poolid,
 		fd_make_oid(addr));
       return NULL;}
     else i++;}

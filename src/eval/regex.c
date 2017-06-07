@@ -122,7 +122,7 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
     u8_byte buf[512];
     regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_unlock_mutex(&(ptr->fdrx_lock));
-    fd_seterr(fd_RegexError,"fd_regex_op",u8_strdup(buf),VOID);
+    fd_seterr(fd_RegexError,"fd_regex_op",buf,VOID);
     return -2;}
   else u8_unlock_mutex(&(ptr->fdrx_lock));
   if (results[0].rm_so<0) return -1;

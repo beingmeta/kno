@@ -1853,7 +1853,7 @@ FD_FASTOP int test_relation_regex(lispval candidate,lispval pred,lispval regex)
           if (retval) {
             u8_byte buf[512];
             regerror(retval,&(fdrx->fd_rxcompiled),buf,512);
-            fd_seterr(fd_RegexError,"regex_pick",u8_strdup(buf),VOID);
+            fd_seterr(fd_RegexError,"regex_pick",buf,VOID);
             FD_STOP_DO_CHOICES;
             fd_decref(values);
             return -1;}
@@ -1890,7 +1890,7 @@ FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,
       else if (retval) {
         u8_byte buf[512];
         regerror(retval,&(fdrx->fd_rxcompiled),buf,512);
-        fd_seterr(fd_RegexError,"regex_pick",u8_strdup(buf),VOID);
+        fd_seterr(fd_RegexError,"regex_pick",buf,VOID);
         return -1;}
       else if (results[0].rm_so<0) return 0;
       else return 1;}
@@ -2659,7 +2659,7 @@ static lispval b32oid_prim(lispval arg,lispval base_arg)
   if (STRINGP(arg)) {
     offset = fd_b32_to_longlong(CSTRING(arg));
     if (offset<0) {
-      fd_seterr(fd_ParseError,"b32oid",u8_strdup("invalid B32 string"),arg);
+      fd_seterr(fd_ParseError,"b32oid","invalid B32 string",arg);
       return FD_ERROR;}}
   else if (FIXNUMP(arg))
     offset = FIX2INT(arg);

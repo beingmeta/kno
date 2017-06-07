@@ -579,8 +579,7 @@ ssize_t fd_fill_stream(fd_stream stream,size_t n)
     ssize_t delta = read(fileno,this_buf,this_request);
     if (delta == 0) break;
     if ((delta<0) && (errno) && (errno != EWOULDBLOCK)) {
-      fd_seterr3(u8_strerror(errno),"fill_stream",
-                 u8s(stream->streamid));
+      fd_seterr3(u8_strerror(errno),"fill_stream",stream->streamid);
       return 0;}
     else if (delta<0) delta = 0;
     buf->buflim = buf->buflim+delta;
@@ -668,8 +667,7 @@ FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction)
     if (FD_STREAM_ISWRITING(s))
       return 0;
     else if ((s->stream_flags)&FD_STREAM_READ_ONLY) {
-      fd_seterr(fd_ReadOnlyStream,"fd_set_direction",
-                u8s(s->streamid),VOID);
+      fd_seterr(fd_ReadOnlyStream,"fd_set_direction",s->streamid,VOID);
       return -1;}
     else {
       if ((s->stream_flags)&FD_STREAM_NEEDS_LOCK) {
@@ -685,8 +683,7 @@ FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction)
     if (!((buf->buf_flags)&(FD_IS_WRITING)))
       return 0;
     else  if ((s->stream_flags)&FD_STREAM_WRITE_ONLY) {
-      fd_seterr(fd_WriteOnlyStream,"fd_set_direction",
-                u8s(s->streamid),VOID);
+      fd_seterr(fd_WriteOnlyStream,"fd_set_direction",s->streamid,VOID);
       return -1;}
     else {
       /* If we were writing, in order to start reading, we need
@@ -1032,8 +1029,7 @@ lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
       if (rv<0) return FD_ERROR;
       else return FD_INT(rv);}}
   default:
-    fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,
-              VOID);
+    fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,VOID);
     return FD_ERROR;}
 }
 
@@ -1044,10 +1040,10 @@ FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
   struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
   ssize_t filesize = u8_file_size(filename);
   if (filesize<0) {
-    fd_seterr(fd_FileNotFound,"fd_file2dtype",u8_strdup(filename),VOID);
+    fd_seterr(fd_FileNotFound,"fd_file2dtype",filename,VOID);
     return FD_ERROR;}
   else if (filesize == 0) {
-    fd_seterr("Zero-length file","fd_file2dtype",u8_strdup(filename),VOID);
+    fd_seterr("Zero-length file","fd_file2dtype",filename,VOID);
     return FD_ERROR;}
   else {
     struct FD_STREAM *opened=

@@ -320,7 +320,7 @@ FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
     if (lval<0) {
       fd_incref(v);
       fd_seterr(fd_TypeError,"fd_config_rlimit_set",
-                u8_strdup("resource limit (integer)"),v);
+               "resource limit (integer)",v);
       return -1;}
     else setval = lval;}
   else if (FALSEP(v)) setval = (RLIM_INFINITY);
@@ -335,14 +335,14 @@ FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr)
   else {
     fd_incref(v);
     fd_seterr(fd_TypeError,"fd_config_rlimit_set",
-              u8_strdup("resource limit (integer)"),v);
+	      "resource limit (integer)",v);
     return -1;}
   if (retval<0) {
     u8_condition cond = u8_strerror(errno); errno = 0;
     return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),VOID);}
   else if (setval>rlim.rlim_max) {
     /* Should be more informative */
-    fd_seterr(_("RLIMIT too high"),"set_rlimit",u8_strdup(nrl->name),VOID);
+    fd_seterr(_("RLIMIT too high"),"set_rlimit",nrl->name,VOID);
     return -1;}
   if (setval == rlim.rlim_cur)
     u8_log(LOG_WARN,SetRLimit,

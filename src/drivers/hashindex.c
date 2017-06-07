@@ -243,7 +243,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval op
 
   if (stream == NULL) {
     u8_free(index);
-    fd_seterr3(u8_CantOpenFile,"open_hashindex",u8_strdup(fname));
+    fd_seterr3(u8_CantOpenFile,"open_hashindex",fname);
     return NULL;}
   /* See if it ended up read only */
   if (stream->stream_flags&FD_STREAM_READ_ONLY)
@@ -294,8 +294,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval op
                    VEC_DATA(slotids_vector));
       fd_decref(slotids_vector);}
     else {
-      fd_seterr("Bad SLOTIDS data","open_hashindex",
-                u8_strdup(fname),VOID);
+      fd_seterr("Bad SLOTIDS data","open_hashindex",fname,VOID);
       fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
@@ -317,8 +316,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval op
                     VEC_DATA(baseoids_vector));
       fd_decref(baseoids_vector);}
     else {
-      fd_seterr("Bad BASEOIDS data","open_hashindex",
-                u8_strdup(fname),VOID);
+      fd_seterr("Bad BASEOIDS data","open_hashindex",fname,VOID);
       fd_free_stream(stream);
       u8_free(index);
       return NULL;}}
@@ -412,7 +410,7 @@ FD_EXPORT int make_hashindex
   if (outstream == NULL)
     return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
-    fd_seterr3(fd_CantWrite,"make_hashindex",u8_strdup(fname));
+    fd_seterr3(fd_CantWrite,"make_hashindex",fname);
     fd_free_stream(stream);
     return -1;}
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
@@ -926,9 +924,10 @@ static lispval read_values
                                &n_read,values,&consp,
                                &vbuf,&vbuf_len);
   if (chunk_ref.off<0) {
+    u8_byte buf[64];
     fd_seterr("HashIndexError","read_values",
-              u8_mkstring("reading %d values from %s",
-                          n_values,hx->indexid),
+              u8_sprintf(buf,64,"reading %d values from %s",
+                         n_values,hx->indexid),
               key);
     result->choice_size=n_read;
     fd_decref_ptr(result);

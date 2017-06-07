@@ -821,7 +821,7 @@ static u8_string tempdir_core(lispval template_arg,int keep)
   else {
     u8_condition cond = u8_strerror(errno); errno = 0;
     if (consed) u8_free(consed);
-    fd_seterr(cond,"tempdir_prim",u8_strdup(template),fd_incref(template_arg));
+    fd_seterr(cond,"tempdir_prim",template,fd_incref(template_arg));
     return NULL;}
 }
 
@@ -1509,7 +1509,8 @@ int fd_snapback(fd_lexenv env,u8_string filename)
             else actions++;
           else {
             fd_seterr(fd_TypeError,"fd_snapback",
-                      u8_strdup("saved config entry"),fd_incref(config_entry));
+                      "saved config entry",
+                      fd_incref(config_entry));
             fd_decref(v); fd_decref(keys); fd_decref(slotmap);
             return -1;}}
       else {

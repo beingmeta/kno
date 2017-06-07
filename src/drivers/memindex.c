@@ -338,7 +338,7 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,lispval opt
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   unsigned int magic_no = fd_read_4bytes(fd_readbuf(stream));
   if (magic_no!=FD_MEM_INDEX_MAGIC_NUMBER) {
-    fd_seterr(_("NotMemindex"),"open_mem_index",u8_strdup(file),VOID);
+    fd_seterr(_("NotMemindex"),"open_mem_index",file,VOID);
     fd_close_stream(stream,0);
     u8_free(memidx);
     return NULL;}

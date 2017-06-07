@@ -740,7 +740,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
   FDTC *fdtc = fd_threadcache;
   fd_hashtable adds = &(ix->index_adds), cache = &(ix->index_cache);
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->indexid),VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
   if (EMPTYP(value)) return 0;
@@ -802,8 +802,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value)
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable bg_cache = &(fd_background->index_cache);
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",
-              u8_strdup(ix->indexid),VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
   if ((CHOICEP(key)) || (PRECHOICEP(key))) {
@@ -853,8 +852,7 @@ FD_EXPORT int fd_index_store(fd_index ix,lispval key,lispval value)
   fd_hashtable adds = &(ix->index_adds);
   fd_hashtable bg_cache = &(fd_background->index_cache);
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
-              u8_strdup(ix->indexid),VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
   if ((CHOICEP(key))||(PRECHOICEP(key))) {
@@ -907,8 +905,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
   /* Ignoring this for now */
   fd_hashtable adds = &(ix->index_adds);
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
-              u8_strdup(ix->indexid),VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
   fd_write_lock_table(adds);
@@ -922,8 +919,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
 FD_EXPORT int fd_batch_add(fd_index ix,lispval table)
 {
   if (U8_BITP(ix->index_flags,FD_STORAGE_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
-              u8_strdup(ix->indexid),VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",ix->indexid,VOID);
     return -1;}
   else init_cache_level(ix);
   if (HASHTABLEP(table))

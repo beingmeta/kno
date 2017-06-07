@@ -215,9 +215,9 @@ static void decl_text_type(u8_string string)
 
 FD_INLINE_FCN struct FD_CURL_HANDLE *curl_err(u8_string cxt,int code)
 {
-  fd_seterr(CurlError,cxt,
-            u8_fromlibc((char *)curl_easy_strerror(code)),
-            VOID);
+  u8_string details=u8_fromlibc((char *)curl_easy_strerror(code));
+  fd_seterr(CurlError,cxt,details,VOID);
+  u8_free(details);
   return NULL;
 }
 
@@ -226,10 +226,10 @@ static int _curl_set(u8_string cxt,struct FD_CURL_HANDLE *h,
 {
   CURLcode retval = curl_easy_setopt(h->handle,option,v);
   if (retval) {
+    u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
     u8_free(h);
-    fd_seterr(CurlError,cxt,
-              u8_fromlibc((char *)curl_easy_strerror(retval)),
-              VOID);}
+    fd_seterr(CurlError,cxt,details,VOID);
+    u8_free(details);}
   return retval;
 }
 
@@ -245,21 +245,19 @@ static int _curl_set2dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
            (FD_TYPEP(v,fd_secret_type))) {
     CURLcode retval = curl_easy_setopt(h->handle,option,CSTRING(v));
     if (retval) {
-      u8_free(h); fd_decref(v);
-      fd_seterr(CurlError,cxt,
-                u8_fromlibc((char *)curl_easy_strerror(retval)),
-                VOID);}
+      u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
+      fd_seterr(CurlError,cxt,details,VOID);
+      u8_free(h); fd_decref(v);}
     return retval;}
   else if (FIXNUMP(v)) {
     CURLcode retval = curl_easy_setopt(h->handle,option,(long)(fd_getint(v)));
     if (retval) {
-      u8_free(h); fd_decref(v);
-      fd_seterr(CurlError,cxt,
-                u8_fromlibc((char *)curl_easy_strerror(retval)),
-                VOID);}
+      u8_string details=u8_fromlibc((char *)curl_easy_strerror(retval));
+      fd_seterr(CurlError,cxt,details,FD_VOID);
+      u8_free(h); fd_decref(v);}
     return retval;}
   else {
-    fd_seterr(fd_TypeError,cxt,u8_strdup("string"),v);
+    fd_seterr(fd_TypeError,cxt,"string",v);
     return -1;}
 }
 
@@ -334,7 +332,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   if (h->handle == NULL) {
     u8_free(h);
     fd_seterr(CurlError,"fd_open_curl_handle",
-              strdup("curl_easy_init failed"),VOID);
+              "curl_easy_init failed",VOID);
     return NULL;}
   if (debugging_curl) {
     FD_INTPTR ptrval = (FD_INTPTR) h->handle;
@@ -992,7 +990,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     else {
       U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf = data.bytes;}
     if (http_response>=300) {
-      fd_seterr("HTTP error response","urlxml",u8_strdup(CSTRING(url)),
+      fd_seterr("HTTP error response","urlxml",CSTRING(url),
                 fd_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
       fd_decref(conn);
       return FD_ERROR;}

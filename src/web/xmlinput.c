@@ -863,6 +863,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
         free_node(node,1);
       return retnode;}
     else {
+      u8_byte buf[100];
       if (node->xml_bits&FD_XML_AUTOCLOSE) {
         FD_XML *closenode = NULL;
         if (EMPTYP(node->xml_attribs)) init_node_attribs(node);
@@ -876,7 +877,8 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       if ((node->xml_bits)&(FD_XML_BADCLOSE))
         return node;
       else fd_seterr(fd_XMLParseError,"inconsistent close tag",
-                     u8_mkstring("</%s> closes <%s>",elts[0],node->xml_eltname),
+                     u8_sprintf(buf,100,"</%s> closes <%s>",
+                                elts[0],node->xml_eltname),
                      VOID);
       return NULL;}
   case xmlopen:
@@ -1051,7 +1053,7 @@ FD_EXPORT int fd_xmlparseoptions(lispval x)
     else if (FD_EQ(x,noempty_symbol))
       return FD_XML_NOEMPTY;
     else {
-      fd_seterr(fd_TypeError,"xmlparsearg",u8_strdup(_("xmlparse option")),x);
+      fd_seterr(fd_TypeError,"xmlparsearg",_("xmlparse option"),x);
       return -1;}
   else if (CHOICEP(x)) {
     int flags = 0;
@@ -1068,7 +1070,7 @@ FD_EXPORT int fd_xmlparseoptions(lispval x)
       else flags = flags|flag;}
     return flags;}
   else {
-    fd_seterr(fd_TypeError,"xmlparsearg",u8_strdup(_("xmlparse option")),x);
+    fd_seterr(fd_TypeError,"xmlparsearg",_("xmlparse option"),x);
     return -1;}
 }
 
