@@ -1091,7 +1091,7 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
     call->outlen = call->cgiout->u8_write-call->cgiout->u8_outbuf;
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
   value = fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
-                        (fdtype (*)(void *,fdtype))cgigetvar);
+                          (fdtype (*)(void *,fdtype))cgigetvar);
   value = fd_finish_call(value);
   call->result = value;
   return 1;

@@ -1252,10 +1252,10 @@ static fdtype *fetchn(struct FD_HASHINDEX *hx,int n,fdtype *keys)
             struct FD_CHOICE *result = (struct FD_CHOICE *)values[index];
             int n_values = result->choice_size;
             fdtype realv = fd_init_choice(result,n_values,NULL,
-                                        FD_CHOICE_DOSORT|
-                                        ((atomicp)?(FD_CHOICE_ISATOMIC):
-                                         (FD_CHOICE_ISCONSES))|
-                                        FD_CHOICE_REALLOC);
+                                          FD_CHOICE_DOSORT|
+                                          ((atomicp)?(FD_CHOICE_ISATOMIC):
+                                           (FD_CHOICE_ISCONSES))|
+                                          FD_CHOICE_REALLOC);
             values[index]=realv;
             read++;}}}}
     u8_free(vbuf);}
