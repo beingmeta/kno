@@ -126,7 +126,6 @@ FD_EXPORT void fd_init_ports_c(void);
 FD_EXPORT void fd_init_dtread_c(void);
 FD_EXPORT void fd_init_dtwrite_c(void);
 FD_EXPORT void fd_init_tables_c(void);
-FD_EXPORT void fd_init_bloom_c(void);
 FD_EXPORT void fd_init_symbols_c(void);
 FD_EXPORT void fd_init_numbers_c(void);
 FD_EXPORT void fd_init_choices_c(void);
@@ -212,7 +211,6 @@ FD_EXPORT int fd_init_libfdtype()
   fd_init_dtwrite_c();
   fd_init_numbers_c();
   fd_init_choices_c();
-  fd_init_bloom_c();
   fd_init_stacks_c();
   fd_init_apply_c();
   fd_init_sequences_c();

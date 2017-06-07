@@ -71,7 +71,6 @@ DTYPE_HEADERS=\
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
- include/framerd/bloom.h  			     \
  include/framerd/sequences.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/bufio.h			     \
@@ -84,6 +83,7 @@ STORAGE_HEADERS=\
  include/framerd/storage.h			\
  include/framerd/pools.h			\
  include/framerd/indexes.h			\
+ include/framerd/bloom.h  			     \
  include/framerd/dtproc.h			\
  include/framerd/dtcall.h			\
  include/framerd/frames.h			\
@@ -118,7 +118,7 @@ DTYPE_OBJS=\
 	src/lisp/misctypes.o src/lisp/numbers.o		\
 	src/lisp/compare.o src/lisp/walk.o			\
 	src/lisp/buildinfo.o					\
-	src/lisp/tables.o src/lisp/bloom.o			\
+	src/lisp/tables.o 					\
 	src/lisp/sequences.o src/lisp/choices.o 		\
 	src/lisp/parse.o src/lisp/unparse.o			\
 	src/lisp/bufio.o src/lisp/pprint.o			\
@@ -139,7 +139,7 @@ CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
 	src/storage/pools.o src/storage/indexes.o src/storage/compoundindexes.o	\
-	src/storage/dtproc.o src/storage/dtcall.o 				\
+	src/storage/dtproc.o src/storage/dtcall.o src/storage/bloom.o		\
 	src/storage/methods.o src/storage/oidstore.o 				\
 	src/storage/cachecall.o src/storage/threadcache.o 			\
 	src/storage/extindex.o src/storage/extpool.o 				\
@@ -351,7 +351,7 @@ FRAMERD_SOURCES=\
 	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       	\
         src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c		\
 	src/lisp/choices.c src/lisp/sequences.c				\
-	src/lisp/tables.c src/lisp/bloom.c				\
+	src/lisp/tables.c \
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/buildinfo.c \
 	src/lisp/libfdtype.c src/lisp/support.c src/lisp/config.c	\
@@ -362,7 +362,7 @@ FRAMERD_SOURCES=\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
 	src/storage/oidstore.c src/storage/cachecall.c  				\
-	src/storage/compoundindexes.c  					\
+	src/storage/compoundindexes.c src/storage/bloom.c				\
 	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
 	src/storage/dtproc.c src/storage/dtcall.c					\
 	src/storage/ipeval.c 	       					\
@@ -868,7 +868,7 @@ src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 
 src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${OPTFLAGS}"
 src/lisp/choices.o : XCFLAGS="${OPTFLAGS}"
-src/lisp/tables.o src/lisp/bloom.o src/lisp/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${OPTFLAGS}"
 src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${OPTFLAGS}"
 src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
 src/storage/streams.o : XCFLAGS="${OPTFLAGS}"

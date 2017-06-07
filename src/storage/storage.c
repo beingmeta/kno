@@ -492,6 +492,7 @@ FD_EXPORT void fd_init_cachecall_c(void);
 FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
 FD_EXPORT int fd_init_drivers_c(void);
+FD_EXPORT void fd_init_bloom_c(void);
 
 FD_EXPORT int fd_init_storage()
 {
@@ -506,6 +507,7 @@ FD_EXPORT int fd_init_storage()
   fd_init_hashdtype_c();
   fd_init_oidobj_c();
   fd_init_cachecall_c();
+  fd_init_bloom_c();
   fd_init_pools_c();
   fd_init_indexes_c();
   fd_init_frames_c();
