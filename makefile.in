@@ -759,19 +759,21 @@ uninstall: uninstall-core
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
 		tests/types/*.c tests/storage/*.c tests/scheme/*.c 	\
-		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
+		src/exe/*.c src/exe/*.h include/framerd/*.h 		\
 		src/types/*.c src/apply/*.c 				\
 		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
+		src/cmodules/*.c 					\
 		etc/*.in ${SRC_HEADERS} 				\
 		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/types/*.c src/apply/*.c 
-	@etags -o TAGS -a src/storage/*.c src/drivers/*.c
+	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
+	@etags -o TAGS -a src/types/*.c src/apply/*.c src/storage/*.c
+	@etags -o TAGS -a src/drivers/*.c src/drivers/headers/*.h
 	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
 	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
@@ -788,14 +790,16 @@ CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
 	@etags -o CTAGS 
 	      makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/types/*.c tests/apply/*.c tests/storage/*.c 	\
-	      tests/eval/*.c tests/prims/*.c src/exe/*.c 		\
+	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
 	      src/types/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
-	      src/web/*.c src/text/*.c src/cmodules/*.c         	\
+	      src/web/*.c src/text/*.c 					\
+	      src/cmodules/*.c src/cmodules/*.h				\
 	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
 
 CSOURCETAGS: src/types/*.c src/apply/*.c src/storage/*.c	\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
-	src/drivers/*.c src/drivers/headers/*.h src/exe/*.c
+	src/drivers/*.c src/drivers/headers/*.h 		\
+	src/exe/*.c src/exe/*.h
 	@echo Building FRAMERD_SOURCE TAGS file
 	@etags -o $@ $^
 
