@@ -81,7 +81,7 @@ int main(int argc,char **argv)
   struct FD_INBUF *inbuf;
   struct FD_OUTBUF *outbuf;
   lispval ht, keys, watch_for = FD_VOID;
-  FD_DO_LIBINIT(fd_init_libfdtype);
+  FD_DO_LIBINIT(fd_init_lisp_types);
   n_tries = atol(argv[2]);
   in = fd_open_file(argv[1],FD_FILE_READ);
   inbuf = fd_readbuf(in);

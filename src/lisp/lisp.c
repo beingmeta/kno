@@ -178,7 +178,7 @@ FD_EXPORT void fd_log_status(u8_condition why)
            heapsize,heapu);}
 }
 
-FD_EXPORT int fd_init_libfdtype()
+FD_EXPORT int fd_init_lisp_types()
 {
   int u8_version;
 #if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))

@@ -19,7 +19,7 @@ int main(int argc,char **argv)
   struct FD_OUTBUF out; FILE *f = fopen(argv[1],"wb");
   lispval value = FD_EMPTY_CHOICE, svalue, tval; int i = 2, retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
-  FD_DO_LIBINIT(fd_init_libfdtype);
+  FD_DO_LIBINIT(fd_init_lisp_types);
   tval = fd_parse(argv[i++]);
   while (i < argc) {
     lispval object = fd_parse(argv[i]);

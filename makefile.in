@@ -122,7 +122,7 @@ LISP_OBJS=\
 	src/lisp/parse.o src/lisp/unparse.o			\
 	src/lisp/bufio.o src/lisp/pprint.o			\
 	src/lisp/dtread.o src/lisp/dtwrite.o			\
-	src/lisp/libfdtype.o
+	src/lisp/lisp.o
 
 SUPPORT_OBJS=						\
 	src/support/buildinfo.o src/support/support.o	\
@@ -358,7 +358,7 @@ FRAMERD_SOURCES=\
 	src/lisp/choices.c src/lisp/sequences.c				\
 	src/lisp/tables.c \
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
-	src/lisp/parse.c src/lisp/unparse.c src/lisp/libfdtype.c \
+	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c \
 	src/support/buildinfo.c \
 	src/support/support.c src/support/config.c	\
 	src/support/err.c src/support/logging.c src/support/getopt.c		\

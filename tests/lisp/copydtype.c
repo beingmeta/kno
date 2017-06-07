@@ -20,7 +20,7 @@ int main(int argc,char **argv)
   lispval object, copied;
   struct FD_STREAM *in, *out;
   int bytes = 0;
-  FD_DO_LIBINIT(fd_init_libfdtype);
+  FD_DO_LIBINIT(fd_init_lisp_types);
   in = fd_open_file(argv[1],FD_FILE_READ);
   out = fd_open_file(argv[2],FD_FILE_CREATE);
   object = fd_read_dtype(fd_readbuf(in));

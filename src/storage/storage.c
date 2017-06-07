@@ -497,7 +497,7 @@ FD_EXPORT void fd_init_bloom_c(void);
 FD_EXPORT int fd_init_storage()
 {
   if (fdstorage_initialized) return fdstorage_initialized;
-  fdstorage_initialized = 211*fd_init_libfdtype();
+  fdstorage_initialized = 211*fd_init_lisp_types();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);

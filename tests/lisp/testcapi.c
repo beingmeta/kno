@@ -25,7 +25,7 @@ static int write_dtype_to_file(lispval object,FILE *f)
 
 int main(int argc,char **argv)
 {
-  int lispv = fd_init_libfdtype();
+  int lispv = fd_init_lisp_types();
   lispval fix1 = FD_INT(33994);
   lispval dbl1 = fd_init_flonum(NULL,3.445);
   lispval dbl2 = fd_init_flonum(u8_alloc(struct FD_FLONUM),-3.9994);

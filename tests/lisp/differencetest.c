@@ -61,7 +61,7 @@ int main(int argc,char **argv)
 {
   FILE *f; int i = 1, k = 0; double starttime, inputtime, donetime;
   char *output_arg = NULL, *input_arg = NULL, *remove_arg = NULL;
-  FD_DO_LIBINIT(fd_init_libfdtype);
+  FD_DO_LIBINIT(fd_init_lisp_types);
   starttime = get_elapsed();
   while (i<argc)
     if (strchr(argv[i],'='))

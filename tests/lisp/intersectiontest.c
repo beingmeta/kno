@@ -66,7 +66,7 @@ int main(int argc,char **argv)
   int i = 2, j = 0, write_binary = 0;
   lispval *args = u8_alloc_n(argc-2,lispval), common;
   double starttime, inputtime, donetime;
-  FD_DO_LIBINIT(fd_init_libfdtype);
+  FD_DO_LIBINIT(fd_init_lisp_types);
   starttime = get_elapsed();
   while (i < argc)
     if (strchr(argv[i],'='))

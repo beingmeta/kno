@@ -164,7 +164,7 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
     *source_filep = source_file;}
   else {}
 
-  fd_init_libfdtype();
+  fd_init_lisp_types();
 
   FD_NEW_STACK(((fd_stack)NULL),"startup",argv[0],VOID);
   _stack->stack_label=u8_strdup(u8_appid());
