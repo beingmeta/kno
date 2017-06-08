@@ -1630,12 +1630,16 @@ static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
 }
 
 static struct sigaction sigaction_abraham;
+static struct sigaction sigaction_reload;
  
 static void sigactions_init()
 {
   memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
   sigaction_abraham.sa_sigaction = kill_dependent_onsignal;
   sigaction_abraham.sa_flags = SA_SIGINFO;
+  memset(&sigaction_reload,0,sizeof(sigaction_reload));
+  sigaction_reload.sa_sigaction = kill_dependent_onsignal;
+  sigaction_reload.sa_flags = SA_SIGINFO;
 }
 
 /* Making sure you can write the socket file */
