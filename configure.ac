@@ -1665,7 +1665,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   tests/storage/.gdbinit tests/scheme/.gdbinit tests/scheme/.valgrind
 	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
-	   etc/fdreload etc/fdrestart etc/fdctl
+	   etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
 	   tests/scheme/runenv.sh tests/scheme/testenv
