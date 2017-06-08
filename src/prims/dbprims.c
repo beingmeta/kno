@@ -1378,6 +1378,33 @@ static lispval cached_keys(lispval index)
     else return fd_type_error(_("index"),"cached_keys",index);}
 }
 
+static lispval cache_load(lispval db)
+{
+  if ( (FD_POOLP(db)) || (FD_TYPEP(db,fd_consed_pool_type) ) ) {
+    fd_pool p = fd_lisp2pool(db);
+    int n_keys = p->pool_cache.table_n_keys;
+    return FD_INT(n_keys);}
+  else if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type) ) ) {
+    fd_index ix = fd_lisp2index(db);
+    int n_keys = ix->index_cache.table_n_keys;
+    return FD_INT(n_keys);}
+  else return fd_err(fd_TypeError,"cache_load",_("pool or index"),db);
+}
+
+static lispval change_load(lispval db)
+{
+  if ( (FD_POOLP(db)) || (FD_TYPEP(db,fd_consed_pool_type) ) ) {
+    fd_pool p = fd_lisp2pool(db);
+    int n_pending = p->pool_changes.table_n_keys;
+    return FD_INT(n_pending);}
+  else if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type) ) ) {
+    fd_index ix = fd_lisp2index(db);
+    int n_pending = ix->index_adds.table_n_keys +
+      ix->index_edits.table_n_keys ;
+    return FD_INT(n_pending);}
+  else return fd_err(fd_TypeError,"change_load",_("pool or index"),db);
+}
+
 /* Frame get functions */
 
 FD_EXPORT
@@ -3326,6 +3353,15 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));
+
+  fd_idefn1(fd_scheme_module,"CACHE-LOAD",cache_load,1,
+            "(CACHE-LOAD *pool-or-index*) returns the number of "
+            "cached items in a database.",
+            -1,FD_VOID);
+  fd_idefn1(fd_scheme_module,"CHANGE-LOAD",change_load,1,
+            "Returns the number of items modified "
+            "(or locked for modification) in a database",
+            -1,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-SOURCE",index_source_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX-ID",index_id,1));
