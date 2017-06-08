@@ -689,6 +689,14 @@ static lispval fdrevision_config_get(lispval var,void *data)
 {
   return lispval_string(FRAMERD_REVISION);
 }
+static lispval fdbranch_config_get(lispval var,void *data)
+{
+#ifdef FD_BRANCH
+  return lispval_string(FD_BRANCH);
+#else
+  return lispval_string("unknown_branch");
+#endif
+}
 static lispval fdmajor_config_get(lispval var,void *data)
 {
   return FD_INT(FD_MAJOR_VERSION);
@@ -756,6 +764,9 @@ void fd_init_config_c()
   fd_register_config
     ("FDREVISION",_("Get the FramerD revision identifier"),
      fdrevision_config_get,fd_readonly_config_set,NULL);
+  fd_register_config
+    ("FDBRANCH",_("Get the FramerD branch name"),
+     fdbranch_config_get,fd_readonly_config_set,NULL);
   fd_register_config
     ("FDMAJOR",_("Get the FramerD major version number"),
      fdmajor_config_get,fd_readonly_config_set,NULL);
