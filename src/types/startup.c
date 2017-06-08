@@ -51,6 +51,9 @@ fd_exception fd_ExitException=_("Unhandled exception at exit");
 
 static u8_mutex atexit_handlers_lock;
 
+int fd_exiting = 0;
+int fd_exited = 0;
+
 static u8_string logdir = NULL, sharedir = NULL, datadir = NULL;
 
 int fd_be_vewy_quiet = 0;
@@ -232,6 +235,10 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
 FD_EXPORT void fd_doexit(fdtype arg)
 {
   struct FD_ATEXIT *scan, *tmp;
+  if (fd_exited) return;
+  if (fd_exiting) {
+    u8_log(LOGWARN,"RecursiveExit","Recursive fd_doexit");
+    return;}
   fd_exiting = 1;
   if (fd_argv) {
     int i = 0, n = fd_argc; while (i<n) {
@@ -265,9 +272,26 @@ FD_EXPORT void fd_doexit(fdtype arg)
   fd_decref(string_argv); string_argv = FD_FALSE;
   fd_decref(raw_argv); raw_argv = FD_FALSE;
   fd_decref(config_argv); config_argv = FD_FALSE;
+  fd_exited=1;
+  fd_exiting=0;
 }
 
-static void doexit_atexit(){fd_doexit(FD_FALSE);}
+static void doexit_atexit()
+{
+  if ( (fd_exited) || (fd_exiting))
+    return;
+  else fd_doexit(FD_FALSE);
+}
+
+FD_EXPORT void fd_signal_doexit(int sig)
+{
+  fd_doexit(FD_INT(sig));
+}
+static void doexit_onsignal(int sig,siginfo_t *info,void *stuff)
+{
+  fd_signal_doexit(sig);
+  exit(0);
+}
 
 
 /* RLIMIT configs */

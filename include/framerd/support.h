@@ -159,10 +159,12 @@ FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
 
 /* Whether the executable is exiting */
 FD_EXPORT int fd_exiting;
+FD_EXPORT int fd_exited;
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
 FD_EXPORT void fd_log_exception(u8_exception ex);
 FD_EXPORT void fd_doexit(fdtype);
+FD_EXPORT void fd_signal_doexit(int);
 
 /* Thread vars */
 
@@ -213,8 +215,9 @@ FD_EXPORT fdtype fd_get_build_info(void);
 
 /* Signalling */
 
-FD_EXPORT struct sigaction *fd_sigaction_catch;
+FD_EXPORT struct sigaction *fd_sigaction_raise;
 FD_EXPORT struct sigaction *fd_sigaction_exit;
+FD_EXPORT struct sigaction *fd_sigaction_abort;
 FD_EXPORT struct sigaction *fd_sigaction_default;
 
 FD_EXPORT sigset_t *fd_default_sigmask;
