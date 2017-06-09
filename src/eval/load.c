@@ -617,8 +617,8 @@ FD_EXPORT void fd_init_load_c()
  postload_symbol = fd_intern("%POSTLOAD");
 
 
- fd_defspecial(fd_xscheme_module,"LOAD",load_source_evalfn);
- fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component_evalfn);
+ fd_def_evalfn(fd_xscheme_module,"LOAD","",load_source_evalfn);
+ fd_def_evalfn(fd_xscheme_module,"LOAD-COMPONENT","",load_component_evalfn);
 
  fd_defn(fd_xscheme_module,
          fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,

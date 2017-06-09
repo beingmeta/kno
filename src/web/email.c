@@ -136,7 +136,7 @@ void fd_init_email_c()
   lispval unsafe_module = fd_new_module("FDWEB",(0));
 
   fd_idefn(unsafe_module,fd_make_cprim5("SMTP",smtp_function,3));
-  fd_defspecial(unsafe_module,"MAILOUT",mailout_evalfn);
+  fd_def_evalfn(unsafe_module,"MAILOUT","",mailout_evalfn);
 
   fd_register_config("MAILHOST",_("SMTP host"),
                      fd_sconfig_get,fd_sconfig_set,&mailhost_dflt);

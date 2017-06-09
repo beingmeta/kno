@@ -348,20 +348,20 @@ FD_EXPORT void fd_init_reqstate_c()
   fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   fd_idefn(module,fd_make_cprim0("REQ/LIVE?",req_livep_prim));
-  fd_defspecial(module,"#:",hashcolon_evalfn);
-  fd_defspecial(module,"#::",hashcoloncolon_evalfn);
-  fd_defspecial(module,"#:$",hashcolondollar_evalfn);
-  fd_defspecial(module,"#:?",hashcolonquestion_evalfn);
+  fd_def_evalfn(module,"#:","",hashcolon_evalfn);
+  fd_def_evalfn(module,"#::","",hashcoloncolon_evalfn);
+  fd_def_evalfn(module,"#:$","",hashcolondollar_evalfn);
+  fd_def_evalfn(module,"#:?","",hashcolonquestion_evalfn);
 
-  fd_defspecial(module,"REQLOG",reqlog_evalfn);
-  fd_defspecial(module,"REQ/LOG!",reqlog_evalfn);
+  fd_def_evalfn(module,"REQLOG","",reqlog_evalfn);
+  fd_def_evalfn(module,"REQ/LOG!","",reqlog_evalfn);
   fd_idefn(module,fd_make_cprim0("REQ/GETLOG",reqgetlog_prim));
   fd_idefn(module,fd_make_cprim0("REQ/LOGLEN",reqloglen_prim));
 
   fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim));
 
   fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim));
-  fd_defspecial(module,"WITH/REQUEST",withreq_evalfn);
+  fd_def_evalfn(module,"WITH/REQUEST","",withreq_evalfn);
 
 }
 

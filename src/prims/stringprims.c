@@ -1552,7 +1552,7 @@ FD_EXPORT void fd_init_stringprims_c()
 
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
-  fd_defspecial(fd_scheme_module,"TEXTIF",textif_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TEXTIF","",textif_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BYTE-LENGTH",string_byte_length,1,

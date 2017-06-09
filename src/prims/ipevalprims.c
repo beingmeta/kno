@@ -197,13 +197,13 @@ FD_EXPORT void fd_init_ipevalprims_c()
 
   moduleid_symbol = fd_intern("%MODULEID");
 
-  fd_defspecial(fd_scheme_module,"LETQ",letq_evalfn);
-  fd_defspecial(fd_scheme_module,"LETQ*",letqstar_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LETQ","",letq_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LETQ*","",letqstar_evalfn);
 
 #if FD_IPEVAL_ENABLED
-  fd_defspecial(fd_scheme_module,"IPEVAL",ipeval_evalfn);
-  fd_defspecial(fd_scheme_module,"TIPEVAL",trace_ipeval_evalfn);
-  fd_defspecial(fd_scheme_module,"TRACK-IPEVAL",track_ipeval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IPEVAL","",ipeval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TIPEVAL","",trace_ipeval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TRACK-IPEVAL","",track_ipeval_evalfn);
 #endif
 
 }

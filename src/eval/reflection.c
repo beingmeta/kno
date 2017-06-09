@@ -706,11 +706,11 @@ FD_EXPORT void fd_init_reflection_c()
             "Returns the exports table for a module",
             -1,VOID);
 
-  fd_defspecial(module,"%ENV",thisenv_evalfn);
-  fd_defspecial(module,"%BINDINGS",local_bindings_evalfn);
+  fd_def_evalfn(module,"%ENV","",thisenv_evalfn);
+  fd_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);
 
-  fd_defspecial(module,"WHEREFROM",wherefrom_evalfn);
-  fd_defspecial(module,"GETMODULES",getmodules_evalfn);
+  fd_def_evalfn(module,"WHEREFROM","",wherefrom_evalfn);
+  fd_def_evalfn(module,"GETMODULES","",getmodules_evalfn);
 
   fd_finish_module(module);
 }

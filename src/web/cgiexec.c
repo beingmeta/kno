@@ -1272,7 +1272,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   u8_init_mutex(&protected_cgi_lock);
 
-  fd_defspecial(module,"HTTPHEADER",httpheader);
+  fd_def_evalfn(module,"HTTPHEADER","",httpheader);
   fd_idefn(module,fd_make_cprim1("HTTPHEADER!",addhttpheader,1));
   fd_idefn(module,fd_make_cprim6("SET-COOKIE!",setcookie,2));
   fd_idefn(module,fd_make_cprim4("CLEAR-COOKIE!",clearcookie,1));
@@ -1282,7 +1282,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim1x("HTMLCLASS!",add_html_class,1,
                                   fd_string_type,VOID));
 
-  fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_evalfn);
+  fd_def_evalfn(module,"WITH/REQUEST/OUT","",withreqout_evalfn);
   fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
   fd_defalias2(module,"WITHCGI",fd_scheme_module,"WITH/REQUEST");
@@ -1296,16 +1296,16 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   fd_idefn(module,fd_make_cprim1x("MAPURL",mapurl,1,fd_string_type,VOID));
 
-  /* fd_defspecial(module,"CGIVAR",cgivar_evalfn); */
+  /* fd_def_evalfn(module,"CGIVAR","",cgivar_evalfn); */
 
   fd_idefn(module,fd_make_cprim1x
            ("URLDATA/PARSE",urldata_parse,1,fd_string_type,VOID));
   fd_defalias(module,"CGIPARSE","URLDATA/PARSE");
 
-  fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
-  fd_defspecial(xhtmlout_module,"TITLE!",title_evalfn);
-  fd_defspecial(xhtmlout_module,"JSOUT",jsout_evalfn);
-  fd_defspecial(xhtmlout_module,"CSSOUT",cssout_evalfn);
+  fd_def_evalfn(xhtmlout_module,"HTMLHEADER","",htmlheader);
+  fd_def_evalfn(xhtmlout_module,"TITLE!","",title_evalfn);
+  fd_def_evalfn(xhtmlout_module,"JSOUT","",jsout_evalfn);
+  fd_def_evalfn(xhtmlout_module,"CSSOUT","",cssout_evalfn);
   fd_idefn(xhtmlout_module,
            fd_make_cprim2x("STYLESHEET!",add_stylesheet,1,
                            fd_string_type,VOID,

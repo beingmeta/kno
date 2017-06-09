@@ -1702,9 +1702,9 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,VOID,-1,VOID,
                            -1,VOID));
 
-  fd_defspecial(fileio_module,"FILEOUT",simple_fileout_evalfn);
+  fd_def_evalfn(fileio_module,"FILEOUT","",simple_fileout_evalfn);
 
-  fd_defspecial(fileio_module,"SYSTEM",simple_system_evalfn);
+  fd_def_evalfn(fileio_module,"SYSTEM","",simple_system_evalfn);
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
@@ -1922,8 +1922,8 @@ FD_EXPORT void fd_init_fileio_c()
   noblock_symbol = fd_intern("NOBLOCK");
   nodelay_symbol = fd_intern("NODELAY");
 
-  fd_defspecial(fileio_module,"SNAPSHOT",snapshot_evalfn);
-  fd_defspecial(fileio_module,"SNAPBACK",snapback_evalfn);
+  fd_def_evalfn(fileio_module,"SNAPSHOT","",snapshot_evalfn);
+  fd_def_evalfn(fileio_module,"SNAPBACK","",snapback_evalfn);
 
   fd_register_config
     ("STACKDUMP","File to store stackdump information on errors",

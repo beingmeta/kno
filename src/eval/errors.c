@@ -482,15 +482,15 @@ FD_EXPORT void fd_init_errors_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_defspecial(fd_scheme_module,"ERROR",return_error_evalfn);
-  fd_defspecial(fd_scheme_module,"ERROR+",extend_error_evalfn);
-  fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"IRRITANT+",extend_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"NEWERR",return_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"NEWERR+",extend_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"ONERROR",onerror_evalfn);
-  fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_evalfn);
-  fd_defspecial(fd_scheme_module,"ERREIFY",erreify_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERROR","",return_error_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERROR+","",extend_error_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IRRITANT","",return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IRRITANT+","",extend_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NEWERR","",return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NEWERR+","",extend_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ONERROR","",onerror_evalfn);
+  fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS","",report_errors_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERREIFY","",erreify_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
@@ -517,8 +517,8 @@ FD_EXPORT void fd_init_errors_c()
            fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
                            fd_error_type,VOID));
 
-  fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_evalfn);
-  fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
+  fd_def_evalfn(fd_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim0("CLEAR-ERRORS!",clear_errors));

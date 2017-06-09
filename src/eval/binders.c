@@ -426,20 +426,20 @@ FD_EXPORT void fd_init_binders_c()
 
   u8_init_mutex(&sassign_lock);
 
-  fd_defspecial(fd_scheme_module,"SET!",assign_evalfn);
-  fd_defspecial(fd_scheme_module,"SET+!",assign_plus_evalfn);
-  fd_defspecial(fd_scheme_module,"SSET!",sassign_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SET!","",assign_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SET+!","",assign_plus_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SSET!","",sassign_evalfn);
 
-  fd_defspecial(fd_scheme_module,"LET",let_evalfn);
-  fd_defspecial(fd_scheme_module,"LET*",letstar_evalfn);
-  fd_defspecial(fd_scheme_module,"DEFINE-INIT",define_init_evalfn);
-  fd_defspecial(fd_scheme_module,"DEFINE-LOCAL",define_local_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LET","",let_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LET*","",letstar_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFINE-INIT","",define_init_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFINE-LOCAL","",define_local_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DO",do_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DO","",do_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DEFAULT!",assign_default_evalfn);
-  fd_defspecial(fd_scheme_module,"SETFALSE!",assign_false_evalfn);
-  fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAULT!","",assign_default_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SETFALSE!","",assign_false_evalfn);
+  fd_def_evalfn(fd_scheme_module,"BIND-DEFAULT!","",bind_default_evalfn);
 
 }
 

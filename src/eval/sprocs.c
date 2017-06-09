@@ -831,15 +831,15 @@ FD_EXPORT void fd_init_sprocs_c()
 
   fd_dtype_writers[fd_sproc_type] = dtype_sproc;
 
-  fd_defspecial(fd_scheme_module,"LAMBDA",lambda_evalfn);
-  fd_defspecial(fd_scheme_module,"AMBDA",ambda_evalfn);
-  fd_defspecial(fd_scheme_module,"NAMBDA",nambda_evalfn);
-  fd_defspecial(fd_scheme_module,"SLAMBDA",slambda_evalfn);
-  fd_defspecial(fd_scheme_module,"SAMBDA",sambda_evalfn);
-  fd_defspecial(fd_scheme_module,"THUNK",thunk_evalfn);
-  fd_defspecial(fd_scheme_module,"DEFINE",define_evalfn);
-  fd_defspecial(fd_scheme_module,"DEFSLAMBDA",defslambda_evalfn);
-  fd_defspecial(fd_scheme_module,"DEFAMBDA",defambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LAMBDA","",lambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"AMBDA","",ambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NAMBDA","",nambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SLAMBDA","",slambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SAMBDA","",sambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"THUNK","",thunk_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFINE","",define_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFSLAMBDA","",defslambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAMBDA","",defambda_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("XAPPLY",xapply_prim,2,fd_sproc_type,VOID,-1,VOID));

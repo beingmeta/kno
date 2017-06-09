@@ -645,7 +645,7 @@ FD_EXPORT void fd_init_loader_c()
            fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
                            -1,VOID,-1,FD_FALSE));
 
-  fd_defspecial(loader_module,"LOAD-LATEST",load_latest_evalfn);
+  fd_def_evalfn(loader_module,"LOAD-LATEST","",load_latest_evalfn);
 
   fd_add_module_loader(load_source_module,NULL);
   fd_register_sourcefn(file_source_fn,NULL);

@@ -2724,7 +2724,7 @@ void fd_init_texttools()
                            fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,VOID));
 
-  fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_evalfn);
+  fd_def_evalfn(texttools_module,"TEXTCLOSURE","",textclosure_evalfn);
   fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
 
   fd_idefn(texttools_module,

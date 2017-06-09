@@ -1606,7 +1606,7 @@ FD_EXPORT void fd_init_curl_c()
 
   curl_defaults = fd_empty_slotmap();
 
-  fd_defspecial(module,"URLPOSTOUT",urlpostdata_evalfn);
+  fd_def_evalfn(module,"URLPOSTOUT","",urlpostdata_evalfn);
 
   fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
   fd_idefn4(module,"URLSTREAM",urlstream,1,

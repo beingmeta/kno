@@ -347,7 +347,7 @@ FD_EXPORT void fd_init_quasiquote_c()
   unquote = fd_intern("UNQUOTE");
   unquotestar = fd_intern("UNQUOTE*");
 
-  fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_evalfn);
+  fd_def_evalfn(fd_scheme_module,"QUASIQUOTE","",quasiquote_evalfn);
 
   u8_register_source_file(_FILEINFO);
 }

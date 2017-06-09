@@ -135,6 +135,8 @@ void fd_init_stacks_c()
 {
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_stackptr_key,NULL);
-#endif
+  u8_tld_set(fd_stackptr_key,(void *)NULL);
+#else
   fd_stackptr=NULL;
+#endif
 }

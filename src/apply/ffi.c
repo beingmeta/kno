@@ -483,7 +483,7 @@ FD_EXPORT void fd_init_ffi_c()
 FD_EXPORT void fd_init_ffi_c()
 {
   fd_type_names[fd_ffi_type]="foreign-function";
-  fd_dtype_writer[fd_ffi_type]=dtype_ffi;
+  fd_dtype_writers[fd_ffi_type]=NULL;
 
   double_symbol = fd_intern("DOUBLE");
   float_symbol = fd_intern("FLOAT");

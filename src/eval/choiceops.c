@@ -1250,16 +1250,16 @@ FD_EXPORT void fd_init_choicefns_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_defspecial(fd_scheme_module,"DO-CHOICES",dochoices_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DO-CHOICES","",dochoices_evalfn);
   fd_defalias(fd_scheme_module,"DO∀","DO-CHOICES");
-  fd_defspecial(fd_scheme_module,"FOR-CHOICES",forchoices_evalfn);
+  fd_def_evalfn(fd_scheme_module,"FOR-CHOICES","",forchoices_evalfn);
   fd_defalias(fd_scheme_module,"FOR∀","FOR-CHOICES");
-  fd_defspecial(fd_scheme_module,"TRY-CHOICES",trychoices_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TRY-CHOICES","",trychoices_evalfn);
   fd_defalias(fd_scheme_module,"TRY∀","TRY-CHOICES");
-  fd_defspecial(fd_scheme_module,"FILTER-CHOICES",filterchoices_evalfn);
+  fd_def_evalfn(fd_scheme_module,"FILTER-CHOICES","",filterchoices_evalfn);
   fd_defalias(fd_scheme_module,"?∀","FILTER-CHOICES");
 
-  fd_defspecial(fd_scheme_module,"DO-SUBSETS",dosubsets_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DO-SUBSETS","",dosubsets_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("CHOICE",choice_prim,0)));
@@ -1293,7 +1293,7 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("LARGEST",largest_evalfn,1)));
 
-  fd_defspecial(fd_scheme_module,"TRY",try_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TRY","",try_evalfn);
 
   {
     lispval empty_prim=
@@ -1303,7 +1303,7 @@ FD_EXPORT void fd_init_choicefns_c()
     fd_store(fd_scheme_module,fd_intern("∄"),empty_prim);
   }
 
-  fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IFEXISTS","",ifexists_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("SATISFIED?",satisfiedp,1)));
@@ -1325,7 +1325,7 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
   fd_defalias(fd_scheme_module,"∀","FORALL");
 
-  fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WHENEXISTS","",whenexists_evalfn);
 
   {
     lispval unique_prim=
@@ -1334,7 +1334,7 @@ FD_EXPORT void fd_init_choicefns_c()
     fd_store(fd_scheme_module,fd_intern("SINGLETON?"),unique_prim);
     fd_store(fd_scheme_module,fd_intern("SOLE?"),unique_prim);}
 
-  fd_defspecial(fd_scheme_module,"QCHOICE?",qchoicep_evalfn);
+  fd_def_evalfn(fd_scheme_module,"QCHOICE?","",qchoicep_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim1("AMB?",ambiguousp,1)));
   fd_defalias(fd_scheme_module,"AMBIGUOUS?","AMB?");

@@ -571,7 +571,7 @@ FD_EXPORT void fd_init_htmlout_c()
   fd_idefn(xhtml_module,debug2html);
   fd_idefn(xhtml_module,backtrace2html);
 
-  fd_defspecial(xhtml_module,"TABLE->HTML",table2html_evalfn);
+  fd_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
   fd_idefn(xhtml_module,fd_make_cprim2("OBJ->HTML",obj2html_prim,1));
 
   fd_decref(debug2html);

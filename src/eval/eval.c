@@ -1161,6 +1161,20 @@ FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn)
   fd_decref(LISP_CONS(f));
 }
 
+FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
+                             u8_string filename,u8_string doc,
+                             fd_eval_handler fn)
+{
+  struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
+  FD_INIT_CONS(f,fd_evalfn_type);
+  f->evalfn_name = u8_strdup(name); 
+  f->evalfn_handler = fn; 
+  f->evalfn_filename = filename;
+  f->evalfn_documentation = doc;
+  fd_store(mod,fd_intern(name),LISP_CONS(f));
+  fd_decref(LISP_CONS(f));
+}
+
 /* The Evaluator */
 
 static lispval eval_evalfn(lispval x,fd_lexenv env,fd_stack stack)
@@ -1380,7 +1394,17 @@ static int unparse_evalfn(u8_output out,lispval x)
 {
   struct FD_EVALFN *s=
     fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
-  u8_printf(out,"#<EvalFN %s>",s->evalfn_name);
+  if (s->evalfn_filename) {
+    u8_string filename = s->evalfn_filename;
+    size_t len = strlen(filename), short_len;
+    u8_string space_break=strchr(filename,' ');
+    u8_byte buf[len+1];
+    if (space_break) {
+      strcpy(buf,filename);
+      buf[space_break-filename]='\0';
+      filename=buf;}
+    u8_printf(out,"#<EvalFN %s '%s'>",s->evalfn_name,filename);}
+  else u8_printf(out,"#<EvalFN %s>",s->evalfn_name);
   return 1;
 }
 
@@ -2093,12 +2117,12 @@ static void init_scheme_module()
 
 static void init_localfns()
 {
-  fd_defspecial(fd_scheme_module,"EVAL",eval_evalfn);
-  fd_defspecial(fd_scheme_module,"BOUND?",boundp_evalfn);
-  fd_defspecial(fd_scheme_module,"VOID?",voidp_evalfn);
-  fd_defspecial(fd_scheme_module,"QUOTE",quote_evalfn);
-  fd_defspecial(fd_scheme_module,"%ENV",env_evalfn);
-  fd_defspecial(fd_scheme_module,"%MODREF",modref_evalfn);
+  fd_def_evalfn(fd_scheme_module,"EVAL","",eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"BOUND?","",boundp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"VOID?","",voidp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"QUOTE","",quote_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%ENV","",env_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%MODREF","",modref_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("DOCUMENTATION",get_documentation,1));
@@ -2130,13 +2154,13 @@ static void init_localfns()
            fd_make_ndprim(fd_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
 
 
-  fd_defspecial(fd_scheme_module,"WITHENV",withenv_safe_evalfn);
-  fd_defspecial(fd_xscheme_module,"WITHENV",withenv_evalfn);
-  fd_defspecial(fd_xscheme_module,"WITHENV/SAFE",withenv_safe_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WITHENV","",withenv_safe_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"WITHENV","",withenv_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"WITHENV/SAFE","",withenv_safe_evalfn);
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
-  fd_defspecial(fd_scheme_module,"GETOPT",getopt_evalfn);
+  fd_def_evalfn(fd_scheme_module,"GETOPT","",getopt_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("%GETOPT",getopt_prim,2,
                                           -1,VOID,fd_symbol_type,VOID,
@@ -2164,10 +2188,10 @@ static void init_localfns()
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
 
   /* This pushes a new threadcache */
-  fd_defspecial(fd_scheme_module,"WITH-THREADCACHE",with_threadcache_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WITH-THREADCACHE","",with_threadcache_evalfn);
   /* This ensures that there's an active threadcache, pushing a new one if
      needed or using the current one if it exists. */
-  fd_defspecial(fd_scheme_module,"USING-THREADCACHE",using_threadcache_evalfn);
+  fd_def_evalfn(fd_scheme_module,"USING-THREADCACHE","",using_threadcache_evalfn);
   /* This sets up the current thread to use a threadcache */
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("USE-THREADCACHE",use_threadcache_prim,0));
@@ -2180,36 +2204,36 @@ static void init_localfns()
            fd_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
   fd_defalias(fd_scheme_module,"CACHEPOINT","TCACHECALL");
 
-  fd_defspecial(fd_scheme_module,"TIMEVAL",timed_eval_evalfn);
-  fd_defspecial(fd_scheme_module,"%TIMEVAL",timed_evalx_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TIMEVAL","",timed_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%WATCHPTR",watchptr_prim,1)));
-  fd_defspecial(fd_scheme_module,"%WATCH",watched_eval_evalfn);
-  fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval_evalfn);
-  fd_defspecial(fd_scheme_module,"%WATCHCALL",watchcall_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCH","",watched_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"PROFILE","",profiled_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCHCALL","",watchcall_evalfn);
   fd_defalias(fd_scheme_module,"%WC","%WATCHCALL");
-  fd_defspecial(fd_scheme_module,"%WATCHCALL+",watchcall_plus_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCHCALL+","",watchcall_plus_evalfn);
   fd_defalias(fd_scheme_module,"%WC+","%WATCHCALL+");
-  fd_defspecial(fd_scheme_module,"EVAL1",eval1);
-  fd_defspecial(fd_scheme_module,"EVAL2",eval2);
-  fd_defspecial(fd_scheme_module,"EVAL3",eval3);
-  fd_defspecial(fd_scheme_module,"EVAL4",eval4);
-  fd_defspecial(fd_scheme_module,"EVAL5",eval5);
-  fd_defspecial(fd_scheme_module,"EVAL6",eval6);
-  fd_defspecial(fd_scheme_module,"EVAL7",eval7);
+  fd_def_evalfn(fd_scheme_module,"EVAL1","",eval1);
+  fd_def_evalfn(fd_scheme_module,"EVAL2","",eval2);
+  fd_def_evalfn(fd_scheme_module,"EVAL3","",eval3);
+  fd_def_evalfn(fd_scheme_module,"EVAL4","",eval4);
+  fd_def_evalfn(fd_scheme_module,"EVAL5","",eval5);
+  fd_def_evalfn(fd_scheme_module,"EVAL6","",eval6);
+  fd_def_evalfn(fd_scheme_module,"EVAL7","",eval7);
 
 #if USING_GOOGLE_PROFILER
-  fd_defspecial(fd_scheme_module,"GOOGLE/PROFILE",gprofile_evalfn);
+  fd_def_evalfn(fd_scheme_module,"GOOGLE/PROFILE","",gprofile_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop));
 #endif
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
-  fd_defspecial(fd_scheme_module,"EVALTEST",evaltest_evalfn);
+  fd_def_evalfn(fd_scheme_module,"EVALTEST","",evaltest_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DBG",dbg_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DBG","",dbg_evalfn);
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
-  fd_defspecial(fd_scheme_module,"DEFAULT",default_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAULT","",default_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("REQUIRE-VERSION",require_version_prim,1));

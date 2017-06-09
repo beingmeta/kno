@@ -3089,7 +3089,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar_prim,1)));
 
-  fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_evalfn);
+  fd_def_evalfn(fd_scheme_module,"CACHEGET","",cacheget_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim2("GET*",getstar,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));

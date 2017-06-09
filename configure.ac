@@ -401,13 +401,14 @@ AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,wit
 CODENAME=$with_codename
 
 AC_CANONICAL_HOST
-AC_PROG_CC([cc gcc])
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 
 if test "${GCC}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   gcc_version=`gcc -dumpversion`;
+   dynamic_cflag="-rdynamic";
 fi;
 
 m4_include([etc/ax_pthread.m4])
@@ -772,11 +773,6 @@ if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
   MEMTESTER="./vgmemtest "
   LEAKTESTER="./vgleaktest "
 fi
-
-if test "${GCC}" = "yes"; then
-   gcc_version=`gcc -dumpversion`;
-   dynamic_cflag="-rdynamic";
-fi;
 
 AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
 

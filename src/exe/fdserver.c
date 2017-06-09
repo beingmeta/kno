@@ -1229,17 +1229,17 @@ static fd_lexenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lexenv core_env = fd_safe_working_lexenv();
+  lispval core_module = (lispval) core_env;
   fd_init_dbserv();
   fd_register_module("DBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
 
   /* We add some special functions */
-  fd_defspecial((lispval)core_env,"BOUND?",boundp_evalfn);
-  fd_idefn((lispval)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
-  fd_idefn((lispval)core_env,fd_make_cprim0("UPTIME",get_uptime));
-  fd_idefn((lispval)core_env,fd_make_cprim0("ASYNCOK?",asyncok));
-  fd_idefn((lispval)core_env,
-           fd_make_cprim0("SERVER-STATUS",get_server_status));
+  fd_def_evalfn(core_module,"BOUND?","",boundp_evalfn);
+  fd_idefn(core_module,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn(core_module,fd_make_cprim0("UPTIME",get_uptime));
+  fd_idefn(core_module,fd_make_cprim0("ASYNCOK?",asyncok));
+  fd_idefn(core_module,fd_make_cprim0("SERVER-STATUS",get_server_status));
 
   return core_env;
 }

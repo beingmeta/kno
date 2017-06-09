@@ -1161,7 +1161,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(safe_fdweb_module,fd_intern("BLOCKMARKUPFN"),markupblock_prim);
   fd_store(safe_fdweb_module,fd_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
   fd_store(safe_fdweb_module,fd_intern("EMPTYMARKUPFN"),emptymarkup_prim);
-  fd_defspecial(safe_fdweb_module,"SOAPENVELOPE",soapenvelope_evalfn);
+  fd_def_evalfn(safe_fdweb_module,"SOAPENVELOPE","",soapenvelope_evalfn);
   fd_defn(safe_fdweb_module,fd_make_cprim3("XML->STRING",xml2string_prim,1));
 
   fd_store(fdweb_module,fd_intern("XMLOUT"),xmlout_prim);
@@ -1175,14 +1175,14 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(fdweb_module,fd_intern("BLOCKMARKUPFN"),markupblock_prim);
   fd_store(fdweb_module,fd_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
   fd_store(fdweb_module,fd_intern("EMPTYMARKUPFN"),emptymarkup_prim);
-  fd_defspecial(fdweb_module,"SOAPENVELOPE",soapenvelope_evalfn);
+  fd_def_evalfn(fdweb_module,"SOAPENVELOPE","",soapenvelope_evalfn);
   fd_defn(fdweb_module,fd_make_cprim3("XML->STRING",xml2string_prim,1));
 
-  fd_defspecial(xhtml_module,"ANCHOR",doanchor_evalfn);
-  fd_defspecial(xhtml_module,"ANCHOR*",doanchor_star_evalfn);
+  fd_def_evalfn(xhtml_module,"ANCHOR","",doanchor_evalfn);
+  fd_def_evalfn(xhtml_module,"ANCHOR*","",doanchor_star_evalfn);
   fd_idefn(xhtml_module,fd_make_cprim1("%XMLOID",xmloid,1));
 
-  fd_defspecial(xhtml_module,"XHTML",raw_xhtml_evalfn);
+  fd_def_evalfn(xhtml_module,"XHTML","",raw_xhtml_evalfn);
   fd_idefn(xhtml_module,fd_make_cprim0("NBSP",nbsp_prim));
 
   fd_store(xhtml_module,fd_intern("DIV"),markupstarblock_prim);
@@ -1228,12 +1228,12 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(xhtml_module,fd_intern("BR"),emptymarkup_prim);
   fd_store(xhtml_module,fd_intern("HR"),emptymarkup_prim);
 
-  fd_defspecial(fdweb_module,"XMLEVAL",xmleval_evalfn);
-  fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_evalfn);
-  fd_defspecial(fdweb_module,"XMLOPEN",xmlopen_evalfn);
-  fd_defspecial(safe_fdweb_module,"XMLOPEN",xmlopen_evalfn);
-  fd_defspecial(fdweb_module,"XMLSTART",xmlstart_evalfn);
-  fd_defspecial(safe_fdweb_module,"XMLSTART",xmlstart_evalfn);
+  fd_def_evalfn(fdweb_module,"XMLEVAL","",xmleval_evalfn);
+  fd_def_evalfn(safe_fdweb_module,"XMLEVAL","",xmleval_evalfn);
+  fd_def_evalfn(fdweb_module,"XMLOPEN","",xmlopen_evalfn);
+  fd_def_evalfn(safe_fdweb_module,"XMLOPEN","",xmlopen_evalfn);
+  fd_def_evalfn(fdweb_module,"XMLSTART","",xmlstart_evalfn);
+  fd_def_evalfn(safe_fdweb_module,"XMLSTART","",xmlstart_evalfn);
   {
     lispval xmlcloseprim=
       fd_make_cprim1("XMLCLOSE",xmlclose_prim,1);
@@ -1245,8 +1245,8 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_idefn(safe_fdweb_module,xmlendprim);}
 
   /* Not strictly XML of course, but a neighbor */
-  fd_defspecial(xhtml_module,"JAVASCRIPT",javascript_evalfn);
-  fd_defspecial(xhtml_module,"JAVASTMT",javastmt_evalfn);
+  fd_def_evalfn(xhtml_module,"JAVASCRIPT","",javascript_evalfn);
+  fd_def_evalfn(xhtml_module,"JAVASTMT","",javastmt_evalfn);
 
   fd_decref(markup_prim); fd_decref(markupstar_prim);
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);

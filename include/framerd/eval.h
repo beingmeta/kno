@@ -62,6 +62,17 @@ typedef struct FD_EVALFN *fd_evalfn;
 
 FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
 FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
+FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
+			     u8_string filename,
+			     u8_string doc,
+			     fd_eval_handler fn);
+FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
+			     u8_string filename,
+			     u8_string doc,
+			     fd_eval_handler fn);
+
+#define fd_def_evalfn(mod,name,doc,evalfn) \
+  fd_new_evalfn(mod,name,_FILEINFO,doc,evalfn)
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
@@ -102,10 +113,6 @@ FD_EXPORT int fd_module_finished(lispval module,int flags);
 FD_EXPORT int fd_finish_module(lispval module);
 FD_EXPORT int fd_static_module(lispval module);
 FD_EXPORT int fd_lock_exports(lispval module);
-
-
-FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
-FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
 
 FD_EXPORT lispval fd_find_module(lispval,int,int);
 FD_EXPORT lispval fd_new_module(char *name,int flags);

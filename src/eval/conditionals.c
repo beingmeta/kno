@@ -214,15 +214,15 @@ FD_EXPORT void fd_init_conditionals_c()
   apply_marker = fd_intern("=>");
   else_symbol = fd_intern("ELSE");
 
-  fd_defspecial(fd_scheme_module,"IF",if_evalfn);
-  fd_defspecial(fd_scheme_module,"IFELSE",ifelse_evalfn);
-  fd_defspecial(fd_scheme_module,"TRYIF",tryif_evalfn);
-  fd_defspecial(fd_scheme_module,"COND",cond_evalfn);
-  fd_defspecial(fd_scheme_module,"CASE",case_evalfn);
-  fd_defspecial(fd_scheme_module,"WHEN",when_evalfn);
-  fd_defspecial(fd_scheme_module,"UNLESS",unless_evalfn);
-  fd_defspecial(fd_scheme_module,"AND",and_evalfn);
-  fd_defspecial(fd_scheme_module,"OR",or_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IF","",if_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IFELSE","",ifelse_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TRYIF","",tryif_evalfn);
+  fd_def_evalfn(fd_scheme_module,"COND","",cond_evalfn);
+  fd_def_evalfn(fd_scheme_module,"CASE","",case_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WHEN","",when_evalfn);
+  fd_def_evalfn(fd_scheme_module,"UNLESS","",unless_evalfn);
+  fd_def_evalfn(fd_scheme_module,"AND","",and_evalfn);
+  fd_def_evalfn(fd_scheme_module,"OR","",or_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprim1("NOT",not_prim,1));
 }
 

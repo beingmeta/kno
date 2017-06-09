@@ -556,7 +556,7 @@ static lispval jsonoutput(lispval x,lispval flags_arg,
                          lispval slotfn,lispval oidfn,lispval miscfn)
 {
   u8_output out = u8_current_output;
-  unsigned int flags = get_json_flags(flags_arg);
+  int flags = get_json_flags(flags_arg);
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);
