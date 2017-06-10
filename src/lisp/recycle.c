@@ -23,10 +23,10 @@ static void recycle_string(struct FD_STRING *s)
 
 static void recycle_vector(struct FD_VECTOR *v)
 {
-  int len = v->fdvec_length; lispval *scan = v->fdvec_elts, *limit = scan+len;
+  int len = v->vec_length; lispval *scan = v->vec_elts, *limit = scan+len;
   if (scan) {
     while (scan<limit) {fd_decref(*scan); scan++;}
-    if (v->fdvec_free_elts) u8_free(v->fdvec_elts);}
+    if (v->vec_free_elts) u8_free(v->vec_elts);}
   if (!(FD_STATIC_CONSP(v))) u8_free(v);
 }
 

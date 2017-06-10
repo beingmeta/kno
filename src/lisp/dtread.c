@@ -234,9 +234,9 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
         else if ((VECTORP(cdr)) &&
                  (VEC_LEN(cdr)<32767)) {
           struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
-          short n_elts = (short)(vec->fdvec_length);
+          short n_elts = (short)(vec->vec_length);
           lispval result=
-            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->fdvec_elts);
+            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->vec_elts);
           /* Note that the incref'd values are now stored in the compound,
              so we don't decref them ourselves. */
           u8_free(vec);

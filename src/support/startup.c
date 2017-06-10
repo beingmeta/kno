@@ -164,7 +164,7 @@ static void set_vector_length(lispval vector,int len)
   if (VECTORP(vector)) {
     struct FD_VECTOR *vec = (struct FD_VECTOR *) vector;
     if (len>=0) {
-      vec->fdvec_length = len;
+      vec->vec_length = len;
       return;}}
   u8_log(LOGCRIT,"Internal/CmdArgInitVec","Not a vector! %q",
          vector);

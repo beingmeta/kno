@@ -1318,7 +1318,7 @@ static unsigned int hash_lisp(lispval x)
     case fd_vector_type: {
       struct FD_VECTOR *v=
         fd_consptr(struct FD_VECTOR *,x,fd_vector_type);
-      return hash_elts(v->fdvec_elts,v->fdvec_length);}
+      return hash_elts(v->vec_elts,v->vec_length);}
     case fd_compound_type: {
       struct FD_COMPOUND *c=
         fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);

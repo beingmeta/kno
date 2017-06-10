@@ -287,11 +287,11 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
         return len;}
       case fd_vector_type: {
         struct FD_VECTOR *v = (struct FD_VECTOR *) cons;
-        int i = 0, length = v->fdvec_length, dtype_len = 5;
+        int i = 0, length = v->vec_length, dtype_len = 5;
         fd_output_byte(out,dt_vector);
         fd_output_4bytes(out,length);
         while (i < length) {
-          fd_output_dtype(dtype_len,out,v->fdvec_elts[i]); i++;}
+          fd_output_dtype(dtype_len,out,v->vec_elts[i]); i++;}
         return dtype_len;}
       case fd_choice_type:
         return write_choice_dtype(out,(fd_choice)cons);

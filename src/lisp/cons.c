@@ -456,9 +456,9 @@ FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
       freedata = 1;}
   else elts = data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length = len;
-  ptr->fdvec_elts = elts;
-  ptr->fdvec_free_elts = freedata;
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
+  ptr->vec_free_elts = freedata;
   return LISP_CONS(ptr);
 }
 
@@ -481,9 +481,9 @@ FD_EXPORT lispval fd_make_vector(int len,lispval *data)
     u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
   lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length = len;
-  ptr->fdvec_elts = elts;
-  ptr->fdvec_free_elts = 0;
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
+  ptr->vec_free_elts = 0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
   else {while (i < len) {elts[i]=VOID; i++;}}
@@ -511,9 +511,9 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
     elts = data;}
   FD_INIT_CONS(ptr,fd_code_type);
   if (data == NULL) while (i < len) elts[i++]=VOID;
-  ptr->fdvec_length = len; 
-  ptr->fdvec_elts = elts; 
-  ptr->fdvec_free_elts = freedata;
+  ptr->vec_length = len; 
+  ptr->vec_elts = elts; 
+  ptr->vec_free_elts = freedata;
   return LISP_CONS(ptr);
 }
 
@@ -535,9 +535,9 @@ FD_EXPORT lispval fd_make_code(int len,lispval *data)
     (sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
   lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_code_type);
-  ptr->fdvec_length = len;
-  ptr->fdvec_elts = elts;
-  ptr->fdvec_free_elts = 0;
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
+  ptr->vec_free_elts = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return LISP_CONS(ptr);
 }

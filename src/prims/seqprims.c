@@ -1591,8 +1591,8 @@ static lispval vector_set(lispval vec,lispval index,lispval val)
 {
   struct FD_VECTOR *v = fd_consptr(struct FD_VECTOR *,vec,fd_vector_type);
   if (!(FD_UINTP(index))) return fd_type_error("uint","vector_set",index);
-  int offset = FIX2INT(index); lispval *elts = v->fdvec_elts;
-  if (offset>v->fdvec_length) {
+  int offset = FIX2INT(index); lispval *elts = v->vec_elts;
+  if (offset>v->vec_length) {
     char buf[32];
     return fd_err(fd_RangeError,"vector_set",
                   u8_uitoa10(offset,buf),

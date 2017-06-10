@@ -969,7 +969,7 @@ FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env)
     return val;}
   else if (FD_CODEP(exprs)) {
     struct FD_VECTOR *v = fd_consptr(fd_vector,exprs,fd_code_type);
-    int len = v->fdvec_length; lispval *elts = v->fdvec_elts, val = VOID;
+    int len = v->vec_length; lispval *elts = v->vec_elts, val = VOID;
     int i = 0; while (i<len) {
       lispval expr = elts[i++];
       fd_decref(val); val = VOID;

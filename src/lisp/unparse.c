@@ -254,13 +254,13 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
 static int unparse_vector(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
-  int i = 0, len = v->fdvec_length;
+  int i = 0, len = v->vec_length;
   u8_puts(out,"#(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
       u8_puts(out," "); output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
-    if (i>0) u8_puts(out," "); fd_unparse(out,v->fdvec_elts[i]);
+    if (i>0) u8_puts(out," "); fd_unparse(out,v->vec_elts[i]);
     i++;}
   return u8_puts(out,")");
 }
@@ -268,7 +268,7 @@ static int unparse_vector(U8_OUTPUT *out,lispval x)
 static int unparse_code(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
-  int i = 0, len = v->fdvec_length; lispval *data = v->fdvec_elts;
+  int i = 0, len = v->vec_length; lispval *data = v->vec_elts;
   u8_puts(out,"#~(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {

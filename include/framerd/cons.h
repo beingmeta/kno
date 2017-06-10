@@ -542,22 +542,22 @@ FD_EXPORT int fd_list_length(lispval l);
 
 typedef struct FD_VECTOR {
   FD_CONS_HEADER;
-  unsigned int fdvec_free_elts:1;
-  unsigned int fdvec_length:31;
-  lispval *fdvec_elts;} FD_VECTOR;
+  unsigned int vec_free_elts:1;
+  unsigned int vec_length:31;
+  lispval *vec_elts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
 
 #define FD_VECTORP(x) (FD_TYPEP((x),fd_vector_type))
 #define FD_VECTOR_LENGTH(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_length)
 #define FD_VECTOR_DATA(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_VECTOR_ELTS(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_VECTOR_REF(x,i) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i])
 #define FD_VECTOR_SET(x,i,v) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i]=(v))
 
 FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data);
 FD_EXPORT lispval fd_make_vector(int len,lispval *elts);
@@ -569,15 +569,15 @@ FD_EXPORT lispval fd_make_nvector(int len,...);
 
 #define FD_CODEP(x) (FD_TYPEP((x),fd_code_type))
 #define FD_CODE_LENGTH(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_length)
 #define FD_CODE_DATA(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_CODE_ELTS(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_CODE_REF(x,i) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i])
 #define FD_CODE_SET(x,i,v) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i]=(v))
 
 FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data);
 FD_EXPORT lispval fd_make_code(int len,lispval *elts);
