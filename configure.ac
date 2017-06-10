@@ -148,6 +148,7 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+CLANG=no
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 MONGODB_CFLAGS=
@@ -404,8 +405,11 @@ AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
+AC_CHECK_DECL(__clang__,CLANG=yes)
 
-if test "${GCC}" = "yes"; then
+if test "${CLANG}" = "yes"; then
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+elif test "${GCC}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
    gcc_version=`gcc -dumpversion`;
    dynamic_cflag="-rdynamic";
