@@ -45,7 +45,7 @@ CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	  	  	../../lib/libfddbserv@suffix@.a  \
 	 		../../lib/libfddrivers@suffix@.a \
 			../../lib/libfdstorage@suffix@.a     \
-			../../lib/libfdbase@suffix@.a
+			../../lib/libfdcore@suffix@.a
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a
 
@@ -98,8 +98,8 @@ TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdbase@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ \
-		-lfdscheme@suffix@ -lfdschemeio@suffix@
+		-lfdcore@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ \
+		-lfdscheme@suffix@
 
 %: %.c $(EXTRA_LIBS) $(CORE_LIBS)
 	@echo MKTEST_STATIC $@
@@ -166,12 +166,10 @@ testclean:
 
 ../../lib/libfdweb@suffix@.a:
 	cd ../..; make lib/libfdweb@suffix@.a
-../../lib/libfdschemeio@suffix@.a:
-	cd ../..; make lib/libfdschemeio@suffix@.a
 ../../lib/libfdscheme@suffix@.a:
 	cd ../..; make lib/libfdscheme@suffix@.a
-../../lib/libfdbase@suffix@.a:
-	cd ../..; make lib/libfdbase@suffix@.a
+../../lib/libfdcore@suffix@.a:
+	cd ../..; make lib/libfdcore@suffix@.a
 ../../lib/libfdstorage@suffix@.a:
 	cd ../..; make lib/libfdstorage@suffix@.a
 ../../lib/libfddrivers@suffix@.a:
@@ -185,7 +183,7 @@ testclean:
 
 $(TESTBIN): $(EXTRA_LIBS) \
             ../../lib/libfdscheme@suffix@.a \
-	    ../../lib/libfdstorage@suffix@.a ../../lib/libfdbase@suffix@.a
+	    ../../lib/libfdstorage@suffix@.a ../../lib/libfdcore@suffix@.a
 
 fdservlet: ../../src/exe/webcommon.h
 fdcgiexec: ../../src/exe/webcommon.h

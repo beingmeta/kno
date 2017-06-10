@@ -417,19 +417,19 @@ CMODULE_SOURCES=\
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
-STATIC_LIBS=lib/libfdbase@suffix@.a lib/libfdstorage@suffix@.a      \
+STATIC_LIBS=lib/libfdcore@suffix@.a lib/libfdstorage@suffix@.a      \
         lib/libfddbserv@suffix@.a lib/libfddrivers@suffix@.a  \
 	lib/libfdscheme@suffix@.a \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
-SHARED_LIBS=lib/libfdbase@suffix@.@shared_suffix@  		\
+SHARED_LIBS=lib/libfdcore@suffix@.@shared_suffix@  		\
 	lib/libfdstorage@suffix@.@shared_suffix@        		\
         lib/libfddrivers@suffix@.@shared_suffix@    		\
 	lib/libfddbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
-	lib/libfdbase@suffix@.@mshared_suffix@  		\
+	lib/libfdcore@suffix@.@mshared_suffix@  		\
 	lib/libfdstorage@suffix@.@mshared_suffix@        		\
         lib/libfddrivers@suffix@.@mshared_suffix@    		\
 	lib/libfddbserv@suffix@.@mshared_suffix@     		\
@@ -448,7 +448,7 @@ SCHEME_MODULES=src/scheme/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
-MODULE_SO=lib/libfdbase@suffix@.so lib/libfdstorage@suffix@.so \
+MODULE_SO=lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
 
 ALL=testbin exe cmodules @TAGS@
@@ -591,7 +591,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-lfddbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdbase@suffix@ \
+		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdcore@suffix@ \
 	        -lu8stdio $(LIBS) $(EXECLIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -726,7 +726,7 @@ cmodules: @CMODULES@
 
 # Uninstall
 
-LIBBASE=libfdbase libfdstorage libfddrivers libfddbserv \
+LIBBASE=libfdcore libfdstorage libfddrivers libfddbserv \
 	libfdscheme libfdweb libtexttools
 
 uninstall-core:
@@ -882,43 +882,43 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
-lib/libfdbase@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libfdbase@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
-lib/libfdbase@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdcore@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdcore@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdcore@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
 
 lib/libfdstorage@suffix@.a: $(STORAGE_OBJS)
-lib/libfdstorage@suffix@.so: $(STORAGE_OBJS) lib/libfdbase@suffix@.so
-lib/libfdstorage@suffix@.dylib: $(STORAGE_OBJS) lib/libfdbase@suffix@.dylib
+lib/libfdstorage@suffix@.so: $(STORAGE_OBJS) lib/libfdcore@suffix@.so
+lib/libfdstorage@suffix@.dylib: $(STORAGE_OBJS) lib/libfdcore@suffix@.dylib
 
 lib/libfddrivers@suffix@.a: $(DRIVER_OBJS)
 lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
-	lib/libfdbase@suffix@.so lib/libfdstorage@suffix@.so
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so
 lib/libfddrivers@suffix@.dylib: $(DRIVER_OBJS) \
-	lib/libfdstorage@suffix@.dylib lib/libfdbase@suffix@.dylib
+	lib/libfdstorage@suffix@.dylib lib/libfdcore@suffix@.dylib
 
 lib/libfddbserv@suffix@.a: $(DBSERV_OBJS)
 lib/libfddbserv@suffix@.so: $(DBSERV_OBJS) \
-	lib/libfdbase@suffix@.so lib/libfdstorage@suffix@.so \
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so
 lib/libfddbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
 	lib/libfdscheme@suffix@.dylib         	\
 	lib/libfddrivers@suffix@.dylib		\
 	lib/libfdstorage@suffix@.dylib		\
-	lib/libfdbase@suffix@.dylib
+	lib/libfdcore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
-	lib/libfdbase@suffix@.so lib/libfdstorage@suffix@.so	\
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so	\
 	lib/libfddrivers@suffix@.so
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libfdbase@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
+	lib/libfdcore@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
         lib/libfddrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(WEB_OBJS)
 lib/libfdweb@suffix@.so: $(WEB_OBJS) \
-	lib/libfdbase@suffix@.so \
+	lib/libfdcore@suffix@.so \
 	lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so \
 	lib/libfdscheme@suffix@.so
@@ -926,7 +926,7 @@ lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
 	lib/libfddrivers@suffix@.dylib     \
 	lib/libfdstorage@suffix@.dylib         \
-        lib/libfdbase@suffix@.dylib
+        lib/libfdcore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -935,13 +935,13 @@ lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
 
 lib/libtexttools@suffix@.a: $(TEXT_OBJS)
 lib/libtexttools@suffix@.so: $(TEXT_OBJS) \
-	lib/libfdbase@suffix@.so lib/libfdstorage@suffix@.so \
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
 lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfddrivers@suffix@.dylib \
 	lib/libfdstorage@suffix@.dylib \
-	lib/libfdbase@suffix@.dylib
+	lib/libfdcore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1259,7 +1259,7 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@confi
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static: static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libfdbase@suffix@.a        \
+	make $(LIBINSTALLDIR)/libfdcore@suffix@.a        \
 		$(LIBINSTALLDIR)/libfdstorage@suffix@.a       \
 		$(LIBINSTALLDIR)/libfddrivers@suffix@.a   \
 		$(LIBINSTALLDIR)/libfddbserv@suffix@.a    \
@@ -1267,10 +1267,10 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libfdbase@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdbase@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdbase@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdbase@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@shared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@mshared_suffix@			\
