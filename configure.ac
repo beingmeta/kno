@@ -1418,17 +1418,6 @@ else
   AC_DEFINE(FD_FILECONFIG_ENABLED,0)
 fi
 
-dnl This makes all executables have stdio-based schemeio builtin.  Disabling
-dnl  this might make sense for handheld and some embedded contexts,  but
-dnl  you'll probably need to replace some things
-AC_ARG_ENABLE(schemeio,--en[dis]able-schemeio compiled-in schemeio,,enable_schemeio="yes")
-if test $enable_schemeio = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
-  xstatic_exe_libs="lib/libfdschemeio${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
-fi
-
 dnl This integrates the fdweb module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
 AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")

@@ -1,5 +1,5 @@
-usr/lib/libfdtype.a
-usr/lib/libfdtype.so
+usr/lib/libfdcore.a
+usr/lib/libfdcore.so
 usr/lib/libfdstorage.a
 usr/lib/libfdstorage.so
 usr/lib/libfddrivers.a
@@ -7,8 +7,6 @@ usr/lib/libfddrivers.so
 usr/lib/libfddbserv.a
 usr/lib/libfdscheme.a
 usr/lib/libfdscheme.so
-usr/lib/libfdschemeio.a
-usr/lib/libfdschemeio.so
 usr/lib/libfdweb.a
 usr/lib/libtexttools.a
 usr/include/framerd/*.h

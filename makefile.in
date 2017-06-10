@@ -195,9 +195,7 @@ SCHEME_OBJS=\
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
 	@ipevalprimso@ \
-	src/prims/extdbprims.o
-
-SCHEMEIO_OBJS=\
+	src/prims/extdbprims.o\
 	src/prims/fileprims.o\
 	src/prims/driverprims.o\
 	src/eval/loader.o
@@ -421,7 +419,7 @@ CMODULE_SOURCES=\
 
 STATIC_LIBS=lib/libfdbase@suffix@.a lib/libfdstorage@suffix@.a      \
         lib/libfddbserv@suffix@.a lib/libfddrivers@suffix@.a  \
-	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
+	lib/libfdscheme@suffix@.a \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdbase@suffix@.@shared_suffix@  		\
@@ -429,7 +427,6 @@ SHARED_LIBS=lib/libfdbase@suffix@.@shared_suffix@  		\
         lib/libfddrivers@suffix@.@shared_suffix@    		\
 	lib/libfddbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
-	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
 	lib/libfdbase@suffix@.@mshared_suffix@  		\
@@ -437,7 +434,6 @@ SHARED_LIBS=lib/libfdbase@suffix@.@shared_suffix@  		\
         lib/libfddrivers@suffix@.@mshared_suffix@    		\
 	lib/libfddbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
-	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
 	lib/libtexttools@suffix@.@mshared_suffix@
 
@@ -731,7 +727,7 @@ cmodules: @CMODULES@
 # Uninstall
 
 LIBBASE=libfdbase libfdstorage libfddrivers libfddbserv \
-	libfdscheme libfdschemeio libfdweb libtexttools
+	libfdscheme libfdweb libtexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
@@ -920,23 +916,12 @@ lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
 	lib/libfdbase@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
         lib/libfddrivers@suffix@.dylib
 
-lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
-lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
-	lib/libfdbase@suffix@.so  lib/libfdstorage@suffix@.so	\
-        lib/libfddrivers@suffix@.so 				\
-	lib/libfdscheme@suffix@.so
-lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
-	lib/libfdscheme@suffix@.dylib             		\
-	lib/libfdbase@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
-        lib/libfddrivers@suffix@.dylib
-
 lib/libfdweb@suffix@.a: $(WEB_OBJS)
 lib/libfdweb@suffix@.so: $(WEB_OBJS) \
 	lib/libfdbase@suffix@.so \
 	lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so \
-	lib/libfdscheme@suffix@.so \
-	lib/libfdschemeio@suffix@.so
+	lib/libfdscheme@suffix@.so
 lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
 	lib/libfddrivers@suffix@.dylib     \
@@ -951,8 +936,7 @@ lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
 lib/libtexttools@suffix@.a: $(TEXT_OBJS)
 lib/libtexttools@suffix@.so: $(TEXT_OBJS) \
 	lib/libfdbase@suffix@.so lib/libfdstorage@suffix@.so \
-	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so \
-	lib/libfdschemeio@suffix@.so
+	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
 lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfddrivers@suffix@.dylib \
@@ -1280,7 +1264,6 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfddrivers@suffix@.a   \
 		$(LIBINSTALLDIR)/libfddbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
@@ -1304,10 +1287,6 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
@@ -1701,7 +1680,7 @@ $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
 $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS):  buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS):  buildmode
-$(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
+$(SCHEME_OBJS): buildmode
 $(WEB_OBJS) $(TEXT_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h

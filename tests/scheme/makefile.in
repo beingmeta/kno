@@ -47,8 +47,7 @@ CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 			../../lib/libfdstorage@suffix@.a     \
 			../../lib/libfdbase@suffix@.a
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
-		  ../../lib/libfdweb@suffix@.a \
-		  ../../lib/libfdschemeio@suffix@.a
+		  ../../lib/libfdweb@suffix@.a
 
 DESTDIR		=
 prefix		= @prefix@

@@ -828,6 +828,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -924,7 +925,6 @@ with_profiling
 enable_prefetching
 enable_calltrack
 enable_fileconfig
-enable_schemeio
 enable_htmldump
 with_tls
 enable_ipeval
@@ -987,6 +987,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1239,6 +1240,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1376,7 +1386,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1529,6 +1539,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1580,7 +1591,6 @@ Optional Features:
 --endisable-prefetching make frame operations prefetch when they can
 --endisable-calltrack enable internal scheme profiling
 --endisable-fileconfig enable file-based configuration
---endisable-schemeio compiled-in schemeio
 --endisable-htmldump write HTML backtraces
 --endisable-ipeval Enable IPEVAL
 
@@ -11317,20 +11327,6 @@ if test $enable_calltrack = "yes"; then
 else
   $as_echo "#define FD_FILECONFIG_ENABLED 0" >>confdefs.h
 
-fi
-
-# Check whether --enable-schemeio was given.
-if test "${enable_schemeio+set}" = set; then :
-  enableval=$enable_schemeio;
-else
-  enable_schemeio="yes"
-fi
-
-if test $enable_schemeio = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
-  xstatic_exe_libs="lib/libfdschemeio${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
 fi
 
 # Check whether --enable-htmldump was given.
