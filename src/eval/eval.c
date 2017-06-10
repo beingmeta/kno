@@ -1620,10 +1620,10 @@ FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
   /* Otherwise, close the socket */
   else close(socket);
   /* And create a connection pool */
-  dts->fd_connpool = u8_open_connpool(dts->dtserverid,2,4,1);
+  dts->connpool = u8_open_connpool(dts->dtserverid,2,4,1);
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
-  if (dts->fd_connpool == NULL) {
+  if (dts->connpool == NULL) {
     u8_free(dts->dtserverid); 
     u8_free(dts->dtserver_addr);
     u8_free(dts);
@@ -1657,12 +1657,12 @@ static lispval dteval(lispval server,lispval expr)
   if (FD_TYPEP(server,fd_dtserver_type))  {
     struct FD_DTSERVER *dtsrv=
       fd_consptr(fd_stream_erver,server,fd_dtserver_type);
-    return fd_dteval(dtsrv->fd_connpool,expr);}
+    return fd_dteval(dtsrv->connpool,expr);}
   else if (STRINGP(server)) {
     lispval s = fd_open_dtserver(CSTRING(server),-1);
     if (FD_ABORTED(s)) return s;
     else {
-      lispval result = fd_dteval(((fd_stream_erver)s)->fd_connpool,expr);
+      lispval result = fd_dteval(((fd_stream_erver)s)->connpool,expr);
       fd_decref(s);
       return result;}}
   else return fd_type_error(_("server"),"dteval",server);
@@ -1683,7 +1683,7 @@ static lispval dtcall(int n,lispval *args)
       request = fd_conspair(fd_make_list(2,quote_symbol,param),request);
     else request = fd_conspair(param,request);
     fd_incref(param); i--;}
-  result = fd_dteval(((fd_stream_erver)server)->fd_connpool,request);
+  result = fd_dteval(((fd_stream_erver)server)->connpool,request);
   fd_decref(request);
   fd_decref(server);
   return result;

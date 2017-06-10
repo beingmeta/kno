@@ -116,7 +116,7 @@ void fd_sum_backtrace(u8_output out,lispval backtrace)
 	n++;}
       else if (FD_EXCEPTIONP(entry)) {
 	struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)entry;
-	u8_exception ex=exo->fdex_u8ex;
+	u8_exception ex=exo->ex_u8ex;
 	if (n) u8_puts(out," ⇒ ");
 	u8_puts(out,ex->u8x_cond);
 	if (ex->u8x_context) u8_printf(out,"@%s",ex->u8x_context);

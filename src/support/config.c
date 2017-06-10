@@ -73,9 +73,9 @@ void fd_register_config_lookup(lispval (*fn)(lispval,void *),void *ldata)
   struct FD_CONFIG_FINDER *entry=
     u8_alloc(struct FD_CONFIG_FINDER);
   u8_lock_mutex(&config_lookup_lock);
-  entry->fdcfg_lookup = fn;
-  entry->fdcfg_lookup_data = ldata;
-  entry->fd_next_finder = config_lookupfns;
+  entry->config_lookup = fn;
+  entry->config_lookup_data = ldata;
+  entry->next_lookup = config_lookupfns;
   config_lookupfns = entry;
   u8_unlock_mutex(&config_lookup_lock);
 }
@@ -89,9 +89,9 @@ static lispval config_get(u8_string var)
     lispval value = VOID;
     struct FD_CONFIG_FINDER *scan = config_lookupfns;
     while (scan) {
-      value = scan->fdcfg_lookup(symbol,scan->fdcfg_lookup_data);
+      value = scan->config_lookup(symbol,scan->config_lookup_data);
       if (VOIDP(value))
-	scan = scan->fd_next_finder;
+	scan = scan->next_lookup;
       else break;}
     fd_store(configuration_table,symbol,value);
     return value;}
@@ -182,11 +182,11 @@ FD_EXPORT lispval fd_config_get(u8_string var)
   lispval symbol = config_intern(var);
   struct FD_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->fd_configname,symbol)) {
+    if (FD_EQ(scan->configname,symbol)) {
       lispval val;
-      val = scan->fd_config_get_method(symbol,scan->fd_configdata);
+      val = scan->config_get_method(symbol,scan->configdata);
       return val;}
-    else scan = scan->fd_nextconfig;
+    else scan = scan->config_next;
   return config_get(var);
 }
 
@@ -195,15 +195,15 @@ FD_EXPORT int fd_set_config(u8_string var,lispval val)
   lispval symbol = config_intern(var); int retval = 0;
   struct FD_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->fd_configname,symbol)) {
-      scan->fd_configflags = scan->fd_configflags|FD_CONFIG_ALREADY_MODIFIED;
-      retval = scan->fd_config_set_method(symbol,val,scan->fd_configdata);
+    if (FD_EQ(scan->configname,symbol)) {
+      scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
+      retval = scan->config_set_method(symbol,val,scan->configdata);
       if (trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure %s (%s) with %q",
                var,SYM_NAME(symbol),val);
       break;}
-    else scan = scan->fd_nextconfig;
+    else scan = scan->config_next;
   if ((!(scan))&&(trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
            var,SYM_NAME(symbol),val);
@@ -220,16 +220,16 @@ FD_EXPORT int fd_default_config(u8_string var,lispval val)
   lispval symbol = config_intern(var); int retval = 1;
   struct FD_CONFIG_HANDLER *scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->fd_configname,symbol)) {
-      if ((scan->fd_configflags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
-      scan->fd_configflags = scan->fd_configflags|FD_CONFIG_ALREADY_MODIFIED;
-      retval = scan->fd_config_set_method(symbol,val,scan->fd_configdata);
+    if (FD_EQ(scan->configname,symbol)) {
+      if ((scan->configflags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
+      scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
+      retval = scan->config_set_method(symbol,val,scan->configdata);
       if (trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure default %s (%s) with %q",
                var,SYM_NAME(symbol),val);
       break;}
-    else scan = scan->fd_nextconfig;
+    else scan = scan->config_next;
   if (fd_test(configuration_table,symbol,VOID)) return 0;
   else {
     if ((!(scan))&&(trace_config))
@@ -265,28 +265,28 @@ FD_EXPORT int fd_register_config_x
   u8_lock_mutex(&config_register_lock);
   scan = config_handlers;
   while (scan)
-    if (FD_EQ(scan->fd_configname,symbol)) {
+    if (FD_EQ(scan->configname,symbol)) {
       if (reuse) reuse(scan);
       if (doc) {
         /* We don't override a real doc with a NULL doc.
            Possibly not the right thing. */
-        if (scan->fd_configdoc) u8_free(scan->fd_configdoc);
-        scan->fd_configdoc = u8_strdup(doc);}
-      scan->fd_config_get_method = getfn;
-      scan->fd_config_set_method = setfn;
-      scan->fd_configdata = data;
+        if (scan->configdoc) u8_free(scan->configdoc);
+        scan->configdoc = u8_strdup(doc);}
+      scan->config_get_method = getfn;
+      scan->config_set_method = setfn;
+      scan->configdata = data;
       break;}
-    else scan = scan->fd_nextconfig;
+    else scan = scan->config_next;
   if (scan == NULL) {
     current = config_get(var);
     scan = u8_alloc(struct FD_CONFIG_HANDLER);
-    scan->fd_configname = symbol;
-    if (doc) scan->fd_configdoc = u8_strdup(doc); else scan->fd_configdoc = NULL;
-    scan->fd_configflags = 0;
-    scan->fd_config_get_method = getfn;
-    scan->fd_config_set_method = setfn;
-    scan->fd_configdata = data;
-    scan->fd_nextconfig = config_handlers;
+    scan->configname = symbol;
+    if (doc) scan->configdoc = u8_strdup(doc); else scan->configdoc = NULL;
+    scan->configflags = 0;
+    scan->config_get_method = getfn;
+    scan->config_set_method = setfn;
+    scan->configdata = data;
+    scan->config_next = config_handlers;
     config_handlers = scan;}
   u8_unlock_mutex(&config_register_lock);
   if (FD_ABORTP(current)) {
@@ -329,15 +329,15 @@ FD_EXPORT lispval fd_all_configs(int with_docs)
   u8_lock_mutex(&config_register_lock); {
     scan = config_handlers;
     while (scan) {
-      lispval var = scan->fd_configname;
+      lispval var = scan->configname;
       if (with_docs) {
-        lispval doc = ((scan->fd_configdoc)?
-                    (fdstring(scan->fd_configdoc)):
+        lispval doc = ((scan->configdoc)?
+                    (fdstring(scan->configdoc)):
                     (NIL));
         lispval pair = fd_conspair(var,doc); fd_incref(var);
         CHOICE_ADD(results,pair);}
       else {fd_incref(var); CHOICE_ADD(results,var);}
-      scan = scan->fd_nextconfig;}}
+      scan = scan->config_next;}}
   u8_unlock_mutex(&config_register_lock);
   return results;
 }

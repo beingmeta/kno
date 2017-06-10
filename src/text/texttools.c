@@ -1924,8 +1924,8 @@ static lispval apply_suffixrule
       u8_putn(&out,CSTRING(string),(slen-sufflen));
       u8_putn(&out,CSTRING(replacement),replen);
       FD_INIT_STATIC_CONS(&stack_string,fd_string_type);
-      stack_string.fd_bytes = out.u8_outbuf;
-      stack_string.fd_bytelen = out.u8_write-out.u8_outbuf;
+      stack_string.str_bytes = out.u8_outbuf;
+      stack_string.str_bytelen = out.u8_write-out.u8_outbuf;
       result = check_string((lispval)&stack_string,lexicon);
       if (FD_ABORTP(result)) return result;
       else if (EMPTYP(result)) return result;

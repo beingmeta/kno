@@ -1224,14 +1224,14 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
         start = start+1;
       else if (isxdigit(start[0])) {}
       else return fd_type_error("UUID string","getuuid_prim",nodeid);
-      u8_parseuuid(start,(u8_uuid)&(uuid->fd_uuid16));
+      u8_parseuuid(start,(u8_uuid)&(uuid->uuid16));
       return LISP_CONS(uuid);}
   else if ((VOIDP(tptr))&&(PACKETP(nodeid)))
     if (FD_PACKET_LENGTH(nodeid)==16) {
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
       const unsigned char *data = FD_PACKET_DATA(nodeid);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(&(uuid->fd_uuid16),data,16);
+      memcpy(&(uuid->uuid16),data,16);
       return LISP_CONS(uuid);}
     else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
   else if ((VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_uuid_type)))
@@ -1258,7 +1258,7 @@ static lispval uuidtime_prim(lispval uuid_arg)
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(tstamp,fd_timestamp_type);
-  if (u8_uuid_xtime(uuid->fd_uuid16,&(tstamp->ts_u8xtime)))
+  if (u8_uuid_xtime(uuid->uuid16,&(tstamp->ts_u8xtime)))
     return LISP_CONS(tstamp);
   else {
     u8_free(tstamp);
@@ -1268,7 +1268,7 @@ static lispval uuidtime_prim(lispval uuid_arg)
 static lispval uuidnode_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
-  long long id = u8_uuid_nodeid(uuid->fd_uuid16);
+  long long id = u8_uuid_nodeid(uuid->uuid16);
   if (id<0)
     return fd_type_error("time-based UUID","uuidnode_prim",uuid_arg);
   else return FD_INT(id);
@@ -1277,13 +1277,13 @@ static lispval uuidnode_prim(lispval uuid_arg)
 static lispval uuidstring_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
-  return fd_init_string(NULL,36,u8_uuidstring(uuid->fd_uuid16,NULL));
+  return fd_init_string(NULL,36,u8_uuidstring(uuid->uuid16,NULL));
 }
 
 static lispval uuidpacket_prim(lispval uuid_arg)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
-  return fd_make_packet(NULL,16,uuid->fd_uuid16);
+  return fd_make_packet(NULL,16,uuid->uuid16);
 }
 
 /* Initialization */

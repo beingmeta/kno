@@ -864,7 +864,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,
       /* Now we go through the edits table, finding all the drops.
          We need to retrieve their values on disk in order to write
          out a new value. */
-      struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->fd_n_entries;
+      struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->bucket_len;
       struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+n_keyvals;
       while (kvscan<kvlimit) {
         lispval key = kvscan->kv_key;
@@ -895,7 +895,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,
   while (scan < limit) {
     fd_outbuf outstream = fd_writebuf(stream);
     if (*scan) {
-      struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->fd_n_entries;
+      struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->bucket_len;
       struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+n_keyvals;
       while (kvscan<kvlimit) {
         lispval key = kvscan->kv_key;
@@ -1011,7 +1011,7 @@ static int file_index_commit(struct FD_INDEX *ix)
     struct FD_HASH_BUCKET **limit = scan+ix->index_adds.ht_n_buckets;
     while (scan < limit)
       if (*scan) {
-        struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->fd_n_entries;
+        struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->bucket_len;
         struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           lispval key = kvscan->kv_key;
@@ -1060,7 +1060,7 @@ static int file_index_commit(struct FD_INDEX *ix)
       struct FD_OUTBUF *outstream = fd_writebuf(stream);
       filepos = fd_endpos(stream);
       if (*scan) {
-        struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->fd_n_entries;
+        struct FD_HASH_BUCKET *e = *scan; int n_keyvals = e->bucket_len;
         struct FD_KEYVAL *kvscan = &(e->kv_val0), *kvlimit = kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           fd_off_t writepos = filepos; int new_values;

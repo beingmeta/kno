@@ -519,7 +519,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     else u8_printf(out,"\"%iSXGt\"",&(tm->ts_u8xtime));}
   else if (FD_TYPEP(x,fd_uuid_type)) {
     struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-    char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
+    char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->uuid16)),buf);
     if ((flags)&(FD_JSON_COLONIZE))
       u8_printf(out,"\":#U%s\"",buf);
     else u8_printf(out,"\"%s\"",buf);}

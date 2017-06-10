@@ -227,8 +227,8 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
       else switch (code) {
       case dt_compound: {
         struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(car);
-        if ((e) && (e->fd_compound_restorefn)) {
-          lispval result = e->fd_compound_restorefn(car,cdr,e);
+        if ((e) && (e->compound_restorefn)) {
+          lispval result = e->compound_restorefn(car,cdr,e);
           fd_decref(cdr);
           return result;}
         else if ((VECTORP(cdr)) &&

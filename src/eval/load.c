@@ -42,13 +42,13 @@ FD_EXPORT u8_string fd_get_source
   struct FD_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
-    u8_string data = scan->fd_getsource
-      (1,path,enc,&basepath,timep,scan->fd_getsource_data);
+    u8_string data = scan->getsource
+      (1,path,enc,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath;
       fd_clear_errors(0);
       return data;}
-    else scan = scan->fd_next_sourcefn;}
+    else scan = scan->getsource_next;}
   return NULL;
 }
 FD_EXPORT int fd_probe_source
@@ -57,13 +57,13 @@ FD_EXPORT int fd_probe_source
   struct FD_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
-    u8_string data = scan->fd_getsource
-      (0,path,NULL,&basepath,timep,scan->fd_getsource_data);
+    u8_string data = scan->getsource
+      (0,path,NULL,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath; 
       fd_clear_errors(0);
       return 1;}
-    else scan = scan->fd_next_sourcefn;}
+    else scan = scan->getsource_next;}
   return 0;
 }
 FD_EXPORT void fd_register_sourcefn
@@ -72,9 +72,9 @@ FD_EXPORT void fd_register_sourcefn
 {
   struct FD_SOURCEFN *new_entry = u8_alloc(struct FD_SOURCEFN);
   u8_lock_mutex(&sourcefns_lock);
-  new_entry->fd_getsource = fn;
-  new_entry->fd_next_sourcefn = sourcefns;
-  new_entry->fd_getsource_data = sourcefn_data;
+  new_entry->getsource = fn;
+  new_entry->getsource_next = sourcefns;
+  new_entry->getsource_data = sourcefn_data;
   sourcefns = new_entry;
   u8_unlock_mutex(&sourcefns_lock);
 }
@@ -532,8 +532,8 @@ static lispval get_config_files(lispval var,void U8_MAYBE_UNUSED *data)
   struct FD_CONFIG_RECORD *scan; lispval result = NIL;
   u8_lock_mutex(&config_file_lock);
   scan = config_records; while (scan) {
-    result = fd_conspair(lispval_string(scan->fd_config_source),result);
-    scan = scan->fd_config_next;}
+    result = fd_conspair(lispval_string(scan->config_filename),result);
+    scan = scan->loaded_after;}
   u8_unlock_mutex(&config_file_lock);
   return result;
 }
@@ -551,14 +551,14 @@ static int add_config_file_helper(lispval var,lispval val,
     u8_string pathname = u8_abspath(CSTRING(val),sourcebase);
     u8_lock_mutex(&config_file_lock);
     scan = config_stack; while (scan) {
-      if (strcmp(scan->fd_config_source,pathname)==0) {
+      if (strcmp(scan->config_filename,pathname)==0) {
         u8_unlock_mutex(&config_file_lock);
         u8_free(pathname);
         return 0;}
-      else scan = scan->fd_config_next;}
+      else scan = scan->loaded_after;}
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
-    on_stack.fd_config_source = pathname;
-    on_stack.fd_config_next = config_stack;
+    on_stack.config_filename = pathname;
+    on_stack.loaded_after = config_stack;
     config_stack = &on_stack;
     u8_unlock_mutex(&config_file_lock);
     if (isdflt)
@@ -567,18 +567,18 @@ static int add_config_file_helper(lispval var,lispval val,
     u8_lock_mutex(&config_file_lock);
     if (retval<0) {
       if (isopt) {
-        u8_free(pathname); config_stack = on_stack.fd_config_next;
+        u8_free(pathname); config_stack = on_stack.loaded_after;
         u8_unlock_mutex(&config_file_lock);
         u8_pop_exception();
         return 0;}
-      u8_free(pathname); config_stack = on_stack.fd_config_next;
+      u8_free(pathname); config_stack = on_stack.loaded_after;
       u8_unlock_mutex(&config_file_lock);
       return retval;}
     newrec = u8_alloc(struct FD_CONFIG_RECORD);
-    newrec->fd_config_source = pathname;
-    newrec->fd_config_next = config_records;
+    newrec->config_filename = pathname;
+    newrec->loaded_after = config_records;
     config_records = newrec;
-    config_stack = on_stack.fd_config_next;
+    config_stack = on_stack.loaded_after;
     u8_unlock_mutex(&config_file_lock);
     return retval;}
 }

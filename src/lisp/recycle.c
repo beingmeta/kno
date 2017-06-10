@@ -17,7 +17,7 @@
 
 static void recycle_string(struct FD_STRING *s)
 {
-  if ((s->fd_bytes)&&(s->fd_freebytes)) u8_free(s->fd_bytes);
+  if ((s->str_bytes)&&(s->str_freebytes)) u8_free(s->str_bytes);
   if (!(FD_STATIC_CONSP(s))) u8_free(s);
 }
 
@@ -113,9 +113,9 @@ static void recycle_uuid(struct FD_RAW_CONS *c)
 static void recycle_exception(struct FD_RAW_CONS *c)
 {
   struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)c;
-  if (exo->fdex_u8ex) {
-    u8_free_exception(exo->fdex_u8ex,1);
-    exo->fdex_u8ex = NULL;}
+  if (exo->ex_u8ex) {
+    u8_free_exception(exo->ex_u8ex,1);
+    exo->ex_u8ex = NULL;}
   if (!(FD_STATIC_CONSP(exo))) u8_free(exo);
 }
 
@@ -127,8 +127,8 @@ static void recycle_timestamp(struct FD_RAW_CONS *c)
 static void recycle_regex(struct FD_RAW_CONS *c)
 {
   struct FD_REGEX *rx = (struct FD_REGEX *)c;
-  regfree(&(rx->fd_rxcompiled));
-  u8_destroy_mutex(&(rx->fdrx_lock));
+  regfree(&(rx->rxcompiled));
+  u8_destroy_mutex(&(rx->rx_lock));
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -144,7 +144,7 @@ static void recycle_rawptr(struct FD_RAW_CONS *c)
 static void recycle_compound(struct FD_RAW_CONS *c)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)c;
-  int i = 0, n = compound->fd_n_elts; lispval *data = &(compound->compound_0);
+  int i = 0, n = compound->compound_length; lispval *data = &(compound->compound_0);
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->compound_typetag);
   if (compound->compound_ismutable) u8_destroy_mutex(&(compound->compound_lock));

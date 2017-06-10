@@ -19,19 +19,19 @@ FD_EXPORT fd_exception fd_ReadOnlyConfig;
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {
-  lispval fd_configname; 
-  void *fd_configdata; 
-  int fd_configflags; 
-  u8_string fd_configdoc;
-  lispval (*fd_config_get_method)(lispval var,void *data);
-  int (*fd_config_set_method)(lispval var,lispval val,void *data);
-  struct FD_CONFIG_HANDLER *fd_nextconfig;} FD_CONFIG_HANDLER;
+  lispval configname; 
+  void *configdata; 
+  int configflags; 
+  u8_string configdoc;
+  lispval (*config_get_method)(lispval var,void *data);
+  int (*config_set_method)(lispval var,lispval val,void *data);
+  struct FD_CONFIG_HANDLER *config_next;} FD_CONFIG_HANDLER;
 typedef struct FD_CONFIG_HANDLER *fd_config_handler;
 
 typedef struct FD_CONFIG_FINDER {
-  lispval (*fdcfg_lookup)(lispval var,void *data);
-  void *fdcfg_lookup_data;
-  struct FD_CONFIG_FINDER *fd_next_finder;} FD_CONFIG_FINDER;
+  lispval (*config_lookup)(lispval var,void *data);
+  void *config_lookup_data;
+  struct FD_CONFIG_FINDER *next_lookup;} FD_CONFIG_FINDER;
 typedef struct FD_CONFIG_FINDER *fd_config_finders;
 
 FD_EXPORT lispval fd_config_get(u8_string var);

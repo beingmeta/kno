@@ -54,10 +54,10 @@ static void check_consistency
   int i = 0; while (i < n_slots)
     if (((buf[i]==0) && (slots[i] == NULL)) ||
         ((buf[i]) && (slots[i]) &&
-         (slots[i]->fd_n_entries == buf[i])) )
+         (slots[i]->bucket_len == buf[i])) )
       i++;
     else {
-      int real_values = ((slots[i]==NULL) ? 0 : (slots[i]->fd_n_entries));
+      int real_values = ((slots[i]==NULL) ? 0 : (slots[i]->bucket_len));
       fprintf(stderr,"Trouble in slot %d, %ud differs from %ud\n",
               i,buf[i],real_values);
       i++;}

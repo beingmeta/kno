@@ -575,8 +575,8 @@ static lispval config_def(lispval var,lispval handler,lispval docstring)
   return VOID;
 }
 static int reuse_lconfig(struct FD_CONFIG_HANDLER *e){
-  if (e->fd_configdata) {
-    fd_decref((lispval)(e->fd_configdata));
+  if (e->configdata) {
+    fd_decref((lispval)(e->configdata));
     return 1;}
   else return 0;}
 

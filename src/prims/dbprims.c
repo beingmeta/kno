@@ -1870,16 +1870,16 @@ FD_FASTOP int test_relation_regex(lispval candidate,lispval pred,lispval regex)
                  (fd_get(candidate,pred,EMPTY)));
   if (EMPTYP(values)) return 0;
   else {
-    struct FD_REGEX *fdrx = (struct FD_REGEX *)regex;
+    struct FD_REGEX *rx = (struct FD_REGEX *)regex;
     DO_CHOICES(value,values) {
       if (STRINGP(value)) {
         regmatch_t results[1];
         u8_string data = CSTRING(value);
-        int retval = regexec(&(fdrx->fd_rxcompiled),data,1,results,0);
+        int retval = regexec(&(rx->rxcompiled),data,1,results,0);
         if (retval!=REG_NOMATCH) {
           if (retval) {
             u8_byte buf[512];
-            regerror(retval,&(fdrx->fd_rxcompiled),buf,512);
+            regerror(retval,&(rx->rxcompiled),buf,512);
             fd_seterr(fd_RegexError,"regex_pick",buf,VOID);
             FD_STOP_DO_CHOICES;
             fd_decref(values);
@@ -1909,14 +1909,14 @@ FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,
     else return fd_frame_test(candidate,test,VOID);
   else if ((!(datalevel))&&(FD_TYPEP(test,fd_regex_type))) {
     if (STRINGP(candidate)) {
-      struct FD_REGEX *fdrx = (struct FD_REGEX *)test;
+      struct FD_REGEX *rx = (struct FD_REGEX *)test;
       regmatch_t results[1];
       u8_string data = CSTRING(candidate);
-      int retval = regexec(&(fdrx->fd_rxcompiled),data,1,results,0);
+      int retval = regexec(&(rx->rxcompiled),data,1,results,0);
       if (retval == REG_NOMATCH) return 0;
       else if (retval) {
         u8_byte buf[512];
-        regerror(retval,&(fdrx->fd_rxcompiled),buf,512);
+        regerror(retval,&(rx->rxcompiled),buf,512);
         fd_seterr(fd_RegexError,"regex_pick",buf,VOID);
         return -1;}
       else if (results[0].rm_so<0) return 0;

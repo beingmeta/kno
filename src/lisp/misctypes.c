@@ -23,7 +23,7 @@ FD_EXPORT lispval fd_cons_uuid
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_UUID);
   FD_INIT_CONS(ptr,fd_uuid_type);
-  u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->fd_uuid16));
+  u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->uuid16));
   return LISP_CONS(ptr);
 }
 
@@ -31,7 +31,7 @@ FD_EXPORT lispval fd_fresh_uuid(struct FD_UUID *ptr)
 {
   if (ptr == NULL) ptr = u8_alloc(struct FD_UUID);
   FD_INIT_CONS(ptr,fd_uuid_type);
-  u8_getuuid((u8_uuid)&(ptr->fd_uuid16));
+  u8_getuuid((u8_uuid)&(ptr->uuid16));
   return LISP_CONS(ptr);
 }
 
@@ -40,7 +40,7 @@ static lispval copy_uuid(lispval x,int deep)
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   struct FD_UUID *nuuid = u8_alloc(struct FD_UUID);
   FD_INIT_CONS(nuuid,fd_uuid_type);
-  memcpy(nuuid->fd_uuid16,uuid->fd_uuid16,16);
+  memcpy(nuuid->uuid16,uuid->uuid16,16);
   return LISP_CONS(nuuid);
 }
 
@@ -53,30 +53,30 @@ static int uuid_dtype(struct FD_OUTBUF *out,lispval x)
   fd_write_byte(out,dt_compound);
   size = size+1+fd_write_dtype(out,uuid_symbol);
   fd_write_byte(out,dt_packet); fd_write_4bytes(out,16); size = size+5;
-  fd_write_bytes(out,uuid->fd_uuid16,16); size = size+16;
+  fd_write_bytes(out,uuid->uuid16,16); size = size+16;
   return size;
 }
 
 static int hash_uuid(lispval x,unsigned int (*fn)(lispval))
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-  return fd_hash_bytes(uuid->fd_uuid16,16);
+  return fd_hash_bytes(uuid->uuid16,16);
 }
 
 static lispval uuid_dump(lispval x,fd_compound_typeinfo MU e)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-  return fd_make_packet(NULL,16,uuid->fd_uuid16);
+  return fd_make_packet(NULL,16,uuid->uuid16);
 }
 
 static lispval uuid_restore(lispval MU tag,lispval x,fd_compound_typeinfo MU e)
 {
   if (PACKETP(x)) {
     struct FD_STRING *p = fd_consptr(struct FD_STRING *,x,fd_packet_type);
-    if (p->fd_bytelen==16) {
+    if (p->str_bytelen==16) {
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(uuid->fd_uuid16,p->fd_bytes,16);
+      memcpy(uuid->uuid16,p->str_bytes,16);
       return LISP_CONS(uuid);}
     else return fd_err("Bad UUID packet","uuid_restore",
                        "UUID packet has wrong length",
@@ -228,16 +228,16 @@ FD_EXPORT lispval fd_make_regex(u8_string src,int flags)
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
   if (flags<0) flags = default_regex_flags;
   src = u8_strdup(src);
-  retval = regcomp(&(ptr->fd_rxcompiled),src,flags);
+  retval = regcomp(&(ptr->rxcompiled),src,flags);
   if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
+    regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),
                   fd_init_string(NULL,-1,src));}
   else {
-    ptr->fd_rxflags = flags; ptr->fd_rxsrc = src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
+    ptr->rxflags = flags; ptr->rxsrc = src;
+    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 
@@ -275,23 +275,23 @@ void fd_init_misctypes_c()
   uuid_symbol = fd_intern("UUID");
   {
     struct FD_COMPOUND_TYPEINFO *e = fd_register_compound(uuid_symbol,NULL,NULL);
-    e->fd_compound_dumpfn = uuid_dump;
-    e->fd_compound_restorefn = uuid_restore;}
+    e->compound_dumpfn = uuid_dump;
+    e->compound_restorefn = uuid_restore;}
 
   timestamp_symbol = fd_intern("TIMESTAMP");
   timestamp0_symbol = fd_intern("TIMESTAMP0");
   {
     struct FD_COMPOUND_TYPEINFO *e=
       fd_register_compound(timestamp_symbol,NULL,NULL);
-    e->fd_compound_parser = timestamp_parsefn;
-    e->fd_compound_dumpfn = NULL;
-    e->fd_compound_restorefn = timestamp_restore;}
+    e->compound_parser = timestamp_parsefn;
+    e->compound_dumpfn = NULL;
+    e->compound_restorefn = timestamp_restore;}
   {
     struct FD_COMPOUND_TYPEINFO *e=
       fd_register_compound(timestamp0_symbol,NULL,NULL);
-    e->fd_compound_parser = timestamp_parsefn;
-    e->fd_compound_dumpfn = NULL;
-    e->fd_compound_restorefn = timestamp_restore;}
+    e->compound_parser = timestamp_parsefn;
+    e->compound_dumpfn = NULL;
+    e->compound_restorefn = timestamp_restore;}
   fd_dtype_writers[fd_timestamp_type]=dtype_timestamp;
 
   fd_copiers[fd_timestamp_type]=copy_timestamp;

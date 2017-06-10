@@ -674,11 +674,11 @@ static lispval streamurl(struct FD_CURL_HANDLE *h,
   if (retval==CURLE_WRITE_ERROR) {
     if (FD_TYPEP(stream_data[2],fd_error_type)) {
       fd_exception_object exo=(fd_exception_object)stream_data[2];
-      u8_exception ex = exo->fdex_u8ex;
+      u8_exception ex = exo->ex_u8ex;
 	u8_push_exception(ex->u8x_cond,ex->u8x_context,
                           ex->u8x_details,ex->u8x_xdata,
                           ex->u8x_free_xdata);
-        exo->fdex_u8ex = NULL;
+        exo->ex_u8ex = NULL;
         u8_restore_exception(ex);
         if (consed_handle) {fd_decref((lispval)h);}
         return FD_ERROR;}

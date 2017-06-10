@@ -931,22 +931,22 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     DO_CHOICES(elt,choices) {
       lispval key=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(key)) {
-        int j = 0; while (j<i) {fd_decref(entries[j].fd_sortkey); j++;}
+        int j = 0; while (j<i) {fd_decref(entries[j].sortkey); j++;}
         u8_free(entries); u8_free(vecdata);
         return key;}
-      entries[i].fd_sortval = elt;
-      entries[i].fd_sortkey = key;
+      entries[i].sortval = elt;
+      entries[i].sortkey = key;
       i++;}
     if (lexsort)
       qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
     else qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i = 0; j = n-1; if (reverse) while (i < n) {
-      fd_decref(entries[i].fd_sortkey);
-      vecdata[j]=fd_incref(entries[i].fd_sortval);
+      fd_decref(entries[i].sortkey);
+      vecdata[j]=fd_incref(entries[i].sortval);
       i++; j--;}
     else while (i < n) {
-      fd_decref(entries[i].fd_sortkey);
-      vecdata[i]=fd_incref(entries[i].fd_sortval);
+      fd_decref(entries[i].sortkey);
+      vecdata[i]=fd_incref(entries[i].sortval);
       i++;}
     u8_free(entries);
     return fd_init_vector(NULL,n,vecdata);}
@@ -997,26 +997,26 @@ static lispval select_helper(lispval choices,lispval keyfn,
       DO_CHOICES(elt,choices) {
         lispval key=_fd_apply_keyfn(elt,keyfn);
         if (FD_ABORTED(key)) {
-          int j = 0; while (j<k_len) {fd_decref(entries[k_len].fd_sortkey); j++;}
+          int j = 0; while (j<k_len) {fd_decref(entries[k_len].sortkey); j++;}
           return key;}
         else if (k_len<k) {
-          entries[k_len].fd_sortval = elt;
-          entries[k_len].fd_sortkey = key;
+          entries[k_len].sortval = elt;
+          entries[k_len].sortkey = key;
           k_len++;}
         else {
           if (sorted==0) {
             qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
-            worst = entries[worst_off].fd_sortkey;
+            worst = entries[worst_off].sortkey;
             sorted = 1;}
           if (IS_BETTER(key,worst)) {
             fd_decref(worst);
-            entries[worst_off].fd_sortval = elt;
-            entries[worst_off].fd_sortkey = key;
+            entries[worst_off].sortval = elt;
+            entries[worst_off].sortkey = key;
             /* This could be done faster by either by just finding
                where to insert it, either by iterating O(n) or binary
                search O(log n). */
             qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
-            worst = entries[worst_off].fd_sortkey;}}}
+            worst = entries[worst_off].sortkey;}}}
       return VOID;}}
   else {
     fd_incref(choices);
@@ -1043,8 +1043,8 @@ static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
       int i = 0;
       results = EMPTY;
       while (i<k) {
-        lispval elt = entries[i].fd_sortval;
-        fd_decref(entries[i].fd_sortkey); fd_incref(elt);
+        lispval elt = entries[i].sortval;
+        fd_decref(entries[i].sortkey); fd_incref(elt);
         CHOICE_ADD(results,elt);
         i++;}
       u8_free(entries);
@@ -1063,9 +1063,9 @@ static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
       lispval vec = fd_make_vector(k,NULL);
       int i = 0;
       while (i<k) {
-        lispval elt = entries[i].fd_sortval;
+        lispval elt = entries[i].sortval;
         int vec_off = k-1-i;
-        fd_incref(elt); fd_decref(entries[i].fd_sortkey);
+        fd_incref(elt); fd_decref(entries[i].sortkey);
         FD_VECTOR_SET(vec,vec_off,elt);
         i++;}
       u8_free(entries);
@@ -1084,8 +1084,8 @@ static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
       int i = 0;
       results = EMPTY;
       while (i<k) {
-        lispval elt = entries[i].fd_sortval;
-        fd_decref(entries[i].fd_sortkey); fd_incref(elt);
+        lispval elt = entries[i].sortval;
+        fd_decref(entries[i].sortkey); fd_incref(elt);
         CHOICE_ADD(results,elt);
         i++;}
       u8_free(entries);
@@ -1104,9 +1104,9 @@ static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
       lispval vec = fd_make_vector(k,NULL);
       int i = 0;
       while (i<k) {
-        fd_decref(entries[i].fd_sortkey);
-        fd_incref(entries[i].fd_sortval);
-        FD_VECTOR_SET(vec,i,entries[i].fd_sortval);
+        fd_decref(entries[i].sortkey);
+        fd_incref(entries[i].sortval);
+        FD_VECTOR_SET(vec,i,entries[i].sortval);
         i++;}
       u8_free(entries);
       return vec;}

@@ -229,12 +229,12 @@ FD_EXPORT lispval fd_tcachecall(lispval fcn,int n,lispval *args);
 #endif
 
 typedef struct FD_THREAD_CACHE {
-  int fdtc_inuse; u8_string fdtc_id;
+  int threadcache_inuse; u8_string threadcache_id;
   struct FD_HASHTABLE oids;
   struct FD_HASHTABLE indexes;
   struct FD_HASHTABLE bground;
   struct FD_HASHTABLE calls;
-  struct FD_THREAD_CACHE *fdtc_prev;} FD_THREAD_CACHE;
+  struct FD_THREAD_CACHE *threadcache_prev;} FD_THREAD_CACHE;
 typedef struct FD_THREAD_CACHE *fd_thread_cache;
 typedef struct FD_THREAD_CACHE FDTC;
 

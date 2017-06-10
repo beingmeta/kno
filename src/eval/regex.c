@@ -33,15 +33,15 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
   if (!(FALSEP(nocase))) cflags = cflags|REG_ICASE;
   if (!(FALSEP(matchnl))) cflags = cflags|REG_NEWLINE;
-  retval = regcomp(&(ptr->fd_rxcompiled),src,cflags);
+  retval = regcomp(&(ptr->rxcompiled),src,cflags);
   if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
+    regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),VOID);}
   else {
-    ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
+    ptr->rxflags = cflags; ptr->rxsrc = src;
+    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 
@@ -69,17 +69,17 @@ static lispval regex_searchop(enum FD_REGEX_OP op,lispval pat,lispval string,
   else if (eflags==2) eflags = REG_NOTEOL;
   else if (eflags==3) eflags = REG_NOTEOL|REG_NOTBOL;
   else eflags = 0;
-  u8_lock_mutex(&(ptr->fdrx_lock));
-  retval = regexec(&(ptr->fd_rxcompiled),CSTRING(string),1,results,eflags);
+  u8_lock_mutex(&(ptr->rx_lock));
+  retval = regexec(&(ptr->rxcompiled),CSTRING(string),1,results,eflags);
   if (retval == REG_NOMATCH) {
-    u8_unlock_mutex(&(ptr->fdrx_lock));
+    u8_unlock_mutex(&(ptr->rx_lock));
     return FD_FALSE;}
   else if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-    u8_unlock_mutex(&(ptr->fdrx_lock));
+    regerror(retval,&(ptr->rxcompiled),buf,512);
+    u8_unlock_mutex(&(ptr->rx_lock));
     return fd_err(fd_RegexError,"regex_search",u8_strdup(buf),VOID);}
-  else u8_unlock_mutex(&(ptr->fdrx_lock));
+  else u8_unlock_mutex(&(ptr->rx_lock));
   if (results[0].rm_so<0) return FD_FALSE;
   else switch (op) {
     case rx_search: return getcharoff(s,results[0].rm_so);
@@ -113,18 +113,18 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
   else if (eflags==2) eflags = REG_NOTEOL;
   else if (eflags==3) eflags = REG_NOTEOL|REG_NOTBOL;
   else eflags = 0;
-  u8_lock_mutex(&(ptr->fdrx_lock));
-  retval = regexec(&(ptr->fd_rxcompiled),s,1,results,eflags);
+  u8_lock_mutex(&(ptr->rx_lock));
+  retval = regexec(&(ptr->rxcompiled),s,1,results,eflags);
   if (retval == REG_NOMATCH) {
-    u8_unlock_mutex(&(ptr->fdrx_lock));
+    u8_unlock_mutex(&(ptr->rx_lock));
     return -1;}
   else if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-    u8_unlock_mutex(&(ptr->fdrx_lock));
+    regerror(retval,&(ptr->rxcompiled),buf,512);
+    u8_unlock_mutex(&(ptr->rx_lock));
     fd_seterr(fd_RegexError,"fd_regex_op",buf,VOID);
     return -2;}
-  else u8_unlock_mutex(&(ptr->fdrx_lock));
+  else u8_unlock_mutex(&(ptr->rx_lock));
   if (results[0].rm_so<0) return -1;
   else switch (op) {
     case rx_search: return u8_charoffset(s,results[0].rm_so);

@@ -1084,11 +1084,11 @@ static lispval string_byte_length(lispval string)
 static lispval fixnuls(lispval string)
 {
   struct FD_STRING *ss = fd_consptr(fd_string,string,fd_string_type);
-  if (strlen(ss->fd_bytes)<ss->fd_bytelen) {
+  if (strlen(ss->str_bytes)<ss->str_bytelen) {
     /* Handle embedded NUL */
     struct U8_OUTPUT out;
-    const u8_byte *scan = ss->fd_bytes, *limit = scan+ss->fd_bytelen;
-    U8_INIT_OUTPUT(&out,ss->fd_bytelen+8);
+    const u8_byte *scan = ss->str_bytes, *limit = scan+ss->str_bytelen;
+    U8_INIT_OUTPUT(&out,ss->str_bytelen+8);
     while (scan<limit) {
       if (*scan)
         u8_putc(&out,u8_sgetc(&scan));

@@ -119,7 +119,7 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   else if (FD_TYPEP(exception,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
       fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_error_type);
-    ex = xo->fdex_u8ex;}
+    ex = xo->ex_u8ex;}
   else {
     u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
     ex = u8_current_exception;}
@@ -145,7 +145,7 @@ static lispval backtrace2html_prim(lispval arg,lispval where)
   else if (FD_TYPEP(arg,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
       fd_consptr(struct FD_EXCEPTION_OBJECT *,arg,fd_error_type);
-    ex = xo->fdex_u8ex;
+    ex = xo->ex_u8ex;
     if (ex) backtrace=fd_exception_backtrace(ex);}
   else return fd_err("Bad exception/backtrace","backtrace2html_prim",
                      NULL,arg);
@@ -373,7 +373,7 @@ static void output_stack_frame(u8_output out,lispval entry)
   if (FD_EXCEPTIONP(entry)) {
     fd_exception_object exo=
       fd_consptr(fd_exception_object,entry,fd_error_type);
-    u8_exception ex = exo->fdex_u8ex;
+    u8_exception ex = exo->ex_u8ex;
     fd_html_exception(out,ex,0);}
   else if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
     lispval depth=VEC_REF(entry,0);

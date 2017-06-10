@@ -201,8 +201,8 @@ static int config_add_source_file(lispval var,lispval val,void *data)
 /* Termination */
 
 static struct FD_ATEXIT {
-  lispval fd_exit_handler;
-  struct FD_ATEXIT *fd_next_atexit;} *atexit_handlers = NULL;
+  lispval exitfn_handler;
+  struct FD_ATEXIT *exitfn_next;} *atexit_handlers = NULL;
 static int n_atexit_handlers = 0;
 
 static lispval config_atexit_get(lispval var,void *data)
@@ -211,9 +211,9 @@ static lispval config_atexit_get(lispval var,void *data)
   u8_lock_mutex(&atexit_handlers_lock);
   result = fd_make_vector(n_atexit_handlers,NULL);
   scan = atexit_handlers; while (scan) {
-    lispval handler = scan->fd_exit_handler; fd_incref(handler);
+    lispval handler = scan->exitfn_handler; fd_incref(handler);
     FD_VECTOR_SET(result,i,handler);
-    scan = scan->fd_next_atexit; i++;}
+    scan = scan->exitfn_next; i++;}
   u8_unlock_mutex(&atexit_handlers_lock);
   return result;
 }
@@ -225,7 +225,8 @@ static int config_atexit_set(lispval var,lispval val,void *data)
     fd_type_error("applicable","config_atexit",val);
     return -1;}
   u8_lock_mutex(&atexit_handlers_lock);
-  fresh->fd_next_atexit = atexit_handlers; fresh->fd_exit_handler = val;
+  fresh->exitfn_next = atexit_handlers; 
+  fresh->exitfn_handler = val;
   fd_incref(val);
   n_atexit_handlers++; atexit_handlers = fresh;
   u8_unlock_mutex(&atexit_handlers_lock);
@@ -255,7 +256,7 @@ FD_EXPORT void fd_doexit(lispval arg)
   scan = atexit_handlers; atexit_handlers = NULL;
   u8_unlock_mutex(&atexit_handlers_lock);
   while (scan) {
-    lispval handler = scan->fd_exit_handler, result = VOID;
+    lispval handler = scan->exitfn_handler, result = VOID;
     u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
     if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
       result = fd_apply(handler,1,&arg);
@@ -265,7 +266,7 @@ FD_EXPORT void fd_doexit(lispval arg)
     else fd_decref(result);
     fd_decref(handler);
     tmp = scan;
-    scan = scan->fd_next_atexit;
+    scan = scan->exitfn_next;
     u8_free(tmp);}
   fd_decref(exec_arg); exec_arg = FD_FALSE;
   fd_decref(lisp_argv); lisp_argv = FD_FALSE;

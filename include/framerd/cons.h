@@ -423,16 +423,16 @@ struct FD_WRAPPER {
 
 typedef struct FD_STRING {
   FD_CONS_HEADER;
-  unsigned int fd_freebytes:1;
-  unsigned int fd_bytelen:31;
-  u8_string fd_bytes;} FD_STRING;
+  unsigned int str_freebytes:1;
+  unsigned int str_bytelen:31;
+  u8_string str_bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
 
 FD_EXPORT ssize_t fd_max_strlen;
 
 #define FD_STRINGP(x) (FD_TYPEP(x,fd_string_type))
-#define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->fd_bytelen))
-#define FD_STRDATA(x) ((FD_CONSPTR(fd_string,x))->fd_bytes)
+#define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))
+#define FD_STRDATA(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
 #define FD_STRING_LENGTH(x) (FD_STRLEN(x))
 #define FD_STRING_DATA(x) (FD_STRDATA(x))
 
@@ -473,9 +473,9 @@ FD_EXPORT lispval lispval_string(u8_string string);
 #define FD_PACKETP(x) \
   ((FD_PTR_TYPE(x) == fd_packet_type)||(FD_PTR_TYPE(x) == fd_secret_type))
 #define FD_PACKET_LENGTH(x) \
-  ((unsigned int) ((FD_CONSPTR(fd_string,x))->fd_bytelen))
-#define FD_PACKET_DATA(x) ((FD_CONSPTR(fd_string,x))->fd_bytes)
-#define FD_PACKET_REF(x,i) ((FD_CONSPTR(fd_string,x))->fd_bytes[i])
+  ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))
+#define FD_PACKET_DATA(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
+#define FD_PACKET_REF(x,i) ((FD_CONSPTR(fd_string,x))->str_bytes[i])
 
 FD_EXPORT lispval fd_init_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);
@@ -489,8 +489,8 @@ FD_EXPORT lispval fd_bytes2packet
 /* Symbol tables */
 
 typedef struct FD_SYMBOL_ENTRY {
-  struct FD_STRING fd_pname;
-  int fd_symid;} FD_SYMBOL_ENTRY;
+  struct FD_STRING sym_pname;
+  int symid;} FD_SYMBOL_ENTRY;
 typedef struct FD_SYMBOL_ENTRY *fd_symbol_entry;
 struct FD_SYMBOL_TABLE {
   int table_size;
@@ -616,7 +616,7 @@ FD_EXPORT lispval fd_make_nrail(int len,...);
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
   lispval compound_typetag;
-  u8_byte compound_ismutable, compound_isopaque, fd_n_elts;
+  u8_byte compound_ismutable, compound_isopaque, compound_length;
   u8_mutex compound_lock;
   lispval compound_0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
@@ -631,7 +631,7 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_COMPOUND_ELTS(x) \
   (&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))
 #define FD_COMPOUND_LENGTH(x) \
-  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->fd_n_elts)
+  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_length)
 #define FD_COMPOUND_REF(x,i)                                            \
   ((&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))[i])
 #define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
@@ -661,7 +661,7 @@ FD_EXPORT lispval fd_compound_descriptor_type;
 
 typedef struct FD_UUID {
   FD_CONS_HEADER;
-  unsigned char fd_uuid16[16];} FD_UUID;
+  unsigned char uuid16[16];} FD_UUID;
 typedef struct FD_UUID *fd_uuid;
 
 FD_EXPORT lispval fd_cons_uuid
@@ -759,11 +759,11 @@ FD_EXPORT fd_exception fd_RegexError;
 
 typedef struct FD_REGEX {
   FD_CONS_HEADER;
-  u8_string fd_rxsrc;
-  unsigned int fd_rxactive;
-  int fd_rxflags;
-  u8_mutex fdrx_lock;
-  regex_t fd_rxcompiled;} FD_REGEX;
+  u8_string rxsrc;
+  unsigned int rxactive;
+  int rxflags;
+  u8_mutex rx_lock;
+  regex_t rxcompiled;} FD_REGEX;
 typedef struct FD_REGEX *fd_regex;
 
 FD_EXPORT lispval fd_make_regex(u8_string src,int flags);
@@ -781,7 +781,7 @@ typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 typedef struct FD_EXCEPTION_OBJECT {
   FD_CONS_HEADER;
-  u8_exception fdex_u8ex;}
+  u8_exception ex_u8ex;}
   FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
@@ -837,13 +837,14 @@ typedef lispval (*fd_compound_dumpfn)(lispval,fd_compound_typeinfo);
 typedef lispval (*fd_compound_restorefn)(lispval,lispval,fd_compound_typeinfo);
 
 typedef struct FD_COMPOUND_TYPEINFO {
-  lispval compound_typetag, fd_compound_metadata; int fd_compound_corelen;
-  fd_compound_parsefn fd_compound_parser;
-  fd_compound_unparsefn fd_compound_unparser;
-  fd_compound_dumpfn fd_compound_dumpfn;
-  fd_compound_restorefn fd_compound_restorefn;
-  struct FD_TABLEFNS *fd_compund_tablefns;
-  struct FD_COMPOUND_TYPEINFO *fd_compound_nextinfo;} FD_COMPOUND_TYPEINFO;
+  lispval compound_typetag, compound_metadata; 
+  int compound_corelen;
+  fd_compound_parsefn compound_parser;
+  fd_compound_unparsefn compound_unparser;
+  fd_compound_dumpfn compound_dumpfn;
+  fd_compound_restorefn compound_restorefn;
+  struct FD_TABLEFNS *compund_tablefns;
+  struct FD_COMPOUND_TYPEINFO *compound_nextinfo;} FD_COMPOUND_TYPEINFO;
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_compound_entries;
 
 

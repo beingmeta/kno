@@ -478,7 +478,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_STREAM fd_clientstream;
+  struct FD_STREAM clientstream;
   time_t lastlive; double elapsed;
   fd_lexenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
@@ -489,7 +489,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 {
   fd_client client = (fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
-  fd_init_stream(&(client->fd_clientstream),
+  fd_init_stream(&(client->clientstream),
                  client->idstring,sock,FD_STREAM_SOCKET,
                  FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
@@ -507,7 +507,7 @@ static int dtypeserver(u8_client ucl)
 {
   lispval expr;
   fd_client client = (fd_client)ucl;
-  fd_stream stream = &(client->fd_clientstream);
+  fd_stream stream = &(client->clientstream);
   fd_inbuf inbuf = fd_readbuf(stream);
   int async = ((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
@@ -660,7 +660,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client = (fd_client)ucl;
-  fd_close_stream(&(client->fd_clientstream),0);
+  fd_close_stream(&(client->clientstream),0);
   fd_decref((lispval)((fd_client)ucl)->env);
   ucl->socket = -1;
   return 1;
