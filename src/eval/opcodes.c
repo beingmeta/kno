@@ -1102,7 +1102,7 @@ FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_TYPEP(x,fd_lexref_type))
+    if (TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       lispval val = fd_symeval(x,env);
@@ -1115,7 +1115,7 @@ FD_FASTOP lispval op_eval(lispval x,fd_lexenv env,
     switch (cons_type) {
     case fd_pair_type: {
       lispval car = FD_CAR(x);
-      if (FD_TYPEP(car,fd_opcode_type)) {
+      if (TYPEP(car,fd_opcode_type)) {
         if (tail)
           return opcode_dispatch(car,x,env,stack,tail);
         else {

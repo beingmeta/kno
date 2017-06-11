@@ -873,6 +873,7 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #define NILP(x)    (FD_EMPTY_LISTP(x))
 #define CONSP(x)   (FD_CONSP(x))
 #define ATOMICP(x) (FD_ATOMICP(x))
+#define TYPEP(o,t) (FD_TYPEP((o),(t)))
 #define FD_DEFAULT (FD_DEFAULT_VALUE)
 #define FD_ERROR   (FD_ERROR_VALUE)
 #define CHOICEP(x) (FD_CHOICEP(x))

@@ -148,7 +148,7 @@ FD_EXPORT lispval fd_mapseq(lispval fn,int n_seqs,lispval *sequences)
     else new_elt = fd_get(elt,fn,elt);
     fd_decref(elt);
     if (result_type == fd_string_type) {
-      if (!(FD_TYPEP(new_elt,fd_character_type)))
+      if (!(TYPEP(new_elt,fd_character_type)))
         result_type = fd_vector_type;}
     else if ((result_type == fd_packet_type)||
              (result_type == fd_secret_type)) {
@@ -219,7 +219,7 @@ FD_EXPORT lispval fd_foreach(lispval fn,int n_seqs,lispval *sequences)
     else new_elt = fd_get(elt,fn,elt);
     fd_decref(elt);
     if (result_type == fd_string_type) {
-      if (!(FD_TYPEP(new_elt,fd_character_type)))
+      if (!(TYPEP(new_elt,fd_character_type)))
         result_type = fd_vector_type;}
     else if ((result_type == fd_packet_type)||
              (result_type == fd_secret_type)) {
@@ -259,7 +259,7 @@ FD_EXPORT lispval fd_map2choice(lispval fn,lispval sequence)
       else new_elt = fd_get(elt,fn,elt);
       fd_decref(elt);
       if (result_type == fd_string_type) {
-        if (!(FD_TYPEP(new_elt,fd_character_type)))
+        if (!(TYPEP(new_elt,fd_character_type)))
           result_type = fd_vector_type;}
       else if ((result_type == fd_packet_type)||
                (result_type == fd_secret_type)) {
@@ -1407,7 +1407,7 @@ static lispval make_short_vector(int n,lispval *from_elts)
 
 static lispval seq2shortvec(lispval arg)
 {
-  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_short_elt)) {
     fd_incref(arg);
     return arg;}
@@ -1442,7 +1442,7 @@ static lispval make_int_vector(int n,lispval *from_elts)
 
 static lispval seq2intvec(lispval arg)
 {
-  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_int_elt)) {
     fd_incref(arg);
     return arg;}
@@ -1476,7 +1476,7 @@ static lispval make_long_vector(int n,lispval *from_elts)
 
 static lispval seq2longvec(lispval arg)
 {
-  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_long_elt)) {
     fd_incref(arg);
     return arg;}
@@ -1510,7 +1510,7 @@ static lispval make_float_vector(int n,lispval *from_elts)
 
 static lispval seq2floatvec(lispval arg)
 {
-  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_float_elt)) {
     fd_incref(arg);
     return arg;}
@@ -1544,7 +1544,7 @@ static lispval make_double_vector(int n,lispval *from_elts)
 
 static lispval seq2doublevec(lispval arg)
 {
-  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg) == fd_double_elt)) {
     fd_incref(arg);
     return arg;}

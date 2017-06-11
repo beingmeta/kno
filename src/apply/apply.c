@@ -437,7 +437,7 @@ FD_FASTOP int check_typeinfo(struct FD_FUNCTION *f,int n,lispval *args)
       lispval arg = args[i];
       int argtype = typeinfo[i];
       if (argtype<0) i++;
-      else if (FD_TYPEP(arg,argtype)) i++;
+      else if (TYPEP(arg,argtype)) i++;
       else if ( (VOIDP(arg)) || (FD_DEFAULTP(arg))) i++;
       else {
         u8_string type_name = fd_type2name(argtype);
@@ -640,9 +640,9 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
 #define FD_ADD_RESULT(to,result)                \
   if (to == EMPTY) to = result;           \
   else {                                        \
-    if (FD_TYPEP(to,fd_tailcall_type))          \
+    if (TYPEP(to,fd_tailcall_type))          \
       to = fd_finish_call(to);                    \
-    if (FD_TYPEP(result,fd_tailcall_type))      \
+    if (TYPEP(result,fd_tailcall_type))      \
       result = fd_finish_call(result);            \
   CHOICE_ADD(to,result);}
 
@@ -660,7 +660,7 @@ static lispval ndcall_loop
       value = fd_finish_call(value);
       if (FD_ABORTP(value)) return value;
       FD_ADD_RESULT(*results,value);}}
-  else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
+  else if (TYPEP(nd_args[i],fd_qchoice_type)) {
     d_args[i]=FD_XQCHOICE(nd_args[i])->qchoiceval;
     return ndcall_loop(_stack,f,results,typeinfo,i+1,n,nd_args,d_args);}
   else if ((!(CHOICEP(nd_args[i]))) ||
@@ -1018,7 +1018,7 @@ FD_EXPORT lispval _fd_finish_call(lispval call)
       lispval next = (U8_BITP(flags,FD_TAILCALL_ND_ARGS)) ?
         (fd_apply(head,n-1,args)) :
         (fd_dapply(head,n-1,args));
-      int finished = (!(FD_TYPEP(next,fd_tailcall_type)));
+      int finished = (!(TYPEP(next,fd_tailcall_type)));
       fd_decref(call); call = next;
       if (finished) {
         if (voidval) {

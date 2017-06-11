@@ -47,7 +47,7 @@ static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 
 static lispval regexp_prim(lispval x)
 {
-  if (FD_TYPEP(x,fd_regex_type)) return FD_TRUE;
+  if (TYPEP(x,fd_regex_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 

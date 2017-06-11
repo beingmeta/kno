@@ -501,7 +501,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
       json_unparse(out,e,flags,slotfn,oidfn,miscfn);
       elt_count++;}
     u8_putc(out,']');}
-  else if (FD_TYPEP(x,fd_timestamp_type)) {
+  else if (TYPEP(x,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tm=
       fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
     if (flags&FD_JSON_TICKS)
@@ -517,7 +517,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
       u8_printf(out,"\":#T%iSXGt\"",&(tm->ts_u8xtime));
     else if (tm->ts_u8xtime.u8_tick<0)  u8_puts(out,"\"invalid time\""); /* Invalid time */
     else u8_printf(out,"\"%iSXGt\"",&(tm->ts_u8xtime));}
-  else if (FD_TYPEP(x,fd_uuid_type)) {
+  else if (TYPEP(x,fd_uuid_type)) {
     struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
     char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
     if ((flags)&(FD_JSON_COLONIZE))

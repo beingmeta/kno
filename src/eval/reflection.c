@@ -25,7 +25,7 @@ static lispval moduleid_symbol;
 
 static lispval macrop(lispval x)
 {
-  if (FD_TYPEP(x,fd_macro_type)) return FD_TRUE;
+  if (TYPEP(x,fd_macro_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -43,13 +43,13 @@ static lispval applicablep(lispval x)
 
 static lispval evalfnp(lispval x)
 {
-  if (FD_TYPEP(x,fd_evalfn_type)) return FD_TRUE;
+  if (TYPEP(x,fd_evalfn_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval primitivep(lispval x)
 {
-  if (FD_TYPEP(x,fd_cprim_type)) return FD_TRUE;
+  if (TYPEP(x,fd_cprim_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -68,7 +68,7 @@ static lispval procedure_name(lispval x)
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
     return FD_FALSE;
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
       return lispval_string(sf->evalfn_name);
@@ -83,7 +83,7 @@ static lispval procedure_filename(lispval x)
     if (f->fcn_filename)
       return lispval_string(f->fcn_filename);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_filename)
       return lispval_string(sf->evalfn_filename);
@@ -98,7 +98,7 @@ static lispval procedure_symbol(lispval x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
       return fd_intern(sf->evalfn_name);
@@ -113,7 +113,7 @@ static lispval procedure_id(lispval x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return fd_incref(x);}
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
       return fd_intern(sf->evalfn_name);
@@ -138,7 +138,7 @@ static lispval set_procedure_documentation(lispval x,lispval doc)
     if (f->fcn_documentation) u8_free(f->fcn_documentation);
     f->fcn_documentation = CSTRING(doc);
     return VOID;}
-  else if (FD_TYPEP(proc,fd_evalfn_type)) {
+  else if (TYPEP(proc,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(proc);
     if (sf->evalfn_documentation) u8_free(sf->evalfn_documentation);
     sf->evalfn_documentation = CSTRING(doc);
@@ -169,7 +169,7 @@ static lispval non_deterministicp(lispval x)
 
 static lispval synchronizedp(lispval x)
 {
-  if (FD_TYPEP(x,fd_sproc_type)) {
+  if (TYPEP(x,fd_sproc_type)) {
     fd_sproc f = (fd_sproc)x;
     if (f->sproc_synchronized)
       return FD_TRUE;
@@ -427,7 +427,7 @@ static lispval fcnid_setprim(lispval arg,lispval value)
 static lispval macroexpand(lispval expander,lispval expr)
 {
   if (PAIRP(expr)) {
-    if (FD_TYPEP(expander,fd_macro_type)) {
+    if (TYPEP(expander,fd_macro_type)) {
       struct FD_MACRO *macrofn = (struct FD_MACRO *)fd_fcnid_ref(expander);
       fd_ptr_type xformer_type = FD_PTR_TYPE(macrofn->macro_transformer);
       if (fd_applyfns[xformer_type]) {
@@ -538,7 +538,7 @@ static lispval wherefrom_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack)
     fd_lexenv env;
     lispval env_arg = fd_eval(fd_get_arg(expr,2),call_env);
     if (VOIDP(env_arg)) env = call_env;
-    else if (FD_TYPEP(env_arg,fd_lexenv_type))
+    else if (TYPEP(env_arg,fd_lexenv_type))
       env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
     else return fd_type_error(_("environment"),"wherefrom",env_arg);
     if (env->env_copy) env = env->env_copy;
@@ -565,7 +565,7 @@ static lispval getmodules_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack
   lispval env_arg = fd_eval(fd_get_arg(expr,1),call_env), modules = EMPTY;
   fd_lexenv env = call_env;
   if (VOIDP(env_arg)) {}
-  else if (FD_TYPEP(env_arg,fd_lexenv_type))
+  else if (TYPEP(env_arg,fd_lexenv_type))
     env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
   else return fd_type_error(_("environment"),"wherefrom",env_arg);
   if (env->env_copy) env = env->env_copy;

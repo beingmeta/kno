@@ -164,7 +164,7 @@ static lispval lisp2file(lispval object,lispval filename,lispval bufsiz)
     u8_movefile(temp_name,CSTRING(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
-  else if (FD_TYPEP(filename,fd_stream_type)) {
+  else if (TYPEP(filename,fd_stream_type)) {
     FD_DECL_OUTBUF(tmp,FD_DTWRITE_SIZE);
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
@@ -204,7 +204,7 @@ static lispval lisp2zipfile(lispval object,lispval filename,lispval bufsiz)
     u8_movefile(temp_name,CSTRING(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
-  else if (FD_TYPEP(filename,fd_stream_type)) {
+  else if (TYPEP(filename,fd_stream_type)) {
     FD_DECL_OUTBUF(tmp,FD_DTWRITE_SIZE);
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
@@ -280,7 +280,7 @@ static lispval add_dtypes2file(lispval object,lispval filename)
     fd_close_stream(stream,FD_STREAM_CLOSE_FULL);
     if (bytes<0) return FD_ERROR;
     else return FD_INT(bytes);}
-  else if (FD_TYPEP(filename,fd_stream_type)) {
+  else if (TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *stream=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
     ssize_t bytes=write_dtypes(object,stream);
@@ -301,7 +301,7 @@ static lispval add_lisp2zipfile(lispval object,lispval filename)
     bytes = fd_zwrite_dtype(fd_writebuf(out),object);
     fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     return FD_INT(bytes);}
-  else if (FD_TYPEP(filename,fd_stream_type)) {
+  else if (TYPEP(filename,fd_stream_type)) {
     struct FD_OUTBUF tmp; unsigned char tmpbuf[1000];
     FD_INIT_BYTE_OUTBUF(&tmp,tmpbuf,1000);
     struct FD_STREAM *stream=
@@ -323,7 +323,7 @@ static lispval file2dtype(lispval filename)
 {
   if (STRINGP(filename))
     return fd_read_dtype_from_file(CSTRING(filename));
-  else if (FD_TYPEP(filename,fd_stream_type)) {
+  else if (TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
     lispval object = fd_read_dtype(fd_readbuf(in));
@@ -342,7 +342,7 @@ static lispval zipfile2dtype(lispval filename)
     else object = fd_zread_dtype(fd_readbuf(in));
     fd_close_stream(in,FD_STREAM_CLOSE_FULL);
     return object;}
-  else if (FD_TYPEP(filename,fd_stream_type)) {
+  else if (TYPEP(filename,fd_stream_type)) {
     struct FD_STREAM *in=
       fd_consptr(struct FD_STREAM *,filename,fd_stream_type);
     lispval object = fd_zread_dtype(fd_readbuf(in));
@@ -433,14 +433,14 @@ static lispval extend_dtype_file(lispval fname)
 
 static lispval streamp(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_stream_type)) 
+  if (TYPEP(arg,fd_stream_type)) 
     return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval dtype_inputp(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_stream_type)) {
+  if (TYPEP(arg,fd_stream_type)) {
     struct FD_STREAM *dts = (fd_stream)arg;
     if (U8_BITP(dts->buf.raw.buf_flags,FD_IS_WRITING))
       return FD_FALSE;
@@ -450,7 +450,7 @@ static lispval dtype_inputp(lispval arg)
 
 static lispval dtype_outputp(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_stream_type)) {
+  if (TYPEP(arg,fd_stream_type)) {
     struct FD_STREAM *dts = (fd_stream)arg;
     if (U8_BITP(dts->buf.raw.buf_flags,FD_IS_WRITING))
       return FD_TRUE;

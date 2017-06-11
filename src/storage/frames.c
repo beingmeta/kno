@@ -650,7 +650,7 @@ FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
   if (CHOICEP(indexes)) {
     lispval combined = EMPTY;
     DO_CHOICES(index,indexes)
-      if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type))) {
+      if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(index);
         if (ix == NULL) {
           fd_decref(combined);

@@ -592,7 +592,7 @@ FD_EXPORT lispval fd_reverse(lispval sequence)
     lispval *tmp = ((len) ? (u8_alloc_n(len,lispval)) : (NULL));
     if (len) {
       i = 0; j = len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
-    if (FD_TYPEP(sequence,fd_numeric_vector_type)) {
+    if (TYPEP(sequence,fd_numeric_vector_type)) {
       switch (FD_NUMVEC_TYPE(sequence)) {
       case fd_float_elt:
         result = make_float_vector(len,elts); break;

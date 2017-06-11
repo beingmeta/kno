@@ -72,7 +72,7 @@ FD_EXPORT lispval fd_set_fcnid(lispval id,lispval value)
   else if (!(CONSP(value)))
     return fd_type_error("cons","fd_set_fcnid",value);
   else if (!((FD_FUNCTIONP(value))||
-             (FD_TYPEP(value,fd_evalfn_type))))
+             (TYPEP(value,fd_evalfn_type))))
     return fd_type_error("function/fexpr","fd_set_fcnid",value);
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
@@ -113,7 +113,7 @@ FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
   else if (!(CONSP(value)))
     return 0;
   else if (!((FD_FUNCTIONP(value))||
-             (FD_TYPEP(value,fd_evalfn_type))))
+             (TYPEP(value,fd_evalfn_type))))
     return 0;
   else {
     u8_lock_mutex(&_fd_fcnid_lock);
@@ -143,7 +143,7 @@ FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
 static int unparse_fcnid(u8_output out,lispval x)
 {
   lispval lp = fd_fcnid_ref(x);
-  if (FD_TYPEP(lp,fd_cprim_type)) {
+  if (TYPEP(lp,fd_cprim_type)) {
     struct FD_FUNCTION *fcn = (fd_function)lp;
     u8_string name = fcn->fcn_name;
     u8_string filename = fcn->fcn_filename;

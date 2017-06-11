@@ -1960,11 +1960,11 @@ static int hash_flonum(lispval x,unsigned int (*fn)(lispval))
 /* Utility fucntions and macros. */
 
 
-#define COMPLEXP(x) (FD_TYPEP((x),fd_complex_type))
+#define COMPLEXP(x) (TYPEP((x),fd_complex_type))
 #define REALPART(x) ((COMPLEXP(x)) ? (FD_REALPART(x)) : (x))
 #define IMAGPART(x) ((COMPLEXP(x)) ? (FD_IMAGPART(x)) : (FD_INT(0)))
 
-#define RATIONALP(x) (FD_TYPEP((x),fd_rational_type))
+#define RATIONALP(x) (TYPEP((x),fd_rational_type))
 #define NUMERATOR(x) ((RATIONALP(x)) ? (FD_NUMERATOR(x)) : (x))
 #define DENOMINATOR(x) ((RATIONALP(x)) ? (FD_DENOMINATOR(x)) : (FD_INT(1)))
 

@@ -570,7 +570,7 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
 {
   struct XMLAPPLY cxt; cxt.xml = xml; cxt.env = scheme_env;
   lispval bind = fd_get(xml,id_symbol,VOID), result = VOID;
-  if (FD_TYPEP(fn,fd_evalfn_type)) {
+  if (TYPEP(fn,fd_evalfn_type)) {
     struct FD_EVALFN *sf=
       fd_consptr(fd_evalfn,fn,fd_evalfn_type);
     result = sf->evalfn_handler(xml,scheme_env,fd_stackptr);}

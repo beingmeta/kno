@@ -974,7 +974,7 @@ static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
   else if (!(FD_UINTP(ef)))
     return fd_type_error("uint","strmatchp_prim",ef);
   else {
-    if (FD_TYPEP(pat,fd_regex_type)) {
+    if (TYPEP(pat,fd_regex_type)) {
       int off = fd_regex_op(rx_search,pat,
                           CSTRING(string),STRLEN(string),
                           FIX2INT(ef));
@@ -986,7 +986,7 @@ static lispval strmatchp_prim(lispval pat,lispval string,lispval ef)
       else return FD_FALSE;}
     else if (CHOICEP(pat)) {
       DO_CHOICES(p,pat) {
-        if (FD_TYPEP(pat,fd_regex_type)) {
+        if (TYPEP(pat,fd_regex_type)) {
           int off = fd_regex_op(rx_search,p,
                               CSTRING(string),STRLEN(string),
                               FIX2INT(ef));
@@ -1037,9 +1037,9 @@ static lispval string2packet(lispval string,lispval encoding,lispval escape)
 
 static lispval x2secret_prim(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_secret_type))
+  if (TYPEP(arg,fd_secret_type))
     return fd_incref(arg);
-  else if (FD_TYPEP(arg,fd_packet_type)) {
+  else if (TYPEP(arg,fd_packet_type)) {
     lispval result = fd_make_packet
       (NULL,FD_PACKET_LENGTH(arg),FD_PACKET_DATA(arg));
     FD_SET_CONS_TYPE(result,fd_secret_type);
@@ -1105,7 +1105,7 @@ static u8_string strsearch(u8_string string,lispval pat,
   if (STRINGP(pat)) {
     *matchlenp = len;
     return strstr(string,CSTRING(pat));}
-  else if (FD_TYPEP(pat,fd_regex_type)) {
+  else if (TYPEP(pat,fd_regex_type)) {
     int off = fd_regex_op(rx_search,pat,string,len,0);
     if (off<0) return NULL;
     else {
@@ -1129,7 +1129,7 @@ static u8_string strsearch(u8_string string,lispval pat,
 static lispval string_subst_prim(lispval string,lispval pat,lispval with)
 {
   if (STRLEN(string)==0) return fd_incref(string);
-  else if (!((STRINGP(pat))||(FD_TYPEP(pat,fd_regex_type))))
+  else if (!((STRINGP(pat))||(TYPEP(pat,fd_regex_type))))
     return fd_type_error("string or regex","string_subst_prim",pat);
   else if ((STRINGP(pat))&&
            (strstr(CSTRING(string),CSTRING(pat)) == NULL))
@@ -1160,7 +1160,7 @@ static lispval string_subst_star(int n,lispval *args)
   else while (i<n) {
       if (PRED_FALSE
           (!((STRINGP(args[i]))||
-             (FD_TYPEP(args[i],fd_regex_type)))))
+             (TYPEP(args[i],fd_regex_type)))))
         return fd_type_error(_("string"),"string_subst_star",args[i]);
       else i++;}
   /* In case we return it. */
@@ -1231,7 +1231,7 @@ static lispval glom_lexpr(int n,lispval *args)
       sumlen = sumlen+FD_PACKET_LENGTH(args[i]);
       strings[i]=FD_PACKET_DATA(args[i]);
       lengths[i]=FD_PACKET_LENGTH(args[i]);
-      if (FD_TYPEP(args[i],fd_secret_type))
+      if (TYPEP(args[i],fd_secret_type))
         result_type = fd_secret_type;
       else if (result_type!=fd_secret_type)
         result_type = fd_packet_type;

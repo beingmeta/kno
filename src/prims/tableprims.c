@@ -852,11 +852,11 @@ static lispval table_skim(lispval tables,lispval maxval,lispval scope)
 
 static lispval table_map_size(lispval table)
 {
-  if (FD_TYPEP(table,fd_hashtable_type)) {
+  if (TYPEP(table,fd_hashtable_type)) {
     struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *) table;
     long long n_values = fd_hashtable_map_size(ht);
     return FD_INT(n_values);}
-  else if (FD_TYPEP(table,fd_hashset_type)) {
+  else if (TYPEP(table,fd_hashset_type)) {
     struct FD_HASHSET *hs = (struct FD_HASHSET *) table;
     return FD_INT(hs->hs_n_elts);}
   else if (TABLEP(table)) {
@@ -911,7 +911,7 @@ static lispval map2table(lispval keys,lispval fn,lispval hashp)
 
 static lispval hashsetp(lispval x)
 {
-  if (FD_TYPEP(x,fd_hashset_type))
+  if (TYPEP(x,fd_hashset_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -957,7 +957,7 @@ static lispval hashsetdrop(lispval hs,lispval key)
 static lispval hashsettest(lispval hs,lispval key)
 {
   DO_CHOICES(hset,hs) {
-    if (!(FD_TYPEP(hset,fd_hashset_type)))
+    if (!(TYPEP(hset,fd_hashset_type)))
       return fd_type_error(_("hashset"),"hashsettest",hset);
     else if (fd_hashset_get((fd_hashset)hs,key)) {
       FD_STOP_DO_CHOICES;

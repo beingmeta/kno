@@ -527,7 +527,7 @@ int fd_load_latest
     lispval entry = get_entry(abspath_dtype,sources);
     lispval result = VOID;
     if (PAIRP(entry))
-      if (FD_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
+      if (TYPEP(FD_CDR(entry),fd_timestamp_type)) {
         struct FD_TIMESTAMP *curstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t last_loaded = curstamp->ts_u8xtime.u8_tick;

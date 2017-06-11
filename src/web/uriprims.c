@@ -488,7 +488,7 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
     FD_OID addr = FD_OID_ADDR(name);
     sprintf(namebuf,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
     varname = namebuf;}
-  else if (FD_TYPEP(name,fd_secret_type)) {
+  else if (TYPEP(name,fd_secret_type)) {
     varname = FD_PACKET_DATA(name);
     keep_secret = 1;}
   else {
@@ -505,7 +505,7 @@ static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
         if (do_encode)
           fd_uri_output(out,CSTRING(val),STRLEN(val),0,NULL);
         else u8_puts(out,CSTRING(val));
-      else if (FD_TYPEP(val,fd_secret_type)) {
+      else if (TYPEP(val,fd_secret_type)) {
         if (do_encode)
           fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
         else u8_puts(out,FD_PACKET_DATA(val));
@@ -552,7 +552,7 @@ static lispval uriencode_prim(lispval string,lispval escape,lispval uparg)
   else fd_uri_output(&out,input,-1,upper,CSTRING(escape));
   if (free_input) u8_free(input);
   if (STRINGP(string)) return fd_stream2string(&out);
-  else if (FD_TYPEP(string,fd_packet_type))
+  else if (TYPEP(string,fd_packet_type))
     return fd_init_packet(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   else return fd_stream2string(&out);
 }
@@ -628,7 +628,7 @@ static lispval scripturl_core(u8_string baseuri,lispval params,int n,
     if (need_qmark) {u8_putc(&out,'?'); need_qmark = 0;}
     if (STRINGP(args[0])) 
       fd_uri_output(&out,CSTRING(args[0]),STRLEN(args[0]),0,NULL);
-    else if (FD_TYPEP(args[0],fd_secret_type)) {
+    else if (TYPEP(args[0],fd_secret_type)) {
       fd_uri_output(&out,
 		    FD_PACKET_DATA(args[0]),FD_PACKET_LENGTH(args[0]),
 		    0,NULL);
@@ -668,7 +668,7 @@ static lispval scripturl(int n,lispval *args)
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
              (FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
@@ -676,7 +676,7 @@ static lispval scripturl(int n,lispval *args)
                   strdup("odd number of arguments"),VOID);
   else if (FALSEP(args[0]))
     return scripturl_core(NULL,VOID,n-1,args+1,1,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
+  else if (TYPEP(args[0],fd_secret_type))
     return scripturl_core(NULL,VOID,n-1,args+1,1,1);
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
@@ -686,7 +686,7 @@ static lispval fdscripturl(int n,lispval *args)
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
              (FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
@@ -694,7 +694,7 @@ static lispval fdscripturl(int n,lispval *args)
                   u8dup("odd number of arguments"),VOID);
   else if (FALSEP(args[0]))
     return scripturl_core(NULL,VOID,n-1,args+1,0,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
+  else if (TYPEP(args[0],fd_secret_type))
     return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,1);
   else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,0);
 }
@@ -704,7 +704,7 @@ static lispval scripturlplus(int n,lispval *args)
   if (EMPTYP(args[0])) return EMPTY;
   else if (!((STRINGP(args[0]))||
              (FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturlplus",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==1))
@@ -712,7 +712,7 @@ static lispval scripturlplus(int n,lispval *args)
                   u8dup("odd number of arguments"),VOID);
   else if (FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,1,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
+  else if (TYPEP(args[0],fd_secret_type))
     return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,1);
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
@@ -722,7 +722,7 @@ static lispval fdscripturlplus(int n,lispval *args)
   if (EMPTYP(args[0])) return EMPTY;
   else if  (!((STRINGP(args[0]))||
              (FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturlplus",
                   u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
@@ -730,7 +730,7 @@ static lispval fdscripturlplus(int n,lispval *args)
                   u8dup("odd number of arguments"),VOID);
   else if (FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,0,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
+  else if (TYPEP(args[0],fd_secret_type))
     return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,0,1);
   else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,0,0);
 }

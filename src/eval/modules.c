@@ -714,7 +714,7 @@ static lispval get_exports_prim(lispval arg)
     lispval keys = fd_getkeys(module);
     fd_decref(module);
     return keys;}
-  else if (FD_TYPEP(module,fd_lexenv_type)) {
+  else if (TYPEP(module,fd_lexenv_type)) {
     fd_lexenv expenv=
       fd_consptr(fd_lexenv,module,fd_lexenv_type);
     lispval expval = (lispval)get_exports(expenv);
@@ -738,7 +738,7 @@ static lispval safe_get_exports_prim(lispval arg)
     lispval keys = fd_getkeys(module);
     fd_decref(module);
     return keys;}
-  else if (FD_TYPEP(module,fd_lexenv_type)) {
+  else if (TYPEP(module,fd_lexenv_type)) {
     fd_lexenv expenv=
       fd_consptr(fd_lexenv,module,fd_lexenv_type);
     lispval expval = (lispval)get_exports(expenv);

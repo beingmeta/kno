@@ -1034,7 +1034,7 @@ static lispval set_file_modtime(lispval filename,lispval timestamp)
     ((VOIDP(timestamp))?(time(NULL)):
      (FIXNUMP(timestamp))?(FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
-     (FD_TYPEP(timestamp,fd_timestamp_type))?
+     (TYPEP(timestamp,fd_timestamp_type))?
      (((struct FD_TIMESTAMP *)timestamp)->ts_u8xtime.u8_tick):
      (-1));
   if (mtime<0)
@@ -1057,7 +1057,7 @@ static lispval set_file_atime(lispval filename,lispval timestamp)
     ((VOIDP(timestamp))?(time(NULL)):
      (FIXNUMP(timestamp))?(FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
-     (FD_TYPEP(timestamp,fd_timestamp_type))?
+     (TYPEP(timestamp,fd_timestamp_type))?
      (((struct FD_TIMESTAMP *)timestamp)->ts_u8xtime.u8_tick):
      (-1));
   if (atime<0)
@@ -1177,7 +1177,7 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
 
 static lispval close_prim(lispval portarg)
 {
-  if (FD_TYPEP(portarg,fd_stream_type)) {
+  if (TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
       fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
     fd_close_stream(dts,0);
@@ -1213,12 +1213,12 @@ static lispval flush_prim(lispval portarg)
     u8_flush_xoutput(&u8stdout);
     u8_flush_xoutput(&u8stderr);
     return VOID;}
-  else if (FD_TYPEP(portarg,fd_stream_type)) {
+  else if (TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
       fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
     fd_flush_stream(dts);
     return VOID;}
-  else if (FD_TYPEP(portarg,fd_port_type)) {
+  else if (TYPEP(portarg,fd_port_type)) {
     U8_OUTPUT *out = get_output_port(portarg);
     u8_flush(out);
     if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
@@ -1230,7 +1230,7 @@ static lispval flush_prim(lispval portarg)
 
 static lispval setbuf_prim(lispval portarg,lispval insize,lispval outsize)
 {
-  if (FD_TYPEP(portarg,fd_stream_type)) {
+  if (TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
       fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
     fd_setbufsize(dts,FIX2INT(insize));
@@ -1267,7 +1267,7 @@ static lispval getpos_prim(lispval portarg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(result);
     else return fd_make_bigint(result);}
-  else if (FD_TYPEP(portarg,fd_stream_type)) {
+  else if (TYPEP(portarg,fd_stream_type)) {
     fd_stream ds = fd_consptr(fd_stream,portarg,fd_stream_type);
     fd_off_t pos = fd_getpos(ds);
     if (pos<0) return FD_ERROR;
@@ -1292,7 +1292,7 @@ static lispval endpos_prim(lispval portarg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(result);
     else return fd_make_bigint(result);}
-  else if (FD_TYPEP(portarg,fd_stream_type)) {
+  else if (TYPEP(portarg,fd_stream_type)) {
     fd_stream ds = fd_consptr(fd_stream,portarg,fd_stream_type);
     fd_off_t pos = fd_endpos(ds);
     if (pos<0) return FD_ERROR;
@@ -1340,7 +1340,7 @@ static lispval setpos_prim(lispval portarg,lispval off_arg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(off);
     else return fd_make_bigint(result);}
-  else if (FD_TYPEP(portarg,fd_stream_type)) {
+  else if (TYPEP(portarg,fd_stream_type)) {
     fd_stream ds = fd_consptr(fd_stream,portarg,fd_stream_type);
     fd_off_t off, result;
     if (FIXNUMP(off_arg)) off = FIX2INT(off_arg);

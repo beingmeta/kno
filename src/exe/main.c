@@ -103,7 +103,7 @@ static void _concise_stack_frame(struct FD_STACK *stack)
     struct FD_FUNCTION *fn=(fd_function)op;
     if (fn->fcn_name)
       fprintf(stderr,", op=%s",fn->fcn_name);}
-  else if (FD_TYPEP(op,fd_evalfn_type)) {
+  else if (TYPEP(op,fd_evalfn_type)) {
     struct FD_EVALFN *evalfn=(fd_evalfn)op;
     fprintf(stderr,", op=%s",evalfn->evalfn_name);}
   else {}

@@ -28,7 +28,7 @@ lispval fd_copier(lispval x,int flags)
     switch (ctype) {
     case fd_pair_type: {
       lispval result = NIL, *tail = &result, scan = x;
-      while (FD_TYPEP(scan,fd_pair_type)) {
+      while (TYPEP(scan,fd_pair_type)) {
         struct FD_PAIR *p = FD_CONSPTR(fd_pair,scan);
         struct FD_PAIR *newpair = u8_alloc(struct FD_PAIR);
         lispval car = p->car;

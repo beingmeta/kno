@@ -690,7 +690,7 @@ static int walk_sproc(fd_walker walker,lispval obj,void *walkdata,
 static int unparse_extended_fcnid(u8_output out,lispval x)
 {
   lispval lp = fd_fcnid_ref(x);
-  if (FD_TYPEP(lp,fd_sproc_type)) {
+  if (TYPEP(lp,fd_sproc_type)) {
     struct FD_SPROC *sproc = fd_consptr(fd_sproc,lp,fd_sproc_type);
     unsigned long long addr = (unsigned long long) sproc;
     lispval arglist = sproc->sproc_arglist;
@@ -736,7 +736,7 @@ static int unparse_extended_fcnid(u8_output out,lispval x)
       u8_printf(out," '%s'>>",sproc->fcn_filename);
     else u8_puts(out,">>");
     return 1;}
-  else if (FD_TYPEP(lp,fd_cprim_type)) {
+  else if (TYPEP(lp,fd_cprim_type)) {
     struct FD_FUNCTION *fcn = (fd_function)lp;
     unsigned long long addr = (unsigned long long) fcn;
     u8_string name = fcn->fcn_name;

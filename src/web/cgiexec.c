@@ -622,7 +622,7 @@ static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
         u8_printf(out,"; Path=%s",CSTRING(path));
       if (STRINGP(expires))
         u8_printf(out,"; Expires=%s",CSTRING(expires));
-      else if (FD_TYPEP(expires,fd_timestamp_type)) {
+      else if (TYPEP(expires,fd_timestamp_type)) {
         struct FD_TIMESTAMP *tstamp = (fd_timestamp)expires;
         char buf[512]; struct tm tptr;
         u8_xtime_to_tptr(&(tstamp->ts_u8xtime),&tptr);
@@ -649,7 +649,7 @@ static lispval setcookie
     if (VOIDP(expires)) expires = FD_FALSE;
     if ((FALSEP(expires))||
         (STRINGP(expires))||
-        (FD_TYPEP(expires,fd_timestamp_type)))
+        (TYPEP(expires,fd_timestamp_type)))
       fd_incref(expires);
     else if ((FIXNUMP(expires))||(FD_BIGINTP(expires))) {
       long long ival = ((FIXNUMP(expires))?(FIX2INT(expires)):

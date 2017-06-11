@@ -196,7 +196,7 @@ FD_EXPORT void recycle_condvar(struct FD_RAW_CONS *c)
 
 static lispval synchro_lock(lispval lck)
 {
-  if (FD_TYPEP(lck,fd_condvar_type)) {
+  if (TYPEP(lck,fd_condvar_type)) {
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_lock_mutex(&(cv->fd_cvlock));
@@ -212,7 +212,7 @@ static lispval synchro_lock(lispval lck)
 
 static lispval synchro_unlock(lispval lck)
 {
-  if (FD_TYPEP(lck,fd_condvar_type)) {
+  if (TYPEP(lck,fd_condvar_type)) {
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_unlock_mutex(&(cv->fd_cvlock));
@@ -232,7 +232,7 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if (VOIDP(lock_expr))
     return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
-  if (FD_TYPEP(lck,fd_condvar_type)) {
+  if (TYPEP(lck,fd_condvar_type)) {
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_lock_mutex(&(cv->fd_cvlock));}
@@ -251,7 +251,7 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       fd_decref(value);
       value = FD_ERROR;}
     U8_END_EXCEPTION;}
-  if (FD_TYPEP(lck,fd_condvar_type)) {
+  if (TYPEP(lck,fd_condvar_type)) {
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_unlock_mutex(&(cv->fd_cvlock));}
@@ -546,7 +546,7 @@ static lispval threadjoin_prim(lispval threads)
 {
   lispval results = EMPTY;
   {DO_CHOICES(thread,threads)
-     if (!(FD_TYPEP(thread,fd_thread_type)))
+     if (!(TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
@@ -571,7 +571,7 @@ static lispval threadjoin_prim(lispval threads)
 static lispval threadwait_prim(lispval threads)
 {
   {DO_CHOICES(thread,threads)
-     if (!(FD_TYPEP(thread,fd_thread_type)))
+     if (!(TYPEP(thread,fd_thread_type)))
        return fd_type_error(_("thread"),"threadjoin_prim",thread);}
   {DO_CHOICES(thread,threads) {
     struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;

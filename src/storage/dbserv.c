@@ -649,7 +649,7 @@ static lispval iserver_writablep()
 
 static lispval ixserver_get(lispval index,lispval key)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
+  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
     return fd_index_get(fd_indexptr(index),key);
   else if (TABLEP(index))
     return fd_get(index,key,EMPTY);
@@ -657,7 +657,7 @@ static lispval ixserver_get(lispval index,lispval key)
 }
 static lispval ixserver_bulk_get(lispval index,lispval keys)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
+  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
     if (VECTORP(keys)) {
       fd_index ix = fd_indexptr(index);
       int i = 0, n = VEC_LEN(keys);
@@ -685,7 +685,7 @@ static lispval ixserver_bulk_get(lispval index,lispval keys)
 }
 static lispval ixserver_get_size(lispval index,lispval key)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type))) {
+  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type))) {
     lispval value = fd_index_get(fd_indexptr(index),key);
     int size = FD_CHOICE_SIZE(value);
     fd_decref(value);
@@ -699,7 +699,7 @@ static lispval ixserver_get_size(lispval index,lispval key)
 }
 static lispval ixserver_keys(lispval index)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
+  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
     return fd_index_keys(fd_indexptr(index));
   else if (TABLEP(index))
     return fd_getkeys(index);
@@ -707,7 +707,7 @@ static lispval ixserver_keys(lispval index)
 }
 static lispval ixserver_sizes(lispval index)
 {
-  if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type)))
+  if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type)))
     return fd_index_sizes(fd_indexptr(index));
   else if (TABLEP(index)) {
     lispval results = EMPTY, keys = fd_getkeys(index);

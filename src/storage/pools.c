@@ -1317,7 +1317,7 @@ FD_EXPORT lispval fd_pool2lisp(fd_pool p)
 }
 FD_EXPORT fd_pool fd_lisp2pool(lispval lp)
 {
-  if (FD_TYPEP(lp,fd_pool_type)) {
+  if (TYPEP(lp,fd_pool_type)) {
     int serial = FD_GET_IMMEDIATE(lp,fd_pool_type);
     if (serial<fd_n_pools)
       return fd_pools_by_serialno[serial];
@@ -1326,7 +1326,7 @@ FD_EXPORT fd_pool fd_lisp2pool(lispval lp)
       fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",
                  u8_sprintf(buf,64,"serial = 0x%x",serial));
       return NULL;}}
-  else if (FD_TYPEP(lp,fd_consed_pool_type))
+  else if (TYPEP(lp,fd_consed_pool_type))
     return (fd_pool) lp;
   else {
     fd_seterr(fd_TypeError,_("not a pool"),NULL,lp);

@@ -160,12 +160,12 @@ FD_FASTOP unsigned int hash_lisp1(lispval x)
       sum = (sum+(fd_flip_word(hash_lisp1(scan->kv_val))%MAGIC_MODULUS))%MAGIC_MODULUS;
       scan++;}
     return sum;}
-  else if (FD_TYPEP(x,fd_rational_type)) {
+  else if (TYPEP(x,fd_rational_type)) {
     struct FD_PAIR *p = FD_CONSPTR(fd_pair,x);
     unsigned int sum = hash_lisp1(p->car)%MAGIC_MODULUS;
     sum = (sum<<4)+hash_lisp1(p->cdr)%MAGIC_MODULUS;
     return sum%MAGIC_MODULUS;}
-  else if (FD_TYPEP(x,fd_complex_type)) {
+  else if (TYPEP(x,fd_complex_type)) {
     struct FD_PAIR *p = FD_CONSPTR(fd_pair,x);
     unsigned int sum = hash_lisp1(p->car)%MAGIC_MODULUS;
     sum = (sum<<4)+hash_lisp1(p->cdr)%MAGIC_MODULUS;

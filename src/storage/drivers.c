@@ -478,9 +478,9 @@ static lispval load_caches_prim(lispval arg)
   if (VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);
     fd_for_indexes(load_index_cache,NULL);}
-  else if (FD_TYPEP(arg,fd_index_type))
+  else if (TYPEP(arg,fd_index_type))
     load_index_cache(fd_indexptr(arg),NULL);
-  else if (FD_TYPEP(arg,fd_pool_type))
+  else if (TYPEP(arg,fd_pool_type))
     load_pool_cache(fd_lisp2pool(arg),NULL);
   else {}
   return VOID;

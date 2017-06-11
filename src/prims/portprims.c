@@ -613,7 +613,7 @@ static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
   if (VOIDP(ends)) {}
   else {
     DO_CHOICES(end,ends)
-      if (!((STRINGP(end))||(FD_TYPEP(end,fd_regex_type))))
+      if (!((STRINGP(end))||(TYPEP(end,fd_regex_type))))
         return fd_type_error(_("string"),"record_reader",end);}
   while (1) {
     if (VOIDP(ends)) {
@@ -654,7 +654,7 @@ static off_t find_substring(u8_string string,lispval strings,
           if (matchlen<(STRLEN(s))) {
             matchlen = STRLEN(s);}}
         else {}}}
-    else if (FD_TYPEP(s,fd_regex_type)) {
+    else if (TYPEP(s,fd_regex_type)) {
       off_t starts = fd_regex_op(rx_search,s,string,len,0);
       ssize_t matched_len = (starts<0)?(-1):
         (fd_regex_op(rx_matchlen,s,string+starts,len,0));
@@ -901,7 +901,7 @@ static lispval any_to_base64_prim(lispval arg,lispval nopad,lispval urisafe)
   if (PACKETP(arg)) {
     data = FD_PACKET_DATA(arg);
     data_len = FD_PACKET_LENGTH(arg);}
-  else if ((STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
+  else if ((STRINGP(arg))||(TYPEP(arg,fd_secret_type))) {
     data = CSTRING(arg);
     data_len = STRLEN(arg);}
   else return fd_type_error("packet or string","any_to_base64_prim",arg);

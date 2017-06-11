@@ -362,7 +362,7 @@ static lispval characterp(lispval x)
 
 static lispval errorp(lispval x)
 {
-  if (FD_TYPEP(x,fd_error_type)) return FD_TRUE; else return FD_FALSE;
+  if (TYPEP(x,fd_error_type)) return FD_TRUE; else return FD_FALSE;
 }
 
 static lispval applicablep(lispval x)
@@ -424,7 +424,7 @@ static lispval procedure_name(lispval x)
     if (f->fcn_name)
       return lispval_string(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
       return lispval_string(sf->evalfn_name);
@@ -534,7 +534,7 @@ static lispval find_configs(lispval pat,lispval raw)
     u8_string keystring=
       ((STRINGP(key))?(CSTRING(key)):(SYM_NAME(key)));
     if ((STRINGP(pat))?(strcasestr(keystring,CSTRING(pat))!=NULL):
-        (FD_TYPEP(pat,fd_regex_type))?(fd_regex_test(pat,keystring,-1)):
+        (TYPEP(pat,fd_regex_type))?(fd_regex_test(pat,keystring,-1)):
         (0)) {
       CHOICE_ADD(results,config); fd_incref(config);}}
   return results;

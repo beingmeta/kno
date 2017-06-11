@@ -825,7 +825,7 @@ FD_EXPORT lispval fd_plist_to_slotmap(lispval plist)
 
 FD_EXPORT int fd_sort_slotmap(lispval slotmap,int sorted)
 {
-  if (!(FD_TYPEP(slotmap,fd_slotmap_type)))
+  if (!(TYPEP(slotmap,fd_slotmap_type)))
     return fd_reterr(fd_TypeError,"fd_sort_slotmap",
                      u8_strdup("slotmap"),fd_incref(slotmap));
   else {
@@ -2421,7 +2421,7 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
         struct FD_KEYVAL *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           if ((CONSP(kvscan->kv_val)) &&
-              ((type<0) || (FD_TYPEP(kvscan->kv_val,keeptype)))) {
+              ((type<0) || (TYPEP(kvscan->kv_val,keeptype)))) {
             lispval value=kvscan->kv_val;
             if (!(FD_STATICP(value))) {
               lispval static_value=fd_static_copy(value);
@@ -3563,9 +3563,9 @@ FD_EXPORT lispval fd_getvalues(lispval arg)
 {
   CHECKPTR(arg,"fd_getvalues/table");
   /* Eventually, these might be fd_tablefns fields */
-  if (FD_TYPEP(arg,fd_hashtable_type))
+  if (TYPEP(arg,fd_hashtable_type))
     return fd_hashtable_values(FD_XHASHTABLE(arg));
-  else if (FD_TYPEP(arg,fd_slotmap_type))
+  else if (TYPEP(arg,fd_slotmap_type))
     return fd_slotmap_values(FD_XSLOTMAP(arg));
   else if (CHOICEP(arg)) {
     lispval results=EMPTY;
@@ -3590,9 +3590,9 @@ FD_EXPORT lispval fd_getassocs(lispval arg)
 {
   CHECKPTR(arg,"fd_getassocs/table");
   /* Eventually, these might be fd_tablefns fields */
-  if (FD_TYPEP(arg,fd_hashtable_type)) 
+  if (TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_assocs(FD_XHASHTABLE(arg));
-  else if (FD_TYPEP(arg,fd_slotmap_type))
+  else if (TYPEP(arg,fd_slotmap_type))
     return fd_slotmap_assocs(FD_XSLOTMAP(arg));
   else if (CHOICEP(arg)) {
     lispval results=EMPTY;

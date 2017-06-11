@@ -265,7 +265,7 @@ static lispval adjunct_fetch(fd_adjunct adj,lispval frame,lispval dflt)
      (fd_hashtable_get((fd_hashtable)store,frame,VOID)) :
      (FD_INDEXP(store)) ? (fd_index_get(l2x(store),frame)) :
      (FD_POOLP(store)) ? (fd_pool_get(l2p(store),frame)) :
-     (FD_TYPEP(store,fd_consed_index_type)) ?
+     (TYPEP(store,fd_consed_index_type)) ?
      (fd_index_get(((fd_index)store),frame)) :
      (fd_get(store,frame,VOID)));
 }

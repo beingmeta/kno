@@ -588,7 +588,7 @@ static lispval getcontent(lispval path)
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
-	    (FD_TYPEP((FD_CDR(FD_CDR(value))),fd_lexenv_type))) {
+	    (TYPEP((FD_CDR(FD_CDR(value))),fd_lexenv_type))) {
 	  fd_lexenv env = (fd_lexenv)(FD_CDR(FD_CDR(value)));
 	  if (FD_HASHTABLEP(env->env_bindings))
 	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}

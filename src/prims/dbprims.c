@@ -232,7 +232,7 @@ static lispval poolp(lispval arg)
 
 static lispval indexp(lispval arg)
 {
-  if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type)))
+  if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type)))
     return FD_TRUE; else return FD_FALSE;
 }
 
@@ -276,7 +276,7 @@ static lispval set_cache_level(lispval arg,lispval level)
     if (p) fd_pool_setcache(p,FIX2INT(level));
     else return FD_ERROR;
     return VOID;}
-  else if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type))) {
+  else if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg);
     if (ix) fd_index_setcache(ix,FIX2INT(level));
     else return fd_type_error("index","index_frame_prim",arg);
@@ -286,7 +286,7 @@ static lispval set_cache_level(lispval arg,lispval level)
 
 static lispval try_pool(lispval arg1,lispval opts)
 {
-  if ( (FD_POOLP(arg1)) || (FD_TYPEP(arg1,fd_consed_pool_type)) )
+  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
     return fd_incref(arg1);
   else if (!(STRINGP(arg1)))
     return fd_type_error(_("string"),"load_pool",arg1);
@@ -299,7 +299,7 @@ static lispval try_pool(lispval arg1,lispval opts)
 
 static lispval adjunct_pool(lispval arg1,lispval opts)
 {
-  if ( (FD_POOLP(arg1)) || (FD_TYPEP(arg1,fd_consed_pool_type)) )
+  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
     // TODO: Should check it's really adjunct, if that's the right thing?
     return fd_incref(arg1);
   else if (!(STRINGP(arg1)))
@@ -317,7 +317,7 @@ static lispval adjunct_pool(lispval arg1,lispval opts)
 
 static lispval use_pool(lispval arg1,lispval opts)
 {
-  if ( (FD_POOLP(arg1)) || (FD_TYPEP(arg1,fd_consed_pool_type)) )
+  if ( (FD_POOLP(arg1)) || (TYPEP(arg1,fd_consed_pool_type)) )
     // TODO: Should check to make sure that it's in the background
     return fd_incref(arg1);
   else if (!(STRINGP(arg1)))
@@ -332,7 +332,7 @@ static lispval use_pool(lispval arg1,lispval opts)
 static lispval use_index(lispval arg,lispval opts)
 {
   fd_index ixresult = NULL;
-  if ( (FD_INDEXP(arg)) || (FD_TYPEP(arg,fd_consed_index_type)) ) {
+  if ( (FD_INDEXP(arg)) || (TYPEP(arg,fd_consed_index_type)) ) {
     ixresult = fd_indexptr(arg);
     if (ixresult) fd_add_to_background(ixresult);
     else return fd_type_error("index","index_frame_prim",arg);
@@ -402,7 +402,7 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
       return results;}
     else return index2lisp(fd_get_index(CSTRING(arg),flags,opts));}
   else if (FD_INDEXP(arg)) return arg;
-  else if (FD_TYPEP(arg,fd_consed_index_type))
+  else if (TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
   if (ix)
@@ -538,8 +538,8 @@ static lispval unlockoids(lispval oids,lispval commitp)
   if (VOIDP(oids)) {
     fd_unlock_pools(force_commit);
     return FD_FALSE;}
-  else if ((FD_TYPEP(oids,fd_pool_type))||(STRINGP(oids))) {
-    fd_pool p = ((FD_TYPEP(oids,fd_pool_type)) ? (fd_lisp2pool(oids)) :
+  else if ((TYPEP(oids,fd_pool_type))||(STRINGP(oids))) {
+    fd_pool p = ((TYPEP(oids,fd_pool_type)) ? (fd_lisp2pool(oids)) :
                (fd_name2pool(CSTRING(oids))));
     if (p) {
       int retval = fd_pool_unlock_all(p,force_commit);
@@ -562,12 +562,12 @@ static lispval make_compound_index(int n,lispval *args)
       fd_index ix = NULL;
       if (STRINGP(source)) ix = fd_get_index(fd_strdata(source),0,VOID);
       else if (FD_INDEXP(source)) ix = fd_indexptr(source);
-      else if (FD_TYPEP(source,fd_consed_index_type)) ix = fd_indexptr(source);
+      else if (TYPEP(source,fd_consed_index_type)) ix = fd_indexptr(source);
       else if (SYMBOLP(source)) {
         lispval val = fd_config_get(SYM_NAME(source));
         if (STRINGP(val)) ix = fd_get_index(fd_strdata(val),0,VOID);
         else if (FD_INDEXP(val)) ix = fd_indexptr(source);
-        else if (FD_TYPEP(val,fd_consed_index_type)) ix = fd_indexptr(val);}
+        else if (TYPEP(val,fd_consed_index_type)) ix = fd_indexptr(val);}
       else {}
       if (ix) {
         if (n_sources>=max_sources) {
@@ -861,9 +861,9 @@ static lispval swapout_lexpr(int n,lispval *args)
           rv = fd_pool_swapout(fd_lisp2pool(e),VOID);
         else if (FD_INDEXP(e))
           fd_index_swapout(fd_indexptr(e),VOID);
-        else if (FD_TYPEP(e,fd_consed_index_type))
+        else if (TYPEP(e,fd_consed_index_type))
           fd_index_swapout(fd_indexptr(e),VOID);
-        else if (FD_TYPEP(arg,fd_consed_pool_type))
+        else if (TYPEP(arg,fd_consed_pool_type))
           rv = fd_pool_swapout((fd_pool)arg,VOID);
         else if (STRINGP(e)) {
           fd_pool p = fd_name2pool(CSTRING(e));
@@ -885,13 +885,13 @@ static lispval swapout_lexpr(int n,lispval *args)
       return FD_INT(rv_sum);}
     else if (OIDP(arg)) 
       rv_sum = fd_swapout_oid(arg);
-    else if (FD_TYPEP(arg,fd_index_type))
+    else if (TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),VOID);
-    else if (FD_TYPEP(arg,fd_pool_type))
+    else if (TYPEP(arg,fd_pool_type))
       rv_sum = fd_pool_swapout(fd_lisp2pool(arg),VOID);
-    else if (FD_TYPEP(arg,fd_consed_index_type))
+    else if (TYPEP(arg,fd_consed_index_type))
       fd_index_swapout(fd_indexptr(arg),VOID);
-    else if (FD_TYPEP(arg,fd_consed_pool_type))
+    else if (TYPEP(arg,fd_consed_pool_type))
       rv_sum = fd_pool_swapout((fd_pool)arg,VOID);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     return FD_INT(rv_sum);}
@@ -899,19 +899,19 @@ static lispval swapout_lexpr(int n,lispval *args)
     return fd_err(fd_TooManyArgs,"swapout",NULL,VOID);
   else {
     lispval arg, keys; int rv_sum = 0;
-    if ((FD_TYPEP(args[0],fd_pool_type))||
-        (FD_TYPEP(args[0],fd_index_type))||
-        (FD_TYPEP(args[0],fd_consed_pool_type))||
-        (FD_TYPEP(args[0],fd_consed_index_type))) {
+    if ((TYPEP(args[0],fd_pool_type))||
+        (TYPEP(args[0],fd_index_type))||
+        (TYPEP(args[0],fd_consed_pool_type))||
+        (TYPEP(args[0],fd_consed_index_type))) {
       arg = args[0]; keys = args[1];}
     else {arg = args[0]; keys = args[1];}
-    if (FD_TYPEP(arg,fd_index_type))
+    if (TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
-    else if (FD_TYPEP(arg,fd_pool_type))
+    else if (TYPEP(arg,fd_pool_type))
       rv_sum = fd_pool_swapout(fd_lisp2pool(arg),keys);
-    else if (FD_TYPEP(arg,fd_consed_index_type))
+    else if (TYPEP(arg,fd_consed_index_type))
       fd_index_swapout(fd_indexptr(arg),keys);
-    else if (FD_TYPEP(arg,fd_consed_pool_type))
+    else if (TYPEP(arg,fd_consed_pool_type))
       rv_sum = fd_pool_swapout((fd_pool)arg,keys);
     else return fd_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
     if (rv_sum<0) return FD_ERROR;
@@ -928,13 +928,13 @@ static lispval commit_lexpr(int n,lispval *args)
     return VOID;}
   else if (n == 1) {
     lispval arg = args[0]; int retval = 0;
-    if (FD_TYPEP(arg,fd_index_type))
+    if (TYPEP(arg,fd_index_type))
       retval = fd_index_commit(fd_indexptr(arg));
-    else if (FD_TYPEP(arg,fd_pool_type))
+    else if (TYPEP(arg,fd_pool_type))
       retval = fd_pool_commit_all(fd_lisp2pool(arg));
-    else if (FD_TYPEP(arg,fd_consed_index_type))
+    else if (TYPEP(arg,fd_consed_index_type))
       retval = fd_index_commit(fd_indexptr(arg));
-    else if (FD_TYPEP(arg,fd_consed_pool_type))
+    else if (TYPEP(arg,fd_consed_pool_type))
       retval = fd_pool_commit_all((fd_pool)arg);
     else if (OIDP(arg))
       retval = fd_commit_oids(arg);
@@ -1017,7 +1017,7 @@ static lispval swapcheck_prim()
 static fd_pool arg2pool(lispval arg)
 {
   if (FD_POOLP(arg)) return fd_lisp2pool(arg);
-  else if (FD_TYPEP(arg,fd_consed_pool_type))
+  else if (TYPEP(arg,fd_consed_pool_type))
     return (fd_pool)arg;
   else if (STRINGP(arg)) {
     fd_pool p = fd_name2pool(CSTRING(arg));
@@ -1347,7 +1347,7 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
     else return VOID;}
   else {
     DO_CHOICES(arg,arg1) {
-      if ((FD_INDEXP(arg))||(FD_TYPEP(arg,fd_consed_index_type))) {
+      if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(arg);
         if (fd_index_prefetch(ix,arg2)<0) {
           FD_STOP_DO_CHOICES;
@@ -1380,11 +1380,11 @@ static lispval cached_keys(lispval index)
 
 static lispval cache_load(lispval db)
 {
-  if ( (FD_POOLP(db)) || (FD_TYPEP(db,fd_consed_pool_type) ) ) {
+  if ( (FD_POOLP(db)) || (TYPEP(db,fd_consed_pool_type) ) ) {
     fd_pool p = fd_lisp2pool(db);
     int n_keys = p->pool_cache.table_n_keys;
     return FD_INT(n_keys);}
-  else if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type) ) ) {
+  else if ( (FD_INDEXP(db)) || (TYPEP(db,fd_consed_index_type) ) ) {
     fd_index ix = fd_lisp2index(db);
     int n_keys = ix->index_cache.table_n_keys;
     return FD_INT(n_keys);}
@@ -1393,11 +1393,11 @@ static lispval cache_load(lispval db)
 
 static lispval change_load(lispval db)
 {
-  if ( (FD_POOLP(db)) || (FD_TYPEP(db,fd_consed_pool_type) ) ) {
+  if ( (FD_POOLP(db)) || (TYPEP(db,fd_consed_pool_type) ) ) {
     fd_pool p = fd_lisp2pool(db);
     int n_pending = p->pool_changes.table_n_keys;
     return FD_INT(n_pending);}
-  else if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type) ) ) {
+  else if ( (FD_INDEXP(db)) || (TYPEP(db,fd_consed_index_type) ) ) {
     fd_index ix = fd_lisp2index(db);
     int n_pending = ix->index_adds.table_n_keys +
       ix->index_edits.table_n_keys ;
@@ -1637,7 +1637,7 @@ static fd_index arg2index(lispval arg)
 {
   if (FD_INDEXP(arg))
     return fd_lisp2index(arg);
-  else if (FD_TYPEP(arg,fd_consed_index_type))
+  else if (TYPEP(arg,fd_consed_index_type))
     return (fd_index)arg;
   else if (STRINGP(arg)) {
     fd_index ix = fd_find_index(CSTRING(arg));
@@ -1809,13 +1809,13 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
         return retval;}}
     return 0;}
   else if ((OIDP(f)) && ((SYMBOLP(pred)) || (OIDP(pred)))) {
-    if ((!datalevel)&&(FD_TYPEP(val,fd_regex_type)))
+    if ((!datalevel)&&(TYPEP(val,fd_regex_type)))
       return test_relation_regex(f,pred,val);
     else if (datalevel)
       return fd_test(f,pred,val);
     else return fd_frame_test(f,pred,val);}
   else if ((TABLEP(f)) && ((SYMBOLP(pred)) || (OIDP(pred)))) {
-    if ((!datalevel)&&(FD_TYPEP(val,fd_regex_type)))
+    if ((!datalevel)&&(TYPEP(val,fd_regex_type)))
       return test_relation_regex(f,pred,val);
     else return fd_test(f,pred,val);}
   else if (TABLEP(pred))
@@ -1824,7 +1824,7 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
     lispval rail[2], result = VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
-    if ((FD_SPROCP(pred)) || (FD_TYPEP(pred,fd_cprim_type))) {
+    if ((FD_SPROCP(pred)) || (TYPEP(pred,fd_cprim_type))) {
       fd_function fcn = FD_DTYPE2FCN(pred);
       if (fcn->fcn_min_arity==1) {
         lispval value = fd_apply(pred,1,&f); int retval = -1;
@@ -1834,7 +1834,7 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
         else if ((FD_HASHSETP(val))||
                  (HASHTABLEP(val))||
                  (FD_APPLICABLEP(val))||
-                 ((datalevel==0)&&(FD_TYPEP(val,fd_regex_type)))||
+                 ((datalevel==0)&&(TYPEP(val,fd_regex_type)))||
                  ((PAIRP(val))&&(FD_APPLICABLEP(FD_CAR(val)))))
           retval = test_selector_predicate(value,val,datalevel);
         else retval = 0;
@@ -1907,7 +1907,7 @@ FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,
     if (datalevel)
       return fd_test(candidate,test,VOID);
     else return fd_frame_test(candidate,test,VOID);
-  else if ((!(datalevel))&&(FD_TYPEP(test,fd_regex_type))) {
+  else if ((!(datalevel))&&(TYPEP(test,fd_regex_type))) {
     if (STRINGP(candidate)) {
       struct FD_REGEX *fdrx = (struct FD_REGEX *)test;
       regmatch_t results[1];
@@ -1922,7 +1922,7 @@ FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,
       else if (results[0].rm_so<0) return 0;
       else return 1;}
     else return 0;}
-  else if (FD_TYPEP(test,fd_hashset_type))
+  else if (TYPEP(test,fd_hashset_type))
     if (fd_hashset_get((fd_hashset)test,candidate))
       return 1;
     else return 0;
@@ -2864,7 +2864,7 @@ static lispval dbloadedp(lispval arg1,lispval arg2)
     else if (fd_hashtable_probe(&(fd_background->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_consed_index_type))) {
+  else if ((FD_INDEXP(arg2))||(TYPEP(arg2,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);
@@ -2928,12 +2928,12 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
       if (oidmodifiedp(p,arg1))
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_POOLP(arg1))||(FD_TYPEP(arg1,fd_consed_pool_type))) {
+    else if ((FD_POOLP(arg1))||(TYPEP(arg1,fd_consed_pool_type))) {
       fd_pool p = fd_lisp2pool(arg1);
       if (p->pool_changes.table_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
-    else if ((FD_INDEXP(arg1))||(FD_TYPEP(arg1,fd_consed_index_type))) {
+    else if ((FD_INDEXP(arg1))||(TYPEP(arg1,fd_consed_index_type))) {
       fd_index ix = fd_lisp2index(arg1);
       if ((ix->index_edits.table_n_keys) || (ix->index_adds.table_n_keys))
         return FD_TRUE;
@@ -2946,7 +2946,7 @@ static lispval dbmodifiedp(lispval arg1,lispval arg2)
         else return FD_FALSE;}
       else return FD_FALSE;}
     else return FD_FALSE;
-  else if ((FD_INDEXP(arg2))||(FD_TYPEP(arg2,fd_consed_index_type))) {
+  else if ((FD_INDEXP(arg2))||(TYPEP(arg2,fd_consed_index_type))) {
     fd_index ix = fd_indexptr(arg2);
     if (ix == NULL)
       return fd_type_error("index","loadedp",arg2);

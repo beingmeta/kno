@@ -97,7 +97,7 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex)
     return irritant;
   if ((PAIRP(irritant)) && (PAIRP(FD_CDR(irritant))) &&
       (FD_CAR(irritant) == stacktrace_symbol)) {
-    if (FD_TYPEP(FD_CADR(irritant),fd_error_type)) {
+    if (TYPEP(FD_CADR(irritant),fd_error_type)) {
       struct FD_EXCEPTION_OBJECT *embedded=
 	(struct FD_EXCEPTION_OBJECT *) FD_CADR(irritant);
       u8_exception embedded_ex = embedded->fdex_u8ex;
@@ -273,9 +273,9 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 	     U8ALT(ex->u8x_details,""));
     else if ( (FD_IMMEDIATEP(irritant)) ||
 	      (NUMBERP(irritant)) ||
-	      (FD_TYPEP(irritant,fd_timestamp_type)) ||
-	      (FD_TYPEP(irritant,fd_uuid_type)) ||
-	      (FD_TYPEP(irritant,fd_regex_type)) )
+	      (TYPEP(irritant,fd_timestamp_type)) ||
+	      (TYPEP(irritant,fd_uuid_type)) ||
+	      (TYPEP(irritant,fd_regex_type)) )
       u8_log(loglevel,ex->u8x_cond,"%q @%s %s",ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else {

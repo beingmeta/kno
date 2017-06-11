@@ -74,7 +74,7 @@ static enum u8_timestamp_precision get_precision(lispval sym)
 
 static lispval timestampp(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_timestamp_type))
+  if (TYPEP(arg,fd_timestamp_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -103,7 +103,7 @@ static lispval timestamp_prim(lispval arg)
   else if (FIXNUMP(arg)) {
     u8_local_xtime(&(tm->ts_u8xtime),(time_t)(FIX2INT(arg)),u8_second,-1);
     return LISP_CONS(tm);}
-  else if (FD_TYPEP(arg,fd_timestamp_type)) {
+  else if (TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *fdt = (struct FD_TIMESTAMP *)arg;
     u8_local_xtime(&(tm->ts_u8xtime),
                    fdt->ts_u8xtime.u8_tick,fdt->ts_u8xtime.u8_prec,
@@ -136,7 +136,7 @@ static lispval gmtimestamp_prim(lispval arg)
   if (VOIDP(arg)) {
     u8_init_xtime(&(tm->ts_u8xtime),-1,u8_nanosecond,0,0,0);
     return LISP_CONS(tm);}
-  else if (FD_TYPEP(arg,fd_timestamp_type)) {
+  else if (TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *ftm = fd_consptr(fd_timestamp,arg,fd_timestamp_type);
     if ((ftm->ts_u8xtime.u8_tzoff==0)&&(ftm->ts_u8xtime.u8_dstoff==0)) {
       u8_free(tm); return fd_incref(arg);}
@@ -191,7 +191,7 @@ static lispval gmtimestamp_prim(lispval arg)
 
 static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
 {
-  if (FD_TYPEP(arg,fd_timestamp_type)) {
+  if (TYPEP(arg,fd_timestamp_type)) {
     *freeit = 0;
     return fd_consptr(struct FD_TIMESTAMP *,arg,fd_timestamp_type);}
   else if (STRINGP(arg)) {
@@ -880,7 +880,7 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
     return fd_type_error("table","modtime_prim",slotmap);
   else if (VOIDP(base))
     result = timestamp_prim(VOID);
-  else if (FD_TYPEP(base,fd_timestamp_type))
+  else if (TYPEP(base,fd_timestamp_type))
     result = fd_deep_copy(base);
   else result = timestamp_prim(base);
   if (FD_ABORTP(result)) return result;
@@ -910,7 +910,7 @@ static lispval mktime_lexpr(int n,lispval *args)
   lispval base; struct U8_XTIME *xt; int scan = 0;
   if (n%2) {
     lispval spec = args[0]; scan = 1;
-    if (FD_TYPEP(spec,fd_timestamp_type))
+    if (TYPEP(spec,fd_timestamp_type))
       base = fd_deep_copy(spec);
     else if ((FIXNUMP(spec))||(FD_BIGINTP(spec))) {
       time_t moment = (time_t)
@@ -1202,7 +1202,7 @@ static void init_id_tables()
 
 static lispval uuidp_prim(lispval x)
 {
-  if (FD_TYPEP(x,fd_uuid_type)) return FD_TRUE;
+  if (TYPEP(x,fd_uuid_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -1234,13 +1234,13 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
       memcpy(&(uuid->fd_uuid16),data,16);
       return LISP_CONS(uuid);}
     else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
-  else if ((VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_uuid_type)))
+  else if ((VOIDP(tptr))&&(TYPEP(nodeid,fd_uuid_type)))
     return fd_incref(nodeid);
-  else if ((VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_timestamp_type))) {
+  else if ((VOIDP(tptr))&&(TYPEP(nodeid,fd_timestamp_type))) {
     lispval tmp = tptr; tptr = nodeid; nodeid = tmp;}
   if ((VOIDP(tptr))&&(VOIDP(nodeid)))
     return fd_fresh_uuid(NULL);
-  if (FD_TYPEP(tptr,fd_timestamp_type)) {
+  if (TYPEP(tptr,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tstamp=
       fd_consptr(struct FD_TIMESTAMP *,tptr,fd_timestamp_type);
     xt = &(tstamp->ts_u8xtime);}

@@ -199,11 +199,11 @@ FD_EXPORT lispval fd_index2lisp(fd_index ix)
 FD_EXPORT fd_index fd_lisp2index(lispval lix)
 {
   if (FD_ABORTP(lix)) return NULL;
-  else if (FD_TYPEP(lix,fd_index_type)) {
+  else if (TYPEP(lix,fd_index_type)) {
     int serial = FD_GET_IMMEDIATE(lix,fd_index_type);
     if (serial<FD_N_PRIMARY_INDEXES) return fd_primary_indexes[serial];
     else return fd_secondary_indexes[serial-FD_N_PRIMARY_INDEXES];}
-  else if (FD_TYPEP(lix,fd_consed_index_type))
+  else if (TYPEP(lix,fd_consed_index_type))
     return (fd_index) lix;
   else {
     fd_seterr(fd_TypeError,_("not an index"),NULL,lix);

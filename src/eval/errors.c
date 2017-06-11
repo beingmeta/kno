@@ -149,7 +149,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         fd_decref(value);
         fd_decref(err_value);
         return FD_ERROR;}
-      else if (FD_TYPEP(handler_result,fd_error_type)) {
+      else if (TYPEP(handler_result,fd_error_type)) {
 	fd_exception_object newexo=
           fd_consptr(fd_exception_object,handler_result,fd_error_type);
 	u8_exception newex = newexo->fdex_u8ex;

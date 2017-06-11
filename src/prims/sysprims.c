@@ -713,7 +713,7 @@ static int corelimit_set(lispval symbol,lispval value,void *vptr)
     limit.rlim_cur = limit.rlim_max = FIX2INT(value);
   else if (FD_TRUEP(value))
     limit.rlim_cur = limit.rlim_max = RLIM_INFINITY;
-  else if (FD_TYPEP(value,fd_bigint_type))
+  else if (TYPEP(value,fd_bigint_type))
     limit.rlim_cur = limit.rlim_max = fd_bigint_to_long_long
       ((struct FD_BIGINT *)(value));
   else {

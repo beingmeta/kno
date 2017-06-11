@@ -1880,7 +1880,7 @@ static int has_suffix(lispval string,lispval suffix)
 static lispval check_string(lispval string,lispval lexicon)
 {
   if (FD_TRUEP(lexicon)) return string;
-  else if (FD_TYPEP(lexicon,fd_hashset_type))
+  else if (TYPEP(lexicon,fd_hashset_type))
     if (fd_hashset_get((fd_hashset)lexicon,string))
       return string;
     else return EMPTY;
@@ -2043,7 +2043,7 @@ static lispval textclosure_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 static lispval textclosurep(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_txclosure_type))
+  if (TYPEP(arg,fd_txclosure_type))
     return FD_TRUE;
   else return FD_FALSE;
 }

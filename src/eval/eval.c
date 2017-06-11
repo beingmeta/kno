@@ -1611,7 +1611,7 @@ FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
 
 static lispval dtserverp(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_dtserver_type))
+  if (TYPEP(arg,fd_dtserver_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -1630,7 +1630,7 @@ static lispval dtserver_address(lispval arg)
 
 static lispval dteval(lispval server,lispval expr)
 {
-  if (FD_TYPEP(server,fd_dtserver_type))  {
+  if (TYPEP(server,fd_dtserver_type))  {
     struct FD_DTSERVER *dtsrv=
       fd_consptr(fd_stream_erver,server,fd_dtserver_type);
     return fd_dteval(dtsrv->fd_connpool,expr);}
@@ -1648,7 +1648,7 @@ static lispval dtcall(int n,lispval *args)
 {
   lispval server; lispval request = NIL, result; int i = n-1;
   if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,VOID);
-  if (FD_TYPEP(args[0],fd_dtserver_type))
+  if (TYPEP(args[0],fd_dtserver_type))
     server = fd_incref(args[0]);
   else if (STRINGP(args[0])) server = fd_open_dtserver(CSTRING(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
@@ -1760,7 +1760,7 @@ u8_string fd_get_documentation(lispval x)
   else if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(proc);
     return f->fcn_documentation;}
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = (fd_evalfn)proc;
     return sf->evalfn_documentation;}
   else return NULL;

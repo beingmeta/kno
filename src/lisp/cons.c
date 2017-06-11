@@ -202,7 +202,7 @@ int lispval_equal(lispval x,lispval y)
     if (convert_x) fd_decref(cx);
     if (convert_y) fd_decref(cy);
     return result;}
-  else if (!(FD_TYPEP(y,FD_PTR_TYPE(x))))
+  else if (!(TYPEP(y,FD_PTR_TYPE(x))))
     if ((PACKETP(x))&&(PACKETP(y)))
       if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
       else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
