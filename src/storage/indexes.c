@@ -642,6 +642,8 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
       decref_keys=1;}
     if (EMPTYP(keys))
       return EMPTY;
+    else if ( (VOIDP(keys)) || (keys == FD_DEFAULT_VALUE) )
+      filter=NULL;
     else if (!(CHOICEP(keys))) {
       lispval v = fd_index_get(ix,keys);
       unsigned int size = FD_CHOICE_SIZE(v);
@@ -650,8 +652,9 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
       if (decref_keys) fd_decref(keys);
       fd_decref(v);
       return result;}
+    else filter=(fd_choice)keys;
     struct FD_KEY_SIZE *fetched =
-      ix->index_handler->fetchinfo(ix,(fd_choice)keys,&n_fetched);
+      ix->index_handler->fetchinfo(ix,filter,&n_fetched);
     if ((n_fetched==0) && (ix->index_adds.table_n_keys==0))
       return EMPTY;
     else if ((ix->index_adds.table_n_keys)==0) {
