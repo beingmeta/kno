@@ -1422,7 +1422,7 @@ install-support: $(DESTDIR)@share_dir@
 		gdbinit makefile.include fdconsole.el 		\
 		$(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar batch bench storage
+LIBSCM_DIRS=optimize bugjar storage
 install-libscm:
 	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}
 	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM}
