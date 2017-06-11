@@ -1339,22 +1339,22 @@ static lispval sortvec_primfn(lispval vec,lispval keyfn,int reverse,int lexsort)
       lispval elt = VEC_REF(vec,i);
       lispval value=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(value)) {
-        int j = 0; while (j<i) {fd_decref(sentries[j].fd_sortval); j++;}
+        int j = 0; while (j<i) {fd_decref(sentries[j].sortval); j++;}
         u8_free(sentries); u8_free(vecdata);
         return value;}
-      sentries[i].fd_sortval = elt;
-      sentries[i].fd_sortkey = value;
+      sentries[i].sortval = elt;
+      sentries[i].sortkey = value;
       i++;}
     if (lexsort)
       qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
     else qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i = 0; j = n-1; if (reverse) while (i < n) {
-      fd_decref(sentries[i].fd_sortkey);
-      vecdata[j]=fd_incref(sentries[i].fd_sortval);
+      fd_decref(sentries[i].sortkey);
+      vecdata[j]=fd_incref(sentries[i].sortval);
       i++; j--;}
     else while (i < n) {
-      fd_decref(sentries[i].fd_sortkey);
-      vecdata[i]=fd_incref(sentries[i].fd_sortval);
+      fd_decref(sentries[i].sortkey);
+      vecdata[i]=fd_incref(sentries[i].sortval);
       i++;}
     u8_free(sentries);
     return result;}
@@ -1591,8 +1591,8 @@ static lispval vector_set(lispval vec,lispval index,lispval val)
 {
   struct FD_VECTOR *v = fd_consptr(struct FD_VECTOR *,vec,fd_vector_type);
   if (!(FD_UINTP(index))) return fd_type_error("uint","vector_set",index);
-  int offset = FIX2INT(index); lispval *elts = v->fdvec_elts;
-  if (offset>v->fdvec_length) {
+  int offset = FIX2INT(index); lispval *elts = v->vec_elts;
+  if (offset>v->vec_length) {
     char buf[32];
     return fd_err(fd_RangeError,"vector_set",
                   u8_uitoa10(offset,buf),

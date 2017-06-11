@@ -233,7 +233,7 @@ static lispval hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
 {
   struct FD_STRING sval;
   FD_INIT_STATIC_CONS(&sval,fd_string_type);
-  sval.fd_bytelen = len; sval.fd_bytes = s;
+  sval.str_bytelen = len; sval.str_bytes = s;
   return fd_hashset_get(h,(lispval)&sval);
 }
 
@@ -693,12 +693,12 @@ static lispval textract
   else if (TYPEP(pat,fd_regex_type)) {
     struct FD_REGEX *ptr = fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
     regmatch_t results[1]; u8_string base = CSTRING(string)+off;
-    int retval = regexec(&(ptr->fd_rxcompiled),base,1,results,0);
+    int retval = regexec(&(ptr->rxcompiled),base,1,results,0);
     if (retval == REG_NOMATCH) return EMPTY;
     else if (retval) {
       u8_byte buf[512];
-      regerror(retval,&(ptr->fd_rxcompiled),buf,512);
-      u8_unlock_mutex(&(ptr->fdrx_lock));
+      regerror(retval,&(ptr->rxcompiled),buf,512);
+      u8_unlock_mutex(&(ptr->rx_lock));
       return fd_err(fd_RegexError,"fd_text_extract",
                     u8_strdup(buf),VOID);}
     else {

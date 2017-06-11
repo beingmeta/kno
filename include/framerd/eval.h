@@ -62,6 +62,17 @@ typedef struct FD_EVALFN *fd_evalfn;
 
 FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
 FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
+FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
+			     u8_string filename,
+			     u8_string doc,
+			     fd_eval_handler fn);
+FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
+			     u8_string filename,
+			     u8_string doc,
+			     fd_eval_handler fn);
+
+#define fd_def_evalfn(mod,name,doc,evalfn) \
+  fd_new_evalfn(mod,name,_FILEINFO,doc,evalfn)
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
@@ -83,7 +94,7 @@ FD_EXPORT u8_string fd_get_documentation(lispval x);
 typedef struct FD_DTSERVER {
   FD_CONS_HEADER;
   u8_string dtserverid, dtserver_addr;
-  struct U8_CONNPOOL *fd_connpool;} FD_DTSERVER;
+  struct U8_CONNPOOL *connpool;} FD_DTSERVER;
 typedef struct FD_DTSERVER *fd_stream_erver;
 
 /* Modules */
@@ -102,10 +113,6 @@ FD_EXPORT int fd_module_finished(lispval module,int flags);
 FD_EXPORT int fd_finish_module(lispval module);
 FD_EXPORT int fd_static_module(lispval module);
 FD_EXPORT int fd_lock_exports(lispval module);
-
-
-FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn);
-FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn);
 
 FD_EXPORT lispval fd_find_module(lispval,int,int);
 FD_EXPORT lispval fd_new_module(char *name,int flags);
@@ -156,9 +163,9 @@ FD_EXPORT lispval fd_make_sproc(u8_string name,
 /* Loading files and config data */
 
 typedef struct FD_SOURCEFN {
-  u8_string (*fd_getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
-  void *fd_getsource_data;
-  struct FD_SOURCEFN *fd_next_sourcefn;} FD_SOURCEFN;
+  u8_string (*getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
+  void *getsource_data;
+  struct FD_SOURCEFN *getsource_next;} FD_SOURCEFN;
 typedef struct FD_SOURCEFN *fd_sourcefn;
 
 FD_EXPORT u8_string fd_get_source(u8_string,u8_string,u8_string *,time_t *);
@@ -179,8 +186,8 @@ FD_EXPORT u8_string fd_bind_sourcebase(u8_string sourcebase);
 FD_EXPORT void fd_restore_sourcebase(u8_string sourcebase);
 
 typedef struct FD_CONFIG_RECORD {
-  u8_string fd_config_source;
-  struct FD_CONFIG_RECORD *fd_config_next;} FD_CONFIG_RECORD;
+  u8_string config_filename;
+  struct FD_CONFIG_RECORD *loaded_after;} FD_CONFIG_RECORD;
 
 /* The Evaluator */
 

@@ -1924,8 +1924,8 @@ static lispval apply_suffixrule
       u8_putn(&out,CSTRING(string),(slen-sufflen));
       u8_putn(&out,CSTRING(replacement),replen);
       FD_INIT_STATIC_CONS(&stack_string,fd_string_type);
-      stack_string.fd_bytes = out.u8_outbuf;
-      stack_string.fd_bytelen = out.u8_write-out.u8_outbuf;
+      stack_string.str_bytes = out.u8_outbuf;
+      stack_string.str_bytelen = out.u8_write-out.u8_outbuf;
       result = check_string((lispval)&stack_string,lexicon);
       if (FD_ABORTP(result)) return result;
       else if (EMPTYP(result)) return result;
@@ -2724,7 +2724,7 @@ void fd_init_texttools()
                            fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,VOID));
 
-  fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_evalfn);
+  fd_def_evalfn(texttools_module,"TEXTCLOSURE","",textclosure_evalfn);
   fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
 
   fd_idefn(texttools_module,

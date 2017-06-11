@@ -51,7 +51,7 @@ lispval fd_copier(lispval x,int flags)
       return result;}
     case fd_vector_type: case fd_code_type: {
       struct FD_VECTOR *v = FD_CONSPTR(fd_vector,x);
-      lispval *olddata = v->fdvec_elts; int i = 0, len = v->fdvec_length;
+      lispval *olddata = v->vec_elts; int i = 0, len = v->vec_length;
       lispval result = ((ctype == fd_vector_type)?
                      (fd_init_vector(NULL,len,NULL)):
                      (fd_init_code(NULL,len,NULL)));
@@ -68,17 +68,17 @@ lispval fd_copier(lispval x,int flags)
       return result;}
     case fd_string_type: {
       struct FD_STRING *s = FD_CONSPTR(fd_string,x);
-      lispval result = fd_make_string(NULL,s->fd_bytelen,s->fd_bytes);
+      lispval result = fd_make_string(NULL,s->str_bytelen,s->str_bytes);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s = FD_CONSPTR(fd_string,x);
       lispval result;
       if (ctype == fd_secret_type) {
-        result = fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
+        result = fd_make_packet(NULL,s->str_bytelen,s->str_bytes);
         FD_SET_CONS_TYPE(result,fd_secret_type);
         return result;}
-      else result = fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
+      else result = fd_make_packet(NULL,s->str_bytelen,s->str_bytes);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_choice_type: {
@@ -171,14 +171,14 @@ static lispval copy_compound(lispval x,int flags)
   if (xc->compound_isopaque) {
     fd_incref(x); return x;}
   else {
-    int i = 0, n = xc->fd_n_elts;
+    int i = 0, n = xc->compound_length;
     struct FD_COMPOUND *nc = u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(lispval));
     lispval *data = &(xc->compound_0), *write = &(nc->compound_0);
     FD_INIT_CONS(nc,fd_compound_type);
     if (xc->compound_ismutable) u8_init_mutex(&(nc->compound_lock));
     nc->compound_ismutable = xc->compound_ismutable; nc->compound_isopaque = 1;
     nc->compound_typetag = fd_incref(xc->compound_typetag); 
-    nc->fd_n_elts = xc->fd_n_elts;
+    nc->compound_length = xc->compound_length;
     if (flags)
       while (i<n) {
         *write = fd_copier(data[i],flags); i++; write++;}

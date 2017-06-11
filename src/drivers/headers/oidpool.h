@@ -22,15 +22,15 @@
 #define FD_OIDPOOL_LOCKED(x) (FD_POOLFILE_LOCKEDP(x))
 
 typedef struct FD_SCHEMA_ENTRY {
-  int fd_nslots, fd_schema_id;
-  lispval *fd_slotids, normal;
-  unsigned int *fd_slotmapin;
-  unsigned int *fd_slotmapout;}  FD_SCHEMA_ENTRY;
+  int op_nslots, op_schema_id;
+  lispval *op_slotids, normal;
+  unsigned int *op_slotmapin;
+  unsigned int *op_slotmapout;}  FD_SCHEMA_ENTRY;
 typedef struct FD_SCHEMA_ENTRY *fd_schema_entry;
 
 typedef struct FD_SCHEMA_LOOKUP {
-  int fd_schema_id, fd_nslots;
-  lispval *fd_slotids;}  FD_SCHEMA_LOOKUP;
+  int op_schema_id, op_nslots;
+  lispval *op_slotids;}  FD_SCHEMA_LOOKUP;
 typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
@@ -51,9 +51,9 @@ typedef struct FD_OIDPOOL *fd_oidpool;
 /* Schema tables */
 
 typedef struct FD_SCHEMA_TABLE {
-  int fdst_index;
-  int fdst_nslots;
-  lispval *fdst_schema;} FD_SCHEMA_TABLE;
+  int st_index;
+  int st_nslots;
+  lispval *st_schema;} FD_SCHEMA_TABLE;
 typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 
 struct OIDPOOL_FETCH_SCHEDULE {

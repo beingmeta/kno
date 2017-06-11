@@ -228,12 +228,12 @@ static u8_mutex load_record_lock;
 static u8_mutex update_modules_lock;
 
 struct FD_LOAD_RECORD {
-  lispval fd_loadspec;
-  u8_string fd_loadfile;
-  fd_lexenv fd_loadenv;
-  time_t fd_modtime;
-  int fd_reloading:1;
-  struct FD_LOAD_RECORD *fd_next_reload;} *load_records = NULL;
+  lispval loadarg;
+  u8_string loadfile;
+  fd_lexenv loadenv;
+  time_t file_modtime;
+  int reloading:1;
+  struct FD_LOAD_RECORD *prev_loaded;} *load_records = NULL;
 
 static void add_load_record
   (lispval spec,u8_string filename,fd_lexenv env,time_t mtime)
@@ -241,32 +241,32 @@ static void add_load_record
   struct FD_LOAD_RECORD *scan;
   u8_lock_mutex(&load_record_lock);
   scan = load_records; while (scan)
-    if ((strcmp(filename,scan->fd_loadfile))==0) {
-      if (env!=scan->fd_loadenv) {
+    if ((strcmp(filename,scan->loadfile))==0) {
+      if (env!=scan->loadenv) {
         fd_incref((lispval)env);
-        fd_decref((lispval)(scan->fd_loadenv));
-        scan->fd_loadenv = env;}
-      scan->fd_modtime = mtime;
+        fd_decref((lispval)(scan->loadenv));
+        scan->loadenv = env;}
+      scan->file_modtime = mtime;
       u8_unlock_mutex(&load_record_lock);
       return;}
-    else scan = scan->fd_next_reload;
+    else scan = scan->prev_loaded;
   scan = u8_alloc(struct FD_LOAD_RECORD);
-  scan->fd_loadfile = u8_strdup(filename);
-  scan->fd_modtime = mtime; scan->fd_reloading = 0;
-  scan->fd_loadenv = (fd_lexenv)fd_incref((lispval)env);
-  scan->fd_loadspec = fd_incref(spec);
-  scan->fd_next_reload = load_records;
+  scan->loadfile = u8_strdup(filename);
+  scan->file_modtime = mtime; scan->reloading = 0;
+  scan->loadenv = (fd_lexenv)fd_incref((lispval)env);
+  scan->loadarg = fd_incref(spec);
+  scan->prev_loaded = load_records;
   load_records = scan;
   u8_unlock_mutex(&load_record_lock);
 }
 
 typedef struct FD_MODULE_RELOAD {
-  u8_string fd_loadfile;
-  fd_lexenv fd_loadenv;
-  lispval fd_loadspec;
-  struct FD_LOAD_RECORD *fd_load_record;
-  time_t fd_modtime;
-  struct FD_MODULE_RELOAD *fd_next_reload;} RELOAD_MODULE;
+  u8_string loadfile;
+  fd_lexenv loadenv;
+  lispval loadarg;
+  struct FD_LOAD_RECORD *load_record;
+  time_t file_modtime;
+  struct FD_MODULE_RELOAD *prev_loaded;} RELOAD_MODULE;
 typedef struct FD_MODULE_RELOAD *module_reload;
 
 FD_EXPORT int fd_update_file_modules(int force)
@@ -280,51 +280,58 @@ FD_EXPORT int fd_update_file_modules(int force)
     u8_lock_mutex(&update_modules_lock);
     u8_lock_mutex(&load_record_lock);
     reload_time = u8_elapsed_time();
+    /* Queue up all the modules needing reloading */
     scan = load_records; while (scan) {
       time_t mtime;
-      /* Don't automatically update non-local files */
-      if (strchr(scan->fd_loadfile,':')!=NULL) {
-        scan = scan->fd_next_reload; continue;}
-      else mtime = u8_file_mtime(scan->fd_loadfile);
-      if (mtime>scan->fd_modtime) {
+      /* Don't automatically update non-local loads */
+      if (strchr(scan->loadfile,':')!=NULL) {
+        scan = scan->prev_loaded; continue;}
+      else mtime = u8_file_mtime(scan->loadfile);
+      if (mtime>scan->file_modtime) {
         struct FD_MODULE_RELOAD *toreload = u8_alloc(struct FD_MODULE_RELOAD);
-        toreload->fd_loadfile = scan->fd_loadfile;
-        toreload->fd_loadenv = scan->fd_loadenv;
-        toreload->fd_loadspec = scan->fd_loadspec;
-        toreload->fd_load_record = scan;
-        toreload->fd_modtime = -1;
-        toreload->fd_next_reload = reloads;
+        toreload->loadfile = scan->loadfile;
+        toreload->loadenv = scan->loadenv;
+        toreload->loadarg = scan->loadarg;
+        toreload->load_record = scan;
+        toreload->file_modtime = -1;
+        toreload->prev_loaded = reloads;
         rscan = reloads = toreload;
-        scan->fd_reloading = 1;}
-      scan = scan->fd_next_reload;}
+        scan->reloading = 1;}
+      scan = scan->prev_loaded;}
     u8_unlock_mutex(&load_record_lock);
+    /* Now iterate over the modules you're reloading, actually calling
+       fd_load_source */
     rscan = reloads; while (rscan) {
       module_reload this = rscan; lispval load_result;
-      u8_string filename = this->fd_loadfile;
-      fd_lexenv env = this->fd_loadenv;
-      time_t mtime = u8_file_mtime(this->fd_loadfile);
-      rscan = this->fd_next_reload;
+      u8_string filename = this->loadfile;
+      fd_lexenv env = this->loadenv;
+      time_t mtime = u8_file_mtime(this->loadfile);
+      rscan = this->prev_loaded;
       if (log_reloads)
         u8_log(LOG_WARN,"fd_update_file_modules","Reloading %q from %s",
-               this->fd_loadspec,filename);
+               this->loadarg,filename);
+
       load_result = fd_load_source(filename,env,"auto");
+
       if (FD_ABORTP(load_result)) {
         u8_log(LOG_CRIT,"update_file_modules","Error reloading %q from %s",
-               this->fd_loadspec,filename);
+               this->loadarg,filename);
         fd_clear_errors(1);}
       else {
         if (log_reloads)
           u8_log(LOG_WARN,"fd_update_file_modules","Reloaded %q from %s",
-                 this->fd_loadspec,filename);
+                 this->loadarg,filename);
         fd_decref(load_result); n_reloads++;
-        this->fd_modtime = mtime;}}
+        this->file_modtime = mtime;}}
     u8_lock_mutex(&load_record_lock);
+    /* Update the load records with the new modtimes, freeing along
+       the way */
     rscan = reloads; while (rscan) {
       module_reload this = rscan;
-      if (this->fd_modtime>0) {
-        this->fd_load_record->fd_modtime = this->fd_modtime;}
-      this->fd_load_record->fd_reloading = 0;
-      rscan = this->fd_next_reload;
+      if (this->file_modtime>0) {
+        this->load_record->file_modtime = this->file_modtime;}
+      this->load_record->reloading = 0;
+      rscan = this->prev_loaded;
       u8_free(this);}
     u8_unlock_mutex(&load_record_lock);
     last_reload = reload_time;
@@ -351,9 +358,9 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
   u8_lock_mutex(&load_record_lock);
   scan = load_records;
   while (scan)
-    if (strcmp(scan->fd_loadfile,module_source)==0) break;
-    else scan = scan->fd_next_reload;
-  if ((scan)&&(scan->fd_reloading)) {
+    if (strcmp(scan->loadfile,module_source)==0) break;
+    else scan = scan->prev_loaded;
+  if ((scan)&&(scan->reloading)) {
     u8_unlock_mutex(&load_record_lock);
     u8_unlock_mutex(&update_modules_lock);
     return 0;}
@@ -367,31 +374,31 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
                          module_source),
               VOID);
     return -1;}
-  else if ((!(force))&&(mtime<=scan->fd_modtime)) {
+  else if ((!(force))&&(mtime<=scan->file_modtime)) {
     u8_unlock_mutex(&load_record_lock);
     u8_unlock_mutex(&update_modules_lock);
     return 0;}
-  scan->fd_reloading = 1;
+  scan->reloading = 1;
   u8_unlock_mutex(&load_record_lock);
-  if ((force) || (mtime>scan->fd_modtime)) {
+  if ((force) || (mtime>scan->file_modtime)) {
     lispval load_result;
     if (log_reloads)
       u8_log(LOG_WARN,"fd_update_file_module","Reloading %s",
-             scan->fd_loadfile);
+             scan->loadfile);
     load_result = fd_load_source
-      (scan->fd_loadfile,scan->fd_loadenv,"auto");
+      (scan->loadfile,scan->loadenv,"auto");
     if (FD_ABORTP(load_result)) {
       fd_seterr(fd_ReloadError,"fd_reload_modules",
-                scan->fd_loadfile,load_result);
+                scan->loadfile,load_result);
       u8_lock_mutex(&load_record_lock);
-      scan->fd_reloading = 0;
+      scan->reloading = 0;
       u8_unlock_mutex(&load_record_lock);
       u8_unlock_mutex(&update_modules_lock);
       return -1;}
     else {
       fd_decref(load_result);
       u8_lock_mutex(&load_record_lock);
-      scan->fd_modtime = mtime; scan->fd_reloading = 0;
+      scan->file_modtime = mtime; scan->reloading = 0;
       u8_unlock_mutex(&load_record_lock);
       u8_unlock_mutex(&update_modules_lock);
       return 1;}}
@@ -645,7 +652,7 @@ FD_EXPORT void fd_init_loader_c()
            fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
                            -1,VOID,-1,FD_FALSE));
 
-  fd_defspecial(loader_module,"LOAD-LATEST",load_latest_evalfn);
+  fd_def_evalfn(loader_module,"LOAD-LATEST","",load_latest_evalfn);
 
   fd_add_module_loader(load_source_module,NULL);
   fd_register_sourcefn(file_source_fn,NULL);

@@ -256,12 +256,12 @@ lispval fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
   if (ptr == NULL) {
     ptr = u8_alloc(struct FD_STRING);
     FD_INIT_STRUCT(ptr,struct FD_STRING);
-    ptr->fd_freebytes = 1;}
+    ptr->str_freebytes = 1;}
   FD_INIT_CONS(ptr,fd_string_type);
   if ((len==0) && (string == NULL)) {
     u8_byte *bytes = u8_malloc(1); *bytes='\0';
     string = (u8_string)bytes;}
-  ptr->fd_bytelen = len; ptr->fd_bytes = string;
+  ptr->str_bytelen = len; ptr->str_bytes = string;
   return LISP_CONS(ptr);
 }
 
@@ -286,7 +286,7 @@ lispval fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
       freedata = 0;}
     else bytes = (u8_byte *)u8_strndup(start,length+1);
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
+    ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
     return LISP_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,VOID);
 }
@@ -307,7 +307,7 @@ lispval fd_substring(u8_string start,u8_string end)
     u8_byte *bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
     FD_INIT_FRESH_CONS(ptr,fd_string_type);
-    ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = 0;
+    ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = 0;
     return LISP_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_substring",NULL,VOID);
 }
@@ -334,7 +334,7 @@ lispval fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes = u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
+  ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
   return LISP_CONS(ptr);
 }
 
@@ -355,7 +355,7 @@ lispval fd_block_string(int len,u8_string string)
   else memset(bytes,'?',length);
   bytes[length]='\0';
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen = length; ptr->fd_bytes = bytes; ptr->fd_freebytes = 0;
+  ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = 0;
   if (string) u8_free(string);
   return LISP_CONS(ptr);
 }
@@ -381,9 +381,9 @@ lispval fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes = u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->fd_bytelen = length;
-  ptr->fd_bytes = bytes;
-  ptr->fd_freebytes = freedata;
+  ptr->str_bytelen = length;
+  ptr->str_bytes = bytes;
+  ptr->str_freebytes = freedata;
   /* Free the string */
   u8_free(string);
   return LISP_CONS(ptr);
@@ -456,9 +456,9 @@ FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
       freedata = 1;}
   else elts = data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length = len;
-  ptr->fdvec_elts = elts;
-  ptr->fdvec_free_elts = freedata;
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
+  ptr->vec_free_elts = freedata;
   return LISP_CONS(ptr);
 }
 
@@ -481,9 +481,9 @@ FD_EXPORT lispval fd_make_vector(int len,lispval *data)
     u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
   lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->fdvec_length = len;
-  ptr->fdvec_elts = elts;
-  ptr->fdvec_free_elts = 0;
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
+  ptr->vec_free_elts = 0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
   else {while (i < len) {elts[i]=VOID; i++;}}
@@ -511,9 +511,9 @@ FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data)
     elts = data;}
   FD_INIT_CONS(ptr,fd_code_type);
   if (data == NULL) while (i < len) elts[i++]=VOID;
-  ptr->fdvec_length = len; 
-  ptr->fdvec_elts = elts; 
-  ptr->fdvec_free_elts = freedata;
+  ptr->vec_length = len; 
+  ptr->vec_elts = elts; 
+  ptr->vec_free_elts = freedata;
   return LISP_CONS(ptr);
 }
 
@@ -535,9 +535,9 @@ FD_EXPORT lispval fd_make_code(int len,lispval *data)
     (sizeof(struct FD_VECTOR)+(sizeof(lispval)*len));
   lispval *elts = ((lispval *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_code_type);
-  ptr->fdvec_length = len;
-  ptr->fdvec_elts = elts;
-  ptr->fdvec_free_elts = 0;
+  ptr->vec_length = len;
+  ptr->vec_elts = elts;
+  ptr->vec_free_elts = 0;
   while (i < len) {elts[i]=data[i]; i++;}
   return LISP_CONS(ptr);
 }
@@ -551,13 +551,13 @@ FD_EXPORT lispval fd_init_packet
     return fd_make_packet(ptr,len,data);
   if (ptr == NULL) {
     ptr = u8_alloc(struct FD_STRING);
-    ptr->fd_freebytes = 1;}
+    ptr->str_freebytes = 1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
     u8_byte *consed = u8_malloc(len+1);
     memset(consed,0,len+1);
     data = consed;}
-  ptr->fd_bytelen = len; ptr->fd_bytes = data;
+  ptr->str_bytelen = len; ptr->str_bytes = data;
   return LISP_CONS(ptr);
 }
 
@@ -577,7 +577,7 @@ FD_EXPORT lispval fd_make_packet
     bytes = u8_malloc(len+1);}
   else bytes = (unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->fd_bytelen = len; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
+  ptr->str_bytelen = len; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
   return LISP_CONS(ptr);
 }
 
@@ -598,7 +598,7 @@ FD_EXPORT lispval fd_bytes2packet
     if (data == NULL) memset(bytes,0,len);
     else memcpy(bytes,data,len);}
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->fd_bytelen = len; ptr->fd_bytes = bytes; ptr->fd_freebytes = freedata;
+  ptr->str_bytelen = len; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
   if (freedata) u8_free(data);
   return LISP_CONS(ptr);
 }
@@ -624,7 +624,7 @@ FD_EXPORT lispval fd_init_compound
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
   p->compound_isopaque = 0;
-  p->fd_n_elts = n;
+  p->compound_length = n;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;
     va_start(args,n);
@@ -655,7 +655,7 @@ FD_EXPORT lispval fd_init_compound_from_elts
   if (ismutable) u8_init_mutex(&(p->compound_lock));
   p->compound_typetag = fd_incref(tag);
   p->compound_ismutable = ismutable;
-  p->fd_n_elts = n;
+  p->compound_length = n;
   p->compound_isopaque = 0;
   if (n>0) {
     write = &(p->compound_0); limit = write+n;
@@ -723,35 +723,35 @@ struct FD_COMPOUND_TYPEINFO
     if (FD_EQ(scan->compound_typetag,symbol)) {
       if (datap) {
         lispval data = *datap;
-        if (VOIDP(scan->fd_compound_metadata)) {
-          scan->fd_compound_metadata = data;
+        if (VOIDP(scan->compound_metadata)) {
+          scan->compound_metadata = data;
           fd_incref(data);}
         else {
           lispval data = *datap; fd_decref(data);
-          data = scan->fd_compound_metadata;
+          data = scan->compound_metadata;
           fd_incref(data);
           *datap = data;}}
       if (corep) {
-        if (scan->fd_compound_corelen<0)
-          scan->fd_compound_corelen = *corep;
-        else *corep = scan->fd_compound_corelen;}
+        if (scan->compound_corelen<0)
+          scan->compound_corelen = *corep;
+        else *corep = scan->compound_corelen;}
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
-    else scan = scan->fd_compound_nextinfo;
+    else scan = scan->compound_nextinfo;
   newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
   memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
   if (datap) {
     lispval data = *datap;
     fd_incref(data);
-    newrec->fd_compound_metadata = data;}
-  else newrec->fd_compound_metadata = VOID;
-  newrec->fd_compound_corelen = ((corep)?(*corep):(-1));
-  newrec->fd_compound_nextinfo = fd_compound_entries;
+    newrec->compound_metadata = data;}
+  else newrec->compound_metadata = VOID;
+  newrec->compound_corelen = ((corep)?(*corep):(-1));
+  newrec->compound_nextinfo = fd_compound_entries;
   newrec->compound_typetag = symbol;
-  newrec->fd_compound_parser = NULL;
-  newrec->fd_compound_dumpfn = NULL; 
-  newrec->fd_compound_restorefn = NULL;
-  newrec->fd_compund_tablefns = NULL;
+  newrec->compound_parser = NULL;
+  newrec->compound_dumpfn = NULL; 
+  newrec->compound_restorefn = NULL;
+  newrec->compund_tablefns = NULL;
   fd_compound_entries = newrec;
   u8_unlock_mutex(&compound_registry_lock);
   return newrec;
@@ -766,23 +766,23 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
       if (!(VOIDP(data))) {
-        lispval old_data = scan->fd_compound_metadata;
-        scan->fd_compound_metadata = fd_incref(data);
+        lispval old_data = scan->compound_metadata;
+        scan->compound_metadata = fd_incref(data);
         fd_decref(old_data);}
-      if (core_slots>0) scan->fd_compound_corelen = core_slots;
+      if (core_slots>0) scan->compound_corelen = core_slots;
       u8_unlock_mutex(&compound_registry_lock);
       return scan;}
-    else scan = scan->fd_compound_nextinfo;
+    else scan = scan->compound_nextinfo;
   newrec = u8_alloc(struct FD_COMPOUND_TYPEINFO);
   memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
-  newrec->fd_compound_metadata = data;
-  newrec->fd_compound_corelen = core_slots;
+  newrec->compound_metadata = data;
+  newrec->compound_corelen = core_slots;
   newrec->compound_typetag = symbol;
-  newrec->fd_compound_nextinfo = fd_compound_entries; 
-  newrec->fd_compound_parser = NULL;
-  newrec->fd_compound_dumpfn = NULL;
-  newrec->fd_compound_restorefn = NULL;
-  newrec->fd_compund_tablefns = NULL;
+  newrec->compound_nextinfo = fd_compound_entries; 
+  newrec->compound_parser = NULL;
+  newrec->compound_dumpfn = NULL;
+  newrec->compound_restorefn = NULL;
+  newrec->compund_tablefns = NULL;
   fd_compound_entries = newrec;
   u8_unlock_mutex(&compound_registry_lock);
   return newrec;
@@ -794,7 +794,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(lispval symbol)
   while (scan)
     if (FD_EQ(scan->compound_typetag,symbol)) {
       return scan;}
-    else scan = scan->fd_compound_nextinfo;
+    else scan = scan->compound_nextinfo;
   return NULL;
 }
 

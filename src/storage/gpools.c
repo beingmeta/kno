@@ -90,10 +90,10 @@ static lispval *gpool_fetchn(fd_pool p,int n,lispval *oids)
   if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR)value;
     lispval *results = u8_alloc_n(n,lispval);
-    memcpy(results,vstruct->fdvec_elts,sizeof(lispval)*n);
+    memcpy(results,vstruct->vec_elts,sizeof(lispval)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
-    if (vstruct->fd_freebytes) u8_free(vstruct->fdvec_elts);
+    if (vstruct->str_freebytes) u8_free(vstruct->vec_elts);
     u8_free((struct FD_CONS *)value);
     return results;}
   else {

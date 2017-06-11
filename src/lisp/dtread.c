@@ -227,16 +227,16 @@ FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in)
       else switch (code) {
       case dt_compound: {
         struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(car);
-        if ((e) && (e->fd_compound_restorefn)) {
-          lispval result = e->fd_compound_restorefn(car,cdr,e);
+        if ((e) && (e->compound_restorefn)) {
+          lispval result = e->compound_restorefn(car,cdr,e);
           fd_decref(cdr);
           return result;}
         else if ((VECTORP(cdr)) &&
                  (VEC_LEN(cdr)<32767)) {
           struct FD_VECTOR *vec = (struct FD_VECTOR *)cdr;
-          short n_elts = (short)(vec->fdvec_length);
+          short n_elts = (short)(vec->vec_length);
           lispval result=
-            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->fdvec_elts);
+            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->vec_elts);
           /* Note that the incref'd values are now stored in the compound,
              so we don't decref them ourselves. */
           u8_free(vec);

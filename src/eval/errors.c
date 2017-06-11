@@ -152,12 +152,12 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       else if (TYPEP(handler_result,fd_error_type)) {
 	fd_exception_object newexo=
           fd_consptr(fd_exception_object,handler_result,fd_error_type);
-	u8_exception newex = newexo->fdex_u8ex;
+	u8_exception newex = newexo->ex_u8ex;
 	u8_push_exception(newex->u8x_cond,newex->u8x_context,
                           newex->u8x_details,newex->u8x_xdata,
                           newex->u8x_free_xdata);
-	newexo->fdex_u8ex = NULL;
-	exo->fdex_u8ex = NULL;
+	newexo->ex_u8ex = NULL;
+	exo->ex_u8ex = NULL;
 	u8_restore_exception(ex);
 	fd_decref(handler); fd_decref(value); 
 	fd_decref(err_value); fd_decref(handler_result);
@@ -170,7 +170,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
                "Error %m handling error during %q",
                cur_ex->u8x_cond,toeval);
         fd_log_backtrace(cur_ex,LOGWARN,"RecursiveError",128);
-        exo->fdex_u8ex = NULL;
+        exo->ex_u8ex = NULL;
         u8_restore_exception(ex);
         fd_decref(handler); fd_decref(value); fd_decref(err_value);
         return handler_result;}
@@ -234,7 +234,7 @@ static lispval error_condition(lispval x,lispval top_arg)
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   u8_condition found = ex->u8x_cond;
   if (top) {
     while (ex) {
@@ -252,7 +252,7 @@ static lispval error_context(lispval x,lispval top_arg)
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   u8_context found = ex->u8x_cond;
   if (top) {
     while (ex) {
@@ -270,7 +270,7 @@ static lispval error_details(lispval x,lispval top_arg)
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   u8_string found = ex->u8x_details;
   if (top) {
     while (ex) {
@@ -288,7 +288,7 @@ static lispval error_irritant(lispval x,lispval top_arg)
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   lispval found = VOID;
   if (top) {
     while (ex) {
@@ -308,7 +308,7 @@ static lispval error_has_irritant(lispval x,lispval top_arg)
   int top = (!(FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   lispval found = VOID;
   if (top) {
     while (ex) {
@@ -327,7 +327,7 @@ static lispval error_backtrace(lispval x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   return fd_exception_backtrace(ex);
 }
 
@@ -335,7 +335,7 @@ static lispval error_summary(lispval x,lispval with_irritant)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   u8_condition cond = ex->u8x_cond;
   u8_context cxt = ex->u8x_context;
   u8_string details = ex->u8x_details;
@@ -373,7 +373,7 @@ static lispval error_xdata(lispval x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   lispval xdata = fd_exception_xdata(ex);
   if (VOIDP(xdata)) return FD_FALSE;
   else return fd_incref(xdata);
@@ -482,15 +482,15 @@ FD_EXPORT void fd_init_errors_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_defspecial(fd_scheme_module,"ERROR",return_error_evalfn);
-  fd_defspecial(fd_scheme_module,"ERROR+",extend_error_evalfn);
-  fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"IRRITANT+",extend_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"NEWERR",return_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"NEWERR+",extend_irritant_evalfn);
-  fd_defspecial(fd_scheme_module,"ONERROR",onerror_evalfn);
-  fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_evalfn);
-  fd_defspecial(fd_scheme_module,"ERREIFY",erreify_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERROR","",return_error_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERROR+","",extend_error_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IRRITANT","",return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IRRITANT+","",extend_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NEWERR","",return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NEWERR+","",extend_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ONERROR","",onerror_evalfn);
+  fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS","",report_errors_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERREIFY","",erreify_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
@@ -517,8 +517,8 @@ FD_EXPORT void fd_init_errors_c()
            fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
                            fd_error_type,VOID));
 
-  fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_evalfn);
-  fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
+  fd_def_evalfn(fd_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim0("CLEAR-ERRORS!",clear_errors));

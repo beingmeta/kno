@@ -1537,7 +1537,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_uuid_type: {
       struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,val,fd_uuid_type);
-      ok = bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->fd_uuid16,16);
+      ok = bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->uuid16,16);
       break;}
     case fd_choice_type: case fd_prechoice_type: {
       struct FD_BSON_OUTPUT rout;
@@ -1557,8 +1557,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       struct FD_BSON_OUTPUT rout;
       bson_t arr, ch; char buf[16];
       struct FD_VECTOR *vec = (struct FD_VECTOR *)val;
-      int i = 0, lim = vec->fdvec_length;
-      lispval *data = vec->fdvec_elts;
+      int i = 0, lim = vec->vec_length;
+      lispval *data = vec->vec_elts;
       int wrap_vector = ((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
       if (wrap_vector) {
         ok = bson_append_array_begin(out,key,keylen,&ch);
@@ -1595,13 +1595,13 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       bson_append_document_end(out,&doc);
       break;}
     case fd_regex_type: {
-      struct FD_REGEX *fdrx = (struct FD_REGEX *)val;
-      char opts[8], *write = opts; int flags = fdrx->fd_rxflags;
+      struct FD_REGEX *rx = (struct FD_REGEX *)val;
+      char opts[8], *write = opts; int flags = rx->rxflags;
       if (flags&REG_EXTENDED) *write++='x';
       if (flags&REG_ICASE) *write++='i';
       if (flags&REG_NEWLINE) *write++='m';
       *write++='\0';
-      bson_append_regex(out,key,keylen,fdrx->fd_rxsrc,opts);
+      bson_append_regex(out,key,keylen,rx->rxsrc,opts);
       break;}
     case fd_compound_type: {
       struct FD_COMPOUND *compound = FD_XCOMPOUND(val);
@@ -1887,7 +1887,7 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
     if (st == BSON_SUBTYPE_UUID) {
       struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(uuid->fd_uuid16,data,len);
+      memcpy(uuid->uuid16,data,len);
       value = (lispval) uuid;}
     else {
       lispval packet = fd_make_packet(NULL,len,(unsigned char *)data);
@@ -1970,13 +1970,13 @@ static void bson_read_step(FD_BSON_INPUT b,lispval into,lispval *loc)
               fields[index]=fd_get(value,key,FD_VOID);}}}
         if (ok) {
           n = max+1;
-          if ((entry)&&(entry->fd_compound_parser))
-            compound = entry->fd_compound_parser(n,fields,entry);
+          if ((entry)&&(entry->compound_parser))
+            compound = entry->compound_parser(n,fields,entry);
           else {
             struct FD_COMPOUND *c=
               u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(lispval)));
             lispval *cdata = &(c->compound_0); fd_init_compound(c,tag,0,0);
-            c->fd_n_elts = n;
+            c->compound_length = n;
             memcpy(cdata,fields,n);
             compound = LISP_CONS(c);}
           fd_decref(value);

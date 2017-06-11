@@ -60,13 +60,13 @@ all: $(TESTBIN) $(SHAREDBIN)
 
 $(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
 	../../lib/libfdstorage@suffix@.a 		\
-	../../lib/libfdbase@suffix@.a
+	../../lib/libfdcore@suffix@.a
 
 # Note that we don't add @suffix@ to these executables because they're
 # never installed
 %: %.c ../../lib/libfddrivers@suffix@.a 	\
 	../../lib/libfdstorage@suffix@.a 		\
-	../../lib/libfdbase@suffix@.a
+	../../lib/libfdcore@suffix@.a
 	@echo MKTEST_STATIC $@
 	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) $(EXECLIBS) -o $@ $^ \
 		$(LIBS) $(EXECLIBS)
@@ -75,9 +75,9 @@ $(TESTBIN): ../../lib/libfddrivers@suffix@.a 	\
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXECLDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXECLIBS) \
-		-lfdbase@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXECLIBS)
-../../lib/libfdbase@suffix@.a:
-	cd ../..; make lib/libfdbase@suffix@.a
+		-lfdcore@suffix@ -lfdstorage@suffix@ -lfddrivers@suffix@ $(LIBS) $(EXECLIBS)
+../../lib/libfdcore@suffix@.a:
+	cd ../..; make lib/libfdcore@suffix@.a
 ../../lib/libfdstorage@suffix@.a:
 	cd ../..; make lib/libfdstorage@suffix@.a
 ../../lib/libfddrivers@suffix@.a:

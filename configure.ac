@@ -84,7 +84,7 @@ BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=4
-FDMINOR=1
+FDMINOR=2
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -148,6 +148,7 @@ use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
+CLANG=no
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 MONGODB_CFLAGS=
@@ -401,13 +402,17 @@ AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,wit
 CODENAME=$with_codename
 
 AC_CANONICAL_HOST
-AC_PROG_CC([cc gcc])
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
+AC_CHECK_DECL(__clang__,CLANG=yes)
 
-if test "${GCC}" = "yes"; then
+if test "${CLANG}" = "yes"; then
    CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+elif test "${GCC}" = "yes"; then
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+   gcc_version=`gcc -dumpversion`;
+   dynamic_cflag="-rdynamic";
 fi;
 
 m4_include([etc/ax_pthread.m4])
@@ -772,11 +777,6 @@ if test "${VALGRIND}" != "none" && test -z "${custom_malloc}"; then
   MEMTESTER="./vgmemtest "
   LEAKTESTER="./vgleaktest "
 fi
-
-if test "${GCC}" = "yes"; then
-   gcc_version=`gcc -dumpversion`;
-   dynamic_cflag="-rdynamic";
-fi;
 
 AC_ARG_ENABLE(ffi,--enable-ffi enable the FFI interface,enable_ffi=$enableval,enable_ffi="yes")
 
@@ -1418,17 +1418,6 @@ else
   AC_DEFINE(FD_FILECONFIG_ENABLED,0)
 fi
 
-dnl This makes all executables have stdio-based schemeio builtin.  Disabling
-dnl  this might make sense for handheld and some embedded contexts,  but
-dnl  you'll probably need to replace some things
-AC_ARG_ENABLE(schemeio,--en[dis]able-schemeio compiled-in schemeio,,enable_schemeio="yes")
-if test $enable_schemeio = "yes"; then
-  scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
-  xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
-  xstatic_exe_libs="lib/libfdschemeio${suffix}.a $xstatic_exe_libs"
-  xstatic_scheme_libs="../../lib/libfdschemeio${suffix}.a $xstatic_scheme_libs"
-fi
-
 dnl This integrates the fdweb module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
 AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
@@ -1675,7 +1664,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdserv.conf 
 	   etc/fdserv.load
 	   etc/install-script 
-	   dist/framerd-4.1.spec],
+	   dist/framerd-4.2.spec],
 	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
 
 if test ! -z "$manually_disabled"; then

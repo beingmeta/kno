@@ -671,8 +671,8 @@ FD_EXPORT void fd_init_threads_c()
   fd_recyclers[fd_condvar_type]=recycle_condvar;
   fd_unparsers[fd_condvar_type]=unparse_condvar;
 
-  fd_defspecial(fd_scheme_module,"PARALLEL",parallel_evalfn);
-  fd_defspecial(fd_scheme_module,"SPAWN",threadeval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"PARALLEL","",parallel_evalfn);
+  fd_def_evalfn(fd_scheme_module,"SPAWN","",threadeval_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
@@ -703,7 +703,7 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONDVAR-UNLOCK",condvar_unlock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-LOCK",synchro_lock,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
-  fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WITH-LOCK","",with_lock_evalfn);
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim));

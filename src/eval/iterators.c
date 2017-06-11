@@ -350,17 +350,17 @@ FD_EXPORT void fd_init_iterators_c()
 
   u8_register_source_file(_FILEINFO);
 
-  fd_defspecial(fd_scheme_module,"UNTIL",until_evalfn);
-  fd_defspecial(fd_scheme_module,"WHILE",while_evalfn);
-  fd_defspecial(fd_scheme_module,"DOTIMES",dotimes_evalfn);
-  fd_defspecial(fd_scheme_module,"DOLIST",dolist_evalfn);
-  fd_defspecial(fd_scheme_module,"DOSEQ",doseq_evalfn);
-  fd_defspecial(fd_scheme_module,"FORSEQ",forseq_evalfn);
-  fd_defspecial(fd_scheme_module,"TRYSEQ",tryseq_evalfn);
+  fd_def_evalfn(fd_scheme_module,"UNTIL","",until_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WHILE","",while_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DOTIMES","",dotimes_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DOLIST","",dolist_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DOSEQ","",doseq_evalfn);
+  fd_def_evalfn(fd_scheme_module,"FORSEQ","",forseq_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TRYSEQ","",tryseq_evalfn);
 
-  fd_defspecial(fd_scheme_module,"BEGIN",begin_evalfn);
-  fd_defspecial(fd_scheme_module,"PROG1",prog1_evalfn);
-  fd_defspecial(fd_scheme_module,"COMMENT",comment_evalfn);
+  fd_def_evalfn(fd_scheme_module,"BEGIN","",begin_evalfn);
+  fd_def_evalfn(fd_scheme_module,"PROG1","",prog1_evalfn);
+  fd_def_evalfn(fd_scheme_module,"COMMENT","",comment_evalfn);
   fd_defalias(fd_scheme_module,"*******","COMMENT");
 
 }

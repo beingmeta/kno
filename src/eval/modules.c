@@ -818,13 +818,13 @@ FD_EXPORT void fd_init_modules_c()
   fd_defalias(fd_xscheme_module,"DLOAD","DYNAMIC-LOAD");
   fd_defalias(fd_xscheme_module,"LOAD-DLL","DYNAMIC-LOAD");
 
-  fd_defspecial(fd_scheme_module,"IN-MODULE",safe_in_module_evalfn);
-  fd_defspecial(fd_scheme_module,"WITHIN-MODULE",safe_within_module_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IN-MODULE","",safe_in_module_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WITHIN-MODULE","",safe_within_module_evalfn);
   fd_defalias(fd_scheme_module,"W/M","WITHIN-MODULE");
   fd_defalias(fd_scheme_module,"%WM","WITHIN-MODULE");
-  fd_defspecial(fd_scheme_module,"ACCESSING-MODULE",safe_accessing_module_evalfn);
-  fd_defspecial(fd_scheme_module,"USE-MODULE",safe_use_module_evalfn);
-  fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ACCESSING-MODULE","",safe_accessing_module_evalfn);
+  fd_def_evalfn(fd_scheme_module,"USE-MODULE","",safe_use_module_evalfn);
+  fd_def_evalfn(fd_scheme_module,"MODULE-EXPORT!","",module_export_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprim1("GET-MODULE",safe_get_module,1));
   fd_idefn1(fd_scheme_module,"GET-LOADED-MODULE",safe_get_loaded_module,1,
             "Gets a loaded module, fails for non-loaded or non-existent modules",
@@ -833,12 +833,12 @@ FD_EXPORT void fd_init_modules_c()
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
-  fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module_evalfn);
-  fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"IN-MODULE","",in_module_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"WITHIN-MODULE","",within_module_evalfn);
   fd_defalias(fd_xscheme_module,"W/M","WITHIN-MODULE");
   fd_defalias(fd_xscheme_module,"%WM","WITHIN-MODULE");
-  fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module_evalfn);
-  fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"ACCESSING-MODULE","",accessing_module_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"USE-MODULE","",use_module_evalfn);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
   fd_idefn(fd_xscheme_module,

@@ -89,7 +89,7 @@ FD_EXPORT void fd_init_macros_c()
   fd_unparsers[fd_macro_type]=unparse_macro;
   fd_recyclers[fd_macro_type]=recycle_macro;
 
-  fd_defspecial(fd_scheme_module,"MACRO",macro_evalfn);
+  fd_def_evalfn(fd_scheme_module,"MACRO","",macro_evalfn);
 }
 
 /* Emacs local variables

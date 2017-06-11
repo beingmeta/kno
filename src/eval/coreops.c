@@ -575,8 +575,8 @@ static lispval config_def(lispval var,lispval handler,lispval docstring)
   return VOID;
 }
 static int reuse_lconfig(struct FD_CONFIG_HANDLER *e){
-  if (e->fd_configdata) {
-    fd_decref((lispval)(e->fd_configdata));
+  if (e->configdata) {
+    fd_decref((lispval)(e->configdata));
     return 1;}
   else return 0;}
 
@@ -741,7 +741,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("THREADGET",thread_get,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADSET!",thread_set,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADADD!",thread_add,2));
-  fd_defspecial(fd_scheme_module,"THREADREF",thread_ref_evalfn);
+  fd_def_evalfn(fd_scheme_module,"THREADREF","",thread_ref_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("INTERN",lisp_intern,1));
   fd_idefn(fd_scheme_module,

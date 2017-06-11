@@ -430,8 +430,8 @@ static long long import_vocab(x2vec_context x2vcxt,lispval data)
           u8_log(LOG_WARN,"Bad Vocab import","Couldn't use %q",entry);}}}
     else if (FD_VECTORP(data)) {
       struct FD_VECTOR *vec=(struct FD_VECTOR *)data;
-      lispval *elts=vec->fdvec_elts;
-      int i=0, len=vec->fdvec_length; while (i<len) {
+      lispval *elts=vec->vec_elts;
+      int i=0, len=vec->vec_length; while (i<len) {
         lispval elt=elts[i];
         if (FD_STRINGP(elt)) {
           u8_string text = FD_STRDATA(elt);
@@ -484,7 +484,7 @@ static long long init_vocab(x2vec_context x2v,lispval traindata)
     if (FD_VECTORP(traindata)) {
       struct FD_VECTOR *vec =
         FD_GET_CONS(traindata,fd_vector_type,struct FD_VECTOR *);
-      lispval *data = vec->fdvec_elts; int lim=vec->fdvec_length;
+      lispval *data = vec->vec_elts; int lim=vec->vec_length;
       int ref=0; while (ref<lim) {
         lispval word=data[ref];
         if (FD_STRINGP(word)) {
@@ -797,8 +797,8 @@ void *training_threadproc(void *state)
   long long l1, l2, c, target, label;
   int hidden_size = x2v->x2vec_hidden_size, window = x2v->x2vec_window;
   struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
-  int vec_len = vec->fdvec_length, vec_pos=(vec_len/n_threads)*thread_i;
-  lispval *vec_data = vec->fdvec_elts;
+  int vec_len = vec->vec_length, vec_pos=(vec_len/n_threads)*thread_i;
+  lispval *vec_data = vec->vec_elts;
   real *hidden = (real *)
     safe_calloc(hidden_size, sizeof(real),"x2v/TrainModelThread/hidden");
   real *errv = (real *)
@@ -1203,8 +1203,8 @@ void *modular_training_threadproc(void *state)
   long long word_count = 0, last_word_count = 0, block[X2VEC_MAX_BLOCK_LENGTH + 1];
   int hidden_size = x2v->x2vec_hidden_size;
   struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
-  int vec_len = vec->fdvec_length, vec_pos=(vec_len/n_threads)*thread_i;
-  lispval *vec_data = vec->fdvec_elts;
+  int vec_len = vec->vec_length, vec_pos=(vec_len/n_threads)*thread_i;
+  lispval *vec_data = vec->vec_elts;
   real *hidden = (real *)
     safe_calloc(hidden_size, sizeof(real),"x2v/TrainModelThread/hidden");
   real *errv = (real *)

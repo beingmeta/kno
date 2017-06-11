@@ -97,7 +97,7 @@ static void output_ellipsis(U8_OUTPUT *out,int n,u8_string unit)
 static int unparse_string(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x; int n_chars = 0;
-  u8_string scan = s->fd_bytes, limit = s->fd_bytes+s->fd_bytelen;
+  u8_string scan = s->str_bytes, limit = s->str_bytes+s->str_bytelen;
   u8_putc(out,'"'); while (scan < limit) {
     u8_string chunk = scan;
     while ((scan < limit) &&
@@ -194,15 +194,15 @@ FD_EXPORT int fd_unparse_packet
 static int unparse_packet(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x;
-  const unsigned char *bytes = s->fd_bytes;
-  int len = s->fd_bytelen, base = get_packet_base(bytes,len);
+  const unsigned char *bytes = s->str_bytes;
+  int len = s->str_bytelen, base = get_packet_base(bytes,len);
   return fd_unparse_packet(out,bytes,len,base);
 }
 
 static int unparse_secret(U8_OUTPUT *out,lispval x)
 {
   struct FD_STRING *s = (struct FD_STRING *)x;
-  const unsigned char *bytes = s->fd_bytes; int i = 0, len = s->fd_bytelen;
+  const unsigned char *bytes = s->str_bytes; int i = 0, len = s->str_bytelen;
   unsigned char hashbuf[16], *hash;
   u8_printf(out,"#*\"%d:",len);
   hash = u8_md5(bytes,len,hashbuf);
@@ -254,13 +254,13 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
 static int unparse_vector(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
-  int i = 0, len = v->fdvec_length;
+  int i = 0, len = v->vec_length;
   u8_puts(out,"#(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
       u8_puts(out," "); output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
-    if (i>0) u8_puts(out," "); fd_unparse(out,v->fdvec_elts[i]);
+    if (i>0) u8_puts(out," "); fd_unparse(out,v->vec_elts[i]);
     i++;}
   return u8_puts(out,")");
 }
@@ -268,7 +268,7 @@ static int unparse_vector(U8_OUTPUT *out,lispval x)
 static int unparse_code(U8_OUTPUT *out,lispval x)
 {
   struct FD_VECTOR *v = (struct FD_VECTOR *) x;
-  int i = 0, len = v->fdvec_length; lispval *data = v->fdvec_elts;
+  int i = 0, len = v->vec_length; lispval *data = v->vec_elts;
   u8_puts(out,"#~(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
@@ -417,22 +417,22 @@ static int unparse_compound(struct U8_OUTPUT *out,lispval x)
   struct FD_COMPOUND *xc = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   lispval tag = get_compound_tag(xc->compound_typetag);
   struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(tag);
-  if ((entry) && (entry->fd_compound_unparser)) {
-    int retval = entry->fd_compound_unparser(out,x,entry);
+  if ((entry) && (entry->compound_unparser)) {
+    int retval = entry->compound_unparser(out,x,entry);
     if (retval<0) return retval;
     else if (retval) return retval;}
   {
     lispval *data = &(xc->compound_0);
-    int i = 0, n = xc->fd_n_elts;
-    if ((entry)&&(entry->fd_compound_corelen>0)&&(entry->fd_compound_corelen<n))
-      n = entry->fd_compound_corelen;
+    int i = 0, n = xc->compound_length;
+    if ((entry)&&(entry->compound_corelen>0)&&(entry->compound_corelen<n))
+      n = entry->compound_corelen;
     u8_printf(out,"#%%(%q",xc->compound_typetag);
     while (i<n) {
       lispval elt = data[i++];
       if (0) { /* (PACKETP(elt)) */
         struct FD_STRING *packet = fd_consptr(fd_string,elt,fd_packet_type);
-        const unsigned char *bytes = packet->fd_bytes; 
-        int n_bytes = packet->fd_bytelen;
+        const unsigned char *bytes = packet->str_bytes; 
+        int n_bytes = packet->str_bytelen;
         u8_puts(out," ");
         fd_unparse_packet(out,bytes,n_bytes,16);}
       else u8_printf(out," %q",elt);}
@@ -471,7 +471,7 @@ u8_string fd_unparse_arg(lispval arg)
 static int unparse_uuid(u8_output out,lispval x)
 {
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
+  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->uuid16)),buf);
   u8_printf(out,"#U%s",buf);
   return 1;
 }
@@ -479,11 +479,11 @@ static int unparse_uuid(u8_output out,lispval x)
 static int unparse_regex(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_REGEX *rx = (struct FD_REGEX *)x;
-  u8_printf(out,"#/%s/%s%s%s%s",rx->fd_rxsrc,
-            (((rx->fd_rxflags)&REG_EXTENDED)?"e":""),
-            (((rx->fd_rxflags)&REG_ICASE)?"i":""),
-            (((rx->fd_rxflags)&REG_ICASE)?"l":""),
-            (((rx->fd_rxflags)&REG_NOSUB)?"s":""));
+  u8_printf(out,"#/%s/%s%s%s%s",rx->rxsrc,
+            (((rx->rxflags)&REG_EXTENDED)?"e":""),
+            (((rx->rxflags)&REG_ICASE)?"i":""),
+            (((rx->rxflags)&REG_ICASE)?"l":""),
+            (((rx->rxflags)&REG_NOSUB)?"s":""));
   return 1;
 }
 

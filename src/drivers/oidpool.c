@@ -311,8 +311,8 @@ static int init_schemas(fd_oidpool op,lispval schema_vec)
           (fd_InvalidSchemaDef,"oidpool/init_schemas",NULL,schema_vec);}
       if (n_slotids>max_slotids) max_slotids = n_slotids;
       init_schema_entry(&(schemas[i]),i,slotids);
-      schbyval[i].fd_schema_id = i; schbyval[i].fd_nslots = n_slotids;
-      schbyval[i].fd_slotids = schemas[i].fd_slotids;
+      schbyval[i].op_schema_id = i; schbyval[i].op_nslots = n_slotids;
+      schbyval[i].op_slotids = schemas[i].op_slotids;
       i++;}
     op->oidpool_schemas = schemas; op->oidpool_schbyval = schbyval;
     op->oidpool_max_slotids = max_slotids; op->oidpool_n_schemas = n;
@@ -327,8 +327,8 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,lispval vec)
   lispval *slotids = u8_alloc_n((len+1),lispval);
   unsigned int *mapin = u8_alloc_n(len,unsigned int);
   unsigned int *mapout = u8_alloc_n(len,unsigned int);
-  e->fd_schema_id = pos; e->fd_nslots = len; e->normal = fd_incref(vec);
-  e->fd_slotids = slotids; e->fd_slotmapin = mapin; e->fd_slotmapout = mapout;
+  e->op_schema_id = pos; e->op_nslots = len; e->normal = fd_incref(vec);
+  e->op_slotids = slotids; e->op_slotmapin = mapin; e->op_slotmapout = mapout;
   while (i<len) {
     lispval val = VEC_REF(vec,i);
     slotids[i]=fd_incref(val); i++;}
@@ -350,11 +350,11 @@ static int compare_schema_vals(const void *p1,const void *p2)
 {
   struct FD_SCHEMA_LOOKUP *se1 = (struct FD_SCHEMA_LOOKUP *)p1;
   struct FD_SCHEMA_LOOKUP *se2 = (struct FD_SCHEMA_LOOKUP *)p2;
-  if (se1->fd_nslots<se2->fd_nslots) return -1;
-  else if (se1->fd_nslots>se2->fd_nslots) return 1;
+  if (se1->op_nslots<se2->op_nslots) return -1;
+  else if (se1->op_nslots>se2->op_nslots) return 1;
   else {
-    lispval *slotids1 = se1->fd_slotids, *slotids2 = se2->fd_slotids;
-    int i = 0, n = se1->fd_nslots; while (i<n) {
+    lispval *slotids1 = se1->op_slotids, *slotids2 = se2->op_slotids;
+    int i = 0, n = se1->op_nslots; while (i<n) {
       if (slotids1[i]<slotids2[i]) return -1;
       else if (slotids1[i]<slotids2[i]) return 1;
       else i++;}
@@ -363,10 +363,10 @@ static int compare_schema_vals(const void *p1,const void *p2)
 
 static int compare_schemas(struct FD_SCHEMA_LOOKUP *e,lispval *slotids,int n)
 {
-  if (n<e->fd_nslots) return -1;
-  else if (n>e->fd_nslots) return 1;
+  if (n<e->op_nslots) return -1;
+  else if (n>e->op_nslots) return 1;
   else {
-    lispval *oslotids = e->fd_slotids;
+    lispval *oslotids = e->op_slotids;
     int i = 0; while (i<n)
       if (slotids[i]<oslotids[i]) return -1;
       else if (slotids[i]>oslotids[i]) return 1;
@@ -384,14 +384,14 @@ static int find_schema_byval(fd_oidpool op,lispval *slotids,int n)
   struct FD_SCHEMA_LOOKUP *middle = bot+(size)/2;
   while (top>bot) {
     cmp = compare_schemas(middle,slotids,n);
-    if (cmp==0) return middle->fd_schema_id;
+    if (cmp==0) return middle->op_schema_id;
     else if (cmp<0) {
       top = middle-1; middle = bot+(top-bot)/2;}
     else {
       bot = middle+1; middle = bot+(top-bot)/2;}}
   if ((middle<max) && (middle>=table) &&
       (compare_schemas(middle,slotids,n)==0))
-    return middle->fd_schema_id;
+    return middle->op_schema_id;
   else return -1;
 }
 
@@ -528,17 +528,17 @@ static lispval read_oid_value(fd_oidpool op,
     return fd_read_dtype(in);
   else {
     struct FD_SCHEMA_ENTRY *se = &(op->oidpool_schemas[zip_code-1]);
-    int n_vals = fd_read_zint(in), n_slotids = se->fd_nslots;
+    int n_vals = fd_read_zint(in), n_slotids = se->op_nslots;
     if (PRED_TRUE(n_vals == n_slotids)) {
       lispval *values = u8_alloc_n(n_vals,lispval);
-      unsigned int i = 0, *mapin = se->fd_slotmapin;
+      unsigned int i = 0, *mapin = se->op_slotmapin;
       /* We reorder the values coming in to agree with the
          schema sorting done in memory for fast lookup. That
          translation is stored in the mapin field. */
       while (i<n_vals) {
         values[mapin[i]]=fd_read_dtype(in); i++;}
       return fd_make_schemap(NULL,n_vals,FD_SCHEMAP_SORTED|FD_SCHEMAP_TAGGED,
-                             se->fd_slotids,values);}
+                             se->op_slotids,values);}
     else return fd_err(fd_SchemaInconsistency,cxt,op->poolid,VOID);}
 }
 
@@ -700,7 +700,7 @@ static int get_schema_id(fd_oidpool op,lispval value)
       lispval pos = slotids[size];
       int intpos = fd_getint(pos);
       if ((intpos<op->oidpool_n_schemas) &&
-          (op->oidpool_schemas[intpos].fd_slotids == slotids))
+          (op->oidpool_schemas[intpos].op_slotids == slotids))
         return intpos;}
     return find_schema_byval(op,slotids,size);}
   else if (SLOTMAPP(value)) {
@@ -749,7 +749,7 @@ static int oidpool_write_value(lispval value,fd_stream stream,
         int i = 0, size = sm->schema_length;
         fd_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,values[se->fd_slotmapout[i]]);
+          fd_write_dtype(tmpout,values[se->op_slotmapout[i]]);
           i++;}}
       else {
         struct FD_SLOTMAP *sm = (fd_slotmap)value;
@@ -757,7 +757,7 @@ static int oidpool_write_value(lispval value,fd_stream stream,
         int i = 0, size = FD_XSLOTMAP_NUSED(sm);
         fd_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,data[se->fd_slotmapin[i]].kv_val);
+          fd_write_dtype(tmpout,data[se->op_slotmapin[i]].kv_val);
           i++;}}}}
   else {
     fd_write_byte(tmpout,0);

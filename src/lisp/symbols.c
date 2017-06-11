@@ -119,8 +119,8 @@ static void grow_symbol_tables()
       else {
         struct FD_SYMBOL_ENTRY *entry = old_entries[i];
         int probe=
-          mult_hash_bytes(entry->fd_pname.fd_bytes,
-                           entry->fd_pname.fd_bytelen)%new_size;
+          mult_hash_bytes(entry->sym_pname.str_bytes,
+                           entry->sym_pname.str_bytelen)%new_size;
         while (PRED_TRUE(new_entries[probe]!=NULL))
           if (probe >= new_size) probe = 0; else probe = (probe+1)%new_size;
         new_entries[probe]=entry;
@@ -151,14 +151,14 @@ lispval fd_make_symbol(u8_string bytes,int len)
   hash = mult_hash_bytes(bytes,len);
   probe = hash%size;
   while (PRED_TRUE(entries[probe]!=NULL)) {
-    unsigned int bytelen=(entries[probe])->fd_pname.fd_bytelen;
+    unsigned int bytelen=(entries[probe])->sym_pname.str_bytelen;
     if (PRED_TRUE(len == bytelen)) {
-      const unsigned char *pname=(entries[probe])->fd_pname.fd_bytes;
+      const unsigned char *pname=(entries[probe])->sym_pname.str_bytes;
       if (PRED_TRUE(strncmp(bytes,pname,len) == 0))
         break;}
     probe++; if (probe>=size) probe = 0;}
   if (entries[probe]) {
-    int id = entries[probe]->fd_symid;
+    int id = entries[probe]->symid;
     u8_unlock_mutex(&fd_symbol_lock);
     return FD_ID2SYMBOL(id);}
   else {
@@ -170,9 +170,9 @@ lispval fd_make_symbol(u8_string bytes,int len)
       int id = fd_n_symbols++;
       u8_string pname = u8_strdup(bytes);
       entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
-      entries[probe]->fd_symid = id;
-      fd_init_string(&(entries[probe]->fd_pname),len,pname);
-      fd_symbol_names[id]=LISP_CONS(&(entries[probe]->fd_pname));
+      entries[probe]->symid = id;
+      fd_init_string(&(entries[probe]->sym_pname),len,pname);
+      fd_symbol_names[id]=LISP_CONS(&(entries[probe]->sym_pname));
       u8_unlock_mutex(&fd_symbol_lock);
       return FD_ID2SYMBOL(id);}}
 }
@@ -186,13 +186,13 @@ lispval fd_probe_symbol(u8_string bytes,int len)
   if (len < 0) len = strlen(bytes);
   probe = mult_hash_bytes(bytes,len)%size;
   while (entries[probe]) {
-    if (len == entries[probe]->fd_pname.fd_bytelen)
-      if (strncmp(bytes,entries[probe]->fd_pname.fd_bytes,len) == 0) break;
+    if (len == entries[probe]->sym_pname.str_bytelen)
+      if (strncmp(bytes,entries[probe]->sym_pname.str_bytes,len) == 0) break;
     if (probe >= size) probe = 0;
     else probe++;}
   if (entries[probe]) {
     u8_unlock_mutex(&fd_symbol_lock);
-    return FD_ID2SYMBOL(entries[probe]->fd_symid);}
+    return FD_ID2SYMBOL(entries[probe]->symid);}
   else {
     u8_unlock_mutex(&fd_symbol_lock);
     return VOID;}
@@ -255,15 +255,15 @@ void fd_list_symbol_table()
   fprintf(stderr,"%d refs, %d probes\n",n_refs,n_probes);
   while (i < size)
     if (entries[i]) {
-      u8_string string = entries[i]->name.fd_bytes;
-      int len = entries[i]->name.fd_bytelen, chain = 0;
+      u8_string string = entries[i]->name.str_bytes;
+      int len = entries[i]->name.str_bytelen, chain = 0;
       int hash = mult_hash_bytes(string,len);
       int probe = hash%size;
       fprintf(stderr,"%s\t%d\t%d\t%d",
               string,len,hash,probe);
       while (entries[probe]) {
-        if (strcmp(entries[probe]->name.fd_bytes,string)==0) break;
-        else fprintf(stderr,"\t%s",entries[probe]->name.fd_bytes);
+        if (strcmp(entries[probe]->name.str_bytes,string)==0) break;
+        else fprintf(stderr,"\t%s",entries[probe]->name.str_bytes);
         chain++;
         if (probe == (size-1)) probe = 0; else probe++;}
       fprintf(stderr,"\t%d\n",chain);

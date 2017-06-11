@@ -149,7 +149,7 @@ static int cons_walk(fd_walker walker,int constype,
       while (i<n_buckets) {
 	if (buckets[i]) {
 	  struct FD_HASH_BUCKET *hashentry = buckets[i++];
-	  int j = 0, n_keyvals = hashentry->fd_n_entries;
+	  int j = 0, n_keyvals = hashentry->bucket_len;
 	  struct FD_KEYVAL *keyvals = &(hashentry->kv_val0);
 	  while (j<n_keyvals) {
 	    if ((fast_walk(walker,keyvals[j].kv_key,walkdata,flags,depth-1)<0) ||
@@ -186,7 +186,7 @@ static int walk_compound(fd_walker walker,lispval x,
 			  int depth)
 {
   struct FD_COMPOUND *c = fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
-  int i = 0, len = c->fd_n_elts;
+  int i = 0, len = c->compound_length;
   lispval *data = &(c->compound_0);
   walker(c->compound_typetag,walkdata);
   while (i<len) {

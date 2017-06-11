@@ -455,7 +455,7 @@ static U8_MAYBE_UNUSED lispval fd_schemap_test
 /* Hashtables */
 
 typedef struct FD_HASH_BUCKET {
-  int fd_n_entries;
+  int bucket_len;
   struct FD_KEYVAL kv_val0;} FD_HASH_BUCKET;
 typedef struct FD_HASH_BUCKET *fd_hash_bucket;
 

@@ -1123,9 +1123,9 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
 
-  fd_defspecial(fd_scheme_module,"PRINTOUT",printout_evalfn);
-  fd_defspecial(fd_scheme_module,"LINEOUT",lineout_evalfn);
-  fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_evalfn);
+  fd_def_evalfn(fd_scheme_module,"PRINTOUT","",printout_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LINEOUT","",lineout_evalfn);
+  fd_def_evalfn(fd_scheme_module,"STRINGOUT","",stringout_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
                            fd_string_type,VOID,
@@ -1137,20 +1137,20 @@ FD_EXPORT void fd_init_portprims_c()
                            fd_string_type,VOID));
 
   /* Logging functions for specific levels */
-  fd_defspecial(fd_scheme_module,"NOTIFY",notify_evalfn);
-  fd_defspecial(fd_scheme_module,"STATUS",status_evalfn);
-  fd_defspecial(fd_scheme_module,"WARNING",warning_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NOTIFY","",notify_evalfn);
+  fd_def_evalfn(fd_scheme_module,"STATUS","",status_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WARNING","",warning_evalfn);
 
   /* Generic logging function, always outputs */
-  fd_defspecial(fd_scheme_module,"MESSAGE",message_evalfn);
-  fd_defspecial(fd_scheme_module,"%LOGGER",message_evalfn);
+  fd_def_evalfn(fd_scheme_module,"MESSAGE","",message_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%LOGGER","",message_evalfn);
 
   /* Logging with message level */
-  fd_defspecial(fd_scheme_module,"LOGMSG",log_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LOGMSG","",log_evalfn);
   /* Conditional logging */
-  fd_defspecial(fd_scheme_module,"LOGIF",logif_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LOGIF","",logif_evalfn);
   /* Conditional logging with priority level */
-  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LOGIF+","",logifplus_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,

@@ -100,7 +100,7 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex)
     if (TYPEP(FD_CADR(irritant),fd_error_type)) {
       struct FD_EXCEPTION_OBJECT *embedded=
 	(struct FD_EXCEPTION_OBJECT *) FD_CADR(irritant);
-      u8_exception embedded_ex = embedded->fdex_u8ex;
+      u8_exception embedded_ex = embedded->ex_u8ex;
       if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
 	return ((lispval) embedded_ex->u8x_xdata);
       else return VOID;}
@@ -385,7 +385,7 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
 	else if (FD_EXCEPTIONP(car)) {
 	  struct FD_EXCEPTION_OBJECT *exo=
 	    (struct FD_EXCEPTION_OBJECT *)car;
-	  u8_exception ex=exo->fdex_u8ex;
+	  u8_exception ex=exo->ex_u8ex;
 	  u8_puts(&out," ⇒ ");
 	  u8_puts(&out,ex->u8x_cond);
 	  if (ex->u8x_context) u8_printf(&out,"@%s",ex->u8x_context);
@@ -433,7 +433,7 @@ FD_EXPORT lispval fd_init_exception
 {
   if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
   FD_INIT_CONS(exo,fd_error_type);
-  exo->fdex_u8ex = ex;
+  exo->ex_u8ex = ex;
   return LISP_CONS(exo);
 }
 
@@ -450,19 +450,19 @@ FD_EXPORT lispval fd_make_exception
     freefn = fd_free_exception_xdata;}
   ex = u8_make_exception(c,cxt,u8dup(details),xdata,freefn);
   FD_INIT_CONS(exo,fd_error_type);
-  exo->fdex_u8ex = ex;
+  exo->ex_u8ex = ex;
   return LISP_CONS(exo);
 }
 
 static int dtype_exception(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)x;
-  if (exo->fdex_u8ex == NULL) {
+  if (exo->ex_u8ex == NULL) {
     u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
     fd_write_byte(out,dt_void);
     return 1;}
   else {
-    u8_exception ex = exo->fdex_u8ex;
+    u8_exception ex = exo->ex_u8ex;
     lispval irritant = fd_exception_xdata(ex);
     int veclen = ((VOIDP(irritant)) ? (3) : (4));
     lispval vector = fd_init_vector(NULL,veclen,NULL);
@@ -506,18 +506,18 @@ static lispval copy_exception(lispval x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  return fd_init_exception(NULL,copy_exception_helper(xo->fdex_u8ex,deep));
+  return fd_init_exception(NULL,copy_exception_helper(xo->ex_u8ex,deep));
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
-  u8_exception ex = xo->fdex_u8ex;
+  u8_exception ex = xo->ex_u8ex;
   if (ex == NULL)
     u8_printf(out,"#!!!OLDEXCEPTION");
   else {
-    u8_exception ex = xo->fdex_u8ex;
+    u8_exception ex = xo->ex_u8ex;
     lispval irritant = fd_get_irritant(ex);
     u8_printf(out,"#<!!EXCEPTION %s (%s)",
 	      ex->u8x_cond,ex->u8x_context);

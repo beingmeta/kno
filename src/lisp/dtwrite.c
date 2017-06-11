@@ -150,16 +150,16 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
       if (itype == fd_symbol_type) { /* output symbol */
         lispval name = fd_symbol_names[data];
         struct FD_STRING *s = fd_consptr(struct FD_STRING *,name,fd_string_type);
-        int len = s->fd_bytelen;
+        int len = s->str_bytelen;
         if (((out->buf_flags)&(FD_USE_DTYPEV2)) && (len<256)) {
           {fd_output_byte(out,dt_tiny_symbol);}
           {fd_output_byte(out,len);}
-          {fd_output_bytes(out,s->fd_bytes,len);}
+          {fd_output_bytes(out,s->str_bytes,len);}
           return len+2;}
         else {
           {fd_output_byte(out,dt_symbol);}
           {fd_output_4bytes(out,len);}
-          {fd_output_bytes(out,s->fd_bytes,len);}
+          {fd_output_bytes(out,s->str_bytes,len);}
           return len+5;}}
       else if (itype == fd_character_type) { /* Output unicode character */
         fd_output_byte(out,dt_character_package);
@@ -229,27 +229,27 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
       switch (ctype) {
       case fd_string_type: {
         struct FD_STRING *s = (struct FD_STRING *) cons;
-        int len = s->fd_bytelen;
+        int len = s->str_bytelen;
         if (((out->buf_flags)&(FD_USE_DTYPEV2)) && (len<256)) {
           fd_output_byte(out,dt_tiny_string);
           fd_output_byte(out,len);
-          fd_output_bytes(out,s->fd_bytes,len);
+          fd_output_bytes(out,s->str_bytes,len);
           return 2+len;}
         else {
           fd_output_byte(out,dt_string);
           fd_output_4bytes(out,len);
-          fd_output_bytes(out,s->fd_bytes,len);
+          fd_output_bytes(out,s->str_bytes,len);
           return 5+len;}}
       case fd_packet_type: {
         struct FD_STRING *s = (struct FD_STRING *) cons;
         fd_output_byte(out,dt_packet);
-        fd_output_4bytes(out,s->fd_bytelen);
-        fd_output_bytes(out,s->fd_bytes,s->fd_bytelen);
-        return 5+s->fd_bytelen;}
+        fd_output_4bytes(out,s->str_bytelen);
+        fd_output_bytes(out,s->str_bytes,s->str_bytelen);
+        return 5+s->str_bytelen;}
       case fd_secret_type: {
         struct FD_STRING *s = (struct FD_STRING *) cons;
-        const unsigned char *data = s->fd_bytes;
-        unsigned int len = s->fd_bytelen, sz = 0;
+        const unsigned char *data = s->str_bytes;
+        unsigned int len = s->str_bytelen, sz = 0;
         fd_output_byte(out,dt_character_package);
         if (len<256) {
           fd_output_byte(out,dt_short_secret_packet);
@@ -287,11 +287,11 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
         return len;}
       case fd_vector_type: {
         struct FD_VECTOR *v = (struct FD_VECTOR *) cons;
-        int i = 0, length = v->fdvec_length, dtype_len = 5;
+        int i = 0, length = v->vec_length, dtype_len = 5;
         fd_output_byte(out,dt_vector);
         fd_output_4bytes(out,length);
         while (i < length) {
-          fd_output_dtype(dtype_len,out,v->fdvec_elts[i]); i++;}
+          fd_output_dtype(dtype_len,out,v->vec_elts[i]); i++;}
         return dtype_len;}
       case fd_choice_type:
         return write_choice_dtype(out,(fd_choice)cons);
@@ -443,7 +443,7 @@ static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v)
       if (*scan) {
         struct FD_HASH_BUCKET *he = *scan++;
         struct FD_KEYVAL *kscan = &(he->kv_val0);
-        struct FD_KEYVAL *klimit = kscan+he->fd_n_entries;
+        struct FD_KEYVAL *klimit = kscan+he->bucket_len;
         while (kscan < klimit) {
           if (try_dtype_output(&dtype_len,out,kscan->kv_key)<0) {
             fd_unlock_table(v);
@@ -558,12 +558,12 @@ static int dtype_compound(struct FD_OUTBUF *out,lispval x)
   int n_bytes = 1;
   fd_write_byte(out,dt_compound);
   n_bytes = n_bytes+fd_write_dtype(out,xc->compound_typetag);
-  if (xc->fd_n_elts==1)
+  if (xc->compound_length==1)
     n_bytes = n_bytes+fd_write_dtype(out,xc->compound_0);
   else {
-    int i = 0, n = xc->fd_n_elts; lispval *data = &(xc->compound_0);
+    int i = 0, n = xc->compound_length; lispval *data = &(xc->compound_0);
     fd_write_byte(out,dt_vector);
-    fd_write_4bytes(out,xc->fd_n_elts);
+    fd_write_4bytes(out,xc->compound_length);
     n_bytes = n_bytes+5;
     while (i<n) {
       int written = fd_write_dtype(out,data[i]);

@@ -301,7 +301,7 @@ lispval fd_parse_atom(u8_string start,int len)
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
     struct FD_UUID *uuid = u8_alloc(struct FD_UUID);
     FD_INIT_CONS(uuid,fd_uuid_type);
-    if (u8_parseuuid(start+2,(u8_uuid)&(uuid->fd_uuid16)))
+    if (u8_parseuuid(start+2,(u8_uuid)&(uuid->uuid16)))
       return LISP_CONS(uuid);
     else {
       fd_seterr3("Invalid UUID","fd_parse_atom",start);
@@ -560,16 +560,16 @@ static lispval make_regex(u8_string src_arg,u8_string opts)
   else if (strchr(opts,'c')) cflags &= ~REG_ICASE;
   else if (strchr(opts,'m')) cflags |= REG_NEWLINE;
   else {}
-  retval = regcomp(&(ptr->fd_rxcompiled),src,cflags);
+  retval = regcomp(&(ptr->rxcompiled),src,cflags);
   if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
+    regerror(retval,&(ptr->rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),VOID);}
   else {
     U8_CLEAR_ERRNO();
-    ptr->fd_rxflags = cflags; ptr->fd_rxsrc = src;
-    u8_init_mutex(&(ptr->fdrx_lock)); ptr->fd_rxactive = 1;
+    ptr->rxflags = cflags; ptr->rxsrc = src;
+    u8_init_mutex(&(ptr->rx_lock)); ptr->rxactive = 1;
     return LISP_CONS(ptr);}
 }
 
@@ -1043,8 +1043,8 @@ static lispval recreate_record(int n,lispval *v)
 {
   int i = 0;
   struct FD_COMPOUND_TYPEINFO *entry = fd_lookup_compound(v[0]);
-  if ((entry) && (entry->fd_compound_parser)) {
-    lispval result = entry->fd_compound_parser(n,v,entry);
+  if ((entry) && (entry->compound_parser)) {
+    lispval result = entry->compound_parser(n,v,entry);
     if (!(VOIDP(result))) {
       while (i<n) {fd_decref(v[i]); i++;}
       if (v) u8_free(v);
@@ -1053,7 +1053,7 @@ static lispval recreate_record(int n,lispval *v)
     struct FD_COMPOUND *c=
       u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(lispval));
     lispval *data = &(c->compound_0); fd_init_compound(c,v[0],0,0);
-    c->fd_n_elts = n-1;
+    c->compound_length = n-1;
     i = 1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);
     return LISP_CONS(c);}

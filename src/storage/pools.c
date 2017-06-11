@@ -1080,9 +1080,9 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
     while (scan < lim) {
       if (*scan) {
         struct FD_HASH_BUCKET *e = *scan;
-        int fd_n_entries = e->fd_n_entries;
+        int bucket_len = e->bucket_len;
         struct FD_KEYVAL *kvscan = &(e->kv_val0);
-        struct FD_KEYVAL *kvlimit = kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit = kvscan+bucket_len;
         while (kvscan<kvlimit) {
           lispval key = kvscan->kv_key, val = kvscan->kv_val;
           if (val == FD_LOCKHOLDER) {kvscan++; continue;}
@@ -2063,7 +2063,7 @@ FD_EXPORT void fd_init_pools_c()
   {
     struct FD_COMPOUND_TYPEINFO *e =
       fd_register_compound(fd_intern("POOL"),NULL,NULL);
-    e->fd_compound_parser = pool_parsefn;}
+    e->compound_parser = pool_parsefn;}
 
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
   fd_make_hashtable(&poolid_table,-1);

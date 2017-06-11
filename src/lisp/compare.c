@@ -220,10 +220,10 @@ static int compare_compounds(lispval x,lispval y,fd_compare_flags flags)
     if (xc>yc) return 1; else return -1;
   else if ((cmp = (LISP_COMPARE(xtag,ytag,flags))))
     return cmp;
-  else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
-  else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
+  else if (xc->compound_length<yc->compound_length) return -1;
+  else if (xc->compound_length>yc->compound_length) return 1;
   else {
-    int i = 0, len = xc->fd_n_elts;
+    int i = 0, len = xc->compound_length;
     lispval *xdata = &(xc->compound_0), *ydata = &(yc->compound_0);
     while (i<len)
       if ((cmp = (LISP_COMPARE(xdata[i],ydata[i],flags)))==0)
@@ -248,7 +248,7 @@ static int compare_uuids(lispval x,lispval y,fd_compare_flags flags)
 {
   struct FD_UUID *xuuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   struct FD_UUID *yuuid = fd_consptr(struct FD_UUID *,y,fd_uuid_type);
-  return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
+  return memcmp(xuuid->uuid16,yuuid->uuid16,16);
 }
 
 lispval compare_quick, compare_recursive, compare_elts, compare_natural,

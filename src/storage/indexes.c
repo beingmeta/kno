@@ -1332,7 +1332,7 @@ FD_EXPORT void fd_init_indexes_c()
   {
     struct FD_COMPOUND_TYPEINFO *e =
       fd_register_compound(fd_intern("INDEX"),NULL,NULL);
-    e->fd_compound_parser = index_parsefn;}
+    e->compound_parser = index_parsefn;}
 
   fd_tablefns[fd_index_type]=u8_alloc(struct FD_TABLEFNS);
   fd_tablefns[fd_index_type]->get = table_indexget;

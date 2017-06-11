@@ -478,7 +478,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_STREAM fd_clientstream;
+  struct FD_STREAM clientstream;
   time_t lastlive; double elapsed;
   fd_lexenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
@@ -489,7 +489,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 {
   fd_client client = (fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
-  fd_init_stream(&(client->fd_clientstream),
+  fd_init_stream(&(client->clientstream),
                  client->idstring,sock,FD_STREAM_SOCKET,
                  FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
@@ -507,7 +507,7 @@ static int dtypeserver(u8_client ucl)
 {
   lispval expr;
   fd_client client = (fd_client)ucl;
-  fd_stream stream = &(client->fd_clientstream);
+  fd_stream stream = &(client->clientstream);
   fd_inbuf inbuf = fd_readbuf(stream);
   int async = ((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
@@ -660,7 +660,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client = (fd_client)ucl;
-  fd_close_stream(&(client->fd_clientstream),0);
+  fd_close_stream(&(client->clientstream),0);
   fd_decref((lispval)((fd_client)ucl)->env);
   ucl->socket = -1;
   return 1;
@@ -1229,17 +1229,17 @@ static fd_lexenv init_core_env()
 {
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   fd_lexenv core_env = fd_safe_working_lexenv();
+  lispval core_module = (lispval) core_env;
   fd_init_dbserv();
   fd_register_module("DBSERV",fd_incref(fd_dbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_dbserv_module);
 
   /* We add some special functions */
-  fd_defspecial((lispval)core_env,"BOUND?",boundp_evalfn);
-  fd_idefn((lispval)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time));
-  fd_idefn((lispval)core_env,fd_make_cprim0("UPTIME",get_uptime));
-  fd_idefn((lispval)core_env,fd_make_cprim0("ASYNCOK?",asyncok));
-  fd_idefn((lispval)core_env,
-           fd_make_cprim0("SERVER-STATUS",get_server_status));
+  fd_def_evalfn(core_module,"BOUND?","",boundp_evalfn);
+  fd_idefn(core_module,fd_make_cprim0("BOOT-TIME",get_boot_time));
+  fd_idefn(core_module,fd_make_cprim0("UPTIME",get_uptime));
+  fd_idefn(core_module,fd_make_cprim0("ASYNCOK?",asyncok));
+  fd_idefn(core_module,fd_make_cprim0("SERVER-STATUS",get_server_status));
 
   return core_env;
 }

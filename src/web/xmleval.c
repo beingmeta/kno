@@ -55,7 +55,8 @@ void *inherit_node_data(FD_XML *node)
 fd_lexenv read_xml_env(fd_lexenv env)
 {
   lispval xmlenv = fd_symeval(xml_env_symbol,env);
-  if (VOIDP(xmlenv)) return fdxml_module;
+  if (VOIDP(xmlenv)) 
+    return fdxml_module;
   else if (FD_LEXENVP(xmlenv)) {
     fd_decref(xmlenv);
     return (fd_lexenv)xmlenv;}
@@ -1742,18 +1743,19 @@ FD_EXPORT void fd_init_xmleval_c()
   xmleval_initialized = 1;
   fd_init_scheme();
   fdxml_module = fd_make_env(fd_make_hashtable(NULL,17),NULL);
+  lispval addtomod = (lispval) fdxml_module;
 
-  fd_defspecial((lispval)fdxml_module,"IF",fdxml_if);
-  fd_defspecial((lispval)fdxml_module,"ALT",fdxml_alt);
-  fd_defspecial((lispval)fdxml_module,"IFREQ",fdxml_ifreq);
-  fd_defspecial((lispval)fdxml_module,"LOOP",fdxml_loop);
-  fd_defspecial((lispval)fdxml_module,"INSERT",fdxml_insert);
-  fd_defspecial((lispval)fdxml_module,"DEFINE",fdxml_define);
-  fd_defspecial((lispval)fdxml_module,"FIND",fdxml_find);
-  fd_defspecial((lispval)fdxml_module,"TRY",fdxml_try);
-  fd_defspecial((lispval)fdxml_module,"UNION",fdxml_union);
-  fd_defspecial((lispval)fdxml_module,"INTERSECTION",fdxml_intersection);
-  fd_defspecial((lispval)fdxml_module,"BINDING",fdxml_binding);
+  fd_def_evalfn(addtomod,"IF","",fdxml_if);
+  fd_def_evalfn(addtomod,"ALT","",fdxml_alt);
+  fd_def_evalfn(addtomod,"IFREQ","",fdxml_ifreq);
+  fd_def_evalfn(addtomod,"LOOP","",fdxml_loop);
+  fd_def_evalfn(addtomod,"INSERT","",fdxml_insert);
+  fd_def_evalfn(addtomod,"DEFINE","",fdxml_define);
+  fd_def_evalfn(addtomod,"FIND","",fdxml_find);
+  fd_def_evalfn(addtomod,"TRY","",fdxml_try);
+  fd_def_evalfn(addtomod,"UNION","",fdxml_union);
+  fd_def_evalfn(addtomod,"INTERSECTION","",fdxml_intersection);
+  fd_def_evalfn(addtomod,"BINDING","",fdxml_binding);
 
   xmleval_tag = fd_intern("%XMLEVAL");
   xmleval2expr_tag = fd_intern("%XMLEVAL2EXPR");

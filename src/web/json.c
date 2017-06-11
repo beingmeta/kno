@@ -519,7 +519,7 @@ static void json_unparse(u8_output out,lispval x,int flags,lispval slotfn,
     else u8_printf(out,"\"%iSXGt\"",&(tm->ts_u8xtime));}
   else if (TYPEP(x,fd_uuid_type)) {
     struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,x,fd_uuid_type);
-    char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
+    char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->uuid16)),buf);
     if ((flags)&(FD_JSON_COLONIZE))
       u8_printf(out,"\":#U%s\"",buf);
     else u8_printf(out,"\"%s\"",buf);}
@@ -556,7 +556,7 @@ static lispval jsonoutput(lispval x,lispval flags_arg,
                          lispval slotfn,lispval oidfn,lispval miscfn)
 {
   u8_output out = u8_current_output;
-  unsigned int flags = get_json_flags(flags_arg);
+  int flags = get_json_flags(flags_arg);
   if ((flags<0)||(flags>=FD_JSON_MAXFLAGS))
     return fd_type_error("fixnum/flags","jsonoutput",flags_arg);
   json_unparse(out,x,flags,slotfn,oidfn,miscfn);

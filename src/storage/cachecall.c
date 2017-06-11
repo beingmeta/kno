@@ -43,9 +43,9 @@ FD_EXPORT lispval fd_cachecall(lispval fcn,int n,lispval *args)
   struct FD_HASHTABLE *cache = get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.fdvec_length = n;
-  vecstruct.fdvec_free_elts = 0;
-  vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_length = n;
+  vecstruct.vec_free_elts = 0;
+  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = LISP_CONS(&vecstruct);
   cached = fd_hashtable_get(cache,vec,VOID);
@@ -75,9 +75,9 @@ FD_EXPORT lispval fd_xcachecall
   lispval vec, cached;
   struct FD_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.fdvec_length = n;
-  vecstruct.fdvec_free_elts = 0;
-  vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_length = n;
+  vecstruct.vec_free_elts = 0;
+  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = LISP_CONS(&vecstruct);
   cached = fd_hashtable_get(cache,vec,VOID);
@@ -143,9 +143,9 @@ FD_EXPORT int fd_cachecall_probe(lispval fcn,int n,lispval *args)
   struct FD_HASHTABLE *cache = get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.fdvec_length = n;
-  vecstruct.fdvec_free_elts = 0;
-  vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_length = n;
+  vecstruct.vec_free_elts = 0;
+  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = LISP_CONS(&vecstruct);
   iscached = fd_hashtable_probe(cache,vec);
@@ -158,9 +158,9 @@ FD_EXPORT int fd_xcachecall_probe(struct FD_HASHTABLE *cache,lispval fcn,int n,l
   lispval vec; int iscached = 0;
   struct FD_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.fdvec_length = n;
-  vecstruct.fdvec_free_elts = 0;
-  vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_length = n;
+  vecstruct.vec_free_elts = 0;
+  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = LISP_CONS(&vecstruct);
   iscached = fd_hashtable_probe(cache,vec);
@@ -173,9 +173,9 @@ FD_EXPORT lispval fd_cachecall_try(lispval fcn,int n,lispval *args)
   struct FD_HASHTABLE *cache = get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.fdvec_length = n;
-  vecstruct.fdvec_free_elts = 0;
-  vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_length = n;
+  vecstruct.vec_free_elts = 0;
+  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = LISP_CONS(&vecstruct);
   value = fd_hashtable_get(cache,vec,VOID);
@@ -189,9 +189,9 @@ FD_EXPORT lispval fd_xcachecall_try(struct FD_HASHTABLE *cache,lispval fcn,int n
   lispval vec; lispval value;
   struct FD_VECTOR vecstruct;
   memset(&vecstruct,0,sizeof(vecstruct));
-  vecstruct.fdvec_length = n;
-  vecstruct.fdvec_free_elts = 0;
-  vecstruct.fdvec_elts = ((n==0) ? (NULL) : (args));
+  vecstruct.vec_length = n;
+  vecstruct.vec_free_elts = 0;
+  vecstruct.vec_elts = ((n==0) ? (NULL) : (args));
   FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
   vec = LISP_CONS(&vecstruct);
   value = fd_hashtable_get(cache,vec,VOID);
@@ -211,8 +211,8 @@ FD_EXPORT lispval fd_tcachecall(lispval fcn,int n,lispval *args)
     lispval _elts[TCACHECALL_STACK_ELTS], *elts = NULL, vec, cached;
     /* Initialize the stack vector */
     memset(&vecstruct,0,sizeof(vecstruct));
-    vecstruct.fdvec_free_elts = 0;
-    vecstruct.fdvec_length = n+1;
+    vecstruct.vec_free_elts = 0;
+    vecstruct.vec_length = n+1;
     FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
     /* Allocate an elements vector if neccessary */
     if ((n+1)>(TCACHECALL_STACK_ELTS))
@@ -220,7 +220,7 @@ FD_EXPORT lispval fd_tcachecall(lispval fcn,int n,lispval *args)
     else elts=_elts;
     /* Initialize the elements */
     elts[0]=fcn; memcpy(elts+1,args,sizeof(lispval)*n);
-    vecstruct.fdvec_elts = elts;
+    vecstruct.vec_elts = elts;
     vec = LISP_CONS(&vecstruct);
     /* Look it up in the cache. */
     cached = fd_hashtable_get_nolock(&(tc->calls),vec,VOID);

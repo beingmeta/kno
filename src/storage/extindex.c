@@ -79,9 +79,9 @@ static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
-  vstruct.fdvec_length = n; 
-  vstruct.fdvec_elts = keys; 
-  vstruct.fdvec_free_elts = 0;
+  vstruct.vec_length = n; 
+  vstruct.vec_elts = keys; 
+  vstruct.vec_free_elts = 0;
   vecarg = LISP_CONS(&vstruct);
   if ((VOIDP(state))||(FALSEP(state))||
       ((fptr)&&(fptr->fcn_arity==1)))
@@ -93,11 +93,11 @@ static lispval *extindex_fetchn(fd_index p,int n,lispval *keys)
   else if (VECTORP(value)) {
     struct FD_VECTOR *vstruct = (struct FD_VECTOR *)value;
     lispval *results = u8_alloc_n(n,lispval);
-    memcpy(results,vstruct->fdvec_elts,sizeof(lispval)*n);
+    memcpy(results,vstruct->vec_elts,sizeof(lispval)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
-    if (vstruct->fdvec_free_elts)
-      u8_free(vstruct->fdvec_elts);
+    if (vstruct->vec_free_elts)
+      u8_free(vstruct->vec_elts);
     u8_free((struct FD_CONS *)value);
     return results;}
   else {

@@ -1307,10 +1307,10 @@ static unsigned int hash_lisp(lispval x)
     case fd_string_type: {
       struct FD_STRING *s=
         fd_consptr(struct FD_STRING *,x,fd_string_type);
-      return mult_hash_bytes(s->fd_bytes,s->fd_bytelen);}
+      return mult_hash_bytes(s->str_bytes,s->str_bytelen);}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *)x;
-      return mult_hash_bytes(s->fd_bytes,s->fd_bytelen);}
+      return mult_hash_bytes(s->str_bytes,s->str_bytelen);}
     case fd_pair_type: {
       lispval car=FD_CAR(x), cdr=FD_CDR(x);
       unsigned int hcar=fd_hash_lisp(car), hcdr=fd_hash_lisp(cdr);
@@ -1318,7 +1318,7 @@ static unsigned int hash_lisp(lispval x)
     case fd_vector_type: {
       struct FD_VECTOR *v=
         fd_consptr(struct FD_VECTOR *,x,fd_vector_type);
-      return hash_elts(v->fdvec_elts,v->fdvec_length);}
+      return hash_elts(v->vec_elts,v->vec_length);}
     case fd_compound_type: {
       struct FD_COMPOUND *c=
         fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
@@ -1329,7 +1329,7 @@ static unsigned int hash_lisp(lispval x)
         else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
       else return hash_mult
              (hash_lisp(c->compound_typetag),
-              hash_elts(&(c->compound_0),c->fd_n_elts));}
+              hash_elts(&(c->compound_0),c->compound_length));}
     case fd_slotmap_type: {
       struct FD_SLOTMAP *sm=
         fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type);
@@ -1387,18 +1387,18 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_get
   unsigned int hash=fd_hash_lisp(key), offset=compute_offset(hash,n_slots);
   struct FD_HASH_BUCKET *he=slots[offset];
   if (he == NULL) return NULL;
-  else if (PRED_TRUE(he->fd_n_entries == 1))
+  else if (PRED_TRUE(he->bucket_len == 1))
     if (LISP_EQUAL(key,he->kv_val0.kv_key))
       return &(he->kv_val0);
     else return NULL;
-  else return fd_sortvec_get(key,&(he->kv_val0),he->fd_n_entries);
+  else return fd_sortvec_get(key,&(he->kv_val0),he->bucket_len);
 }
 
 FD_EXPORT struct FD_KEYVAL *fd_hash_bucket_insert
   (lispval key,struct FD_HASH_BUCKET **hep)
 {
   struct FD_HASH_BUCKET *he=*hep; int found=0;
-  struct FD_KEYVAL *keyvals=&(he->kv_val0); int size=he->fd_n_entries;
+  struct FD_KEYVAL *keyvals=&(he->kv_val0); int size=he->bucket_len;
   struct FD_KEYVAL *bottom=keyvals, *top=bottom+(size-1);
   struct FD_KEYVAL *middle=bottom+(top-bottom)/2;;
   while (top>=bottom) { /* (!(top<bottom)) */
@@ -1420,7 +1420,7 @@ FD_EXPORT struct FD_KEYVAL *fd_hash_bucket_insert
             (sizeof(struct FD_HASH_BUCKET))+
             ((size-1)*sizeof(struct FD_KEYVAL))),
            0,sizeof(struct FD_KEYVAL));
-    *hep=new_hashentry; new_hashentry->fd_n_entries++;
+    *hep=new_hashentry; new_hashentry->bucket_len++;
     insert_point=&(new_hashentry->kv_val0)+ipos;
     memmove(insert_point+1,insert_point,
             sizeof(struct FD_KEYVAL)*(size-ipos));
@@ -1441,21 +1441,21 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
   if (he == NULL) {
     he=u8_alloc(struct FD_HASH_BUCKET);
     FD_INIT_STRUCT(he,struct FD_HASH_BUCKET);
-    he->fd_n_entries=1;
+    he->bucket_len=1;
     he->kv_val0.kv_key=fd_getref(key);
     he->kv_val0.kv_val=EMPTY;
     slots[offset]=he; if (n_keys) (*n_keys)++;
     return &(he->kv_val0);}
-  else if (he->fd_n_entries == 1) {
+  else if (he->bucket_len == 1) {
     if (LISP_EQUAL(key,he->kv_val0.kv_key))
       return &(he->kv_val0);
     else {
       if (n_keys) (*n_keys)++;
       return fd_hash_bucket_insert(key,&slots[offset]);}}
   else {
-    int size=he->fd_n_entries;
+    int size=he->bucket_len;
     struct FD_KEYVAL *kv=fd_hash_bucket_insert(key,&slots[offset]);
-    if ((n_keys) && (slots[offset]->fd_n_entries > size)) (*n_keys)++;
+    if ((n_keys) && (slots[offset]->bucket_len > size)) (*n_keys)++;
     return kv;}
 }
 
@@ -2200,8 +2200,8 @@ FD_EXPORT lispval fd_hashtable_keys(struct FD_HASHTABLE *ptr)
     struct FD_HASH_BUCKET **scan=ptr->ht_buckets, **lim=scan+ptr->ht_n_buckets;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan; int fd_n_entries=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+fd_n_entries;
+        struct FD_HASH_BUCKET *e=*scan; int bucket_len=e->bucket_len;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
           if (VOIDP(kvscan->kv_val)) {kvscan++;continue;}
           fd_incref(kvscan->kv_key);
@@ -2230,9 +2230,9 @@ FD_EXPORT lispval fd_hashtable_values(struct FD_HASHTABLE *ptr)
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int fd_n_entries=e->fd_n_entries;
+        int bucket_len=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
           lispval value=kvscan->kv_val;
           if ((VOIDP(value))||(EMPTYP(value))) {
@@ -2265,9 +2265,9 @@ FD_EXPORT lispval fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int fd_n_entries=e->fd_n_entries;
+        int bucket_len=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
           lispval key=kvscan->kv_key, value=kvscan->kv_val, assoc;
           if (VOIDP(value)) {
@@ -2289,7 +2289,7 @@ static int free_buckets(struct FD_HASH_BUCKET **slots,int len)
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int n_entries=e->fd_n_entries;
+        int n_entries=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
         struct FD_KEYVAL *kvlimit=kvscan+n_entries;
         while (kvscan<kvlimit) {
@@ -2416,7 +2416,7 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; 
-        int n_keyvals=e->fd_n_entries;
+        int n_keyvals=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
         struct FD_KEYVAL *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
@@ -2514,8 +2514,8 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock)
     while (nscan<nlim) *nscan++=NULL;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan++; int fd_n_entries=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+fd_n_entries;
+        struct FD_HASH_BUCKET *e=*scan++; int bucket_len=e->bucket_len;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
           struct FD_KEYVAL *nkv=fd_hashvec_insert
             (kvscan->kv_key,new_slots,n_slots,NULL);
@@ -2552,8 +2552,8 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
     scan=ptr->ht_buckets; lim=scan+ptr->ht_n_buckets;
     while (scan < lim) {
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan++; int fd_n_entries=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+fd_n_entries;
+        struct FD_HASH_BUCKET *e=*scan++; int bucket_len=e->bucket_len;
+        struct FD_KEYVAL *kvscan=&(e->kv_val0), *kvlimit=kvscan+bucket_len;
         if ((testfn)&&(testfn(kvscan->kv_key,VOID,testdata))) {}
         else while (kvscan<kvlimit) {
             lispval val=kvscan->kv_val;
@@ -2595,9 +2595,9 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr,int locked)
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan++;
-        int fd_n_entries=e->fd_n_entries;
+        int bucket_len=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit)
           if (VOIDP(kvscan->kv_val)) {
             fd_decref(kvscan->kv_key);
@@ -2635,15 +2635,15 @@ FD_EXPORT int fd_hashtable_stats
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int fd_n_entries=e->fd_n_entries;
-        n_buckets++; n_keys=n_keys+fd_n_entries;
-        if (fd_n_entries>max_bucket)
-          max_bucket=fd_n_entries;
-        if (fd_n_entries>1)
+        int bucket_len=e->bucket_len;
+        n_buckets++; n_keys=n_keys+bucket_len;
+        if (bucket_len>max_bucket)
+          max_bucket=bucket_len;
+        if (bucket_len>1)
           n_collisions++;
         if ((n_valsp) || (max_valsp)) {
           struct FD_KEYVAL *kvscan=&(e->kv_val0);
-          struct FD_KEYVAL *kvlimit=kvscan+fd_n_entries;
+          struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
           while (kvscan<kvlimit) {
             int valcount;
             lispval val=kvscan->kv_val;
@@ -2693,12 +2693,12 @@ FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
     else {
       struct FD_KEYVAL *kvread, *kvwrite, *kvlimit;
       struct FD_HASH_BUCKET *he=*read++, *newhe;
-      int n=he->fd_n_entries;
+      int n=he->bucket_len;
       *write++=newhe=(struct FD_HASH_BUCKET *)
         u8_malloc(sizeof(struct FD_HASH_BUCKET)+
                    (n-1)*sizeof(struct FD_KEYVAL));
       kvread=&(he->kv_val0); kvwrite=&(newhe->kv_val0);
-      newhe->fd_n_entries=n; kvlimit=kvread+n;
+      newhe->bucket_len=n; kvlimit=kvread+n;
       while (kvread<kvlimit) {
         lispval key=kvread->kv_key;
         lispval val=kvread->kv_val;
@@ -2778,9 +2778,9 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int fd_n_entries=e->fd_n_entries;
+        int bucket_len=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
           fd_decref(kvscan->kv_key);
           fd_decref(kvscan->kv_val);
@@ -2824,9 +2824,9 @@ FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int fd_n_entries=e->fd_n_entries;
+        int bucket_len=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
-        struct FD_KEYVAL *kvlimit=kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit=kvscan+bucket_len;
         while (kvscan<kvlimit) {
           rscan->kv_key=fd_getref(kvscan->kv_key);
           rscan->kv_val=fd_getref(kvscan->kv_val);
@@ -2852,7 +2852,7 @@ FD_EXPORT int fd_for_hashtable
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; 
-        int n_entries=e->fd_n_entries;
+        int n_entries=e->bucket_len;
         const struct FD_KEYVAL *kvscan=&(e->kv_val0);
         const struct FD_KEYVAL *kvlimit=kvscan+n_entries;
         while (kvscan<kvlimit) {
@@ -2878,7 +2878,7 @@ FD_EXPORT int fd_for_hashtable_kv
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
-        int n_keyvals=e->fd_n_entries;
+        int n_keyvals=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
         struct FD_KEYVAL *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
@@ -3905,7 +3905,7 @@ void fd_init_tables_c()
   {
     struct FD_COMPOUND_TYPEINFO *e=
       fd_register_compound(fd_intern("HASHTABLE"),NULL,NULL);
-    e->fd_compound_restorefn=restore_hashtable;
+    e->compound_restorefn=restore_hashtable;
   }
 }
 
