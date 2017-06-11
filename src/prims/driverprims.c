@@ -78,7 +78,7 @@ static lispval indexctl_prim(int n,lispval *args)
     return FD_ERROR;
   else if (!(SYMBOLP(args[1])))
     return fd_err("BadIndexOp","indexctl_prim",NULL,args[1]);
-  else return fd_index_ctl(ix,args[1],n-1,args+1);
+  else return fd_index_ctl(ix,args[1],n-2,args+2);
 }
 
 static lispval poolctl_prim(int n,lispval *args)
