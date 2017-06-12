@@ -229,6 +229,7 @@ int fd_pprint_x(u8_output out,lispval x,u8_string prefix,
             prefix,indent+2,col+2,maxcol,
             fn,data);
     u8_putc(out,']');
+    fd_decref(keys);
     return col+1;}
   else {
     int startoff = out->u8_write-out->u8_outbuf;
