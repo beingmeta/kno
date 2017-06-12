@@ -361,34 +361,43 @@ static lispval profiled_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
   return value;
 }
 
+#define DONT_OPTIMIZE __attribute__((optimize("O0"))) 
+
 /* These are for wrapping around Scheme code to see in C profilers */
-static lispval eval1(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval1(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
-static lispval eval2(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval2(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
-static lispval eval3(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval3(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
-static lispval eval4(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval4(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
-static lispval eval5(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval5(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
-static lispval eval6(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval6(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
-static lispval eval7(lispval expr,fd_lexenv env,fd_stack s)
+static DONT_OPTIMIZE lispval eval7(lispval expr,fd_lexenv env,fd_stack s)
 {
-  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
 }
 
 /* Google profiler usage */
