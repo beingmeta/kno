@@ -6,6 +6,7 @@ usr/share/framerd/modules/installed
 usr/share/framerd/modules/installed/safe
 usr/share/framerd/modules/local
 usr/share/framerd/modules/local/safe
+usr/share/framerd/libscm
 usr/share/framerd/packages
 etc
 etc/framerd
