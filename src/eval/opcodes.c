@@ -828,20 +828,18 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
           lispval cur     = values[across];
           if ( (combiner == FD_FALSE) || (combiner == VOID) ) {
             values[across]=value;
-            fd_incref(value);
             fd_decref(cur);}
           else if (combiner == FD_UNION_OPCODE) {
-            if ((cur==VOID)||(cur==FD_UNBOUND)||(cur==EMPTY)) {
+            if ((cur==VOID)||(cur==FD_UNBOUND)||(cur==EMPTY))
               values[across]=value;
-              fd_incref(value);}
             else {
-              CHOICE_ADD(values[across],value);
-              fd_incref(value);}
+              CHOICE_ADD(values[across],value);}
             return FD_VOID;}
           else {
             lispval newv=combine_values(combiner,cur,value);
             values[across]=newv;
-            if (cur != newv) fd_decref(cur);}
+            if (cur != newv) fd_decref(cur);
+            if (value != newv) fd_decref(value);}
           return VOID;}}}
     u8_string lexref=u8_mkstring("up%d/across%d",up,across);
     lispval env_copy=(lispval)fd_copy_env(env);
@@ -866,7 +864,8 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
         rv=-1;
       else rv=fd_store(table,sym,newv);
       if (newv!=cur) fd_decref(cur);
-      fd_decref(newv);}
+      if (newv!=value) fd_decref(newv);}
+    fd_decref(value);
     if (rv<0) {
       fd_seterr("AssignFailed","ASSIGN_OPCODE",NULL,expr);
       return FD_ERROR_VALUE;}
@@ -875,14 +874,12 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
 }
 
 static lispval bindop(lispval op,
-                     struct FD_STACK *_stack,fd_lexenv env,
-                     lispval vars,lispval inits,lispval body,
-                     int tail)
+                      struct FD_STACK *_stack,fd_lexenv env,
+                      lispval vars,lispval inits,lispval body,
+                      int tail)
 {
   int i=0, n=VEC_LEN(vars);
   FD_PUSH_STACK(bind_stack,"bindop",NULL,op);
-  bind_stack->stack_args=VEC_DATA(vars);
-  bind_stack->n_args=VEC_LEN(vars);
   INIT_STACK_SCHEMA(bind_stack,bound,env,n,VEC_DATA(vars));
   lispval *values=bound_bindings.schema_values;
   lispval *exprs=VEC_DATA(inits);
@@ -895,8 +892,9 @@ static lispval bindop(lispval op,
       env_copy=bound->env_copy; bound=env_copy;
       values=((fd_schemap)(bound->env_bindings))->schema_values;}
     values[i++]=val;}
-  lispval result = op_eval_body(body,bound,_stack,tail);
-  _return result;
+  lispval result = op_eval_body(body,bound,bind_stack,tail);
+  fd_pop_stack(bind_stack);
+  return result;
 }
 
 static lispval opcode_dispatch_inner(lispval opcode,lispval expr,
