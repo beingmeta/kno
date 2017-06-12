@@ -271,7 +271,7 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
 #define _return return fd_pop_stack(_stack),
 
 #define fd_return(v) return (fd_pop_stack(_stack),(v))
-#define fd_return_from(stack) return (fd_pop_stack(_stack),(v))
+#define fd_return_from(stack,v) return (fd_pop_stack(stack),(v))
 
 #define FD_WITH_STACK(label,caller,op,n,args) \
   struct FD_STACK __stack, *_stack=&__stack; \
