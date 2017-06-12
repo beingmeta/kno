@@ -7,6 +7,8 @@ set env FD_STEALSOCKETS=yes
 set env DUMA_ALIGNMENT=4
 set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+#set env ASAN_OPTIONS=abort_on_error=1:malloc_context_size=30:print_cmdline=true
+set env LSAN_OPTIONS=report_objects=1:malloc_context_size=30
 set env TCMALLOC_DEBUG=3
 #set env PERFTOOLS_VERBOSE=2
 #set env MALLOCSTATS=2
@@ -197,11 +199,13 @@ break u8_raise
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error
-#break abort
+break abort
 #break exit
+
 
 # For LIBC
 set env MALLOC_CHECK_=2
+
 # For OS X
 #set env MallocHelp=1 
 set env MallocGuardEdges=1
