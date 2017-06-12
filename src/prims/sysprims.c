@@ -13,17 +13,6 @@
 
 #include "framerd/fdsource.h"
 
-#if HAVE_GPERFTOOLS_PROFILER_H
-#include <gperftools/profiler.h>
-#endif
-#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-#include <gperftools/heap-profiler.h>
-#endif
-#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
-#include <gperftools/malloc_extension_c.h>
-#endif
-
-
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/storage.h"
@@ -206,21 +195,7 @@ static lispval rusage_prim(lispval field)
     ssize_t mem = u8_memusage(), vmem = u8_vmemusage();
     double memload = u8_memload(), vmemload = u8_vmemload();
     size_t n_cpus = get_n_cpus();
-#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
-    /* This doesn't seem to work, but it should */
-    {
-      size_t in_use=0, heap_size=0;
-      MallocExtension_GetNumericProperty
-        ("generic.current_allocated_bytes",&in_use);
-      MallocExtension_GetNumericProperty
-        ("generic.heap_size",&heap_size);
-      /* Other properties: */
-      /* "tcmalloc.current_total_thread_cache_bytes" */
-      /* "tcmalloc.pageheap_free_bytes" */
-      /* "tcmalloc.pageheap_unmapped_bytes" */
-      add_intval(result,mallocd_symbol,in_use);
-      add_intval(result,heap_symbol,heap_size);}
-#elif HAVE_MSTATS
+#if HAVE_MSTATS
     struct mstats stats=mstats();
     add_intval(result,mallocd_symbol,stats.bytes_used);
     add_intval(result,heap_symbol,stats.bytes_total);
@@ -314,7 +289,8 @@ static lispval rusage_prim(lispval field)
         add_intval(result,availablemb_symbol,available_memory/(1024*1024));
         add_intval(result,available_memory_symbol,available_memory);}}
 
-    return result;}
+    return fd_read_sensors(result);}
+
   else if (FD_EQ(field,cpusage_symbol)) {
     double elapsed = u8_elapsed_time()*1000000.0;
     double stime = u8_dbltime(r.ru_stime);
@@ -360,12 +336,6 @@ static lispval rusage_prim(lispval field)
     if (info)
       return fd_init_string(NULL,-1,info);
     else return EMPTY;}
-#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
-  else if (FD_EQ(field,tcmallocinfo_symbol)) {
-    char buf[1024];
-    MallocExtension_GetStats(buf,1024);
-    return fd_make_string(NULL,-1,buf);}
-#endif
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples = getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
@@ -449,7 +419,11 @@ static lispval rusage_prim(lispval field)
     else {
       u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
       return FD_ERROR;}}
-  else return EMPTY;
+  else {
+    lispval val=fd_read_sensor(field);
+    if (VOIDP(val))
+      return EMPTY;
+    else return val;}
 }
 
 static int setprop(lispval result,u8_string field,char *value)
@@ -724,83 +698,6 @@ static int corelimit_set(lispval symbol,lispval value,void *vptr)
   else return 1;
 }
 
-/* Google profiling tools */
-
-#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-static lispval gperf_heap_profile(lispval arg)
-{
-  int running = IsHeapProfilerRunning();
-  if (FALSEP(arg)) {
-    if (running) {
-      HeapProfilerStop();
-    return FD_TRUE;}
-    else return FD_FALSE;}
-  else if (running) return FD_FALSE;
-  else if (STRINGP(arg)) {
-    HeapProfilerStart(CSTRING(arg));
-    return FD_TRUE;}
-  else {
-    HeapProfilerStart(u8_appid());
-    return FD_TRUE;}
-}
-
-static lispval gperf_profiling_heap(lispval arg)
-{
-  if (IsHeapProfilerRunning())
-    return FD_TRUE;
-  else return FD_FALSE;
-}
-
-static lispval gperf_dump_heap(lispval arg)
-{
-  int running = IsHeapProfilerRunning();
-  if (running) {
-    HeapProfilerDump(CSTRING(arg));
-    return FD_TRUE;}
-  else return FD_FALSE;
-}
-#endif
-
-#if HAVE_GPERFTOOLS_PROFILER_H
-static lispval gperf_startstop(lispval arg)
-{
-  if (STRINGP(arg))
-    ProfilerStart(CSTRING(arg));
-  else ProfilerStop();
-  return VOID;
-}
-static lispval gperf_flush(lispval arg)
-{
-  ProfilerFlush();
-  return VOID;
-}
-#endif
-
-static lispval malloc_stats_prim()
-{
-#if HAVE_MALLOC_STATS
-  malloc_stats();
-#else
-  write(2,"No malloc_stats available\n",
-        strlen("No malloc_stats available\n"));
-#endif
-  return VOID;
-}
-
-static lispval release_memory_prim(lispval arg)
-{
-#if HAVE_GPERFTOOLS_MALLOC_EXTENSION_C_H
-  if (FIXNUMP(arg))
-    MallocExtension_ReleaseToSystem(FIX2INT(arg));
-  else if (VOIDP(arg))
-    MallocExtension_ReleaseFreeMemory();
-  else return fd_type_error("fixnum","release_memory_prim",arg);
-  return FD_TRUE;
-#else
-  return FD_FALSE;
-#endif
-}
-
 /* Initialization */
 
 FD_EXPORT void fd_init_sysprims_c()
@@ -885,31 +782,10 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACKSIZE",stacksize_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim));
 
-  fd_idefn0(fd_scheme_module,"MALLOC-STATS",malloc_stats_prim,
-            "Returns a string report of memory usage");
-  fd_idefn1(fd_scheme_module,"RELEASE-MEMORY",release_memory_prim,0,
-            "Releases memory back to the operating system",
-            fd_fixnum_type,VOID);
-
   fd_register_config
     ("CORELIMIT",_("Set core size limit"),
      corelimit_get,corelimit_set,NULL);
 
-#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/HEAP/PROFILE!",gperf_heap_profile,0));
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim0("GPERF/HEAP?",gperf_profiling_heap));
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/DUMPHEAP",gperf_dump_heap,1));
-#endif
-
-#if HAVE_GPERFTOOLS_PROFILER_H
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/PROFILE!",gperf_startstop,0));
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/FLUSH",gperf_flush,1));
-#endif
 }
 
 /* Emacs local variables

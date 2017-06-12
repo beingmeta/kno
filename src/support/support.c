@@ -146,13 +146,20 @@ FD_EXPORT lispval fd_read_sensor(lispval name)
 }
 FD_EXPORT lispval fd_read_sensors(lispval into)
 {
-  if ( (FD_PAIRP(into)) || (!(FD_TABLEP(into))) ) 
+  if ( (FD_PAIRP(into)) || (!(FD_TABLEP(into))) )
     return fd_type_error("table","fd_read_sensors",into);
   struct RESOURCE_SENSOR *scan=resource_sensors;
   while (scan) {
     lispval v=scan->sensor();
-    fd_store(into,scan->name,v);
-    fd_decref(v);
+    if (FD_ABORTP(v)) {
+      u8_exception ex=u8_erreify();
+      u8_log(LOGWARN,"SensorFailed",
+             "Resource sensor %q failed",scan->name);
+      fd_log_exception(ex);
+      u8_free_exception(ex,1);}
+    else {
+      fd_store(into,scan->name,v);
+      fd_decref(v);}
     scan=scan->next;}
   return fd_incref(into);
 }
