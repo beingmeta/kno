@@ -326,7 +326,8 @@ int do_main(int argc,char **argv,
       ((lispval) (e->u8x_xdata)) : (VOID);
     lispval stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
     if (!(VOIDP(stacktrace))) {
-      struct U8_XOUTPUT xout; u8_output out=(u8_output)&xout;
+      struct U8_XOUTPUT xout;
+      u8_output out=(u8_output)&xout;
       u8_init_xoutput(&xout,2,NULL);
       FD_DOLIST(entry,stacktrace) {
         u8_puts(out,";; ");
@@ -336,7 +337,8 @@ int do_main(int argc,char **argv,
           u8_puts(out," ");
           fd_pprint(out,entry,";; ",2,5,100);}
         u8_putc(out,'\n');}
-      u8_flush_xoutput(&xout);}
+      u8_flush_xoutput(&xout);
+      u8_close_xoutput(&xout);}
 
 #if 0
     lispval irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
