@@ -362,13 +362,34 @@ static lispval profiled_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 }
 
 /* These are for wrapping around Scheme code to see in C profilers */
-static lispval eval1(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static lispval eval2(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static lispval eval3(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static lispval eval4(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static lispval eval5(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static lispval eval6(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static lispval eval7(lispval expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static lispval eval1(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
+static lispval eval2(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
+static lispval eval3(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
+static lispval eval4(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
+static lispval eval5(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
+static lispval eval6(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
+static lispval eval7(lispval expr,fd_lexenv env,fd_stack s)
+{
+  return fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+}
 
 /* Google profiler usage */
 
@@ -1396,7 +1417,7 @@ static int unparse_evalfn(u8_output out,lispval x)
     fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
   if (s->evalfn_filename) {
     u8_string filename = s->evalfn_filename;
-    size_t len = strlen(filename), short_len;
+    size_t len = strlen(filename);
     u8_string space_break=strchr(filename,' ');
     u8_byte buf[len+1];
     if (space_break) {
