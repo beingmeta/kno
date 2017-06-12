@@ -1168,8 +1168,8 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_store(fdweb_module,fd_intern("XMLBLOCK"),xmlblock_prim);
   fd_store(fdweb_module,fd_intern("XMLBLOCKN"),xmlblockn_prim);
   fd_store(fdweb_module,fd_intern("XMLELT"),xmlelt_prim);
-  fd_idefn(fdweb_module,xmlempty_proc);
-  fd_idefn(fdweb_module,xmlify_proc);
+  fd_defn(fdweb_module,xmlempty_proc);
+  fd_defn(fdweb_module,xmlify_proc);
   fd_store(fdweb_module,fd_intern("MARKUPFN"),markup_prim);
   fd_store(fdweb_module,fd_intern("MARKUP*FN"),markupstar_prim);
   fd_store(fdweb_module,fd_intern("BLOCKMARKUPFN"),markupblock_prim);
@@ -1252,6 +1252,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);
   fd_decref(emptymarkup_prim); fd_decref(xmlout_prim);
   fd_decref(xmlblockn_prim); fd_decref(xmlblock_prim);
+  fd_decref(xmlempty_proc); fd_decref(xmlify_proc);
   fd_decref(xmlelt_prim);
 
   xmloidfn_symbol = fd_intern("%XMLOID");

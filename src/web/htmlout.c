@@ -562,14 +562,14 @@ FD_EXPORT void fd_init_htmlout_c()
   lispval debug2html = fd_make_cprim2("DEBUGPAGE->HTML",debugpage2html_prim,0);
   lispval backtrace2html = fd_make_cprim2("BACKTRACE->HTML",backtrace2html_prim,0);
 
-  fd_idefn(fdweb_module,debug2html);
-  fd_idefn(fdweb_module,backtrace2html);
+  fd_defn(fdweb_module,debug2html);
+  fd_defn(fdweb_module,backtrace2html);
 
-  fd_idefn(safe_module,debug2html);
-  fd_idefn(safe_module,backtrace2html);
+  fd_defn(safe_module,debug2html);
+  fd_defn(safe_module,backtrace2html);
 
-  fd_idefn(xhtml_module,debug2html);
-  fd_idefn(xhtml_module,backtrace2html);
+  fd_defn(xhtml_module,debug2html);
+  fd_defn(xhtml_module,backtrace2html);
 
   fd_def_evalfn(xhtml_module,"TABLE->HTML","",table2html_evalfn);
   fd_idefn(xhtml_module,fd_make_cprim2("OBJ->HTML",obj2html_prim,1));
