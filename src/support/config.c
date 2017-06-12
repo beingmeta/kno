@@ -747,6 +747,23 @@ FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data)
   return loglevelconfig_set(var,val,data);
 }
 
+static lispval cwd_config_get(lispval var,void *data)
+{
+  u8_string wd = u8_getcwd();
+  if (wd) return fd_lispstring(wd);
+  else return FD_ERROR;
+}
+
+static int cwd_config_set(lispval var,lispval val,void *data)
+{
+  if (FD_STRINGP(val)) {
+    if (u8_setcwd(CSTRING(val))<0)
+      return FD_ERROR;
+    else return 1;}
+  else return fd_type_error("string","cwd_config_set",val);
+}
+
+
 void fd_init_config_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -786,6 +803,10 @@ void fd_init_config_c()
      fd_sconfig_get,fd_sconfig_set,&configdata_path);
   fd_register_config_lookup(file_config_lookup,NULL);
 #endif
+
+  fd_register_config
+    ("CWD",_("Get/set the current working directory"),
+     cwd_config_get,cwd_config_set,NULL);
 
   fd_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
