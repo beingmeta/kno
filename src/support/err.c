@@ -735,7 +735,7 @@ void fd_init_err_c()
      &sigexit_set);
   fd_register_config
     ("SIGABORT",_("Signals to trigger exits"),
-     sigconfig_getfn,sigconfig_exit_setfn,
+     sigconfig_getfn,sigconfig_abort_setfn,
      &sigabort_set);
   fd_register_config
     ("SIGDEFAULT",_("Signals to trigger exits"),
