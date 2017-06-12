@@ -2672,7 +2672,7 @@ FD_EXPORT int fd_hashtable_stats
 
 FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 {
-  int n_slots=0, unlock=0;
+  int n_keys=0, n_slots=0, unlock=0, copied_keys=0;
   struct FD_HASH_BUCKET **slots, **read, **write, **read_limit;
   if (nptr==NULL) nptr=u8_alloc(struct FD_HASHTABLE);
   if (ptr->table_uselock) { fd_read_lock_table(ptr); unlock=1;}
@@ -2681,14 +2681,14 @@ FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
   nptr->table_readonly=0;
   nptr->table_uselock=1;
   nptr->ht_n_buckets=n_slots=ptr->ht_n_buckets;
-  nptr->table_n_keys=ptr->table_n_keys;
+  nptr->table_n_keys=n_keys=ptr->table_n_keys;
   read=slots=ptr->ht_buckets;
   read_limit=read+n_slots;
   nptr->table_load_factor=ptr->table_load_factor;
 
   write=nptr->ht_buckets=u8_alloc_n(n_slots,fd_hash_bucket);
 
-  while (read<read_limit)
+  while ( (read<read_limit) && (copied_keys < n_keys) )  {
     if (*read==NULL) {read++; write++;}
     else {
       struct FD_KEYVAL *kvread, *kvwrite, *kvlimit;
@@ -2696,7 +2696,7 @@ FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
       int n=he->bucket_len;
       *write++=newhe=(struct FD_HASH_BUCKET *)
         u8_malloc(sizeof(struct FD_HASH_BUCKET)+
-                   (n-1)*sizeof(struct FD_KEYVAL));
+                  (n-1)*sizeof(struct FD_KEYVAL));
       kvread=&(he->kv_val0); kvwrite=&(newhe->kv_val0);
       newhe->bucket_len=n; kvlimit=kvread+n;
       while (kvread<kvlimit) {
@@ -2705,7 +2705,8 @@ FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
         kvwrite->kv_key=fd_getref(key);
         kvwrite->kv_val=fd_getref(val);
         kvread++;
-        kvwrite++;}}
+        kvwrite++;
+        copied_keys++;}}}
 
   if (unlock) fd_unlock_table(ptr);
 
