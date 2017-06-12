@@ -1040,10 +1040,10 @@ FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
   struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
   ssize_t filesize = u8_file_size(filename);
   if (filesize<0) {
-    fd_seterr(fd_FileNotFound,"fd_file2dtype",filename,VOID);
+    fd_seterr(fd_FileNotFound,"fd_read_dtype_from_file",filename,VOID);
     return FD_ERROR;}
   else if (filesize == 0) {
-    fd_seterr("Zero-length file","fd_file2dtype",filename,VOID);
+    fd_seterr("Zero-length file","fd_read_dtype_from_file",filename,VOID);
     return FD_ERROR;}
   else {
     struct FD_STREAM *opened=

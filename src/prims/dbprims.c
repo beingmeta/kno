@@ -183,8 +183,8 @@ static void hashtable_index_frame(lispval ix,
     DO_CHOICES(frame,frames) {
       DO_CHOICES(slotid,slotids) {
         lispval values = ((OIDP(frame)) ?
-                       (fd_frame_get(frame,slotid)) :
-                       (fd_get(frame,slotid,EMPTY)));
+                          (fd_frame_get(frame,slotid)) :
+                          (fd_get(frame,slotid,EMPTY)));
         DO_CHOICES(value,values) {
           lispval key = fd_conspair(fd_incref(slotid),fd_incref(value));
           fd_add(ix,key,frame);
