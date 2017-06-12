@@ -41,7 +41,7 @@
 
 (varconfig! optimize:fcnrefs fcnrefs-default)
 (varconfig! optimize:opcodes opcodes-default)
-(varconfig! optimize:bindops bindpos-default)
+(varconfig! optimize:bindops bindops-default)
 (varconfig! optimize:substs  substs-default)
 (varconfig! optimize:lexrefs lexrefs-default)
 (varconfig! optimize:rewrite rewrite-default)
