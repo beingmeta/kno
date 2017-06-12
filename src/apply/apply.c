@@ -1019,7 +1019,8 @@ FD_EXPORT lispval _fd_finish_call(lispval call)
         (fd_apply(head,n-1,args)) :
         (fd_dapply(head,n-1,args));
       int finished = (!(TYPEP(next,fd_tailcall_type)));
-      fd_decref(call); call = next;
+      fd_decref(call);
+      call = next;
       if (finished) {
         if (voidval) {
           fd_decref(next);
