@@ -96,19 +96,26 @@ static int boolopt(lispval opts,lispval key)
       else if (FALSEP(car)) {}
       else if (TABLEP(car)) {
         lispval value = fd_get(car,key,VOID);
-        if (FALSEP(value)) return 0;
+        if (FALSEP(value))
+	  return 0;
         else if (!(VOIDP(value))) {
-          fd_decref(value); return 1;}}
+          fd_decref(value);
+	  return 1;}}
       else return fd_err(WeirdOption,"fd_getopt",NULL,car);
       opts = FD_CDR(opts);}
     else if (SYMBOLP(opts))
-      if (FD_EQ(key,opts)) return 1;
+      if (FD_EQ(key,opts))
+	return 1;
       else return 0;
     else if (TABLEP(opts)) {
       lispval value = fd_get(opts,key,VOID);
-      if (FALSEP(value)) return 0;
-      else if (VOIDP(value)) return 0;
-      else return 1;}
+      if (FALSEP(value))
+	return 0;
+      else if (VOIDP(value))
+	return 0;
+      else {
+	fd_decref(value);
+	return 1;}}
     else if ((NILP(opts))||(FALSEP(opts)))
       return 0;
     else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}
