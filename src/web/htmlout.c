@@ -393,7 +393,7 @@ static void output_stack_frame(u8_output out,lispval entry)
               STRINGVAL(label),FD_INT(depth),STRINGVAL(type));
     if (STRINGP(status))
       u8_printf(out,"\n  <p class='status'>%s</p>\n",CSTRING(status));
-    u8_puts(out,"</div>");
+    u8_puts(out,"</div>"); /* class='head' */
     if (PAIRP(source))
       u8_printf(out,"\n  <pre class='source'>\n%Q\n</pre>");
     if (FALSEP(args)) {
@@ -409,7 +409,8 @@ static void output_stack_frame(u8_output out,lispval entry)
       while (i<n) {
         lispval arg=VEC_REF(args,i);
         output_value(out,arg,"span","arg");
-        i++;}}
+        i++;}
+      u8_puts(out,"\n  </div>\n");} /* class='call' */
     if (TABLEP(env)) {
       lispval vars=fd_getkeys(env);
       u8_printf(out,"<div class='bindings'>");
@@ -434,12 +435,14 @@ static void output_stack_frame(u8_output out,lispval entry)
               {DO_CHOICES(v,val) {
                   output_value(out,v,"span","value");}}
               if (CHOICEP(val)) u8_puts(out," </span> ");}}
-          u8_puts(out,"</div>");}}
-      u8_printf(out,"\n</div>");}}
+          u8_puts(out,"</div>");} /* class='binding' */
+      }
+      u8_printf(out,"\n</div>");} /* class='bindings' */
+  }
   else {
     u8_puts(out,"\n <pre class='lispobj'>\n");
     fd_pprint(out,entry,NULL,0,0,80);
-    u8_puts(out,"\n</div>\n");}
+    u8_puts(out,"\n</pre>\n");}
 }
 
 FD_EXPORT
