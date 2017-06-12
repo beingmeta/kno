@@ -30,7 +30,8 @@ static lispval reqgetvar(lispval cgidata,lispval var)
   lispval val = ((TABLEP(cgidata))?(fd_get(cgidata,name,VOID)):
               (fd_req_get(name,VOID)));
   if (VOIDP(val)) return val;
-  else if ((noparse)&&(STRINGP(val))) return val;
+  else if ((noparse)&&(STRINGP(val)))
+    return val;
   else if (STRINGP(val)) {
     u8_string data = CSTRING(val);
     if (*data=='\0') return val;
@@ -73,7 +74,7 @@ static lispval reqgetvar(lispval cgidata,lispval var)
           parsed = fd_parse_arg(data);
           if (!(NUMBERP(parsed))) {
             fd_decref(parsed); parsed = v; fd_incref(parsed);}}
-        else if (strchr("@{#(",data[0]))
+        else if ( (noparse==0) && (strchr("@{#(",data[0])) )
           parsed = fd_parse_arg(data);
         else fd_incref(parsed);
         if (FD_ABORTP(parsed)) {
