@@ -288,11 +288,6 @@ FD_EXPORT void fd_signal_doexit(int sig)
 {
   fd_doexit(FD_INT(sig));
 }
-static void doexit_onsignal(int sig,siginfo_t *info,void *stuff)
-{
-  fd_signal_doexit(sig);
-  exit(0);
-}
 
 
 /* RLIMIT configs */
