@@ -781,7 +781,6 @@ static lispval combine_values(lispval combiner,lispval cur,lispval value)
                (cur == FD_NULL));
   switch (combiner) {
   case VOID: case FD_FALSE:
-    fd_decref(cur);
     return value;
   case FD_DEFAULT_VALUE:
     if (use_cur)
@@ -792,27 +791,19 @@ static lispval combine_values(lispval combiner,lispval cur,lispval value)
     if ( (FIXNUMP(value)) && (FIXNUMP(cur)) ) {
       long long ic=FIX2INT(cur), ip=FIX2INT(value);
       return FD_MAKE_FIXNUM(ic+ip);}
-    else {
-      lispval result=fd_plus(cur,value);
-      fd_decref(value); fd_decref(cur);
-      if (FD_ABORTED(result))
-        return result;
-      else return result;}
+    else return fd_plus(cur,value);
   case FD_MINUS_OPCODE:
     if (!(use_cur)) cur=FD_FIXNUM_ZERO;
     if ( (FIXNUMP(value)) && (FIXNUMP(cur)) ) {
       long long ic=FIX2INT(cur), im=FIX2INT(value);
       return FD_MAKE_FIXNUM(ic-im);}
-    else {
-      lispval result=fd_subtract(cur,value);
-      fd_decref(cur); fd_decref(value);
-      return result;}
+    else return fd_subtract(cur,value);
   default:
-    fd_decref(cur);
-    return value;}
+    return value;
+  }
 }
 static lispval assignop(fd_stack stack,fd_lexenv env,
-                       lispval var,lispval expr,lispval combiner)
+                        lispval var,lispval expr,lispval combiner)
 {
   lispval value = op_eval(expr,env,stack,0);
   if (FD_ABORTED(value))
@@ -837,13 +828,20 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
           lispval cur     = values[across];
           if ( (combiner == FD_FALSE) || (combiner == VOID) ) {
             values[across]=value;
+            fd_incref(value);
             fd_decref(cur);}
           else if (combiner == FD_UNION_OPCODE) {
-            if ((cur==VOID)||(cur==FD_UNBOUND)||(cur==EMPTY))
+            if ((cur==VOID)||(cur==FD_UNBOUND)||(cur==EMPTY)) {
               values[across]=value;
+              fd_incref(value);}
             else {
-              CHOICE_ADD(values[across],value);}}
-          else values[across]=combine_values(combiner,cur,value);
+              CHOICE_ADD(values[across],value);
+              fd_incref(value);}
+            return FD_VOID;}
+          else {
+            lispval newv=combine_values(combiner,cur,value);
+            values[across]=newv;
+            if (cur != newv) fd_decref(cur);}
           return VOID;}}}
     u8_string lexref=u8_mkstring("up%d/across%d",up,across);
     lispval env_copy=(lispval)fd_copy_env(env);
@@ -864,9 +862,10 @@ static lispval assignop(fd_stack stack,fd_lexenv env,
     else {
       lispval cur=fd_get(table,sym,FD_UNBOUND);
       lispval newv=combine_values(combiner,cur,value);
-      if (FD_ABORTED(newv)) {
-        rv=-1;}
+      if (FD_ABORTED(newv))
+        rv=-1;
       else rv=fd_store(table,sym,newv);
+      if (newv!=cur) fd_decref(cur);
       fd_decref(newv);}
     if (rv<0) {
       fd_seterr("AssignFailed","ASSIGN_OPCODE",NULL,expr);
