@@ -485,43 +485,67 @@ static lispval existsp(lispval x)
 
 static lispval singletonp(lispval x)
 {
-  lispval simple = fd_make_simple_choice(x);
-  if (EMPTYP(simple)) return FD_FALSE;
-  else if (CHOICEP(simple)) {
-    fd_decref(simple); return FD_FALSE;}
-  else {
-    fd_decref(simple); return FD_TRUE;}
+  if (CHOICEP(x))
+    return FD_FALSE;
+  else if (EMPTYP(x))
+    return FD_FALSE;
+  else if (FD_PRECHOICEP(x)) {
+    lispval simple = fd_make_simple_choice(x);
+    int not_single = ( (EMPTYP(simple)) || (CHOICEP(simple)) );
+    fd_decref(simple);
+    if (not_single) return FD_FALSE;
+    else return FD_TRUE;}
+  else return FD_TRUE;
 }
 
-static lispval ambiguousp(lispval x)
+static lispval ambiguousp(lispval x) /* TODO: Wasted effort around here */
 {
-  lispval simple = fd_make_simple_choice(x);
-  if (EMPTYP(simple)) return FD_FALSE;
-  else if (CHOICEP(simple)) {
-    fd_decref(simple); return FD_TRUE;}
-  else {
-    fd_decref(simple); return FD_FALSE;}
+  if (EMPTYP(x))
+    return FD_FALSE;
+  else if (CHOICEP(x))
+    return FD_TRUE;
+  else if (FD_PRECHOICEP(x)) {
+    lispval simple = fd_make_simple_choice(x);
+    int ambig=FD_CHOICEP(simple);
+    fd_decref(simple);
+    if (ambig)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
 }
 
 static lispval singleton(lispval x)
 {
-  lispval simple = fd_make_simple_choice(x);
   if (EMPTYP(x)) return x;
-  else if (CHOICEP(simple)) {
-    fd_decref(simple); return EMPTY;}
-  else return simple;
+  else if (CHOICEP(x))
+    return EMPTY;
+  else if (FD_PRECHOICEP(x)) {
+    lispval simple=fd_make_simple_choice(x);
+    if (FD_CHOICEP(simple)) {
+      fd_decref(simple);
+      return EMPTY;}
+    else return simple;}
+  else return fd_incref(x);
 }
 
 static lispval choice_max(lispval x,lispval lim)
 {
-  lispval simple = fd_make_simple_choice(x);
   if (EMPTYP(x)) return x;
-  else if (CHOICEP(simple)) {
+  else if (CHOICEP(x)) {
     int max_size = fd_getint(lim);
-    if (FD_CHOICE_SIZE(simple)>max_size) {
-      fd_decref(simple); return EMPTY;}
+    if (FD_CHOICE_SIZE(x)>max_size)
+      return EMPTY;
+    else return fd_incref(x);}
+  else if (FD_PRECHOICEP(x)) {
+    lispval simple = fd_make_simple_choice(x);
+    if (CHOICEP(simple)) {
+      int max_size = fd_getint(lim);
+      if (FD_CHOICE_SIZE(simple)>max_size) {
+        fd_decref(simple);
+        return EMPTY;}
+      else return simple;}
     else return simple;}
-  else return simple;
+  else return fd_incref(x);
 }
 
 static lispval simplify(lispval x)
