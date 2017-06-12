@@ -209,6 +209,14 @@ FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt);
 FD_EXPORT int fd_testopt(lispval opts,lispval key,lispval val);
 FD_EXPORT long long fd_fixopt(lispval opts,u8_string name,int dflt);
 
+/* Resources sensors */
+
+typedef lispval (*fd_resource_sensor)(void);
+
+FD_EXPORT int fd_add_sensor(lispval name,fd_resource_sensor fn);
+FD_EXPORT lispval fd_read_sensor(lispval name);
+FD_EXPORT lispval fd_read_sensors(lispval into);
+
 /* Getting the C config table */
 
 FD_EXPORT lispval fd_get_build_info(void);

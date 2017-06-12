@@ -106,6 +106,57 @@ static lispval config_get_module_loc(lispval var,void *which_arg)
     return fd_err("Bad call","config_get_module_loc",NULL,VOID);}
 }
 
+/* Resource sensors */
+
+static struct RESOURCE_SENSOR {
+  lispval name;
+  fd_resource_sensor sensor;
+  struct RESOURCE_SENSOR *next;} *resource_sensors;
+static u8_mutex resource_sensor_lock;
+
+FD_EXPORT int fd_add_sensor(lispval name,fd_resource_sensor fn)
+{
+  u8_lock_mutex(&resource_sensor_lock);
+  struct RESOURCE_SENSOR *scan=resource_sensors;
+  while (scan) {
+    if (scan->name==name) {
+      if (fn == scan->sensor) {
+        u8_unlock_mutex(&resource_sensor_lock);
+        return 0;}
+      else {
+        scan->sensor=fn;
+        u8_unlock_mutex(&resource_sensor_lock);
+        return 1;}}
+    else scan=scan->next;}
+  struct RESOURCE_SENSOR *new=u8_alloc(struct RESOURCE_SENSOR);
+  new->name=name; new->sensor=fn;
+  new->next=resource_sensors;
+  resource_sensors=new;
+  u8_unlock_mutex(&resource_sensor_lock);
+  return 2;
+}
+FD_EXPORT lispval fd_read_sensor(lispval name)
+{
+  struct RESOURCE_SENSOR *scan=resource_sensors;
+  while (scan) {
+    if (scan->name==name)
+      return scan->sensor();
+    else scan=scan->next;}
+  return FD_VOID;
+}
+FD_EXPORT lispval fd_read_sensors(lispval into)
+{
+  if ( (FD_PAIRP(into)) || (!(FD_TABLEP(into))) ) 
+    return fd_type_error("table","fd_read_sensors",into);
+  struct RESOURCE_SENSOR *scan=resource_sensors;
+  while (scan) {
+    lispval v=scan->sensor();
+    fd_store(into,scan->name,v);
+    fd_decref(v);
+    scan=scan->next;}
+  return fd_incref(into);
+}
+
 /* Initialization */
 
 void fd_init_config_c(void);
