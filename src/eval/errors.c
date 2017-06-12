@@ -159,7 +159,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 	newexo->ex_u8ex = NULL;
 	exo->ex_u8ex = NULL;
 	u8_restore_exception(ex);
-	fd_decref(handler); fd_decref(value); 
+	fd_decref(handler); fd_decref(value);
 	fd_decref(err_value); fd_decref(handler_result);
 	return FD_ERROR;}
       else if (FD_ABORTP(handler_result)) {
@@ -172,7 +172,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         fd_log_backtrace(cur_ex,LOGWARN,"RecursiveError",128);
         exo->ex_u8ex = NULL;
         u8_restore_exception(ex);
-        fd_decref(handler); fd_decref(value); fd_decref(err_value);
+        fd_decref(value); fd_decref(handler); fd_decref(err_value);
         return handler_result;}
       else {
         fd_decref(value); fd_decref(handler); fd_decref(err_value);
