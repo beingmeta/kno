@@ -161,7 +161,7 @@ FD_EXPORT lispval fd_read_sensors(lispval into)
       fd_store(into,scan->name,v);
       fd_decref(v);}
     scan=scan->next;}
-  return fd_incref(into);
+  return into;
 }
 
 /* Initialization */
