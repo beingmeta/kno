@@ -35,6 +35,8 @@ static pthread_mutex_t *ssl_lockarray;
 #define LOCK_OPENSSL 0
 #endif
 
+static u8_string default_user_agent="FramerD/CURL";
+
 static lispval curl_defaults, url_symbol;
 static lispval content_type_symbol, charset_symbol, pcontent_symbol;
 static lispval content_length_symbol, etag_symbol, content_encoding_symbol;
@@ -349,7 +351,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   curl_set(h,CURLOPT_HEADERFUNCTION,handle_header);
   if (fd_test(curl_defaults,useragent_symbol,VOID)) {
     curl_set2dtype(h,CURLOPT_USERAGENT,curl_defaults,useragent_symbol);}
-  else curl_set(h,CURLOPT_USERAGENT,u8_sessionid());
+  else curl_set(h,CURLOPT_USERAGENT,default_user_agent);
   if (fd_test(curl_defaults,basicauth_symbol,VOID)) {
     curl_set(h,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
     curl_set2dtype(h,CURLOPT_USERPWD,curl_defaults,basicauth_symbol);}
@@ -1549,6 +1551,10 @@ FD_EXPORT void fd_init_curl_c()
   curl_initialized = 1;
   fd_init_scheme();
 
+  if (getenv("USERAGENT"))
+    default_user_agent=u8_strdup(getenv("USERAGENT"));
+  else default_user_agent=u8_strdup(default_user_agent);
+
   module = fd_new_module("FDWEB",(0));
 
   fd_curl_type = fd_register_cons_type("CURLHANDLE");
@@ -1659,6 +1665,10 @@ FD_EXPORT void fd_init_curl_c()
   fd_register_config
     ("CURL:DEBUG",_("Whether to debug low level CURL interaction"),
      fd_boolconfig_get,fd_boolconfig_set,&debugging_curl);
+
+  fd_register_config
+    ("CURL:USERAGENT",_("What CURL should use as the default user agent string"),
+     fd_sconfig_get,fd_sconfig_set,&default_user_agent);
 
 
   fd_register_sourcefn(url_source_fn,NULL);
