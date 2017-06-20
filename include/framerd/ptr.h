@@ -445,8 +445,14 @@ FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
    This is encoded in a DTYPE pointer with the offset in the high 20 bits
    and the base in the lower portion. */
 
+struct FD_OID_BUCKET {
+  FD_OID bucket_base;
+  int bucket_no;};
+
 FD_EXPORT FD_OID fd_base_oids[FD_N_OID_BUCKETS];
+FD_EXPORT struct FD_OID_BUCKET fd_oid_buckets[FD_N_OID_BUCKETS];
 FD_EXPORT int fd_n_base_oids;
+
 
 /* We represent OIDs using an indexed representation where k bits are
    used to represent 2^k possible buckets of 2^20 OIDs starting at
