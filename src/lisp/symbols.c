@@ -26,7 +26,7 @@ lispval FDSYM_TYPE, FDSYM_SIZE, FDSYM_LABEL, FDSYM_NAME,
   FDSYM_READONLY, FDSYM_ISADJUNCT,
   FDSYM_STRING, FDSYM_CONS;
 
-u8_mutex fd_symbol_lock;
+u8_rwlock fd_symbol_lock;
 
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define MYSTERIOUS_MODULUS 256001281
@@ -51,9 +51,9 @@ static void init_builtin_symbols(void);
 
 static void init_symbol_tables()
 {
-  u8_lock_mutex(&fd_symbol_lock);
+  u8_write_lock(&fd_symbol_lock);
   if (fd_max_symbols) {
-    u8_unlock_mutex(&fd_symbol_lock); return;}
+    u8_rw_unlock(&fd_symbol_lock); return;}
   else {
     int new_max = ((fd_max_symbols) ? (fd_max_symbols) : (fd_initial_symbols));
     int new_size = fd_get_hashtable_size(new_max*2);
@@ -64,7 +64,7 @@ static void init_symbol_tables()
     fd_symbol_table.table_size = new_size; 
     fd_symbol_table.fd_symbol_entries = new_entries;
     fd_symbol_names = new_symbol_names; fd_max_symbols = new_max;
-    u8_unlock_mutex(&fd_symbol_lock);
+    u8_rw_unlock(&fd_symbol_lock);
     init_builtin_symbols();
   }
 }
@@ -126,7 +126,7 @@ static void grow_symbol_tables()
         new_entries[probe]=entry;
         i++;}
     u8_free(old_entries);
-    fd_symbol_table.fd_symbol_entries = new_entries; 
+    fd_symbol_table.fd_symbol_entries = new_entries;
     fd_symbol_table.table_size = new_size;}
   {
     int i = 0, lim = fd_n_symbols; lispval *old_symbol_names;
@@ -136,66 +136,70 @@ static void grow_symbol_tables()
   fd_max_symbols = new_max;
 }
 
+lispval probe_symbol(u8_string bytes,int len)
+{
+  struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
+  int probe, size = fd_symbol_table.table_size;
+  if ((fd_n_symbols == 0)||(fd_max_symbols == 0)) return VOID;
+  probe = mult_hash_bytes(bytes,len)%size;
+  while (entries[probe]) {
+    if (len == entries[probe]->sym_pname.str_bytelen)
+      if (strncmp(bytes,entries[probe]->sym_pname.str_bytes,len) == 0)
+        break;
+    if (probe >= size) probe = 0;
+    else probe++;}
+  if (entries[probe]) {
+    return FD_ID2SYMBOL(entries[probe]->symid);}
+  else return VOID;
+}
+
 lispval fd_make_symbol(u8_string bytes,int len)
 {
-  struct FD_SYMBOL_ENTRY **entries;
-  int hash, probe, size;
-  u8_lock_mutex(&fd_symbol_lock);
-  if (fd_max_symbols == 0) {
-    u8_unlock_mutex(&fd_symbol_lock);
-    init_symbol_tables();
-    u8_lock_mutex(&fd_symbol_lock);}
-  entries = fd_symbol_table.fd_symbol_entries; 
-  size = fd_symbol_table.table_size;
-  if (len<0) len = strlen(bytes);
-  hash = mult_hash_bytes(bytes,len);
-  probe = hash%size;
-  while (PRED_TRUE(entries[probe]!=NULL)) {
-    unsigned int bytelen=(entries[probe])->sym_pname.str_bytelen;
-    if (PRED_TRUE(len == bytelen)) {
-      const unsigned char *pname=(entries[probe])->sym_pname.str_bytes;
-      if (PRED_TRUE(strncmp(bytes,pname,len) == 0))
-        break;}
-    probe++; if (probe>=size) probe = 0;}
-  if (entries[probe]) {
-    int id = entries[probe]->symid;
-    u8_unlock_mutex(&fd_symbol_lock);
-    return FD_ID2SYMBOL(id);}
+  if (fd_max_symbols == 0) init_symbol_tables();
+  if (len<0) len=strlen(bytes);
+  lispval sym=probe_symbol(bytes,len);
+  if (SYMBOLP(sym))
+    return sym;
   else {
-    if (fd_n_symbols >= fd_max_symbols) {
-      grow_symbol_tables();
-      u8_unlock_mutex(&fd_symbol_lock);
-      return fd_make_symbol(bytes,len);}
+    u8_write_lock(&fd_symbol_lock);
+    struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
+    int size = fd_symbol_table.table_size;
+    int hash = mult_hash_bytes(bytes,len);
+    int probe = hash%size;
+    while (PRED_TRUE(entries[probe]!=NULL)) {
+      unsigned int bytelen=(entries[probe])->sym_pname.str_bytelen;
+      if (PRED_TRUE(len == bytelen)) {
+        const unsigned char *pname=(entries[probe])->sym_pname.str_bytes;
+        if (PRED_TRUE(strncmp(bytes,pname,len) == 0))
+          break;}
+      probe++; if (probe>=size) probe = 0;}
+    if (entries[probe]) {
+      int id = entries[probe]->symid;
+      u8_rw_unlock(&fd_symbol_lock);
+      return FD_ID2SYMBOL(id);}
     else {
-      int id = fd_n_symbols++;
-      u8_string pname = u8_strdup(bytes);
-      entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
-      entries[probe]->symid = id;
-      fd_init_string(&(entries[probe]->sym_pname),len,pname);
-      fd_symbol_names[id]=LISP_CONS(&(entries[probe]->sym_pname));
-      u8_unlock_mutex(&fd_symbol_lock);
-      return FD_ID2SYMBOL(id);}}
+      if (fd_n_symbols >= fd_max_symbols) {
+        grow_symbol_tables();
+        u8_rw_unlock(&fd_symbol_lock);
+        return fd_make_symbol(bytes,len);}
+      else {
+        int id = fd_n_symbols++;
+        u8_string pname = u8_strdup(bytes);
+        entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
+        entries[probe]->symid = id;
+        fd_init_string(&(entries[probe]->sym_pname),len,pname);
+        fd_symbol_names[id]=LISP_CONS(&(entries[probe]->sym_pname));
+        u8_rw_unlock(&fd_symbol_lock);
+        return FD_ID2SYMBOL(id);}}}
 }
 
 lispval fd_probe_symbol(u8_string bytes,int len)
 {
-  struct FD_SYMBOL_ENTRY **entries = fd_symbol_table.fd_symbol_entries;
-  int probe, size = fd_symbol_table.table_size;
-  if (fd_max_symbols == 0) return VOID;
-  u8_lock_mutex(&fd_symbol_lock);
-  if (len < 0) len = strlen(bytes);
-  probe = mult_hash_bytes(bytes,len)%size;
-  while (entries[probe]) {
-    if (len == entries[probe]->sym_pname.str_bytelen)
-      if (strncmp(bytes,entries[probe]->sym_pname.str_bytes,len) == 0) break;
-    if (probe >= size) probe = 0;
-    else probe++;}
-  if (entries[probe]) {
-    u8_unlock_mutex(&fd_symbol_lock);
-    return FD_ID2SYMBOL(entries[probe]->symid);}
-  else {
-    u8_unlock_mutex(&fd_symbol_lock);
-    return VOID;}
+  if (len<0) len=strlen(bytes);
+  u8_read_lock(&fd_symbol_lock);
+  lispval sym = probe_symbol(bytes,len);
+  u8_rw_unlock(&fd_symbol_lock);
+  return sym;
 }
 
 FD_EXPORT lispval fd_intern(u8_string string)

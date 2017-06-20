@@ -660,7 +660,7 @@ FD_EXPORT lispval fd_register_constant(u8_string name);
 #endif
 FD_EXPORT lispval *fd_symbol_names;
 FD_EXPORT int fd_n_symbols;
-FD_EXPORT u8_mutex fd_symbol_lock;
+FD_EXPORT u8_rwlock fd_symbol_lock;
 
 #define FD_SYMBOLP(x) \
   ((FD_PTR_MANIFEST_TYPE(x) == fd_immediate_ptr_type) && \

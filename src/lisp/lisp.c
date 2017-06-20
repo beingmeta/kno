@@ -193,7 +193,7 @@ FD_EXPORT int fd_init_lisp_types()
 
   register_header_files();
 
-  u8_init_mutex(&fd_symbol_lock);
+  u8_init_rwlock(&fd_symbol_lock);
   fd_init_cons_c();
   init_type_names();
   fd_init_recycle_c();
