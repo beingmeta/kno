@@ -1099,21 +1099,16 @@ static lispval pool_elts(lispval arg,lispval start,lispval count)
       int lim_arg = FD_OID_DIFFERENCE(FD_OID_ADDR(count),base);
       if (lim_arg<lim) lim = lim_arg;}
     else return fd_type_error(_("pool offset"),"pool_elts",count);
-    if ((i>0) || ((lim-i)<(FD_OID_BUCKET_SIZE))) {
-      while (i<lim) {
-        lispval each = fd_make_oid(FD_OID_PLUS(base,i));
-        CHOICE_ADD(result,each); i++;}}
-    else {
-      int k = 0, n_buckets = ((lim-i)/(FD_OID_BUCKET_SIZE))+1;
-      while (k<FD_OID_BUCKET_SIZE) {
-        int j = 0; while (j<n_buckets) {
-          unsigned int off = (j*FD_OID_BUCKET_SIZE)+k;
-          if (off<lim) {
-            lispval each = fd_make_oid(FD_OID_PLUS(base,off));
-            CHOICE_ADD(result,each);}
-          j++;}
-        k++;}
-      return result;}
+    int off=i, partition=-1, bucket_no=-1, bucket_start=-1;
+    while (off<lim) {
+      FD_OID addr=base; FD_OID_PLUS(addr,off);
+      if ( (partition<0) || ((off/FD_OID_BUCKET_SIZE) != partition) ) {
+        bucket_no=fd_get_oid_base_index(addr,1);
+        partition=off/FD_OID_BUCKET_SIZE;
+        bucket_start=off;}
+      lispval each=FD_CONSTRUCT_OID(bucket_no,off-bucket_start);
+      CHOICE_ADD(result,each);
+      off++;}
     return result;}
 }
 
