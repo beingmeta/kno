@@ -494,8 +494,7 @@ static lispval get_entry(lispval key,lispval entries)
 }
 
 FD_EXPORT
-int fd_load_latest
-(u8_string filename,fd_lexenv env,u8_string base)
+int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
 {
   if (filename == NULL) {
     int loads = 0;
@@ -593,6 +592,29 @@ static lispval load_latest_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       fd_decref(path); return FD_FALSE;}}
 }
 
+/* The LIVELOAD config */
+
+static lispval liveload_get(lispval var,void *ignored)
+{
+  lispval result=EMPTY;
+  struct FD_LOAD_RECORD *scan=load_records;
+  while (scan) {
+    lispval loadarg=fd_incref(scan->loadarg);
+    CHOICE_ADD(result,loadarg);
+    scan=scan->prev_loaded;}
+  return result;
+}
+
+static int liveload_add(lispval var,lispval val,void *ignored)
+{
+  if (!(FD_STRINGP(val)))
+    return fd_reterr
+      (fd_TypeError,"preload_config_set",u8_strdup("string"),val);
+  else if (FD_STRLEN(val)==0)
+    return 0;
+  else return fd_load_latest(FD_STRDATA(val),fd_live_env,NULL);
+}
+
 /* The init function */
 
 static int scheme_loader_initialized = 0;
@@ -641,6 +663,13 @@ FD_EXPORT void fd_init_loader_c()
   fd_register_config
     ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
      fd_sconfig_get,fd_sconfig_set,&libscm_path);
+
+  fd_register_config
+    ("LIVELOAD","Files to be reloaded as they change",
+     liveload_get,liveload_add,NULL);
+  fd_register_config
+    ("LOADFILE",_("Which files to load"),
+     loadfile_config_get,loadfile_config_set,&loadfile_list);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));

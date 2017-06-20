@@ -47,6 +47,8 @@ FD_EXPORT int fd_assign_value(lispval,lispval,fd_lexenv);
 FD_EXPORT int fd_add_value(lispval,lispval,fd_lexenv);
 FD_EXPORT int fd_bind_value(lispval,lispval,fd_lexenv);
 
+FD_EXPORT fd_lexenv fd_live_env;
+
 /* Eval functions (for special forms, FEXPRs, whatever) */
 
 typedef lispval (*fd_eval_handler)(lispval expr,

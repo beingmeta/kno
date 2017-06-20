@@ -650,7 +650,8 @@ lispval fd_use_module(fd_lexenv env,lispval module)
 {
   int free_module = 0;
   if (SYMBOLP(module)) {
-    module = get_module(module); free_module = 1;}
+    module = get_module(module);
+    free_module = 1;}
   if (HASHTABLEP(module)) {
     if (!(uses_bindings(env,module))) {
       fd_lexenv oldp = env->env_parent;
@@ -788,6 +789,35 @@ static lispval loadmodule_sandbox_config_get(lispval var,void *ignored)
   if (loadmodule_sandbox) return FD_TRUE; else return FD_FALSE;
 }
 
+/* Modules to be used by fd_live_env */
+
+/* A list of exposed modules */
+static lispval module_list = NIL;
+/* This is the exposed environment. */
+static fd_lexenv exposed_lexenv = NULL;
+
+static lispval config_used_modules(lispval var,void *data)
+{
+  lispval modlist=NIL;
+  fd_lexenv scan=fd_live_env;
+  while (scan) {
+    if (scan->env_copy) scan=scan->env_copy;
+    if (FD_HASHTABLEP(scan->env_bindings)) {
+      lispval bindings=fd_incref(scan->env_bindings);
+      modlist=fd_init_pair(NULL,bindings,modlist);}
+    scan=scan->env_parent;}
+  return modlist;
+}
+static int config_use_module(lispval var,lispval val,void *data)
+{
+  lispval rv=fd_use_module(fd_live_env,val);
+  if (FD_ABORTP(rv))
+    return -1;
+  else {
+    fd_decref(rv);
+    return 1;}
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_modules_c()
@@ -867,7 +897,9 @@ FD_EXPORT void fd_init_modules_c()
                      loadmodule_sandbox_config_get,
                      loadmodule_sandbox_config_set,
                      NULL);
-
+  fd_register_config("MODULE",
+                     "Specify modules to be used by the default live environment",
+                     config_used_modules,config_use_module,NULL);
 }
 
 /* Emacs local variables
