@@ -41,11 +41,24 @@ static lispval slotidp(lispval arg)
 
 /* These are called when the lisp version of its pool/index argument
    is being returned and needs to be incref'd if it is consed. */
-static lispval index2lisp(fd_index ix)
+FD_FASTOP lispval index2lisp(fd_index ix)
 {
-  lispval ixval=fd_index2lisp(ix);
-  fd_incref(ixval);
-  return ixval;
+  if (ix == NULL)
+    return FD_ERROR;
+  else if (ix->index_serialno>=0)
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else return (lispval)ix;
+}
+FD_FASTOP lispval index_ref(fd_index ix)
+{
+  if (ix == NULL)
+    return FD_ERROR;
+  else if (ix->index_serialno>=0)
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else {
+    lispval lix = (lispval)ix;
+    fd_incref(lix);
+    return lix;}
 }
 static lispval pool2lisp(fd_pool p)
 {
@@ -349,7 +362,7 @@ static lispval use_index(lispval arg,lispval opts)
                                    getdbflags(opts,FD_STORAGE_ISINDEX),
                                    opts);
         if (ix) {
-          lispval ixv = index2lisp(ix);
+          lispval ixv = index_ref(ix);
           CHOICE_ADD(results,ixv);}
         else {
           u8_free(copy);
@@ -365,7 +378,7 @@ static lispval use_index(lispval arg,lispval opts)
            (CSTRING(arg),getdbflags(opts,FD_STORAGE_ISINDEX),opts);
   else return fd_type_error(_("index spec"),"use_index",arg);
   if (ixresult)
-    return index2lisp(ixresult);
+    return index_ref(ixresult);
   else return FD_ERROR;
 }
 
@@ -392,7 +405,7 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
           fd_decref(results);
           return FD_ERROR;}
         else {
-          lispval ixv = index2lisp(ix);
+          lispval ixv = index_ref(ix);
           CHOICE_ADD(results,ixv);}
         if ((end) && (end[1])) {
           start = end+1; end = strchr(start,';');
@@ -400,13 +413,13 @@ static lispval open_index_helper(lispval arg,lispval opts,int registered)
         else start = NULL;}
       u8_free(copy);
       return results;}
-    else return index2lisp(fd_get_index(CSTRING(arg),flags,opts));}
+    else return index_ref(fd_get_index(CSTRING(arg),flags,opts));}
   else if (FD_INDEXP(arg)) return arg;
   else if (TYPEP(arg,fd_consed_index_type))
     return fd_incref(arg);
   else fd_seterr(fd_TypeError,"use_index",NULL,fd_incref(arg));
   if (ix)
-    return index2lisp(ix);
+    return index_ref(ix);
   else return FD_ERROR;
 }
 
@@ -471,7 +484,7 @@ static lispval make_index(lispval path,lispval opts)
     return fd_err(_("BadIndexType"),"make_index",CSTRING(path),type);
   else return fd_err(_("BadIndexType"),"make_index",NULL,type);
   if (ix)
-    return index2lisp(ix);
+    return index_ref(ix);
   else return FD_ERROR;
 }
 
@@ -705,7 +718,7 @@ static lispval cons_extindex(lispval label,lispval fetchfn,lispval commitfn,
      ((FALSEP(state))?(VOID):(state)),
      0);
   if (FALSEP(usecache)) fd_index_setcache(ix,0);
-  if (ix->index_serialno>=0) return index2lisp(ix);
+  if (ix->index_serialno>=0) return index_ref(ix);
   else return (lispval)ix;
 }
 

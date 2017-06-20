@@ -808,7 +808,7 @@ static int serve_index(lispval var,lispval val,void *data)
 
 static lispval get_served_indexes(lispval var,void *data)
 {
-  return fd_index2lisp((fd_index)(primary_index));
+  return fd_index_ref((fd_index)(primary_index));
 }
 
 /* Initialization */

@@ -192,7 +192,7 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
           fd_index ix=fd_get_index(CSTRING(adjunct),-1,FD_FALSE);
           if (ix) {
             fd_decref(adjunct);
-            adjunct=fd_index2lisp(ix);}
+            adjunct=fd_index_ref(ix);}
           else {
             fd_pool p=fd_get_pool(CSTRING(adjunct),
                                   FD_STORAGE_ISPOOL|

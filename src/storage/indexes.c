@@ -194,7 +194,18 @@ FD_EXPORT lispval fd_index2lisp(fd_index ix)
     return FD_ERROR;
   else if (ix->index_serialno>=0)
     return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
-  else return fd_incref((lispval)ix);
+  else return (lispval)ix;
+}
+FD_EXPORT lispval fd_index_ref(fd_index ix)
+{
+  if (ix == NULL)
+    return FD_ERROR;
+  else if (ix->index_serialno>=0)
+    return LISPVAL_IMMEDIATE(fd_index_type,ix->index_serialno);
+  else {
+    lispval lix=(lispval)ix;
+    fd_incref(lix);
+    return lix;}
 }
 FD_EXPORT fd_index fd_lisp2index(lispval lix)
 {
@@ -1106,7 +1117,8 @@ static lispval index_parsefn(int n,lispval *args,fd_compound_typeinfo e)
   if (n<2) return VOID;
   else if (STRINGP(args[2]))
     ix = fd_get_index(FD_STRING_DATA(args[2]),0,VOID);
-  if (ix) return fd_index2lisp(ix);
+  if (ix) 
+    return fd_index_ref(ix);
   else return fd_err(fd_CantParseRecord,"index_parsefn",NULL,VOID);
 }
 
@@ -1285,7 +1297,7 @@ static lispval copy_consed_index(lispval x,int deep)
   /* Where might this get us into trouble when not really copying the pool? */
   fd_index ix = (fd_index)x;
   if (ix->index_serialno>=0)
-    return fd_index2lisp(ix);
+    return fd_index_ref(ix);
   else return x;
 }
 
