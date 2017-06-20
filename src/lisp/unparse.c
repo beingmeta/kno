@@ -39,8 +39,8 @@
 
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 
-int fd_unparse_maxelts = 0;
-int fd_unparse_maxchars = 0;
+int fd_unparse_maxelts = 100;
+int fd_unparse_maxchars = 150;
 int fd_packet_outfmt = -1;
 
 int (*fd_unparse_error)(U8_OUTPUT *,lispval x,u8_string details) = NULL;
