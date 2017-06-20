@@ -77,7 +77,7 @@ static int daemonize = 0, foreground = 0, pidwait = 1;
 static const sigset_t *server_sigmask;
 
 static time_t last_launch = (time_t)-1;
-static int fastfail_threshold = 15, fastfail_wait = 60;
+static int fastfail_threshold = 15, fastfail_wait = 5;
 
 FD_EXPORT int fd_init_dbserv(void);
 
@@ -1822,10 +1822,11 @@ static void register_servlet_configs()
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
   fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
                      fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-  fd_register_config("FASTFAIL",_("Threshold for daemon fastfails"),
+  fd_register_config("FASTFAIL",_("Threshold for daemon fast-fails"),
                      fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
   fd_register_config("FASTFAIL_WAIT",
-                     _("How long (secs) to wait after a fastfail"),
+                     _("How long (secs) to wait after a fast-fail, "
+                       "increasing linearly up to 60s"),
                      fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
 
   fd_register_config("U8LOGLISTEN",
@@ -2347,6 +2348,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 #endif
   while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now = time(NULL);
+    int wait = fastfail_wait;
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,ServletRestart,
              "Servlet %s(%d) terminated on signal %d",
@@ -2364,7 +2366,8 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
       u8_log(LOG_CRIT,ServletLoop,
              "FDServlet %s fast-failed after %d seconds, pausing %d seconds",
              socket_spec,now-last_launch,fastfail_wait);
-      sleep(fastfail_wait);}
+      sleep(wait);
+      if (wait<60) wait=wait+fastfail_wait;}
     else if (sleepfor>0) sleep(sleepfor);
     else {}
     last_launch = time(NULL);
@@ -2373,6 +2376,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
              "Servlet %s restarted with pid %d",
              socket_spec,grandchild);
       dependent = grandchild;
+      wait=fastfail_wait;
       continue;}
     else return launch_servlet(socket_spec);}
   exit(0);
