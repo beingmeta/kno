@@ -50,6 +50,8 @@ u8_string fd_ndevalstack_type="ndeval";
 
 int fd_optimize_tail_calls = 1;
 
+fd_lexenv fd_live_env=NULL;
+
 lispval fd_scheme_module, fd_xscheme_module;
 
 lispval _fd_comment_symbol;
@@ -361,7 +363,11 @@ static lispval profiled_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
   return value;
 }
 
+#if __clang__
+#define DONT_OPTIMIZE  __attribute__((optnone)) 
+#else
 #define DONT_OPTIMIZE __attribute__((optimize("O0"))) 
+#endif
 
 /* These are for wrapping around Scheme code to see in C profilers */
 static DONT_OPTIMIZE lispval eval1(lispval expr,fd_lexenv env,fd_stack s)

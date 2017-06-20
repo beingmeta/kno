@@ -24,33 +24,71 @@ unsigned int fd_zero_pool_load = 0;
 static u8_mutex zero_pool_lock;
 
 FD_OID fd_base_oids[FD_N_OID_BUCKETS];
+struct FD_OID_BUCKET fd_oid_buckets[FD_N_OID_BUCKETS];
 int fd_n_base_oids = 0;
-static u8_mutex base_oid_lock;
+static u8_rwlock base_oid_lock;
 static fd_exception OIDBucketOverflow="Out of OID buckets";
+
+FD_FASTOP int find_base_oid(FD_OID base)
+{
+  int len = fd_n_base_oids;
+  int bot=0, top=len;
+  while (top>bot) {
+    int middle = bot+(top-bot)/2;
+    int cmp = FD_OID_COMPARE(base,fd_oid_buckets[middle].bucket_base);
+    if (cmp == 0)
+      return middle;
+    else if (cmp < 0)
+      top=middle-1;
+    else bot=middle+1;}
+  return -1;
+}
 
 static int get_base_oid_index(FD_OID base)
 {
-  int i = 0, len = fd_n_base_oids;
-  while (i < len)
-    if (FD_OID_COMPARE(base,fd_base_oids[i]) == 0)
-      return i;
-    else i++;
-  return -1;
+  int boi=-1;
+  u8_read_lock(&base_oid_lock);
+  int off=find_base_oid(base);
+  if (off>=0)
+    boi=fd_oid_buckets[off].bucket_no;
+  u8_rw_unlock(&base_oid_lock);
+  return boi;
+}
+
+static int compare_baseoids(const void *lv,const void *rv)
+{
+  struct FD_OID_BUCKET *lb = (struct FD_OID_BUCKET *)lv;
+  struct FD_OID_BUCKET *rb = (struct FD_OID_BUCKET *)rv;
+  return FD_OID_COMPARE((lb->bucket_base),(rb->bucket_base));
 }
 
 static int add_base_oid_index(FD_OID base)
 {
   int boi = get_base_oid_index(base);
-  if (boi>=0) return boi;
-  u8_lock_mutex(&base_oid_lock);
-  if (fd_n_base_oids >= FD_N_OID_BUCKETS) {
-    u8_unlock_mutex(&base_oid_lock);
-    return -1;}
+  if (boi>=0)
+    return boi;
+  else if (fd_n_base_oids >= FD_N_OID_BUCKETS)
+    return -1;
   else {
-    boi = fd_n_base_oids++;
-    fd_base_oids[boi]=base;
-    u8_unlock_mutex(&base_oid_lock);
-    return boi;}
+    u8_write_lock(&base_oid_lock);
+    if (fd_n_base_oids >= FD_N_OID_BUCKETS) {
+      u8_rw_unlock(&base_oid_lock);
+      return -1;}
+    else {
+      int off=find_base_oid(base);
+      if (off>=0) {
+        int boi=fd_oid_buckets[off].bucket_no;
+        u8_rw_unlock(&base_oid_lock);
+        return boi;}
+      boi = fd_n_base_oids++;
+      fd_base_oids[boi]=base;
+      fd_oid_buckets[boi].bucket_base=base;
+      fd_oid_buckets[boi].bucket_no=boi;
+      /* Could be faster, but n is relatively small */
+      qsort(fd_oid_buckets,fd_n_base_oids,sizeof(struct FD_OID_BUCKET),
+            compare_baseoids);
+      u8_rw_unlock(&base_oid_lock);
+      return boi;}}
 }
 
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
@@ -230,7 +268,7 @@ void fd_init_oids_c()
   u8_register_source_file(_FILEINFO);
   fd_type_names[fd_oid_type]="OID";
   _fd_oid_info=_simple_oid_info;
-  u8_init_mutex(&(base_oid_lock));
+  u8_init_rwlock(&(base_oid_lock));
   init_oids();
 
   u8_init_mutex(&zero_pool_lock);

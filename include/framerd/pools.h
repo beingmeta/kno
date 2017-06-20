@@ -136,8 +136,6 @@ FD_EXPORT int fd_pool_lock_init;
 #define FD_POOL_SPARSE    (FD_POOL_FLAG(0))
 #define FD_POOL_ADJUNCT   (FD_POOL_FLAG(1))
 
-FD_EXPORT int fd_ignore_anonymous_oids;
-
 typedef enum fd_storage_unlock_flags {
   commit_modified = 1,
   leave_modified = 0,
@@ -395,8 +393,6 @@ FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(lispval x)
 #define fd_oid2pool _fd_oid2pool
 #define fd_get_poolptr _fd_get_poolptr
 #endif
-
-FD_EXPORT lispval fd_anonymous_oid(const u8_string cxt,lispval oid);
 
 /* Adjuncts */
 

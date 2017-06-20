@@ -150,6 +150,7 @@ FD_EXPORT lispval fd_cached_keys(fd_index p);
 
 FD_EXPORT fd_index fd_lisp2index(lispval lp);
 FD_EXPORT lispval fd_index2lisp(fd_index ix);
+FD_EXPORT lispval fd_index_ref(fd_index ix);
 
 FD_EXPORT int fd_add_to_background(fd_index ix);
 

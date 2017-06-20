@@ -301,12 +301,12 @@ static lispval config_get_indexes(lispval var,void *data)
 {
   lispval results = EMPTY;
   int i = 0; while (i < fd_n_primary_indexes) {
-    lispval lindex = fd_index2lisp(fd_primary_indexes[i]);
+    lispval lindex = fd_index_ref(fd_primary_indexes[i]);
     CHOICE_ADD(results,lindex);
     i++;}
   if (i>=fd_n_primary_indexes) return results;
   i = 0; while (i < fd_n_secondary_indexes) {
-    lispval lindex = fd_index2lisp(fd_secondary_indexes[i]);
+    lispval lindex = fd_index_ref(fd_secondary_indexes[i]);
     CHOICE_ADD(results,lindex);
     i++;}
   return results;
@@ -330,7 +330,7 @@ static lispval config_get_background(lispval var,void *data)
     u8_lock_mutex(&(fd_background->index_lock));
     n = fd_background->n_indexes; indexes = fd_background->indexes;
     while (i<n) {
-      lispval lix = fd_index2lisp(indexes[i]); i++;
+      lispval lix = fd_index_ref(indexes[i]); i++;
       CHOICE_ADD(results,lix);}
     u8_unlock_mutex(&(fd_background->index_lock));
     return results;}
