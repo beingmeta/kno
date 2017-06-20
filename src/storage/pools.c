@@ -16,6 +16,7 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/storage.h"
+#include "framerd/drivers.h"
 #include "framerd/apply.h"
 
 #include <libu8/libu8.h>
@@ -96,11 +97,11 @@ FD_FASTOP int modify_readonly(lispval table,int val)
       tbl->table_readonly=val;
       return 1;}
     case fd_schemap_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_SCHEMAP *tbl=(fd_schemap)table;
       tbl->table_readonly=val;
       return 1;}
     case fd_hashtable_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_HASHTABLE *tbl=(fd_hashtable)table;
       tbl->table_readonly=val;
       return 1;}
     default:
@@ -118,11 +119,11 @@ FD_FASTOP int modify_finished(lispval table,int val)
       tbl->table_finished=val;
       return 1;}
     case fd_schemap_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_SCHEMAP *tbl=(fd_schemap)table;
       tbl->table_finished=val;
       return 1;}
     case fd_hashtable_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_HASHTABLE *tbl=(fd_hashtable)table;
       tbl->table_finished=val;
       return 1;}
     default:
@@ -196,7 +197,7 @@ FD_EXPORT lispval fd_pool_ctl(fd_pool p,lispval poolop,int n,lispval *args)
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 {
   lispval intarg = FD_INT(level);
-  lispval result = fd_pool_ctl(p,FD_POOLOP_CACHELEVEL,1,&intarg);
+  lispval result = fd_pool_ctl(p,fd_cachelevel_op,1,&intarg);
   if (FD_ABORTP(result)) {fd_clear_errors(1);}
   fd_decref(result);
   p->pool_cache_level = level;

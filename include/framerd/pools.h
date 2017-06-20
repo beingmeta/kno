@@ -247,14 +247,6 @@ struct FD_POOL_HANDLER some_handler={
 
 FD_EXPORT lispval fd_pool_ctl(fd_pool p,lispval op,int n,lispval *args);
 
-#define FD_POOLOP_CACHELEVEL  (1<<0)
-#define FD_POOLOP_BUFSIZE     (1<<1)
-#define FD_POOLOP_MMAP        (1<<2)
-#define FD_POOLOP_PRELOAD     (1<<3)
-#define FD_POOLOP_STATS       (1<<4)
-#define FD_POOLOP_LABEL       (1<<5)
-#define FD_POOLOP_POPULATE    (1<<6)
-
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,
                             u8_string id,u8_string source);

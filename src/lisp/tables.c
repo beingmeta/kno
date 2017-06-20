@@ -898,7 +898,9 @@ FD_EXPORT lispval fd_make_schemap
   ptr->table_schema=schema;
   ptr->schema_length=size;
   if (flags&FD_SCHEMAP_SORTED) ptr->schemap_sorted=1;
-  if (!(flags&FD_SCHEMAP_PRIVATE)) ptr->schemap_shared=0;
+  if (flags&FD_SCHEMAP_PRIVATE)
+    ptr->schemap_shared=0;
+  else ptr->schemap_shared=1;
   if (flags&FD_SCHEMAP_READONLY) ptr->table_readonly=1;
   if (flags&FD_SCHEMAP_MODIFIED) ptr->table_modified=1;
   if (values)
