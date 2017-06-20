@@ -357,7 +357,7 @@ static lispval get_slotid_methods(lispval slotid,lispval method_name)
 {
   fd_pool p = fd_oid2pool(slotid); lispval smap, result;
   if (PRED_FALSE(p == NULL))
-    return fd_anonymous_oid("get_slotid_methods",slotid);
+    return VOID;
   else smap = fd_fetch_oid(p,slotid);
   if (FD_ABORTP(smap))
     return smap;

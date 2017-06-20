@@ -179,15 +179,7 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
 
 FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags);
 
-int fd_ignore_anonymous_oids = 0;
-
 static u8_mutex pool_registry_lock;
-
-FD_EXPORT lispval fd_anonymous_oid(const u8_string cxt,lispval oid)
-{
-  if (fd_ignore_anonymous_oids) return EMPTY;
-  else return fd_err(fd_AnonymousOID,cxt,NULL,oid);
-}
 
 /* Pool ops */
 
@@ -1277,7 +1269,8 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
                   (VOID));
     if (!(VOIDP(value))) return value;}
   if (p == NULL) p = fd_oid2pool(oid);
-  if (p == NULL) return fd_anonymous_oid("fd_fetch_oid",oid);
+  if (p == NULL)
+    return EMPTY;
   else if (p == fd_zero_pool)
     return fd_zero_pool_value(oid);
   else if ( (p->pool_cache_level) &&
@@ -1704,21 +1697,6 @@ static lispval pool_parsefn(int n,lispval *args,fd_compound_typeinfo e)
   else return fd_err(fd_CantParseRecord,"pool_parsefn",NULL,VOID);
 }
 
-/* Config methods */
-
-static lispval config_get_anonymousok(lispval var,void *data)
-{
-  if (fd_ignore_anonymous_oids) return FD_TRUE;
-  else return FD_TRUE;
-}
-
-static int config_set_anonymousok(lispval var,lispval val,void *data)
-{
-  if (FD_TRUEP(val)) fd_ignore_anonymous_oids = 1;
-  else fd_ignore_anonymous_oids = 0;
-  return 1;
-}
-
 /* Executing pool delays */
 
 FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
@@ -2075,10 +2053,6 @@ FD_EXPORT void fd_init_pools_c()
   fd_unparsers[fd_consed_pool_type]=unparse_consed_pool;
   fd_recyclers[fd_consed_pool_type]=recycle_consed_pool;
   fd_copiers[fd_consed_pool_type]=copy_consed_pool;
-  fd_register_config
-    ("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
-     config_get_anonymousok,
-     config_set_anonymousok,NULL);
   fd_register_config("DEFAULTPOOL",_("Default location for new OID allocation"),
                      fd_poolconfig_get,fd_poolconfig_set,
                      &fd_default_pool);

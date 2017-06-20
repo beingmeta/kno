@@ -26,12 +26,6 @@
 fd_exception fd_BadAdjunct=_("Bad adjunct table"),
   fd_AdjunctError=_("Pool adjunct error");
 
-static int anonymous_oiderr(u8_string op,lispval f)
-{
-  fd_seterr(fd_AnonymousOID,op,NULL,f);
-  return -1;
-}
-
 /* TODO: Fix finish/modify semantics
 
    There's a problem with using OIDs after they've been finished. 
@@ -301,35 +295,31 @@ static int adjunct_test(fd_adjunct adj,lispval frame,lispval value)
 FD_EXPORT lispval fd_oid_get(lispval f,lispval slotid,lispval dflt)
 {
   fd_pool p = fd_oid2pool(f);
-  if (PRED_FALSE(p == NULL))
-    if (fd_ignore_anonymous_oids) {
-      fd_adjunct adj = get_adjunct(p,slotid);
-      if (adj)
-        return adjunct_fetch(adj,f,dflt);
-      else return fd_incref(dflt);}
-    else return fd_err(fd_AnonymousOID,NULL,NULL,f);
-  else {
-    fd_adjunct adj = get_adjunct(p,slotid); lispval smap; int free_smap = 0;
+  if (PRED_FALSE(p == NULL)) {
+    fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_fetch(adj,f,dflt);
-    else {smap = fd_fetch_oid(p,f); free_smap = 1;}
-    if (FD_ABORTP(smap))
-      return smap;
-    else if (SLOTMAPP(smap)) {
-      lispval value = fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
-      if (free_smap) fd_decref(smap);
-      return value;}
-    else if (SCHEMAPP(smap)) {
-      lispval value = fd_schemap_get((fd_schemap)smap,slotid,dflt);
-      if (free_smap) fd_decref(smap);
-      return value;}
-    else if (TABLEP(smap)) {
-      lispval value = fd_get(smap,slotid,dflt);
-      if (free_smap) fd_decref(smap);
-      return value;}
-    else {
-      if (free_smap) fd_decref(smap);
-      return fd_incref(dflt);}}
+      return adjunct_fetch(adj,f,dflt);}
+  fd_adjunct adj = get_adjunct(p,slotid); lispval smap; int free_smap = 0;
+  if (adj)
+    return adjunct_fetch(adj,f,dflt);
+  else {smap = fd_fetch_oid(p,f); free_smap = 1;}
+  if (FD_ABORTP(smap))
+    return smap;
+  else if (SLOTMAPP(smap)) {
+    lispval value = fd_slotmap_get((fd_slotmap)smap,slotid,dflt);
+    if (free_smap) fd_decref(smap);
+    return value;}
+  else if (SCHEMAPP(smap)) {
+    lispval value = fd_schemap_get((fd_schemap)smap,slotid,dflt);
+    if (free_smap) fd_decref(smap);
+    return value;}
+  else if (TABLEP(smap)) {
+    lispval value = fd_get(smap,slotid,dflt);
+    if (free_smap) fd_decref(smap);
+    return value;}
+  else {
+    if (free_smap) fd_decref(smap);
+    return fd_incref(dflt);}
 }
 
 FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value)
@@ -338,22 +328,20 @@ FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value)
   if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_add(adj,f,value);
-    else return anonymous_oiderr("fd_oid_add",f);}
-  else {
-    lispval smap; int retval;
-    fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_add(adj,f,value);
-    else smap = fd_locked_oid_value(p,f);
-    if (FD_ABORTP(smap))
-      return fd_interr(smap);
-    else if (SLOTMAPP(smap))
-      retval = fd_slotmap_add(FD_XSLOTMAP(smap),slotid,value);
-    else if (SCHEMAPP(smap))
-      retval = fd_schemap_add(FD_XSCHEMAP(smap),slotid,value);
-    else retval = fd_add(smap,slotid,value);
-    fd_decref(smap);
-    return retval;}
+      return adjunct_add(adj,f,value);}
+  lispval smap; int retval;
+  fd_adjunct adj = get_adjunct(p,slotid);
+  if (adj) return adjunct_add(adj,f,value);
+  else smap = fd_locked_oid_value(p,f);
+  if (FD_ABORTP(smap))
+    return fd_interr(smap);
+  else if (SLOTMAPP(smap))
+    retval = fd_slotmap_add(FD_XSLOTMAP(smap),slotid,value);
+  else if (SCHEMAPP(smap))
+    retval = fd_schemap_add(FD_XSCHEMAP(smap),slotid,value);
+  else retval = fd_add(smap,slotid,value);
+  fd_decref(smap);
+  return retval;
 }
 
 FD_EXPORT int fd_oid_store(lispval f,lispval slotid,lispval value)
@@ -362,24 +350,22 @@ FD_EXPORT int fd_oid_store(lispval f,lispval slotid,lispval value)
   if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_store(adj,f,value);
-    else return anonymous_oiderr("fd_oid_store",f);}
-  else {
-    lispval smap; int retval;
-    fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_store(adj,f,value);
-    else smap = fd_locked_oid_value(p,f);
-    if (FD_ABORTP(smap))
-      return fd_interr(smap);
-    else if (SLOTMAPP(smap))
-      if (EMPTYP(value))
-        retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
-      else retval = fd_slotmap_store(FD_XSLOTMAP(smap),slotid,value);
-    else if (SCHEMAPP(smap))
-      retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,value);
-    else retval = fd_store(smap,slotid,value);
-    fd_decref(smap);
-    return retval;}
+      return adjunct_store(adj,f,value);}
+  lispval smap; int retval;
+  fd_adjunct adj = get_adjunct(p,slotid);
+  if (adj) return adjunct_store(adj,f,value);
+  else smap = fd_locked_oid_value(p,f);
+  if (FD_ABORTP(smap))
+    return fd_interr(smap);
+  else if (SLOTMAPP(smap))
+    if (EMPTYP(value))
+      retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
+    else retval = fd_slotmap_store(FD_XSLOTMAP(smap),slotid,value);
+  else if (SCHEMAPP(smap))
+    retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,value);
+  else retval = fd_store(smap,slotid,value);
+  fd_decref(smap);
+  return retval;
 }
 
 FD_EXPORT int fd_oid_delete(lispval f,lispval slotid)
@@ -388,22 +374,20 @@ FD_EXPORT int fd_oid_delete(lispval f,lispval slotid)
   if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_store(adj,f,EMPTY);
-    else return anonymous_oiderr("fd_oid_delete",f);}
-  else {
-    lispval smap; int retval;
-    fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_store(adj,f,EMPTY);
-    else smap = fd_locked_oid_value(p,f);
-    if (FD_ABORTP(smap))
-      return fd_interr(smap);
-    else if (SLOTMAPP(smap))
-      retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
-    else if (SCHEMAPP(smap))
-      retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,EMPTY);
-    else retval = fd_store(smap,slotid,EMPTY);
-    fd_decref(smap);
-    return retval;}
+      return adjunct_store(adj,f,EMPTY);}
+  lispval smap; int retval;
+  fd_adjunct adj = get_adjunct(p,slotid);
+  if (adj) return adjunct_store(adj,f,EMPTY);
+  else smap = fd_locked_oid_value(p,f);
+  if (FD_ABORTP(smap))
+    return fd_interr(smap);
+  else if (SLOTMAPP(smap))
+    retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
+  else if (SCHEMAPP(smap))
+    retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,EMPTY);
+  else retval = fd_store(smap,slotid,EMPTY);
+  fd_decref(smap);
+  return retval;
 }
 
 FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value)
@@ -412,22 +396,20 @@ FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value)
   if (PRED_FALSE(p == NULL))  {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_drop(adj,f,EMPTY);
-    else return anonymous_oiderr("fd_oid_drop",f);}
-  else {
-    lispval smap; int retval;
-    fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_drop(adj,f,value);
-    else smap = fd_locked_oid_value(p,f);
-    if (FD_ABORTP(smap))
-      return fd_interr(smap);
-    else if (SLOTMAPP(smap))
-      retval = fd_slotmap_drop(FD_XSLOTMAP(smap),slotid,value);
-    else if (SCHEMAPP(smap))
-      retval = fd_schemap_drop(FD_XSCHEMAP(smap),slotid,value);
-    else retval = fd_drop(smap,slotid,value);
-    fd_decref(smap);
-    return retval;}
+      return adjunct_drop(adj,f,EMPTY);}
+  lispval smap; int retval;
+  fd_adjunct adj = get_adjunct(p,slotid);
+  if (adj) return adjunct_drop(adj,f,value);
+  else smap = fd_locked_oid_value(p,f);
+  if (FD_ABORTP(smap))
+    return fd_interr(smap);
+  else if (SLOTMAPP(smap))
+    retval = fd_slotmap_drop(FD_XSLOTMAP(smap),slotid,value);
+  else if (SCHEMAPP(smap))
+    retval = fd_schemap_drop(FD_XSCHEMAP(smap),slotid,value);
+  else retval = fd_drop(smap,slotid,value);
+  fd_decref(smap);
+  return retval;
 }
 
 FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value)
@@ -435,9 +417,8 @@ FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value)
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))  {
     fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_test(adj,f,value);
-    else return anonymous_oiderr("fd_oid_test",f);}
-  else if (VOIDP(value)) {
+    if (adj) return adjunct_test(adj,f,value);}
+  if (VOIDP(value)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else {
@@ -468,7 +449,7 @@ FD_EXPORT lispval fd_oid_keys(lispval f)
 {
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))
-    return fd_anonymous_oid("fd_oid_keys",f);
+    return EMPTY;
   else {
     lispval smap = fd_fetch_oid(p,f);
     if (FD_ABORTP(smap)) return smap;
