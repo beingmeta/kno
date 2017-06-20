@@ -23,8 +23,6 @@
 
 #include <ctype.h>
 #include <errno.h>
-/* We include this for sscanf, but we're not using the FILE functions */
-#include <stdio.h>
 
 /* Pretty printing */
 
