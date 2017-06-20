@@ -20,22 +20,29 @@
   (default! keys (getkeys from))
   (default! bucketmap (index-bucketmap from to #t keys))
   (let* ((buckets (getkeys bucketmap)))
-    (let ((copy-queue (choice->vector buckets))
-	  (batchlim (getopt opts 'batchlim (config 'BATCHLIM 1000000)))
-	  (len (length copy-queue))
-	  (i 0))
+    (let* ((copy-queue (choice->vector buckets))
+	   (batchlim (getopt opts 'batchlim (config 'BATCHLIM 1000000)))
+	   (len (length copy-queue))
+	   (n-keys (choice-size keys))
+	   (copied 0)
+	   (i 0))
       (while  (< i len)
 	(let ((batch {}) (batchsize 0))
 	  (while (< batchsize batchlim)
 	    (let ((bucketno (elt copy-queue i))
 		  (keys (get bucketmap i)))
 	      (set+! batch keys)
-	      (set! batchsize (+ batchsize valuesize))
+	      (set! batchsize (+ batchsize (choice-size keys)))
 	      (set! i (1+ i))))
+	  (loginfo |RepackIndex| "Copying " batchsize " keys" )
 	  (when (getopt opts 'prefetch #t)
 	    (prefetch-keys! from batch))
 	  (do-choices (key batch) (store! to key (get from key)))
 	  (commit to)
+	  (set! copied (+ copied batchsize))
+	  (lognotice |RepackIndex|
+	    "Copied " batchsize " additional keys, currently " copied "/" n-keys 
+	    " (" (show% copied n-keys) ")")
 	  (clearcaches))))))
 
 (define (get-output-size in n-keys opts)
@@ -66,7 +73,7 @@
 			 slotids ,slotids]))
 	(let ((out (open-index outfile #[register #t cachelevel 2])))
 	  (logwarn |Copying keys|
-	    "Copying values for " (choice-size keysizes) " keys "
+	    "Copying values for " (choice-size keys) " keys "
 	    "from " in " to " out)
 	  (let ((bucketmap (index-bucketmap in out #t keys)))
 	    (copy-keys in out keys bucketmap)))))))
