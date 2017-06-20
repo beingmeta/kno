@@ -33,7 +33,7 @@ FD_FASTOP int find_base_oid(FD_OID base)
 {
   int len = fd_n_base_oids;
   int bot=0, top=len-1;
-  while (top>bot) {
+  while (top>=bot) {
     int middle = bot+(top-bot)/2;
     int cmp = FD_OID_COMPARE(base,fd_oid_buckets[middle].bucket_base);
     if (cmp == 0)
