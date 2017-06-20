@@ -1101,8 +1101,8 @@ static lispval pool_elts(lispval arg,lispval start,lispval count)
     else return fd_type_error(_("pool offset"),"pool_elts",count);
     int off=i, partition=-1, bucket_no=-1, bucket_start=-1;
     while (off<lim) {
-      FD_OID addr=base; FD_OID_PLUS(addr,off);
       if ( (partition<0) || ((off/FD_OID_BUCKET_SIZE) != partition) ) {
+        FD_OID addr=FD_OID_PLUS(base,off);
         bucket_no=fd_get_oid_base_index(addr,1);
         partition=off/FD_OID_BUCKET_SIZE;
         bucket_start=off;}
