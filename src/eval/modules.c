@@ -791,11 +791,6 @@ static lispval loadmodule_sandbox_config_get(lispval var,void *ignored)
 
 /* Modules to be used by fd_live_env */
 
-/* A list of exposed modules */
-static lispval module_list = NIL;
-/* This is the exposed environment. */
-static fd_lexenv exposed_lexenv = NULL;
-
 static lispval config_used_modules(lispval var,void *data)
 {
   lispval modlist=NIL;
