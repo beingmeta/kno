@@ -164,7 +164,7 @@ static struct FD_INDEX_HANDLER hashindex_handler;
 static fd_exception CorruptedHashIndex=_("Corrupted hashindex file");
 static fd_exception BadHashFn=_("hashindex has unknown hash function");
 
-static lispval set_symbol, drop_symbol;
+static lispval set_symbol, drop_symbol, keycounts_symbol;
 
 /* Utilities for DTYPE I/O */
 
@@ -2749,6 +2749,33 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     return FD_INT(hx->index_n_buckets);
   else if (op == fd_load_op)
     return FD_INT(hx->table_n_keys);
+  else if (op == keycounts_symbol) {
+    int n_keys=0;
+    fd_choice filter;
+    struct FD_CHOICE static_choice;
+    if (n==0) filter=NULL;
+    else {
+      lispval arg0 = args[0];
+      if (EMPTYP(arg0))
+        return arg0;
+      else if (CHOICEP(arg0))
+        filter = (fd_choice) arg0;
+      else {
+        static_choice.choice_size=1;
+        static_choice.choice_isatomic=(!(FD_CONSP(arg0)));
+        static_choice.choice_0=arg0;
+        filter=&static_choice;}}
+    struct FD_KEY_SIZE *info=
+      hashindex_fetchinfo(ix,filter,&n_keys);
+    struct FD_HASHTABLE *table= (fd_hashtable) fd_make_hashtable(NULL,n_keys);
+    int i=0; while (i<n_keys) {
+      fd_hashtable_op_nolock(table,fd_table_store,
+                             info[i].keysizekey,
+                             FD_INT(info[i].keysizenvals));
+      fd_decref(info[i].keysizekey);
+      i++;}
+    u8_free(info);
+    return (lispval)table;}
   else return FD_FALSE;
 }
 
@@ -2779,6 +2806,7 @@ FD_EXPORT void fd_init_hashindex_c()
 {
   set_symbol = fd_intern("SET");
   drop_symbol = fd_intern("DROP");
+  keycounts_symbol = fd_intern("KEYCOUNTS");
 
   u8_register_source_file(_FILEINFO);
 
