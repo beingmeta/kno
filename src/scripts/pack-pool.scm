@@ -9,7 +9,8 @@
 	   (tryif (config 'B32 #f) 'B32)
 	   (tryif (config 'B40 #f) 'B40)
 	   (tryif (config 'B64 #f) 'B64)
-	   (tryif (config 'ZLIB #f) 'ZLIB))))
+	   (tryif (config 'ZLIB #f) 'ZLIB)
+	   (tryif (config 'SNAPPY #f) 'SNAPPY))))
 
 (define default-schematize #t)
 
@@ -29,7 +30,7 @@
 			       (mt/threadcount (config 'nthreads 0.7))
 			       (lambda (oids done)
 				 (when done (clearcaches))
-				 (unless done (file-pool-prefetch! old oids)))
+				 (unless done (prefetch-oids! old oids)))
 			       (config 'blocksize (quotient (pool-load old) 10))
 			       (mt/custom-progress "Identifying schemas"))
 	       (hashtable-increment! table (sorted (getkeys (get old f)))))
@@ -50,27 +51,25 @@
 		     schemas)
 		   (rsorted picked table)))))))
 
-(define (make-new-pool filename old)
-  (cond ((config 'OLDPOOL #f)
-	 (make-file-pool filename (pool-base old)
-			 (or (config 'NEWCAP #f) (pool-capacity old))
-			 (pool-load old))
-	 (label-pool! filename (or (config 'label #f) (pool-label old)))
-	 (use-pool filename))
-	((config 'OIDPOOL #f)
-	 (make-oidpool filename (pool-base old)
-		       (or (config 'NEWCAP #f) (pool-capacity old))
-		       (pool-load old) (getflags) (get-schemas old) #f
-		       (or (config 'LABEL #f)
-			   (try (pool-label old) #f)))
-	 (use-pool filename))
-	(else
-	 (make-oidpool filename (pool-base old)
-		       (or (config 'NEWCAP #f) (pool-capacity old))
-		       (pool-load old) (getflags) (get-schemas old) #f
-		       (or (config 'LABEL #f)
-			   (try (pool-label old) #f)))
-	 (use-pool filename))))
+(define (symbolize s)
+  (if (symbol? s) s
+      (if (string? s) (string->symbol (upcase s))
+	  (irritant s |NotStringOrSymbol|))))
+
+(define ztype-map
+  #[bigpool snappy oidpool zlib filepool #f])
+
+(define (make-new-pool filename old 
+		       (type (symbolize (config 'pooltype 'bigpool))))
+  (make-pool filename `#[type ,type
+			 base ,(pool-base old)
+			 capacity ,(config 'newcap (pool-capacity old))
+			 load ,(config 'newload (pool-load old))
+			 label ,(config 'label (pool-label old))
+			 compression 
+			 ,(symbolize (config 'compression (try (get ztype-map type) #f)))
+			 dtypev2 ,(config 'dtypev2 #f)
+			 register #t]))
 
 (define (copy-oids old new)
   (message "Copying OIDs" (if (pool-label old)
@@ -80,9 +79,8 @@
   (let ((prefetcher (lambda (oids done)
 		      (when done (commit) (clearcaches))
 		      (unless done
-			(file-pool-prefetch! old oids)
-			(lock-oids! oids)
-			(prefetch-oids! oids))))
+			(pool-prefetch! old oids)
+			(lock-oids! oids))))
 	(progress-label 
 	 (if (pool-label old)
 	     (string-append "Copying " (pool-label old))
@@ -101,7 +99,7 @@
 	 (message "Can't locate source " from))
 	(else
 	 (when (file-exists? to) (remove-file to))
-	 (let* ((old (open-file-pool from))
+	 (let* ((old (open-pool from #[register #f cachelevel 3]))
 		(new (make-new-pool to old)))
 	   (copy-oids old new)))))
 
@@ -114,7 +112,7 @@
 		      (string-append from ".tmp")))
 	 (bakfile (or (config 'BAKFILE #f)
 		      (string-append from ".bak"))))
-    (let* ((old (open-file-pool from))
+    (let* ((old (open-pool from #[register #f cachelevel 3]))
 	   (new (make-new-pool tmpfile old)))
       (copy-oids old new))
     (onerror (move-file from bakfile)
