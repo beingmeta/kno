@@ -31,8 +31,8 @@
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
     "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro\\>"
-    "\\<try\\>" "\\<tryif\\>"
-    "\\<while\\>" "\\<until\\>" "\\<onerror>\\"
+    "\\<try\\>" "\\<tryif\\>" "\\<with-log-context\\>"
+    "\\<while\\>" "\\<until\\>" "\\<onerror>\\" "\\<set+!>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
     "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"
     "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\" 
@@ -95,6 +95,7 @@
 (put 'tryif 'scheme-indent-function 1)
 (put 'withenv 'scheme-indent-function 1)
 (put 'withenv/safe 'scheme-indent-function 1)
+(put 'with-log-context 'scheme-indent-function 1)
 (put 'error 'scheme-indent-function 2)
 (put 'error+ 'scheme-indent-function 2)
 (put 'error 'scheme-indent-function 3)
@@ -104,6 +105,10 @@
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
+
+(put 'set! 'scheme-indent-function 1)
+(put 'set+! 'scheme-indent-function 1)
+
 
 (put 'irritant 'scheme-indent-function 2)
 (put 'begin 'scheme-indent-function 'block-indenter)
