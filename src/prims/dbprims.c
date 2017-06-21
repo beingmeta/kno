@@ -1341,6 +1341,16 @@ static lispval prefetch_oids(lispval oids)
   else return FD_ERROR;
 }
 
+static lispval pool_prefetch_prim(lispval poolarg,lispval oids)
+{
+  fd_pool p=fd_lisp2pool(poolarg);
+  if (p==NULL)
+    return FD_ERROR_VALUE;
+  else if (fd_pool_prefetch(p,oids)>=0)
+    return FD_TRUE;
+  else return FD_ERROR;
+}
+
 static lispval fetchoids_prim(lispval oids)
 {
   fd_prefetch_oids(oids);
@@ -3354,6 +3364,10 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));
+  fd_idefn2(fd_scheme_module,"POOL-PREFETCH!",
+            pool_prefetch_prim,(FD_NEEDS_2_ARGS|FD_NDCALL),
+            "Prefetches OIDs from a particular pool",
+            -1,VOID,-1,VOID);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("PREFETCH-KEYS!",prefetch_keys,1)));
   fd_idefn(fd_scheme_module,
