@@ -212,8 +212,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdweb.so.*
 %{_libdir}/libtexttools.so.*
 %{_libdir}/framerd/crypto.so*
+%{_libdir}/framerd/x2vec.so*
+%{_libdir}/framerd/tidy.so*
 %{_libdir}/framerd/sundown.so*
-%{_libdir}/framerd/regex.so*
 %{_bindir}/fdexec
 %{_bindir}/fdconsole
 %{_bindir}/fdbatch

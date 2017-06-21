@@ -116,6 +116,7 @@ CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
 SUDO=""
+INSTALLSUDO=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
@@ -299,6 +300,7 @@ AC_SUBST(GITDESCRIBE)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
+AC_SUBST(INSTALLSUDO)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
 AC_SUBST(DATAFILES)
@@ -1118,16 +1120,18 @@ if test "$with_libu8" != ""; then
 fi
 
 dnl Use sudo for installations in makefile
+AC_CHECK_PROGS(sudo_program,sudo,"na")
+if test "$sudoprogram" == "na"; then
+   SUDO="";
+else
+  SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program ";
+fi;
+
 AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
 if test "$with_sudo" == "yes"; then
-  AC_CHECK_PROGS(sudo_program,sudo,"na")
-  if test "$sudoprogram" == "na"; then
-    SUDO=""
-  else 
-    SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
-  fi
-elif test "$with_sudo" != "no"; then
-  SUDO="$with_sudo "
+   INSTALLSUDO="${SUDO}";
+else
+   INSTALLSUDO="${SUDO}";
 fi
 
 with_fastcgi="yes";
@@ -1376,6 +1380,13 @@ if test $with_crypto = "yes"; then
   INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
 fi
 
+AC_ARG_ENABLE(x2vec,--en[dis]able-x2vec Build the x2vec modules,,enable_x2vec="yes")
+
+if test "$enable_x2vec" = "yes"; then
+  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
+fi
+
 AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
 if test "$with_sundown" = "yes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
@@ -1399,15 +1410,6 @@ if test $enable_prefetching = "yes"; then
   AC_DEFINE(FD_PREFETCHING_ENABLED,1)
 else
   AC_DEFINE(FD_PREFETCHING_ENABLED,0)
-fi
-
-dnl This builds in Scheme level profiling for the interpreter.
-AC_ARG_ENABLE(calltrack,--en[dis]able-calltrack enable internal scheme profiling,,enable_calltrack="yes")
-if test $enable_calltrack = "yes"; then
-  calltracko="src/apply/calltrack.o"
-  AC_DEFINE(FD_CALLTRACK_ENABLED,1)
-else
-  AC_DEFINE(FD_CALLTRACK_ENABLED,0)
 fi
 
 dnl This builds in file config lookups

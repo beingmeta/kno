@@ -711,6 +711,7 @@ BOOTSETUP
 DATAFILES
 CMODULES
 WWWUSER
+INSTALLSUDO
 SUDO
 INSTALLI18N
 I18N
@@ -920,10 +921,10 @@ enable_tidy
 enable_hyphenate
 enable_largefiles
 with_crypto
+enable_x2vec
 with_sundown
 with_profiling
 enable_prefetching
-enable_calltrack
 enable_fileconfig
 enable_htmldump
 with_tls
@@ -1588,8 +1589,8 @@ Optional Features:
 --endisable-tidy Build and install tidy module
 --endisable-hyphenate Build and install the hyphenate module
 --endisable-largefiles Enable use of large (> 2GB) file support
+--endisable-x2vec Build the x2vec modules
 --endisable-prefetching make frame operations prefetch when they can
---endisable-calltrack enable internal scheme profiling
 --endisable-fileconfig enable file-based configuration
 --endisable-htmldump write HTML backtraces
 --endisable-ipeval Enable IPEVAL
@@ -2986,6 +2987,7 @@ CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
 SUDO=""
+INSTALLSUDO=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
@@ -3096,6 +3098,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -9868,16 +9871,7 @@ if test "$with_libu8" != ""; then
   EXECLDFLAGS="$EXECLDFLAGS -L$with_libu8/lib"
 fi
 
-
-# Check whether --with-sudo was given.
-if test "${with_sudo+set}" = set; then :
-  withval=$with_sudo;
-else
-  with_sudo="yes"
-fi
-
-if test "$with_sudo" == "yes"; then
-  for ac_prog in sudo
+for ac_prog in sudo
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -9920,13 +9914,24 @@ fi
 done
 test -n "$sudo_program" || sudo_program=""na""
 
-  if test "$sudoprogram" == "na"; then
-    SUDO=""
-  else
-    SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
-  fi
-elif test "$with_sudo" != "no"; then
-  SUDO="$with_sudo "
+if test "$sudoprogram" == "na"; then
+   SUDO="";
+else
+  SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program ";
+fi;
+
+
+# Check whether --with-sudo was given.
+if test "${with_sudo+set}" = set; then :
+  withval=$with_sudo;
+else
+  with_sudo="yes"
+fi
+
+if test "$with_sudo" == "yes"; then
+   INSTALLSUDO="${SUDO}";
+else
+   INSTALLSUDO="${SUDO}";
 fi
 
 with_fastcgi="yes";
@@ -11254,6 +11259,19 @@ if test $with_crypto = "yes"; then
   INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
 fi
 
+# Check whether --enable-x2vec was given.
+if test "${enable_x2vec+set}" = set; then :
+  enableval=$enable_x2vec;
+else
+  enable_x2vec="yes"
+fi
+
+
+if test "$enable_x2vec" = "yes"; then
+  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}";
+  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
+fi
+
 
 # Check whether --with-sundown was given.
 if test "${with_sundown+set}" = set; then :
@@ -11295,22 +11313,6 @@ if test $enable_prefetching = "yes"; then
 
 else
   $as_echo "#define FD_PREFETCHING_ENABLED 0" >>confdefs.h
-
-fi
-
-# Check whether --enable-calltrack was given.
-if test "${enable_calltrack+set}" = set; then :
-  enableval=$enable_calltrack;
-else
-  enable_calltrack="yes"
-fi
-
-if test $enable_calltrack = "yes"; then
-  calltracko="src/apply/calltrack.o"
-  $as_echo "#define FD_CALLTRACK_ENABLED 1" >>confdefs.h
-
-else
-  $as_echo "#define FD_CALLTRACK_ENABLED 0" >>confdefs.h
 
 fi
 

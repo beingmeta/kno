@@ -309,12 +309,13 @@ TIDY_H_FILES=\
 	src/cmodules/ext/tidy5/win32tc.h
 
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/cmodules/crypto.o src/cmodules/ldap.o \
-	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o \
+	     src/cmodules/mysql.o src/cmodules/leveldb.o \
+	     src/cmodules/crypto.o src/cmodules/zlib.o \
+	     src/cmodules/qrcode.o src/cmodules/exif.o \
+	     src/cmodules/imagick.o \
 	     src/cmodules/ziptools.o \
-	     src/cmodules/zlib.o src/cmodules/imagick.o \
 	     src/cmodules/hyphenate.o \
+	     src/cmodules/x2vec.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
@@ -411,9 +412,10 @@ FRAMERD_SOURCES=\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c   \
-	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c  \
+	src/cmodules/odbc.c src/cmodules/sqlite.c \
+	src/cmodules/crypto.c src/cmodules/mysql.c  \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
+	src/cmodules/x2vec.c 						\
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
@@ -1329,11 +1331,9 @@ install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALLCMODULES@ install-sundown
+install-cmodules: @INSTALLCMODULES@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-dbus: ${CMODULES}/dbus.@shared_suffix@ ${CMODULES}/dbus.@vshared_suffix@
-install-ldap: ${CMODULES}/ldap.@shared_suffix@ ${CMODULES}/ldap.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
@@ -1344,6 +1344,7 @@ install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshare
 install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
+install-x2vec: ${CMODULES}/x2vec.@shared_suffix@ ${CMODULES}/x2vec.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@

@@ -2047,10 +2047,10 @@ static lispval x2vec_cosim_prim(lispval term1,lispval term2,lispval x2varg)
     else return fd_make_flonum(cosim_float(len1,vec1,vec2,0));}
   else {
     if ((vec1)&&(vec2)) {
-      u8_byte buf[100]
+      u8_byte buf[100];
       fd_seterr(_("vector lengths differ"),"x2vec_cosim_prim",
                 u8_sprintf(buf,100,"%d != %d",len1,len2),
-                FD_VOID);
+                FD_VOID);}
     if (free1) u8_free(vec1);
     if (free2) u8_free(vec2);
     return FD_ERROR_VALUE;}
