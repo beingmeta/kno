@@ -353,7 +353,8 @@ fd_index fd_make_index(u8_string spec,
 
 /* Getting compression type from options */
 
-static lispval compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
+static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
+static lispval zlib_symbol, zlib9_symbol;
 
 #if HAVE_SNAPPYC_H
 #define DEFAULT_COMPRESSION FD_SNAPPY
@@ -373,9 +374,15 @@ fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
 #endif
   else if (fd_testopt(opts,compression_symbol,zlib_symbol))
     return FD_ZLIB;
-  else if (fd_testopt(opts,compression_symbol,zlib9_symbol))
+  else if ( (fd_testopt(opts,compression_symbol,zlib9_symbol)) ||
+            (fd_testopt(opts,compression_symbol,FD_INT(9))) )
     return FD_ZLIB9;
-  else if (fd_testopt(opts,compression_symbol,FD_TRUE)) {
+  else if ( (fd_testopt(opts,compression_symbol,FDSYM_NO)) ||
+            (fd_testopt(opts,compression_symbol,FD_INT(0))) )
+    return FD_NOCOMPRESS;
+  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
+            (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
+            (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
     if (dflt)
       return dflt;
     else return DEFAULT_COMPRESSION;}
@@ -413,6 +420,8 @@ FD_EXPORT int fd_init_drivers_c()
   snappy_symbol = fd_intern("SNAPPY");
   zlib_symbol = fd_intern("ZLIB");
   zlib9_symbol = fd_intern("ZLIB9");
+  no_symbol = fd_intern("NO");
+  none_symbol = fd_intern("NONE");
   adjuncts_symbol = fd_intern("ADJUNCTS");
 
   fd_cachelevel_op=fd_intern("CACHELEVEL");
