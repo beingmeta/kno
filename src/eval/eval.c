@@ -2054,6 +2054,28 @@ static lispval ffi_found_prim(lispval name,lispval modname)
 }
 #endif
 
+/* WITH-CONTEXT */
+
+static lispval with_log_context_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval label_expr=fd_get_arg(expr,1);
+  if (FD_VOIDP(label_expr))
+    return fd_err(fd_SyntaxError,"with_context_evalfn",NULL,expr);
+  else {
+    lispval label=fd_stack_eval(label_expr,env,_stack,0);
+    if (FD_ABORTP(label)) return label;
+    else if (!(FD_STRINGP(label)))
+      return fd_type_error("string","with_context_evalfn",label);
+    else {
+      u8_string outer_context=u8_log_context;
+      u8_set_log_context(FD_STRDATA(label));
+      lispval result=eval_body("with_log_context",FD_STRDATA(label),
+                               expr,2,env,_stack);
+      u8_set_log_context(outer_context);
+      fd_decref(label);
+      return result;}}
+}
+
 /* MTrace */
 
 static int mtracing=0;
@@ -2222,6 +2244,9 @@ static void init_localfns()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
+
+  /* This pushes a log context */
+  fd_def_evalfn(fd_scheme_module,"WITH-LOG-CONTEXT","",with_log_context_evalfn);
 
   /* This pushes a new threadcache */
   fd_def_evalfn(fd_scheme_module,"WITH-THREADCACHE","",with_threadcache_evalfn);
