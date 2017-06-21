@@ -972,16 +972,16 @@ static lispval copy_schemap(lispval schemap,int flags)
       else values[i]=val;
       nschema[i]=schema[i];
       i++;}
-  else if (flags) {
-    lispval val=ovalues[i];
-    if (CONSP(val))
-      if (PRECHOICEP(val))
-        values[i]=fd_make_simple_choice(val);
-      else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
-        values[i]=fd_copier(val,flags);
-      else values[i]=fd_incref(val);
-    else values[i]=val;
-    i++;}
+  else if (flags) while (i<size) {
+      lispval val=ovalues[i];
+      if (CONSP(val))
+        if (PRECHOICEP(val))
+          values[i]=fd_make_simple_choice(val);
+        else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
+          values[i]=fd_copier(val,flags);
+        else values[i]=fd_incref(val);
+      else values[i]=val;
+      i++;}
   else while (i < size) {
       values[i]=fd_incref(ovalues[i]);
       i++;}
