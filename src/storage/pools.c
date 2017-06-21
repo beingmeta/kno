@@ -61,7 +61,7 @@ static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
 
-static lispval lock_symbol, unlock_symbol, p_oid_symbol;
+static lispval lock_symbol, unlock_symbol;
 
 static int savep(lispval v,int only_finished);
 static int modifiedp(lispval v);
@@ -478,10 +478,6 @@ FD_EXPORT int fd_set_oid_value(lispval oid,lispval value)
     return fd_zero_pool_store(oid,value);
   else {
     modify_readonly(value,0);
-    if ((SLOTMAPP(value))||
-        (SCHEMAPP(value))||
-        (HASHTABLEP(value))) {
-      fd_store(value,p_oid_symbol,oid);}
     if (p->pool_handler->lock == NULL) {
       fd_hashtable_store(&(p->pool_cache),oid,value);
       return 1;}
@@ -2034,7 +2030,6 @@ FD_EXPORT void fd_init_pools_c()
 
   lock_symbol = fd_intern("LOCK");
   unlock_symbol = fd_intern("UNLOCK");
-  p_oid_symbol = fd_intern("%OID");
 
   memset(&fd_top_pools,0,sizeof(fd_top_pools));
   memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));
