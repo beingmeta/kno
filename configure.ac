@@ -1414,7 +1414,7 @@ fi
 
 dnl This builds in file config lookups
 AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
-if test $enable_calltrack = "yes"; then
+if test "$enable_fileconfig" = "yes"; then
   AC_DEFINE(FD_FILECONFIG_ENABLED,1)
 else
   AC_DEFINE(FD_FILECONFIG_ENABLED,0)
