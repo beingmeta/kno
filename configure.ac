@@ -116,7 +116,7 @@ CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
 SUDO=""
-INSTALLSUDO=
+SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
@@ -300,7 +300,7 @@ AC_SUBST(GITDESCRIBE)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
-AC_SUBST(INSTALLSUDO)
+AC_SUBST(SUINSTALL)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
 AC_SUBST(DATAFILES)
@@ -1129,9 +1129,9 @@ fi;
 
 AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
 if test "$with_sudo" == "yes"; then
-   INSTALLSUDO="${SUDO}";
+   SUINSTALL="${SUDO}";
 else
-   INSTALLSUDO="${SUDO}";
+   SUINSTALL="";
 fi
 
 with_fastcgi="yes";

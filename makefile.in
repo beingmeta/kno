@@ -37,7 +37,7 @@ PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@
-SYSINSTALL	= @SUDO@@INSTALL@
+SYSINSTALL	= @SUINSTALL@@INSTALL@
 SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
@@ -645,13 +645,13 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@@SUINSTALL@ ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@@SUINSTALL@ ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@@SUINSTALL@ ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
 ${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
@@ -659,15 +659,15 @@ ${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 ${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@@SUINSTALL@ ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@@SUINSTALL@ ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
 		 ${CMODULES}/$(*F)@suffix@.@mshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@@SUINSTALL@ ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
 $(BININSTALLDIR)/%: exe/%
@@ -1082,7 +1082,7 @@ lib/framerd/tidy.dylib: src/cmodules/tidy.c $(TIDY_OBJECTS)
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
-	@$(SUDO) install -D $^ $@
+	@@SUINSTALL@ install -D $^ $@
 
 etc/intl/framerd.pot:
 	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/framerd.pot -k_ \
@@ -1415,7 +1415,7 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modul
 	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
 			to @builtin_safe_module_dir@
 	@for safe_link in $(BUILD)/src/scheme/safe/*; do 			\
-          ${SUDO} ln -sf `readlink $${safe_link}` 				\
+          @SUINSTALL@ ln -sf `readlink $${safe_link}` 				\
 		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
 
@@ -1483,7 +1483,7 @@ setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
-		$(SUDO) update-rc.d framerd defaults; \
+		@SUINSTALL@ update-rc.d framerd defaults; \
 	 fi
 
 info:
@@ -1527,7 +1527,7 @@ setup-linux: setup-unix
 
 setup-osx: @share_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
-	@$(SUDO) etc/setup-osx "@share_dir@" \
+	@@SUINSTALL@ etc/setup-osx "@share_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
@@ -1574,8 +1574,8 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
 	@cd etc; if test -f mod_fdserv.so; \
-		then @SUDO@ ${APXS} -i mod_fdserv.so; \
-		else @SUDO@ ${APXS} -i mod_fdserv.la; \
+		then @SUINSTALL@ ${APXS} -i mod_fdserv.so; \
+		else @SUINSTALL@ ${APXS} -i mod_fdserv.la; \
 		fi
 	@echo Installed fdserv module with @rundir@/fdserv @logdir@/fdserv
 

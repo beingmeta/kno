@@ -711,7 +711,7 @@ BOOTSETUP
 DATAFILES
 CMODULES
 WWWUSER
-INSTALLSUDO
+SUINSTALL
 SUDO
 INSTALLI18N
 I18N
@@ -2987,7 +2987,7 @@ CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
 SUDO=""
-INSTALLSUDO=
+SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
@@ -9929,9 +9929,9 @@ else
 fi
 
 if test "$with_sudo" == "yes"; then
-   INSTALLSUDO="${SUDO}";
+   SUINSTALL="${SUDO}";
 else
-   INSTALLSUDO="${SUDO}";
+   SUINSTALL="";
 fi
 
 with_fastcgi="yes";
