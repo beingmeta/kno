@@ -217,19 +217,23 @@ static fd_pool open_oidpool(u8_string fname,
     fd_init_file_stream(stream,fname,FD_FILE_READ,-1,fd_driver_bufsize);
     fd_lock_stream(stream);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);
-    pool->pool_flags |= FD_STORAGE_READ_ONLY;}
+    open_flags |= FD_STORAGE_READ_ONLY;}
+
   if ((U8_BITP(oidpool_format,FD_OIDPOOL_ADJUNCT))&&
       (!(fd_testopt(opts,FDSYM_ISADJUNCT,FD_FALSE))))
-    pool->pool_flags |= FD_POOL_ADJUNCT;
+    open_flags |= FD_POOL_ADJUNCT;
   if (U8_BITP(oidpool_format,FD_OIDPOOL_SPARSE))
-    pool->pool_flags |= FD_POOL_SPARSE;
+    open_flags |= FD_POOL_SPARSE;
 
   pool->oidpool_offtype =
     (fd_offset_type)((oidpool_format)&(FD_OIDPOOL_OFFMODE));
   pool->oidpool_compression=
     (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
+
   fd_init_pool((fd_pool)pool,base,capacity,&oidpool_handler,fname,rname);
+  pool->pool_flags=open_flags;
   u8_free(rname); /* Done with this */
+
   if (magicno == FD_OIDPOOL_TO_RECOVER) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_oidpool(pool)<0) {
