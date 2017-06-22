@@ -356,12 +356,7 @@ fd_index fd_make_index(u8_string spec,
 static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
 static lispval zlib_symbol, zlib9_symbol;
 
-#if HAVE_SNAPPYC_H
-#define DEFAULT_COMPRESSION FD_SNAPPY
-#else
-#define DEFAULT_COMPRESSION FD_ZLIB9
-#endif
-
+#define DEFAULT_COMPRESSION FD_ZLIB
 
 FD_EXPORT
 fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
