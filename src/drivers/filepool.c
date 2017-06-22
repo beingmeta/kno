@@ -106,8 +106,7 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   if (read_only)
     U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
-  if (!(U8_BITP(pool->pool_flags,FD_STORAGE_UNREGISTERED)))
-    fd_register_pool((fd_pool)pool);
+  fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
 }
