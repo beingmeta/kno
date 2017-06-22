@@ -1126,27 +1126,37 @@ static lispval index_parsefn(int n,lispval *args,fd_compound_typeinfo e)
 
 FD_EXPORT int fd_for_indexes(int (*fcn)(fd_index ix,void *),void *data)
 {
+  int total=0;
+  int i = 0; while (i < fd_n_primary_indexes) {
+    int retval = fcn(fd_primary_indexes[i],data);
+    total++;
+    if (retval<0) return retval;
+    else if (retval) break;
+    else i++;}
+  if (i<fd_n_primary_indexes)
+    return total;
+
+  i = 0; while (i < fd_n_secondary_indexes) {
+    int retval = fcn(fd_secondary_indexes[i],data);
+    total++;
+    if (retval<0) return retval;
+    else if (retval) break;
+    else i++;}
+  if (i<fd_n_secondary_indexes)
+    return total;
+
   if (n_consed_indexes) {
     u8_lock_mutex(&consed_indexes_lock);
     int j = 0; while (j<n_consed_indexes) {
       fd_index ix = consed_indexes[j++];
       int retval = fcn(ix,data);
+      total++;
       if (retval) u8_unlock_mutex(&consed_indexes_lock);
       if (retval<0) return retval;
       else if (retval) break;
       else j++;}}
-  int i = 0; while (i < fd_n_primary_indexes) {
-    int retval = fcn(fd_primary_indexes[i],data);
-    if (retval<0) return retval;
-    else if (retval) break;
-    else i++;}
-  if (i>=fd_n_primary_indexes) return i;
-  i = 0; while (i < fd_n_secondary_indexes) {
-    int retval = fcn(fd_secondary_indexes[i],data);
-    if (retval<0) return retval;
-    else if (retval) break;
-    else i++;}
-  return i;
+
+  return total;
 }
 
 static int swapout_index_handler(fd_index ix,void *data)
@@ -1339,7 +1349,7 @@ FD_EXPORT void fd_init_indexes_c()
 
   u8_init_mutex(&consed_indexes_lock);
   consed_indexes = u8_malloc(64*sizeof(fd_index));
-  consed_indexes_len=65;
+  consed_indexes_len=64;
 
   fd_index_hashop=fd_intern("HASH");
   fd_index_slotsop=fd_intern("SLOTIDS");

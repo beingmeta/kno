@@ -66,6 +66,50 @@ static lispval lock_symbol, unlock_symbol;
 static int savep(lispval v,int only_finished);
 static int modifiedp(lispval v);
 
+static fd_pool *consed_pools = NULL;
+ssize_t n_consed_pools = 0, consed_pools_len=0;
+u8_mutex consed_pools_lock;
+
+static int add_consed_pool(fd_pool p)
+{
+  u8_lock_mutex(&consed_pools_lock);
+  fd_pool *scan=consed_pools, *limit=scan+n_consed_pools;
+  while (scan<limit) {
+    if ( *scan == p ) {
+      u8_unlock_mutex(&consed_pools_lock);
+      return 0;}
+    else scan++;}
+  if (n_consed_pools>=consed_pools_len) {
+    ssize_t new_len=consed_pools_len+64;
+    fd_pool *newvec=u8_realloc(consed_pools,new_len*sizeof(fd_pool));
+    if (newvec) {
+      consed_pools=newvec;
+      consed_pools_len=new_len;}
+    else {
+      u8_seterr(fd_MallocFailed,"add_consed_pool",u8dup(p->poolid));
+      u8_unlock_mutex(&consed_pools_lock);
+      return -1;}}
+  consed_pools[n_consed_pools++]=p;
+  u8_unlock_mutex(&consed_pools_lock);
+  return 1;
+}
+
+static int drop_consed_pool(fd_pool p)
+{
+  u8_lock_mutex(&consed_pools_lock);
+  fd_pool *scan=consed_pools, *limit=scan+n_consed_pools;
+  while (scan<limit) {
+    if ( *scan == p ) {
+      size_t to_shift=(limit-scan)-1;
+      memmove(scan,scan+1,to_shift);
+      n_consed_pools--;
+      u8_unlock_mutex(&consed_pools_lock);
+      return 1;}
+    else scan++;}
+  u8_unlock_mutex(&consed_pools_lock);
+  return 0;
+}
+
 /* This is used in committing pools */
 
 struct FD_POOL_WRITES {
@@ -234,8 +278,9 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     return 0;
   else if (bix<0)
     return bix;
-  else if (p->pool_flags&FD_STORAGE_UNREGISTERED)
-    return 0;
+  else if (p->pool_flags&FD_STORAGE_UNREGISTERED) {
+    add_consed_pool(p);
+    return 0;}
   else u8_lock_mutex(&pool_registry_lock);
   if (fd_n_pools >= fd_max_pools) {
     fd_seterr(_("n_pools > MAX_POOLS"),"fd_register_pool",NULL,VOID);
@@ -1328,11 +1373,23 @@ FD_EXPORT fd_pool fd_lisp2pool(lispval lp)
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data)
 {
   int i=0, n=fd_n_pools, count=0;
+
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (fcn(p,data))
       return count+1;
     count++;}
+
+  if (n_consed_pools) {
+    u8_lock_mutex(&consed_pools_lock);
+    int j = 0; while (j<n_consed_pools) {
+      fd_pool p = consed_pools[j++];
+      int retval = fcn(p,data);
+      count++;
+      if (retval) u8_unlock_mutex(&consed_pools_lock);
+      if (retval<0) return retval;
+      else if (retval) break;
+      else j++;}}
   return count;
 }
 
@@ -1824,6 +1881,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   struct FD_POOL *p = (struct FD_POOL *)c;
   struct FD_POOL_HANDLER *handler = p->pool_handler;
   if (p->pool_serialno>=0) return;
+  drop_consed_pool(p);
   if (handler->recycle) handler->recycle(p);
   fd_recycle_hashtable(&(p->pool_cache));
   fd_recycle_hashtable(&(p->pool_changes));
@@ -2033,6 +2091,10 @@ FD_EXPORT void fd_init_pools_c()
 
   memset(&fd_top_pools,0,sizeof(fd_top_pools));
   memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));
+
+  u8_init_mutex(&consed_pools_lock);
+  consed_pools = u8_malloc(64*sizeof(fd_pool));
+  consed_pools_len=64;
 
   {
     struct FD_COMPOUND_TYPEINFO *e =
