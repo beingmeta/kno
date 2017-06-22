@@ -106,7 +106,8 @@
   (message "Copied " (choice-size batch) " buckets (" batch-size " keys) "
     "in " (secs->string (elapsed-time start)) ", committing...")
   (commit new)
-  (swapout new))
+  (swapout new)
+  (swapout old))
 
 (define (copy-keys keyv old new (chunk-size) (start (elapsed-time)))
   (default! chunk-size (quotient (length keyv) (config 'nchunks 20)))
