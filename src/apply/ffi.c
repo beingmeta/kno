@@ -32,7 +32,7 @@ static lispval uint_symbol, int_symbol, ushort_symbol, short_symbol;
 static lispval ulong_symbol, long_symbol, uchar_symbol, char_symbol;
 static lispval string_symbol, packet_symbol, ptr_symbol, cons_symbol;
 static lispval float_symbol, double_symbol, size_symbol, lisp_symbol;
-static lispval lispref_symbol, strcpy_symbol;
+static lispval lispref_symbol, strcpy_symbol, void_symbol;
 static lispval byte_symbol, basetype_symbol;
 
 #if FD_ENABLE_FFI
@@ -78,6 +78,8 @@ static ffi_type *get_ffi_type(lispval arg)
     return &ffi_type_float;
   else if (arg == double_symbol)
     return &ffi_type_double;
+  else if (arg == void_symbol)
+    return &ffi_type_void;
   else if ((arg == ptr_symbol) || (arg == cons_symbol) ||
 	   (arg == string_symbol) || (arg == packet_symbol))
     return &ffi_type_pointer;
@@ -456,6 +458,7 @@ FD_EXPORT void fd_init_ffi_c()
   fd_functionp[fd_ffi_type]=1;
   fd_applyfns[fd_ffi_type]=(fd_applyfn)fd_ffi_call;
 
+  void_symbol = fd_intern("VOID");
   double_symbol = fd_intern("DOUBLE");
   float_symbol = fd_intern("FLOAT");
   uint_symbol = fd_intern("UINT");
@@ -485,6 +488,7 @@ FD_EXPORT void fd_init_ffi_c()
   fd_type_names[fd_ffi_type]="foreign-function";
   fd_dtype_writers[fd_ffi_type]=NULL;
 
+  void_symbol = fd_intern("VOID");
   double_symbol = fd_intern("DOUBLE");
   float_symbol = fd_intern("FLOAT");
   uint_symbol = fd_intern("UINT");
