@@ -1122,16 +1122,20 @@ fi
 dnl Use sudo for installations in makefile
 AC_CHECK_PROGS(sudo_program,sudo,"na")
 if test "$sudoprogram" == "na"; then
-   SUDO="";
+  SUDO="";
 else
-  SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program ";
+  SUDO=$sudo_program
 fi;
 
-AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
+AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="$SUDO")
+echo with_sudo=$with_sudo
+
 if test "$with_sudo" == "yes"; then
-   SUINSTALL="${SUDO}";
-else
+   SUINSTALL="${SUDO} ";
+elif test "$with_sudo" == "no"; then
    SUINSTALL="";
+else
+   SUINSTALL="$with_sudo ";
 fi
 
 with_fastcgi="yes";

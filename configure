@@ -9915,9 +9915,9 @@ done
 test -n "$sudo_program" || sudo_program=""na""
 
 if test "$sudoprogram" == "na"; then
-   SUDO="";
+  SUDO="";
 else
-  SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program ";
+  SUDO=$sudo_program
 fi;
 
 
@@ -9925,13 +9925,17 @@ fi;
 if test "${with_sudo+set}" = set; then :
   withval=$with_sudo;
 else
-  with_sudo="yes"
+  with_sudo="$SUDO"
 fi
 
+echo with_sudo=$with_sudo
+
 if test "$with_sudo" == "yes"; then
-   SUINSTALL="${SUDO}";
-else
+   SUINSTALL="${SUDO} ";
+elif test "$with_sudo" == "no"; then
    SUINSTALL="";
+else
+   SUINSTALL="$with_sudo ";
 fi
 
 with_fastcgi="yes";
