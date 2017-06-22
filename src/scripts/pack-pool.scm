@@ -52,7 +52,7 @@
 		   (rsorted picked table)))))))
 
 (define (symbolize s)
-  (if (symbol? s) s
+  (if (or (symbol? s)  (number? s)) s
       (if (string? s) (string->symbol (upcase s))
 	  (irritant s |NotStringOrSymbol|))))
 
@@ -67,28 +67,42 @@
 			 load ,(config 'newload (pool-load old))
 			 label ,(config 'label (pool-label old))
 			 compression 
-			 ,(symbolize (config 'compression (try (get ztype-map type) #f)))
+			 ,(symbolize (config 'compression
+					     (try (get ztype-map type) #f)))
 			 dtypev2 ,(config 'dtypev2 #f)
 			 register #t]))
+
+(define (get-batchsize n)
+  (cond ((and (config 'batchsize) (< (config 'batchsize) 1))
+	 (* n (config 'batchsize)))
+	((and (config 'batchsize) (> (config 'batchsize) 1))
+	 (config 'batchsize))
+	((config 'ncycles) (/ n (config 'ncycles)))
+	(else 100000)))
 
 (define (copy-oids old new)
   (message "Copying OIDs" (if (pool-label old)
 			      (append " for " (pool-label old)))
-	   " from " (or (pool-source old) old)
-	   " into " (or (pool-source new) new))
-  (let ((prefetcher (lambda (oids done)
-		      (when done (commit) (clearcaches))
-		      (unless done
-			(pool-prefetch! old oids)
-			(lock-oids! oids))))
-	(progress-label 
-	 (if (pool-label old)
-	     (string-append "Copying " (pool-label old))
-	     "Copying OIDs")))
-    (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
-		      prefetcher (config 'blocksize 50000)
-		      (mt/custom-progress progress-label))
-      (set-oid-value! f (get old f)))))
+    " from " (or (pool-source old) old)
+    " into " (or (pool-source new) new))
+  (let* ((newload (pool-load new))
+	 (oids (if (= (pool-load old) newload)
+		   (pool-elts old)
+		   (reject (pool-elts old) < (oid-plus (pool-base old) newload))))
+	 (batchsize (config 'batchsize (get-batchsize (choice-size oids)))))
+    (let ((prefetcher (lambda (oids done)
+			(when done (commit) (clearcaches))
+			(unless done
+			  (pool-prefetch! old oids)
+			  (lock-oids! oids))))
+	  (progress-label 
+	   (if (pool-label old)
+	       (string-append "Copying " (pool-label old))
+	       "Copying OIDs")))
+      (do-choices-mt (f oids (config 'nthreads 4)
+			prefetcher batchsize
+			(mt/custom-progress progress-label))
+	(set-oid-value! f (get old f))))))
 
 (define (main (from) (to #f))
   (cond ((not (bound? from)) (usage))
