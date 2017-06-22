@@ -91,7 +91,7 @@
 		   (reject (pool-elts old) < (oid-plus (pool-base old) newload))))
 	 (batchsize (config 'batchsize (get-batchsize (choice-size oids)))))
     (let ((prefetcher (lambda (oids done)
-			(when done (commit) (clearcaches) (swapout old))
+			(when done (commit) (clearcaches))
 			(unless done
 			  (pool-prefetch! old oids)
 			  (lock-oids! oids))))
