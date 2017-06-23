@@ -843,7 +843,10 @@ static lispval table_skim(lispval tables,lispval maxval,lispval scope)
     DO_CHOICES(table,tables)
       if (TABLEP(table)) {
         lispval result = fd_table_skim(table,maxval,scope);
-        CHOICE_ADD(results,result);}
+        if (FD_ABORTP(result)) {
+          fd_decref(results);
+          return result;}
+        else {CHOICE_ADD(results,result);}}
       else {
         fd_decref(results);
         return fd_type_error(_("table"),"table_skim",table);}

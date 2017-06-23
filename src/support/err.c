@@ -81,6 +81,19 @@ FD_EXPORT void fd_pusherr
 		      fd_free_exception_xdata);}
 }
 
+/* This stores the details and irritant arguments directly,
+   so they should be dup'd or incref'd by the caller. */
+FD_EXPORT void fd_graberr(int _errno,u8_context cxt,u8_string details)
+{
+  u8_graberr(_errno,cxt,details);
+  lispval errinfo = fd_init_pair(NULL,stacktrace_symbol,
+				 fd_get_backtrace(fd_stackptr,NIL));
+  // TODO: Push the exception and then generate the stack, just in
+  // case. Set the exception xdata explicitly if you can.
+  u8_push_exception(NULL,cxt,NULL,(void *)errinfo,
+		    fd_free_exception_xdata);
+}
+
 /* This is just like fd_seterr but it does the strdup/incref. */
 FD_EXPORT void fd_xseterr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant)

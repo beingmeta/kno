@@ -3783,6 +3783,8 @@ FD_EXPORT lispval fd_table_max(lispval table,lispval scope,lispval *maxvalp)
 FD_EXPORT lispval fd_table_skim(lispval table,lispval maxval,lispval scope)
 {
   if (EMPTYP(scope)) return EMPTY;
+  else if (!(FD_NUMBERP(maxval)))
+    return fd_type_error("number","fd_table_skim/maxval",maxval);
   else if (HASHTABLEP(table))
     return fd_hashtable_skim((fd_hashtable)table,maxval,scope);
   else if (SLOTMAPP(table))

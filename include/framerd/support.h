@@ -104,6 +104,7 @@ FD_EXPORT int fd_boolstring(u8_string,int);
 FD_EXPORT void fd_free_exception_xdata(void *ptr);
 
 FD_EXPORT lispval fd_err(fd_exception,u8_context,u8_string,lispval);
+FD_EXPORT void fd_graberr(int,u8_context cxt,u8_string details);
 
 FD_EXPORT lispval fd_type_error(u8_string,u8_context,lispval);
 
