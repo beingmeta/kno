@@ -881,65 +881,79 @@ static lispval pickone(lispval x)
 
 static lispval samplen(lispval x,lispval count)
 {
-  if (FIXNUMP(count)) {
-    lispval normal = fd_make_simple_choice(x);
-    lispval results = EMPTY;
-    int n = FD_CHOICE_SIZE(normal), howmany = fd_getint(count);
-    if (!(CHOICEP(normal)))
-      return normal;
-    if (n<=howmany)
-      return normal;
-    else if (n) {
-      unsigned char *used=u8_zalloc_n(n,unsigned char);
-      const lispval *data = FD_CHOICE_DATA(normal);
-      int j = 0; while (j<howmany) {
-        int i = u8_random(n);
-        if (!(used[i])) {
-          lispval elt=data[i]; fd_incref(elt);
-          CHOICE_ADD(results,data[i]);
-          used[i]=1;
-          j++;}}
-      fd_decref(normal);
-      return fd_simplify_choice(results);}
-    else return EMPTY;}
+  if (EMPTYP(x))
+    return x;
+  else if (FIXNUMP(count)) {
+    int howmany = fd_getint(count);
+    if (howmany<=0)
+      return EMPTY;
+    else if (! ( (FD_CHOICEP(x)) || (FD_PRECHOICEP(x)) ) )
+      return fd_incref(x);
+    else {
+      lispval normal = fd_make_simple_choice(x);
+      lispval results = EMPTY;
+      int n = FD_CHOICE_SIZE(normal);
+      if (n<=howmany)
+        return normal;
+      else {
+        unsigned char *used=u8_zalloc_n(n,unsigned char);
+        const lispval *data = FD_CHOICE_DATA(normal);
+        int j = 0; while (j<howmany) {
+          int i = u8_random(n);
+          if (!(used[i])) {
+            lispval elt=data[i]; fd_incref(elt);
+            CHOICE_ADD(results,data[i]);
+            used[i]=1;
+            j++;}}
+        fd_decref(normal);
+        return fd_simplify_choice(results);}}}
   else return fd_type_error("integer","samplen",count);
 }
 
 static lispval pickn(lispval x,lispval count,lispval offset)
 {
   if (FIXNUMP(count)) {
-    lispval normal = fd_make_simple_choice(x);
-    int n = FD_CHOICE_SIZE(normal), howmany = fd_getint(count);
-    int start;
-    if (!(CHOICEP(normal))) return normal;
-    if (n<=howmany) return normal;
-    else if (FD_INTP(offset)) {
-      start = FIX2INT(offset);
-      if ((n-start)<howmany) howmany = n-start;}
-    else if ((FIXNUMP(offset))||(FD_BIGINTP(offset))) {
-      fd_decref(normal);
-      return fd_type_error("small fixnum","pickn",offset);}
-    else start = u8_random(n-howmany);
-    if (n) {
-      struct FD_CHOICE *base=
-        (fd_consptr(struct FD_CHOICE *,normal,fd_choice_type));
-      struct FD_CHOICE *result = fd_alloc_choice(howmany);
-      const lispval *read = FD_XCHOICE_DATA(base)+start;
-      lispval *write = (lispval *)FD_XCHOICE_DATA(result);
-      if (FD_XCHOICE_ATOMICP(base)) {
-        memcpy(write,read,sizeof(lispval)*howmany);
+    int howmany = fd_getint(count);
+    if (howmany == 0)
+      return EMPTY;
+    else if (x == EMPTY)
+      return EMPTY;
+    else if ( (FD_CHOICEP(x)) || (FD_PRECHOICEP(x))) {
+      lispval normal = fd_make_simple_choice(x);
+      int start=0, n = FD_CHOICE_SIZE(normal);
+      if (n<=howmany)
+        return normal;
+      else if (FD_UINTP(offset)) {
+        start = FIX2INT(offset);
+        if ((n-start)<howmany) howmany = n-start;}
+      else if ((FIXNUMP(offset))||(FD_BIGINTP(offset))) {
         fd_decref(normal);
-        return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
-      else {
-        int atomicp = 1; const lispval *readlim = read+howmany;
-        while (read<readlim) {
-          lispval v = *read++;
-          if (ATOMICP(v)) *write++=v;
-          else {atomicp = 0; fd_incref(v); *write++=v;}}
+        return fd_type_error("small fixnum","pickn",offset);}
+      else start = u8_random(n-howmany);
+      if (howmany<=0) {
         fd_decref(normal);
-        return fd_init_choice(result,howmany,NULL,
-                              ((atomicp)?(FD_CHOICE_ISATOMIC):(0)));}}
-    else return EMPTY;}
+        return EMPTY;}
+      else if (n) {
+        struct FD_CHOICE *base=
+          (fd_consptr(struct FD_CHOICE *,normal,fd_choice_type));
+        struct FD_CHOICE *result = fd_alloc_choice(howmany);
+        const lispval *read = FD_XCHOICE_DATA(base)+start;
+        lispval *write = (lispval *)FD_XCHOICE_DATA(result);
+        if (FD_XCHOICE_ATOMICP(base)) {
+          memcpy(write,read,sizeof(lispval)*howmany);
+          fd_decref(normal);
+          return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
+        else {
+          int atomicp = 1; const lispval *readlim = read+howmany;
+          while (read<readlim) {
+            lispval v = *read++;
+            if (ATOMICP(v)) *write++=v;
+            else {atomicp = 0; fd_incref(v); *write++=v;}}
+          fd_decref(normal);
+          return fd_init_choice(result,howmany,NULL,
+                                ((atomicp)?(FD_CHOICE_ISATOMIC):(0)));}}
+      else return EMPTY;}
+    else return fd_incref(x);}
   else return fd_type_error("integer","topn",count);
 }
 
