@@ -203,6 +203,47 @@ fd_pool_handler fd_get_pool_handler(u8_string name)
   else return NULL;
 }
 
+typedef unsigned long long ull;
+
+static int fix_pool_opts(u8_string spec,lispval opts)
+{
+  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
+  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
+  if (!(OIDP(base_oid))) {
+    fd_seterr("PoolBaseNotOID","fd_make_pool",spec,opts);
+    return -1;}
+  else if (!(FIXNUMP(capacity_arg))) {
+    fd_seterr("PoolCapacityNotFixnum","fd_make_pool",spec,opts);
+    return -1;}
+  else {
+    FD_OID addr=FD_OID_ADDR(base_oid);
+    unsigned int lo=FD_OID_LO(addr);
+    int capacity=FD_FIX2INT(capacity_arg);
+    if (capacity<=0) {
+      fd_seterr("NegativePoolCapacity","fd_make_pool",spec,opts);
+      return -1;}
+    else if (capacity>=0x40000000) {
+      fd_seterr("PoolCapacityTooLarge","fd_make_pool",spec,opts);
+      return -1;}
+    else {}
+    int span_pool=(capacity>FD_OID_BUCKET_SIZE);
+    if ((span_pool)&&(lo%FD_OID_BUCKET_SIZE)) {
+      fd_seterr("MisalignedBaseOID","fd_make_pool",spec,opts);
+      return -1;}
+    else if ((span_pool)&&(capacity%FD_OID_BUCKET_SIZE)) {
+      lispval opt_root=opts;
+      unsigned int new_capacity =
+        (1+(capacity/FD_OID_BUCKET_SIZE))*FD_OID_BUCKET_SIZE;
+      u8_log(LOGWARN,"FixingCapacity",
+             "Rounding up the capacity of %s from %llu to 0x%llx",
+             spec,(ull)capacity,(ull)new_capacity);
+      if (FD_PAIRP(opts)) opt_root=FD_CAR(opts);
+      int rv=fd_store(opt_root,fd_intern("CAPACITY"),FD_INT(new_capacity));
+      return rv;}
+    /* TODO: Add more checks for non-spanning pools */
+    else return 1;}
+}
+
 FD_EXPORT
 fd_pool fd_make_pool(u8_string spec,
                      u8_string pooltype,
@@ -219,6 +260,8 @@ fd_pool fd_make_pool(u8_string spec,
   else if (ptype->handler->create == NULL) {
     fd_xseterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
     return NULL;}
+  else if (fix_pool_opts(spec,opts)<0)
+    return NULL;
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
 }
 
