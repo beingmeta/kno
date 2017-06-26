@@ -51,16 +51,6 @@ static lispval lisphashdtype(lispval x)
   return FD_INT(hash);
 }
 
-/* Prefetching from pools */
-
-static lispval pool_prefetch(lispval pool,lispval oids)
-{
-  fd_pool p = (fd_pool)pool;
-  int retval = fd_pool_prefetch(p,oids);
-  if (retval<0) return FD_ERROR;
-  else return VOID;
-}
-
 /* Various OPS */
 
 static lispval index_slotids(lispval index_arg)
@@ -107,10 +97,6 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_init_drivers();
   driverfns_module = fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
-
-  fd_idefn(driverfns_module,
-           fd_make_ndprim(fd_make_cprim2x("POOL-PREFETCH!",pool_prefetch,2,
-                                          fd_consed_pool_type,VOID,-1,VOID)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SLOTIDS",index_slotids,1));
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");

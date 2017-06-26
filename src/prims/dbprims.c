@@ -1335,20 +1335,41 @@ static lispval validoidp(lispval x,lispval pool_arg)
 
 /* Prefetching functions */
 
-static lispval prefetch_oids(lispval oids)
+static lispval pool_prefetch_prim(lispval pool,lispval oids)
 {
-  if (fd_prefetch_oids(oids)>=0) return FD_TRUE;
-  else return FD_ERROR;
+  if ( (VOIDP(pool)) || (FD_FALSEP(pool)) || (FD_TRUEP(pool)) ) {
+    if (fd_prefetch_oids(oids)>=0)
+      return FD_TRUE;
+    else return FD_ERROR;}
+  else if (! ( (CHOICEP(pool)) || (PRECHOICEP(pool)) ) ) {
+    fd_pool p=fd_lisp2pool(pool);
+    if (p==NULL)
+      return FD_ERROR_VALUE;
+    else if (fd_pool_prefetch(p,oids)>=0)
+      return FD_TRUE;
+    else return FD_ERROR;}
+  else {
+    {FD_DO_CHOICES(spec,pool) {
+        fd_pool p=fd_lisp2pool(spec);
+        if (p==NULL) {
+          FD_STOP_DO_CHOICES;
+          return FD_ERROR;}
+        else {}}}
+    {int ok=0;
+      FD_DO_CHOICES(spec,pool) {
+        fd_pool p=fd_lisp2pool(spec);
+        int rv=fd_pool_prefetch(p,oids);
+        if (rv<0) ok=rv;}
+      return ok;}}
 }
 
-static lispval pool_prefetch_prim(lispval poolarg,lispval oids)
+static lispval prefetch_oids_prim(lispval oids,lispval parg)
 {
-  fd_pool p=fd_lisp2pool(poolarg);
-  if (p==NULL)
-    return FD_ERROR_VALUE;
-  else if (fd_pool_prefetch(p,oids)>=0)
-    return FD_TRUE;
-  else return FD_ERROR;
+  if ( (VOIDP(parg)) || (FD_FALSEP(parg)) || (FD_TRUEP(parg)) ) {
+    if (fd_prefetch_oids(oids)>=0)
+      return FD_TRUE;
+    else return FD_ERROR;}
+  else return pool_prefetch_prim(parg,oids);
 }
 
 static lispval fetchoids_prim(lispval oids)
@@ -3362,11 +3383,13 @@ FD_EXPORT void fd_init_dbprims_c()
 
   fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));
+  fd_idefn2(fd_scheme_module,"PREFETCH-OIDS!",
+            prefetch_oids_prim,(FD_NEEDS_1_ARG|FD_NDCALL),
+            "'(PREFETCH-OIDS! oids [pool])' prefetches OIDs from pool",
+            -1,VOID,-1,VOID);
   fd_idefn2(fd_scheme_module,"POOL-PREFETCH!",
             pool_prefetch_prim,(FD_NEEDS_2_ARGS|FD_NDCALL),
-            "Prefetches OIDs from a particular pool",
+            "'(POOL-PREFETCH! pool oids)' prefetches OIDs from pool",
             -1,VOID,-1,VOID);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("PREFETCH-KEYS!",prefetch_keys,1)));
