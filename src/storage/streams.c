@@ -78,9 +78,20 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
     return -1;}
-  else if (stream->buf.raw.buflen==fileinfo.st_size)
+  else if ((stream->mmap_time.tv_sec==fileinfo.st_mtim.tv_sec) &&
+           (stream->mmap_time.tv_nsec==fileinfo.st_mtim.tv_nsec))
     return 0;
   else {
+    u8_write_lock(&(stream->mmap_lock));
+    if (fstat(fd,&fileinfo)<0) {
+      u8_rw_unlock(&(stream->mmap_lock));
+      u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
+      return -1;}
+    if ((stream->mmap_time.tv_sec==fileinfo.st_mtim.tv_sec) &&
+        (stream->mmap_time.tv_nsec==fileinfo.st_mtim.tv_nsec)) {
+      u8_rw_unlock(&(stream->mmap_lock));
+      return 0;}
+    else stream->mmap_time=fileinfo.st_mtim;
     size_t old_size = buf->buflen, new_size = fileinfo.st_size;
     int prot = (U8_BITP(stream->stream_flags,FD_STREAM_READ_ONLY)) ?
       (PROT_READ) : (PROT_READ|PROT_WRITE) ;
@@ -94,6 +105,7 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       u8_log(LOGWARN,u8_strerror(errno),
              "mmap_read_update:mmap of %s",stream->streamid);
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     buf->buflen = new_size;
     buf->buffer = newbuf;
@@ -101,6 +113,7 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
     buf->buflim = newbuf+fileinfo.st_size;
     buf->buf_data = stream;
     stream->stream_filepos=stream->stream_maxpos=fileinfo.st_size;
+    u8_rw_unlock(&(stream->mmap_lock));
     if ( (oldbuf) && (munmap(oldbuf,old_size)<0) ) {
       u8_graberrno("mmap_read_update:munmap",u8_strdup(stream->streamid));
       return -1;}
@@ -110,11 +123,13 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
 static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
 {
   struct FD_RAWBUF *buf = &(stream->buf.raw);
+  u8_write_lock(&(stream->mmap_lock));
   if ( (grow == 0) && (buf->buffer) ) {
     if ( (stream->stream_maxpos) < (buf->bufpoint-buf->buffer) )
       stream->stream_maxpos=buf->bufpoint-buf->buffer;
     if (msync(buf->buffer,buf->buflen,MS_SYNC) < 0) {
       u8_graberrno("mmap_write_update:msync",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     return buf->buflen;}
   int fd = stream->stream_fileno;
@@ -122,7 +137,9 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
   struct stat fileinfo;
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_write_update:fstat",u8_strdup(stream->streamid));
+    u8_rw_unlock(&(stream->mmap_lock));
     return -1;}
+  else stream->mmap_time=fileinfo.st_mtim;
   ssize_t file_size=fileinfo.st_size;
   size_t maxpos=(stream->stream_maxpos>0) ? (stream->stream_maxpos) :
     (file_size);
@@ -133,6 +150,7 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
   if (buf->buffer) {
     if (msync(buf->buffer,buf->buflen,MS_SYNC|MS_INVALIDATE) < 0) {
       u8_graberrno("mmap_write_update:msync",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     point_off = buf->bufpoint-buf->buffer;
     stream->stream_maxpos=buf->bufpoint-buf->buffer;
@@ -140,6 +158,7 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
       return buf->buflen;
     if (munmap(buf->buffer,buf->buflen) < 0) {
       u8_graberrno("mmap_write_update:munmap",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     else {
       buf->buffer = NULL; buf->bufpoint = NULL;
@@ -151,17 +170,24 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
       if (rv<0) {
         u8_graberrno("mmap_write_update:ftruncate:-1",
                      u8_strdup(stream->streamid));
+        u8_rw_unlock(&(stream->mmap_lock));
         return -1;}}
     return 0;}
   else if (new_size<=0) new_size=fd_stream_bufsize;
-
   if (file_size!=new_size) {
     if (ftruncate(fd,new_size)<0) {
       u8_graberrno("mmap_write_update:ftruncate",
                    u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}}
   unsigned char *newbuf=mmap
     (NULL,new_size,(PROT_READ|PROT_WRITE),MAP_SHARED,fd,0);
+  if (fstat(fd,&fileinfo)<0) {
+    u8_graberrno("mmap_write_update:fstat",u8_strdup(stream->streamid));
+    u8_rw_unlock(&(stream->mmap_lock));
+    return -1;}
+  else stream->mmap_time=fileinfo.st_mtim;
+  u8_rw_unlock(&(stream->mmap_lock));
   if (newbuf==NULL) {
     u8_graberrno("mmap_write_update:mmap",u8_strdup(stream->streamid));
     return -1;}
@@ -275,6 +301,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   stream->stream_maxpos = -1;
   stream->stream_flags = flags;
 #if HAVE_MMAP
+  u8_init_rwlock(&(stream->mmap_lock));
   if (U8_BITP(flags,FD_STREAM_MMAPPED)) {
     if (U8_BITP(flags,FD_STREAM_READ_ONLY)) {
       ssize_t rv= (U8_BITP(flags,FD_STREAM_READ_ONLY)) ?
@@ -286,6 +313,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
         streambuf->buf_flushfn = mmap_flushfn;
         streambuf->buf_data    = (void *) stream;
         streambuf->buf_flags   = FD_IN_STREAM|FD_BUFFER_NO_GROW;
+        streambuf->buf_data = (void *)stream;
         return stream;}
       else {
         u8_log(LOG_INFO,"FailedStreamMMAP",

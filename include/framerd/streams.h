@@ -74,6 +74,10 @@ typedef struct FD_STREAM {
     struct FD_OUTBUF out;
     struct FD_RAWBUF raw;} buf;
   long long stream_locker;
+#if HAVE_MMAP
+  struct timespec mmap_time;
+  u8_rwlock mmap_lock;
+#endif
   u8_mutex stream_lock;} FD_STREAM;
 typedef struct FD_STREAM *fd_stream;
 
