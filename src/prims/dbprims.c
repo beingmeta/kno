@@ -1395,6 +1395,18 @@ static lispval prefetch_keys(lispval arg1,lispval arg2)
     return VOID;}
 }
 
+static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
+{
+  DO_CHOICES(arg,ix_arg) {
+    if ((FD_INDEXP(arg))||(TYPEP(arg,fd_consed_index_type))) {
+      fd_index ix = fd_indexptr(arg);
+      if (fd_index_prefetch(ix,keys)<0) {
+        FD_STOP_DO_CHOICES;
+        return FD_ERROR;}}
+    else return fd_type_error(_("index"),"prefetch_keys",arg);}
+  return FD_VOID;
+}
+
 /* Getting cached OIDs */
 
 static lispval cached_oids(lispval pool)
@@ -3391,8 +3403,13 @@ FD_EXPORT void fd_init_dbprims_c()
             pool_prefetch_prim,(FD_NEEDS_2_ARGS|FD_NDCALL),
             "'(POOL-PREFETCH! pool oids)' prefetches OIDs from pool",
             -1,VOID,-1,VOID);
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("PREFETCH-KEYS!",prefetch_keys,1)));
+  fd_idefn2(fd_scheme_module,"PREFETCH-KEYS!",prefetch_keys,
+            (FD_NEEDS_1_ARG|FD_NDCALL),
+            "(PREFETCH-KEYS! *keys*) or (PREFETCH-KEYS! *index* *keys*)",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_scheme_module,"INDEX-PREFETCH!",index_prefetch_keys,
+            (FD_NEEDS_2_ARGS|FD_NDCALL),"(INDEX-PREFETCH! *index* *keys*)",
+            -1,FD_VOID,-1,FD_VOID);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("FETCHOIDS",fetchoids_prim,1)));
 
