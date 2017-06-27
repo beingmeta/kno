@@ -11,6 +11,11 @@
 	   (tryif (config 'B64 #f) 'B64)
 	   )))
 
+(config! 'logprocinfo #t)
+(config! 'logthreadinfo #t)
+
+(define %loglevel %notice%)
+
 ;;; Computing baseoids 
 
 (define (get-baseoids-from-pool pool)
@@ -49,12 +54,16 @@
     (if (and (string? slotids-config) (file-exists? slotids-config))
 	(append (if slotids (->vector slotids) #())
 		(file->dtype slotids-config))
-	(let ((table (make-hashtable)))
-	  (message "Computing slotids based on " ($num (length keyvec)) " keys")
+	(let ((table (make-hashtable))
+	      (start (elapsed-time)))
+	  (loginfo |PackIndex/slotids|
+	    "Computing slotids based on " ($num (length keyvec)) " keys")
 	  (doseq (key keyvec)
 	    (when (pair? key) (hashtable-increment! table (car key))))
-	  (message "Found " (choice-size (getkeys table))
-		   " slotids across " ($num (length keyvec)) " keys")
+	  (lognotice |PackIndex/slotids|
+	    "Found " ($num (choice-size (getkeys table)))
+	    " slotids across " ($num (length keyvec)) " keys in "
+	    (secs->string (elapsed-time start)))
 	  (if slotids (drop! table (elts slotids)))
 	  (append (if slotids (->vector slotids) #())
 		  (rsorted (getkeys table) table))))))
@@ -77,8 +86,9 @@
 
 (define (make-new-index filename old keys (type))
   (default! type (symbolize (config 'type 'hashindex)))
-  (message "Constructing new index " (write filename) " based on "
-	   (index-source old))
+  (lognotice |NewIndex|
+    "Constructing new index " (write filename) " based on "
+    (index-source old))
   (if (eq? type 'stdindex)
       (make-index filename 
 		  #[type fileindex
@@ -98,29 +108,44 @@
     (do-choices (key (get buckets bucket))
       (store! new key (get old key)))))
 
-(defambda (process-batch batch batch-size buckets old new (start (elapsed-time)))
-  (message "Processing a batch of " (choice-size batch) 
-    " buckets covering " batch-size " keys")
+(defambda (process-batch batch batch-size buckets old new 
+			 (start (elapsed-time)) (nthreads (mt/threadcount)))
+  (loginfo |PackIndex/batch/fetch|
+    "Prefetching " ($num (choice-size batch))
+    " buckets covering " ($num batch-size) " keys")
+  (index-prefetch! old (get buckets batch))
+  (lognotice |PackIndex/batch/fetch| 
+    "Prefetched " ($num (choice-size batch)) 
+    " buckets covering " ($num batch-size) " keys "
+    "in " (secs->string (elapsed-time start)) ", "
+    "copying with " nthreads " threads...")
   (do-choices (key (get buckets batch))
     (store! new key (get old key)))
-  (message "Copied " (choice-size batch) " buckets (" batch-size " keys) "
-    "in " (secs->string (elapsed-time start)) ", committing...")
+  (lognotice |PackIndex/Batch/copy|
+      "Copied " (choice-size batch) " buckets (" batch-size " keys) "
+      "in " (secs->string (elapsed-time start)) ", committing...")
   (commit new)
   (swapout new)
   (swapout old))
 
 (define (copy-keys keyv old new (chunk-size) (start (elapsed-time)))
   (default! chunk-size (quotient (length keyv) (config 'nchunks 20)))
-  (message "Copying " (length keyv) " keys" 
+  (lognotice |PackIndex/copy|
+    "Copying " ($num (length keyv)) " keys" 
     " from " (or (index-source old) old)
     " into " (or (index-source new) new))
   (let ((buckets (make-hashtable (length keyv)))
 	(total-keys 0)
 	(batch-size 0)
-	(batch {}))
-    (message "Generating a bucket map for " (or (index-source new) new))
+	(batch {})
+	(bucket-start (elapsed-time)))
+    (loginfo |PackIndex/buckets|
+      "Generating a bucket map for " (or (index-source new) new))
     (doseq (key keyv)
       (add! buckets (indexctl new 'hash key) key))
+    (lognotice |PackIndex/buckets|
+      "Generated mapping from " ($num (table-size buckets)) " buckets to "
+      ($num (length keyv)) " keys in " (secs->string (elapsed-time bucket-start)))
     (do-choices (bucket (getkeys buckets) i)
       (set+! batch bucket)
       (set! batch-size (+ batch-size (choice-size (get buckets bucket))))
@@ -129,31 +154,34 @@
 	(set! total-keys (+ total-keys batch-size))
 	(set! batch {})
 	(set! batch-size 0)
-	(message "In total, " (show% total-keys (length keyv)) 
-	  " of the keys (" total-keys ") have been processed in "
+	(lognotice |PackIndex|
+	  "In total, " (show% total-keys (length keyv)) 
+	  " of the keys (" ($num total-keys) ") have been processed in "
 	  (secs->string (elapsed-time start)))
-	(message "At this rate, the copy should finish in about "
+	(lognotice |PackIndex|
+	  "At this rate, the copy should finish in about "
 	  (secs->string (- (/  (length keyv) (/ total-keys (elapsed-time start)))
 			   (elapsed-time start)))
 	  ", but you know how these things are.")))
+    (lognotice |PackIndex/final| 
+      "Processing final batch of " batch-size " keys")
     (process-batch batch batch-size buckets old new)))
 
 (define (main from (to #f))
-  (optimize! copy-keys) (optimize! compute-slotids)
   (cond ((not to) (repack-index from))
-	((and (file-exists? to) (not (config 'OVERWRITE #f)))
-	 (message "Not overwriting " to))
 	((not (file-exists? from))
-	 (message "Can't locate source " from))
+	 (logcrit |PackIndex| "Can't locate source " from))
+	((and (file-exists? to) (not (config 'OVERWRITE #f)))
+	 (logcrit |PackIndex| "Not overwriting " to))
 	(else
 	 (when (file-exists? to) (remove-file to))
+	 (lognotice |PackIndex| "Copying index " from " into " to)
 	 (let* ((old (open-index from #[cachelevel 3]))
 		(keyv (index-keysvec old))
 		(new (make-new-index to old keyv)))
 	   (copy-keys keyv old new)))))
 
 (define (repack-index from)
-  (message "Repacking the index " from)
   (let* ((base (basename from))
 	 (tmpfile (or (config 'TMPFILE #f)
 		      (and (config 'TMPDIR #f)
@@ -162,6 +190,9 @@
 		      (string-append base ".tmp")))
 	 (bakfile (or (config 'BAKFILE #f)
 		      (string-append base ".bak"))))
+    (lognotice |PackIndex| 
+      "Repacking the index " from " using " tmpfile 
+      " and saving original in " bakfile)
     (let* ((old (open-index from))
 	   (keyv (index-keysvec old))
 	   (new (make-new-index tmpfile old keyv)))
