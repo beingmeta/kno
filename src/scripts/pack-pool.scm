@@ -57,7 +57,7 @@
 	  (irritant s |NotStringOrSymbol|))))
 
 (define ztype-map
-  #[bigpool snappy oidpool zlib filepool #f])
+  #[bigpool zlib oidpool zlib filepool #f])
 
 (define (make-new-pool filename old 
 		       (type (symbolize (config 'pooltype 'bigpool))))
@@ -93,8 +93,7 @@
     (let ((prefetcher (lambda (oids done)
 			(when done (commit) (clearcaches))
 			(unless done
-			  (pool-prefetch! old oids)
-			  (lock-oids! oids))))
+			  (pool-prefetch! old oids))))
 	  (progress-label 
 	   (if (pool-label old)
 	       (string-append "Copying " (pool-label old))
@@ -102,7 +101,8 @@
       (do-choices-mt (f oids (config 'nthreads 4)
 			prefetcher batchsize
 			(mt/custom-progress progress-label))
-	(set-oid-value! f (get old f))))))
+	(when (exists? (get old f))
+	  (set-oid-value! f (get old f)))))))
 
 (define (main (from) (to #f))
   (cond ((not (bound? from)) (usage))
