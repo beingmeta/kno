@@ -451,6 +451,25 @@ static lispval lisp_string2lisp(lispval string)
   else return fd_type_error("string","lisp_string2lisp",string);
 }
 
+static lispval lisp_tolisp(lispval arg)
+{
+  if (STRINGP(arg)) {
+    u8_string string=CSTRING(string);
+    if ( (FD_STRLEN(arg)>64) || (strchr(string,' ')) )
+      return lispval_string(string);
+    else {
+      u8_string scan=string;
+      int c=u8_sgetc(&scan);
+      while (*scan) {
+        if (u8_isspace(c))
+          return lispval_string(string);
+        else c=u8_sgetc(&scan);}
+      if ( (c>0) && (u8_isspace(c)) )
+        return lispval_string(string);
+      else return fd_parse(string);}}
+  else return fd_incref(arg);
+}
+
 static lispval lisp_parse_arg(lispval string)
 {
   if (STRINGP(string))
@@ -750,6 +769,14 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("STRING->SYMBOL",lisp_string2symbol,1,
                            fd_string_type,VOID));
+  fd_idefn1(fd_scheme_module,"->LISP",lisp_tolisp,1,
+            "Converts strings to lisp objects and just returns other objects. "
+            "Strings which start with lisp prefix characters are parsed as "
+            "lisp objects, and strings are made into uppercase symbols when "
+            "they either start with a single quote or contain no whitespace "
+            "and are < 64 bytes. When parsing generates an error, the string "
+            "is returned as a string object",
+            -1,FD_VOID);
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING->LISP",lisp_string2lisp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PARSE-ARG",lisp_parse_arg,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UNPARSE-ARG",lisp_unparse_arg,1));

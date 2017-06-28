@@ -1259,6 +1259,7 @@ lispval fd_parse(u8_string s)
   return fd_parser(&stream);
 }
 
+#if 0
 FD_EXPORT
 /* fd_parse_arg:
      Arguments: a string
@@ -1294,63 +1295,113 @@ lispval fd_parse_arg(u8_string arg)
     lispval num = fd_string2number(arg,-1);
     if (NUMBERP(num)) return num;
     else return lispval_string(arg);}
+  else if (arg[0] == '\'')
+    return fd_symbolize(arg+1);
   else if (strchr("@{#(\"|",arg[0])) {
     lispval result;
     struct U8_INPUT stream;
     U8_INIT_STRING_INPUT((&stream),-1,arg);
     result = fd_parser(&stream);
-    if (fd_skip_whitespace(&stream)>0) {
+    if (FD_ABORTP(result)) {
+      fd_clear_errors(1);
+      return lispval_string(arg);}
+    else if (fd_skip_whitespace(&stream)>0) {
+      /* If there's more than one object, take the whole arg as a string */
       fd_decref(result);
       return lispval_string(arg);}
     else return result;}
   else return lispval_string(arg);
 }
+#endif
 
 FD_EXPORT
-/* fd_read_arg:
-     Arguments: an input stream
+/* fd_parse_arg:
+     Arguments: a string
      Returns: a lisp object
 
      Parses a textual object representation into a lisp object.  This is
      designed for command line arguments or other external contexts
-     (e.g. Windows registry entries).
+     (e.g. Windows registry entries).  The idea is to be able to easily
+     pass strings (without embedded double quotes) while still allowing
+     arbitrary expressions.  If the string starts with a parser-significant
+     character, the parser is called on it.  If the string starts with a ':',
+     the parser is called on the rest of the string (so you can refer to the
+     symbol FOO as ":foo").  If the string starts with a backslash, a lisp string
+     is created from the rest of the string.  Otherwise, a lisp string is
+     just created from the string.
 */
 lispval fd_read_arg(u8_input in)
 {
-  int c = skip_whitespace(in);
-  if (c<0) return  lispval_string("");
-  else if (c == ':') {
-    int nc = u8_getc(in); nc = u8_probec(in);
-    if (nc<0) return lispval_string(":");
-    else {
-      lispval val = fd_parser(in);
-      if (FD_ABORTP(val)) {
-        u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg");
-        fd_clear_errors(1);
-        return lispval_string(":");}
-      else return val;}}
-  else if ((strchr("@{#(\"|",c))||(isdigit(c))||
-           ((strchr("+-.",c)) && (isdigit(c))))
-    return fd_parser(in);
-  else {
-    struct U8_OUTPUT out; lispval result;
-    U8_INIT_OUTPUT(&out,256); c = u8_getc(in);
-    while ((c>=0)&&(!(u8_isspace(c)))) {
-      if (c=='\\') {
-        c = u8_getc(in);
-        u8_putc(&out,c);
-        c = u8_getc(in);}
-      else if (c=='|') {
-        c = u8_getc(in);
-        while ((c>=0)&&(c!='|')) {
-          u8_putc(&out,c); c = u8_getc(in);}}
-      else {
-        u8_putc(&out,c);
-        c = u8_getc(in);}}
-    result = fd_stream_string(&out);
-    u8_close((u8_stream)&out);
-    return result;}
+  int c=u8_probec(in);
+  if (c<0)
+    return lispval_string("");
+  else if ((c==':') || (c=='\'')) {
+    c=u8_getc(in);
+    int nextc=u8_probec(in);
+    if (nextc<0) {
+      char buf[2]="a"; buf[0]=c;
+      return lispval_string(buf);}
+    lispval val=fd_parser(in);
+    if (FD_ABORTP(val)) {
+      fd_clear_errors(1);
+      return FD_FALSE;}
+    else return val;}
+  else if (c == '\\') {
+    lispval val=lispval_string(in->u8_read+1);
+    in->u8_read=in->u8_inlim;
+    return val;}
+  else if (strchr("@{#(\"|0123456789",c)) {
+    u8_string start=in->u8_read;
+    lispval result=fd_parser(in);
+    if (FD_ABORTP(result)) {
+      fd_clear_errors(1);
+      if ( (start>=in->u8_inbuf) && (start<=in->u8_read) )
+        return lispval_string(start);
+      else return EMPTY;}
+    else return result;}
+  else return lispval_string(in->u8_read);
 }
+
+FD_EXPORT
+/* fd_parse_arg:
+     Arguments: a string
+     Returns: a lisp object
+
+     Parses a textual object representation into a lisp object.  This is
+     designed for command line arguments or other external contexts
+     (e.g. Windows registry entries).  The idea is to be able to easily
+     pass strings (without embedded double quotes) while still allowing
+     arbitrary expressions.  If the string starts with a parser-significant
+     character, the parser is called on it.  If the string starts with a ':',
+     the parser is called on the rest of the string (so you can refer to the
+     symbol FOO as ":foo").  If the string starts with a backslash, a lisp string
+     is created from the rest of the string.  Otherwise, a lisp string is
+     just created from the string.
+*/
+lispval fd_parse_arg(u8_string arg)
+{
+  if ( (*arg=='\0') ||
+       ( ((*arg == ':') || (*arg == '\'')) &&
+         (arg[1]=='\0') ) )
+    return lispval_string(arg);
+  else if (*arg == '\\')
+    return lispval_string(arg+1);
+  else {
+    lispval result;
+    struct U8_INPUT stream;
+    U8_INIT_STRING_INPUT((&stream),-1,arg);
+    result = fd_read_arg(&stream);
+    if (FD_ABORTP(result)) {
+      fd_clear_errors(1);
+      return lispval_string(arg);}
+    else if (fd_skip_whitespace(&stream)>0) {
+      /* If there's more than one object, take the whole arg as a string */
+      fd_decref(result);
+      return lispval_string(arg);}
+    else return result;}
+}
+
+/* Initializations */
 
 FD_EXPORT void fd_init_parse_c()
 {
