@@ -28,6 +28,14 @@
 #include <errno.h>
 #include <zlib.h>
 
+#if HAVE_STRUCT_STAT_ST_MTIM
+#define stat_mtime st_mtim
+#elif HAVE_STRUCT_STAT_ST_MTIMESPEC
+#define stat_mtime st_mtimespec
+#else
+#define stat_mtime st_mtime
+#endif
+
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -78,8 +86,8 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
     return -1;}
-  else if ((stream->mmap_time.tv_sec==fileinfo.st_mtim.tv_sec) &&
-           (stream->mmap_time.tv_nsec==fileinfo.st_mtim.tv_nsec))
+  else if ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
+           (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec))
     return 0;
   else {
     u8_write_lock(&(stream->mmap_lock));
@@ -87,11 +95,11 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       u8_rw_unlock(&(stream->mmap_lock));
       u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
       return -1;}
-    if ((stream->mmap_time.tv_sec==fileinfo.st_mtim.tv_sec) &&
-        (stream->mmap_time.tv_nsec==fileinfo.st_mtim.tv_nsec)) {
+    if ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
+        (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec)) {
       u8_rw_unlock(&(stream->mmap_lock));
       return 0;}
-    else stream->mmap_time=fileinfo.st_mtim;
+    else stream->mmap_time=fileinfo.stat_mtime;
     size_t old_size = buf->buflen, new_size = fileinfo.st_size;
     int prot = (U8_BITP(stream->stream_flags,FD_STREAM_READ_ONLY)) ?
       (PROT_READ) : (PROT_READ|PROT_WRITE) ;
@@ -139,7 +147,7 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
     u8_graberrno("mmap_write_update:fstat",u8_strdup(stream->streamid));
     u8_rw_unlock(&(stream->mmap_lock));
     return -1;}
-  else stream->mmap_time=fileinfo.st_mtim;
+  else stream->mmap_time=fileinfo.stat_mtime;
   ssize_t file_size=fileinfo.st_size;
   size_t maxpos=(stream->stream_maxpos>0) ? (stream->stream_maxpos) :
     (file_size);
@@ -186,7 +194,7 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
     u8_graberrno("mmap_write_update:fstat",u8_strdup(stream->streamid));
     u8_rw_unlock(&(stream->mmap_lock));
     return -1;}
-  else stream->mmap_time=fileinfo.st_mtim;
+  else stream->mmap_time=fileinfo.stat_mtime;
   u8_rw_unlock(&(stream->mmap_lock));
   if (newbuf==NULL) {
     u8_graberrno("mmap_write_update:mmap",u8_strdup(stream->streamid));
