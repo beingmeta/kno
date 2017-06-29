@@ -3151,10 +3151,13 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("OID-VALUE",oidvalue,1,fd_oid_type,VOID));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("SET-OID-VALUE!",setoidvalue,2,
-                           fd_oid_type,VOID,-1,VOID,
-                           -1,FD_FALSE));
+  fd_idefn3(fd_scheme_module,"SET-OID-VALUE!",
+            setoidvalue,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "`(SET-OID-VALUE! *oid* *value* [*nocopy*])` "
+            "directly sets the value of *oid* to *value*. If "
+            "the value is a slotmap or schemap, a copy is stored unless "
+            "*nocopy* is not false (the default).",
+            fd_oid_type,VOID,-1,VOID,-1,FD_FALSE);
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("LOCK-OID!",lockoid,2,
                            fd_oid_type,VOID,-1,VOID));

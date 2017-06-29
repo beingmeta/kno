@@ -146,7 +146,7 @@
     ;; and compare.
 
     ;; The symbols OID
-    (set-oid-value! symbols-oid (qc allsyms))
+    (set-oid-value! symbols-oid allsyms)
     (dtype->file allsyms (stringout dbsource "-symbols.dtype"))
 
     ;; The numbers OID
@@ -154,10 +154,10 @@
       (dotimes (i 20) (set+! nums (+ i (* i 10))))
       (set! nums (choice nums (* nums 1.0)))
       (dtype->file nums (stringout dbsource "-numbers.dtype"))
-      (set-oid-value! numbers-oid (qc nums)))
+      (set-oid-value! numbers-oid nums))
 
     ;; The files OID
-    (set-oid-value! files-oid (qc (elts files)))
+    (set-oid-value! files-oid (elts files))
     (dtype->file (elts files) (stringout dbsource "-files.dtype"))
 
     ;; Try adding to the empty (noslots) OID.  This produces an error
