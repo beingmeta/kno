@@ -82,9 +82,7 @@ static lispval extpool_fetch(fd_pool p,lispval oid)
     value = fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
   else if ((EMPTYP(value))||(VOIDP(value)))
-    if ((p->pool_flags)&FD_POOL_SPARSE)
-      return EMPTY;
-    else return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->poolid,oid);
+    return FD_UNALLOCATED_OID;
   else return value;
 }
 

@@ -216,7 +216,7 @@ static lispval file_pool_fetch(fd_pool p,lispval oid)
   fd_lock_pool((fd_pool)fp);
   if (PRED_FALSE(offset>=fp->pool_load)) {
     fd_unlock_pool((fd_pool)fp);
-    return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->poolid,oid);}
+    return FD_UNALLOCATED_OID;}
   else if (fp->pool_offdata)
     data_pos = offget(fp->pool_offdata,offset);
   else {

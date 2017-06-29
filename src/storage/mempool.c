@@ -72,9 +72,8 @@ static lispval mempool_fetch(fd_pool p,lispval oid)
   struct FD_HASHTABLE *cache = &(p->pool_cache);
   FD_OID addr = FD_OID_ADDR(oid);
   int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
-  if ((off>mp->pool_load) &&
-      (!((p->pool_flags)&FD_POOL_SPARSE)))
-    return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->poolid,oid);
+  if (off>mp->pool_load)
+    return FD_UNALLOCATED_OID;
   else return fd_hashtable_get(cache,oid,EMPTY);
 }
 
@@ -82,19 +81,14 @@ static lispval *mempool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_HASHTABLE *cache = &(p->pool_cache);
   struct FD_MEMPOOL *mp = (fd_mempool)p;
-  lispval *results;
+  unsigned int load = mp->pool_load;
+  lispval *results=u8_alloc_n(n,lispval);
   int i = 0; while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
     int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
-    if ((off>mp->pool_load) &&
-	(!((p->pool_flags)&FD_POOL_SPARSE))) {
-      fd_seterr(fd_UnallocatedOID,"mpool_fetch",mp->poolid,
-		fd_make_oid(addr));
-      return NULL;}
-    else i++;}
-  results = u8_alloc_n(n,lispval);
-  i = 0; while (i<n) {
-    results[i]=fd_hashtable_get(cache,oids[i],EMPTY);
+    if (off>load)
+      results[i]=FD_UNALLOCATED_OID;
+    else results[i]=fd_hashtable_get(cache,oids[i],EMPTY);
     i++;}
   return results;
 }

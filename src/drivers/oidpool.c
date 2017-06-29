@@ -605,9 +605,9 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
   FD_OID addr = FD_OID_ADDR(oid);
   int offset = FD_OID_DIFFERENCE(addr,op->pool_base);
   if (PRED_FALSE(offset>=op->pool_load)) {
-    /* Double check by going to disk */
+    /* Double check by fetching the load */
     if (offset>=(oidpool_load(p)))
-      return fd_err(fd_UnallocatedOID,"oidpool_fetch",op->poolid,oid);}
+      return FD_UNALLOCATED_OID;}
   if (op->oidpool_offdata) {
     FD_CHUNK_REF ref=
       get_chunk_ref(op->oidpool_offdata,op->oidpool_offtype,offset);

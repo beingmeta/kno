@@ -606,8 +606,9 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_NEVERSEEN              FD_CONSTANT(18)
 #define FD_LOCKHOLDER             FD_CONSTANT(19)
 #define FD_DEFAULT_VALUE          FD_CONSTANT(20)
+#define FD_UNALLOCATED_OID        FD_CONSTANT(21)
 
-#define FD_N_BUILTIN_CONSTANTS 21
+#define FD_N_BUILTIN_CONSTANTS 22
 
 FD_EXPORT const char *fd_constant_names[];
 FD_EXPORT int fd_n_constants;

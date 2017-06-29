@@ -51,8 +51,8 @@ const char *fd_constant_names[256]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
   "#bad_dtype","#bad_parse","#oom","#type_error","#range_error",
   "#error","#badptr","#throw","#exception_tag","#unbound",
-  "#neverseen","#lockholder","#default",        /* 21 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
+  "#neverseen","#lockholder","#default","#preoid", /* 22 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -202,13 +202,19 @@ int lispval_equal(lispval x,lispval y)
     if (convert_x) fd_decref(cx);
     if (convert_y) fd_decref(cy);
     return result;}
-  else if (!(TYPEP(y,FD_PTR_TYPE(x))))
-    if ((PACKETP(x))&&(PACKETP(y)))
-      if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
-      else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
-        return 1;
-      else return 0;
+  else if ((NUMBERP(x)) && (NUMBERP(y)))
+    if (fd_numcompare(x,y)==0) return 1;
     else return 0;
+  else if ((PACKETP(x))&&(PACKETP(y))) {
+    size_t xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
+    if (((xlen)) != (ylen)) return 0;
+    else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen)==0)
+      return 1;
+    else return 0;}
+  else if (!(TYPEP(y,FD_PTR_TYPE(x))))
+    /* At this point, If the types are different, the values are
+       different. */
+    return 0;
   else if (PAIRP(x))
     if (LISP_EQUAL(FD_CAR(x),FD_CAR(y)))
       return (LISP_EQUAL(FD_CDR(x),FD_CDR(y)));
@@ -231,9 +237,6 @@ int lispval_equal(lispval x,lispval y)
       while (i < len)
         if (LISP_EQUAL(xdata[i],ydata[i])) i++; else return 0;
       return 1;}
-  else if ((NUMBERP(x)) && (NUMBERP(y)))
-    if (fd_numcompare(x,y)==0) return 1;
-    else return 0;
   else {
     fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
     if (fd_comparators[ctype])

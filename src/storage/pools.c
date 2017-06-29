@@ -650,7 +650,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
           j++;}}
       else {
         /* If no values are locked, make them all readonly */
-        int j = 0; while (j<n) modify_readonly(values[j++],1);
+        int j = 0; while (j<n) {
+          lispval v=values[j];
+          modify_readonly(v,1);
+          j++;}
         if (fdtc) fd_hashtable_iter(oidcache,fd_table_store,n,oidv,values);
         /* Store them all in the cache */
         fd_hashtable_iter(cache,fd_table_store_noref,n,oidv,values);}}
@@ -663,6 +666,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
     return n;}
   else {
     lispval v = p->pool_handler->fetch(p,oids);
+    if (FD_ABORTP(v)) return v;
     fd_hashtable changes = &(p->pool_changes);
     if ( (changes->table_n_keys==0) ||
          /* This will store it in changes if it's already there */

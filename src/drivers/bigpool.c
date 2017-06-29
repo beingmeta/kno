@@ -715,7 +715,7 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
     /* Double check by going to disk */
     if (bp->pool_flags&FD_POOL_ADJUNCT) {}
     else if (offset>=(bigpool_load(p)))
-      return fd_err(fd_UnallocatedOID,"bigpool_fetch",bp->poolid,oid);}
+      return FD_UNALLOCATED_OID;}
   if (bp->bigpool_offdata) {
     FD_CHUNK_REF ref =
       get_chunk_ref(bp->bigpool_offdata,bp->bigpool_offtype,offset);
