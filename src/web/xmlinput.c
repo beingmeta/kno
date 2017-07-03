@@ -1106,8 +1106,8 @@ static lispval xmlparse_core(lispval input,int flags)
                ((root->xml_bits)  & (FORCE_CLOSE_FLAGS)) ))) {
     struct FD_XML *cleanup = retval, *next;
     while ((cleanup)&&(cleanup!=root)) {
-      fd_xseterr("XMLPARSE error","xmlparse_core",cleanup->xml_eltname,
-                 cleanup->xml_attribs);
+      fd_seterr("XMLPARSE error","xmlparse_core",cleanup->xml_eltname,
+                cleanup->xml_attribs);
       next = cleanup->xml_parent;
       free_node(cleanup,1);
       cleanup = next;}

@@ -59,6 +59,7 @@ FD_EXPORT void fd_seterr
 				    (fd_init_pair(NULL,irritant,NIL)) ) );
   lispval errinfo   = fd_init_pair(NULL,stacktrace_symbol,
 				  fd_get_backtrace(fd_stackptr,base));
+  fd_incref(irritant);
   // TODO: Push the exception and then generate the stack, just in
   // case. Set the exception xdata explicitly if you can.
   u8_push_exception(condition,cxt,u8_strdup(details),(void *)errinfo,
@@ -92,14 +93,6 @@ FD_EXPORT void fd_graberr(int _errno,u8_context cxt,u8_string details)
   // case. Set the exception xdata explicitly if you can.
   u8_push_exception(NULL,cxt,NULL,(void *)errinfo,
 		    fd_free_exception_xdata);
-}
-
-/* This is just like fd_seterr but it does the strdup/incref. */
-FD_EXPORT void fd_xseterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
-{
-  fd_incref(irritant);
-  fd_seterr(c,cxt,details,irritant);
 }
 
 FD_EXPORT lispval fd_get_irritant(u8_exception ex)
@@ -184,8 +177,8 @@ FD_EXPORT lispval fd_err
 {
   if (FD_CHECK_PTR(irritant)) {
     if (details)
-      fd_seterr(ex,cxt,details,fd_incref(irritant));
-    else fd_seterr(ex,cxt,NULL,fd_incref(irritant));}
+      fd_seterr(ex,cxt,details,irritant);
+    else fd_seterr(ex,cxt,NULL,irritant);}
   else if (details)
     fd_seterr(ex,cxt,details,VOID);
   else fd_seterr2(ex,cxt);
@@ -195,8 +188,10 @@ FD_EXPORT lispval fd_err
 FD_EXPORT lispval fd_type_error
   (u8_string type_name,u8_context cxt,lispval irritant)
 {
-  u8_string msg = u8_mkstring(_("object is not a %m"),type_name);
+  u8_byte buf[512];
+  u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
   fd_seterr(fd_TypeError,cxt,msg,irritant);
+  fd_decref(irritant);
   return FD_TYPE_ERROR;
 }
 

@@ -3,6 +3,7 @@
 (load-component "common.scm")
 
 
+#|
 (evaltest 2 (let ((count 0))
 	      (onerror
 	       (dynamic-wind
@@ -21,8 +22,10 @@
 (evaltest '|Type error|
 	  (onerror (+ 2 'a)
 		   (lambda (ex) (error-condition ex))))
+|#
+
 (evaltest '|too few arguments|
 	  (onerror (cons 8)
-		   (lambda (ex) (error-condition ex))))
+	      (lambda (ex) (error-condition ex))))
 
 (test-finished "EXCEPTIONS")

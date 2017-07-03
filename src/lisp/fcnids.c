@@ -122,14 +122,14 @@ FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
     int block_off = serialno%FD_FCNID_BLOCKSIZE;
     if (serialno>=_fd_fcnid_count) {
       u8_unlock_mutex(&_fd_fcnid_lock);
-      fd_xseterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
+      fd_seterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
       return -1;}
     else {
       struct FD_CONS **block=_fd_fcnids[block_num];
       if (!(block)) {
         /* We should never get here, but let's check anyway */
         u8_unlock_mutex(&_fd_fcnid_lock);
-        fd_xseterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
+        fd_seterr(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);
         return -1;}
       else {
         struct FD_CONS *current = block[block_off];

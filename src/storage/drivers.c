@@ -169,7 +169,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
         if (opened==NULL) {
-          fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+          fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
           return opened;}
         else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
           lispval adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
@@ -182,7 +182,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
                      opened->poolid,opts);
               fd_clear_errors(1);}
             else {
-              fd_xseterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+              fd_seterr(fd_AdjunctError,"fd_open_pool",spec,opts);
               return NULL;}}
           else return opened;}
         else return opened;}
@@ -190,7 +190,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
       CHECK_ERRNO();}
     else ptype = ptype->next_type;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_xseterr(fd_CantFindPool,"fd_open_pool",spec,opts);
+    fd_seterr(fd_CantFindPool,"fd_open_pool",spec,opts);
   return NULL;
 }
 
@@ -252,13 +252,13 @@ fd_pool fd_make_pool(u8_string spec,
 {
   fd_pool_typeinfo ptype = get_pool_typeinfo(pooltype);
   if (ptype == NULL) {
-    fd_xseterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
+    fd_seterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler == NULL) {
-    fd_xseterr3(_("NoPoolHandler"),"fd_make_pool",pooltype);
+    fd_seterr3(_("NoPoolHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler->create == NULL) {
-    fd_xseterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
+    fd_seterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else if (fix_pool_opts(spec,opts)<0)
     return NULL;
@@ -352,7 +352,7 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_xseterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+    fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
   return NULL;
 }
 
@@ -375,13 +375,13 @@ fd_index fd_make_index(u8_string spec,
 {
   fd_index_typeinfo ixtype = get_index_typeinfo(indextype);
   if (ixtype == NULL) {
-    fd_xseterr3(_("UnknownIndexType"),"fd_make_index",indextype);
+    fd_seterr3(_("UnknownIndexType"),"fd_make_index",indextype);
     return NULL;}
   else if (ixtype->handler == NULL) {
-    fd_xseterr3(_("NoIndexHandler"),"fd_make_index",indextype);
+    fd_seterr3(_("NoIndexHandler"),"fd_make_index",indextype);
     return NULL;}
   else if (ixtype->handler->create == NULL) {
-    fd_xseterr3(_("NoCreateHandler"),"fd_make_index",indextype);
+    fd_seterr3(_("NoCreateHandler"),"fd_make_index",indextype);
     return NULL;}
   else {
     if (FIXNUMP(opts)) {

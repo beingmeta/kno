@@ -160,7 +160,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 
 static int ffi_type_error(u8_context expecting,lispval arg)
 {
-  fd_xseterr(_("FFI Type error"),expecting,NULL,arg);
+  fd_seterr(_("FFI Type error"),expecting,NULL,arg);
   return -1;
 }
 
@@ -232,7 +232,7 @@ static int handle_ffi_arg(lispval arg,lispval spec,
       double f=(double)ival;
       *((double *)valptr) = f;}
     else {
-      fd_xseterr("BadIntType","handle_ffi_arg",NULL,spec);
+      fd_seterr("BadIntType","handle_ffi_arg",NULL,spec);
       return -1;}
     *argptr = valptr;
     return 1;}

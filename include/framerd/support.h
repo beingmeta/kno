@@ -123,8 +123,6 @@ FD_EXPORT U8_NOINLINE void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 FD_EXPORT U8_NOINLINE void fd_pusherr
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-FD_EXPORT U8_NOINLINE void fd_xseterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 FD_EXPORT U8_NOINLINE void fd_raise
   (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
 
@@ -132,8 +130,6 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex);
 
 FD_EXPORT int fd_stacktracep(lispval rep);
 
-#define fd_xseterr3(c,cxt,details) \
-   fd_xseterr(c,cxt,details,FD_VOID)
 #define fd_seterr3(c,cxt,details) \
    fd_seterr(c,cxt,details,FD_VOID)
 #define fd_seterr2(c,cxt) \

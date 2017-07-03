@@ -71,7 +71,7 @@ FD_FASTOP lispval eval_body(u8_context cxt,u8_string label,
   if (FD_EMPTY_LISTP(body))
     return FD_VOID;
   else if (!(FD_PAIRP(body))) {
-    fd_xseterr(fd_SyntaxError,"eval_body",label,expr);
+    fd_seterr(fd_SyntaxError,"eval_body",label,expr);
     return FD_ERROR_VALUE;}
   else {
     FD_DOLIST(bodyexpr,body) {

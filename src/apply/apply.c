@@ -453,10 +453,10 @@ FD_FASTOP lispval *prepare_argbuf(struct FD_FUNCTION *f,int n,
   int arity = f->fcn_arity, min_arity = f->fcn_min_arity;
   lispval fptr = (lispval)f;
   if ((min_arity>0) && (n<min_arity)) {
-    fd_xseterr(fd_TooFewArgs,"fd_dapply",f->fcn_name,fptr);
+    fd_seterr(fd_TooFewArgs,"fd_dapply",f->fcn_name,fptr);
     return NULL;}
   else if ((arity>=0) && (n>arity)) {
-    fd_xseterr(fd_TooManyArgs,"fd_dapply",f->fcn_name,fptr);
+    fd_seterr(fd_TooManyArgs,"fd_dapply",f->fcn_name,fptr);
     return NULL;}
   else if ((arity<0)||(arity == n))
     return argvec;

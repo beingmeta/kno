@@ -94,7 +94,7 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_CHECK_TYPE_RET(x,typecode)				    \
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) {	    \
-    fd_xseterr(fd_TypeError,fd_type_names[typecode],NULL,(lispval)x); \
+    fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,(lispval)x); \
     return -1;}
 
 #define FD_CHECK_TYPE_RETDTYPE(x,typecode)				\

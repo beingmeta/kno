@@ -1895,7 +1895,7 @@ static lispval default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 static int check_num(lispval arg,int num)
 {
   if ((!(FIXNUMP(arg)))||(FIX2INT(arg)<0)) {
-    fd_xseterr(fd_TypeError,"check_version_prim",NULL,arg);
+    fd_seterr(fd_TypeError,"check_version_prim",NULL,arg);
     return -1;}
   else {
     int n = FIX2INT(arg);
@@ -1928,7 +1928,7 @@ static lispval check_version_prim(int n,lispval *args)
   else if (rv) {
     int i = 3; while (i<n) {
       if (!(FIXNUMP(args[i]))) {
-        fd_xseterr(fd_TypeError,"check_version_prim",NULL,args[i]);
+        fd_seterr(fd_TypeError,"check_version_prim",NULL,args[i]);
         return -1;}
       else i++;}
     return FD_TRUE;}

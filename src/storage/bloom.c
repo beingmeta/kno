@@ -193,8 +193,8 @@ int bloom_check_add_dtype(struct FD_BLOOM *bloom,lispval key,
     else if (PACKETP(key))
       rv=bloom_check_add(bloom,FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),add);
     else if (err) {
-      fd_xseterr("Raw bloom arg wasn't a string or packet",
-		 "bloom_check_add_dtype",NULL,key);
+      fd_seterr("Raw bloom arg wasn't a string or packet",
+		"bloom_check_add_dtype",NULL,key);
       return -1;}
     if (rv<0)
       u8_seterr("BadBloomFilter","bloom_check_add_dtype",NULL);

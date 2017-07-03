@@ -69,6 +69,51 @@ FD_EXPORT void fd_init_build_info()
   config_int(SIZEOF_SIZE_T);
   config_int(SIZEOF_LISPVAL);
 
+#ifdef FD_DEFAULT_MALLOC
+  config_string(FD_DEFAULT_MALLOC);
+#endif
+  
+#ifdef FD_EXEC_WRAPPER
+  config_string(FD_EXEC_WRAPPER);
+#endif
+#ifdef FD_LOCAL_MODULE_DIR
+  config_string(FD_LOCAL_MODULE_DIR);
+#endif
+#ifdef FD_LOCAL_SAFE_MODULE_DIR
+  config_string(FD_LOCAL_SAFE_MODULE_DIR);
+#endif
+#ifdef FD_INSTALLED_MODULE_DIR
+  config_string(FD_INSTALLED_MODULE_DIR);
+#endif
+#ifdef FD_INSTALLED_SAFE_MODULE_DIR
+  config_string(FD_INSTALLED_SAFE_MODULE_DIR);
+#endif
+#ifdef FD_SHARED_MODULE_DIR
+  config_string(FD_SHARED_MODULE_DIR);
+#endif
+#ifdef FD_SHARED_SAFE_MODULE_DIR
+  config_string(FD_SHARED_SAFE_MODULE_DIR);
+#endif
+#ifdef FD_BUILTIN_MODULE_DIR
+  config_string(FD_BUILTIN_MODULE_DIR);
+#endif
+#ifdef FD_BUILTIN_SAFE_MODULE_DIR
+  config_string(FD_BUILTIN_SAFE_MODULE_DIR);
+#endif
+
+#ifdef FD_LIBSCM_DIR
+  config_string(FD_LIBSCM_DIR);
+#endif
+#ifdef FD_BOOT_CONFIG
+  config_string(FD_BOOT_CONFIG);
+#endif
+#ifdef FD_EXEC
+  config_string(FD_EXEC);
+#endif
+#ifdef FD_DBSERVER
+  config_string(FD_DBSERVER);
+#endif
+
 #ifdef FD_LARGEFILES_ENABLED
   config_bool(FD_LARGEFILES_ENABLED);
 #endif
