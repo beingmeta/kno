@@ -540,6 +540,9 @@
 /* Whether to enable libu8's lock debugging */
 #undef U8_THREAD_DEBUG
 
+/* The name of the default malloc library (used by executables) */
+#undef FD_DEFAULT_MALLOC
+
 /* Default module dirs */
 #undef FD_LOCAL_MODULE_DIR
 #undef FD_LOCAL_SAFE_MODULE_DIR

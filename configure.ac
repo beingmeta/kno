@@ -728,6 +728,10 @@ else
    exit 1;
 fi
 
+if test ! -z "$using_malloc"; then
+   AC_DEFINE_UNQUOTED(FD_DEFAULT_MALLOC,"$using_malloc")
+fi;
+
 if test ! -z "$asan" && test "$CLANG" = "none"; then
    AC_MSG_ERROR(No clang program to use with ASAN)
 fi;
