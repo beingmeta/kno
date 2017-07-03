@@ -135,6 +135,8 @@ FD_EXPORT int fd_pool_lock_init;
 
 #define FD_POOL_SPARSE    (FD_POOL_FLAG(0))
 #define FD_POOL_ADJUNCT   (FD_POOL_FLAG(1))
+#define FD_POOL_VIRTUAL   (FD_POOL_FLAG(2))
+#define FD_POOL_NOLOCKS   (FD_POOL_FLAG(3))
 
 typedef enum fd_storage_unlock_flags {
   commit_modified = 1,

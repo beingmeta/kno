@@ -482,7 +482,9 @@ FD_EXPORT lispval fd_oid_value(lispval oid)
 
 FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
 {
-  if (p->pool_handler->lock == NULL) {
+  if ( (p->pool_handler->lock == NULL) ||
+       (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+       (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {
     return fd_fetch_oid(p,oid);}
   else if (p == fd_zero_pool)
     return fd_zero_pool_value(oid);
@@ -505,12 +507,6 @@ FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
       modify_readonly(v,0);
       fd_hashtable_store(&(p->pool_changes),oid,v);
       return v;}
-#if 0 /* We shouldn't need this if the invariant that none of the values
-         in pool_changes is readonly. */
-    else if (CONSP(smap)) {
-      modify_readonly(smap,0);
-      return smap;}
-#endif
     else return smap;}
 }
 
@@ -523,7 +519,9 @@ FD_EXPORT int fd_set_oid_value(lispval oid,lispval value)
     return fd_zero_pool_store(oid,value);
   else {
     modify_readonly(value,0);
-    if (p->pool_handler->lock == NULL) {
+    if ( (p->pool_handler->lock == NULL) ||
+         (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+         (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {
       fd_hashtable_store(&(p->pool_cache),oid,value);
       return 1;}
     else if (fd_lock_oid(oid)) {
@@ -553,6 +551,10 @@ FD_EXPORT lispval fd_pool_fetch(fd_pool p,lispval oid)
             (fd_hashtable_op(&(p->pool_changes),
                              fd_table_replace_novoid,oid,v)) )
     return v;
+  else if ( (p->pool_handler->lock == NULL) ||
+            (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+            (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) )
+    modify_readonly(v,0);
   else modify_readonly(v,1);
   if (p->pool_cache_level>0)
     fd_hashtable_store(&(p->pool_cache),oid,v);
@@ -570,6 +572,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
   else if (EMPTYP(oids))
     return 0;
   else init_cache_level(p);
+  int nolock=
+    ( (p->pool_handler->lock == NULL) ||
+      (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+      (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) );
   cachelevel = p->pool_cache_level;
   /* It doesn't make sense to prefetch if you're not caching. */
   if (cachelevel<1) return 0;
@@ -631,7 +637,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
     values = p->pool_handler->fetchn(p,n,oidv);
     /* If you got results, store them in the cache */
     if (values) {
-      if (n_locked) {
+      if (nolock) {
+        /* If the pool doesn't have to be locked, don't bother locking
+           any values */}
+      else if (n_locked) {
         /* If some values are locked, we consider each value and
            store it in the appropriate tables (changes or cache). */
         int j = 0; while (j<n) {
@@ -768,7 +777,9 @@ FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
 {
   int decref_oids = 0;
   struct FD_HASHTABLE *locks = &(p->pool_changes);
-  if (p->pool_handler->lock == NULL)
+  if ( (p->pool_handler->lock == NULL) ||
+       (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+       (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) )
     return 0;
   if (PRECHOICEP(oids)) {
     oids = fd_make_simple_choice(oids);
@@ -1311,8 +1322,8 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
   lispval value;
   if (fdtc) {
     lispval value = ((fdtc->oids.table_n_keys)?
-                  (fd_hashtable_get(&(fdtc->oids),oid,VOID)):
-                  (VOID));
+                     (fd_hashtable_get(&(fdtc->oids),oid,VOID)):
+                     (VOID));
     if (!(VOIDP(value))) return value;}
   if (p == NULL) p = fd_oid2pool(oid);
   if (p == NULL)

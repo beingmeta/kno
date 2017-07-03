@@ -55,7 +55,11 @@ fd_pool fd_make_extpool(u8_string label,
     struct FD_EXTPOOL *xp = u8_alloc(struct FD_EXTPOOL);
     memset(xp,0,sizeof(struct FD_EXTPOOL));
     fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
+    /* We currently use the OID value as a cache for stored values, so
+       we don't make it read-only. But there's probably a better
+       solution. */
     if (VOIDP(savefn)) xp->pool_flags |= FD_STORAGE_READ_ONLY;
+    xp->pool_flags |= FD_POOL_VIRTUAL;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
     fd_incref(lockfn); fd_incref(allocfn);
@@ -80,7 +84,8 @@ static lispval extpool_fetch(fd_pool p,lispval oid)
   else {
     lispval args[2]; args[0]=oid; args[1]=state;
     value = fd_apply(fetchfn,2,args);}
-  if (FD_ABORTP(value)) return value;
+  if (FD_ABORTP(value))
+    return value;
   else if ((EMPTYP(value))||(VOIDP(value)))
     return FD_UNALLOCATED_OID;
   else return value;
