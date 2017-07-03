@@ -464,16 +464,14 @@ FD_FASTOP lispval *prepare_argbuf(struct FD_FUNCTION *f,int n,
     lispval *defaults = f->fcn_defaults;
     int i=0; while (i<n) {
       lispval v = argvec[i];
-      if ( (v == VOID) ||
-           (v == FD_DEFAULT_VALUE) ||
-           (v == FD_NULL) ) {
-        if (defaults) {
-          argbuf[i]=defaults[i];
-          fd_incref(defaults[i]);}
-        else if (v==FD_NULL)
-          argbuf[i]=VOID;
-        else {}}
-      else argbuf[i]=argvec[i];
+      if ( (defaults) &&
+           ( (v == VOID) ||
+             (v == FD_DEFAULT_VALUE) ) ) {
+        argbuf[i]=defaults[i];
+        fd_incref(defaults[i]);}
+      else if (v==FD_NULL)
+        argbuf[i]=VOID;
+      else argbuf[i]=v;
       i++;}
     if (defaults)
       while (i<arity) { argbuf[i]=defaults[i]; i++;}
