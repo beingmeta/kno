@@ -217,6 +217,9 @@ static lispval let_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         lispval value = fast_eval(val_expr,env);
         if (FD_ABORTED(value)) {
           _return value;}
+        else if (VOIDP(value)) {
+          fd_seterr(fd_VoidBinding,"let_evalfn",NULL,val_expr);
+          return FD_ERROR_VALUE;}
         else {
           letenv_vars[i]=var;
           letenv_vals[i]=value;
@@ -245,6 +248,9 @@ static lispval letstar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         lispval value = fast_eval(val_expr,letseq);
         if (FD_ABORTED(value))
           _return value;
+        else if (VOIDP(value)) {
+          fd_seterr(fd_VoidBinding,"letstar_evalfn",NULL,val_expr);
+          return FD_ERROR_VALUE;}
         else if (letseq->env_copy) {
           fd_bind_value(var,value,letseq->env_copy);
           fd_decref(value);}

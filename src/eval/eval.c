@@ -70,6 +70,7 @@ fd_exception
   fd_InvalidMacro=_("invalid macro transformer"),
   fd_UnboundIdentifier=_("the variable is unbound"),
   fd_VoidArgument=_("VOID result passed as argument"),
+  fd_VoidBinding=_("VOID result used as variable binding"),
   fd_NotAnIdentifier=_("not an identifier"),
   fd_TooFewExpressions=_("too few subexpressions"),
   fd_CantBind=_("can't add binding to environment"),

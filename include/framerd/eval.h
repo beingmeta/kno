@@ -15,7 +15,7 @@
 #include "framerd/apply.h"
 #include <assert.h>
 
-FD_EXPORT fd_exception fd_UnboundIdentifier, fd_BindError, fd_VoidArgument;
+FD_EXPORT fd_exception fd_UnboundIdentifier, fd_BindError, fd_VoidArgument, fd_VoidBinding;
 FD_EXPORT fd_exception fd_NoSuchModule, fd_SyntaxError, fd_BindSyntaxError;
 FD_EXPORT fd_exception fd_TooFewExpressions, fd_NotAnIdentifier;
 FD_EXPORT fd_exception fd_InvalidMacro, FD_BadArglist;
