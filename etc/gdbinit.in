@@ -7,7 +7,7 @@ set env FD_STEALSOCKETS=yes
 set env DUMA_ALIGNMENT=4
 set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
-#set env ASAN_OPTIONS=abort_on_error=1:malloc_context_size=30:print_cmdline=true
+set env ASAN_OPTIONS=abort_on_error=1:malloc_context_size=30:print_cmdline=true
 set env LSAN_OPTIONS=report_objects=1:malloc_context_size=30
 set env TCMALLOC_DEBUG=3
 #set env PERFTOOLS_VERBOSE=2
@@ -53,7 +53,7 @@ define lisp
   printf "%s\n",fd_lisp2string($arg0)
 end
 define showtype
-  printf "type is 0x%x: %s\n",(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
 end
 define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
@@ -275,38 +275,51 @@ define dontload
 end
 
 define cast
-  print (($1)($0))
+  print (($arg1)($arg0))
 end
 
 define pcast
-  print *(($1)($0))
+  print *(($arg1)($arg0))
 end
 
 define pfield
-  print *(($0)->$1)
+  print *(($arg0)->$arg1)
 end
 
 define sfield
-  print *(($0).$1)
+  print *(($arg0).$arg1)
 end
 
 # Commands for the new stack
-define stackptr
+define stackframe
   if ($argc == 1)
-    call _showstack_frame($0)
+    call _show_stack_frame($arg0)
   else
-   call _showstack_frame(NULL)
+   call _show_stack_frame(NULL)
   end
 end
 
 define showstack
-  if ($argc == 2)
-    call _showstack($0,$1)
-  elif ($argc == 1)
-    call _showstack(NULL,$0)
-  else
-   call _showstack(NULL,-1)
+  if ($argc == 0)
+   call _show_stack(NULL,-1)
   end
+  if ($argc == 1)
+    call _show_stack_frame($arg0)
+  end
+  if ($argc == 2)
+   call _show_stack($arg1,$arg0)
+  end
+end
+
+define lexenv
+  call _show_env($arg0,20)
+end
+define lexvals
+  call _show_env($arg0,-1)
+end
+
+define stackenv
+  call _show_stack_env($arg0,20)
 end
 
 # Init some tracing configurations

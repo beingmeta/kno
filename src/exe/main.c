@@ -1,23 +1,35 @@
 /* Environment debugging */
 
-FD_EXPORT int _fd_showenv(fd_lexenv env)
+FD_EXPORT void _show_env(fd_lexenv start,int limit)
 {
   lispval moduleid = fd_intern("%MODULEID");
-  int depth = 1;
-  while (env) {
+  int depth = 0;
+  fd_lexenv env=start;
+  if (limit<0)  {
     lispval bindings = env->env_bindings;
-    fd_ptr_type btype = FD_PTR_TYPE(bindings);
-    lispval name = fd_get(bindings,moduleid,VOID);
     lispval keys = fd_getkeys(bindings);
-    u8_fprintf(stderr,"#%d %s %s(%d) %ld/%lx\n\t%q\n",
-               depth,
-               ((STRINGP(name))?(CSTRING(name)):
-                (FD_SYMBOLP(name))?(FD_SYMBOL_NAME(name)):((u8_string)"")),
-               fd_type_names[btype],FD_CHOICE_SIZE(keys),
-               bindings,bindings,
-               keys);
-    fd_decref(keys); env = env->env_parent;}
-  return depth;
+    u8_byte buf[128];
+    FD_DO_CHOICES(key,keys) {
+      if (FD_SYMBOLP(key)) {
+	lispval val=fd_get(bindings,key,FD_VOID);
+	u8_string vstring=u8_sprintf(buf,128,"%q",val);
+	fprintf(stderr,"  %s\t=\t%s\n",FD_SYMBOL_NAME(key),vstring);
+	fd_decref(val);}}
+    fd_decref(keys);}
+  else while ( (env) && (depth < limit) ) {
+      lispval bindings = env->env_bindings;
+      fd_ptr_type btype = FD_PTR_TYPE(bindings);
+      lispval name = fd_get(bindings,moduleid,FD_VOID);
+      if (FD_VOIDP(name)) {
+	lispval keys = fd_getkeys(bindings);
+	u8_fprintf(stderr,"  env#%d %q\t\t\t(%s[%d]) 0x%llx/0x%llx\n",
+		   depth,keys,fd_type_names[btype],FD_CHOICE_SIZE(keys),
+		   bindings,env);
+	fd_decref(keys);}
+      else u8_fprintf(stderr,"  env#%d module %q\t\t0x%llx\n",depth,name,env);
+      fd_decref(name);
+      env=env->env_parent;
+      depth++;}
 }
 
 /* Exename tweaking */
@@ -121,16 +133,27 @@ static void _concise_stack_frame(struct FD_STACK *stack)
   fprintf(stderr,"\n");
 }
 
-static void _show_stack_frame(struct FD_STACK *stack)
+void _show_stack_frame(void *arg)
 {
+  struct FD_STACK *stack=_get_stack_frame(arg);
   _concise_stack_frame(stack);
-  if (stack->stack_env) _fd_showenv(stack->stack_env);
+  if (stack->stack_env) _show_env(stack->stack_env,20);
   if (PAIRP(stack->stack_op))
     u8_fprintf(stderr,"%Q",stack->stack_op);
+  else if (FD_APPLICABLEP(stack->stack_op)) {
+    u8_fprintf(stderr,"Applying %q to",stack->stack_op);
+    if (stack->n_args) {
+      u8_byte buf[128];
+      lispval *args=stack->stack_args;
+      int i=0, n=stack->n_args;
+      while (i<n) {
+	u8_string line=u8_sprintf(buf,128,"\n#%d\t%q",i,args[i]);
+	fputs(line,stderr);
+	i++;}}}
   fputs("\n",stderr);
 }
 
-static U8_MAYBE_UNUSED void _showstack(void *arg,int limit)
+static U8_MAYBE_UNUSED void _show_stack(void *arg,int limit)
 {
   int count=0;
   struct FD_STACK *stack=_get_stack_frame(arg);
@@ -139,13 +162,19 @@ static U8_MAYBE_UNUSED void _showstack(void *arg,int limit)
     return;}
   while (stack) {
     _concise_stack_frame(stack);
-    if ( (limit > 0) && (count > limit) ) break;
+    count++;
     stack=stack->stack_caller;
-    count++;}
+    if ( (limit > 0) && (count >= limit) ) break;}
 }
 
-static U8_MAYBE_UNUSED void _showframe(void *arg)
+static U8_MAYBE_UNUSED void _show_stack_env(void *arg)
 {
   struct FD_STACK *stack=_get_stack_frame(arg);
-  if (stack) _show_stack_frame(stack);
+  if (stack==NULL) {
+    fprintf(stderr,"!! No stack\n");
+    return;}
+  _concise_stack_frame(stack);
+  if (stack->stack_env)
+    _show_env(stack->stack_env,-1);
+  else fprintf(stderr,"!! No env\n");
 }
