@@ -103,14 +103,16 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex)
     return irritant;
   if ((PAIRP(irritant)) && (PAIRP(FD_CDR(irritant))) &&
       (FD_CAR(irritant) == stacktrace_symbol)) {
-    if (TYPEP(FD_CADR(irritant),fd_error_type)) {
-      struct FD_EXCEPTION_OBJECT *embedded=
-	(struct FD_EXCEPTION_OBJECT *) FD_CADR(irritant);
-      u8_exception embedded_ex = embedded->ex_u8ex;
-      if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
-	return ((lispval) embedded_ex->u8x_xdata);
-      else return VOID;}
-    else return VOID;}
+    lispval scan=FD_CDR(irritant); while (FD_PAIRP(scan)) {
+      if (TYPEP(FD_CAR(scan),fd_error_type)) {
+	struct FD_EXCEPTION_OBJECT *embedded=
+	  (struct FD_EXCEPTION_OBJECT *) FD_CAR(scan);
+	u8_exception embedded_ex = embedded->ex_u8ex;
+	if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
+	  return ((lispval) embedded_ex->u8x_xdata);
+	else return FD_FALSE;}
+      else scan=FD_CDR(scan);}
+    return FD_FALSE;}
   else return irritant;
 }
 
