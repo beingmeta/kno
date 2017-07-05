@@ -96,7 +96,7 @@ int fd_pprint_x(u8_output out,lispval x,u8_string prefix,
        ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) )
     col=do_indent(out,prefix,indent,-1);
   int startoff = out->u8_write-out->u8_outbuf, n_chars;
-  if ((col>(prefix_len+indent))) u8_putc(out,' ');
+  if ((col>=(prefix_len+indent))) u8_putc(out,' ');
   fd_unparse(out,x);
   /* We call u8_strlen because we're counting chars, not bytes */
   n_chars = u8_strlen(out->u8_outbuf+startoff);
