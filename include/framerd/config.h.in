@@ -29,10 +29,6 @@
 /* Whether you can use the stdatomic.h header file */
 #undef FD_ENABLE_LOCKFREE
 
-/* Whether to use inline functions to provide compile-time checking of
-   whether fdtype arguments are correct*/
-#undef FD_DEFAULT_CHECKFDTYPE
-
 /* Define to specify whether file locking works  */
 #undef FD_WITH_FILE_LOCKING
 
@@ -65,6 +61,12 @@
 
 /* Define if you have <resource.h> declares struct tm.  */
 #undef HAVE_SYS_FILE_H
+
+/* Define if you have stat.st_mtim  */
+#undef HAVE_STRUCT_STAT_ST_MTIM
+
+/* Define if you have stat.st_mtimespec  */
+#undef HAVE_STRUCT_STAT_ST_MTIMESPEC
 
 /* Define if you have <resource.h> declares struct tm.  */
 #undef HAVE_SYS_RESOURCE_H
@@ -537,6 +539,9 @@
 
 /* Whether to enable libu8's lock debugging */
 #undef U8_THREAD_DEBUG
+
+/* The name of the default malloc library (used by executables) */
+#undef FD_DEFAULT_MALLOC
 
 /* Default module dirs */
 #undef FD_LOCAL_MODULE_DIR

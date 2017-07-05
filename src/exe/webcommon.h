@@ -39,27 +39,27 @@ static int U8_MAYBE_UNUSED pid_fd = -1;
 
 static fd_lexenv server_env = NULL;
 
-static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename;
-static MU fdtype uri_slotid, response_symbol, err_symbol, status_symbol;
-static MU fdtype browseinfo_symbol, threadcache_symbol;
-static MU fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
-static MU fdtype http_accept_language, http_accept_encoding, http_accept_charset;
-static MU fdtype http_cookie, request_method, http_referer, http_accept;
-static MU fdtype auth_type, remote_host, remote_user, remote_port;
-static MU fdtype content_slotid, content_type, query_string, reqdata_symbol;
-static MU fdtype query_string, script_name, path_info, remote_info, document_root;
-static MU fdtype content_type, content_length, post_data;
-static MU fdtype server_port, server_name, path_translated, script_filename;
-static MU fdtype query_slotid, referer_slotid, forcelog_slotid, tracep_slotid;
-static MU fdtype webdebug_symbol, output_symbol, error_symbol, cleanup_slotid;
-static MU fdtype errorpage_symbol, crisispage_symbol;
-static MU fdtype redirect_slotid, xredirect_slotid;
-static MU fdtype sendfile_slotid, filedata_slotid;
+static MU lispval cgisymbol, main_symbol, setup_symbol, script_filename;
+static MU lispval uri_slotid, response_symbol, err_symbol, status_symbol;
+static MU lispval browseinfo_symbol, threadcache_symbol;
+static MU lispval http_headers, html_headers, doctype_slotid, xmlpi_slotid;
+static MU lispval http_accept_language, http_accept_encoding, http_accept_charset;
+static MU lispval http_cookie, request_method, http_referer, http_accept;
+static MU lispval auth_type, remote_host, remote_user, remote_port;
+static MU lispval content_slotid, content_type, query_string, reqdata_symbol;
+static MU lispval query_string, script_name, path_info, remote_info, document_root;
+static MU lispval content_type, content_length, post_data;
+static MU lispval server_port, server_name, path_translated, script_filename;
+static MU lispval query_slotid, referer_slotid, forcelog_slotid, tracep_slotid;
+static MU lispval webdebug_symbol, output_symbol, error_symbol, cleanup_slotid;
+static MU lispval errorpage_symbol, crisispage_symbol;
+static MU lispval redirect_slotid, xredirect_slotid;
+static MU lispval sendfile_slotid, filedata_slotid;
 
-static fdtype default_errorpage = FD_VOID;
-static fdtype default_crisispage = FD_VOID;
-static fdtype default_notfoundpage = FD_VOID;
-static fdtype default_nocontentpage = FD_VOID;
+static lispval default_errorpage = FD_VOID;
+static lispval default_crisispage = FD_VOID;
+static lispval default_notfoundpage = FD_VOID;
+static lispval default_nocontentpage = FD_VOID;
 
 static void init_webcommon_symbols()
 {
@@ -101,9 +101,9 @@ static void init_webcommon_symbols()
 
 /* Preflight/postflight */
 
-static fdtype preflight = FD_EMPTY_LIST;
+static lispval preflight = FD_EMPTY_LIST;
 
-static int preflight_set(fdtype var,fdtype val,void *data)
+static int preflight_set(lispval var,lispval val,void *data)
 {
   struct FD_FUNCTION *vf;
   if (!(FD_APPLICABLEP(val)))
@@ -111,8 +111,8 @@ static int preflight_set(fdtype var,fdtype val,void *data)
   if (FD_FUNCTIONP(val)) {
     vf = FD_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
-      fdtype scan = preflight; while (FD_PAIRP(scan)) {
-	fdtype fn = FD_CAR(scan);
+      lispval scan = preflight; while (FD_PAIRP(scan)) {
+	lispval fn = FD_CAR(scan);
 	if (val == fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
 	  struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
@@ -127,8 +127,8 @@ static int preflight_set(fdtype var,fdtype val,void *data)
     fd_incref(val);
     return 1;}
   else {
-    fdtype scan = preflight; while (FD_PAIRP(scan)) {
-      fdtype fn = FD_CAR(scan);
+    lispval scan = preflight; while (FD_PAIRP(scan)) {
+      lispval fn = FD_CAR(scan);
       if (val == fn) return 0;
       scan = FD_CDR(scan);}
     preflight = fd_conspair(val,preflight);
@@ -136,15 +136,15 @@ static int preflight_set(fdtype var,fdtype val,void *data)
     return 1;}
 }
 
-static fdtype preflight_get(fdtype var,void *data)
+static lispval preflight_get(lispval var,void *data)
 {
   return fd_incref(preflight);
 }
 
-static MU fdtype run_preflight()
+static MU lispval run_preflight()
 {
   FD_DOLIST(fn,preflight) {
-    fdtype v = fd_apply(fn,0,NULL);
+    lispval v = fd_apply(fn,0,NULL);
     if (FD_ABORTP(v)) return v;
     else if (FD_VOIDP(v)) {}
     else if (FD_EMPTY_CHOICEP(v)) {}
@@ -153,9 +153,9 @@ static MU fdtype run_preflight()
   return FD_FALSE;
 }
 
-static fdtype postflight = FD_EMPTY_LIST;
+static lispval postflight = FD_EMPTY_LIST;
 
-static int postflight_set(fdtype var,fdtype val,void *data)
+static int postflight_set(lispval var,lispval val,void *data)
 {
   struct FD_FUNCTION *vf;
   if (!(FD_APPLICABLEP(val)))
@@ -163,8 +163,8 @@ static int postflight_set(fdtype var,fdtype val,void *data)
   if (FD_FUNCTIONP(val)) {
     vf = FD_DTYPE2FCN(val);
     if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
-      fdtype scan = postflight; while (FD_PAIRP(scan)) {
-	fdtype fn = FD_CAR(scan);
+      lispval scan = postflight; while (FD_PAIRP(scan)) {
+	lispval fn = FD_CAR(scan);
 	if (val == fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
 	  struct FD_FUNCTION *f = FD_DTYPE2FCN(fn);
@@ -179,8 +179,8 @@ static int postflight_set(fdtype var,fdtype val,void *data)
     fd_incref(val);
     return 1;}
   else {
-    fdtype scan = postflight; while (FD_PAIRP(scan)) {
-      fdtype fn = FD_CAR(scan);
+    lispval scan = postflight; while (FD_PAIRP(scan)) {
+      lispval fn = FD_CAR(scan);
       if (val == fn) return 0;
       scan = FD_CDR(scan);}
     postflight = fd_conspair(val,postflight);
@@ -188,7 +188,7 @@ static int postflight_set(fdtype var,fdtype val,void *data)
     return 1;}
 }
 
-static fdtype postflight_get(fdtype var,void *data)
+static lispval postflight_get(lispval var,void *data)
 {
   return fd_incref(postflight);
 }
@@ -196,7 +196,7 @@ static fdtype postflight_get(fdtype var,void *data)
 static MU void run_postflight()
 {
   FD_DOLIST(fn,postflight) {
-    fdtype v = fd_apply(fn,0,NULL);
+    lispval v = fd_apply(fn,0,NULL);
     if (FD_ABORTP(v)) {
       u8_log(LOG_CRIT,"postflight","Error from postflight %q",fn);
       fd_clear_errors(1);}
@@ -205,12 +205,12 @@ static MU void run_postflight()
 
 /* Miscellaneous Server functions */
 
-static fdtype get_boot_time()
+static lispval get_boot_time()
 {
   return fd_make_timestamp(&boot_time);
 }
 
-static fdtype get_uptime()
+static lispval get_uptime()
 {
   struct U8_XTIME now; u8_now(&now);
   return fd_init_double(NULL,u8_xtime_diff(&now,&boot_time));
@@ -222,7 +222,7 @@ static fdtype get_uptime()
    URLs passed to the servlet.  This can be used for generating new load tests
    or for general debugging. */
 
-static int urllog_set(fdtype var,fdtype val,void *data)
+static int urllog_set(lispval var,lispval val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_string filename = FD_STRDATA(val);
@@ -251,10 +251,10 @@ static int urllog_set(fdtype var,fdtype val,void *data)
 	 (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
 }
 
-static fdtype urllog_get(fdtype var,void *data)
+static lispval urllog_get(lispval var,void *data)
 {
   if (urllog)
-    return fdtype_string(urllogname);
+    return lispval_string(urllogname);
   else return FD_FALSE;
 }
 
@@ -271,7 +271,7 @@ static fdtype urllog_get(fdtype var,void *data)
     3 (FD_ALLRESP) records all requests and the response set back.
 */
 
-static int reqlog_set(fdtype var,fdtype val,void *data)
+static int reqlog_set(lispval var,lispval val,void *data)
 {
   if (FD_STRINGP(val)) {
     u8_string filename = FD_STRDATA(val);
@@ -289,7 +289,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
 			    30000)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
-      fdtype logstart_entry = fd_lispstring(logstart);
+      lispval logstart_entry = fd_lispstring(logstart);
       fd_endpos(reqlog);
       reqlogname = u8_strdup(filename);
       fd_write_dtype(fd_writebuf(reqlog),logstart_entry);
@@ -310,17 +310,17 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
 	 (fd_TypeError,"config_set_urllog",u8_strdup(_("string")),val);
 }
 
-static fdtype reqlog_get(fdtype var,void *data)
+static lispval reqlog_get(lispval var,void *data)
 {
   if (reqlog)
-    return fdtype_string(reqlogname);
+    return lispval_string(reqlogname);
   else return FD_FALSE;
 }
 
 /* Logging primitive */
 
 static void dolog
-  (fdtype cgidata,fdtype val,u8_string response,size_t len,double exectime)
+  (lispval cgidata,lispval val,u8_string response,size_t len,double exectime)
 {
   u8_lock_mutex(&log_lock);
   if (trace_cgidata) {
@@ -331,7 +331,7 @@ static void dolog
   if (FD_NULLP(val)) {
     /* This is pre execution */
     if (urllog) {
-      fdtype uri = fd_get(cgidata,uri_slotid,FD_VOID);
+      lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp = u8_mkstring(">%s\n@%*lt %g/%g\n",
 				FD_STRDATA(uri),
 				exectime,
@@ -340,7 +340,7 @@ static void dolog
       fd_decref(uri);}}
   else if (FD_ABORTP(val)) {
     if (urllog) {
-      fdtype uri = fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
+      lispval uri = fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
       if (FD_TROUBLEP(val)) {
 	u8_exception ex = u8_erreify();
 	if (ex == NULL)
@@ -361,12 +361,12 @@ static void dolog
       fd_write_dtype(fd_writebuf(reqlog),cgidata);}}
   else {
     if (urllog) {
-      fdtype uri = fd_get(cgidata,uri_slotid,FD_VOID);
+      lispval uri = fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp = u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
 				len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
     if ((reqlog) && (reqloglevel>2))
-      fd_store(cgidata,response_symbol,fdtype_string(response));
+      fd_store(cgidata,response_symbol,lispval_string(response));
     if ((reqlog) && (reqloglevel>1))
       fd_write_dtype(fd_writebuf(reqlog),cgidata);}
   u8_unlock_mutex(&log_lock);
@@ -381,18 +381,18 @@ struct FD_PRELOAD_LIST {
 
 static u8_mutex preload_lock;
 
-static fdtype preload_get(fdtype var,void *ignored)
+static lispval preload_get(lispval var,void *ignored)
 {
-  fdtype results = FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
+  lispval results = FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
   u8_lock_mutex(&preload_lock);
   scan = preloads; while (scan) {
-    results = fd_conspair(fdtype_string(scan->preload_filename),results);
+    results = fd_conspair(lispval_string(scan->preload_filename),results);
     scan = scan->next_preload;}
   u8_unlock_mutex(&preload_lock);
   return results;
 }
 
-static int preload_set(fdtype var,fdtype val,void *ignored)
+static int preload_set(lispval var,lispval val,void *ignored)
 {
   if (!(FD_STRINGP(val)))
     return fd_reterr
@@ -437,7 +437,7 @@ static int update_preloads()
     scan = preloads; while (scan) {
       time_t mtime = u8_file_mtime(scan->preload_filename);
       if (mtime>scan->preload_mtime) {
-	fdtype load_result;
+	lispval load_result;
 	u8_unlock_mutex(&preload_lock);
 	load_result = fd_load_source(scan->preload_filename,server_env,"auto");
 	if (FD_ABORTP(load_result)) {
@@ -470,7 +470,7 @@ static int whitespace_stringp(u8_string s)
     return 1;}
 }
 
-static fdtype loadcontent(fdtype path)
+static lispval loadcontent(lispval path)
 {
   u8_string pathname = FD_STRDATA(path), oldsource;
   double load_start = u8_elapsed_time();
@@ -482,7 +482,7 @@ static fdtype loadcontent(fdtype path)
     return FD_ERROR_VALUE;}
   if (content[0]=='<') {
     U8_INPUT in; FD_XML *xml; fd_lexenv env;
-    fdtype lenv, ldata, parsed;
+    lispval lenv, ldata, parsed;
     U8_INIT_STRING_INPUT(&in,strlen(content),content);
     oldsource = fd_bind_sourcebase(pathname);
     xml = fd_read_fdxml(&in,(FD_SLOPPY_XML|FD_XML_KEEP_RAW));
@@ -501,7 +501,7 @@ static fdtype loadcontent(fdtype path)
       parsed = FD_CDR(parsed);
       old_parsed->cdr = FD_EMPTY_LIST;}
     ldata = parsed;
-    env = (fd_lexenv)xml->xml_data; lenv = (fdtype)env;
+    env = (fd_lexenv)xml->xml_data; lenv = (lispval)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
@@ -515,7 +515,7 @@ static fdtype loadcontent(fdtype path)
     fd_lexenv newenv=
       ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17),server_env)) :
        (fd_working_lexenv()));
-    fdtype main_proc, load_result;
+    lispval main_proc, load_result;
     /* We reload the file.  There should really be an API call to
        evaluate a source string (fd_eval_source?).  This could then
        use that. */
@@ -537,15 +537,15 @@ static fdtype loadcontent(fdtype path)
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
-    return fd_conspair(main_proc,(fdtype)newenv);}
+    return fd_conspair(main_proc,(lispval)newenv);}
 }
 
-static fdtype getcontent(fdtype path)
+static lispval getcontent(lispval path)
 {
   if ((FD_STRINGP(path))&&(u8_file_existsp(FD_STRDATA(path)))) {
-    fdtype value = fd_hashtable_get(&pagemap,path,FD_VOID);
+    lispval value = fd_hashtable_get(&pagemap,path,FD_VOID);
     if (FD_VOIDP(value)) {
-      fdtype table_value, content;
+      lispval table_value, content;
       struct stat fileinfo; struct U8_XTIME mtime;
       char *lpath = u8_localpath(FD_STRDATA(path));
       int retval = stat(lpath,&fileinfo);
@@ -566,7 +566,7 @@ static fdtype getcontent(fdtype path)
       fd_decref(table_value);
       return content;}
     else {
-      fdtype tval = FD_CAR(value), cval = FD_CDR(value);
+      lispval tval = FD_CAR(value), cval = FD_CDR(value);
       struct FD_TIMESTAMP *lmtime=
 	fd_consptr(fd_timestamp,tval,fd_timestamp_type);
       struct stat fileinfo;
@@ -578,9 +578,9 @@ static fdtype getcontent(fdtype path)
 	u8_free(lpath); fd_decref(value);
 	return FD_ERROR_VALUE;}
       else if (fileinfo.st_mtime>lmtime->ts_u8xtime.u8_tick) {
-	fdtype new_content = loadcontent(path);
+	lispval new_content = loadcontent(path);
 	struct U8_XTIME mtime;
-	fdtype content_record;
+	lispval content_record;
 	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
 	content_record=
 	  fd_conspair(fd_make_timestamp(&mtime),
@@ -588,14 +588,14 @@ static fdtype getcontent(fdtype path)
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
-	    (FD_TYPEP((FD_CDR(FD_CDR(value))),fd_lexenv_type))) {
+	    (TYPEP((FD_CDR(FD_CDR(value))),fd_lexenv_type))) {
 	  fd_lexenv env = (fd_lexenv)(FD_CDR(FD_CDR(value)));
 	  if (FD_HASHTABLEP(env->env_bindings))
 	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
 	fd_decref(value);
 	return new_content;}
       else {
-	fdtype retval = fd_incref(cval);
+	lispval retval = fd_incref(cval);
 	fd_decref(value);
 	u8_free(lpath);
 	return retval;}}}
@@ -611,7 +611,7 @@ static fdtype getcontent(fdtype path)
 
 static MU struct FD_THREAD_CACHE *checkthreadcache(fd_lexenv env)
 {
-  fdtype tcval = fd_symeval(threadcache_symbol,env);
+  lispval tcval = fd_symeval(threadcache_symbol,env);
   if (FD_FALSEP(tcval)) return NULL;
   else if ((FD_VOIDP(tcval))&&(!(use_threadcache)))
     return NULL;
@@ -797,20 +797,20 @@ static void init_webcommon_finalize()
 
 /* Fixing CGIDATA for a different docroot */
 
-static fdtype webcommon_adjust_docroot(fdtype cgidata,u8_string docroot)
+static lispval webcommon_adjust_docroot(lispval cgidata,u8_string docroot)
 {
   if (docroot) {
-    fdtype incoming_docroot = fd_get(cgidata,document_root,FD_VOID);
+    lispval incoming_docroot = fd_get(cgidata,document_root,FD_VOID);
     if (FD_STRINGP(incoming_docroot)) {
-      fdtype scriptname = fd_get(cgidata,script_filename,FD_VOID);
-      fdtype lisp_docroot = fdtype_string(docroot);
+      lispval scriptname = fd_get(cgidata,script_filename,FD_VOID);
+      lispval lisp_docroot = lispval_string(docroot);
       fd_store(cgidata,document_root,lisp_docroot);
       if ((FD_STRINGP(scriptname))&&
 	  ((strncmp(FD_STRDATA(scriptname),FD_STRDATA(incoming_docroot),
 		    FD_STRLEN(incoming_docroot)))==0)) {
 	u8_string local_scriptname = u8_string_append
 	  (docroot,FD_STRDATA(scriptname)+FD_STRLEN(incoming_docroot),NULL);
-	fdtype new_scriptname = fd_init_string(NULL,-1,local_scriptname);
+	lispval new_scriptname = fd_init_string(NULL,-1,local_scriptname);
 	fd_store(cgidata,script_filename,new_scriptname);
 	fd_decref(new_scriptname);}
       fd_decref(lisp_docroot); fd_decref(scriptname);}

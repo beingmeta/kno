@@ -22,7 +22,7 @@
 (applytest #t pair? (xmlparse xml-test-input-3))
 (applytest #t pair? (xmlparse xml-test-input-4))
 (applytest #f try-xmlparse xml-test-input-5)
-;;(applytest #t pair? (try-xmlparse xml-test-input-5 'sloppy))
+(applytest #t pair? (try-xmlparse xml-test-input-5 'sloppy))
 (try-xmlparse xml-test-input-6 'sloppy)
 
 (test-finished "XMLTEST")

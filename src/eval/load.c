@@ -27,7 +27,7 @@ u8_condition LoadEval=_("Load Eval");
 
 static int trace_load = 0, trace_load_eval = 0;
 
-static fdtype after_symbol, traceloadeval_symbol, postload_symbol;
+static lispval after_symbol, traceloadeval_symbol, postload_symbol;
 
 static u8_condition UnconfiguredSource="Unconfigured source";
 
@@ -42,13 +42,13 @@ FD_EXPORT u8_string fd_get_source
   struct FD_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
-    u8_string data = scan->fd_getsource
-      (1,path,enc,&basepath,timep,scan->fd_getsource_data);
+    u8_string data = scan->getsource
+      (1,path,enc,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath;
       fd_clear_errors(0);
       return data;}
-    else scan = scan->fd_next_sourcefn;}
+    else scan = scan->getsource_next;}
   return NULL;
 }
 FD_EXPORT int fd_probe_source
@@ -57,13 +57,13 @@ FD_EXPORT int fd_probe_source
   struct FD_SOURCEFN *scan = sourcefns;
   while (scan) {
     u8_string basepath = NULL;
-    u8_string data = scan->fd_getsource
-      (0,path,NULL,&basepath,timep,scan->fd_getsource_data);
+    u8_string data = scan->getsource
+      (0,path,NULL,&basepath,timep,scan->getsource_data);
     if (data) {
       *basepathp = basepath; 
       fd_clear_errors(0);
       return 1;}
-    else scan = scan->fd_next_sourcefn;}
+    else scan = scan->getsource_next;}
   return 0;
 }
 FD_EXPORT void fd_register_sourcefn
@@ -72,9 +72,9 @@ FD_EXPORT void fd_register_sourcefn
 {
   struct FD_SOURCEFN *new_entry = u8_alloc(struct FD_SOURCEFN);
   u8_lock_mutex(&sourcefns_lock);
-  new_entry->fd_getsource = fn;
-  new_entry->fd_next_sourcefn = sourcefns;
-  new_entry->fd_getsource_data = sourcefn_data;
+  new_entry->getsource = fn;
+  new_entry->getsource_next = sourcefns;
+  new_entry->getsource_data = sourcefn_data;
   sourcefns = new_entry;
   u8_unlock_mutex(&sourcefns_lock);
 }
@@ -115,22 +115,22 @@ static void restore_sourcebase(u8_string old)
 }
 #endif
 
-static fdtype loading_symbol;
+static lispval loading_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
 
-FD_EXPORT fdtype fd_load_source_with_date
+FD_EXPORT lispval fd_load_source_with_date
   (u8_string sourceid,fd_lexenv env,u8_string enc_name,time_t *modtime)
 {
   struct U8_INPUT stream;
-  fdtype postload = FD_VOID;
+  lispval postload = VOID;
   u8_string sourcebase = NULL, outer_sourcebase;
   u8_string encoding = ((enc_name)?(enc_name):((u8_string)("auto")));
   u8_string content = fd_get_source(sourceid,encoding,&sourcebase,modtime);
   const u8_byte *input = content;
   double start = u8_elapsed_time();
   struct FD_STACK *_stack = fd_stackptr;
-  if (content == NULL) return FD_ERROR_VALUE;
+  if (content == NULL) return FD_ERROR;
   else outer_sourcebase = bind_sourcebase(sourcebase);
   if (errno) {
     u8_log(LOG_WARN,u8_UnexpectedErrno,
@@ -140,15 +140,15 @@ FD_EXPORT fdtype fd_load_source_with_date
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_NOTICE,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
-  FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourceid),FD_VOID);
+  FD_PUSH_STACK(load_stack,"loadsource",u8_strdup(sourceid),VOID);
   load_stack->stack_free_label=1;
   if ((input[0]=='#') && (input[1]=='!')) input = strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
     /* This does a read/eval loop. */
     u8_byte context_buf[LOAD_CONTEXT_SIZE+1];
-    fdtype result = FD_VOID;
-    fdtype expr = FD_VOID, last_expr = FD_VOID;
+    lispval result = VOID;
+    lispval expr = VOID, last_expr = VOID;
     double start_time;
     fd_skip_whitespace(&stream);
     load_stack->stack_status=context_buf; context_buf[0]='\0';
@@ -176,7 +176,7 @@ FD_EXPORT fdtype fd_load_source_with_date
         restore_sourcebase(outer_sourcebase);
         u8_free(sourcebase);
         u8_free(content);
-        fd_decref(last_expr); last_expr = FD_VOID;
+        fd_decref(last_expr); last_expr = VOID;
         fd_decref(expr);
         fd_pop_stack(load_stack);
         return result;}
@@ -199,11 +199,11 @@ FD_EXPORT fdtype fd_load_source_with_date
       expr = fd_parse_expr(&stream);}
     if (expr == FD_EOF) {
       fd_decref(last_expr);
-      last_expr = FD_VOID;}
+      last_expr = VOID;}
     else if (FD_TROUBLEP(expr)) {
-      fd_seterr(NULL,"fd_parse_expr",u8dup(load_stack->stack_status),last_expr);
+      fd_seterr(NULL,"fd_parse_expr",load_stack->stack_status,last_expr);
       fd_decref(result); /* This is the previous result */
-      last_expr = FD_VOID;
+      last_expr = VOID;
       /* This is now also the result */
       result = expr;
       fd_incref(expr);}
@@ -211,7 +211,7 @@ FD_EXPORT fdtype fd_load_source_with_date
       fd_decref(result);
       result = expr;
       fd_incref(expr);
-      expr = FD_VOID;}
+      expr = VOID;}
     else {}
     /* Clear the stack status */
     load_stack->stack_status=NULL;
@@ -219,10 +219,10 @@ FD_EXPORT fdtype fd_load_source_with_date
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
              sourcebase,u8_elapsed_time()-start);
     postload = fd_symeval(postload_symbol,env);
-    if ((!(FD_ABORTP(result)))&&(!(FD_VOIDP(postload)))) {
-      if ((FD_FALSEP(postload))||(FD_EMPTY_CHOICEP(postload))) {}
+    if ((!(FD_ABORTP(result)))&&(!(VOIDP(postload)))) {
+      if ((FALSEP(postload))||(EMPTYP(postload))) {}
       else if (FD_APPLICABLEP(postload)) {
-        fdtype post_result = fd_apply(postload,0,NULL);
+        lispval post_result = fd_apply(postload,0,NULL);
         if (FD_ABORTP(post_result)) {
           fd_clear_errors(1);}
         fd_decref(post_result);}
@@ -235,12 +235,12 @@ FD_EXPORT fdtype fd_load_source_with_date
     u8_free(content);
     if (last_expr == expr) {
       fd_decref(last_expr);
-      last_expr = FD_VOID;}
+      last_expr = VOID;}
     else {
       fd_decref(expr);
       fd_decref(last_expr);
-      expr = FD_VOID;
-      last_expr = FD_VOID;}
+      expr = VOID;
+      last_expr = VOID;}
     if (errno) {
       u8_log(LOG_WARN,"UnexpectedErrno",
              "Dangling errno value %d (%s) after loading %s",
@@ -250,7 +250,7 @@ FD_EXPORT fdtype fd_load_source_with_date
     return result;}
 }
 
-FD_EXPORT fdtype fd_load_source
+FD_EXPORT lispval fd_load_source
   (u8_string sourceid,fd_lexenv env,u8_string enc_name)
 {
   return fd_load_source_with_date(sourceid,env,enc_name,NULL);
@@ -351,91 +351,91 @@ FD_EXPORT int fd_load_default_config(u8_string sourceid)
 
 /* Scheme primitives */
 
-static fdtype load_source_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval load_source_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype source_expr = fd_get_arg(expr,1), source, result;
-  fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
+  lispval source_expr = fd_get_arg(expr,1), source, result;
+  lispval encname_expr = fd_get_arg(expr,2), encval = VOID;
   u8_string encname;
-  if (FD_VOIDP(source_expr))
+  if (VOIDP(source_expr))
     return fd_err(fd_TooFewExpressions,"LOAD",NULL,expr);
   else source = fd_eval(source_expr,env);
-  if (FD_SYMBOLP(source)) {
-    fdtype config_val = fd_config_get(FD_SYMBOL_NAME(source));
-    if (FD_STRINGP(config_val)) {
+  if (SYMBOLP(source)) {
+    lispval config_val = fd_config_get(SYM_NAME(source));
+    if (STRINGP(config_val)) {
       u8_log(LOG_NOTICE,"Config","Loading %s = %s",
-             FD_SYMBOL_NAME(source),
-             FD_STRDATA(config_val));
+             SYM_NAME(source),
+             CSTRING(config_val));
       source = config_val;}
-    else if (FD_VOIDP(config_val)) {
+    else if (VOIDP(config_val)) {
       return fd_err(UnconfiguredSource,"load_source",
                     "this source is not configured",
                     source_expr);}
     else return fd_err(UnconfiguredSource,"load_source",
                        "this source is misconfigured",
                        config_val);}
-  if (!(FD_STRINGP(source)))
+  if (!(STRINGP(source)))
     return fd_type_error("filename","LOAD",source);
   encval = fd_eval(encname_expr,env);
-  if (FD_VOIDP(encval)) encname="auto";
-  else if (FD_STRINGP(encval))
-    encname = FD_STRDATA(encval);
-  else if (FD_SYMBOLP(encval))
-    encname = FD_SYMBOL_NAME(encval);
+  if (VOIDP(encval)) encname="auto";
+  else if (STRINGP(encval))
+    encname = CSTRING(encval);
+  else if (SYMBOLP(encval))
+    encname = SYM_NAME(encval);
   else encname = NULL;
-  while (!(FD_HASHTABLEP(env->env_bindings))) env = env->env_parent;
-  result = fd_load_source(FD_STRDATA(source),env,encname);
+  while (!(HASHTABLEP(env->env_bindings))) env = env->env_parent;
+  result = fd_load_source(CSTRING(source),env,encname);
   fd_decref(source); fd_decref(encval);
   return result;
 }
 
-static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
+static lispval load_into_env_prim(lispval source,lispval envarg,lispval resultfn)
 {
-  fdtype result = FD_VOID; fd_lexenv env;
-  if (!((FD_VOIDP(resultfn))||(FD_APPLICABLEP(resultfn))))
+  lispval result = VOID; fd_lexenv env;
+  if (!((VOIDP(resultfn))||(FD_APPLICABLEP(resultfn))))
     return fd_type_error("callback procedure","LOAD->ENV",envarg);
-  if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg)))
+  if ((VOIDP(envarg))||(FD_TRUEP(envarg)))
     env = fd_working_lexenv();
-  else if (FD_FALSEP(envarg))
+  else if (FALSEP(envarg))
     env = fd_safe_working_lexenv();
   else if (FD_LEXENVP(envarg)) {
     env = (fd_lexenv)envarg; fd_incref(envarg);}
-  else if (FD_TABLEP(envarg)) {
+  else if (TABLEP(envarg)) {
     env = fd_new_lexenv(envarg,0);
     fd_incref(envarg);}
   else return fd_type_error("environment","LOAD->ENV",envarg);
-  result = fd_load_source(FD_STRDATA(source),env,NULL);
+  result = fd_load_source(CSTRING(source),env,NULL);
   if (FD_ABORTP(result)) {
-    fd_decref((fdtype)env);
+    fd_decref((lispval)env);
     return result;}
   if (FD_APPLICABLEP(resultfn)) {
-    fdtype tmp = fd_apply(resultfn,1,&result);
+    lispval tmp = fd_apply(resultfn,1,&result);
     fd_decref(tmp);}
   fd_decref(result);
-  return (fdtype) env;
+  return (lispval) env;
 }
 
-static fdtype load_component_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval load_component_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype source_expr = fd_get_arg(expr,1), source, result;
-  fdtype encname_expr = fd_get_arg(expr,2), encval = FD_VOID;
+  lispval source_expr = fd_get_arg(expr,1), source, result;
+  lispval encname_expr = fd_get_arg(expr,2), encval = VOID;
   u8_string encname;
-  if (FD_VOIDP(source_expr))
+  if (VOIDP(source_expr))
     return fd_err(fd_TooFewExpressions,"LOAD-COMPONENT",NULL,expr);
   else source = fd_eval(source_expr,env);
   if (FD_ABORTP(source))
     return source;
-  else if (!(FD_STRINGP(source)))
+  else if (!(STRINGP(source)))
     return fd_type_error("filename","LOAD-COMPONENT",source);
   encval = fd_eval(encname_expr,env);
-  if (FD_VOIDP(encval)) encname="auto";
-  else if (FD_STRINGP(encval))
-    encname = FD_STRDATA(encval);
-  else if (FD_SYMBOLP(encval))
-    encname = FD_SYMBOL_NAME(encval);
+  if (VOIDP(encval)) encname="auto";
+  else if (STRINGP(encval))
+    encname = CSTRING(encval);
+  else if (SYMBOLP(encval))
+    encname = SYM_NAME(encval);
   else encname = NULL;
-  while (!(FD_HASHTABLEP(env->env_bindings))) env = env->env_parent;
+  while (!(HASHTABLEP(env->env_bindings))) env = env->env_parent;
   {
-    u8_string abspath = get_component(FD_STRDATA(source));
+    u8_string abspath = get_component(CSTRING(source));
     result = fd_load_source(abspath,env,encname);
     u8_free(abspath);
   }
@@ -443,39 +443,39 @@ static fdtype load_component_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return result;
 }
 
-static fdtype lisp_get_source()
+static lispval lisp_get_source()
 {
   u8_string path = fd_sourcebase();
-  if (path) return fdtype_string(path);
+  if (path) return lispval_string(path);
   else return FD_FALSE;
 }
 
-static fdtype lisp_get_component(fdtype string,fdtype base)
+static lispval lisp_get_component(lispval string,lispval base)
 {
-  if (FD_VOIDP(base)) {
-    u8_string fullpath = get_component(FD_STRDATA(string));
+  if (VOIDP(base)) {
+    u8_string fullpath = get_component(CSTRING(string));
     return fd_lispstring(fullpath);}
   else {
-    u8_string thepath = u8_realpath(FD_STRDATA(string),FD_STRDATA(base));
+    u8_string thepath = u8_realpath(CSTRING(string),CSTRING(base));
     return fd_lispstring(thepath);}
 }
 
-static fdtype lisp_load_config(fdtype arg)
+static lispval lisp_load_config(lispval arg)
 {
-  if (FD_STRINGP(arg)) {
-    u8_string abspath = u8_abspath(FD_STRDATA(arg),NULL);
+  if (STRINGP(arg)) {
+    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
     int retval = fd_load_config(abspath);
     u8_free(abspath);
     if (retval<0)
-      return FD_ERROR_VALUE;
+      return FD_ERROR;
     else return FD_INT(retval);}
-  else if (FD_SYMBOLP(arg)) {
-    fdtype config_val = fd_config_get(FD_SYMBOL_NAME(arg));
-    if (FD_STRINGP(config_val)) {
-      fdtype result = lisp_load_config(config_val);
+  else if (SYMBOLP(arg)) {
+    lispval config_val = fd_config_get(SYM_NAME(arg));
+    if (STRINGP(config_val)) {
+      lispval result = lisp_load_config(config_val);
       fd_decref(config_val);
       return result;}
-    else if (FD_VOIDP(config_val))
+    else if (VOIDP(config_val))
       return fd_err(UnconfiguredSource,"lisp_load_config",
                     "this source is not configured",
                     arg);
@@ -486,22 +486,22 @@ static fdtype lisp_load_config(fdtype arg)
          ("path or config symbol","lisp_load_config",arg);
 }
 
-static fdtype lisp_load_default_config(fdtype arg)
+static lispval lisp_load_default_config(lispval arg)
 {
-  if (FD_STRINGP(arg)) {
-    u8_string abspath = u8_abspath(FD_STRDATA(arg),NULL);
+  if (STRINGP(arg)) {
+    u8_string abspath = u8_abspath(CSTRING(arg),NULL);
     int retval = fd_load_default_config(abspath);
     u8_free(abspath);
     if (retval<0)
-      return FD_ERROR_VALUE;
+      return FD_ERROR;
     else return FD_INT(retval);}
-  else if (FD_SYMBOLP(arg)) {
-    fdtype config_val = fd_config_get(FD_SYMBOL_NAME(arg));
-    if (FD_STRINGP(config_val)) {
-      fdtype result = lisp_load_default_config(config_val);
+  else if (SYMBOLP(arg)) {
+    lispval config_val = fd_config_get(SYM_NAME(arg));
+    if (STRINGP(config_val)) {
+      lispval result = lisp_load_default_config(config_val);
       fd_decref(config_val);
       return result;}
-    else if (FD_VOIDP(config_val))
+    else if (VOIDP(config_val))
       return fd_err(UnconfiguredSource,"lisp_load_default_config",
                     "this source is not configured",
                     arg);
@@ -512,12 +512,12 @@ static fdtype lisp_load_default_config(fdtype arg)
          ("path or config symbol","lisp_load_default_config",arg);
 }
 
-static fdtype lisp_read_config(fdtype arg)
+static lispval lisp_read_config(lispval arg)
 {
   struct U8_INPUT in; int retval;
-  U8_INIT_STRING_INPUT(&in,FD_STRLEN(arg),FD_STRDATA(arg));
+  U8_INIT_STRING_INPUT(&in,STRLEN(arg),CSTRING(arg));
   retval = fd_read_config(&in);
-  if (retval<0) return FD_ERROR_VALUE;
+  if (retval<0) return FD_ERROR;
   else return FD_INT2DTYPE(retval);
 }
 
@@ -527,38 +527,38 @@ static u8_mutex config_file_lock;
 
 static FD_CONFIG_RECORD *config_records = NULL, *config_stack = NULL;
 
-static fdtype get_config_files(fdtype var,void U8_MAYBE_UNUSED *data)
+static lispval get_config_files(lispval var,void U8_MAYBE_UNUSED *data)
 {
-  struct FD_CONFIG_RECORD *scan; fdtype result = FD_EMPTY_LIST;
+  struct FD_CONFIG_RECORD *scan; lispval result = NIL;
   u8_lock_mutex(&config_file_lock);
   scan = config_records; while (scan) {
-    result = fd_conspair(fdtype_string(scan->fd_config_source),result);
-    scan = scan->fd_config_next;}
+    result = fd_conspair(lispval_string(scan->config_filename),result);
+    scan = scan->loaded_after;}
   u8_unlock_mutex(&config_file_lock);
   return result;
 }
 
-static int add_config_file_helper(fdtype var,fdtype val,
+static int add_config_file_helper(lispval var,lispval val,
                                   void U8_MAYBE_UNUSED *data,
                                   int isopt,int isdflt)
 {
-  if (!(FD_STRINGP(val))) return -1;
-  else if (FD_STRLEN(val)==0) return 0;
+  if (!(STRINGP(val))) return -1;
+  else if (STRLEN(val)==0) return 0;
   else {
     int retval;
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
     u8_string sourcebase = fd_sourcebase();
-    u8_string pathname = u8_abspath(FD_STRDATA(val),sourcebase);
+    u8_string pathname = u8_abspath(CSTRING(val),sourcebase);
     u8_lock_mutex(&config_file_lock);
     scan = config_stack; while (scan) {
-      if (strcmp(scan->fd_config_source,pathname)==0) {
+      if (strcmp(scan->config_filename,pathname)==0) {
         u8_unlock_mutex(&config_file_lock);
         u8_free(pathname);
         return 0;}
-      else scan = scan->fd_config_next;}
+      else scan = scan->loaded_after;}
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
-    on_stack.fd_config_source = pathname;
-    on_stack.fd_config_next = config_stack;
+    on_stack.config_filename = pathname;
+    on_stack.loaded_after = config_stack;
     config_stack = &on_stack;
     u8_unlock_mutex(&config_file_lock);
     if (isdflt)
@@ -567,33 +567,33 @@ static int add_config_file_helper(fdtype var,fdtype val,
     u8_lock_mutex(&config_file_lock);
     if (retval<0) {
       if (isopt) {
-        u8_free(pathname); config_stack = on_stack.fd_config_next;
+        u8_free(pathname); config_stack = on_stack.loaded_after;
         u8_unlock_mutex(&config_file_lock);
         u8_pop_exception();
         return 0;}
-      u8_free(pathname); config_stack = on_stack.fd_config_next;
+      u8_free(pathname); config_stack = on_stack.loaded_after;
       u8_unlock_mutex(&config_file_lock);
       return retval;}
     newrec = u8_alloc(struct FD_CONFIG_RECORD);
-    newrec->fd_config_source = pathname;
-    newrec->fd_config_next = config_records;
+    newrec->config_filename = pathname;
+    newrec->loaded_after = config_records;
     config_records = newrec;
-    config_stack = on_stack.fd_config_next;
+    config_stack = on_stack.loaded_after;
     u8_unlock_mutex(&config_file_lock);
     return retval;}
 }
 
-static int add_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
+static int add_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
 {
   return add_config_file_helper(var,val,data,0,0);
 }
 
-static int add_opt_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
+static int add_opt_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
 {
   return add_config_file_helper(var,val,data,1,0);
 }
 
-static int add_default_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
+static int add_default_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
 {
   return add_config_file_helper(var,val,data,1,1);
 }
@@ -617,29 +617,29 @@ FD_EXPORT void fd_init_load_c()
  postload_symbol = fd_intern("%POSTLOAD");
 
 
- fd_defspecial(fd_xscheme_module,"LOAD",load_source_evalfn);
- fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component_evalfn);
+ fd_def_evalfn(fd_xscheme_module,"LOAD","",load_source_evalfn);
+ fd_def_evalfn(fd_xscheme_module,"LOAD-COMPONENT","",load_component_evalfn);
 
  fd_defn(fd_xscheme_module,
          fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
-                         fd_string_type,FD_VOID,
-                         fd_lexenv_type,FD_VOID,
-                         -1,FD_VOID));
+                         fd_string_type,VOID,
+                         fd_lexenv_type,VOID,
+                         -1,VOID));
 
  fd_idefn(fd_scheme_module,
           fd_make_cprim1x("READ-CONFIG",lisp_read_config,1,
-                          fd_string_type,FD_VOID));
+                          fd_string_type,VOID));
  fd_idefn(fd_scheme_module,
           fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
-                          -1,FD_VOID));
+                          -1,VOID));
  fd_idefn(fd_scheme_module,
           fd_make_cprim1x("LOAD-DEFAULT-CONFIG",lisp_load_default_config,1,
-                          -1,FD_VOID));
+                          -1,VOID));
 
  fd_idefn(fd_scheme_module,
           fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
-                          fd_string_type,FD_VOID,
-                          fd_string_type,FD_VOID));
+                          fd_string_type,VOID,
+                          fd_string_type,VOID));
  fd_idefn(fd_scheme_module,
           fd_make_cprim0("GET-SOURCE",lisp_get_source));
 

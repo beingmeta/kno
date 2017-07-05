@@ -29,40 +29,40 @@
 
 static struct FD_POOL_HANDLER netpool_handler;
 
-static fdtype pool_data_symbol, new_oid_symbol, get_load_symbol;
-static fdtype oid_value_symbol, fetch_oids_symbol;
-static fdtype lock_oid_symbol, unlock_oid_symbol, clear_oid_lock_symbol;
-static fdtype boundp, bulk_commit_symbol, quote_symbol;
+static lispval pool_data_symbol, new_oid_symbol, get_load_symbol;
+static lispval oid_value_symbol, fetch_oids_symbol;
+static lispval lock_oid_symbol, unlock_oid_symbol, clear_oid_lock_symbol;
+static lispval boundp, bulk_commit_symbol, quote_symbol;
 
-static fdtype client_id = FD_VOID;
+static lispval client_id = VOID;
 static void init_client_id(void);
 static u8_mutex client_id_lock;
 
-static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
+static int server_supportsp(struct FD_NETWORK_POOL *np,lispval operation)
 {
-  fdtype request=
-    fd_conspair(boundp,fd_conspair(operation,FD_EMPTY_LIST));
-  fdtype response = fd_dteval(np->pool_connpool,request);
+  lispval request=
+    fd_conspair(boundp,fd_conspair(operation,NIL));
+  lispval response = fd_dteval(np->pool_connpool,request);
   fd_decref(request);
-  if (FD_FALSEP(response)) return 0;
+  if (FALSEP(response)) return 0;
   else {fd_decref(response); return 1;}
 }
 
 static void init_network_pool
-  (struct FD_NETWORK_POOL *p,fdtype netinfo,
+  (struct FD_NETWORK_POOL *p,lispval netinfo,
    u8_string spec,u8_string source,fd_storage_flags flags)
 {
-  fdtype scan = netinfo;
+  lispval scan = netinfo;
   FD_OID addr; unsigned int capacity; u8_string label;
   addr = FD_OID_ADDR(FD_CAR(scan)); scan = FD_CDR(scan);
   capacity = fd_getint(FD_CAR(scan)); scan = FD_CDR(scan);
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,source);
   /* Network pool specific stuff */
-  if (FD_FALSEP(FD_CAR(scan)))
+  if (FALSEP(FD_CAR(scan)))
     p->pool_flags |= FD_STORAGE_READ_ONLY;
   scan = FD_CDR(scan);
-  if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan))))
-    label = FD_STRDATA(FD_CAR(scan));
+  if ((PAIRP(scan)) && (STRINGP(FD_CAR(scan))))
+    label = CSTRING(FD_CAR(scan));
   else label = NULL;
   if (label)
     p->pool_label = u8_strdup(label);
@@ -71,9 +71,9 @@ static void init_network_pool
   fd_register_pool((fd_pool)p);
 }
 
-static fdtype get_pool_data(u8_string spec,u8_string *xid)
+static lispval get_pool_data(u8_string spec,u8_string *xid)
 {
-  fdtype request, result;
+  lispval request, result;
   u8_socket c = u8_connect_x(spec,xid);
   struct FD_STREAM _stream, *stream=
     fd_init_stream(&_stream,spec,c,
@@ -81,14 +81,14 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
                    FD_NETWORK_BUFSIZE);
   struct FD_OUTBUF *outstream = (stream) ? (fd_writebuf(stream)) :(NULL);
   if (stream == NULL)
-    return FD_ERROR_VALUE;
-  if (FD_VOIDP(client_id)) init_client_id();
+    return FD_ERROR;
+  if (VOIDP(client_id)) init_client_id();
   request = fd_make_list(2,pool_data_symbol,fd_incref(client_id));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_write_dtype(outstream,request)<0) {
     fd_free_stream(stream);
     fd_decref(request);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   fd_decref(request);
   result = fd_read_dtype(fd_readbuf(stream));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
@@ -96,16 +96,16 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   return result;
 }
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_NETWORK_POOL *np = u8_alloc(struct FD_NETWORK_POOL);
   u8_string xid = NULL;
-  fdtype pooldata = get_pool_data(spec,&xid);
+  lispval pooldata = get_pool_data(spec,&xid);
   u8_string cid = u8_canonical_addr(spec);
   if (FD_ABORTP(pooldata)) {
     u8_free(np); u8_free(cid);
     return NULL;}
-  if (FD_VOIDP(client_id)) init_client_id();
+  if (VOIDP(client_id)) init_client_id();
   np->poolid = cid; np->pool_source = xid;
   np->pool_connpool=
     u8_open_connpool(spec,fd_dbconn_reserve_default,
@@ -121,16 +121,16 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,fdt
     u8_free(np); u8_free(cid); u8_free(xid);
     return NULL;}
   /* The server actually serves multiple pools */
-  else if ((FD_CHOICEP(pooldata)) || (FD_VECTORP(pooldata))) {
-    const fdtype *scan, *limit; int n_pools = 0;
-    if (FD_CHOICEP(pooldata)) {
+  else if ((CHOICEP(pooldata)) || (VECTORP(pooldata))) {
+    const lispval *scan, *limit; int n_pools = 0;
+    if (CHOICEP(pooldata)) {
       scan = FD_CHOICE_DATA(pooldata);
       limit = scan+FD_CHOICE_SIZE(pooldata);}
     else {
-      scan = FD_VECTOR_DATA(pooldata);
-      limit = scan+FD_VECTOR_LENGTH(pooldata);}
+      scan = VEC_DATA(pooldata);
+      limit = scan+VEC_LEN(pooldata);}
     while (scan<limit) {
-      struct FD_NETWORK_POOL *p; fdtype pd = *scan++;
+      struct FD_NETWORK_POOL *p; lispval pd = *scan++;
       if (n_pools==0) p = np;
       else p = u8_alloc(struct FD_NETWORK_POOL);
       init_network_pool(p,pd,spec,cid,flags);
@@ -147,9 +147,9 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags,fdt
 static int network_pool_load(fd_pool p)
 {
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
-  fdtype value;
+  lispval value;
   value = fd_dtcall(np->pool_connpool,2,get_load_symbol,fd_make_oid(p->pool_base));
-  if (FD_UINTP(value)) return FD_FIX2INT(value);
+  if (FD_UINTP(value)) return FIX2INT(value);
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
@@ -157,36 +157,36 @@ static int network_pool_load(fd_pool p)
     return -1;}
 }
 
-static fdtype network_pool_fetch(fd_pool p,fdtype oid)
+static lispval network_pool_fetch(fd_pool p,lispval oid)
 {
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
-  fdtype value;
+  lispval value;
   value = fd_dtcall(np->pool_connpool,2,oid_value_symbol,oid);
   return value;
 }
 
-static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *network_pool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
-  fdtype oidvec = fd_make_vector(n,oids);
-  fdtype value = fd_dtcall(np->pool_connpool,2,fetch_oids_symbol,oidvec);
+  lispval oidvec = fd_make_vector(n,oids);
+  lispval value = fd_dtcall(np->pool_connpool,2,fetch_oids_symbol,oidvec);
   fd_decref(oidvec);
-  if (FD_VECTORP(value)) {
-    fdtype *values = u8_alloc_n(n,fdtype);
-    memcpy(values,FD_VECTOR_ELTS(value),sizeof(fdtype)*n);
+  if (VECTORP(value)) {
+    lispval *values = u8_alloc_n(n,lispval);
+    memcpy(values,FD_VECTOR_ELTS(value),sizeof(lispval)*n);
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->poolid),fd_incref(value));
+              np->poolid,fd_incref(value));
     return NULL;}
 }
 
-static int network_pool_lock(fd_pool p,fdtype oid)
+static int network_pool_lock(fd_pool p,lispval oid)
 {
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
-  fdtype value;
+  lispval value;
   value = fd_dtcall(np->pool_connpool,3,lock_oid_symbol,oid,client_id);
-  if (FD_VOIDP(value)) return 0;
+  if (VOIDP(value)) return 0;
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
@@ -195,22 +195,22 @@ static int network_pool_lock(fd_pool p,fdtype oid)
     return 1;}
 }
 
-static int network_pool_unlock(fd_pool p,fdtype oids)
+static int network_pool_unlock(fd_pool p,lispval oids)
 {
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
-  fdtype result;
+  lispval result;
   result = fd_dtcall(np->pool_connpool,3,clear_oid_lock_symbol,oids,client_id);
   if (FD_ABORTP(result)) {
     fd_decref(result); return 0;}
   else {fd_decref(result); return 1;}
 }
 
-static int network_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+static int network_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
   if (np->bulk_commitp) {
     int i = 0;
-    fdtype *storevec = u8_alloc_n(n*2,fdtype), vec, result;
+    lispval *storevec = u8_alloc_n(n*2,lispval), vec, result;
     while (i < n) {
       storevec[i*2]=oids[i];
       storevec[i*2+1]=values[i];
@@ -224,7 +224,7 @@ static int network_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   else {
     int i = 0;
     while (i < n) {
-      fdtype result = fd_dtcall(np->pool_connpool,4,unlock_oid_symbol,oids[i],client_id,values[i]);
+      lispval result = fd_dtcall(np->pool_connpool,4,unlock_oid_symbol,oids[i],client_id,values[i]);
       fd_decref(result); i++;}
     return 1;}
 }
@@ -233,14 +233,14 @@ static void network_pool_close(fd_pool p)
 {
 }
 
-static fdtype network_pool_alloc(fd_pool p,int n)
+static lispval network_pool_alloc(fd_pool p,int n)
 {
-  fdtype results = FD_EMPTY_CHOICE, request; int i = 0;
+  lispval results = EMPTY, request; int i = 0;
   struct FD_NETWORK_POOL *np = (struct FD_NETWORK_POOL *)p;
-  request = fd_conspair(new_oid_symbol,FD_EMPTY_LIST);
+  request = fd_conspair(new_oid_symbol,NIL);
   while (i < n) {
-    fdtype result = fd_dteval(np->pool_connpool,request);
-    FD_ADD_TO_CHOICE(results,result);
+    lispval result = fd_dteval(np->pool_connpool,request);
+    CHOICE_ADD(results,result);
     i++;}
   return results;
 }
@@ -266,7 +266,7 @@ static struct FD_POOL_HANDLER netpool_handler={
 static void init_client_id()
 {
   u8_lock_mutex(&client_id_lock);
-  if (FD_VOIDP(client_id)) client_id = fdtype_string(u8_sessionid());
+  if (VOIDP(client_id)) client_id = lispval_string(u8_sessionid());
   u8_unlock_mutex(&client_id_lock);
 }
 

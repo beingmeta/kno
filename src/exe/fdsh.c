@@ -81,7 +81,7 @@ static void close_consoles()
     console_env=NULL;}
 }
 
-static int fits_consolep(fdtype elt)
+static int fits_consolep(lispval elt)
 {
   struct U8_OUTPUT tmpout; u8_byte buf[1024];
   U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
@@ -92,7 +92,7 @@ static int fits_consolep(fdtype elt)
   else return 1;
 }
 
-static void output_element(u8_output out,fdtype elt)
+static void output_element(u8_output out,lispval elt)
 {
   if (historicp(elt))
     if ((console_width==0) || (fits_consolep(elt)))
@@ -108,48 +108,48 @@ static void output_element(u8_output out,fdtype elt)
   else u8_printf(out,"\n  %q",elt);
 }
 
-static int list_length(fdtype scan)
+static int list_length(lispval scan)
 {
   int len=0;
   while (1)
-    if (FD_EMPTY_LISTP(scan)) return len;
-    else if (FD_PAIRP(scan)) {
+    if (NILP(scan)) return len;
+    else if (PAIRP(scan)) {
       scan=FD_CDR(scan); len++;}
     else return len+1;
 }
 
-static int result_size(fdtype result)
+static int result_size(lispval result)
 {
-  if (FD_ATOMICP(result)) return 1;
-  else if (FD_CHOICEP(result))
+  if (ATOMICP(result)) return 1;
+  else if (CHOICEP(result))
     return FD_CHOICE_SIZE(result);
-  else if (FD_VECTORP(result))
-    return FD_VECTOR_LENGTH(result);
-  else if (FD_PAIRP(result))
+  else if (VECTORP(result))
+    return VEC_LEN(result);
+  else if (PAIRP(result))
     return fd_seq_length(result);
   else return 1;
 }
 
-static int output_result(u8_output out,fdtype result,int histref,int showall)
+static int output_result(u8_output out,lispval result,int histref,int showall)
 {
-  if (FD_VOIDP(result)) {}
-  else if (((FD_VECTORP(result)) || (FD_PAIRP(result))) &&
+  if (VOIDP(result)) {}
+  else if (((VECTORP(result)) || (PAIRP(result))) &&
            (result_size(result)<8) && (fits_consolep(result)))
     if (histref<0)
       u8_printf(out,"%q\n",result);
     else u8_printf(out,"%q  ;; =##%d\n",result,histref);
-  else if ((showall)&&(FD_OIDP(result))) {
-    fdtype v=fd_oid_value(result);
-    if (FD_TABLEP(v)) {
+  else if ((showall)&&(OIDP(result))) {
+    lispval v=fd_oid_value(result);
+    if (TABLEP(v)) {
       U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
       u8_printf(&out,"%q:\n",result);
-      fd_display_table(&out,v,FD_VOID);
+      fd_display_table(&out,v,VOID);
       fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
       fflush(stdout);}
     else u8_printf(out,"OID value: %q\n",v);
     fd_decref(v);}
-  else if (!((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
-             (FD_PAIRP(result))))
+  else if (!((CHOICEP(result)) || (VECTORP(result)) ||
+             (PAIRP(result))))
     if (histref<0)
       u8_printf(out,"%Q\n",result);
     else if (console_width<=0)
@@ -165,11 +165,11 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
   else {
     u8_string start_with=NULL, end_with=NULL;
     int count=0, max_elts, n_elts=0;
-    if (FD_CHOICEP(result)) {
+    if (CHOICEP(result)) {
       start_with="{"; end_with="}"; n_elts=FD_CHOICE_SIZE(result);}
-    else if (FD_VECTORP(result)) {
-      start_with="#("; end_with=")"; n_elts=FD_VECTOR_LENGTH(result);}
-    else if (FD_PAIRP(result)) {
+    else if (VECTORP(result)) {
+      start_with="#("; end_with=")"; n_elts=VEC_LEN(result);}
+    else if (PAIRP(result)) {
       start_with="("; end_with=")"; n_elts=list_length(result);}
     else {}
     if ((showall==0) && ((show_elts>0) && (n_elts>(show_elts*2))))
@@ -179,25 +179,25 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
       u8_printf(out,_("%s ;; ##%d= (%d/%d items)"),
                 start_with,histref,max_elts,n_elts);
     else u8_printf(out,_("%s ;; ##%d= (%d items)"),start_with,histref,n_elts);
-    if (FD_CHOICEP(result)) {
-      FD_DO_CHOICES(elt,result) {
+    if (CHOICEP(result)) {
+      DO_CHOICES(elt,result) {
         if ((max_elts>0) && (count<max_elts)) {
           output_element(out,elt); count++;}
         else {FD_STOP_DO_CHOICES; break;}}}
-    else if (FD_VECTORP(result)) {
-      fdtype *elts=FD_VECTOR_DATA(result);
+    else if (VECTORP(result)) {
+      lispval *elts=VEC_DATA(result);
       while (count<max_elts) {
         output_element(out,elts[count]); count++;}}
-    else if (FD_PAIRP(result)) {
-      fdtype scan=result;
+    else if (PAIRP(result)) {
+      lispval scan=result;
       while (count<max_elts)
-        if (FD_PAIRP(scan)) {
+        if (PAIRP(scan)) {
           output_element(out,FD_CAR(scan));
           count++; scan=FD_CDR(scan);}
         else {
           u8_printf(out,"\n  . ;; improper list");
           output_element(out,scan);
-          count++; scan=FD_VOID;
+          count++; scan=VOID;
           break;}}
     else {}
     if (max_elts<n_elts) {
@@ -209,28 +209,28 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
 }
 
 #if 0
-static fdtype direct_console_read()
+static lispval direct_console_read()
 {
   int c=skip_whitespace((u8_input)in);
   if (c<0) return FD_EOF;
   else if (c=='=') {
-    fdtype sym=fd_parse_expr(in);
-    if (FD_SYMBOLP(sym)) {
+    lispval sym=fd_parse_expr(in);
+    if (SYMBOLP(sym)) {
       fd_bind_value(sym,lastval,env);
-      u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
+      u8_printf(out,_(";; Assigned %s\n"),SYM_NAME(sym));}
     else u8_printf(out,_(";; Bad assignment expression\n"));
-    return FD_VOID;}
+    return VOID;}
   else return fd_parse_expr(in);
 
 }
 #endif
 
 /* Returns 1 if x is worth adding to the history. */
-static int historicp(fdtype x)
+static int historicp(lispval x)
 {
-  if ((FD_STRINGP(x)) && (FD_STRING_LENGTH(x)<32)) return 0;
-  else if ((FD_SYMBOLP(x)) || (FD_CHARACTERP(x))) return 0;
-  else if (FD_FIXNUMP(x)) return 0;
+  if ((STRINGP(x)) && (FD_STRING_LENGTH(x)<32)) return 0;
+  else if ((SYMBOLP(x)) || (FD_CHARACTERP(x))) return 0;
+  else if (FIXNUMP(x)) return 0;
   else return 1;
 }
 
@@ -250,12 +250,12 @@ static int el_skip_whitespace(EditLine *e)
   return ch;
 }
 
-static fdtype el_parser(EditLine *e)
+static lispval el_parser(EditLine *e)
 {
   int len; const char *s=el_gets(e,&len);
   if (s==NULL) return FD_EOF;
   else {
-    fdtype object=fd_parse((char *)s);
+    lispval object=fd_parse((char *)s);
     return object;}
 }
 
@@ -269,7 +269,7 @@ int main(int argc,char **argv)
   unsigned char data[1024]; const char *input;
   time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
-  fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID, that_symbol, histref_symbol;
+  lispval expr=VOID, result=VOID, lastval=VOID, that_symbol, histref_symbol;
   EditLine *console=el_init("fdshell",stdin,stdout,stderr);
   History *consolehistory=history_init();
   u8_encoding enc=u8_get_default_encoding();
@@ -363,11 +363,11 @@ int main(int argc,char **argv)
     fd_use_index(source_file,0);
     eval_server=newstream;}
   else {
-    fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
+    lispval sourceval=fdstring(u8_realpath(source_file,NULL));
     fd_set_config("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   {
-    fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
+    lispval interpval=fd_lispstring(u8_fromlibc(argv[0]));
     fd_set_config("INTERPRETER",interpval); fd_decref(interpval);}
   fd_histinit(0);
   if (!(quiet_console)) {
@@ -394,10 +394,10 @@ int main(int argc,char **argv)
     start_ocache=fd_object_cache_load();
     start_icache=fd_index_cache_load();
     if (*input == '=') {
-      fdtype sym=fd_parse((char *)(input+1));
-      if (FD_SYMBOLP(sym)) {
+      lispval sym=fd_parse((char *)(input+1));
+      if (SYMBOLP(sym)) {
         fd_bind_value(sym,lastval,env);
-        u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
+        u8_printf(out,_(";; Assigned %s\n"),SYM_NAME(sym));}
       else u8_printf(out,_(";; Bad assignment expression\n"));
       /* u8_printf(out,EVAL_PROMPT); */
       u8_flush(out);
@@ -407,16 +407,16 @@ int main(int argc,char **argv)
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
       fd_decref(result); break;}
     /* Clear the buffer (should do more?) */
-    if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
+    if (((PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
         (FD_EQ(expr,that_symbol))) {
       is_histref=1;
-      histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
-    if (FD_OIDP(expr)) {
-      fdtype v=fd_oid_value(expr);
-      if (FD_TABLEP(v)) {
+      histref=FIX2INT(FD_CAR(FD_CDR(expr)));}
+    if (OIDP(expr)) {
+      lispval v=fd_oid_value(expr);
+      if (TABLEP(v)) {
         U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
         u8_printf(&out,"%q:\n",expr);
-        fd_display_table(&out,v,FD_VOID);
+        fd_display_table(&out,v,VOID);
         fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
         fflush(stdout);}
       else u8_printf(out,"OID value: %q\n",v);
@@ -442,9 +442,9 @@ int main(int argc,char **argv)
     finish_ocache=fd_object_cache_load();
     finish_icache=fd_index_cache_load();
     if (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
-          (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
-          (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
-          (FD_ABORTP(result)) || (FD_FIXNUMP(result))))
+          (VOIDP(result)) || (EMPTYP(result)) ||
+          (FD_TRUEP(result)) || (FALSEP(result)) ||
+          (FD_ABORTP(result)) || (FIXNUMP(result))))
       histref=fd_histpush(result);
     if (FD_ABORTP(result)) stat_line=0;
     else if ((showtime_threshold>=0.0) &&
@@ -452,7 +452,7 @@ int main(int argc,char **argv)
               (finish_ocache!=start_ocache) ||
               (finish_icache!=start_icache)))
       stat_line=1;
-    fd_decref(expr); expr=FD_VOID;
+    fd_decref(expr); expr=VOID;
     if (FD_CHECK_PTR(result)==0) {
       fprintf(stderr,";;; The expression returned an invalid pointer!!!!\n");}
     else if (FD_TROUBLEP(result)) {
@@ -467,14 +467,14 @@ int main(int argc,char **argv)
       fputs(out.u8_outbuf,stderr);
       u8_free(out.u8_outbuf);
       u8_free_exception(ex,1);}
-    else if (FD_VOIDP(result)) {}
-    else if ((FD_CHOICEP(result)) || (FD_ACHOICEP(result)))
+    else if (VOIDP(result)) {}
+    else if ((CHOICEP(result)) || (FD_ACHOICEP(result)))
       /* u8_printf(out,"%q\n",result); */
       if ((FD_CHOICE_SIZE(result)>16) && (is_histref==0)) {
         /* Truncated output for large result sets. */
         int n=FD_CHOICE_SIZE(result), count=0;
         u8_printf(out,_("{ ;; ##%d= (9/%d results)\n"),histref,n);
-        {FD_DO_CHOICES(elt,result) {
+        {DO_CHOICES(elt,result) {
           if (count>8) {FD_STOP_DO_CHOICES; break;}
           else {
             if (historicp(elt))
@@ -487,7 +487,7 @@ int main(int argc,char **argv)
         int n=FD_CHOICE_SIZE(result);
         u8_printf(out,_("{ ;; ##%d= (%d results)\n"),histref,n);
         fd_prefetch_oids(result);
-        {FD_DO_CHOICES(elt,result) {
+        {DO_CHOICES(elt,result) {
           if (historicp(elt))
             u8_printf(out,"  %q ;=##%d\n",elt,fd_histpush(elt));
           else u8_printf(out,"  %q\n",elt);}}
@@ -507,7 +507,7 @@ int main(int argc,char **argv)
                      finish_icache-start_icache);
     fd_clear_errors(1);
     fd_decref(lastval);
-    lastval=result; result=FD_VOID;
+    lastval=result; result=VOID;
     if ((FD_CHECK_PTR(lastval)) &&
         (!(FD_ABORTP(lastval))) &&
         (!(FDTYPE_CONSTANTP(lastval))))
@@ -525,7 +525,7 @@ int main(int argc,char **argv)
      working_environment contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
-  if (FD_HASHTABLEP(env->env_bindings))
+  if (HASHTABLEP(env->env_bindings))
     fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   /* Freed as console_env */
   /* fd_recycle_environment(env); */

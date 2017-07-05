@@ -15,12 +15,12 @@ enum FD_REGEX_OP {
   rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchpair,
   rx_matchstring};
 
-FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
+FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,lispval pat,
 			  u8_string s,size_t len,
 			  int eflags);
-FD_EXPORT int fd_regex_test(fdtype pat,u8_string s,ssize_t len);
-FD_EXPORT ssize_t fd_regex_match(fdtype pat,u8_string s,ssize_t len);
-FD_EXPORT ssize_t fd_regex_matchlen(fdtype pat,u8_string s,ssize_t len);
-FD_EXPORT off_t fd_regex_search(fdtype pat,u8_string s,ssize_t len);
+FD_EXPORT int fd_regex_test(lispval pat,u8_string s,ssize_t len);
+FD_EXPORT ssize_t fd_regex_match(lispval pat,u8_string s,ssize_t len);
+FD_EXPORT ssize_t fd_regex_matchlen(lispval pat,u8_string s,ssize_t len);
+FD_EXPORT off_t fd_regex_search(lispval pat,u8_string s,ssize_t len);
 
 #endif /* FRAMERD_FDREGEX_H */

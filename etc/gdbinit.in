@@ -7,6 +7,8 @@ set env FD_STEALSOCKETS=yes
 set env DUMA_ALIGNMENT=4
 set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+set env ASAN_OPTIONS=abort_on_error=1:malloc_context_size=30:print_cmdline=true
+set env LSAN_OPTIONS=report_objects=1:malloc_context_size=30
 set env TCMALLOC_DEBUG=3
 #set env PERFTOOLS_VERBOSE=2
 #set env MALLOCSTATS=2
@@ -47,23 +49,20 @@ define xpp
     print/x *(($arg1)($arg0))
   end
 end
-define dtype
-  printf "%s\n",fd_dtype2string($arg0)
+define lisp
+  printf "%s\n",fd_lisp2string($arg0)
 end
 define showtype
-  printf "type is 0x%x: %s\n",(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$arg0),(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04))),fd_type_names[(((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->conshead)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))]
 end
 define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
 end
-define dtypeout
-  call _fd_dtype2stderr($arg0)
+define lispout
+  call _fd_lisp2stderr($arg0)
 end
-define dtout
-  call _fd_dtype2stderr($arg0)
-end
-define dt
-  call _fd_dtype2stderr($arg0)
+define unparse
+  call _fd_lisp2stderr($arg0)
 end
 define refcount
   if (($arg0)&3)
@@ -87,11 +86,11 @@ define showfield
 end
 define showstring
   set print elements 0
-  print ((struct FD_STRING *)($arg0))->fd_bytes
+  print ((struct FD_STRING *)($arg0))->str_bytes
   set print elements 16
 end
 define showsymbol
-  printf "%s\n",((struct FD_STRING *)(fd_symbol_names[((($arg0)>>2)&0x7FFFFF)]))->fd_bytes
+  printf "%s\n",((struct FD_STRING *)(fd_symbol_names[((($arg0)>>2)&0x7FFFFF)]))->str_bytes
 end
 define showoid
   print/x (fd_base_oids[(($arg0>>2)&0x3FF)]+($arg0>>12))
@@ -105,7 +104,7 @@ define showcdr
   showtype $
 end
 define showvelt
-   print/x ((((struct FD_VECTOR *)$arg0)->fdvec_elts)[$arg1])
+   print/x ((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1])
    showtype $
 end
 define showcelt
@@ -113,7 +112,7 @@ define showcelt
   showtype $  
 end
 define celt
-  printf "%s\n",fd_dtype2string(((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1]))
+  printf "%s\n",fd_lisp2string(((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1]))
   print/x ((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1])
   showtype $
 define oidinfo
@@ -125,32 +124,32 @@ define showchoice
   print (*((struct FD_CHOICE *)$arg0))
 end
 define showvec
-  printf "data=%d\n",(&(((struct FD_VECTOR *)$arg0)->fdvec_elts))
-  printf "size=%d\n",(((struct FD_VECTOR *)$arg0)->fdvec_length)
+  printf "data=%d\n",(&(((struct FD_VECTOR *)$arg0)->vec_elts))
+  printf "size=%d\n",(((struct FD_VECTOR *)$arg0)->vec_length)
   print (*((struct FD_VECTOR *)$arg0))
 end
 define showvelt
-  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->fdvec_elts))
-  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->fdvec_length)&(0x7FFFFFFF))
-  print ((((struct FD_VECTOR *)$arg0)->fdvec_elts)[$arg1])
+  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->vec_elts))
+  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->vec_length)&(0x7FFFFFFF))
+  print ((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1])
   showtype $
 end
 define velt
-  printf "%s\n",fd_dtype2string(((((struct FD_VECTOR *)$arg0)->fdvec_elts)[$arg1]))
-  print ((((struct FD_VECTOR *)$arg0)->fdvec_elts)[$arg1])
+  printf "%s\n",fd_lisp2string(((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1]))
+  print ((((struct FD_VECTOR *)$arg0)->vec_elts)[$arg1])
   showtype $
 end
 define showflo
   print (((struct FD_FLONUM *)($arg0))->floval)
 end
 define schemap
-  printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->fd_schema))
+  printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->table_schema))
   printf "values=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->schema_values))
   printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->schema_length)
   print (*((struct FD_SCHEMAP *)$arg0))
 end
 define showschemapk
-  print (((struct FD_SCHEMAP *)$arg0)->fd_schema)[$arg1]
+  print (((struct FD_SCHEMAP *)$arg0)->table_schema)[$arg1]
   showtype $
 end
 define showschemapv
@@ -177,7 +176,7 @@ define findelt
   showtype $
 end
 define inchoicep
-  print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->choice_0),(((struct FD_CHOICE *)$arg1)->fd_choice_size))
+  print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->choice_0),(((struct FD_CHOICE *)$arg1)->choice_size))
   showtype $
 end
 define rawpos
@@ -200,11 +199,13 @@ break u8_raise
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error
-#break abort
+break abort
 #break exit
+
 
 # For LIBC
 set env MALLOC_CHECK_=2
+
 # For OS X
 #set env MallocHelp=1 
 set env MallocGuardEdges=1
@@ -274,38 +275,51 @@ define dontload
 end
 
 define cast
-  print (($1)($0))
+  print (($arg1)($arg0))
 end
 
 define pcast
-  print *(($1)($0))
+  print *(($arg1)($arg0))
 end
 
 define pfield
-  print *(($0)->$1)
+  print *(($arg0)->$arg1)
 end
 
 define sfield
-  print *(($0).$1)
+  print *(($arg0).$arg1)
 end
 
 # Commands for the new stack
-define stackptr
+define stackframe
   if ($argc == 1)
-    call _showstack_frame($0)
+    call _show_stack_frame($arg0)
   else
-   call _showstack_frame(NULL)
+   call _show_stack_frame(NULL)
   end
 end
 
 define showstack
-  if ($argc == 2)
-    call _showstack($0,$1)
-  elif ($argc == 1)
-    call _showstack(NULL,$0)
-  else
-   call _showstack(NULL,-1)
+  if ($argc == 0)
+   call _show_stack(NULL,-1)
   end
+  if ($argc == 1)
+    call _show_stack_frame($arg0)
+  end
+  if ($argc == 2)
+   call _show_stack($arg1,$arg0)
+  end
+end
+
+define lexenv
+  call _show_env($arg0,20)
+end
+define lexvals
+  call _show_env($arg0,-1)
+end
+
+define stackenv
+  call _show_stack_env($arg0,20)
 end
 
 # Init some tracing configurations

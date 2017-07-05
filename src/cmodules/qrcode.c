@@ -26,14 +26,14 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 
-static fdtype dotsize_symbol, margin_symbol, version_symbol, robustness_symbol;
-static fdtype l_sym, m_sym, q_sym, h_sym;
+static lispval dotsize_symbol, margin_symbol, version_symbol, robustness_symbol;
+static lispval l_sym, m_sym, q_sym, h_sym;
 
 static u8_mutex qrencode_lock;
 
 FD_EXPORT int fd_init_qrcode(void) FD_LIBINIT_FN;
 
-static int geteclevel(fdtype level_arg)
+static int geteclevel(lispval level_arg)
 {
   if (FD_FIXNUMP(level_arg))
     switch (FD_FIX2INT(level_arg)) {
@@ -66,13 +66,13 @@ static void packet_flush_data(png_structp pngptr)
 int default_dotsize = 3;
 int default_margin = 3;
 
-static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
+static lispval write_png_packet(QRcode *qrcode,lispval opts)
 {
   png_infop info_ptr;
   png_structp png_ptr = png_create_write_struct
     (PNG_LIBPNG_VER_STRING,(png_voidp)NULL,NULL,NULL);
-  fdtype dotsize_arg = fd_getopt(opts,dotsize_symbol,FD_INT(default_dotsize));
-  fdtype margin_arg = fd_getopt(opts,margin_symbol,FD_INT(default_margin));
+  lispval dotsize_arg = fd_getopt(opts,dotsize_symbol,FD_INT(default_dotsize));
+  lispval margin_arg = fd_getopt(opts,margin_symbol,FD_INT(default_margin));
   int dotsize, margin;
   /* Check for errors */
   if (png_ptr == NULL)
@@ -143,16 +143,16 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
     return fd_init_packet(NULL,buf.bufwrite-buf.buffer,buf.buffer);}
 }
 
-static fdtype qrencode_prim(fdtype string,fdtype opts)
+static lispval qrencode_prim(lispval string,lispval opts)
 {
-  fdtype level_arg = fd_getopt(opts,robustness_symbol,FD_FALSE);
-  fdtype version_arg = fd_getopt(opts,version_symbol,FD_INT(0));
+  lispval level_arg = fd_getopt(opts,robustness_symbol,FD_FALSE);
+  lispval version_arg = fd_getopt(opts,version_symbol,FD_INT(0));
   if (!(FD_UINTP(version_arg))) {
     fd_decref(level_arg);
     return fd_type_error("uint","qrencode_prim",version_arg);}
   QRecLevel eclevel = geteclevel(level_arg);
   {
-    fdtype result;
+    lispval result;
     QRcode *qrcode=
       ((u8_lock_mutex(&qrencode_lock)),
        QRcode_encodeString8bit
@@ -171,7 +171,7 @@ static long long int qrencode_init = 0;
 
 FD_EXPORT int fd_init_qrcode()
 {
-  fdtype module;
+  lispval module;
   if (qrencode_init) return 0;
   module = fd_new_module("QRCODE",0);
   l_sym = fd_intern("L");

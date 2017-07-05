@@ -81,16 +81,16 @@ FD_EXPORT int fd_use_dtblock;
 
 /* Arithmetic stubs */
 
-FD_EXPORT fdtype(*_fd_make_rational)(fdtype car,fdtype cdr);
-FD_EXPORT void(*_fd_unpack_rational)(fdtype,fdtype *,fdtype *);
-FD_EXPORT fdtype(*_fd_make_complex)(fdtype car,fdtype cdr);
-FD_EXPORT void(*_fd_unpack_complex)(fdtype,fdtype *,fdtype *);
-FD_EXPORT fdtype(*_fd_make_double)(double);
+FD_EXPORT lispval(*_fd_make_rational)(lispval car,lispval cdr);
+FD_EXPORT void(*_fd_unpack_rational)(lispval,lispval *,lispval *);
+FD_EXPORT lispval(*_fd_make_complex)(lispval car,lispval cdr);
+FD_EXPORT void(*_fd_unpack_complex)(lispval,lispval *,lispval *);
+FD_EXPORT lispval(*_fd_make_double)(double);
 
 /* Packing and unpacking */
 
-typedef fdtype(*fd_packet_unpacker)(unsigned int len,unsigned char *packet);
-typedef fdtype(*fd_vector_unpacker)(unsigned int len,fdtype *vector);
+typedef lispval(*fd_packet_unpacker)(unsigned int len,unsigned char *packet);
+typedef lispval(*fd_vector_unpacker)(unsigned int len,lispval *vector);
 
 FD_EXPORT int fd_register_vector_unpacker
   (unsigned int code,unsigned int subcode,fd_vector_unpacker f);
@@ -101,19 +101,19 @@ FD_EXPORT int fd_register_packet_unpacker
 
 /* The top level functions */
 
-FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x);
-FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in);
+FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x);
+FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in);
 
 /* Returning error codes */
 
 #if FD_DEBUG_DTYPEIO
-#define fd_return_errcode(x) ((fdtype)(_fd_return_errcode(x)))
+#define fd_return_errcode(x) ((lispval)(_fd_return_errcode(x)))
 #else
-#define fd_return_errcode(x) ((fdtype)(x))
+#define fd_return_errcode(x) ((lispval)(x))
 #endif
 
 typedef struct FD_COMPOUND_CONSTRUCTOR {
-  fdtype (*make)(fdtype tag,fdtype data);
+  lispval (*make)(lispval tag,lispval data);
   struct FD_COMPOUND_CONSTRUCTOR *next;} FD_COMPOUND_CONSTRUCTOR;
 typedef struct FD_COMPOUND_CONSTRUCTOR *fd_compound_constructor;
 

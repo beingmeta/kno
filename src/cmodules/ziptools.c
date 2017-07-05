@@ -39,7 +39,7 @@ typedef struct FD_ZIPFILE *fd_zipfile;
 
 /* Error messages */
 
-static fdtype znumerr(u8_context cxt,int zerrno,u8_string path)
+static lispval znumerr(u8_context cxt,int zerrno,u8_string path)
 {
   u8_byte buf[1024];
   zip_error_to_str(buf,1024,errno,zerrno);
@@ -48,7 +48,7 @@ static fdtype znumerr(u8_context cxt,int zerrno,u8_string path)
                 FD_VOID);
 }
 
-static fdtype ziperr(u8_context cxt,fd_zipfile zf,fdtype irritant)
+static lispval ziperr(u8_context cxt,fd_zipfile zf,lispval irritant)
 {
   u8_string details=
     u8_mkstring("(%s) %s",zf->filename,zip_strerror(zf->zip));
@@ -56,8 +56,8 @@ static fdtype ziperr(u8_context cxt,fd_zipfile zf,fdtype irritant)
   return FD_ERROR_VALUE;
 }
 
-static fdtype zfilerr(u8_context cxt,fd_zipfile zf,struct zip_file *zfile,
-                      fdtype irritant)
+static lispval zfilerr(u8_context cxt,fd_zipfile zf,struct zip_file *zfile,
+                      lispval irritant)
 {
   u8_string details=
     u8_mkstring("(%s) %s",zf->filename,zip_file_strerror(zfile));
@@ -77,7 +77,7 @@ static void recycle_zipfile(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static int unparse_zipfile(struct U8_OUTPUT *out,fdtype x)
+static int unparse_zipfile(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_ZIPFILE *zf = (struct FD_ZIPFILE *)x;
   u8_printf(out,"#<ZIPFILE '%s'%s>",
@@ -85,7 +85,7 @@ static int unparse_zipfile(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype zipreopen(struct FD_ZIPFILE *zf,int locked)
+static lispval zipreopen(struct FD_ZIPFILE *zf,int locked)
 {
   if (!(zf->closed)) return FD_FALSE;
   else {
@@ -97,7 +97,7 @@ static fdtype zipreopen(struct FD_ZIPFILE *zf,int locked)
       return FD_FALSE;}
     else zip = zip_open(zf->filename,zf->flags,&errflag);
     if (!(zip)) {
-      fdtype errval = znumerr("zipreopen",errflag,zf->filename);
+      lispval errval = znumerr("zipreopen",errflag,zf->filename);
       if (!(locked)) u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}
     else {
@@ -106,7 +106,7 @@ static fdtype zipreopen(struct FD_ZIPFILE *zf,int locked)
       return FD_TRUE;}}
 }
 
-static fdtype iszipfile_prim(fdtype arg)
+static lispval iszipfile_prim(lispval arg)
 {
   if (FD_TYPEP(arg,fd_zipfile_type)) return FD_TRUE;
   else return FD_FALSE;
@@ -114,7 +114,7 @@ static fdtype iszipfile_prim(fdtype arg)
 
 /* Creating/opening zip files */
 
-static fdtype zipopen(u8_string path,int zflags,int oflags)
+static lispval zipopen(u8_string path,int zflags,int oflags)
 {
   int errflag = 0, flags = zflags|oflags;
   u8_string abspath = u8_abspath(path,NULL);
@@ -131,29 +131,29 @@ static fdtype zipopen(u8_string path,int zflags,int oflags)
       zf->filename = abspath; zf->flags = zflags; zf->closed = 0;
       zf->zip = zip;
       U8_CLEAR_ERRNO();
-      return FDTYPE_CONS(zf);}
+      return LISP_CONS(zf);}
     else {
       U8_CLEAR_ERRNO();
       return znumerr("open_zipfile",errflag,abspath);}}
 }
-static fdtype zipopen_prim(fdtype filename,fdtype create)
+static lispval zipopen_prim(lispval filename,lispval create)
 {
   if ((FD_FALSEP(create))||(FD_VOIDP(create)))
     return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS,0);
   else return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS,ZIP_CREATE);
 }
-static fdtype zipmake_prim(fdtype filename)
+static lispval zipmake_prim(lispval filename)
 {
   return zipopen(FD_STRDATA(filename),0,ZIP_CREATE|ZIP_EXCL);
 }
 
-static fdtype zipfilename_prim(fdtype zipfile)
+static lispval zipfilename_prim(lispval zipfile)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
-  return fdtype_string(zf->filename);
+  return lispval_string(zf->filename);
 }
 
-static fdtype close_zipfile(fdtype zipfile)
+static lispval close_zipfile(lispval zipfile)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   int retval;
@@ -171,7 +171,7 @@ static fdtype close_zipfile(fdtype zipfile)
     return FD_TRUE;}
 }
 
-static fdtype zipfile_openp(fdtype zipfile)
+static lispval zipfile_openp(lispval zipfile)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   if (zf->closed) return FD_FALSE;
@@ -190,8 +190,8 @@ static long long int zipadd
   else return index;
 }
 
-static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
-                          fdtype comment,fdtype compress)
+static lispval zipadd_prim(lispval zipfile,lispval filename,lispval value,
+                          lispval comment,lispval compress)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname = FD_STRDATA(filename);
@@ -209,18 +209,18 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
   else return fd_type_error("zip source","zipadd_prim",value);
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
   zsource = zip_source_buffer(zf->zip,data,datalen,1);
   if (!(zsource)) {
     u8_unlock_mutex(&(zf->zipfile_lock));
-    return ziperr("zipadd/source",zf,(fdtype)zf);}
+    return ziperr("zipadd/source",zf,(lispval)zf);}
   index = zipadd(zf,fname,zsource);
   if (index<0) {
     u8_unlock_mutex(&(zf->zipfile_lock));
-    return ziperr("zipadd",zf,(fdtype)zf);}
+    return ziperr("zipadd",zf,(lispval)zf);}
 #if (HAVE_ZIP_SET_FILE_COMMENT)
   if (!(FD_FALSEP(comment))) {
     int retval = -1;
@@ -238,7 +238,7 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
                                   out.u8_write-out.u8_outbuf);}
     if (retval<0) {
       u8_unlock_mutex(&(zf->zipfile_lock));
-      return ziperr("zipadd/comment",zf,(fdtype)zf);}}
+      return ziperr("zipadd/comment",zf,(lispval)zf);}}
 #else
   if (!(FD_FALSEP(comment))) {
     u8_log(LOG_WARNING,"zipadd/comment",
@@ -249,7 +249,7 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
     int retval = zip_set_file_compression(zf->zip,index,ZIP_CM_STORE,0);
     if (retval<0) {
       u8_unlock_mutex(&(zf->zipfile_lock));
-      return ziperr("zipadd/nocompresss",zf,(fdtype)zf);}}
+      return ziperr("zipadd/nocompresss",zf,(lispval)zf);}}
 #else
   if (FD_FALSEP(compress)) {
     u8_log(LOG_WARNING,"zipadd/compress",
@@ -259,7 +259,7 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
   return FD_INT(index);
 }
 
-static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
+static lispval zipdrop_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname = FD_STRDATA(filename);
@@ -267,7 +267,7 @@ static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
@@ -278,7 +278,7 @@ static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
   else retval = zip_delete(zf->zip,index);
   if (retval<0) {
     u8_unlock_mutex(&(zf->zipfile_lock));
-    return ziperr("zipdrop",zf,(fdtype)zf);}
+    return ziperr("zipdrop",zf,(lispval)zf);}
   else {
     u8_unlock_mutex(&(zf->zipfile_lock));
     return FD_TRUE;}
@@ -294,7 +294,7 @@ static int istext(u8_byte *buf,int size)
   return 1;
 }
 
-static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
+static lispval zipget_prim(lispval zipfile,lispval filename,lispval isbinary)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname = FD_STRDATA(filename);
@@ -304,7 +304,7 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
@@ -340,14 +340,14 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
     return ziperr("zipget_prim/fopen",zf,filename);}
 }
 
-static fdtype zipexists_prim(fdtype zipfile,fdtype filename)
+static lispval zipexists_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname = FD_STRDATA(filename); int index;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
@@ -360,7 +360,7 @@ static fdtype zipexists_prim(fdtype zipfile,fdtype filename)
     return FD_TRUE;}
 }
 
-static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
+static lispval zipmodtime_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname = FD_STRDATA(filename);
@@ -369,7 +369,7 @@ static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
@@ -382,12 +382,12 @@ static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
     return ziperr("zipmodtime_prim/stat",zf,filename);}
   else {
     time_t modified = zstat.mtime;
-    fdtype timestamp = fd_time2timestamp(modified);
+    lispval timestamp = fd_time2timestamp(modified);
     u8_unlock_mutex(&(zf->zipfile_lock));
     return timestamp;}
 }
 
-static fdtype zipgetsize_prim(fdtype zipfile,fdtype filename)
+static lispval zipgetsize_prim(lispval zipfile,lispval filename)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname = FD_STRDATA(filename);
@@ -396,7 +396,7 @@ static fdtype zipgetsize_prim(fdtype zipfile,fdtype filename)
   if ((fname[0]=='.')&&(fname[1]=='/')) fname = fname+2;
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
@@ -409,37 +409,37 @@ static fdtype zipgetsize_prim(fdtype zipfile,fdtype filename)
     return ziperr("zipgetsize_prim/stat",zf,filename);}
   else {
     size_t uncompressed_size = zstat.size;
-    fdtype size = FD_INT2DTYPE(uncompressed_size);
+    lispval size = FD_INT2DTYPE(uncompressed_size);
     u8_unlock_mutex(&(zf->zipfile_lock));
     return size;}
 }
 
-static fdtype zipgetfiles_prim(fdtype zipfile)
+static lispval zipgetfiles_prim(lispval zipfile)
 {
   struct FD_ZIPFILE *zf = fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_lock_mutex(&(zf->zipfile_lock));
   if (zf->closed) {
-    fdtype errval = zipreopen(zf,1);
+    lispval errval = zipreopen(zf,1);
     if (FD_ABORTP(errval)) {
       u8_unlock_mutex(&(zf->zipfile_lock));
       return errval;}}
   {
-    fdtype files = FD_EMPTY_CHOICE;
+    lispval files = FD_EMPTY_CHOICE;
     int numfiles = zip_get_num_files(zf->zip);
     int i = 0; while (i<numfiles) {
       u8_string name = (u8_string)zip_get_name(zf->zip,i,0);
       if (!(name)) i++;
       else {
-        fdtype lname = fdtype_string(name);
+        lispval lname = lispval_string(name);
         FD_ADD_TO_CHOICE(files,lname);
         i++;}}
     u8_unlock_mutex(&(zf->zipfile_lock));
     return files;}
 }
 
-static fdtype zipfeatures_prim()
+static lispval zipfeatures_prim()
 {
-  fdtype result = FD_EMPTY_CHOICE;
+  lispval result = FD_EMPTY_CHOICE;
 #if (HAVE_ZIP_SET_FILE_EXTRA)
   FD_ADD_TO_CHOICE(result,fd_intern("EXTRA"));
 #endif
@@ -460,7 +460,7 @@ static long long int ziptools_init = 0;
 
 FD_EXPORT int fd_init_ziptools()
 {
-  fdtype ziptools_module;
+  lispval ziptools_module;
   if (ziptools_init) return 0;
 
   ziptools_init = u8_millitime();

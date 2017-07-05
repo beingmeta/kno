@@ -1,5 +1,5 @@
 typedef struct FRAMERD_LEVELDB {
-  u8_string path; fdtype opts;
+  u8_string path; lispval opts;
   unsigned int readonly:1;
   enum leveldb_status {
     leveldb_raw = 0,
@@ -29,7 +29,7 @@ typedef struct FD_LEVELDB_POOL {
   FD_POOL_FIELDS;
   unsigned int pool_load; time_t pool_modtime;
   unsigned int locked:1;
-  fdtype *pool_slots; ssize_t n_pool_slots;
+  lispval *pool_slots; ssize_t n_pool_slots;
   struct FD_HASHTABLE slot_table;
   struct FD_SCHEMA_ENTRY *pool_schemas;
   struct FD_SCHEMA_LOOKUP *pool_schbyval;

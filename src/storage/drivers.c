@@ -24,13 +24,13 @@
 
 #include <stdio.h>
 
-static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
-static fdtype adjuncts_symbol;
+static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
+static lispval adjuncts_symbol;
 
-fdtype fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
-fdtype fd_stats_op, fd_label_op, fd_populate_op;
-fdtype fd_getmap_op, fd_slotids_op, fd_baseoids_op;
-fdtype fd_load_op, fd_capacity_op;
+lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
+lispval fd_stats_op, fd_label_op, fd_populate_op;
+lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
+lispval fd_load_op, fd_capacity_op;
 
 fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
@@ -95,7 +95,7 @@ static u8_mutex pool_typeinfo_lock;
 FD_EXPORT void fd_register_pool_type
   (u8_string name,
    fd_pool_handler handler,
-   fd_pool (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts),
+   fd_pool (*opener)(u8_string filename,fd_storage_flags flags,lispval opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -155,7 +155,7 @@ FD_EXPORT fd_pool_typeinfo fd_set_default_pool_type(u8_string id)
 }
 
 FD_EXPORT
-fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
+fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_POOL_TYPEINFO *ptype;
   CHECK_ERRNO();
@@ -169,10 +169,10 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
         if (opened==NULL) {
-          fd_xseterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
+          fd_seterr(fd_CantOpenPool,"fd_open_pool",spec,opts);
           return opened;}
-        else if (fd_testopt(opts,adjuncts_symbol,FD_VOID)) {
-          fdtype adjuncts=fd_getopt(opts,adjuncts_symbol,FD_EMPTY_CHOICE);
+        else if (fd_testopt(opts,adjuncts_symbol,VOID)) {
+          lispval adjuncts=fd_getopt(opts,adjuncts_symbol,EMPTY);
           int rv=fd_set_adjuncts(opened,adjuncts);
           fd_decref(adjuncts);
           if (rv<0) {
@@ -182,7 +182,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
                      opened->poolid,opts);
               fd_clear_errors(1);}
             else {
-              fd_xseterr(fd_AdjunctError,"fd_open_pool",spec,opts);
+              fd_seterr(fd_AdjunctError,"fd_open_pool",spec,opts);
               return NULL;}}
           else return opened;}
         else return opened;}
@@ -190,7 +190,7 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,fdtype opts)
       CHECK_ERRNO();}
     else ptype = ptype->next_type;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_xseterr(fd_CantFindPool,"fd_open_pool",spec,opts);
+    fd_seterr(fd_CantFindPool,"fd_open_pool",spec,opts);
   return NULL;
 }
 
@@ -203,22 +203,65 @@ fd_pool_handler fd_get_pool_handler(u8_string name)
   else return NULL;
 }
 
+typedef unsigned long long ull;
+
+static int fix_pool_opts(u8_string spec,lispval opts)
+{
+  lispval base_oid = fd_getopt(opts,fd_intern("BASE"),VOID);
+  lispval capacity_arg = fd_getopt(opts,fd_intern("CAPACITY"),VOID);
+  if (!(OIDP(base_oid))) {
+    fd_seterr("PoolBaseNotOID","fd_make_pool",spec,opts);
+    return -1;}
+  else if (!(FIXNUMP(capacity_arg))) {
+    fd_seterr("PoolCapacityNotFixnum","fd_make_pool",spec,opts);
+    return -1;}
+  else {
+    FD_OID addr=FD_OID_ADDR(base_oid);
+    unsigned int lo=FD_OID_LO(addr);
+    int capacity=FD_FIX2INT(capacity_arg);
+    if (capacity<=0) {
+      fd_seterr("NegativePoolCapacity","fd_make_pool",spec,opts);
+      return -1;}
+    else if (capacity>=0x40000000) {
+      fd_seterr("PoolCapacityTooLarge","fd_make_pool",spec,opts);
+      return -1;}
+    else {}
+    int span_pool=(capacity>FD_OID_BUCKET_SIZE);
+    if ((span_pool)&&(lo%FD_OID_BUCKET_SIZE)) {
+      fd_seterr("MisalignedBaseOID","fd_make_pool",spec,opts);
+      return -1;}
+    else if ((span_pool)&&(capacity%FD_OID_BUCKET_SIZE)) {
+      lispval opt_root=opts;
+      unsigned int new_capacity =
+        (1+(capacity/FD_OID_BUCKET_SIZE))*FD_OID_BUCKET_SIZE;
+      u8_log(LOGWARN,"FixingCapacity",
+             "Rounding up the capacity of %s from %llu to 0x%llx",
+             spec,(ull)capacity,(ull)new_capacity);
+      if (FD_PAIRP(opts)) opt_root=FD_CAR(opts);
+      int rv=fd_store(opt_root,fd_intern("CAPACITY"),FD_INT(new_capacity));
+      return rv;}
+    /* TODO: Add more checks for non-spanning pools */
+    else return 1;}
+}
+
 FD_EXPORT
 fd_pool fd_make_pool(u8_string spec,
                      u8_string pooltype,
                      fd_storage_flags flags,
-                     fdtype opts)
+                     lispval opts)
 {
   fd_pool_typeinfo ptype = get_pool_typeinfo(pooltype);
   if (ptype == NULL) {
-    fd_xseterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
+    fd_seterr3(fd_UnknownPoolType,"fd_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler == NULL) {
-    fd_xseterr3(_("NoPoolHandler"),"fd_make_pool",pooltype);
+    fd_seterr3(_("NoPoolHandler"),"fd_make_pool",pooltype);
     return NULL;}
   else if (ptype->handler->create == NULL) {
-    fd_xseterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
+    fd_seterr3(_("NoCreateHandler"),"fd_make_pool",pooltype);
     return NULL;}
+  else if (fix_pool_opts(spec,opts)<0)
+    return NULL;
   else return ptype->handler->create(spec,ptype->type_data,flags,opts);
 }
 
@@ -230,7 +273,7 @@ static u8_mutex index_typeinfo_lock;
 FD_EXPORT void fd_register_index_type
   (u8_string name,
    fd_index_handler handler,
-   fd_index (*opener)(u8_string filename,fd_storage_flags flags,fdtype opts),
+   fd_index (*opener)(u8_string filename,fd_storage_flags flags,lispval opts),
    u8_string (*matcher)(u8_string filename,void *),
    void *type_data)
 {
@@ -291,7 +334,7 @@ FD_EXPORT fd_index_typeinfo fd_set_default_index_type(u8_string id)
 
 
 FD_EXPORT
-fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
+fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   struct FD_INDEX_TYPEINFO *ixtype;
   CHECK_ERRNO();
@@ -309,7 +352,7 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,fdtype opts)
       CHECK_ERRNO();}
     else ixtype = ixtype->next_type;}
   if (!(flags & FD_STORAGE_NOERR))
-    fd_xseterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+    fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
   return NULL;
 }
 
@@ -328,21 +371,21 @@ FD_EXPORT
 fd_index fd_make_index(u8_string spec,
                        u8_string indextype,
                        fd_storage_flags flags,
-                       fdtype opts)
+                       lispval opts)
 {
   fd_index_typeinfo ixtype = get_index_typeinfo(indextype);
   if (ixtype == NULL) {
-    fd_xseterr3(_("UnknownIndexType"),"fd_make_index",indextype);
+    fd_seterr3(_("UnknownIndexType"),"fd_make_index",indextype);
     return NULL;}
   else if (ixtype->handler == NULL) {
-    fd_xseterr3(_("NoIndexHandler"),"fd_make_index",indextype);
+    fd_seterr3(_("NoIndexHandler"),"fd_make_index",indextype);
     return NULL;}
   else if (ixtype->handler->create == NULL) {
-    fd_xseterr3(_("NoCreateHandler"),"fd_make_index",indextype);
+    fd_seterr3(_("NoCreateHandler"),"fd_make_index",indextype);
     return NULL;}
   else {
-    if (FD_FIXNUMP(opts)) {
-      fdtype tmp_opts = fd_init_slotmap(NULL,3,NULL);
+    if (FIXNUMP(opts)) {
+      lispval tmp_opts = fd_init_slotmap(NULL,3,NULL);
       fd_store(tmp_opts,fd_intern("SIZE"),opts);
       fd_index ix=ixtype->handler->create(spec,ixtype->type_data,
                                           flags,tmp_opts);
@@ -353,17 +396,13 @@ fd_index fd_make_index(u8_string spec,
 
 /* Getting compression type from options */
 
-static fdtype compression_symbol, snappy_symbol, zlib_symbol, zlib9_symbol;
+static lispval compression_symbol, snappy_symbol, none_symbol, no_symbol;
+static lispval zlib_symbol, zlib9_symbol;
 
-#if HAVE_SNAPPYC_H
-#define DEFAULT_COMPRESSION FD_SNAPPY
-#else
-#define DEFAULT_COMPRESSION FD_ZLIB9
-#endif
-
+#define DEFAULT_COMPRESSION FD_ZLIB
 
 FD_EXPORT
-fd_compress_type fd_compression_type(fdtype opts,fd_compress_type dflt)
+fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
 {
   if (fd_testopt(opts,compression_symbol,FD_FALSE))
     return FD_NOCOMPRESS;
@@ -373,9 +412,15 @@ fd_compress_type fd_compression_type(fdtype opts,fd_compress_type dflt)
 #endif
   else if (fd_testopt(opts,compression_symbol,zlib_symbol))
     return FD_ZLIB;
-  else if (fd_testopt(opts,compression_symbol,zlib9_symbol))
+  else if ( (fd_testopt(opts,compression_symbol,zlib9_symbol)) ||
+            (fd_testopt(opts,compression_symbol,FD_INT(9))) )
     return FD_ZLIB9;
-  else if (fd_testopt(opts,compression_symbol,FD_TRUE)) {
+  else if ( (fd_testopt(opts,compression_symbol,FDSYM_NO)) ||
+            (fd_testopt(opts,compression_symbol,FD_INT(0))) )
+    return FD_NOCOMPRESS;
+  else if ( (fd_testopt(opts,compression_symbol,FD_TRUE)) ||
+            (fd_testopt(opts,compression_symbol,FD_DEFAULT_VALUE)) ||
+            (fd_testopt(opts,compression_symbol,FDSYM_DEFAULT)) ) {
     if (dflt)
       return dflt;
     else return DEFAULT_COMPRESSION;}
@@ -413,6 +458,8 @@ FD_EXPORT int fd_init_drivers_c()
   snappy_symbol = fd_intern("SNAPPY");
   zlib_symbol = fd_intern("ZLIB");
   zlib9_symbol = fd_intern("ZLIB9");
+  no_symbol = fd_intern("NO");
+  none_symbol = fd_intern("NONE");
   adjuncts_symbol = fd_intern("ADJUNCTS");
 
   fd_cachelevel_op=fd_intern("CACHELEVEL");
@@ -473,17 +520,17 @@ static int load_index_cache(fd_index ix,void *ignored)
   return 0;
 }
 
-static fdtype load_caches_prim(fdtype arg)
+static lispval load_caches_prim(lispval arg)
 {
-  if (FD_VOIDP(arg)) {
+  if (VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);
     fd_for_indexes(load_index_cache,NULL);}
-  else if (FD_TYPEP(arg,fd_index_type))
+  else if (TYPEP(arg,fd_index_type))
     load_index_cache(fd_indexptr(arg),NULL);
-  else if (FD_TYPEP(arg,fd_pool_type))
+  else if (TYPEP(arg,fd_pool_type))
     load_pool_cache(fd_lisp2pool(arg),NULL);
   else {}
-  return FD_VOID;
+  return VOID;
 }
 
   fd_idefn(driverfns_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));

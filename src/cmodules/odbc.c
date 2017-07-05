@@ -84,7 +84,7 @@ static u8_string odbc_errstring(SQLHANDLE handle,SQLSMALLINT type)
 static SQLHWND sqldialog = 0;
 static int interactive_dflt = 0;
 
-FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
+FD_EXPORT lispval fd_odbc_connect(lispval spec,lispval colinfo,int interactive)
 {
   struct FD_ODBC *dbp = u8_alloc(struct FD_ODBC);
   int ret = -1, howfar = 0;
@@ -111,7 +111,7 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
                             (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
         dbp->extdb_colinfo = colinfo; fd_incref(colinfo);
-        return FDTYPE_CONS(dbp);}}}
+        return LISP_CONS(dbp);}}}
   if (howfar>1)
     u8_seterr(ODBCError,"fd_odbc_connect",
               odbc_errstring(dbp->conn,SQL_HANDLE_DBC));
@@ -134,19 +134,19 @@ static void recycle_odbconn(struct FD_EXTDB *c)
   u8_free(dbp->extdb_info); u8_free(dbp->extdb_spec);
 }
 
-static fdtype odbcopen(fdtype spec,fdtype colinfo)
+static lispval odbcopen(lispval spec,lispval colinfo)
 {
   return fd_odbc_connect(spec,colinfo,-1);
 }
 
 /* ODBCProcs */
 
-static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args);
+static lispval callodbcproc(struct FD_FUNCTION *fn,int n,lispval *args);
 
-static fdtype odbcmakeproc
+static lispval odbcmakeproc
   (struct FD_ODBC *dbp,
    u8_string stmt,int stmt_len,
-   fdtype colinfo,int n,fdtype *args)
+   lispval colinfo,int n,lispval *args)
 {
   int ret = 0, have_stmt = 0;
   SQLSMALLINT n_params, *sqltypes;
@@ -169,7 +169,7 @@ static fdtype odbcmakeproc
                 odbc_errstring(dbp->conn,SQL_HANDLE_DBC));
       u8_free(dbproc);}
     return FD_ERROR_VALUE;}
-  dbproc->extdbptr = (fdtype)dbp; fd_incref(dbproc->extdbptr);
+  dbproc->extdbptr = (lispval)dbp; fd_incref(dbproc->extdbptr);
   dbproc->extdb_handler = &odbc_handler;
   dbproc->fcn_ndcall = 0;
   dbproc->fcn_xcall = 1;
@@ -190,7 +190,7 @@ static fdtype odbcmakeproc
     fd_incref(colinfo); fd_incref(dbp->extdb_colinfo);
     dbproc->extdb_colinfo = fd_conspair(colinfo,dbp->extdb_colinfo);}
   {
-    int i = 0; fdtype *specs = u8_alloc_n(n_params,fdtype);
+    int i = 0; lispval *specs = u8_alloc_n(n_params,lispval);
     while (i<n_params)
       if (i<n) {specs[i]=fd_incref(args[i]); i++;}
       else {specs[i]=FD_VOID; i++;}
@@ -200,17 +200,17 @@ static fdtype odbcmakeproc
       SQLDescribeParam((dbproc->stmt),i+1,&(sqltypes[i]),NULL,NULL,NULL);
       i++;}}
   fd_register_extdb_proc((struct FD_EXTDB_PROC *) dbproc);
-  return FDTYPE_CONS(dbproc);
+  return LISP_CONS(dbproc);
 }
 
-static fdtype odbcmakeprochandler
+static lispval odbcmakeprochandler
   (struct FD_EXTDB *extdb,
    u8_string stmt,int stmt_len,
-   fdtype colinfo,int n,fdtype *ptypes)
+   lispval colinfo,int n,lispval *ptypes)
 {
   if (extdb->extdb_handler== &odbc_handler)
     return odbcmakeproc((fd_odbc)extdb,stmt,stmt_len,colinfo,n,ptypes);
-  else return fd_type_error("ODBC EXTDB","odbcmakeprochandler",(fdtype)extdb);
+  else return fd_type_error("ODBC EXTDB","odbcmakeprochandler",(lispval)extdb);
 }
 
 static void recycle_odbcproc(struct FD_EXTDB_PROC *c)
@@ -226,7 +226,7 @@ static void recycle_odbcproc(struct FD_EXTDB_PROC *c)
 /* Getting attributes from connections */
 
 #if 0
-static fdtype odbcstringattr(struct FD_ODBC *dbp,int attrid)
+static lispval odbcstringattr(struct FD_ODBC *dbp,int attrid)
 {
   u8_byte _buf[64], *buf=_buf; int ret; SQLSMALLINT len;
   ret = SQLGetInfo(dbp->conn,attrid,(SQLPOINTER)buf,sizeof(_buf),&len);
@@ -240,7 +240,7 @@ static fdtype odbcstringattr(struct FD_ODBC *dbp,int attrid)
   return FD_ERROR_VALUE;
 }
 
-static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
+static lispval odbcintattr(struct FD_ODBC *dbp,int attrid)
 {
   int ret, attrval = 0;
   ret = SQLGetInfo(dbp->conn,attrid,(SQLPOINTER)&attrval,0,NULL);
@@ -249,7 +249,7 @@ static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype odbcattr(fdtype conn,fdtype attr)
+static lispval odbcattr(lispval conn,lispval attr)
 {
   struct FD_ODBC *dbp = fd_consptr(struct FD_ODBC *,conn,fd_extdb_type);
   char *attr_name = FD_SYMBOL_NAME(attr);
@@ -267,24 +267,24 @@ static fdtype odbcattr(fdtype conn,fdtype attr)
 
 /* Execution */
 
-static fdtype stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
+static lispval stmt_error(SQLHSTMT stmt,const u8_string cxt,int free_stmt)
 {
   u8_seterr(ODBCError,cxt,odbc_errstring(stmt,SQL_HANDLE_STMT));
   if (free_stmt) {SQLFreeHandle(SQL_HANDLE_STMT,stmt);}
   return FD_ERROR_VALUE;
 }
 
-static fdtype get_colvalue
-  (SQLHSTMT stmt,int i,int sqltype,int colsize,fdtype typeinfo)
+static lispval get_colvalue
+  (SQLHSTMT stmt,int i,int sqltype,int colsize,lispval typeinfo)
 {
-  fdtype result = FD_VOID;
+  lispval result = FD_VOID;
   switch (sqltype) {
   case SQL_CHAR: case SQL_VARCHAR: {
     SQLLEN clen; u8_byte *data = u8_malloc(colsize+1);
     int ret = SQLGetData(stmt,i+1,SQL_C_CHAR,data,colsize+1,&clen);
     if (SQL_SUCCEEDED(ret)) {
       if (clen*2<colsize) {
-        result = fdtype_string(data);
+        result = lispval_string(data);
         u8_free(data);}
       else result = fd_lispstring(data);
       break;}
@@ -319,17 +319,17 @@ static fdtype get_colvalue
     if (offset<0) return result;
     else return fd_make_oid(base+offset);}
   else if (FD_APPLICABLEP(typeinfo)) {
-    fdtype transformed = fd_apply(typeinfo,1,&result);
+    lispval transformed = fd_apply(typeinfo,1,&result);
     fd_decref(result);
     return transformed;}
   else if (FD_TABLEP(typeinfo)) {
-    fdtype transformed = fd_get(typeinfo,result,FD_EMPTY_CHOICE);
+    lispval transformed = fd_get(typeinfo,result,FD_EMPTY_CHOICE);
     fd_decref(result);
     return transformed;}
   else return result;
 }
 
-static fdtype intern_upcase(u8_output out,u8_string s)
+static lispval intern_upcase(u8_output out,u8_string s)
 {
   int c = u8_sgetc(&s);
   out->u8_write = out->u8_outbuf;
@@ -339,15 +339,15 @@ static fdtype intern_upcase(u8_output out,u8_string s)
   return fd_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
 }
 
-static fdtype merge_symbol;
+static lispval merge_symbol;
 
-static fdtype get_stmt_results
-  (SQLHSTMT stmt,const u8_string cxt,int free_stmt,fdtype typeinfo)
+static lispval get_stmt_results
+  (SQLHSTMT stmt,const u8_string cxt,int free_stmt,lispval typeinfo)
 {
   struct U8_OUTPUT out;
-  fdtype results; int i = 0, ret; SQLSMALLINT n_cols;
-  fdtype mergefn = fd_getopt(typeinfo,merge_symbol,FD_VOID);
-  fdtype *colnames, *colinfo; SQLSMALLINT *coltypes; SQLULEN *colsizes;
+  lispval results; int i = 0, ret; SQLSMALLINT n_cols;
+  lispval mergefn = fd_getopt(typeinfo,merge_symbol,FD_VOID);
+  lispval *colnames, *colinfo; SQLSMALLINT *coltypes; SQLULEN *colsizes;
   if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
         (FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
     return fd_type_error("%MERGE","sqlite_values",mergefn);
@@ -357,8 +357,8 @@ static fdtype get_stmt_results
     if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
     return FD_VOID;}
   else results = FD_EMPTY_CHOICE;
-  colnames = u8_alloc_n(n_cols,fdtype);
-  colinfo = u8_alloc_n(n_cols,fdtype);
+  colnames = u8_alloc_n(n_cols,lispval);
+  colinfo = u8_alloc_n(n_cols,lispval);
   coltypes = u8_alloc_n(n_cols,SQLSMALLINT);
   colsizes = u8_alloc_n(n_cols,SQLULEN);
   /* [TODO] Note that all of this can probably be done up front
@@ -387,7 +387,7 @@ static fdtype get_stmt_results
     i++;}
   if ((n_cols==1) && (FD_TRUEP(mergefn)))
     while (SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
-      fdtype value = get_colvalue(stmt,0,coltypes[0],colsizes[0],colinfo[0]);
+      lispval value = get_colvalue(stmt,0,coltypes[0],colsizes[0],colinfo[0]);
       if (FD_ABORTP(value)) {
         if (!(FD_VOIDP(typeinfo))) {
           int j = 0; while (j<i) {fd_decref(colinfo[j]); j++;}}
@@ -398,10 +398,10 @@ static fdtype get_stmt_results
         return FD_ERROR_VALUE;}
       else {FD_ADD_TO_CHOICE(results,value);}}
   else while (SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
-      fdtype slotmap;
+      lispval slotmap;
       struct FD_KEYVAL *kv = u8_alloc_n(n_cols,struct FD_KEYVAL);
       i = 0; while (i<n_cols) {
-        fdtype value = get_colvalue(stmt,i,coltypes[i],colsizes[i],colinfo[i]);
+        lispval value = get_colvalue(stmt,i,coltypes[i],colsizes[i],colinfo[i]);
         if (FD_ABORTP(value)) {
           if (!(FD_VOIDP(typeinfo))) {
             int j = 0; while (j<i) {fd_decref(colinfo[j]); j++;}}
@@ -416,7 +416,7 @@ static fdtype get_stmt_results
       if ((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) || (FD_FALSEP(mergefn)))
         slotmap = fd_init_slotmap(NULL,n_cols,kv);
       else {
-        fdtype tmp_slotmap = fd_init_slotmap(NULL,n_cols,kv);
+        lispval tmp_slotmap = fd_init_slotmap(NULL,n_cols,kv);
         slotmap = fd_apply(mergefn,1,&tmp_slotmap);
         fd_decref(tmp_slotmap);}
       FD_ADD_TO_CHOICE(results,slotmap);}
@@ -426,7 +426,7 @@ static fdtype get_stmt_results
   return results;
 }
 
-static fdtype odbcexec(struct FD_ODBC *dbp,fdtype string,fdtype colinfo)
+static lispval odbcexec(struct FD_ODBC *dbp,lispval string,lispval colinfo)
 {
   int ret;
   SQLHSTMT stmt;
@@ -442,21 +442,21 @@ static fdtype odbcexec(struct FD_ODBC *dbp,fdtype string,fdtype colinfo)
   else return stmt_error(stmt,"odbcexec",1);
 }
 
-static fdtype odbcexechandler
-  (struct FD_EXTDB *extdb,fdtype string,fdtype colinfo)
+static lispval odbcexechandler
+  (struct FD_EXTDB *extdb,lispval string,lispval colinfo)
 {
   if (extdb->extdb_handler== &odbc_handler)
     return odbcexec((fd_odbc)extdb,string,colinfo);
-  else return fd_type_error("ODBC EXTDB","odbcexechandler",(fdtype)extdb);
+  else return fd_type_error("ODBC EXTDB","odbcexechandler",(lispval)extdb);
 }
 
-static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
+static lispval callodbcproc(struct FD_FUNCTION *fn,int n,lispval *args)
 {
   struct FD_ODBC_PROC *dbp = (struct FD_ODBC_PROC *)fn;
   int i = 0, ret = -1;
   u8_lock_mutex(&(dbp->odbc_proc_lock));
   while (i<n) {
-    fdtype arg = args[i]; int dofree = 0;
+    lispval arg = args[i]; int dofree = 0;
     if (!(FD_VOIDP(dbp->extdb_paramtypes[i])))
       if (FD_APPLICABLEP(dbp->extdb_paramtypes[i])) {
         arg = fd_apply(dbp->extdb_paramtypes[i],1,&arg);
@@ -498,7 +498,7 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     i++;}
   ret = SQLExecute(dbp->stmt);
   if (SQL_SUCCEEDED(ret)) {
-    fdtype results = get_stmt_results(dbp->stmt,"odbcexec",0,dbp->extdb_colinfo);
+    lispval results = get_stmt_results(dbp->stmt,"odbcexec",0,dbp->extdb_colinfo);
     SQLFreeStmt(dbp->stmt,SQL_CLOSE);
     SQLFreeStmt(dbp->stmt,SQL_RESET_PARAMS);
     u8_unlock_mutex(&(dbp->odbc_proc_lock));
@@ -517,7 +517,7 @@ static struct FD_EXTDB_HANDLER odbc_handler=
 
 FD_EXPORT int fd_init_odbc()
 {
-  fdtype module;
+  lispval module;
   if (odbc_initialized) return 0;
   odbc_initialized = 1;
   fd_init_scheme();

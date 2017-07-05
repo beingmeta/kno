@@ -33,67 +33,67 @@
 
 /* QUASIQUOTE */
 
-static fdtype quasiquote, unquote, unquotestar, quote_symbol;
-FD_EXPORT fdtype fd_quasiquote(fdtype obj,fd_lexenv env,int level);
+static lispval quasiquote, unquote, unquotestar, quote_symbol;
+FD_EXPORT lispval fd_quasiquote(lispval obj,fd_lexenv env,int level);
 
 #define FD_BAD_UNQUOTEP(elt) \
   (((FD_EQ(FD_CAR(elt),unquote)) || \
     (FD_EQ(FD_CAR(elt),unquotestar))) && \
-   (!((FD_PAIRP(FD_CDR(elt))) &&                 \
-      (FD_EMPTY_LISTP(FD_CDR(FD_CDR(elt)))))))
+   (!((PAIRP(FD_CDR(elt))) &&                 \
+      (NILP(FD_CDR(FD_CDR(elt)))))))
 
-static fdtype quasiquote_list(fdtype obj,fd_lexenv env,int level)
+static lispval quasiquote_list(lispval obj,fd_lexenv env,int level)
 {
-  fdtype head = FD_EMPTY_LIST, *tail = &head;
-  while (FD_PAIRP(obj)) {
-    fdtype elt = FD_CAR(obj), new_elt, new_tail;
+  lispval head = NIL, *tail = &head;
+  while (PAIRP(obj)) {
+    lispval elt = FD_CAR(obj), new_elt, new_tail;
     struct FD_PAIR *tailcons;
-    if (FD_ATOMICP(elt)) {
+    if (ATOMICP(elt)) {
       /* This handles the case of a dotted unquote. */
       if (FD_EQ(elt,unquote)) {
-        if ((FD_PAIRP(FD_CDR(obj))) &&
-            (FD_EMPTY_LISTP(FD_CDR(FD_CDR(obj)))))
+        if ((PAIRP(FD_CDR(obj))) &&
+            (NILP(FD_CDR(FD_CDR(obj)))))
           if (level==1) {
-            fdtype splice_at_end = fd_eval(FD_CADR(obj),env);
+            lispval splice_at_end = fd_eval(FD_CADR(obj),env);
             if (FD_ABORTED(splice_at_end)) {
               fd_decref(head);
               return splice_at_end;}
-            else if (FD_VOIDP(splice_at_end)) {
+            else if (VOIDP(splice_at_end)) {
               fd_seterr(fd_VoidArgument,"quasiquote_list",NULL,FD_CADR(obj));
               fd_decref(head);
-              return FD_ERROR_VALUE;}
+              return FD_ERROR;}
             else {
-              if (FD_PRECHOICEP(splice_at_end))
+              if (PRECHOICEP(splice_at_end))
                 splice_at_end=fd_simplify_choice(splice_at_end);
               *tail = splice_at_end;
               return head;}}
           else {
-            fdtype splice_at_end = fd_quasiquote(FD_CADR(obj),env,level-1);
+            lispval splice_at_end = fd_quasiquote(FD_CADR(obj),env,level-1);
             if (FD_ABORTED(splice_at_end)) {
               fd_decref(head);
               return splice_at_end;}
             else {
-              fdtype with_unquote = fd_conspair(unquote,splice_at_end);
+              lispval with_unquote = fd_conspair(unquote,splice_at_end);
               *tail = with_unquote;
               return head;}}
         else {
           fd_decref(head);
           return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,obj);}}
       else new_elt = elt;}
-    else if (FD_PAIRP(elt))
+    else if (PAIRP(elt))
       if (FD_BAD_UNQUOTEP(elt)) {
         fd_decref(head);
         return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,elt);}
       else if (FD_EQ(FD_CAR(elt),unquote)) {
         if (level==1) {
           new_elt = fd_eval(FD_CADR(elt),env);
-          if (FD_VOIDP(new_elt))
+          if (VOIDP(new_elt))
             new_elt = fd_err(fd_VoidArgument,"quasiquote_list",
                              NULL,FD_CADR(elt));
-          else if (FD_PRECHOICEP(new_elt))
+          else if (PRECHOICEP(new_elt))
             new_elt=fd_simplify_choice(new_elt);}
         else {
-          fdtype embed = fd_quasiquote(FD_CADR(elt),env,level-1);
+          lispval embed = fd_quasiquote(FD_CADR(elt),env,level-1);
           if (FD_ABORTED(embed)) new_elt = embed;
           else new_elt = fd_make_list(2,unquote,embed);}
         if (FD_ABORTED(new_elt)) {
@@ -101,23 +101,23 @@ static fdtype quasiquote_list(fdtype obj,fd_lexenv env,int level)
           return new_elt;}}
       else if (FD_EQ(FD_CAR(elt),unquotestar))
         if (level==1) {
-          fdtype insertion = fd_eval(FD_CADR(elt),env);
-          if (FD_PRECHOICEP(insertion))
+          lispval insertion = fd_eval(FD_CADR(elt),env);
+          if (PRECHOICEP(insertion))
             insertion=fd_simplify_choice(insertion);
           if (FD_ABORTED(insertion)) {
               fd_decref(head);
               return insertion;}
-          else if (FD_VOIDP(insertion)) {
+          else if (VOIDP(insertion)) {
             fd_seterr(fd_VoidArgument,"quasiquote_list",NULL,FD_CADR(elt));
             fd_decref(head);
-            return FD_ERROR_VALUE;}
-          else if (FD_EMPTY_LISTP(insertion)) {}
-          else if (FD_PAIRP(insertion)) {
-            fdtype scan = insertion, last = FD_VOID;
-            while (FD_PAIRP(scan)) {last = scan; scan = FD_CDR(scan);}
-            if (!(FD_PAIRP(last))) {
+            return FD_ERROR;}
+          else if (NILP(insertion)) {}
+          else if (PAIRP(insertion)) {
+            lispval scan = insertion, last = VOID;
+            while (PAIRP(scan)) {last = scan; scan = FD_CDR(scan);}
+            if (!(PAIRP(last))) {
               u8_string details_string = u8_mkstring("RESULT=%q",elt);
-              fdtype err;
+              lispval err;
               err = fd_err(fd_SyntaxError,
                          "splicing UNQUOTE for an improper list",
                          details_string,insertion);
@@ -126,21 +126,21 @@ static fdtype quasiquote_list(fdtype obj,fd_lexenv env,int level)
               return err;}
             else {
               FD_DOLIST(insert_elt,insertion) {
-                fdtype new_pair = fd_conspair(insert_elt,FD_EMPTY_LIST);
+                lispval new_pair = fd_conspair(insert_elt,NIL);
                 *tail = new_pair; tail = &(FD_CDR(new_pair));
                 fd_incref(insert_elt);}}}
-          else if (FD_VECTORP(insertion)) {
-            int i = 0, lim = FD_VECTOR_LENGTH(insertion);
+          else if (VECTORP(insertion)) {
+            int i = 0, lim = VEC_LEN(insertion);
             while (i<lim) {
-              fdtype insert_elt = FD_VECTOR_REF(insertion,i);
-              fdtype new_pair = fd_conspair(insert_elt,FD_EMPTY_LIST);
+              lispval insert_elt = VEC_REF(insertion,i);
+              lispval new_pair = fd_conspair(insert_elt,NIL);
               *tail = new_pair; tail = &(FD_CDR(new_pair));
               fd_incref(insert_elt); 
               i++;}}
           else {
             u8_string details_string = 
               u8_mkstring("RESULT=%q=%q",elt,insertion);
-            fdtype err;
+            lispval err;
             err = fd_err(fd_SyntaxError,
                        "splicing UNQUOTE used with a non-squence",
                        details_string,insertion);
@@ -151,19 +151,19 @@ static fdtype quasiquote_list(fdtype obj,fd_lexenv env,int level)
           fd_decref(insertion);
           continue;}
         else {
-          fdtype embed = fd_quasiquote(FD_CADR(elt),env,level-1);
+          lispval embed = fd_quasiquote(FD_CADR(elt),env,level-1);
           if (FD_ABORTED(embed)) new_elt = embed;
           else new_elt = fd_make_list(2,unquotestar,embed);}
       else new_elt = fd_quasiquote(elt,env,level);
     else new_elt = fd_quasiquote(elt,env,level);
     if (FD_ABORTED(new_elt)) {
       fd_decref(head); return new_elt;}
-    new_tail = fd_conspair(new_elt,FD_EMPTY_LIST);
+    new_tail = fd_conspair(new_elt,NIL);
     tailcons = FD_CONSPTR(fd_pair,new_tail);
     *tail = new_tail; tail = &(tailcons->cdr);
     obj = FD_CDR(obj);}
-  if (!(FD_EMPTY_LISTP(obj))) {
-    fdtype final = fd_quasiquote(obj,env,level);
+  if (!(NILP(obj))) {
+    lispval final = fd_quasiquote(obj,env,level);
     if (FD_ABORTED(final)) {
       fd_decref(head); 
       return final;}
@@ -171,55 +171,55 @@ static fdtype quasiquote_list(fdtype obj,fd_lexenv env,int level)
   return head;
 }
 
-static fdtype quasiquote_vector(fdtype obj,fd_lexenv env,int level)
+static lispval quasiquote_vector(lispval obj,fd_lexenv env,int level)
 {
-  fdtype result = FD_VOID;
-  int i = 0, j = 0, len = FD_VECTOR_LENGTH(obj), newlen = len;
+  lispval result = VOID;
+  int i = 0, j = 0, len = VEC_LEN(obj), newlen = len;
   if (len==0) return fd_incref(obj);
   else {
-    fdtype *newelts = u8_alloc_n(len,fdtype);
+    lispval *newelts = u8_alloc_n(len,lispval);
     while (i < len) {
-      fdtype elt = FD_VECTOR_REF(obj,i);
-      if ((FD_PAIRP(elt)) &&
+      lispval elt = VEC_REF(obj,i);
+      if ((PAIRP(elt)) &&
           (FD_EQ(FD_CAR(elt),unquotestar)) &&
-          (FD_PAIRP(FD_CDR(elt))))
+          (PAIRP(FD_CDR(elt))))
         if (level==1) {
-          fdtype insertion = fd_eval(FD_CADR(elt),env); int addlen = 0;
-          if (FD_PRECHOICEP(insertion))
+          lispval insertion = fd_eval(FD_CADR(elt),env); int addlen = 0;
+          if (PRECHOICEP(insertion))
             insertion=fd_simplify_choice(insertion);
           if (FD_ABORTED(insertion)) {
             int k = 0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
             return insertion;}
-          else if (FD_VOIDP(insertion)) {
+          else if (VOIDP(insertion)) {
             fd_seterr(fd_VoidArgument,"quasiquote_vector",NULL,FD_CADR(elt));
             int k = 0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
-            return FD_ERROR_VALUE;}
-          if (FD_EMPTY_LISTP(insertion)) {}
-          else if (FD_PAIRP(insertion)) {
-            fdtype scan = insertion; while (FD_PAIRP(scan)) {
+            return FD_ERROR;}
+          if (NILP(insertion)) {}
+          else if (PAIRP(insertion)) {
+            lispval scan = insertion; while (PAIRP(scan)) {
               scan = FD_CDR(scan); addlen++;}
-            if (!(FD_EMPTY_LISTP(scan)))
+            if (!(NILP(scan)))
               return fd_err(fd_SyntaxError,
                             "splicing UNQUOTE for an improper list",
                             NULL,insertion);}
-          else if (FD_VECTORP(insertion)) addlen = FD_VECTOR_LENGTH(insertion);
+          else if (VECTORP(insertion)) addlen = VEC_LEN(insertion);
           else return fd_err(fd_SyntaxError,
                              "splicing UNQUOTE for an improper list",
                              NULL,insertion);
           if (addlen==0) {
             i++; fd_decref(insertion); continue;}
-          newelts = u8_realloc_n(newelts,newlen+addlen,fdtype);
+          newelts = u8_realloc_n(newelts,newlen+addlen,lispval);
           newlen = newlen+addlen;
-          if (FD_PAIRP(insertion)) {
-            fdtype scan = insertion; while (FD_PAIRP(scan)) {
-              fdtype ielt = FD_CAR(scan); newelts[j++]=ielt;
+          if (PAIRP(insertion)) {
+            lispval scan = insertion; while (PAIRP(scan)) {
+              lispval ielt = FD_CAR(scan); newelts[j++]=ielt;
               fd_incref(ielt); scan = FD_CDR(scan);}
             i++;}
-          else if (FD_VECTORP(insertion)) {
+          else if (VECTORP(insertion)) {
             int k = 0; while (k<addlen) {
-              fdtype ielt = FD_VECTOR_REF(insertion,k);
+              lispval ielt = VEC_REF(insertion,k);
               newelts[j++]=ielt; fd_incref(ielt); k++;}
             i++;}
           else {
@@ -229,7 +229,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lexenv env,int level)
                           NULL,insertion);}
           fd_decref(insertion);}
         else {
-          fdtype new_elt = fd_quasiquote(elt,env,level-1);
+          lispval new_elt = fd_quasiquote(elt,env,level-1);
           if (FD_ABORTED(new_elt)) {
             int k = 0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
@@ -237,7 +237,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lexenv env,int level)
           newelts[j]=new_elt;
           i++; j++;}
       else {
-        fdtype new_elt = fd_quasiquote(elt,env,level);
+        lispval new_elt = fd_quasiquote(elt,env,level);
         if (FD_ABORTED(new_elt)) {
           int k = 0; while (k<j) {fd_decref(newelts[k]); k++;}
           u8_free(newelts);
@@ -249,30 +249,30 @@ static fdtype quasiquote_vector(fdtype obj,fd_lexenv env,int level)
     return result;}
 }
 
-static fdtype quasiquote_slotmap(fdtype obj,fd_lexenv env,int level)
+static lispval quasiquote_slotmap(lispval obj,fd_lexenv env,int level)
 {
   int i = 0, len = FD_SLOTMAP_NUSED(obj);
   struct FD_KEYVAL *keyvals = FD_XSLOTMAP(obj)->sm_keyvals;
-  fdtype result = fd_empty_slotmap();
+  lispval result = fd_empty_slotmap();
   struct FD_SLOTMAP *new_slotmap = FD_XSLOTMAP(result);
   while (i < len) {
     int free_slotid = 0;
-    fdtype slotid = keyvals[i].kv_key;
-    fdtype value = keyvals[i].kv_val;
-    if (FD_PAIRP(slotid)) {
+    lispval slotid = keyvals[i].kv_key;
+    lispval value = keyvals[i].kv_val;
+    if (PAIRP(slotid)) {
       slotid = fd_quasiquote(slotid,env,level); free_slotid = 1;}
-    if ((FD_EMPTY_CHOICEP(slotid))||(FD_VOIDP(slotid))) {
+    if ((EMPTYP(slotid))||(VOIDP(slotid))) {
       if (free_slotid) fd_decref(slotid);
       i++; continue;}
-    if ((FD_PAIRP(value))||
-        (FD_VECTORP(value))||
-        (FD_SLOTMAPP(value))||
-        (FD_CHOICEP(value))||
-        (FD_PRECHOICEP(value))) {
-      fdtype qval = fd_quasiquote(value,env,level);
+    if ((PAIRP(value))||
+        (VECTORP(value))||
+        (SLOTMAPP(value))||
+        (CHOICEP(value))||
+        (PRECHOICEP(value))) {
+      lispval qval = fd_quasiquote(value,env,level);
       if (FD_ABORTED(qval)) {
         fd_decref(result); return qval;}
-      if (FD_PRECHOICEP(qval)) qval = fd_simplify_choice(qval);
+      if (PRECHOICEP(qval)) qval = fd_simplify_choice(qval);
       fd_slotmap_store(new_slotmap,slotid,qval);
       fd_decref(qval); i++;}
     else {
@@ -281,59 +281,59 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lexenv env,int level)
   return result;
 }
 
-static fdtype quasiquote_choice(fdtype obj,fd_lexenv env,int level)
+static lispval quasiquote_choice(lispval obj,fd_lexenv env,int level)
 {
-  fdtype result = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(elt,obj) {
-    fdtype transformed = fd_quasiquote(elt,env,level);
+  lispval result = EMPTY;
+  DO_CHOICES(elt,obj) {
+    lispval transformed = fd_quasiquote(elt,env,level);
     if (FD_ABORTED(transformed)) {
       FD_STOP_DO_CHOICES; fd_decref(result);
       return transformed;}
-    FD_ADD_TO_CHOICE(result,transformed);}
+    CHOICE_ADD(result,transformed);}
   return fd_simplify_choice(result);
 }
 
 FD_EXPORT
-fdtype fd_quasiquote(fdtype obj,fd_lexenv env,int level)
+lispval fd_quasiquote(lispval obj,fd_lexenv env,int level)
 {
   if (FD_ABORTED(obj)) return obj;
-  else if (FD_PAIRP(obj))
+  else if (PAIRP(obj))
     if (FD_BAD_UNQUOTEP(obj))
       return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),quasiquote))
-      if (FD_PAIRP(FD_CDR(obj))) {
-        fdtype embed = fd_quasiquote(FD_CADR(obj),env,level+1);
+      if (PAIRP(FD_CDR(obj))) {
+        lispval embed = fd_quasiquote(FD_CADR(obj),env,level+1);
         if (FD_ABORTED(embed)) return embed;
         else return fd_make_list(2,quasiquote,embed);}
       else return fd_err(fd_SyntaxError,"malformed QUASIQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),unquote))
       if (level==1) {
-        fdtype result=fd_eval(FD_CAR(FD_CDR(obj)),env);
-        if (FD_PRECHOICEP(result)) 
+        lispval result=fd_eval(FD_CAR(FD_CDR(obj)),env);
+        if (PRECHOICEP(result)) 
           result=fd_simplify_choice(result);
         return result;}
       else {
-        fdtype embed = fd_quasiquote(FD_CADR(obj),env,level-1);
+        lispval embed = fd_quasiquote(FD_CADR(obj),env,level-1);
         if (FD_ABORTED(embed)) return embed;
         else return fd_make_list(2,unquote,embed);}
     else if (FD_EQ(FD_CAR(obj),unquotestar))
       return fd_err(fd_SyntaxError,"UNQUOTE* (,@) in wrong context",
                     NULL,obj);
     else return quasiquote_list(obj,env,level);
-  else if (FD_VECTORP(obj))
+  else if (VECTORP(obj))
     return quasiquote_vector(obj,env,level);
-  else if (FD_CHOICEP(obj))
+  else if (CHOICEP(obj))
     return quasiquote_choice(obj,env,level);
-  else if (FD_SLOTMAPP(obj))
+  else if (SLOTMAPP(obj))
     return quasiquote_slotmap(obj,env,level);
   else return fd_incref(obj);
 }
 
-static fdtype quasiquote_evalfn(fdtype obj,fd_lexenv env,fd_stack s)
+static lispval quasiquote_evalfn(lispval obj,fd_lexenv env,fd_stack s)
 {
-  if ((FD_PAIRP(FD_CDR(obj))) &&
-      (FD_EMPTY_LISTP(FD_CDR(FD_CDR(obj))))) {
-    fdtype result = fd_quasiquote(FD_CAR(FD_CDR(obj)),env,1);
+  if ((PAIRP(FD_CDR(obj))) &&
+      (NILP(FD_CDR(FD_CDR(obj))))) {
+    lispval result = fd_quasiquote(FD_CAR(FD_CDR(obj)),env,1);
     if (FD_ABORTED(result))
       return result;
     else return result;}
@@ -347,7 +347,7 @@ FD_EXPORT void fd_init_quasiquote_c()
   unquote = fd_intern("UNQUOTE");
   unquotestar = fd_intern("UNQUOTE*");
 
-  fd_defspecial(fd_scheme_module,"QUASIQUOTE",quasiquote_evalfn);
+  fd_def_evalfn(fd_scheme_module,"QUASIQUOTE","",quasiquote_evalfn);
 
   u8_register_source_file(_FILEINFO);
 }

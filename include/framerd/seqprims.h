@@ -11,10 +11,10 @@
 #define FRAMERD_SEQPRIMS_H_INFO "include/framerd/sequences.h"
 #endif
 
-FD_EXPORT fdtype fd_mapseq(fdtype fn,int n,fdtype *seqs);
-FD_EXPORT fdtype fd_foreach(fdtype fn,int n,fdtype *seqs);
-FD_EXPORT fdtype fd_removeif(fdtype test,fdtype sequence,int invert);
-FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result);
+FD_EXPORT lispval fd_mapseq(lispval fn,int n,lispval *seqs);
+FD_EXPORT lispval fd_foreach(lispval fn,int n,lispval *seqs);
+FD_EXPORT lispval fd_removeif(lispval test,lispval sequence,int invert);
+FD_EXPORT lispval fd_reduce(lispval fn,lispval sequence,lispval result);
 
 
 #define FD_SEQUENCEP(x) ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))

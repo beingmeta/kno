@@ -32,7 +32,7 @@ static HyphenDict *default_dict = NULL;
 
 static long long int hyphenate_init = 0;
 
-static fdtype hyphenate_word_prim(fdtype string_arg)
+static lispval hyphenate_word_prim(lispval string_arg)
 {
   u8_string string = FD_STRDATA(string_arg);
   int len = FD_STRLEN(string_arg);
@@ -47,12 +47,12 @@ static fdtype hyphenate_word_prim(fdtype string_arg)
       fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
       return FD_ERROR_VALUE;}
     else {
-      fdtype result = fd_make_string(NULL,-1,(u8_string)hword);
+      lispval result = fd_make_string(NULL,-1,(u8_string)hword);
       u8_free(hyphens); u8_free(hword);
       return result;}}
 }
 
-static fdtype hyphen_breaks_prim(fdtype string_arg)
+static lispval hyphen_breaks_prim(lispval string_arg)
 {
   u8_string string = FD_STRDATA(string_arg);
   int len = FD_STRLEN(string_arg);
@@ -69,7 +69,7 @@ static fdtype hyphen_breaks_prim(fdtype string_arg)
     else {
       struct U8_OUTPUT out;
       const u8_byte *scan = string;
-      fdtype result = FD_VOID, *elts;
+      lispval result = FD_VOID, *elts;
       int i = 0, n_breaks = 0, seg = 0, cpos = 0, c = u8_sgetc(&scan); while (i<len) {
         if (hyphens[i++]&1) n_breaks++;}
       result = fd_init_vector(NULL,n_breaks+1,NULL);
@@ -78,14 +78,14 @@ static fdtype hyphen_breaks_prim(fdtype string_arg)
       while (c>=0) {
         u8_putc(&out,c);
         if (hyphens[cpos]&1) {
-          fdtype s = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
+          lispval s = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
                                   out.u8_outbuf);
           elts[seg++]=s;
           out.u8_write = out.u8_outbuf;}
         cpos = scan-string;
         c = u8_sgetc(&scan);}
       if (out.u8_write!=out.u8_outbuf) {
-        fdtype s = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
+        lispval s = fd_make_string(NULL,out.u8_write-out.u8_outbuf,
                                 out.u8_outbuf);
         elts[seg++]=s;
         out.u8_write = out.u8_outbuf;}
@@ -93,7 +93,7 @@ static fdtype hyphen_breaks_prim(fdtype string_arg)
       return result;}}
 }
 
-static fdtype shyphenate_prim(fdtype string_arg)
+static lispval shyphenate_prim(lispval string_arg)
 {
   u8_string string = FD_STRDATA(string_arg);
   int len = FD_STRLEN(string_arg);
@@ -108,7 +108,7 @@ static fdtype shyphenate_prim(fdtype string_arg)
       fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
       return FD_ERROR_VALUE;}
     else {
-      fdtype result = FD_VOID;
+      lispval result = FD_VOID;
       const u8_byte *scan = string;
       struct U8_OUTPUT out;
       int cpos = 0, c = u8_sgetc(&scan);
@@ -148,7 +148,7 @@ static int hyphenout_helper(U8_OUTPUT *out,
     return n_hyphens;}
 }
 
-static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
+static lispval hyphenout_prim(lispval string_arg,lispval hyphen_arg)
 {
   U8_OUTPUT *output = u8_current_output;
   u8_string string = FD_STRDATA(string_arg);
@@ -196,9 +196,9 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
   return FD_VOID;
 }
 
-static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
+static lispval hyphenate_prim(lispval string_arg,lispval hyphen_arg)
 {
-  fdtype result;
+  lispval result;
   struct U8_OUTPUT out; U8_OUTPUT *output = &out;
   u8_string string = FD_STRDATA(string_arg);
   int len = FD_STRLEN(string_arg);
@@ -250,7 +250,7 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
 
 FD_EXPORT int fd_init_hyphenate()
 {
-  fdtype hyphenate_module;
+  lispval hyphenate_module;
   if (hyphenate_init) return 0;
 
   hyphenate_init = u8_millitime();

@@ -381,7 +381,6 @@
 (evaltest #f (number? (parse-arg "5a")))
 (evaltest #f (number? (string->lisp "5a")))
 (evaltest 90 (string->number "0x5a"))
-(evaltest 90 (parse-arg "#x5a"))
 (evaltest 90 (string->lisp "0x5a"))
 
 ;; This checks a bug where errors in an else were ignored

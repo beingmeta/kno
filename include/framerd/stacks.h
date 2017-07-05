@@ -53,10 +53,10 @@ typedef struct FD_STACK {
   struct obstack *stack_obstack;
 #endif
 
-  fdtype stack_op;
-  fdtype *stack_args;
-  fdtype stack_source;
-  fdtype stack_vals;
+  lispval stack_op;
+  lispval *stack_args;
+  lispval stack_source;
+  lispval stack_vals;
   short n_args;
   struct FD_LEXENV *stack_env;
   unsigned int stack_live:1;
@@ -166,12 +166,12 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
       case FD_FREE_MEMORY:
 	u8_free(cleanups[i].arg0); break;
       case FD_DECREF: {
-	fdtype arg = (fdtype)cleanups[i].arg0;
+	lispval arg = (lispval)cleanups[i].arg0;
 	fd_decref(arg); break;}
       case FD_DECREF_PTRVAL: {
-	fdtype *ptr = (fdtype *)cleanups[i].arg0;
+	lispval *ptr = (lispval *)cleanups[i].arg0;
 	if (ptr) {
-	  fdtype v=*ptr; fd_decref(v);}
+	  lispval v=*ptr; fd_decref(v);}
 	break;}
       case FD_UNLOCK_MUTEX: {
 	u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
@@ -180,24 +180,24 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
 	u8_rw_unlock(lock); break;}
       case FD_DECREF_VEC: {
-	fdtype *vec = (fdtype *)cleanups[i].arg0;
+	lispval *vec = (lispval *)cleanups[i].arg0;
 	ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
 	ssize_t size = *sizep;
 	int i = 0; while (i<size) {
-	  fdtype elt = vec[i++]; fd_decref(elt);}
+	  lispval elt = vec[i++]; fd_decref(elt);}
 	break;}
       case FD_DECREF_N: {
-	fdtype *vec = (fdtype *)cleanups[i].arg0;
+	lispval *vec = (lispval *)cleanups[i].arg0;
 	ssize_t size = (ssize_t)cleanups[i].arg1;
 	int i = 0; while (i<size) {
-	  fdtype elt = vec[i++]; fd_decref(elt);}
+	  lispval elt = vec[i++]; fd_decref(elt);}
 	break;}
       case FD_FREE_VEC: {
-	fdtype *vec = (fdtype *)cleanups[i].arg0;
+	lispval *vec = (lispval *)cleanups[i].arg0;
 	ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
 	ssize_t size = *sizep;
 	int i = 0; while (i<size) {
-	  fdtype elt = vec[i++]; fd_decref(elt);}
+	  lispval elt = vec[i++]; fd_decref(elt);}
 	u8_free(vec);
 	break;}
       case FD_CLOSE_FILENO: {
@@ -271,14 +271,14 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
 #define _return return fd_pop_stack(_stack),
 
 #define fd_return(v) return (fd_pop_stack(_stack),(v))
-#define fd_return_from(stack) return (fd_pop_stack(_stack),(v))
+#define fd_return_from(stack,v) return (fd_pop_stack(stack),(v))
 
 #define FD_WITH_STACK(label,caller,op,n,args) \
   struct FD_STACK __stack, *_stack=&__stack; \
   fd_setup_stack(_stack,caller,label,op,n,args)
 
-FD_EXPORT fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype base);
-FD_EXPORT void fd_sum_backtrace(u8_output out,fdtype backtrace);
+FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack,lispval base);
+FD_EXPORT void fd_sum_backtrace(u8_output out,lispval backtrace);
 
 
 

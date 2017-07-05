@@ -1,7 +1,7 @@
 #!/bin/bash
 SIGNAL_ARG=
 SIGNAL=${SIGNAL:-TERM}
-CMD="kill -s"
+CMD="@SUDO@ kill -s"
 SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int)"
 showusage ( ) {
     echo "Usage: fdsignal [signal] <job>*";

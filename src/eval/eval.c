@@ -50,11 +50,13 @@ u8_string fd_ndevalstack_type="ndeval";
 
 int fd_optimize_tail_calls = 1;
 
-fdtype fd_scheme_module, fd_xscheme_module;
+fd_lexenv fd_live_env=NULL;
 
-fdtype _fd_comment_symbol;
+lispval fd_scheme_module, fd_xscheme_module;
 
-static fdtype quote_symbol, comment_symbol, moduleid_symbol;
+lispval _fd_comment_symbol;
+
+static lispval quote_symbol, comment_symbol, moduleid_symbol;
 
 static fd_exception TestFailed=_("Test failed");
 static fd_exception ExpiredThrow=_("Continuation is no longer valid");
@@ -68,6 +70,7 @@ fd_exception
   fd_InvalidMacro=_("invalid macro transformer"),
   fd_UnboundIdentifier=_("the variable is unbound"),
   fd_VoidArgument=_("VOID result passed as argument"),
+  fd_VoidBinding=_("VOID result used as variable binding"),
   fd_NotAnIdentifier=_("not an identifier"),
   fd_TooFewExpressions=_("too few subexpressions"),
   fd_CantBind=_("can't add binding to environment"),
@@ -75,40 +78,40 @@ fd_exception
 
 /* Environment functions */
 
-static int bound_in_envp(fdtype symbol,fd_lexenv env)
+static int bound_in_envp(lispval symbol,fd_lexenv env)
 {
-  fdtype bindings = env->env_bindings;
-  if (FD_HASHTABLEP(bindings))
+  lispval bindings = env->env_bindings;
+  if (HASHTABLEP(bindings))
     return fd_hashtable_probe((fd_hashtable)bindings,symbol);
-  else if (FD_SLOTMAPP(bindings))
-    return fd_slotmap_test((fd_slotmap)bindings,symbol,FD_VOID);
-  else if (FD_SCHEMAPP(bindings))
-    return fd_schemap_test((fd_schemap)bindings,symbol,FD_VOID);
-  else return fd_test(bindings,symbol,FD_VOID);
+  else if (SLOTMAPP(bindings))
+    return fd_slotmap_test((fd_slotmap)bindings,symbol,VOID);
+  else if (SCHEMAPP(bindings))
+    return fd_schemap_test((fd_schemap)bindings,symbol,VOID);
+  else return fd_test(bindings,symbol,VOID);
 }
 
 /* Lexrefs */
 
-static fdtype lexref_prim(fdtype upv,fdtype acrossv)
+static lispval lexref_prim(lispval upv,lispval acrossv)
 {
-  long long up = FD_FIX2INT(upv), across = FD_FIX2INT(acrossv);
+  long long up = FIX2INT(upv), across = FIX2INT(acrossv);
   long long combined = ((up<<5)|(across));
   /* Not the exact range limits, but good enough */
   if ((up>=0)&&(across>=0)&&(up<256)&&(across<256))
-    return FDTYPE_IMMEDIATE(fd_lexref_type,combined);
+    return LISPVAL_IMMEDIATE(fd_lexref_type,combined);
   else if ((up<0)||(up>256))
     return fd_type_error("short","lexref_prim",up);
   else return fd_type_error("short","lexref_prim",across);
 }
 
-static fdtype lexref_value_prim(fdtype lexref)
+static lispval lexref_value_prim(lispval lexref)
 {
   int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up = code/32, across = code%32;
   return fd_init_pair(NULL,FD_INT(up),FD_INT(across));
 }
 
-static int unparse_lexref(u8_output out,fdtype lexref)
+static int unparse_lexref(u8_output out,lispval lexref)
 {
   int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up = code/32, across = code%32;
@@ -116,7 +119,7 @@ static int unparse_lexref(u8_output out,fdtype lexref)
   return 1;
 }
 
-static int dtype_lexref(struct FD_OUTBUF *out,fdtype x)
+static int dtype_lexref(struct FD_OUTBUF *out,lispval x)
 {
   int code = FD_GET_IMMEDIATE(x,fd_lexref_type);
   int up = code/32, across = code%32;
@@ -141,26 +144,26 @@ static int dtype_lexref(struct FD_OUTBUF *out,fdtype x)
 
 /* Code refs */
 
-static fdtype coderef_prim(fdtype offset)
+static lispval coderef_prim(lispval offset)
 {
-  long long off = FD_FIX2INT(offset);
-  return FDTYPE_IMMEDIATE(fd_coderef_type,off);
+  long long off = FIX2INT(offset);
+  return LISPVAL_IMMEDIATE(fd_coderef_type,off);
 }
 
-static fdtype coderef_value_prim(fdtype offset)
+static lispval coderef_value_prim(lispval offset)
 {
   long long off = FD_GET_IMMEDIATE(offset,fd_coderef_type);
   return FD_INT(off);
 }
 
-static int unparse_coderef(u8_output out,fdtype coderef)
+static int unparse_coderef(u8_output out,lispval coderef)
 {
   long long off = FD_GET_IMMEDIATE(coderef,fd_coderef_type);
   u8_printf(out,"#<CODEREF %lld>",off);
   return 1;
 }
 
-static int dtype_coderef(struct FD_OUTBUF *out,fdtype x)
+static int dtype_coderef(struct FD_OUTBUF *out,lispval x)
 {
   int offset = FD_GET_IMMEDIATE(x,fd_coderef_type);
   unsigned char buf[100], *tagname="%CODEREF";
@@ -180,22 +183,22 @@ static int dtype_coderef(struct FD_OUTBUF *out,fdtype x)
 
 /* Symbol lookup */
 
-FD_EXPORT fdtype _fd_symeval(fdtype sym,fd_lexenv env)
+FD_EXPORT lispval _fd_symeval(lispval sym,fd_lexenv env)
 {
   return fd_symeval(sym,env);
 }
 
 /* Assignments */
 
-static int add_to_value(fdtype sym,fdtype val,fd_lexenv env)
+static int add_to_value(lispval sym,lispval val,fd_lexenv env)
 {
   int rv=1;
   if (env) {
-    fdtype bindings=env->env_bindings;
-    fdtype exports=env->env_exports;
+    lispval bindings=env->env_bindings;
+    lispval exports=env->env_exports;
     if ((fd_add(bindings,sym,val))>=0) {
-      if (FD_HASHTABLEP(exports)) {
-        fdtype newval=fd_get(bindings,sym,FD_EMPTY_CHOICE);
+      if (HASHTABLEP(exports)) {
+        lispval newval=fd_get(bindings,sym,EMPTY);
         if (FD_ABORTP(newval))
           rv=-1;
         else {
@@ -210,7 +213,7 @@ static int add_to_value(fdtype sym,fdtype val,fd_lexenv env)
   else return rv;
 }
 
-FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lexenv env)
+FD_EXPORT int fd_bind_value(lispval sym,lispval val,fd_lexenv env)
 {
   /* TODO: Check for checking the return value of calls to
      `fd_bind_value` */
@@ -219,14 +222,14 @@ FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lexenv env)
       fd_poperr(NULL,NULL,NULL,NULL);
       fd_seterr(fd_CantBind,"fd_bind_value",NULL,sym);
       return -1;}
-    if (FD_HASHTABLEP(env->env_exports))
+    if (HASHTABLEP(env->env_exports))
       fd_hashtable_op((fd_hashtable)(env->env_exports),
                       fd_table_replace,sym,val);
     return 1;}
   else return 0;
 }
 
-FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lexenv env)
+FD_EXPORT int fd_add_value(lispval symbol,lispval value,fd_lexenv env)
 {
   if (env->env_copy) env = env->env_copy;
   while (env) {
@@ -240,7 +243,7 @@ FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lexenv env)
   return 0;
 }
 
-FD_EXPORT int fd_assign_value(fdtype symbol,fdtype value,fd_lexenv env)
+FD_EXPORT int fd_assign_value(lispval symbol,lispval value,fd_lexenv env)
 {
   if (env->env_copy) env = env->env_copy;
   while (env) {
@@ -253,7 +256,7 @@ FD_EXPORT int fd_assign_value(fdtype symbol,fdtype value,fd_lexenv env)
       return fd_reterr(fd_ReadOnlyEnv,"fd_assign_value",NULL,symbol);
     else {
       fd_store(env->env_bindings,symbol,value);
-      if (FD_HASHTABLEP(env->env_exports))
+      if (HASHTABLEP(env->env_exports))
         fd_hashtable_op((fd_hashtable)(env->env_exports),
                         fd_table_replace,symbol,value);
       return 1;}}
@@ -262,94 +265,94 @@ FD_EXPORT int fd_assign_value(fdtype symbol,fdtype value,fd_lexenv env)
 
 /* Unpacking expressions, non-inline versions */
 
-FD_EXPORT fdtype _fd_get_arg(fdtype expr,int i)
+FD_EXPORT lispval _fd_get_arg(lispval expr,int i)
 {
   return fd_get_arg(expr,i);
 }
-FD_EXPORT fdtype _fd_get_body(fdtype expr,int i)
+FD_EXPORT lispval _fd_get_body(lispval expr,int i)
 {
   return fd_get_body(expr,i);
 }
 
-static fdtype getopt_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval getopt_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype opts = fd_eval(fd_get_arg(expr,1),env);
+  lispval opts = fd_eval(fd_get_arg(expr,1),env);
   if (FD_ABORTED(opts)) return opts;
   else {
-    fdtype keys = fd_eval(fd_get_arg(expr,2),env);
+    lispval keys = fd_eval(fd_get_arg(expr,2),env);
     if (FD_ABORTED(keys)) {
       fd_decref(opts); return keys;}
     else {
-      fdtype results = FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(opt,opts) {
-        FD_DO_CHOICES(key,keys) {
-          fdtype v = fd_getopt(opt,key,FD_VOID);
+      lispval results = EMPTY;
+      DO_CHOICES(opt,opts) {
+        DO_CHOICES(key,keys) {
+          lispval v = fd_getopt(opt,key,VOID);
           if (FD_ABORTED(v)) {
             fd_decref(results); results = v;
             FD_STOP_DO_CHOICES;}
-          else if (!(FD_VOIDP(v))) {FD_ADD_TO_CHOICE(results,v);}}
+          else if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}
         if (FD_ABORTED(results)) {FD_STOP_DO_CHOICES;}}
       fd_decref(keys); fd_decref(opts);
       if (FD_ABORTED(results)) {
         return results;}
-      else if (FD_EMPTY_CHOICEP(results)) {
-        fdtype dflt_expr = fd_get_arg(expr,3);
-        if (FD_VOIDP(dflt_expr)) return FD_FALSE;
+      else if (EMPTYP(results)) {
+        lispval dflt_expr = fd_get_arg(expr,3);
+        if (VOIDP(dflt_expr)) return FD_FALSE;
         else return fd_eval(dflt_expr,env);}
       else return results;}}
 }
-static fdtype getopt_prim(fdtype opts,fdtype keys,fdtype dflt)
+static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(opt,opts) {
-    FD_DO_CHOICES(key,keys) {
-      fdtype v = fd_getopt(opt,key,FD_VOID);
-      if (!(FD_VOIDP(v))) {FD_ADD_TO_CHOICE(results,v);}}}
-  if (FD_EMPTY_CHOICEP(results)) {
+  lispval results = EMPTY;
+  DO_CHOICES(opt,opts) {
+    DO_CHOICES(key,keys) {
+      lispval v = fd_getopt(opt,key,VOID);
+      if (!(VOIDP(v))) {CHOICE_ADD(results,v);}}}
+  if (EMPTYP(results)) {
     fd_incref(dflt); return dflt;}
   else return results;
 }
-static fdtype testopt_prim(fdtype opts,fdtype key,fdtype val)
+static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {
   if (fd_testopt(opts,key,val)) return FD_TRUE;
   else return FD_FALSE;
 }
-static fdtype optplus_prim(fdtype opts,fdtype key,fdtype val)
+static lispval optplus_prim(lispval opts,lispval key,lispval val)
 {
-  if (FD_VOIDP(val))
+  if (VOIDP(val))
     return fd_conspair(key,fd_incref(opts));
   else return fd_conspair(fd_conspair(key,fd_incref(val)),fd_incref(opts));
 }
 
 /* Quote */
 
-static fdtype quote_evalfn(fdtype obj,fd_lexenv env,fd_stack stake)
+static lispval quote_evalfn(lispval obj,fd_lexenv env,fd_stack stake)
 {
-  if ((FD_PAIRP(obj)) && (FD_PAIRP(FD_CDR(obj))) &&
-      ((FD_CDR(FD_CDR(obj))) == FD_EMPTY_LIST))
+  if ((PAIRP(obj)) && (PAIRP(FD_CDR(obj))) &&
+      ((FD_CDR(FD_CDR(obj))) == NIL))
     return fd_incref(FD_CAR(FD_CDR(obj)));
   else return fd_err(fd_SyntaxError,"QUOTE",NULL,obj);
 }
 
 /* Profiling functions */
 
-static fdtype profile_symbol;
+static lispval profile_symbol;
 
-static fdtype profiled_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
+static lispval profiled_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
+  lispval toeval = fd_get_arg(expr,1);
   double start = u8_elapsed_time();
-  fdtype value = fd_eval(toeval,env);
+  lispval value = fd_eval(toeval,env);
   double finish = u8_elapsed_time();
-  fdtype tag = fd_get_arg(expr,2);
-  fdtype profile_info = fd_symeval(profile_symbol,env), profile_data;
-  if (FD_VOIDP(profile_info)) return value;
-  profile_data = fd_get(profile_info,tag,FD_VOID);
+  lispval tag = fd_get_arg(expr,2);
+  lispval profile_info = fd_symeval(profile_symbol,env), profile_data;
+  if (VOIDP(profile_info)) return value;
+  profile_data = fd_get(profile_info,tag,VOID);
   if (FD_ABORTED(profile_data)) {
     fd_decref(value); fd_decref(profile_info);
     return profile_data;}
-  else if (FD_VOIDP(profile_data)) {
-    fdtype time = fd_init_double(NULL,(finish-start));
+  else if (VOIDP(profile_data)) {
+    lispval time = fd_init_double(NULL,(finish-start));
     profile_data = fd_conspair(FD_INT(1),time);
     fd_store(profile_info,tag,profile_data);}
   else {
@@ -361,28 +364,62 @@ static fdtype profiled_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
   return value;
 }
 
+#if __clang__
+#define DONT_OPTIMIZE  __attribute__((optnone)) 
+#else
+#define DONT_OPTIMIZE __attribute__((optimize("O0"))) 
+#endif
+
 /* These are for wrapping around Scheme code to see in C profilers */
-static fdtype eval1(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval2(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval3(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval4(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval5(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval6(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
-static fdtype eval7(fdtype expr,fd_lexenv env,fd_stack s) { return fd_stack_eval(expr,env,s,0);}
+static DONT_OPTIMIZE lispval eval1(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
+static DONT_OPTIMIZE lispval eval2(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
+static DONT_OPTIMIZE lispval eval3(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
+static DONT_OPTIMIZE lispval eval4(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
+static DONT_OPTIMIZE lispval eval5(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
+static DONT_OPTIMIZE lispval eval6(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
+static DONT_OPTIMIZE lispval eval7(lispval expr,fd_lexenv env,fd_stack s)
+{
+  lispval result = fd_stack_eval(fd_get_arg(expr,1),env,s,0);
+  return result;
+}
 
 /* Google profiler usage */
 
 #if USING_GOOGLE_PROFILER
-static fdtype gprofile_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval gprofile_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   int start = 1; char *filename = NULL;
-  if ((FD_PAIRP(FD_CDR(expr)))&&(FD_STRINGP(FD_CAR(FD_CDR(expr))))) {
-    filename = u8_strdup(FD_STRDATA(FD_CAR(FD_CDR(expr))));
+  if ((PAIRP(FD_CDR(expr)))&&(STRINGP(FD_CAR(FD_CDR(expr))))) {
+    filename = u8_strdup(CSTRING(FD_CAR(FD_CDR(expr))));
     start = 2;}
-  else if ((FD_PAIRP(FD_CDR(expr)))&&(FD_SYMBOLP(FD_CAR(FD_CDR(expr))))) {
-    fdtype val = fd_symeval(FD_CADR(expr),env);
-    if (FD_STRINGP(val)) {
-      filename = u8_strdup(FD_STRDATA(val));
+  else if ((PAIRP(FD_CDR(expr)))&&(SYMBOLP(FD_CAR(FD_CDR(expr))))) {
+    lispval val = fd_symeval(FD_CADR(expr),env);
+    if (STRINGP(val)) {
+      filename = u8_strdup(CSTRING(val));
       fd_decref(val);
       start = 2;}
     else return fd_type_error("filename","GOOGLE/PROFILE",val);}
@@ -392,8 +429,8 @@ static fdtype gprofile_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     filename = u8_strdup(getenv("CPUPROFILE"));
   else filename = u8_mkstring("/tmp/gprof%ld.pid",(long)getpid());
   ProfilerStart(filename); {
-    fdtype fd_value = FD_VOID;
-    fdtype body = fd_get_body(expr,start);
+    lispval fd_value = VOID;
+    lispval body = fd_get_body(expr,start);
     FD_DOLIST(ex,body) {
       fd_decref(fd_value); fd_value = fd_eval(ex,env);
       if (FD_ABORTED(fd_value)) {
@@ -405,32 +442,32 @@ static fdtype gprofile_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     return fd_value;}
 }
 
-static fdtype gprofile_stop()
+static lispval gprofile_stop()
 {
   ProfilerStop();
-  return FD_VOID;
+  return VOID;
 }
 #endif
 
 
 /* Trace functions */
 
-static fdtype timed_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
+static lispval timed_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
+  lispval toeval = fd_get_arg(expr,1);
   double start = u8_elapsed_time();
-  fdtype value = fd_eval(toeval,env);
+  lispval value = fd_eval(toeval,env);
   double finish = u8_elapsed_time();
   u8_message(";; Executed %q in %f seconds, yielding\n;;\t%q",
              toeval,(finish-start),value);
   return value;
 }
 
-static fdtype timed_evalx_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
+static lispval timed_evalx_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
+  lispval toeval = fd_get_arg(expr,1);
   double start = u8_elapsed_time();
-  fdtype value = fd_eval(toeval,env);
+  lispval value = fd_eval(toeval,env);
   double finish = u8_elapsed_time();
   return fd_make_nvector(2,value,fd_init_double(NULL,finish-start));
 }
@@ -470,35 +507,35 @@ static int check_line_length(u8_output out,int off,int max_len)
     return -1;}
 }
 
-static fdtype watchcall(fdtype expr,fd_lexenv env,int with_proc)
+static lispval watchcall(lispval expr,fd_lexenv env,int with_proc)
 {
   struct U8_OUTPUT out;
   u8_string dflt_label="%CALL", label = dflt_label, arglabel="%ARG";
-  fdtype watch, head = fd_get_arg(expr,1), *rail, result = FD_EMPTY_CHOICE;
+  lispval watch, head = fd_get_arg(expr,1), *rail, result = EMPTY;
   int i = 0, n_args, expr_len = fd_seq_length(expr);
-  if (FD_VOIDP(head))
+  if (VOIDP(head))
     return fd_err(fd_SyntaxError,"%WATCHCALL",NULL,expr);
-  else if (FD_STRINGP(head)) {
+  else if (STRINGP(head)) {
     if (expr_len==2)
       return fd_err(fd_SyntaxError,"%WATCHCALL",NULL,expr);
     else {
-      label = u8_strdup(FD_STRDATA(head));
-      arglabel = u8_mkstring("%s/ARG",FD_STRDATA(head));
+      label = u8_strdup(CSTRING(head));
+      arglabel = u8_mkstring("%s/ARG",CSTRING(head));
       if ((expr_len>3)||(FD_APPLICABLEP(fd_get_arg(expr,2)))) {
         watch = fd_get_body(expr,2);}
       else watch = fd_get_arg(expr,2);}}
-  else if ((expr_len==2)&&(FD_PAIRP(head)))
+  else if ((expr_len==2)&&(PAIRP(head)))
     watch = head;
   else watch = fd_get_body(expr,1);
   n_args = fd_seq_length(watch);
-  rail = u8_alloc_n(n_args,fdtype);
+  rail = u8_alloc_n(n_args,lispval);
   U8_INIT_OUTPUT(&out,1024);
   u8_printf(&out,"Watched call %q",watch);
   u8_logger(-10,label,out.u8_outbuf);
   out.u8_write = out.u8_outbuf;
   while (i<n_args) {
-    fdtype arg = fd_get_arg(watch,i);
-    fdtype val = fd_eval(arg,env);
+    lispval arg = fd_get_arg(watch,i);
+    lispval val = fd_eval(arg,env);
     val = fd_simplify_choice(val);
     if (FD_ABORTED(val)) {
       u8_string errstring = fd_errstring(NULL);
@@ -509,8 +546,8 @@ static fdtype watchcall(fdtype expr,fd_lexenv env,int with_proc)
       if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
       u8_free(out.u8_outbuf); u8_free(errstring);
       return val;}
-    if ((i==0)&&(with_proc==0)&&(FD_SYMBOLP(arg))) {}
-    else if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
+    if ((i==0)&&(with_proc==0)&&(SYMBOLP(arg))) {}
+    else if ((PAIRP(arg))||(SYMBOLP(arg))) {
       u8_printf(&out,"%q ==> %q",arg,val);
       u8_logger(-10,arglabel,out.u8_outbuf);
       out.u8_write = out.u8_outbuf;}
@@ -519,9 +556,9 @@ static fdtype watchcall(fdtype expr,fd_lexenv env,int with_proc)
       u8_logger(-10,arglabel,out.u8_outbuf);
       out.u8_write = out.u8_outbuf;}
     rail[i++]=val;}
-  if (FD_CHOICEP(rail[0])) {
-    FD_DO_CHOICES(fn,rail[0]) {
-      fdtype r = fd_apply(fn,n_args-1,rail+1);
+  if (CHOICEP(rail[0])) {
+    DO_CHOICES(fn,rail[0]) {
+      lispval r = fd_apply(fn,n_args-1,rail+1);
       if (FD_ABORTED(r)) {
         u8_string errstring = fd_errstring(NULL);
         i--; while (i>=0) {fd_decref(rail[i]); i--;}
@@ -530,7 +567,7 @@ static fdtype watchcall(fdtype expr,fd_lexenv env,int with_proc)
         if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
         u8_free(out.u8_outbuf); u8_free(errstring);
         return r;}
-      else {FD_ADD_TO_CHOICE(result,r);}}}
+      else {CHOICE_ADD(result,r);}}}
   else result = fd_apply(rail[0],n_args-1,rail+1);
   if (FD_ABORTED(result)) {
     u8_string errstring = fd_errstring(NULL);
@@ -545,30 +582,30 @@ static fdtype watchcall(fdtype expr,fd_lexenv env,int with_proc)
   return result;
 }
 
-static fdtype watchcall_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval watchcall_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return watchcall(expr,env,0);
 }
-static fdtype watchcall_plus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval watchcall_plus_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return watchcall(expr,env,1);
 }
 
-static u8_string get_label(fdtype arg,u8_byte *buf,size_t buflen)
+static u8_string get_label(lispval arg,u8_byte *buf,size_t buflen)
 {
-  if (FD_SYMBOLP(arg))
-    return FD_SYMBOL_NAME(arg);
-  else if (FD_STRINGP(arg))
-    return FD_STRDATA(arg);
-  else if (FD_FIXNUMP(arg))
-    return u8_write_long_long((FD_FIX2INT(arg)),buf,buflen);
+  if (SYMBOLP(arg))
+    return SYM_NAME(arg);
+  else if (STRINGP(arg))
+    return CSTRING(arg);
+  else if (FIXNUMP(arg))
+    return u8_write_long_long((FIX2INT(arg)),buf,buflen);
   else if ((FD_BIGINTP(arg))&&(fd_modest_bigintp((fd_bigint)arg)))
     return u8_write_long_long
       (fd_bigint2int64((fd_bigint)arg),buf,buflen);
   else return NULL;
 }
 
-static fdtype watchptr_prim(fdtype val,fdtype label_arg)
+static lispval watchptr_prim(lispval val,lispval label_arg)
 {
   u8_byte buf[64];
   u8_string label = get_label(label_arg,buf,64);
@@ -580,11 +617,11 @@ static fdtype watchptr_prim(fdtype val,fdtype label_arg)
            "%s%s%s0x%llx [ T0x%llx(%s) data=%llu ] == %q",
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),itype,type_name,data,val);}
-  else if (FD_FIXNUMP(val))
+  else if (FIXNUMP(val))
     u8_log(-10,"%s%s%sFixnum","0x%llx == %d",
            U8OPTSTR("",label,": "),
-           ((unsigned long long)val),FD_FIX2INT(val));
-  else if (FD_OIDP(val)) {
+           ((unsigned long long)val),FIX2INT(val));
+  else if (OIDP(val)) {
     FD_OID addr = FD_OID_ADDR(val);
     u8_log(-10,"OID",
            "%s%s%s0x%llx [ base=%llx off=%llx ] == %llx/%llx",
@@ -600,7 +637,7 @@ static fdtype watchptr_prim(fdtype val,fdtype label_arg)
            U8OPTSTR("",label,": "),
            ((unsigned long long)val),
            ptype,type_name,val);}
-  else if (FD_CONSP(val)) {
+  else if (CONSP(val)) {
     fd_cons c = (fd_cons) val;
     fd_ptr_type ptype = FD_CONS_TYPE(c);
     u8_string type_name = fd_ptr_typename(ptype);
@@ -614,45 +651,45 @@ static fdtype watchptr_prim(fdtype val,fdtype label_arg)
   return fd_incref(val);
 }
 
-static fdtype watched_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
+static lispval watched_eval_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
-  fdtype toeval = fd_get_arg(expr,1);
+  lispval toeval = fd_get_arg(expr,1);
   double start; int oneout = 0;
-  fdtype scan = FD_CDR(expr);
+  lispval scan = FD_CDR(expr);
   u8_string label="%WATCH";
-  if ((FD_PAIRP(toeval))) {
+  if ((PAIRP(toeval))) {
     /* EXPR "label" . watchexprs */
     scan = FD_CDR(scan);
-    if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan)))) {
-      label = FD_STRDATA(FD_CAR(scan)); scan = FD_CDR(scan);}}
-  else if (FD_STRINGP(toeval)) {
+    if ((PAIRP(scan)) && (STRINGP(FD_CAR(scan)))) {
+      label = CSTRING(FD_CAR(scan)); scan = FD_CDR(scan);}}
+  else if (STRINGP(toeval)) {
     /* "label" . watchexprs, no expr, call should be side-effect */
-    label = FD_STRDATA(toeval); scan = FD_CDR(scan);}
-  else if (FD_SYMBOLP(toeval)) {
+    label = CSTRING(toeval); scan = FD_CDR(scan);}
+  else if (SYMBOLP(toeval)) {
     /* If the first argument is a symbol, we change the label and
        treat all the arguments as context variables and output
        them.  */
     label="%WATCHED";}
   else scan = FD_CDR(scan);
-  if (FD_PAIRP(scan)) {
+  if (PAIRP(scan)) {
     int off = 0; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-    if (FD_PAIRP(toeval)) {
+    if (PAIRP(toeval)) {
       u8_printf(&out,"Context for %q: ",toeval);
       off = check_line_length(&out,off,50);}
     /* A watched expr can be just a symbol or pair, which is output as:
          <expr>=<value>
        or a series of "<label>" <expr>, which is output as:
          label=<value> */
-    while (FD_PAIRP(scan)) {
+    while (PAIRP(scan)) {
       /* A watched expr can be just a symbol or pair, which is output as:
            <expr>=<value>
          or a series of "<label>" <expr>, which is output as:
            label=<value> */
-      fdtype towatch = FD_CAR(scan), wval = FD_VOID;
-      if ((FD_STRINGP(towatch)) && (FD_PAIRP(FD_CDR(scan)))) {
-        fdtype label = towatch; u8_string lbl = FD_STRDATA(label);
+      lispval towatch = FD_CAR(scan), wval = VOID;
+      if ((STRINGP(towatch)) && (PAIRP(FD_CDR(scan)))) {
+        lispval label = towatch; u8_string lbl = CSTRING(label);
         towatch = FD_CAR(FD_CDR(scan)); scan = FD_CDR(FD_CDR(scan));
-        wval = ((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
+        wval = ((SYMBOLP(towatch))?(fd_symeval(towatch,env)):
               (fd_eval(towatch,env)));
         if (lbl[0]=='\n') {
           if (oneout) {
@@ -660,15 +697,15 @@ static fdtype watched_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
             else u8_printf(&out," // %s=",lbl+1);}
           else oneout = 1;
           fd_pprint(&out,wval,"   ",0,3,100);
-          if (FD_PAIRP(scan)) {
+          if (PAIRP(scan)) {
             u8_puts(&out,"\n"); off = 0;}}
         else {
           if (oneout) u8_puts(&out," // "); else oneout = 1;
-          u8_printf(&out,"%s=%q",FD_STRDATA(label),wval);
+          u8_printf(&out,"%s=%q",CSTRING(label),wval);
           off = check_line_length(&out,off,100);}
-        fd_decref(wval); wval = FD_VOID;}
+        fd_decref(wval); wval = VOID;}
       else {
-        wval = ((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
+        wval = ((SYMBOLP(towatch))?(fd_symeval(towatch,env)):
               (fd_eval(towatch,env)));
         scan = FD_CDR(scan);
         if (oneout) u8_printf(&out," // %q=%q",towatch,wval);
@@ -676,18 +713,18 @@ static fdtype watched_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
           u8_printf(&out,"%q=%q",towatch,wval);
           oneout = 1;}
         off = check_line_length(&out,off,50);
-        fd_decref(wval); wval = FD_VOID;}}
+        fd_decref(wval); wval = VOID;}}
     u8_logger(-10,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start = u8_elapsed_time();
-  if (FD_SYMBOLP(toeval))
+  if (SYMBOLP(toeval))
     return fd_eval(toeval,env);
-  else if (FD_STRINGP(toeval)) {
+  else if (STRINGP(toeval)) {
     /* This is probably the 'side effect' form of %WATCH, so
        we don't bother 'timing' it. */
     return fd_incref(toeval);}
   else {
-    fdtype value = fd_eval(toeval,env);
+    lispval value = fd_eval(toeval,env);
     double howlong = u8_elapsed_time()-start;
     if (howlong>1.0)
       u8_log(-10,label,"<%.3fs> %q => %q",howlong*1000,toeval,value);
@@ -702,14 +739,14 @@ static fdtype watched_eval_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
 
 /* The evaluator itself */
 
-static fdtype call_function(u8_string fname,fdtype f,
-                            fdtype expr,fd_lexenv env,
+static lispval call_function(u8_string fname,lispval f,
+                            lispval expr,fd_lexenv env,
                             fd_stack s,
                             int tail);
-static int applicable_choicep(fdtype choice);
+static int applicable_choicep(lispval choice);
 
 FD_EXPORT
-fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
+lispval fd_stack_eval(lispval expr,fd_lexenv env,
                      struct FD_STACK *_stack,
                      int tail)
 {
@@ -720,38 +757,38 @@ fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
   case fd_code_type:
     return fd_incref(expr);
   case fd_symbol_type: {
-    fdtype val = fd_symeval(expr,env);
-    if (FD_EXPECT_FALSE(FD_VOIDP(val)))
+    lispval val = fd_symeval(expr,env);
+    if (PRED_FALSE(VOIDP(val)))
       return fd_err(fd_UnboundIdentifier,"fd_eval",
-                    FD_SYMBOL_NAME(expr),expr);
+                    SYM_NAME(expr),expr);
     else return val;}
   case fd_pair_type: {
-    fdtype head = (FD_CAR(expr));
+    lispval head = (FD_CAR(expr));
     if (FD_OPCODEP(head))
       return fd_opcode_dispatch(head,expr,env,_stack,tail);
     else if (head == quote_symbol)
       return fd_refcar(FD_CDR(expr));
     else if (head == comment_symbol)
-      return FD_VOID;
+      return VOID;
     else if (!(fd_stackcheck())) {
       u8_byte buf[128]=""; struct U8_OUTPUT out;
       U8_INIT_FIXED_OUTPUT(&out,128,buf);
       u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
       return fd_err(fd_StackOverflow,"fd_tail_eval",buf,expr);}
     else {
-      u8_string label=(FD_SYMBOLP(head)) ? (FD_SYMBOL_NAME(head)) : (NULL);
+      u8_string label=(SYMBOLP(head)) ? (SYM_NAME(head)) : (NULL);
       FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
-      fdtype result = FD_VOID, headval = FD_VOID;
+      lispval result = VOID, headval = VOID;
       int gc_head=0;
       if (FD_FCNIDP(head)) {
         headval=fd_fcnid_ref(head);
-        if (FD_PRECHOICEP(headval)) {
+        if (PRECHOICEP(headval)) {
           headval=fd_make_simple_choice(headval);
           gc_head=1;}}
-      else if ( (FD_SYMBOLP(head)) || (FD_PAIRP(head)) ||
-                (FD_CODEP(head)) || (FD_CHOICEP(head)) ) {
+      else if ( (SYMBOLP(head)) || (PAIRP(head)) ||
+                (FD_CODEP(head)) || (CHOICEP(head)) ) {
         headval=stack_eval(head,env,eval_stack);
-        if (FD_PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
+        if (PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
         gc_head=1;}
       else headval=head;
       int headtype = FD_PTR_TYPE(headval);
@@ -776,8 +813,8 @@ fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
         struct FD_MACRO *macrofn=
           fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
         eval_stack->stack_type="macro";
-        fdtype xformer = macrofn->macro_transformer;
-        fdtype new_expr = fd_call(eval_stack,xformer,1,&expr);
+        lispval xformer = macrofn->macro_transformer;
+        lispval new_expr = fd_call(eval_stack,xformer,1,&expr);
         if (FD_ABORTED(new_expr))
           result = fd_err(fd_SyntaxError,
                           _("macro expansion"),NULL,new_expr);
@@ -800,13 +837,13 @@ fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
                                eval_stack,tail);}
         else if (FD_ABORTED(headval)) {
           result=headval;}
-        else if (FD_VOIDP(headval)) {
+        else if (VOIDP(headval)) {
           result=fd_err(fd_UnboundIdentifier,"for function",
-                        ((FD_SYMBOLP(head))?(FD_SYMBOL_NAME(head)):
+                        ((SYMBOLP(head))?(SYM_NAME(head)):
                          (NULL)),
                         head);}
-        else if (FD_EMPTY_CHOICEP(headval) )
-          result=FD_EMPTY_CHOICE;
+        else if (EMPTYP(headval) )
+          result=EMPTY;
         else result=fd_err(fd_NotAFunction,NULL,NULL,headval);}
       if (!tail) {
         if (FD_TAILCALLP(result)) result=fd_finish_call(result);
@@ -816,35 +853,35 @@ fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   case fd_choice_type: {
-    fdtype result = FD_EMPTY_CHOICE;
+    lispval result = EMPTY;
     FD_PUSH_STACK(eval_stack,fd_ndevalstack_type,NULL,expr);
-    FD_DO_CHOICES(each_expr,expr) {
-      fdtype r = stack_eval(each_expr,env,eval_stack);
+    DO_CHOICES(each_expr,expr) {
+      lispval r = stack_eval(each_expr,env,eval_stack);
       if (FD_ABORTED(r)) {
         FD_STOP_DO_CHOICES;
         fd_decref(result);
         fd_pop_stack(eval_stack);
         return r;}
-      else {FD_ADD_TO_CHOICE(result,r);}}
+      else {CHOICE_ADD(result,r);}}
     fd_pop_stack(eval_stack);
     return result;}
   case fd_prechoice_type: {
-    fdtype exprs = fd_make_simple_choice(expr);
+    lispval exprs = fd_make_simple_choice(expr);
     FD_PUSH_STACK(eval_stack,fd_evalstack_type,NULL,expr);
-    if (FD_CHOICEP(exprs)) {
-      fdtype results = FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(expr,exprs) {
-        fdtype result = stack_eval(expr,env,eval_stack);
+    if (CHOICEP(exprs)) {
+      lispval results = EMPTY;
+      DO_CHOICES(expr,exprs) {
+        lispval result = stack_eval(expr,env,eval_stack);
         if (FD_ABORTP(result)) {
           FD_STOP_DO_CHOICES;
           fd_decref(results);
           return result;}
-        else {FD_ADD_TO_CHOICE(results,result);}}
+        else {CHOICE_ADD(results,result);}}
       fd_decref(exprs);
       fd_pop_stack(eval_stack);
       return results;}
     else {
-      fdtype result = fd_stack_eval(exprs,env,eval_stack,tail);
+      lispval result = fd_stack_eval(exprs,env,eval_stack,tail);
       fd_decref(exprs);
       fd_pop_stack(eval_stack);
       return result;}}
@@ -852,9 +889,9 @@ fdtype fd_stack_eval(fdtype expr,fd_lexenv env,
     return fd_incref(expr);}
 }
 
-static int applicable_choicep(fdtype headvals)
+static int applicable_choicep(lispval headvals)
 {
-  FD_DO_CHOICES(hv,headvals) {
+  DO_CHOICES(hv,headvals) {
     int hvtype = FD_PRIM_TYPE(hv);
     /* Check that all the elements are either applicable or special
        forms and not mixed */
@@ -869,83 +906,83 @@ static int applicable_choicep(fdtype headvals)
   return 1;
 }
 
-FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lexenv env)
+FD_EXPORT lispval _fd_eval(lispval expr,fd_lexenv env)
 {
-  fdtype result = fd_tail_eval(expr,env);
+  lispval result = fd_tail_eval(expr,env);
   return fd_finish_call(result);
 }
 
-static int count_args(fdtype args)
+static int count_args(lispval args)
 {
   int n_args = 0; FD_DOLIST(arg,args) {
-    if (!((FD_PAIRP(arg)) &&
+    if (!((PAIRP(arg)) &&
           (FD_EQ(FD_CAR(arg),comment_symbol))))
       n_args++;}
   return n_args;
 }
 
-static fdtype process_arg(fdtype arg,fd_lexenv env,
+static lispval process_arg(lispval arg,fd_lexenv env,
                           struct FD_STACK *_stack)
 {
-  fdtype argval = fast_eval(arg,env);
-  if (FD_EXPECT_FALSE(FD_VOIDP(argval)))
+  lispval argval = fast_eval(arg,env);
+  if (PRED_FALSE(VOIDP(argval)))
     return fd_err(fd_VoidArgument,"call_function/process_arg",NULL,arg);
-  else if (FD_EXPECT_FALSE(FD_ABORTED(argval)))
+  else if (PRED_FALSE(FD_ABORTED(argval)))
     return argval;
-  else if ((FD_CONSP(argval))&&(FD_PRECHOICEP(argval)))
+  else if ((CONSP(argval))&&(PRECHOICEP(argval)))
     return fd_simplify_choice(argval);
   else return argval;
 }
 
-#define ND_ARGP(v) ((FD_CHOICEP(v))||(FD_QCHOICEP(v)))
+#define ND_ARGP(v) ((CHOICEP(v))||(QCHOICEP(v)))
 
-FD_FASTOP int commentp(fdtype arg)
+FD_FASTOP int commentp(lispval arg)
 {
   return
-    (FD_EXPECT_FALSE
-     ((FD_PAIRP(arg)) &&
+    (PRED_FALSE
+     ((PAIRP(arg)) &&
       (FD_EQ(FD_CAR(arg),comment_symbol))));
 }
 
-static fdtype call_function(u8_string fname,fdtype fn,
-                            fdtype expr,fd_lexenv env,
+static lispval call_function(u8_string fname,lispval fn,
+                            lispval expr,fd_lexenv env,
                             struct FD_STACK *stack,
                             int tail)
 {
-  fdtype arg_exprs = fd_get_body(expr,1), result=FD_VOID;
+  lispval arg_exprs = fd_get_body(expr,1), result=VOID;
   int n_args = count_args(arg_exprs), arg_count = 0;
   int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
-  fdtype argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
+  lispval argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
   if (FD_FUNCTIONP(fn)) {
     struct FD_FUNCTION *fcn=(fd_function)fn;
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;
     if (max_arity<0) {}
-    else if (FD_EXPECT_FALSE(n_args>max_arity))
+    else if (PRED_FALSE(n_args>max_arity))
       return fd_err(fd_TooManyArgs,"call_function",fcn->fcn_name,expr);
-    else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
+    else if (PRED_FALSE((min_arity>=0) && (n_args<min_arity)))
       return fd_err(fd_TooFewArgs,"call_function",fcn->fcn_name,expr);
     else {}
     d_prim=(fcn->fcn_ndcall==0);}
-  int i=0; while (i<argbuf_len) argbuf[i++]=FD_VOID;
+  int i=0; while (i<argbuf_len) argbuf[i++]=VOID;
   /* Now we evaluate each of the subexpressions to fill the arg
      vector */
   {FD_DOLIST(elt,arg_exprs) {
       if (commentp(elt)) continue;
-      fdtype argval = process_arg(elt,env,stack);
+      lispval argval = process_arg(elt,env,stack);
       if ( (FD_ABORTED(argval)) ||
-           ( (d_prim) && (FD_EMPTY_CHOICEP(argval)) ) ) {
+           ( (d_prim) && (EMPTYP(argval)) ) ) {
         /* Clean up the arguments we've already evaluated */
         if (gc_args) fd_decref_vec(argbuf,arg_count,0);
         return argval;}
-      else if (FD_CONSP(argval)) {
+      else if (CONSP(argval)) {
         if ( (nd_args == 0) && (ND_ARGP(argval)) ) nd_args = 1;
         gc_args = 1;}
       else {}
       argbuf[arg_count++]=argval;}}
   if ((tail) && (fd_optimize_tail_calls) && (FD_SPROCP(fn)))
     result=fd_tail_call(fn,arg_count,argbuf);
-  else if ((FD_CHOICEP(fn)) ||
-           (FD_PRECHOICEP(fn)) ||
+  else if ((CHOICEP(fn)) ||
+           (PRECHOICEP(fn)) ||
            ((d_prim) && (nd_args)))
     result=fd_ndcall(stack,fn,arg_count,argbuf);
   else result=fd_dcall(stack,fn,arg_count,argbuf);
@@ -953,32 +990,32 @@ static fdtype call_function(u8_string fname,fdtype fn,
   return result;
 }
 
-FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lexenv env)
+FD_EXPORT lispval fd_eval_exprs(lispval exprs,fd_lexenv env)
 {
-  if (FD_PAIRP(exprs)) {
-    fdtype next = FD_CDR(exprs), val = FD_VOID;
-    while (FD_PAIRP(exprs)) {
-      fd_decref(val); val = FD_VOID;
-      if (FD_EMPTY_LISTP(next))
+  if (PAIRP(exprs)) {
+    lispval next = FD_CDR(exprs), val = VOID;
+    while (PAIRP(exprs)) {
+      fd_decref(val); val = VOID;
+      if (NILP(next))
         return fd_tail_eval(FD_CAR(exprs),env);
       else {
         val = fd_eval(FD_CAR(exprs),env);
         if (FD_ABORTED(val)) return val;
         else exprs = next;
-        if (FD_PAIRP(exprs)) next = FD_CDR(exprs);}}
+        if (PAIRP(exprs)) next = FD_CDR(exprs);}}
     return val;}
   else if (FD_CODEP(exprs)) {
     struct FD_VECTOR *v = fd_consptr(fd_vector,exprs,fd_code_type);
-    int len = v->fdvec_length; fdtype *elts = v->fdvec_elts, val = FD_VOID;
+    int len = v->vec_length; lispval *elts = v->vec_elts, val = VOID;
     int i = 0; while (i<len) {
-      fdtype expr = elts[i++];
-      fd_decref(val); val = FD_VOID;
+      lispval expr = elts[i++];
+      fd_decref(val); val = VOID;
       if (i == len)
         return fd_eval(expr,env);
       else val = fd_eval(expr,env);
       if (FD_ABORTED(val)) return val;}
     return val;}
-  else return FD_VOID;
+  else return VOID;
 }
 
 /* Module system */
@@ -986,17 +1023,18 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lexenv env)
 static struct FD_HASHTABLE module_map, safe_module_map;
 static fd_lexenv default_env = NULL, safe_default_env = NULL;
 
-FD_EXPORT fd_lexenv fd_make_env(fdtype bindings,fd_lexenv parent)
+FD_EXPORT fd_lexenv fd_make_env(lispval bindings,fd_lexenv parent)
 {
-  if (FD_EXPECT_FALSE(!(FD_TABLEP(bindings)) )) {
+  if (PRED_FALSE(!(TABLEP(bindings)) )) {
+    u8_byte buf[100];
     fd_seterr(fd_TypeError,"fd_make_env",
-              u8_mkstring(_("object is not a %m"),"table"),
+              u8_sprintf(buf,100,_("object is not a %m"),"table"),
               bindings);
     return NULL;}
   else {
     struct FD_LEXENV *e = u8_alloc(struct FD_LEXENV);
     FD_INIT_FRESH_CONS(e,fd_lexenv_type);
-    e->env_bindings = bindings; e->env_exports = FD_VOID;
+    e->env_bindings = bindings; e->env_exports = VOID;
     e->env_parent = fd_copy_env(parent);
     e->env_copy = e;
     return e;}
@@ -1009,11 +1047,12 @@ FD_EXPORT
     Returns: a consed environment whose bindings and exports
   are the exports table.  This indicates that the environment
   is "for export only" and cannot be modified. */
-fd_lexenv fd_make_export_env(fdtype exports,fd_lexenv parent)
+fd_lexenv fd_make_export_env(lispval exports,fd_lexenv parent)
 {
-  if (FD_EXPECT_FALSE(!(FD_HASHTABLEP(exports)) )) {
+  if (PRED_FALSE(!(HASHTABLEP(exports)) )) {
+    u8_byte buf[100];
     fd_seterr(fd_TypeError,"fd_make_env",
-              u8_mkstring(_("object is not a %m"),"hashtable"),
+              u8_sprintf(buf,100,_("object is not a %m"),"hashtable"),
               exports);
     return NULL;}
   else {
@@ -1026,10 +1065,10 @@ fd_lexenv fd_make_export_env(fdtype exports,fd_lexenv parent)
     return e;}
 }
 
-FD_EXPORT fd_lexenv fd_new_lexenv(fdtype bindings,int safe)
+FD_EXPORT fd_lexenv fd_new_lexenv(lispval bindings,int safe)
 {
   if (scheme_initialized==0) fd_init_scheme();
-  if (FD_VOIDP(bindings))
+  if (VOIDP(bindings))
     bindings = fd_make_hashtable(NULL,17);
   else fd_incref(bindings);
   return fd_make_env(bindings,((safe)?(safe_default_env):(default_env)));
@@ -1045,7 +1084,7 @@ FD_EXPORT fd_lexenv fd_safe_working_lexenv()
   return fd_make_env(fd_make_hashtable(NULL,17),safe_default_env);
 }
 
-FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
+FD_EXPORT lispval fd_register_module_x(lispval name,lispval module,int flags)
 {
   if (flags&FD_MODULE_SAFE)
     fd_hashtable_store(&safe_module_map,name,module);
@@ -1055,7 +1094,7 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   if (FD_LEXENVP(module)) {
     fd_lexenv env = (fd_lexenv)module;
     fd_add(env->env_bindings,moduleid_symbol,name);}
-  else if (FD_HASHTABLEP(module))
+  else if (HASHTABLEP(module))
     fd_add(module,moduleid_symbol,name);
   else {}
 
@@ -1081,14 +1120,14 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   return module;
 }
 
-FD_EXPORT fdtype fd_register_module(u8_string name,fdtype module,int flags)
+FD_EXPORT lispval fd_register_module(u8_string name,lispval module,int flags)
 {
   return fd_register_module_x(fd_intern(name),module,flags);
 }
 
-FD_EXPORT fdtype fd_new_module(char *name,int flags)
+FD_EXPORT lispval fd_new_module(char *name,int flags)
 {
-  fdtype module_name, module, as_stored;
+  lispval module_name, module, as_stored;
   if (scheme_initialized==0) fd_init_scheme();
   module_name = fd_intern(name);
   module = fd_make_hashtable(NULL,0);
@@ -1096,11 +1135,11 @@ FD_EXPORT fdtype fd_new_module(char *name,int flags)
   if (flags&FD_MODULE_SAFE) {
     fd_hashtable_op
       (&safe_module_map,fd_table_default,module_name,module);
-    as_stored = fd_get((fdtype)&safe_module_map,module_name,FD_VOID);}
+    as_stored = fd_get((lispval)&safe_module_map,module_name,VOID);}
   else {
     fd_hashtable_op
       (&module_map,fd_table_default,module_name,module);
-    as_stored = fd_get((fdtype)&module_map,module_name,FD_VOID);}
+    as_stored = fd_get((lispval)&module_map,module_name,VOID);}
   if (!(FD_EQ(module,as_stored))) {
     fd_decref(module);
     return as_stored;}
@@ -1112,72 +1151,86 @@ FD_EXPORT fdtype fd_new_module(char *name,int flags)
   return module;
 }
 
-FD_EXPORT fdtype fd_get_module(fdtype name,int safe)
+FD_EXPORT lispval fd_get_module(lispval name,int safe)
 {
   if (safe)
-    return fd_hashtable_get(&safe_module_map,name,FD_VOID);
+    return fd_hashtable_get(&safe_module_map,name,VOID);
   else {
-    fdtype module = fd_hashtable_get(&module_map,name,FD_VOID);
-    if (FD_VOIDP(module))
-      return fd_hashtable_get(&safe_module_map,name,FD_VOID);
+    lispval module = fd_hashtable_get(&module_map,name,VOID);
+    if (VOIDP(module))
+      return fd_hashtable_get(&safe_module_map,name,VOID);
     else return module;}
 }
 
-FD_EXPORT int fd_discard_module(fdtype name,int safe)
+FD_EXPORT int fd_discard_module(lispval name,int safe)
 {
   if (safe)
-    return fd_hashtable_store(&safe_module_map,name,FD_VOID);
+    return fd_hashtable_store(&safe_module_map,name,VOID);
   else {
-    fdtype module = fd_hashtable_get(&module_map,name,FD_VOID);
-    if (FD_VOIDP(module))
-      return fd_hashtable_store(&safe_module_map,name,FD_VOID);
+    lispval module = fd_hashtable_get(&module_map,name,VOID);
+    if (VOIDP(module))
+      return fd_hashtable_store(&safe_module_map,name,VOID);
     else {
       fd_decref(module);
-      return fd_hashtable_store(&module_map,name,FD_VOID);}}
+      return fd_hashtable_store(&module_map,name,VOID);}}
 }
 
 /* Making some functions */
 
-FD_EXPORT fdtype fd_make_evalfn(u8_string name,fd_eval_handler fn)
+FD_EXPORT lispval fd_make_evalfn(u8_string name,fd_eval_handler fn)
 {
   struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
   FD_INIT_CONS(f,fd_evalfn_type);
   f->evalfn_name = u8_strdup(name); 
   f->evalfn_filename = NULL; 
   f->evalfn_handler = fn;
-  return FDTYPE_CONS(f);
+  return LISP_CONS(f);
 }
 
-FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_eval_handler fn)
+FD_EXPORT void fd_defspecial(lispval mod,u8_string name,fd_eval_handler fn)
 {
   struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
   FD_INIT_CONS(f,fd_evalfn_type);
   f->evalfn_name = u8_strdup(name); 
   f->evalfn_handler = fn; 
   f->evalfn_filename = NULL;
-  fd_store(mod,fd_intern(name),FDTYPE_CONS(f));
-  fd_decref(FDTYPE_CONS(f));
+  fd_store(mod,fd_intern(name),LISP_CONS(f));
+  fd_decref(LISP_CONS(f));
+}
+
+FD_EXPORT void fd_new_evalfn(lispval mod,u8_string name,
+                             u8_string filename,u8_string doc,
+                             fd_eval_handler fn)
+{
+  struct FD_EVALFN *f = u8_alloc(struct FD_EVALFN);
+  FD_INIT_CONS(f,fd_evalfn_type);
+  f->evalfn_name = u8_strdup(name); 
+  f->evalfn_handler = fn; 
+  f->evalfn_filename = filename;
+  f->evalfn_documentation = doc;
+  fd_store(mod,fd_intern(name),LISP_CONS(f));
+  fd_decref(LISP_CONS(f));
 }
 
 /* The Evaluator */
 
-static fdtype eval_evalfn(fdtype x,fd_lexenv env,fd_stack stack)
+static lispval eval_evalfn(lispval x,fd_lexenv env,fd_stack stack)
 {
-  fdtype expr_expr = fd_get_arg(x,1);
-  fdtype expr = fd_stack_eval(expr_expr,env,stack,0);
-  fdtype result = fd_stack_eval(expr,env,stack,0);
+  lispval expr_expr = fd_get_arg(x,1);
+  lispval expr = fd_stack_eval(expr_expr,env,stack,0);
+  lispval result = fd_stack_eval(expr,env,stack,0);
   fd_decref(expr);
   return result;
 }
 
-static fdtype boundp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval boundp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype symbol = fd_get_arg(expr,1);
-  if (!(FD_SYMBOLP(symbol)))
+  lispval symbol = fd_get_arg(expr,1);
+  if (!(SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
   else {
-    fdtype val = fd_symeval(symbol,env);
-    if ((FD_VOIDP(val))||(val == FD_DEFAULT_VALUE))
+    lispval val = fd_symeval(symbol,env);
+    if ((VOIDP(val))||(val == FD_DEFAULT_VALUE))
       return FD_FALSE;
     else if (val == FD_UNBOUND) 
       return FD_FALSE;
@@ -1186,52 +1239,52 @@ static fdtype boundp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
       return FD_TRUE;}}
 }
 
-static fdtype modref_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval modref_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype module = fd_get_arg(expr,1);
-  fdtype symbol = fd_get_arg(expr,2);
-  if ((FD_VOIDP(module))||(FD_VOIDP(module)))
+  lispval module = fd_get_arg(expr,1);
+  lispval symbol = fd_get_arg(expr,2);
+  if ((VOIDP(module))||(VOIDP(module)))
     return fd_err(fd_SyntaxError,"modref_evalfn",NULL,fd_incref(expr));
-  else if (!(FD_HASHTABLEP(module)))
+  else if (!(HASHTABLEP(module)))
     return fd_type_error("module hashtable","modref_evalfn",module);
-  else if (!(FD_SYMBOLP(symbol)))
+  else if (!(SYMBOLP(symbol)))
     return fd_type_error("symbol","modref_evalfn",symbol);
   else return fd_hashtable_get((fd_hashtable)module,symbol,FD_UNBOUND);
 }
 
-static fdtype voidp_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval voidp_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype result = fd_eval(fd_get_arg(expr,1),env);
-  if (FD_VOIDP(result)) return FD_TRUE;
+  lispval result = fd_eval(fd_get_arg(expr,1),env);
+  if (VOIDP(result)) return FD_TRUE;
   else {
     fd_decref(result);
     return FD_FALSE;}
 }
 
-static fdtype env_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval env_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  return (fdtype)fd_copy_env(env);
+  return (lispval)fd_copy_env(env);
 }
 
-static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
+static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
 {
-  if (!(FD_SYMBOLP(symbol)))
+  if (!(SYMBOLP(symbol)))
     return fd_type_error(_("symbol"),"boundp_prim",symbol);
   else if (FD_LEXENVP(envarg)) {
     fd_lexenv env = (fd_lexenv)envarg;
-    fdtype val = fd_symeval(symbol,env);
-    if (FD_VOIDP(val)) return FD_FALSE;
+    lispval val = fd_symeval(symbol,env);
+    if (VOIDP(val)) return FD_FALSE;
     else if (val == FD_DEFAULT_VALUE) return FD_FALSE;
     else if (val == FD_UNBOUND) return FD_FALSE;
     else return FD_TRUE;}
-  else if (FD_TABLEP(envarg)) {
-    fdtype val = fd_get(envarg,symbol,FD_VOID);
-    if (FD_VOIDP(val)) return FD_FALSE;
+  else if (TABLEP(envarg)) {
+    lispval val = fd_get(envarg,symbol,VOID);
+    if (VOIDP(val)) return FD_FALSE;
     else return FD_TRUE;}
   else return fd_type_error(_("environment"),"symbol_boundp_prim",envarg);
 }
 
-static fdtype environmentp_prim(fdtype arg)
+static lispval environmentp_prim(lispval arg)
 {
   if (FD_LEXENVP(arg))
     return FD_TRUE;
@@ -1240,33 +1293,33 @@ static fdtype environmentp_prim(fdtype arg)
 
 /* Withenv forms */
 
-static fdtype withenv(fdtype expr,fd_lexenv env,
+static lispval withenv(lispval expr,fd_lexenv env,
                       fd_lexenv consed_env,u8_context cxt)
 {
-  fdtype bindings = fd_get_arg(expr,1);
-  if (FD_VOIDP(bindings))
+  lispval bindings = fd_get_arg(expr,1);
+  if (VOIDP(bindings))
     return fd_err(fd_TooFewExpressions,cxt,NULL,expr);
-  else if ((FD_EMPTY_LISTP(bindings))||(FD_FALSEP(bindings))) {}
-  else if (FD_PAIRP(bindings)) {
+  else if ((NILP(bindings))||(FALSEP(bindings))) {}
+  else if (PAIRP(bindings)) {
     FD_DOLIST(varval,bindings) {
-      if ((FD_PAIRP(varval))&&(FD_SYMBOLP(FD_CAR(varval)))&&
-          (FD_PAIRP(FD_CDR(varval)))&&
-          (FD_EMPTY_LISTP(FD_CDR(FD_CDR(varval))))) {
-        fdtype var = FD_CAR(varval), val = fd_eval(FD_CADR(varval),env);
-        if (FD_ABORTED(val)) return FD_ERROR_VALUE;
+      if ((PAIRP(varval))&&(SYMBOLP(FD_CAR(varval)))&&
+          (PAIRP(FD_CDR(varval)))&&
+          (NILP(FD_CDR(FD_CDR(varval))))) {
+        lispval var = FD_CAR(varval), val = fd_eval(FD_CADR(varval),env);
+        if (FD_ABORTED(val)) return FD_ERROR;
         int rv=fd_bind_value(var,val,consed_env);
         fd_decref(val);
-        if (rv<0) return FD_ERROR_VALUE;}
+        if (rv<0) return FD_ERROR;}
       else return fd_err(fd_SyntaxError,cxt,NULL,expr);}}
-  else if (FD_TABLEP(bindings)) {
-    fdtype keys = fd_getkeys(bindings);
-    FD_DO_CHOICES(key,keys) {
-      if (FD_SYMBOLP(key)) {
-         int rv=0; fdtype value = fd_get(bindings,key,FD_VOID);
-        if (!(FD_VOIDP(value)))
+  else if (TABLEP(bindings)) {
+    lispval keys = fd_getkeys(bindings);
+    DO_CHOICES(key,keys) {
+      if (SYMBOLP(key)) {
+         int rv=0; lispval value = fd_get(bindings,key,VOID);
+        if (!(VOIDP(value)))
           rv=fd_bind_value(key,value,consed_env);
         fd_decref(value);
-        if (rv<0) return FD_ERROR_VALUE;}
+        if (rv<0) return FD_ERROR;}
       else {
         FD_STOP_DO_CHOICES;
         fd_recycle_lexenv(consed_env);
@@ -1274,8 +1327,8 @@ static fdtype withenv(fdtype expr,fd_lexenv env,
       fd_decref(keys);}}
   else return fd_err(fd_SyntaxError,cxt,NULL,expr);
   /* Execute the body */ {
-    fdtype result = FD_VOID;
-    fdtype body = fd_get_body(expr,2);
+    lispval result = VOID;
+    lispval body = fd_get_body(expr,2);
     FD_DOLIST(elt,body) {
       fd_decref(result);
       result = fd_eval(elt,consed_env);
@@ -1284,51 +1337,51 @@ static fdtype withenv(fdtype expr,fd_lexenv env,
     return result;}
 }
 
-static fdtype withenv_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval withenv_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_lexenv consed_env = fd_working_lexenv();
-  fdtype result = withenv(expr,env,consed_env,"WITHENV");
+  lispval result = withenv(expr,env,consed_env,"WITHENV");
   fd_recycle_lexenv(consed_env);
   return result;
 }
 
-static fdtype withenv_safe_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval withenv_safe_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   fd_lexenv consed_env = fd_safe_working_lexenv();
-  fdtype result = withenv(expr,env,consed_env,"WITHENV/SAFE");
+  lispval result = withenv(expr,env,consed_env,"WITHENV/SAFE");
   fd_recycle_lexenv(consed_env);
   return result;
 }
 
 /* Eval/apply related primitives */
 
-static fdtype get_arg_prim(fdtype expr,fdtype elt,fdtype dflt)
+static lispval get_arg_prim(lispval expr,lispval elt,lispval dflt)
 {
-  if (FD_PAIRP(expr))
+  if (PAIRP(expr))
     if (FD_UINTP(elt)) {
-      int i = 0, lim = FD_FIX2INT(elt); fdtype scan = expr;
-      while ((i<lim) && (FD_PAIRP(scan))) {
+      int i = 0, lim = FIX2INT(elt); lispval scan = expr;
+      while ((i<lim) && (PAIRP(scan))) {
         scan = FD_CDR(scan); i++;}
-      if (FD_PAIRP(scan)) return fd_incref(FD_CAR(scan));
+      if (PAIRP(scan)) return fd_incref(FD_CAR(scan));
       else return fd_incref(dflt);}
     else return fd_type_error(_("fixnum"),"get_arg_prim",elt);
   else return fd_type_error(_("pair"),"get_arg_prim",expr);
 }
 
-static fdtype apply_lexpr(int n,fdtype *args)
+static lispval apply_lexpr(int n,lispval *args)
 {
-  FD_DO_CHOICES(fn,args[0])
+  DO_CHOICES(fn,args[0])
     if (!(FD_APPLICABLEP(args[0]))) {
       FD_STOP_DO_CHOICES;
       return fd_type_error("function","apply_lexpr",args[0]);}
   {
-    fdtype results = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(fn,args[0]) {
-      FD_DO_CHOICES(final_arg,args[n-1]) {
-        fdtype result = FD_VOID;
+    lispval results = EMPTY;
+    DO_CHOICES(fn,args[0]) {
+      DO_CHOICES(final_arg,args[n-1]) {
+        lispval result = VOID;
         int final_length = fd_seq_length(final_arg);
         int n_args = (n-2)+final_length;
-        fdtype *values = u8_alloc_n(n_args,fdtype);
+        lispval *values = u8_alloc_n(n_args,lispval);
         int i = 1, j = 0, lim = n-1;
         /* Copy regular arguments */
         while (i<lim) {values[j]=fd_incref(args[i]); j++; i++;}
@@ -1342,7 +1395,7 @@ static fdtype apply_lexpr(int n,fdtype *args)
           u8_free(values);
           results = result;
           break;}
-        else {FD_ADD_TO_CHOICE(results,result);}
+        else {CHOICE_ADD(results,result);}
         i = 0; while (i<n_args) {fd_decref(values[i]); i++;}
         u8_free(values);}
       if (FD_ABORTED(results)) {
@@ -1356,33 +1409,43 @@ static fdtype apply_lexpr(int n,fdtype *args)
 
 extern void fd_init_coreprims_c(void);
 
-static fdtype lispenv_get(fdtype e,fdtype s,fdtype d)
+static lispval lispenv_get(lispval e,lispval s,lispval d)
 {
-  fdtype result = fd_symeval(s,FD_XENV(e));
-  if (FD_VOIDP(result)) return fd_incref(d);
+  lispval result = fd_symeval(s,FD_XENV(e));
+  if (VOIDP(result)) return fd_incref(d);
   else return result;
 }
-static int lispenv_store(fdtype e,fdtype s,fdtype v)
+static int lispenv_store(lispval e,lispval s,lispval v)
 {
   return fd_bind_value(s,v,FD_XENV(e));
 }
 
-static int lispenv_add(fdtype e,fdtype s,fdtype v)
+static int lispenv_add(lispval e,lispval s,lispval v)
 {
   return add_to_value(s,v,FD_XENV(e));
 }
 
 /* Some datatype methods */
 
-static int unparse_evalfn(u8_output out,fdtype x)
+static int unparse_evalfn(u8_output out,lispval x)
 {
   struct FD_EVALFN *s=
     fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
-  u8_printf(out,"#<EvalFN %s>",s->evalfn_name);
+  if (s->evalfn_filename) {
+    u8_string filename = s->evalfn_filename;
+    size_t len = strlen(filename);
+    u8_string space_break=strchr(filename,' ');
+    u8_byte buf[len+1];
+    if (space_break) {
+      strcpy(buf,filename);
+      buf[space_break-filename]='\0';
+      filename=buf;}
+    u8_printf(out,"#<EvalFN %s '%s'>",s->evalfn_name,filename);}
+  else u8_printf(out,"#<EvalFN %s>",s->evalfn_name);
   return 1;
 }
 
-static int dtype_evalfn(struct FD_OUTBUF *out,fdtype x)
+static int dtype_evalfn(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_EVALFN *s=
     fd_consptr(struct FD_EVALFN *,x,fd_evalfn_type);
@@ -1422,30 +1485,30 @@ FD_EXPORT void recycle_evalfn(struct FD_RAW_CONS *c)
 
 /* Call/cc */
 
-static fdtype call_continuation(struct FD_FUNCTION *f,fdtype arg)
+static lispval call_continuation(struct FD_FUNCTION *f,lispval arg)
 {
   struct FD_CONTINUATION *cont = (struct FD_CONTINUATION *)f;
   if (cont->retval == FD_NULL)
     return fd_err(ExpiredThrow,"call_continuation",NULL,arg);
-  else if (FD_VOIDP(cont->retval)) {
+  else if (VOIDP(cont->retval)) {
     cont->retval = fd_incref(arg);
     return FD_THROW_VALUE;}
   else return fd_err(DoubleThrow,"call_continuation",NULL,arg);
 }
 
-static fdtype callcc (fdtype proc)
+static lispval callcc (lispval proc)
 {
-  fdtype continuation, value;
+  lispval continuation, value;
   struct FD_CONTINUATION *f = u8_alloc(struct FD_CONTINUATION);
   FD_INIT_FRESH_CONS(f,fd_cprim_type);
   f->fcn_name="continuation"; f->fcn_filename = NULL;
   f->fcn_ndcall = 1; f->fcn_xcall = 1; f->fcn_arity = 1; f->fcn_min_arity = 1;
   f->fcn_typeinfo = NULL; f->fcn_defaults = NULL;
-  f->fcn_handler.xcall1 = call_continuation; f->retval = FD_VOID;
-  continuation = FDTYPE_CONS(f);
+  f->fcn_handler.xcall1 = call_continuation; f->retval = VOID;
+  continuation = LISP_CONS(f);
   value = fd_apply(proc,1,&continuation);
-  if ((value == FD_THROW_VALUE) && (!(FD_VOIDP(f->retval)))) {
-    fdtype retval = f->retval;
+  if ((value == FD_THROW_VALUE) && (!(VOIDP(f->retval)))) {
+    lispval retval = f->retval;
     f->retval = FD_NULL;
     if (FD_CONS_REFCOUNT(f)>1)
       u8_log(LOG_WARN,ExpiredThrow,"Dangling pointer exists to continuation");
@@ -1460,23 +1523,23 @@ static fdtype callcc (fdtype proc)
 
 /* Cache call */
 
-static fdtype cachecall(int n,fdtype *args)
+static lispval cachecall(int n,lispval *args)
 {
-  if (FD_HASHTABLEP(args[0]))
+  if (HASHTABLEP(args[0]))
     return fd_xcachecall((fd_hashtable)args[0],args[1],n-2,args+2);
   else return fd_cachecall(args[0],n-1,args+1);
 }
 
-static fdtype cachecall_probe(int n,fdtype *args)
+static lispval cachecall_probe(int n,lispval *args)
 {
-  if (FD_HASHTABLEP(args[0]))
+  if (HASHTABLEP(args[0]))
     return fd_xcachecall_try((fd_hashtable)args[0],args[1],n-2,args+2);
   else return fd_cachecall_try(args[0],n-1,args+1);
 }
 
-static fdtype cachedcallp(int n,fdtype *args)
+static lispval cachedcallp(int n,lispval *args)
 {
-  if (FD_HASHTABLEP(args[0]))
+  if (HASHTABLEP(args[0]))
     if (fd_xcachecall_probe((fd_hashtable)args[0],args[1],n-2,args+2))
       return FD_TRUE;
     else return FD_FALSE;
@@ -1485,23 +1548,23 @@ static fdtype cachedcallp(int n,fdtype *args)
   else return FD_FALSE;
 }
 
-static fdtype clear_callcache(fdtype arg)
+static lispval clear_callcache(lispval arg)
 {
   fd_clear_callcache(arg);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype tcachecall(int n,fdtype *args)
+static lispval tcachecall(int n,lispval *args)
 {
   return fd_tcachecall(args[0],n-1,args+1);
 }
 
-static fdtype with_threadcache_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval with_threadcache_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   struct FD_THREAD_CACHE *tc = fd_push_threadcache(NULL);
-  fdtype value = FD_VOID;
+  lispval value = VOID;
   FD_DOLIST(each,FD_CDR(expr)) {
-    fd_decref(value); value = FD_VOID; value = fd_eval(each,env);
+    fd_decref(value); value = VOID; value = fd_eval(each,env);
     if (FD_ABORTED(value)) {
       fd_pop_threadcache(tc);
       return value;}}
@@ -1509,12 +1572,12 @@ static fdtype with_threadcache_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   return value;
 }
 
-static fdtype using_threadcache_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval using_threadcache_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   struct FD_THREAD_CACHE *tc = fd_use_threadcache();
-  fdtype value = FD_VOID;
+  lispval value = VOID;
   FD_DOLIST(each,FD_CDR(expr)) {
-    fd_decref(value); value = FD_VOID; value = fd_eval(each,env);
+    fd_decref(value); value = VOID; value = fd_eval(each,env);
     if (FD_ABORTED(value)) {
       if (tc) fd_pop_threadcache(tc);
       return value;}}
@@ -1522,9 +1585,9 @@ static fdtype using_threadcache_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack
   return value;
 }
 
-static fdtype use_threadcache_prim(fdtype arg)
+static lispval use_threadcache_prim(lispval arg)
 {
-  if (FD_FALSEP(arg)) {
+  if (FALSEP(arg)) {
     if (!(fd_threadcache)) return FD_FALSE;
     while (fd_threadcache) fd_pop_threadcache(fd_threadcache);
     return FD_TRUE;}
@@ -1536,27 +1599,27 @@ static fdtype use_threadcache_prim(fdtype arg)
 
 /* Making DTPROCs */
 
-static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,
-                          fdtype arity,fdtype minsock,fdtype maxsock,
-                          fdtype initsock)
+static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
+                          lispval arity,lispval minsock,lispval maxsock,
+                          lispval initsock)
 {
-  fdtype result;
-  if (FD_VOIDP(min_arity))
-    result = fd_make_dtproc(FD_SYMBOL_NAME(name),FD_STRDATA(server),1,-1,-1,
-                          FD_FIX2INT(minsock),FD_FIX2INT(maxsock),
-                          FD_FIX2INT(initsock));
-  else if (FD_VOIDP(arity))
+  lispval result;
+  if (VOIDP(min_arity))
+    result = fd_make_dtproc(SYM_NAME(name),CSTRING(server),1,-1,-1,
+                          FIX2INT(minsock),FIX2INT(maxsock),
+                          FIX2INT(initsock));
+  else if (VOIDP(arity))
     result = fd_make_dtproc
-      (FD_SYMBOL_NAME(name),FD_STRDATA(server),
+      (SYM_NAME(name),CSTRING(server),
        1,fd_getint(arity),fd_getint(arity),
-       FD_FIX2INT(minsock),FD_FIX2INT(maxsock),
-       FD_FIX2INT(initsock));
+       FIX2INT(minsock),FIX2INT(maxsock),
+       FIX2INT(initsock));
   else result=
          fd_make_dtproc
-         (FD_SYMBOL_NAME(name),FD_STRDATA(server),1,
+         (SYM_NAME(name),CSTRING(server),1,
           fd_getint(arity),fd_getint(min_arity),
-          FD_FIX2INT(minsock),FD_FIX2INT(maxsock),
-          FD_FIX2INT(initsock));
+          FIX2INT(minsock),FIX2INT(maxsock),
+          FIX2INT(initsock));
   return result;
 }
 
@@ -1564,18 +1627,18 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,
 
 static fd_exception ServerUndefined=_("Server unconfigured");
 
-FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
+FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
 {
   struct FD_DTSERVER *dts = u8_alloc(struct FD_DTSERVER);
   u8_string server_addr; u8_socket socket;
   /* Start out by parsing the address */
   if ((*server)==':') {
-    fdtype server_id = fd_config_get(server+1);
-    if (FD_STRINGP(server_id))
-      server_addr = u8_strdup(FD_STRDATA(server_id));
+    lispval server_id = fd_config_get(server+1);
+    if (STRINGP(server_id))
+      server_addr = u8_strdup(CSTRING(server_id));
     else  {
       fd_seterr(ServerUndefined,"open_server",
-                u8_strdup(dts->dtserverid),server_id);
+                dts->dtserverid,server_id);
       u8_free(dts);
       return -1;}}
   else server_addr = u8_strdup(server);
@@ -1590,128 +1653,128 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
     u8_free(dts->dtserver_addr); 
     u8_free(dts);
     return fd_err(fd_ConnectionFailed,"fd_open_dtserver",
-                  u8_strdup(server),FD_VOID);}
+                  u8_strdup(server),VOID);}
   /* Otherwise, close the socket */
   else close(socket);
   /* And create a connection pool */
-  dts->fd_connpool = u8_open_connpool(dts->dtserverid,2,4,1);
+  dts->connpool = u8_open_connpool(dts->dtserverid,2,4,1);
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
-  if (dts->fd_connpool == NULL) {
+  if (dts->connpool == NULL) {
     u8_free(dts->dtserverid); 
     u8_free(dts->dtserver_addr);
     u8_free(dts);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   /* Otherwise, returh a dtserver object */
   FD_INIT_CONS(dts,fd_dtserver_type);
-  return FDTYPE_CONS(dts);
+  return LISP_CONS(dts);
 }
 
-static fdtype dtserverp(fdtype arg)
+static lispval dtserverp(lispval arg)
 {
-  if (FD_TYPEP(arg,fd_dtserver_type))
+  if (TYPEP(arg,fd_dtserver_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype dtserver_id(fdtype arg)
+static lispval dtserver_id(lispval arg)
 {
   struct FD_DTSERVER *dts = (struct FD_DTSERVER *) arg;
-  return fdtype_string(dts->dtserverid);
+  return lispval_string(dts->dtserverid);
 }
 
-static fdtype dtserver_address(fdtype arg)
+static lispval dtserver_address(lispval arg)
 {
   struct FD_DTSERVER *dts = (struct FD_DTSERVER *) arg;
-  return fdtype_string(dts->dtserver_addr);
+  return lispval_string(dts->dtserver_addr);
 }
 
-static fdtype dteval(fdtype server,fdtype expr)
+static lispval dteval(lispval server,lispval expr)
 {
-  if (FD_TYPEP(server,fd_dtserver_type))  {
+  if (TYPEP(server,fd_dtserver_type))  {
     struct FD_DTSERVER *dtsrv=
       fd_consptr(fd_stream_erver,server,fd_dtserver_type);
-    return fd_dteval(dtsrv->fd_connpool,expr);}
-  else if (FD_STRINGP(server)) {
-    fdtype s = fd_open_dtserver(FD_STRDATA(server),-1);
+    return fd_dteval(dtsrv->connpool,expr);}
+  else if (STRINGP(server)) {
+    lispval s = fd_open_dtserver(CSTRING(server),-1);
     if (FD_ABORTED(s)) return s;
     else {
-      fdtype result = fd_dteval(((fd_stream_erver)s)->fd_connpool,expr);
+      lispval result = fd_dteval(((fd_stream_erver)s)->connpool,expr);
       fd_decref(s);
       return result;}}
   else return fd_type_error(_("server"),"dteval",server);
 }
 
-static fdtype dtcall(int n,fdtype *args)
+static lispval dtcall(int n,lispval *args)
 {
-  fdtype server; fdtype request = FD_EMPTY_LIST, result; int i = n-1;
-  if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,FD_VOID);
-  if (FD_TYPEP(args[0],fd_dtserver_type))
+  lispval server; lispval request = NIL, result; int i = n-1;
+  if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,VOID);
+  if (TYPEP(args[0],fd_dtserver_type))
     server = fd_incref(args[0]);
-  else if (FD_STRINGP(args[0])) server = fd_open_dtserver(FD_STRDATA(args[0]),-1);
+  else if (STRINGP(args[0])) server = fd_open_dtserver(CSTRING(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
   if (FD_ABORTED(server)) return server;
   while (i>=1) {
-    fdtype param = args[i];
-    if ((i>1) && ((FD_SYMBOLP(param)) || (FD_PAIRP(param))))
+    lispval param = args[i];
+    if ((i>1) && ((SYMBOLP(param)) || (PAIRP(param))))
       request = fd_conspair(fd_make_list(2,quote_symbol,param),request);
     else request = fd_conspair(param,request);
     fd_incref(param); i--;}
-  result = fd_dteval(((fd_stream_erver)server)->fd_connpool,request);
+  result = fd_dteval(((fd_stream_erver)server)->connpool,request);
   fd_decref(request);
   fd_decref(server);
   return result;
 }
 
-static fdtype open_dtserver(fdtype server,fdtype bufsiz)
+static lispval open_dtserver(lispval server,lispval bufsiz)
 {
-  return fd_open_dtserver(FD_STRDATA(server),
-                             ((FD_VOIDP(bufsiz)) ? (-1) :
-                              (FD_FIX2INT(bufsiz))));
+  return fd_open_dtserver(CSTRING(server),
+                             ((VOIDP(bufsiz)) ? (-1) :
+                              (FIX2INT(bufsiz))));
 }
 
 /* Test functions */
 
-static fdtype applytest(int n,fdtype *args)
+static lispval applytest(int n,lispval *args)
 {
   if (n<2)
-    return fd_err(fd_TooFewArgs,"applytest",NULL,FD_VOID);
+    return fd_err(fd_TooFewArgs,"applytest",NULL,VOID);
   else if (FD_APPLICABLEP(args[1])) {
-    fdtype value = fd_apply(args[1],n-2,args+2);
+    lispval value = fd_apply(args[1],n-2,args+2);
     if (FD_EQUAL(value,args[0])) {
       fd_decref(value);
       return FD_TRUE;}
     else {
-      u8_string s = fd_dtype2string(args[0]);
-      fdtype err = fd_err(TestFailed,"applytest",s,value);
+      u8_string s = fd_lisp2string(args[0]);
+      lispval err = fd_err(TestFailed,"applytest",s,value);
       u8_free(s); fd_decref(value);
       return err;}}
   else if (n==2) {
     if (FD_EQUAL(args[1],args[0]))
       return FD_TRUE;
     else {
-      u8_string s = fd_dtype2string(args[0]);
-      fdtype err = fd_err(TestFailed,"applytest",s,args[1]);
+      u8_string s = fd_lisp2string(args[0]);
+      lispval err = fd_err(TestFailed,"applytest",s,args[1]);
       u8_free(s);
       return err;}}
   else if (FD_EQUAL(args[2],args[0]))
     return FD_TRUE;
   else {
-    u8_string s = fd_dtype2string(args[0]);
-    fdtype err = fd_err(TestFailed,"applytest",s,args[2]);
+    u8_string s = fd_lisp2string(args[0]);
+    lispval err = fd_err(TestFailed,"applytest",s,args[2]);
     u8_free(s);
     return err;}
 }
 
-static fdtype evaltest_evalfn(fdtype expr,fd_lexenv env,fd_stack s)
+static lispval evaltest_evalfn(lispval expr,fd_lexenv env,fd_stack s)
 {
-  fdtype testexpr = fd_get_arg(expr,2);
-  fdtype expected = fd_eval(fd_get_arg(expr,1),env);
-  if ((FD_VOIDP(testexpr)) || (FD_VOIDP(expected))) {
+  lispval testexpr = fd_get_arg(expr,2);
+  lispval expected = fd_eval(fd_get_arg(expr,1),env);
+  if ((VOIDP(testexpr)) || (VOIDP(expected))) {
     fd_decref(expected);
     return fd_err(fd_SyntaxError,"evaltest",NULL,expr);}
   else {
-    fdtype value = fd_eval(testexpr,env);
+    lispval value = fd_eval(testexpr,env);
     if (FD_ABORTED(value)) {
       fd_decref(expected);
       return value;}
@@ -1720,8 +1783,8 @@ static fdtype evaltest_evalfn(fdtype expr,fd_lexenv env,fd_stack s)
       fd_decref(value);
       return FD_TRUE;}
     else {
-      u8_string s = fd_dtype2string(expected);
-      fdtype err = fd_err(TestFailed,"applytest",s,value);
+      u8_string s = fd_lisp2string(expected);
+      lispval err = fd_err(TestFailed,"applytest",s,value);
       u8_free(s); fd_decref(value); fd_decref(expected);
       return err;}}
 }
@@ -1729,9 +1792,9 @@ static fdtype evaltest_evalfn(fdtype expr,fd_lexenv env,fd_stack s)
 /* Getting documentation */
 
 FD_EXPORT
-u8_string fd_get_documentation(fdtype x)
+u8_string fd_get_documentation(lispval x)
 {
-  fdtype proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
+  lispval proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
   fd_ptr_type proctype = FD_PTR_TYPE(proc);
   if (proctype == fd_sproc_type) {
     struct FD_SPROC *sproc = (fd_sproc)proc;
@@ -1739,43 +1802,43 @@ u8_string fd_get_documentation(fdtype x)
       return sproc->fcn_documentation;
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,120);
-      fdtype arglist = sproc->sproc_arglist, scan = arglist;
+      lispval arglist = sproc->sproc_arglist, scan = arglist;
       if (sproc->fcn_name)
         u8_puts(&out,sproc->fcn_name);
       else u8_puts(&out,"λ");
-      while (FD_PAIRP(scan)) {
-        fdtype arg = FD_CAR(scan);
-        if (FD_SYMBOLP(arg))
-          u8_printf(&out," %ls",FD_SYMBOL_NAME(arg));
-        else if ((FD_PAIRP(arg))&&(FD_SYMBOLP(FD_CAR(arg))))
-          u8_printf(&out," [%ls]",FD_SYMBOL_NAME(FD_CAR(arg)));
+      while (PAIRP(scan)) {
+        lispval arg = FD_CAR(scan);
+        if (SYMBOLP(arg))
+          u8_printf(&out," %ls",SYM_NAME(arg));
+        else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
+          u8_printf(&out," [%ls]",SYM_NAME(FD_CAR(arg)));
         else u8_printf(&out," %q",arg);
         scan = FD_CDR(scan);}
-      if (FD_SYMBOLP(scan))
-        u8_printf(&out," [%ls...]",FD_SYMBOL_NAME(scan));
+      if (SYMBOLP(scan))
+        u8_printf(&out," [%ls...]",SYM_NAME(scan));
       sproc->fcn_documentation = out.u8_outbuf;
       return out.u8_outbuf;}}
   else if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(proc);
     return f->fcn_documentation;}
-  else if (FD_TYPEP(x,fd_evalfn_type)) {
+  else if (TYPEP(x,fd_evalfn_type)) {
     struct FD_EVALFN *sf = (fd_evalfn)proc;
     return sf->evalfn_documentation;}
   else return NULL;
 }
 
-static fdtype get_documentation(fdtype x)
+static lispval get_documentation(lispval x)
 {
   u8_string doc = fd_get_documentation(x);
-  if (doc) return fdtype_string(doc);
+  if (doc) return lispval_string(doc);
   else return FD_FALSE;
 }
 
 /* Debugging assistance */
 
-FD_EXPORT fdtype _fd_dbg(fdtype x)
+FD_EXPORT lispval _fd_dbg(lispval x)
 {
-  fdtype result=_fd_debug(x);
+  lispval result=_fd_debug(x);
   if (result == x)
     return result;
   else {
@@ -1784,43 +1847,43 @@ FD_EXPORT fdtype _fd_dbg(fdtype x)
     return result;}
 }
 
-void (*fd_dump_backtrace)(fdtype bt);
+void (*fd_dump_backtrace)(lispval bt);
 
-static fdtype dbg_evalfn(fdtype expr,fd_lexenv env,fd_stack stack)
+static lispval dbg_evalfn(lispval expr,fd_lexenv env,fd_stack stack)
 {
-  fdtype arg_expr=fd_get_arg(expr,1);
-  fdtype msg_expr=fd_get_arg(expr,2);
-  fdtype arg=fd_eval(arg_expr,env);
-  if (FD_VOIDP(msg_expr))
+  lispval arg_expr=fd_get_arg(expr,1);
+  lispval msg_expr=fd_get_arg(expr,2);
+  lispval arg=fd_eval(arg_expr,env);
+  if (VOIDP(msg_expr))
     u8_message("Debug %q",arg);
   else {
-    fdtype msg=fd_eval(msg_expr,env);
-    if (FD_VOIDP(msg_expr))
+    lispval msg=fd_eval(msg_expr,env);
+    if (VOIDP(msg_expr))
       u8_message("Debug %q",arg);
-    else if (FD_FALSEP(msg)) {}
-    else if (FD_VOIDP(arg))
+    else if (FALSEP(msg)) {}
+    else if (VOIDP(arg))
       u8_message("Debug called");
     else u8_message("Debug (%q) %q",msg,arg);
     fd_decref(msg);}
   return _fd_dbg(arg);
 }
 
-static fdtype void_prim(int n,fdtype *args)
+static lispval void_prim(int n,lispval *args)
 {
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval default_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype symbol = fd_get_arg(expr,1);
-  fdtype default_expr = fd_get_arg(expr,2);
-  if (!(FD_SYMBOLP(symbol)))
+  lispval symbol = fd_get_arg(expr,1);
+  lispval default_expr = fd_get_arg(expr,2);
+  if (!(SYMBOLP(symbol)))
     return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
-  else if (FD_VOIDP(default_expr))
+  else if (VOIDP(default_expr))
     return fd_err(fd_SyntaxError,"boundp_evalfn",NULL,fd_incref(expr));
   else {
-    fdtype val = fd_symeval(symbol,env);
-    if (FD_VOIDP(val))
+    lispval val = fd_symeval(symbol,env);
+    if (VOIDP(val))
       return fd_eval(default_expr,env);
     else if (val == FD_UNBOUND)
       return fd_eval(default_expr,env);
@@ -1829,30 +1892,30 @@ static fdtype default_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Checking version numbers */
 
-static int check_num(fdtype arg,int num)
+static int check_num(lispval arg,int num)
 {
-  if ((!(FD_FIXNUMP(arg)))||(FD_FIX2INT(arg)<0)) {
-    fd_xseterr(fd_TypeError,"check_version_prim",NULL,arg);
+  if ((!(FIXNUMP(arg)))||(FIX2INT(arg)<0)) {
+    fd_seterr(fd_TypeError,"check_version_prim",NULL,arg);
     return -1;}
   else {
-    int n = FD_FIX2INT(arg);
+    int n = FIX2INT(arg);
     if (num>=n) 
       return 1;
     else return 0;}
 }
 
-static fdtype check_version_prim(int n,fdtype *args)
+static lispval check_version_prim(int n,lispval *args)
 {
   int rv = check_num(args[0],FD_MAJOR_VERSION);
-  if (rv<0) return FD_ERROR_VALUE; 
+  if (rv<0) return FD_ERROR; 
   else if (rv==0) return FD_FALSE;
   else if (n==1) return FD_TRUE;
   else rv = check_num(args[1],FD_MINOR_VERSION);
-  if (rv<0) return FD_ERROR_VALUE; 
+  if (rv<0) return FD_ERROR; 
   else if (rv==0) return FD_FALSE;
   else if (n==2) return FD_TRUE;
   else rv = check_num(args[2],FD_RELEASE_VERSION);
-  if (rv<0) return FD_ERROR_VALUE; 
+  if (rv<0) return FD_ERROR; 
   else if (rv==0) return FD_FALSE;
   else if (n==3) return FD_TRUE;
   else rv = check_num(args[2],FD_RELEASE_VERSION-1);
@@ -1861,138 +1924,164 @@ static fdtype check_version_prim(int n,fdtype *args)
      we see if required release number is larger than release-1 
      (which means that we should be okay, since patch levels
      are reset with releases. */
-  if (rv<0) return FD_ERROR_VALUE;
+  if (rv<0) return FD_ERROR;
   else if (rv) {
     int i = 3; while (i<n) {
-      if (!(FD_FIXNUMP(args[i]))) {
-        fd_xseterr(fd_TypeError,"check_version_prim",NULL,args[i]);
+      if (!(FIXNUMP(args[i]))) {
+        fd_seterr(fd_TypeError,"check_version_prim",NULL,args[i]);
         return -1;}
       else i++;}
     return FD_TRUE;}
   else return FD_FALSE;
 }
 
-static fdtype require_version_prim(int n,fdtype *args)
+static lispval require_version_prim(int n,lispval *args)
 {
-  fdtype result = check_version_prim(n,args);
+  lispval result = check_version_prim(n,args);
   if (FD_ABORTP(result))
     return result;
   else if (FD_TRUEP(result))
     return result;
   else {
+    u8_byte buf[50];
     fd_seterr("VersionError","require_version_prim",
-              u8_mkstring("Version is %s",FRAMERD_REVISION),
+              u8_sprintf(buf,50,"Version is %s",FRAMERD_REVISION),
               /* We know that args are all fixnums or we would have had an error. */
               fd_make_vector(n,args));
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
 }
 
 /* Choice functions */
 
-static fdtype fixchoice_prim(fdtype arg)
+static lispval fixchoice_prim(lispval arg)
 {
-  if (FD_PRECHOICEP(arg))
+  if (PRECHOICEP(arg))
     return fd_make_simple_choice(arg);
   else return fd_incref(arg);
 }
 
-static fdtype choiceref_prim(fdtype arg,fdtype off)
+static lispval choiceref_prim(lispval arg,lispval off)
 {
-  if (FD_EXPECT_TRUE(FD_FIXNUMP(off))) {
-    long long i = FD_FIX2INT(off);
+  if (PRED_TRUE(FIXNUMP(off))) {
+    long long i = FIX2INT(off);
     if (i==0) {
-      if (FD_EMPTY_CHOICEP(arg)) {
-        fd_seterr(fd_RangeError,"choiceref_prim",u8dup("0"),arg);
-        return FD_ERROR_VALUE;}
+      if (EMPTYP(arg)) {
+        fd_seterr(fd_RangeError,"choiceref_prim","0",arg);
+        return FD_ERROR;}
       else return fd_incref(arg);}
-    else if (FD_CHOICEP(arg)) {
+    else if (CHOICEP(arg)) {
       struct FD_CHOICE *ch = (fd_choice)arg;
       if (i>ch->choice_size) {
+        u8_byte buf[50];
         fd_seterr(fd_RangeError,"choiceref_prim",
-                  u8_mkstring("%lld",i),fd_incref(arg));
-        return FD_ERROR_VALUE;}
+                  u8_sprintf(buf,50,"%lld",i),
+                  fd_incref(arg));
+        return FD_ERROR;}
       else {
-        fdtype elt = FD_XCHOICE_DATA(ch)[i];
+        lispval elt = FD_XCHOICE_DATA(ch)[i];
         return fd_incref(elt);}}
-    else if (FD_PRECHOICEP(arg)) {
-      fdtype simplified = fd_make_simple_choice(arg); 
-      fdtype result = choiceref_prim(simplified,off);
+    else if (PRECHOICEP(arg)) {
+      lispval simplified = fd_make_simple_choice(arg); 
+      lispval result = choiceref_prim(simplified,off);
       fd_decref(simplified);
       return result;}
     else {
+      u8_byte buf[50];
       fd_seterr(fd_RangeError,"choiceref_prim",
-                u8_mkstring("%lld",i),fd_incref(arg));
-      return FD_ERROR_VALUE;}}
+                u8_sprintf(buf,50,"%lld",i),fd_incref(arg));
+      return FD_ERROR;}}
   else return fd_type_error("fixnum","choiceref_prim",off);
 }
 
 /* FFI */
 
 #if FD_ENABLE_FFI
-static fdtype ffi_proc_helper(int err,int n,fdtype *args)
+static lispval ffi_proc_helper(int err,int n,lispval *args)
 {
-  fdtype name_arg = args[0], filename_arg = args[1];
-  fdtype return_type = args[2];
-  u8_string name = (FD_STRINGP(name_arg)) ? (FD_STRDATA(name_arg)) : (NULL);
-  u8_string filename = (FD_STRINGP(filename_arg)) ?
-    (FD_STRDATA(filename_arg)) :
+  lispval name_arg = args[0], filename_arg = args[1];
+  lispval return_type = args[2];
+  u8_string name = (STRINGP(name_arg)) ? (CSTRING(name_arg)) : (NULL);
+  u8_string filename = (STRINGP(filename_arg)) ?
+    (CSTRING(filename_arg)) :
     (NULL);
   if (!(name))
     return fd_type_error("String","ffi_proc/name",name_arg);
-  else if (!((FD_STRINGP(filename_arg))||(FD_FALSEP(filename_arg))))
+  else if (!((STRINGP(filename_arg))||(FALSEP(filename_arg))))
     return fd_type_error("String","ffi_proc/filename",filename_arg);
   else {
     struct FD_FFI_PROC *fcn=
       fd_make_ffi_proc(name,filename,n-3,return_type,args+3);
     if (fcn)
-      return (fdtype) fcn;
+      return (lispval) fcn;
     else {
       fd_clear_errors(1);
       return FD_FALSE;}}
 }
-static fdtype ffi_proc(int n,fdtype *args)
+static lispval ffi_proc(int n,lispval *args)
 {
   return ffi_proc_helper(1,n,args);
 }
-static fdtype ffi_probe(int n,fdtype *args)
+static lispval ffi_probe(int n,lispval *args)
 {
   return ffi_proc_helper(0,n,args);
 }
-static fdtype ffi_found_prim(fdtype name,fdtype modname)
+static lispval ffi_found_prim(lispval name,lispval modname)
 {
   void *module=NULL, *sym=NULL;
-  if (FD_STRINGP(modname)) {
-    module=u8_dynamic_load(FD_STRDATA(modname));
+  if (STRINGP(modname)) {
+    module=u8_dynamic_load(CSTRING(modname));
     if (module==NULL) {
       fd_clear_errors(0);
       return FD_FALSE;}}
-  sym=u8_dynamic_symbol(FD_STRDATA(name),module);
+  sym=u8_dynamic_symbol(CSTRING(name),module);
   if (sym)
     return FD_TRUE;
   else return FD_FALSE;
 }
 #else
-static fdtype ffi_proc(int n,fdtype *args)
+static lispval ffi_proc(int n,lispval *args)
 {
   u8_seterr("NotImplemented","ffi_proc",
             u8_strdup("No FFI support is available in this build of FramerD"));
-  return FD_ERROR_VALUE;
+  return FD_ERROR;
 }
-static fdtype ffi_probe(int n,fdtype *args)
+static lispval ffi_probe(int n,lispval *args)
 {
   return FD_FALSE;
 }
-static fdtype ffi_found_prim(fdtype name,fdtype modname)
+static lispval ffi_found_prim(lispval name,lispval modname)
 {
   return FD_FALSE;
 }
 #endif
 
+/* WITH-CONTEXT */
+
+static lispval with_log_context_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval label_expr=fd_get_arg(expr,1);
+  if (FD_VOIDP(label_expr))
+    return fd_err(fd_SyntaxError,"with_context_evalfn",NULL,expr);
+  else {
+    lispval label=fd_stack_eval(label_expr,env,_stack,0);
+    if (FD_ABORTP(label)) return label;
+    else if (!(FD_STRINGP(label)))
+      return fd_type_error("string","with_context_evalfn",label);
+    else {
+      u8_string outer_context=u8_log_context;
+      u8_set_log_context(FD_STRDATA(label));
+      lispval result=eval_body("with_log_context",FD_STRDATA(label),
+                               expr,2,env,_stack);
+      u8_set_log_context(outer_context);
+      fd_decref(label);
+      return result;}}
+}
+
 /* MTrace */
 
 static int mtracing=0;
 
-static fdtype mtrace_prim(fdtype arg)
+static lispval mtrace_prim(lispval arg)
 {
   /* TODO: Check whether we're running under libc malloc (so mtrace
      will do anything). */
@@ -2003,9 +2092,9 @@ static fdtype mtrace_prim(fdtype arg)
     mtrace();
     mtracing=1;
     return FD_TRUE;}
-  else if ((FD_STRINGP(arg)) &&
-           (u8_file_writablep(FD_STRDATA(arg)))) {
-    setenv("MALLOC_TRACE",FD_STRDATA(arg),1);
+  else if ((STRINGP(arg)) &&
+           (u8_file_writablep(CSTRING(arg)))) {
+    setenv("MALLOC_TRACE",CSTRING(arg),1);
     mtrace();
     mtracing=1;
     return FD_TRUE;}
@@ -2015,7 +2104,7 @@ static fdtype mtrace_prim(fdtype arg)
 #endif
 }
 
-static fdtype muntrace_prim()
+static lispval muntrace_prim()
 {
 #if HAVE_MTRACE
   if (mtracing) {
@@ -2029,11 +2118,11 @@ static fdtype muntrace_prim()
 
 /* Primitives for testing purposes */
 
-static fdtype list9(fdtype arg1,fdtype arg2,
-                    fdtype arg3,fdtype arg4,
-                    fdtype arg5,fdtype arg6,
-                    fdtype arg7,fdtype arg8,
-                    fdtype arg9)
+static lispval list9(lispval arg1,lispval arg2,
+                    lispval arg3,lispval arg4,
+                    lispval arg5,lispval arg6,
+                    lispval arg7,lispval arg8,
+                    lispval arg9)
 {
   return fd_make_list(9,fd_incref(arg1),fd_incref(arg2),
                       fd_incref(arg3),fd_incref(arg4),
@@ -2087,12 +2176,12 @@ static void init_scheme_module()
 
 static void init_localfns()
 {
-  fd_defspecial(fd_scheme_module,"EVAL",eval_evalfn);
-  fd_defspecial(fd_scheme_module,"BOUND?",boundp_evalfn);
-  fd_defspecial(fd_scheme_module,"VOID?",voidp_evalfn);
-  fd_defspecial(fd_scheme_module,"QUOTE",quote_evalfn);
-  fd_defspecial(fd_scheme_module,"%ENV",env_evalfn);
-  fd_defspecial(fd_scheme_module,"%MODREF",modref_evalfn);
+  fd_def_evalfn(fd_scheme_module,"EVAL","",eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"BOUND?","",boundp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"VOID?","",voidp_evalfn);
+  fd_def_evalfn(fd_scheme_module,"QUOTE","",quote_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%ENV","",env_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%MODREF","",modref_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("DOCUMENTATION",get_documentation,1));
@@ -2105,18 +2194,18 @@ static void init_localfns()
             "(%LEXREF *up* *across*) returns a lexref (lexical reference) "
             "given a 'number of environments' *up* and a 'number of bindings' "
             "across",
-            fd_fixnum_type,FD_VOID,fd_fixnum_type,FD_VOID);
+            fd_fixnum_type,VOID,fd_fixnum_type,VOID);
   fd_idefn1(fd_scheme_module,"%LEXREFVAL",lexref_value_prim,1,
             "(%LEXREFVAL *lexref*) returns the offsets "
             "of a lexref as a pair (*up* . *across*)",
-            fd_lexref_type,FD_VOID);
+            fd_lexref_type,VOID);
 
   fd_idefn1(fd_scheme_module,"%CODEREF",coderef_prim,1,
             "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",
-            fd_fixnum_type,FD_VOID);
+            fd_fixnum_type,VOID);
   fd_idefn1(fd_scheme_module,"%CODREFVAL",coderef_value_prim,1,
             "(%CODEREFVAL *coderef*) returns the integer relative offset of a coderef",
-            fd_lexref_type,FD_VOID);
+            fd_lexref_type,VOID);
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%CHOICEREF",choiceref_prim,2)));
@@ -2124,32 +2213,32 @@ static void init_localfns()
            fd_make_ndprim(fd_make_cprim1("%FIXCHOICE",fixchoice_prim,1)));
 
 
-  fd_defspecial(fd_scheme_module,"WITHENV",withenv_safe_evalfn);
-  fd_defspecial(fd_xscheme_module,"WITHENV",withenv_evalfn);
-  fd_defspecial(fd_xscheme_module,"WITHENV/SAFE",withenv_safe_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WITHENV","",withenv_safe_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"WITHENV","",withenv_evalfn);
+  fd_def_evalfn(fd_xscheme_module,"WITHENV/SAFE","",withenv_safe_evalfn);
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
-  fd_defspecial(fd_scheme_module,"GETOPT",getopt_evalfn);
+  fd_def_evalfn(fd_scheme_module,"GETOPT","",getopt_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("%GETOPT",getopt_prim,2,
-                                          -1,FD_VOID,fd_symbol_type,FD_VOID,
+                                          -1,VOID,fd_symbol_type,VOID,
                                           -1,FD_FALSE)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("TESTOPT",testopt_prim,2,
-                           -1,FD_VOID,fd_symbol_type,FD_VOID,
-                           -1,FD_VOID));
+                           -1,VOID,fd_symbol_type,VOID,
+                           -1,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("OPT+",optplus_prim,2,
-                           -1,FD_VOID,fd_symbol_type,FD_VOID,
-                           -1,FD_VOID));
+                           -1,VOID,fd_symbol_type,VOID,
+                           -1,VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLY",apply_lexpr,1)));
   fd_idefn(fd_xscheme_module,fd_make_cprim7x
            ("DTPROC",make_dtproc,2,
-            fd_symbol_type,FD_VOID,fd_string_type,FD_VOID,
-            -1,FD_VOID,-1,FD_VOID,
+            fd_symbol_type,VOID,fd_string_type,VOID,
+            -1,VOID,-1,VOID,
             fd_fixnum_type,FD_INT(2),
             fd_fixnum_type,FD_INT(4),
             fd_fixnum_type,FD_INT(1)));
@@ -2157,11 +2246,14 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");
 
+  /* This pushes a log context */
+  fd_def_evalfn(fd_scheme_module,"WITH-LOG-CONTEXT","",with_log_context_evalfn);
+
   /* This pushes a new threadcache */
-  fd_defspecial(fd_scheme_module,"WITH-THREADCACHE",with_threadcache_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WITH-THREADCACHE","",with_threadcache_evalfn);
   /* This ensures that there's an active threadcache, pushing a new one if
      needed or using the current one if it exists. */
-  fd_defspecial(fd_scheme_module,"USING-THREADCACHE",using_threadcache_evalfn);
+  fd_def_evalfn(fd_scheme_module,"USING-THREADCACHE","",using_threadcache_evalfn);
   /* This sets up the current thread to use a threadcache */
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("USE-THREADCACHE",use_threadcache_prim,0));
@@ -2174,36 +2266,36 @@ static void init_localfns()
            fd_make_cprim1("CLEAR-CALLCACHE!",clear_callcache,0));
   fd_defalias(fd_scheme_module,"CACHEPOINT","TCACHECALL");
 
-  fd_defspecial(fd_scheme_module,"TIMEVAL",timed_eval_evalfn);
-  fd_defspecial(fd_scheme_module,"%TIMEVAL",timed_evalx_evalfn);
+  fd_def_evalfn(fd_scheme_module,"TIMEVAL","",timed_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%TIMEVAL","",timed_evalx_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("%WATCHPTR",watchptr_prim,1)));
-  fd_defspecial(fd_scheme_module,"%WATCH",watched_eval_evalfn);
-  fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval_evalfn);
-  fd_defspecial(fd_scheme_module,"%WATCHCALL",watchcall_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCH","",watched_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"PROFILE","",profiled_eval_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCHCALL","",watchcall_evalfn);
   fd_defalias(fd_scheme_module,"%WC","%WATCHCALL");
-  fd_defspecial(fd_scheme_module,"%WATCHCALL+",watchcall_plus_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%WATCHCALL+","",watchcall_plus_evalfn);
   fd_defalias(fd_scheme_module,"%WC+","%WATCHCALL+");
-  fd_defspecial(fd_scheme_module,"EVAL1",eval1);
-  fd_defspecial(fd_scheme_module,"EVAL2",eval2);
-  fd_defspecial(fd_scheme_module,"EVAL3",eval3);
-  fd_defspecial(fd_scheme_module,"EVAL4",eval4);
-  fd_defspecial(fd_scheme_module,"EVAL5",eval5);
-  fd_defspecial(fd_scheme_module,"EVAL6",eval6);
-  fd_defspecial(fd_scheme_module,"EVAL7",eval7);
+  fd_def_evalfn(fd_scheme_module,"EVAL1","",eval1);
+  fd_def_evalfn(fd_scheme_module,"EVAL2","",eval2);
+  fd_def_evalfn(fd_scheme_module,"EVAL3","",eval3);
+  fd_def_evalfn(fd_scheme_module,"EVAL4","",eval4);
+  fd_def_evalfn(fd_scheme_module,"EVAL5","",eval5);
+  fd_def_evalfn(fd_scheme_module,"EVAL6","",eval6);
+  fd_def_evalfn(fd_scheme_module,"EVAL7","",eval7);
 
 #if USING_GOOGLE_PROFILER
-  fd_defspecial(fd_scheme_module,"GOOGLE/PROFILE",gprofile_evalfn);
+  fd_def_evalfn(fd_scheme_module,"GOOGLE/PROFILE","",gprofile_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim0("GOOGLE/PROFILE/STOP",gprofile_stop));
 #endif
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("APPLYTEST",applytest,2)));
-  fd_defspecial(fd_scheme_module,"EVALTEST",evaltest_evalfn);
+  fd_def_evalfn(fd_scheme_module,"EVALTEST","",evaltest_evalfn);
 
-  fd_defspecial(fd_scheme_module,"DBG",dbg_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DBG","",dbg_evalfn);
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("VOID",void_prim,0)));
-  fd_defspecial(fd_scheme_module,"DEFAULT",default_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAULT","",default_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("CHECK-VERSION",check_version_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("REQUIRE-VERSION",require_version_prim,1));
@@ -2211,19 +2303,19 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,fd_make_cprim2("DTEVAL",dteval,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("DTCALL",dtcall,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("OPEN-DTSERVER",open_dtserver,1,
-                                            fd_string_type,FD_VOID,
-                                            fd_fixnum_type,FD_VOID));
+                                            fd_string_type,VOID,
+                                            fd_fixnum_type,VOID));
   fd_idefn1(fd_scheme_module,"DTSERVER?",dtserverp,FD_NEEDS_1_ARG,
             "Returns true if it's argument is a dtype server object",
-            -1,FD_VOID);
+            -1,VOID);
   fd_idefn1(fd_scheme_module,"DTSERVER-ID",
             dtserver_id,FD_NEEDS_1_ARG,
             "Returns the ID of a dtype server (the argument used to create it)",
-            fd_dtserver_type,FD_VOID);
+            fd_dtserver_type,VOID);
   fd_idefn1(fd_scheme_module,"DTSERVER-ADDRESS",
             dtserver_address,FD_NEEDS_1_ARG,
             "Returns the address (host/port) of a dtype server",
-            fd_dtserver_type,FD_VOID);
+            fd_dtserver_type,VOID);
 
   fd_idefn0(fd_scheme_module,"%BUILDINFO",fd_get_build_info,
             "Information about the build and startup environment");
@@ -2232,14 +2324,14 @@ static void init_localfns()
   fd_idefn(fd_xscheme_module,fd_make_cprimn("FFI/PROBE",ffi_probe,3));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("FFI/FOUND?",ffi_found_prim,1,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,VOID,
+                           fd_string_type,VOID));
 
   fd_idefn1(fd_xscheme_module,"MTRACE",mtrace_prim,FD_NEEDS_0_ARGS,
             "Activates LIBC heap tracing to MALLOC_TRACE and "
             "returns true if it worked. Optional argument is a "
             "filename to set as MALLOC_TRACE",
-            -1,FD_VOID);
+            -1,VOID);
   fd_idefn0(fd_xscheme_module,"MUNTRACE",muntrace_prim,
             "Deactivates LIBC heap tracing, returns true if it did anything");
 

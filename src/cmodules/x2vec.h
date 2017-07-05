@@ -18,7 +18,7 @@ struct FD_X2VEC_WORD {
 
 struct FD_X2VEC_CONTEXT {
   FD_CONS_HEADER; 
-  fdtype x2vec_opts; u8_string x2vec_label; 
+  lispval x2vec_opts; u8_string x2vec_label; 
   int x2vec_loglevel, x2vec_logfreq;
   char x2vec_opt_sep;
   struct FD_X2VEC_WORD *x2vec_vocab;
@@ -44,17 +44,17 @@ struct FD_X2VEC_STATE {
   struct FD_X2VEC_CONTEXT *x2vec_x2vcxt;
   int x2vec_thread_i, x2vec_n_threads; 
   double x2vec_start; int *x2vec_stop;
-  fdtype x2vec_input, x2vec_opts;};
+  lispval x2vec_input, x2vec_opts;};
 
 FD_EXPORT int fd_init_x2vec_c(void) FD_LIBINIT_FN;
 
 FD_EXPORT fd_ptr_type fd_x2vec_type;
 
-FD_EXPORT struct FD_X2VEC_CONTEXT *fd_init_x2vec(struct FD_X2VEC_CONTEXT *x2v,fdtype opts);
-FD_EXPORT struct FD_X2VEC_CONTEXT *fd_x2vec_start(fdtype opts,fdtype train,fdtype vocab);
-FD_EXPORT struct FD_X2VEC_CONTEXT *fd_x2vec_read(u8_string filename,fdtype opts);
-FD_EXPORT fdtype fd_x2vec_init(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype init);
-FD_EXPORT int fd_x2vec_import_vocab(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype data);
+FD_EXPORT struct FD_X2VEC_CONTEXT *fd_init_x2vec(struct FD_X2VEC_CONTEXT *x2v,lispval opts);
+FD_EXPORT struct FD_X2VEC_CONTEXT *fd_x2vec_start(lispval opts,lispval train,lispval vocab);
+FD_EXPORT struct FD_X2VEC_CONTEXT *fd_x2vec_read(u8_string filename,lispval opts);
+FD_EXPORT lispval fd_x2vec_init(struct FD_X2VEC_CONTEXT *x2vcxt,lispval init);
+FD_EXPORT int fd_x2vec_import_vocab(struct FD_X2VEC_CONTEXT *x2vcxt,lispval data);
 
 FD_EXPORT int *fd_x2vec_classify(struct FD_X2VEC_CONTEXT *x2v,
                                  int n_clusters,int n_rounds,

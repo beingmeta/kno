@@ -38,11 +38,11 @@ typedef struct FD_HASHINDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int fd_storage_xformat, index_custom, table_n_keys;
+  unsigned int storage_xformat, index_custom, table_n_keys;
   fd_offset_type index_offtype;
 
   /* This is used to store compressed keys and values. */
-  int index_n_slotids, index_new_slotids; fdtype *index_slotids;
+  int index_n_slotids, index_new_slotids; lispval *index_slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
   int index_n_baseoids, index_new_baseoids;
   unsigned int *index_baseoid_ids;
@@ -58,18 +58,18 @@ typedef struct FD_HASHINDEX {
 /* Structure definitions */
 
 struct KEY_SCHEDULE {
-  int ksched_i; fdtype ksched_key;
+  int ksched_i; lispval ksched_key;
   unsigned int ksched_keyoff, ksched_dtsize;
   int ksched_bucket;
   FD_CHUNK_REF ksched_chunk;};
 struct VALUE_SCHEDULE {
   int vsched_i;
-  fdtype *vsched_write;
+  lispval *vsched_write;
   int vsched_atomicp;
   FD_CHUNK_REF vsched_chunk;};
 
 struct POPULATE_SCHEDULE {
-  fdtype key; unsigned int fd_bucketno;
+  lispval key; unsigned int fd_bucketno;
   unsigned int size;};
 struct BUCKET_REF {
   /* max_new is only used when committing. */
@@ -77,7 +77,7 @@ struct BUCKET_REF {
   FD_CHUNK_REF bck_ref;};
 
 struct COMMIT_SCHEDULE {
-  fdtype commit_key, commit_values; 
+  lispval commit_key, commit_values; 
   short commit_replace;
   int commit_bucket;};
 
@@ -86,7 +86,7 @@ struct KEYENTRY {
   /* This points to the point in keybucket's kb_keybuf
      where the dtype representation of the key begins. */
   const unsigned char *ke_dtstart;
-  fdtype ke_values; 
+  lispval ke_values; 
   FD_CHUNK_REF ke_vref;};
 
 struct KEYBUCKET {
@@ -95,7 +95,7 @@ struct KEYBUCKET {
   struct KEYENTRY kb_elt0;};
 
 typedef struct FD_SLOTID_LOOKUP {
-  int zindex; fdtype slotid;} FD_SLOTID_LOOKUP;
+  int zindex; lispval slotid;} FD_SLOTID_LOOKUP;
 typedef struct FD_SLOTID_LOOKUP *fd_slotid_lookup;
 
 typedef struct FD_BASEOID_LOOKUP {
@@ -104,8 +104,8 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 
 /* Utilities for DTYPE I/O */
 
-#define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_request_bytes(in,nbytes))))
-#define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_request_bytes(in,nbytes)))
+#define nobytes(in,nbytes) (PRED_FALSE(!(fd_request_bytes(in,nbytes))))
+#define havebytes(in,nbytes) (PRED_TRUE(fd_request_bytes(in,nbytes)))
 
 #define output_byte(out,b) \
   if (fd_write_byte(out,b)<0) return -1; else {}
@@ -114,5 +114,5 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 #define output_bytes(out,bytes,n) \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
-FD_EXPORT ssize_t fd_hashindex_bucket(fdtype index,fdtype key,ssize_t modulate);
+FD_EXPORT ssize_t fd_hashindex_bucket(lispval index,lispval key,ssize_t modulate);
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);

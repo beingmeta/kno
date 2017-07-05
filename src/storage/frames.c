@@ -24,8 +24,8 @@
 static fd_exception OddFindFramesArgs=_("Odd number of args to find frames");
 
 static struct FD_HASHTABLE slot_caches, test_caches;
-static fdtype get_methods, compute_methods, test_methods;
-static fdtype add_effects, drop_effects;
+static lispval get_methods, compute_methods, test_methods;
+static lispval add_effects, drop_effects;
 
 static u8_mutex slotcache_lock;
 
@@ -88,7 +88,7 @@ FD_EXPORT int fd_in_progressp(struct FD_FRAMEOP_STACK *op)
     if ((ops->op == op->op) &&
         (ops->frame == op->frame) &&
         (ops->slotid == op->slotid) &&
-        (FDTYPE_EQUAL(ops->value,op->value)))
+        (LISP_EQUAL(ops->value,op->value)))
       return 1;
     else ops = ops->next;
   return 0;
@@ -157,54 +157,54 @@ FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *op,int normal)
       are naturally multi-valued.
 */
 
-static struct FD_HASHTABLE *make_slot_cache(fdtype slotid)
+static struct FD_HASHTABLE *make_slot_cache(lispval slotid)
 {
-  fdtype table = fd_make_hashtable(NULL,17);
+  lispval table = fd_make_hashtable(NULL,17);
   u8_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&slot_caches,slotid,table);
   u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
-static struct FD_HASHTABLE *make_test_cache(fdtype slotid)
+static struct FD_HASHTABLE *make_test_cache(lispval slotid)
 {
-  fdtype table = fd_make_hashtable(NULL,17);
+  lispval table = fd_make_hashtable(NULL,17);
   u8_lock_mutex(&slotcache_lock);
   fd_hashtable_store(&test_caches,slotid,table);
   u8_unlock_mutex(&slotcache_lock);
   return (struct FD_HASHTABLE *)table;
 }
 
-FD_EXPORT void fd_clear_slotcache(fdtype slotid)
+FD_EXPORT void fd_clear_slotcache(lispval slotid)
 {
   u8_lock_mutex(&slotcache_lock);
   if (fd_hashtable_probe(&slot_caches,slotid))
-    fd_hashtable_store(&slot_caches,slotid,FD_VOID);
+    fd_hashtable_store(&slot_caches,slotid,VOID);
   if (fd_hashtable_probe(&test_caches,slotid))
-    fd_hashtable_store(&test_caches,slotid,FD_VOID);
+    fd_hashtable_store(&test_caches,slotid,VOID);
   u8_unlock_mutex(&slotcache_lock);
 }
 
-FD_EXPORT void fd_clear_slotcache_entry(fdtype frame,fdtype slotid)
+FD_EXPORT void fd_clear_slotcache_entry(lispval frame,lispval slotid)
 {
-  fdtype slotcache = fd_hashtable_get(&slot_caches,slotid,FD_VOID);
-  fdtype testcache = fd_hashtable_get(&test_caches,slotid,FD_VOID);
-  if (FD_HASHTABLEP(slotcache))
-    fd_hashtable_op(FD_XHASHTABLE(slotcache),fd_table_replace,frame,FD_VOID);
+  lispval slotcache = fd_hashtable_get(&slot_caches,slotid,VOID);
+  lispval testcache = fd_hashtable_get(&test_caches,slotid,VOID);
+  if (HASHTABLEP(slotcache))
+    fd_hashtable_op(FD_XHASHTABLE(slotcache),fd_table_replace,frame,VOID);
   /* Need to do this more selectively. */
-  if (FD_HASHTABLEP(testcache))
-    fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,FD_VOID);
+  if (HASHTABLEP(testcache))
+    fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,VOID);
 }
 
-FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
+FD_EXPORT void fd_clear_testcache_entry(lispval frame,lispval slotid,lispval value)
 {
-  fdtype testcache = fd_hashtable_get(&test_caches,slotid,FD_VOID);
-  if (FD_HASHTABLEP(testcache)) {
-    if (FD_VOIDP(value))
-      fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,FD_VOID);
+  lispval testcache = fd_hashtable_get(&test_caches,slotid,VOID);
+  if (HASHTABLEP(testcache)) {
+    if (VOIDP(value))
+      fd_hashtable_op(FD_XHASHTABLE(testcache),fd_table_replace,frame,VOID);
     else {
-      fdtype cache = fd_hashtable_get(FD_XHASHTABLE(testcache),frame,FD_EMPTY_CHOICE);
-      if (FD_PAIRP(cache)) {
+      lispval cache = fd_hashtable_get(FD_XHASHTABLE(testcache),frame,EMPTY);
+      if (PAIRP(cache)) {
         fd_hashset_drop((fd_hashset)FD_CAR(cache),value);
         fd_hashset_drop((fd_hashset)FD_CDR(cache),value);}}}
 }
@@ -230,7 +230,7 @@ FD_EXPORT void fd_clear_testcache_entry(fdtype frame,fdtype slotid,fdtype value)
       infinite recurrences.  When a slot is gotten or tested, the stack of frame
       operations is climbed to find the first operation with a non-NULL dependencies
       field.  The current operation is added to this value (which is a vector of
-      FD_DEPENDENCY_RECORD structures), with an FD_VOID value distinguishing the
+      FD_DEPENDENCY_RECORD structures), with an VOID value distinguishing the
       case of a GET and a TEST.
      When a computed value is returned from a given operation, the accumulated dependencies
       (stored on current frame operations stack entry) are converted into entries
@@ -249,7 +249,7 @@ static void init_dependencies(fd_frameop_stack *cxt)
 }
 
 static void note_dependency
-(fd_frameop_stack *cxt,fdtype frame,fdtype slotid,fdtype value)
+(fd_frameop_stack *cxt,lispval frame,lispval slotid,lispval value)
 {
   fd_frameop_stack *scan = cxt;
   while (scan)
@@ -269,51 +269,51 @@ static void note_dependency
     else scan = scan->next;
 }
 
-static void record_dependencies(fd_frameop_stack *cxt,fdtype factoid)
+static void record_dependencies(fd_frameop_stack *cxt,lispval factoid)
 {
   if (cxt->dependencies) {
     int i = 0, n = cxt->n_deps;
     struct FD_DEPENDENCY_RECORD *records = cxt->dependencies;
-    fdtype *factoids = u8_alloc_n(n,fdtype);
+    lispval *factoids = u8_alloc_n(n,lispval);
     while (i<n) {
-      fdtype depends;
-      if (FD_VOIDP(records[i].value))
+      lispval depends;
+      if (VOIDP(records[i].value))
         depends = fd_conspair(records[i].frame,records[i].slotid);
       else depends = fd_make_list(3,records[i].frame,records[i].slotid,
                                 fd_incref(records[i].value));
       factoids[i++]=depends;}
     fd_hashtable_iterkeys(&implications,fd_table_add,n,factoids,factoid);
-    i = 0; while (i<n) {fdtype factoid = factoids[i++]; fd_decref(factoid);}
+    i = 0; while (i<n) {lispval factoid = factoids[i++]; fd_decref(factoid);}
     u8_free(factoids);}
 }
 
-static void decache_factoid(fdtype factoid)
+static void decache_factoid(lispval factoid)
 {
-  fdtype frame = FD_CAR(factoid);
-  fdtype predicate = FD_CDR(factoid);
-  if (FD_PAIRP(predicate)) {
-    fdtype value = FD_CDR(predicate);
+  lispval frame = FD_CAR(factoid);
+  lispval predicate = FD_CDR(factoid);
+  if (PAIRP(predicate)) {
+    lispval value = FD_CDR(predicate);
     fd_clear_slotcache_entry(frame,predicate);
     fd_clear_testcache_entry(frame,predicate,value);}
   else {
     fd_clear_slotcache_entry(frame,predicate);
-    fd_clear_testcache_entry(frame,predicate,FD_VOID);}
+    fd_clear_testcache_entry(frame,predicate,VOID);}
 }
 
-static void decache_implications(fdtype factoid)
+static void decache_implications(lispval factoid)
 {
-  fdtype implies = fd_hashtable_get(&implications,factoid,FD_EMPTY_CHOICE);
+  lispval implies = fd_hashtable_get(&implications,factoid,EMPTY);
   decache_factoid(factoid);
-  if (!(FD_EMPTY_CHOICEP(implies)))
-    fd_hashtable_store(&implications,factoid,FD_EMPTY_CHOICE);
-  {FD_DO_CHOICES(imply,implies) decache_implications(imply);}
+  if (!(EMPTYP(implies)))
+    fd_hashtable_store(&implications,factoid,EMPTY);
+  {DO_CHOICES(imply,implies) decache_implications(imply);}
   fd_decref(implies);
 }
 
-FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
+FD_EXPORT void fd_decache(lispval frame,lispval slotid,lispval value)
 {
-  fdtype factoid;
-  if (!(FD_VOIDP(value))) {
+  lispval factoid;
+  if (!(VOIDP(value))) {
     /* Do a value specific decache */
     factoid = fd_conspair
       (fd_incref(frame),fd_conspair(fd_incref(slotid),fd_incref(value)));
@@ -339,13 +339,13 @@ FD_EXPORT void fd_clear_slotcaches()
 
 /* Method lookup */
 
-static struct FD_FUNCTION *lookup_method(fdtype arg)
+static struct FD_FUNCTION *lookup_method(lispval arg)
 {
   if (FD_FUNCTIONP(arg))
     return FD_XFUNCTION(arg);
-  else if (FD_SYMBOLP(arg)) {
-    fdtype lookup=
-      fd_hashtable_get(FD_XHASHTABLE(fd_method_table),arg,FD_EMPTY_CHOICE);
+  else if (SYMBOLP(arg)) {
+    lispval lookup=
+      fd_hashtable_get(FD_XHASHTABLE(fd_method_table),arg,EMPTY);
     if (FD_FUNCTIONP(lookup)) {
       struct FD_FUNCTION *fn = FD_XFUNCTION(lookup); fd_decref(lookup);
       return fn;}
@@ -353,21 +353,21 @@ static struct FD_FUNCTION *lookup_method(fdtype arg)
   else return NULL;
 }
 
-static fdtype get_slotid_methods(fdtype slotid,fdtype method_name)
+static lispval get_slotid_methods(lispval slotid,lispval method_name)
 {
-  fd_pool p = fd_oid2pool(slotid); fdtype smap, result;
-  if (FD_EXPECT_FALSE(p == NULL))
-    return fd_anonymous_oid("get_slotid_methods",slotid);
+  fd_pool p = fd_oid2pool(slotid); lispval smap, result;
+  if (PRED_FALSE(p == NULL))
+    return VOID;
   else smap = fd_fetch_oid(p,slotid);
   if (FD_ABORTP(smap))
     return smap;
-  else if (FD_SLOTMAPP(smap))
-    result = fd_slotmap_get((fd_slotmap)smap,method_name,FD_EMPTY_CHOICE);
-  else if (FD_SCHEMAPP(smap))
-    result = fd_schemap_get((fd_schemap)smap,method_name,FD_EMPTY_CHOICE);
-  else if (FD_TABLEP(smap))
-    result = fd_get(smap,slotid,FD_EMPTY_CHOICE);
-  else result = FD_VOID;
+  else if (SLOTMAPP(smap))
+    result = fd_slotmap_get((fd_slotmap)smap,method_name,EMPTY);
+  else if (SCHEMAPP(smap))
+    result = fd_schemap_get((fd_schemap)smap,method_name,EMPTY);
+  else if (TABLEP(smap))
+    result = fd_get(smap,slotid,EMPTY);
+  else result = VOID;
   fd_decref(smap);
   return result;
 }
@@ -375,105 +375,105 @@ static fdtype get_slotid_methods(fdtype slotid,fdtype method_name)
 
 /* Frame Operations */
 
-FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
+FD_EXPORT lispval fd_frame_get(lispval f,lispval slotid)
 {
-  if (FD_OIDP(slotid)) {
+  if (OIDP(slotid)) {
     struct FD_FRAMEOP_STACK fop;
-    FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_getop,f,slotid,FD_VOID);
-    if (fd_in_progressp(&fop)) return FD_EMPTY_CHOICE;
+    FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_getop,f,slotid,VOID);
+    if (fd_in_progressp(&fop)) return EMPTY;
     else {
       int ipestate = fd_ipeval_status();
       struct FD_HASHTABLE *cache;
-      fdtype methods, cachev, cached, computed = FD_EMPTY_CHOICE;
-      cachev = fd_hashtable_get(&slot_caches,slotid,FD_VOID);
-      if (FD_VOIDP(cachev)) {
+      lispval methods, cachev, cached, computed = EMPTY;
+      cachev = fd_hashtable_get(&slot_caches,slotid,VOID);
+      if (VOIDP(cachev)) {
         cache = make_slot_cache(slotid);
-        cached = FD_VOID; cachev = (fdtype)cache;}
-      else if (FD_EMPTY_CHOICEP(cachev)) {
-        cache = NULL; cached = FD_VOID;}
+        cached = VOID; cachev = (lispval)cache;}
+      else if (EMPTYP(cachev)) {
+        cache = NULL; cached = VOID;}
       else {
         cache = FD_XHASHTABLE(cachev);
-        cached = fd_hashtable_get(cache,f,FD_VOID);}
-      if (!(FD_VOIDP(cached)))
+        cached = fd_hashtable_get(cache,f,VOID);}
+      if (!(VOIDP(cached)))
         return cached;
       methods = get_slotid_methods(slotid,get_methods);
       /* Methods will be void only if the value of the slotoid isn't a table,
          which is typically only the case when it hasn't been fetched yet. */
-      note_dependency(&fop,f,slotid,FD_VOID);
-      if (FD_VOIDP(methods))
-        return FD_EMPTY_CHOICE;
-      else if (FD_EMPTY_CHOICEP(methods)) {
-        fdtype value = fd_oid_get(f,slotid,FD_EMPTY_CHOICE);
-        if (FD_EMPTY_CHOICEP(value))
+      note_dependency(&fop,f,slotid,VOID);
+      if (VOIDP(methods))
+        return EMPTY;
+      else if (EMPTYP(methods)) {
+        lispval value = fd_oid_get(f,slotid,EMPTY);
+        if (EMPTYP(value))
           methods = get_slotid_methods(slotid,compute_methods);
         else return value;}
-      if (FD_VOIDP(methods)) return FD_EMPTY_CHOICE;
+      if (VOIDP(methods)) return EMPTY;
       else if (FD_ABORTP(methods)) {
         fd_decref(cachev);
         return methods;}
       /* At this point, we're computing the slot value */
       fd_push_opstack(&fop);
       init_dependencies(&fop);
-      {FD_DO_CHOICES(method,methods) {
+      {DO_CHOICES(method,methods) {
           struct FD_FUNCTION *fn = lookup_method(method);
           if (fn) {
-            fdtype args[2], value; args[0]=f; args[1]=slotid;
-            value = fd_finish_call(fd_dapply((fdtype)fn,2,args));
+            lispval args[2], value; args[0]=f; args[1]=slotid;
+            value = fd_finish_call(fd_dapply((lispval)fn,2,args));
             if (FD_ABORTP(value)) {
               fd_decref(computed); fd_decref(methods);
               fd_pop_opstack(&fop,0);
               fd_decref(cachev);
               return value;}
-            FD_ADD_TO_CHOICE(computed,value);}}}
+            CHOICE_ADD(computed,value);}}}
       computed = fd_simplify_choice(computed);
       fd_decref(methods);
       if ((cache) && ((fd_ipeval_status() == ipestate))) {
-        fdtype factoid = fd_conspair(fd_incref(f),fd_incref(slotid));
+        lispval factoid = fd_conspair(fd_incref(f),fd_incref(slotid));
         record_dependencies(&fop,factoid); fd_decref(factoid);
         fd_hashtable_store(cache,f,computed);
         fd_pop_opstack(&fop,1);}
       else fd_pop_opstack(&fop,0);
       fd_decref(cachev);
       return computed;}}
-  else if (FD_EMPTY_CHOICEP(f)) return FD_EMPTY_CHOICE;
+  else if (EMPTYP(f)) return EMPTY;
   else {
     struct FD_FRAMEOP_STACK *ptr = get_opstack();
-    if (ptr) note_dependency(ptr,f,slotid,FD_VOID);
-    return fd_oid_get(f,slotid,FD_EMPTY_CHOICE);}
+    if (ptr) note_dependency(ptr,f,slotid,VOID);
+    return fd_oid_get(f,slotid,EMPTY);}
 }
 
-FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_frame_test(lispval f,lispval slotid,lispval value)
 {
-  if (!(FD_OIDP(f)))
+  if (!(OIDP(f)))
     return fd_test(f,slotid,value);
-  else if (FD_OIDP(slotid)) {
+  else if (OIDP(slotid)) {
     struct FD_FRAMEOP_STACK fop;
     FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_testop,f,slotid,value);
     if (fd_in_progressp(&fop)) return 0;
-    else if (FD_VOIDP(value)) {
-      fdtype values = fd_frame_get(f,slotid);
+    else if (VOIDP(value)) {
+      lispval values = fd_frame_get(f,slotid);
       note_dependency(&fop,f,slotid,value);
-      if (FD_EMPTY_CHOICEP(values))
+      if (EMPTYP(values))
         return 0;
       else return 1;}
     else {
       struct FD_HASHTABLE *cache; int result = 0;
-      fdtype cachev = fd_hashtable_get(&test_caches,slotid,FD_VOID);
-      fdtype cached, methods;
-      if (FD_VOIDP(cachev)) {
-        cache = make_test_cache(slotid); cachev = (fdtype)cache;
+      lispval cachev = fd_hashtable_get(&test_caches,slotid,VOID);
+      lispval cached, methods;
+      if (VOIDP(cachev)) {
+        cache = make_test_cache(slotid); cachev = (lispval)cache;
         cached = fd_conspair(fd_make_hashset(),fd_make_hashset());
         fd_hashtable_store(cache,f,cached);}
-      else if (FD_EMPTY_CHOICEP(cachev)) {
-        cache = NULL; cached = FD_VOID;}
+      else if (EMPTYP(cachev)) {
+        cache = NULL; cached = VOID;}
       else {
         cache = FD_XHASHTABLE(cachev);
-        cached = fd_hashtable_get(cache,f,FD_VOID);
-        if (FD_VOIDP(cached)) {
+        cached = fd_hashtable_get(cache,f,VOID);
+        if (VOIDP(cached)) {
           cached = fd_conspair(fd_make_hashset(),fd_make_hashset());
           fd_hashtable_store(cache,f,cached);}}
-      if (FD_PAIRP(cached)) {
-        fdtype in = FD_CAR(cached), out = FD_CDR(cached);
+      if (PAIRP(cached)) {
+        lispval in = FD_CAR(cached), out = FD_CDR(cached);
         if (fd_hashset_get(FD_XHASHSET(in),value)) {
           fd_decref(cached); fd_decref(cachev);
           return 1;}
@@ -482,23 +482,23 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
           return 0;}
         else methods = get_slotid_methods(slotid,test_methods);}
       else methods = get_slotid_methods(slotid,test_methods);
-      if (FD_VOIDP(methods)) {
+      if (VOIDP(methods)) {
         fd_decref(cached); fd_decref(cachev);
         return 0;}
-      else if (FD_EMPTY_CHOICEP(methods)) {
-        fdtype values = fd_frame_get(f,slotid);
+      else if (EMPTYP(methods)) {
+        lispval values = fd_frame_get(f,slotid);
         result = fd_overlapp(value,values);
         fd_decref(values);}
       else {
-        fdtype args[3];
+        lispval args[3];
         args[0]=f; args[1]=slotid; args[2]=value;
         fd_push_opstack(&fop);
         init_dependencies(&fop);
         {
-          FD_DO_CHOICES(method,methods) {
+          DO_CHOICES(method,methods) {
             struct FD_FUNCTION *fn = lookup_method(method);
             if (fn) {
-              fdtype v = fd_apply((fdtype)fn,3,args);
+              lispval v = fd_apply((lispval)fn,3,args);
               if (FD_ABORTP(v)) {
                 fd_decref(methods); fd_decref(cachev);
                 fd_pop_opstack(&fop,0);
@@ -507,7 +507,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
                 result = 1; fd_decref(v); break;}
               else {}}}}
         if ((cache) && (!(fd_ipeval_failp()))) {
-          fdtype factoid = fd_make_list(3,fd_incref(f),
+          lispval factoid = fd_make_list(3,fd_incref(f),
                                       fd_incref(slotid),
                                       fd_incref(value));
           record_dependencies(&fop,factoid); fd_decref(factoid);
@@ -517,33 +517,33 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
       else fd_hashset_add(FD_XHASHSET(FD_CDR(cached)),value);
       fd_decref(cached); fd_decref(cachev);
       return result;}}
-  else if (FD_EMPTY_CHOICEP(f)) return 0;
+  else if (EMPTYP(f)) return 0;
   else {
     struct FD_FRAMEOP_STACK *ptr = get_opstack();
     if (ptr) note_dependency(ptr,f,slotid,value);
     return fd_oid_test(f,slotid,value);}
 }
 
-FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_frame_add(lispval f,lispval slotid,lispval value)
 {
-  if (FD_OIDP(slotid)) {
+  if (OIDP(slotid)) {
     struct FD_FRAMEOP_STACK fop;
     FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_addop,f,slotid,value);
     if (fd_in_progressp(&fop)) return 0;
     else {
-      fdtype methods = fd_oid_get(slotid,add_effects,FD_EMPTY_CHOICE);
+      lispval methods = fd_oid_get(slotid,add_effects,EMPTY);
       fd_decache(f,slotid,value);
-      if (FD_EMPTY_CHOICEP(methods)) {
+      if (EMPTYP(methods)) {
         return fd_oid_add(f,slotid,value);}
       else {
-        fdtype args[3];
+        lispval args[3];
         fd_push_opstack(&fop);
         args[0]=f; args[1]=slotid; args[2]=value;
         {
-          FD_DO_CHOICES(method,methods) {
+          DO_CHOICES(method,methods) {
             struct FD_FUNCTION *fn = lookup_method(method);
             if (fn) {
-              fdtype v = fd_apply((fdtype)fn,3,args);
+              lispval v = fd_apply((lispval)fn,3,args);
               if (FD_ABORTP(v)) {
                 fd_pop_opstack(&fop,0);
                 fd_decref(methods);
@@ -551,34 +551,34 @@ FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value)
               else fd_decref(v);}}}
         fd_pop_opstack(&fop,1);
         return 1;}}}
-  else if (FD_EMPTY_CHOICEP(f)) return 0;
+  else if (EMPTYP(f)) return 0;
   else {
     fd_decache(f,slotid,value);
     return fd_oid_add(f,slotid,value);}
 }
 
-FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
+FD_EXPORT int fd_frame_drop(lispval f,lispval slotid,lispval value)
 {
-  if (FD_OIDP(slotid)) {
+  if (OIDP(slotid)) {
     struct FD_FRAMEOP_STACK fop;
     FD_INIT_FRAMEOP_STACK_ENTRY(fop,fd_dropop,f,slotid,value);
     if (fd_in_progressp(&fop)) return 0;
     else {
-      fdtype methods = fd_oid_get(slotid,drop_effects,FD_EMPTY_CHOICE);
+      lispval methods = fd_oid_get(slotid,drop_effects,EMPTY);
       fd_decache(f,slotid,value);
-      if (FD_EMPTY_CHOICEP(methods)) {
+      if (EMPTYP(methods)) {
         fd_oid_drop(f,slotid,value);
         return 1;}
       else {
-        fdtype args[3];
+        lispval args[3];
         fd_clear_slotcache_entry(slotid,f);
         fd_push_opstack(&fop);
         args[0]=f; args[1]=slotid; args[2]=value;
         {
-          FD_DO_CHOICES(method,methods) {
+          DO_CHOICES(method,methods) {
             struct FD_FUNCTION *fn = lookup_method(method);
             if (fn) {
-              fdtype v = fd_apply((fdtype)fn,3,args);
+              lispval v = fd_apply((lispval)fn,3,args);
               if (FD_ABORTP(v)) {
                 fd_pop_opstack(&fop,0);
                 fd_decref(methods);
@@ -586,7 +586,7 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
               else fd_decref(v);}}}
         fd_pop_opstack(&fop,1);
         return 1;}}}
-  else if (FD_EMPTY_CHOICEP(f)) return 0;
+  else if (EMPTYP(f)) return 0;
   else {
     fd_decache(f,slotid,value);
     return fd_oid_drop(f,slotid,value);}
@@ -595,17 +595,17 @@ FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value)
 
 /* Creating frames */
 
-FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
+FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int copyflags)
 {
-  fd_pool p; fdtype oid;
+  fd_pool p; lispval oid;
   /* #f no pool, just create a slotmap
      #t use the default pool
      pool (use the pool!) */
-  if (FD_FALSEP(pool_spec))
+  if (FALSEP(pool_spec))
     return fd_empty_slotmap();
-  else if ((FD_DEFAULTP(pool_spec)) || (FD_VOIDP(pool_spec)))
+  else if ((FD_DEFAULTP(pool_spec)) || (VOIDP(pool_spec)))
     if (fd_default_pool) p = fd_default_pool;
-    else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,FD_VOID);
+    else return fd_err(_("No default pool"),"frame_create_lexpr",NULL,VOID);
   else if ((FD_TRUEP(pool_spec))||(pool_spec == FD_FIXZERO))
     p = fd_zero_pool;
   else if ((p = fd_lisp2pool(pool_spec)) == NULL)
@@ -614,10 +614,10 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
   oid = fd_pool_alloc(p,1);
   if (FD_ABORTP(oid)) return oid;
   /* Now we figure out what to store in the OID */
-  if (FD_VOIDP(initval)) initval = fd_empty_slotmap();
-  else if ((FD_OIDP(initval)) && (copyflags)) {
+  if (VOIDP(initval)) initval = fd_empty_slotmap();
+  else if ((OIDP(initval)) && (copyflags)) {
     /* Avoid aliasing */
-    fdtype oidval = fd_oid_value(initval);
+    lispval oidval = fd_oid_value(initval);
     if (FD_ABORTP(oidval)) return oidval;
     initval = fd_copier(oidval,copyflags);
     fd_decref(oidval);}
@@ -626,7 +626,7 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
   else fd_incref(initval);
   /* Now we actually set the OID */
   if ((fd_set_oid_value(oid,initval))<0) {
-    fd_decref(initval); return FD_ERROR_VALUE;}
+    fd_decref(initval); return FD_ERROR;}
   else {
     fd_decref(initval);
     return oid;}
@@ -635,113 +635,113 @@ FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int copyflags)
 
 /* Searching */
 
-static fdtype make_features(fdtype slotids,fdtype values)
+static lispval make_features(lispval slotids,lispval values)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(slotid,slotids) {
-    FD_DO_CHOICES(value,values) {
-      fdtype feature = fd_make_pair(slotid,value);
-      FD_ADD_TO_CHOICE(results,feature);}}
+  lispval results = EMPTY;
+  DO_CHOICES(slotid,slotids) {
+    DO_CHOICES(value,values) {
+      lispval feature = fd_make_pair(slotid,value);
+      CHOICE_ADD(results,feature);}}
   return results;
 }
 
-FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotids,fdtype values)
+FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
 {
-  if (FD_CHOICEP(indexes)) {
-    fdtype combined = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(index,indexes)
-      if ((FD_INDEXP(index))||(FD_TYPEP(index,fd_consed_index_type))) {
+  if (CHOICEP(indexes)) {
+    lispval combined = EMPTY;
+    DO_CHOICES(index,indexes)
+      if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(index);
         if (ix == NULL) {
           fd_decref(combined);
-          return FD_ERROR_VALUE;}
+          return FD_ERROR;}
         else {
-          FD_DO_CHOICES(slotid,slotids) {
-            FD_DO_CHOICES(value,values) {
-              fdtype key = fd_make_pair(slotid,value);
-              fdtype result = fd_index_get(ix,key);
-              FD_ADD_TO_CHOICE(combined,result);
+          DO_CHOICES(slotid,slotids) {
+            DO_CHOICES(value,values) {
+              lispval key = fd_make_pair(slotid,value);
+              lispval result = fd_index_get(ix,key);
+              CHOICE_ADD(combined,result);
               fd_decref(key);}}}}
-      else if (FD_TABLEP(index)) {
-        FD_DO_CHOICES(slotid,slotids) {
-          FD_DO_CHOICES(value,values) {
-            fdtype key = fd_make_pair(slotid,value);
-            fdtype result = fd_get(index,key,FD_EMPTY_CHOICE);
-            FD_ADD_TO_CHOICE(combined,result);
+      else if (TABLEP(index)) {
+        DO_CHOICES(slotid,slotids) {
+          DO_CHOICES(value,values) {
+            lispval key = fd_make_pair(slotid,value);
+            lispval result = fd_get(index,key,EMPTY);
+            CHOICE_ADD(combined,result);
             fd_decref(key);}}}
       else {
         fd_decref(combined);
         return fd_type_error(_("index"),"fd_prim_find",index);}
     return combined;}
-  else if (FD_TABLEP(indexes)) {
-    fdtype combined = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(slotid,slotids) {
-      FD_DO_CHOICES(value,values) {
-        fdtype key = fd_make_pair(slotid,value);
-        fdtype result = fd_get(indexes,key,FD_EMPTY_CHOICE);
-        FD_ADD_TO_CHOICE(combined,result);
+  else if (TABLEP(indexes)) {
+    lispval combined = EMPTY;
+    DO_CHOICES(slotid,slotids) {
+      DO_CHOICES(value,values) {
+        lispval key = fd_make_pair(slotid,value);
+        lispval result = fd_get(indexes,key,EMPTY);
+        CHOICE_ADD(combined,result);
         fd_decref(key);}}
     return combined;}
   else {
-    fdtype combined = FD_EMPTY_CHOICE;
+    lispval combined = EMPTY;
     fd_index ix = fd_indexptr(indexes);
     if (ix == NULL) {
       fd_decref(combined);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else {
-      FD_DO_CHOICES(slotid,slotids) {
-        FD_DO_CHOICES(value,values) {
-          fdtype key = fd_make_pair(slotid,value);
-          fdtype result = fd_index_get(ix,key);
-          FD_ADD_TO_CHOICE(combined,result);
+      DO_CHOICES(slotid,slotids) {
+        DO_CHOICES(value,values) {
+          lispval key = fd_make_pair(slotid,value);
+          lispval result = fd_index_get(ix,key);
+          CHOICE_ADD(combined,result);
           fd_decref(key);}}
       return combined;}}
 }
 
-FD_EXPORT fdtype fd_finder(fdtype indexes,int n,fdtype *slotvals)
+FD_EXPORT lispval fd_finder(lispval indexes,int n,lispval *slotvals)
 {
   int i = 0, n_conjuncts = n/2;
-  fdtype _conjuncts[6], *conjuncts=_conjuncts, result;
-  if (FD_EMPTY_CHOICEP(indexes)) return FD_EMPTY_CHOICE;
-  if (n_conjuncts>6) conjuncts = u8_alloc_n(n_conjuncts,fdtype);
+  lispval _conjuncts[6], *conjuncts=_conjuncts, result;
+  if (EMPTYP(indexes)) return EMPTY;
+  if (n_conjuncts>6) conjuncts = u8_alloc_n(n_conjuncts,lispval);
   while (i < n_conjuncts) {
     conjuncts[i]=fd_prim_find(indexes,slotvals[i*2],slotvals[i*2+1]);
     if (FD_ABORTP(conjuncts[i])) {
-      fdtype error = conjuncts[i];
+      lispval error = conjuncts[i];
       int j = 0; while (j<i) {fd_decref(conjuncts[j]); j++;}
       if (conjuncts != _conjuncts) u8_free(conjuncts);
       return error;}
-    if (FD_EMPTY_CHOICEP(conjuncts[i])) {
+    if (EMPTYP(conjuncts[i])) {
       int j = 0; while (j<i) {fd_decref(conjuncts[j]); j++;}
-      return FD_EMPTY_CHOICE;}
+      return EMPTY;}
     i++;}
   result = fd_intersection(conjuncts,n_conjuncts);
   i = 0; while (i < n_conjuncts) {
-    fdtype cj=_conjuncts[i++]; fd_decref(cj);}
+    lispval cj=_conjuncts[i++]; fd_decref(cj);}
   if (_conjuncts != conjuncts) u8_free(conjuncts);
   return result;
 }
 
-FD_EXPORT fdtype fd_find_frames(fdtype indexes,...)
+FD_EXPORT lispval fd_find_frames(lispval indexes,...)
 {
-  fdtype _slotvals[64], *slotvals=_slotvals, val;
+  lispval _slotvals[64], *slotvals=_slotvals, val;
   int n_slotvals = 0, max_slotvals = 64; va_list args;
-  va_start(args,indexes); val = va_arg(args,fdtype);
-  while (!(FD_VOIDP(val))) {
+  va_start(args,indexes); val = va_arg(args,lispval);
+  while (!(VOIDP(val))) {
     if (n_slotvals>=max_slotvals) {
       if (max_slotvals == 64) {
-        fdtype *newsv = u8_alloc_n(128,fdtype); int i = 0;
+        lispval *newsv = u8_alloc_n(128,lispval); int i = 0;
         while (i<64) {newsv[i]=slotvals[i]; i++;}
         slotvals = newsv; max_slotvals = 128;}
       else {
-        slotvals = u8_realloc(slotvals,sizeof(fdtype)*max_slotvals*2);
+        slotvals = u8_realloc(slotvals,sizeof(lispval)*max_slotvals*2);
         max_slotvals = max_slotvals*2;}}
-    slotvals[n_slotvals++]=val; val = va_arg(args,fdtype);}
+    slotvals[n_slotvals++]=val; val = va_arg(args,lispval);}
   if (n_slotvals%2) {
     if (slotvals != _slotvals) u8_free(slotvals);
-    return fd_err(OddFindFramesArgs,"fd_find_frames",NULL,FD_VOID);}
+    return fd_err(OddFindFramesArgs,"fd_find_frames",NULL,VOID);}
   if (slotvals != _slotvals) {
-    fdtype result = fd_finder(indexes,n_slotvals,slotvals);
+    lispval result = fd_finder(indexes,n_slotvals,slotvals);
     u8_free(slotvals);
     return result;}
   else return fd_finder(indexes,n_slotvals,slotvals);
@@ -757,25 +757,25 @@ FD_EXPORT fdtype fd_find_frames(fdtype indexes,...)
    numbers of values is large and values may be strings. */
 
 FD_EXPORT
-int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
+int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 {
   if ((ix->index_handler->fetchn) == NULL) {
-    fdtype keys = FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(slotid,slotids) {
-      FD_DO_CHOICES(value,values) {
-        fdtype key = fd_conspair(slotid,value);
-        FD_ADD_TO_CHOICE(keys,key);}}
+    lispval keys = EMPTY;
+    DO_CHOICES(slotid,slotids) {
+      DO_CHOICES(value,values) {
+        lispval key = fd_conspair(slotid,value);
+        CHOICE_ADD(keys,key);}}
     fd_index_prefetch(ix,keys);
     fd_decref(keys);
     return 1;}
   else {
     int max_keys = FD_CHOICE_SIZE(slotids)*FD_CHOICE_SIZE(values);
-    fdtype *keyv = u8_alloc_n(max_keys,fdtype);
-    fdtype *valuev = NULL;
+    lispval *keyv = u8_alloc_n(max_keys,lispval);
+    lispval *valuev = NULL;
     int n_keys = 0;
-    FD_DO_CHOICES(slotid,slotids) {
-      FD_DO_CHOICES(value,values) {
-        fdtype key = fd_conspair(slotid,value);
+    DO_CHOICES(slotid,slotids) {
+      DO_CHOICES(value,values) {
+        lispval key = fd_conspair(slotid,value);
         keyv[n_keys++]=key;}}
     valuev = (ix->index_handler->fetchn)(ix,n_keys,keyv);
     fd_hashtable_iter(&(ix->index_cache),fd_table_add_empty_noref,
@@ -790,21 +790,21 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
 #define FD_LOOP_BREAK() FD_STOP_DO_CHOICES; break
 
 FD_EXPORT
-int fd_index_frame(fd_index ix,fdtype frames,fdtype slotids,fdtype values)
+int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
 {
-  if (FD_VOIDP(values)) {
+  if (VOIDP(values)) {
     int rv = 0, sum = 0;
-    FD_DO_CHOICES(f,frames) {
-      fdtype frame_features = FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(slotid,slotids) {
-        fdtype values = fd_frame_get(f,slotid);
+    DO_CHOICES(f,frames) {
+      lispval frame_features = EMPTY;
+      DO_CHOICES(slotid,slotids) {
+        lispval values = fd_frame_get(f,slotid);
         if (FD_ABORTP(values)) {
           frame_features = values; rv = -1;
           /* break from iterating over slotids */
           FD_LOOP_BREAK();}
         else {
-          fdtype features = make_features(slotid,values);
-          FD_ADD_TO_CHOICE(frame_features,features);
+          lispval features = make_features(slotid,values);
+          CHOICE_ADD(frame_features,features);
           fd_decref(values);}}
       if (rv>=0) {
         rv = fd_index_add(ix,frame_features,f);
@@ -814,9 +814,9 @@ int fd_index_frame(fd_index ix,fdtype frames,fdtype slotids,fdtype values)
     else return sum;}
   else {
     int rv = 0, sum = 0;
-    fdtype features = make_features(slotids,values);
-    if (FD_CHOICEP(frames)) {
-      FD_DO_CHOICES(f,frames) {
+    lispval features = make_features(slotids,values);
+    if (CHOICEP(frames)) {
+      DO_CHOICES(f,frames) {
         rv = fd_index_add(ix,features,f);
         if (rv<0) {
           FD_LOOP_BREAK();}
@@ -832,69 +832,69 @@ int fd_index_frame(fd_index ix,fdtype frames,fdtype slotids,fdtype values)
 
 /* Background searching */
 
-FD_EXPORT fdtype fd_bg_get(fdtype slotid,fdtype value)
+FD_EXPORT lispval fd_bg_get(lispval slotid,lispval value)
 {
   if (fd_background) {
-    fdtype results = FD_EMPTY_CHOICE;
-    fdtype features = make_features(slotid,value);
+    lispval results = EMPTY;
+    lispval features = make_features(slotid,value);
     if ((fd_prefetch) && (fd_ipeval_status()==0) &&
-        (FD_CHOICEP(features)) &&
+        (CHOICEP(features)) &&
         (fd_index_prefetch((fd_index)fd_background,features)<0)) {
-      fd_decref(features); return FD_ERROR_VALUE;}
+      fd_decref(features); return FD_ERROR;}
     else {
-      FD_DO_CHOICES(feature,features) {
-        fdtype result = fd_index_get((fd_index)fd_background,feature);
+      DO_CHOICES(feature,features) {
+        lispval result = fd_index_get((fd_index)fd_background,feature);
         if (FD_ABORTP(result)) {
           fd_decref(results); fd_decref(features);
           return result;}
-        else {FD_ADD_TO_CHOICE(results,result);}}
+        else {CHOICE_ADD(results,result);}}
       fd_decref(features);}
     return fd_simplify_choice(results);}
-  else return FD_EMPTY_CHOICE;
+  else return EMPTY;
 }
 
-FD_EXPORT fdtype fd_bgfinder(int n,fdtype *slotvals)
+FD_EXPORT lispval fd_bgfinder(int n,lispval *slotvals)
 {
   int i = 0, n_conjuncts = n/2;
-  fdtype _conjuncts[6], *conjuncts=_conjuncts, result;
-  if (fd_background == NULL) return FD_EMPTY_CHOICE;
-  if (n_conjuncts>6) conjuncts = u8_alloc_n(n_conjuncts,fdtype);
+  lispval _conjuncts[6], *conjuncts=_conjuncts, result;
+  if (fd_background == NULL) return EMPTY;
+  if (n_conjuncts>6) conjuncts = u8_alloc_n(n_conjuncts,lispval);
   while (i < n_conjuncts) {
     _conjuncts[i]=fd_bg_get(slotvals[i*2],slotvals[i*2+1]); i++;}
   result = fd_intersection(conjuncts,n_conjuncts);
   i = 0; while (i < n_conjuncts) {
-    fdtype cj=_conjuncts[i++]; fd_decref(cj);}
+    lispval cj=_conjuncts[i++]; fd_decref(cj);}
   if (_conjuncts != conjuncts) u8_free(conjuncts);
   return result;
 }
 
-FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...)
+FD_EXPORT lispval fd_bgfind(lispval slotid,lispval values,...)
 {
-  fdtype _slotvals[64], *slotvals=_slotvals, val;
+  lispval _slotvals[64], *slotvals=_slotvals, val;
   int n_slotvals = 0, max_slotvals = 64; va_list args;
-  va_start(args,values); val = va_arg(args,fdtype);
+  va_start(args,values); val = va_arg(args,lispval);
   slotvals[n_slotvals++]=slotid; slotvals[n_slotvals++]=values;
-  while (!(FD_VOIDP(val))) {
+  while (!(VOIDP(val))) {
     if (n_slotvals>=max_slotvals) {
       if (max_slotvals == 64) {
-        fdtype *newsv = u8_alloc_n(128,fdtype); int i = 0;
+        lispval *newsv = u8_alloc_n(128,lispval); int i = 0;
         while (i<64) {newsv[i]=slotvals[i]; i++;}
         slotvals = newsv; max_slotvals = 128;}
       else {
-        slotvals = u8_realloc_n(slotvals,max_slotvals*2,fdtype);
+        slotvals = u8_realloc_n(slotvals,max_slotvals*2,lispval);
         max_slotvals = max_slotvals*2;}}
-    slotvals[n_slotvals++]=val; val = va_arg(args,fdtype);}
+    slotvals[n_slotvals++]=val; val = va_arg(args,lispval);}
   if (n_slotvals%2) {
     if (slotvals != _slotvals) u8_free(slotvals);
-    return fd_err(OddFindFramesArgs,"fd_bgfind",NULL,FD_VOID);}
+    return fd_err(OddFindFramesArgs,"fd_bgfind",NULL,VOID);}
   if (slotvals != _slotvals) {
-    fdtype result = fd_bgfinder(n_slotvals,slotvals);
+    lispval result = fd_bgfinder(n_slotvals,slotvals);
     u8_free(slotvals);
     return result;}
   else return fd_bgfinder(n_slotvals,slotvals);
 }
 
-FD_EXPORT int fd_bg_prefetch(fdtype keys)
+FD_EXPORT int fd_bg_prefetch(lispval keys)
 {
   if (fd_background)
     return fd_index_prefetch((fd_index)fd_background,keys);
@@ -903,9 +903,9 @@ FD_EXPORT int fd_bg_prefetch(fdtype keys)
 
 /* Checking the cache load for the slot/test caches */
 
-static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
+static int hashtable_cachecount(lispval key,lispval v,void *ptr)
 {
-  if (FD_HASHTABLEP(v)) {
+  if (HASHTABLEP(v)) {
     fd_hashtable h = (fd_hashtable)v;
     int *count = (int *)ptr;
     *count = *count+h->table_n_keys;}

@@ -45,7 +45,7 @@ FD_EXPORT int fd_index_adds_init;
   int index_serialno;						   \
   short index_cache_level;					   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
-  fdtype index_covers_slotids
+  lispval index_covers_slotids
 
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
@@ -55,32 +55,32 @@ FD_EXPORT fd_index *fd_secondary_indexes;
 FD_EXPORT int fd_n_primary_indexes, fd_n_secondary_indexes;
 
 typedef struct FD_KEY_SIZE {
-  fdtype keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
+  lispval keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
 typedef struct FD_KEY_SIZE *fd_key_size;
 
 typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
   int (*commit)(fd_index ix);
-  fdtype (*fetch)(fd_index ix,fdtype key);
-  int (*fetchsize)(fd_index ix,fdtype key);
-  int (*prefetch)(fd_index ix,fdtype keys);
-  fdtype *(*fetchn)(fd_index ix,int n,fdtype *keys);
-  fdtype *(*fetchkeys)(fd_index ix,int *n);
+  lispval (*fetch)(fd_index ix,lispval key);
+  int (*fetchsize)(fd_index ix,lispval key);
+  int (*prefetch)(fd_index ix,lispval keys);
+  lispval *(*fetchn)(fd_index ix,int n,lispval *keys);
+  lispval *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchinfo)(fd_index ix,struct FD_CHOICE *filter,int *n);
-  int (*batchadd)(fd_index ix,fdtype);
-  fdtype (*metadata)(fd_index ix,fdtype);
+  int (*batchadd)(fd_index ix,lispval);
+  lispval (*metadata)(fd_index ix,lispval);
   fd_index (*create)(u8_string spec,void *type_data,
-		     fd_storage_flags flags,fdtype opts);
+		     fd_storage_flags flags,lispval opts);
   int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
   void (*recycle)(fd_index p);
-  fdtype (*indexctl)(fd_index ix,fdtype op,int n,fdtype *args);}
+  lispval (*indexctl)(fd_index ix,lispval op,int n,lispval *args);}
   FD_INDEX_HANDLER;
 typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
-FD_EXPORT fdtype fd_index_ctl(fd_index p,fdtype op,int n,fdtype *args);
+FD_EXPORT lispval fd_index_ctl(fd_index p,lispval op,int n,lispval *args);
 
-FD_EXPORT fdtype fd_index_hashop, fd_index_slotsop;
+FD_EXPORT lispval fd_index_hashop, fd_index_slotsop;
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={
@@ -114,42 +114,43 @@ FD_EXPORT void fd_reset_index_tables
 
 FD_EXPORT void fd_register_index(fd_index ix);
 
-FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value);
-FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value);
+FD_EXPORT int fd_index_store(fd_index ix,lispval key,lispval value);
+FD_EXPORT int fd_index_drop(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table);
 FD_EXPORT int fd_index_commit(fd_index ix);
 FD_EXPORT void fd_index_close(fd_index ix);
-FD_EXPORT fd_index _fd_indexptr(fdtype x);
-FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key);
-FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key);
-FD_EXPORT fdtype fd_index_keys(fd_index ix);
-FD_EXPORT fdtype fd_index_sizes(fd_index ix);
-FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
-FD_EXPORT int fd_batch_add(fd_index ix,fdtype table);
-FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
+FD_EXPORT fd_index _fd_indexptr(lispval x);
+FD_EXPORT lispval _fd_index_get(fd_index ix,lispval key);
+FD_EXPORT lispval fd_index_fetch(fd_index ix,lispval key);
+FD_EXPORT lispval fd_index_keys(fd_index ix);
+FD_EXPORT lispval fd_index_sizes(fd_index ix);
+FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value);
+FD_EXPORT int fd_batch_add(fd_index ix,lispval table);
+FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys);
 
 FD_EXPORT fd_index fd_find_index(u8_string);
 FD_EXPORT u8_string fd_locate_index(u8_string);
 
-FD_EXPORT fd_index fd_open_index(u8_string,fd_storage_flags,fdtype);
-FD_EXPORT fd_index fd_get_index(u8_string,fd_storage_flags,fdtype);
+FD_EXPORT fd_index fd_open_index(u8_string,fd_storage_flags,lispval);
+FD_EXPORT fd_index fd_get_index(u8_string,fd_storage_flags,lispval);
 FD_EXPORT fd_index fd_find_index_by_id(u8_string);
 FD_EXPORT fd_index fd_find_index_by_source(u8_string);
 
-FD_EXPORT void fd_index_swapout(fd_index ix,fdtype keys);
+FD_EXPORT void fd_index_swapout(fd_index ix,lispval keys);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags,fdtype);
+FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags,lispval);
 
 FD_EXPORT void fd_swapout_indexes(void);
 FD_EXPORT void fd_close_indexes(void);
 FD_EXPORT int fd_commit_indexes(void);
 FD_EXPORT int fd_commit_indexes_noerr(void);
 FD_EXPORT long fd_index_cache_load(void);
-FD_EXPORT fdtype fd_cached_keys(fd_index p);
+FD_EXPORT lispval fd_cached_keys(fd_index p);
 
-FD_EXPORT fd_index fd_lisp2index(fdtype lp);
-FD_EXPORT fdtype fd_index2lisp(fd_index ix);
+FD_EXPORT fd_index fd_lisp2index(lispval lp);
+FD_EXPORT lispval fd_index2lisp(fd_index ix);
+FD_EXPORT lispval fd_index_ref(fd_index ix);
 
 FD_EXPORT int fd_add_to_background(fd_index ix);
 
@@ -165,12 +166,12 @@ FD_EXPORT int fd_add_to_background(fd_index ix);
 
 typedef struct FD_EXTINDEX {
   FD_INDEX_FIELDS;
-  fdtype fetchfn, commitfn, state;}
+  lispval fetchfn, commitfn, state;}
   FD_EXTINDEX;
 typedef struct FD_EXTINDEX *fd_extindex;
 
 FD_EXPORT fd_index fd_make_extindex
-  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg);
+  (u8_string name,lispval fetchfn,lispval commitfn,lispval state,int reg);
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 
@@ -178,10 +179,10 @@ FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 
 typedef struct FD_PROCINDEX {
   FD_INDEX_FIELDS;
-  fdtype closefn, commitfn, fetchfn, fetchsize;
-  fdtype prefetch, fetchn, fetchkeys, fetchinfo;
-  fdtype batchadd, metadata, create, indexctl;
-  fdtype index_state;}
+  lispval closefn, commitfn, fetchfn, fetchsize;
+  lispval prefetch, fetchn, fetchkeys, fetchinfo;
+  lispval batchadd, metadata, create, indexctl;
+  lispval index_state;}
   FD_PROCINDEX;
 typedef struct FD_PROCINDEX *fd_procindex;
 
@@ -203,15 +204,15 @@ FD_EXPORT struct FD_COMPOUND_INDEX *fd_background;
 /* Inline index adds */
 
 #if FD_INLINE_INDEXES
-FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
+FD_FASTOP lispval fd_index_get(fd_index ix,lispval key)
 {
-  fdtype cached;
+  lispval cached;
 #if FD_USE_THREADCACHE
   FDTC *fdtc = fd_threadcache; struct FD_PAIR tempkey;
   if (fdtc) {
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
     tempkey.car = fd_index2lisp(ix); tempkey.cdr = key;
-    cached = fd_hashtable_get(&(fdtc->indexes),(fdtype)&tempkey,FD_VOID);
+    cached = fd_hashtable_get(&(fdtc->indexes),(lispval)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
 #endif
   if (ix->index_cache_level==0) cached = FD_VOID;
@@ -222,11 +223,11 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
   if (FD_VOIDP(cached)) cached = fd_index_fetch(ix,key);
 #if FD_USE_THREADCACHE
   if (fdtc) {
-    fd_hashtable_store(&(fdtc->indexes),(fdtype)&tempkey,cached);}
+    fd_hashtable_store(&(fdtc->indexes),(lispval)&tempkey,cached);}
 #endif
   return cached;
 }
-FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
+FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
 {
   int rv = -1;
   FDTC *fdtc = (FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
@@ -236,15 +237,15 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
   else if (FD_CHOICEP(key)) {
-    const fdtype *keys = FD_CHOICE_DATA(key);
+    const lispval *keys = FD_CHOICE_DATA(key);
     unsigned int n = FD_CHOICE_SIZE(key);
     rv = fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
     if (rv<0) return rv;
     else if (ix->index_cache_level>0)
       rv = fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);}
   else if (FD_PRECHOICEP(key)) {
-    fdtype normchoice = fd_make_simple_choice(key);
-    const fdtype *keys = FD_CHOICE_DATA(key);
+    lispval normchoice = fd_make_simple_choice(key);
+    const lispval *keys = FD_CHOICE_DATA(key);
     unsigned int n = FD_CHOICE_SIZE(key);
     rv = fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
     if (rv<0) return rv;
@@ -261,14 +262,14 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
       tempkey.car = fd_index2lisp(ix); tempkey.cdr = akey;
-      if (fd_hashtable_probe(&fdtc->indexes,(fdtype)&tempkey)) {
-	fd_hashtable_add(&fdtc->indexes,(fdtype)&tempkey,value);}}}
+      if (fd_hashtable_probe(&fdtc->indexes,(lispval)&tempkey)) {
+	fd_hashtable_add(&fdtc->indexes,(lispval)&tempkey,value);}}}
 
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) && 
       (fd_background->index_cache.table_n_keys)) {
     fd_hashtable bgcache = (&(fd_background->index_cache));
     if (FD_CHOICEP(key)) {
-      const fdtype *keys = FD_CHOICE_DATA(key);
+      const lispval *keys = FD_CHOICE_DATA(key);
       unsigned int n = FD_CHOICE_SIZE(key);
       /* This will force it to be re-read from the source indexes */
       rv = fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,FD_VOID);}
@@ -286,7 +287,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
 
   return rv;
 }
-FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
+FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(lispval x)
 {
   if (FD_IMMEDIATEP(x)) {
     int serial = FD_GET_IMMEDIATE(x,fd_index_type);
@@ -313,7 +314,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
 #endif
 
 FD_EXPORT void fd_init_index_delays(void);
-FD_EXPORT fdtype *fd_get_index_delays(void);
+FD_EXPORT lispval *fd_get_index_delays(void);
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data);
 
 #endif /* FRAMERD_INDEXES_H */

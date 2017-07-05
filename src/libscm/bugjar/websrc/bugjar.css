@@ -197,3 +197,88 @@ table.backtrace > tbody.bindings > tr > td, table.backtrace > tbody.eval > tr > 
 table.backtrace > tbody.call > tr > td { color: red; }
 table.backtrace > tbody.call > tr > td span.operator {font-weight: bold;}
 table.backtrace > tbody.call > tr > td span {white-space: nowrap;}
+
+/* Error styles */
+
+p.sorry {
+    background-color: white; font-style: italic;
+    font-size: 3vw; font-size: 32px;
+    margin: 0px; margin-bottom: 1ex; 
+    padding: 0.5ex; padding-top: 0.3ex;}
+
+span.evalsto { font-size: 125%; }
+
+div.backtrace { 
+    margin-left: 4em; 
+    margin-right: 2em;}
+
+div.call { margin-left: 2em; text-indent: -2em; margin-right: 1em;}
+
+div.call span.arg { font-weight: normal; }
+
+div.call span.op { font-weight: bold; }
+
+div.stackframe {}
+div.stackframe div.head {
+    text-align: left; font-size: 150%;
+    margin-top: 0.5ex; margin-bottom: 0.2ex;
+    padding-top: 2px; padding-bottom: 1px;
+    border-bottom: solid black 1px;}
+
+div.stackframe .head span.label { 
+    font-size: 120%; font-weight: bold;}
+div.stackframe .head span.depth { 
+    font-family: monospace;
+    margin-left: 4px;
+    float: right; }
+.stackframe .head span.type {
+    font-style: italic;
+    font-size: 50%;
+    float: right; }
+
+pre.eval {
+    clear: both;
+    font-family: fixed;
+    margin-top: 0.2ex;}
+
+div.bindings { 
+    border-left: solid black 4px;
+    padding-left: 8px;
+    margin-top: 1ex;}
+
+div.binding { }
+div.binding span.var { 
+    display: inline-block; width: 7em;
+    font-weight: bold;}
+div.binding span.unbound { 
+    padding-left: 1em;
+    color: red;}
+div.binding span.value { 
+    font-weight: normal;
+    display: inline-block; 
+    margin-left: 1em;
+    max-width: 50%;}
+
+div.exception {}
+
+div.exception span.condition {
+    font-weight: bold; color: red; font-size: 120%;}
+
+div.exception span.context { font-weight: normal; }
+div.exception span.context:before { content: '<'; }
+div.exception span.context:after { content: '>'; }
+
+div.exception .details { font-style: italic; }
+div.exception span.details { font-weight: bold; }
+div.exception span.details:before { content: '('; }
+div.exception span.details:after { content: ')'; }
+
+
+div.exception .irritant { font-family: fixed; }
+
+div.sorry {
+  font-family: sans; font-size: 120%;}
+
+div.expands { max-height: 3em; }
+div.expands.expanded { max-height: inherit; }
+

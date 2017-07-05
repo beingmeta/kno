@@ -1,8 +1,7 @@
-usr/lib/libfdtype.so.*
+usr/lib/libfdcore.so.*
 usr/lib/libfdstorage.so.*
 usr/lib/libfddrivers.so.*
 usr/lib/libfdscheme.so.*
-usr/lib/libfdschemeio.so.*
 usr/lib/libfddbserv.so*
 usr/lib/libfdweb.so*
 usr/lib/libtexttools.so*
@@ -40,8 +39,6 @@ usr/share/framerd/fdconsole.el
 usr/share/framerd/makefile.include
 usr/share/framerd/data/hyph_en_US.dic
 etc/logrotate.d/framerd
-usr/share/framerd/libscm/framerd-*/batch/*.scm
-usr/share/framerd/libscm/framerd-*/bench/*.scm
 usr/share/framerd/libscm/framerd-*/bugjar/*.scm
 usr/share/framerd/libscm/framerd-*/bugjar/websrc/*
 usr/share/framerd/libscm/framerd-*/optimize/*.scm

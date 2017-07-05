@@ -117,7 +117,7 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
 	   offtype,stream->streamid);
     u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
     result.off = -1;
-    result.size = -1;} /* switch (p->fdkb_offtype) */
+    result.size = -1;} /* switch (p->kb_offtype) */
 #else
   if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off = (fd_off_t)-1; result.size = (size_t)-1;}
@@ -145,7 +145,7 @@ static FD_CHUNK_REF fetch_chunk_ref(struct FD_STREAM *stream,
 	     offtype,stream->streamid);
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
       result.off = -1;
-      result.size = -1;} /* switch (p->fdkb_offtype) */
+      result.size = -1;} /* switch (p->kb_offtype) */
   }
 #endif
   return result;

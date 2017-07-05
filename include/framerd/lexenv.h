@@ -17,8 +17,8 @@
 
 typedef struct FD_LEXENV {
   FD_CONS_HEADER;
-  fdtype env_bindings;
-  fdtype env_exports;
+  lispval env_bindings;
+  lispval env_exports;
   struct FD_LEXENV *env_parent;
   struct FD_LEXENV *env_copy;} FD_LEXENV;
 typedef struct FD_LEXENV *fd_lexenv;
@@ -49,10 +49,10 @@ void fd_free_lexenv(struct FD_LEXENV *env)
     else {
       struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
       int i = 0, n = FD_XSCHEMAP_SIZE(sm);
-      fdtype *vals = sm->schema_values;
+      lispval *vals = sm->schema_values;
       if ( sm->schemap_stackvals == 0) 
 	while (i < n) {
-	  fdtype val = vals[i++];
+	  lispval val = vals[i++];
 	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
 	    fd_decref(val);}}
       u8_destroy_rwlock(&(sm->table_rwlock));
@@ -60,10 +60,10 @@ void fd_free_lexenv(struct FD_LEXENV *env)
   else {
     struct FD_SCHEMAP *sm = FD_XSCHEMAP(env->env_bindings);
     int i = 0, n = FD_XSCHEMAP_SIZE(sm);
-    fdtype *vals = sm->schema_values;
+    lispval *vals = sm->schema_values;
     if ( sm->schemap_stackvals == 0)
       while (i < n) {
-	fdtype val = vals[i++];
+	lispval val = vals[i++];
 	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
 	  fd_decref(val);}}
     u8_destroy_rwlock(&(sm->table_rwlock));}

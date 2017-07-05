@@ -63,7 +63,7 @@ FD_EXPORT fd_exception fd_XMLParseError;
 
 typedef struct FD_XML {
   u8_string xml_eltname; int xml_bits;
-  fdtype xml_head, xml_attribs;
+  lispval xml_head, xml_attribs;
   u8_string xml_namespace;
   u8_string *xml_nsmap; 
   int xml_size, xml_limit;
@@ -98,10 +98,10 @@ FD_EXPORT FD_XML *fd_xml_push
    u8_string *elts,int n_elts);
 FD_EXPORT int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote);
 
-FD_EXPORT void fd_add_content(struct FD_XML *node,fdtype item);
+FD_EXPORT void fd_add_content(struct FD_XML *node,lispval item);
 
 FD_EXPORT u8_string fd_xmlns_lookup(FD_XML *xml,u8_string s,u8_string *nsp);
-FD_EXPORT fdtype fd_make_qid(u8_string eltname,u8_string namespace);
+FD_EXPORT lispval fd_make_qid(u8_string eltname,u8_string namespace);
 FD_EXPORT void fd_free_xml_node(FD_XML *node);
 
 FD_EXPORT void fd_attrib_entify(u8_output out,u8_string value);
@@ -116,71 +116,71 @@ FD_EXPORT void *fd_walk_xml
    FD_XML *(*popfn)(FD_XML *),
    FD_XML *node);
 
-FD_EXPORT int fd_xmlparseoptions(fdtype x);
+FD_EXPORT int fd_xmlparseoptions(lispval x);
 
 /* XMLEVAL stuff */
 
-FD_EXPORT int fd_dtype2xml(u8_output out,fdtype x,fd_lexenv env);
-FD_EXPORT void fd_xmloid(u8_output out,fdtype oid_arg);
-FD_EXPORT fdtype fd_xmleval(u8_output out,fdtype xml,fd_lexenv env);
-FD_EXPORT fdtype fd_xmlevalout(u8_output out,fdtype xml,
+FD_EXPORT int fd_lisp2xml(u8_output out,lispval x,fd_lexenv env);
+FD_EXPORT void fd_xmloid(u8_output out,lispval oid_arg);
+FD_EXPORT lispval fd_xmleval(u8_output out,lispval xml,fd_lexenv env);
+FD_EXPORT lispval fd_xmlevalout(u8_output out,lispval xml,
 			       fd_lexenv scheme_env,fd_lexenv xml_env);
-FD_EXPORT fdtype fd_xmleval_with(u8_output out,fdtype xml,fdtype,fdtype);
+FD_EXPORT lispval fd_xmleval_with(u8_output out,lispval xml,lispval,lispval);
 
-FD_EXPORT fdtype fd_open_xml(fdtype xml,fd_lexenv env);
-FD_EXPORT fdtype fd_close_xml(fdtype xml);
-FD_EXPORT fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lexenv env);
-FD_EXPORT fdtype fd_xmlout(u8_output out,fdtype xml,
+FD_EXPORT lispval fd_open_xml(lispval xml,fd_lexenv env);
+FD_EXPORT lispval fd_close_xml(lispval xml);
+FD_EXPORT lispval fd_unparse_xml(u8_output out,lispval xml,fd_lexenv env);
+FD_EXPORT lispval fd_xmlout(u8_output out,lispval xml,
 			   fd_lexenv scheme_env,
 			   fd_lexenv xml_env);
-FD_EXPORT int fd_xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
-			       fdtype xmloidfn,fd_lexenv env);
+FD_EXPORT int fd_xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,lispval x,
+			       lispval xmloidfn,fd_lexenv env);
 
 FD_EXPORT struct FD_XML *fd_load_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_read_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_parse_fdxml(u8_input in,int bits);
-FD_EXPORT fdtype fd_fdxml_arg(fdtype arg);
+FD_EXPORT lispval fd_fdxml_arg(lispval arg);
 
-FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl);
+FD_EXPORT void fd_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl);
 
 /* CGIEXEC stuff */
 
-FD_EXPORT int fd_parse_cgidata(fdtype data);
-FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata);
-FD_EXPORT void fd_urify(u8_output out,fdtype val);
-FD_EXPORT fdtype fd_mapurl(fdtype uri);
+FD_EXPORT int fd_parse_cgidata(lispval data);
+FD_EXPORT lispval fd_cgiexec(lispval proc,lispval cgidata);
+FD_EXPORT void fd_urify(u8_output out,lispval val);
+FD_EXPORT lispval fd_mapurl(lispval uri);
 
 FD_EXPORT char *fd_sendfile_header;
 
 /* URI stuff */
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int,int,const char *);
-FD_EXPORT fdtype fd_parse_uri(u8_string uri,fdtype base);
+FD_EXPORT lispval fd_parse_uri(u8_string uri,lispval base);
 
 /* XML output stuff */
 
 FD_EXPORT int fd_open_markup
-  (u8_output out,u8_string eltname,fdtype attribs,int empty);
+  (u8_output out,u8_string eltname,lispval attribs,int empty);
 
 FD_EXPORT void fd_xhtmlerrorpage(u8_output s,u8_exception ex);
 FD_EXPORT void fd_xhtmldebugpage(u8_output s,u8_exception ex);
-FD_EXPORT int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata);
-FD_EXPORT int fd_output_xml_preface(U8_OUTPUT *out,fdtype cgidata);
-FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata);
+FD_EXPORT int fd_output_xhtml_preface(U8_OUTPUT *out,lispval cgidata);
+FD_EXPORT int fd_output_xml_preface(U8_OUTPUT *out,lispval cgidata);
+FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,lispval cgidata);
 
 FD_EXPORT int fd_cache_markup;
 
 /* URI parsing stuff */
 
-FD_EXPORT fdtype fd_parse_uri(u8_string uri,fdtype base);
-FD_EXPORT fdtype fd_parse_uri(u8_string uri,fdtype base);
+FD_EXPORT lispval fd_parse_uri(u8_string uri,lispval base);
+FD_EXPORT lispval fd_parse_uri(u8_string uri,lispval base);
 
 
 /* MIME parsing stuff */
 
-FD_EXPORT fdtype fd_parse_multipart_mime(fdtype,const char *,const char *);
-FD_EXPORT fdtype fd_parse_mime(const char *,const char *);
-FD_EXPORT fdtype fd_handle_compound_mime_field(fdtype,fdtype,fdtype);
+FD_EXPORT lispval fd_parse_multipart_mime(lispval,const char *,const char *);
+FD_EXPORT lispval fd_parse_mime(const char *,const char *);
+FD_EXPORT lispval fd_handle_compound_mime_field(lispval,lispval,lispval);
 
 /* Init functions */
 

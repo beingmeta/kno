@@ -97,7 +97,7 @@
       (let* ((vec (choice->vector choices))
 	     (counter (mt/counter (length vec)))
 	     (ids (mt/nrange 0 n-threads)))
-	(threadjoin
+	(thread/wait
 	 (if logexit
 	     (thread/call threadfcn ids proc vec counter)
 	     (thread/call+ #[logexit #f] threadfcn

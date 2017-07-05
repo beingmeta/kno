@@ -29,7 +29,7 @@ static int dns_initialized = 0;
 #define NSBUF_SIZE 4096
 #endif
 
-static fdtype rdf2dtype ( ldns_rdf *field )
+static lispval rdf2dtype ( ldns_rdf *field )
 {
   size_t size = field->_size;
   void *data = ldns_rdf_data( field );
@@ -52,7 +52,7 @@ static fdtype rdf2dtype ( ldns_rdf *field )
     return FD_INT2DTYPE( val );}
   case LDNS_RDF_TYPE_DNAME: case LDNS_RDF_TYPE_A: case LDNS_RDF_TYPE_AAAA: 
   case LDNS_RDF_TYPE_LOC: case LDNS_RDF_TYPE_TAG: case LDNS_RDF_TYPE_LONG_STR: {
-    fdtype result = FD_VOID;
+    lispval result = VOID;
     ldns_buffer *tmp = ldns_buffer_new( LDNS_MAX_PACKETLEN ); 
     int rv = -1;
     if (!(tmp)) {}
@@ -70,7 +70,7 @@ static fdtype rdf2dtype ( ldns_rdf *field )
       rv = ldns_rdf2buffer_str_long_str( tmp, field );
     else {}
     if (rv != LDNS_STATUS_OK) 
-      result = fd_err("Unexpected LDNS condition","rdf2dtype",NULL,FD_VOID);
+      result = fd_err("Unexpected LDNS condition","rdf2dtype",NULL,VOID);
     else result = fd_make_string(NULL,tmp->_position,tmp->_data);
     ldns_buffer_free( tmp );
     return result;}
@@ -79,12 +79,12 @@ static fdtype rdf2dtype ( ldns_rdf *field )
   }
 }
 
-static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
+static lispval dns_query(lispval domain_arg,lispval type_arg)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = EMPTY;
   ldns_resolver *res;
-  ldns_rr_type rr_type = ldns_get_rr_type_by_name( FD_SYMBOL_NAME( type_arg ) );
-  ldns_rdf *domain = ldns_dname_new_frm_str( FD_STRDATA(domain_arg) );
+  ldns_rr_type rr_type = ldns_get_rr_type_by_name( SYM_NAME( type_arg ) );
+  ldns_rdf *domain = ldns_dname_new_frm_str( CSTRING(domain_arg) );
   ldns_status s = ldns_resolver_new_frm_file( &res, NULL );
   ldns_pkt *p = 
     (s == LDNS_STATUS_OK) ?
@@ -105,16 +105,16 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
           ldns_rdf **fields = record->_rdata_fields;
           if (n_fields == 0)  {} /* does this ever happen? */
           else if (n_fields == 1)  {
-            fdtype value = rdf2dtype( fields[0] );
-            FD_ADD_TO_CHOICE(results,value);}
+            lispval value = rdf2dtype( fields[0] );
+            CHOICE_ADD(results,value);}
           else {
-            fdtype vec = fd_init_vector(NULL, n_fields, NULL);
+            lispval vec = fd_init_vector(NULL, n_fields, NULL);
             int j = 0; while (j < n_fields) {
               ldns_rdf *field = fields[j];
-              fdtype value = rdf2dtype( field );
+              lispval value = rdf2dtype( field );
               FD_VECTOR_SET( vec, j, value);
               j++;}
-            FD_ADD_TO_CHOICE(results,vec);}}
+            CHOICE_ADD(results,vec);}}
         ldns_rr_list_deep_free( result_list );}}
 
   ldns_rdf_deep_free( domain );
@@ -128,7 +128,7 @@ FD_EXPORT void fd_init_dns_c(void) FD_LIBINIT_FN;
 
 FD_EXPORT void fd_init_dns_c()
 {
-  fdtype module;
+  lispval module;
   if (dns_initialized) return;
   dns_initialized = 1;
   fd_init_scheme();
@@ -137,8 +137,8 @@ FD_EXPORT void fd_init_dns_c()
 
   fd_idefn(module,fd_make_cprim2x
            ("DNS/GET",dns_query,1,
-            fd_string_type,FD_VOID,
-            fd_symbol_type,FD_VOID));
+            fd_string_type,VOID,
+            fd_symbol_type,VOID));
 
   u8_register_source_file(_FILEINFO);
 }

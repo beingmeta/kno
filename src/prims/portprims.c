@@ -33,17 +33,17 @@ fd_exception fd_UnknownEncoding=_("Unknown encoding");
 
 /* Making ports */
 
-static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
+static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
   port->fd_inport = in; port->fd_outport = out; port->fd_portid = id;
-  return FDTYPE_CONS(port);
+  return LISP_CONS(port);
 }
 
-static u8_output get_output_port(fdtype portarg)
+static u8_output get_output_port(lispval portarg)
 {
-  if ((FD_VOIDP(portarg))||(FD_TRUEP(portarg)))
+  if ((VOIDP(portarg))||(FD_TRUEP(portarg)))
     return u8_current_output;
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -52,9 +52,9 @@ static u8_output get_output_port(fdtype portarg)
   else return NULL;
 }
 
-static u8_input get_input_port(fdtype portarg)
+static u8_input get_input_port(lispval portarg)
 {
-  if (FD_VOIDP(portarg))
+  if (VOIDP(portarg))
     return NULL; /* get_default_output(); */
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -63,14 +63,14 @@ static u8_input get_input_port(fdtype portarg)
   else return NULL;
 }
 
-static fdtype portp(fdtype arg)
+static lispval portp(lispval arg)
 {
   if (FD_PORTP(arg))
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype input_portp(fdtype arg)
+static lispval input_portp(lispval arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
@@ -81,7 +81,7 @@ static fdtype input_portp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype output_portp(fdtype arg)
+static lispval output_portp(lispval arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
@@ -94,16 +94,16 @@ static fdtype output_portp(fdtype arg)
 
 /* Identifying end of file */
 
-static fdtype eofp(fdtype x)
+static lispval eofp(lispval x)
 {
   if (FD_EOFP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
 /* DTYPE streams */
 
-static fdtype packet2dtype(fdtype packet)
+static lispval packet2dtype(lispval packet)
 {
-  fdtype object;
+  lispval object;
   struct FD_INBUF in;
   FD_INIT_BYTE_INPUT(&in,FD_PACKET_DATA(packet),
                      FD_PACKET_LENGTH(packet));
@@ -111,45 +111,45 @@ static fdtype packet2dtype(fdtype packet)
   return object;
 }
 
-static fdtype dtype2packet(fdtype object,fdtype initsize)
+static lispval lisp2packet(lispval object,lispval initsize)
 {
-  size_t size = FD_FIX2INT(initsize);
+  size_t size = FIX2INT(initsize);
   struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTPUT(&out,size);
   int bytes = fd_write_dtype(&out,object);
-  if (bytes<0) return FD_ERROR_VALUE;
+  if (bytes<0) return FD_ERROR;
   else return fd_init_packet(NULL,bytes,out.buffer);
 }
 
 /* Output strings */
 
-static fdtype open_output_string()
+static lispval open_output_string()
 {
   U8_OUTPUT *out = u8_alloc(struct U8_OUTPUT);
   U8_INIT_OUTPUT(out,256);
   return make_port(NULL,out,u8_strdup("output string"));
 }
 
-static fdtype open_input_string(fdtype arg)
+static lispval open_input_string(lispval arg)
 {
-  if (FD_STRINGP(arg)) {
+  if (STRINGP(arg)) {
     U8_INPUT *in = u8_alloc(struct U8_INPUT);
-    U8_INIT_STRING_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(FD_STRDATA(arg)));
+    U8_INIT_STRING_INPUT(in,FD_STRING_LENGTH(arg),u8_strdup(CSTRING(arg)));
     in->u8_streaminfo = in->u8_streaminfo|U8_STREAM_OWNS_BUF;
     return make_port(in,NULL,u8_strdup("input string"));}
   else return fd_type_error(_("string"),"open_input_string",arg);
 }
 
-static fdtype portid(fdtype port_arg)
+static lispval portid(lispval port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port = (struct FD_PORT *)port_arg;
-    if (port->fd_portid) return fdtype_string(port->fd_portid);
+    if (port->fd_portid) return lispval_string(port->fd_portid);
     else return FD_FALSE;}
   else return fd_type_error(_("port"),"portid",port_arg);
 }
 
-static fdtype portdata(fdtype port_arg)
+static lispval portdata(lispval port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port = (struct FD_PORT *)port_arg;
@@ -161,29 +161,29 @@ static fdtype portdata(fdtype port_arg)
 
 /* Simple STDIO */
 
-static fdtype write_prim(fdtype x,fdtype portarg)
+static lispval write_prim(lispval x,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
   if (out) {
     fd_unparse(out,x);
     u8_flush(out);
-    return FD_VOID;}
+    return VOID;}
   else return fd_type_error(_("output port"),"write_prim",portarg);
 }
 
-static fdtype display_prim(fdtype x,fdtype portarg)
+static lispval display_prim(lispval x,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
   if (out) {
-    if (FD_STRINGP(x))
-      u8_puts(out,FD_STRDATA(x));
+    if (STRINGP(x))
+      u8_puts(out,CSTRING(x));
     else fd_unparse(out,x);
     u8_flush(out);
-    return FD_VOID;}
+    return VOID;}
   else return fd_type_error(_("output port"),"display_prim",portarg);
 }
 
-static fdtype putchar_prim(fdtype char_arg,fdtype port)
+static lispval putchar_prim(lispval char_arg,lispval port)
 {
   int ch;
   U8_OUTPUT *out = get_output_port(port);
@@ -191,56 +191,56 @@ static fdtype putchar_prim(fdtype char_arg,fdtype port)
     if (FD_CHARACTERP(char_arg))
       ch = FD_CHAR2CODE(char_arg);
     else if (FD_UINTP(char_arg))
-      ch = FD_FIX2INT(char_arg);
+      ch = FIX2INT(char_arg);
     else return fd_type_error("character","putchar_prim",char_arg);
     u8_putc(out,ch);
-    return FD_VOID;}
+    return VOID;}
   else return fd_type_error(_("output port"),"putchar_prim",port);
 }
 
-static fdtype newline_prim(fdtype portarg)
+static lispval newline_prim(lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
   if (out) {
     u8_puts(out,"\n");
     u8_flush(out);
-    return FD_VOID;}
+    return VOID;}
   else return fd_type_error(_("output port"),"newline_prim",portarg);
 }
 
-static int printout_helper(U8_OUTPUT *out,fdtype x)
+static int printout_helper(U8_OUTPUT *out,lispval x)
 {
   if (FD_ABORTP(x)) return 0;
-  else if (FD_VOIDP(x)) return 1;
+  else if (VOIDP(x)) return 1;
   if (out == NULL) out = u8_current_output;
-  if (FD_STRINGP(x))
-    u8_puts(out,FD_STRDATA(x));
+  if (STRINGP(x))
+    u8_puts(out,CSTRING(x));
   else fd_unparse(out,x);
   return 1;
 }
 
 FD_EXPORT
-fdtype fd_printout(fdtype body,fd_lexenv env)
+lispval fd_printout(lispval body,fd_lexenv env)
 {
   struct FD_STACK *_stack=fd_stackptr;
   U8_OUTPUT *out = u8_current_output;
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else return value;
     body = FD_CDR(body);}
   u8_flush(out);
-  return FD_VOID;
+  return VOID;
 }
 
 FD_EXPORT
-fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lexenv env)
+lispval fd_printout_to(U8_OUTPUT *out,lispval body,fd_lexenv env)
 {
   struct FD_STACK *_stack=fd_stackptr;
   u8_output prev = u8_current_output;
   u8_set_default_output(out);
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_flush(out);
@@ -249,34 +249,34 @@ fdtype fd_printout_to(U8_OUTPUT *out,fdtype body,fd_lexenv env)
     body = FD_CDR(body);}
   u8_flush(out);
   u8_set_default_output(prev);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype substringout(fdtype arg,fdtype start,fdtype end)
+static lispval substringout(lispval arg,lispval start,lispval end)
 {
   u8_output output = u8_current_output;
-  u8_string string = FD_STRDATA(arg); unsigned int len = FD_STRLEN(arg);
-  if (FD_VOIDP(start)) u8_putn(output,string,len);
+  u8_string string = CSTRING(arg); unsigned int len = STRLEN(arg);
+  if (VOIDP(start)) u8_putn(output,string,len);
   else if (!(FD_UINTP(start)))
     return fd_type_error("uint","substringout",start);
-  else if (FD_VOIDP(end)) {
-    unsigned int byte_start = u8_byteoffset(string,FD_FIX2INT(start),len);
+  else if (VOIDP(end)) {
+    unsigned int byte_start = u8_byteoffset(string,FIX2INT(start),len);
     u8_putn(output,string+byte_start,len-byte_start);}
   else if (!(FD_UINTP(end)))
     return fd_type_error("uint","substringout",end);
   else {
-    unsigned int byte_start = u8_byteoffset(string,FD_FIX2INT(start),len);
-    unsigned int byte_end = u8_byteoffset(string,FD_FIX2INT(end),len);
+    unsigned int byte_start = u8_byteoffset(string,FIX2INT(start),len);
+    unsigned int byte_end = u8_byteoffset(string,FIX2INT(end),len);
     u8_putn(output,string+byte_start,byte_end-byte_start);}
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype uniscape(fdtype arg,fdtype excluding)
+static lispval uniscape(lispval arg,lispval excluding)
 {
-  u8_string input = ((FD_STRINGP(arg))?(FD_STRDATA(arg)):
-                   (fd_dtype2string(arg)));
-  u8_string exstring = ((FD_STRINGP(excluding))?
-                      (FD_STRDATA(excluding)):
+  u8_string input = ((STRINGP(arg))?(CSTRING(arg)):
+                   (fd_lisp2string(arg)));
+  u8_string exstring = ((STRINGP(excluding))?
+                      (CSTRING(excluding)):
                       ((u8_string)""));
   u8_output output = u8_current_output;
   u8_string string = input;
@@ -287,32 +287,32 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
       u8_printf(output,"\\u%04x",c);}
     else u8_putc(output,c);
     c = u8_sgetc(&scan);}
-  if (!(FD_STRINGP(arg))) u8_free(input);
-  return FD_VOID;
+  if (!(STRINGP(arg))) u8_free(input);
+  return VOID;
 }
 
-static fdtype printout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval printout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   return fd_printout(fd_get_body(expr,1),env);
 }
-static fdtype lineout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval lineout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
-  fdtype value = fd_printout(fd_get_body(expr,1),env);
+  lispval value = fd_printout(fd_get_body(expr,1),env);
   if (FD_ABORTP(value)) return value;
   u8_putc(out,'\n');
   u8_flush(out);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype message_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval message_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
+  lispval body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -322,17 +322,17 @@ static fdtype message_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   u8_set_default_output(stream);
   u8_logger(-10,NULL,out->u8_outbuf);
   u8_close_output(out);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype notify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval notify_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
+  lispval body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -342,17 +342,17 @@ static fdtype notify_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   u8_set_default_output(stream);
   u8_logger(LOG_NOTICE,NULL,out->u8_outbuf);
   u8_close_output(out);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype status_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval status_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
+  lispval body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -362,17 +362,17 @@ static fdtype status_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   u8_set_default_output(stream);
   u8_logger(LOG_INFO,NULL,out->u8_outbuf);
   u8_close_output(out);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype warning_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval warning_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype body = fd_get_body(expr,1);
+  lispval body = fd_get_body(expr,1);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
   u8_set_default_output(out);
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -382,19 +382,19 @@ static fdtype warning_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   u8_set_default_output(stream);
   u8_logger(LOG_WARN,NULL,out->u8_outbuf);
   u8_close_output(out);
-  return FD_VOID;
+  return VOID;
 }
 
-static int get_loglevel(fdtype level_arg)
+static int get_loglevel(lispval level_arg)
 {
-  if (FD_INTP(level_arg)) return FD_FIX2INT(level_arg);
+  if (FD_INTP(level_arg)) return FIX2INT(level_arg);
   else return -1;
 }
 
-static fdtype log_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval log_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype level_arg = fd_eval(fd_get_arg(expr,1),env);
-  fdtype body = fd_get_body(expr,2);
+  lispval level_arg = fd_eval(fd_get_arg(expr,1),env);
+  lispval body = fd_get_body(expr,2);
   int level = get_loglevel(level_arg);
   U8_OUTPUT *out = u8_open_output_string(1024);
   U8_OUTPUT *stream = u8_current_output;
@@ -403,12 +403,12 @@ static fdtype log_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   else if (FD_ABORTP(level_arg)) {
     fd_clear_errors(1);}
   else fd_decref(level_arg);
-  if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
-    condition = FD_SYMBOL_NAME(FD_CAR(body));
+  if ((PAIRP(body))&&(SYMBOLP(FD_CAR(body)))) {
+    condition = SYM_NAME(FD_CAR(body));
     body = FD_CDR(body);}
   u8_set_default_output(out);
-  while (FD_PAIRP(body)) {
-    fdtype value = fast_eval(FD_CAR(body),env);
+  while (PAIRP(body)) {
+    lispval value = fast_eval(FD_CAR(body),env);
     if (printout_helper(out,value)) fd_decref(value);
     else {
       u8_set_default_output(stream);
@@ -418,32 +418,32 @@ static fdtype log_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
   u8_set_default_output(stream);
   u8_logger(level,condition,out->u8_outbuf);
   u8_close_output(out);
-  return FD_VOID;
+  return VOID;
 }
 
-static fdtype logif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval logif_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE;
+  lispval test_expr = fd_get_arg(expr,1), value = FD_FALSE;
   if (FD_ABORTP(test_expr)) return test_expr;
-  else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
+  else if (PRED_FALSE(STRINGP(test_expr)))
     return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
   if (FD_ABORTP(value)) return value;
-  else if ( (FD_FALSEP(value)) || (FD_VOIDP(value)) ||
-            (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)) )
-    return FD_VOID;
+  else if ( (FALSEP(value)) || (VOIDP(value)) ||
+            (EMPTYP(value)) || (NILP(value)) )
+    return VOID;
   else {
-    fdtype body = fd_get_body(expr,2);
+    lispval body = fd_get_body(expr,2);
     U8_OUTPUT *out = u8_open_output_string(1024);
     U8_OUTPUT *stream = u8_current_output;
     u8_condition condition = NULL;
-    if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
-      condition = FD_SYMBOL_NAME(FD_CAR(body));
+    if ((PAIRP(body))&&(SYMBOLP(FD_CAR(body)))) {
+      condition = SYM_NAME(FD_CAR(body));
       body = FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
-    while (FD_PAIRP(body)) {
-      fdtype value = fast_eval(FD_CAR(body),env);
+    while (PAIRP(body)) {
+      lispval value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
         u8_set_default_output(stream);
@@ -453,41 +453,41 @@ static fdtype logif_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_set_default_output(stream);
     u8_logger(-10,condition,out->u8_outbuf);
     u8_close_output(out);
-    return FD_VOID;}
+    return VOID;}
 }
 
-static fdtype logifplus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval logifplus_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  fdtype test_expr = fd_get_arg(expr,1), value = FD_FALSE, loglevel_arg;
+  lispval test_expr = fd_get_arg(expr,1), value = FD_FALSE, loglevel_arg;
   if (FD_ABORTP(test_expr)) return test_expr;
-  else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
+  else if (PRED_FALSE(STRINGP(test_expr)))
     return fd_reterr(fd_SyntaxError,"logif_evalfn",
                      _("LOGIF condition expression cannot be a string"),expr);
   else value = fast_eval(test_expr,env);
   if (FD_ABORTP(value)) return value;
-  else if ((FD_FALSEP(value)) || (FD_VOIDP(value)) ||
-           (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
-    return FD_VOID;
+  else if ((FALSEP(value)) || (VOIDP(value)) ||
+           (EMPTYP(value)) || (NILP(value)))
+    return VOID;
   else loglevel_arg = fd_eval(fd_get_arg(expr,2),env);
   if (FD_ABORTP(loglevel_arg)) return loglevel_arg;
-  else if (FD_VOIDP(loglevel_arg))
+  else if (VOIDP(loglevel_arg))
     return fd_reterr(fd_SyntaxError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),expr);
   else if (!(FD_INTP(loglevel_arg)))
     return fd_reterr(fd_TypeError,"logif_plus_evalfn",
                      _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
-    fdtype body = fd_get_body(expr,3);
+    lispval body = fd_get_body(expr,3);
     U8_OUTPUT *out = u8_open_output_string(1024);
     U8_OUTPUT *stream = u8_current_output;
-    int priority = FD_FIX2INT(loglevel_arg);
+    int priority = FIX2INT(loglevel_arg);
     u8_condition condition = NULL;
-     if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
-      condition = FD_SYMBOL_NAME(FD_CAR(body));
+     if ((PAIRP(body))&&(SYMBOLP(FD_CAR(body)))) {
+      condition = SYM_NAME(FD_CAR(body));
       body = FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
-    while (FD_PAIRP(body)) {
-      fdtype value = fast_eval(FD_CAR(body),env);
+    while (PAIRP(body)) {
+      lispval value = fast_eval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
         u8_set_default_output(stream);
@@ -497,12 +497,12 @@ static fdtype logifplus_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
     u8_set_default_output(stream);
     u8_logger(-priority,condition,out->u8_outbuf);
     u8_close_output(out);
-    return FD_VOID;}
+    return VOID;}
 }
 
-static fdtype stringout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
+static lispval stringout_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
-  struct U8_OUTPUT out; fdtype result; u8_byte buf[256];
+  struct U8_OUTPUT out; lispval result; u8_byte buf[256];
   U8_INIT_OUTPUT_X(&out,256,buf,0);
   result = fd_printout_to(&out,fd_get_body(expr,1),env);
   if (!(FD_ABORTP(result))) {
@@ -515,7 +515,7 @@ static fdtype stringout_evalfn(fdtype expr,fd_lexenv env,fd_stack _stack)
 
 /* Input operations! */
 
-static fdtype getchar_prim(fdtype port)
+static lispval getchar_prim(lispval port)
 {
   U8_INPUT *in = get_input_port(port);
   if (in) {
@@ -526,11 +526,11 @@ static fdtype getchar_prim(fdtype port)
   else return fd_type_error(_("input port"),"getchar_prim",port);
 }
 
-static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
-                           fdtype eof_marker)
+static lispval getline_prim(lispval port,lispval eos_arg,lispval lim_arg,
+                           lispval eof_marker)
 {
   U8_INPUT *in = get_input_port(port);
-  if (FD_VOIDP(eof_marker)) eof_marker = FD_EMPTY_CHOICE;
+  if (VOIDP(eof_marker)) eof_marker = EMPTY;
   else if (FD_TRUEP(eof_marker)) eof_marker = FD_EOF;
   else {}
   if (in) {
@@ -538,11 +538,11 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
     int lim, size = 0;
     if (in == NULL)
       return fd_type_error(_("input port"),"getline_prim",port);
-    if (FD_VOIDP(eos_arg)) eos="\n";
-    else if (FD_STRINGP(eos_arg)) eos = FD_STRDATA(eos_arg);
+    if (VOIDP(eos_arg)) eos="\n";
+    else if (STRINGP(eos_arg)) eos = CSTRING(eos_arg);
     else return fd_type_error(_("string"),"getline_prim",eos_arg);
-    if (FD_VOIDP(lim_arg)) lim = 0;
-    else if (FD_FIXNUMP(lim_arg)) lim = FD_FIX2INT(lim_arg);
+    if (VOIDP(lim_arg)) lim = 0;
+    else if (FIXNUMP(lim_arg)) lim = FIX2INT(lim_arg);
     else return fd_type_error(_("fixum"),"getline_prim",eos_arg);
     data = u8_gets_x(NULL,lim,in,eos,&size);
     if (data)
@@ -561,16 +561,16 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
     else if (size<0)
       if (errno == EAGAIN)
         return FD_EOF;
-      else return FD_ERROR_VALUE;
+      else return FD_ERROR;
     else return fd_incref(eof_marker);}
   else return fd_type_error(_("input port"),"getline_prim",port);
 }
 
-static fdtype read_prim(fdtype port)
+static lispval read_prim(lispval port)
 {
-  if (FD_STRINGP(port)) {
+  if (STRINGP(port)) {
     struct U8_INPUT in;
-    U8_INIT_STRING_INPUT(&in,FD_STRLEN(port),FD_STRDATA(port));
+    U8_INIT_STRING_INPUT(&in,STRLEN(port),CSTRING(port));
     return fd_parser(&in);}
   else {
     U8_INPUT *in = get_input_port(port);
@@ -583,21 +583,21 @@ static fdtype read_prim(fdtype port)
 
 /* Reading records */
 
-static off_t find_substring(u8_string string,fdtype strings,
+static off_t find_substring(u8_string string,lispval strings,
                             ssize_t len,ssize_t *lenp);
 static ssize_t get_more_data(u8_input in,size_t lim);
-static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg);
+static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
-static fdtype read_record_prim(fdtype ports,fdtype ends,fdtype limit_arg)
+static lispval read_record_prim(lispval ports,lispval ends,lispval limit_arg)
 {
-  fdtype results = FD_EMPTY_CHOICE;
-  FD_DO_CHOICES(port,ports) {
-    fdtype result = record_reader(port,ends,limit_arg);
-    FD_ADD_TO_CHOICE(results,result);}
+  lispval results = EMPTY;
+  DO_CHOICES(port,ports) {
+    lispval result = record_reader(port,ends,limit_arg);
+    CHOICE_ADD(results,result);}
   return results;
 }
 
-static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
+static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
 {
   U8_INPUT *in = get_input_port(port);
   size_t lim, matchlen = 0;
@@ -605,18 +605,18 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
 
   if (in == NULL)
     return fd_type_error(_("input port"),"record_reader",port);
-  if (FD_VOIDP(limit_arg)) lim = -1;
-  else if (FD_FIXNUMP(limit_arg))
-    lim = FD_FIX2INT(limit_arg);
+  if (VOIDP(limit_arg)) lim = -1;
+  else if (FIXNUMP(limit_arg))
+    lim = FIX2INT(limit_arg);
   else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
 
-  if (FD_VOIDP(ends)) {}
+  if (VOIDP(ends)) {}
   else {
-    FD_DO_CHOICES(end,ends)
-      if (!((FD_STRINGP(end))||(FD_TYPEP(end,fd_regex_type))))
+    DO_CHOICES(end,ends)
+      if (!((STRINGP(end))||(TYPEP(end,fd_regex_type))))
         return fd_type_error(_("string"),"record_reader",end);}
   while (1) {
-    if (FD_VOIDP(ends)) {
+    if (VOIDP(ends)) {
       u8_string found = strstr(in->u8_read,"\n");
       if (found) {
         off = found-in->u8_read;
@@ -626,7 +626,7 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
                             &matchlen);
     if (off>=0) {
       size_t record_len = off+matchlen;
-      fdtype result = fd_make_string(NULL,record_len,in->u8_read);
+      lispval result = fd_make_string(NULL,record_len,in->u8_read);
       in->u8_read+=record_len;
       return result;}
     else if ((lim) && ((in->u8_inlim-in->u8_read)>lim))
@@ -638,23 +638,23 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
     else return FD_EOF;}
 }
 
-static off_t find_substring(u8_string string,fdtype strings,
+static off_t find_substring(u8_string string,lispval strings,
                             ssize_t len_arg,ssize_t *lenp)
 {
   ssize_t len = (len_arg<0)?(strlen(string)):(len_arg);
   off_t off = -1; ssize_t matchlen = -1;
-  FD_DO_CHOICES(s,strings) {
-    if (FD_STRINGP(s)) {
-      u8_string next = strstr(string,FD_STRDATA(s));
+  DO_CHOICES(s,strings) {
+    if (STRINGP(s)) {
+      u8_string next = strstr(string,CSTRING(s));
       if (next) {
         if (off<0) {
-          off = next-string; matchlen = FD_STRLEN(s);}
+          off = next-string; matchlen = STRLEN(s);}
         else if ((next-string)<off) {
           off = next-string;
-          if (matchlen<(FD_STRLEN(s))) {
-            matchlen = FD_STRLEN(s);}}
+          if (matchlen<(STRLEN(s))) {
+            matchlen = STRLEN(s);}}
         else {}}}
-    else if (FD_TYPEP(s,fd_regex_type)) {
+    else if (TYPEP(s,fd_regex_type)) {
       off_t starts = fd_regex_op(rx_search,s,string,len,0);
       ssize_t matched_len = (starts<0)?(-1):
         (fd_regex_op(rx_matchlen,s,string+starts,len,0));
@@ -690,63 +690,63 @@ static ssize_t get_more_data(u8_input in,size_t lim)
 
 /* Lisp to string */
 
-static fdtype lisp2string(fdtype x)
+static lispval lisp2string(lispval x)
 {
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   fd_unparse(&out,x);
   return fd_stream2string(&out);
 }
 
-static fdtype inexact2string(fdtype x,fdtype precision)
+static lispval inexact2string(lispval x,lispval precision)
 {
   if (FD_FLONUMP(x))
-    if ((FD_UINTP(precision)) || (FD_VOIDP(precision))) {
-      int prec = ((FD_VOIDP(precision)) ? (2) : (FD_FIX2INT(precision)));
+    if ((FD_UINTP(precision)) || (VOIDP(precision))) {
+      int prec = ((VOIDP(precision)) ? (2) : (FIX2INT(precision)));
       char buf[128]; char cmd[16];
       sprintf(cmd,"%%.%df",prec);
       sprintf(buf,cmd,FD_FLONUM(x));
-      return fdtype_string(buf);}
+      return lispval_string(buf);}
     else return fd_type_error("fixnum","inexact2string",precision);
   else return lisp2string(x);
 }
 
-static fdtype number2string(fdtype x,fdtype base)
+static lispval number2string(lispval x,lispval base)
 {
-  if (FD_NUMBERP(x)) {
+  if (NUMBERP(x)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     fd_output_number(&out,x,fd_getint(base));
     return fd_stream2string(&out);}
   else return fd_err(fd_TypeError,"number2string",NULL,x);
 }
 
-static fdtype number2locale(fdtype x,fdtype precision)
+static lispval number2locale(lispval x,lispval precision)
 {
   if (FD_FLONUMP(x))
-    if ((FD_UINTP(precision)) || (FD_VOIDP(precision))) {
-      int prec = ((FD_VOIDP(precision)) ? (2) : (FD_FIX2INT(precision)));
+    if ((FD_UINTP(precision)) || (VOIDP(precision))) {
+      int prec = ((VOIDP(precision)) ? (2) : (FIX2INT(precision)));
       char buf[128]; char cmd[16];
       sprintf(cmd,"%%'.%df",prec);
       sprintf(buf,cmd,FD_FLONUM(x));
-      return fdtype_string(buf);}
+      return lispval_string(buf);}
     else return fd_type_error("fixnum","inexact2string",precision);
-  else if (FD_FIXNUMP(x)) {
+  else if (FIXNUMP(x)) {
     char buf[128];
-    sprintf(buf,"%'lld",FD_FIX2INT(x));
-    return fdtype_string(buf);}
+    sprintf(buf,"%'lld",FIX2INT(x));
+    return lispval_string(buf);}
   else return lisp2string(x);
 }
 
-static fdtype string2number(fdtype x,fdtype base)
+static lispval string2number(lispval x,lispval base)
 {
-  return fd_string2number(FD_STRDATA(x),fd_getint(base));
+  return fd_string2number(CSTRING(x),fd_getint(base));
 }
 
-static fdtype just2number(fdtype x,fdtype base)
+static lispval just2number(lispval x,lispval base)
 {
-  if (FD_NUMBERP(x)) return fd_incref(x);
-  else if (FD_STRINGP(x)) {
-    fdtype num = fd_string2number(FD_STRDATA(x),fd_getint(base));
-    if (FD_FALSEP(num)) return FD_FALSE;
+  if (NUMBERP(x)) return fd_incref(x);
+  else if (STRINGP(x)) {
+    lispval num = fd_string2number(CSTRING(x),fd_getint(base));
+    if (FALSEP(num)) return FD_FALSE;
     else return num;}
   else return fd_type_error(_("string or number"),"->NUMBER",x);
 }
@@ -797,7 +797,7 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception scan = ex; u8_condition cond = NULL;
   while (scan) {
-    fdtype irritant = fd_exception_xdata(scan); int show_irritant = 1;
+    lispval irritant = fd_exception_xdata(scan); int show_irritant = 1;
     if (scan!=ex) u8_puts(out," <");
     if (scan->u8x_cond!=cond) {
       cond = scan->u8x_cond; u8_printf(out," (%m)",cond);}
@@ -813,69 +813,69 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
 
 /* Table showing primitives */
 
-static fdtype lisp_show_table(fdtype tables,fdtype slotids,fdtype portarg)
+static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 {
   U8_OUTPUT *out = get_output_port(portarg);
-  FD_DO_CHOICES(table,tables)
-    if ((FD_FALSEP(slotids)) || (FD_VOIDP(slotids)))
-      fd_display_table(out,table,FD_VOID);
-    else if (FD_OIDP(table)) {
+  DO_CHOICES(table,tables)
+    if ((FALSEP(slotids)) || (VOIDP(slotids)))
+      fd_display_table(out,table,VOID);
+    else if (OIDP(table)) {
       U8_OUTPUT *tmp = u8_open_output_string(1024);
       u8_printf(out,"%q\n",table);
-      {FD_DO_CHOICES(slotid,slotids) {
-        fdtype values = fd_frame_get(table,slotid);
+      {DO_CHOICES(slotid,slotids) {
+        lispval values = fd_frame_get(table,slotid);
         tmp->u8_write = tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
         u8_printf(tmp,"   %q:   %q\n",slotid,values);
         if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
         else {
           u8_printf(out,"   %q:\n",slotid);
-          {FD_DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
+          {DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
         fd_decref(values);}}
       u8_close((u8_stream)tmp);}
     else fd_display_table(out,table,slotids);
   u8_flush(out);
-  return FD_VOID;
+  return VOID;
 }
 
 /* PPRINT lisp primitives */
 
-static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype marginarg)
+static lispval lisp_pprint(lispval x,lispval portarg,lispval widtharg,lispval marginarg)
 {
   struct U8_OUTPUT tmpout;
   U8_OUTPUT *out = get_output_port(portarg);
-  int width = ((FD_UINTP(widtharg)) ? (FD_FIX2INT(widtharg)) : (60));
-  if ((out == NULL)&&(!(FD_FALSEP(portarg))))
+  int width = ((FD_UINTP(widtharg)) ? (FIX2INT(widtharg)) : (60));
+  if ((out == NULL)&&(!(FALSEP(portarg))))
     return fd_type_error(_("port"),"lisp_pprint",portarg);
   U8_INIT_OUTPUT(&tmpout,512);
-  if (FD_VOIDP(marginarg))
+  if (VOIDP(marginarg))
     fd_pprint(&tmpout,x,NULL,0,0,width);
-  else if (FD_STRINGP(marginarg))
-    fd_pprint(&tmpout,x,FD_STRDATA(marginarg),0,0,width);
-  else if ((FD_UINTP(marginarg))&&(FD_FIX2INT(marginarg)>=0))
-    fd_pprint(&tmpout,x,NULL,(FD_FIX2INT(marginarg)),0,width);
+  else if (STRINGP(marginarg))
+    fd_pprint(&tmpout,x,CSTRING(marginarg),0,0,width);
+  else if ((FD_UINTP(marginarg))&&(FIX2INT(marginarg)>=0))
+    fd_pprint(&tmpout,x,NULL,(FIX2INT(marginarg)),0,width);
   else fd_pprint(&tmpout,x,NULL,0,0,width);
   if (out) {
     u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
     u8_flush(out);
-    return FD_VOID;}
+    return VOID;}
   else return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,
                              tmpout.u8_outbuf);
 }
 
 /* Base 64 stuff */
 
-static fdtype from_base64_prim(fdtype string)
+static lispval from_base64_prim(lispval string)
 {
-  const u8_byte *string_data = FD_STRDATA(string);
-  unsigned int string_len = FD_STRLEN(string), data_len;
+  const u8_byte *string_data = CSTRING(string);
+  unsigned int string_len = STRLEN(string), data_len;
   unsigned char *data=
     u8_read_base64(string_data,string_data+string_len,&data_len);
   if (data)
     return fd_init_packet(NULL,data_len,data);
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
-static fdtype to_base64_prim(fdtype packet,fdtype nopad,fdtype urisafe)
+static lispval to_base64_prim(lispval packet,lispval nopad,lispval urisafe)
 {
   const u8_byte *packet_data = FD_PACKET_DATA(packet);
   unsigned int packet_len = FD_PACKET_LENGTH(packet), ascii_len;
@@ -891,19 +891,19 @@ static fdtype to_base64_prim(fdtype packet,fdtype nopad,fdtype urisafe)
         else if (*scan=='/') *scan++='_';
         else scan++;}}
     return fd_init_string(NULL,ascii_len,ascii_string);}
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
-static fdtype any_to_base64_prim(fdtype arg,fdtype nopad,fdtype urisafe)
+static lispval any_to_base64_prim(lispval arg,lispval nopad,lispval urisafe)
 {
   unsigned int data_len, ascii_len;
   const u8_byte *data; char *ascii_string;
-  if (FD_PACKETP(arg)) {
+  if (PACKETP(arg)) {
     data = FD_PACKET_DATA(arg);
     data_len = FD_PACKET_LENGTH(arg);}
-  else if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
-    data = FD_STRDATA(arg);
-    data_len = FD_STRLEN(arg);}
+  else if ((STRINGP(arg))||(TYPEP(arg,fd_secret_type))) {
+    data = CSTRING(arg);
+    data_len = STRLEN(arg);}
   else return fd_type_error("packet or string","any_to_base64_prim",arg);
   ascii_string = u8_write_base64(data,data_len,&ascii_len);
   if (ascii_string) {
@@ -917,29 +917,29 @@ static fdtype any_to_base64_prim(fdtype arg,fdtype nopad,fdtype urisafe)
         else if (*scan=='/') *scan++='_';
         else scan++;}}
     return fd_init_string(NULL,ascii_len,ascii_string);}
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
 /* Base 16 stuff */
 
-static fdtype from_base16_prim(fdtype string)
+static lispval from_base16_prim(lispval string)
 {
-  const u8_byte *string_data = FD_STRDATA(string);
-  unsigned int string_len = FD_STRLEN(string), data_len;
+  const u8_byte *string_data = CSTRING(string);
+  unsigned int string_len = STRLEN(string), data_len;
   unsigned char *data = u8_read_base16(string_data,string_len,&data_len);
   if (data)
     return fd_init_packet(NULL,data_len,data);
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
-static fdtype to_base16_prim(fdtype packet)
+static lispval to_base16_prim(lispval packet)
 {
   const u8_byte *packet_data = FD_PACKET_DATA(packet);
   unsigned int packet_len = FD_PACKET_LENGTH(packet);
   char *ascii_string = u8_write_base16(packet_data,packet_len);
   if (ascii_string)
     return fd_init_string(NULL,packet_len*2,ascii_string);
-  else return FD_ERROR_VALUE;
+  else return FD_ERROR;
 }
 
 /* Making zipfiles */
@@ -959,42 +959,42 @@ static int string_isasciip(const unsigned char *data,int len)
 #define FDPP_FNAME 8
 #define FDPP_FCOMMENT 16
 
-static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
+static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
 {
-  if (!((FD_STRINGP(arg)||FD_PACKETP(arg))))
+  if (!((STRINGP(arg)||PACKETP(arg))))
     return fd_type_error("string or packet","x2zipfile_prim",arg);
   else {
     fd_exception error = NULL;
     const unsigned char *data=
-      ((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
+      ((STRINGP(arg))?(CSTRING(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=
-      ((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
+      ((STRINGP(arg))?(STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
     struct FD_OUTBUF out; int flags = 0; /* FDPP_FHCRC */
     time_t now = time(NULL); u8_int4 crc, intval;
     FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.buffer,0,1024);
     fd_write_byte(&out,31); fd_write_byte(&out,139);
     fd_write_byte(&out,8); /* Using default */
     /* Compute flags */
-    if ((FD_STRINGP(arg))&&(string_isasciip(FD_STRDATA(arg),FD_STRLEN(arg))))
+    if ((STRINGP(arg))&&(string_isasciip(CSTRING(arg),STRLEN(arg))))
       flags = flags|FDPP_FASCII;
-    if (FD_STRINGP(filename)) flags = flags|FDPP_FNAME;
-    if (FD_STRINGP(comment)) flags = flags|FDPP_FCOMMENT;
+    if (STRINGP(filename)) flags = flags|FDPP_FNAME;
+    if (STRINGP(comment)) flags = flags|FDPP_FCOMMENT;
     fd_write_byte(&out,flags);
     intval = fd_flip_word((unsigned int)now);
     fd_write_4bytes(&out,intval);
     fd_write_byte(&out,2); /* Max compression */
     fd_write_byte(&out,3); /* Assume Unix */
     /* No extra fields */
-    if (FD_STRINGP(filename)) {
-      u8_string text = FD_STRDATA(filename), end = text+FD_STRLEN(filename);
+    if (STRINGP(filename)) {
+      u8_string text = CSTRING(filename), end = text+STRLEN(filename);
       int len;
       unsigned char *string=
         u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
       fd_write_bytes(&out,string,len); fd_write_byte(&out,'\0');
       u8_free(string);}
-    if (FD_STRINGP(comment)) {
+    if (STRINGP(comment)) {
       int len;
-      u8_string text = FD_STRDATA(comment), end = text+FD_STRLEN(comment);
+      u8_string text = CSTRING(comment), end = text+STRLEN(comment);
       unsigned char *string=
         u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
       fd_write_bytes(&out,string,len); fd_write_byte(&out,'\0');
@@ -1030,9 +1030,9 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
         fd_write_bytes(&out,cbuf+2,csize-6);}
       u8_free(cbuf);}
     if (error) {
-      fd_seterr(error,"x2zipfile",NULL,FD_VOID);
+      fd_seterr(error,"x2zipfile",NULL,VOID);
       u8_free(out.buffer);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     crc = u8_crc32(0,data,data_len);
     intval = fd_flip_word(crc); fd_write_4bytes(&out,intval);
     intval = fd_flip_word(data_len); fd_write_4bytes(&out,intval);
@@ -1043,7 +1043,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
 
 /* The port type */
 
-static int unparse_port(struct U8_OUTPUT *out,fdtype x)
+static int unparse_port(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_PORT *p = fd_consptr(fd_port,x,fd_port_type);
   if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
@@ -1085,16 +1085,16 @@ FD_EXPORT void fd_init_portprims_c()
            fd_make_cprim2("INEXACT->STRING",inexact2string,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("NUMBER->STRING",number2string,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_INT(10)));
+                           -1,VOID,fd_fixnum_type,FD_INT(10)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("NUMBER->LOCALE",number2locale,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("STRING->NUMBER",string2number,1,
-                           fd_string_type,FD_VOID,
+                           fd_string_type,VOID,
                            fd_fixnum_type,FD_INT(-1)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("->NUMBER",just2number,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_INT(-1)));
+                           -1,VOID,fd_fixnum_type,FD_INT(-1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
 
@@ -1123,60 +1123,60 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
 
-  fd_defspecial(fd_scheme_module,"PRINTOUT",printout_evalfn);
-  fd_defspecial(fd_scheme_module,"LINEOUT",lineout_evalfn);
-  fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_evalfn);
+  fd_def_evalfn(fd_scheme_module,"PRINTOUT","",printout_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LINEOUT","",lineout_evalfn);
+  fd_def_evalfn(fd_scheme_module,"STRINGOUT","",stringout_evalfn);
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
-                           fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID));
+                           fd_string_type,VOID,
+                           fd_fixnum_type,VOID,
+                           fd_fixnum_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("UNISCAPE",uniscape,1,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,VOID,
+                           fd_string_type,VOID));
 
   /* Logging functions for specific levels */
-  fd_defspecial(fd_scheme_module,"NOTIFY",notify_evalfn);
-  fd_defspecial(fd_scheme_module,"STATUS",status_evalfn);
-  fd_defspecial(fd_scheme_module,"WARNING",warning_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NOTIFY","",notify_evalfn);
+  fd_def_evalfn(fd_scheme_module,"STATUS","",status_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WARNING","",warning_evalfn);
 
   /* Generic logging function, always outputs */
-  fd_defspecial(fd_scheme_module,"MESSAGE",message_evalfn);
-  fd_defspecial(fd_scheme_module,"%LOGGER",message_evalfn);
+  fd_def_evalfn(fd_scheme_module,"MESSAGE","",message_evalfn);
+  fd_def_evalfn(fd_scheme_module,"%LOGGER","",message_evalfn);
 
   /* Logging with message level */
-  fd_defspecial(fd_scheme_module,"LOGMSG",log_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LOGMSG","",log_evalfn);
   /* Conditional logging */
-  fd_defspecial(fd_scheme_module,"LOGIF",logif_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LOGIF","",logif_evalfn);
   /* Conditional logging with priority level */
-  fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_evalfn);
+  fd_def_evalfn(fd_scheme_module,"LOGIF+","",logifplus_evalfn);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,
-                           fd_packet_type,FD_VOID));
+                           fd_packet_type,VOID));
   fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("DTYPE->PACKET",dtype2packet,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_INT(128)));
+           fd_make_cprim2x("DTYPE->PACKET",lisp2packet,1,
+                           -1,VOID,fd_fixnum_type,FD_INT(128)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("PACKET->BASE64",to_base64_prim,1,
-                           fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
+                           fd_packet_type,VOID,-1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim3("->BASE64",any_to_base64_prim,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
-                           fd_packet_type,FD_VOID));
+                           fd_packet_type,VOID));
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("GZIP",gzip_prim,1,-1,FD_VOID,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+           fd_make_cprim3x("GZIP",gzip_prim,1,-1,VOID,
+                           fd_string_type,VOID,
+                           fd_string_type,VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));

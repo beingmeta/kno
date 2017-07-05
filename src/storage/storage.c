@@ -50,48 +50,48 @@ int fd_dbconn_reserve_default = FD_DBCONN_RESERVE_DEFAULT;
 int fd_dbconn_cap_default = FD_DBCONN_CAP_DEFAULT;
 int fd_dbconn_init_default = FD_DBCONN_INIT_DEFAULT;
 
-static fdtype id_symbol;
-static fdtype lookupfns = FD_EMPTY_CHOICE;
+static lispval id_symbol;
+static lispval lookupfns = EMPTY;
 
 static int fdstorage_initialized = 0;
 
-static fdtype better_parse_oid(u8_string start,int len)
+static lispval better_parse_oid(u8_string start,int len)
 {
   if (start[1]=='?') {
     const u8_byte *scan = start+2;
-    fdtype name = fd_parse(scan);
-    if (scan-start>len) return FD_VOID;
+    lispval name = fd_parse(scan);
+    if (scan-start>len) return VOID;
     else if (FD_ABORTP(name)) return name;
     else if (fd_background) {
-      fdtype key = fd_conspair(id_symbol,fd_incref(name));
-      fdtype item = fd_index_get((fd_index)fd_background,key);
+      lispval key = fd_conspair(id_symbol,fd_incref(name));
+      lispval item = fd_index_get((fd_index)fd_background,key);
       fd_decref(key);
-      if (FD_OIDP(item)) return item;
-      else if (FD_CHOICEP(item)) {
+      if (OIDP(item)) return item;
+      else if (CHOICEP(item)) {
         fd_decref(item);
         return fd_err(fd_AmbiguousObjectName,"better_parse_oid",NULL,name);}
-      else if (!((FD_EMPTY_CHOICEP(item))||(FD_FALSEP(item)))) {
+      else if (!((EMPTYP(item))||(FALSEP(item)))) {
         fd_decref(item);
         return fd_type_error("oid","better_parse_oid",item);}}
     else {}
-    if (lookupfns!=FD_EMPTY_LIST) {
+    if (lookupfns!=NIL) {
       FD_DOLIST(method,lookupfns) {
-        if ((FD_SYMBOLP(method))||(FD_OIDP(method))) {
-          fdtype key = fd_conspair(method,fd_incref(name));
-          fdtype item = fd_index_get((fd_index)fd_background,key);
+        if ((SYMBOLP(method))||(OIDP(method))) {
+          lispval key = fd_conspair(method,fd_incref(name));
+          lispval item = fd_index_get((fd_index)fd_background,key);
           fd_decref(key);
-          if (FD_OIDP(item)) return item;
-          else if (!((FD_EMPTY_CHOICEP(item))||
-                     (FD_FALSEP(item))||
-                     (FD_VOIDP(item)))) continue;
+          if (OIDP(item)) return item;
+          else if (!((EMPTYP(item))||
+                     (FALSEP(item))||
+                     (VOIDP(item)))) continue;
           else return fd_type_error("oid","better_parse_oid",item);}
         else if (FD_APPLICABLEP(method)) {
-          fdtype item = fd_apply(method,1,&name);
+          lispval item = fd_apply(method,1,&name);
           if (FD_ABORTP(item)) return item;
-          else if (FD_OIDP(item)) return item;
-          else if ((FD_EMPTY_CHOICEP(item))||
-                   (FD_FALSEP(item))||
-                   (FD_VOIDP(item))) continue;
+          else if (OIDP(item)) return item;
+          else if ((EMPTYP(item))||
+                   (FALSEP(item))||
+                   (VOIDP(item))) continue;
           else return fd_type_error("oid","better_parse_oid",item);}
         else return fd_type_error("lookup method","better_parse_oid",method);}
       return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}
@@ -110,7 +110,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     prefix[(copy_end-copy_start)]='\0';
     if (start[1]=='/') {
       fd_pool p = fd_find_pool_by_prefix(prefix);
-      if (p == NULL) return FD_VOID;
+      if (p == NULL) return VOID;
       else base = p->pool_base;}
     else {
       unsigned int hi;
@@ -126,43 +126,43 @@ static fdtype better_parse_oid(u8_string start,int len)
   else return fd_parse_oid_addr(start,len);
 }
 
-static fdtype oid_name_slotids = FD_EMPTY_LIST;
+static lispval oid_name_slotids = NIL;
 
-static fdtype default_get_oid_name(fd_pool p,fdtype oid)
+static lispval default_get_oid_name(fd_pool p,lispval oid)
 {
-  if (FD_APPLICABLEP(p->pool_namefn)) return FD_VOID;
+  if (FD_APPLICABLEP(p->pool_namefn)) return VOID;
   else {
-    fdtype ov = fd_oid_value(oid);
-    if (((FD_OIDP(p->pool_namefn)) || (FD_SYMBOLP(p->pool_namefn))) &&
-        (!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
-      fdtype probe = fd_frame_get(oid,p->pool_namefn);
-      if (FD_EMPTY_CHOICEP(probe)) {}
+    lispval ov = fd_oid_value(oid);
+    if (((OIDP(p->pool_namefn)) || (SYMBOLP(p->pool_namefn))) &&
+        (!(CHOICEP(ov))) && (TABLEP(ov))) {
+      lispval probe = fd_frame_get(oid,p->pool_namefn);
+      if (EMPTYP(probe)) {}
       else if (FD_ABORTP(probe)) {fd_decref(probe);}
       else {fd_decref(ov); return probe;}}
-    if ((!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
+    if ((!(CHOICEP(ov))) && (TABLEP(ov))) {
       FD_DOLIST(slotid,oid_name_slotids) {
-        fdtype probe = fd_frame_get(oid,slotid);
-        if (FD_EMPTY_CHOICEP(probe)) {}
+        lispval probe = fd_frame_get(oid,slotid);
+        if (EMPTYP(probe)) {}
         else if (FD_ABORTP(probe)) {fd_decref(probe);}
         else {fd_decref(ov); return probe;}}
       fd_decref(ov);
-      return FD_VOID;}
-    else {fd_decref(ov); return FD_VOID;}}
+      return VOID;}
+    else {fd_decref(ov); return VOID;}}
 }
 
-fdtype (*fd_get_oid_name)(fd_pool p,fdtype oid) = default_get_oid_name;
+lispval (*fd_get_oid_name)(fd_pool p,lispval oid) = default_get_oid_name;
 
-static int print_oid_name(u8_output out,fdtype name,int top)
+static int print_oid_name(u8_output out,lispval name,int top)
 {
-  if ((FD_VOIDP(name)) || (FD_EMPTY_CHOICEP(name))) return 0;
-  else if (FD_EMPTY_LISTP(name))
+  if ((VOIDP(name)) || (EMPTYP(name))) return 0;
+  else if (NILP(name))
     return u8_puts(out,"()");
-  else if (FD_OIDP(name)) {
+  else if (OIDP(name)) {
     FD_OID addr = FD_OID_ADDR(name);
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
     return u8_printf(out,"@%x/%x",hi,lo);}
-  else if ((FD_SYMBOLP(name)) ||
-           (FD_NUMBERP(name)) ||
+  else if ((SYMBOLP(name)) ||
+           (NUMBERP(name)) ||
            (FD_CONSTANTP(name)))
     if (top) {
       int retval = -1;
@@ -171,34 +171,34 @@ static int print_oid_name(u8_output out,fdtype name,int top)
       else retval = u8_puts(out,"}");
       return retval;}
     else return fd_unparse(out,name);
-  else if (FD_STRINGP(name))
+  else if (STRINGP(name))
     return fd_unparse(out,name);
-  else if ((FD_CHOICEP(name)) || (FD_PRECHOICEP(name))) {
+  else if ((CHOICEP(name)) || (PRECHOICEP(name))) {
     int i = 0; u8_putc(out,'{'); {
-      FD_DO_CHOICES(item,name) {
+      DO_CHOICES(item,name) {
         if (i++>0) u8_putc(out,' ');
         if (print_oid_name(out,item,0)<0) return -1;}}
     return u8_putc(out,'}');}
-  else if (FD_PAIRP(name)) {
-    fdtype scan = name; u8_putc(out,'(');
+  else if (PAIRP(name)) {
+    lispval scan = name; u8_putc(out,'(');
     if (print_oid_name(out,FD_CAR(scan),0)<0) return -1;
     else scan = FD_CDR(scan);
-    while (FD_PAIRP(scan)) {
+    while (PAIRP(scan)) {
       u8_putc(out,' ');
       if (print_oid_name(out,FD_CAR(scan),0)<0) return -1;
       scan = FD_CDR(scan);}
-    if (FD_EMPTY_LISTP(scan))
+    if (NILP(scan))
       return u8_putc(out,')');
     else {
       u8_puts(out," . ");
       print_oid_name(out,scan,0);
       return u8_putc(out,')');}}
-  else if (FD_VECTORP(name)) {
-    int i = 0, len = FD_VECTOR_LENGTH(name);
+  else if (VECTORP(name)) {
+    int i = 0, len = VEC_LEN(name);
     u8_puts(out,"#(");
     while (i< len) {
       if (i>0) u8_putc(out,' ');
-      if (print_oid_name(out,FD_VECTOR_REF(name,i),0)<0)
+      if (print_oid_name(out,VEC_REF(name,i),0)<0)
         return -1;
       i++;}
     return u8_puts(out,")");}
@@ -206,7 +206,7 @@ static int print_oid_name(u8_output out,fdtype name,int top)
   else return fd_unparse(out,name);
 }
 
-static int better_unparse_oid(u8_output out,fdtype x)
+static int better_unparse_oid(u8_output out,lispval x)
 {
   if ((fd_oid_display_level<1) || (out->u8_streaminfo&U8_STREAM_TACITURN)) {
     FD_OID addr = FD_OID_ADDR(x); char buf[128];
@@ -233,7 +233,7 @@ static int better_unparse_oid(u8_output out,fdtype x)
              (!(fd_hashtable_probe_novoid(&(p->pool_changes),x))))
       return 1;
     else {
-      fdtype name = fd_get_oid_name(p,x);
+      lispval name = fd_get_oid_name(p,x);
       int retval = print_oid_name(out,name,1);
       fd_decref(name);
       return retval;}}
@@ -241,104 +241,104 @@ static int better_unparse_oid(u8_output out,fdtype x)
 
 /* CONFIG settings */
 
-static int set_default_cache_level(fdtype var,fdtype val,void *data)
+static int set_default_cache_level(lispval var,lispval val,void *data)
 {
   if (FD_INTP(val)) {
-    int new_level = FD_FIX2INT(val);
+    int new_level = FIX2INT(val);
     fd_default_cache_level = new_level;
     return 1;}
   else {
     fd_type_error("small fixnum","set_default_cache_level",val);
     return -1;}
 }
-static fdtype get_default_cache_level(fdtype var,void *data)
+static lispval get_default_cache_level(lispval var,void *data)
 {
   return FD_INT(fd_default_cache_level);
 }
 
-static int set_oid_display_level(fdtype var,fdtype val,void *data)
+static int set_oid_display_level(lispval var,lispval val,void *data)
 {
   if (FD_INTP(val)) {
-    fd_oid_display_level = FD_FIX2INT(val);
+    fd_oid_display_level = FIX2INT(val);
     return 1;}
   else {
     fd_type_error("small fixnum","set_oid_display_level",val);
     return -1;}
 }
-static fdtype get_oid_display_level(fdtype var,void *data)
+static lispval get_oid_display_level(lispval var,void *data)
 {
   return FD_INT(fd_oid_display_level);
 }
 
-static int set_prefetch(fdtype var,fdtype val,void *data)
+static int set_prefetch(lispval var,lispval val,void *data)
 {
-  if (FD_FALSEP(val)) fd_prefetch = 0;
+  if (FALSEP(val)) fd_prefetch = 0;
   else fd_prefetch = 1;
   return 1;
 }
-static fdtype get_prefetch(fdtype var,void *data)
+static lispval get_prefetch(lispval var,void *data)
 {
   if (fd_prefetch) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype config_get_pools(fdtype var,void *data)
+static lispval config_get_pools(lispval var,void *data)
 {
   return fd_all_pools();
 }
-static int config_use_pool(fdtype var,fdtype spec,void *data)
+static int config_use_pool(lispval var,lispval spec,void *data)
 {
-  if (FD_STRINGP(spec))
-    if (fd_use_pool(FD_STRDATA(spec),0,FD_VOID))
+  if (STRINGP(spec))
+    if (fd_use_pool(CSTRING(spec),0,VOID))
       return 1;
     else return -1;
   else return fd_reterr(fd_TypeError,"config_use_pool",
-                        u8_strdup(_("pool spec")),FD_VOID);
+                        u8_strdup(_("pool spec")),VOID);
 }
 
 /* Config methods */
 
-static fdtype config_get_indexes(fdtype var,void *data)
+static lispval config_get_indexes(lispval var,void *data)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = EMPTY;
   int i = 0; while (i < fd_n_primary_indexes) {
-    fdtype lindex = fd_index2lisp(fd_primary_indexes[i]);
-    FD_ADD_TO_CHOICE(results,lindex);
+    lispval lindex = fd_index_ref(fd_primary_indexes[i]);
+    CHOICE_ADD(results,lindex);
     i++;}
   if (i>=fd_n_primary_indexes) return results;
   i = 0; while (i < fd_n_secondary_indexes) {
-    fdtype lindex = fd_index2lisp(fd_secondary_indexes[i]);
-    FD_ADD_TO_CHOICE(results,lindex);
+    lispval lindex = fd_index_ref(fd_secondary_indexes[i]);
+    CHOICE_ADD(results,lindex);
     i++;}
   return results;
 }
-static int config_open_index(fdtype var,fdtype spec,void *data)
+static int config_open_index(lispval var,lispval spec,void *data)
 {
-  if (FD_STRINGP(spec))
-    if (fd_get_index(FD_STRDATA(spec),0,FD_VOID)) return 1;
+  if (STRINGP(spec))
+    if (fd_get_index(CSTRING(spec),0,VOID)) return 1;
     else return -1;
   else {
     fd_seterr(fd_TypeError,"config_open_index",NULL,fd_incref(spec));
     return -1;}
 }
 
-static fdtype config_get_background(fdtype var,void *data)
+static lispval config_get_background(lispval var,void *data)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = EMPTY;
   if (fd_background == NULL) return results;
   else {
     int i = 0, n; fd_index *indexes;
     u8_lock_mutex(&(fd_background->index_lock));
     n = fd_background->n_indexes; indexes = fd_background->indexes;
     while (i<n) {
-      fdtype lix = fd_index2lisp(indexes[i]); i++;
-      FD_ADD_TO_CHOICE(results,lix);}
+      lispval lix = fd_index_ref(indexes[i]); i++;
+      CHOICE_ADD(results,lix);}
     u8_unlock_mutex(&(fd_background->index_lock));
     return results;}
 }
-static int config_use_index(fdtype var,fdtype spec,void *data)
+static int config_use_index(lispval var,lispval spec,void *data)
 {
-  if (FD_STRINGP(spec))
-    if (fd_use_index(FD_STRDATA(spec),0,FD_VOID)) return 1;
+  if (STRINGP(spec))
+    if (fd_use_index(CSTRING(spec),0,VOID)) return 1;
     else return -1;
   else if (FD_INDEXP(spec))
     if (fd_add_to_background(fd_indexptr(spec))) return 1;
@@ -444,9 +444,9 @@ static int cache_load()
 FD_EXPORT int fd_swapcheck()
 {
   long long memgap; ssize_t usage = u8_memusage();
-  fdtype l_memgap = fd_config_get("SWAPCHECK");
-  if (FD_FIXNUMP(l_memgap)) memgap = FD_FIX2INT(l_memgap);
-  else if (!(FD_VOIDP(l_memgap))) {
+  lispval l_memgap = fd_config_get("SWAPCHECK");
+  if (FIXNUMP(l_memgap)) memgap = FIX2INT(l_memgap);
+  else if (!(VOIDP(l_memgap))) {
     u8_log(LOG_WARN,fd_TypeError,"Bad SWAPCHECK config: %q",l_memgap);
     fd_decref(l_memgap);
     return -1;}
@@ -457,7 +457,7 @@ FD_EXPORT int fd_swapcheck()
     u8_log(LOG_NOTICE,SwapCheck,"Swapping because %ld>%ld+%ld",
            usage,membase,memgap);
     fd_clear_slotcaches();
-    fd_clear_callcache(FD_VOID);
+    fd_clear_callcache(VOID);
     fd_swapout_all();
     membase = u8_memusage();
     u8_log(LOG_NOTICE,SwapCheck,
@@ -492,11 +492,12 @@ FD_EXPORT void fd_init_cachecall_c(void);
 FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
 FD_EXPORT int fd_init_drivers_c(void);
+FD_EXPORT void fd_init_bloom_c(void);
 
 FD_EXPORT int fd_init_storage()
 {
   if (fdstorage_initialized) return fdstorage_initialized;
-  fdstorage_initialized = 211*fd_init_libfdtype();
+  fdstorage_initialized = 211*fd_init_lisp_types();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);
@@ -506,6 +507,7 @@ FD_EXPORT int fd_init_storage()
   fd_init_hashdtype_c();
   fd_init_oidobj_c();
   fd_init_cachecall_c();
+  fd_init_bloom_c();
   fd_init_pools_c();
   fd_init_indexes_c();
   fd_init_frames_c();

@@ -25,7 +25,7 @@ int main(int argc,char **argv)
   u8_socket socket;
   int fd_version = fd_init_drivers(), i = 0;
   struct FD_STREAM ds;
-  fdtype expr = FD_EMPTY_LIST, result;
+  lispval expr = FD_EMPTY_LIST, result;
   if (fd_version<0) {
     u8_fprintf(stderr,"Couldn't initialize FramerD\n");
     exit(1);}

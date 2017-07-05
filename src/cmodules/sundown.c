@@ -27,9 +27,9 @@ FD_EXPORT int fd_init_sundown(void) FD_LIBINIT_FN;
 
 static int sundown_init = 0;
 
-static fdtype markdown2html_prim(fdtype mdstring,fdtype opts)
+static lispval markdown2html_prim(lispval mdstring,lispval opts)
 {
-  fdtype result = FD_VOID;
+  lispval result = FD_VOID;
 
   struct sd_callbacks callbacks;
   struct html_renderopt options;
@@ -51,7 +51,7 @@ static fdtype markdown2html_prim(fdtype mdstring,fdtype opts)
   return result;
 }
 
-static fdtype markout_prim(fdtype mdstring,fdtype opts)
+static lispval markout_prim(lispval mdstring,lispval opts)
 {
   U8_OUTPUT *out = u8_current_output;
 
@@ -77,7 +77,7 @@ static fdtype markout_prim(fdtype mdstring,fdtype opts)
 
 FD_EXPORT int fd_init_sundown()
 {
-  fdtype sundown_module;
+  lispval sundown_module;
   if (sundown_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   sundown_init = 1;

@@ -204,12 +204,11 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/locale/es/LC_MESSAGES/framerd.mo
 %attr(-,fdaemon,adm) %{_datadir}/locale/fr/LC_MESSAGES/framerd.mo
 %attr(-,fdaemon,adm) %{_datadir}/locale/nl/LC_MESSAGES/framerd.mo
-%{_libdir}/libfdtype.so.*
+%{_libdir}/libfdcore.so.*
 %{_libdir}/libfddb.so.*
 %{_libdir}/libfddbdrivers.so.*
 %{_libdir}/libfdbserv.so.*
 %{_libdir}/libfdscheme.so.*
-%{_libdir}/libfdschemeio.so.*
 %{_libdir}/libfdweb.so.*
 %{_libdir}/libtexttools.so.*
 %{_libdir}/framerd/crypto.so*
@@ -236,12 +235,11 @@ rm -rf $RPM_BUILD_ROOT
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/*
-%{_libdir}/libfdtype.so
+%{_libdir}/libfdcore.so
 %{_libdir}/libfddb.so
 %{_libdir}/libfddbdrivers.so
 %{_libdir}/libfdbserv.so
 %{_libdir}/libfdscheme.so
-%{_libdir}/libfdschemeio.so
 %{_libdir}/libfdweb.so
 %{_libdir}/libtexttools.so
 %{_libdir}/framerd/crypto.so
@@ -251,12 +249,11 @@ rm -rf $RPM_BUILD_ROOT
 %files static
 %defattr(-,root,root,-)
 %doc
-%{_libdir}/libfdtype.a
+%{_libdir}/libfdcore.a
 %{_libdir}/libfddb.a
 %{_libdir}/libfddbdrivers.a
 %{_libdir}/libfdbserv.a
 %{_libdir}/libfdscheme.a
-%{_libdir}/libfdschemeio.a
 %{_libdir}/libfdweb.a
 %{_libdir}/libtexttools.a
 

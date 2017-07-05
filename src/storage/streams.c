@@ -28,6 +28,14 @@
 #include <errno.h>
 #include <zlib.h>
 
+#if HAVE_STRUCT_STAT_ST_MTIM
+#define stat_mtime st_mtim
+#elif HAVE_STRUCT_STAT_ST_MTIMESPEC
+#define stat_mtime st_mtimespec
+#else
+#define stat_mtime st_mtime
+#endif
+
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -78,9 +86,20 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
     return -1;}
-  else if (stream->buf.raw.buflen==fileinfo.st_size)
+  else if ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
+           (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec))
     return 0;
   else {
+    u8_write_lock(&(stream->mmap_lock));
+    if (fstat(fd,&fileinfo)<0) {
+      u8_rw_unlock(&(stream->mmap_lock));
+      u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
+      return -1;}
+    if ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
+        (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec)) {
+      u8_rw_unlock(&(stream->mmap_lock));
+      return 0;}
+    else stream->mmap_time=fileinfo.stat_mtime;
     size_t old_size = buf->buflen, new_size = fileinfo.st_size;
     int prot = (U8_BITP(stream->stream_flags,FD_STREAM_READ_ONLY)) ?
       (PROT_READ) : (PROT_READ|PROT_WRITE) ;
@@ -94,6 +113,7 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
       u8_log(LOGWARN,u8_strerror(errno),
              "mmap_read_update:mmap of %s",stream->streamid);
       u8_graberrno("mmap_read_update:mmap",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     buf->buflen = new_size;
     buf->buffer = newbuf;
@@ -101,6 +121,7 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
     buf->buflim = newbuf+fileinfo.st_size;
     buf->buf_data = stream;
     stream->stream_filepos=stream->stream_maxpos=fileinfo.st_size;
+    u8_rw_unlock(&(stream->mmap_lock));
     if ( (oldbuf) && (munmap(oldbuf,old_size)<0) ) {
       u8_graberrno("mmap_read_update:munmap",u8_strdup(stream->streamid));
       return -1;}
@@ -110,11 +131,13 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
 static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
 {
   struct FD_RAWBUF *buf = &(stream->buf.raw);
+  u8_write_lock(&(stream->mmap_lock));
   if ( (grow == 0) && (buf->buffer) ) {
     if ( (stream->stream_maxpos) < (buf->bufpoint-buf->buffer) )
       stream->stream_maxpos=buf->bufpoint-buf->buffer;
     if (msync(buf->buffer,buf->buflen,MS_SYNC) < 0) {
       u8_graberrno("mmap_write_update:msync",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     return buf->buflen;}
   int fd = stream->stream_fileno;
@@ -122,7 +145,9 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
   struct stat fileinfo;
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_write_update:fstat",u8_strdup(stream->streamid));
+    u8_rw_unlock(&(stream->mmap_lock));
     return -1;}
+  else stream->mmap_time=fileinfo.stat_mtime;
   ssize_t file_size=fileinfo.st_size;
   size_t maxpos=(stream->stream_maxpos>0) ? (stream->stream_maxpos) :
     (file_size);
@@ -133,6 +158,7 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
   if (buf->buffer) {
     if (msync(buf->buffer,buf->buflen,MS_SYNC|MS_INVALIDATE) < 0) {
       u8_graberrno("mmap_write_update:msync",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     point_off = buf->bufpoint-buf->buffer;
     stream->stream_maxpos=buf->bufpoint-buf->buffer;
@@ -140,6 +166,7 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
       return buf->buflen;
     if (munmap(buf->buffer,buf->buflen) < 0) {
       u8_graberrno("mmap_write_update:munmap",u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}
     else {
       buf->buffer = NULL; buf->bufpoint = NULL;
@@ -151,17 +178,24 @@ static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
       if (rv<0) {
         u8_graberrno("mmap_write_update:ftruncate:-1",
                      u8_strdup(stream->streamid));
+        u8_rw_unlock(&(stream->mmap_lock));
         return -1;}}
     return 0;}
   else if (new_size<=0) new_size=fd_stream_bufsize;
-
   if (file_size!=new_size) {
     if (ftruncate(fd,new_size)<0) {
       u8_graberrno("mmap_write_update:ftruncate",
                    u8_strdup(stream->streamid));
+      u8_rw_unlock(&(stream->mmap_lock));
       return -1;}}
   unsigned char *newbuf=mmap
     (NULL,new_size,(PROT_READ|PROT_WRITE),MAP_SHARED,fd,0);
+  if (fstat(fd,&fileinfo)<0) {
+    u8_graberrno("mmap_write_update:fstat",u8_strdup(stream->streamid));
+    u8_rw_unlock(&(stream->mmap_lock));
+    return -1;}
+  else stream->mmap_time=fileinfo.stat_mtime;
+  u8_rw_unlock(&(stream->mmap_lock));
   if (newbuf==NULL) {
     u8_graberrno("mmap_write_update:mmap",u8_strdup(stream->streamid));
     return -1;}
@@ -275,6 +309,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
   stream->stream_maxpos = -1;
   stream->stream_flags = flags;
 #if HAVE_MMAP
+  u8_init_rwlock(&(stream->mmap_lock));
   if (U8_BITP(flags,FD_STREAM_MMAPPED)) {
     if (U8_BITP(flags,FD_STREAM_READ_ONLY)) {
       ssize_t rv= (U8_BITP(flags,FD_STREAM_READ_ONLY)) ?
@@ -286,6 +321,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
         streambuf->buf_flushfn = mmap_flushfn;
         streambuf->buf_data    = (void *) stream;
         streambuf->buf_flags   = FD_IN_STREAM|FD_BUFFER_NO_GROW;
+        streambuf->buf_data = (void *)stream;
         return stream;}
       else {
         u8_log(LOG_INFO,"FailedStreamMMAP",
@@ -436,7 +472,7 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
 FD_EXPORT void fd_free_stream(fd_stream s)
 {
   struct FD_CONS *cons = (struct FD_CONS *)s;
-  fdtype sptr = (fdtype)s;
+  lispval sptr = (lispval)s;
   if (FD_STATIC_CONSP(cons)) {
     u8_log(LOGWARN,_("FreeingStaticStream"),
            "Attempting to free the static stream %s 0x%llx",
@@ -524,7 +560,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
 
 /* CONS handlers */
 
-static int unparse_stream(struct U8_OUTPUT *out,fdtype x)
+static int unparse_stream(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_STREAM *stream = (struct FD_STREAM *)x;
   if (stream->streamid) {
@@ -579,8 +615,7 @@ ssize_t fd_fill_stream(fd_stream stream,size_t n)
     ssize_t delta = read(fileno,this_buf,this_request);
     if (delta == 0) break;
     if ((delta<0) && (errno) && (errno != EWOULDBLOCK)) {
-      fd_seterr3(u8_strerror(errno),"fill_stream",
-                 u8s(stream->streamid));
+      fd_seterr3(u8_strerror(errno),"fill_stream",stream->streamid);
       return 0;}
     else if (delta<0) delta = 0;
     buf->buflim = buf->buflim+delta;
@@ -668,8 +703,7 @@ FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction)
     if (FD_STREAM_ISWRITING(s))
       return 0;
     else if ((s->stream_flags)&FD_STREAM_READ_ONLY) {
-      fd_seterr(fd_ReadOnlyStream,"fd_set_direction",
-                u8s(s->streamid),FD_VOID);
+      fd_seterr(fd_ReadOnlyStream,"fd_set_direction",s->streamid,VOID);
       return -1;}
     else {
       if ((s->stream_flags)&FD_STREAM_NEEDS_LOCK) {
@@ -685,8 +719,7 @@ FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction)
     if (!((buf->buf_flags)&(FD_IS_WRITING)))
       return 0;
     else  if ((s->stream_flags)&FD_STREAM_WRITE_ONLY) {
-      fd_seterr(fd_WriteOnlyStream,"fd_set_direction",
-                u8s(s->streamid),FD_VOID);
+      fd_seterr(fd_WriteOnlyStream,"fd_set_direction",s->streamid,VOID);
       return -1;}
     else {
       /* If we were writing, in order to start reading, we need
@@ -710,7 +743,7 @@ FD_EXPORT fd_off_t _fd_getpos(fd_stream s)
   struct FD_RAWBUF *buf = &(s->buf.raw);
   fd_off_t current, pos;
   if (((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0) {
-    return fd_reterr(fd_CantSeek,"fd_getpos",u8s(s->streamid),FD_VOID);}
+    return fd_reterr(fd_CantSeek,"fd_getpos",u8s(s->streamid),VOID);}
   if (!((buf->buf_flags)&FD_IS_WRITING)) {
     current = lseek(s->stream_fileno,0,SEEK_CUR);
     /* If we are reading, we subtract the amount buffered from the
@@ -779,7 +812,7 @@ FD_EXPORT fd_off_t _fd_endpos(fd_stream s)
 {
   fd_off_t rv;
   if (((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)
-    return fd_reterr(fd_CantSeek,"fd_endpos",u8s(s->streamid),FD_VOID);
+    return fd_reterr(fd_CantSeek,"fd_endpos",u8s(s->streamid),VOID);
   fd_flush_stream(s);
   rv = s->stream_maxpos =
     s->stream_filepos = (lseek(s->stream_fileno,0,SEEK_END));
@@ -987,35 +1020,35 @@ ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes)
 /* Stream ctl */
 
 FD_EXPORT
-fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
+lispval fd_streamctl(fd_stream s,fd_streamop op,void *data)
 {
   switch (op) {
   case fd_stream_close:
     fd_close_stream(s,0);
-    return FD_VOID;
+    return VOID;
   case fd_stream_lockfile: {
     int rv = fd_lockfile(s);
-    if (rv<0) return FD_ERROR_VALUE;
+    if (rv<0) return FD_ERROR;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
   case fd_stream_unlockfile: {
     int rv = fd_unlockfile(s);
-    if (rv<0) return FD_ERROR_VALUE;
+    if (rv<0) return FD_ERROR;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
   case fd_stream_setread: {
     int rv = fd_set_direction(s,fd_byteflow_read);
-    if (rv<0) return FD_ERROR_VALUE;
+    if (rv<0) return FD_ERROR;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
   case fd_stream_setwrite: {
     int rv = fd_set_direction(s,fd_byteflow_write);
-    if (rv<0) return FD_ERROR_VALUE;
+    if (rv<0) return FD_ERROR;
     else if (rv) return FD_TRUE;
     else return FD_FALSE;}
   case fd_stream_setbuf:
     fd_setbufsize(s,(ssize_t)data);
-    return FD_VOID;
+    return VOID;
   case fd_stream_mmap: {
     unsigned long long enable = (unsigned long long) data;
     // Only read-only streams are mmapped for now
@@ -1025,30 +1058,29 @@ fdtype fd_streamctl(fd_stream s,fd_streamop op,void *data)
       return FD_FALSE;
     else if (enable) {
       ssize_t rv=fd_setbufsize(s,-1);
-      if (rv<0) return FD_ERROR_VALUE;
+      if (rv<0) return FD_ERROR;
       else return FD_INT(rv);}
     else {
       ssize_t rv=fd_setbufsize(s,fd_stream_bufsize);
-      if (rv<0) return FD_ERROR_VALUE;
+      if (rv<0) return FD_ERROR;
       else return FD_INT(rv);}}
   default:
-    fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,
-              FD_VOID);
-    return FD_ERROR_VALUE;}
+    fd_seterr("Unhandled Operation","fd_streamctl",s->streamid,VOID);
+    return FD_ERROR;}
 }
 
 /* Files 2 dtypes */
 
-FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
+FD_EXPORT lispval fd_read_dtype_from_file(u8_string filename)
 {
   struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
   ssize_t filesize = u8_file_size(filename);
   if (filesize<0) {
-    fd_seterr(fd_FileNotFound,"fd_file2dtype",u8_strdup(filename),FD_VOID);
-    return FD_ERROR_VALUE;}
+    fd_seterr(fd_FileNotFound,"fd_read_dtype_from_file",filename,VOID);
+    return FD_ERROR;}
   else if (filesize == 0) {
-    fd_seterr("Zero-length file","fd_file2dtype",u8_strdup(filename),FD_VOID);
-    return FD_ERROR_VALUE;}
+    fd_seterr("Zero-length file","fd_read_dtype_from_file",filename,VOID);
+    return FD_ERROR;}
   else {
     struct FD_STREAM *opened=
       fd_init_file_stream(stream,filename,
@@ -1058,7 +1090,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
                           ( (HAVE_MMAP) ? (FD_STREAM_MMAPPED) : (0)),
                           fd_filestream_bufsize);
     if (opened) {
-      fdtype result = FD_VOID;
+      lispval result = VOID;
       struct FD_INBUF *in = fd_readbuf(opened);
       int byte1 = fd_probe_byte(in);
       int zip = (byte1>=0x80);
@@ -1072,10 +1104,10 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
       return result;}
     else {
       u8_free(stream);
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR;}}
 }
 
-FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
+FD_EXPORT ssize_t fd_lisp2file(lispval object, u8_string filename,
                                 ssize_t bufsize,int zip)
 {
   struct FD_STREAM *stream = u8_alloc(struct FD_STREAM);
@@ -1093,14 +1125,14 @@ FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
   else return -1;
 }
 
-FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype object,u8_string filename)
+FD_EXPORT ssize_t fd_write_dtype_to_file(lispval object,u8_string filename)
 {
-  return fd_dtype2file(object,filename,1024*64,0);
+  return fd_lisp2file(object,filename,1024*64,0);
 }
 
-FD_EXPORT ssize_t fd_write_zdtype_to_file(fdtype object,u8_string filename)
+FD_EXPORT ssize_t fd_write_zdtype_to_file(lispval object,u8_string filename)
 {
-  return fd_dtype2file(object,filename,1024*64,1);
+  return fd_lisp2file(object,filename,1024*64,1);
 }
 
 /* Initialization of file */

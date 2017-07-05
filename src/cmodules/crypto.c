@@ -27,10 +27,10 @@ FD_EXPORT int fd_init_crypto(void) FD_LIBINIT_FN;
 
 static long long int crypto_init = 0;
 
-fdtype (*unpacker)(unsigned char *,size_t len);
+lispval (*unpacker)(unsigned char *,size_t len);
 
-static fdtype doencrypt(fdtype data,fdtype key,
-                        u8_string ciphername,fdtype iv,
+static lispval doencrypt(lispval data,lispval key,
+                        u8_string ciphername,lispval iv,
                         int dtype)
 {
   struct FD_OUTBUF tmp;
@@ -62,7 +62,7 @@ static fdtype doencrypt(fdtype data,fdtype key,
   else return FD_ERROR_VALUE;
 }
 
-static fdtype encrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
+static lispval encrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername = NULL;
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
@@ -71,7 +71,7 @@ static fdtype encrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
   else return fd_type_error("ciphername","encrypt_prim",cipher);
   return doencrypt(data,key,ciphername,iv,0);
 }
-static fdtype encrypt_dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
+static lispval encrypt_dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   u8_string ciphername;
   if (FD_SYMBOLP(cipher)) ciphername = FD_SYMBOL_NAME(cipher);
@@ -81,7 +81,7 @@ static fdtype encrypt_dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
   return doencrypt(data,key,ciphername,iv,1);
 }
 
-static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
+static lispval decrypt_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
@@ -106,7 +106,7 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
+static lispval decrypt2string_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
@@ -130,7 +130,7 @@ static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv
   else return FD_ERROR_VALUE;
 }
 
-static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
+static lispval decrypt2dtype_prim(lispval data,lispval key,lispval cipher,lispval iv)
 {
   const unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
@@ -150,7 +150,7 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf) {
-    struct FD_INBUF in; fdtype result;
+    struct FD_INBUF in; lispval result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
     result = fd_read_dtype(&in);
     u8_free(outbuf);
@@ -158,7 +158,7 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
   else return FD_ERROR_VALUE;
 }
 
-FD_EXPORT fdtype random_packet_prim(fdtype arg)
+FD_EXPORT lispval random_packet_prim(lispval arg)
 {
   if (FD_UINTP(arg))
     return fd_init_packet(NULL,FD_FIX2INT(arg),
@@ -166,9 +166,9 @@ FD_EXPORT fdtype random_packet_prim(fdtype arg)
   else return fd_type_error("uint","random_packet_prim",arg);
 }
 
-FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
+FD_EXPORT lispval fill_packet_prim(lispval len,lispval init)
 {
-  fdtype result; unsigned char *bytes;
+  lispval result; unsigned char *bytes;
   int byte_init, packet_len = FD_FIX2INT(len);
   if ((FD_VOIDP(init))||(FD_FALSEP(init))||(FD_DEFAULTP(init)))
     byte_init = 0;
@@ -190,7 +190,7 @@ FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
 
 FD_EXPORT int fd_init_crypto()
 {
-  fdtype crypto_module;
+  lispval crypto_module;
   if (crypto_init) return 0;
 
   crypto_init = u8_millitime();
@@ -200,32 +200,32 @@ FD_EXPORT int fd_init_crypto()
 
   fd_idefn(crypto_module,
            fd_make_cprim4x("ENCRYPT",encrypt_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim4x("ENCRYPT-DTYPE",encrypt_dtype_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
 
   fd_idefn(crypto_module,
            fd_make_cprim4x("DECRYPT",decrypt_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim4x("DECRYPT->STRING",decrypt2string_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim4x("DECRYPT->DTYPE",decrypt2dtype_prim,2,
-                           -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID,
+                           -1,VOID,-1,VOID));
 
   fd_idefn(crypto_module,
            fd_make_cprim1x("RANDOM-PACKET",random_packet_prim,1,
-                           fd_fixnum_type,FD_VOID));
+                           fd_fixnum_type,VOID));
   fd_idefn(crypto_module,
            fd_make_cprim2x("FILL-PACKET",fill_packet_prim,1,
-                           fd_fixnum_type,FD_VOID,-1,FD_VOID));
+                           fd_fixnum_type,VOID,-1,VOID));
 
   fd_finish_module(crypto_module);
 

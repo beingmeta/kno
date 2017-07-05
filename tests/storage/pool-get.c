@@ -24,17 +24,17 @@ int main(int argc,char **argv)
 {
   int fd_version = fd_init_drivers();
   fd_pool p = ((fd_version>0)?(fd_use_pool(argv[1],0,FD_VOID)):(NULL));
-  fdtype oids = FD_EMPTY_CHOICE;
+  lispval oids = FD_EMPTY_CHOICE;
   int i = 2;
   if (p == NULL) {
     fprintf(stderr,_("Can't open pool %s\n"),argv[1]);
     return 0;}
   while (i<argc) {
-    fdtype oid = fd_parse(argv[i]);
+    lispval oid = fd_parse(argv[i]);
     FD_ADD_TO_CHOICE(oids,oid); i++;}
   if (argc>2) fd_pool_prefetch(p,oids);
   {FD_DO_CHOICES(oid,oids) {
-      fdtype value = fd_oid_value(oid);
+      lispval value = fd_oid_value(oid);
       u8_fprintf(stderr,_("Value of %q is %q\n"),oid,value);
       fd_decref(value);}}
   fd_decref(oids);

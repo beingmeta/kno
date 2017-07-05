@@ -127,8 +127,8 @@ FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len);
 
 FD_EXPORT int fd_iswritebuf(struct FD_INBUF *b);
 FD_EXPORT int fd_isreadbuf(struct FD_OUTBUF *b);
-FD_EXPORT fdtype fdt_isreadbuf(struct FD_OUTBUF *b);
-FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b);
+FD_EXPORT lispval fdt_isreadbuf(struct FD_OUTBUF *b);
+FD_EXPORT lispval fdt_iswritebuf(struct FD_INBUF *b);
 
 /* Handle endianness */
 

@@ -27,28 +27,28 @@ typedef enum FD_TABLEOP {
   fd_table_minimize = 19, fd_table_minimize_if_present = 20}
  fd_tableop;
 
-typedef fdtype (*fd_table_get_fn)(fdtype,fdtype,fdtype);
-typedef int (*fd_table_test_fn)(fdtype,fdtype,fdtype);
-typedef int (*fd_table_add_fn)(fdtype,fdtype,fdtype);
-typedef int (*fd_table_drop_fn)(fdtype,fdtype,fdtype);
-typedef int (*fd_table_store_fn)(fdtype,fdtype,fdtype);
-typedef int (*fd_table_getsize_fn)(fdtype);
-typedef int (*fd_table_modified_fn)(fdtype,int);
-typedef int (*fd_table_readonly_fn)(fdtype,int);
-typedef fdtype (*fd_table_keys_fn)(fdtype);
+typedef lispval (*fd_table_get_fn)(lispval,lispval,lispval);
+typedef int (*fd_table_test_fn)(lispval,lispval,lispval);
+typedef int (*fd_table_add_fn)(lispval,lispval,lispval);
+typedef int (*fd_table_drop_fn)(lispval,lispval,lispval);
+typedef int (*fd_table_store_fn)(lispval,lispval,lispval);
+typedef int (*fd_table_getsize_fn)(lispval);
+typedef int (*fd_table_modified_fn)(lispval,int);
+typedef int (*fd_table_readonly_fn)(lispval,int);
+typedef lispval (*fd_table_keys_fn)(lispval);
 
 struct FD_TABLEFNS {
-  fdtype (*get)(fdtype obj,fdtype fd_key,fdtype dflt);
-  int (*store)(fdtype obj,fdtype fd_key,fdtype value);
-  int (*add)(fdtype obj,fdtype fd_key,fdtype value);
-  int (*drop)(fdtype obj,fdtype fd_key,fdtype value);
-  int (*test)(fdtype obj,fdtype fd_key,fdtype value);
-  int (*readonly)(fdtype obj,int op);
-  int (*modified)(fdtype obj,int op);
-  int (*finished)(fdtype obj,int op);
-  int (*getsize)(fdtype obj);
-  fdtype (*keys)(fdtype obj);
-  struct FD_KEYVAL (*keyvals)(fdtype obj,int *);
+  lispval (*get)(lispval obj,lispval fd_key,lispval dflt);
+  int (*store)(lispval obj,lispval fd_key,lispval value);
+  int (*add)(lispval obj,lispval fd_key,lispval value);
+  int (*drop)(lispval obj,lispval fd_key,lispval value);
+  int (*test)(lispval obj,lispval fd_key,lispval value);
+  int (*readonly)(lispval obj,int op);
+  int (*modified)(lispval obj,int op);
+  int (*finished)(lispval obj,int op);
+  int (*getsize)(lispval obj);
+  lispval (*keys)(lispval obj);
+  struct FD_KEYVAL (*keyvals)(lispval obj,int *);
 };
 
 FD_EXPORT struct FD_TABLEFNS *fd_tablefns[];
@@ -57,29 +57,29 @@ FD_EXPORT struct FD_TABLEFNS *fd_tablefns[];
 #define fd_write_lock_table(p) (u8_write_lock(&((p)->table_rwlock)))
 #define fd_unlock_table(p)  (u8_rw_unlock(&((p)->table_rwlock)))
 
-FD_EXPORT fdtype fd_get(fdtype obj,fdtype key,fdtype dflt);
-FD_EXPORT int fd_test(fdtype obj,fdtype key,fdtype value);
-FD_EXPORT int fd_store(fdtype obj,fdtype key,fdtype value);
-FD_EXPORT int fd_add(fdtype obj,fdtype key,fdtype value);
-FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
+FD_EXPORT lispval fd_get(lispval obj,lispval key,lispval dflt);
+FD_EXPORT int fd_test(lispval obj,lispval key,lispval value);
+FD_EXPORT int fd_store(lispval obj,lispval key,lispval value);
+FD_EXPORT int fd_add(lispval obj,lispval key,lispval value);
+FD_EXPORT int fd_drop(lispval obj,lispval key,lispval value);
 
-FD_EXPORT int fd_readonlyp(fdtype arg);
-FD_EXPORT int fd_modifiedp(fdtype arg);
-FD_EXPORT int fd_finishedp(fdtype arg);
-FD_EXPORT int fd_set_readonly(fdtype arg,int val);
-FD_EXPORT int fd_set_modified(fdtype arg,int val);
-FD_EXPORT int fd_set_finished(fdtype arg,int val);
+FD_EXPORT int fd_readonlyp(lispval arg);
+FD_EXPORT int fd_modifiedp(lispval arg);
+FD_EXPORT int fd_finishedp(lispval arg);
+FD_EXPORT int fd_set_readonly(lispval arg,int val);
+FD_EXPORT int fd_set_modified(lispval arg,int val);
+FD_EXPORT int fd_set_finished(lispval arg,int val);
 
-FD_EXPORT int fd_getsize(fdtype arg);
-FD_EXPORT fdtype fd_getkeys(fdtype arg);
-FD_EXPORT fdtype fd_getvalues(fdtype arg);
-FD_EXPORT fdtype fd_getassocs(fdtype arg);
+FD_EXPORT int fd_getsize(lispval arg);
+FD_EXPORT lispval fd_getkeys(lispval arg);
+FD_EXPORT lispval fd_getvalues(lispval arg);
+FD_EXPORT lispval fd_getassocs(lispval arg);
 
 /* Operations based on the ordering of key values. */
-FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxval);
-FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
+FD_EXPORT lispval fd_table_max(lispval table,lispval scope,lispval *maxval);
+FD_EXPORT lispval fd_table_skim(lispval table,lispval maxval,lispval scope);
 
-FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keys);
+FD_EXPORT void fd_display_table(u8_output out,lispval table,lispval keys);
 
 #define FD_TABLEP(x) ((fd_tablefns[FD_PTR_TYPE(x)])!=NULL)
 
@@ -92,9 +92,9 @@ FD_EXPORT int   fd_init_hash_size;
 /* Slotmaps */
 
 struct FD_KEYVAL {
-  fdtype kv_key, kv_val;};
+  lispval kv_key, kv_val;};
 
-typedef int (*kv_valfn)(fdtype,fdtype,void *);
+typedef int (*kv_valfn)(lispval,lispval,void *);
 typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
 
 typedef struct FD_SLOTMAP {
@@ -156,38 +156,38 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define fd_slotmap_size(x) (FD_XSLOTMAP_NUSED(FD_XSLOTMAP(x)))
 #define fd_slotmap_modifiedp(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 
-FD_EXPORT fdtype fd_init_slotmap
+FD_EXPORT lispval fd_init_slotmap
   (struct FD_SLOTMAP *ptr,int len,struct FD_KEYVAL *data);
 FD_EXPORT int fd_slotmap_store
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype value);
+  (struct FD_SLOTMAP *sm,lispval key,lispval value);
 FD_EXPORT int fd_slotmap_add
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype value);
+  (struct FD_SLOTMAP *sm,lispval key,lispval value);
 FD_EXPORT int fd_slotmap_drop
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype value);
+  (struct FD_SLOTMAP *sm,lispval key,lispval value);
 FD_EXPORT int fd_slotmap_delete
-  (struct FD_SLOTMAP *sm,fdtype key);
-FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm);
-FD_EXPORT int fd_sort_slotmap(fdtype slotmap,int sorted);
+  (struct FD_SLOTMAP *sm,lispval key);
+FD_EXPORT lispval fd_slotmap_keys(struct FD_SLOTMAP *sm);
+FD_EXPORT int fd_sort_slotmap(lispval slotmap,int sorted);
 
 #define fd_empty_slotmap() (fd_init_slotmap(NULL,0,NULL))
 
-FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
+FD_EXPORT lispval fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
 
-FD_EXPORT fdtype fd_slotmap_max
-  (struct FD_SLOTMAP *sm,fdtype scope,fdtype *maxvalp);
+FD_EXPORT lispval fd_slotmap_max
+  (struct FD_SLOTMAP *sm,lispval scope,lispval *maxvalp);
 
 FD_EXPORT struct FD_KEYVAL *_fd_keyvec_get
-   (fdtype key,struct FD_KEYVAL *keyvals,int size);
+   (lispval key,struct FD_KEYVAL *keyvals,int size);
 
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
-  (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata);
+  (lispval key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata);
 FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
-   (fdtype key,struct FD_KEYVAL *keyvals,int size);
+   (lispval key,struct FD_KEYVAL *keyvals,int size);
 
 
 #if FD_INLINE_TABLES
 static struct FD_KEYVAL *fd_keyvec_get
-   (fdtype key,struct FD_KEYVAL *keyvals,int size)
+   (lispval key,struct FD_KEYVAL *keyvals,int size)
 {
   const struct FD_KEYVAL *scan = keyvals, *limit = scan+size;
   if (FD_ATOMICP(key))
@@ -196,13 +196,13 @@ static struct FD_KEYVAL *fd_keyvec_get
 	return (struct FD_KEYVAL *)scan;
       else scan++;
   else while (scan<limit)
-	 if (FDTYPE_EQUAL(scan->kv_key,key))
+	 if (LISP_EQUAL(scan->kv_key,key))
 	   return (struct FD_KEYVAL *) scan;
 	 else scan++;
   return NULL;
 }
 static U8_MAYBE_UNUSED struct FD_KEYVAL *fd_sortvec_get
-   (fdtype key,struct FD_KEYVAL *keyvals,int size)
+   (lispval key,struct FD_KEYVAL *keyvals,int size)
 {
   if (size<4)
     return fd_keyvec_get(key,keyvals,size);
@@ -235,14 +235,14 @@ static U8_MAYBE_UNUSED struct FD_KEYVAL *fd_sortvec_get
 #define fd_sortvec_get _fd_sortvec_get
 #endif
 
-FD_EXPORT fdtype _fd_slotmap_get
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt);
-FD_EXPORT fdtype _fd_slotmap_test
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype val);
+FD_EXPORT lispval _fd_slotmap_get
+  (struct FD_SLOTMAP *sm,lispval key,lispval dflt);
+FD_EXPORT lispval _fd_slotmap_test
+  (struct FD_SLOTMAP *sm,lispval key,lispval val);
 
 #if FD_INLINE_TABLES
-static U8_MAYBE_UNUSED fdtype fd_slotmap_get
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt)
+static U8_MAYBE_UNUSED lispval fd_slotmap_get
+  (struct FD_SLOTMAP *sm,lispval key,lispval dflt)
 {
   unsigned int unlock = 0;
   struct FD_KEYVAL *result; int size;
@@ -253,15 +253,15 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_get
   size = FD_XSLOTMAP_NUSED(sm);
   result = fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
-    fdtype v = fd_incref(result->kv_val);
+    lispval v = fd_incref(result->kv_val);
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return v;}
   else {
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return fd_incref(dflt);}
 }
-static U8_MAYBE_UNUSED fdtype fd_slotmap_test
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype val)
+static U8_MAYBE_UNUSED lispval fd_slotmap_test
+  (struct FD_SLOTMAP *sm,lispval key,lispval val)
 {
   unsigned int unlock = 0;
   struct FD_KEYVAL *result; int size;
@@ -274,7 +274,7 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_test
   size = FD_XSLOTMAP_NUSED(sm);
   result = fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
-    fdtype current = result->kv_val; int cmp;
+    lispval current = result->kv_val; int cmp;
     if (FD_VOIDP(val)) cmp = 1;
     else if (FD_EQ(val,current)) cmp = 1;
     else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
@@ -293,9 +293,9 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_test
 #define fd_slotmap_test _fd_slotmap_test
 #endif
 
-FD_EXPORT fdtype fd_plist_to_slotmap(fdtype plist);
-FD_EXPORT fdtype fd_alist_to_slotmap(fdtype alist);
-FD_EXPORT fdtype fd_blist_to_slotmap(fdtype binding_list);
+FD_EXPORT lispval fd_plist_to_slotmap(lispval plist);
+FD_EXPORT lispval fd_alist_to_slotmap(lispval alist);
+FD_EXPORT lispval fd_blist_to_slotmap(lispval binding_list);
 
 /* Schemamaps */
 
@@ -310,7 +310,7 @@ typedef struct FD_SCHEMAP {
   unsigned int schemap_tagged:1;
   unsigned int schemap_shared:1;
   unsigned int schemap_stackvals:1;
-  fdtype *table_schema, *schema_values;
+  lispval *table_schema, *schema_values;
   U8_RWLOCK_DECL(table_rwlock);} FD_SCHEMAP;
 
 #define FD_SCHEMAP_SORTED 1
@@ -358,34 +358,34 @@ typedef struct FD_SCHEMAP *fd_schemap;
 #define FD_SCHEMAP_CLEAR_FINISHED(x) \
   FD_XSCHEMAP_CLEAR_FINISHED(FD_XSCHEMAP(x))
 
-FD_EXPORT fdtype fd_make_schemap
+FD_EXPORT lispval fd_make_schemap
   (struct FD_SCHEMAP *ptr,short n_slots,short flags,
-   fdtype *schema,fdtype *values);
-FD_EXPORT fdtype fd_init_schemap
+   lispval *schema,lispval *values);
+FD_EXPORT lispval fd_init_schemap
   (struct FD_SCHEMAP *ptr,short n_keyvals,
    struct FD_KEYVAL *init);
 
-FD_EXPORT fdtype _fd_schemap_get
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt);
-FD_EXPORT fdtype _fd_schemap_test
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype val);
+FD_EXPORT lispval _fd_schemap_get
+  (struct FD_SCHEMAP *sm,lispval key,lispval dflt);
+FD_EXPORT lispval _fd_schemap_test
+  (struct FD_SCHEMAP *sm,lispval key,lispval val);
 FD_EXPORT int fd_schemap_store
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
+  (struct FD_SCHEMAP *sm,lispval key,lispval value);
 FD_EXPORT int fd_schemap_add
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
+  (struct FD_SCHEMAP *sm,lispval key,lispval value);
 FD_EXPORT int fd_schemap_drop
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype value);
-FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *ht);
-FD_EXPORT fdtype *fd_register_schema(int n,fdtype *v);
-FD_EXPORT void fd_sort_schema(int n,fdtype *v);
+  (struct FD_SCHEMAP *sm,lispval key,lispval value);
+FD_EXPORT lispval fd_schemap_keys(struct FD_SCHEMAP *ht);
+FD_EXPORT lispval *fd_register_schema(int n,lispval *v);
+FD_EXPORT void fd_sort_schema(int n,lispval *v);
 
 #if FD_INLINE_TABLES
 static U8_MAYBE_UNUSED int _fd_get_slotno
-  (fdtype key,fdtype *schema,int size,int sorted)
+  (lispval key,lispval *schema,int size,int sorted)
 {
   if ((sorted) && (size>7)) {
-    const fdtype *bottom = schema, *middle = bottom+size/2;
-    const fdtype *hard_top = bottom+size, *top = hard_top;
+    const lispval *bottom = schema, *middle = bottom+size/2;
+    const lispval *hard_top = bottom+size, *top = hard_top;
     while (top>bottom) {
       if (key== *middle) return middle-schema;
       else if (key<*middle) {
@@ -396,14 +396,14 @@ static U8_MAYBE_UNUSED int _fd_get_slotno
       return middle-schema;
     else return -1;}
   else {
-    const fdtype *scan = schema, *limit = schema+size;
+    const lispval *scan = schema, *limit = schema+size;
     while (scan<limit)
       if (FD_EQ(key,*scan)) return scan-schema;
       else scan++;
     return -1;}
 }
-static U8_MAYBE_UNUSED fdtype fd_schemap_get
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt)
+static U8_MAYBE_UNUSED lispval fd_schemap_get
+  (struct FD_SCHEMAP *sm,lispval key,lispval dflt)
 {
   int unlock = 0;
   int size, slotno, sorted;
@@ -414,15 +414,15 @@ static U8_MAYBE_UNUSED fdtype fd_schemap_get
   sorted = FD_XSCHEMAP_SORTEDP(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sorted);
   if (slotno>=0) {
-    fdtype v = fd_incref(sm->schema_values[slotno]);
+    lispval v = fd_incref(sm->schema_values[slotno]);
     if (unlock) u8_rw_unlock(&(sm->table_rwlock));
     return v;}
   else {
     if (unlock) u8_rw_unlock(&(sm->table_rwlock));
     return fd_incref(dflt);}
 }
-static U8_MAYBE_UNUSED fdtype fd_schemap_test
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype val)
+static U8_MAYBE_UNUSED lispval fd_schemap_test
+  (struct FD_SCHEMAP *sm,lispval key,lispval val)
 {
   int unlock = 0, size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
@@ -433,7 +433,7 @@ static U8_MAYBE_UNUSED fdtype fd_schemap_test
   size = FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
-    fdtype current = sm->schema_values[slotno]; int cmp;
+    lispval current = sm->schema_values[slotno]; int cmp;
     if (FD_VOIDP(val)) cmp = 1;
     else if (FD_EQ(val,current)) cmp = 1;
     else if ((FD_CHOICEP(val)) || (FD_PRECHOICEP(val)) ||
@@ -455,7 +455,7 @@ static U8_MAYBE_UNUSED fdtype fd_schemap_test
 /* Hashtables */
 
 typedef struct FD_HASH_BUCKET {
-  int fd_n_entries;
+  int bucket_len;
   struct FD_KEYVAL kv_val0;} FD_HASH_BUCKET;
 typedef struct FD_HASH_BUCKET *fd_hash_bucket;
 
@@ -513,13 +513,13 @@ typedef struct FD_HASHTABLE *fd_hashtable;
 
 FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min);
 FD_EXPORT unsigned int fd_hash_bytes(u8_string string,int len);
-FD_EXPORT unsigned int fd_hash_lisp(fdtype x);
+FD_EXPORT unsigned int fd_hash_lisp(lispval x);
 
-FD_EXPORT fdtype fd_make_hashtable(fd_hashtable ptr,int n_slots);
-FD_EXPORT fdtype fd_init_hashtable
+FD_EXPORT lispval fd_make_hashtable(fd_hashtable ptr,int n_slots);
+FD_EXPORT lispval fd_init_hashtable
    (fd_hashtable ptr,int n_keyvals,struct FD_KEYVAL *init);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
-FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype,struct FD_HASH_BUCKET **,int);
+FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(lispval,struct FD_HASH_BUCKET **,int);
 FD_EXPORT int fd_fast_reset_hashtable
 (fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *);
 FD_EXPORT int fd_swap_hashtable
@@ -528,43 +528,43 @@ FD_EXPORT int fd_swap_hashtable
 
 FD_EXPORT int fd_remove_deadwood
 (struct FD_HASHTABLE *ptr,
- int (*testfn)(fdtype,fdtype,void *),
+ int (*testfn)(lispval,lispval,void *),
  void *testdata);
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht,int locked);
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int);
 
-FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
+FD_EXPORT lispval fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
 
 FD_EXPORT int fd_hashtable_op
-   (fd_hashtable ht,fd_tableop op,fdtype key,fdtype value);
+   (fd_hashtable ht,fd_tableop op,lispval key,lispval value);
 FD_EXPORT int fd_hashtable_op_nolock
-   (fd_hashtable ht,fd_tableop op,fdtype key,fdtype value);
+   (fd_hashtable ht,fd_tableop op,lispval key,lispval value);
 FD_EXPORT int fd_hashtable_iter
    (fd_hashtable ht,fd_tableop op,int n,
-    const fdtype *keys,const fdtype *values);
+    const lispval *keys,const lispval *values);
 FD_EXPORT int fd_hashtable_iterkeys
    (fd_hashtable ht,fd_tableop op,int n,
-    const fdtype *keys,fdtype value);
+    const lispval *keys,lispval value);
 FD_EXPORT int fd_hashtable_itervalues
    (fd_hashtable ht,fd_tableop op,int n,
-    fdtype key,const fdtype *values);
+    lispval key,const lispval *values);
 
-FD_EXPORT fdtype fd_hashtable_get
-   (fd_hashtable ht,fdtype key,fdtype dflt);
-FD_EXPORT fdtype fd_hashtable_get_nolock
-   (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
-FD_EXPORT fdtype fd_hashtable_get_noref
-   (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
-FD_EXPORT fdtype fd_hashtable_get_nolockref
-   (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
-FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value);
-FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value);
-FD_EXPORT int fd_hashtable_drop(fd_hashtable ht,fdtype key,fdtype value);
+FD_EXPORT lispval fd_hashtable_get
+   (fd_hashtable ht,lispval key,lispval dflt);
+FD_EXPORT lispval fd_hashtable_get_nolock
+   (struct FD_HASHTABLE *ht,lispval key,lispval dflt);
+FD_EXPORT lispval fd_hashtable_get_noref
+   (struct FD_HASHTABLE *ht,lispval key,lispval dflt);
+FD_EXPORT lispval fd_hashtable_get_nolockref
+   (struct FD_HASHTABLE *ht,lispval key,lispval dflt);
+FD_EXPORT int fd_hashtable_store(fd_hashtable ht,lispval key,lispval value);
+FD_EXPORT int fd_hashtable_add(fd_hashtable ht,lispval key,lispval value);
+FD_EXPORT int fd_hashtable_drop(fd_hashtable ht,lispval key,lispval value);
 
-FD_EXPORT int fd_hashtable_probe(fd_hashtable ht,fdtype key);
-FD_EXPORT int fd_hashtable_probe_novoid(fd_hashtable ht,fdtype key);
+FD_EXPORT int fd_hashtable_probe(fd_hashtable ht,lispval key);
+FD_EXPORT int fd_hashtable_probe_novoid(fd_hashtable ht,lispval key);
 
-FD_EXPORT fdtype fd_hashtable_keys(fd_hashtable ht);
+FD_EXPORT lispval fd_hashtable_keys(fd_hashtable ht);
 FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
   (fd_hashtable ht,int *sizep,int lock);
 FD_EXPORT int fd_for_hashtable
@@ -572,11 +572,11 @@ FD_EXPORT int fd_for_hashtable
 FD_EXPORT int fd_for_hashtable_kv
   (struct FD_HASHTABLE *ht,fd_kvfn f,void *data,int lock);
 
-FD_EXPORT fdtype fd_hashtable_max(fd_hashtable,fdtype,fdtype *);
-FD_EXPORT fdtype fd_hashtable_skim(fd_hashtable,fdtype,fdtype);
+FD_EXPORT lispval fd_hashtable_max(fd_hashtable,lispval,lispval *);
+FD_EXPORT lispval fd_hashtable_skim(fd_hashtable,lispval,lispval);
 
-FD_EXPORT fdtype fd_slotmap_max(fd_slotmap,fdtype,fdtype *);
-FD_EXPORT fdtype fd_slotmap_skim(fd_slotmap,fdtype,fdtype);
+FD_EXPORT lispval fd_slotmap_max(fd_slotmap,lispval,lispval *);
+FD_EXPORT lispval fd_slotmap_skim(fd_slotmap,lispval,lispval);
 
 FD_EXPORT long long fd_hashtable_map_size(struct FD_HASHTABLE *h);
 
@@ -605,7 +605,7 @@ typedef struct FD_HASHSET {
   int hs_n_elts, hs_n_slots;
   char hs_allatomic, hs_modified;
   double hs_load_factor;
-  fdtype *hs_slots;
+  lispval *hs_slots;
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 
@@ -613,17 +613,17 @@ typedef struct FD_HASHSET *fd_hashset;
 #define FD_XHASHSET(x) \
   fd_consptr(struct FD_HASHSET *,x,fd_hashset_type)
 
-FD_EXPORT int fd_hashset_get(fd_hashset h,fdtype key);
-FD_EXPORT int fd_hashset_mod(fd_hashset h,fdtype key,int add);
-FD_EXPORT int fd_hashset_add_raw(fd_hashset h,fdtype key);
-FD_EXPORT int fd_hashset_add(fd_hashset h,fdtype keys);
+FD_EXPORT int fd_hashset_get(fd_hashset h,lispval key);
+FD_EXPORT int fd_hashset_mod(fd_hashset h,lispval key,int add);
+FD_EXPORT int fd_hashset_add_raw(fd_hashset h,lispval key);
+FD_EXPORT int fd_hashset_add(fd_hashset h,lispval keys);
 #define fd_hashset_drop(h,key) fd_hashset_mod(h,key,0)
-FD_EXPORT fdtype fd_hashset_elts(fd_hashset h,int clean);
+FD_EXPORT lispval fd_hashset_elts(fd_hashset h,int clean);
 
 FD_EXPORT void fd_init_hashset(fd_hashset h,int n,int stack_cons);
-FD_EXPORT fdtype fd_make_hashset(void);
+FD_EXPORT lispval fd_make_hashset(void);
 FD_EXPORT ssize_t fd_grow_hashset(fd_hashset h,size_t size);
-FD_EXPORT fdtype fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
+FD_EXPORT lispval fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 FD_EXPORT int fd_reset_hashset(fd_hashset);
 

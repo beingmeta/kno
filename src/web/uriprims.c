@@ -24,23 +24,23 @@
 
 #include <ctype.h>
 
-static fdtype scheme_symbol, hostname_symbol, portno_symbol, userinfo_symbol;
-static fdtype name_symbol, path_symbol, pathstring_symbol;
-static fdtype query_symbol, fragment_symbol, colonize_symbol;
+static lispval scheme_symbol, hostname_symbol, portno_symbol, userinfo_symbol;
+static lispval name_symbol, path_symbol, pathstring_symbol;
+static lispval query_symbol, fragment_symbol, colonize_symbol;
 
 /* Inheritance */
 
 static void assign_substring
-  (fdtype frame,fdtype slotid,u8_string start,u8_string end)
+  (lispval frame,lispval slotid,u8_string start,u8_string end)
 {
-  fdtype value = fd_substring(start,end);
+  lispval value = fd_substring(start,end);
   fd_store(frame,slotid,value);
   fd_decref(value);
 }
 
-static u8_string breakup_path(fdtype f,u8_string start)
+static u8_string breakup_path(lispval f,u8_string start)
 {
-  fdtype path = FD_EMPTY_LIST, *tail = &path;
+  lispval path = NIL, *tail = &path;
   u8_string scan = start; int c = u8_sgetc(&scan);
   U8_OUTPUT eltout; U8_INIT_OUTPUT(&eltout,128);
   while (1)
@@ -51,9 +51,9 @@ static u8_string breakup_path(fdtype f,u8_string start)
       u8_putc(&eltout,inschar);
       c = u8_sgetc(&scan);}
     else if ((c<0) || (c=='?') || (c=='#') || (c=='/') || (c==';')) {
-      fdtype eltstring = fd_substring(eltout.u8_outbuf,eltout.u8_write);
+      lispval eltstring = fd_substring(eltout.u8_outbuf,eltout.u8_write);
       if (c=='/') {
-        fdtype eltpair = fd_conspair(eltstring,FD_EMPTY_LIST);
+        lispval eltpair = fd_conspair(eltstring,NIL);
         *tail = eltpair; tail = &(FD_CDR(eltpair));
         c = u8_sgetc(&scan); eltout.u8_write = eltout.u8_outbuf; continue;}
       else {
@@ -67,7 +67,7 @@ static u8_string breakup_path(fdtype f,u8_string start)
       c = u8_sgetc(&scan);}
 }
 
-static void handle_path_end(fdtype f,u8_string start,u8_string path_end)
+static void handle_path_end(lispval f,u8_string start,u8_string path_end)
 {
   assign_substring(f,pathstring_symbol,start,path_end);
   if (path_end == NULL) {}
@@ -81,43 +81,43 @@ static void handle_path_end(fdtype f,u8_string start,u8_string path_end)
 
 /* Merging URIs */
 
-static int simple_inherit(fdtype slotid,fdtype to,fdtype from)
+static int simple_inherit(lispval slotid,lispval to,lispval from)
 {
-  fdtype value = fd_get(to,slotid,FD_EMPTY_CHOICE);
+  lispval value = fd_get(to,slotid,EMPTY);
   if (FD_ABORTP(value)) return fd_interr(value);
-  else if (!(FD_EMPTY_CHOICEP(value))) {
+  else if (!(EMPTYP(value))) {
     fd_decref(value); return 0;}
   else {
-    fdtype inherited = fd_get(from,slotid,FD_EMPTY_CHOICE);
+    lispval inherited = fd_get(from,slotid,EMPTY);
     if (FD_ABORTP(inherited))
       return fd_interr(inherited);
-    else if (FD_EMPTY_CHOICEP(inherited)) return 0;
+    else if (EMPTYP(inherited)) return 0;
     else if (fd_store(to,slotid,inherited)<0) {
       fd_decref(inherited); return -1;}
     else {
       fd_decref(inherited); return 1;}}
 }
 
-static int uri_merge(fdtype uri,fdtype base)
+static int uri_merge(lispval uri,lispval base)
 {
-  fdtype path = fd_get(uri,path_symbol,FD_EMPTY_CHOICE);
+  lispval path = fd_get(uri,path_symbol,EMPTY);
   if (simple_inherit(scheme_symbol,uri,base)<0) return -1;
   if (simple_inherit(userinfo_symbol,uri,base)<0) return -1;
   if (simple_inherit(hostname_symbol,uri,base)<0) return -1;
   if (simple_inherit(portno_symbol,uri,base)<0) return -1;
-  if (FD_EMPTY_CHOICEP(path)) {
-    fdtype base_path = fd_get(base,path_symbol,FD_EMPTY_CHOICE), pathstring;
+  if (EMPTYP(path)) {
+    lispval base_path = fd_get(base,path_symbol,EMPTY), pathstring;
     if (FD_ABORTP(base_path)) return base_path;
-    else pathstring = fd_get(uri,pathstring_symbol,FD_EMPTY_CHOICE);
+    else pathstring = fd_get(uri,pathstring_symbol,EMPTY);
     if (FD_ABORTP(pathstring)) {
       fd_decref(base_path); return pathstring;}
-    if ((FD_EXISTSP(base_path)) && (FD_STRINGP(pathstring))) {
+    if ((FD_EXISTSP(base_path)) && (STRINGP(pathstring))) {
       u8_string path_end;
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
       {FD_DOLIST(elt,base_path)
-         if (FD_STRINGP(elt))
-           u8_printf(&out,"%s/",FD_STRDATA(elt));}
-      u8_puts(&out,FD_STRDATA(pathstring));
+         if (STRINGP(elt))
+           u8_printf(&out,"%s/",CSTRING(elt));}
+      u8_puts(&out,CSTRING(pathstring));
       path_end = breakup_path(uri,out.u8_outbuf);
       handle_path_end(uri,out.u8_outbuf,path_end);
       u8_free(out.u8_outbuf);
@@ -140,9 +140,9 @@ static int guess_portno(u8_string string,int n)
 }
 
 FD_EXPORT
-fdtype fd_parse_uri(u8_string uri,fdtype base)
+lispval fd_parse_uri(u8_string uri,lispval base)
 {
-  fdtype f = fd_empty_slotmap();
+  lispval f = fd_empty_slotmap();
   u8_string start = uri, colon, slash, path_end;
   int default_portno = 80;
   colon = strchr(start,':'); slash = strchr(uri,'/');
@@ -151,7 +151,7 @@ fdtype fd_parse_uri(u8_string uri,fdtype base)
     assign_substring(f,scheme_symbol,start,colon);
     start = colon+1;}
   if (default_portno<0) {
-    fd_add(f,pathstring_symbol,fdtype_string(start));
+    fd_add(f,pathstring_symbol,lispval_string(start));
     return f;}
   if ((start[0]=='/') && (start[1]=='/')) {
     u8_string atsign = strchr(start,'@');
@@ -177,7 +177,7 @@ fdtype fd_parse_uri(u8_string uri,fdtype base)
     if (slash) start = slash+1; else start = NULL;}
   if (start == NULL)
     return f;
-  else if ((start == uri) && (FD_TABLEP(base))) {
+  else if ((start == uri) && (TABLEP(base))) {
     assign_substring(f,pathstring_symbol,start,NULL);
     uri_merge(f,base);}
   else {
@@ -186,21 +186,21 @@ fdtype fd_parse_uri(u8_string uri,fdtype base)
   return f;
 }
 
-static fdtype parseuri(fdtype uri,fdtype base)
+static lispval parseuri(lispval uri,lispval base)
 {
-  return fd_parse_uri(FD_STRDATA(uri),base);
+  return fd_parse_uri(CSTRING(uri),base);
 }
 
-static fdtype mergeuris(fdtype uri,fdtype base)
+static lispval mergeuris(lispval uri,lispval base)
 {
-  if (!(FD_TABLEP(uri)))
+  if (!(TABLEP(uri)))
     return fd_type_error(_("table"),"mergeuris",uri);
-  else if (!(FD_TABLEP(uri)))
+  else if (!(TABLEP(uri)))
     return fd_type_error(_("table"),"mergeuris",base);
   else {
-    fdtype copy = fd_deep_copy(uri);
+    lispval copy = fd_deep_copy(uri);
     if (uri_merge(copy,base)<0) {
-      fd_decref(copy); return FD_ERROR_VALUE;}
+      fd_decref(copy); return FD_ERROR;}
     else return copy;}
 }
 
@@ -224,69 +224,69 @@ static void uri_output(u8_output out,u8_string s,int len,int upper,
 
 #define URI_ESCAPES "?#/'=<>:;&"
 
-static fdtype unparseuri(fdtype uri,fdtype noencode)
+static lispval unparseuri(lispval uri,lispval noencode)
 {
   u8_string escapes = URI_ESCAPES; int upper = 0;
-  if (FD_VOIDP(noencode)) {}
+  if (VOIDP(noencode)) {}
   else if (FD_TRUEP(noencode)) escapes = NULL;
-  else if (FD_STRINGP(noencode)) {
-    u8_string data = FD_STRDATA(noencode);
-    int len = FD_STRLEN(noencode);
+  else if (STRINGP(noencode)) {
+    u8_string data = CSTRING(noencode);
+    int len = STRLEN(noencode);
     int c = data[0];
     if ((c<0x80)&&(isalpha(c))) {
       upper = isupper(c);
       if (len>1) escapes = data+1;}
     else escapes = data;}
-  if (FD_TABLEP(uri)) {
+  if (TABLEP(uri)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
-    fdtype scheme = fd_get(uri,scheme_symbol,FD_EMPTY_CHOICE);
-    fdtype userinfo = fd_get(uri,userinfo_symbol,FD_EMPTY_CHOICE);
-    fdtype hostname = fd_get(uri,hostname_symbol,FD_EMPTY_CHOICE);
-    fdtype port = fd_get(uri,portno_symbol,FD_EMPTY_CHOICE);
-    fdtype pathstring = fd_get(uri,pathstring_symbol,FD_EMPTY_CHOICE);
-    fdtype path = fd_get(uri,path_symbol,FD_EMPTY_CHOICE);
-    fdtype name = fd_get(uri,name_symbol,FD_EMPTY_CHOICE);
-    fdtype query = fd_get(uri,query_symbol,FD_EMPTY_CHOICE);
-    fdtype fragment = fd_get(uri,query_symbol,FD_EMPTY_CHOICE);
-    if (FD_STRINGP(scheme))
-      u8_printf(&out,"%s:",FD_STRDATA(scheme));
+    lispval scheme = fd_get(uri,scheme_symbol,EMPTY);
+    lispval userinfo = fd_get(uri,userinfo_symbol,EMPTY);
+    lispval hostname = fd_get(uri,hostname_symbol,EMPTY);
+    lispval port = fd_get(uri,portno_symbol,EMPTY);
+    lispval pathstring = fd_get(uri,pathstring_symbol,EMPTY);
+    lispval path = fd_get(uri,path_symbol,EMPTY);
+    lispval name = fd_get(uri,name_symbol,EMPTY);
+    lispval query = fd_get(uri,query_symbol,EMPTY);
+    lispval fragment = fd_get(uri,query_symbol,EMPTY);
+    if (STRINGP(scheme))
+      u8_printf(&out,"%s:",CSTRING(scheme));
     else u8_puts(&out,"http:");
-    if (FD_STRINGP(hostname)) {
-      if (FD_STRINGP(userinfo))
-        u8_printf(&out,"//%s@%s",FD_STRDATA(userinfo),FD_STRDATA(hostname));
-      else u8_printf(&out,"//%s",FD_STRDATA(hostname));
+    if (STRINGP(hostname)) {
+      if (STRINGP(userinfo))
+        u8_printf(&out,"//%s@%s",CSTRING(userinfo),CSTRING(hostname));
+      else u8_printf(&out,"//%s",CSTRING(hostname));
       if (FD_UINTP(port))
-        if (((FD_FIX2INT(port))==80) &&
-            ((!(FD_STRINGP(scheme))) ||
+        if (((FIX2INT(port))==80) &&
+            ((!(STRINGP(scheme))) ||
              (strcmp(FD_STRING_DATA(scheme),"http")==0)))
           u8_printf(&out,"/");
-        else u8_printf(&out,":%d/",FD_FIX2INT(port));
+        else u8_printf(&out,":%d/",FIX2INT(port));
       else u8_printf(&out,"/");}
-    if (FD_PAIRP(path)) {
+    if (PAIRP(path)) {
       FD_DOLIST(elt,path) {
-        if (FD_STRINGP(elt)) {
+        if (STRINGP(elt)) {
           if (escapes)
-            uri_output(&out,FD_STRDATA(elt),FD_STRLEN(elt),upper,escapes);
-          else u8_puts(&out,FD_STRDATA(elt));
+            uri_output(&out,CSTRING(elt),STRLEN(elt),upper,escapes);
+          else u8_puts(&out,CSTRING(elt));
           u8_putc(&out,'/');}}}
-    else if (FD_STRINGP(pathstring))
-      u8_puts(&out,FD_STRDATA(pathstring));
+    else if (STRINGP(pathstring))
+      u8_puts(&out,CSTRING(pathstring));
     else {}
-    if (FD_STRINGP(name))
+    if (STRINGP(name))
       if (escapes)
-        uri_output(&out,FD_STRDATA(name),FD_STRLEN(name),upper,escapes);
-      else u8_puts(&out,FD_STRDATA(name));
+        uri_output(&out,CSTRING(name),STRLEN(name),upper,escapes);
+      else u8_puts(&out,CSTRING(name));
     else {}
-    if (FD_STRINGP(query)) {
+    if (STRINGP(query)) {
       u8_putc(&out,'?');
       if (escapes)
-        uri_output(&out,FD_STRDATA(query),FD_STRLEN(query),upper,escapes);
-      else u8_puts(&out,FD_STRDATA(query));}
-    if (FD_STRINGP(fragment)) {
+        uri_output(&out,CSTRING(query),STRLEN(query),upper,escapes);
+      else u8_puts(&out,CSTRING(query));}
+    if (STRINGP(fragment)) {
       u8_putc(&out,'#');
       if (escapes)
-        uri_output(&out,FD_STRDATA(fragment),FD_STRLEN(fragment),upper,escapes);
-      else u8_puts(&out,FD_STRDATA(fragment));}
+        uri_output(&out,CSTRING(fragment),STRLEN(fragment),upper,escapes);
+      else u8_puts(&out,CSTRING(fragment));}
     fd_decref(scheme);
     fd_decref(userinfo); fd_decref(hostname); fd_decref(port);
     fd_decref(pathstring);  fd_decref(path); fd_decref(name);
@@ -295,53 +295,53 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
   else return fd_type_error(_("table"),"unparseuri",uri);
 }
 
-static fdtype urischeme_prim(fdtype uri_arg)
+static lispval urischeme_prim(lispval uri_arg)
 {
-  u8_string uri = FD_STRDATA(uri_arg);
+  u8_string uri = CSTRING(uri_arg);
   u8_byte *scheme_end = strstr(uri,":");
-  if (!(scheme_end)) return FD_EMPTY_CHOICE;
+  if (!(scheme_end)) return EMPTY;
   else return fd_substring(uri,scheme_end);
 }
 
-static fdtype urihost_prim(fdtype uri_arg)
+static lispval urihost_prim(lispval uri_arg)
 {
-  u8_string uri = FD_STRDATA(uri_arg);
+  u8_string uri = CSTRING(uri_arg);
   u8_byte *host_start = strstr(uri,"//");
-  if (!(host_start)) return FD_EMPTY_CHOICE;
+  if (!(host_start)) return EMPTY;
   else {
     u8_byte *host_end = strstr(host_start+2,"/");
     u8_byte *port_end = strstr(host_start+2,":");
     u8_byte *end = (((port_end) && (host_end) && (port_end<host_end)) ?
                   (port_end):(host_end));
     if (end) return fd_substring(host_start+2,host_end);
-    else return FD_EMPTY_CHOICE;}
+    else return EMPTY;}
 }
 
-static fdtype urifrag_prim(fdtype uri_arg)
+static lispval urifrag_prim(lispval uri_arg)
 {
-  u8_string uri = FD_STRDATA(uri_arg);
+  u8_string uri = CSTRING(uri_arg);
   u8_byte *qmark = strchr(uri,'?');
   u8_byte *hash = strchr(uri,'#');
   if ((hash)&&(qmark)&&(hash<qmark))
     return fd_substring(hash+1,qmark);
   else if (hash) return fd_substring(hash+1,NULL);
-  else return FD_EMPTY_CHOICE;
+  else return EMPTY;
 }
 
-static fdtype uriquery_prim(fdtype uri_arg)
+static lispval uriquery_prim(lispval uri_arg)
 {
-  u8_string uri = FD_STRDATA(uri_arg);
+  u8_string uri = CSTRING(uri_arg);
   u8_byte *qmark = strchr(uri,'?');
   u8_byte *hash = strchr(uri,'#');
   if ((hash)&&(qmark)&&(qmark<hash))
     return fd_substring(qmark+1,hash);
   else if (qmark) return fd_substring(qmark+1,NULL);
-  else return FD_EMPTY_CHOICE;
+  else return EMPTY;
 }
 
-static fdtype uribase_prim(fdtype uri_arg)
+static lispval uribase_prim(lispval uri_arg)
 {
-  u8_string uri = FD_STRDATA(uri_arg);
+  u8_string uri = CSTRING(uri_arg);
   u8_byte *hash = strchr(uri,'#');
   u8_byte *qmark = strchr(uri,'?');
   if ((hash) && (qmark))
@@ -355,9 +355,9 @@ static fdtype uribase_prim(fdtype uri_arg)
   else return fd_incref(uri_arg);
 }
 
-static fdtype uripath_prim(fdtype uri_arg)
+static lispval uripath_prim(lispval uri_arg)
 {
-  u8_string uri = FD_STRDATA(uri_arg);
+  u8_string uri = CSTRING(uri_arg);
   u8_string hash = strchr(uri,'#');
   u8_string qmark = strchr(uri,'?');
   u8_string pathstart = strchr(uri,'/');
@@ -374,7 +374,7 @@ static fdtype uripath_prim(fdtype uri_arg)
   else if (qmark)
     return fd_substring(pathstart,qmark);
   else if (pathstart == uri) return fd_incref(uri_arg);
-  else return fd_substring(pathstart,uri+FD_STRLEN(uri_arg));
+  else return fd_substring(pathstart,uri+STRLEN(uri_arg));
 }
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,
@@ -385,17 +385,17 @@ FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,
 
 /* Making URI paths */
 
-static fdtype mkuripath_prim(fdtype dirname,fdtype name)
+static lispval mkuripath_prim(lispval dirname,lispval name)
 {
-  fdtype config_val = FD_VOID; u8_string dir = NULL, namestring = NULL;
+  lispval config_val = VOID; u8_string dir = NULL, namestring = NULL;
   char buf[128];
-  if (!(FD_STRINGP(name)))
+  if (!(STRINGP(name)))
     return fd_type_error(_("string"),"mkuripath_prim",name);
-  else namestring = FD_STRDATA(name);
-  if (FD_STRINGP(dirname)) dir = FD_STRDATA(dirname);
-  else if (FD_SYMBOLP(dirname)) {
-    config_val = fd_config_get(FD_SYMBOL_NAME(dirname));
-    if (FD_STRINGP(config_val)) dir = FD_STRDATA(config_val);
+  else namestring = CSTRING(name);
+  if (STRINGP(dirname)) dir = CSTRING(dirname);
+  else if (SYMBOLP(dirname)) {
+    config_val = fd_config_get(SYM_NAME(dirname));
+    if (STRINGP(config_val)) dir = CSTRING(config_val);
     else {
       fd_decref(config_val);
       return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}
@@ -414,60 +414,60 @@ static fdtype mkuripath_prim(fdtype dirname,fdtype name)
       return fd_type_error(_("URI or URI CONFIG var"),"mkuripath_prim",dirname);}
     else {
       memcpy(buf,dir,host_len); buf[host_len]='\0'; dir = buf;}}
-  if (FD_VOIDP(config_val))
+  if (VOIDP(config_val))
     return fd_lispstring(u8_mkpath(dir,namestring));
   else {
-    fdtype result = fd_lispstring(u8_mkpath(dir,namestring));
+    lispval result = fd_lispstring(u8_mkpath(dir,namestring));
     fd_decref(config_val);
     return result;}
 }
 
 /* Making data URIs */
 
-static fdtype datauri_prim(fdtype data,fdtype ctype_arg)
+static lispval datauri_prim(lispval data,lispval ctype_arg)
 {
-  u8_string ctype = ((FD_STRINGP(ctype_arg))?(FD_STRDATA(ctype_arg)):((u8_string)NULL));
+  u8_string ctype = ((STRINGP(ctype_arg))?(CSTRING(ctype_arg)):((u8_string)NULL));
   u8_string base64; int data_len, uri_len;
-  fdtype result; struct FD_STRING *string; u8_byte *write;
-  if (FD_STRINGP(data))
-    base64 = u8_write_base64(FD_STRDATA(data),FD_STRLEN(data),&data_len);
-  else if (FD_PACKETP(data))
+  lispval result; struct FD_STRING *string; u8_byte *write;
+  if (STRINGP(data))
+    base64 = u8_write_base64(CSTRING(data),STRLEN(data),&data_len);
+  else if (PACKETP(data))
     base64 = u8_write_base64(FD_PACKET_DATA(data),FD_PACKET_LENGTH(data),&data_len);
   else return fd_type_error("String or packet","datauri_prim",data);
-  uri_len = 5+((ctype)?(FD_STRLEN(ctype_arg)):(10))+
-    ((FD_STRINGP(data))?(13):(0))+8+data_len+1;
+  uri_len = 5+((ctype)?(STRLEN(ctype_arg)):(10))+
+    ((STRINGP(data))?(13):(0))+8+data_len+1;
   result = fd_make_string(NULL,uri_len,NULL);
   string = fd_consptr(struct FD_STRING *,result,fd_string_type);
-  write = (u8_byte *)FD_STRDATA(result);
-  if ((ctype)&&(FD_STRINGP(data)))
+  write = (u8_byte *)CSTRING(result);
+  if ((ctype)&&(STRINGP(data)))
     sprintf(write,"data:%s;charset = UTF-8;base64,",ctype);
   else if (ctype)
     sprintf(write,"data:%s;base64,",ctype);
-  else if (FD_STRINGP(data))
+  else if (STRINGP(data))
     sprintf(write,"data:text/plain;charset = UTF-8;base64,");
   else sprintf(write,"data:;base64,");
-  string->fd_bytelen = strlen(write)+data_len;
+  string->str_bytelen = strlen(write)+data_len;
   strcat(write,base64); u8_free(base64);
   return result;
 }
 
 /* URI encoding, etc */
 
-static fdtype oid2id(fdtype oid,fdtype prefix)
+static lispval oid2id(lispval oid,lispval prefix)
 {
   U8_OUTPUT tmp; U8_INIT_OUTPUT(&tmp,32);
-  if (FD_VOIDP(prefix))
+  if (VOIDP(prefix))
     u8_printf(&tmp,":@%x/%x",
               FD_OID_HI(FD_OID_ADDR(oid)),
               FD_OID_LO(FD_OID_ADDR(oid)));
-  else if (FD_SYMBOLP(prefix))
+  else if (SYMBOLP(prefix))
     u8_printf(&tmp,"%s_%x_%x",
-              FD_SYMBOL_NAME(prefix),
+              SYM_NAME(prefix),
               FD_OID_HI(FD_OID_ADDR(oid)),
               FD_OID_LO(FD_OID_ADDR(oid)));
-  else if (FD_STRINGP(prefix))
+  else if (STRINGP(prefix))
     u8_printf(&tmp,"%s_%x_%x",
-              FD_STRDATA(prefix),
+              CSTRING(prefix),
               FD_OID_HI(FD_OID_ADDR(oid)),
               FD_OID_LO(FD_OID_ADDR(oid)));
   else {
@@ -476,51 +476,51 @@ static fdtype oid2id(fdtype oid,fdtype prefix)
   return fd_init_string(NULL,tmp.u8_write-tmp.u8_outbuf,tmp.u8_outbuf);
 }
 
-static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
+static int add_query_param(u8_output out,lispval name,lispval value,int nocolon)
 {
   int lastc = -1, free_varname = 0, do_encode = 1, keep_secret = 0;
   u8_string varname; u8_byte namebuf[256];
   if ( out->u8_write > out->u8_outbuf )
     lastc = out->u8_write[-1];
-  if (FD_STRINGP(name)) varname = FD_STRDATA(name);
-  else if (FD_SYMBOLP(name)) varname = FD_SYMBOL_NAME(name);
-  else if (FD_OIDP(name)) {
+  if (STRINGP(name)) varname = CSTRING(name);
+  else if (SYMBOLP(name)) varname = SYM_NAME(name);
+  else if (OIDP(name)) {
     FD_OID addr = FD_OID_ADDR(name);
     sprintf(namebuf,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
     varname = namebuf;}
-  else if (FD_TYPEP(name,fd_secret_type)) {
+  else if (TYPEP(name,fd_secret_type)) {
     varname = FD_PACKET_DATA(name);
     keep_secret = 1;}
   else {
-    varname = fd_dtype2string(name);
+    varname = fd_lisp2string(name);
     free_varname = 1;}
-  {FD_DO_CHOICES(val,value) {
+  {DO_CHOICES(val,value) {
       if (lastc<0) {}
       else if (lastc=='?') {}
       else if (lastc=='&') {}
       else u8_putc(out,'&');
       fd_uri_output(out,varname,-1,0,NULL);
       u8_putc(out,'=');
-      if (FD_STRINGP(val))
+      if (STRINGP(val))
         if (do_encode)
-          fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
-        else u8_puts(out,FD_STRDATA(val));
-      else if (FD_TYPEP(val,fd_secret_type)) {
+          fd_uri_output(out,CSTRING(val),STRLEN(val),0,NULL);
+        else u8_puts(out,CSTRING(val));
+      else if (TYPEP(val,fd_secret_type)) {
         if (do_encode)
           fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
         else u8_puts(out,FD_PACKET_DATA(val));
         keep_secret = 1;}
-      else if (FD_PACKETP(val))
+      else if (PACKETP(val))
         fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
-      else if (FD_OIDP(val)) {
+      else if (OIDP(val)) {
         FD_OID addr = FD_OID_ADDR(val);
         u8_printf(out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
       else {
         if (!(nocolon)) u8_putc(out,':');
-        if (FD_SYMBOLP(val))
-          fd_uri_output(out,FD_SYMBOL_NAME(val),-1,0,NULL);
+        if (SYMBOLP(val))
+          fd_uri_output(out,SYM_NAME(val),-1,0,NULL);
         else {
-          u8_string as_string = fd_dtype2string(val);
+          u8_string as_string = fd_lisp2string(val);
           fd_uri_output(out,as_string,-1,0,NULL);
           u8_free(as_string);}}
       lastc = -1;}}
@@ -530,14 +530,14 @@ static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 
 /* URI encoding */
 
-static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
+static lispval uriencode_prim(lispval string,lispval escape,lispval uparg)
 {
   u8_string input; int free_input = 0;
-  int upper = (!(FD_FALSEP(uparg)));
+  int upper = (!(FALSEP(uparg)));
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-  if (FD_STRINGP(string)) input = FD_STRDATA(string);
-  else if (FD_SYMBOLP(string)) input = FD_SYMBOL_NAME(string);
-  else if (FD_PACKETP(string)) {
+  if (STRINGP(string)) input = CSTRING(string);
+  else if (SYMBOLP(string)) input = SYM_NAME(string);
+  else if (PACKETP(string)) {
     int len = FD_PACKET_LENGTH(string);
     u8_byte *buf = u8_malloc(len+1);
     memcpy(buf,FD_PACKET_DATA(string),len);
@@ -545,27 +545,27 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
     free_input = 1;
     input = buf;}
   else {
-    input = fd_dtype2string(string);
+    input = fd_lisp2string(string);
     free_input = 1;}
-  if (FD_VOIDP(escape))
+  if (VOIDP(escape))
     fd_uri_output(&out,input,-1,upper,NULL);
-  else fd_uri_output(&out,input,-1,upper,FD_STRDATA(escape));
+  else fd_uri_output(&out,input,-1,upper,CSTRING(escape));
   if (free_input) u8_free(input);
-  if (FD_STRINGP(string)) return fd_stream2string(&out);
-  else if (FD_TYPEP(string,fd_packet_type))
+  if (STRINGP(string)) return fd_stream2string(&out);
+  else if (TYPEP(string,fd_packet_type))
     return fd_init_packet(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   else return fd_stream2string(&out);
 }
 
-static fdtype form_encode_prim(fdtype table,fdtype opts)
+static lispval form_encode_prim(lispval table,lispval opts)
 {
   int keep_secret=0;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,2000);
-  fdtype colonize=fd_getopt(opts,colonize_symbol,FD_FALSE);
-  int nocolon=(!(FD_FALSEP(colonize)));
-  fdtype keys=fd_getkeys(table);
-  FD_DO_CHOICES(key,keys) {
-    fdtype value = fd_get(table,key,FD_VOID);
+  lispval colonize=fd_getopt(opts,colonize_symbol,FD_FALSE);
+  int nocolon=(!(FALSEP(colonize)));
+  lispval keys=fd_getkeys(table);
+  DO_CHOICES(key,keys) {
+    lispval value = fd_get(table,key,VOID);
     if (keep_secret)
       add_query_param(&out,key,value,nocolon);
     else keep_secret = add_query_param(&out,key,value,nocolon);
@@ -573,7 +573,7 @@ static fdtype form_encode_prim(fdtype table,fdtype opts)
   fd_decref(keys);
   fd_decref(colonize);
   if (keep_secret) {
-    fdtype result = fd_stream2string(&out);
+    lispval result = fd_stream2string(&out);
     FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
   else return fd_stream2string(&out);
@@ -583,10 +583,10 @@ static fdtype form_encode_prim(fdtype table,fdtype opts)
 
 static int xdigit_weight(int c);
 
-static fdtype uridecode_prim(fdtype string)
+static lispval uridecode_prim(lispval string)
 {
-  int len = FD_STRLEN(string), c;
-  const u8_byte *scan = FD_STRDATA(string), *limit = scan+len;
+  int len = STRLEN(string), c;
+  const u8_byte *scan = CSTRING(string), *limit = scan+len;
   u8_byte *result = result = u8_malloc(len+1), *write = result;
   while (scan<limit) {
     c = *(scan++);
@@ -617,8 +617,8 @@ static int xdigit_weight(int c)
 
 /* Scripturl primitives */
 
-static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
-                             fdtype *args,int nocolon,int keep_secret)
+static lispval scripturl_core(u8_string baseuri,lispval params,int n,
+                             lispval *args,int nocolon,int keep_secret)
 {
   struct U8_OUTPUT out;
   int i = 0, need_qmark = ((baseuri!=NULL)&&(strchr(baseuri,'?') == NULL));
@@ -626,24 +626,24 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
   if (baseuri) u8_puts(&out,baseuri);
   if (n == 1) {
     if (need_qmark) {u8_putc(&out,'?'); need_qmark = 0;}
-    if (FD_STRINGP(args[0])) 
-      fd_uri_output(&out,FD_STRDATA(args[0]),FD_STRLEN(args[0]),0,NULL);
-    else if (FD_TYPEP(args[0],fd_secret_type)) {
+    if (STRINGP(args[0])) 
+      fd_uri_output(&out,CSTRING(args[0]),STRLEN(args[0]),0,NULL);
+    else if (TYPEP(args[0],fd_secret_type)) {
       fd_uri_output(&out,
 		    FD_PACKET_DATA(args[0]),FD_PACKET_LENGTH(args[0]),
 		    0,NULL);
       keep_secret = 1;}
-    else if (FD_OIDP(args[0])) {
+    else if (OIDP(args[0])) {
       FD_OID addr = FD_OID_ADDR(args[0]);
       u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
     else u8_printf(&out,":%q",args[0]);
     return fd_stream2string(&out);}
-  if (!((FD_VOIDP(params))||(FD_EMPTY_CHOICEP(params)))) {
-    FD_DO_CHOICES(table,params)
-      if (FD_TABLEP(table)) {
-        fdtype keys = fd_getkeys(table);
-        FD_DO_CHOICES(key,keys) {
-          fdtype value = fd_get(table,key,FD_VOID);
+  if (!((VOIDP(params))||(EMPTYP(params)))) {
+    DO_CHOICES(table,params)
+      if (TABLEP(table)) {
+        lispval keys = fd_getkeys(table);
+        DO_CHOICES(key,keys) {
+          lispval value = fd_get(table,key,VOID);
           if (need_qmark) {u8_putc(&out,'?'); need_qmark = 0;}
           if (keep_secret)
             add_query_param(&out,key,value,nocolon);
@@ -657,82 +657,82 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
     else keep_secret = add_query_param(&out,args[i],args[i+1],nocolon);
     i = i+2;}
   if (keep_secret) {
-    fdtype result = fd_stream2string(&out);
+    lispval result = fd_stream2string(&out);
     FD_SET_CONS_TYPE(result,fd_secret_type);
     return result;}
   else return fd_stream2string(&out);
 }
 
-static fdtype scripturl(int n,fdtype *args)
+static lispval scripturl(int n,lispval *args)
 {
-  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||
-             (FD_FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+  if (EMPTYP(args[0])) return EMPTY;
+  else if (!((STRINGP(args[0]))||
+             (FALSEP(args[0]))||
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
     return fd_err(fd_SyntaxError,"scripturl",
-                  strdup("odd number of arguments"),FD_VOID);
-  else if (FD_FALSEP(args[0]))
-    return scripturl_core(NULL,FD_VOID,n-1,args+1,1,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
-    return scripturl_core(NULL,FD_VOID,n-1,args+1,1,1);
-  else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,1,0);
+                  strdup("odd number of arguments"),VOID);
+  else if (FALSEP(args[0]))
+    return scripturl_core(NULL,VOID,n-1,args+1,1,0);
+  else if (TYPEP(args[0],fd_secret_type))
+    return scripturl_core(NULL,VOID,n-1,args+1,1,1);
+  else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,1,0);
 }
 
-static fdtype fdscripturl(int n,fdtype *args)
+static lispval fdscripturl(int n,lispval *args)
 {
-  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||
-             (FD_FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+  if (EMPTYP(args[0])) return EMPTY;
+  else if (!((STRINGP(args[0]))||
+             (FALSEP(args[0]))||
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
     return fd_err(fd_SyntaxError,"fdscripturl",
-                  u8dup("odd number of arguments"),FD_VOID);
-  else if (FD_FALSEP(args[0]))
-    return scripturl_core(NULL,FD_VOID,n-1,args+1,0,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
-    return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0,1);
-  else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0,0);
+                  u8dup("odd number of arguments"),VOID);
+  else if (FALSEP(args[0]))
+    return scripturl_core(NULL,VOID,n-1,args+1,0,0);
+  else if (TYPEP(args[0],fd_secret_type))
+    return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,1);
+  else return scripturl_core(CSTRING(args[0]),VOID,n-1,args+1,0,0);
 }
 
-static fdtype scripturlplus(int n,fdtype *args)
+static lispval scripturlplus(int n,lispval *args)
 {
-  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||
-             (FD_FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+  if (EMPTYP(args[0])) return EMPTY;
+  else if (!((STRINGP(args[0]))||
+             (FALSEP(args[0]))||
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturlplus",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==1))
     return fd_err(fd_SyntaxError,"scripturlplus",
-                  u8dup("odd number of arguments"),FD_VOID);
-  else if (FD_FALSEP(args[0]))
+                  u8dup("odd number of arguments"),VOID);
+  else if (FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,1,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
-    return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1,1);
-  else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1,0);
+  else if (TYPEP(args[0],fd_secret_type))
+    return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,1);
+  else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,1,0);
 }
 
-static fdtype fdscripturlplus(int n,fdtype *args)
+static lispval fdscripturlplus(int n,lispval *args)
 {
-  if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if  (!((FD_STRINGP(args[0]))||
-             (FD_FALSEP(args[0]))||
-             (FD_TYPEP(args[0],fd_secret_type))))
+  if (EMPTYP(args[0])) return EMPTY;
+  else if  (!((STRINGP(args[0]))||
+             (FALSEP(args[0]))||
+             (TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturlplus",
                   u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
     return fd_err(fd_SyntaxError,"fdscripturlplus",
-                  u8dup("odd number of arguments"),FD_VOID);
-  else if (FD_FALSEP(args[0]))
+                  u8dup("odd number of arguments"),VOID);
+  else if (FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,0,0);
-  else if (FD_TYPEP(args[0],fd_secret_type))
-    return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0,1);
-  else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0,0);
+  else if (TYPEP(args[0],fd_secret_type))
+    return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,0,1);
+  else return scripturl_core(CSTRING(args[0]),args[1],n-2,args+2,0,0);
 }
 
 
@@ -740,8 +740,8 @@ static fdtype fdscripturlplus(int n,fdtype *args)
 
 FD_EXPORT void fd_init_urifns_c()
 {
-  fdtype module = fd_new_module("FDWEB",(0));
-  fdtype safe_module = fd_new_module("FDWEB",(1));
+  lispval module = fd_new_module("FDWEB",(0));
+  lispval safe_module = fd_new_module("FDWEB",(1));
 
   scheme_symbol = fd_intern("SCHEME");
   userinfo_symbol = fd_intern("USERINFO");
@@ -755,32 +755,32 @@ FD_EXPORT void fd_init_urifns_c()
   colonize_symbol = fd_intern("COLONIZE");
 
   fd_idefn(module,fd_make_cprim2x("PARSEURI",parseuri,1,
-                                  fd_string_type,FD_VOID,
-                                  -1,FD_VOID));
+                                  fd_string_type,VOID,
+                                  -1,VOID));
   fd_idefn(module,fd_make_cprim2("MERGEURIS",mergeuris,2));
   fd_idefn(module,fd_make_cprim2("UNPARSEURI",unparseuri,1));
 
   fd_idefn(module,fd_make_cprim1x("URISCHEME",urischeme_prim,1,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,VOID));
   fd_idefn(module,fd_make_cprim1x("URIHOST",urihost_prim,1,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,VOID));
   fd_idefn(module,fd_make_cprim1x("URIFRAG",urifrag_prim,1,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,VOID));
   fd_idefn(module,fd_make_cprim1x("URIQUERY",uriquery_prim,1,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,VOID));
   fd_idefn(module,fd_make_cprim1x("URIBASE",uribase_prim,1,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,VOID));
   fd_idefn(module,fd_make_cprim1x("URIPATH",uripath_prim,1,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,VOID));
 
   fd_idefn(module,fd_make_cprim2x("MKURIPATH",mkuripath_prim,2,
-                                  -1,FD_VOID,fd_string_type,FD_VOID));
+                                  -1,VOID,fd_string_type,VOID));
 
   fd_idefn(module,fd_make_cprim2x("DATAURI",datauri_prim,1,
-                                  -1,FD_VOID,fd_string_type,FD_VOID));
+                                  -1,VOID,fd_string_type,VOID));
 
   /* This is the non-deterministic version */
-  fdtype uriencode_proc=
+  lispval uriencode_proc=
     fd_new_cprim3("URIENCODE",_FILEINFO,
 		  "(uriencode *val* [*chars*] [*upper*]) encodes a value "
 		  "for use as a URI component (e.g. translating space "
@@ -793,29 +793,29 @@ FD_EXPORT void fd_init_urifns_c()
 		  "generated hex escapes are generated with uppercase letters "
 		  "(e.g. %A0 rather than %a0).",
 		  uriencode_prim,1,1,0,
-		  -1,FD_VOID,
-		  fd_string_type,FD_VOID,
-		  -1,FD_VOID);
-  fdtype form_encode_proc=
+		  -1,VOID,
+		  fd_string_type,VOID,
+		  -1,VOID);
+  lispval form_encode_proc=
     fd_new_cprim2("FORM->URISTRING",_FILEINFO,
 		  "(FORM->URISTRING *form* [*opts*]) encodes a table as an "
 		  "application/x-www-url-encoded string.",
                   form_encode_prim,1,0,0,
-                  -1,FD_VOID,-1,FD_VOID);
+                  -1,VOID,-1,VOID);
 
-  fdtype uridecode_proc=
+  lispval uridecode_proc=
     fd_make_cprim1x("URIDECODE",uridecode_prim,1,
-		    fd_string_type,FD_VOID);
+		    fd_string_type,VOID);
 
-  fdtype oid2id_proc=
-    fd_make_cprim2x("OID2ID",oid2id,1,fd_oid_type,FD_VOID,-1,FD_VOID);
-  fdtype scripturl_proc=
+  lispval oid2id_proc=
+    fd_make_cprim2x("OID2ID",oid2id,1,fd_oid_type,VOID,-1,VOID);
+  lispval scripturl_proc=
     fd_make_ndprim(fd_make_cprimn("SCRIPTURL",scripturl,1));
-  fdtype fdscripturl_proc=
+  lispval fdscripturl_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL",fdscripturl,2));
-  fdtype scripturlplus_proc=
+  lispval scripturlplus_proc=
     fd_make_ndprim(fd_make_cprimn("SCRIPTURL+",scripturlplus,1));
-  fdtype fdscripturlplus_proc=
+  lispval fdscripturlplus_proc=
     fd_make_ndprim(fd_make_cprimn("FDSCRIPTURL+",fdscripturlplus,2));
 
   fd_defn(module,uriencode_proc);

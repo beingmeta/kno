@@ -15,9 +15,9 @@
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
-static fdtype compoundp(fdtype x,fdtype tag)
+static lispval compoundp(lispval x,lispval tag)
 {
-  if (FD_VOIDP(tag))
+  if (VOIDP(tag))
     if (FD_COMPOUNDP(x)) return FD_TRUE;
     else return FD_FALSE;
   else if (FD_COMPOUNDP(x))
@@ -27,18 +27,18 @@ static fdtype compoundp(fdtype x,fdtype tag)
   else return FD_FALSE;
 }
 
-static fdtype compound_tag(fdtype x)
+static lispval compound_tag(lispval x)
 {
   return fd_incref(FD_COMPOUND_TAG(x));
 }
 
-static fdtype compound_length(fdtype x)
+static lispval compound_length(lispval x)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
-  return FD_BYTE2DTYPE(compound->fd_n_elts);
+  return FD_BYTE2DTYPE(compound->compound_length);
 }
 
-static fdtype compound_mutablep(fdtype x)
+static lispval compound_mutablep(lispval x)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
   if (compound->compound_ismutable)
@@ -46,7 +46,7 @@ static fdtype compound_mutablep(fdtype x)
   else return FD_FALSE;
 }
 
-static fdtype compound_opaquep(fdtype x)
+static lispval compound_opaquep(lispval x)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
   if (compound->compound_isopaque)
@@ -54,300 +54,300 @@ static fdtype compound_opaquep(fdtype x)
   else return FD_FALSE;
 }
 
-static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
+static lispval compound_ref(lispval x,lispval offset,lispval tag)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
   if (!(FD_UINTP(offset)))
     return fd_type_error("unsigned int","compound_ref",offset);
-  unsigned int off = FD_FIX2INT(offset), len = compound->fd_n_elts;
+  unsigned int off = FIX2INT(offset), len = compound->compound_length;
   if (compound->compound_ismutable) u8_lock_mutex(&(compound->compound_lock));
-  if (((compound->compound_typetag == tag) || (FD_VOIDP(tag))) && (off<len)) {
-    fdtype value = *((&(compound->compound_0))+off);
+  if (((compound->compound_typetag == tag) || (VOIDP(tag))) && (off<len)) {
+    lispval value = *((&(compound->compound_0))+off);
     fd_incref(value);
     if (compound->compound_ismutable) u8_unlock_mutex(&(compound->compound_lock));
     return value;}
   /* Unlock and figure out the details of the error */
   if (compound->compound_ismutable) u8_unlock_mutex(&(compound->compound_lock));
-  if ((compound->compound_typetag!=tag) && (!(FD_VOIDP(tag)))) {
-    u8_string type_string = fd_dtype2string(tag);
+  if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
+    u8_string type_string = fd_lisp2string(tag);
     fd_seterr(fd_TypeError,"compound_ref",type_string,x);
-    return FD_ERROR_VALUE;}
-  else if (!(FD_VOIDP(tag))) {
-    u8_string type_string = fd_dtype2string(tag);
+    return FD_ERROR;}
+  else if (!(VOIDP(tag))) {
+    u8_string type_string = fd_lisp2string(tag);
     fd_seterr(fd_RangeError,"compound_ref",type_string,off);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else {
     fd_seterr(fd_RangeError,"compound_ref",NULL,off);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
 }
 
-static fdtype unpack_compound(fdtype x,fdtype tag)
+static lispval unpack_compound(lispval x,lispval tag)
 {
   struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
-  if ((!(FD_VOIDP(tag)))&&(compound->compound_typetag!=tag)) {
-    u8_string type_string = fd_dtype2string(tag);
+  if ((!(VOIDP(tag)))&&(compound->compound_typetag!=tag)) {
+    u8_string type_string = fd_lisp2string(tag);
     fd_seterr(fd_TypeError,"compound_ref",type_string,x);
-    return FD_ERROR_VALUE;}
+    return FD_ERROR;}
   else {
-    int len = compound->fd_n_elts;
-    fdtype *elts = &(compound->compound_0), result = FD_VOID;
+    int len = compound->compound_length;
+    lispval *elts = &(compound->compound_0), result = VOID;
     if (compound->compound_ismutable) 
       u8_lock_mutex(&(compound->compound_lock));
     {
-      fdtype *scan = elts, *lim = elts+len; while (scan<lim) {
-        fdtype v = *scan++; fd_incref(v);}}
+      lispval *scan = elts, *lim = elts+len; while (scan<lim) {
+        lispval v = *scan++; fd_incref(v);}}
     result = fd_init_pair(NULL,fd_incref(compound->compound_typetag),
                         fd_make_vector(len,elts));
     if (compound->compound_ismutable) u8_unlock_mutex(&(compound->compound_lock));
     return result;}
 }
 
-static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
+static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
 {
-  if (FD_EMPTY_CHOICEP(x)) return FD_EMPTY_CHOICE;
-  else if (FD_CHOICEP(x)) {
-    FD_DO_CHOICES(eachx,x)
+  if (EMPTYP(x)) return EMPTY;
+  else if (CHOICEP(x)) {
+    DO_CHOICES(eachx,x)
       if (FD_COMPOUNDP(eachx)) {
-        fdtype result = compound_set(eachx,offset,value,tag);
+        lispval result = compound_set(eachx,offset,value,tag);
         if (FD_ABORTP(result)) {
           FD_STOP_DO_CHOICES;
           return result;}
         else fd_decref(result);}
       else return fd_type_error("compound","compound_set",eachx);
-    return FD_VOID;}
+    return VOID;}
   else {
     struct FD_COMPOUND *compound = (struct FD_COMPOUND *)x;
     if (!(FD_UINTP(offset)))
       return fd_type_error("unsigned int","compound_ref",offset);
-    unsigned int off = FD_FIX2INT(offset), len = compound->fd_n_elts;
+    unsigned int off = FIX2INT(offset), len = compound->compound_length;
     if ((compound->compound_ismutable) &&
-        ((compound->compound_typetag == tag) || (FD_VOIDP(tag))) &&
+        ((compound->compound_typetag == tag) || (VOIDP(tag))) &&
         (off<len)) {
-      fdtype *valuep = ((&(compound->compound_0))+off), old_value;
+      lispval *valuep = ((&(compound->compound_0))+off), old_value;
       u8_lock_mutex(&(compound->compound_lock));
       old_value = *valuep;
       fd_incref(value);
       *valuep = value;
       fd_decref(old_value);
       u8_unlock_mutex(&(compound->compound_lock));
-      return FD_VOID;}
+      return VOID;}
     /* Unlock and figure out the details of the error */
     u8_unlock_mutex(&(compound->compound_lock));
     if (compound->compound_ismutable==0) {
       fd_seterr(_("Immutable record"),"set_compound",NULL,x);
-      return FD_ERROR_VALUE;}
-    else if ((compound->compound_typetag!=tag) && (!(FD_VOIDP(tag)))) {
-      u8_string type_string = fd_dtype2string(tag);
+      return FD_ERROR;}
+    else if ((compound->compound_typetag!=tag) && (!(VOIDP(tag)))) {
+      u8_string type_string = fd_lisp2string(tag);
       fd_seterr(fd_TypeError,"compound_ref",type_string,x);
-      return FD_ERROR_VALUE;}
-    else if (!(FD_VOIDP(tag))) {
-      u8_string type_string = fd_dtype2string(tag);
+      return FD_ERROR;}
+    else if (!(VOIDP(tag))) {
+      u8_string type_string = fd_lisp2string(tag);
       fd_seterr(fd_RangeError,"compound_ref",type_string,off);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else {
       fd_seterr(fd_RangeError,"compound_ref",NULL,off);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
   }
 }
 
-static fdtype make_compound(int n,fdtype *args)
+static lispval make_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
-  int i = 1; fdtype *write = &(compound->compound_0);
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+  int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
-  compound->fd_n_elts = n-1; compound->compound_ismutable = 0; compound->compound_isopaque = 0;
+  compound->compound_length = n-1; compound->compound_ismutable = 0; compound->compound_isopaque = 0;
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
-  return FDTYPE_CONS(compound);
+  return LISP_CONS(compound);
 }
 
-static fdtype make_opaque_compound(int n,fdtype *args)
+static lispval make_opaque_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
-  int i = 1; fdtype *write = &(compound->compound_0);
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+  int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
-  compound->fd_n_elts = n-1; compound->compound_ismutable = 0;
+  compound->compound_length = n-1; compound->compound_ismutable = 0;
   compound->compound_isopaque = 1;
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
-  return FDTYPE_CONS(compound);
+  return LISP_CONS(compound);
 }
 
-static fdtype make_mutable_compound(int n,fdtype *args)
+static lispval make_mutable_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
-  int i = 1; fdtype *write = &(compound->compound_0);
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+  int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
-  compound->compound_typetag = fd_incref(args[0]); compound->fd_n_elts = n-1; compound->compound_ismutable = 1;
+  compound->compound_typetag = fd_incref(args[0]); compound->compound_length = n-1; compound->compound_ismutable = 1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
-  return FDTYPE_CONS(compound);
+  return LISP_CONS(compound);
 }
 
-static fdtype make_opaque_mutable_compound(int n,fdtype *args)
+static lispval make_opaque_mutable_compound(int n,lispval *args)
 {
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
-  int i = 1; fdtype *write = &(compound->compound_0);
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(lispval)));
+  int i = 1; lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->compound_typetag = fd_incref(args[0]);
-  compound->fd_n_elts = n-1; compound->compound_ismutable = 1;
+  compound->compound_length = n-1; compound->compound_ismutable = 1;
   compound->compound_isopaque = 1;
   u8_init_mutex(&(compound->compound_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
-  return FDTYPE_CONS(compound);
+  return LISP_CONS(compound);
 }
 
-static fdtype vector2compound(fdtype vector,fdtype tag,
-                              fdtype mutable,fdtype opaque)
+static lispval vector2compound(lispval vector,lispval tag,
+                              lispval mutable,lispval opaque)
 {
-  int i = 0, n = FD_VECTOR_LENGTH(vector);
+  int i = 0, n = VEC_LEN(vector);
   struct FD_COMPOUND *compound=
-    u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*sizeof(fdtype)));
-  fdtype *write = &(compound->compound_0);
+    u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*sizeof(lispval)));
+  lispval *write = &(compound->compound_0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
-  compound->compound_typetag = fd_incref(tag); compound->fd_n_elts = n;
-  if (FD_FALSEP(mutable)) compound->compound_ismutable = 0;
+  compound->compound_typetag = fd_incref(tag); compound->compound_length = n;
+  if (FALSEP(mutable)) compound->compound_ismutable = 0;
   else {
     compound->compound_ismutable = 1;
     u8_init_mutex(&(compound->compound_lock));}
-  if (FD_FALSEP(opaque)) compound->compound_isopaque = 0;
+  if (FALSEP(opaque)) compound->compound_isopaque = 0;
   else {
     compound->compound_isopaque = 1;}
   while (i<n) {
-    fdtype elt = FD_VECTOR_REF(vector,i);
+    lispval elt = VEC_REF(vector,i);
     fd_incref(elt);
     *write++=elt; i++;}
-  return FDTYPE_CONS(compound);
+  return LISP_CONS(compound);
 }
 
 /* Setting various compound properties */
 
-static fdtype consfn_symbol, stringfn_symbol, tag_symbol;
+static lispval consfn_symbol, stringfn_symbol, tag_symbol;
 
-static fdtype compound_corelen_prim(fdtype tag)
+static lispval compound_corelen_prim(lispval tag)
 {
   struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(tag);
   if (e) {
-    if (e->fd_compound_corelen<0) return FD_FALSE;
-    else return FD_INT(e->fd_compound_corelen);}
-  else return FD_EMPTY_CHOICE;
+    if (e->compound_corelen<0) return FD_FALSE;
+    else return FD_INT(e->compound_corelen);}
+  else return EMPTY;
 }
 
-static fdtype compound_set_corelen_prim(fdtype tag,fdtype slots_arg)
+static lispval compound_set_corelen_prim(lispval tag,lispval slots_arg)
 {
   if (!(FD_UINTP(slots_arg)))
     return fd_type_error("unsigned int",
                          "compound_set_corelen_prim",
                          slots_arg);
-  unsigned int core_slots = FD_FIX2INT(slots_arg);
-  fd_declare_compound(tag,FD_VOID,core_slots);
+  unsigned int core_slots = FIX2INT(slots_arg);
+  fd_declare_compound(tag,VOID,core_slots);
   return fd_incref(tag);
 }
 
-static fdtype tag_slotdata(fdtype tag)
+static lispval tag_slotdata(lispval tag)
 {
   struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(tag);
-  if ((e)&&(FD_SLOTMAPP(e->fd_compound_metadata)))
-    return fd_incref(e->fd_compound_metadata);
-  else if ((e)&&(!(FD_VOIDP(e->fd_compound_metadata))))
-    return fd_type_error("slotmap","tag_slotdata",e->fd_compound_metadata);
+  if ((e)&&(SLOTMAPP(e->compound_metadata)))
+    return fd_incref(e->compound_metadata);
+  else if ((e)&&(!(VOIDP(e->compound_metadata))))
+    return fd_type_error("slotmap","tag_slotdata",e->compound_metadata);
   else {
     struct FD_KEYVAL *keyvals = u8_alloc_n(1,struct FD_KEYVAL);
-    fdtype slotmap = FD_VOID, *slotdata = &slotmap;
+    lispval slotmap = VOID, *slotdata = &slotmap;
     keyvals[0].kv_key = tag_symbol; keyvals[0].kv_key = fd_incref(tag);
     slotmap = fd_init_slotmap(NULL,1,keyvals);
     fd_register_compound(tag,slotdata,NULL);
     return slotmap;}
 }
 
-static fdtype compound_metadata_prim(fdtype compound,fdtype field)
+static lispval compound_metadata_prim(lispval compound,lispval field)
 {
-  fdtype tag = FD_COMPOUND_TAG(compound);
-  fdtype slotmap = tag_slotdata(tag);
-  fdtype result;
-  if (FD_VOIDP(field)) result = fd_deep_copy(slotmap);
-  else result = fd_get(slotmap,tag,FD_EMPTY_CHOICE);
+  lispval tag = FD_COMPOUND_TAG(compound);
+  lispval slotmap = tag_slotdata(tag);
+  lispval result;
+  if (VOIDP(field)) result = fd_deep_copy(slotmap);
+  else result = fd_get(slotmap,tag,EMPTY);
   fd_decref(slotmap);
   return result;
 }
 
-static fdtype cons_compound(int n,fdtype *args,fd_compound_typeinfo e)
+static lispval cons_compound(int n,lispval *args,fd_compound_typeinfo e)
 {
-  if (e->fd_compound_metadata) {
-    fdtype method = fd_get(e->fd_compound_metadata,FDSYM_CONS,FD_VOID);
-    if (FD_VOIDP(method)) return FD_VOID;
+  if (e->compound_metadata) {
+    lispval method = fd_get(e->compound_metadata,FDSYM_CONS,VOID);
+    if (VOIDP(method)) return VOID;
     else {
-      fdtype result = fd_apply(method,n,args);
+      lispval result = fd_apply(method,n,args);
       fd_decref(method);
       return result;}}
   else {
-    int i = 0; while (i<n) {fdtype elt = args[i++]; fd_incref(elt);}
+    int i = 0; while (i<n) {lispval elt = args[i++]; fd_incref(elt);}
     return fd_init_compound_from_elts(NULL,e->compound_typetag,1,n,args);}
 }
 
-static int stringify_compound(u8_output out,fdtype compound,fd_compound_typeinfo e)
+static int stringify_compound(u8_output out,lispval compound,fd_compound_typeinfo e)
 {
-  if (e->fd_compound_metadata) {
-    fdtype method = fd_get(e->fd_compound_metadata,stringfn_symbol,FD_VOID);
-    if (FD_VOIDP(method)) return 0;
+  if (e->compound_metadata) {
+    lispval method = fd_get(e->compound_metadata,stringfn_symbol,VOID);
+    if (VOIDP(method)) return 0;
     else {
-      fdtype result = fd_apply(method,1,&compound);
+      lispval result = fd_apply(method,1,&compound);
       fd_decref(method);
-      if (FD_STRINGP(result)) {
-        u8_putn(out,FD_STRDATA(result),FD_STRLEN(result));
+      if (STRINGP(result)) {
+        u8_putn(out,CSTRING(result),STRLEN(result));
         fd_decref(result);
         return 1;}
       else {fd_decref(result); return 0;}}}
   else return 0;
 }
 
-static fdtype compound_set_consfn_prim(fdtype tag,fdtype consfn)
+static lispval compound_set_consfn_prim(lispval tag,lispval consfn)
 {
-  if ((FD_SYMBOLP(tag))||(FD_OIDP(tag)))
-    if (FD_FALSEP(consfn)) {
-      fdtype slotmap = tag_slotdata(tag);
+  if ((SYMBOLP(tag))||(OIDP(tag)))
+    if (FALSEP(consfn)) {
+      lispval slotmap = tag_slotdata(tag);
       struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(tag);
-      fd_drop(slotmap,FDSYM_CONS,FD_VOID);
+      fd_drop(slotmap,FDSYM_CONS,VOID);
       fd_decref(slotmap);
-      e->fd_compound_parser = NULL;
-      return FD_VOID;}
+      e->compound_parser = NULL;
+      return VOID;}
     else if (FD_APPLICABLEP(consfn)) {
-      fdtype slotmap = tag_slotdata(tag);
+      lispval slotmap = tag_slotdata(tag);
       struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(tag);
       fd_store(slotmap,FDSYM_CONS,consfn);
       fd_decref(slotmap);
-      e->fd_compound_parser = cons_compound;
-      return FD_VOID;}
+      e->compound_parser = cons_compound;
+      return VOID;}
     else return fd_type_error("applicable","set_compound_consfn_prim",tag);
   else return fd_type_error("compound tag","set_compound_consfn_prim",tag);
 }
 
 
-static fdtype compound_set_stringfn_prim(fdtype tag,fdtype stringfn)
+static lispval compound_set_stringfn_prim(lispval tag,lispval stringfn)
 {
-  if ((FD_SYMBOLP(tag))||(FD_OIDP(tag)))
-    if (FD_FALSEP(stringfn)) {
-      fdtype slotmap = tag_slotdata(tag);
+  if ((SYMBOLP(tag))||(OIDP(tag)))
+    if (FALSEP(stringfn)) {
+      lispval slotmap = tag_slotdata(tag);
       struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(tag);
-      fd_drop(slotmap,stringfn_symbol,FD_VOID);
+      fd_drop(slotmap,stringfn_symbol,VOID);
       fd_decref(slotmap);
-      e->fd_compound_unparser = NULL;
-      return FD_VOID;}
+      e->compound_unparser = NULL;
+      return VOID;}
     else if (FD_APPLICABLEP(stringfn)) {
-      fdtype slotmap = tag_slotdata(tag);
+      lispval slotmap = tag_slotdata(tag);
       struct FD_COMPOUND_TYPEINFO *e = fd_lookup_compound(tag);
       fd_store(slotmap,stringfn_symbol,stringfn);
       fd_decref(slotmap);
-      e->fd_compound_unparser = stringify_compound;
-      return FD_VOID;}
+      e->compound_unparser = stringify_compound;
+      return VOID;}
     else return fd_type_error("applicable","set_compound_stringfn_prim",tag);
   else return fd_type_error("compound tag","set_compound_stringfn_prim",tag);
 }
@@ -365,24 +365,24 @@ FD_EXPORT void fd_init_compounds_c()
            fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
-                           fd_compound_type,FD_VOID));
+                           fd_compound_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-LENGTH",compound_length,1,
-                           fd_compound_type,FD_VOID));
+                           fd_compound_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-MUTABLE?",compound_mutablep,1,
-                           fd_compound_type,FD_VOID));
+                           fd_compound_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-OPAQUE?",compound_opaquep,1,
-                           fd_compound_type,FD_VOID));
+                           fd_compound_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
-                           fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+                           fd_compound_type,VOID,-1,VOID,-1,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim
            (fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
-                            -1,FD_VOID,-1,FD_VOID,
-                            -1,FD_VOID,-1,FD_VOID)));
+                            -1,VOID,-1,VOID,
+                            -1,VOID,-1,VOID)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
   fd_idefn(fd_scheme_module,
@@ -396,31 +396,31 @@ FD_EXPORT void fd_init_compounds_c()
                                          make_opaque_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
-                           fd_vector_type,FD_VOID,-1,FD_VOID,
+                           fd_vector_type,VOID,-1,VOID,
                            -1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("UNPACK-COMPOUND",unpack_compound,1,
-                           fd_compound_type,FD_VOID,-1,FD_VOID));
+                           fd_compound_type,VOID,-1,VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("COMPOUND-METATDATA",compound_metadata_prim,1,
-                           fd_compound_type,FD_VOID,
-                           fd_symbol_type,FD_VOID));
+                           fd_compound_type,VOID,
+                           fd_symbol_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-CORELEN",compound_corelen_prim,1,
-                           -1,FD_VOID));
+                           -1,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("COMPOUND-SET-CORELEN!",
                            compound_set_corelen_prim,2,
-                           -1,FD_VOID,fd_fixnum_type,FD_VOID));
+                           -1,VOID,fd_fixnum_type,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("COMPOUND-SET-CONSFN!",
                            compound_set_consfn_prim,2,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("COMPOUND-SET-STRINGFN!",
                            compound_set_stringfn_prim,2,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,VOID,-1,VOID));
 }
 
 

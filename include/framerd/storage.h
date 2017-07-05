@@ -37,7 +37,7 @@ FD_EXPORT int fd_prefetch;
 FD_EXPORT fd_exception fd_InternalError;
 FD_EXPORT fd_exception fd_BadServerResponse;
 
-FD_EXPORT fdtype fd_dbserv_module;
+FD_EXPORT lispval fd_dbserv_module;
 
 FD_EXPORT int fd_swapcheck(void);
 
@@ -55,12 +55,13 @@ typedef unsigned int fd_storage_flags;
 #define FD_STORAGE_ISPOOL		   0x01
 #define FD_STORAGE_ISINDEX		   0x02
 #define FD_STORAGE_READ_ONLY		   0x04
-/* #define FD_STORAGE_ISCONSED		   0x08 */
+
 #define FD_STORAGE_UNREGISTERED	           0x10
 #define FD_STORAGE_KEEP_CACHESIZE          0x20
 #define FD_STORAGE_NOSWAP		   0x40
 #define FD_STORAGE_NOERR		   0x80
 #define FD_STORAGE_PHASED		   0x100
+
 #define FD_STORAGE_MAX_INIT_BITS	   0x800
 #define FD_STORAGE_MAX_STATE_BITS	   0x1000
 
@@ -198,20 +199,20 @@ FD_EXPORT u8_mutex fd_ipeval_lock;
 /* Cache calls */
 
 FD_EXPORT long fd_callcache_load(void);
-FD_EXPORT void fd_clear_callcache(fdtype arg);
+FD_EXPORT void fd_clear_callcache(lispval arg);
 
-FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args);
-FD_EXPORT fdtype fd_xcachecall
-  (struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args);
+FD_EXPORT lispval fd_cachecall(lispval fcn,int n,lispval *args);
+FD_EXPORT lispval fd_xcachecall
+  (struct FD_HASHTABLE *cache,lispval fcn,int n,lispval *args);
 
-FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args);
-FD_EXPORT fdtype fd_xcachecall_try
-  (struct FD_HASHTABLE *cache,fdtype fcn,int n,fdtype *args);
+FD_EXPORT lispval fd_cachecall_try(lispval fcn,int n,lispval *args);
+FD_EXPORT lispval fd_xcachecall_try
+  (struct FD_HASHTABLE *cache,lispval fcn,int n,lispval *args);
 
-FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args);
-FD_EXPORT int fd_xcachecall_probe(fd_hashtable,fdtype fcn,int n,fdtype *args);
+FD_EXPORT int fd_cachecall_probe(lispval fcn,int n,lispval *args);
+FD_EXPORT int fd_xcachecall_probe(fd_hashtable,lispval fcn,int n,lispval *args);
 
-FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
+FD_EXPORT lispval fd_tcachecall(lispval fcn,int n,lispval *args);
 
 /* Thread caches */
 
@@ -229,12 +230,12 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args);
 #endif
 
 typedef struct FD_THREAD_CACHE {
-  int fdtc_inuse; u8_string fdtc_id;
+  int threadcache_inuse; u8_string threadcache_id;
   struct FD_HASHTABLE oids;
   struct FD_HASHTABLE indexes;
   struct FD_HASHTABLE bground;
   struct FD_HASHTABLE calls;
-  struct FD_THREAD_CACHE *fdtc_prev;} FD_THREAD_CACHE;
+  struct FD_THREAD_CACHE *threadcache_prev;} FD_THREAD_CACHE;
 typedef struct FD_THREAD_CACHE *fd_thread_cache;
 typedef struct FD_THREAD_CACHE FDTC;
 
@@ -264,9 +265,9 @@ FD_EXPORT fd_thread_cache fd_use_threadcache(void);
 #include "indexes.h"
 #include "frames.h"
 
-FD_EXPORT fdtype (*fd_get_oid_name)(fd_pool,fdtype);
+FD_EXPORT lispval (*fd_get_oid_name)(fd_pool,lispval);
 
-FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumulate);
+FD_EXPORT lispval fd_getpath(lispval start,int n,lispval *path,int infer,int accumulate);
 
 #endif
 

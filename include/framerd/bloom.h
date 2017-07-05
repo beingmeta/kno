@@ -122,7 +122,7 @@ int fd_bloom_addbuf(struct FD_BLOOM * bloom, const void * buffer, int len);
      element was not present and was added if requested, or -1 (an error
      was encountered)
 */
-int fd_bloom_op(struct FD_BLOOM * bloom, fdtype val, int flags);
+int fd_bloom_op(struct FD_BLOOM * bloom, lispval val, int flags);
 
 /* Flags for fd_bloom_op */
 #define FD_BLOOM_ADD 0x01

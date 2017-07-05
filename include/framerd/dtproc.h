@@ -15,11 +15,11 @@
 
 typedef struct FD_DTPROC {
   FD_FUNCTION_FIELDS;
-  u8_string fd_dtprocserver; fdtype fd_dtprocname;
-  struct U8_CONNPOOL *fd_connpool;} FD_DTPROC;
+  u8_string dtprocserver; lispval dtprocname;
+  struct U8_CONNPOOL *connpool;} FD_DTPROC;
 typedef struct FD_DTPROC *fd_dtproc;
 
-FD_EXPORT fdtype fd_make_dtproc
+FD_EXPORT lispval fd_make_dtproc
   (u8_string name,u8_string server,int ndcall,int arity,int min_arity,
    int minsock,int maxsock,int initsock);
 

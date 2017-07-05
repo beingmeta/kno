@@ -32,7 +32,7 @@
 
 FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
-static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args);
+static lispval sqlitecallproc(struct FD_FUNCTION *fn,int n,lispval *args);
 
 typedef struct FD_SQLITE {
   FD_EXTDB_FIELDS;
@@ -52,11 +52,11 @@ typedef struct FD_SQLITE_PROC *fd_sqlite_proc;
 
 static fd_exception SQLiteError=_("SQLite Error");
 
-static fdtype merge_symbol, sorted_symbol;
+static lispval merge_symbol, sorted_symbol;
 
 /* Utility functions */
 
-static fdtype intern_upcase(u8_output out,u8_string s)
+static lispval intern_upcase(u8_output out,u8_string s)
 {
   int c = u8_sgetc(&s);
   out->u8_write = out->u8_outbuf;
@@ -73,9 +73,9 @@ static unsigned char *_memdup(unsigned char *data,int len)
   return duplicate;
 }
 
-static int getboolopt(fdtype opts,fdtype sym,int dflt)
+static int getboolopt(lispval opts,lispval sym,int dflt)
 {
-  fdtype val = fd_getopt(opts,sym,FD_VOID);
+  lispval val = fd_getopt(opts,sym,FD_VOID);
   if (FD_VOIDP(val)) return dflt;
   else if (FD_FALSEP(val)) return 0;
   else {
@@ -85,16 +85,16 @@ static int getboolopt(fdtype opts,fdtype sym,int dflt)
 
 /* Prototypes, etc */
 
-static int getv2flags(fdtype options,u8_string filename);
+static int getv2flags(lispval options,u8_string filename);
 
 static int open_fdsqlite(struct FD_SQLITE *fdsqlptr);
 static void close_fdsqlite(struct FD_SQLITE *fdptr,int lock);
-static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo);
+static lispval merge_colinfo(FD_SQLITE *dbp,lispval colinfo);
 
 static int open_fdsqliteproc(struct FD_SQLITE *fdsqlptr,struct FD_SQLITE_PROC *fdp);
 static void close_fdsqliteproc(struct FD_SQLITE_PROC *dbp);
 
-static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo);
+static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo);
 
 #if HAVE_SQLITE3_CLOSE_V2
 #define closedb sqlite3_close_v2
@@ -110,8 +110,8 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo);
 
 /* Opening connections */
 
-static fdtype readonly_symbol, create_symbol, sharedcache_symbol;
-static fdtype execok_symbol, privatecache_symbol, vfs_symbol;
+static lispval readonly_symbol, create_symbol, sharedcache_symbol;
+static lispval execok_symbol, privatecache_symbol, vfs_symbol;
 
 static int open_fdsqlite(struct FD_SQLITE *fdsqlptr)
 {
@@ -134,7 +134,7 @@ static int open_fdsqlite(struct FD_SQLITE *fdsqlptr)
     if (retval) {
       u8_string msg = u8_strdup(sqlite3_errmsg(db));
       fd_seterr(SQLiteError,"open_sqlite",msg,
-                fdtype_string(fdsqlptr->sqlitefile));
+                lispval_string(fdsqlptr->sqlitefile));
       if (db) {closedb(db); fdsqlptr->sqlitedb = NULL;}
       u8_unlock_mutex(&(fdsqlptr->sqlite_lock));
       return -1;}
@@ -153,10 +153,10 @@ static int open_fdsqlite(struct FD_SQLITE *fdsqlptr)
     return 1;}
 }
 
-static fdtype sqlite_open_prim(fdtype filename,fdtype colinfo,fdtype options)
+static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options)
 {
   struct FD_SQLITE *sqlcons; int retval;
-  fdtype vfs_spec = fd_getopt(options,vfs_symbol,FD_VOID);
+  lispval vfs_spec = fd_getopt(options,vfs_symbol,FD_VOID);
   u8_string vfs = NULL;
 #if HAVE_SQLITE3_OPEN_V2
   int flags = getv2flags(options,FD_STRDATA(filename));
@@ -199,13 +199,13 @@ static fdtype sqlite_open_prim(fdtype filename,fdtype colinfo,fdtype options)
   u8_init_mutex(&(sqlcons->extdb_proclock));
   retval = open_fdsqlite(sqlcons);
   if (retval<0) {
-    fdtype lptr = FDTYPE_CONS(sqlcons);
+    lispval lptr = LISP_CONS(sqlcons);
     fd_decref(lptr);
     return FD_ERROR_VALUE;}
-  else return FDTYPE_CONS(sqlcons);
+  else return LISP_CONS(sqlcons);
 }
 
-static fdtype sqlite_reopen_prim(fdtype db)
+static lispval sqlite_reopen_prim(lispval db)
 {
   struct FD_EXTDB *extdb = fd_consptr(struct FD_EXTDB *,db,fd_extdb_type);
   if (extdb->extdb_handler!= &sqlite_handler)
@@ -230,7 +230,7 @@ static void close_fdsqlite(struct FD_SQLITE *dbp,int lock)
   if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
 }
 
-static fdtype sqlite_close_prim(fdtype db)
+static lispval sqlite_close_prim(lispval db)
 {
   struct FD_EXTDB *extdb = fd_consptr(struct FD_EXTDB *,db,fd_extdb_type);
   if (extdb->extdb_handler!= &sqlite_handler)
@@ -252,7 +252,7 @@ static void recycle_fdsqlite(struct FD_EXTDB *c)
 }
 
 #if HAVE_SQLITE3_OPEN_V2
-static int getv2flags(fdtype options,u8_string filename)
+static int getv2flags(lispval options,u8_string filename)
 {
   int readonly = getboolopt(options,readonly_symbol,0);
   int readcreate = getboolopt(options,create_symbol,0);
@@ -294,7 +294,7 @@ static int getv2flags(fdtype options,u8_string filename)
 
 /* SQLITE EXEC */
 
-static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
+static lispval sqliteexec(struct FD_SQLITE *fds,lispval string,lispval colinfo)
 {
   sqlite3 *dbp = fds->sqlitedb;
   sqlite3_stmt *stmt;
@@ -304,25 +304,25 @@ static fdtype sqliteexec(struct FD_SQLITE *fds,fdtype string,fdtype colinfo)
   retval = newstmt(dbp,FD_STRDATA(string),FD_STRLEN(string),&stmt);
   if (FD_VOIDP(colinfo)) colinfo = fds->extdb_colinfo;
   if (retval == SQLITE_OK) {
-    fdtype values = sqlite_values(dbp,stmt,colinfo);
+    lispval values = sqlite_values(dbp,stmt,colinfo);
     if (FD_ABORTP(values)) {
       errmsg = sqlite3_errmsg(dbp);
       fd_seterr(SQLiteError,"fdsqlite_call",
-                u8_strdup(errmsg),fd_incref(string));}
+                errmsg,fd_incref(string));}
     sqlite3_finalize(stmt);
     u8_unlock_mutex(&(fds->sqlite_lock));
     return values;}
   else {
-    fdtype dbptr = (fdtype)fds;
+    lispval dbptr = (lispval)fds;
     fd_incref(dbptr);
     errmsg = sqlite3_errmsg(dbp);
-    fd_seterr(SQLiteError,"fdsqlite_call",u8_strdup(errmsg),dbptr);
+    fd_seterr(SQLiteError,"fdsqlite_call",errmsg,dbptr);
     u8_unlock_mutex(&(fds->sqlite_lock));
     return FD_ERROR_VALUE;}
 }
 
-static fdtype sqliteexechandler(struct FD_EXTDB *extdb,fdtype string,
-                                fdtype colinfo)
+static lispval sqliteexechandler(struct FD_EXTDB *extdb,lispval string,
+                                lispval colinfo)
 {
   if (extdb->extdb_handler== &sqlite_handler) {
     struct FD_SQLITE *sdb = (struct FD_SQLITE *)extdb;
@@ -337,15 +337,15 @@ static fdtype sqliteexechandler(struct FD_EXTDB *extdb,fdtype string,
       open_fdsqlite(sdb);
       if (!(sdb->sqlitedb)) return FD_ERROR_VALUE;}
     return sqliteexec(sdb,string,colinfo);}
-  else return fd_type_error("SQLITE EXTDB","sqliteexechandler",(fdtype)extdb);
+  else return fd_type_error("SQLITE EXTDB","sqliteexechandler",(lispval)extdb);
 }
 
 /* SQLITE procs */
 
-static fdtype sqlitemakeproc
+static lispval sqlitemakeproc
   (struct FD_SQLITE *dbp,
    u8_string sql,int sql_len,
-   fdtype colinfo,int n,fdtype *ptypes)
+   lispval colinfo,int n,lispval *ptypes)
 {
   sqlite3 *db = dbp->sqlitedb;
   sqlite3_stmt *stmt;
@@ -365,16 +365,16 @@ static fdtype sqlitemakeproc
     db = dbp->sqlitedb;}
   retval = newstmt(db,sql,sql_len,&stmt);
   if (retval) {
-    fdtype dbptr = (fdtype)dbp;
+    lispval dbptr = (lispval)dbp;
     const char *errmsg = sqlite3_errmsg(db);
     fd_seterr(SQLiteError,"fdsqlite_call",
-              u8_strdup(errmsg),fd_incref(dbptr));
+              errmsg,fd_incref(dbptr));
     return FD_ERROR_VALUE;}
   else sqlcons = u8_alloc(struct FD_SQLITE_PROC);
   FD_INIT_FRESH_CONS(sqlcons,fd_extdb_proc_type);
   sqlcons->extdb_handler = &sqlite_handler;
   sqlcons->sqlitedb = dbp->sqlitedb;
-  sqlcons->extdbptr = (fdtype)dbp;
+  sqlcons->extdbptr = (lispval)dbp;
   fd_incref(sqlcons->extdbptr);
   sqlcons->sqlitedb = db; sqlcons->stmt = stmt;
   u8_init_mutex(&(sqlcons->sqliteproc_lock));
@@ -386,7 +386,7 @@ static fdtype sqlitemakeproc
   sqlcons->fcn_min_arity = n_params;
   sqlcons->fcn_handler.xcalln = sqlitecallproc;
   {
-    fdtype *paramtypes = u8_alloc_n(n_params,fdtype);
+    lispval *paramtypes = u8_alloc_n(n_params,lispval);
     int j = 0; while (j<n_params) {
       if (j<n) paramtypes[j]=fd_incref(ptypes[j]);
       else paramtypes[j]=FD_VOID;
@@ -395,10 +395,10 @@ static fdtype sqlitemakeproc
   sqlcons->extdb_colinfo = merge_colinfo(dbp,colinfo);
   fd_incref(dbp->extdb_colinfo);
   fd_register_extdb_proc((struct FD_EXTDB_PROC *)sqlcons);
-  return FDTYPE_CONS(sqlcons);
+  return LISP_CONS(sqlcons);
 }
 
-static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo)
+static lispval merge_colinfo(FD_SQLITE *dbp,lispval colinfo)
 {
   if (FD_VOIDP(colinfo)) return fd_incref(dbp->extdb_colinfo);
   else if (FD_VOIDP(dbp->extdb_colinfo))
@@ -413,14 +413,14 @@ static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo)
     return fd_conspair(colinfo,dbp->extdb_colinfo);}
 }
 
-static fdtype sqlitemakeprochandler
+static lispval sqlitemakeprochandler
   (struct FD_EXTDB *extdb,u8_string sql,int sql_len,
-   fdtype colinfo,int n,fdtype *ptypes)
+   lispval colinfo,int n,lispval *ptypes)
 {
   if (extdb->extdb_handler== &sqlite_handler)
     return sqlitemakeproc((fd_sqlite)extdb,sql,sql_len,colinfo,n,ptypes);
   else return fd_type_error
-         ("SQLITE EXTDB","sqlitemakeprochandler",(fdtype)extdb);
+         ("SQLITE EXTDB","sqlitemakeprochandler",(lispval)extdb);
 }
 
 static int open_fdsqliteproc(struct FD_SQLITE *fdsqlptr,struct FD_SQLITE_PROC *fdp)
@@ -431,7 +431,7 @@ static int open_fdsqliteproc(struct FD_SQLITE *fdsqlptr,struct FD_SQLITE_PROC *f
   if (retval)
     return retval;
   else {
-    fdp->extdbptr = (fdtype)fdsqlptr;
+    fdp->extdbptr = (lispval)fdsqlptr;
     fdp->sqlitedb = db;
     fdp->stmt = stmt;
     return 0;}
@@ -461,12 +461,12 @@ static void recycle_fdsqliteproc(struct FD_EXTDB_PROC *c)
 
 /* Calling a SQLITE proc */
 
-static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
+static lispval sqlitecallproc(struct FD_FUNCTION *fn,int n,lispval *args)
 {
   struct FD_SQLITE_PROC *dbproc = (struct FD_SQLITE_PROC *)fn;
   /* We use this for the lock */
   struct FD_SQLITE *fds = (struct FD_SQLITE *)(dbproc->sqlitedb);
-  fdtype values = FD_EMPTY_CHOICE;
+  lispval values = FD_EMPTY_CHOICE;
   int i = 0, ret = -1;
   if (!(fds->sqlitedb)) {
     if (fds->extdb_spec!=fds->extdb_info)
@@ -478,7 +478,7 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     if (!(fds->sqlitedb)) return FD_ERROR_VALUE;}
   u8_lock_mutex(&(dbproc->sqliteproc_lock));
   while (i<n) {
-    fdtype arg = args[i]; int dofree = 0;
+    lispval arg = args[i]; int dofree = 0;
     if (!(FD_VOIDP(dbproc->extdb_paramtypes[i])))
       if (FD_APPLICABLEP(dbproc->extdb_paramtypes[i])) {
         arg = fd_apply(dbproc->extdb_paramtypes[i],1,&arg);
@@ -537,7 +537,7 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     if (ret) {
       const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
       fd_seterr(SQLiteError,"fdsqlite_call",
-                u8_strdup(errmsg),fd_incref((fdtype)fn));
+                errmsg,fd_incref((lispval)fn));
       u8_unlock_mutex(&(dbproc->sqliteproc_lock));
       return FD_ERROR_VALUE;}
     i++;}
@@ -549,7 +549,7 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   if (FD_ABORTP(values)) {
     const char *errmsg = sqlite3_errmsg(dbproc->sqlitedb);
     fd_seterr(SQLiteError,"fdsqlite_call",
-              u8_strdup(errmsg),fd_incref((fdtype)fn));}
+              errmsg,fd_incref((lispval)fn));}
   return values;
 }
 
@@ -557,13 +557,13 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 
 static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp);
 
-static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
+static lispval sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,lispval colinfo)
 {
-  fdtype results = FD_EMPTY_CHOICE, *resultsv = NULL; int rn = 0, rmax = 0;
-  fdtype _colnames[16], *colnames;
-  fdtype _colmaps[16], *colmaps;
-  fdtype mergefn = fd_getopt(colinfo,merge_symbol,FD_VOID);
-  fdtype sortfn = fd_getopt(colinfo,sorted_symbol,FD_VOID);
+  lispval results = FD_EMPTY_CHOICE, *resultsv = NULL; int rn = 0, rmax = 0;
+  lispval _colnames[16], *colnames;
+  lispval _colmaps[16], *colmaps;
+  lispval mergefn = fd_getopt(colinfo,merge_symbol,FD_VOID);
+  lispval sortfn = fd_getopt(colinfo,sorted_symbol,FD_VOID);
   int sorted = (FD_TRUEP(sortfn));
   int i = 0, n_cols = sqlite3_column_count(stmt), retval;
   struct U8_OUTPUT out;
@@ -576,11 +576,11 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;}
   else if (sorted) {
-    resultsv = u8_malloc(sizeof(fdtype)*64); rmax = 64;}
+    resultsv = u8_malloc(sizeof(lispval)*64); rmax = 64;}
   else {}
   if (n_cols>16) {
-    colnames = u8_alloc_n(n_cols,fdtype);
-    colmaps = u8_alloc_n(n_cols,fdtype);}
+    colnames = u8_alloc_n(n_cols,lispval);
+    colmaps = u8_alloc_n(n_cols,lispval);}
   else {
     colnames=_colnames;
     colmaps=_colmaps;}
@@ -588,16 +588,16 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   /* [TODO] Note that the column name stuff could be cached up front
      for SQL procedures. */
   while (i<n_cols) {
-    fdtype colname;
+    lispval colname;
     colnames[i]=colname=
       intern_upcase(&out,(u8_string)sqlite3_column_name(stmt,i));
     colmaps[i]=(fd_getopt(colinfo,colname,FD_VOID));
     i++;}
   while ((retval = sqlite3_step(stmt)) == SQLITE_ROW) {
-    fdtype result;
+    lispval result;
     struct FD_KEYVAL *kv = u8_alloc_n(n_cols,struct FD_KEYVAL);
     int j = 0; while (j<n_cols) {
-      int coltype = sqlite3_column_type(stmt,j); fdtype value;
+      int coltype = sqlite3_column_type(stmt,j); lispval value;
       if (coltype<0) {
         int k = 0; while (k<j) {fd_decref(kv[k].kv_val);  k++;}
         u8_free(kv);
@@ -624,9 +624,9 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
              (strcasecmp(decltype,"DATE")==0))) {
           struct U8_XTIME xt; time_t retval = sqlite_time_to_xtime(textval,&xt);
           if (retval<0) retval = u8_rfc822_to_xtime((u8_string)textval,&xt);
-          if (retval<0) value = fdtype_string((u8_string)textval);
+          if (retval<0) value = lispval_string((u8_string)textval);
           else value = fd_make_timestamp(&xt);}
-        else value = fdtype_string((unsigned char *)textval);
+        else value = lispval_string((unsigned char *)textval);
         break;}
       case SQLITE_BLOB: {
         int n_bytes = sqlite3_column_bytes(stmt,j);
@@ -666,19 +666,19 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
              (FD_TRUEP(mergefn)))
       result = fd_init_slotmap(NULL,n_cols,kv);
     else {
-      fdtype tmp_slotmap = fd_init_slotmap(NULL,n_cols,kv);
+      lispval tmp_slotmap = fd_init_slotmap(NULL,n_cols,kv);
       result = fd_apply(mergefn,1,&tmp_slotmap);
       fd_decref(tmp_slotmap);}
     if (sorted) {
       if (FD_ABORTP(result)) {}
       else if (rn>=rmax) {
         int new_max = ((rmax>=65536)?(rmax+65536):(rmax*2));
-        fdtype *newv = u8_realloc(resultsv,sizeof(fdtype)*new_max);
+        lispval *newv = u8_realloc(resultsv,sizeof(lispval)*new_max);
         if (newv == NULL) {
           int delta = (new_max-rmax)/2;
           while ((newv == NULL)&&(delta>=1)) {
             new_max = rmax+delta; delta = delta/2;
-            newv = u8_realloc(resultsv,sizeof(fdtype)*new_max);}
+            newv = u8_realloc(resultsv,sizeof(lispval)*new_max);}
           if (!(newv)) {
             fd_decref(result);
             fd_seterr(fd_OutOfMemory,"sqlite_step",NULL,FD_VOID);
@@ -690,7 +690,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     if (FD_ABORTP(result)) {
       if (sorted) {
         int k = 0; while (k<rn) {
-          fdtype v = resultsv[k++]; fd_decref(v);}
+          lispval v = resultsv[k++]; fd_decref(v);}
         fd_decref(results);
         u8_free(resultsv);
         results = result;
@@ -702,11 +702,11 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   if (retval!=SQLITE_DONE) {
 #if HAVE_SQLITE3_ERRSTR
     const char *msg = sqlite3_errstr(retval);
-    fd_seterr(SQLiteError,"sqlite_step3",u8_strdup(msg),FD_VOID);
+    fd_seterr(SQLiteError,"sqlite_step3",msg,FD_VOID);
 #endif
     fd_decref(results); if (sorted) {
       int k = 0; while (k<rn) {
-        fdtype v = resultsv[k++]; fd_decref(v);}
+        lispval v = resultsv[k++]; fd_decref(v);}
       fd_decref(results);
       u8_free(resultsv);
       resultsv = NULL;}
@@ -784,7 +784,7 @@ static struct FD_EXTDB_HANDLER sqlite_handler=
 
 FD_EXPORT int fd_init_sqlite()
 {
-  fdtype module;
+  lispval module;
   if (sqlite_init) return 0;
   module = fd_new_module("SQLITE",0);
 

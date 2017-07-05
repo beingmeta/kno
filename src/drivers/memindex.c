@@ -36,68 +36,68 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache);
 
 /* The in-memory index */
 
-static fdtype mem_index_fetch(fd_index ix,fdtype key)
+static lispval mem_index_fetch(fd_index ix,lispval key)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if (mix->mix_loaded==0) load_mem_index(mix,1);
-  return fd_hashtable_get(&(ix->index_cache),key,FD_EMPTY_CHOICE);
+  return fd_hashtable_get(&(ix->index_cache),key,EMPTY);
 }
 
-static int mem_index_fetchsize(fd_index ix,fdtype key)
+static int mem_index_fetchsize(fd_index ix,lispval key)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if (mix->mix_loaded==0) load_mem_index(mix,1);
-  fdtype v = fd_hashtable_get(&(ix->index_cache),key,FD_EMPTY_CHOICE);
+  lispval v = fd_hashtable_get(&(ix->index_cache),key,EMPTY);
   int size = FD_CHOICE_SIZE(v);
   fd_decref(v);
   return size;
 }
 
-static fdtype *mem_index_fetchn(fd_index ix,int n,fdtype *keys)
+static lispval *mem_index_fetchn(fd_index ix,int n,lispval *keys)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if (mix->mix_loaded==0) load_mem_index(mix,1);
-  fdtype *results = u8_alloc_n(n,fdtype);
+  lispval *results = u8_alloc_n(n,lispval);
   fd_hashtable cache = &(ix->index_cache);
   int i = 0;
   u8_read_lock(&(cache->table_rwlock));
   while (i<n) {
     results[i]=fd_hashtable_get_nolock
-      (&(ix->index_cache),keys[i],FD_EMPTY_CHOICE);
+      (&(ix->index_cache),keys[i],EMPTY);
     i++;}
   u8_rw_unlock(&(cache->table_rwlock));
   return results;
 }
 
-static fdtype *mem_index_fetchkeys(fd_index ix,int *n)
+static lispval *mem_index_fetchkeys(fd_index ix,int *n)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if (mix->mix_loaded==0) load_mem_index(mix,1);
-  fdtype keys = fd_hashtable_keys(&(ix->index_cache));
-  fdtype added = fd_hashtable_keys(&(ix->index_adds));
-  fdtype edits = fd_hashtable_keys(&(ix->index_adds));
-  FD_ADD_TO_CHOICE(keys,added);
-  FD_DO_CHOICES(key,edits) {
-    if (FD_PAIRP(key)) {
-      fdtype real_key = FD_CDR(key);
+  lispval keys = fd_hashtable_keys(&(ix->index_cache));
+  lispval added = fd_hashtable_keys(&(ix->index_adds));
+  lispval edits = fd_hashtable_keys(&(ix->index_adds));
+  CHOICE_ADD(keys,added);
+  DO_CHOICES(key,edits) {
+    if (PAIRP(key)) {
+      lispval real_key = FD_CDR(key);
       fd_incref(real_key);
-      FD_ADD_TO_CHOICE(keys,real_key);}}
+      CHOICE_ADD(keys,real_key);}}
   fd_decref(edits);
-  if (FD_EMPTY_CHOICEP(keys)) {
+  if (EMPTYP(keys)) {
     *n = 0; return NULL;}
   else {
-    if (FD_PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
+    if (PRECHOICEP(keys)) keys = fd_simplify_choice(keys);
     int n_elts = FD_CHOICE_SIZE(keys);
     if (n_elts==1) {
-      fdtype *results = u8_alloc_n(1,fdtype);
+      lispval *results = u8_alloc_n(1,lispval);
       results[0]=keys;
       *n = 1;
       u8_free(keys);
       return results;}
     else {
-      fdtype *results = u8_alloc_n(n_elts,fdtype);
-      const fdtype *values = FD_CHOICE_DATA(keys);
-      memcpy(results,values,sizeof(fdtype)*n_elts);
+      lispval *results = u8_alloc_n(n_elts,lispval);
+      const lispval *values = FD_CHOICE_DATA(keys);
+      memcpy(results,values,sizeof(lispval)*n_elts);
       u8_free(keys);
       *n = n_elts;
       return results;}}
@@ -114,9 +114,9 @@ static int gather_keysizes(struct FD_KEYVAL *kv,void *data)
   fd_choice filter=state->filter;
   int i = state->i;
   if (i<state->n) {
-    fdtype key = kv->kv_key;
+    lispval key = kv->kv_key;
     if ( (filter==NULL) || (fast_choice_containsp(key,filter)) ) {
-      fdtype value = kv->kv_val;
+      lispval value = kv->kv_val;
       int size = FD_CHOICE_SIZE(value);
       state->sizes[i].keysizekey = key;
       fd_incref(key);
@@ -138,7 +138,7 @@ static struct FD_KEY_SIZE *mem_index_fetchinfo(fd_index ix,fd_choice filter,int 
   return keysizes;
 }
 
-static fdtype drop_symbol, set_symbol;
+static lispval drop_symbol, set_symbol;
 
 static int write_add(struct FD_KEYVAL *kv,void *mixptr)
 {
@@ -163,8 +163,8 @@ static int write_edit(struct FD_KEYVAL *kv,void *mixptr)
   struct FD_MEM_INDEX *memidx = (struct FD_MEM_INDEX *)mixptr;
   struct FD_STREAM *stream = &(memidx->index_stream);
   struct FD_OUTBUF *out = fd_writebuf(stream);
-  fdtype key = kv->kv_key;
-  if ((FD_PAIRP(key))&&(FD_SYMBOLP(FD_CAR(key)))) {
+  lispval key = kv->kv_key;
+  if ((PAIRP(key))&&(SYMBOLP(FD_CAR(key)))) {
     if ((FD_CAR(key)) == drop_symbol) {
       fd_write_byte(out,(unsigned char)-1);
       fd_write_dtype(out,FD_CDR(key));
@@ -181,9 +181,9 @@ static int write_edit(struct FD_KEYVAL *kv,void *mixptr)
 static int merge_edits(struct FD_KEYVAL *kv,void *cacheptr)
 {
   fd_hashtable cache = (fd_hashtable)cacheptr;
-  fdtype key = kv->kv_key;
-  if ((FD_PAIRP(key))&&(FD_CAR(key) == drop_symbol)) {
-    fdtype real_key = FD_CDR(key);
+  lispval key = kv->kv_key;
+  if ((PAIRP(key))&&(FD_CAR(key) == drop_symbol)) {
+    lispval real_key = FD_CDR(key);
     fd_hashtable_op_nolock(cache,fd_table_drop,real_key,kv->kv_val);}
   return 0;
 }
@@ -271,7 +271,7 @@ static int mem_index_commit(fd_index ix)
 
 static int simplify_choice(struct FD_KEYVAL *kv,void *data)
 {
-  if (FD_PRECHOICEP(kv->kv_val))
+  if (PRECHOICEP(kv->kv_val))
     kv->kv_val = fd_simplify_choice(kv->kv_val);
   return 0;
 }
@@ -300,8 +300,8 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   in = fd_readbuf(stream);
   while (i<n_entries) {
     char op = fd_read_byte(in);
-    fdtype key = fd_read_dtype(in);
-    fdtype value = fd_read_dtype(in);
+    lispval key = fd_read_dtype(in);
+    lispval value = fd_read_dtype(in);
     fd_hashtable_op_nolock
       (cache,
        ((op<0)?(fd_table_drop):
@@ -321,9 +321,9 @@ static ssize_t load_mem_index(struct FD_MEM_INDEX *memidx,int lock_cache)
   return 1;
 }
 
-static fdtype preload_opt;
+static lispval preload_opt;
 
-static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts)
+static fd_index open_mem_index(u8_string file,fd_storage_flags flags,lispval opts)
 {
   struct FD_MEM_INDEX *memidx = u8_alloc(struct FD_MEM_INDEX);
   fd_init_index((fd_index)memidx,&mem_index_handler,
@@ -333,12 +333,12 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts
     fd_init_file_stream(&(memidx->index_stream),file,
 			FD_FILE_MODIFY,-1,
 			fd_driver_bufsize);
-  fdtype preload = fd_getopt(opts,preload_opt,FD_TRUE);
+  lispval preload = fd_getopt(opts,preload_opt,FD_TRUE);
   if (!(stream)) return NULL;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   unsigned int magic_no = fd_read_4bytes(fd_readbuf(stream));
   if (magic_no!=FD_MEM_INDEX_MAGIC_NUMBER) {
-    fd_seterr(_("NotMemindex"),"open_mem_index",u8_strdup(file),FD_VOID);
+    fd_seterr(_("NotMemindex"),"open_mem_index",file,VOID);
     fd_close_stream(stream,0);
     u8_free(memidx);
     return NULL;}
@@ -354,19 +354,19 @@ static fd_index open_mem_index(u8_string file,fd_storage_flags flags,fdtype opts
     else fd_resize_hashtable(&(memidx->index_cache),1.5*n_entries);
     fd_resize_hashtable(&(memidx->index_adds),memindex_adds_init);
     fd_resize_hashtable(&(memidx->index_edits),memindex_edits_init);
-    if (!(FD_FALSEP(preload)))
+    if (!(FALSEP(preload)))
       load_mem_index(memidx,0);
     if (!(U8_BITP(flags,FD_STORAGE_UNREGISTERED)))
       fd_register_index((fd_index)memidx);
     return (fd_index)memidx;}
 }
 
-static fdtype mem_index_ctl(fd_index ix,fdtype op,int n,fdtype *args)
+static lispval mem_index_ctl(fd_index ix,lispval op,int n,lispval *args)
 {
   struct FD_MEM_INDEX *mix = (struct FD_MEM_INDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
     return fd_err("BadIndexOpCall","hashindex_ctl",
-		  mix->indexid,FD_VOID);
+		  mix->indexid,VOID);
   else if (op == fd_cachelevel_op) {
     if (mix->mix_loaded)
       return FD_INT(3);
@@ -378,7 +378,7 @@ static fdtype mem_index_ctl(fd_index ix,fdtype op,int n,fdtype *args)
     if (mix->mix_loaded==0) load_mem_index(mix,1);
     return FD_TRUE;}
   else if (op == fd_capacity_op)
-    return FD_EMPTY_CHOICE;
+    return EMPTY;
   else if (op == fd_load_op) {
     if (mix->mix_loaded == 0) load_mem_index(mix,1);
     return FD_INT(mix->index_cache.table_n_keys);}
@@ -402,10 +402,10 @@ FD_EXPORT int fd_make_mem_index(u8_string spec)
 }
 
 static fd_index mem_index_create(u8_string spec,void *type_data,
-				 fd_storage_flags flags,fdtype opts)
+				 fd_storage_flags flags,lispval opts)
 {
   if (fd_make_mem_index(spec)>=0)
-    return fd_open_index(spec,flags,FD_VOID);
+    return fd_open_index(spec,flags,VOID);
   else return NULL;
 }
 

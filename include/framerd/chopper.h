@@ -27,30 +27,30 @@ FD_EXPORT void fd_set_lexicon_source(char *directory);
 FD_EXPORT void fd_set_rhizome_source(char *source);
 
 struct WORD {
-  char *spelling; fdtype lstr, compounds;
+  char *spelling; lispval lstr, compounds;
   unsigned char weights[MAX_ARCS];
-  fdtype lword; int tag, d, w; int previous, next;};
+  lispval lword; int tag, d, w; int previous, next;};
 
 typedef struct ARC {
   unsigned char measure; struct NODE *target;} *arc;
 struct ARC_ENTRY {
   unsigned short n_entries; arc entries;};
 struct NODE {
-  fdtype name; struct ARC_ENTRY arcs[MAX_ARCS]; 
-  fdtype terminal; int index;};
+  lispval name; struct ARC_ENTRY arcs[MAX_ARCS]; 
+  lispval terminal; int index;};
 
 typedef int state_ref;
 struct STATE {
   struct NODE *node;
   state_ref self, previous, qnext, qprev;
   unsigned short distance, input;
-  unsigned char arc; fdtype word;};
+  unsigned char arc; lispval word;};
 
 typedef int phrase_ref;
 struct PHRASE_LINK {
-  fdtype tag; phrase_ref ptr;};
+  lispval tag; phrase_ref ptr;};
 struct PHRASE {
-  int start, end, head, tag; fdtype root, prep, frame; 
+  int start, end, head, tag; lispval root, prep, frame; 
   int n_links, max_n_links, n_extras, max_n_extras; 
   phrase_ref last_action, subject_of;
   unsigned int *extras;

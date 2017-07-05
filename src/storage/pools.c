@@ -16,6 +16,7 @@
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/storage.h"
+#include "framerd/drivers.h"
 #include "framerd/apply.h"
 
 #include <libu8/libu8.h>
@@ -60,15 +61,59 @@ static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
 
-static fdtype lock_symbol, unlock_symbol, p_oid_symbol;
+static lispval lock_symbol, unlock_symbol;
 
-static int savep(fdtype v,int only_finished);
-static int modifiedp(fdtype v);
+static int savep(lispval v,int only_finished);
+static int modifiedp(lispval v);
+
+static fd_pool *consed_pools = NULL;
+ssize_t n_consed_pools = 0, consed_pools_len=0;
+u8_mutex consed_pools_lock;
+
+static int add_consed_pool(fd_pool p)
+{
+  u8_lock_mutex(&consed_pools_lock);
+  fd_pool *scan=consed_pools, *limit=scan+n_consed_pools;
+  while (scan<limit) {
+    if ( *scan == p ) {
+      u8_unlock_mutex(&consed_pools_lock);
+      return 0;}
+    else scan++;}
+  if (n_consed_pools>=consed_pools_len) {
+    ssize_t new_len=consed_pools_len+64;
+    fd_pool *newvec=u8_realloc(consed_pools,new_len*sizeof(fd_pool));
+    if (newvec) {
+      consed_pools=newvec;
+      consed_pools_len=new_len;}
+    else {
+      u8_seterr(fd_MallocFailed,"add_consed_pool",u8dup(p->poolid));
+      u8_unlock_mutex(&consed_pools_lock);
+      return -1;}}
+  consed_pools[n_consed_pools++]=p;
+  u8_unlock_mutex(&consed_pools_lock);
+  return 1;
+}
+
+static int drop_consed_pool(fd_pool p)
+{
+  u8_lock_mutex(&consed_pools_lock);
+  fd_pool *scan=consed_pools, *limit=scan+n_consed_pools;
+  while (scan<limit) {
+    if ( *scan == p ) {
+      size_t to_shift=(limit-scan)-1;
+      memmove(scan,scan+1,to_shift);
+      n_consed_pools--;
+      u8_unlock_mutex(&consed_pools_lock);
+      return 1;}
+    else scan++;}
+  u8_unlock_mutex(&consed_pools_lock);
+  return 0;
+}
 
 /* This is used in committing pools */
 
 struct FD_POOL_WRITES {
-  int len; fdtype *oids, *values;};
+  int len; lispval *oids, *values;};
 
 /* Locking functions for external libraries */
 
@@ -86,9 +131,9 @@ FD_EXPORT void _fd_unlock_pool(fd_pool p)
               "Pool '%s' already unlocked!",p->poolid);
 }
 
-FD_FASTOP int modify_readonly(fdtype table,int val)
+FD_FASTOP int modify_readonly(lispval table,int val)
 {
-  if (FD_CONSP(table)) {
+  if (CONSP(table)) {
     fd_ptr_type table_type = FD_PTR_TYPE(table);
     switch (table_type) {
     case fd_slotmap_type: {
@@ -96,11 +141,11 @@ FD_FASTOP int modify_readonly(fdtype table,int val)
       tbl->table_readonly=val;
       return 1;}
     case fd_schemap_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_SCHEMAP *tbl=(fd_schemap)table;
       tbl->table_readonly=val;
       return 1;}
     case fd_hashtable_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_HASHTABLE *tbl=(fd_hashtable)table;
       tbl->table_readonly=val;
       return 1;}
     default:
@@ -108,9 +153,9 @@ FD_FASTOP int modify_readonly(fdtype table,int val)
   else return 0;
 }
 
-FD_FASTOP int modify_finished(fdtype table,int val)
+FD_FASTOP int modify_finished(lispval table,int val)
 {
-  if (FD_CONSP(table)) {
+  if (CONSP(table)) {
     fd_ptr_type table_type = FD_PTR_TYPE(table);
     switch (table_type) {
     case fd_slotmap_type: {
@@ -118,11 +163,11 @@ FD_FASTOP int modify_finished(fdtype table,int val)
       tbl->table_finished=val;
       return 1;}
     case fd_schemap_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_SCHEMAP *tbl=(fd_schemap)table;
       tbl->table_finished=val;
       return 1;}
     case fd_hashtable_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
+      struct FD_HASHTABLE *tbl=(fd_hashtable)table;
       tbl->table_finished=val;
       return 1;}
     default:
@@ -133,31 +178,31 @@ FD_FASTOP int modify_finished(fdtype table,int val)
 /* Pool delays for IPEVAL */
 
 #if FD_GLOBAL_IPEVAL
-fdtype *fd_pool_delays = NULL;
+lispval *fd_pool_delays = NULL;
 #elif FD_USE__THREAD
-__thread fdtype *fd_pool_delays = NULL;
+__thread lispval *fd_pool_delays = NULL;
 #elif FD_USE_TLS
 u8_tld_key fd_pool_delays_key;
 #else
-fdtype *fd_pool_delays = NULL;
+lispval *fd_pool_delays = NULL;
 #endif
 
 #if ((FD_USE_TLS) && (!(FD_GLOBAL_IPEVAL)))
-FD_EXPORT fdtype *fd_get_pool_delays()
+FD_EXPORT lispval *fd_get_pool_delays()
 {
-  return (fdtype *) u8_tld_get(fd_pool_delays_key);
+  return (lispval *) u8_tld_get(fd_pool_delays_key);
 }
 FD_EXPORT void fd_init_pool_delays()
 {
   int i = 0;
-  fdtype *delays = (fdtype *) u8_tld_get(fd_pool_delays_key);
+  lispval *delays = (lispval *) u8_tld_get(fd_pool_delays_key);
   if (delays) return;
-  delays = u8_alloc_n(FD_N_POOL_DELAYS,fdtype);
-  while (i<FD_N_POOL_DELAYS) delays[i++]=FD_EMPTY_CHOICE;
+  delays = u8_alloc_n(FD_N_POOL_DELAYS,lispval);
+  while (i<FD_N_POOL_DELAYS) delays[i++]=EMPTY;
   u8_tld_set(fd_pool_delays_key,delays);
 }
 #else
-FD_EXPORT fdtype *fd_get_pool_delays()
+FD_EXPORT lispval *fd_get_pool_delays()
 {
   return fd_pool_delays;
 }
@@ -165,8 +210,8 @@ FD_EXPORT void fd_init_pool_delays()
 {
   int i = 0;
   if (fd_pool_delays) return;
-  fd_pool_delays = u8_alloc_n(FD_N_POOL_DELAYS,fdtype);
-  while (i<FD_N_POOL_DELAYS) fd_pool_delays[i++]=FD_EMPTY_CHOICE;
+  fd_pool_delays = u8_alloc_n(FD_N_POOL_DELAYS,lispval);
+  while (i<FD_N_POOL_DELAYS) fd_pool_delays[i++]=EMPTY;
 }
 #endif
 
@@ -179,19 +224,11 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
 
 FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fd_storage_flags flags);
 
-int fd_ignore_anonymous_oids = 0;
-
 static u8_mutex pool_registry_lock;
-
-FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid)
-{
-  if (fd_ignore_anonymous_oids) return FD_EMPTY_CHOICE;
-  else return fd_err(fd_AnonymousOID,cxt,NULL,oid);
-}
 
 /* Pool ops */
 
-FD_EXPORT fdtype fd_pool_ctl(fd_pool p,fdtype poolop,int n,fdtype *args)
+FD_EXPORT lispval fd_pool_ctl(fd_pool p,lispval poolop,int n,lispval *args)
 {
   struct FD_POOL_HANDLER *h = p->pool_handler;
   if (h->poolctl)
@@ -203,8 +240,8 @@ FD_EXPORT fdtype fd_pool_ctl(fd_pool p,fdtype poolop,int n,fdtype *args)
 
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 {
-  fdtype intarg = FD_INT(level);
-  fdtype result = fd_pool_ctl(p,FD_POOLOP_CACHELEVEL,1,&intarg);
+  lispval intarg = FD_INT(level);
+  lispval result = fd_pool_ctl(p,fd_cachelevel_op,1,&intarg);
   if (FD_ABORTP(result)) {fd_clear_errors(1);}
   fd_decref(result);
   p->pool_cache_level = level;
@@ -212,7 +249,7 @@ FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 
 static void init_cache_level(fd_pool p)
 {
-  if (FD_EXPECT_FALSE(p->pool_cache_level<0)) {
+  if (PRED_FALSE(p->pool_cache_level<0)) {
     fd_pool_setcache(p,fd_default_cache_level);}
 }
 
@@ -241,17 +278,17 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     return 0;
   else if (bix<0)
     return bix;
-  else if (p->pool_flags&FD_STORAGE_UNREGISTERED)
-    return 0;
+  else if (p->pool_flags&FD_STORAGE_UNREGISTERED) {
+    add_consed_pool(p);
+    return 0;}
   else u8_lock_mutex(&pool_registry_lock);
   if (fd_n_pools >= fd_max_pools) {
-    fd_seterr(_("n_pools > MAX_POOLS"),"fd_register_pool",NULL,FD_VOID);
+    fd_seterr(_("n_pools > MAX_POOLS"),"fd_register_pool",NULL,VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   if ((capacity>=FD_OID_BUCKET_SIZE) &&
       ((p->pool_base)%FD_OID_BUCKET_SIZE)) {
-    fd_seterr(fd_InvalidPoolRange,"fd_register_pool",
-              u8_strdup(p->poolid),FD_VOID);
+    fd_seterr(fd_InvalidPoolRange,"fd_register_pool",p->poolid,VOID);
     u8_unlock_mutex(&pool_registry_lock);
     return -1;}
   /* Set up the serial number */
@@ -312,19 +349,19 @@ static void register_pool_label(fd_pool p)
 {
   u8_string base = u8_string_subst(p->pool_label,"/","_");
   u8_byte *dot = strchr(base,'.');
-  fdtype pkey = FD_VOID, probe = FD_VOID;
+  lispval pkey = VOID, probe = VOID;
   if (dot) {
     pkey = fd_substring(base,dot);
-    probe = fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
-    if (FD_EMPTY_CHOICEP(probe)) {
+    probe = fd_hashtable_get(&poolid_table,pkey,EMPTY);
+    if (EMPTYP(probe)) {
       fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
-      p->pool_prefix = FD_STRDATA(pkey);}
+      p->pool_prefix = CSTRING(pkey);}
     else fd_decref(pkey);}
   else pkey = fd_substring(base,NULL);
-  probe = fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
-  if (FD_EMPTY_CHOICEP(probe)) {
+  probe = fd_hashtable_get(&poolid_table,pkey,EMPTY);
+  if (EMPTYP(probe)) {
     fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
-    if (p->pool_prefix == NULL) p->pool_prefix = FD_STRDATA(pkey);}
+    if (p->pool_prefix == NULL) p->pool_prefix = CSTRING(pkey);}
   u8_free(base);
 }
 
@@ -403,7 +440,7 @@ FD_EXPORT u8_string fd_pool_label(fd_pool p)
 
 /* Finding the subpool */
 
-FD_EXPORT fd_pool fd_find_subpool(struct FD_GLUEPOOL *gp,fdtype oid)
+FD_EXPORT fd_pool fd_find_subpool(struct FD_GLUEPOOL *gp,lispval oid)
 {
   FD_OID addr = FD_OID_ADDR(oid);
   struct FD_POOL **subpools = gp->subpools; int n = gp->n_subpools;
@@ -436,26 +473,28 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 
 /* Basic functions on single OID values */
 
-FD_EXPORT fdtype fd_oid_value(fdtype oid)
+FD_EXPORT lispval fd_oid_value(lispval oid)
 {
-  if (FD_EMPTY_CHOICEP(oid)) return oid;
-  else if (FD_OIDP(oid)) return fd_fetch_oid(NULL,oid);
+  if (EMPTYP(oid)) return oid;
+  else if (OIDP(oid)) return fd_fetch_oid(NULL,oid);
   else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
 
-FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
+FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
 {
-  if (p->pool_handler->lock == NULL) {
+  if ( (p->pool_handler->lock == NULL) ||
+       (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+       (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {
     return fd_fetch_oid(p,oid);}
   else if (p == fd_zero_pool)
     return fd_zero_pool_value(oid);
   else {
-    fdtype smap = fd_hashtable_get(&(p->pool_changes),oid,FD_VOID);
-    if (FD_VOIDP(smap)) {
+    lispval smap = fd_hashtable_get(&(p->pool_changes),oid,VOID);
+    if (VOIDP(smap)) {
       int retval = fd_pool_lock(p,oid);
-      if (retval<0) return FD_ERROR_VALUE;
+      if (retval<0) return FD_ERROR;
       else if (retval) {
-        fdtype v = fd_fetch_oid(p,oid);
+        lispval v = fd_fetch_oid(p,oid);
         if (FD_ABORTP(v)) return v;
         modify_readonly(v,0);
         fd_hashtable_store(&(p->pool_changes),oid,v);
@@ -463,21 +502,15 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
       else return fd_err(fd_CantLockOID,"fd_locked_oid_value",
                          u8_strdup(p->pool_source),oid);}
     else if (smap == FD_LOCKHOLDER) {
-      fdtype v = fd_fetch_oid(p,oid);
+      lispval v = fd_fetch_oid(p,oid);
       if (FD_ABORTP(v)) return v;
       modify_readonly(v,0);
       fd_hashtable_store(&(p->pool_changes),oid,v);
       return v;}
-#if 0 /* We shouldn't need this if the invariant that none of the values
-         in pool_changes is readonly. */
-    else if (FD_CONSP(smap)) {
-      modify_readonly(smap,0);
-      return smap;}
-#endif
     else return smap;}
 }
 
-FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
+FD_EXPORT int fd_set_oid_value(lispval oid,lispval value)
 {
   fd_pool p = fd_oid2pool(oid);
   if (p == NULL)
@@ -486,11 +519,9 @@ FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
     return fd_zero_pool_store(oid,value);
   else {
     modify_readonly(value,0);
-    if ((FD_SLOTMAPP(value))||
-        (FD_SCHEMAPP(value))||
-        (FD_HASHTABLEP(value))) {
-      fd_store(value,p_oid_symbol,oid);}
-    if (p->pool_handler->lock == NULL) {
+    if ( (p->pool_handler->lock == NULL) ||
+         (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+         (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {
       fd_hashtable_store(&(p->pool_cache),oid,value);
       return 1;}
     else if (fd_lock_oid(oid)) {
@@ -501,16 +532,16 @@ FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value)
 
 /* Fetching OID values */
 
-FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid)
+FD_EXPORT lispval fd_pool_fetch(fd_pool p,lispval oid)
 {
-  fdtype v = FD_VOID;
+  lispval v = VOID;
   init_cache_level(p);
   if (p == fd_zero_pool)
     return fd_zero_pool_value(oid);
   else if (p->pool_handler->fetch)
     v = p->pool_handler->fetch(p,oid);
   else if (p->pool_cache_level)
-    v = fd_hashtable_get(&(p->pool_cache),oid,FD_EMPTY_CHOICE);
+    v = fd_hashtable_get(&(p->pool_cache),oid,EMPTY);
   else {}
   if (FD_ABORTP(v)) return v;
   else if (p->pool_cache_level == 0)
@@ -520,63 +551,70 @@ FD_EXPORT fdtype fd_pool_fetch(fd_pool p,fdtype oid)
             (fd_hashtable_op(&(p->pool_changes),
                              fd_table_replace_novoid,oid,v)) )
     return v;
+  else if ( (p->pool_handler->lock == NULL) ||
+            (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+            (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) )
+    modify_readonly(v,0);
   else modify_readonly(v,1);
   if (p->pool_cache_level>0)
     fd_hashtable_store(&(p->pool_cache),oid,v);
   return v;
 }
 
-FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
+FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
 {
   FDTC *fdtc = ((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
   struct FD_HASHTABLE *oidcache = ((fdtc!=NULL)?(&(fdtc->oids)):(NULL));
   int decref_oids = 0, cachelevel;
   if (p == NULL) {
-    fd_seterr(fd_NotAPool,"fd_pool_prefetch",
-              u8_strdup("NULL pool ptr"),FD_VOID);
+    fd_seterr(fd_NotAPool,"fd_pool_prefetch","NULL pool ptr",VOID);
     return -1;}
-  else if (FD_EMPTY_CHOICEP(oids))
+  else if (EMPTYP(oids))
     return 0;
   else init_cache_level(p);
+  int nolock=
+    ( (p->pool_handler->lock == NULL) ||
+      (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+      (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) );
   cachelevel = p->pool_cache_level;
   /* It doesn't make sense to prefetch if you're not caching. */
   if (cachelevel<1) return 0;
   if (p->pool_handler->fetchn == NULL) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
-      FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oids);
+      CHOICE_ADD(fd_pool_delays[p->pool_serialno],oids);
       return 0;}
     else {
       int n_fetches = 0;
-      FD_DO_CHOICES(oid,oids) {
-        fdtype v = fd_pool_fetch(p,oid);
+      DO_CHOICES(oid,oids) {
+        lispval v = fd_pool_fetch(p,oid);
         if (FD_ABORTP(v)) {
           FD_STOP_DO_CHOICES; return v;}
         n_fetches++; fd_decref(v);}
       return n_fetches;}}
-  if (FD_PRECHOICEP(oids)) {
+  if (PRECHOICEP(oids)) {
     oids = fd_make_simple_choice(oids); 
     decref_oids = 1;}
   if (fd_ipeval_status()) {
     FD_HASHTABLE *cache = &(p->pool_cache); int n_to_fetch = 0;
-    /* fdtype oidschoice = fd_make_simple_choice(oids); */
-    fdtype *delays = &(fd_pool_delays[p->pool_serialno]);
-    FD_DO_CHOICES(oid,oids)
+    /* lispval oidschoice = fd_make_simple_choice(oids); */
+    lispval *delays = &(fd_pool_delays[p->pool_serialno]);
+    DO_CHOICES(oid,oids)
       if (fd_hashtable_probe_novoid(cache,oid)) {}
       else {
-        FD_ADD_TO_CHOICE(*delays,oid);
+        CHOICE_ADD(*delays,oid);
         n_to_fetch++;}
     (void)fd_ipeval_delay(n_to_fetch);
     /* fd_decref(oidschoice); */
     return 0;}
-  else if (FD_CHOICEP(oids)) {
+  else if (CHOICEP(oids)) {
     struct FD_HASHTABLE *cache = &(p->pool_cache);
     struct FD_HASHTABLE *changes = &(p->pool_changes);
     int n = FD_CHOICE_SIZE(oids);
     /* We use n_locked to track how many of the OIDs are in
        pool_changes (locked). */
     int n_locked = (changes->table_n_keys)?(0):(-1);
-    fdtype *values, *oidv = u8_alloc_n(n,fdtype), *write = oidv;
-    FD_DO_CHOICES(o,oids)
+    lispval *values, *oidv = u8_alloc_n(n,lispval), *write = oidv;
+    DO_CHOICES(o,oids)
       if (((oidcache == NULL)||(fd_hashtable_probe_novoid(oidcache,o)==0))&&
           (fd_hashtable_probe_novoid(cache,o)==0) &&
           (fd_hashtable_probe(changes,o)==0))
@@ -599,11 +637,14 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     values = p->pool_handler->fetchn(p,n,oidv);
     /* If you got results, store them in the cache */
     if (values) {
-      if (n_locked) {
+      if (nolock) {
+        /* If the pool doesn't have to be locked, don't bother locking
+           any values */}
+      else if (n_locked) {
         /* If some values are locked, we consider each value and
            store it in the appropriate tables (changes or cache). */
         int j = 0; while (j<n) {
-          fdtype v = values[j], oid = oidv[j];
+          lispval v = values[j], oid = oidv[j];
           /* Try to replace it in the changes table, and only store it
              in the cache if it's not there. Also update the readonly
              bit accordingly. */
@@ -618,7 +659,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
           j++;}}
       else {
         /* If no values are locked, make them all readonly */
-        int j = 0; while (j<n) modify_readonly(values[j++],1);
+        int j = 0; while (j<n) {
+          lispval v=values[j];
+          modify_readonly(v,1);
+          j++;}
         if (fdtc) fd_hashtable_iter(oidcache,fd_table_store,n,oidv,values);
         /* Store them all in the cache */
         fd_hashtable_iter(cache,fd_table_store_noref,n,oidv,values);}}
@@ -630,7 +674,8 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     if (decref_oids) fd_decref(oids);
     return n;}
   else {
-    fdtype v = p->pool_handler->fetch(p,oids);
+    lispval v = p->pool_handler->fetch(p,oids);
+    if (FD_ABORTP(v)) return v;
     fd_hashtable changes = &(p->pool_changes);
     if ( (changes->table_n_keys==0) ||
          /* This will store it in changes if it's already there */
@@ -643,25 +688,25 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
 
 /* Swapping out OIDs */
 
-FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
+FD_EXPORT int fd_pool_swapout(fd_pool p,lispval oids)
 {
   fd_hashtable cache = &(p->pool_cache);
-  if (FD_PRECHOICEP(oids)) {
-    fdtype simple = fd_make_simple_choice(oids);
+  if (PRECHOICEP(oids)) {
+    lispval simple = fd_make_simple_choice(oids);
     int rv = fd_pool_swapout(p,simple);
     fd_decref(simple);
     return rv;}
-  else if (FD_VOIDP(oids)) {
+  else if (VOIDP(oids)) {
     int rv = cache->table_n_keys;
     if ((p->pool_flags)&(FD_STORAGE_KEEP_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
-  else if ((FD_OIDP(oids))||(FD_CHOICEP(oids)))
+  else if ((OIDP(oids))||(CHOICEP(oids)))
     u8_log(fd_storage_loglevel+2,"SwapPool",
            "Swapping out %d oids in pool %s",
            FD_CHOICE_SIZE(oids),p->poolid);
-  else if (FD_PRECHOICEP(oids))
+  else if (PRECHOICEP(oids))
     u8_log(fd_storage_loglevel+2,"SwapPool",
            "Swapping out ~%d oids in pool %s",
            FD_PRECHOICE_SIZE(oids),p->poolid);
@@ -678,14 +723,14 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
               "No custom swapout clearing caches for %s",p->poolid);
   if (p->pool_flags&FD_STORAGE_NOSWAP)
     return 0;
-  else if (FD_OIDP(oids)) {
-    fd_hashtable_store(cache,oids,FD_VOID);
+  else if (OIDP(oids)) {
+    fd_hashtable_store(cache,oids,VOID);
     rv = 1;}
-  else if (FD_CHOICEP(oids)) {
+  else if (CHOICEP(oids)) {
     rv = FD_CHOICE_SIZE(oids);
     fd_hashtable_iterkeys(cache,fd_table_replace,
                           FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),
-                          FD_VOID);
+                          VOID);
     fd_devoid_hashtable(cache,0);}
   else {
     rv = cache->table_n_keys;
@@ -701,47 +746,49 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 
 /* Allocating OIDs */
 
-FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
+FD_EXPORT lispval fd_pool_alloc(fd_pool p,int n)
 {
-  fdtype result = p->pool_handler->alloc(p,n);
+  lispval result = p->pool_handler->alloc(p,n);
   if (p == fd_zero_pool)
     return result;
-  else if (FD_OIDP(result)) {
+  else if (OIDP(result)) {
     if (p->pool_handler->lock)
-      fd_hashtable_store(&(p->pool_changes),result,FD_EMPTY_CHOICE);
-    else fd_hashtable_store(&(p->pool_cache),result,FD_EMPTY_CHOICE);
+      fd_hashtable_store(&(p->pool_changes),result,EMPTY);
+    else fd_hashtable_store(&(p->pool_cache),result,EMPTY);
     return result;}
-  else if (FD_CHOICEP(result)) {
+  else if (CHOICEP(result)) {
     if (p->pool_handler->lock)
       fd_hashtable_iterkeys(&(p->pool_changes),fd_table_store,
                             FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
-                            FD_EMPTY_CHOICE);
+                            EMPTY);
     else fd_hashtable_iterkeys(&(p->pool_cache),fd_table_store,
                                FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
-                               FD_EMPTY_CHOICE);
+                               EMPTY);
     return result;}
   else if (FD_ABORTP(result)) return result;
   else if (FD_EXCEPTIONP(result)) return result;
   else return fd_err("BadDriverResult","fd_pool_alloc",
-                     u8_strdup(p->pool_source),FD_VOID);
+                     u8_strdup(p->pool_source),VOID);
 }
 
 /* Locking and unlocking OIDs within pools */
 
-FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
+FD_EXPORT int fd_pool_lock(fd_pool p,lispval oids)
 {
   int decref_oids = 0;
   struct FD_HASHTABLE *locks = &(p->pool_changes);
-  if (p->pool_handler->lock == NULL)
+  if ( (p->pool_handler->lock == NULL) ||
+       (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
+       (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) )
     return 0;
-  if (FD_PRECHOICEP(oids)) {
+  if (PRECHOICEP(oids)) {
     oids = fd_make_simple_choice(oids);
     decref_oids = 1;}
-  if (FD_CHOICEP(oids)) {
-    fdtype needy; int retval, n; fdtype temp_oidv[1];
+  if (CHOICEP(oids)) {
+    lispval needy; int retval, n; lispval temp_oidv[1];
     struct FD_CHOICE *oidc = fd_alloc_choice(FD_CHOICE_SIZE(oids));
-    fdtype *oidv = (fdtype *)FD_XCHOICE_DATA(oidc), *write = oidv;
-    FD_DO_CHOICES(o,oids)
+    lispval *oidv = (lispval *)FD_XCHOICE_DATA(oidc), *write = oidv;
+    DO_CHOICES(o,oids)
       if (fd_hashtable_probe(locks,o)==0) *write++=o;
     if (decref_oids) fd_decref(oids);
     if (write == oidv) {
@@ -750,8 +797,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
       return 1;}
     else n = write-oidv;
     if (p->pool_handler->lock == NULL) {
-      fd_seterr(fd_CantLockOID,"fd_pool_lock",
-                u8_strdup(p->poolid),oids);
+      fd_seterr(fd_CantLockOID,"fd_pool_lock",p->poolid,oids);
       return -1;}
     if (n==1) {
       needy=temp_oidv[0]=oidv[0];
@@ -763,7 +809,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
       fd_decref(needy);
       return retval;}
     else if (retval) {
-      fd_hashtable_iterkeys(&(p->pool_cache),fd_table_replace,n,oidv,FD_VOID);
+      fd_hashtable_iterkeys(&(p->pool_cache),fd_table_replace,n,oidv,VOID);
       fd_hashtable_iterkeys(locks,fd_table_store,n,oidv,FD_LOCKHOLDER);}
     fd_decref(needy);
     return retval;}
@@ -772,7 +818,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
     if (decref_oids) fd_decref(oids);
     if (retval<0) return retval;
     else if (retval) {
-      fd_hashtable_op(&(p->pool_cache),fd_table_replace,oids,FD_VOID);
+      fd_hashtable_op(&(p->pool_cache),fd_table_replace,oids,VOID);
       fd_hashtable_op(locks,fd_table_store,oids,FD_LOCKHOLDER);
       return 1;}
     else return 0;}
@@ -781,7 +827,7 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
     return 1;}
 }
 
-FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,
+FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,
                              fd_storage_unlock_flag flags)
 {
   struct FD_HASHTABLE *changes = &(p->pool_changes);
@@ -790,34 +836,34 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,
   else if (flags<0) {
     int n = changes->table_n_keys;
     if (p->pool_handler->unlock) {
-      fdtype to_unlock = fd_hashtable_keys(changes);
+      lispval to_unlock = fd_hashtable_keys(changes);
       p->pool_handler->unlock(p,to_unlock);
       fd_decref(to_unlock);}
     fd_reset_hashtable(changes,-1,1);
     return -n;}
   else {
     int n_unlocked = 0, n_committed = (flags>0) ? (fd_pool_commit(p,oids)) : (0);
-    fdtype to_unlock = FD_EMPTY_CHOICE;
-    fdtype locked_oids = fd_hashtable_keys(changes);
+    lispval to_unlock = EMPTY;
+    lispval locked_oids = fd_hashtable_keys(changes);
     if (n_committed<0) {}
-    {FD_DO_CHOICES(oid,locked_oids) {
+    {DO_CHOICES(oid,locked_oids) {
         fd_pool pool = fd_oid2pool(oid);
         if (p == pool) {
-          fdtype v = fd_hashtable_get(changes,oid,FD_VOID);
-          if ( (!(FD_VOIDP(v))) && (!(modifiedp(v)))) {
-            FD_ADD_TO_CHOICE(to_unlock,oid);}}}}
+          lispval v = fd_hashtable_get(changes,oid,VOID);
+          if ( (!(VOIDP(v))) && (!(modifiedp(v)))) {
+            CHOICE_ADD(to_unlock,oid);}}}}
     fd_decref(locked_oids);
     to_unlock = fd_simplify_choice(to_unlock);
     n_unlocked = FD_CHOICE_SIZE(to_unlock);
     if (p->pool_handler->unlock)
       p->pool_handler->unlock(p,to_unlock);
-    if (FD_OIDP(to_unlock))
-      fd_hashtable_op(changes,fd_table_replace,to_unlock,FD_VOID);
+    if (OIDP(to_unlock))
+      fd_hashtable_op(changes,fd_table_replace,to_unlock,VOID);
     else {
       fd_hashtable_iterkeys(changes,fd_table_replace,
                             FD_CHOICE_SIZE(to_unlock),
                             FD_CHOICE_DATA(to_unlock),
-                            FD_VOID);}
+                            VOID);}
     fd_devoid_hashtable(changes,0);
     fd_decref(to_unlock);
     return n_unlocked+n_committed;}
@@ -830,24 +876,24 @@ FD_EXPORT int fd_pool_unlock_all(fd_pool p,fd_storage_unlock_flag flags)
 
 /* Declare locked OIDs 'finished' (read-only) */
 
-FD_EXPORT int fd_pool_finish(fd_pool p,fdtype oids)
+FD_EXPORT int fd_pool_finish(fd_pool p,lispval oids)
 {
   int finished = 0;
   fd_hashtable changes = &(p->pool_changes);
-  FD_DO_CHOICES(oid,oids) {
+  DO_CHOICES(oid,oids) {
     fd_pool pool = fd_oid2pool(oid);
     if (p == pool) {
-      fdtype v = fd_hashtable_get(changes,oid,FD_VOID);
-      if (FD_CONSP(v)) {
-        if (FD_SLOTMAPP(v)) {
+      lispval v = fd_hashtable_get(changes,oid,VOID);
+      if (CONSP(v)) {
+        if (SLOTMAPP(v)) {
           if (FD_SLOTMAP_MODIFIEDP(v)) {
             FD_SLOTMAP_MARK_FINISHED(v);
             finished++;}}
-        else if (FD_SCHEMAPP(v)) {
+        else if (SCHEMAPP(v)) {
           if (FD_SCHEMAP_MODIFIEDP(v)) {
             FD_SCHEMAP_MARK_FINISHED(v);
             finished++;}}
-        else if (FD_HASHTABLEP(v)) {
+        else if (HASHTABLEP(v)) {
           if (FD_HASHTABLE_MODIFIEDP(v)) {
             FD_HASHTABLE_MARK_FINISHED(v);
             finished++;}}
@@ -858,12 +904,12 @@ FD_EXPORT int fd_pool_finish(fd_pool p,fdtype oids)
 
 /* Committing OIDs to external sources */
 
-struct FD_POOL_WRITES pick_writes(fd_pool p,fdtype oids);
+struct FD_POOL_WRITES pick_writes(fd_pool p,lispval oids);
 struct FD_POOL_WRITES pick_modified(fd_pool p,int finished);
 static void abort_commit(fd_pool p,struct FD_POOL_WRITES writes);
 static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes);
 
-FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
+FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
 {
   struct FD_HASHTABLE *locks = &(p->pool_changes);
 
@@ -879,11 +925,11 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
   else {
     int retval = 0; double start_time = u8_elapsed_time();
     struct FD_POOL_WRITES writes=
-      ((FD_FALSEP(oids))||(FD_VOIDP(oids))) ? (pick_modified(p,0)):
-      ((FD_OIDP(oids))||(FD_CHOICEP(oids))||(FD_PRECHOICEP(oids))) ?
+      ((FALSEP(oids))||(VOIDP(oids))) ? (pick_modified(p,0)):
+      ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) ?
       (pick_writes(p,oids)) :
       (FD_TRUEP(oids)) ? (pick_modified(p,1)):
-      (pick_writes(p,FD_EMPTY_CHOICE));
+      (pick_writes(p,EMPTY));
     if (writes.len) {
       u8_log(fd_storage_loglevel+1,"PoolCommit",
              "####### Saving %d/%d OIDs in %s",
@@ -923,13 +969,13 @@ FD_EXPORT int fd_pool_commit_finished(fd_pool p)
 
 static void abort_commit(fd_pool p,struct FD_POOL_WRITES writes)
 {
-  fdtype *scan = writes.values, *limit = writes.values+writes.len;
+  lispval *scan = writes.values, *limit = writes.values+writes.len;
   while (scan<limit) {
-    fdtype v = *scan++;
-    if (!(FD_CONSP(v))) continue;
-    else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_MARK_MODIFIED(v);}
-    else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_MARK_MODIFIED(v);}
-    else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_MARK_MODIFIED(v);}
+    lispval v = *scan++;
+    if (!(CONSP(v))) continue;
+    else if (SLOTMAPP(v)) {FD_SLOTMAP_MARK_MODIFIED(v);}
+    else if (SCHEMAPP(v)) {FD_SCHEMAP_MARK_MODIFIED(v);}
+    else if (HASHTABLEP(v)) {FD_HASHTABLE_MARK_MODIFIED(v);}
     else {}
     fd_decref(v);}
   u8_free(writes.values); writes.values = NULL;
@@ -940,30 +986,30 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
 {
   fd_hashtable changes = &(p->pool_changes);
   int i = 0, n = writes.len, unlock_count;
-  fdtype *oids = writes.oids;
-  fdtype *values = writes.values;
-  fdtype *unlock = oids;
+  lispval *oids = writes.oids;
+  lispval *values = writes.values;
+  lispval *unlock = oids;
   u8_write_lock(&(changes->table_rwlock));
   FD_HASH_BUCKET **buckets = changes->ht_buckets;
   int n_buckets = changes->ht_n_buckets;
   while (i<n) {
-    fdtype oid=oids[i];
-    fdtype v = values[i];
+    lispval oid=oids[i];
+    lispval v = values[i];
     struct FD_KEYVAL *kv=fd_hashvec_get(oid,buckets,n_buckets);
     if (kv==NULL) {i++; continue;} /* Warning here? Abort? */
     else if (kv->kv_val != v) { i++; continue;}
-    else if (!(FD_CONSP(v))) {
-      kv->kv_val=FD_VOID;
+    else if (!(CONSP(v))) {
+      kv->kv_val=VOID;
       *unlock++=oids[i++];
       continue;}
     else {
       int finished=1;
-      fdtype cur = kv->kv_val;
-      if (FD_SLOTMAPP(v)) {
+      lispval cur = kv->kv_val;
+      if (SLOTMAPP(v)) {
         if (FD_SLOTMAP_MODIFIEDP(v)) finished=0;}
-      else if (FD_SCHEMAPP(v)) {
+      else if (SCHEMAPP(v)) {
         if (FD_SCHEMAP_MODIFIEDP(v)) finished=0;}
-      else if (FD_HASHTABLEP(v)) {
+      else if (HASHTABLEP(v)) {
         if (FD_HASHTABLE_MODIFIEDP(v)) finished=0;}
       else {}
       /* If anybody else has a pointer to this OID, don't swap it
@@ -971,14 +1017,14 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
       if ((finished) && (FD_CONS_REFCOUNT(v)<=2)) {
         *unlock++=oids[i];
         fd_decref(cur);
-        kv->kv_val=FD_VOID;}
+        kv->kv_val=VOID;}
       fd_decref(v);
       i++;}}
   u8_rw_unlock(&(changes->table_rwlock));
   u8_free(writes.values); writes.values = NULL;
   unlock_count = unlock-oids;
   if ((p->pool_handler->unlock)&&(unlock_count)) {
-    fdtype to_unlock = fd_init_choice
+    lispval to_unlock = fd_init_choice
       (NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
     int retval = p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
@@ -995,24 +1041,24 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
 
 /* Support for committing OIDs */
 
-static int savep(fdtype v,int only_finished)
+static int savep(lispval v,int only_finished)
 {
-  if (!(FD_CONSP(v))) return 1;
-  else if (FD_SLOTMAPP(v)) {
+  if (!(CONSP(v))) return 1;
+  else if (SLOTMAPP(v)) {
     if (FD_SLOTMAP_MODIFIEDP(v)) {
       if ((!(only_finished))||(FD_SLOTMAP_FINISHEDP(v))) {
         FD_SLOTMAP_CLEAR_MODIFIED(v);
         return 1;}
       else return 0;}
     else return 0;}
-  else if (FD_SCHEMAPP(v)) {
+  else if (SCHEMAPP(v)) {
     if (FD_SCHEMAP_MODIFIEDP(v)) {
       if ((!(only_finished))||(FD_SCHEMAP_FINISHEDP(v))) {
         FD_SCHEMAP_CLEAR_MODIFIED(v);
         return 1;}
       else return 0;}
     else return 0;}
-  else if (FD_HASHTABLEP(v)) {
+  else if (HASHTABLEP(v)) {
     if (FD_HASHTABLE_MODIFIEDP(v)) {
       if ((!(only_finished))||(FD_HASHTABLE_READONLYP(v))) {
         FD_HASHTABLE_CLEAR_MODIFIED(v);
@@ -1023,22 +1069,22 @@ static int savep(fdtype v,int only_finished)
   else return 1;
 }
 
-static int modifiedp(fdtype v)
+static int modifiedp(lispval v)
 {
-  if (!(FD_CONSP(v))) return 1;
-  else if (FD_SLOTMAPP(v))
+  if (!(CONSP(v))) return 1;
+  else if (SLOTMAPP(v))
     return FD_SLOTMAP_MODIFIEDP(v);
-  else if (FD_SCHEMAPP(v))
+  else if (SCHEMAPP(v))
     return FD_SCHEMAP_MODIFIEDP(v);
-  else if (FD_HASHTABLEP(v))
+  else if (HASHTABLEP(v))
     return FD_HASHTABLE_MODIFIEDP(v);
   else return 1;
 }
 
-struct FD_POOL_WRITES pick_writes(fd_pool p,fdtype oids)
+struct FD_POOL_WRITES pick_writes(fd_pool p,lispval oids)
 {
   struct FD_POOL_WRITES writes;
-  if (FD_EMPTY_CHOICEP(oids)) {
+  if (EMPTYP(oids)) {
     u8_zero_struct(writes);
     writes.len = 0;
     writes.oids = NULL;
@@ -1047,15 +1093,15 @@ struct FD_POOL_WRITES pick_writes(fd_pool p,fdtype oids)
   else {
     fd_hashtable changes = &(p->pool_changes);
     int n = FD_CHOICE_SIZE(oids);
-    fdtype *oidv, *values;
+    lispval *oidv, *values;
     u8_zero_struct(writes);
     writes.len = n;
-    writes.oids = oidv = u8_alloc_n(n,fdtype);
-    writes.values = values = u8_alloc_n(n,fdtype);
-    {FD_DO_CHOICES(oid,oids) {
+    writes.oids = oidv = u8_alloc_n(n,lispval);
+    writes.values = values = u8_alloc_n(n,lispval);
+    {DO_CHOICES(oid,oids) {
         fd_pool pool = fd_oid2pool(oid);
         if (pool == p) {
-          fdtype v = fd_hashtable_get(changes,oid,FD_VOID);
+          lispval v = fd_hashtable_get(changes,oid,VOID);
           if (v == FD_LOCKHOLDER) {}
           else if (savep(v,0)) {
             *oidv++=oid; *values++=v;}
@@ -1072,22 +1118,22 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
     u8_read_lock(&(changes->table_rwlock));
     unlock = 1;}
   int n = changes->table_n_keys;
-  fdtype *oidv, *values;
+  lispval *oidv, *values;
   u8_zero_struct(writes);
   writes.len = n;
-  writes.oids = oidv = u8_alloc_n(n,fdtype);
-  writes.values = values = u8_alloc_n(n,fdtype);
+  writes.oids = oidv = u8_alloc_n(n,lispval);
+  writes.values = values = u8_alloc_n(n,lispval);
   {
     struct FD_HASH_BUCKET **scan = changes->ht_buckets;
     struct FD_HASH_BUCKET **lim = scan+changes->ht_n_buckets;
     while (scan < lim) {
       if (*scan) {
         struct FD_HASH_BUCKET *e = *scan;
-        int fd_n_entries = e->fd_n_entries;
+        int bucket_len = e->bucket_len;
         struct FD_KEYVAL *kvscan = &(e->kv_val0);
-        struct FD_KEYVAL *kvlimit = kvscan+fd_n_entries;
+        struct FD_KEYVAL *kvlimit = kvscan+bucket_len;
         while (kvscan<kvlimit) {
-          fdtype key = kvscan->kv_key, val = kvscan->kv_val;
+          lispval key = kvscan->kv_key, val = kvscan->kv_val;
           if (val == FD_LOCKHOLDER) {kvscan++; continue;}
           else if (savep(val,finished)) {
             *oidv++=key;
@@ -1108,20 +1154,20 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
 
 /* Operations on a single OID which operate on its pool */
 
-FD_EXPORT int fd_lock_oid(fdtype oid)
+FD_EXPORT int fd_lock_oid(lispval oid)
 {
   fd_pool p = fd_oid2pool(oid);
   return fd_pool_lock(p,oid);
 }
 
-FD_EXPORT int fd_unlock_oid(fdtype oid,int commit)
+FD_EXPORT int fd_unlock_oid(lispval oid,int commit)
 {
   fd_pool p = fd_oid2pool(oid);
   return fd_pool_unlock(p,oid,commit);
 }
 
 
-FD_EXPORT int fd_swapout_oid(fdtype oid)
+FD_EXPORT int fd_swapout_oid(lispval oid)
 {
   fd_pool p = fd_oid2pool(oid);
   if (p == NULL)
@@ -1131,43 +1177,43 @@ FD_EXPORT int fd_swapout_oid(fdtype oid)
   else if (!(fd_hashtable_probe_novoid(&(p->pool_cache),oid)))
     return 0;
   else {
-    fd_hashtable_store(&(p->pool_cache),oid,FD_VOID);
+    fd_hashtable_store(&(p->pool_cache),oid,VOID);
     return 1;}
 }
 
 /* Operations over choices of OIDs from different pools */
 
-typedef int (*fd_pool_op)(fd_pool p,fdtype oids);
+typedef int (*fd_pool_op)(fd_pool p,lispval oids);
 
-static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
+static int apply_poolop(fd_pool_op fn,lispval oids_arg)
 {
-  fdtype oids = fd_make_simple_choice(oids_arg);
-  if (FD_OIDP(oids)) {
+  lispval oids = fd_make_simple_choice(oids_arg);
+  if (OIDP(oids)) {
     fd_pool p = fd_oid2pool(oids);
     int rv = (p)?(fn(p,oids)):(0);
     fd_decref(oids);
     return rv;}
   else {
     int n = FD_CHOICE_SIZE(oids), sum = 0;
-    fdtype *allocd = u8_alloc_n(n,fdtype), *oidv = allocd, *write = oidv;
-    {FD_DO_CHOICES(oid,oids) {
-        if (FD_OIDP(oid)) *write++=oid;}}
+    lispval *allocd = u8_alloc_n(n,lispval), *oidv = allocd, *write = oidv;
+    {DO_CHOICES(oid,oids) {
+        if (OIDP(oid)) *write++=oid;}}
     n = write-oidv;
     while (n>0) {
       fd_pool p = fd_oid2pool(oidv[0]);
       if (p == NULL) {oidv++; n--; continue;}
       else {
-        fdtype oids_in_pool = oidv[0];
-        fdtype *keep = oidv;
+        lispval oids_in_pool = oidv[0];
+        lispval *keep = oidv;
         int rv = 0, i = 1; while (i<n) {
-          fdtype oid = oidv[i++];
+          lispval oid = oidv[i++];
           fd_pool pool = fd_oid2pool(oid);
           if (p == NULL) {}
           else if (pool == p) {
-            FD_ADD_TO_CHOICE(oids_in_pool,oid);}
+            CHOICE_ADD(oids_in_pool,oid);}
           else *keep++=oid;}
         oids_in_pool = fd_simplify_choice(oids_in_pool);
-        if (FD_EMPTY_CHOICEP(oids_in_pool)) rv = 0;
+        if (EMPTYP(oids_in_pool)) rv = 0;
         else rv = fn(p,oids_in_pool);
         if (rv<0) {}
         else sum = sum+rv;
@@ -1178,27 +1224,27 @@ static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
     return sum;}
 }
 
-FD_EXPORT int fd_lock_oids(fdtype oids_arg)
+FD_EXPORT int fd_lock_oids(lispval oids_arg)
 {
   return apply_poolop(fd_pool_lock,oids_arg);
 }
 
-static int commit_and_unlock(fd_pool p,fdtype oids)
+static int commit_and_unlock(fd_pool p,lispval oids)
 {
   return fd_pool_unlock(p,oids,commit_modified);
 }
 
-static int unlock_unmodified(fd_pool p,fdtype oids)
+static int unlock_unmodified(fd_pool p,lispval oids)
 {
   return fd_pool_unlock(p,oids,leave_modified);
 }
 
-static int unlock_and_discard(fd_pool p,fdtype oids)
+static int unlock_and_discard(fd_pool p,lispval oids)
 {
   return fd_pool_unlock(p,oids,discard_modified);
 }
 
-FD_EXPORT int fd_unlock_oids(fdtype oids_arg,fd_storage_unlock_flag flags)
+FD_EXPORT int fd_unlock_oids(lispval oids_arg,fd_storage_unlock_flag flags)
 {
   switch (flags) {
   case commit_modified:
@@ -1212,7 +1258,7 @@ FD_EXPORT int fd_unlock_oids(fdtype oids_arg,fd_storage_unlock_flag flags)
     return -1;}
 }
 
-FD_EXPORT int fd_swapout_oids(fdtype oids)
+FD_EXPORT int fd_swapout_oids(lispval oids)
 {
   return apply_poolop(fd_pool_swapout,oids);
 }
@@ -1224,17 +1270,17 @@ FD_EXPORT
    Sorts the OIDs by pool (ignoring non-oids) and executes
    a prefetch from each pool.
 */
-int fd_prefetch_oids(fdtype oids)
+int fd_prefetch_oids(lispval oids)
 {
   return apply_poolop(fd_pool_prefetch,oids);
 }
 
-FD_EXPORT int fd_commit_oids(fdtype oids)
+FD_EXPORT int fd_commit_oids(lispval oids)
 {
   return apply_poolop(fd_pool_commit,oids);
 }
 
-FD_EXPORT int fd_finish_oids(fdtype oids)
+FD_EXPORT int fd_finish_oids(lispval oids)
 {
   return apply_poolop(fd_pool_finish,oids);
 }
@@ -1246,8 +1292,7 @@ FD_EXPORT int fd_pool_load(fd_pool p)
   if (p->pool_handler->getload)
     return (p->pool_handler->getload)(p);
   else {
-    fd_seterr(fd_UnhandledOperation,"fd_pool_load",
-              u8_strdup(p->poolid),FD_VOID);
+    fd_seterr(fd_UnhandledOperation,"fd_pool_load",p->poolid,VOID);
     return -1;}
 }
 
@@ -1259,7 +1304,7 @@ FD_EXPORT void fd_pool_close(fd_pool p)
 
 /* Callable versions of simple functions */
 
-FD_EXPORT fd_pool _fd_oid2pool(fdtype oid)
+FD_EXPORT fd_pool _fd_oid2pool(lispval oid)
 {
   int baseid = FD_OID_BASE_ID(oid);
   int baseoff = FD_OID_BASE_OFFSET(oid);
@@ -1271,17 +1316,18 @@ FD_EXPORT fd_pool _fd_oid2pool(fdtype oid)
     return NULL;}
   else return fd_find_subpool((struct FD_GLUEPOOL *)top,oid);
 }
-FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid)
+FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
 {
   FDTC *fdtc = ((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
-  fdtype value;
+  lispval value;
   if (fdtc) {
-    fdtype value = ((fdtc->oids.table_n_keys)?
-                  (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
-                  (FD_VOID));
-    if (!(FD_VOIDP(value))) return value;}
+    lispval value = ((fdtc->oids.table_n_keys)?
+                     (fd_hashtable_get(&(fdtc->oids),oid,VOID)):
+                     (VOID));
+    if (!(VOIDP(value))) return value;}
   if (p == NULL) p = fd_oid2pool(oid);
-  if (p == NULL) return fd_anonymous_oid("fd_fetch_oid",oid);
+  if (p == NULL)
+    return EMPTY;
   else if (p == fd_zero_pool)
     return fd_zero_pool_value(oid);
   else if ( (p->pool_cache_level) &&
@@ -1289,7 +1335,7 @@ FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid)
             (fd_hashtable_probe_novoid(&(p->pool_changes),oid)) ) {
     /* This is where the OID is 'locked' (has an entry in the changes
        table */
-    value = fd_hashtable_get(&(p->pool_changes),oid,FD_VOID);
+    value = fd_hashtable_get(&(p->pool_changes),oid,VOID);
     if (value == FD_LOCKHOLDER) {
       value = fd_pool_fetch(p,oid);
       modify_readonly(value,0);
@@ -1297,12 +1343,12 @@ FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid)
       return value;}
     else return value;}
   if (p->pool_cache_level)
-    value = fd_hashtable_get(&(p->pool_cache),oid,FD_VOID);
-  else value = FD_VOID;
-  if (FD_VOIDP(value)) {
+    value = fd_hashtable_get(&(p->pool_cache),oid,VOID);
+  else value = VOID;
+  if (VOIDP(value)) {
     if (fd_ipeval_delay(1)) {
-      FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oid);
-      return FD_EMPTY_CHOICE;}
+      CHOICE_ADD(fd_pool_delays[p->pool_serialno],oid);
+      return EMPTY;}
     else value = fd_pool_fetch(p,oid);}
   if (FD_ABORTP(value)) return value;
   if (fdtc) fd_hashtable_store(&(fdtc->oids),oid,value);
@@ -1311,17 +1357,17 @@ FD_EXPORT fdtype fd_fetch_oid(fd_pool p,fdtype oid)
 
 /* Pools to lisp and vice versa */
 
-FD_EXPORT fdtype fd_pool2lisp(fd_pool p)
+FD_EXPORT lispval fd_pool2lisp(fd_pool p)
 {
   if (p == NULL)
-    return FD_ERROR_VALUE;
+    return FD_ERROR;
   else if (p->pool_serialno<0)
-    return fd_incref((fdtype) p);
-  else return FDTYPE_IMMEDIATE(fd_pool_type,p->pool_serialno);
+    return fd_incref((lispval) p);
+  else return LISPVAL_IMMEDIATE(fd_pool_type,p->pool_serialno);
 }
-FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
+FD_EXPORT fd_pool fd_lisp2pool(lispval lp)
 {
-  if (FD_TYPEP(lp,fd_pool_type)) {
+  if (TYPEP(lp,fd_pool_type)) {
     int serial = FD_GET_IMMEDIATE(lp,fd_pool_type);
     if (serial<fd_n_pools)
       return fd_pools_by_serialno[serial];
@@ -1330,7 +1376,7 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
       fd_seterr3(fd_InvalidPoolPtr,"fd_lisp2pool",
                  u8_sprintf(buf,64,"serial = 0x%x",serial));
       return NULL;}}
-  else if (FD_TYPEP(lp,fd_consed_pool_type))
+  else if (TYPEP(lp,fd_consed_pool_type))
     return (fd_pool) lp;
   else {
     fd_seterr(fd_TypeError,_("not a pool"),NULL,lp);
@@ -1342,22 +1388,34 @@ FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data)
 {
   int i=0, n=fd_n_pools, count=0;
+
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (fcn(p,data))
       return count+1;
     count++;}
+
+  if (n_consed_pools) {
+    u8_lock_mutex(&consed_pools_lock);
+    int j = 0; while (j<n_consed_pools) {
+      fd_pool p = consed_pools[j++];
+      int retval = fcn(p,data);
+      count++;
+      if (retval) u8_unlock_mutex(&consed_pools_lock);
+      if (retval<0) return retval;
+      else if (retval) break;
+      else j++;}}
   return count;
 }
 
-FD_EXPORT fdtype fd_all_pools()
+FD_EXPORT lispval fd_all_pools()
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = EMPTY;
   int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
-    fdtype lp = fd_pool2lisp(p);
-    FD_ADD_TO_CHOICE(results,lp);}
+    lispval lp = fd_pool2lisp(p);
+    CHOICE_ADD(results,lp);}
   return results;
 }
 
@@ -1420,15 +1478,15 @@ FD_EXPORT fd_pool fd_find_pool_by_source(u8_string source)
   return NULL;
 }
 
-FD_EXPORT fdtype fd_find_pools_by_source(u8_string source)
+FD_EXPORT lispval fd_find_pools_by_source(u8_string source)
 {
-  fdtype results=FD_EMPTY_CHOICE;
+  lispval results=EMPTY;
   int i=0, n=fd_n_pools;
   while (i<n) {
     fd_pool p = fd_pools_by_serialno[i++];
     if (match_pool_source(p,source)) {
-      fdtype lp=fd_pool2lisp(p);
-      FD_ADD_TO_CHOICE(results,lp);}}
+      lispval lp=fd_pool2lisp(p);
+      CHOICE_ADD(results,lp);}}
   return results;
 }
 
@@ -1447,7 +1505,7 @@ FD_EXPORT fd_pool fd_find_pool_by_prefix(u8_string prefix)
 
 static int do_swapout(fd_pool p,void *data)
 {
-  fd_pool_swapout(p,FD_VOID);
+  fd_pool_swapout(p,VOID);
   return 0;
 }
 
@@ -1519,21 +1577,21 @@ long fd_object_cache_load()
 
 static int accumulate_cached(fd_pool p,void *ptr)
 {
-  fdtype *vals = (fdtype *)ptr;
-  fdtype keys = fd_hashtable_keys(&(p->pool_cache));
-  FD_ADD_TO_CHOICE(*vals,keys);
+  lispval *vals = (lispval *)ptr;
+  lispval keys = fd_hashtable_keys(&(p->pool_cache));
+  CHOICE_ADD(*vals,keys);
   return 0;
 }
 
 FD_EXPORT
-fdtype fd_cached_oids(fd_pool p)
+lispval fd_cached_oids(fd_pool p)
 {
   if (p == NULL) {
-    int retval; fdtype result = FD_EMPTY_CHOICE;
+    int retval; lispval result = EMPTY;
     retval = fd_for_pools(accumulate_cached,(void *)&result);
     if (retval<0) {
       fd_decref(result);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else return result;}
   else return fd_hashtable_keys(&(p->pool_cache));
 }
@@ -1541,21 +1599,21 @@ fdtype fd_cached_oids(fd_pool p)
 static int accumulate_changes(fd_pool p,void *ptr)
 {
   if (p->pool_changes.table_n_keys) {
-    fdtype *vals = (fdtype *)ptr;
-    fdtype keys = fd_hashtable_keys(&(p->pool_changes));
-    FD_ADD_TO_CHOICE(*vals,keys);}
+    lispval *vals = (lispval *)ptr;
+    lispval keys = fd_hashtable_keys(&(p->pool_changes));
+    CHOICE_ADD(*vals,keys);}
   return 0;
 }
 
 FD_EXPORT
-fdtype fd_changed_oids(fd_pool p)
+lispval fd_changed_oids(fd_pool p)
 {
   if (p == NULL) {
-    int retval; fdtype result = FD_EMPTY_CHOICE;
+    int retval; lispval result = EMPTY;
     retval = fd_for_pools(accumulate_changes,(void *)&result);
     if (retval<0) {
       fd_decref(result);
-      return FD_ERROR_VALUE;}
+      return FD_ERROR;}
     else return result;}
   else return fd_hashtable_keys(&(p->pool_changes));
 }
@@ -1584,12 +1642,12 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->poolid = u8_strdup(id);
   p->pool_label = NULL;
   p->pool_prefix = NULL;
-  p->pool_namefn = FD_VOID;
+  p->pool_namefn = VOID;
 }
 
-FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn)
+FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)
 {
-  fdtype oldnamefn = p->pool_namefn;
+  lispval oldnamefn = p->pool_namefn;
   fd_incref(namefn);
   p->pool_namefn = namefn;
   fd_decref(oldnamefn);
@@ -1617,7 +1675,7 @@ static struct FD_POOL_HANDLER gluepool_handler={
 
 
 FD_EXPORT fd_pool fd_get_pool
-(u8_string spec,fd_storage_flags flags,fdtype opts)
+(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   if (strchr(spec,';')) {
     fd_pool p = NULL;
@@ -1640,26 +1698,26 @@ FD_EXPORT fd_pool fd_get_pool
 }
 
 FD_EXPORT fd_pool fd_use_pool
-(u8_string spec,fd_storage_flags flags,fdtype opts)
+(u8_string spec,fd_storage_flags flags,lispval opts)
 {
   return fd_get_pool(spec,flags&(~FD_STORAGE_UNREGISTERED),opts);
 }
 
 FD_EXPORT fd_pool fd_name2pool(u8_string spec)
 {
-  fdtype label_string = fd_make_string(NULL,-1,spec);
-  fdtype poolv = fd_hashtable_get(&poolid_table,label_string,FD_VOID);
+  lispval label_string = fd_make_string(NULL,-1,spec);
+  lispval poolv = fd_hashtable_get(&poolid_table,label_string,VOID);
   fd_decref(label_string);
-  if (FD_VOIDP(poolv)) return NULL;
+  if (VOIDP(poolv)) return NULL;
   else return fd_lisp2pool(poolv);
 }
 
-static void display_pool(u8_output out,fd_pool p,fdtype lp)
+static void display_pool(u8_output out,fd_pool p,lispval lp)
 {
   char addrbuf[128], numbuf[32];
   u8_string type = ((p->pool_handler) && (p->pool_handler->name)) ?
     (p->pool_handler->name) : ((u8_string)"notype");
-  u8_string tag = (FD_CONSP(lp)) ? ("CONSPOOL") : ("POOL");
+  u8_string tag = (CONSP(lp)) ? ("CONSPOOL") : ("POOL");
   int n_cached=p->pool_cache.table_n_keys;
   int n_changed=p->pool_changes.table_n_keys;
   strcpy(addrbuf,"@");
@@ -1679,7 +1737,7 @@ static void display_pool(u8_output out,fd_pool p,fdtype lp)
                  tag,p->poolid,type,addrbuf,n_cached,n_changed,lp);
 }
 
-static int unparse_pool(u8_output out,fdtype x)
+static int unparse_pool(u8_output out,lispval x)
 {
   fd_pool p = fd_lisp2pool(x);
   if (p == NULL) return 0;
@@ -1687,7 +1745,7 @@ static int unparse_pool(u8_output out,fdtype x)
   return 1;
 }
 
-static int unparse_consed_pool(u8_output out,fdtype x)
+static int unparse_consed_pool(u8_output out,lispval x)
 {
   fd_pool p = (fd_pool)x;
   if (p == NULL) return 0;
@@ -1695,44 +1753,29 @@ static int unparse_consed_pool(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype pool_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
+static lispval pool_parsefn(int n,lispval *args,fd_compound_typeinfo e)
 {
   fd_pool p = NULL;
-  if (n<3) return FD_VOID;
+  if (n<3) return VOID;
   else if (n==3)
-    p = fd_use_pool(FD_STRING_DATA(args[2]),0,FD_VOID);
-  else if ((FD_STRINGP(args[2])) &&
+    p = fd_use_pool(FD_STRING_DATA(args[2]),0,VOID);
+  else if ((STRINGP(args[2])) &&
            ((p = fd_find_pool_by_prefix(FD_STRING_DATA(args[2]))) == NULL))
-    p = fd_use_pool(FD_STRING_DATA(args[3]),0,FD_VOID);
+    p = fd_use_pool(FD_STRING_DATA(args[3]),0,VOID);
   if (p) return fd_pool2lisp(p);
-  else return fd_err(fd_CantParseRecord,"pool_parsefn",NULL,FD_VOID);
-}
-
-/* Config methods */
-
-static fdtype config_get_anonymousok(fdtype var,void *data)
-{
-  if (fd_ignore_anonymous_oids) return FD_TRUE;
-  else return FD_TRUE;
-}
-
-static int config_set_anonymousok(fdtype var,fdtype val,void *data)
-{
-  if (FD_TRUEP(val)) fd_ignore_anonymous_oids = 1;
-  else fd_ignore_anonymous_oids = 0;
-  return 1;
+  else return fd_err(fd_CantParseRecord,"pool_parsefn",NULL,VOID);
 }
 
 /* Executing pool delays */
 
 FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
 {
-  fdtype todo = fd_pool_delays[p->pool_serialno];
-  if (FD_EMPTY_CHOICEP(todo)) return 0;
+  lispval todo = fd_pool_delays[p->pool_serialno];
+  if (EMPTYP(todo)) return 0;
   else {
     /* u8_lock_mutex(&(fd_ipeval_lock)); */
     todo = fd_pool_delays[p->pool_serialno];
-    fd_pool_delays[p->pool_serialno]=FD_EMPTY_CHOICE;
+    fd_pool_delays[p->pool_serialno]=EMPTY;
     todo = fd_simplify_choice(todo);
     /* u8_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
@@ -1754,9 +1797,9 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
 
 /* Raw pool table operations */
 
-static fdtype pool_get(fd_pool p,fdtype key,fdtype dflt)
+static lispval pool_get(fd_pool p,lispval key,lispval dflt)
 {
-  if (FD_OIDP(key)) {
+  if (OIDP(key)) {
     FD_OID addr = FD_OID_ADDR(key);
     FD_OID base = p->pool_base;
     if (FD_OID_COMPARE(addr,base)<0)
@@ -1766,7 +1809,7 @@ static fdtype pool_get(fd_pool p,fdtype key,fdtype dflt)
       unsigned int capacity = p->pool_capacity;
       int load = fd_pool_load(p);
       if (load<0)
-        return FD_ERROR_VALUE;
+        return FD_ERROR;
       else if ((p->pool_flags&FD_POOL_ADJUNCT) ?
                (offset<capacity) :
                (offset<load))
@@ -1775,7 +1818,7 @@ static fdtype pool_get(fd_pool p,fdtype key,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype pool_tableget(fdtype arg,fdtype key,fdtype dflt)
+static lispval pool_tableget(lispval arg,lispval key,lispval dflt)
 {
   fd_pool p=fd_lisp2pool(arg);
   if (p)
@@ -1783,75 +1826,67 @@ static fdtype pool_tableget(fdtype arg,fdtype key,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-FD_EXPORT fdtype fd_pool_get(fd_pool p,fdtype key)
+FD_EXPORT lispval fd_pool_get(fd_pool p,lispval key)
 {
-  return pool_get(p,key,FD_EMPTY_CHOICE);
+  return pool_get(p,key,EMPTY);
 }
 
-static int pool_store(fd_pool p,fdtype key,fdtype value)
+static int pool_store(fd_pool p,lispval key,lispval value)
 {
-  if (FD_OIDP(key)) {
+  if (OIDP(key)) {
     FD_OID addr = FD_OID_ADDR(key);
     FD_OID base = p->pool_base;
     if (FD_OID_COMPARE(addr,base)<0) {
-      fd_seterr(fd_PoolRangeError,"pool_store",
-                u8_strdup(fd_pool_id(p)),
-                key);
+      fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
       return -1;}
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
-        fd_seterr(fd_PoolRangeError,"pool_store",
-                  u8_strdup(fd_pool_id(p)),
-                  key);
+        fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
         return -1;}
       else if (p->pool_handler->lock == NULL) {
         rv = fd_hashtable_store(&(p->pool_cache),key,value);}
       else if (fd_pool_lock(p,key)) {
         rv = fd_hashtable_store(&(p->pool_changes),key,value);}
       else {
-        fd_seterr(fd_CantLockOID,"pool_store",
-                  u8_strdup(fd_pool_id(p)),
-                  key);
+        fd_seterr(fd_CantLockOID,"pool_store",fd_pool_id(p),key);
         return -1;}
       return rv;}}
   else {
-    fd_seterr(fd_NotAnOID,"pool_store",
-              u8_strdup(fd_pool_id(p)),
-              fd_incref(key));
+    fd_seterr(fd_NotAnOID,"pool_store",fd_pool_id(p),fd_incref(key));
     return -1;}
 }
 
-static fdtype pool_tablestore(fdtype arg,fdtype key,fdtype val)
+static lispval pool_tablestore(lispval arg,lispval key,lispval val)
 {
   fd_pool p=fd_lisp2pool(arg);
   if (p) {
     int rv=pool_store(p,key,val);
     if (rv<0)
-      return FD_ERROR_VALUE;
+      return FD_ERROR;
     else return FD_TRUE;}
   else return fd_type_error("pool","pool_tablestore",arg);
 }
 
-FD_EXPORT int fd_pool_store(fd_pool p,fdtype key,fdtype value)
+FD_EXPORT int fd_pool_store(fd_pool p,lispval key,lispval value)
 {
   return pool_store(p,key,value);
 }
 
-FD_EXPORT fdtype fd_pool_keys(fdtype arg)
+FD_EXPORT lispval fd_pool_keys(lispval arg)
 {
-  fdtype results = FD_EMPTY_CHOICE;
+  lispval results = EMPTY;
   fd_pool p = fd_lisp2pool(arg);
   if (p==NULL)
     return fd_type_error("pool","pool_tablekeys",arg);
   else {
     FD_OID base = p->pool_base;
     unsigned int i = 0; int load = fd_pool_load(p);
-    if (load<0) return FD_ERROR_VALUE;
+    if (load<0) return FD_ERROR;
     while (i<load) {
-      fdtype each = fd_make_oid(FD_OID_PLUS(base,i));
-      FD_ADD_TO_CHOICE(results,each);
+      lispval each = fd_make_oid(FD_OID_PLUS(base,i));
+      CHOICE_ADD(results,each);
       i++;}
     return results;}
 }
@@ -1861,6 +1896,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   struct FD_POOL *p = (struct FD_POOL *)c;
   struct FD_POOL_HANDLER *handler = p->pool_handler;
   if (p->pool_serialno>=0) return;
+  drop_consed_pool(p);
   if (handler->recycle) handler->recycle(p);
   fd_recycle_hashtable(&(p->pool_cache));
   fd_recycle_hashtable(&(p->pool_changes));
@@ -1872,7 +1908,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static fdtype copy_consed_pool(fdtype x,int deep)
+static lispval copy_consed_pool(lispval x,int deep)
 {
   return x;
 }
@@ -1881,7 +1917,7 @@ static fdtype copy_consed_pool(fdtype x,int deep)
 
 fd_ptr_type fd_consed_pool_type;
 
-static int check_pool(fdtype x)
+static int check_pool(lispval x)
 {
   int serial = FD_GET_IMMEDIATE(x,fd_pool_type);
   if (serial<0) return 0;
@@ -1893,9 +1929,9 @@ static int check_pool(fdtype x)
    statically. */
 static char oid_info_buf[512];
 
-static u8_string _more_oid_info(fdtype oid)
+static u8_string _more_oid_info(lispval oid)
 {
-  if (FD_OIDP(oid)) {
+  if (OIDP(oid)) {
     FD_OID addr = FD_OID_ADDR(oid);
     fd_pool p = fd_oid2pool(oid);
     unsigned int hi = FD_OID_HI(addr), lo = FD_OID_LO(addr);
@@ -1922,7 +1958,7 @@ static u8_string _more_oid_info(fdtype oid)
 
 /* Config functions */
 
-FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr)
+FD_EXPORT lispval fd_poolconfig_get(lispval var,void *vptr)
 {
   fd_pool *pptr = (fd_pool *)vptr;
   if (*pptr == NULL)
@@ -1930,14 +1966,14 @@ FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr)
   else {
     if (*pptr)
       return fd_pool2lisp(*pptr);
-    else return FD_EMPTY_CHOICE;}
+    else return EMPTY;}
 }
-FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
+FD_EXPORT int fd_poolconfig_set(lispval ignored,lispval v,void *vptr)
 {
   fd_pool *ppid = (fd_pool *)vptr;
   if (FD_POOLP(v)) *ppid = fd_lisp2pool(v);
-  else if (FD_STRINGP(v)) {
-    fd_pool p = fd_use_pool(FD_STRDATA(v),0,FD_VOID);
+  else if (STRINGP(v)) {
+    fd_pool p = fd_use_pool(CSTRING(v),0,VOID);
     if (p) *ppid = p; else return -1;}
   else return fd_type_error(_("pool spec"),"pool_config_set",v);
   return 1;
@@ -1949,7 +1985,7 @@ struct FD_POOL _fd_zero_pool;
 static u8_mutex zero_pool_alloc_lock;
 fd_pool fd_default_pool = &_fd_zero_pool;
 
-static fdtype zero_pool_alloc(fd_pool p,int n)
+static lispval zero_pool_alloc(fd_pool p,int n)
 {
   int start = -1;
   u8_lock_mutex(&zero_pool_alloc_lock);
@@ -1962,13 +1998,13 @@ static fdtype zero_pool_alloc(fd_pool p,int n)
     struct FD_CHOICE *ch = fd_alloc_choice(n);
     FD_INIT_CONS(ch,fd_cons_type);
     ch->choice_size = n;
-    fdtype *results = &(ch->choice_0);
+    lispval *results = &(ch->choice_0);
     int i = 0; while (i<n) {
       FD_OID addr = FD_MAKE_OID(0,start+i);
-      fdtype oid = fd_make_oid(addr);
+      lispval oid = fd_make_oid(addr);
       results[i]=oid;
       i++;}
-    return (fdtype)fd_cleanup_choice(ch,FD_CHOICE_DOSORT);}
+    return (lispval)fd_cleanup_choice(ch,FD_CHOICE_DOSORT);}
 }
 
 static int zero_pool_getload(fd_pool p)
@@ -1976,25 +2012,25 @@ static int zero_pool_getload(fd_pool p)
   return fd_zero_pool_load;
 }
 
-static fdtype zero_pool_fetch(fd_pool p,fdtype oid)
+static lispval zero_pool_fetch(fd_pool p,lispval oid)
 {
   return fd_zero_pool_value(oid);
 }
 
-static fdtype *zero_pool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *zero_pool_fetchn(fd_pool p,int n,lispval *oids)
 {
-  fdtype *results = u8_alloc_n(n,fdtype);
+  lispval *results = u8_alloc_n(n,lispval);
   int i = 0; while (i<n) {
     results[i]=fd_zero_pool_value(oids[i]);
     i++;}
   return results;
 }
 
-static int zero_pool_lock(fd_pool p,fdtype oids)
+static int zero_pool_lock(fd_pool p,lispval oids)
 {
   return 1;
 }
-static int zero_pool_unlock(fd_pool p,fdtype oids)
+static int zero_pool_unlock(fd_pool p,lispval oids)
 {
   return 0;
 }
@@ -2037,13 +2073,13 @@ static void init_zero_pool()
   _fd_zero_pool.pool_adjuncts_len = 0;
   _fd_zero_pool.pool_adjuncts = NULL;
   _fd_zero_pool.pool_prefix="";
-  _fd_zero_pool.pool_namefn = FD_VOID;
+  _fd_zero_pool.pool_namefn = VOID;
   fd_register_pool(&_fd_zero_pool);
 }
 
 /* Lisp pointers to Pool pointers */
 
-FD_EXPORT fd_pool _fd_get_poolptr(fdtype x)
+FD_EXPORT fd_pool _fd_get_poolptr(lispval x)
 {
   return fd_get_poolptr(x);
 }
@@ -2067,15 +2103,18 @@ FD_EXPORT void fd_init_pools_c()
 
   lock_symbol = fd_intern("LOCK");
   unlock_symbol = fd_intern("UNLOCK");
-  p_oid_symbol = fd_intern("%OID");
 
   memset(&fd_top_pools,0,sizeof(fd_top_pools));
   memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));
 
+  u8_init_mutex(&consed_pools_lock);
+  consed_pools = u8_malloc(64*sizeof(fd_pool));
+  consed_pools_len=64;
+
   {
     struct FD_COMPOUND_TYPEINFO *e =
       fd_register_compound(fd_intern("POOL"),NULL,NULL);
-    e->fd_compound_parser = pool_parsefn;}
+    e->compound_parser = pool_parsefn;}
 
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
   fd_make_hashtable(&poolid_table,-1);
@@ -2087,10 +2126,6 @@ FD_EXPORT void fd_init_pools_c()
   fd_unparsers[fd_consed_pool_type]=unparse_consed_pool;
   fd_recyclers[fd_consed_pool_type]=recycle_consed_pool;
   fd_copiers[fd_consed_pool_type]=copy_consed_pool;
-  fd_register_config
-    ("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
-     config_get_anonymousok,
-     config_set_anonymousok,NULL);
   fd_register_config("DEFAULTPOOL",_("Default location for new OID allocation"),
                      fd_poolconfig_get,fd_poolconfig_set,
                      &fd_default_pool);

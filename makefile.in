@@ -37,7 +37,8 @@ PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@
-SYSINSTALL	= @SUDO@@INSTALL@
+SUINSTALL	= @SUINSTALL@
+SYSINSTALL	= @SUINSTALL@@INSTALL@
 SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
@@ -56,8 +57,9 @@ RPMGPG		= %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no
 APTREPO		= @APTREPO@
 FDVERSION	= @FDVERSION@
 REVISION	:= $(shell git describe)
+GITBRANCH	:= $(shell git rev-parse --symbolic-full-name HEAD)
 LIBSCM	 	= @LIBSCM@
-DTYPE_HEADERS=\
+LISP_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
@@ -71,7 +73,6 @@ DTYPE_HEADERS=\
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
- include/framerd/bloom.h  			     \
  include/framerd/sequences.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/bufio.h			     \
@@ -84,6 +85,7 @@ STORAGE_HEADERS=\
  include/framerd/storage.h			\
  include/framerd/pools.h			\
  include/framerd/indexes.h			\
+ include/framerd/bloom.h  			     \
  include/framerd/dtproc.h			\
  include/framerd/dtcall.h			\
  include/framerd/frames.h			\
@@ -96,7 +98,7 @@ LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
-SRC_HEADERS=src/types/biginternals.h 		\
+SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
 	src/drivers/headers/chunkrefs.h 	\
@@ -111,22 +113,24 @@ SRC_HEADERS=src/types/biginternals.h 		\
 	src/drivers/headers/netpool.h		\
 	src/cmodules/fdsqlite.h			\
 
-DTYPE_OBJS=\
-	src/types/oids.o src/types/fcnids.o 			\
-	src/types/symbols.o src/types/cons.o 			\
-	src/types/recycle.o src/types/copy.o 			\
-	src/types/misctypes.o src/types/numbers.o		\
-	src/types/compare.o src/types/walk.o			\
-	src/types/buildinfo.o					\
-	src/types/tables.o src/types/bloom.o			\
-	src/types/sequences.o src/types/choices.o 		\
-	src/types/parse.o src/types/unparse.o			\
-	src/types/bufio.o src/types/pprint.o			\
-	src/types/dtread.o src/types/dtwrite.o			\
-	src/types/libfdtype.o src/types/support.o		\
-	src/types/config.o src/types/err.o 			\
-	src/types/logging.o src/types/getopt.o 			\
-	src/types/startup.o src/types/fluid.o
+LISP_OBJS=\
+	src/lisp/oids.o src/lisp/fcnids.o 			\
+	src/lisp/symbols.o src/lisp/cons.o 			\
+	src/lisp/recycle.o src/lisp/copy.o 			\
+	src/lisp/compare.o src/lisp/walk.o			\
+	src/lisp/tables.o src/lisp/sequences.o			\
+	src/lisp/choices.o src/lisp/numbers.o 			\
+	src/lisp/misctypes.o 					\
+	src/lisp/parse.o src/lisp/unparse.o			\
+	src/lisp/bufio.o src/lisp/pprint.o			\
+	src/lisp/dtread.o src/lisp/dtwrite.o			\
+	src/lisp/lisp.o
+
+SUPPORT_OBJS=						\
+	src/support/buildinfo.o src/support/support.o	\
+	src/support/config.o src/support/err.o		\
+	src/support/logging.o src/support/getopt.o	\
+	src/support/startup.o src/support/fluid.o
 
 APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o 			\
@@ -137,9 +141,10 @@ REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
+STORAGE_OBJS=\
+	src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
 	src/storage/pools.o src/storage/indexes.o src/storage/compoundindexes.o	\
-	src/storage/dtproc.o src/storage/dtcall.o 				\
+	src/storage/dtproc.o src/storage/dtcall.o src/storage/bloom.o		\
 	src/storage/methods.o src/storage/oidstore.o 				\
 	src/storage/cachecall.o src/storage/threadcache.o 			\
 	src/storage/extindex.o src/storage/extpool.o 				\
@@ -169,7 +174,8 @@ CORE_SCHEME_OBJS=\
 	src/eval/conditionals.o\
 	src/eval/iterators.o
 
-SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
+SCHEME_OBJS=\
+	$(CORE_SCHEME_OBJS) \
 	src/eval/modules.o \
 	src/eval/load.o \
 	src/eval/history.o \
@@ -190,14 +196,12 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	src/prims/timeprims.o \
 	src/prims/sysprims.o \
 	@ipevalprimso@ \
-	src/prims/extdbprims.o
-
-SCHEMEIO_OBJS=\
+	src/prims/extdbprims.o\
 	src/prims/fileprims.o\
 	src/prims/driverprims.o\
 	src/eval/loader.o
 
-FDWEB_OBJS=\
+WEB_OBJS=\
 	src/web/fdweb.o \
 	src/web/xmloutput.o \
 	src/web/htmlout.o \
@@ -210,7 +214,8 @@ FDWEB_OBJS=\
 	src/web/cgiexec.o \
 	src/web/json.o \
 	@ldnso@ @curlo@
-TEXTTOOLS_OBJS=\
+
+TEXT_OBJS=\
 	src/text/texttools.o \
 	src/text/match.o \
 	src/text/porter.o \
@@ -305,12 +310,13 @@ TIDY_H_FILES=\
 	src/cmodules/ext/tidy5/win32tc.h
 
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/cmodules/crypto.o src/cmodules/ldap.o \
-	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o \
+	     src/cmodules/mysql.o src/cmodules/leveldb.o \
+	     src/cmodules/crypto.o src/cmodules/zlib.o \
+	     src/cmodules/qrcode.o src/cmodules/exif.o \
+	     src/cmodules/imagick.o \
 	     src/cmodules/ziptools.o \
-	     src/cmodules/zlib.o src/cmodules/imagick.o \
 	     src/cmodules/hyphenate.o \
+	     src/cmodules/x2vec.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
@@ -334,7 +340,7 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
 CLEANDIRS=include/framerd src/drivers/headers 		\
-	src/types src/apply src/storage src/drivers	\
+	src/lisp src/apply src/storage src/drivers	\
 	src/eval src/prims				\
 	src/text src/web src/scheme			\
 	src/cmodules					\
@@ -343,26 +349,27 @@ CLEANDIRS=include/framerd src/drivers/headers 		\
 	etc
 
 FRAMERD_HEADERS= \
-	$(DTYPE_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
+	$(LISP_HEADERS) $(STORAGE_HEADERS) $(SCHEME_HEADERS) \
 	$(APPLY_HEADERS) $(DRIVERS_H) $(SRC_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/types/cons.c src/types/oids.c src/types/symbols.c           	\
-	src/types/copy.c src/types/recycle.c src/types/misctypes.c       	\
-        src/types/compare.c src/types/walk.c src/types/fcnids.c		\
-	src/types/choices.c src/types/sequences.c				\
-	src/types/tables.c src/types/bloom.c				\
-        src/types/bufio.c src/types/dtread.c src/types/dtread.c 		\
-	src/types/parse.c src/types/unparse.c src/types/buildinfo.c \
-	src/types/libfdtype.c src/types/support.c src/types/config.c	\
-	src/types/err.c src/types/logging.c src/types/getopt.c		\
-	src/types/startup.c src/types/fluid.c				\
+	src/lisp/cons.c src/lisp/oids.c src/lisp/symbols.c           	\
+	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       	\
+        src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c		\
+	src/lisp/choices.c src/lisp/sequences.c				\
+	src/lisp/tables.c \
+        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c 		\
+	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c \
+	src/support/buildinfo.c \
+	src/support/support.c src/support/config.c	\
+	src/support/err.c src/support/logging.c src/support/getopt.c		\
+	src/support/startup.c src/support/fluid.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
 	src/apply/ffi.c       	\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
 	src/storage/oidstore.c src/storage/cachecall.c  				\
-	src/storage/compoundindexes.c  					\
+	src/storage/compoundindexes.c src/storage/bloom.c				\
 	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
 	src/storage/dtproc.c src/storage/dtcall.c					\
 	src/storage/ipeval.c 	       					\
@@ -406,31 +413,30 @@ FRAMERD_SOURCES=\
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
-	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c   \
-	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c  \
+	src/cmodules/odbc.c src/cmodules/sqlite.c \
+	src/cmodules/crypto.c src/cmodules/mysql.c  \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
+	src/cmodules/x2vec.c 						\
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
-STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfdstorage@suffix@.a      \
+STATIC_LIBS=lib/libfdcore@suffix@.a lib/libfdstorage@suffix@.a      \
         lib/libfddbserv@suffix@.a lib/libfddrivers@suffix@.a  \
-	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
+	lib/libfdscheme@suffix@.a \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
-SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
+SHARED_LIBS=lib/libfdcore@suffix@.@shared_suffix@  		\
 	lib/libfdstorage@suffix@.@shared_suffix@        		\
         lib/libfddrivers@suffix@.@shared_suffix@    		\
 	lib/libfddbserv@suffix@.@shared_suffix@     		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
-	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
-	lib/libfdtype@suffix@.@mshared_suffix@  		\
+	lib/libfdcore@suffix@.@mshared_suffix@  		\
 	lib/libfdstorage@suffix@.@mshared_suffix@        		\
         lib/libfddrivers@suffix@.@mshared_suffix@    		\
 	lib/libfddbserv@suffix@.@mshared_suffix@     		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
-	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
 	lib/libtexttools@suffix@.@mshared_suffix@
 
@@ -445,7 +451,7 @@ SCHEME_MODULES=src/scheme/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
-MODULE_SO=lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
+MODULE_SO=lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
 
 ALL=testbin exe cmodules @TAGS@
@@ -513,13 +519,13 @@ include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
 	touch $@
 
-tests/types/makefile: tests/types/makefile.in ./configure
+tests/lisp/makefile: tests/lisp/makefile.in ./configure
 	./configure
 tests/storage/makefile: tests/storage/makefile.in ./configure
 	./configure
 tests/scheme/makefile: tests/scheme/makefile.in ./configure
 	./configure
-tests/types/.gdbinit: tests/types/.gdbinit.in ./configure
+tests/lisp/.gdbinit: tests/lisp/.gdbinit.in ./configure
 	./configure
 tests/storage/.gdbinit: tests/storage/.gdbinit.in ./configure
 	./configure
@@ -552,7 +558,7 @@ etc/install-script: etc/install-script.in ./configure
 
 etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 	etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
+	tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit \
 	exe/.gdbinit
 
 # Fileinfo gets version-related information about a file to pass in
@@ -588,7 +594,7 @@ exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
 		-lfddbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
 		-ltexttools@suffix@ -lfdscheme@suffix@ \
-		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdtype@suffix@ \
+		-lfddrivers@suffix@ -lfdstorage@suffix@ -lfdcore@suffix@ \
 	        -lu8stdio $(LIBS) $(EXECLIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -640,13 +646,13 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
 ${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
@@ -654,15 +660,15 @@ ${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 ${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@make -s ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
 		 ${CMODULES}/$(*F)@suffix@.@mshared_suffix@
-	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
 $(BININSTALLDIR)/%: exe/%
@@ -707,9 +713,9 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: constestbin dbtestbin schemetestbin etc/usememory
-constestbin: libs tests/types/makefile tests/types/.gdbinit
+constestbin: libs tests/lisp/makefile tests/lisp/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/types
+		-C tests/lisp
 dbtestbin: libs tests/storage/makefile tests/storage/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/storage
@@ -723,8 +729,8 @@ cmodules: @CMODULES@
 
 # Uninstall
 
-LIBBASE=libfdtype libfdstorage libfddrivers libfddbserv \
-	libfdscheme libfdschemeio libfdweb libtexttools
+LIBBASE=libfdcore libfdstorage libfddrivers libfddbserv \
+	libfdscheme libfdweb libtexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
@@ -758,39 +764,50 @@ uninstall: uninstall-core
 # Utility targets
 
 TAGS: makefile.in configure.ac include/framerd/config.h.in		\
-		tests/types/*.c tests/storage/*.c tests/scheme/*.c 	\
-		src/exe/*.c src/cmodules/*.c include/framerd/*.h 	\
-		src/types/*.c src/apply/*.c 				\
+		tests/lisp/*.c tests/storage/*.c tests/scheme/*.c 	\
+		src/exe/*.c src/exe/*.h include/framerd/*.h 		\
+		src/lisp/*.c src/support/*.c src/apply/*.c		\
 		src/storage/*.c src/drivers/*.c 			\
 		src/eval/*.c src/prims/*.c     				\
 		src/text/*.c src/web/*.c 				\
+		src/cmodules/*.c 					\
 		etc/*.in ${SRC_HEADERS} 				\
 		tests/scheme/.gdbinit.in tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
 	        tests/*/*.in etc/*.in include/framerd/*.h 		\
 		${SRC_HEADERS};
-	@etags -o TAGS -a src/types/*.c src/apply/*.c 
-	@etags -o TAGS -a src/storage/*.c src/drivers/*.c
-	@etags -o TAGS -a src/eval/*.c src/prims/*.c src/cmodules/*.c;
+	@etags -o TAGS -a src/exe/*.c src/exe/*.h 
+	@etags -o TAGS -a src/lisp/*.c src/support/*.c src/apply/*.c 
+	@etags -o TAGS -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
+	@etags -o TAGS -a src/eval/*.c src/prims/*.c
 	@etags -o TAGS -a src/web/*.c src/text/*.c;
-	@etags -o TAGS -a tests/types/*.c tests/storage/*.c;
+	@etags -o TAGS -a tests/lisp/*.c tests/storage/*.c;
 	@etags -o TAGS -a tests/scheme/*.c tests/scheme/*.scm;
+	@etags -o TAGS -a src/cmodules/*.c;
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in	\
-	tests/types/*.c tests/storage/*.c tests/scheme/*.c	\
-	src/types/*.c src/apply/*.c src/storage/*.c 		\
+	tests/lisp/*.c tests/storage/*.c tests/scheme/*.c	\
+	src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c 		\
 	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
 	include/framerd/*.h ${SRC_HEADERS} etc/*.in 		\
 	src/exe/*.c src/cmodules/*.c
 	@echo Building C TAGS file
 	@etags -o CTAGS 
 	      makefile.in configure.ac include/framerd/config.h.in      \
-	      tests/types/*.c tests/apply/*.c tests/storage/*.c 	\
-	      tests/eval/*.c tests/prims/*.c src/exe/*.c 		\
-	      src/types/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
-	      src/web/*.c src/text/*.c src/cmodules/*.c         	\
+	      tests/lisp/*.c tests/apply/*.c tests/storage/*.c 	\
+	      tests/eval/*.c tests/prims/*.c src/exe/*.c src/exe/*.h	\
+	      src/lisp/*.c src/support/*.c src/storage/*.c src/eval/*.c src/prims/*.c 	\
+	      src/web/*.c src/text/*.c 					\
+	      src/cmodules/*.c src/cmodules/*.h				\
 	      include/framerd/*.h ${SRC_HEADERS} etc/*.in 
+
+CSOURCETAGS: src/lisp/*.c src/support/*.c src/apply/*.c src/storage/*.c	\
+	src/eval/*.c src/prims/*.c src/web/*.c src/text/*.c 	\
+	src/drivers/*.c src/drivers/headers/*.h 		\
+	src/exe/*.c src/exe/*.h
+	@echo Building FRAMERD_SOURCE TAGS file
+	@etags -o $@ $^
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file
@@ -827,14 +844,14 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f TAGS
-	cd tests/types; make -s clean
+	cd tests/lisp; make -s clean
 	cd tests/storage; make -s clean
 	cd tests/scheme; make -s clean
 	find . -name "*.dSYM" | xargs rm -rf
 distclean: clean
 	rm -f makefile config.log config.status config.cache
-	rm -f tests/types/makefile tests/storage/makefile tests/scheme/makefile
-	rm -f tests/types/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
+	rm -f tests/lisp/makefile tests/storage/makefile tests/scheme/makefile
+	rm -f tests/lisp/.gdbinit tests/storage/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
@@ -848,17 +865,17 @@ pull:
 # Custom dependencies
 
 src/eval/eval.o src/eval/opcodes.c: src/eval/eval_internals.h \
-	$(DTYPE_HEADERS) $(APPLY_HEADERS) \
+	$(LISP_HEADERS) $(APPLY_HEADERS) \
 	$(STORAGE_HEADERS) $(SCHEME_HEADERS)
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 
 # Custom rules
 
-src/types/dtread.o src/types/dtwrite.o src/types/bufio.o : XCFLAGS="${OPTFLAGS}"
-src/types/choices.o : XCFLAGS="${OPTFLAGS}"
-src/types/tables.o src/types/bloom.o src/types/sequences.o : XCFLAGS="${OPTFLAGS}"
-src/types/numbers.o src/types/compare.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/bufio.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/choices.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/tables.o src/storage/bloom.o src/lisp/sequences.o : XCFLAGS="${OPTFLAGS}"
+src/lisp/numbers.o src/lisp/compare.o : XCFLAGS="${OPTFLAGS}"
 src/apply/apply.o : XCFLAGS="${OPTFLAGS}"
 src/storage/streams.o : XCFLAGS="${OPTFLAGS}"
 src/eval/eval.o : XCFLAGS="${OPTFLAGS}"
@@ -868,82 +885,70 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
-lib/libfdtype@suffix@.a: $(DTYPE_OBJS) $(APPLY_OBJS)
-lib/libfdtype@suffix@.so: $(DTYPE_OBJS) $(APPLY_OBJS)
-lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS) $(APPLY_OBJS)
+lib/libfdcore@suffix@.a: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdcore@suffix@.so: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
+lib/libfdcore@suffix@.dylib: $(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS)
 
-lib/libfdstorage@suffix@.a: $(DB_OBJS)
-lib/libfdstorage@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
-lib/libfdstorage@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
+lib/libfdstorage@suffix@.a: $(STORAGE_OBJS)
+lib/libfdstorage@suffix@.so: $(STORAGE_OBJS) lib/libfdcore@suffix@.so
+lib/libfdstorage@suffix@.dylib: $(STORAGE_OBJS) lib/libfdcore@suffix@.dylib
 
 lib/libfddrivers@suffix@.a: $(DRIVER_OBJS)
 lib/libfddrivers@suffix@.so: $(DRIVER_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so
 lib/libfddrivers@suffix@.dylib: $(DRIVER_OBJS) \
-	lib/libfdstorage@suffix@.dylib lib/libfdtype@suffix@.dylib
+	lib/libfdstorage@suffix@.dylib lib/libfdcore@suffix@.dylib
 
 lib/libfddbserv@suffix@.a: $(DBSERV_OBJS)
 lib/libfddbserv@suffix@.so: $(DBSERV_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so
 lib/libfddbserv@suffix@.dylib: $(DBSERV_OBJS) 	\
 	lib/libfdscheme@suffix@.dylib         	\
 	lib/libfddrivers@suffix@.dylib		\
 	lib/libfdstorage@suffix@.dylib		\
-	lib/libfdtype@suffix@.dylib
+	lib/libfdcore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
-	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so	\
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so	\
 	lib/libfddrivers@suffix@.so
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
+	lib/libfdcore@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
         lib/libfddrivers@suffix@.dylib
 
-lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
-lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
-	lib/libfdtype@suffix@.so  lib/libfdstorage@suffix@.so	\
-        lib/libfddrivers@suffix@.so 				\
-	lib/libfdscheme@suffix@.so
-lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
-	lib/libfdscheme@suffix@.dylib             		\
-	lib/libfdtype@suffix@.dylib  lib/libfdstorage@suffix@.dylib	\
-        lib/libfddrivers@suffix@.dylib
-
-lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
-lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
-	lib/libfdtype@suffix@.so \
+lib/libfdweb@suffix@.a: $(WEB_OBJS)
+lib/libfdweb@suffix@.so: $(WEB_OBJS) \
+	lib/libfdcore@suffix@.so \
 	lib/libfdstorage@suffix@.so \
 	lib/libfddrivers@suffix@.so \
-	lib/libfdscheme@suffix@.so \
-	lib/libfdschemeio@suffix@.so
-lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
+	lib/libfdscheme@suffix@.so
+lib/libfdweb@suffix@.dylib: $(WEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
 	lib/libfddrivers@suffix@.dylib     \
 	lib/libfdstorage@suffix@.dylib         \
-        lib/libfdtype@suffix@.dylib
+        lib/libfdcore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
-		-o $@ $(FDWEB_OBJS)
+		-o $@ $(WEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
-lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfdstorage@suffix@.so \
-	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so \
-	lib/libfdschemeio@suffix@.so
-lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
+lib/libtexttools@suffix@.a: $(TEXT_OBJS)
+lib/libtexttools@suffix@.so: $(TEXT_OBJS) \
+	lib/libfdcore@suffix@.so lib/libfdstorage@suffix@.so \
+	lib/libfdstorage@suffix@.so lib/libfdscheme@suffix@.so
+lib/libtexttools@suffix@.dylib: $(TEXT_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfddrivers@suffix@.dylib \
 	lib/libfdstorage@suffix@.dylib \
-	lib/libfdtype@suffix@.dylib
+	lib/libfdcore@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		$(DYLIB_FLAGS) \
-		-o $@ $(TEXTTOOLS_OBJS)
+		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
 src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
@@ -1078,7 +1083,7 @@ lib/framerd/tidy.dylib: src/cmodules/tidy.c $(TIDY_OBJECTS)
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
-	@$(SUDO) install -D $^ $@
+	@$(SUINSTALL) install -D $^ $@
 
 etc/intl/framerd.pot:
 	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/framerd.pot -k_ \
@@ -1207,7 +1212,8 @@ dist/debs.done: dist/debs.signed
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@cd dist; @SUDO@ dpkg -i framerd*@FDVERSION@*.deb \
-		elpa-fdconsole*@FDVERSION@*.deb
+		elpa-fdconsole*@FDVERSION@*.deb libapache2-mod-fdserv_@FDVERSION@*.deb \
+		systemd-framerd_@FDVERSION@*.deb
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
@@ -1257,19 +1263,18 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@confi
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static: static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
+	make $(LIBINSTALLDIR)/libfdcore@suffix@.a        \
 		$(LIBINSTALLDIR)/libfdstorage@suffix@.a       \
 		$(LIBINSTALLDIR)/libfddrivers@suffix@.a   \
 		$(LIBINSTALLDIR)/libfddbserv@suffix@.a    \
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
-		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.@mshared_suffix@			\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdcore@suffix@.@shared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdstorage@suffix@.@mshared_suffix@			\
@@ -1286,10 +1291,6 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libfdscheme@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@vshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
@@ -1301,7 +1302,7 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(DTYPE_HEADERS) $(APPLY_HEADERS) 	\
+		   $(LISP_HEADERS) $(APPLY_HEADERS) 	\
 		   $(STORAGE_HEADERS) $(DRIVERS_H)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
@@ -1331,11 +1332,9 @@ install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALLCMODULES@ install-sundown
+install-cmodules: @INSTALLCMODULES@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-dbus: ${CMODULES}/dbus.@shared_suffix@ ${CMODULES}/dbus.@vshared_suffix@
-install-ldap: ${CMODULES}/ldap.@shared_suffix@ ${CMODULES}/ldap.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
 install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
@@ -1346,6 +1345,7 @@ install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshare
 install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
+install-x2vec: ${CMODULES}/x2vec.@shared_suffix@ ${CMODULES}/x2vec.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@
@@ -1385,7 +1385,7 @@ MODULE_DIRS=xhtml fdxml mongodb \
 	aws facebook paypal twitter dropbox google
 
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
-		 aws/templates bugjar/websrc
+		 aws/templates
 
 install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data
@@ -1416,7 +1416,7 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modul
 	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
 			to @builtin_safe_module_dir@
 	@for safe_link in $(BUILD)/src/scheme/safe/*; do 			\
-          ${SUDO} ln -sf `readlink $${safe_link}` 				\
+          $(SUINSTALL) ln -sf `readlink $${safe_link}` 				\
 		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
 
@@ -1425,7 +1425,7 @@ install-support: $(DESTDIR)@share_dir@
 		gdbinit makefile.include fdconsole.el 		\
 		$(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar batch bench storage
+LIBSCM_DIRS=optimize bugjar storage
 install-libscm:
 	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}
 	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM}
@@ -1484,7 +1484,7 @@ setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
-		$(SUDO) update-rc.d framerd defaults; \
+		$(SUINSTALL) update-rc.d framerd defaults; \
 	 fi
 
 info:
@@ -1528,7 +1528,7 @@ setup-linux: setup-unix
 
 setup-osx: @share_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
-	@$(SUDO) etc/setup-osx "@share_dir@" \
+	@$(SUINSTALL) etc/setup-osx "@share_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
@@ -1575,8 +1575,8 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
 	@cd etc; if test -f mod_fdserv.so; \
-		then @SUDO@ ${APXS} -i mod_fdserv.so; \
-		else @SUDO@ ${APXS} -i mod_fdserv.la; \
+		then $(SUINSTALL) ${APXS} -i mod_fdserv.so; \
+		else $(SUINSTALL) ${APXS} -i mod_fdserv.la; \
 		fi
 	@echo Installed fdserv module with @rundir@/fdserv @logdir@/fdserv
 
@@ -1650,9 +1650,14 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	elif $(GITDESCRIBE) > /dev/null 2>&1; then			\
 	    echo "#define FRAMERD_REVISION \""`@GITDESCRIBE@`"\"" 	\
 		> etc/use_revision.h; 					\
-	else echo "#define FRAMERD_REVISION \"@U8VERSION@-exported\""	\
+	    echo >> etc/use_revision.h;					\
+	    echo "#define FRAMERD_BRANCH \"${GITBRANCH}\"" \
+		>> etc/use_revision.h; 					\
+	else echo "#define FRAMERD_REVISION \"@FDVERSION@-exported\""	\
 		> etc/use_revision.h; 					\
-	fi
+	    echo "#define FRAMERD_BRANCH \"exported\"" >> 		\
+		etc/use_revision.h; 					\
+	fi;
 	@if test ! -f $@; then 						\
 	  mv etc/use_revision.h $@; 					\
 	elif diff etc/use_revision.h $@>/dev/null; then			\
@@ -1661,23 +1666,25 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	  echo "Revision changed to "`@GITDESCRIBE@`; 			\
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@;					\
-	fi
+	fi;
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
-$(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
-$(APPLY_OBJS): $(DTYPE_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
-$(DB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
-$(DRIVER_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H)
+$(SUPPORT_OBJS): $(LISP_HEADERS) $(REVISION_H)
+$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H)
+$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H)
+$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+$(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
+$(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(DTYPE_OBJS) $(DB_OBJS) $(DRIVER_OBJS):  buildmode
-$(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
-$(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
+$(LISP_OBJS) $(SUPPORT_OBJS) $(APPLY_OBJS):  buildmode
+$(STORAGE_OBJS) $(DRIVER_OBJS):  buildmode
+$(SCHEME_OBJS): buildmode
+$(WEB_OBJS) $(TEXT_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
 src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies

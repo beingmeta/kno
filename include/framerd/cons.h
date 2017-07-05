@@ -94,12 +94,12 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_CHECK_TYPE_RET(x,typecode)				    \
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) {	    \
-    fd_xseterr(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x); \
+    fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,(lispval)x); \
     return -1;}
 
 #define FD_CHECK_TYPE_RETDTYPE(x,typecode)				\
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode)))		\
-    return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x);
+    return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(lispval)x);
 
 #define FD_PTR2CONS(x,typecode,typecast)			    \
   (((typecode<0) || (FD_TYPEP(x,typecode))) ?                       \
@@ -109,8 +109,8 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 /* External functions */
 
-FD_EXPORT void _fd_decref_fn(fdtype);
-FD_EXPORT fdtype _fd_incref_fn(fdtype);
+FD_EXPORT void _fd_decref_fn(lispval);
+FD_EXPORT lispval _fd_incref_fn(lispval);
 
 FD_EXPORT void _FD_INIT_CONS(void *vptr,fd_ptr_type type);
 FD_EXPORT void _FD_INIT_FRESH_CONS(void *vptr,fd_ptr_type type);
@@ -229,14 +229,14 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_STACK_CONS   1
 
 FD_EXPORT void fd_recycle_cons(struct FD_RAW_CONS *);
-FD_EXPORT fdtype fd_copy(fdtype x);
-FD_EXPORT fdtype fd_copier(fdtype x,int flags);
-FD_EXPORT fdtype fd_deep_copy(fdtype x);
-FD_EXPORT fdtype fd_static_copy(fdtype x);
+FD_EXPORT lispval fd_copy(lispval x);
+FD_EXPORT lispval fd_copier(lispval x,int flags);
+FD_EXPORT lispval fd_deep_copy(lispval x);
+FD_EXPORT lispval fd_static_copy(lispval x);
 
-FD_EXPORT fdtype *fd_copy_vec(fdtype *vec,size_t n,fdtype *into,int copy_flags);
-FD_EXPORT void fd_incref_vec(fdtype *vec,size_t n);
-FD_EXPORT void fd_decref_vec(fdtype *vec,size_t n,int free_vec);
+FD_EXPORT lispval *fd_copy_vec(lispval *vec,size_t n,lispval *into,int copy_flags);
+FD_EXPORT void fd_incref_vec(lispval *vec,size_t n);
+FD_EXPORT void fd_decref_vec(lispval *vec,size_t n,int free_vec);
 
 #define FD_DEEP_COPY 2   /* Make a deep copy */
 #define FD_FULL_COPY 4   /* Copy non-static objects */
@@ -251,18 +251,18 @@ FD_EXPORT void fd_decref_vec(fdtype *vec,size_t n,int free_vec);
 */
 
 #if ( FD_INLINE_REFCOUNTS && FD_LOCKFREE_REFCOUNTS )
-FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
+FD_INLINE_FCN lispval _fd_incref(struct FD_REF_CONS *x)
 {
   fd_consbits cb = atomic_load(&(x->conshead));
   if (cb>0xFFFFFF80) {
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
-    return (fdtype)NULL;}
+    return (lispval)NULL;}
   else if ((cb&(~0x7F)) == 0) {
     /* Static cons */
-    return (fdtype) x;}
+    return (lispval) x;}
   else {
     atomic_fetch_add(&(x->conshead),0x80);
-    return (fdtype) x;}
+    return (lispval) x;}
 }
 
 FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
@@ -289,19 +289,19 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 
 #elif FD_INLINE_REFCOUNTS
 
-FD_INLINE_FCN fdtype _fd_incref(struct FD_REF_CONS *x)
+FD_INLINE_FCN lispval _fd_incref(struct FD_REF_CONS *x)
 {
   if (FD_CONSBITS(x)>0xFFFFFF80) {
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
-    return (fdtype)NULL;}
+    return (lispval)NULL;}
   else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */
-    return (fdtype) x;}
+    return (lispval) x;}
   else {
     FD_LOCK_PTR(x);
     x->conshead = x->conshead+0x80;
     FD_UNLOCK_PTR(x);
-    return (fdtype) x;}
+    return (lispval) x;}
 }
 
 FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
@@ -327,7 +327,7 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 #if FD_INLINE_REFCOUNTS
 
 #define fd_incref(x) \
-  ((FD_PTR_MANIFEST_TYPE(x)) ? ((fdtype)x) : (_fd_incref(FD_REF_CONS(x))))
+  ((FD_PTR_MANIFEST_TYPE(x)) ? ((lispval)x) : (_fd_incref(FD_REF_CONS(x))))
 #define fd_decref(x) \
   ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
 	  (_fd_decref(FD_REF_CONS(x)),FD_VOID)))
@@ -343,19 +343,19 @@ FD_INLINE_FCN void _fd_decref(struct FD_REF_CONS *x)
 
 /* Incref/decref for vectors */
 
-FD_EXPORT fdtype *_fd_init_elts(fdtype *elts,size_t n,fdtype v);
+FD_EXPORT lispval *_fd_init_elts(lispval *elts,size_t n,lispval v);
 
-FD_EXPORT ssize_t _fd_incref_elts(const fdtype *elts,size_t n);
+FD_EXPORT ssize_t _fd_incref_elts(const lispval *elts,size_t n);
 
-FD_EXPORT ssize_t _fd_decref_elts(const fdtype *elts,size_t n);
+FD_EXPORT ssize_t _fd_decref_elts(const lispval *elts,size_t n);
 
-FD_EXPORT ssize_t _fd_free_elts(fdtype *elts,size_t n);
+FD_EXPORT ssize_t _fd_free_elts(lispval *elts,size_t n);
 
 #if FRAMERD_SOURCE
 FD_FASTOP U8_MAYBE_UNUSED
-fdtype *fd_init_elts(fdtype *elts,ssize_t n,fdtype v)
+lispval *fd_init_elts(lispval *elts,ssize_t n,lispval v)
 {
-  if (elts == NULL) elts=u8_alloc_n(n,fdtype);
+  if (elts == NULL) elts=u8_alloc_n(n,lispval);
   if (FD_CONSP(v)) {
     int i=0; while (i<n) { elts[i++]=fd_incref(v); }}
   else {
@@ -363,10 +363,10 @@ fdtype *fd_init_elts(fdtype *elts,ssize_t n,fdtype v)
   return elts;
 }
 FD_FASTOP U8_MAYBE_UNUSED
-ssize_t fd_incref_elts(const fdtype *elts,size_t n)
+ssize_t fd_incref_elts(const lispval *elts,size_t n)
 {
   int i=0, consed=0; while (i<n) {
-    fdtype elt=elts[i++];
+    lispval elt=elts[i++];
     if ((FD_CONSP(elt))&&(FD_MALLOCD_CONSP((fd_cons)elt))) {
       consed++;
       fd_decref(elt);}}
@@ -374,11 +374,11 @@ ssize_t fd_incref_elts(const fdtype *elts,size_t n)
 }
 
 FD_FASTOP U8_MAYBE_UNUSED
-size_t fd_decref_elts(const fdtype *elts,size_t n)
+size_t fd_decref_elts(const lispval *elts,size_t n)
 {
   size_t conses=0;
   int i=0; while (i<n) {
-    fdtype elt=elts[i++];
+    lispval elt=elts[i++];
     if (FD_CONSP(elt)) {
       fd_decref(elt);
       conses++;}}
@@ -387,12 +387,12 @@ size_t fd_decref_elts(const fdtype *elts,size_t n)
 }
 
 FD_FASTOP U8_MAYBE_UNUSED
-ssize_t fd_free_elts(fdtype *elts,size_t n)
+ssize_t fd_free_elts(lispval *elts,size_t n)
 {
   size_t conses=0;
-  const fdtype *scan=(const fdtype *)elts;
+  const lispval *scan=(const lispval *)elts;
   int i=0; while (i<n) {
-    fdtype elt=scan[i++];
+    lispval elt=scan[i++];
     if (FD_CONSP(elt)) {
       fd_decref(elt);
       conses++;}}
@@ -406,8 +406,8 @@ ssize_t fd_free_elts(fdtype *elts,size_t n)
 #define fd_free_elts _fd_free_elts
 #endif
 
-#define fd_incref_ptr(p) (fd_incref((fdtype)(p)))
-#define fd_decref_ptr(p) (fd_decref((fdtype)(p)))
+#define fd_incref_ptr(p) (fd_incref((lispval)(p)))
+#define fd_decref_ptr(p) (fd_decref((lispval)(p)))
 
 /* Conses */
 
@@ -423,16 +423,16 @@ struct FD_WRAPPER {
 
 typedef struct FD_STRING {
   FD_CONS_HEADER;
-  unsigned int fd_freebytes:1;
-  unsigned int fd_bytelen:31;
-  u8_string fd_bytes;} FD_STRING;
+  unsigned int str_freebytes:1;
+  unsigned int str_bytelen:31;
+  u8_string str_bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
 
 FD_EXPORT ssize_t fd_max_strlen;
 
 #define FD_STRINGP(x) (FD_TYPEP(x,fd_string_type))
-#define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->fd_bytelen))
-#define FD_STRDATA(x) ((FD_CONSPTR(fd_string,x))->fd_bytes)
+#define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))
+#define FD_STRDATA(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
 #define FD_STRING_LENGTH(x) (FD_STRLEN(x))
 #define FD_STRING_DATA(x) (FD_STRDATA(x))
 
@@ -441,17 +441,17 @@ FD_EXPORT ssize_t fd_max_strlen;
 #define fd_strlen(x)  (FD_STRLEN(fd_xstring(x)))
 #define fd_strdata(x) (FD_STRDATA(fd_xstring(x)))
 
-FD_EXPORT fdtype fd_extract_string
+FD_EXPORT lispval fd_extract_string
   (struct FD_STRING *ptr,u8_string start,u8_string end);
-FD_EXPORT fdtype fd_substring(u8_string start,u8_string end);
-FD_EXPORT fdtype fd_init_string
+FD_EXPORT lispval fd_substring(u8_string start,u8_string end);
+FD_EXPORT lispval fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string);
-FD_EXPORT fdtype fd_make_string
+FD_EXPORT lispval fd_make_string
   (struct FD_STRING *ptr,int slen,u8_string string);
-FD_EXPORT fdtype fd_block_string(int slen,u8_string string);
-FD_EXPORT fdtype fd_conv_string
+FD_EXPORT lispval fd_block_string(int slen,u8_string string);
+FD_EXPORT lispval fd_conv_string
   (struct FD_STRING *ptr,int slen,u8_string string);
-FD_EXPORT fdtype fdtype_string(u8_string string);
+FD_EXPORT lispval lispval_string(u8_string string);
 
 #define fd_stream2string(stream) \
   ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
@@ -473,15 +473,15 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 #define FD_PACKETP(x) \
   ((FD_PTR_TYPE(x) == fd_packet_type)||(FD_PTR_TYPE(x) == fd_secret_type))
 #define FD_PACKET_LENGTH(x) \
-  ((unsigned int) ((FD_CONSPTR(fd_string,x))->fd_bytelen))
-#define FD_PACKET_DATA(x) ((FD_CONSPTR(fd_string,x))->fd_bytes)
-#define FD_PACKET_REF(x,i) ((FD_CONSPTR(fd_string,x))->fd_bytes[i])
+  ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))
+#define FD_PACKET_DATA(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
+#define FD_PACKET_REF(x,i) ((FD_CONSPTR(fd_string,x))->str_bytes[i])
 
-FD_EXPORT fdtype fd_init_packet
+FD_EXPORT lispval fd_init_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);
-FD_EXPORT fdtype fd_make_packet
+FD_EXPORT lispval fd_make_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);
-FD_EXPORT fdtype fd_bytes2packet
+FD_EXPORT lispval fd_bytes2packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);
 
 #define FD_XPACKET(x) (fd_consptr(struct FD_STRING *,x,fd_packet_type))
@@ -489,8 +489,8 @@ FD_EXPORT fdtype fd_bytes2packet
 /* Symbol tables */
 
 typedef struct FD_SYMBOL_ENTRY {
-  struct FD_STRING fd_pname;
-  int fd_symid;} FD_SYMBOL_ENTRY;
+  struct FD_STRING sym_pname;
+  int symid;} FD_SYMBOL_ENTRY;
 typedef struct FD_SYMBOL_ENTRY *fd_symbol_entry;
 struct FD_SYMBOL_TABLE {
   int table_size;
@@ -501,8 +501,8 @@ FD_EXPORT struct FD_SYMBOL_TABLE fd_symbol_table;
 
 typedef struct FD_PAIR {
   FD_CONS_HEADER;
-  fdtype car;
-  fdtype cdr;} FD_PAIR;
+  lispval car;
+  lispval cdr;} FD_PAIR;
 typedef struct FD_PAIR *fd_pair;
 
 #define FD_PAIRP(x) (FD_PTR_TYPE(x) == fd_pair_type)
@@ -525,15 +525,15 @@ typedef struct FD_PAIR *fd_pair;
 #define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr = x
 
 #define FD_DOLIST(x,list) \
-  fdtype x, _tmp = list; \
+  lispval x, _tmp = list; \
   while ((FD_PAIRP(_tmp)) ? \
          (x = FD_CAR(_tmp),_tmp = FD_CDR(_tmp),1) : 0)
 
-FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr);
-FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr);
-FD_EXPORT fdtype fd_make_list(int len,...);
-FD_EXPORT fdtype fd_pmake_list(int len,...);
-FD_EXPORT int fd_list_length(fdtype l);
+FD_EXPORT lispval fd_init_pair(struct FD_PAIR *ptr,lispval car,lispval cdr);
+FD_EXPORT lispval fd_make_pair(lispval car,lispval cdr);
+FD_EXPORT lispval fd_make_list(int len,...);
+FD_EXPORT lispval fd_pmake_list(int len,...);
+FD_EXPORT int fd_list_length(lispval l);
 
 #define FD_XPAIR(x) (fd_consptr(struct FD_PAIR *,x,fd_pair_type))
 #define fd_conspair(car,cdr) fd_init_pair(NULL,car,cdr)
@@ -542,26 +542,26 @@ FD_EXPORT int fd_list_length(fdtype l);
 
 typedef struct FD_VECTOR {
   FD_CONS_HEADER;
-  unsigned int fdvec_free_elts:1;
-  unsigned int fdvec_length:31;
-  fdtype *fdvec_elts;} FD_VECTOR;
+  unsigned int vec_free_elts:1;
+  unsigned int vec_length:31;
+  lispval *vec_elts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
 
 #define FD_VECTORP(x) (FD_TYPEP((x),fd_vector_type))
 #define FD_VECTOR_LENGTH(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_length)
 #define FD_VECTOR_DATA(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_VECTOR_ELTS(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_VECTOR_REF(x,i) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i])
 #define FD_VECTOR_SET(x,i,v) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i]=(v))
 
-FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data);
-FD_EXPORT fdtype fd_make_vector(int len,fdtype *elts);
-FD_EXPORT fdtype fd_make_nvector(int len,...);
+FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data);
+FD_EXPORT lispval fd_make_vector(int len,lispval *elts);
+FD_EXPORT lispval fd_make_nvector(int len,...);
 
 #define FD_XVECTOR(x) (fd_consptr(struct FD_VECTOR *,x,fd_vector_type))
 
@@ -569,27 +569,27 @@ FD_EXPORT fdtype fd_make_nvector(int len,...);
 
 #define FD_CODEP(x) (FD_TYPEP((x),fd_code_type))
 #define FD_CODE_LENGTH(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_length)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_length)
 #define FD_CODE_DATA(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_CODE_ELTS(x) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts)
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts)
 #define FD_CODE_REF(x,i) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i])
 #define FD_CODE_SET(x,i,v) \
-  ((FD_CONSPTR(fd_vector,(x)))->fdvec_elts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->vec_elts[i]=(v))
 
-FD_EXPORT fdtype fd_init_code(struct FD_VECTOR *ptr,int len,fdtype *data);
-FD_EXPORT fdtype fd_make_code(int len,fdtype *elts);
-FD_EXPORT fdtype fd_make_nrail(int len,...);
+FD_EXPORT lispval fd_init_code(struct FD_VECTOR *ptr,int len,lispval *data);
+FD_EXPORT lispval fd_make_code(int len,lispval *elts);
+FD_EXPORT lispval fd_make_nrail(int len,...);
 
 #define FD_XRAIL(x) (fd_consptr(struct FD_VECTOR *,x,fd_code_type))
 
 /* Generic-ish iteration macro */
 
 #define FD_DOELTS(evar,seq,counter)              \
-  fdtype _seq = seq, evar = FD_VOID, counter = 0;      \
-  fdtype _scan = FD_VOID, *_elts;                  \
+  lispval _seq = seq, evar = FD_VOID, counter = 0;      \
+  lispval _scan = FD_VOID, *_elts;                  \
   int _i = 0, _islist = 0, _lim = 0, _ok = 0;            \
   if (FD_PAIRP(seq)) {                           \
      _islist = 1; _scan=_seq; _ok = 1;}              \
@@ -615,10 +615,10 @@ FD_EXPORT fdtype fd_make_nrail(int len,...);
 
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
-  fdtype compound_typetag;
-  u8_byte compound_ismutable, compound_isopaque, fd_n_elts;
+  lispval compound_typetag;
+  u8_byte compound_ismutable, compound_isopaque, compound_length;
   u8_mutex compound_lock;
-  fdtype compound_0;} FD_COMPOUND;
+  lispval compound_0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
 
 #define FD_COMPOUNDP(x) (FD_PTR_TYPE(x) == fd_compound_type)
@@ -631,18 +631,18 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_COMPOUND_ELTS(x) \
   (&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))
 #define FD_COMPOUND_LENGTH(x) \
-  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->fd_n_elts)
+  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_length)
 #define FD_COMPOUND_REF(x,i)                                            \
   ((&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))[i])
 #define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
 
-FD_EXPORT fdtype fd_init_compound
-  (struct FD_COMPOUND *ptr,fdtype tag,int mutable,int n,...);
-FD_EXPORT fdtype fd_init_compound_from_elts
-  (struct FD_COMPOUND *p,fdtype tag,int mutable,int n,fdtype *elts);
+FD_EXPORT lispval fd_init_compound
+  (struct FD_COMPOUND *ptr,lispval tag,int mutable,int n,...);
+FD_EXPORT lispval fd_init_compound_from_elts
+  (struct FD_COMPOUND *p,lispval tag,int mutable,int n,lispval *elts);
 
 
-FD_EXPORT fdtype fd_compound_descriptor_type;
+FD_EXPORT lispval fd_compound_descriptor_type;
 
 #define FD_COMPOUND_DESCRIPTORP(x) \
   (FD_COMPOUND_TYPEP(x,fd_compound_descriptor_type))
@@ -661,13 +661,13 @@ FD_EXPORT fdtype fd_compound_descriptor_type;
 
 typedef struct FD_UUID {
   FD_CONS_HEADER;
-  unsigned char fd_uuid16[16];} FD_UUID;
+  unsigned char uuid16[16];} FD_UUID;
 typedef struct FD_UUID *fd_uuid;
 
-FD_EXPORT fdtype fd_cons_uuid
+FD_EXPORT lispval fd_cons_uuid
    (struct FD_UUID *ptr,
     struct U8_XTIME *xtime,long long nodeid,short clockid);
-FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr);
+FD_EXPORT lispval fd_fresh_uuid(struct FD_UUID *ptr);
 
 /* BIG INTs */
 
@@ -675,7 +675,7 @@ FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr);
 
 typedef struct FD_BIGINT *fd_bigint;
 
-FD_EXPORT fdtype fd_make_bigint(long long);
+FD_EXPORT lispval fd_make_bigint(long long);
 
 FD_EXPORT int fd_small_bigintp(fd_bigint bi);
 FD_EXPORT int fd_modest_bigintp(fd_bigint bi);
@@ -718,8 +718,8 @@ typedef struct FD_FLONUM *fd_flonum;
 #define FD_XFLONUM(x) (fd_consptr(struct FD_FLONUM *,x,fd_flonum_type))
 #define FD_FLONUM(x) ((FD_XFLONUM(x))->floval)
 
-FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
-FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT lispval fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum);
 
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
 #define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
@@ -728,8 +728,8 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 
 typedef struct FD_RATIONAL {
   FD_CONS_HEADER;
-  fdtype numerator;
-  fdtype denominator;} FD_RATIONAL;
+  lispval numerator;
+  lispval denominator;} FD_RATIONAL;
 typedef struct FD_RATIONAL *fd_rational;
 
 #define FD_RATIONALP(x) (FD_PTR_TYPE(x) == fd_rational_type)
@@ -740,8 +740,8 @@ typedef struct FD_RATIONAL *fd_rational;
 
 typedef struct FD_COMPLEX {
   FD_CONS_HEADER;
-  fdtype realpart;
-  fdtype imagpart;} FD_COMPLEX;
+  lispval realpart;
+  lispval imagpart;} FD_COMPLEX;
 typedef struct FD_COMPLEX *fd_complex;
 
 #define FD_COMPLEXP(x) (FD_PTR_TYPE(x) == fd_complex_type)
@@ -759,14 +759,14 @@ FD_EXPORT fd_exception fd_RegexError;
 
 typedef struct FD_REGEX {
   FD_CONS_HEADER;
-  u8_string fd_rxsrc;
-  unsigned int fd_rxactive;
-  int fd_rxflags;
-  u8_mutex fdrx_lock;
-  regex_t fd_rxcompiled;} FD_REGEX;
+  u8_string rxsrc;
+  unsigned int rxactive;
+  int rxflags;
+  u8_mutex rx_lock;
+  regex_t rxcompiled;} FD_REGEX;
 typedef struct FD_REGEX *fd_regex;
 
-FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
+FD_EXPORT lispval fd_make_regex(u8_string src,int flags);
 
 /* Mysteries */
 
@@ -774,19 +774,19 @@ typedef struct FD_MYSTERY_DTYPE {
   FD_CONS_HEADER;
   unsigned char myst_dtpackage, myst_dtcode; unsigned int myst_dtsize;
   union {
-    fdtype *elts; unsigned char *bytes;} mystery_payload;} FD_MYSTERY;
+    lispval *elts; unsigned char *bytes;} mystery_payload;} FD_MYSTERY;
 typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
   FD_CONS_HEADER;
-  u8_exception fdex_u8ex;}
+  u8_exception ex_u8ex;}
   FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
-FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
-FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
+FD_EXPORT lispval fd_make_exception(fd_exception,u8_context,u8_string,lispval);
+FD_EXPORT lispval fd_init_exception(fd_exception_object,u8_exception);
 
 #define FD_EXCEPTIONP(x) (FD_TYPEP(x,fd_error_type))
 
@@ -797,16 +797,16 @@ typedef struct FD_TIMESTAMP {
   struct U8_XTIME ts_u8xtime;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
-FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm);
-FD_EXPORT fdtype fd_time2timestamp(time_t moment);
+FD_EXPORT lispval fd_make_timestamp(struct U8_XTIME *tm);
+FD_EXPORT lispval fd_time2timestamp(time_t moment);
 
 /* Consblocks */
 
 typedef struct FD_CONSBLOCK {
   FD_CONS_HEADER;
   unsigned int *consdata;
-  fdtype cons_root;
-  fdtype cons_directory;
+  lispval cons_root;
+  lispval cons_directory;
   ssize_t consdata_size;
   ssize_t consdata_lenth;} FD_CONSBLOCK;
 typedef struct FD_CONSBLOCK *fd_consblock;
@@ -819,42 +819,43 @@ typedef struct FD_RAWPTR {
   FD_CONS_HEADER;
   void *ptrval;
   u8_string typestring, idstring;
-  fdtype raw_typespec;
+  lispval raw_typespec;
   fd_raw_recyclefn recycler;} FD_RAWPTR;
 typedef struct FD_RAWPTR *fd_rawptr;
 
-FD_EXPORT fdtype fd_wrap_pointer(void *ptrval,
+FD_EXPORT lispval fd_wrap_pointer(void *ptrval,
                                  fd_raw_recyclefn recycler,
-                                 fdtype typespec,
+                                 lispval typespec,
 				 u8_string idstring);
 
 /* Compounds */
 
 typedef struct FD_COMPOUND_TYPEINFO *fd_compound_typeinfo;
-typedef int (*fd_compound_unparsefn)(u8_output out,fdtype,fd_compound_typeinfo);
-typedef fdtype (*fd_compound_parsefn)(int n,fdtype *,fd_compound_typeinfo);
-typedef fdtype (*fd_compound_dumpfn)(fdtype,fd_compound_typeinfo);
-typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype,fd_compound_typeinfo);
+typedef int (*fd_compound_unparsefn)(u8_output out,lispval,fd_compound_typeinfo);
+typedef lispval (*fd_compound_parsefn)(int n,lispval *,fd_compound_typeinfo);
+typedef lispval (*fd_compound_dumpfn)(lispval,fd_compound_typeinfo);
+typedef lispval (*fd_compound_restorefn)(lispval,lispval,fd_compound_typeinfo);
 
 typedef struct FD_COMPOUND_TYPEINFO {
-  fdtype compound_typetag, fd_compound_metadata; int fd_compound_corelen;
-  fd_compound_parsefn fd_compound_parser;
-  fd_compound_unparsefn fd_compound_unparser;
-  fd_compound_dumpfn fd_compound_dumpfn;
-  fd_compound_restorefn fd_compound_restorefn;
-  struct FD_TABLEFNS *fd_compund_tablefns;
-  struct FD_COMPOUND_TYPEINFO *fd_compound_nextinfo;} FD_COMPOUND_TYPEINFO;
+  lispval compound_typetag, compound_metadata; 
+  int compound_corelen;
+  fd_compound_parsefn compound_parser;
+  fd_compound_unparsefn compound_unparser;
+  fd_compound_dumpfn compound_dumpfn;
+  fd_compound_restorefn compound_restorefn;
+  struct FD_TABLEFNS *compund_tablefns;
+  struct FD_COMPOUND_TYPEINFO *compound_nextinfo;} FD_COMPOUND_TYPEINFO;
 FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_compound_entries;
 
 
-FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(fdtype);
-FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_declare_compound(fdtype,fdtype,int);
-FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(fdtype,fdtype *,int *);
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(lispval);
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_declare_compound(lispval,lispval,int);
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(lispval,lispval *,int *);
 
 /* Cons compare */
 
 #if FD_INLINE_COMPARE
-static int cons_compare(fdtype x,fdtype y)
+static int cons_compare(lispval x,lispval y)
 {
   if (FD_ATOMICP(x))
     if (FD_ATOMICP(y))
@@ -886,11 +887,11 @@ static int cons_compare(fdtype x,fdtype y)
 	if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
 	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       default:
-	return FDTYPE_COMPARE(x,y,FD_COMPARE_QUICK);}}
+	return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
 }
 #endif
 
-FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec);
+FD_EXPORT fd_compare_flags fd_get_compare_flags(lispval spec);
 
 /* Choices, tables, regexes */
 
@@ -908,10 +909,10 @@ FD_EXPORT fd_compare_flags fd_get_compare_flags(fdtype spec);
 #define FD_ZERO_POOL_MAX 0x10000
 #endif
 
-FD_EXPORT fdtype fd_zero_pool_values0[4096];
-FD_EXPORT fdtype *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096];
+FD_EXPORT lispval fd_zero_pool_values0[4096];
+FD_EXPORT lispval *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096];
 FD_EXPORT unsigned int fd_zero_pool_load;
-FD_EXPORT fdtype fd_zero_pool_value(fdtype oid);
-FD_EXPORT fdtype fd_zero_pool_store(fdtype oid,fdtype value);
+FD_EXPORT lispval fd_zero_pool_value(lispval oid);
+FD_EXPORT lispval fd_zero_pool_store(lispval oid,lispval value);
 
 #endif /* ndef FRAMERD_CONS_H */

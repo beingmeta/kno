@@ -38,111 +38,111 @@ typedef struct FD_FUNCTION *fd_function;
 
 /* Various callables */
 
-typedef fdtype (*fd_cprim0)();
-typedef fdtype (*fd_cprim1)(fdtype);
-typedef fdtype (*fd_cprim2)(fdtype,fdtype);
-typedef fdtype (*fd_cprim3)(fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim4)(fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim5)(fdtype,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim6)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim7)(fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim8)(fdtype,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,
-			    fdtype,fdtype);
-typedef fdtype (*fd_cprim9)(fdtype,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,
-			    fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim10)(fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype);
-typedef fdtype (*fd_cprim11)(fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype);
-typedef fdtype (*fd_cprim12)(fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprim13)(fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype);
-typedef fdtype (*fd_cprim14)(fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype);
-typedef fdtype (*fd_cprim15)(fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype);
-typedef fdtype (*fd_cprimn)(int n,fdtype *);
+typedef lispval (*fd_cprim0)();
+typedef lispval (*fd_cprim1)(lispval);
+typedef lispval (*fd_cprim2)(lispval,lispval);
+typedef lispval (*fd_cprim3)(lispval,lispval,lispval);
+typedef lispval (*fd_cprim4)(lispval,lispval,lispval,lispval);
+typedef lispval (*fd_cprim5)(lispval,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_cprim6)(lispval,lispval,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_cprim7)(lispval,lispval,lispval,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_cprim8)(lispval,lispval,lispval,
+			    lispval,lispval,lispval,
+			    lispval,lispval);
+typedef lispval (*fd_cprim9)(lispval,lispval,lispval,
+			    lispval,lispval,lispval,
+			    lispval,lispval,lispval);
+typedef lispval (*fd_cprim10)(lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval);
+typedef lispval (*fd_cprim11)(lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval);
+typedef lispval (*fd_cprim12)(lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval);
+typedef lispval (*fd_cprim13)(lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval);
+typedef lispval (*fd_cprim14)(lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval);
+typedef lispval (*fd_cprim15)(lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval);
+typedef lispval (*fd_cprimn)(int n,lispval *);
 
-typedef fdtype (*fd_xprim0)(fd_function);
-typedef fdtype (*fd_xprim1)(fd_function,fdtype);
-typedef fdtype (*fd_xprim2)(fd_function,fdtype,fdtype);
-typedef fdtype (*fd_xprim3)(fd_function,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim4)(fd_function,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim5)(fd_function,
-                            fdtype,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim6)(fd_function,fdtype,fdtype,
-                            fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim7)(fd_function,fdtype,fdtype,
-                            fdtype,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim8)(fd_function,fdtype,fdtype,
-                            fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim9)(fd_function,
-			    fdtype,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,
-			    fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim10)(fd_function,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype);
-typedef fdtype (*fd_xprim11)(fd_function,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype);
-typedef fdtype (*fd_xprim12)(fd_function,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprim13)(fd_function,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype);
-typedef fdtype (*fd_xprim14)(fd_function,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype);
-typedef fdtype (*fd_xprim15)(fd_function,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype,
-			     fdtype,fdtype,fdtype);
-typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
+typedef lispval (*fd_xprim0)(fd_function);
+typedef lispval (*fd_xprim1)(fd_function,lispval);
+typedef lispval (*fd_xprim2)(fd_function,lispval,lispval);
+typedef lispval (*fd_xprim3)(fd_function,lispval,lispval,lispval);
+typedef lispval (*fd_xprim4)(fd_function,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_xprim5)(fd_function,
+                            lispval,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_xprim6)(fd_function,lispval,lispval,
+                            lispval,lispval,lispval,lispval);
+typedef lispval (*fd_xprim7)(fd_function,lispval,lispval,
+                            lispval,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_xprim8)(fd_function,lispval,lispval,
+                            lispval,lispval,lispval,lispval,lispval,lispval);
+typedef lispval (*fd_xprim9)(fd_function,
+			    lispval,lispval,lispval,
+			    lispval,lispval,lispval,
+			    lispval,lispval,lispval);
+typedef lispval (*fd_xprim10)(fd_function,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval);
+typedef lispval (*fd_xprim11)(fd_function,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval);
+typedef lispval (*fd_xprim12)(fd_function,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval);
+typedef lispval (*fd_xprim13)(fd_function,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval);
+typedef lispval (*fd_xprim14)(fd_function,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval);
+typedef lispval (*fd_xprim15)(fd_function,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval,
+			     lispval,lispval,lispval);
+typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
 
 #define FD_FUNCTION_FIELDS \
   FD_CONS_HEADER;							\
   u8_string fcn_name, fcn_filename;					\
   u8_string fcn_documentation;						\
   unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1;		\
-  fdtype fcnid;								\
+  lispval fcnid;								\
   short fcn_arity, fcn_min_arity;					\
-  fdtype fcn_attribs;							\
+  lispval fcn_attribs;							\
   int *fcn_typeinfo;							\
-  fdtype *fcn_defaults;							\
+  lispval *fcn_defaults;							\
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
@@ -168,127 +168,127 @@ struct FD_FUNCTION {
 /* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
 FD_EXPORT short fd_functionp[];
 
-FD_EXPORT fdtype fd_new_cprimn
+FD_EXPORT lispval fd_new_cprimn
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprimn fn,int min_arity,int ndcall,int xcall);
-FD_EXPORT fdtype fd_new_cprim0
+FD_EXPORT lispval fd_new_cprim0
 (u8_string name,u8_string filename,u8_string doc,fd_cprim0 fn,int xcall);
-FD_EXPORT fdtype fd_new_cprim1
+FD_EXPORT lispval fd_new_cprim1
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim1 fn,int min_arity,int ndcall,int xcall,
- int type0,fdtype dflt0);
-FD_EXPORT fdtype fd_new_cprim2
+ int type0,lispval dflt0);
+FD_EXPORT lispval fd_new_cprim2
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim2 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1);
-FD_EXPORT fdtype fd_new_cprim3
+ int type0,lispval dflt0,
+ int type1,lispval dflt1);
+FD_EXPORT lispval fd_new_cprim3
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim3 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2);
-FD_EXPORT fdtype fd_new_cprim4
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2);
+FD_EXPORT lispval fd_new_cprim4
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim4 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3);
-FD_EXPORT fdtype fd_new_cprim5
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3);
+FD_EXPORT lispval fd_new_cprim5
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim5 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4);
-FD_EXPORT fdtype fd_new_cprim6
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4);
+FD_EXPORT lispval fd_new_cprim6
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim6 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5);
-FD_EXPORT fdtype fd_new_cprim7
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5);
+FD_EXPORT lispval fd_new_cprim7
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim7 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6);
-FD_EXPORT fdtype fd_new_cprim8
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6);
+FD_EXPORT lispval fd_new_cprim8
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim8 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7);
-FD_EXPORT fdtype fd_new_cprim9
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7);
+FD_EXPORT lispval fd_new_cprim9
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim9 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8);
-FD_EXPORT fdtype fd_new_cprim10
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8);
+FD_EXPORT lispval fd_new_cprim10
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim10 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8,
- int type9,fdtype dflt9);
-FD_EXPORT fdtype fd_new_cprim11
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9);
+FD_EXPORT lispval fd_new_cprim11
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim11 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8,
- int type9,fdtype dflt9,int type10,fdtype dflt10);
-FD_EXPORT fdtype fd_new_cprim12
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10);
+FD_EXPORT lispval fd_new_cprim12
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim12 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8,
- int type9,fdtype dflt9,int type10,fdtype dflt10,
- int type11,fdtype dflt11);
-FD_EXPORT fdtype fd_new_cprim13
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11);
+FD_EXPORT lispval fd_new_cprim13
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim13 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8,
- int type9,fdtype dflt9,int type10,fdtype dflt10,
- int type11,fdtype dflt11,int type12,fdtype dflt12);
-FD_EXPORT fdtype fd_new_cprim14
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11,int type12,lispval dflt12);
+FD_EXPORT lispval fd_new_cprim14
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim14 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8,
- int type9,fdtype dflt9,int type10,fdtype dflt10,
- int type11,fdtype dflt11,int type12,fdtype dflt12,
- int type13,fdtype dflt13);
-FD_EXPORT fdtype fd_new_cprim15
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11,int type12,lispval dflt12,
+ int type13,lispval dflt13);
+FD_EXPORT lispval fd_new_cprim15
 (u8_string name,u8_string filename,u8_string doc,
  fd_cprim15 fn,int min_arity,int ndcall,int call,
- int type0,fdtype dflt0,
- int type1,fdtype dflt1,int type2,fdtype dflt2,
- int type3,fdtype dflt3,int type4,fdtype dflt4,
- int type5,fdtype dflt5,int type6,fdtype dflt6,
- int type7,fdtype dflt7,int type8,fdtype dflt8,
- int type9,fdtype dflt9,int type10,fdtype dflt10,
- int type11,fdtype dflt11,int type12,fdtype dflt12,
- int type13,fdtype dflt13,int type14,fdtype dflt14);
+ int type0,lispval dflt0,
+ int type1,lispval dflt1,int type2,lispval dflt2,
+ int type3,lispval dflt3,int type4,lispval dflt4,
+ int type5,lispval dflt5,int type6,lispval dflt6,
+ int type7,lispval dflt7,int type8,lispval dflt8,
+ int type9,lispval dflt9,int type10,lispval dflt10,
+ int type11,lispval dflt11,int type12,lispval dflt12,
+ int type13,lispval dflt13,int type14,lispval dflt14);
 
 
 #define fd_make_cprimn(name,fn,min_arity)		\
@@ -489,21 +489,21 @@ FD_EXPORT fdtype fd_new_cprim15
    pointer type enum in ptr.h. */
 #define FD_SPROCP(x) (FD_TYPEP((x),fd_sproc_type))
 
-FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
+FD_EXPORT lispval fd_make_ndprim(lispval prim);
 
 /* Primitive defining macros */
 
 #define FD_CPRIM(cname,scm_name, ...) \
-  static fdtype cname(__VA_ARGS__)
+  static lispval cname(__VA_ARGS__)
 #define FD_NDPRIM(cname,scm_name, ...) \
-  static fdtype cname(__VA_ARGS__)
+  static lispval cname(__VA_ARGS__)
 
 /* Definining functions in tables. */
 
-FD_EXPORT void fd_defn(fdtype table,fdtype fcn);
-FD_EXPORT void fd_idefn(fdtype table,fdtype fcn);
-FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from);
-FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from);
+FD_EXPORT void fd_defn(lispval table,lispval fcn);
+FD_EXPORT void fd_idefn(lispval table,lispval fcn);
+FD_EXPORT void fd_defalias(lispval table,u8_string to,u8_string from);
+FD_EXPORT void fd_defalias2(lispval table,u8_string to,lispval src,u8_string from);
 
 /* Stack checking */
 
@@ -536,15 +536,15 @@ typedef struct FD_TAILCALL {
   FD_CONS_HEADER;
   int tailcall_flags;
   int tailcall_arity;
-  fdtype tailcall_head;} *fd_tailcall;
+  lispval tailcall_head;} *fd_tailcall;
 
-FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
-FD_EXPORT fdtype fd_step_call(fdtype c);
-FD_EXPORT fdtype _fd_finish_call(fdtype);
+FD_EXPORT lispval fd_tail_call(lispval fcn,int n,lispval *vec);
+FD_EXPORT lispval fd_step_call(lispval c);
+FD_EXPORT lispval _fd_finish_call(lispval);
 
 #define FD_TAILCALLP(x) (FD_TYPEP((x),fd_tailcall_type))
 
-FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
+FD_INLINE_FCN lispval fd_finish_call(lispval pt)
 {
   if (FD_TAILCALLP(pt))
     return _fd_finish_call(pt);
@@ -553,38 +553,38 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 
 /* Apply functions */
 
-typedef fdtype (*fd_applyfn)(fdtype f,int n,fdtype *);
+typedef lispval (*fd_applyfn)(lispval f,int n,lispval *);
 FD_EXPORT fd_applyfn fd_applyfns[];
 
-FD_EXPORT fdtype fd_call(struct FD_STACK *stack,fdtype fp,int n,fdtype *args);
-FD_EXPORT fdtype fd_ndcall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
-FD_EXPORT fdtype fd_dcall(struct FD_STACK *stack,fdtype,int n,fdtype *args);
+FD_EXPORT lispval fd_call(struct FD_STACK *stack,lispval fp,int n,lispval *args);
+FD_EXPORT lispval fd_ndcall(struct FD_STACK *stack,lispval,int n,lispval *args);
+FD_EXPORT lispval fd_dcall(struct FD_STACK *stack,lispval,int n,lispval *args);
 
-FD_EXPORT fdtype _fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
-FD_EXPORT fdtype _fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
-FD_EXPORT fdtype _fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args);
+FD_EXPORT lispval _fd_stack_apply(struct FD_STACK *stack,lispval fn,int n_args,lispval *args);
+FD_EXPORT lispval _fd_stack_dapply(struct FD_STACK *stack,lispval fn,int n_args,lispval *args);
+FD_EXPORT lispval _fd_stack_ndapply(struct FD_STACK *stack,lispval fn,int n_args,lispval *args);
 
 #if FD_INLINE_APPLY
 U8_MAYBE_UNUSED static
-fdtype fd_stack_apply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+lispval fd_stack_apply(struct FD_STACK *stack,lispval fn,int n_args,lispval *args)
 {
-  fdtype result= (stack) ?
+  lispval result= (stack) ?
     (fd_call(stack,fn,n_args,args)) :
     (fd_call(fd_stackptr,fn,n_args,args));
   return fd_finish_call(result);
 }
 static U8_MAYBE_UNUSED
-fdtype fd_stack_dapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+lispval fd_stack_dapply(struct FD_STACK *stack,lispval fn,int n_args,lispval *args)
 {
-  fdtype result= (stack) ?
+  lispval result= (stack) ?
     (fd_dcall(stack,fn,n_args,args)) :
     (fd_dcall(fd_stackptr,fn,n_args,args));
   return fd_finish_call(result);
 }
 static U8_MAYBE_UNUSED
-fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args)
+lispval fd_stack_ndapply(struct FD_STACK *stack,lispval fn,int n_args,lispval *args)
 {
-  fdtype result= (stack) ?
+  lispval result= (stack) ?
     (fd_ndcall(stack,fn,n_args,args)) :
     (fd_ndcall(fd_stackptr,fn,n_args,args));
   return fd_finish_call(result);
@@ -609,12 +609,12 @@ fdtype fd_stack_ndapply(struct FD_STACK *stack,fdtype fn,int n_args,fdtype *args
    ((fd_function)(fd_fcnid_ref(x))) : \
    ((fd_function)x))
 
-FD_EXPORT fdtype fd_get_backtrace(struct FD_STACK *stack,fdtype base);
-FD_EXPORT void fd_html_backtrace(u8_output out,fdtype rep);
+FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack,lispval base);
+FD_EXPORT void fd_html_backtrace(u8_output out,lispval rep);
 
 /* Unparsing */
 
 FD_EXPORT int fd_unparse_function
-  (u8_output out,fdtype x,u8_string name,u8_string before,u8_string after);
+  (u8_output out,lispval x,u8_string name,u8_string before,u8_string after);
 
 #endif /* FRAMERD_APPLY_H */

@@ -43,58 +43,52 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
   else return (fd_pool)mp;
 }
 
-static fdtype mempool_alloc(fd_pool p,int n)
+static lispval mempool_alloc(fd_pool p,int n)
 {
   struct FD_MEMPOOL *mp = (fd_mempool)p;
   if ((mp->pool_load+n)>=mp->pool_capacity)
-    return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,FD_VOID);
+    return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,VOID);
   else {
-    fdtype results = FD_EMPTY_CHOICE;
+    lispval results = EMPTY;
     int i = 0;
     u8_lock_mutex(&(mp->pool_lock));
     if ((mp->pool_load+n)>=mp->pool_capacity) {
       u8_unlock_mutex(&(mp->pool_lock));
-      return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,FD_VOID);}
+      return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,VOID);}
     else {
       FD_OID base = FD_OID_PLUS(mp->pool_base,mp->pool_load);
       while (i<n) {
         FD_OID each = FD_OID_PLUS(base,i);
-        FD_ADD_TO_CHOICE(results,fd_make_oid(each));
+        CHOICE_ADD(results,fd_make_oid(each));
         i++;}
       mp->pool_load = mp->pool_load+n;
       u8_unlock_mutex(&(mp->pool_lock));
       return fd_simplify_choice(results);}}
 }
 
-static fdtype mempool_fetch(fd_pool p,fdtype oid)
+static lispval mempool_fetch(fd_pool p,lispval oid)
 {
   struct FD_MEMPOOL *mp = (fd_mempool)p;
   struct FD_HASHTABLE *cache = &(p->pool_cache);
   FD_OID addr = FD_OID_ADDR(oid);
   int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
-  if ((off>mp->pool_load) &&
-      (!((p->pool_flags)&FD_POOL_SPARSE)))
-    return fd_err(fd_UnallocatedOID,"mpool_fetch",mp->poolid,oid);
-  else return fd_hashtable_get(cache,oid,FD_EMPTY_CHOICE);
+  if (off>mp->pool_load)
+    return FD_UNALLOCATED_OID;
+  else return fd_hashtable_get(cache,oid,EMPTY);
 }
 
-static fdtype *mempool_fetchn(fd_pool p,int n,fdtype *oids)
+static lispval *mempool_fetchn(fd_pool p,int n,lispval *oids)
 {
   struct FD_HASHTABLE *cache = &(p->pool_cache);
   struct FD_MEMPOOL *mp = (fd_mempool)p;
-  fdtype *results;
+  unsigned int load = mp->pool_load;
+  lispval *results=u8_alloc_n(n,lispval);
   int i = 0; while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
     int off = FD_OID_DIFFERENCE(addr,mp->pool_base);
-    if ((off>mp->pool_load) &&
-	(!((p->pool_flags)&FD_POOL_SPARSE))) {
-      fd_seterr(fd_UnallocatedOID,"mpool_fetch",u8_strdup(mp->poolid),
-		fd_make_oid(addr));
-      return NULL;}
-    else i++;}
-  results = u8_alloc_n(n,fdtype);
-  i = 0; while (i<n) {
-    results[i]=fd_hashtable_get(cache,oids[i],FD_EMPTY_CHOICE);
+    if (off>load)
+      results[i]=FD_UNALLOCATED_OID;
+    else results[i]=fd_hashtable_get(cache,oids[i],EMPTY);
     i++;}
   return results;
 }
@@ -105,27 +99,27 @@ static int mempool_load(fd_pool p)
   return mp->pool_load;
 }
 
-static int mempool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
+static int mempool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   return 1;
 }
 
-static int mempool_swapout(fd_pool p,fdtype oidvals)
+static int mempool_swapout(fd_pool p,lispval oidvals)
 {
   struct FD_MEMPOOL *mp = (fd_mempool)p;
   if (mp->noswap) return 0;
-  else if (FD_VOIDP(oidvals)) {
+  else if (VOIDP(oidvals)) {
     fd_reset_hashtable(&(p->pool_changes),fd_pool_lock_init,1);
     return 1;}
   else {
-    fdtype oids = fd_make_simple_choice(oidvals);
-    if (FD_EMPTY_CHOICEP(oids)) {}
-    else if (FD_OIDP(oids)) {
-      fd_hashtable_op(&(p->pool_changes),fd_table_replace,oids,FD_VOID);}
+    lispval oids = fd_make_simple_choice(oidvals);
+    if (EMPTYP(oids)) {}
+    else if (OIDP(oids)) {
+      fd_hashtable_op(&(p->pool_changes),fd_table_replace,oids,VOID);}
     else {
       fd_hashtable_iterkeys
         (&(p->pool_changes),fd_table_replace,
-         FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
+         FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),VOID);
       fd_devoid_hashtable(&(p->pool_changes),0);}
     fd_decref(oids);
     return 1;}

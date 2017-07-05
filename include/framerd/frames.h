@@ -11,24 +11,24 @@
 #define FRAMERD_FRAMES_H_INFO "include/framerd/frames.h"
 #endif
 
-FD_EXPORT fdtype fd_method_table;
+FD_EXPORT lispval fd_method_table;
 
 FD_EXPORT int  fd_slot_cache_load(void);
 FD_EXPORT void fd_clear_slotcaches(void);
-FD_EXPORT void fd_clear_slotcache(fdtype slotid);
-FD_EXPORT void fd_clear_slotcache_entry(fdtype slotid,fdtype frame);
+FD_EXPORT void fd_clear_slotcache(lispval slotid);
+FD_EXPORT void fd_clear_slotcache_entry(lispval slotid,lispval frame);
 
 enum FDOP {
   fd_getop, fd_addop, fd_dropop, fd_testop, fd_validop };
 
 typedef struct FD_DEPENDENCY_RECORD {
-  fdtype frame, slotid, value;} FD_DEPENDENCY_RECORD;
+  lispval frame, slotid, value;} FD_DEPENDENCY_RECORD;
 typedef struct FD_DEPENDENCY_RECORD *fd_dependency_record;
 
 
 typedef struct FD_FRAMEOP_STACK {
   enum FDOP op;
-  fdtype frame, slotid, value;
+  lispval frame, slotid, value;
   int n_deps, max_deps; struct FD_DEPENDENCY_RECORD *dependencies;
   struct FD_FRAMEOP_STACK *next;} FD_FRAMEOP_STACK;
 typedef struct FD_FRAMEOP_STACK fd_frameop_stack;
@@ -41,33 +41,33 @@ FD_EXPORT int fd_in_progressp(struct FD_FRAMEOP_STACK *op);
 FD_EXPORT void fd_push_opstack(struct FD_FRAMEOP_STACK *);
 FD_EXPORT int fd_pop_opstack(struct FD_FRAMEOP_STACK *,int normal);
 
-FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt);
-FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value);
-FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value);
-FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value);
+FD_EXPORT lispval fd_oid_get(lispval f,lispval slotid,lispval dflt);
+FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value);
+FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value);
+FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value);
 
-FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid);
-FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value);
-FD_EXPORT int fd_frame_add(fdtype f,fdtype slotid,fdtype value);
-FD_EXPORT int fd_frame_drop(fdtype f,fdtype slotid,fdtype value);
+FD_EXPORT lispval fd_frame_get(lispval f,lispval slotid);
+FD_EXPORT int fd_frame_test(lispval f,lispval slotid,lispval value);
+FD_EXPORT int fd_frame_add(lispval f,lispval slotid,lispval value);
+FD_EXPORT int fd_frame_drop(lispval f,lispval slotid,lispval value);
 
 /* Making frames */
 
-FD_EXPORT fdtype fd_new_frame(fdtype pool_spec,fdtype initval,int deepcopy);
+FD_EXPORT lispval fd_new_frame(lispval pool_spec,lispval initval,int deepcopy);
 
 /* Finding frames */
 
-FD_EXPORT fdtype fd_prim_find(fdtype indexes,fdtype slotid,fdtype value);
-FD_EXPORT fdtype fd_finder(fdtype indexes,int n,fdtype *slotvals);
-FD_EXPORT fdtype fd_bgfinder(int n,fdtype *slotvals);
-FD_EXPORT fdtype fd_find_frames(fdtype indexes,...);
-FD_EXPORT fdtype fd_bgfind(fdtype slotid,fdtype values,...);
-FD_EXPORT int fd_bg_prefetch(fdtype keys);
+FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotid,lispval value);
+FD_EXPORT lispval fd_finder(lispval indexes,int n,lispval *slotvals);
+FD_EXPORT lispval fd_bgfinder(int n,lispval *slotvals);
+FD_EXPORT lispval fd_find_frames(lispval indexes,...);
+FD_EXPORT lispval fd_bgfind(lispval slotid,lispval values,...);
+FD_EXPORT int fd_bg_prefetch(lispval keys);
 
-FD_EXPORT int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values);
+FD_EXPORT int fd_find_prefetch(fd_index ix,lispval slotids,lispval values);
 
 FD_EXPORT
-int fd_index_frame(fd_index ix,fdtype frame,fdtype slotid,fdtype values);
+int fd_index_frame(fd_index ix,lispval frame,lispval slotid,lispval values);
 
 
 #endif /* FRAMERD_FRAMES_H */

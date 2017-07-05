@@ -11,8 +11,8 @@
 #define FRAMERD_OPCODES_H_INFO "include/framerd/opcodes.h"
 #endif
 
-FD_EXPORT fdtype fd_opcode_dispatch
-(fdtype opcode,fdtype expr,fd_lexenv env,
+FD_EXPORT lispval fd_opcode_dispatch
+(lispval opcode,lispval expr,fd_lexenv env,
  fd_stack caller,int tail);
 
 /* Opcodes */

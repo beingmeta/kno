@@ -47,7 +47,7 @@
 
 fd_ptr_type fd_extdb_type, fd_extdb_proc_type;
 
-static fdtype exec_enabled_symbol;
+static lispval exec_enabled_symbol;
 
 static fd_exception NoMakeProc=
   _("No implementation for prepared SQL statements");
@@ -128,7 +128,7 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
 
 /* EXTDB handlers */
 
-static int unparse_extdb(u8_output out,fdtype x)
+static int unparse_extdb(u8_output out,lispval x)
 {
   struct FD_EXTDB *dbp = (struct FD_EXTDB *)x;
   u8_printf(out,"#<EXTDB/%s %s>",dbp->extdb_handler->name,dbp->extdb_info);
@@ -142,7 +142,7 @@ static void recycle_extdb(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static int unparse_extdb_proc(u8_output out,fdtype x)
+static int unparse_extdb_proc(u8_output out,lispval x)
 {
   struct FD_EXTDB_PROC *dbp = (struct FD_EXTDB_PROC *)x;
   u8_printf(out,"#<DBλ/%s %s: %s>",
@@ -163,7 +163,7 @@ static void recycle_extdb_proc(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
+static lispval callextdbproc(struct FD_FUNCTION *xdbproc,int n,lispval *args)
 {
   struct FD_EXTDB_PROC *dbp = (struct FD_EXTDB_PROC *)xdbproc;
   return dbp->fcn_handler.xcalln(xdbproc,n,args);
@@ -173,69 +173,69 @@ static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
 
 static int exec_enabled = 0;
 
-static int check_exec_enabled(fdtype opts)
+static int check_exec_enabled(lispval opts)
 {
-  fdtype v = fd_getopt(opts,exec_enabled_symbol,FD_VOID);
-  if (FD_VOIDP(v)) return 0;
-  else if (FD_FALSEP(v)) return 0;
+  lispval v = fd_getopt(opts,exec_enabled_symbol,VOID);
+  if (VOIDP(v)) return 0;
+  else if (FALSEP(v)) return 0;
   fd_decref(v);
   return 1;
 }
 
-static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
+static lispval extdb_exec(lispval db,lispval query,lispval colinfo)
 {
   struct FD_EXTDB *extdb = FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
   if ((exec_enabled)||
-      ((fd_testopt(extdb->extdb_options,exec_enabled_symbol,FD_VOID))&&
+      ((fd_testopt(extdb->extdb_options,exec_enabled_symbol,VOID))&&
        (check_exec_enabled(extdb->extdb_options))))
     return extdb->extdb_handler->execute(extdb,query,colinfo);
   else return fd_err(_("Direct SQL execution disabled"),"extdb_exec",
-                     FD_STRDATA(query),db);
+                     CSTRING(query),db);
 }
 
-static fdtype extdb_makeproc(int n,fdtype *args)
+static lispval extdb_makeproc(int n,lispval *args)
 {
-  if (FD_EXPECT_TRUE
-      ((FD_PRIM_TYPEP(args[0],fd_extdb_type)) && (FD_STRINGP(args[1])))) {
+  if (PRED_TRUE
+      ((FD_PRIM_TYPEP(args[0],fd_extdb_type)) && (STRINGP(args[1])))) {
     struct FD_EXTDB *extdb=
       FD_GET_CONS(args[0],fd_extdb_type,struct FD_EXTDB *);
-    fdtype dbspec = args[0], query = args[1];
-    fdtype colinfo = ((n>2) ? (args[2]) : (FD_VOID));
-    if (extdb == NULL) return FD_ERROR_VALUE;
-    else if (!(FD_STRINGP(query)))
+    lispval dbspec = args[0], query = args[1];
+    lispval colinfo = ((n>2) ? (args[2]) : (VOID));
+    if (extdb == NULL) return FD_ERROR;
+    else if (!(STRINGP(query)))
       return fd_type_error("string","extdb_makeproc",query);
     else if ((extdb->extdb_handler->makeproc) == NULL)
       return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
     else return extdb->extdb_handler->makeproc
-           (extdb,FD_STRDATA(query),FD_STRLEN(query),
+           (extdb,CSTRING(query),STRLEN(query),
             colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));}
   else if (!(FD_PRIM_TYPEP(args[0],fd_extdb_type)))
     return fd_type_error("extdb","extdb_makeproc",args[0]);
-  else if  (!(FD_STRINGP(args[1])))
+  else if  (!(STRINGP(args[1])))
     return fd_type_error("string","extdb_makeproc",args[1]);
   /* Should never be reached  */
-  else return FD_VOID;
+  else return VOID;
 }
 
-static fdtype extdb_proc_plus(int n,fdtype *args)
+static lispval extdb_proc_plus(int n,lispval *args)
 {
-  fdtype arg1 = args[0], result = FD_VOID;
+  lispval arg1 = args[0], result = VOID;
   struct FD_EXTDB_PROC *extdbproc=
     FD_GET_CONS(arg1,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
-  fdtype extdbptr = extdbproc->extdbptr;
+  lispval extdbptr = extdbproc->extdbptr;
   struct FD_EXTDB *extdb=
     FD_GET_CONS(extdbptr,fd_extdb_type,struct FD_EXTDB *);
   u8_string base_qtext = extdbproc->extdb_qtext, new_qtext=
-    u8_string_append(base_qtext," ",FD_STRDATA(args[1]),NULL);
-  fdtype colinfo = extdbproc->extdb_colinfo;
+    u8_string_append(base_qtext," ",CSTRING(args[1]),NULL);
+  lispval colinfo = extdbproc->extdb_colinfo;
   int n_base_params = extdbproc->fcn_n_params, n_params = (n-2)+n_base_params;
-  fdtype *params = ((n_params)?(u8_alloc_n(n_params,fdtype)):(NULL));
-  fdtype *base_params = extdbproc->extdb_paramtypes, param_count = 0;
+  lispval *params = ((n_params)?(u8_alloc_n(n_params,lispval)):(NULL));
+  lispval *base_params = extdbproc->extdb_paramtypes, param_count = 0;
   int i = n-1; while (i>=2) {
-    fdtype param = args[i--]; fd_incref(param);
+    lispval param = args[i--]; fd_incref(param);
     params[param_count++]=param;}
   i = n_base_params-1; while (i>=0) {
-    fdtype param = base_params[i--]; fd_incref(param);
+    lispval param = base_params[i--]; fd_incref(param);
     params[param_count++]=param;}
   fd_incref(colinfo);
   result = extdb->extdb_handler->makeproc
@@ -246,43 +246,43 @@ static fdtype extdb_proc_plus(int n,fdtype *args)
 
 /* Accessors */
 
-static fdtype extdb_proc_query(fdtype extdb)
+static lispval extdb_proc_query(lispval extdb)
 {
   struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
-  return fdtype_string(xdbp->extdb_qtext);
+  return lispval_string(xdbp->extdb_qtext);
 }
 
-static fdtype extdb_proc_spec(fdtype extdb)
+static lispval extdb_proc_spec(lispval extdb)
 {
   struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
-  return fdtype_string(xdbp->extdb_spec);
+  return lispval_string(xdbp->extdb_spec);
 }
 
-static fdtype extdb_proc_db(fdtype extdb)
+static lispval extdb_proc_db(lispval extdb)
 {
   struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   return fd_incref(xdbp->extdbptr);
 }
 
-static fdtype extdb_proc_typemap(fdtype extdb)
+static lispval extdb_proc_typemap(lispval extdb)
 {
   struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   return fd_incref(xdbp->extdb_colinfo);
 }
 
-static fdtype extdb_proc_params(fdtype extdb)
+static lispval extdb_proc_params(lispval extdb)
 {
   struct FD_EXTDB_PROC *xdbp = FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
   int n = xdbp->fcn_n_params;
-  fdtype *paramtypes = xdbp->extdb_paramtypes;
-  fdtype result = fd_make_vector(n,NULL);
+  lispval *paramtypes = xdbp->extdb_paramtypes;
+  lispval result = fd_make_vector(n,NULL);
   int i = 0; while (i<n) {
-    fdtype param_info = paramtypes[i]; fd_incref(param_info);
+    lispval param_info = paramtypes[i]; fd_incref(param_info);
     FD_VECTOR_SET(result,i,param_info);
     i++;}
   return result;
@@ -294,7 +294,7 @@ int extdb_initialized = 0;
 
 FD_EXPORT void fd_init_extdbprims_c()
 {
-  fdtype extdb_module;
+  lispval extdb_module;
   if (extdb_initialized) return;
   extdb_initialized = 1;
   fd_init_scheme();
@@ -317,22 +317,22 @@ FD_EXPORT void fd_init_extdbprims_c()
 
   fd_idefn(extdb_module,
            fd_make_cprim3x("EXTDB/EXEC",extdb_exec,2,
-                           fd_extdb_type,FD_VOID,
-                           fd_string_type,FD_VOID,
-                           -1,FD_VOID));
+                           fd_extdb_type,VOID,
+                           fd_string_type,VOID,
+                           -1,VOID));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC",extdb_makeproc,2));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC+",extdb_proc_plus,2));
 
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type,FD_VOID));
+           ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type,VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type,FD_VOID));
+           ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type,VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type,FD_VOID));
+           ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type,VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type,FD_VOID));
+           ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type,VOID));
   fd_idefn(extdb_module,fd_make_cprim1x
-           ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type,FD_VOID));
+           ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type,VOID));
 
   fd_register_config("SQLEXEC",
                      _("whether direct execution of SQL strings is allowed"),
