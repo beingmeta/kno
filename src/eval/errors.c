@@ -301,13 +301,15 @@ static lispval error_irritant(lispval x,lispval top_arg)
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
-        found = fd_exception_xdata(ex); break;}
+        found = fd_get_irritant(ex);
+        break;}
       else ex = ex->u8x_prev;}}
   else while (ex) {
-      if  (ex->u8x_xdata)
-        found = fd_exception_xdata(ex);
+      if (ex->u8x_xdata)
+        found = fd_get_irritant(ex);
       ex = ex->u8x_prev;}
-  if (VOIDP(found)) return VOID;
+  if (VOIDP(found))
+    return VOID;
   else return fd_incref(found);
 }
 
