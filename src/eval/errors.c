@@ -115,6 +115,10 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,int wrapped,int
 	u8_make_exception((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,
 			  (void *)irritant,fd_free_exception_xdata);
       return fd_init_exception(NULL,u8ex);}
+    else if (FD_CONSP(irritant)) {
+      lispval err_result=fd_err(ex,cxt,out.u8_outbuf,irritant);
+      fd_decref(irritant);
+      return err_result;}
     else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
 }
 static lispval return_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -158,9 +162,10 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 	u8_push_exception(newex->u8x_cond,newex->u8x_context,
                           newex->u8x_details,newex->u8x_xdata,
                           newex->u8x_free_xdata);
+	u8_restore_exception(ex);
+        /* This lets us GC the lisp exception objects */
 	newexo->ex_u8ex = NULL;
 	exo->ex_u8ex = NULL;
-	u8_restore_exception(ex);
 	fd_decref(handler);
         fd_decref(value);
 	fd_decref(err_value);
@@ -309,7 +314,7 @@ static lispval error_irritant(lispval x,lispval top_arg)
         found = fd_get_irritant(ex);
       ex = ex->u8x_prev;}
   if (VOIDP(found))
-    return VOID;
+    return FD_FALSE;
   else return fd_incref(found);
 }
 
@@ -329,7 +334,8 @@ static lispval error_has_irritant(lispval x,lispval top_arg)
       if  (ex->u8x_xdata)
         found = fd_exception_xdata(ex);
       ex = ex->u8x_prev;}
-  if (VOIDP(found)) return FD_FALSE;
+  if (VOIDP(found))
+    return FD_FALSE;
   else return FD_TRUE;
 }
 
