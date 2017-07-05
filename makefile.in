@@ -1385,7 +1385,7 @@ MODULE_DIRS=xhtml fdxml mongodb \
 	aws facebook paypal twitter dropbox google
 
 MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
-		 aws/templates bugjar/websrc
+		 aws/templates
 
 install-modules: install-standard-modules install-safe-modules
 install-standard-modules: install-module-source install-module-data
