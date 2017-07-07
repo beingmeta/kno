@@ -673,7 +673,7 @@ static lispval mongodb_remove(lispval arg,lispval obj,lispval opts_arg)
     collection_done(collection,client,domain);
     if (wc) mongoc_write_concern_destroy(wc);
     fd_decref(q.bson_fieldmap);
-    bson_destroy(q.bson_doc);}
+    if (q.bson_doc) bson_destroy(q.bson_doc);}
   else result = FD_ERROR_VALUE;
   fd_decref(opts);
   return result;
@@ -704,7 +704,7 @@ static lispval mongodb_update(lispval arg,lispval query,lispval update,
     if ((q)&&(u))
       success = mongoc_collection_update(collection,update_flags,q,u,wc,&error);
     collection_done(collection,client,domain);
-    if (q) bson_destroy(q); 
+    if (q) bson_destroy(q);
     if (u) bson_destroy(u);
     if (wc) mongoc_write_concern_destroy(wc);
     fd_decref(opts);
@@ -1110,8 +1110,8 @@ static lispval collection_command(lispval arg,lispval command,lispval opts_arg)
                             "bad skip/limit/batch",opts);
       mongoc_collection_destroy(collection);
       client_done(arg,client);
-      bson_destroy(cmd);
-      bson_destroy(flds);
+      if (cmd) bson_destroy(cmd);
+      if (flds) bson_destroy(flds);
       fd_decref(opts);
       fd_decref(fields);
       U8_CLEAR_ERRNO();
@@ -1216,15 +1216,18 @@ static lispval collection_simple_command(lispval arg,lispval command,
           (collection,cmd,NULL,&response,&error)) {
         lispval result = fd_bson2dtype(&response,flags,opts);
         collection_done(collection,client,domain);
-        bson_destroy(cmd); fd_decref(opts);
+        bson_destroy(cmd);
+        fd_decref(opts);
         return result;}
       else {
         grab_mongodb_error(&error,"collection_simple_command");
         collection_done(collection,client,domain);
-        bson_destroy(cmd); fd_decref(opts);
+        bson_destroy(cmd);
+        fd_decref(opts);
         return FD_ERROR_VALUE;}}
     else {
-      bson_destroy(cmd); fd_decref(opts);
+      bson_destroy(cmd);
+      fd_decref(opts);
       return FD_ERROR_VALUE;}}
   else {
     fd_decref(opts);
@@ -1246,12 +1249,14 @@ static lispval db_simple_command(lispval arg,lispval command,
           (client,srv->dbname,cmd,NULL,&response,&error)) {
         lispval result = fd_bson2dtype(&response,flags,opts);
         client_done(arg,client);
-        bson_destroy(cmd); fd_decref(opts);
+        bson_destroy(cmd);
+        fd_decref(opts);
         return result;}
       else {
         grab_mongodb_error(&error,"db_simple_command");
         client_done(arg,client);
-        bson_destroy(cmd); fd_decref(opts);
+        bson_destroy(cmd);
+        fd_decref(opts);
         return FD_ERROR_VALUE;}}
     else {
       return FD_ERROR_VALUE;}}
@@ -1382,7 +1387,8 @@ static void recycle_cursor(struct FD_RAW_CONS *c)
   fd_decref(cursor->cursor_domain);
   fd_decref(cursor->cursor_query);
   fd_decref(cursor->cursor_opts);
-  bson_destroy(cursor->cursor_query_bson);
+  if (cursor->cursor_query_bson)
+    bson_destroy(cursor->cursor_query_bson);
   if (cursor->cursor_opts_bson)
     bson_destroy(cursor->cursor_opts_bson);
   if (cursor->cursor_readprefs)

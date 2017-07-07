@@ -654,8 +654,10 @@ static lispval xref_op(struct FD_COMPOUND *c,long long i,lispval tag)
 
 static lispval xref_opcode(lispval x,long long i,lispval tag)
 {
-  if (!(CONSP(x)))
-    return xref_type_error(x,tag);
+  if (!(CONSP(x))) {
+    if (EMPTYP(x))
+      return EMPTY;
+    else return xref_type_error(x,tag);}
   else if (FD_COMPOUNDP(x))
     return xref_op((struct FD_COMPOUND *)x,i,tag);
   else if (CHOICEP(x)) {

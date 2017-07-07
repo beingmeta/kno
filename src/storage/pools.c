@@ -27,6 +27,7 @@
 #include <libu8/u8printf.h>
 
 fd_exception fd_UnknownPoolType=_("Unknown pool type");
+fd_exception fd_PoolConflict=("Pool conflict");
 fd_exception fd_CantLockOID=_("Can't lock OID");
 fd_exception fd_CantUnlockOID=_("Can't unlock OID");
 fd_exception fd_PoolRangeError=_("the OID is out of the range of the pool");
@@ -371,7 +372,7 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   struct FD_GLUEPOOL *pool = u8_alloc(struct FD_GLUEPOOL);
   pool->pool_base = base; pool->pool_capacity = 0;
   pool->pool_flags = FD_STORAGE_READ_ONLY;
-  pool->pool_serialno = fd_get_oid_base_index(base,1);
+  pool->pool_serialno = -1;
   pool->pool_label="gluepool";
   pool->pool_source = NULL;
   pool->n_subpools = 0; pool->subpools = NULL;
@@ -414,13 +415,14 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     /* Now, copy the subpools, doing the insertions */
     read = gp->subpools; top = gp->subpools+gp->n_subpools;
     while (read<top)
-      if (write == ipoint) {*write++=p; *write++= *read++;}
-      else *write++= *read++;
-    if (write == ipoint) *write = p;
-    /* Finally, update the structures.  Note that we are explicitly
-       leaking the old subpools because we're avoiding locking on lookup. */
-    p->pool_serialno = ((gp->pool_serialno)<<10)+(gp->n_subpools+1);
-    gp->subpools = new; gp->n_subpools++;}
+      if (write == ipoint) {
+        *write++=p;
+        *write++= *read++;}
+      else *write++ = *read++;
+    if (write == ipoint)
+      *write = p;
+    gp->subpools = new;
+    gp->n_subpools++;}
   return 1;
 }
 
@@ -463,7 +465,7 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 {
   if (pool_conflict_handler) pool_conflict_handler(upstart,holder);
   else {
-    u8_log(LOG_WARN,_("Pool conflict"),
+    u8_log(LOG_WARN,fd_PoolConflict,
            "%s (from %s) and existing pool %s (from %s)\n",
            upstart->pool_label,upstart->pool_source,
            holder->pool_label,holder->pool_source);
@@ -1895,7 +1897,11 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
 {
   struct FD_POOL *p = (struct FD_POOL *)c;
   struct FD_POOL_HANDLER *handler = p->pool_handler;
-  if (p->pool_serialno>=0) return;
+  if (p->pool_serialno>=0)
+    return;
+  else if (p->pool_handler == &gluepool_handler)
+    return;
+  else {}
   drop_consed_pool(p);
   if (handler->recycle) handler->recycle(p);
   fd_recycle_hashtable(&(p->pool_cache));
