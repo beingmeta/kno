@@ -120,7 +120,7 @@
 #endif
 
 FD_EXPORT fd_exception
-fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
+fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError, fd_PoolConflict,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
@@ -463,6 +463,7 @@ typedef struct FD_MEMPOOL *fd_mempool;
 FD_EXPORT fd_pool fd_make_mempool
   (u8_string label,FD_OID base,unsigned int cap,unsigned int load,
    unsigned int noswap);
+FD_EXPORT fd_pool fd_get_mempool(u8_string label);
 
 /* Removes deadwood */
 FD_EXPORT int fd_clean_mempool(fd_pool p);

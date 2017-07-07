@@ -618,7 +618,8 @@ static lispval make_mempool(lispval label,lispval base,lispval cap,
      FIX2INT(cap),
      FIX2INT(load),
      (!(FALSEP(noswap))));
-  if (p == NULL) return FD_ERROR;
+  if (p == NULL)
+    return FD_ERROR;
   else return pool2lisp(p);
 }
 
