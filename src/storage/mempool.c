@@ -19,6 +19,8 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
+#include <libu8/u8printf.h>
+
 /* Mem pools */
 
 static struct FD_POOL_HANDLER mempool_handler;
@@ -27,20 +29,61 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
                                   unsigned int cap,unsigned int load,
                                   unsigned int noswap)
 {
-  struct FD_MEMPOOL *mp = u8_alloc(struct FD_MEMPOOL);
-  fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
-  mp->pool_label = u8_strdup(label);
-  mp->pool_load = load; mp->noswap = noswap;
-  u8_init_mutex(&(mp->pool_lock));
-  mp->pool_flags = FD_STORAGE_ISPOOL;
-  if (fd_register_pool((fd_pool)mp)<0) {
-    u8_destroy_mutex(&(mp->pool_lock));
-    u8_free(mp->pool_source); u8_free(mp->poolid);
-    fd_recycle_hashtable(&(mp->pool_cache));
-    fd_recycle_hashtable(&(mp->pool_changes));
-    u8_free(mp);
-    return NULL;}
-  else return (fd_pool)mp;
+  fd_pool p=fd_get_mempool(label);
+  if (p) {
+    if ( base != (p->pool_base) ) {
+      u8_byte buf[128];
+      fd_seterr(fd_PoolConflict,"fd_make_mempool",
+		u8_sprintf(buf,128,
+			   "Existing '%s' mempool doesn't have a base of @%x/%x",
+			   label,FD_OID_HI(base),FD_OID_LO(base)),
+		fd_pool2lisp(p));
+      return NULL;}
+    else if ( cap != (p->pool_capacity) ) {
+      u8_byte buf[128];
+      fd_seterr(fd_PoolConflict,"fd_make_mempool",
+		u8_sprintf(buf,128,
+			   "Existing '%s' mempool doesn't have a capacity of @%d OIDs",
+			   label,cap),
+		fd_pool2lisp(p));
+      return NULL;}
+    else return p;}
+  else {
+    struct FD_MEMPOOL *mp = u8_alloc(struct FD_MEMPOOL);
+    fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
+    mp->pool_label = u8_strdup(label);
+    mp->pool_load = load; mp->noswap = noswap;
+    u8_init_mutex(&(mp->pool_lock));
+    mp->pool_flags = FD_STORAGE_ISPOOL;
+    if (fd_register_pool((fd_pool)mp)<0) {
+      u8_destroy_mutex(&(mp->pool_lock));
+      u8_free(mp->pool_source); u8_free(mp->poolid);
+      fd_recycle_hashtable(&(mp->pool_cache));
+      fd_recycle_hashtable(&(mp->pool_changes));
+      u8_free(mp);
+      return NULL;}
+    else return (fd_pool)mp;}
+}
+
+struct GET_MEMPOOL_STATE {
+  fd_pool pool; u8_string label;};
+
+static int get_mempool_helper(fd_pool p,void *data)
+{
+  struct GET_MEMPOOL_STATE *state=(struct GET_MEMPOOL_STATE *) data;
+  if ((p->pool_handler == &mempool_handler) &&
+      (strcmp(p->pool_label,state->label)==0)) {
+    state->pool=p;
+    return 1;}
+  else return 0;
+}
+
+FD_EXPORT fd_pool fd_get_mempool(u8_string label)
+{
+  struct GET_MEMPOOL_STATE state;
+  state.pool=NULL; state.label=label;
+  fd_for_pools(get_mempool_helper,&state);
+  return state.pool;
 }
 
 static lispval mempool_alloc(fd_pool p,int n)
