@@ -101,7 +101,7 @@ LIB_HEADERS=include/framerd/texttools.h include/framerd/fdweb.h \
 SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/eval/eval_internals.h 		\
 	src/exe/webcommon.h 			\
-	src/drivers/headers/chunkrefs.h 	\
+	src/drivers/headers/zcompress.h 	\
 	src/drivers/headers/filepool.h 		\
 	src/drivers/headers/htindex.h		\
 	src/drivers/headers/fileindex.h 	\
@@ -1690,7 +1690,7 @@ src/eval/choiceops.o src/prims/seqprims.o: include/framerd/sorting.h
 # Driver dependencies
 src/drivers/filepool.o: src/drivers/headers/filepool.h
 src/drivers/fileindex.o: src/drivers/headers/fileindex.h
-src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/chunkrefs.h
-src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/chunkrefs.h
-src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/chunkrefs.h
+src/drivers/oidpool.o: src/drivers/headers/oidpool.h src/drivers/headers/zcompress.h
+src/drivers/bigpool.o: src/drivers/headers/bigpool.h src/drivers/headers/zcompress.h
+src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zcompress.h
 src/drivers/memindex.o: src/drivers/headers/memindex.h

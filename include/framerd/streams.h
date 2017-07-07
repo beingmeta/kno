@@ -342,6 +342,105 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
 #define fd_using_stream(s) _fd_using_stream(s)
 #endif
 
+/* Chunk refs for file-based drivers */
+
+FD_EXPORT fd_exception fd_InvalidOffsetType;
+
+typedef enum FD_OFFSET_TYPE { FD_B32 = 0, FD_B40 = 1, FD_B64 = 2 } fd_offset_type;
+typedef enum FD_COMPRESS_TYPE {
+  FD_NOCOMPRESS = 0,
+  FD_ZLIB = 1,
+  FD_ZLIB9 = 2,
+  FD_SNAPPY = 3}
+  fd_compress_type;
+
+/* Full sized chunk refs, usually passed and returned but not
+   directly stored on disk. */
+typedef struct FD_CHUNK_REF {
+  fd_off_t off; size_t size;} FD_CHUNK_REF;
+typedef struct FD_CHUNK_REF *fd_chunk_ref;
+
+FD_FASTOP int fd_chunk_ref_size(fd_offset_type offtype)
+{
+  switch (offtype) {
+  case FD_B32: case FD_B40: return 8;
+  case FD_B64: return 12;}
+  return -1;
+}
+
+typedef unsigned long long fd_ull;
+typedef long long fd_ll;
+
+FD_FASTOP
+FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
+			      fd_offset_type offtype,
+			      unsigned int offset)
+{
+  struct FD_CHUNK_REF result;
+  switch (offtype) {
+  case FD_B32: {
+#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+    unsigned int word1 = fd_flip_word((offsets)[offset*2]);
+    unsigned int word2 = fd_flip_word((offsets)[offset*2+1]);
+#else
+    unsigned int word1 = (offsets)[offset*2];
+    unsigned int word2 = (offsets)[offset*2+1];
+#endif
+    result.off = word1; result.size = word2;
+    break;}
+  case FD_B40: {
+#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+    unsigned int word1 = fd_flip_word((offsets)[offset*2]);
+    unsigned int word2 = fd_flip_word((offsets)[offset*2+1]);
+#else
+    unsigned int word1 = (offsets)[offset*2];
+    unsigned int word2 = (offsets)[offset*2+1];
+#endif
+    result.off = (((((fd_ull)(word2))&(0xFF000000))<<8)|((fd_ull)word1));
+    result.size = ((word2)&(0x00FFFFFF));
+    break;}
+  case FD_B64: {
+#if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
+    unsigned int word1 = fd_flip_word((offsets)[offset*3]);
+    unsigned int word2 = fd_flip_word((offsets)[offset*3+1]);
+    unsigned int word3 = fd_flip_word((offsets)[offset*3+2]);
+#else
+    unsigned int word1 = (offsets)[offset*3];
+    unsigned int word2 = (offsets)[offset*3+1];
+    unsigned int word3 = (offsets)[offset*3+2];
+#endif
+    result.off = (fd_off_t) ((((fd_ll)word1)<<32)|(((fd_ll)word2)));
+    result.size = (size_t) word3;
+    break;}
+  default:
+    u8_seterr(fd_InvalidOffsetType,"get_chunkref",NULL);
+    result.off = -1; result.size = -1;}
+  return result;
+}
+
+U8_MAYBE_UNUSED static
+int fd_convert_FD_B40_ref(FD_CHUNK_REF ref,
+		       unsigned int *word1,
+		       unsigned int *word2)
+{
+  if (ref.size>=0x1000000) return -1;
+  else if (ref.off<0x100000000LL) {
+    *word1 = (ref.off)&(0xFFFFFFFFLL);
+    *word2 = ref.size;}
+  else {
+    *word1 = (ref.off)&(0xFFFFFFFFLL);
+    *word2 = ref.size|(((ref.off)>>8)&(0xFF000000LL));}
+  return 0;
+}
+
+/* Support for drivers */
+
+FD_EXPORT FD_CHUNK_REF
+fd_fetch_chunk_ref(struct FD_STREAM *stream,
+		   fd_off_t base,
+		   fd_offset_type offtype,
+		   unsigned int offset);
+
 /* Exceptions */
 
 FD_EXPORT fd_exception fd_ReadOnlyStream;

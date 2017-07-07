@@ -17,7 +17,6 @@
 #include "framerd/numbers.h"
 #include "framerd/storage.h"
 #include "framerd/streams.h"
-#include "framerd/storage.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -546,17 +545,22 @@ static lispval read_oid_value(fd_oidpool op,
 }
 
 static lispval read_oid_value_at(fd_oidpool op,
-                                FD_CHUNK_REF ref,
-                                const u8_string cxt)
+                                 FD_CHUNK_REF ref,
+                                 const u8_string cxt)
 {
   if (ref.off<=0) return VOID;
   else {
-    unsigned char _buf[FD_OIDPOOL_FETCHBUF_SIZE], *buf; int free_buf = 0;
+    int free_buf=0;
+    unsigned char _buf[FD_OIDPOOL_FETCHBUF_SIZE], *buf;
     if (ref.size>FD_OIDPOOL_FETCHBUF_SIZE) {
-      buf = read_chunk(&(op->pool_stream),ref.size,ref.off,NULL);
+      buf = u8_malloc(ref.size);
       free_buf = 1;}
-    else buf = read_chunk(&(op->pool_stream),ref.size,ref.off,_buf);
-    if (buf == NULL) return FD_ERROR;
+    else buf = _buf;
+    if (buf == NULL)
+      return FD_ERROR;
+    else if ((fd_read_block(&(op->pool_stream),buf,ref.size,ref.off,1))<0) {
+      if (free_buf) u8_free(buf);
+      return FD_ERROR;}
     else if (op->oidpool_compression == FD_NOCOMPRESS)
       if (free_buf) {
         FD_INBUF in;
@@ -610,7 +614,9 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
       return FD_UNALLOCATED_OID;}
   if (op->oidpool_offdata) {
     FD_CHUNK_REF ref=
-      get_chunk_ref(op->oidpool_offdata,op->oidpool_offtype,offset);
+      fd_get_chunk_ref(op->oidpool_offdata,
+                       op->oidpool_offtype,
+                       offset);
     if (ref.off<0) return FD_ERROR;
     else if (ref.off==0)
       return EMPTY;
@@ -623,7 +629,8 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
   else {
     fd_lock_stream(&(op->pool_stream)); {
       fd_stream stream = &(op->pool_stream);
-      FD_CHUNK_REF ref = fetch_chunk_ref(stream,256,op->oidpool_offtype,offset);
+      FD_CHUNK_REF ref =
+        fd_fetch_chunk_ref(stream,256,op->oidpool_offtype,offset);
       if (ref.off<0) {
         fd_unlock_stream(&(op->pool_stream));
         return FD_ERROR;}
@@ -665,7 +672,7 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
-      schedule[i].location = get_chunk_ref(offdata,op->oidpool_offtype,off);
+      schedule[i].location = fd_get_chunk_ref(offdata,op->oidpool_offtype,off);
       if (schedule[i].location.off<0) {
         fd_seterr(InvalidOffset,"oidpool_fetchn",p->poolid,oid);
         u8_free(schedule); u8_free(values);
@@ -889,7 +896,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
     case FD_B40: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
-        convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+        fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
         offsets[oidoff*2]=fd_net_order(w1);
         offsets[oidoff*2+1]=fd_net_order(w2);
         k++;}
@@ -928,7 +935,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
     case FD_B40: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff, w1, w2;
-        convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+        fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
         offsets[oidoff*2]=(w1);
         offsets[oidoff*2+1]=(w2);
         k++;}
@@ -953,7 +960,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
         fd_setpos(stream,256+oidoff*8);
-        convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+        fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
         fd_write_4bytes(outstream,w1);
         fd_write_4bytes(outstream,w2);
         k++;}
@@ -1100,7 +1107,7 @@ static ssize_t mmap_write_offdata
   case FD_B40: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
-      convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+      fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
       offdata[oidoff*2]=fd_net_order(w1);
       offdata[oidoff*2+1]=fd_net_order(w2);
       k++;}
@@ -1156,7 +1163,7 @@ static ssize_t cache_write_offdata
     case FD_B40: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
-        convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+        fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
         offdata[oidoff*2]=w1;
         offdata[oidoff*2+1]=w2;
         k++;}
@@ -1188,7 +1195,7 @@ static ssize_t direct_write_offdata(struct FD_OIDPOOL *op,fd_stream stream,
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff, w1 = 0, w2 = 0;
       fd_setpos(stream,256+oidoff*8);
-      convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
+      fd_convert_FD_B40_ref(saveinfo[k].chunk,&w1,&w2);
       fd_write_4bytes(outstream,w1);
       fd_write_4bytes(outstream,w2);
       k++;}

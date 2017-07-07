@@ -122,9 +122,9 @@ static void print_args(int argc,char **argv)
 }
 
 static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
-                           u8_string *exe_namep,
-                           u8_string *source_filep,
-                           u8_string appid_prefix)
+                            u8_string *exe_namep,
+                            u8_string *source_filep,
+                            u8_string appid_prefix)
 {
   lispval *args = NULL;
   u8_string tmp_string = NULL, source_file = NULL, exe_name = NULL;

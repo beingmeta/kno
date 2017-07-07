@@ -79,9 +79,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/dtypeio.h"
-#include "framerd/streams.h"
 #include "framerd/numbers.h"
 #include "framerd/storage.h"
+#include "framerd/streams.h"
 #include "framerd/pools.h"
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
@@ -195,7 +195,7 @@ FD_FASTOP fd_inbuf open_block
    fd_off_t off,fd_size_t size,unsigned char *buf)
 {
   fd_stream stream = &(hx->index_stream);
-  if (read_chunk(stream,size,off,buf)) {
+  if (fd_read_block(stream,buf,size,off,1)>=0) {
     FD_INIT_BYTE_INPUT(tmpbuf,buf,size);
     return tmpbuf;}
   else return NULL;
@@ -779,9 +779,9 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
   fd_lock_stream(stream);
 #endif
   if (hx->index_offdata)
-    keyblock = get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
+    keyblock = fd_get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
   else keyblock=
-         fetch_chunk_ref(&(hx->index_stream),256,hx->index_offtype,bucket);
+         fd_fetch_chunk_ref(&(hx->index_stream),256,hx->index_offtype,bucket);
   if (keyblock.size==0) {
 #if (!(HAVE_PREAD))
     fd_unlock_stream(stream);
@@ -972,8 +972,8 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
   if (hx->index_offdata)
-    keyblock = get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
-  else keyblock = fetch_chunk_ref
+    keyblock = fd_get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
+  else keyblock = fd_fetch_chunk_ref
          (&(hx->index_stream),256,hx->index_offtype,bucket);
   if (keyblock.size<=0) return keyblock.size;
   else {
@@ -1090,10 +1090,10 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
     ksched[n_entries].ksched_bucket = bucket=
       hash_bytes(keysbuf.buffer+dt_start,dt_size)%(hx->index_n_buckets);
     if (offdata) {
-      /* Because we have an offsets table, we can use get_chunk_ref,
+      /* Because we have an offsets table, we can use fd_get_chunk_ref,
          which doesn't touch the stream, and use it immediately. */
       ksched[n_entries].ksched_chunk =
-        get_chunk_ref(offdata,hx->index_offtype,bucket);
+        fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
       size_t keyblock_size = ksched[n_entries].ksched_chunk.size;
       /* Track the max_keyblock_size, for a VLA below*/
       if (keyblock_size>max_keyblock_size) max_keyblock_size=keyblock_size;
@@ -1114,7 +1114,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
     qsort(ksched,n_entries,sizeof(struct KEY_SCHEDULE),
           sort_ks_by_bucket);
     i = 0; while (i<n_entries) {
-      ksched[i].ksched_chunk = fetch_chunk_ref
+      ksched[i].ksched_chunk = fd_fetch_chunk_ref
         (stream,256,hx->index_offtype,ksched[i].ksched_bucket);
       size_t keyblock_size=ksched[i].ksched_chunk.size;
       /* Track the max_keyblock_size, for a VLA below*/
@@ -1342,12 +1342,12 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   if (hx->index_offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = get_chunk_ref(offdata,offtype,i);
+      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}}
   else {
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fetch_chunk_ref(s,256,offtype,i);
+      FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}
     fd_unlock_stream(s);}
@@ -1413,12 +1413,12 @@ static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int 
   if (hx->index_offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = get_chunk_ref(offdata,offtype,i);
+      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}}
   else {
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fetch_chunk_ref(s,256,offtype,i);
+      FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}
     fd_unlock_stream(s);}
@@ -1483,13 +1483,13 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
   if (hx->index_offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = get_chunk_ref(offdata,offtype,i);
+      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       if (ref.size>max_keyblock_size) max_keyblock_size=ref.size;
       i++;}}
   else {
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fetch_chunk_ref(s,256,offtype,i);
+      FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       if (ref.size>max_keyblock_size) max_keyblock_size=ref.size;
       i++;}
@@ -2194,8 +2194,8 @@ static int hashindex_commit(struct FD_INDEX *ix)
       int bucket_last_key = sched_i;
       bucket_locs[changed_buckets].bucketno = bucket;
       bucket_locs[changed_buckets].bck_ref = (offdata)?
-        (get_chunk_ref(offdata,offtype,bucket)):
-        (fetch_chunk_ref(stream,256,offtype,bucket));
+        (fd_get_chunk_ref(offdata,offtype,bucket)):
+        (fd_fetch_chunk_ref(stream,256,offtype,bucket));
       while ( (bucket_last_key<schedule_size) &&
               (schedule[bucket_last_key].commit_bucket == bucket) )
         bucket_last_key++;
@@ -2453,7 +2453,7 @@ static int update_hashindex_ondisk
   else if ((offdata) && (hx->index_offtype == FD_B40)) {
     while (i<changed_buckets) {
       unsigned int word1 = 0, word2 = 0, bucket = bucket_locs[i].bucketno;
-      convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
+      fd_convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
       offdata[bucket*2]=fd_flip_word(word1);
       offdata[bucket*2+1]=fd_flip_word(word2);
@@ -2492,7 +2492,7 @@ static int update_hashindex_ondisk
       unsigned int bucket_no = bucket_locs[i].bucketno;
       unsigned int bucket_pos = bucket_start+bytes_in_bucket*bucket_no;
       unsigned int word1 = 0, word2 = 0;
-      convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
+      fd_convert_FD_B40_ref(bucket_locs[i].bck_ref,&word1,&word2);
       fd_start_write(stream,bucket_pos);
       fd_write_4bytes(outstream,word1);
       fd_write_4bytes(outstream,word2);

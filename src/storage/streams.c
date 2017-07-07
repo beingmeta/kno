@@ -1016,6 +1016,87 @@ ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes)
   else return -1;
 }
 
+/* Reading chunk refs */
+
+typedef long long int ll;
+typedef unsigned long long ull;
+
+FD_EXPORT FD_CHUNK_REF
+fd_fetch_chunk_ref(struct FD_STREAM *stream,
+                   fd_off_t base,
+                   fd_offset_type offtype,
+                   unsigned int offset)
+{
+  FD_CHUNK_REF result={-1,-1};
+  int chunk_size = fd_chunk_ref_size(offtype);
+  fd_off_t ref_off = offset*chunk_size;
+#if HAVE_PREAD
+  struct FD_INBUF _in, *in = &_in;
+  unsigned char buf[16];
+  memset(&_in,0,sizeof(_in));
+  FD_INIT_BYTE_INPUT(&_in,buf,chunk_size);
+  if (fd_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
+    u8_log(LOGCRIT,"BlockReadFailed",
+	   "Reading %d-byte block from stream %s failed",
+	   chunk_size,stream->streamid);
+    u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
+    return result;}
+  else switch (offtype) {
+  case FD_B32:
+    result.off = fd_read_4bytes(in);
+    result.size = fd_read_4bytes(in);
+    break;
+  case FD_B40: {
+    unsigned int word1, word2;
+    word1 = fd_read_4bytes(in);
+    word2 = fd_read_4bytes(in);
+    result.off = ((((ll)((word2)&(0xFF000000)))<<8)|word1);
+    result.size = (ll)((word2)&(0x00FFFFFF));}
+    break;
+  case FD_B64:
+    result.off = fd_read_8bytes(in);
+    result.size = fd_read_4bytes(in);
+    break;
+  default:
+    u8_log(LOGCRIT,"InvalidOffsetType",
+	   "Invalid offset type 0x%x for data stream %s",
+	   offtype,stream->streamid);
+    u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
+    result.off = -1;
+    result.size = -1;} /* switch (p->kb_offtype) */
+#else
+  if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
+    result.off = (fd_off_t)-1; result.size = (size_t)-1;}
+  else {
+    fd_inbuf in = fd_readbuf(stream);
+    switch (offtype) {
+    case FD_B32:
+      result.off = fd_read_4bytes(in);
+      result.size = fd_read_4bytes(in);
+      break;
+    case FD_B40: {
+      unsigned int word1, word2;
+      word1 = fd_read_4bytes(in);
+      word2 = fd_read_4bytes(in);
+      result.off = ((((ll)((word2)&(0xFF000000)))<<8)|word1);
+      result.size = (ll)((word2)&(0x00FFFFFF));
+      break;}
+    case FD_B64:
+      result.off = fd_read_8bytes(in);
+      result.size = fd_read_4bytes(in);
+      break;
+    default:
+      u8_log(LOGCRIT,"InvalidOffsetType",
+	     "Invalid offset type 0x%x for data stream %s",
+	     offtype,stream->streamid);
+      u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
+      result.off = -1;
+      result.size = -1;} /* switch (p->kb_offtype) */
+  }
+#endif
+  return result;
+}
+
 
 /* Stream ctl */
 

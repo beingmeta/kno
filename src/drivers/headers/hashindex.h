@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#include "chunkrefs.h"
+#include "zcompress.h"
 
 /* Hash indexes */
 

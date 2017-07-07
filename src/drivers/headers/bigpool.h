@@ -10,7 +10,7 @@
    offset information, using the same B64/B40/B32 representation
    as oidpools and hashindices. */
 
-#include "chunkrefs.h"
+#include "zcompress.h"
 
 #define FD_BIGPOOL_MAGIC_NUMBER ((2<<24)|(7<<16)|(16<<8)|(12))
 #define FD_BIGPOOL_TO_RECOVER ((2<<24)|(7<<16)|(16<<8)|(0xFF))
