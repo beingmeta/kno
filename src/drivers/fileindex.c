@@ -1325,22 +1325,22 @@ FD_EXPORT void fd_init_fileindex_c()
   fd_register_index_type("fileindex",
                          &file_index_handler,
                          open_file_index,
-                         match_index_file,
+                         fd_match_index_file,
                          (void *) U8_INT2PTR(FD_FILE_INDEX_MAGIC_NUMBER));
   fd_register_index_type("fileindex.v2",
                          &file_index_handler,
                          open_file_index,
-                         match_index_file,
+                         fd_match_index_file,
                          (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_MAGIC_NUMBER));
   fd_register_index_type("damaged_fileindex",
                          &file_index_handler,
                          open_file_index,
-                         match_index_file,
+                         fd_match_index_file,
                          (void *) U8_INT2PTR(FD_FILE_INDEX_TO_RECOVER));
   fd_register_index_type("damaged_fileindex.v2",
                          &file_index_handler,
                          open_file_index,
-                         match_index_file,
+                         fd_match_index_file,
                          (void *) U8_INT2PTR(FD_MULT_FILE_INDEX_TO_RECOVER));
   fd_register_config("FILEINDEX:SIZE","The default size for file indexes",
                      fd_sizeconfig_get,fd_sizeconfig_set,

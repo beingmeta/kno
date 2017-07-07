@@ -427,6 +427,50 @@ fd_compress_type fd_compression_type(lispval opts,fd_compress_type dflt)
   else return dflt;
 }
 
+/* Matching file pools/indexes */
+
+FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data)
+{
+  u8_string rpath=u8_realpath(spec,NULL);
+  if ((u8_file_existsp(rpath)) &&
+      (fd_match4bytes(rpath,data)))
+    return rpath;
+  else if (u8_has_suffix(spec,".pool",1)) {
+    u8_free(rpath);
+    return NULL;}
+  else {
+    u8_string new_spec = u8_mkstring("%s.pool",spec);
+    u8_string variation = u8_realpath(new_spec,NULL);
+    u8_free(rpath); u8_free(new_spec);
+    if ((u8_file_existsp(variation))&&
+        (fd_match4bytes(variation,data))) {
+      return variation;}
+    else {
+      u8_free(variation);
+      return NULL;}}
+}
+
+FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data)
+{
+  u8_string rpath=u8_realpath(spec,NULL);
+  if ((u8_file_existsp(rpath)) &&
+      (fd_match4bytes(rpath,data)))
+    return rpath;
+  else if (u8_has_suffix(spec,".index",1)) {
+    u8_free(rpath);
+    return NULL;}
+  else {
+    u8_string new_spec = u8_mkstring("%s.index",spec);
+    u8_string variation = u8_realpath(new_spec,NULL);
+    u8_free(rpath); u8_free(new_spec);
+    if ((u8_file_existsp(variation))&&
+        (fd_match4bytes(variation,data))) {
+      return variation;}
+    else {
+      u8_free(variation);
+      return NULL;}}
+}
+
 /* Initialization */
 
 int fd_init_mempool_c(void);

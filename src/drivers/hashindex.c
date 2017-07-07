@@ -2814,13 +2814,13 @@ FD_EXPORT void fd_init_hashindex_c()
     ("hashindex",
      &hashindex_handler,
      open_hashindex,
-     match_index_file,
+     fd_match_index_file,
      (void *)(U8_INT2PTR(FD_HASHINDEX_MAGIC_NUMBER)));
   fd_register_index_type
     ("damaged_hashindex",
      &hashindex_handler,
      open_hashindex,
-     match_index_file,
+     fd_match_index_file,
      (void *)(U8_INT2PTR(FD_HASHINDEX_TO_RECOVER)));
 
   fd_register_config("HASHINDEX:SIZE","The default size for hash indexes",

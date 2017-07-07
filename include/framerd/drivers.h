@@ -122,52 +122,7 @@ unsigned int fd_hash_dtype_rep(lispval x);
 
 /* Matching db file names */
 
-u8_string u8_realpath(u8_string path,u8_string wd);
-int u8_file_existsp(u8_string path);
-u8_string u8_mkstring(u8_string format_string,...);
-
-U8_MAYBE_UNUSED static
-u8_string match_pool_file(u8_string spec,void *data)
-{
-  u8_string rpath=u8_realpath(spec,NULL);
-  if ((u8_file_existsp(rpath)) &&
-      (fd_match4bytes(rpath,data)))
-    return rpath;
-  else if (u8_has_suffix(spec,".pool",1)) {
-    u8_free(rpath);
-    return NULL;}
-  else {
-    u8_string new_spec = u8_mkstring("%s.pool",spec);
-    u8_string variation = u8_realpath(new_spec,NULL);
-    u8_free(rpath); u8_free(new_spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data))) {
-      return variation;}
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
-
-U8_MAYBE_UNUSED static
-u8_string match_index_file(u8_string spec,void *data)
-{
-  u8_string rpath=u8_realpath(spec,NULL);
-  if ((u8_file_existsp(rpath)) &&
-      (fd_match4bytes(rpath,data)))
-    return rpath;
-  else if (u8_has_suffix(spec,".index",1)) {
-    u8_free(rpath);
-    return NULL;}
-  else {
-    u8_string new_spec = u8_mkstring("%s.index",spec);
-    u8_string variation = u8_realpath(new_spec,NULL);
-    u8_free(rpath); u8_free(new_spec);
-    if ((u8_file_existsp(variation))&&
-        (fd_match4bytes(variation,data))) {
-      return variation;}
-    else {
-      u8_free(variation);
-      return NULL;}}
-}
+FD_EXPORT u8_string fd_match_pool_file(u8_string spec,void *data);
+FD_EXPORT u8_string fd_match_index_file(u8_string spec,void *data);
 
 #endif /* #ifndef FRAMERD_DRIVERS_H */

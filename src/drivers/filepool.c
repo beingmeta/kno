@@ -858,13 +858,13 @@ FD_EXPORT void fd_init_file_pool_c()
     ("filepool",
      &file_pool_handler,
      open_file_pool,
-     match_pool_file,
+     fd_match_pool_file,
      (void *)U8_INT2PTR(FD_FILE_POOL_MAGIC_NUMBER));
   fd_register_pool_type
     ("damaged_filepool",
      &file_pool_handler,
      open_file_pool,
-     match_pool_file,
+     fd_match_pool_file,
      (void *)(U8_INT2PTR(FD_FILE_POOL_TO_RECOVER)));
 }
 

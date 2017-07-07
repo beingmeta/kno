@@ -439,7 +439,7 @@ FD_EXPORT void fd_init_memindex_c()
   fd_register_index_type("memindex",
                          &mem_index_handler,
                          open_mem_index,
-                         match_index_file,
+                         fd_match_index_file,
                          (void *) U8_INT2PTR(FD_MEM_INDEX_MAGIC_NUMBER));
 
   u8_register_source_file(_FILEINFO);
