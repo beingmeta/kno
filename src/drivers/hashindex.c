@@ -157,6 +157,24 @@ static ssize_t get_maxpos(fd_hashindex p)
     return -1;}
 }
 
+static unsigned int *get_offdata(struct FD_HASHINDEX *hx)
+{
+  if (hx->index_offdata) {
+    u8_read_lock(&(hx->index_offdata_lock));
+    if (hx->index_offdata)
+      return hx->index_offdata;
+    else {
+      u8_rw_unlock(&(hx->index_offdata_lock));
+      return NULL;}}
+  else return NULL;
+}
+
+static void release_offdata(struct FD_HASHINDEX *hx)
+{
+  if (hx->index_offdata)
+    u8_rw_unlock(&(hx->index_offdata_lock));
+}
+
 static lispval read_values(fd_hashindex,lispval,int,fd_off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
@@ -253,6 +271,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval op
     recover_hashindex(index);
     magicno = magicno&(~0x20);}
   index->index_offdata = NULL;
+  u8_init_rwlock(&(index->index_offdata_lock));
   index->storage_xformat = fd_read_4bytes_at(stream,8);
   if (read_only)
     U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);
@@ -744,9 +763,8 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
 {
   struct FD_HASHINDEX *hx = (fd_hashindex)ix;
   struct FD_STREAM *stream=&(hx->index_stream);
-  size_t blockbuf_size=8192;
+  unsigned int *offdata=get_offdata(hx);
   unsigned char buf[HX_KEYBUF_SIZE];
-  unsigned char *blockbuf=u8_malloc(blockbuf_size);
   struct FD_OUTBUF out;
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   fd_off_t vblock_off; size_t vblock_size;
@@ -766,23 +784,25 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
                  slotid,hx->indexid);
 #endif
       fd_close_outbuf(&out);
-      u8_free(blockbuf);
       return EMPTY;}}
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     out.buf_flags |= FD_USE_DTYPEV2;
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
-  if (hx->index_offdata)
-    keyblock = fd_get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
+  if (offdata) {
+    keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
+    release_offdata(hx);}
   else keyblock=fd_fetch_chunk_ref(stream,256,hx->index_offtype,bucket,0);
   if (keyblock.size==0) {
     fd_close_outbuf(&out);
-    u8_free(blockbuf);
     return EMPTY;}
   else {
-    struct FD_INBUF keystream={0};
-    open_block(&keystream,hx,keyblock.off,keyblock.size,NULL);
+    struct FD_INBUF keystream={0}, *opened=
+      fd_open_block(stream,&keystream,keyblock.off,keyblock.size,1);
+    if (opened==NULL) {
+      fd_close_outbuf(&out);
+      return FD_ERROR_VALUE;}
     n_keys = fd_read_zint(&keystream);
     i = 0; while (i<n_keys) {
       int key_len = fd_read_zint(&keystream);
@@ -830,6 +850,7 @@ static FD_CHUNK_REF read_value_block
  int *n_readp,lispval *values,int *consp,
  unsigned char **vbufp,size_t *vbuf_len)
 {
+  fd_stream stream = &(hx->index_stream);
   int n_read=*n_readp;
   FD_CHUNK_REF result = {-1,-1};
   fd_off_t vblock_off = chunk.off;
@@ -852,7 +873,7 @@ static FD_CHUNK_REF read_value_block
   fd_off_t next_off;
   ssize_t next_size=-1;
   int i=0, atomicp = 1;
-  open_block(&instream,hx,vblock_off,vblock_size,vbuf);
+  fd_open_block(stream,&instream,vblock_off,vblock_size,1);
   ssize_t n_elts = fd_read_zint(&instream);
   if (n_elts<0) {
     fd_close_inbuf(&instream);
@@ -942,7 +963,9 @@ static lispval read_values
 
 static int hashindex_fetchsize(fd_index ix,lispval key)
 {
-  struct FD_HASHINDEX *hx = (fd_hashindex)ix;
+  fd_hashindex hx = (fd_hashindex)ix;
+  fd_stream stream = &(hx->index_stream);
+  unsigned int *offdata=get_offdata(hx);
   struct FD_OUTBUF out; unsigned char buf[64];
   unsigned int hashval, bucket, n_keys, i, dtype_len, n_values;
   FD_CHUNK_REF keyblock;
@@ -952,14 +975,17 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   dtype_len = write_zkey(hx,&out,key);
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
-  if (hx->index_offdata)
-    keyblock = fd_get_chunk_ref(hx->index_offdata,hx->index_offtype,bucket);
+  if (offdata) {
+    keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
+    release_offdata(hx);}
   else keyblock = fd_fetch_chunk_ref
          (&(hx->index_stream),256,hx->index_offtype,bucket,0);
   if (keyblock.size<=0) return keyblock.size;
   else {
     struct FD_INBUF keystream={0};
-    open_block(&keystream,hx,keyblock.off,keyblock.size,NULL);
+    struct FD_INBUF *opened=
+      fd_open_block(stream,&keystream,keyblock.off,keyblock.size,1);
+    if (opened==NULL) return -1;
     n_keys = fd_read_zint(&keystream);
     i = 0; while (i<n_keys) {
       int key_len = fd_read_zint(&keystream);
@@ -1035,7 +1061,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
     if (vsched) u8_free(vsched);
     return NULL;}
 
-  unsigned int *offdata = hx->index_offdata;
+  unsigned int *offdata = get_offdata(hx);
   unsigned char *keyreps;
   int i = 0, n_entries = 0, vsched_size = 0;
   size_t max_keyblock_size = 0, vbuf_size=0;
@@ -1089,7 +1115,9 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
     else n_entries++;
     i++;}
   keyreps=keysbuf.buffer;
-  if (hx->index_offdata == NULL) {
+  if (offdata)
+    release_offdata(hx);
+  else {
     int write_at = 0;
     /* When fetching bucket references, we sort the schedule first, so that
        we're accessing them in order in the file. */
@@ -1128,7 +1156,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
       fd_size_t blocksize = ksched[j].ksched_chunk.size;
       if (ksched[j].ksched_bucket!=bucket) {
         /* If we're in a new bucket, open it as input */
-        open_block(&keyblkstrm,hx,blockpos,blocksize,buf);
+        fd_open_block(stream,&keyblkstrm,blockpos,blocksize,1);
         bucket=ksched[j].ksched_bucket;
         /* And initialize bucket position and limit */
         k=0; n_keys = fd_read_zint(&keyblkstrm);}
@@ -1207,8 +1235,9 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
             u8_free(values); u8_free(vsched); u8_free(vbuf);
             u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
             return NULL;}}
-        open_block(&vblock,hx,vsched[i].vsched_chunk.off,
-                   vsched[i].vsched_chunk.size,vbuf);
+        fd_open_block(stream,&vblock,
+                      vsched[i].vsched_chunk.off,
+                      vsched[i].vsched_chunk.size,1);
         n_vals = fd_read_zint(&vblock);
         while (j<n_vals) {
           lispval v = read_zvalue(hx,&vblock);
@@ -1303,7 +1332,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   lispval *results = NULL;
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   fd_stream s = &(hx->index_stream);
-  unsigned int *offdata = hx->index_offdata;
+  unsigned int *offdata = get_offdata(hx);
   fd_offset_type offtype = hx->index_offtype;
   int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0;
   int total_keys = 0, key_count = 0;
@@ -1324,12 +1353,13 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     return NULL;}
   /* If we have chunk offsets in memory, we don't need to keep the
      stream locked while we get them. */
-  if (hx->index_offdata) {
+  if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
-      i++;}}
+      i++;}
+    release_offdata(hx);}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
@@ -1340,7 +1370,13 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   struct FD_INBUF keyblkstrm={0};
   i = 0; while (i<n_to_fetch) {
     int j = 0, n_keys;
-    open_block(&keyblkstrm,hx,buckets[i].off,buckets[i].size,NULL);
+    if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+      fd_unlock_stream(s);
+      u8_free(buckets);
+      u8_free(results);
+      fd_close_inbuf(&keyblkstrm);
+      *n=-1;
+      return NULL;}
     n_keys = fd_read_zint(&keyblkstrm);
     while (j<n_keys) {
       lispval key; int n_vals;
@@ -1370,7 +1406,7 @@ static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int 
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   fd_stream s = &(hx->index_stream);
-  unsigned int *offdata = hx->index_offdata;
+  unsigned int *offdata = get_offdata(hx);
   fd_offset_type offtype = hx->index_offtype;
   fd_inbuf ins = fd_readbuf(s);
   int i = 0, n_buckets = (hx->index_n_buckets), total_keys;
@@ -1390,12 +1426,13 @@ static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int 
     return NULL;}
   /* If we don't have chunk offsets in memory, we keep the stream
      locked while we get them. */
-  if (hx->index_offdata) {
+  if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
-      i++;}}
+      i++;}
+    release_offdata(hx);}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
@@ -1406,7 +1443,11 @@ static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int 
   struct FD_INBUF keyblkstrm={0};
   i = 0; while (i<n_to_fetch) {
     int j = 0, n_keys;
-    open_block(&keyblkstrm,hx,buckets[i].off,buckets[i].size,NULL);
+    if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+      fd_close_inbuf(&keyblkstrm);
+      u8_free(buckets);
+      *n=-1;
+      return NULL;}
     n_keys = fd_read_zint(&keyblkstrm);
     while (j<n_keys) {
       lispval key; int n_vals;
@@ -1443,7 +1484,7 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
   fd_stream s = &(hx->index_stream);
   fd_inbuf ins = fd_readbuf(s);
   int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0, total_keys = 0;
-  unsigned int *offdata = hx->index_offdata;
+  unsigned int *offdata = get_offdata(hx);
   fd_offset_type offtype = hx->index_offtype;
   int max_keyblock_size=0;
   FD_CHUNK_REF *buckets;
@@ -1457,13 +1498,14 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
   buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
   /* If we don't have chunk offsets in memory, we keep the stream
      locked while we get them. */
-  if (hx->index_offdata) {
+  if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       if (ref.size>max_keyblock_size) max_keyblock_size=ref.size;
-      i++;}}
+      i++;}
+    release_offdata(hx);}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
@@ -1507,9 +1549,9 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
       fd_stream s = &(hx->index_stream);
       unsigned int n_buckets = hx->index_n_buckets;
       unsigned int *buckets, *newmmap;
-      fd_lock_index(hx);
+      u8_write_lock(&(hx->index_offdata_lock));
       if (hx->index_offdata) {
-        fd_unlock_index(hx);
+        u8_rw_unlock(&(hx->index_offdata_lock));
         return;}
 #if HAVE_MMAP
       newmmap=
@@ -1521,6 +1563,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
         hx->index_offdata = NULL;
         errno = 0;}
       else hx->index_offdata = buckets = newmmap+64;
+      u8_rw_unlock(&(hx->index_offdata_lock));
 #else
       fd_lock_stream(s)
       stream_start_read(s);
@@ -1533,36 +1576,32 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
                "hashindex_setcache:read offsets %s",hx->index_source);
         hx->index_offdata = NULL; errno = 0;}
       else hx->index_offdata = ht_buckets;
-      fd_unlock_stream(s)
+      fd_unlock_stream(s);
+      u8_rw_unlock(&(hx->index_offdata_lock));
 #endif
-      fd_unlock_index(hx);}}
+    }}
 
   else if (level < 2) {
 
     if (U8_BITP(stream_flags,FD_STREAM_MMAPPED))
       fd_setbufsize(&(hx->index_stream),fd_filestream_bufsize);
 
-    if (hx->index_offdata == NULL)
+    int retval=0;
+    unsigned int *offdata=get_offdata(hx);
+    if (offdata == NULL)
       return;
-    else {
-      int retval;
-      unsigned int *offdata = NULL;
-      fd_lock_index(hx);
-      if (hx->index_offdata == NULL) {
-        fd_unlock_index(hx);
-        return;}
-      offdata = hx->index_offdata;
-      hx->index_offdata = NULL;
+    else hx->index_offdata=NULL;
 #if HAVE_MMAP
-      retval = munmap(offdata-64,((hx->index_n_buckets)*chunk_ref_size)+256);
-      if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),
-               "hashindex_setcache:munmap %s",hx->index_source);
-        errno = 0;}
+    retval = munmap(offdata-64,((hx->index_n_buckets)*chunk_ref_size)+256);
+    if (retval<0) {
+      u8_log(LOG_WARN,u8_strerror(errno),
+             "hashindex_setcache:munmap %s",hx->index_source);
+      errno = 0;}
 #else
-      u8_free(offdata);
+    u8_free(offdata);
 #endif
-      fd_unlock_index(hx);}}
+    u8_rw_unlock(&(hx->index_offdata_lock));}
+  else {}
 }
 
 
@@ -2090,7 +2129,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
   ssize_t endpos, maxpos = get_maxpos(hx);
   double started = u8_elapsed_time();
   unsigned int n_buckets = hx->index_n_buckets;
-  unsigned int *offdata = hx->index_offdata;
+  unsigned int *offdata = get_offdata(hx);
   fd_lock_index(hx);
   fd_lock_stream(stream);
   fd_write_lock_table(&(hx->index_adds));
@@ -2176,7 +2215,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
       int bucket_first_key = sched_i;
       int bucket_last_key = sched_i;
       bucket_locs[changed_buckets].bucketno = bucket;
-      bucket_locs[changed_buckets].bck_ref = (offdata)?
+      bucket_locs[changed_buckets].bck_ref = (offdata) ?
         (fd_get_chunk_ref(offdata,offtype,bucket)):
         (fd_fetch_chunk_ref(stream,256,offtype,bucket,1));
       while ( (bucket_last_key<schedule_size) &&
@@ -2186,6 +2225,8 @@ static int hashindex_commit(struct FD_INDEX *ix)
         bucket_last_key-bucket_first_key;
       sched_i = bucket_last_key;
       changed_buckets++;}
+
+    if (offdata) release_offdata(hx);
 
     /* Now we have all the bucket locations, which we'll read in
        order. */
@@ -2377,32 +2418,30 @@ static int update_hashindex_ondisk
   struct FD_STREAM *stream = &(hx->index_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   int i = 0; 
-  unsigned int *current = hx->index_offdata, *offdata = NULL;
+  unsigned int *offdata = NULL;
   unsigned int n_buckets = hx->index_n_buckets;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
   ssize_t offdata_byte_length = n_buckets*chunk_ref_size;
-  if (current) {
 #if HAVE_MMAP
-    unsigned int *memblock=
-      mmap(NULL,256+offdata_byte_length,
-           PROT_READ|PROT_WRITE,
-           MMAP_FLAGS,
-           hx->index_stream.stream_fileno,
-           0);
-    if ((memblock==NULL) || (memblock == MAP_FAILED)) {
-      u8_graberrno("update_hashindex_ondisk:mmap",u8_strdup(hx->indexid));
-      return -1;}
-    else offdata = memblock+64;
+  unsigned int *memblock=
+    mmap(NULL,256+offdata_byte_length,
+         PROT_READ|PROT_WRITE,
+         MMAP_FLAGS,
+         hx->index_stream.stream_fileno,
+         0);
+  if ((memblock==NULL) || (memblock == MAP_FAILED)) {
+    u8_graberrno("update_hashindex_ondisk:mmap",u8_strdup(hx->indexid));
+    return -1;}
+  else offdata = memblock+64;
 #else
-    size_t offdata_length = n_buckets*chunk_ref_size;
-    offdata = u8_malloc(offdata_length);
-    int rv = fd_read_ints(stream,offdata_length/4,offdata);
-    if (rv<0) {
-      u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));
-      u8_free(offdata);
-      return -1;}
+  size_t offdata_length = n_buckets*chunk_ref_size;
+  offdata = u8_malloc(offdata_length);
+  int rv = fd_read_ints(stream,offdata_length/4,offdata);
+  if (rv<0) {
+    u8_graberrno("update_hashindex_ondisk:fd_read_ints",u8_strdup(hx->indexid));
+    u8_free(offdata);
+    return -1;}
 #endif
-  }
   /* Update the buckets if you have them */
   if ((offdata) && (hx->index_offtype == FD_B64)) {
     while (i<changed_buckets) {
@@ -2486,8 +2525,8 @@ static int update_hashindex_ondisk
     /* If you have MMAP, make them unwritable which swaps them out to
        the file. */
     int retval = msync(offdata-64,
-                     256+offdata_byte_length,
-                     MS_SYNC|MS_INVALIDATE);
+                       256+offdata_byte_length,
+                       MS_SYNC|MS_INVALIDATE);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "update_hashindex_ondisk:msync %s",hx->indexid);
@@ -2543,21 +2582,23 @@ static void hashindex_close(fd_index ix)
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
+  unsigned int *offdata = get_offdata(hx);
   u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->indexid);
   fd_lock_index(hx);
-  if (hx->index_offdata) {
+  if (offdata) {
 #if HAVE_MMAP
     int retval=
-      munmap(hx->index_offdata-64,(chunk_ref_size*hx->index_n_buckets)+256);
+      munmap(offdata-64,(chunk_ref_size*hx->index_n_buckets)+256);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "hashindex_close:munmap %s",hx->index_source);
       errno = 0;}
 #else
-    u8_free(hx->index_offdata);
+    u8_free(offdata);
 #endif
     hx->index_offdata = NULL;
-    hx->index_cache_level = -1;}
+    hx->index_cache_level = -1;
+    release_offdata(hx);}
   fd_close_stream(&(hx->index_stream),0);
   u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->indexid);
   fd_unlock_index(hx);

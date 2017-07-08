@@ -44,6 +44,7 @@ typedef struct FD_BIGPOOL {
   fd_offset_type bigpool_offtype;
   unsigned int *bigpool_offdata;
   size_t bigpool_offdata_length;
+  u8_rwlock bigpool_offdata_lock;
   lispval *bigpool_slotids;
   lispval *bigpool_old_slotids;
   unsigned int bigpool_n_slotids;

@@ -48,8 +48,10 @@ typedef struct FD_HASHINDEX {
   unsigned int *index_baseoid_ids;
   short *index_ids2baseoids;
 
-  /* Pointers into keyblocks for the hashtable */
-  unsigned int *index_offdata; int index_n_buckets;
+  /* Pointers to keyblocks for the hashtable */
+  unsigned int *index_offdata;
+  int index_n_buckets;
+  u8_rwlock index_offdata_lock;
 
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */
