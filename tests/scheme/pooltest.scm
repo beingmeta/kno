@@ -15,16 +15,17 @@
 
 (define testpool #f)
 
-(define (open-pool (poolfile poolfile))
+(define (get-pool (poolfile poolfile) (opts #f))
   (cond (testpool testpool)
-	((file-exists? poolfile) (use-pool poolfile))
+	((file-exists? poolfile) (use-pool poolfile opts))
 	(else
 	 (make-pool poolfile
-		    `#[type ,pooltype
-		       compression ,compression
-		       base @b001/0 
-		       capacity 100000
-		       offtype ,(config 'offtype 'B40)]))))
+		    (cons `#[type ,pooltype
+			     compression ,compression
+			     base @b001/0 
+			     capacity 100000
+			     offtype ,(config 'offtype 'B40)]
+			  opts)))))
 
 (define (make-random-frame pool (interrupt #f))
   (let* ((seed (1+ (random 1000)))
@@ -86,8 +87,8 @@
   (set! testcount (floor testcount))
   (when (and reset (file-exists? poolfile))
     (remove-file poolfile))
-  (let ((init (not (file-exists? poolfile)))
-	(pool (open-pool poolfile)))
+  (let* ((init (not (file-exists? poolfile)))
+	 (pool (get-pool poolfile `#[readonly ,(not init)])))
     (set! testpool pool)
     (if init
 	(logwarn |FreshPool| pool)
@@ -98,7 +99,7 @@
 		(threads {}))
 	    (dotimes (i wthreads)
 	      (set+! threads 
-		     (threadcall make-n-frames n-per-thread pool)))
+		(threadcall make-n-frames n-per-thread pool)))
 	    (threadjoin threads))
 	  (dotimes (i (* testcount 4))
 	    (make-random-frame pool))))
