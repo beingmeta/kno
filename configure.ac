@@ -1678,6 +1678,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   dist/framerd-4.2.spec],
 	   [chmod a+x etc/fd* tests/scheme/*test tests/scheme/*debug])
 
+echo "Built with malloc=$using_malloc";
+echo $using_malloc > ./.malloc;
 if test ! -z "$manually_disabled"; then
    echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
 if test ! -z "$auto_disabled"; then
