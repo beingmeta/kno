@@ -15,37 +15,41 @@
   (if (has-suffix file suffix) file
       (glom file suffix)))
 
-(define (sourcepool source)
+(define (sourcepool source (opts #f))
   (cond ((position #\@ source)
-	 (use-pool source))
+	 (use-pool source opts))
 	((file-exists? (add-suffix source ".pool"))
-	 (use-pool (add-suffix source ".pool")))
+	 (use-pool (add-suffix source ".pool") opts))
 	((file-exists? source)
-	 (use-pool (add-suffix source ".pool")))
+	 (use-pool (add-suffix source ".pool") opts))
 	(else
 	 (make-pool (add-suffix source ".pool")
-		    (frame-create #f
-		      'type (config 'pooltype 'filepool)
-		      'base @17/0 'capacity 65000
-		      'offtype (config 'pooloff (config 'offtype {})))))))
+		    (cons (frame-create #f
+			    'type (config 'pooltype 'filepool)
+			    'base @17/0 'capacity 65000
+			    'offtype (config 'pooloff (config 'offtype {}))
+			    'readonly #f)
+			  opts)))))
 
-(define (sourceindex source)
+(define (sourceindex source (opts #f))
   (cond ((position #\@ source)
-	 (open-index source))
+	 (open-index source opts))
 	((file-exists? (add-suffix source ".index"))
-	 (open-index (add-suffix source ".index")))
+	 (open-index (add-suffix source ".index") opts))
 	((file-exists? source)
-	 (open-index source))
+	 (open-index source opts))
 	(else
 	 (make-index (add-suffix source ".index")
-		     (frame-create #f
-		      'type (config 'indextype 'hashindex)
-		      'slots 65000
-		      'offtype (config 'indexoff (config 'offtype {})))))))
+		     (cons (frame-create #f
+			     'type (config 'indextype 'hashindex)
+			     'slots 65000
+			     'offtype (config 'indexoff (config 'offtype {}))
+			     'readonly #f)
+			   opts)))))
 
-(define (initdb source)
-  (set! testpool (sourcepool source))
-  (set! testindex (sourceindex source))
+(define (initdb source (opts #f))
+  (set! testpool (sourcepool source opts))
+  (set! testindex (sourceindex source opts))
   (set! dbsource source)
   (logwarn |Pool| testpool)
   (logwarn |Index| testindex))
@@ -271,7 +275,7 @@
    (append "dbtest" {".pool" ".index"
 		     "-symbols.dtype" "-files.dtype"
 		     "-numbers.dtype"}))
-  (initdb "dbtest")
+  (initdb "dbtest" #[readonly #f])
   (makedb testpool testindex
 	  '("r4rs.scm" "misctest.scm" "seqtest.scm" "choicetest.scm")))
 
@@ -284,7 +288,7 @@
 	       (append source {".pool" ".index"
 			       "-symbols.dtype" "-files.dtype"
 			       "-numbers.dtype"}))))
-  (initdb source)
+  (initdb source (and (equal? operation "test") #[readonly #t]))
   (when (equal? operation "init")
     (makedb testpool testindex files)
     (checkdb (config 'COUNT 1000) testpool testindex)
