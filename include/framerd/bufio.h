@@ -32,7 +32,8 @@ typedef struct FD_OUTBUF {
      alias as both input and output streams, so we need
      to have both pointers. */
   ssize_t (*buf_fillfn)(fd_inbuf,size_t,void *);
-  ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_OUTBUF;
+  ssize_t (*buf_flushfn)(fd_outbuf,void *);
+  void (*buf_closefn)(fd_outbuf,void *);} FD_OUTBUF;
 
 typedef struct FD_INBUF {
   int buf_flags; ssize_t buflen; void *buf_data;
@@ -41,7 +42,8 @@ typedef struct FD_INBUF {
      alias as both input and output streams, so we need
      to have both pointers. */
   ssize_t (*buf_fillfn)(fd_inbuf,size_t,void *);
-  ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_INBUF;
+  ssize_t (*buf_flushfn)(fd_outbuf,void *);
+  void (*buf_closefn)(fd_inbuf,void *);} FD_INBUF;
 
 typedef struct FD_RAWBUF {
   int buf_flags; ssize_t buflen; void *buf_data;
@@ -50,7 +52,8 @@ typedef struct FD_RAWBUF {
      alias as both input and output streams, so we need
      to have both pointers. */
   ssize_t (*buf_fillfn)(fd_inbuf,size_t,void *);
-  ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_RAWBUF;
+  ssize_t (*buf_flushfn)(fd_outbuf,void *);
+  void (*buf_closefn)(fd_rawbuf,void *);} FD_RAWBUF;
 
 typedef size_t (*fd_byte_fillfn)(fd_inbuf,size_t,void *);
 typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
@@ -78,23 +81,28 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
   (bo)->buflen = sz;				\
   (bo)->buf_flags = flags|FD_IS_WRITING;	\
   (bo)->buf_data = NULL;			\
-  (bo)->buf_flushfn = NULL;
+  (bo)->buf_flushfn = NULL;			\
+  (bo)->buf_fillfn = NULL;			\
+  (bo)->buf_closefn = NULL
 
 #define FD_INIT_BYTE_OUTPUT(bo,sz)			\
   (bo)->bufwrite = (bo)->buffer = u8_malloc(sz);	\
   (bo)->buflim = (bo)->buffer+sz;			\
   (bo)->buflen = sz;					\
   (bo)->buf_flags = FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;	\
+  (bo)->buf_data = NULL;				\
+  (bo)->buf_flushfn = NULL;				\
   (bo)->buf_fillfn = NULL;				\
-  (bo)->buf_flushfn = NULL;
+  (bo)->buf_closefn = NULL
 
 #define FD_INIT_BYTE_OUTBUF(bo,buf,sz)	     \
   (bo)->bufwrite = (bo)->buffer = buf;	     \
   (bo)->buflim = (bo)->buffer+sz;	     \
   (bo)->buflen = sz;			     \
+  (bo)->buf_flags = FD_IS_WRITING;	     \
   (bo)->buf_fillfn = NULL;		     \
   (bo)->buf_flushfn = NULL;		     \
-  (bo)->buf_flags = FD_IS_WRITING
+  (bo)->buf_closefn = NULL
 
 #define FD_DECL_OUTBUF(v,size)	     \
   struct FD_OUTBUF v;		     \
@@ -102,21 +110,24 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
   FD_INIT_BYTE_OUTBUF(&v,v ## buf,size)
 
 #define FD_INIT_INBUF(bi,buf,sz,flags)		\
-  (bi)->bufwrite = (bi)->buffer = buf;		\
+  (bi)->bufread = (bi)->buffer = buf;		\
   (bi)->buflim = (bi)->buffer+sz;		\
   (bi)->buflen = sz;				\
   (bi)->buf_flags = flags;			\
-  (bi)->buf_bufdata = NULL;			\
+  (bi)->buf_data = NULL;			\
   (bi)->buf_fillfn = NULL;			\
-  (bi)->buf_flushfn = NULL;
+  (bi)->buf_flushfn = NULL;			\
+  (bi)->buf_closefn = NULL
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)	\
   (bi)->bufread = (bi)->buffer = b;	\
   (bi)->buflim = b+(sz);		\
   (bi)->buflen = sz;			\
+  (bi)->buf_flags = 0;			\
+  (bi)->buf_data = NULL;		\
   (bi)->buf_fillfn = NULL;		\
   (bi)->buf_flushfn = NULL;		\
-  (bi)->buf_flags = 0;
+  (bi)->buf_closefn = NULL
 
 /* Utility functions for growing buffers */
 
@@ -330,6 +341,7 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf);
 #if FD_INLINE_BUFIO
 FD_FASTOP size_t fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
+  if (buf->buf_closefn) (buf->buf_closefn)(buf,buf->buf_data);
   if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
     u8_free(buf->buffer);
     return buf->buflen;}
@@ -355,7 +367,7 @@ FD_FASTOP size_t fd_close_outbuf(struct FD_OUTBUF *buf)
     : (-1)))
 #define fd_probe_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
-   ((fd_request_bytes((buf),1)) ?						\
+   ((fd_request_bytes((buf),1)) ?					\
     ((int)(*((buf)->bufread)))	:					\
     ((int)-1)))
 

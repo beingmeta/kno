@@ -232,7 +232,15 @@ FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
   unsigned int current_off = b->bufread-b->buffer;
   unsigned int current_limit = b->buflim-b->buffer;
   unsigned char *old = (unsigned char *)b->buffer, *new;
-  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
+  if (old==NULL) {
+    new=u8_malloc(len);
+    b->buffer=new;
+    b->bufread=new;
+    b->buflim=new;
+    b->buflen=len;
+    b->buf_flags |= FD_BUFFER_IS_MALLOCD;
+    return 1;}
+  else if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
     new = u8_realloc(old,len);
   else {
     new = u8_malloc(len);
