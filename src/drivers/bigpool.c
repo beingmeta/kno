@@ -594,7 +594,9 @@ static int bigpool_load(fd_pool p)
     return load;}
 }
 
-static lispval read_oid_value(fd_bigpool bp,fd_inbuf in,const u8_context cxt)
+static lispval read_oid_value(fd_bigpool bp,
+                              fd_inbuf in,
+                              const u8_context cxt)
 {
   int byte0 = fd_probe_byte(in);
   if (byte0==0xFF) {
@@ -681,32 +683,26 @@ static lispval read_oid_value(fd_bigpool bp,fd_inbuf in,const u8_context cxt)
   else return fd_read_dtype(in);
 }
 
-static lispval read_oid_value_at(fd_bigpool bp,FD_CHUNK_REF ref,
+static lispval read_oid_value_at(fd_bigpool bp,
+                                 fd_inbuf fetchbuf,
+                                 FD_CHUNK_REF ref,
                                  u8_context cxt)
 {
-  if (ref.off==0) return VOID;
+  if (ref.off==0)
+    return VOID;
   else {
-    unsigned char _buf[FD_BIGPOOL_FETCHBUF_SIZE], *buf;
-    int free_buf = 0;
-    if (ref.size>FD_BIGPOOL_FETCHBUF_SIZE) {
-      buf = u8_malloc(ref.size);
-      free_buf = 1;}
-    else buf = _buf;
-    if (buf == NULL)
-      return FD_ERROR;
-    else if (fd_read_block(&(bp->pool_stream),buf,ref.size,ref.off,1)<0) {
-      if (free_buf) u8_free(buf);
-      return FD_ERROR;}
-    else if (free_buf) {
-      FD_INBUF in;
-      FD_INIT_BYTE_INPUT(&in,buf,ref.size);
-      lispval result = read_oid_value(bp,&in,cxt);
-      u8_free(buf);
+    fd_stream stream=&(bp->pool_stream);
+    struct FD_INBUF _in={0}, *in=
+      (fetchbuf == NULL) ?
+      (fd_open_block(stream,&_in,ref.off,ref.size,0)) :
+      (fd_open_block(stream,fetchbuf,ref.off,ref.size,0));
+    if ( (in) && (fetchbuf) )
+      return read_oid_value(bp,in,cxt);
+    else if (in) {
+      lispval result=read_oid_value(bp,in,cxt);
+      fd_close_inbuf(in);
       return result;}
-    else {
-      FD_INBUF in;
-      FD_INIT_BYTE_INPUT(&in,buf,ref.size);
-      return read_oid_value(bp,&in,cxt);}}
+    else return FD_ERROR_VALUE;}
 }
 
 static lispval bigpool_fetch(fd_pool p,lispval oid)
@@ -725,42 +721,16 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
     if (ref.off<0) return FD_ERROR;
     else if (ref.off==0)
       return EMPTY;
-    else {
-#if HAVE_PREAD
-      return read_oid_value_at(bp,ref,"bigpool_fetch");
-#else
-      lispval value;
-      fd_lock_stream(&(bp->pool_stream));
-      value = read_oid_value_at(bp,ref,"bigpool_fetch");
-      fd_unlock_stream(&(bp->pool_stream));
-      return value;
-#endif
-    }}
+    else return read_oid_value_at(bp,NULL,ref,"bigpool_fetch");}
   else {
-#if HAVE_PREAD
     FD_CHUNK_REF ref=
       fd_fetch_chunk_ref(&(bp->pool_stream),
                          256,bp->bigpool_offtype,
-                         offset);
+                         offset,0);
     if (ref.off<0) return FD_ERROR;
     else if ((ref.off<=0)||(ref.size<=0))
       return EMPTY;
-    else return read_oid_value_at(bp,ref,"bigpool_fetch");
-#else
-    fd_lock_stream(&(bp->pool_stream)); {
-      if (ref.off<0) {
-        fd_unlock_stream(&(bp->pool_stream));
-        return FD_ERROR;}
-      else if (ref.off==0) {
-        fd_unlock_stream(&(bp->pool_stream));
-        return EMPTY;}
-      else {
-        lispval value;
-        value = read_oid_value_at(bp,ref,"bigpool_fetch");
-        fd_unlock_stream(&(bp->pool_stream));
-        return value;}}
-#endif
-  }
+    else return read_oid_value_at(bp,NULL,ref,"bigpool_fetch");}
 }
 
 static int compare_offsets(const void *x1,const void *x2)
@@ -790,6 +760,8 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
     unlock_stream = 1;
 #endif
     int i = 0;
+    struct FD_INBUF _in={0}, *in=&_in;
+    /* Populate a fetch schedule with where to get OID values */
     while (i<n) {
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base);
@@ -801,12 +773,12 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
         if (unlock_stream) fd_unlock_stream(&(bp->pool_stream));
         return NULL;}
       else i++;}
-    /* Note that we sort even if we're mmaped in order to take
-       advantage of page locality. */
-    qsort(schedule,n,sizeof(struct BIGPOOL_FETCH_SCHEDULE),
-          compare_offsets);
+    /* Note that we sort the fetch schedule even if we're mmapped in
+       order to try to take advantage of page locality. */
+    qsort(schedule,n,sizeof(struct BIGPOOL_FETCH_SCHEDULE),compare_offsets);
     i = 0; while (i<n) {
-      lispval value = read_oid_value_at(bp,schedule[i].location,"bigpool_fetchn");
+      lispval value =
+        read_oid_value_at(bp,in,schedule[i].location,"bigpool_fetchn");
       if (FD_ABORTP(value)) {
         int j = 0; while (j<i) {
           lispval value = values[schedule[j].value_at];
