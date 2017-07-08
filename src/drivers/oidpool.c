@@ -630,7 +630,7 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
     fd_lock_stream(&(op->pool_stream)); {
       fd_stream stream = &(op->pool_stream);
       FD_CHUNK_REF ref =
-        fd_fetch_chunk_ref(stream,256,op->oidpool_offtype,offset);
+        fd_fetch_chunk_ref(stream,256,op->oidpool_offtype,offset,1);
       if (ref.off<0) {
         fd_unlock_stream(&(op->pool_stream));
         return FD_ERROR;}
