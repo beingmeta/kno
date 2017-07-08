@@ -322,6 +322,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
         streambuf->buf_data    = (void *) stream;
         streambuf->buf_flags   = FD_IN_STREAM|FD_BUFFER_NO_GROW;
         streambuf->buf_data = (void *)stream;
+        streambuf->buflen = rv;
         return stream;}
       else {
         u8_log(LOG_INFO,"FailedStreamMMAP",
@@ -859,6 +860,65 @@ FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
 #endif
 }
 
+static void unlock_stream_mmap(struct FD_INBUF *out,void *streamptr)
+{
+  fd_stream s = (fd_stream) streamptr;
+  out->buffer=out->bufread=out->buflim=NULL;
+  out->buflen=0;
+  u8_rw_unlock(&(s->mmap_lock));
+}
+
+FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
+                                 fd_off_t offset,size_t len,
+                                 int stream_locked)
+{
+  if ((s->stream_flags) & (FD_STREAM_MMAPPED)) {
+    if (s->buf.in.buffer != in->buffer) {
+      u8_read_lock(&(s->mmap_lock));
+      in->buffer=s->buf.in.buffer;
+      in->buflen=s->buf.in.buflen;
+      in->buf_data=s;
+      in->buf_closefn=unlock_stream_mmap;}
+    in->bufread=in->buffer+offset;
+    in->buflim=in->buffer+offset+len;
+    return in;}
+#if HAVE_PREAD
+  ssize_t result;
+  unsigned char *buf;
+  if ( ( in->buffer ) && (len < in->buflen) )
+    buf=(unsigned char *)in->buffer;
+  else {
+    if (fd_grow_byte_input(in,len)<0)
+      return NULL;
+    buf=(unsigned char *)in->buffer;}
+  in->buflim=buf; in->bufread=buf;
+  if ((!(stream_locked)) &&
+      (FD_ISWRITING(&(s->buf.raw))) &&
+      ((offset+len)>(s->stream_filepos))) {
+    /* This is the case where the stream is being written to and we're
+       reading from beyond the position it's writing at. In this case,
+       we lock the stream to do our read, which will block until the
+       writer is done. At that point, we'll set the direction on the
+       stream which will flush any buffered output. */
+    fd_lock_stream(s);
+    fd_set_direction(s,fd_byteflow_read);
+    result = pread(s->stream_fileno,buf,len,offset);
+    fd_unlock_stream(s);}
+  else result=pread(s->stream_fileno,buf,len,offset);
+  if (result>=0) {
+    in->buflim=in->buffer+result;
+    return in;}
+  else return NULL;
+#else
+  fd_off_t result = -1;
+  if (!(stream_locked)) fd_lock_stream(s);
+  fd_setpos(s,offset);
+  result = fd_read_bytes(fd_readbuf(s),buf,len);
+  if (!(stream_locked)) fd_unlock_stream(s);
+  return result;
+#endif
+}
+
 FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off)
 {
   fd_outbuf out = (off>=0) ? (fd_start_write(s,off)) : (fd_writebuf(s)) ;
@@ -1025,7 +1085,8 @@ FD_EXPORT FD_CHUNK_REF
 fd_fetch_chunk_ref(struct FD_STREAM *stream,
                    fd_off_t base,
                    fd_offset_type offtype,
-                   unsigned int offset)
+                   unsigned int offset,
+                   int locked)
 {
   FD_CHUNK_REF result={-1,-1};
   int chunk_size = fd_chunk_ref_size(offtype);
@@ -1037,8 +1098,8 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
   FD_INIT_BYTE_INPUT(&_in,buf,chunk_size);
   if (fd_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
     u8_log(LOGCRIT,"BlockReadFailed",
-	   "Reading %d-byte block from stream %s failed",
-	   chunk_size,stream->streamid);
+           "Reading %d-byte block from stream %s failed",
+           chunk_size,stream->streamid);
     u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
     return result;}
   else switch (offtype) {
@@ -1059,12 +1120,13 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
     break;
   default:
     u8_log(LOGCRIT,"InvalidOffsetType",
-	   "Invalid offset type 0x%x for data stream %s",
-	   offtype,stream->streamid);
+           "Invalid offset type 0x%x for data stream %s",
+           offtype,stream->streamid);
     u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
     result.off = -1;
     result.size = -1;} /* switch (p->kb_offtype) */
 #else
+  if (!(locked)) fd_lock_stream(stream);
   if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off = (fd_off_t)-1; result.size = (size_t)-1;}
   else {
@@ -1093,6 +1155,7 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
       result.off = -1;
       result.size = -1;} /* switch (p->kb_offtype) */
   }
+  if (!(locked)) fd_unlock_stream(stream);
 #endif
   return result;
 }

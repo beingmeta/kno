@@ -63,6 +63,9 @@ typedef int fd_stream_flags;
 #define FD_STREAM_USEMMAP (0)
 #endif
 
+#define FD_STREAM_ISLOCKED  1
+#define FD_STREAM_NOTLOCKED 0
+
 typedef struct FD_STREAM {
   FD_CONS_HEADER;
   fd_stream_flags stream_flags;
@@ -170,6 +173,9 @@ FD_EXPORT fd_off_t _fd_getpos(fd_stream s);
 FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
 				size_t count,fd_off_t offset,
 				int stream_locked);
+FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
+                                 fd_off_t offset,size_t count,
+				 int stream_locked);
 
 #if FD_INLINE_BUFIO
 
@@ -439,7 +445,8 @@ FD_EXPORT FD_CHUNK_REF
 fd_fetch_chunk_ref(struct FD_STREAM *stream,
 		   fd_off_t base,
 		   fd_offset_type offtype,
-		   unsigned int offset);
+		   unsigned int offset,
+		   int locked);
 
 /* Exceptions */
 
