@@ -28,7 +28,7 @@ static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 static lispval adjuncts_symbol;
 
 lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
-lispval fd_stats_op, fd_label_op, fd_populate_op;
+lispval fd_stats_op, fd_label_op, fd_populate_op, fd_reload_op;
 lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
 lispval fd_load_op, fd_capacity_op;
 
@@ -510,6 +510,7 @@ FD_EXPORT int fd_init_drivers_c()
   fd_bufsize_op=fd_intern("BUFSIZE");
   fd_mmap_op=fd_intern("MMAP");
   fd_preload_op=fd_intern("PRELOAD");
+  fd_reload_op=fd_intern("RELOAD");
   fd_stats_op=fd_intern("STATS");
   fd_label_op=fd_intern("LABEL");
   fd_populate_op=fd_intern("POPULATE");

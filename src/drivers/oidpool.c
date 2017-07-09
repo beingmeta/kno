@@ -1667,6 +1667,10 @@ static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
         return FD_INT(fp->pool_cache_level);}
       else return fd_type_error
              (_("cachelevel"),"oidpool_op/cachelevel",arg);}}
+  else if (op == fd_reload_op) {
+    if (fp->oidpool_offdata) reload_offdata(fp,0);
+    fd_pool_swapout((fd_pool)fp,((n==0)?(FD_VOID):(args[0])));
+    return FD_TRUE;}
   else if (op == fd_bufsize_op) {
     if (n==0)
       return FD_INT(fp->pool_stream.buf.raw.buflen);

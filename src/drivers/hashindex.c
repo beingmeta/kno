@@ -2154,21 +2154,17 @@ static int hashindex_commit(struct FD_INDEX *ix)
       u8_alloc_n(schedule_max,struct KEYBUCKET *);
     struct FD_HASHSET replaced_keys;
     struct FD_OUTBUF out, newkeys;
+
     /* First, we populate the commit schedule.
        The 'replaced_keys' hashset contains keys that are edited.
        We process all of the edits, getting values if neccessary.
        Then we process all the adds. */
     fd_init_hashset(&replaced_keys,3*(hx->index_edits.table_n_keys),
                     FD_STACK_CONS);
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Adding %d edits to the schedule",hx->index_edits.table_n_keys);
-#endif
+
     /* Get all the keys we need to write.  */
     schedule_size = process_edits(hx,&adds,&edits,&replaced_keys,
                                   schedule,schedule_size);
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Adding %d adds to the schedule",hx->index_adds.table_n_keys);
-#endif
     schedule_size = process_adds(hx,&adds,&edits,&replaced_keys,
                                schedule,schedule_size);
     fd_recycle_hashset(&replaced_keys);
@@ -2187,11 +2183,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
       out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
       newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
 
-    /* Compute all the buckets for all the keys */
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Computing the buckets for %d scheduled keys",schedule_size);
-#endif
-
     /* Compute the hashes and the buckets for all of the keys
        in the commit schedule. */
     sched_i = 0; while (sched_i<schedule_size) {
@@ -2201,13 +2192,10 @@ static int hashindex_commit(struct FD_INDEX *ix)
       schedule[sched_i].commit_bucket = bucket =
         hash_bytes(out.buffer,out.bufwrite-out.buffer)%n_buckets;
       sched_i++;}
+
     /* Get all the bucket locations.  It may be that we can fold this
        into the phase above when we have the offsets table in
        memory. */
-
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Fetching bucket locations");
-#endif
     qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
           sort_cs_by_bucket);
     sched_i = 0; bucket_i = 0; while (sched_i<schedule_size) {
@@ -2237,10 +2225,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
        bucket extension (since both want to get at the file) Could we
        have two pointers into the file?  */
 
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Reading all the %d changed buckets in order",
-               changed_buckets);
-#endif
     qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
           sort_br_by_off);
     bucket_i = 0; while (bucket_i<changed_buckets) {
@@ -2253,9 +2237,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
 
     /* Now all the keybuckets have been read and buckets have been
        created for keys that didn't have buckets before. */
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Created %d new buckets",new_buckets);
-#endif
     qsort(schedule,schedule_size,sizeof(struct COMMIT_SCHEDULE),
           sort_cs_by_bucket);
     qsort(keybuckets,changed_buckets,sizeof(struct KEYBUCKET *),
@@ -2263,11 +2244,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
     /* bucket_locs is currently sorted by offset */
     qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
           sort_br_by_bucket);
-
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Extending for %d keys over %d buckets",
-               schedule_size,changed_buckets);
-#endif
 
     /* March along the commit schedule (keys) and keybuckets (buckets)
        in parallel, extending each bucket.  This is where values are
@@ -2304,10 +2280,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
       sched_i = j; bucket_i++;}
     fd_flush_stream(&(hx->index_stream));
 
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Cleaning up");
-#endif
-
     /* Free all the keybuckets */
     free_keybuckets(changed_buckets,keybuckets);
 
@@ -2326,9 +2298,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
   /* This writes the new offset information */
   if (fd_acid_files) {
     int i = 0;
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Writing recovery data");
-#endif
     /* Write the new offsets information to the end of the file
        for recovery if we die while doing the actual write. */
     /* Start by getting the total number of keys in the new file. */
@@ -2351,16 +2320,10 @@ static int hashindex_commit(struct FD_INDEX *ix)
     fsync(stream->stream_fileno);
   }
 
-#if FD_DEBUG_HASHINDEXES
-  u8_message("Writing offset data changes");
-#endif
   update_hashindex_ondisk
     (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs);
   if (fd_acid_files) {
     int retval = 0;
-#if FD_DEBUG_HASHINDEXES
-    u8_message("Erasing old recovery information");
-#endif
     fd_flush_stream(stream);
     fsync(stream->stream_fileno);
     /* Now erase the recovery information, since we don't need it
@@ -2417,7 +2380,7 @@ static int update_hashindex_ondisk
 {
   struct FD_STREAM *stream = &(hx->index_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
-  int i = 0; 
+  int i = 0;
   unsigned int *offdata = NULL;
   unsigned int n_buckets = hx->index_n_buckets;
   unsigned int chunk_ref_size = get_chunk_ref_size(hx);
@@ -2551,6 +2514,31 @@ static int update_hashindex_ondisk
   return 0;
 }
 
+static void reload_offdata(struct FD_INDEX *ix)
+{
+  struct FD_HASHINDEX *hx=(fd_hashindex)ix;
+  if (hx->index_offdata==NULL) return;
+  fd_stream stream = &(hx->index_stream);
+  unsigned int n_buckets = hx->index_n_buckets;
+  unsigned int chunk_ref_size = get_chunk_ref_size(hx);
+#if HAVE_MMAP
+#else
+  unsigned int *new_offdata=u8_malloc(n_buckets*chunk_ref_size);
+  size_t int_len=(chunk_ref_size/4)*(hx->index_n_buckets);
+  fd_setpos(s,256);
+  int retval = fd_read_ints(stream,int_len,new_offdata);
+  if (retval<0)
+    u8_log(LOGCRIT,"reload_offdata",
+           "Couldn't reload offdata for %s",hx->indexid);
+  else {
+    u8_write_lock(&(hx->index_offdata_lock));
+    unsigned int *old_offdata=index->index_offdata;
+    index->index_offdata=new_offdata;
+    u8_rw_unlock(&(hx->index_offdata_lock));
+    u8_free(old_offdata);}
+#endif
+}
+
 static int recover_hashindex(struct FD_HASHINDEX *hx)
 {
   fd_off_t recovery_pos;
@@ -2669,9 +2657,6 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
 }
 
 
-/* Deprecated primitives */
-
-
 /* Useful functions */
 
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix)
@@ -2754,6 +2739,10 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       else return FD_INT((bucket%(hx->index_n_buckets)));}}
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
+  else if (op == fd_reload_op) {
+    reload_offdata(ix);
+    fd_index_swapout(ix,((n==0)?(FD_VOID):(args[0])));
+    return FD_TRUE;}
   else if (op == fd_slotids_op) {
     lispval *elts = u8_alloc_n(hx->index_n_slotids,lispval);
     lispval *slotids = hx->index_slotids;

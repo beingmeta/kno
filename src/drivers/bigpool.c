@@ -53,7 +53,7 @@ FD_FASTOP int LOCK_POOLSTREAM(fd_bigpool bp,u8_string caller)
 
 #define UNLOCK_POOLSTREAM(op) fd_unlock_stream(&(op->pool_stream))
 
-static void reload_offdata(struct FD_BIGPOOL *fp,int lock);
+static void reload_offdata(struct FD_BIGPOOL *p);
 static void update_modtime(struct FD_BIGPOOL *fp);
 
 /*static int recover_bigpool(struct FD_BIGPOOL *); */
@@ -461,7 +461,7 @@ static int lock_bigpool_file(struct FD_BIGPOOL *bp,int use_mutex)
       /* Make sure we're up to date. */
       read_bigpool_load(bp);
       if (bp->bigpool_offdata)
-        reload_offdata(bp,0);
+        reload_offdata(bp);
       else {
         fd_reset_hashtable(&(bp->pool_cache),-1,1);
         fd_reset_hashtable(&(bp->pool_changes),32,1);}}
@@ -1381,9 +1381,9 @@ static void bigpool_setcache(fd_pool p,int level)
   * -1: for reading, but sync before remapping
 */
 #if HAVE_MMAP
-static void reload_offdata(fd_bigpool bp,int lock) {}
+static void reload_offdata(fd_bigpool bp) {}
 #else
-static void reload_offdata(fd_bigpool bp,int lock)
+static void reload_offdata(fd_bigpool bp)
 {
   double start = u8_elapsed_time();
   fd_stream s = &(bp->pool_stream);
@@ -1392,12 +1392,10 @@ static void reload_offdata(fd_bigpool bp,int lock)
      only void those OIDs */
   unsigned int new_load, *offsets, *nscan, *oscan, *olim;
   struct FD_STREAM *s = &(bp->pool_stream);
-  if (lock) fd_lock_pool((fd_pool)bp);
   if ( (LOCK_POOLSTREAM(bp,"bigpool/reload_offdata")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
            "During bigpool_reload_offdata for %s",bp->poolid);
     UNLOCK_POOLSTREAM(bp);
-    if (lock) fd_unlock_pool((fd_pool)bp);
     return;}
   oscan = bp->bigpool_offdata;
   olim = oscan+(bp->bigpool_offdata_length/4);
@@ -1421,7 +1419,6 @@ static void reload_offdata(fd_bigpool bp,int lock)
   u8_rw_unlock(&(bp->bigpool_offdata_lock));
   update_modtime(bp);
   UNLOCK_POOLSTREAM(bp)
-  if (lock) fd_unlock_pool((fd_pool)bp);
   u8_log(fd_storage_loglevel+1,"ReloadOffsets",
          "Offsets for %s reloaded in %f secs",
          bp->poolid,u8_elapsed_time()-start);
@@ -1485,6 +1482,9 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
         return FD_INT(fp->pool_cache_level);}
       else return fd_type_error
              (_("cachelevel"),"bigpool_op/cachelevel",arg);}}
+  else if (op == fd_reload_op) {
+    reload_offdata(fp);
+    return FD_TRUE;}
   else if (op == fd_bufsize_op) {
     if (n==0)
       return FD_INT(fp->pool_stream.buf.raw.buflen);
