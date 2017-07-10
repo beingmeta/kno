@@ -145,7 +145,7 @@ STORAGE_OBJS=\
 	src/storage/storage.o src/storage/streams.o src/storage/hashdtype.o 	\
 	src/storage/pools.o src/storage/indexes.o src/storage/compoundindexes.o	\
 	src/storage/dtproc.o src/storage/dtcall.o src/storage/bloom.o		\
-	src/storage/methods.o src/storage/oidstore.o 				\
+	src/storage/methods.o src/storage/oidstore.o src/storage/alcor.o	\
 	src/storage/cachecall.o src/storage/threadcache.o 			\
 	src/storage/extindex.o src/storage/extpool.o 				\
 	src/storage/procpool.o src/storage/procindex.o				\
@@ -366,12 +366,12 @@ FRAMERD_SOURCES=\
 	src/support/startup.c src/support/fluid.c				\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c \
 	src/apply/ffi.c       	\
-	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c		\
-	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c 		\
-	src/storage/oidstore.c src/storage/cachecall.c  				\
-	src/storage/compoundindexes.c src/storage/bloom.c				\
-	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c		\
-	src/storage/dtproc.c src/storage/dtcall.c					\
+	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
+	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
+	src/storage/oidstore.c src/storage/cachecall.c src/storage/bloom.c	\
+	src/storage/compoundindexes.c src/storage/alcor.c			\
+	src/storage/threadcache.c src/storage/frames.c src/storage/methods.c	\
+	src/storage/dtproc.c src/storage/dtcall.c				\
 	src/storage/ipeval.c 	       					\
 	src/drivers/builtin_drivers.c  					\
 	src/drivers/filepool.c src/drivers/oidpool.c 			\

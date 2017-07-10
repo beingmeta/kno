@@ -425,21 +425,68 @@ FD_EXPORT void fd_fast_swapout_all()
   u8_free(todo.to_free);
 }
 
-/* */
+/* fd_save */
+
+static u8_mutex dosave_lock;
+static u8_mutex onsave_handlers_lock;
+
+static struct FD_ONSAVE {
+  lispval onsave_handler;
+  struct FD_ONSAVE *onsave_next;} *onsave_handlers=NULL;
+static int n_onsave_handlers=0;
+
+FD_EXPORT int fd_save(lispval arg)
+{
+  u8_lock_mutex(&dosave_lock);
+  struct FD_ONSAVE *scan=onsave_handlers;
+  while (scan) {
+    lispval handler=scan->onsave_handler, result=FD_VOID;
+    if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
+      result = fd_apply(handler,1,&arg);
+    else result = fd_apply(handler,0,NULL);
+    if (FD_ABORTP(result)) {
+      u8_unlock_mutex(&dosave_lock);
+      fd_decref(result);
+      return -1;}
+    else scan=scan->onsave_next;}
+  int rv = fd_commit_all();
+  u8_unlock_mutex(&dosave_lock);
+  return rv;
+}
+
+static lispval config_onsave_get(lispval var,void *data)
+{
+  struct FD_ONSAVE *scan; int i = 0; lispval result;
+  u8_lock_mutex(&onsave_handlers_lock);
+  result = fd_make_vector(n_onsave_handlers,NULL);
+  scan = onsave_handlers; while (scan) {
+    lispval handler = scan->onsave_handler; fd_incref(handler);
+    FD_VECTOR_SET(result,i,handler);
+    scan = scan->onsave_next; i++;}
+  u8_unlock_mutex(&onsave_handlers_lock);
+  return result;
+}
+
+static int config_onsave_set(lispval var,lispval val,void *data)
+{
+  struct FD_ONSAVE *fresh = u8_malloc(sizeof(struct FD_ONSAVE));
+  if (!(FD_APPLICABLEP(val))) {
+    fd_type_error("applicable","config_onsave",val);
+    return -1;}
+  u8_lock_mutex(&onsave_handlers_lock);
+  fresh->onsave_next = onsave_handlers;
+  fresh->onsave_handler = val;
+  fd_incref(val);
+  n_onsave_handlers++; onsave_handlers = fresh;
+  u8_unlock_mutex(&onsave_handlers_lock);
+  return 1;
+}
 
 /* Swap out to reduce memory footprint */
 
 static size_t membase = 0;
 
 u8_mutex fd_swapcheck_lock;
-
-#if 0
-static int cache_load()
-{
-  return fd_object_cache_load()+fd_index_cache_load()+
-    fd_slot_cache_load()+fd_callcache_load();
-}
-#endif
 
 FD_EXPORT int fd_swapcheck()
 {
@@ -479,7 +526,8 @@ static void register_header_files()
   u8_register_source_file(FRAMERD_DRIVERS_H_INFO);
 }
 
-FD_EXPORT void fd_init_stream_c(void);
+FD_EXPORT void fd_init_streams_c(void);
+FD_EXPORT void fd_init_alcor_c(void);
 FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
@@ -503,7 +551,8 @@ FD_EXPORT int fd_init_storage()
   u8_register_source_file(_FILEINFO);
 
   fd_init_threadcache_c();
-  fd_init_stream_c();
+  fd_init_streams_c();
+  fd_init_alcor_c();
   fd_init_hashdtype_c();
   fd_init_oidobj_c();
   fd_init_cachecall_c();
@@ -525,6 +574,8 @@ FD_EXPORT int fd_init_storage()
   oid_name_slotids = fd_make_list(2,fd_intern("%ID"),fd_intern("OBJ-NAME"));
 
   u8_init_mutex(&fd_swapcheck_lock);
+  u8_init_mutex(&onsave_handlers_lock);
+  u8_init_mutex(&dosave_lock);
 
   u8_threadcheck();
 
