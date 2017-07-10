@@ -2379,6 +2379,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
       wait=fastfail_wait;
       continue;}
     else return launch_servlet(socket_spec);}
+  fd_doexit(FD_FALSE);
   exit(0);
   return 0;
 }

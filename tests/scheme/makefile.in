@@ -61,8 +61,8 @@ LEAKTESTER	= @LEAKTESTER@
 TEST_ENV	= @test_env@
 MEMTEST_ENV	= @memtest_env@
 LEAKTEST_ENV	= @leaktest_env@
-TESTSIZE	= 512
-SMALLTESTSIZE	= 64
+TESTSIZE	= @test_size@
+SMALLTESTSIZE	= @small_test_size@
 BASETESTCONFIG	= LOADPATH=../../src/scheme/%/module.scm:../../src/scheme/%.scm
 RUNCONF		= @test_config@
 MEMCONF		= @memtest_config@
