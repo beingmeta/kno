@@ -241,33 +241,34 @@ FD_EXPORT void fd_doexit(lispval arg)
     u8_log(LOGWARN,"RecursiveExit","Recursive fd_doexit");
     return;}
   fd_exiting = 1;
+  if (atexit_handlers) {
+    u8_lock_mutex(&atexit_handlers_lock);
+    u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
+	   n_atexit_handlers);
+    scan = atexit_handlers; atexit_handlers = NULL;
+    u8_unlock_mutex(&atexit_handlers_lock);
+    while (scan) {
+      lispval handler = scan->exitfn_handler, result = VOID;
+      u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
+      if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
+	result = fd_apply(handler,1,&arg);
+      else result = fd_apply(handler,0,NULL);
+      if (FD_ABORTP(result)) {
+	fd_clear_errors(1);}
+      else fd_decref(result);
+      fd_decref(handler);
+      tmp = scan;
+      scan = scan->exitfn_next;
+      u8_free(tmp);}}
+  else  {
+    u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
+    return;}
   if (fd_argv) {
     int i = 0, n = fd_argc; while (i<n) {
       lispval elt = fd_argv[i++]; fd_decref(elt);}
     u8_free(fd_argv);
     fd_argv = NULL;
     fd_argc = -1;}
-  if (!(atexit_handlers)) {
-    u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
-    return;}
-  u8_lock_mutex(&atexit_handlers_lock);
-  u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
-         n_atexit_handlers);
-  scan = atexit_handlers; atexit_handlers = NULL;
-  u8_unlock_mutex(&atexit_handlers_lock);
-  while (scan) {
-    lispval handler = scan->exitfn_handler, result = VOID;
-    u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
-    if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
-      result = fd_apply(handler,1,&arg);
-    else result = fd_apply(handler,0,NULL);
-    if (FD_ABORTP(result)) {
-      fd_clear_errors(1);}
-    else fd_decref(result);
-    fd_decref(handler);
-    tmp = scan;
-    scan = scan->exitfn_next;
-    u8_free(tmp);}
   fd_decref(exec_arg); exec_arg = FD_FALSE;
   fd_decref(lisp_argv); lisp_argv = FD_FALSE;
   fd_decref(string_argv); string_argv = FD_FALSE;

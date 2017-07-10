@@ -5,7 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef FDEXEC_INCLUDED
+#ifndef EMBEDDED_FDEXEC
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
@@ -294,6 +294,8 @@ int do_main(int argc,char **argv,
             "Usage: fdexec [conf = val]* source_file (arg | [conf = val])*\n");
     return 1;}
 
+  fd_set_app_env(env);
+
   if (!(fd_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-fd_load_start;
     char *units="s";
@@ -357,19 +359,11 @@ int do_main(int argc,char **argv,
     u8_free_exception(e,1);
     retval = -1;}
   fd_decref(result);
-  /* Hollow out the environment, which should let it be reclaimed.
-     This patches around some of the circular references that might
-     exist because working_lexenv may contain procedures which
-     are closed in the working environment, so the working environment
-     itself won't be GC'd because of those circular pointers. */
-  if (HASHTABLEP(env->env_bindings))
-    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
-  fd_recycle_lexenv(env);
   fd_decref(main_proc);
   return retval;
 }
 
-#ifndef FDEXEC_INCLUDED
+#ifndef EMBEDDED_FDEXEC
 int main(int argc,char **argv)
 {
   u8_string source_file = NULL, exe_name = NULL;

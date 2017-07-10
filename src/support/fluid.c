@@ -376,5 +376,8 @@ void fd_init_fluid_c()
 #endif
 
   u8_register_threadexit(recycle_thread_table);
+  /* This is for the main thread. It's safe to call again because it
+     resets the thread local variable */
+  atexit(recycle_thread_table);
 }
 
