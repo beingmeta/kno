@@ -149,29 +149,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       lispval handler_result = fd_apply(handler,1,&err_value);
       fd_exception_object exo=
         fd_consptr(fd_exception_object,err_value,fd_error_type);
-      if (handler_result == err_value) {
-	u8_restore_exception(ex);
-        fd_decref(handler);
-        fd_decref(value);
-        fd_decref(err_value);
-        return FD_ERROR;}
-      else if (TYPEP(handler_result,fd_error_type)) {
-	fd_exception_object newexo=
-          fd_consptr(fd_exception_object,handler_result,fd_error_type);
-	u8_exception newex = newexo->ex_u8ex;
-	u8_push_exception(newex->u8x_cond,newex->u8x_context,
-                          newex->u8x_details,newex->u8x_xdata,
-                          newex->u8x_free_xdata);
-	u8_restore_exception(ex);
-        /* This lets us GC the lisp exception objects */
-	newexo->ex_u8ex = NULL;
-	exo->ex_u8ex = NULL;
-	fd_decref(handler);
-        fd_decref(value);
-	fd_decref(err_value);
-        fd_decref(handler_result);
-	return FD_ERROR;}
-      else if (FD_ABORTP(handler_result)) {
+      if (FD_ABORTP(handler_result)) {
         u8_exception cur_ex = u8_current_exception;
         /* Clear this field so we can decref err_value while leaving
            the exception object current. */
@@ -485,6 +463,18 @@ static lispval unwind_protect_evalfn(lispval uwp,fd_lexenv env,fd_stack _stack)
   return result;
 }
 
+/* Reraising exceptions */
+
+static lispval reraise_prim(lispval exo)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,exo,fd_error_type);
+  u8_exception ex = xo->ex_u8ex;
+  xo->ex_u8ex=NULL;
+  u8_restore_exception(ex);
+  return FD_ERROR_VALUE;
+}
+
 /* Clear errors */
 
 static lispval clear_errors()
@@ -508,6 +498,9 @@ FD_EXPORT void fd_init_errors_c()
   fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS","",report_errors_evalfn);
   fd_def_evalfn(fd_scheme_module,"ERREIFY","",erreify_evalfn);
 
+  fd_idefn1(fd_scheme_module,"RERAISE",reraise_prim,1,
+            "Reraises the exception represented by an object",
+            fd_error_type,FD_VOID);
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
                            fd_error_type,VOID,-1,FD_FALSE));
