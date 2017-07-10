@@ -1281,7 +1281,7 @@ FD_EXPORT ssize_t fd_write_zdtype_to_file(lispval object,u8_string filename)
 
 /* Initialization of file */
 
-FD_EXPORT void fd_init_stream_c()
+FD_EXPORT void fd_init_streams_c()
 {
   fd_unparsers[fd_stream_type]=unparse_stream;
   fd_recyclers[fd_stream_type]=recycle_stream;

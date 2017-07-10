@@ -313,6 +313,21 @@ static void update_modtime(struct FD_BIGPOOL *fp)
   else fp->pool_modtime = fileinfo.st_mtime;
 }
 
+static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
+                               lispval opts)
+{
+  u8_string head_file=u8_string_append(fname,".head",NULL);
+  if (u8_file_existsp(head_file)) {
+    fd_restore_head(head_file,fname,256-8);
+    u8_free(head_file);
+    return open_bigpool(fname,open_flags,opts);}
+  else {
+    u8_log(LOGCRIT,"Corrupted bigpool file %s doesn't have a recovery file %s",
+           fname,head_file);
+    u8_free(head_file);
+    return NULL;}
+}
+
 /* Getting slotids */
 
 static int grow_slotcodes(struct FD_BIGPOOL *bp)
@@ -924,9 +939,16 @@ static fd_stream open_output_stream(fd_bigpool bp,fd_stream s)
 static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   fd_bigpool bp = (fd_bigpool)p;
+  u8_string fname=bp->pool_source;
+  u8_string head_file=u8_string_append(fname,".head",NULL);
+  size_t head_size = 256+(get_chunk_ref_size(bp)*p->pool_capacity);
+  int saved=fd_save_head(fname,head_file,head_size);
+  if (saved<0) return saved;
   struct FD_STREAM _stream={0};
-  struct FD_STREAM *stream = open_output_stream(bp,&_stream);
+  struct FD_STREAM *stream =
+    fd_init_file_stream(&_stream,fname,FD_FILE_MODIFY,-1,-1);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
+
   if (fd_lockfile(stream)<0) {
     fd_close_stream(stream,FD_STREAM_FREEDATA);
     return -1;}
@@ -946,6 +968,9 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
   FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
+  /* Write the recovery type value */
+  fd_setpos(stream,0);
+  fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_TO_RECOVER);
   endpos = fd_endpos(stream);
   if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
@@ -994,6 +1019,10 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
+  if (u8_removefile(head_file)<0)
+    u8_log(LOGWARN,"CouldntRemoveFile",
+           "Couldn't remove head file %s",head_file);
+  u8_free(head_file);
   u8_log(fd_storage_loglevel,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
@@ -1639,6 +1668,13 @@ FD_EXPORT void fd_init_bigpool_c()
      open_bigpool,
      fd_match_pool_file,
      (void*)U8_INT2PTR(FD_BIGPOOL_MAGIC_NUMBER));
+
+  fd_register_pool_type
+    ("corrupted bigpool",
+     &bigpool_handler,
+     recover_bigpool,
+     fd_match_pool_file,
+     (void*)U8_INT2PTR(FD_BIGPOOL_TO_RECOVER));
 
   fd_set_default_pool_type("bigpool");
 
