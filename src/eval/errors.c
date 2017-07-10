@@ -322,7 +322,8 @@ static lispval error_backtrace(lispval x)
   struct FD_EXCEPTION_OBJECT *xo=
     fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex = xo->ex_u8ex;
-  return fd_exception_backtrace(ex);
+  lispval bt=fd_exception_backtrace(ex);
+  return fd_incref(bt);
 }
 
 static lispval error_summary(lispval x,lispval with_irritant)

@@ -196,8 +196,8 @@ FD_EXPORT void fd_histinit(int size)
       size = 128;}}
   if (VOIDP(history)) {
     history = fd_make_nvector(3,FD_INT(0),
-                            fd_init_vector(NULL,size,NULL),
-                            fd_make_hashtable(NULL,17));
+                              fd_init_vector(NULL,size,NULL),
+                              fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}
   else {
     lispval newvec = fd_init_vector(NULL,size,NULL);

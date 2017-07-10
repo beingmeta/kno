@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FDEXEC_INCLUDED 1
+#define EMBEDDED_FDEXEC 1
 
 #include "fdexec.c"
 

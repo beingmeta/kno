@@ -612,7 +612,7 @@ static int liveload_add(lispval var,lispval val,void *ignored)
       (fd_TypeError,"preload_config_set",u8_strdup("string"),val);
   else if (FD_STRLEN(val)==0)
     return 0;
-  else return fd_load_latest(FD_STRDATA(val),fd_live_env,NULL);
+  else return fd_load_latest(FD_STRDATA(val),fd_app_env,NULL);
 }
 
 /* Load file support */

@@ -789,12 +789,12 @@ static lispval loadmodule_sandbox_config_get(lispval var,void *ignored)
   if (loadmodule_sandbox) return FD_TRUE; else return FD_FALSE;
 }
 
-/* Modules to be used by fd_live_env */
+/* Modules to be used by fd_app_env */
 
 static lispval config_used_modules(lispval var,void *data)
 {
   lispval modlist=NIL;
-  fd_lexenv scan=fd_live_env;
+  fd_lexenv scan=fd_app_env;
   while (scan) {
     if (scan->env_copy) scan=scan->env_copy;
     if (FD_HASHTABLEP(scan->env_bindings)) {
@@ -805,7 +805,7 @@ static lispval config_used_modules(lispval var,void *data)
 }
 static int config_use_module(lispval var,lispval val,void *data)
 {
-  lispval rv=fd_use_module(fd_live_env,val);
+  lispval rv=fd_use_module(fd_app_env,val);
   if (FD_ABORTP(rv))
     return -1;
   else {

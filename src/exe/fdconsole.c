@@ -592,7 +592,7 @@ static int module_config_set(lispval var,lispval vals,void *d)
             u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
                    "No module found for %q",modname);}
           else {
-            used = fd_use_module(console_env,each_module);
+            used = fd_use_module(fd_app_env,each_module);
             if (FD_ABORTP(used)) {
               u8_log(LOG_WARN,"LoadModuleError",
                      "Error loading module %q",each_module);
@@ -613,7 +613,7 @@ static int module_config_set(lispval var,lispval vals,void *d)
                 FD_SYMBOL_NAME(modname),val);
       fd_decref(modname);
       return -1;}
-    used = fd_use_module(console_env,module);
+    used = fd_use_module(fd_app_env,module);
     if (FD_ABORTP(used)) {
       fd_decref(modname); fd_decref(module); fd_decref(used);
       return -1;}
@@ -641,7 +641,7 @@ static int loadfile_config_set(lispval var,lispval vals,void *d)
     else if (!(strchr(CSTRING(val),':')))
       loadpath = u8_abspath(CSTRING(val),NULL);
     else loadpath = u8_strdup(CSTRING(val));
-    loadval = fd_load_source(loadpath,console_env,NULL);
+    loadval = fd_load_source(loadpath,fd_app_env,NULL);
     if (FD_ABORTP(loadval)) {
       fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
       return -1;}
@@ -699,6 +699,8 @@ int main(int argc,char **argv)
   u8_string source_file = NULL; /* The file loaded, if any */
   /* This is the environment the console will start in */
   fd_lexenv env = fd_working_lexenv();
+
+  fd_set_app_env(env);
 
   fd_main_errno_ptr = &errno;
   FD_INIT_CSTACK();
@@ -796,7 +798,6 @@ int main(int argc,char **argv)
   inconsole = in;
   outconsole = out;
   errconsole = err;
-  console_env = env;
   atexit(exit_fdconsole);
 
   fd_register_config
@@ -877,7 +878,8 @@ int main(int argc,char **argv)
      entered fdconsole. */
   {
     lispval interpval = fd_lispstring(u8_fromlibc(argv[0]));
-    fd_set_config("INTERPRETER",interpval); fd_decref(interpval);}
+    fd_set_config("INTERPRETER",interpval);
+    fd_decref(interpval);}
 
   fd_idefn((lispval)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
   fd_defalias((lispval)env,"%","BACKTRACE");
@@ -1080,17 +1082,7 @@ int main(int argc,char **argv)
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);
-  /* Hollow out the environment, which should let you reclaim it.
-     This patches around the classic issue with circular references in
-     a reference counting garbage collector.  If the
-     working_lexenv contains procedures which are closed in the
-     working environment, it will not be GC'd because of those
-     circular pointers. */
-  if (HASHTABLEP(env->env_bindings))
-    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   fd_pop_stack(_stack);
-  /* Freed as console_env */
-  /* fd_recycle_lexenv(env); */
   exit(0);
   return 0;
 }

@@ -50,7 +50,7 @@ u8_string fd_ndevalstack_type="ndeval";
 
 int fd_optimize_tail_calls = 1;
 
-fd_lexenv fd_live_env=NULL;
+fd_lexenv fd_app_env=NULL;
 
 lispval fd_scheme_module, fd_xscheme_module;
 
@@ -2077,6 +2077,43 @@ static lispval with_log_context_evalfn(lispval expr,fd_lexenv env,fd_stack _stac
       return result;}}
 }
 
+/* The "application" environment */
+
+static int app_cleanup_started=0;
+static u8_mutex app_cleanup_lock;
+
+static void cleanup_app_env()
+{
+  if (fd_app_env==NULL) return;
+  if (app_cleanup_started) return;
+  u8_lock_mutex(&app_cleanup_lock);
+  if (app_cleanup_started) {
+    u8_unlock_mutex(&app_cleanup_lock);
+    return;}
+  else app_cleanup_started=1;
+  fd_lexenv env=fd_app_env; fd_app_env=NULL;
+  /* Hollow out the environment, which should let it be reclaimed.
+     This patches around some of the circular references that might
+     exist because working_lexenv may contain procedures which
+     are closed in the working environment, so the working environment
+     itself won't be GC'd because of those circular pointers. */
+  unsigned int refcount = FD_CONS_REFCOUNT(env);
+  fd_decref((lispval)env);
+  if (refcount>1) {
+    if (HASHTABLEP(env->env_bindings))
+      fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
+  u8_unlock_mutex(&app_cleanup_lock);
+}
+
+FD_EXPORT void fd_set_app_env(fd_lexenv env)
+{
+  if (env==fd_app_env) return;
+  else if (fd_app_env) {
+    fd_lexenv old_env=fd_app_env; fd_app_env=NULL;
+    fd_decref((lispval)old_env);}
+  fd_app_env=env;
+}
+
 /* MTrace */
 
 static int mtracing=0;
@@ -2441,6 +2478,9 @@ FD_EXPORT int fd_init_scheme()
 
     init_scheme_module();
     init_eval_core();
+
+    u8_init_mutex(&app_cleanup_lock);
+    atexit(cleanup_app_env);
 
     return scheme_initialized;}
 }
