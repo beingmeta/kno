@@ -1907,10 +1907,10 @@ FD_FASTOP FD_CHUNK_REF write_value_block
 /* This adds new entries to a keybucket, writing value blocks to the
    file where neccessary (more than one value). */
 FD_FASTOP fd_off_t extend_keybucket
-  (fd_hashindex hx,struct KEYBUCKET *kb,
-   struct COMMIT_SCHEDULE *schedule,int i,int j,
-   fd_outbuf newkeys,int *new_valueblocksp,
-   fd_off_t endpos,ssize_t maxpos)
+(fd_hashindex hx,fd_stream stream,struct KEYBUCKET *kb,
+ struct COMMIT_SCHEDULE *schedule,int i,int j,
+ fd_outbuf newkeys,int *new_valueblocksp,
+ fd_off_t endpos,ssize_t maxpos)
 {
   int k = i, free_keyvecs = 0;
   int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
@@ -1955,8 +1955,7 @@ FD_FASTOP fd_off_t extend_keybucket
         else {
           ke[key_i].ke_values = VOID;
           ke[key_i].ke_vref=
-            write_value_block(hx,&(hx->index_stream),
-                              schedule[k].commit_values,VOID,
+            write_value_block(hx,stream,schedule[k].commit_values,VOID,
                               0,0,endpos);
           (*new_valueblocksp)++;
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
@@ -1984,15 +1983,14 @@ FD_FASTOP fd_off_t extend_keybucket
              to write_value_block.  */
           lispval current = ke[key_i].ke_values;
           ke[key_i].ke_vref=
-            write_value_block(hx,&(hx->index_stream),schedule[k].commit_values,
+            write_value_block(hx,stream,schedule[k].commit_values,
                               current,0,0,endpos);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
           fd_decref(current);
           ke[key_i].ke_values = VOID;}
         else {
           ke[key_i].ke_vref=
-            write_value_block(hx,&(hx->index_stream),
-                              schedule[k].commit_values,VOID,
+            write_value_block(hx,stream,schedule[k].commit_values,VOID,
                               ke[key_i].ke_vref.off,ke[key_i].ke_vref.size,
                               endpos);
           /* We void the values field because there's a values block now. */
@@ -2024,8 +2022,7 @@ FD_FASTOP fd_off_t extend_keybucket
       else {
         ke[n_keys].ke_values = VOID;
         ke[n_keys].ke_vref=
-          write_value_block(hx,&(hx->index_stream),
-                            schedule[k].commit_values,VOID,
+          write_value_block(hx,stream,schedule[k].commit_values,VOID,
                             0,0,endpos);
         endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;
         if (endpos>=maxpos) {
@@ -2072,7 +2069,8 @@ FD_FASTOP fd_off_t write_keybucket
 }
 
 FD_FASTOP struct KEYBUCKET *read_keybucket
-  (fd_hashindex hx,int bucket,FD_CHUNK_REF ref,int extra)
+(fd_hashindex hx,fd_stream stream,
+ int bucket,FD_CHUNK_REF ref,int extra)
 {
   int n_keys;
   struct KEYBUCKET *kb;
@@ -2080,12 +2078,12 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
      the keybucket. */
   if (ref.size>0) {
     unsigned char *keybuf=u8_malloc(ref.size);
-    size_t read_result=fd_read_block
-      (&(hx->index_stream),keybuf, ref.size,ref.off,1);
+    size_t read_result=fd_read_block(stream,keybuf, ref.size,ref.off,1);
     if (read_result<0)
       return NULL;
     else {
-      struct FD_INBUF keystream; FD_INIT_INBUF(&keystream,keybuf,ref.size,0);
+      struct FD_INBUF keystream;
+      FD_INIT_INBUF(&keystream,keybuf,ref.size,0);
       n_keys = fd_read_zint(&keystream);
       kb = (struct KEYBUCKET *)
         u8_malloc(sizeof(struct KEYBUCKET)+
@@ -2105,9 +2103,19 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
 
 static int update_hashindex_ondisk
   (fd_hashindex hx,unsigned int flags,unsigned int new_keys,
-   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs);
+   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
+   struct FD_STREAM *stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
+
+static fd_stream open_output_stream(fd_hashindex hx,fd_stream s)
+{
+  u8_string fname=hx->index_source;
+  if (!(u8_file_writablep(fname))) {
+    fd_seterr("CantWriteFile","hashindex_commit",fname,FD_VOID);
+    return NULL;}
+  return fd_init_file_stream(s,fname,FD_FILE_WRITE,-1,-1);
+}
 
 static int hashindex_commit(struct FD_INDEX *ix)
 {
@@ -2115,7 +2123,8 @@ static int hashindex_commit(struct FD_INDEX *ix)
   int schedule_max, changed_buckets = 0, total_keys = 0;
   int new_keyblocks = 0, new_valueblocks = 0;
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
-  struct FD_STREAM *stream = &(hx->index_stream);
+  struct FD_STREAM _stream = {0};
+  struct FD_STREAM *stream = open_output_stream(hx,&_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   struct BUCKET_REF *bucket_locs;
   struct FD_HASHTABLE adds, edits;
@@ -2131,7 +2140,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
   unsigned int n_buckets = hx->index_n_buckets;
   unsigned int *offdata = get_offdata(hx);
   fd_lock_index(hx);
-  fd_lock_stream(stream);
   fd_write_lock_table(&(hx->index_adds));
   fd_write_lock_table(&(hx->index_edits));
   fd_swap_hashtable(&(hx->index_adds),&adds,
@@ -2166,9 +2174,9 @@ static int hashindex_commit(struct FD_INDEX *ix)
     schedule_size = process_edits(hx,&adds,&edits,&replaced_keys,
                                   schedule,schedule_size);
     schedule_size = process_adds(hx,&adds,&edits,&replaced_keys,
-                               schedule,schedule_size);
+                                 schedule,schedule_size);
     fd_recycle_hashset(&replaced_keys);
-
+    
     /* We're done with these tables */
     fd_reset_hashtable(&adds,0,0);
     fd_reset_hashtable(&edits,0,0);
@@ -2182,7 +2190,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
     if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2)) {
       out.buf_flags = out.buf_flags|FD_USE_DTYPEV2;
       newkeys.buf_flags = newkeys.buf_flags|FD_USE_DTYPEV2;}
-
+    
     /* Compute the hashes and the buckets for all of the keys
        in the commit schedule. */
     sched_i = 0; while (sched_i<schedule_size) {
@@ -2229,7 +2237,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
           sort_br_by_off);
     bucket_i = 0; while (bucket_i<changed_buckets) {
       keybuckets[bucket_i]=
-        read_keybucket(hx,bucket_locs[bucket_i].bucketno,
+        read_keybucket(hx,stream,bucket_locs[bucket_i].bucketno,
                        bucket_locs[bucket_i].bck_ref,
                        bucket_locs[bucket_i].max_new);
       if ((keybuckets[bucket_i]->kb_n_keys)==0) new_buckets++;
@@ -2257,10 +2265,10 @@ static int hashindex_commit(struct FD_INDEX *ix)
       assert(bucket == kb->kb_bucketno);
       while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
       /* This may write values to disk, so we use the returned endpos */
-      endpos = extend_keybucket(hx,kb,schedule,sched_i,j,
+      endpos = extend_keybucket(hx,stream,kb,schedule,sched_i,j,
                                 &newkeys,&new_valueblocks,
                                 endpos,maxpos);
-      CHECK_POS(endpos,&(hx->index_stream));
+      CHECK_POS(endpos,stream);
       new_keys = new_keys+(kb->kb_n_keys-cur_keys);
       {
         fd_off_t startpos = endpos;
@@ -2272,13 +2280,13 @@ static int hashindex_commit(struct FD_INDEX *ix)
           u8_free(schedule);
           u8_free(keybuckets);
           fd_unlock_index(hx);
-          fd_unlock_stream(stream);
+          fd_close_stream(stream,FD_STREAM_FREEDATA);
           return -1;}
-        CHECK_POS(endpos,&(hx->index_stream));
+        CHECK_POS(endpos,stream);
         bucket_locs[bucket_i].bck_ref.off = startpos;
         bucket_locs[bucket_i].bck_ref.size = endpos-startpos;}
       sched_i = j; bucket_i++;}
-    fd_flush_stream(&(hx->index_stream));
+    fd_flush_stream(stream);
 
     /* Free all the keybuckets */
     free_keybuckets(changed_buckets,keybuckets);
@@ -2321,7 +2329,8 @@ static int hashindex_commit(struct FD_INDEX *ix)
   }
 
   update_hashindex_ondisk
-    (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs);
+    (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
+     stream);
   if (fd_acid_files) {
     int retval = 0;
     fd_flush_stream(stream);
@@ -2347,7 +2356,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
   u8_free(bucket_locs);
 
   /* And unlock all the locks. */
-  fd_unlock_stream(stream);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
   fd_unlock_index(hx);
 
   u8_log(fd_storage_loglevel,"HashIndexCommit",
@@ -2376,9 +2385,9 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
 
 static int update_hashindex_ondisk
   (fd_hashindex hx,unsigned int flags,unsigned int cur_keys,
-   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs)
+   unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
+   struct FD_STREAM *stream)
 {
-  struct FD_STREAM *stream = &(hx->index_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   int i = 0;
   unsigned int *offdata = NULL;
@@ -2390,7 +2399,7 @@ static int update_hashindex_ondisk
     mmap(NULL,256+offdata_byte_length,
          PROT_READ|PROT_WRITE,
          MMAP_FLAGS,
-         hx->index_stream.stream_fileno,
+         stream->stream_fileno,
          0);
   if ((memblock==NULL) || (memblock == MAP_FAILED)) {
     u8_graberrno("update_hashindex_ondisk:mmap",u8_strdup(hx->indexid));
@@ -2558,7 +2567,7 @@ static int recover_hashindex(struct FD_HASHINDEX *hx)
     bucket_locs[i].bck_ref.off = fd_read_8bytes(in);
     bucket_locs[i].bck_ref.size = fd_read_4bytes(in);
     i++;}
-  retval = update_hashindex_ondisk(hx,flags,cur_keys,n_buckets,bucket_locs);
+  retval = update_hashindex_ondisk(hx,flags,cur_keys,n_buckets,bucket_locs,s);
   u8_free(bucket_locs);
   return retval;
 }
