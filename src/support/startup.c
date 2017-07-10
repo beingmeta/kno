@@ -760,7 +760,6 @@ void fd_init_startup_c()
   u8_init_mutex(&atexit_handlers_lock);
 
   atexit(doexit_atexit);
-  /* atexit(report_errors_atexit); */
 
   boot_config();
 

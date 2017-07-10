@@ -335,6 +335,7 @@ int main(int argc,char **argv)
       fd_decref(args[free_i]); free_i++;}
     u8_free(args);}
   fd_pop_stack(_stack);
+  fd_doexit(FD_FALSE);
   exit(0);
   return 0;
 }

@@ -406,8 +406,8 @@ static void exit_fdconsole()
     else {}}
   close_consoles();
 #if USING_EDITLINE
-  if (edithistory) history_end(edithistory);
   if (editconsole) el_end(editconsole);
+  if (edithistory) history_end(edithistory);
 #endif
 }
 
@@ -1083,6 +1083,7 @@ int main(int argc,char **argv)
   fd_decref(lastval);
   fd_decref(result);
   fd_pop_stack(_stack);
+  fd_doexit(FD_FALSE);
   exit(0);
   return 0;
 }

@@ -1507,6 +1507,7 @@ static int run_server(u8_string server_spec)
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit = 1;
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
+  fd_doexit(FD_FALSE);
   exit(0);
 }
 

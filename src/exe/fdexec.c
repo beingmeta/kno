@@ -393,6 +393,8 @@ int main(int argc,char **argv)
   if (exe_name) u8_free(exe_name);
   if (source_file) u8_free(source_file);
 
+  fd_doexit(FD_FALSE);
+
   return retval;
 }
 #endif
