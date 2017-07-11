@@ -202,6 +202,7 @@ static int config_add_source_file(lispval var,lispval val,void *data)
 
 static struct FD_ATEXIT {
   lispval exitfn_handler;
+  lispval exitfn_name;
   struct FD_ATEXIT *exitfn_next;} *atexit_handlers = NULL;
 static int n_atexit_handlers = 0;
 
@@ -211,22 +212,44 @@ static lispval config_atexit_get(lispval var,void *data)
   u8_lock_mutex(&atexit_handlers_lock);
   result = fd_make_vector(n_atexit_handlers,NULL);
   scan = atexit_handlers; while (scan) {
-    lispval handler = scan->exitfn_handler; fd_incref(handler);
-    FD_VECTOR_SET(result,i,handler);
-    scan = scan->exitfn_next; i++;}
+    lispval handler = scan->exitfn_handler, result;
+    if (FD_VOIDP(scan->exitfn_name))
+      result=fd_incref(handler);
+    else result=fd_make_pair(scan->exitfn_name,handler);
+    FD_VECTOR_SET(result,i,result);
+    scan = scan->exitfn_next;
+    i++;}
   u8_unlock_mutex(&atexit_handlers_lock);
   return result;
 }
 
 static int config_atexit_set(lispval var,lispval val,void *data)
 {
-  struct FD_ATEXIT *fresh = u8_malloc(sizeof(struct FD_ATEXIT));
-  if (!(FD_APPLICABLEP(val))) {
+  lispval fn, name=FD_VOID;
+  if (FD_PAIRP(val)) {
+    name=FD_CAR(val); fn=FD_CDR(val);}
+  else fn=val;
+  if (!(FD_APPLICABLEP(fn))) {
     fd_type_error("applicable","config_atexit",val);
     return -1;}
   u8_lock_mutex(&atexit_handlers_lock);
-  fresh->exitfn_next = atexit_handlers; 
-  fresh->exitfn_handler = val;
+  struct FD_ATEXIT *scan=atexit_handlers;
+  while (scan) {
+    if ( (FD_EQUALP(name,scan->exitfn_name)) ||
+	 (fn==scan->exitfn_handler) ) {
+      lispval oldfn=scan->exitfn_handler;
+      int changed = (fn != oldfn);
+      if (changed) {
+	fd_incref(fn);
+	scan->exitfn_handler=fn;
+	fd_decref(oldfn);}
+      u8_unlock_mutex(&atexit_handlers_lock);
+      return changed;}
+    else scan=scan->exitfn_next;}
+  struct FD_ATEXIT *fresh = u8_malloc(sizeof(struct FD_ATEXIT));
+  fresh->exitfn_next = atexit_handlers;
+  fresh->exitfn_name = name;
+  fresh->exitfn_handler = fn;
   fd_incref(val);
   n_atexit_handlers++; atexit_handlers = fresh;
   u8_unlock_mutex(&atexit_handlers_lock);

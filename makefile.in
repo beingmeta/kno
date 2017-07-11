@@ -1556,17 +1556,17 @@ build-setup.redhat:
 
 # The mod_fdserv module
 
-etc/mod_fdserv.so: etc/mod_fdserv.c @abs_top_srcdir@/fileinfo
-	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo etc/mod_fdserv.c .`"\"" \
-		> etc/mod_fdserv_fileinfo.h
+src/apache2/mod_fdserv.so: src/apache2/mod_fdserv.c @abs_top_srcdir@/fileinfo
+	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo src/apache2/mod_fdserv.c .`"\"" \
+		> src/apache2/mod_fdserv_fileinfo.h
 	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_FDSERV=$(DEBUG_FDSERV) \
-		-c etc/mod_fdserv.c
+		-c src/apache2/mod_fdserv.c
 
-mod_fdserv: etc/mod_fdserv.so
+mod_fdserv: src/apache2/mod_fdserv.so
 
 # For OSX, try this
-# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
-install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
+# apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c src/apache2/mod_fdserv.c
+install-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
 	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.conf \
 			$(DESTDIR)@apache_modinfo@;
@@ -1574,7 +1574,7 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
-	@cd etc; if test -f mod_fdserv.so; \
+	@cd src/apache2; if test -f mod_fdserv.so; \
 		then $(SUINSTALL) ${APXS} -i mod_fdserv.so; \
 		else $(SUINSTALL) ${APXS} -i mod_fdserv.la; \
 		fi
@@ -1587,7 +1587,7 @@ $(DESTDIR)@apache_modinfo@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@apache_modinfo@
 
-update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
+update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
 	@$(MSG) "STOPPING and STARTING Apache to INSTALL NEW mod_fdserv"
 	@$(MSG) "THIS REQUIRES sudo PRIVILEGES; you may be prompted for your password"
@@ -1598,7 +1598,7 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 			-d $(DESTDIR)@rundir@/fdserv;
 	$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@logdir@/fdserv;
-	cd etc; if test -f mod_fdserv.so; \
+	cd src/apache2; if test -f mod_fdserv.so; \
 		then sudo ${APXS} -i mod_fdserv.so; \
 		else sudo ${APXS} -i mod_fdserv.la; fi
 	sleep 5; sudo apachectl start

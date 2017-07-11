@@ -463,7 +463,7 @@ randomtests:
 
 # Scripting tests
 
-scripts: chainscripts batchscripts
+scripts: chainscripts batchscripts atexit_tests
 
 execscripts:
 	@${header} "■■■■■■■■ Running exec tests ■■■■■■■■"
@@ -559,7 +559,51 @@ chained_batchscripts:
 	@@test_env@ ./fdbatch chaintest.scm
 	@${header} "■■■■■■■■ Done testing batch scripts which call CHAIN"
 
-.PHONY: chained_batchscripts batchscripts chainscripts execscripts
+# ATEXIT tests
+
+atexit_tests: atexit_kill atexit_quit atexit_term
+
+atexit_normal:
+	@rm -f ./_atexit*;
+	@@test_env@ ${FDX} ./atexit.scm SLEEP4=3 QUIET=yes LOGLEVEL=4 ; \
+	if test -f ./_atexit.oldout; then \
+	  ./batchfail atexit.scm Earlier atexit handler called; \
+	elif test ! -f ./_atexit.out; then \
+	  ./batchfail atexit.scm ATEXIT handler not called; \
+	elif test -f ./_atexit.pid; then \
+	  ./batchfail atexit.scm ATEXIT handler not called; \
+	else echo "Success: ATEXIT handlers working";\
+	fi;
+atexit_term: atexit_normal
+	@rm -f ./_atexit_term.pid
+	@@test_env@ ${FDX} ./atexit.scm PREFIX=_atexit_term SLEEP4=20 QUIET=yes LOGLEVEL=4 & \
+	sleep 3; kill `cat ./_atexit_term.pid`; sleep 3; \
+	if test -f ./_atexit_term.pid; then \
+	  ./batchfail "ATEXIT handler not run on SIGTERM, .pid file still exists"; \
+	else \
+	  echo "Success: ATEXIT handlers run on SIGTERM"; \
+	fi;
+atexit_quit: atexit_normal
+	@rm -f ./_atexit_quit.pid
+	@@test_env@ ${FDX} ./atexit.scm PREFIX=_atexit_quit SLEEP4=20 QUIET=yes LOGLEVEL=4 &
+	sleep 3 ; kill -s QUIT `cat ./_atexit_quit.pid` ; sleep 3 ; \
+	if test -f ./_atexit_quit.pid; then \
+	  echo "Success: ATEXIT handlers not run on SIGQUIT"; \
+	else \
+	  ./batchfail "ATEXIT handler run on SIGQUIT"; \
+	fi;
+atexit_kill: atexit_normal
+	@rm -f ./_atexit_kill.pid
+	@@test_env@ ${FDX} ./atexit.scm PREFIX=_atexit_kill SLEEP4=20 QUIET=yes LOGLEVEL=4 & \
+	sleep 3 && kill -s KILL `cat ./_atexit_kill.pid` && sleep 3 && \
+	if test -f ./_atexit_kill.pid; then \
+	  echo "Success: ATEXIT handlers not run on SIGKILL"; \
+	  rm -f ./_atexit_kill.pid; \
+	else \
+	  ./batchfail "ATEXIT handler run on SIGKILL"; \
+	fi;
+
+.PHONY: chained_batchscripts batchscripts chainscripts execscripts atexit
 
 # SMP tests
 
