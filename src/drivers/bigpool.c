@@ -927,32 +927,36 @@ static int write_recovery_info
    unsigned int load);
 */
 
-static fd_stream open_output_stream(fd_bigpool bp,fd_stream s)
-{
-  u8_string fname=bp->pool_source;
-  if (!(u8_file_writablep(fname))) {
-    fd_seterr("CantWriteFile","bigpool_storen",fname,FD_VOID);
-    return NULL;}
-  return fd_init_file_stream(s,fname,FD_FILE_WRITE,-1,-1);
-}
-
 static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   fd_bigpool bp = (fd_bigpool)p;
   u8_string fname=bp->pool_source;
+  if (!(u8_file_writablep(fname))) {
+    fd_seterr("CantWriteFile","bigpool_storen",fname,FD_VOID);
+    return -1;}
+
+  struct FD_STREAM _stream={0};
+  struct FD_STREAM *stream =
+    fd_init_file_stream(&_stream,fname,FD_FILE_MODIFY,-1,-1);
+
+  if (stream==NULL)
+    return -1;
+
+  struct FD_OUTBUF *outstream = fd_writebuf(stream);
+
+  /* Lock the file descriptor */
+  if (fd_lockfile(stream)<0) {
+    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    return -1;}
+
   u8_string head_file=u8_string_append(fname,".head",NULL);
   size_t head_size = 256+(get_chunk_ref_size(bp)*p->pool_capacity);
   int saved=fd_save_head(fname,head_file,head_size);
   if (saved<0) return saved;
-  struct FD_STREAM _stream={0};
-  struct FD_STREAM *stream =
-    fd_init_file_stream(&_stream,fname,FD_FILE_MODIFY,-1,-1);
-  struct FD_OUTBUF *outstream = fd_writebuf(stream);
+  else {
+    fd_setpos(stream,0);
+    fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_TO_RECOVER);}
 
-  if (fd_lockfile(stream)<0) {
-    fd_close_stream(stream,FD_STREAM_FREEDATA);
-    return -1;}
-  /* Lock the file descriptor */
   int new_blocks = 0;
   double started = u8_elapsed_time();
   u8_log(fd_storage_loglevel+1,"BigpoolStore",
@@ -968,9 +972,6 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
   FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
-  /* Write the recovery type value */
-  fd_setpos(stream,0);
-  fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_TO_RECOVER);
   endpos = fd_endpos(stream);
   if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;

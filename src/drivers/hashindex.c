@@ -230,9 +230,9 @@ static int init_slotids
   (struct FD_HASHINDEX *hx,int n_slotids,lispval *slotids_init);
 static int init_baseoids
   (struct FD_HASHINDEX *hx,int n_baseoids,lispval *baseoids_init);
-static int recover_hashindex(struct FD_HASHINDEX *hx);
 
-static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval opts)
+static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
+                               lispval opts)
 {
   struct FD_HASHINDEX *index = u8_alloc(struct FD_HASHINDEX);
   int read_only = U8_BITP(flags,FD_STORAGE_READ_ONLY);
@@ -266,10 +266,6 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval op
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0);
   index->index_n_buckets = fd_read_4bytes_at(stream,4);
-  if (magicno == FD_HASHINDEX_TO_RECOVER) {
-    u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the hash index %s",fname);
-    recover_hashindex(index);
-    magicno = magicno&(~0x20);}
   index->index_offdata = NULL;
   u8_init_rwlock(&(index->index_offdata_lock));
   index->storage_xformat = fd_read_4bytes_at(stream,8);
@@ -347,6 +343,21 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,lispval op
   if (!(consed)) fd_register_index((fd_index)index);
 
   return (fd_index)index;
+}
+
+static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
+                                  lispval opts)
+{
+  u8_string head_file=u8_string_append(fname,".head",NULL);
+  if (u8_file_existsp(head_file)) {
+    fd_restore_head(head_file,fname,256-8);
+    u8_free(head_file);
+    return open_hashindex(fname,open_flags,opts);}
+  else {
+    u8_log(LOGCRIT,"Corrupted bigpool file %s doesn't have a recovery file %s",
+           fname,head_file);
+    u8_free(head_file);
+    return NULL;}
 }
 
 static int sort_by_slotid(const void *p1,const void *p2)
@@ -2108,23 +2119,15 @@ static int update_hashindex_ondisk
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
-static fd_stream open_output_stream(fd_hashindex hx,fd_stream s)
+static int hashindex_commit(struct FD_INDEX *ix)
 {
+  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   u8_string fname=hx->index_source;
   if (!(u8_file_writablep(fname))) {
     fd_seterr("CantWriteFile","hashindex_commit",fname,FD_VOID);
-    return NULL;}
-  return fd_init_file_stream(s,fname,FD_FILE_WRITE,-1,-1);
-}
-
-static int hashindex_commit(struct FD_INDEX *ix)
-{
-  int new_keys = 0, n_keys, new_buckets = 0;
-  int schedule_max, changed_buckets = 0, total_keys = 0;
-  int new_keyblocks = 0, new_valueblocks = 0;
-  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
-  struct FD_STREAM _stream = {0};
-  struct FD_STREAM *stream = open_output_stream(hx,&_stream);
+    return -1;}
+  struct FD_STREAM _stream = {0}, *stream =
+    fd_init_file_stream(&_stream,fname,FD_FILE_WRITE,-1,-1);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
   struct BUCKET_REF *bucket_locs;
   struct FD_HASHTABLE adds, edits;
@@ -2133,7 +2136,22 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_log(LOG_WARN,"Corrupted hashindex (in memory)",
            "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
     u8_seterr("CorruptedHashIndex","hashindex_commit",u8_strdup(ix->indexid));
+    fd_close_stream(stream,0);
     return -1;}
+
+  u8_string head_file=u8_string_append(fname,".head",NULL);
+  size_t head_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
+    int saved=fd_save_head(fname,head_file,head_size);
+  if (saved<0) return saved;
+  else {
+    fd_setpos(stream,0);
+    if (fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER)<0) {
+      fd_close_stream(stream,0);
+      return -1;}}
+
+  int new_keys = 0, n_keys, new_buckets = 0;
+  int schedule_max, changed_buckets = 0, total_keys = 0;
+  int new_keyblocks = 0, new_valueblocks = 0;
   fd_off_t recovery_start, recovery_pos;
   ssize_t endpos, maxpos = get_maxpos(hx);
   double started = u8_elapsed_time();
@@ -2302,6 +2320,11 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_free(out.buffer);
     u8_free(newkeys.buffer);
     n_keys = schedule_size;}
+
+  if (u8_removefile(head_file)<0)
+    u8_log(LOGWARN,"CouldntRemoveFile",
+           "Couldn't remove head file %s",head_file);
+  u8_free(head_file);
 
   /* This writes the new offset information */
   if (fd_acid_files) {
@@ -2546,30 +2569,6 @@ static void reload_offdata(struct FD_INDEX *ix)
     u8_rw_unlock(&(hx->index_offdata_lock));
     u8_free(old_offdata);}
 #endif
-}
-
-static int recover_hashindex(struct FD_HASHINDEX *hx)
-{
-  fd_off_t recovery_pos;
-  struct FD_STREAM *s = &(hx->index_stream);
-  fd_inbuf in = fd_readbuf(s);
-  struct BUCKET_REF *bucket_locs;
-  unsigned int i = 0, flags, cur_keys, n_buckets, retval;
-  fd_endpos(s); fd_movepos(s,-8);
-  recovery_pos = fd_read_8bytes(in);
-  fd_setpos(s,recovery_pos);
-  flags = fd_read_4bytes(in);
-  cur_keys = fd_read_4bytes(in);
-  n_buckets = fd_read_4bytes(in);
-  bucket_locs = u8_alloc_n(n_buckets,struct BUCKET_REF);
-  while (i<n_buckets) {
-    bucket_locs[i].bucketno = fd_read_4bytes(in);
-    bucket_locs[i].bck_ref.off = fd_read_8bytes(in);
-    bucket_locs[i].bck_ref.size = fd_read_4bytes(in);
-    i++;}
-  retval = update_hashindex_ondisk(hx,flags,cur_keys,n_buckets,bucket_locs,s);
-  u8_free(bucket_locs);
-  return retval;
 }
 
 
@@ -2841,7 +2840,7 @@ FD_EXPORT void fd_init_hashindex_c()
   fd_register_index_type
     ("damaged_hashindex",
      &hashindex_handler,
-     open_hashindex,
+     recover_hashindex,
      fd_match_index_file,
      (void *)(U8_INT2PTR(FD_HASHINDEX_TO_RECOVER)));
 

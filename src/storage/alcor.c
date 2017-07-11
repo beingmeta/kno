@@ -59,7 +59,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   if (rv<0) {
     u8_free(src); u8_free(dst); u8_free(buf);
     return rv;}
-  int out=open(dst,O_WRONLY|O_CREAT|O_EXCL);
+  int out=open(dst,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
   if (out<0) {
     u8_free(buf); u8_free(src); u8_free(dst);
     return out;}
