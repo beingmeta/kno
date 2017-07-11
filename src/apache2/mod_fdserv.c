@@ -61,10 +61,12 @@
 #endif
 
 #if DEBUG_SOCKETS
-#define LOGSOCKET APLOG_WARNING
+#define SOCKET_LOGLEVEL APLOG_WARNING
 #else
-#define LOGSOCKET APLOG_NOTICE
+#define SOCKET_LOGLEVEL APLOG_NOTICE
 #endif
+
+#define STRMATCH(x,y) (strcasecmp((x),(y))==0)
 
 static void log_config(cmd_parms *parms,const char *arg)
 {
@@ -142,6 +144,7 @@ typedef unsigned int INTPOINTER;
 #endif
 
 #define FDSERV_MAGIC_TYPE "application/x-httpd-fdserv"
+#define FDSTATUS_MAGIC_TYPE "application/x-httpd-fdstatus"
 
 #ifndef DEFAULT_KEEP_SOCKS
 #define DEFAULT_KEEP_SOCKS 2
@@ -1801,7 +1804,8 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       return NULL;}
 #if DEBUG_CONNECT
     ap_log_rerror
-      (APLOG_MARK,LOGDEBUG,OK,r,"Opened new %s file socket (fd=%d) to %s",
+      (APLOG_MARK,LOGDEBUG,OK,r,
+       "Opened new %s file socket (fd=%d) to %s",
        ((given==NULL)?("ephemeral"):("cached")),
        unix_sock,s->sockname);
 #endif
@@ -1886,8 +1890,8 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	  s->n_busy++;
 	  apr_thread_mutex_unlock(s->lock);
 #if DEBUG_SOCKETS
-	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Using cached %s",
-			fdsocketinfo(&(sockets[i]),infobuf));
+	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+			"Using %s",fdsocketinfo(&(sockets[i]),infobuf));
 #endif
 	  return &(sockets[i]);}}}
     /* All allocated sockets are busy, so we just go to the end of the
@@ -1896,7 +1900,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
     if (closed>=0) {
       /* If there's a closed socket < i, try to use that. */
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
-      ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,"Reopening %s",
+      ap_log_rerror(APLOG_MARK,SOCKET_LOGLEVEL,OK,r,"Reopening %s",
 		    fdsocketinfo(&(sockets[closed]),infobuf));
       sock=servlet_open(s,&(sockets[closed]),r); 
       if (sock) s->n_busy++;
@@ -1961,7 +1965,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 			"Ephemeral open failed (n=%d) for %s",
 			s->n_ephemeral,r->uri);}
-	else ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,
+	else ap_log_rerror(APLOG_MARK,SOCKET_LOGLEVEL,OK,r,
 			   "Ephemeral (#%d) %s opened for %s",
 			   s->n_ephemeral,
 			   fdsocketinfo(sock,infobuf),
@@ -2764,32 +2768,50 @@ static int fdserv_handler(request_rec *r)
     ap_get_module_config(r->per_dir_config,&fdserv_module);
   int using_dtblock=((sconfig->use_dtblock<0)?(use_dtblock):
 		     ((sconfig->use_dtblock)?(1):(0)));
+  int status_request=0;
   const char **sreq_params=sconfig->req_params;
   const char **dreq_params=dconfig->req_params;
 #if TRACK_EXECUTION_TIMES
-  struct timeb start, end; 
+  struct timeb start, end;
 #endif
-  if(strcmp(r->handler, FDSERV_MAGIC_TYPE) && strcmp(r->handler, "fdservlet"))
+  if (!((r->method_number == M_GET) ||
+	(r->method_number == M_PUT) ||
+	(r->method_number == M_POST) ||
+	(r->method_number == M_DELETE) ||
+	(r->method_number == M_OPTIONS)))
     return DECLINED;
-  else if (!((r->method_number == M_GET) ||
-	     (r->method_number == M_PUT) ||
-	     (r->method_number == M_POST) ||
-	     (r->method_number == M_DELETE) ||
-	     (r->method_number == M_OPTIONS)))
-	     return DECLINED;
+  else if ( (STRMATCH(r->handler, "fdservlet")) ||
+	    (STRMATCH(r->handler, FDSERV_MAGIC_TYPE)) )
+    status_request=0;
+  else if ( (STRMATCH(r->handler, "fdstatus")) ||
+	    (STRMATCH(r->handler, FDSTATUS_MAGIC_TYPE)) )
+    status_request=1;
+  else return DECLINED;
 #if DEBUG_FDSERV
   ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		"Entered fdserv_handler for %s from %s",
 		r->filename,r->unparsed_uri);
 #endif
-  if (r->connection->aborted) return OK;
-  servlet=request_servlet(r);
+  if (r->connection->aborted)
+    return OK;
+  else servlet=request_servlet(r);
+
   if (!(servlet)) {
     ap_log_rerror(APLOG_MARK,APLOG_ERR,OK,r,
 		  "Couldn't get servlet for %s to resolve %s",
 		  r->filename,r->unparsed_uri);
     if (errno) error=strerror(errno); else error="no servlet";
     errno=0;}
+  else if (status_request) {
+    struct FDSERVLET *srv=servlet;
+    r->content_type="text/plain";
+    ap_send_http_header(r);
+    ap_rprintf(r,"Servlet #%d %s\n",srv->servlet_index,srv->sockname);
+    ap_rprintf(r,"  %d sockets, %d busy, %d ephemeral, keep=%d, max=%d\n",
+	       srv->n_socks,srv->n_busy,srv->n_ephemeral,
+	       srv->keep_socks,srv->max_socks);
+    errno=0;
+    return OK;}
   else sock=servlet_connect(servlet,r);
 
   if (checkabort(r,servlet,sock,0)) return OK;
@@ -3071,7 +3093,7 @@ module AP_MODULE_DECLARE_DATA fdserv_module =
 
 /* Emacs local variables
 ;;;  Local variables: ***
-;;;  compile-command: "cd ..; make mod_fdserv" ***
+;;;  compile-command: "cd ../..; make mod_fdserv" ***
 ;;;  End: ***
 */
 
