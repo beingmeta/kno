@@ -244,8 +244,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   long long cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
-  int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
-    ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
+  int stream_flags =
+    FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY |
     ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
 
   fd_init_index((fd_index)index,&hashindex_handler,
@@ -261,7 +261,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     fd_seterr3(u8_CantOpenFile,"open_hashindex",fname);
     return NULL;}
   /* See if it ended up read only */
-  if (stream->stream_flags&FD_STREAM_READ_ONLY)
+  if (!(u8_file_writablep(fname)))
     read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0);
@@ -350,11 +350,15 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
 {
   u8_string head_file=u8_string_append(fname,".head",NULL);
   if (u8_file_existsp(head_file)) {
-    fd_restore_head(head_file,fname,256-8);
-    u8_free(head_file);
+    ssize_t rv=fd_restore_head(head_file,fname,256-8);
+    if (rv<0) {
+      u8_graberrno("recover_hashindex",head_file);
+      return NULL;}
+    else u8_free(head_file);
     return open_hashindex(fname,open_flags,opts);}
   else {
-    u8_log(LOGCRIT,"Corrupted bigpool file %s doesn't have a recovery file %s",
+    u8_log(LOGCRIT,"Corrupted hashindex",
+           "The hashindex file %s doesn't have a recovery file %s",
            fname,head_file);
     u8_free(head_file);
     return NULL;}
@@ -2141,7 +2145,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
 
   u8_string head_file=u8_string_append(fname,".head",NULL);
   size_t head_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
-    int saved=fd_save_head(fname,head_file,head_size);
+  ssize_t saved=fd_save_head(fname,head_file,head_size);
   if (saved<0) return saved;
   else {
     fd_setpos(stream,0);
