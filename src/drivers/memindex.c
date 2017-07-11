@@ -422,7 +422,6 @@ static struct FD_INDEX_HANDLER mem_index_handler={
   mem_index_fetchkeys, /* fetchkeys */
   mem_index_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* metadata */
   mem_index_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */

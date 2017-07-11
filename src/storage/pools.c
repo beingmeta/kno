@@ -1670,7 +1670,6 @@ static struct FD_POOL_HANDLER gluepool_handler={
   NULL, /* release */
   NULL, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   NULL, /* create */
   NULL, /* walker */
   NULL, /* recycle */
@@ -2056,7 +2055,6 @@ static struct FD_POOL_HANDLER zero_pool_handler={
   zero_pool_unlock, /* release */
   NULL, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   NULL, /* create */
   NULL,  /* walk */
   NULL,  /* recycle */

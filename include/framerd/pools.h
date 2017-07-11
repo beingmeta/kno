@@ -119,12 +119,11 @@
 #define FD_MAX_POOLS (FD_N_OID_BUCKETS*4)
 #endif
 
-FD_EXPORT fd_exception
-fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError, fd_PoolConflict,
-  fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
-  fd_NoFilePools, fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
-  fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
-  fd_PoolCommitError, fd_NoSuchPool, fd_DataFileOverflow;
+FD_EXPORT fd_exception fd_CantLockOID, fd_AnonymousOID, fd_UnallocatedOID,
+  fd_InvalidPoolPtr, fd_PoolRangeError, fd_PoolConflict,
+  fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
+  fd_ReadOnlyPool, fd_ExhaustedPool, fd_PoolCommitError, fd_NoSuchPool,
+  fd_NotAFilePool, fd_NoFilePools, fd_BadFilePoolLabel, fd_DataFileOverflow;
 
 FD_EXPORT u8_condition fd_PoolCommit;
 
@@ -222,7 +221,6 @@ typedef struct FD_POOL_HANDLER {
   int (*unlock)(fd_pool p,lispval oids);
   int (*storen)(fd_pool p,int n,lispval *oids,lispval *vals);
   int (*swapout)(fd_pool p,lispval oids);
-  lispval (*metadata)(fd_pool p,lispval);
   fd_pool (*create)(u8_string spec,void *typedata,
 		    fd_storage_flags flags,lispval opts);
   int (*walker)(fd_pool,fd_walker,void *,fd_walk_flags,int);
@@ -241,7 +239,6 @@ struct FD_POOL_HANDLER some_handler={
    NULL, /* lock */
    NULL, /* release */
    NULL, /* storen */
-   NULL, /* metadata */
    NULL, /* create */
    NULL, /* walk */
    NULL, /* recycle */

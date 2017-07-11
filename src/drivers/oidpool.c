@@ -1698,7 +1698,6 @@ static struct FD_POOL_HANDLER oidpool_handler={
   oidpool_unlock, /* release */
   oidpool_storen, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   oidpool_create, /* create */
   NULL,  /* walk */
   NULL, /* recycle */

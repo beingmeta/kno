@@ -172,7 +172,6 @@ static struct FD_POOL_HANDLER gpool_handler={
   gpool_unlock, /* release */
   gpool_storen, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   NULL}; /* sync */
 
 FD_EXPORT void fd_init_gpools_c()

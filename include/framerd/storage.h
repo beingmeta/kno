@@ -17,8 +17,6 @@
 
 #include "streams.h"
 
-FD_EXPORT size_t fd_dbdriver_bufsize;
-
 FD_EXPORT fd_exception fd_InternalError, fd_AmbiguousObjectName,
   fd_UnknownObjectName, fd_BadServerResponse, fd_NoBackground;
 FD_EXPORT u8_condition fd_ServerReconnect;

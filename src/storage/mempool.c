@@ -179,7 +179,6 @@ static struct FD_POOL_HANDLER mempool_handler={
   NULL, /* release (mempool_unlock) */
   mempool_storen, /* storen */
   mempool_swapout, /* swapout */
-  NULL, /* metadata */
   NULL, /* create */
   NULL,  /* walk */
   NULL, /* recycle */

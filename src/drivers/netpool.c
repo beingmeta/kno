@@ -256,7 +256,6 @@ static struct FD_POOL_HANDLER netpool_handler={
   network_pool_unlock, /* release */
   network_pool_storen, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   NULL, /* create */
   NULL,  /* walk */
   NULL, /* recycle */

@@ -1308,7 +1308,6 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchkeys, /* fetchkeys */
   file_index_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* metadata */
   file_index_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */

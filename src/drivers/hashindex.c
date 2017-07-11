@@ -2855,7 +2855,6 @@ static struct FD_INDEX_HANDLER hashindex_handler={
   hashindex_fetchkeys, /* fetchkeys */
   hashindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* metadata */
   hashindex_create, /* create */ 
   NULL, /* walk */
   NULL, /* recycle */

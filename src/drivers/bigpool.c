@@ -1692,7 +1692,6 @@ static struct FD_POOL_HANDLER bigpool_handler={
   bigpool_unlock, /* release */
   bigpool_storen, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   bigpool_create, /* create */
   NULL,  /* walk */
   NULL,  /* recycle */

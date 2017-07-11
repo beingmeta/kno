@@ -236,7 +236,6 @@ static struct FD_INDEX_HANDLER compoundindex_handler={
   compound_fetchkeys, /* fetchkeys */
   NULL, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* metadata */
   NULL, /* create */
   NULL, /* walk */
   NULL, /* recycle */

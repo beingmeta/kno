@@ -134,7 +134,6 @@ static struct FD_INDEX_HANDLER htindex_handler={
   htindex_fetchkeys, /* fetchkeys */
   htindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* metadata */
   NULL, /* recycle */
   NULL  /* indexctl */
 };

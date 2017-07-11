@@ -43,7 +43,6 @@ int fd_storage_loglevel = LOG_NOTICE;
 int fd_prefetch = FD_PREFETCHING_ENABLED;
 int fd_require_mmap = HAVE_MMAP;
 
-size_t fd_dbdriver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
 size_t fd_network_bufsize = FD_NETWORK_BUFSIZE;
 
 int fd_dbconn_reserve_default = FD_DBCONN_RESERVE_DEFAULT;

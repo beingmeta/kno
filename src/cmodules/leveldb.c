@@ -811,9 +811,11 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   leveldb_pool_lock, /* lock */
   leveldb_pool_unlock, /* release */
   leveldb_pool_storen, /* storen */
-  NULL, /* swapout */
-  NULL, /* metadata */
-  NULL}; /* sync */
+  NULL, /* create */
+  NULL,  /* walk */
+  NULL, /* recycle */
+  NULL  /* poolctl */
+};
 
 /* Scheme primitives */
 

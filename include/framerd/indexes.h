@@ -71,7 +71,6 @@ typedef struct FD_INDEX_HANDLER {
   lispval *(*fetchkeys)(fd_index ix,int *n);
   struct FD_KEY_SIZE *(*fetchinfo)(fd_index ix,struct FD_CHOICE *filter,int *n);
   int (*batchadd)(fd_index ix,lispval);
-  lispval (*metadata)(fd_index ix,lispval);
   fd_index (*create)(u8_string spec,void *type_data,
 		     fd_storage_flags flags,lispval opts);
   int (*walker)(fd_index,fd_walker,void *,fd_walk_flags,int);
@@ -96,7 +95,6 @@ struct FD_INDEX_HANDLER some_handler={
   NULL, /* fetchkeys */
   NULL, /* fetchinfo */
   NULL, /* batchadd */
-  NULL, /* metadata */
   NULL, /* create */
   NULL, /* walk */
   NULL, /* recycle */

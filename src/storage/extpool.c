@@ -249,7 +249,6 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   extpool_unlock, /* release */
   NULL, /* storen */
   NULL, /* swapout */
-  NULL, /* metadata */
   NULL, /* create */
   NULL,  /* walk */
   recycle_extpool, /* recycle */
