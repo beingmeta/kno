@@ -183,7 +183,7 @@ static fd_pool open_oidpool(u8_string fname,
     (!(u8_file_writablep(fname)));
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  long long cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
+  long long cache_level = fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
   int stream_flags = FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK |
     ( (read_only) ? (FD_STREAM_READ_ONLY) : (0) ) |
     ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );

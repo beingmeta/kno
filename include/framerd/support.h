@@ -204,7 +204,7 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 
 FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt);
 FD_EXPORT int fd_testopt(lispval opts,lispval key,lispval val);
-FD_EXPORT long long fd_fixopt(lispval opts,u8_string name,int dflt);
+FD_EXPORT long long fd_getfixopt(lispval opts,u8_string name,long long dflt);
 
 /* Resources sensors */
 

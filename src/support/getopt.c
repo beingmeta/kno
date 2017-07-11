@@ -166,15 +166,21 @@ FD_EXPORT int fd_testopt(lispval opts,lispval key,lispval val)
   return 0;
 }
 
-FD_EXPORT
-long long
-fd_fixopt(lispval opts,u8_string name,int dflt)
+FD_EXPORT long long fd_getfixopt(lispval opts,u8_string name,long long dflt)
 {
   lispval val=fd_getopt(opts,fd_intern(name),VOID);
   if (VOIDP(val))
     return dflt;
   else if (FIXNUMP(val))
     return FIX2INT(val);
+  else if (FD_BIGINTP(val))  {
+    struct FD_BIGINT *bi=(fd_bigint)val;
+    if (fd_modest_bigintp(bi)) {
+      long long llval=fd_bigint2int64(bi);
+      return llval;}
+    else {
+      fd_decref(val);
+      return dflt;}}
   else {
     fd_decref(val);
     return dflt;}

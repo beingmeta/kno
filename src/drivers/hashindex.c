@@ -243,7 +243,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   fd_size_t slotids_size, baseoids_size, metadata_size;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  long long cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
+  long long cache_level = fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
   int stream_flags =
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY |
     ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );

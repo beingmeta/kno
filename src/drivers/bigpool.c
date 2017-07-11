@@ -193,7 +193,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
     (!(u8_file_writablep(fname)));
   u8_string rname = u8_realpath(fname,NULL);
-  int cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
+  int cache_level = fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
   int stream_flags =
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY |
     ( (cache_level>=3) ? (FD_STREAM_USEMMAP) : (0) );
