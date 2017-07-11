@@ -716,7 +716,7 @@ elif test "$with_malloc" = "asan"; then
    test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
    leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
    asan="yes"
-   test_size=128
+   test_size=64
    AC_MSG_RESULT(ASAN)
 elif test "$with_malloc" = "asan_thread"; then
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
