@@ -253,8 +253,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                 flags);
 
   fd_stream stream=
-    fd_init_file_stream(&(index->index_stream),fname,mode,
-                        stream_flags,-1);
+    fd_init_file_stream(&(index->index_stream),fname,mode,stream_flags,-1);
 
   if (stream == NULL) {
     u8_free(index);
@@ -1572,23 +1571,42 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
 
 static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 {
-  unsigned int chunk_ref_size = get_chunk_ref_size(hx);
-  int stream_flags=hx->index_stream.stream_flags;
+  int chunk_ref_size = get_chunk_ref_size(hx);
+  if (chunk_ref_size<0) {
+    u8_log(LOG_WARN,fd_CorruptedIndex,"Index structure invalid: %s",hx->indexid);
+    return;}
+  fd_stream stream = &(hx->index_stream);
+  unsigned int stream_flags = stream->stream_flags;
+  size_t bufsize  = fd_stream_bufsize(stream);
+  size_t use_bufsize = fd_getfixopt(hx->index_opts,"BUFSIZE",fd_driver_bufsize);
+
+  /* Update the bufsize */
+#if HAVE_MMAP
+  if (level >= 3) {
+    if (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
+      /* Setting the bufsize to -1 will mmap the stream */
+      fd_setbufsize(stream,-1);}
+  else if (U8_BITP(stream_flags,FD_STREAM_MMAPPED))
+    /* Setting the bufsize will unmap the stream */
+    fd_setbufsize(stream,use_bufsize);
+  else if (bufsize < use_bufsize)
+    fd_setbufsize(stream,use_bufsize);
+  else {}
+#else
+  if (bufsize < use_bufsize)
+    fd_setbufsize(stream,use_bufsize);
+#endif
 
   if (level >= 2) {
-    if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
-      fd_setbufsize(&(hx->index_stream),-1);
-    else if ((level<3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)))
-      fd_setbufsize(&(hx->index_stream),fd_filestream_bufsize);
-    else {}
-    if (hx->index_offdata) return;
+    if (hx->index_offdata)
+      return;
     else {
       fd_stream s = &(hx->index_stream);
       unsigned int n_buckets = hx->index_n_buckets;
       unsigned int *buckets, *newmmap;
       u8_write_lock(&(hx->index_offdata_lock));
       if (hx->index_offdata) {
-        u8_rw_unlock(&(hx->index_offdata_lock));
+        release_offdata(hx);
         return;}
 #if HAVE_MMAP
       newmmap=
@@ -1600,7 +1618,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
         hx->index_offdata = NULL;
         errno = 0;}
       else hx->index_offdata = buckets = newmmap+64;
-      u8_rw_unlock(&(hx->index_offdata_lock));
+      release_offdata(hx);
 #else
       fd_lock_stream(s)
       stream_start_read(s);
@@ -1614,14 +1632,11 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
         hx->index_offdata = NULL; errno = 0;}
       else hx->index_offdata = ht_buckets;
       fd_unlock_stream(s);
-      u8_rw_unlock(&(hx->index_offdata_lock));
+      release_offdata(hx);
 #endif
     }}
 
   else if (level < 2) {
-
-    if (U8_BITP(stream_flags,FD_STREAM_MMAPPED))
-      fd_setbufsize(&(hx->index_stream),fd_filestream_bufsize);
 
     int retval=0;
     unsigned int *offdata=get_offdata(hx);
@@ -1637,7 +1652,7 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 #else
     u8_free(offdata);
 #endif
-    u8_rw_unlock(&(hx->index_offdata_lock));}
+    release_offdata(hx);}
   else {}
 }
 

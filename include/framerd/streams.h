@@ -159,6 +159,8 @@ FD_EXPORT ssize_t fd_stream_read(fd_stream s,size_t len,unsigned char *bytes);
 FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction);
 FD_EXPORT lispval fd_streamctl(fd_stream s,fd_streamop,void *data);
 
+#define fd_stream_bufsize(s) ((s)->buf.raw.buflen)
+
 /* Stream position operations */
 
 FD_EXPORT fd_inbuf _fd_readbuf(fd_stream s);

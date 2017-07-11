@@ -13,8 +13,8 @@
 
 #include "streams.h"
 
-FD_EXPORT fd_exception
-  fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndexes, fd_BadIndexSpec,
+FD_EXPORT fd_exception fd_BadIndexSpec,
+  fd_FileIndexOverflow, fd_NotAFileIndex, fd_CorruptedIndex, fd_NoFileIndexes,
   fd_IndexCommitError, fd_EphemeralIndex;
 
 FD_EXPORT u8_condition fd_IndexCommit;
