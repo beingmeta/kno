@@ -239,8 +239,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
 
   unsigned int magicno, n_keys;
-  fd_off_t slotids_pos, baseoids_pos;
-  fd_size_t slotids_size, baseoids_size;
+  fd_off_t slotids_pos, baseoids_pos, metadata_loc;
+  fd_size_t slotids_size, baseoids_size, metadata_size;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   long long cache_level = fd_fixopt(opts,"CACHELEVEL",fd_default_cache_level);
@@ -251,10 +251,10 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   fd_init_index((fd_index)index,&hashindex_handler,
                 fname,u8_realpath(fname,NULL),
                 flags);
+
   fd_stream stream=
     fd_init_file_stream(&(index->index_stream),fname,mode,
-                        stream_flags,
-                        fd_driver_bufsize);
+                        stream_flags,-1);
 
   if (stream == NULL) {
     u8_free(index);
@@ -290,8 +290,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   baseoids_pos = fd_read_8bytes_at(stream,32,NULL);
   baseoids_size = fd_read_4bytes_at(stream,40);
 
-  /* metadata_pos = */ fd_read_8bytes_at(stream,44,NULL);
-  /* metadata_size = */ fd_read_4bytes_at(stream,52);
+  metadata_loc  = fd_read_8bytes_at(stream,44,NULL);
+  metadata_size = fd_read_4bytes_at(stream,52);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
@@ -337,6 +337,28 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     index->index_new_baseoids = 0;
     index->index_baseoid_ids = NULL;
     index->index_ids2baseoids = NULL;}
+
+  lispval metadata=FD_VOID;
+  if (metadata_loc) {
+    if (fd_setpos(stream,metadata_loc)>0) {
+      fd_inbuf in = fd_readbuf(stream);
+      metadata = fd_read_dtype(in);}
+    else {
+      fd_seterr("BadMetaData","open_hashindex","BadLocation",
+                FD_INT(metadata_loc));
+      metadata=FD_ERROR_VALUE;}
+    if (!(FD_SLOTMAPP(metadata))) {
+      fd_seterr("BadMetaData","open_hashindex","BadMetaDataValue",
+                metadata);
+      metadata=FD_ERROR_VALUE;}
+    if (FD_ABORTP(metadata)) {
+      fd_seterr("BadMetaData","open_hashindex",u8_strdup(fname),FD_VOID);
+      fd_free_stream(stream);
+      u8_free(index);
+      return NULL;}}
+  else metadata=fd_make_slotmap(5,0,NULL);
+  fd_set_modified(metadata,0);
+  index->index_metadata=metadata;
 
   u8_init_mutex(&(index->index_lock));
 

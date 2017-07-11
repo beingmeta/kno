@@ -163,7 +163,9 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_ADJUNCT *pool_adjuncts;			\
   lispval pool_indexes;					\
   u8_string pool_prefix;				\
-  lispval pool_namefn
+  lispval pool_namefn;					\
+  lispval pool_metadata;				\
+  lispval pool_opts
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;

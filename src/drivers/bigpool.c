@@ -186,7 +186,8 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
 {
   FD_OID base = FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, n_slotids, bigpool_format = 0;
-  fd_off_t label_loc, slotids_loc;
+  fd_off_t label_loc, metadata_loc, slotids_loc;
+  size_t label_size, metadata_size;
   lispval label;
   struct FD_BIGPOOL *pool = u8_alloc(struct FD_BIGPOOL);
   int read_only = U8_BITP(open_flags,FD_STORAGE_READ_ONLY) ||
@@ -243,9 +244,10 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   fd_setpos(stream,FD_BIGPOOL_LABEL_POS);
   /* Get the label location */
   label_loc = fd_read_8bytes(instream);
-  /* label_size = */ fd_read_4bytes(instream);
-  /* Skip the metadata field and size*/
-  fd_read_8bytes(instream); fd_read_4bytes(instream);
+  label_size = fd_read_4bytes(instream);
+  /* Get the metadata loc and size */
+  metadata_loc = fd_read_8bytes(instream);
+  metadata_size = fd_read_4bytes(instream);
   /* Creation time */
   fd_read_8bytes(instream);
   /* Repack time */
@@ -259,6 +261,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   /* Read and initialize the slotids_loc */
   slotids_loc = fd_read_8bytes(instream);
   fd_read_4bytes(instream); /* Ignore size */
+
   if (label_loc) {
     if (fd_setpos(stream,label_loc)>0) {
       label = fd_read_dtype(instream);
@@ -271,6 +274,29 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
       fd_close_stream(stream,0);
       u8_free(rname); u8_free(pool);
       return NULL;}}
+
+  lispval metadata=FD_VOID;
+  if (metadata_loc) {
+    if (fd_setpos(stream,metadata_loc)>0) {
+      fd_inbuf in = fd_readbuf(stream);
+      metadata = fd_read_dtype(in);}
+    else {
+      fd_seterr("BadMetaData","open_bigpool","BadLocation",
+                FD_INT(metadata_loc));
+      metadata=FD_ERROR_VALUE;}
+    if (!(FD_SLOTMAPP(metadata))) {
+      fd_seterr("BadMetaData","open_bigpool","BadMetaDataValue",
+                metadata);
+      metadata=FD_ERROR_VALUE;}
+    if (FD_ABORTP(metadata)) {
+      fd_seterr("BadMetaData","open_bigpool",u8_strdup(fname),FD_VOID);
+      fd_close_stream(stream,0);
+      u8_free(rname); u8_free(pool);
+      return NULL;}}
+  else metadata=fd_make_slotmap(5,0,NULL);
+  fd_set_modified(metadata,0);
+  pool->pool_metadata=metadata;
+
   if ((n_slotids)&&(slotids_loc)) {
     int slotids_length = (n_slotids>256)?(n_slotids*2):(256);
     lispval *slotids = u8_alloc_n(slotids_length,lispval);
@@ -1081,7 +1107,9 @@ static ssize_t write_offdata
 #if HAVE_MMAP
     ssize_t result=
       mmap_write_offdata(bp,stream,n,saveinfo,min_off,max_off);
-    if (result>=0) return result;
+    if (result>=0) {
+      release_offdata(bp);
+      return result;}
 #endif
     result=cache_write_offdata(bp,stream,n,saveinfo,offdata,min_off,max_off);
     release_offdata(bp);

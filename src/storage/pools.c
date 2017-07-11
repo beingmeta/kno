@@ -1645,6 +1645,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_label = NULL;
   p->pool_prefix = NULL;
   p->pool_namefn = VOID;
+  p->pool_metadata = VOID;
+  p->pool_opts = FD_FALSE;
 }
 
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)
@@ -1910,7 +1912,9 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   u8_free(p->pool_source);
   if (p->pool_label) u8_free(p->pool_label);
   if (p->pool_prefix) u8_free(p->pool_prefix);
-  fd_decref(p->pool_namefn); fd_decref(p->pool_namefn);
+  fd_decref(p->pool_namefn);
+  fd_decref(p->pool_metadata);
+  fd_decref(p->pool_opts);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -2080,6 +2084,8 @@ static void init_zero_pool()
   _fd_zero_pool.pool_adjuncts = NULL;
   _fd_zero_pool.pool_prefix="";
   _fd_zero_pool.pool_namefn = VOID;
+  _fd_zero_pool.pool_metadata = VOID;
+  _fd_zero_pool.pool_opts = FD_FALSE;
   fd_register_pool(&_fd_zero_pool);
 }
 

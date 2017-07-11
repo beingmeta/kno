@@ -183,9 +183,9 @@ fd_pool fd_open_pool(u8_string spec,fd_storage_flags flags,lispval opts)
               fd_clear_errors(1);}
             else {
               fd_seterr(fd_AdjunctError,"fd_open_pool",spec,opts);
-              return NULL;}}
-          else return opened;}
-        else return opened;}
+              return NULL;}}}
+        opened->pool_opts=fd_incref(opts);
+        return opened;}
       else ptype = ptype->next_type;
       CHECK_ERRNO();}
     else ptype = ptype->next_type;}
@@ -347,6 +347,7 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
         fd_index opened = (found) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
+        opened->index_opts=fd_incref(opts);
         return opened;}
       else ixtype = ixtype->next_type;
       CHECK_ERRNO();}

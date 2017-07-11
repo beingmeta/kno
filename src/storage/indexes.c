@@ -971,13 +971,16 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 {
   if (ix == NULL) return -1;
   else init_cache_level(ix);
-  if ((ix->index_adds.ht_n_buckets) || (ix->index_edits.ht_n_buckets)) {
+  if ((ix->index_adds.table_n_keys) || (ix->index_edits.table_n_keys)) {
     int n_edits = ix->index_edits.table_n_keys;
     int n_adds = ix->index_adds.table_n_keys;
     int n_keys = n_edits+n_adds, retval = 0;
     if (n_keys==0) return 0;
+    else init_cache_level(ix);
+
     u8_log(fd_storage_loglevel+1,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->indexid);
+
     double start_time = u8_elapsed_time();
     if (ix->index_cache_level<0) {
       fd_index_setcache(ix,fd_default_cache_level);}
@@ -1054,6 +1057,8 @@ FD_EXPORT void fd_init_index(fd_index ix,
   /* Don't copy this one */
   ix->index_source = src;
   ix->index_covers_slotids = VOID;
+  ix->index_metadata = VOID;
+  ix->index_opts = FD_FALSE;
 }
 
 FD_EXPORT void fd_reset_index_tables
@@ -1299,6 +1304,9 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
   fd_recycle_hashtable(&(ix->index_edits));
   u8_free(ix->indexid);
   u8_free(ix->index_source);
+  fd_decref(ix->index_covers_slotids);
+  fd_decref(ix->index_metadata);
+  fd_decref(ix->index_opts);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
