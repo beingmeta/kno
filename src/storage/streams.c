@@ -82,12 +82,15 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
 {
   struct FD_RAWBUF *buf = &(stream->buf.raw);
   int fd = stream->stream_fileno;
+  int mallocd = ( (buf->buf_flags) & (FD_BUFFER_IS_MALLOCD) );
   struct stat fileinfo;
   if (fstat(fd,&fileinfo)<0) {
     u8_graberrno("mmap_read_update:fstat",u8_strdup(stream->streamid));
     return -1;}
-  else if ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
-           (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec))
+  else if ( (mallocd==0) &&
+            ((stream->mmap_time.tv_sec==fileinfo.stat_mtime.tv_sec) &&
+             (stream->mmap_time.tv_nsec==fileinfo.stat_mtime.tv_nsec)) )
+    /* Not changed */
     return 0;
   else {
     u8_write_lock(&(stream->mmap_lock));
@@ -122,10 +125,18 @@ static ssize_t mmap_read_update(struct FD_STREAM *stream)
     buf->buf_data = stream;
     stream->stream_filepos=stream->stream_maxpos=fileinfo.st_size;
     u8_rw_unlock(&(stream->mmap_lock));
-    if ( (oldbuf) && (munmap(oldbuf,old_size)<0) ) {
-      u8_graberrno("mmap_read_update:munmap",u8_strdup(stream->streamid));
-      return -1;}
-    else return new_size;}
+    if (oldbuf) {
+      if (mallocd) {
+        u8_free(oldbuf);
+        buf->buf_flags &= ~FD_BUFFER_IS_MALLOCD;}
+      else if (oldbuf==newbuf) {}
+      else if (munmap(oldbuf,old_size)<0) {
+        u8_log(LOGCRIT,"FailedUnmap",
+               "Couldn't (%s:%d) unmap old buffer for %s",
+               u8_strerror(errno),errno,
+               stream->streamid);
+        errno=0;}}
+    return new_size;}
 }
 
 static ssize_t mmap_write_update(struct FD_STREAM *stream,ssize_t grow)
@@ -494,9 +505,11 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
   fd_flush_stream(s);
   struct FD_RAWBUF *buf = &(s->buf.raw);
   int flags=s->buf.raw.buf_flags;
+  int mallocd = ( (flags) & (FD_BUFFER_IS_MALLOCD) );
   if (bufsize<0) {
 #if HAVE_MMAP
-    if (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED)) return 0;
+    if (U8_BITP(s->stream_flags,FD_STREAM_MMAPPED))
+      return 0;
     else if (!(U8_BITP(s->stream_flags,FD_STREAM_READ_ONLY))) {
       u8_log(LOG_INFO,fd_CantMMAP,"Stream '%s' not read-only",s->streamid);
       if (unlock) fd_unlock_stream(s);
@@ -505,11 +518,7 @@ FD_EXPORT ssize_t fd_setbufsize(fd_stream s,ssize_t bufsize)
       unsigned char *oldbuf=buf->buffer;
       ssize_t new_size=mmap_read_update(s);
       if (unlock) fd_unlock_stream(s);
-      if (new_size>=0) {
-        u8_free(oldbuf);
-        s->buf.raw.buf_flags &= ~FD_BUFFER_IS_MALLOCD;
-        return new_size;}
-      else return new_size;}
+      return new_size;}
 #else
     return 0;
 #endif
