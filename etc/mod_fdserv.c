@@ -1080,6 +1080,8 @@ static const command_rec fdserv_cmds[] =
    "whether to use the DTBlock DType representation to send requests"),
   AP_INIT_TAKE1("FDServletKeep", servlet_keep, NULL, OR_ALL,
 		"how many connections to the servlet to keep open"),
+  AP_INIT_TAKE1("FDServletMax", servlet_maxconn, NULL, OR_ALL,
+		"the total number of servlet connections to keep alive"),
 
   /* Everything below here is stuff about how to start a servlet */
   AP_INIT_TAKE1("FDServletSpawn", servlet_spawn, NULL, OR_ALL,
@@ -1568,7 +1570,8 @@ static fdservlet get_servlet(const char *sockname)
   return NULL;
 }
 
-/* TODO: This should also handle growing down */
+/* We never grow keep socks down, since the total is over all the
+   locations referencing the servlet. */
 static fdservlet servlet_set_keep_socks(fdservlet s,int keep_socks)
 {
   if (s->keep_socks>=keep_socks) return s;

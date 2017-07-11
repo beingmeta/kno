@@ -457,6 +457,7 @@ static int update_preloads()
 
 /* Getting content for pages */
 
+static u8_mutex pagemap_lock;
 static FD_HASHTABLE pagemap;
 
 static int whitespace_stringp(u8_string s)
@@ -540,65 +541,82 @@ static lispval loadcontent(lispval path)
     return fd_conspair(main_proc,(lispval)newenv);}
 }
 
+static lispval update_pagemap(lispval path)
+{
+  struct stat fileinfo; struct U8_XTIME mtime;
+  char *lpath = u8_localpath(FD_STRDATA(path));
+  int retval = stat(lpath,&fileinfo);
+  if (retval<0) {
+    u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
+	   lpath,errno);
+    u8_graberr(-1,"getcontent",lpath);
+    return FD_ERROR_VALUE;}
+  u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
+  lispval content = loadcontent(path);
+  if (FD_ABORTP(content)) {
+    u8_free(lpath);
+    return content;}
+  lispval pagemap_value =
+    fd_conspair(fd_make_timestamp(&mtime),
+		fd_incref(content));
+  fd_hashtable_store(&pagemap,path,pagemap_value);
+  fd_decref(pagemap_value);
+  u8_free(lpath);
+  return content;
+}
+
 static lispval getcontent(lispval path)
 {
   if ((FD_STRINGP(path))&&(u8_file_existsp(FD_STRDATA(path)))) {
-    lispval value = fd_hashtable_get(&pagemap,path,FD_VOID);
-    if (FD_VOIDP(value)) {
-      lispval table_value, content;
-      struct stat fileinfo; struct U8_XTIME mtime;
-      char *lpath = u8_localpath(FD_STRDATA(path));
-      int retval = stat(lpath,&fileinfo);
-      if (retval<0) {
-	u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
-	       lpath,errno);
-	u8_graberr(-1,"getcontent",lpath);
-	return FD_ERROR_VALUE;}
-      u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
-      content = loadcontent(path);
-      if (FD_ABORTP(content)) {
-	u8_free(lpath);
+    struct stat fileinfo; struct U8_XTIME mtime;
+    char *lpath = u8_localpath(FD_STRDATA(path));
+    int retval = stat(lpath,&fileinfo);
+    if (retval<0) {
+      u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
+	     lpath,errno);
+      u8_graberr(-1,"getcontent",lpath);
+      return FD_ERROR_VALUE;}
+    else u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
+    lispval pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
+    if (FD_VOIDP(pagemap_value)) {
+      u8_lock_mutex(&pagemap_lock);
+      pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
+      if (FD_VOIDP(pagemap_value)) {
+	lispval content = update_pagemap(path);
+	u8_unlock_mutex(&pagemap_lock);
 	return content;}
-      table_value = fd_conspair(fd_make_timestamp(&mtime),
-			      fd_incref(content));
-      fd_hashtable_store(&pagemap,path,table_value);
-      u8_free(lpath);
-      fd_decref(table_value);
-      return content;}
-    else {
-      lispval tval = FD_CAR(value), cval = FD_CDR(value);
-      struct FD_TIMESTAMP *lmtime=
-	fd_consptr(fd_timestamp,tval,fd_timestamp_type);
-      struct stat fileinfo;
-      char *lpath = u8_localpath(FD_STRDATA(path));
-      if (stat(lpath,&fileinfo)<0) {
-	u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
-	       lpath,errno);
-	u8_graberr(-1,"getcontent",u8_strdup(FD_STRDATA(path)));
-	u8_free(lpath); fd_decref(value);
-	return FD_ERROR_VALUE;}
-      else if (fileinfo.st_mtime>lmtime->ts_u8xtime.u8_tick) {
-	lispval new_content = loadcontent(path);
-	struct U8_XTIME mtime;
-	lispval content_record;
-	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
-	content_record=
-	  fd_conspair(fd_make_timestamp(&mtime),
-		      fd_incref(new_content));
-	fd_hashtable_store(&pagemap,path,content_record);
-	u8_free(lpath); fd_decref(content_record);
-	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
-	    (TYPEP((FD_CDR(FD_CDR(value))),fd_lexenv_type))) {
-	  fd_lexenv env = (fd_lexenv)(FD_CDR(FD_CDR(value)));
-	  if (FD_HASHTABLEP(env->env_bindings))
-	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
-	fd_decref(value);
-	return new_content;}
       else {
-	lispval retval = fd_incref(cval);
-	fd_decref(value);
-	u8_free(lpath);
-	return retval;}}}
+	lispval content=FD_CDR(pagemap_value);
+	fd_incref(content);
+	fd_decref(pagemap_value);
+	u8_unlock_mutex(&pagemap_lock);
+	return content;}}
+    lispval tval = FD_CAR(pagemap_value), cval = FD_CDR(pagemap_value);
+    struct FD_TIMESTAMP *lmtime=
+      fd_consptr(fd_timestamp,tval,fd_timestamp_type);
+    if ( (fileinfo.st_mtime) <= (lmtime->ts_u8xtime.u8_tick) )
+      /* Loaded version up to date */
+      return fd_incref(cval);
+    u8_lock_mutex(&pagemap_lock);
+    fd_decref(pagemap_value); pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);
+    if (FD_VOIDP(pagemap_value)) {
+      /* This *should* never happen, but we check anyway */
+      lispval content = update_pagemap(path);
+      u8_unlock_mutex(&pagemap_lock);
+      return content;}
+    tval = FD_CAR(pagemap_value); cval = FD_CDR(pagemap_value);
+    lmtime = fd_consptr(fd_timestamp,tval,fd_timestamp_type);
+    if ( (fileinfo.st_mtime) <= (lmtime->ts_u8xtime.u8_tick) ) {
+      /* Loaded version made up to date before while we got the lock  */
+      fd_incref(cval);
+      u8_unlock_mutex(&pagemap_lock);
+      u8_free(lpath);
+      return cval;}
+    else {
+      lispval content=update_pagemap(path);
+      u8_unlock_mutex(&pagemap_lock);
+      u8_free(lpath);
+      return content;}}
   else if (FD_STRINGP(path)) {
     u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_STRDATA(path));
     return fd_err(fd_FileNotFound,"getcontent",NULL,path);}
@@ -624,6 +642,7 @@ static void init_webcommon_data()
 {
   FD_INIT_STATIC_CONS(&pagemap,fd_hashtable_type);
   fd_make_hashtable(&pagemap,0);
+  u8_init_mutex(&pagemap_lock);
 }
 
 static void init_webcommon_configs()
