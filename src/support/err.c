@@ -720,6 +720,9 @@ void fd_init_err_c()
   sigaddset(&(sigaction_exit.sa_mask),SIGTERM);
   sigaction(SIGTERM,&(sigaction_exit),NULL);
 
+  sigaddset(&(sigaction_abort.sa_mask),SIGQUIT);
+  sigaction(SIGQUIT,&(sigaction_abort),NULL);
+
 #ifdef SIGBUS
   sigaddset(&(sigaction_abort.sa_mask),SIGBUS);
   sigaction(SIGBUS,&(sigaction_abort),NULL);
