@@ -413,15 +413,17 @@ FD_FASTOP int get_slotcode(struct FD_BIGPOOL *bp,lispval slotid)
 /* Load reading and updates */
 
 /* These assume that the pool itself is locked */
-static int write_bigpool_load(fd_bigpool bp,fd_stream stream)
+static int write_bigpool_load(fd_bigpool bp,
+                              unsigned int new_load,
+                              fd_stream stream)
 {
   /* Update the load */
   long long load;
   load = fd_read_4bytes_at(stream,16);
   if (load<0) {
     return -1;}
-  else if (bp->pool_load>load) {
-    int rv = fd_write_4bytes_at(stream,bp->pool_load,16);
+  else if (new_load>load) {
+    int rv = fd_write_4bytes_at(stream,new_load,16);
     if (rv<0) return rv;
     else return rv;}
   else {
@@ -946,7 +948,7 @@ static int bigpool_write_value(lispval value,fd_stream stream,
 }
 
 static ssize_t write_offdata
-(struct FD_BIGPOOL *bp, fd_stream stream, int n,
+(struct FD_BIGPOOL *bp, fd_stream stream,int n,unsigned int load,
  struct BIGPOOL_SAVEINFO *saveinfo);
 
 /*
@@ -978,6 +980,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     fd_close_stream(stream,FD_STREAM_FREEDATA);
     return -1;}
 
+  unsigned int load = bp->pool_load;
   u8_string head_file=u8_string_append(fname,".head",NULL);
   size_t head_size = 256+(get_chunk_ref_size(bp)*p->pool_capacity);
   ssize_t saved=fd_save_head(fname,head_file,head_size);
@@ -1012,21 +1015,20 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       u8_free(zbuf);
       u8_free(saveinfo);
       u8_free(tmpout.buffer);
-      UNLOCK_POOLSTREAM(bp);
+      fd_close_stream(stream,FD_STREAM_FREEDATA);
       return n_bytes;}
     else new_blocks++;
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
       u8_seterr(fd_DataFileOverflow,"bigpool_storen",
                 u8_strdup(p->poolid));
-      if (fd_unlockfile(stream))
-        fd_close_stream(stream,FD_STREAM_FREEDATA);
-      else u8_log(LOGCRIT,"UnlockFailed",
-                  "Couldn't unlock output stream (%d:%s) for %s",
-                  stream->stream_fileno,
-                  bp->pool_source,
-                  bp->poolid);
-      /* Unlock the file descriptor */
+      if (fd_unlockfile(stream)<0)
+        u8_log(LOGCRIT,"UnlockFailed",
+               "Couldn't unlock output stream (%d:%s) for %s",
+               stream->stream_fileno,
+               bp->pool_source,
+               bp->poolid);
+      fd_close_stream(stream,FD_STREAM_FREEDATA);
       return -1;}
 
     saveinfo[i].chunk.off = endpos;
@@ -1041,8 +1043,8 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_lock_pool(p);
 
   write_bigpool_slotids(bp,stream);
-  write_offdata(bp,stream,n,saveinfo);
-  write_bigpool_load(bp,stream);
+  write_offdata(bp,stream,n,load,saveinfo);
+  write_bigpool_load(bp,load,stream);
 
   u8_free(saveinfo);
   fd_start_write(stream,0);
@@ -1056,8 +1058,17 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   u8_log(fd_storage_loglevel,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
-  /* Unlock file descriptor */
+
+  /* Unlock the pool */
   fd_unlock_pool(p);
+
+  /* Unlock and close the file we're writing */
+  if (fd_unlockfile(stream)<0)
+    u8_log(LOGCRIT,"UnlockFailed",
+           "Couldn't unlock output stream (%d:%s) for %s",
+           stream->stream_fileno,
+           bp->pool_source,
+           bp->poolid);
   fd_close_stream(stream,FD_STREAM_FREEDATA);
 
   return n;
@@ -1081,12 +1092,10 @@ static ssize_t direct_write_offdata
  struct BIGPOOL_SAVEINFO *saveinfo);
 
 static ssize_t write_offdata
-(struct FD_BIGPOOL *bp,
- fd_stream stream,
- int n,
+(struct FD_BIGPOOL *bp,fd_stream stream,int n,unsigned int load,
  struct BIGPOOL_SAVEINFO *saveinfo)
 {
-  unsigned int min_off=bp->pool_load,  max_off=0, i=0;
+  unsigned int min_off=load,  max_off=0, i=0;
   fd_offset_type offtype = bp->bigpool_offtype;
   unsigned int *offdata=NULL;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
@@ -1131,22 +1140,19 @@ static ssize_t mmap_write_offdata
          "Finalizing %d oid values for %s",n,bp->poolid);
 
   unsigned int *offdata = NULL;
-  size_t byte_length =
-    (bp->pool_flags&FD_POOL_ADJUNCT) ?
-    (chunk_ref_size*(bp->pool_capacity)) :
-    (chunk_ref_size*(bp->pool_load));
+  size_t byte_length = chunk_ref_size*max_off;
   /* Map a second version of offdata to modify */
   unsigned int *memblock=
     mmap(NULL,256+(byte_length),(PROT_READ|PROT_WRITE),MAP_SHARED,
          stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
     u8_log(LOGCRIT,u8_strerror(errno),
-             "Failed MMAP of %lld bytes of offdata for bigpool %s",
-             256+(byte_length),bp->poolid);
+           "Failed MMAP of %lld bytes of offdata for bigpool %s",
+           256+(byte_length),bp->poolid);
     U8_CLEAR_ERRNO();
     u8_graberrno("bigpool_write_offdata",u8_strdup(bp->poolid));
     return -1;}
-    else offdata = memblock+64;
+  else offdata = memblock+64;
   switch (bp->bigpool_offtype) {
   case FD_B64: {
     int k = 0; while (k<n) {
