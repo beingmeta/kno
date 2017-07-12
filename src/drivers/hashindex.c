@@ -2183,11 +2183,12 @@ static int hashindex_commit(struct FD_INDEX *ix)
   u8_string head_file=u8_string_append(fname,".head",NULL);
   size_t head_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
   ssize_t saved=fd_save_head(fname,head_file,head_size);
-  if (saved<0) return saved;
+  if (saved<0)
+    return saved;
   else {
     fd_setpos(stream,0);
     if (fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER)<0) {
-      fd_close_stream(stream,0);
+      fd_close_stream(stream,FD_STREAM_FREEDATA);
       return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
