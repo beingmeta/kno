@@ -1,7 +1,7 @@
-if [ ! $# -eq 0 ] && [ $1 != "current" ]; then
-   git checkout $1;
+if [ $1 == "current" ] || [ $1 == "." ] ; then
    shift;
-elif [ ! $# -eq 0 ] && [ $1 == "current" ]; then
+elif [ ! $# -eq 0 ]
+   git checkout $1;
    shift;
 fi;
 ./distclean;
