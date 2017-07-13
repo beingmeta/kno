@@ -981,9 +981,9 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     return -1;}
 
   unsigned int load = bp->pool_load;
-  u8_string head_file=u8_string_append(fname,".head",NULL);
-  size_t head_size = 256+(get_chunk_ref_size(bp)*p->pool_capacity);
-  ssize_t saved=fd_save_head(fname,head_file,head_size);
+  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  size_t recovery_size = 256+(get_chunk_ref_size(bp)*p->pool_capacity);
+  ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
   if (saved<0) return saved;
   else {
     fd_setpos(stream,0);
@@ -1051,11 +1051,11 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_write_4bytes(outstream,FD_BIGPOOL_MAGIC_NUMBER);
   fd_flush_stream(stream);
   fsync(stream->stream_fileno);
-  if (u8_removefile(head_file)<0)
+  if (u8_removefile(recovery_file)<0)
     u8_log(LOGWARN,"CouldntRemoveFile",
-           "Couldn't remove head file %s",head_file);
-  u8_free(head_file);
-  u8_log(fd_storage_loglevel,"BigpoolStore",
+           "Couldn't remove recovery file %s",recovery_file);
+  u8_free(recovery_file);
+  u8_log(fd_storage_loglevel+1,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
 

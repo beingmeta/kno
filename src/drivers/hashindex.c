@@ -369,19 +369,19 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
 static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
                                   lispval opts)
 {
-  u8_string head_file=u8_string_append(fname,".head",NULL);
-  if (u8_file_existsp(head_file)) {
-    ssize_t rv=fd_restore_head(head_file,fname,256-8);
+  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  if (u8_file_existsp(recovery_file)) {
+    ssize_t rv=fd_restore_head(recovery_file,fname,256-8);
     if (rv<0) {
-      u8_graberrno("recover_hashindex",head_file);
+      u8_graberrno("recover_hashindex",recovery_file);
       return NULL;}
-    else u8_free(head_file);
+    else u8_free(recovery_file);
     return open_hashindex(fname,open_flags,opts);}
   else {
     u8_log(LOGCRIT,"Corrupted hashindex",
            "The hashindex file %s doesn't have a recovery file %s",
-           fname,head_file);
-    u8_free(head_file);
+           fname,recovery_file);
+    u8_free(recovery_file);
     return NULL;}
 }
 
@@ -2180,9 +2180,9 @@ static int hashindex_commit(struct FD_INDEX *ix)
     fd_close_stream(stream,0);
     return -1;}
 
-  u8_string head_file=u8_string_append(fname,".head",NULL);
-  size_t head_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
-  ssize_t saved=fd_save_head(fname,head_file,head_size);
+  u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
+  size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
+  ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
   if (saved<0)
     return saved;
   else {
@@ -2363,10 +2363,10 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_free(newkeys.buffer);
     n_keys = schedule_size;}
 
-  if (u8_removefile(head_file)<0)
+  if (u8_removefile(recovery_file)<0)
     u8_log(LOGWARN,"CouldntRemoveFile",
-           "Couldn't remove head file %s",head_file);
-  u8_free(head_file);
+           "Couldn't remove recovery file %s",recovery_file);
+  u8_free(recovery_file);
 
   /* This writes the new offset information */
   if (fd_acid_files) {
