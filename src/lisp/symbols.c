@@ -150,8 +150,8 @@ lispval probe_symbol(u8_string bytes,int len)
     if (len == entries[probe]->sym_pname.str_bytelen)
       if (strncmp(bytes,entries[probe]->sym_pname.str_bytes,len) == 0)
         break;
-    if (probe >= size) probe = 0;
-    else probe++;}
+    probe++;
+    if (probe >= size) probe = 0;}
   if (entries[probe]) {
     return FD_ID2SYMBOL(entries[probe]->symid);}
   else return VOID;
