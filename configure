@@ -13452,6 +13452,8 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
+echo "Built with malloc=$using_malloc";
+echo $using_malloc > ./.malloc;
 if test ! -z "$manually_disabled"; then
    echo "+++ These components have been explicitly disabled: $manually_disabled"; fi
 if test ! -z "$auto_disabled"; then
