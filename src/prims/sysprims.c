@@ -128,7 +128,8 @@ static lispval physicalmb_symbol, availablemb_symbol;
 static lispval memload_symbol, vmemload_symbol, stacksize_symbol;
 static lispval nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
 static lispval mallocd_symbol, heap_symbol, mallocinfo_symbol;
-static lispval uptime_symbol, max_swap_symbol, swap_symbol, total_ram_symbol;
+static lispval uptime_symbol, total_swap_symbol, swap_symbol, total_ram_symbol;
+static lispval free_swap_symbol, free_ram_symbol, nprocs_symbol;
 static lispval max_vmem_symbol;
 
 static lispval tcmallocinfo_symbol;
@@ -208,13 +209,19 @@ static lispval rusage_prim(lispval field)
 
 #if ((HAVE_SYS_SYSINFO_H)&&(HAVE_SYSINFO))
     struct sysinfo sinfo;
-    if (sysinfo(&sinfo)==0) {
-      unsigned long long total_swap=sinfo.totalswap*sinfo.mem_unit;
-      unsigned long long total_ram=sinfo.totalram*sinfo.mem_unit;
+    if (sysinfo(&sinfo)>=0) {
+      unsigned int mem_unit=sinfo.mem_unit;
+      unsigned long long total_swap=sinfo.totalswap*mem_unit;
+      unsigned long long free_swap=sinfo.freeswap*mem_unit;
+      unsigned long long total_ram=sinfo.totalram*mem_unit;
+      unsigned long long free_ram=sinfo.freeram*mem_unit;
       add_intval(result,uptime_symbol,sinfo.uptime);
-      add_intval(result,max_swap_symbol,total_swap);
-      add_intval(result,swap_symbol,total_swap);
+      add_intval(result,nprocs_symbol,sinfo.procs);
+      add_intval(result,total_swap_symbol,total_swap);
+      add_intval(result,free_swap_symbol,free_swap);
+      add_intval(result,swap_symbol,total_swap-free_swap);
       add_intval(result,max_vmem_symbol,total_swap+total_ram);
+      add_intval(result,free_ram_symbol,free_ram);
       add_intval(result,total_ram_symbol,total_ram);}
 #endif
 
@@ -749,8 +756,11 @@ FD_EXPORT void fd_init_sysprims_c()
   loadavg_symbol = fd_intern("LOADAVG");
 
   uptime_symbol=fd_intern("UPTIME");
-  max_swap_symbol=fd_intern("MAXSWAP");
+  nprocs_symbol=fd_intern("NPROCS");
+  free_swap_symbol=fd_intern("FREESWAP");
+  total_swap_symbol=fd_intern("TOTALSWAP");
   swap_symbol=fd_intern("SWAP");
+  free_ram_symbol=fd_intern("FREERAM");
   total_ram_symbol=fd_intern("TOTALRAM");
   max_vmem_symbol=fd_intern("MAXVMEM");
 
