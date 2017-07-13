@@ -450,8 +450,8 @@ struct FD_OID_BUCKET {
   int bucket_no;};
 
 FD_EXPORT FD_OID fd_base_oids[FD_N_OID_BUCKETS];
-FD_EXPORT struct FD_OID_BUCKET fd_oid_buckets[FD_N_OID_BUCKETS];
-FD_EXPORT int fd_n_base_oids;
+FD_EXPORT struct FD_OID_BUCKET *fd_oid_buckets;
+FD_EXPORT int fd_n_base_oids, fd_oid_buckets_len;
 
 
 /* We represent OIDs using an indexed representation where k bits are
