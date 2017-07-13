@@ -40,11 +40,9 @@ typedef struct FD_BIGPOOL {
   unsigned int pool_load;
   struct FD_STREAM pool_stream;
   time_t pool_modtime;
-  fd_compress_type bigpool_compression;
-  fd_offset_type bigpool_offtype;
-  unsigned int *bigpool_offdata;
-  size_t bigpool_offdata_length;
-  u8_rwlock bigpool_offdata_lock;
+  fd_compress_type pool_compression;
+  fd_offset_type pool_offtype;
+  unsigned int *pool_offdata;
   lispval *bigpool_slotids;
   lispval *bigpool_old_slotids;
   unsigned int bigpool_n_slotids;
