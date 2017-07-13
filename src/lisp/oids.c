@@ -16,6 +16,8 @@
 /* For sprintf */
 #include <ctype.h>
 
+#define HASH_MULTIPLIER 2654435769U
+
 fd_exception fd_NotAnOID=_("Not an OID");
 
 lispval fd_zero_pool_values[4096]={VOID};
@@ -24,35 +26,58 @@ unsigned int fd_zero_pool_load = 0;
 static u8_mutex zero_pool_lock;
 
 FD_OID fd_base_oids[FD_N_OID_BUCKETS];
-struct FD_OID_BUCKET fd_oid_buckets[FD_N_OID_BUCKETS];
+struct FD_OID_BUCKET *fd_oid_buckets=NULL;
 int fd_n_base_oids = 0;
+int fd_oid_buckets_len = FD_N_OID_BUCKETS*4-1;
 static u8_rwlock base_oid_lock;
 static fd_exception OIDBucketOverflow="Out of OID buckets";
 
+static int n_chains=0, sum_chains=0;
+
 FD_FASTOP int find_base_oid(FD_OID base)
 {
-  int len = fd_n_base_oids;
-  int bot=0, top=len-1;
-  while (top>=bot) {
-    int middle = bot+(top-bot)/2;
-    int cmp = FD_OID_COMPARE(base,fd_oid_buckets[middle].bucket_base);
-    if (cmp == 0)
-      return middle;
-    else if (cmp < 0)
-      top=middle-1;
-    else bot=middle+1;}
+  unsigned int hi = FD_OID_HI(base), lo=FD_OID_LO(base);
+  unsigned long hi_times = hi*HASH_MULTIPLIER, lo_times = lo*HASH_MULTIPLIER;
+  unsigned long hashval = hi_times ^ lo_times;
+  int init_probe = hashval%fd_oid_buckets_len, probe=init_probe;
+  while (fd_oid_buckets[probe].bucket_no>=0) {
+    if (FD_OID_COMPARE(base,fd_oid_buckets[probe].bucket_base)==0)
+      return fd_oid_buckets[probe].bucket_no;
+    probe++;
+    if (probe>=fd_oid_buckets_len) probe=0;
+    if (probe==init_probe)
+      return -1;}
   return -1;
 }
 
-static int get_base_oid_index(FD_OID base)
+static int add_base_oid_index(FD_OID base)
 {
-  int boi=-1;
-  u8_read_lock(&base_oid_lock);
-  int off=find_base_oid(base);
-  if (off>=0)
-    boi=fd_oid_buckets[off].bucket_no;
-  u8_rw_unlock(&base_oid_lock);
-  return boi;
+  int boi = find_base_oid(base);
+  if (boi>=0)
+    return boi;
+  else if (fd_n_base_oids >= FD_N_OID_BUCKETS)
+    return -1;
+  else {
+    unsigned int boi=fd_n_base_oids++;
+    unsigned int hi = FD_OID_HI(base), lo=FD_OID_LO(base);
+    unsigned long hi_times = hi*HASH_MULTIPLIER, lo_times = lo*HASH_MULTIPLIER;
+    unsigned long hashval = hi_times ^ lo_times;
+    int init_probe = hashval%fd_oid_buckets_len, probe=init_probe, chain_len=0;
+    while (fd_oid_buckets[probe].bucket_no>=0) {
+      if (FD_OID_COMPARE(base,fd_oid_buckets[probe].bucket_base)==0)
+        return fd_oid_buckets[probe].bucket_no;
+      probe++; chain_len++;
+      if (probe>=fd_oid_buckets_len) probe=0;
+      if (probe==init_probe) {
+        u8_log(LOGCRIT,"Out of OID buckets",
+               "The OID bucket table has reached saturaration at %d buckets",
+               fd_n_base_oids);
+        return -1;}}
+    n_chains++; sum_chains+=chain_len;
+    fd_oid_buckets[probe].bucket_base=base;
+    fd_oid_buckets[probe].bucket_no=boi;
+    fd_base_oids[boi]=base;
+    return boi;}
 }
 
 static int compare_baseoids(const void *lv,const void *rv)
@@ -60,35 +85,6 @@ static int compare_baseoids(const void *lv,const void *rv)
   struct FD_OID_BUCKET *lb = (struct FD_OID_BUCKET *)lv;
   struct FD_OID_BUCKET *rb = (struct FD_OID_BUCKET *)rv;
   return FD_OID_COMPARE((lb->bucket_base),(rb->bucket_base));
-}
-
-static int add_base_oid_index(FD_OID base)
-{
-  int boi = get_base_oid_index(base);
-  if (boi>=0)
-    return boi;
-  else if (fd_n_base_oids >= FD_N_OID_BUCKETS)
-    return -1;
-  else {
-    u8_write_lock(&base_oid_lock);
-    if (fd_n_base_oids >= FD_N_OID_BUCKETS) {
-      u8_rw_unlock(&base_oid_lock);
-      return -1;}
-    else {
-      int off=find_base_oid(base);
-      if (off>=0) {
-        int boi=fd_oid_buckets[off].bucket_no;
-        u8_rw_unlock(&base_oid_lock);
-        return boi;}
-      boi = fd_n_base_oids++;
-      fd_base_oids[boi]=base;
-      fd_oid_buckets[boi].bucket_base=base;
-      fd_oid_buckets[boi].bucket_no=boi;
-      /* Could be faster, but n is relatively small */
-      qsort(fd_oid_buckets,fd_n_base_oids,sizeof(struct FD_OID_BUCKET),
-            compare_baseoids);
-      u8_rw_unlock(&base_oid_lock);
-      return boi;}}
 }
 
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
@@ -99,7 +95,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
     int retval = add_base_oid_index(base);
     if (retval<0) fd_seterr1(OIDBucketOverflow);
     return retval;}
-  else return get_base_oid_index(base);
+  else return find_base_oid(base);
 }
 
 FD_EXPORT lispval fd_make_oid(FD_OID addr)
@@ -249,7 +245,10 @@ lispval fd_preoids = EMPTY;
 
 static void init_oids()
 {
-  int i = 0; while (i<N_OID_INITS) {
+  int i=0;
+  fd_oid_buckets=u8_alloc_n(fd_oid_buckets_len,struct FD_OID_BUCKET);
+  while (i<fd_oid_buckets_len) fd_oid_buckets[i++].bucket_no=-1;
+  i=0; while (i<N_OID_INITS) {
     FD_OID base = FD_MAKE_OID(_fd_oid_inits[i].hi,_fd_oid_inits[i].lo);
     unsigned int cap=_fd_oid_inits[i].cap;
     int j = 0, lim = 1+(cap/(FD_OID_BUCKET_SIZE));

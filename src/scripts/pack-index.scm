@@ -1,6 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)
+(config! 'optlevel 4)
 (use-module '{optimize mttools logger stringfmts fifo varconfig})
 
 (define (getflags)
@@ -108,19 +109,27 @@
     (do-choices (key (get buckets bucket))
       (store! new key (get old key)))))
 
+(defambda (copy-keys keys old new)
+  (prefetch-keys! old keys)
+  (do-choices (key keys)
+    (store! new key (get old key))))
+
 (defambda (process-batch batch batch-size buckets old new 
 			 (start (elapsed-time)) (nthreads (mt/threadcount)))
-  (loginfo |PackIndex/batch/fetch|
-    "Prefetching " ($num (choice-size batch))
-    " buckets covering " ($num batch-size) " keys")
-  (index-prefetch! old (get buckets batch))
-  (lognotice |PackIndex/batch/fetch| 
-    "Prefetched " ($num (choice-size batch)) 
-    " buckets covering " ($num batch-size) " keys "
-    "in " (secs->string (elapsed-time start)) ", "
-    "copying with " nthreads " threads...")
-  (do-choices (key (get buckets batch))
-    (store! new key (get old key)))
+  (comment
+   (loginfo |PackIndex/batch/fetch|
+     "Prefetching " ($num (choice-size batch))
+     " buckets covering " ($num batch-size) " keys")
+   (index-prefetch! old (get buckets batch))
+   (lognotice |PackIndex/batch/fetch| 
+     "Prefetched " ($num (choice-size batch)) 
+     " buckets covering " ($num batch-size) " keys "
+     "in " (secs->string (elapsed-time start)) ", "
+     "copying with " nthreads " threads..."))
+  (lognotice |PackIndex/Batch/copy|
+    "Copying " (choice-size batch) " buckets (" batch-size " keys)")
+  (do-choices-mt (bucket batch)
+    (copy-keys (get buckets bucket) old new))
   (lognotice |PackIndex/Batch/copy|
       "Copied " (choice-size batch) " buckets (" batch-size " keys) "
       "in " (secs->string (elapsed-time start)) ", committing...")
@@ -128,7 +137,7 @@
   (swapout new)
   (swapout old))
 
-(define (copy-keys keyv old new (chunk-size) (start (elapsed-time)))
+(define (copy-all-keys keyv old new (chunk-size) (start (elapsed-time)))
   (default! chunk-size (quotient (length keyv) (config 'nchunks 20)))
   (lognotice |PackIndex/copy|
     "Copying " ($num (length keyv)) " keys" 
@@ -176,10 +185,10 @@
 	(else
 	 (when (file-exists? to) (remove-file to))
 	 (lognotice |PackIndex| "Copying index " from " into " to)
-	 (let* ((old (open-index from #[cachelevel 3]))
+	 (let* ((old (open-index from))
 		(keyv (index-keysvec old))
 		(new (make-new-index to old keyv)))
-	   (copy-keys keyv old new)))))
+	   (copy-all-keys keyv old new)))))
 
 (define (repack-index from)
   (let* ((base (basename from))
@@ -196,7 +205,7 @@
     (let* ((old (open-index from))
 	   (keyv (index-keysvec old))
 	   (new (make-new-index tmpfile old keyv)))
-      (copy-keys keyv old new))
+      (copy-all-keys keyv old new))
     (onerror (move-file from bakfile)
 	     (lambda (ex) (system "mv " from " " bakfile)))
     (onerror (move-file tmpfile from)
