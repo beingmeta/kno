@@ -1006,7 +1006,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix,lispval keys)
 {
   struct FD_HASHTABLE *cache = &(ix->index_cache);
-  if (((ix->index_flags)&FD_INDEX_NOSWAP) || (cache->table_n_keys==0))
+  if (((ix->index_flags)&FD_STORAGE_NOSWAP) || (cache->table_n_keys==0))
     return;
   else if (VOIDP(keys)) {
     if ((ix->index_flags)&(FD_STORAGE_KEEP_CACHESIZE))
@@ -1030,6 +1030,66 @@ FD_EXPORT void fd_index_close(fd_index ix)
 {
   if ((ix) && (ix->index_handler) && (ix->index_handler->close))
     ix->index_handler->close(ix);
+}
+
+static lispval cachelevel_slot, indexid_slot, source_slot,
+  cached_slot, adds_slot, edits_slot, flags_slot, registered_slot;
+
+static lispval read_only_flag, unregistered_flag, registered_flag,
+  noswap_flag, noerr_flag, phased_flag, background_flag,
+  canadd_flag, candrop_flag, canset_flag;
+
+static void mdstore(lispval md,lispval slot,lispval v)
+{
+  if (FD_VOIDP(v)) return;
+  fd_store(md,slot,v);
+  fd_decref(v);
+}
+static void mdstring(lispval md,lispval slot,u8_string s)
+{
+  if (s==NULL) return;
+  lispval v=fd_lispstring(s);
+  fd_store(md,slot,v);
+  fd_decref(v);
+}
+
+FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
+{
+  int flags=ix->index_flags;
+  lispval metadata;
+  if (FD_SLOTMAPP(ix->index_metadata))
+    metadata=fd_deep_copy(ix->index_metadata);
+  else metadata=fd_init_slotmap(NULL,5,NULL);
+  mdstore(metadata,cachelevel_slot,FD_INT(ix->index_cache_level));
+  mdstring(metadata,indexid_slot,ix->indexid);
+  mdstring(metadata,source_slot,ix->index_source);
+  mdstore(metadata,cached_slot,FD_INT(ix->index_cache.table_n_keys));
+  mdstore(metadata,adds_slot,FD_INT(ix->index_adds.table_n_keys));
+  mdstore(metadata,edits_slot,FD_INT(ix->index_adds.table_n_keys));
+
+  if (U8_BITP(flags,FD_STORAGE_READ_ONLY))
+    fd_add(metadata,flags_slot,read_only_flag);
+  if (U8_BITP(flags,FD_STORAGE_UNREGISTERED))
+    fd_add(metadata,flags_slot,unregistered_flag);
+  else {
+    fd_add(metadata,flags_slot,registered_flag);
+    fd_store(metadata,registered_slot,FD_INT(ix->index_serialno));}
+  if (U8_BITP(flags,FD_STORAGE_NOSWAP))
+    fd_add(metadata,flags_slot,noswap_flag);
+  if (U8_BITP(flags,FD_STORAGE_NOERR))
+    fd_add(metadata,flags_slot,noerr_flag);
+  if (U8_BITP(flags,FD_STORAGE_PHASED))
+    fd_add(metadata,flags_slot,phased_flag);
+  if (U8_BITP(flags,FD_INDEX_IN_BACKGROUND))
+    fd_add(metadata,flags_slot,background_flag);
+  if (U8_BITP(flags,FD_INDEX_ADD_CAPABILITY))
+    fd_add(metadata,flags_slot,canadd_flag);
+  if (U8_BITP(flags,FD_INDEX_DROP_CAPABILITY))
+    fd_add(metadata,flags_slot,candrop_flag);
+  if (U8_BITP(flags,FD_INDEX_SET_CAPABILITY))
+    fd_add(metadata,flags_slot,canset_flag);
+
+  return metadata;
 }
 
 /* Common init function */
@@ -1363,7 +1423,23 @@ FD_EXPORT void fd_init_indexes_c()
 
   fd_index_hashop=fd_intern("HASH");
   fd_index_slotsop=fd_intern("SLOTIDS");
-  
+
+  cachelevel_slot=fd_intern("CACHELEVEL");
+  indexid_slot=fd_intern("INDEXID");
+  source_slot=fd_intern("SOURCE");
+  cached_slot=fd_intern("CACHED");
+  adds_slot=fd_intern("ADDS");
+  edits_slot=fd_intern("EDITS");
+  flags_slot=fd_intern("FLAGS");
+  registered_slot=fd_intern("REGISTERED");
+
+  read_only_flag=FDSYM_READONLY;
+  unregistered_flag=fd_intern("UNREGISTERED");
+  registered_flag=fd_intern("REGISTERED");
+  noswap_flag=fd_intern("NOSWAP");
+  noerr_flag=fd_intern("NOERR");
+  phased_flag=fd_intern("PHASED");
+
   {
     struct FD_COMPOUND_TYPEINFO *e =
       fd_register_compound(fd_intern("INDEX"),NULL,NULL);

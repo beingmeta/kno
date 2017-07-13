@@ -145,7 +145,7 @@ fd_index fd_make_ht_index(fd_storage_flags flags)
   FD_INIT_STRUCT(mix,struct FD_HT_INDEX);
   fd_init_index((fd_index)mix,&htindex_handler,"ephemeral",NULL,flags);
   mix->index_cache_level = 1;
-  U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FD_STORAGE_READ_ONLY));
+  U8_SETBITS(mix->index_flags,(FD_STORAGE_NOSWAP|FD_STORAGE_READ_ONLY));
   fd_register_index((fd_index)mix);
   return (fd_index)mix;
 }

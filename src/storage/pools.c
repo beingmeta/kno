@@ -1917,6 +1917,69 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
+static lispval base_slot, capacity_slot, cachelevel_slot,
+  label_slot, poolid_slot, source_slot,
+  cached_slot, locked_slot, flags_slot, registered_slot;
+
+static lispval read_only_flag, unregistered_flag, registered_flag,
+  noswap_flag, noerr_flag, phased_flag, sparse_flag,
+  adjunct_flag, virtual_flag, nolocks_flag;
+
+static void mdstore(lispval md,lispval slot,lispval v)
+{
+  if (FD_VOIDP(v)) return;
+  fd_store(md,slot,v);
+  fd_decref(v);
+}
+static void mdstring(lispval md,lispval slot,u8_string s)
+{
+  if (s==NULL) return;
+  lispval v=fd_lispstring(s);
+  fd_store(md,slot,v);
+  fd_decref(v);
+}
+
+FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
+{
+  int flags=p->pool_flags;
+  lispval metadata;
+  if (FD_SLOTMAPP(p->pool_metadata))
+    metadata=fd_deep_copy(p->pool_metadata);
+  else metadata=fd_init_slotmap(NULL,5,NULL);
+  mdstore(metadata,base_slot,fd_make_oid(p->pool_base));
+  mdstore(metadata,capacity_slot,FD_INT(p->pool_capacity));
+  mdstore(metadata,cachelevel_slot,FD_INT(p->pool_cache_level));
+  mdstring(metadata,poolid_slot,p->poolid);
+  mdstring(metadata,source_slot,p->pool_source);
+  mdstring(metadata,label_slot,p->pool_label);
+  mdstore(metadata,cached_slot,FD_INT(p->pool_cache.table_n_keys));
+  mdstore(metadata,locked_slot,FD_INT(p->pool_changes.table_n_keys));
+
+  if (U8_BITP(flags,FD_STORAGE_READ_ONLY))
+    fd_add(metadata,flags_slot,read_only_flag);
+  if (U8_BITP(flags,FD_STORAGE_UNREGISTERED))
+    fd_add(metadata,flags_slot,unregistered_flag);
+  else {
+    fd_add(metadata,flags_slot,registered_flag);
+    fd_store(metadata,registered_slot,FD_INT(p->pool_serialno));}
+  if (U8_BITP(flags,FD_STORAGE_NOSWAP))
+    fd_add(metadata,flags_slot,noswap_flag);
+  if (U8_BITP(flags,FD_STORAGE_NOERR))
+    fd_add(metadata,flags_slot,noerr_flag);
+  if (U8_BITP(flags,FD_STORAGE_PHASED))
+    fd_add(metadata,flags_slot,phased_flag);
+  if (U8_BITP(flags,FD_POOL_SPARSE))
+    fd_add(metadata,flags_slot,sparse_flag);
+  if (U8_BITP(flags,FD_POOL_ADJUNCT))
+    fd_add(metadata,flags_slot,adjunct_flag);
+  if (U8_BITP(flags,FD_POOL_VIRTUAL))
+    fd_add(metadata,flags_slot,virtual_flag);
+  if (U8_BITP(flags,FD_POOL_NOLOCKS))
+    fd_add(metadata,flags_slot,nolocks_flag);
+
+  return metadata;
+}
+
 static lispval copy_consed_pool(lispval x,int deep)
 {
   return x;
@@ -2113,6 +2176,28 @@ FD_EXPORT void fd_init_pools_c()
 
   lock_symbol = fd_intern("LOCK");
   unlock_symbol = fd_intern("UNLOCK");
+
+  base_slot=fd_intern("BASE");
+  capacity_slot=fd_intern("CAPACITY");
+  cachelevel_slot=fd_intern("CACHELEVEL");
+  label_slot=fd_intern("LABEL");
+  poolid_slot=fd_intern("POOLID");
+  source_slot=fd_intern("SOURCE");
+  cached_slot=fd_intern("CACHED");
+  locked_slot=fd_intern("LOCKED");
+  flags_slot=fd_intern("FLAGS");
+  registered_slot=fd_intern("REGISTERED");
+
+  read_only_flag=FDSYM_READONLY;
+  unregistered_flag=fd_intern("UNREGISTERED");
+  registered_flag=fd_intern("REGISTERED");
+  noswap_flag=fd_intern("NOSWAP");
+  noerr_flag=fd_intern("NOERR");
+  phased_flag=fd_intern("PHASED");
+  sparse_flag=fd_intern("SPARSE");
+  adjunct_flag=FDSYM_ISADJUNCT;
+  virtual_flag=fd_intern("VIRTUAL");
+  nolocks_flag=fd_intern("NOLOCKS");
 
   memset(&fd_top_pools,0,sizeof(fd_top_pools));
   memset(&fd_pools_by_serialno,0,sizeof(fd_top_pools));
