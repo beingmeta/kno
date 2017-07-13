@@ -1,6 +1,6 @@
 if [ $1 == "current" ] || [ $1 == "." ] ; then
    shift;
-elif [ ! $# -eq 0 ]
+elif [ ! $# -eq 0 ]; then
    git checkout $1;
    shift;
 fi;
