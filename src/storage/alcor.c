@@ -81,6 +81,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     close(out);
     return rv;}
   else rv=close(out);
+  u8_free(buf); u8_free(src); u8_free(dst);
   if (rv<0)
     return rv;
   else return head_len;
@@ -121,7 +122,7 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
     return rv;}
   else rv=close(in);
   if (rv<0) {
-    u8_free(src); u8_free(dst); u8_free(buf);
+    u8_free(buf); u8_free(src); u8_free(dst);
     return rv;}
   int out=open(dst,O_RDWR);
   if (out<0) {
@@ -157,7 +158,8 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
     close(out);
     return rv;}
   else rv=close(out);
-  if (rv<0)
+  u8_free(buf); u8_free(src); u8_free(dst);
+ if (rv<0)
     return rv;
   else return head_len;
 }
