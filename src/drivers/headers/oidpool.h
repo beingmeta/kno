@@ -39,9 +39,8 @@ typedef struct FD_OIDPOOL {
   struct FD_STREAM pool_stream;
   time_t pool_modtime;
   fd_compress_type oidpool_compression;
-  fd_offset_type oidpool_offtype;
-  unsigned int *oidpool_offdata;
-  unsigned int oidpool_offdata_length;
+  fd_offset_type pool_offtype;
+  unsigned int *pool_offdata;
   int oidpool_n_schemas, oidpool_max_slotids;
   unsigned int oidpool_format;
   struct FD_SCHEMA_ENTRY *oidpool_schemas;

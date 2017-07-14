@@ -146,7 +146,7 @@ typedef unsigned long long ull;
 
 static int get_chunk_ref_size(fd_oidpool p)
 {
-  switch (p->oidpool_offtype) {
+  switch (p->pool_offtype) {
   case FD_B32: case FD_B40: return 8;
   case FD_B64: return 12;}
   return -1;
@@ -154,7 +154,7 @@ static int get_chunk_ref_size(fd_oidpool p)
 
 static size_t get_maxpos(fd_oidpool p)
 {
-  switch (p->oidpool_offtype) {
+  switch (p->pool_offtype) {
   case FD_B32:
     return ((size_t)(((size_t)1)<<32));
   case FD_B40:
@@ -163,6 +163,12 @@ static size_t get_maxpos(fd_oidpool p)
     return ((size_t)(((size_t)1)<<63));
   default:
     return -1;}
+}
+
+static size_t get_offdata_length(fd_oidpool p)
+{
+  size_t ref_size = get_chunk_ref_size(p);
+  return ref_size*(p->pool_capacity);
 }
 
 /* Schema functions */
@@ -224,7 +230,7 @@ static fd_pool open_oidpool(u8_string fname,
   if (U8_BITP(oidpool_format,FD_OIDPOOL_SPARSE))
     open_flags |= FD_POOL_SPARSE;
 
-  pool->oidpool_offtype =
+  pool->pool_offtype =
     (fd_offset_type)((oidpool_format)&(FD_OIDPOOL_OFFMODE));
   pool->oidpool_compression=
     (fd_compress_type)(((oidpool_format)&(FD_OIDPOOL_COMPRESSION))>>3);
@@ -268,7 +274,7 @@ static fd_pool open_oidpool(u8_string fname,
   else init_schemas(pool,VOID);
   /* Offsets size is the malloc'd size (in unsigned ints) of the offsets.
      We don't fill this in until we actually need it. */
-  pool->oidpool_offdata = NULL; pool->oidpool_offdata_length = 0;
+  pool->pool_offdata = NULL;
   if (read_only)
     U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
@@ -490,7 +496,7 @@ static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
     if ( fileinfo.st_mtime > op->pool_modtime ) {
       /* Make sure we're up to date. */
       read_oidpool_load(op);
-      if (op->oidpool_offdata) reload_offdata(op,0);
+      if (op->pool_offdata) reload_offdata(op,0);
       else {
         fd_reset_hashtable(&(op->pool_cache),-1,1);
         fd_reset_hashtable(&(op->pool_changes),32,1);}}
@@ -612,11 +618,11 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
     /* Double check by fetching the load */
     if (offset>=(oidpool_load(p)))
       return FD_UNALLOCATED_OID;}
-  if (op->oidpool_offdata) {
+
+  unsigned int *offdata = op->pool_offdata;
+  if (offdata) {
     FD_CHUNK_REF ref=
-      fd_get_chunk_ref(op->oidpool_offdata,
-                       op->oidpool_offtype,
-                       offset);
+      fd_get_chunk_ref(offdata,op->pool_offtype,offset);
     if (ref.off<0) return FD_ERROR;
     else if (ref.off==0)
       return EMPTY;
@@ -630,7 +636,7 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
     fd_lock_stream(&(op->pool_stream)); {
       fd_stream stream = &(op->pool_stream);
       FD_CHUNK_REF ref =
-        fd_fetch_chunk_ref(stream,256,op->oidpool_offtype,offset,1);
+        fd_fetch_chunk_ref(stream,256,op->pool_offtype,offset,1);
       if (ref.off<0) {
         fd_unlock_stream(&(op->pool_stream));
         return FD_ERROR;}
@@ -656,14 +662,14 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
 {
   fd_oidpool op = (fd_oidpool)p; FD_OID base = p->pool_base;
   lispval *values = u8_alloc_n(n,lispval);
-  if (op->oidpool_offdata == NULL) {
+  if (op->pool_offdata == NULL) {
     /* Don't bother being clever if you don't even have an offsets
        table.  This could be fixed later for small memory implementations. */
     int i = 0; while (i<n) {
       values[i]=oidpool_fetch(p,oids[i]); i++;}
     return values;}
   else {
-    unsigned int *offdata = op->oidpool_offdata;
+    unsigned int *offdata = op->pool_offdata;
     struct OIDPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct OIDPOOL_FETCH_SCHEDULE);
     fd_lock_stream(&(op->pool_stream));
@@ -672,7 +678,7 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
-      schedule[i].location = fd_get_chunk_ref(offdata,op->oidpool_offtype,off);
+      schedule[i].location = fd_get_chunk_ref(offdata,op->pool_offtype,off);
       if (schedule[i].location.off<0) {
         fd_seterr(InvalidOffset,"oidpool_fetchn",p->poolid,oid);
         u8_free(schedule); u8_free(values);
@@ -872,12 +878,12 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
   u8_log(fd_storage_loglevel+1,"OIDPoolFinalize",
          "Finalizing %d oid values from %s",n,op->poolid);
 
-  if (op->oidpool_offdata) {
+  if (op->pool_offdata) {
 #if HAVE_MMAP
     unsigned int *offsets;
-    if (op->oidpool_offdata) reload_offdata(op,0);
-    offsets = op->oidpool_offdata;
-    switch (op->oidpool_offtype) {
+    if (op->pool_offdata) reload_offdata(op,0);
+    offsets = op->pool_offdata;
+    switch (op->pool_offtype) {
     case FD_B64: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff;
@@ -905,18 +911,18 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
       u8_log(LOG_WARN,"Bad offset type for %s",op->poolid);
       u8_free(saveinfo);
       exit(-1);}
-    if (op->oidpool_offdata) reload_offdata(op,0);
+    if (op->pool_offdata) reload_offdata(op,0);
 #else
-    int i = 0, refsize = get_chunk_ref_size(op), offsize = op->oidpool_offdata_length;
+    int i = 0, refsize = get_chunk_ref_size(op);
     unsigned int *offsets=
-      u8_realloc(op->oidpool_offdata,refsize*(op->pool_load));
+      u8_realloc(op->pool_offdata,refsize*(op->pool_capacity));
     if (offsets) {
-      op->oidpool_offdata = offsets;
-      op->oidpool_offdata_length = refsize*op->pool_load;}
+      op->pool_offdata = offsets;
+      op->pool_offdata_length = refsize*op->pool_capacity;}
     else {
       u8_log(LOG_WARN,"Realloc failed","When writing offsets");
       return -1;}
-    switch (op->oidpool_offtype) {
+    switch (op->pool_offtype) {
     case FD_B64: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff;
@@ -947,7 +953,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
     fd_setpos(stream,256);
     fd_write_ints(outstream,load*(refsize/4),offsets);
 #endif
-    } else switch (op->oidpool_offtype) {
+    } else switch (op->pool_offtype) {
     case FD_B32: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff;
@@ -1035,7 +1041,7 @@ static ssize_t write_offdata
  int n, struct OIDPOOL_SAVEINFO *saveinfo)
 {
   unsigned int min_off=op->pool_load,  max_off=0, i=0;
-  fd_offset_type offtype = op->oidpool_offtype;
+  fd_offset_type offtype = op->pool_offtype;
   if (!((offtype == FD_B32)||(offtype = FD_B40)||(offtype = FD_B64))) {
     u8_log(LOG_WARN,"Corrupted oidpool struct",
            "Bad offset type code (%d) for %s",(int)offtype,op->poolid);
@@ -1043,13 +1049,13 @@ static ssize_t write_offdata
               u8_strdup(op->poolid));
     u8_free(saveinfo);
     return -1;}
-  else if (op->oidpool_offdata)
+  else if (op->pool_offdata)
     while (i<n) {
       unsigned int oidoff = saveinfo[i++].oidoff;
       if (oidoff>max_off) max_off = oidoff;
       if (oidoff<min_off) min_off = oidoff;}
 
-  if (op->oidpool_offdata) {
+  if (op->pool_offdata) {
 #if HAVE_MMAP
     ssize_t result=mmap_write_offdata(op,stream,n,saveinfo,min_off,max_off);
     if (result>=0) return result;
@@ -1088,7 +1094,7 @@ static ssize_t mmap_write_offdata
     u8_graberrno("oidpool_write_offdata",u8_strdup(op->poolid));
     return -1;}
     else offdata = memblock+64;
-  switch (op->oidpool_offtype) {
+  switch (op->pool_offtype) {
   case FD_B64: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
@@ -1142,9 +1148,9 @@ static ssize_t cache_write_offdata
   if (offdata == NULL) {
     u8_graberrno("oidpool:write_offdata:malloc",u8_strdup(op->poolid));
     return -1;}
-  memcpy(offdata,op->oidpool_offdata+offdata_modified_start,
+  memcpy(offdata,op->pool_offdata+offdata_modified_start,
          offdata_modified_length);
-  switch (op->oidpool_offtype) {
+  switch (op->pool_offtype) {
     case FD_B64: {
       int k = 0; while (k<n) {
         unsigned int oidoff = saveinfo[k].oidoff;
@@ -1182,7 +1188,7 @@ static ssize_t direct_write_offdata(struct FD_OIDPOOL *op,fd_stream stream,
                                     int n, struct OIDPOOL_SAVEINFO *saveinfo)
 {
   fd_outbuf outstream = fd_writebuf(stream);
-  switch (op->oidpool_offtype) {
+  switch (op->pool_offtype) {
   case FD_B32: {
     int k = 0; while (k<n) {
       unsigned int oidoff = saveinfo[k].oidoff;
@@ -1265,19 +1271,19 @@ static void oidpool_setcache(fd_pool p,int level)
   if (chunk_ref_size<0) {
     u8_log(LOG_WARN,fd_CorruptedPool,"Pool structure invalid: %s",p->poolid);
     return;}
-  if ( ( (level<2) && (op->oidpool_offdata == NULL) ) ||
-       ( (level==2) && ( op->oidpool_offdata != NULL ) ) )
+  if ( ( (level<2) && (op->pool_offdata == NULL) ) ||
+       ( (level==2) && ( op->pool_offdata != NULL ) ) )
     return;
   fd_lock_pool((fd_pool)op);
-  if ( ( (level<2) && (op->oidpool_offdata == NULL) ) ||
-       ( (level==2) && ( op->oidpool_offdata != NULL ) ) ) {
+  if ( ( (level<2) && (op->pool_offdata == NULL) ) ||
+       ( (level==2) && ( op->pool_offdata != NULL ) ) ) {
     fd_unlock_pool((fd_pool)op);
     return;}
 #if (!(HAVE_MMAP))
   if (level < 2) {
-    if (op->oidpool_offdata) {
-      u8_free(op->oidpool_offdata);
-      op->oidpool_offdata = NULL;}
+    if (op->pool_offdata) {
+      u8_free(op->pool_offdata);
+      op->pool_offdata = NULL;}
     fd_unlock_pool((fd_pool)op);
     return;}
   else {
@@ -1294,8 +1300,7 @@ static void oidpool_setcache(fd_pool p,int level)
       offsets = u8_malloc(offsets_size);
       fd_setpos(s,24);
       fd_read_ints(ins,load,offsets);
-      op->oidpool_offdata = offsets;
-      op->oidpool_offdata_length = offsets_size;
+      op->pool_offdata = offsets;
       UNLOCK_POOLSTREAM(op);}
     fd_unlock_pool((fd_pool)op);
     return;}
@@ -1305,21 +1310,23 @@ static void oidpool_setcache(fd_pool p,int level)
   if ( (level < 3) && (U8_BITP(stream_flags,FD_STREAM_MMAPPED)) )
     fd_setbufsize(&(op->pool_stream),fd_filestream_bufsize);
 
-  if ( (level < 2) && (op->oidpool_offdata) ) {
+  if ( (level < 2) && (op->pool_offdata) ) {
     /* Unmap the offsets cache */
     int retval;
-    size_t offsets_size = op->oidpool_offdata_length;
-    size_t header_size = 256+offsets_size;
-    /* The address to munmap is 64 (not 256) because op->oidpool_offdata is an
-       (unsigned int *) */
-    retval = munmap((op->oidpool_offdata)-64,header_size);
+    unsigned int *offdata = op->pool_offdata;
+    size_t offdata_length = get_offdata_length(op);
+    size_t header_size = 256+offdata_length;
+
+    op->pool_offdata = NULL;
+
+    /* The address to munmap is 64 (not 256) because offdata is
+       an (unsigned int *) */
+    retval = munmap(offdata-64,header_size);
+
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "oidpool_setcache:munmap %s",op->poolid);
-      op->oidpool_offdata = NULL;
-      U8_CLEAR_ERRNO();}
-    op->oidpool_offdata = NULL;
-    op->oidpool_offdata_length = 0;}
+      U8_CLEAR_ERRNO();}}
 
   if ( (LOCK_POOLSTREAM(op,"oidpool_setcache")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
@@ -1333,7 +1340,7 @@ static void oidpool_setcache(fd_pool p,int level)
   if ( (level >= 3) && (!(U8_BITP(stream_flags,FD_STREAM_MMAPPED)) ) )
     fd_setbufsize(&(op->pool_stream),-1);
 
-  if ( (level >= 2) && (op->oidpool_offdata == NULL) ) {
+  if ( (level >= 2) && (op->pool_offdata == NULL) ) {
     unsigned int *offsets, *newmmap;
     /* Sizes here are in bytes */
     size_t offsets_size = (op->pool_capacity)*chunk_ref_size;
@@ -1346,12 +1353,10 @@ static void oidpool_setcache(fd_pool p,int level)
     if ((newmmap == NULL) || (newmmap == ((void *)-1))) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "oidpool_setcache:mmap %s",op->poolid);
-      op->oidpool_offdata = NULL;
-      op->oidpool_offdata_length = 0;
+      op->pool_offdata = NULL;
       U8_CLEAR_ERRNO();}
     else {
-      op->oidpool_offdata = offsets = newmmap+64;
-      op->oidpool_offdata_length = offsets_size;} }
+      op->pool_offdata = offsets = newmmap+64;} }
 
   UNLOCK_POOLSTREAM(op);
   fd_unlock_pool((fd_pool)op);
@@ -1361,41 +1366,28 @@ static void oidpool_setcache(fd_pool p,int level)
 #if HAVE_MMAP
 static void reload_offdata(fd_oidpool op,int lock) {}
 #else
-static void reload_offdata(fd_oidpool op,int lock)
+static void reload_offdata(fd_oidpool op)
 {
+  unsigned int *offdata = op->pool_offdata;
+  if (offdata==NULL) return;
   double start = u8_elapsed_time();
-  fd_stream s = &(op->pool_stream);
-  fd_inbuf ins = fd_readbuf(s);
+  fd_stream stream = &(op->pool_stream);
+  fd_inbuf  readbuf = fd_readbuf(stream);
   /* Read new offsets table, compare it with the current, and
      only void those OIDs */
-  unsigned int new_load, *offsets, *nscan, *oscan, *olim;
-  struct FD_STREAM *s = &(op->pool_stream);
-  if (lock) fd_lock_pool((fd_pool)op);
+  unsigned int load;
   if ( (LOCK_POOLSTREAM(op,"oidpool/reload_offdata")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
            "During oidpool_reload_offdata for %s",op->poolid);
     UNLOCK_POOLSTREAM(op);
-    if (lock) fd_unlock_pool((fd_pool)op);
     return;}
-  oscan = op->oidpool_offdata; olim = oscan+(op->oidpool_offdata_length/4);
   fd_setpos(s,0x10); new_load = fd_read_4bytes(ins);
-  nscan = offsets = u8_alloc_n(new_load,unsigned int);
   fd_setpos(s,0x100);
-  fd_read_ints(ins,new_load,offsets);
-  while (oscan < olim)
-    if (*oscan == *nscan) {oscan++; nscan++;}
-    else {
-      FD_OID addr = FD_OID_PLUS(op->pool_base,(nscan-offsets));
-      lispval changed_oid = fd_make_oid(addr);
-      fd_hashtable_op(&(op->pool_cache),fd_table_replace,changed_oid,VOID);
-      oscan++; nscan++;}
-  u8_free(op->oidpool_offdata);
-  op->oidpool_offdata = offsets;
+  fd_read_ints(ins,new_load,offdata);
+  /* We need to clear cached values whose offsets have changed */
   op->pool_load = new_load;
-  op->oidpool_offdata_length = new_load*get_chunk_ref_size(op);
   update_modtime(op);
   UNLOCK_POOLSTREAM(op)
-  if (lock) fd_unlock_pool((fd_pool)op);
   u8_log(fd_storage_loglevel+1,"ReloadOffsets",
          "Offsets for %s reloaded in %f secs",
          op->poolid,u8_elapsed_time()-start);
@@ -1405,25 +1397,29 @@ static void reload_offdata(fd_oidpool op,int lock)
 static void oidpool_close(fd_pool p)
 {
   fd_oidpool op = (fd_oidpool)p;
-  fd_lock_pool((fd_pool)op);
-  if (op->oidpool_offdata) {
+  fd_lock_pool(p);
+  /* Close the stream */
+  fd_close_stream(&(op->pool_stream),0);
+  size_t offdata_length = 256+((op->pool_capacity)*get_chunk_ref_size(op));
+  if (op->pool_offdata) {
+    unsigned int *offdata=op->pool_offdata;
+    op->pool_offdata = NULL;
+    /* TODO: Be more careful about freeing/unmapping the
+       offdata. Users might get a seg fault rather than a "file not
+       open error". */
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
-    int retval = munmap((op->oidpool_offdata)-64,op->oidpool_offdata_length+256);
+    int retval = munmap(offdata-64,offdata_length);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "oidpool_close:munmap offsets %s",op->poolid);
       errno = 0;}
 #else
-    u8_free(op->oidpool_offdata);
+    u8_free(op->pool_offdata);
 #endif
-    op->oidpool_offdata = NULL; op->oidpool_offdata_length = 0;
     op->pool_cache_level = -1;}
-  if (POOLFILE_LOCKEDP(op))
-    write_oidpool_load(op);
-  fd_close_stream(&(op->pool_stream),0);
-  fd_unlock_pool((fd_pool)op);
+  fd_unlock_pool(p);
 }
 
 static void oidpool_setbuf(fd_pool p,ssize_t bufsize)
@@ -1647,6 +1643,35 @@ fd_pool oidpool_create
   else return NULL;
 }
 
+/* OIDPOOL get oids */
+
+static lispval oidpool_getoids(fd_oidpool op)
+{
+  if (op->pool_cache_level<0) {
+    fd_pool_setcache((fd_pool)op,fd_default_cache_level);}
+  lispval results = EMPTY;
+  FD_OID base = op->pool_base;
+  unsigned int i=0, load=op->pool_load;
+  fd_stream stream = &(op->pool_stream);
+  if (op->pool_offdata) {
+    unsigned int *offdata = op->pool_offdata;
+    while (i<load) {
+      struct FD_CHUNK_REF ref=
+        fd_get_chunk_ref(offdata,op->pool_offtype,i);
+      if (ref.off>0) {
+        FD_OID addr = FD_OID_PLUS(base,i);
+        FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
+      i++;}}
+  else while (i<load) {
+      struct FD_CHUNK_REF ref=
+        fd_fetch_chunk_ref(stream,256,op->pool_offtype,i,0);
+      if (ref.off>0) {
+        FD_OID addr = FD_OID_PLUS(base,i);
+        FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
+      i++;}
+  return results;
+}
+
 /* OIDPOOL ops */
 
 static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
@@ -1668,7 +1693,7 @@ static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       else return fd_type_error
              (_("cachelevel"),"oidpool_op/cachelevel",arg);}}
   else if (op == fd_reload_op) {
-    if (fp->oidpool_offdata) reload_offdata(fp,0);
+    if (fp->pool_offdata) reload_offdata(fp,0);
     fd_pool_swapout((fd_pool)fp,((n==0)?(FD_VOID):(args[0])));
     return FD_TRUE;}
   else if (op == fd_bufsize_op) {
@@ -1682,6 +1707,9 @@ static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_INT(fp->pool_capacity);
   else if (op == fd_load_op)
     return FD_INT(fp->pool_load);
+  else if (op == fd_keys_op) {
+    lispval keys = oidpool_getoids(fp);
+    return fd_simplify_choice(keys);}
   else return FD_FALSE;
 }
 

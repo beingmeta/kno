@@ -1939,7 +1939,7 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
-FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
+FD_EXPORT lispval fd_pool_default_metadata(fd_pool p)
 {
   int flags=p->pool_flags;
   lispval metadata;
@@ -1978,6 +1978,23 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
     fd_add(metadata,flags_slot,nolocks_flag);
 
   return metadata;
+}
+
+FD_EXPORT lispval fd_pool_default_ctl(fd_pool p,lispval op,int n,lispval *args)
+{
+  if ((n>0)&&(args == NULL))
+    return fd_err("BadPoolOpCall","fd_pool_default_ctl",p->poolid,VOID);
+  else if (n<0)
+    return fd_err("BadPoolOpCall","fd_pool_default_ctl",p->poolid,VOID);
+  else if (op == fd_label_op) {
+    if (n==0) {
+      if (!(p->pool_label))
+        return FD_FALSE;
+      else return lispval_string(p->pool_label);}
+    else return FD_FALSE;}
+  else if (op == fd_capacity_op)
+    return FD_INT(p->pool_capacity);
+  else return FD_FALSE;
 }
 
 static lispval copy_consed_pool(lispval x,int deep)

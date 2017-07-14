@@ -759,6 +759,34 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
   else return NULL;
 }
 
+/* FILEPOOL get oids */
+
+static lispval filepool_getoids(fd_file_pool fp)
+{
+  if (fp->pool_cache_level<0) {
+    fd_pool_setcache((fd_pool)fp,fd_default_cache_level);}
+  lispval results = EMPTY;
+  FD_OID base = fp->pool_base;
+  unsigned int i=0, load=fp->pool_load;
+  fd_stream stream = &(fp->pool_stream);
+  if (fp->pool_offdata) {
+    unsigned int *offdata = fp->pool_offdata;
+    while (i<load) {
+      unsigned int data_off = offdata[i];
+      if (data_off>0) {
+        FD_OID addr = FD_OID_PLUS(base,i);
+        FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
+      i++;}}
+  else while (i<load) {
+      unsigned int off =
+        fd_read_4bytes_at(stream,24+(sizeof(unsigned int)*i));
+      if (off>0) {
+        FD_OID addr = FD_OID_PLUS(base,i);
+        FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
+      i++;}
+  return results;
+}
+
 
 /* File pool ops function */
 
@@ -805,6 +833,11 @@ static lispval file_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_INT(fp->pool_capacity);
   else if (op == fd_load_op)
     return FD_INT(fp->pool_load);
+  else if (op == fd_keys_op) {
+    lispval keys = filepool_getoids(fp);
+    return fd_simplify_choice(keys);}
+  else if (op == fd_metadata_op)
+    return fd_pool_default_metadata(p);
   else return FD_FALSE;
 }
 

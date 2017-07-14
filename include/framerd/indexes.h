@@ -80,6 +80,9 @@ typedef struct FD_INDEX_HANDLER *fd_index_handler;
 
 FD_EXPORT lispval fd_index_ctl(fd_index p,lispval op,int n,lispval *args);
 
+FD_EXPORT lispval fd_index_default_ctl(fd_index ix,lispval op,int n,lispval *args);
+FD_EXPORT lispval fd_index_default_metadata(fd_index ix);
+
 FD_EXPORT lispval fd_index_hashop, fd_index_slotsop;
 
 #if 0

@@ -30,7 +30,7 @@ static lispval adjuncts_symbol;
 lispval fd_cachelevel_op, fd_bufsize_op, fd_mmap_op, fd_preload_op;
 lispval fd_stats_op, fd_label_op, fd_populate_op, fd_reload_op;
 lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
-lispval fd_load_op, fd_capacity_op, fd_metadata_op;
+lispval fd_load_op, fd_capacity_op, fd_metadata_op, fd_keys_op;
 
 fd_exception fd_MMAPError=_("MMAP Error");
 fd_exception fd_MUNMAPError=_("MUNMAP Error");
@@ -525,6 +525,7 @@ FD_EXPORT int fd_init_drivers_c()
   fd_load_op=fd_intern("LOAD");
   fd_capacity_op=fd_intern("CAPACITY");
   fd_metadata_op=fd_intern("METADATA");
+  fd_keys_op=fd_intern("KEYS");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);

@@ -1053,7 +1053,7 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
-FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
+FD_EXPORT lispval fd_index_default_metadata(fd_index ix)
 {
   int flags=ix->index_flags;
   lispval metadata;

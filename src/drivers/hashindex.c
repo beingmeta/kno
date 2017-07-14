@@ -1135,11 +1135,9 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
        we're accessing them in order in the file. */
     qsort(ksched,n_entries,sizeof(struct KEY_SCHEDULE),
           sort_ks_by_bucket);
-    if (!( (HAVE_PREAD) || (0) ))
-      fd_lock_stream(stream);
     i = 0; while (i<n_entries) {
       ksched[i].ksched_chunk = fd_fetch_chunk_ref
-        (stream,256,hx->index_offtype,ksched[i].ksched_bucket,1);
+        (stream,256,hx->index_offtype,ksched[i].ksched_bucket,0);
       size_t keyblock_size=ksched[i].ksched_chunk.size;
       /* Track the max_keyblock_size, for a VLA below*/
       if (keyblock_size>max_keyblock_size)max_keyblock_size=keyblock_size;
@@ -1151,8 +1149,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
         i++;}
       else {
         ksched[write_at++]=ksched[i++];}}
-    if (!( (HAVE_PREAD) || (0) ))
-      fd_unlock_stream(stream);
     n_entries = write_at;}
   /* We now have the entries of all the keyblocks we're touching, so
      we sort them for serial access. */
