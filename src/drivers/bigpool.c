@@ -1444,6 +1444,7 @@ static void bigpool_close(fd_pool p)
   fd_close_stream(&(bp->pool_stream),0);
   size_t offdata_length = 256+((bp->pool_capacity)*get_chunk_ref_size(bp));
   if (bp->pool_offdata) {
+    unsigned int *offdata=bp->pool_offdata;
     bp->pool_offdata = NULL;
     /* TODO: Be more careful about freeing/unmapping the
        offdata. Users might get a seg fault rather than a "file not
@@ -1451,7 +1452,7 @@ static void bigpool_close(fd_pool p)
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
        as the load, not the capacity. */
-    int retval = munmap((bp->pool_offdata)-64,offdata_length);
+    int retval = munmap(offdata-64,offdata_length);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "bigpool_close:munmap offsets %s",bp->poolid);
