@@ -25,6 +25,10 @@
 (make-variable-buffer-local 'fdconsole-startup)
 ;; The fdconsole command line
 (make-variable-buffer-local 'fdconsole-cmdline)
+;; Whether to make the buffer output read only
+(make-variable-buffer-local 'comint-read-only-output)
+
+(defvar comint-read-only-output nil)
 
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
@@ -328,6 +332,13 @@
 		   nil
 		 (split-command-line (substring string pos
 						(length string)))))))))
+
+(defun make-output-read-only (text)
+  "Add to comint-output-filter-functions to make stdout read only"
+  (when comint-read-only-output
+    (let ((inhibit-read-only t)
+	  (output-end (process-mark (get-buffer-process (current-buffer)))))
+      (put-text-property comint-last-output-start output-end 'read-only t))))
 
 ;;; Running an fdconsole
 
