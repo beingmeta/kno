@@ -116,21 +116,11 @@
 
 (defambda (process-batch batch batch-size buckets old new 
 			 (start (elapsed-time)) (nthreads (mt/threadcount)))
-  (comment
-   (loginfo |PackIndex/batch/fetch|
-     "Prefetching " ($num (choice-size batch))
-     " buckets covering " ($num batch-size) " keys")
-   (index-prefetch! old (get buckets batch))
-   (lognotice |PackIndex/batch/fetch| 
-     "Prefetched " ($num (choice-size batch)) 
-     " buckets covering " ($num batch-size) " keys "
-     "in " (secs->string (elapsed-time start)) ", "
-     "copying with " nthreads " threads..."))
-  (lognotice |PackIndex/Batch/copy|
+  (loginfo |PackIndex/Batch/copy|
     "Copying " (choice-size batch) " buckets (" batch-size " keys)")
   (do-choices-mt (bucket batch)
     (copy-keys (get buckets bucket) old new))
-  (lognotice |PackIndex/Batch/copy|
+  (loginfo |PackIndex/Batch/copy|
       "Copied " (choice-size batch) " buckets (" batch-size " keys) "
       "in " (secs->string (elapsed-time start)) ", committing...")
   (commit new)
@@ -138,12 +128,16 @@
   (swapout old))
 
 (define (copy-all-keys keyv old new (chunk-size) (start (elapsed-time)))
-  (default! chunk-size (quotient (length keyv) (config 'nchunks 20)))
+  (default! chunk-size 
+    (config 'chunksize
+	    (if (config 'nchunks) 
+		(quotient (length keyv) (config 'nchunks))
+		1000000)))
   (lognotice |PackIndex/copy|
     "Copying " ($num (length keyv)) " keys" 
     " from " (or (index-source old) old)
     " into " (or (index-source new) new))
-  (let ((buckets (make-hashtable (length keyv)))
+  (let ((buckets (make-hashtable (* 2 (length keyv))))
 	(total-keys 0)
 	(batch-size 0)
 	(batch {})
@@ -170,8 +164,7 @@
 	(lognotice |PackIndex|
 	  "At this rate, the copy should finish in about "
 	  (secs->string (- (/  (length keyv) (/ total-keys (elapsed-time start)))
-			   (elapsed-time start)))
-	  ", but you know how these things are.")))
+			   (elapsed-time start))))))
     (lognotice |PackIndex/final| 
       "Processing final batch of " batch-size " keys")
     (process-batch batch batch-size buckets old new)))
