@@ -49,6 +49,7 @@ typedef struct FD_BIGPOOL {
   unsigned int bigpool_slotids_length;
   unsigned int bigpool_added_slotids;
   unsigned int bigpool_format;
+  ssize_t pool_nblocks;
   struct FD_HASHTABLE slotcodes;} FD_BIGPOOL;
 typedef struct FD_BIGPOOL *fd_bigpool;
 

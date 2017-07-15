@@ -242,6 +242,9 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   slotids_loc = fd_read_8bytes(instream);
   fd_read_4bytes(instream); /* Ignore size */
 
+  /* Read the number of blocks stored in the pool */
+  pool->pool_nblocks = fd_read_8bytes(instream);
+
   if (label_loc) {
     if (fd_setpos(stream,label_loc)>0) {
       label = fd_read_dtype(instream);
@@ -420,6 +423,20 @@ static int read_bigpool_load(fd_bigpool bp)
   fd_unlockfile(stream);
   bp->pool_load = load;
   return load;
+}
+
+static int bump_block_count(fd_bigpool bp,
+                            unsigned int new_blocks,
+                            fd_stream stream)
+{
+  /* Update the load */
+  int err=0;
+  unsigned long long n_blocks = fd_read_8bytes_at(stream,0x60,&err);
+  if (err>=0) {
+    n_blocks = n_blocks + new_blocks;
+    bp->pool_nblocks=n_blocks;
+    return fd_write_8bytes_at(stream,n_blocks,0x60);}
+  else return -1;
 }
 
 /* These assume that the pool itself is locked */
@@ -1022,6 +1039,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   write_bigpool_slotids(bp,stream);
   write_offdata(bp,stream,n,load,saveinfo);
   write_bigpool_load(bp,load,stream);
+  bump_block_count(bp,i,stream);
 
   u8_free(saveinfo);
   fd_start_write(stream,0);
@@ -1548,6 +1566,19 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return result;}
   else if (op == fd_capacity_op)
     return FD_INT(fp->pool_capacity);
+  else if (op == fd_metadata_op) {
+    if (n == 0) {
+      lispval base=fd_pool_default_metadata(p);
+      return base;}
+    else if (n==1) {
+      lispval base=fd_pool_default_metadata(p);
+      lispval value=fd_get(base,args[0],FD_FALSE);
+      fd_decref(base);
+      return value;}
+    else if (n==2) {
+      fd_store(fp->pool_metadata,args[0],args[1]);
+      return fd_incref(args[1]);}
+    else return FD_FALSE;}
   else if (op == fd_load_op)
     return FD_INT(fp->pool_load);
   else if (op == fd_keys_op) {
