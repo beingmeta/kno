@@ -1,7 +1,9 @@
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)
-(use-module '{optimize mttools varconfig logger})
+(use-module '{optimize mttools varconfig stringfmts logger})
+
+(define %loglevel %info%)
 
 (define (getflags)
   (choice->list
@@ -80,29 +82,57 @@
 	((config 'ncycles) (/ n (config 'ncycles)))
 	(else 100000)))
 
+(define last-save (elapsed-time))
+(define save-interval 30)
+(define saving #f)
+
+(defslambda (getsavelock)
+  (cond (saving #f)
+	(else (set! saving (timestamp))
+	      #t)))
+
+(define (dosave old new)
+  (commit new)
+  (swapout old)
+  (swapout new)
+  (set! last-save (elapsed-time))
+  (set! saving #f))
+
+(define (copy-block queuefn old new)
+  (let ((oids (queuefn)))
+    (while (exists? oids)
+      (pool-prefetch! old oids)
+      (do-choices (oid oids)
+	(set-oid-value! oid (get old oid)))
+      (commit new)
+      (swapout old oids)
+      (set! oids (queuefn)))))
+
 (define (copy-oids old new)
-  (message "Copying OIDs" (if (pool-label old)
-			      (append " for " (pool-label old)))
-    " from " (or (pool-source old) old)
-    " into " (or (pool-source new) new))
-  (let* ((newload (pool-load new))
-	 (oids (if (= (pool-load old) newload)
-		   (pool-elts old)
-		   (reject (pool-elts old) < (oid-plus (pool-base old) newload))))
-	 (batchsize (config 'batchsize (get-batchsize (choice-size oids)))))
-    (let ((prefetcher (lambda (oids done)
-			(when done (commit) (clearcaches))
-			(unless done
-			  (pool-prefetch! old oids))))
-	  (progress-label 
-	   (if (pool-label old)
-	       (string-append "Copying " (pool-label old))
-	       "Copying OIDs")))
-      (do-choices-mt (f oids (config 'nthreads 4)
-			prefetcher batchsize
-			(mt/custom-progress progress-label))
-	(when (exists? (get old f))
-	  (set-oid-value! f (get old f)))))))
+  (loginfo |CopyOIDS|
+      "Copying OIDs" (if (pool-label old)
+			 (append " for " (pool-label old)))
+      " from " (or (pool-source old) old)
+      " into " (or (pool-source new) new))
+  (let* ((started (elapsed-time))
+	 (newload (pool-load new))
+	 (alloids (or (poolctl old 'keys) (pool-elts old)))
+	 (oids (if (= (pool-load old) newload) alloids
+		   (reject alloids < (oid-plus (pool-base old) newload))))
+	 (blocksize (config 'blocksize 100000))
+	 (nblocks (1+ (quotient (choice-size oids) blocksize)))
+	 (queue '()))
+    (dotimes (i nblocks)
+      (set! queue (cons (qc (pick-n oids blocksize (* i blocksize)))
+			queue)))
+    (let ((pop-queue
+	   (slambda ()
+	     (tryif (pair? queue)
+	       (prog1 (car queue) (set! queue (cdr queue))))))
+	  (threads {}))
+      (dotimes (i (mt/threadcount))
+	(set+! threads (thread/call copy-block pop-queue old new)))
+      (thread/wait threads))))
 
 (define (main (from) (to #f))
   (cond ((not (bound? from)) (usage))
@@ -110,12 +140,13 @@
 	((and (file-exists? to) (not (config 'OVERWRITE #f)))
 	 (message "Not overwriting " to))
 	((not (file-exists? from))
-	 (message "Can't locate source " from))
+	 (message "Can't locate source " (write from)))
 	(else
 	 (when (file-exists? to) (remove-file to))
-	 (let* ((old (open-pool from #[register #f cachelevel 3]))
+	 (let* ((old (open-pool from #[register #f cachelevel 2]))
 		(new (make-new-pool to old)))
-	   (copy-oids old new)))))
+	   (copy-oids old new)
+	   (commit new)))))
 
 (define (repack-pool from)
   (let* ((base (basename from))
@@ -126,9 +157,18 @@
 		      (string-append from ".tmp")))
 	 (bakfile (or (config 'BAKFILE #f)
 		      (string-append from ".bak"))))
-    (let* ((old (open-pool from #[register #f cachelevel 3]))
+    (when (file-exists? tmpfile)
+      (if (config 'RESTART)
+	  (remove-file tmpfile)
+	  (begin
+	    (logwarn |ExistingTMP| 
+	      "The temporary file " (write tmpfile) " already exists. "
+	      "Remove it or specify the config RESTART=yes to ignore")
+	    (exit))))
+    (let* ((old (open-pool from #[register #f cachelevel 2]))
 	   (new (make-new-pool tmpfile old)))
-      (copy-oids old new))
+      (copy-oids old new)
+      (commit new))
     (onerror (move-file from bakfile)
 	     (lambda (ex) (system "mv " from " " bakfile)))
     (onerror (move-file tmpfile from)
@@ -138,9 +178,8 @@
   (lineout "Usage: pack-pool <from> [to]")
   (lineout "    Repacks the file pool stored in <from>.  The new file ")
   (lineout "    pool is either replace <from> or is written into [to].")
-  (lineout "    [to] if specified must not exist unless OVERWRITE=yes")
-  (lineout "    OLDPOOL=yes generates a standard file pool")
-  (lineout "    OIDPOOL=yes generates a new model OID pool"))
+  (lineout "    [to] if specified must not exist unless OVERWRITE=yes.")
+  (lineout "    POOLTYPE=bigpool|oidpool|filepool"))
 
-(optimize! copy-oids)
+(optimize!)
 
