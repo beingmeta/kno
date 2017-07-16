@@ -63,16 +63,18 @@
 
 (define (make-new-pool filename old 
 		       (type (symbolize (config 'pooltype 'bigpool))))
-  (make-pool filename `#[type ,type
-			 base ,(pool-base old)
-			 capacity ,(config 'newcap (pool-capacity old))
-			 load ,(config 'newload (pool-load old))
-			 label ,(config 'label (pool-label old))
-			 compression 
-			 ,(symbolize (config 'compression
-					     (try (get ztype-map type) #f)))
-			 dtypev2 ,(config 'dtypev2 #f)
-			 register #t]))
+  (let ((metadata (or (poolctl old 'metadata) #[])))
+    (make-pool filename `#[type ,type
+			   base ,(pool-base old)
+			   capacity ,(config 'newcap (pool-capacity old))
+			   load ,(config 'newload (pool-load old))
+			   label ,(config 'label (pool-label old))
+			   compression 
+			   ,(symbolize (config 'compression
+					       (try (get ztype-map type) #f)))
+			   dtypev2 ,(config 'dtypev2 (test metadata 'flags 'dtypev2))
+			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct))
+			   register #t])))
 
 (define (get-batchsize n)
   (cond ((and (config 'batchsize) (< (config 'batchsize) 1))
