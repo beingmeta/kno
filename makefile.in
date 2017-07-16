@@ -316,7 +316,6 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/imagick.o \
 	     src/cmodules/ziptools.o \
 	     src/cmodules/hyphenate.o \
-	     src/cmodules/x2vec.o \
 	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
@@ -416,7 +415,6 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c \
 	src/cmodules/crypto.c src/cmodules/mysql.c  \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                   \
-	src/cmodules/x2vec.c 						\
 	src/cmodules/tidy.c src/cmodules/imagick.c               	\
 	src/cmodules/hyphenate.c src/cmodules/sundown.c
 
@@ -1345,7 +1343,6 @@ install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshare
 install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
-install-x2vec: ${CMODULES}/x2vec.@shared_suffix@ ${CMODULES}/x2vec.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@

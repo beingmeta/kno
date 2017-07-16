@@ -52,11 +52,6 @@ Architecture: any
 Depends: framerd-core (= ${binary:Version}), apache2
 Description: The mod_fdserv module for FramerD servlets under Apache
 
-Package: framerd-x2vec
-Architecture: any
-Depends: framerd-core (= ${binary:Version})
-Description: Generic version of word2vec for FramerD
-
 Package: framerd-mysql
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18
