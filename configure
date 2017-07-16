@@ -923,7 +923,6 @@ enable_tidy
 enable_hyphenate
 enable_largefiles
 with_crypto
-enable_x2vec
 with_sundown
 with_profiling
 enable_prefetching
@@ -1591,7 +1590,6 @@ Optional Features:
 --endisable-tidy Build and install tidy module
 --endisable-hyphenate Build and install the hyphenate module
 --endisable-largefiles Enable use of large (> 2GB) file support
---endisable-x2vec Build the x2vec modules
 --endisable-prefetching make frame operations prefetch when they can
 --endisable-fileconfig enable file-based configuration
 --endisable-htmldump write HTML backtraces
@@ -11297,19 +11295,6 @@ fi
 if test $with_crypto = "yes"; then
   CMODULES="lib/framerd/crypto.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
-fi
-
-# Check whether --enable-x2vec was given.
-if test "${enable_x2vec+set}" = set; then :
-  enableval=$enable_x2vec;
-else
-  enable_x2vec="yes"
-fi
-
-
-if test "$enable_x2vec" = "yes"; then
-  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
 fi
 
 
