@@ -1,9 +1,23 @@
-if [ $1 == "current" ] || [ $1 == "." ] ; then
+#!/bin/sh
+
+CONFIG_FLAGS=
+
+if [ "$1" = "current" ] || [ "$1" = "." ]; then
    shift;
 elif [ ! $# -eq 0 ]; then
    git checkout $1;
    shift;
 fi;
+
+for malloc in libc tcmalloc jemalloc asan tcmalloc_debug gperftools asan_thread; do
+    if [ "$1" = $malloc ]; then
+	CONFIG_FLAGS="--with-malloc=${malloc} ${CONFIG_FLAGS}"
+	shift;
+    fi;
+done;
+
 ./distclean;
-./configure $*
+
+./configure ${CONFIG_FLAGS} $*
+
 make -j
