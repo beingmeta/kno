@@ -1395,13 +1395,6 @@ if test $with_crypto = "yes"; then
   INSTALLCMODULES="install-crypto ${INSTALLCMODULES}"
 fi
 
-AC_ARG_ENABLE(x2vec,--en[dis]able-x2vec Build the x2vec modules,,enable_x2vec="yes")
-
-if test "$enable_x2vec" = "yes"; then
-  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}";
-  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
-fi
-
 AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
 if test "$with_sundown" = "yes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
