@@ -454,7 +454,7 @@ static lispval lisp_string2lisp(lispval string)
 static lispval lisp_tolisp(lispval arg)
 {
   if (STRINGP(arg)) {
-    u8_string string=CSTRING(string);
+    u8_string string=CSTRING(arg);
     if ( (FD_STRLEN(arg)>64) || (strchr(string,' ')) )
       return lispval_string(string);
     else {

@@ -75,7 +75,7 @@ static lispval read_int(lispval stream)
 {
   struct FD_STREAM *ds=
     fd_consptr(struct FD_STREAM *,stream,fd_stream_type);
-  unsigned int ival = fd_read_4bytes_at(ds,-1);
+  unsigned int ival = fd_read_4bytes_at(ds,-1,FD_ISLOCKED);
   fd_unlock_stream(ds);
   return FD_INT(ival);
 }

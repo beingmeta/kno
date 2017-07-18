@@ -17,8 +17,9 @@
 
 #include "streams.h"
 
-FD_EXPORT fd_exception fd_InternalError, fd_AmbiguousObjectName,
+FD_EXPORT fd_exception fd_AmbiguousObjectName,
   fd_UnknownObjectName, fd_BadServerResponse, fd_NoBackground;
+FD_EXPORT u8_condition fd_NoStorageMetadata;
 FD_EXPORT u8_condition fd_ServerReconnect;
 FD_EXPORT u8_condition fd_Commitment;
 FD_EXPORT fd_exception fd_BadMetaData;
@@ -32,8 +33,6 @@ FD_EXPORT int fd_default_cache_level;
 FD_EXPORT int fd_oid_display_level;
 FD_EXPORT int fd_storage_loglevel;
 FD_EXPORT int fd_prefetch;
-FD_EXPORT fd_exception fd_InternalError;
-FD_EXPORT fd_exception fd_BadServerResponse;
 
 FD_EXPORT lispval fd_dbserv_module;
 

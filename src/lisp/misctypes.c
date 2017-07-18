@@ -102,8 +102,8 @@ lispval fd_make_timestamp(struct U8_XTIME *tm)
   memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   if (tm)
-    memcpy(&(tstamp->ts_u8xtime),tm,sizeof(struct U8_XTIME));
-  else u8_now(&(tstamp->ts_u8xtime));
+    memcpy(&(tstamp->u8xtimeval),tm,sizeof(struct U8_XTIME));
+  else u8_now(&(tstamp->u8xtimeval));
   return LISP_CONS(tstamp);
 }
 
@@ -127,14 +127,14 @@ static int unparse_timestamp(struct U8_OUTPUT *out,lispval x)
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   if (reversible_time) {
     u8_puts(out,"#T");
-    u8_xtime_to_iso8601(out,&(tm->ts_u8xtime));
+    u8_xtime_to_iso8601(out,&(tm->u8xtimeval));
     return 1;}
   else {
     char xbuf[32];
     u8_puts(out,"#<TIMESTAMP 0x");
     u8_puts(out,u8_uitoa16((unsigned long long)x,xbuf));
     u8_puts(out," \"");
-    u8_xtime_to_iso8601(out,&(tm->ts_u8xtime));
+    u8_xtime_to_iso8601(out,&(tm->u8xtimeval));
     u8_puts(out,"\">");
     return 1;}
 }
@@ -150,7 +150,7 @@ static lispval timestamp_parsefn(int n,lispval *args,fd_compound_typeinfo e)
   else if ((n==3) && (STRINGP(args[2])))
     timestring = CSTRING(args[2]);
   else return fd_err(fd_CantParseRecord,"TIMESTAMP",NULL,VOID);
-  u8_iso8601_to_xtime(timestring,&(tm->ts_u8xtime));
+  u8_iso8601_to_xtime(timestring,&(tm->u8xtimeval));
   return LISP_CONS(tm);
 }
 
@@ -161,7 +161,7 @@ static lispval copy_timestamp(lispval x,int deep)
   struct FD_TIMESTAMP *newtm = u8_alloc(struct FD_TIMESTAMP);
   memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(newtm,fd_timestamp_type);
-  memcpy(&(newtm->ts_u8xtime),&(tm->ts_u8xtime),sizeof(struct U8_XTIME));
+  memcpy(&(newtm->u8xtimeval),&(tm->u8xtimeval),sizeof(struct U8_XTIME));
   return LISP_CONS(newtm);
 }
 
@@ -172,15 +172,15 @@ static int dtype_timestamp(struct FD_OUTBUF *out,lispval x)
   int size = 1;
   fd_write_byte(out,dt_compound);
   size = size+fd_write_dtype(out,timestamp_symbol);
-  if ((xtm->ts_u8xtime.u8_prec == u8_second) && (xtm->ts_u8xtime.u8_tzoff==0)) {
-    lispval xval = FD_INT(xtm->ts_u8xtime.u8_tick);
+  if ((xtm->u8xtimeval.u8_prec == u8_second) && (xtm->u8xtimeval.u8_tzoff==0)) {
+    lispval xval = FD_INT(xtm->u8xtimeval.u8_tick);
     size = size+fd_write_dtype(out,xval);}
   else {
     lispval vec = fd_init_vector(NULL,4,NULL);
-    int tzoff = xtm->ts_u8xtime.u8_tzoff;
-    FD_VECTOR_SET(vec,0,FD_INT(xtm->ts_u8xtime.u8_tick));
-    FD_VECTOR_SET(vec,1,FD_INT(xtm->ts_u8xtime.u8_nsecs));
-    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->ts_u8xtime.u8_prec));
+    int tzoff = xtm->u8xtimeval.u8_tzoff;
+    FD_VECTOR_SET(vec,0,FD_INT(xtm->u8xtimeval.u8_tick));
+    FD_VECTOR_SET(vec,1,FD_INT(xtm->u8xtimeval.u8_nsecs));
+    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->u8xtimeval.u8_prec));
     FD_VECTOR_SET(vec,3,FD_INT(tzoff));
     size = size+fd_write_dtype(out,vec);
     fd_decref(vec);}
@@ -193,14 +193,14 @@ static lispval timestamp_restore(lispval tag,lispval x,fd_compound_typeinfo e)
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->ts_u8xtime),FIX2INT(x),u8_second,0,0,0);
+    u8_init_xtime(&(tm->u8xtimeval),FIX2INT(x),u8_second,0,0,0);
     return LISP_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     time_t tval = (time_t)(fd_bigint_to_long((fd_bigint)x));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->ts_u8xtime),tval,u8_second,0,0,0);
+    u8_init_xtime(&(tm->u8xtimeval),tval,u8_second,0,0,0);
     return LISP_CONS(tm);}
   else if (VECTORP(x)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
@@ -210,7 +210,7 @@ static lispval timestamp_restore(lispval tag,lispval x,fd_compound_typeinfo e)
     int tzoff = fd_getint(VEC_REF(x,3));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->ts_u8xtime),secs,iprec,nsecs,tzoff,0);
+    u8_init_xtime(&(tm->u8xtimeval),secs,iprec,nsecs,tzoff,0);
     return LISP_CONS(tm);}
   else return fd_err(fd_DTypeError,"bad timestamp compound",NULL,x);
 }

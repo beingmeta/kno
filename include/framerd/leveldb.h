@@ -27,7 +27,7 @@ FD_EXPORT int fd_init_leveldb(void) FD_LIBINIT_FN;
 
 typedef struct FD_LEVELDB_POOL {
   FD_POOL_FIELDS;
-  unsigned int pool_load; time_t pool_modtime;
+  unsigned int pool_load; time_t pool_mtime;
   unsigned int locked:1;
   lispval *pool_slots; ssize_t n_pool_slots;
   struct FD_HASHTABLE slot_table;

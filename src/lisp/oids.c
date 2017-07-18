@@ -80,13 +80,6 @@ static int add_base_oid_index(FD_OID base)
     return boi;}
 }
 
-static int compare_baseoids(const void *lv,const void *rv)
-{
-  struct FD_OID_BUCKET *lb = (struct FD_OID_BUCKET *)lv;
-  struct FD_OID_BUCKET *rb = (struct FD_OID_BUCKET *)rv;
-  return FD_OID_COMPARE((lb->bucket_base),(rb->bucket_base));
-}
-
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
 {
   FD_OID base = addr;

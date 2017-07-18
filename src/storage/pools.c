@@ -118,18 +118,14 @@ struct FD_POOL_WRITES {
 
 /* Locking functions for external libraries */
 
-FD_EXPORT void _fd_lock_pool(fd_pool p)
+FD_EXPORT void _fd_lock_pool(fd_pool p,int for_write)
 {
-  fd_lock_pool(p);
+  fd_lock_pool(p,for_write);
 }
 
 FD_EXPORT void _fd_unlock_pool(fd_pool p)
 {
-  if (p->pool_islocked) {
-    p->pool_islocked = 0;
-    u8_unlock_mutex(&((p)->pool_lock));}
-  else u8_log(LOGCRIT,"PoolUnLockError",                       \
-              "Pool '%s' already unlocked!",p->poolid);
+  fd_unlock_pool(p);
 }
 
 FD_FASTOP int modify_readonly(lispval table,int val)
@@ -925,6 +921,8 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
     int rv = fd_pool_unlock(p,oids,leave_modified);
     return rv;}
   else {
+    u8_lock_mutex(&(p->pool_save_lock));
+    if (locks->table_n_keys==0) return 0;
     int retval = 0; double start_time = u8_elapsed_time();
     struct FD_POOL_WRITES writes=
       ((FALSEP(oids))||(VOIDP(oids))) ? (pick_modified(p,0)):
@@ -947,6 +945,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
              errno,u8_strerror(errno),p->poolid);
       u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->poolid));
       abort_commit(p,writes);
+      u8_unlock_mutex(&(p->pool_save_lock));
       return retval;}
     else if (writes.len) {
       u8_log(fd_storage_loglevel,fd_PoolCommit,
@@ -954,6 +953,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
              writes.len,p->poolid,u8_elapsed_time()-start_time);
       finish_commit(p,writes);}
     else {}
+    u8_unlock_mutex(&(p->pool_save_lock));
     return retval;}
 }
 
@@ -1635,7 +1635,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(p->pool_cache),fd_pool_cache_init);
   fd_make_hashtable(&(p->pool_changes),fd_pool_lock_init);
-  u8_init_mutex(&(p->pool_lock));
+  u8_init_rwlock(&(p->pool_lock));
+  u8_init_mutex(&(p->pool_save_lock));
   p->pool_adjuncts = NULL;
   p->pool_adjuncts_len = 0;
   p->pool_n_adjuncts = 0;
@@ -1918,7 +1919,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
 }
 
 static lispval base_slot, capacity_slot, cachelevel_slot,
-  label_slot, poolid_slot, source_slot,
+  label_slot, poolid_slot, source_slot, adjuncts_slot,
   cached_slot, locked_slot, flags_slot, registered_slot;
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
@@ -1977,21 +1978,50 @@ FD_EXPORT lispval fd_pool_default_metadata(fd_pool p)
   if (U8_BITP(flags,FD_POOL_NOLOCKS))
     fd_add(metadata,flags_slot,nolocks_flag);
 
+  if (p->pool_n_adjuncts) {
+    int i=0, n=p->pool_n_adjuncts;
+    struct FD_ADJUNCT *adjuncts=p->pool_adjuncts;
+    lispval adjuncts_table=fd_make_slotmap(n,0,NULL);
+    while (i<n) {
+      fd_store(adjuncts_table,
+               adjuncts[i].slotid,
+               adjuncts[i].table);
+      i++;}
+    fd_store(metadata,adjuncts_slot,adjuncts_table);}
+
   return metadata;
 }
 
-FD_EXPORT lispval fd_pool_default_ctl(fd_pool p,lispval op,int n,lispval *args)
+FD_EXPORT lispval fd_default_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
 {
   if ((n>0)&&(args == NULL))
-    return fd_err("BadPoolOpCall","fd_pool_default_ctl",p->poolid,VOID);
+    return fd_err("BadPoolOpCall","fd_default_pool_ctl",p->poolid,VOID);
   else if (n<0)
-    return fd_err("BadPoolOpCall","fd_pool_default_ctl",p->poolid,VOID);
+    return fd_err("BadPoolOpCall","fd_default_pool_ctl",p->poolid,VOID);
   else if (op == fd_label_op) {
     if (n==0) {
       if (!(p->pool_label))
         return FD_FALSE;
       else return lispval_string(p->pool_label);}
     else return FD_FALSE;}
+  else if (op == fd_metadata_op) {
+    lispval metadata = p->pool_metadata;
+    if (FD_VOIDP(metadata))
+      return fd_err(fd_NoStorageMetadata,"fd_pool_ctl",p->poolid,FD_VOID);
+    else if (n == 0)
+      return fd_copier(metadata,0);
+    else if (n == 1) {
+      lispval extended=fd_pool_ctl(p,fd_metadata_op,0,NULL);
+      lispval v = fd_get(extended,args[0],FD_EMPTY);
+      fd_decref(extended);
+      return v;}
+    else if (n == 2) {
+      int rv=fd_store(metadata,args[0],args[1]);
+      if (rv<0)
+        return FD_ERROR_VALUE;
+      else return fd_incref(args[1]);}
+    else return fd_err(fd_TooManyArgs,"fd_pool_ctl/metadata",
+                       FD_SYMBOL_NAME(op),fd_pool2lisp(p));}
   else if (op == fd_capacity_op)
     return FD_INT(p->pool_capacity);
   else return FD_FALSE;
@@ -2154,7 +2184,8 @@ static void init_zero_pool()
   _fd_zero_pool.modified_flags = 0;
   _fd_zero_pool.pool_handler = &zero_pool_handler;
   _fd_zero_pool.pool_islocked = 0;
-  u8_init_mutex(&(_fd_zero_pool.pool_lock));
+  u8_init_rwlock(&(_fd_zero_pool.pool_lock));
+  u8_init_mutex(&(_fd_zero_pool.pool_save_lock));
   fd_init_hashtable(&(_fd_zero_pool.pool_cache),0,0);
   fd_init_hashtable(&(_fd_zero_pool.pool_changes),0,0);
   _fd_zero_pool.pool_n_adjuncts = 0;
@@ -2200,6 +2231,7 @@ FD_EXPORT void fd_init_pools_c()
   label_slot=fd_intern("LABEL");
   poolid_slot=fd_intern("POOLID");
   source_slot=fd_intern("SOURCE");
+  adjuncts_slot=fd_intern("ADJUNCTS");
   cached_slot=fd_intern("CACHED");
   locked_slot=fd_intern("LOCKED");
   flags_slot=fd_intern("FLAGS");

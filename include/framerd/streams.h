@@ -118,6 +118,11 @@ fd_stream fd_init_file_stream (fd_stream stream,
 
 FD_EXPORT fd_stream fd_open_file(u8_string filename,fd_stream_mode mode);
 
+FD_EXPORT
+fd_stream fd_reopen_file_stream(fd_stream stream,
+				fd_stream_mode mode,
+				ssize_t bufsiz);
+
 typedef enum fd_streamop {
   fd_stream_close,
   fd_stream_setbuf,
@@ -141,8 +146,8 @@ FD_EXPORT ssize_t fd_write_dtype_to_file(lispval obj,u8_string filename);
 FD_EXPORT ssize_t fd_write_ztype_to_file(lispval obj,u8_string filename);
 FD_EXPORT ssize_t fd_add_dtype_to_file(lispval obj,u8_string filename);
 
-FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off);
-FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int *err);
+FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off,int locked);
+FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int locked,int *err);
 FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off);
 FD_EXPORT int fd_write_8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off);
 

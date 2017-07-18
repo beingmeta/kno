@@ -156,7 +156,8 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_POOL_HANDLER *pool_handler;			\
   short pool_cache_level;				\
   unsigned char pool_islocked;				\
-  U8_MUTEX_DECL(pool_lock);				\
+  U8_RWLOCK_DECL(pool_lock);				\
+  U8_MUTEX_DECL(pool_save_lock);			\
   struct FD_HASHTABLE pool_cache, pool_changes;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
@@ -188,23 +189,22 @@ FD_EXPORT lispval fd_all_pools(void);
 
 /* Locking functions */
 
-FD_EXPORT void _fd_lock_pool(fd_pool p);
+FD_EXPORT void _fd_lock_pool(fd_pool p,int for_write);
 FD_EXPORT void _fd_unlock_pool(fd_pool p);
 
 #if FD_INLINE_POOLS
-FD_FASTOP void fd_lock_pool(fd_pool p)
+FD_FASTOP void fd_lock_pool(fd_pool p,int for_write)
 {
-  u8_lock_mutex(&((p)->pool_lock));
-  p->pool_islocked = 1;
+  if (for_write)
+    u8_write_lock(&((p)->pool_lock));
+  else u8_read_lock(&((p)->pool_lock));
 }
 FD_FASTOP void fd_unlock_pool(fd_pool p)
 {
-  if (p->pool_islocked) {
-    p->pool_islocked = 0;
-    u8_unlock_mutex(&((p)->pool_lock));}
-  else _fd_unlock_pool(p);}
+  u8_rw_unlock(&((p)->pool_lock));
+}
 #else
-#define fd_lock_pool(p) _fd_lock_pool(p)
+#define fd_lock_pool(p,for_write) _fd_lock_pool(p,for_write)
 #define fd_unlock_pool(p) _fd_unlock_pool(p)
 #endif
 
@@ -248,7 +248,7 @@ struct FD_POOL_HANDLER some_handler={
 
 FD_EXPORT lispval fd_pool_ctl(fd_pool p,lispval op,int n,lispval *args);
 
-FD_EXPORT lispval fd_pool_default_ctl(fd_pool p,lispval op,int n,lispval *args);
+FD_EXPORT lispval fd_default_pool_ctl(fd_pool p,lispval op,int n,lispval *args);
 FD_EXPORT lispval fd_pool_default_metadata(fd_pool p);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,

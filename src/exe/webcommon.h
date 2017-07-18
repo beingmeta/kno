@@ -594,7 +594,7 @@ static lispval getcontent(lispval path)
     lispval tval = FD_CAR(pagemap_value), cval = FD_CDR(pagemap_value);
     struct FD_TIMESTAMP *lmtime=
       fd_consptr(fd_timestamp,tval,fd_timestamp_type);
-    if ( (fileinfo.st_mtime) <= (lmtime->ts_u8xtime.u8_tick) )
+    if ( (fileinfo.st_mtime) <= (lmtime->u8xtimeval.u8_tick) )
       /* Loaded version up to date */
       return fd_incref(cval);
     u8_lock_mutex(&pagemap_lock);
@@ -606,7 +606,7 @@ static lispval getcontent(lispval path)
       return content;}
     tval = FD_CAR(pagemap_value); cval = FD_CDR(pagemap_value);
     lmtime = fd_consptr(fd_timestamp,tval,fd_timestamp_type);
-    if ( (fileinfo.st_mtime) <= (lmtime->ts_u8xtime.u8_tick) ) {
+    if ( (fileinfo.st_mtime) <= (lmtime->u8xtimeval.u8_tick) ) {
       /* Loaded version made up to date before while we got the lock  */
       fd_incref(cval);
       u8_unlock_mutex(&pagemap_lock);

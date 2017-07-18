@@ -87,8 +87,8 @@ static fd_index open_file_index(u8_string fname,fd_storage_flags flags,lispval o
   /* See if it ended up read only */
   if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only = 1;
   s->stream_flags &= ~FD_STREAM_IS_CONSED;
-  magicno = fd_read_4bytes_at(s,0);
-  index->index_n_slots = fd_read_4bytes_at(s,4);
+  magicno = fd_read_4bytes_at(s,0,FD_ISLOCKED);
+  index->index_n_slots = fd_read_4bytes_at(s,4,FD_ISLOCKED);
   if ((magicno == FD_FILE_INDEX_TO_RECOVER) ||
       (magicno == FD_MULT_FILE_INDEX_TO_RECOVER) ||
       (magicno == FD_MULT_FILE3_INDEX_TO_RECOVER)) {

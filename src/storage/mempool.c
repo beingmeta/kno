@@ -53,10 +53,10 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
     fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
     mp->pool_label = u8_strdup(label);
     mp->pool_load = load; mp->noswap = noswap;
-    u8_init_mutex(&(mp->pool_lock));
+    u8_init_rwlock(&(mp->pool_lock));
     mp->pool_flags = FD_STORAGE_ISPOOL;
     if (fd_register_pool((fd_pool)mp)<0) {
-      u8_destroy_mutex(&(mp->pool_lock));
+      u8_destroy_rwlock(&(mp->pool_lock));
       u8_free(mp->pool_source); u8_free(mp->poolid);
       fd_recycle_hashtable(&(mp->pool_cache));
       fd_recycle_hashtable(&(mp->pool_changes));
@@ -94,9 +94,9 @@ static lispval mempool_alloc(fd_pool p,int n)
   else {
     lispval results = EMPTY;
     int i = 0;
-    u8_lock_mutex(&(mp->pool_lock));
+    fd_lock_pool(p,1);
     if ((mp->pool_load+n)>=mp->pool_capacity) {
-      u8_unlock_mutex(&(mp->pool_lock));
+      fd_unlock_pool(p);
       return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->poolid,VOID);}
     else {
       FD_OID base = FD_OID_PLUS(mp->pool_base,mp->pool_load);
@@ -105,7 +105,7 @@ static lispval mempool_alloc(fd_pool p,int n)
         CHOICE_ADD(results,fd_make_oid(each));
         i++;}
       mp->pool_load = mp->pool_load+n;
-      u8_unlock_mutex(&(mp->pool_lock));
+      fd_unlock_pool(p);
       return fd_simplify_choice(results);}}
 }
 
@@ -207,7 +207,7 @@ FD_EXPORT int fd_reset_mempool(fd_pool p)
        _("mempool"),fd_pool2lisp(p));
   else {
     struct FD_MEMPOOL *mp = (struct FD_MEMPOOL *)p;
-    fd_lock_pool(p);
+    fd_lock_pool(p,1);
     fd_reset_hashtable(&(p->pool_changes),-1,1);
     fd_reset_hashtable(&(p->pool_cache),-1,1);
     fd_unlock_pool(p);

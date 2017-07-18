@@ -25,7 +25,7 @@
 /* We include this for sscanf, but we're not really using stdio. */
 #include <stdio.h>
 
-fd_exception fd_InternalError=_("FramerD Database internal error"),
+fd_exception fd_NoStorageMetadata=_("No storage metadata for resource"),
   fd_AmbiguousObjectName=_("Ambiguous object name"),
   fd_UnknownObjectName=_("Unknown object name"),
   fd_BadServerResponse=_("bad server response"),
@@ -622,6 +622,12 @@ FD_EXPORT int fd_init_storage()
     ("LOOKUPOID",
      _("Functions and slotids for lookup up objects by name (@?name)"),
      fd_lconfig_get,fd_lconfig_push,&lookupfns);
+  fd_register_config
+    ("ONSAVE",_("Functions to run when saving databases"),
+     config_onsave_get,
+     config_onsave_set,
+     NULL);
+
 
   return fdstorage_initialized;
 }

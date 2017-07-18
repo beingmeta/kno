@@ -1450,7 +1450,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
         u8_string sdata = u8_strdup(CSTRING(content));
         if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
         if ((TYPEP(filetime,fd_timestamp_type))&&(timep))
-          *timep = u8_mktime(&(((fd_timestamp)filetime)->ts_u8xtime));
+          *timep = u8_mktime(&(((fd_timestamp)filetime)->u8xtimeval));
         fd_decref(filetime); fd_decref(eurl);
         fd_decref(content); fd_decref(result);
         return sdata;}
@@ -1470,7 +1470,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
         lispval filetime = fd_get(result,filetime_slotid,VOID);
         if ((STRINGP(eurl))&&(path)) *path = u8_strdup(CSTRING(eurl));
         if ((TYPEP(filetime,fd_timestamp_type))&&(timep))
-          *timep = u8_mktime(&(((fd_timestamp)filetime)->ts_u8xtime));
+          *timep = u8_mktime(&(((fd_timestamp)filetime)->u8xtimeval));
         return "exists";}}}
   else return NULL;
 }

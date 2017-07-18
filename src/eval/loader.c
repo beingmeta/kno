@@ -507,11 +507,11 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
         struct FD_TIMESTAMP *loadstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t mod_time = u8_file_mtime(CSTRING(FD_CAR(entry)));
-        if (mod_time>loadstamp->ts_u8xtime.u8_tick) {
+        if (mod_time>loadstamp->u8xtimeval.u8_tick) {
           struct FD_PAIR *pair = (struct FD_PAIR *)entry;
           struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
           FD_INIT_CONS(tstamp,fd_timestamp_type);
-          u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
+          u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
           fd_decref(pair->cdr);
           pair->cdr = LISP_CONS(tstamp);
           if (log_reloads)
@@ -536,7 +536,7 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
       if (TYPEP(FD_CDR(entry),fd_timestamp_type)) {
         struct FD_TIMESTAMP *curstamp=
           fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
-        time_t last_loaded = curstamp->ts_u8xtime.u8_tick;
+        time_t last_loaded = curstamp->u8xtimeval.u8_tick;
         time_t mod_time = u8_file_mtime(CSTRING(abspath_dtype));
         if (mod_time<=last_loaded)
           return 0;
@@ -544,7 +544,7 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
           struct FD_PAIR *pair = (struct FD_PAIR *)entry;
           struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
           FD_INIT_CONS(tstamp,fd_timestamp_type);
-          u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
+          u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
           fd_decref(pair->cdr);
           pair->cdr = LISP_CONS(tstamp);}}
       else {
@@ -556,7 +556,7 @@ int fd_load_latest(u8_string filename,fd_lexenv env,u8_string base)
       time_t mod_time = u8_file_mtime(abspath);
       struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
       FD_INIT_CONS(tstamp,fd_timestamp_type);
-      u8_init_xtime(&(tstamp->ts_u8xtime),mod_time,u8_second,0,0,0);
+      u8_init_xtime(&(tstamp->u8xtimeval),mod_time,u8_second,0,0,0);
       entry = fd_conspair(fd_incref(abspath_dtype),LISP_CONS(tstamp));
       if (EMPTYP(sources))
         fd_bind_value(source_symbol,entry,env);

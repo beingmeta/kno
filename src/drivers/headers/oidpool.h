@@ -37,7 +37,7 @@ typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
   unsigned int pool_load;
   struct FD_STREAM pool_stream;
-  time_t pool_modtime;
+  time_t pool_mtime;
   fd_compress_type oidpool_compression;
   fd_offset_type pool_offtype;
   unsigned int *pool_offdata;

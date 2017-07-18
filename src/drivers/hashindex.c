@@ -244,10 +244,10 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   if (!(u8_file_writablep(fname)))
     read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
-  magicno = fd_read_4bytes_at(stream,0);
-  index->index_n_buckets = fd_read_4bytes_at(stream,4);
+  magicno = fd_read_4bytes_at(stream,0,FD_ISLOCKED);
+  index->index_n_buckets = fd_read_4bytes_at(stream,4,FD_ISLOCKED);
   index->index_offdata = NULL;
-  index->storage_xformat = fd_read_4bytes_at(stream,8);
+  index->storage_xformat = fd_read_4bytes_at(stream,8,FD_ISLOCKED);
   if (read_only)
     U8_SETBITS(index->index_flags,FD_STORAGE_READ_ONLY);
   if (((index->storage_xformat)&(FD_HASHINDEX_FN_MASK))!=0) {
@@ -258,19 +258,19 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   index->index_offtype = (fd_offset_type)
     (((index->storage_xformat)&(FD_HASHINDEX_OFFTYPE_MASK))>>4);
 
-  index->index_custom = fd_read_4bytes_at(stream,12);
+  index->index_custom = fd_read_4bytes_at(stream,12,FD_ISLOCKED);
 
   /* Currently ignored */
-  index->table_n_keys = n_keys = fd_read_4bytes_at(stream,16);
+  index->table_n_keys = n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
 
-  slotids_pos = fd_read_8bytes_at(stream,20,NULL);
-  slotids_size = fd_read_4bytes_at(stream,28);
+  slotids_pos = fd_read_8bytes_at(stream,20,FD_ISLOCKED,NULL);
+  slotids_size = fd_read_4bytes_at(stream,28,FD_ISLOCKED);
 
-  baseoids_pos = fd_read_8bytes_at(stream,32,NULL);
-  baseoids_size = fd_read_4bytes_at(stream,40);
+  baseoids_pos = fd_read_8bytes_at(stream,32,FD_ISLOCKED,NULL);
+  baseoids_size = fd_read_4bytes_at(stream,40,FD_ISLOCKED);
 
-  metadata_loc  = fd_read_8bytes_at(stream,44,NULL);
-  metadata_size = fd_read_4bytes_at(stream,52);
+  metadata_loc  = fd_read_8bytes_at(stream,44,FD_ISLOCKED,NULL);
+  metadata_size = fd_read_4bytes_at(stream,52,FD_ISLOCKED);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {

@@ -121,16 +121,6 @@ static int procpool_swapout(fd_pool p,lispval oid)
     else {fd_decref(result); return -1;}}
 }
 
-static lispval procpool_metadata(fd_pool p,lispval value)
-{
-  struct FD_PROCPOOL *pp = (fd_procpool)p;
-  lispval lp = fd_pool2lisp(p);
-  lispval args[3]={lp,pp->pool_state,value};
-  if (VOIDP(pp->metadatafn))
-    return 0;
-  else return fd_dapply(pp->metadatafn,3,args);
-}
-
 static lispval procpool_alloc(fd_pool p,int n)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;

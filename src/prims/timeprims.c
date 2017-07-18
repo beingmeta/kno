@@ -85,29 +85,29 @@ static lispval timestamp_prim(lispval arg)
   memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if (VOIDP(arg)) {
-    u8_local_xtime(&(tm->ts_u8xtime),-1,u8_nanosecond,0);
+    u8_local_xtime(&(tm->u8xtimeval),-1,u8_nanosecond,0);
     return LISP_CONS(tm);}
   else if (STRINGP(arg)) {
     u8_string sdata = CSTRING(arg);
     int c = *sdata;
     if (u8_isdigit(c))
-      u8_iso8601_to_xtime(sdata,&(tm->ts_u8xtime));
-    else u8_rfc822_to_xtime(sdata,&(tm->ts_u8xtime));
+      u8_iso8601_to_xtime(sdata,&(tm->u8xtimeval));
+    else u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
     return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
     enum u8_timestamp_precision prec = get_precision(arg);
     if (((int)prec)<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
-    u8_local_xtime(&(tm->ts_u8xtime),-1,prec,-1);
+    u8_local_xtime(&(tm->u8xtimeval),-1,prec,-1);
     return LISP_CONS(tm);}
   else if (FIXNUMP(arg)) {
-    u8_local_xtime(&(tm->ts_u8xtime),(time_t)(FIX2INT(arg)),u8_second,-1);
+    u8_local_xtime(&(tm->u8xtimeval),(time_t)(FIX2INT(arg)),u8_second,-1);
     return LISP_CONS(tm);}
   else if (TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *fdt = (struct FD_TIMESTAMP *)arg;
-    u8_local_xtime(&(tm->ts_u8xtime),
-                   fdt->ts_u8xtime.u8_tick,fdt->ts_u8xtime.u8_prec,
-                   fdt->ts_u8xtime.u8_nsecs);
+    u8_local_xtime(&(tm->u8xtimeval),
+                   fdt->u8xtimeval.u8_tick,fdt->u8xtimeval.u8_prec,
+                   fdt->u8xtimeval.u8_nsecs);
     return LISP_CONS(tm);}
   else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
@@ -115,13 +115,13 @@ static lispval timestamp_prim(lispval arg)
 #else
     time_t tv = (time_t)fd_bigint_to_long((fd_bigint)arg);
 #endif
-    u8_local_xtime(&(tm->ts_u8xtime),tv,u8_second,-1);
+    u8_local_xtime(&(tm->u8xtimeval),tv,u8_second,-1);
     return LISP_CONS(tm);}
   else if (FD_FLONUMP(arg)) {
     double dv = FD_FLONUM(arg);
     double dsecs = floor(dv), dnsecs = (dv-dsecs)*1000000000;
     unsigned int secs = (unsigned int)dsecs, nsecs = (unsigned int)dnsecs;
-    u8_local_xtime(&(tm->ts_u8xtime),(time_t)secs,u8_second,nsecs);
+    u8_local_xtime(&(tm->u8xtimeval),(time_t)secs,u8_second,nsecs);
     return LISP_CONS(tm);}
   else {
     u8_free(tm);
@@ -134,40 +134,40 @@ static lispval gmtimestamp_prim(lispval arg)
   memset(tm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tm,fd_timestamp_type);
   if (VOIDP(arg)) {
-    u8_init_xtime(&(tm->ts_u8xtime),-1,u8_nanosecond,0,0,0);
+    u8_init_xtime(&(tm->u8xtimeval),-1,u8_nanosecond,0,0,0);
     return LISP_CONS(tm);}
   else if (TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *ftm = fd_consptr(fd_timestamp,arg,fd_timestamp_type);
-    if ((ftm->ts_u8xtime.u8_tzoff==0)&&(ftm->ts_u8xtime.u8_dstoff==0)) {
+    if ((ftm->u8xtimeval.u8_tzoff==0)&&(ftm->u8xtimeval.u8_dstoff==0)) {
       u8_free(tm); return fd_incref(arg);}
     else {
-      time_t tick = ftm->ts_u8xtime.u8_tick;
-      if (ftm->ts_u8xtime.u8_prec>u8_second)
-        u8_init_xtime(&(tm->ts_u8xtime),tick,ftm->ts_u8xtime.u8_prec,
-                      ftm->ts_u8xtime.u8_nsecs,0,0);
-      else u8_init_xtime(&(tm->ts_u8xtime),tick,ftm->ts_u8xtime.u8_prec,0,0,0);
+      time_t tick = ftm->u8xtimeval.u8_tick;
+      if (ftm->u8xtimeval.u8_prec>u8_second)
+        u8_init_xtime(&(tm->u8xtimeval),tick,ftm->u8xtimeval.u8_prec,
+                      ftm->u8xtimeval.u8_nsecs,0,0);
+      else u8_init_xtime(&(tm->u8xtimeval),tick,ftm->u8xtimeval.u8_prec,0,0,0);
       return LISP_CONS(tm);}}
   else if (STRINGP(arg)) {
     u8_string sdata = CSTRING(arg);
     int c = *sdata; time_t moment;
     if (u8_isdigit(c))
-      u8_iso8601_to_xtime(sdata,&(tm->ts_u8xtime));
-    else u8_rfc822_to_xtime(sdata,&(tm->ts_u8xtime));
-    moment = u8_mktime(&(tm->ts_u8xtime));
+      u8_iso8601_to_xtime(sdata,&(tm->u8xtimeval));
+    else u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
+    moment = u8_mktime(&(tm->u8xtimeval));
     if (moment<0) {
       u8_free(tm); return FD_ERROR;}
-    if ((tm->ts_u8xtime.u8_tzoff!=0)||(tm->ts_u8xtime.u8_dstoff!=0))
-      u8_init_xtime(&(tm->ts_u8xtime),moment,tm->ts_u8xtime.u8_prec,
-                    tm->ts_u8xtime.u8_nsecs,0,0);
+    if ((tm->u8xtimeval.u8_tzoff!=0)||(tm->u8xtimeval.u8_dstoff!=0))
+      u8_init_xtime(&(tm->u8xtimeval),moment,tm->u8xtimeval.u8_prec,
+                    tm->u8xtimeval.u8_nsecs,0,0);
     return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
     enum u8_timestamp_precision prec = get_precision(arg);
     if (((int)prec)<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
-    u8_init_xtime(&(tm->ts_u8xtime),-1,prec,-1,0,0);
+    u8_init_xtime(&(tm->u8xtimeval),-1,prec,-1,0,0);
     return LISP_CONS(tm);}
   else if (FIXNUMP(arg)) {
-    u8_init_xtime(&(tm->ts_u8xtime),(time_t)(FIX2INT(arg)),u8_second,-1,0,0);
+    u8_init_xtime(&(tm->u8xtimeval),(time_t)(FIX2INT(arg)),u8_second,-1,0,0);
     return LISP_CONS(tm);}
   else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
@@ -175,14 +175,14 @@ static lispval gmtimestamp_prim(lispval arg)
 #else
     time_t tv = (time_t)fd_bigint_to_long((fd_bigint)arg);
 #endif
-    u8_init_xtime(&(tm->ts_u8xtime),tv,u8_second,-1,0,0);
+    u8_init_xtime(&(tm->u8xtimeval),tv,u8_second,-1,0,0);
     return LISP_CONS(tm);}
   else if (FD_FLONUMP(arg)) {
     double dv = FD_FLONUM(arg);
     double dsecs = floor(dv), dnsecs = (dv-dsecs)*1000000000;
     unsigned int secs = (unsigned int)dsecs, nsecs = (unsigned int)dnsecs;
     u8_init_xtime
-      (&(tm->ts_u8xtime),(time_t)secs,u8_second,nsecs,0,0);
+      (&(tm->u8xtimeval),(time_t)secs,u8_second,nsecs,0,0);
     return LISP_CONS(tm);}
   else {
     u8_free(tm);
@@ -197,7 +197,7 @@ static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
   else if (STRINGP(arg)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
-    u8_iso8601_to_xtime(CSTRING(arg),&(tm->ts_u8xtime)); *freeit = 1;
+    u8_iso8601_to_xtime(CSTRING(arg),&(tm->u8xtimeval)); *freeit = 1;
     return tm;}
   else if ((FIXNUMP(arg))||
            ((FD_BIGINTP(arg))&&
@@ -208,14 +208,14 @@ static struct FD_TIMESTAMP *get_timestamp(lispval arg,int *freeit)
     else tick = fd_bigint_to_long_long((fd_bigint)arg);
     memset(tm,0,sizeof(struct FD_TIMESTAMP)); *freeit = 1;
     if (tick<31536000L) {
-      u8_now(&(tm->ts_u8xtime));
-      u8_xtime_plus(&(tm->ts_u8xtime),FIX2INT(arg));}
-    else u8_init_xtime(&(tm->ts_u8xtime),tick,u8_second,0,0,0);
+      u8_now(&(tm->u8xtimeval));
+      u8_xtime_plus(&(tm->u8xtimeval),FIX2INT(arg));}
+    else u8_init_xtime(&(tm->u8xtimeval),tick,u8_second,0,0,0);
     return tm;}
   else if (VOIDP(arg)) {
     struct FD_TIMESTAMP *tm = u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
-    u8_now(&(tm->ts_u8xtime)); *freeit = 1;
+    u8_now(&(tm->u8xtimeval)); *freeit = 1;
     return tm;}
   else {
     fd_set_type_error("timestamp",arg); *freeit = 0;
@@ -239,14 +239,14 @@ static lispval timestamp_plus_helper(lispval arg1,lispval arg2,int neg)
   else if ((FIXNUMP(arg2)) || (FD_FLONUMP(arg2)) || (FD_RATIONALP(arg2))) {
     delta = fd_todouble(arg2);
     oldtm = get_timestamp(arg1,&free_old);
-    btime = &(oldtm->ts_u8xtime);}
+    btime = &(oldtm->u8xtimeval);}
   else return fd_type_error("number","timestamp_plus",arg2);
   if (neg) delta = -delta;
   /* Init the cons bit field */
   FD_INIT_CONS(newtm,fd_timestamp_type);
   /* Copy the data */
-  memcpy(&(newtm->ts_u8xtime),btime,sizeof(struct U8_XTIME));
-  u8_xtime_plus(&(newtm->ts_u8xtime),delta);
+  memcpy(&(newtm->u8xtimeval),btime,sizeof(struct U8_XTIME));
+  u8_xtime_plus(&(newtm->u8xtimeval),delta);
   if (free_old) u8_free(oldtm);
   return LISP_CONS(newtm);
 }
@@ -281,7 +281,7 @@ static lispval timestamp_diff(lispval timestamp1,lispval timestamp2)
       if (free1) u8_free(t1); if (free2) u8_free(t2);
       return FD_ERROR;}
     else {
-      double diff = u8_xtime_diff(&(t1->ts_u8xtime),&(t2->ts_u8xtime));
+      double diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
       if (free1) u8_free(t1);
       if (free2) u8_free(t2);
       return fd_init_double(NULL,diff);}}
@@ -305,7 +305,7 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
   else if (VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
-    diff = u8_xtime_diff(&xtime,&(t1->ts_u8xtime));
+    diff = u8_xtime_diff(&xtime,&(t1->u8xtimeval));
     if (free1) u8_free(t1);
     if (diff>0)
       return FD_TRUE;
@@ -317,7 +317,7 @@ static lispval timestamp_greater(lispval timestamp1,lispval timestamp2)
       if (free1) u8_free(t1);
       if (free2) u8_free(t2);
       return FD_ERROR;}
-    else diff = u8_xtime_diff(&(t1->ts_u8xtime),&(t2->ts_u8xtime));
+    else diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
     if (diff>0)
       return FD_TRUE;
     else return FD_FALSE;}
@@ -332,7 +332,7 @@ static lispval timestamp_lesser(lispval timestamp1,lispval timestamp2)
   else if (VOIDP(timestamp2)) {
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
-    diff = u8_xtime_diff(&xtime,&(t1->ts_u8xtime));
+    diff = u8_xtime_diff(&xtime,&(t1->u8xtimeval));
     if (free1) u8_free(t1);
     if (diff<0)
       return FD_TRUE;
@@ -344,7 +344,7 @@ static lispval timestamp_lesser(lispval timestamp1,lispval timestamp2)
       if (free1) u8_free(t1);
       if (free2) u8_free(t2);
       return FD_ERROR;}
-    else diff = u8_xtime_diff(&(t1->ts_u8xtime),&(t2->ts_u8xtime));
+    else diff = u8_xtime_diff(&(t1->u8xtimeval),&(t2->u8xtimeval));
     if (diff<0)
       return FD_TRUE;
     else return FD_FALSE;}
@@ -359,7 +359,7 @@ int fd_cmp_now(lispval timestamp,double thresh)
     return FD_ERROR;
   else {
     double diff; struct U8_XTIME now; u8_now(&now);
-    diff = u8_xtime_diff((&(t->ts_u8xtime)),&now);
+    diff = u8_xtime_diff((&(t->u8xtimeval)),&now);
     if (free_t) u8_free(t);
     if (diff > thresh)
       return 1;
@@ -853,9 +853,9 @@ static lispval timestamp_get(lispval timestamp,lispval slotid,lispval dflt)
   struct FD_TIMESTAMP *tms=
     fd_consptr(struct FD_TIMESTAMP *,timestamp,fd_timestamp_type);
   if (VOIDP(dflt))
-    return xtime_get(&(tms->ts_u8xtime),slotid,1);
+    return xtime_get(&(tms->u8xtimeval),slotid,1);
   else {
-    lispval result = xtime_get(&(tms->ts_u8xtime),slotid,0);
+    lispval result = xtime_get(&(tms->u8xtimeval),slotid,0);
     if (EMPTYP(result)) return dflt;
     else return result;}
 }
@@ -864,7 +864,7 @@ static int timestamp_store(lispval timestamp,lispval slotid,lispval val)
 {
   struct FD_TIMESTAMP *tms=
     fd_consptr(struct FD_TIMESTAMP *,timestamp,fd_timestamp_type);
-  return xtime_set(&(tms->ts_u8xtime),slotid,val);
+  return xtime_set(&(tms->u8xtimeval),slotid,val);
 }
 
 static lispval timestamp_getkeys(lispval timestamp)
@@ -886,7 +886,7 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
   if (FD_ABORTP(result)) return result;
   else {
     struct U8_XTIME *xt=
-      &((fd_consptr(struct FD_TIMESTAMP *,result,fd_timestamp_type))->ts_u8xtime);
+      &((fd_consptr(struct FD_TIMESTAMP *,result,fd_timestamp_type))->u8xtimeval);
     int tzoff = xt->u8_tzoff;
     lispval keys = fd_getkeys(slotmap);
     DO_CHOICES(key,keys) {
@@ -919,7 +919,7 @@ static lispval mktime_lexpr(int n,lispval *args)
       base = fd_time2timestamp(moment);}
     else return fd_type_error(_("time base"),"mktime_lexpr",spec);}
   else base = fd_make_timestamp(NULL);
-  xt = &(((struct FD_TIMESTAMP *)(base))->ts_u8xtime);
+  xt = &(((struct FD_TIMESTAMP *)(base))->u8xtimeval);
   while (scan<n) {
     int rv = xtime_set(xt,args[scan],args[scan+1]);
     if (rv<0) {fd_decref(base); return FD_ERROR;}
@@ -1243,7 +1243,7 @@ static lispval getuuid_prim(lispval nodeid,lispval tptr)
   if (TYPEP(tptr,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tstamp=
       fd_consptr(struct FD_TIMESTAMP *,tptr,fd_timestamp_type);
-    xt = &(tstamp->ts_u8xtime);}
+    xt = &(tstamp->u8xtimeval);}
   if (FIXNUMP(nodeid))
     id = ((long long)(FIX2INT(nodeid)));
   else if (FD_BIGINTP(nodeid))
@@ -1258,7 +1258,7 @@ static lispval uuidtime_prim(lispval uuid_arg)
   struct FD_UUID *uuid = fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   struct FD_TIMESTAMP *tstamp = u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(tstamp,fd_timestamp_type);
-  if (u8_uuid_xtime(uuid->uuid16,&(tstamp->ts_u8xtime)))
+  if (u8_uuid_xtime(uuid->uuid16,&(tstamp->u8xtimeval)))
     return LISP_CONS(tstamp);
   else {
     u8_free(tstamp);

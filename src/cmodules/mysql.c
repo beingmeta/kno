@@ -1222,7 +1222,7 @@ static lispval applymysqlproc(fd_function fn,int n,lispval *args,int reconn)
       else if (FD_TYPEP(arg,fd_timestamp_type)) {
         struct FD_TIMESTAMP *tm = FD_CONSPTR(fd_timestamp,arg);
         MYSQL_TIME *mt = u8_alloc(MYSQL_TIME);
-        struct U8_XTIME *xt = &(tm->ts_u8xtime), gmxtime; time_t tick;
+        struct U8_XTIME *xt = &(tm->u8xtimeval), gmxtime; time_t tick;
         memset(mt,0,sizeof(MYSQL_TIME));
         if (n_mstimes<4) mstimes[n_mstimes++]=mt;
         if ((xt->u8_tzoff)||(xt->u8_dstoff)) {

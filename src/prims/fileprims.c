@@ -1035,7 +1035,7 @@ static lispval set_file_modtime(lispval filename,lispval timestamp)
      (FIXNUMP(timestamp))?(FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
      (TYPEP(timestamp,fd_timestamp_type))?
-     (((struct FD_TIMESTAMP *)timestamp)->ts_u8xtime.u8_tick):
+     (((struct FD_TIMESTAMP *)timestamp)->u8xtimeval.u8_tick):
      (-1));
   if (mtime<0)
     return fd_type_error("time","set_file_modtime",timestamp);
@@ -1058,7 +1058,7 @@ static lispval set_file_atime(lispval filename,lispval timestamp)
      (FIXNUMP(timestamp))?(FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
      (TYPEP(timestamp,fd_timestamp_type))?
-     (((struct FD_TIMESTAMP *)timestamp)->ts_u8xtime.u8_tick):
+     (((struct FD_TIMESTAMP *)timestamp)->u8xtimeval.u8_tick):
      (-1));
   if (atime<0)
     return fd_type_error("time","set_file_atime",timestamp);

@@ -39,7 +39,8 @@ typedef struct FD_BIGPOOL {
   FD_POOL_FIELDS;
   unsigned int pool_load;
   struct FD_STREAM pool_stream;
-  time_t pool_modtime;
+  time_t pool_ctime, pool_mtime, pool_rptime, file_mtime;
+  long long pool_repack_count;
   fd_compress_type pool_compression;
   fd_offset_type pool_offtype;
   unsigned int *pool_offdata;

@@ -790,7 +790,7 @@ FD_EXPORT lispval fd_init_exception(fd_exception_object,u8_exception);
 
 typedef struct FD_TIMESTAMP {
   FD_CONS_HEADER;
-  struct U8_XTIME ts_u8xtime;} FD_TIMESTAMP;
+  struct U8_XTIME u8xtimeval;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
 FD_EXPORT lispval fd_make_timestamp(struct U8_XTIME *tm);
