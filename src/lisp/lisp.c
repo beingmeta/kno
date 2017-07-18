@@ -65,45 +65,62 @@ static void init_type_names()
   fd_type_names[fd_constant_type]=_("constant");
   fd_type_names[fd_character_type]=_("character");
   fd_type_names[fd_symbol_type]=_("symbol");
+  fd_type_names[fd_fcnid_type]=_("fcnid");
   fd_type_names[fd_lexref_type]=_("lexref");
   fd_type_names[fd_opcode_type]=_("opcode");
+  fd_type_names[fd_type_type]=_("typeref");
   fd_type_names[fd_coderef_type]=_("cdrcode");
+  fd_type_names[fd_pool_type]=_("pool");
+  fd_type_names[fd_index_type]=_("index");
+  fd_type_names[fd_histref_type]=_("histref");
+
   fd_type_names[fd_string_type]=_("string");
   fd_type_names[fd_packet_type]=_("packet");
   fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_bigint_type]=_("bigint");
   fd_type_names[fd_pair_type]=_("pair");
+
   fd_type_names[fd_compound_type]=_("compound");
   fd_type_names[fd_choice_type]=_("choice");
   fd_type_names[fd_prechoice_type]=_("prechoice");
+  fd_type_names[fd_qchoice_type]=_("quoted choice");
   fd_type_names[fd_vector_type]=_("vector");
+  fd_type_names[fd_matrix_type]=_("matrix");
+  fd_type_names[fd_numeric_vector_type]=_("numvec");
+
   fd_type_names[fd_slotmap_type]=_("slotmap");
   fd_type_names[fd_schemap_type]=_("schemap");
   fd_type_names[fd_hashtable_type]=_("hashtable");
-  fd_type_names[fd_flonum_type]=_("flonum");
-  fd_type_names[fd_mystery_type]=_("mystery");
-  fd_type_names[fd_qchoice_type]=_("quoted choice");
   fd_type_names[fd_hashset_type]=_("hashset");
+
   fd_type_names[fd_cprim_type]=_("builtin function");
-  fd_type_names[fd_error_type]=_("error");
-  fd_type_names[fd_complex_type]=_("complex");
-  fd_type_names[fd_rational_type]=_("rational");
-  fd_type_names[fd_dtproc_type]=_("dtproc");
-  fd_type_names[fd_tailcall_type]=_("tailcall");
-  fd_type_names[fd_uuid_type]=_("UUID");
-  fd_type_names[fd_code_type]=_("rail");
-  fd_type_names[fd_secret_type]=_("secret");
-  fd_type_names[fd_sproc_type]=_("SCHEME procedure");
-  fd_type_names[fd_ffi_type]=_("foreign function");
-  fd_type_names[fd_regex_type]=_("regex");
-  fd_type_names[fd_numeric_vector_type]=_("numeric vector");
-  fd_type_names[fd_consblock_type]=_("consblock");
+  fd_type_names[fd_lexenv_type]=_("environment");
   fd_type_names[fd_evalfn_type]=_("evalfn");
   fd_type_names[fd_macro_type]=_("macro");
-  fd_type_names[fd_code_type]=_("bytecode");
+  fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_type_names[fd_stackframe_type]=_("stackframe");
-  fd_type_names[fd_ffi_type]=_("ffiproc");
-  fd_type_names[fd_lexenv_type]=_("environment");
+  fd_type_names[fd_tailcall_type]=_("tailcall");
+  fd_type_names[fd_sproc_type]=_("SCHEME procedure");
+  fd_type_names[fd_code_type]=_("bytecode");
+  fd_type_names[fd_ffi_type]=_("foreign function");
+  fd_type_names[fd_error_type]=_("error");
+
+  fd_type_names[fd_complex_type]=_("complex");
+  fd_type_names[fd_rational_type]=_("rational");
+  fd_type_names[fd_flonum_type]=_("flonum");
+
+  fd_type_names[fd_timestamp_type]=_("timestamp");
+  fd_type_names[fd_uuid_type]=_("UUID");
+
+  fd_type_names[fd_mystery_type]=_("mystery");
+  fd_type_names[fd_port_type]=_("ioport");
+  fd_type_names[fd_stream_type]=_("stream");
+
+  fd_type_names[fd_regex_type]=_("regex");
+  fd_type_names[fd_numeric_vector_type]=_("numeric vector");
+
+  fd_type_names[fd_consblock_type]=_("consblock");
+
   fd_type_names[fd_rawptr_type]=_("raw pointer");
   fd_type_names[fd_dtserver_type]=_("dtype server");
   fd_type_names[fd_bloom_filter_type]=_("bloom filter");

@@ -167,16 +167,21 @@ typedef enum FD_PTR_TYPE {
   fd_complex_type = FD_CONS_TYPECODE(27),
   fd_rational_type = FD_CONS_TYPECODE(28),
   fd_flonum_type = FD_CONS_TYPECODE(29),
+
   fd_timestamp_type = FD_CONS_TYPECODE(30),
   fd_uuid_type = FD_CONS_TYPECODE(31),
 
   /* Other types, also defined here to be constant*/
   fd_mystery_type = FD_CONS_TYPECODE(32),
+
   fd_port_type = FD_CONS_TYPECODE(33),
   fd_stream_type = FD_CONS_TYPECODE(34),
+
   fd_regex_type = FD_CONS_TYPECODE(35),
+
   fd_consblock_type = FD_CONS_TYPECODE(36),
   fd_rawptr_type = FD_CONS_TYPECODE(37),
+
   fd_dtserver_type = FD_CONS_TYPECODE(38),
   fd_bloom_filter_type = FD_CONS_TYPECODE(39)
 
