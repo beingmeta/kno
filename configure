@@ -6412,6 +6412,12 @@ elif test "$with_malloc" = "tcmalloc_debug"; then
   using_malloc="tcmalloc_debug"
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc debug" >&5
 $as_echo "tcmalloc debug" >&6; }
+elif test "$with_malloc" = "tcmalloc_minimal"; then
+  gperftools="minimal";
+  custom_malloc="tcmalloc_minimal"
+  using_malloc="tcmalloc_minimal"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: tcmalloc minimal" >&5
+$as_echo "tcmalloc minimal" >&6; }
 elif test "$with_malloc" = "jemalloc"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ljemalloc" >&5
 $as_echo_n "checking for malloc in -ljemalloc... " >&6; }
@@ -6520,8 +6526,22 @@ elif test "$with_malloc" = "asan"; then
    install_static=""
    custom_malloc="asan"
    using_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
-   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=malloc_context_size=20 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20 ${leaktester_env}";
+   asan="yes"
+   test_size=64
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
+$as_echo "ASAN" >&6; }
+elif test "$with_malloc" = "asan_noleak"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   using_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=0:malloc_context_size=20 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=1 ${leaktester_env}";
    asan="yes"
    test_size=64
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ASAN" >&5
@@ -6765,6 +6785,47 @@ fi
 $as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
 if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
   EXECLIBS="-lprofiler $EXECLIBS"
+fi
+
+  elif test "$gperftools" = "minimal"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_minimal... " >&6; }
+if ${ac_cv_lib_tcmalloc_minimal_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc_minimal  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_minimal_malloc=yes
+else
+  ac_cv_lib_tcmalloc_minimal_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_minimal_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_minimal_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_minimal_malloc" = xyes; then :
+  EXECLIBS="-ltcmalloc_minimal $EXECLIBS"
 fi
 
   else

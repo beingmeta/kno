@@ -685,6 +685,11 @@ elif test "$with_malloc" = "tcmalloc_debug"; then
   custom_malloc="tcmalloc_debug"
   using_malloc="tcmalloc_debug"
   AC_MSG_RESULT(tcmalloc debug)
+elif test "$with_malloc" = "tcmalloc_minimal"; then
+  gperftools="minimal";
+  custom_malloc="tcmalloc_minimal"
+  using_malloc="tcmalloc_minimal"
+  AC_MSG_RESULT(tcmalloc minimal)
 elif test "$with_malloc" = "jemalloc"; then
   AC_CHECK_LIB(jemalloc,malloc,EXECLIBS="-ljemalloc $EXECLIBS")
   if test "${ac_cv_lib_jemalloc_malloc}" = "yes"; then
@@ -713,8 +718,21 @@ elif test "$with_malloc" = "asan"; then
    install_static=""
    custom_malloc="asan"
    using_malloc="asan"
-   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=false:malloc_context_size=20 $test_env";
-   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=true ${leaktester_env}";
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=malloc_context_size=20 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20 ${leaktester_env}";
+   asan="yes"
+   test_size=64
+   AC_MSG_RESULT(ASAN)
+elif test "$with_malloc" = "asan_noleak"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   using_malloc="asan"
+   test_env="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=0:malloc_context_size=20 $test_env";
+   leaktester_env="ASAN_OPTIONS=malloc_context_size=20:detect_leaks=1 ${leaktester_env}";
    asan="yes"
    test_size=64
    AC_MSG_RESULT(ASAN)
@@ -755,6 +773,8 @@ else
   elif test "$gperftools" = "profile"; then
     AC_CHECK_LIB(tcmalloc,malloc,EXECLIBS="-ltcmalloc $EXECLIBS")
     AC_CHECK_LIB(profiler,ProfilerStart,EXECLIBS="-lprofiler $EXECLIBS")
+  elif test "$gperftools" = "minimal"; then
+    AC_CHECK_LIB(tcmalloc_minimal,malloc,EXECLIBS="-ltcmalloc_minimal $EXECLIBS")
   else
     AC_CHECK_LIB(tcmalloc,malloc)
   fi;

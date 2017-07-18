@@ -9,7 +9,7 @@ elif [ ! $# -eq 0 ]; then
    shift;
 fi;
 
-for malloc in libc tcmalloc jemalloc asan tcmalloc_debug gperftools asan_thread; do
+for malloc in libc tcmalloc jemalloc asan tcmalloc_debug tcmalloc_minimal gperftools asan_thread; do
     if [ "$1" = $malloc ]; then
 	CONFIG_FLAGS="--with-malloc=${malloc} ${CONFIG_FLAGS}"
 	shift;
