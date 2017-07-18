@@ -193,7 +193,6 @@ FD_EXPORT lispval fd_type_error
   u8_byte buf[512];
   u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
   fd_seterr(fd_TypeError,cxt,msg,irritant);
-  fd_decref(irritant);
   return FD_TYPE_ERROR;
 }
 
