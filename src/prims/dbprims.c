@@ -2108,7 +2108,7 @@ static lispval hashset_filter(lispval candidates,fd_hashset hs,int pick)
   fd_read_lock_table(hs); {
     lispval simple = fd_make_simple_choice(candidates);
     int n = FD_CHOICE_SIZE(simple), isatomic = 1;
-    lispval *slots = hs->hs_slots; int n_slots = hs->hs_n_slots;
+    lispval *slots = hs->hs_buckets; int n_slots = hs->hs_n_buckets;
     lispval *keep = u8_alloc_n(n,lispval), *write = keep;
     DO_CHOICES(c,candidates) {
       int hash = fd_hash_lisp(c), probe = hash%n_slots, n_probes = 0, found = 0;

@@ -163,8 +163,8 @@ static int cons_walk(fd_walker walker,int constype,
   case fd_hashset_type: {
     struct FD_HASHSET *hs = (struct FD_HASHSET *)obj;
     fd_read_lock_table(hs); {
-      int i = 0, n_slots = hs->hs_n_slots, n_elts = hs->hs_n_elts;
-      lispval *slots = hs->hs_slots;
+      int i = 0, n_slots = hs->hs_n_buckets, n_elts = hs->hs_n_elts;
+      lispval *slots = hs->hs_buckets;
       while (i<n_slots) {
 	if (slots[i]) {
 	  if (fast_walk(walker,slots[i],walkdata,flags,depth-1)<0) {

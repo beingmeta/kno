@@ -44,6 +44,8 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock);
 #include <stdio.h>
 #endif
 
+#include <math.h>
+
 #define flip_word(x) \
   (((x>>24)&0xff) | ((x>>8)&0xff00) | ((x&0xff00)<<8) | ((x&0xff)<<24))
 #define compute_offset(hash,size) (hash%size)
@@ -1237,7 +1239,7 @@ static int compare_schemaps(lispval x,lispval y,fd_compare_flags flags)
    ((ht->table_n_keys*ht->table_load_factor))
 
 #define hashset_needs_resizep(hs)\
-   ((hs->hs_n_elts*hs->hs_load_factor)>(hs->hs_n_slots))
+   ((hs->hs_n_elts*hs->hs_load_factor)>(hs->hs_n_buckets))
 /* This is the target size for resizing. */
 #define hashset_resize_target(hs) \
    (hs->hs_n_elts*hs->hs_load_factor)
@@ -2727,8 +2729,7 @@ static lispval copy_hashtable(lispval table,int deep)
 static lispval copy_hashset(lispval table,int deep)
 {
   struct FD_HASHSET *ptr=fd_consptr(fd_hashset,table,fd_hashset_type);
-  struct FD_HASHSET *nptr=u8_alloc(struct FD_HASHSET);
-  return fd_copy_hashset(nptr,ptr);
+  return fd_copy_hashset(NULL,ptr);
 }
 
 static int unparse_hashtable(u8_output out,lispval x)
@@ -2905,13 +2906,12 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,
   if (stack_cons) {
     FD_INIT_STATIC_CONS(hashset,fd_hashset_type);}
   else {FD_INIT_CONS(hashset,fd_hashset_type);}
-  hashset->hs_n_slots=n_slots;
+  hashset->hs_n_buckets=n_slots;
   hashset->hs_n_elts=0;
   hashset->hs_modified=0;
-  hashset->hs_allatomic=1;
   hashset->hs_load_factor=default_hashset_loading;
-  hashset->hs_slots=slots=u8_alloc_n(n_slots,lispval);
-  while (i < n_slots) slots[i++]=0;
+  hashset->hs_buckets=slots=u8_alloc_n(n_slots,lispval);
+  while (i < n_slots) slots[i++]=FD_EMPTY;
   u8_init_rwlock(&(hashset->table_rwlock));
   return;
 }
@@ -2941,74 +2941,111 @@ static int hashset_get_slot(lispval key,const lispval *slots,int n)
   else return probe;
 }
 
+/* This does a simple binary search of a sorted choice vector,
+   looking for a particular element. Once more, we separate out the
+   atomic case because it just requires pointer comparisons.  */
+static int choice_containsp(lispval x,struct FD_CHOICE *choice)
+{
+  int size = FD_XCHOICE_SIZE(choice);
+  const lispval *bottom = FD_XCHOICE_DATA(choice), *top = bottom+(size-1);
+  if (ATOMICP(x)) {
+    while (top>=bottom) {
+      const lispval *middle = bottom+(top-bottom)/2;
+      if (x == *middle) return 1;
+      else if (CONSP(*middle)) top = middle-1;
+      else if (x < *middle) top = middle-1;
+      else bottom = middle+1;}
+    return 0;}
+  else {
+    while (top>=bottom) {
+        const lispval *middle = bottom+(top-bottom)/2;
+        int comparison = cons_compare(x,*middle);
+        if (comparison == 0) return 1;
+        else if (comparison<0) top = middle-1;
+        else bottom = middle+1;}
+      return 0;}
+}
+
 FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
 {
-  int probe, exists; lispval *slots;
+  int probe, exists;
   if (h->hs_n_elts==0) return 0;
+  int hash = fd_hash_lisp(key);
   fd_read_lock_table(h);
-  slots=h->hs_slots;
-  probe=hashset_get_slot(key,(const lispval *)slots,h->hs_n_slots);
-  if (probe>=0) {
-    if (slots[probe])
-      exists=1;
-    else exists=0;}
+  lispval *slots = h->hs_buckets;
+  int n_slots = h->hs_n_buckets, bucket = hash%n_slots;
+  lispval contents = slots[bucket];
+  int rv=0;
+  if (FD_EMPTY_CHOICEP(contents)) rv=0;
+  else if (contents==key) rv=1;
+  else if (!(FD_AMBIGP(contents)))
+    rv=FD_EQUALP(contents,key);
+  else if (FD_CHOICEP(contents))
+    rv=choice_containsp(key,(fd_choice)contents);
+  else {
+    fd_unlock_table(h);
+    fd_write_lock_table(h);
+    if (h->hs_n_buckets!=n_slots) {
+      n_slots=h->hs_n_buckets;
+      bucket = hash%n_slots;
+      slots = h->hs_buckets;}
+    contents = slots[bucket];
+    if (FD_PRECHOICEP(contents))
+      slots[bucket]=contents=fd_simplify_choice(contents);
+    if (FD_EMPTYP(contents)) rv=0;
+    else if (contents==key) rv=1;
+    else if (FD_CHOICEP(contents))
+      rv=choice_containsp(key,(fd_choice)contents);
+    else rv=FD_EQUALP(contents,key);}
   fd_unlock_table(h);
-  if (probe<0) {
-    fd_seterr(HashsetOverflow,"fd_hashset_get",NULL,(lispval)h);
-    return -1;}
-  else return exists;
+  return rv;
 }
 
 FD_EXPORT lispval fd_hashset_elts(struct FD_HASHSET *h,int clean)
 {
   /* A clean value of -1 indicates that the hashset will be reset
-     entirely. */
+     entirely (freed) if mallocd. */
   FD_CHECK_TYPE_RETDTYPE(h,fd_hashset_type);
   if (h->hs_n_elts==0) {
     if (clean<0) {
       if (FD_MALLOCD_CONSP(h))
         fd_decref((lispval)h);
       else {
-        u8_free(h->hs_slots);
-        h->hs_n_slots=h->hs_n_elts=0;}}
+        u8_free(h->hs_buckets);
+        h->hs_n_buckets=h->hs_n_elts=0;}}
     return EMPTY;}
   else {
     if (clean)
       fd_write_lock_table(h);
     else fd_read_lock_table(h);
-    int n=h->hs_n_elts, atomicp=1;
-    struct FD_CHOICE *new_choice=fd_alloc_choice(n);
-    lispval *scan=h->hs_slots, *limit=scan+h->hs_n_slots;
-    lispval *base=(lispval *)(FD_XCHOICE_DATA(new_choice));
-    lispval *write=base, *writelim=base+n;
-    while ((scan<limit) && (write<writelim)) {
-      lispval v=*scan;
-      if ((n==1) && (v)) {
-        if (clean>0) *scan=FD_NULL;
-        if (!(clean)) fd_incref(v);
-        u8_free(new_choice);
-        fd_unlock_table(h);
-        return v;}
-      else if (v) {
-        if (CONSP(v)) atomicp=0;
-        if (clean>0) *scan=FD_NULL;
-        if (!(clean)) fd_incref(v);
-        if (PRED_FALSE(VOIDP(v)))
-          {scan++; continue;}
-        *write++=v;}
-      else {}
-      scan++;}
-    if (clean<0) {
-      if (FD_MALLOCD_CONSP(h))
-        fd_decref((lispval)h);
+    lispval results=EMPTY;
+    int n=h->hs_n_elts;
+    lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
+    while (scan<limit) {
+      lispval v = *scan;
+      if ((EMPTYP(v)) || (VOIDP(v)) || (FD_NULLP(v))) {
+        *scan++=EMPTY; continue;}
+      if (FD_PRECHOICEP(v)) {
+        if (clean) {
+          lispval norm = fd_simplify_choice(v);
+          FD_ADD_TO_CHOICE(results,norm);
+          *scan=EMPTY;}
+        else {
+          lispval norm = fd_make_simple_choice(v);
+          FD_ADD_TO_CHOICE(results,norm);}}
       else {
-        u8_free(h->hs_slots);
-        h->hs_n_slots=h->hs_n_elts=0;}}
+        FD_ADD_TO_CHOICE(results,v);
+        if (clean) *scan=FD_EMPTY;
+        else fd_incref(v);}
+      scan++;}
     fd_unlock_table(h);
-    return fd_init_choice(new_choice,write-base,base,
-                          (FD_CHOICE_DOSORT|
-                           ((atomicp)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES))|
-                           FD_CHOICE_REALLOC));}
+    if (clean<0) {
+      if (FD_MALLOCD_CONSP(h)) {
+        fd_decref((lispval)h);}
+      else {
+        u8_free(h->hs_buckets);
+        h->hs_n_buckets=h->hs_n_elts=0;}}
+    return fd_simplify_choice(results);}
 }
 
 FD_EXPORT int fd_reset_hashset(struct FD_HASHSET *h)
@@ -3019,12 +3056,11 @@ FD_EXPORT int fd_reset_hashset(struct FD_HASHSET *h)
   else {
     fd_write_lock_table(h);
     int n_elts=h->hs_n_elts;
-    lispval *scan=h->hs_slots, *limit=scan+h->hs_n_slots;
+    lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
     while (scan<limit) {
-      if (*scan) {
-        lispval v=*scan;
-        *scan=FD_NULL;
-        fd_decref(v);}
+      lispval v=*scan;
+      *scan=FD_EMPTY_CHOICE;
+      fd_decref(v);
       scan++;}
     h->hs_n_elts=0;
     fd_unlock_table(h);
@@ -3056,133 +3092,150 @@ static lispval hashset_elts(struct FD_HASHSET *h)
   return fd_hashset_elts(h,0);
 }
 
-static int grow_hashset(struct FD_HASHSET *h)
+static void hashset_add_raw(struct FD_HASHSET *h,lispval key)
 {
-  int i=0, lim=h->hs_n_slots;
-  int new_size=fd_get_hashtable_size(hashset_resize_target(h));
-  const lispval *slots=h->hs_slots;
+  lispval *slots = h->hs_buckets;
+  int n_slots = h->hs_n_buckets;
+  int hash = fd_hash_lisp(key), bucket = hash%n_slots;
+  lispval contents = slots[bucket];
+  FD_ADD_TO_CHOICE(contents,key);
+  slots[bucket] = contents;
+}
+
+static size_t grow_hashset(struct FD_HASHSET *h,ssize_t target)
+{
+  int i=0, lim=h->hs_n_buckets;
+  size_t new_size= (target<=0) ?
+    (fd_get_hashtable_size(hashset_resize_target(h))) :
+    (target);
+  lispval *slots=h->hs_buckets;
   lispval *newslots=u8_alloc_n(new_size,lispval);
-  while (i<new_size) newslots[i++]=FD_NULL;
+  while (i<new_size) newslots[i++]=FD_EMPTY_CHOICE;
+  h->hs_buckets=newslots; h->hs_n_buckets=new_size;
   i=0; while (i < lim) {
-    if (slots[i]==0) i++;
-    else if (VOIDP(slots[i])) i++;
+    lispval content=slots[i];
+    if ((EMPTYP(content)) || (VOIDP(content)) || (FD_NULLP(content))) {
+      slots[i++]=FD_EMPTY; continue;}
+    else if (FD_AMBIGP(content)) {
+      FD_DO_CHOICES(val,content) {
+        hashset_add_raw(h,val);
+        fd_incref(val);}
+      fd_decref(content);}
+    else hashset_add_raw(h,content);
+    slots[i++]=FD_EMPTY;}
+  u8_free(slots);
+  return new_size;
+}
+
+FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,ssize_t target)
+{
+  fd_write_lock_table(h);
+  size_t rv=grow_hashset(h,target);
+  fd_unlock_table(h);
+  return rv;
+}
+
+static int hashset_test_add(struct FD_HASHSET *h,lispval key)
+{
+  lispval *slots = h->hs_buckets;
+  int n_slots = h->hs_n_buckets;
+  int hash = fd_hash_lisp(key), bucket = hash%n_slots;
+  lispval contents = slots[bucket];
+  if (FD_EMPTYP(contents)) {
+    slots[bucket] = key; fd_incref(key);
+    return 1;}
+  else if (contents == key)
+    return 0;
+  else if (FD_CHOICEP(contents)) {
+    if (choice_containsp(key,(fd_choice)contents))
+      return 0;
     else {
-      int off=hashset_get_slot(slots[i],newslots,new_size);
-      if (off<0) {
-        u8_free(newslots);
-        return -1;}
-      newslots[off]=slots[i]; i++;}}
-  u8_free(h->hs_slots); h->hs_slots=newslots; h->hs_n_slots=new_size;
+      FD_ADD_TO_CHOICE(slots[bucket],key);
+      fd_incref(key);
+      return 1;}}
+  else if (FD_PRECHOICEP(contents)) {
+    if (fd_choice_containsp(contents,key))
+      return 0;
+    else {
+      FD_ADD_TO_CHOICE(slots[bucket],key);
+      fd_incref(key);
+      return 1;}}
+  else if (FD_EQUALP(contents,key))
+    return 0;
+  else {
+    FD_ADD_TO_CHOICE(slots[bucket],key);
+    fd_incref(key);
+    return 1;}
+}
+
+static int hashset_test_drop(struct FD_HASHSET *h,lispval key)
+{
+  lispval *slots = h->hs_buckets;
+  int n_slots = h->hs_n_buckets;
+  int hash = fd_hash_lisp(key), bucket = hash%n_slots;
+  lispval contents = slots[bucket];
+  if (FD_EMPTYP(contents))
+    return 0;
+  else if (contents == key) {
+    slots[bucket]=FD_EMPTY;
+    fd_decref(key);
+    return 1;}
+  else if (FD_CHOICEP(contents)) {
+    if (!(choice_containsp(key,(fd_choice)contents)))
+      return 1;}
+  else if (FD_PRECHOICEP(contents)) {
+    if (!(fd_choice_containsp(contents,key)))
+      return 0;}
+  else if (FD_EQUALP(contents,key)) {
+    slots[bucket]=FD_EMPTY;
+    fd_decref(key);
+    return 1;}
+  else {}
+  lispval new_contents = fd_difference(contents,key);
+  slots[bucket]=new_contents;
+  fd_decref(contents);
   return 1;
 }
 
-FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,size_t target)
+static int hashset_mod(struct FD_HASHSET *h,lispval key,int add)
 {
-  int new_size=fd_get_hashtable_size(target);
-  fd_write_lock_table(h); {
-    int i=0, lim=h->hs_n_slots;
-    const lispval *slots=h->hs_slots;
-    lispval *newslots=u8_alloc_n(new_size,lispval);
-    while (i<new_size) newslots[i++]=FD_NULL;
-    i=0; while (i < lim)
-           if (slots[i]==0) i++;
-           else if (VOIDP(slots[i])) i++;
-           else {
-             int off=hashset_get_slot(slots[i],newslots,new_size);
-             if (off<0) {
-               u8_free(newslots);
-               fd_unlock_table(h);
-               return -1;}
-             newslots[off]=slots[i]; i++;}
-    u8_free(h->hs_slots);
-    h->hs_slots=newslots;
-    h->hs_n_slots=new_size;
-    fd_unlock_table(h);}
-  return new_size;
+  int rv=0;
+  if (add) {
+    rv = hashset_test_add(h,key);
+    if (rv) {
+      int n_elts=h->hs_n_elts++;
+      if ( (h->hs_n_buckets) < (n_elts*h->hs_load_factor) )
+        grow_hashset(h,-1);}}
+  else {
+    rv = hashset_test_drop(h,key);
+    if (rv) h->hs_n_elts--;}
+  return rv;
 }
 
 FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,lispval key,int add)
 {
-  int probe; lispval *slots;
+  int rv=0;
   fd_write_lock_table(h); {
-    slots=h->hs_slots;
-    probe=hashset_get_slot(key,h->hs_slots,h->hs_n_slots);
-    if (probe < 0) {
-      fd_unlock_table(h);
-      fd_seterr(HashsetOverflow,"fd_hashset_mod",NULL,(lispval)h);
-      return -1;}
-    else if (FD_NULLP(slots[probe]))
-      if (add) {
-        slots[probe]=fd_incref(key);
-        h->hs_n_elts++; h->hs_modified=1;
-        if (CONSP(key)) h->hs_allatomic=0;
-        if (hashset_needs_resizep(h))
-          grow_hashset(h);
-        fd_unlock_table(h);
-        return 1;}
-      else {
-        fd_unlock_table(h);
-        return 0;}
-    else if (add) {
-      fd_unlock_table(h);
-      return 0;}
-    else {
-      fd_decref(slots[probe]);
-      /* Storing VOID means the slot won't be reused */
-      slots[probe]=VOID;
-      h->hs_n_elts--;
-      h->hs_modified=1;
-      fd_unlock_table(h);
-      return 1;}}
+    rv=hashset_mod(h,key,add);
+    fd_unlock_table(h);
+    return rv;}
 }
 
 /* This adds without locking or incref. */
-FD_EXPORT int fd_hashset_add_raw(struct FD_HASHSET *h,lispval key)
+FD_EXPORT void fd_hashset_add_raw(struct FD_HASHSET *h,lispval key)
 {
-  int probe; lispval *slots;
-  slots=h->hs_slots;
-  probe=hashset_get_slot(key,h->hs_slots,h->hs_n_slots);
-  if (probe < 0) {
-    fd_seterr(HashsetOverflow,"fd_hashset_add_raw",NULL,(lispval)h);
-    return -1;}
-  else if (FD_NULLP(slots[probe])) {
-    slots[probe]=key; h->hs_n_elts++; h->hs_modified=1;
-    if (CONSP(key)) h->hs_allatomic=0;
-    if (PRED_FALSE(hashset_needs_resizep(h)))
-      grow_hashset(h);
-    return 1;}
-  else return 0;
+  hashset_add_raw(h,key);
 }
 
-/* This adds without locking or incref. */
 FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,lispval keys)
 {
   if ((CHOICEP(keys))||(PRECHOICEP(keys))) {
     int n_vals=FD_CHOICE_SIZE(keys);
-    size_t need_size=n_vals*3+h->hs_n_elts, n_adds=0;
-    if (need_size>h->hs_n_slots) fd_grow_hashset(h,need_size);
+    size_t need_size=ceil((n_vals+h->hs_n_elts)*h->hs_load_factor), n_adds=0;
+    if (need_size>h->hs_n_buckets) fd_grow_hashset(h,need_size);
     fd_write_lock_table(h); {
-      lispval *slots=h->hs_slots;
-      int n_slots=h->hs_n_slots;
       {DO_CHOICES(key,keys) {
-          int probe=hashset_get_slot(key,slots,n_slots);
-          if (probe < 0) {
-            fd_seterr(HashsetOverflow,"fd_hashset_add",NULL,(lispval)h);
-            FD_STOP_DO_CHOICES;
-            fd_unlock_table(h);
-            return -1;}
-          else if ((FD_NULLP(slots[probe]))||(VOIDP(slots[probe]))) {
-            slots[probe]=key; fd_incref(key);
-            h->hs_modified=1;
-            h->hs_n_elts++;
-            n_adds++;
-            if (CONSP(key))
-              h->hs_allatomic=0;
-            if (PRED_FALSE(hashset_needs_resizep(h))) {
-              grow_hashset(h);
-              slots=h->hs_slots;
-              n_slots=h->hs_n_slots;}}
-          else {}}}
+          if (hashset_mod(h,key,1)) n_adds;}}
       fd_unlock_table(h);
       return n_adds;}}
   else if (EMPTYP(keys))
@@ -3193,15 +3246,12 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,lispval keys)
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)
 {
   fd_write_lock_table(h);
-  if (h->hs_allatomic==0) {
-    lispval *scan=h->hs_slots, *lim=scan+h->hs_n_slots;
-    while (scan<lim)
-      if (FD_NULLP(*scan)) scan++;
-      else {
-        lispval v=*scan;
-        *scan=FD_NULL;
-        fd_decref(v);}}
-  u8_free(h->hs_slots);
+  lispval *scan=h->hs_buckets, *lim=scan+h->hs_n_buckets;
+  while (scan<lim) {
+    lispval v = *scan;
+    fd_decref(v);
+    *scan++=FD_EMPTY;}
+  u8_free(h->hs_buckets);
   fd_unlock_table(h);
   u8_destroy_rwlock(&(h->table_rwlock));
   memset(h,0,sizeof(struct FD_HASHSET));
@@ -3217,22 +3267,21 @@ static void recycle_hashset(struct FD_RAW_CONS *c)
 FD_EXPORT lispval fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
 {
 
-  lispval *newslots, *write, *read, *lim;
-  if (hnew==NULL) hnew=u8_alloc(struct FD_HASHSET);
   fd_read_lock_table(h);
-  read=h->hs_slots; lim=read+h->hs_n_slots;
-  write=newslots=u8_alloc_n(h->hs_n_slots,lispval);
-  if (h->hs_allatomic)
-    while (read<lim) *write++=*read++;
-  else while (read<lim) {
-      lispval v=*read++;
-      if (v) fd_incref(v);
-      *write++=v;}
+  int n_slots = h->hs_n_buckets;
+  lispval *read = h->hs_buckets, *readlim = read+n_slots;
+  if (hnew==NULL) hnew=u8_alloc(struct FD_HASHSET);
   FD_INIT_CONS(hnew,fd_hashset_type);
-  hnew->hs_n_slots=h->hs_n_slots;
+  hnew->hs_buckets=u8_alloc_n(h->hs_n_buckets,lispval);
+  lispval *write=hnew->hs_buckets;
+  while (read<readlim) {
+    lispval v=*read++;
+    if (FD_EMPTYP(v))
+      *write++=FD_EMPTY;
+    else if (FD_PRECHOICEP(v))
+      *write++=fd_make_simple_choice(v);
+    else *write++=fd_incref(v);}
   hnew->hs_n_elts=h->hs_n_elts;
-  hnew->hs_slots=newslots;
-  hnew->hs_allatomic=h->hs_allatomic;
   hnew->hs_load_factor=h->hs_load_factor;
   hnew->hs_modified=0;
   fd_unlock_table(h);
@@ -3245,14 +3294,15 @@ static int unparse_hashset(u8_output out,lispval x)
   struct FD_HASHSET *hs=((struct FD_HASHSET *)x);
   u8_printf(out,"#<HASHSET%s %d/%d>",
             ((hs->hs_modified)?("(m)"):("")),
-            hs->hs_n_elts,hs->hs_n_slots);
+            hs->hs_n_elts,hs->hs_n_buckets);
   return 1;
 }
 
 static lispval hashset_get(lispval x,lispval key)
 {
   struct FD_HASHSET *h=fd_consptr(struct FD_HASHSET *,x,fd_hashset_type);
-  if (fd_hashset_get(h,key)) return FD_TRUE;
+  if (fd_hashset_get(h,key))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 static int hashset_store(lispval x,lispval key,lispval val)

@@ -463,7 +463,7 @@ static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
   fd_read_lock_table(v);
   {
     int size = v->hs_n_elts;
-    lispval *scan = v->hs_slots, *limit = scan+v->hs_n_slots;
+    lispval *scan = v->hs_buckets, *limit = scan+v->hs_n_buckets;
     fd_output_byte(out,dt_framerd_package);
     if (size < 128) {
       dtype_len = 3;
@@ -473,7 +473,7 @@ static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
       dtype_len = 6;
       fd_output_byte(out,dt_hashset);
       fd_output_4bytes(out,size);}
-    scan = v->hs_slots; limit = scan+v->hs_n_slots;
+    scan = v->hs_buckets; limit = scan+v->hs_n_buckets;
     while (scan < limit)
       if (*scan) {
         if (try_dtype_output(&dtype_len,out,*scan)<0) {

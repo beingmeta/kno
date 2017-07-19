@@ -602,10 +602,10 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly);
 
 typedef struct FD_HASHSET {
   FD_CONS_HEADER;
-  int hs_n_elts, hs_n_slots;
-  char hs_allatomic, hs_modified;
+  int hs_n_elts, hs_n_buckets;
+  char hs_modified;
   double hs_load_factor;
-  lispval *hs_slots;
+  lispval *hs_buckets;
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 
@@ -615,14 +615,14 @@ typedef struct FD_HASHSET *fd_hashset;
 
 FD_EXPORT int fd_hashset_get(fd_hashset h,lispval key);
 FD_EXPORT int fd_hashset_mod(fd_hashset h,lispval key,int add);
-FD_EXPORT int fd_hashset_add_raw(fd_hashset h,lispval key);
+FD_EXPORT void fd_hashset_add_raw(fd_hashset h,lispval key);
 FD_EXPORT int fd_hashset_add(fd_hashset h,lispval keys);
 #define fd_hashset_drop(h,key) fd_hashset_mod(h,key,0)
 FD_EXPORT lispval fd_hashset_elts(fd_hashset h,int clean);
 
 FD_EXPORT void fd_init_hashset(fd_hashset h,int n,int stack_cons);
 FD_EXPORT lispval fd_make_hashset(void);
-FD_EXPORT ssize_t fd_grow_hashset(fd_hashset h,size_t size);
+FD_EXPORT ssize_t fd_grow_hashset(fd_hashset h,ssize_t size);
 FD_EXPORT lispval fd_copy_hashset(FD_HASHSET *nptr,FD_HASHSET *ptr);
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h);
 FD_EXPORT int fd_reset_hashset(fd_hashset);
