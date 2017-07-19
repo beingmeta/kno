@@ -600,7 +600,7 @@ static lispval read_record_prim(lispval ports,lispval ends,lispval limit_arg)
 static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
 {
   U8_INPUT *in = get_input_port(port);
-  size_t lim, matchlen = 0;
+  ssize_t lim, matchlen = 0;
   off_t off = -1;
 
   if (in == NULL)
@@ -629,7 +629,7 @@ static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
       lispval result = fd_make_string(NULL,record_len,in->u8_read);
       in->u8_read+=record_len;
       return result;}
-    else if ((lim) && ((in->u8_inlim-in->u8_read)>lim))
+    else if ((lim>0) && ((in->u8_inlim-in->u8_read)>lim))
       return FD_EOF;
     else if (in->u8_fillfn) {
       ssize_t more_data = get_more_data(in,lim);
