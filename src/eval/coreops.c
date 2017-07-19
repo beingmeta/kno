@@ -276,6 +276,16 @@ static lispval stringp(lispval x)
 {
   if (STRINGP(x)) return FD_TRUE; else return FD_FALSE;
 }
+static lispval valid_utf8p(lispval x)
+{
+  if (STRINGP(x)) {
+    int rv = u8_validp(FD_STRDATA(x));
+    if (rv)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
 static lispval packetp(lispval x)
 {
   if (PACKETP(x)) return FD_TRUE; else return FD_FALSE;
@@ -710,6 +720,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("ZERO?",lisp_zerop,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING?",stringp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("VALID-UTF8?",valid_utf8p,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PACKET?",packetp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOL?",symbolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PAIR?",pairp,1));
