@@ -150,6 +150,7 @@ default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
 CLANG=no
+MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 MONGODB_CFLAGS=
@@ -311,6 +312,7 @@ AC_SUBST(CMODULES)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
+AC_SUBST(MALLOC_FLAGS)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
 AC_SUBST(MONGODB_CFLAGS)
@@ -782,7 +784,7 @@ else
      test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
      test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
     custom_malloc="tcmalloc";
-    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    CFLAGS="${CFLAGS} ";
     leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
     memtest_env="TCMALLOC_DEBUG=5";
   else

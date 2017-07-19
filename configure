@@ -706,6 +706,7 @@ MONGODB_LDFLAGS
 MONGODB_CFLAGS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
+MALLOC_FLAGS
 INSTALLCMODULES
 BOOTSETUP
 DATAFILES
@@ -3021,6 +3022,7 @@ default_bootsystem="none"
 BOOTSETUP="none"
 CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
 CLANG=no
+MALLOC_FLAGS="-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 MONGODB_CFLAGS=
@@ -3101,6 +3103,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -6879,7 +6882,7 @@ fi
      test "${ac_cv_lib_tcmalloc_debug_malloc}" == "yes" || \
      test "${ac_cv_lib_tcmalloc_and_profiler_malloc}" == "yes"; then
     custom_malloc="tcmalloc";
-    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
+    CFLAGS="${CFLAGS} ";
     leaktest_env="HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}";
     memtest_env="TCMALLOC_DEBUG=5";
   else
