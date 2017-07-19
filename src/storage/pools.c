@@ -247,7 +247,9 @@ FD_EXPORT void fd_pool_setcache(fd_pool p,int level)
 static void init_cache_level(fd_pool p)
 {
   if (PRED_FALSE(p->pool_cache_level<0)) {
-    fd_pool_setcache(p,fd_default_cache_level);}
+    lispval opts = p->pool_opts;
+    long long level=fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
+    fd_pool_setcache(p,level);}
 }
 
 FD_EXPORT

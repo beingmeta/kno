@@ -162,9 +162,10 @@ FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 static void init_cache_level(fd_index ix)
 {
   if (PRED_FALSE(ix->index_cache_level<0)) {
-    fd_index_setcache(ix,fd_default_cache_level);}
+    lispval opts = ix->index_opts;
+    long long level=fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
+    fd_index_setcache(ix,level);}
 }
-
 
 /* The index registry */
 
@@ -619,6 +620,7 @@ FD_EXPORT lispval fd_index_keys(fd_index ix)
     else {
       fd_choice result; int n_total;
       lispval *write_start, *write_at;
+      init_cache_level(ix);
       n_total = n_fetched+ix->index_adds.table_n_keys+
         ix->index_edits.table_n_keys;
       result = fd_alloc_choice(n_total);
@@ -665,6 +667,7 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
       fd_decref(v);
       return result;}
     else filter=(fd_choice)keys;
+    init_cache_level(ix);
     struct FD_KEY_SIZE *fetched =
       ix->index_handler->fetchinfo(ix,filter,&n_fetched);
     if ((n_fetched==0) && (ix->index_adds.table_n_keys==0))

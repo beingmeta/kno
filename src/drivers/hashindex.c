@@ -157,6 +157,14 @@ static ssize_t get_maxpos(fd_hashindex p)
     return -1;}
 }
 
+static void init_cache_level(fd_index ix)
+{
+  if (PRED_FALSE(ix->index_cache_level<0)) {
+    lispval opts = ix->index_opts;
+    long long level=fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
+    fd_index_setcache(ix,level);}
+}
+
 static lispval read_values(fd_hashindex,lispval,int,fd_off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
@@ -2763,6 +2771,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     int n_keys=0;
     fd_choice filter;
     struct FD_CHOICE static_choice;
+    init_cache_level(ix);
     if (n==0) filter=NULL;
     else {
       lispval arg0 = args[0];
