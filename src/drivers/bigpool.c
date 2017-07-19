@@ -85,7 +85,7 @@ FD_FASTOP int LOCK_POOLSTREAM(fd_bigpool bp,u8_string caller)
 
 #define UNLOCK_POOLSTREAM(op) fd_unlock_stream(&(op->pool_stream))
 
-static void reload_bigpool(struct FD_BIGPOOL *p);
+static void reload_bigpool(struct FD_BIGPOOL *p,int is_locked);
 static void update_filetime(struct FD_BIGPOOL *fp);
 
 static struct FD_POOL_HANDLER bigpool_handler;
@@ -368,31 +368,32 @@ static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
 
 /* Lock the underlying Bigpool */
 
-static int lock_bigpool_file(struct FD_BIGPOOL *bp,int use_mutex)
+static int lock_bigpool_file(struct FD_BIGPOOL *bp,int is_locked)
 {
-  if (FD_POOLFILE_LOCKEDP(bp)) return 1;
+  if (FD_POOLFILE_LOCKEDP(bp))
+    return 1;
   else if ((bp->pool_flags)&(FD_STORAGE_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s = &(bp->pool_stream);
     struct stat fileinfo;
     int reload=0;
-    if (use_mutex) fd_lock_pool((fd_pool)bp,1);
+    if (!(is_locked)) fd_lock_pool((fd_pool)bp,1);
     if (FD_POOLFILE_LOCKEDP(bp)) {
       /* Another thread got here first */
-      if (use_mutex) fd_unlock_pool((fd_pool)bp);
+      if (!(is_locked)) fd_unlock_pool((fd_pool)bp);
       return 1;}
     LOCK_POOLSTREAM(bp,"lock_bigpool_file");
     if (fd_lockfile(s)==0) {
       fd_unlock_stream(s);
-      if (use_mutex) fd_unlock_pool((fd_pool)bp);
+      if (!(is_locked)) fd_unlock_pool((fd_pool)bp);
       UNLOCK_POOLSTREAM(bp);
       return 0;}
     fstat( s->stream_fileno, &fileinfo);
     if ( fileinfo.st_mtime > bp->pool_mtime ) reload=1;
     UNLOCK_POOLSTREAM(bp);
-    if (use_mutex) fd_unlock_pool((fd_pool)bp);
-    if (reload) reload_bigpool(bp);
+    if (reload) reload_bigpool(bp,FD_ISLOCKED);
+    if (!(is_locked)) fd_unlock_pool((fd_pool)bp);
     return 1;}
 }
 
@@ -537,7 +538,7 @@ static int bigpool_load(fd_pool p)
     int rv = fstat(bp->pool_stream.stream_fileno,&info);
     if ( bp->file_mtime >= info.st_mtime )
       return bp->pool_load;
-    reload_bigpool(bp);
+    reload_bigpool(bp,FD_UNLOCKED);
     return bp->pool_load;}
   else return bp->pool_load;
 }
@@ -1347,7 +1348,8 @@ static lispval bigpool_alloc(fd_pool p,int n)
   FD_OID base=bp->pool_base;
   unsigned int start;
   fd_lock_pool(p,1);
-  if (!(POOLFILE_LOCKEDP(bp))) lock_bigpool_file(bp,0);
+  if (!(POOLFILE_LOCKEDP(bp)))
+    lock_bigpool_file(bp,FD_ISLOCKED);
   if ( (bp->pool_load+n) >= (bp->pool_capacity) ) {
     fd_unlock_pool(p);
     return fd_err(fd_ExhaustedPool,"bigpool_alloc",
@@ -1497,22 +1499,25 @@ static void bigpool_setcache(fd_bigpool p,int level)
   * 1: for writing, open up to the capcity of the pool
   * -1: for reading, but sync before remapping
 */
-static void reload_bigpool(fd_bigpool bp)
+static void reload_bigpool(fd_bigpool bp,int is_locked)
 {
-  use_bigpool(bp);
+  if (!(is_locked)) use_bigpool(bp);
   int err=0;
   fd_stream stream = &(bp->pool_stream);
   time_t mtime = (time_t) fd_read_8bytes_at(stream,0x12,FD_ISLOCKED,&err);
-  bigpool_finished(bp);
-  if ((err==0) && (mtime == bp->pool_mtime)) return;
-  else u8_write_lock(&(bp->pool_lock));
+  if (!(is_locked)) bigpool_finished(bp);
+  if ((err==0) && (mtime == bp->pool_mtime))
+    return;
+  else if (!(is_locked))
+    u8_write_lock(&(bp->pool_lock));
+  else {}
   long long new_load = fd_read_4bytes_at(stream,0x10,FD_ISLOCKED);
   unsigned int *offdata = bp->pool_offdata;
   if (offdata==NULL) {
     bp->pool_load=new_load;
     fd_reset_hashtable(&(bp->pool_cache),-1,1);
     fd_reset_hashtable(&(bp->pool_changes),32,1);
-    bigpool_finished(bp);
+    if (!(is_locked)) bigpool_finished(bp);
     return;}
   /* Make it NULL while we're messing with it */
   else bp->pool_offdata=NULL;
@@ -1548,7 +1553,7 @@ static void reload_bigpool(fd_bigpool bp)
   bp->pool_load = new_load;
   fd_reset_hashtable(&(bp->pool_cache),-1,1);
   fd_reset_hashtable(&(bp->pool_changes),32,1);
-  u8_rw_unlock(&(bp->pool_lock));
+  if (!(is_locked)) u8_rw_unlock(&(bp->pool_lock));
   u8_log(fd_storage_loglevel+1,"ReloadOffsets",
          "Offsets for %s reloaded in %f secs",
          bp->poolid,u8_elapsed_time()-start);
@@ -1642,7 +1647,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
       else return fd_type_error
              (_("cachelevel"),"bigpool_op/cachelevel",arg);}}
   else if (op == fd_reload_op) {
-    reload_bigpool(bp);
+    reload_bigpool(bp,FD_UNLOCKED);
     return FD_TRUE;}
   else if (op == fd_bufsize_op) {
     if (n==0)
