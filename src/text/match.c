@@ -1313,9 +1313,11 @@ static lispval extract_pref
   return EMPTY;
 }
 
-static int search_pref
+static u8_byteoff search_pref
   (lispval pat,fd_lexenv env,
-   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+   u8_string string,
+   u8_byteoff off,u8_byteoff lim,
+   int flags)
 {
   int nlim = lim, loc = -1;
   FD_DOLIST(epat,FD_CDR(pat)) {
@@ -1530,7 +1532,9 @@ static lispval match_choice
 
 static u8_byteoff search_choice
   (lispval pat,fd_lexenv env,
-   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+   u8_string string,
+   u8_byteoff off,u8_byteoff lim,
+   int flags)
 {
   if ((PAIRP(FD_CDR(pat))) &&
       (NILP(FD_CDR(FD_CDR(pat)))))

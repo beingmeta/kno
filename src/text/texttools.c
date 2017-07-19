@@ -814,7 +814,7 @@ static void convert_offsets
 static lispval textmatcher(lispval pattern,lispval string,
                           lispval offset,lispval limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textmatcher",NULL,VOID);
@@ -829,7 +829,7 @@ static lispval textmatcher(lispval pattern,lispval string,
 static lispval textmatch(lispval pattern,lispval string,
                         lispval offset,lispval limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textmatch",NULL,VOID);
@@ -844,7 +844,7 @@ static lispval textmatch(lispval pattern,lispval string,
 static lispval textsearch(lispval pattern,lispval string,
                          lispval offset,lispval limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textsearch",NULL,VOID);
@@ -860,7 +860,7 @@ static lispval textract(lispval pattern,lispval string,
                        lispval offset,lispval limit)
 {
   lispval results = EMPTY;
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textract",NULL,VOID);
@@ -891,7 +891,7 @@ static lispval textgather_base(lispval pattern,lispval string,
 {
   lispval results = EMPTY;
   u8_string data = CSTRING(string);
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textgather",NULL,VOID);
@@ -948,7 +948,7 @@ static lispval textgather2list(lispval pattern,lispval string,
 {
   lispval head = NIL, *tail = &head;
   u8_string data = CSTRING(string);
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textgather",NULL,VOID);
@@ -1081,7 +1081,7 @@ static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
 static lispval textrewrite(lispval pattern,lispval string,
                            lispval offset,lispval limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textrewrite",NULL,VOID);
@@ -1225,7 +1225,7 @@ static lispval gathersubst_base(lispval pattern,lispval string,
 {
   lispval results = EMPTY;
   u8_string data = CSTRING(string);
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"textgather",NULL,VOID);
@@ -1314,7 +1314,8 @@ static int getnonstring(lispval choice)
 static lispval string_matches(lispval string,lispval pattern,
                              lispval start_arg,lispval end_arg)
 {
-  int off, lim, retval;
+  int retval;
+  u8_byteoff off, lim;
   lispval notstring;
   if (QCHOICEP(pattern)) pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if ((EMPTYP(pattern))||(EMPTYP(string)))
@@ -1349,7 +1350,9 @@ static lispval string_matches(lispval string,lispval pattern,
 static lispval string_contains(lispval string,lispval pattern,
                               lispval start_arg,lispval end_arg)
 {
-  int off, lim, retval; lispval notstring;
+  int retval;
+  u8_byteoff off, lim;
+  lispval notstring;
   if (QCHOICEP(pattern)) pattern = (FD_XQCHOICE(pattern))->qchoiceval;
   if ((EMPTYP(pattern))||(EMPTYP(string)))
     return FD_FALSE;
@@ -1386,7 +1389,7 @@ static lispval string_contains(lispval string,lispval pattern,
 static lispval string_starts_with(lispval string,lispval pattern,
                                  lispval start_arg,lispval end_arg)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   lispval match_result, notstring;
   if (QCHOICEP(pattern))
     pattern = (FD_XQCHOICE(pattern))->qchoiceval;
@@ -1459,7 +1462,8 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
 static lispval string_ends_with(lispval string,lispval pattern,
                                lispval start_arg,lispval end_arg)
 {
-  int off, lim, retval;
+  int retval;
+  u8_byteoff off, lim;
   lispval notstring;
   if (EMPTYP(string)) return FD_FALSE;
   notstring = ((STRINGP(string))?(VOID):
@@ -1568,7 +1572,7 @@ static int framify(lispval f,u8_output out,lispval xtract)
 static lispval text2frame(lispval pattern,lispval string,
                           lispval offset,lispval limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"text2frame",NULL,VOID);
@@ -1594,7 +1598,7 @@ static lispval text2frame(lispval pattern,lispval string,
 static lispval text2frames(lispval pattern,lispval string,
                            lispval offset,lispval limit)
 {
-  int off, lim;
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"text2frames",NULL,VOID);
@@ -2157,8 +2161,8 @@ static lispval findsep_prim(lispval string,lispval sep,
                            lispval offset,lispval limit,
                            lispval esc)
 {
-  int off, lim;
   int c = FD_CHARCODE(sep), e = FD_CHARCODE(esc);
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"findsep_prim",NULL,VOID);
@@ -2184,8 +2188,8 @@ static lispval splitsep_prim(lispval string,lispval sep,
                             lispval offset,lispval limit,
                             lispval esc)
 {
-  int off, lim;
   int c = FD_CHARCODE(sep), e = FD_CHARCODE(esc);
+  u8_byteoff off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"splitsep_prim",NULL,VOID);
@@ -2221,16 +2225,16 @@ static char *stdlib_unescaped="\n\t\r\f\a\b\\";
 static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
                               lispval dostd)
 {
-  int off, lim; 
   u8_string sdata = CSTRING(string), start, limit, split1;
   int handle_stdlib = (!(FALSEP(dostd)));
-  convert_offsets(string,offset,limit_arg,&off,&lim);  
+  u8_byteoff off, lim;
+  convert_offsets(string,offset,limit_arg,&off,&lim);
   if ((off<0) || (lim<0))
     return fd_err(fd_RangeError,"unslashify_prim",NULL,VOID);
   start = sdata+off; limit = sdata+lim; split1 = strchr(start,'\\');
   if ((split1) && (split1<limit)) {
     const u8_byte *scan = start;
-    struct U8_OUTPUT out; 
+    struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,STRLEN(string));
     while (scan) {
       u8_byte *split = strchr(scan,'\\');
