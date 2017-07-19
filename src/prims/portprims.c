@@ -37,7 +37,9 @@ static lispval make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port = u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
-  port->fd_inport = in; port->fd_outport = out; port->fd_portid = id;
+  port->fd_inport = in;
+  port->fd_outport = out;
+  port->fd_portid = id;
   return LISP_CONS(port);
 }
 
@@ -585,7 +587,7 @@ static lispval read_prim(lispval port)
 
 static off_t find_substring(u8_string string,lispval strings,
                             ssize_t len,ssize_t *lenp);
-static ssize_t get_more_data(u8_input in,size_t lim);
+static ssize_t get_more_data(u8_input in,ssize_t lim);
 static lispval record_reader(lispval port,lispval ends,lispval limit_arg);
 
 static lispval read_record_prim(lispval ports,lispval ends,lispval limit_arg)
@@ -600,7 +602,7 @@ static lispval read_record_prim(lispval ports,lispval ends,lispval limit_arg)
 static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
 {
   U8_INPUT *in = get_input_port(port);
-  ssize_t lim, matchlen = 0;
+  ssize_t lim, matchlen = 0, maxbuf=in->u8_bufsz;
   off_t off = -1;
 
   if (in == NULL)
@@ -632,7 +634,9 @@ static lispval record_reader(lispval port,lispval ends,lispval limit_arg)
     else if ((lim>0) && ((in->u8_inlim-in->u8_read)>lim))
       return FD_EOF;
     else if (in->u8_fillfn) {
-      ssize_t more_data = get_more_data(in,lim);
+      if ((in->u8_inlim-in->u8_read)>=(maxbuf-16))
+        maxbuf=maxbuf*2;
+      ssize_t more_data = get_more_data(in,maxbuf);
       if (more_data>0) continue;
       else return FD_EOF;}
     else return FD_EOF;}
@@ -668,7 +672,7 @@ static off_t find_substring(u8_string string,lispval strings,
   return off;
 }
 
-static ssize_t get_more_data(u8_input in,size_t lim)
+static ssize_t get_more_data(u8_input in,ssize_t lim)
 {
   if ((in->u8_inbuf == in->u8_read)&&
       ((in->u8_inlim - in->u8_inbuf) == in->u8_bufsz)) {
