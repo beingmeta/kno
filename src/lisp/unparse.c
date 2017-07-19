@@ -102,8 +102,8 @@ static int unparse_string(U8_OUTPUT *out,lispval x)
     u8_string chunk = scan;
     while ((scan < limit) &&
            (*scan != '"') && (*scan != '\\') &&
-           (!((*scan<0x80)&&(iscntrl(*scan))))) {
-      scan++; n_chars++;
+           (!(iscntrl(*scan)))) {
+      n_chars++; u8_sgetc(&scan);
       if ((fd_unparse_maxchars>0) && (n_chars>=fd_unparse_maxchars)) {
         u8_putn(out,chunk,scan-chunk); u8_putc(out,' ');
         output_ellipsis(out,u8_strlen(scan),"chars");
