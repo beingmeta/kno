@@ -1937,7 +1937,7 @@ static void mdstore(lispval md,lispval slot,lispval v)
 static void mdstring(lispval md,lispval slot,u8_string s)
 {
   if (s==NULL) return;
-  lispval v=fd_lispstring(s);
+  lispval v=fdstring(s);
   fd_store(md,slot,v);
   fd_decref(v);
 }
