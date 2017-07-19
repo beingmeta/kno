@@ -425,6 +425,7 @@ typedef struct FD_STRING {
 typedef struct FD_STRING *fd_string;
 
 FD_EXPORT ssize_t fd_max_strlen;
+FD_EXPORT int fd_check_utf8;
 
 #define FD_STRINGP(x) (FD_TYPEP(x,fd_string_type))
 #define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))

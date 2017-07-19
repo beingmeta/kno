@@ -46,6 +46,7 @@ int fd_n_constants = FD_N_BUILTIN_CONSTANTS;
 lispval fd_compound_descriptor_type;
 
 ssize_t fd_max_strlen = -1;
+int fd_check_utf8 = 0;
 
 const char *fd_constant_names[256]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
@@ -289,8 +290,14 @@ lispval fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
       freedata = 0;}
     else bytes = (u8_byte *)u8_strndup(start,length+1);
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
-    return LISP_CONS(ptr);}
+    ptr->str_bytelen = length;
+    ptr->str_bytes = bytes;
+    ptr->str_freebytes = freedata;
+    if ( (fd_check_utf8) && (!(u8_validp(bytes))) ) {
+      FD_SET_CONS_TYPE(ptr,fd_packet_type);
+      fd_seterr("InvalidUTF8","fd_extract_string",NULL,LISP_CONS(ptr));
+      return FD_ERROR_VALUE;}
+    else return LISP_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,VOID);
 }
 
@@ -310,8 +317,14 @@ lispval fd_substring(u8_string start,u8_string end)
     u8_byte *bytes = ((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
     FD_INIT_FRESH_CONS(ptr,fd_string_type);
-    ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = 0;
-    return LISP_CONS(ptr);}
+    ptr->str_bytelen = length;
+    ptr->str_bytes = bytes;
+    ptr->str_freebytes = 0;
+    if ( (fd_check_utf8) && (!(u8_validp(bytes))) ) {
+      FD_SET_CONS_TYPE(ptr,fd_packet_type);
+      fd_seterr("InvalidUTF8","fd_extract_string",NULL,LISP_CONS(ptr));
+      return FD_ERROR_VALUE;}
+    else return LISP_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_substring",NULL,VOID);
 }
 
@@ -337,8 +350,14 @@ lispval fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes = u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = freedata;
-  return LISP_CONS(ptr);
+  ptr->str_bytelen = length;
+  ptr->str_bytes = bytes;
+  ptr->str_freebytes = freedata;
+  if ( (fd_check_utf8) && (!(u8_validp(bytes))) ) {
+    FD_SET_CONS_TYPE(ptr,fd_packet_type);
+    fd_seterr("InvalidUTF8","fd_extract_string",NULL,LISP_CONS(ptr));
+    return FD_ERROR_VALUE;}
+  else return LISP_CONS(ptr);
 }
 
 FD_EXPORT
@@ -360,6 +379,11 @@ lispval fd_block_string(int len,u8_string string)
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->str_bytelen = length; ptr->str_bytes = bytes; ptr->str_freebytes = 0;
   if (string) u8_free(string);
+  if ( (fd_check_utf8) && (!(u8_validp(bytes))) ) {
+    FD_SET_CONS_TYPE(ptr,fd_packet_type);
+    fd_seterr("InvalidUTF8","fd_extract_string",NULL,LISP_CONS(ptr));
+    return FD_ERROR_VALUE;}
+  else return LISP_CONS(ptr);
   return LISP_CONS(ptr);
 }
 
@@ -389,7 +413,11 @@ lispval fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
   ptr->str_freebytes = freedata;
   /* Free the string */
   u8_free(string);
-  return LISP_CONS(ptr);
+  if ( (fd_check_utf8) && (!(u8_validp(bytes))) ) {
+    FD_SET_CONS_TYPE(ptr,fd_packet_type);
+    fd_seterr("InvalidUTF8","fd_extract_string",NULL,LISP_CONS(ptr));
+    return FD_ERROR_VALUE;}
+  else return LISP_CONS(ptr);
 }
 
 FD_EXPORT

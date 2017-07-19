@@ -807,6 +807,10 @@ void fd_init_startup_c()
      config_getrandomseed,config_setrandomseed,NULL);
 
   fd_register_config
+    ("CHECKUTF8",_("check that strings are valid UTF-8 on creation"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_check_utf8);
+
+  fd_register_config
     ("APPID",_("application ID used in messages and SESSIONID"),
      config_getappid,config_setappid,NULL);
 
