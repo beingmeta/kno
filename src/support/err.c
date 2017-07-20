@@ -106,7 +106,7 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex)
     return irritant;
   if (fd_stacktracep(irritant)) {
     lispval head = (PAIRP(FD_CDR(irritant))) ? (FD_CADR(irritant)) : (FD_VOID);
-    if (TYPEP(head,fd_error_type)) {
+    if (FD_EXCEPTIONP(head)) {
       struct FD_EXCEPTION_OBJECT *embedded = (fd_exception_object) head;
       u8_exception embedded_ex = embedded->ex_u8ex;
       if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
@@ -434,7 +434,7 @@ FD_EXPORT lispval fd_init_exception
    (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
 {
   if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_error_type);
+  FD_INIT_CONS(exo,fd_exception_type);
   exo->ex_u8ex = ex;
   return LISP_CONS(exo);
 }
@@ -451,7 +451,7 @@ FD_EXPORT lispval fd_make_exception
     xdata = (void *) content;
     freefn = fd_free_exception_xdata;}
   ex = u8_make_exception(c,cxt,u8dup(details),xdata,freefn);
-  FD_INIT_CONS(exo,fd_error_type);
+  FD_INIT_CONS(exo,fd_exception_type);
   exo->ex_u8ex = ex;
   return LISP_CONS(exo);
 }
@@ -507,14 +507,14 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
 static lispval copy_exception(lispval x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
   return fd_init_exception(NULL,copy_exception_helper(xo->ex_u8ex,deep));
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
   u8_exception ex = xo->ex_u8ex;
   if (ex == NULL)
     u8_printf(out,"#!!!OLDEXCEPTION");
@@ -659,11 +659,11 @@ void fd_init_err_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_copiers[fd_error_type]=copy_exception;
-  if (fd_dtype_writers[fd_error_type]==NULL)
-    fd_dtype_writers[fd_error_type]=dtype_exception;
-  if (fd_unparsers[fd_error_type]==NULL)
-    fd_unparsers[fd_error_type]=unparse_exception;
+  fd_copiers[fd_exception_type]=copy_exception;
+  if (fd_dtype_writers[fd_exception_type]==NULL)
+    fd_dtype_writers[fd_exception_type]=dtype_exception;
+  if (fd_unparsers[fd_exception_type]==NULL)
+    fd_unparsers[fd_exception_type]=unparse_exception;
 
   stacktrace_symbol=fd_intern("%%STACK");
 

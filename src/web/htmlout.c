@@ -116,9 +116,9 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   u8_exception ex;
   if ((VOIDP(exception))||(FALSEP(exception)))
     ex = u8_current_exception;
-  else if (TYPEP(exception,fd_error_type)) {
+  else if (FD_EXCEPTIONP(exception)) {
     struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_error_type);
+      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_exception_type);
     ex = xo->ex_u8ex;}
   else {
     u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
@@ -142,9 +142,9 @@ static lispval backtrace2html_prim(lispval arg,lispval where)
     if (ex) backtrace=fd_exception_backtrace(ex);}
   else if (PAIRP(arg))
     backtrace=arg;
-  else if (TYPEP(arg,fd_error_type)) {
+  else if (FD_EXCEPTIONP(arg)) {
     struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,arg,fd_error_type);
+      fd_consptr(struct FD_EXCEPTION_OBJECT *,arg,fd_exception_type);
     ex = xo->ex_u8ex;
     if (ex) backtrace=fd_exception_backtrace(ex);}
   else return fd_err("Bad exception/backtrace","backtrace2html_prim",
@@ -372,7 +372,7 @@ static void output_stack_frame(u8_output out,lispval entry)
 {
   if (FD_EXCEPTIONP(entry)) {
     fd_exception_object exo=
-      fd_consptr(fd_exception_object,entry,fd_error_type);
+      fd_consptr(fd_exception_object,entry,fd_exception_type);
     u8_exception ex = exo->ex_u8ex;
     fd_html_exception(out,ex,0);}
   else if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {

@@ -228,7 +228,7 @@ void fd_decref_vec(lispval *vec,size_t n,int free_vec)
 void fd_init_recycle_c()
 {
 
-  fd_recyclers[fd_error_type]=recycle_exception;
+  fd_recyclers[fd_exception_type]=recycle_exception;
   fd_recyclers[fd_mystery_type]=recycle_mystery;
   fd_recyclers[fd_uuid_type]=recycle_uuid;
   fd_recyclers[fd_timestamp_type]=recycle_timestamp;

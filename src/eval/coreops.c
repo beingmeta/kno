@@ -372,7 +372,9 @@ static lispval characterp(lispval x)
 
 static lispval errorp(lispval x)
 {
-  if (TYPEP(x,fd_error_type)) return FD_TRUE; else return FD_FALSE;
+  if (FD_EXCEPTIONP(x))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static lispval applicablep(lispval x)

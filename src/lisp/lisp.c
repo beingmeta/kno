@@ -103,7 +103,7 @@ static void init_type_names()
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
   fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_ffi_type]=_("foreign function");
-  fd_type_names[fd_error_type]=_("error");
+  fd_type_names[fd_exception_type]=_("error");
 
   fd_type_names[fd_complex_type]=_("complex");
   fd_type_names[fd_rational_type]=_("rational");

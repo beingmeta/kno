@@ -162,7 +162,7 @@ typedef enum FD_PTR_TYPE {
   fd_sproc_type = FD_CONS_TYPECODE(23),
   fd_code_type = FD_CONS_TYPECODE(24),
   fd_ffi_type = FD_CONS_TYPECODE(25),
-  fd_error_type = FD_CONS_TYPECODE(26),
+  fd_exception_type = FD_CONS_TYPECODE(26),
 
   fd_complex_type = FD_CONS_TYPECODE(27),
   fd_rational_type = FD_CONS_TYPECODE(28),
