@@ -1006,6 +1006,28 @@ static lispval commit_finished(lispval pool)
     else return VOID;}
 }
 
+static lispval pool_storen_prim(lispval pool,lispval oids,lispval values)
+{
+  fd_pool p = fd_lisp2pool(pool);
+  if (!(p))
+    return fd_type_error("pool","pool_storen_prim",pool);
+
+  long long oid_len = FD_VECTOR_LENGTH(oids);
+  if (FD_VECTOR_LENGTH(oids) != FD_VECTOR_LENGTH(values)) {
+    long long v_len = FD_VECTOR_LENGTH(values);
+    lispval intpair = fd_make_pair(FD_INT(oid_len),FD_INT(v_len));
+    lispval rlv=fd_err("OIDs/Values mismatch","pool_storen_prim",p->poolid,
+                       intpair);
+    fd_decref(intpair);
+    return rlv;}
+  int rv = fd_pool_storen(p,FD_VECTOR_LENGTH(oids),
+                          FD_VECTOR_ELTS(oids),
+                          FD_VECTOR_ELTS(values));
+  if (rv<0)
+    return FD_ERROR_VALUE;
+  else return FD_INT(oid_len);
+}
+
 static lispval clear_slotcache(lispval arg)
 {
   if (VOIDP(arg)) fd_clear_slotcaches();
@@ -3390,7 +3412,11 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1x("COMMIT-FINISHED",commit_finished,1,
                            fd_pool_type,VOID));
-
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim3x("POOL/STOREN!",pool_storen_prim,3,
+                           fd_pool_type,VOID,fd_vector_type,VOID,
+                           fd_vector_type,VOID));
+  
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));

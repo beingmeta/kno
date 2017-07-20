@@ -1359,6 +1359,21 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
   return value;
 }
 
+FD_EXPORT int fd_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
+{
+  if (n==0) return 0;
+  else if (p==NULL) return 0;
+  else if ((p->pool_handler) && (p->pool_handler->storen)) {
+    u8_lock_mutex(&(p->pool_save_lock));
+    int rv=p->pool_handler->storen(p,n,oids,values);
+    u8_unlock_mutex(&(p->pool_save_lock));
+    return rv;}
+  else if (p->pool_handler) {
+    u8_seterr("NoHandler","fd_pool_storen",u8_strdup(p->poolid));
+    return -1;}
+  else return 0;
+}
+
 /* Pools to lisp and vice versa */
 
 FD_EXPORT lispval fd_pool2lisp(fd_pool p)

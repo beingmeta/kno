@@ -337,6 +337,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,lispval oids,int commit);
 FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids);
 FD_EXPORT int fd_pool_finish(fd_pool p,lispval oids);
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level);
+FD_EXPORT int fd_pool_storen(fd_pool p,int n,lispval *oids,lispval *values);
 FD_EXPORT void fd_pool_close(fd_pool p);
 FD_EXPORT int fd_pool_swapout(fd_pool p,lispval oids);
 FD_EXPORT u8_string fd_pool_label(fd_pool p);
