@@ -18,4 +18,5 @@ set env FD_DISPLAYMAXCHARS=1024
 set env FD_TRACEWEB=yes
 set env FD_WEBDEBUG=yes
 set env FD_WEBALLOWDEBUG=yes
+set env FD_LIBSCM_DIR=../../src/libscm/
 source .gdbinit.local
