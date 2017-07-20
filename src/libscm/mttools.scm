@@ -59,8 +59,9 @@
 	 (max (->exact (ceiling (* arg ncpus))) (or maxval 0)))
 	((number? arg) (bad-threadcount arg))
 	((symbol? arg) 
-	 (if (config arg) (mt/threadcount (config arg) maxval)
-	     default-threadcount))
+	 (if (config arg)
+	     (mt/threadcount (config arg) maxval)
+	     (mt/threadcount default-threadcount)))
 	(else (bad-threadcount arg))))
 
 (define (bad-threadcount arg)
