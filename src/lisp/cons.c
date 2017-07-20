@@ -468,12 +468,10 @@ FD_EXPORT int fd_list_length(lispval l)
 
 FD_EXPORT lispval fd_reverse_list(lispval l)
 {
-  lispval result = FD_EMPTY_LIST, *tail = &result, scan=l;
+  lispval result = FD_EMPTY_LIST, scan=l;
   while (PAIRP(scan)) {
     lispval car  = FD_CAR(scan); fd_incref(car);
-    lispval pair = fd_init_pair(NULL,car,FD_EMPTY_LIST);
-    *tail=pair;
-    tail=&(FD_CDR(pair));
+    result = fd_init_pair(NULL,car,result);
     scan = FD_CDR(scan);}
   if (NILP(scan))
     return result;
