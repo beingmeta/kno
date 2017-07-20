@@ -905,13 +905,14 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #define CHOICE_ADD FD_ADD_TO_CHOICE
 #define EQ         FD_EQ
 #define STRLEN(x)  (FD_STRLEN(x))
-#define CSTRING(x) (FD_STRDATA(x))
+#define CSTRING(x) (FD_CSTRING(x))
 #define VEC_LEN(x)  (FD_VECTOR_LENGTH(x))
 #define VEC_DATA(x)  (FD_VECTOR_DATA(x))
 #define VEC_REF(x,i) (FD_VECTOR_REF((x),(i)))
 #define SYM_NAME(x) (FD_SYMBOL_NAME(x))
 #define PRECHOICEP(x) (FD_PRECHOICEP(x))
 #define QCHOICEP(x) (FD_QCHOICEP(x))
+#define AMBIGP(x)   (FD_AMBIGP(x))
 #define SLOTMAPP(x) (FD_SLOTMAPP(x))
 #define SCHEMAPP(x) (FD_SCHEMAPP(x))
 #define HASHTABLEP(x) (FD_HASHTABLEP(x))

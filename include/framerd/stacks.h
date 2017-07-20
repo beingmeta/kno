@@ -277,7 +277,7 @@ fd_add_cleanup(struct FD_STACK *stack,fd_stack_cleanop op,
   struct FD_STACK __stack, *_stack=&__stack; \
   fd_setup_stack(_stack,caller,label,op,n,args)
 
-FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack,lispval base);
+FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack);
 FD_EXPORT void fd_sum_backtrace(u8_output out,lispval backtrace);
 
 

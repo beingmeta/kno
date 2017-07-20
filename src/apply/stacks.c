@@ -81,14 +81,17 @@ static lispval stack2lisp(struct FD_STACK *stack)
 }
 
 FD_EXPORT
-lispval fd_get_backtrace(struct FD_STACK *stack,lispval rep)
+lispval fd_get_backtrace(struct FD_STACK *stack)
 {
+  lispval result = FD_EMPTY_LIST, *tail=&result;
   if (stack == NULL) stack=fd_stackptr;
   while (stack) {
-    lispval entry=stack2lisp(stack);
-    rep=fd_init_pair(NULL,entry,rep);
+    lispval entry = stack2lisp(stack);
+    lispval pair  = fd_init_pair(NULL,entry,FD_EMPTY_LIST);
+    *tail=pair;
+    tail = &(FD_CDR(pair));
     stack=stack->stack_caller;}
-  return rep;
+  return result;
 }
 
 FD_EXPORT

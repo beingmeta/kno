@@ -609,7 +609,7 @@ lispval fd_stack_ndapply(struct FD_STACK *stack,lispval fn,int n_args,lispval *a
    ((fd_function)(fd_fcnid_ref(x))) : \
    ((fd_function)x))
 
-FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack,lispval base);
+FD_EXPORT lispval fd_get_backtrace(struct FD_STACK *stack);
 FD_EXPORT void fd_html_backtrace(u8_output out,lispval rep);
 
 /* Unparsing */
