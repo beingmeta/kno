@@ -1199,7 +1199,7 @@ static ssize_t mmap_write_offdata
          "Finalizing %d oid values for %s",n,bp->poolid);
 
   unsigned int *offdata = NULL;
-  size_t byte_length = chunk_ref_size*max_off;
+  size_t byte_length = chunk_ref_size*(max_off+1);
   /* Map a second version of offdata to modify */
   unsigned int *memblock=
     mmap(NULL,256+(byte_length),(PROT_READ|PROT_WRITE),MAP_SHARED,
@@ -1261,7 +1261,7 @@ static ssize_t cache_write_offdata
  unsigned int min_off,unsigned int max_off)
 {
   int chunk_ref_size = get_chunk_ref_size(bp);
-  size_t offdata_modified_length = chunk_ref_size*(max_off-min_off);
+  size_t offdata_modified_length = chunk_ref_size*(1+(max_off-min_off));
   size_t offdata_modified_start = chunk_ref_size*min_off;
   unsigned int *offdata =u8_zmalloc(offdata_modified_length);
   if (offdata == NULL) {
