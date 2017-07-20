@@ -1670,7 +1670,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_INT(bp->pool_capacity);
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base=fd_pool_default_metadata(p);
-    fd_store(base,load_symbol,bp->pool_load);
+    fd_store(base,load_symbol,FD_INT(bp->pool_load));
     return base;}
   else if (op == fd_load_op)
     return FD_INT(bp->pool_load);
