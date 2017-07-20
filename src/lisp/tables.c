@@ -23,7 +23,6 @@
 fd_exception fd_NoSuchKey=_("No such key");
 fd_exception fd_ReadOnlyTable=_("Read-Only table");
 fd_exception fd_ReadOnlyHashtable=_("Read-Only hashtable");
-static fd_exception HashsetOverflow=_("Hashset Overflow");
 static u8_string NotATable=_("Not a table");
 static u8_string CantDrop=_("Table doesn't support drop");
 static u8_string CantTest=_("Table doesn't support test");
@@ -2924,23 +2923,6 @@ FD_EXPORT lispval fd_make_hashset()
   return LISP_CONS(h);
 }
 
-static int hashset_get_slot(lispval key,const lispval *slots,int n)
-{
-  int hash=fd_hash_lisp(key), probe=hash%n, n_probes=0;
-  while (n_probes<512)
-    if (slots[probe]==0)
-      return probe;
-    else if (LISP_EQUAL(key,slots[probe]))
-      return probe;
-    else {
-      probe++;
-      n_probes++;
-      if (probe >= n) probe=0;}
-  if (n_probes>=512)
-    return -1;
-  else return probe;
-}
-
 /* This does a simple binary search of a sorted choice vector,
    looking for a particular element. Once more, we separate out the
    atomic case because it just requires pointer comparisons.  */
@@ -2968,7 +2950,6 @@ static int choice_containsp(lispval x,struct FD_CHOICE *choice)
 
 FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
 {
-  int probe, exists;
   if (h->hs_n_elts==0) return 0;
   int hash = fd_hash_lisp(key);
   fd_read_lock_table(h);
@@ -3019,7 +3000,6 @@ FD_EXPORT lispval fd_hashset_elts(struct FD_HASHSET *h,int clean)
       fd_write_lock_table(h);
     else fd_read_lock_table(h);
     lispval results=EMPTY;
-    int n=h->hs_n_elts;
     lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
     while (scan<limit) {
       lispval v = *scan;
@@ -3235,7 +3215,7 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,lispval keys)
     if (need_size>h->hs_n_buckets) fd_grow_hashset(h,need_size);
     fd_write_lock_table(h); {
       {DO_CHOICES(key,keys) {
-          if (hashset_mod(h,key,1)) n_adds;}}
+          if (hashset_mod(h,key,1)) n_adds++;}}
       fd_unlock_table(h);
       return n_adds;}}
   else if (EMPTYP(keys))
