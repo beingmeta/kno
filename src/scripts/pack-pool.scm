@@ -3,7 +3,7 @@
 (config! 'cachelevel 2)
 (use-module '{optimize mttools varconfig stringfmts logger})
 
-(define %loglevel %info%)
+(define %loglevel %notice%)
 
 (define (getflags)
   (choice->list
@@ -100,15 +100,22 @@
   (set! last-save (elapsed-time))
   (set! saving #f))
 
-(define (copy-block queuefn old new)
-  (let ((oids (queuefn)))
+(define (copy-block queuefn old new (msg #f))
+  (let ((oids (queuefn))
+	(started (elapsed-time)))
     (while (exists? oids)
       (pool-prefetch! old oids)
-      (do-choices (oid oids)
-	(set-oid-value! oid (get old oid)))
-      (commit new)
-      (swapout old oids)
-      (set! oids (queuefn)))))
+      (let* ((n (choice-size oids))
+	     (oidvec (make-vector n))
+	     (valvec (make-vector n)))
+	(do-choices (oid oids i)
+	  (vector-set! oidvec i oid)
+	  (vector-set! valvec i (get old oid)))
+	(pool/storen! new oidvec valvec)
+	(swapout old oids))
+      (when msg (msg (choice-size oids) started))
+      (set! oids (queuefn))
+      (set! started (elapsed-time)))))
 
 (define (copy-oids old new)
   (loginfo |CopyOIDS|
@@ -121,20 +128,47 @@
 	 (alloids (or (poolctl old 'keys) (pool-elts old)))
 	 (oids (if (= (pool-load old) newload) alloids
 		   (reject alloids < (oid-plus (pool-base old) newload))))
-	 (blocksize (config 'blocksize 100000))
-	 (nblocks (1+ (quotient (choice-size oids) blocksize)))
+	 (threadcount (mt/threadcount (config 'nthreads 4)))
+	 (copysize (config 'blocksize 32000))
+	 (blocksize (1+ (quotient copysize threadcount)))
+	 (noids (choice-size oids))
+	 (nblocks (1+ (quotient noids blocksize)))
+	 (blocks-done 0)
+	 (oids-done 0)
 	 (queue '()))
     (dotimes (i nblocks)
       (set! queue (cons (qc (pick-n oids blocksize (* i blocksize)))
 			queue)))
+    (set! queue (reverse queue))
+    (lognotice |CopyOIDS|
+      "Copying " (choice-size oids) " OIDs"
+      (if (pool-label old) (append " for " (pool-label old)))
+      " from " (or (pool-source old) old)
+      " into " (or (pool-source new) new)
+      " in " (length queue) " blocks"
+      " using " (or threadcount "no") " threads")
     (let ((pop-queue
 	   (slambda ()
 	     (tryif (pair? queue)
 	       (prog1 (car queue) (set! queue (cdr queue))))))
-	  (threads {}))
-      (dotimes (i (mt/threadcount))
-	(set+! threads (thread/call copy-block pop-queue old new)))
-      (thread/wait threads))))
+	  (report-progress
+	   (slambda (count start)
+	     (set! blocks-done (1+ blocks-done))
+	     (set! oids-done (+ oids-done count))
+	     (loginfo |FinishedOIDs|
+	       "Finished a block of " ($num count) " OIDs "
+	       "in " (secs->string (elapsed-time started)))
+	     (lognotice |CopyProgress|
+	       ($num blocks-done) "/" ($num nblocks) " blocks, "
+	       ($num oids-done) "/" ($num noids) " OIDs (" (show% oids-done noids) ") "
+	       "in " (secs->string (elapsed-time started))))))
+      (if threadcount
+	  (let ((threads {}))
+	    (dotimes (i threadcount)
+	      (set+! threads 
+		(thread/call copy-block pop-queue old new report-progress)))
+	    (thread/wait threads))
+	  (copy-block pop-queue old new report-progress)))))
 
 (define (main (from) (to #f))
   (cond ((not (bound? from)) (usage))

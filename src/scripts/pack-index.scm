@@ -17,6 +17,27 @@
 
 (define %loglevel %notice%)
 
+;;; MT/MAP
+
+(define (mt-iterfn fn vec args indexfn)
+  (let ((vec-i (indexfn)))
+    (while vec-i
+      (if (null? args)
+	  (fn (elt vec vec-i))
+	  (apply fn (elt vec vec-i) args))
+      (set! vec-i (indexfn)))))
+
+(define (mt/iter threadcount fcn vec . args)
+  (let ((i 0) (len (length vec)))
+    (let ((getindex
+	   (slambda ()
+	     (and (< i len) (prog1 i (set! i (1+ i))))))
+	  (nthreads (mt/threadcount threadcount))
+	  (threads {}))
+      (dotimes (i nthreads)
+	(set+! threads (thread/call mt-iterfn fcn vec args getindex)))
+      (thread/wait threads))))
+
 ;;; Computing baseoids 
 
 (define (get-baseoids-from-pool pool)
@@ -50,6 +71,9 @@
 		       (set! slotids (list val)))
 		   slotids)))
 
+(define (count-slotid key table)
+  (when (pair? key) (hashtable-increment! table (car key))))
+
 (define (compute-slotids keyvec)
   (let ((slotids-config (config 'slotids #f)))
     (if (and (string? slotids-config) (file-exists? slotids-config))
@@ -61,6 +85,7 @@
 	    "Computing slotids based on " ($num (length keyvec)) " keys")
 	  (doseq (key keyvec)
 	    (when (pair? key) (hashtable-increment! table (car key))))
+	  ;; (mt/iter 3 count-slotid keyvec table)
 	  (lognotice |PackIndex/slotids|
 	    "Found " ($num (choice-size (getkeys table)))
 	    " slotids across " ($num (length keyvec)) " keys in "
@@ -76,8 +101,8 @@
       (if (string? s) (string->symbol (upcase s))
 	  (irritant s |NotStringOrSymbol|))))
 
-(define (get-new-size base)
-  (config 'newsize (inexact->exact (* (config 'newload 3) base))))
+(define (get-new-size nkeys)
+  (config 'newsize (inexact->exact (* (config 'loadfactor 2) nkeys))))
 
 (define (get-metadata base)
   (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
@@ -85,29 +110,20 @@
 (define (get-metadata)
   (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
 
-(define (make-new-index filename old keys (type))
+(define (make-new-index filename old keys (size) (type))
   (default! type (symbolize (config 'type 'hashindex)))
+  (default! size (get-new-size (length keys)))
   (lognotice |NewIndex|
     "Constructing new index " (write filename) " based on "
     (index-source old))
   (if (eq? type 'stdindex)
+      (make-index filename #[type fileindex size ,size])
       (make-index filename 
-		  #[type fileindex
-		    slots ,(max (* 2 (length keys))
-				(get-new-size (length keys)))])
-      (make-index filename 
-		  `#[type hashindex
-		     slots ,(get-new-size (length keys))
+		  `#[type hashindex size ,size
 		     slotids ,(compute-slotids keys)
 		     baseoids ,(sorted baseoids)
 		     metadata ,(get-metadata)]))
   (open-index filename))
-
-(define (copy-loop fifo buckets old new (bucket))
-  (while (fifo-live? fifo)
-    (set! bucket (fifo/pop fifo))
-    (do-choices (key (get buckets bucket))
-      (store! new key (get old key)))))
 
 (defambda (copy-keys keys old new)
   (prefetch-keys! old keys)
@@ -127,13 +143,16 @@
   (swapout new)
   (swapout old))
 
-(define (copy-all-keys keyv old new (chunk-size) (start (elapsed-time)))
+(define (add-bucket key index buckets)
+  (add! buckets (indexctl index 'hash key) key))
+
+(define (copy-all-keys old new keyv (chunk-size) (start (elapsed-time)))
   (default! chunk-size 
     (config 'chunksize
 	    (if (config 'nchunks) 
 		(quotient (length keyv) (config 'nchunks))
 		1000000)))
-  (lognotice |PackIndex/copy|
+  (loginfo |PackIndex/copy|
     "Copying " ($num (length keyv)) " keys" 
     " from " (or (index-source old) old)
     " into " (or (index-source new) new))
@@ -144,10 +163,9 @@
 	(bucket-start (elapsed-time)))
     (loginfo |PackIndex/buckets|
       "Generating a bucket map for " (or (index-source new) new))
-    (doseq (key keyv)
-      (add! buckets (indexctl new 'hash key) key))
+    (mt/iter #t add-bucket keyv new buckets)
     (lognotice |PackIndex/buckets|
-      "Generated mapping from " ($num (table-size buckets)) " buckets to "
+      "Identified " ($num (table-size buckets)) " buckets across "
       ($num (length keyv)) " keys in " (secs->string (elapsed-time bucket-start)))
     (do-choices (bucket (getkeys buckets) i)
       (set+! batch bucket)
@@ -168,6 +186,11 @@
     (lognotice |PackIndex/final| 
       "Processing final batch of " batch-size " keys")
     (process-batch batch batch-size buckets old new)))
+
+(define (populate-tables key slotcounts buckets)
+  (when (and (pair? key) (or (symbol? (car key)) (oid? (car key))))
+    (hashtable-increment! slotcounts (car key)))
+  (add! buckets (indexctl index 'hash key) key))
 
 (define (main from (to #f))
   (cond ((not to) (repack-index from))
