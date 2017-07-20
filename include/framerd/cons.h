@@ -430,6 +430,7 @@ FD_EXPORT int fd_check_utf8;
 #define FD_STRINGP(x) (FD_TYPEP(x,fd_string_type))
 #define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))
 #define FD_STRDATA(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
+#define FD_CSTRING(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
 #define FD_STRING_LENGTH(x) (FD_STRLEN(x))
 #define FD_STRING_DATA(x) (FD_STRDATA(x))
 
@@ -518,8 +519,10 @@ typedef struct FD_PAIR *fd_pair;
   fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->cdr))
 
 /* These are not threadsafe and they don't worry about GC either */
+#define FD_SETCAR(p,x) ((struct FD_PAIR *)p)->car = x
 #define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car = x
 #define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr = x
+#define FD_SETCDR(p,x) ((struct FD_PAIR *)p)->cdr = x
 
 #define FD_DOLIST(x,list) \
   lispval x, _tmp = list; \
@@ -531,6 +534,7 @@ FD_EXPORT lispval fd_make_pair(lispval car,lispval cdr);
 FD_EXPORT lispval fd_make_list(int len,...);
 FD_EXPORT lispval fd_pmake_list(int len,...);
 FD_EXPORT int fd_list_length(lispval l);
+FD_EXPORT lispval fd_reverse_list(lispval l);
 
 #define FD_XPAIR(x) (fd_consptr(struct FD_PAIR *,x,fd_pair_type))
 #define fd_conspair(car,cdr) fd_init_pair(NULL,car,cdr)

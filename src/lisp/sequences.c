@@ -586,7 +586,10 @@ lispval fd_makeseq(fd_ptr_type ctype,int n,lispval *v)
 
 FD_EXPORT lispval fd_reverse(lispval sequence)
 {
-  if (NILP(sequence)) return sequence;
+  if (NILP(sequence))
+    return sequence;
+  else if (FD_PAIRP(sequence))
+    return fd_reverse_list(sequence);
   else {
     int i, j, len; lispval *elts = fd_elts(sequence,&len), result;
     lispval *tmp = ((len) ? (u8_alloc_n(len,lispval)) : (NULL));

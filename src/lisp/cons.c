@@ -466,6 +466,23 @@ FD_EXPORT int fd_list_length(lispval l)
   else return -len;
 }
 
+FD_EXPORT lispval fd_reverse_list(lispval l)
+{
+  lispval result = FD_EMPTY_LIST, *tail = &result, scan=l;
+  while (PAIRP(scan)) {
+    lispval car  = FD_CAR(scan); fd_incref(car);
+    lispval pair = fd_init_pair(NULL,car,FD_EMPTY_LIST);
+    *tail=pair;
+    tail=&(FD_CDR(pair));
+    scan = FD_CDR(scan);}
+  if (NILP(scan))
+    return result;
+  else {
+    fd_seterr("ImproperList","fd_reverse_list",NULL,l);
+    fd_decref(result);
+    return FD_ERROR_VALUE;}
+}
+
 /* Vectors */
 
 FD_EXPORT lispval fd_init_vector(struct FD_VECTOR *ptr,int len,lispval *data)
