@@ -1374,6 +1374,42 @@ FD_EXPORT int fd_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   else return 0;
 }
 
+FD_EXPORT lispval fd_pool_fetchn(fd_pool p,lispval oids_arg)
+{
+  if (p==NULL) return 0;
+  else if ((p->pool_handler) && (p->pool_handler->fetchn)) {
+    lispval oids = fd_make_simple_choice(oids_arg);
+    if (FD_VECTORP(oids)) {
+      int n = FD_VECTOR_LENGTH(oids);
+      lispval *oidv = FD_VECTOR_ELTS(oids);
+      lispval *values = p->pool_handler->fetchn(p,n,oidv);
+      return fd_init_vector(NULL,n,values);}
+    else {
+      int n = FD_CHOICE_SIZE(oids);
+      if (n==0)
+        return fd_make_hashtable(NULL,8);
+      else if (n==1) {
+        lispval table=fd_make_hashtable(NULL,16);
+        lispval value = fd_fetch_oid(p,oids);
+        fd_store(table,oids,value);
+        fd_decref(value);
+        return table;}
+      else {
+        init_cache_level(p);
+        const lispval *oidv=FD_CHOICE_DATA(oids);
+        const lispval *values=p->pool_handler->fetchn(p,n,(lispval *)oidv);
+        lispval table=fd_make_hashtable(NULL,n*3);
+        fd_hashtable_iter((fd_hashtable)table,fd_table_store_noref,n,
+                          oidv,values);
+        u8_free(values);
+        fd_decref(oids);
+        return table;}}}
+  else if (p->pool_handler) {
+    u8_seterr("NoHandler","fd_pool_storen",u8_strdup(p->poolid));
+    return -1;}
+  else return 0;
+}
+
 /* Pools to lisp and vice versa */
 
 FD_EXPORT lispval fd_pool2lisp(fd_pool p)
