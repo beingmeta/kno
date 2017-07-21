@@ -1,8 +1,10 @@
 ;;; -*- Mode: Scheme -*-
 
+(use-module '{optimize mttools logger stringfmts fifo varconfig})
+
 (config! 'cachelevel 2)
 (config! 'optlevel 4)
-(use-module '{optimize mttools logger stringfmts fifo varconfig})
+(config! 'logprocinfo #t)
 
 (define (getflags)
   (choice->vector
@@ -110,9 +112,9 @@
 (define (get-metadata)
   (and (config 'metadata #f) (file->dtype (config 'metadata #f))))
 
-(define (make-new-index filename old keys (size) (type))
+(define (make-new-index filename old keyvec (size) (type))
   (default! type (symbolize (config 'type 'hashindex)))
-  (default! size (get-new-size (length keys)))
+  (default! size (get-new-size (length keyvec)))
   (lognotice |NewIndex|
     "Constructing new index " (write filename) " based on "
     (index-source old))
@@ -120,7 +122,7 @@
       (make-index filename #[type fileindex size ,size])
       (make-index filename 
 		  `#[type hashindex size ,size
-		     slotids ,(compute-slotids keys)
+		     slotids ,(compute-slotids keyvec)
 		     baseoids ,(sorted baseoids)
 		     metadata ,(get-metadata)]))
   (open-index filename))
@@ -146,7 +148,7 @@
 (define (add-bucket key index buckets)
   (add! buckets (indexctl index 'hash key) key))
 
-(define (copy-all-keys old new keyv (chunk-size) (start (elapsed-time)))
+(define (copy-all-keys keyv old new (chunk-size) (start (elapsed-time)))
   (default! chunk-size 
     (config 'chunksize
 	    (if (config 'nchunks) 
@@ -186,11 +188,6 @@
     (lognotice |PackIndex/final| 
       "Processing final batch of " batch-size " keys")
     (process-batch batch batch-size buckets old new)))
-
-(define (populate-tables key slotcounts buckets)
-  (when (and (pair? key) (or (symbol? (car key)) (oid? (car key))))
-    (hashtable-increment! slotcounts (car key)))
-  (add! buckets (indexctl index 'hash key) key))
 
 (define (main from (to #f))
   (cond ((not to) (repack-index from))

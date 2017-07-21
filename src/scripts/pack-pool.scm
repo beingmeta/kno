@@ -1,9 +1,11 @@
 ;;; -*- Mode: Scheme -*-
 
-(config! 'cachelevel 2)
 (use-module '{optimize mttools varconfig stringfmts logger})
 
 (define %loglevel %notice%)
+(config! 'cachelevel 2)
+(config! 'optlevel 4)
+(config! 'logprocinfo #t)
 
 (define (getflags)
   (choice->list
@@ -59,7 +61,7 @@
 	  (irritant s |NotStringOrSymbol|))))
 
 (define ztype-map
-  #[bigpool zlib oidpool zlib filepool #f])
+  #[bigpool snappy oidpool zlib filepool #f])
 
 (define (make-new-pool filename old 
 		       (type (symbolize (config 'pooltype 'bigpool))))
@@ -69,12 +71,17 @@
 			   capacity ,(config 'newcap (pool-capacity old))
 			   load ,(config 'newload (pool-load old))
 			   label ,(config 'label (pool-label old))
-			   compression 
-			   ,(symbolize (config 'compression
-					       (try (get ztype-map type) #f)))
+			   slotids ,(get-slotids metadata type)
+			   compression ,(get-compression metadata type)
 			   dtypev2 ,(config 'dtypev2 (test metadata 'flags 'dtypev2))
 			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct))
 			   register #t])))
+
+(define (get-slotids metadata type (current) (added (config 'slotids {})))
+  (set! current (getopt metadata 'slotids #()))
+  (append current (choice->vector (difference added (elts current)))))
+(define (get-compression metadata type)
+  (symbolize (config 'compression (try (get ztype-map type) #f))))
 
 (define (get-batchsize n)
   (cond ((and (config 'batchsize) (< (config 'batchsize) 1))
@@ -104,15 +111,9 @@
   (let ((oids (queuefn))
 	(started (elapsed-time)))
     (while (exists? oids)
-      (pool-prefetch! old oids)
-      (let* ((n (choice-size oids))
-	     (oidvec (make-vector n))
-	     (valvec (make-vector n)))
-	(do-choices (oid oids i)
-	  (vector-set! oidvec i oid)
-	  (vector-set! valvec i (get old oid)))
-	(pool/storen! new oidvec valvec)
-	(swapout old oids))
+      (let* ((oidvec (choice->vector oids))
+	     (valvec (pool/fetchn old oidvec)))
+	(pool/storen! new oidvec valvec))
       (when msg (msg (choice-size oids) started))
       (set! oids (queuefn))
       (set! started (elapsed-time)))))
@@ -128,9 +129,9 @@
 	 (alloids (or (poolctl old 'keys) (pool-elts old)))
 	 (oids (if (= (pool-load old) newload) alloids
 		   (reject alloids < (oid-plus (pool-base old) newload))))
-	 (threadcount (mt/threadcount (config 'nthreads 4)))
-	 (copysize (config 'blocksize 32000))
-	 (blocksize (1+ (quotient copysize threadcount)))
+	 (threadcount (mt/threadcount (config 'nthreads 10)))
+	 (loadsize (config 'loadsize 100000))
+	 (blocksize (quotient loadsize threadcount))
 	 (noids (choice-size oids))
 	 (nblocks (1+ (quotient noids blocksize)))
 	 (blocks-done 0)
@@ -141,11 +142,11 @@
 			queue)))
     (set! queue (reverse queue))
     (lognotice |CopyOIDS|
-      "Copying " (choice-size oids) " OIDs"
+      "Copying " ($num (choice-size oids)) " OIDs"
       (if (pool-label old) (append " for " (pool-label old)))
       " from " (or (pool-source old) old)
       " into " (or (pool-source new) new)
-      " in " (length queue) " blocks"
+      " in " ($num (length queue)) " blocks"
       " using " (or threadcount "no") " threads")
     (let ((pop-queue
 	   (slambda ()
@@ -157,11 +158,11 @@
 	     (set! oids-done (+ oids-done count))
 	     (loginfo |FinishedOIDs|
 	       "Finished a block of " ($num count) " OIDs "
-	       "in " (secs->string (elapsed-time started)))
-	     (lognotice |CopyProgress|
-	       ($num blocks-done) "/" ($num nblocks) " blocks, "
-	       ($num oids-done) "/" ($num noids) " OIDs (" (show% oids-done noids) ") "
-	       "in " (secs->string (elapsed-time started))))))
+	       "in " (secs->string (elapsed-time start)))
+	     (lognotice |CopyOIDs|
+	       "Copied " ($num blocks-done) "/" ($num nblocks) " blocks, "
+	       ($num oids-done) " OIDs (" (show% oids-done noids) ") "
+	       "after " (secs->string (elapsed-time started))))))
       (if threadcount
 	  (let ((threads {}))
 	    (dotimes (i threadcount)
@@ -174,15 +175,20 @@
   (cond ((not (bound? from)) (usage))
 	((not to) (repack-pool from))
 	((and (file-exists? to) (not (config 'OVERWRITE #f)))
-	 (message "Not overwriting " to))
+	 (message "Not overwriting " to)
+	 (exit))
 	((not (file-exists? from))
-	 (message "Can't locate source " (write from)))
+	 (message "Can't locate source " (write from))
+	 (exit))
 	(else
 	 (when (file-exists? to) (remove-file to))
-	 (let* ((old (open-pool from #[register #f cachelevel 2]))
-		(new (make-new-pool to old)))
-	   (copy-oids old new)
-	   (commit new)))))
+	 (let ((old (open-pool from #[register #f cachelevel 2])))
+	   (message "Repacking " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
+	     "OIDs " (if (pool-label old) (glom "for " (pool-label old)))
+	     " from " from " into " to)
+	   (let ((new (make-new-pool to old)))
+	     (copy-oids old new)
+	     (commit new))))))
 
 (define (repack-pool from)
   (let* ((base (basename from))
@@ -201,10 +207,13 @@
 	      "The temporary file " (write tmpfile) " already exists. "
 	      "Remove it or specify the config RESTART=yes to ignore")
 	    (exit))))
-    (let* ((old (open-pool from #[register #f cachelevel 2]))
-	   (new (make-new-pool tmpfile old)))
-      (copy-oids old new)
-      (commit new))
+    (let ((old (open-pool from #[register #t adjunct #t cachelevel 2])))
+      (message "Repacking " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
+	"OIDs " (if (pool-label old) (glom "for " (pool-label old)))
+	" via " tmpfile " with backup saved as " bakfile)
+      (let ((new (make-new-pool tmpfile old)))
+	(copy-oids old new)
+	(commit new)))
     (onerror (move-file from bakfile)
 	     (lambda (ex) (system "mv " from " " bakfile)))
     (onerror (move-file tmpfile from)
