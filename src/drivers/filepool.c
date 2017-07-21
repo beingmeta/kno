@@ -81,8 +81,10 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
   lo = fd_read_4bytes_at(s,8,FD_ISLOCKED);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
   capacity = fd_read_4bytes_at(s,12,FD_ISLOCKED);
+
   fd_init_pool((fd_pool)pool,base,capacity,&file_pool_handler,fname,rname);
   u8_free(rname);
+
   if (magicno == FD_FILE_POOL_TO_RECOVER) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the file pool %s",fname);
     if (recover_file_pool(pool)<0) {
@@ -103,7 +105,10 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
       fd_close_stream(&(pool->pool_stream),0);
       u8_free(rname); u8_free(pool);
       return NULL;}}
-  pool->pool_load = load; pool->pool_offdata = NULL; pool->pool_offdata_size = 0;
+  pool->pool_load = load;
+  pool->pool_flags = flags;
+  pool->pool_offdata = NULL;
+  pool->pool_offdata_size = 0;
   if (read_only)
     U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);

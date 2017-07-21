@@ -29,10 +29,10 @@ FD_EXPORT int fd_index_cache_init;
 FD_EXPORT int fd_index_edits_init;
 FD_EXPORT int fd_index_adds_init;
 
-#define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(1))
-#define FD_INDEX_ADD_CAPABILITY  (FD_INDEX_FLAG(2))
-#define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(3))
-#define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(4))
+#define FD_INDEX_ADD_CAPABILITY  (FD_INDEX_FLAG(1))
+#define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(2))
+#define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(3))
+#define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(4))
 
 #define FD_N_PRIMARY_INDEXES 1024
 
@@ -267,7 +267,7 @@ FD_FASTOP int fd_index_add(fd_index ix,lispval key,lispval value)
       if (fd_hashtable_probe(&fdtc->indexes,(lispval)&tempkey)) {
 	fd_hashtable_add(&fdtc->indexes,(lispval)&tempkey,value);}}}
 
-  if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) && 
+  if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->index_cache.table_n_keys)) {
     fd_hashtable bgcache = (&(fd_background->index_cache));
     if (FD_CHOICEP(key)) {

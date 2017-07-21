@@ -38,7 +38,7 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
-static lispval load_symbol;
+static lispval load_symbol, slotids_symbol;
 
 static void bigpool_setcache(fd_bigpool p,int level);
 
@@ -536,7 +536,7 @@ static int bigpool_load(fd_pool p)
   else if (bp->pool_stream.stream_fileno >= 0) {
     struct stat info;
     int rv = fstat(bp->pool_stream.stream_fileno,&info);
-    if ( bp->file_mtime >= info.st_mtime )
+    if ( (rv>=0) && ( bp->file_mtime >= info.st_mtime ) )
       return bp->pool_load;
     reload_bigpool(bp,FD_UNLOCKED);
     return bp->pool_load;}
@@ -1417,7 +1417,7 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
   /* Everything below here requires a file descriptor */
 
   if ( (level >= 2) && (bp->pool_offdata == NULL) ) {
-    unsigned int *offdata, *newmmap;
+    unsigned int *newmmap;
     /* Sizes here are in bytes */
     size_t offsets_size = (bp->pool_load)*chunk_ref_size;
     size_t header_size = 256+offsets_size;
@@ -1670,7 +1670,12 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return FD_INT(bp->pool_capacity);
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base=fd_pool_default_metadata(p);
+    lispval slotids_vec =
+      fd_make_vector(bp->bigpool_n_slotids,
+                     bp->bigpool_slotids);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
+    fd_store(base,slotids_symbol,slotids_vec);
+    fd_decref(slotids_vec);
     return base;}
   else if (op == fd_load_op)
     return FD_INT(bp->pool_load);
@@ -1833,6 +1838,7 @@ FD_EXPORT void fd_init_bigpool_c()
      (void*)U8_INT2PTR(FD_BIGPOOL_TO_RECOVER));
 
   load_symbol=fd_intern("LOAD");
+  slotids_symbol=fd_intern("SLOTIDS");
 
   fd_set_default_pool_type("bigpool");
 }

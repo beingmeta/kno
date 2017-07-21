@@ -188,6 +188,8 @@ FD_EXPORT void fd_register_index(fd_index ix)
       ix->index_serialno = fd_n_secondary_indexes+FD_N_PRIMARY_INDEXES;
       fd_secondary_indexes[fd_n_secondary_indexes++]=ix;}
     u8_unlock_mutex(&indexes_lock);}
+  if ((ix->index_flags)&(FD_INDEX_IN_BACKGROUND))
+    fd_add_to_background(ix);
 }
 
 FD_EXPORT lispval fd_index2lisp(fd_index ix)
@@ -336,7 +338,9 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   return 1;
 }
 
-FD_EXPORT fd_index fd_use_index(u8_string spec,fd_storage_flags flags,lispval opts)
+FD_EXPORT fd_index fd_use_index(u8_string spec,
+                                fd_storage_flags flags,
+                                lispval opts)
 {
   flags&=~FD_STORAGE_UNREGISTERED;
   if (strchr(spec,';')) {
@@ -792,8 +796,8 @@ FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value)
         fd_hashtable_add(&(fdtc->indexes),(lispval)&tempkey,value);}}}
 
   if ( (ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
-       (fd_background->index_cache.table_n_keys) && 
-         (fd_background->index_cache.table_n_keys) ) {
+       (fd_background->index_cache.table_n_keys) &&
+       (fd_background->index_cache.table_n_keys) ) {
     fd_hashtable bgcache = &(fd_background->index_cache);
     if (CHOICEP(key)) {
       const lispval *keys = FD_CHOICE_DATA(key);

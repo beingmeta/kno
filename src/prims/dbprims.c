@@ -67,6 +67,22 @@ static lispval pool2lisp(fd_pool p)
   return poolval;
 }
 
+#define FALSE_ARGP(x) ( ((x)==FD_VOID) || ((x)==FD_FALSE) || ((x)==FD_FIXZERO) )
+
+static int testopt(lispval opts,lispval sym,int dflt)
+{
+  if (!(FD_TABLEP(opts)))
+    return dflt;
+  lispval val = fd_getopt(opts,sym,FD_VOID);
+  if ( (val == FD_VOID) || (val == FD_DEFAULT_VALUE) )
+    return dflt;
+  else if ( (val == FD_FALSE) || (val == FD_FIXZERO) )
+    return 0;
+  else {
+    fd_decref(val);
+    return 1;}
+}
+
 static fd_storage_flags getdbflags(lispval opts,fd_storage_flags init_flags)
 {
   if (FIXNUMP(opts)) {
@@ -80,47 +96,23 @@ static fd_storage_flags getdbflags(lispval opts,fd_storage_flags init_flags)
     fd_storage_flags flags =
       ( (FIXNUMP(flags_val)) ? (FIX2INT(flags_val)) : (0) ) |
       (init_flags);
-    lispval regopt = fd_getopt(opts,register_symbol,VOID);
-    lispval bgopt = ((flags&FD_STORAGE_ISINDEX) ?
-                    (fd_getopt(opts,background_symbol,VOID)) :
-                    (FD_FALSE));
-    lispval adjopt = ((flags&FD_STORAGE_ISPOOL) ?
-                     (fd_getopt(opts,isadjunct_symbol,VOID)) :
-                     (FD_FALSE));
-    lispval sparseopt = ((flags&FD_STORAGE_ISPOOL) ?
-                        (fd_getopt(opts,sparse_symbol,VOID)) :
-                        (FD_FALSE));
-    if (fd_testopt(opts,readonly_symbol,VOID))
+    int is_index = (flags&FD_STORAGE_ISINDEX);
+    if (testopt(opts,readonly_symbol,0))
       flags |= FD_STORAGE_READ_ONLY;
-    if ((FALSEP(opts))||(FALSEP(regopt))||(FD_ZEROP(regopt)))
+    if (!(testopt(opts,register_symbol,1)))
       flags |= FD_STORAGE_UNREGISTERED;
-    else if (VOIDP(regopt)) {
-      if (flags&FD_STORAGE_ISINDEX)
-        flags |= FD_STORAGE_UNREGISTERED;}
-    else {}
-    if ( (flags&FD_STORAGE_ISINDEX) &&
-         (!( (VOIDP(bgopt)) ||
-             (FALSEP(bgopt)) ||
-             (FD_ZEROP(bgopt)) ) ) )
+    if ( (is_index) && (testopt(opts,background_symbol,0)) )
       flags |= FD_INDEX_IN_BACKGROUND;
-    if ( (flags&FD_STORAGE_ISPOOL) &&
-         (!( (VOIDP(adjopt)) ||
-             (FALSEP(adjopt)) ||
-             (FD_ZEROP(adjopt)) ) ) )
+    if ( (!(is_index)) && (testopt(opts,isadjunct_symbol,0)) )
       flags |= FD_POOL_ADJUNCT | FD_POOL_SPARSE;
-    else if ( (flags&FD_STORAGE_ISPOOL) &&
-              (!( (VOIDP(sparseopt)) ||
-                  (FALSEP(sparseopt)) ||
-                  (FD_ZEROP(sparseopt)) ) ) )
+    if ( (!(is_index)) && (testopt(opts,sparse_symbol,0)) )
       flags |= FD_POOL_SPARSE;
-    else {}
     fd_decref(flags_val);
-    fd_decref(sparseopt);
-    fd_decref(regopt);
-    fd_decref(bgopt);
     return flags;}
   else if (FALSEP(opts))
-    return init_flags | FD_STORAGE_UNREGISTERED;
+    if (init_flags&FD_STORAGE_ISPOOL)
+      return (init_flags & (~(FD_STORAGE_UNREGISTERED)));
+    else return (init_flags | FD_STORAGE_UNREGISTERED);
   else return init_flags;
 }
 
@@ -1026,6 +1018,15 @@ static lispval pool_storen_prim(lispval pool,lispval oids,lispval values)
   if (rv<0)
     return FD_ERROR_VALUE;
   else return FD_INT(oid_len);
+}
+
+static lispval pool_fetchn_prim(lispval pool,lispval oids)
+{
+  fd_pool p = fd_lisp2pool(pool);
+  if (!(p))
+    return fd_type_error("pool","pool_storen_prim",pool);
+
+  return fd_pool_fetchn(p,oids);
 }
 
 static lispval clear_slotcache(lispval arg)
@@ -3412,10 +3413,13 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1x("COMMIT-FINISHED",commit_finished,1,
                            fd_pool_type,VOID));
-  fd_idefn(fd_xscheme_module,
-           fd_make_cprim3x("POOL/STOREN!",pool_storen_prim,3,
-                           fd_pool_type,VOID,fd_vector_type,VOID,
-                           fd_vector_type,VOID));
+  fd_idefn3(fd_xscheme_module,"POOL/STOREN!",pool_storen_prim,3,
+            "Stores values in a pool, skipping the object cache",
+            -1,VOID,fd_vector_type,VOID,
+            fd_vector_type,VOID);
+  fd_idefn2(fd_xscheme_module,"POOL/FETCHN",pool_fetchn_prim,2|FD_NDCALL,
+            "Fetches values from a pool, skipping the object cache",
+            -1,VOID,-1,VOID);
   
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,

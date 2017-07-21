@@ -49,14 +49,14 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 
 typedef unsigned int fd_storage_flags;
 
-#define FD_STORAGE_ISPOOL		   0x01
-#define FD_STORAGE_ISINDEX		   0x02
-#define FD_STORAGE_READ_ONLY		   0x04
+#define FD_STORAGE_ISPOOL		   0x001
+#define FD_STORAGE_ISINDEX		   0x002
+#define FD_STORAGE_READ_ONLY		   0x004
 
-#define FD_STORAGE_UNREGISTERED	           0x10
-#define FD_STORAGE_KEEP_CACHESIZE          0x20
-#define FD_STORAGE_NOSWAP		   0x40
-#define FD_STORAGE_NOERR		   0x80
+#define FD_STORAGE_UNREGISTERED	           0x010
+#define FD_STORAGE_KEEP_CACHESIZE          0x020
+#define FD_STORAGE_NOSWAP		   0x040
+#define FD_STORAGE_NOERR		   0x080
 #define FD_STORAGE_PHASED		   0x100
 
 #define FD_STORAGE_MAX_INIT_BITS	   0x800

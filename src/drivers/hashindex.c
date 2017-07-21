@@ -233,7 +233,6 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   fd_size_t slotids_size, baseoids_size, metadata_size;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
-  long long cache_level = fd_getfixopt(opts,"CACHELEVEL",fd_default_cache_level);
   int stream_flags =
     FD_STREAM_CAN_SEEK | FD_STREAM_NEEDS_LOCK | FD_STREAM_READ_ONLY;
 
@@ -1164,7 +1163,6 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
         sort_ks_by_refoff);
   {
     struct FD_INBUF keyblkstrm={0};
-    unsigned char buf[max_keyblock_size];
     int bucket = -1, j = 0, k = 0, n_keys=0;
     while (j<n_entries) {
       int found = 0;
@@ -1550,10 +1548,10 @@ static void hashindex_setcache(struct FD_HASHINDEX *hx,int level)
 {
   int chunk_ref_size = get_chunk_ref_size(hx);
   if (chunk_ref_size<0) {
-    u8_log(LOG_WARN,fd_CorruptedIndex,"Index structure invalid: %s",hx->indexid);
+    u8_log(LOG_WARN,fd_CorruptedIndex,
+           "Index structure invalid: %s",hx->indexid);
     return;}
   fd_stream stream = &(hx->index_stream);
-  unsigned int stream_flags = stream->stream_flags;
   size_t bufsize  = fd_stream_bufsize(stream);
   size_t use_bufsize = fd_getfixopt(hx->index_opts,"BUFSIZE",fd_driver_bufsize);
 
