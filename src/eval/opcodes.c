@@ -777,14 +777,18 @@ static lispval tableop(lispval opcode,lispval arg1,lispval arg2,lispval arg3)
 static lispval combine_values(lispval combiner,lispval cur,lispval value)
 {
   int use_cur=((FD_ABORTP(cur)) ||
-               (cur == FD_DEFAULT_VALUE) ||
-               (cur == FD_UNBOUND) ||
-               (cur == VOID) ||
-               (cur == FD_NULL));
+               (!((cur == FD_DEFAULT_VALUE) ||
+                  (cur == FD_UNBOUND) ||
+                  (cur == VOID) ||
+                  (cur == FD_NULL))));
   switch (combiner) {
   case VOID: case FD_FALSE:
     return value;
   case FD_DEFAULT_VALUE:
+    if (use_cur)
+      return cur;
+    else return value;
+  case FD_TRUE:
     if (use_cur)
       return cur;
     else return value;
