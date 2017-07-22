@@ -680,7 +680,7 @@ FD_EXPORT void fd_init_loader_c()
     safe_loadpath = fd_init_pair(NULL,v,safe_loadpath);}
     
   {u8_string dir=u8_getenv("FD_LIBSCM_DIR");
-    if (dir==NULL) dir = FD_LIBSCM_DIR;
+    if (dir==NULL) dir = u8_strdup(FD_LIBSCM_DIR);
     if (u8_has_suffix(dir,"/",0))
       libscm_path=u8_string_append(dir,"%/module.scm:",dir,"%.scm",NULL);
     else libscm_path=u8_string_append(dir,"/%/module.scm:",dir,"/%.scm",NULL);
