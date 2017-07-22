@@ -1091,7 +1091,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
 #if FD_DEBUG_HASHINDEXES
   u8_message("Reading %d keys from %s",n,hx->indexid);
 #endif
-  /* Assuming 32 bytes per key representation */
+  /* Assuming 32 bytes per key */
   FD_INIT_BYTE_OUTPUT(&keysbuf,n*32);
   if ((hx->storage_xformat)&(FD_HASHINDEX_DTYPEV2))
     keysbuf.buf_flags = keysbuf.buf_flags|FD_USE_DTYPEV2;

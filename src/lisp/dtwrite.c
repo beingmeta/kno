@@ -492,15 +492,12 @@ static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
 /* This writes a non frame value with compression. */
 FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,lispval x)
 {
-  unsigned char *zbytes, zbuf[2000], tmpbuf[2000];
-  ssize_t dt_len, zlen = -1, size=0;
-  struct FD_OUTBUF out;
+  FD_DECL_OUTBUF(out,2000);
+  unsigned char *zbytes, zbuf[2000];
+  ssize_t dt_len, zlen = 2000, size=0;
   int rv=-1;
-  out.bufwrite = out.buffer = tmpbuf;
-  out.buflim   = out.buffer+2000;
-  out.buf_flags = FD_IS_WRITING;
   if (fd_write_dtype(&out,x)<0) {
-    if (out.buffer != tmpbuf) u8_free(out.buffer);
+    fd_close_outbuf(&out);
     return FD_ERROR;}
   else dt_len=out.bufwrite-out.buffer;
   zbytes = fd_zlib_compress(out.buffer,dt_len,zbuf,&zlen,-1);
@@ -509,7 +506,7 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,lispval x)
     if (rv>0) {size += rv; rv=fd_write_zint(s,zlen);}
     if (rv>0) {size += rv; rv=fd_write_bytes(s,zbytes,zlen);}}
   if (zbytes != zbuf) u8_free(zbytes);
-  if (out.buffer != tmpbuf) u8_free(out.buffer);
+  fd_close_outbuf(&out);
   if (rv<0)
     return rv;
   else return size;
@@ -517,19 +514,16 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,lispval x)
 
 FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,lispval x)
 {
-  struct FD_OUTBUF out;
-  unsigned char tmpbuf[2000];
+  FD_DECL_OUTBUF(out,2000);
   int retval = 0;
   size_t size=0;
-  out.bufwrite = out.buffer = tmpbuf;
-  out.buflim = out.buffer+2000;
-  out.buf_flags = FD_IS_WRITING;
   if (CHOICEP(x)) {
     DO_CHOICES(v,x) {
       retval = fd_write_dtype(&out,v);
       if (retval<0) {FD_STOP_DO_CHOICES; break;}}}
   else if (VECTORP(x)) {
-    int i = 0, len = VEC_LEN(x); lispval *data = VEC_DATA(x);
+    int i = 0, len = VEC_LEN(x);
+    lispval *data = VEC_DATA(x);
     while (i<len) {
       retval = fd_write_dtype(&out,data[i]); i++;
       if (retval<0) break;}}
@@ -541,10 +535,14 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,lispval x)
       fd_zlib_compress(out.buffer,outlen,zbuf,&zlen,-1);
     if (zbytes) {
       retval = fd_write_byte(s,dt_ztype);
-      if (retval>=0) { size += retval; retval=fd_write_zint(s,zlen);}
-      if (retval>=0) { size += retval; retval=fd_write_bytes(s,zbytes,zlen);}}
+      if (retval>=0) {
+        size += retval;
+        retval=fd_write_zint(s,zlen);}
+      if (retval>=0) {
+        size += retval;
+        retval=fd_write_bytes(s,zbytes,zlen);}}
     if ( (zbytes) && (zbytes != zbuf) ) u8_free(zbytes);}
-  if (out.buffer != tmpbuf) u8_free(out.buffer);
+  fd_close_outbuf(&out);
   if ( retval < 0 )
     return retval;
   else return size;

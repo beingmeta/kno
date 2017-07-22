@@ -491,11 +491,11 @@ FD_EXPORT
 */
 unsigned int fd_hash_dtype_rep(lispval x)
 {
-  struct FD_OUTBUF out; unsigned int hashval;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  FD_DECL_OUTBUF(out,1024);
+  unsigned int hashval;
   fd_write_dtype(&out,x);
   hashval = mult_hash_bytes(out.buffer,out.bufwrite-out.buffer);
-  u8_free(out.buffer);
+  fd_close_outbuf(&out);
   return hashval;
 }
 

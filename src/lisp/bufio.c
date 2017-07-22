@@ -323,9 +323,10 @@ unsigned char *fd_zlib_compress
  int level_arg)
 {
   Bytef *zbuf  = (Bytef *)out;
-  uLongf z_lim = (((uLongf)(n_bytes*1.001))+12), buf_len = *z_len;
+  ssize_t buf_len = *z_len;
+  uLongf z_lim = (((uLongf)(n_bytes*1.001))+12);
   int level = (level_arg>=0) ? (level_arg) : FD_DEFAULT_ZLEVEL;
-  if ( (out==NULL) || (buf_len<z_lim) ) {
+  if ( (out==NULL) || (buf_len < z_lim) ) {
     zbuf    = u8_malloc(z_lim);
     buf_len = z_lim;}
   int error = compress2(zbuf,&buf_len,in,n_bytes,level);
