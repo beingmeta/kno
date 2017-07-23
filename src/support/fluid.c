@@ -69,6 +69,7 @@ static void recycle_thread_table()
 {
   lispval table = (lispval)u8_tld_get(threadtable_key);
   u8_tld_set(threadtable_key,(void*)NULL);
+  if ((fd_exiting) && (fd_tidy_exit == 0)) return;
   if (table) fd_decref(table);
 }
 #else
@@ -88,6 +89,7 @@ static void recycle_thread_table()
 {
   lispval table = thread_table;
   thread_table = VOID;
+  if ((fd_exiting) && (fd_tidy_exit == 0)) return;
   if (table) fd_decref(table);
 }
 #endif

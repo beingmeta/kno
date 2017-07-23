@@ -355,11 +355,15 @@ int do_main(int argc,char **argv,
     fputs(out.u8_outbuf,stderr);
     u8_free(dumpfile);
 #endif
+
     u8_free(out.u8_outbuf);
     u8_free_exception(e,1);
     retval = -1;}
-  fd_decref(result);
-  fd_decref(main_proc);
+
+  if ( fd_tidy_exit ) {
+    fd_decref(result);
+    fd_decref(main_proc);}
+
   return retval;
 }
 

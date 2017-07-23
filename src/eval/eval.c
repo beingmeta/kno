@@ -2086,6 +2086,7 @@ static void cleanup_app_env()
 {
   if (fd_app_env==NULL) return;
   if (app_cleanup_started) return;
+  if ( (fd_exiting) && (fd_tidy_exit == 0) ) return;
   u8_lock_mutex(&app_cleanup_lock);
   if (app_cleanup_started) {
     u8_unlock_mutex(&app_cleanup_lock);

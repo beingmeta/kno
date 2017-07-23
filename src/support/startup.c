@@ -51,8 +51,12 @@ fd_exception fd_ExitException=_("Unhandled exception at exit");
 
 static u8_mutex atexit_handlers_lock;
 
+int fd_in_doexit = 0;
 int fd_exiting = 0;
 int fd_exited = 0;
+
+/* This determines whether to memory should be freed while exiting */
+int fd_tidy_exit = 1;
 
 static u8_string logdir = NULL, sharedir = NULL, datadir = NULL;
 
@@ -260,9 +264,10 @@ FD_EXPORT void fd_doexit(lispval arg)
 {
   struct FD_ATEXIT *scan, *tmp;
   if (fd_exited) return;
-  if (fd_exiting) {
+  if (fd_in_doexit) {
     u8_log(LOGWARN,"RecursiveExit","Recursive fd_doexit");
     return;}
+  fd_in_doexit = 1;
   fd_exiting = 1;
   if (atexit_handlers) {
     u8_lock_mutex(&atexit_handlers_lock);
@@ -298,12 +303,13 @@ FD_EXPORT void fd_doexit(lispval arg)
   fd_decref(raw_argv); raw_argv = FD_FALSE;
   fd_decref(config_argv); config_argv = FD_FALSE;
   fd_exited=1;
-  fd_exiting=0;
+  fd_exiting=1;
+  fd_in_doexit=0;
 }
 
 static void doexit_atexit()
 {
-  if ( (fd_exited) || (fd_exiting))
+  if ( (fd_exited) || (fd_in_doexit))
     return;
   else fd_doexit(FD_FALSE);
 }
@@ -835,10 +841,13 @@ void fd_init_startup_c()
   fd_register_config
     ("CONFIGARGS",_("config arguments passed to the application (unparsed)"),
      fd_lconfig_get,NULL,&config_argv);
-  
+
   fd_register_config
     ("SESSIONID",_("unique session identifier"),
      config_getsessionid,config_setsessionid,NULL);
+  fd_register_config
+    ("TIDYEXIT",_("whether to be careful releasing memory on exit"),
+     fd_boolconfig_get,fd_boolconfig_set,NULL);
   fd_register_config
     ("RUNUSER",_("Set the user ID for this process"),
      config_getuser,config_setuser,NULL);
