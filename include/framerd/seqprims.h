@@ -16,7 +16,6 @@ FD_EXPORT lispval fd_foreach(lispval fn,int n,lispval *seqs);
 FD_EXPORT lispval fd_removeif(lispval test,lispval sequence,int invert);
 FD_EXPORT lispval fd_reduce(lispval fn,lispval sequence,lispval result);
 
-
 #define FD_SEQUENCEP(x) ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))
 
 #endif /*  FRAMERD_SEQUENCES_H */

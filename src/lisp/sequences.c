@@ -514,8 +514,14 @@ lispval *fd_elts(lispval seq,int *n)
         break;}}
       break;}
     case fd_pair_type: {
-      int i = 0; FD_DOLIST(elt,seq) {
-        lispval e = fd_incref(elt); vec[i++]=e;}
+      int i=0; lispval scan = seq; while (FD_PAIRP(scan)) {
+        lispval elt = fd_incref(FD_CAR(scan));
+        scan=FD_CDR(scan);
+        vec[i++]=elt;}
+      if (!(FD_EMPTY_LISTP(scan))) {
+        fd_seterr("ImproperList","fd_seq_elts",NULL,seq);
+        fd_decref_vec(vec,len,1);
+        vec=NULL; *n=-1;}
       break;}
     default:
       if ((fd_seqfns[ctype]) && (fd_seqfns[ctype]->elts))

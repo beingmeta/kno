@@ -900,9 +900,11 @@ static lispval seq2vector(lispval seq)
     return fd_init_vector(NULL,0,NULL);
   else if (FD_SEQUENCEP(seq)) {
     int n; lispval *data = fd_elts(seq,&n);
-    lispval result = fd_make_vector(n,data);
-    u8_free(data);
-    return result;}
+    if (data) {
+      lispval result = fd_make_vector(n,data);
+      u8_free(data);
+      return result;}
+    else return FD_ERROR_VALUE;}
   else return fd_type_error(_("sequence"),"seq2vector",seq);
 }
 
