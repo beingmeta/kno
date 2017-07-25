@@ -847,7 +847,7 @@ void fd_init_startup_c()
      config_getsessionid,config_setsessionid,NULL);
   fd_register_config
     ("TIDYEXIT",_("whether to be careful releasing memory on exit"),
-     fd_boolconfig_get,fd_boolconfig_set,NULL);
+     fd_boolconfig_get,fd_boolconfig_set,&fd_tidy_exit);
   fd_register_config
     ("RUNUSER",_("Set the user ID for this process"),
      config_getuser,config_setuser,NULL);

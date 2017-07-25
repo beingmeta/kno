@@ -164,40 +164,48 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
     if ( (fd_exiting == 0) || (fd_tidy_exit) ) while (i<n) {
 	switch (cleanups[i].cleanop) {
 	case FD_FREE_MEMORY:
-	  u8_free(cleanups[i].arg0); break;
+	  u8_free(cleanups[i].arg0);
+	  break;
 	case FD_DECREF: {
 	  lispval arg = (lispval)cleanups[i].arg0;
-	  fd_decref(arg); break;}
+	  fd_decref(arg);
+	  break;}
 	case FD_DECREF_PTRVAL: {
 	  lispval *ptr = (lispval *)cleanups[i].arg0;
 	  if (ptr) {
-	    lispval v=*ptr; fd_decref(v);}
+	    lispval v=*ptr;
+	    fd_decref(v);}
 	  break;}
 	case FD_UNLOCK_MUTEX: {
 	  u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
-	  u8_unlock_mutex(lock); break;}
+	  u8_unlock_mutex(lock);
+	  break;}
 	case FD_UNLOCK_RWLOCK: {
 	  u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
-	  u8_rw_unlock(lock); break;}
+	  u8_rw_unlock(lock);
+	  break;}
 	case FD_DECREF_VEC: {
 	  lispval *vec = (lispval *)cleanups[i].arg0;
 	  ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
 	  ssize_t size = *sizep;
 	  int i = 0; while (i<size) {
-	    lispval elt = vec[i++]; fd_decref(elt);}
+	    lispval elt = vec[i++];
+	    fd_decref(elt);}
 	  break;}
 	case FD_DECREF_N: {
 	  lispval *vec = (lispval *)cleanups[i].arg0;
 	  ssize_t size = (ssize_t)cleanups[i].arg1;
 	  int i = 0; while (i<size) {
-	    lispval elt = vec[i++]; fd_decref(elt);}
+	    lispval elt = vec[i++];
+	    fd_decref(elt);}
 	  break;}
 	case FD_FREE_VEC: {
 	  lispval *vec = (lispval *)cleanups[i].arg0;
 	  ssize_t *sizep = (ssize_t *)cleanups[i].arg1;
 	  ssize_t size = *sizep;
 	  int i = 0; while (i<size) {
-	    lispval elt = vec[i++]; fd_decref(elt);}
+	    lispval elt = vec[i++];
+	    fd_decref(elt);}
 	  u8_free(vec);
 	  break;}
 	case FD_CLOSE_FILENO: {
@@ -219,10 +227,12 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
       switch (cleanups[i].cleanop) {
       case FD_UNLOCK_MUTEX: {
 	u8_mutex *lock = (u8_mutex *)cleanups[i].arg0;
-	u8_unlock_mutex(lock); break;}
+	u8_unlock_mutex(lock);
+	break;}
       case FD_UNLOCK_RWLOCK: {
 	u8_rwlock *lock = (u8_rwlock *)cleanups[i].arg0;
-	u8_rw_unlock(lock); break;}
+	u8_rw_unlock(lock);
+	break;}
       case FD_CLOSE_FILENO: {
 	long long fileno = (long long) cleanups[i].arg0;
 	close((int)fileno);
@@ -239,7 +249,9 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
       case FD_DECREF_VEC: case FD_DECREF_N: case FD_FREE_VEC:
 	break;}
       i++;}
-    if (cleanups != stack->_cleanups) u8_free(cleanups);}
+    if (cleanups != stack->_cleanups)
+      u8_free(cleanups);
+    stack->n_cleanups=0;}
   if (FD_CONSP(stack->stack_vals)) {
     fd_decref(stack->stack_vals);
     stack->stack_vals=FD_EMPTY_CHOICE; }

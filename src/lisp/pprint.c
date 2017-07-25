@@ -262,6 +262,7 @@ int fd_pprint_table(u8_output out,lispval x,
       /* Key + value fit on one line */
       col=newcol;
       count++;
+      fd_decref(val);
       continue;}
     else count++;
     if (SYMBOLP(key)) {

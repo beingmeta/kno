@@ -496,15 +496,17 @@ static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
       if (CHOICEP(word)) {
         lispval result=
           seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
-        fd_decref(word); u8_free(out.u8_outbuf);
+        fd_decref(word);
+        u8_free(out.u8_outbuf);
         return fd_simplify_choice(result);}
-      else if ((FALSEP(word))||(EMPTYP(word))||
-               (NILP(word))) {
-        start++; continue;}
+      else if ( (FALSEP(word)) || (EMPTYP(word)) || (NILP(word)) ) {
+        start++;
+        continue;}
       else if (dospace) {u8_putc(&out,' ');} else dospace = 1;
       if (STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
       else u8_printf(&out,"%q",word);
-      fd_decref(word); start++;}
+      fd_decref(word);
+      start++;}
     return fd_stream2string(&out);}
 }
 
