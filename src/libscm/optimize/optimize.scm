@@ -315,8 +315,6 @@
 (def-opcode %GET       #OP_PGET 2)
 (def-opcode %TEST      #OP_PTEST 3)
 
-
-
 ;;; The core loop
 
 (define dont-touch-decls '{%unoptimized %volatile %nosubst})
@@ -330,13 +328,17 @@
 	((symbol? expr) (optimize-symbol expr env bound opts))
 	((not (pair? expr)) expr)
 	((or (pair? (car expr)) (ambiguous? (car expr)))
-	 ;; We assume that special forms always have a symbol in the
-	 ;; head, so anything else we just optimize as a function call.
+	 ;; If we can't determine a single head for an expression,
+	 ;; just assume it's a function application and optimize it
+	 ;; that way. In principle, we could optimize ambiguous heads
+	 ;; like {+ -} but we won't do that for now.
 	 (optimize-call expr env bound opts))
 	((and (symbol? (car expr)) 
 	      (not (symbol-bound? (car expr) env))
 	      (not (get-lexref (car expr) bound 0))
 	      (not (test env '%nowarn (car expr))))
+	 ;; This is the case where the head is a symbol which we can't
+	 ;; resolve.
 	 (codewarning (cons* 'UNBOUND expr bound))
 	 (when optwarn
 	   (warning "The symbol " (car expr) " in " expr
