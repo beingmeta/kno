@@ -504,14 +504,40 @@ typedef struct FD_PAIR {
 typedef struct FD_PAIR *fd_pair;
 
 #define FD_PAIRP(x) (FD_PTR_TYPE(x) == fd_pair_type)
-#define FD_CAR(x) ((FD_CONSPTR(FD_PAIR *,x))->car)
-#define FD_CDR(x) ((FD_CONSPTR(FD_PAIR *,x))->cdr)
+#define FD_CAR(x) ((FD_CONSPTR(FD_PAIR *,(x)))->car)
+#define FD_CDR(x) ((FD_CONSPTR(FD_PAIR *,(x)))->cdr)
 #define FD_TRY_CAR(x) \
-  ((FD_PAIRP(x)) ? ((FD_CONSPTR(FD_PAIR *,x))->car) : (FD_VOID))
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(FD_PAIR *,(x)))->car) : (FD_VOID))
 #define FD_TRY_CDR(x) \
-  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,x))->cdr) :	\
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,(x)))->cdr) :	\
    (FD_VOID))
-#define FD_CADR(x) (FD_CAR(FD_CDR(x)))
+FD_FASTOP lispval FD_CADR(lispval x)
+{
+  if (FD_PAIRP(x)) {
+    lispval cdr = FD_CDR(x);
+    if (FD_PAIRP(cdr))
+      return FD_CAR(cdr);
+    else return FD_ERROR_VALUE;}
+  else return FD_ERROR_VALUE;
+}
+FD_FASTOP lispval FD_CDDR(lispval x)
+{
+  if (FD_PAIRP(x)) {
+    lispval cdr = FD_CDR(x);
+    if (FD_PAIRP(cdr))
+      return FD_CDR(cdr);
+    else return FD_ERROR_VALUE;}
+  else return FD_ERROR_VALUE;
+}
+FD_FASTOP lispval FD_CAAR(lispval x)
+{
+  if (FD_PAIRP(x)) {
+    lispval car = FD_CAR(x);
+    if (FD_PAIRP(car))
+      return FD_CAR(car);
+    else return FD_ERROR_VALUE;}
+  else return FD_ERROR_VALUE;
+}
 
 #define fd_refcar(x) \
   fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->car))
@@ -520,9 +546,10 @@ typedef struct FD_PAIR *fd_pair;
 
 /* These are not threadsafe and they don't worry about GC either */
 #define FD_SETCAR(p,x) ((struct FD_PAIR *)p)->car = x
+#define FD_SETCDR(p,x) ((struct FD_PAIR *)p)->cdr = x
+
 #define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car = x
 #define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr = x
-#define FD_SETCDR(p,x) ((struct FD_PAIR *)p)->cdr = x
 
 #define FD_DOLIST(x,list) \
   lispval x, _tmp = list; \
