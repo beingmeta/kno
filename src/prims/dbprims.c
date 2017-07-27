@@ -1807,11 +1807,14 @@ static lispval index_keys(lispval ixarg)
   return fd_index_keys(ix);
 }
 
-static lispval index_sizes(lispval ixarg)
+static lispval index_sizes(lispval ixarg,lispval keys_arg)
 {
   fd_index ix = fd_indexptr(ixarg);
-  if (ix == NULL) fd_type_error("index","index_sizes",ixarg);
-  return fd_index_sizes(ix);
+  if (ix == NULL)
+    fd_type_error("index","index_sizes",ixarg);
+  if (FD_VOIDP(keys_arg))
+    return fd_index_sizes(ix);
+  else return fd_index_keysizes(ix,keys_arg);
 }
 
 static lispval index_keysvec(lispval ixarg)
@@ -3476,7 +3479,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-GET",index_get,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYS",index_keys,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",index_keysvec,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",index_sizes,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-SIZES",index_sizes,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",index_source,1));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("INDEX-MERGE!",index_merge,2,-1,VOID,

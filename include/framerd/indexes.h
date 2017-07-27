@@ -126,6 +126,7 @@ FD_EXPORT lispval _fd_index_get(fd_index ix,lispval key);
 FD_EXPORT lispval fd_index_fetch(fd_index ix,lispval key);
 FD_EXPORT lispval fd_index_keys(fd_index ix);
 FD_EXPORT lispval fd_index_sizes(fd_index ix);
+FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval keys);
 FD_EXPORT int _fd_index_add(fd_index ix,lispval key,lispval value);
 FD_EXPORT int fd_batch_add(fd_index ix,lispval table);
 FD_EXPORT int fd_index_prefetch(fd_index ix,lispval keys);
