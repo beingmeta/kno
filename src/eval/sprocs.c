@@ -24,7 +24,7 @@ fd_exception fd_BadDefineForm=_("Bad procedure defining form");
 
 int fd_record_source=1;
 
-static lispval tail_symbol;
+static lispval tail_symbol, decls_symbol, flags_symbol;
 
 static u8_string sproc_id(struct FD_SPROC *fn)
 {
@@ -58,6 +58,15 @@ static lispval get_rest_arg(lispval *args,int n)
     lispval arg=args[n--];
     result=fd_init_pair(NULL,fd_incref(arg),result);}
   return result;
+}
+
+static int add_autodocp(u8_string s)
+{
+  if (s == NULL)
+    return 1;
+  else if ( ( *s == '(') || (*s == '<') || (*s == '\n') )
+    return 0;
+  else return 1;
 }
 
 /* SPROCs */
@@ -170,7 +179,7 @@ _make_sproc(u8_string name,
             int incref,int copy_env)
 {
   int i = 0, n_vars = 0, min_args = 0;
-  lispval scan = arglist, *schema = NULL;
+  lispval scan = arglist, *schema = NULL, attribs=FD_VOID;
   struct FD_SPROC *s = u8_alloc(struct FD_SPROC);
   FD_INIT_FRESH_CONS(s,fd_sproc_type);
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
@@ -206,34 +215,63 @@ _make_sproc(u8_string name,
     s->sproc_synchronized = 1;
     u8_init_mutex(&(s->sproc_lock));}
   else s->sproc_synchronized = 0;
-  { /* Write documentation string */
-    u8_string docstring = NULL;
-    if ((PAIRP(body))&&
-        (STRINGP(FD_CAR(body))) &&
-        (PAIRP(FD_CDR(body))))
-      docstring = CSTRING(FD_CAR(body));
-    if ((docstring) && (*docstring=='<'))
-      s->fcn_documentation = u8_strdup(docstring);
+  struct U8_OUTPUT docstream;
+  U8_INIT_OUTPUT(&docstream,256);
+  u8_string init_docstring = NULL;
+  if ( (PAIRP(body)) &&
+       (STRINGP(FD_CAR(body))) &&
+       (PAIRP(FD_CDR(body))) )
+    init_docstring=FD_CSTRING(FD_CAR(body));
+  if (add_autodocp(init_docstring)) {
+    lispval scan = arglist;
+    u8_puts(&docstream,"`(");
+    if (name) u8_puts(&docstream,name); else u8_puts(&docstream,"λ");
+    while (PAIRP(scan)) {
+      lispval arg = FD_CAR(scan);
+      if (SYMBOLP(arg))
+        u8_printf(&docstream," %ls",SYM_NAME(arg));
+      else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
+        u8_printf(&docstream," [%ls]",SYM_NAME(FD_CAR(arg)));
+      else u8_puts(&docstream," ??");
+      scan = FD_CDR(scan);}
+    if (SYMBOLP(scan))
+      u8_printf(&docstream," [%ls...]",SYM_NAME(scan));
+    u8_puts(&docstream,")`");}
+  if (init_docstring) {
+    u8_puts(&docstream,"\n");
+    while ( (PAIRP(body)) &&
+            (STRINGP(FD_CAR(body))) &&
+            (PAIRP(FD_CDR(body))) ) {
+      u8_putc(&docstream,'\n');
+      u8_puts(&docstream,FD_CSTRING(FD_CAR(body)));
+      body=FD_CDR(body);}}
+  if ( (u8_outbuf_written(&docstream)) )
+    s->fcn_documentation=docstream.u8_outbuf;
+  else u8_close_output(&docstream);
+  
+  if ( ( FD_PAIRP(body) ) &&
+       ( FD_PAIRP(FD_CAR(body)) ) &&
+       ( FD_PAIRP(FD_CDR(body)) ) &&
+       ( (FD_CAR(FD_CAR(body))) == decls_symbol ) ) {
+    lispval decls = FD_CAR(body); body = FD_CDR(body);
+    lispval scan =  FD_CDR(decls);
+    int len = fd_list_length(scan);
+    if (len == 0) {}
+    else if (len == 1) {
+      struct FD_KEYVAL kv;
+      kv.kv_key = flags_symbol;
+      kv.kv_val = FD_CAR(scan);
+      attribs = fd_init_slotmap(NULL,1,&kv);}
+    else if (len%2) {
+      attribs = fd_make_slotmap(len/2,0,NULL);
+      while ( FD_PAIRP(scan) ) {
+        lispval key = FD_CAR(scan);
+        lispval value = FD_CADR(scan);
+        fd_add(attribs,key,value);
+        scan=FD_CDR(FD_CDR(scan));}}
     else {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-      lispval scan = arglist;
-      u8_puts(&out,"`(");
-      if (name) u8_puts(&out,name); else u8_puts(&out,"λ");
-      while (PAIRP(scan)) {
-        lispval arg = FD_CAR(scan);
-        if (SYMBOLP(arg))
-          u8_printf(&out," %ls",SYM_NAME(arg));
-        else if ((PAIRP(arg))&&(SYMBOLP(FD_CAR(arg))))
-          u8_printf(&out," [%ls]",SYM_NAME(FD_CAR(arg)));
-        else u8_puts(&out," ??");
-        scan = FD_CDR(scan);}
-      if (SYMBOLP(scan))
-        u8_printf(&out," [%ls...]",SYM_NAME(scan));
-      u8_puts(&out,")`");
-      if (docstring) {
-        u8_puts(&out,"\n\n");
-        u8_puts(&out,docstring);}
-      s->fcn_documentation = out.u8_outbuf;}}
+      u8_log(LOGERR,"BadProcedureDECL",
+             "Couldn't get decls from %q",decls);}}
   scan = arglist; i = 0; while (PAIRP(scan)) {
     lispval argspec = FD_CAR(scan);
     if (PAIRP(argspec)) {
@@ -821,6 +859,8 @@ FD_EXPORT void fd_init_sprocs_c()
   u8_register_source_file(_FILEINFO);
 
   tail_symbol = fd_intern("%TAIL");
+  decls_symbol = fd_intern("%DECLS");
+  flags_symbol = fd_intern("FLAGS");
   moduleid_symbol = fd_intern("%MODULEID");
 
   fd_applyfns[fd_sproc_type]=apply_sproc;

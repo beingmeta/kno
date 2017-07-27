@@ -383,6 +383,20 @@
 (evaltest 90 (string->number "0x5a"))
 (evaltest 90 (string->lisp "0x5a"))
 
+(define (add2numbers x y)
+  "This procedure adds 2 numbers and returns the result"
+  (+ x y))
+(define (add2numbers.longdoc x y)
+  "This procedure adds 2 numbers and returns the result."
+  "It uses the underlying +/-/etc arithmetic operators, "
+  "so it's relatively generic."
+  (+ x y))
+
+(applytest "`(ADD2NUMBERS x y)`\n\nThis procedure adds 2 numbers and returns the result"
+	   procedure-documentation add2numbers)
+(applytest "`(ADD2NUMBERS.LONGDOC x y)`\n\nThis procedure adds 2 numbers and returns the result.\nIt uses the underlying +/-/etc arithmetic operators, \nso it's relatively generic."
+	   procedure-documentation add2numbers.longdoc)
+
 ;; This checks a bug where errors in an else were ignored
 (evaltest #t
 	  (onerror
