@@ -1110,10 +1110,14 @@ static lispval soapenvelope_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 static u8_string markup_printf_handler
   (u8_output s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
+  U8_STATIC_OUTPUT(vstream,1024);
   if (strchr(cmd,'l')) {
     lispval val = va_arg(*args,lispval);
-    u8_string str = fd_lisp2string(val);
-    emit_xmlcontent(s,str); u8_free(str);}
+    if (strstr(cmd,"ll"))
+      fd_pprint(&vstream,val,NULL,0,0,80);
+    else fd_unparse(&vstream,val);
+    emit_xmlcontent(s,vstream.u8_outbuf);
+    u8_close_output(&vstream);}
   else {
     u8_string str = va_arg(*args,u8_string);
     if (str) emit_xmlcontent(s,str);
