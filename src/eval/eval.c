@@ -104,6 +104,13 @@ static lispval lexref_prim(lispval upv,lispval acrossv)
   else return fd_type_error("short","lexref_prim",across);
 }
 
+static lispval lexrefp_prim(lispval ref)
+{
+  if (FD_TYPEP(ref,fd_lexref_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static lispval lexref_value_prim(lispval lexref)
 {
   int code = FD_GET_IMMEDIATE(lexref,fd_lexref_type);
@@ -780,7 +787,9 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
       lispval result = VOID, headval = VOID;
       int gc_head=0;
-      if (FD_FCNIDP(head)) {
+      if (FD_LEXREFP(head))
+        headval=fd_lexref(head,env);
+      else if (FD_FCNIDP(head)) {
         headval=fd_fcnid_ref(head);
         if (PRECHOICEP(headval)) {
           headval=fd_make_simple_choice(headval);
@@ -2237,6 +2246,11 @@ static void init_localfns()
             "(%LEXREFVAL *lexref*) returns the offsets "
             "of a lexref as a pair (*up* . *across*)",
             fd_lexref_type,VOID);
+  fd_idefn1(fd_scheme_module,"%LEXREF?",lexrefp_prim,1,
+            "(%LEXREF? *val*) returns true if it's argument "
+            "is a lexref (lexical reference)",
+            -1,FD_VOID);
+
 
   fd_idefn1(fd_scheme_module,"%CODEREF",coderef_prim,1,
             "(%CODEREF *nelts*) returns a 'coderef' (a relative position) value",
