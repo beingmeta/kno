@@ -698,9 +698,11 @@ exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 # Custom rules for making include files with CSS headers
 src/web/htmlout.o: src/web/backtrace_css.h src/web/backtrace_js.h
 src/web/backtrace_css.h: src/web/backtrace.css etc/text2include
-	./etc/text2include FD_BACKTRACE_CSS $< $@
+	@echo Generating $@ from text in $<
+	@./etc/text2include FD_BACKTRACE_CSS $< $@
 src/web/backtrace_js.h: src/web/backtrace.js etc/text2include
-	./etc/text2include FD_BACKTRACE_JS $< $@
+	@echo Generating $@ from text in $<
+	@./etc/text2include FD_BACKTRACE_JS $< $@
 
 # This can be helpful for some debugging 
 etc/usememory: etc/usememory.c
