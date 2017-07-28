@@ -338,7 +338,7 @@
 	      (not (get-lexref (car expr) bound 0))
 	      (not (test env '%nowarn (car expr))))
 	 ;; This is the case where the head is a symbol which we can't
-	 ;; resolve.
+	 ;; resolve it.
 	 (codewarning (cons* 'UNBOUND expr bound))
 	 (when optwarn
 	   (warning "The symbol " (car expr) " in " expr
@@ -491,8 +491,12 @@
 			head)
 		       ((test from '%volatile head)
 			`(#OP_SYMREF ,from ,head))
+		       ((map-opcode value opts n-exprs)
+			(map-opcode value opts n-exprs))
 		       (else (fcnref value head env opts)))
 		 (optimize-args (cdr expr) env bound opts))))
+	  ((%lexref? value)
+	   (cons value (optimize-args (cdr expr) env bound opts)))
 	  (else
 	   (when (and optwarn from
 		      (not (test from '{%nosubst %volatile} head)))
