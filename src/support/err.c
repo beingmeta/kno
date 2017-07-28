@@ -278,7 +278,8 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 	      (TYPEP(irritant,fd_timestamp_type)) ||
 	      (TYPEP(irritant,fd_uuid_type)) ||
 	      (TYPEP(irritant,fd_regex_type)) )
-      u8_log(loglevel,ex->u8x_cond,"%q @%s %s",ex->u8x_context,
+      u8_log(loglevel,ex->u8x_cond,"%q @%s %s",
+	     irritant,ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else {
       U8_STATIC_OUTPUT(tmp,1000);
