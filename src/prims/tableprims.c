@@ -1003,6 +1003,28 @@ static lispval sort_slotmap(lispval slotmap)
   else return fd_incref(slotmap);
 }
 
+/* Merging hashtables */
+
+static int merge_kv_into_table(struct FD_KEYVAL *kv,void *data)
+{
+  struct FD_HASHTABLE *ht = (fd_hashtable) data;
+  fd_hashtable_op_nolock(ht,fd_table_add,kv->kv_key,kv->kv_val);
+  return 0;
+}
+
+FD_EXPORT lispval hashtable_merge(lispval dest,lispval src)
+{
+  /* Ignoring this for now */
+  fd_hashtable into = (fd_hashtable) dest;
+  fd_hashtable from = (fd_hashtable) src;
+  fd_write_lock_table(into);
+  fd_read_lock_table(from);
+  fd_for_hashtable_kv(from,merge_kv_into_table,(void *)into,0);
+  fd_unlock_table(from);
+  fd_unlock_table(into);
+  return fd_incref(dest);
+}
+
 /* Initialization code */
 
 FD_EXPORT void fd_init_tableprims_c()
@@ -1141,6 +1163,11 @@ FD_EXPORT void fd_init_tableprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("HASHTABLE-BUCKETS",hashtable_buckets,1,
                            fd_hashtable_type,VOID));
+  fd_idefn2(fd_scheme_module,"HASHTABLE/MERGE",hashtable_merge,2,
+            "`(HASHTABLE/MERGE *dest* *src*)`\n"
+            "Merges one hashtable into another",
+            fd_hashtable_type,VOID,fd_hashtable_type,VOID);
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
 
