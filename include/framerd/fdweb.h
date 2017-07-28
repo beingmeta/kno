@@ -161,6 +161,9 @@ FD_EXPORT lispval fd_parse_uri(u8_string uri,lispval base);
 
 FD_EXPORT int fd_open_markup
   (u8_output out,u8_string eltname,lispval attribs,int empty);
+FD_EXPORT void fd_emit_xmlcontent(u8_output out,u8_string content);
+FD_EXPORT void fd_emit_xmlattrib
+(u8_output out,u8_output tmp,u8_string name,lispval value,int lower);
 
 FD_EXPORT void fd_xhtmlerrorpage(u8_output s,u8_exception ex);
 FD_EXPORT void fd_xhtmldebugpage(u8_output s,u8_exception ex);

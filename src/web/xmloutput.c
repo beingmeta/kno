@@ -150,6 +150,12 @@ static void emit_xmlattrib
   u8_puts(out,"\"");
 }
 
+FD_EXPORT void fd_emit_xmlattrib
+(u8_output out,u8_output tmp,u8_string name,lispval value,int lower)
+{
+  return emit_xmlattrib(out,tmp,name,value,lower);
+}
+
 static lispval xmlify(lispval value)
 {
   if (STRINGP(value))
@@ -179,6 +185,11 @@ static U8_MAYBE_UNUSED lispval oidunxmlify(lispval string)
 }
 
 static void emit_xmlcontent(u8_output out,u8_string content)
+{
+  entify(out,content);
+}
+
+FD_EXPORT void fd_emit_xmlcontent(u8_output out,u8_string content)
 {
   entify(out,content);
 }

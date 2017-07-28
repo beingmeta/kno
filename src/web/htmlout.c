@@ -69,12 +69,12 @@ static void start_errorpage(u8_output s,u8_exception ex)
       if (strlen(ex->u8x_details)<40)
         u8_printf(s," (%s)",ex->u8x_details);}
     u8_puts(s,"</title>\n");
-    u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
-    u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
-              FD_BACKTRACE_JS);
     if (customstylesheet==0)
       u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
                 error_stylesheet);
+    u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
+    u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
+              FD_BACKTRACE_JS);
     u8_puts(s,"</head>\n");}
   u8_puts(s,"<body id='ERRORPAGE'>\n");
 }
@@ -268,15 +268,15 @@ static void output_value(u8_output out,lispval val,
 {
   if (STRINGP(val))
     if (STRLEN(val)>42)
-      u8_printf(out," <%s class='%s long string' title='%d characters'>%q</%s>",
-		eltname,classname,STRLEN(val),val,eltname);
-    else u8_printf(out," <%s class='%s string' title='% characters'>%q</%s>",
-		   eltname,classname,STRLEN(val),val,eltname);
+      u8_printf(out," <%s class='%s long string' title='%d characters'>%k</%s>",
+                eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
+    else u8_printf(out," <%s class='%s string' title='% characters'>%k</%s>",
+                   eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
   else if (SYMBOLP(val))
-    u8_printf(out," <%s class='%s symbol'>%s</%s>",
+    u8_printf(out," <%s class='%s symbol'>%lk</%s>",
 	      eltname,classname,SYM_NAME(val),eltname);
   else if (NUMBERP(val))
-    u8_printf(out," <%s class='%s number'>%q</%s>",
+    u8_printf(out," <%s class='%s number'>%lk</%s>",
 	      eltname,classname,val,eltname);
   else if (VECTORP(val)) {
     int len=VEC_LEN(val);
@@ -360,7 +360,7 @@ static void output_value(u8_output out,lispval val,
   else {
     fd_ptr_type ptrtype=FD_PTR_TYPE(val);
     if (fd_type_names[ptrtype])
-      u8_printf(out," <%s class='%s %s'>%q</%s>",
+      u8_printf(out," <%s class='%s %s'>%lk</%s>",
 		eltname,classname,fd_type_names[ptrtype],
 		val,eltname);}
 }
@@ -429,7 +429,7 @@ static void output_stack_frame(u8_output out,lispval entry)
                       SYM_NAME(var));
             { if (CHOICEP(val))
                 u8_printf(out,
-                          "<span class='values'> "
+                          "<span class='values'>"
                           "<span class='nvals'>(%d values)</span> ",
                           FD_CHOICE_SIZE(val));
               {DO_CHOICES(v,val) {
@@ -440,24 +440,21 @@ static void output_stack_frame(u8_output out,lispval entry)
       u8_printf(out,"\n</div>");} /* class='bindings' */
   }
   else {
+    U8_STATIC_OUTPUT(pprinted,4096);
     u8_puts(out,"\n <pre class='lispobj'>\n");
-    fd_pprint(out,entry,NULL,0,0,80);
-    u8_puts(out,"\n</pre>\n");}
+    fd_pprint(&pprinted,entry,NULL,0,0,80);
+    fd_emit_xmlcontent(out,pprinted.u8_outbuf);
+    u8_puts(out,"\n</pre>\n");
+    u8_close_output(&pprinted);}
 }
 
 FD_EXPORT
-void fd_html_backtrace(u8_output out,lispval rep)
+void fd_html_backtrace(u8_output out,lispval backtrace)
 {
-  lispval backtrace=NIL;
-  /* Reverse the list */
-  {FD_DOLIST(entry,rep) {
-      backtrace=fd_init_pair(NULL,fd_incref(entry),backtrace);}}
   /* Output the backtrace */
   lispval scan=backtrace; while (PAIRP(scan)) {
     lispval entry=FD_CAR(scan); scan=FD_CDR(scan);
     output_stack_frame(out,entry);}
-  /* Free what you reversed above */
-  fd_decref(backtrace);
 }
 
 /* Outputing tables to XHTML */
