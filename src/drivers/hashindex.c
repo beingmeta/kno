@@ -2089,7 +2089,7 @@ FD_FASTOP struct KEYBUCKET *read_keybucket
      the keybucket. */
   if (ref.size>0) {
     unsigned char *keybuf=u8_malloc(ref.size);
-    size_t read_result=fd_read_block(stream,keybuf, ref.size,ref.off,1);
+    ssize_t read_result=fd_read_block(stream,keybuf, ref.size,ref.off,1);
     if (read_result<0)
       return NULL;
     else {

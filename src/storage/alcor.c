@@ -48,7 +48,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   unsigned char *buf=u8_malloc(head_len);
   size_t bytes_read=0;
   while (bytes_read<head_len) {
-    size_t delta=read(in,buf+bytes_read,head_len-bytes_read);
+    ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
     if (delta<0) {
       u8_free(buf); u8_free(src); u8_free(dst);
       close(in);
@@ -70,7 +70,7 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
-    size_t delta=write(out,buf+bytes_written,head_len-bytes_written);
+    ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
     if (delta<0) {
       u8_free(buf); u8_free(src); u8_free(dst);
       close(out);
@@ -110,7 +110,7 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
   unsigned char *buf=u8_malloc(head_len);
   size_t bytes_read=0;
   while (bytes_read<head_len) {
-    size_t delta=read(in,buf+bytes_read,head_len-bytes_read);
+    ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
     if (delta<0) {
       u8_free(buf); u8_free(src); u8_free(dst);
       close(in);
@@ -135,7 +135,7 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
-    size_t delta=write(out,buf+bytes_written,head_len-bytes_written);
+    ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
     if (delta<0) {
       u8_free(buf); u8_free(src); u8_free(dst);
       close(out);

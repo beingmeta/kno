@@ -54,7 +54,7 @@ static void use_bigpool(fd_bigpool bp)
       fd_unlock_pool((fd_pool)bp);
       fd_lock_pool((fd_pool)bp,0);}
     else {
-      unsigned int level = bp->pool_cache_level;
+      int level = bp->pool_cache_level;
       if (bp->pool_stream.stream_fileno < 0)
         fd_reopen_file_stream
           (&(bp->pool_stream),FD_FILE_READ,
