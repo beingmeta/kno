@@ -1661,6 +1661,15 @@ static int stackdump_config_set(lispval var,lispval val,void *ignored)
     return -1;}
 }
 
+/* Close libu8 stdin/out/err proxies */
+
+static void close_u8stdio()
+{
+  u8_close_input((u8_input)&u8stdin);
+  u8_close_output((u8_output)&u8stdout);
+  u8_close_output((u8_output)&u8stderr);
+}
+
 /* The init function */
 
 static int scheme_fileio_initialized = 0;
@@ -1684,6 +1693,8 @@ FD_EXPORT void fd_init_fileio_c()
   u8_init_xinput(&u8stdin,0,NULL);
   u8_init_xoutput(&u8stdout,1,NULL);
   u8_init_xoutput(&u8stderr,2,NULL);
+
+  atexit(close_u8stdio);
 
   u8_set_global_output((u8_output)&u8stdout);
 
