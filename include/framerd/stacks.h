@@ -28,7 +28,7 @@ typedef enum FD_STACK_CLEANOP {
   FD_UNLOCK_MUTEX,
   FD_UNLOCK_RWLOCK,
   FD_CLOSE_FILENO,
-  FD_CLOSE_BUF,
+  U8_CLOSE_STREAM,
   FD_DECREF_VEC,
   FD_DECREF_N,
   FD_FREE_VEC,
@@ -212,7 +212,7 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	  long long fileno = (long long) cleanups[i].arg0;
 	  close((int)fileno);
 	  break;}
-	case FD_CLOSE_BUF: {
+	case U8_CLOSE_STREAM: {
 	  U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
 	  u8_close(stream);
 	  break;}
@@ -237,7 +237,7 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
 	long long fileno = (long long) cleanups[i].arg0;
 	close((int)fileno);
 	break;}
-      case FD_CLOSE_BUF: {
+      case U8_CLOSE_STREAM: {
 	U8_STREAM *stream = (U8_STREAM *) cleanups[i].arg0;
 	u8_close(stream);
 	break;}
