@@ -2,7 +2,7 @@
 SIGNAL_ARG=
 SIGNAL=${SIGNAL:-TERM}
 CMD="@SUDO@ kill -s"
-SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int)"
+SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int|[1]?[0-9])"
 
 showusage ( ) {
     echo "Usage: fdsignal [signal] <job>*";
@@ -18,7 +18,7 @@ listpids ( ) {
 }
 
 signalp ( ) {
-    if echo $1 | grep -i ${SIGNALNAMES} 2>&1 > /dev/null; then
+    if echo $1 | grep -Ei ${SIGNALNAMES} 2>&1 > /dev/null; then
 	return 0;
     else
 	return 1;
@@ -58,6 +58,6 @@ for name in $*; do
 	send_signal ${SIGNAL} "@daemon_rundir@/${name}.pid";
     elif test -f @servlet_rundir@/${name}.pid; then
 	send_signal ${SIGNAL} "@servlet_rundir@/${name}.pid";
-    else echo "fdsignal: Couldn't find task ${name}";
+    else echo "fdsignal: Couldn't find task ${name} for signal ${SIGNAL}";
     fi;
 done;
