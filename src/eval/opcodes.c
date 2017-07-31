@@ -42,7 +42,7 @@
 static lispval op_eval(lispval x,fd_lexenv env,fd_stack stack,int tail);
 
 FD_FASTOP lispval op_eval_body(lispval body,fd_lexenv env,
-                              fd_stack stack,int tail)
+                               fd_stack stack,int tail)
 {
   lispval result=VOID;
   if (FD_CODEP(body)) {
@@ -683,7 +683,9 @@ static lispval until_opcode(lispval expr,fd_lexenv env,fd_stack stack)
   if (FD_ABORTED(test_val)) return test_val;
   else while (FALSEP(test_val)) {
       lispval body_result=op_eval_body(loop_body,env,stack,0);
-      fd_decref(body_result);
+      if (FD_ABORTED(body_result))
+        return body_result;
+      else fd_decref(body_result);
       test_val = op_eval(test_expr,env,stack,0);
       if (FD_ABORTED(test_val))
         return test_val;}
