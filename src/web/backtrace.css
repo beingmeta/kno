@@ -2,8 +2,8 @@
 
 /* If you  edit this file, you probably also want to edit bugjar.css */
 
-body {
-    font-family: sans;
+body#ERRORPAGE, .errorpage, .backtrace, #BACKTRACE {
+    font-family: fixed, monospace;
     background-color: #eac0c0;
     color: black;
     margin: 0px; margin-bottom: 4em;}
