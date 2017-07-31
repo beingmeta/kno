@@ -1013,143 +1013,168 @@ static lispval rsorted_prim(lispval choices,lispval keyfn)
 
 static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep);
 
-static lispval select_helper(lispval choices,lispval keyfn,
-                            int k,int maximize,
-                            struct FD_SORT_ENTRY **ep)
+static ssize_t select_helper(lispval choices,lispval keyfn,
+                             size_t k,int maximize,
+                             struct FD_SORT_ENTRY *entries)
 {
 #define BETTERP(x) ((maximize)?((x)>0):((x)<0))
 #define IS_BETTER(x,y) (BETTERP(FD_QCOMPARE((x),(y))))
-  lispval worst = VOID; 
-  int worst_off = (maximize)?(0):(k-1);
-  if (EMPTYP(choices))
-    return EMPTY;
-  else if (k==0)
-    return EMPTY;
-  else if (CHOICEP(choices)) {
-    lispval candidates = fd_make_simple_choice(choices);
-    int n = FD_CHOICE_SIZE(candidates);
-    if (k>=n) return candidates;
+  lispval worst = VOID;
+  size_t worst_off = (maximize)?(0):(k-1);
+  int k_len = 0;
+  DO_CHOICES(elt,choices) {
+    lispval key=_fd_apply_keyfn(elt,keyfn);
+    if (FD_ABORTED(key)) {
+      int j = 0; while (j<k_len) {
+        fd_decref(entries[k_len].sortkey);
+        j++;}
+      return -1;}
+    else if (k_len<k) {
+      entries[k_len].sortval = elt;
+      entries[k_len].sortkey = key;
+      k_len++;}
     else {
-      struct FD_SORT_ENTRY *entries = sort_alloc(k,ep);
-      int k_len = 0, sorted = 0;
-      DO_CHOICES(elt,choices) {
-        lispval key=_fd_apply_keyfn(elt,keyfn);
-        if (FD_ABORTED(key)) {
-          int j = 0; while (j<k_len) {fd_decref(entries[k_len].sortkey); j++;}
-          return key;}
-        else if (k_len<k) {
-          entries[k_len].sortval = elt;
-          entries[k_len].sortkey = key;
-          k_len++;}
-        else {
-          if (sorted==0) {
-            qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
-            worst = entries[worst_off].sortkey;
-            sorted = 1;}
-          if (IS_BETTER(key,worst)) {
-            fd_decref(worst);
-            entries[worst_off].sortval = elt;
-            entries[worst_off].sortkey = key;
-            /* This could be done faster by either by just finding
-               where to insert it, either by iterating O(n) or binary
-               search O(log n). */
-            qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
-            worst = entries[worst_off].sortkey;}}}
-      return VOID;}}
-  else {
-    fd_incref(choices);
-    return choices;}
+      /* If we get here, we've got k filled up and have the
+         'minimal' value set aside. We iterate through the rest of
+         the choice and only add a value (replacing the minimal
+         one) if its better than the minimal one. */
+      qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+      worst = entries[worst_off].sortkey;
+      if (IS_BETTER(key,worst)) {
+        fd_decref(worst);
+        entries[worst_off].sortval = elt;
+        entries[worst_off].sortkey = key;
+        /* This could be done faster by either by just finding
+           where to insert it, either by iterating O(n) or binary
+           search O(log n). */
+        qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+        worst = entries[worst_off].sortkey;}
+      else fd_decref(key);}}
+  return k_len;
 #undef BETTERP
 #undef IS_BETTER
 }
 
-static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep)
+static lispval entries2choice(struct FD_SORT_ENTRY *entries,int n)
 {
-  struct FD_SORT_ENTRY *entries = u8_alloc_n(k,struct FD_SORT_ENTRY);
-  memset(entries,0,sizeof(struct FD_SORT_ENTRY)*k);
-  *ep = entries;
-  return entries;
+  if (n<0) {
+    u8_free(entries);
+    return FD_ERROR_VALUE;}
+  else if (n==0) {
+    if (entries) u8_free(entries);
+    return EMPTY;}
+  else {
+    lispval results = EMPTY;
+    int i = 0; while (i<n) {
+      lispval elt = entries[i].sortval;
+      fd_decref(entries[i].sortkey); fd_incref(elt);
+      CHOICE_ADD(results,elt);
+      i++;}
+    u8_free(entries);
+    return fd_simplify_choice(results);}
 }
 
 static lispval nmax_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
-    unsigned int k = FIX2INT(karg);
-    struct FD_SORT_ENTRY *entries = NULL;
-    lispval results = select_helper(choices,keyfn,k,1,&entries);
-    if (VOIDP(results)) {
-      int i = 0;
-      results = EMPTY;
-      while (i<k) {
-        lispval elt = entries[i].sortval;
-        fd_decref(entries[i].sortkey); fd_incref(elt);
-        CHOICE_ADD(results,elt);
-        i++;}
-      u8_free(entries);
-      return results;}
-    else return results;}
+    if (FD_PRECHOICEP(choices)) {
+      lispval norm = fd_make_simple_choice(choices);
+      lispval result = nmax_prim(norm,karg,keyfn);
+      fd_decref(norm);
+      return result;}
+    else {
+      size_t k = FIX2INT(karg);
+      size_t n = FD_CHOICE_SIZE(choices);
+      if (n==1)
+        return fd_make_vector(1,&choices);
+      else {
+        struct FD_SORT_ENTRY *entries = u8_alloc_n(k,struct FD_SORT_ENTRY);
+        ssize_t count = select_helper(choices,keyfn,k,1,entries);
+        return entries2choice(entries,count);}}}
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmax2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
-    unsigned int k = FIX2INT(karg);
-    struct FD_SORT_ENTRY *entries = NULL;
-    lispval results = select_helper(choices,keyfn,k,1,&entries);
-    if (VOIDP(results)) {
-      lispval vec = fd_make_vector(k,NULL);
-      int i = 0;
-      while (i<k) {
-        lispval elt = entries[i].sortval;
-        int vec_off = k-1-i;
-        fd_incref(elt); fd_decref(entries[i].sortkey);
-        FD_VECTOR_SET(vec,vec_off,elt);
-        i++;}
-      u8_free(entries);
-      return vec;}
-    else return results;}
+    if (FD_PRECHOICEP(choices)) {
+      lispval norm = fd_make_simple_choice(choices);
+      lispval result = nmax_prim(norm,karg,keyfn);
+      fd_decref(norm);
+      return result;}
+    else {
+      size_t k = FIX2INT(karg);
+      size_t n = FD_CHOICE_SIZE(choices);
+      if (n==0) return fd_make_vector(0,NULL);
+      else if (n==1) {
+        fd_incref(choices);
+        return fd_make_vector(0,&choices);}
+      else {
+        ssize_t n_entries = (n<k) ? (n) : (k);
+        struct FD_SORT_ENTRY *entries =
+          u8_alloc_n(n_entries,struct FD_SORT_ENTRY);
+        ssize_t count = select_helper(choices,keyfn,k,1,entries);
+        lispval vec = fd_make_vector(count,NULL);
+        int i = 0; while (i<count) {
+          lispval elt = entries[i].sortval;
+          int vec_off = count-1-i;
+          fd_incref(elt);
+          fd_decref(entries[i].sortkey);
+          FD_VECTOR_SET(vec,vec_off,elt);
+          i++;}
+        u8_free(entries);
+        return vec;}}}
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmin_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
-    unsigned int k = FIX2INT(karg);
-    struct FD_SORT_ENTRY *entries = NULL;
-    lispval results = select_helper(choices,keyfn,k,0,&entries);
-    if (VOIDP(results)) {
-      int i = 0;
-      results = EMPTY;
-      while (i<k) {
-        lispval elt = entries[i].sortval;
-        fd_decref(entries[i].sortkey); fd_incref(elt);
-        CHOICE_ADD(results,elt);
-        i++;}
-      u8_free(entries);
-      return results;}
-    else return results;}
+    if (FD_PRECHOICEP(choices)) {
+      lispval norm = fd_make_simple_choice(choices);
+      lispval result = nmax_prim(norm,karg,keyfn);
+      fd_decref(norm);
+      return result;}
+    else {
+      size_t k = FIX2INT(karg);
+      size_t n = FD_CHOICE_SIZE(choices);
+      if (n<=k) return fd_incref(choices);
+      else {
+        struct FD_SORT_ENTRY *entries = u8_alloc_n(k,struct FD_SORT_ENTRY);
+        ssize_t count = select_helper(choices,keyfn,k,0,entries);
+        return entries2choice(entries,count);}}}
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 static lispval nmin2vec_prim(lispval choices,lispval karg,lispval keyfn)
 {
   if (FD_UINTP(karg)) {
-    unsigned int k = FIX2INT(karg);
-    struct FD_SORT_ENTRY *entries = NULL;
-    lispval results = select_helper(choices,keyfn,k,0,&entries);
-    if (VOIDP(results)) {
-      lispval vec = fd_make_vector(k,NULL);
-      int i = 0;
-      while (i<k) {
-        fd_decref(entries[i].sortkey);
-        fd_incref(entries[i].sortval);
-        FD_VECTOR_SET(vec,i,entries[i].sortval);
-        i++;}
-      u8_free(entries);
-      return vec;}
-    else return results;}
-  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
+    if (FD_PRECHOICEP(choices)) {
+      lispval norm = fd_make_simple_choice(choices);
+      lispval result = nmin_prim(norm,karg,keyfn);
+      fd_decref(norm);
+      return result;}
+    else {
+      size_t k = FIX2INT(karg);
+      size_t n = FD_CHOICE_SIZE(choices);
+      if (n==0) return fd_make_vector(0,NULL);
+      else if (n==1) {
+        fd_incref(choices);
+        return fd_make_vector(0,&choices);}
+      else {
+        ssize_t n_entries = (n<k) ? (n) : (k);
+        struct FD_SORT_ENTRY *entries =
+          u8_alloc_n(n_entries,struct FD_SORT_ENTRY);
+        ssize_t count = select_helper(choices,keyfn,k,0,entries);
+        lispval vec = fd_make_vector(count,NULL);
+        int i = 0; while (i<count) {
+          fd_decref(entries[i].sortkey);
+          fd_incref(entries[i].sortval);
+          FD_VECTOR_SET(vec,i,entries[i].sortval);
+          i++;}
+        u8_free(entries);
+        return vec;}}}
+    else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 /* GETRANGE */
