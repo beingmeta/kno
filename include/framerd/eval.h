@@ -228,8 +228,8 @@ FD_FASTOP lispval fd_lexref(lispval lexref,fd_lexenv env)
   while ((env) && (up)) {
     if (env->env_copy) env = env->env_copy;
     env = env->env_parent; up--;}
-  if (env->env_copy) env = env->env_copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
+    if (env->env_copy) env = env->env_copy;
     lispval bindings = env->env_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s = (struct FD_SCHEMAP *)bindings;
