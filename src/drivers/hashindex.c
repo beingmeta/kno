@@ -2320,55 +2320,9 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_free(newkeys.buffer);
     n_keys = schedule_size;}
 
-  if (u8_removefile(recovery_file)<0)
-    u8_log(LOGWARN,"CouldntRemoveFile",
-           "Couldn't remove recovery file %s",recovery_file);
-  u8_free(recovery_file);
-
-  /* This writes the new offset information */
-  if (fd_acid_files) {
-    int i = 0;
-    /* Write the new offsets information to the end of the file
-       for recovery if we die while doing the actual write. */
-    /* Start by getting the total number of keys in the new file. */
-    total_keys = fd_read_4bytes(fd_start_read(stream,FD_HASHINDEX_KEYCOUNT_POS))
-      +new_keys;
-    recovery_start = fd_endpos(stream);
-    outstream = fd_writebuf(stream);
-    fd_write_4bytes(outstream,hx->storage_xformat);
-    fd_write_4bytes(outstream,total_keys);
-    fd_write_4bytes(outstream,changed_buckets);
-    while (i<changed_buckets) {
-      fd_write_8bytes(outstream,bucket_locs[i].bck_ref.off);
-      fd_write_4bytes(outstream,bucket_locs[i].bck_ref.size);
-      fd_write_4bytes(outstream,bucket_locs[i].bucketno);
-      i++;}
-    fd_write_8bytes(outstream,recovery_start);
-    fd_setpos(stream,0);
-    fd_write_4bytes(outstream,FD_HASHINDEX_TO_RECOVER);
-    fd_flush_stream(stream);
-    fsync(stream->stream_fileno);
-  }
-
   update_hashindex_ondisk
     (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
      stream);
-  if (fd_acid_files) {
-    int retval = 0;
-    fd_flush_stream(stream);
-    fsync(stream->stream_fileno);
-    /* Now erase the recovery information, since we don't need it
-       anymore. */
-    recovery_pos = fd_read_8bytes(fd_start_read(stream,-8));
-    if (recovery_pos!=recovery_start) {
-      u8_log(LOG_ERR,"hashindex_commit",
-             "Trouble truncating recovery information for %s",
-             hx->indexid);}
-    retval = ftruncate(stream->stream_fileno,recovery_pos);
-    if (retval<0)
-      u8_log(LOG_ERR,"hashindex_commit",
-             "Trouble truncating recovery information for %s",
-             hx->indexid);}
 
 #if FD_DEBUG_HASHINDEXES
   u8_message("Resetting tables");
