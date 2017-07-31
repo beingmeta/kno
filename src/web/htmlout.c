@@ -40,24 +40,43 @@ static void output_value(u8_output out,lispval val,
 			 u8_string classname);
 FD_EXPORT void fd_html_exception(u8_output s,u8_exception ex,int backtrace);
 
-static u8_string error_stylesheet;
+static u8_string error_stylesheet=NULL;
+static u8_string error_javascript=NULL;
 
 static lispval xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
 static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
-static lispval embedded_symbol, estylesheet_symbol, xmltag_symbol;
-static lispval modules_symbol, xml_env_symbol;
+static lispval embedded_symbol, error_style_symbol, error_script_symbol;
+static lispval modules_symbol, xml_env_symbol, xmltag_symbol;;
+
+static void output_header_string(u8_output s,u8_string header,u8_string wrap)
+{
+  if (header == NULL) return;
+  else if (*header=='<') {
+    u8_puts(s,header); u8_putc(s,'\n');}
+  else if ((strchr(header,'\n')) || (strchr(header,'{'))) {
+    u8_string tag_name=NULL;
+    u8_string tag_end=strchr(wrap,' ');
+    size_t tag_len = (tag_end) ? (tag_end-wrap) : (0);
+    u8_byte tag_name_buf[tag_len+1];
+    if (tag_end==NULL)
+      tag_name=wrap;
+    else {
+      strncpy(tag_name_buf,wrap,tag_len);
+      tag_name_buf[tag_len]='\0';
+      tag_name=tag_name_buf;}
+    u8_printf(s,"<%s>\n%s\n</%s>\n",wrap,header,tag_name);}
+  
+}
 
 static void start_errorpage(u8_output s,u8_exception ex)
 {
-  int isembedded = 0, customstylesheet = 0;
+  int isembedded = 0;
   s->u8_write = s->u8_outbuf;
   lispval embeddedp = fd_req_get(embedded_symbol,VOID);
-  lispval estylesheet = fd_req_get(estylesheet_symbol,VOID);
+  lispval req_style = fd_req_get(error_style_symbol,VOID);
+  lispval req_script = fd_req_get(error_script_symbol,VOID);
   if ((FD_NOVOIDP(embeddedp)) || (FALSEP(embeddedp))) isembedded = 1;
   if (STRINGP(embeddedp)) u8_puts(s,CSTRING(embeddedp));
-  if (STRINGP(estylesheet)) {
-    u8_puts(s,CSTRING(estylesheet));
-    customstylesheet = 1;}
   if (isembedded==0) {
     u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
     u8_printf(s,"<html>\n<head>\n<title>");
@@ -69,12 +88,33 @@ static void start_errorpage(u8_output s,u8_exception ex)
       if (strlen(ex->u8x_details)<40)
         u8_printf(s," (%s)",ex->u8x_details);}
     u8_puts(s,"</title>\n");
-    if (customstylesheet==0)
-      u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
-                error_stylesheet);
     u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
     u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
               FD_BACKTRACE_JS);
+    if (error_javascript) {
+      if (strchr(error_javascript,'{'))
+        u8_printf(s,"<script language ='javascript'>\n%s\n</script>\n",
+                  error_javascript);
+      else u8_printf(s,"<script src ='%s' language ='javascript'></script>\n",
+                     error_javascript);}
+    if (error_stylesheet) {
+      if (strchr(error_stylesheet,'{'))
+        u8_printf(s,"<style type='text/css'>\n%s\n</style>\n",
+                  error_stylesheet);
+      else u8_printf(s,"<link href='%s' rel='stylesheet' type='text/css'/>\n",
+                     error_stylesheet);}
+    if (FD_STRINGP(req_style)) {
+      u8_string rstyle = FD_CSTRING(req_style);
+      if (strchr(rstyle,'{'))
+        u8_printf(s,"<style type='text/css'>\n%s\n</style>\n",rstyle);
+      else u8_printf(s,"<link href='%s' rel='stylesheet' type='text/css'/>\n",
+                     rstyle);}
+    if (FD_STRINGP(req_script)) {
+      u8_string rscript = FD_CSTRING(req_script);
+      if (strchr(rscript,'{'))
+        u8_printf(s,"<script language ='javascript'>\n%s\n</script>\n",rscript);
+      else u8_printf(s,"<script src ='%s' language ='javascript'></script>\n",
+                     rscript);}
     u8_puts(s,"</head>\n");}
   u8_puts(s,"<body id='ERRORPAGE'>\n");
 }
@@ -268,9 +308,9 @@ static void output_value(u8_output out,lispval val,
 {
   if (STRINGP(val))
     if (STRLEN(val)>42)
-      u8_printf(out," <%s class='%s long string' title='%d characters'>%k</%s>",
+      u8_printf(out," <%s class='%s long string' title='%d characters'>“%k”</%s>",
                 eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
-    else u8_printf(out," <%s class='%s string' title='% characters'>%k</%s>",
+    else u8_printf(out," <%s class='%s string' title='% characters'>“%k”</%s>",
                    eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
   else if (SYMBOLP(val))
     u8_printf(out," <%s class='%s symbol'>%lk</%s>",
@@ -298,7 +338,7 @@ static void output_value(u8_output out,lispval val,
       u8_printf(out," <%s class='%s map'>#[]</%s>",eltname,classname,eltname);
     else if (n_keys==1) {
       lispval value=fd_get(val,keys,VOID);
-      u8_printf(out," <%s class='%s map'>#[<span class='slotid'>%q</span> ",
+      u8_printf(out," <%s class='%s map'>#[<span class='slotid'>%lk</span> ",
 		eltname,classname,keys);
       output_value(out,value,"span","slotvalue");
       u8_printf(out," ]</%s>",eltname);
@@ -353,9 +393,9 @@ static void output_value(u8_output out,lispval val,
     u8_printf(out,"}</ul>");}
   else if (PACKETP(val))
     if (FD_PACKET_LENGTH(val)>128)
-      u8_printf(out," <%s class='%s long packet'>%q</%s>",
+      u8_printf(out," <%s class='%s long packet'>%lk</%s>",
 		eltname,classname,val,eltname);
-    else u8_printf(out," <%s class='%s packet'>%q</%s>",
+    else u8_printf(out," <%s class='%s packet'>%lk</%s>",
 		   eltname,classname,val,eltname);
   else {
     fd_ptr_type ptrtype=FD_PTR_TYPE(val);
@@ -401,7 +441,7 @@ static void output_stack_frame(u8_output out,lispval entry)
         u8_puts(out,"\n  <pre class='eval expr'>\n");
         fd_pprint(out,op,NULL,0,0,100);
         u8_puts(out,"\n  </pre>");}
-      else u8_printf(out,"\n  <div class='eval'>%q</div>",op);}
+      else u8_printf(out,"\n  <div class='eval'>%lk</div>",op);}
     else {
       u8_puts(out,"\n  <div class='call'>\n");
       output_value(out,op,"span","handler");
@@ -587,13 +627,13 @@ FD_EXPORT void fd_init_htmlout_c()
   rawtag_symbol = fd_intern("%RAWTAG");
   browseinfo_symbol = fd_intern("BROWSEINFO");
   embedded_symbol = fd_intern("%EMBEDDED");
-  estylesheet_symbol = fd_intern("%ERRORSTYLE");
+  error_style_symbol = fd_intern("%ERRORSTYLE");
+  error_script_symbol = fd_intern("%ERRORSCRIPT");
   modules_symbol = fd_intern("%MODULES");
   xml_env_symbol = fd_intern("%XMLENV");
 
   moduleid_symbol = fd_intern("%MODULEID");
 
-  error_stylesheet = u8_strdup("http://static.beingmeta.com/fdjt/fdjt.css");
   fd_register_config
     ("ERRORSTYLESHEET",_("Default style sheet for web errors"),
      fd_sconfig_get,fd_sconfig_set,&error_stylesheet);
