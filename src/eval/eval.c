@@ -787,8 +787,9 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       FD_PUSH_STACK(eval_stack,fd_evalstack_type,label,expr);
       lispval result = VOID, headval = VOID;
       int gc_head=0;
-      if (FD_LEXREFP(head))
+      if (FD_LEXREFP(head)) {
         headval=fd_lexref(head,env);
+        gc_head=1;}
       else if (FD_FCNIDP(head)) {
         headval=fd_fcnid_ref(head);
         if (PRECHOICEP(headval)) {
