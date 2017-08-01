@@ -348,7 +348,7 @@ static void update_filetime(struct FD_BIGPOOL *fp)
 static fd_pool recover_bigpool(u8_string fname,fd_storage_flags open_flags,
                                lispval opts)
 {
-  u8_string head_file=u8_string_append(fname,".head",NULL);
+  u8_string head_file=u8_string_append(fname,".recovery",NULL);
   if (u8_file_existsp(head_file)) {
     ssize_t rv=fd_restore_head(head_file,fname,256-8);
     if (rv<0) {

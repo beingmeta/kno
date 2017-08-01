@@ -2320,9 +2320,11 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_free(newkeys.buffer);
     n_keys = schedule_size;}
 
-  update_hashindex_ondisk
-    (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
-     stream);
+  if (update_hashindex_ondisk
+      (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
+       stream) >= 0) {
+    u8_removefile(recovery_file);
+    u8_free(recovery_file);}
 
 #if FD_DEBUG_HASHINDEXES
   u8_message("Resetting tables");
