@@ -41,15 +41,22 @@ static lispval year_symbol, month_symbol, date_symbol;
 static lispval hours_symbol, minutes_symbol, seconds_symbol;
 static lispval milliseconds_symbol, microseconds_symbol, nanoseconds_symbol;
 static lispval picoseconds_symbol, femtoseconds_symbol;
+
+static lispval years_symbol, months_symbol, day_symbol, days_symbol;
+static lispval hour_symbol, minute_symbol, second_symbol;
+static lispval millisecond_symbol, microsecond_symbol, nanosecond_symbol;
+static lispval picosecond_symbol, femtosecond_symbol;
+
 static lispval precision_symbol, tzoff_symbol, dstoff_symbol, gmtoff_symbol;
 static lispval spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
 static lispval season_symbol, gmt_symbol, timezone_symbol;
 static lispval morning_symbol, afternoon_symbol;
 static lispval  evening_symbol, nighttime_symbol;
 static lispval tick_symbol, xtick_symbol, prim_tick_symbol;
-static lispval iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
-static lispval rfc822x_symbol, localstring_symbol;
+static lispval iso_symbol, isostring_symbol, iso8601_symbol;
 static lispval isodate_symbol, isobasic_symbol, isobasicdate_symbol;
+static lispval rfc822_symbol, rfc822date_symbol, rfc822x_symbol;
+static lispval localstring_symbol;
 static lispval time_of_day_symbol, dowid_symbol, monthid_symbol;
 static lispval shortmonth_symbol, longmonth_symbol;
 static lispval  shortday_symbol, longday_symbol;
@@ -58,18 +65,32 @@ static lispval shortstring_symbol, short_symbol;
 static lispval string_symbol, fullstring_symbol;
 static lispval timestring_symbol, datestring_symbol;
 
-static enum u8_timestamp_precision get_precision(lispval sym)
+static int get_precision(lispval sym)
 {
-  if (FD_EQ(sym,year_symbol)) return u8_year;
-  else if (FD_EQ(sym,month_symbol)) return u8_month;
-  else if (FD_EQ(sym,date_symbol)) return u8_day;
-  else if (FD_EQ(sym,hours_symbol)) return u8_hour;
-  else if (FD_EQ(sym,minutes_symbol)) return u8_minute;
-  else if (FD_EQ(sym,seconds_symbol)) return u8_second;
-  else if (FD_EQ(sym,milliseconds_symbol)) return u8_millisecond;
-  else if (FD_EQ(sym,microseconds_symbol)) return u8_microsecond;
-  else if (FD_EQ(sym,nanoseconds_symbol)) return u8_nanosecond;
-  else return (enum u8_timestamp_precision) -1;
+  if ( (FD_EQ(sym,year_symbol)) || (FD_EQ(sym,years_symbol)) )
+    return (int) u8_year;
+  else if ( (FD_EQ(sym,month_symbol)) || (FD_EQ(sym,months_symbol)) )
+    return (int) u8_month;
+  else if ( (FD_EQ(sym,date_symbol)) || (FD_EQ(sym,day_symbol)) ||
+            (FD_EQ(sym,days_symbol)) )
+    return (int) u8_day;
+  else if ( (FD_EQ(sym,hours_symbol)) || (FD_EQ(sym,hour_symbol)) )
+    return (int) u8_hour;
+  else if ( (FD_EQ(sym,minutes_symbol)) || (FD_EQ(sym,minute_symbol)) )
+    return (int ) u8_minute;
+  else if ( (FD_EQ(sym,seconds_symbol)) || (FD_EQ(sym,second_symbol)) )
+    return (int) u8_second;
+  else if ( (FD_EQ(sym,milliseconds_symbol)) || (FD_EQ(sym,millisecond_symbol)) )
+    return (int) u8_millisecond;
+  else if ( (FD_EQ(sym,microseconds_symbol)) || (FD_EQ(sym,microsecond_symbol)) )
+    return (int) u8_microsecond;
+  else if ( (FD_EQ(sym,nanoseconds_symbol)) || (FD_EQ(sym,nanosecond_symbol)) )
+    return (int) u8_nanosecond;
+  else if ( (FD_EQ(sym,picoseconds_symbol)) || (FD_EQ(sym,picosecond_symbol)) )
+    return (int) u8_picosecond;
+  else if ( (FD_EQ(sym,femtoseconds_symbol)) || (FD_EQ(sym,femtosecond_symbol)) )
+    return (int) u8_femtosecond;
+  else return -1;
 }
 
 static lispval timestampp(lispval arg)
@@ -95,9 +116,11 @@ static lispval timestamp_prim(lispval arg)
     else u8_rfc822_to_xtime(sdata,&(tm->u8xtimeval));
     return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
-    enum u8_timestamp_precision prec = get_precision(arg);
-    if (((int)prec)<0)
+    int prec_val = get_precision(arg);
+    enum u8_timestamp_precision prec;
+    if (prec_val<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
+    else prec=prec_val;
     u8_local_xtime(&(tm->u8xtimeval),-1,prec,-1);
     return LISP_CONS(tm);}
   else if (FIXNUMP(arg)) {
@@ -161,9 +184,11 @@ static lispval gmtimestamp_prim(lispval arg)
                     tm->u8xtimeval.u8_nsecs,0,0);
     return LISP_CONS(tm);}
   else if (SYMBOLP(arg)) {
-    enum u8_timestamp_precision prec = get_precision(arg);
-    if (((int)prec)<0)
+    int prec_val = get_precision(arg);
+    enum u8_timestamp_precision prec;
+    if (prec_val<0)
       return fd_type_error("timestamp precision","timestamp_prim",arg);
+    else prec = prec_val;
     u8_init_xtime(&(tm->u8xtimeval),-1,prec,-1,0,0);
     return LISP_CONS(tm);}
   else if (FIXNUMP(arg)) {
@@ -487,6 +512,14 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,int reterr)
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_rfc822(&out,xt);
+    return fd_stream2string(&out);}
+  else if (FD_EQ(slotid,rfc822date_symbol)) {
+    struct U8_XTIME newt;
+    struct U8_OUTPUT out;
+    U8_INIT_OUTPUT(&out,128);
+    memcpy(&newt,xt,sizeof(struct U8_XTIME));
+    u8_set_xtime_precision(&newt,u8_day);
+    u8_xtime_to_rfc822(&out,&newt);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,rfc822x_symbol)) {
     struct U8_OUTPUT out;
@@ -820,7 +853,7 @@ static int xtime_set(struct U8_XTIME *xt,lispval slotid,lispval value)
       int dstoff = xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
-    else return FD_ERROR;}
+    else return -1;}
   else if (FD_EQ(slotid,dstoff_symbol)) {
     int dstoff; if (tzvalueok(value,&dstoff,"xtime_set/dstoff")) {
       u8_tmprec prec = xt->u8_prec;
@@ -828,14 +861,22 @@ static int xtime_set(struct U8_XTIME *xt,lispval slotid,lispval value)
       int gmtoff = xt->u8_tzoff+xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
-    else return FD_ERROR;}
+    else return -1;}
   else if (FD_EQ(slotid,tzoff_symbol)) {
     int tzoff; if (tzvalueok(value,&tzoff,"xtime_set/tzoff")) {
       u8_tmprec prec = xt->u8_prec; int dstoff = xt->u8_dstoff;
       time_t tick = xt->u8_tick; int nsecs = xt->u8_nsecs;
       u8_init_xtime(xt,tick,prec,nsecs,tzoff,dstoff);
       return 0;}
-    else return FD_ERROR;}
+    else return -1;}
+  else if (FD_EQ(slotid,precision_symbol)) {
+    int prec_val = get_precision(value);
+    enum u8_timestamp_precision precision;
+    if (prec_val<0)
+      return fd_reterr(fd_TypeError,"xtime_set",_("precision"),value);
+    else precision = prec_val;
+    xt->u8_prec=precision;
+    return 0;}
   else if (FD_EQ(slotid,timezone_symbol)) {
     if (STRINGP(value)) {
       u8_apply_tzspec(xt,CSTRING(value));
@@ -883,7 +924,8 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
   else if (TYPEP(base,fd_timestamp_type))
     result = fd_deep_copy(base);
   else result = timestamp_prim(base);
-  if (FD_ABORTP(result)) return result;
+  if (FD_ABORTP(result))
+    return result;
   else {
     struct U8_XTIME *xt=
       &((fd_consptr(struct FD_TIMESTAMP *,result,fd_timestamp_type))->u8xtimeval);
@@ -892,7 +934,9 @@ static lispval modtime_prim(lispval slotmap,lispval base,lispval togmt)
     DO_CHOICES(key,keys) {
       lispval val = fd_get(slotmap,key,VOID);
       if (xtime_set(xt,key,val)<0) {
-        result = FD_ERROR; FD_STOP_DO_CHOICES; break;}
+        result = FD_ERROR;
+        FD_STOP_DO_CHOICES;
+        break;}
       else {}}
     if (FD_ABORTP(result)) return result;
     else if (FALSEP(togmt)) {
@@ -1356,6 +1400,8 @@ FD_EXPORT void fd_init_timeprims_c()
   CHOICE_ADD(xtime_keys,iso8601_symbol);
   rfc822_symbol = fd_intern("RFC822");
   CHOICE_ADD(xtime_keys,rfc822_symbol);
+  rfc822date_symbol = fd_intern("RFC822DATE");
+  CHOICE_ADD(xtime_keys,rfc822_symbol);
   rfc822x_symbol = fd_intern("RFC822X");
   CHOICE_ADD(xtime_keys,rfc822x_symbol);
   localstring_symbol = fd_intern("LOCALSTRING");
@@ -1411,6 +1457,19 @@ FD_EXPORT void fd_init_timeprims_c()
 
   timezone_symbol = fd_intern("TIMEZONE");
   CHOICE_ADD(xtime_keys,timezone_symbol);
+
+  years_symbol=fd_intern("YEARS");
+  months_symbol=fd_intern("MONTHS");
+  day_symbol=fd_intern("DAY");
+  days_symbol=fd_intern("DAYS");
+  hour_symbol=fd_intern("HOUR");
+  minute_symbol=fd_intern("MINUTE");
+  second_symbol=fd_intern("SECOND");
+  millisecond_symbol=fd_intern("MILLISECOND");
+  microsecond_symbol=fd_intern("MICROSECOND");
+  nanosecond_symbol=fd_intern("NANOSECOND");
+  picosecond_symbol=fd_intern("PICOSECOND");
+  femtosecond_symbol=fd_intern("FEMTOSECOND");
 
   gmt_symbol = fd_intern("GMT");
 
