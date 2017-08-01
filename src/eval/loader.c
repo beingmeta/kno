@@ -252,10 +252,11 @@ static void add_load_record
     else scan = scan->prev_loaded;
   scan = u8_alloc(struct FD_LOAD_RECORD);
   scan->loadfile = u8_strdup(filename);
-  scan->file_modtime = mtime; scan->reloading = 0;
+  scan->file_modtime = mtime;
   scan->loadenv = (fd_lexenv)fd_incref((lispval)env);
   scan->loadarg = fd_incref(spec);
   scan->prev_loaded = load_records;
+  scan->reloading = 0;
   load_records = scan;
   u8_unlock_mutex(&load_record_lock);
 }
