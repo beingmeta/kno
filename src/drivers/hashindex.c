@@ -2151,7 +2151,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
       return -1;}}
 
   int new_keys = 0, n_keys, new_buckets = 0;
-  int schedule_max, changed_buckets = 0, total_keys = 0;
+  int schedule_max, changed_buckets = 0, total_keys = hx->table_n_keys;
   int new_keyblocks = 0, new_valueblocks = 0;
   fd_off_t recovery_start, recovery_pos;
   ssize_t endpos, maxpos = get_maxpos(hx);
@@ -2319,6 +2319,9 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_free(out.buffer);
     u8_free(newkeys.buffer);
     n_keys = schedule_size;}
+
+  total_keys += new_keys;
+  hx->table_n_keys = total_keys;
 
   if (update_hashindex_ondisk
       (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
