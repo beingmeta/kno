@@ -382,7 +382,7 @@ static lispval mem_index_ctl(fd_index ix,lispval op,int n,lispval *args)
   else if (op == fd_load_op) {
     if (mix->mix_loaded == 0) load_mem_index(mix,1);
     return FD_INT(mix->index_cache.table_n_keys);}
-  else return FD_FALSE;
+  else return fd_default_indexctl(ix,op,n,args);
 }
 
 FD_EXPORT int fd_make_mem_index(u8_string spec)

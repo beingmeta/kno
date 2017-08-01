@@ -173,6 +173,7 @@ static fd_exception CorruptedHashIndex=_("Corrupted hashindex file");
 static fd_exception BadHashFn=_("hashindex has unknown hash function");
 
 static lispval set_symbol, drop_symbol, keycounts_symbol;
+static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
 /* Utilities for DTYPE I/O */
 
@@ -305,7 +306,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   if (baseoids_size) {
     lispval baseoids_vector = read_dtype_at_pos(stream,baseoids_pos);
     if (VOIDP(baseoids_vector)) {
-      index->index_n_baseoids = 0; index->index_new_baseoids = 0;
+      index->index_n_baseoids = 0;
+      index->index_new_baseoids = 0;
       index->index_baseoid_ids = NULL;
       index->index_ids2baseoids = NULL;}
     else if (VECTORP(baseoids_vector)) {
@@ -2699,6 +2701,19 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       else if ((FALSEP(mod_arg))||(VOIDP(mod_arg)))
         return FD_INT(bucket);
       else return FD_INT((bucket%(hx->index_n_buckets)));}}
+  else if ( (op == fd_metadata_op) && (n == 0) ) {
+    lispval base = fd_index_base_metadata(ix);
+    int n_slotids = hx->index_n_slotids+hx->index_new_slotids;
+    int n_baseoids = hx->index_n_baseoids+hx->index_new_baseoids;
+    fd_store(base,slotids_symbol,FD_INT(n_slotids));
+    fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
+    fd_store(base,buckets_symbol,FD_INT(hx->index_n_buckets));
+    fd_store(base,nkeys_symbol,FD_INT(hx->table_n_keys));
+    return base;}
+  else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) ) {
+    fd_incref_vec(hx->index_slotids,hx->index_n_slotids+hx->index_new_slotids);
+    return fd_make_vector(hx->index_n_slotids+hx->index_new_slotids,
+                          hx->index_slotids);}
   else if (op == fd_stats_op)
     return hashindex_stats(hx);
   else if (op == fd_reload_op) {
@@ -2752,7 +2767,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       i++;}
     u8_free(info);
     return (lispval)table;}
-  else return FD_FALSE;
+  else return fd_default_indexctl(ix,op,n,args);
 }
 
 
@@ -2769,7 +2784,7 @@ static struct FD_INDEX_HANDLER hashindex_handler={
   hashindex_fetchkeys, /* fetchkeys */
   hashindex_fetchinfo, /* fetchinfo */
   NULL, /* batchadd */
-  hashindex_create, /* create */ 
+  hashindex_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */
   hashindex_ctl /* indexctl */
@@ -2782,6 +2797,10 @@ FD_EXPORT void fd_init_hashindex_c()
   set_symbol = fd_intern("SET");
   drop_symbol = fd_intern("DROP");
   keycounts_symbol = fd_intern("KEYCOUNTS");
+  slotids_symbol = fd_intern("SLOTIDS");
+  baseoids_symbol = fd_intern("BASEOIDS");
+  buckets_symbol = fd_intern("BUCKETS");
+  nkeys_symbol = fd_intern("KEYS");
 
   u8_register_source_file(_FILEINFO);
 

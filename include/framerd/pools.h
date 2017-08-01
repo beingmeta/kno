@@ -248,8 +248,8 @@ struct FD_POOL_HANDLER some_handler={
 
 FD_EXPORT lispval fd_pool_ctl(fd_pool p,lispval op,int n,lispval *args);
 
-FD_EXPORT lispval fd_default_pool_ctl(fd_pool p,lispval op,int n,lispval *args);
-FD_EXPORT lispval fd_pool_default_metadata(fd_pool p);
+FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args);
+FD_EXPORT lispval fd_pool_base_metadata(fd_pool p);
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
                             struct FD_POOL_HANDLER *h,

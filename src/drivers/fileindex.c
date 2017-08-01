@@ -57,6 +57,7 @@ static int recover_file_index(struct FD_FILE_INDEX *fx);
 static ssize_t file_index_default_size=32000;
 
 static lispval set_symbol, drop_symbol, slotids_symbol;
+static lispval buckets_slot, slotids_slot;
 static struct FD_INDEX_HANDLER file_index_handler;
 
 static lispval file_index_fetch(fd_index ix,lispval key);
@@ -1196,46 +1197,52 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
 
 /* File index ops */
 
-static lispval file_index_op(fd_index ix,lispval op,int n,lispval *args)
+static lispval file_index_ctl(fd_index ix,lispval op,int n,lispval *args)
 {
-  struct FD_FILE_INDEX *hx = (struct FD_FILE_INDEX *)ix;
+  struct FD_FILE_INDEX *flx = (struct FD_FILE_INDEX *)ix;
   if ( ((n>0)&&(args == NULL)) || (n<0) )
-    return fd_err("BadIndexOpCall","file_index_op",
-                  hx->indexid,VOID);
+    return fd_err("BadIndexOpCall","file_index_ctl",
+                  flx->indexid,VOID);
   else if (op == fd_cachelevel_op) {
     if (n==0)
-      return FD_INT(hx->index_cache_level);
+      return FD_INT(flx->index_cache_level);
     else {
       lispval arg = (args)?(args[0]):(VOID);
       if ((FIXNUMP(arg))&&(FIX2INT(arg)>=0)&&
           (FIX2INT(arg)<0x100)) {
         file_index_setcache(ix,FIX2INT(arg));
-        return FD_INT(hx->index_cache_level);}
+        return FD_INT(flx->index_cache_level);}
       else return fd_type_error
-             (_("cachelevel"),"file_index_op/cachelevel",arg);}}
+             (_("cachelevel"),"file_index_ctl/cachelevel",arg);}}
   else if (op == fd_bufsize_op) {
     if (n==0)
-      return FD_INT(hx->index_stream.buf.raw.buflen);
+      return FD_INT(flx->index_stream.buf.raw.buflen);
     else if (FIXNUMP(args[0])) {
       file_index_setbuf(ix,FIX2INT(args[0]));
-      return FD_INT(hx->index_stream.buf.raw.buflen);}
-    else return fd_type_error("buffer size","file_index_op/bufsize",args[0]);}
+      return FD_INT(flx->index_stream.buf.raw.buflen);}
+    else return fd_type_error("buffer size","file_index_ctl/bufsize",args[0]);}
+  else if ( (op == fd_metadata_op) && (n == 0) ) {
+    lispval base = fd_index_base_metadata(ix);
+    fd_store(base,buckets_slot,FD_INT(flx->index_n_slots));
+    if (!(FD_VOIDP(flx->slotids)))
+      fd_store(base,slotids_slot,flx->slotids);
+    return base;}
   else if (op == fd_index_hashop) {
     if (n==0)
-      return FD_INT(hx->index_n_slots);
+      return FD_INT(flx->index_n_slots);
     else {
       lispval mod_arg = (n>1) ? (args[1]) : (VOID);
-      unsigned int hash = file_index_hash(hx,args[0]);
+      unsigned int hash = file_index_hash(flx,args[0]);
       if (FIXNUMP(mod_arg))
         return FD_INT((hash%FIX2INT(mod_arg)));
       else if ((FALSEP(mod_arg))||(VOIDP(mod_arg)))
         return FD_INT(hash);
-      else return FD_INT(hash%(hx->index_n_slots));}}
+      else return FD_INT(hash%(flx->index_n_slots));}}
   else if (op == fd_capacity_op)
-    return FD_INT(hx->index_n_slots);
+    return FD_INT(flx->index_n_slots);
   else if (op == fd_load_op)
     return EMPTY;
-  else return FD_FALSE;
+  else return fd_default_indexctl(ix,op,n,args);
 }
 
 /* Making file indexes */
@@ -1311,7 +1318,7 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_create, /* create */
   NULL, /* walk */
   NULL, /* recycle */
-  file_index_op  /* indexctl */
+  file_index_ctl  /* indexctl */
 };
 
 FD_EXPORT void fd_init_fileindex_c()
@@ -1321,6 +1328,8 @@ FD_EXPORT void fd_init_fileindex_c()
   set_symbol = fd_intern("SET");
   drop_symbol = fd_intern("DROP");
   slotids_symbol = fd_intern("%%SLOTIDS");
+  slotids_slot = fd_intern("SLOTIDS");
+  buckets_slot = fd_intern("BUCKETS");
   fd_register_index_type("fileindex",
                          &file_index_handler,
                          open_file_index,

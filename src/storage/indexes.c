@@ -1040,7 +1040,8 @@ FD_EXPORT void fd_index_close(fd_index ix)
 }
 
 static lispval cachelevel_slot, indexid_slot, source_slot,
-  cached_slot, adds_slot, edits_slot, flags_slot, registered_slot;
+  cached_slot, adds_slot, edits_slot, flags_slot, registered_slot,
+  opts_slot;
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
   noswap_flag, noerr_flag, phased_flag, background_flag,
@@ -1060,7 +1061,7 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
-FD_EXPORT lispval fd_index_default_metadata(fd_index ix)
+FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 {
   int flags=ix->index_flags;
   lispval metadata;
@@ -1095,6 +1096,9 @@ FD_EXPORT lispval fd_index_default_metadata(fd_index ix)
     fd_add(metadata,flags_slot,candrop_flag);
   if (U8_BITP(flags,FD_INDEX_SET_CAPABILITY))
     fd_add(metadata,flags_slot,canset_flag);
+
+  if (FD_TABLEP(ix->index_opts))
+    fd_add(metadata,opts_slot,ix->index_opts);
 
   return metadata;
 }
@@ -1388,6 +1392,33 @@ static lispval copy_consed_index(lispval x,int deep)
   else return x;
 }
 
+FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args)
+{
+  if ((n>0)&&(args == NULL))
+    return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
+  else if (n<0)
+    return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
+  else if (op == fd_metadata_op) {
+    lispval metadata = ix->index_metadata;
+    if (FD_VOIDP(metadata))
+      return fd_err(fd_NoStorageMetadata,"fd_index_ctl",ix->indexid,FD_VOID);
+    else if (n == 0)
+      return fd_copier(metadata,0);
+    else if (n == 1) {
+      lispval extended=fd_index_ctl(ix,fd_metadata_op,0,NULL);
+      lispval v = fd_get(extended,args[0],FD_EMPTY);
+      fd_decref(extended);
+      return v;}
+    else if (n == 2) {
+      int rv=fd_store(metadata,args[0],args[1]);
+      if (rv<0)
+        return FD_ERROR_VALUE;
+      else return fd_incref(args[1]);}
+    else return fd_err(fd_TooManyArgs,"fd_index_ctl/metadata",
+                       FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
+  else return FD_FALSE;
+}
+
 /* Initialize */
 
 fd_ptr_type fd_consed_index_type;
@@ -1439,6 +1470,7 @@ FD_EXPORT void fd_init_indexes_c()
   edits_slot=fd_intern("EDITS");
   flags_slot=fd_intern("FLAGS");
   registered_slot=fd_intern("REGISTERED");
+  opts_slot=fd_intern("OPTS");
 
   read_only_flag=FDSYM_READONLY;
   unregistered_flag=fd_intern("UNREGISTERED");

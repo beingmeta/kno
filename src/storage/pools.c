@@ -1973,7 +1973,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
 
 static lispval base_slot, capacity_slot, cachelevel_slot,
   label_slot, poolid_slot, source_slot, adjuncts_slot,
-  cached_slot, locked_slot, flags_slot, registered_slot;
+  cached_slot, locked_slot, flags_slot, registered_slot, opts_slot;
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
   noswap_flag, noerr_flag, phased_flag, sparse_flag,
@@ -1993,7 +1993,7 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   fd_decref(v);
 }
 
-FD_EXPORT lispval fd_pool_default_metadata(fd_pool p)
+FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
 {
   int flags=p->pool_flags;
   lispval metadata;
@@ -2042,15 +2042,18 @@ FD_EXPORT lispval fd_pool_default_metadata(fd_pool p)
       i++;}
     fd_store(metadata,adjuncts_slot,adjuncts_table);}
 
+  if (FD_TABLEP(p->pool_opts))
+    fd_store(metadata,opts_slot,p->pool_opts);
+
   return metadata;
 }
 
-FD_EXPORT lispval fd_default_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
+FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
 {
   if ((n>0)&&(args == NULL))
-    return fd_err("BadPoolOpCall","fd_default_pool_ctl",p->poolid,VOID);
+    return fd_err("BadPoolOpCall","fd_default_poolctl",p->poolid,VOID);
   else if (n<0)
-    return fd_err("BadPoolOpCall","fd_default_pool_ctl",p->poolid,VOID);
+    return fd_err("BadPoolOpCall","fd_default_poolctl",p->poolid,VOID);
   else if (op == fd_label_op) {
     if (n==0) {
       if (!(p->pool_label))
@@ -2289,6 +2292,7 @@ FD_EXPORT void fd_init_pools_c()
   locked_slot=fd_intern("LOCKED");
   flags_slot=fd_intern("FLAGS");
   registered_slot=fd_intern("REGISTERED");
+  opts_slot=fd_intern("OPTS");
 
   read_only_flag=FDSYM_READONLY;
   unregistered_flag=fd_intern("UNREGISTERED");

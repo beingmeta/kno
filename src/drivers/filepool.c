@@ -843,7 +843,7 @@ static lispval file_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
     lispval keys = filepool_getoids(fp);
     return fd_simplify_choice(keys);}
   else if (op == fd_metadata_op)
-    return fd_pool_default_metadata(p);
+    return fd_pool_base_metadata(p);
   else return FD_FALSE;
 }
 

@@ -1669,7 +1669,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
   else if (op == fd_capacity_op)
     return FD_INT(bp->pool_capacity);
   else if ( (op == fd_metadata_op) && (n == 0) ) {
-    lispval base=fd_pool_default_metadata(p);
+    lispval base=fd_pool_base_metadata(p);
     lispval slotids_vec =
       fd_make_vector(bp->bigpool_n_slotids,
                      bp->bigpool_slotids);
@@ -1682,7 +1682,7 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
   else if (op == fd_keys_op) {
     lispval keys = bigpool_getoids(bp);
     return fd_simplify_choice(keys);}
-  else return fd_default_pool_ctl(p,op,n,args);
+  else return fd_default_poolctl(p,op,n,args);
 }
 
 /* Creating bigpool */
