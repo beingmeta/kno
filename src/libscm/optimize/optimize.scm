@@ -46,6 +46,9 @@
 (varconfig! optimize:lexrefs lexrefs-default)
 (varconfig! optimize:rewrite rewrite-default)
 
+(define-init aliasfns-default #f)
+(varconfig! optimize:aliasfns aliasfns-default)
+
 (define-init staticfns-default #f)
 (varconfig! optimize:staticfns staticfns-default)
 
@@ -65,6 +68,7 @@
       `(optmode-macro ',optname ,opthresh ',optvar))))
 
 (define use-opcodes? (optmode opcodes 2 opcodes-default))
+(define use-fcnrefs? (optmode fcnrefs 2 fcnrefs-default))
 (define use-bindops? (optmode bindops 4 bindops-default))
 (define use-substs? (optmode substs 2 substs-default))
 (define use-lexrefs? (optmode lexrefs 2 lexrefs-default))
@@ -152,12 +156,23 @@
 		 (if (getopt opts 'staticfns staticfns-default)
 		     (static-ref value)
 		     value)))
-	    (if (and (symbol? sym) 
-		     (test env sym value)
-		     (getopt opts 'fcnrefs fcnrefs-default))
-		(try (get fcnids (cons sym env))
-		     (add-fcnid sym env value))
-		value)))
+	    (cond ((not (symbol? sym)) value)
+		  ((not (test env sym value)) sym)
+		  ((use-fcnrefs? opts)
+		   (try (get fcnids (cons sym env))
+			(add-fcnid sym env value)))
+		  ;; If we want to directly embed the function, do so
+		  ((and (getopt opts 'aliasfns aliasfns-default)
+			(or (pair? value) (symbol? value)))
+		   `(quote ,value))
+		  ((getopt opts 'aliasfns aliasfns-default)
+		   value)
+		  (else
+		   `(,(try (tryif use-opcodes #OP_SYMREF)
+			   (tryif (use-fcnrefs? opts)
+			     (force-fcnid %modref))
+			   %modref)
+		     ,env ,sym)))))
       value))
 
 (defslambda (add-fcnid sym env value)
@@ -367,39 +382,53 @@
 	       (value (and srcenv (get srcenv expr))))
 	  (debug%watch "OPTIMIZE/SYMBOL/module" 
 	    expr module srcenv env bound optwarn)
+	  ;; Add reference information
 	  (when (and module (module? env))
 	    (add! env '%symrefs expr)
 	    (when (and module (table? module))
 	      (add! env '%modrefs
 		    (pick (get module '%moduleid) symbol?))))
-	  (cond ((and (not srcenv)
-		      (or (test env '%nowarn expr)
-			  (testopt opts 'nowarn expr)
-			  (testopt opts 'nowarn #t))))
-		((not srcenv)
-		 (codewarning (cons* 'UNBOUND expr bound))
-		 (when env
-		   (add! env '%warnings (cons* 'UNBOUND expr bound)))
-		 (when (or optwarn (not env))
-		   (warning "The symbol " expr
-			    " appears to be unbound given bindings "
-			    (apply append bound)))
-		 expr)
-		((not module) expr)
-		((%test srcenv dont-touch-decls expr) expr)
-		((%test srcenv '%constants expr)
-		 (let ((v (%get srcenv expr)))
-		   (if (or (pair? v) (symbol? v) (ambiguous? v))
-		       (list 'quote (qc v))
-		       v)))
-		((not module) expr)
-		;; TODO: add 'modrefs' which resolves module.var to a
-		;; fcnref and uses that for the symbol
-		(else `(,(try (tryif use-opcodes #OP_SYMREF)
-			      (tryif (getopt opts 'fcnrefs fcnrefs-default)
-				(force-fcnid %modref))
-			      %modref)
-			,module ,expr)))))))
+	  (cond ;; This means the symbol can't be found
+	   ((not srcenv)
+	    (unless (or (test env '%nowarn expr)
+			(testopt opts 'nowarn expr)
+			(testopt opts 'nowarn #t))
+	      (codewarning (cons* 'UNBOUND expr bound))
+	      (when env
+		(add! env '%warnings (cons* 'UNBOUND expr bound)))
+	      (when (or optwarn (not env))
+		(warning "The symbol " expr
+			 " appears to be unbound given bindings "
+			 (apply append bound))))
+	    expr)
+	   ;; This is where the symbol isn't from a module, but
+	   ;; we're not doing lexrefs, so we just keep the
+	   ;; expression as a symbol
+	   ((not module) expr)
+	   ;; Several ways to disable optimization
+	   ((or (%test srcenv dont-touch-decls expr)
+		(testopt opts dont-touch-decls expr))
+	    expr)
+	   ;; If it's a primitive or special form, replace it
+	   ;; with its value
+	   ((or (primitive? value) (special-form? value))
+	    value)
+	   ((%test srcenv '%constants expr)
+	    ;; If it's a constant, replace it as well, but be
+	    ;; careful to quote it if it contains anything which
+	    ;; might be evaluated (symbols or pairs)
+	    (if (not (exists {pair? symbol?} value))
+		value
+		(list 'quote (qc value))))
+	   ((forall applicable? value)
+	    (fcnref value expr module opts))
+	   ;; TODO: add 'modrefs' which resolves module.var to a
+	   ;; fcnref and uses that for the symbol
+	   (else `(,(try (tryif use-opcodes #OP_SYMREF)
+			 (tryif (use-fcnrefs? opts)
+			   (force-fcnid %modref))
+			 %modref)
+		   ,module ,expr)))))))
 
 (define (do-rewrite rewriter expr env bound opts)
   (onerror
@@ -471,7 +500,7 @@
 				    expr))
 		  (newhead (car transformed)))
 	     (cons (try (get opcode-map newhead)
-			(tryif (getopt opts 'fcnrefs fcnrefs-default)
+			(tryif (use-fcnrefs? opts)
 			  (get-fcnid head #f newhead))
 			newhead)
 		   (cdr transformed))))
@@ -493,7 +522,7 @@
 			`(#OP_SYMREF ,from ,head))
 		       ((map-opcode value opts n-exprs)
 			(map-opcode value opts n-exprs))
-		       (else (fcnref value head env opts)))
+		       (else (%wc fcnref value head env opts)))
 		 (optimize-args (cdr expr) env bound opts))))
 	  ((%lexref? value)
 	   (cons value (optimize-args (cdr expr) env bound opts)))
@@ -510,14 +539,20 @@
   (cons head (->list tail)))
 
 (defambda (optimize-call expr env bound opts)
-  (if (pair? expr)
-      (if (or (symbol? (car expr)) (pair? (car expr))
-	      (ambiguous? (car expr)))
-	  `(,(optimize (car expr) env bound opts)
-	    ,@(if (pair? (cdr expr))
-		  (optimize-args (cdr expr) env bound opts)
-		  (cdr expr)))
-	  (optimize-args expr env bound opts))
+  (cond ((ambiguous? expr)
+	 (for-choices expr (optimize-call expr env bound opts)))
+	((not (pair? expr)) expr)
+	((symbol? (car expr))
+	 `(,(optimize (car expr) env bound opts)
+	   ,@(if (pair? (cdr expr))
+		 (optimize-args (cdr expr) env bound opts)
+		 (cdr expr))))
+	((or (pair? (car expr)) (ambiguous? (car expr)))
+	 `(,(optimize (car expr) env bound opts)
+	   ,@(if (pair? (cdr expr))
+		 (optimize-args (cdr expr) env bound opts)
+		 (cdr expr)))
+	 (optimize-args expr env bound opts))
       expr))
 
 (defambda (optimize-args expr env bound opts)
@@ -617,7 +652,7 @@
 		 opts)
 	    (try (get module '%optimize_options) #f)))
   (let ((bindings (module-bindings module))
-	(usefcnrefs (getopt opts 'fcnrefs fcnrefs-default))
+	(usefcnrefs (use-fcnrefs? opts))
 	(count 0))
     (do-choices (var bindings)
       (let ((value (get module var)))

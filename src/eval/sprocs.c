@@ -248,7 +248,7 @@ _make_sproc(u8_string name,
   if ( (u8_outbuf_written(&docstream)) )
     s->fcn_documentation=docstream.u8_outbuf;
   else u8_close_output(&docstream);
-  
+
   if ( ( FD_PAIRP(body) ) &&
        ( FD_PAIRP(FD_CAR(body)) ) &&
        ( FD_PAIRP(FD_CDR(body)) ) &&

@@ -954,7 +954,7 @@ FD_FASTOP int commentp(lispval arg)
       (FD_EQ(FD_CAR(arg),comment_symbol))));
 }
 
-static lispval call_function(u8_string fname,lispval fn,
+static lispval call_function(u8_string fname,lispval headval,
                             lispval expr,fd_lexenv env,
                             struct FD_STACK *stack,
                             int tail)
@@ -963,6 +963,7 @@ static lispval call_function(u8_string fname,lispval fn,
   int n_args = count_args(arg_exprs), arg_count = 0;
   int gc_args = 0, nd_args = 0, d_prim = 0, argbuf_len=0;
   lispval argbuf[n_args]; /* *argv=fd_alloca(argv_length); */
+  lispval fn = (FD_FCNIDP(headval)) ? (fd_fcnid_ref(headval)) : (headval);
   if (FD_FUNCTIONP(fn)) {
     struct FD_FUNCTION *fcn=(fd_function)fn;
     int max_arity = fcn->fcn_arity, min_arity = fcn->fcn_min_arity;

@@ -33,7 +33,7 @@ struct FD_CONS **_fd_fcnids[FD_FCNID_NBLOCKS];
 int _fd_fcnid_count = 0;
 u8_mutex _fd_fcnid_lock;
 
-int _fd_leak_fcnids = 0;
+int _fd_leak_fcnids = 1;
 
 FD_EXPORT lispval fd_resolve_fcnid(lispval x)
 {
