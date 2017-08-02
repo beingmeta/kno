@@ -1416,6 +1416,21 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       else return fd_incref(args[1]);}
     else return fd_err(fd_TooManyArgs,"fd_index_ctl/metadata",
                        FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
+  else if (op == fd_raw_metadata_op) {
+    lispval metadata = ix->index_metadata;
+    if (FD_VOIDP(metadata))
+      return FD_FALSE;
+    else if (n == 0)
+      return fd_copier(metadata,0);
+    else if (n == 1)
+      return fd_get(metadata,args[0],FD_EMPTY_CHOICE);
+    else if (n == 2) {
+      int rv=fd_store(metadata,args[0],args[1]);
+      if (rv<0)
+        return FD_ERROR_VALUE;
+      else return fd_incref(args[1]);}
+    else return fd_err(fd_TooManyArgs,"fd_index_ctl/metadata",
+                       FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
   else return FD_FALSE;
 }
 

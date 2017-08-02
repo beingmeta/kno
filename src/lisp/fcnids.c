@@ -189,7 +189,8 @@ FD_EXPORT void fd_init_fcnids_c()
   u8_register_source_file(_FILEINFO);
   fd_register_config
     ("FCNID:LEAK",
-     "Leak values assigned to function IDs, to avoid dangling references",
+     "Leak values stored behind function IDs, to avoid use after free due "
+     "to dangling references",
      fd_boolconfig_get,fd_boolconfig_set,&_fd_leak_fcnids);
 }
 
