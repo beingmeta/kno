@@ -858,7 +858,8 @@ static lispval swapout_lexpr(int n,lispval *args)
   else if (n == 1) {
     long long rv_sum = 0;
     lispval arg = args[0];
-    if (CHOICEP(arg)) {
+    if (FD_EMPTY_CHOICEP(arg)) {}
+    else if (CHOICEP(arg)) {
       int rv = 0;
       lispval oids = EMPTY;
       DO_CHOICES(e,arg) {
@@ -889,7 +890,7 @@ static lispval swapout_lexpr(int n,lispval *args)
       fd_swapout_oids(oids);
       fd_decref(oids);
       return FD_INT(rv_sum);}
-    else if (OIDP(arg)) 
+    else if (OIDP(arg))
       rv_sum = fd_swapout_oid(arg);
     else if (TYPEP(arg,fd_index_type))
       fd_index_swapout(fd_indexptr(arg),VOID);
@@ -903,6 +904,8 @@ static lispval swapout_lexpr(int n,lispval *args)
     return FD_INT(rv_sum);}
   else if (n>2)
     return fd_err(fd_TooManyArgs,"swapout",NULL,VOID);
+  else if (FD_EMPTY_CHOICEP(args[1]))
+    return FD_INT(0);
   else {
     lispval arg, keys; int rv_sum = 0;
     if ((TYPEP(args[0],fd_pool_type))||
