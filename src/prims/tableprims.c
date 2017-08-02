@@ -994,6 +994,16 @@ static lispval choice2hashset(lispval arg)
   return LISP_CONS(h);
 }
 
+static lispval hashset_intern(lispval hs,lispval key)
+{
+  return fd_hashset_intern((fd_hashset)hs,key,1);
+}
+
+static lispval hashset_probe(lispval hs,lispval key)
+{
+  return fd_hashset_intern((fd_hashset)hs,key,0);
+}
+
 /* Sorting slotmaps */
 
 static lispval sort_slotmap(lispval slotmap)
@@ -1191,6 +1201,19 @@ FD_EXPORT void fd_init_tableprims_c()
            fd_make_cprim2x("HASHSET-DROP!",hashsetdrop,2,
                            fd_hashset_type,VOID,
                            -1,VOID));
+
+  fd_idefn2(fd_scheme_module,"HASHSET/PROBE",hashset_probe,2,
+            "(HASHSET/PROBE *hashset* *key*)\n"
+            "If *key* is in *hashset*, returns the exact key (pointer) "
+            "stored in *hashset*, otherwise returns {}",
+            fd_hashset_type,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_scheme_module,"HASHSET/INTERN",hashset_intern,2,
+            "(HASHSET/INTERN *hashset* *key*)\n"
+            "If *key* is in *hashset*, returns the exact key (pointer) "
+            "stored in *hashset*, otherwise adds *key* to the hashset "
+            "and returns it.",
+            fd_hashset_type,FD_VOID,-1,FD_VOID);
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
                                           fd_hashset_type,VOID,

@@ -618,6 +618,8 @@ FD_EXPORT int fd_hashset_mod(fd_hashset h,lispval key,int add);
 FD_EXPORT void fd_hashset_add_raw(fd_hashset h,lispval key);
 FD_EXPORT int fd_hashset_add(fd_hashset h,lispval keys);
 #define fd_hashset_drop(h,key) fd_hashset_mod(h,key,0)
+FD_EXPORT lispval fd_hashset_intern(fd_hashset h,lispval key,int add);
+
 FD_EXPORT lispval fd_hashset_elts(fd_hashset h,int clean);
 
 FD_EXPORT void fd_init_hashset(fd_hashset h,int n,int stack_cons);

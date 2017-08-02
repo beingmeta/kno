@@ -2982,6 +2982,68 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
   return rv;
 }
 
+static lispval hashset_probe(struct FD_HASHSET *h,lispval key)
+{
+  if (h->hs_n_elts==0) return 0;
+  int hash = fd_hash_lisp(key);
+  fd_read_lock_table(h);
+  lispval *slots = h->hs_buckets;
+  int n_slots = h->hs_n_buckets, bucket = hash%n_slots;
+  lispval contents = slots[bucket];
+  lispval result=FD_EMPTY;
+  if (FD_EMPTY_CHOICEP(contents)) {}
+  else if (contents==key)
+    result=contents;
+  else if (!(FD_AMBIGP(contents))) {
+    if (FD_EQUALP(contents,key))
+      result=contents;}
+  else {
+    FD_DO_CHOICES(entry,contents) {
+      if ( (entry==key) || (FD_EQUALP(entry,key)) ) {
+        result=entry; FD_STOP_DO_CHOICES; break;}}}
+  fd_unlock_table(h);
+  return fd_incref(result);
+}
+
+static lispval hashset_intern(struct FD_HASHSET *h,lispval key)
+{
+  if (h->hs_n_elts==0) return 0;
+  int hash = fd_hash_lisp(key);
+  fd_write_lock_table(h);
+  lispval *slots = h->hs_buckets;
+  int n_slots = h->hs_n_buckets, bucket = hash%n_slots;
+  lispval contents = slots[bucket];
+  lispval result=FD_EMPTY;
+  if (FD_EMPTY_CHOICEP(contents)) {}
+  else if (contents==key)
+    result=contents;
+  else if (!(FD_AMBIGP(contents))) {
+    if (FD_EQUALP(contents,key))
+      result=contents;}
+  else {
+    FD_DO_CHOICES(entry,contents) {
+      if ( (entry==key) || (FD_EQUALP(entry,key)) ) {
+        result=entry; FD_STOP_DO_CHOICES; break;}}}
+  if (FD_EMPTYP(result)) {
+    fd_incref(key);
+    FD_ADD_TO_CHOICE(contents,key);
+    slots[bucket]=contents;
+    result=key;}
+  fd_unlock_table(h);
+  return fd_incref(result);
+}
+
+FD_EXPORT lispval fd_hashset_intern(struct FD_HASHSET *h,lispval key,int add)
+{
+  if (add) {
+    lispval existing = hashset_probe(h,key);
+    if (FD_EMPTYP(existing)) {
+      lispval added = hashset_intern(h,key);
+      return added;}
+    else return existing;}
+  else return hashset_probe(h,key);
+}
+
 FD_EXPORT lispval fd_hashset_elts(struct FD_HASHSET *h,int clean)
 {
   /* A clean value of -1 indicates that the hashset will be reset

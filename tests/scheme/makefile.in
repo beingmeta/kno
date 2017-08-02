@@ -196,7 +196,7 @@ all_tests alltests: libtests cmdtests optimize_modules
 libtests: scheme optscheme slotmaps tables pools indexes db
 cmdtests: execscripts chainscripts batchscripts chained_batchscripts
 
-schemetest schemetests scheme: r4rs exceptions choices sequences numvecs \
+schemetest schemetests scheme: r4rs exceptions choices sequences numvecs hashsets \
 	picktest cachecall texttools fdweb timefns threads i18n misc gctests \
 	xml crypto
 optscheme:
@@ -244,6 +244,9 @@ sequences:
 	@${header} "■■■■ Completed sequences tests ${RUNCONF}"
 numvecs:
 	@${RUN} ${FDX} numvecs.scm ${RUNCONF}
+	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
+hashsets:
+	@${RUN} ${FDX} hashsets.scm ${RUNCONF}
 	@${header} "■■■■ Completed numvecs tests ${RUNCONF}"
 picktest:
 	@${RUN} ${FDX} picktest.scm ${RUNCONF}
