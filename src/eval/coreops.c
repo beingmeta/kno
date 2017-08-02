@@ -505,7 +505,7 @@ static lispval lisp_string2symbol(lispval s)
   return fd_intern(FD_STRING_DATA(s));
 }
 
-static lispval config_get(lispval vars,lispval dflt)
+static lispval config_get(lispval vars,lispval dflt,lispval valfn)
 {
   lispval result = EMPTY;
   DO_CHOICES(var,vars) {
@@ -519,7 +519,31 @@ static lispval config_get(lispval vars,lispval dflt)
       return fd_type_error(_("string or symbol"),"config_get",var);}
     if (VOIDP(value)) {}
     else if (value==FD_DEFAULT_VALUE) {}
-    else CHOICE_ADD(result,value);}
+    else if (FD_APPLICABLEP(valfn)) {
+      lispval converted = fd_apply(valfn,1,&value);
+      if (FD_ABORTP(converted)) {
+        u8_log(LOGWARN,"ConfigConversionError",
+               "Error converting config value of %q=%q using %q",
+               var,value,valfn);
+        fd_clear_errors(1);
+        fd_decref(value);}
+      else {
+        CHOICE_ADD(result,converted);
+        fd_decref(value);}}
+    else if ((FD_STRINGP(value)) && (FD_TRUEP(valfn))) {
+      u8_string valstring = FD_CSTRING(value);
+      lispval parsed = fd_parse(valstring);
+      if (FD_ABORTP(parsed)) {
+        u8_log(LOGWARN,"ConfigParseError",
+               "Error parsing config value of %q=%q",
+               var,value);
+        fd_clear_errors(1);
+        fd_decref(value);}
+      else {
+        CHOICE_ADD(result,parsed);
+        fd_decref(value);}}
+    else {
+      CHOICE_ADD(result,value);}}
   if (EMPTYP(result))
     if (VOIDP(dflt))
       return FD_FALSE;
@@ -756,8 +780,13 @@ FD_EXPORT void fd_init_coreprims_c()
                            fd_fixnum_type,VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("CONFIG",config_get,1)));
+  fd_idefn3(fd_scheme_module,"CONFIG",config_get,(FD_NEEDS_1_ARG|FD_NDCALL),
+            "(CONFIG *name* *default* *valfn*)\n"
+            "Gets the configuration value named *name*, returning *default* "
+            "if it isn't defined. *valfn*, if provided is either a function "
+            "to call on the retrieved value or #t to indicate that string "
+            "values should be parsed as lisp",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("SET-CONFIG!",set_config,2)));
   fd_defalias(fd_scheme_module,"CONFIG!","SET-CONFIG!");
