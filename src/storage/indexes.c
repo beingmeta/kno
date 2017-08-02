@@ -130,6 +130,12 @@ FD_EXPORT void fd_init_index_delays()
 }
 #endif
 
+static int metadata_changed(fd_index ix)
+{
+  return ( (FD_TABLEP(ix->index_metadata)) &&
+           (fd_modifiedp(ix->index_metadata)) );
+}
+
 FD_EXPORT lispval *fd_get_index_delays() { return get_index_delays(); }
 
 static lispval set_symbol, drop_symbol;
@@ -1007,6 +1013,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
       u8_seterr(fd_IndexCommitError,"fd_index_commit",
                 u8_strdup(ix->indexid));
     return retval;}
+  else if (metadata_changed(ix))
+    return ix->index_handler->commit(ix);
   else return 0;
 }
 

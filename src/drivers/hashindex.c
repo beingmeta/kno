@@ -430,14 +430,15 @@ static int init_baseoids(fd_hashindex hx,int n_baseoids,lispval *baseoids_init)
 /* Making a hash index */
 
 FD_EXPORT int make_hashindex
-  (u8_string fname,
-   int n_buckets_arg,
-   unsigned int flags,
-   unsigned int hashconst,
-   lispval slotids_init,
-   lispval baseoids_init,
-   time_t ctime,
-   time_t mtime)
+(u8_string fname,
+ int n_buckets_arg,
+ unsigned int flags,
+ unsigned int hashconst,
+ lispval metadata_init,
+ lispval slotids_init,
+ lispval baseoids_init,
+ time_t ctime,
+ time_t mtime)
 {
   int n_buckets;
   time_t now = time(NULL);
@@ -523,14 +524,21 @@ FD_EXPORT int make_hashindex
     fd_write_dtype(outstream,baseoids_init);
     baseoids_size = fd_getpos(stream)-baseoids_pos;}
 
+  if (!(FD_VOIDP(metadata_init))) {
+    metadata_pos = fd_getpos(stream);
+    fd_write_dtype(outstream,metadata_init);
+    metadata_size = fd_getpos(stream)-metadata_pos;}
+
   if (slotids_pos) {
     fd_setpos(stream,FD_HASHINDEX_SLOTIDS_POS);
     fd_write_8bytes(outstream,slotids_pos);
     fd_write_4bytes(outstream,slotids_size);}
+
   if (baseoids_pos) {
     fd_setpos(stream,FD_HASHINDEX_BASEOIDS_POS);
     fd_write_8bytes(outstream,baseoids_pos);
     fd_write_4bytes(outstream,baseoids_size);}
+
   if (metadata_pos) {
     fd_setpos(stream,FD_HASHINDEX_METADATA_POS);
     fd_write_8bytes(outstream,metadata_pos);
@@ -2498,6 +2506,32 @@ static int update_hashindex_ondisk
     else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
 #endif
   }
+  if ((FD_SLOTMAPP(hx->index_metadata)) &&
+      (fd_modifiedp(hx->index_metadata))) {
+    int error=0;
+    lispval metadata = hx->index_metadata;
+    ssize_t metadata_pos = fd_endpos(stream);
+    if (metadata_pos>0) {
+      fd_outbuf outbuf = fd_writebuf(stream);
+      ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
+      ssize_t metadata_end = fd_getpos(stream);
+      if (new_metadata_size<0)
+        error=1;
+      else {
+        if ((metadata_end-metadata_pos) != new_metadata_size) {
+          u8_log(LOGCRIT,"MetadataSizeIconsistency",
+                 "There was an inconsistency writing the metadata for %s",
+                 hx->indexid);}
+        fd_write_8bytes_at(stream,metadata_pos,8);
+        fd_write_8bytes_at(stream,metadata_pos,0x30);
+        fd_write_8bytes_at(stream,metadata_end-metadata_pos,0x38);}}
+    else error=1;
+    if (error)
+      u8_log(LOGCRIT,"MetaDataWriteError",
+             "There was an inconsistency writing the metadata for %s",
+             hx->indexid);
+    else fd_set_modified((lispval)metadata,0);}
+
   /* Write any changed flags */
   fd_write_4bytes_at(stream,flags,8);
   fd_write_4bytes_at(stream,cur_keys,16);
@@ -2589,6 +2623,7 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
                                   fd_storage_flags flags,lispval opts)
 {
   int rv = 0;
+  lispval metadata_init = fd_getopt(opts,fd_intern("METADATA"),FD_VOID);
   lispval slotids_init = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
   lispval baseoids_init = fd_getopt(opts,fd_intern("BASEOIDS"),VOID);
   lispval nbuckets_arg = fd_getopt(opts,fd_intern("SLOTS"),
@@ -2614,7 +2649,7 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
     (spec,FIX2INT(nbuckets_arg),
      interpret_hashindex_flags(opts),
      FD_INT(hashconst),
-     slotids_init,baseoids_init,-1,-1);
+     metadata_init,slotids_init,baseoids_init,-1,-1);
   if (rv<0)
     return NULL;
   else return fd_open_index(spec,flags,VOID);

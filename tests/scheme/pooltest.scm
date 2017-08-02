@@ -24,6 +24,7 @@
 			     compression ,compression
 			     base @b001/0 
 			     capacity 100000
+			     metadata #[status fresh]
 			     offtype ,(config 'offtype 'B40)]
 			  opts)))))
 
@@ -103,6 +104,11 @@
 	    (threadjoin threads))
 	  (dotimes (i (* testcount 4))
 	    (make-random-frame pool))))
+    (when (exists? (poolctl pool 'metadata 'status))
+      (if init
+	  (applytest 'fresh (poolctl pool 'metadata 'status))
+	  (applytest 'existing (poolctl pool 'metadata 'status)))
+      (poolctl pool 'metadata 'status 'existing))
     (dotimes (i (quotient testcount 4)) 
       (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests1| "Passed some tests on " pool)

@@ -172,6 +172,12 @@ FD_FASTOP int modify_finished(lispval table,int val)
   else return 0;
 }
 
+static int metadata_changed(fd_pool p)
+{
+  return ( (FD_TABLEP(p->pool_metadata)) &&
+           (fd_modifiedp(p->pool_metadata)) );
+}
+
 /* Pool delays for IPEVAL */
 
 #if FD_GLOBAL_IPEVAL
@@ -913,7 +919,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
 {
   struct FD_HASHTABLE *locks = &(p->pool_changes);
 
-  if (locks->table_n_keys==0) {
+  if ((locks->table_n_keys==0) && (! (metadata_changed(p)) )) {
     u8_log(fd_storage_loglevel+1,fd_PoolCommit,
            "####### No locked oids in %s",p->poolid);
     return 0;}
@@ -924,7 +930,11 @@ FD_EXPORT int fd_pool_commit(fd_pool p,lispval oids)
     return rv;}
   else {
     u8_lock_mutex(&(p->pool_save_lock));
-    if (locks->table_n_keys==0) return 0;
+    if (locks->table_n_keys==0) {
+      if (metadata_changed(p))
+        p->pool_handler->storen(p,0,NULL,NULL);
+      u8_unlock_mutex(&(p->pool_save_lock));
+      return 0;}
     int retval = 0; double start_time = u8_elapsed_time();
     struct FD_POOL_WRITES writes=
       ((FALSEP(oids))||(VOIDP(oids))) ? (pick_modified(p,0)):
@@ -2063,7 +2073,7 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
   else if (op == fd_metadata_op) {
     lispval metadata = p->pool_metadata;
     if (FD_VOIDP(metadata))
-      return fd_err(fd_NoStorageMetadata,"fd_pool_ctl",p->poolid,FD_VOID);
+      return FD_EMPTY_CHOICE;
     else if (n == 0)
       return fd_copier(metadata,0);
     else if (n == 1) {

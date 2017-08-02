@@ -402,7 +402,8 @@ static int lock_bigpool_file(struct FD_BIGPOOL *bp,int is_locked)
 static int make_bigpool
   (u8_string fname,u8_string label,
    FD_OID base,unsigned int capacity,unsigned int load,
-   unsigned int flags,lispval slotids_init,
+   unsigned int flags,
+   lispval metadata,lispval slotids_init,
    time_t ctime,time_t mtime,
    int n_repacks)
 {
@@ -506,14 +507,21 @@ static int make_bigpool
       i++;}
     slotids_size = fd_getpos(stream)-slotids_pos;}
 
+  if (FD_TABLEP(metadata)) {
+    metadata_pos = fd_getpos(stream);
+    fd_write_dtype(outstream,metadata);
+    metadata_size = fd_getpos(stream)-metadata_pos;}
+
   if (label_pos) {
     fd_setpos(stream,FD_BIGPOOL_LABEL_POS);
     fd_write_8bytes(outstream,label_pos);
     fd_write_4bytes(outstream,label_size);}
+
   if (metadata_pos) {
     fd_setpos(stream,FD_BIGPOOL_METADATA_POS);
     fd_write_8bytes(outstream,metadata_pos);
     fd_write_4bytes(outstream,metadata_size);}
+  
   if (slotids_pos) {
     fd_setpos(stream,FD_BIGPOOL_SLOTIDS_POS);
     fd_write_8bytes(outstream,slotids_pos);
@@ -801,55 +809,59 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     fd_setpos(stream,0);
     fd_write_4bytes(fd_writebuf(stream),FD_BIGPOOL_TO_RECOVER);}
 
-  int new_blocks = 0;
   double started = u8_elapsed_time();
-  u8_log(fd_storage_loglevel+1,"BigpoolStore",
-         "Storing %d oid values in bigpool %s",n,p->poolid);
-  struct BIGPOOL_SAVEINFO *saveinfo=u8_alloc_n(n,struct BIGPOOL_SAVEINFO);
-  struct FD_OUTBUF tmpout;
-  unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
-  unsigned int i = 0, zbuf_size = FD_INIT_ZBUF_SIZE;
-  unsigned int init_buflen = 2048*n;
-  FD_OID base = bp->pool_base;
-  size_t maxpos = get_maxpos(bp);
-  fd_off_t endpos;
-  if (init_buflen>262144) init_buflen = 262144;
-  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
-  endpos = fd_endpos(stream);
-  if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
-    tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
-  while (i<n) {
-    FD_OID addr = FD_OID_ADDR(oids[i]);
-    lispval value = values[i];
-    int n_bytes = bigpool_write_value(value,stream,bp,&tmpout,&zbuf,&zbuf_size);
-    if (n_bytes<0) {
-      u8_free(zbuf);
-      u8_free(saveinfo);
-      u8_free(tmpout.buffer);
-      fd_close_stream(stream,FD_STREAM_FREEDATA);
-      return n_bytes;}
-    else new_blocks++;
-    if ((endpos+n_bytes)>=maxpos) {
-      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
-      u8_seterr(fd_DataFileOverflow,"bigpool_storen",
-                u8_strdup(p->poolid));
-      if (fd_unlockfile(stream)<0)
-        u8_log(LOGCRIT,"UnlockFailed",
-               "Couldn't unlock output stream (%d:%s) for %s",
-               stream->stream_fileno,
-               bp->pool_source,
-               bp->poolid);
-      fd_close_stream(stream,FD_STREAM_FREEDATA);
-      return -1;}
+  struct BIGPOOL_SAVEINFO *saveinfo= (n>0) ?
+    (u8_alloc_n(n,struct BIGPOOL_SAVEINFO)) :
+    (NULL);
 
-    saveinfo[i].chunk.off = endpos;
-    saveinfo[i].chunk.size = n_bytes;
-    saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);
+  if (n>0) {
+    int new_blocks = 0;
+    u8_log(fd_storage_loglevel+1,"BigpoolStore",
+           "Storing %d oid values in bigpool %s",n,p->poolid);
+    struct FD_OUTBUF tmpout;
+    unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
+    unsigned int i = 0, zbuf_size = FD_INIT_ZBUF_SIZE;
+    unsigned int init_buflen = 2048*n;
+    FD_OID base = bp->pool_base;
+    size_t maxpos = get_maxpos(bp);
+    fd_off_t endpos;
+    if (init_buflen>262144) init_buflen = 262144;
+    FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
+    endpos = fd_endpos(stream);
+    if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
+      tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
+    while (i<n) {
+      FD_OID addr = FD_OID_ADDR(oids[i]);
+      lispval value = values[i];
+      int n_bytes = bigpool_write_value(value,stream,bp,&tmpout,&zbuf,&zbuf_size);
+      if (n_bytes<0) {
+        u8_free(zbuf);
+        u8_free(saveinfo);
+        u8_free(tmpout.buffer);
+        fd_close_stream(stream,FD_STREAM_FREEDATA);
+        return n_bytes;}
+      else new_blocks++;
+      if ((endpos+n_bytes)>=maxpos) {
+        u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
+        u8_seterr(fd_DataFileOverflow,"bigpool_storen",
+                  u8_strdup(p->poolid));
+        if (fd_unlockfile(stream)<0)
+          u8_log(LOGCRIT,"UnlockFailed",
+                 "Couldn't unlock output stream (%d:%s) for %s",
+                 stream->stream_fileno,
+                 bp->pool_source,
+                 bp->poolid);
+        fd_close_stream(stream,FD_STREAM_FREEDATA);
+        return -1;}
 
-    endpos = endpos+n_bytes;
-    i++;}
-  u8_free(tmpout.buffer);
-  u8_free(zbuf);
+      saveinfo[i].chunk.off = endpos;
+      saveinfo[i].chunk.size = n_bytes;
+      saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);
+
+      endpos = endpos+n_bytes;
+      i++;}
+    u8_free(tmpout.buffer);
+    u8_free(zbuf);}
 
   fd_lock_pool(p,1);
 
@@ -1118,9 +1130,10 @@ static int write_bigpool_metadata(fd_bigpool bp,fd_stream stream)
       u8_log(LOGCRIT,cond,"Couldnt'save metadata for bigpool %s: %q",
              bp->poolid,metadata);
       return rv;}
+    else end_pos=fd_endpos(stream);
     fd_flush_stream(stream);
-    fd_write_8bytes_at(stream,start_pos,0x24);
-    fd_write_4bytes_at(stream,end_pos-start_pos,0x2c);
+    fd_write_8bytes_at(stream,start_pos,FD_BIGPOOL_METADATA_POS);
+    fd_write_4bytes_at(stream,end_pos-start_pos,FD_BIGPOOL_METADATA_POS+8);
     return 1;}
   else return 0;
 }
@@ -1129,9 +1142,10 @@ static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
                           int n_saved,struct BIGPOOL_SAVEINFO *saveinfo)
 {
   int rv=write_bigpool_slotids(bp,stream);
+  if (saveinfo) {
+    if (rv>=0) rv=write_offdata(bp,stream,n_saved,new_load,saveinfo);
+    if (rv>=0) rv=bump_bigpool_nblocks(bp,n_saved,stream);}
   if (rv>=0) rv=write_bigpool_metadata(bp,stream);
-  if (rv>=0) rv=write_offdata(bp,stream,n_saved,new_load,saveinfo);
-  if (rv>=0) rv=bump_bigpool_nblocks(bp,n_saved,stream);
   if (rv>=0) rv=write_bigpool_load(bp,new_load,stream);
   return rv;
 }
@@ -1731,6 +1745,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   lispval load_arg = fd_getopt(opts,fd_intern("LOAD"),FD_FIXZERO);
   lispval label = fd_getopt(opts,FDSYM_LABEL,VOID);
   lispval slotids = fd_getopt(opts,fd_intern("SLOTIDS"),VOID);
+  lispval metadata = fd_getopt(opts,fd_intern("METADATA"),VOID);
   lispval ctime_opt = fd_getopt(opts,fd_intern("CTIME"),FD_VOID);
   lispval mtime_opt = fd_getopt(opts,fd_intern("MTIME"),FD_VOID);
   lispval generation_opt = fd_getopt(opts,fd_intern("GENERATION"),FD_VOID);
@@ -1792,7 +1807,8 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   if (rv<0) return NULL;
   else rv = make_bigpool(spec,
                          ((STRINGP(label)) ? (CSTRING(label)) : (spec)),
-                         FD_OID_ADDR(base_oid),capacity,load,flags,slotids,
+                         FD_OID_ADDR(base_oid),capacity,load,flags,
+                         metadata,slotids,
                          ctime,mtime,generation);
   if (rv>=0)
     return fd_open_pool(spec,storage_flags,opts);

@@ -1710,7 +1710,7 @@ static lispval oidpool_ctl(fd_pool p,lispval op,int n,lispval *args)
   else if (op == fd_keys_op) {
     lispval keys = oidpool_getoids(fp);
     return fd_simplify_choice(keys);}
-  else return FD_FALSE;
+  else return fd_default_poolctl(p,op,n,args);
 }
 
 /* Initializing the driver module */
