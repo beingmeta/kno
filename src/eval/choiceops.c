@@ -906,6 +906,7 @@ static lispval samplen(lispval x,lispval count)
             used[i]=1;
             j++;}}
         fd_decref(normal);
+        u8_free(used);
         return fd_simplify_choice(results);}}}
   else return fd_type_error("integer","samplen",count);
 }
