@@ -801,6 +801,11 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
         if (PRECHOICEP(headval)) headval=fd_simplify_choice(headval);
         gc_head=1;}
       else headval=head;
+      if (FD_FCNIDP(headval)) {
+        headval=fd_fcnid_ref(headval);
+        if (PRECHOICEP(headval)) {
+          headval=fd_make_simple_choice(headval);
+          gc_head=1;}}
       int headtype = FD_PTR_TYPE(headval);
       if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
       switch (headtype) {
