@@ -201,7 +201,8 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
                         p->poolid,fd_make_pair(slotid,adjunct));
               fd_decref(adjunct);
               FD_STOP_DO_CHOICES;
-              n_adjuncts=-1;}}}
+              n_adjuncts=-1;
+              break;}}}
         else if (FD_POOLP(adjunct)) {}
         else if (FD_INDEXP(adjunct)) {}
         else if (TABLEP(adjunct)) {}
@@ -481,21 +482,27 @@ static int choice_add(lispval arg,lispval slotid,lispval value)
   if (EMPTYP(value)) return 0;
   else {
     DO_CHOICES(each,arg)
-      if (fd_add(each,slotid,value)<0) return -1;
+      if (fd_add(each,slotid,value)<0) {
+        FD_STOP_DO_CHOICES;
+        return -1;}
     return 1;}
 }
 
 static int choice_store(lispval arg,lispval slotid,lispval value)
 {
   DO_CHOICES(each,arg)
-    if (fd_store(each,slotid,value)<0) return -1;
+    if (fd_store(each,slotid,value)<0) {
+      FD_STOP_DO_CHOICES;
+      return -1;}
   return 1;
 }
 
 static int choice_drop(lispval arg,lispval slotid,lispval value)
 {
   DO_CHOICES(each,arg)
-    if (fd_drop(each,slotid,value)<0) return -1;
+    if (fd_drop(each,slotid,value)<0) {
+      FD_STOP_DO_CHOICES;
+      return -1;}
   return 1;
 }
 
@@ -503,8 +510,9 @@ static int choice_test(lispval arg,lispval slotid,lispval value)
 {
   int result = 0;
   DO_CHOICES(each,arg) {
-    if ((result = (fd_test(each,slotid,value))))
-      return result;}
+    if ((result = (fd_test(each,slotid,value)))) {
+      FD_STOP_DO_CHOICES;
+      return result;}}
   return 0;
 }
 
@@ -514,7 +522,9 @@ static lispval choice_keys(lispval arg)
   DO_CHOICES(each,arg) {
     lispval keys = fd_getkeys(each);
     if (FD_ABORTP(keys)) {
-      fd_decref(results); return keys;}
+      fd_decref(results);
+      FD_STOP_DO_CHOICES;
+      return keys;}
     else {CHOICE_ADD(results,keys);}}
   return results;
 }
@@ -558,7 +568,9 @@ FD_EXPORT lispval fd_getpath(lispval start,int n,lispval *path,int infer,int acc
       else newval = fd_err(fd_TypeError,"fd_getpath",
                          "invalid path element",VOID);
       if (FD_ABORTP(newval)) {
-        fd_decref(scan); fd_decref(newscan);
+        fd_decref(scan);
+        fd_decref(newscan);
+        FD_STOP_DO_CHOICES;
         return newval;}
       else {CHOICE_ADD(newscan,newval);}}
     if (i>0) {
