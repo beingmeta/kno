@@ -1012,8 +1012,6 @@ static lispval rsorted_prim(lispval choices,lispval keyfn)
 
 /* Selection */
 
-static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep);
-
 static ssize_t select_helper(lispval choices,lispval keyfn,
                              size_t k,int maximize,
                              struct FD_SORT_ENTRY *entries)
