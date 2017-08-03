@@ -844,7 +844,7 @@ static lispval file_pool_ctl(fd_pool p,lispval op,int n,lispval *args)
     return fd_simplify_choice(keys);}
   else if ( (op == fd_metadata_op) && (n == 0) )
     return fd_pool_base_metadata(p);
-  else fd_default_poolctl(p,op,n,args);
+  else return fd_default_poolctl(p,op,n,args);
 }
 
 static lispval label_file_pool(struct FD_FILE_POOL *fp,lispval label)
