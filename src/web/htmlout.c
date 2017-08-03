@@ -48,26 +48,6 @@ static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
 static lispval embedded_symbol, error_style_symbol, error_script_symbol;
 static lispval modules_symbol, xml_env_symbol, xmltag_symbol;;
 
-static void output_header_string(u8_output s,u8_string header,u8_string wrap)
-{
-  if (header == NULL) return;
-  else if (*header=='<') {
-    u8_puts(s,header); u8_putc(s,'\n');}
-  else if ((strchr(header,'\n')) || (strchr(header,'{'))) {
-    u8_string tag_name=NULL;
-    u8_string tag_end=strchr(wrap,' ');
-    size_t tag_len = (tag_end) ? (tag_end-wrap) : (0);
-    u8_byte tag_name_buf[tag_len+1];
-    if (tag_end==NULL)
-      tag_name=wrap;
-    else {
-      strncpy(tag_name_buf,wrap,tag_len);
-      tag_name_buf[tag_len]='\0';
-      tag_name=tag_name_buf;}
-    u8_printf(s,"<%s>\n%s\n</%s>\n",wrap,header,tag_name);}
-  
-}
-
 static void start_errorpage(u8_output s,u8_exception ex)
 {
   int isembedded = 0;
