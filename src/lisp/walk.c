@@ -24,7 +24,7 @@ FD_FASTOP int fast_walk(fd_walker walker,lispval obj,
 			 void *walkdata,fd_walk_flags flags,
 			 int depth)
 {
-  if (depth==0) 
+  if (depth==0)
     return 0;
   else if (CONSP(obj)) {
     int constype = FD_PTR_TYPE(obj);
@@ -43,7 +43,7 @@ FD_FASTOP int fast_walk(fd_walker walker,lispval obj,
 	else if (rv>0)
 	  return cons_walk(walker,constype,obj,walkdata,flags,depth);
 	else return 0;}
-      else if (flags&(FD_WALK_ALL|FD_WALK_TERMINALS))
+      else if ( (flags==0) || (flags&(FD_WALK_ALL|FD_WALK_TERMINALS)) )
 	return walker(obj,walkdata);
       else return 0;}}
   else if ((flags)&(FD_WALK_ALL))
@@ -61,7 +61,7 @@ FD_EXPORT
 /* fd_walk:
     Arguments: two dtype pointers
     Returns: 1, 0, or -1 (an int)
-  Returns a function corresponding to a generic sort of two dtype pointers. */
+  Walks the object tree, calling walker on nodes encountered. */
 int fd_walk(fd_walker walker,lispval obj,void *walkdata,
 	    fd_walk_flags flags,int depth)
 {
