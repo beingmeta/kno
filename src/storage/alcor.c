@@ -35,10 +35,12 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
   if ( (src==NULL) || (dst==NULL) )
     return -1;
   else if (stat(src,&info)<0) {
+    u8_free(src); u8_free(dst);
     return -1;}
   else if (info.st_size<head_len) {
     u8_seterr(_("Source smaller than head length"),"fd_save_head",
               u8_strdup(source));
+    u8_free(src); u8_free(dst);
     return -1;}
   int in=open(src,O_RDONLY), rv=0;
   u8_free(src);
@@ -60,21 +62,21 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
     u8_free(buf);
     return rv;}
   int out=open(dst,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+  u8_free(dst);
   if (out<0) {
     u8_free(buf);
     return out;}
   else rv=u8_lock_fd(out,1);
-  u8_free(dst);
   if (rv<0) {
-    u8_free(buf);
     close(out);
+    u8_free(buf);
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
     ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
     if (delta<0) {
-      u8_free(buf);
       close(out);
+      u8_free(buf);
       return delta;}
     bytes_written += delta;}
   u8_free(buf);
@@ -113,37 +115,39 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
     return rv;}
   else head_len=info.st_size;
   unsigned char *buf=u8_malloc(head_len);
+  u8_free(src);
   size_t bytes_read=0;
   while (bytes_read<head_len) {
     ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
     if (delta<0) {
-      u8_free(buf); u8_free(src); u8_free(dst);
+      u8_free(buf); u8_free(dst);
       close(in);
       return delta;}
     bytes_read += delta;}
   if ((rv=u8_unlock_fd(in))<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
+    u8_free(buf); u8_free(dst);
     close(in);
     return rv;}
   else rv=close(in);
   if (rv<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
+    u8_free(buf); u8_free(dst);
     return rv;}
   int out=open(dst,O_RDWR);
+  u8_free(dst);
   if (out<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
+    u8_free(buf);
     return out;}
   rv=u8_lock_fd(out,1);
   if (rv<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
     close(out);
+    u8_free(buf);
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
     ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
     if (delta<0) {
-      u8_free(buf); u8_free(src); u8_free(dst);
       close(out);
+      u8_free(buf);
       return delta;}
     bytes_written += delta;}
   if ( (trunc_loc>=0) && ((trunc_loc+8)<head_len)) {
@@ -154,16 +158,17 @@ FD_EXPORT ssize_t fd_restore_head(u8_string source,u8_string dest,
     if (restore_len>head_len)
       rv=ftruncate(out,restore_len);}
   if (rv<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
     u8_unlock_fd(out);
     close(out);
+    u8_free(buf);
     return rv;}
   else rv=u8_unlock_fd(out);
   if (rv<0) {
     close(out);
+    u8_free(buf);
     return rv;}
   else rv=close(out);
-  u8_free(buf); u8_free(src); u8_free(dst);
+  u8_free(buf);
  if (rv<0)
     return rv;
   else return head_len;
