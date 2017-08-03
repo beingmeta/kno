@@ -41,47 +41,52 @@ FD_EXPORT ssize_t fd_save_head(u8_string source,u8_string dest,size_t head_len)
               u8_strdup(source));
     return -1;}
   int in=open(src,O_RDONLY), rv=0;
-  if (in<0) {
-    u8_free(src); u8_free(dst);
-    return in;}
+  u8_free(src);
+  if (in<0)
+    return in;
   else rv=u8_lock_fd(in,0);
   unsigned char *buf=u8_malloc(head_len);
   size_t bytes_read=0;
   while (bytes_read<head_len) {
     ssize_t delta=read(in,buf+bytes_read,head_len-bytes_read);
     if (delta<0) {
-      u8_free(buf); u8_free(src); u8_free(dst);
+      u8_free(buf);
       close(in);
       return delta;}
     bytes_read += delta;}
   rv=u8_unlock_fd(in);
   rv=close(in);
   if (rv<0) {
-    u8_free(src); u8_free(dst); u8_free(buf);
+    u8_free(buf);
     return rv;}
   int out=open(dst,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
   if (out<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
+    u8_free(buf);
     return out;}
   else rv=u8_lock_fd(out,1);
+  u8_free(dst);
   if (rv<0) {
-    u8_free(buf); u8_free(src); u8_free(dst);
+    u8_free(buf);
     close(out);
     return rv;}
   size_t bytes_written=0;
   while (bytes_written<head_len) {
     ssize_t delta=write(out,buf+bytes_written,head_len-bytes_written);
     if (delta<0) {
-      u8_free(buf); u8_free(src); u8_free(dst);
+      u8_free(buf);
       close(out);
       return delta;}
     bytes_written += delta;}
+  u8_free(buf);
   rv=u8_unlock_fd(out);
   if (rv<0) {
+    u8_log(LOGWARN,"RecoveryFileUnlockFailed",
+           "Unlocking %s failed (errno=%d:%s)",
+           dest,errno,u8_strerror(errno));
+    errno=0;
     close(out);
     return rv;}
   else rv=close(out);
-  u8_free(buf); u8_free(src); u8_free(dst);
   if (rv<0)
     return rv;
   else return head_len;
