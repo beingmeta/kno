@@ -719,9 +719,8 @@ static int walk_sproc(fd_walker walker,lispval obj,void *walkdata,
   else if (fd_walk(walker,sproc->sproc_arglist,
                    walkdata,flags,depth-1)<0)
     return -1;
-  else if ((!(FD_STATICP(env)))&&
-           (fd_walk(walker,sproc->sproc_arglist,
-                    walkdata,flags,depth-1)<0))
+  else if ( (!(FD_STATICP(env))) &&
+            (fd_walk(walker,env,walkdata,flags,depth-1)<0) )
     return -1;
   else return 3;
 }
