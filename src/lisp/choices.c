@@ -243,11 +243,12 @@ lispval fd_init_choice
   int atomicp = 1, newlen = n;
   const lispval *base, *scan, *limit;
   if (PRED_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
+    if ( (data) && (flags&FD_CHOICE_FREEDATA) ) u8_free(data);
     if (ch) u8_free(ch);
     return EMPTY;}
   else if ( (n==1) &&  (flags&FD_CHOICE_REALLOC) ) {
-    lispval elt = (data!=NULL)?(data[0]):
-      (ch!=NULL)?((FD_XCHOICE_DATA(ch))[0]):
+    lispval elt = (data!=NULL) ? (data[0]) :
+      (ch!=NULL) ? ((FD_XCHOICE_DATA(ch))[0]) :
       (FD_NULL);
     if (ch) u8_free(ch);
     if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
@@ -260,6 +261,7 @@ lispval fd_init_choice
     ch = fd_alloc_choice(n);
     if (ch == NULL) {
       u8_graberr(-1,"fd_init_choice",NULL);
+      if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
       return FD_ERROR;}
     if (data)
       memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);
@@ -271,8 +273,14 @@ lispval fd_init_choice
       lispval *write = (lispval *)FD_XCHOICE_DATA(ch);
       lispval *read = (lispval *)data, *limit = read+n;
       while (read<limit) {
-        lispval v = fd_incref(*read); read++; *write++=v;}}
+        lispval v = fd_incref(*read);
+        read++;
+        *write++=v;}}
     else memcpy((lispval *)FD_XCHOICE_DATA(ch),data,sizeof(lispval)*n);}
+  else {}
+  /* Free the original data vector if requested. */
+  if ((data) && (flags&FD_CHOICE_FREEDATA)) {
+    u8_free((lispval *)data);}
   /* Copy the data unless its yours. */
   base = FD_XCHOICE_DATA(ch); scan = base; limit = scan+n;
   /* Determine if the choice is atomic. */
@@ -288,9 +296,6 @@ lispval fd_init_choice
   else if (flags&FD_CHOICE_COMPRESS)
     newlen = compress_choice((lispval *)base,n,atomicp);
   else newlen = n;
-  /* Free the original data vector if requested. */
-  if ((data) && (flags&FD_CHOICE_FREEDATA)) {
-    u8_free((lispval *)data);}
   if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
     lispval v = base[0];
     u8_free(ch);
@@ -825,19 +830,21 @@ lispval fd_intersect_choices(struct FD_CHOICE **choices,int n_choices)
         else break;
       if (i == n_choices) {
         if (CONSP(item)) {
-          atomicp = 0; fd_incref(item); *write++=item;}
+          atomicp = 0;
+          fd_incref(item);
+          *write++=item;}
         else *write++=item;}}}
   if (write == results) {
     u8_free(results);
     return EMPTY;}
   else if (write == (results+1)) {
-    lispval v = results[0]; u8_free(results);
+    lispval v = results[0];
+    u8_free(results);
     return v;}
   else if (atomicp)
-    return fd_make_choice(write-results,results,
-                          (FD_CHOICE_ISATOMIC|FD_CHOICE_FREEDATA));
-  else return fd_make_choice(write-results,results,
-                             FD_CHOICE_FREEDATA);
+    return fd_make_choice
+      (write-results,results,(FD_CHOICE_ISATOMIC|FD_CHOICE_FREEDATA));
+  else return fd_make_choice(write-results,results,(FD_CHOICE_FREEDATA));
 }
 
 FD_EXPORT
@@ -947,14 +954,10 @@ lispval fd_intersection(lispval *v,int n)
       if (n>16) {u8_free(choices); u8_free(conversions);}
       return result;}
     else {
-      struct FD_CHOICE **choices, *_choices[16];
+      struct FD_CHOICE *choices[n];
       lispval result; int i = 0;
-      if (n>16)
-        choices = u8_alloc_n(n,struct FD_CHOICE *);
-      else choices=_choices;
       while (i < n) {choices[i]=(struct FD_CHOICE *)v[i]; i++;}
       result = fd_intersect_choices(choices,n);
-      if (n>16) u8_free(choices);
       return result;}
   }
 }

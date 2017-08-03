@@ -162,8 +162,11 @@ typedef struct FD_CHOICE *fd_choice;
 
 FD_EXPORT lispval fd_init_choice
   (struct FD_CHOICE *ch,int n,const lispval *data,int flags);
-#define fd_make_choice(n,data,flags) \
-  fd_init_choice(fd_alloc_choice(n),n,data,flags)
+FD_FASTOP lispval fd_make_choice(int n,const lispval *data,int flags)
+{
+  struct FD_CHOICE *ch = fd_alloc_choice(n);
+  return fd_init_choice(ch,n,data,flags);
+}
 
 /* Accumulating choices */
 
