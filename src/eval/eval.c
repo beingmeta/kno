@@ -1287,11 +1287,15 @@ static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
     if (VOIDP(val)) return FD_FALSE;
     else if (val == FD_DEFAULT_VALUE) return FD_FALSE;
     else if (val == FD_UNBOUND) return FD_FALSE;
-    else return FD_TRUE;}
+    else {
+      fd_decref(val);
+      return FD_TRUE;}}
   else if (TABLEP(envarg)) {
     lispval val = fd_get(envarg,symbol,VOID);
     if (VOIDP(val)) return FD_FALSE;
-    else return FD_TRUE;}
+    else {
+      fd_decref(val);
+      return FD_TRUE;}}
   else return fd_type_error(_("environment"),"symbol_boundp_prim",envarg);
 }
 
