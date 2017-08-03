@@ -503,8 +503,8 @@ static lispval config_getrandomseed(lispval var,void *data)
 
 static int config_setrandomseed(lispval var,lispval val,void *data)
 {
-  if (((SYMBOLP(val)) && ((strcmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
-      ((STRINGP(val)) && ((strcmp(CSTRING(val),"TIME"))==0))) {
+  if (((SYMBOLP(val)) && ((strcasecmp(FD_XSYMBOL_NAME(val),"TIME"))==0)) ||
+      ((STRINGP(val)) && ((strcasecmp(CSTRING(val),"TIME"))==0))) {
     time_t tick = time(NULL);
     if (tick<0) {
       u8_graberr(-1,"time",NULL);
@@ -514,10 +514,10 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
       randomseed = (unsigned int)tick;
       u8_randomize(randomseed);
       return 1;}}
-  else if ((FIXNUMP(val))&&
-	   (FIX2INT(val)>0)&&
-	   (FIX2INT(val)<UINT_MAX)) {
+  else if (FIXNUMP(val)) {
     long long intval = FIX2INT(val);
+    if (intval<0) intval=-intval;
+    if (intval>=UINT_MAX) intval=intval%UINT_MAX;
     randomseed = (unsigned int)intval;
     u8_randomize(randomseed);
     return 1;}
