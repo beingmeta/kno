@@ -8,7 +8,7 @@ fi
 PROGNAME=$1; shift;
 LOGFILE=$$.log
 if test -x $PROGNAME; then
-    $PROGNAME=./${PROGNAME};
+    PROGNAME=./${PROGNAME};
 fi
 
 if test ! -z ${PREAMBLE}; then
