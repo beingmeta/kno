@@ -1681,7 +1681,7 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdreload etc/fdrestart etc/fdctl etc/fdgdb
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	   tests/scheme/vgleaktest tests/scheme/vgmemtest
-	   tests/scheme/runenv.sh tests/scheme/testenv
+	   tests/scheme/runenv.sh tests/scheme/xtest
 	   tests/scheme/runtest tests/scheme/memtest
 	   tests/scheme/leaktest tests/scheme/fdexectest
 	   tests/scheme/tcdebug tests/scheme/vgdebug
