@@ -423,6 +423,10 @@ static lispval elapsed_time(lispval arg)
   else if (FD_FLONUMP(arg)) {
     double base = FD_FLONUM(arg);
     return fd_init_double(NULL,elapsed-base);}
+  else if (FD_FIXNUMP(arg)) {
+    long long intval = FD_FIX2INT(intval);
+    double base = (double) intval;
+    return fd_init_double(NULL,elapsed-base);}
   else return fd_type_error("double","elapsed_time",arg);
 }
 
