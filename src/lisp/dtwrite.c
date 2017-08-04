@@ -333,9 +333,8 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
           return fd_dtype_writers[ctype](out,x);
         else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
           return write_opaque(out,x);
-        else if ((fd_dtype_error) &&
-                 (dtype_len = fd_dtype_error(out,x,"no handler")))
-          return dtype_len;
+        else if (fd_dtype_error)
+          return fd_dtype_error(out,x,"no handler");
         else {
           fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
           return -1;}}
