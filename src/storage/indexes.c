@@ -1082,6 +1082,8 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   mdstore(metadata,cached_slot,FD_INT(ix->index_cache.table_n_keys));
   mdstore(metadata,adds_slot,FD_INT(ix->index_adds.table_n_keys));
   mdstore(metadata,edits_slot,FD_INT(ix->index_adds.table_n_keys));
+  if ((ix->index_handler) && (ix->index_handler->name))
+    mdstring(metadata,FDSYM_TYPE,(ix->index_handler->name));
 
   if (U8_BITP(flags,FD_STORAGE_READ_ONLY))
     fd_add(metadata,flags_slot,read_only_flag);

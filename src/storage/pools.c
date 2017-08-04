@@ -2016,6 +2016,8 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   mdstring(metadata,poolid_slot,p->poolid);
   mdstring(metadata,source_slot,p->pool_source);
   mdstring(metadata,label_slot,p->pool_label);
+  if ((p->pool_handler) && (p->pool_handler->name))
+    mdstring(metadata,FDSYM_TYPE,(p->pool_handler->name));
   mdstore(metadata,cached_slot,FD_INT(p->pool_cache.table_n_keys));
   mdstore(metadata,locked_slot,FD_INT(p->pool_changes.table_n_keys));
 
@@ -2034,12 +2036,13 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
     fd_add(metadata,flags_slot,phased_flag);
   if (U8_BITP(flags,FD_POOL_SPARSE))
     fd_add(metadata,flags_slot,sparse_flag);
-  if (U8_BITP(flags,FD_POOL_ADJUNCT))
-    fd_add(metadata,flags_slot,adjunct_flag);
   if (U8_BITP(flags,FD_POOL_VIRTUAL))
     fd_add(metadata,flags_slot,virtual_flag);
   if (U8_BITP(flags,FD_POOL_NOLOCKS))
     fd_add(metadata,flags_slot,nolocks_flag);
+
+  if (U8_BITP(flags,FD_POOL_ADJUNCT))
+    fd_add(metadata,flags_slot,adjunct_flag);
 
   if (p->pool_n_adjuncts) {
     int i=0, n=p->pool_n_adjuncts;
