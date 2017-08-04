@@ -138,11 +138,14 @@ typedef lispval (*fd_xprimn)(fd_function,int n,lispval *);
   u8_string fcn_name, fcn_filename;					\
   u8_string fcn_documentation;						\
   unsigned int fcn_ndcall:1, fcn_xcall:1, fcn_wrap_calls:1;		\
-  lispval fcnid;								\
+  unsigned int fcn_profile:1, fcn_break:1, fcn_trace:3;			\
+  lispval fcnid;							\
   short fcn_arity, fcn_min_arity;					\
   lispval fcn_attribs;							\
   int *fcn_typeinfo;							\
-  lispval *fcn_defaults;							\
+  lispval *fcn_defaults;						\
+  double fcn_profile_time;						\
+  long long fcn_profile_count;						\
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
