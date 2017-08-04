@@ -1167,20 +1167,23 @@ static void display_index(u8_output out,fd_index ix,lispval lix)
   u8_string tag = (CONSP(lix)) ? ("CONSINDEX") : ("INDEX");
   u8_string type = ((ix->index_handler) && (ix->index_handler->name)) ?
     (ix->index_handler->name) : ((u8_string)("notype"));
+  u8_string id     = ix->indexid;
+  u8_string source = (ix->index_source) ? (ix->index_source) : (id);
+  u8_string useid  =
+    ( (strchr(id,':')) || (strchr(id,'@')) ) ? (id) :
+    (u8_strchr(id,'/',1)) ? (u8_strchr(id,'/',-1)) :
+    (id);
+  int cached = ix->index_cache.table_n_keys;
+  int added = ix->index_adds.table_n_keys;
   if (ix->index_edits.table_n_keys) {
     strcpy(edits,"~");
     strcat(edits,u8_itoa10(ix->index_edits.table_n_keys,numbuf));}
   else strcpy(edits,"");
-  if (ix->index_source)
+  if ((source) && (strcmp(source,useid)))
     u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%lx \"%s\">"),
-              tag,type,ix->indexid,
-              ix->index_cache.table_n_keys,
-              ix->index_adds.table_n_keys,
-              edits,
-              lix,ix->index_source);
-  else u8_printf(out,_("#<%s %s (%s) cx=%d+%d~%d #!%lx>"),
-                 tag,ix->indexid,type,
-                 lix);
+              tag,type,useid,cached,added,edits,lix,source);
+  else u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%lx>"),
+                 tag,useid,type,cached,added,edits,lix);
 }
 static int unparse_index(u8_output out,lispval x)
 {

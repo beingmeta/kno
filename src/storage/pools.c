@@ -1785,6 +1785,10 @@ static void display_pool(u8_output out,fd_pool p,lispval lp)
   u8_string type = ((p->pool_handler) && (p->pool_handler->name)) ?
     (p->pool_handler->name) : ((u8_string)"notype");
   u8_string tag = (CONSP(lp)) ? ("CONSPOOL") : ("POOL");
+  u8_string id = p->poolid;
+  u8_string source = (p->pool_source) ? (p->pool_source) : (id);
+  u8_string useid = ( (strchr(id,':')) || (strchr(id,'@')) ) ? (id) :
+    (strchr(id,'/')) ? (strrchr(id,'/')) : (id);
   int n_cached=p->pool_cache.table_n_keys;
   int n_changed=p->pool_changes.table_n_keys;
   strcpy(addrbuf,"@");
@@ -1793,15 +1797,16 @@ static void display_pool(u8_output out,fd_pool p,lispval lp)
   strcat(addrbuf,u8_uitoa16(FD_OID_LO(p->pool_base),numbuf));
   strcat(addrbuf,"+0x0");
   strcat(addrbuf,u8_uitoa16(p->pool_capacity,numbuf));
-  if (p->pool_source)
-    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx '%s'>",
-              tag,p->poolid,type,addrbuf,n_cached,n_changed,
-              lp,p->pool_source);
-  else if (p->pool_label)
-    u8_printf(out,"#<%s %s (%s) oids=%d/%d #!%lx '%s'>",
-              tag,type,addrbuf,n_cached,n_changed,lp,p->pool_label);
+  if (p->pool_label)
+    u8_printf(out,"#<%s %s (%s) %s cx=%d/%d #!%lx \"%s\">",
+              tag,p->pool_label,type,addrbuf,n_cached,n_changed,
+              lp,source);
+  else if (strcmp(useid,source))
+    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx \"%s\">",
+              tag,useid,type,addrbuf,n_cached,n_changed,lp,source);
   else u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx>",
-                 tag,p->poolid,type,addrbuf,n_cached,n_changed,lp);
+                 tag,useid,type,addrbuf,n_cached,n_changed,lp);
+
 }
 
 static int unparse_pool(u8_output out,lispval x)
