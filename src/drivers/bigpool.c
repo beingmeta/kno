@@ -1694,6 +1694,8 @@ static lispval bigpool_ctl(fd_pool p,lispval op,int n,lispval *args)
                      bp->bigpool_slotids);
     fd_store(base,load_symbol,FD_INT(bp->pool_load));
     fd_store(base,slotids_symbol,slotids_vec);
+    fd_add(base,FDSYM_READONLY,load_symbol);
+    fd_add(base,FDSYM_READONLY,slotids_symbol);
     fd_decref(slotids_vec);
     return base;}
   else if (op == fd_load_op)

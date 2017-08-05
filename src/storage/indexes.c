@@ -1110,6 +1110,19 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   if (FD_TABLEP(ix->index_opts))
     fd_add(metadata,opts_slot,ix->index_opts);
 
+  fd_add(metadata,FDSYM_READONLY,cachelevel_slot);
+  fd_add(metadata,FDSYM_READONLY,indexid_slot);
+  fd_add(metadata,FDSYM_READONLY,source_slot);
+  fd_add(metadata,FDSYM_READONLY,FDSYM_TYPE);
+  fd_add(metadata,FDSYM_READONLY,edits_slot);
+  fd_add(metadata,FDSYM_READONLY,adds_slot);
+  fd_add(metadata,FDSYM_READONLY,cached_slot);
+  fd_add(metadata,FDSYM_READONLY,flags_slot);
+
+  fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
+  fd_add(metadata,FDSYM_READONLY,opts_slot);
+
+
   return metadata;
 }
 
@@ -1405,11 +1418,7 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
 
 static lispval copy_consed_index(lispval x,int deep)
 {
-  /* Where might this get us into trouble when not really copying the pool? */
-  fd_index ix = (fd_index)x;
-  if (ix->index_serialno>=0)
-    return fd_index_ref(ix);
-  else return x;
+  return fd_incref(x);
 }
 
 FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args)
@@ -1430,6 +1439,12 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       fd_decref(extended);
       return v;}
     else if (n == 2) {
+      lispval extended=fd_index_ctl(ix,fd_metadata_op,0,NULL);
+      if (fd_test(extended,FDSYM_READONLY,slotid)) {
+        fd_decref(extended);
+        return fd_err("ReadOnlyMetadataProperty","fd_default_indexctl",
+                      ix->indexid,slotid);}
+      else fd_decref(extended);
       int rv=fd_store(metadata,slotid,args[1]);
       if (rv<0)
         return FD_ERROR_VALUE;

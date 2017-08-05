@@ -2748,6 +2748,10 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
     fd_store(base,baseoids_symbol,FD_INT(n_baseoids));
     fd_store(base,buckets_symbol,FD_INT(hx->index_n_buckets));
     fd_store(base,nkeys_symbol,FD_INT(hx->table_n_keys));
+    fd_add(base,FDSYM_READONLY,slotids_symbol);
+    fd_add(base,FDSYM_READONLY,baseoids_symbol);
+    fd_add(base,FDSYM_READONLY,buckets_symbol);
+    fd_add(base,FDSYM_READONLY,nkeys_symbol);
     return base;}
   else if ( (op == fd_metadata_op) && (n == 1) && (args[0]==slotids_symbol) ) {
     fd_incref_vec(hx->index_slotids,hx->index_n_slotids+hx->index_new_slotids);

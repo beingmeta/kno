@@ -2074,6 +2074,20 @@ FD_EXPORT lispval fd_pool_base_metadata(fd_pool p)
   if (FD_TABLEP(p->pool_opts))
     fd_store(metadata,opts_slot,p->pool_opts);
 
+  fd_add(metadata,FDSYM_READONLY,FDSYM_TYPE);
+  fd_add(metadata,FDSYM_READONLY,base_slot);
+  fd_add(metadata,FDSYM_READONLY,capacity_slot);
+  fd_add(metadata,FDSYM_READONLY,cachelevel_slot);
+  fd_add(metadata,FDSYM_READONLY,poolid_slot);
+  fd_add(metadata,FDSYM_READONLY,label_slot);
+  fd_add(metadata,FDSYM_READONLY,source_slot);
+  fd_add(metadata,FDSYM_READONLY,locked_slot);
+  fd_add(metadata,FDSYM_READONLY,cached_slot);
+  fd_add(metadata,FDSYM_READONLY,flags_slot);
+
+  fd_add(metadata,FDSYM_READONLY,FDSYM_PROPS);
+  fd_add(metadata,FDSYM_READONLY,opts_slot);
+
   return metadata;
 }
 
@@ -2101,6 +2115,12 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
       fd_decref(extended);
       return v;}
     else if (n == 2) {
+      lispval extended=fd_pool_ctl(p,fd_metadata_op,0,NULL);
+      if (fd_test(extended,FDSYM_READONLY,slotid)) {
+        fd_decref(extended);
+        return fd_err("ReadOnlyMetadataProperty","fd_default_poolctl",
+                      p->poolid,slotid);}
+      else fd_decref(extended);
       int rv=fd_store(metadata,slotid,args[1]);
       if (rv<0)
         return FD_ERROR_VALUE;
@@ -2128,7 +2148,7 @@ FD_EXPORT lispval fd_default_poolctl(fd_pool p,lispval op,int n,lispval *args)
 
 static lispval copy_consed_pool(lispval x,int deep)
 {
-  return x;
+  return fd_incref(x);
 }
 
 /* Initialization */
