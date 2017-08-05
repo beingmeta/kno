@@ -3553,7 +3553,8 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn3(fd_xscheme_module,"ADJUNCT!",add_adjunct,3,
             "(pool slot table)\n"
             "arranges for *table* to store values of the slotid *slot* "
-            "for objects in *pool*.",
+            "for objects in *pool*. Table can be an in-memory table, "
+            "an index or an adjunct pool",
             -1,VOID,-1,VOID,-1,VOID);
   fd_defalias(fd_xscheme_module,"ADD-ADJUNCT!","ADJUNCT!");
   fd_idefn1(fd_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,

@@ -13,16 +13,25 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
+#if 0 /* From cons.h */
+#define FD_DEEP_COPY 2   /* Make a deep copy */
+#define FD_FULL_COPY 4   /* Copy non-static objects */
+#define FD_STRICT_COPY 8 /* Require methods for all objects */
+#define FD_STATIC_COPY 16 /* Declare all copied objects static (this leaks) */
+#endif
+
 
 FD_EXPORT
 /* fd_deep_copy:
     Arguments: a dtype pointer
     Returns: a dtype pointer
-  This returns a copy of its argument, recurring to sub objects. */
+  This returns a copy of its argument, possibly recurring to sub objects,
+  with lots of options. */
 lispval fd_copier(lispval x,int flags)
 {
   int static_copy = U8_BITP(flags,FD_STATIC_COPY);
-  if (ATOMICP(x)) return x;
+  if (ATOMICP(x))
+    return x;
   else {
     fd_ptr_type ctype = FD_CONS_TYPE(FD_CONS_DATA(x));
     switch (ctype) {
