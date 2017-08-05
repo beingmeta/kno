@@ -239,6 +239,7 @@ FD_EXPORT lispval _fd_slotmap_get
   (struct FD_SLOTMAP *sm,lispval key,lispval dflt);
 FD_EXPORT lispval _fd_slotmap_test
   (struct FD_SLOTMAP *sm,lispval key,lispval val);
+FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *sm);
 
 #if FD_INLINE_TABLES
 static U8_MAYBE_UNUSED lispval fd_slotmap_get

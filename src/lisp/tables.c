@@ -639,7 +639,13 @@ static lispval copy_slotmap(lispval smap,int flags)
   struct FD_SLOTMAP *cur=fd_consptr(fd_slotmap,smap,fd_slotmap_type);
   struct FD_SLOTMAP *fresh; int unlock=0;
   if (!(cur->sm_free_keyvals)) {
-    lispval copy; struct FD_SLOTMAP *consed; struct FD_KEYVAL *kvals;
+    /* If the original doesn't 'own' its keyvals, it's probably block
+       allocated (with the keyvals in memory right after the slotmap
+       struct. In this case, we assume we want to give the copy the
+       same properties. */
+    lispval copy;
+    struct FD_SLOTMAP *consed;
+    struct FD_KEYVAL *kvals;
     int i=0, len;
     copy=fd_make_slotmap(cur->n_allocd,cur->n_slots,cur->sm_keyvals);
     consed=(struct FD_SLOTMAP *)copy;
@@ -680,7 +686,7 @@ static lispval copy_slotmap(lispval smap,int flags)
       lispval key=read->kv_key, val=read->kv_val; read++;
       if (CONSP(key)) {
         if ((flags&FD_FULL_COPY)||(FD_STATICP(key)))
-          write->kv_key=fd_copy(key);
+          write->kv_key=fd_copier(key,flags);
         else write->kv_key=fd_incref(key);}
       else write->kv_key=key;
       if (CONSP(val))
@@ -699,7 +705,7 @@ static lispval copy_slotmap(lispval smap,int flags)
   return LISP_CONS(fresh);
 }
 
-static void recycle_slotmap(struct FD_RAW_CONS *c)
+FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
 {
   struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c; int unlock=0;
   if (sm->table_uselock) {fd_write_lock_table(sm); unlock=1;}
@@ -3184,7 +3190,8 @@ static int hashset_test_add(struct FD_HASHSET *h,lispval key)
   int hash = fd_hash_lisp(key), bucket = hash%n_slots;
   lispval contents = slots[bucket];
   if (FD_EMPTYP(contents)) {
-    slots[bucket] = key; fd_incref(key);
+    slots[bucket] = key;
+    fd_incref(key);
     return 1;}
   else if (contents == key)
     return 0;
@@ -3907,7 +3914,7 @@ void fd_init_tables_c()
   u8_register_source_file(_FILEINFO);
 
   /* SLOTMAP */
-  fd_recyclers[fd_slotmap_type]=recycle_slotmap;
+  fd_recyclers[fd_slotmap_type]= (fd_recycle_fn) fd_recycle_slotmap;
   fd_unparsers[fd_slotmap_type]=unparse_slotmap;
   fd_copiers[fd_slotmap_type]=copy_slotmap;
   fd_comparators[fd_slotmap_type]=compare_slotmaps;
