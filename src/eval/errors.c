@@ -73,7 +73,7 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,int wrapped,int
     return fd_err(fd_SyntaxError,"return_irritant","no irritant",expr);
   else if (eval_args) {
     lispval exval = fd_eval(arg1,env), cxtval;
-    if (FD_ABORTP(exval)) 
+    if (FD_ABORTP(exval))
       ex = (fd_exception)"Recursive error on exception name";
     else if (SYMBOLP(exval))
       ex = (fd_exception)(SYM_NAME(exval));
@@ -84,7 +84,7 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,int wrapped,int
     cxtval = fd_eval(arg2,env);
     if ((FALSEP(cxtval))||(EMPTYP(cxtval)))
       cxt = (fd_exception)NULL;
-    else if (FD_ABORTP(cxtval)) 
+    else if (FD_ABORTP(cxtval))
       cxt = (fd_exception)"Recursive error on exception context";
     else if (SYMBOLP(cxtval))
       cxt = (fd_exception)(SYM_NAME(cxtval));
@@ -118,6 +118,7 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,int wrapped,int
     else if (FD_CONSP(irritant)) {
       lispval err_result=fd_err(ex,cxt,out.u8_outbuf,irritant);
       fd_decref(irritant);
+      u8_close_output(&out);
       return err_result;}
     else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
 }
