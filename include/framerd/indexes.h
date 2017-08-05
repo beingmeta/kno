@@ -44,8 +44,9 @@ FD_EXPORT int fd_index_adds_init;
   int index_serialno;						   \
   short index_cache_level;					   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
+  struct FD_SLOTMAP index_metadata, index_props;		   \
+  lispval index_slotid;						   \
   lispval index_covers_slotids;					   \
-  lispval index_metadata;					   \
   lispval index_opts
 
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;

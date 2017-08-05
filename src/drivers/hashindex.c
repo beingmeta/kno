@@ -345,8 +345,13 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       u8_free(index);
       return NULL;}}
   else metadata=fd_make_slotmap(5,0,NULL);
-  fd_set_modified(metadata,0);
-  index->index_metadata=metadata;
+  if (FD_SLOTMAPP(metadata)) {
+    struct FD_SLOTMAP *from_struct = &(index->index_metadata);
+    struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
+    if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
+    memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
+    u8_free(from_disk);
+    from_struct->table_modified=0;}
 
   u8_init_mutex(&(index->index_lock));
 
@@ -2506,10 +2511,9 @@ static int update_hashindex_ondisk
     else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
 #endif
   }
-  if ((FD_SLOTMAPP(hx->index_metadata)) &&
-      (fd_modifiedp(hx->index_metadata))) {
+  if (fd_modifiedp((lispval)&(hx->index_metadata))) {
     int error=0;
-    lispval metadata = hx->index_metadata;
+    lispval metadata = (lispval) (&(hx->index_metadata));
     ssize_t metadata_pos = fd_endpos(stream);
     if (metadata_pos>0) {
       fd_outbuf outbuf = fd_writebuf(stream);

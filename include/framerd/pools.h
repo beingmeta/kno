@@ -159,12 +159,12 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   U8_RWLOCK_DECL(pool_lock);				\
   U8_MUTEX_DECL(pool_save_lock);			\
   struct FD_HASHTABLE pool_cache, pool_changes;		\
+  struct FD_SLOTMAP pool_metadata, pool_props;	\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
   lispval pool_indexes;					\
   u8_string pool_prefix;				\
   lispval pool_namefn;					\
-  lispval pool_metadata;				\
   lispval pool_opts
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;

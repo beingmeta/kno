@@ -132,8 +132,7 @@ FD_EXPORT void fd_init_index_delays()
 
 static int metadata_changed(fd_index ix)
 {
-  return ( (FD_TABLEP(ix->index_metadata)) &&
-           (fd_modifiedp(ix->index_metadata)) );
+  return (fd_modifiedp((lispval)(&(ix->index_metadata))));
 }
 
 FD_EXPORT lispval *fd_get_index_delays() { return get_index_delays(); }
@@ -1072,10 +1071,7 @@ static void mdstring(lispval md,lispval slot,u8_string s)
 FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
 {
   int flags=ix->index_flags;
-  lispval metadata;
-  if (FD_SLOTMAPP(ix->index_metadata))
-    metadata=fd_deep_copy(ix->index_metadata);
-  else metadata=fd_init_slotmap(NULL,5,NULL);
+  lispval metadata=fd_deep_copy((lispval)&(ix->index_metadata));
   mdstore(metadata,cachelevel_slot,FD_INT(ix->index_cache_level));
   mdstring(metadata,indexid_slot,ix->indexid);
   mdstring(metadata,source_slot,ix->index_source);
@@ -1107,6 +1103,10 @@ FD_EXPORT lispval fd_index_base_metadata(fd_index ix)
   if (U8_BITP(flags,FD_INDEX_SET_CAPABILITY))
     fd_add(metadata,flags_slot,canset_flag);
 
+  lispval props_copy = fd_copier(((lispval)&(ix->index_props)),0);
+  fd_store(metadata,FDSYM_PROPS,props_copy);
+  fd_decref(props_copy);
+
   if (FD_TABLEP(ix->index_opts))
     fd_add(metadata,opts_slot,ix->index_opts);
 
@@ -1134,13 +1134,16 @@ FD_EXPORT void fd_init_index(fd_index ix,
   fd_make_hashtable(&(ix->index_cache),fd_index_cache_init);
   fd_make_hashtable(&(ix->index_adds),0);
   fd_make_hashtable(&(ix->index_edits),0);
+  FD_INIT_STATIC_CONS(&(ix->index_metadata),fd_slotmap_type);
+  FD_INIT_STATIC_CONS(&(ix->index_props),fd_slotmap_type);
+  fd_init_slotmap(&(ix->index_metadata),17,NULL);
+  fd_init_slotmap(&(ix->index_props),17,NULL);
   ix->index_handler = h;
   /* This was what was specified */
   ix->indexid = u8_strdup(id);
   /* Don't copy this one */
   ix->index_source = src;
   ix->index_covers_slotids = VOID;
-  ix->index_metadata = VOID;
   ix->index_opts = FD_FALSE;
 }
 
@@ -1390,9 +1393,13 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
   fd_recycle_hashtable(&(ix->index_edits));
   u8_free(ix->indexid);
   u8_free(ix->index_source);
+
+  fd_recycle_slotmap(&(ix->index_metadata));
+  fd_recycle_slotmap(&(ix->index_props));
+
   fd_decref(ix->index_covers_slotids);
-  fd_decref(ix->index_metadata);
   fd_decref(ix->index_opts);
+
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -1412,10 +1419,10 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
   else if (n<0)
     return fd_err("BadIndexOpCall","fd_default_indexctl",ix->indexid,VOID);
   else if (op == fd_metadata_op) {
-    lispval metadata = ix->index_metadata;
-    if (FD_VOIDP(metadata))
-      return fd_err(fd_NoStorageMetadata,"fd_index_ctl",ix->indexid,FD_VOID);
-    else if (n == 0)
+    lispval metadata = ((lispval)&(ix->index_metadata));
+    lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
+    /* TODO: check that slotid isn't any of the slots returned by default */
+    if (n == 0)
       return fd_copier(metadata,0);
     else if (n == 1) {
       lispval extended=fd_index_ctl(ix,fd_metadata_op,0,NULL);
@@ -1423,26 +1430,25 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
       fd_decref(extended);
       return v;}
     else if (n == 2) {
-      int rv=fd_store(metadata,args[0],args[1]);
+      int rv=fd_store(metadata,slotid,args[1]);
       if (rv<0)
         return FD_ERROR_VALUE;
       else return fd_incref(args[1]);}
     else return fd_err(fd_TooManyArgs,"fd_index_ctl/metadata",
                        FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
-  else if (op == fd_raw_metadata_op) {
-    lispval metadata = ix->index_metadata;
-    if (FD_VOIDP(metadata))
-      return FD_FALSE;
-    else if (n == 0)
-      return fd_copier(metadata,0);
+  else if (op == FDSYM_PROPS) {
+    lispval props = (lispval) &(ix->index_props);
+    lispval slotid = (n>0) ? (args[0]) : (FD_VOID);
+    if (n == 0)
+      return fd_copier(props,0);
     else if (n == 1)
-      return fd_get(metadata,args[0],FD_EMPTY_CHOICE);
+      return fd_get(props,slotid,FD_EMPTY);
     else if (n == 2) {
-      int rv=fd_store(metadata,args[0],args[1]);
+      int rv=fd_store(props,slotid,args[1]);
       if (rv<0)
         return FD_ERROR_VALUE;
       else return fd_incref(args[1]);}
-    else return fd_err(fd_TooManyArgs,"fd_index_ctl/metadata",
+    else return fd_err(fd_TooManyArgs,"fd_index_ctl/props",
                        FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
   else return FD_FALSE;
 }
