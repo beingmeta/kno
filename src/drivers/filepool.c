@@ -535,7 +535,7 @@ static lispval file_pool_alloc(fd_pool p,int n)
   unsigned int start;
   fd_lock_pool(p,1);
   if (!(FD_POOLFILE_LOCKEDP(fp))) lock_file_pool(fp,0);
-  if (fp->pool_load+n>=fp->pool_capacity) {
+  if ( (fp->pool_load+n) > fp->pool_capacity ) {
     fd_unlock_pool(p);
     return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->poolid,VOID);}
   start=fp->pool_load; fp->pool_load+=n;

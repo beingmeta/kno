@@ -1369,7 +1369,7 @@ static lispval bigpool_alloc(fd_pool p,int n)
   fd_lock_pool(p,1);
   if (!(POOLFILE_LOCKEDP(bp)))
     lock_bigpool_file(bp,FD_ISLOCKED);
-  if ( (bp->pool_load+n) >= (bp->pool_capacity) ) {
+  if ( (bp->pool_load+n) > (bp->pool_capacity) ) {
     fd_unlock_pool(p);
     return fd_err(fd_ExhaustedPool,"bigpool_alloc",
                   p->poolid,VOID);}
