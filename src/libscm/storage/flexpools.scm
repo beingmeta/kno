@@ -3,14 +3,125 @@
 
 (in-module 'storage/flexpools)
 
-(use-module '{reflection logger logctl mttools stringfmts regex})
+(use-module '{reflection texttools regex
+	      logger logctl 
+	      mttools stringfmts opts})
 
 (define %loglevel %info%)
 
-(module-export! '{flexpool/next flexpool/start})
+(module-export! '{flexpool/next flexpool/start flexpool/open})
+
+(define (flexpool/open spec (opts #f) (metadata))
+  (when (and (table? spec) (not opts))
+    (set! opts spec)
+    (set! spec (getopt opts 'pool (getopt opts 'source))))
+  (when (not (string? spec)) (irritant spec |InvalidPoolSpec|))
+  (set! opts (deep-copy opts))
+  (set! metadata (getopt opts 'metadata #f))
+  (when (or (testopt opts 'adjuncts) (testopt opts 'indexes))
+    (unless metadata
+      (set! metadata #[])
+      (store! opts 'metadata metadata))
+    (when (test opts 'adjuncts)
+      (store! metadata 'adjuncts (getopt opts 'adjuncts))
+      (drop! opts 'adjuncts))
+    (when (test opts 'indexes)
+      (store! metadata 'indexes (getopt opts 'indexes))
+      (drop! opts 'indexes)))
+  (let* ((pool (ref-pool spec opts))
+	 (adjuncts (poolctl pool 'metadata 'adjuncts))
+	 (indexes (poolctl pool 'metadata 'indexes)))
+    (when (exists? adjuncts)
+      (let ((current (get-adjuncts pool)))
+	(let ((resolved (ref-adjuncts adjuncts pool)))
+	  (loginfo |AddAdjuncts| 
+	    "For " pool ": "
+	    "\n\t" adjuncts
+	    "\n\t" resolved)
+	  (do-choices (slotid (getkeys resolved))
+	    (adjunct! pool slotid (get resolved slotid))))))
+    ;; TODO: Fill this in
+    (when (exists? indexes))
+    pool))
+
+(define (ref-pool file opts)
+  (if (file-exists? file)
+      (let ((pool (check-pool (open-pool file opts) opts)))
+	(if (or (adjunct? pool) (testopt opts 'adjunct))
+	    pool
+	    (use-pool pool)))
+      (begin
+	(unless (testopt opts 'base)
+	  (irritant opts |NoPoolBase| "For creating " file))
+	(unless (testopt opts 'capacity)
+	  (irritant opts |NoPoolCapacity| "For creating " file))
+	(unless (testopt opts 'type)
+	  (irritant opts |NoPoolType| "For creating " file))
+	(let* ((more-opts (frame-create #f 
+			    'adjuncts (getopt opts 'adjuncts)
+			    'indexes (getopt opts 'indexes)))
+	       (pool (make-pool file (cons more-opts opts))))
+	  (lognotice |CreatedPool| pool)
+	  (if (or (adjunct? pool) (testopt opts 'adjunct))
+	      pool
+	      (use-pool pool))))))
+
+(define (check-pool pool opts)
+  (let ((opt-base (getopt opts 'base #f))
+	(opt-capacity (getopt opts 'capacity #f))
+	(metadata (poolctl pool 'metadata)))
+    (when (and opt-base (not (eq? opt-base (pool-base pool))))
+      (irritant pool |InconsistentBaseOID|
+	"Pool's base OID (" (oid->string (pool-base pool)) ") "
+	"is not the same as specified in opts (" opt-base ")"))
+    (when (and opt-capacity (not (eq? opt-capacity (pool-capacity pool))))
+      (irritant pool |InconsistentCapacity|
+	"Pool's capacity (" (pool-capacity pool) ") "
+	"is not the same as specified in opts (" opt-capacity ")"))
+    pool))
+    
+(define (ref-index file opts)
+  (if (file-exists? file)
+      (open-index file opts)
+      (make-index file opts)))
+
+(define (ref-adjuncts adjuncts pool)
+  (let ((new (frame-create #f))
+	(base (and pool (pool-base pool)))
+	(cap (and pool (pool-capacity pool)))
+	(current (get-adjuncts pool)))
+    (do-choices (slotid (getkeys adjuncts))
+      (if (test current slotid)
+	  (logwarn |DuplicateAdjuncts|
+	    "The adjunct for " slotid "(" (pool-id pool) ") "
+	    "is already to " (get current slotid) ", ignoring "
+	    "specification " (get adjuncts slotid))
+	  (let ((adj (get adjuncts slotid)))
+	    (store! new slotid
+		    (cond ((or (index? adj) (pool? adj)) adj)
+			  ((and (string? adj) (has-suffix adj ".index"))
+			   (ref-index adj `#[type hashindex size ,(* cap 7)]))
+			  ((and (string? adj) (has-suffix adj ".pool"))
+			   (ref-pool adj `#[base ,base capacity ,cap
+					    type bigpool adjunct #t]))
+			  ((not (table? adj))
+			   (irritant adj |BadAdjunctSpec|))
+			  ((test adj 'pool)
+			   (ref-pool (get adj 'pool)
+				     (cons `#[base ,base capacity ,cap adjunct #t]
+					   adj)))
+			  ((test adj 'index)
+			   (ref-index (get adj 'index) adj))
+			  (else (irritant adj |BadAdjunctSpec|)))))))
+    new))
+
+;;; Flexpool/next
+
+(define flexpool-suffix-regex
+  #/[.][0-9][0-9][0-9][.]pool$/)
 
 (define flexpool-suffix
-  #/[.][0-9][0-9][0-9][.]pool$/)
+  #("." (opt #((isxdigit) (isxdigit) (isxdigit) ".")) "pool" (eos)))
 
 (define (flexpool/next pool)
   (let ((base (pool-base pool))
@@ -19,38 +130,46 @@
 	(source (pool-source pool)))
     (let* ((flexbase (try (get metadata 'flexbase) base))
 	   (new-base (oid-plus base capacity))
-	   (flexoff (remainder (oid-lo new-base) flexbase))
-	   (basepath (if (regex/search flexpool-suffix source)
-			 (slice source 0 -8)
-			 (strip-suffix source ".pool")))
-	   (newpath (glom basepath "." (padnum flexoff 3) ".pool"))
-	   (opts (merge-opts `#[base ,new-base capacity ,capacity
-				adjunct ,(get metadata 'adjunct)
-				register ,(test metadata 'flags 'registered)]
-			     (getopt metadata 'opts))))
-      (if (file-exists? newpath)
-	  (open-flexpool newpath opts pool)
-	  (make-flexpool newpath new-base capacity pool metadata
-			 (getopt metadata 'opts))))))
+	   (flexoff (quotient (oid-offset new-base flexbase) capacity))
+	   (basepath (textsubst source flexpool-suffix ""))
+	   (new-suffix (glom "." (padnum flexoff 3 16) ".pool"))
+	   (newpath (glom basepath new-suffix))
+	   (new-metadata
+	    (frame-create #f 
+	      'flexbase (getopt metadata 'flexbase base)
+	      'indexes (get metadata 'indexes)
+	      'adjuncts (next-adjuncts (get metadata 'adjuncts) new-suffix)))
+	   (opts (cons (frame-create #f 
+			 'base new-base 'capacity capacity
+			 'adjunct (test metadata 'flags 'adjunct)
+			 'register (test metadata 'flags 'registered)
+			 'metadata new-metadata)
+		       (getopt metadata 'opts))))
+      (flexpool/open newpath opts))))
 
-(define (open-flexpool file opts (prev #f) (base) (capacity))
-  (let ((pool (open-pool file opts)))
-    (default! base (getopt opts 'base (pool-base pool)))
-    (default! capacity (getopt opts 'capacity (pool-capacity pool)))
-    (cond ((not (eq? (pool-base pool) base))
-	   (irritant pool |BadFlexpool| 
-	     "The base OID of " pool " is " (oid->string (pool-base pool)) ", "
-	     "not " (oid->string base)))
-	  ((not (= (pool-capacity pool) capacity))
-	   (irritant pool |BadFlexpool| 
-	     "The capacity of " pool " is " (pool-capacity pool) ", "
-	     "not " capacity)))))
+(define (next-adjuncts adjuncts new-suffix)
+  (let ((new-adjuncts (frame-create #f)))
+    (do-choices (slotid (getkeys adjuncts))
+      (let ((adj (get adjuncts slotid)))
+	(store! new-adjuncts slotid
+		(cond ((and (string? adj) (has-suffix adj ".pool"))
+		       (glom (textsubst adj flexpool-suffix "") new-suffix))
+		      ((and (table? adj) (test adj 'pool))
+		       (let ((new-spec (deep-copy adj))
+			     (source (get adj 'pool))
+			     (new-path
+			       (glom (textsubst (get adj 'pool) flexpool-suffix "")
+				 new-suffix)))
+			 (store! new-spec 'pool new-path)
+			 new-spec))
+		      (else adj)))))
+    new-adjuncts))
 
 (define (flexpool/start basename base capacity (opts #f))
   (let* ((flexbase (try (getopt opts 'flexbase {})
 			base))
 	 (flexoff (remainder (oid-lo base) flexbase))
-	 (basepath (if (regex/search flexpool-suffix basename)
+	 (basepath (if (regex/search flexpool-suffix-regex basename)
 		       (slice basename 0 -8)
 		       (strip-suffix basename ".pool")))
 	 (newpath (glom basepath "." (padnum flexoff 3) ".pool"))
