@@ -12,6 +12,8 @@
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
+#define FD_FAST_CHOICE_CONTAINSP 1
+
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -2132,31 +2134,41 @@ static lispval pick_helper(lispval candidates,int n,lispval *tests,int datalevel
 static lispval hashset_filter(lispval candidates,fd_hashset hs,int pick)
 {
   if (hs->hs_n_elts==0) {
-    if (pick) return EMPTY;
+    if (pick)
+      return EMPTY;
     else return fd_incref(candidates);}
   fd_read_lock_table(hs); {
     lispval simple = fd_make_simple_choice(candidates);
     int n = FD_CHOICE_SIZE(simple), isatomic = 1;
-    lispval *slots = hs->hs_buckets; int n_slots = hs->hs_n_buckets;
+    lispval *buckets = hs->hs_buckets; int n_slots = hs->hs_n_buckets;
     lispval *keep = u8_alloc_n(n,lispval), *write = keep;
     DO_CHOICES(c,candidates) {
-      int hash = fd_hash_lisp(c), probe = hash%n_slots, n_probes = 0, found = 0;
-      while (n_probes<512) {
-        lispval pv = slots[probe];
-        if (FD_NULLP(pv)) break;
-        else if (LISP_EQUAL(c,pv)) {found = 1; break;}
-        else {
-          probe++; n_probes++;
-          if (probe>=n_slots) probe = 0;}}
-      if (((found)&&(pick))||((!(found))&&((!pick)))) {
+      int hash = fd_hash_lisp(c), probe = hash%n_slots, found=-1;
+      lispval contents = buckets[probe];
+      if (FD_EMPTY_CHOICEP(contents))
+        found=0;
+      else if (!(FD_AMBIGP(contents)))
+        found = FD_EQUALP(c,contents);
+      else if (FD_CHOICEP(contents))
+        found = fast_choice_containsp(c,(fd_choice)contents);
+      else {
+        lispval normal = fd_make_simple_choice(contents);
+        if (FD_CHOICEP(normal))
+          found = fast_choice_containsp(c,(fd_choice)normal);
+        else found=FD_EQUALP(c,normal);
+        fd_decref(normal);}
+      if ( ((found)&&(pick)) || ((!found)&&((!pick))) ) {
         if ((isatomic)&&(CONSP(c))) isatomic = 0;
-        *write++=c; fd_incref(c);}}
-    fd_unlock_table(hs);
+        *write++=c;
+        fd_incref(c);}}
     fd_decref(simple);
+    fd_unlock_table(hs);
     if (write == keep) {
-      u8_free(keep); return EMPTY;}
+      u8_free(keep);
+      return EMPTY;}
     else if ((write-keep)==1) {
-      lispval v = keep[0]; u8_free(keep);
+      lispval v = keep[0];
+      u8_free(keep);
       return v;}
     else return fd_init_choice
            (NULL,write-keep,keep,
