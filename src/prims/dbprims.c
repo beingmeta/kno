@@ -849,6 +849,16 @@ static lispval get_adjuncts(lispval pool_arg)
   else return fd_get_adjuncts(p);
 }
 
+static lispval isadjunctp(lispval pool_arg)
+{
+  fd_pool p=fd_lisp2pool(pool_arg);
+  if (p==NULL)
+    return FD_ERROR;
+  else if ((p->pool_flags) & (FD_POOL_ADJUNCT))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* DB control functions */
 
 static lispval swapout_lexpr(int n,lispval *args)
@@ -3547,8 +3557,13 @@ FD_EXPORT void fd_init_dbprims_c()
             -1,VOID,-1,VOID,-1,VOID);
   fd_defalias(fd_xscheme_module,"ADD-ADJUNCT!","ADJUNCT!");
   fd_idefn1(fd_xscheme_module,"GET-ADJUNCTS",get_adjuncts,1,
-            "(pool)\n"
+            "`(GET_ADJUNCTS pool)\\n"
             "Gets the adjuncts associated with the specified pool",
+            -1,VOID);
+
+  fd_idefn1(fd_xscheme_module,"ADJUNCT?",isadjunctp,1,
+            "`(ADJUNCT? pool)`\n"
+            "Returns true if *pool* is an adjunct pool",
             -1,VOID);
 
   fd_idefn2(fd_scheme_module,"MAKE-BLOOM-FILTER",make_bloom_filter,1,
