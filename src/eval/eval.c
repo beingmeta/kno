@@ -789,7 +789,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       int gc_head=0;
       if (FD_LEXREFP(head)) {
         headval=fd_lexref(head,env);
-        gc_head=1;}
+        if (FD_CONSP(headval)) gc_head=1;}
       else if (FD_FCNIDP(head)) {
         headval=fd_fcnid_ref(head);
         if (PRECHOICEP(headval)) {
@@ -805,7 +805,8 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
         headval=fd_fcnid_ref(headval);
         if (PRECHOICEP(headval)) {
           headval=fd_make_simple_choice(headval);
-          gc_head=1;}}
+          gc_head=1;}
+        else gc_head=0;}
       int headtype = FD_PTR_TYPE(headval);
       if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
       switch (headtype) {
