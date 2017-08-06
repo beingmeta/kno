@@ -296,15 +296,8 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (!(FD_SLOTMAPP(metadata))) {
-      fd_seterr("BadMetaData","open_bigpool","BadMetaDataValue",
-                metadata);
-      metadata=FD_ERROR_VALUE;}
-    if (FD_ABORTP(metadata)) {
-      fd_seterr("BadMetaData","open_bigpool",u8_strdup(fname),FD_VOID);
-      fd_close_stream(stream,0);
-      u8_free(rname); u8_free(pool);
-      return NULL;}}
-  else metadata=fd_make_slotmap(5,0,NULL);
+      u8_log(LOGCRIT,"BadMetaData","Ignoring bad metadata stored for %s",fname);
+      metadata=FD_FALSE;}}
   if (FD_SLOTMAPP(metadata)) {
     struct FD_SLOTMAP *from_struct = &(pool->pool_metadata);
     struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
@@ -312,6 +305,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
     memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
     u8_free(from_disk);
     from_struct->table_modified=0;}
+  else fd_init_slotmap(&(pool->pool_metadata),17,NULL);
 
   if ((n_slotids)&&(slotids_loc)) {
     int slotids_length = (n_slotids>256)?(n_slotids*2):(256);

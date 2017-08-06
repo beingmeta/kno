@@ -336,22 +336,16 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
     if (!(FD_SLOTMAPP(metadata))) {
-      fd_seterr("BadMetaData","open_hashindex","BadMetaDataValue",
-                metadata);
-      metadata=FD_ERROR_VALUE;}
-    if (FD_ABORTP(metadata)) {
-      fd_seterr("BadMetaData","open_hashindex",u8_strdup(fname),FD_VOID);
-      fd_free_stream(stream);
-      u8_free(index);
-      return NULL;}}
-  else metadata=fd_make_slotmap(5,0,NULL);
-  if (FD_SLOTMAPP(metadata)) {
-    struct FD_SLOTMAP *from_struct = &(index->index_metadata);
-    struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
-    if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
-    memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
-    u8_free(from_disk);
-    from_struct->table_modified=0;}
+      u8_log(LOGCRIT,"BadMetaData","Ignoring bad metadata stored for %s",fname);
+      metadata=FD_FALSE;}
+    if (FD_SLOTMAPP(metadata)) {
+      struct FD_SLOTMAP *from_struct = &(index->index_metadata);
+      struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
+      if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
+      memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
+      u8_free(from_disk);
+      from_struct->table_modified=0;}
+    else fd_init_slotmap(&(index->index_metadata),17,NULL);}
 
   u8_init_mutex(&(index->index_lock));
 
