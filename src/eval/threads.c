@@ -632,6 +632,51 @@ static lispval threadyield_prim()
   else return FD_FALSE;
 }
 
+/* Walking thread structs */
+
+static int walk_thread_struct(fd_walker walker,lispval x,
+                              void *walkdata,
+                              fd_walk_flags flags,
+                              int depth)
+{
+  struct FD_THREAD_STRUCT *tstruct =
+    fd_consptr(struct FD_THREAD_STRUCT *,x,fd_thread_type);
+  if ( (tstruct->flags) & (FD_EVAL_THREAD) ) {
+    if (fd_walk(walker,tstruct->evaldata.expr,walkdata,flags,depth-1)<0)
+      return -1;
+    else if (fd_walk(walker,((lispval)(tstruct->evaldata.env)),walkdata,
+                       flags,depth-1)<0)
+      return -1;}
+  else if (fd_walk(walker,tstruct->applydata.fn,walkdata,flags,depth-1)<0)
+    return -1;
+  else {
+    lispval *args = tstruct->applydata.args;
+    int i=0, n = tstruct->applydata.n_args;
+    while (i<n) {
+      if (fd_walk(walker,args[i],walkdata,flags,depth-1)<0)
+        return -1;
+      else i++;}}
+  if (tstruct->thread_stackptr) {
+    struct FD_STACK *stackptr = tstruct->thread_stackptr;
+    if (fd_walk(walker,stackptr->stack_op,walkdata,flags,depth-1)<0) {
+      return -1;}
+    if ((stackptr->stack_env) &&
+        (fd_walk(walker,((lispval)stackptr->stack_env),walkdata,flags,depth-1)<0))
+      return -1;
+    if (!(FD_EMPTYP(stackptr->stack_vals))) {
+      FD_DO_CHOICES(stack_val,stackptr->stack_vals) {
+        if (fd_walk(walker,stack_val,walkdata,flags,depth-1)<0) {
+          FD_STOP_DO_CHOICES;
+          return -1;}}}
+    if (stackptr->n_args) {
+      lispval *args = stackptr->stack_args;
+      int i=0, n=stackptr->n_args; while (i<n) {
+        if (fd_walk(walker,args[i],walkdata,flags,depth-1)<0) {
+          return -1;}
+        i++;}}}
+  return 1;
+}
+
 /* Thread information */
 
 static lispval stack_depth_prim()
@@ -724,6 +769,8 @@ FD_EXPORT void fd_init_threads_c()
                      "Whether to log the normal exit values of threads",
                      fd_boolconfig_get,fd_boolconfig_set,
                      &thread_log_exit);
+
+  fd_walkers[fd_thread_type]=walk_thread_struct;
 
   u8_register_source_file(_FILEINFO);
 }

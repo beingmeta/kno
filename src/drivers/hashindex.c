@@ -337,15 +337,14 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       metadata=FD_ERROR_VALUE;}
     if (!(FD_SLOTMAPP(metadata))) {
       u8_log(LOGCRIT,"BadMetaData","Ignoring bad metadata stored for %s",fname);
-      metadata=FD_FALSE;}
-    if (FD_SLOTMAPP(metadata)) {
-      struct FD_SLOTMAP *from_struct = &(index->index_metadata);
-      struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
-      if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
-      memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
-      u8_free(from_disk);
-      from_struct->table_modified=0;}
-    else fd_init_slotmap(&(index->index_metadata),17,NULL);}
+      metadata=FD_FALSE;}}
+  if (FD_SLOTMAPP(metadata)) {
+    struct FD_SLOTMAP *from_struct = &(index->index_metadata);
+    struct FD_SLOTMAP *from_disk = (fd_slotmap) metadata;
+    if (from_struct->sm_keyvals) u8_free(from_struct->sm_keyvals);
+    memcpy(from_struct,from_disk,sizeof(struct FD_SLOTMAP));
+    u8_free(from_disk);
+    from_struct->table_modified=0;}
 
   u8_init_mutex(&(index->index_lock));
 
