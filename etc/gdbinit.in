@@ -65,7 +65,7 @@ define unparse
   call _fd_lisp2stderr($arg0)
 end
 define refcount
-  if (($arg0)&3)
+  if (((lispval)$arg0)&3)
   print "not a cons" 
   else
   printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->conshead)>>7)
