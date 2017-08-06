@@ -298,8 +298,8 @@ static void *thread_call(void *data)
     result = fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
   else
     result = fd_dapply(tstruct->applydata.fn,
-                     tstruct->applydata.n_args,
-                     tstruct->applydata.args);
+                       tstruct->applydata.n_args,
+                       tstruct->applydata.args);
   result = fd_finish_call(result);
   
   tstruct->finished = u8_elapsed_time();
@@ -340,8 +340,8 @@ static void *thread_call(void *data)
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was evaluating %q",
              u8_threadid(),tstruct->evaldata.expr);
-      else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
-                  u8_threadid(),tstruct->applydata.fn);
+    else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
+                u8_threadid(),tstruct->applydata.fn);
     fd_log_errstack(ex,LOG_WARN,1);
     u8_free(errstring);
     if (fd_thread_backtrace) {
@@ -366,8 +366,9 @@ static void *thread_call(void *data)
   if (tstruct->flags&FD_EVAL_THREAD) {
     fd_free_lexenv(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
-  fd_decref((lispval)tstruct);
+  tstruct->thread_stackptr = NULL;
   fd_pop_stack(_stack);
+  fd_decref((lispval)tstruct);
   return NULL;
 }
 
@@ -435,8 +436,10 @@ static lispval threadcall_prim(int n,lispval *args)
   if (FD_APPLICABLEP(fn)) {
     lispval *call_args = u8_alloc_n(n,lispval), thread;
     int i = 1; while (i<n) {
-      lispval call_arg = args[i]; fd_incref(call_arg);
-      call_args[i-1]=call_arg; i++;}
+      lispval call_arg = args[i];
+      fd_incref(call_arg);
+      call_args[i-1]=call_arg;
+      i++;}
     thread = (lispval)fd_thread_call(NULL,args[0],n-1,call_args,0);
     return thread;}
   else if (VOIDP(fn))
@@ -468,8 +471,10 @@ static lispval threadcallx_prim(int n,lispval *args)
     lispval *call_args = u8_alloc_n(n-2,lispval), thread;
     int flags = threadopts(opts);
     int i = 2; while (i<n) {
-      lispval call_arg = args[i]; fd_incref(call_arg);
-      call_args[i-2]=call_arg; i++;}
+      lispval call_arg = args[i];
+      fd_incref(call_arg);
+      call_args[i-2]=call_arg;
+      i++;}
     thread = (lispval)fd_thread_call(NULL,fn,n-2,call_args,flags);
     return thread;}
   else if (VOIDP(fn))
