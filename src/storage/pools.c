@@ -395,10 +395,13 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
 {
   if (gp->n_subpools == 0) {
     struct FD_POOL **pools = u8_alloc_n(1,fd_pool);
-    pools[0]=p; gp->n_subpools = 1; gp->subpools = pools;
+    pools[0]=p;
+    gp->n_subpools = 1;
+    gp->subpools = pools;
     return 1;}
   else {
     int comparison = 0;
+    struct FD_POOL **prev = gp->subpools;
     struct FD_POOL **bottom = gp->subpools;
     struct FD_POOL **top = gp->subpools+(gp->n_subpools)-1;
     struct FD_POOL **read, **new, **write, **ipoint;
@@ -419,7 +422,8 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
       ipoint = write+(middle-gp->subpools)+1;
     else ipoint = write+(middle-gp->subpools);
     /* Now, copy the subpools, doing the insertions */
-    read = gp->subpools; top = gp->subpools+gp->n_subpools;
+    read = gp->subpools;
+    top = gp->subpools+gp->n_subpools;
     while (read<top)
       if (write == ipoint) {
         *write++=p;
@@ -428,7 +432,8 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     if (write == ipoint)
       *write = p;
     gp->subpools = new;
-    gp->n_subpools++;}
+    gp->n_subpools++;
+    u8_free(prev);}
   return 1;
 }
 
