@@ -945,7 +945,8 @@ int main(int argc,char **argv)
       fd_decref(expr);
       continue;}
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
-      fd_decref(result); break;}
+      fd_decref(result);
+      break;}
     /* Clear the buffer (should do more?) */
     if (((PAIRP(expr)) &&
          ((FD_EQ(FD_CAR(expr),histref_symbol))) &&
@@ -1038,7 +1039,7 @@ int main(int argc,char **argv)
         fd_unparse_maxchars = old_maxchars;
         fd_unparse_maxelts = old_maxelts;
         if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
-        fd_decref(backtrace);}
+        u8_free_exception(ex,1);}
       else fprintf(stderr,
                    ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
