@@ -127,67 +127,58 @@
 		     metadata ,(get-metadata)]))
   (open-index filename))
 
-(defambda (copy-keys keys old new)
-  (prefetch-keys! old keys)
-  (do-choices (key keys)
-    (store! new key (get old key))))
+(defambda (copy-all-keys keys old new (opts #f) (start (elapsed-time)))
+  (let ((batchsize (getopt opts 'batchsize (config 'batchsize #f)))
+	(n-batches (getopt opts 'nbatches (config 'nbatches #f)))
+	(n-threads (mt/threadcount (getopt opts 'nthreads (config 'nthreads #default))))
+	(n (choice-size keys))
+	(count 0))
+    (cond (batchsize 
+	   (set! n-batches 
+	     (+ (quotient n batchsize)
+		(if (zero? (remainder n batchsize)) 0 1))))
+	  (n-batches 
+	   (set! batchsize
+	     (if (zero? (remainder n n-batches))
+		 (quotient n n-batches)
+		 (1+ (quotient n n-batches)))))
+	  (else (set! batchsize 100000)))
+    (let ((batches (make-vector n-batches))
+	  (counter (slambda (n)
+		     (set! count (+ count n))
+		     count)))
+      (dotimes (i n-batches)
+	(vector-set! batches i (qc (pick-n keys batchsize (* i batchsize)))))
+      (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!])))
+	(if (and (number? n-threads) (> n-threads 1))
+	    (let ((threads {}))
+	      (dotimes (i n-threads)
+		(thread/call copy-batches old new fifo counter))
+	      (thread/wait threads))
+	    (copy-batches old new fifo counter))))))
 
-(defambda (process-batch batch batch-size buckets old new 
-			 (start (elapsed-time)) (nthreads (mt/threadcount)))
-  (loginfo |PackIndex/Batch/copy|
-    "Copying " (choice-size batch) " buckets (" batch-size " keys)")
-  (do-choices-mt (bucket batch)
-    (copy-keys (get buckets bucket) old new))
-  (loginfo |PackIndex/Batch/copy|
-      "Copied " (choice-size batch) " buckets (" batch-size " keys) "
-      "in " (secs->string (elapsed-time start)) ", committing...")
-  (commit new)
-  (swapout new)
-  (swapout old))
+(defslambda (merge+save! index table)
+  (index-merge! index table)
+  (commit))
 
-(define (add-bucket key index buckets)
-  (add! buckets (indexctl index 'hash key) key))
-
-(define (copy-all-keys keyv old new (chunk-size) (start (elapsed-time)))
-  (default! chunk-size 
-    (config 'chunksize
-	    (if (config 'nchunks) 
-		(quotient (length keyv) (config 'nchunks))
-		1000000)))
-  (loginfo |PackIndex/copy|
-    "Copying " ($num (length keyv)) " keys" 
-    " from " (or (index-source old) old)
-    " into " (or (index-source new) new))
-  (let ((buckets (make-hashtable (* 2 (length keyv))))
-	(total-keys 0)
-	(batch-size 0)
-	(batch {})
-	(bucket-start (elapsed-time)))
-    (loginfo |PackIndex/buckets|
-      "Generating a bucket map for " (or (index-source new) new))
-    (mt/iter #t add-bucket keyv new buckets)
-    (lognotice |PackIndex/buckets|
-      "Identified " ($num (table-size buckets)) " buckets across "
-      ($num (length keyv)) " keys in " (secs->string (elapsed-time bucket-start)))
-    (do-choices (bucket (getkeys buckets) i)
-      (set+! batch bucket)
-      (set! batch-size (+ batch-size (choice-size (get buckets bucket))))
-      (when (> batch-size chunk-size)
-	(process-batch batch batch-size buckets old new)
-	(set! total-keys (+ total-keys batch-size))
-	(set! batch {})
-	(set! batch-size 0)
-	(lognotice |PackIndex|
-	  "In total, " (show% total-keys (length keyv)) 
-	  " of the keys (" ($num total-keys) ") have been processed in "
-	  (secs->string (elapsed-time start)))
-	(lognotice |PackIndex|
-	  "At this rate, the copy should finish in about "
-	  (secs->string (- (/  (length keyv) (/ total-keys (elapsed-time start)))
-			   (elapsed-time start))))))
-    (lognotice |PackIndex/final| 
-      "Processing final batch of " batch-size " keys")
-    (process-batch batch batch-size buckets old new)))
+(define (copy-batches from to fifo counter)
+  (let ((batch (fifo/pop fifo))
+	(batch-start (elapsed-time)))
+    (while (exists? batch)
+      (let ((table (make-hashtable (* 2 (choice-size batch)))))
+	(prefetch-keys! from batch)
+	(do-choices (key batch) 
+	  (store! table key (get from key)))
+	(merge+save! to table)
+	(swapout from batch))
+      (let ((count.time (counter (choice-size batch))))
+	(lognotice |Batch|
+	  "Copied " ($num (choice-size batch)) " in " (secs->string (elapsed-time batch-start)))
+	(lognotice |Overall|
+	  "Copied " ($num (car count.time)) 
+	  " in " (secs->string (elapsed-time (cdr count.time))))
+	(set! batch (fifo/pop fifo))
+	(set! batch-start (elapsed-time))))))
 
 (define (main from (to #f))
   (cond ((not to) (repack-index from))
