@@ -1291,8 +1291,10 @@ static lispval symbol_boundp_prim(lispval symbol,lispval envarg)
     fd_lexenv env = (fd_lexenv)envarg;
     lispval val = fd_symeval(symbol,env);
     if (VOIDP(val)) return FD_FALSE;
-    else if (val == FD_DEFAULT_VALUE) return FD_FALSE;
-    else if (val == FD_UNBOUND) return FD_FALSE;
+    else if (val == FD_DEFAULT_VALUE)
+      return FD_FALSE;
+    else if (val == FD_UNBOUND)
+      return FD_FALSE;
     else {
       fd_decref(val);
       return FD_TRUE;}}
