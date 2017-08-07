@@ -1824,7 +1824,7 @@ FD_EXPORT void fd_hash_quality
    unsigned int *ncollisionsp)
 {
   int i, mallocd=0;
-  int n_buckets=0, n_collisions=0, max_bucket=0;
+  int n_collisions=0, max_bucket=0;
   if ((buf) && (n_buckets<bufsiz))
     memset(buf,0,sizeof(unsigned int)*n_buckets);
   else {
@@ -2631,11 +2631,11 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr,int locked)
 
 FD_EXPORT int fd_hashtable_stats
   (struct FD_HASHTABLE *ptr,
-   int *n_bucketsp,int *n_keysp,int *n_bucketsp,int *n_collisionsp,
+   int *n_bucketsp,int *n_keysp,int *n_filledp,int *n_collisionsp,
    int *max_bucketp,int *n_valsp,int *max_valsp)
 {
   int n_buckets=ptr->ht_n_buckets, n_keys=0, unlock=0;
-  int n_buckets=0, max_bucket=0, n_collisions=0;
+  int n_filled=0, max_bucket=0, n_collisions=0;
   int n_vals=0, max_vals=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if (ptr->table_uselock) { fd_read_lock_table(ptr); unlock=1;}
@@ -2646,7 +2646,7 @@ FD_EXPORT int fd_hashtable_stats
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan;
         int bucket_len=e->bucket_len;
-        n_buckets++; n_keys=n_keys+bucket_len;
+        n_filled++; n_keys=n_keys+bucket_len;
         if (bucket_len>max_bucket)
           max_bucket=bucket_len;
         if (bucket_len>1)
@@ -2669,7 +2669,7 @@ FD_EXPORT int fd_hashtable_stats
         scan++;}
       else scan++;
   }
-  if (n_bucketsp) *n_bucketsp=n_buckets;
+  if (n_filledp) *n_filledp=n_filled;
   if (n_keysp) *n_keysp=n_keys;
   if (n_bucketsp) *n_bucketsp=n_buckets;
   if (n_collisionsp) *n_collisionsp=n_collisions;
