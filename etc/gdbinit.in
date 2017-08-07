@@ -73,7 +73,7 @@ define refcount
   end
 end
 define watchcons
-  watch ((struct FD_CONS *)($arg0))->conshead
+  watch -l ((struct FD_CONS *)($arg0))->conshead
 end
 define showstruct 
   print/x *((struct $arg1 *)($arg0))
