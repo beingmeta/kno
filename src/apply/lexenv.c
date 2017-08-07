@@ -49,7 +49,8 @@ fd_lexenv dynamic_lexenv(fd_lexenv env)
       newenv->env_bindings = fd_copy(env->env_bindings);
     else newenv->env_bindings = fd_incref(env->env_bindings);
     newenv->env_exports = fd_incref(env->env_exports);
-    env->env_copy = newenv; newenv->env_copy = newenv;
+    env->env_copy = newenv;
+    newenv->env_copy = newenv;
     return newenv;}
 }
 
@@ -102,16 +103,21 @@ static int envcountproc(lispval v,void *data)
 {
   struct ENVCOUNT_STATE *state = (struct ENVCOUNT_STATE *)data;
   fd_lexenv env = state->env;
-  if (!(CONSP(v))) return 1;
-  else if (FD_STATICP(v)) return 1;
+  if (!(CONSP(v)))
+    return 1;
+  else if (FD_STATICP(v))
+    return 0;
+  else if (FD_CONS_REFCOUNT(v)>1)
+    return 0;
   else if (FD_LEXENVP(v)) {
     fd_lexenv scan = (fd_lexenv)v;
     while (scan)
-      if ((scan == env)||(scan->env_copy == env)) {
+      if ( (scan == env) ||
+	   (scan->env_copy == env) ) {
         state->count++;
-        return 1;}
+        return 0;}
       else scan = scan->env_parent;
-    return 1;}
+    return 0;}
   else return 1;
 }
 
@@ -151,7 +157,9 @@ int fd_recycle_lexenv(fd_lexenv env)
       envstruct->conshead = (0xFFFFFF80|(env->conshead&0x7F));
       u8_free(env);
       return 1;}
-    else {fd_decref((lispval)env); return 0;}}
+    else {
+      fd_decref((lispval)env);
+      return 0;}}
 }
 
 FD_EXPORT
@@ -168,8 +176,9 @@ static int unparse_lexenv(u8_output out,lispval x)
   if (HASHTABLEP(env->env_bindings)) {
     lispval ids = fd_get(env->env_bindings,moduleid_symbol,EMPTY);
     lispval mid = VOID;
-    DO_CHOICES(id,ids) {
-      if (SYMBOLP(id)) mid = id;}
+    /* The symbol in the module_id binding is the actual module name,
+       if it is a module (at least a registered one). */
+    DO_CHOICES(id,ids) { if (SYMBOLP(id)) mid = id;}
     if (SYMBOLP(mid))
       u8_printf(out,"#<MODULE %q #!%x>",mid,(unsigned long)env);
     else u8_printf(out,"#<ENVIRONMENT #!%x>",(unsigned long)env);}
@@ -177,6 +186,7 @@ static int unparse_lexenv(u8_output out,lispval x)
   return 1;
 }
 
+/* Of course this doesn't preserve "eqness" in any way */
 static int dtype_lexenv(struct FD_OUTBUF *out,lispval x)
 {
   struct FD_LEXENV *env=

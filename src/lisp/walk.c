@@ -13,6 +13,10 @@
 #include "framerd/dtype.h"
 #include "framerd/cons.h"
 
+/* Walks the object tree given a walker function. If the walker
+   function returns -1, it immediately aborts, if the function return
+   1, it declines to descend into the structure. */
+
 fd_walk_fn fd_walkers[FD_TYPE_MAX];
 
 static int cons_walk(fd_walker walker,int constype,
