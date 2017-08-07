@@ -1917,7 +1917,7 @@ FD_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int data
     lispval rail[2], result = VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
-    if ((FD_SPROCP(pred)) || (TYPEP(pred,fd_cprim_type))) {
+    if ((FD_LAMBDAP(pred)) || (TYPEP(pred,fd_cprim_type))) {
       fd_function fcn = FD_DTYPE2FCN(pred);
       if (fcn->fcn_min_arity==1) {
         lispval value = fd_apply(pred,1,&f); int retval = -1;

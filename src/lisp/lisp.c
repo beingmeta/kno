@@ -100,7 +100,7 @@ static void init_type_names()
   fd_type_names[fd_dtproc_type]=_("dtproc");
   fd_type_names[fd_stackframe_type]=_("stackframe");
   fd_type_names[fd_tailcall_type]=_("tailcall");
-  fd_type_names[fd_sproc_type]=_("SCHEME procedure");
+  fd_type_names[fd_lambda_type]=_("lambda procedure");
   fd_type_names[fd_code_type]=_("bytecode");
   fd_type_names[fd_ffi_type]=_("foreign function");
   fd_type_names[fd_exception_type]=_("error");

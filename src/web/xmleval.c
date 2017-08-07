@@ -575,8 +575,8 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
     struct FD_EVALFN *sf=
       fd_consptr(fd_evalfn,fn,fd_evalfn_type);
     result = sf->evalfn_handler(xml,scheme_env,fd_stackptr);}
-  else if (FD_SPROCP(fn))
-    result = fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);
+  else if (FD_LAMBDAP(fn))
+    result = fd_xapply_lambda((struct FD_LAMBDA *)fn,&cxt,xmlgetarg);
   else {
     fd_decref(bind);
     return fd_type_error("function","xmlapply",fn);}
@@ -1694,7 +1694,7 @@ static lispval fdxml_define(lispval expr,fd_lexenv env,fd_stack _stack)
     lispval xml_env = fd_symeval(xml_env_symbol,env);
     lispval arglist = NIL;
     lispval body = NIL;
-    lispval sproc = VOID;
+    lispval lambda = VOID;
 
     /* Handle case of vector attribids */
     if (VECTORP(attribs)) {
@@ -1719,12 +1719,12 @@ static lispval fdxml_define(lispval expr,fd_lexenv env,fd_stack _stack)
     body = fd_make_list(3,doseq_symbol,body,fd_incref(fdxml_define_body));
     body = fd_make_list(1,body);
 
-    /* Construct the sproc */
-    sproc = fd_make_sproc(u8_mkstring("XML/%s",SYM_NAME(to_bind)),
+    /* Construct the lambda */
+    lambda = fd_make_lambda(u8_mkstring("XML/%s",SYM_NAME(to_bind)),
                         arglist,body,env,1,0);
 
-    fd_bind_value(to_bind,sproc,(fd_lexenv)xml_env);
-    fd_decref(sproc);
+    fd_bind_value(to_bind,lambda,(fd_lexenv)xml_env);
+    fd_decref(lambda);
     fd_decref(body);
     fd_decref(arglist);
     fd_decref(attribs);

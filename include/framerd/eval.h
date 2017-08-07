@@ -134,33 +134,33 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(lispval,int,void *),void *);
 #define FD_STATIC_MODULES 0x20
 #define FD_OPTIMIZE_EXPORTS 0x03
 
-/* SPROCs */
+/* LAMBDAs */
 
-typedef struct FD_SPROC {
+typedef struct FD_LAMBDA {
   FD_FUNCTION_FIELDS;
-  short sproc_n_vars, sproc_synchronized;
-  lispval *sproc_vars, sproc_arglist, sproc_body, sproc_source;
-  lispval sproc_optimizer;
-  struct FD_VECTOR *sproc_bytecode;
-  fd_lexenv sproc_env;
-  U8_MUTEX_DECL(sproc_lock);
-} FD_SPROC;
-typedef struct FD_SPROC *fd_sproc;
+  short lambda_n_vars, lambda_synchronized;
+  lispval *lambda_vars, lambda_arglist, lambda_body, lambda_source;
+  lispval lambda_optimizer;
+  struct FD_VECTOR *lambda_bytecode;
+  fd_lexenv lambda_env;
+  U8_MUTEX_DECL(lambda_lock);
+} FD_LAMBDA;
+typedef struct FD_LAMBDA *fd_lambda;
 
 FD_EXPORT int fd_record_source;
 
-#define FD_SET_SPROC_SOURCE(sproc,src)			\
+#define FD_SET_LAMBDA_SOURCE(lambda,src)			\
   if (fd_record_source) {				\
-    struct FD_SPROC *s=((struct FD_SPROC *)sproc);	\
-  s->sproc_source=src; fd_incref(s->sproc_source);}	\
+    struct FD_LAMBDA *s=((struct FD_LAMBDA *)lambda);	\
+  s->lambda_source=src; fd_incref(s->lambda_source);}	\
   else {}
 
-FD_EXPORT lispval fd_apply_sproc(struct FD_STACK *,struct FD_SPROC *fn,
+FD_EXPORT lispval fd_apply_lambda(struct FD_STACK *,struct FD_LAMBDA *fn,
 				int n,lispval *args);
-FD_EXPORT lispval fd_xapply_sproc
-  (struct FD_SPROC *fn,void *data,lispval (*getval)(void *,lispval));
+FD_EXPORT lispval fd_xapply_lambda
+  (struct FD_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
 
-FD_EXPORT lispval fd_make_sproc(u8_string name,
+FD_EXPORT lispval fd_make_lambda(u8_string name,
                                lispval arglist,lispval body,fd_lexenv env,
                                int nd,int sync);
 

@@ -488,9 +488,9 @@ FD_EXPORT lispval fd_new_cprim15
 /* #define FD_XFUNCTION(x) (fd_consptr(struct FD_FUNCTION *,x,fd_cprim_type)) */
 #define FD_PRIMITIVEP(x) (FD_TYPEP(x,fd_cprim_type))
 
-/* Forward reference. Note that fd_sproc_type is defined in the
+/* Forward reference. Note that fd_lambda_type is defined in the
    pointer type enum in ptr.h. */
-#define FD_SPROCP(x) (FD_TYPEP((x),fd_sproc_type))
+#define FD_LAMBDAP(x) (FD_TYPEP((x),fd_lambda_type))
 
 FD_EXPORT lispval fd_make_ndprim(lispval prim);
 

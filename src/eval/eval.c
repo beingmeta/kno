@@ -810,7 +810,7 @@ lispval fd_stack_eval(lispval expr,fd_lexenv env,
       int headtype = FD_PTR_TYPE(headval);
       if (gc_head) fd_push_cleanup(eval_stack,FD_DECREF,headval,NULL);
       switch (headtype) {
-      case fd_cprim_type: case fd_sproc_type: {
+      case fd_cprim_type: case fd_lambda_type: {
         struct FD_FUNCTION *f = (struct FD_FUNCTION *) headval;
         if (f->fcn_name) eval_stack->stack_label=f->fcn_name;
         result=call_function(f->fcn_name,headval,expr,env,
@@ -912,7 +912,7 @@ static int applicable_choicep(lispval headvals)
     /* Check that all the elements are either applicable or special
        forms and not mixed */
     if ( (hvtype == fd_cprim_type) ||
-         (hvtype == fd_sproc_type) ||
+         (hvtype == fd_lambda_type) ||
          (fd_applyfns[hvtype]) ) {}
     else if ((hvtype == fd_evalfn_type) ||
              (hvtype == fd_macro_type))
@@ -996,7 +996,7 @@ static lispval call_function(u8_string fname,lispval headval,
         gc_args = 1;}
       else {}
       argbuf[arg_count++]=argval;}}
-  if ((tail) && (fd_optimize_tail_calls) && (FD_SPROCP(fn)))
+  if ((tail) && (fd_optimize_tail_calls) && (FD_LAMBDAP(fn)))
     result=fd_tail_call(fn,arg_count,argbuf);
   else if ((CHOICEP(fn)) ||
            (PRECHOICEP(fn)) ||
@@ -1819,15 +1819,15 @@ u8_string fd_get_documentation(lispval x)
 {
   lispval proc = (FD_FCNIDP(x)) ? (fd_fcnid_ref(x)) : (x);
   fd_ptr_type proctype = FD_PTR_TYPE(proc);
-  if (proctype == fd_sproc_type) {
-    struct FD_SPROC *sproc = (fd_sproc)proc;
-    if (sproc->fcn_documentation)
-      return sproc->fcn_documentation;
+  if (proctype == fd_lambda_type) {
+    struct FD_LAMBDA *lambda = (fd_lambda)proc;
+    if (lambda->fcn_documentation)
+      return lambda->fcn_documentation;
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,120);
-      lispval arglist = sproc->sproc_arglist, scan = arglist;
-      if (sproc->fcn_name)
-        u8_puts(&out,sproc->fcn_name);
+      lispval arglist = lambda->lambda_arglist, scan = arglist;
+      if (lambda->fcn_name)
+        u8_puts(&out,lambda->fcn_name);
       else u8_puts(&out,"λ");
       while (PAIRP(scan)) {
         lispval arg = FD_CAR(scan);
@@ -1839,7 +1839,7 @@ u8_string fd_get_documentation(lispval x)
         scan = FD_CDR(scan);}
       if (SYMBOLP(scan))
         u8_printf(&out," [%ls...]",SYM_NAME(scan));
-      sproc->fcn_documentation = out.u8_outbuf;
+      lambda->fcn_documentation = out.u8_outbuf;
       return out.u8_outbuf;}}
   else if (fd_functionp[proctype]) {
     struct FD_FUNCTION *f = FD_DTYPE2FCN(proc);
@@ -2422,7 +2422,7 @@ FD_EXPORT void fd_init_conditionals_c(void);
 FD_EXPORT void fd_init_iterators_c(void);
 FD_EXPORT void fd_init_choicefns_c(void);
 FD_EXPORT void fd_init_binders_c(void);
-FD_EXPORT void fd_init_sprocs_c(void);
+FD_EXPORT void fd_init_lambdas_c(void);
 FD_EXPORT void fd_init_macros_c(void);
 FD_EXPORT void fd_init_coreprims_c(void);
 FD_EXPORT void fd_init_tableprims_c(void);
@@ -2459,7 +2459,7 @@ static void init_eval_core()
   fd_init_iterators_c();
   fd_init_choicefns_c();
   fd_init_binders_c();
-  fd_init_sprocs_c();
+  fd_init_lambdas_c();
   fd_init_macros_c();
   fd_init_compounds_c();
   fd_init_quasiquote_c();

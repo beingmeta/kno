@@ -1090,7 +1090,7 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
   if (call->outlen<0)
     call->outlen = call->cgiout->u8_write-call->cgiout->u8_outbuf;
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
-  value = fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
+  value = fd_xapply_lambda((fd_lambda)proc,(void *)cgidata,
                           (lispval (*)(void *,lispval))cgigetvar);
   value = fd_finish_call(value);
   call->result = value;
@@ -1101,7 +1101,7 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
 static int use_ipeval(lispval proc,lispval cgidata)
 {
   int retval = -1;
-  struct FD_SPROC *sp = (struct FD_SPROC *)proc;
+  struct FD_LAMBDA *sp = (struct FD_LAMBDA *)proc;
   lispval val = fd_symeval(ipeval_symbol,sp->env);
   if ((VOIDP(val))||(val == FD_UNBOUND)) retval = 0;
   else {
@@ -1118,7 +1118,7 @@ static int use_ipeval(lispval proc,lispval cgidata)
 
 FD_EXPORT lispval fd_cgiexec(lispval proc,lispval cgidata)
 {
-  if (FD_SPROCP(proc)) {
+  if (FD_LAMBDAP(proc)) {
     lispval value = VOID;
 #if FD_IPEVAL_ENABLED
     int ipeval = use_ipeval(proc,cgidata);
@@ -1126,7 +1126,7 @@ FD_EXPORT lispval fd_cgiexec(lispval proc,lispval cgidata)
     int ipeval = 0;
 #endif
     if (!(ipeval)) {
-      value = fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
+      value = fd_xapply_lambda((fd_lambda)proc,(void *)cgidata,
                             (lispval (*)(void *,lispval))cgigetvar);
       value = fd_finish_call(value);}
 #if FD_IPEVAL_ENABLED

@@ -30,7 +30,7 @@ static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
 {
   int i = 0, n = bs->n_bindings;
   lispval *bindings = bs->vals, scan = bs->valexprs;
-  fd_lexenv env = bs->sproc_env;
+  fd_lexenv env = bs->lambda_env;
   while (i<n) {
     fd_decref(bindings[i]); bindings[i++]=VOID;}
   i = 0; while (PAIRP(scan)) {
@@ -46,7 +46,7 @@ static int ipeval_letstar_step(struct IPEVAL_BINDSTRUCT *bs)
 {
   int i = 0, n = bs->n_bindings;
   lispval *bindings = bs->vals, scan = bs->valexprs;
-  fd_lexenv env = bs->sproc_env;
+  fd_lexenv env = bs->lambda_env;
   while (i<n) {
     fd_decref(bindings[i]); bindings[i++]=FD_UNBOUND;}
   i = 0; while (PAIRP(scan)) {

@@ -236,16 +236,16 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,EMPTY);
   if (FD_ABORTP(proc)) result = fd_incref(proc);
-  else if (FD_SPROCP(proc)) {
-    struct FD_SPROC *sp = FD_CONSPTR(fd_sproc,proc);
+  else if (FD_LAMBDAP(proc)) {
+    struct FD_LAMBDA *sp = FD_CONSPTR(fd_lambda,proc);
     if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q",path,proc);
     threadcache = checkthreadcache(sp->env);
     result = fd_cgiexec(proc,cgidata);}
-  else if ((FD_PAIRP(proc)) && (FD_SPROCP((FD_CAR(proc))))) {
-    struct FD_SPROC *sp = FD_CONSPTR(fd_sproc,FD_CAR(proc));
+  else if ((FD_PAIRP(proc)) && (FD_LAMBDAP((FD_CAR(proc))))) {
+    struct FD_LAMBDA *sp = FD_CONSPTR(fd_lambda,FD_CAR(proc));
     if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q",path,proc);
     threadcache = checkthreadcache(sp->env);
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
@@ -485,13 +485,13 @@ static int simplecgi(lispval path)
   fd_thread_set(browseinfo_symbol,EMPTY);
   u8_set_default_output(&out);
   if (FD_ABORTP(proc)) result = fd_incref(proc);
-  else if (FD_SPROCP(proc)) {
+  else if (FD_LAMBDAP(proc)) {
     if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q",path,proc);
     result = fd_cgiexec(proc,cgidata);}
-  else if ((FD_PAIRP(proc)) && (FD_SPROCP((FD_CAR(proc))))) {
+  else if ((FD_PAIRP(proc)) && (FD_LAMBDAP((FD_CAR(proc))))) {
     if (traceweb>1)
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q",path,proc);
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     lispval setup_proc = VOID;

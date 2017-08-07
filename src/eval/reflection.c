@@ -31,7 +31,7 @@ static lispval macrop(lispval x)
 
 static lispval compound_procedurep(lispval x)
 {
-  if (FD_SPROCP(x)) return FD_TRUE;
+  if (FD_LAMBDAP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -169,9 +169,9 @@ static lispval non_deterministicp(lispval x)
 
 static lispval synchronizedp(lispval x)
 {
-  if (TYPEP(x,fd_sproc_type)) {
-    fd_sproc f = (fd_sproc)x;
-    if (f->sproc_synchronized)
+  if (TYPEP(x,fd_lambda_type)) {
+    fd_lambda f = (fd_lambda)x;
+    if (f->lambda_synchronized)
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
@@ -275,14 +275,14 @@ static lispval reflect_drop(lispval x,lispval attrib,lispval value)
   else return FD_ERROR;
 }
 
-/* SPROC functions */
+/* LAMBDA functions */
 
 static lispval compound_procedure_args(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)x;
-    return fd_incref(proc->sproc_arglist);}
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)x;
+    return fd_incref(proc->lambda_arglist);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_args",x);
 }
@@ -290,10 +290,10 @@ static lispval compound_procedure_args(lispval arg)
 static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    lispval arglist = proc->sproc_arglist;
-    proc->sproc_arglist = fd_incref(new_arglist);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    lispval arglist = proc->lambda_arglist;
+    proc->lambda_arglist = fd_incref(new_arglist);
     fd_decref(arglist);
     return VOID;}
   else return fd_type_error
@@ -303,18 +303,18 @@ static lispval set_compound_procedure_args(lispval arg,lispval new_arglist)
 static lispval compound_procedure_env(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    return (lispval) fd_copy_env(proc->sproc_env);}
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    return (lispval) fd_copy_env(proc->lambda_env);}
   else return fd_type_error("compound procedure","compound_procedure_env",x);
 }
 
 static lispval compound_procedure_body(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    return fd_incref(proc->sproc_body);}
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    return fd_incref(proc->lambda_body);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_body",x);
 }
@@ -322,11 +322,11 @@ static lispval compound_procedure_body(lispval arg)
 static lispval compound_procedure_source(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    if (VOIDP(proc->sproc_source))
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    if (VOIDP(proc->lambda_source))
       return FD_FALSE;
-    else return fd_incref(proc->sproc_source);}
+    else return fd_incref(proc->lambda_source);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_source",x);
 }
@@ -334,10 +334,10 @@ static lispval compound_procedure_source(lispval arg)
 static lispval set_compound_procedure_body(lispval arg,lispval new_body)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    lispval body = proc->sproc_body;
-    proc->sproc_body = fd_incref(new_body);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    lispval body = proc->lambda_body;
+    proc->lambda_body = fd_incref(new_body);
     fd_decref(body);
     return VOID;}
   else return fd_type_error
@@ -347,10 +347,10 @@ static lispval set_compound_procedure_body(lispval arg,lispval new_body)
 static lispval set_compound_procedure_source(lispval arg,lispval new_source)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    lispval source = proc->sproc_source;
-    proc->sproc_source = fd_incref(new_source);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    lispval source = proc->lambda_source;
+    proc->lambda_source = fd_incref(new_source);
     fd_decref(source);
     return VOID;}
   else return fd_type_error
@@ -360,10 +360,10 @@ static lispval set_compound_procedure_source(lispval arg,lispval new_source)
 static lispval compound_procedure_bytecode(lispval arg)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    if (proc->sproc_bytecode) {
-      lispval cur = (lispval)(proc->sproc_bytecode);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    if (proc->lambda_bytecode) {
+      lispval cur = (lispval)(proc->lambda_bytecode);
       fd_incref(cur);
       return cur;}
     else return FD_FALSE;}
@@ -374,13 +374,13 @@ static lispval compound_procedure_bytecode(lispval arg)
 static lispval set_compound_procedure_bytecode(lispval arg,lispval bytecode)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)fd_fcnid_ref(x);
-    if (proc->sproc_bytecode) {
-      lispval cur = (lispval)(proc->sproc_bytecode);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)fd_fcnid_ref(x);
+    if (proc->lambda_bytecode) {
+      lispval cur = (lispval)(proc->lambda_bytecode);
       fd_decref(cur);}
     fd_incref(bytecode);
-    proc->sproc_bytecode = (struct FD_VECTOR *)bytecode;
+    proc->lambda_bytecode = (struct FD_VECTOR *)bytecode;
     return VOID;}
   else return fd_type_error
 	 ("compound procedure","set_compound_procedure_bytecode",x);
@@ -389,13 +389,13 @@ static lispval set_compound_procedure_bytecode(lispval arg,lispval bytecode)
 static lispval set_compound_procedure_optimizer(lispval arg,lispval optimizer)
 {
   lispval x = fd_fcnid_ref(arg);
-  if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc = (fd_sproc)x;
-    if (proc->sproc_optimizer) {
-      lispval cur = (lispval)(proc->sproc_optimizer);
+  if (FD_LAMBDAP(x)) {
+    struct FD_LAMBDA *proc = (fd_lambda)x;
+    if (proc->lambda_optimizer) {
+      lispval cur = (lispval)(proc->lambda_optimizer);
       fd_decref(cur);}
     fd_incref(optimizer);
-    proc->sproc_optimizer = optimizer;
+    proc->lambda_optimizer = optimizer;
     return VOID;}
   else return fd_type_error
 	 ("compound procedure","set_compound_procedure_optimizer",x);
@@ -683,16 +683,16 @@ FD_EXPORT void fd_init_reflection_c()
             -1,VOID,fd_string_type,VOID);
 
   fd_idefn2(module,"SET-PROCEDURE-BODY!",set_compound_procedure_body,2,
-            "",fd_sproc_type,VOID,-1,VOID);
+            "",fd_lambda_type,VOID,-1,VOID);
   fd_idefn2(module,"SET-PROCEDURE-ARGS!",set_compound_procedure_args,2,
-           "",fd_sproc_type,VOID,-1,VOID);
+           "",fd_lambda_type,VOID,-1,VOID);
   fd_idefn2(module,"SET-PROCEDURE-SOURCE!",set_compound_procedure_source,2,
-            "",fd_sproc_type,VOID,-1,VOID);
+            "",fd_lambda_type,VOID,-1,VOID);
   fd_idefn2(module,"SET-PROCEDURE-OPTIMIZER!",
             set_compound_procedure_optimizer,2,
-            "",fd_sproc_type,VOID,-1,VOID);
+            "",fd_lambda_type,VOID,-1,VOID);
   fd_idefn2(module,"SET-PROCEDURE-BYTECODE!",set_compound_procedure_bytecode,2,
-            "",fd_sproc_type,VOID,fd_code_type,VOID);
+            "",fd_lambda_type,VOID,fd_code_type,VOID);
 
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 

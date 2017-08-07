@@ -1065,24 +1065,24 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,"START","Handling %q with primitive procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
     result = fd_apply(proc,0,NULL);}
-  else if (FD_SPROCP(proc)) {
-    struct FD_SPROC *sp = FD_CONSPTR(fd_sproc,proc);
+  else if (FD_LAMBDAP(proc)) {
+    struct FD_LAMBDA *sp = FD_CONSPTR(fd_lambda,proc);
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
+      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
-    base_env = sp->sproc_env;
-    threadcache = checkthreadcache(sp->sproc_env);
+    base_env = sp->lambda_env;
+    threadcache = checkthreadcache(sp->lambda_env);
     result = fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
-           (FD_SPROCP((FD_CAR(proc))))) {
-    struct FD_SPROC *sp = FD_CONSPTR(fd_sproc,FD_CAR(proc));
+           (FD_LAMBDAP((FD_CAR(proc))))) {
+    struct FD_LAMBDA *sp = FD_CONSPTR(fd_lambda,FD_CAR(proc));
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
+      u8_log(LOG_NOTICE,"START","Handling %q with lambda procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
-    threadcache = checkthreadcache(sp->sproc_env);
+    threadcache = checkthreadcache(sp->lambda_env);
     /* This should possibly put the CDR of proc into the environment chain,
        but it no longer does. ?? */
-    base_env = sp->sproc_env;
+    base_env = sp->lambda_env;
     result = fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */

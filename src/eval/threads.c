@@ -193,7 +193,7 @@ FD_EXPORT void recycle_condvar(struct FD_RAW_CONS *c)
 }
 
 /* These functions generically access the locks on CONDVARs
-   and SPROCs */
+   and LAMBDAs */
 
 static lispval synchro_lock(lispval lck)
 {
@@ -202,10 +202,10 @@ static lispval synchro_lock(lispval lck)
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_lock_mutex(&(cv->fd_cvlock));
     return FD_TRUE;}
-  else if (FD_SPROCP(lck)) {
-    struct FD_SPROC *sp = fd_consptr(fd_sproc,lck,fd_sproc_type);
-    if (sp->sproc_synchronized) {
-      u8_lock_mutex(&(sp->sproc_lock));}
+  else if (FD_LAMBDAP(lck)) {
+    struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_lock_mutex(&(sp->lambda_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);
     return FD_TRUE;}
   else return fd_type_error("lockable","synchro_lock",lck);
@@ -218,10 +218,10 @@ static lispval synchro_unlock(lispval lck)
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_unlock_mutex(&(cv->fd_cvlock));
     return FD_TRUE;}
-  else if (FD_SPROCP(lck)) {
-    struct FD_SPROC *sp = fd_consptr(fd_sproc,lck,fd_sproc_type);
-    if (sp->sproc_synchronized) {
-      u8_lock_mutex(&(sp->sproc_lock));}
+  else if (FD_LAMBDAP(lck)) {
+    struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_lock_mutex(&(sp->lambda_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);
     return FD_TRUE;}
   else return fd_type_error("lockable","synchro_unlock",lck);
@@ -237,10 +237,10 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_lock_mutex(&(cv->fd_cvlock));}
-  else if (FD_SPROCP(lck)) {
-    struct FD_SPROC *sp = fd_consptr(fd_sproc,lck,fd_sproc_type);
-    if (sp->sproc_synchronized) {
-      u8_lock_mutex(&(sp->sproc_lock));}
+  else if (FD_LAMBDAP(lck)) {
+    struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_lock_mutex(&(sp->lambda_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);}
   else return fd_type_error("lockable","synchro_unlock",lck);
   {U8_WITH_CONTOUR("WITH-LOCK",0) {
@@ -256,10 +256,10 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
     u8_unlock_mutex(&(cv->fd_cvlock));}
-  else if (FD_SPROCP(lck)) {
-    struct FD_SPROC *sp = fd_consptr(fd_sproc,lck,fd_sproc_type);
-    if (sp->sproc_synchronized) {
-      u8_unlock_mutex(&(sp->sproc_lock));}
+  else if (FD_LAMBDAP(lck)) {
+    struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
+    if (sp->lambda_synchronized) {
+      u8_unlock_mutex(&(sp->lambda_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);}
   else return fd_type_error("lockable","synchro_unlock",lck);
   return value;

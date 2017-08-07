@@ -147,8 +147,8 @@ int fd_recycle_lexenv(fd_lexenv env)
     fd_decref((lispval)env);
     return 1;}
   else {
-    int sproc_count = count_envrefs(env->env_bindings,env,env_recycle_depth);
-    if (sproc_count+1==refcount) {
+    int lambda_count = count_envrefs(env->env_bindings,env,env_recycle_depth);
+    if (lambda_count+1==refcount) {
       struct FD_RAW_CONS *envstruct = (struct FD_RAW_CONS *)env;
       fd_decref(env->env_bindings);
       fd_decref(env->env_exports);

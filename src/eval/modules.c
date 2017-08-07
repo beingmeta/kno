@@ -226,7 +226,7 @@ int fd_static_module(lispval module)
   if (HASHTABLEP(module)) {
     int conversions = 0;
     struct FD_HASHTABLE *ht = (fd_hashtable)module;
-    conversions = conversions+fd_static_hashtable(ht,fd_sproc_type);
+    conversions = conversions+fd_static_hashtable(ht,fd_lambda_type);
     conversions = conversions+fd_static_hashtable(ht,fd_cprim_type);
     conversions = conversions+fd_static_hashtable(ht,fd_evalfn_type);
     return conversions;}
