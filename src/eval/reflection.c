@@ -535,24 +535,28 @@ static lispval wherefrom_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack)
   lispval symbol_arg = fd_get_arg(expr,1);
   lispval symbol = fd_eval(symbol_arg,call_env);
   if (SYMBOLP(symbol)) {
-    fd_lexenv env;
+    fd_lexenv env, scan;
     lispval env_arg = fd_eval(fd_get_arg(expr,2),call_env);
     if (VOIDP(env_arg)) env = call_env;
     else if (TYPEP(env_arg,fd_lexenv_type))
       env = fd_consptr(fd_lexenv,env_arg,fd_lexenv_type);
     else return fd_type_error(_("environment"),"wherefrom",env_arg);
-    if (env->env_copy) env = env->env_copy;
-    while (env) {
-      if (fd_test(env->env_bindings,symbol,VOID)) {
-        lispval bindings = env->env_bindings;
+    if (env->env_copy)
+      scan = env->env_copy;
+    else scan = env;
+    while (scan) {
+      if (fd_test(scan->env_bindings,symbol,VOID)) {
+        lispval bindings = scan->env_bindings;
         if ((CONSP(bindings)) &&
-            (FD_MALLOCD_CONSP((fd_cons)bindings)))
-          return fd_incref((lispval)env);
+            (FD_MALLOCD_CONSP((fd_cons)bindings))) {
+          fd_decref(env_arg);
+          return fd_incref((lispval)scan);}
         else {
           fd_decref(env_arg);
           return FD_FALSE;}}
-      env = env->env_parent;
-      if ((env) && (env->env_copy)) env = env->env_copy;}
+      scan = scan->env_parent;
+      if ((scan) && (scan->env_copy))
+        scan = scan->env_copy;}
     fd_decref(env_arg);
     return FD_FALSE;}
   else return fd_type_error(_("symbol"),"wherefrom",symbol);
