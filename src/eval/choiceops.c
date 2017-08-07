@@ -970,8 +970,11 @@ static lispval sorted_primfn(lispval choices,lispval keyfn,int reverse,
     DO_CHOICES(elt,choices) {
       lispval key=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(key)) {
-        int j = 0; while (j<i) {fd_decref(entries[j].sortkey); j++;}
-        u8_free(entries); u8_free(vecdata);
+        int j = 0; while (j<i) {
+          fd_decref(entries[j].sortkey);
+          j++;}
+        u8_free(entries);
+        u8_free(vecdata);
         return key;}
       entries[i].sortval = elt;
       entries[i].sortkey = key;

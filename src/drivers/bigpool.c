@@ -1811,6 +1811,16 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
                          FD_OID_ADDR(base_oid),capacity,load,flags,
                          metadata,slotids,
                          ctime,mtime,generation);
+  fd_decref(base_oid);
+  fd_decref(capacity_arg);
+  fd_decref(load_arg);
+  fd_decref(label);
+  fd_decref(slotids);
+  fd_decref(metadata);
+  fd_decref(ctime_opt);
+  fd_decref(mtime_opt);
+  fd_decref(generation_opt);
+
   if (rv>=0)
     return fd_open_pool(spec,storage_flags,opts);
   else return NULL;

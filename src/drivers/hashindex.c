@@ -2647,6 +2647,13 @@ static fd_index hashindex_create(u8_string spec,void *typedata,
      interpret_hashindex_flags(opts),
      FD_INT(hashconst),
      metadata_init,slotids_init,baseoids_init,-1,-1);
+
+  fd_decref(metadata_init);
+  fd_decref(slotids_init);
+  fd_decref(baseoids_init);
+  fd_decref(nbuckets_arg);
+  fd_decref(hashconst);
+
   if (rv<0)
     return NULL;
   else return fd_open_index(spec,flags,VOID);
