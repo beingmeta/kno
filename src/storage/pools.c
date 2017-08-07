@@ -1400,6 +1400,7 @@ FD_EXPORT lispval fd_pool_fetchn(fd_pool p,lispval oids_arg)
       int n = FD_VECTOR_LENGTH(oids);
       lispval *oidv = FD_VECTOR_ELTS(oids);
       lispval *values = p->pool_handler->fetchn(p,n,oidv);
+      fd_decref(oids);
       return fd_init_vector(NULL,n,values);}
     else {
       int n = FD_CHOICE_SIZE(oids);
@@ -1410,6 +1411,7 @@ FD_EXPORT lispval fd_pool_fetchn(fd_pool p,lispval oids_arg)
         lispval value = fd_fetch_oid(p,oids);
         fd_store(table,oids,value);
         fd_decref(value);
+        fd_decref(oids);
         return table;}
       else {
         init_cache_level(p);
