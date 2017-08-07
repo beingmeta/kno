@@ -210,8 +210,13 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
             return 3;}
         case 4: fd_output_byte(out,dt_empty_list); return 1;
         default:
-          fd_seterr(_("Invalid constant"),NULL,NULL,x);
-          return -1;}
+          u8_log(LOGCRIT,"InvalidConstantDType",
+                 "The constant '%q' doesn't have a DType representation, "
+                 "emitting #f",
+                 x);
+          fd_output_byte(out,dt_boolean);
+          fd_output_byte(out,0);
+          return 2;}
       else if ((FD_VALID_TYPECODEP(itype)) && (fd_dtype_writers[itype]))
         return fd_dtype_writers[itype](out,x);
       else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
