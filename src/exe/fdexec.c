@@ -205,6 +205,8 @@ int do_main(int argc,char **argv,
 
   stop_file=fd_runbase_filename(".stop");
 
+  fd_set_app_env(env);
+
   fd_register_config
     ("DEBUGMAXCHARS",
      _("Max number of chars in strings output in error reports"),
@@ -293,8 +295,6 @@ int do_main(int argc,char **argv,
     fprintf(stderr,
             "Usage: fdexec [conf = val]* source_file (arg | [conf = val])*\n");
     return 1;}
-
-  fd_set_app_env(env);
 
   if (!(fd_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-fd_load_start;
