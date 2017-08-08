@@ -127,28 +127,40 @@
 		     metadata ,(get-metadata)]))
   (open-index filename))
 
-(defambda (copy-all-keys keys old new (opts #f) (start (elapsed-time)))
-  (let ((batchsize (getopt opts 'batchsize (config 'batchsize #f)))
-	(n-batches (getopt opts 'nbatches (config 'nbatches #f)))
+(defambda (copy-all-keys keyv old new (opts #f) (start (elapsed-time)))
+  (let ((batchsize #f)
+	(n-batches #f)
 	(n-threads (mt/threadcount (getopt opts 'nthreads (config 'nthreads #default))))
-	(n (choice-size keys))
+	(n (length keyv))
 	(count 0))
-    (cond (batchsize 
+    (cond ((getopt opts 'batchsize) 
+	   (set! batchsize (getopt opts 'batchsize)))
+	  ((getopt opts 'nbatches) 
+	   (set! n-batches (getopt opts 'nbatches)))
+	  ((config 'batchsize)
+	   (set! batchsize (config 'batchsize)))
+	  ((config 'nbatches)
+	   (set! n-batches (config 'nbatches)))
+	  (else (set! batchsize 100000)))
+    (cond (batchsize
 	   (set! n-batches 
 	     (+ (quotient n batchsize)
 		(if (zero? (remainder n batchsize)) 0 1))))
-	  (n-batches 
+	  (n-batches
 	   (set! batchsize
-	     (if (zero? (remainder n n-batches))
-		 (quotient n n-batches)
-		 (1+ (quotient n n-batches)))))
-	  (else (set! batchsize 100000)))
-    (let ((batches (make-vector n-batches))
+	     (+ (quotient n batchsize)
+		(if (zero? (remainder n batchsize)) 0 1)))))
+    (let ((batches (make-vector n-batches #f))
 	  (counter (slambda (n)
 		     (set! count (+ count n))
-		     count)))
+		     (cons count (elapsed-time start)))))
       (dotimes (i n-batches)
-	(vector-set! batches i (qc (pick-n keys batchsize (* i batchsize)))))
+	(vector-set! batches i 
+		     (qc (elts keyv (* i batchsize) 
+			       (min (* (1+ i) batchsize) n)))))
+      (lognotice |BatchCopy|
+	"Copying " ($num n-batches) " of up to " ($num batchsize) " keys using "
+	(or n-threads "no") " threads")
       (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!])))
 	(if (and (number? n-threads) (> n-threads 1))
 	    (let ((threads {}))
