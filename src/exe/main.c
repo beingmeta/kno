@@ -67,7 +67,7 @@ static struct FD_STACK *_get_stack_frame(void *arg)
   if (arg==NULL)
     return curstack;
   else if ((intval < 100000) && (curstack) &&
-	   (intval < (curstack->stack_depth))) {
+	   (intval <= (curstack->stack_depth))) {
     struct FD_STACK *scan=curstack;
     while (scan) {
       if ( scan->stack_depth == intval )
