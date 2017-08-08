@@ -770,9 +770,9 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
 static ssize_t write_offdata
 (struct FD_BIGPOOL *bp, fd_stream stream,int n,unsigned int load,
  struct BIGPOOL_SAVEINFO *saveinfo);
-static int bigpool_write_value(lispval value,fd_stream stream,
-                               fd_bigpool p,struct FD_OUTBUF *tmpout,
-                               unsigned char **zbuf,int *zbuf_size);
+static ssize_t bigpool_write_value(lispval value,fd_stream stream,
+                                   fd_bigpool p,struct FD_OUTBUF *tmpout,
+                                   unsigned char **zbuf,int *zbuf_size);
 static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
                           int n_saved,struct BIGPOOL_SAVEINFO *saveinfo);
 
@@ -829,7 +829,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     endpos = fd_endpos(stream);
     if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
       tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
-    while (i<n) {
+    int j=0; while (j<n) {
       FD_OID addr = FD_OID_ADDR(oids[i]);
       lispval value = values[i];
       ssize_t n_bytes = 0;
@@ -863,18 +863,18 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       endpos = endpos+n_bytes;
 
       if (n_bytes) {
-        saveinfo[i].chunk.off = endpos;
-        saveinfo[i].chunk.size = n_bytes;
-        saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);}
+        saveinfo[j].chunk.off = endpos;
+        saveinfo[j].chunk.size = n_bytes;
+        saveinfo[j].oidoff = FD_OID_DIFFERENCE(addr,base);
+        j++;}
       else {
-        saveinfo[i].chunk.off = 0;
-        saveinfo[i].chunk.size = 0;
-        saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);}
-      i++;}
-    
+        n=n-1;}
+      i++;
+    }
     u8_free(tmpout.buffer);
-    u8_free(zbuf);}
-
+    u8_free(zbuf);
+  }
+  
   fd_lock_pool(p,1);
 
   if (update_bigpool(bp,stream,load,n,saveinfo)<0) {
@@ -983,9 +983,9 @@ FD_FASTOP int get_slotcode(struct FD_BIGPOOL *bp,lispval slotid)
 
 /* Writing OID values */
 
-static int bigpool_write_value(lispval value,fd_stream stream,
-                               fd_bigpool p,struct FD_OUTBUF *tmpout,
-                               unsigned char **zbuf,int *zbuf_size)
+static ssize_t bigpool_write_value(lispval value,fd_stream stream,
+                                   fd_bigpool p,struct FD_OUTBUF *tmpout,
+                                   unsigned char **zbuf,int *zbuf_size)
 {
   fd_outbuf outstream = fd_writebuf(stream);
   ssize_t rv=0;
@@ -1018,8 +1018,8 @@ static int bigpool_write_value(lispval value,fd_stream stream,
       lispval slotid = keyvals[i].kv_key;
       lispval value = keyvals[i].kv_val;
       int slotcode = get_slotcode(p,slotid);
-      if (slotcode<0)
-        if (fd_write_dtype(tmpout,slotid)<0) return -1;
+      if (slotcode<0) {
+        if (fd_write_dtype(tmpout,slotid)<0) return -1;}
       else {
         fd_write_byte(tmpout,0xE0);
         fd_write_zint(tmpout,slotcode);}
