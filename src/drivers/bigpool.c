@@ -832,14 +832,21 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     while (i<n) {
       FD_OID addr = FD_OID_ADDR(oids[i]);
       lispval value = values[i];
-      int n_bytes = bigpool_write_value(value,stream,bp,&tmpout,&zbuf,&zbuf_size);
+      ssize_t n_bytes = 0;
+      if ( (FD_CONSTANTP(value)) &&
+           ( ( value >= FD_EOF) && (value <= FD_UNALLOCATED_OID) ) ) {
+        u8_log(LOGCRIT,"BadOIDValue",
+               "The value for @%x/%x (%q) couldn't be written to %s",
+               FD_OID_HI(addr),FD_OID_LO(addr),value,p->poolid);}
+      else n_bytes = bigpool_write_value(value,stream,bp,
+                                         &tmpout,&zbuf,&zbuf_size);
       if (n_bytes<0) {
-        u8_free(zbuf);
-        u8_free(saveinfo);
-        u8_free(tmpout.buffer);
-        fd_close_stream(stream,FD_STREAM_FREEDATA);
-        return n_bytes;}
-      else new_blocks++;
+        /* Should there be a way to force an error to be signalled here? */
+        u8_log(LOGCRIT,"BadOIDValue",
+               "The value for %x/%x couldn't be written to save to %s",
+               FD_OID_HI(addr),FD_OID_LO(addr),p->poolid);
+        n_bytes=0;}
+      if (n_bytes) new_blocks++;
       if ((endpos+n_bytes)>=maxpos) {
         u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
         u8_seterr(fd_DataFileOverflow,"bigpool_storen",
@@ -853,12 +860,18 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
         fd_close_stream(stream,FD_STREAM_FREEDATA);
         return -1;}
 
-      saveinfo[i].chunk.off = endpos;
-      saveinfo[i].chunk.size = n_bytes;
-      saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);
-
       endpos = endpos+n_bytes;
+
+      if (n_bytes) {
+        saveinfo[i].chunk.off = endpos;
+        saveinfo[i].chunk.size = n_bytes;
+        saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);}
+      else {
+        saveinfo[i].chunk.off = 0;
+        saveinfo[i].chunk.size = 0;
+        saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);}
       i++;}
+    
     u8_free(tmpout.buffer);
     u8_free(zbuf);}
 
@@ -975,6 +988,7 @@ static int bigpool_write_value(lispval value,fd_stream stream,
                                unsigned char **zbuf,int *zbuf_size)
 {
   fd_outbuf outstream = fd_writebuf(stream);
+  ssize_t rv=0;
   /* Reset the tmpout stream */
   tmpout->bufwrite = tmpout->buffer;
   if (SCHEMAPP(value)) {
@@ -987,12 +1001,12 @@ static int bigpool_write_value(lispval value,fd_stream stream,
     while (i<size) {
       lispval slotid = schema[i], value = values[i];
       int slotcode = get_slotcode(p,slotid);
-      if (slotcode<0)
-        fd_write_dtype(tmpout,slotid);
+      if (slotcode<0) {
+        if (fd_write_dtype(tmpout,slotid)<0) return -1;}
       else {
         fd_write_byte(tmpout,0xE0);
         fd_write_zint(tmpout,slotcode);}
-      fd_write_dtype(tmpout,value);
+      if (fd_write_dtype(tmpout,value)<0) return -1;
       i++;}}
   else if (SLOTMAPP(value)) {
     struct FD_SLOTMAP *sm = (fd_slotmap)value;
@@ -1005,13 +1019,13 @@ static int bigpool_write_value(lispval value,fd_stream stream,
       lispval value = keyvals[i].kv_val;
       int slotcode = get_slotcode(p,slotid);
       if (slotcode<0)
-        fd_write_dtype(tmpout,slotid);
+        if (fd_write_dtype(tmpout,slotid)<0) return -1;
       else {
         fd_write_byte(tmpout,0xE0);
         fd_write_zint(tmpout,slotcode);}
-      fd_write_dtype(tmpout,value);
+      if (fd_write_dtype(tmpout,value)<0) return -1;
       i++;}}
-  else fd_write_dtype(tmpout,value);
+  else if (fd_write_dtype(tmpout,value)<0) return -1;
   if (p->pool_compression) {
     unsigned char _zbuf[FD_INIT_ZBUF_SIZE];
     unsigned char *zbuf=_zbuf, *zbufout = NULL;
@@ -1052,6 +1066,7 @@ static int bigpool_write_value(lispval value,fd_stream stream,
       if (zbuf!=_zbuf) u8_free(zbuf);
       return header+compressed_length;}
     if (zbuf!=_zbuf) u8_free(zbuf);}
+  /* If you can't compress (for whatever reason), just output directly */
   fd_write_bytes(outstream,tmpout->buffer,
                  tmpout->bufwrite-tmpout->buffer);
   return tmpout->bufwrite-tmpout->buffer;
