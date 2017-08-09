@@ -1765,8 +1765,8 @@ static unsigned int get_bigpool_format(fd_storage_flags sflags,lispval opts)
        (fd_testopt(opts,FDSYM_READONLY,VOID)) )
     flags |= FD_BIGPOOL_READ_ONLY;
 
-  if ( (sflags) & (FD_POOL_ADJUNCT) ||
-       (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) )
+  if ( ( (sflags) & (FD_POOL_ADJUNCT) ) &&
+       (fd_testopt(opts,FDSYM_ADJUNCT,FDSYM_ALWAYS)) )
     flags |= FD_BIGPOOL_ADJUNCT;
 
   if ( (sflags) & (FD_POOL_ADJUNCT) ||
