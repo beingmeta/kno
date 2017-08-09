@@ -1803,6 +1803,7 @@ static void display_pool(u8_output out,fd_pool p,lispval lp)
     (u8_strchr(id,'/',1)) ? (u8_strchr(id,'/',-1)) : (id);
   int n_cached=p->pool_cache.table_n_keys;
   int n_changed=p->pool_changes.table_n_keys;
+  int is_adjunct = ( (p->pool_flags) & (FD_POOL_ADJUNCT) );
   strcpy(addrbuf,"@");
   strcat(addrbuf,u8_uitoa16(FD_OID_HI(p->pool_base),numbuf));
   strcat(addrbuf,"/");
@@ -1810,14 +1811,20 @@ static void display_pool(u8_output out,fd_pool p,lispval lp)
   strcat(addrbuf,"+0x0");
   strcat(addrbuf,u8_uitoa16(p->pool_capacity,numbuf));
   if (p->pool_label)
-    u8_printf(out,"#<%s %s (%s) %s cx=%d/%d #!%lx \"%s\">",
-              tag,p->pool_label,type,addrbuf,n_cached,n_changed,
+    u8_printf(out,"#<%s %s (%s%s) %s cx=%d/%d #!%lx \"%s\">",
+              tag,p->pool_label,type,
+              ((is_adjunct)?("/adj"):("")),
+              addrbuf,n_cached,n_changed,
               lp,source);
   else if (strcmp(useid,source))
-    u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx \"%s\">",
-              tag,useid,type,addrbuf,n_cached,n_changed,lp,source);
-  else u8_printf(out,"#<%s %s (%s) %s oids=%d/%d #!%lx>",
-                 tag,useid,type,addrbuf,n_cached,n_changed,lp);
+    u8_printf(out,"#<%s %s (%s%s) %s oids=%d/%d #!%lx \"%s\">",
+              tag,useid,type,
+              ((is_adjunct)?("/adj"):("")),
+              addrbuf,n_cached,n_changed,lp,source);
+  else u8_printf(out,"#<%s %s (%s%s) %s oids=%d/%d #!%lx>",
+                 tag,useid,type,
+                 ((is_adjunct)?("/adj"):("")),
+                 addrbuf,n_cached,n_changed,lp);
 
 }
 
@@ -1925,6 +1932,7 @@ static int pool_store(fd_pool p,lispval key,lispval value)
       return -1;}
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
+      if (FD_TABLEP(value)) fd_set_modified(value,1);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
         fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
@@ -2007,7 +2015,7 @@ static lispval base_slot, capacity_slot, cachelevel_slot,
   cached_slot, locked_slot, flags_slot, registered_slot, opts_slot;
 
 static lispval read_only_flag, unregistered_flag, registered_flag,
-  noswap_flag, noerr_flag, phased_flag, sparse_flag,
+  noswap_flag, noerr_flag, phased_flag, sparse_flag, background_flag,
   adjunct_flag, virtual_flag, nolocks_flag;
 
 static void mdstore(lispval md,lispval slot,lispval v)
@@ -2372,6 +2380,7 @@ FD_EXPORT void fd_init_pools_c()
   phased_flag=fd_intern("PHASED");
   sparse_flag=fd_intern("SPARSE");
   adjunct_flag=FDSYM_ISADJUNCT;
+  background_flag=fd_intern("BACKGROUND");
   virtual_flag=fd_intern("VIRTUAL");
   nolocks_flag=fd_intern("NOLOCKS");
 
