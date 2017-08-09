@@ -16,6 +16,7 @@ usr/bin/fdbatch
 usr/bin/fdservlet
 usr/bin/make-oidpool
 usr/bin/ovmerge
+usr/bin/split-pool
 usr/bin/pack-index
 usr/bin/pack-pool
 usr/bin/fdgetconfig
