@@ -329,7 +329,7 @@ SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
 	etc/fdrestart etc/fdctl etc/fdgdb \
 	etc/fdcleanup
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-               exe/scripts/make-oidpool \
+               exe/scripts/make-oidpool exe/scripts/split-pool \
 	       exe/scripts/ovmerge \
 	       exe/scripts/fdpkg
 
