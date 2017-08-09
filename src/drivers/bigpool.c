@@ -770,11 +770,25 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
 static ssize_t write_offdata
 (struct FD_BIGPOOL *bp, fd_stream stream,int n,unsigned int load,
  struct BIGPOOL_SAVEINFO *saveinfo);
-static ssize_t bigpool_write_value(lispval value,fd_stream stream,
-                                   fd_bigpool p,struct FD_OUTBUF *tmpout,
+static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
+                                   fd_stream stream,
+                                   struct FD_OUTBUF *tmpout,
                                    unsigned char **zbuf,int *zbuf_size);
 static int update_bigpool(fd_bigpool bp,fd_stream stream,int new_load,
                           int n_saved,struct BIGPOOL_SAVEINFO *saveinfo);
+
+static int file_format_overflow(fd_pool p,fd_stream stream)
+{
+  u8_seterr(fd_DataFileOverflow,"bigpool_storen",u8_strdup(p->poolid));
+  if (fd_unlockfile(stream)<0)
+    u8_log(LOGCRIT,"UnlockFailed",
+           "Couldn't unlock output stream (%d:%s) for %s",
+           stream->stream_fileno,
+           p->pool_source,
+           p->poolid);
+  fd_close_stream(stream,FD_STREAM_FREEDATA);
+  return -1;
+}
 
 static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
@@ -813,23 +827,30 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     (u8_alloc_n(n,struct BIGPOOL_SAVEINFO)) :
     (NULL);
 
-  if (n>0) {
+  int i=0;
+  if (n>0) { /* There are values to save */
     int new_blocks = 0;
     u8_log(fd_storage_loglevel+1,"BigpoolStore",
            "Storing %d oid values in bigpool %s",n,p->poolid);
+
+    /* These are used repeatedly for rendering objects to dtypes or to
+       compressed dtypes. */
     struct FD_OUTBUF tmpout;
     unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
-    unsigned int i = 0, zbuf_size = FD_INIT_ZBUF_SIZE;
+    unsigned int zbuf_size = FD_INIT_ZBUF_SIZE;
     unsigned int init_buflen = 2048*n;
-    FD_OID base = bp->pool_base;
-    size_t maxpos = get_maxpos(bp);
-    fd_off_t endpos;
     if (init_buflen>262144) init_buflen = 262144;
     FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
-    endpos = fd_endpos(stream);
     if ((bp->bigpool_format)&(FD_BIGPOOL_DTYPEV2))
       tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
-    int j=0; while (j<n) {
+
+    FD_OID base = bp->pool_base;
+    size_t maxpos = get_maxpos(bp);
+    fd_off_t endpos = fd_endpos(stream);
+
+    while (i<n) {
+    /* We walk over all of the oids, Writing their values to disk and
+       recording where we wrote them. */
       FD_OID addr = FD_OID_ADDR(oids[i]);
       lispval value = values[i];
       ssize_t n_bytes = 0;
@@ -838,7 +859,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
         u8_log(LOGCRIT,"BadOIDValue",
                "The value for @%x/%x (%q) couldn't be written to %s",
                FD_OID_HI(addr),FD_OID_LO(addr),value,p->poolid);}
-      else n_bytes = bigpool_write_value(value,stream,bp,
+      else n_bytes = bigpool_write_value(bp,value,stream,
                                          &tmpout,&zbuf,&zbuf_size);
       if (n_bytes<0) {
         /* Should there be a way to force an error to be signalled here? */
@@ -846,35 +867,32 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
                "The value for %x/%x couldn't be written to save to %s",
                FD_OID_HI(addr),FD_OID_LO(addr),p->poolid);
         n_bytes=0;}
+
+      /* We keep track of value blocks in the file so we can determine
+         how much space is being wasted. */
       if (n_bytes) new_blocks++;
+
+      /* Check for file format overflow */
       if ((endpos+n_bytes)>=maxpos) {
         u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.buffer);
-        u8_seterr(fd_DataFileOverflow,"bigpool_storen",
-                  u8_strdup(p->poolid));
-        if (fd_unlockfile(stream)<0)
-          u8_log(LOGCRIT,"UnlockFailed",
-                 "Couldn't unlock output stream (%d:%s) for %s",
-                 stream->stream_fileno,
-                 bp->pool_source,
-                 bp->poolid);
-        fd_close_stream(stream,FD_STREAM_FREEDATA);
-        return -1;}
+        return file_format_overflow(p,stream);}
+
+      if (n_bytes) {
+        saveinfo[i].chunk.off  = endpos;
+        saveinfo[i].chunk.size = n_bytes;
+        saveinfo[i].oidoff     = FD_OID_DIFFERENCE(addr,base);}
+      else {
+        saveinfo[i].chunk.off  = 0;
+        saveinfo[i].chunk.size = 0;
+        saveinfo[i].oidoff     = FD_OID_DIFFERENCE(addr,base);}
 
       endpos = endpos+n_bytes;
 
-      if (n_bytes) {
-        saveinfo[j].chunk.off = endpos;
-        saveinfo[j].chunk.size = n_bytes;
-        saveinfo[j].oidoff = FD_OID_DIFFERENCE(addr,base);
-        j++;}
-      else {
-        n=n-1;}
-      i++;
-    }
+      i++;}
     u8_free(tmpout.buffer);
     u8_free(zbuf);
   }
-  
+
   fd_lock_pool(p,1);
 
   if (update_bigpool(bp,stream,load,n,saveinfo)<0) {
@@ -983,12 +1001,12 @@ FD_FASTOP int get_slotcode(struct FD_BIGPOOL *bp,lispval slotid)
 
 /* Writing OID values */
 
-static ssize_t bigpool_write_value(lispval value,fd_stream stream,
-                                   fd_bigpool p,struct FD_OUTBUF *tmpout,
+static ssize_t bigpool_write_value(fd_bigpool p,lispval value,
+                                   fd_stream stream,
+                                   struct FD_OUTBUF *tmpout,
                                    unsigned char **zbuf,int *zbuf_size)
 {
   fd_outbuf outstream = fd_writebuf(stream);
-  ssize_t rv=0;
   /* Reset the tmpout stream */
   tmpout->bufwrite = tmpout->buffer;
   if (SCHEMAPP(value)) {
@@ -1002,11 +1020,13 @@ static ssize_t bigpool_write_value(lispval value,fd_stream stream,
       lispval slotid = schema[i], value = values[i];
       int slotcode = get_slotcode(p,slotid);
       if (slotcode<0) {
-        if (fd_write_dtype(tmpout,slotid)<0) return -1;}
+        if (fd_write_dtype(tmpout,slotid)<0)
+          return -1;}
       else {
         fd_write_byte(tmpout,0xE0);
         fd_write_zint(tmpout,slotcode);}
-      if (fd_write_dtype(tmpout,value)<0) return -1;
+      if (fd_write_dtype(tmpout,value)<0)
+        return -1;
       i++;}}
   else if (SLOTMAPP(value)) {
     struct FD_SLOTMAP *sm = (fd_slotmap)value;
@@ -1019,13 +1039,16 @@ static ssize_t bigpool_write_value(lispval value,fd_stream stream,
       lispval value = keyvals[i].kv_val;
       int slotcode = get_slotcode(p,slotid);
       if (slotcode<0) {
-        if (fd_write_dtype(tmpout,slotid)<0) return -1;}
+        if (fd_write_dtype(tmpout,slotid)<0)
+          return -1;}
       else {
         fd_write_byte(tmpout,0xE0);
         fd_write_zint(tmpout,slotcode);}
-      if (fd_write_dtype(tmpout,value)<0) return -1;
+      if (fd_write_dtype(tmpout,value)<0)
+        return -1;
       i++;}}
-  else if (fd_write_dtype(tmpout,value)<0) return -1;
+  else if (fd_write_dtype(tmpout,value)<0)
+    return -1;
   if (p->pool_compression) {
     unsigned char _zbuf[FD_INIT_ZBUF_SIZE];
     unsigned char *zbuf=_zbuf, *zbufout = NULL;
@@ -1066,7 +1089,8 @@ static ssize_t bigpool_write_value(lispval value,fd_stream stream,
       if (zbuf!=_zbuf) u8_free(zbuf);
       return header+compressed_length;}
     if (zbuf!=_zbuf) u8_free(zbuf);}
-  /* If you can't compress (for whatever reason), just output directly */
+  /* If you can't compress (for whatever reason), fall through to here
+     and just output directly */
   fd_write_bytes(outstream,tmpout->buffer,
                  tmpout->bufwrite-tmpout->buffer);
   return tmpout->bufwrite-tmpout->buffer;
