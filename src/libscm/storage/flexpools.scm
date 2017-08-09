@@ -7,19 +7,31 @@
 	      logger logctl fifo
 	      mttools stringfmts opts})
 
-(define %loglevel %notice%)
+(define %loglevel %debug%)
 
 (module-export! '{flexpool/next flexpool/start 
 		  flexpool/open flexpool/def
 		  flexpool/alloc flex/make
 		  flexpool/split
-		  flexpool/ref})
+		  pool/ref index/ref})
 
 (define flexpool-suffix-regex
   #/[.][0-9][0-9][0-9][.]pool$/)
 
 (define flexpool-suffix
   #("." (opt #((isxdigit) (isxdigit) (isxdigit) ".")) "pool" (eos)))
+
+(define flexindex-suffix
+  #("." (opt #((isxdigit) (isxdigit) (isxdigit) ".")) "index" (eos)))
+
+(define (base->flexoff base capacity flexbase)
+  (quotient (oid-offset base flexbase) capacity))
+
+(define (flexpool-path root flexoff (basedir #f))
+  (abspath (glom (textsubst root flexpool-suffix "")
+	     (if (zero? flexoff) 
+		 ".pool"
+		 (glom "." (padnum flexoff 3 16) ".pool")))))
 
 ;;; Opening flexpools
 ;;; This opens the pool and creates adjuncts (and eventually indexes) as specified
@@ -97,11 +109,11 @@
     (when (and opt-base (not (eq? opt-base (pool-base pool))))
       (irritant pool |InconsistentBaseOID|
 	"Pool's base OID (" (oid->string (pool-base pool)) ") "
-	"is not the same as specified in opts (" opt-base ")"))
+	"is not consistent with opts (" (oid->string opt-base) ")"))
     (when (and opt-capacity (not (eq? opt-capacity (pool-capacity pool))))
       (irritant pool |InconsistentCapacity|
 	"Pool's capacity (" (pool-capacity pool) ") "
-	"is not the same as specified in opts (" opt-capacity ")"))
+	"is not consistent with opts (" opt-capacity ")"))
     pool))
     
 (define (ref-index file opts)
@@ -110,14 +122,18 @@
       (make-index file opts)))
 
 (define (ref-adjuncts adjuncts pool)
-  (let ((new (frame-create #f))
-	(base (and pool (pool-base pool)))
-	(cap (and pool (pool-capacity pool)))
-	(current (get-adjuncts pool))
-	(root (dirname (pool-source pool))))
+  (let* ((new (frame-create #f))
+	 (base (and pool (pool-base pool)))
+	 (cap (and pool (pool-capacity pool)))
+	 (current (get-adjuncts pool))
+	 (flexbase (poolctl pool 'metadata 'flexbase))
+	 (flexoff (if pool (base->flexoff base cap flexbase) 0))
+	 (root (dirname (pool-source pool))))
     (do-choices (slotid (getkeys adjuncts))
       (if (test current slotid)
-	  (begin (unless (same-adjunct? (get adjuncts slotid) (get current current) root)
+	  (begin (unless (same-adjunct? (get adjuncts slotid) 
+					(get current current)
+					root)
 		   (logwarn |DuplicateAdjuncts|
 		     "Using existing " slotid " adjunct for " pool
 		     "\n    using    " (get current slotid)
@@ -127,21 +143,29 @@
 	    (store! new slotid
 		    (cond ((or (index? adj) (pool? adj)) adj)
 			  ((and (string? adj) (has-suffix adj ".index"))
-			   (ref-index (abspath adj root) `#[type hashindex size ,(* cap 7)]))
+			   (ref-index (abspath adj root)
+				      `#[type hashindex size ,(* cap 7)]))
 			  ((and (string? adj) (has-suffix adj ".pool"))
-			   (ref-pool (abspath adj root)
-				     `#[base ,base capacity ,cap
-					type bigpool adjunct #t]))
+			   (ref-adjunct adj base flexbase cap #f root))
 			  ((not (table? adj))
 			   (irritant adj |BadAdjunctSpec|))
 			  ((test adj 'pool)
-			   (ref-pool (abspath (get adj 'pool) root)
-				     (cons `#[base ,base capacity ,cap adjunct #t]
-					   adj)))
+			   (ref-adjunct (get adj 'pool) base flexbase cap adj root))
 			  ((test adj 'index)
 			   (ref-index (abspath (get adj 'index) root) adj))
 			  (else (irritant adj |BadAdjunctSpec|)))))))
     new))
+
+(define (ref-adjunct path base flexbase capacity opts root)
+  (let* ((flexoff (quotient (oid-offset base flexbase) capacity))
+	 (new-suffix (if (zero? flexoff) ".pool"
+			 (glom "." (padnum flexoff 3 16) ".pool")))
+	 (new-opts `#[base ,base capacity ,capacity
+		      adjunct always flexbase ,flexbase])
+	 (newpath (glom (textsubst path flexpool-suffix "") new-suffix)))
+    (%watch "REF-ADJUNCT" path newpath base flexbase capacity opts root)
+    (flexpool/open (abspath newpath root)
+     (if opts (cons new-opts opts) new-opts))))
 
 (define (same-adjunct? spec current root)
   (let ((source (cond ((pool? current) (pool-source current))
@@ -167,7 +191,7 @@
 	(source (pool-source pool)))
     (let* ((flexbase (try (get metadata 'flexbase) base))
 	   (new-base (oid-plus base capacity))
-	   (flexoff (quotient (oid-offset new-base flexbase) capacity))
+	   (flexoff (base->flexoff new-base capacity flexbase))
 	   (basepath (textsubst source flexpool-suffix ""))
 	   (new-suffix (glom "." (padnum flexoff 3 16) ".pool"))
 	   (newpath (glom basepath new-suffix))
@@ -184,9 +208,13 @@
 	   (opts (if opts
 		     (cons* top-opts opts (getopt metadata 'opts))
 		     (cons top-opts (getopt metadata 'opts)))))
-      (let ((nextpool (flexpool/open newpath opts)))
+      (let ((basepool (getpool flexbase))
+	    (nextpool (flexpool/open newpath opts)))
 	(when (exists? nextpool)
-	  (poolctl pool 'props 'next nextpool))
+	  (poolctl pool 'props 'next nextpool)
+	  (poolctl pool 'props 'base basepool)
+	  (poolctl basepool 'props 
+		   'seealso (choice nextpool (poolctl basepool 'props 'seealso))))
 	nextpool))))
 
 (define (next-adjuncts adjuncts new-suffix)
@@ -249,44 +277,84 @@
 ;;; flexpool/def
 ;;; Creates or uses a flexpool and any subsequent pools
 
-(define (flexpool/ref spec (opts #f))
+(define (pool/ref spec (opts #f))
   (when (and (table? spec) (not opts))
     (set! opts spec)
     (set! spec (getopt opts 'pool (getopt opts 'source #f))))
-  (when (not (string? spec)) (irritant spec |InvalidPoolSpec|))
-  (let ((basepool (flexpool/open spec opts)))
-    (let* ((source (pool-source basepool))
-	   (next (glom (textsubst source flexpool-suffix "")
-		   ".001.pool"))
-	   (count 1))
-      (while (file-exists? next)
-	(flexpool/open next opts)
-	(set! count (1+ count))
-	(set! next (glom (textsubst source flexpool-suffix "")
-		     "." (padnum count 3 16) ".pool")))
-      (lognotice |FlexpoolDef| 
-	"Found " count " pools based at " basepool))
-    basepool))
+  (cond ((pool? spec) spec)
+	((not (string? spec)) (irritant spec |InvalidPoolSpec|))
+	(else (let* ((basepool (flexpool/open spec opts))
+		     (flexbase (try (poolctl basepool 'metadata 'flexbase)
+				    (pool-base basepool)))
+		     (capacity (pool-capacity basepool))
+		     (usebase (oid-plus flexbase capacity)))
+		(let* ((source (pool-source basepool))
+		       (next (glom (textsubst source flexpool-suffix "")
+			       ".001.pool"))
+		       (count 1))
+		  (while (file-exists? next)
+		    (flexpool/open next (cons `#[base ,usebase] opts))
+		    (set! count (1+ count))
+		    (set! next (glom (textsubst source flexpool-suffix "")
+				 "." (padnum count 3 16) ".pool"))
+		    (set! usebase (oid-plus usebase capacity)))
+		  (lognotice |FlexPool| "Found " count " pools based at " basepool))
+		basepool))))
+
+(define (index/ref spec (opts #f))
+  (if (index? spec) spec
+      (begin
+	(when (and (table? spec) (not opts))
+	  (set! opts spec)
+	  (set! spec (getopt opts 'index (getopt opts 'source #f))))
+	(cond ((index? spec) spec)
+	      ((not (string? spec)) (irritant spec |InvalidIndexSpec|))
+	      (else
+	       (let ((baseindex (ref-index spec opts)))
+		 (let* ((source (index-source baseindex))
+			(next (glom (textsubst source flexindex-suffix "")
+				".001.index"))
+			(indexes {})
+			(count 1))
+		   (while (file-exists? next)
+		     (set+! indexes (ref-index next opts))
+		     (flexpool/open next opts)
+		     (set! count (1+ count))
+		     (set! next (glom (textsubst source flexindex-suffix "")
+				  "." (padnum count 3 16) ".index")))
+		   (lognotice |FlexIndex| "Found " count " indexes based at " baseindex)
+		   (indexctl baseindex 'props 'seealso indexes)
+		   (indexctl indexes 'props 'base baseindex))
+		 baseindex))))))
+
+(define (ref-index path opts)
+  (if (file-exists? path)
+      (open-index path opts)
+      (make-index path opts)))
 
 ;;; Splitting existing pools into smaller flexpools
 
-(define (flexpool/split original capacity (outdir #f) (opts #f))
+(define (flexpool/split original capacity (outpath #f) (opts #f))
   (let* ((input (open-pool original (cons #[adjunct #t] opts)))
+	 (flexmax (getopt opts 'useload))
 	 (source (pool-source input))
 	 (base (pool-base input))
-	 (load (pool-load input))
-	 (outdir (or outdir (dirname source)))
-	 (basepath (abspath (textsubst (basename source) flexpool-suffix "") outdir))
+	 (load (getopt opts 'useload (pool-load input)))
+	 (outpath (or outpath (dirname source)))
+	 (basepath (if (file-directory? outpath)
+		       (abspath (textsubst (basename source) flexpool-suffix "") outpath)
+		       (textsubst outpath flexpool-suffix "")))
 	 (alloids (pool-vector input))
 	 (batchsize (getopt opts 'batchsize (config 'batchsize 250000)))
-	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'nthreads (rusage 'ncpus))))))
+	 (nthreads (mt/threadcount (getopt opts 'nthreads (config 'nthreads (rusage 'ncpus)))))
+	 (always-adjunct (getopt opts 'adjunct (config! 'adjunct 'always))))
     (let ((newcount (+ (quotient load capacity)
 		       (if (zero? (remainder load capacity)) 0 1)))
-	  (flexbase base))
+	  (flexbase (getopt opts 'flexbase base)))
       (lognotice |FLEXPOOL/SPLIT|
 	"Splitting pool " source " into " newcount " pools of " ($num capacity) " OIDs")
       (dotimes (i newcount)
-	(let* ((newpath (if (and (= i 0) (not (equal? (dirname source) outdir)))
+	(let* ((newpath (if (and (= i 0) (not (equal? (dirname source) outpath)))
 			    (glom basepath ".pool")
 			    (glom basepath "." (padnum i 3 16) ".pool")))
 	       (start (* i capacity))
@@ -295,7 +363,8 @@
 			 batchsize ,batchsize
 			 capacity ,capacity 
 			 load ,(- end start)
-			 flexbase ,flexbase])
+			 flexbase ,flexbase
+			 adjunct ,(if always-adjunct 'always #t)])
 	       (newpool (flexpool/open newpath (cons opts+ opts))))
 	  (copy-oids input newpool alloids start end batchsize nthreads)
 	  (loginfo |FLEXPOOL/SPLIT| "Copied " ($num (- end start)) " OIDs into " newpool)
@@ -322,8 +391,7 @@
 	  (thread/wait threads))
 	(copier fifo from to countup))
     (swapout from)
-    (commit to)
-    (swapout to)))
+    (commit to)))
 
 (define (make-batches oidvec start end batchsize)
   (let* ((range (- end start))
@@ -334,10 +402,10 @@
     (loginfo |CopyBatches| 
       "Created " n-batches " of at least " ($num batchsize) " OIDs "
       "from " (oid->string (elt oidvec start)) " "
-      "to " (oid->string (elt oidvec end)))
+      "to " (oid->string (elt oidvec (-1+ end))))
     (dotimes (i n-batches)
       (vector-set! batches i 
-		   (qc (elts oidvec 
+		   (qc (elts oidvec
 			     (+ start (* i batchsize))
 			     (min (+ start (* (1+ i) batchsize))
 				  end)))))
@@ -353,9 +421,8 @@
     (while (exists? batch)
       (logdebug |CopyThread/Batch| "Copying " (choice-size batch) " OIDs")
       (pool-prefetch! from batch)
-      (lock-oids! batch)
       (do-choices (oid batch)
-	(set-oid-value! oid (get from oid)))
+	(store! to oid (get from oid)))
       (logdebug |CopyThread/Swapout|
 	"Swapping out " (choice-size batch) " OIDs from " from)
       (swapout from batch)

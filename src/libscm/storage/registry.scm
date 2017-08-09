@@ -141,7 +141,7 @@
 				(find-frames index slotid value)))
 		    (result (try existing
 				 (tryif create
-				   (frame-create (registry-pool registry)
+				   (flex/make (registry-pool registry)
 				     '%id (list slotid value)
 				     '%session (config 'sessionid)
 				     '%created (timestamp)
@@ -167,8 +167,8 @@
 			      (if (dtserver? (getopt spec 'server))
 				  (getopt spec 'server)
 				  (open-dtserver (getopt spec 'server)))))
-		 (pool (try (flexpool/ref (getsource spec 'pool) spec) #f))
-		 (index (try (open-index (getsource spec 'index)) #f))
+		 (pool (try (pool/ref (getsource spec 'pool) spec) #f))
+		 (index (try (index/ref (getsource spec 'index)) #f))
 		 (registry #f))
 	     (if (or server (not (getopt spec 'bloom use-bloom)))
 		 ;; Server-based registries don't (currently) have
@@ -226,35 +226,6 @@
 		   (dtserver-id (registry-server new))
 		   (pool-id (registry-pool new))))
 	     new))))
-
-(define (get-idpath spec idbase (root))
-  (default! root (strip-suffix idbase ".index"))
-  (cond ((file-exists? (glom idbase ".keys"))
-	 (when (getopt spec 'oneslot)
-	   (logwarn |MultiSlotRegistry| 
-	     "The registry is already using the multi-slot key file "
-	     (glom idbase ".keys")))
-	 (glom idbase ".keys"))
-	((file-exists? (glom idbase ".ids"))
-	 (if (getopt spec 'oneslot #t)
-	     (glom idbase ".ids")
-	     (irritant spec |RegistryOneSlot|
-	       "This registry is already using the single slot ID file "
-	       (glom idbase ".ids"))))
-	((file-exists? (glom root ".keys"))
-	 (when (getopt spec 'slotid)
-	   (logwarn |MultiSlotRegistry| 
-	     "The registry is already using the multi-slot key file "
-	     (glom idbase ".keys")))
-	 (glom root ".keys"))
-	((file-exists? (glom root ".ids"))
-	 (if (getopt spec 'oneslot #t)
-	     (glom root ".ids")
-	     (irritant spec |RegistryOneSlot|
-	       "This registry is already using the single slot ID file "
-	       (glom root ".ids"))))
-	((getopt spec 'oneslot) (glom idbase ".ids"))
-	(else (glom idbase ".keys"))))
 
 (define (registry-opts arg)
   (cond ((table? arg) (fixup-opts arg))

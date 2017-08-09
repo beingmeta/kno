@@ -6,7 +6,8 @@
 (define %loglevel %notice%)
 (config! 'cachelevel 2)
 (config! 'optlevel 4)
-(config! 'logprocinfo #t)
+(config! 'logthreadinfo #t)
+(config! 'thread:logexit #f)
 
 (define (getflags)
   (choice->list
@@ -177,7 +178,7 @@
     (if (string? capacity)
 	(let ((usecap to))
 	  (set! to capacity)
-	  (set! capacity useap))))
+	  (set! capacity usecap))))
   (cond ((not (bound? from)) (usage))
 	((not (file-exists? from))
 	 (logcrit |MissingInput| "The file " (write from) " does not exist"))
@@ -190,6 +191,9 @@
 	 (move-file from (glom from ".bak"))
 	 (flexpool/split from (or capacity (* 1024 1024)) from))
 	(else (flexpool/split from (or capacity (* 1024 1024)) to))))
+
+(define (usage)
+  (message "split-pool *source-pool* *output* [capacity]"))
 
 (optimize! 'storage/flexpools)
 (optimize!)
