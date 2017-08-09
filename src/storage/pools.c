@@ -1932,7 +1932,9 @@ static int pool_store(fd_pool p,lispval key,lispval value)
       return -1;}
     else {
       unsigned int offset = FD_OID_DIFFERENCE(addr,base);
-      if (FD_TABLEP(value)) fd_set_modified(value,1);
+      if ( (FD_SLOTMAPP(value))||
+           (FD_SCHEMAPP(value)) ||
+           (FD_HASHTABLEP(value)) )fd_set_modified(value,1);
       int cap = p->pool_capacity, rv = -1;
       if (offset>cap) {
         fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
