@@ -335,8 +335,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
       fd_seterr("BadMetaData","open_hashindex","BadLocation",
                 FD_INT(metadata_loc));
       metadata=FD_ERROR_VALUE;}
-    if (!(FD_SLOTMAPP(metadata))) {
-      u8_log(LOGCRIT,"BadMetaData","Ignoring bad metadata stored for %s",fname);
+    if (! ( (FD_FALSEP(metadata)) || (FD_SLOTMAPP(metadata)) ) ) {
+      u8_log(LOGWARN,"BadMetaData","Ignoring bad metadata stored for %s",fname);
       metadata=FD_FALSE;}}
   if (FD_SLOTMAPP(metadata)) {
     struct FD_SLOTMAP *from_struct = &(index->index_metadata);
