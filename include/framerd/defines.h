@@ -156,11 +156,11 @@ typedef int fd_off_t;
 
 #if (HAVE_SIZE_T)
 #if ((FD_LARGEFILES_ENABLED)&&(SIZEOF_SIZE_T==8))
-typedef size_t fd_size_t;
+typedef ssize_t fd_size_t;
 #elif (FD_LARGEFILES_ENABLED)
 typedef long long int fd_size_t;
 #else
-typedef size_t fd_size_t;
+typedef ssize_t fd_size_t;
 #endif
 #else /* (!(HAVE_SIZE_T)) */
 #if (FD_LARGEFILES_ENABLED)
