@@ -1172,6 +1172,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
   {
     struct FD_INBUF keyblkstrm={0};
     int bucket = -1, j = 0, k = 0, n_keys=0;
+    const unsigned char *keyblock_start=NULL;
     while (j<n_entries) {
       int found = 0;
       fd_off_t blockpos = ksched[j].ksched_chunk.off;
@@ -1181,7 +1182,13 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
         fd_open_block(stream,&keyblkstrm,blockpos,blocksize,1);
         bucket=ksched[j].ksched_bucket;
         /* And initialize bucket position and limit */
-        k=0; n_keys = fd_read_zint(&keyblkstrm);}
+        k=0; n_keys = fd_read_zint(&keyblkstrm);
+        keyblock_start = keyblkstrm.bufread;}
+      else {
+        /* We could be smarter here, but it might not be worth it if
+           the file indexes have reasonable load factors. */
+        keyblkstrm.bufread=keyblock_start;
+        k=0;}
       while (k<n_keys) {
         int n_vals;
         fd_size_t dtsize = fd_read_zint(&keyblkstrm);

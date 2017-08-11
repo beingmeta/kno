@@ -2510,7 +2510,8 @@ FD_EXPORT lispval fd_init_hashtable(struct FD_HASHTABLE *ptr,
   return LISP_CONS(ptr);
 }
 
-static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_buckets,int need_lock)
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_buckets,
+                            int need_lock)
 {
   int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
