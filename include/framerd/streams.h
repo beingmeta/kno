@@ -181,7 +181,7 @@ FD_EXPORT ssize_t fd_read_block(fd_stream s,unsigned char *buf,
 				size_t count,fd_off_t offset,
 				int stream_locked);
 FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
-                                 fd_off_t offset,size_t count,
+                                 fd_off_t offset,ssize_t count,
 				 int stream_locked);
 
 #if FD_INLINE_BUFIO
@@ -379,6 +379,11 @@ FD_FASTOP int fd_chunk_ref_size(fd_offset_type offtype)
   case FD_B32: case FD_B40: return 8;
   case FD_B64: return 12;}
   return -1;
+}
+
+FD_FASTOP int fd_bad_chunk(struct FD_CHUNK_REF *ref)
+{
+  return ( (ref->off >= 0) &&  (ref->size >= 0) );
 }
 
 typedef unsigned long long fd_ull;

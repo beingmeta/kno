@@ -965,9 +965,12 @@ static void unlock_stream_mmap(struct FD_INBUF *out,void *streamptr)
 }
 
 FD_EXPORT fd_inbuf fd_open_block(fd_stream s,fd_inbuf in,
-                                 fd_off_t offset,size_t len,
+                                 fd_off_t offset,ssize_t len,
                                  int stream_locked)
 {
+  if ((offset<0) || (len<0) ) {
+    u8_seterr("InvalidOffsets","fd_open_block",s->streamid);
+    return NULL;}
   if ((s->stream_flags) & (FD_STREAM_MMAPPED)) {
     if (s->buf.in.buffer != in->buffer) {
       u8_read_lock(&(s->mmap_lock));
