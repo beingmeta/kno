@@ -830,7 +830,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   int i=0;
   if (n>0) { /* There are values to save */
     int new_blocks = 0;
-    u8_log(fd_storage_loglevel+1,"BigpoolStore",
+    u8_log(fd_storage_loglevel+2,"BigpoolStore",
            "Storing %d oid values in bigpool %s",n,p->poolid);
 
     /* These are used repeatedly for rendering objects to dtypes or to
@@ -1247,7 +1247,7 @@ static ssize_t mmap_write_offdata
 {
   int chunk_ref_size = get_chunk_ref_size(bp);
   int retval = -1;
-  u8_log(fd_storage_loglevel+1,"bigpool:write_offdata",
+  u8_log(fd_storage_loglevel+2,"bigpool:write_offdata",
          "Finalizing %d oid values for %s",n,bp->poolid);
 
   unsigned int *offdata = NULL;
@@ -1606,7 +1606,7 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
   fd_reset_hashtable(&(bp->pool_cache),-1,1);
   fd_reset_hashtable(&(bp->pool_changes),32,1);
   if (!(is_locked)) u8_rw_unlock(&(bp->pool_lock));
-  u8_log(fd_storage_loglevel+1,"ReloadOffsets",
+  u8_log(fd_storage_loglevel+2,"ReloadOffsets",
          "Offsets for %s reloaded in %f secs",
          bp->poolid,u8_elapsed_time()-start);
 }

@@ -824,7 +824,10 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
   if (offdata)
     keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
   else keyblock=fd_fetch_chunk_ref(stream,256,hx->index_offtype,bucket,0);
-  if (keyblock.size==0) {
+  if (fd_bad_chunk(&keyblock)) {
+    fd_close_outbuf(&out);
+    return FD_ERROR_VALUE;}
+  else if (keyblock.size==0) {
     fd_close_outbuf(&out);
     return EMPTY;}
   else {
@@ -1009,7 +1012,10 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
     keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
   else keyblock = fd_fetch_chunk_ref
          (&(hx->index_stream),256,hx->index_offtype,bucket,0);
-  if (keyblock.size<=0) return keyblock.size;
+  if ( (keyblock.off<0) || (keyblock.size<0) )
+    return -1;
+  else if (keyblock.size == 0)
+    return keyblock.size;
   else {
     struct FD_INBUF keystream={0};
     struct FD_INBUF *opened=
@@ -1133,7 +1139,8 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
         fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
       size_t keyblock_size = ksched[n_entries].ksched_chunk.size;
       /* Track the max_keyblock_size, for a VLA below*/
-      if (keyblock_size>max_keyblock_size) max_keyblock_size=keyblock_size;
+      if (keyblock_size > max_keyblock_size)
+        max_keyblock_size=keyblock_size;
       if (keyblock_size==0) {
         /* It is empty, so we don't even need to handle this entry. */
         values[i]=EMPTY;
@@ -1374,12 +1381,14 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
-      if (ref.size>0) buckets[n_to_fetch++]=ref;
+      if (ref.size>0)
+        buckets[n_to_fetch++]=ref;
       i++;}}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
-      if (ref.size>0) buckets[n_to_fetch++]=ref;
+      if (ref.size>0)
+        buckets[n_to_fetch++]=ref;
       i++;}
     fd_unlock_stream(s);}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
@@ -1517,8 +1526,10 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
     fd_unlock_stream(s);
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
-      if (ref.size>0) buckets[n_to_fetch++]=ref;
-      if (ref.size>max_keyblock_size) max_keyblock_size=ref.size;
+      if (ref.size>0)
+        buckets[n_to_fetch++]=ref;
+      if (ref.size>max_keyblock_size)
+        max_keyblock_size=ref.size;
       i++;}}
   else {
     while (i<n_buckets) {
@@ -2350,7 +2361,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
   fd_close_stream(stream,FD_STREAM_FREEDATA);
   fd_unlock_index(hx);
 
-  u8_log(fd_storage_loglevel,"HashIndexCommit",
+  u8_log(fd_storage_loglevel+1,"HashIndexCommit",
          "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
          n_keys,new_keys,total_keys,
          ix->indexid,u8_elapsed_time()-started);
