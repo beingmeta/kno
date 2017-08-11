@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-08-07 15:47+0000\n"
+"POT-Creation-Date: 2017-08-11 19:44+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -241,7 +241,7 @@ msgstr ""
 msgid "binding list"
 msgstr ""
 
-#: src/lisp/tables.c:3365
+#: src/lisp/tables.c:3367
 msgid "value is not a boolean"
 msgstr ""
 
@@ -375,7 +375,7 @@ msgstr ""
 msgid "oid"
 msgstr ""
 
-#: src/lisp/lisp.c:62 src/support/config.c:552 src/eval/eval.c:1388
+#: src/lisp/lisp.c:62 src/support/config.c:552 src/eval/eval.c:1390
 #: src/eval/opcodes.c:370 src/prims/dbprims.c:2445 src/prims/portprims.c:613
 #: src/eval/choiceops.c:1096 src/eval/choiceops.c:1129
 #: src/eval/choiceops.c:1148 src/eval/choiceops.c:1179
@@ -400,7 +400,7 @@ msgid "constant"
 msgstr ""
 
 #: src/lisp/lisp.c:67 src/eval/eval.c:1289 src/eval/modules.c:545
-#: src/eval/reflection.c:558
+#: src/eval/reflection.c:562
 msgid "symbol"
 msgstr ""
 
@@ -408,7 +408,7 @@ msgstr ""
 msgid "fcnid"
 msgstr ""
 
-#: src/lisp/lisp.c:69 src/eval/eval.c:2209
+#: src/lisp/lisp.c:69 src/eval/eval.c:2211
 msgid "lexref"
 msgstr ""
 
@@ -424,7 +424,7 @@ msgstr ""
 msgid "cdrcode"
 msgstr ""
 
-#: src/lisp/lisp.c:73 src/storage/pools.c:2341 src/prims/dbprims.c:270
+#: src/lisp/lisp.c:73 src/storage/pools.c:2351 src/prims/dbprims.c:270
 #: src/prims/dbprims.c:1458
 msgid "pool"
 msgstr ""
@@ -469,7 +469,7 @@ msgstr ""
 msgid "bigint"
 msgstr ""
 
-#: src/lisp/lisp.c:81 src/eval/eval.c:1389 src/eval/opcodes.c:155
+#: src/lisp/lisp.c:81 src/eval/eval.c:1391 src/eval/opcodes.c:155
 #: src/eval/opcodes.c:157 src/eval/opcodes.c:170 src/eval/opcodes.c:172
 msgid "pair"
 msgstr ""
@@ -523,8 +523,8 @@ msgstr ""
 msgid "builtin function"
 msgstr ""
 
-#: src/lisp/lisp.c:97 src/eval/eval.c:1305 src/eval/reflection.c:543
-#: src/eval/reflection.c:570
+#: src/lisp/lisp.c:97 src/eval/eval.c:1307 src/eval/reflection.c:543
+#: src/eval/reflection.c:574
 msgid "environment"
 msgstr ""
 
@@ -549,7 +549,7 @@ msgid "tailcall"
 msgstr ""
 
 #: src/lisp/lisp.c:103
-msgid "SCHEME procedure"
+msgid "lambda procedure"
 msgstr ""
 
 #: src/lisp/lisp.c:104
@@ -1097,7 +1097,7 @@ msgstr ""
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/storage/storage.c:294 src/storage/pools.c:2223 src/prims/dbprims.c:1090
+#: src/storage/storage.c:294 src/storage/pools.c:2233 src/prims/dbprims.c:1090
 #: src/prims/dbprims.c:1101 src/prims/dbprims.c:1109 src/prims/dbprims.c:1117
 #: src/prims/dbprims.c:1158 src/prims/dbprims.c:1171 src/prims/dbprims.c:1187
 #: src/prims/dbprims.c:1199 src/prims/dbprims.c:1210 src/prims/dbprims.c:1228
@@ -1438,15 +1438,15 @@ msgstr ""
 msgid "not a pool"
 msgstr ""
 
-#: src/storage/pools.c:2210
+#: src/storage/pools.c:2220
 msgid "Config mis-config"
 msgstr ""
 
-#: src/storage/pools.c:2346
+#: src/storage/pools.c:2356
 msgid "raw pool"
 msgstr ""
 
-#: src/storage/pools.c:2400
+#: src/storage/pools.c:2411
 msgid "Default location for new OID allocation"
 msgstr ""
 
@@ -1495,13 +1495,13 @@ msgid "Trace ipeval execution"
 msgstr ""
 
 #: src/drivers/filepool.c:732 src/drivers/oidpool.c:1605
-#: src/drivers/bigpool.c:1759
+#: src/drivers/bigpool.c:1798
 msgid "FileAlreadyExists"
 msgstr ""
 
 #: src/drivers/filepool.c:818 src/drivers/oidpool.c:1694
-#: src/drivers/bigpool.c:1661 src/drivers/fileindex.c:1216
-#: src/drivers/hashindex.c:2722
+#: src/drivers/bigpool.c:1700 src/drivers/fileindex.c:1216
+#: src/drivers/hashindex.c:2724
 msgid "cachelevel"
 msgstr ""
 
@@ -1634,15 +1634,15 @@ msgstr ""
 msgid "macro expansion"
 msgstr ""
 
-#: src/eval/eval.c:1649
+#: src/eval/eval.c:1651
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/eval/eval.c:1726 src/eval/eval.c:1736
+#: src/eval/eval.c:1728 src/eval/eval.c:1738
 msgid "server"
 msgstr ""
 
-#: src/eval/eval.c:2213
+#: src/eval/eval.c:2215
 msgid "coderef"
 msgstr ""
 
@@ -1670,11 +1670,11 @@ msgstr ""
 msgid "Bad binding expression"
 msgstr ""
 
-#: src/eval/sprocs.c:22
+#: src/eval/lambda.c:22
 msgid "Malformed argument list"
 msgstr ""
 
-#: src/eval/sprocs.c:23
+#: src/eval/lambda.c:23
 msgid "Bad procedure defining form"
 msgstr ""
 
@@ -2595,7 +2595,7 @@ msgstr ""
 msgid "Which modules to load"
 msgstr ""
 
-#: src/exe/fdconsole.c:842 src/exe/fdexec.c:220 src/exe/fdexec.c:225
+#: src/exe/fdconsole.c:842 src/exe/fdexec.c:222 src/exe/fdexec.c:227
 msgid "File to wait to exist before starting"
 msgstr ""
 
@@ -2619,11 +2619,11 @@ msgstr ""
 msgid "Too many configs to CHAIN"
 msgstr ""
 
-#: src/exe/fdexec.c:210
+#: src/exe/fdexec.c:212
 msgid "Max number of chars in strings output in error reports"
 msgstr ""
 
-#: src/exe/fdexec.c:215
+#: src/exe/fdexec.c:217
 msgid "Max number of sequence/choice elements to display in error reports"
 msgstr ""
 
