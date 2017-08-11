@@ -1863,8 +1863,11 @@ static int process_adds(struct FD_HASHINDEX *hx,
           s[i].commit_values = fd_simplify_choice(val);
           s[i].commit_replace = 0;
           i++;}
-        else {fd_decref(val); fd_decref(key);}
-        kvscan->kv_key = VOID; kvscan->kv_val = VOID;
+        else {
+          fd_decref(val);
+          fd_decref(key);}
+        kvscan->kv_key = VOID;
+        kvscan->kv_val = VOID;
         kvscan++;}
       e->bucket_len = 0;
       scan++;}
@@ -2074,7 +2077,7 @@ FD_FASTOP fd_off_t write_keybucket
     if (n_values==0) {}
     else if (n_values==1) {
       endpos = endpos+write_zvalue(hx,outstream,ke[i].ke_values);
-      fd_decref(ke[i].ke_values); 
+      fd_decref(ke[i].ke_values);
       ke[i].ke_values = VOID;}
     else {
       endpos = endpos+fd_write_zint(outstream,ke[i].ke_vref.off);
@@ -2202,14 +2205,19 @@ static int hashindex_commit(struct FD_INDEX *ix)
                                   schedule,schedule_size);
     schedule_size = process_adds(hx,&adds,&edits,&replaced_keys,
                                  schedule,schedule_size);
+
+
     fd_recycle_hashset(&replaced_keys);
-    
-    /* We're done with these tables */
+
+    /* We're done with these tables. Note that the two
+       process_adds/edits calls above basically (re)moved all of the
+       keyvalues into the schedule. */
     fd_reset_hashtable(&adds,0,0);
     fd_reset_hashtable(&edits,0,0);
 
     /* The commit schedule is now filled and we start generating a
-       bucket schedule. */
+       bucket schedule for reading the buckets to determine what goes
+       where. */
     /* We're going to write DTYPE representations of keys and values,
        so we create streams to buffer them */
     FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -2280,8 +2288,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
 
     /* March along the commit schedule (keys) and keybuckets (buckets)
        in parallel, extending each bucket.  This is where values are
-       written out and their offsets stored in the loaded bucket
-       structure. */
+       written out and their new offsets stored in the schedule. */
     sched_i = 0; bucket_i = 0; endpos = fd_endpos(stream);
     while (sched_i<schedule_size) {
       struct KEYBUCKET *kb = keybuckets[bucket_i];
