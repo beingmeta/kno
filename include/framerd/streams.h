@@ -383,7 +383,7 @@ FD_FASTOP int fd_chunk_ref_size(fd_offset_type offtype)
 
 FD_FASTOP int fd_bad_chunk(struct FD_CHUNK_REF *ref)
 {
-  return ( (ref->off >= 0) &&  (ref->size >= 0) );
+  return ( (ref->off < 0) || (ref->size < 0) );
 }
 
 typedef unsigned long long fd_ull;
