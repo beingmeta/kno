@@ -4,7 +4,8 @@
 
 (config! 'cachelevel 2)
 (config! 'optlevel 4)
-(config! 'logprocinfo #t)
+(config! 'logthreadinfo #t)
+(config! 'thread:logexit #f)
 
 (define (getflags)
   (choice->vector
@@ -130,9 +131,9 @@
 (defambda (copy-all-keys keyv old new (opts #f) (start (elapsed-time)))
   (let ((batchsize #f)
 	(n-batches #f)
-	(n-threads (mt/threadcount (getopt opts 'nthreads (config 'nthreads #default))))
 	(n (length keyv))
 	(count 0))
+
     (cond ((getopt opts 'batchsize) 
 	   (set! batchsize (getopt opts 'batchsize)))
 	  ((getopt opts 'nbatches) 
@@ -142,36 +143,46 @@
 	  ((config 'nbatches)
 	   (set! n-batches (config 'nbatches)))
 	  (else (set! batchsize 100000)))
+
     (cond (batchsize
 	   (set! n-batches 
 	     (+ (quotient n batchsize)
 		(if (zero? (remainder n batchsize)) 0 1))))
 	  (n-batches
 	   (set! batchsize
-	     (+ (quotient n batchsize)
+	     (+ (quotient n n-batches)
 		(if (zero? (remainder n batchsize)) 0 1)))))
+
     (let ((batches (make-vector n-batches #f))
+	  (default-nthreads
+	    (CONFIG 'NTHREADS (min (rusage 'ncpus) (quotient n-batches 3))))
 	  (counter (slambda (n)
 		     (set! count (+ count n))
 		     (cons count (elapsed-time start)))))
-      (dotimes (i n-batches)
-	(vector-set! batches i 
-		     (qc (elts keyv (* i batchsize) 
-			       (min (* (1+ i) batchsize) n)))))
-      (lognotice |BatchCopy|
-	"Copying " ($num n-batches) " of up to " ($num batchsize) " keys using "
-	(or n-threads "no") " threads")
-      (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!])))
-	(if (and (number? n-threads) (> n-threads 1))
-	    (let ((threads {}))
-	      (dotimes (i n-threads)
-		(thread/call copy-batches old new fifo counter))
-	      (thread/wait threads))
-	    (copy-batches old new fifo counter))))))
+
+	  (dotimes (i n-batches)
+	    (vector-set! batches i 
+			 (qc (elts keyv (* i batchsize) 
+				   (min (* (1+ i) batchsize) n)))))
+
+	  (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!]))
+		(n-threads (mt/threadcount (getopt opts 'nthreads default-nthreads))))
+
+	    (lognotice |BatchCopy|
+	      "Copying " ($num n-batches) " batches of "
+	      "~" ($num batchsize) " keys using "
+	      (or n-threads "no") " threads")
+	    
+	    (if (and (number? n-threads) (> n-threads 1))
+		(let ((threads {}))
+		  (dotimes (i n-threads)
+		    (set+! threads (thread/call copy-batches old new fifo counter)))
+		  (thread/wait threads))
+		(copy-batches old new fifo counter))))))
 
 (defslambda (merge+save! index table)
   (index-merge! index table)
-  (commit))
+  (commit index))
 
 (define (copy-batches from to fifo counter)
   (let ((batch (fifo/pop fifo))
@@ -184,11 +195,12 @@
 	(merge+save! to table)
 	(swapout from batch))
       (let ((count.time (counter (choice-size batch))))
-	(lognotice |Batch|
-	  "Copied " ($num (choice-size batch)) " in " (secs->string (elapsed-time batch-start)))
+	(loginfo |Batch|
+	  "Copied " ($num (choice-size batch)) " keys in " 
+	  (secs->string (elapsed-time batch-start)))
 	(lognotice |Overall|
-	  "Copied " ($num (car count.time)) 
-	  " in " (secs->string (elapsed-time (cdr count.time))))
+	  "Copied " ($num (car count.time)) " keys in "
+	  (secs->string (cdr count.time)))
 	(set! batch (fifo/pop fifo))
 	(set! batch-start (elapsed-time))))))
 
@@ -204,7 +216,9 @@
 	 (let* ((old (open-index from))
 		(keyv (index-keysvec old))
 		(new (make-new-index to old keyv)))
-	   (copy-all-keys keyv old new)))))
+	   (copy-all-keys keyv old new)
+	   (commit new)
+	   new))))
 
 (define (repack-index from)
   (let* ((base (basename from))
@@ -221,10 +235,12 @@
     (let* ((old (open-index from))
 	   (keyv (index-keysvec old))
 	   (new (make-new-index tmpfile old keyv)))
-      (copy-all-keys keyv old new))
+      (copy-all-keys keyv old new)
+      (commit new))
     (onerror (move-file from bakfile)
 	     (lambda (ex) (system "mv " from " " bakfile)))
     (onerror (move-file tmpfile from)
 	     (lambda (ex) (system "mv " tmpfile " " from)))))
 
 (optimize!)
+
