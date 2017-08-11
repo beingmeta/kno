@@ -20,6 +20,13 @@
 
 (define %loglevel %notice%)
 
+(define last-log (elapsed-time))
+(define log-freq 30)
+(defslambda (dolog?)
+  (cond ((< (elapsed-time last-log) log-freq) #f)
+	(else (set! last-log (elapsed-time)) #t)))
+
+
 ;;; MT/MAP
 
 (define (mt-iterfn fn vec args indexfn)
@@ -155,34 +162,31 @@
 
     (let ((batches (make-vector n-batches #f))
 	  (default-nthreads
-	    (CONFIG 'NTHREADS (min (rusage 'ncpus) (quotient n-batches 3))))
-	  (counter (slambda (n)
-		     (set! count (+ count n))
-		     (cons count (elapsed-time start)))))
+	    (CONFIG 'NTHREADS (max 1 (min (rusage 'ncpus) (quotient n-batches 3)))))
+	  (counter (slambda (delta)
+		     (set! count (+ count delta))
+		     `#[count ,count nkeys ,n
+			time ,(elapsed-time start)])))
 
-	  (dotimes (i n-batches)
-	    (vector-set! batches i 
-			 (qc (elts keyv (* i batchsize) 
-				   (min (* (1+ i) batchsize) n)))))
+      (dotimes (i n-batches)
+	(vector-set! batches i 
+		     (qc (elts keyv (* i batchsize) 
+			       (min (* (1+ i) batchsize) n)))))
 
-	  (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!]))
-		(n-threads (mt/threadcount (getopt opts 'nthreads default-nthreads))))
+      (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!]))
+	    (n-threads (mt/threadcount (getopt opts 'nthreads default-nthreads))))
 
-	    (lognotice |BatchCopy|
-	      "Copying " ($num n-batches) " batches of "
-	      "~" ($num batchsize) " keys using "
-	      (or n-threads "no") " threads")
+	(lognotice |BatchCopy|
+	  "Copying " ($num n-batches) " batches of "
+	  "~" ($num batchsize) " keys using "
+	  (or n-threads "no") " threads")
 	    
-	    (if (and (number? n-threads) (> n-threads 1))
-		(let ((threads {}))
-		  (dotimes (i n-threads)
-		    (set+! threads (thread/call copy-batches old new fifo counter)))
-		  (thread/wait threads))
-		(copy-batches old new fifo counter))))))
-
-(defslambda (merge+save! index table)
-  (index-merge! index table)
-  (commit index))
+	(if (and (number? n-threads) (> n-threads 1))
+	    (let ((threads {}))
+	      (dotimes (i n-threads)
+		(set+! threads (thread/call copy-batches old new fifo counter)))
+	      (thread/wait threads))
+	    (copy-batches old new fifo counter))))))
 
 (define (copy-batches from to fifo counter)
   (let ((batch (fifo/pop fifo))
@@ -194,15 +198,29 @@
 	  (store! table key (get from key)))
 	(merge+save! to table)
 	(swapout from batch))
-      (let ((count.time (counter (choice-size batch))))
+      (let ((status (counter (choice-size batch))))
 	(loginfo |Batch|
 	  "Copied " ($num (choice-size batch)) " keys in " 
 	  (secs->string (elapsed-time batch-start)))
-	(lognotice |Overall|
-	  "Copied " ($num (car count.time)) " keys in "
-	  (secs->string (cdr count.time)))
+	(when (and (> (elapsed-time last-log) log-freq) (dolog?))
+	  (lognotice |Overall|
+	    "Copied " ($num (get status 'count)) " keys"
+	    " (" (show% (get status 'count) (get status 'nkeys)) ") "
+	    " in " (secs->string (get status 'time))))
 	(set! batch (fifo/pop fifo))
 	(set! batch-start (elapsed-time))))))
+
+(defslambda (merge+save! index table (start (elapsed-time)))
+  (logdebug |Merge+Save|
+    "Merging " (table-size table) " into " index)
+  (index-merge! index table)
+  (logdebug |Merge+Save|
+    "Saving " (table-size table) " merged keys in " index)
+  (commit index)
+  (swapout index)
+  (loginfo |Merge+Save|
+    "Merged and saved " (table-size table) " for " index
+    " in " (secs->string (elapsed-time start))))
 
 (define (main from (to #f))
   (cond ((not to) (repack-index from))
