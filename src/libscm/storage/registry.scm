@@ -17,13 +17,13 @@
 (module-export! '{registry-slotid registry-spec
 		  registry-pool registry-index registry-server})
 
-(define %loglevel %notice%)
+(define %loglevel %warn%)
 
 ;; Not yet used
 (define default-registry #f)
 
-;; This determines whether the pool should use a bloom filter to
-;; optimize registration
+;; This determines whether the registry should use a bloom filter to
+;; optimize lookups of identifying keys
 (define use-bloom #f)
 (varconfig! registry:bloom use-bloom)
 

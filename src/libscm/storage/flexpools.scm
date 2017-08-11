@@ -7,7 +7,7 @@
 	      logger logctl fifo
 	      mttools stringfmts opts})
 
-(define %loglevel %debug%)
+(define %loglevel %warn%)
 
 (module-export! '{flexpool/next flexpool/start 
 		  flexpool/open flexpool/def
@@ -60,7 +60,7 @@
   (when (getopt opts 'flexbase)
     (store! metadata 'flexbase (getopt opts 'flexbase))
     (drop! (opt/find opts 'flexbase) 'flexbase))
-  (%watch "FLEXPOOL/OPEN" spec opts metadata)
+  (info%watch "FLEXPOOL/OPEN" spec opts metadata)
   (let ((pool (ref-pool spec opts)))
     (unless (or (fail? pool) (adjunct? pool))
       (let ((adjuncts (choice (poolctl pool 'metadata 'adjuncts) adjuncts)))
@@ -128,7 +128,7 @@
 	 (flexbase (poolctl pool 'metadata 'flexbase))
 	 (flexoff (if pool (base->flexoff base cap flexbase) 0))
 	 (root (dirname (pool-source pool))))
-    (%watch "REF-ADJUNCTS" base cap )
+    (debug%watch "REF-ADJUNCTS" pool base cap flexbase flexoff adjuncts)
     (do-choices (slotid (getkeys adjuncts))
       (if (test current slotid)
 	  (begin (unless (same-adjunct? (get adjuncts slotid) 
@@ -163,7 +163,8 @@
 	 (new-opts `#[base ,base capacity ,capacity
 		      adjunct always flexbase ,flexbase])
 	 (newpath (glom (textsubst path flexpool-suffix "") new-suffix)))
-    (%watch "REF-ADJUNCT" path newpath base flexbase flexoff capacity opts root)
+    (debug%watch "REF-ADJUNCT"
+      path newpath base flexbase flexoff capacity root opts)
     (flexpool/open (abspath newpath root)
      (if opts (cons new-opts opts) new-opts))))
 
@@ -365,7 +366,7 @@
 			 load ,(- end start)
 			 flexbase ,flexbase
 			 adjunct ,(if always-adjunct 'always #t)])
-	       (newpool (%wc flexpool/open newpath (cons opts+ opts))))
+	       (newpool (flexpool/open newpath (cons opts+ opts))))
 	  (copy-oids input newpool alloids start end batchsize nthreads)
 	  (loginfo |FLEXPOOL/SPLIT| "Copied " ($num (- end start)) " OIDs into " newpool)
 	  (commit newpool)
