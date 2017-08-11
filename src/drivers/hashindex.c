@@ -1246,24 +1246,12 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
   u8_free(ksched);
   {
     struct FD_INBUF vblock={0};
-    unsigned char *vbuf = u8_malloc(vbuf_size);
-    if (vbuf==NULL) {
-      u8_free(values); u8_free(vsched);
-      u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
-      return NULL;}
     while (vsched_size) {
       qsort(vsched,vsched_size,sizeof(struct VALUE_SCHEDULE),
             sort_vs_by_refoff);
       i = 0; while (i<vsched_size) {
         int j = 0, n_vals;
         fd_size_t next_size, block_size=vsched[i].vsched_chunk.size;
-        if (block_size>vbuf_size) {
-          unsigned char *newbuf = u8_realloc(vbuf,block_size);
-          if (newbuf) {vbuf=newbuf; vbuf_size=block_size;}
-          else {
-            u8_free(values); u8_free(vsched); u8_free(vbuf);
-            u8_seterr(fd_MallocFailed,"hashindex_fetchn",NULL);
-            return NULL;}}
         fd_open_block(stream,&vblock,
                       vsched[i].vsched_chunk.off,
                       vsched[i].vsched_chunk.size,1);
@@ -1302,7 +1290,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
                                           FD_CHOICE_REALLOC);
             values[index]=realv;
             read++;}}}}
-    u8_free(vbuf);}
+    fd_close_inbuf(&vblock);}
   u8_free(vsched);
 #if FD_DEBUG_HASHINDEXES
   u8_message("Finished reading %d keys from %s",n,hx->indexid);
