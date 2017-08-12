@@ -18,6 +18,9 @@
 (config! 'logprocinfo #t)
 (config! 'logthreadinfo #t)
 
+(define prefetch-keys #t)
+(varconfig! PREFECTCH prefetch-keys)
+
 (define %loglevel %notice%)
 
 (define last-log (elapsed-time))
@@ -139,6 +142,9 @@
   (let ((batchsize #f)
 	(n-batches #f)
 	(n (length keyv))
+	(modfn (getopt opts 'modfn #f))
+	(changed 0)
+	(removed 0)
 	(count 0))
 
     (cond ((getopt opts 'batchsize) 
@@ -158,15 +164,17 @@
 	  (n-batches
 	   (set! batchsize
 	     (+ (quotient n n-batches)
-		(if (zero? (remainder n batchsize)) 0 1)))))
+		(if (zero? (remainder n n-batches)) 0 1)))))
 
     (let ((batches (make-vector n-batches #f))
 	  (default-nthreads
 	    (CONFIG 'NTHREADS (max 1 (min (rusage 'ncpus) (quotient n-batches 3)))))
-	  (counter (slambda (delta)
+	  (counter (slambda (delta (modified 0) (dropped 0))
 		     (set! count (+ count delta))
-		     `#[count ,count nkeys ,n
-			time ,(elapsed-time start)])))
+		     (set! changed (+ changed modified))
+		     (set! removed (+ removed dropped))
+		     `#[count ,count changed ,changed removed ,removed
+			nkeys ,n time ,(elapsed-time start)])))
 
       (dotimes (i n-batches)
 	(vector-set! batches i 
@@ -184,31 +192,57 @@
 	(if (and (number? n-threads) (> n-threads 1))
 	    (let ((threads {}))
 	      (dotimes (i n-threads)
-		(set+! threads (thread/call copy-batches old new fifo counter)))
+		(set+! threads (thread/call copy-batches old new fifo modfn counter)))
 	      (thread/wait threads))
-	    (copy-batches old new fifo counter))))))
+	    (copy-batches old new fifo modfn counter))))))
 
-(define (copy-batches from to fifo counter)
+(define (copy-batches from to fifo modfn counter)
   (let ((batch (fifo/pop fifo))
-	(batch-start (elapsed-time)))
+	(batch-start (elapsed-time))
+	(modified 0)
+	(dropped 0))
     (while (exists? batch)
       (let ((table (make-hashtable (* 2 (choice-size batch)))))
-	(prefetch-keys! from batch)
+	(when prefetch-keys (prefetch-keys! from batch))
 	(do-choices (key batch) 
-	  (store! table key (get from key)))
+	  (let ((v (get from key)))
+	    (cond ((fail? v) (set! dropped (1+ dropped)))
+		  ((not modfn) (store! table key (get from key)))
+		  (else (let ((newv (modfn key (qc v))))
+			  (cond ((identical? v newv))
+				((exists? newv)
+				 (set! modified (1+ modified))
+				 (store! table key newv))
+				(else (set! dropped (1+ dropped)))))))))
 	(merge+save! to table)
 	(swapout from batch))
-      (let ((status (counter (choice-size batch))))
+      (let ((status (counter (choice-size batch) modified dropped)))
 	(loginfo |Batch|
-	  "Copied " ($num (choice-size batch)) " keys in " 
-	  (secs->string (elapsed-time batch-start)))
+	  "Copied " ($num (- (choice-size batch) dropped)) " keys "
+	  "in " (secs->string (elapsed-time batch-start))
+	  (unless (zero? dropped)
+	    (printout ", dropping " ($num dropped) " keys"))
+	  (unless (zero? modified)
+	    (printout ", modifying " ($num modified) " keys")))
 	(when (and (> (elapsed-time last-log) log-freq) (dolog?))
-	  (lognotice |Overall|
-	    "Copied " ($num (get status 'count)) " keys"
-	    " (" (show% (get status 'count) (get status 'nkeys)) ") "
-	    " in " (secs->string (get status 'time))))
+	  (let ((count (get status 'count))
+		(dropped (try (get status 'dropped) 0))
+		(modified (try (get status 'modified) 0))
+		(time (get status 'time))
+		(n (get status 'nkeys)))
+	    (lognotice |Overall|
+	      "Processed " ($num count) " keys" " (" (show% count n) ") "
+	      " in " (secs->string (get status 'time))
+	      (unless (zero? (- count dropped modified))
+		(printout ", copying " ($num (- count dropped modified)) " keys"))
+	      (unless (zero? dropped)
+		(printout ", dropping " ($num dropped) " keys"))))
+	  (unless (zero? modified)
+	    (printout ", modifying " ($count modified) " keys")))
 	(set! batch (fifo/pop fifo))
-	(set! batch-start (elapsed-time))))))
+	(set! batch-start (elapsed-time))
+	(set! modified 0)
+	(set! dropped 0)))))
 
 (defslambda (merge+save! index table (start (elapsed-time)))
   (logdebug |Merge+Save|
@@ -234,7 +268,7 @@
 	 (let* ((old (open-index from))
 		(keyv (index-keysvec old))
 		(new (make-new-index to old keyv)))
-	   (copy-all-keys keyv old new)
+	   (copy-all-keys keyv old new #f)
 	   (commit new)
 	   new))))
 
