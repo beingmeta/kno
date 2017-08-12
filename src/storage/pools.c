@@ -1800,7 +1800,7 @@ static void display_pool(u8_output out,fd_pool p,lispval lp)
   u8_string id = p->poolid;
   u8_string source = (p->pool_source) ? (p->pool_source) : (id);
   u8_string useid = ( (strchr(id,':')) || (strchr(id,'@')) ) ? (id) :
-    (u8_strchr(id,'/',1)) ? (u8_strchr(id,'/',-1)) : (id);
+    (u8_strchr(id,'/',1)) ? ((u8_strchr(id,'/',-1))+1) : (id);
   int n_cached=p->pool_cache.table_n_keys;
   int n_changed=p->pool_changes.table_n_keys;
   int is_adjunct = ( (p->pool_flags) & (FD_POOL_ADJUNCT) );

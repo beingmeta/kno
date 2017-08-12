@@ -1187,7 +1187,7 @@ static void display_index(u8_output out,fd_index ix,lispval lix)
   u8_string source = (ix->index_source) ? (ix->index_source) : (id);
   u8_string useid  =
     ( (strchr(id,':')) || (strchr(id,'@')) ) ? (id) :
-    (u8_strchr(id,'/',1)) ? (u8_strchr(id,'/',-1)) :
+    (u8_strchr(id,'/',1)) ? ((u8_strchr(id,'/',-1))+1) :
     (id);
   int cached = ix->index_cache.table_n_keys;
   int added = ix->index_adds.table_n_keys;
