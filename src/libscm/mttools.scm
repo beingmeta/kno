@@ -20,6 +20,8 @@
 		  mt/default-progress mt/noprogress mt/no-progress
 		  mt/custom-progress})
 
+(module-export! '{mt/batchup})
+
 (define default-threadcount 1.0)
 
 ;;; Utility functions
@@ -595,6 +597,31 @@
 		  (set! verbosity 2))))
       verbosity))
 (config-def! 'mtverbose config-verbosity)
+
+;;; Batchup
+
+(defambda (mt/batchup all (opts #f))
+  (let ((n-batches (getopt opts 'nbatches))
+	(batchsize (getopt opts 'batchsize))
+	(batchfn (getopt opts 'batchfn #f))
+	(n (choice-size all)))
+    (unless (or n-batches batchsize) (set! n-batches 17))
+    (if batchsize
+	(set! n-batches
+	  (+ (quotient n batchsize)
+	     (if (zero? (remainder n batchsize)) 0 1)))
+	(set! batchsize
+	  (+ (quotient n n-batches)
+	     (if (zero? (remainder n n-batches)) 0 1))))
+    (let ((batches (make-vector n-batches #f)))
+      (if batchfn
+	  (dotimes (i n-batches)
+	    (vector-set! batches i
+			 (batchfn i (qc (pick-n all batchsize (* i batchsize))))))
+	  (dotimes (i n-batches)
+	    (vector-set! batches i
+			 (qc (pick-n all batchsize (* i batchsize))))))
+      batches)))
 
 ;;; Utility prefetchers
 
