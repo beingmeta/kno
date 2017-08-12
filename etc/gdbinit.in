@@ -95,6 +95,9 @@ end
 define showoid
   print/x (fd_base_oids[(($arg0>>2)&0x3FF)]+($arg0>>12))
 end
+define oid
+  printf "  @%x/%x\n",((fd_base_oids[(($arg0>>2)&0x3FF)])>>32),(((fd_base_oids[(($arg0>>2)&0x3FF)])&0xFFFFFFFF)|($arg0>>12))
+end
 define showcar
   print/x (((struct FD_PAIR *)$arg0)->car)
   showtype $
