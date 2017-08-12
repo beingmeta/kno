@@ -634,7 +634,7 @@ static lispval xref_type_error(lispval x,lispval tag)
   return FD_ERROR_VALUE;
 }
 
-static lispval xref_op(struct FD_COMPOUND *c,long long i,lispval tag)
+static lispval xref_op(struct FD_COMPOUND *c,long long i,lispval tag,int free)
 {
   if ((VOIDP(tag)) || ((c->compound_typetag) == tag)) {
     if ((i>=0) && (i<c->compound_length)) {
@@ -645,11 +645,16 @@ static lispval xref_op(struct FD_COMPOUND *c,long long i,lispval tag)
       fd_incref(value);
       if (c->compound_ismutable)
         u8_unlock_mutex(&(c->compound_lock));
+      if (free) fd_decref((lispval)c);
       return value;}
     else {
       fd_seterr(fd_RangeError,"xref",NULL,(lispval)c);
+      if (free) fd_decref((lispval)c);
       return FD_ERROR_VALUE;}}
-  else return xref_type_error((lispval)c,tag);
+  else {
+    lispval err=xref_type_error((lispval)c,tag);
+    if (free) fd_decref((lispval)c);
+    return err;}
 }
 
 static lispval xref_opcode(lispval x,long long i,lispval tag)
@@ -659,16 +664,18 @@ static lispval xref_opcode(lispval x,long long i,lispval tag)
       return EMPTY;
     else return xref_type_error(x,tag);}
   else if (FD_COMPOUNDP(x))
-    return xref_op((struct FD_COMPOUND *)x,i,tag);
+    return xref_op((struct FD_COMPOUND *)x,i,tag,1);
   else if (CHOICEP(x)) {
     lispval results = EMPTY;
     DO_CHOICES(c,x) {
-      lispval r = xref_op((struct FD_COMPOUND *)c,i,tag);
+      lispval r = xref_op((struct FD_COMPOUND *)c,i,tag,0);
       if (FD_ABORTED(r)) {
         fd_decref(results); results = r;
         FD_STOP_DO_CHOICES;
         break;}
       else {CHOICE_ADD(results,r);}}
+    /* Need to free this */
+    fd_decref(x);
     return results;}
   else return fd_err(fd_TypeError,"xref",fd_lisp2string(tag),x);
 }
