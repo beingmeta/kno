@@ -58,6 +58,7 @@ typedef unsigned int fd_storage_flags;
 #define FD_STORAGE_NOSWAP		   0x040
 #define FD_STORAGE_NOERR		   0x080
 #define FD_STORAGE_PHASED		   0x100
+#define FD_STORAGE_REPAIR		   0x200
 
 #define FD_STORAGE_MAX_INIT_BITS	   0x800
 #define FD_STORAGE_MAX_STATE_BITS	   0x1000
