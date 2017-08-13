@@ -370,7 +370,8 @@ typedef enum FD_COMPRESS_TYPE {
 /* Full sized chunk refs, usually passed and returned but not
    directly stored on disk. */
 typedef struct FD_CHUNK_REF {
-  fd_off_t off; size_t size;} FD_CHUNK_REF;
+  fd_off_t off;
+  ssize_t size;} FD_CHUNK_REF;
 typedef struct FD_CHUNK_REF *fd_chunk_ref;
 
 FD_FASTOP int fd_chunk_ref_size(fd_offset_type offtype)
