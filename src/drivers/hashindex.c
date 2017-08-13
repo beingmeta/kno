@@ -1427,7 +1427,8 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   return results;
 }
 
-static struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
+static
+struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
 {
   struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
   fd_stream s = &(hx->index_stream);

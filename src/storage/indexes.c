@@ -658,7 +658,7 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
 {
   if (ix->index_handler->fetchinfo) {
     lispval keys=for_keys;
-    int n_fetched = 0, decref_keys;
+    int n_fetched = 0, decref_keys=0;
     struct FD_CHOICE *filter=NULL;
     if (PRECHOICEP(for_keys)) {
       keys=fd_make_simple_choice(for_keys);
@@ -679,16 +679,19 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
     init_cache_level(ix);
     struct FD_KEY_SIZE *fetched =
       ix->index_handler->fetchinfo(ix,filter,&n_fetched);
-    if ((n_fetched==0) && (ix->index_adds.table_n_keys==0))
-      return EMPTY;
+    if ((n_fetched==0) && (ix->index_adds.table_n_keys==0)) {
+      if (decref_keys) fd_decref(keys);
+      return EMPTY;}
     else if ((ix->index_adds.table_n_keys)==0) {
       fd_choice result = fd_alloc_choice(n_fetched);
       lispval *write = &(result->choice_0);
+      if (decref_keys) fd_decref(keys);
       int i = 0; while (i<n_fetched) {
         lispval key = fetched[i].keysizekey, pair;
         unsigned int n_values = fetched[i].keysizenvals;
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
-        *write++=pair; i++;}
+        *write++=pair;
+        i++;}
       u8_free(fetched);
       return fd_init_choice(result,n_fetched,NULL,
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
@@ -705,10 +708,14 @@ FD_EXPORT lispval fd_index_keysizes(fd_index ix,lispval for_keys)
         lispval key = fetched[i].keysizekey, pair;
         unsigned int n_values = fetched[i].keysizenvals;
         lispval added = fd_hashtable_get(&added_sizes,key,FD_INT(0));
-        n_values = n_values+fd_getint(added); fd_decref(added);
+        n_values = n_values+fd_getint(added);
         pair = fd_conspair(fd_incref(key),FD_INT(n_values));
-        *write++=pair; i++;}
-      fd_recycle_hashtable(&added_sizes); u8_free(fetched);
+        fd_decref(added);
+        *write++=pair;
+        i++;}
+      fd_recycle_hashtable(&added_sizes);
+      if (decref_keys) fd_decref(keys);
+      u8_free(fetched);
       return fd_init_choice(result,n_total,NULL,
                             FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
