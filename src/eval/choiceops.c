@@ -777,28 +777,33 @@ static lispval reduce_choice(lispval fn,lispval choice,lispval start,lispval par
         FD_STOP_DO_CHOICES;
         fd_decref(state);
         return items;}
-      else if (VOIDP(state)) state = fd_incref(items);
+      else if (VOIDP(state))
+        state = fd_incref(items);
       else if (EMPTYP(items)) {}
-      else if (CHOICEP(items)) {
+      else if (AMBIGP(items)) {
         DO_CHOICES(item,items) {
           lispval rail[2], next_state;
           rail[0]=item; rail[1]=state;
           next_state = fd_apply(fn,2,rail);
           if (FD_ABORTED(next_state)) {
-            fd_decref(state); fd_decref(items);
+            fd_decref(state);
+            fd_decref(items);
             FD_STOP_DO_CHOICES;
             return next_state;}
-          fd_decref(state); state = next_state;}}
+          fd_decref(state);
+          state = next_state;}}
       else {
         lispval item = items;
         lispval rail[2], next_state;
         rail[0]=item; rail[1]=state;
         next_state = fd_apply(fn,2,rail);
         if (FD_ABORTED(next_state)) {
-          fd_decref(state); fd_decref(items);
+          fd_decref(state);
+          fd_decref(items);
           FD_STOP_DO_CHOICES;
           return next_state;}
-        fd_decref(state); state = next_state;}
+        fd_decref(state);
+        state = next_state;}
       fd_decref(items);}
     return state;}
   else if (!(FD_APPLICABLEP(fn)))
