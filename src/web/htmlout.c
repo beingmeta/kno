@@ -293,7 +293,7 @@ static void output_value(u8_output out,lispval val,
     else u8_printf(out," <%s class='%s string' title='% characters'>“%k”</%s>",
                    eltname,classname,STRLEN(val),FD_STRDATA(val),eltname);
   else if (SYMBOLP(val))
-    u8_printf(out," <%s class='%s symbol'>%lk</%s>",
+    u8_printf(out," <%s class='%s symbol'>%k</%s>",
 	      eltname,classname,SYM_NAME(val),eltname);
   else if (NUMBERP(val))
     u8_printf(out," <%s class='%s number'>%lk</%s>",
@@ -374,9 +374,9 @@ static void output_value(u8_output out,lispval val,
   else if (PACKETP(val))
     if (FD_PACKET_LENGTH(val)>128)
       u8_printf(out," <%s class='%s long packet'>%lk</%s>",
-		eltname,classname,val,eltname);
+                eltname,classname,val,eltname);
     else u8_printf(out," <%s class='%s packet'>%lk</%s>",
-		   eltname,classname,val,eltname);
+                   eltname,classname,val,eltname);
   else {
     fd_ptr_type ptrtype=FD_PTR_TYPE(val);
     if (fd_type_names[ptrtype])
