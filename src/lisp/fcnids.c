@@ -91,8 +91,9 @@ FD_EXPORT lispval fd_set_fcnid(lispval id,lispval value)
         return fd_err(fd_InvalidFCNID,"fd_set_fcnid",NULL,id);}
       else {
         struct FD_CONS *current = block[block_off];
-        if (current == ((fd_cons)value))
-          return id;
+        if (current == ((fd_cons)value)) {
+          u8_unlock_mutex(&_fd_fcnid_lock);
+          return id;}
         block[block_off]=(fd_cons)value;
         fd_incref(value);
         fcn->fcnid = id;
@@ -134,7 +135,9 @@ FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value)
       else {
         struct FD_CONS *current = block[block_off];
         /* No longer registered */
-        if (current!=((fd_cons)value)) return 0;
+        if (current!=((fd_cons)value)) {
+          u8_unlock_mutex(&_fd_fcnid_lock);
+          return 0;}
         else block[block_off]=(fd_cons)NULL;
         u8_unlock_mutex(&_fd_fcnid_lock);
         return 1;}}}
