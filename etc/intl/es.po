@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-08-12 15:52+0000\n"
+"POT-Creation-Date: 2017-08-15 17:43+0000\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -109,7 +109,7 @@ msgstr ""
 msgid "No more valid persistent pointers"
 msgstr ""
 
-#: src/lisp/fcnids.c:186
+#: src/lisp/fcnids.c:189
 msgid "persistent pointer"
 msgstr ""
 
@@ -377,10 +377,10 @@ msgstr ""
 
 #: src/lisp/lisp.c:62 src/support/config.c:552 src/eval/eval.c:1390
 #: src/eval/opcodes.c:370 src/prims/dbprims.c:2445 src/prims/portprims.c:613
-#: src/eval/choiceops.c:1096 src/eval/choiceops.c:1129
-#: src/eval/choiceops.c:1148 src/eval/choiceops.c:1179
-#: src/eval/choiceops.c:1190 src/eval/choiceops.c:1194
-#: src/eval/choiceops.c:1195 src/prims/seqprims.c:326 src/prims/seqprims.c:349
+#: src/eval/choiceops.c:1101 src/eval/choiceops.c:1134
+#: src/eval/choiceops.c:1153 src/eval/choiceops.c:1184
+#: src/eval/choiceops.c:1195 src/eval/choiceops.c:1199
+#: src/eval/choiceops.c:1200 src/prims/seqprims.c:326 src/prims/seqprims.c:349
 #: src/text/texttools.c:2099 src/text/match.c:3551 src/text/match.c:3568
 #: src/text/match.c:3597 src/text/match.c:3629 src/exe/fdservlet.c:279
 #: src/exe/fdservlet.c:294 src/exe/fdservlet.c:312 src/exe/fdservlet.c:328
@@ -412,7 +412,7 @@ msgstr ""
 msgid "lexref"
 msgstr ""
 
-#: src/lisp/lisp.c:70 src/eval/opcodes.c:1323
+#: src/lisp/lisp.c:70 src/eval/opcodes.c:1330
 msgid "opcode"
 msgstr ""
 
@@ -429,7 +429,7 @@ msgstr ""
 msgid "pool"
 msgstr ""
 
-#: src/lisp/lisp.c:74 src/storage/indexes.c:980 src/storage/indexes.c:1501
+#: src/lisp/lisp.c:74 src/storage/indexes.c:987 src/storage/indexes.c:1508
 #: src/storage/frames.c:674 src/prims/dbprims.c:602 src/prims/dbprims.c:1433
 #: src/prims/dbprims.c:1445 src/prims/dbprims.c:1468
 msgid "index"
@@ -1314,27 +1314,27 @@ msgstr ""
 msgid "not an index"
 msgstr ""
 
-#: src/storage/indexes.c:1004
+#: src/storage/indexes.c:1011
 #, c-format
 msgid "!!!!!!! Error saving %d keys to %s after %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1008
+#: src/storage/indexes.c:1015
 #, c-format
 msgid "####### Saved %d updated keys to %s in %f secs"
 msgstr ""
 
-#: src/storage/indexes.c:1199
+#: src/storage/indexes.c:1206
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%lx \"%s\">"
 msgstr ""
 
-#: src/storage/indexes.c:1201
+#: src/storage/indexes.c:1208
 #, c-format
 msgid "#<%s %s (%s) cx=%d+%d%s #!%lx>"
 msgstr ""
 
-#: src/storage/indexes.c:1505
+#: src/storage/indexes.c:1512
 msgid "raw index"
 msgstr ""
 
@@ -1495,13 +1495,13 @@ msgid "Trace ipeval execution"
 msgstr ""
 
 #: src/drivers/filepool.c:732 src/drivers/oidpool.c:1605
-#: src/drivers/bigpool.c:1798
+#: src/drivers/bigpool.c:1811
 msgid "FileAlreadyExists"
 msgstr ""
 
 #: src/drivers/filepool.c:818 src/drivers/oidpool.c:1694
-#: src/drivers/bigpool.c:1700 src/drivers/fileindex.c:1216
-#: src/drivers/hashindex.c:2735
+#: src/drivers/bigpool.c:1713 src/drivers/fileindex.c:1216
+#: src/drivers/hashindex.c:2736
 msgid "cachelevel"
 msgstr ""
 
@@ -1650,7 +1650,7 @@ msgstr ""
 msgid "Invalid opcode"
 msgstr ""
 
-#: src/eval/opcodes.c:265 src/eval/opcodes.c:1036 src/eval/arith.c:227
+#: src/eval/opcodes.c:265 src/eval/opcodes.c:1043 src/eval/arith.c:227
 msgid "number"
 msgstr ""
 
@@ -1658,7 +1658,7 @@ msgstr ""
 msgid "number|string"
 msgstr ""
 
-#: src/eval/opcodes.c:1248
+#: src/eval/opcodes.c:1255
 msgid "opcode name"
 msgstr ""
 
@@ -1787,7 +1787,7 @@ msgstr ""
 
 #: src/eval/reflection.c:76 src/eval/reflection.c:91 src/eval/reflection.c:106
 #: src/eval/coreops.c:444 src/eval/choiceops.c:595 src/eval/choiceops.c:662
-#: src/eval/choiceops.c:805 src/eval/choiceops.c:858 src/prims/seqprims.c:558
+#: src/eval/choiceops.c:810 src/eval/choiceops.c:863 src/prims/seqprims.c:558
 #: src/prims/seqprims.c:592
 msgid "function"
 msgstr ""
@@ -1955,11 +1955,11 @@ msgstr ""
 msgid "uint"
 msgstr ""
 
-#: src/eval/choiceops.c:806
+#: src/eval/choiceops.c:811
 msgid "part"
 msgstr ""
 
-#: src/eval/choiceops.c:817
+#: src/eval/choiceops.c:822
 msgid "map function"
 msgstr ""
 
