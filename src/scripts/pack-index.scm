@@ -18,6 +18,9 @@
 (config! 'logprocinfo #t)
 (config! 'logthreadinfo #t)
 
+(define validate-oids #f)
+(varconfig! VALIDATE validate-oids config:boolean)
+
 (define prefetch-keys #t)
 (varconfig! PREFECTCH prefetch-keys)
 
@@ -28,7 +31,6 @@
 (defslambda (dolog?)
   (cond ((< (elapsed-time last-log) log-freq) #f)
 	(else (set! last-log (elapsed-time)) #t)))
-
 
 ;;; MT/MAP
 
@@ -205,7 +207,9 @@
       (let ((table (make-hashtable (* 2 (choice-size batch)))))
 	(when prefetch-keys (prefetch-keys! from batch))
 	(do-choices (key batch) 
-	  (let ((v (get from key)))
+	  (let ((v (if validate-oids
+		       (pick (get from key) valid-oid?)
+		       (get from key))))
 	    (cond ((fail? v) (set! dropped (1+ dropped)))
 		  ((not modfn) (store! table key (get from key)))
 		  (else (let ((newv (modfn key (qc v))))
