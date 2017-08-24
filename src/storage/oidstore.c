@@ -424,8 +424,13 @@ FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value)
     if (adj) return adjunct_test(adj,f,value);
     else {
       lispval v = fd_oid_get(f,slotid,VOID);
-      if (VOIDP(v)) return 0;
-      else {fd_decref(v); return 1;}}}
+      if (VOIDP(v))
+        return 0;
+      else if (FD_ABORTP(v))
+        return fd_interr(v);
+      else {
+        fd_decref(v);
+        return 1;}}}
   else {
     lispval smap; int retval;
     fd_adjunct adj = get_adjunct(p,slotid);
