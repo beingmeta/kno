@@ -25,6 +25,9 @@ lispval *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096]={fd_zero_pool_values,NULL};
 unsigned int fd_zero_pool_load = 0;
 static u8_mutex zero_pool_lock;
 
+const int _FD_OID_BUCKET_WIDTH=FD_OID_BUCKET_WIDTH;
+const int _FD_OID_BUCKET_MASK=FD_OID_BUCKET_MASK;
+
 FD_OID fd_base_oids[FD_N_OID_BUCKETS];
 struct FD_OID_BUCKET *fd_oid_buckets=NULL;
 int fd_n_base_oids = 0;

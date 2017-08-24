@@ -486,6 +486,9 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_OID_BASE_ID(x)     (((x)>>2)&(FD_OID_BUCKET_MASK))
 #define FD_OID_BASE_OFFSET(x) ((x)>>(FD_OID_BUCKET_WIDTH+2))
 
+FD_EXPORT const int _FD_OID_BUCKET_WIDTH;
+FD_EXPORT const int _FD_OID_BUCKET_MASK;
+
 FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len);
 FD_EXPORT int fd_b32_to_ulonglong(const char *digits,unsigned long long *out);
 FD_EXPORT long long fd_b32_to_longlong(const char *digits);

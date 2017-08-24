@@ -90,13 +90,13 @@ define showstring
   set print elements 16
 end
 define showsymbol
-  printf "%s\n",((struct FD_STRING *)(fd_symbol_names[((($arg0)>>2)&0x7FFFFF)]))->str_bytes
+  printf "%s\n",((struct FD_STRING *)(fd_symbol_names[((($arg0)>>2)&(0x7FFFFF))]))->str_bytes
 end
 define showoid
-  print/x (fd_base_oids[(($arg0>>2)&0x3FF)]+($arg0>>12))
+  print/x (fd_base_oids[(($arg0>>2)&(_FD_OID_BUCKET_MASK)]+($arg0>>(_FD_OID_BUCKET_WIDTH+2)))
 end
 define oid
-  printf "  @%x/%x\n",((fd_base_oids[(($arg0>>2)&0x3FF)])>>32),(((fd_base_oids[(($arg0>>2)&0x3FF)])&0xFFFFFFFF)|($arg0>>12))
+  printf "  @%x/%x\n",((fd_base_oids[(($arg0>>2)&(_FD_OID_BUCKET_MASK))])>>32),(((fd_base_oids[(($arg0>>2)&(_FD_OID_BUCKET_MASK))])&0xFFFFFFFF)|(($arg0&(0x7FFFFF))>>(_FD_OID_BUCKET_WIDTH+2)))
 end
 define showcar
   print/x (((struct FD_PAIR *)$arg0)->car)
