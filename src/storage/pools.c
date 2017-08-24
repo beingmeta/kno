@@ -508,7 +508,9 @@ FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
       if (retval<0) return FD_ERROR;
       else if (retval) {
         lispval v = fd_fetch_oid(p,oid);
-        if (FD_ABORTP(v)) return v;
+        if (FD_ABORTP(v)) {
+          fd_seterr("FetchFailed","fd_locked_oid_value",p->poolid,oid);
+          return v;}
         modify_readonly(v,0);
         fd_hashtable_store(&(p->pool_changes),oid,v);
         return v;}
@@ -516,7 +518,9 @@ FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
                          u8_strdup(p->pool_source),oid);}
     else if (smap == FD_LOCKHOLDER) {
       lispval v = fd_fetch_oid(p,oid);
-      if (FD_ABORTP(v)) return v;
+      if (FD_ABORTP(v)) {
+        fd_seterr("FetchFailed","fd_locked_oid_value",p->poolid,oid);
+        return v;}
       modify_readonly(v,0);
       fd_hashtable_store(&(p->pool_changes),oid,v);
       return v;}
@@ -1018,7 +1022,10 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
     lispval v = values[i];
     struct FD_KEYVAL *kv=fd_hashvec_get(oid,buckets,n_buckets);
     if (kv==NULL) {i++; continue;} /* Warning here? Abort? */
-    else if (kv->kv_val != v) { i++; continue;}
+    else if (kv->kv_val != v) {
+      i++;
+      fd_decref(v);
+      continue;}
     else if (!(CONSP(v))) {
       kv->kv_val=VOID;
       *unlock++=oids[i++];
@@ -1033,8 +1040,10 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
       else if (HASHTABLEP(v)) {
         if (FD_HASHTABLE_MODIFIEDP(v)) finished=0;}
       else {}
-      /* If anybody else has a pointer to this OID, don't swap it
-         out. */
+      /* We "swap out" the value (free, dereference, and unlock it) if:
+         1. it hasn't been modified since we picked it (finished) and
+         2. the only pointers to it are in *values and the hashtable
+            (refcount<=2) */
       if ((finished) && (FD_CONS_REFCOUNT(v)<=2)) {
         *unlock++=oids[i];
         fd_decref(cur);
@@ -1155,7 +1164,8 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
         struct FD_KEYVAL *kvlimit = kvscan+bucket_len;
         while (kvscan<kvlimit) {
           lispval key = kvscan->kv_key, val = kvscan->kv_val;
-          if (val == FD_LOCKHOLDER) {kvscan++; continue;}
+          if (val == FD_LOCKHOLDER) {
+            kvscan++; continue;}
           else if (savep(val,finished)) {
             *oidv++=key;
             *values++=val;
@@ -1359,6 +1369,9 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
     value = fd_hashtable_get(&(p->pool_changes),oid,VOID);
     if (value == FD_LOCKHOLDER) {
       value = fd_pool_fetch(p,oid);
+      if (FD_ABORTP(value)) {
+        fd_seterr("FetchFailed","fd_fetch_oid",p->poolid,oid);
+        return value;}
       modify_readonly(value,0);
       fd_hashtable_store(&(p->pool_changes),oid,value);
       return value;}
@@ -1371,7 +1384,9 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
       CHOICE_ADD(fd_pool_delays[p->pool_serialno],oid);
       return EMPTY;}
     else value = fd_pool_fetch(p,oid);}
-  if (FD_ABORTP(value)) return value;
+  if (FD_ABORTP(value)) {
+    fd_seterr("FetchFailed","fd_fetch_oid",p->poolid,oid);
+    return value;}
   if (fdtc) fd_hashtable_store(&(fdtc->oids),oid,value);
   return value;
 }
