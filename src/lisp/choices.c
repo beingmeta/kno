@@ -144,21 +144,32 @@ static int compress_choice(lispval *v,int n,int atomicp)
 {
   lispval *write = v, *scan = v, *limit = v+n, pt;
   if (n == 0) return n;
-  pt = *scan++; *write++=pt;
+  pt = *scan++;
+  if (EMPTYP(pt)) {
+    while ( (EMPTYP(pt)) && (scan<limit) )
+      pt=*scan++;
+    if (!(EMPTYP(pt))) *write++=pt;}
+  else *write++=pt;
   /* We separate out the atomic and cons cases because we can do
      pointer comparisons for the atomic cases. */
   if (atomicp)
-    while (scan < limit)
-      if (pt== *scan) {
+    while (scan < limit) {
+      lispval elt = *scan;
+      if (FD_EMPTYP(elt)) {
+        scan++;}
+      else if (pt== elt) {
         scan++;
         while ((scan<limit) && (pt== *scan)) scan++;}
-      else *write++=pt = *scan++;
-  else while (scan < limit)
-    if (cons_compare(pt,*scan)==0) {
-      fd_decref(*scan); scan++;
-      while ((scan<limit) && (cons_compare(pt,*scan)==0)) {
-        fd_decref(*scan); scan++;}}
-    else *write++=pt = *scan++;
+      else *write++=pt = *scan++;}
+  else while (scan < limit) {
+      lispval elt = *scan;
+      if (FD_EMPTYP(elt)) {
+        scan++;}
+      else if (cons_compare(pt,elt)==0) {
+        fd_decref(*scan); scan++;
+        while ((scan<limit) && (cons_compare(pt,*scan)==0)) {
+          fd_decref(*scan); scan++;}}
+      else *write++=pt = *scan++;}
   return write-v;
 }
 
@@ -296,7 +307,10 @@ lispval fd_init_choice
   else if (flags&FD_CHOICE_COMPRESS)
     newlen = compress_choice((lispval *)base,n,atomicp);
   else newlen = n;
-  if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
+  if (newlen == 0) {
+    if (flags&FD_CHOICE_REALLOC) u8_free(ch);
+    return FD_EMPTY;}
+  else if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
     lispval v = base[0];
     u8_free(ch);
     return v;}
