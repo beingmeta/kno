@@ -488,14 +488,26 @@ static void pool_conflict(fd_pool upstart,fd_pool holder)
 
 FD_EXPORT lispval fd_oid_value(lispval oid)
 {
-  if (EMPTYP(oid)) return oid;
-  else if (OIDP(oid)) return fd_fetch_oid(NULL,oid);
+  if (EMPTYP(oid))
+    return oid;
+  else if (OIDP(oid)) {
+    lispval v = fd_fetch_oid(NULL,oid);
+    if (FD_ABORTP(v))
+      return v;
+    else if (v==FD_UNALLOCATED_OID) {
+      fd_pool p = fd_oid2pool(oid);
+      fd_seterr(fd_UnallocatedOID,"fd_oid_value",
+                (p)?(p->poolid):((u8_string)"no pool"),oid);
+      return FD_ERROR_VALUE;}
+    else return v;}
   else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
 
 FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
 {
-  if ( (p->pool_handler->lock == NULL) ||
+  if (PRED_FALSE(!(OIDP(oid))))
+    return fd_type_error(_("OID"),"fd_locked_oid_value",oid);
+  else if ( (p->pool_handler->lock == NULL) ||
        (U8_BITP(p->pool_flags,FD_POOL_VIRTUAL)) ||
        (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) ) {
     return fd_fetch_oid(p,oid);}
@@ -505,12 +517,18 @@ FD_EXPORT lispval fd_locked_oid_value(fd_pool p,lispval oid)
     lispval smap = fd_hashtable_get(&(p->pool_changes),oid,VOID);
     if (VOIDP(smap)) {
       int retval = fd_pool_lock(p,oid);
-      if (retval<0) return FD_ERROR;
+      if (retval<0)
+        return FD_ERROR;
       else if (retval) {
         lispval v = fd_fetch_oid(p,oid);
         if (FD_ABORTP(v)) {
           fd_seterr("FetchFailed","fd_locked_oid_value",p->poolid,oid);
           return v;}
+        else if (v==FD_UNALLOCATED_OID) {
+          fd_pool p = fd_oid2pool(oid);
+          fd_seterr(fd_UnallocatedOID,"fd_locked_oid_value",
+                    (p)?(p->poolid):((u8_string)"no pool"),oid);
+          return FD_ERROR_VALUE;}
         modify_readonly(v,0);
         fd_hashtable_store(&(p->pool_changes),oid,v);
         return v;}
@@ -1372,7 +1390,7 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
       if (FD_ABORTP(value)) {
         fd_seterr("FetchFailed","fd_fetch_oid",p->poolid,oid);
         return value;}
-      modify_readonly(value,0);
+      if (FD_CONSP(value)) modify_readonly(value,0);
       fd_hashtable_store(&(p->pool_changes),oid,value);
       return value;}
     else return value;}
