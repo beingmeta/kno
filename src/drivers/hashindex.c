@@ -973,8 +973,9 @@ static lispval read_values
            "In '%s', the number of stored values "
            "for %q, %lld != %lld (expected)",
            hx->indexid,key,n_read,n_values);
-    fd_seterr("InconsistentValueSize","read_values",NULL,key);
+    /* This makes freeing the pointer work */
     result->choice_size=n_read;
+    fd_seterr("InconsistentValueSize","read_values",NULL,key);
     fd_decref_ptr(result);
     u8_free(vbuf);
     return FD_ERROR;}
