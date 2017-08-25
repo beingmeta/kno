@@ -24,7 +24,8 @@
 #include <stdarg.h>
 
 fd_exception fd_BadAdjunct=_("Bad adjunct table"),
-  fd_AdjunctError=_("Pool adjunct error");
+  fd_AdjunctError=_("Pool adjunct error"),
+  fd_BadOIDValue=_("Bad OID store value");
 
 /* TODO: Fix finish/modify semantics
 
@@ -329,7 +330,13 @@ FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value)
   if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_add(adj,f,value);}
+      return adjunct_add(adj,f,value);
+    else {
+      u8_byte _details[200];
+      u8_string details=
+        u8_sprintf(_details,sizeof(_details),"%q",slotid);
+      fd_seterr(fd_AnonymousOID,"fd_oid_add",details,f);
+      return -1;}}
   lispval smap; int retval;
   fd_adjunct adj = get_adjunct(p,slotid);
   if (adj) return adjunct_add(adj,f,value);
@@ -340,7 +347,17 @@ FD_EXPORT int fd_oid_add(lispval f,lispval slotid,lispval value)
     retval = fd_slotmap_add(FD_XSLOTMAP(smap),slotid,value);
   else if (SCHEMAPP(smap))
     retval = fd_schemap_add(FD_XSCHEMAP(smap),slotid,value);
-  else retval = fd_add(smap,slotid,value);
+  else if (FD_TABLEP(smap))
+    retval = fd_add(smap,slotid,value);
+  else {
+    FD_OID addr = FD_OID_ADDR(f);
+    u8_byte _details[200];
+    u8_string details=
+      u8_sprintf(_details,sizeof(_details),"@%lx/%lx(%s)",
+                 FD_OID_HI(addr),FD_OID_LO(addr),
+                 p->poolid);
+    fd_seterr(fd_BadOIDValue,"fd_oid_add",details,smap);
+    retval=-1;}
   fd_decref(smap);
   return retval;
 }
@@ -351,7 +368,13 @@ FD_EXPORT int fd_oid_store(lispval f,lispval slotid,lispval value)
   if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_store(adj,f,value);}
+      return adjunct_store(adj,f,value);
+    else {
+      u8_byte _details[200];
+      u8_string details=
+        u8_sprintf(_details,sizeof(_details),"%q",slotid);
+      fd_seterr(fd_AnonymousOID,"fd_oid_store",details,f);
+      return -1;}}
   lispval smap; int retval;
   fd_adjunct adj = get_adjunct(p,slotid);
   if (adj) return adjunct_store(adj,f,value);
@@ -364,7 +387,17 @@ FD_EXPORT int fd_oid_store(lispval f,lispval slotid,lispval value)
     else retval = fd_slotmap_store(FD_XSLOTMAP(smap),slotid,value);
   else if (SCHEMAPP(smap))
     retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,value);
-  else retval = fd_store(smap,slotid,value);
+  else if (FD_TABLEP(smap))
+    retval = fd_store(smap,slotid,value);
+  else {
+    FD_OID addr = FD_OID_ADDR(f);
+    u8_byte _details[200];
+    u8_string details=
+      u8_sprintf(_details,sizeof(_details),"@%lx/%lx(%s)",
+                 FD_OID_HI(addr),FD_OID_LO(addr),
+                 p->poolid);
+    fd_seterr(fd_BadOIDValue,"fd_oid_store",details,smap);
+    retval=-1;}
   fd_decref(smap);
   return retval;
 }
@@ -375,7 +408,12 @@ FD_EXPORT int fd_oid_delete(lispval f,lispval slotid)
   if (PRED_FALSE(p == NULL)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_store(adj,f,EMPTY);}
+      return adjunct_store(adj,f,EMPTY);else {
+      u8_byte _details[200];
+      u8_string details=
+        u8_sprintf(_details,sizeof(_details),"%q",slotid);
+      fd_seterr(fd_AnonymousOID,"fd_oid_delete",details,f);
+      return -1;}}
   lispval smap; int retval;
   fd_adjunct adj = get_adjunct(p,slotid);
   if (adj) return adjunct_store(adj,f,EMPTY);
@@ -386,8 +424,17 @@ FD_EXPORT int fd_oid_delete(lispval f,lispval slotid)
     retval = fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
   else if (SCHEMAPP(smap))
     retval = fd_schemap_store(FD_XSCHEMAP(smap),slotid,EMPTY);
-  else retval = fd_store(smap,slotid,EMPTY);
-  fd_decref(smap);
+  else if (FD_TABLEP(smap))
+    retval = fd_store(smap,slotid,EMPTY);
+  else {
+    FD_OID addr = FD_OID_ADDR(f);
+    u8_byte _details[200];
+    u8_string details=
+      u8_sprintf(_details,sizeof(_details),"@%lx/%lx(%s)",
+                 FD_OID_HI(addr),FD_OID_LO(addr),
+                 p->poolid);
+    fd_seterr(fd_BadOIDValue,"fd_oid_delete",details,smap);
+    retval=-1;}  fd_decref(smap);
   return retval;
 }
 
@@ -397,7 +444,13 @@ FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value)
   if (PRED_FALSE(p == NULL))  {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj)
-      return adjunct_drop(adj,f,EMPTY);}
+      return adjunct_drop(adj,f,EMPTY);
+    else {
+      u8_byte _details[200];
+      u8_string details=
+        u8_sprintf(_details,sizeof(_details),"%q",slotid);
+      fd_seterr(fd_AnonymousOID,"fd_oid_drop",details,f);
+      return -1;}}
   lispval smap; int retval;
   fd_adjunct adj = get_adjunct(p,slotid);
   if (adj) return adjunct_drop(adj,f,value);
@@ -408,7 +461,17 @@ FD_EXPORT int fd_oid_drop(lispval f,lispval slotid,lispval value)
     retval = fd_slotmap_drop(FD_XSLOTMAP(smap),slotid,value);
   else if (SCHEMAPP(smap))
     retval = fd_schemap_drop(FD_XSCHEMAP(smap),slotid,value);
-  else retval = fd_drop(smap,slotid,value);
+  else if (FD_TABLEP(smap))
+    retval = fd_drop(smap,slotid,value);
+  else {
+    FD_OID addr = FD_OID_ADDR(f);
+    u8_byte _details[200];
+    u8_string details=
+      u8_sprintf(_details,sizeof(_details),"@%lx/%lx(%s)",
+                 FD_OID_HI(addr),FD_OID_LO(addr),
+                 p->poolid);
+    fd_seterr(fd_BadOIDValue,"fd_oid_drop",details,smap);
+    retval=-1;}
   fd_decref(smap);
   return retval;
 }
@@ -418,7 +481,13 @@ FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value)
   fd_pool p = fd_oid2pool(f);
   if (PRED_FALSE(p == NULL))  {
     fd_adjunct adj = get_adjunct(p,slotid);
-    if (adj) return adjunct_test(adj,f,value);}
+    if (adj) return adjunct_test(adj,f,value);
+    else {
+      u8_byte _details[200];
+      u8_string details=
+        u8_sprintf(_details,sizeof(_details),"%q",slotid);
+      fd_seterr(fd_AnonymousOID,"fd_oid_drop",details,f);
+      return -1;}}
   if (VOIDP(value)) {
     fd_adjunct adj = get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
@@ -444,9 +513,17 @@ FD_EXPORT int fd_oid_test(lispval f,lispval slotid,lispval value)
       retval = fd_schemap_test((fd_schemap)smap,slotid,value);
     else if (TABLEP(smap))
       retval = fd_test(smap,slotid,value);
+    else if (FD_EMPTYP(smap))
+      return 0;
     else {
-      fd_decref(smap);
-      return 0;}
+      FD_OID addr = FD_OID_ADDR(f);
+      u8_byte _details[200];
+      u8_string details=
+        u8_sprintf(_details,sizeof(_details),"@%lx/%lx(%s)",
+                   FD_OID_HI(addr),FD_OID_LO(addr),
+                   p->poolid);
+      fd_seterr(fd_BadOIDValue,"fd_oid_test",details,smap);
+      retval=-1;}
     fd_decref(smap);
     return retval;}
 }
