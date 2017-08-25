@@ -7,6 +7,7 @@
 (define testindex #f)
 
 (define threaded #f)
+(varconfig! THREADED threaded)
 
 (define slotids-vec
   #(type in-file created defines expr atoms 
@@ -184,7 +185,9 @@
     
     ;; Analyze the specified files
     (if threaded
-	(thread/wait (thread/call analyze+commit (elts files) pool index))
+	(begin (thread/wait (thread/call analyze+commit
+				(elts files) pool index))
+	  (commit))
 	(dolist (file files) 
 	  (analyze-file file pool index)
 	  (commit))))
@@ -193,8 +196,7 @@
 (define (analyze+commit file pool index)
   (analyze-file file pool index)
   (commit pool)
-  (commit index)
-  (commit))
+  (commit index))
 
 (define (checkoids pool index)
   (message "Testing basic OID functionality for " pool)
