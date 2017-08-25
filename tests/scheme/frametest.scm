@@ -1,10 +1,12 @@
-(use-module '{fileio logger})
+(use-module '{fileio logger varconfig})
 
 (config! 'CHECKDTSIZE #t)
 
 (define dbsource #f)
 (define testpool #f)
 (define testindex #f)
+
+(define threaded #f)
 
 (define slotids-vec
   #(type in-file created defines expr atoms 
@@ -181,11 +183,19 @@
     (index-frame index noslots-oid '%id 'noslots)
     
     ;; Analyze the specified files
-    (dolist (file files) 
-      (analyze-file file pool index)
-      (commit)))
+    (if threaded
+	(thread/wait (thread/call analyze+commit (elts files) pool index))
+	(dolist (file files) 
+	  (analyze-file file pool index)
+	  (commit))))
   (message "Done building DB"))
   
+(define (analyze+commit file pool index)
+  (analyze-file file pool index)
+  (commit pool)
+  (commit index)
+  (commit))
+
 (define (checkoids pool index)
   (message "Testing basic OID functionality for " pool)
   (applytest #t oid? (string->lisp "@17/0"))
