@@ -393,10 +393,14 @@ typedef long long fd_ll;
 FD_FASTOP
 FD_CHUNK_REF fd_get_chunk_ref(unsigned int *offsets,
 			      fd_offset_type offtype,
-			      unsigned int offset)
+			      unsigned int offset,
+			      unsigned int offmax)
 {
   struct FD_CHUNK_REF result;
-  switch (offtype) {
+  if (offset>=offmax) {
+    result.off = 0; result.size = 0;
+    return result;}
+  else switch (offtype) {
   case FD_B32: {
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
     unsigned int word1 = fd_flip_word((offsets)[offset*2]);

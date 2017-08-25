@@ -822,7 +822,8 @@ static lispval hashindex_fetch(fd_index ix,lispval key)
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
   if (offdata)
-    keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
+    keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket,
+                                hx->index_n_buckets);
   else keyblock=fd_fetch_chunk_ref(stream,256,hx->index_offtype,bucket,0);
   if (fd_bad_chunk(&keyblock)) {
     fd_close_outbuf(&out);
@@ -1010,7 +1011,8 @@ static int hashindex_fetchsize(fd_index ix,lispval key)
   hashval = hash_bytes(out.buffer,dtype_len);
   bucket = hashval%(hx->index_n_buckets);
   if (offdata)
-    keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
+    keyblock = fd_get_chunk_ref(offdata,hx->index_offtype,bucket,
+                                hx->index_n_buckets);
   else keyblock = fd_fetch_chunk_ref
          (&(hx->index_stream),256,hx->index_offtype,bucket,0);
   if ( (keyblock.off<0) || (keyblock.size<0) )
@@ -1137,7 +1139,8 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
       /* Because we have an offsets table, we can use fd_get_chunk_ref,
          which doesn't touch the stream, and use it immediately. */
       ksched[n_entries].ksched_chunk =
-        fd_get_chunk_ref(offdata,hx->index_offtype,bucket);
+        fd_get_chunk_ref(offdata,hx->index_offtype,bucket,
+                         hx->index_n_buckets);
       size_t keyblock_size = ksched[n_entries].ksched_chunk.size;
       /* Track the max_keyblock_size, for a VLA below*/
       if (keyblock_size > max_keyblock_size)
@@ -1381,7 +1384,8 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
+      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
+                                          hx->index_n_buckets);
       if (ref.size>0)
         buckets[n_to_fetch++]=ref;
       i++;}}
@@ -1456,7 +1460,8 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
   if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
+      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
+                                          hx->index_n_buckets);
       if (ref.size>0) buckets[n_to_fetch++]=ref;
       i++;}}
   else {
@@ -1527,7 +1532,8 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
   if (offdata) {
     fd_unlock_stream(s);
     while (i<n_buckets) {
-      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i);
+      FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
+                                          hx->index_n_buckets);
       if (ref.size>0)
         buckets[n_to_fetch++]=ref;
       if (ref.size>max_keyblock_size)
@@ -2255,7 +2261,7 @@ static int hashindex_commit(struct FD_INDEX *ix)
       int bucket_last_key = sched_i;
       bucket_locs[changed_buckets].bucketno = bucket;
       bucket_locs[changed_buckets].bck_ref = (offdata) ?
-        (fd_get_chunk_ref(offdata,offtype,bucket)):
+        (fd_get_chunk_ref(offdata,offtype,bucket,hx->index_n_buckets)):
         (fd_fetch_chunk_ref(stream,256,offtype,bucket,1));
       while ( (bucket_last_key<schedule_size) &&
               (schedule[bucket_last_key].commit_bucket == bucket) )
@@ -2349,7 +2355,8 @@ static int hashindex_commit(struct FD_INDEX *ix)
   if (update_hashindex_ondisk
       (hx,hx->storage_xformat,total_keys,changed_buckets,bucket_locs,
        stream) >= 0) {
-    u8_removefile(recovery_file);
+    if (u8_file_existsp(recovery_file)) 
+      u8_removefile(recovery_file);
     u8_free(recovery_file);}
 
 #if FD_DEBUG_HASHINDEXES

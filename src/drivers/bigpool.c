@@ -41,6 +41,7 @@
 static lispval load_symbol, slotids_symbol;
 
 static void bigpool_setcache(fd_bigpool p,int level);
+static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size);
 
 static void use_bigpool(fd_bigpool bp)
 {
@@ -328,6 +329,7 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
     pool->bigpool_n_slotids = 0; pool->bigpool_slotids_length = 256;
     fd_init_hashtable(&(pool->slotcodes),256,NULL);}
   pool->pool_offdata = NULL;
+  pool->pool_maxoff = 0;
   if (read_only)
     U8_SETBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FD_STORAGE_READ_ONLY);
@@ -676,9 +678,13 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
       bigpool_finished(bp);
       return FD_UNALLOCATED_OID;}}
 
+  if ((bp->pool_offdata) && (offset>=bp->pool_maxoff))
+    update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
+
   unsigned int *offdata = bp->pool_offdata;
+  unsigned int off_len = bp->pool_maxoff;
   FD_CHUNK_REF ref = (offdata) ?
-    (fd_get_chunk_ref(offdata,bp->pool_offtype,offset)) :
+    (fd_get_chunk_ref(offdata,bp->pool_offtype,offset,off_len)) :
     (fd_fetch_chunk_ref(&(bp->pool_stream),256,bp->pool_offtype,
                           offset,0));
   lispval result;
@@ -704,6 +710,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
   use_bigpool(bp);
   lispval *values = u8_alloc_n(n,lispval);
   unsigned int *offdata = bp->pool_offdata;
+  unsigned int offdata_maxoff = bp->pool_maxoff;
   unsigned int load = bp->pool_load;
   if (offdata == NULL) {
     /* Don't bother being clever if you don't even have an offsets
@@ -716,6 +723,9 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
     unsigned int unlock_stream = 0;
     struct BIGPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct BIGPOOL_FETCH_SCHEDULE);
+  if (bp->pool_load>bp->pool_maxoff)
+    update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
+
 #if (!(HAVE_PREAD))
     fd_lock_stream(&(bp->pool_stream));
     unlock_stream = 1;
@@ -729,7 +739,7 @@ static lispval *bigpool_fetchn(fd_pool p,int n,lispval *oids)
       schedule[i].value_at = i;
       if (off<load)
         schedule[i].location =
-          fd_get_chunk_ref(offdata,bp->pool_offtype,off);
+          fd_get_chunk_ref(offdata,bp->pool_offtype,off,offdata_maxoff);
       else {
         fd_seterr(fd_UnallocatedOID,"bigpool_fetchn",p->poolid,oids[i]);
         break;}
@@ -814,6 +824,8 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   struct FD_STREAM _stream={0};
   struct FD_STREAM *stream =
     fd_init_file_stream(&_stream,fname,FD_FILE_MODIFY,-1,-1);
+  int chunk_ref_size = get_chunk_ref_size(bp);
+
 
   if (stream==NULL)
     return -1;
@@ -827,7 +839,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
   unsigned int load = bp->pool_load;
   u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
-  size_t recovery_size = 256+(get_chunk_ref_size(bp)*p->pool_capacity);
+  size_t recovery_size = 256+(chunk_ref_size*p->pool_capacity);
   ssize_t saved=fd_save_head(fname,recovery_file,recovery_size);
   if (saved<0)
     return saved;
@@ -943,6 +955,8 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   u8_log(fd_storage_loglevel+1,"BigpoolStore",
          "Stored %d oid values in bigpool %s in %f seconds",
          n,p->poolid,u8_elapsed_time()-started);
+
+  update_offdata_cache(bp,p->pool_cache_level,chunk_ref_size);
 
   /* Unlock the pool */
   fd_unlock_pool(p);
@@ -1457,7 +1471,7 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
   if ( (level < 2) && (offdata) ) {
     /* Unmap the offsets cache */
     int retval;
-    size_t offsets_size = bp->pool_load*chunk_ref_size;
+    size_t offsets_size = bp->pool_maxoff*chunk_ref_size;
     size_t header_size = 256+offsets_size;
     bp->pool_offdata = NULL;
     /* The address we pass to munmap is offdata-64 (not the 256 we
@@ -1471,17 +1485,35 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
       return 0;}
     else return 1;}
 
+  if (level < 2 ) return 1;
+
   if ( (LOCK_POOLSTREAM(bp,"bigpool_setcache")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
            "During bigpool_setcache for %s",bp->poolid);
     UNLOCK_POOLSTREAM(bp);
     return -1;}
 
-  if (level < 2 ) return 1;
-
   /* Everything below here requires a file descriptor */
 
-  if ( (level >= 2) && (bp->pool_offdata == NULL) ) {
+  if (level >= 2) {
+    if (bp->pool_offdata) {
+      /* Unmap the old offdata */
+      int max_off = bp->pool_maxoff;
+      size_t offdata_length = 256+((max_off)*get_chunk_ref_size(bp));
+      if (bp->pool_offdata) {
+        unsigned int *offdata=bp->pool_offdata;
+        bp->pool_offdata = NULL;
+        /* TODO: Be more careful about freeing/unmapping the
+           offdata. Users might get a seg fault rather than a "file not
+           open error". */
+        /* Since we were just reading, the buffer was only as big
+           as the load, not the capacity. */
+        int retval = munmap(offdata-64,offdata_length);
+        if (retval<0) {
+          u8_log(LOG_WARN,u8_strerror(errno),
+                 "bigpool_close:munmap offsets %s",bp->poolid);
+          errno = 0;}}}
+      
     unsigned int *newmmap;
     /* Sizes here are in bytes */
     size_t offsets_size = (bp->pool_load)*chunk_ref_size;
@@ -1496,7 +1528,9 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
       U8_CLEAR_ERRNO();
       UNLOCK_POOLSTREAM(bp);
       return 0;}
-    else bp->pool_offdata = newmmap+64;}
+    else {
+      bp->pool_offdata = newmmap+64;
+      bp->pool_maxoff = bp->pool_load;}}
   UNLOCK_POOLSTREAM(bp);
   return 1;
 }
@@ -1514,14 +1548,16 @@ static int update_offdata_cache(fd_bigpool bp,int level,int chunk_ref_size)
       fd_clear_errors(1);
       return 0;}
     else {
-      size_t offdata_length = chunk_ref_size*(bp->pool_load);
-      offdata=u8_zmalloc(offdata_length);
+      unsigned int load = bp->pool_load;
       fd_stream_start_read(s);
       fd_setpos(s,0x10);
       bp->pool_load = load = fd_read_4bytes(ins);
+      size_t offdata_length = chunk_ref_size*load;
+      offdata=u8_zmalloc(offdata_length);
       fd_setpos(s,0x100);
       fd_read_ints(readbuf,load,offdata);
       bp->pool_offdata = offsets;
+      bp->pool_maxoff = load;
       UNLOCK_POOLSTREAM(bp);
       return 1;}}
   else return 1;
@@ -1591,7 +1627,8 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
   double start = u8_elapsed_time();
 #if HAVE_MMAP
   if (new_load != cur_load) {
-    size_t old_header_size = 256+(cur_load*refsize);
+    int max_off = bp->pool_maxoff;
+    size_t old_header_size = 256+(max_off*refsize);
     size_t new_header_size = 256+(new_load*refsize);
     int retval = munmap(offdata-64,old_header_size);
     if (retval<0) {
@@ -1615,6 +1652,7 @@ static void reload_bigpool(fd_bigpool bp,int is_locked)
 #endif
   update_filetime(bp);
   bp->pool_offdata = offdata;
+  bp->pool_maxoff = new_load;
   bp->pool_load = new_load;
   fd_reset_hashtable(&(bp->pool_cache),-1,1);
   fd_reset_hashtable(&(bp->pool_changes),32,1);
@@ -1630,7 +1668,8 @@ static void bigpool_close(fd_pool p)
   fd_lock_pool(p,1);
   /* Close the stream */
   fd_close_stream(&(bp->pool_stream),0);
-  size_t offdata_length = 256+((bp->pool_load)*get_chunk_ref_size(bp));
+  int max_off = bp->pool_maxoff;
+  size_t offdata_length = 256+((max_off)*get_chunk_ref_size(bp));
   if (bp->pool_offdata) {
     unsigned int *offdata=bp->pool_offdata;
     bp->pool_offdata = NULL;
@@ -1672,9 +1711,10 @@ static lispval bigpool_getoids(fd_bigpool bp)
   fd_stream stream = &(bp->pool_stream);
   if (bp->pool_offdata) {
     unsigned int *offdata = bp->pool_offdata;
+    unsigned int offdata_maxoff = bp->pool_maxoff;
     while (i<load) {
       struct FD_CHUNK_REF ref=
-        fd_get_chunk_ref(offdata,bp->pool_offtype,i);
+        fd_get_chunk_ref(offdata,bp->pool_offtype,i,offdata_maxoff);
       if (ref.off>0) {
         FD_OID addr = FD_OID_PLUS(base,i);
         FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}

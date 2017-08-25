@@ -44,6 +44,7 @@ typedef struct FD_BIGPOOL {
   fd_compress_type pool_compression;
   fd_offset_type pool_offtype;
   unsigned int *pool_offdata;
+  unsigned int pool_maxoff;
   lispval *bigpool_slotids;
   lispval *bigpool_old_slotids;
   unsigned int bigpool_n_slotids;

@@ -620,9 +620,10 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
       return FD_UNALLOCATED_OID;}
 
   unsigned int *offdata = op->pool_offdata;
+  unsigned int offdata_len = op->pool_capacity;
   if (offdata) {
     FD_CHUNK_REF ref=
-      fd_get_chunk_ref(offdata,op->pool_offtype,offset);
+      fd_get_chunk_ref(offdata,op->pool_offtype,offset,offdata_len);
     if (ref.off<0) return FD_ERROR;
     else if (ref.off==0)
       return EMPTY;
@@ -670,6 +671,7 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
     return values;}
   else {
     unsigned int *offdata = op->pool_offdata;
+    unsigned int offdata_len = op->pool_capacity;
     struct OIDPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct OIDPOOL_FETCH_SCHEDULE);
     fd_lock_stream(&(op->pool_stream));
@@ -678,7 +680,8 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
       lispval oid = oids[i]; FD_OID addr = FD_OID_ADDR(oid);
       unsigned int off = FD_OID_DIFFERENCE(addr,base);
       schedule[i].value_at = i;
-      schedule[i].location = fd_get_chunk_ref(offdata,op->pool_offtype,off);
+      schedule[i].location =
+        fd_get_chunk_ref(offdata,op->pool_offtype,off,offdata_len);
       if (schedule[i].location.off<0) {
         fd_seterr(InvalidOffset,"oidpool_fetchn",p->poolid,oid);
         u8_free(schedule); u8_free(values);
@@ -917,8 +920,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_stream stream,
     unsigned int *offsets=
       u8_realloc(op->pool_offdata,refsize*(op->pool_capacity));
     if (offsets) {
-      op->pool_offdata = offsets;
-      op->pool_offdata_length = refsize*op->pool_capacity;}
+      op->pool_offdata = offsets;}
     else {
       u8_log(LOG_WARN,"Realloc failed","When writing offsets");
       return -1;}
@@ -1655,9 +1657,10 @@ static lispval oidpool_getoids(fd_oidpool op)
   fd_stream stream = &(op->pool_stream);
   if (op->pool_offdata) {
     unsigned int *offdata = op->pool_offdata;
+    unsigned int offdata_len = op->pool_capacity;
     while (i<load) {
       struct FD_CHUNK_REF ref=
-        fd_get_chunk_ref(offdata,op->pool_offtype,i);
+        fd_get_chunk_ref(offdata,op->pool_offtype,i,offdata_len);
       if (ref.off>0) {
         FD_OID addr = FD_OID_PLUS(base,i);
         FD_ADD_TO_CHOICE(results,fd_make_oid(addr));}
