@@ -1591,7 +1591,6 @@ static void shutdown_server(u8_condition reason)
       u8_log(LOG_WARN,"FDServlet/shutdown",
              "Couldn't remove pid file %s",pidfile);
     u8_free(filename);}
-  fd_recycle_hashtable(&pagemap);
 }
 
 static lispval servlet_status_string()

@@ -823,8 +823,8 @@ static lispval urlget(lispval url,lispval curl)
 }
 
 static lispval urlstream(lispval url,lispval handler,
-                        lispval payload,
-                        lispval curl)
+                         lispval payload,
+                         lispval curl)
 {
   if (!(FD_APPLICABLEP(handler)))
     return fd_type_error("applicable","urlstream",handler);
