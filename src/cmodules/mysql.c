@@ -30,7 +30,7 @@
 
 extern my_bool my_init(void);
 
-static lispval sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
+static lispval ssl_symbol, sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
 static lispval sslciphers_symbol, port_symbol, reconnect_symbol;
 static lispval timeout_symbol, connect_timeout_symbol;
 static lispval read_timeout_symbol, write_timeout_symbol, lazy_symbol;
@@ -162,9 +162,11 @@ static int setup_connection(struct FD_MYSQL *dbp)
   int retval = 0;
   lispval options = dbp->extdb_options;
   int timeout = -1, ctimeout = -1, rtimeout = -1, wtimeout = -1;
+  int ssl_mode = SSL_MODE_PREFERRED;
   U8_MAYBE_UNUSED char *option = NULL;
   if (!(FD_VOIDP(options))) {
     lispval port = fd_getopt(options,port_symbol,FD_VOID);
+    lispval ssl = fd_getopt(options,ssl_symbol,FD_VOID);
     lispval sslca = fd_getopt(options,sslca_symbol,FD_VOID);
     lispval sslcert = fd_getopt(options,sslcert_symbol,FD_VOID);
     lispval sslkey = fd_getopt(options,sslkey_symbol,FD_VOID);
@@ -175,6 +177,11 @@ static int setup_connection(struct FD_MYSQL *dbp)
     lispval rtoval = fd_getopt(options,read_timeout_symbol,FD_VOID);
     lispval wtoval = fd_getopt(options,write_timeout_symbol,FD_VOID);
     dbp->mysql_portno = ((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
+    if (FD_FALSEP(ssl))
+      ssl_mode=SSL_MODE_DISABLED;
+    else if (FD_TRUEP(ssl))
+      ssl_mode=SSL_MODE_REQUIRED;
+    else {}
     if (FD_FIXNUMP(toval)) timeout = FD_FIX2INT(toval);
     if (FD_FIXNUMP(ctoval)) ctimeout = FD_FIX2INT(ctoval);
     else ctimeout = timeout;
@@ -202,6 +209,8 @@ static int setup_connection(struct FD_MYSQL *dbp)
               ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
               ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
               ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
+  if (retval == RETVAL_OK) {
+    retval = mysql_options(dbp->mysqldb,MYSQL_OPT_SSL_MODE,&ssl_mode);}
   if (retval == RETVAL_OK) {
     my_bool reconnect = 0;
     retval = mysql_options(dbp->mysqldb,MYSQL_OPT_RECONNECT,&reconnect);}
@@ -1479,6 +1488,7 @@ FD_EXPORT int fd_init_mysql()
 
   port_symbol = fd_intern("PORT");
   reconnect_symbol = fd_intern("RECONNECT");
+  ssl_symbol = fd_intern("SSL");
   sslca_symbol = fd_intern("SSLCA");
   sslcert_symbol = fd_intern("SSLCERT");
   sslkey_symbol = fd_intern("SSLKEY");
