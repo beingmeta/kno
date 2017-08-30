@@ -1734,28 +1734,32 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
 {
   FD_INIT_CONS(p,fd_consed_pool_type);
   p->pool_base = base; p->pool_capacity = capacity;
-  p->pool_serialno = -1; p->pool_cache_level = -1;
+  p->pool_source = u8_strdup(source);
+  p->poolid = u8_strdup(id);
+  p->pool_handler = h;
   p->pool_flags = 0;
+  p->pool_opts = FD_FALSE;
+  p->pool_serialno = -1; p->pool_cache_level = -1;
+  p->pool_adjuncts = NULL;
+  p->pool_adjuncts_len = 0;
+  p->pool_n_adjuncts = 0;
+  p->pool_label = NULL;
+  p->pool_prefix = NULL;
+  p->pool_namefn = VOID;
+
+  /* Data tables */
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(p->pool_cache),fd_pool_cache_init);
   fd_make_hashtable(&(p->pool_changes),fd_pool_lock_init);
+
+  /* Metadata tables */
   FD_INIT_STATIC_CONS(&(p->pool_metadata),fd_slotmap_type);
   FD_INIT_STATIC_CONS(&(p->pool_props),fd_slotmap_type);
   fd_init_slotmap(&(p->pool_metadata),17,NULL);
   fd_init_slotmap(&(p->pool_props),17,NULL);
   u8_init_rwlock(&(p->pool_lock));
   u8_init_mutex(&(p->pool_save_lock));
-  p->pool_adjuncts = NULL;
-  p->pool_adjuncts_len = 0;
-  p->pool_n_adjuncts = 0;
-  p->pool_handler = h;
-  p->pool_source = u8_strdup(source);
-  p->poolid = u8_strdup(id);
-  p->pool_label = NULL;
-  p->pool_prefix = NULL;
-  p->pool_namefn = VOID;
-  p->pool_opts = FD_FALSE;
 }
 
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,lispval namefn)

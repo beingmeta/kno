@@ -39,6 +39,10 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
   memset(pp,0,sizeof(struct FD_EXTPOOL));
   fd_init_pool((fd_pool)pp,base,cap,&fd_procpool_handler,label,source);
+
+  pp->pool_flags |= FD_POOL_SPARSE;
+  pp->pool_opts = opts; fd_incref(opts);
+
   fd_register_pool((fd_pool)pp);
   pp->allocfn = poolopt(opts,"ALLOCFN");
   pp->fetchfn = poolopt(opts,"FETCHFN");
@@ -53,7 +57,6 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
   pp->pool_state = state;
   fd_incref(state);
   pp->pool_label = label;
-  pp->pool_flags |= FD_POOL_SPARSE;
   return (fd_pool)pp;
 }
 
