@@ -310,7 +310,7 @@ storage: storagebase pooltest indextest frametest
 
 pooltest:
 	@${header} "■■■■■■■■ Running pool tests ${TESTBASE} ${RUNCONF}"
-	@rm -f ${TESTBASE}.pool
+	@rm -f ${TESTBASE}.pool ${TESTBASE}.adjunct.pool
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool ${RUNCONF}
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=1 ${RUNCONF}
 	${RUN} ${FDX} pooltest.scm ${TESTSIZE} ${TESTBASE}.pool CACHELEVEL=2 ${RUNCONF}

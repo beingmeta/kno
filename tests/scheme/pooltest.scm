@@ -14,19 +14,35 @@
 (varconfig! compression compression #t)
 
 (define testpool #f)
+(define adjpool #f)
+
+(define (adjfile poolfile)
+  (string-subst poolfile ".pool" ".adjunct.pool"))
 
 (define (get-pool (poolfile poolfile) (opts #f))
   (cond (testpool testpool)
-	((file-exists? poolfile) (use-pool poolfile opts))
+	((file-exists? poolfile)
+	 (let ((p (use-pool poolfile opts))
+	       (a (open-pool (adjfile poolfile) (cons #[adjunct #t] opts))))
+	   (adjunct! p 'adjslot a)
+	   (set! testpool p)
+	   (set! adjpool a)
+	   p))
 	(else
-	 (make-pool poolfile
-		    (cons `#[type ,pooltype
-			     compression ,compression
-			     base @b001/0 
-			     capacity 100000
-			     metadata #[status fresh]
-			     offtype ,(config 'offtype 'B40)]
-			  opts)))))
+	 (let* ((make-opts 
+		 `#[type ,pooltype
+		    compression ,compression
+		    base @b001/0 
+		    capacity 100000
+		    metadata #[status fresh]
+		    offtype ,(config 'offtype 'B40)])
+		(p (make-pool poolfile (cons make-opts opts)))
+		(a (make-pool (string-subst poolfile ".pool" ".adjunct.pool") 
+			      (cons* #[adjunct #t] make-opts opts))))
+	   (adjunct! p 'adjslot a)
+	   (set! testpool p)
+	   (set! adjpool a)
+	   p))))
 
 (define (make-random-frame pool (interrupt #f))
   (let* ((seed (1+ (random 1000)))
@@ -37,6 +53,9 @@
 	 (n-slots (random 43))
 	 (rslots {}))
     (store! frame (intern (glom "SEED" seed)) frame)
+    (when (< (oid-offset frame) 42)
+      (when (odd? (oid-offset frame)) 
+	(store! frame 'adjslot (timestamp))))
     (dotimes (i n-slots)
       (let* ((r (random 200))
 	     (rslot (intern (stringout "SLOT" (* r seed)))))
@@ -50,6 +69,8 @@
   (and (exists number? (get frame 'seed))
        (exists number? (get frame 'n-slots))
        (= (get frame 'n-slots) (choice-size (getkeys frame)))
+       (or (> (oid-offset frame) 42) (even? (oid-offset frame))
+	   (timestamp? (get frame 'adjslot)))
        (let ((seed (get frame 'seed))
 	     (failed #f))
 	 (do-choices (rslot (get frame 'rslots))
@@ -86,11 +107,12 @@
 	      (rthreads (get-rthreads))
 	      (wthreads (get-wthreads)))
   (set! testcount (floor testcount))
-  (when (and reset (file-exists? poolfile))
-    (remove-file poolfile))
+  (when reset
+    (when (file-exists? poolfile) (remove-file poolfile))
+    (when (file-exists? (adjfile poolfile))
+      (remove-file (adjfile poolfile))))
   (let* ((init (not (file-exists? poolfile)))
 	 (pool (get-pool poolfile `#[readonly ,(not init)])))
-    (set! testpool pool)
     (if init
 	(logwarn |FreshPool| pool)
 	(logwarn |ExistingPool| pool))
@@ -119,4 +141,7 @@
     (swapout)
     (dotimes (i (quotient testcount 4)) 
       (applytest #t test-frame (random-oid pool)))
-    (logwarn |PoolTests3| "Passed still some more tests on " pool)))
+    (logwarn |PoolTests3| "Passed still some more tests on " pool)
+    (logwarn |AdjPoolTests| 
+      "Checking adjunct pool load")
+    (applytest 41 pool-load adjpool)))
