@@ -673,10 +673,11 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
   use_bigpool(bp);
   if (PRED_FALSE(offset>=bp->pool_load)) {
     /* It looks out of range, so double check by going to disk */
-    if (bp->pool_flags&FD_POOL_ADJUNCT) {}
-    else if (offset>=(bigpool_load(p))) {
+    if (offset>=(bigpool_load(p))) {
       bigpool_finished(bp);
-      return FD_UNALLOCATED_OID;}}
+      if (bp->pool_flags&FD_POOL_ADJUNCT)
+        return FD_EMPTY_CHOICE;
+      else return FD_UNALLOCATED_OID;}}
 
   if ((bp->pool_offdata) && (offset>=bp->pool_maxoff))
     update_offdata_cache(bp,bp->pool_cache_level,get_chunk_ref_size(bp));
@@ -826,7 +827,6 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     fd_init_file_stream(&_stream,fname,FD_FILE_MODIFY,-1,-1);
   int chunk_ref_size = get_chunk_ref_size(bp);
 
-
   if (stream==NULL)
     return -1;
 
@@ -870,6 +870,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
 
     FD_OID base = bp->pool_base;
+    int isadjunct = (bp->pool_flags) & (FD_POOL_ADJUNCT);
     size_t maxpos = get_maxpos(bp);
     fd_off_t endpos = fd_endpos(stream);
 
@@ -877,6 +878,7 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     /* We walk over all of the oids, Writing their values to disk and
        recording where we wrote them. */
       FD_OID addr = FD_OID_ADDR(oids[i]);
+      unsigned int offset = FD_OID_LO(addr)-FD_OID_LO(base);
       lispval value = values[i];
       ssize_t n_bytes = 0;
       if ( (FD_CONSTANTP(value)) &&
@@ -895,7 +897,9 @@ static int bigpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
       /* We keep track of value blocks in the file so we can determine
          how much space is being wasted. */
-      if (n_bytes) new_blocks++;
+      if (n_bytes) {
+        if ( (isadjunct) && (offset > load) ) load=offset;
+        new_blocks++;}
 
       /* Check for file format overflow */
       if ((endpos+n_bytes)>=maxpos) {
@@ -1137,7 +1141,8 @@ static int write_bigpool_load(fd_bigpool bp,
   else if (new_load>load) {
     int rv = fd_write_4bytes_at(stream,new_load,16);
     if (rv<0) return rv;
-    else return rv;}
+    bp->pool_load = new_load;
+    return rv;}
   else {
     return 0;}
 }
@@ -1199,6 +1204,7 @@ static int write_bigpool_metadata(fd_bigpool bp,fd_stream stream)
     fd_flush_stream(stream);
     fd_write_8bytes_at(stream,start_pos,FD_BIGPOOL_METADATA_POS);
     fd_write_4bytes_at(stream,end_pos-start_pos,FD_BIGPOOL_METADATA_POS+8);
+    fd_set_modified(metadata,0);
     return 1;}
   else return 0;
 }
@@ -1895,7 +1901,8 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
     generation=FD_FIX2INT(generation_opt);
   else generation=0;
 
-  if (storage_flags&FD_POOL_ADJUNCT) load=capacity;
+  /* !!! adjunct loads */
+  /* if (storage_flags&FD_POOL_ADJUNCT) load=capacity; */
 
   if (rv<0) return NULL;
   else rv = make_bigpool(spec,

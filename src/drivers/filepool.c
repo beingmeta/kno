@@ -222,7 +222,9 @@ static lispval file_pool_fetch(fd_pool p,lispval oid)
   fd_lock_pool((fd_pool)fp,0);
   if (PRED_FALSE(offset>=fp->pool_load)) {
     fd_unlock_pool((fd_pool)fp);
-    return FD_UNALLOCATED_OID;}
+    if ( (p->pool_flags) & (FD_POOL_ADJUNCT) )
+      return FD_EMPTY;
+    else return FD_UNALLOCATED_OID;}
   else if (fp->pool_offdata)
     data_pos = offget(fp->pool_offdata,offset);
   else {
@@ -351,7 +353,8 @@ static void write_file_pool_recovery_data
 
 static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
-  struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p; FD_OID base = p->pool_base;
+  FD_OID base = p->pool_base;
+  struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   /* This stores the offset where the DTYPE representation of each changed OID
      has been written, indexed by the OIDs position in *oids. */
   unsigned int *changed_offsets = u8_alloc_n(n,unsigned int);
@@ -361,6 +364,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_off_t endpos, pos_limit = 0xFFFFFFFF;
   unsigned int *tmp_offsets = NULL, old_size = 0;
   int i = 0, retcode = n, load;
+  int isadjunct = (p->pool_flags) & (FD_POOL_ADJUNCT);
   double started = u8_elapsed_time();
   fd_lock_pool(p,1);
   load = fp->pool_load;
@@ -382,19 +386,23 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
                 "file_pool_storen",fp->poolid,
                 oids[i]);
       retcode = -1; break;}
-    changed_offsets[i]=endpos; endpos = endpos+delta;
+    if ( (isadjunct) && (oid_off > load) ) load = oid_off;
+    changed_offsets[i]=endpos;
+    endpos = endpos+delta;
     i++;}
+  fp->pool_load = load;
   /* Write recovery information which can be used to restore the
      offsets table and load. */
   if (retcode<0) {}
-  else if ((fp->pool_offdata) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
+  else if ((fp->pool_offdata) &&
+           ((endpos+((fp->pool_load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
     fd_seterr(fd_PoolFileSizeOverflow,
               "file_pool_storen",fp->poolid,
               VOID);
     retcode = -1;}
   else if (fp->pool_offdata) {
-    int i = 0, load = fp->pool_load;
+    int i = 0;
     unsigned int *old_offsets = fp->pool_offdata;
     old_size = fp->pool_offdata_size;
     tmp_offsets = u8_alloc_n(load,unsigned int);
@@ -645,7 +653,8 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
       fd_hashtable_op(&(fp->pool_cache),fd_table_replace,changed_oid,VOID);
       oscan++; nscan++;}
   u8_free(fp->pool_offdata);
-  fp->pool_offdata = offsets; fp->pool_load = fp->pool_offdata_size = new_load;
+  fp->pool_offdata = offsets;
+  fp->pool_load = fp->pool_offdata_size = new_load;
   update_modtime(fp);
   if (lock) fd_unlock_pool(p);
 #endif

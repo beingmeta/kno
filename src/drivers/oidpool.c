@@ -614,10 +614,12 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
   fd_oidpool op = (fd_oidpool)p;
   FD_OID addr = FD_OID_ADDR(oid);
   int offset = FD_OID_DIFFERENCE(addr,op->pool_base);
-  if (PRED_FALSE(offset>=op->pool_load)) {
+  if (PRED_FALSE( offset >= op->pool_load )) {
     /* Double check by fetching the load */
-    if (offset>=(oidpool_load(p)))
-      return FD_UNALLOCATED_OID;}
+    if ( offset >= (oidpool_load(p)) )
+      if ( (p->pool_flags) & (FD_POOL_ADJUNCT) ) {
+        return FD_EMPTY_CHOICE;}
+      else return FD_UNALLOCATED_OID;}
 
   unsigned int *offdata = op->pool_offdata;
   unsigned int offdata_len = op->pool_capacity;
@@ -809,6 +811,8 @@ static ssize_t write_offdata
 
 static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
+  FD_OID base = p->pool_base;
+  int isadjunct = (p->pool_flags) & (FD_POOL_ADJUNCT);
   fd_oidpool op = (fd_oidpool)p;
   struct FD_STREAM *stream = &(op->pool_stream);
   struct FD_OUTBUF *outstream = fd_writebuf(stream);
@@ -822,8 +826,8 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   unsigned char *zbuf = u8_malloc(FD_INIT_ZBUF_SIZE);
   unsigned int i = 0, zbuf_size = FD_INIT_ZBUF_SIZE;
   unsigned int init_buflen = 2048*n;
-  FD_OID base = op->pool_base;
   size_t maxpos = get_maxpos(op);
+  unsigned int new_load = op->pool_load;
   fd_off_t endpos;
   if (init_buflen>262144) init_buflen = 262144;
   FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
@@ -832,6 +836,7 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     tmpout.buf_flags = tmpout.buf_flags|FD_USE_DTYPEV2|FD_IS_WRITING;
   while (i<n) {
     FD_OID addr = FD_OID_ADDR(oids[i]);
+    unsigned int offset = FD_OID_DIFFERENCE(addr,base);
     lispval value = values[i];
     int n_bytes = oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
@@ -847,7 +852,10 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
       UNLOCK_POOLSTREAM(op);
       return -1;}
 
-    saveinfo[i].chunk.off = endpos; saveinfo[i].chunk.size = n_bytes;
+    if ( (isadjunct) && (offset>new_load) ) new_load=offset;
+
+    saveinfo[i].chunk.off = endpos;
+    saveinfo[i].chunk.size = n_bytes;
     saveinfo[i].oidoff = FD_OID_DIFFERENCE(addr,base);
 
     endpos = endpos+n_bytes;
@@ -857,6 +865,7 @@ static int oidpool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 
   fd_lock_pool(p,1);
   write_offdata(op,stream,n,saveinfo);
+  op->pool_load = new_load;
   write_oidpool_load(op);
 
   u8_free(saveinfo);
