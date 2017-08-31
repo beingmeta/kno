@@ -1,6 +1,7 @@
 (in-module 'storage/flex)
 
 (use-module '{ezrecords stringfmts logger texttools})
+(use-module '{storage/adjuncts})
 
 (module-export! '{flexpool/start flexpool/ref
 		  flex/pools flex/poolcount
@@ -71,10 +72,14 @@
 	 (pools start-pool)
 	 (front start-pool))
     (lognotice |FlexPool| (write prefix) " = " start-pool)
+    (when (exists? (poolctl start-pool 'metadata 'adjuncts))
+      (adjuncts/init! start-pool))
     (store! basemap (pool-base start-pool) start-pool)
     (do-choices (other matching-files)
       (unless (equal? other start-file)
 	(let ((pool (use-pool other opts)))
+	  (when (exists? (poolctl pool 'metadata 'adjuncts))
+	    (adjuncts/init! pool))
 	  (lognotice |FlexPool| (write prefix) " + " pool)
 	  (set+! pools pool)
 	  (store! basemap (pool-base pool) pool)
@@ -105,7 +110,7 @@
 	pool))))
 
 (define (flexpool/delete! start-file)
-  (remove-file! start-file)
+  (when (file-exists? start-file) (remove-file! start-file))
   (do-choices (other (pick (getfiles (dirname (abspath start-file)))
 			   basename string-matches?
 			   `#(,(strip-suffix start-file ".pool")
@@ -129,6 +134,7 @@
     (let ((new (if (file-exists? path)
 		   (use-pool path (cons opts (flexpool-opts fp)))
 		   (make-pool path (cons opts (flexpool-opts fp))))))
+      (when (exists? (poolctl new 'metadata 'adjuncts)) (adjuncts/setup! new))
       (set-flexpool-pools! fp (choice new (flexpool-pools fp)))
       (set-flexpool-front! fp new)
       new)))
