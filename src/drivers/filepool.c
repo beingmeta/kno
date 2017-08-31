@@ -354,6 +354,7 @@ static void write_file_pool_recovery_data
 static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
 {
   FD_OID base = p->pool_base;
+  int isadjunct = (p->pool_flags) & (FD_POOL_ADJUNCT);
   struct FD_FILE_POOL *fp = (struct FD_FILE_POOL *)p;
   /* This stores the offset where the DTYPE representation of each changed OID
      has been written, indexed by the OIDs position in *oids. */
@@ -364,7 +365,6 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
   fd_off_t endpos, pos_limit = 0xFFFFFFFF;
   unsigned int *tmp_offsets = NULL, old_size = 0;
   int i = 0, retcode = n, load;
-  int isadjunct = (p->pool_flags) & (FD_POOL_ADJUNCT);
   double started = u8_elapsed_time();
   fd_lock_pool(p,1);
   load = fp->pool_load;
@@ -375,7 +375,7 @@ static int file_pool_storen(fd_pool p,int n,lispval *oids,lispval *values)
     FD_OID oid = FD_OID_ADDR(oids[i]);
     unsigned int oid_off = FD_OID_DIFFERENCE(oid,base);
     int delta = fd_write_dtype(fd_writebuf(stream),values[i]);
-    if (PRED_FALSE(oid_off>=load)) {
+    if (PRED_FALSE((!isadjunct) && (oid_off>=load))) {
       fd_seterr(fd_UnallocatedOID,
                 "file_pool_storen",fp->poolid,
                 oids[i]);
