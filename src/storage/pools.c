@@ -591,7 +591,8 @@ FD_EXPORT lispval fd_pool_fetch(fd_pool p,lispval oid)
             (U8_BITP(p->pool_flags,FD_POOL_NOLOCKS)) )
     modify_readonly(v,0);
   else modify_readonly(v,1);
-  if (p->pool_cache_level>0)
+  if ( ( (p->pool_cache_level) > 0) &&
+       ( ! ( (p->pool_flags) & (FD_STORAGE_VIRTUAL) ) ) )
     fd_hashtable_store(&(p->pool_cache),oid,v);
   return v;
 }
@@ -715,7 +716,10 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,lispval oids)
     if ( (changes->table_n_keys==0) ||
          /* This will store it in changes if it's already there */
          (fd_hashtable_op(changes,fd_table_replace_novoid,oids,v)==0) ) {}
-    else fd_hashtable_store(&(p->pool_cache),oids,v);
+    else if ( ( (p->pool_cache_level) > 0) &&
+              ( ! ( (p->pool_flags) & (FD_STORAGE_VIRTUAL) ) ) )
+      fd_hashtable_store(&(p->pool_cache),oids,v);
+    else {}
     if (fdtc) fd_hashtable_op(&(fdtc->oids),fd_table_store,oids,v);
     fd_decref(v);
     return 1;}
@@ -759,7 +763,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,lispval oids)
   if (p->pool_flags&FD_STORAGE_NOSWAP)
     return 0;
   else if (OIDP(oids)) {
-    fd_hashtable_store(cache,oids,VOID);
+    fd_hashtable_op(cache,fd_table_replace,oids,VOID);
     rv = 1;}
   else if (CHOICEP(oids)) {
     rv = FD_CHOICE_SIZE(oids);
@@ -785,6 +789,8 @@ FD_EXPORT lispval fd_pool_alloc(fd_pool p,int n)
 {
   lispval result = p->pool_handler->alloc(p,n);
   if (p == fd_zero_pool)
+    return result;
+  else if ( (p->pool_flags) & (FD_STORAGE_VIRTUAL) )
     return result;
   else if (OIDP(result)) {
     if (p->pool_handler->lock)
@@ -1391,7 +1397,8 @@ FD_EXPORT lispval fd_fetch_oid(fd_pool p,lispval oid)
         fd_seterr("FetchFailed","fd_fetch_oid",p->poolid,oid);
         return value;}
       if (FD_CONSP(value)) modify_readonly(value,0);
-      fd_hashtable_store(&(p->pool_changes),oid,value);
+      if ( ! ( (p->pool_flags) & (FD_STORAGE_VIRTUAL) ) )
+        fd_hashtable_store(&(p->pool_changes),oid,value);
       return value;}
     else return value;}
   if (p->pool_cache_level)
@@ -1976,6 +1983,9 @@ static int pool_store(fd_pool p,lispval key,lispval value)
       if (offset>cap) {
         fd_seterr(fd_PoolRangeError,"pool_store",fd_pool_id(p),key);
         return -1;}
+      else if ( (p->pool_flags & FD_STORAGE_VIRTUAL) &&
+                (p->pool_handler->storen) )
+        rv=p->pool_handler->storen(p,1,&key,&value);
       else if (p->pool_handler->lock == NULL) {
         rv = fd_hashtable_store(&(p->pool_cache),key,value);}
       else if (fd_pool_lock(p,key)) {
