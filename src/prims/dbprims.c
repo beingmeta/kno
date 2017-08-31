@@ -631,6 +631,25 @@ static lispval reset_mempool(lispval pool_arg)
   else return FD_INT(retval);
 }
 
+static lispval make_procpool(lispval label,
+                             lispval base,lispval cap,
+                             lispval opts,lispval state,
+                             lispval load)
+{
+  if (!(FD_UINTP(cap)))
+    return fd_type_error("uint","make_procpool",cap);
+  if (FD_VOIDP(load))
+    load=FD_FIXZERO;
+  else if (load == FD_DEFAULT_VALUE)
+    load=FD_FIXZERO;
+  else if (!(FD_UINTP(load)))
+    return fd_type_error("uint","make_mempool",load);
+  fd_pool p = fd_make_procpool
+    (FD_OID_ADDR(base),FIX2INT(cap),FIX2INT(load),
+     opts,state,CSTRING(label),NULL);
+return pool2lisp(p);
+}
+
 static lispval make_extpool(lispval label,lispval base,lispval cap,
                            lispval fetchfn,lispval savefn,
                            lispval lockfn,lispval allocfn,
@@ -3358,6 +3377,11 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("RESET-MEMPOOL",reset_mempool,1));
+
+  fd_idefn6(fd_scheme_module,"MAKE-PROCPOOL",make_procpool,4,
+            "Returns a pool implemented by userspace functions",
+            fd_string_type,FD_VOID,fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID,
+            -1,FD_VOID,-1,FD_VOID,fd_fixnum_type,FD_FIXZERO);
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim9x("MAKE-EXTPOOL",make_extpool,4,

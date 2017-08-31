@@ -71,6 +71,16 @@ static lispval indexctl_prim(int n,lispval *args)
   else return fd_index_ctl(ix,args[1],n-2,args+2);
 }
 
+static lispval indexctl_default_prim(int n,lispval *args)
+{
+  struct FD_INDEX *ix = fd_lisp2index(args[0]);
+  if (ix == NULL)
+    return FD_ERROR;
+  else if (!(SYMBOLP(args[1])))
+    return fd_err("BadIndexOp","indexctl_prim",NULL,args[1]);
+  else return fd_default_indexctl(ix,args[1],n-2,args+2);
+}
+
 static lispval poolctl_prim(int n,lispval *args)
 {
   struct FD_POOL *p = fd_lisp2pool(args[0]);
@@ -81,6 +91,15 @@ static lispval poolctl_prim(int n,lispval *args)
   else return fd_pool_ctl(p,args[1],n-2,args+2);
 }
 
+static lispval poolctl_default_prim(int n,lispval *args)
+{
+  struct FD_POOL *p = fd_lisp2pool(args[0]);
+  if (p == NULL)
+    return FD_ERROR;
+  else if (!(SYMBOLP(args[1])))
+    return fd_err("BadPoolOp","poolctl_prim",NULL,args[1]);
+  else return fd_default_poolctl(p,args[1],n-2,args+2);
+}
 /* The init function */
 
 static int scheme_driverfns_initialized = 0;
@@ -104,6 +123,9 @@ FD_EXPORT void fd_init_driverfns_c()
 
   fd_idefn(fd_xscheme_module,fd_make_cprimn("INDEXCTL",indexctl_prim,2));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("POOLCTL",poolctl_prim,2));
+
+  fd_idefn(fd_xscheme_module,fd_make_cprimn("INDEXCTL/DEFAULT",indexctl_default_prim,2));
+  fd_idefn(fd_xscheme_module,fd_make_cprimn("POOLCTL/DEFAULT",poolctl_default_prim,2));
 
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphash2,1));
   fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE2",lisphash2,1));
