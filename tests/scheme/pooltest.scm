@@ -135,6 +135,7 @@
       (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests1| "Passed some tests on " pool)
     (commit pool)
+    (commit adjpool)
     (dotimes (i (quotient testcount 4)) 
       (applytest #t test-frame (random-oid pool)))
     (logwarn |PoolTests2| "Passed some more tests on " pool)
