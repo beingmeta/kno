@@ -340,7 +340,12 @@ bigpoolzlibtest:
 bigpooltests: bigpooltest bigpool32test bigpool64test bigpoolsnappytest bigpoolzlibtest
 oidpooltests: oidpooltest oidpool32test oidpool64test
 
-pooltests pools: filepooltest oidpooltests bigpooltests
+flexpooltest:
+	@${header} "■■■■■■■■ Running flexpool tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
+	@${RUN} ${FDX} flextest.scm ${TESTBASE}flex.pool RESET=yes ${RUNCONF};
+	@${RUN} ${FDX} flextest.scm ${TESTBASE}flex.pool ${RUNCONF};
+
+pooltests pools: filepooltest oidpooltests bigpooltests flexpooltest
 
 .PHONY: pooltests pool
 
