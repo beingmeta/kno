@@ -37,11 +37,35 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
 			 u8_string label,u8_string source)
 {
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
-  memset(pp,0,sizeof(struct FD_EXTPOOL));
-  fd_init_pool((fd_pool)pp,base,cap,&fd_procpool_handler,label,source);
+  unsigned int flags = FD_STORAGE_ISPOOL | FD_STORAGE_VIRTUAL;
+  memset(pp,0,sizeof(struct FD_PROCPOOL));
+  fd_init_pool((fd_pool)pp,base,cap,
+	       &fd_procpool_handler,
+	       label,source);
 
-  pp->pool_flags |= FD_POOL_SPARSE;
-  pp->pool_opts = opts; fd_incref(opts);
+  if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
+    lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
+    if (FD_FALSEP(v))
+      pp->pool_cache_level=0;
+    else if (FD_FIXNUMP(v)) {
+      int ival=FD_FIX2INT(v);
+      pp->pool_cache_level=ival;}
+    else if ( (FD_TRUEP(v)) || (v == FD_DEFAULT_VALUE) ) {}
+    else u8_log(LOGCRIT,"BadCacheLevel",
+		"Invalid cache level %q specified for procpool %s",
+		v,label);
+    fd_decref(v);}
+
+  if (fd_testopt(opts,fd_intern("ADJUNCT"),FD_VOID))
+    flags |= FD_POOL_ADJUNCT;
+  if (fd_testopt(opts,fd_intern("READONLY"),FD_VOID))
+    flags |= FD_STORAGE_READ_ONLY;
+  if (!(fd_testopt(opts,fd_intern("REGISTER"),FD_VOID)))
+    flags |= FD_STORAGE_UNREGISTERED;
+  flags |= FD_POOL_SPARSE;
+
+  pp->pool_flags = flags;
+  pp->pool_opts = fd_getopt(opts,fd_intern("OPTS"),FD_FALSE);
 
   fd_register_pool((fd_pool)pp);
   pp->allocfn = poolopt(opts,"ALLOCFN");
@@ -57,6 +81,9 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
   pp->pool_state = state;
   fd_incref(state);
   pp->pool_label = label;
+
+  fd_register_pool((fd_pool)pp);
+
   return (fd_pool)pp;
 }
 
@@ -207,7 +234,7 @@ static lispval procpool_ctl(fd_pool p,lispval opid,int n,lispval *args)
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
   if (VOIDP(pp->ctlfn))
-    return 0;
+    return fd_default_poolctl(p,opid,n,args);
   else {
     lispval _argbuf[32], *argbuf=_argbuf;
     if (n+3>32) argbuf = u8_alloc_n(n+3,lispval);

@@ -1027,7 +1027,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix,lispval keys)
 {
   struct FD_HASHTABLE *cache = &(ix->index_cache);
-  if (((ix->index_flags)&FD_STORAGE_NOSWAP) || (cache->table_n_keys==0))
+  if (((ix->index_flags)&FD_STORAGE_NOSWAP) ||
+      (cache->table_n_keys==0))
     return;
   else if (VOIDP(keys)) {
     if ((ix->index_flags)&(FD_STORAGE_KEEP_CACHESIZE))
