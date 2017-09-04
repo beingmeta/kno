@@ -1,4 +1,4 @@
 [submodule "src/scheme"]
-	path = src/scheme
+	path = src/extmods
 	url = git@github.com:beingmeta/framerd-modules.git
 	branch = trunk

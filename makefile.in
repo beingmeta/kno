@@ -341,7 +341,7 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 CLEANDIRS=include/framerd src/drivers/headers 		\
 	src/lisp src/apply src/storage src/drivers	\
 	src/eval src/prims				\
-	src/text src/web src/scheme			\
+	src/text src/web src/extmods			\
 	src/cmodules					\
 	src/cmodules/ext/sundown 			\
 	src/cmodules/ext/tidy5 				\
@@ -438,14 +438,14 @@ SHARED_LIBS=lib/libfdcore@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
 	lib/libtexttools@suffix@.@mshared_suffix@
 
-SCHEME_MODULES=src/scheme/*.scm \
-	src/scheme/aws/*.scm src/scheme/brico/*.scm \
-	src/scheme/facebook/*.scm src/scheme/google/*.scm \
-	src/scheme/paypal/*.scm src/scheme/twitter/*.scm \
-	src/scheme/dropbox/*.scm \
-	src/scheme/misc/*.scm src/scheme/tests/*.scm \
-	src/scheme/safe/domutils/*.scm src/scheme/safe/knodules/*.scm \
-	src/scheme/safe/textindex/*.scm src/scheme/safe/jwt/*.scm \
+SCHEME_MODULES=src/extmods/*.scm \
+	src/extmods/aws/*.scm src/extmods/brico/*.scm \
+	src/extmods/facebook/*.scm src/extmods/google/*.scm \
+	src/extmods/paypal/*.scm src/extmods/twitter/*.scm \
+	src/extmods/dropbox/*.scm \
+	src/extmods/misc/*.scm src/extmods/tests/*.scm \
+	src/extmods/safe/domutils/*.scm src/extmods/safe/knodules/*.scm \
+	src/extmods/safe/textindex/*.scm src/extmods/safe/jwt/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
@@ -814,7 +814,10 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/scheme -name "*.scm" | \
+	@find src/libscm -name "*.scm" | \
+		grep -v module.scm | \
+		xargs etags -o SCHEMETAGS -a
+	@find src/extmods -name "*.scm" | \
 		grep -v module.scm | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
@@ -1127,7 +1130,7 @@ staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD;
-	cd src/scheme; git archive --prefix=framerd_@FDVERSION@/src/scheme/ \
+	cd src/extmods; git archive --prefix=framerd_@FDVERSION@/src/extmods/ \
 	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
 	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
@@ -1391,20 +1394,20 @@ install-standard-modules: install-module-source install-module-data
 
 install-module-source: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/scheme/*.scm 		\
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/extmods/*.scm 		\
 		$(DESTDIR)@builtin_module_dir@;
 	@for dir in $(MODULE_DIRS); do						\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo "Installing $${dir} module at $${install_dir}";			\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
-	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/scheme/$${dir}/*.scm	\
+	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/extmods/$${dir}/*.scm	\
 	      $${install_dir};							\
 	done;
 
 install-module-data: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying module data to @builtin_module_dir@;
 	@for dir in $(MODULE_DATA_DIRS); do					\
-	  src_dir="$(BUILD)/src/scheme/$${dir}";				\
+	  src_dir="$(BUILD)/src/extmods/$${dir}";				\
 	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
 	  echo Installing data from $${src_dir} to $${install_dir};		\
 	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
@@ -1414,7 +1417,7 @@ install-module-data: $(DESTDIR)@builtin_module_dir@
 install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modules
 	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
 			to @builtin_safe_module_dir@
-	@for safe_link in $(BUILD)/src/scheme/safe/*; do 			\
+	@for safe_link in $(BUILD)/src/extmods/safe/*; do 			\
           $(SUINSTALL) ln -sf `readlink $${safe_link}` 				\
 		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
@@ -1637,7 +1640,7 @@ dbtests: tests/dbtests.log
 # Meta operations
 
 update-modules:
-	git submodule update --remote --merge src/scheme
+	git submodule update --remote --merge src/extmods
 
 .PHONY: fdserv update-fdserv install-fdserv update-modules
 
