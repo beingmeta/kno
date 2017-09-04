@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define NO_ELSE {}
+
 /* Notes:
     A normal 32-bit hash index with N buckets consists of 256 bytes of
     header, followed by N*8 bytes of offset table, followed by an arbitrary
@@ -230,8 +232,8 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   int consed = U8_BITP(flags,FD_STORAGE_UNREGISTERED);
 
   unsigned int magicno, n_keys;
-  fd_off_t slotids_pos, baseoids_pos, metadata_loc;
-  fd_size_t slotids_size, baseoids_size, metadata_size;
+  fd_off_t slotids_pos, baseoids_pos, metadata_loc, metadata_size;
+  fd_size_t slotids_size, baseoids_size;
   fd_stream_mode mode=
     ((read_only) ? (FD_FILE_READ) : (FD_FILE_MODIFY));
   int stream_flags =
@@ -253,6 +255,12 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     read_only = 1;
   stream->stream_flags &= ~FD_STREAM_IS_CONSED;
   magicno = fd_read_4bytes_at(stream,0,FD_ISLOCKED);
+  if ( magicno != 0x8011308) {
+    fd_seterr3(fd_NotAFileIndex,"open_file_index",fname);
+    u8_free(index);
+    fd_close_stream(stream,FD_STREAM_FREEDATA|FD_STREAM_NOFLUSH);
+    return NULL;}
+
   index->index_n_buckets = fd_read_4bytes_at(stream,4,FD_ISLOCKED);
   index->index_offdata = NULL;
   index->storage_xformat = fd_read_4bytes_at(stream,8,FD_ISLOCKED);
@@ -327,7 +335,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
     index->index_ids2baseoids = NULL;}
 
   lispval metadata=FD_VOID;
-  if (metadata_loc) {
+  if (metadata_size) {
     if (fd_setpos(stream,metadata_loc)>0) {
       fd_inbuf in = fd_readbuf(stream);
       metadata = fd_read_dtype(in);}
@@ -566,10 +574,10 @@ FD_FASTOP unsigned int hash_combine(unsigned int x,unsigned int y)
   else return hash_mult(x,y);
 }
 
-FD_FASTOP unsigned int hash_bytes(unsigned char *start,int len)
+FD_FASTOP unsigned int hash_bytes(const unsigned char *start,int len)
 {
   unsigned int prod = 1, asint = 0;
-  unsigned char *ptr = start, *limit = ptr+len;
+  const unsigned char *ptr = start, *limit = ptr+len;
   /* Compute a starting place */
   while (ptr < limit) prod = prod+*ptr++;
   /* Now do a multiplication */
@@ -1262,7 +1270,7 @@ static lispval *fetchn(struct FD_HASHINDEX *hx,int n,lispval *keys)
             sort_vs_by_refoff);
       i = 0; while (i<vsched_size) {
         int j = 0, n_vals;
-        fd_size_t next_size, block_size=vsched[i].vsched_chunk.size;
+        fd_size_t next_size;
         fd_open_block(stream,&vblock,
                       vsched[i].vsched_chunk.off,
                       vsched[i].vsched_chunk.size,1);
@@ -2178,7 +2186,6 @@ static int hashindex_commit(struct FD_INDEX *ix)
   int new_keys = 0, n_keys, new_buckets = 0;
   int schedule_max, changed_buckets = 0, total_keys = hx->table_n_keys;
   int new_keyblocks = 0, new_valueblocks = 0;
-  fd_off_t recovery_start, recovery_pos;
   ssize_t endpos, maxpos = get_maxpos(hx);
   double started = u8_elapsed_time();
   unsigned int n_buckets = hx->index_n_buckets;
@@ -2711,9 +2718,11 @@ static lispval hashindex_stats(struct FD_HASHINDEX *hx)
   return result;
 }
 
-FD_EXPORT ssize_t fd_hashindex_bucket(lispval ixarg,lispval key,ssize_t modulate)
+FD_EXPORT ssize_t fd_hashindex_bucket(lispval ixarg,lispval key,
+                                      lispval mod_arg)
 {
   struct FD_INDEX *ix=fd_lisp2index(ixarg);
+  ssize_t modulate = (FD_FIXNUMP(mod_arg)) ? (FD_FIX2INT(mod_arg)) : (-1);
   if (ix==NULL) {
     fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
     return -1;}
@@ -2721,6 +2730,111 @@ FD_EXPORT ssize_t fd_hashindex_bucket(lispval ixarg,lispval key,ssize_t modulate
     fd_type_error("hashindex","fd_hashindex_bucket",ixarg);
     return -1;}
   else return hashindex_bucket(((struct FD_HASHINDEX *)ix),key,modulate);
+}
+
+/* Getting more key/bucket info */
+
+static lispval keyinfo_schema[4];
+
+FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
+                                       lispval min_count,
+                                       lispval max_count)
+{
+  fd_index ix = fd_lisp2index(lix);
+  if (ix == NULL)
+    return FD_ERROR_VALUE;
+  else if (ix->index_handler != &hashindex_handler)
+    return fd_err(_("NotAHashIndex"),"fd_hashindex_keyinfo",NULL,lix);
+  else NO_ELSE;
+  long long min_thresh =
+    (FD_FIXNUMP(min_count)) ? (FD_FIX2INT(min_count)) : (-1);
+  long long max_thresh =
+    (FD_FIXNUMP(min_count)) ? (FD_FIX2INT(max_count)) : (-1);
+  struct FD_HASHINDEX *hx = (struct FD_HASHINDEX *)ix;
+  fd_stream s = &(hx->index_stream);
+  unsigned int *offdata = hx->index_offdata;
+  fd_offset_type offtype = hx->index_offtype;
+  fd_inbuf ins = fd_readbuf(s);
+  int i = 0, n_buckets = (hx->index_n_buckets), total_keys;
+  int n_to_fetch = 0, key_count = 0;
+  fd_lock_stream(s);
+  fd_setpos(s,16); total_keys = fd_read_4bytes(ins);
+  if (total_keys==0) {
+    fd_unlock_stream(s);
+    return FD_EMPTY_CHOICE;}
+  struct FD_CHOICE *choice = fd_alloc_choice(total_keys);
+  lispval *elts  = (lispval *) FD_CHOICE_DATA(choice);
+  FD_CHUNK_REF *buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
+  int *bucket_no = u8_alloc_n(total_keys,unsigned int);
+  if (offdata) {
+    /* If we have chunk offsets in memory, we just read them off. */
+    fd_unlock_stream(s);
+    while (i<n_buckets) {
+      FD_CHUNK_REF ref =
+        fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
+      if (ref.size>0) {
+        bucket_no[n_to_fetch]=i;
+        buckets[n_to_fetch]=ref;
+        n_to_fetch++;}
+      i++;}}
+  else {
+    /* If we don't have chunk offsets in memory, we keep the stream
+       locked while we get them. */
+    while (i<n_buckets) {
+      FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
+      if (ref.size>0) {
+        bucket_no[n_to_fetch]=i;
+        buckets[n_to_fetch]=ref;
+        n_to_fetch++;}
+      i++;}
+    fd_unlock_stream(s);}
+  qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
+  struct FD_INBUF keyblkstrm={0};
+  i = 0; while (i<n_to_fetch) {
+    int j = 0, n_keys;
+    if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+      fd_close_inbuf(&keyblkstrm);
+      u8_free(buckets);
+      u8_free(bucket_no);
+      fd_decref_elts(elts,key_count);
+      return FD_EMPTY_CHOICE;}
+    n_keys = fd_read_zint(&keyblkstrm);
+    while (j<n_keys) {
+      size_t key_rep_len = fd_read_zint(&keyblkstrm);
+      const unsigned char *start = keyblkstrm.bufread;
+      lispval key = read_key(hx,&keyblkstrm);
+      int n_vals = fd_read_zint(&keyblkstrm);
+      assert(key!=0);
+      if ( ( (min_thresh < 0) || (n_vals > min_thresh) ) &&
+           ( (max_thresh < 0) || (n_vals < max_thresh) ) ) {
+        lispval *keyinfo_values=u8_alloc_n(4,lispval);
+        int hashval = hash_bytes(start,key_rep_len);
+        keyinfo_values[0] = key;
+        keyinfo_values[1] = FD_INT(n_vals);
+        keyinfo_values[2] = FD_INT(bucket_no[i]);
+        keyinfo_values[3] = FD_INT(hashval);
+        lispval sm = fd_make_schemap(NULL,4,0,keyinfo_schema,keyinfo_values);
+        elts[key_count++]=(lispval)sm;}
+      else fd_decref(key);
+      if (n_vals==0) {}
+      else if (n_vals==1) {
+        int code = fd_read_zint(&keyblkstrm);
+        if (code==0) {
+          lispval val=fd_read_dtype(&keyblkstrm);
+          fd_decref(val);}
+        else fd_read_zint(&keyblkstrm);}
+      else {
+        fd_read_zint(&keyblkstrm);
+        fd_read_zint(&keyblkstrm);}
+      j++;}
+    i++;}
+  fd_close_inbuf(&keyblkstrm);
+  u8_free(buckets);
+  u8_free(bucket_no);
+  return fd_init_choice(choice,key_count,NULL,
+                        FD_CHOICE_REALLOC|
+                        FD_CHOICE_ISCONSES|
+                        FD_CHOICE_DOSORT);
 }
 
 /* The control function */
@@ -2866,6 +2980,11 @@ FD_EXPORT void fd_init_hashindex_c()
   baseoids_symbol = fd_intern("BASEOIDS");
   buckets_symbol = fd_intern("BUCKETS");
   nkeys_symbol = fd_intern("KEYS");
+
+  keyinfo_schema[0] = fd_intern("KEY");
+  keyinfo_schema[1] = fd_intern("COUNT");
+  keyinfo_schema[2] = fd_intern("BUCKET");
+  keyinfo_schema[3] = fd_intern("HASH");
 
   u8_register_source_file(_FILEINFO);
 

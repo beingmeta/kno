@@ -115,5 +115,10 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 #define output_bytes(out,bytes,n) \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 
-FD_EXPORT ssize_t fd_hashindex_bucket(lispval index,lispval key,ssize_t modulate);
 FD_EXPORT int fd_hashindexp(struct FD_INDEX *ix);
+
+FD_EXPORT ssize_t fd_hashindex_bucket
+(lispval index,lispval key,lispval modulate);
+
+FD_EXPORT lispval fd_hashindex_keyinfo
+(lispval lix,lispval min_count,lispval max_count);
