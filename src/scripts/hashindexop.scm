@@ -138,13 +138,16 @@
 		     slotids ,(compute-slotids keyinfo)
 		     baseoids ,(sorted baseoids)
 		     metadata ,(get-metadata)]))
+  (lognotice |NewIndex| 
+    "Created new index with " ($num size) " buckets in " filename)
   (open-index filename))
 
-(defambda (copy-all-keys keyinfo old new (opts #f) (start (elapsed-time)))
+(defambda (copy-all-keys keyinfo old new (opts #f))
   (let ((batchsize (getopt opts 'batchsize (config 'batchsize 100000)))
 	(default-nthreads (CONFIG 'NTHREADS (max 1 (rusage 'ncpus))))
 	(bucketmap (make-hashtable (choice-size keyinfo)))
 	(total (choice-size keyinfo))
+	(new-size (indexctl new 'hash))
 	(batches '()))
 
     (lognotice |BatchCopy|
@@ -152,7 +155,8 @@
       "batches of > " ($num batchsize) " values")
 
     (do-choices (info keyinfo)
-      (add! bucketmap (get info 'bucket) info))
+      (add! bucketmap (remainder (get info 'hash) new-size)
+	    info))
 
     (let ((batch {})
 	  (size 0))
@@ -178,7 +182,8 @@
 	  (modfn (getopt opts 'modfn #f))
 	  (changed 0)
 	  (removed 0)
-	  (count 0))
+	  (count 0)
+	  (start (elapsed-time)))
       (let ((counter (slambda (delta (modified 0) (dropped 0))
 		       (set! count (+ count delta))
 		       (set! changed (+ changed modified))
@@ -271,15 +276,7 @@
 	 (logcrit |PackIndex| "Not overwriting " to))
 	((not (writable? to))
 	 (logcrit |PackIndex| "Can't write output file " to))
-	(else
-	 (when (file-exists? to) (remove-file to))
-	 (loginfo |PackIndex| "Copying index " from " into " to)
-	 (let* ((old (open-index from))
-		(keyinfo (get-keyinfo old (config 'MINCOUNT) (config 'MAXCOUNT)))
-		(new (make-new-index to old (qc keyinfo))))
-	   (copy-all-keys keyinfo old new #f)
-	   (commit new)
-	   new))))
+	(else (repack-index from to))))
 
 (define (file-mover src dest)
   (onerror (move-file src dest)
@@ -289,45 +286,38 @@
 	    (lambda (err2)
 	      (logwarn |SecondMoveFailed| "Couldn't just 'mv' " src " to " dest)
 	      (reraise err1))))))
-
+				 
 (define (repack-index from to)
-  (let ((tmpfile (or (config 'TMPFILE #f) (glom to ".part")))
-	(bakfile (config 'BAKFILE (and (equal? from to) (glom from ".bak")))))
+  (let* ((tmpfile (or (config 'TMPFILE #f) (glom to ".part")))
+	 (repack (equal? (realpath from) (realpath to)))
+	 (bakfile (config 'BAKFILE (and repack (glom from ".bak"))))
+	 (started (elapsed-time)))
+    (lognotice |PackIndex| 
+      (if repack "Repacking " "Copying ") from 
+      (unless repack (printout " into " to))
+      " via " tmpfile)
     (when (file-exists? tmpfile) (remove-file tmpfile))
     (pack-index from tmpfile)
-    (when bakfile (file-mover from bakfile))
+    (lognotice |PackIndex|
+      "Finished " (if repack "repacking " "copying ")
+      from
+      (unless repack (printout " into " tmpfile))
+      " in " (secs->string (elapsed-time started)))
+    (when bakfile 
+      (lognotice |PackIndex| 
+	"Saving original " (write from) " into " (write bakfile))
+      (file-mover from bakfile))
     (file-mover tmpfile to)))
 
 (define (pack-index from tofile)
-  (loginfo |PackIndex| "Copying index " from " into " tofile)
   (let* ((cur (open-index from))
-	 (keyinfo (get-keyinfo cur (config 'MINCOUNT) (config 'MAXCOUNT)))
+	 (keyinfo 
+	  (begin (lognotice |GatherKeyInfo| "From " cur)
+	    (get-keyinfo cur (config 'MINCOUNT) (config 'MAXCOUNT))))
 	 (new (make-new-index tofile cur (qc keyinfo))))
     (copy-all-keys keyinfo cur new #f)
     (commit new)
     new))
-
-(define (repack-index from)
-  (let* ((base (basename from))
-	 (tmpfile (or (config 'TMPFILE #f)
-		      (and (config 'TMPDIR #f)
-			   (mkpath (config 'TMPDIR)
-				   (string-append base ".tmp")))
-		      (string-append base ".tmp")))
-	 (bakfile (or (config 'BAKFILE #f)
-		      (string-append base ".bak"))))
-    (lognotice |PackIndex| 
-      "Repacking the index " from " using " tmpfile 
-      " and saving original in " bakfile)
-    (let* ((old (open-index from))
-	   (keyinfo (get-keyinfo old (config 'MINCOUNT) (config 'MAXCOUNT)))
-	   (new (make-new-index tmpfile old (qc keyinfo))))
-      (copy-all-keys keyinfo old new)
-      (commit new))
-    (onerror (move-file from bakfile)
-	     (lambda (ex) (system "mv " from " " bakfile)))
-    (onerror (move-file tmpfile from)
-	     (lambda (ex) (system "mv " tmpfile " " from)))))
 
 (optimize!)
 
