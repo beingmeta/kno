@@ -616,10 +616,10 @@ static lispval oidpool_fetch(fd_pool p,lispval oid)
   int offset = FD_OID_DIFFERENCE(addr,op->pool_base);
   if (PRED_FALSE( offset >= op->pool_load )) {
     /* Double check by fetching the load */
-    if ( offset >= (oidpool_load(p)) )
+    if ( offset >= (oidpool_load(p)) ) {
       if ( (p->pool_flags) & (FD_POOL_ADJUNCT) ) {
         return FD_EMPTY_CHOICE;}
-      else return FD_UNALLOCATED_OID;}
+      else return FD_UNALLOCATED_OID;}}
 
   unsigned int *offdata = op->pool_offdata;
   unsigned int offdata_len = op->pool_capacity;
