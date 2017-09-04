@@ -102,6 +102,7 @@ FD_EXPORT int fd_register_packet_unpacker
 /* The top level functions */
 
 FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x);
+FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in);
 FD_EXPORT lispval fd_read_dtype(struct FD_INBUF *in);
 
 /* Returning error codes */
