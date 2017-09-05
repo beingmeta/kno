@@ -214,6 +214,13 @@ static fd_pool open_oidpool(u8_string fname,
   pool->pool_load = load = fd_read_4bytes(instream);
   oidpool_format = fd_read_4bytes(instream);
   pool->oidpool_format = oidpool_format;
+
+  if (load > capacity) {
+    u8_log(LOGCRIT,fd_PoolOverflow,
+           "The oidpool %s specifies a load (%lld) > its capacity (%lld)",
+           fname,load,capacity);
+    pool->pool_load=load=capacity;}
+
   if ((U8_BITP(oidpool_format,FD_OIDPOOL_READ_ONLY))&&
       (!(fd_testopt(opts,FDSYM_READONLY,FD_FALSE)))) {
     /* If the pool is intrinsically read-only, make it so. */
@@ -1493,6 +1500,15 @@ static int make_oidpool
   time_t now = time(NULL);
   fd_off_t schemas_pos = 0, metadata_pos = 0, label_pos = 0;
   size_t schemas_size = 0, metadata_size = 0, label_size = 0;
+  if (load>capacity) {
+    u8_seterr(fd_PoolOverflow,"make_bigpool",
+              u8_sprintf(NULL,256,
+                         "Specified load (%u) > capacity (%u) for '%s'",
+                         load,capacity,fname));
+    return -1;}
+  if (ctime<0) ctime = now;
+  if (mtime<0) mtime = now;
+
   struct FD_STREAM _stream, *stream=
     fd_init_file_stream(&_stream,fname,FD_FILE_CREATE,-1,fd_driver_bufsize);
   fd_outbuf outstream = (stream) ? (fd_writebuf(stream)) : (NULL);
@@ -1528,7 +1544,6 @@ static int make_oidpool
   fd_write_4bytes(outstream,0); /* schema data */
 
   /* Write the index creation time */
-  if (ctime<0) ctime = now;
   fd_write_4bytes(outstream,0);
   fd_write_4bytes(outstream,((unsigned int)ctime));
 
@@ -1537,7 +1552,6 @@ static int make_oidpool
   fd_write_4bytes(outstream,((unsigned int)now));
 
   /* Write the index modification time */
-  if (mtime<0) mtime = now;
   fd_write_4bytes(outstream,0);
   fd_write_4bytes(outstream,((unsigned int)mtime));
 
@@ -1626,15 +1640,16 @@ fd_pool oidpool_create
       rv = -1;}
     else capacity = capval;}
   else {
-    fd_seterr("Not a valid capacity","oidpool_create",
-              spec,capacity_arg);
-      rv = -1;}
+    fd_seterr("Not a valid capacity","oidpool_create",spec,capacity_arg);
+    rv = -1;}
   if (rv<0) {}
   else if (FD_ISINT(load_arg)) {
     int loadval = fd_getint(load_arg);
     if (loadval<0) {
-      fd_seterr("Not a valid load","oidpool_create",
-                spec,load_arg);
+      fd_seterr("Not a valid load","oidpool_create",spec,load_arg);
+      rv = -1;}
+    else if (load > capacity) {
+      fd_seterr(fd_PoolOverflow,"oidpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}
   else {

@@ -227,6 +227,12 @@ static fd_pool open_bigpool(u8_string fname,fd_storage_flags open_flags,
   bigpool_format = fd_read_4bytes(instream);
   pool->bigpool_format = bigpool_format;
 
+  if (load > capacity) {
+    u8_log(LOGCRIT,fd_PoolOverflow,
+           "The bigpool %s specifies a load (%lld) > its capacity (%lld)",
+           fname,load,capacity);
+    pool->pool_load=load=capacity;}
+
   if ((U8_BITP(bigpool_format,FD_BIGPOOL_READ_ONLY))&&
       (!(fd_testopt(opts,FDSYM_READONLY,FD_FALSE)))) {
     /* If the pool is intrinsically read-only make it so. */
@@ -411,6 +417,15 @@ static int make_bigpool
   time_t now = time(NULL);
   fd_off_t slotids_pos = 0, metadata_pos = 0, label_pos = 0;
   size_t slotids_size = 0, metadata_size = 0, label_size = 0;
+  if (load>capacity) {
+    u8_seterr(fd_PoolOverflow,"make_bigpool",
+              u8_sprintf(NULL,256,
+                         "Specified load (%u) > capacity (%u) for '%s'",
+                         load,capacity,fname));
+    return -1;}
+  if (ctime<0) ctime = now;
+  if (mtime<0) mtime = now;
+
   struct FD_STREAM _stream, *stream=
     fd_init_file_stream(&_stream,fname,
                         FD_FILE_CREATE,-1,
@@ -445,7 +460,6 @@ static int make_bigpool
   fd_write_4bytes(outstream,0); /* metadata */
 
   /* Write the index creation time */
-  if (ctime<0) ctime = now;
   fd_write_4bytes(outstream,0);
   fd_write_4bytes(outstream,((unsigned int)ctime));
 
@@ -454,7 +468,6 @@ static int make_bigpool
   fd_write_4bytes(outstream,((unsigned int)now));
 
   /* Write the index modification time */
-  if (mtime<0) mtime = now;
   fd_write_4bytes(outstream,0);
   fd_write_4bytes(outstream,((unsigned int)mtime));
 
@@ -1874,13 +1887,14 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   else if (FD_ISINT(load_arg)) {
     int loadval = fd_getint(load_arg);
     if (loadval<0) {
-      fd_seterr("Not a valid load","bigpool_create",
-                spec,load_arg);
+      fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
+      rv = -1;}
+    else if (load > capacity) {
+      fd_seterr(fd_PoolOverflow,"bigpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}
   else {
-    fd_seterr("Not a valid load","bigpool_create",
-              spec,load_arg);
+    fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
     rv = -1;}
 
   if (FD_FIXNUMP(ctime_opt))
@@ -1900,9 +1914,6 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
   if (FD_FIXNUMP(generation_opt))
     generation=FD_FIX2INT(generation_opt);
   else generation=0;
-
-  /* !!! adjunct loads */
-  /* if (storage_flags&FD_POOL_ADJUNCT) load=capacity; */
 
   if (rv<0) return NULL;
   else rv = make_bigpool(spec,

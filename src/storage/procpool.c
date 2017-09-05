@@ -20,6 +20,8 @@
 #include "framerd/indexes.h"
 #include "framerd/drivers.h"
 
+#include "libu8/u8printf.h"
+
 /* Fetch pools */
 
 /* Fetch pools are pools which keep their data externally and take care
@@ -36,6 +38,13 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
 			 lispval opts,lispval state,
 			 u8_string label,u8_string source)
 {
+  if (load>cap) {
+    u8_seterr(fd_PoolOverflow,"fd_make_procpool",
+	      u8_sprintf(NULL,256,
+			 "Specified load (%u) > capacity (%u) for '%s'",
+			 load,cap,(source)?(source):(label)));
+    return NULL;}
+
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
   unsigned int flags = FD_STORAGE_ISPOOL | FD_STORAGE_VIRTUAL;
   memset(pp,0,sizeof(struct FD_PROCPOOL));

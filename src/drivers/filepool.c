@@ -90,7 +90,14 @@ static fd_pool open_file_pool(u8_string fname,fd_storage_flags flags,lispval opt
     if (recover_file_pool(pool)<0) {
       fd_seterr(fd_MallocFailed,"open_file_pool",NULL,VOID);
       return NULL;}}
+
   load = fd_read_4bytes_at(s,16,FD_ISLOCKED);
+  if (load > capacity) {
+    u8_log(LOGCRIT,"LoadOverFlow",
+           "The filepool %s specifies a load (%u) > its capacity (%u)",
+           fname,load,capacity);
+    pool->pool_load=load=capacity;}
+
   label_loc = (fd_off_t)fd_read_4bytes_at(s,20,FD_ISLOCKED);
   if (label_loc) {
     if (fd_setpos(s,label_loc)>0) {
@@ -695,6 +702,13 @@ int fd_make_file_pool
    FD_OID base,unsigned int capacity,unsigned int load)
 {
   int i, hi, lo;
+  if (load>capacity) {
+    u8_seterr("LoadOverFlow","make_bigpool",
+              u8_sprintf(NULL,256,
+                         "Specified load (%u) > capacity (%u) for '%s'",
+                         load,capacity,filename));
+    return -1;}
+
   struct FD_STREAM _stream;
   struct FD_STREAM *stream=
     fd_init_file_stream(&_stream,filename,FD_FILE_CREATE,-1,fd_driver_bufsize);
@@ -758,6 +772,10 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
   else if (FD_ISINT(load_arg)) {
     int loadval = fd_getint(load_arg);
     if (loadval<0) {
+      fd_seterr("Not a valid load","filepool_create",
+                spec,load_arg);
+      rv = -1;}
+    else if (load > capacity) {
       fd_seterr("Not a valid load","filepool_create",
                 spec,load_arg);
       rv = -1;}

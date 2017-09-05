@@ -120,7 +120,7 @@
 #endif
 
 FD_EXPORT fd_exception fd_CantLockOID, fd_AnonymousOID, fd_UnallocatedOID,
-  fd_InvalidPoolPtr, fd_PoolRangeError, fd_PoolConflict,
+  fd_InvalidPoolPtr, fd_PoolRangeError, fd_PoolConflict, fd_PoolOverflow,
   fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
   fd_ReadOnlyPool, fd_ExhaustedPool, fd_PoolCommitError, fd_NoSuchPool,
   fd_NotAFilePool, fd_NoFilePools, fd_BadFilePoolLabel, fd_DataFileOverflow;

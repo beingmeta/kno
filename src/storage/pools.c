@@ -40,6 +40,7 @@ fd_exception fd_AnonymousOID=_("no pool covers this OID");
 fd_exception fd_NotAPool=_("Not a pool");
 fd_exception fd_NoSuchPool=_("No such pool");
 fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
+fd_exception fd_PoolOverflow=_("pool load > capacity");
 fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
 fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
 fd_exception fd_PoolCommitError=_("can't save changes to pool");

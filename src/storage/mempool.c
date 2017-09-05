@@ -48,6 +48,12 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
 		fd_pool2lisp(p));
       return NULL;}
     else return p;}
+  else if (load>cap) {
+    u8_seterr(fd_PoolOverflow,"make_mempool",
+	      u8_sprintf(NULL,256,
+			 "Specified load (%u) > capacity (%u) for '%s'",
+			 load,cap,label));
+    return NULL;}
   else {
     struct FD_MEMPOOL *mp = u8_alloc(struct FD_MEMPOOL);
     fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
