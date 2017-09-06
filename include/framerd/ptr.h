@@ -561,16 +561,16 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 #if FD_FIXNUM_BITS <= 30
 #define FD_INTP(x) (FD_FIXNUMP(x))
-#define FD_UINTP(x) ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0))
+#define FD_UINTP(x) ((FD_FIXNUMP(x))&&((FD_FIX2INT(x))>=0))
 #define FD_LONGP(x) (FD_FIXNUMP(x))
-#define FD_ULONGP(x) ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0))
+#define FD_ULONGP(x) ((FD_FIXNUMP(x))&&((FD_FIX2INT(x))>=0))
 #else
 #define FD_INTP(x) \
   ((FD_FIXNUMP(x))&&(FD_FIX2INT(x)<=INT_MAX)&&(FD_FIX2INT(x)>=INT_MIN))
 #define FD_UINTP(x) \
-  ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0)&&(FD_FIX2INT(x)<=INT_MAX))
+  ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0)&&(FD_FIX2INT(x)<=UINT_MAX))
 #define FD_LONGP(x) (FD_FIXNUMP(x))
-#define FD_ULONGP(x) ((FD_FIXNUMP(x))&&((FD_INT2DTYPE(x))>=0))
+#define FD_ULONGP(x) ((FD_FIXNUMP(x))&&((FD_FIX2INT(x))>=0))
 #endif
 
 #define FD_BYTEP(x) \
