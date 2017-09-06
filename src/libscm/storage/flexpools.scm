@@ -337,6 +337,7 @@
 
 (define (flexpool/split original capacity (outpath #f) (opts #f))
   (let* ((input (open-pool original (cons #[adjunct #t] opts)))
+	 (label (config 'LABEL (pool-label input)))
 	 (flexmax (getopt opts 'useload))
 	 (source (pool-source input))
 	 (base (pool-base input))
@@ -365,6 +366,7 @@
 			 capacity ,capacity 
 			 load ,(- end start)
 			 flexbase ,flexbase
+			 label ,label
 			 adjunct ,(if always-adjunct 'always #t)])
 	       (newpool (flexpool/open newpath (cons opts+ opts))))
 	  (copy-oids input newpool alloids start end batchsize nthreads)

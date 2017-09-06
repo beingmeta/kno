@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (use-module '{optimize mttools varconfig stringfmts logger 
-	      storage/flexpools})
+	      storage/flex storage/splitpool})
 
 (define %loglevel %notice%)
 (config! 'cachelevel 2)
@@ -64,20 +64,6 @@
 
 (define ztype-map
   #[bigpool snappy oidpool zlib filepool #f])
-
-(define (make-new-pool filename old 
-		       (type (symbolize (config 'pooltype 'bigpool))))
-  (let ((metadata (or (poolctl old 'metadata) #[])))
-    (make-pool filename `#[type ,type
-			   base ,(pool-base old)
-			   capacity ,(config 'newcap (pool-capacity old))
-			   load ,(config 'newload (pool-load old))
-			   label ,(config 'label (pool-label old))
-			   slotids ,(get-slotids metadata type)
-			   compression ,(get-compression metadata type)
-			   dtypev2 ,(config 'dtypev2 (test metadata 'flags 'dtypev2))
-			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct))
-			   register #t])))
 
 (define (get-slotids metadata type (current) (added (config 'slotids {})))
   (set! current (getopt metadata 'slotids #()))
