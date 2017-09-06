@@ -6,6 +6,7 @@
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
 (use-module '{ezrecords logger varconfig})
+
 (define %used_modules 'ezrecords)
 
 (module-export! '{use-registry set-registry!
@@ -19,20 +20,42 @@
 
 (define %loglevel %warn%)
 
-;; Not yet used
-(define default-registry #f)
-
 (define (registry->string r)
-  (stringout "#<REGISTRY " (registry-slotid r) " " (registry-spec r) ">"))
+  (stringout "#<REGISTRY " (registry-slotid r) " " 
+    (write (pool-id (registry-pool r))) " "
+    (write (index-id (registry-index r))) ">"))
 
 (define-init registries (make-hashtable))
 
 (defrecord (registry OPAQUE `(stringfn . registry->string))
   ;; TODO: Check for duplicate fields in defrecord
-  slotid spec server pool index 
+  slotid server pool index 
   (cache (make-hashtable))
   (lock (make-condvar)))
 (module-export! '{registry? registry-pool registry-index registry-server})
+
+(define-init registry
+  (slambda (slotid pool index (server #f))
+    (unique-registry slotid pool index server)))
+
+(define (unique-registry slotid pool index (server #f))
+  (let ((registry (get registries slotid)))
+    (cond ((fail? registry)
+	   (let ((consed (cons-registry slotid server pool index)))
+	     (store! registries slotid consed)
+	     (add! registries pool consed)
+	     (add! registries index consed)
+	     consed))
+	  ((and (eq? pool (registry-pool registry))
+		(eq? index (registry-index registry)))
+	   registry)
+	  (else (irritant slotid |RegistryConflict| 
+		  "The existing registry for " slotid " "
+		  "is not compatible with the pool " (write (pool-id pool)) " "
+		  "and the index " (write (index-id pool)) ", which are "
+		  (pool-id (registry-pool registry)) " and " 
+		  (index-id (registry-pool registry))
+		  "respectively")))))
 
 (defambda (register slotid value 
 		    (inits #t) (defaults #f) (adds #f)
@@ -56,28 +79,16 @@
 	    (reg
 	     (let ((frame 
 		    (try (get (registry-cache reg) value)
-			 (registry/get reg slotid value inits)))
-		   (slotindexes (registry-slotindexes reg)))
+			 (registry/get reg slotid value inits))))
 	       (when defaults
 		 (when (test defaults '%id) 
 		   (store! frame '%id (get defaults '%id)))
 		 (do-choices (slotid (getkeys defaults))
 		   (unless (test frame slotid)
-		     (store! frame slotid (get defaults slotid))
-		     (if (overlaps? slotid slotindexes)
-			 (index-frame (registry-index reg) frame slotid)
-			 (if (test (pick slotindexes table?) slotid)
-			     (index-frame (get slotindexes slotid)
-				 frame slotid))))))
+		     (store! frame slotid (get defaults slotid)))))
 	       (when adds
 		 (do-choices (slotid (getkeys adds))
-		   (add! frame slotid (get adds slotid))
-		   (if (overlaps? slotid slotindexes)
-		       (index-frame (registry-index reg)
-			   frame slotid (get adds slotid))
-		       (if (test (pick slotindexes table?) slotid)
-			   (index-frame (get slotindexes slotid)
-			       frame slotid (get adds slotid))))))
+		   (add! frame slotid (get adds slotid))))
 	       frame))
 	    (else (fail))))))
 
@@ -95,8 +106,8 @@
     (set! r (get registries r)))
   (cond ((not r)
 	 (registry/save! 
-	  (pick (get registries (getkeys registries))
-		registry-server #f)))
+	  (qc (pick (get registries (getkeys registries))
+		    registry-server #f))))
 	((ambiguous? r)
 	 (thread/wait (thread/call registry/save! r)))
 	((registry-server r)
@@ -147,184 +158,6 @@
 		       (store! result key (get create key)))))
 		 (store! (registry-cache registry) value result))
 	       result)))))
-
-;;; Registering registries
-
-(defslambda (register-registry-inner slotid spec (replace #f))
-  (when replace (drop! registries slotid))
-  (try (get registries slotid)
-       (if (table? spec)
-	   (let ((server (and (getopt spec 'server)
-			      (if (dtserver? (getopt spec 'server))
-				  (getopt spec 'server)
-				  (open-dtserver (getopt spec 'server)))))
-		 (pool (try (pool/ref (getsource spec 'pool) spec) #f))
-		 (index (try (index/ref (getsource spec 'index)) #f))
-		 (registry #f))
-	     (set! registry (cons-registry slotid spec server pool index))
-	     (store! registries slotid registry)
-	     registry)
-	   (irritant spec |InvalidRegistrySpec|))))
-
-(define (getsource spec slot)
-  (try
-   (getopt spec slot {})
-   (let ((server (getopt spec 'server)))
-     (cond ((not server) {})
-	   ((string? server) server)
-	   ((dtserver? server) (dtserver-id server))
-	   (else {})))
-   (getopt spec 'source {})))
-
-(define (register-registry slotid spec (replace #f))
-  (if replace
-      (let ((cur (get registries slotid))
-	    (new (if (registry? spec) 
-		     (if (and (registry-slotid spec)
-			      (not (eq? slotid (registry-slotid spec))))
-			 (irritant spec
-			     |SingleSlotRegistry| |register-registry| 
-			     "The registry " registry " is configured for the slot "
-			     (registry-slotid spec) " which isn't " slotid)
-			 spec)
-		     (register-registry-inner slotid spec replace))))
-	(if (fail? new)
-	    (logcrit |RegisterRegistry|
-	      "Couldn't create registry for " slotid 
-	      " specified as " spec)
-	    (unless (identical? cur new)
-	      (lognotice |RegisterRegistry|
-		"Registry for " slotid " is now "
-		(if (registry-server new)
-		    (dtserver-id (registry-server new))
-		    (pool-id (registry-pool new)))))
-	    new))
-      (try (get registries slotid)
-	   (let ((new (register-registry-inner slotid spec replace)))
-	     (lognotice |RegisterRegistry|
-	       "Registry for " slotid " is now "
-	       (if (registry-server new)
-		   (dtserver-id (registry-server new))
-		   (pool-id (registry-pool new))))
-	     new))))
-
-(define (registry-opts arg)
-  (cond ((table? arg) (fixup-opts arg))
-	((index? arg) (registry-opts (strip-suffix (index-id arg) ".pool")))
-	((pool? arg)  (registry-opts (strip-suffix (pool-id arg) ".index")))
-	((not (string? arg)) (irritant arg |InvalidRegistrySpec|))
-	((exists position {#\: #\@} arg) `#[server ,arg])
-	(else `#[source ,arg])))
-
-(define (fixup-opts opts (source))
-  (default! source (getopt opts 'source))
-  (when (string? source)
-    (when (and (not (getopt opts 'server))
-	       (exists position {#\: #\@} source))
-      (store! opts 'server source))
-    (unless (getopt opts 'pool)
-      (store! opts 'pool source))
-    (unless (getopt opts 'index)
-      (store! opts 'index source)))
-  opts)
-
-(define (use-registry slotid spec)
-  (info%watch "USE-REGISTRY" slotid spec)
-  (when (string? spec) (set! spec (registry-opts spec)))
-  (try (get registries slotid)
-       (register-registry slotid spec)))
-
-(define (need-replace? registry spec)
-  (or (and (getopt spec 'server) (not (registry-server registry)))
-      (and (registry-server registry) (not (getopt spec 'server)))
-      (if (registry-server registry)
-	  (or (eq? (getopt spec 'server) (registry-server registry))
-	      (and (dtserver? (getopt spec 'server))
-		   (equal? (dtserver-id (registry-server registry))
-			   (dtserver-id (getopt spec 'server))))
-	      (equal? (dtserver-id (registry-server registry))
-		      (getopt spec 'server)))
-	  (or (not (equal? (use-pool (get spec 'pool))
-			   (registry-pool registry)))
-	      (not (equal? (open-index (get spec 'index))
-			   (registry-index registry)))))))
-
-(define (set-registry! slotid spec)
-  (info%watch "SET-REGISTRY!" slotid spec)
-  (when (string? spec) (set! spec (registry-opts spec)))
-  (if (test registries slotid)
-      (when (need-replace? (get registries slotid) spec)
-	(register-registry slotid spec #t))
-      (register-registry slotid spec #t)))
-
-
-;;; Checking and repairing registries
-
-(define (registry/check registry (opts #f))
-  (let* ((index (registry-index registry))
-	 (slot (getopt opts 'slotid (registry-slotid registry)))
-	 (keys (pick (getkeys index) slot)))
-    (prefetch-keys! index slot)
-    (let ((trouble (filter-choices (key keys)
-		     (ambiguous? (get index key)))))
-      (if (fail? trouble) #f
-	  (begin (logwarn |RegistryError| 
-		   (choice-size trouble) " of the " (choice-size keys)
-		   " in " registry " have ambiguous references")
-	    (choice-size trouble))))))
-
-(define (registry/errors registry (opts #f))
-  (let* ((index (registry-index registry))
-	 (slot (getopt opts 'slotid (registry-slotid registry)))
-	 (keys (pick (getkeys index) slot)))
-    (prefetch-keys! index slot)
-    (let ((trouble (filter-choices (key keys)
-		     (ambiguous? (get index key)))))
-      (if (fail? trouble)
-	  (fail)
-	  (begin (logwarn |RegistryError| 
-		   (choice-size trouble) " of the " (choice-size keys)
-		   " in " registry " have ambiguous references")
-	    trouble)))))
-
-(define (registry/repair! registry relns (slotid #f))
-  (let* ((index (registry-index registry))
-	 (slot (or slotid (registry-slotid registry)))
-	 (keys (pick (getkeys index) slot)))
-    (debug%watch "REGISTRY/REPAIR!" 
-      registry index slot "NKEYS" (choice-size keys))
-    (prefetch-keys! index slot)
-    (let ((trouble 
-	   (filter-choices (key keys)
-	     (ambiguous? (get index key)))))
-      (debug%watch "REGISTRY/REPAIR!" "TROUBLE" (choice-size trouble))
-      (do-choices (key trouble)
-	(let* ((values (get index key))
-	       (keep (smallest values))
-	       (discard (difference values keep)))
-	  (logwarn |FixingRegistry| "Merging into " keep " from " discard)
-	  (drop! index key discard)
-	  (prefetch-oids! values)
-	  (do-choices (discard discard)
-	    (logwarn |FixingRegistry/Discard|
-	      "Erasing " discard " from existence")
-	    (store! discard '%id '(DISCARDED ,(get discarded)))
-	    (do-choices (reln relns)
-	      (let* ((bg (getopt reln 'index))
-		     (findslot (getopt reln 'slotid))
-		     (getslot (getopt reln 'adjslot))
-		     (fix (find-frames bg findslot discard)))
-		;;(%watch "DISCARD" bg findslot getslot "TOFIX" (choice-size fix))
-		(prefetch-oids! fix)
-		(lock-oids! fix)
-		(add! fix slot keep)
-		(drop! fix slot discard)
-		(drop! bg (cons findslot discard))
-		(when getslot
-		  (add! fix getslot keep)
-		  (drop! fix getslot discard))))))))))
-
-
 
 
 
