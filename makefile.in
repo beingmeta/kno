@@ -1429,15 +1429,17 @@ install-support: $(DESTDIR)@share_dir@
 
 LIBSCM_DIRS=optimize bugjar storage
 install-libscm:
-	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}
-	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM}
-	for dir in ${LIBSCM_DIRS}; do 					\
-	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;	\
-	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 	\
-	     $(DESTDIR)${LIBSCM}/$$dir; done
-	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/websrc;
-	$(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/websrc/* \
-	     $(DESTDIR)${LIBSCM}/bugjar/websrc;
+	if test ! -h $(DESTDIR)${LIBSCM}; then make really-install-libscm; fi
+really-install-libscm:
+	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
+	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
+	for dir in ${LIBSCM_DIRS}; do 						\
+	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/$$dir;		\
+	  $(SYSINSTALL) @install_file_opts@ src/libscm/$$dir/*.scm 		\
+	    $(DESTDIR)${LIBSCM}/$$dir; done;
+	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}/bugjar/websrc;
+	  $(SYSINSTALL) @install_file_opts@ src/libscm/bugjar/websrc/*		\
+	       $(DESTDIR)${LIBSCM}/bugjar/websrc;
 
 logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@
