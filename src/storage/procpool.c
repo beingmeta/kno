@@ -34,7 +34,8 @@ static lispval poolopt(lispval opts,u8_string name)
 }
 
 FD_EXPORT
-fd_pool fd_make_procpool(FD_OID base,int cap,int load,
+fd_pool fd_make_procpool(FD_OID base,
+			 unsigned int cap,unsigned int load,
 			 lispval opts,lispval state,
 			 u8_string label,u8_string source)
 {
@@ -78,6 +79,7 @@ fd_pool fd_make_procpool(FD_OID base,int cap,int load,
 
   fd_register_pool((fd_pool)pp);
   pp->allocfn = poolopt(opts,"ALLOCFN");
+  pp->getloadfn = poolopt(opts,"GETLOADFN");
   pp->fetchfn = poolopt(opts,"FETCHFN");
   pp->fetchnfn = poolopt(opts,"FETCHNFN");
   pp->lockfn = poolopt(opts,"LOCKFN");
@@ -227,7 +229,8 @@ static int procpool_getload(fd_pool p)
 {
   struct FD_PROCPOOL *pp = (fd_procpool)p;
   lispval lp = fd_pool2lisp(p);
-  if (VOIDP(pp->getloadfn)) return 0;
+  if ((VOIDP(pp->getloadfn)) || (FD_NULLP(pp->getloadfn)))
+    return 0;
   else {
     lispval args[2]={lp,pp->pool_state};
     lispval result = fd_dapply(pp->getloadfn,2,args);
