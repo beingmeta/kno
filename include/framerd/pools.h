@@ -430,7 +430,8 @@ typedef struct FD_PROCPOOL {
 typedef struct FD_PROCPOOL *fd_procpool;
 
 FD_EXPORT
-fd_pool fd_make_procpool(FD_OID base,int cap,int load,
+fd_pool fd_make_procpool(FD_OID base,
+			 unsigned int cap,unsigned int load,
 			 lispval opts,lispval state,
 			 u8_string label,u8_string cid);
 
@@ -447,8 +448,7 @@ typedef struct FD_EXTPOOL *fd_extpool;
 
 FD_EXPORT
 fd_pool fd_make_extpool
-  (u8_string label,
-   FD_OID base,int cap,
+  (u8_string label,FD_OID base,unsigned int cap,
    lispval fetchfn,lispval savefn,
    lispval lockfn,lispval allocfn,
    lispval state);

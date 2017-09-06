@@ -30,7 +30,7 @@ lispval lock_symbol, unlock_symbol;
 
 FD_EXPORT
 fd_pool fd_make_extpool(u8_string label,
-                        FD_OID base,int cap,
+                        FD_OID base,unsigned int cap,
                         lispval fetchfn,lispval savefn,
                         lispval lockfn,lispval allocfn,
                         lispval state)
