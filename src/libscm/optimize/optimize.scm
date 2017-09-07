@@ -369,7 +369,9 @@
 	  (bound-expr (get-arg expr 3 'bound))
 	  (opts-expr (get-arg expr 4 'opts)))
       `(forseq (_subexpr ,body-expr) 
-	 (optimize _subexpr ,env-expr ,bound-expr ,opts-expr)))))
+	 (if (or (pair? _subexpr) (symbol? _subexpr))
+	     (optimize _subexpr ,env-expr ,bound-expr ,opts-expr)
+	     _subexpr)))))
 
 (defambda (optimize-symbol expr env bound opts)
   (let ((lexref (get-lexref expr bound 0))
