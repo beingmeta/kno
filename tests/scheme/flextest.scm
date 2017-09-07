@@ -1,6 +1,6 @@
-(use-module '{storage/flex texttools varconfig})
+(use-module '{storage/flex texttools varconfig logger})
 
-(define poolfile "flex.pool")
+(define poolfile "flex.flexpool")
 (define pooltype 'bigpool)
 (define compression #f)
 (varconfig! poolfile poolfile)
@@ -15,14 +15,17 @@
   (let* ((existing (file-exists? poolfile))
 	 (opts `#[type ,pooltype compression ,compression])
 	 (fp (if existing 
-		 (flexpool/ref poolfile #f)
-		 (flexpool/start poolfile #f @99/0 1024 16))))
+		 (flexpool/open poolfile #f)
+		 (flexpool/make poolfile 
+				#[prefix "flex" base @99/0 capacity 1024 step 16]))))
     (set! testpool fp)
     (unless existing
+      (logwarn |Initializing| testpool)
       (dotimes (i 9) 
 	(frame-create fp
 	  '%id i 'num i 'generation 1
 	  'sq (* i i)))
+      (applytest 1 flex/poolcount fp)
       (dotimes (i 9) 
 	(frame-create fp
 	  '%id (glom "2." i) 'num i 'generation 2
@@ -30,6 +33,7 @@
       (applytest 2 flex/poolcount fp)
       (commit (flex/pools fp)))
     (applytest 2 flex/poolcount fp)))
+
 
 
 

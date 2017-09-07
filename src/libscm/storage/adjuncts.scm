@@ -6,6 +6,7 @@
 (use-module '{reflection texttools regex
 	      logger logctl fifo
 	      mttools stringfmts opts})
+(use-module 'storage/flex)
 
 (define %loglevel %warn%)
 
@@ -22,8 +23,16 @@
   (let ((cur (get-adjuncts pool)))
     (do-choices (slotid (getkeys adjuncts))
       (cond ((not (test cur slotid))
-	     (adjunct! pool slotid
-		       (db/ref (get adjuncts slotid) opts)))
+	     (let ((usedb (db/ref (get adjuncts slotid) opts)))
+	       (cond ((exists? usedb)
+		      (adjunct! pool slotid usedb))
+		     ((getopt opts 'require_adjuncts)
+		      (irritant (get adjuncts slotid) |MissingAdjunct|
+			"for pool " pool))
+		     (else
+		      (logwarn |MissingAdjunct| 
+			"Adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
+			pool)))))
 	    ((consistent? (get cur slotid) (get adjuncts slotid)))
 	    ((testopt opts 'override 'error)
 	     (irritant `#[pool ,pool slotid ,slotid 
@@ -35,7 +44,7 @@
 	     (logwarn |AdjunctConflict| 
 	       "Keeping existing adjunct for " slotid " of " pool ":"
 	       "\n   keeping:   " (get cur slotid) 
-	       "\n   ignoring:  " (get adjunct slotid)))
+	       "\n   ignoring:  " (get adjuncts slotid)))
 	    ((and (modified? (get cur slotid))
 		  (not (testopt opts 'force)))
 	     (irritant `#[pool ,pool slotid ,slotid 
@@ -44,22 +53,35 @@
 		 |ModifiedAdjunctConflict|
 	       adjuncts/init!))
 	    (else 
-	     (let ((usedb (db/ref (get adjuncts slotid) opts)))
-	       (logwarn |AdjunctConflict| 
-		 "Overriding existing adjunct for " slotid " of " pool ":" 
-		 "\n   using:      " (get adjunct slotid)
-		 "\n   dropping:   " (get cur slotid))
-	       (adjunct! pool slotid usedb)))))))
+	     (let ((spec (get adjuncts slotid))
+		   (usedb (db/ref (get adjuncts slotid) opts)))
+	       (cond ((exists? usedb)
+		      (logwarn |AdjunctConflict| 
+			"Overriding existing adjunct for " slotid " of " pool ":" 
+			"\n   using:      " (get adjuncts slotid)
+			"\n   dropping:   " (get cur slotid))
+		      (adjunct! pool slotid usedb))
+		     ((getopt opts 'require_adjuncts)
+		      (irritant (get adjuncts slotid) |MissingAdjunct|
+			"for pool " pool))
+		     (else
+		      (logwarn |MissingAdjunct| 
+			"New adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
+			pool)))))))))
 
 (define (consistent? adjunct spec)
+  (unless (or (index? adjunct) (pool? adjunct))
+    (irritant adjunct |NotAPoolOrIndex|))
   (if (index? adjunct)
       (and (test spec 'index)
-	   (or (equal? (index-source adjunct) (get spec 'index))
+	   (or (eq? adjunct (get spec 'index))
+	       (equal? (index-source adjunct) (get spec 'index))
 	       (equal? (realpath (index-source adjunct))
 		       (realpath (get spec 'index)))))
       (if (pool? adjunct)
 	  (and (test spec 'pool)
-	       (or (equal? (pool-source adjunct) (get spec 'pool))
+	       (or (eq? adjunct (get spec 'pool))
+		   (equal? (pool-source adjunct) (get spec 'pool))
 		   (equal? (realpath (pool-source adjunct))
 			   (realpath (get spec 'pool))))
 	       (or (not (test spec 'base))
@@ -69,39 +91,40 @@
 	       (or (not (test spec 'capacity))
 		   (< (get spec 'capacity) (pool-capacity adjunct))
 		   (irritant adjunct |WrongPoolCapacity|
-		     "not " (getopt spec 'capacity) ": " spec))))))
+		     "not " (getopt spec 'capacity) ": " spec)))
+	  )))
 
 (define (adjuncts/setup! pool (adjuncts) (opts #f))
   (default! adjuncts (poolctl pool 'metadata 'adjuncts))
   (let ((cur (get-adjuncts pool)))
     (do-choices (slotid (getkeys adjuncts))
       (cond ((not (test cur slotid))
-	     (setup-adjunct! pool slotid (get adjuncts slotid) opts))
+	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))
 	    ((consistent? (get cur slotid) (get adjuncts slotid)))
 	    ((testopt opts 'override 'error)
 	     (irritant `#[pool ,pool slotid ,slotid 
 			  cur ,(get cur slotid)
 			  new ,(get adjuncts slotid)]
 		 |AdjunctConflict|
-	       setup-adjuncts!))
+	       adjuncts/setup!))
 	    ((testopt opts 'override '{ignore keep})
 	     (logwarn |AdjunctConflict| 
 	       "Keeping existing adjunct for " slotid " of " pool ":"
 	       "\n   keeping:   " (get cur slotid) 
-	       "\n   ignoring:  " (get adjunct slotid)))
+	       "\n   ignoring:  " (get adjuncts slotid)))
 	    ((and (modified? (get cur slotid))
 		  (not (testopt opts 'force)))
 	     (irritant `#[pool ,pool slotid ,slotid 
 			  cur ,(get cur slotid)
 			  new ,(get adjuncts slotid)]
 		 |ModifiedAdjunctConflict|
-	       setup-adjuncts!))
+	       adjuncts/setup!))
 	    (else 
 	     (logwarn |AdjunctConflict| 
 	       "Overriding existing adjunct for " slotid " of " pool ":" 
-	       "\n   using:      " (get adjunct slotid)
+	       "\n   using:      " (get adjuncts slotid)
 	       "\n   dropping:   " (get cur slotid))
-	     (setup-adjunct! pool slotid (get adjuncts slotid) opts))))))
+	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))))))
 
 (define (adjunct-setup! pool slotid adjopts opts)
   (when (string? adjopts)
@@ -122,11 +145,11 @@
       (if (file-exists? (abspath (getopt opts 'index)))
 	  (open-index (abspath (getopt opts 'index)) opts)
 	  (make-index (abspath (getopt opts 'index)) opts))
-      (let ((source-suffix (gather (qc dbfile-suffix) (pool-source pool)))
-	    (poolfile (getopt opts 'pool))
-	    (filename
-	     (abspath (textsubst (getopt opts 'pool) 
-				 (qc dbfile-suffix) source-suffix))))
+      (let* ((source-suffix (gather (qc dbfile-suffix) (pool-source pool)))
+	     (poolfile (getopt opts 'pool))
+	     (filename
+	      (abspath (textsubst (getopt opts 'pool) 
+				  (qc dbfile-suffix) source-suffix))))
 	(if (file-exists? filename)
 	    (open-pool filename opts)
 	    (make-pool filename opts)))))
@@ -143,8 +166,9 @@
 	  ((not (test current slotid))
 	   (store! current slotid spec))
 	  (else
-	   (irritant (get current slotid) |ExistingAdjunct| adjuncts/add!))))
-  (adjuncts/setup! pool slotid spec)
-  (poolctl pool 'metadata 'adjuncts adjuncts))
+	   (irritant (get current slotid) |ExistingAdjunct| adjuncts/add!)))
+    (adjuncts/setup! pool slotid spec)
+    (poolctl pool 'metadata 'adjuncts current)))
+
 
 

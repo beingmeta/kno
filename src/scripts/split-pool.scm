@@ -159,12 +159,14 @@
 	    (thread/wait threads))
 	  (copy-block pop-queue old new report-progress)))))
 
-(define (main (from) (to #f) (capacity #f))
+(define (main (from #f) (to #f) (capacity #f))
+  (unless from (usage) (exit))
   (when (number? to)
     (if (string? capacity)
 	(let ((usecap to))
 	  (set! to capacity)
 	  (set! capacity usecap))))
+  (unless to (set! to  (glom (strip-suffix (abspath from) ".pool") ".flexpool")))
   (cond ((not (bound? from)) (usage))
 	((not (file-exists? from))
 	 (logcrit |MissingInput| "The file " (write from) " does not exist"))
@@ -173,14 +175,21 @@
 	((and (not to) (file-exists? (glom from ".bak")))
 	 (logcrit |BackupFile|
 	   "I don't want to delete the backup file " (write (glom from ".bak"))))
-	((not to) 
-	 (move-file from (glom from ".bak"))
-	 (flexpool/split from (or capacity (* 1024 1024)) from))
-	(else (flexpool/split from (or capacity (* 1024 1024)) to))))
+	(else
+	 (flexpool/split from `#[output ,to] (or capacity #default)))))
 
 (define (usage)
-  (message "split-pool *source-pool* *output* [capacity]"))
+  (message "split-pool source-pool *output* [capacity]")
+  (message " OVERWRITE=yes|no")
+  (message " FLEXSTEP=n ; split into files covering n OIDs  (e.g. 0x100000)")
+  (message " PREFIX=data ; filenames have form foo.XXX.pool")
+  (message " ROOTDIR=./poolfiles ; filenames are created in './poolfiles'")
+  (message " NEWCAP=1000000000   ; the new flexpool should have capacity of 1000000000 OIDs")
+  (message " NEWLOAD=1000000     ; the new flexpool should an initial load of 1000 OIDs")
+  (message "                     ; component pools are created to cover this many OIDs")
+  (message "                     ; and this can also restrict how many OIDs are copied")
+  (message " LABEL=kilroy        ; The flexpool is labelled 'kilroy' and subpools 'kilroy.XXX"))
 
-(optimize! 'storage/flexpools)
+(optimize! '{storage/flex storage/filenames storage/adjuncts storage/splitpool})
 (optimize!)
 
