@@ -14,7 +14,7 @@
 
 (module-export! '{flexpool-suffix flexindex-suffix})
 
-(define-init %loglevel %notice%)
+(define-init %loglevel %warn%)
 
 (define flexpool-suffix
   #("." (isxdigit+) ".pool" (eos)))
@@ -245,7 +245,7 @@
 	  (set! spec (getopt opts 'index (getopt opts 'source #f))))
 	(cond ((index? spec) spec)
 	      ((not (string? spec)) (irritant spec |InvalidIndexSpec|))
-	      ((or (position spec #\@) (position spec #\:))
+	      ((or (position #\@ spec) (position  #\: spec))
 	       (if (getopt opts 'background)
 		   (use-index spec opts)
 		   (open-index spec opts)))

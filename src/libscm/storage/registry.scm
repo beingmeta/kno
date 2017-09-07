@@ -9,8 +9,7 @@
 
 (define %used_modules 'ezrecords)
 
-(module-export! '{use-registry set-registry!
-		  register registry/ref
+(module-export! '{registry register registry/ref
 		  registry/check registry/errors
 		  registry/repair!
 		  registry/save!})
