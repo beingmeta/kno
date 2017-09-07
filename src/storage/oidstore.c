@@ -189,14 +189,13 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
             fd_decref(adjunct);
             adjunct=fd_index_ref(ix);}
           else {
-            fd_pool p=fd_get_pool(CSTRING(adjunct),
-                                  FD_STORAGE_ISPOOL|
-                                  FD_POOL_ADJUNCT|
-                                  FD_POOL_SPARSE,
-                                  FD_FALSE);
-            if (p) {
+            fd_pool adjpool=
+              fd_get_pool(CSTRING(adjunct),
+                          FD_STORAGE_ISPOOL|FD_POOL_ADJUNCT|FD_POOL_SPARSE,
+                          FD_FALSE);
+            if (adjpool) {
               fd_decref(adjunct);
-              adjunct=fd_pool2lisp(p);}
+              adjunct=fd_pool2lisp(adjpool);}
             else {
               fd_seterr(fd_BadAdjunct,"fd_set_adjunct",
                         p->poolid,fd_make_pair(slotid,adjunct));
