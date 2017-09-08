@@ -1,23 +1,96 @@
-#!/bin/sh
+#!/bin/bash
 
-CONFIG_FLAGS=
+CONFIG_ARGS=
+MAKE_ARGS=
+doclean=1;
 
-if [ "$1" = "current" ] || [ "$1" = "." ]; then
-   shift;
-elif [ ! $# -eq 0 ]; then
-   git checkout $1;
-   shift;
-fi;
-
-for malloc in libc tcmalloc jemalloc asan tcmalloc_debug tcmalloc_minimal gperftools asan_thread; do
-    if [ "$1" = $malloc ]; then
-	CONFIG_FLAGS="--with-malloc=${malloc} ${CONFIG_FLAGS}"
-	shift;
-    fi;
+while [ $# -gt 0 ]; do
+    arg=$1
+    case ${arg} in
+	current|.)
+	    BRANCH="use_current_branch";
+	    ;;
+	noclean|keep)
+	    doclean=1;
+	    ;;
+	dev)
+	    CONFIG_ARGS="--with-libscm=$(pwd)/src/libscm/ ${CONFIG_ARGS}";
+	    CONFIG_ARGS="--with-loadpath=$(dirname $(pwd))/fdmodules ${CONFIG_ARGS}";
+	    ;;
+	libc|tcmalloc|jemalloc|asan|tcmalloc_debug|tcmalloc_minimal|gperftools|asan_thread)
+	    CONFIG_ARGS="--with-malloc=${arg} ${CONFIG_ARGS}"; 
+	    ;;
+	debug|production|install|nitpick|fast|install-bin)
+	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
+	    ;;
+	tests|memtests|leaktests|libtests|schemetests|dbtests|cmdtests)
+	    MAKE_ARGS="${MAKE_ARGS} ${arg}";
+	    ;;
+	-[a-zA-Z])
+	    MAKE_ARGS="${arg} ${MAKE_ARGS}"; 
+	    ;;
+	-M*)
+	    MAKE_ARGS="${arg#-M} ${MAKE_ARGS}"; 
+	    ;;
+	--make=*)
+	    MAKE_ARGS="${arg#--make=} ${MAKE_ARGS}"; 
+	    ;;
+	-C*)
+	    CONFIG_ARGS="${arg#-C} ${CONFIG_ARGS}"; 
+	    ;;
+	--config=*)
+	    CONFIG_ARGS="${arg#--config=} ${CONFIG_ARGS}"; 
+	    ;;
+	-*)
+	    CONFIG_ARGS="${arg} ${CONFIG_ARGS}"; 
+	    ;;
+	*=*)
+	    MAKE_ARGS="${arg} ${MAKE_ARGS}"; 
+	    ;;
+	*)
+	    if git branch -a | egrep "(^|/)${arg}$" > /dev/null; then
+		if [ -z "${BRANCH}" ]; then
+		    BRANCH=${arg};
+		elif [ "${BRANCH}" = ${arg} ]; then
+		    echo "Duplicate branch spec ${arg}";
+		else
+		    echo "Passing second branch name (${arg}) to MAKE";
+		fi;
+	    else
+		MAKE_ARGS="${arg} ${MAKE_ARGS}"; 
+	    fi;
+	    ;;
+    esac;
+    shift;
 done;
 
-./distclean;
+# Check if the branch is current, if so make the value "use_current_branch"
+# This simplifies the doclean/noclean logic below
+if [ ! -z ${BRANCH} ] && [ ! ${BRANCH} = "use_current_branch" ]; then
+    if git branch | egrep "^[*] ${BRANCH}"; then
+	BRANCH = "use_current_branch";
+    fi;
+fi;
 
-./configure ${CONFIG_FLAGS} $*
+if [ -z "${BRANCH}" ]; then BRANCH=use_current_branch; fi
 
-make -j
+if [ ! -z "${DRY_RUN}" ]; then
+    echo BRANCH=${BRANCH}
+    echo MAKE_ARGS=${MAKE_ARGS}
+    echo CONFIG_ARGS=${CONFIG_ARGS}
+    exit;
+fi;
+
+if [ ! ${BRANCH} = "use_current_branch" ]; then
+   git checkout ${BRANCH};
+   ./distclean;
+elif [ ${doclean} ]; then
+   ./distclean;
+else echo "Not cleaning distribution";
+fi;
+
+
+
+./configure ${CONFIG_ARGS}
+
+make -j ${MAKE_ARGS} $*

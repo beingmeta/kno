@@ -965,6 +965,8 @@ builtin_safe_module_dir=$builtin_module_dir/safe
 
 LIBSCM="${share_dir}/libscm/\${REVISION}"
 
+AC_ARG_WITH(loadpath,--with-loadpath location)
+
 AC_ARG_WITH(libscm,--with-libscm location)
 if test "$with_libscm" == "version"; then
    AC_DEFINE_UNQUOTED(FD_LIBSCM_DIR,"$share_dir/libscm/framerd-$FDVERSION")
@@ -990,6 +992,10 @@ AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_m
 AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
 module_path=$with_module_path
 safe_module_path=$with_safe_module_path
+
+if test ! -z ${with_loadpath}; then
+   module_path="${with_loadpath} ${module_path}";
+fi;
 
 AC_DEFINE_UNQUOTED(FD_LOCAL_MODULE_DIR,"$local_module_dir")
 AC_DEFINE_UNQUOTED(FD_LOCAL_SAFE_MODULE_DIR,"$local_safe_module_dir")

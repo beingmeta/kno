@@ -897,6 +897,7 @@ with_unpackage_dir
 with_installed_module_dir
 with_local_modules
 with_builtin_module_dir
+with_loadpath
 with_libscm
 with_module_path
 with_safe_module_path
@@ -1639,6 +1640,7 @@ Optional Packages:
 --with-installed-module-dir location
 --with-local-modules location
 --with-builtin-module-dir location
+--with-loadpath location
 --with-libscm location
 --with-module-path location
 --with-safe-module-path location
@@ -8240,6 +8242,13 @@ builtin_safe_module_dir=$builtin_module_dir/safe
 LIBSCM="${share_dir}/libscm/\${REVISION}"
 
 
+# Check whether --with-loadpath was given.
+if test "${with_loadpath+set}" = set; then :
+  withval=$with_loadpath;
+fi
+
+
+
 # Check whether --with-libscm was given.
 if test "${with_libscm+set}" = set; then :
   withval=$with_libscm;
@@ -8289,6 +8298,10 @@ fi
 
 module_path=$with_module_path
 safe_module_path=$with_safe_module_path
+
+if test ! -z ${with_loadpath}; then
+   module_path="${with_loadpath} ${module_path}";
+fi;
 
 cat >>confdefs.h <<_ACEOF
 #define FD_LOCAL_MODULE_DIR "$local_module_dir"

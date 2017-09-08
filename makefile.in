@@ -1245,6 +1245,8 @@ apt-upload upload-apt upload-deb: update-remote-apt-repo
 # Installation targets
 
 install: install-core install-cmodules install-libscm install-modules @setup_target@
+install-bin: install-static install-shared install-exe\
+	install-headers install-scripts install-support
 install-core: confdirs workdirs @INSTALLI18N@           \
 	 install-static install-shared install-headers  \
          install-exe install-scripts install-data 	\
@@ -1609,6 +1611,13 @@ update-fdserv: src/apache2/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 
 # Test targets
 
+tests/tests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running tests scripts, output in" $@
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j 2>&1 > tests/tests.log && \
+	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
+tests: tests/libtests.log
+
 tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running libtests, output in" $@
 	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
@@ -1616,12 +1625,12 @@ tests/libtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	cp tests/libtests.log tests/libtests-`date +%d%b%yT%T`.log;
 libtests: tests/libtests.log
 
-tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
+tests/memtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
-	@make -s -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
-	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
-schemetests: tests/schemetests.log
+	@make -s -C tests/scheme -k -j memtests 2>&1 > tests/memtests.log && \
+	cp tests/memtests.log tests/memtests-`date +%d%b%yT%T`.log;
+memtests: tests/memtests.log
 
 tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
@@ -1630,6 +1639,20 @@ tests/leaktests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	cp tests/leaktests.log tests/leaktests-`date +%d%b%yT%T`.log;
 leaktests: tests/leaktests.log
 
+tests/schemetests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j schemetests 2>&1 > tests/schemetests.log && \
+	cp tests/schemtests.log tests/schemetests-`date +%d%b%yT%T`.log;
+schemetests: tests/schemetests.log
+
+tests/cmdtests.log: tests/scheme/fdexec tests/scheme/makefile.in
+	@echo "#### Running scheme tests, output in" $@
+	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
+	@make -s -C tests/scheme -k -j cmdtests 2>&1 > tests/cmdtests.log && \
+	cp tests/cmdtests.log tests/cmdtests-`date +%d%b%yT%T`.log;
+cmdtests: tests/cmdtests.log
+
 tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	@echo "#### Running scheme tests, output in" $@
 	@make -s -C tests/scheme testclean 2>&1 > tests/testclean.log
@@ -1637,7 +1660,7 @@ tests/dbtests.log: tests/scheme/fdexec tests/scheme/makefile.in
 	cp tests/dbtests.log tests/dbtests-`date +%d%b%yT%T`.log;
 dbtests: tests/dbtests.log
 
-.PHONY: alltests
+.PHONY: tests libtests schemetests dbtests cmtdtests memtests leaktests
 
 # Meta operations
 
