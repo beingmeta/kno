@@ -129,7 +129,7 @@
 (define (adjunct-setup! pool slotid adjopts opts)
   (when (string? adjopts)
     (set! adjopts
-      (cond ((has-prefix adjopts ".index")  `#[index ,adjopts])
+      (cond ((has-prefix adjopts ".index") `#[index ,adjopts])
 	    ((has-prefix adjopts ".pool")
 	     `#[pool ,adjopts
 		base ,(pool-base pool) 

@@ -11,7 +11,8 @@
 		  flex/front flex/zero
 		  flexpool/delete!
 		  flex/pool flex/index flex/db
-		  pool/ref index/ref db/ref})
+		  pool/ref index/ref db/ref
+		  flex/metadata})
 
 (module-export! '{flexpool-suffix flexindex-suffix})
 
@@ -152,12 +153,14 @@
 
     (unless (exists? start-pool)
       (let ((zero-opts
-	     `#[base ,base capacity ,step load ,(remainder load step)
+	     `#[base ,base 
+		capacity ,step
+		load ,(remainder load step)
 		type ,(getopt opts 'type 'bigpool)
-		metadata ,(make-metadata rootdir opts base cap step prefix 0)
+		metadata ,(make-metadata (dirname filename) rootdir opts base cap step prefix 0)
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
 	(set! start-pool (use-pool (make-pool start-file (cons zero-opts opts))))
-	(lognotice |StartPool| "Created start pool " (write start-file))
+	(lognotice |NewPool| "Created initial partition pool " (write start-file))
 	(set! pools start-pool)
 	(set! front start-pool)
 	(set! last start-pool)))
@@ -166,8 +169,8 @@
 
     (when (exists? (poolctl start-pool 'metadata 'adjuncts))
       (if (getopt opts 'build)
-	  (adjuncts/setup! start-pool opts)
-	  (adjuncts/init! start-pool opts)))
+	  (adjuncts/setup! start-pool (poolctl start-pool 'metadata 'adjuncts) opts)
+	  (adjuncts/init! start-pool (poolctl start-pool 'metadata 'adjuncts) opts)))
     (store! basemap (pool-base start-pool) start-pool)
 
     (do-choices (other matching-files)
@@ -181,8 +184,7 @@
 	  (poolctl pool 'props 'flexbase base)
 	  (set+! pools pool)
 	  (store! basemap (pool-base pool) pool)
-	  (when (> (oid-offset (pool-base pool))
-		   (oid-offset (pool-base last)))
+	  (when (> (oid-offset (pool-base pool)) (oid-offset (pool-base last)))
 	    (set! front pool)
 	    (set! last pool)))))
 
@@ -197,12 +199,21 @@
 		    `#[base ,(oid-plus base (* serial step)) 
 		       load ,(remainder (- load (* serial step)) step)
 		       capacity ,step
-		       type ,(getopt opts 'type 'bigpool)
-		       metadata ,(make-metadata rootdir opts base cap step prefix 0)
+		       type ,(if (testopt opts 'type 'flexpool) 
+				 'bigpool
+				 (getopt opts 'type 'bigpool))
+		       metadata ,(make-metadata (dirname filename) rootdir opts base cap step prefix serial)
 		       label ,(glom (basename prefix) "." (padnum serial padlen 16))])
 		   (pool (make-pool file (cons make-opts opts))))
-	      (lognotice |NewPool| "Created extension pool " (write file))
+	      (lognotice |NewPool| "Created partition pool " (write file))
+	      (when (exists? (poolctl pool 'metadata 'adjuncts))
+		(if (getopt opts 'build)
+		    (adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts) opts)
+		    (adjuncts/init! pool (poolctl pool 'metadata 'adjuncts) opts)))
 	      (use-pool pool opts)
+	      (set+! pools pool)
+	      (lognotice |FlexPool| (write prefix) " + " (pool-source pool))
+	      (poolctl pool 'props 'flexbase base)
 	      (set+! pools pool)
 	      (when (> (oid-offset (pool-base pool))
 		       (oid-offset (pool-base last)))
@@ -261,7 +272,9 @@
 	 (padlen (get-padlen (flexpool-capacity fp) step))
 	 (serial (quotient (oid-offset base flexbase) step))
 	 (opts `#[base ,base capacity ,step
-		  metadata ,(make-metadata (flexpool-rootdir fp) (flexpool-opts fp) 
+		  metadata ,(make-metadata (dirname (flexpool-filename fp)) 
+					   (flexpool-rootdir fp) 
+					   (flexpool-opts fp) 
 					   base (flexpool-capacity fp) step
 					   prefix serial)
 		  label ,(glom (basename prefix) "." (padnum serial padlen 16))])
@@ -409,11 +422,12 @@
       (set! n (* n 16)))
     digits))
 	    
-(define (make-metadata rootdir opts base cap step prefix serial)
+(define (make-metadata flexdir rootdir opts base cap step prefix serial)
   (let* ((metadata (deep-copy (getopt opts 'metadata #[])))
 	 (padlen (get-padlen cap step))
 	 (adjuncts (get metadata 'adjuncts))
 	 (adjslots (getkeys adjuncts)))
+    (when (test metadata 'type 'flexpool) (drop! metadata 'type))
     (store! metadata 'flexbase base)
     (store! metadata 'flexcap cap)
     (store! metadata 'flexstep step)
@@ -427,20 +441,26 @@
 	    (if (or (and (string? spec) (has-suffix spec ".flexpool"))
 		    (and (table? spec) (test spec 'pool) 
 			 (string? (get spec 'pool))
-			 (has-suffix (get spec 'pool) ".flexpool"))
-		    (and (table? spec) (test spec 'type 'flexpool))
-		    (and (table? spec) (test spec 'flexpool)
-			 (test spec '{flexpool pool source})))
+			 (or (has-suffix (get spec 'pool) ".flexpool")
+			     (test spec 'step)))
+		    (and (table? spec) (test spec 'flexpool) 
+			 (string? (get spec 'flexpool))))
 		(let* ((copied (deep-copy spec))
-		       (name (if (string? spec) spec 
-				 (try (get spec 'flexpool) 
-				      (get spec 'pool)
-				      (get spec 'source))))
+		       (name (strip-suffix
+			      (if (string? spec) spec 
+				  (try (get spec 'flexpool) 
+				       (get spec 'pool)
+				       (get spec 'source)))
+			      {".pool" ".flexpool"}))
 		       (adjbase (glom name "." (padnum serial padlen 16) ".pool"))
-		       (adjpath (mkpath rootdir adjbase)))
+		       (adjpath (mkpath flexdir adjbase)))
 		  (if (string? copied)
 		      (set! copied `#[pool ,adjpath])
 		      (store! copied 'pool adjpath))
+		  (store! copied 'adjunct slot)
+		  (store! copied 'base (oid-plus base (* serial step)))
+		  (store! copied 'load {})
+		  (store! copied 'capacity step)
 		  (store! converted slot copied))
 		(store! converted slot spec))))
 	(store! metadata 'adjuncts converted)))
@@ -458,7 +478,7 @@
 		 (upper (- n lower)))
 	    (choice (tryif (< (pool-load front) (pool-capacity front))
 		      (allocate-oids front lower))
-		    (allocate-oids (%wc flexpool-next flexpool) upper)))))))
+		    (allocate-oids (flexpool-next flexpool) upper)))))))
 
 (define (flexpool-fetch pool flexpool oid) (oid-value oid))
 (define (flexpool-storen pool flexpool n oidvec valvec) 
@@ -470,4 +490,3 @@
       (oid-offset (oid-plus (pool-base front) (pool-load front))
 		  (pool-base pool))
       0))
-
