@@ -133,12 +133,12 @@
 	    ((has-prefix adjopts ".pool")
 	     `#[pool ,adjopts
 		base ,(pool-base pool) 
-		capacity ,(pool-capacity pool)
-		adjunct ,slotid])
+		capacity ,(pool-capacity pool)])
 	    (else `#[index ,adjopts]))))
   (unless (or (getopt adjopts 'pool)  (getopt adjopts 'index))
     (irritant adjopts |InvalidAdjunct|))
-  (adjunct! pool slotid (ref-adjunct pool (cons adjopts opts))))
+  (adjunct! pool slotid 
+	    (ref-adjunct pool (cons* `#[load #f adjunct ,slotid] adjopts opts))))
 
 (define (ref-adjunct pool opts)
   (if (getopt opts 'index)
