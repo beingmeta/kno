@@ -1652,6 +1652,9 @@ fd_pool oidpool_create
       fd_seterr(fd_PoolOverflow,"oidpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}
+  else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
+            (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE))
+    load=0;
   else {
     fd_seterr("Not a valid load","oidpool_create",
               spec,load_arg);

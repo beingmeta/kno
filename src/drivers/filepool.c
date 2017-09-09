@@ -780,6 +780,9 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
                 spec,load_arg);
       rv = -1;}
     else load = loadval;}
+  else if ( (FALSEP(load_arg)) || (EMPTYP(load_arg)) ||
+            (VOIDP(load_arg)) || (load_arg == FD_DEFAULT_VALUE))
+    load=0;
   else {
     fd_seterr("Not a valid load","filepool_create",
               spec,load_arg);
