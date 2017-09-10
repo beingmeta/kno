@@ -125,7 +125,7 @@
       " from " (or (pool-source old) old)
       " into " (or (pool-source new) new))
   (let* ((started (elapsed-time))
-	 (newload (%wc pool-load new))
+	 (newload (pool-load new))
 	 (alloids (or (poolctl old 'keys) (pool-elts old)))
 	 (oids (if (= (pool-load old) newload)
 		   alloids

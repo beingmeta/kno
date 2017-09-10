@@ -138,18 +138,23 @@
   (unless (or (getopt adjopts 'pool)  (getopt adjopts 'index))
     (irritant adjopts |InvalidAdjunct|))
   (adjunct! pool slotid 
-	    (ref-adjunct pool (cons* `#[load #f adjunct ,slotid] adjopts opts))))
+	    (ref-adjunct pool (cons* `#[load #f adjunct ,slotid
+					metadata #[adjunct ,slotid adjuncts #[]]] 
+				     adjopts opts))))
 
 (define (ref-adjunct pool opts)
   (if (getopt opts 'index)
-      (if (file-exists? (abspath (getopt opts 'index)))
+      (if (file-exists? (abspath (getopt opts 'index) 
+				 (dirname (pool-source pool))))
 	  (open-index (abspath (getopt opts 'index)) opts)
 	  (make-index (abspath (getopt opts 'index)) opts))
       (let* ((source-suffix (gather (qc dbfile-suffix) (pool-source pool)))
 	     (poolfile (getopt opts 'pool))
 	     (filename
 	      (abspath (textsubst (getopt opts 'pool) 
-				  (qc dbfile-suffix) source-suffix))))
+				  (qc dbfile-suffix) source-suffix)
+		       (dirname (pool-source pool)))))
+	;; (%watch "ADJUNCT" (pool-source pool) filename)
 	(if (file-exists? filename)
 	    (open-pool filename opts)
 	    (make-pool filename opts)))))
