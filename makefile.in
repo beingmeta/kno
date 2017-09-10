@@ -334,7 +334,6 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/fdpkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
-	$(DESTDIR)@shared_module_dir@ 	$(DESTDIR)@shared_safe_module_dir@ \
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
@@ -1376,7 +1375,6 @@ confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 
 $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
   $(DESTDIR)@installed_module_dir@ $(DESTDIR)@installed_safe_module_dir@ \
-  $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
   $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
@@ -1431,9 +1429,8 @@ install-support: $(DESTDIR)@share_dir@
 
 LIBSCM_DIRS=optimize bugjar storage
 install-libscm:
-	if [ ! -h $(DESTDIR)${LIBSCM}] && \
-	   [ $(realpath ${DESTDIR}${LIBSCM}) != $(realpath ./src/libscm) ]; then \
-	 make really-install-libscm; fi
+	if [ ! $$(realpath $${DESTDIR}$${LIBSCM}) = $(realpath ./src/libscm) ]; then \
+	  make really-install-libscm; fi
 really-install-libscm:
 	$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM};
 	$(SYSINSTALL) @install_file_opts@ src/libscm/*.scm $(DESTDIR)${LIBSCM};
