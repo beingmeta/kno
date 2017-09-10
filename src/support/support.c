@@ -92,10 +92,6 @@ static lispval config_get_module_loc(lispval var,void *which_arg)
     return lispval_string(FD_INSTALLED_MODULE_DIR);
   case INSTALLED_SAFE_MODULES:
     return lispval_string(FD_INSTALLED_SAFE_MODULE_DIR);
-  case SHARED_MODULES:
-    return lispval_string(FD_SHARED_MODULE_DIR);
-  case SHARED_SAFE_MODULES:
-    return lispval_string(FD_SHARED_SAFE_MODULE_DIR);
   case BUILTIN_MODULES:
     return lispval_string(FD_BUILTIN_MODULE_DIR);
   case BUILTIN_SAFE_MODULES:

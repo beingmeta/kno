@@ -782,8 +782,6 @@ default_safe_module_path
 default_module_path
 local_safe_module_dir
 local_module_dir
-shared_safe_module_dir
-shared_module_dir
 installed_safe_module_dir
 installed_module_dir
 builtin_safe_module_dir
@@ -2981,7 +2979,6 @@ builtin_safe_module_dir=""
 installed_module_dir=""
 installed_safe_module_dir=""
 local_module_dir=""
-local_shared_module_dir=""
 default_module_path=""
 default_safe_module_path=""
 module_path=""
@@ -3105,8 +3102,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
-
-
 
 
 
@@ -8317,14 +8312,6 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define FD_INSTALLED_SAFE_MODULE_DIR "$installed_safe_module_dir"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define FD_SHARED_MODULE_DIR "$shared_module_dir"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define FD_SHARED_SAFE_MODULE_DIR "$shared_safe_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF

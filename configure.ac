@@ -107,7 +107,6 @@ builtin_safe_module_dir=""
 installed_module_dir=""
 installed_safe_module_dir=""
 local_module_dir=""
-local_shared_module_dir=""
 default_module_path=""
 default_safe_module_path=""
 module_path=""
@@ -232,8 +231,6 @@ AC_SUBST(builtin_module_dir)
 AC_SUBST(builtin_safe_module_dir)
 AC_SUBST(installed_module_dir)
 AC_SUBST(installed_safe_module_dir)
-AC_SUBST(shared_module_dir)
-AC_SUBST(shared_safe_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(local_safe_module_dir)
 AC_SUBST(default_module_path)
@@ -1001,8 +998,6 @@ AC_DEFINE_UNQUOTED(FD_LOCAL_MODULE_DIR,"$local_module_dir")
 AC_DEFINE_UNQUOTED(FD_LOCAL_SAFE_MODULE_DIR,"$local_safe_module_dir")
 AC_DEFINE_UNQUOTED(FD_INSTALLED_MODULE_DIR,"$installed_module_dir")
 AC_DEFINE_UNQUOTED(FD_INSTALLED_SAFE_MODULE_DIR,"$installed_safe_module_dir")
-AC_DEFINE_UNQUOTED(FD_SHARED_MODULE_DIR,"$shared_module_dir")
-AC_DEFINE_UNQUOTED(FD_SHARED_SAFE_MODULE_DIR,"$shared_safe_module_dir")
 AC_DEFINE_UNQUOTED(FD_BUILTIN_MODULE_DIR,"$builtin_module_dir")
 AC_DEFINE_UNQUOTED(FD_BUILTIN_SAFE_MODULE_DIR,"$builtin_safe_module_dir")
 AC_DEFINE_UNQUOTED(FD_UNPACKAGE_DIR,"$unpackage_dir")

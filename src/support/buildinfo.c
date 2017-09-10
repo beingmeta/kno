@@ -88,12 +88,6 @@ FD_EXPORT void fd_init_build_info()
 #ifdef FD_INSTALLED_SAFE_MODULE_DIR
   config_string(FD_INSTALLED_SAFE_MODULE_DIR);
 #endif
-#ifdef FD_SHARED_MODULE_DIR
-  config_string(FD_SHARED_MODULE_DIR);
-#endif
-#ifdef FD_SHARED_SAFE_MODULE_DIR
-  config_string(FD_SHARED_SAFE_MODULE_DIR);
-#endif
 #ifdef FD_BUILTIN_MODULE_DIR
   config_string(FD_BUILTIN_MODULE_DIR);
 #endif
@@ -503,8 +497,6 @@ FD_EXPORT void fd_init_build_info()
   config_string(FD_LOCAL_SAFE_MODULE_DIR);
   config_string(FD_INSTALLED_MODULE_DIR);
   config_string(FD_INSTALLED_SAFE_MODULE_DIR);
-  config_string(FD_SHARED_MODULE_DIR);
-  config_string(FD_SHARED_SAFE_MODULE_DIR);
   config_string(FD_BUILTIN_MODULE_DIR);
   config_string(FD_BUILTIN_SAFE_MODULE_DIR);
   config_string(FD_UNPACKAGE_DIR);
