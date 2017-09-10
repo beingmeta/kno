@@ -162,11 +162,12 @@ static int setup_connection(struct FD_MYSQL *dbp)
   int retval = 0;
   lispval options = dbp->extdb_options;
   int timeout = -1, ctimeout = -1, rtimeout = -1, wtimeout = -1;
+#ifdef MYSQL_OPT_SSL_MODE
   int ssl_mode = SSL_MODE_PREFERRED;
+#endif
   U8_MAYBE_UNUSED char *option = NULL;
   if (!(FD_VOIDP(options))) {
     lispval port = fd_getopt(options,port_symbol,FD_VOID);
-    lispval ssl = fd_getopt(options,ssl_symbol,FD_VOID);
     lispval sslca = fd_getopt(options,sslca_symbol,FD_VOID);
     lispval sslcert = fd_getopt(options,sslcert_symbol,FD_VOID);
     lispval sslkey = fd_getopt(options,sslkey_symbol,FD_VOID);
@@ -177,11 +178,14 @@ static int setup_connection(struct FD_MYSQL *dbp)
     lispval rtoval = fd_getopt(options,read_timeout_symbol,FD_VOID);
     lispval wtoval = fd_getopt(options,write_timeout_symbol,FD_VOID);
     dbp->mysql_portno = ((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
+#ifdef MYSQL_OPT_SSL_MODE
+    lispval ssl = fd_getopt(options,ssl_symbol,FD_VOID);
     if (FD_FALSEP(ssl))
       ssl_mode=SSL_MODE_DISABLED;
     else if (FD_TRUEP(ssl))
       ssl_mode=SSL_MODE_REQUIRED;
     else {}
+#endif
     if (FD_FIXNUMP(toval)) timeout = FD_FIX2INT(toval);
     if (FD_FIXNUMP(ctoval)) ctimeout = FD_FIX2INT(ctoval);
     else ctimeout = timeout;
@@ -209,8 +213,10 @@ static int setup_connection(struct FD_MYSQL *dbp)
               ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
               ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
               ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
+#ifdef MYSQL_OPT_SSL_MODE
   if (retval == RETVAL_OK) {
     retval = mysql_options(dbp->mysqldb,MYSQL_OPT_SSL_MODE,&ssl_mode);}
+#endif
   if (retval == RETVAL_OK) {
     my_bool reconnect = 0;
     retval = mysql_options(dbp->mysqldb,MYSQL_OPT_RECONNECT,&reconnect);}
