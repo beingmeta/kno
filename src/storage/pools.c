@@ -497,8 +497,9 @@ FD_EXPORT lispval fd_oid_value(lispval oid)
       return v;
     else if (v==FD_UNALLOCATED_OID) {
       fd_pool p = fd_oid2pool(oid);
-      fd_seterr(fd_UnallocatedOID,"fd_oid_value",
-                (p)?(p->poolid):((u8_string)"no pool"),oid);
+      if (p)
+        fd_seterr(fd_UnallocatedOID,"fd_oid_value",(p->poolid),oid);
+      else fd_seterr(fd_UnallocatedOID,"fd_oid_value",(p->poolid),oid);
       return FD_ERROR_VALUE;}
     else return v;}
   else return fd_type_error(_("OID"),"fd_oid_value",oid);

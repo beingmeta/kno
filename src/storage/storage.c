@@ -30,7 +30,8 @@ fd_exception fd_NoStorageMetadata=_("No storage metadata for resource"),
   fd_UnknownObjectName=_("Unknown object name"),
   fd_BadServerResponse=_("bad server response"),
   fd_NoBackground=_("No default background indexes"),
-  fd_UnallocatedOID=_("Reference to unallocated OID");
+  fd_UnallocatedOID=_("Reference to unallocated OID"),
+  fd_HomelessOID=_("Reference to homeless OID");
 fd_exception fd_ConnectionFailed=_("Connection to server failed");
 u8_condition fd_Commitment=_("COMMIT");
 u8_condition fd_ServerReconnect=_("Resetting server connection");
@@ -129,24 +130,38 @@ static lispval oid_name_slotids = NIL;
 
 static lispval default_get_oid_name(fd_pool p,lispval oid)
 {
-  if (FD_APPLICABLEP(p->pool_namefn)) return VOID;
+  if (FD_APPLICABLEP(p->pool_namefn))
+    return VOID;
   else {
+    fd_pool p = fd_oid2pool(oid);
+    if (p == NULL)
+      return VOID;
     lispval ov = fd_oid_value(oid);
-    if (((OIDP(p->pool_namefn)) || (SYMBOLP(p->pool_namefn))) &&
-        (!(CHOICEP(ov))) && (TABLEP(ov))) {
+    if (FD_ABORTP(ov)) {
+      u8_exception ex = u8_erreify();
+      if (ex) u8_free_exception(ex,1);
+      fd_decref(ov);
+      return VOID;}
+    if (! ((FD_SLOTMAPP(ov)) || (FD_SCHEMAPP(ov))) ) {
+      fd_decref(ov);
+      return VOID;}
+    fd_decref(ov);
+    if ((OIDP(p->pool_namefn)) || (SYMBOLP(p->pool_namefn))) {
       lispval probe = fd_frame_get(oid,p->pool_namefn);
       if (EMPTYP(probe)) {}
       else if (FD_ABORTP(probe)) {fd_decref(probe);}
-      else {fd_decref(ov); return probe;}}
-    if ((!(CHOICEP(ov))) && (TABLEP(ov))) {
-      FD_DOLIST(slotid,oid_name_slotids) {
-        lispval probe = fd_frame_get(oid,slotid);
-        if (EMPTYP(probe)) {}
-        else if (FD_ABORTP(probe)) {fd_decref(probe);}
-        else {fd_decref(ov); return probe;}}
-      fd_decref(ov);
-      return VOID;}
-    else {fd_decref(ov); return VOID;}}
+      else return probe;}
+    FD_DOLIST(slotid,oid_name_slotids) {
+      lispval probe = fd_frame_get(oid,slotid);
+      if (EMPTYP(probe)) {}
+      else if (FD_ABORTP(probe)) {
+        u8_exception ex = u8_erreify();
+        if (ex) u8_free_exception(ex,1);
+        fd_decref(probe);
+        return VOID;}
+      else return probe;}
+    fd_decref(ov);
+    return VOID;}
 }
 
 lispval (*fd_get_oid_name)(fd_pool p,lispval oid) = default_get_oid_name;
@@ -225,8 +240,10 @@ static int better_unparse_oid(u8_output out,lispval x)
       unsigned int off = FD_OID_DIFFERENCE(addr,p->pool_base);
       sprintf(buf,"@/%s/%x",p->pool_prefix,off);
       u8_puts(out,buf);}
-    if (p == NULL) return 1;
-    else if (fd_oid_display_level<2) return 1;
+    if (p == NULL)
+      return 1;
+    else if (fd_oid_display_level<2)
+      return 1;
     else if ((fd_oid_display_level<3) &&
              (!(fd_hashtable_probe_novoid(&(p->pool_cache),x))) &&
              (!(fd_hashtable_probe_novoid(&(p->pool_changes),x))))

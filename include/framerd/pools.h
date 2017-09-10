@@ -119,8 +119,9 @@
 #define FD_MAX_POOLS (FD_N_OID_BUCKETS*4)
 #endif
 
-FD_EXPORT fd_exception fd_CantLockOID, fd_AnonymousOID, fd_UnallocatedOID,
-  fd_InvalidPoolPtr, fd_PoolRangeError, fd_PoolConflict, fd_PoolOverflow,
+FD_EXPORT fd_exception fd_AnonymousOID, fd_UnallocatedOID, fd_HomelessOID;
+FD_EXPORT fd_exception fd_InvalidPoolPtr, fd_PoolRangeError, fd_CantLockOID,
+  fd_PoolConflict, fd_PoolOverflow,
   fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
   fd_ReadOnlyPool, fd_ExhaustedPool, fd_PoolCommitError, fd_NoSuchPool,
   fd_NotAFilePool, fd_NoFilePools, fd_BadFilePoolLabel, fd_DataFileOverflow;

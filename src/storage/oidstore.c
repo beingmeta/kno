@@ -205,7 +205,6 @@ FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts)
               break;}}}
         else if (FD_POOLP(adjunct)) {}
         else if (FD_INDEXP(adjunct)) {}
-        else if (TABLEP(adjunct)) {}
         else {
           fd_seterr(fd_BadAdjunct,"fd_set_adjunct",
                     p->poolid,fd_make_pair(slotid,adjunct));
