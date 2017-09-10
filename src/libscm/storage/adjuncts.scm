@@ -20,10 +20,14 @@
 
 (define (adjuncts/init! pool (adjuncts) (opts #f))
   (default! adjuncts (poolctl pool 'metadata 'adjuncts))
-  (let ((cur (get-adjuncts pool)))
+  (let ((cur (get-adjuncts pool))
+	(open-opts (getopt opts 'open
+			   (frame-create #f 
+			     'cachelevel (getopt opts 'cachelevel {})
+			     'loglevel (getopt opts 'loglevel {})))))
     (do-choices (slotid (getkeys adjuncts))
       (cond ((not (test cur slotid))
-	     (let ((usedb (db/ref (get adjuncts slotid) opts)))
+	     (let ((usedb (db/ref (get adjuncts slotid) open-opts)))
 	       (cond ((exists? usedb)
 		      (adjunct! pool slotid usedb))
 		     ((getopt opts 'require_adjuncts)
@@ -54,7 +58,7 @@
 	       adjuncts/init!))
 	    (else 
 	     (let ((spec (get adjuncts slotid))
-		   (usedb (db/ref (get adjuncts slotid) opts)))
+		   (usedb (db/ref (get adjuncts slotid) open-opts)))
 	       (cond ((exists? usedb)
 		      (logwarn |AdjunctConflict| 
 			"Overriding existing adjunct for " slotid " of " pool ":" 
@@ -138,9 +142,10 @@
   (unless (or (getopt adjopts 'pool)  (getopt adjopts 'index))
     (irritant adjopts |InvalidAdjunct|))
   (adjunct! pool slotid 
-	    (ref-adjunct pool (cons* `#[load #f adjunct ,slotid
-					metadata #[adjunct ,slotid adjuncts #[]]] 
-				     adjopts opts))))
+	    (ref-adjunct pool
+			 (cons* `#[load #f adjunct ,slotid
+				   metadata #[adjunct ,slotid adjuncts #[]]] 
+				adjopts opts))))
 
 (define (ref-adjunct pool opts)
   (if (getopt opts 'index)

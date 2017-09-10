@@ -6,7 +6,8 @@
 (use-module '{ezrecords stringfmts logger texttools})
 (use-module '{storage/adjuncts storage/filenames})
 
-(module-export! '{flexpool/open flexpool/make flexpool/ref flexpool/ref
+(module-export! '{flexpool/open flexpool/make 
+		  flexpool/ref flexpool/ref
 		  flex/pools flex/poolcount
 		  flex/front flex/zero
 		  flexpool/delete!
@@ -77,7 +78,7 @@
   (unless (has-prefix filename "/")
     (set! filename (abspath filename)))
   (try (flexpool/find filename)
-       (tryif (file-exists? filename)
+       (tryif (and (file-exists? filename) (not (file-directory? filename)))
 	 (let* ((def (file->dtype filename))
 		(opts (if opts (cons opts def) def)))
 	   (let ((prefix (getopt def 'prefix))
@@ -137,11 +138,23 @@
   (let* ((prefix (textsubst file-prefix pool-suffix ""))
 	 (padlen (get-padlen cap step))
 	 (start-file (realpath (mkpath (dirname filename) (glom prefix "." (padnum 0 padlen 16) ".pool"))))
-	 (start-pool (tryif (file-exists? start-file) (use-pool start-file opts)))
+	 (partition-opts (cons (if (getopt opts 'adjunct)
+				   `#[adjuncts {} adjunct ,(getopt opts 'adjunct)]
+				   #[adjuncts {}])
+			       opts))
+	 (start-pool (tryif (file-exists? start-file)
+		       (use-pool start-file partition-opts)))
 	 (suffix-pat `#("/" ,(basename prefix)
 			"." ,(make-vector padlen '(isxdigit)) ".pool"))
 	 (matching-files (pick (getfiles (dirname start-file))
 			       string-ends-with? suffix-pat))
+	 (adjopts (getopt opts 'adjopts
+			  (frame-create #f
+			    'adjunct #t
+			    'adjuncts #f
+			    'cachelevel (getopt opts 'cachelevel {})
+			    'loglevel (getopt opts 'loglevel {})
+			    'readonly (getopt opts 'readonly {}))))
 	 (basemap (make-hashtable))
 	 (load (getopt opts 'load))
 	 (pools start-pool)
@@ -150,7 +163,7 @@
 
     (unless (exists? start-pool)
       (let ((zero-opts
-	     `#[base ,base 
+	     `#[base ,base
 		capacity ,step
 		load ,(min load step)
 		type ,(getopt opts 'type 'bigpool)
@@ -158,27 +171,27 @@
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
 	(set! start-pool (use-pool (make-pool start-file (cons zero-opts opts))))
 	(lognotice |NewPool| "Created initial pool partition " (write start-file))
-	(loginfo |NewPoolOpts| "For " (write start-file) "\n" (pprint zero-opts))
+	(logdebug |NewPoolOpts| "For " (write start-file) "\n" (pprint zero-opts))
 	(set! pools start-pool)
 	(set! front start-pool)
 	(set! last start-pool)))
 
-    (lognotice |PoolPartition| "= " (pool-source start-pool))
+    (loginfo |PoolPartition| "= " (pool-source start-pool))
 
     (when (exists? (poolctl start-pool 'metadata 'adjuncts))
       (if (getopt opts 'build)
-	  (adjuncts/setup! start-pool (poolctl start-pool 'metadata 'adjuncts) opts)
-	  (adjuncts/init! start-pool (poolctl start-pool 'metadata 'adjuncts) opts)))
+	  (adjuncts/setup! start-pool (poolctl start-pool 'metadata 'adjuncts) adjopts)
+	  (adjuncts/init! start-pool (poolctl start-pool 'metadata 'adjuncts) adjopts)))
     (store! basemap (pool-base start-pool) start-pool)
 
     (do-choices (other matching-files)
       (unless (equal? other start-file)
-	(let ((pool (use-pool other opts)))
+	(let ((pool (use-pool other partition-opts)))
 	  (when (exists? (poolctl pool 'metadata 'adjuncts))
 	    (if (getopt opts 'build)
-		(adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts))
-		(adjuncts/init! pool (poolctl pool 'metadata 'adjuncts))))
-	  (lognotice |PoolPartition| "+ " (pool-source pool))
+		(adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts) adjopts)
+		(adjuncts/init! pool (poolctl pool 'metadata 'adjuncts) adjopts)))
+	  (loginfo |PoolPartition| "+ " (pool-source pool))
 	  (poolctl pool 'props 'flexbase base)
 	  (set+! pools pool)
 	  (store! basemap (pool-base pool) pool)
@@ -203,17 +216,17 @@
 				 (getopt opts 'type 'bigpool))
 		       metadata ,(make-metadata (dirname filename) opts base cap step prefix serial)
 		       label ,(glom (basename prefix) "." (padnum serial padlen 16))])
-		   (pool (make-pool file (cons make-opts opts))))
+		   (pool (make-pool file (cons make-opts partition-opts))))
 	      (lognotice |NewPool| "Created pool partition " (write file))
-	      (loginfo |NewPoolOpts|
+	      (logdebug |NewPoolOpts|
 		"For " (write file) "\n" (pprint make-opts))
 	      (when (exists? (poolctl pool 'metadata 'adjuncts))
 		(if (getopt opts 'build)
 		    (adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts) opts)
 		    (adjuncts/init! pool (poolctl pool 'metadata 'adjuncts) opts)))
-	      (use-pool pool opts)
+	      (unless (getopt opts 'adjunct) (use-pool pool partition-opts))
 	      (set+! pools pool)
-	      (lognotice |FlexPool| (write prefix) " + " (pool-source pool))
+	      (loginfo |FlexPool| (write prefix) " + " (pool-source pool))
 	      (poolctl pool 'props 'flexbase base)
 	      (set+! pools pool)
 	      (when (> (oid-offset (pool-base pool))
@@ -234,6 +247,8 @@
       (let ((pool (make-procpool 
 		   prefix base cap (cons flex-opts opts) state
 		   (getopt opts 'load 0))))
+	(lognotice |NewFlexpool|
+	  "Using " (choice-size pools) " partitions for " pool)
 	(store! flexdata pool state)
 	(store! flexdata
 		({abspath realpath} 
@@ -318,7 +333,7 @@
 	 (if (getopt opts 'adjunct)
 	     (open-pool spec opts)
 	     (use-pool spec opts)))
-	((file-exists? spec) 
+	((and (file-exists? spec) (not (file-directory? spec))) 
 	 (flexpool/open spec opts))
 	((file-exists? (glom spec ".flexpool"))
 	 (flexpool/open (glom spec ".flexpool") opts))
@@ -365,15 +380,6 @@
 	    (use-index ix))
 	  (make-index path opts))))
 
-(define (ref-pool spec opts)
-  (let* ((probe (open-pool spec #[adjunct #t register #f]))
-	 (metadata (poolctl probe 'metadata)))
-    (if (test metadata 'flexbase)
-	(flexpool/ref spec opts)
-	(if (testopt opts 'adjunct)
-	    (open-pool spec opts)
-	    (use-pool spec opts)))))
-
 (define (flex/db spec opts)
   (if (or (pool? spec) (index? spec) (hashtable? spec))
       spec
@@ -397,9 +403,14 @@
 			  (use-pool source xopts)))
 		     (else {})))
 	      ((or (has-suffix source ".pool")
-		   (has-suffix source ".flexpool")
-		   (testopt xopts '{pool flexpool})
-		   (testopt xopts 'type '{pool flexpool}))
+		   (testopt xopts 'pool)
+		   (testopt xopts 'type 'pool))
+	       (if (getopt xopts 'adjunct)
+		   (open-pool source xopts)
+		   (use-pool source xopts)))
+	      ((or (has-suffix source ".flexpool")
+		   (testopt xopts 'flexpool)
+		   (testopt xopts 'type 'flexpool))
 	       (flex/pool source xopts))
 	      ((or (has-suffix source ".index")
 		   (testopt xopts 'index)
