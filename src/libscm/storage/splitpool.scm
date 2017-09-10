@@ -132,6 +132,7 @@
     (commit) (swapout)
     (poolctl from 'cachelevel 1)
     (poolctl from 'cachelevel 2)
+    (set! maxmem (+ (memusage) (quotient maxmem 4)))
     (fifo/pause! fifo #f)))
 
 
