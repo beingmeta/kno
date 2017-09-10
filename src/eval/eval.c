@@ -2140,8 +2140,6 @@ FD_EXPORT void fd_set_app_env(fd_lexenv env)
 
 /* MTrace */
 
-static int mtracing=0;
-
 static lispval mtrace_prim(lispval arg)
 {
   /* TODO: Check whether we're running under libc malloc (so mtrace

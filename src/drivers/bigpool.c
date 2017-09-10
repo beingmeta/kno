@@ -1889,7 +1889,7 @@ static fd_pool bigpool_create(u8_string spec,void *type_data,
     if (loadval<0) {
       fd_seterr("Not a valid load","bigpool_create",spec,load_arg);
       rv = -1;}
-    else if (load > capacity) {
+    else if (loadval > capacity) {
       fd_seterr(fd_PoolOverflow,"bigpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}

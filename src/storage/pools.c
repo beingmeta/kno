@@ -151,28 +151,6 @@ FD_FASTOP int modify_readonly(lispval table,int val)
   else return 0;
 }
 
-FD_FASTOP int modify_finished(lispval table,int val)
-{
-  if (CONSP(table)) {
-    fd_ptr_type table_type = FD_PTR_TYPE(table);
-    switch (table_type) {
-    case fd_slotmap_type: {
-      struct FD_SLOTMAP *tbl=(fd_slotmap)table;
-      tbl->table_finished=val;
-      return 1;}
-    case fd_schemap_type: {
-      struct FD_SCHEMAP *tbl=(fd_schemap)table;
-      tbl->table_finished=val;
-      return 1;}
-    case fd_hashtable_type: {
-      struct FD_HASHTABLE *tbl=(fd_hashtable)table;
-      tbl->table_finished=val;
-      return 1;}
-    default:
-      return 0;}}
-  else return 0;
-}
-
 static int metadata_changed(fd_pool p)
 {
   return (fd_modifiedp((lispval)(&(p->pool_metadata))));

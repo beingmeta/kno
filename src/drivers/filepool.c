@@ -775,7 +775,7 @@ static fd_pool filepool_create(u8_string spec,void *type_data,
       fd_seterr("Not a valid load","filepool_create",
                 spec,load_arg);
       rv = -1;}
-    else if (load > capacity) {
+    else if (loadval > capacity) {
       fd_seterr("Not a valid load","filepool_create",
                 spec,load_arg);
       rv = -1;}

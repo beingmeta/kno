@@ -1307,20 +1307,6 @@ static int commit_index_handler(fd_index ix,void *data)
   return 0;
 }
 
-static int commit_index_noerr_handler(fd_index ix,void *data)
-{
-  int *count = (int *) data;
-  int retval = fd_index_commit(ix);
-  if (retval<0) {
-    u8_log(LOG_CRIT,"INDEX_COMMIT_FAIL","Error committing %s",ix->indexid);
-    fd_clear_errors(1);
-    *count=-1;}
-  else if ( *count >= 0 )
-    *count += retval;
-  else {}
-  return 0;
-}
-
 FD_EXPORT int fd_commit_indexes()
 {
   int count=0;

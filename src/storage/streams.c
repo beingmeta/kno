@@ -399,6 +399,8 @@ FD_EXPORT fd_stream fd_init_file_stream
   case FD_FILE_CREATE:
     open_flags |= O_CREAT|O_TRUNC|O_RDWR;
     stream_flags |= FD_STREAM_NEEDS_LOCK;
+    break;
+  case FD_FILE_NOVAL: /* Never reached */
     break;}
   fd = open(localname,open_flags,0666);
   /* If we fail and we're modifying, try to open read-only */
@@ -464,6 +466,8 @@ FD_EXPORT fd_stream fd_reopen_file_stream
   case FD_FILE_CREATE:
     open_flags |= O_CREAT|O_TRUNC|O_RDWR;
     needs_lock=1;
+    break;
+  case FD_FILE_NOVAL:
     break;}
 
   if (read_only)

@@ -1648,7 +1648,7 @@ fd_pool oidpool_create
     if (loadval<0) {
       fd_seterr("Not a valid load","oidpool_create",spec,load_arg);
       rv = -1;}
-    else if (load > capacity) {
+    else if (loadval > capacity) {
       fd_seterr(fd_PoolOverflow,"oidpool_create",spec,load_arg);
       rv = -1;}
     else load = loadval;}

@@ -330,7 +330,7 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,lispval x)
       case fd_mystery_type:
         return write_mystery(out,(struct FD_MYSTERY_DTYPE *) cons);
       default: {
-        fd_ptr_type ctype = FD_CONS_TYPE(cons); int dtype_len;
+        fd_ptr_type ctype = FD_CONS_TYPE(cons);
         if ((FD_VALID_TYPECODEP(ctype)) && (fd_dtype_writers[ctype]))
           return fd_dtype_writers[ctype](out,x);
         else if ((out->buf_flags)&(FD_WRITE_OPAQUE))

@@ -88,7 +88,8 @@ typedef enum FD_STREAM_MODE {
   FD_FILE_READ, /* Read only, must exist */
   FD_FILE_MODIFY, /* Read/write, must exist */
   FD_FILE_WRITE, /* Read/write, may exist */
-  FD_FILE_CREATE /* Read/write, truncated */
+  FD_FILE_CREATE, /* Read/write, truncated */
+  FD_FILE_NOVAL=-1 /* Read/write, truncated */
 } fd_stream_mode;
 
 typedef enum FD_BYTEFLOW {

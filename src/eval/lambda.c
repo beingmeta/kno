@@ -661,7 +661,6 @@ lispval fd_xapply_lambda
   lispval arglist = fn->lambda_arglist, result = VOID;
   fd_lexenv env = fn->lambda_env;
   INIT_STACK_SCHEMA(_stack,call_env,env,n,fn->lambda_vars);
-  lispval *vals=call_env_bindings.schema_values;
   while (PAIRP(arglist)) {
     lispval argspec = FD_CAR(arglist), argname = VOID, argval;
     if (SYMBOLP(argspec)) argname = argspec;
