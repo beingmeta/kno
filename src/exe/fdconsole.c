@@ -814,7 +814,6 @@ int main(int argc,char **argv)
   else if (u8_has_suffix(argv[0],"/fdshell",0))
     u8_default_appid("fdshell");
   else u8_default_appid(argv[0]);
-  fd_set_config("OIDDISPLAY",FD_INT(3));
   setlocale(LC_ALL,"");
   that_symbol = fd_intern("THAT");
   histref_symbol = fd_intern("%HISTREF");
