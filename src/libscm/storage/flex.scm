@@ -137,7 +137,9 @@
     (set! filename (abspath filename)))
   (let* ((prefix (textsubst file-prefix pool-suffix ""))
 	 (padlen (get-padlen cap step))
-	 (start-file (realpath (mkpath (dirname filename) (glom prefix "." (padnum 0 padlen 16) ".pool"))))
+	 (flexdir  (dirname filename))
+	 (start-file 
+	  (realpath (mkpath flexdir (glom prefix "." (padnum 0 padlen 16) ".pool"))))
 	 (partition-opts (cons (if (getopt opts 'adjunct)
 				   `#[adjuncts {} adjunct ,(getopt opts 'adjunct)]
 				   #[adjuncts {}])
@@ -156,7 +158,7 @@
 			    'loglevel (getopt opts 'loglevel {})
 			    'readonly (getopt opts 'readonly {}))))
 	 (basemap (make-hashtable))
-	 (load (getopt opts 'load))
+	 (load (getopt opts 'load 0))
 	 (pools start-pool)
 	 (front start-pool)
 	 (last start-pool))

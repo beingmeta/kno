@@ -1,4 +1,7 @@
 FD_EXPORT fd_exception fd_BigIntException;
+FD_EXPORT fd_exception fd_NotANumber;
+FD_EXPORT fd_exception fd_DivideByZero;
+FD_EXPORT fd_exception fd_InvalidNumericLiteral;
 
 FD_EXPORT lispval fd_make_bigint(long long intval);
 FD_EXPORT lispval fd_init_double(struct FD_FLONUM *ptr,double flonum);

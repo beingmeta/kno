@@ -692,69 +692,6 @@ static ssize_t get_more_data(u8_input in,ssize_t lim)
   else return in->u8_fillfn(in);
 }
 
-/* Lisp to string */
-
-static lispval lisp2string(lispval x)
-{
-  U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-  fd_unparse(&out,x);
-  return fd_stream2string(&out);
-}
-
-static lispval inexact2string(lispval x,lispval precision)
-{
-  if (FD_FLONUMP(x))
-    if ((FD_UINTP(precision)) || (VOIDP(precision))) {
-      int prec = ((VOIDP(precision)) ? (2) : (FIX2INT(precision)));
-      char buf[128]; char cmd[16];
-      sprintf(cmd,"%%.%df",prec);
-      sprintf(buf,cmd,FD_FLONUM(x));
-      return lispval_string(buf);}
-    else return fd_type_error("fixnum","inexact2string",precision);
-  else return lisp2string(x);
-}
-
-static lispval number2string(lispval x,lispval base)
-{
-  if (NUMBERP(x)) {
-    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-    fd_output_number(&out,x,fd_getint(base));
-    return fd_stream2string(&out);}
-  else return fd_err(fd_TypeError,"number2string",NULL,x);
-}
-
-static lispval number2locale(lispval x,lispval precision)
-{
-  if (FD_FLONUMP(x))
-    if ((FD_UINTP(precision)) || (VOIDP(precision))) {
-      int prec = ((VOIDP(precision)) ? (2) : (FIX2INT(precision)));
-      char buf[128]; char cmd[16];
-      sprintf(cmd,"%%'.%df",prec);
-      sprintf(buf,cmd,FD_FLONUM(x));
-      return lispval_string(buf);}
-    else return fd_type_error("fixnum","inexact2string",precision);
-  else if (FIXNUMP(x)) {
-    char buf[128];
-    sprintf(buf,"%'lld",FIX2INT(x));
-    return lispval_string(buf);}
-  else return lisp2string(x);
-}
-
-static lispval string2number(lispval x,lispval base)
-{
-  return fd_string2number(CSTRING(x),fd_getint(base));
-}
-
-static lispval just2number(lispval x,lispval base)
-{
-  if (NUMBERP(x)) return fd_incref(x);
-  else if (STRINGP(x)) {
-    lispval num = fd_string2number(CSTRING(x),fd_getint(base));
-    if (FALSEP(num)) return FD_FALSE;
-    else return num;}
-  else return fd_type_error(_("string or number"),"->NUMBER",x);
-}
-
 /* Printing a backtrace */
 
 static u8_exception print_backtrace_entry
@@ -1083,22 +1020,6 @@ FD_EXPORT void fd_init_portprims_c()
 
   fd_unparsers[fd_port_type]=unparse_port;
   fd_recyclers[fd_port_type]=recycle_port;
-
-  fd_idefn(fd_scheme_module,fd_make_cprim1("LISP->STRING",lisp2string,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2("INEXACT->STRING",inexact2string,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("NUMBER->STRING",number2string,1,
-                           -1,VOID,fd_fixnum_type,FD_INT(10)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2("NUMBER->LOCALE",number2locale,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRING->NUMBER",string2number,1,
-                           fd_string_type,VOID,
-                           fd_fixnum_type,FD_INT(-1)));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("->NUMBER",just2number,1,
-                           -1,VOID,fd_fixnum_type,FD_INT(-1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
 

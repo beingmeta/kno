@@ -64,6 +64,7 @@
 /* For sprintf */
 #include <stdio.h>
 
+fd_exception fd_NotANumber=_("Not a number");
 fd_exception fd_BigIntException=_("BigInt Exception");
 fd_exception fd_DivideByZero=_("Division by zero");
 fd_exception fd_InvalidNumericLiteral=_("Invalid numeric literal");

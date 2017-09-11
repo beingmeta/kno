@@ -463,6 +463,13 @@ static lispval lisp_string2lisp(lispval string)
   else return fd_type_error("string","lisp_string2lisp",string);
 }
 
+static lispval lisp2string(lispval x)
+{
+  U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+  fd_unparse(&out,x);
+  return fd_stream2string(&out);
+}
+
 static lispval lisp_tolisp(lispval arg)
 {
   if (STRINGP(arg)) {
@@ -820,6 +827,8 @@ FD_EXPORT void fd_init_coreprims_c()
             "is returned as a string object",
             -1,FD_VOID);
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING->LISP",lisp_string2lisp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("LISP->STRING",lisp2string,1));
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("PARSE-ARG",lisp_parse_arg,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UNPARSE-ARG",lisp_unparse_arg,1));
 

@@ -23,30 +23,35 @@
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
 
+#include <stdio.h> /* For sprintf */
 #include <errno.h>
 #include <math.h>
 
 static lispval complexp(lispval x)
 {
-  if (NUMBERP(x)) return FD_TRUE;
+  if (NUMBERP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval fixnump(lispval x)
 {
-  if (FIXNUMP(x)) return FD_TRUE;
+  if (FIXNUMP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval bignump(lispval x)
 {
-  if (FD_BIGINTP(x)) return FD_TRUE;
+  if (FD_BIGINTP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
 static lispval integerp(lispval x)
 {
-  if (INTEGERP(x)) return FD_TRUE;
+  if (INTEGERP(x))
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -61,9 +66,11 @@ static lispval exactp(lispval x)
 {
   if (FD_COMPLEXP(x)) {
     lispval real = FD_REALPART(x), imag = FD_IMAGPART(x);
-    if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag))) return FD_FALSE;
+    if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag)))
+      return FD_FALSE;
     else return FD_TRUE;}
-  else if (FD_FLONUMP(x)) return FD_FALSE;
+  else if (FD_FLONUMP(x))
+    return FD_FALSE;
   else if ((FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
     return FD_TRUE;
   else return FD_FALSE;
@@ -73,9 +80,11 @@ static lispval inexactp(lispval x)
 {
   if (FD_COMPLEXP(x)) {
     lispval real = FD_REALPART(x), imag = FD_IMAGPART(x);
-    if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag))) return FD_TRUE;
+    if ((FD_FLONUMP(real)) || (FD_FLONUMP(imag))) 
+      return FD_TRUE;
     else return FD_FALSE;}
-  else if (FD_FLONUMP(x)) return FD_TRUE;
+  else if (FD_FLONUMP(x))
+    return FD_TRUE;
   else if ((FIXNUMP(x)) || (FD_BIGINTP(x)) || (FD_RATIONALP(x)))
     return FD_FALSE;
   else return FD_FALSE;
@@ -85,14 +94,19 @@ static lispval oddp(lispval x)
 {
   if (FIXNUMP(x)) {
     long long ival = FIX2INT(x);
-    if (ival%2) return FD_TRUE; else return FD_FALSE;}
+    if (ival%2)
+      return FD_TRUE;
+    else return FD_FALSE;}
   else if (FD_BIGINTP(x)) {
     lispval remainder = fd_remainder(x,FD_INT(2));
     if (FD_ABORTP(remainder)) return remainder;
     else if (FIXNUMP(remainder))
-      if (FD_INT(remainder)) return FD_TRUE; else return FD_FALSE;
+      if (FD_INT(remainder))
+        return FD_TRUE; 
+      else return FD_FALSE;
     else {
-      fd_decref(remainder); return FD_FALSE;}}
+      fd_decref(remainder);
+      return FD_FALSE;}}
   else return FD_FALSE;
 }
 
@@ -100,31 +114,43 @@ static lispval evenp(lispval x)
 {
   if (FIXNUMP(x)) {
     long long ival = FIX2INT(x);
-    if (ival%2) return FD_FALSE; else return FD_TRUE;}
+    if (ival%2)
+      return FD_FALSE;
+    else return FD_TRUE;}
   else if (FD_BIGINTP(x)) {
     lispval remainder = fd_remainder(x,FD_INT(2));
-    if (FD_ABORTP(remainder)) return remainder;
+    if (FD_ABORTP(remainder))
+      return remainder;
     else if (FIXNUMP(remainder))
-      if (FD_INT(remainder)) return FD_FALSE; else return FD_TRUE;
+      if (FD_INT(remainder))
+        return FD_FALSE;
+      else return FD_TRUE;
     else {
-      fd_decref(remainder); return FD_FALSE;}}
+      fd_decref(remainder);
+      return FD_FALSE;}}
   else return FD_FALSE;
 }
 
 static lispval realp(lispval x)
 {
-  if (REALP(x)) return FD_TRUE; else return FD_FALSE;
+  if (REALP(x))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static lispval positivep(lispval x)
 {
   int sgn = fd_numcompare(x,FD_INT(0));
-  if (sgn>0) return FD_TRUE; else return FD_FALSE;
+  if (sgn>0)
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 static lispval negativep(lispval x)
 {
   int sgn = fd_numcompare(x,FD_INT(0));
-  if (sgn<0) return FD_TRUE; else return FD_FALSE;
+  if (sgn<0)
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 /* Basic ops */
@@ -137,7 +163,8 @@ static lispval plus_lexpr(int n,lispval *args)
     return FD_FIXNUM_ZERO;
   else if (n==1) {
     lispval x = args[0];
-    if (FIXNUMP(x)) return x;
+    if (FIXNUMP(x))
+      return x;
     else return fd_incref(x);}
   else if (n==2) 
     return fd_plus(args[0],args[1]);
@@ -1091,6 +1118,84 @@ static lispval itoa_prim(lispval arg,lispval base_arg)
   return lispval_string(buf);
 }
 
+/* string/int conversions */
+
+
+static lispval inexact2string(lispval x,lispval precision)
+{
+  if (FD_FLONUMP(x))
+    if ((FD_UINTP(precision)) || (VOIDP(precision))) {
+      int prec = ((VOIDP(precision)) ? (2) : (FIX2INT(precision)));
+      char buf[128], cmd[16];
+      if (sprintf(cmd,"%%.%df",prec)<1) {
+        u8_seterr("Bad precision","inexact2string",NULL);
+        return FD_ERROR_VALUE;}
+      else if (sprintf(buf,cmd,FD_FLONUM(x)) < 1) {
+        u8_seterr("Bad precision","inexact2string",NULL);
+        return FD_ERROR_VALUE;}
+      return lispval_string(buf);}
+    else return fd_type_error("fixnum","inexact2string",precision);
+  else {
+    U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+    fd_unparse(&out,x);
+    return fd_stream2string(&out);}
+}
+
+static lispval number2string(lispval x,lispval base)
+{
+  if (NUMBERP(x)) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+    fd_output_number(&out,x,fd_getint(base));
+    return fd_stream2string(&out);}
+  else return fd_err(fd_TypeError,"number2string",NULL,x);
+}
+
+static lispval number2locale(lispval x,lispval precision)
+{
+  if (FD_FLONUMP(x))
+    if ((FD_UINTP(precision)) || (VOIDP(precision))) {
+      int prec = ((VOIDP(precision)) ? (2) : (FIX2INT(precision)));
+      char buf[128]; char cmd[16];
+      sprintf(cmd,"%%'.%df",prec);
+      sprintf(buf,cmd,FD_FLONUM(x));
+      return lispval_string(buf);}
+    else return fd_type_error("fixnum","inexact2string",precision);
+  else if (FIXNUMP(x)) {
+    char buf[128];
+    sprintf(buf,"%'lld",FIX2INT(x));
+    return lispval_string(buf);}
+  else {
+    U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+    fd_unparse(&out,x);
+    return fd_stream2string(&out);}
+}
+
+static lispval string2number(lispval x,lispval base)
+{
+  return fd_string2number(CSTRING(x),fd_getint(base));
+}
+
+static lispval tohex(lispval x)
+{
+  if (FD_STRINGP(x))
+    return fd_string2number(CSTRING(x),16);
+  else if (FD_NUMBERP(x)) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+    fd_output_number(&out,x,16);
+    return fd_stream2string(&out);}
+  else return fd_err(fd_NotANumber,"argtohex",NULL,x);
+}
+
+static lispval just2number(lispval x,lispval base)
+{
+  if (NUMBERP(x)) return fd_incref(x);
+  else if (STRINGP(x)) {
+    lispval num = fd_string2number(CSTRING(x),fd_getint(base));
+    if (FALSEP(num)) return FD_FALSE;
+    else return num;}
+  else return fd_type_error(_("string or number"),"->NUMBER",x);
+}
+
 /* Initialization */
 
 #define arithdef(sname,lname,cname) \
@@ -1177,6 +1282,30 @@ FD_EXPORT void fd_init_arith_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("TRUNCATE",truncate_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ROUND",round_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("SCALEREP",scalerep_prim,2));
+
+  fd_idefn2(fd_scheme_module,"INEXACT->STRING",inexact2string,1,
+            "(inexact->string *num* [*precision*])\n"
+            "Generates a string of precision *precision* for *num*.",
+            -1,FD_VOID,fd_fixnum_type,FD_VOID);
+  fd_idefn2(fd_scheme_module,"NUMBER->STRING",number2string,1,
+            "(number->string *obj* [*base*=10])\n"
+            "Converts *obj* (a number) into a string in the given *base*",
+            -1,VOID,fd_fixnum_type,FD_INT(10));
+  fd_idefn2(fd_scheme_module,"NUMBER->LOCALE",number2locale,1,
+            "(number->locale *obj* [*precision*])\n"
+            "Converts *obj* into a locale-specific string",
+            -1,FD_VOID,-1,FD_VOID);
+  fd_idefn2(fd_scheme_module,"STRING->NUMBER",string2number,1,
+            "(string->number *string* [*base*])\n"
+            "Converts *string* into a number, returning #f on failure",
+            fd_string_type,VOID,fd_fixnum_type,FD_INT(-1));
+  fd_idefn2(fd_scheme_module,"->NUMBER",just2number,1,
+            "(->number *obj* [*base*])\nConverts *obj* into a number",
+            -1,VOID,fd_fixnum_type,FD_INT(-1));
+  fd_idefn1(fd_scheme_module,"->HEX",tohex,1,
+            "Converts a number to a hex string or a hex string to a number",
+            -1,VOID);
+  fd_defalias(fd_scheme_module,"->0X",-">HEX");
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x("ILOG",ilog_prim,1,
                                             fd_fixnum_type,VOID,
