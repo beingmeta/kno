@@ -1305,7 +1305,7 @@ FD_EXPORT void fd_init_arith_c()
   fd_idefn1(fd_scheme_module,"->HEX",tohex,1,
             "Converts a number to a hex string or a hex string to a number",
             -1,VOID);
-  fd_defalias(fd_scheme_module,"->0X",-">HEX");
+  fd_defalias(fd_scheme_module,"->0X","->HEX");
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x("ILOG",ilog_prim,1,
                                             fd_fixnum_type,VOID,
