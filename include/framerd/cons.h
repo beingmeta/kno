@@ -882,12 +882,29 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(lispval,lispval *,in
 
 /* Cons compare */
 
+/* This provides a fast inline object comparison for files which
+   define FD_INLINE_COMPARE. It is equivalent to the quick version of
+   lispval_compare.
+
+   It is used, for example, in the implementation of choices and for
+   the keys of hashtables.
+
+   It inlines atomic comparisons, string comparisons, numeric
+   comparisons (eqv?), and two levels of pairs or vectors. This means
+   that top level atoms are compared inline, as are 'x' and 'y' in the
+   following cases:
+    (x . y)
+    #(x y x y x...)
+    (x . #(y x y x...))
+    #((y . x) (x) x y x...)
+ */
 #if FD_INLINE_COMPARE
-static int cons_compare(lispval x,lispval y)
+static int base_compare(lispval x,lispval y)
 {
   if (FD_ATOMICP(x))
     if (FD_ATOMICP(y))
-      if (x < y) return -1;
+      if (x < y)
+	return -1;
       else if (x == y)
 	return 0;
       else return 1;
@@ -903,20 +920,96 @@ static int cons_compare(lispval x,lispval y)
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
-    else if (xtype<ytype) return -1;
-    else if (xtype>ytype) return 1;
+    else if (xtype<ytype)
+      return -1;
+    else if (xtype>ytype)
+      return 1;
     else switch (xtype) {
       case fd_pair_type: {
 	int car_cmp = FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
-	if (car_cmp == 0) return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
+	if (car_cmp == 0)
+	  return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
 	else return car_cmp;}
       case fd_string_type: {
 	int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
-	if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+	if (xlen>ylen)
+	  return 1;
+	else if (xlen<ylen)
+	  return -1;
 	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+      case fd_vector_type: {
+	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y), lim;
+	lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
+	if (xlen > ylen)
+	  return 1;
+	else if (xlen < ylen)
+	  return -1;
+	int minlen = (xlen < ylen) ? (xlen) : (ylen);
+        while (i < minlen) {
+	  int cmp = FD_QCOMPARE(xdata[i],ydata[i]);
+          if (cmp)
+	    return cmp;
+	  else i++;}
+	return 0;}
       default:
 	return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
 }
+static int cons_compare(lispval x,lispval y)
+{
+  if (FD_ATOMICP(x))
+    if (FD_ATOMICP(y))
+      if (x < y)
+	return -1;
+      else if (x == y)
+	return 0;
+      else return 1;
+    else return -1;
+  else if (FD_ATOMICP(y))
+    return 1;
+  else {
+    fd_ptr_type xtype = FD_PTR_TYPE(x);
+    fd_ptr_type ytype = FD_PTR_TYPE(y);
+    if ( (FD_NUMBER_TYPEP(xtype)) && (FD_NUMBER_TYPEP(ytype)) )
+      return fd_numcompare(x,y);
+    else if (FD_NUMBER_TYPEP(xtype))
+      return -1;
+    else if (FD_NUMBER_TYPEP(ytype))
+      return 1;
+    else if (xtype<ytype)
+      return -1;
+    else if (xtype>ytype)
+      return 1;
+    else switch (xtype) {
+      case fd_pair_type: {
+	int car_cmp = base_compare(FD_CAR(x),FD_CAR(y));
+	if (car_cmp == 0)
+	  return base_compare(FD_CDR(x),FD_CDR(y));
+	else return car_cmp;}
+      case fd_string_type: {
+	int xlen = FD_STRLEN(x), ylen = FD_STRLEN(y);
+	if (xlen>ylen)
+	  return 1;
+	else if (xlen<ylen)
+	  return -1;
+	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+      case fd_vector_type: {
+	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y), lim;
+	lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
+	if (xlen>ylen)
+	  return 1;
+	else if (xlen<ylen)
+	  return -1;
+	int minlen = (xlen < ylen) ? (xlen) : (ylen);
+        while (i < minlen) {
+	  int cmp = base_compare(xdata[i],ydata[i]);
+          if (cmp)
+	    return cmp;
+	  else i++;}
+	return 0;}
+      default:
+	return LISP_COMPARE(x,y,FD_COMPARE_QUICK);}}
+}
+
 #endif
 
 FD_EXPORT fd_compare_flags fd_get_compare_flags(lispval spec);
