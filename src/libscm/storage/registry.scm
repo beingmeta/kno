@@ -159,14 +159,23 @@
       (with-lock (registry-lock registry)
 	(try (get (registry-cache registry) value)
 	     (let* ((key (cons slotid value))
-		    (existing (find-frames index slotid value))
-		    (result (try existing
+		    (existing (pick (find-frames index slotid value) valid-oid?))
+		    (result (try (singleton existing)
+				 (good-frame existing)
 				 (tryif create
 				   (frame-create (registry-pool registry)
 				     '%id (list slotid value)
 				     '%session (config 'sessionid)
 				     '%created (timestamp)
 				     slotid value)))))
+	       (when (and (exists? existing) (fail? (oid-value existing)))
+		 (set-oid-value! existing 
+				 (frame-create #f
+				   '%id (list slotid value)
+				   '%session (config 'sessionid)
+				   '%created (timestamp)
+				   slotid value))
+		 (set! existing {}))
 	       (info%watch "REGISTRY/GET/got" key existing result)
 	       (when (exists? result)
 		 (when (fail? existing)
@@ -177,6 +186,12 @@
 		       (store! result key (get create key)))))
 		 (store! (registry-cache registry) value result))
 	       result)))))
+
+(defambda (good-frame existing)
+  (set! existing (pick existing valid-oid?))
+  (set! existing (for-choices (e existing) 
+		   (tryif (exists? (oid-value e)) e)))
+  (try (singleton existing) (smallest existing)))
 
 
 
