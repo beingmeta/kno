@@ -9,7 +9,7 @@
 (module-export! '{flexpool/open flexpool/make 
 		  flexpool/ref flexpool/ref
 		  flex/pools flex/poolcount
-		  flex/front flex/zero
+		  flex/front flex/last flex/zero
 		  flexpool/delete!
 		  flex/pool flex/index flex/db
 		  pool/ref index/ref db/ref
@@ -59,7 +59,7 @@
 (define (flex/front fp)
   (cond ((flexpool? fp) (flexpool-front fp))
 	((test flexdata fp)
-	 (flexpool-front (test flexdata fp)))
+	 (flexpool-front (get flexdata fp)))
 	(else #f)))
 
 (define (flexpool/find filename (prefix #f) (abs) (real))
@@ -197,7 +197,9 @@
 	  (poolctl pool 'props 'flexbase base)
 	  (set+! pools pool)
 	  (store! basemap (pool-base pool) pool)
-	  (when (> (oid-offset (pool-base pool)) (oid-offset (pool-base last)))
+	  (when (and (< (pool-load pool) (pool-capacity pool))
+		     (> (oid-offset (pool-base pool) base)
+			(oid-offset (pool-base last) base)))
 	    (set! front pool)
 	    (set! last pool)))))
 
@@ -231,8 +233,9 @@
 	      (loginfo |FlexPool| (write prefix) " + " (pool-source pool))
 	      (poolctl pool 'props 'flexbase base)
 	      (set+! pools pool)
-	      (when (> (oid-offset (pool-base pool))
-		       (oid-offset (pool-base last)))
+	      (when (and (< (pool-load pool) (pool-capacity pool))
+			 (> (oid-offset (pool-base pool) base)
+			    (oid-offset (pool-base last) base)))
 		(set! front pool)
 		(set! last pool))))
 	  (set! serial (1+ serial)))))
@@ -335,10 +338,16 @@
 	 (if (getopt opts 'adjunct)
 	     (open-pool spec opts)
 	     (use-pool spec opts)))
-	((and (file-exists? spec) (not (file-directory? spec))) 
+	((and (file-exists? spec) (has-suffix spec ".pool"))
+	 (if (getopt opts 'adjunct)
+	     (open-pool spec opts)
+	     (use-pool spec opts)))
+	((and (file-exists? spec) (has-suffix spec ".flexpool")) 
 	 (flexpool/open spec opts))
 	((file-exists? (glom spec ".flexpool"))
-	 (flexpool/open (glom spec ".flexpool") opts))
+	 (flex/pool (glom spec ".flexpool") opts))
+	((file-exists? (glom spec ".pool"))
+	 (flex/pool (glom spec ".pool") opts))
 	((or (getopt opts 'create) (getopt opts 'build)) 
 	 (flexpool/make spec opts))
 	(else #f)))
