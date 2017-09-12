@@ -35,7 +35,13 @@
 
 (define-init registry
   (slambda (slotid pool index (server #f))
-    (unique-registry slotid pool index server)))
+    (cond ((and slotid pool index)
+	   (unique-registry slotid pool index server))
+	  ((not (or (symbol? slotid) (oid? slotid))) 
+	   (irritant slotid |BadRegistrySlotID|))
+	  ((not (pool? pool)) (irritant pool |BadRegistryPool|))
+	  ((not (index? index)) (irritant index |BadRegistryPool|))
+	  (else (error |BadRegistryDefinition|)))))
 
 (define (unique-registry slotid pool index (server #f))
   (let ((registry (get registries slotid)))
@@ -100,7 +106,11 @@
       (irritant slotid |No Registry| registry/ref
 		"No registry exists for the slot " (write slotid))))
 
-(define (registry/save! (r #f))
+(define (use-threads?) (config 'NOTHREADS (config 'NTHREADS #t)))
+
+(define (secs-since pt) (secs->string (elapsed-time pt)))
+
+(define (registry/save! (r #f) (use-threads (use-threads?)))
   (when (and (or (symbol? r) (oid? r)) (test registries r))
     (set! r (get registries r)))
   (cond ((not r)
@@ -108,25 +118,34 @@
 	  (qc (pick (get registries (getkeys registries))
 		    registry-server #f))))
 	((ambiguous? r)
-	 (thread/wait (thread/call registry/save! r)))
+	 (if use-threads
+	     (thread/wait (thread/call registry/save! r))
+	     (do-choices r (registry/save! r #f))))
 	((registry-server r)
 	 (logwarn |RemoteRegistry|
 	   "No need to save a remote registry")
 	 #f)
-	(else (let* ((pools (registry-pool r))
-		     (indexes (registry-index r))
+	(else (let* ((pools (pick (registry-pool r) pool?))
+		     (indexes (pick (registry-index r) index?))
 		     (adjuncts-map (get-adjuncts pools))
 		     (adjuncts (get adjuncts-map (getkeys adjuncts-map)))
 		     (dbs (pick {pools indexes adjuncts} {pool? index?})))
 		(when (exists modified? dbs) 
-		  (let ((threads (thread/call+ #[logexit #f] commit dbs))
-			(started (elapsed-time)))
-		    (Loginfo |SavingRegistry| r)
-		    (if (exists? threads)
-			(begin (thread/wait threads)
-			  (lognotice |RegistrySaved| 
-			    "Saved registry " r " in " (secs->string (elapsed-time started))))
-			(logwarn |NoRegistry| "Couldn't get a registry to save"))))))))
+		  (if use-threads
+		      (let ((threads (thread/call+ #[logexit #f]
+					 commit (pick dbs modified?)))
+			    (started (elapsed-time)))
+			(Loginfo |SavingRegistry| r)
+			(if (exists? threads)
+			    (begin (thread/wait threads)
+			      (lognotice |RegistrySaved| 
+				"Saved registry " r " in " (secs-since started)))
+			    (logwarn |NoRegistry| "Couldn't get a registry to save")))
+		      (let ((started (elapsed-time)))
+			(Loginfo |SavingRegistry| r)
+			(do-choices (db (pick dbs modified?)) (commit dbs))
+			(lognotice |RegistrySaved| 
+			  "Saved registry " r " in " (secs-since started)))))))))
 
 ;;; The meat of it
 
@@ -143,11 +162,12 @@
 		    (existing (find-frames index slotid value))
 		    (result (try existing
 				 (tryif create
-				   (flex/make (registry-pool registry)
+				   (frame-create (registry-pool registry)
 				     '%id (list slotid value)
 				     '%session (config 'sessionid)
 				     '%created (timestamp)
 				     slotid value)))))
+	       (info%watch "REGISTRY/GET/got" key existing result)
 	       (when (exists? result)
 		 (when (fail? existing)
 		   (index-frame index result 'has slotid)
