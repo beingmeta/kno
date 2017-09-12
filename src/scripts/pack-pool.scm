@@ -14,6 +14,7 @@
 	   (tryif (config 'B40 #f) 'B40)
 	   (tryif (config 'B64 #f) 'B64)
 	   (tryif (config 'ZLIB #f) 'ZLIB)
+	   (tryif (config 'ZLIB9 #f) 'ZLIB9)
 	   (tryif (config 'SNAPPY #f) 'SNAPPY))))
 
 (define default-schematize #t)
