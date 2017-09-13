@@ -678,6 +678,22 @@ static lispval read_oid_value_at(fd_bigpool bp,
     else return FD_ERROR_VALUE;}
 }
 
+static int bigpool_locked_load(fd_pool p)
+{
+  fd_bigpool bp = (fd_bigpool)p;
+  if (FD_POOLFILE_LOCKEDP(bp))
+    /* If we have the file locked, the stored load is good. */
+    return bp->pool_load;
+  else if (bp->pool_stream.stream_fileno >= 0) {
+    struct stat info;
+    int rv = fstat(bp->pool_stream.stream_fileno,&info);
+    if ( (rv>=0) && ( bp->file_mtime >= info.st_mtime ) )
+      return bp->pool_load;
+    reload_bigpool(bp,FD_ISLOCKED);
+    return bp->pool_load;}
+  else return bp->pool_load;
+}
+
 static lispval bigpool_fetch(fd_pool p,lispval oid)
 {
   fd_bigpool bp = (fd_bigpool)p;
@@ -686,7 +702,7 @@ static lispval bigpool_fetch(fd_pool p,lispval oid)
   use_bigpool(bp);
   if (PRED_FALSE(offset>=bp->pool_load)) {
     /* It looks out of range, so double check by going to disk */
-    if (offset>=(bigpool_load(p))) {
+    if (offset>=(bigpool_locked_load(p))) {
       bigpool_finished(bp);
       if (bp->pool_flags&FD_POOL_ADJUNCT)
         return FD_EMPTY_CHOICE;
