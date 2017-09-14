@@ -938,7 +938,7 @@ static int base_compare(lispval x,lispval y)
 	  return -1;
 	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_vector_type: {
-	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y), lim;
+	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
 	lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
 	if (xlen > ylen)
 	  return 1;
@@ -993,7 +993,7 @@ static int cons_compare(lispval x,lispval y)
 	  return -1;
 	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_vector_type: {
-	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y), lim;
+	int i = 0, xlen = VEC_LEN(x), ylen = VEC_LEN(y);
 	lispval *xdata = VEC_DATA(x), *ydata = VEC_DATA(y);
 	if (xlen>ylen)
 	  return 1;
