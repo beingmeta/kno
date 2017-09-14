@@ -64,8 +64,11 @@ static long long state_files_written = 0;
 
 static int async_mode = 1;
 static int auto_reload = 0;
+static int server_shutdown = 0;
 
 static int debug_maxelts = 32, debug_maxchars = 80;
+
+static void shutdown_onsignal(int sig,siginfo_t *info,void *data);
 
 /* Various exceptions */
 static fd_exception BadPortSpec=_("Bad port spec");
@@ -179,7 +182,7 @@ static void sigactions_init()
   sigaction_abraham.sa_flags = SA_SIGINFO;
 
   memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
-  sigaction_shutdown.sa_sigaction = kill_dependent_onsignal;
+  sigaction_shutdown.sa_sigaction = shutdown_onsignal;
   sigaction_shutdown.sa_flags = SA_SIGINFO;
 
 }
@@ -674,7 +677,7 @@ static lispval module_list = NIL;
 static fd_lexenv exposed_lexenv = NULL;
 /* This is the shutdown procedure to be called when the
    server shutdowns. */
-static lispval shutdown_proc = EMPTY;
+static lispval shutdown_procs = EMPTY;
 static int normal_exit = 0;
 
 static lispval config_get_modules(lispval var,void *data)
@@ -711,19 +714,59 @@ static int config_use_module(lispval var,lispval val,void *data)
 
 /* Handling signals, etc. */
 
+static void run_shutdown_procs()
+{
+  lispval procs = shutdown_procs; shutdown_procs = FD_EMPTY;
+  FD_DO_CHOICES(proc,procs) {
+    if (FD_APPLICABLEP(proc)) {
+      lispval shutval, value;
+      if (normal_exit) shutval = FD_FALSE; else shutval = FD_TRUE;
+      u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",proc);
+      value = fd_apply(proc,1,&shutval);
+      fd_decref(value);}
+    else u8_log(LOGWARN,"BadShutdownProc",
+                "The value %q isn't applicable",proc);}
+  fd_decref(procs);
+}
+
+static void shutdown_server(u8_string why)
+{
+  u8_log(LOG_CRIT,ServerShutdown,"Shutting down server for %s",why);
+  u8_server_shutdown(&dtype_server,shutdown_grace);
+}
+
 static void shutdown_dtypeserver_onexit()
 {
-  u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on exit");
-  u8_server_shutdown(&dtype_server,shutdown_grace);
-  if (FD_APPLICABLEP(shutdown_proc)) {
-    lispval shutval, value;
-    if (normal_exit) shutval = FD_FALSE; else shutval = FD_TRUE;
-    u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",
-           shutdown_proc);
-    value = fd_apply(shutdown_proc,1,&shutval);
-    fd_decref(value);}
-  cleanup_state_files();
-  u8_log(LOG_WARN,ServerShutdown,"Done shutting down server");
+  shutdown_server("ONEXIT");
+}
+
+static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
+{
+  if (server_shutdown) {
+    u8_log(LOG_CRIT,"shutdown_server_onsignal",
+           "Already shutdown but received signal %d",
+           sig);
+    return;}
+  else {
+    server_shutdown=1;
+    u8_log(LOG_CRIT,"shutdown_server_onsignal",
+           "Shutting down on signal %d",sig);}
+#ifdef SIGHUP
+  if (sig == SIGHUP) {
+    shutdown_server("SIGHUP");
+    return;}
+#endif
+#ifdef SIGHUP
+  if (sig == SIGQUIT) {
+    shutdown_server("SIGQUIT");
+    return;}
+#endif
+#ifdef SIGHUP
+  if (sig == SIGTERM) {
+    shutdown_server("SIGTERM");
+    return;}
+#endif
+  shutdown_server("signal");
 }
 
 /* Miscellaneous Server functions */
@@ -1112,9 +1155,11 @@ int main(int argc,char **argv)
 
   write_cmd_file(argc,argv);
 
-  if ((daemonize>0)||(!(foreground)))
+  if (daemonize>0)
     return fork_server(server_spec,core_env);
-  else return launch_server(server_spec,core_env);
+  else if (foreground)
+    return launch_server(server_spec,core_env);
+  else return fork_server(server_spec,core_env);
 }
 
 static void init_configs()
@@ -1349,6 +1394,8 @@ static int sustain_server(pid_t grandchild,
   u8_string ppid_filename = fd_runbase_filename(".ppid");
   FILE *f = fopen(ppid_filename,"w");
   int status = -1, sleepfor = daemonize;
+  u8_log(LOGWARN,"Sustaining","Sustaining child for '%s' at %lld",
+         server_spec,grandchild);
   tweak_exename("fdserv",2,'x');
   sustaining = 1;
   if (f) {
@@ -1419,6 +1466,12 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
 #ifdef SIGHUP
   sigaction(SIGHUP,&sigaction_shutdown,NULL);
 #endif
+#ifdef SIGTERM
+  sigaction(SIGTERM,&sigaction_shutdown,NULL);
+#endif
+#ifdef SIGEXIT
+  sigaction(SIGEXT,&sigaction_shutdown,NULL);
+#endif
   tweak_exename("fdxerv",2,'s');
   if (u8_file_existsp(server_spec)) {
     /* The source file is loaded into a full (non sandbox environment).
@@ -1439,7 +1492,9 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
       return -1;}
     else {
       lispval startup_proc = fd_symeval(fd_intern("STARTUP"),env);
-      shutdown_proc = fd_symeval(fd_intern("SHUTDOWN"),env);
+      lispval shutdown_proc = fd_symeval(fd_intern("SHUTDOWN"),env);
+      if (FD_APPLICABLEP(shutdown_proc)) {
+        FD_ADD_TO_CHOICE(shutdown_procs,shutdown_proc);}
       fd_decref(result); result = VOID;
       /* If the init file did any exporting, expose those exports to
          clients.  Otherwise, expose all the definitions in the init
@@ -1483,6 +1538,7 @@ static int launch_server(u8_string server_spec,fd_lexenv core_env)
 
 static int run_server(u8_string server_spec)
 {
+  dependent = -1;
   init_server();
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);
@@ -1505,7 +1561,9 @@ static int run_server(u8_string server_spec)
          FRAMERD_REVISION,server_spec,fd_n_pools,
          fd_n_primary_indexes+fd_n_secondary_indexes,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
-  u8_server_loop(&dtype_server); normal_exit = 1;
+  u8_server_loop(&dtype_server);
+  normal_exit = 1;
+  run_shutdown_procs();
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
   fd_doexit(FD_FALSE);
   exit(0);
