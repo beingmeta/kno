@@ -26,7 +26,7 @@
 #include <ctype.h>
 #include <math.h>
 
-#if HAVE_CRYPTO_set_locking_callback
+#if HAVE_CRYPTO_SET_LOCKING_CALLBACK
 /* we have this global to let the callback get easy access to it */
 static pthread_mutex_t *ssl_lockarray;
 #include <openssl/crypto.h>
@@ -103,7 +103,8 @@ static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
         new_limit = new_limit+65536;
       else new_limit = new_limit*2;}
     newptr = u8_realloc((char *)dbuf->bytes,new_limit);
-    dbuf->bytes = newptr; dbuf->limit = new_limit;}
+    dbuf->bytes = newptr;
+    dbuf->limit = new_limit;}
   databuf = (unsigned char *)dbuf->bytes;
   memcpy(databuf+dbuf->size,data,size*n);
   dbuf->size = dbuf->size+size*n;
@@ -267,11 +268,10 @@ static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
 {
   struct curl_slist *cur = ch->headers, *newh;
   if (arg2==NULL)
-    newh = curl_slist_append(cur,arg1);
+    newh = curl_slist_append(cur,u8_strdup(arg1));
   else {
     u8_string hdr = u8_mkstring("%s: %s",arg1,arg2);
-    newh = curl_slist_append(cur,hdr);
-    u8_free(hdr);}
+    newh = curl_slist_append(cur,hdr);}
   ch->headers = newh;
   if (curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh)!=CURLE_OK) {
     return -1;}
@@ -349,6 +349,13 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   curl_set(h,CURLOPT_NOSIGNAL,1);
   curl_set(h,CURLOPT_WRITEFUNCTION,copy_content_data);
   curl_set(h,CURLOPT_HEADERFUNCTION,handle_header);
+
+  if (fd_test(curl_defaults,verifypeer_symbol,VOID))
+    curl_easy_setopt(h->handle,CURLOPT_SSL_VERIFYPEER,0);
+  if (fd_test(curl_defaults,verifyhost_symbol,VOID))
+    curl_easy_setopt(h->handle,CURLOPT_SSL_VERIFYHOST,0);
+  curl_easy_setopt(h->handle,CURLOPT_SSLVERSION,CURL_SSLVERSION_DEFAULT);
+
   if (fd_test(curl_defaults,useragent_symbol,VOID)) {
     curl_set2dtype(h,CURLOPT_USERAGENT,curl_defaults,useragent_symbol);}
   else curl_set(h,CURLOPT_USERAGENT,default_user_agent);
@@ -368,6 +375,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     curl_set2dtype(h,CURLOPT_TIMEOUT,curl_defaults,maxtime_symbol);
   if (fd_test(curl_defaults,timeout_symbol,VOID))
     curl_set2dtype(h,CURLOPT_CONNECTTIMEOUT,curl_defaults,timeout_symbol);
+
   {
     lispval http_headers = fd_get(curl_defaults,header_symbol,EMPTY);
     curl_add_headers(h,http_headers);
@@ -415,7 +423,15 @@ static lispval curlhandlep(lispval arg)
 static lispval curlreset(lispval arg)
 {
   struct FD_CURL_HANDLE *ch = (struct FD_CURL_HANDLE *)arg;
+
   curl_easy_reset(ch->handle);
+
+  curl_easy_setopt(ch->handle,CURLOPT_NOPROGRESS,1);
+  curl_easy_setopt(ch->handle,CURLOPT_FILETIME,(long)1);
+  curl_easy_setopt(ch->handle,CURLOPT_NOSIGNAL,1);
+  curl_easy_setopt(ch->handle,CURLOPT_WRITEFUNCTION,copy_content_data);
+  curl_easy_setopt(ch->handle,CURLOPT_HEADERFUNCTION,handle_header);
+
   return VOID;
 }
 
@@ -635,7 +651,8 @@ static lispval fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
     char buf[CURL_ERROR_SIZE];
     lispval errval=
       fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
-    fd_decref(result); u8_free(data.bytes);
+    fd_decref(result);
+    u8_free(data.bytes);
     if (consed_handle) {fd_decref((lispval)h);}
     return errval;}
   handlefetchresult(h,result,&data);
@@ -715,7 +732,8 @@ static lispval fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     lispval errval = fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
-    fd_decref(result); u8_free(data.bytes);
+    fd_decref(result);
+    u8_free(data.bytes);
     if (consed_handle) {fd_decref((lispval)h);}
     return errval;}
   handlefetchresult(h,result,&data);
@@ -730,6 +748,7 @@ static lispval handlefetchresult(struct FD_CURL_HANDLE *h,lispval result,
   int retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval==0)
     fd_add(result,response_code_slotid,FD_INT(http_response));
+  /* Add a trailing NUL, just in case we need it */
   if (data->size<data->limit) {
     unsigned char *buf = (unsigned char *)(data->bytes);
     buf[data->size]='\0';
@@ -902,7 +921,8 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     lispval errval = fd_err(CurlError,"urlput",getcurlerror(buf,retval),url);
-    fd_decref(result); u8_free(data.bytes);
+    fd_decref(result);
+    u8_free(data.bytes);
     fd_decref(conn);
     return errval;}
   else handlefetchresult(h,result,&data);
@@ -955,14 +975,16 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     lispval errval = fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
-    fd_decref(result); u8_free(data.bytes);
+    fd_decref(result);
+    u8_free(data.bytes);
     fd_decref(conn);
     return errval;}
   retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     lispval errval = fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
-    fd_decref(result); u8_free(data.bytes);
+    fd_decref(result);
+    u8_free(data.bytes);
     fd_decref(conn);
     return errval;}
   if (data.size<data.limit) data.bytes[data.size]='\0';
@@ -985,7 +1007,8 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
         const unsigned char *scan = data.bytes;
         U8_INIT_OUTPUT(&out,data.size);
         u8_convert(enc,1,&out,&scan,data.bytes+data.size);
-        u8_free(data.bytes); buf = out.u8_outbuf;
+        u8_free(data.bytes);
+        buf = out.u8_outbuf;
         U8_INIT_STRING_INPUT(&in,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
       else {
         U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf = data.bytes;}}
@@ -1483,6 +1506,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
 #if LOCK_OPENSSL
 /* we have this global to let the callback get easy access to it */
 static pthread_mutex_t *ssl_lockarray;
+static int n_crypto_locks=0;
 
 #include <openssl/crypto.h>
 static void lock_callback(int mode, int type, char U8_MAYBE_UNUSED *file, int U8_MAYBE_UNUSED line)
@@ -1506,15 +1530,17 @@ static unsigned long thread_id(void)
 static void init_ssl_locks(void)
 {
   int i;
+  int n = CRYPTO_num_locks();
 
   ssl_lockarray=
-    (pthread_mutex_t *)OPENSSL_malloc
-    (CRYPTO_num_locks() * sizeof(pthread_mutex_t));
-  for (i = 0; i<CRYPTO_num_locks(); i++) {
+    (pthread_mutex_t *)OPENSSL_malloc(n * sizeof(pthread_mutex_t));
+  for (i = 0; i<n; i++) {
     pthread_mutex_init(&(ssl_lockarray[i]),NULL);}
 
   CRYPTO_set_id_callback((unsigned long (*)())thread_id);
   CRYPTO_set_locking_callback((void (*)())lock_callback);
+
+  n_crypto_locks=n;
 }
 
 static void destroy_ssl_locks(void)
@@ -1522,7 +1548,7 @@ static void destroy_ssl_locks(void)
   int i;
 
   CRYPTO_set_locking_callback(NULL);
-  for (i = 0; i<CRYPTO_num_locks(); i++)
+  for (i = 0; i<n_crypto_locks; i++)
     pthread_mutex_destroy(&(ssl_lockarray[i]));
 
   OPENSSL_free(ssl_lockarray);
