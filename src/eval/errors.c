@@ -60,11 +60,12 @@ static lispval extend_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   return return_error_helper(expr,env,1);
 }
 
-static lispval return_irritant_helper(lispval expr,fd_lexenv env,int wrapped,int eval_args)
+static lispval return_irritant_helper(lispval expr,fd_lexenv env,
+                                      int wrapped,int eval_args)
 {
   fd_exception ex = SchemeError, cxt = NULL;
   lispval head = fd_get_arg(expr,0);
-  lispval irritant = fd_get_arg(expr,1);
+  lispval irritant = FD_VOID; /* fd_get_arg(expr,1); */
   lispval arg1 = fd_get_arg(expr,2);
   lispval arg2 = fd_get_arg(expr,3);
   lispval printout_body;
@@ -148,18 +149,16 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     else if (FD_APPLICABLEP(handler)) {
       lispval err_value = fd_init_exception(NULL,ex);
       lispval handler_result = fd_apply(handler,1,&err_value);
-      fd_exception_object exo=
-        fd_consptr(fd_exception_object,err_value,fd_exception_type);
       if (FD_ABORTP(handler_result)) {
-        u8_exception cur_ex = u8_current_exception;
+        u8_exception handler_ex = u8_erreify();
         /* Clear this field so we can decref err_value while leaving
            the exception object current. */
         u8_log(LOG_WARN,"Recursive error",
                "Error %m handling error during %q",
-               cur_ex->u8x_cond,toeval);
-        fd_log_backtrace(cur_ex,LOGWARN,"RecursiveError",128);
-        exo->ex_u8ex = NULL;
+               handler_ex->u8x_cond,toeval);
+        fd_log_backtrace(handler_ex,LOGWARN,"RecursiveError",128);
         u8_restore_exception(ex);
+        u8_restore_exception(handler_ex);
         fd_decref(value);
         fd_decref(handler);
         fd_decref(err_value);
@@ -181,15 +180,13 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     if (FD_ABORTP(handler))
       return handler;
     else if (FD_APPLICABLEP(handler)) {
-      if (VOIDP(value)) {
-        lispval result = fd_finish_call(fd_dapply(handler,0,&value));
-        fd_decref(handler);
-        return result;}
-      else {
-        lispval result = fd_finish_call(fd_dapply(handler,1,&value));
-        fd_decref(handler);
-        fd_decref(value);
-        return result;}}
+      lispval result;
+      if (VOIDP(value))
+        result = fd_finish_call(fd_dapply(handler,0,&value));
+      else result = fd_finish_call(fd_dapply(handler,1,&value));
+      fd_decref(value);
+      fd_decref(handler);
+      return result;}
     else {
       fd_decref(value);
       return handler;}}
@@ -491,11 +488,8 @@ FD_EXPORT void fd_init_errors_c()
   u8_register_source_file(_FILEINFO);
 
   fd_def_evalfn(fd_scheme_module,"ERROR","",return_error_evalfn);
-  fd_def_evalfn(fd_scheme_module,"ERROR+","",extend_error_evalfn);
   fd_def_evalfn(fd_scheme_module,"IRRITANT","",return_irritant_evalfn);
-  fd_def_evalfn(fd_scheme_module,"IRRITANT+","",extend_irritant_evalfn);
   fd_def_evalfn(fd_scheme_module,"NEWERR","",return_irritant_evalfn);
-  fd_def_evalfn(fd_scheme_module,"NEWERR+","",extend_irritant_evalfn);
   fd_def_evalfn(fd_scheme_module,"ONERROR","",onerror_evalfn);
   fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS","",report_errors_evalfn);
   fd_def_evalfn(fd_scheme_module,"ERREIFY","",erreify_evalfn);
