@@ -156,7 +156,8 @@
 			    'adjuncts #f
 			    'cachelevel (getopt opts 'cachelevel {})
 			    'loglevel (getopt opts 'loglevel {})
-			    'readonly (getopt opts 'readonly {}))))
+			    'readonly (getopt opts 'readonly {})
+			    'make (getopt opts 'make))))
 	 (basemap (make-hashtable))
 	 (load (getopt opts 'load 0))
 	 (pools start-pool)
@@ -181,7 +182,7 @@
     (loginfo |PoolPartition| "= " (pool-source start-pool))
 
     (when (exists? (poolctl start-pool 'metadata 'adjuncts))
-      (if (getopt opts 'build)
+      (if (getopt opts 'make)
 	  (adjuncts/setup! start-pool (poolctl start-pool 'metadata 'adjuncts) adjopts)
 	  (adjuncts/init! start-pool (poolctl start-pool 'metadata 'adjuncts) adjopts)))
     (store! basemap (pool-base start-pool) start-pool)
@@ -190,7 +191,7 @@
       (unless (equal? other start-file)
 	(let ((pool (use-pool other partition-opts)))
 	  (when (exists? (poolctl pool 'metadata 'adjuncts))
-	    (if (getopt opts 'build)
+	    (if (getopt opts 'make)
 		(adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts) adjopts)
 		(adjuncts/init! pool (poolctl pool 'metadata 'adjuncts) adjopts)))
 	  (loginfo |PoolPartition| "+ " (pool-source pool))
@@ -225,7 +226,7 @@
 	      (logdebug |NewPoolOpts|
 		"For " (write file) "\n" (pprint make-opts))
 	      (when (exists? (poolctl pool 'metadata 'adjuncts))
-		(if (getopt opts 'build)
+		(if (getopt opts 'make)
 		    (adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts) opts)
 		    (adjuncts/init! pool (poolctl pool 'metadata 'adjuncts) opts)))
 	      (unless (getopt opts 'adjunct) (use-pool pool partition-opts))
@@ -253,7 +254,7 @@
 		   prefix base cap (cons flex-opts opts) state
 		   (getopt opts 'load 0))))
 	(lognotice |NewFlexpool|
-	  "Using " (choice-size pools) " partitions for " pool)
+	  "Using " ($count (choice-size pools) "partition" "partitions") " for " pool)
 	(store! flexdata pool state)
 	(store! flexdata
 		({abspath realpath} 
@@ -348,7 +349,7 @@
 	 (flex/pool (glom spec ".flexpool") opts))
 	((file-exists? (glom spec ".pool"))
 	 (flex/pool (glom spec ".pool") opts))
-	((or (getopt opts 'create) (getopt opts 'build)) 
+	((or (getopt opts 'create) (getopt opts 'make)) 
 	 (flexpool/make spec opts))
 	(else #f)))
 (define pool/ref flex/pool)
