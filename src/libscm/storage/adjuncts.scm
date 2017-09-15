@@ -148,11 +148,14 @@
 				adjopts opts))))
 
 (define (ref-adjunct pool opts)
-  (if (getopt opts 'index)
-      (if (file-exists? (abspath (getopt opts 'index) 
+  (if (or (getopt opts 'index)
+	  (overlaps? (downcase (getopt opts 'type {}))
+		     {"hashindex" "fileindex" "memindex" "index"}))
+      (if (file-exists? (abspath (getopt opts 'index (getopt opts 'source)) 
 				 (dirname (pool-source pool))))
 	  (open-index (abspath (getopt opts 'index)) opts)
 	  (make-index (abspath (getopt opts 'index)) opts))
+      ;; Assume it's a pool
       (let* ((source-suffix (gather (qc dbfile-suffix) (pool-source pool)))
 	     (poolfile (getopt opts 'pool))
 	     (filename
@@ -160,9 +163,11 @@
 				  (qc dbfile-suffix) source-suffix)
 		       (dirname (pool-source pool)))))
 	;; (%watch "ADJUNCT" (pool-source pool) filename)
-	(if (file-exists? filename)
-	    (open-pool filename opts)
-	    (make-pool filename opts)))))
+	(cond ((file-exists? filename) (open-pool filename opts))
+	      ((getopt opts 'make) (make-pool filename opts))
+	      ((getopt opts 'err #t)
+	       (irritant filename |MissingAdjunct| REF-ADJUNCT))
+	      (else {})))))
 
 (define (adjuncts/add! pool slotid spec)
   (when (string? spec)
