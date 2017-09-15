@@ -1020,11 +1020,15 @@ FD_EXPORT lispval _fd_finish_call(lispval call)
       fd_decref(call);
       call = next;
       if (finished) {
-        if (voidval) {
+        if (FD_ABORTP(next))
+          return next;
+        else if (voidval) {
           fd_decref(next);
           result = VOID;}
         else result = next;
-        break;}}
+        break;}
+      else if (FD_ABORTP(next))
+        return next;}
     return result;}
   else return call;
 }
