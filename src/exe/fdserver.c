@@ -122,7 +122,7 @@ static int backtrace_width = FD_BACKTRACE_WIDTH;
 static int no_storage_api = 0;
 
 static time_t last_launch = (time_t)-1;
-static int fastfail_threshold = 60, fastfail_wait = 60;
+static int fastfail_threshold = 20, fastfail_wait = 30;
 
 static u8_mutex init_server_lock;
 
@@ -313,17 +313,24 @@ static int config_serve_port(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
   if (n_ports<0) return -1;
   else if (FD_UINTP(val)) {
     int retval = u8_add_server(&dtype_server,NULL,FIX2INT(val));
-    if (retval<0) {
+    if (retval>0)
+      n_ports = n_ports+retval;
+    else if (retval<0)
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
-      return -1;}
-    else n_ports = n_ports+retval;
+    else {
+      u8_log(LOGWARN,"NoServers","No servers were added for port #%q");
+      return 0;}
     return retval;}
   else if (STRINGP(val)) {
     int retval = u8_add_server(&dtype_server,CSTRING(val),0);
-    if (retval<0) {
+    if (retval>0)
+      n_ports = n_ports+retval;
+    else if (retval<0) {
       fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
       return -1;}
-    else n_ports = n_ports+retval;
+    else {
+      u8_log(LOGWARN,"NoServers","No servers were added for port #%q");
+      return 0;}
     return retval;}
   else {
     fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
@@ -1177,7 +1184,7 @@ static void init_configs()
     ("FASTFAIL",_("Threshold for daemon fastfails"),
      fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
   fd_register_config
-    ("FASTFAIL_WAIT",
+    ("FASTFAIL:WAIT",
      _("How long (secs) to wait after a fastfail"),
      fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
   fd_register_config
@@ -1444,7 +1451,8 @@ static int sustain_server(pid_t grandchild,
       u8_log(LOG_CRIT,ServerLoop,
              "FDServer %s fast-failed after %d seconds, pausing %d seconds",
              server_spec,now-last_launch,fastfail_wait);
-      sleep(fastfail_wait);}
+      if (fastfail_threshold<fastfail_wait)
+        sleep(fastfail_wait-((now-last_launch)/2));}
     else if (sleepfor>0) sleep(sleepfor);
     else {}
     last_launch = time(NULL);
