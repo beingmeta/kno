@@ -65,14 +65,12 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
 {
   fd_exception ex = SchemeError, cxt = NULL;
   lispval head = fd_get_arg(expr,0);
-  lispval irritant = FD_VOID; /* fd_get_arg(expr,1); */
+  lispval irritant_expr = fd_get_arg(expr,1), irritant=VOID;
   lispval arg1 = fd_get_arg(expr,2);
   lispval arg2 = fd_get_arg(expr,3);
   lispval printout_body;
 
-  if (VOIDP(irritant))
-    return fd_err(fd_SyntaxError,"return_irritant","no irritant",expr);
-  else if (eval_args) {
+  if (eval_args) {
     lispval exval = fd_eval(arg1,env), cxtval;
     if (FD_ABORTP(exval))
       ex = (fd_exception)"Recursive error on exception name";
@@ -101,23 +99,62 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
   else if (SYMBOLP(arg1)) {
     ex = (fd_exception)(SYM_NAME(arg1));
     printout_body = fd_get_body(expr,3);}
+  else if (STRINGP(arg1)) {
+    u8_string pname = CSTRING(arg1);
+    lispval sym = fd_intern(pname);
+    ex = (fd_exception)(SYM_NAME(sym));
+    printout_body = fd_get_body(expr,3);}
   else if (SYMBOLP(head)) {
-    ex = (fd_exception)(SYM_NAME(head));
+    ex = (fd_exception)"Bad irritant arg";
     printout_body = fd_get_body(expr,2);}
   else printout_body = fd_get_body(expr,2);
 
-  irritant = fd_eval(irritant,env);
+  if (VOIDP(irritant))
+    irritant = fd_eval(irritant_expr,env);
+
+  if (FD_ABORTP(irritant)) {
+    u8_exception ex = u8_erreify();
+    if (ex)
+      u8_log(LOGCRIT,"RecursiveError",
+             "Error %s (%s:%s) evaluating irritant arg %q",
+             ex->u8x_cond,ex->u8x_context,ex->u8x_details,
+             irritant_expr);
+    else u8_log(LOGCRIT,"RecursiveError",
+                "Error evaluating irritant arg %q",
+                irritant_expr);
+    u8_free_exception(ex,0);
+    irritant=FD_VOID;}
+
+  if (cxt == NULL) {
+    fd_stack cur = fd_stackptr;
+    while ( (cur) && (cxt==NULL) ) {
+      lispval op = cur->stack_op;
+      if (SYMBOLP(op))
+        cxt=FD_SYMBOL_NAME(op);
+      else if (FD_FUNCTIONP(op)) {
+        struct FD_FUNCTION *fcn=(fd_function)op;
+        if (fcn->fcn_name)
+          cxt=fcn->fcn_name;
+        else if (fcn->fcn_documentation)
+          cxt=fcn->fcn_documentation;
+        else cxt="FUNCTIONCALL";}
+      else {}
+      cur=cur->stack_caller;}}
 
   {
+    u8_string details=NULL;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
+    if (out.u8_outbuf == out.u8_write)
+      u8_free(out.u8_outbuf);
+    else details=out.u8_outbuf;
     if (wrapped) {
       u8_exception u8ex=
-	u8_make_exception((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,
-			  (void *)irritant,fd_free_exception_xdata);
+        u8_make_exception((u8_condition)ex,(u8_context)cxt,details,
+                          (void *)irritant,fd_free_exception_xdata);
       return fd_init_exception(NULL,u8ex);}
     else if (FD_CONSP(irritant)) {
-      lispval err_result=fd_err(ex,cxt,out.u8_outbuf,irritant);
+      lispval err_result=fd_err(ex,cxt,details,irritant);
       fd_decref(irritant);
       u8_close_output(&out);
       return err_result;}
