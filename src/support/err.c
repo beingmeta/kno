@@ -686,8 +686,8 @@ void fd_init_err_c()
   sigemptyset(&(sigaction_raise.sa_mask));
 
   /* Setup sigaction for default action */
-  sigaction_exit.sa_handler = SIG_DFL;
-  sigemptyset(&(sigaction_exit.sa_mask));
+  sigaction_default.sa_handler = SIG_DFL;
+  sigemptyset(&(sigaction_default.sa_mask));
 
   /* Setup sigaction for exit action */
   sigaction_exit.sa_sigaction = siginfo_exit;
