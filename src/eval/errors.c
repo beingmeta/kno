@@ -474,6 +474,17 @@ static lispval reraise_prim(lispval exo)
   return FD_ERROR_VALUE;
 }
 
+/* Getting an irritant without a stacktrace */
+
+static lispval get_irritant_prim(lispval exo)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,exo,fd_exception_type);
+  u8_exception ex = xo->ex_u8ex;
+  lispval irritant = fd_get_irritant(ex);
+  return fd_incref(irritant);
+}
+
 /* Clear errors */
 
 static lispval clear_errors()
@@ -509,6 +520,12 @@ FD_EXPORT void fd_init_errors_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-IRRITANT",error_irritant,1,
                            fd_exception_type,VOID,-1,FD_FALSE));
+  
+  fd_idefn1(fd_scheme_module,"GET-IRRITANT",get_irritant_prim,1,
+            "(GET-IRRITANT *error*) returns the actual irritant object"
+            "for an error description.",
+            fd_exception_type,VOID);
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ERROR-IRRITANT?",error_has_irritant,1,
                            fd_exception_type,VOID,-1,FD_FALSE));
