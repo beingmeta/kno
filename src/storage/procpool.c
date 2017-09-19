@@ -53,6 +53,13 @@ fd_pool fd_make_procpool(FD_OID base,
 	       &fd_procpool_handler,
 	       label,source);
 
+  lispval source_opt = FD_VOID;
+
+  if (source == NULL) {
+    source_opt = fd_getopt(opts,FDSYM_SOURCE,FD_VOID);
+    if (FD_STRINGP(source_opt))
+      source = u8_strdup(CSTRING(source_opt));}
+
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
     lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
     if (FD_FALSEP(v))
@@ -94,6 +101,8 @@ fd_pool fd_make_procpool(FD_OID base,
   pp->pool_label = label;
 
   fd_register_pool((fd_pool)pp);
+
+  fd_decref(source_opt);
 
   return (fd_pool)pp;
 }
