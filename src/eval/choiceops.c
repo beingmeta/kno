@@ -716,7 +716,9 @@ static lispval difference_lexpr(int n,lispval *args)
 static lispval choice2vector(lispval x,lispval sortspec)
 {
   fd_compare_flags flags = fd_get_compare_flags(sortspec);
-  if (PRECHOICEP(x)) {
+  if (EMPTYP(x)) 
+    return fd_init_vector(NULL,0,NULL);
+  else if (PRECHOICEP(x)) {
     lispval normal = fd_make_simple_choice(x);
     lispval result = choice2vector(normal,sortspec);
     fd_decref(normal);
