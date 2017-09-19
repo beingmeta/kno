@@ -211,7 +211,13 @@ static lispval fdexec_prim(int n,lispval *args)
 
 static lispval fork_prim(int n,lispval *args)
 {
-  return exec_helper("fork_prim",FD_DO_FORK,n,args);
+  if (n==0) {
+    pid_t pid = fork();
+    if (pid) {
+      long long int_pid = (long long) pid;
+      return FD_INT2DTYPE(int_pid);}
+    else return FD_FALSE;}
+  else return exec_helper("fork_prim",FD_DO_FORK,n,args);
 }
 
 static lispval fork_cmd_prim(int n,lispval *args)
