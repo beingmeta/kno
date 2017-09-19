@@ -77,14 +77,31 @@ static size_t app_argc;
 /* This takes an argv, argc combination and processes the argv elements
    which are configs (var = value again) */
 FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
-                                 unsigned int arg_mask,
-                                 size_t *arglen_ptr)
+				  unsigned int arg_mask,
+				  size_t *arglen_ptr)
 {
   if (argc>0) {
     u8_string exe_name = u8_fromlibc(argv[0]);
     lispval interp = fd_lispstring(exe_name);
+    u8_string exec_path = NULL;
     fd_set_config("INTERPRETER",interp);
     fd_set_config("EXE",interp);
+    if (exe_name[0]=='/')
+      exec_path = exe_name;
+    else if ( (u8_file_existsp("/proc/self/exe")) &&
+	      (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {}
+    else if (strchr(exe_name,'/'))
+      exec_path = u8_abspath(exe_name,NULL);
+    else if (u8_file_existsp(exe_name))
+      exec_path = u8_abspath(exe_name,NULL);
+    else {}
+    if (exec_path == exe_name)
+      fd_set_config("EXECPATH",interp);
+    else if (exec_path) {
+      lispval exec_val = fd_init_string(NULL,-1,exec_path);
+      fd_set_config("EXECPATH",exec_val);
+      fd_decref(exec_val);}
+    else fd_set_config("EXECPATH",interp);
     fd_decref(interp);}
 
   if (fd_argv!=NULL)  {
