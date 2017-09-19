@@ -12,7 +12,7 @@
 
 (define maxmem (quotient (rusage 'physical-memory) 2))
 
-(define %loglevel %notice%)
+(define %loglevel %info%)
 
 (define default-batchsize 0x40000)
 (varconfig! BATCHSIZE default-batchsize)
@@ -59,13 +59,57 @@
 		     build ,(timestamp)])
 	   (batchsize (getopt opts 'batchsize default-batchsize))
 	   (nthreads (getopt opts 'nthreads (rusage 'ncpus)))
-	   (flexpool (flexpool/make output (cons opts+ opts)))
-	   (subpools (flex/pools flexpool))
-	   (batches (make-batches subpools batchsize))
-	   (fifo (fifo/make (make-batches subpools batchsize)
-			    `#[fillfn ,fifo/exhausted!])))
-      (copy-oids input fifo nthreads))
+	   (flexpool (flexpool/make output (cons opts+ opts))))
+      (let ((count 0)
+	    (start (elapsed-time))
+	    (total-time 0.0))
+	(let ((logcopy (slambda (subpool n total time)
+			 (loginfo |Copied|
+			   "Took " (secs->string time) " to copy "
+			   ($num n) " (of " ($num total) ") OIDs to " subpool)
+			 (set! total-time (+ total-time time))
+			 (set! count (+ n count))
+			 (lognotice |Progress|
+			   "Overall, copied " ($num count) 
+			   " (" (show% count flexload) " of " ($num flexload) ") OIDs "
+			   " in " (secs->string (elapsed-time start)) 
+			   " (aggregate " total-time ") or "
+			   ($num (/~ count (/~ (elapsed-time start) 60)) 1) " OIDs/minute"))))
+	      (let ((threads {})
+		    (fifo (fifo/make (choice->vector (flex/pools flexpool))
+				     `#[fillfn ,fifo/exhausted!])))
+		(cond ((and nthreads (> nthreads 1))
+		       (dotimes (i nthreads)
+			 (set+! threads (thread/call copy-subpool input fifo batchsize logcopy)))
+		       (thread/wait threads))
+		      (else (copy-subpool input fifo batchsize logcopy)))))))
     #f))
+
+(define (copy-subpool from fifo batchsize (logcopy #f))
+  (let ((to (fifo/pop fifo)))
+    (while (and (exists? to) to)
+      (let* ((oids (pool-vector to))
+	     (n (length oids))
+	     (n-batches (1+ (quotient n batchsize)))
+	     (subpool-start (elapsed-time)))
+	(lognotice |Subpool/Start| 
+	  "Copying " ($num n) " OIDs in "
+	  ($num n-batches) " batches of up to "  ($num batchsize)
+	  " OIDs into " to)
+	(dotimes (i n-batches)
+	  (let* ((batch-started (elapsed-time))
+		 (oidvec (slice oids (* i batchsize)
+				(min (* (1+ i) batchsize) (length oids))))
+		 (valvec (pool/fetchn from oidvec)))
+	    (pool/storen! to oidvec valvec)
+	    (when logcopy (logcopy to (length oidvec) n (elapsed-time batch-started)))))
+	(commit to)
+	(swapout to)
+	(poolctl to 'cachelevel 0)
+	(lognotice |Subpool/Done| 
+	  "Copied " ($num n) " OIDs into " to " in " (secs->string (elapsed-time subpool-start))
+	  " (" ($num (/~ n (/~ (elapsed-time subpool-start) 60)) 2) " OIDs/minute)"))
+      (set! to (fifo/pop fifo)))))
 
 (defambda (copy-oids from fifo nthreads (copy-start (elapsed-time)))
   (lognotice |CopyOIDs| 
@@ -90,7 +134,7 @@
 	  (thread/wait threads))
 	(copier fifo from countup))))
 
-(defambda (make-batches subpools batchsize (start 0) (end))
+(defambda (make-batches subpools poolwidth batchsize (start 0) (end))
   (let ((batchlist '()))
     (do-choices (subpool subpools)
       (let* ((oidvec (pool-vector subpool))
@@ -112,8 +156,7 @@
 	 (oidvec (cdr item)))
     (while (exists? item)
       (logdebug |CopyThread/Batch| "Copying " (length oidvec) " OIDs")
-      (let ((valvec (pool/fetchn from oidvec)))
-	(pool/storen! to oidvec valvec))
+      
       (let ((progress (countup to (length oidvec))))
 	(loginfo |CopyThread|
 	  "Copied " (length oidvec) "/" (car progress) " OIDs to " to 

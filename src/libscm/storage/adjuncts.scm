@@ -22,7 +22,8 @@
   (default! adjuncts (poolctl pool 'metadata 'adjuncts))
   (let ((cur (get-adjuncts pool))
 	(open-opts (getopt opts 'open
-			   (frame-create #f 
+			   (frame-create #f
+			     'rootdir (dirname (pool-source pool))
 			     'cachelevel (getopt opts 'cachelevel {})
 			     'loglevel (getopt opts 'loglevel {})))))
     (do-choices (slotid (getkeys adjuncts))
@@ -143,7 +144,10 @@
     (irritant adjopts |InvalidAdjunct|))
   (adjunct! pool slotid 
 	    (ref-adjunct pool
-			 (cons* `#[load #f adjunct ,slotid
+			 (cons* `#[adjunct ,slotid
+				   base ,(pool-base pool) 
+				   capacity ,(pool-capacity pool)
+				   load #f 
 				   metadata #[adjunct ,slotid adjuncts #[]]] 
 				adjopts opts))))
 
