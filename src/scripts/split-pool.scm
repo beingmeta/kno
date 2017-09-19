@@ -8,6 +8,7 @@
 (config! 'cachelevel 2)
 (config! 'optlevel 4)
 (config! 'logthreadinfo #t)
+(config! 'logprocinfo #t)
 (config! 'thread:logexit #f)
 
 (define (getflags)
@@ -32,6 +33,7 @@
 	 (logcrit |MissingInput| "The file " (write from) " does not exist"))
 	((not to) (usage) (exit))
 	((and to (file-exists? to) (has-suffix to ".pool"))
+	 (config! 'appid (glom "split(" (basename to) ")"))
 	 (let ((in (open-pool from #[adjunct #t readonly #t cachelevel 2]))
 	       (out (open-pool to #[adjunct #t cachelevel 2])))
 	   (pool/copy in out `#[batchsize ,(config 'BATCHSIZE 0x20000)])
@@ -44,6 +46,7 @@
 	 (logcrit |BackupFile|
 	   "I don't want to delete the backup file " (write (glom from ".bak"))))
 	((not (or (config 'FORK #f) (config 'NPROCS #f)))
+	 (config! 'appid (glom "split(" from ")"))
 	 (flexpool/split from 
 			 (frame-create #f
 			   'make #t 'output to
@@ -54,6 +57,7 @@
 			   'nthreads (tryif (config 'nthreads) (config 'nthreads)))
 			 (or capacity #default)))
 	(else
+	 (config! 'appid (glom "split(" from ")"))
 	 (let* ((flexpool
 		 (flexpool/split from 
 				 (frame-create #f
@@ -76,6 +80,7 @@
 	   (if (and nprocs (> nprocs 1))
 	       (begin (dotimes (i nprocs)
 			(set+! procthreads (thread/call fork-copy from fifo))
+			;; Sleep to reduce conflicts between threads/processes 
 			(sleep (config 'THREADSPREAD 5)))
 		 (thread/wait procthreads))
 	       (fork-copy from fifo))

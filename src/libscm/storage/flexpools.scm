@@ -17,7 +17,7 @@
 (module-export! '{flexpool-suffix})
 
 (define-init %loglevel %notify%)
-(set! %loglevel %info%)
+(set! %loglevel %debug%)
 
 (module-export! 'flexpool/split)
 
@@ -329,38 +329,9 @@
 		pool)
 	pool))))
 
-(define (flexpool/delete! file (filebase))
-  (%watch "FLEXPOOL/DELETE!" file)
-  (cond ((flexpool? file)
-	 (set! file (abspath (flexpool-filename file))))
-	((test flexdata file)
-	 (set! file (abspath (flexpool-filename (get flexdata file)))))
-	((exists? (flexpool/find file))
-	 (set! file (abspath (flexpool-filename (flexpool/find file)))))
-	((string? file) (set! file (abspath file)))
-	(else (irritant file |FlexpoolRef|)))
-  (cond ((file-exists? file) (set! file (realpath file)))
-	((file-exists? (glom file ".flexpool"))
-	 (set! file (realpath (glom file ".flexpool"))))
-	(else (irritant file |NoFlexpool|)))
-  (let* ((info (file->dtype file))
-	 (prefix (getopt info 'prefix 
-			 (mkpath (basename file) 
-				 (strip-suffix (basename file) ".flexpool"))))
-	 (metadata (get info 'metadata))
-	 (adjuncts (get metadata 'adjuncts))
-	 (patterns `#(,(abspath prefix) ,partition-suffix))
-	 (dirs (dirname (abspath prefix)))
-	 (files (getfiles dirs))
-	 (matches (pick files string-matches? patterns)))
-    (%watch info prefix adjuncts patterns dirs files matches)
-    (logwarn |FlexpoolDelete| 
-      "Deleting " file " and " (do-choices (match matches) (printout " " match)))
-    (remove-file! file)
-    (remove-file! matches)))
+;;; Getting the 'next' flexpool (creates a new partition)
 
-
-(define (flexpool-next fp)
+(define (flexpool-next-inner fp)
   (let* ((base (oid-plus (pool-base (flexpool-front fp))
 			 (flexpool-partsize fp)))
 	 (flexbase (flexpool-base fp))
@@ -382,6 +353,8 @@
       (set-flexpool-partitions! fp (choice new (flexpool-partitions fp)))
       (set-flexpool-front! fp new)
       new)))
+(define-init flexpool-next
+  (slambda (fp) (flexpool-next-inner fp)))
 
 ;;; Getting info
 
@@ -401,6 +374,136 @@
       (oid-offset (oid-plus (pool-base front) (pool-load front))
 		  (flexpool-base flexpool))
       0))
+
+;;; Deleting flexpools
+
+(define (flexpool/delete! file (opts #f))
+  (cond ((flexpool? file)
+	 (set! file (abspath (flexpool-filename file))))
+	((test flexdata file)
+	 (set! file (abspath (flexpool-filename (get flexdata file)))))
+	((exists? (flexpool/find file))
+	 (set! file (abspath (flexpool-filename (flexpool/find file)))))
+	((string? file) (set! file (abspath file)))
+	(else (irritant file |FlexpoolRef|)))
+  (cond ((file-exists? file) (set! file (realpath file)))
+	((file-exists? (glom file ".flexpool"))
+	 (set! file (realpath (glom file ".flexpool"))))
+	(else (irritant file |NoFlexpool|)))
+  (let* ((info (file->dtype file))
+	 (prefix (getopt info 'prefix 
+			 (mkpath (basename file) 
+				 (strip-suffix (basename file) ".flexpool"))))
+	 (partition-suffix
+	  (append #(".")
+		  (make-vector (get-padlen (get info 'capacity) (get info 'partsize))
+			       '(isxdigit))
+		  #(".pool")))
+	 (metadata (get info 'metadata))
+	 (adjuncts (get metadata 'adjuncts))
+	 (patterns `#(,(abspath prefix (dirname file)) ,partition-suffix))
+	 (filedir (dirname file))
+	 (topdir (dirname (abspath prefix filedir)))
+	 (dirs topdir))
+    (do-choices (adjslot (getkeys adjuncts))
+      (let* ((adjinfo (get adjuncts adjslot))
+	     (ref (if (string? adjinfo) 
+		      adjinfo
+		      (try (get adjinfo 'pool)
+			   (get adjinfo 'flexpool)
+			   (get adjinfo 'source))))
+	     (info (tryif (table? adjinfo) adjinfo)))
+	(if (or (has-suffix ref {".pool" ".flexpool"})
+		(test info 'pool)
+		(test info 'flexpool)
+		(test info 'type '{pool flexpool}))
+	    (cond ((has-prefix ref "/") (set+! dirs (dirname ref)))
+		  (else
+		   (when (position #\/ ref)
+		     (set+! dirs (dirname (mkpath topdir (dirname ref)))))
+		   (set+! patterns `#(,(glom (abspath prefix filedir) "." ref)
+				      ,partition-suffix))))
+	    (if (test adjinfo 'dedicated)
+		(unless (getopt opts 'dryrun #f) (remove-file! ref))
+		(logwarn |NotDeleted| 
+		  "Not deleting the adjunct " (write ref) 
+		  " might contain data for other pools.")))))
+    (debug%watch "FLEXPOOL/DELETE!" 
+      file prefix partition-suffix 
+      "\nDIRS" dirs "\nPATTERNS" patterns)
+    (let* ((files (getfiles dirs))
+	   (matches (pick files string-matches? patterns)))
+      (logwarn |FlexpoolDelete| 
+	"Deleting " file " and\n "
+	(do-choices (match matches i)
+	  (printout (if (> i 0) (if (zero? (remainder i 2)) "\n " " "))
+	    match)))
+      (unless (getopt opts 'dryrun #f)
+	(remove-file! file)
+	(remove-file! matches)))))
+
+;;; Resetting flexpools
+
+(define (flexpool/reset! file (opts #f))
+  (cond ((flexpool? file)
+	 (set! file (abspath (flexpool-filename file))))
+	((test flexdata file)
+	 (set! file (abspath (flexpool-filename (get flexdata file)))))
+	((exists? (flexpool/find file))
+	 (set! file (abspath (flexpool-filename (flexpool/find file)))))
+	((string? file) (set! file (abspath file)))
+	(else (irritant file |FlexpoolRef|)))
+  (cond ((file-exists? file) (set! file (realpath file)))
+	((file-exists? (glom file ".flexpool"))
+	 (set! file (realpath (glom file ".flexpool"))))
+	(else (irritant file |NoFlexpool|)))
+  (let* ((info (file->dtype file))
+	 (prefix (getopt info 'prefix 
+			 (mkpath (basename file) 
+				 (strip-suffix (basename file) ".flexpool"))))
+	 (partition-suffix
+	  `#("." ,(make-vector (get-padlen cap partsize) '(isxdigit)) ".pool"))
+	 (metadata (get info 'metadata))
+	 (adjuncts (get metadata 'adjuncts))
+	 (patterns `#(,(abspath prefix (dirname file)) ,partition-suffix))
+	 (filedir (dirname file))
+	 (topdir (dirname (abspath prefix filedir)))
+	 (dirs topdir))
+    (do-choices (adjslot (getkeys adjuncts))
+      (let* ((adjinfo (get adjuncts adjslot))
+	     (ref (if (string? adjinfo) 
+		      adjinfo
+		      (try (get adjinfo 'pool)
+			   (get adjinfo 'flexpool)
+			   (get adjinfo 'source))))
+	     (info (tryif (table? adjinfo) adjinfo)))
+	(if (or (has-suffix ref {".pool" ".flexpool"})
+		(test info 'pool)
+		(test info 'flexpool)
+		(test info 'type '{pool flexpool}))
+	    (cond ((has-prefix ref "/") (set+! dirs (dirname ref)))
+		  (else
+		   (when (position #\/ ref)
+		     (set+! dirs (dirname (mkpath topdir (dirname ref)))))
+		   (set+! patterns `#(,(glom (abspath prefix filedir) "." ref)
+				      ,partition-suffix))))
+	    (if (test adjinfo 'dedicated)
+		(unless (getopt opts 'dryrun #f) (remove-file! ref))
+		(logwarn |NotReset| 
+		  "Not resetting the adjunct " (write ref) ", "
+		  "which might contain data from other pools.")))))
+    (debug%watch "FLEXPOOL/RESET!" file prefix dirs patterns)
+    (let* ((files (getfiles dirs))
+	   (matches (pick files string-matches? patterns)))
+      (logwarn |FlexpoolReset| 
+	"Resetting " ($num (choice-size matches)) " partitions:\n"
+	(do-choices (match matches i)
+	  (printout (if (> i 0) (if (zero? (remainder i 2)) "\n " " "))
+	    match)))
+      (unless (getopt opts 'dryrun #f) (reset-pool matches)))))
+
+(define (reset-pool! poolfile)
+  (logwarn |NYI| "Pool resets aren't implemented yet"))
 
 ;;; Support functions
 
