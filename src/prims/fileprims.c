@@ -1677,7 +1677,7 @@ static int scheme_fileio_initialized = 0;
 FD_EXPORT void fd_init_driverfns_c(void);
 FD_EXPORT void fd_init_loader_c(void);
 
-FD_EXPORT void fd_init_fileio_c()
+FD_EXPORT void fd_init_fileprims_c()
 {
   lispval fileio_module;
   if (scheme_fileio_initialized) return;
@@ -1945,7 +1945,7 @@ FD_EXPORT void fd_init_fileio_c()
 
 FD_EXPORT void fd_init_schemeio()
 {
-  fd_init_fileio_c();
+  fd_init_fileprims_c();
   fd_init_driverfns_c();
   fd_init_loader_c();
 }

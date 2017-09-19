@@ -643,7 +643,7 @@ static lispval make_procpool(lispval label,
   else if (load == FD_DEFAULT_VALUE)
     load=FD_FIXZERO;
   else if (!(FD_UINTP(load)))
-    return fd_type_error("uint","make_mempool",load);
+    return fd_type_error("uint","make_procpool",load);
   fd_pool p = fd_make_procpool
     (FD_OID_ADDR(base),FIX2INT(cap),FIX2INT(load),
      opts,state,CSTRING(label),NULL);

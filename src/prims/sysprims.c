@@ -707,6 +707,8 @@ static int corelimit_set(lispval symbol,lispval value,void *vptr)
 
 /* Initialization */
 
+FD_EXPORT void fd_init_procprims_c(void);
+
 FD_EXPORT void fd_init_sysprims_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -795,6 +797,8 @@ FD_EXPORT void fd_init_sysprims_c()
   fd_register_config
     ("CORELIMIT",_("Set core size limit"),
      corelimit_get,corelimit_set,NULL);
+
+  fd_init_procprims_c();
 
 }
 
