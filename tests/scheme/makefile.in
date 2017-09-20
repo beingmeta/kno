@@ -337,15 +337,15 @@ bigpoolsnappytest:
 bigpoolzlibtest:
 	@make TESTBASE=bigpoolzlib RUNCONF="${BIGPOOL} ${ZPOOL} ${RUNCONF}" pooltest
 
-bigpooltests: bigpooltest bigpool32test bigpool64test bigpoolsnappytest bigpoolzlibtest
-oidpooltests: oidpooltest oidpool32test oidpool64test
+bigpools bigpooltests: bigpooltest bigpool32test bigpool64test bigpoolsnappytest bigpoolzlibtest
+oidpools oidpooltests: oidpooltest oidpool32test oidpool64test
 
-flexpools:
+flexpools flexpooltests:
 	@${header} "■■■■■■■■ Running flexpool tests, ${TESTBASE} ${TESTSIZE} ${RUNCONF}";
 	@${RUN} ${FDX} flextest.scm ${TESTBASE}.flexpool RESET=yes ${RUNCONF};
 	@${RUN} ${FDX} flextest.scm ${TESTBASE}.flexpool ${RUNCONF};
 
-pooltests pools: filepooltest oidpooltests bigpooltests flexpooltest
+pooltests pools: filepooltest oidpooltests bigpooltests flexpooltests
 
 .PHONY: pooltests pool
 
