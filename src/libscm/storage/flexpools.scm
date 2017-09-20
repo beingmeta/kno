@@ -17,7 +17,6 @@
 (module-export! '{flexpool-suffix})
 
 (define-init %loglevel %notify%)
-(set! %loglevel %debug%)
 
 (module-export! 'flexpool/split)
 
@@ -181,7 +180,7 @@
   (unless (has-prefix filename "/")
     (set! filename (abspath filename)))
   (try (flexpool/open filename)
-       (make-flexpool filename 
+       (make-flexpool filename
 		      (if (getopt opts 'make #f)
 			  opts
 			  (cons #[make #t] opts)))))
@@ -230,12 +229,13 @@
 	     `#[base ,flexbase
 		capacity ,partsize
 		load ,(min load partsize)
+		adjunct ,(getopt opts 'adjunct)
 		type ,(getopt opts 'type 'bigpool)
 		metadata ,(partition-metadata start-ref opts flexbase flexcap partsize 0)
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
 	(set! start-pool (use-pool (make-pool start-file (cons zero-opts opts))))
-	(lognotice |NewPool| "Created initial pool partition " (write start-file))
-	(logdebug |NewPoolOpts| "For " (write start-file) "\n" (pprint zero-opts))
+	(lognotice |NewPartition| "Created initial pool partition " (write start-file))
+	(logdebug |PartitionOpts| "For " (write start-file) "\n" (pprint zero-opts))
 	;; Create an flexpool file for the adjunct
 	(when (exists? (getkeys (get (get zero-opts 'metadata) 'adjuncts)))
 	  (let* ((metadata (get zero-opts 'metadata))
@@ -297,14 +297,15 @@
 		      `#[base ,(oid-plus flexbase (* serial partsize)) 
 			 load ,(min adjusted-load partsize)
 			 capacity ,partsize
+			 adjunct ,(getopt opts 'adjunct)
 			 type ,(if (testopt opts 'type 'flexpool) 
 				   'bigpool
 				   (getopt opts 'type 'bigpool))
 			 metadata ,(partition-metadata file opts flexbase flexcap partsize serial)
 			 label ,(glom (basename prefix) "." (padnum serial padlen 16))])
 		     (pool (make-pool file (cons make-opts partition-opts))))
-		(lognotice |NewPool| "Created pool partition " (write file))
-		(logdebug |NewPoolOpts|
+		(lognotice |NewPartition| "Created pool partition " (write file))
+		(logdebug |PartitionOpts|
 		  "For " (write file) "\n" (pprint make-opts))
 		(when (exists? (poolctl pool 'metadata 'adjuncts))
 		  (if (getopt opts 'make)
@@ -561,6 +562,8 @@
     (store! metadata 'flexopts (deep-copy opts))
     (store! metadata 'prefix prefix)
     (store! metadata 'serial serial)
+    (when (getopt opts 'adjunct)
+      (store! metadata 'adjunct (getopt opts 'adjunct)))
     (drop! metadata '{source poolid cachelevel})
     (when (exists? adjslots)
       (let ((converted (frame-create #f)))
