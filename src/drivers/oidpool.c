@@ -1479,8 +1479,12 @@ static unsigned int get_oidpool_format(fd_storage_flags sflags,lispval opts)
        (fd_testopt(opts,fd_intern("READONLY"),VOID)) )
     flags |= FD_OIDPOOL_READ_ONLY;
 
-  if ( (sflags) & (FD_POOL_ADJUNCT) ||
-       (fd_testopt(opts,fd_intern("ISADJUNCT"),VOID)) )
+  if ( (fd_testopt(opts,FDSYM_ISADJUNCT,VOID)) ||
+       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ISADJUNCT)) ||
+       (fd_testopt(opts,fd_intern("FLAGS"),FDSYM_ADJUNCT)) ||
+       ( ( (sflags) & (FD_POOL_ADJUNCT) ) &&
+         (fd_testopt(opts,FDSYM_ADJUNCT,FD_VOID)) &&
+         (!(fd_testopt(opts,FDSYM_ADJUNCT,FD_TRUE))) ) )
     flags |= FD_OIDPOOL_ADJUNCT;
 
   if ( (sflags) & (FD_POOL_ADJUNCT) ||
