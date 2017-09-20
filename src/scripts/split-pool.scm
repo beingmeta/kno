@@ -36,7 +36,7 @@
 	 (config! 'appid (glom "split(" (basename to) ")"))
 	 (let ((in (open-pool from #[adjunct #t readonly #t cachelevel 2]))
 	       (out (open-pool to #[adjunct #t cachelevel 2])))
-	   (pool/copy in out `#[batchsize ,(config 'BATCHSIZE 0x20000)])
+	   (pool/copy in out `#[batchsize ,(config 'BATCHSIZE 0x40000)])
 	   (commit out)
 	   (swapout out)
 	   (swapout in)))
@@ -58,16 +58,16 @@
 			 (or capacity #default)))
 	(else
 	 (config! 'appid (glom "split(" from ")"))
-	 (let* ((flexpool
-		 (flexpool/split from 
-				 (frame-create #f
-				   'make #t 'output to 'copy #f
-				   'partsize (config 'partsize (tryif capacity capacity))
-				   'prefix (config 'PREFIX {})
-				   'newload (config 'NEWLOAD {})
-				   'newcap (config 'NEWCAP {})
-				   'nthreads (tryif (config 'nthreads) (config 'nthreads)))
-				 (or capacity #default)))
+	 (let* ((split-opts
+		 (frame-create #f
+		   'make #t 'output to 'copy #f
+		   'partsize (config 'partsize (tryif capacity capacity))
+		   'batchsize (config 'BATCHSIZE 0x40000)
+		   'prefix (config 'PREFIX {})
+		   'newload (config 'NEWLOAD {})
+		   'newcap (config 'NEWCAP {})
+		   'nthreads (tryif (config 'nthreads) (config 'nthreads))))
+		(flexpool (flexpool/split from split-opts (or capacity #default)))
 		(partitions (flexpool/partitions flexpool))
 		(fifo (fifo/make (choice->vector (flexpool/partitions flexpool))
 				`#[fillfn ,fifo/exhausted!]))
@@ -79,19 +79,22 @@
 	     "Starting to copy OIDs from " (write from) " to partitions")
 	   (if (and nprocs (> nprocs 1))
 	       (begin (dotimes (i nprocs)
-			(set+! procthreads (thread/call fork-copy from fifo))
+			(set+! procthreads 
+			  (thread/call fork-copy from fifo split-opts))
 			;; Sleep to reduce conflicts between threads/processes 
 			(sleep (config 'THREADSPREAD 5)))
 		 (thread/wait procthreads))
-	       (fork-copy from fifo))
+	       (fork-copy from fifo opts))
 	   (lognotice |CopyDone|
 	     "Finished copying OIDs from " (write from) " to partitions")
 	   #f))))
 
-(define (fork-copy from fifo)
+(define (fork-copy from fifo opts)
   (let ((subpool (fifo/pop fifo)))
     (while (and (exists? subpool) subpool)
-      (fork/cmd/wait (config 'EXE) (config 'SOURCE) from (pool-source subpool))
+      (fork/cmd/wait (config 'EXE) (config 'SOURCE)
+		     from (pool-source subpool)
+		     (glom "BATCHSIZE=" (getopt opts 'batchsize 0x40000)))
       (set! subpool (fifo/pop fifo)))))
 
 (define (usage)
