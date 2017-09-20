@@ -616,6 +616,44 @@ static int liveload_add(lispval var,lispval val,void *ignored)
   else return fd_load_latest(FD_STRDATA(val),fd_app_env,NULL);
 }
 
+/* loadpath config set */
+
+
+static int loadpath_config_set(lispval var,lispval vals,void *d)
+{
+  lispval *pathref = (lispval *) d;
+  lispval cur_path = *pathref, path = cur_path; fd_incref(path);
+  DO_CHOICES(val,vals) {
+    if (!(STRINGP(val))) {
+      fd_seterr(fd_TypeError,"loadpath_config_set","filename",val);
+      fd_decref(path);
+      return -1;}
+    else {
+      u8_string pathstring = CSTRING(val);
+      if (strchr(pathstring,'%')) {
+        path = fd_init_pair(NULL,val,path);
+        fd_incref(val);}
+      else {
+        size_t len = FD_STRING_LENGTH(val);
+        u8_string search_path =
+          (pathstring[len-1] == '/') ?
+          (u8_mkstring("%s%%/module.scm:%s%%.scm",pathstring,pathstring)) :
+          (u8_mkstring("%s/%%/module.scm:%s/%%.scm",pathstring,pathstring));
+        lispval entry = fdstring(search_path);
+        path = fd_init_pair(NULL,entry,path);
+        u8_free(search_path);}}}
+  *pathref = path;
+  fd_decref(cur_path);
+  return 1;
+}
+
+static lispval loadpath_config_get(lispval var,void *d)
+{
+  lispval *pathref = (lispval *) d;
+  lispval path = *pathref;
+  return fd_incref(path);
+}
+
 /* Load file support */
 
 #if 0
@@ -692,10 +730,10 @@ FD_EXPORT void fd_init_loader_c()
                      updatemodules_config_get,updatemodules_config_set,NULL);
   fd_register_config
     ("LOADPATH","Directories/URIs to search for modules (not sandbox)",
-                     fd_lconfig_get,fd_lconfig_push,&loadpath);
+     loadpath_config_get,loadpath_config_set,&loadpath);
   fd_register_config
     ("SAFELOADPATH","Directories/URIs to search for sandbox modules",
-     fd_lconfig_get,fd_lconfig_push,&safe_loadpath);
+     loadpath_config_get,loadpath_config_set,&safe_loadpath);
   fd_register_config
     ("LIBSCM","The location for bundled modules (prioritized before loadpath)",
      fd_sconfig_get,fd_sconfig_set,&libscm_path);
