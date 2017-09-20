@@ -3312,8 +3312,8 @@ FD_EXPORT void fd_init_dbprims_c()
            fd_make_cprim2x("MAKE-POOL",make_pool,2,
                            fd_string_type,VOID,-1,VOID));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim2x("OPEN-POOL",open_pool,2,
-                           fd_string_type,VOID,-1,VOID));
+           fd_make_cprim2x("OPEN-POOL",open_pool,1,
+                           fd_string_type,VOID,-1,FD_FALSE));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim
