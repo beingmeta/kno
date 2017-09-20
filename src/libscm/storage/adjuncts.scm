@@ -19,60 +19,63 @@
 (module-export! '{adjuncts/init! adjuncts/setup! adjuncts/add!})
 
 (define (adjuncts/init! pool (adjuncts) (opts #f))
-  (default! adjuncts (poolctl pool 'metadata 'adjuncts))
-  (let ((cur (get-adjuncts pool))
-	(open-opts (getopt opts 'open
-			   (frame-create #f
-			     'rootdir (dirname (pool-source pool))
-			     'cachelevel (getopt opts 'cachelevel {})
-			     'loglevel (getopt opts 'loglevel {})))))
-    (do-choices (slotid (getkeys adjuncts))
-      (cond ((not (test cur slotid))
-	     (let ((usedb (db/ref (get adjuncts slotid) open-opts)))
-	       (cond ((exists? usedb)
-		      (adjunct! pool slotid usedb))
-		     ((getopt opts 'require_adjuncts)
-		      (irritant (get adjuncts slotid) |MissingAdjunct|
-			"for pool " pool))
-		     (else
-		      (logwarn |MissingAdjunct| 
-			"Adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
-			pool)))))
-	    ((consistent? (get cur slotid) (get adjuncts slotid)))
-	    ((testopt opts 'override 'error)
-	     (irritant `#[pool ,pool slotid ,slotid 
-			  cur ,(get cur slotid)
-			  new ,(get adjuncts slotid)]
-		 |AdjunctConflict|
-	       adjunct/init!))
-	    ((testopt opts 'override '{ignore keep})
-	     (logwarn |AdjunctConflict| 
-	       "Keeping existing adjunct for " slotid " of " pool ":"
-	       "\n   keeping:   " (get cur slotid) 
-	       "\n   ignoring:  " (get adjuncts slotid)))
-	    ((and (modified? (get cur slotid))
-		  (not (testopt opts 'force)))
-	     (irritant `#[pool ,pool slotid ,slotid 
-			  cur ,(get cur slotid)
-			  new ,(get adjuncts slotid)]
-		 |ModifiedAdjunctConflict|
-	       adjuncts/init!))
-	    (else 
-	     (let ((spec (get adjuncts slotid))
-		   (usedb (db/ref (get adjuncts slotid) open-opts)))
-	       (cond ((exists? usedb)
-		      (logwarn |AdjunctConflict| 
-			"Overriding existing adjunct for " slotid " of " pool ":" 
-			"\n   using:      " (get adjuncts slotid)
-			"\n   dropping:   " (get cur slotid))
-		      (adjunct! pool slotid usedb))
-		     ((getopt opts 'require_adjuncts)
-		      (irritant (get adjuncts slotid) |MissingAdjunct|
-			"for pool " pool))
-		     (else
-		      (logwarn |MissingAdjunct| 
-			"New adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
-			pool)))))))))
+  (unless (exists? (poolctl pool 'props 'adjuncts))
+    (default! adjuncts (poolctl pool 'metadata 'adjuncts))
+    (let ((cur (get-adjuncts pool))
+	  (open-opts (getopt opts 'open
+			     (frame-create #f
+			       'rootdir (dirname (pool-source pool))
+			       'cachelevel (getopt opts 'cachelevel {})
+			       'loglevel (getopt opts 'loglevel {})))))
+      (do-choices (slotid (getkeys adjuncts))
+	(cond ((not (test cur slotid))
+	       (let ((usedb (db/ref (get adjuncts slotid) open-opts)))
+		 (cond ((exists? usedb)
+			(adjunct! pool slotid usedb))
+		       ((getopt opts 'require_adjuncts)
+			(irritant (get adjuncts slotid) |MissingAdjunct|
+			  "for pool " pool))
+		       (else
+			(logwarn |MissingAdjunct| 
+			  "Adjunct " (get adjuncts slotid) " couldn't be resolved for\n  "
+			  pool)))))
+	      ((consistent? (get cur slotid) (get adjuncts slotid)))
+	      ((testopt opts 'override 'error)
+	       (irritant `#[pool ,pool slotid ,slotid 
+			    cur ,(get cur slotid)
+			    new ,(get adjuncts slotid)]
+		   |AdjunctConflict|
+		 adjunct/init!))
+	      ((testopt opts 'override '{ignore keep})
+	       (logwarn |AdjunctConflict| 
+		 "Keeping existing adjunct for " slotid " of " pool ":"
+		 "\n   keeping:   " (get cur slotid) 
+		 "\n   ignoring:  " (get adjuncts slotid)))
+	      ((and (modified? (get cur slotid))
+		    (not (testopt opts 'force)))
+	       (irritant `#[pool ,pool slotid ,slotid 
+			    cur ,(get cur slotid)
+			    new ,(get adjuncts slotid)]
+		   |ModifiedAdjunctConflict|
+		 adjuncts/init!))
+	      (else 
+	       (let ((spec (get adjuncts slotid))
+		     (usedb (db/ref (get adjuncts slotid) open-opts)))
+		 (cond ((exists? usedb)
+			(logwarn |AdjunctConflict| 
+			  "Overriding existing adjunct for " slotid " of " pool ":" 
+			  "\n   using:      " (get adjuncts slotid)
+			  "\n   dropping:   " (get cur slotid))
+			(adjunct! pool slotid usedb))
+		       ((getopt opts 'require_adjuncts)
+			(irritant (get adjuncts slotid) |MissingAdjunct|
+			  "for pool " pool))
+		       (else
+			(logwarn |MissingAdjunct| 
+			  "New adjunct " (get adjuncts slotid)
+			  " couldn't be resolved for\n  "
+			  pool)))))))
+      (poolctl pool 'props 'adjuncts (get-adjuncts pool)))))
 
 (define (consistent? adjunct spec)
   (unless (or (index? adjunct) (pool? adjunct))
