@@ -86,14 +86,16 @@
 		    (try (get (registry-cache reg) value)
 			 (registry/get reg slotid value inits))))
 	       (when defaults
-		 (when (test defaults '%id) 
+		 (when (and (test defaults '%id)
+			    (not (test frame '%id))) 
 		   (store! frame '%id (get defaults '%id)))
 		 (do-choices (slotid (getkeys defaults))
 		   (unless (test frame slotid)
 		     (store! frame slotid (get defaults slotid)))))
 	       (when adds
 		 (do-choices (slotid (getkeys adds))
-		   (add! frame slotid (get adds slotid))))
+		   (add! frame slotid 
+			 (difference (get adds slotid) (get frame slotid)))))
 	       frame))
 	    (else (fail))))))
 
