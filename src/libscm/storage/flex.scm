@@ -69,7 +69,7 @@
 	(else {})))
 
 (define (db/ref spec (opts #f))
-  (cond ((pool? spec) (w/adjuncts spe))
+  (cond ((pool? spec) (w/adjuncts spec))
 	((or (index? spec) (hashtable? spec)) spec)
 	(else (let* ((opts
 		      (cond ((and opts (table? spec)) (cons spec opts))
