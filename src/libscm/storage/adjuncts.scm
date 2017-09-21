@@ -150,7 +150,7 @@
 			 (cons* `#[adjunct ,slotid
 				   base ,(pool-base pool) 
 				   capacity ,(pool-capacity pool)
-				   load #f 
+				   load #f make #t
 				   metadata #[adjunct ,slotid adjuncts #[]]] 
 				adjopts opts))))
 
