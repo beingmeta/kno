@@ -2070,12 +2070,19 @@ FD_FASTOP int test_selector_predicate(lispval candidate,lispval test,
   else if (FD_POOLP(test))
     if (OIDP(candidate)) {
       fd_pool p = fd_lisp2pool(test);
-      if (fd_oid2pool(candidate) == p) return 1;
+      if ( (p->pool_flags) & (FD_POOL_ADJUNCT) ) {
+        FD_OID addr = FD_OID_ADDR(candidate);
+        long long diff = FD_OID_DIFFERENCE(addr,p->pool_base);
+        if ( (diff > 0) && (diff < p->pool_capacity) )
+          return 1;
+        else return 0;}
+      else if (fd_oid2pool(candidate) == p)
+        return 1;
       else return 0;}
     else return 0;
   else if (TABLEP(test))
     return fd_test(test,candidate,VOID);
-  else if (TABLEP(candidate)) 
+  else if (TABLEP(candidate))
     return fd_test(candidate,test,VOID);
   else {
     lispval ev = fd_type_error(_("test object"),"test_selector_predicate",test);
