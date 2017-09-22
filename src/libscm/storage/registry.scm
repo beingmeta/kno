@@ -175,9 +175,9 @@
 			  (or (fail? exvalue)
 			      (not (or (slotmap? exvalue) (schemap? exvalue)))))
 		 (logwarn |Registry/FixingOID| 
-		   "Fixing the value of registered " slotid "(" value ")=" (oid->string existing) 
+		   "Fixing the value of registered " slotid "(" value ")="
+		   (oid->string existing) 
 		   " which was saved as " exvalue)
-		 (dbg existing)
 		 (set-oid-value! existing
 				 (frame-create #f
 				   '%id (list slotid value)
