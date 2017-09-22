@@ -169,9 +169,16 @@
 				     '%id (list slotid value)
 				     '%session (config 'sessionid)
 				     '%created (timestamp)
-				     slotid value)))))
-	       (when (and (exists? existing) (fail? (oid-value existing)))
-		 (set-oid-value! existing 
+				     slotid value))))
+		    (exvalue (oid-value existing)))
+	       (when (and (exists? existing)
+			  (or (fail? exvalue)
+			      (not (or (slotmap? exvalue) (schemap? exvalue)))))
+		 (logwarn |Registry/FixingOID| 
+		   "Fixing the value of registered " slotid "(" value ")=" (oid->string existing) 
+		   " which was saved as " exvalue)
+		 (dbg existing)
+		 (set-oid-value! existing
 				 (frame-create #f
 				   '%id (list slotid value)
 				   '%session (config 'sessionid)
@@ -189,10 +196,11 @@
 		 (store! (registry-cache registry) value result))
 	       result)))))
 
-(defambda (good-frame existing)
-  (set! existing (pick existing valid-oid?))
-  (set! existing (for-choices (e existing) 
-		   (tryif (exists? (oid-value e)) e)))
+(defambda (good-frame existing (value))
+  (when (ambiguous? existing)
+    (set! existing (pick existing valid-oid?))
+    (set! existing (for-choices (e existing) 
+		     (tryif (exists? (oid-value e)) e))))
   (try (singleton existing) (smallest existing)))
 
 
