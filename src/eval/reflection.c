@@ -587,6 +587,18 @@ static lispval getmodules_evalfn(lispval expr,fd_lexenv call_env,fd_stack _stack
   return modules;
 }
 
+/* Getting all modules */
+
+static lispval get_all_modules_prim()
+{
+  return fd_all_modules();
+}
+
+static lispval get_safe_modules_prim()
+{
+  return fd_safe_modules();
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_reflection_c()
@@ -709,6 +721,15 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn1(module,"MODULE-EXPORTS",module_exports,1,
             "Returns the exports table for a module",
             -1,VOID);
+
+  fd_idefn0(module,"ALL-MODULES",get_all_modules_prim,
+            "(ALL-MODULES) "
+            "Returns all loaded modules as an alist "
+            "of module names and modules");
+  fd_idefn0(module,"SAFE-MODULES",get_all_modules_prim,
+            "(SAFE-MODULES) "
+            "Returns all 'safe' loaded modules as an alist"
+            "of module names and modules");
 
   fd_def_evalfn(module,"%ENV","",thisenv_evalfn);
   fd_def_evalfn(module,"%BINDINGS","",local_bindings_evalfn);

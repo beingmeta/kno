@@ -817,12 +817,12 @@ static int config_use_module(lispval var,lispval val,void *data)
 
 static lispval
 get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
-                  int export_only,u8_context caller)
+                   int safe,int export_only,u8_context caller)
 {
   lispval module = (FD_HASHTABLEP(modarg)) ? (modarg) :
     (FD_LEXENVP(modarg)) ? (modarg) :
-    (FD_SYMBOLP(modarg)) ? (fd_find_module(modarg,0,0)) :
-    (FD_STRINGP(modarg)) ? (fd_find_module(modarg,0,0)) :
+    (FD_SYMBOLP(modarg)) ? (fd_find_module(modarg,safe,0)) :
+    (FD_STRINGP(modarg)) ? (fd_find_module(modarg,safe,0)) :
     (VOID);
   if (VOIDP(module)) {
     if (VOIDP(dflt))
@@ -869,13 +869,22 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
 static lispval get_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,1,"get_binding_prim");
+  return get_binding_helper(mod_arg,symbol,dflt,0,1,
+                            "get_binding_prim");
+}
+
+static lispval safe_get_binding_prim
+(lispval mod_arg,lispval symbol,lispval dflt)
+{
+  return get_binding_helper(mod_arg,symbol,dflt,1,1,
+                            "safe_get_binding_prim");
 }
 
 static lispval get_internal_binding_prim
 (lispval mod_arg,lispval symbol,lispval dflt)
 {
-  return get_binding_helper(mod_arg,symbol,dflt,0,"get_internal_binding_prim");
+  return get_binding_helper(mod_arg,symbol,dflt,0,0,
+                            "get_internal_binding_prim");
 }
 
 
@@ -924,11 +933,23 @@ FD_EXPORT void fd_init_modules_c()
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
-  fd_idefn3(fd_scheme_module,"GET-BINDING",get_binding_prim,2,
-            "Gets a module's exported binding of a symbol without using the whole module",
+  fd_idefn3(fd_scheme_module,"GET-BINDING",safe_get_binding_prim,2,
+            "(get-binding *module* *symbol* [*default*])\n"
+            "Gets *module*'s exported binding of *symbol* "
+            "without using the whole module. On failure, "
+            "returns *default* if provided or errs otherwise.",
             -1,VOID,fd_symbol_type,VOID,-1,VOID);
-  fd_idefn3(fd_scheme_module,"%GET-BINDING",get_internal_binding_prim,2,
-            "Gets a module's binding (exported or internal)",
+  fd_idefn3(fd_xscheme_module,"GET-BINDING",get_binding_prim,2,
+            "(get-binding *module* *symbol* [*default*])\n"
+            "Gets *module*'s exported binding of *symbol*. "
+            "On failure, returns *default* if provided "
+            "or errs if none is provided.",
+            -1,VOID,fd_symbol_type,VOID,-1,VOID);
+  fd_idefn3(fd_xscheme_module,"%GET-BINDING",get_internal_binding_prim,2,
+            "(get-binding *module* *symbol* [*default*])\n"
+            "Gets *module*'s binding of *symbol* "
+            "(internal or external). On failure returns "
+            "*default* (if provided) or errs if none is provided.",
             -1,VOID,fd_symbol_type,VOID,-1,VOID);
 
   fd_def_evalfn(fd_xscheme_module,"IN-MODULE","",in_module_evalfn);

@@ -15,7 +15,8 @@
 #include "framerd/apply.h"
 #include <assert.h>
 
-FD_EXPORT fd_exception fd_UnboundIdentifier, fd_BindError, fd_VoidArgument, fd_VoidBinding;
+FD_EXPORT fd_exception fd_UnboundIdentifier, fd_BindError;
+FD_EXPORT fd_exception fd_VoidArgument, fd_VoidBinding;
 FD_EXPORT fd_exception fd_NoSuchModule, fd_SyntaxError, fd_BindSyntaxError;
 FD_EXPORT fd_exception fd_TooFewExpressions, fd_NotAnIdentifier;
 FD_EXPORT fd_exception fd_InvalidMacro, FD_BadArglist;
@@ -112,6 +113,9 @@ FD_EXPORT lispval fd_register_module_x(lispval name,lispval module,int flags);
 FD_EXPORT lispval fd_register_module(u8_string name,lispval module,int flags);
 FD_EXPORT lispval fd_get_module(lispval name,int safe);
 FD_EXPORT int fd_discard_module(lispval name,int safe);
+
+FD_EXPORT lispval fd_all_modules(void);
+FD_EXPORT lispval fd_safe_modules(void);
 
 FD_EXPORT int fd_module_finished(lispval module,int flags);
 FD_EXPORT int fd_finish_module(lispval module);

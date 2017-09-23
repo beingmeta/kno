@@ -1179,6 +1179,16 @@ FD_EXPORT lispval fd_get_module(lispval name,int safe)
     else return module;}
 }
 
+FD_EXPORT lispval fd_all_modules()
+{
+  return fd_hashtable_assocs(&module_map);
+}
+
+FD_EXPORT lispval fd_safe_modules()
+{
+  return fd_hashtable_assocs(&safe_module_map);
+}
+
 FD_EXPORT int fd_discard_module(lispval name,int safe)
 {
   if (safe)
