@@ -572,6 +572,7 @@ FD_EXPORT int fd_for_hashtable
   (fd_hashtable ht,kv_valfn f,void *data,int lock);
 FD_EXPORT int fd_for_hashtable_kv
   (struct FD_HASHTABLE *ht,fd_kvfn f,void *data,int lock);
+FD_EXPORT lispval fd_hashtable_assocs(fd_hashtable ht);
 
 FD_EXPORT lispval fd_hashtable_max(fd_hashtable,lispval,lispval *);
 FD_EXPORT lispval fd_hashtable_skim(fd_hashtable,lispval,lispval);

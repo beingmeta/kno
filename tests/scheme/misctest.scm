@@ -424,7 +424,7 @@
 
 ;;; Testing use-binding and %use-binding
 
-(define $num (use-binding 'stringfmts '$num))
+(define $num (get-binding 'stringfmts '$num))
 
 (evaltest "3" (stringout ($num 3)))
 (evaltest "186,000" (stringout ($num 186000)))
