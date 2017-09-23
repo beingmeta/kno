@@ -780,7 +780,8 @@ static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 
 /* PPRINT lisp primitives */
 
-static lispval lisp_pprint(lispval x,lispval portarg,lispval widtharg,lispval marginarg)
+static lispval lisp_pprint(lispval x,lispval portarg,lispval widtharg,
+                           lispval marginarg)
 {
   struct U8_OUTPUT tmpout;
   U8_OUTPUT *out = get_output_port(portarg);
@@ -1037,7 +1038,14 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NEWLINE",newline_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim4("PPRINT",lisp_pprint,1));
+
+  fd_idefn4(fd_scheme_module,"PPRINT",lisp_pprint,1,
+            "(pprint *object* *port* *width* *margin*)\n"
+            "Generates a formatted representation of *object* "
+            "on *port* () with a width of *width* columns with a "
+            "left margin of *margin* which is either number of columns "
+            "or a string.",
+            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("PUTCHAR",putchar_prim,1));
   fd_defalias(fd_scheme_module,"WRITE-CHAR","PUTCHAR");
