@@ -422,6 +422,15 @@
 	      (message "ONERROR works with no values returned")
 	      #f)))
 
+;;; Testing use-binding and %use-binding
+
+(define $num (use-binding 'stringfmts '$num))
+
+(evaltest "3" (stringout ($num 3)))
+(evaltest "186,000" (stringout ($num 186000)))
+
+;;; Gather errors
+
 (if (exists? errors)
     (begin (message (choice-size errors)
 		    " Errors during MISCTSEST")

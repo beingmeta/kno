@@ -813,6 +813,72 @@ static int config_use_module(lispval var,lispval val,void *data)
     return 1;}
 }
 
+/* Accessing module bindings */
+
+static lispval
+get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
+                  int export_only,u8_context caller)
+{
+  lispval module = (FD_HASHTABLEP(modarg)) ? (modarg) :
+    (FD_LEXENVP(modarg)) ? (modarg) :
+    (FD_SYMBOLP(modarg)) ? (fd_find_module(modarg,0,0)) :
+    (FD_STRINGP(modarg)) ? (fd_find_module(modarg,0,0)) :
+    (VOID);
+  if (VOIDP(module)) {
+    if (VOIDP(dflt))
+      return fd_err(fd_NoSuchModule,caller,NULL,modarg);
+    else return fd_incref(dflt);}
+  else if (FD_HASHTABLEP(module)) {
+    lispval value = fd_hashtable_get((fd_hashtable)module,symbol,VOID);
+    if (VOIDP(value)) {
+      lispval retval= 
+        fd_err(fd_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
+      if (module == modarg) fd_decref(module);
+      return retval;}
+    else return fd_incref(dflt);}
+  else if (FD_LEXENVP(module)) {
+    fd_lexenv env = (fd_lexenv) module;
+    if (TABLEP(env->env_exports)) {
+      lispval expval = fd_get(env->env_exports,symbol,VOID);
+      if (!(VOIDP(expval))) {
+        if (module != modarg) fd_decref(module);
+        return expval;}}
+    if (!export_only) {
+      lispval inval= fd_get(env->env_bindings,symbol,VOID);
+      if (!(VOIDP(inval))) {
+        if (module != modarg) fd_decref(module);
+        return inval;}}
+    if (VOIDP(dflt)) {
+      lispval retval= 
+        fd_err(fd_UnboundIdentifier,caller,SYMBOL_NAME(symbol),module);
+      if (module == modarg) fd_decref(module);
+      return retval;}
+    else return fd_incref(dflt);}
+  else if (VOIDP(dflt)) {
+    lispval retval=
+      fd_err(fd_NotAModule,caller,SYMBOL_NAME(symbol),module);
+    if (module == modarg) fd_decref(module);
+    return retval;}
+  else {
+    u8_log(LOGWARN,"BadModule","From %q for %q: %q",
+           modarg,symbol,module);
+    if (module == modarg) fd_decref(module);
+    return fd_incref(dflt);}
+}
+
+static lispval get_binding_prim
+(lispval mod_arg,lispval symbol,lispval dflt)
+{
+  return get_binding_helper(mod_arg,symbol,dflt,1,"get_binding_prim");
+}
+
+static lispval get_internal_binding_prim
+(lispval mod_arg,lispval symbol,lispval dflt)
+{
+  return get_binding_helper(mod_arg,symbol,dflt,0,"get_internal_binding_prim");
+}
+
+
 /* Initialization */
 
 FD_EXPORT void fd_init_modules_c()
@@ -857,6 +923,13 @@ FD_EXPORT void fd_init_modules_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
+
+  fd_idefn3(fd_scheme_module,"GET-BINDING",get_binding_prim,2,
+            "Gets a module's exported binding of a symbol without using the whole module",
+            -1,VOID,fd_symbol_type,VOID,-1,VOID);
+  fd_idefn3(fd_scheme_module,"%GET-BINDING",get_internal_binding_prim,2,
+            "Gets a module's binding (exported or internal)",
+            -1,VOID,fd_symbol_type,VOID,-1,VOID);
 
   fd_def_evalfn(fd_xscheme_module,"IN-MODULE","",in_module_evalfn);
   fd_def_evalfn(fd_xscheme_module,"WITHIN-MODULE","",within_module_evalfn);
