@@ -47,6 +47,7 @@ typedef struct FD_STACK {
   u8_string stack_type, stack_label, stack_status;
   long long threadid;
   int stack_depth;
+  unsigned int stack_errflags;
   struct FD_STACK *stack_caller, *stack_root;
 
 #if HAVE_OBSTACK_H
@@ -69,6 +70,21 @@ typedef struct FD_STACK {
 typedef struct FD_LEXENV *fd_lexenv;
 typedef struct FD_LEXENV *fd_lexenv;
 
+/* Stack error flags */
+
+#define FD_STACK_ERR_DEBUG      0x01   /* Return stack info */
+#define FD_STACK_ERR_DUMP       0x02   /* Dump stack info when critical */
+#define FD_STACK_ERR_CATCH      0x04   /* Errors *might* be caught */
+#define FD_STACK_ERR_CATCHALL   0x08   /* Errors **will** be caught */
+#define FD_STACK_ERR_RUSAGE     0x10   /* Include rusage in errpoint */
+#define FD_STACK_ERR_REQDATA    0x20   /* Include reqdata in errpoint */
+#define FD_STACK_ERR_THREAD     0x40   /* Include thread bindings in errpoint */
+#define FD_STACK_ERR_FULLSTACK  0x80   /* Dump entire stack (including environments) */
+#define FD_STACK_ERR_CALLSTACK  0x100  /* Dump only calls and EXPRS */
+
+#define FD_STACK_ERR_DEFAULT    \
+  (FD_STACK_ERR_DEBUG | FD_STACK_ERR_DUMP | FD_STACK_ERR_FULLSTACK)
+
 #if (U8_USE_TLS)
 FD_EXPORT u8_tld_key fd_stackptr_key;
 #define fd_stackptr ((struct FD_STACK *)(u8_tld_get(fd_stackptr_key)))
@@ -87,6 +103,9 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
   if (caller) _ ## name.stack_root=caller->stack_root;	\
   if (caller)						\
     _ ## name.stack_depth = 1 + caller->stack_depth;	\
+  if (caller)						\
+    _ ## name.stack_errflags = caller->stack_errflags;	\
+  else _ ## name.stack_errflags = FD_STACK_ERR_DEFAULT; \
   _ ## name.stack_caller=caller;			\
   _ ## name.stack_type=type;				\
   _ ## name.stack_label=label;				\
@@ -113,6 +132,10 @@ FD_EXPORT __thread struct FD_STACK *fd_stackptr;
     name->stack_depth=1+name->stack_caller->stack_depth;	\
   if (name->stack_caller)					\
     name->stack_root=name->stack_caller->stack_root;		\
+  if (name->stack_caller)					\
+    name->stack_errflags =					\
+      name->stack_caller->stack_errflags;			\
+  else name->stack_errflags = FD_STACK_ERR_DEFAULT;		\
   name->stack_type = "alloca";					\
   name->stack_vals = FD_EMPTY_CHOICE;				\
   name->stack_source = FD_VOID;					\
