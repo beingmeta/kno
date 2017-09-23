@@ -925,6 +925,7 @@ FD_EXPORT void lispval_sort(lispval *v,size_t n,fd_compare_flags flags);
 #define HASHTABLEP(x) (FD_HASHTABLEP(x))
 #define PRED_FALSE(x)  (FD_EXPECT_FALSE(x))
 #define PRED_TRUE(x)  (FD_EXPECT_TRUE(x))
+#define SYMBOL_NAME(x) (FD_SYMBOL_NAME(x))
 #endif
 
 /* Debugging support */
