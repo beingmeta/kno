@@ -49,16 +49,16 @@ fd_pool fd_make_procpool(FD_OID base,
   struct FD_PROCPOOL *pp = u8_alloc(struct FD_PROCPOOL);
   unsigned int flags = FD_STORAGE_ISPOOL | FD_STORAGE_VIRTUAL;
   memset(pp,0,sizeof(struct FD_PROCPOOL));
-  fd_init_pool((fd_pool)pp,base,cap,
-	       &fd_procpool_handler,
-	       label,source);
-
   lispval source_opt = FD_VOID;
 
   if (source == NULL) {
     source_opt = fd_getopt(opts,FDSYM_SOURCE,FD_VOID);
     if (FD_STRINGP(source_opt))
-      source = u8_strdup(CSTRING(source_opt));}
+      source = CSTRING(source_opt);}
+
+  fd_init_pool((fd_pool)pp,base,cap,
+	       &fd_procpool_handler,
+	       label,source);
 
   if (fd_testopt(opts,FDSYM_CACHELEVEL,FD_VOID)) {
     lispval v = fd_getopt(opts,FDSYM_CACHELEVEL,FD_VOID);
