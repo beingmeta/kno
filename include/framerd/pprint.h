@@ -17,6 +17,9 @@
 #include "ptr.h"
 #include "cons.h"
 
+/* -1 = unlimited, 0 means use default */
+FD_EXPORT int pprint_maxcol;
+FD_EXPORT int pprint_fudge;
 FD_EXPORT int pprint_maxchars;
 FD_EXPORT int pprint_maxbytes;
 FD_EXPORT int pprint_maxelts;
@@ -24,7 +27,7 @@ FD_EXPORT int pprint_maxdepth;
 FD_EXPORT int pprint_list_max;
 FD_EXPORT int pprint_vector_max;
 FD_EXPORT int pprint_choice_max;
-FD_EXPORT int pprint_keys_max;
+FD_EXPORT int pprint_maxkeys;
 FD_EXPORT lispval pprint_default_rules;
 
 typedef struct PPRINT_CONTEXT {
@@ -34,13 +37,13 @@ typedef struct PPRINT_CONTEXT {
   int pp_maxcol;
   int pp_maxdepth;
   int pp_fudge;
-  int pp_max_elts;
-  int pp_max_chars;
-  int pp_max_bytes;
+  int pp_maxelts;
+  int pp_maxchars;
+  int pp_maxbytes;
+  int pp_maxkeys;
   int pp_list_max;
-  int pp_vec_max;
+  int pp_vector_max;
   int pp_choice_max;
-  int pp_keys_max;
   /* Reserved for future use */
   void *pp_customfn; void *pp_customdata;
   /* For customization */
@@ -49,12 +52,13 @@ typedef struct PPRINT_CONTEXT {
   lispval pp_opts;}
   *pprint_context;
 
-typedef int (*fd_pprintfn)(u8_output out,lispval x,int indent,int col,
+typedef int (*fd_pprintfn)(u8_output out,lispval x,
+			   int indent,int col,int depth,
 			   struct PPRINT_CONTEXT *ppcxt,
 			   void *data);
 
 FD_EXPORT
-int fd_pprinter(u8_output out,lispval x,int indent,int col,
+int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
 		fd_pprintfn customfn,void *customdata,
 		struct PPRINT_CONTEXT *ppcxt);
 FD_EXPORT int fd_pprint_x
@@ -68,7 +72,7 @@ FD_EXPORT int fd_pprint
 FD_EXPORT
 int fd_pprint_table(u8_output out,lispval x,
 		    const lispval *keys,size_t n_keys,
-		    int indent,int col,
+		    int indent,int col,int depth,
 		    fd_pprintfn customfn,void *customdata,
 		    struct PPRINT_CONTEXT *ppcxt);
 

@@ -25,15 +25,43 @@
 #include <ctype.h>
 #include <errno.h>
 
+/* -1 = unlimited, 0 means use default */
+int pprint_maxcol     = -1;
+int pprint_fudge      =  5;
 int pprint_maxchars   = -1;
 int pprint_maxdepth   = -1;
 int pprint_maxbytes   = -1;
 int pprint_maxelts    = -1;
+int pprint_maxkeys    = -1;
 int pprint_list_max   = -1;
 int pprint_vector_max = -1;
 int pprint_choice_max = -1;
-int pprint_keys_max   = -1;
 lispval pprint_default_rules = FD_VOID;
+
+#define pprint_max(prop,ppcxt)                  \
+  ( ( (ppcxt) == NULL) ?                        \
+    (pprint_ ## prop) :                         \
+    ( (ppcxt -> pp_ ## prop) ?                  \
+      (ppcxt -> pp_ ## prop) :                  \
+      (pprint_ ## prop) ) )
+
+#define pprint_max3(prop,dprop,ppcxt)           \
+  ( ( (ppcxt) == NULL ) ?                       \
+    ( (pprint_ ## prop) ?                       \
+      (pprint_ ## prop) :                       \
+      (pprint_ ## dprop) ) :                    \
+    ( (ppcxt -> pp_ ## prop) ?                  \
+      (ppcxt -> pp_ ## prop) :                  \
+      (ppcxt -> pp_ ## dprop) ?                 \
+      (ppcxt -> pp_ ## dprop) :                 \
+      (pprint_ ## prop) ?                       \
+      (pprint_ ## prop) :                       \
+      (pprint_ ## dprop) ) )
+
+#define OVERFLOWP(val,lim) ( ((lim) > 0) && ((val) >= (lim)) )
+
+static int do_indent(u8_output out,u8_string prefix,int indent,int startoff);
+static void do_reset(u8_output out,int startoff);
 
 /* Pretty printing */
 
@@ -49,47 +77,22 @@ static int output_keyval(u8_output out,lispval key,lispval val,
      (CHOICEP(x)) || (PRECHOICEP(x)) || \
      (QCHOICEP(x)) || (FD_COMPOUNDP(x))))
 
-/* The default function */
-
-FD_EXPORT
-int fd_pprint(u8_output out,lispval x,u8_string prefix,
-              int indent,int col,int maxcol)
-{
-  return fd_pprint_x(out,x,prefix,indent,col,maxcol,NULL,NULL);
-}
-
-
 /* The real function */
 
-static int do_indent(u8_output out,u8_string prefix,int indent,
-                     int startoff)
-{
-  u8_byte *start;
-  if (startoff>=0) {
-    out->u8_write = out->u8_outbuf+startoff;
-    out->u8_outbuf[startoff]='\0';}
-  u8_putc(out,'\n');
-  start=out->u8_write;
-  if (prefix) u8_puts(out,prefix);
-  int i=0; while (i<indent) { u8_putc(out,' '); i++;}
-  return out->u8_write-start;
-}
-
-static void do_reset(u8_output out,int startoff)
-{
-  out->u8_write=out->u8_outbuf+startoff;
-}
-
 FD_EXPORT
-int fd_pprinter(u8_output out,lispval x,int indent,int col,
+int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
                 fd_pprintfn customfn,void *customdata,
                 pprint_context ppcxt)
 {
-  u8_string prefix = ppcxt->pp_prefix;
-  size_t prefix_len = ppcxt->pp_prefix_len;
-  int maxcol = ppcxt->pp_maxcol, fudge = ppcxt->pp_fudge;
+  int maxcol = pprint_max(maxcol,ppcxt);
+  int maxdepth = pprint_max(maxdepth,ppcxt);
+  int fudge  = pprint_max(fudge,ppcxt);
+  u8_string prefix = (ppcxt)? (ppcxt->pp_prefix) : (NULL);
+  size_t prefix_len = (ppcxt) ? (ppcxt->pp_prefix_len) : (0);
+
+  if (OVERFLOWP(depth,maxdepth)) {} else {}
   if (customfn) {
-    int newcol = customfn(out,x,indent,col,ppcxt,customdata);
+    int newcol = customfn(out,x,indent,col,depth,ppcxt,customdata);
     if (newcol>=0) return newcol;}
   if ( ( col > (indent+prefix_len) ) &&
        ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) )
@@ -138,15 +141,18 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,
   /* Special compound printers for different types. */
   if (PAIRP(x)) {
     lispval car = FD_CAR(x), scan = x;
-    int first = 1;
+    int list_max = pprint_max3(list_max,maxelts,ppcxt);
+    int n_elts = 0;
     if (SYMBOLP(car)) indent += 2;
     u8_putc(out,'('); col++; indent++;
     while (PAIRP(scan)) {
       int last_col = col;
-      col = fd_pprint_x(out,FD_CAR(scan),prefix,
-                        indent,col,maxcol,
-                        customfn,customdata);
+      if (OVERFLOWP(n_elts,list_max)) {} else {}
+      col = fd_pprinter(out,FD_CAR(scan),indent,col,depth,
+                        customfn,customdata,
+                        ppcxt);
       scan = FD_CDR(scan);
+      n_elts++;
       if ( (PAIRP(scan)) && (col>last_col))
         u8_putc(out,' ');}
     if (NILP(scan)) {
@@ -166,12 +172,15 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,
         while (i>0) {u8_putc(out,' '); i--;}
         u8_puts(out,". ");
         col = indent+2+((prefix) ? (u8_strlen(prefix)) : (0));
-        col = fd_pprint_x(out,scan,prefix,indent+2,col,maxcol,customfn,customdata);
+        col = fd_pprinter(out,scan,indent+2,col,depth+1,
+                          customfn,customdata,
+                          ppcxt);
         u8_putc(out,')');
         return col+1;}
       else return col+n_chars;}}
   else if (VECTORP(x)) {
     int len = VEC_LEN(x);
+    int vec_max = pprint_max3(vector_max,maxelts,ppcxt);
     if (len==0) {
       u8_puts(out,"#()");
       return col+3;}
@@ -180,8 +189,10 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,
       u8_puts(out,"#("); col=col+2;
       while (eltno<len) {
         int last_col = col;
-        col = fd_pprint_x(out,VEC_REF(x,eltno),prefix,
-                          indent+2,col,maxcol,customfn,customdata);
+        if (OVERFLOWP(eltno,vec_max)) {} else {}
+        col = fd_pprinter(out,VEC_REF(x,eltno),indent+2,col,depth+1,
+                          customfn,customdata,
+                          ppcxt);
         eltno++;
         if ( (eltno < len) && (col > last_col) )
           u8_putc(out,' ');}
@@ -189,30 +200,32 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,
       return col+1;}}
   else if (QCHOICEP(x)) {
     struct FD_QCHOICE *qc = FD_XQCHOICE(x);
-    int first_value = 1;
+    int n_elts=0, choice_max = pprint_max3(choice_max,maxelts,ppcxt);
     if (EMPTYP(qc->qchoiceval)) {
       u8_puts(out,"#{}");
       return col+3;}
     else {
       DO_CHOICES(elt,qc->qchoiceval) {
-        if (first_value) {
-          u8_puts(out,"#{");
-          first_value = 0;
-          col = fd_pprint_x(out,elt,prefix,indent+2,col+2,maxcol,customfn,customdata);}
-        else {
-          u8_putc(out,' '); col++;
-          col = fd_pprint_x(out,elt,prefix,indent+2,col,maxcol,customfn,customdata);}}
+        if (n_elts==0) u8_puts(out,"#{");
+        else {u8_putc(out,' '); col++;}
+        if (OVERFLOWP(n_elts,choice_max)) {} else {}
+        col = fd_pprinter(out,elt,indent+2,col+2,depth+1,
+                          customfn,customdata,
+                          ppcxt);
+        n_elts++;}
       u8_putc(out,'}');
       return col+1;}}
   else if (CHOICEP(x)) {
-    int first_value = 1;
-    DO_CHOICES(elt,x)
-      if (first_value) {
-        u8_putc(out,'{'); first_value = 0;
-        col = fd_pprint_x(out,elt,prefix,indent+1,col+1,maxcol,customfn,customdata);}
-      else {
-        u8_putc(out,' '); col++;
-        col = fd_pprint_x(out,elt,prefix,indent+1,col,maxcol,customfn,customdata);}
+    int choice_max = pprint_max3(choice_max,maxelts,ppcxt);
+    int n_elts = 0;
+    DO_CHOICES(elt,x) {
+      if (n_elts == 0) u8_putc(out,'{');
+      else {u8_putc(out,' '); col++;}
+      if (OVERFLOWP(n_elts,choice_max)) {} else {}
+      col = fd_pprinter(out,elt,indent+1,col+1,depth+1,
+                        customfn,customdata,
+                        ppcxt);
+      n_elts++;}
     u8_putc(out,'}');
     return col+1;}
   else if ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) {
@@ -230,12 +243,12 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,
     u8_puts(out,"#[");
     if (!(CHOICEP(keys)))
       col=fd_pprint_table(out,x,&keys,1,
-                          indent+2,col+2,
+                          indent+2,col+2,depth+1,
                           customfn,customdata,
                           ppcxt);
     else col=fd_pprint_table
            (out,x,FD_CHOICE_DATA(keys),FD_CHOICE_SIZE(keys),
-            indent+2,col+2,
+            indent+2,col+2,depth+1,
             customfn,customdata,
             ppcxt);
     u8_putc(out,']');
@@ -248,31 +261,43 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,
     return prefix_len+indent+n_chars;}
 }
 
-FD_EXPORT
-int fd_pprint_x(u8_output out,lispval x,u8_string prefix,
-                int indent,int col,int maxcol,
-                fd_pprintfn customfn,void *customdata)
+/* Static support */
+
+static int do_indent(u8_output out,u8_string prefix,int indent,
+                     int startoff)
 {
-  struct PPRINT_CONTEXT ppcxt={0};
-  ppcxt.pp_prefix = prefix;
-  ppcxt.pp_prefix_len = (prefix) ? (strlen(prefix)) : (0);
-  ppcxt.pp_maxcol = maxcol;
-  return fd_pprinter(out,x,indent,col,customfn,customdata,&ppcxt);
+  u8_byte *start;
+  if (startoff>=0) {
+    out->u8_write = out->u8_outbuf+startoff;
+    out->u8_outbuf[startoff]='\0';}
+  u8_putc(out,'\n');
+  start=out->u8_write;
+  if (prefix) u8_puts(out,prefix);
+  int i=0; while (i<indent) { u8_putc(out,' '); i++;}
+  return out->u8_write-start;
 }
+
+static void do_reset(u8_output out,int startoff)
+{
+  out->u8_write=out->u8_outbuf+startoff;
+}
+
+/* Printing tables */
 
 FD_EXPORT
 int fd_pprint_table(u8_output out,lispval x,
                     const lispval *keys,size_t n_keys,
-                    int indent,int col,
+                    int indent,int col,int depth,
                     fd_pprintfn customfn,void *customdata,
                     pprint_context ppcxt)
 {
   if (n_keys==0)
     return col;
   const lispval *scan=keys, *limit=scan+n_keys;
-  int maxcol = ppcxt->pp_maxcol;
-  u8_string prefix = ppcxt->pp_prefix;
-  size_t prefix_len = ppcxt->pp_prefix_len;
+  int maxcol = pprint_max(maxcol,ppcxt);
+  int maxkeys = pprint_max(maxkeys,ppcxt);
+  u8_string prefix = (ppcxt)? (ppcxt->pp_prefix) : (NULL);
+  size_t prefix_len = (ppcxt) ? (ppcxt->pp_prefix_len) : (0);
   int count=0;
   while (scan<limit) {
     lispval key = *scan++;
@@ -284,6 +309,7 @@ int fd_pprint_table(u8_output out,lispval x,
       if (prefix) { u8_puts(out,prefix); col+=prefix_len; }
       while (i>0) { u8_putc(out,' '); col++; i--; }}
     else {}
+    if (OVERFLOWP(count,maxkeys)) {} else {}
     int newcol = output_keyval(out,key,val,col,maxcol);
     if (newcol>=0) {
       /* Key + value fit on one line */
@@ -324,7 +350,7 @@ int fd_pprint_table(u8_output out,lispval x,
       col += len;
       continue;}
     u8_close_output(&tmp);
-    col=fd_pprinter(out,val,value_indent,col,
+    col=fd_pprinter(out,val,value_indent,col,depth+1,
                     customfn,customdata,
                     ppcxt);
     fd_decref(val);}
@@ -366,6 +392,27 @@ static int output_keyval(u8_output out,
   if (len>=0)
     return col+len;
   else return -1;
+}
+
+/* Wrappers */
+
+FD_EXPORT
+int fd_pprint(u8_output out,lispval x,u8_string prefix,
+              int indent,int col,int maxcol)
+{
+  return fd_pprint_x(out,x,prefix,indent,col,maxcol,NULL,NULL);
+}
+
+FD_EXPORT
+int fd_pprint_x(u8_output out,lispval x,u8_string prefix,
+                int indent,int col,int maxcol,
+                fd_pprintfn customfn,void *customdata)
+{
+  struct PPRINT_CONTEXT ppcxt={0};
+  ppcxt.pp_prefix = prefix;
+  ppcxt.pp_prefix_len = (prefix) ? (strlen(prefix)) : (0);
+  ppcxt.pp_maxcol = maxcol;
+  return fd_pprinter(out,x,indent,col,0,customfn,customdata,&ppcxt);
 }
 
 /* printf handler for pprint */
