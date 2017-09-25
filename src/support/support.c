@@ -208,6 +208,40 @@ void fd_init_support_c()
      fd_intconfig_get,fd_intconfig_set,
      &fd_packet_outfmt);
 
+  fd_register_config("PPRINT:MAXCHARS",
+                     _("Maximum number of characters when pprinting strings"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_maxchars);
+  fd_register_config("PPRINT:MAXBYTE",
+                     _("Maximum number of bytes when pprinting packets"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_maxbytes);
+  fd_register_config("PPRINT:MAXELTS",
+                     _("Maximum number of elements when pprinting sequences "
+                       "or choices"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_maxelts);
+  fd_register_config("PPRINT:MAXDEPTH",
+                     _("Maximum depth for recursive printing"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_maxdepth);
+  fd_register_config("PPRINT:LISTMAX",
+                     _("Maximum number of elements when pprinting lists"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_list_max);
+  fd_register_config("PPRINT:VECTORMAX",
+                     _("Maximum number of elements when pprinting vectors"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_vector_max);
+  fd_register_config("PPRINT:CHOICEMAX",
+                     _("Maximum number of elements when pprinting choices"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_choice_max);
+  fd_register_config("PPRINT:KEYSMAX",
+                     _("Maximum number of keys when pprinting tables"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &pprint_choice_max);
+
   fd_register_config("LOCAL_MODULES",_("value of LOCAL_MODULES"),
                      config_get_module_loc,NULL,(void *) LOCAL_MODULES);
   fd_register_config("LOCAL_SAFE_MODULES",_("value of LOCAL_SAFE_MODULES"),

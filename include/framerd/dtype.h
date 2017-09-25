@@ -83,17 +83,19 @@ FD_EXPORT fd_hashfn fd_hashfns[];
 FD_EXPORT int fd_add_hashname(u8_string s,lispval value);
 FD_EXPORT lispval fd_lookup_hashname(u8_string s);
 
-typedef int (*fd_pprintfn)(u8_output,lispval,u8_string,int,int,int,void *);
+FD_EXPORT int pprint_maxchars;
+FD_EXPORT int pprint_maxbytes;
+FD_EXPORT int pprint_maxelts;
+FD_EXPORT int pprint_maxdepth;
+FD_EXPORT int pprint_list_max;
+FD_EXPORT int pprint_vector_max;
+FD_EXPORT int pprint_choice_max;
+FD_EXPORT int pprint_keys_max;
+FD_EXPORT lispval pprint_default_rules;
 
-FD_EXPORT int fd_pprint_x
-(u8_output out,lispval x,u8_string prefix,
- int indent,int col,int maxcol,
- fd_pprintfn fn,void *data);
 FD_EXPORT int fd_pprint
 (u8_output out,lispval x,u8_string prefix,
  int indent,int col,int maxcol);
-
-
 
 #endif /* ndef FRAMERD_DTYPE_H */
 

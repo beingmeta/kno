@@ -69,6 +69,7 @@ LISP_HEADERS=\
  include/framerd/bigints.h                           \
  include/framerd/malloc.h                            \
  include/framerd/dtype.h    			     \
+ include/framerd/pprint.h    			     \
  include/framerd/ptr.h				     \
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
