@@ -863,7 +863,7 @@ void fd_init_startup_c()
     ("SESSIONID",_("unique session identifier"),
      config_getsessionid,config_setsessionid,NULL);
   fd_register_config
-    ("TIDYEXIT",_("whether to be careful releasing memory on exit"),
+    ("TIDYEXIT",_("whether to recycle session state on exit"),
      fd_boolconfig_get,fd_boolconfig_set,&fd_tidy_exit);
   fd_register_config
     ("RUNUSER",_("Set the user ID for this process"),
