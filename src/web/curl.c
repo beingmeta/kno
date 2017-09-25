@@ -268,10 +268,11 @@ static int curl_add_header(fd_curl_handle ch,u8_string arg1,u8_string arg2)
 {
   struct curl_slist *cur = ch->headers, *newh;
   if (arg2==NULL)
-    newh = curl_slist_append(cur,u8_strdup(arg1));
+    newh = curl_slist_append(cur,arg1);
   else {
     u8_string hdr = u8_mkstring("%s: %s",arg1,arg2);
-    newh = curl_slist_append(cur,hdr);}
+    newh = curl_slist_append(cur,hdr);
+    u8_free(hdr);}
   ch->headers = newh;
   if (curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)newh)!=CURLE_OK) {
     return -1;}
@@ -393,6 +394,17 @@ static char *getcurlerror(char *buf,int code)
     return (char *) curl_easy_strerror(code);
   else return buf;
   */
+}
+
+static void reset_curl_handle(struct FD_CURL_HANDLE *ch)
+{
+  if (ch->headers) {
+    curl_slist_free_all(ch->headers);
+    ch->headers=NULL;
+    curl_easy_setopt(ch->handle,CURLOPT_HTTPHEADER,(void *)NULL);}
+  if (FD_CONSP(ch->initdata)) {
+    fd_decref(ch->initdata);
+    ch->initdata=EMPTY;}
 }
 
 static void recycle_curl_handle(struct FD_RAW_CONS *c)
@@ -836,7 +848,9 @@ static lispval urlget(lispval url,lispval curl)
     return fd_type_error("CURLCONN","urlget",conn);
   else if (!((STRINGP(url))||(TYPEP(url,fd_secret_type)))) {
     result = fd_type_error("string","urlget",url);}
-  else result = fetchurl((fd_curl_handle)conn,CSTRING(url));
+  else {
+    result = fetchurl((fd_curl_handle)conn,CSTRING(url));}
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   return result;
 }
@@ -861,6 +875,7 @@ static lispval urlstream(lispval url,lispval handler,
                        handler,CSTRING(payload),
                        "application/x-www-urlform-encoded",
                        STRLEN(payload));}
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   return result;
 }
@@ -874,6 +889,7 @@ static lispval urlhead(lispval url,lispval curl)
   else if (!((STRINGP(url))||(TYPEP(url,fd_secret_type))))
     result = fd_type_error("string","urlhead",url);
   result = fetchurlhead((fd_curl_handle)conn,CSTRING(url));
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   return result;
 }
@@ -926,6 +942,7 @@ static lispval urlput(lispval url,lispval content,lispval ctype,lispval curl)
     fd_decref(conn);
     return errval;}
   else handlefetchresult(h,result,&data);
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   return result;
 }
@@ -939,6 +956,7 @@ static lispval urlcontent(lispval url,lispval curl)
   else if (!(TYPEP(conn,fd_curl_type)))
     result = fd_type_error("CURLCONN","urlcontent",conn);
   else result = fetchurl((fd_curl_handle)conn,CSTRING(url));
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   if (FD_ABORTP(result)) {
     return result;}
@@ -977,6 +995,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     lispval errval = fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
     fd_decref(result);
     u8_free(data.bytes);
+    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
     fd_decref(conn);
     return errval;}
   retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
@@ -985,6 +1004,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     lispval errval = fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
     fd_decref(result);
     u8_free(data.bytes);
+    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
     fd_decref(conn);
     return errval;}
   if (data.size<data.limit) data.bytes[data.size]='\0';
@@ -1017,6 +1037,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     if (http_response>=300) {
       fd_seterr("HTTP error response","urlxml",CSTRING(url),
                 fd_init_string(NULL,in.u8_inlim-in.u8_inbuf,in.u8_inbuf));
+      if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
       fd_decref(conn);
       return FD_ERROR;}
     fd_init_xml_node(&xmlnode,NULL,CSTRING(url));
@@ -1024,6 +1045,7 @@ static lispval urlxml(lispval url,lispval xmlopt,lispval curl)
     xmlret = fd_walk_xml(&in,fd_default_contentfn,NULL,NULL,NULL,
                        fd_default_popfn,
                        &xmlnode);
+    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
     fd_decref(conn);
     if (xmlret) {
       {FD_DOLIST(elt,xmlret->xml_head) {
@@ -1219,7 +1241,7 @@ static lispval curlopen(int n,lispval *args)
 static lispval urlpost(int n,lispval *args)
 {
   INBUF data; CURLcode retval;
-  lispval result = VOID, conn, urlarg = VOID;
+  lispval result = VOID, conn, urlarg = VOID, curl=FD_VOID;
   u8_string url; int start;
   struct FD_CURL_HANDLE *h = NULL;
   struct curl_httppost *post = NULL;
@@ -1229,6 +1251,7 @@ static lispval urlpost(int n,lispval *args)
   else if (TYPEP(args[0],fd_secret_type)) {
     url = CSTRING(args[0]); urlarg = args[0];}
   else return fd_type_error("url","urlpost",args[0]);
+  if (TYPEP(args[1],fd_curl_type)) curl=args[1];
   if ((TYPEP(args[1],fd_curl_type))||(TABLEP(args[1]))) {
     conn = curl_arg(args[1],"urlpost"); start = 2;}
   else {
@@ -1306,6 +1329,7 @@ static lispval urlpost(int n,lispval *args)
       curl_easy_setopt(h->handle, CURLOPT_HTTPPOST, post);
       fd_decref(keys);}
     else {
+      if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
       fd_decref(conn);
       return fd_err(fd_TypeError,"CURLPOST",u8_strdup("postdata"),
                     args[start]);}
@@ -1336,7 +1360,9 @@ static lispval urlpost(int n,lispval *args)
       i = i+2;
       if (keyname == NULL) {
         if (!(initnameout)) u8_close_output(&nameout);
-        curl_formfree(post); fd_decref(conn);
+        curl_formfree(post);
+        if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
+        fd_decref(conn);
         return fd_err(fd_TypeError,"CURLPOST",u8_strdup("bad form var"),key);}
       else if (STRINGP(val))
         curl_formadd(&post,&last,
@@ -1365,6 +1391,7 @@ static lispval urlpost(int n,lispval *args)
     retval = curl_easy_perform(h->handle);
     curl_formfree(post);}
   handlefetchresult(h,result,&data);
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
@@ -1434,11 +1461,13 @@ static lispval urlpostdata_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     char buf[CURL_ERROR_SIZE];
     lispval errval = fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
     fd_decref(url); fd_decref(ctype); fd_decref(curl);
+    if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
     fd_decref(conn);
     return errval;}
 
   handlefetchresult(h,result,&data);
   fd_decref(url); fd_decref(ctype); fd_decref(curl);
+  if (conn == curl) reset_curl_handle((fd_curl_handle)conn);
   fd_decref(conn);
   return result;
 }

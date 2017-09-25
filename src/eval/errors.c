@@ -145,20 +145,20 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
     u8_string details=NULL;
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
-    if (out.u8_outbuf == out.u8_write)
-      u8_free(out.u8_outbuf);
+    if (out.u8_outbuf == out.u8_write) {
+      u8_close_output(&out);
+      details=NULL;}
     else details=out.u8_outbuf;
     if (wrapped) {
       u8_exception u8ex=
         u8_make_exception((u8_condition)ex,(u8_context)cxt,details,
                           (void *)irritant,fd_free_exception_xdata);
       return fd_init_exception(NULL,u8ex);}
-    else if (FD_CONSP(irritant)) {
+    else {
       lispval err_result=fd_err(ex,cxt,details,irritant);
       fd_decref(irritant);
-      u8_close_output(&out);
-      return err_result;}
-    else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
+      if (details) u8_close_output(&out);
+      return err_result;}}
 }
 static lispval return_irritant_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
