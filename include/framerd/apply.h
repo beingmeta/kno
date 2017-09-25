@@ -171,132 +171,27 @@ struct FD_FUNCTION {
 /* This maps types to whether they have function (FD_FUNCTION_FIELDS) header. */
 FD_EXPORT short fd_functionp[];
 
-FD_EXPORT lispval fd_new_cprimn
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprimn fn,int min_arity,int ndcall,int xcall);
-FD_EXPORT lispval fd_new_cprim0
-(u8_string name,u8_string filename,u8_string doc,fd_cprim0 fn,int xcall);
-FD_EXPORT lispval fd_new_cprim1
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim1 fn,int min_arity,int ndcall,int xcall,
- int type0,lispval dflt0);
-FD_EXPORT lispval fd_new_cprim2
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim2 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1);
-FD_EXPORT lispval fd_new_cprim3
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim3 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2);
-FD_EXPORT lispval fd_new_cprim4
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim4 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3);
-FD_EXPORT lispval fd_new_cprim5
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim5 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4);
-FD_EXPORT lispval fd_new_cprim6
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim6 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5);
-FD_EXPORT lispval fd_new_cprim7
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim7 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6);
-FD_EXPORT lispval fd_new_cprim8
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim8 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7);
-FD_EXPORT lispval fd_new_cprim9
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim9 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8);
-FD_EXPORT lispval fd_new_cprim10
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim10 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8,
- int type9,lispval dflt9);
-FD_EXPORT lispval fd_new_cprim11
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim11 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8,
- int type9,lispval dflt9,int type10,lispval dflt10);
-FD_EXPORT lispval fd_new_cprim12
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim12 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8,
- int type9,lispval dflt9,int type10,lispval dflt10,
- int type11,lispval dflt11);
-FD_EXPORT lispval fd_new_cprim13
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim13 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8,
- int type9,lispval dflt9,int type10,lispval dflt10,
- int type11,lispval dflt11,int type12,lispval dflt12);
-FD_EXPORT lispval fd_new_cprim14
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim14 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8,
- int type9,lispval dflt9,int type10,lispval dflt10,
- int type11,lispval dflt11,int type12,lispval dflt12,
- int type13,lispval dflt13);
-FD_EXPORT lispval fd_new_cprim15
-(u8_string name,u8_string filename,u8_string doc,
- fd_cprim15 fn,int min_arity,int ndcall,int call,
- int type0,lispval dflt0,
- int type1,lispval dflt1,int type2,lispval dflt2,
- int type3,lispval dflt3,int type4,lispval dflt4,
- int type5,lispval dflt5,int type6,lispval dflt6,
- int type7,lispval dflt7,int type8,lispval dflt8,
- int type9,lispval dflt9,int type10,lispval dflt10,
- int type11,lispval dflt11,int type12,lispval dflt12,
- int type13,lispval dflt13,int type14,lispval dflt14);
+FD_EXPORT lispval fd_new_cprimn(u8_string name,u8_string filename,u8_string doc,fd_cprimn fn,int min_arity,int ndcall,int xcall);
+FD_EXPORT lispval fd_new_cprim0(u8_string name,u8_string filename,u8_string doc,fd_cprim0 fn,int xcall);
+FD_EXPORT lispval fd_new_cprim1(u8_string name,u8_string filename,u8_string doc,fd_cprim1 fn,int min_arity,int ndcall,int xcall,int type0,lispval dflt0);
+FD_EXPORT lispval fd_new_cprim2(u8_string name,u8_string filename,u8_string doc,fd_cprim2 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1);
+FD_EXPORT lispval fd_new_cprim3(u8_string name,u8_string filename,u8_string doc,fd_cprim3 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2);
+FD_EXPORT lispval fd_new_cprim4(u8_string name,u8_string filename,u8_string doc,fd_cprim4 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3);
+FD_EXPORT lispval fd_new_cprim5(u8_string name,u8_string filename,u8_string doc,fd_cprim5 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4);
+FD_EXPORT lispval fd_new_cprim6(u8_string name,u8_string filename,u8_string doc,fd_cprim6 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5);
+FD_EXPORT lispval fd_new_cprim7(u8_string name,u8_string filename,u8_string doc,fd_cprim7 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6);
+FD_EXPORT lispval fd_new_cprim8(u8_string name,u8_string filename,u8_string doc,fd_cprim8 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7);
+FD_EXPORT lispval fd_new_cprim9(u8_string name,u8_string filename,u8_string doc,fd_cprim9 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8);
+FD_EXPORT lispval fd_new_cprim10(u8_string name,u8_string filename,u8_string doc,fd_cprim10 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9);
+FD_EXPORT lispval fd_new_cprim11(u8_string name,u8_string filename,u8_string doc,fd_cprim11 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10);FD_EXPORT lispval fd_new_cprim12(u8_string name,u8_string filename,u8_string doc,fd_cprim12 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11);
+FD_EXPORT lispval fd_new_cprim13(u8_string name,u8_string filename,u8_string doc,fd_cprim13 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12);
+FD_EXPORT lispval fd_new_cprim14(u8_string name,u8_string filename,u8_string doc,fd_cprim14 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13);
+FD_EXPORT lispval fd_new_cprim15(u8_string name,u8_string filename,u8_string doc,fd_cprim15 fn,int min_arity,int ndcall,int call,int type0,lispval dflt0,int type1,lispval dflt1,int type2,lispval dflt2,int type3,lispval dflt3,int type4,lispval dflt4,int type5,lispval dflt5,int type6,lispval dflt6,int type7,lispval dflt7,int type8,lispval dflt8,int type9,lispval dflt9,int type10,lispval dflt10,int type11,lispval dflt11,int type12,lispval dflt12,int type13,lispval dflt13,int type14,lispval dflt14);
 
-
-#define fd_make_cprimn(name,fn,min_arity)		\
+#define fd_make_cprimn(name,fn,min_arity) \
   fd_new_cprimn(name,_FILEINFO,NULL,fn,min_arity,0,0)
-
+#define fd_make_cprimN(name,fn,min_arity) \
+  fd_new_cprimn(name,_FILEINFO,NULL,fn,min_arity,0,0)
 
 #define fd_make_cprim0(name,fn) \
   fd_new_cprim0(name,_FILEINFO,NULL,fn,0)
@@ -391,6 +286,10 @@ FD_EXPORT lispval fd_new_cprim15
   fd_new_cprim14(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
 #define fd_make_cprim15x(name,fn,min,...) \
   fd_new_cprim15(name,_FILEINFO,NULL,fn,((min)&0xFFFF),((min)&0x10000),0,__VA_ARGS__)
+
+#define fd_idefnN(module,name,fn,min,doc)				\
+  fd_idefn(module,fd_new_cprimn						\
+	   (name,_FILEINFO,doc,fn,((min)&0xFFFF),((min)&0x10000),0))
 
 #define fd_idefn0(module,name,fn,doc)				\
   fd_idefn(module,fd_new_cprim0(name,_FILEINFO,doc,fn,0))
