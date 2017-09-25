@@ -21,6 +21,7 @@
 #include "framerd/streams.h"
 #include "framerd/dtypeio.h"
 #include "framerd/ports.h"
+#include "framerd/pprint.h"
 
 #include <libu8/u8streamio.h>
 #include <libu8/u8crypto.h>
@@ -780,28 +781,65 @@ static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 
 /* PPRINT lisp primitives */
 
-static lispval lisp_pprint(lispval x,lispval portarg,lispval widtharg,
-                           lispval marginarg)
+static lispval lisp_pprint(int n,lispval *args)
 {
+  U8_OUTPUT *out=NULL;
   struct U8_OUTPUT tmpout;
-  U8_OUTPUT *out = get_output_port(portarg);
-  int width = ((FD_UINTP(widtharg)) ? (FIX2INT(widtharg)) : (60));
-  if ((out == NULL)&&(!(FALSEP(portarg))))
-    return fd_type_error(_("port"),"lisp_pprint",portarg);
-  U8_INIT_OUTPUT(&tmpout,512);
-  if (VOIDP(marginarg))
-    fd_pprint(&tmpout,x,NULL,0,0,width);
-  else if (STRINGP(marginarg))
-    fd_pprint(&tmpout,x,CSTRING(marginarg),0,0,width);
-  else if ((FD_UINTP(marginarg))&&(FIX2INT(marginarg)>=0))
-    fd_pprint(&tmpout,x,NULL,(FIX2INT(marginarg)),0,width);
-  else fd_pprint(&tmpout,x,NULL,0,0,width);
-  if (out) {
-    u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
+  struct PPRINT_CONTEXT ppcxt={0};
+  int arg_i=0, used[7]={0};
+  int col = 0, indent=0, depth = 0, close_port=0, stringout=0;
+  lispval opts = VOID, port_arg=VOID, obj = args[0]; used[0]=1;
+  if (n>7) return fd_err(fd_TooManyArgs,"lisp_pprint",NULL,VOID);
+  while (arg_i<n)
+    if (used[arg_i]) arg_i++;
+    else {
+      lispval arg = args[arg_i];
+      if ( (out == NULL) &&
+           (out = get_output_port(arg)) )
+        used[arg_i]=1;
+      else if (FD_FIXNUMP(arg)) {
+        ppcxt.pp_maxcol = FD_FIX2INT(arg);
+        used[arg_i]=1;}
+      else if (FD_STRINGP(arg)) {
+        ppcxt.pp_prefix = CSTRING(arg);
+        ppcxt.pp_prefix_len = FD_STRLEN(arg);
+        used[arg_i]= 1;}
+      else if (FD_TABLEP(arg)) {
+        opts=arg;
+        used[arg_i];}
+      else if (FD_FALSEP(arg)) {
+        stringout=1; used[arg_i]=1;}
+      else u8_log(LOGWARN,"BadPPrintArg","%q",arg);
+      arg_i++;}
+  if (out == NULL) {
+    lispval port = fd_getopt(opts,FDSYM_OUTPUT,VOID);
+    if (!(VOIDP(port))) out = get_output_port(port);
+    if (out)
+      port_arg=port;
+    else {fd_decref(port);}}
+  if (out == NULL) {
+    lispval filename = fd_getopt(opts,FDSYM_FILENAME,VOID);
+    if (!(VOIDP(filename))) {
+      out = (u8_output) u8_open_output_file(CSTRING(filename),NULL,-1,-1);
+      if (out == NULL) {
+        fd_decref(filename);
+        return FD_ERROR_VALUE;}
+      else {
+        fd_decref(filename);
+        close_port=1;}}}
+  if (stringout) {
+    U8_INIT_OUTPUT(&tmpout,1000);
+    out=&tmpout;}
+  else out = get_output_port(VOID);
+  col = fd_pprinter(out,obj,indent,0,0,NULL,NULL,&ppcxt);
+  if (stringout)
+    return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,
+                          tmpout.u8_outbuf);
+  else {
     u8_flush(out);
-    return VOID;}
-  else return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,
-                             tmpout.u8_outbuf);
+    if (close_port) u8_close_output(out);
+    fd_decref(port_arg);
+    return FD_VOID;}
 }
 
 /* Base 64 stuff */
@@ -1039,13 +1077,12 @@ FD_EXPORT void fd_init_portprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NEWLINE",newline_prim,0));
 
-  fd_idefn4(fd_scheme_module,"PPRINT",lisp_pprint,1,
+  fd_idefnN(fd_scheme_module,"PPRINT",lisp_pprint,FD_NEEDS_1_ARG|FD_NDCALL,
             "(pprint *object* *port* *width* *margin*)\n"
             "Generates a formatted representation of *object* "
             "on *port* () with a width of *width* columns with a "
             "left margin of *margin* which is either number of columns "
-            "or a string.",
-            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID);
+            "or a string.");
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("PUTCHAR",putchar_prim,1));
   fd_defalias(fd_scheme_module,"WRITE-CHAR","PUTCHAR");

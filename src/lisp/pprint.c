@@ -26,7 +26,7 @@
 #include <errno.h>
 
 /* -1 = unlimited, 0 means use default */
-int pprint_maxcol     = -1;
+int pprint_maxcol     = 80;
 int pprint_fudge      =  5;
 int pprint_maxchars   = -1;
 int pprint_maxdepth   = -1;
@@ -98,8 +98,6 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
        ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) )
     col=do_indent(out,prefix,indent,-1);
   int startoff = out->u8_write-out->u8_outbuf, n_chars;
-  /* If it's not at the left margin, output a space. */
-  // if ((col>=(prefix_len+indent))) u8_putc(out,' ');
   fd_unparse(out,x);
   /* We call u8_strlen because we're counting chars, not bytes */
   n_chars = u8_strlen(out->u8_outbuf+startoff);
