@@ -290,6 +290,12 @@ static lispval packetp(lispval x)
 {
   if (PACKETP(x)) return FD_TRUE; else return FD_FALSE;
 }
+static lispval secretp(lispval x)
+{
+  if (TYPEP(x,fd_secret_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
 static lispval symbolp(lispval x)
 {
   if (SYMBOLP(x)) return FD_TRUE; else return FD_FALSE;
@@ -755,6 +761,7 @@ FD_EXPORT void fd_init_coreprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING?",stringp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("VALID-UTF8?",valid_utf8p,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PACKET?",packetp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("SECRET?",secretp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYMBOL?",symbolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PAIR?",pairp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LIST?",listp,1));
