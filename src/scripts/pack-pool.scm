@@ -6,6 +6,8 @@
 (config! 'cachelevel 2)
 (config! 'optlevel 4)
 (config! 'logprocinfo #t)
+(config! 'logthreadinfo #t)
+(config! 'thread:logexit #f)
 
 (define (getflags)
   (choice->list
