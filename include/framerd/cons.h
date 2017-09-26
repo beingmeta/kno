@@ -470,6 +470,8 @@ FD_EXPORT lispval lispval_string(u8_string string);
 
 #define FD_PACKETP(x) \
   ((FD_PTR_TYPE(x) == fd_packet_type)||(FD_PTR_TYPE(x) == fd_secret_type))
+#define FD_SECRETP(x) \
+  (FD_PTR_TYPE(x) == fd_secret_type)
 #define FD_PACKET_LENGTH(x) \
   ((unsigned int) ((FD_CONSPTR(fd_string,x))->str_bytelen))
 #define FD_PACKET_DATA(x) ((FD_CONSPTR(fd_string,x))->str_bytes)
