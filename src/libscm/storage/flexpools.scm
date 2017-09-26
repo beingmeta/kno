@@ -207,7 +207,9 @@
 				   #[adjuncts {}])
 			       opts))
 	 (start-pool (tryif (file-exists? start-file)
-		       (use-pool start-file partition-opts)))
+		       (if (getopt opts 'adjunct)
+			   (open-pool start-file partition-opts)
+			   (use-pool start-file partition-opts))))
 	 (suffix-pat `#({"/" (bos)}
 			,(basename prefix)
 			"." ,(make-vector padlen '(isxdigit)) ".pool"))
@@ -239,7 +241,10 @@
 		metadata 
 		,(make-partition-metadata start-ref opts flexbase flexcap partsize 0)
 		label ,(glom (basename prefix) "." (make-string padlen #\0))]))
-	(set! start-pool (use-pool (make-pool start-file (cons zero-opts opts))))
+	(set! start-pool 
+	  (if (getopt opts 'adjunct)
+	      (open-pool (make-pool start-file (cons zero-opts opts)))
+	      (use-pool (make-pool start-file (cons zero-opts opts)))))
 	(lognotice |NewPartition|
 	  "Created initial pool partition " (write start-file))
 	(logdebug |PartitionOpts|
@@ -282,7 +287,9 @@
 
     (do-choices (other matching-files)
       (unless (equal? other start-file)
-	(let ((pool (use-pool other partition-opts)))
+	(let ((pool (if (getopt opts 'adjunct)
+			(open-pool other partition-opts)
+			(use-pool other partition-opts))))
 	  (when (exists? (poolctl pool 'metadata 'adjuncts))
 	    (if (getopt opts 'make)
 		(adjuncts/setup! pool (poolctl pool 'metadata 'adjuncts) adjopts)
