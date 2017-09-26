@@ -9,6 +9,12 @@
 (config! 'logthreadinfo #t)
 (config! 'thread:logexit #f)
 
+(define dtypev2 #f)
+(varconfig! dtypev2 dtypev2 config:boolean)
+(define isadjunct #f)
+(varconfig! isadjunct isadjunct config:boolean)
+(varconfig! adjunct isadjunct config:boolean)
+
 (define (getflags)
   (choice->list
    (choice (tryif (config 'dtypev2 #f) 'dtypev2)
@@ -76,8 +82,8 @@
 			   label ,(config 'label (pool-label old))
 			   slotids ,(get-slotids metadata type)
 			   compression ,(get-compression metadata type)
-			   dtypev2 ,(config 'dtypev2 (test metadata 'flags 'dtypev2))
-			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct))
+			   dtypev2 ,(or dtypev2 (test metadata 'flags 'dtypev2))
+			   isadjunct ,(config 'ISADJUNCT (test metadata 'flags 'isadjunct) config:boolean)
 			   register #t])))
 
 (define (get-slotids metadata type (current) (added (config 'slotids {})))
