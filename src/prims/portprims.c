@@ -781,6 +781,9 @@ static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 
 /* PPRINT lisp primitives */
 
+static lispval maxelts_symbol, maxchars_symbol, maxbytes_symbol;
+static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
+
 static lispval lisp_pprint(int n,lispval *args)
 {
   U8_OUTPUT *out=NULL;
@@ -811,6 +814,25 @@ static lispval lisp_pprint(int n,lispval *args)
         stringout=1; used[arg_i]=1;}
       else u8_log(LOGWARN,"BadPPrintArg","%q",arg);
       arg_i++;}
+  if ( (FD_PAIRP(opts)) || (FD_TABLEP(opts)) ) {
+    lispval maxelts = fd_getopt(opts,maxelts_symbol,FD_VOID);
+    lispval maxchars = fd_getopt(opts,maxchars_symbol,FD_VOID);
+    lispval maxbytes = fd_getopt(opts,maxbytes_symbol,FD_VOID);
+    lispval maxkeys = fd_getopt(opts,maxkeys_symbol,FD_VOID);
+    lispval list_max = fd_getopt(opts,listmax_symbol,FD_VOID);
+    lispval vec_max = fd_getopt(opts,vecmax_symbol,FD_VOID);
+    lispval choice_max = fd_getopt(opts,choicemax_symbol,FD_VOID);
+    if (FD_FIXNUMP(maxelts)) ppcxt.pp_maxelts=FD_FIX2INT(maxelts);
+    if (FD_FIXNUMP(maxchars)) ppcxt.pp_maxchars=FD_FIX2INT(maxchars);
+    if (FD_FIXNUMP(maxbytes)) ppcxt.pp_maxbytes=FD_FIX2INT(maxbytes);
+    if (FD_FIXNUMP(maxkeys)) ppcxt.pp_maxkeys=FD_FIX2INT(maxkeys);
+    if (FD_FIXNUMP(list_max)) ppcxt.pp_list_max=FD_FIX2INT(list_max);
+    if (FD_FIXNUMP(vec_max)) ppcxt.pp_vector_max=FD_FIX2INT(vec_max);
+    if (FD_FIXNUMP(choice_max)) ppcxt.pp_choice_max=FD_FIX2INT(choice_max);
+    fd_decref(maxbytes); fd_decref(maxchars);
+    fd_decref(maxelts); fd_decref(maxkeys);
+    fd_decref(list_max); fd_decref(vec_max);
+    fd_decref(choice_max);}
   if (out == NULL) {
     lispval port = fd_getopt(opts,FDSYM_OUTPUT,VOID);
     if (!(VOIDP(port))) out = get_output_port(port);
@@ -1051,6 +1073,19 @@ static void recycle_port(struct FD_RAW_CONS *c)
  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
+/* Initializing some symbols */
+
+static void init_portprims_symbols()
+{
+  maxelts_symbol=fd_intern("MAXELTS");
+  maxchars_symbol=fd_intern("MAXCHARS");
+  maxbytes_symbol=fd_intern("MAXBYTES");
+  maxkeys_symbol=fd_intern("MAXKEYS");
+  listmax_symbol=fd_intern("LISTMAX");
+  vecmax_symbol=fd_intern("VECMAX");
+  choicemax_symbol=fd_intern("CHOICEMAX");
+}
+
 /* The init function */
 
 FD_EXPORT void fd_init_portprims_c()
@@ -1059,6 +1094,8 @@ FD_EXPORT void fd_init_portprims_c()
 
   fd_unparsers[fd_port_type]=unparse_port;
   fd_recyclers[fd_port_type]=recycle_port;
+
+  init_portprims_symbols();
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
 

@@ -145,7 +145,25 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
     u8_putc(out,'('); col++; indent++;
     while (PAIRP(scan)) {
       int last_col = col;
-      if (OVERFLOWP(n_elts,list_max)) {} else {}
+      if (OVERFLOWP(n_elts,list_max)) {
+        lispval probe_cdr = FD_CDR(scan);
+        if (NILP(probe_cdr)) {
+          /* If there's just one more element and list_max is > 3,
+             display it anyway. */}
+        else {
+          U8_STATIC_OUTPUT(ellipsis,80);
+          int remaining=0; while (FD_PAIRP(scan)) {
+            remaining++; scan=FD_CDR(scan);}
+          u8_printf(&ellipsis,"#|...%s list with %d more elements...|#",
+                    remaining,((NILP(scan)) ? ("normal") : ("improper")));
+          size_t ellipsis_len = ellipsis.u8_write-ellipsis.u8_outbuf;
+          if ( ( (col+ellipsis_len) > maxcol ) &&
+               ( col > (indent+prefix_len)) )
+            col=do_indent(out,prefix,indent,-1);
+          u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
+          col=col+ellipsis_len;
+          scan=NIL;
+          break;}}
       col = fd_pprinter(out,FD_CAR(scan),indent,col,depth,
                         customfn,customdata,
                         ppcxt);
@@ -187,7 +205,21 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
       u8_puts(out,"#("); col=col+2;
       while (eltno<len) {
         int last_col = col;
-        if (OVERFLOWP(eltno,vec_max)) {} else {}
+        if (OVERFLOWP(eltno,vec_max)) {
+          if ( (eltno+1 == len) && (vec_max>3) ) {
+            /* If there's one more item and the vector is 'short',
+               just display it */}
+          else {
+            U8_STATIC_OUTPUT(ellipsis,80);
+            int remaining=len-eltno;
+            u8_printf(&ellipsis,"#|...%d more elements...|#",remaining);
+            size_t ellipsis_len = ellipsis.u8_write-ellipsis.u8_outbuf;
+            if ( ( (col+ellipsis_len) > maxcol ) &&
+                 ( col > (indent+prefix_len)) )
+              col=do_indent(out,prefix,indent,-1);
+            u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
+            col=col+ellipsis_len;
+            break;}}
         col = fd_pprinter(out,VEC_REF(x,eltno),indent+2,col,depth+1,
                           customfn,customdata,
                           ppcxt);
@@ -213,19 +245,40 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
         n_elts++;}
       u8_putc(out,'}');
       return col+1;}}
-  else if (CHOICEP(x)) {
+  else if (FD_CHOICEP(x)) {
     int choice_max = pprint_max3(choice_max,maxelts,ppcxt);
-    int n_elts = 0;
+    int n_elts = 0, n_choices=FD_CHOICE_SIZE(x);
     DO_CHOICES(elt,x) {
       if (n_elts == 0) u8_putc(out,'{');
       else {u8_putc(out,' '); col++;}
-      if (OVERFLOWP(n_elts,choice_max)) {} else {}
+      if (OVERFLOWP(n_elts,choice_max)) {
+        if (n_elts+1 == n_choices)  {
+          /* If there's one more item and the vector is 'short',
+             just display it */}
+        else {
+          U8_STATIC_OUTPUT(ellipsis,80);
+          int remaining=n_choices-n_elts;
+          u8_printf(&ellipsis,"#|...%d more choices...|#",remaining);
+          size_t ellipsis_len = ellipsis.u8_write-ellipsis.u8_outbuf;
+          if ( ( (col+ellipsis_len) > maxcol ) &&
+               ( col > (indent+prefix_len)) )
+            col=do_indent(out,prefix,indent,-1);
+          u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
+          col=col+ellipsis_len;
+          break;}}
       col = fd_pprinter(out,elt,indent+1,col+1,depth+1,
                         customfn,customdata,
                         ppcxt);
       n_elts++;}
     u8_putc(out,'}');
     return col+1;}
+  else if (FD_PRECHOICEP(x)) {
+    lispval simple = fd_make_simple_choice(x);
+    int rv = fd_pprinter(out,simple,indent,col,depth,
+                         customfn,customdata,
+                         ppcxt);
+    fd_decref(simple);
+    return rv;}
   else if ( (SLOTMAPP(x)) || (SCHEMAPP(x)) ) {
     lispval keys=fd_getkeys(x);
     if (PRECHOICEP(keys)) keys=fd_simplify_choice(keys);
@@ -289,8 +342,7 @@ int fd_pprint_table(u8_output out,lispval x,
                     fd_pprintfn customfn,void *customdata,
                     pprint_context ppcxt)
 {
-  if (n_keys==0)
-    return col;
+  if (n_keys==0) return col;
   const lispval *scan=keys, *limit=scan+n_keys;
   int maxcol = pprint_max(maxcol,ppcxt);
   int maxkeys = pprint_max(maxkeys,ppcxt);
@@ -307,7 +359,17 @@ int fd_pprint_table(u8_output out,lispval x,
       if (prefix) { u8_puts(out,prefix); col+=prefix_len; }
       while (i>0) { u8_putc(out,' '); col++; i--; }}
     else {}
-    if (OVERFLOWP(count,maxkeys)) {} else {}
+    if (OVERFLOWP(count,maxkeys)) {
+      U8_STATIC_OUTPUT(ellipsis,80);
+      int remaining=limit-scan;
+      u8_printf(&ellipsis,"#|...%d more keys...|#",remaining);
+      size_t ellipsis_len = ellipsis.u8_write-ellipsis.u8_outbuf;
+      if ( ( (col+ellipsis_len) > maxcol ) &&
+           ( col > (indent+prefix_len)) )
+        col=do_indent(out,prefix,indent,-1);
+      u8_putn(out,ellipsis.u8_outbuf,ellipsis_len);
+      col=col+ellipsis_len;
+      break;}
     int newcol = output_keyval(out,key,val,col,maxcol);
     if (newcol>=0) {
       /* Key + value fit on one line */
