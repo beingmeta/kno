@@ -1371,7 +1371,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
   int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0;
-  int total_keys = 0, key_count = 0;
+  int total_keys = 0, key_count = 0, buckets_len;
   FD_CHUNK_REF *buckets;
   fd_lock_stream(s);
   total_keys = fd_read_4bytes(fd_start_read(s,16));
@@ -1380,6 +1380,7 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     *n = 0;
     return NULL;}
   buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
+  buckets_len=total_keys;
   if (buckets == NULL) return NULL;
   else results = u8_alloc_n(total_keys,lispval);
   if (results == NULL) {
@@ -1394,16 +1395,28 @@ static lispval *hashindex_fetchkeys(fd_index ix,int *n)
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
                                           hx->index_n_buckets);
-      if (ref.size>0)
-        buckets[n_to_fetch++]=ref;
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_log(LOGWARN,"BadKeyCount",
+                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
       i++;}}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
-      if (ref.size>0)
-        buckets[n_to_fetch++]=ref;
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_log(LOGWARN,"BadKeyCount",
+                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
       i++;}
     fd_unlock_stream(s);}
+  if (n_to_fetch > total_keys) {
+    results = u8_realloc_n(results,n_to_fetch,lispval);}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   struct FD_INBUF keyblkstrm={0};
   i = 0; while (i<n_to_fetch) {
@@ -1448,7 +1461,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
   fd_inbuf ins = fd_readbuf(s);
-  int i = 0, n_buckets = (hx->index_n_buckets), total_keys;
+  int i = 0, n_buckets = (hx->index_n_buckets), total_keys, buckets_len;
   int n_to_fetch = 0, key_count = 0;
   fd_lock_stream(s);
   fd_setpos(s,16); total_keys = fd_read_4bytes(ins);
@@ -1458,6 +1471,7 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
     return NULL;}
   FD_CHUNK_REF *buckets = u8_alloc_n(total_keys,FD_CHUNK_REF);
   struct FD_KEY_SIZE *sizes = u8_alloc_n(total_keys,FD_KEY_SIZE);
+  buckets_len=total_keys;
   if (sizes == NULL) {
     fd_unlock_stream(s);
     u8_seterr(fd_MallocFailed,"hashindex_fetchinfo",NULL);
@@ -1470,14 +1484,28 @@ struct FD_KEY_SIZE *hashindex_fetchinfo(fd_index ix,fd_choice filter,int *n)
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
                                           hx->index_n_buckets);
-      if (ref.size>0) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_log(LOGWARN,"BadKeyCount",
+                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
       i++;}}
   else {
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
-      if (ref.size>0) buckets[n_to_fetch++]=ref;
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_log(LOGWARN,"BadKeyCount",
+                 "Bad key count in %s: %d",ix->indexid,total_keys);
+          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
       i++;}
     fd_unlock_stream(s);}
+  if (n_to_fetch > total_keys) {
+    sizes = u8_realloc_n(sizes,n_to_fetch,FD_KEY_SIZE);}
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   struct FD_INBUF keyblkstrm={0};
   i = 0; while (i<n_to_fetch) {
@@ -1522,7 +1550,8 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
 {
   fd_stream s = &(hx->index_stream);
   fd_inbuf ins = fd_readbuf(s);
-  int i = 0, n_buckets = (hx->index_n_buckets), n_to_fetch = 0, total_keys = 0;
+  int i = 0, n_buckets = (hx->index_n_buckets);
+  int n_to_fetch = 0, total_keys = 0, buckets_len;
   unsigned int *offdata = hx->index_offdata;
   fd_offset_type offtype = hx->index_offtype;
   int max_keyblock_size=0;
@@ -1542,8 +1571,13 @@ static void hashindex_getstats(struct FD_HASHINDEX *hx,
     while (i<n_buckets) {
       FD_CHUNK_REF ref = fd_get_chunk_ref(offdata,offtype,i,
                                           hx->index_n_buckets);
-      if (ref.size>0)
-        buckets[n_to_fetch++]=ref;
+      if (ref.size>0) {
+        if (n_to_fetch >= buckets_len) {
+          u8_log(LOGWARN,"BadKeyCount",
+                 "Bad key count in %s: %d",hx->indexid,total_keys);
+          buckets=u8_realloc_n(buckets,n_buckets,FD_CHUNK_REF);
+          buckets_len=n_buckets;}
+        buckets[n_to_fetch++]=ref;}
       if (ref.size>max_keyblock_size)
         max_keyblock_size=ref.size;
       i++;}}
