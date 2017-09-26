@@ -188,7 +188,6 @@
 	       (info%watch "REGISTRY/GET/got" key existing result)
 	       (when (exists? result)
 		 (when (fail? existing)
-		   (index-frame index result 'has slotid)
 		   (index-frame index result slotid value)
 		   (when (table? create)
 		     (do-choices (key (getkeys create))
