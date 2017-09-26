@@ -65,6 +65,15 @@ static lispval exit_prim(lispval arg)
   return VOID;
 }
 
+static lispval fast_exit_prim(lispval arg)
+{
+  fd_tidy_exit=0;
+  if (FD_INTP(arg))
+    exit(FIX2INT(arg));
+  else exit(0);
+  return VOID;
+}
+
 static lispval ispid_prim(lispval pid_arg)
 {
   pid_t pid = FIX2INT(pid_arg);
@@ -262,6 +271,7 @@ FD_EXPORT void fd_init_procprims_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(procprims_module,fd_make_cprim1("EXIT",exit_prim,0));
+  fd_idefn(procprims_module,fd_make_cprim1("EXIT/FAST",fast_exit_prim,0));
   fd_idefn(procprims_module,fd_make_cprimn("EXEC",exec_prim,1));
   fd_idefn(procprims_module,fd_make_cprimn("EXEC/CMD",exec_cmd_prim,1));
   fd_idefn(procprims_module,fd_make_cprimn("FORK",fork_prim,1));
