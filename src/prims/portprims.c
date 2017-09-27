@@ -781,8 +781,11 @@ static lispval lisp_show_table(lispval tables,lispval slotids,lispval portarg)
 
 /* PPRINT lisp primitives */
 
+static lispval maxcol_symbol, width_symbol, margin_symbol;
 static lispval maxelts_symbol, maxchars_symbol, maxbytes_symbol;
 static lispval maxkeys_symbol, listmax_symbol, vecmax_symbol, choicemax_symbol;
+
+#define PPRINT_MARGINBUF_SIZE 256
 
 static lispval lisp_pprint(int n,lispval *args)
 {
@@ -804,8 +807,8 @@ static lispval lisp_pprint(int n,lispval *args)
         ppcxt.pp_maxcol = FD_FIX2INT(arg);
         used[arg_i]=1;}
       else if (FD_STRINGP(arg)) {
-        ppcxt.pp_prefix = CSTRING(arg);
-        ppcxt.pp_prefix_len = FD_STRLEN(arg);
+        ppcxt.pp_margin = CSTRING(arg);
+        ppcxt.pp_margin_len = FD_STRLEN(arg);
         used[arg_i]= 1;}
       else if (FD_TABLEP(arg)) {
         opts=arg;
@@ -832,7 +835,34 @@ static lispval lisp_pprint(int n,lispval *args)
     fd_decref(maxbytes); fd_decref(maxchars);
     fd_decref(maxelts); fd_decref(maxkeys);
     fd_decref(list_max); fd_decref(vec_max);
-    fd_decref(choice_max);}
+    fd_decref(choice_max);
+    if (ppcxt.pp_margin == NULL) {
+      lispval margin_opt = fd_getopt(opts,margin_symbol,FD_VOID);
+      if (FD_STRINGP(margin_opt)) {
+        ppcxt.pp_margin=CSTRING(margin_opt);
+        ppcxt.pp_margin_len=FD_STRLEN(margin_opt);}
+      else if ( (FD_UINTP(margin_opt)) ) {
+        long long margin_width = FD_FIX2INT(margin_opt);
+        u8_byte *margin = alloca(margin_width+1);
+        u8_byte *scan=margin, *limit=scan+margin_width;
+        while (scan<limit) *scan++=' '; *scan='\0';
+        ppcxt.pp_margin=margin;
+        /* Since it's all ASCII spaces, margin_len (bytes) =
+           margin_width (chars) */
+        ppcxt.pp_margin_len=margin_width;}
+      else if ( (FD_VOIDP(margin_opt)) || (FD_DEFAULTP(margin_opt)) ) {}
+      else u8_log(LOGWARN,"BadPPrintMargin","%q",margin_opt);
+      fd_decref(margin_opt);}
+    if (ppcxt.pp_maxcol>0) {
+      lispval maxcol = fd_getopt(opts,maxcol_symbol,FD_VOID);
+      if (FD_VOIDP(maxcol))
+        maxcol = fd_getopt(opts,width_symbol,FD_VOID);
+      if (FD_FIXNUMP(maxcol))
+        ppcxt.pp_maxcol=FD_FIX2INT(maxcol);
+      else if ( (FD_VOIDP(maxcol)) || (FD_DEFAULTP(maxcol)) )
+        ppcxt.pp_maxcol=0;
+      else ppcxt.pp_maxcol=-1;
+      fd_decref(maxcol);}}
   if (out == NULL) {
     lispval port = fd_getopt(opts,FDSYM_OUTPUT,VOID);
     if (!(VOIDP(port))) out = get_output_port(port);
@@ -1077,6 +1107,10 @@ static void recycle_port(struct FD_RAW_CONS *c)
 
 static void init_portprims_symbols()
 {
+  maxcol_symbol=fd_intern("MAXCOL");
+  width_symbol=fd_intern("WIDTH");
+  margin_symbol=fd_intern("MARGIN");
+  margin_symbol=fd_intern("MARGIN");
   maxelts_symbol=fd_intern("MAXELTS");
   maxchars_symbol=fd_intern("MAXCHARS");
   maxbytes_symbol=fd_intern("MAXBYTES");

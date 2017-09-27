@@ -28,11 +28,12 @@ FD_EXPORT int pprint_list_max;
 FD_EXPORT int pprint_vector_max;
 FD_EXPORT int pprint_choice_max;
 FD_EXPORT int pprint_maxkeys;
+FD_EXPORT u8_string pprint_margin;
 FD_EXPORT lispval pprint_default_rules;
 
 typedef struct PPRINT_CONTEXT {
-  u8_string pp_prefix;
-  int pp_prefix_len;
+  u8_string pp_margin;
+  int pp_margin_len;
   /* -1 = unlimited, 0 means use default */
   int pp_maxcol;
   int pp_maxdepth;
@@ -62,11 +63,11 @@ int fd_pprinter(u8_output out,lispval x,int indent,int col,int depth,
 		fd_pprintfn customfn,void *customdata,
 		struct PPRINT_CONTEXT *ppcxt);
 FD_EXPORT int fd_pprint_x
-(u8_output out,lispval x,u8_string prefix,
+(u8_output out,lispval x,u8_string margin,
  int indent,int col,int maxcol,
  fd_pprintfn fn,void *data);
 FD_EXPORT int fd_pprint
-(u8_output out,lispval x,u8_string prefix,
+(u8_output out,lispval x,u8_string margin,
  int indent,int col,int maxcol);
 
 FD_EXPORT
