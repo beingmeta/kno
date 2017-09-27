@@ -242,6 +242,11 @@ void fd_init_support_c()
                      fd_intconfig_get,fd_intconfig_set,
                      &pprint_choice_max);
 
+  fd_register_config("PPRINT:INDENTS",
+                     _("PPRINT indentation rules"),
+                     fd_tblconfig_get,fd_tblconfig_set,
+                     &pprint_default_rules);
+
   fd_register_config("LOCAL_MODULES",_("value of LOCAL_MODULES"),
                      config_get_module_loc,NULL,(void *) LOCAL_MODULES);
   fd_register_config("LOCAL_SAFE_MODULES",_("value of LOCAL_SAFE_MODULES"),
