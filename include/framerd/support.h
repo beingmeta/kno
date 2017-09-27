@@ -62,6 +62,9 @@ FD_EXPORT int fd_dblconfig_set(lispval,lispval v,void *dblptr);
 FD_EXPORT lispval fd_dblconfig_get(lispval,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(lispval var,lispval val,void *data);
 
+FD_EXPORT int fd_tblconfig_set(lispval var,lispval config_val,void *tblptr);
+FD_EXPORT lispval fd_tblconfig_get(lispval var,void *tblptr);
+
 FD_EXPORT int fd_config_rlimit_set(lispval ignored,lispval v,void *vptr);
 FD_EXPORT lispval fd_config_rlimit_get(lispval ignored,void *vptr);
 

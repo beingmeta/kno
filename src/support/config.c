@@ -64,7 +64,7 @@ static lispval config_intern(u8_string start)
     u8_close((u8_stream)&nameout);
     return symbol;}
   else return fd_make_symbol
-         (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
+	 (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
 }
 
 FD_EXPORT
@@ -163,9 +163,9 @@ static lispval file_config_lookup(lispval symbol,void *pathdata)
     else {
       /* Zap any trailing newlines */
       if ((n_bytes>1) && (content[n_bytes-1]=='\n'))
-        content[n_bytes-1]='\0';
+	content[n_bytes-1]='\0';
       if ((n_bytes>2) && (content[n_bytes-2]=='\r'))
-        content[n_bytes-2]='\0';
+	content[n_bytes-2]='\0';
       result = fd_parse_arg(content);}
     u8_free(filename);
     u8_free(content);
@@ -199,14 +199,14 @@ FD_EXPORT int fd_set_config(u8_string var,lispval val)
       scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
       if (trace_config)
-        u8_log(LOG_WARN,"ConfigSet",
-               "Using handler to configure %s (%s) with %q",
-               var,SYM_NAME(symbol),val);
+	u8_log(LOG_WARN,"ConfigSet",
+	       "Using handler to configure %s (%s) with %q",
+	       var,SYM_NAME(symbol),val);
       break;}
     else scan = scan->config_next;
   if ((!(scan))&&(trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
-           var,SYM_NAME(symbol),val);
+	   var,SYM_NAME(symbol),val);
   set_config(var,val);
   if (retval<0) {
     u8_string errsum = fd_errstring(NULL);
@@ -225,16 +225,16 @@ FD_EXPORT int fd_default_config(u8_string var,lispval val)
       scan->configflags = scan->configflags|FD_CONFIG_ALREADY_MODIFIED;
       retval = scan->config_set_method(symbol,val,scan->configdata);
       if (trace_config)
-        u8_log(LOG_WARN,"ConfigSet",
-               "Using handler to configure default %s (%s) with %q",
-               var,SYM_NAME(symbol),val);
+	u8_log(LOG_WARN,"ConfigSet",
+	       "Using handler to configure default %s (%s) with %q",
+	       var,SYM_NAME(symbol),val);
       break;}
     else scan = scan->config_next;
   if (fd_test(configuration_table,symbol,VOID)) return 0;
   else {
     if ((!(scan))&&(trace_config))
       u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
-             var,SYM_NAME(symbol),val);
+	     var,SYM_NAME(symbol),val);
     retval = set_config(var,val);}
   if (retval<0) {
     u8_string errsum = fd_errstring(NULL);
@@ -268,10 +268,10 @@ FD_EXPORT int fd_register_config_x
     if (FD_EQ(scan->configname,symbol)) {
       if (reuse) reuse(scan);
       if (doc) {
-        /* We don't override a real doc with a NULL doc.
-           Possibly not the right thing. */
-        if (scan->configdoc) u8_free(scan->configdoc);
-        scan->configdoc = u8_strdup(doc);}
+	/* We don't override a real doc with a NULL doc.
+	   Possibly not the right thing. */
+	if (scan->configdoc) u8_free(scan->configdoc);
+	scan->configdoc = u8_strdup(doc);}
       scan->config_get_method = getfn;
       scan->config_set_method = setfn;
       scan->configdata = data;
@@ -303,8 +303,8 @@ FD_EXPORT int fd_register_config_x
     while (n>0) {
       n = n-1;
       if (retval<0) {
-        u8_free(vals); fd_decref(current);
-        return retval;}
+	u8_free(vals); fd_decref(current);
+	return retval;}
       else retval = setfn(symbol,vals[n],data);}
     fd_decref(current); u8_free(vals);
     return retval;}
@@ -331,11 +331,11 @@ FD_EXPORT lispval fd_all_configs(int with_docs)
     while (scan) {
       lispval var = scan->configname;
       if (with_docs) {
-        lispval doc = ((scan->configdoc)?
-                    (fdstring(scan->configdoc)):
-                    (NIL));
-        lispval pair = fd_conspair(var,doc); fd_incref(var);
-        CHOICE_ADD(results,pair);}
+	lispval doc = ((scan->configdoc)?
+		    (fdstring(scan->configdoc)):
+		    (NIL));
+	lispval pair = fd_conspair(var,doc); fd_incref(var);
+	CHOICE_ADD(results,pair);}
       else {fd_incref(var); CHOICE_ADD(results,var);}
       scan = scan->config_next;}}
   u8_unlock_mutex(&config_register_lock);
@@ -401,24 +401,24 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       u8_ungetc(in,c);
       entry = fd_parser(in);
       if (FD_ABORTP(entry))
-        return fd_interr(entry);
+	return fd_interr(entry);
       else if ((PAIRP(entry)) &&
-               (SYMBOLP(FD_CAR(entry))) &&
-               (PAIRP(FD_CDR(entry)))) {
-        if (fd_set_config(SYM_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
-          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-          return -1;}
-        fd_decref(entry);
-        n++;}
+	       (SYMBOLP(FD_CAR(entry))) &&
+	       (PAIRP(FD_CDR(entry)))) {
+	if (fd_set_config(SYM_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+	  fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+	  return -1;}
+	fd_decref(entry);
+	n++;}
       else {
-        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-        return -1;}}
+	fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+	return -1;}}
     else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
     else {
       u8_ungetc(in,c);
       buf = u8_gets(in);
       if (fd_config_assignment(buf)<0)
-        return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
+	return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
       else n++;
       u8_free(buf);}
   return n;
@@ -440,24 +440,24 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
       u8_ungetc(in,c);
       entry = fd_parser(in);
       if (FD_ABORTP(entry))
-        return fd_interr(entry);
+	return fd_interr(entry);
       else if ((PAIRP(entry)) &&
-               (SYMBOLP(FD_CAR(entry))) &&
-               (PAIRP(FD_CDR(entry)))) {
-        if (fd_default_config(SYM_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
-          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-          return -1;}
-        else {n++; count++;}
-        fd_decref(entry);}
+	       (SYMBOLP(FD_CAR(entry))) &&
+	       (PAIRP(FD_CDR(entry)))) {
+	if (fd_default_config(SYM_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+	  fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+	  return -1;}
+	else {n++; count++;}
+	fd_decref(entry);}
       else {
-        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-        return -1;}}
+	fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+	return -1;}}
     else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
     else {
       u8_ungetc(in,c);
       buf = u8_gets(in);
       if (fd_default_config_assignment(buf)<0)
-        return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
+	return fd_reterr(fd_ConfigError,"fd_read_config",buf,VOID);
       else {count++; n++;}
       u8_free(buf);}
   return count;
@@ -470,10 +470,10 @@ FD_EXPORT int fd_readonly_config_set(lispval ignored,lispval v,void *vptr)
 {
   if (SYMBOLP(v))
     return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
-                     SYM_NAME(v),VOID);
+		     SYM_NAME(v),VOID);
   else if (STRINGP(v))
     return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
-                     CSTRING(v),VOID);
+		     CSTRING(v),VOID);
   else return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",NULL,VOID);
 }
 
@@ -574,11 +574,11 @@ FD_EXPORT int fd_sizeconfig_set(lispval ignored,lispval v,void *vptr)
       *ptr = (ssize_t)ullv;
       return 1;}
     else return fd_reterr
-           (fd_RangeError,"fd_sizeconfig_set",
-            u8_strdup(_("size_t sized value")),v);}
+	   (fd_RangeError,"fd_sizeconfig_set",
+	    u8_strdup(_("size_t sized value")),v);}
   else return fd_reterr
-         (fd_TypeError,"fd_sizeconfig_set",
-          u8_strdup(_("size_t sized value")),v);
+	 (fd_TypeError,"fd_sizeconfig_set",
+	  u8_strdup(_("size_t sized value")),v);
 }
 
 /* Double config methods */
@@ -600,7 +600,7 @@ FD_EXPORT int fd_dblconfig_set(lispval var,lispval v,void *vptr)
     double dblval = (double)intval;
     *ptr = dblval;}
   else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
-                        SYM_NAME(var),v);
+			SYM_NAME(var),v);
   return 1;
 }
 
@@ -729,7 +729,7 @@ static int loglevelconfig_set(lispval var,lispval val,void *data)
     else level_name = SYM_NAME(val);
     while (*scan)
       if (strcasecmp(*scan,level_name)==0) {
-        loglevel = scan-u8_loglevels; break;}
+	loglevel = scan-u8_loglevels; break;}
       else scan++;
     if (loglevel>=0) {
       int *valp = (int *)data; *valp = loglevel;
@@ -764,6 +764,76 @@ static int cwd_config_set(lispval var,lispval val,void *data)
 }
 
 
+/* Talbe configs */
+
+static void tblconfig_error(lispval var,lispval val)
+{
+  u8_string details =
+    (FD_SYMBOLP(var)) ? (FD_SYMBOL_NAME(var)) :
+    (FD_STRINGP(var)) ? (CSTRING(var)) :
+    (U8STR("oddconfig"));
+  fd_seterr("ConfigFailed","fd_tblconfig_set",
+	    u8_strdup(details),val);
+
+}
+
+FD_EXPORT int fd_tblconfig_set(lispval var,lispval config_val,void *data)
+{
+  lispval *lptr = (lispval *) data;
+  lispval table = *lptr;
+  int retval=0, err=0;
+  FD_DO_CHOICES(entry,config_val) {
+    if (FD_PAIRP(entry)) {
+      lispval key = FD_CAR(entry), value;
+      if (FD_PAIRP(FD_CDR(entry)))
+	value=FD_CADR(entry);
+      else value=FD_CDR(entry);
+      int rv=fd_store(table,key,value);
+      if (rv<0) {
+	tblconfig_error(var,value);
+	FD_STOP_DO_CHOICES;
+	return -1;}
+      else retval++;}
+    else if (FD_TABLEP(entry)) {
+      lispval keys=fd_getkeys(entry);
+      FD_DO_CHOICES(key,keys) {
+	lispval value = fd_get(entry,key,FD_VOID);
+	if (FD_ABORTP(value)) {
+	  FD_STOP_DO_CHOICES;
+	  tblconfig_error(var,FD_VOID);
+	  err=1;
+	  break;}
+	else if (FD_AGNOSTICP(value)) {}
+	else {
+	  int rv=fd_store(table,key,value);
+	  if (rv<0) {
+	    FD_STOP_DO_CHOICES;
+	    tblconfig_error(var,value);
+	    break;}}
+	fd_decref(value);}
+      fd_decref(keys);
+      if (err) {
+	FD_STOP_DO_CHOICES;
+	break;}}
+    else {
+      FD_STOP_DO_CHOICES;
+      tblconfig_error(var,entry);
+      err=1;
+      break;}}
+  if (err)
+    return -1;
+  else return retval;
+}
+
+FD_EXPORT lispval fd_tblconfig_get(lispval var,void *data)
+{
+  lispval *lptr = (lispval *) data;
+  lispval table = *lptr;
+  return fd_incref(pprint_default_rules);
+}
+
+/* Initialization */
+
 void fd_init_config_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -774,7 +844,7 @@ void fd_init_config_c()
   u8_init_mutex(&config_register_lock);
 
   fd_register_config_lookup(getenv_config_lookup,NULL);
- 
+
   fd_register_config
     ("FDVERSION",_("Get the FramerD version string"),
      fdversion_config_get,fd_readonly_config_set,NULL);
