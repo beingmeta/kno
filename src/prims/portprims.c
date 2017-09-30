@@ -812,7 +812,7 @@ static lispval lisp_pprint(int n,lispval *args)
         used[arg_i]= 1;}
       else if (FD_TABLEP(arg)) {
         opts=arg;
-        used[arg_i];}
+        used[arg_i]=1;}
       else if (FD_FALSEP(arg)) {
         stringout=1; used[arg_i]=1;}
       else u8_log(LOGWARN,"BadPPrintArg","%q",arg);
