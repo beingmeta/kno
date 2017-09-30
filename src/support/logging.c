@@ -278,7 +278,7 @@ void setup_logging()
      fd_sconfig_get,fd_sconfig_set,&u8_logsuffix);
   
   fd_register_config
-    ("SHOWDATE",_("Whether to show the date in log messages"),
+    ("LOGDATE",_("Whether to show the date in log messages"),
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_date);
   fd_register_config
@@ -290,7 +290,7 @@ void setup_logging()
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_threadinfo);
   fd_register_config
-    ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
+    ("LOGELAPSED",_("Whether to show elapsed time in messages"),
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_elapsed);
 #if U8_THREAD_DEBUG
