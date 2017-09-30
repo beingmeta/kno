@@ -993,6 +993,12 @@ int main(int argc,char **argv)
 {
   int i = 1;
   unsigned int arg_mask = 0; /* Bit map of args to skip */
+
+  u8_log_show_date=1;
+  u8_log_show_procinfo=1;
+  u8_log_show_threadinfo=1;
+  u8_log_show_elapsed=1;
+
   int u8_version = u8_initialize(), fd_version;
   u8_string server_spec = NULL, source_file = NULL, server_port = NULL;
   /* This is the base of the environment used to be passed to the server.

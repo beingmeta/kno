@@ -1897,6 +1897,12 @@ static void exit_fdservlet()
 int main(int argc,char **argv)
 {
   int i = 1;
+
+  u8_log_show_date=1;
+  u8_log_show_procinfo=1;
+  u8_log_show_threadinfo=1;
+  u8_log_show_elapsed=1;
+
   int u8_version = u8_initialize();
   int dtype_version = fd_init_lisp_types();
   int fd_version; /* Wait to set this until we have a log file */

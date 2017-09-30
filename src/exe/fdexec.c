@@ -374,6 +374,8 @@ int main(int argc,char **argv)
   lispval *args = NULL; size_t n_args = 0;
   int i = 0, retval = 0;
 
+  u8_log_show_procinfo=1;
+
   fd_main_errno_ptr = &errno;
 
   FD_INIT_STACK();

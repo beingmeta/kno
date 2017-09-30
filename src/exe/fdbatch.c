@@ -187,6 +187,10 @@ int main(int argc,char **argv)
   u8_string done_file, log_file = NULL, err_file = NULL;
   lispval *args = NULL; size_t n_args;
 
+  u8_log_show_date=1;
+  u8_log_show_procinfo=1;
+  u8_log_show_elapsed=1;
+
   fd_main_errno_ptr = &errno;
   FD_INIT_STACK();
 
