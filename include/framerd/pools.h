@@ -166,6 +166,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   lispval pool_indexes;					\
   u8_string pool_prefix;				\
   lispval pool_namefn;					\
+  lispval pool_typeid;				\
   lispval pool_opts
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
@@ -434,7 +435,8 @@ FD_EXPORT
 fd_pool fd_make_procpool(FD_OID base,
 			 unsigned int cap,unsigned int load,
 			 lispval opts,lispval state,
-			 u8_string label,u8_string cid);
+			 u8_string label,
+			 u8_string source);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_procpool_handler;
 

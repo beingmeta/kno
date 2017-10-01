@@ -358,8 +358,9 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
   pool->pool_base = base; pool->pool_capacity = 0;
   pool->pool_flags = FD_STORAGE_READ_ONLY;
   pool->pool_serialno = -1;
-  pool->pool_label="gluepool";
+  pool->pool_label=u8_strdup("gluepool");
   pool->pool_source = NULL;
+  pool->pool_typeid  = fd_intern("GLUEPOOL");
   pool->n_subpools = 0; pool->subpools = NULL;
   pool->pool_handler = &gluepool_handler;
   FD_INIT_STATIC_CONS(&(pool->pool_cache),fd_hashtable_type);
@@ -1732,6 +1733,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,
   p->pool_n_adjuncts = 0;
   p->pool_label = NULL;
   p->pool_prefix = NULL;
+  p->pool_typeid = VOID;
   p->pool_namefn = VOID;
 
   /* Data tables */
@@ -1818,7 +1820,10 @@ FD_EXPORT fd_pool fd_name2pool(u8_string spec)
 static void display_pool(u8_output out,fd_pool p,lispval lp)
 {
   char addrbuf[128], numbuf[32];
-  u8_string type = ((p->pool_handler) && (p->pool_handler->name)) ?
+  lispval typeid = p->pool_typeid;
+  u8_string type = (FD_SYMBOLP(typeid)) ? (FD_SYMBOL_NAME(typeid)) :
+    (FD_STRINGP(typeid)) ? (FD_CSTRING(typeid)) :
+    ((p->pool_handler) && (p->pool_handler->name)) ?
     (p->pool_handler->name) : ((u8_string)"notype");
   u8_string tag = (CONSP(lp)) ? ("CONSPOOL") : ("POOL");
   u8_string id = p->poolid;
@@ -2341,6 +2346,7 @@ static void init_zero_pool()
   _fd_zero_pool.poolid = u8_strdup("_fd_zero_pool");
   _fd_zero_pool.pool_source = u8_strdup("init_fd_zero_pool");
   _fd_zero_pool.pool_label = u8_strdup("_fd_zero_pool");
+  _fd_zero_pool.pool_typeid = VOID;
   _fd_zero_pool.pool_base = 0;
   _fd_zero_pool.pool_capacity = 0x100000; /* About a million */
   _fd_zero_pool.pool_flags = 0;

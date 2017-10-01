@@ -37,7 +37,8 @@ FD_EXPORT
 fd_pool fd_make_procpool(FD_OID base,
 			 unsigned int cap,unsigned int load,
 			 lispval opts,lispval state,
-			 u8_string label,u8_string source)
+			 u8_string label,
+			 u8_string source)
 {
   if (load>cap) {
     u8_seterr(fd_PoolOverflow,"fd_make_procpool",
@@ -99,6 +100,8 @@ fd_pool fd_make_procpool(FD_OID base,
   pp->pool_state = state;
   fd_incref(state);
   pp->pool_label = label;
+
+  pp->pool_typeid = poolopt(opts,"TYPEID");
 
   fd_register_pool((fd_pool)pp);
 
