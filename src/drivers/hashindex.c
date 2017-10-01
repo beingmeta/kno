@@ -372,12 +372,25 @@ static fd_index recover_hashindex(u8_string fname,fd_storage_flags open_flags,
       return NULL;}
     else u8_free(recovery_file);
     return open_hashindex(fname,open_flags,opts);}
-  else {
-    u8_log(LOGCRIT,"Corrupted hashindex",
-           "The hashindex file %s doesn't have a recovery file %s",
-           fname,recovery_file);
-    u8_free(recovery_file);
-    return NULL;}
+  else if (fd_testopt(opts,fd_intern("FORCE-RECOVERY"),FD_VOID)) {
+    char *src = u8_tolibc(fname);
+    int out=open(src,O_RDWR);
+    unsigned char num = 0x08, new=0;
+#if HAVE_PREAD
+    int rv = pwrite(out,&num,1,3);
+#else
+    lseek(out,SEEK_SET,3);
+    int rv = write(out,&num,1);
+#endif
+    fsync(out);
+    close(out);
+    u8_free(src);
+    if (rv>0) return open_hashindex(fname,open_flags,opts);}
+  u8_log(LOGCRIT,"Corrupted hashindex",
+         "The hashindex file %s doesn't have a recovery file %s",
+         fname,recovery_file);
+  u8_free(recovery_file);
+  return NULL;
 }
 
 static int sort_by_slotid(const void *p1,const void *p2)
