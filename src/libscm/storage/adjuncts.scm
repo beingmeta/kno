@@ -189,8 +189,8 @@
 	   (store! current slotid spec))
 	  (else
 	   (irritant (get current slotid) |ExistingAdjunct| adjuncts/add!)))
-    (adjuncts/setup! pool slotid spec)
-    (poolctl pool 'metadata 'adjuncts current)))
-
+    (poolctl pool 'metadata 'adjuncts current)
+    (adjuncts/setup! pool `#[,slotid ,spec])
+    (commit pool)))
 
 

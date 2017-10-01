@@ -15,7 +15,8 @@
 		  registry/save!})
 
 (module-export! '{registry-slotid registry-spec
-		  registry-pool registry-index registry-server})
+		  registry-pool registry-index registry-server
+		  db->registry})
 
 (define %loglevel %warn%)
 
@@ -203,4 +204,11 @@
   (try (singleton existing) (smallest existing)))
 
 
+
+;;; Going from pools and indexes to registries
+
+(define (db->registry db)
+  (try (tryif (registry? db) db)
+       (tryif (or (pool? db) (index? db))
+	 (get registries db))))
 

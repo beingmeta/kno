@@ -8,10 +8,11 @@
 (use-module '{storage/flex})
 
 (module-export! '{flexpool/open flexpool/make 
-		  flexpool/ref flexpool/ref flexpool/record 
+		  flexpool/ref flexpool/record 
 		  flexpool/zero flexpool/front flexpool/last flexpool/info
 		  flexpool/partitions flexpool/partcount
 		  flexpool/delete!
+		  flexpool/adjunct!
 		  flex/zero flex/front flex/last flex/info})
 
 (module-export! '{flexpool-suffix})
@@ -412,6 +413,37 @@
 (define-init flexpool-next
   (slambda (fp) (flexpool-next-inner fp)))
 
+;;; Creating flexpool adjuncts
+
+(define adjpool-suffix
+  `(GREEDY {#("." (isxdigit+) ".pool" (eos)) #(".pool" (eos)) #(".flexpool" (eos))}))
+
+(define (flexpool/adjunct! flexpool slotid flex-spec)
+  (do-choices (partition (flexpool/partitions flexpool))
+    (let ((spec (deep-copy flex-spec))
+	  (prefix (flexpool-prefix (flexpool/record flexpool)))
+	  (decls (poolctl partition 'metadata 'adjuncts)))
+      (cond ((test decls slotid)
+	     (logwarn |ExistingAdjunct| 
+	       "Not overriding existing adjunct definition for " partition 
+	       ": " (get decls slotid)))
+	    ((test spec 'index) 
+	     (adjuncts/add! partition slotid spec))
+	    ((and (test spec 'pool)
+		  (file-exists? (mkpath (dirname (pool-source partition))
+					(get spec 'pool)))) 
+	     (adjuncts/add! partition slotid spec))
+	    ((and (test spec 'pool) 
+		  (textsearch partition-suffix (pool-source partition)))
+	     (store! spec 'pool
+		     (glom (basename prefix) "."
+		       (strip-suffix (get spec 'pool) ".flexpool")
+		       (gather partition-suffix (pool-source partition))))
+	     (adjuncts/add! partition slotid spec))
+	    ((test spec 'pool)
+	     (adjuncts/add! partition slotid spec))
+	    (else (logwarn |BadAdjunctSpec| spec))))))
+
 ;;; Getting info
 
 (define (flexpool/partitions fp)
@@ -561,6 +593,8 @@
 (define (reset-pool! poolfile)
   (logwarn |NYI| "Pool resets aren't implemented yet"))
 
+;;; Flexpool adjuncts
+
 ;;; Support functions
 
 (define (get-padlen cap chunk)
@@ -612,7 +646,7 @@
 		       (label (glom (or speclabel (getopt opts 'label (basename name)))
 				"." (padnum serial padlen 16)))
 		       (adjbase (glom name "." (padnum serial padlen 16) ".pool"))
-		       (adjpath (glom (basename prefix) "." adjbase)))
+		       (adjpath (mkpath prefix "." (glom name "." (padnum serial padlen 16) ".pool"))))
 		  (if (string? adjspec)
 		      (set! adjspec `#[pool ,adjpath])
 		      (store! adjspec 'pool adjpath))

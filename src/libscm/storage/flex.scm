@@ -4,11 +4,11 @@
 (in-module 'storage/flex)
 
 (use-module '{ezrecords stringfmts logger texttools})
-(use-module '{storage/adjuncts storage/filenames})
+(use-module '{storage/adjuncts storage/registry storage/filenames})
 (use-module '{storage/flexpools storage/flexindexes 
 	      storage/adjuncts})
 
-(module-export! '{pool/ref index/ref db/ref pool/copy})
+(module-export! '{pool/ref index/ref db/ref pool/copy flex/save!})
 
 (define-init %loglevel %notice%)
 
@@ -181,3 +181,18 @@
       " in " (secs->string (elapsed-time copy-start))
       " (" ($num (->exact (/~ n (elapsed-time copy-start)))) " OIDs/second)")))
 
+;;; Generic DB saving
+
+(defambda (flex/save! . args)
+  (dolist (arg args)
+    (cond ((ambiguous? arg)
+	   (thread/wait (thread/call flex/save! arg)))
+	  ((registry? arg) (registry/save! arg))
+	  ((flexpool/record arg)
+	   (thread/wait 
+	    (thread/call commit (pick (flexpool/partitions arg) modified?))))
+	  ((exists? (db->registry arg))
+	   (begin (registry/save! (db->registry arg))
+	     (commit arg)))
+	  ((or (pool? arg) (index? arg)) (commit arg))
+	  (else (logwarn |CantSave| "No method for saving " arg)))))
