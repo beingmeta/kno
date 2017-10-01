@@ -101,7 +101,18 @@ fd_pool fd_make_procpool(FD_OID base,
   fd_incref(state);
   pp->pool_label = label;
 
-  pp->pool_typeid = poolopt(opts,"TYPEID");
+  if (fd_testopt(opts,fd_intern("TYPEID"),VOID)) {
+    lispval idval = poolopt(opts,"TYPEID");
+    if (STRINGP(idval))
+      pp->pool_typeid = u8_strdup(CSTRING(idval));
+    else if (SYMBOLP(idval))
+      pp->pool_typeid = u8_strdup(FD_SYMBOL_NAME(idval));
+    else if (FD_OIDP(idval)) {
+      FD_OID addr = FD_OID_ADDR(idval);
+      pp->pool_typeid = 
+	u8_mkstring("@%lx/%lx",FD_OID_HI(addr),FD_OID_LO(addr));}
+    else u8_log(LOGWARN,"BadPoolTypeID","%q",idval);
+    fd_decref(idval);}
 
   fd_register_pool((fd_pool)pp);
 

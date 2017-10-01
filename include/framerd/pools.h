@@ -151,6 +151,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   FD_CONS_HEADER;					\
   int pool_serialno;					\
   u8_string poolid, pool_source, pool_label;		\
+  u8_string pool_typeid;				\
   FD_OID pool_base;					\
   unsigned int pool_capacity;				\
   fd_storage_flags pool_flags, modified_flags;		\
@@ -166,7 +167,6 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   lispval pool_indexes;					\
   u8_string pool_prefix;				\
   lispval pool_namefn;					\
-  lispval pool_typeid;				\
   lispval pool_opts
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;

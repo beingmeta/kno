@@ -1164,6 +1164,7 @@ FD_EXPORT void fd_init_index(fd_index ix,
   ix->indexid = u8_strdup(id);
   /* Don't copy this one */
   ix->index_source = src;
+  ix->index_typeid = NULL;
   ix->index_covers_slotids = VOID;
   ix->index_opts = FD_FALSE;
 }
@@ -1189,7 +1190,8 @@ static void display_index(u8_output out,fd_index ix,lispval lix)
 {
   u8_byte numbuf[32], edits[64];
   u8_string tag = (CONSP(lix)) ? ("CONSINDEX") : ("INDEX");
-  u8_string type = ((ix->index_handler) && (ix->index_handler->name)) ?
+  u8_string type = (ix->index_typeid) ? (ix->index_typeid) :
+    ((ix->index_handler) && (ix->index_handler->name)) ?
     (ix->index_handler->name) : ((u8_string)("notype"));
   u8_string id     = ix->indexid;
   u8_string source = (ix->index_source) ? (ix->index_source) : (id);
