@@ -2034,6 +2034,7 @@ static void recycle_consed_pool(struct FD_RAW_CONS *c)
   u8_free(p->pool_source);
   if (p->pool_label) u8_free(p->pool_label);
   if (p->pool_prefix) u8_free(p->pool_prefix);
+  if (p->pool_typeid) u8_free(p->pool_typeid);
 
   fd_recycle_slotmap(&(p->pool_metadata));
   fd_recycle_slotmap(&(p->pool_props));

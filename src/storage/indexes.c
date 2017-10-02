@@ -1401,7 +1401,8 @@ static void recycle_consed_index(struct FD_RAW_CONS *c)
   fd_recycle_hashtable(&(ix->index_adds));
   fd_recycle_hashtable(&(ix->index_edits));
   u8_free(ix->indexid);
-  u8_free(ix->index_source);
+  if (ix->index_source) u8_free(ix->index_source);
+  if (ix->index_typeid) u8_free(ix->index_typeid);
 
   fd_recycle_slotmap(&(ix->index_metadata));
   fd_recycle_slotmap(&(ix->index_props));
