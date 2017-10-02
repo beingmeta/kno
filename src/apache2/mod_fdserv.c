@@ -2116,8 +2116,8 @@ static fdservlet request_servlet(request_rec *r)
     servlet->max_socks=max_socks;
     return servlet;}
   else {
-    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,500,r,
-		  "No existing servlet for socket %s to handle %s",
+    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+		  "Adding new servlet for socket %s to handle %s",
 		  sockname,r->unparsed_uri);
     servlet=add_servlet(r,sockname,keep_socks,max_socks);
     return servlet;}
