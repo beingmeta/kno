@@ -646,7 +646,8 @@
 		       (label (glom (or speclabel (getopt opts 'label (basename name)))
 				"." (padnum serial padlen 16)))
 		       (adjbase (glom name "." (padnum serial padlen 16) ".pool"))
-		       (adjpath (mkpath prefix "." (glom name "." (padnum serial padlen 16) ".pool"))))
+		       (adjpath (glom (basename prefix) "." name
+				  "." (padnum serial padlen 16) ".pool")))
 		  (if (string? adjspec)
 		      (set! adjspec `#[pool ,adjpath])
 		      (store! adjspec 'pool adjpath))
