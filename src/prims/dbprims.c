@@ -707,6 +707,19 @@ static lispval extpool_state(lispval pool)
   else return fd_type_error("extpool","extpool_state",pool);
 }
 
+/* Proc indexes */
+
+static lispval make_procindex(lispval id,
+                              lispval opts,lispval state,
+                              lispval source,lispval typeid)
+{
+  fd_index ix = fd_make_procindex
+    (opts,state,FD_CSTRING(id),
+     ((FD_VOIDP(source)) ? (NULL) : (FD_CSTRING(source))),
+     ((FD_VOIDP(typeid)) ? (NULL) : (FD_CSTRING(typeid))));
+  return index2lisp(ix);
+}
+
 /* External indexes */
 
 static lispval make_extindex(lispval label,lispval fetchfn,lispval commitfn,
@@ -3390,6 +3403,11 @@ FD_EXPORT void fd_init_dbprims_c()
             fd_string_type,FD_VOID,fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID,
             -1,FD_VOID,-1,FD_VOID,fd_fixnum_type,FD_FIXZERO);
 
+  fd_idefn5(fd_scheme_module,"MAKE-PROCINDEX",make_procindex,2,
+            "Returns a pool implemented by userspace functions",
+            fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+            fd_string_type,FD_VOID,fd_string_type,FD_VOID);
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim9x("MAKE-EXTPOOL",make_extpool,4,
                            fd_string_type,VOID,
@@ -3479,7 +3497,7 @@ FD_EXPORT void fd_init_dbprims_c()
   fd_idefn2(fd_xscheme_module,"POOL/FETCHN",pool_fetchn_prim,2|FD_NDCALL,
             "Fetches values from a pool, skipping the object cache",
             -1,VOID,-1,VOID);
-  
+
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
