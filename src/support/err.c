@@ -434,9 +434,18 @@ int fd_clear_errors(int report)
 FD_EXPORT lispval fd_init_exception
    (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
 {
+  u8_string details =
+    (ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL);
+  void *irritant =
+    ( ex->u8x_free_xdata != fd_free_exception_xdata ) ? (NULL) :
+    ((void *) (fd_copy((lispval)(ex->u8x_xdata))));
+  u8_exception cex =
+    u8_new_exception(ex->u8x_cond,ex->u8x_context,details,irritant,
+		     (irritant) ? (fd_free_exception_xdata) : 
+		     ((u8_exception_xdata_freefn) NULL));
   if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
   FD_INIT_CONS(exo,fd_exception_type);
-  exo->ex_u8ex = ex;
+  exo->ex_u8ex = cex;
   return LISP_CONS(exo);
 }
 
