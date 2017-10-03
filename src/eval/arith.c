@@ -579,7 +579,7 @@ arithdef("EXP",lexp,exp);
     if (VOIDP(err)) {                    \
       double result = cname(xval,yval);       \
       if (errno==0) return fd_init_double(NULL,result); \
-      else {u8_graberr(-1,sname,u8_mkstring("%f %f",xval,yval)); \
+      else {u8_graberrno(sname,u8_mkstring("%f %f",xval,yval)); \
             return FD_ERROR;}}          \
     else return err;}
 

@@ -1193,7 +1193,7 @@ static lispval fsinfo_prim(lispval arg)
   retval = statfs(usepath,&info);
   if (((char *)path)!=usepath) u8_free(usepath);
   if (retval) {
-    u8_graberr(-1,"fsinfo_prim",u8_strdup(path));
+    u8_graberrno("fsinfo_prim",u8_strdup(path));
     return FD_ERROR;}
   else {
     lispval result = fd_init_slotmap(NULL,0,NULL);

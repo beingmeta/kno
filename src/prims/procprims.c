@@ -91,7 +91,7 @@ static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
     int rv = kill(pid,sig);
     if (rv<0) {
       char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
-      u8_graberr(-1,"os_kill_prim",u8_strdup(buf));
+      u8_graberrno("os_kill_prim",u8_strdup(buf));
       return FD_ERROR;}
     else return FD_TRUE;}
   else return fd_type_error("signal","pid_kill_prim",sig_arg);
@@ -196,7 +196,7 @@ static lispval exec_helper(u8_context caller,int flags,int n,lispval *args)
     /* We call abort in this case because we've forked but couldn't
        exec and we don't want this FramerD executable to exit normally. */
     if (flags&FD_DO_FORK) {
-      u8_graberr(-1,caller,filename);
+      u8_graberrno(caller,filename);
       return FD_ERROR;}
     else {
       fd_clear_errors(1);

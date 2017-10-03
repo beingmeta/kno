@@ -368,63 +368,63 @@ static lispval rusage_prim(lispval field)
     if (n_cpus>0) return FD_INT(n_cpus);
     else if (n_cpus==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/N_CPUS",NULL);
+      u8_graberrno("rusage_prim/N_CPUS",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,max_cpus_symbol)) {
     int max_cpus = get_max_cpus();
     if (max_cpus>0) return FD_INT(max_cpus);
     else if (max_cpus==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/MAX_CPUS",NULL);
+      u8_graberrno("rusage_prim/MAX_CPUS",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,pagesize_symbol)) {
     int pagesize = get_pagesize();
     if (pagesize>0) return FD_INT(pagesize);
     else if (pagesize==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/PAGESIZE",NULL);
+      u8_graberrno("rusage_prim/PAGESIZE",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,physical_pages_symbol)) {
     int physical_pages = get_physical_pages();
     if (physical_pages>0) return FD_INT(physical_pages);
     else if (physical_pages==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/PHYSICAL_PAGES",NULL);
+      u8_graberrno("rusage_prim/PHYSICAL_PAGES",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,available_pages_symbol)) {
     int available_pages = get_available_pages();
     if (available_pages>0) return FD_INT(available_pages);
     else if (available_pages==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/AVAILABLE_PAGES",NULL);
+      u8_graberrno("rusage_prim/AVAILABLE_PAGES",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,physical_memory_symbol)) {
     long long physical_memory = get_physical_memory();
     if (physical_memory>0) return FD_INT(physical_memory);
     else if (physical_memory==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
+      u8_graberrno("rusage_prim/PHYSICAL_MEMORY",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,physicalmb_symbol)) {
     long long physical_memory = get_physical_memory();
     if (physical_memory>0) return FD_INT(physical_memory/(1024*1024));
     else if (physical_memory==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
+      u8_graberrno("rusage_prim/PHYSICAL_MEMORY",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,available_memory_symbol)) {
     long long available_memory = get_available_memory();
     if (available_memory>0) return FD_INT(available_memory);
     else if (available_memory==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
+      u8_graberrno("rusage_prim/AVAILABLE_MEMORY",NULL);
       return FD_ERROR;}}
   else if (FD_EQ(field,availablemb_symbol)) {
     long long available_memory = get_available_memory();
     if (available_memory>0) return FD_INT(available_memory/(1024*1024));
     else if (available_memory==0) return EMPTY;
     else {
-      u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
+      u8_graberrno("rusage_prim/AVAILABLE_MEMORY",NULL);
       return FD_ERROR;}}
   else {
     lispval val=fd_read_sensor(field);

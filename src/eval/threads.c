@@ -98,11 +98,11 @@ static lispval make_condvar()
   FD_INIT_FRESH_CONS(cv,fd_condvar_type);
   rv = u8_init_mutex(&(cv->fd_cvlock));
   if (rv) {
-    u8_graberr(-1,"make_condvar",NULL);
+    u8_graberrno("make_condvar",NULL);
     return FD_ERROR;}
   else rv = u8_init_condvar(&(cv->fd_cvar));
   if (rv) {
-    u8_graberr(-1,"make_condvar",NULL);
+    u8_graberrno("make_condvar",NULL);
     return FD_ERROR;}
   return LISP_CONS(cv);
 }

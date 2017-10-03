@@ -524,7 +524,7 @@ static int config_setrandomseed(lispval var,lispval val,void *data)
       ((STRINGP(val)) && ((strcasecmp(CSTRING(val),"TIME"))==0))) {
     time_t tick = time(NULL);
     if (tick<0) {
-      u8_graberr(-1,"time",NULL);
+      u8_graberrno("time",NULL);
       fd_seterr2(TimeFailed,"setrandomseed");
       return -1;}
     else {
