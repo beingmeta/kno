@@ -184,14 +184,20 @@ FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 
 typedef struct FD_PROCINDEX {
   FD_INDEX_FIELDS;
-  lispval closefn, commitfn, fetchfn, fetchsize;
-  lispval prefetch, fetchn, fetchkeys, fetchinfo;
-  lispval batchadd, metadata, create, indexctl;
-  lispval index_state;}
+  lispval index_state;
+  lispval fetchfn, fetchsizefn, fetchnfn, prefetchfn,
+    fetchkeysfn, fetchinfofn,
+    batchaddfn, ctlfn, savefn, closefn;}
   FD_PROCINDEX;
 typedef struct FD_PROCINDEX *fd_procindex;
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_procindex_handler;
+
+FD_EXPORT
+fd_index fd_make_procindex(lispval opts,lispval state,
+			   u8_string typeid,
+			   u8_string label,
+			   u8_string source);
 
 /* Compound indexes */
 

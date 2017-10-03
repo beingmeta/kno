@@ -2385,6 +2385,7 @@ FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
                                 int n_keys,int locked)
 {
 #define COPYFIELD(field) dest->field=src->field
+  if (n_keys<0) n_keys=src->table_n_keys;
   int n_buckets=fd_get_hashtable_size(n_keys), unlock=0;
   struct FD_HASH_BUCKET **buckets;
   FD_CHECK_TYPE_RET(src,fd_hashtable_type);
