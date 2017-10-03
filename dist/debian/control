@@ -25,7 +25,7 @@ Description: Scalable knowledge base development and application platform
 Package: framerd-core
 Architecture: any
 Suggests: framerd-docs
-Depends: ${misc:Depends}, libu8 (>= 2.6.3), libzip4 | libzip2, libsnappy1v5, libssl1.0 | libssl1.0.0, libcurl3, libhyphen0, libedit2, adduser, libldns2 | libldns1
+Depends: ${misc:Depends}, libu8 (>= 2.6.4), libzip4 | libzip2, libsnappy1v5, libssl1.0 | libssl1.0.0, libcurl3, libhyphen0, libedit2, adduser, libldns2 | libldns1
 Description: This package provides the core libraries, executables, and 
   configuration files for FramerD applications
 
