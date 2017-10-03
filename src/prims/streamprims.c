@@ -407,7 +407,7 @@ static lispval open_dtype_output_file(lispval fname)
     return LISP_CONS(dts);}
   else {
     u8_free(dts);
-    u8_graberr(-1,"open_dtype_output_file",u8_strdup(filename));
+    u8_graberrno("open_dtype_output_file",u8_strdup(filename));
     return FD_ERROR;}
 }
 

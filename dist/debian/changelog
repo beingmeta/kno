@@ -1,3 +1,9 @@
+framerd (4.2.1-4) unstable; urgency=medium
+
+  * Updated dependency on libu8 >= 2.6.4
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 03 Oct 2017 13:13:33 +0000
+
 framerd (4.2.1-3) unstable; urgency=medium
 
   * Restore tcmalloc as default malloc library

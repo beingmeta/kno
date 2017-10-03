@@ -549,7 +549,7 @@ static lispval update_pagemap(lispval path)
   if (retval<0) {
     u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
 	   lpath,errno);
-    u8_graberr(-1,"getcontent",lpath);
+    u8_graberrno("getcontent",lpath);
     return FD_ERROR_VALUE;}
   u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
   lispval content = loadcontent(path);
@@ -574,7 +574,7 @@ static lispval getcontent(lispval path)
     if (retval<0) {
       u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
 	     lpath,errno);
-      u8_graberr(-1,"getcontent",lpath);
+      u8_graberrno("getcontent",lpath);
       return FD_ERROR_VALUE;}
     else u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
     lispval pagemap_value = fd_hashtable_get(&pagemap,path,FD_VOID);

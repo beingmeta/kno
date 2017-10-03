@@ -993,7 +993,7 @@ static lispval time_prim()
 {
   time_t now = time(NULL);
   if (now<0) {
-    u8_graberr(-1,"time_prim",NULL);
+    u8_graberrno("time_prim",NULL);
     return FD_ERROR;}
   else return FD_INT(now);
 }
@@ -1002,7 +1002,7 @@ static lispval millitime_prim()
 {
   long long now = u8_millitime();
   if (now<0) {
-    u8_graberr(-1,"millitime_prim",NULL);
+    u8_graberrno("millitime_prim",NULL);
     return FD_ERROR;}
   else return FD_INT(now);
 }
@@ -1011,7 +1011,7 @@ static lispval microtime_prim()
 {
   long long now = u8_microtime();
   if (now<0) {
-    u8_graberr(-1,"microtime_prim",NULL);
+    u8_graberrno("microtime_prim",NULL);
     return FD_ERROR;}
   else return FD_INT(now);
 }

@@ -93,7 +93,7 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
         u8_realloc(dbprocs,sizeof(struct FD_EXTDB *)*(db->extdb_procslen+32));
       if (newprocs == NULL) {
         u8_unlock_mutex(&(db->extdb_proclock));
-        u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->extdb_spec));
+        u8_graberrno("fd_extdb_register_proc",u8_strdup(db->extdb_spec));
         return -1;}
       else {
         db->extdb_procs = dbprocs = newprocs;

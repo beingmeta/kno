@@ -620,8 +620,7 @@ FD_EXPORT lispval fd_dcall(struct FD_STACK *_stack,
              errno,cond,U8ALT(fname,"primcall"));
       errno=0;}
     if ( (FD_TROUBLEP(result)) &&  (u8_current_exception==NULL) ) {
-      if (errno)
-        u8_graberrno("fd_apply",fname);
+      if (errno) {u8_graberrno("fd_apply",fname);}
       else fd_seterr(fd_UnknownError,"fd_apply",fname,VOID);}
     fd_pop_stack(apply_stack);
     if (PRED_TRUE(FD_CHECK_PTR(result)))

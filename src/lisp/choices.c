@@ -271,7 +271,7 @@ lispval fd_init_choice
   else if (ch == NULL) {
     ch = fd_alloc_choice(n);
     if (ch == NULL) {
-      u8_graberr(-1,"fd_init_choice",NULL);
+      u8_graberrno("fd_init_choice",NULL);
       if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
       return FD_ERROR;}
     if (data)
@@ -321,7 +321,7 @@ lispval fd_init_choice
     FD_INIT_XCHOICE(ch,newlen,atomicp);
     return LISP_CONS(ch);}
   else {
-    u8_graberr(-1,"fd_init_choice",NULL);
+    u8_graberrno("fd_init_choice",NULL);
     return FD_ERROR;}
 }
 
