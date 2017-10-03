@@ -529,7 +529,8 @@ static lispval backtrace_prim(lispval arg)
   else if (FD_TRUEP(arg))
     return fd_exception_backtrace(last_exception);
   else if (FALSEP(arg)) {
-    u8_free_exception(last_exception,1); last_exception = NULL;}
+    u8_free_exception(last_exception,1);
+    last_exception = NULL;}
   return VOID;
 }
 
