@@ -67,7 +67,7 @@ static lispval exit_prim(lispval arg)
 
 static lispval fast_exit_prim(lispval arg)
 {
-  fd_tidy_exit=0;
+  fd_fast_exit=1;
   if (FD_INTP(arg))
     exit(FIX2INT(arg));
   else exit(0);

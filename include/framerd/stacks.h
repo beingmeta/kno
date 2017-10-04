@@ -184,7 +184,7 @@ FD_FASTOP void fd_free_stack(struct FD_STACK *stack)
   if (stack->n_cleanups) {
     struct FD_STACK_CLEANUP *cleanups = stack->cleanups;
     int i = 0, n = stack->n_cleanups;
-    if ( (fd_exiting == 0) || (fd_tidy_exit) ) while (i<n) {
+    if ( (fd_exiting == 0) || (fd_fast_exit==0) ) while (i<n) {
 	switch (cleanups[i].cleanop) {
 	case FD_FREE_MEMORY:
 	  u8_free(cleanups[i].arg0);
