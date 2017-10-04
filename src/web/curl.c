@@ -127,7 +127,7 @@ static size_t process_content_data(char *data,size_t elt_size,size_t n_elts,
   fd_decref(packet);
   if (FD_ABORTP(apply_result)) {
     u8_exception ex=u8_erreify();
-    state[2]=fd_init_exception(NULL,ex);
+    state[2]=fd_wrap_exception(ex);
     return 0;}
   else if (FALSEP(apply_result))
     return 0;
@@ -705,14 +705,9 @@ static lispval streamurl(struct FD_CURL_HANDLE *h,
   if (retval==CURLE_WRITE_ERROR) {
     if (TYPEP(stream_data[2],fd_exception_type)) {
       fd_exception_object exo=(fd_exception_object)stream_data[2];
-      u8_exception ex = exo->ex_u8ex;
-	u8_push_exception(ex->u8x_cond,ex->u8x_context,
-                          ex->u8x_details,ex->u8x_xdata,
-                          ex->u8x_free_xdata);
-        exo->ex_u8ex = NULL;
-        u8_restore_exception(ex);
-        if (consed_handle) {fd_decref((lispval)h);}
-        return FD_ERROR;}
+      fd_restore_exception(exo);
+      if (consed_handle) {fd_decref((lispval)h);}
+      return FD_ERROR;}
     else {
       if (consed_handle) {fd_decref((lispval)h);}
       return result;}}

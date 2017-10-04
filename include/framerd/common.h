@@ -105,5 +105,6 @@ FD_EXPORT fd_exception fd_FileNotFound, fd_NoSuchFile;
 /* Generic support */
 
 #include "support.h"
+#include "exceptions.h"
 
 #endif /* ndef FRAMERD_COMMON_H */

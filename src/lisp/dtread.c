@@ -611,26 +611,28 @@ static lispval restore_dtype_exception(lispval content)
 {
   /* Return an exception object if possible (content as expected)
      and a compound if there are any big surprises */
-  fd_exception exname=_("Poorly Restored Error");
-  u8_context context = NULL; u8_string details = NULL;
-  lispval irritant = VOID; int new_format = 0;
+  fd_exception condname=_("Poorly Restored Error");
+  u8_context caller = NULL; u8_string details = NULL;
+  lispval irritant = VOID, stack = VOID, context = VOID;
+  int new_format = 0;
   if (FD_TROUBLEP(content)) return content;
   else if (VECTORP(content)) {
     int len = VEC_LEN(content);
-    /* One old format was:
+    /* The old format was:
          #(ex details irritant backtrace)
          where ex is a string
-       The new format is:
-         #(ex context details irritant)
-         where ex and context are symbols
-       We handle both cases
+       And the new format is:
+         #(ex caller details irritant [stack] [context])
+         where ex and context are symbols and stack and context
+          are optional values which default to VOID
+       We handle all cases
     */
     if (len>0) {
       lispval elt0 = VEC_REF(content,0);
       if (SYMBOLP(elt0)) {
-        exname = SYM_NAME(elt0); new_format = 1;}
+        condname = SYM_NAME(elt0); new_format = 1;}
       else if (STRINGP(elt0)) { /* Old format */
-        exname = SYM_NAME(elt0); new_format = 0;}
+        condname = SYM_NAME(elt0); new_format = 0;}
       else {
         u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
         new_format = -1;}}
@@ -644,26 +646,30 @@ static lispval restore_dtype_exception(lispval content)
              (STRINGP(VEC_REF(content,1))))))
         u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
       else {
-        exname = (u8_condition)(SYM_NAME(VEC_REF(content,0)));
-        context = (u8_context)
+        condname = (u8_condition)(SYM_NAME(VEC_REF(content,0)));
+        caller = (u8_context)
           ((FALSEP(VEC_REF(content,1))) ? (NULL) :
            (SYM_NAME(VEC_REF(content,1))));
         details = (u8_string)
           ((FALSEP(VEC_REF(content,2))) ? (NULL) :
            (CSTRING(content)));
-        if (len>3) irritant = VEC_REF(content,3);}
+        if (len>3) irritant = VEC_REF(content,3);
+        if (len>4) stack    = VEC_REF(content,4);
+        if (len>5) context  = VEC_REF(content,5);}
     else { /* Old format */
       if ((len>0) && (SYMBOLP(VEC_REF(content,0)))) {
         lispval sym = fd_intern(CSTRING(VEC_REF(content,0)));
-        exname = (u8_condition)SYM_NAME(sym);}
+        condname = (u8_condition)SYM_NAME(sym);}
       else if ((len>0) && (STRINGP(VEC_REF(content,0)))) {
-        exname = (u8_condition)SYM_NAME(VEC_REF(content,0));}
+        condname = (u8_condition)SYM_NAME(VEC_REF(content,0));}
       if ((len>1) && (STRINGP(VEC_REF(content,1))))
         details = CSTRING(VEC_REF(content,1));
       if (len>2) irritant = VEC_REF(content,2);}
-    return fd_make_exception(exname,context,details,irritant);}
-  else return fd_make_exception
-         (fd_DTypeError,"restore_dtype_exception",NULL,content);
+    return fd_init_exception(NULL,condname,caller,details,
+                             irritant,stack,context);}
+  else return fd_init_exception
+         (NULL,fd_DTypeError,"restore_dtype_exception",NULL,
+          content,stack,context);
 }
 
 /* Arith stubs */

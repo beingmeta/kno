@@ -708,8 +708,9 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
         u8_condition c = (u8_current_exception) ? \
           (u8_current_exception->u8x_cond) :
           NULL;
-        fd_pusherr(c,"oidpool_fetchn/read",op->poolid,
-                   oids[schedule[i].value_at]);
+        // Add more debugging context
+        fd_seterr(c,"oidpool_fetchn/read",op->poolid,
+                  oids[schedule[i].value_at]);
         fd_unlock_stream(&(op->pool_stream));
         return NULL;}
       else values[schedule[i].value_at]=value;

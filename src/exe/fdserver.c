@@ -592,6 +592,10 @@ static int dtypeserver(u8_client ucl)
     if (FD_ABORTP(value)) {
       u8_exception ex = u8_erreify(), root = u8_exception_root(ex);
       lispval irritant = fd_exception_xdata(root);
+      if (TYPEP(irritant,fd_exception_type)) {
+        struct FD_EXCEPTION_OBJECT *exo = (fd_exception_object) irritant;
+        value = fd_incref(irritant);
+        irritant = exo->ex_irritant;}
       if ((logeval) || (logerrs) || (tracethis)) {
         if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
           u8_log(LOG_ERR,Outgoing,
@@ -621,8 +625,6 @@ static int dtypeserver(u8_client ucl)
           u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
             u8_free(out.u8_outbuf);}}
-      value = fd_make_exception
-        (ex->u8x_cond,ex->u8x_context,ex->u8x_details,irritant);
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,

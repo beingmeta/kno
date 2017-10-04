@@ -1162,12 +1162,12 @@ static int webservefn(u8_client ucl)
                 ex->u8x_cond,ex->u8x_context,ex->u8x_details,
                 (unsigned long)ucl);
     if (logstack) {
-      lispval backtrace=fd_exception_backtrace(ex);
+      lispval backtrace=FD_U8X_STACK(ex);
       if (FD_PAIRP(backtrace)) {
         FD_DOLIST(entry,backtrace) {
           u8_log(LOG_ERR,"Backtrace","%Q",entry);}}}
     if (FD_APPLICABLEP(errorpage)) {
-      lispval err_value = fd_init_exception(NULL,ex);
+      lispval err_value = fd_wrap_exception(ex);
       fd_push_reqinfo(init_cgidata);
       fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
       fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
@@ -1266,8 +1266,8 @@ static int webservefn(u8_client ucl)
       write_string(client->socket,
                    "Content-type: text/html; charset = utf-8\r\n\r\n");
       fd_xhtmlerrorpage(&(client->out),ex);}
+    u8_free_exception(ex,1);
     if (!(recovered)) {
-      u8_free_exception(ex,1);
       if ((reqlog) || (urllog) || (trace_cgidata))
         dolog(cgidata,result,outstream->u8_outbuf,
               outstream->u8_write-outstream->u8_outbuf,

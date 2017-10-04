@@ -555,7 +555,7 @@ static lispval toexact(lispval x,lispval direction)
     if (VOIDP(err)) { \
       double result = cname(val); \
       if (errno==0) return fd_init_double(NULL,result); \
-      else {fd_graberr(-1,sname,u8_mkstring("%f",val)); \
+      else {u8_graberrno(sname,u8_mkstring("%f",val)); \
         return FD_ERROR;}}                              \
     else return err;}
 
