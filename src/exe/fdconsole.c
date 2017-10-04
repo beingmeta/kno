@@ -530,7 +530,8 @@ static lispval backtrace_prim(lispval arg)
     lispval backtrace = FD_U8X_STACK(last_exception);
     return fd_incref(backtrace);}
   else if (FALSEP(arg)) {
-    u8_free_exception(last_exception,1); last_exception = NULL;}
+    u8_free_exception(last_exception,1);
+    last_exception = NULL;}
   return VOID;
 }
 
