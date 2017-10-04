@@ -809,7 +809,7 @@ typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 /* Exceptions */
 
-typedef struct FD_EXCEPTION_OBJECT {
+typedef struct FD_EXCEPTION {
   FD_CONS_HEADER;
   u8_condition ex_condition;
   u8_context ex_caller;
@@ -817,10 +817,10 @@ typedef struct FD_EXCEPTION_OBJECT {
   lispval ex_irritant;
   lispval ex_stack;
   lispval ex_context;}
-  FD_EXCEPTION_OBJECT;
-typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
+  FD_EXCEPTION;
+typedef struct FD_EXCEPTION *fd_exception;
 
-FD_EXPORT lispval fd_init_exception(fd_exception_object,
+FD_EXPORT lispval fd_init_exception(fd_exception,
 				    u8_condition,u8_context,u8_string,
 				    lispval,lispval,lispval);
 FD_EXPORT void fd_decref_u8x_xdata(void *ptr);
@@ -835,10 +835,10 @@ FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 #define FD_U8X_STACK(ex) \
   (((ex)->u8x_free_xdata != fd_decref_embedded_exception) ? (FD_VOID) : \
    (FD_TYPEP(((lispval)((ex)->u8x_xdata)),fd_exception_type)) ?		\
-   (((fd_exception_object)((ex)->u8x_xdata))->ex_stack) :		\
+   (((fd_exception)((ex)->u8x_xdata))->ex_stack) :		\
    (FD_VOID))
 
-FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION_OBJECT *exo);
+FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo);
 
 /* Timestamps */
 

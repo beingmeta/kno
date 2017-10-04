@@ -140,8 +140,8 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
   if ((VOIDP(exception))||(FALSEP(exception)))
     ex = u8_current_exception;
   else if (FD_EXCEPTIONP(exception)) {
-    struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_exception_type);
+    struct FD_EXCEPTION *xo=
+      fd_consptr(struct FD_EXCEPTION *,exception,fd_exception_type);
     tempex.u8x_cond = xo->ex_condition;
     tempex.u8x_context = xo->ex_caller;
     tempex.u8x_details = xo->ex_details;
@@ -177,8 +177,8 @@ static lispval backtrace2html_prim(lispval arg,lispval where)
   else if (PAIRP(arg))
     backtrace=arg;
   else if (FD_EXCEPTIONP(arg)) {
-    struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,arg,fd_exception_type);
+    struct FD_EXCEPTION *xo=
+      fd_consptr(struct FD_EXCEPTION *,arg,fd_exception_type);
     backtrace = xo->ex_stack;}
   else return fd_err("Bad exception/backtrace","backtrace2html_prim",
                      NULL,arg);

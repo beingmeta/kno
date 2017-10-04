@@ -593,7 +593,7 @@ static int dtypeserver(u8_client ucl)
       u8_exception ex = u8_erreify(), root = u8_exception_root(ex);
       lispval irritant = fd_exception_xdata(root);
       if (TYPEP(irritant,fd_exception_type)) {
-        struct FD_EXCEPTION_OBJECT *exo = (fd_exception_object) irritant;
+        struct FD_EXCEPTION *exo = (fd_exception) irritant;
         value = fd_incref(irritant);
         irritant = exo->ex_irritant;}
       if ((logeval) || (logerrs) || (tracethis)) {

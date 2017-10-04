@@ -119,8 +119,8 @@ typedef struct FD_MYSQL_PROC *fd_mysql_proc;
 
 static int init_mysqlproc(FD_MYSQL *db,struct FD_MYSQL_PROC *dbproc);
 
-static fd_exception MySQL_Error=_("MySQL Error");
-static fd_exception MySQL_NoConvert=_("Can't convert value to SQL");
+static u8_condition MySQL_Error=_("MySQL Error");
+static u8_condition MySQL_NoConvert=_("Can't convert value to SQL");
 static lispval merge_symbol, noempty_symbol, sorted_symbol;
 
 static lispval intern_upcase(u8_output out,u8_string s)

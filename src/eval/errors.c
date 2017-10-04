@@ -28,14 +28,14 @@ static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
   lispval arg2 = fd_get_arg(expr,2);
   lispval printout_body;
   if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
-    ex = (fd_exception)(SYM_NAME(arg1));
+    ex = (u8_condition)(SYM_NAME(arg1));
     cxt = (u8_context)(SYM_NAME(arg2));
     printout_body = fd_get_body(expr,3);}
   else if (SYMBOLP(arg1)) {
-    ex = (fd_exception)(SYM_NAME(arg1));
+    ex = (u8_condition)(SYM_NAME(arg1));
     printout_body = fd_get_body(expr,2);}
   else if (SYMBOLP(head)) {
-    ex = (fd_exception)(SYM_NAME(head));
+    ex = (u8_condition)(SYM_NAME(head));
     printout_body = fd_get_body(expr,1);}
   else printout_body = fd_get_body(expr,1);
 
@@ -74,39 +74,39 @@ static lispval return_irritant_helper(lispval expr,fd_lexenv env,
   if (eval_args) {
     lispval exval = fd_eval(arg1,env), cxtval;
     if (FD_ABORTP(exval))
-      ex = (fd_exception)"Recursive error on exception name";
+      ex = (u8_condition)"Recursive error on exception name";
     else if (SYMBOLP(exval))
-      ex = (fd_exception)(SYM_NAME(exval));
+      ex = (u8_condition)(SYM_NAME(exval));
     else if (STRINGP(exval)) {
       lispval sym = fd_intern(CSTRING(exval));
-      ex = (fd_exception)(SYM_NAME(sym));}
-    else ex = (fd_exception)"Bad exception condition";
+      ex = (u8_condition)(SYM_NAME(sym));}
+    else ex = (u8_condition)"Bad exception condition";
     cxtval = fd_eval(arg2,env);
     if ((FALSEP(cxtval))||(EMPTYP(cxtval)))
-      cxt = (fd_exception)NULL;
+      cxt = (u8_condition)NULL;
     else if (FD_ABORTP(cxtval))
-      cxt = (fd_exception)"Recursive error on exception context";
+      cxt = (u8_context)"Recursive error on exception context";
     else if (SYMBOLP(cxtval))
-      cxt = (fd_exception)(SYM_NAME(cxtval));
+      cxt = (u8_context)(SYM_NAME(cxtval));
     else if (STRINGP(exval)) {
       lispval sym = fd_intern(CSTRING(cxtval));
-      cxt = (fd_exception)(SYM_NAME(sym));}
-    else cxt = (fd_exception)"Bad exception condition";
+      cxt = (u8_context)(SYM_NAME(sym));}
+    else cxt = (u8_context)"Bad exception condition";
     printout_body = fd_get_body(expr,4);}
   else if ((SYMBOLP(arg1)) && (SYMBOLP(arg2))) {
-    ex = (fd_exception)(SYM_NAME(arg1));
+    ex = (u8_condition)(SYM_NAME(arg1));
     cxt = (u8_context)(SYM_NAME(arg2));
     printout_body = fd_get_body(expr,4);}
   else if (SYMBOLP(arg1)) {
-    ex = (fd_exception)(SYM_NAME(arg1));
+    ex = (u8_condition)(SYM_NAME(arg1));
     printout_body = fd_get_body(expr,3);}
   else if (STRINGP(arg1)) {
     u8_string pname = CSTRING(arg1);
     lispval sym = fd_intern(pname);
-    ex = (fd_exception)(SYM_NAME(sym));
+    ex = (u8_condition)(SYM_NAME(sym));
     printout_body = fd_get_body(expr,3);}
   else if (SYMBOLP(head)) {
-    ex = (fd_exception)"Bad irritant arg";
+    ex = (u8_condition)"Bad irritant arg";
     printout_body = fd_get_body(expr,2);}
   else printout_body = fd_get_body(expr,2);
 
@@ -258,8 +258,8 @@ static lispval erreify_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 static lispval error_condition(lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   if (xo->ex_condition)
     return fd_intern(xo->ex_condition);
   else return FD_FALSE;
@@ -267,8 +267,8 @@ static lispval error_condition(lispval x)
 
 static lispval error_caller(lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   if (xo->ex_caller)
     return fd_intern(xo->ex_caller);
   else return FD_FALSE;
@@ -276,8 +276,8 @@ static lispval error_caller(lispval x)
 
 static lispval error_details(lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   if (xo->ex_details)
     return lispval_string(xo->ex_details);
   else return FD_FALSE;
@@ -285,15 +285,15 @@ static lispval error_details(lispval x)
 
 static lispval error_irritant(lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   return fd_incref(xo->ex_irritant);
 }
 
 static lispval error_has_irritant(lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   if (FD_VOIDP(xo->ex_irritant))
     return FD_FALSE;
   else return FD_TRUE;
@@ -301,8 +301,8 @@ static lispval error_has_irritant(lispval x)
 
 static lispval error_backtrace(lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   if (FD_VOIDP(xo->ex_stack))
     return FD_FALSE;
   else return fd_incref(xo->ex_stack);
@@ -310,8 +310,8 @@ static lispval error_backtrace(lispval x)
 
 static lispval error_summary(lispval x,lispval with_irritant)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   u8_condition cond = xo->ex_condition;
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;
@@ -439,8 +439,8 @@ static lispval unwind_protect_evalfn(lispval uwp,fd_lexenv env,fd_stack _stack)
 
 static lispval reraise_prim(lispval exo)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,exo,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,exo,fd_exception_type);
   fd_restore_exception(xo);
   return FD_ERROR_VALUE;
 }
@@ -449,8 +449,8 @@ static lispval reraise_prim(lispval exo)
 
 static lispval get_irritant_prim(lispval exo)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,exo,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,exo,fd_exception_type);
   return fd_incref(xo->ex_irritant);
 }
 

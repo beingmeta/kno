@@ -704,7 +704,7 @@ static lispval streamurl(struct FD_CURL_HANDLE *h,
   retval = curl_easy_perform(h->handle);
   if (retval==CURLE_WRITE_ERROR) {
     if (TYPEP(stream_data[2],fd_exception_type)) {
-      fd_exception_object exo=(fd_exception_object)stream_data[2];
+      fd_exception exo=(fd_exception)stream_data[2];
       fd_restore_exception(exo);
       if (consed_handle) {fd_decref((lispval)h);}
       return FD_ERROR;}

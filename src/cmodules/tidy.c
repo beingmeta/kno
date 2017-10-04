@@ -19,7 +19,7 @@
 #include "ext/tidy5/tidyenum.h"
 
 FD_EXPORT int fd_init_tidy(void) FD_LIBINIT_FN;
-fd_exception fd_TidyError=_("Tidy Error");
+u8_condition fd_TidyError=_("Tidy Error");
 static long long int tidy_init = 0;
 
 /* Opt setting */

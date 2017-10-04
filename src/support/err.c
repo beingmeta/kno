@@ -66,7 +66,7 @@ FD_EXPORT void fd_seterr
 		    (void *)exception,fd_decref_embedded_exception);
 }
 
-FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION_OBJECT *exo)
+FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo)
 {
   u8_push_exception(exo->ex_condition,exo->ex_caller,
 		    u8_strdup(exo->ex_details),
@@ -104,7 +104,7 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex)
   if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
     lispval irritant = (lispval) ex->u8x_xdata;
     if (FD_EXCEPTIONP(irritant)) {
-      struct FD_EXCEPTION_OBJECT *exo = (fd_exception_object) irritant;
+      struct FD_EXCEPTION *exo = (fd_exception) irritant;
       return exo->ex_irritant;}
     else return irritant;}
   else if (ex->u8x_free_xdata == fd_decref_u8x_xdata)
@@ -417,11 +417,11 @@ int fd_clear_errors(int report)
 /* Exception objects */
 
 FD_EXPORT lispval fd_init_exception
-   (struct FD_EXCEPTION_OBJECT *exo,
+   (struct FD_EXCEPTION *exo,
     u8_condition condition,u8_context caller,u8_string details,
     lispval irritant,lispval stack,lispval context)
 {
-  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
+  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION);
   FD_INIT_CONS(exo,fd_exception_type);
   exo->ex_condition = condition;
   exo->ex_caller    = caller;
@@ -434,7 +434,7 @@ FD_EXPORT lispval fd_init_exception
 
 static int dtype_exception(struct FD_OUTBUF *out,lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo = (struct FD_EXCEPTION_OBJECT *)x;
+  struct FD_EXCEPTION *xo = (struct FD_EXCEPTION *)x;
   u8_condition condition = xo->ex_condition;
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;
@@ -492,8 +492,8 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
 
 static lispval copy_exception(lispval x,int deep)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   return fd_init_exception(NULL,xo->ex_condition,xo->ex_caller,
 			   u8_strdup(xo->ex_details),
 			   fd_incref(xo->ex_irritant),
@@ -503,8 +503,8 @@ static lispval copy_exception(lispval x,int deep)
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
   u8_condition condition = xo->ex_condition;
   u8_context caller = xo->ex_caller;
   u8_string details = xo->ex_details;

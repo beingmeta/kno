@@ -746,7 +746,7 @@ FD_EXPORT lispval fd_register_fcnid(lispval obj);
 FD_EXPORT lispval fd_set_fcnid(lispval ref,lispval newval);
 FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value);
 
-FD_EXPORT lispval fd_err(fd_exception,u8_context,u8_string,lispval);
+FD_EXPORT lispval fd_err(u8_condition,u8_context,u8_string,lispval);
 
 FD_EXPORT u8_condition fd_InvalidFCNID, fd_FCNIDOverflow;
 

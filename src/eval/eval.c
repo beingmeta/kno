@@ -65,7 +65,7 @@ static u8_condition LostThrow=_("Lost invoked continuation");
 
 static char *cpu_profilename = NULL;
 
-fd_exception
+u8_condition
   fd_SyntaxError=_("SCHEME expression syntax error"),
   fd_InvalidMacro=_("invalid macro transformer"),
   fd_UnboundIdentifier=_("the variable is unbound"),

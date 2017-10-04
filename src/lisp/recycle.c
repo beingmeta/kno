@@ -112,7 +112,7 @@ static void recycle_uuid(struct FD_RAW_CONS *c)
 
 static void recycle_exception(struct FD_RAW_CONS *c)
 {
-  struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)c;
+  struct FD_EXCEPTION *exo = (struct FD_EXCEPTION *)c;
   if (exo->ex_details) u8_free(exo->ex_details);
   fd_decref(exo->ex_irritant);
   fd_decref(exo->ex_stack);

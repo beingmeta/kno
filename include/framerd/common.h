@@ -81,8 +81,6 @@ typedef unsigned char uchar;
 #define FD_ISLOCKED 1
 #define FD_UNLOCKED 0
 
-typedef u8_condition fd_exception;
-
 FD_EXPORT int fd_init_iobase(void);
 
 FD_EXPORT int fd_init_errbase(void);
