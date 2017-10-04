@@ -71,8 +71,8 @@ static int debug_maxelts = 32, debug_maxchars = 80;
 static void shutdown_onsignal(int sig,siginfo_t *info,void *data);
 
 /* Various exceptions */
-static fd_exception BadPortSpec=_("Bad port spec");
-static fd_exception BadRequest=_("Bad client request");
+static u8_condition BadPortSpec=_("Bad port spec");
+static u8_condition BadRequest=_("Bad client request");
 static u8_condition NoServers=_("NoServers");
 static u8_condition Startup=_("Startup");
 static u8_condition ServerFork=_("FDServer/FORK");

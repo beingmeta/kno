@@ -35,7 +35,7 @@ static lispval ixserver_changes, ixserver_add, ixserver_drop, ixserver_addn, ixs
 
 static lispval set_symbol, drop_symbol;
 
-fd_exception fd_NoServerMethod=_("Server doesn't support method");
+u8_condition fd_NoServerMethod=_("Server doesn't support method");
 
 static int server_supportsp(struct FD_NETWORK_INDEX *ni,lispval operation)
 {

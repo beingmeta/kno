@@ -22,7 +22,7 @@ typedef struct FD_PORT {
   u8_output fd_outport;} FD_PORT;
 typedef struct FD_PORT *fd_port;
 
-FD_EXPORT fd_exception fd_UnknownEncoding;
+FD_EXPORT u8_condition fd_UnknownEncoding;
 
 FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width);
 FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,

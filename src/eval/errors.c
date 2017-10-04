@@ -16,13 +16,13 @@
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 
-static fd_exception SchemeError=_("Undistinguished Scheme Error");
+static u8_condition SchemeError=_("Undistinguished Scheme Error");
 
 /* Returning errors */
 
 static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
 {
-  fd_exception ex = SchemeError, cxt = NULL;
+  u8_condition ex = SchemeError, cxt = NULL;
   lispval head = fd_get_arg(expr,0);
   lispval arg1 = fd_get_arg(expr,1);
   lispval arg2 = fd_get_arg(expr,2);
@@ -64,7 +64,7 @@ static lispval extend_error_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 static lispval return_irritant_helper(lispval expr,fd_lexenv env,
                                       int wrapped,int eval_args)
 {
-  fd_exception ex = SchemeError, cxt = NULL;
+  u8_condition ex = SchemeError, cxt = NULL;
   lispval head = fd_get_arg(expr,0);
   lispval irritant_expr = fd_get_arg(expr,1), irritant=VOID;
   lispval arg1 = fd_get_arg(expr,2);

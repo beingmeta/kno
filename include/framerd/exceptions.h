@@ -66,7 +66,7 @@ FD_EXPORT int fd_reterr
 FD_EXPORT int fd_interr(lispval x);
 FD_EXPORT lispval fd_erreify(void);
 
-FD_EXPORT fd_exception fd_retcode_to_exception(lispval err);
+FD_EXPORT u8_condition fd_retcode_to_exception(lispval err);
 
 FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 

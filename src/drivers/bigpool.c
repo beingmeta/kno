@@ -91,7 +91,7 @@ static void update_filetime(struct FD_BIGPOOL *fp);
 
 static struct FD_POOL_HANDLER bigpool_handler;
 
-static fd_exception InvalidOffset=_("Invalid offset in BIGPOOL");
+static u8_condition InvalidOffset=_("Invalid offset in BIGPOOL");
 
 /* BIGPOOLs are the next generation of object pool data file.  While
     previous formats have all stored OIDs for years and years, BIGPOOLs

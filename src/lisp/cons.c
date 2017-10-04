@@ -19,16 +19,16 @@
 #include <stdarg.h>
 #include <math.h>
 
-fd_exception fd_MallocFailed=_("malloc/realloc failed");
-fd_exception fd_StringOverflow=_("allocating humongous string past limit");
-fd_exception fd_StackOverflow=_("Scheme stack overflow");
-fd_exception fd_TypeError=_("Type error"), fd_RangeError=_("Range error");
-fd_exception fd_DoubleGC=_("Freeing already freed CONS");
-fd_exception fd_UsingFreedCons=_("Using freed CONS");
-fd_exception fd_FreeingNonHeapCons=_("Freeing non-heap cons");
+u8_condition fd_MallocFailed=_("malloc/realloc failed");
+u8_condition fd_StringOverflow=_("allocating humongous string past limit");
+u8_condition fd_StackOverflow=_("Scheme stack overflow");
+u8_condition fd_TypeError=_("Type error"), fd_RangeError=_("Range error");
+u8_condition fd_DoubleGC=_("Freeing already freed CONS");
+u8_condition fd_UsingFreedCons=_("Using freed CONS");
+u8_condition fd_FreeingNonHeapCons=_("Freeing non-heap cons");
 u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
-fd_exception fd_BadPtr=_("bad dtype pointer");
+u8_condition fd_BadPtr=_("bad dtype pointer");
 
 u8_string fd_type_names[FD_TYPE_MAX];
 fd_hashfn fd_hashfns[FD_TYPE_MAX];
@@ -873,7 +873,7 @@ FD_EXPORT void _fd_bad_pointer(lispval badx,u8_context cxt)
   u8_raise(fd_BadPtr,cxt,NULL);
 }
 
-fd_exception get_pointer_exception(lispval x)
+u8_condition get_pointer_exception(lispval x)
 {
   if (OIDP(x)) return _("BadOIDPtr");
   else if (CONSP(x)) return _("BadCONSPtr");

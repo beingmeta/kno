@@ -26,27 +26,27 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
-fd_exception fd_UnknownPoolType=_("Unknown pool type");
-fd_exception fd_PoolConflict=("Pool conflict");
-fd_exception fd_CantLockOID=_("Can't lock OID");
-fd_exception fd_CantUnlockOID=_("Can't unlock OID");
-fd_exception fd_PoolRangeError=_("the OID is out of the range of the pool");
-fd_exception fd_NoLocking=_("No locking available");
-fd_exception fd_ReadOnlyPool=_("pool is read-only");
-fd_exception fd_InvalidPoolPtr=_("Invalid pool PTR");
-fd_exception fd_NotAFilePool=_("not a file pool");
-fd_exception fd_NoFilePools=_("file pools are not supported");
-fd_exception fd_AnonymousOID=_("no pool covers this OID");
-fd_exception fd_NotAPool=_("Not a pool");
-fd_exception fd_NoSuchPool=_("No such pool");
-fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
-fd_exception fd_PoolOverflow=_("pool load > capacity");
-fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
-fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
-fd_exception fd_PoolCommitError=_("can't save changes to pool");
-fd_exception fd_UnregisteredPool=_("internal error with unregistered pool");
-fd_exception fd_UnhandledOperation=_("This pool can't handle this operation");
-fd_exception fd_DataFileOverflow=_("Data file is over implementation limit");
+u8_condition fd_UnknownPoolType=_("Unknown pool type");
+u8_condition fd_PoolConflict=("Pool conflict");
+u8_condition fd_CantLockOID=_("Can't lock OID");
+u8_condition fd_CantUnlockOID=_("Can't unlock OID");
+u8_condition fd_PoolRangeError=_("the OID is out of the range of the pool");
+u8_condition fd_NoLocking=_("No locking available");
+u8_condition fd_ReadOnlyPool=_("pool is read-only");
+u8_condition fd_InvalidPoolPtr=_("Invalid pool PTR");
+u8_condition fd_NotAFilePool=_("not a file pool");
+u8_condition fd_NoFilePools=_("file pools are not supported");
+u8_condition fd_AnonymousOID=_("no pool covers this OID");
+u8_condition fd_NotAPool=_("Not a pool");
+u8_condition fd_NoSuchPool=_("No such pool");
+u8_condition fd_BadFilePoolLabel=_("file pool label is not a string");
+u8_condition fd_PoolOverflow=_("pool load > capacity");
+u8_condition fd_ExhaustedPool=_("pool has no more OIDs");
+u8_condition fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
+u8_condition fd_PoolCommitError=_("can't save changes to pool");
+u8_condition fd_UnregisteredPool=_("internal error with unregistered pool");
+u8_condition fd_UnhandledOperation=_("This pool can't handle this operation");
+u8_condition fd_DataFileOverflow=_("Data file is over implementation limit");
 
 u8_condition fd_PoolCommit=_("Pool/Commit");
 

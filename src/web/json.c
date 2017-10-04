@@ -32,7 +32,7 @@
 
 #define FD_JSON_MAXFLAGS 256
 
-static fd_exception JSON_Error="JSON Parsing Error";
+static u8_condition JSON_Error="JSON Parsing Error";
 
 static int readc(U8_INPUT *in)
 {

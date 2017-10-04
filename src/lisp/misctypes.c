@@ -218,7 +218,7 @@ static lispval timestamp_restore(lispval tag,lispval x,fd_compound_typeinfo e)
 
 /* Regexes */
 
-fd_exception fd_RegexError=_("Regular expression error");
+u8_condition fd_RegexError=_("Regular expression error");
 
 static int default_regex_flags = REG_EXTENDED|REG_NEWLINE;
 

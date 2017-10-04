@@ -23,7 +23,7 @@
 
 #include <stdarg.h>
 
-fd_exception fd_BadAdjunct=_("Bad adjunct table"),
+u8_condition fd_BadAdjunct=_("Bad adjunct table"),
   fd_AdjunctError=_("Pool adjunct error"),
   fd_BadOIDValue=_("Bad OID store value");
 

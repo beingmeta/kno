@@ -11,7 +11,7 @@
 #define FRAMERD_SEQUENCES_H_INFO "include/framerd/sequences.h"
 #endif
 
-FD_EXPORT fd_exception fd_RangeError;
+FD_EXPORT u8_condition fd_RangeError;
 
 typedef struct FD_SEQFNS {
   int (*len)(lispval x);

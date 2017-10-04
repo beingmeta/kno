@@ -35,7 +35,7 @@
 #ifndef FD_BIGINTS_H
 #define FD_BIGINTS_H 1
 
-FD_EXPORT fd_exception fd_BigIntException;
+FD_EXPORT u8_condition fd_BigIntException;
 
 /* External Interface to Bigint Code */
 

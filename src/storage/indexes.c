@@ -24,13 +24,13 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
-fd_exception fd_EphemeralIndex=_("ephemeral index");
-fd_exception fd_ReadOnlyIndex=_("read-only index");
-fd_exception fd_NoFileIndexes=_("file indexes are not supported");
-fd_exception fd_NotAFileIndex=_("not a file index");
-fd_exception fd_BadIndexSpec=_("bad index specification");
-fd_exception fd_CorruptedIndex=_("corrupted index file");
-fd_exception fd_IndexCommitError=_("can't save changes to index");
+u8_condition fd_EphemeralIndex=_("ephemeral index");
+u8_condition fd_ReadOnlyIndex=_("read-only index");
+u8_condition fd_NoFileIndexes=_("file indexes are not supported");
+u8_condition fd_NotAFileIndex=_("not a file index");
+u8_condition fd_BadIndexSpec=_("bad index specification");
+u8_condition fd_CorruptedIndex=_("corrupted index file");
+u8_condition fd_IndexCommitError=_("can't save changes to index");
 
 lispval fd_index_hashop, fd_index_slotsop;
 

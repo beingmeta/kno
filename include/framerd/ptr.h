@@ -108,7 +108,7 @@
 #define FD_MAX_IMMEDIATE_TYPES 0x80
 #define FD_MAX_IMMEDIATE_TYPE FD_IMMEDIATE_TYPECODE(0x80)
 
-FD_EXPORT fd_exception fd_BadPtr;
+FD_EXPORT u8_condition fd_BadPtr;
 
 #define fd_cons_ptr_type (0)
 #define fd_immediate_ptr_type (1)
@@ -748,7 +748,7 @@ FD_EXPORT int fd_deregister_fcnid(lispval id,lispval value);
 
 FD_EXPORT lispval fd_err(fd_exception,u8_context,u8_string,lispval);
 
-FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
+FD_EXPORT u8_condition fd_InvalidFCNID, fd_FCNIDOverflow;
 
 #if FD_INLINE_FCNIDS
 static U8_MAYBE_UNUSED lispval _fd_fcnid_ref(lispval ref)

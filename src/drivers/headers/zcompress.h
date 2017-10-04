@@ -14,7 +14,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zuncompress
    (const unsigned char *bytes,size_t n_bytes,
     ssize_t *dbytes,unsigned char *init_dbuf)
 {
-  fd_exception error = NULL; int zerror;
+  u8_condition error = NULL; int zerror;
   unsigned long csize = n_bytes, dsize, dsize_max;
   Bytef *cbuf = (Bytef *)bytes, *dbuf;
   if (init_dbuf == NULL) {
@@ -50,7 +50,7 @@ static U8_MAYBE_UNUSED unsigned char *do_zcompress
     ssize_t *cbytes,unsigned char *init_cbuf,
     int level)
 {
-  fd_exception error = NULL; int zerror;
+  u8_condition error = NULL; int zerror;
   ssize_t dsize = n_bytes, csize, csize_max;
   Bytef *dbuf = (Bytef *)bytes, *cbuf;
   if (init_cbuf == NULL) {

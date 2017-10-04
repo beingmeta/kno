@@ -53,17 +53,17 @@
 size_t fd_stream_bufsize = FD_STREAM_BUFSIZE;
 size_t fd_filestream_bufsize = FD_FILESTREAM_BUFSIZE;
 
-fd_exception fd_ReadOnlyStream=_("Read-only stream");
-fd_exception fd_WriteOnlyStream=_("Write-only stream");
-fd_exception fd_CantRead=_("Can't read data");
-fd_exception fd_CantWrite=_("Can't write data");
-fd_exception fd_BadSeek=_("Bad seek argument");
-fd_exception fd_CantSeek=_("Can't seek on stream");
-fd_exception fd_BadLSEEK=_("lseek() failed");
-fd_exception fd_OverSeek=_("Seeking past end of file");
-fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
+u8_condition fd_ReadOnlyStream=_("Read-only stream");
+u8_condition fd_WriteOnlyStream=_("Write-only stream");
+u8_condition fd_CantRead=_("Can't read data");
+u8_condition fd_CantWrite=_("Can't write data");
+u8_condition fd_BadSeek=_("Bad seek argument");
+u8_condition fd_CantSeek=_("Can't seek on stream");
+u8_condition fd_BadLSEEK=_("lseek() failed");
+u8_condition fd_OverSeek=_("Seeking past end of file");
+u8_condition fd_UnderSeek=_("Seeking before the beginning of the file");
 
-fd_exception fd_CantMMAP=_("Can't MMAP stream buffer");
+u8_condition fd_CantMMAP=_("Can't MMAP stream buffer");
 
 #define FD_DEBUG_DTYPEIO 0
 

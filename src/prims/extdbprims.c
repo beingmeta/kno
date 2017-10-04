@@ -49,7 +49,7 @@ fd_ptr_type fd_extdb_type, fd_extdb_proc_type;
 
 static lispval exec_enabled_symbol;
 
-static fd_exception NoMakeProc=
+static u8_condition NoMakeProc=
   _("No implementation for prepared SQL statements");
 
 static u8_mutex extdb_handlers_lock;

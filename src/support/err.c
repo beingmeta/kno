@@ -98,7 +98,7 @@ FD_EXPORT int fd_stacktracep(lispval rep)
 }
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
-   from the underlying fd_exception (if that's an irritant) */
+   from the underlying u8_condition (if that's an irritant) */
 FD_EXPORT lispval fd_get_irritant(u8_exception ex)
 {
   if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
@@ -113,7 +113,7 @@ FD_EXPORT lispval fd_get_irritant(u8_exception ex)
 }
 
 /* This gets the 'actual' irritant from a u8_exception, extracting it
-   from the underlying fd_exception (if that's an irritant) */
+   from the underlying u8_condition (if that's an irritant) */
 FD_EXPORT lispval fd_get_exception(u8_exception ex)
 {
   if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
@@ -175,7 +175,7 @@ FD_EXPORT int fd_interr(lispval x)
 }
 
 FD_EXPORT lispval fd_err
-  (fd_exception ex,u8_context cxt,u8_string details,lispval irritant)
+  (u8_condition ex,u8_context cxt,u8_string details,lispval irritant)
 {
   if (FD_CHECK_PTR(irritant)) {
     if (details)
@@ -385,7 +385,7 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
   return out.u8_outbuf;
 }
 
-FD_EXPORT fd_exception fd_retcode_to_exception(lispval err)
+FD_EXPORT u8_condition fd_retcode_to_exception(lispval err)
 {
   switch (err) {
   case FD_EOF: case FD_EOD: return fd_UnexpectedEOD;

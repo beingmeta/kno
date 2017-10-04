@@ -19,7 +19,7 @@ FD_EXPORT void fd_init_texttools(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_match_c(void);
 FD_EXPORT void fd_init_phonetic_c(void);
 
-FD_EXPORT fd_exception fd_BadExtractData;
+FD_EXPORT u8_condition fd_BadExtractData;
 
 typedef unsigned int fd_matchflags;
 
@@ -88,8 +88,8 @@ struct FD_TEXTMATCH_OPERATOR {
 
 FD_EXPORT lispval fd_textclosure(lispval expr,fd_lexenv env);
 
-FD_EXPORT fd_exception fd_InternalMatchError, fd_MatchSyntaxError;
-FD_EXPORT fd_exception fd_TXInvalidPattern;
+FD_EXPORT u8_condition fd_InternalMatchError, fd_MatchSyntaxError;
+FD_EXPORT u8_condition fd_TXInvalidPattern;
 
 FD_EXPORT fd_ptr_type fd_txclosure_type;
 

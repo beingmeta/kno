@@ -19,8 +19,8 @@
 
 #include <libu8/u8printf.h>
 
-fd_exception fd_BadArglist=_("Malformed argument list");
-fd_exception fd_BadDefineForm=_("Bad procedure defining form");
+u8_condition fd_BadArglist=_("Malformed argument list");
+u8_condition fd_BadDefineForm=_("Bad procedure defining form");
 
 int fd_record_source=1;
 

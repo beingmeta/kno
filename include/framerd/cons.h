@@ -78,8 +78,8 @@
 #include "ptr.h"
 #include <libu8/u8timefns.h>
 
-FD_EXPORT fd_exception fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
-FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
+FD_EXPORT u8_condition fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
+FD_EXPORT u8_condition fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_GET_CONS(x,typecode,cast)					\
   ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ?				\
@@ -785,7 +785,7 @@ typedef struct FD_COMPLEX *fd_complex;
 
 #include <regex.h>
 
-FD_EXPORT fd_exception fd_RegexError;
+FD_EXPORT u8_condition fd_RegexError;
 
 typedef struct FD_REGEX {
   FD_CONS_HEADER;

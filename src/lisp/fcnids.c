@@ -26,8 +26,8 @@
 
 #define FD_FCNID_MAX (FD_FCNID_NBLOCKS*FD_FCNID_BLOCKSIZE)
 
-fd_exception fd_InvalidFCNID=_("Invalid persistent pointer reference");
-fd_exception fd_FCNIDOverflow=_("No more valid persistent pointers");
+u8_condition fd_InvalidFCNID=_("Invalid persistent pointer reference");
+u8_condition fd_FCNIDOverflow=_("No more valid persistent pointers");
 
 struct FD_CONS **_fd_fcnids[FD_FCNID_NBLOCKS];
 int _fd_fcnid_count = 0;

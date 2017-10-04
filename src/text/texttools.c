@@ -26,8 +26,8 @@
 
 static lispval texttools_module;
 
-fd_exception fd_BadExtractData=_("Bad extract data");
-fd_exception fd_BadMorphRule=_("Bad morphrule");
+u8_condition fd_BadExtractData=_("Bad extract data");
+u8_condition fd_BadMorphRule=_("Bad morphrule");
 
 /* Utility functions */
 

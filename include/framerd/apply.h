@@ -13,7 +13,7 @@
 
 #include "stacks.h"
 
-FD_EXPORT fd_exception fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;
+FD_EXPORT u8_condition fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;
 
 FD_EXPORT int fd_wrap_apply;
 

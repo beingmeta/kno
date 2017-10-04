@@ -45,10 +45,10 @@
 #include <grp.h>
 #endif
 
-fd_exception fd_UnknownError=_("Unknown error condition");
-fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
-fd_exception fd_FileNotFound=_("File not found");
-fd_exception fd_NoSuchFile=_("File does not exist");
+u8_condition fd_UnknownError=_("Unknown error condition");
+u8_condition fd_OutOfMemory=_("Memory apparently exhausted");
+u8_condition fd_FileNotFound=_("File not found");
+u8_condition fd_NoSuchFile=_("File does not exist");
 
 /* Req logging */
 

@@ -33,7 +33,7 @@
 
 /* Option objects */
 
-static fd_exception WeirdOption=_("Weird option specification");
+static u8_condition WeirdOption=_("Weird option specification");
 
 FD_EXPORT lispval fd_getopt(lispval opts,lispval key,lispval dflt)
 {

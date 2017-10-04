@@ -24,7 +24,7 @@
 static int lisp_types_initialized = 0;
 double fd_load_start = -1.0;
 
-fd_exception fd_NoMethod=_("Method not supported");
+u8_condition fd_NoMethod=_("Method not supported");
 
 u8_string fd_version = FD_VERSION;
 u8_string fd_revision = FRAMERD_REVISION;

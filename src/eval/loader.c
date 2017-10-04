@@ -55,7 +55,7 @@
 #include <sys/statfs.h>
 #endif
 
-static fd_exception fd_ReloadError=_("Module reload error");
+static u8_condition fd_ReloadError=_("Module reload error");
 
 static u8_string libscm_path;
 

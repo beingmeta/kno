@@ -17,8 +17,8 @@
 #include "ptr.h"
 #include "cons.h"
 
-FD_EXPORT fd_exception fd_NoMethod;
-FD_EXPORT fd_exception fd_NotAnOID;
+FD_EXPORT u8_condition fd_NoMethod;
+FD_EXPORT u8_condition fd_NotAnOID;
 
 FD_EXPORT double fd_load_start;
 

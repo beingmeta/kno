@@ -13,8 +13,8 @@
 
 #include <signal.h>
 
-FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
-FD_EXPORT fd_exception fd_ReadOnlyConfig;
+FD_EXPORT u8_condition fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
+FD_EXPORT u8_condition fd_ReadOnlyConfig;
 
 #define FD_CONFIG_ALREADY_MODIFIED 1
 

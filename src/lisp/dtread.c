@@ -24,8 +24,8 @@
 
 static u8_mutex dtype_unpacker_lock;
 
-fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
-fd_exception fd_DTypeError=_("Malformed DTYPE representation");
+u8_condition fd_UnexpectedEOD=_("Unexpected end of data");
+u8_condition fd_DTypeError=_("Malformed DTYPE representation");
 
 static lispval error_symbol;
 
@@ -611,7 +611,7 @@ static lispval restore_dtype_exception(lispval content)
 {
   /* Return an exception object if possible (content as expected)
      and a compound if there are any big surprises */
-  fd_exception condname=_("Poorly Restored Error");
+  u8_condition condname=_("Poorly Restored Error");
   u8_context caller = NULL; u8_string details = NULL;
   lispval irritant = VOID, stack = VOID, context = VOID;
   int new_format = 0;

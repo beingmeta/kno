@@ -64,10 +64,10 @@
 /* For sprintf */
 #include <stdio.h>
 
-fd_exception fd_NotANumber=_("Not a number");
-fd_exception fd_BigIntException=_("BigInt Exception");
-fd_exception fd_DivideByZero=_("Division by zero");
-fd_exception fd_InvalidNumericLiteral=_("Invalid numeric literal");
+u8_condition fd_NotANumber=_("Not a number");
+u8_condition fd_BigIntException=_("BigInt Exception");
+u8_condition fd_DivideByZero=_("Division by zero");
+u8_condition fd_InvalidNumericLiteral=_("Invalid numeric literal");
 
 /* These macros come from the original MIT Scheme code */
 #define	DEFUN(name, arglist, args)	name(args)

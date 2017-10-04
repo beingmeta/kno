@@ -15,12 +15,12 @@
 #include "framerd/apply.h"
 #include <assert.h>
 
-FD_EXPORT fd_exception fd_UnboundIdentifier, fd_BindError;
-FD_EXPORT fd_exception fd_VoidArgument, fd_VoidBinding;
-FD_EXPORT fd_exception fd_NoSuchModule, fd_SyntaxError, fd_BindSyntaxError;
-FD_EXPORT fd_exception fd_TooFewExpressions, fd_NotAnIdentifier;
-FD_EXPORT fd_exception fd_InvalidMacro, FD_BadArglist;
-FD_EXPORT fd_exception fd_ReadOnlyEnv;
+FD_EXPORT u8_condition fd_UnboundIdentifier, fd_BindError;
+FD_EXPORT u8_condition fd_VoidArgument, fd_VoidBinding;
+FD_EXPORT u8_condition fd_NoSuchModule, fd_SyntaxError, fd_BindSyntaxError;
+FD_EXPORT u8_condition fd_TooFewExpressions, fd_NotAnIdentifier;
+FD_EXPORT u8_condition fd_InvalidMacro, FD_BadArglist;
+FD_EXPORT u8_condition fd_ReadOnlyEnv;
 
 FD_EXPORT lispval fd_scheme_module, fd_xscheme_module;
 

@@ -56,9 +56,9 @@ static lispval text_types = EMPTY;
 
 static int debugging_curl = 0;
 
-static fd_exception NonTextualContent=
+static u8_condition NonTextualContent=
   _("can't parse non-textual content as XML");
-static fd_exception CurlError=_("Internal libcurl error");
+static u8_condition CurlError=_("Internal libcurl error");
 
 typedef struct FD_CURL_HANDLE {
   FD_CONS_HEADER;

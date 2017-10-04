@@ -40,22 +40,22 @@
 #define atombreakp(c) \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
-fd_exception fd_BadEscapeSequence=_("Invalid escape sequence");
-fd_exception fd_InvalidConstant=_("Invalid constant reference");
-fd_exception fd_InvalidCharacterConstant=_("Invalid character constant");
-fd_exception fd_BadAtom=_("Bad atomic expression");
-fd_exception fd_NoPointerExpressions=_("no pointer expressions allowed");
-fd_exception fd_BadPointerRef=_("bad pointer reference");
-fd_exception fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
-fd_exception fd_ParseError=_("LISP expression parse error");
-fd_exception fd_InvalidHexCharacter=_("Invalid hex character");
-fd_exception fd_InvalidBase64Character=_("Invalid base64 character");
-fd_exception fd_MissingCloseQuote=_("Unclosed double quotation mark (\")");
-fd_exception fd_MissingOpenQuote=_("Missing open quotation mark (\")");
-fd_exception fd_ParseArgError=_("External LISP argument parse error");
-fd_exception fd_CantParseRecord=_("Can't parse record object");
-fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
-fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment");
+u8_condition fd_BadEscapeSequence=_("Invalid escape sequence");
+u8_condition fd_InvalidConstant=_("Invalid constant reference");
+u8_condition fd_InvalidCharacterConstant=_("Invalid character constant");
+u8_condition fd_BadAtom=_("Bad atomic expression");
+u8_condition fd_NoPointerExpressions=_("no pointer expressions allowed");
+u8_condition fd_BadPointerRef=_("bad pointer reference");
+u8_condition fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
+u8_condition fd_ParseError=_("LISP expression parse error");
+u8_condition fd_InvalidHexCharacter=_("Invalid hex character");
+u8_condition fd_InvalidBase64Character=_("Invalid base64 character");
+u8_condition fd_MissingCloseQuote=_("Unclosed double quotation mark (\")");
+u8_condition fd_MissingOpenQuote=_("Missing open quotation mark (\")");
+u8_condition fd_ParseArgError=_("External LISP argument parse error");
+u8_condition fd_CantParseRecord=_("Can't parse record object");
+u8_condition fd_MismatchedClose=_("Expression open/close mismatch");
+u8_condition fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment");
 
 int fd_interpret_pointers = 1;
 
