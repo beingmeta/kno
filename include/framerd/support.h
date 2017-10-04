@@ -105,7 +105,7 @@ FD_EXPORT int fd_boolstring(u8_string,int);
 /* Whether the executable is exiting */
 FD_EXPORT int fd_exiting;
 FD_EXPORT int fd_exited;
-FD_EXPORT int fd_tidy_exit;
+FD_EXPORT int fd_fast_exit;
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
 FD_EXPORT void fd_log_exception(u8_exception ex);

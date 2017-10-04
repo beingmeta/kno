@@ -1080,7 +1080,7 @@ int main(int argc,char **argv)
       fd_bind_value(that_symbol,lastval,env);}
   if (eval_server)
     fd_close_stream(eval_server,FD_STREAM_FREEDATA);
-  if ( fd_tidy_exit ) {
+  if ( ! fd_fast_exit ) {
     u8_free(eval_server);
     fd_decref(lastval);
     fd_decref(result);}

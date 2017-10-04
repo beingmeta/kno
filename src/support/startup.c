@@ -56,7 +56,7 @@ int fd_exiting = 0;
 int fd_exited = 0;
 
 /* This determines whether to memory should be freed while exiting */
-int fd_tidy_exit = 1;
+int fd_fast_exit = 0;
 
 static u8_string logdir = NULL, sharedir = NULL, datadir = NULL;
 
@@ -863,8 +863,11 @@ void fd_init_startup_c()
     ("SESSIONID",_("unique session identifier"),
      config_getsessionid,config_setsessionid,NULL);
   fd_register_config
-    ("TIDYEXIT",_("whether to recycle session state on exit"),
-     fd_boolconfig_get,fd_boolconfig_set,&fd_tidy_exit);
+    ("FASTEXIT",_("whether to recycle session state on exit"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
+  fd_register_config
+    ("EXIT:FAST",_("whether to recycle session state on exit"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_fast_exit);
   fd_register_config
     ("RUNUSER",_("Set the user ID for this process"),
      config_getuser,config_setuser,NULL);
