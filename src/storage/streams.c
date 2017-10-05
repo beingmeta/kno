@@ -546,10 +546,11 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
              U8ALT(s->streamid,"somestream"),
              (unsigned long long)s,
              (s->buf.out.bufwrite-s->buf.out.buffer));}
-    else {
-      fd_flush_stream(s);
-      fsync(s->stream_fileno);}}
+    else fd_flush_stream(s);}
   else {}
+
+  if ((flush) && (s->stream_fileno>=0))
+    fsync(s->stream_fileno);
 
   if (s->stream_fileno>=0) {
     if ((s->stream_flags&FD_STREAM_OWNS_FILENO)&&
