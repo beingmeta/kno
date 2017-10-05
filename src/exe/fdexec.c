@@ -360,7 +360,7 @@ int do_main(int argc,char **argv,
     u8_free_exception(e,1);
     retval = -1;}
 
-  if ( fd_tidy_exit ) {
+  if ( ! fd_fast_exit ) {
     fd_decref(result);
     fd_decref(main_proc);}
 
