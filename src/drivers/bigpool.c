@@ -1218,7 +1218,7 @@ static int write_bigpool_metadata(fd_bigpool bp,fd_stream stream)
 {
   lispval metadata = (lispval) &(bp->pool_metadata);
   if ( (FD_TABLEP(metadata)) && (fd_modifiedp(metadata)) ) {
-    u8_log(LOGWARN,"WriteMetadata","Writing metadata for %s",bp->poolid);
+    u8_log(LOGWARN,"WriteMetadata","Writing modified metadata for %s",bp->poolid);
     off_t start_pos = fd_endpos(stream), end_pos = start_pos;
     fd_outbuf out = fd_writebuf(stream);
     int rv=fd_write_dtype(out,metadata);
