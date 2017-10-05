@@ -645,6 +645,34 @@ static lispval make_features(lispval slotids,lispval values)
   return results;
 }
 
+static lispval index_prim_find(fd_index ix,lispval slotids,lispval values)
+{
+  lispval combined = FD_EMPTY_CHOICE;
+  lispval keyslot = ix->index_keyslot;
+  DO_CHOICES(slotid,slotids) {
+    if (slotid == keyslot) {
+      if (FD_CHOICEP(values))
+        fd_index_prefetch(ix,values);
+      DO_CHOICES(value,values) {
+        lispval result = fd_index_get(ix,value);
+        if (FD_ABORTP(result)) {
+          FD_STOP_DO_CHOICES;
+          fd_decref(combined);
+          return result;}
+        CHOICE_ADD(combined,result);}}
+    else {
+      DO_CHOICES(value,values) {
+        lispval key = fd_make_pair(slotid,value);
+        lispval result = fd_index_get(ix,key);
+        if (FD_ABORTP(result)) {
+          FD_STOP_DO_CHOICES;
+          fd_decref(combined);
+          return result;}
+        CHOICE_ADD(combined,result);
+        fd_decref(key);}}}
+  return combined;
+}
+
 FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
 {
   if (CHOICEP(indexes)) {
@@ -652,50 +680,40 @@ FD_EXPORT lispval fd_prim_find(lispval indexes,lispval slotids,lispval values)
     DO_CHOICES(index,indexes)
       if ((FD_INDEXP(index))||(TYPEP(index,fd_consed_index_type))) {
         fd_index ix = fd_indexptr(index);
-        if (ix == NULL) {
+        lispval indexed = index_prim_find(ix,slotids,values);
+        if (FD_ABORTP(indexed)) {
           fd_decref(combined);
-          return FD_ERROR;}
-        else {
-          DO_CHOICES(slotid,slotids) {
-            DO_CHOICES(value,values) {
-              lispval key = fd_make_pair(slotid,value);
-              lispval result = fd_index_get(ix,key);
-              CHOICE_ADD(combined,result);
-              fd_decref(key);}}}}
+          return indexed;}
+        CHOICE_ADD(combined,indexed);}
       else if (TABLEP(index)) {
         DO_CHOICES(slotid,slotids) {
           DO_CHOICES(value,values) {
             lispval key = fd_make_pair(slotid,value);
             lispval result = fd_get(index,key,EMPTY);
+            if (FD_ABORTP(result)) {
+              fd_decref(combined);
+              return result;}
             CHOICE_ADD(combined,result);
             fd_decref(key);}}}
       else {
         fd_decref(combined);
         return fd_type_error(_("index"),"fd_prim_find",index);}
     return combined;}
+  else if ((FD_INDEXP(indexes))||(TYPEP(indexes,fd_consed_index_type))) {
+    return index_prim_find(fd_indexptr(indexes),slotids,values);}
   else if (TABLEP(indexes)) {
     lispval combined = EMPTY;
     DO_CHOICES(slotid,slotids) {
       DO_CHOICES(value,values) {
         lispval key = fd_make_pair(slotid,value);
         lispval result = fd_get(indexes,key,EMPTY);
+        if (FD_ABORTP(result)) {
+          fd_decref(combined);
+          return result;}
         CHOICE_ADD(combined,result);
         fd_decref(key);}}
     return combined;}
-  else {
-    lispval combined = EMPTY;
-    fd_index ix = fd_indexptr(indexes);
-    if (ix == NULL) {
-      fd_decref(combined);
-      return FD_ERROR;}
-    else {
-      DO_CHOICES(slotid,slotids) {
-        DO_CHOICES(value,values) {
-          lispval key = fd_make_pair(slotid,value);
-          lispval result = fd_index_get(ix,key);
-          CHOICE_ADD(combined,result);
-          fd_decref(key);}}
-      return combined;}}
+  else return fd_type_error("index/table","fd_prim_find",indexes);
 }
 
 FD_EXPORT lispval fd_finder(lispval indexes,int n,lispval *slotvals)
@@ -759,12 +777,17 @@ FD_EXPORT lispval fd_find_frames(lispval indexes,...)
 FD_EXPORT
 int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 {
+  lispval keyslot = ix->index_keyslot;
   if ((ix->index_handler->fetchn) == NULL) {
     lispval keys = EMPTY;
     DO_CHOICES(slotid,slotids) {
-      DO_CHOICES(value,values) {
-        lispval key = fd_conspair(slotid,value);
-        CHOICE_ADD(keys,key);}}
+      if (slotid == keyslot) {
+        fd_incref(values);
+        CHOICE_ADD(keys,values);}
+      else {
+        DO_CHOICES(value,values) {
+          lispval key = fd_conspair(slotid,value);
+          CHOICE_ADD(keys,key);}}}
     fd_index_prefetch(ix,keys);
     fd_decref(keys);
     return 1;}
@@ -774,9 +797,14 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
     lispval *valuev = NULL;
     int n_keys = 0;
     DO_CHOICES(slotid,slotids) {
-      DO_CHOICES(value,values) {
-        lispval key = fd_conspair(slotid,value);
-        keyv[n_keys++]=key;}}
+      if (keyslot == slotid) {
+        DO_CHOICES(value,values) {
+          keyv[n_keys++]=value; 
+          fd_incref(value);}}
+      else {
+        DO_CHOICES(value,values) {
+          lispval key = fd_conspair(slotid,value);
+          keyv[n_keys++]=key;}}}
     valuev = (ix->index_handler->fetchn)(ix,n_keys,keyv);
     fd_hashtable_iter(&(ix->index_cache),fd_table_add_empty_noref,
                       n_keys,keyv,valuev);
@@ -792,6 +820,7 @@ int fd_find_prefetch(fd_index ix,lispval slotids,lispval values)
 FD_EXPORT
 int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
 {
+  lispval keyslot = ix->index_keyslot;
   if (VOIDP(values)) {
     int rv = 0, sum = 0;
     DO_CHOICES(f,frames) {
@@ -802,6 +831,8 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
           frame_features = values; rv = -1;
           /* break from iterating over slotids */
           FD_LOOP_BREAK();}
+        else if (slotid == keyslot) {
+          CHOICE_ADD(frame_features,values);}
         else {
           lispval features = make_features(slotid,values);
           CHOICE_ADD(frame_features,features);
@@ -814,7 +845,14 @@ int fd_index_frame(fd_index ix,lispval frames,lispval slotids,lispval values)
     else return sum;}
   else {
     int rv = 0, sum = 0;
-    lispval features = make_features(slotids,values);
+    lispval features = EMPTY;
+    FD_DO_CHOICES(slotid,slotids) {
+      if (slotid == keyslot) {
+        CHOICE_ADD(features,values);
+        fd_incref(values);}
+      else {
+        lispval slot_features = make_features(slotid,values);
+        CHOICE_ADD(features,slot_features);}}
     if (CHOICEP(frames)) {
       DO_CHOICES(f,frames) {
         rv = fd_index_add(ix,features,f);

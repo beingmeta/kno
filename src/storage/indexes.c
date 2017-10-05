@@ -176,6 +176,13 @@ static void init_cache_level(fd_index ix)
 
 FD_EXPORT void fd_register_index(fd_index ix)
 {
+  if (ix->index_metadata.n_slots) {
+    lispval keyslotid = fd_slotmap_get(&(ix->index_metadata),FDSYM_KEYSLOT,FD_VOID);
+    if ( (FD_SYMBOLP(keyslotid)) || (FD_OIDP(keyslotid)) )
+      ix->index_keyslot=keyslotid;
+    else u8_log(LOGWARN,"BadKeySlot",
+                "Ignoring invalid keyslot from metadata: %q",keyslotid);
+    fd_decref(keyslotid);}
   if (ix->index_flags&FD_STORAGE_UNREGISTERED)
     return;
   else if (ix->index_serialno<0) {
@@ -991,13 +998,12 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 {
   if (ix == NULL)
     return -1;
-  else if ((ix->index_adds.table_n_keys) || (ix->index_edits.table_n_keys)) {
+  else if ((ix->index_adds.table_n_keys) || (ix->index_edits.table_n_keys) ||
+           ((lispval)&(ix->index_metadata))) {
     int n_edits = ix->index_edits.table_n_keys;
     int n_adds = ix->index_adds.table_n_keys;
     int n_keys = n_edits+n_adds, retval = 0;
-    if (n_keys==0)
-      return 0;
-    else init_cache_level(ix);
+    if (n_keys) init_cache_level(ix);
 
     u8_log(fd_storage_loglevel+1,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->indexid);
@@ -1165,6 +1171,7 @@ FD_EXPORT void fd_init_index(fd_index ix,
   /* Don't copy this one */
   ix->index_source = src;
   ix->index_typeid = NULL;
+  ix->index_keyslot = VOID;
   ix->index_covers_slotids = VOID;
   ix->index_opts = FD_FALSE;
 }
@@ -1461,6 +1468,28 @@ FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args
         return FD_ERROR_VALUE;
       else return fd_incref(args[1]);}
     else return fd_err(fd_TooManyArgs,"fd_index_ctl/props",
+                       FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
+  else if (op == FDSYM_KEYSLOT) {
+    if (n == 0)
+      return ix->index_keyslot;
+    else if (n == 1) {
+      lispval defslot = args[0];
+      if (!(FD_VOIDP(ix->index_keyslot))) {
+        if (defslot == ix->index_keyslot) {
+          u8_log(LOGNOTICE,"KeySlotOK",
+                 "The keyslot of %s is already %q",ix->indexid,defslot);
+          return defslot;}
+        else return fd_err("KeySlotAlreadyDefined",
+                           "fd_default_indexctl/keyslot",
+                           ix->indexid,ix->index_keyslot);}
+      else if ((FD_OIDP(defslot)) || (FD_SYMBOLP(defslot))) {
+        lispval metadata = ((lispval)&(ix->index_metadata));
+        fd_store(metadata,FDSYM_KEYSLOT,defslot);
+        ix->index_keyslot=defslot;
+        return defslot;}
+      else return fd_type_error("slotid","fd_default_indexctl/keyslot",
+                                defslot);}
+    else return fd_err(fd_TooManyArgs,"fd_index_ctl/keyslot",
                        FD_SYMBOL_NAME(op),fd_index2lisp(ix));}
   else return FD_FALSE;
 }

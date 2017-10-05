@@ -279,14 +279,14 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
   /* Currently ignored */
   index->table_n_keys = n_keys = fd_read_4bytes_at(stream,16,FD_ISLOCKED);
 
-  slotids_pos = fd_read_8bytes_at(stream,20,FD_ISLOCKED,NULL);
-  slotids_size = fd_read_4bytes_at(stream,28,FD_ISLOCKED);
+  slotids_pos = fd_read_8bytes_at(stream,0x14,FD_ISLOCKED,NULL);
+  slotids_size = fd_read_4bytes_at(stream,0x1c,FD_ISLOCKED);
 
-  baseoids_pos = fd_read_8bytes_at(stream,32,FD_ISLOCKED,NULL);
-  baseoids_size = fd_read_4bytes_at(stream,40,FD_ISLOCKED);
+  baseoids_pos = fd_read_8bytes_at(stream,0x20,FD_ISLOCKED,NULL);
+  baseoids_size = fd_read_4bytes_at(stream,0x28,FD_ISLOCKED);
 
-  metadata_loc  = fd_read_8bytes_at(stream,44,FD_ISLOCKED,NULL);
-  metadata_size = fd_read_4bytes_at(stream,52,FD_ISLOCKED);
+  metadata_loc  = fd_read_8bytes_at(stream,0x30,FD_ISLOCKED,NULL);
+  metadata_size = fd_read_4bytes_at(stream,0x38,FD_ISLOCKED);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
@@ -356,7 +356,7 @@ static fd_index open_hashindex(u8_string fname,fd_storage_flags flags,
 
   u8_init_mutex(&(index->index_lock));
 
-  if (!(consed)) fd_register_index((fd_index)index);
+  fd_register_index((fd_index)index);
 
   return (fd_index)index;
 }
@@ -2196,6 +2196,7 @@ static int update_hashindex_ondisk
   (fd_hashindex hx,unsigned int flags,unsigned int new_keys,
    unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
    struct FD_STREAM *stream);
+static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream);
 
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
@@ -2218,6 +2219,13 @@ static int hashindex_commit(struct FD_INDEX *ix)
     u8_seterr("CorruptedHashIndex","hashindex_commit",u8_strdup(ix->indexid));
     fd_close_stream(stream,0);
     return -1;}
+
+  if ( (hx->index_adds.table_n_keys==0) &&
+       (hx->index_edits.table_n_keys==0) ) {
+    if (fd_modifiedp((lispval)&(hx->index_metadata)))
+      update_hashindex_metadata(hx,stream);
+    fd_close_stream(stream,FD_STREAM_FREEDATA);
+    return 0;}
 
   u8_string recovery_file=u8_string_append(fname,".recovery",NULL);
   size_t recovery_size = 256+(get_chunk_ref_size(hx)*hx->index_n_buckets);
@@ -2448,6 +2456,34 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
   u8_free(keybuckets);
 }
 
+static int update_hashindex_metadata(fd_hashindex hx,struct FD_STREAM *stream)
+{
+  if (fd_modifiedp((lispval)&(hx->index_metadata))) {
+    int error=0;
+    u8_log(LOGWARN,"WriteMetadata","Writing modified metadata for %s",hx->indexid);
+    lispval metadata = (lispval) (&(hx->index_metadata));
+    ssize_t metadata_pos = fd_endpos(stream);
+    if (metadata_pos>0) {
+      fd_outbuf outbuf = fd_writebuf(stream);
+      ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
+      ssize_t metadata_end = fd_getpos(stream);
+      if (new_metadata_size<0)
+        error=1;
+      else {
+        if ((metadata_end-metadata_pos) != new_metadata_size) {
+          u8_log(LOGCRIT,"MetadataSizeIconsistency",
+                 "There was an inconsistency writing the metadata for %s",
+                 hx->indexid);}
+        fd_write_8bytes_at(stream,metadata_pos,0x30);
+        fd_write_4bytes_at(stream,metadata_end-metadata_pos,0x38);}}
+    else error=1;
+    if (error)
+      u8_log(LOGCRIT,"MetaDataWriteError",
+             "There was an inconsistency writing the metadata for %s",
+             hx->indexid);
+    else fd_set_modified((lispval)metadata,0);}
+}
+
 static int update_hashindex_ondisk
   (fd_hashindex hx,unsigned int flags,unsigned int cur_keys,
    unsigned int changed_buckets,struct BUCKET_REF *bucket_locs,
@@ -2580,39 +2616,11 @@ static int update_hashindex_ondisk
     else fd_write_ints(outstream,2*SIZEOF_INT*n_buckets,offdata);
 #endif
   }
-  if (fd_modifiedp((lispval)&(hx->index_metadata))) {
-    int error=0;
-    lispval metadata = (lispval) (&(hx->index_metadata));
-    ssize_t metadata_pos = fd_endpos(stream);
-    if (metadata_pos>0) {
-      fd_outbuf outbuf = fd_writebuf(stream);
-      ssize_t new_metadata_size = fd_write_dtype(outbuf,metadata);
-      ssize_t metadata_end = fd_getpos(stream);
-      if (new_metadata_size<0)
-        error=1;
-      else {
-        if ((metadata_end-metadata_pos) != new_metadata_size) {
-          u8_log(LOGCRIT,"MetadataSizeIconsistency",
-                 "There was an inconsistency writing the metadata for %s",
-                 hx->indexid);}
-        fd_write_8bytes_at(stream,metadata_pos,8);
-        fd_write_8bytes_at(stream,metadata_pos,0x30);
-        fd_write_8bytes_at(stream,metadata_end-metadata_pos,0x38);}}
-    else error=1;
-    if (error)
-      u8_log(LOGCRIT,"MetaDataWriteError",
-             "There was an inconsistency writing the metadata for %s",
-             hx->indexid);
-    else fd_set_modified((lispval)metadata,0);}
 
-  /* Write any changed flags */
-  fd_write_4bytes_at(stream,flags,8);
-  fd_write_4bytes_at(stream,cur_keys,16);
-  fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
-  fd_flush_stream(stream);
-  return 0;
+  if (fd_modifiedp((lispval)&(hx->index_metadata)))
+    update_hashindex_metadata(hx,stream);
+
 }
-
 static void reload_offdata(struct FD_INDEX *ix)
 #if HAVE_MMAP
 {
