@@ -46,7 +46,7 @@ FD_EXPORT int fd_index_adds_init;
   short index_cache_level;					   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
   struct FD_SLOTMAP index_metadata, index_props;		   \
-  lispval index_slotid;						   \
+  lispval index_keyslot;						   \
   lispval index_covers_slotids;					   \
   lispval index_opts
 
