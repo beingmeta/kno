@@ -100,6 +100,28 @@ static lispval poolctl_default_prim(int n,lispval *args)
     return fd_err("BadPoolOp","poolctl_prim",NULL,args[1]);
   else return fd_default_poolctl(p,args[1],n-2,args+2);
 }
+
+/* DBCTL */
+
+static lispval dbctl_prim(int n,lispval *args)
+{
+  lispval db = args[0];
+  if (!(SYMBOLP(args[1])))
+    return fd_err("BadDatabaseOp","indexctl_prim",NULL,args[1]);
+  if ( (FD_INDEXP(db)) || (FD_TYPEP(db,fd_consed_index_type)) ) {
+    struct FD_INDEX *ix = fd_lisp2index(db);
+    if (ix == NULL)
+      return fd_type_error("DB(index)","dbctl_prim",db);
+    else return fd_index_ctl(ix,db,n-2,args+2);}
+  else if ( (FD_POOLP(db)) || (FD_TYPEP(db,fd_consed_pool_type)) ) {
+    struct FD_POOL *p = fd_lisp2pool(db);
+    if (p == NULL)
+      return fd_type_error("DB(pool)","dbctl_prim",db);
+    else return fd_pool_ctl(p,db,n-2,args+2);}
+  else return fd_type_error("DB(pool/index)","dbctl_prim",db);
+}
+
+
 /* The init function */
 
 static int scheme_driverfns_initialized = 0;
@@ -121,6 +143,7 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");
 
 
+  fd_idefn(fd_xscheme_module,fd_make_cprimn("DBCTL",dbctl_prim,2));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("INDEXCTL",indexctl_prim,2));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("POOLCTL",poolctl_prim,2));
 
