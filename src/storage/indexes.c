@@ -998,11 +998,17 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 {
   if (ix == NULL)
     return -1;
-  else if ((ix->index_adds.table_n_keys) || (ix->index_edits.table_n_keys) ||
-           ((lispval)&(ix->index_metadata))) {
+  else if ((ix->index_adds.table_n_keys) ||
+           (ix->index_edits.table_n_keys) ||
+           (fd_modifiedp((lispval)&(ix->index_metadata)))) {
     int n_edits = ix->index_edits.table_n_keys;
     int n_adds = ix->index_adds.table_n_keys;
     int n_keys = n_edits+n_adds, retval = 0;
+
+    if (! ( (ix->index_handler) && (ix->index_handler->commit) ) ) {
+      u8_seterr("NoCommitHandler","fd_index_commit",u8_strdup(ix->indexid));
+      return -1;}
+
     if (n_keys) init_cache_level(ix);
 
     u8_log(fd_storage_loglevel+1,fd_IndexCommit,
