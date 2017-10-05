@@ -206,6 +206,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
         fd_decref(handler);
         fd_decref(err_value);
         fd_clear_errors(1);
+        u8_free_exception(ex,1);
         return handler_result;}}
     else {
       u8_free_exception(ex,1);
