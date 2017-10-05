@@ -86,7 +86,9 @@ FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
     u8_string details = (ex) ? (ex->u8x_details) : (NULL);
     lispval irritant = (ex) ? (fd_get_irritant(ex)) : (FD_VOID);
     lispval backtrace = fd_get_backtrace(fd_stackptr);
-    return fd_init_exception(NULL,condition,caller,details,irritant,
+    return fd_init_exception(NULL,condition,caller,
+			     u8_strdup(details),
+			     fd_incref(irritant),
 			     backtrace,FD_VOID);}
 }
 
