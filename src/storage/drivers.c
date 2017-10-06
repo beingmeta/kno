@@ -350,6 +350,9 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
           (fd_find_index_by_source(use_spec));
         fd_index opened = (found) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
+        if (opened==NULL) {
+          fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+          return opened;}
         if (use_spec!=spec) u8_free(use_spec);
         lispval old_opts=opened->index_opts;
         opened->index_opts=fd_incref(opts);
