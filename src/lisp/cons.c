@@ -23,6 +23,7 @@ u8_condition fd_MallocFailed=_("malloc/realloc failed");
 u8_condition fd_StringOverflow=_("allocating humongous string past limit");
 u8_condition fd_StackOverflow=_("Scheme stack overflow");
 u8_condition fd_TypeError=_("Type error"), fd_RangeError=_("Range error");
+u8_condition fd_DisorderedRange=_("Disordered range");
 u8_condition fd_DoubleGC=_("Freeing already freed CONS");
 u8_condition fd_UsingFreedCons=_("Using freed CONS");
 u8_condition fd_FreeingNonHeapCons=_("Freeing non-heap cons");
