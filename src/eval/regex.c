@@ -23,7 +23,7 @@
 
 #include <sys/types.h>
 
-fd_exception fd_RegexBadOp=_("Invalid Regex operation");
+u8_condition fd_RegexBadOp=_("Invalid Regex operation");
 
 static lispval make_regex(lispval pat,lispval nocase,lispval matchnl)
 {

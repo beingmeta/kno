@@ -15,7 +15,7 @@ FD_EXPORT void fd_init_fdweb(void) FD_LIBINIT_FN;
 
 /* XML input */
 
-FD_EXPORT fd_exception fd_XMLParseError;
+FD_EXPORT u8_condition fd_XMLParseError;
 
 #define FD_XML_MALLOCD       2
 #define FD_XML_EMPTY_CLOSE   ((FD_XML_MALLOCD)<<1) /* Handle </> as generic close */

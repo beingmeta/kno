@@ -215,9 +215,9 @@
 #define _FILEINFO __FILE__
 #endif
 
-fd_exception fd_InternalMatchError=_("Internal match error");
-fd_exception fd_MatchSyntaxError=_("match syntax error");
-fd_exception fd_TXInvalidPattern=_("Not a valid TX text pattern");
+u8_condition fd_InternalMatchError=_("Internal match error");
+u8_condition fd_MatchSyntaxError=_("match syntax error");
+u8_condition fd_TXInvalidPattern=_("Not a valid TX text pattern");
 
 fd_ptr_type fd_txclosure_type;
 

@@ -33,9 +33,9 @@
 #include <sys/utsname.h>
 #endif
 
-fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
-fd_exception fd_InvalidTimestamp=_("Invalid timestamp object");
-static fd_exception strftime_error=_("internal strftime error");
+u8_condition fd_ImpreciseTimestamp=_("Timestamp too imprecise");
+u8_condition fd_InvalidTimestamp=_("Invalid timestamp object");
+static u8_condition strftime_error=_("internal strftime error");
 
 static lispval year_symbol, month_symbol, date_symbol;
 static lispval hours_symbol, minutes_symbol, seconds_symbol;

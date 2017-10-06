@@ -47,7 +47,7 @@
 
 u8_condition fd_ArgvConfig=_("Config (argv)");
 u8_condition SetRLimit=_("SetRLimit");
-fd_exception fd_ExitException=_("Unhandled exception at exit");
+u8_condition fd_ExitException=_("Unhandled exception at exit");
 
 static u8_mutex atexit_handlers_lock;
 
@@ -507,7 +507,7 @@ static int config_setutf8err(lispval var,lispval val,void *data)
 
 /* Random seed initialization */
 
-static fd_exception TimeFailed="call to time() failed";
+static u8_condition TimeFailed="call to time() failed";
 
 static long long randomseed = 0x327b23c6;
 

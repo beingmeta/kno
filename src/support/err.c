@@ -38,7 +38,13 @@ static lispval stacktrace_symbol;
 
 /* Managing error data */
 
-FD_EXPORT void fd_free_exception_xdata(void *ptr)
+FD_EXPORT void fd_decref_u8x_xdata(void *ptr)
+{
+  lispval v = (lispval)ptr;
+  fd_decref(v);
+}
+
+FD_EXPORT void fd_decref_embedded_exception(void *ptr)
 {
   lispval v = (lispval)ptr;
   fd_decref(v);
@@ -47,48 +53,43 @@ FD_EXPORT void fd_free_exception_xdata(void *ptr)
 /* This stores the details and irritant arguments directly,
    so they should be dup'd or incref'd by the caller. */
 FD_EXPORT void fd_seterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
+  (u8_condition c,u8_context caller,u8_string details,lispval irritant)
 {
-
   u8_condition condition = (c) ? (c) :
     (u8_current_exception) ? (u8_current_exception->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
   lispval backtrace = fd_get_backtrace(fd_stackptr);
-  lispval exception = fd_make_exception(condition,cxt,details,irritant);
-  if (!(VOIDP(irritant))) {
-    backtrace = fd_init_pair(NULL,irritant,backtrace);
-    fd_incref(irritant);}
-  backtrace = fd_init_pair(NULL,exception,backtrace);
-  backtrace = fd_init_pair(NULL,stacktrace_symbol,backtrace);
-  // TODO: Push the exception and then generate the stack, just in
-  // case. Set the exception xdata explicitly if you can.
-  u8_push_exception(condition,cxt,u8_strdup(details),
-		    (void *)backtrace,fd_free_exception_xdata);
+  lispval exception = fd_init_exception
+    (NULL,condition,caller,u8_strdup(details),irritant,backtrace,VOID);
+  fd_incref(irritant);
+  u8_push_exception(condition,caller,u8_strdup(details),
+		    (void *)exception,fd_decref_embedded_exception);
 }
 
-/* This stores the details and irritant arguments directly,
-   so they should be dup'd or incref'd by the caller. */
-FD_EXPORT void fd_pusherr
-(u8_condition c,u8_context cxt,u8_string details,lispval irritant)
+FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo)
 {
-  if (errno) u8_graberrno(cxt,u8dup(details));
-  if (VOIDP(irritant))
-    u8_push_exception(c,cxt,details,NULL,NULL);
+  u8_push_exception(exo->ex_condition,exo->ex_caller,
+		    u8_strdup(exo->ex_details),
+		    (void *)exo,fd_decref_embedded_exception);
+}
+
+FD_EXPORT lispval fd_wrap_exception(u8_exception ex)
+{
+  if (ex == NULL) ex = u8_current_exception;
+  lispval exception = fd_get_exception(ex);
+  if (!(FD_VOIDP(exception)))
+    return fd_incref(exception);
   else {
-    fd_incref(irritant);
-    u8_push_exception(c,cxt,details,(void *)irritant,
-		      fd_free_exception_xdata);}
-}
-
-/* This stores the details and irritant arguments directly,
-   so they should be dup'd or incref'd by the caller. */
-FD_EXPORT void fd_graberr(int _errno,u8_context cxt,u8_string details)
-{
-  u8_graberr(_errno,cxt,details);
-  lispval errinfo = fd_init_pair
-    (NULL,stacktrace_symbol,fd_get_backtrace(fd_stackptr));
-  u8_push_exception(NULL,cxt,NULL,(void *)errinfo,
-		    fd_free_exception_xdata);
+    u8_condition condition = (ex) ? (ex->u8x_cond) :
+      ((u8_condition)"missingCondition");
+    u8_context caller = (ex) ? (ex->u8x_context) : (NULL);
+    u8_string details = (ex) ? (ex->u8x_details) : (NULL);
+    lispval irritant = (ex) ? (fd_get_irritant(ex)) : (FD_VOID);
+    lispval backtrace = fd_get_backtrace(fd_stackptr);
+    return fd_init_exception(NULL,condition,caller,
+			     u8_strdup(details),
+			     fd_incref(irritant),
+			     backtrace,FD_VOID);}
 }
 
 FD_EXPORT int fd_stacktracep(lispval rep)
@@ -98,22 +99,31 @@ FD_EXPORT int fd_stacktracep(lispval rep)
   else return 0;
 }
 
+/* This gets the 'actual' irritant from a u8_exception, extracting it
+   from the underlying u8_condition (if that's an irritant) */
 FD_EXPORT lispval fd_get_irritant(u8_exception ex)
 {
-  lispval irritant = (ex->u8x_free_xdata == fd_free_exception_xdata) ?
-    ((lispval) ex->u8x_xdata) : (VOID);
-  if (VOIDP(irritant))
-    return irritant;
-  if (fd_stacktracep(irritant)) {
-    lispval head = (PAIRP(FD_CDR(irritant))) ? (FD_CADR(irritant)) : (FD_VOID);
-    if (FD_EXCEPTIONP(head)) {
-      struct FD_EXCEPTION_OBJECT *embedded = (fd_exception_object) head;
-      u8_exception embedded_ex = embedded->ex_u8ex;
-      if (embedded_ex->u8x_free_xdata == fd_free_exception_xdata)
-	return ((lispval) embedded_ex->u8x_xdata);
-      else return FD_FALSE;}
-    else return FD_FALSE;}
-  else return irritant;
+  if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
+    lispval irritant = (lispval) ex->u8x_xdata;
+    if (FD_EXCEPTIONP(irritant)) {
+      struct FD_EXCEPTION *exo = (fd_exception) irritant;
+      return exo->ex_irritant;}
+    else return irritant;}
+  else if (ex->u8x_free_xdata == fd_decref_u8x_xdata)
+    return (lispval) ex->u8x_xdata;
+  else return FD_VOID;
+}
+
+/* This gets the 'actual' irritant from a u8_exception, extracting it
+   from the underlying u8_condition (if that's an irritant) */
+FD_EXPORT lispval fd_get_exception(u8_exception ex)
+{
+  if (ex->u8x_free_xdata == fd_decref_embedded_exception) {
+    lispval irritant = (lispval) ex->u8x_xdata;
+    if (FD_EXCEPTIONP(irritant))
+      return irritant;
+    else return FD_VOID;}
+  else return FD_VOID;
 }
 
 FD_EXPORT void fd_raise
@@ -137,7 +147,7 @@ FD_EXPORT int fd_poperr
     current->u8x_details = NULL;}
   if (irritant) {
     if ((current->u8x_xdata) &&
-        (current->u8x_free_xdata == fd_free_exception_xdata)) {
+        (current->u8x_free_xdata == fd_decref_u8x_xdata)) {
       /* Likewise for the irritant */
       *irritant = (lispval)(current->u8x_xdata);
       current->u8x_xdata = NULL;
@@ -149,8 +159,7 @@ FD_EXPORT int fd_poperr
 
 FD_EXPORT lispval fd_exception_xdata(u8_exception ex)
 {
-  if ((ex->u8x_xdata) &&
-      (ex->u8x_free_xdata == fd_free_exception_xdata))
+  if ((ex->u8x_xdata) && (FD_XDATA_ISLISP(ex)))
     return (lispval)(ex->u8x_xdata);
   else return VOID;
 }
@@ -168,7 +177,7 @@ FD_EXPORT int fd_interr(lispval x)
 }
 
 FD_EXPORT lispval fd_err
-  (fd_exception ex,u8_context cxt,u8_string details,lispval irritant)
+  (u8_condition ex,u8_context cxt,u8_string details,lispval irritant)
 {
   if (FD_CHECK_PTR(irritant)) {
     if (details)
@@ -176,12 +185,11 @@ FD_EXPORT lispval fd_err
     else fd_seterr(ex,cxt,NULL,irritant);}
   else if (details)
     fd_seterr(ex,cxt,details,VOID);
-  else fd_seterr2(ex,cxt);
+  else fd_seterr(ex,cxt,NULL,VOID);
   return FD_ERROR;
 }
 
-FD_EXPORT lispval fd_type_error
-  (u8_string type_name,u8_context cxt,lispval irritant)
+FD_EXPORT lispval fd_type_error(u8_string type_name,u8_context cxt,lispval irritant)
 {
   u8_byte buf[512];
   u8_string msg = u8_sprintf(buf,512,_("object is not a %m"),type_name);
@@ -236,7 +244,7 @@ void fd_output_exception(u8_output out,u8_exception ex)
     u8_puts(out," (");
     u8_puts(out,ex->u8x_details);
     u8_puts(out,")");}
-  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
+  if (ex->u8x_free_xdata == fd_decref_u8x_xdata) {
     lispval irritant=fd_get_irritant(ex);
     if (VOIDP(irritant)) {}
     else if ( (PAIRP(irritant)) ||
@@ -282,23 +290,14 @@ void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant)
 	     irritant,ex->u8x_context,
 	     U8ALT(ex->u8x_details,""));
     else {
-      U8_STATIC_OUTPUT(tmp,1000);
-      fd_pprint(tmpout,irritant,NULL,0,0,111);
-      u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
-      u8_close_output(tmpout);}
+      lispval backtrace = FD_U8X_STACK(ex);
+      if (!(FD_VOIDP(backtrace))) {
+	U8_STATIC_OUTPUT(tmp,1000);
+	fd_pprint(tmpout,backtrace,NULL,0,0,111);
+	if (tmp.u8_outbuf[0])
+	  u8_log(loglevel,ex->u8x_cond,"%s",tmp.u8_outbuf);
+	u8_close_output(tmpout);}}
     ex=ex->u8x_prev;}
-}
-
-FD_EXPORT
-lispval fd_exception_backtrace(u8_exception ex)
-{
-  while (ex) {
-    if (ex->u8x_free_xdata == fd_free_exception_xdata) {
-      lispval data = (lispval) ex->u8x_xdata;
-      if (fd_stacktracep(data))
-	return data;}
-    ex=ex->u8x_prev;}
-  return NIL;
 }
 
 int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
@@ -337,15 +336,31 @@ int sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
       u8_printf(out,"@%s",context);
     else if (details)
       u8_printf(out,"(%s)",details);
-    else if (!(VOIDP(irritant))) {
+    else return 0;
+    if (!(VOIDP(irritant))) {
       u8_byte buf[max_irritant_len+1];
       u8_sprintf(buf,max_irritant_len,"%Q",irritant);
-      if ( (strchr(buf,'\n')) || (strlen(buf)>40) )
-	u8_printf(out,"  %s",buf);
-      else u8_printf(out,"\n  %s",buf);}
-    else return 0;
+      if ( (strchr(buf,'\n')) || (strlen(buf)>42) )
+	u8_printf(out,"\n  %s",buf);
+      else u8_printf(out,"  %s",buf);}
     return 1;}
 }
+
+FD_EXPORT void fd_compact_backtrace(u8_output out,lispval backtrace)
+{
+  lispval scan = backtrace; int depth = 0;
+  u8_puts(out,"\n\t");
+  while (PAIRP(scan)) {
+    lispval car=FD_CAR(scan); scan=FD_CDR(scan);
+    if (STRINGP(car)) {
+      if (depth) u8_puts(out,"// ");
+      u8_puts(out,CSTRING(car));
+      depth++;
+      if ((depth%7)==0)
+	u8_puts(out," //...\n;;* ...");
+      else u8_putc(out,' ');}}
+}
+
 
 FD_EXPORT
 void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
@@ -353,21 +368,11 @@ void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
   u8_exception scan = ex, prev = NULL;
   while (scan) {
     sum_exception(out,scan,prev); u8_puts(out,"\n");
+    lispval backtrace = FD_U8X_STACK(scan);
+    if (!(FD_VOIDP(backtrace)))
+      fd_compact_backtrace(out,backtrace);
     prev=scan;
     scan=prev->u8x_prev;}
-  if ( (prev) && (prev->u8x_free_xdata == fd_free_exception_xdata )  ) {
-    lispval scan = (lispval)(prev->u8x_xdata); int depth=0;
-    if (fd_stacktracep(scan)) {
-      u8_puts(out,";;* ");
-      while (PAIRP(scan)) {
-	lispval car=FD_CAR(scan); scan=FD_CDR(scan);
-	if (STRINGP(car)) {
-	  if (depth) u8_puts(out,"// ");
-	  u8_puts(out,CSTRING(car));
-	  depth++;
-	  if ((depth%7)==0)
-	    u8_puts(out," //...\n;;* ...");
-	  else u8_putc(out,' ');}}}}
 }
 
 FD_EXPORT u8_string fd_errstring(u8_exception ex)
@@ -376,32 +381,13 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
   if (ex == NULL) ex = u8_current_exception;
   if (ex == NULL) return NULL;
   sum_exception(&out,ex,NULL);
-  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
-    lispval irritant = (lispval) ex->u8x_xdata;
-    if (fd_stacktracep(irritant)) {
-      lispval scan = FD_CDR(irritant);
-      while (PAIRP(scan)) {
-	lispval car=FD_CAR(scan); scan=FD_CDR(scan);
-	if (STRINGP(car)) {
-	  u8_puts(&out," ⇒ ");
-	  u8_puts(&out,CSTRING(car));}
-	else if (FD_EXCEPTIONP(car)) {
-	  struct FD_EXCEPTION_OBJECT *exo=
-	    (struct FD_EXCEPTION_OBJECT *)car;
-	  u8_exception ex=exo->ex_u8ex;
-	  u8_puts(&out," ⇒ ");
-	  u8_puts(&out,ex->u8x_cond);
-	  if (ex->u8x_context) u8_printf(&out,"@%s",ex->u8x_context);
-	  if (ex->u8x_details) u8_printf(&out," (%s)",ex->u8x_details);
-	  if (ex->u8x_free_xdata == fd_free_exception_xdata) {
-	    lispval irritant=(lispval)ex->u8x_xdata;
-	    char buf[32]; buf[0]='\0';
-	    u8_sprintf(buf,32," =%q",irritant);
-	    u8_puts(&out,buf);}}}}}
+  lispval backtrace = FD_U8X_STACK(ex);
+  if (!(FD_VOIDP(backtrace)))
+    fd_compact_backtrace(&out,backtrace);
   return out.u8_outbuf;
 }
 
-FD_EXPORT fd_exception fd_retcode_to_exception(lispval err)
+FD_EXPORT u8_condition fd_retcode_to_exception(lispval err)
 {
   switch (err) {
   case FD_EOF: case FD_EOD: return fd_UnexpectedEOD;
@@ -417,7 +403,8 @@ FD_EXPORT fd_exception fd_retcode_to_exception(lispval err)
 FD_EXPORT
 int fd_clear_errors(int report)
 {
-  u8_exception ex = u8_erreify(), scan = ex; int n_errs = 0;
+  int n_errs = 0;
+  u8_exception ex = u8_erreify(), scan = ex;
   while (scan) {
     if (report) {
       u8_string sum = fd_errstring(scan);
@@ -432,66 +419,57 @@ int fd_clear_errors(int report)
 /* Exception objects */
 
 FD_EXPORT lispval fd_init_exception
-   (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
+   (struct FD_EXCEPTION *exo,
+    u8_condition condition,u8_context caller,u8_string details,
+    lispval irritant,lispval stack,lispval context)
 {
-  u8_string details =
-    (ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL);
-  void *irritant =
-    ( ex->u8x_free_xdata != fd_free_exception_xdata ) ? (NULL) :
-    ((void *) (fd_copy((lispval)(ex->u8x_xdata))));
-  u8_exception cex =
-    u8_new_exception(ex->u8x_cond,ex->u8x_context,details,irritant,
-		     (irritant) ? (fd_free_exception_xdata) : 
-		     ((u8_exception_xdata_freefn) NULL));
-  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
+  if (exo == NULL) exo = u8_alloc(struct FD_EXCEPTION);
   FD_INIT_CONS(exo,fd_exception_type);
-  exo->ex_u8ex = cex;
-  return LISP_CONS(exo);
-}
-
-FD_EXPORT lispval fd_make_exception
-  (fd_exception c,u8_context cxt,u8_string details,lispval content)
-{
-  struct FD_EXCEPTION_OBJECT *exo = u8_alloc(struct FD_EXCEPTION_OBJECT);
-  u8_exception ex; void *xdata; u8_exception_xdata_freefn freefn;
-  if (VOIDP(content)) {
-    xdata = NULL; freefn = NULL;}
-  else {
-    fd_incref(content);
-    xdata = (void *) content;
-    freefn = fd_free_exception_xdata;}
-  ex = u8_make_exception(c,cxt,u8dup(details),xdata,freefn);
-  FD_INIT_CONS(exo,fd_exception_type);
-  exo->ex_u8ex = ex;
+  exo->ex_condition = condition;
+  exo->ex_caller    = caller;
+  exo->ex_details   = details;
+  exo->ex_irritant  = irritant;
+  exo->ex_stack     = stack;
+  exo->ex_context   = context;
   return LISP_CONS(exo);
 }
 
 static int dtype_exception(struct FD_OUTBUF *out,lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *exo = (struct FD_EXCEPTION_OBJECT *)x;
-  if (exo->ex_u8ex == NULL) {
-    u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
-    fd_write_byte(out,dt_void);
-    return 1;}
-  else {
-    u8_exception ex = exo->ex_u8ex;
-    lispval irritant = fd_exception_xdata(ex);
-    int veclen = ((VOIDP(irritant)) ? (3) : (4));
-    lispval vector = fd_init_vector(NULL,veclen,NULL);
-    int n_bytes;
-    FD_VECTOR_SET(vector,0,fd_intern((u8_string)(ex->u8x_cond)));
-    if (ex->u8x_context) {
-      FD_VECTOR_SET(vector,1,fd_intern((u8_string)(ex->u8x_context)));}
-    else {FD_VECTOR_SET(vector,1,FD_FALSE);}
-    if (ex->u8x_details) {
-      FD_VECTOR_SET(vector,2,lispval_string(ex->u8x_details));}
-    else {FD_VECTOR_SET(vector,2,FD_FALSE);}
-    if (!(VOIDP(irritant)))
-      FD_VECTOR_SET(vector,3,fd_incref(irritant));
-    fd_write_byte(out,dt_exception);
-    n_bytes = 1+fd_write_dtype(out,vector);
-    fd_decref(vector);
-    return n_bytes;}
+  struct FD_EXCEPTION *xo = (struct FD_EXCEPTION *)x;
+  u8_condition condition = xo->ex_condition;
+  u8_context caller = xo->ex_caller;
+  u8_string details = xo->ex_details;
+  lispval irritant = xo->ex_irritant;
+  lispval backtrace = xo->ex_stack;
+  lispval context = xo->ex_context;
+  int veclen = 3;
+  if (!(FD_VOIDP(context))) veclen=6;
+  else if (!(FD_VOIDP(backtrace))) veclen=5;
+  else if (!FD_VOIDP(irritant)) veclen=4;
+  else veclen=3;
+  lispval vector = fd_init_vector(NULL,veclen,NULL);
+  int n_bytes;
+  FD_VECTOR_SET(vector,0,fd_intern(condition));
+  if (caller) {
+    FD_VECTOR_SET(vector,1,fd_intern(caller));}
+  else {FD_VECTOR_SET(vector,1,FD_FALSE);}
+  if (details) {
+    FD_VECTOR_SET(vector,2,lispval_string(details));}
+  else {FD_VECTOR_SET(vector,2,FD_FALSE);}
+  if (!(VOIDP(irritant)))
+    FD_VECTOR_SET(vector,3,fd_incref(irritant));
+  else FD_VECTOR_SET(vector,3,FD_VOID);
+  if (!(VOIDP(backtrace)))
+    FD_VECTOR_SET(vector,4,fd_incref(backtrace));
+  else FD_VECTOR_SET(vector,3,FD_VOID);
+  if (!(VOIDP(backtrace)))
+    FD_VECTOR_SET(vector,5,fd_incref(backtrace));
+  else FD_VECTOR_SET(vector,5,FD_VOID);
+  fd_write_byte(out,dt_exception);
+  n_bytes = 1+fd_write_dtype(out,vector);
+  fd_decref(vector);
+  return n_bytes;
 }
 
 static u8_exception copy_exception_helper(u8_exception ex,int flags)
@@ -506,44 +484,49 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
   else if (flags)
     newex = u8_make_exception
       (ex->u8x_cond,ex->u8x_context,details,
-       (void *)fd_copier(irritant,flags),fd_free_exception_xdata);
+       (void *)fd_copier(irritant,flags),fd_decref_u8x_xdata);
   else newex = u8_make_exception
          (ex->u8x_cond,ex->u8x_context,details,
-          (void *)fd_incref(irritant),fd_free_exception_xdata);
+          (void *)fd_incref(irritant),fd_decref_u8x_xdata);
   newex->u8x_prev = copy_exception_helper(ex->u8x_prev,flags);
   return newex;
 }
 
 static lispval copy_exception(lispval x,int deep)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
-  return fd_init_exception(NULL,copy_exception_helper(xo->ex_u8ex,deep));
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  return fd_init_exception(NULL,xo->ex_condition,xo->ex_caller,
+			   u8_strdup(xo->ex_details),
+			   fd_incref(xo->ex_irritant),
+			   fd_incref(xo->ex_stack),
+			   fd_incref(xo->ex_context));
 }
 
 static int unparse_exception(struct U8_OUTPUT *out,lispval x)
 {
-  struct FD_EXCEPTION_OBJECT *xo=
-    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_exception_type);
-  u8_exception ex = xo->ex_u8ex;
-  if (ex == NULL)
-    u8_printf(out,"#!!!OLDEXCEPTION");
-  else {
-    u8_exception ex = xo->ex_u8ex;
-    lispval irritant = fd_get_irritant(ex);
-    u8_printf(out,"#<!!EXCEPTION %s (%s)",
-	      ex->u8x_cond,ex->u8x_context);
-    if (ex->u8x_details)
-      u8_printf(out,"[%s]",ex->u8x_details);
-    if (!(VOIDP(irritant))) {
-      if (max_irritant_len==0) {}
-      else if (max_irritant_len<0)
-	u8_printf(out," %q",irritant);
-      else {
-	u8_byte buf[max_irritant_len+1];
-	u8_sprintf(buf,max_irritant_len,"%q",irritant);
-	u8_printf(out," %s...",buf);}}
-    u8_printf(out,"!!>");}
+  struct FD_EXCEPTION *xo=
+    fd_consptr(struct FD_EXCEPTION *,x,fd_exception_type);
+  u8_condition condition = xo->ex_condition;
+  u8_context caller = xo->ex_caller;
+  u8_string details = xo->ex_details;
+  lispval irritant = xo->ex_irritant;
+  lispval backtrace = xo->ex_stack;
+  lispval context = xo->ex_context;
+  u8_puts(out,"#<!EXCEPTION %s");
+  if (condition) u8_printf(out," %s",condition);
+  else u8_puts(out," missingCondition");
+  if (caller) u8_printf(out," @%s",caller);
+  if (details) u8_printf(out," (%s)",details);
+  if (!(VOIDP(irritant))) {
+    if (max_irritant_len==0) {}
+    else if (max_irritant_len<0)
+      u8_printf(out," %q",irritant);
+    else {
+      u8_byte buf[max_irritant_len+1];
+      u8_sprintf(buf,max_irritant_len,"%q",irritant);
+      u8_printf(out," %s...",buf);}}
+  u8_printf(out,"!>");
   return 1;
 }
 

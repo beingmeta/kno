@@ -37,7 +37,7 @@
 #define atombreakp(c) \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
-fd_exception fd_CantUnparse=_("LISP expression unparse error");
+u8_condition fd_CantUnparse=_("LISP expression unparse error");
 
 int fd_unparse_maxelts = 100;
 int fd_unparse_maxchars = 150;

@@ -48,7 +48,9 @@ static lispval href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
 static lispval embedded_symbol, error_style_symbol, error_script_symbol;
 static lispval modules_symbol, xml_env_symbol, xmltag_symbol;;
 
-static void start_errorpage(u8_output s,u8_exception ex)
+static void start_errorpage(u8_output s,
+                            u8_condition cond,u8_context caller,
+                            u8_string details)
 {
   int isembedded = 0;
   s->u8_write = s->u8_outbuf;
@@ -60,13 +62,11 @@ static void start_errorpage(u8_output s,u8_exception ex)
   if (isembedded==0) {
     u8_printf(s,"%s\n%s\n",DEFAULT_DOCTYPE,DEFAULT_XMLPI);
     u8_printf(s,"<html>\n<head>\n<title>");
-    if (ex->u8x_cond)
-      u8_printf(s,"%k",ex->u8x_cond);
+    if (cond) u8_printf(s,"%k",cond);
     else u8_printf(s,"Unknown Exception");
-    if (ex->u8x_context) u8_printf(s," @%k",ex->u8x_context);
-    if (ex->u8x_details) {
-      if (strlen(ex->u8x_details)<40)
-        u8_printf(s," (%s)",ex->u8x_details);}
+    if (caller) u8_printf(s," @%k",caller);
+    if ( (details) && (strlen(details)<40) )
+      u8_printf(s," (%s)",details);
     u8_puts(s,"</title>\n");
     u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
     u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
@@ -102,13 +102,15 @@ static void start_errorpage(u8_output s,u8_exception ex)
 FD_EXPORT
 void fd_xhtmldebugpage(u8_output s,u8_exception ex)
 {
-  start_errorpage(s,ex);
+
+  start_errorpage(s,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
 
   u8_puts(s,"<p class='sorry'>"
           "Sorry, there was an unexpected error processing your request"
           "</p>\n");
 
-  lispval backtrace = fd_exception_backtrace(ex);
+  lispval backtrace = FD_U8X_STACK(ex);
+
   if (PAIRP(backtrace)) {
     u8_puts(s,"<div class='backtrace'>\n");
     fd_html_backtrace(s,backtrace);
@@ -120,7 +122,7 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
 FD_EXPORT
 void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 {
-  start_errorpage(s,ex);
+  start_errorpage(s,ex->u8x_cond,ex->u8x_context,ex->u8x_details);
 
   u8_puts(s,"<p class='sorry'>"
           "Sorry, there was an unexpected error processing your request"
@@ -133,13 +135,19 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
 
 static lispval debugpage2html_prim(lispval exception,lispval where)
 {
-  u8_exception ex;
+  u8_exception ex=NULL;
+  struct U8_EXCEPTION tempex={0};
   if ((VOIDP(exception))||(FALSEP(exception)))
     ex = u8_current_exception;
   else if (FD_EXCEPTIONP(exception)) {
-    struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_exception_type);
-    ex = xo->ex_u8ex;}
+    struct FD_EXCEPTION *xo=
+      fd_consptr(struct FD_EXCEPTION *,exception,fd_exception_type);
+    tempex.u8x_cond = xo->ex_condition;
+    tempex.u8x_context = xo->ex_caller;
+    tempex.u8x_details = xo->ex_details;
+    tempex.u8x_xdata = (void *) xo;
+    tempex.u8x_free_xdata = fd_decref_embedded_exception;
+    ex = &tempex;}
   else {
     u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
     ex = u8_current_exception;}
@@ -151,22 +159,27 @@ static lispval debugpage2html_prim(lispval exception,lispval where)
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
     fd_xhtmldebugpage(&out,ex);
     return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+  else if (FD_PORTP(where)) {
+    struct FD_PORT *port = (fd_port) where;
+    fd_xhtmldebugpage(port->fd_outport,ex);
+    return FD_TRUE;}
   else return FD_FALSE;
 }
 
 static lispval backtrace2html_prim(lispval arg,lispval where)
 {
-  lispval backtrace=VOID; u8_exception ex;
+  u8_exception ex=NULL;
+  struct U8_EXCEPTION tempex={0};
+  lispval backtrace=FD_VOID;
   if ((VOIDP(arg))||(FALSEP(arg))||(arg == FD_DEFAULT_VALUE)) {
     ex = u8_current_exception;
-    if (ex) backtrace=fd_exception_backtrace(ex);}
+    if (ex) backtrace=FD_U8X_STACK(ex);}
   else if (PAIRP(arg))
     backtrace=arg;
   else if (FD_EXCEPTIONP(arg)) {
-    struct FD_EXCEPTION_OBJECT *xo=
-      fd_consptr(struct FD_EXCEPTION_OBJECT *,arg,fd_exception_type);
-    ex = xo->ex_u8ex;
-    if (ex) backtrace=fd_exception_backtrace(ex);}
+    struct FD_EXCEPTION *xo=
+      fd_consptr(struct FD_EXCEPTION *,arg,fd_exception_type);
+    backtrace = xo->ex_stack;}
   else return fd_err("Bad exception/backtrace","backtrace2html_prim",
                      NULL,arg);
   if (!(PAIRP(backtrace)))
@@ -276,7 +289,7 @@ void fd_html_exception(u8_output s,u8_exception ex,int backtrace)
   }
   u8_puts(s,"\n</div>\n"); /* exception */
   if (backtrace) {
-    lispval backtrace=fd_exception_backtrace(ex);
+    lispval backtrace=FD_U8X_STACK(ex);
     if (PAIRP(backtrace))
       fd_html_backtrace(s,backtrace);
     fd_decref(backtrace);}
@@ -390,12 +403,7 @@ static void output_value(u8_output out,lispval val,
 
 static void output_stack_frame(u8_output out,lispval entry)
 {
-  if (FD_EXCEPTIONP(entry)) {
-    fd_exception_object exo=
-      fd_consptr(fd_exception_object,entry,fd_exception_type);
-    u8_exception ex = exo->ex_u8ex;
-    fd_html_exception(out,ex,0);}
-  else if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
+  if ((VECTORP(entry)) && (VEC_LEN(entry)>=7)) {
     lispval depth=VEC_REF(entry,0);
     lispval type=VEC_REF(entry,1);
     lispval label=VEC_REF(entry,2);

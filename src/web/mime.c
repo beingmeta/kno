@@ -24,7 +24,7 @@
 
 #include <ctype.h>
 
-static fd_exception NoMultiPartSeparator=_("Multipart MIME document has no separator");
+static u8_condition NoMultiPartSeparator=_("Multipart MIME document has no separator");
 
 static lispval content_type_slotid, headers_slotid, content_disposition_slotid, content_slotid;
 static lispval charset_slotid, encoding_slotid, separator_slotid;

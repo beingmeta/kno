@@ -324,7 +324,7 @@ int do_main(int argc,char **argv,
     fd_unparse_maxelts = old_maxelts; fd_unparse_maxchars = old_maxchars;
     fputs(out.u8_outbuf,stderr); fputc('\n',stderr);
 
-    lispval irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
+    lispval irritant = (e->u8x_free_xdata == fd_decref_u8x_xdata ) ?
       ((lispval) (e->u8x_xdata)) : (VOID);
     lispval stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
     if (!(VOIDP(stacktrace))) {
@@ -343,7 +343,7 @@ int do_main(int argc,char **argv,
       u8_close_xoutput(&xout);}
 
 #if 0
-    lispval irritant = (e->u8x_free_xdata == fd_free_exception_xdata ) ?
+    lispval irritant = (e->u8x_free_xdata == fd_decref_u8x_xdata ) ?
       ((lispval) (e->u8x_xdata)) : (VOID);
     lispval stacktrace   = (fd_stacktracep(irritant)) ? (irritant) : (VOID);
     double elapsed      = u8_elapsed_time();

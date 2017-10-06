@@ -61,11 +61,11 @@ static int recover_oidpool(struct FD_OIDPOOL *);
 
 static struct FD_POOL_HANDLER oidpool_handler;
 
-fd_exception fd_InvalidSchemaDef=_("Invalid schema definition data");
-fd_exception fd_InvalidSchemaRef=_("Invalid encoded schema reference");
-fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value data");
+u8_condition fd_InvalidSchemaDef=_("Invalid schema definition data");
+u8_condition fd_InvalidSchemaRef=_("Invalid encoded schema reference");
+u8_condition fd_SchemaInconsistency=_("Inconsistent schema reference and value data");
 
-static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
+static u8_condition InvalidOffset=_("Invalid offset in OIDPOOL");
 
 #define FD_OIDPOOL_LOAD_POS      0x10
 
@@ -708,8 +708,9 @@ static lispval *oidpool_fetchn(fd_pool p,int n,lispval *oids)
         u8_condition c = (u8_current_exception) ? \
           (u8_current_exception->u8x_cond) :
           NULL;
-        fd_pusherr(c,"oidpool_fetchn/read",op->poolid,
-                   oids[schedule[i].value_at]);
+        // Add more debugging context
+        fd_seterr(c,"oidpool_fetchn/read",op->poolid,
+                  oids[schedule[i].value_at]);
         fd_unlock_stream(&(op->pool_stream));
         return NULL;}
       else values[schedule[i].value_at]=value;

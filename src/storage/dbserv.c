@@ -31,7 +31,7 @@ static int n_served_pools = 0;
 struct FD_COMPOUND_INDEX *primary_index = NULL;
 static int read_only = 0, locking = 1;
 
-fd_exception fd_PrivateOID=_("private OID");
+u8_condition fd_PrivateOID=_("private OID");
 
 static int served_poolp(fd_pool p)
 {
@@ -198,8 +198,8 @@ static FD_STREAM *locks_file = NULL;
 static u8_string locks_filename = NULL;
 static void update_server_lock_file();
 
-fd_exception OIDNotLocked=_("The OID is not locked");
-fd_exception CantLockOID=_("Can't lock OID");
+u8_condition OIDNotLocked=_("The OID is not locked");
+u8_condition CantLockOID=_("Can't lock OID");
 
 static u8_mutex server_locks_lock;
 

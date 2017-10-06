@@ -11,7 +11,7 @@
 #define FRAMERD_TABLES_H_INFO "include/framerd/tables.h"
 #endif
 
-FD_EXPORT fd_exception fd_NoSuchKey;
+FD_EXPORT u8_condition fd_NoSuchKey;
 
 typedef enum FD_TABLEOP {
   fd_table_store = 0, fd_table_add = 1, fd_table_drop = 2, fd_table_default = 3,

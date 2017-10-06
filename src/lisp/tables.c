@@ -20,9 +20,9 @@
 
 #include <libu8/u8printf.h>
 
-fd_exception fd_NoSuchKey=_("No such key");
-fd_exception fd_ReadOnlyTable=_("Read-Only table");
-fd_exception fd_ReadOnlyHashtable=_("Read-Only hashtable");
+u8_condition fd_NoSuchKey=_("No such key");
+u8_condition fd_ReadOnlyTable=_("Read-Only table");
+u8_condition fd_ReadOnlyHashtable=_("Read-Only hashtable");
 static u8_string NotATable=_("Not a table");
 static u8_string CantDrop=_("Table doesn't support drop");
 static u8_string CantTest=_("Table doesn't support test");

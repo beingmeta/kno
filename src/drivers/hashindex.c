@@ -171,8 +171,8 @@ static lispval read_values(fd_hashindex,lispval,int,fd_off_t,size_t);
 
 static struct FD_INDEX_HANDLER hashindex_handler;
 
-static fd_exception CorruptedHashIndex=_("Corrupted hashindex file");
-static fd_exception BadHashFn=_("hashindex has unknown hash function");
+static u8_condition CorruptedHashIndex=_("Corrupted hashindex file");
+static u8_condition BadHashFn=_("hashindex has unknown hash function");
 
 static lispval set_symbol, drop_symbol, keycounts_symbol;
 static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
@@ -2620,7 +2620,13 @@ static int update_hashindex_ondisk
   if (fd_modifiedp((lispval)&(hx->index_metadata)))
     update_hashindex_metadata(hx,stream);
 
+  /* Write any changed flags */
+  fd_write_4bytes_at(stream,flags,8);
+  fd_write_4bytes_at(stream,cur_keys,16);
+  fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
+  fd_flush_stream(stream);
 }
+
 static void reload_offdata(struct FD_INDEX *ix)
 #if HAVE_MMAP
 {

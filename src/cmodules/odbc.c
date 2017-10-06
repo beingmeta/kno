@@ -61,7 +61,7 @@ typedef struct FD_ODBC_PROC *fd_odbc_proc;
 
 FD_EXPORT int fd_init_odbc(void) FD_LIBINIT_FN;
 
-static fd_exception ODBCError=_("ODBC error");
+static u8_condition ODBCError=_("ODBC error");
 
 static u8_string odbc_errstring(SQLHANDLE handle,SQLSMALLINT type)
 {

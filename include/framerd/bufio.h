@@ -11,7 +11,7 @@
 #define FRAMERD_BUFIO_H_INFO "include/framerd/dtypeio.h"
 #endif
 
-fd_exception fd_IsWriteBuf, fd_IsReadBuf;
+u8_condition fd_IsWriteBuf, fd_IsReadBuf;
 
 #ifndef FD_DEFAULT_ZLEVEL
 #define FD_DEFAULT_ZLEVEL 7

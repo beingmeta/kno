@@ -24,13 +24,13 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 
-fd_exception fd_EphemeralIndex=_("ephemeral index");
-fd_exception fd_ReadOnlyIndex=_("read-only index");
-fd_exception fd_NoFileIndexes=_("file indexes are not supported");
-fd_exception fd_NotAFileIndex=_("not a file index");
-fd_exception fd_BadIndexSpec=_("bad index specification");
-fd_exception fd_CorruptedIndex=_("corrupted index file");
-fd_exception fd_IndexCommitError=_("can't save changes to index");
+u8_condition fd_EphemeralIndex=_("ephemeral index");
+u8_condition fd_ReadOnlyIndex=_("read-only index");
+u8_condition fd_NoFileIndexes=_("file indexes are not supported");
+u8_condition fd_NotAFileIndex=_("not a file index");
+u8_condition fd_BadIndexSpec=_("bad index specification");
+u8_condition fd_CorruptedIndex=_("corrupted index file");
+u8_condition fd_IndexCommitError=_("can't save changes to index");
 
 lispval fd_index_hashop, fd_index_slotsop;
 
@@ -998,11 +998,17 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 {
   if (ix == NULL)
     return -1;
-  else if ((ix->index_adds.table_n_keys) || (ix->index_edits.table_n_keys) ||
-           ((lispval)&(ix->index_metadata))) {
+  else if ((ix->index_adds.table_n_keys) ||
+           (ix->index_edits.table_n_keys) ||
+           (fd_modifiedp((lispval)&(ix->index_metadata)))) {
     int n_edits = ix->index_edits.table_n_keys;
     int n_adds = ix->index_adds.table_n_keys;
     int n_keys = n_edits+n_adds, retval = 0;
+
+    if (! ( (ix->index_handler) && (ix->index_handler->commit) ) ) {
+      u8_seterr("NoCommitHandler","fd_index_commit",u8_strdup(ix->indexid));
+      return -1;}
+
     if (n_keys) init_cache_level(ix);
 
     u8_log(fd_storage_loglevel+1,fd_IndexCommit,

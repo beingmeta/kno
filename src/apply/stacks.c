@@ -117,19 +117,6 @@ void fd_sum_backtrace(u8_output out,lispval backtrace)
 	  u8_puts(out,CSTRING(status));
 	  u8_putc(out,')');}
 	n++;}
-      else if (FD_EXCEPTIONP(entry)) {
-	struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)entry;
-	u8_exception ex=exo->ex_u8ex;
-	if (n) u8_puts(out," ⇒ ");
-	u8_puts(out,ex->u8x_cond);
-	if (ex->u8x_context) u8_printf(out,"@%s",ex->u8x_context);
-	if (ex->u8x_details) u8_printf(out," (%s)",ex->u8x_details);
-	if (ex->u8x_free_xdata == fd_free_exception_xdata) {
-	  lispval irritant=(lispval)ex->u8x_xdata;
-	  char buf[32]; buf[0]='\0';
-	  u8_sprintf(buf,32," =%q",irritant);
-	  u8_puts(out,buf);}
-	n++;}
       else {}
       scan=FD_CDR(scan);}}
 }

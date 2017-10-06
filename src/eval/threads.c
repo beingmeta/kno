@@ -334,28 +334,37 @@ static void *thread_call(void *data)
 
   if (FD_ABORTP(result)) {
     u8_exception ex = u8_erreify();
-    lispval exobj = fd_init_exception(NULL,ex);
-    u8_string errstring = fd_errstring(ex);
-    u8_log(LOG_WARN,ThreadReturnError,"Thread #%d %s",u8_threadid(),errstring);
+    if (ex->u8x_details)
+      u8_log(LOG_WARN,ThreadReturnError,
+             "Thread #%d %s @%s (%s)",u8_threadid(),
+             ex->u8x_cond,ex->u8x_context,ex->u8x_details);
+    else u8_log(LOG_WARN,ThreadReturnError,
+                "Thread #%d %s @%s",u8_threadid(),
+                ex->u8x_cond,ex->u8x_context);
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was evaluating %q",
              u8_threadid(),tstruct->evaldata.expr);
     else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
                 u8_threadid(),tstruct->applydata.fn);
     fd_log_errstack(ex,LOG_WARN,1);
-    u8_free(errstring);
     if (fd_thread_backtrace) {
-      U8_STATIC_OUTPUT(tmp,8000);
-      lispval backtrace = fd_exception_backtrace(ex);
-      fd_sum_backtrace(tmpout,backtrace);
-      u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
-      if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
-      u8_close_output(tmpout);
-      fd_decref(backtrace);}
-    tstruct->result = exobj;
+      lispval backtrace = FD_U8X_STACK(ex);
+      if (!(FD_VOIDP(backtrace))) {
+        U8_STATIC_OUTPUT(tmp,8000);
+        fd_sum_backtrace(tmpout,backtrace);
+        u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
+        if (fd_dump_backtrace) fd_dump_backtrace(backtrace);
+        u8_close_output(tmpout);}}
+    lispval exception = fd_get_exception(ex);
+    if (FD_VOIDP(exception))
+      exception = fd_init_exception
+        (NULL,ex->u8x_cond,ex->u8x_context,ex->u8x_details,
+         FD_VOID,FD_VOID,FD_VOID);
+    else fd_incref(exception);
+    tstruct->result = exception;
     if (tstruct->resultptr) {
-      fd_incref(exobj);
-      *(tstruct->resultptr) = exobj;}
+      fd_incref(exception);
+      *(tstruct->resultptr) = exception;}
     else {}}
   else {
     tstruct->result = result;

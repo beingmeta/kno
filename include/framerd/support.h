@@ -13,8 +13,8 @@
 
 #include <signal.h>
 
-FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
-FD_EXPORT fd_exception fd_ReadOnlyConfig;
+FD_EXPORT u8_condition fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
+FD_EXPORT u8_condition fd_ReadOnlyConfig;
 
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
@@ -101,61 +101,6 @@ FD_EXPORT lispval fd_all_configs(int with_docs);
 FD_EXPORT void fd_config_lock(int lock);
 
 FD_EXPORT int fd_boolstring(u8_string,int);
-
-/* Error handling */
-
-FD_EXPORT void fd_free_exception_xdata(void *ptr);
-
-FD_EXPORT lispval fd_err(fd_exception,u8_context,u8_string,lispval);
-FD_EXPORT void fd_graberr(int,u8_context cxt,u8_string details);
-
-FD_EXPORT lispval fd_type_error(u8_string,u8_context,lispval);
-
-FD_EXPORT void fd_sum_exception(U8_OUTPUT *out,u8_exception e);
-FD_EXPORT u8_string fd_errstring(u8_exception e);
-FD_EXPORT lispval fd_exception_xdata(u8_exception e);
-
-FD_EXPORT void fd_print_exception(U8_OUTPUT *out,u8_exception e);
-FD_EXPORT void fd_log_exception(u8_exception ex);
-FD_EXPORT void fd_output_exception(u8_output out,u8_exception ex);
-FD_EXPORT void fd_output_errstack(u8_output out,u8_exception ex);
-FD_EXPORT void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant);
-FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
-
-FD_EXPORT U8_NOINLINE void fd_seterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-FD_EXPORT U8_NOINLINE void fd_pusherr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-FD_EXPORT U8_NOINLINE void fd_raise
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-
-FD_EXPORT lispval fd_get_irritant(u8_exception ex);
-
-FD_EXPORT int fd_stacktracep(lispval rep);
-
-#define fd_seterr3(c,cxt,details) \
-   fd_seterr(c,cxt,details,FD_VOID)
-#define fd_seterr2(c,cxt) \
-   fd_seterr(c,cxt,NULL,FD_VOID)
-#define fd_seterr1(c) \
-   fd_seterr(c,NULL,NULL,FD_VOID)
-
-FD_EXPORT void fd_set_type_error(u8_string type_name,lispval irritant);
-
-FD_EXPORT int fd_geterr
-  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant);
-FD_EXPORT int fd_poperr
-  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant);
-
-
-FD_EXPORT int fd_reterr
-  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
-FD_EXPORT int fd_interr(lispval x);
-FD_EXPORT lispval fd_erreify(void);
-
-FD_EXPORT fd_exception fd_retcode_to_exception(lispval err);
-
-FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
 
 /* Whether the executable is exiting */
 FD_EXPORT int fd_exiting;

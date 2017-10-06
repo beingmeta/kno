@@ -358,7 +358,7 @@ FD_FASTOP int fd_unlock_stream(fd_stream s)
 
 /* Chunk refs for file-based drivers */
 
-FD_EXPORT fd_exception fd_InvalidOffsetType;
+FD_EXPORT u8_condition fd_InvalidOffsetType;
 
 typedef enum FD_OFFSET_TYPE { FD_B32 = 0, FD_B40 = 1, FD_B64 = 2 } fd_offset_type;
 typedef enum FD_COMPRESS_TYPE {
@@ -468,8 +468,8 @@ fd_fetch_chunk_ref(struct FD_STREAM *stream,
 
 /* Exceptions */
 
-FD_EXPORT fd_exception fd_ReadOnlyStream;
-FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
-FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
+FD_EXPORT u8_condition fd_ReadOnlyStream;
+FD_EXPORT u8_condition fd_CantWrite, fd_CantRead, fd_CantSeek;
+FD_EXPORT u8_condition fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
 #endif /* FD_STREAMS_H */

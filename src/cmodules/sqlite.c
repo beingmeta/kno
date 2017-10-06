@@ -50,7 +50,7 @@ typedef struct FD_SQLITE_PROC {
   sqlite3 *sqlitedb; sqlite3_stmt *stmt;} FD_SQLITE_PROC;
 typedef struct FD_SQLITE_PROC *fd_sqlite_proc;
 
-static fd_exception SQLiteError=_("SQLite Error");
+static u8_condition SQLiteError=_("SQLite Error");
 
 static lispval merge_symbol, sorted_symbol;
 

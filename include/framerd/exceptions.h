@@ -1,52 +1,73 @@
-/* Design for new exception handling system
-   Switch from mostly return value error handling to
-     a catch/throw (setjmp/longjmp) model.
+/* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-   libu8:
-    Create a dynamic context which has a jump buf, an optional
-       label, a popfn, and a pointer to the next context.
-    Use a thread var to store the current dynamic context with
-     operations for pushing and popping the dynamic context
-    External modules can extend the dynamic context structure.
-    The libu8 structure might also have queues for malloc'd blocks,
-     locked mutexes, and maybe some generic cleanup functions.
-    
-    Exception state consists of an exception, a details string, 
-     a void pointer, and a saved exception stack.  Largely compatible
-     with the current model.  There might be an extra int indicating
-     some type information about the void pointer with new ints being
-     allocated as needed.
-
-    Macros for exception catching and unwind protect as well as a very
-     simple set of U8_EXCALLn macros which do function calls in a
-     new dynamic context.
-
-    FramerC:
-
-    Uses dynamic contexts for error handling and handling automatic
-     deallocation.
-
-    Extend the libu8 dynamic context with (at least) extensible vectors for:
-       malloc'd blocks,
-       incref'd pointers
-       vectors of incref'd pointers
-       fcn.ptr pairs
-    might also have a start timestamp.  Have an fd_alloc which
-     is like u8_alloc but adds the pointer to the dynamic context.
-     Have an fd_need_decref operation which pushes an incref'd pointer
-     Have an fd_need_vdecref which takes a lispval* and a length
-
-   Primitive fd_dapply's are all wrapped in dynamic contexts
-   Calls to expression evaluation are also wrapped in dynamic contexts
-
-   Do we convert thrown errors to error objects?  When do we do so?
-   Only in error handling forms?
-
-   Additional thoughts:
-    In FD:TOI, dynamic contexts were stack allocated, which could really
-     mess things up if we missed a pop.  Alternatively, we could keep a
-     static vector of contexts (in a thread var) and allocate from there.
-     This would let us not lose so badly when we skip a pop and would also
-     give us stack overvflow checking of a sort.
-
+/* Copyright (C) 2004-2017 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
+   and a valuable trade secret of beingmeta, inc.
 */
+
+#ifndef FRAMERD_EXCEPTIONS_H
+#define FRAMERD_EXCEPTIONS_H 1
+#ifndef FRAMERD_EXCEPTIONS_H_INFO
+#define FRAMERD_EXCEPTIONS_H_INFO "include/framerd/exceptions.h"
+#endif
+
+/* Error handling */
+
+FD_EXPORT lispval fd_wrap_exception(u8_exception ex);
+
+FD_EXPORT void fd_decref_u8x_xdata(void *ptr);
+FD_EXPORT void fd_decref_embedded_exception(void *ptr);
+
+FD_EXPORT lispval fd_get_irritant(u8_exception ex);
+FD_EXPORT lispval fd_get_exception(u8_exception ex);
+
+FD_EXPORT lispval fd_err(u8_condition,u8_context,u8_string,lispval);
+
+FD_EXPORT lispval fd_type_error(u8_string,u8_context,lispval);
+
+FD_EXPORT void fd_sum_exception(U8_OUTPUT *out,u8_exception e);
+FD_EXPORT u8_string fd_errstring(u8_exception e);
+FD_EXPORT lispval fd_exception_xdata(u8_exception e);
+
+FD_EXPORT void fd_print_exception(U8_OUTPUT *out,u8_exception e);
+FD_EXPORT void fd_log_exception(u8_exception ex);
+FD_EXPORT void fd_output_exception(u8_output out,u8_exception ex);
+FD_EXPORT void fd_output_errstack(u8_output out,u8_exception ex);
+FD_EXPORT void fd_log_errstack(u8_exception ex,int loglevel,int w_irritant);
+
+FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
+
+FD_EXPORT void fd_compact_backtrace(u8_output out,lispval stack);
+
+FD_EXPORT U8_NOINLINE void fd_seterr
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+FD_EXPORT U8_NOINLINE void fd_raise
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+
+FD_EXPORT int fd_stacktracep(lispval rep);
+
+#define fd_seterr3(c,cxt,details) \
+   fd_seterr(c,cxt,details,FD_VOID)
+#define fd_seterr2(c,cxt) \
+   fd_seterr(c,cxt,NULL,FD_VOID)
+#define fd_seterr1(c) \
+   fd_seterr(c,NULL,NULL,FD_VOID)
+
+FD_EXPORT void fd_set_type_error(u8_string type_name,lispval irritant);
+
+FD_EXPORT int fd_geterr
+  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant);
+FD_EXPORT int fd_poperr
+  (u8_condition *c,u8_context *cxt,u8_string *details,lispval *irritant);
+
+
+FD_EXPORT int fd_reterr
+  (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+FD_EXPORT int fd_interr(lispval x);
+FD_EXPORT lispval fd_erreify(void);
+
+FD_EXPORT u8_condition fd_retcode_to_exception(lispval err);
+
+FD_EXPORT lispval fd_exception_backtrace(u8_exception ex);
+
+#endif /* ndef FRAMERD_EXCEPTIONS_H */

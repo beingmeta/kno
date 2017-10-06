@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <zip.h>
 
-static fd_exception ZipFileError=_("Zip file error");
+static u8_condition ZipFileError=_("Zip file error");
 
 FD_EXPORT fd_ptr_type fd_zipfile_type;
 fd_ptr_type fd_zipfile_type;

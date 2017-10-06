@@ -119,8 +119,8 @@
 #define FD_MAX_POOLS (FD_N_OID_BUCKETS*4)
 #endif
 
-FD_EXPORT fd_exception fd_AnonymousOID, fd_UnallocatedOID, fd_HomelessOID;
-FD_EXPORT fd_exception fd_InvalidPoolPtr, fd_PoolRangeError, fd_CantLockOID,
+FD_EXPORT u8_condition fd_AnonymousOID, fd_UnallocatedOID, fd_HomelessOID;
+FD_EXPORT u8_condition fd_InvalidPoolPtr, fd_PoolRangeError, fd_CantLockOID,
   fd_PoolConflict, fd_PoolOverflow,
   fd_NotAPool, fd_UnknownPoolType, fd_CorrputedPool,
   fd_ReadOnlyPool, fd_ExhaustedPool, fd_PoolCommitError, fd_NoSuchPool,
@@ -400,7 +400,7 @@ FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(lispval x)
    which are used for the values of particular slotids, either on a
    pool or globally. */
 
-FD_EXPORT fd_exception fd_BadAdjunct, fd_AdjunctError;
+FD_EXPORT u8_condition fd_BadAdjunct, fd_AdjunctError;
 
 FD_EXPORT int fd_set_adjuncts(fd_pool p,lispval adjuncts);
 FD_EXPORT int fd_set_adjunct(fd_pool p,lispval slotid,lispval table);

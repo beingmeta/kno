@@ -868,10 +868,12 @@ FD_EXPORT
      Returns: a dtype pointer
   Computes the intersection of a set of choices.
  */
-lispval fd_intersection(lispval *v,int n)
+lispval fd_intersection(lispval *v,unsigned int n)
 {
-  if (n == 0) return EMPTY;
-  else if (n == 1) return fd_incref(v[0]);
+  if (n == 0)
+    return EMPTY;
+  else if (n == 1)
+    return fd_incref(v[0]);
   else {
     lispval result = VOID;
     /* The simplest case is where one or more of the inputs
@@ -967,11 +969,18 @@ lispval fd_intersection(lispval *v,int n)
         fd_decref(conversions[i]); i++;}
       if (n>16) {u8_free(choices); u8_free(conversions);}
       return result;}
-    else {
+    else if (n < 1024) { /* Random value */
       struct FD_CHOICE *choices[n];
       lispval result; int i = 0;
       while (i < n) {choices[i]=(struct FD_CHOICE *)v[i]; i++;}
       result = fd_intersect_choices(choices,n);
+      return result;}
+    else {
+      struct FD_CHOICE **choices = u8_malloc(n*sizeof(struct FD_CHOICE *));
+      lispval result; int i = 0;
+      while (i < n) {choices[i]=(struct FD_CHOICE *)v[i]; i++;}
+      result = fd_intersect_choices(choices,n);
+      u8_free(choices);
       return result;}
   }
 }
@@ -983,7 +992,7 @@ FD_EXPORT
      Returns: a dtype pointer
   Computes the union of a set of choices.
  */
-lispval fd_union(lispval *v,int n)
+lispval fd_union(lispval *v,unsigned int n)
 {
   if (n == 0) return EMPTY;
   else {

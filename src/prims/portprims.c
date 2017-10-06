@@ -28,7 +28,7 @@
 
 #include <zlib.h>
 
-fd_exception fd_UnknownEncoding=_("Unknown encoding");
+u8_condition fd_UnknownEncoding=_("Unknown encoding");
 
 #define fast_eval(x,env) (fd_stack_eval(x,env,_stack,0))
 
@@ -996,7 +996,7 @@ static lispval gzip_prim(lispval arg,lispval filename,lispval comment)
   if (!((STRINGP(arg)||PACKETP(arg))))
     return fd_type_error("string or packet","x2zipfile_prim",arg);
   else {
-    fd_exception error = NULL;
+    u8_condition error = NULL;
     const unsigned char *data=
       ((STRINGP(arg))?(CSTRING(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=

@@ -19,8 +19,8 @@
 
 #include <libu8/u8printf.h>
 
-fd_exception fd_BindError=_("Can't bind variable");
-fd_exception fd_BindSyntaxError=_("Bad binding expression");
+u8_condition fd_BindError=_("Can't bind variable");
+u8_condition fd_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 

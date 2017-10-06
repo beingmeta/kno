@@ -29,7 +29,7 @@ unsigned int fd_check_dtsize = 1;
 int (*fd_dtype_error)
      (struct FD_OUTBUF *,lispval x,u8_string details) = NULL;
 
-fd_exception fd_InconsistentDTypeSize=_("Inconsistent DTYPE size");
+u8_condition fd_InconsistentDTypeSize=_("Inconsistent DTYPE size");
 
 static lispval error_symbol;
 

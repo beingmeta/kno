@@ -62,9 +62,9 @@ static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
 
-static fd_exception RemoveFailed=_("File removal failed");
-static fd_exception LinkFailed=_("File link failed");
-static fd_exception OpenFailed=_("File open failed");
+static u8_condition RemoveFailed=_("File removal failed");
+static u8_condition LinkFailed=_("File link failed");
+static u8_condition OpenFailed=_("File open failed");
 
 static u8_condition StackDumpEvent=_("StackDump");
 static u8_condition SnapshotSaved=_("Snapshot Saved");
@@ -1236,7 +1236,7 @@ static lispval fsinfo_prim(lispval arg)
 /* A snapshot is a set of variable bindings and CONFIG settings which
    can be saved to and restored from a disk file.  */
 
-static fd_exception SnapshotTrouble=_("SNAPSHOT");
+static u8_condition SnapshotTrouble=_("SNAPSHOT");
 
 static lispval snapshotvars, snapshotconfig, snapshotfile, configinfo;
 

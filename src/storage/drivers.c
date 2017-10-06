@@ -34,22 +34,22 @@ lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op;
 lispval fd_load_op, fd_capacity_op;
 lispval fd_keys_op;
 
-fd_exception fd_MMAPError=_("MMAP Error");
-fd_exception fd_MUNMAPError=_("MUNMAP Error");
-fd_exception fd_CorruptedPool=_("Corrupted file pool");
-fd_exception fd_InvalidOffsetType=_("Invalid offset type");
-fd_exception fd_RecoveryRequired=_("RECOVERY");
+u8_condition fd_MMAPError=_("MMAP Error");
+u8_condition fd_MUNMAPError=_("MUNMAP Error");
+u8_condition fd_CorruptedPool=_("Corrupted file pool");
+u8_condition fd_InvalidOffsetType=_("Invalid offset type");
+u8_condition fd_RecoveryRequired=_("RECOVERY");
 
-fd_exception fd_CantOpenPool=_("Can't open pool");
-fd_exception fd_CantFindPool=_("Can't find pool");
-fd_exception fd_CantOpenIndex=_("Can't open index");
-fd_exception fd_CantFindIndex=_("Can't find index");
+u8_condition fd_CantOpenPool=_("Can't open pool");
+u8_condition fd_CantFindPool=_("Can't find pool");
+u8_condition fd_CantOpenIndex=_("Can't open index");
+u8_condition fd_CantFindIndex=_("Can't find index");
 
-fd_exception fd_IndexDriverError=_("Internal error with index file");
-fd_exception fd_PoolDriverError=_("Internal error with index file");
+u8_condition fd_IndexDriverError=_("Internal error with index file");
+u8_condition fd_PoolDriverError=_("Internal error with index file");
 
-fd_exception fd_PoolFileSizeOverflow=_("file pool overflowed file size");
-fd_exception fd_FileIndexSizeOverflow=_("file index overflowed file size");
+u8_condition fd_PoolFileSizeOverflow=_("file pool overflowed file size");
+u8_condition fd_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int fd_acid_files = 1;
 size_t fd_driver_bufsize = FD_STORAGE_DRIVER_BUFSIZE;
@@ -350,6 +350,9 @@ fd_index fd_open_index(u8_string spec,fd_storage_flags flags,lispval opts)
           (fd_find_index_by_source(use_spec));
         fd_index opened = (found) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
+        if (opened==NULL) {
+          fd_seterr(fd_CantOpenIndex,"fd_open_index",spec,opts);
+          return opened;}
         if (use_spec!=spec) u8_free(use_spec);
         lispval old_opts=opened->index_opts;
         opened->index_opts=fd_incref(opts);

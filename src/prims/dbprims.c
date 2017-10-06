@@ -254,7 +254,7 @@ static lispval getpool(lispval arg)
   else return EMPTY;
 }
 
-static fd_exception Unknown_PoolName=_("Unknown pool name");
+static u8_condition Unknown_PoolName=_("Unknown pool name");
 
 static lispval set_pool_namefn(lispval arg,lispval method)
 {

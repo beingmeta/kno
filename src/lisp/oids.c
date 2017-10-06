@@ -18,7 +18,7 @@
 
 #define HASH_MULTIPLIER 2654435769U
 
-fd_exception fd_NotAnOID=_("Not an OID");
+u8_condition fd_NotAnOID=_("Not an OID");
 
 lispval fd_zero_pool_values[4096]={VOID};
 lispval *fd_zero_pool_buckets[FD_ZERO_POOL_MAX/4096]={fd_zero_pool_values,NULL};
@@ -33,7 +33,7 @@ struct FD_OID_BUCKET *fd_oid_buckets=NULL;
 int fd_n_base_oids = 0;
 int fd_oid_buckets_len = FD_N_OID_BUCKETS*4-1;
 static u8_rwlock base_oid_lock;
-static fd_exception OIDBucketOverflow="Out of OID buckets";
+static u8_condition OIDBucketOverflow="Out of OID buckets";
 
 static int n_chains=0, sum_chains=0;
 

@@ -396,8 +396,8 @@ static int fast_choice_containsp(lispval x,struct FD_CHOICE *choice)
 #define FD_STOP_DO_CHOICES \
    if (_need_gc) fd_decref(_val)
 
-FD_EXPORT lispval fd_union(lispval *v,int n);
-FD_EXPORT lispval fd_intersection(lispval *v,int n);
+FD_EXPORT lispval fd_union(lispval *v,unsigned int n);
+FD_EXPORT lispval fd_intersection(lispval *v,unsigned int n);
 FD_EXPORT lispval fd_difference(lispval whole,lispval part);
 FD_EXPORT int fd_choice_containsp(lispval key,lispval x);
 FD_EXPORT int fd_overlapp(lispval,lispval);

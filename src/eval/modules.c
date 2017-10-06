@@ -20,10 +20,10 @@
 
 static lispval loadstamp_symbol, moduleid_symbol;
 
-fd_exception fd_NotAModule=_("Argument is not a module (table)");
-fd_exception fd_NoSuchModule=_("Can't find named module");
-fd_exception MissingModule=_("Loading failed to resolve module");
-fd_exception OpaqueModule=_("Can't switch to opaque module");
+u8_condition fd_NotAModule=_("Argument is not a module (table)");
+u8_condition fd_NoSuchModule=_("Can't find named module");
+u8_condition MissingModule=_("Loading failed to resolve module");
+u8_condition OpaqueModule=_("Can't switch to opaque module");
 
 static struct MODULE_LOADER {
   int (*loader)(lispval,int,void *); void *data;

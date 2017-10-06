@@ -27,8 +27,8 @@
 
 #include <limits.h>
 
-static fd_exception SequenceMismatch=_("Mismatch of sequence lengths");
-static fd_exception EmptyReduce=_("No sequence elements to reduce");
+static u8_condition SequenceMismatch=_("Mismatch of sequence lengths");
+static u8_condition EmptyReduce=_("No sequence elements to reduce");
 
 #define FD_EQV(x,y) \
   ((FD_EQ(x,y)) || \

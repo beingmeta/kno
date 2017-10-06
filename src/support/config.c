@@ -31,8 +31,8 @@
 #include <libu8/libu8io.h>
 #endif
 
-fd_exception fd_ConfigError=_("Configuration error");
-fd_exception fd_ReadOnlyConfig=_("Read-only config setting");
+u8_condition fd_ConfigError=_("Configuration error");
+u8_condition fd_ReadOnlyConfig=_("Read-only config setting");
 
 static int trace_config = 0;
 

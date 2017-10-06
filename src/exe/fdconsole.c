@@ -453,7 +453,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
            (u8_has_suffix(dumpfile,".lispdata",1))) {
     u8_output outfile = (u8_output)
       u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
-    lispval backtrace = fd_exception_backtrace(ex);
+    lispval backtrace = FD_U8X_STACK(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
@@ -487,7 +487,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 #endif
   else if (u8_has_suffix(dumpfile,".dtype",1)) {
     struct FD_STREAM *out; int bytes = 0;
-    lispval backtrace = fd_exception_backtrace(ex);
+    lispval backtrace = FD_U8X_STACK(ex);
     u8_string temp_name = u8_mkstring("%s.part",abspath);
     out = fd_open_file(temp_name,FD_FILE_CREATE);
     if (out == NULL) {
@@ -509,7 +509,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
   else {
     u8_output outfile = (u8_output)u8_open_output_file
       (abspath,NULL,O_RDWR|O_CREAT,0600);
-    lispval backtrace = fd_exception_backtrace(ex);
+    lispval backtrace = FD_U8X_STACK(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
@@ -526,8 +526,9 @@ static lispval backtrace_prim(lispval arg)
     dump_backtrace(last_exception,NULL);
   else if (STRINGP(arg))
     dump_backtrace(last_exception,CSTRING(arg));
-  else if (FD_TRUEP(arg))
-    return fd_exception_backtrace(last_exception);
+  else if (FD_TRUEP(arg)) {
+    lispval backtrace = FD_U8X_STACK(last_exception);
+    return fd_incref(backtrace);}
   else if (FALSEP(arg)) {
     u8_free_exception(last_exception,1);
     last_exception = NULL;}
@@ -1026,7 +1027,7 @@ int main(int argc,char **argv)
         fd_output_errstack(tmpout,ex);
         fputs(tmp.u8_outbuf,stderr);
         tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
-        lispval backtrace = fd_exception_backtrace(ex);
+        lispval backtrace = FD_U8X_STACK(ex);
         if (show_backtrace) {
           u8_puts(tmpout,";; ");
           fd_sum_backtrace(tmpout,backtrace);}

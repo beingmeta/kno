@@ -27,16 +27,16 @@ FD_EXPORT lispval fd_stats_op, fd_label_op, fd_populate_op;
 FD_EXPORT lispval fd_getmap_op, fd_slotids_op, fd_baseoids_op, fd_keys_op;
 FD_EXPORT lispval fd_load_op, fd_capacity_op;
 
-FD_EXPORT fd_exception fd_InvalidOffsetType;
-FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;
-FD_EXPORT fd_exception fd_MMAPError, fd_MUNMAPError;
-FD_EXPORT fd_exception fd_RecoveryRequired;
+FD_EXPORT u8_condition fd_InvalidOffsetType;
+FD_EXPORT u8_condition fd_BadMetaData, fd_FutureMetaData;
+FD_EXPORT u8_condition fd_MMAPError, fd_MUNMAPError;
+FD_EXPORT u8_condition fd_RecoveryRequired;
 
-FD_EXPORT fd_exception fd_PoolDriverError, fd_IndexDriverError;
-FD_EXPORT fd_exception fd_CantOpenPool, fd_CantOpenIndex;
-FD_EXPORT fd_exception fd_CantFindPool, fd_CantFindIndex;
-FD_EXPORT fd_exception fd_PoolFileSizeOverflow, fd_FileIndexSizeOverflow;
-FD_EXPORT fd_exception fd_CorruptedPool, fd_CorruptedIndex;
+FD_EXPORT u8_condition fd_PoolDriverError, fd_IndexDriverError;
+FD_EXPORT u8_condition fd_CantOpenPool, fd_CantOpenIndex;
+FD_EXPORT u8_condition fd_CantFindPool, fd_CantFindIndex;
+FD_EXPORT u8_condition fd_PoolFileSizeOverflow, fd_FileIndexSizeOverflow;
+FD_EXPORT u8_condition fd_CorruptedPool, fd_CorruptedIndex;
 
 FD_EXPORT u8_string fd_match4bytes(u8_string file,void *data);
 FD_EXPORT u8_string fd_netspecp(u8_string file,void *data);

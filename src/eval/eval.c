@@ -58,14 +58,14 @@ lispval _fd_comment_symbol;
 
 static lispval quote_symbol, comment_symbol, moduleid_symbol;
 
-static fd_exception TestFailed=_("Test failed");
-static fd_exception ExpiredThrow=_("Continuation is no longer valid");
-static fd_exception DoubleThrow=_("Continuation used twice");
-static fd_exception LostThrow=_("Lost invoked continuation");
+static u8_condition TestFailed=_("Test failed");
+static u8_condition ExpiredThrow=_("Continuation is no longer valid");
+static u8_condition DoubleThrow=_("Continuation used twice");
+static u8_condition LostThrow=_("Lost invoked continuation");
 
 static char *cpu_profilename = NULL;
 
-fd_exception
+u8_condition
   fd_SyntaxError=_("SCHEME expression syntax error"),
   fd_InvalidMacro=_("invalid macro transformer"),
   fd_UnboundIdentifier=_("the variable is unbound"),
@@ -1658,7 +1658,7 @@ static lispval make_dtproc(lispval name,lispval server,lispval min_arity,
 
 /* Remote evaluation */
 
-static fd_exception ServerUndefined=_("Server unconfigured");
+static u8_condition ServerUndefined=_("Server unconfigured");
 
 FD_EXPORT lispval fd_open_dtserver(u8_string server,int bufsiz)
 {

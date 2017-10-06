@@ -36,7 +36,7 @@ static lispval make_slotmap()
   return slotmap;
 }
 
-fd_exception fd_XMLParseError=_("XML parsing error");
+u8_condition fd_XMLParseError=_("XML parsing error");
 
 #define hasprefix(px,str) ((strncmp(px,str,strlen(px))==0))
 

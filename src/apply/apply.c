@@ -43,23 +43,23 @@ fd_applyfn fd_applyfns[FD_TYPE_MAX];
 /* This is set if the type is a CONS with a FUNCTION header */
 short fd_functionp[FD_TYPE_MAX];
 
-fd_exception fd_NotAFunction=_("calling a non function");
-fd_exception fd_TooManyArgs=_("too many arguments");
-fd_exception fd_TooFewArgs=_("too few arguments");
-fd_exception fd_NoDefault=_("no default value for #default argument");
-fd_exception fd_ProfilingDisabled=_("profiling not built");
+u8_condition fd_NotAFunction=_("calling a non function");
+u8_condition fd_TooManyArgs=_("too many arguments");
+u8_condition fd_TooFewArgs=_("too few arguments");
+u8_condition fd_NoDefault=_("no default value for #default argument");
+u8_condition fd_ProfilingDisabled=_("profiling not built");
 
-fd_exception fd_NoStackChecking=
+u8_condition fd_NoStackChecking=
   _("Stack checking is not available in this build of FramerD");
-fd_exception fd_StackTooSmall=
+u8_condition fd_StackTooSmall=
   _("This value is too small for an application stack limit");
-fd_exception fd_StackTooLarge=
+u8_condition fd_StackTooLarge=
   _("This value is larger than the available stack space");
-fd_exception fd_BadStackSize=
+u8_condition fd_BadStackSize=
   _("This is an invalid stack size");
-fd_exception fd_BadStackFactor=
+u8_condition fd_BadStackFactor=
   _("This is an invalid stack resize factor");
-fd_exception fd_InternalStackSizeError=
+u8_condition fd_InternalStackSizeError=
   _("Internal stack size didn't make any sense, punting");
 
 #if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
@@ -814,7 +814,7 @@ FD_EXPORT lispval fd_ndcall(struct FD_STACK *_stack,
           return retval;}
         else return fd_simplify_choice(results);}
       else {
-        fd_exception ex = (n>f->fcn_arity) ? (fd_TooManyArgs) :
+        u8_condition ex = (n>f->fcn_arity) ? (fd_TooManyArgs) :
           (fd_TooFewArgs);
         return fd_err(ex,"fd_ndapply",f->fcn_name,LISP_CONS(f));}}
     else if (fd_applyfns[fntype])

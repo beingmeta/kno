@@ -17,13 +17,13 @@
 
 #include "streams.h"
 
-FD_EXPORT fd_exception fd_AmbiguousObjectName,
+FD_EXPORT u8_condition fd_AmbiguousObjectName,
   fd_UnknownObjectName, fd_BadServerResponse, fd_NoBackground;
 FD_EXPORT u8_condition fd_NoStorageMetadata;
 FD_EXPORT u8_condition fd_ServerReconnect;
 FD_EXPORT u8_condition fd_Commitment;
-FD_EXPORT fd_exception fd_BadMetaData;
-FD_EXPORT fd_exception fd_ConnectionFailed;
+FD_EXPORT u8_condition fd_BadMetaData;
+FD_EXPORT u8_condition fd_ConnectionFailed;
 
 FD_EXPORT int fd_init_drivers(void) FD_LIBINIT_FN;
 FD_EXPORT int fd_init_storage(void) FD_LIBINIT_FN;

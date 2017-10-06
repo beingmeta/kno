@@ -1465,7 +1465,7 @@ static lispval fdxml_binding(lispval expr,fd_lexenv env,fd_stack _stack)
 static lispval each_symbol, count_symbol, sequence_symbol;
 static lispval choice_symbol, max_symbol, min_symbol;
 
-static fd_exception MissingAttrib=_("Missing XML attribute");
+static u8_condition MissingAttrib=_("Missing XML attribute");
 
 static lispval fdxml_seq_loop(lispval var,lispval count_var,lispval xpr,fd_lexenv env);
 static lispval fdxml_choice_loop(lispval var,lispval count_var,lispval xpr,fd_lexenv env);

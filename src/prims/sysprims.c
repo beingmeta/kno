@@ -46,7 +46,7 @@
 #include <sys/sysinfo.h>
 #endif
 
-fd_exception fd_MissingFeature=_("OS doesn't support operation");
+u8_condition fd_MissingFeature=_("OS doesn't support operation");
 
 /* Getting the current hostname */
 

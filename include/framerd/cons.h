@@ -78,8 +78,8 @@
 #include "ptr.h"
 #include <libu8/u8timefns.h>
 
-FD_EXPORT fd_exception fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
-FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
+FD_EXPORT u8_condition fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
+FD_EXPORT u8_condition fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_GET_CONS(x,typecode,cast)					\
   ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ?				\
@@ -785,7 +785,7 @@ typedef struct FD_COMPLEX *fd_complex;
 
 #include <regex.h>
 
-FD_EXPORT fd_exception fd_RegexError;
+FD_EXPORT u8_condition fd_RegexError;
 
 typedef struct FD_REGEX {
   FD_CONS_HEADER;
@@ -809,16 +809,36 @@ typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 /* Exceptions */
 
-typedef struct FD_EXCEPTION_OBJECT {
+typedef struct FD_EXCEPTION {
   FD_CONS_HEADER;
-  u8_exception ex_u8ex;}
-  FD_EXCEPTION_OBJECT;
-typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
+  u8_condition ex_condition;
+  u8_context ex_caller;
+  u8_string  ex_details;
+  lispval ex_irritant;
+  lispval ex_stack;
+  lispval ex_context;}
+  FD_EXCEPTION;
+typedef struct FD_EXCEPTION *fd_exception;
 
-FD_EXPORT lispval fd_make_exception(fd_exception,u8_context,u8_string,lispval);
-FD_EXPORT lispval fd_init_exception(fd_exception_object,u8_exception);
+FD_EXPORT lispval fd_init_exception(fd_exception,
+				    u8_condition,u8_context,u8_string,
+				    lispval,lispval,lispval);
+FD_EXPORT void fd_decref_u8x_xdata(void *ptr);
+FD_EXPORT void fd_decref_embedded_exception(void *ptr);
 
 #define FD_EXCEPTIONP(x) (FD_TYPEP((x),fd_exception_type))
+
+#define FD_XDATA_ISLISP(ex)					\
+  ( ((ex)->u8x_free_xdata == fd_decref_u8x_xdata) ||	\
+    ((ex)->u8x_free_xdata == fd_decref_embedded_exception) )
+
+#define FD_U8X_STACK(ex) \
+  (((ex)->u8x_free_xdata != fd_decref_embedded_exception) ? (FD_VOID) : \
+   (FD_TYPEP(((lispval)((ex)->u8x_xdata)),fd_exception_type)) ?		\
+   (((fd_exception)((ex)->u8x_xdata))->ex_stack) :		\
+   (FD_VOID))
+
+FD_EXPORT void fd_restore_exception(struct FD_EXCEPTION *exo);
 
 /* Timestamps */
 

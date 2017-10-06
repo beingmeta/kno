@@ -28,10 +28,10 @@
 
 size_t fd_zlib_level = FD_DEFAULT_ZLEVEL;
 
-fd_exception fd_IsWriteBuf=_("Reading from a write buffer");
-fd_exception fd_IsReadBuf=_("Writing to a read buffer");
+u8_condition fd_IsWriteBuf=_("Reading from a write buffer");
+u8_condition fd_IsReadBuf=_("Writing to a read buffer");
 
-static fd_exception BadUnReadByte=_("Inconsistent read/unread byte");
+static u8_condition BadUnReadByte=_("Inconsistent read/unread byte");
 
 /* Byte output */
 

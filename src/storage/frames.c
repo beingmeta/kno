@@ -21,7 +21,7 @@
 
 #include <stdarg.h>
 
-static fd_exception OddFindFramesArgs=_("Odd number of args to find frames");
+static u8_condition OddFindFramesArgs=_("Odd number of args to find frames");
 
 static struct FD_HASHTABLE slot_caches, test_caches;
 static lispval get_methods, compute_methods, test_methods;

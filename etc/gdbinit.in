@@ -8,7 +8,7 @@ set env DUMA_ALIGNMENT=4
 set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
 set env ASAN_OPTIONS=abort_on_error=1:malloc_context_size=30:print_cmdline=true
-set env LSAN_OPTIONS=report_objects=1:malloc_context_size=30
+set env LSAN_OPTIONS=detect_leaks=0
 set env TCMALLOC_DEBUG=3
 #set env PERFTOOLS_VERBOSE=2
 #set env MALLOCSTATS=2
@@ -28,6 +28,7 @@ define heapcheck
 end
 define leakcheck
   set env HEAPCHECK=normal # strict|draconian
+  set LSAN_OPTIONS=detect_leaks=1:report_objects=1:malloc_context_size=30
 end
 define libinfo
   info sharedlib
