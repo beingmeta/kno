@@ -112,12 +112,12 @@ static lispval dbctl_prim(int n,lispval *args)
     struct FD_INDEX *ix = fd_lisp2index(db);
     if (ix == NULL)
       return fd_type_error("DB(index)","dbctl_prim",db);
-    else return fd_index_ctl(ix,db,n-2,args+2);}
+    else return fd_index_ctl(ix,args[1],n-2,args+2);}
   else if ( (FD_POOLP(db)) || (FD_TYPEP(db,fd_consed_pool_type)) ) {
     struct FD_POOL *p = fd_lisp2pool(db);
     if (p == NULL)
       return fd_type_error("DB(pool)","dbctl_prim",db);
-    else return fd_pool_ctl(p,db,n-2,args+2);}
+    else return fd_pool_ctl(p,args[1],n-2,args+2);}
   else return fd_type_error("DB(pool/index)","dbctl_prim",db);
 }
 
