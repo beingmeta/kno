@@ -143,7 +143,19 @@ FD_EXPORT void fd_init_driverfns_c()
   fd_defalias(fd_xscheme_module,"HASH-INDEX-SLOTIDS","INDEX-SLOTIDS");
 
 
-  fd_idefn(fd_xscheme_module,fd_make_cprimn("DBCTL",dbctl_prim,2));
+  fd_idefnN(fd_xscheme_module,"DBCTL",dbctl_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(DBCTL *dbref* *op* ... *args*) performs an operation *op* "
+            "on the pool or index *dbref* with *args*. *op* is a symbol and "
+            "*dbref* must be a pool or index object.");
+  fd_idefnN(fd_xscheme_module,"POOLCTL",poolctl_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(POOLCTL *pool* *op* ... *args*) performs an operation *op* "
+            "on the pool *pool* with *args*. *op* is a symbol and *pool* is "
+            "a pool object.");
+  fd_idefnN(fd_xscheme_module,"INDEXCTL",indexctl_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(INDEXCTL *index* *op* ... *args*) performs an operation *op* "
+            "on the index *index* with *args*. *op* is a symbol and *index* "
+            "is an index object.");
+
   fd_idefn(fd_xscheme_module,fd_make_cprimn("INDEXCTL",indexctl_prim,2));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("POOLCTL",poolctl_prim,2));
 
