@@ -32,7 +32,7 @@ u8_condition fd_BadIndexSpec=_("bad index specification");
 u8_condition fd_CorruptedIndex=_("corrupted index file");
 u8_condition fd_IndexCommitError=_("can't save changes to index");
 
-lispval fd_index_hashop, fd_index_slotsop;
+lispval fd_index_hashop, fd_index_slotsop, fd_index_bucketsop;
 
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
@@ -1542,6 +1542,7 @@ FD_EXPORT void fd_init_indexes_c()
 
   fd_index_hashop=fd_intern("HASH");
   fd_index_slotsop=fd_intern("SLOTIDS");
+  fd_index_bucketsop=fd_intern("BUCKETS");
 
   cachelevel_slot=fd_intern("CACHELEVEL");
   indexid_slot=fd_intern("INDEXID");

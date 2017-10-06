@@ -85,7 +85,7 @@ FD_EXPORT lispval fd_index_ctl(fd_index p,lispval op,int n,lispval *args);
 FD_EXPORT lispval fd_default_indexctl(fd_index ix,lispval op,int n,lispval *args);
 FD_EXPORT lispval fd_index_base_metadata(fd_index ix);
 
-FD_EXPORT lispval fd_index_hashop, fd_index_slotsop;
+FD_EXPORT lispval fd_index_hashop, fd_index_slotsop, fd_index_bucketsop;
 
 #if 0
 struct FD_INDEX_HANDLER some_handler={

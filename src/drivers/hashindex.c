@@ -144,6 +144,8 @@
 #define CHECK_ENDPOS(pos,stream)
 #endif
 
+FD_EXPORT u8_condition fd_TooManyArgs;
+
 static ssize_t hash_index_default_size=32000;
 
 static ssize_t get_maxpos(fd_hashindex p)
@@ -2795,7 +2797,7 @@ FD_EXPORT ssize_t fd_hashindex_bucket(lispval ixarg,lispval key,
 
 /* Getting more key/bucket info */
 
-static lispval keyinfo_schema[4];
+static lispval keyinfo_schema[5];
 
 FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
                                        lispval min_count,
@@ -2898,6 +2900,195 @@ FD_EXPORT lispval fd_hashindex_keyinfo(lispval lix,
                         FD_CHOICE_DOSORT);
 }
 
+static lispval get_hashbuckets(struct FD_HASHINDEX *hx)
+{
+  lispval buckets = FD_EMPTY;
+  fd_stream s = &(hx->index_stream);
+  unsigned int *offdata = hx->index_offdata;
+  fd_offset_type offtype = hx->index_offtype;
+  fd_inbuf ins = fd_readbuf(s);
+  int i = 0, n_buckets = (hx->index_n_buckets);
+  init_cache_level((fd_index)hx);
+  fd_lock_stream(s);
+  if (offdata) {
+    /* If we have chunk offsets in memory, we just read them off. */
+    fd_unlock_stream(s);
+    while (i<n_buckets) {
+      FD_CHUNK_REF ref =
+        fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
+      if (ref.size>0) {
+        lispval fixnum = FD_INT2DTYPE(i);
+        FD_ADD_TO_CHOICE(buckets,fixnum);}
+      i++;}}
+  else {
+    /* If we don't have chunk offsets in memory, we keep the stream
+       locked while we get them. */
+    while (i<n_buckets) {
+      FD_CHUNK_REF ref = fd_fetch_chunk_ref(s,256,offtype,i,1);
+      if (ref.size>0) {
+        lispval fixnum = FD_INT2DTYPE(i);
+        FD_ADD_TO_CHOICE(buckets,fixnum);}
+      i++;}
+    fd_unlock_stream(s);}
+  return fd_simplify_choice(buckets);
+}
+
+static lispval hashbucket_info(struct FD_HASHINDEX *hx,lispval bucket_nums)
+{
+  fd_stream s = &(hx->index_stream);
+  unsigned int *offdata = hx->index_offdata;
+  fd_offset_type offtype = hx->index_offtype;
+  fd_inbuf ins = fd_readbuf(s);
+  int i = 0, n_buckets = (hx->index_n_buckets), total_keys;
+  int n_to_fetch = FD_CHOICE_SIZE(bucket_nums), n_refs=0;
+  init_cache_level((fd_index)hx);
+  fd_lock_stream(s);
+  lispval keyinfo = FD_EMPTY;
+  FD_CHUNK_REF *buckets = u8_alloc_n(n_to_fetch,FD_CHUNK_REF);
+  int *bucket_no = u8_alloc_n(n_to_fetch,unsigned int);
+  if (offdata) {
+    /* If we have chunk offsets in memory, we just read them off. */
+    fd_unlock_stream(s);
+    FD_DO_CHOICES(bucket,bucket_nums) {
+      if (FD_FIXNUMP(bucket)) {
+        long long bucket_val = FD_FIX2INT(bucket);
+        if ( (bucket_val>=0) && (bucket_val<n_buckets) ) {
+          FD_CHUNK_REF ref =
+            fd_get_chunk_ref(offdata,offtype,bucket_val,hx->index_n_buckets);
+          if (ref.size>0) {
+            bucket_no[n_refs]=i;
+            buckets[n_refs]=ref;
+            n_refs++;}}}}}
+  else {
+    FD_DO_CHOICES(bucket,bucket_nums) {
+      if (FD_FIXNUMP(bucket)) {
+        long long bucket_val = FD_FIX2INT(bucket);
+        if ( (bucket_val>=0) && (bucket_val<n_buckets) ) {
+          FD_CHUNK_REF ref =
+            fd_fetch_chunk_ref(s,256,offtype,bucket_val,1);
+          if (ref.size>0) {
+            bucket_no[n_refs]=bucket_val;
+            buckets[n_refs]=ref;
+            n_refs++;}}}}}
+  qsort(buckets,n_refs,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
+  struct FD_INBUF keyblkstrm={0};
+  i = 0; while (i<n_refs) {
+    int j = 0, n_keys;
+    if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+      fd_close_inbuf(&keyblkstrm);
+      u8_free(buckets);
+      u8_free(bucket_no);
+      fd_decref(keyinfo);
+      return FD_EMPTY_CHOICE;}
+    n_keys = fd_read_zint(&keyblkstrm);
+    while (j<n_keys) {
+      size_t key_rep_len = fd_read_zint(&keyblkstrm);
+      const unsigned char *start = keyblkstrm.bufread;
+      lispval key = read_key(hx,&keyblkstrm);
+      int n_vals = fd_read_zint(&keyblkstrm);
+      assert(key!=0);
+      int n_slots = (n_vals>1) ? (4) : (5);
+      lispval *keyinfo_values = u8_alloc_n(n_slots,lispval);
+      int hashval = hash_bytes(start,key_rep_len);
+      keyinfo_values[0] = key;
+      keyinfo_values[1] = FD_INT(n_vals);
+      keyinfo_values[2] = FD_INT(bucket_no[i]);
+      keyinfo_values[3] = FD_INT(hashval);
+      if (n_vals==0)
+        keyinfo_values[4] = FD_EMPTY_CHOICE;
+      else if (n_vals==1) {
+        lispval value = read_zvalue(hx,&keyblkstrm);
+        keyinfo_values[4]=value;}
+      else {
+        fd_read_zint(&keyblkstrm);
+        fd_read_zint(&keyblkstrm);}
+      lispval sm = fd_make_schemap(NULL,4,0,keyinfo_schema,keyinfo_values);
+      FD_ADD_TO_CHOICE(keyinfo,sm);
+      j++;}
+    i++;}
+  fd_close_inbuf(&keyblkstrm);
+  u8_free(buckets);
+  u8_free(bucket_no);
+  return keyinfo;
+}
+
+static lispval hashrange_info(struct FD_HASHINDEX *hx,
+                              unsigned int start,unsigned int end)
+{
+  fd_stream s = &(hx->index_stream);
+  unsigned int *offdata = hx->index_offdata;
+  fd_offset_type offtype = hx->index_offtype;
+  fd_inbuf ins = fd_readbuf(s);
+  int n_buckets = (hx->index_n_buckets), total_keys;
+  int n_to_fetch = end-start, n_refs=0;
+  init_cache_level((fd_index)hx);
+  fd_lock_stream(s);
+  lispval keyinfo = FD_EMPTY;
+  FD_CHUNK_REF *buckets = u8_alloc_n(n_to_fetch,FD_CHUNK_REF);
+  int *bucket_no = u8_alloc_n(n_to_fetch,unsigned int);
+  if (offdata) {
+    /* If we have chunk offsets in memory, we just read them off. */
+    fd_unlock_stream(s);
+    int i=start; while (i<end) {
+      FD_CHUNK_REF ref =
+        fd_get_chunk_ref(offdata,offtype,i,hx->index_n_buckets);
+      if (ref.size>0) {
+        bucket_no[n_refs]=i;
+        buckets[n_refs]=ref;
+        n_refs++;}
+      i++;}}
+  else {
+    /* If we have chunk offsets in memory, we just read them off. */
+    fd_unlock_stream(s);
+    int i=start; while (i<end) {
+      FD_CHUNK_REF ref =fd_fetch_chunk_ref(s,256,offtype,i,1);
+      if (ref.size>0) {
+        bucket_no[n_refs]=i;
+        buckets[n_refs]=ref;
+        n_refs++;}
+      i++;}}
+  qsort(buckets,n_refs,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
+  struct FD_INBUF keyblkstrm={0};
+  int i = 0; while (i<n_refs) {
+    int j = 0, n_keys;
+    if (!fd_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+      fd_close_inbuf(&keyblkstrm);
+      u8_free(buckets);
+      u8_free(bucket_no);
+      fd_decref(keyinfo);
+      return FD_EMPTY_CHOICE;}
+    n_keys = fd_read_zint(&keyblkstrm);
+    while (j<n_keys) {
+      size_t key_rep_len = fd_read_zint(&keyblkstrm);
+      const unsigned char *start = keyblkstrm.bufread;
+      lispval key = read_key(hx,&keyblkstrm);
+      int n_vals = fd_read_zint(&keyblkstrm);
+      assert(key!=0);
+      int n_slots = (n_vals>1) ? (4) : (5);
+      lispval *keyinfo_values = u8_alloc_n(n_slots,lispval);
+      int hashval = hash_bytes(start,key_rep_len);
+      keyinfo_values[0] = key;
+      keyinfo_values[1] = FD_INT(n_vals);
+      keyinfo_values[2] = FD_INT(bucket_no[i]);
+      keyinfo_values[3] = FD_INT(hashval);
+      if (n_vals==0)
+        keyinfo_values[4] = FD_EMPTY_CHOICE;
+      else if (n_vals==1) {
+        lispval value = read_zvalue(hx,&keyblkstrm);
+        keyinfo_values[4]=value;}
+      else {
+        fd_read_zint(&keyblkstrm);
+        fd_read_zint(&keyblkstrm);}
+      lispval sm = fd_make_schemap(NULL,4,0,keyinfo_schema,keyinfo_values);
+      FD_ADD_TO_CHOICE(keyinfo,sm);
+      j++;}
+    i++;}
+  fd_close_inbuf(&keyblkstrm);
+  u8_free(buckets);
+  u8_free(bucket_no);
+  return keyinfo;
+}
+
 /* The control function */
 
 static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
@@ -2937,6 +3128,28 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
       else if ((FALSEP(mod_arg))||(VOIDP(mod_arg)))
         return FD_INT(bucket);
       else return FD_INT((bucket%(hx->index_n_buckets)));}}
+  else if (op == fd_index_bucketsop) {
+    if (n==0)
+      return get_hashbuckets(hx);
+    else if (n==1)
+      return hashbucket_info(hx,args[0]);
+    else if (n==2) {
+      lispval arg0 = args[0], arg1 = args[1];
+      if (!(FD_UINTP(arg0)))
+        return fd_type_error("lowerhashbucket","hashindex_ctl/buckets",arg0);
+      else if (!(FD_UINTP(arg0)))
+        return fd_type_error("lowerhashbucket","hashindex_ctl/buckets",arg1);
+      else {
+        long long lower = fd_getint(arg0);
+        long long upper = fd_getint(arg1);
+        if (upper==lower) return hashbucket_info(hx,args[0]);
+        else if (upper < lower)
+          return fd_err(fd_DisorderedRange,"hashindex_ctl",hx->indexid,
+                        fd_init_pair(NULL,arg0,arg1));
+        else if (upper >= hx->index_n_buckets)
+          return fd_err(fd_RangeError,"hashindex_ctl",hx->indexid,arg1);
+        else return hashrange_info(hx,lower,upper);}}
+    else return fd_err(fd_TooManyArgs,"hashindex_ctl",hx->indexid,op);}
   else if ( (op == fd_metadata_op) && (n == 0) ) {
     lispval base = fd_index_base_metadata(ix);
     int n_slotids = hx->index_n_slotids+hx->index_new_slotids;
@@ -3046,6 +3259,7 @@ FD_EXPORT void fd_init_hashindex_c()
   keyinfo_schema[1] = fd_intern("COUNT");
   keyinfo_schema[2] = fd_intern("BUCKET");
   keyinfo_schema[3] = fd_intern("HASH");
+  keyinfo_schema[4] = fd_intern("VALUE");
 
   u8_register_source_file(_FILEINFO);
 
