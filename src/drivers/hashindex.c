@@ -2620,7 +2620,13 @@ static int update_hashindex_ondisk
   if (fd_modifiedp((lispval)&(hx->index_metadata)))
     update_hashindex_metadata(hx,stream);
 
+  /* Write any changed flags */
+  fd_write_4bytes_at(stream,flags,8);
+  fd_write_4bytes_at(stream,cur_keys,16);
+  fd_write_4bytes_at(stream,FD_HASHINDEX_MAGIC_NUMBER,0);
+  fd_flush_stream(stream);
 }
+
 static void reload_offdata(struct FD_INDEX *ix)
 #if HAVE_MMAP
 {
