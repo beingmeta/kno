@@ -3146,7 +3146,7 @@ static lispval hashindex_ctl(fd_index ix,lispval op,int n,lispval *args)
         else if (upper < lower)
           return fd_err(fd_DisorderedRange,"hashindex_ctl",hx->indexid,
                         fd_init_pair(NULL,arg0,arg1));
-        else if (upper >= hx->index_n_buckets)
+        else if (upper > hx->index_n_buckets)
           return fd_err(fd_RangeError,"hashindex_ctl",hx->indexid,arg1);
         else return hashrange_info(hx,lower,upper);}}
     else return fd_err(fd_TooManyArgs,"hashindex_ctl",hx->indexid,op);}
