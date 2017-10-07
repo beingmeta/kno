@@ -457,7 +457,7 @@ static lispval ambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   return proc;
 }
 
-static lispval nambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval nlambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval name_expr = fd_get_arg(expr,1), name;
   lispval arglist = fd_get_arg(expr,2);
@@ -465,18 +465,55 @@ static lispval nambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval proc = VOID;
   u8_string namestring = NULL;
   if ((VOIDP(name_expr))||(VOIDP(arglist)))
-    return fd_err(fd_TooFewExpressions,"NAMBDA",NULL,expr);
+    return fd_err(fd_TooFewExpressions,"NLAMBDA",NULL,expr);
   else name = fd_eval(name_expr,env);
   if (SYMBOLP(name)) namestring = SYM_NAME(name);
   else if (STRINGP(name)) namestring = CSTRING(name);
   else return fd_type_error("procedure name (string or symbol)",
-                            "nambda_evalfn",name);
+                            "nlambda_evalfn",name);
   if (FD_CODEP(body)) {
     fd_incref(arglist);
     proc=_make_lambda(namestring,arglist,body,env,1,0,0,0);}
   else proc=make_lambda(namestring,arglist,body,env,1,0);
   FD_SET_LAMBDA_SOURCE(proc,expr);
   return proc;
+}
+
+static lispval def_helper(lispval expr,fd_lexenv env,int nd,int sync)
+{
+  lispval template = fd_get_arg(expr,1);
+  if (!(FD_PAIRP(template)))
+    return fd_err(fd_SyntaxError,"def_evalfn",NULL,template);
+  lispval name = FD_CAR(template);
+  lispval arglist = FD_CDR(template);
+  lispval body = fd_get_body(expr,2);
+  lispval proc = VOID;
+  u8_string namestring = NULL;
+  if (SYMBOLP(name)) namestring = SYM_NAME(name);
+  else if (STRINGP(name)) namestring = CSTRING(name);
+  else return fd_type_error
+         ("procedure name (string or symbol)","def_evalfn",name);
+  if (FD_CODEP(body)) {
+    fd_incref(arglist);
+    proc=_make_lambda(namestring,arglist,body,env,1,0,0,0);}
+  else proc=make_lambda(namestring,arglist,body,env,1,0);
+  FD_SET_LAMBDA_SOURCE(proc,expr);
+  return proc;
+}
+
+static lispval def_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  return def_helper(expr,env,0,0);
+}
+
+static lispval defamb_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  return def_helper(expr,env,1,0);
+}
+
+static lispval defsync_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  return def_helper(expr,env,0,1);
 }
 
 static lispval slambda_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -874,13 +911,23 @@ FD_EXPORT void fd_init_lambdas_c()
 
   fd_def_evalfn(fd_scheme_module,"LAMBDA","",lambda_evalfn);
   fd_def_evalfn(fd_scheme_module,"AMBDA","",ambda_evalfn);
-  fd_def_evalfn(fd_scheme_module,"NAMBDA","",nambda_evalfn);
+  fd_def_evalfn(fd_scheme_module,"NLAMBDA","",nlambda_evalfn);
   fd_def_evalfn(fd_scheme_module,"SLAMBDA","",slambda_evalfn);
   fd_def_evalfn(fd_scheme_module,"SAMBDA","",sambda_evalfn);
   fd_def_evalfn(fd_scheme_module,"THUNK","",thunk_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFINE","",define_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFSLAMBDA","",defslambda_evalfn);
   fd_def_evalfn(fd_scheme_module,"DEFAMBDA","",defambda_evalfn);
+
+  fd_def_evalfn(fd_scheme_module,"DEF",
+                "Returns a named lambda procedure",
+                def_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAMB",
+                "Returns a named non-determinstic lambda procedure",
+                defamb_evalfn);
+  fd_def_evalfn(fd_scheme_module,"DEFAMB",
+                "Returns a named synchronized lambda procedure",
+                defsync_evalfn);
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("XAPPLY",xapply_prim,2,fd_lambda_type,VOID,-1,VOID));
