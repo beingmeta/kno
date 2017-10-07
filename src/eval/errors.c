@@ -18,6 +18,22 @@
 
 static u8_condition SchemeError=_("Undistinguished Scheme Error");
 
+/* Returning error objects when troubled */
+
+static lispval catcherr_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval toeval = fd_get_arg(expr,1);
+  lispval value = fd_stack_eval(toeval,env,_stack,0);
+  if (FD_THROWP(value))
+    return value;
+  else if (FD_ABORTP(value)) {
+    u8_exception ex = u8_erreify();
+    lispval exception_object = fd_wrap_exception(ex);
+    u8_free_exception(ex,1);
+    return exception_object;}
+  else return value;
+}
+
 /* Returning errors */
 
 static lispval return_error_helper(lispval expr,fd_lexenv env,int wrapped)
@@ -175,12 +191,12 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   lispval toeval = fd_get_arg(expr,1);
   lispval error_handler = fd_get_arg(expr,2);
   lispval default_handler = fd_get_arg(expr,3);
-  lispval value = fd_eval(toeval,env);
+  lispval value = fd_stack_eval(toeval,env,_stack,0);
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
     u8_exception ex = u8_erreify();
-    lispval handler = fd_eval(error_handler,env);
+    lispval handler = fd_stack_eval(error_handler,env,_stack,0);
     if (FD_ABORTP(handler)) {
       u8_restore_exception(ex);
       return handler;}
@@ -215,7 +231,7 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else if (VOIDP(default_handler))
     return value;
   else {
-    lispval handler = fd_eval(default_handler,env);
+    lispval handler = fd_stack_eval(default_handler,env,_stack,0);
     if (FD_ABORTP(handler))
       return handler;
     else if (FD_APPLICABLEP(handler)) {
@@ -231,10 +247,12 @@ static lispval onerror_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       return handler;}}
 }
 
+/* Report/clear errors */
+
 static lispval report_errors_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval toeval = fd_get_arg(expr,1);
-  lispval value = fd_eval(toeval,env);
+  lispval value = fd_stack_eval(toeval,env,_stack,0);
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
@@ -245,17 +263,36 @@ static lispval report_errors_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   else return value;
 }
 
-static lispval erreify_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+static lispval ignore_errors_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval toeval = fd_get_arg(expr,1);
-  lispval value = fd_eval(toeval,env);
+  lispval dflt = fd_get_arg(expr,2);
+  lispval value = fd_stack_eval(toeval,env,_stack,0);
   if (FD_THROWP(value))
     return value;
   else if (FD_ABORTP(value)) {
-    u8_exception ex = u8_erreify();
-    return fd_wrap_exception(ex);}
+    u8_exception ex = u8_current_exception;
+    fd_clear_errors(0);
+    if (FD_VOIDP(dflt))
+      return FD_FALSE;
+    else {
+      lispval to_return = fd_stack_eval(dflt,env,_stack,0);
+      if (FD_ABORTP(to_return)) {
+        fd_clear_errors(0);
+        return FD_FALSE;}
+      else return to_return;}
+    return FD_FALSE;}
   else return value;
 }
+
+static lispval clear_errors()
+{
+  int n_errs = fd_clear_errors(1);
+  if (n_errs) return FD_INT(n_errs);
+  else return FD_FALSE;
+}
+
+/* Primitives on exception objects */
 
 static lispval error_condition(lispval x)
 {
@@ -364,18 +401,18 @@ static lispval dynamic_wind_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
   if ((VOIDP(wind)) || (VOIDP(doit)) || (VOIDP(unwind)))
     return fd_err(fd_SyntaxError,"dynamic_wind_evalfn",NULL,expr);
   else {
-    wind = fd_eval(wind,env);
+    wind = fd_stack_eval(wind,env,_stack,0);
     if (FD_ABORTP(wind)) return wind;
     else if (!(thunkp(wind)))
       return fd_type_error("thunk","dynamic_wind_evalfn",wind);
-    else doit = fd_eval(doit,env);
+    else doit = fd_stack_eval(doit,env,_stack,0);
     if (FD_ABORTP(doit)) {
       fd_decref(wind);
       return doit;}
     else if (!(thunkp(doit))) {
       fd_decref(wind);
       return fd_type_error("thunk","dynamic_wind_evalfn",doit);}
-    else unwind = fd_eval(unwind,env);
+    else unwind = fd_stack_eval(unwind,env,_stack,0);
     if (FD_ABORTP(unwind)) {
       fd_decref(wind); fd_decref(doit);
       return unwind;}
@@ -411,7 +448,7 @@ static lispval unwind_protect_evalfn(lispval uwp,fd_lexenv env,fd_stack _stack)
   lispval heart = fd_get_arg(uwp,1);
   lispval result;
   {U8_WITH_CONTOUR("UNWIND-PROTECT(body)",0)
-      result = fd_eval(heart,env);
+      result = fd_stack_eval(heart,env,_stack,0);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR;}
@@ -419,7 +456,7 @@ static lispval unwind_protect_evalfn(lispval uwp,fd_lexenv env,fd_stack _stack)
   {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
       {lispval unwinds = fd_get_body(uwp,2);
         FD_DOLIST(expr,unwinds) {
-          lispval uw_result = fd_eval(expr,env);
+          lispval uw_result = fd_stack_eval(expr,env,_stack,0);
           if (FD_ABORTP(uw_result))
             if (FD_ABORTP(result)) {
               fd_interr(result); fd_interr(uw_result);
@@ -457,23 +494,56 @@ static lispval get_irritant_prim(lispval exo)
 
 /* Clear errors */
 
-static lispval clear_errors()
-{
-  int n_errs = fd_clear_errors(1);
-  if (n_errs) return FD_INT(n_errs);
-  else return FD_FALSE;
-}
-
 FD_EXPORT void fd_init_errors_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  fd_def_evalfn(fd_scheme_module,"ERROR","",return_error_evalfn);
-  fd_def_evalfn(fd_scheme_module,"IRRITANT","",return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERROR",
+                "(error *condition* *caller* [*irritant*] details...) "
+                "signals an error\n"
+                "*condition* and *caller* should be symbols and are not "
+                "evaluated. *irritant* is a lisp object (evaluated) and "
+                "a details message is generated by PRINTOUT ..details",
+                return_error_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IRRITANT",
+                "(irritant *irritant* *condition* *caller* details...) "
+                "signals an error with the designated *irritant* \n"
+                "*condition* and *caller* should be symbols and are not "
+                "evaluated. A details message is generated by "
+                "PRINTOUT ..details",
+                return_irritant_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ONERROR",
+                "(ONERROR *expr* *onerr* [*normally*])\n"
+                "Evaluates *expr*, catching errors during the evaluation. "
+                "If there are errors, either apply *onerr* to an exception "
+                "object or simply return *onerr* if it's not applicable. "
+                "If there are no errors and *normal* is not specified, "
+                "return the result. If *normal* is specified, apply it to "
+                "the result and return it's result.",
+                onerror_evalfn);
+  fd_def_evalfn(fd_scheme_module,"CATCHERR",
+                "(CATCHERR *expr*) returns the result of *expr* or an exception object "
+                "describing any signalled errors",
+                catcherr_evalfn);
+  fd_def_evalfn(fd_scheme_module,"ERREIFY",
+                "(ERREIFY *expr*) returns the result of *expr* or an exception object "
+                "describing any signalled errors",
+                catcherr_evalfn);
+
+  fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS",
+                "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, reporting and clearing any errors.\n"
+                "Returns *errval* or #f if any errors occur.",
+                report_errors_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IGNORE-ERRORS",
+                "(REPORT-ERRORS *expr* [*errval*]) evaluates *expr*, reporting and clearing any errors.\n"
+                "Returns *errval* or #f if any errors occur.",
+                ignore_errors_evalfn);
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim0("CLEAR-ERRORS!",clear_errors));
+
+  /* Deprecated, from old error system */
   fd_def_evalfn(fd_scheme_module,"NEWERR","",return_irritant_evalfn);
-  fd_def_evalfn(fd_scheme_module,"ONERROR","",onerror_evalfn);
-  fd_def_evalfn(fd_scheme_module,"REPORT-ERRORS","",report_errors_evalfn);
-  fd_def_evalfn(fd_scheme_module,"ERREIFY","",erreify_evalfn);
+
 
   fd_idefn1(fd_scheme_module,"RERAISE",reraise_prim,1,
             "Reraises the exception represented by an object",
@@ -507,9 +577,6 @@ FD_EXPORT void fd_init_errors_c()
 
   fd_def_evalfn(fd_scheme_module,"DYNAMIC-WIND","",dynamic_wind_evalfn);
   fd_def_evalfn(fd_scheme_module,"UNWIND-PROTECT","",unwind_protect_evalfn);
-
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim0("CLEAR-ERRORS!",clear_errors));
 
 }
 
