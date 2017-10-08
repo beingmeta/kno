@@ -38,6 +38,28 @@ static lispval if_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
     else return fd_eval(consequent_expr,env);}
 }
 
+static lispval ifstar_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
+{
+  lispval test_expr = fd_get_arg(expr,1), test_result;
+  lispval consequent_expr = fd_get_arg(expr,2);
+  if ((VOIDP(test_expr)) || (VOIDP(consequent_expr)))
+    return fd_err(fd_TooFewExpressions,"IF*",NULL,expr);
+  test_result = fd_eval(test_expr,env);
+  if (FD_ABORTED(test_result))
+    return test_result;
+  else if ((FALSEP(test_result)) || (EMPTYP(test_result))) {
+    lispval val = VOID;
+    lispval alt_body = fd_get_body(expr,3);
+    FD_DOLIST(alt,alt_body) {
+      fd_decref(val); val = fd_eval(alt,env);}
+    return val;}
+  else {
+    fd_decref(test_result);
+    if ((PAIRP(consequent_expr))||(FD_CODEP(consequent_expr)))
+      return fd_tail_eval(consequent_expr,env);
+    else return fd_eval(consequent_expr,env);}
+}
+
 static lispval ifelse_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval test_expr = fd_get_arg(expr,1), test_result;
@@ -214,15 +236,48 @@ FD_EXPORT void fd_init_conditionals_c()
   apply_marker = fd_intern("=>");
   else_symbol = fd_intern("ELSE");
 
-  fd_def_evalfn(fd_scheme_module,"IF","",if_evalfn);
-  fd_def_evalfn(fd_scheme_module,"IFELSE","",ifelse_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IF",
+                "(IF *test* *then* [*else*]) "
+                "returns *then* if *test* is neither #f or {}\n"
+                "and *else* (if provided) when *test* is #f. "
+                "Returns VOID otherwise.",
+                if_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IF*",
+                "(IF* *test* *then* *else*...) "
+                "returns *then* if *test* is neither #f or {}. "
+                "Otherwise (even if *test* fails (is {}), "
+                "evaluate the *else* clauses in order. If there "
+                "are no *else* clauses, returns VOID",
+                ifstar_evalfn);
+  fd_def_evalfn(fd_scheme_module,"IFELSE",
+                "(IFELSE *test* *then* *else*...) "
+                "returns *then* if *test* is neither #f or {}. "
+                "If *test* is #f, evaluate the *else* clauses in order. "
+                "If there are no *else* clauses, returns VOID",
+                ifelse_evalfn);
   fd_def_evalfn(fd_scheme_module,"TRYIF","",tryif_evalfn);
   fd_def_evalfn(fd_scheme_module,"COND","",cond_evalfn);
   fd_def_evalfn(fd_scheme_module,"CASE","",case_evalfn);
-  fd_def_evalfn(fd_scheme_module,"WHEN","",when_evalfn);
-  fd_def_evalfn(fd_scheme_module,"UNLESS","",unless_evalfn);
-  fd_def_evalfn(fd_scheme_module,"AND","",and_evalfn);
-  fd_def_evalfn(fd_scheme_module,"OR","",or_evalfn);
+  fd_def_evalfn(fd_scheme_module,"WHEN",
+                "(WHEN *test* *clauses*...) returns VOID and "
+                "evaluates *clauses* in order if *test* is not "
+                "#f or {}",
+                when_evalfn);
+  fd_def_evalfn(fd_scheme_module,"UNLESS",
+                "(WHEN *test* *clauses*...) returns VOID and "
+                "evaluates *clauses* in order if *test* is #f.",
+                unless_evalfn);
+  fd_def_evalfn(fd_scheme_module,"AND",
+                "(AND *clauses*..) evaluates *clauses* in order "
+                "until one returns either #f or {}, which is then "
+                "returned. If none return #f or #{}, return the result "
+                "of the last clause",
+                and_evalfn);
+  fd_def_evalfn(fd_scheme_module,"OR",
+                "(OR *clauses*..) evaluates *clauses* in order, "
+                "returning the first non #f value. If a clause returns {} "
+                "it is returned immediately.",
+                or_evalfn);
   fd_idefn(fd_scheme_module,fd_make_cprim1("NOT",not_prim,1));
 }
 
