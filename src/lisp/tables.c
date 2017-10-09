@@ -753,20 +753,20 @@ FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,
                               struct FD_SLOTMAP *dest)
 {
   int unlock=0;
-  if ( (dest->n_slots) && (dest->sm_keyvals) ) {
-    struct FD_KEYVAL *scan = dest->sm_keyvals;
-    struct FD_KEYVAL *limit = scan + dest->n_slots;
-    while (scan<limit) {
-      lispval key = scan->kv_key;
-      lispval val = scan->kv_val;
-      fd_decref(key);
-      fd_decref(val);
-      scan->kv_key=VOID;
-      scan->kv_val=VOID;
-      scan++;}
-    if (dest->sm_free_keyvals) {
-      u8_free(dest->sm_keyvals);
-      dest->sm_keyvals=NULL;}}
+  if (dest->sm_keyvals) {
+    if (dest->n_slots) {
+      struct FD_KEYVAL *scan = dest->sm_keyvals;
+      struct FD_KEYVAL *limit = scan + dest->n_slots;
+      while (scan<limit) {
+        lispval key = scan->kv_key;
+        lispval val = scan->kv_val;
+        fd_decref(key);
+        fd_decref(val);
+        scan->kv_key=VOID;
+        scan->kv_val=VOID;
+        scan++;}}
+    if (dest->sm_free_keyvals) u8_free(dest->sm_keyvals);
+    dest->sm_keyvals=NULL;}
   u8_destroy_rwlock(&(dest->table_rwlock));
   dest->n_slots = src->n_slots;
   dest->n_allocd = src->n_allocd;
