@@ -79,6 +79,7 @@ static void recycle_thread_table()
   if ((fd_exiting) && (fd_fast_exit)) return;
   if (table) fd_decref(table);
 }
+#define thread_table (get_threadtable())
 #else
 static lispval __thread thread_table = VOID;
 static lispval get_threadtable()
