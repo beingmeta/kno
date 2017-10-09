@@ -173,6 +173,7 @@ FD_EXPORT int fd_sort_slotmap(lispval slotmap,int sorted);
 
 FD_EXPORT lispval fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
 FD_EXPORT void fd_reset_slotmap(struct FD_SLOTMAP *ptr);
+FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,struct FD_SLOTMAP *dest);
 
 FD_EXPORT lispval fd_slotmap_max
   (struct FD_SLOTMAP *sm,lispval scope,lispval *maxvalp);

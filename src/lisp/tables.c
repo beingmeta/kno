@@ -337,7 +337,8 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,lispval key,lispval value)
     /* If this allocated a new keyvals structure, it needs to be
        freed.  (sm_free_kevyvals==0) when the keyvals are allocated at
        the end of the slotmap structure itself. */
-    if (sm->sm_keyvals!=cur_keyvals) sm->sm_free_keyvals=1;
+    if (sm->sm_keyvals!=cur_keyvals)
+      sm->sm_free_keyvals=1;
     fd_incref(value);
     if ( (result->kv_val == VOID) || (result->kv_val == FD_UNBOUND) )
       result->kv_val=value;
@@ -454,8 +455,12 @@ FD_EXPORT lispval fd_slotmap_keys(struct FD_SLOTMAP *sm)
   struct FD_CHOICE *result;
   lispval *write; int size, atomic=1;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
-  size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
+  if (sm->table_uselock) {
+    u8_read_lock(&sm->table_rwlock);
+    unlock=1;}
+  size=FD_XSLOTMAP_NUSED(sm);
+  scan=sm->sm_keyvals;
+  limit=scan+size;
   if (size==0) {
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return EMPTY;}
@@ -515,7 +520,9 @@ FD_EXPORT lispval fd_slotmap_assocs(struct FD_SLOTMAP *sm)
   if (sm->table_uselock) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
-  size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
+  size=FD_XSLOTMAP_NUSED(sm);
+  scan=sm->sm_keyvals;
+  limit=scan+size;
   if (size==0) {
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
     return EMPTY;}
@@ -547,7 +554,9 @@ FD_EXPORT lispval fd_slotmap_max
   if (sm->table_uselock) {
     u8_read_lock(&sm->table_rwlock);
     unlock=1;}
-  size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
+  size=FD_XSLOTMAP_NUSED(sm);
+  scan=sm->sm_keyvals;
+  limit=scan+size;
   while (scan<limit) {
     if ((VOIDP(scope)) || (fd_overlapp(scan->kv_key,scope))) {
       if (EMPTYP(scan->kv_val)) {}
@@ -565,8 +574,7 @@ FD_EXPORT lispval fd_slotmap_max
             fd_incref(scan->kv_key);
             CHOICE_ADD(result,scan->kv_key);}}}}
     scan++;}
-  if (unlock)
-    u8_rw_unlock(&sm->table_rwlock);
+  if (unlock) u8_rw_unlock(&sm->table_rwlock);
   if ((maxvalp) && (NUMBERP(maxval)))
     *maxvalp=fd_incref(maxval);
   return result;
@@ -578,9 +586,14 @@ FD_EXPORT lispval fd_slotmap_skim(struct FD_SLOTMAP *sm,lispval maxval,
   lispval result=EMPTY; int unlock=0;
   struct FD_KEYVAL *scan, *limit; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  if (EMPTYP(scope)) return result;
-  if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
-  size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
+  if (EMPTYP(scope))
+    return result;
+  if (sm->table_uselock) {
+    u8_read_lock(&sm->table_rwlock);
+    unlock=1;}
+  size=FD_XSLOTMAP_NUSED(sm);
+  scan=sm->sm_keyvals;
+  limit=scan+size;
   while (scan<limit) {
     if ((VOIDP(scope)) || (fd_overlapp(scan->kv_key,scope)))
       if (NUMBERP(scan->kv_val)) {
@@ -612,7 +625,8 @@ FD_EXPORT lispval fd_init_slotmap
     ptr->sm_keyvals=NULL;}
   ptr->table_modified=ptr->table_readonly=0;
   ptr->table_uselock=1;
-  ptr->sm_free_keyvals=1; ptr->sm_sort_keyvals=0;
+  ptr->sm_free_keyvals=1;
+  ptr->sm_sort_keyvals=0;
   u8_init_rwlock(&(ptr->table_rwlock));
   return LISP_CONS(ptr);
 }
@@ -733,6 +747,44 @@ static lispval copy_slotmap(lispval smap,int flags)
   if (unlock) fd_unlock_table(cur);
   u8_init_rwlock(&(fresh->table_rwlock));
   return LISP_CONS(fresh);
+}
+
+FD_EXPORT int fd_copy_slotmap(struct FD_SLOTMAP *src,
+                              struct FD_SLOTMAP *dest)
+{
+  int unlock=0;
+  if ( (dest->n_slots) && (dest->sm_keyvals) ) {
+    struct FD_KEYVAL *scan = dest->sm_keyvals;
+    struct FD_KEYVAL *limit = scan + dest->n_slots;
+    while (scan<limit) {
+      lispval key = scan->kv_key;
+      lispval val = scan->kv_val;
+      fd_decref(key);
+      fd_decref(val);
+      scan->kv_key=VOID;
+      scan->kv_val=VOID;
+      scan++;}
+    if (dest->sm_free_keyvals) {
+      u8_free(dest->sm_keyvals);
+      dest->sm_keyvals=NULL;}}
+  u8_destroy_rwlock(&(dest->table_rwlock));
+  dest->n_slots = src->n_slots;
+  dest->n_allocd = src->n_allocd;
+  dest->sm_keyvals = u8_alloc_n(src->n_allocd,struct FD_KEYVAL);
+  dest->table_readonly = src->table_readonly;
+  dest->table_modified = src->table_modified;
+  dest->table_finished = src->table_finished;
+  dest->table_uselock = src->table_uselock;
+  dest->sm_sort_keyvals = src->sm_sort_keyvals;
+  dest->sm_free_keyvals = 1;
+  struct FD_KEYVAL *read = src->sm_keyvals;
+  struct FD_KEYVAL *limit = read + src->n_slots;
+  struct FD_KEYVAL *write = dest->sm_keyvals;
+  while (read < limit) {
+    write->kv_key = read->kv_key; fd_incref(write->kv_key);
+    write->kv_val = read->kv_val; fd_incref(write->kv_val);
+    write++; read++;}
+  return dest->n_slots;
 }
 
 FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
