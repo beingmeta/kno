@@ -58,12 +58,19 @@ static lispval get_threadtable()
     u8_tld_set(threadtable_key,(void*)table);
     return table;}
 }
-FD_EXPORT void fd_reset_threadvars()
+FD_EXPORT lispval fd_init_threadtable(lispval init_table)
 {
   lispval table = (lispval)u8_tld_get(threadtable_key);
-  lispval new_table = fd_empty_slotmap();
-  u8_tld_set(threadtable_key,(void*)new_table);
-  if (table) fd_decref(table);
+  if (table)
+    return table;
+  else if (FD_TABLEP(init_table)) {
+    fd_incref(init_table);
+    u8_tld_set(threadtable_key,(void*)init_table);
+    return init_table;}
+  else {
+    table = fd_empty_slotmap();
+    u8_tld_set(threadtable_key,(void*)table);
+    return table;}
 }
 static void recycle_thread_table()
 {
@@ -76,14 +83,25 @@ static void recycle_thread_table()
 static lispval __thread thread_table = VOID;
 static lispval get_threadtable()
 {
-  if (TABLEP(thread_table)) return thread_table;
-  else return (thread_table = fd_empty_slotmap());
+  if (TABLEP(thread_table))
+    return thread_table;
+  else {
+    lispval new_table = fd_empty_slotmap();
+    thread_table = new_table;
+    return new_table;}
 }
-FD_EXPORT void fd_reset_threadvars()
+FD_EXPORT lispval fd_init_threadtable(lispval init_table)
 {
   lispval table = thread_table;
-  thread_table = fd_empty_slotmap();
-  fd_decref(table);
+  if (FD_TABLEP(table))
+    return table;
+  else if (FD_TABLEP(init_table)) {
+    fd_incref(init_table);
+    thread_table = init_table;}
+  else {
+    lispval new_table = fd_empty_slotmap();
+    thread_table = new_table;
+    return new_table;}
 }
 static void recycle_thread_table()
 {
@@ -93,6 +111,21 @@ static void recycle_thread_table()
   if (table) fd_decref(table);
 }
 #endif
+
+FD_EXPORT void fd_reset_threadvars()
+{
+  lispval table = thread_table;
+  if (FD_SLOTMAPP(table))
+    fd_reset_slotmap((fd_slotmap)table);
+  else if (FD_SCHEMAPP(table))
+    fd_reset_schemap((fd_schemap)table);
+  else if (FD_HASHTABLEP(table))
+    fd_reset_hashtable((fd_hashtable)table,-1,0);
+  else {
+    lispval init_table = fd_empty_slotmap();
+    fd_init_threadtable(init_table);}
+}
+
 
 FD_EXPORT lispval fd_thread_get(lispval var)
 {
