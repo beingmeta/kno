@@ -278,7 +278,8 @@ FD_EXPORT int fd_slotmap_store(struct FD_SLOTMAP *sm,lispval key,lispval value)
     fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
     return -1;}
   else if (sm->table_uselock) {
-    u8_write_lock(&sm->table_rwlock); unlock=1;}
+    u8_write_lock(&sm->table_rwlock);
+    unlock=1;}
   {
     int rv=0;
     int cur_nslots=FD_XSLOTMAP_NUSED(sm), nslots=cur_nslots;
@@ -317,7 +318,8 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,lispval key,lispval value)
     fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
     return -1;}
   else if (sm->table_uselock) {
-    u8_write_lock(&sm->table_rwlock); unlock=1;}
+    u8_write_lock(&sm->table_rwlock);
+    unlock=1;}
   {
     int cur_size=FD_XSLOTMAP_NUSED(sm), size=cur_size;
     int cur_space=FD_XSLOTMAP_NALLOCATED(sm), space=cur_space;
@@ -360,7 +362,8 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,lispval key,lispval value)
     fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
     return -1;}
   else if (sm->table_uselock) {
-    u8_write_lock(&sm->table_rwlock); unlock=1;}
+    u8_write_lock(&sm->table_rwlock);
+    unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm);
   result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
@@ -397,7 +400,8 @@ FD_EXPORT int fd_slotmap_delete(struct FD_SLOTMAP *sm,lispval key)
     fd_seterr(fd_ReadOnlyTable,"fd_slotmap_store",NULL,key);
     return -1;}
   else if (sm->table_uselock) {
-    u8_write_lock(&sm->table_rwlock); unlock=1;}
+    u8_write_lock(&sm->table_rwlock);
+    unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm);
   result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
@@ -479,7 +483,9 @@ FD_EXPORT lispval fd_slotmap_values(struct FD_SLOTMAP *sm)
   struct FD_PRECHOICE *prechoice; lispval results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
+  if (sm->table_uselock) {
+    u8_read_lock(&sm->table_rwlock);
+    unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
   if (size==0) {
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
@@ -506,7 +512,9 @@ FD_EXPORT lispval fd_slotmap_assocs(struct FD_SLOTMAP *sm)
   struct FD_PRECHOICE *prechoice; lispval results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
-  if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
+  if (sm->table_uselock) {
+    u8_read_lock(&sm->table_rwlock);
+    unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
   if (size==0) {
     if (unlock) u8_rw_unlock(&sm->table_rwlock);
@@ -532,10 +540,13 @@ FD_EXPORT lispval fd_slotmap_max
   (struct FD_SLOTMAP *sm,lispval scope,lispval *maxvalp)
 {
   lispval maxval=VOID, result=EMPTY;
-  struct FD_KEYVAL *scan, *limit; int size, unlock=0;
+  struct FD_KEYVAL *scan, *limit;
+  int size, unlock=0;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (EMPTYP(scope)) return result;
-  if (sm->table_uselock) { u8_read_lock(&sm->table_rwlock); unlock=1;}
+  if (sm->table_uselock) {
+    u8_read_lock(&sm->table_rwlock);
+    unlock=1;}
   size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
   while (scan<limit) {
     if ((VOIDP(scope)) || (fd_overlapp(scan->kv_key,scope))) {
@@ -634,6 +645,25 @@ FD_EXPORT lispval fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   return LISP_CONS(ptr);
 }
 
+FD_EXPORT void fd_reset_slotmap(struct FD_SLOTMAP *ptr)
+{
+  int unlock = 0;
+  if (ptr->table_uselock) {
+    u8_write_lock(&(ptr->table_rwlock));
+    unlock=1;}
+  struct FD_KEYVAL *scan = FD_XSLOTMAP_KEYVALS(ptr);
+  struct FD_KEYVAL *limit = scan + FD_XSLOTMAP_NUSED(ptr);
+  while (scan<limit) {
+    lispval key = scan->kv_key;
+    lispval val = scan->kv_val;
+    fd_decref(key); fd_decref(val);
+    scan->kv_key=VOID;
+    scan->kv_val=VOID;
+    scan++;}
+  ptr->n_slots=0;
+  if (unlock) u8_rw_unlock(&(ptr->table_rwlock));
+}
+
 static lispval copy_slotmap(lispval smap,int flags)
 {
   struct FD_SLOTMAP *cur=fd_consptr(fd_slotmap,smap,fd_slotmap_type);
@@ -708,26 +738,29 @@ static lispval copy_slotmap(lispval smap,int flags)
 FD_EXPORT void fd_recycle_slotmap(struct FD_SLOTMAP *c)
 {
   struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c; int unlock=0;
-  if (sm->table_uselock) {fd_write_lock_table(sm); unlock=1;}
-  {
-    int slotmap_size=FD_XSLOTMAP_NUSED(sm);
-    const struct FD_KEYVAL *scan=sm->sm_keyvals;
-    const struct FD_KEYVAL *limit=sm->sm_keyvals+slotmap_size;
-    while (scan < limit) {
-      fd_decref(scan->kv_key);
-      fd_decref(scan->kv_val);
-      scan++;}
-    if (sm->sm_free_keyvals) u8_free(sm->sm_keyvals);
-    if (unlock) fd_unlock_table(sm);
-    u8_destroy_rwlock(&(sm->table_rwlock));
-    memset(sm,0,sizeof(struct FD_SLOTMAP));
-    u8_free(sm);
-  }
+  if (sm->table_uselock) {
+    fd_write_lock_table(sm);
+    unlock=1;}
+  int slotmap_size=FD_XSLOTMAP_NUSED(sm);
+  const struct FD_KEYVAL *scan=sm->sm_keyvals;
+  const struct FD_KEYVAL *limit=sm->sm_keyvals+slotmap_size;
+  while (scan < limit) {
+    fd_decref(scan->kv_key);
+    fd_decref(scan->kv_val);
+    scan++;}
+  if (sm->sm_free_keyvals) u8_free(sm->sm_keyvals);
+  if (unlock) fd_unlock_table(sm);
+  u8_destroy_rwlock(&(sm->table_rwlock));
+  memset(sm,0,sizeof(struct FD_SLOTMAP));
+  u8_free(sm);
 }
 static int unparse_slotmap(u8_output out,lispval x)
 {
+  int unlock = 0;
   struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-  fd_read_lock_table(sm);
+  if (sm->table_uselock) {
+    fd_read_lock_table(sm);
+    unlock=1;}
   {
     int slotmap_size=FD_XSLOTMAP_NUSED(sm);
     const struct FD_KEYVAL *scan=sm->sm_keyvals;
@@ -742,7 +775,7 @@ static int unparse_slotmap(u8_output out,lispval x)
       fd_unparse(out,scan->kv_val); scan++;}
     u8_puts(out,"]");
   }
-  fd_unlock_table(sm);
+  if (unlock) fd_unlock_table(sm);
   return 1;
 }
 static int compare_slotmaps(lispval x,lispval y,fd_compare_flags flags)
@@ -917,6 +950,7 @@ FD_EXPORT lispval fd_make_schemap
   else {
     ptr->schema_values=values=u8_alloc_n(size,lispval);
     while (i<size) values[i++]=VOID;}
+  ptr->table_uselock=1;
   u8_init_rwlock(&(ptr->table_rwlock));
   return LISP_CONS(ptr);
 }
@@ -953,8 +987,19 @@ FD_EXPORT lispval *fd_register_schema(int n,lispval *schema)
   return schema;
 }
 
+FD_EXPORT void fd_reset_schemap(struct FD_SCHEMAP *ptr)
+{
+  lispval *scan = ptr->schema_values;
+  lispval *limit = scan+ptr->schema_length;
+  while (scan < limit) {
+    lispval value = *scan;
+    *scan++ = FD_VOID;
+    fd_decref(value);}
+}
+
 static lispval copy_schemap(lispval schemap,int flags)
 {
+  int unlock = 0;
   struct FD_SCHEMAP *ptr=
     fd_consptr(struct FD_SCHEMAP *,schemap,fd_schemap_type);
   struct FD_SCHEMAP *nptr=u8_alloc(struct FD_SCHEMAP);
@@ -962,6 +1007,9 @@ static lispval copy_schemap(lispval schemap,int flags)
   lispval *ovalues=ptr->schema_values;
   lispval *values=((size==0) ? (NULL) : (u8_alloc_n(size,lispval)));
   lispval *schema=ptr->table_schema, *nschema=NULL;
+  if (FD_XSCHEMAP_USELOCKP(ptr)) {
+    fd_read_lock_table(ptr);
+    unlock=1;}
   FD_INIT_STRUCT(nptr,struct FD_SCHEMAP);
   FD_INIT_CONS(nptr,fd_schemap_type);
   if (ptr->schemap_onstack)
@@ -996,6 +1044,8 @@ static lispval copy_schemap(lispval schemap,int flags)
   nptr->schema_length=size;
   if  ( ptr->table_schema == nptr->table_schema ) {
     ptr->schemap_shared=nptr->schemap_shared=1;}
+  if (unlock) fd_unlock_table(ptr);
+  ptr->table_uselock=1;
   u8_init_rwlock(&(nptr->table_rwlock));
   return LISP_CONS(nptr);
 }
@@ -1021,6 +1071,7 @@ FD_EXPORT lispval fd_init_schemap
     ptr->schemap_shared=1;
     u8_free(news);}
   u8_free(init);
+  ptr->table_uselock=1;
   u8_init_rwlock(&(ptr->table_rwlock));
   return LISP_CONS(ptr);
 }
@@ -1041,24 +1092,27 @@ FD_EXPORT lispval _fd_schemap_test
 FD_EXPORT int fd_schemap_store
    (struct FD_SCHEMAP *sm,lispval key,lispval value)
 {
-  int slotno, size;
+  int slotno, size, unlock=0;
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
   else if (sm->table_readonly) {
     fd_seterr(fd_ReadOnlyTable,"fd_schemap_store",NULL,key);
     return -1;}
-  else fd_write_lock_table(sm);
+  else if (FD_XSCHEMAP_USELOCKP(sm)) {
+    fd_write_lock_table(sm);
+    unlock=1;}
+  else {}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     fd_decref(sm->schema_values[slotno]);
     sm->schema_values[slotno]=fd_incref(value);
     FD_XSCHEMAP_MARK_MODIFIED(sm);
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     return 1;}
   else {
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     fd_seterr(fd_NoSuchKey,"fd_schemap_store",NULL,key);
     return -1;}
 }
@@ -1066,7 +1120,7 @@ FD_EXPORT int fd_schemap_store
 FD_EXPORT int fd_schemap_add
   (struct FD_SCHEMAP *sm,lispval key,lispval value)
 {
-  int slotno, size;
+  int slotno, size, unlock = 0;
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if (EMPTYP(value))
     return 0;
@@ -1075,17 +1129,20 @@ FD_EXPORT int fd_schemap_add
   else if (sm->table_readonly) {
     fd_seterr(fd_ReadOnlyTable,"fd_schemap_add",NULL,key);
     return -1;}
-  else fd_write_lock_table(sm);
+  else if (FD_XSCHEMAP_USELOCKP(sm)) {
+    fd_write_lock_table(sm);
+    unlock=1;}
+  else {}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
     fd_incref(value);
     CHOICE_ADD(sm->schema_values[slotno],value);
     FD_XSCHEMAP_MARK_MODIFIED(sm);
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     return 1;}
   else {
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     fd_seterr(fd_NoSuchKey,"fd_schemap_add",NULL,key);
     return -1;}
 }
@@ -1093,14 +1150,17 @@ FD_EXPORT int fd_schemap_add
 FD_EXPORT int fd_schemap_drop
   (struct FD_SCHEMAP *sm,lispval key,lispval value)
 {
-  int slotno, size;
+  int slotno, size, unlock = 0;
   FD_CHECK_TYPE_RET(sm,fd_schemap_type);
   if ((FD_ABORTP(value)))
     return fd_interr(value);
   else if (sm->table_readonly) {
     fd_seterr(fd_ReadOnlyTable,"fd_schemap_drop",NULL,key);
     return -1;}
-  else fd_write_lock_table(sm);
+  else if (FD_XSCHEMAP_USELOCKP(sm)) {
+    fd_write_lock_table(sm);
+    unlock=1;}
+  else {}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
@@ -1110,11 +1170,12 @@ FD_EXPORT int fd_schemap_drop
     if (newval == oldval) fd_decref(newval);
     else {
       FD_XSCHEMAP_MARK_MODIFIED(sm);
-      fd_decref(oldval); sm->schema_values[slotno]=newval;}
-    fd_unlock_table(sm);
+      fd_decref(oldval);
+      sm->schema_values[slotno]=newval;}
+    if (unlock) fd_unlock_table(sm);
     return 1;}
   else {
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     return 0;}
 }
 
@@ -1157,11 +1218,14 @@ FD_EXPORT lispval fd_schemap_keys(struct FD_SCHEMAP *sm)
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
   {
     int size=FD_XSCHEMAP_SIZE(sm);
-    if (size==0) return EMPTY;
-    else if (size==1) return fd_incref(sm->table_schema[0]);
+    if (size==0)
+      return EMPTY;
+    else if (size==1)
+      return fd_incref(sm->table_schema[0]);
     else {
       struct FD_CHOICE *ch=fd_alloc_choice(size);
-      memcpy((lispval *)FD_XCHOICE_DATA(ch),sm->table_schema,sizeof(lispval)*size);
+      memcpy((lispval *)FD_XCHOICE_DATA(ch),sm->table_schema,
+             sizeof(lispval)*size);
       if (sm->schemap_sorted)
         return fd_init_choice(ch,size,sm->table_schema,0);
       else return fd_init_choice(ch,size,sm->table_schema,
@@ -1170,8 +1234,12 @@ FD_EXPORT lispval fd_schemap_keys(struct FD_SCHEMAP *sm)
 
 static void recycle_schemap(struct FD_RAW_CONS *c)
 {
+  int unlock = 0;
   struct FD_SCHEMAP *sm=(struct FD_SCHEMAP *)c;
-  fd_write_lock_table(sm);
+  if (FD_XSCHEMAP_USELOCKP(sm)) {
+    fd_write_lock_table(sm);
+    unlock = 1;}
+  else {}
   {
     int schemap_size=FD_XSCHEMAP_SIZE(sm);
     int stack_vals = sm->schemap_stackvals;
@@ -1182,7 +1250,7 @@ static void recycle_schemap(struct FD_RAW_CONS *c)
       u8_free(sm->schema_values);}
     if ((sm->table_schema) && (!(sm->schemap_shared)))
       u8_free(sm->table_schema);
-    fd_unlock_table(sm);
+    if (unlock) fd_unlock_table(sm);
     u8_destroy_rwlock(&(sm->table_rwlock));
     memset(sm,0,sizeof(struct FD_SCHEMAP));
     u8_free(sm);
@@ -1498,6 +1566,7 @@ FD_EXPORT lispval fd_hashtable_get
     fd_read_lock_table(ht); 
     unlock=1; }
   if (ht->table_n_keys == 0) {
+    /* Race condition */
     if (unlock) fd_unlock_table(ht);
     return fd_incref(dflt);}
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
@@ -1541,9 +1610,13 @@ FD_EXPORT lispval fd_hashtable_get_noref
 {
   struct FD_KEYVAL *result; int unlock=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
-  if (ht->table_n_keys == 0) return dflt;
-  if (ht->table_uselock) { fd_read_lock_table(ht); unlock=1; }
+  if (ht->table_n_keys == 0)
+    return dflt;
+  if (ht->table_uselock) {
+    fd_read_lock_table(ht);
+    unlock=1; }
   if (ht->table_n_keys == 0) {
+    /* Race condition */
     if (unlock) fd_unlock_table(ht);
     return dflt;}
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
@@ -1586,7 +1659,9 @@ FD_EXPORT int fd_hashtable_probe(struct FD_HASHTABLE *ht,lispval key)
   struct FD_KEYVAL *result; int unlock=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->table_n_keys == 0) return 0;
-  if (ht->table_uselock) { fd_read_lock_table(ht); unlock=1; }
+  if (ht->table_uselock) {
+    fd_read_lock_table(ht);
+    unlock=1; }
   if (ht->table_n_keys == 0) {
     if (unlock) fd_unlock_table(ht);
     return 0;}
@@ -1604,8 +1679,11 @@ static int hashtable_test(struct FD_HASHTABLE *ht,lispval key,lispval val)
   struct FD_KEYVAL *result; int unlock=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->table_n_keys == 0) return 0;
-  if (ht->table_uselock) {fd_read_lock_table(ht); unlock=1;}
+  if (ht->table_uselock) {
+    fd_read_lock_table(ht);
+    unlock=1;}
   if (ht->table_n_keys == 0) {
+    /* Avoid race condition */
     if (unlock) fd_unlock_table(ht);
     return 0;}
   else result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
@@ -1619,12 +1697,13 @@ static int hashtable_test(struct FD_HASHTABLE *ht,lispval key,lispval val)
     else if ((CHOICEP(val)) || (PRECHOICEP(val)) ||
              (CHOICEP(current)) || (PRECHOICEP(current)))
       cmp=fd_overlapp(val,current);
-    else if (FD_EQUAL(val,current)) cmp=1;
+    else if (FD_EQUAL(val,current))
+      cmp=1;
     else cmp=0;
     if (unlock) fd_unlock_table(ht);
     return cmp;}
   else {
-    if (unlock) u8_rw_unlock((&(ht->table_rwlock)));
+    if (unlock) fd_unlock_table(ht);
     return 0;}
 }
 
@@ -1633,8 +1712,11 @@ FD_EXPORT int fd_hashtable_probe_novoid(struct FD_HASHTABLE *ht,lispval key)
 {
   struct FD_KEYVAL *result; int unlock=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->table_n_keys == 0) return 0;
-  if (ht->table_uselock) {fd_read_lock_table(ht); unlock=1;}
+  if (ht->table_n_keys == 0)
+    return 0;
+  if (ht->table_uselock) {
+    fd_read_lock_table(ht);
+    unlock=1;}
   if (ht->table_n_keys == 0) {
     if (unlock) fd_unlock_table(ht);
     return 0;}
@@ -1643,7 +1725,7 @@ FD_EXPORT int fd_hashtable_probe_novoid(struct FD_HASHTABLE *ht,lispval key)
     if (unlock) fd_unlock_table(ht);
     return 1;}
   else {
-    if (unlock) u8_rw_unlock((&(ht->table_rwlock)));
+    if (unlock) fd_unlock_table(ht);
     return 0;}
 }
 
@@ -1660,15 +1742,21 @@ static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_buckets)
 
 FD_EXPORT int fd_hashtable_store(fd_hashtable ht,lispval key,lispval value)
 {
-  struct FD_KEYVAL *result; int n_keys, added;
+  struct FD_KEYVAL *result;
+  int n_keys = 0, added = 0, unlock = 0;
   lispval newv, oldv;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if ((FD_ABORTP(value))) return fd_interr(value);
-  if (ht->table_readonly) {
+  if ((FD_ABORTP(value)))
+    return fd_interr(value);
+  else if (ht->table_readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_store",NULL,key);
     return -1;}
-  fd_write_lock_table(ht);
-  if (ht->ht_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
+  else if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock = 1;}
+  else {}
+  if (ht->ht_n_buckets == 0)
+    setup_hashtable(ht,fd_init_hash_size);
   n_keys=ht->table_n_keys;
   result=fd_hashvec_insert
     (key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
@@ -1680,11 +1768,11 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,lispval key,lispval value)
     newv=fd_make_simple_choice(value);
   else newv=fd_incref(value);
   if (FD_ABORTP(newv)) {
-    fd_unlock_table(ht);
+    if (unlock) fd_unlock_table(ht);
     return fd_interr(newv);}
   else {
     result->kv_val=newv; fd_decref(oldv);}
-  fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   if (PRED_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
@@ -1697,9 +1785,8 @@ static int add_to_hashtable(fd_hashtable ht,lispval key,lispval value)
 {
   struct FD_KEYVAL *result;
   int added=0, n_keys=ht->table_n_keys;
-  if (FD_ABORTP(value)) {
-    fd_unlock_table(ht);
-    return fd_interr(value);}
+  if (FD_ABORTP(value))
+    return fd_interr(value);
   else if (ht->table_readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
     return -1;}
@@ -1712,7 +1799,7 @@ static int add_to_hashtable(fd_hashtable ht,lispval key,lispval value)
   if (ht->ht_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
   n_keys=ht->table_n_keys;
   result=fd_hashvec_insert(key,ht->ht_buckets,ht->ht_n_buckets,&(ht->table_n_keys));
-  if (ht->table_n_keys>n_keys) added=1; 
+  if (ht->table_n_keys>n_keys) added=1;
   ht->table_modified=1;
   if (VOIDP(result->kv_val))
     result->kv_val=value;
@@ -1723,15 +1810,14 @@ static int add_to_hashtable(fd_hashtable ht,lispval key,lispval value)
   if (PRECHOICEP(result->kv_val)) {
     struct FD_PRECHOICE *ch=FD_XPRECHOICE(result->kv_val);
     if (ch->prechoice_uselock) ch->prechoice_uselock=0;}
-  fd_unlock_table(ht);
   return added;
 }
 
 static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
 {
-  size_t n_keys=ht->table_n_keys, n_buckets=ht->ht_n_buckets; 
-  size_t need_keys=(delta<0) ? 
-    (n_keys+fd_init_hash_size+3) : 
+  size_t n_keys=ht->table_n_keys, n_buckets=ht->ht_n_buckets;
+  size_t need_keys=(delta<0) ?
+    (n_keys+fd_init_hash_size+3) :
     (n_keys+delta+fd_init_hash_size);
   if (n_buckets==0) {
     setup_hashtable(ht,fd_get_hashtable_size(need_keys));
@@ -1745,16 +1831,19 @@ static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
 
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,lispval key,lispval value)
 {
-  int added=0;
+  int added=0, unlock = 0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->table_readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
     return -1;}
-  if (PRED_FALSE(EMPTYP(value)))
+  else if (PRED_FALSE(EMPTYP(value)))
     return 0;
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
-  fd_write_lock_table(ht);
+  else if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock=1;}
+  else {}
   if (!(CONSP(key)))
     check_hashtable_size(ht,3);
   else if (CHOICEP(key))
@@ -1767,19 +1856,25 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,lispval key,lispval value)
     DO_CHOICES(eachkey,key) {
       added+=add_to_hashtable(ht,key,value);}}
   else added=add_to_hashtable(ht,key,value);
+  if (unlock) fd_unlock_table(ht);
   return added;
 }
 
 FD_EXPORT int fd_hashtable_drop
   (struct FD_HASHTABLE *ht,lispval key,lispval value)
 {
+  int unlock = 0;
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->table_n_keys == 0) return 0;
-  if (ht->table_readonly) {
+  if (ht->table_n_keys == 0)
+    return 0;
+  else if (ht->table_readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_drop",NULL,key);
     return -1;}
-  fd_write_lock_table(ht);
+  else if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock=1;}
+  else {}
   result=fd_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets);
   if (result) {
     lispval newval=
@@ -1790,7 +1885,7 @@ FD_EXPORT int fd_hashtable_drop
     ht->table_modified=1;
     fd_unlock_table(ht);
     return 1;}
-  fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   return 0;
 }
 
@@ -2068,12 +2163,14 @@ static int do_hashtable_op
 FD_EXPORT int fd_hashtable_op
    (struct FD_HASHTABLE *ht,fd_tableop op,lispval key,lispval value)
 {
-  int added;
+  int added=0, unlock=0;
   if (EMPTYP(key)) return 0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_write_lock_table(ht);
+  if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   added=do_hashtable_op(ht,op,key,value);
-  fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   if (PRED_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
@@ -2101,16 +2198,18 @@ FD_EXPORT int fd_hashtable_iter
    (struct FD_HASHTABLE *ht,fd_tableop op,int n,
     const lispval *keys,const lispval *values)
 {
-  int i=0, added=0;
+  int i=0, added=0, unlock=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  fd_write_lock_table(ht);
+  if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
       added=do_hashtable_op(ht,op,keys[i],values[i]);
     else do_hashtable_op(ht,op,keys[i],values[i]);
     i++;}
-  fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   if (PRED_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_buckets < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
@@ -2125,7 +2224,9 @@ FD_EXPORT int fd_hashtable_iterkeys
 {
   int i=0, added=0; int unlock=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->table_uselock) { fd_write_lock_table(ht); unlock=1;}
+  if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   while (i < n) {
     KEY_CHECK(key,ht);
     if (added==0)
@@ -2322,10 +2423,13 @@ FD_EXPORT int fd_reset_hashtable
 (struct FD_HASHTABLE *ht,int n_buckets,int lock)
 {
   struct FD_HASH_BUCKET **buckets;
-  int buckets_to_free=0;
+  int buckets_to_free=0, unlock = 0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (n_buckets<0) n_buckets=ht->ht_n_buckets;
-  if ((lock) && (ht->table_uselock)) fd_write_lock_table(ht);
+  if (n_buckets<0)
+    n_buckets=ht->ht_n_buckets;
+  if ((lock) && (ht->table_uselock)) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   /* Grab the buckets and their length. We'll free them after we've reset
      the table and released its lock. */
   buckets=ht->ht_buckets; buckets_to_free=ht->ht_n_buckets;
@@ -2342,7 +2446,7 @@ FD_EXPORT int fd_reset_hashtable
     ht->ht_buckets=bucketvec=u8_alloc_n(n_buckets,struct FD_HASH_BUCKET *);
     while (i < n_buckets) bucketvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if ((lock) && (ht->table_uselock)) fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   /* Now, free the old data... */
   free_buckets(buckets,buckets_to_free);
   return n_buckets;
@@ -2355,10 +2459,14 @@ FD_EXPORT int fd_fast_reset_hashtable
   (struct FD_HASHTABLE *ht,int n_buckets,int lock,
    struct FD_HASH_BUCKET ***bucketsptr,int *buckets_to_free)
 {
+  int unlock=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (bucketsptr==NULL) return fd_reset_hashtable(ht,n_buckets,lock);
+  if (bucketsptr==NULL)
+    return fd_reset_hashtable(ht,n_buckets,lock);
   if (n_buckets<0) n_buckets=ht->ht_n_buckets;
-  if ((lock) && (ht->table_uselock)) fd_write_lock_table(ht);
+  if ((lock) && (ht->table_uselock)) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   /* Grab the buckets and their length. We'll free them after we've reset
      the table and released its lock. */
   *bucketsptr=ht->ht_buckets; *buckets_to_free=ht->ht_n_buckets;
@@ -2375,7 +2483,7 @@ FD_EXPORT int fd_fast_reset_hashtable
     ht->ht_buckets=bucketvec=u8_alloc_n(n_buckets,struct FD_HASH_BUCKET *);
     while (i < n_buckets) bucketvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
-  if ((lock) && (ht->table_uselock)) fd_unlock_table(ht);
+  if (unlock) fd_unlock_table(ht);
   return n_buckets;
 }
 
@@ -2417,16 +2525,18 @@ FD_EXPORT int fd_swap_hashtable(struct FD_HASHTABLE *src,
 
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
 {
-  int n_conversions=0;
+  int n_conversions=0, unlock=0;
   fd_ptr_type keeptype=(fd_ptr_type) type;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  u8_write_lock(&ptr->table_rwlock);
+  if (ptr->table_uselock) {
+    u8_write_lock(&ptr->table_rwlock);
+    unlock=1;}
   {
     struct FD_HASH_BUCKET **scan=ptr->ht_buckets;
     struct FD_HASH_BUCKET **lim=scan+ptr->ht_n_buckets;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan; 
+        struct FD_HASH_BUCKET *e=*scan;
         int n_keyvals=e->bucket_len;
         struct FD_KEYVAL *kvscan=&(e->kv_val0);
         struct FD_KEYVAL *kvlimit=kvscan+n_keyvals;
@@ -2446,7 +2556,7 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
           kvscan++;}
         scan++;}
       else scan++;}
-  u8_rw_unlock(&ptr->table_rwlock);
+  if (unlock) u8_rw_unlock(&ptr->table_rwlock);
   return n_conversions;
 }
 
@@ -2558,7 +2668,9 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
   int n_buckets=ptr->ht_n_buckets, n_keys=ptr->table_n_keys; int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if ((n_buckets == 0) || (n_keys == 0)) return 0;
-  if (ptr->table_uselock) { fd_write_lock_table(ptr); unlock=1;}
+  if (ptr->table_uselock) {
+    fd_write_lock_table(ptr);
+    unlock=1;}
   while (1) {
     int n_cleared=0;
     scan=ptr->ht_buckets; lim=scan+ptr->ht_n_buckets;
@@ -2760,8 +2872,8 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly)
     if ((ht->table_readonly) && (ht->table_uselock==0))
       return 0;
     else if ((!(ht->table_readonly)) && (ht->table_uselock==0)) {
-      fd_seterr2("Can't lock modifiable which isn't currently locking",
-                "fd_lock_hashtable");
+      fd_seterr2("Can't make non-locking hashtable readonly",
+                "fd_hashtable_set_readonly");
       return -1;}
     fd_read_lock_table(ht);
     ht->table_readonly=1;
@@ -2779,7 +2891,9 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 {
   struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)c; int unlock=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->table_uselock) { fd_write_lock_table(ht); unlock=1;}
+  if (ht->table_uselock) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   if (ht->ht_n_buckets==0) {
     if (unlock) fd_unlock_table(ht);
     u8_destroy_rwlock(&(ht->table_rwlock));
@@ -2884,7 +2998,9 @@ FD_EXPORT int fd_for_hashtable_kv
   int unlock=0;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->table_n_keys == 0) return 0;
-  if ((lock)&&(ht->table_uselock)) {fd_write_lock_table(ht); unlock=1;}
+  if ((lock)&&(ht->table_uselock)) {
+    fd_write_lock_table(ht);
+    unlock=1;}
   if (ht->ht_n_buckets) {
     struct FD_HASH_BUCKET **scan=ht->ht_buckets, **lim=scan+ht->ht_n_buckets;
     while (scan < lim)
@@ -2960,8 +3076,10 @@ static int choice_containsp(lispval x,struct FD_CHOICE *choice)
 FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
 {
   if (h->hs_n_elts==0) return 0;
-  int hash = fd_hash_lisp(key);
-  fd_read_lock_table(h);
+  int hash = fd_hash_lisp(key), unlock=0;
+  if (h->table_uselock) {
+    fd_read_lock_table(h);
+    unlock=1;}
   lispval *slots = h->hs_buckets;
   int n_slots = h->hs_n_buckets, bucket = hash%n_slots;
   lispval contents = slots[bucket];
@@ -2973,8 +3091,9 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
   else if (FD_CHOICEP(contents))
     rv=choice_containsp(key,(fd_choice)contents);
   else {
-    fd_unlock_table(h);
-    fd_write_lock_table(h);
+    if (unlock) {
+      fd_unlock_table(h);
+      fd_write_lock_table(h);}
     if (h->hs_n_buckets!=n_slots) {
       n_slots=h->hs_n_buckets;
       bucket = hash%n_slots;
@@ -2987,15 +3106,17 @@ FD_EXPORT int fd_hashset_get(struct FD_HASHSET *h,lispval key)
     else if (FD_CHOICEP(contents))
       rv=choice_containsp(key,(fd_choice)contents);
     else rv=FD_EQUALP(contents,key);}
-  fd_unlock_table(h);
+  if (unlock) fd_unlock_table(h);
   return rv;
 }
 
 static lispval hashset_probe(struct FD_HASHSET *h,lispval key)
 {
   if (h->hs_n_elts==0) return 0;
-  int hash = fd_hash_lisp(key);
-  fd_read_lock_table(h);
+  int hash = fd_hash_lisp(key), unlock=0;
+  if (h->table_uselock) {
+    fd_read_lock_table(h);
+    unlock=1;}
   lispval *slots = h->hs_buckets;
   int n_slots = h->hs_n_buckets, bucket = hash%n_slots;
   lispval contents = slots[bucket];
@@ -3017,8 +3138,10 @@ static lispval hashset_probe(struct FD_HASHSET *h,lispval key)
 static lispval hashset_intern(struct FD_HASHSET *h,lispval key)
 {
   if (h->hs_n_elts==0) return 0;
-  int hash = fd_hash_lisp(key);
-  fd_write_lock_table(h);
+  int hash = fd_hash_lisp(key), unlock = 0;
+  if (h->table_uselock) {
+    fd_read_lock_table(h);
+    unlock=1;}
   lispval *slots = h->hs_buckets;
   int n_slots = h->hs_n_buckets, bucket = hash%n_slots;
   lispval contents = slots[bucket];
@@ -3038,7 +3161,7 @@ static lispval hashset_intern(struct FD_HASHSET *h,lispval key)
     FD_ADD_TO_CHOICE(contents,key);
     slots[bucket]=contents;
     result=key;}
-  fd_unlock_table(h);
+  if (unlock) fd_unlock_table(h);
   return fd_incref(result);
 }
 
@@ -3067,9 +3190,12 @@ FD_EXPORT lispval fd_hashset_elts(struct FD_HASHSET *h,int clean)
         h->hs_n_buckets=h->hs_n_elts=0;}}
     return EMPTY;}
   else {
-    if (clean)
-      fd_write_lock_table(h);
-    else fd_read_lock_table(h);
+    int unlock = 0;
+    if (h->table_uselock) {
+      if (clean)
+        fd_write_lock_table(h);
+      else fd_read_lock_table(h);
+      unlock=1;}
     lispval results=EMPTY;
     lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
     while (scan<limit) {
@@ -3089,7 +3215,7 @@ FD_EXPORT lispval fd_hashset_elts(struct FD_HASHSET *h,int clean)
         if (clean) *scan=FD_EMPTY;
         else fd_incref(v);}
       scan++;}
-    fd_unlock_table(h);
+    if (unlock) fd_unlock_table(h);
     if (clean<0) {
       if (FD_MALLOCD_CONSP(h)) {
         fd_decref((lispval)h);}
@@ -3105,7 +3231,10 @@ FD_EXPORT int fd_reset_hashset(struct FD_HASHSET *h)
   if (h->hs_n_elts==0)
     return 0;
   else {
-    fd_write_lock_table(h);
+    int unlock=0;
+    if (h->table_uselock) {
+      fd_write_lock_table(h);
+      unlock=1;}
     int n_elts=h->hs_n_elts;
     lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
     while (scan<limit) {
@@ -3114,7 +3243,7 @@ FD_EXPORT int fd_reset_hashset(struct FD_HASHSET *h)
       fd_decref(v);
       scan++;}
     h->hs_n_elts=0;
-    fd_unlock_table(h);
+    if (unlock) fd_unlock_table(h);
     return n_elts;}
 }
 
@@ -3180,9 +3309,12 @@ static size_t grow_hashset(struct FD_HASHSET *h,ssize_t target)
 
 FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,ssize_t target)
 {
-  fd_write_lock_table(h);
+  int unlock = 0;
+  if (h->table_uselock) {
+    fd_write_lock_table(h);
+    unlock=1;}
   size_t rv=grow_hashset(h,target);
-  fd_unlock_table(h);
+  if (unlock) fd_unlock_table(h);
   return rv;
 }
 
@@ -3266,11 +3398,12 @@ static int hashset_mod(struct FD_HASHSET *h,lispval key,int add)
 
 FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,lispval key,int add)
 {
-  int rv=0;
-  fd_write_lock_table(h); {
-    rv=hashset_mod(h,key,add);
-    fd_unlock_table(h);
-    return rv;}
+  int rv=0, unlock=0;
+  if (h->table_uselock) {
+    fd_write_lock_table(h); unlock=0;}
+  rv=hashset_mod(h,key,add);
+  if (unlock) fd_unlock_table(h);
+  return rv;
 }
 
 /* This adds without locking or incref. */
@@ -3282,14 +3415,16 @@ FD_EXPORT void fd_hashset_add_raw(struct FD_HASHSET *h,lispval key)
 FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,lispval keys)
 {
   if ((CHOICEP(keys))||(PRECHOICEP(keys))) {
-    int n_vals=FD_CHOICE_SIZE(keys);
+    int n_vals=FD_CHOICE_SIZE(keys), unlock=0;
     size_t need_size=ceil((n_vals+h->hs_n_elts)*h->hs_load_factor), n_adds=0;
     if (need_size>h->hs_n_buckets) fd_grow_hashset(h,need_size);
-    fd_write_lock_table(h); {
-      {DO_CHOICES(key,keys) {
-          if (hashset_mod(h,key,1)) n_adds++;}}
-      fd_unlock_table(h);
-      return n_adds;}}
+    if (h->table_uselock) {
+      fd_write_lock_table(h);
+      unlock=1;}
+    {DO_CHOICES(key,keys) {
+        if (hashset_mod(h,key,1)) n_adds++;}}
+    if (unlock) fd_unlock_table(h);
+    return n_adds;}
   else if (EMPTYP(keys))
     return 0;
   else return fd_hashset_mod(h,keys,1);
@@ -3297,14 +3432,17 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,lispval keys)
 
 FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)
 {
-  fd_write_lock_table(h);
+  int unlock = 0;
+  if (h->table_uselock) {
+    fd_write_lock_table(h);
+    unlock = 1;}
   lispval *scan=h->hs_buckets, *lim=scan+h->hs_n_buckets;
   while (scan<lim) {
     lispval v = *scan;
     fd_decref(v);
     *scan++=FD_EMPTY;}
   u8_free(h->hs_buckets);
-  fd_unlock_table(h);
+  if (unlock) fd_unlock_table(h);
   u8_destroy_rwlock(&(h->table_rwlock));
   memset(h,0,sizeof(struct FD_HASHSET));
   return 1;
@@ -3318,8 +3456,10 @@ static void recycle_hashset(struct FD_RAW_CONS *c)
 
 FD_EXPORT lispval fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
 {
-
-  fd_read_lock_table(h);
+  int unlock = 0;
+  if (h->table_uselock) {
+    fd_read_lock_table(h);
+    unlock=1;}
   int n_slots = h->hs_n_buckets;
   lispval *read = h->hs_buckets, *readlim = read+n_slots;
   if (hnew==NULL) hnew=u8_alloc(struct FD_HASHSET);
@@ -3336,7 +3476,8 @@ FD_EXPORT lispval fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
   hnew->hs_n_elts=h->hs_n_elts;
   hnew->hs_load_factor=h->hs_load_factor;
   hnew->hs_modified=0;
-  fd_unlock_table(h);
+  if (unlock) fd_unlock_table(h);
+  hnew->table_uselock=1;
   u8_init_rwlock((&hnew->table_rwlock));
   return (lispval) hnew;
 }

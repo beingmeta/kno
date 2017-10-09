@@ -172,6 +172,7 @@ FD_EXPORT int fd_sort_slotmap(lispval slotmap,int sorted);
 #define fd_empty_slotmap() (fd_init_slotmap(NULL,0,NULL))
 
 FD_EXPORT lispval fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
+FD_EXPORT void fd_reset_slotmap(struct FD_SLOTMAP *ptr);
 
 FD_EXPORT lispval fd_slotmap_max
   (struct FD_SLOTMAP *sm,lispval scope,lispval *maxvalp);
@@ -306,6 +307,7 @@ typedef struct FD_SCHEMAP {
   unsigned int table_readonly:1;
   unsigned int table_modified:1;
   unsigned int table_finished:1;
+  unsigned int table_uselock:1;
   unsigned int schemap_sorted:1;
   unsigned int schemap_onstack:1;
   unsigned int schemap_tagged:1;
@@ -331,6 +333,7 @@ typedef struct FD_SCHEMAP *fd_schemap;
 #define FD_XSCHEMAP_SIZE(sm) ((sm)->schema_length)
 #define FD_XSCHEMAP_SORTEDP(sm) ((sm)->schemap_sorted)
 #define FD_XSCHEMAP_READONLYP(sm) ((sm)->table_readonly)
+#define FD_XSCHEMAP_USELOCKP(sm) ((sm)->table_uselock)
 #define FD_XSCHEMAP_SET_READONLY(sm) (sm)->table_readonly = 1
 #define FD_XSCHEMAP_CLEAR_READONLY(sm) (sm)->table_readonly = 0
 #define FD_XSCHEMAP_MODIFIEDP(sm) ((sm)->table_modified)
@@ -365,6 +368,7 @@ FD_EXPORT lispval fd_make_schemap
 FD_EXPORT lispval fd_init_schemap
   (struct FD_SCHEMAP *ptr,short n_keyvals,
    struct FD_KEYVAL *init);
+FD_EXPORT void fd_reset_schemap(struct FD_SCHEMAP *ptr);
 
 FD_EXPORT lispval _fd_schemap_get
   (struct FD_SCHEMAP *sm,lispval key,lispval dflt);
@@ -409,8 +413,10 @@ static U8_MAYBE_UNUSED lispval fd_schemap_get
   int unlock = 0;
   int size, slotno, sorted;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
-  if (!(FD_XSCHEMAP_READONLYP(sm))) {
-    u8_read_lock(&(sm->table_rwlock)); unlock = 1;}
+  if ( (!(FD_XSCHEMAP_READONLYP(sm))) &&
+       (FD_XSCHEMAP_USELOCKP(sm))) {
+    u8_read_lock(&(sm->table_rwlock));
+    unlock = 1;}
   size = FD_XSCHEMAP_SIZE(sm);
   sorted = FD_XSCHEMAP_SORTEDP(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sorted);
@@ -429,8 +435,10 @@ static U8_MAYBE_UNUSED lispval fd_schemap_test
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
   if ((FD_ABORTP(val)))
     return fd_interr(val);
-  if (!(FD_XSCHEMAP_READONLYP(sm))) {
-    u8_read_lock(&(sm->table_rwlock)); unlock = 1;}
+  if ( (!(FD_XSCHEMAP_READONLYP(sm))) &&
+       (FD_XSCHEMAP_USELOCKP(sm)) ) {
+    u8_read_lock(&(sm->table_rwlock));
+    unlock = 1;}
   size = FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->table_schema,size,sm->schemap_sorted);
   if (slotno>=0) {
@@ -606,6 +614,7 @@ typedef struct FD_HASHSET {
   FD_CONS_HEADER;
   int hs_n_elts, hs_n_buckets;
   char hs_modified;
+  char table_uselock;
   double hs_load_factor;
   lispval *hs_buckets;
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHSET;
