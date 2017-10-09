@@ -129,7 +129,8 @@ FD_FASTOP fd_lexenv init_static_env
   bindings->table_schema = vars;
   bindings->schema_values = vals;
   bindings->schema_length = n;
-  u8_init_rwlock(&(bindings->table_rwlock));
+  bindings->table_uselock = 0;
+  // u8_init_rwlock(&(bindings->table_rwlock));
   envstruct->env_bindings = LISP_CONS((bindings));
   envstruct->env_exports = FD_VOID;
   envstruct->env_parent = parent;
