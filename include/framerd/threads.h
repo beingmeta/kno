@@ -14,23 +14,26 @@
 FD_EXPORT fd_ptr_type fd_thread_type;
 FD_EXPORT fd_ptr_type fd_condvar_type;
 
-#define FD_THREAD_DONE 1
-#define FD_EVAL_THREAD 2
-#define FD_THREAD_TRACE_EXIT 4
-#define FD_THREAD_QUIET_EXIT 8
+#define FD_THREAD_DONE       0x01
+#define FD_THREAD_ERROR      0x02
+#define FD_EVAL_THREAD       0x04
+#define FD_THREAD_TRACE_EXIT 0x80
+#define FD_THREAD_QUIET_EXIT 0x81
+
 typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER;
   pthread_t tid;
   long long threadid;
   int flags;
+  pthread_attr_t attr;
   int *errnop;
   int loglevel;
   double started;
   double finished;
   lispval threadvars;
   struct FD_STACK *thread_stackptr;
+  struct FD_THREAD_STRUCT *ring_left, *ring_right;
   lispval *resultptr, result;
-  pthread_attr_t attr;
   union {
     struct {lispval expr; fd_lexenv env;} evaldata;
     struct {lispval fn, *args; int n_args;} applydata;};} FD_THREAD;

@@ -47,24 +47,99 @@ static lispval logexit_symbol = VOID;
 #define U8_STRING_ARG(s) (((s) == NULL)?((u8_string)""):((u8_string)(s)))
 #endif
 
-/* Thread functions */
+/* Thread structures */
 
-int fd_thread_backtrace = 0;
+static struct FD_THREAD_STRUCT *thread_ring=NULL;
+u8_mutex thread_ring_lock;
 
 fd_ptr_type fd_thread_type;
 fd_ptr_type fd_condvar_type;
+
+static void add_thread(struct FD_THREAD_STRUCT *thread)
+{
+  if (thread == NULL)
+    u8_log(LOGCRIT,"AddThreadError","NULL thread added to thread ring!");
+  else if ( (thread->ring_left) || (thread->ring_right) )
+    u8_log(LOGWARN,"RedundantAddThread",
+           "'New' thread object %q is being added again",
+           (lispval)thread);
+  else {
+    u8_lock_mutex(&thread_ring_lock);
+    thread->ring_right=thread_ring;
+    thread->ring_left=NULL;
+    thread_ring=thread;
+    u8_unlock_mutex(&thread_ring_lock);}
+}
+
+static void remove_thread(struct FD_THREAD_STRUCT *thread)
+{
+  if (thread == NULL)
+    u8_log(LOGCRIT,"RemoveThreadError",
+           "Attempt to remove NULL thread description!");
+  else if ( (thread->ring_left) || (thread->ring_right) ) {
+    u8_lock_mutex(&thread_ring_lock);
+    if (thread->ring_left == NULL)
+      thread_ring = thread->ring_right;
+    else thread->ring_left->ring_right = thread->ring_right;
+    thread->ring_left = NULL;
+    thread->ring_right = NULL;
+    u8_unlock_mutex(&thread_ring_lock);}
+  else u8_log(LOGWARN,"InvalidRemoveThread",
+              "Removing unknown thread object %q",
+              (lispval)thread);
+}
+
+static lispval findthread_prim(lispval threadid_arg)
+{
+  long long threadid =
+    ( (FD_VOIDP(threadid_arg)) || (FD_DEFAULTP(threadid_arg)) ) ?
+    ( u8_threadid() ) :
+    (FD_INTEGERP(threadid_arg)) ? (fd_getint(threadid_arg)) :
+    (-1);
+  if (threadid>0) {
+    u8_lock_mutex(&thread_ring_lock);
+    struct FD_THREAD_STRUCT *scan = thread_ring;
+    while (scan) {
+      if (scan->threadid == threadid) {
+        lispval found = (lispval) scan;
+        fd_incref(found);
+        u8_unlock_mutex(&thread_ring_lock);
+        return found;}
+      else scan = scan->ring_right;}
+    u8_unlock_mutex(&thread_ring_lock);
+    return FD_FALSE;}
+  return fd_err("NoThreadID","find_thread",NULL,threadid_arg);
+}
+
+static lispval allthreads_config_get(lispval var,U8_MAYBE_UNUSED void *data)
+{
+  lispval results = EMPTY;
+  u8_lock_mutex(&thread_ring_lock);
+  struct FD_THREAD_STRUCT *scan = thread_ring;
+  while (scan) {
+    lispval thread = (lispval) scan;
+    fd_incref(thread);
+    CHOICE_ADD(results,thread);
+    scan=scan->ring_right;}
+  u8_unlock_mutex(&thread_ring_lock);
+  return results;
+}
+
+/* Thread functions */
+
+int fd_thread_backtrace = 0;
 
 static int unparse_thread_struct(u8_output out,lispval x)
 {
   struct FD_THREAD_STRUCT *th=
     fd_consptr(struct FD_THREAD_STRUCT *,x,fd_thread_type);
   if (th->flags&FD_EVAL_THREAD)
-    u8_printf(out,"#<THREAD 0x%x%s eval %q>",
-              (unsigned long)(th->tid),
+    u8_printf(out,"#<THREAD (%lld)0x%x%s eval %q>",
+              th->threadid,(unsigned long)(th->tid),
               ((th->flags&FD_THREAD_DONE) ? (" done") : ("")),
               th->evaldata.expr);
-  else u8_printf(out,"#<THREAD 0x%x%s apply %q>",
-                 (unsigned long)(th->tid),
+  else u8_printf(out,"#<THREAD (%lld)0x%x%s apply %q>",
+                 th->threadid,(unsigned long)(th->tid),
                  ((th->flags&FD_THREAD_DONE) ? (" done") : ("")),
                  th->applydata.fn);
   return 1;
@@ -73,6 +148,7 @@ static int unparse_thread_struct(u8_output out,lispval x)
 FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
 {
   struct FD_THREAD_STRUCT *th = (struct FD_THREAD_STRUCT *)c;
+  remove_thread(th);
   if (th->flags&FD_EVAL_THREAD) {
     fd_decref(th->evaldata.expr);
     if (th->evaldata.env) {
@@ -267,7 +343,7 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 
 /* Functions */
 
-static void *thread_call(void *data)
+static void *thread_main(void *data)
 {
   lispval result;
   struct FD_THREAD_STRUCT *tstruct = (struct FD_THREAD_STRUCT *)data;
@@ -277,6 +353,7 @@ static void *thread_call(void *data)
      (thread_log_exit));
 
   tstruct->errnop = &(errno);
+  tstruct->threadid = u8_threadid();
 
   FD_INIT_STACK();
 
@@ -301,10 +378,11 @@ static void *thread_call(void *data)
                        tstruct->applydata.n_args,
                        tstruct->applydata.args);
   result = fd_finish_call(result);
-  
-  tstruct->finished = u8_elapsed_time();
 
-  if ((FD_ABORTP(result))&&(errno)) {
+  tstruct->finished = u8_elapsed_time();
+  tstruct->flags = tstruct->flags|FD_THREAD_DONE;
+
+  if ( (FD_ABORTP(result)) && (errno) ) {
     u8_exception ex = u8_current_exception;
     u8_log(thread_loglevel,ThreadExit,
            "Thread #%lld error (errno=%s:%d) %s (%s) %s",
@@ -334,6 +412,7 @@ static void *thread_call(void *data)
 
   if (FD_ABORTP(result)) {
     u8_exception ex = u8_erreify();
+    tstruct->flags = tstruct->flags|FD_THREAD_ERROR;
     if (ex->u8x_details)
       u8_log(LOG_WARN,ThreadReturnError,
              "Thread #%d %s @%s (%s)",u8_threadid(),
@@ -357,21 +436,19 @@ static void *thread_call(void *data)
         u8_close_output(tmpout);}}
     lispval exception = fd_get_exception(ex);
     if (FD_VOIDP(exception))
-      exception = fd_init_exception
-        (NULL,ex->u8x_cond,ex->u8x_context,ex->u8x_details,
-         FD_VOID,FD_VOID,FD_VOID);
+      exception = fd_wrap_exception(ex);
     else fd_incref(exception);
     tstruct->result = exception;
     if (tstruct->resultptr) {
       fd_incref(exception);
       *(tstruct->resultptr) = exception;}
-    else {}}
+    else {}
+    u8_free_exception(ex,1);}
   else {
     tstruct->result = result;
     if (tstruct->resultptr) {
       *(tstruct->resultptr) = result;
       fd_incref(result);}}
-  tstruct->flags = tstruct->flags|FD_THREAD_DONE;
   if (tstruct->flags&FD_EVAL_THREAD) {
     fd_free_lexenv(tstruct->evaldata.env);
     tstruct->evaldata.env = NULL;}
@@ -405,8 +482,9 @@ fd_thread_struct fd_thread_call(lispval *resultptr,
   tstruct->applydata.args = rail;
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((lispval)tstruct);
+  add_thread(tstruct);
   pthread_create(&(tstruct->tid),&(tstruct->attr),
-                 thread_call,(void *)tstruct);
+                 thread_main,(void *)tstruct);
   return tstruct;
 }
 
@@ -432,8 +510,9 @@ fd_thread_struct fd_thread_eval(lispval *resultptr,
   tstruct->evaldata.env = fd_copy_env(env);
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((lispval)tstruct);
+  add_thread(tstruct);
   pthread_create(&(tstruct->tid),pthread_attr_default,
-                 thread_call,(void *)tstruct);
+                 thread_main,(void *)tstruct);
   return tstruct;
 }
 
@@ -535,13 +614,21 @@ static lispval thread_exitedp(lispval thread_arg)
   else return FD_FALSE;
 }
 
+static lispval thread_finishedp(lispval thread_arg)
+{
+  struct FD_THREAD_STRUCT *thread = (struct FD_THREAD_STRUCT *)thread_arg;
+  if ( ( (thread->flags)&(FD_THREAD_DONE) )  &&
+       (! ( (thread->flags) & (FD_THREAD_ERROR) ) ) )
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static lispval thread_errorp(lispval thread_arg)
 {
   struct FD_THREAD_STRUCT *thread = (struct FD_THREAD_STRUCT *)thread_arg;
-  if ((thread->flags)&(FD_THREAD_DONE)) {
-    if (FD_ABORTP(thread->result))
-      return FD_TRUE;
-    else return FD_FALSE;}
+  if ( ( (thread->flags) & (FD_THREAD_DONE) ) &&
+       ( (thread->flags) & (FD_THREAD_ERROR) ) )
+    return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -557,7 +644,7 @@ static lispval thread_result(lispval thread_arg)
   else return EMPTY;
 }
 
-static lispval threadjoin_prim(lispval threads)
+static lispval threadjoin_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   lispval results = EMPTY;
   {DO_CHOICES(thread,threads)
@@ -572,7 +659,7 @@ static lispval threadjoin_prim(lispval threads)
       if ( (tstruct->resultptr == NULL) ||
            ((tstruct->resultptr) == &(tstruct->result)) ) {
         if (VOIDP(tstruct->result))
-          u8_log(LOG_WARN,ThreadVOID,
+          u8_log(LOG_INFO,ThreadVOID,
                  "The thread %q unexpectedly returned VOID but without error",
                  thread);
         else  {
@@ -583,7 +670,7 @@ static lispval threadjoin_prim(lispval threads)
   return results;
 }
 
-static lispval threadwait_prim(lispval threads)
+static lispval threadwait_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
 {
   {DO_CHOICES(thread,threads)
      if (!(TYPEP(thread,fd_thread_type)))
@@ -595,6 +682,46 @@ static lispval threadwait_prim(lispval threads)
       u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
              retval,strerror(retval),thread);}}
   return fd_incref(threads);
+}
+
+static lispval threadfinish_prim(lispval args,lispval U8_MAYBE_UNUSED opts)
+{
+  lispval results = EMPTY;
+  {DO_CHOICES(arg,args)
+      if (TYPEP(arg,fd_thread_type)) {
+        struct FD_THREAD_STRUCT *thread = (fd_thread_struct)thread;
+        if (thread->finished<0) {
+          u8_byte buf[64];
+          int retval = pthread_join(thread->tid,NULL);
+          if (retval) {
+            u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
+                   retval,strerror(retval),thread);
+            if (FD_VOIDP(thread->result))
+              thread->result = fd_init_exception
+                (NULL,ThreadReturnError,"threadfinish_prim",
+                 u8_mkstring("%d:%s",retval,strerror(retval)),
+                 VOID,VOID,VOID);}}
+        lispval result = thread->result;
+        fd_incref(result);
+        CHOICE_ADD(results,result);}
+      else {
+        FD_ADD_TO_CHOICE(results,arg);
+        fd_incref(arg);}}
+  return results;
+}
+
+static lispval threadwaitbang_prim(lispval threads,lispval U8_MAYBE_UNUSED opts)
+{
+  {DO_CHOICES(thread,threads)
+     if (!(TYPEP(thread,fd_thread_type)))
+       return fd_type_error(_("thread"),"threadjoin_prim",thread);}
+  {DO_CHOICES(thread,threads) {
+    struct FD_THREAD_STRUCT *tstruct = (fd_thread_struct)thread;
+    int retval = pthread_join(tstruct->tid,NULL);
+    if (retval)
+      u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
+             retval,strerror(retval),thread);}}
+  return FD_VOID;
 }
 
 static lispval parallel_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
@@ -723,6 +850,8 @@ static lispval set_stack_limit_prim(lispval arg)
 
 FD_EXPORT void fd_init_threads_c()
 {
+  u8_init_mutex(&thread_ring_lock);
+
   fd_thread_type = fd_register_cons_type(_("thread"));
   fd_recyclers[fd_thread_type]=recycle_thread_struct;
   fd_unparsers[fd_thread_type]=unparse_thread_struct;
@@ -733,26 +862,78 @@ FD_EXPORT void fd_init_threads_c()
 
   fd_def_evalfn(fd_scheme_module,"PARALLEL","",parallel_evalfn);
   fd_def_evalfn(fd_scheme_module,"SPAWN","",threadeval_evalfn);
-  fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
-  fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
-  fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim));
-  fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
-  fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("THREAD/WAIT",threadwait_prim,1)));
 
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("THREAD/EXITED?",thread_exitedp,1,
-                           fd_thread_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("THREAD/ERROR?",thread_errorp,1,
-                           fd_thread_type,VOID));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("THREAD/RESULT",thread_result,1,
-                           fd_thread_type,VOID));
+  fd_idefnN(fd_scheme_module,"THREAD/CALL",threadcall_prim,
+            FD_NEEDS_1_ARG|FD_NDCALL,
+            "(THREAD/CALL *opts* *fcn* *args*...) applies *fcn* "
+            "in parallel to all of the combinations of *args* "
+            "and returns one thread for each combination.");
+  fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
+
+  fd_idefnN(fd_scheme_module,"THREAD/CALL+",
+            threadcallx_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            "(THREAD/CALL+ *opts* *fcn* *args*...) applies *fcn* "
+            "in parallel to all of the combinations of *args* "
+            "and returns one thread for each combination. *opts* "
+            "specifies options for creating each thread.");
+
+  fd_idefn0(fd_scheme_module,"THREAD/YIELD",threadyield_prim,
+            "(THREAD/YIELD) allows other threads to run");
+  fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
+
+  fd_idefn2(fd_scheme_module,"THREAD/JOIN",threadjoin_prim,
+            FD_NEEDS_1_ARG|FD_NDCALL,
+            "(THREAD/JOIN *threads* [*opts*]) waits for all of *threads* to finish and "
+            "returns all of their non VOID results (as a choice), logging "
+            "when a VOID result is returned. *opts is currently ignored.",
+            -1,FD_VOID,-1,FD_FALSE);
+  fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
+
+  fd_idefn2(fd_scheme_module,"THREAD/WAIT",threadwait_prim,
+            FD_NEEDS_1_ARG|FD_NDCALL,
+            "(THREAD/WAIT *threads* [*opts*]) waits for all of *threads* "
+            "to return, returning the thread objects. "
+            "*opts is currently ignored.",
+            -1,FD_VOID,-1,FD_FALSE);
+
+  fd_idefn2(fd_scheme_module,"THREAD/FINISH",threadfinish_prim,
+            FD_NEEDS_1_ARG|FD_NDCALL,
+            "(THREAD/FINISH *args* [*opts*]) waits for all of threads in *args* "
+            "to return, returning the non-VOID thread results together "
+            "with any non-thread *args*. *opts is currently ignored.",
+            -1,FD_VOID,-1,FD_FALSE);
+
+  fd_idefn2(fd_scheme_module,"THREAD/WAIT!",threadwaitbang_prim,
+            FD_NEEDS_1_ARG|FD_NDCALL,
+            "(THREAD/WAIT! *threads*) waits for all of *threads* to return, "
+            "and returns VOID. *opts is currently ignored.",
+            -1,FD_VOID,-1,FD_FALSE);
+
+  fd_idefn1(fd_scheme_module,"FIND-THREAD",findthread_prim,0,
+            "(FIND-THREAD [*id*]) returns the thread object for "
+            "the the thread numbered *id* (which is the value returned "
+            "by (threadid)). If *id* is not provided or #default, returns "
+            "the thread object for the current thread. If a thread object "
+            "doesn't exist, returns #f",
+            -1,FD_VOID);
+
+  fd_idefn1(fd_scheme_module,"THREAD/EXITED?",thread_exitedp,1,
+            "(THREAD/EXITED? *thread*) returns true if *thread* has exited",
+            fd_thread_type,VOID);
+  fd_idefn1(fd_scheme_module,"THREAD/FINISHED?",thread_finishedp,1,
+            "(THREAD/EXITED? *thread*) returns true "
+            "if *thread* exited normally, #F otherwise",
+            fd_thread_type,VOID);
+  fd_idefn1(fd_scheme_module,"THREAD/ERROR?",thread_errorp,1,
+            "(THREAD/ERROR? *thread*) returns true if *thread* "
+            "exited with an error, #F otherwise",
+            fd_thread_type,VOID);
+  fd_idefn1(fd_scheme_module,"THREAD/RESULT",thread_result,1,
+            "(THREAD/RESULT *thread*) returns the final result of the thread "
+            "or {} if it hasn't finished. If the thread returned an error "
+            "this returns the exception object for the error. If you want to "
+            "wait for the result, use THREAD/JOIN.",
+            fd_thread_type,VOID);
 
   logexit_symbol = fd_intern("LOGEXIT");
 
@@ -770,6 +951,11 @@ FD_EXPORT void fd_init_threads_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-LIMIT",stack_limit_prim));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("STACK-LIMIT!",set_stack_limit_prim,1,
                                             fd_fixnum_type,VOID));
+
+  fd_register_config("ALLTHREADS",
+                     "All active LISP threads",
+                     allthreads_config_get,fd_readonly_config_set,
+                     NULL);
 
   fd_register_config("THREAD:BACKTRACE",
                      "Whether errors in threads print out full backtraces",
