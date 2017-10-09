@@ -385,16 +385,17 @@ static lispval get_pprint_rule(lispval car,pprint_context ppcxt)
 static int escape_char(u8_output out,int c)
 {
   switch (c) {
-  case '"': u8_puts(out,"\\\""); break;
-  case '\\': u8_puts(out,"\\\\"); break;
-  case '\n': u8_puts(out,"\\n"); break;
-  case '\t': u8_puts(out,"\\t"); break;
-  case '\r': u8_puts(out,"\\r"); break;
+  case '"': u8_puts(out,"\\\""); return 2;
+  case '\\': u8_puts(out,"\\\\"); return 2;
+  case '\n': u8_puts(out,"\\n"); return 2;
+  case '\t': u8_puts(out,"\\t"); return 2;
+  case '\r': u8_puts(out,"\\r"); return 2;
   default:
     if (iscntrl(c)) {
       char buf[32]; sprintf(buf,"\\%03o",c);
-      u8_puts(out,buf);}
-    else u8_putc(out,c);}
+      u8_puts(out,buf);
+      return 4;}
+    else return u8_putc(out,c);}
 }
 
 static int unparse(u8_output out,lispval obj,pprint_context ppcxt)
@@ -402,6 +403,7 @@ static int unparse(u8_output out,lispval obj,pprint_context ppcxt)
   if (STRINGP(obj)) {
     size_t len=FD_STRLEN(obj);
     int max_chars = pprint_max(maxchars,ppcxt);
+    int n_bytes = 2; /* Open and close '"' */
     if (max_chars >= 0) {
       int n_chars=0;
       u8_string scan = CSTRING(obj), limit = scan+len;
@@ -412,18 +414,26 @@ static int unparse(u8_output out,lispval obj,pprint_context ppcxt)
                (n_chars < max_chars) &&
                (*scan != '"') && (*scan != '\\') &&
                (!(iscntrl(*scan)))) {
-          n_chars++; u8_sgetc(&scan);}
+          n_chars++;
+          u8_sgetc(&scan);}
+        n_bytes += scan-chunk;
         u8_putn(out,chunk,scan-chunk);
         if (*scan) {
-          escape_char(out,*scan);
+          n_bytes += escape_char(out,*scan);
           n_chars++;
           scan++;}}
-      if (scan==limit) u8_putc(out,'"');
+      if (scan==limit) {
+        u8_putc(out,'"');
+        return n_bytes+1;}
       else {
         int total_chars=n_chars;
         while (scan<limit) {total_chars++; u8_sgetc(&scan);}
-        u8_printf(out,"… %d/%d chars …\"",
-                  total_chars-n_chars,total_chars);}}
+        U8_FIXED_OUTPUT(tmp,256);
+        u8_printf(tmpout,"… %d/%d chars …\"",
+                  total_chars-n_chars,total_chars);
+        u8_putn(out,tmp.u8_outbuf,tmp.u8_write-tmp.u8_outbuf);
+        n_bytes += (tmp.u8_write-tmp.u8_outbuf);
+        return n_bytes;}}
     else return fd_unparse(out,obj);}
   else if (PACKETP(obj)) {
     if (FD_SECRETP(obj))
