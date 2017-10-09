@@ -864,14 +864,14 @@ FD_EXPORT void fd_init_threads_c()
   fd_def_evalfn(fd_scheme_module,"SPAWN","",threadeval_evalfn);
 
   fd_idefnN(fd_scheme_module,"THREAD/CALL",threadcall_prim,
-            FD_NEEDS_1_ARG|FD_NDCALL,
+            FD_NEEDS_1_ARG,
             "(THREAD/CALL *opts* *fcn* *args*...) applies *fcn* "
             "in parallel to all of the combinations of *args* "
             "and returns one thread for each combination.");
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
 
   fd_idefnN(fd_scheme_module,"THREAD/CALL+",
-            threadcallx_prim,FD_NEEDS_2_ARGS|FD_NDCALL,
+            threadcallx_prim,FD_NEEDS_2_ARGS,
             "(THREAD/CALL+ *opts* *fcn* *args*...) applies *fcn* "
             "in parallel to all of the combinations of *args* "
             "and returns one thread for each combination. *opts* "
