@@ -19,9 +19,9 @@ FD_EXPORT u8_condition fd_ReadOnlyConfig;
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {
-  lispval configname; 
-  void *configdata; 
-  int configflags; 
+  lispval configname;
+  void *configdata;
+  int configflags;
   u8_string configdoc;
   lispval (*config_get_method)(lispval var,void *data);
   int (*config_set_method)(lispval var,lispval val,void *data);
@@ -81,8 +81,6 @@ FD_EXPORT lispval *fd_handle_argv(int argc,char **argv,
 FD_EXPORT lispval *fd_argv;
 FD_EXPORT int fd_argc;
 
-FD_EXPORT void fd_set_thread_config(lispval table);
-
 FD_EXPORT
 void fd_register_config_lookup(lispval (*fn)(lispval,void *),void *);
 
@@ -112,9 +110,8 @@ FD_EXPORT void fd_log_exception(u8_exception ex);
 FD_EXPORT void fd_doexit(lispval);
 FD_EXPORT void fd_signal_doexit(int);
 
-/* Thread vars */
-
 FD_EXPORT lispval fd_thread_get(lispval var);
+FD_EXPORT lispval fd_init_threadtable(lispval);
 FD_EXPORT void fd_reset_threadvars(void);
 FD_EXPORT int fd_thread_set(lispval var,lispval val);
 FD_EXPORT int fd_thread_add(lispval var,lispval val);

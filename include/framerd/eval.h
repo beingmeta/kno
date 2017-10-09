@@ -13,6 +13,7 @@
 
 #include "framerd/lexenv.h"
 #include "framerd/apply.h"
+#include "framerd/threads.h"
 #include <assert.h>
 
 FD_EXPORT u8_condition fd_UnboundIdentifier, fd_BindError;
@@ -349,32 +350,8 @@ typedef struct FD_CONTINUATION {
   FD_FUNCTION_FIELDS; lispval retval;} FD_CONTINUATION;
 typedef struct FD_CONTINUATION *fd_continuation;
 
-/* Threading stuff */
+/* Basic thread eval/apply functions */
 
-#define FD_THREAD_DONE 1
-#define FD_EVAL_THREAD 2
-#define FD_THREAD_TRACE_EXIT 4
-#define FD_THREAD_QUIET_EXIT 8
-typedef struct FD_THREAD_STRUCT {
-  FD_CONS_HEADER; int flags; pthread_t tid; 
-  int *errnop; double started, finished;
-  struct FD_STACK *thread_stackptr;
-  lispval *resultptr, result;
-  pthread_attr_t attr;
-  union {
-    struct {lispval expr; fd_lexenv env;} evaldata;
-    struct {lispval fn, *args; int n_args;} applydata;};} FD_THREAD;
-typedef struct FD_THREAD_STRUCT *fd_thread_struct;
-
-typedef struct FD_CONDVAR {
-  FD_CONS_HEADER;
-  u8_mutex fd_cvlock;
-  u8_condvar fd_cvar;}
-  FD_CONDVAR;
-typedef struct FD_CONDVAR *fd_consed_condvar;
-
-FD_EXPORT fd_ptr_type fd_thread_type;
-FD_EXPORT fd_ptr_type fd_condvar_type;
 FD_EXPORT fd_thread_struct fd_thread_call(lispval *,lispval,int,lispval *,int);
 FD_EXPORT fd_thread_struct fd_thread_eval(lispval *,lispval,fd_lexenv,int);
 
