@@ -5,7 +5,7 @@
 
 ;;; Maintaining registries of objects (OIDs) with unique IDs
 
-(use-module '{ezrecords logger varconfig})
+(use-module '{ezrecords logger stringfmts varconfig})
 
 (define %used_modules 'ezrecords)
 
@@ -75,7 +75,7 @@
 		  (write slotid)))))
   (for-choices slotid
     (set! reg (or registry-arg (get registries slotid)))
-    (info%watch "REGISTER" slotid value reg)
+    (debug%watch "REGISTER" reg slotid value)
     (for-choices value
       (cond ((and reg (not defaults) (not adds))
 	     ;; Simple call, since we dont' need to do anything 
@@ -138,14 +138,14 @@
 		      (let ((threads (thread/call+ #[logexit #f]
 					 commit (pick dbs modified?)))
 			    (started (elapsed-time)))
-			(Loginfo |SavingRegistry| r)
+			(lognotice |SavingRegistry| r)
 			(if (exists? threads)
 			    (begin (thread/wait threads)
 			      (lognotice |RegistrySaved| 
 				"Saved registry " r " in " (secs-since started)))
 			    (logwarn |NoRegistry| "Couldn't get a registry to save")))
 		      (let ((started (elapsed-time)))
-			(Loginfo |SavingRegistry| r)
+			(lognotice |SavingRegistry| r)
 			(do-choices (db (pick dbs modified?)) (commit dbs))
 			(lognotice |RegistrySaved| 
 			  "Saved registry " r " in " (secs-since started)))))))))
@@ -155,16 +155,15 @@
 (define (registry/get registry slotid value (create #f) (server) (index))
   (default! server (registry-server registry))
   (default! index (registry-index registry))
-  (info%watch "REGISTRY/GET" registry slotid value create server index)
+  (debug%watch "REGISTRY/GET" registry slotid value create server index)
   (if server
       (try (find-frames index slotid value)
 	   (dtcall server 'register slotid value))
       (with-lock (registry-lock registry)
 	(try (get (registry-cache registry) value)
-	     (let* ((key (cons slotid value))
-		    (existing (pick (find-frames index slotid value) valid-oid?))
-		    (result (try (singleton existing)
-				 (good-frame existing)
+	     (let* ((existing (pick (find-frames index slotid value) valid-oid?))
+		    (checked  (check-existing registry index slotid value existing))
+		    (result (try checked
 				 (tryif create
 				   (frame-create (registry-pool registry)
 				     '%id (list slotid value)
@@ -172,21 +171,13 @@
 				     '%created (timestamp)
 				     slotid value))))
 		    (exvalue (oid-value existing)))
-	       (when (and (exists? existing)
-			  (or (fail? exvalue)
-			      (not (or (slotmap? exvalue) (schemap? exvalue)))))
-		 (logwarn |Registry/FixingOID| 
-		   "Fixing the value of registered " slotid "(" value ")="
-		   (oid->string existing) 
-		   " which was saved as " exvalue)
-		 (set-oid-value! existing
-				 (frame-create #f
-				   '%id (list slotid value)
-				   '%session (config 'sessionid)
-				   '%created (timestamp)
-				   slotid value))
-		 (set! existing {}))
-	       (info%watch "REGISTRY/GET/got" key existing result)
+	       (if (and (fail? checked) (exists? result))
+		   (loginfo |REGISTRY/GET/create| 
+		     result "\n" (oid->string result) "=" slotid "(" value ") "
+		     "created=" (get result '%created) 
+		     ",session=" (write (get result '%session))
+		     (when (exists? existing) (printout ", existing=" existing)))
+		   (debug%watch "REGISTRY/GET/got" slotid value existing checked result))
 	       (when (exists? result)
 		 (when (fail? existing)
 		   (index-frame index result slotid value)
@@ -195,6 +186,66 @@
 		       (store! result key (get create key)))))
 		 (store! (registry-cache registry) value result))
 	       result)))))
+
+(define (good-frame? oid (v))
+  (default! v (oid-value oid))
+  (and (exists? v) (or (slotmap? v) (schemap? v))))
+
+(defambda (check-existing registry index slotid value existing)
+  (cond ((fail? existing) existing)
+	((ambiguous? existing)
+	 (let* ((good (pick existing good-frame?))
+		(correct (pick good slotid value))
+		(winner (try (smallest correct oid-addr)
+			     (smallest existing oid-addr)))
+		(drop (difference existing winner))
+		(merge (difference correct winner))
+		(session (config 'sessionid)))
+	   (logwarn |RegistryDuplicate|
+	     "Removing " (-1+ (choice-size existing)) " duplicates "
+	     "for " slotid "=" value ", keeping " winner ":"
+	     (printout "\n   * " (oid->string winner) " "
+	       (if (good-frame? winner)
+		   (printout "created=" (get winner '%created) 
+		     ", session=" (get winner '%session))
+		   (printout "badframe")))
+	     (do-choices (d drop)
+	       (printout "\n     "
+		 (oid->string d) " " (if (good-frame? d)
+		     (printout "created=" (get d '%created) 
+		       ", session=" (get d '%session))
+		     (printout "badframe"))))
+	     "\nsession=" (write session))
+	   (when (exists? (pick correct '%session session))
+	     (dbg (pick correct '%session session)))
+	   (drop! index (cons slotid value) (difference existing winner))
+	   (do-choices (bad (difference existing good winner))
+	     (set-oid-value! bad 
+			     (frame-create #f 'type 'badreg slotid value
+					   'merged winner)))
+	   (unless (overlaps? winner correct)
+	     (logwarn |RegistryReinitialize| "Reinitizalizing " winner)
+	     (set-oid-value! winner 
+			     (frame-create #f
+			       '%id (list slotid value)
+			       '%session (config 'sessionid)
+			       '%created (timestamp)
+			       slotid value)))
+	   (when (exists? merge)
+	     (do-choices (f merge)
+	       (do-choices (slotid (getkeys f))
+		 (unless (test winner slotid)
+		   (store! winner slotid (get f slotid)))))
+	     (store! merge 'merged winner))
+	   winner))
+	((good-frame? existing) existing)
+	(else (set-oid-value! existing
+			      (frame-create #f
+				'%id (list slotid value)
+				'%session (config 'sessionid)
+				'%created (timestamp)
+				slotid value))
+	      existing)))
 
 (defambda (good-frame existing (value))
   (when (ambiguous? existing)
