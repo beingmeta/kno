@@ -1374,9 +1374,18 @@ static lispval oidpool(lispval x)
 static lispval inpoolp(lispval x,lispval pool_arg)
 {
   fd_pool p = fd_lisp2pool(pool_arg);
-  fd_pool op = fd_oid2pool(x);
-  if (p == op) return FD_TRUE;
-  else return FD_FALSE;
+  if ( (p->pool_flags) & (FD_POOL_ADJUNCT) ) {
+    FD_OID base = p->pool_base;
+    FD_OID edge = FD_OID_PLUS(base,p->pool_capacity);
+    FD_OID addr = FD_OID_ADDR(x);
+    if ( (addr >= base) && (addr < edge) )
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else {
+    fd_pool op = fd_oid2pool(x);
+    if (p == op)
+      return FD_TRUE;
+    else return FD_FALSE;}
 }
 
 static lispval validoidp(lispval x,lispval pool_arg)
