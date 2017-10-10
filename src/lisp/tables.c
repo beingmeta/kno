@@ -3183,7 +3183,7 @@ static lispval hashset_probe(struct FD_HASHSET *h,lispval key)
     FD_DO_CHOICES(entry,contents) {
       if ( (entry==key) || (FD_EQUALP(entry,key)) ) {
         result=entry; FD_STOP_DO_CHOICES; break;}}}
-  fd_unlock_table(h);
+  if (unlock) fd_unlock_table(h);
   return fd_incref(result);
 }
 
