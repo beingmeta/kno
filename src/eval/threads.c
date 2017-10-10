@@ -66,6 +66,7 @@ static void add_thread(struct FD_THREAD_STRUCT *thread)
   else {
     u8_lock_mutex(&thread_ring_lock);
     thread->ring_right=thread_ring;
+    if (thread_ring) thread_ring->ring_left=thread;
     thread->ring_left=NULL;
     thread_ring=thread;
     u8_unlock_mutex(&thread_ring_lock);}
@@ -76,17 +77,21 @@ static void remove_thread(struct FD_THREAD_STRUCT *thread)
   if (thread == NULL)
     u8_log(LOGCRIT,"RemoveThreadError",
            "Attempt to remove NULL thread description!");
-  else if ( (thread->ring_left) || (thread->ring_right) ) {
+  else {
     u8_lock_mutex(&thread_ring_lock);
-    if (thread->ring_left == NULL)
-      thread_ring = thread->ring_right;
-    else thread->ring_left->ring_right = thread->ring_right;
+    struct FD_THREAD_STRUCT *left = thread->ring_left;
+    struct FD_THREAD_STRUCT *right = thread->ring_right;
+    if (left) {
+      assert( left->ring_right == thread );
+      left->ring_right = right;}
+    if (right) {
+      assert( right->ring_left == thread );
+      right->ring_left = left;}
+    if ( thread_ring == thread )
+      thread_ring = right;
     thread->ring_left = NULL;
     thread->ring_right = NULL;
     u8_unlock_mutex(&thread_ring_lock);}
-  else u8_log(LOGWARN,"InvalidRemoveThread",
-              "Removing unknown thread object %q",
-              (lispval)thread);
 }
 
 static lispval findthread_prim(lispval threadid_arg)
