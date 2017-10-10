@@ -160,7 +160,6 @@ static lispval default_get_oid_name(fd_pool p,lispval oid)
         fd_decref(probe);
         return VOID;}
       else return probe;}
-    fd_decref(ov);
     return VOID;}
 }
 
