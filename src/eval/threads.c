@@ -311,21 +311,23 @@ static lispval synchro_unlock(lispval lck)
 static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
 {
   lispval lock_expr = fd_get_arg(expr,1), lck, value = VOID;
+  u8_mutex *uselock = NULL;
   if (VOIDP(lock_expr))
     return fd_err(fd_SyntaxError,"with_lock_evalfn",NULL,expr);
   else lck = fd_eval(lock_expr,env);
   if (TYPEP(lck,fd_condvar_type)) {
     struct FD_CONDVAR *cv=
       fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
-    u8_lock_mutex(&(cv->fd_cvlock));}
+    uselock = &(cv->fd_cvlock);}
   else if (FD_LAMBDAP(lck)) {
     struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
     if (sp->lambda_synchronized) {
-      u8_lock_mutex(&(sp->lambda_lock));}
+      uselock = &(sp->lambda_lock);}
     else return fd_type_error("lockable","synchro_lock",lck);}
   else return fd_type_error("lockable","synchro_unlock",lck);
   {U8_WITH_CONTOUR("WITH-LOCK",0) {
-      FD_DOLIST(elt_expr,FD_CDR(FD_CDR(expr))) {
+      u8_lock_mutex(uselock);
+      FD_DOLIST(elt_expr,FD_CDDR(expr)) {
         fd_decref(value);
         value = fd_eval(elt_expr,env);}}
     U8_ON_EXCEPTION {
@@ -333,16 +335,7 @@ static lispval with_lock_evalfn(lispval expr,fd_lexenv env,fd_stack _stack)
       fd_decref(value);
       value = FD_ERROR;}
     U8_END_EXCEPTION;}
-  if (TYPEP(lck,fd_condvar_type)) {
-    struct FD_CONDVAR *cv=
-      fd_consptr(struct FD_CONDVAR *,lck,fd_condvar_type);
-    u8_unlock_mutex(&(cv->fd_cvlock));}
-  else if (FD_LAMBDAP(lck)) {
-    struct FD_LAMBDA *sp = fd_consptr(fd_lambda,lck,fd_lambda_type);
-    if (sp->lambda_synchronized) {
-      u8_unlock_mutex(&(sp->lambda_lock));}
-    else return fd_type_error("lockable","synchro_lock",lck);}
-  else return fd_type_error("lockable","synchro_unlock",lck);
+  u8_unlock_mutex(uselock);
   return value;
 }
 
