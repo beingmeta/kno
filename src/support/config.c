@@ -829,7 +829,7 @@ FD_EXPORT lispval fd_tblconfig_get(lispval var,void *data)
 {
   lispval *lptr = (lispval *) data;
   lispval table = *lptr;
-  return fd_incref(pprint_default_rules);
+  return fd_incref(table);
 }
 
 /* Initialization */
