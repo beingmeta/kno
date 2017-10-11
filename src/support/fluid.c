@@ -98,7 +98,8 @@ FD_EXPORT lispval fd_init_threadtable(lispval init_table)
     return table;
   else if (FD_TABLEP(init_table)) {
     fd_incref(init_table);
-    thread_table = init_table;}
+    thread_table = init_table;
+    return init_table;}
   else {
     lispval new_table = fd_empty_slotmap();
     thread_table = new_table;
